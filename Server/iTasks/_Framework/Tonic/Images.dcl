@@ -48,9 +48,9 @@ mkTaskImage     :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef
                    !Bool !ModelTy *TagSource
                 -> Image ModelTy
 
-tDefaultTaskApp :: !Bool !Bool !Bool !Bool
-                   !(Set (ModuleName, TaskName, ExprId)) !ExprId !ModuleName
-                   !TaskName !ModuleName !TaskName ![TExpr] ![Image ModelTy]
-                   !*TagSource
-                -> *(!Image ModelTy, !*TagSource)
+tDefaultMApp :: !Bool !Bool !Bool !Bool
+                !(Set (ModuleName, TaskName, ExprId)) !ExprId !ModuleName
+                !TaskName !ModuleName !TaskName ![TExpr] ![Image ModelTy]
+                !*TagSource
+             -> *(!Image ModelTy, !*TagSource)
 

@@ -7,7 +7,7 @@ import iTasks._Framework.IWorld
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Images
 import iTasks._Framework.Tonic.Types
-import iTasks._Framework.Tonic.Util
+import iTasks._Framework.Tonic.Pretty
 import iTasks._Framework.TaskState
 import iTasks._Framework.TaskStore
 import iTasks._Framework.TaskEval
@@ -45,10 +45,10 @@ instance TonicTopLevelBlueprint Task where
   tonicWrapTopLevelBody mn tn args t = tonicWrapTaskBody` mn tn args t
 
 instance TonicBlueprintPart Task where
-  tonicWrapPartApp mn tn nid t = tonicWrapApp` mn tn nid t
+  tonicWrapPartApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid t = tonicWrapApp` parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid t
 
 instance TonicBlueprintPart Maybe where
-  tonicWrapPartApp mn tn nid mb = mb
+  tonicWrapPartApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid mb = mb
 
 NS_TONIC_INSTANCES :== "tonic-instances"
 
@@ -296,15 +296,24 @@ getCurrentListId [traceTaskId : xs] iworld
       Ok currentListId -> (Just currentListId, iworld)
       _                -> getCurrentListId xs iworld
 
-tonicWrapApp :: !ModuleName !TaskName !ExprId (m a) -> m a | TonicBlueprintPart m & iTask a
-tonicWrapApp mn tn tid mapp = tonicWrapPartApp mn tn tid mapp
+tonicWrapApp :: !ModuleName !TaskName !ModuleName !TaskName !ExprId (m a) -> m a | TonicBlueprintPart m & iTask a
+tonicWrapApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName tid mapp = tonicWrapPartApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName tid mapp
 
 /**
  * ModuleName and TaskName identify the blueprint, of which we need to
  * highlight nodes.
  */
-tonicWrapApp` :: !ModuleName !TaskName !ExprId (Task a) -> Task a | iTask a
-tonicWrapApp` mn tn nid (Task eval)
+tonicWrapApp` :: !ModuleName !TaskName !ModuleName !TaskName !ExprId (Task a) -> Task a | iTask a
+tonicWrapApp` _  _  "iTasks.API.Core.Types"             ">>="      _   (Task eval) = Task eval
+tonicWrapApp` _  _  "iTasks.API.Common.TaskCombinators" ">>|"      _   (Task eval) = Task eval
+tonicWrapApp` _  _  "iTasks.API.Common.TaskCombinators" ">>*"      _   (Task eval) = Task eval
+tonicWrapApp` _  _  "iTasks.API.Common.TaskCombinators" "-&&-"     _   (Task eval) = Task eval
+tonicWrapApp` _  _  "iTasks.API.Common.TaskCombinators" "-||-"     _   (Task eval) = Task eval
+tonicWrapApp` _  _  "iTasks.API.Common.TaskCombinators" "||-"      _   (Task eval) = Task eval
+tonicWrapApp` _  _  "iTasks.API.Common.TaskCombinators" "-||"      _   (Task eval) = Task eval
+tonicWrapApp` _  _  "iTasks.API.Common.TaskCombinators" "anyTask"  _   (Task eval) = Task eval
+tonicWrapApp` _  _  "iTasks.API.Common.TaskCombinators" "allTasks" _   (Task eval) = Task eval
+tonicWrapApp` mn tn _                                   _          nid (Task eval)
   // The "return () >>~ \_ ->" part ensures each wrapped task application has a
   // unique TaskId. This is to distinguish tasks defined as f = g, which would
   // otherwise have the same TaskId
@@ -423,34 +432,44 @@ withSharedRT f world
       Ok rtMap -> f rtMap world
       _        -> world
 
-tonicWrapAppLam1 :: !ModuleName !TaskName !ExprId !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
-tonicWrapAppLam1 mn tn nid f = \x -> tonicWrapApp mn tn nid (f x)
+tonicWrapAppLam1 :: !ModuleName !TaskName !ModuleName !TaskName !ExprId !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
+tonicWrapAppLam1 parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid f = \x -> tonicWrapApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid (f x)
 
-tonicWrapAppLam2 :: !ModuleName !TaskName !ExprId !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
-tonicWrapAppLam2 mn tn nid f = \x y -> tonicWrapApp mn tn nid (f x y)
+tonicWrapAppLam2 :: !ModuleName !TaskName !ModuleName !TaskName !ExprId !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
+tonicWrapAppLam2 parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid f = \x y -> tonicWrapApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid (f x y)
 
-tonicWrapAppLam3 :: !ModuleName !TaskName !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
-tonicWrapAppLam3 mn tn nid f = \x y z -> tonicWrapApp mn tn nid (f x y z)
+tonicWrapAppLam3 :: !ModuleName !TaskName !ModuleName !TaskName !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
+tonicWrapAppLam3 parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid f = \x y z -> tonicWrapApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid (f x y z)
 
-tonicWrapParallel :: !ModuleName !TaskName !ExprId !([Task a] -> Task b) [Task a] -> Task b | iTask b
-tonicWrapParallel mn tn nid f ts = tonicWrapApp mn tn nid (Task eval)
-  where
-  eval event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
-    # (ts, iworld) = case taskIdFromTaskTree taskTree of
-                       Ok (TaskId instanceNo taskNo)
-                         # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-                         = case mrtMap of
-                             Ok rtMap
-                               # (cct, iworld) = mkCompleteTrace instanceNo [taskNo : callTrace] iworld
-                               = case firstParent rtMap cct of
-                                   Ok parent=:{bpr_instance = Just pinst}
-                                     # (_, iworld) = 'DSDS'.write 'DIS'.newMap (sdsFocus (pinst.bpi_taskId, nid) tonicUpdatesForTaskAndExprId) iworld
-                                     = (tonicWrapListOfTask mn tn nid pinst.bpi_taskId ts, iworld)
-                                   _ = (ts, iworld)
-                             _ = (ts, iworld)
-                       _ = (ts, iworld)
-    = case f ts of
-        Task eval` -> eval` event evalOpts taskTree iworld
+
+/*
+
+TODO We should generalise this
+
+What if we wrap all functors where
+
+taskFun :: ... (f (m a)) ... -> m b | TFunctor f & TonicBlueprintPart m & iTask a & iTask b
+
+*/
+//tonicWrapParallel :: !ModuleName !TaskName !ExprId !([Task a] -> Task b) [Task a] -> Task b | iTask b
+//tonicWrapParallel mn tn nid f ts = tonicWrapApp mn tn nid (Task eval)
+  //where
+  //eval event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
+    //# (ts, iworld) = case taskIdFromTaskTree taskTree of
+                       //Ok (TaskId instanceNo taskNo)
+                         //# (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+                         //= case mrtMap of
+                             //Ok rtMap
+                               //# (cct, iworld) = mkCompleteTrace instanceNo [taskNo : callTrace] iworld
+                               //= case firstParent rtMap cct of
+                                   //Ok parent=:{bpr_instance = Just pinst}
+                                     //# (_, iworld) = 'DSDS'.write 'DIS'.newMap (sdsFocus (pinst.bpi_taskId, nid) tonicUpdatesForTaskAndExprId) iworld
+                                     //= (tonicWrapListOfTask mn tn nid pinst.bpi_taskId ts, iworld)
+                                   //_ = (ts, iworld)
+                             //_ = (ts, iworld)
+                       //_ = (ts, iworld)
+    //= case f ts of
+        //Task eval` -> eval` event evalOpts taskTree iworld
 
 getBlueprintRef :: !TaskId !*IWorld -> *(!Maybe BlueprintRef, !*IWorld)
 getBlueprintRef tid world
@@ -599,10 +618,10 @@ tonicStaticBrowser rs
   noModuleSelection = viewInformation () [] "Select module..."
   noTaskSelection   = viewInformation () [] "Select task..."
 
-viewBPTitle :: !String !String !TCleanExpr -> Task String
+viewBPTitle :: !String !String !TExpr -> Task String
 viewBPTitle tmName ttName resTy = viewInformation (Title title) [ViewWith view] a <<@ InContainer
   where
-  a = tmName +++ "." +++ ttName +++ " :: " +++ ppTCleanExpr resTy
+  a = tmName +++ "." +++ ttName +++ " :: " +++ ppTExpr resTy
   title = toSingleLineText a
   view a = DivTag [] [SpanTag [StyleAttr "font-size: 16px"] [Text title]]
 
@@ -613,7 +632,7 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
   >>~ \ns -> get selectedNodes
   >>~ \selectedNodes -> viewBPTitle tm_name tt.tt_name tt.tt_resty
          ||- (if (length tt.tt_args > 0)
-               (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTCleanExpr varnm +++ " :: " +++ ppTCleanExpr ty))] tt.tt_args @! ())
+               (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTExpr varnm +++ " :: " +++ ppTExpr ty))] tt.tt_args @! ())
                (return ()))
          ||- showBlueprint rs 'DM'.newMap { BlueprintRef
                                           | bpr_moduleName = tm_name
@@ -936,7 +955,7 @@ viewInstance allbps rs navstack dynSett trt selDetail showButtons action=:(Just 
     where
     f _ iworld
       # (params, iworld) = readParams` bpref.bpr_moduleName bpref.bpr_taskName bpinst.bpi_taskId iworld
-      = (Ok (zipWith (\(argnm, argty) (_, vi) -> (ppTCleanExpr argnm +++ " :: " +++ ppTCleanExpr argty, vi)) graph.tt_args params), iworld)
+      = (Ok (zipWith (\(argnm, argty) (_, vi) -> (ppTExpr argnm +++ " :: " +++ ppTExpr argty, vi)) graph.tt_args params), iworld)
 
 viewInstance allbps rs navstack dynSett trt selDetail showButtons (Just {click_target_bpident = {bpident_moduleName, bpident_taskName}})
   =                getModuleAndTask allbps bpident_moduleName bpident_taskName
@@ -958,10 +977,10 @@ allBlueprints
         Just _ -> acc
         _      -> 'DM'.put mod.tm_name mod.tm_tasks acc
 
-instance == TCleanExpr where
-  (==) (AppCleanExpr a1 l1 r1) (AppCleanExpr a2 l2 r2) = a1 == a2 && l1 == l2 && r1 == r2
-  (==) (PPCleanExpr p1)        (PPCleanExpr p2)        = p1 == p2
-  (==) _                       _                       = False
+//instance == TCleanExpr where
+  //(==) (AppCleanExpr a1 l1 r1) (AppCleanExpr a2 l2 r2) = a1 == a2 && l1 == l2 && r1 == r2
+  //(==) (PPCleanExpr p1)        (PPCleanExpr p2)        = p1 == p2
+  //(==) _                       _                       = False
 
 instance == TAssoc where
   (==) (TLeftAssoc n1)  (TLeftAssoc n2)  = n1 == n2
@@ -976,33 +995,35 @@ expandTask allbps n tt
 
 expandTExpr :: !AllBlueprints !Int !TExpr -> TExpr
 expandTExpr _      0 texpr = texpr
-expandTExpr allbps n texpr=:(TTaskApp eid mn tn args)
+expandTExpr allbps n texpr=:(TFApp assoc vn args)
+  = TFApp assoc vn (map (expandTExpr allbps n) args)
+expandTExpr allbps n texpr=:(TMApp eid _ mn tn args)
   = case reifyTonicTask mn tn allbps of
       Just tt
         # binds = [(old, new) \\ (old, _) <- tt.tt_args & new <- args | not (isSame old new)]
         # e     = case expandTExpr allbps (n - 1) tt.tt_body of
                     TLet pats bdy                 -> TLet (binds ++ pats) bdy
-                    TBind (TLet pats bdy) pat rhs -> TBind (TLet (binds ++ pats) bdy) pat rhs
+                    //TBind (TLet pats bdy) pat rhs -> TBind (TLet (binds ++ pats) bdy) pat rhs
                     bdy                           -> TLet binds bdy
         = TExpand tn e
       _ = texpr
   where
-  isSame :: !TCleanExpr !TExpr -> Bool
-  isSame old (TCleanExpr _ new) = old == new
+  isSame :: !TExpr !TExpr -> Bool
+  isSame (TVar _ old) (TVar _ new) = old == new
 
   reifyTonicTask :: !ModuleName !TaskName !AllBlueprints -> Maybe TonicTask
   reifyTonicTask mn tn allbps = case 'DM'.get mn allbps of
                                   Just mod -> 'DM'.get tn mod
                                   _        -> Nothing
-expandTExpr allbps n (TBind lhs pat rhs)
-  = TBind (expandTExpr allbps n lhs) pat (expandTExpr allbps n rhs)
-expandTExpr allbps n (TReturn eid e)
-  = TReturn eid (expandTExpr allbps n e)
+//expandTExpr allbps n (TBind lhs pat rhs)
+  //= TBind (expandTExpr allbps n lhs) pat (expandTExpr allbps n rhs)
+//expandTExpr allbps n (TReturn eid e)
+  //= TReturn eid (expandTExpr allbps n e)
 expandTExpr allbps n (TLet pats bdy)
   # pats = map f pats
   = case expandTExpr allbps n bdy of
       TLet pats` bdy`                -> TLet (pats ++ pats`) bdy`
-      TBind (TLet pats` bdy) pat rhs -> TBind (TLet (pats ++ pats`) bdy) pat rhs
+      //TBind (TLet pats` bdy) pat rhs -> TBind (TLet (pats ++ pats`) bdy) pat rhs
       bdy`                           -> TLet pats bdy`
   where
   f (pat, rhs) = (pat, expandTExpr allbps n rhs)
@@ -1010,91 +1031,32 @@ expandTExpr allbps n (TCaseOrIf e pats)
   = TCaseOrIf (expandTExpr allbps n e) (map f pats)
   where
   f (pat, rhs) = (pat, expandTExpr allbps n rhs)
-expandTExpr allbps n (TStep lhs conts)
-  = TStep (expandTExpr allbps n lhs) (map f conts)
-  where
-  f (T (StepOnValue      fil))  = T (StepOnValue      (g fil))
-  f (T (StepOnAction act fil))  = T (StepOnAction act (g fil))
-  f (T (StepOnException pat e)) = T (StepOnException pat (expandTExpr allbps n e))
-  f x = x
-  g (Always                    e) = Always (expandTExpr allbps n e)
-  g (HasValue              pat e) = HasValue pat (expandTExpr allbps n e)
-  g (IfStable              pat e) = IfStable pat (expandTExpr allbps n e)
-  g (IfUnstable            pat e) = IfUnstable pat (expandTExpr allbps n e)
-  g (IfCond     pp         pat e) = IfCond pp pat (expandTExpr allbps n e)
-  g (IfValue    pp fn args pat e) = IfValue pp fn args pat (expandTExpr allbps n e)
-  g e = e
-expandTExpr allbps n (TParallel eid par)
-  = TParallel eid (expandPar par)
-  where
-  expandPar (ParSumL l r)    = ParSumL (expandTExpr allbps n l) (expandTExpr allbps n r)
-  expandPar (ParSumR l r)    = ParSumR (expandTExpr allbps n l) (expandTExpr allbps n r)
-  expandPar (ParSumN (T es)) = ParSumN (T (map (expandTExpr allbps n) es))
-  expandPar (ParProd (T es)) = ParProd (T (map (expandTExpr allbps n) es))
-  expandPar p = p
-expandTExpr allbps n (TAssign usr d e)
-  = TAssign usr d (expandTExpr allbps n e)
-expandTExpr allbps n (TFunctor e vn args)
-  = TFunctor (expandTExpr allbps n e) vn args
+//expandTExpr allbps n (TStep lhs conts)
+  //= TStep (expandTExpr allbps n lhs) (map f conts)
+  //where
+  //f (T (StepOnValue      fil))  = T (StepOnValue      (g fil))
+  //f (T (StepOnAction act fil))  = T (StepOnAction act (g fil))
+  //f (T (StepOnException pat e)) = T (StepOnException pat (expandTExpr allbps n e))
+  //f x = x
+  //g (Always                    e) = Always (expandTExpr allbps n e)
+  //g (HasValue              pat e) = HasValue pat (expandTExpr allbps n e)
+  //g (IfStable              pat e) = IfStable pat (expandTExpr allbps n e)
+  //g (IfUnstable            pat e) = IfUnstable pat (expandTExpr allbps n e)
+  //g (IfCond     pp         pat e) = IfCond pp pat (expandTExpr allbps n e)
+  //g (IfValue    pp fn args pat e) = IfValue pp fn args pat (expandTExpr allbps n e)
+  //g e = e
+//expandTExpr allbps n (TParallel eid par)
+  //= TParallel eid (expandPar par)
+  //where
+  //expandPar (ParSumL l r)    = ParSumL (expandTExpr allbps n l) (expandTExpr allbps n r)
+  //expandPar (ParSumR l r)    = ParSumR (expandTExpr allbps n l) (expandTExpr allbps n r)
+  //expandPar (ParSumN (T es)) = ParSumN (T (map (expandTExpr allbps n) es))
+  //expandPar (ParProd (T es)) = ParProd (T (map (expandTExpr allbps n) es))
+  //expandPar p = p
+//expandTExpr allbps n (TAssign usr d e)
+  //= TAssign usr d (expandTExpr allbps n e)
+//expandTExpr allbps n (TFmap e vn args)
+  //= TFmap (expandTExpr allbps n e) vn args
 expandTExpr allbps n (TExpand tn e) = TExpand tn (expandTExpr allbps n e)
+expandTExpr allbps n (TSel e es) = TSel (expandTExpr allbps n e) (map (expandTExpr allbps n) es)
 expandTExpr _ n texpr = texpr
-
-instance == TonicTask where
-  (==) t1 t2 = t1 === t2
-
-instance < TonicTask where
-  (<) t1 t2 = case t1 =?= t2 of
-                LT -> True
-                _  -> False
-
-instance < TCleanExpr where
-  (<) t1 t2 = case t1 =?= t2 of
-                LT -> True
-                _  -> False
-
-instance < TExpr where
-  (<) t1 t2 = case t1 =?= t2 of
-                LT -> True
-                _  -> False
-
-derive gLexOrd TonicTask, TExpr, TGen, TCleanExpr, TParallel, PPOr,
-               TUser, TStepCont, Maybe, TAssoc, TStepFilter
-
-connectedTasks :: !AllBlueprints !TonicTask -> Set TonicTask
-connectedTasks allbps tt = successors tt.tt_body
-  where
-  successors :: !TExpr -> Set TonicTask
-  successors (TBind lhs _ rhs) = 'DS'.union (successors lhs) (successors rhs)
-  successors (TReturn _ e)     = successors e
-  successors (TTaskApp _ mn tn _)
-    = case 'DM'.get mn allbps of
-        Just mod -> case 'DM'.get tn mod of
-                      Just tt -> 'DS'.singleton tt
-                      _       -> 'DS'.newSet
-        _ -> 'DS'.newSet
-  successors (TLet _ bdy)        = successors bdy
-  successors (TCaseOrIf _ pats)  = 'DS'.unions (map (successors o snd) pats)
-  successors (TStep lexpr conts) = 'DS'.union (successors lexpr) ('DS'.unions [succStepCont x \\ T x <- conts])
-  successors (TParallel _ par)   = succPar par
-  successors (TAssign _ _ t)     = successors t
-  successors (TFunctor lhs _ _)  = successors lhs
-  successors (TVar _ pp)         = 'DS'.newSet
-  successors (TCleanExpr _ pp)   = 'DS'.newSet
-
-  succStepCont (StepOnValue    sf)   = succStepCont` sf
-  succStepCont (StepOnAction _ sf)   = succStepCont` sf
-  succStepCont (StepOnException _ e) = successors e
-
-  succStepCont` (Always     e)         = successors e
-  succStepCont` (HasValue   _ e)       = successors e
-  succStepCont` (IfStable   _ e)       = successors e
-  succStepCont` (IfUnstable _ e)       = successors e
-  succStepCont` (IfCond     _ _ e)     = successors e
-  succStepCont` (IfValue    _ _ _ _ e) = successors e
-  succStepCont` (CustomFilter _)       = 'DS'.newSet
-
-  succPar (ParSumL e1 e2)  = 'DS'.union (successors e1) (successors e2)
-  succPar (ParSumR e1 e2)  = 'DS'.union (successors e1) (successors e2)
-  succPar (ParSumN (T es)) = 'DS'.unions (map successors es)
-  succPar (ParProd (T es)) = 'DS'.unions (map successors es)
-  succPar _                = 'DS'.newSet

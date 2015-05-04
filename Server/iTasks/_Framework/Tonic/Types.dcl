@@ -39,25 +39,25 @@ from iTasks.API.Core.Types import :: DateTime
 derive class iTask TStability, BlueprintRef, BlueprintInstance
 
 derive gEditor
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, IntMap, TCleanExpr, TAssoc, TGen
+  TonicModule, TonicTask, TExpr, TAssoc, IntMap //, PPOr, TStepCont, TStepFilter, TUser,
+  //TParallel, TCleanExpr, TGen
 
 derive gEditMeta
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, IntMap, TCleanExpr, TAssoc, TGen
+  TonicModule, TonicTask, TExpr, TAssoc, IntMap //, PPOr, TStepCont, TStepFilter, TUser,
+  //TParallel, TCleanExpr, TGen
 
 derive gDefault
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, IntMap, TCleanExpr, TAssoc, TGen
+  TonicModule, TonicTask, TExpr, TAssoc, IntMap //, PPOr, TStepCont, TStepFilter, TUser,
+  //TParallel, TCleanExpr, TGen
 
 derive gUpdate
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, IntMap, TCleanExpr, TAssoc, TGen
+  TonicModule, TonicTask, TExpr, TAssoc, IntMap //, PPOr, TStepCont, TStepFilter, TUser,
+  //TParallel, TCleanExpr, TGen
 
 derive gVerify
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, IntMap, TCleanExpr, TAssoc, TGen
+  TonicModule, TonicTask, TExpr, TAssoc, IntMap //, PPOr, TStepCont, TStepFilter, TUser,
+  //TParallel, TCleanExpr, TGen
 
 derive gText
-  TonicModule, TonicTask, TExpr, PPOr, TStepCont, TStepFilter, TUser,
-  TParallel, IntMap, TCleanExpr, TAssoc, TGen
+  TonicModule, TonicTask, TExpr, TAssoc, IntMap //, PPOr, TStepCont, TStepFilter, TUser,
+  //TParallel, TCleanExpr, TGen

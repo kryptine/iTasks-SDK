@@ -5,13 +5,13 @@ import Text.JSON
 from GenEq import generic gEq
 
 derive JSONEncode
-  TonicModule, TonicTask, TExpr, PPOr, TUser, TParallel, TStepCont,
-  TStepFilter, TCleanExpr, TAssoc, TGen
+  TonicModule, TonicTask, TExpr, TAssoc //, PPOr, TUser, TParallel, TStepCont,
+  //TStepFilter, TCleanExpr,  TGen
 
 derive JSONDecode
-  TonicModule, TonicTask, TExpr, PPOr, TUser, TParallel, TStepCont,
-  TStepFilter, TCleanExpr, TAssoc, TGen
+  TonicModule, TonicTask, TExpr, TAssoc //, PPOr, TUser, TParallel, TStepCont,
+  //TStepFilter, TCleanExpr,  TGen
 
 derive gEq
-  TonicModule, TonicTask, TExpr, PPOr, TUser, TParallel, TStepCont,
-  TStepFilter, TCleanExpr, TAssoc, TGen
+  TonicModule, TonicTask, TExpr, TAssoc //, PPOr, TUser, TParallel, TStepCont,
+  //TStepFilter, TCleanExpr,  TGen
