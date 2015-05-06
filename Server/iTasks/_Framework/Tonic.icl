@@ -33,6 +33,10 @@ import qualified Data.Map as DM
 from Data.Map import instance Functor (Map a)
 from Data.Set import :: Set
 import qualified Data.Set as DS
+import qualified Data.Foldable as DF
+from Data.Foldable import class Foldable, instance Foldable []
+import qualified Data.Traversable as DT
+from Data.Traversable import class Traversable, instance Traversable []
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Text
@@ -42,13 +46,16 @@ import qualified Control.Applicative as CA
 from Control.Applicative import class Applicative, instance Applicative Maybe
 
 instance TonicTopLevelBlueprint Task where
-  tonicWrapTopLevelBody mn tn args t = tonicWrapTaskBody` mn tn args t
+  tonicWrapBody mn tn args t = tonicWrapTaskBody` mn tn args t
+  tonicWrapArg d v = viewInformation d [] v @! ()
 
 instance TonicBlueprintPart Task where
-  tonicWrapPartApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid t = tonicWrapApp` parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid t
+  tonicWrapApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid t = tonicWrapApp` parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid t
+  tonicWrapTraversable parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid f args = tonicWrapTraversable` parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid f args
 
 instance TonicBlueprintPart Maybe where
-  tonicWrapPartApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid mb = mb
+  tonicWrapApp _ _ _ _ _ mb = mb
+  tonicWrapTraversable _ _ _ _ _ f args = f args
 
 NS_TONIC_INSTANCES :== "tonic-instances"
 
@@ -86,20 +93,20 @@ tonicUpdatesForTaskAndExprId = sdsLens "tonicUpdatesForTaskAndExprId" (const ())
   notify :: (TaskId, ExprId) ListsOfTasks (IntMap (ModuleName, TaskName)) -> SDSNotifyPred (TaskId, ExprId)
   notify tid _ _ = \tid` -> tid == tid`
 
-tonicViewInformation :: !String !a -> Task () | iTask a
-tonicViewInformation d v = viewInformation d [] v @! ()
+tonicExtWrapArg :: !String !a -> m () | iTask a & TonicTopLevelBlueprint m
+tonicExtWrapArg d v = tonicWrapArg d v
 
-tonicWrapTaskBody :: !ModuleName !TaskName [(VarName, m ())] (         m a) -> m a | TonicTopLevelBlueprint m & iTask a
-tonicWrapTaskBody mn tn args t = tonicWrapTopLevelBody mn tn args t
+tonicExtWrapBody :: !ModuleName !TaskName [(VarName, m ())] (         m a) -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBody mn tn args t = tonicWrapBody mn tn args t
 
-tonicWrapTaskBodyLam1 :: !ModuleName !TaskName [(VarName, m ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
-tonicWrapTaskBodyLam1 mn tn args f = \x -> tonicWrapTopLevelBody mn tn args (f x)
+tonicExtWrapBodyLam1 :: !ModuleName !TaskName [(VarName, m ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam1 mn tn args f = \x -> tonicWrapBody mn tn args (f x)
 
-tonicWrapTaskBodyLam2 :: !ModuleName !TaskName [(VarName, m ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
-tonicWrapTaskBodyLam2 mn tn args f = \x y -> tonicWrapTopLevelBody mn tn args (f x y)
+tonicExtWrapBodyLam2 :: !ModuleName !TaskName [(VarName, m ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam2 mn tn args f = \x y -> tonicWrapBody mn tn args (f x y)
 
-tonicWrapTaskBodyLam3 :: !ModuleName !TaskName [(VarName, m ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
-tonicWrapTaskBodyLam3 mn tn args f = \x y z -> tonicWrapTopLevelBody mn tn args (f x y z)
+tonicExtWrapBodyLam3 :: !ModuleName !TaskName [(VarName, m ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam3 mn tn args f = \x y z -> tonicWrapBody mn tn args (f x y z)
 
 tonicWrapTaskBody` :: !ModuleName !TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
@@ -296,8 +303,8 @@ getCurrentListId [traceTaskId : xs] iworld
       Ok currentListId -> (Just currentListId, iworld)
       _                -> getCurrentListId xs iworld
 
-tonicWrapApp :: !ModuleName !TaskName !ModuleName !TaskName !ExprId (m a) -> m a | TonicBlueprintPart m & iTask a
-tonicWrapApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName tid mapp = tonicWrapPartApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName tid mapp
+tonicExtWrapApp :: !ModuleName !TaskName !ModuleName !TaskName !ExprId (m a) -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName tid mapp = tonicWrapApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName tid mapp
 
 /**
  * ModuleName and TaskName identify the blueprint, of which we need to
@@ -432,63 +439,46 @@ withSharedRT f world
       Ok rtMap -> f rtMap world
       _        -> world
 
-tonicWrapAppLam1 :: !ModuleName !TaskName !ModuleName !TaskName !ExprId !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
-tonicWrapAppLam1 parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid f = \x -> tonicWrapApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid (f x)
+tonicExtWrapAppLam1 :: !ModuleName !TaskName !ModuleName !TaskName !ExprId !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam1 parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid f = \x -> tonicWrapApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid (f x)
 
-tonicWrapAppLam2 :: !ModuleName !TaskName !ModuleName !TaskName !ExprId !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
-tonicWrapAppLam2 parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid f = \x y -> tonicWrapApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid (f x y)
+tonicExtWrapAppLam2 :: !ModuleName !TaskName !ModuleName !TaskName !ExprId !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam2 parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid f = \x y -> tonicWrapApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid (f x y)
 
-tonicWrapAppLam3 :: !ModuleName !TaskName !ModuleName !TaskName !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
-tonicWrapAppLam3 parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid f = \x y z -> tonicWrapApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid (f x y z)
+tonicExtWrapAppLam3 :: !ModuleName !TaskName !ModuleName !TaskName !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam3 parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid f = \x y z -> tonicWrapApp parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid (f x y z)
 
+traverseWithIdx :: (Int a -> a) (f a) -> f a | Traversable f
+traverseWithIdx f xs = snd ('DT'.mapAccumR (\idx elm -> (idx + 1, f idx elm)) 0 xs)
+
+tonicExtWrapTraversable :: !ModuleName !TaskName !ModuleName !TaskName !ExprId !([m a] -> m b) [m a] -> m b | TonicBlueprintPart m & iTask b
+tonicExtWrapTraversable parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid f ts = tonicWrapTraversable parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid f ts
 
 /*
-
 TODO We should generalise this
-
-What if we wrap all functors where
-
-taskFun :: ... (f (m a)) ... -> m b | TFunctor f & TonicBlueprintPart m & iTask a & iTask b
-
 */
-//tonicWrapParallel :: !ModuleName !TaskName !ExprId !([Task a] -> Task b) [Task a] -> Task b | iTask b
-//tonicWrapParallel mn tn nid f ts = tonicWrapApp mn tn nid (Task eval)
-  //where
-  //eval event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
-    //# (ts, iworld) = case taskIdFromTaskTree taskTree of
-                       //Ok (TaskId instanceNo taskNo)
-                         //# (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-                         //= case mrtMap of
-                             //Ok rtMap
-                               //# (cct, iworld) = mkCompleteTrace instanceNo [taskNo : callTrace] iworld
-                               //= case firstParent rtMap cct of
-                                   //Ok parent=:{bpr_instance = Just pinst}
-                                     //# (_, iworld) = 'DSDS'.write 'DIS'.newMap (sdsFocus (pinst.bpi_taskId, nid) tonicUpdatesForTaskAndExprId) iworld
-                                     //= (tonicWrapListOfTask mn tn nid pinst.bpi_taskId ts, iworld)
-                                   //_ = (ts, iworld)
-                             //_ = (ts, iworld)
-                       //_ = (ts, iworld)
-    //= case f ts of
-        //Task eval` -> eval` event evalOpts taskTree iworld
-
-getBlueprintRef :: !TaskId !*IWorld -> *(!Maybe BlueprintRef, !*IWorld)
-getBlueprintRef tid world
-  # (mbpref, world) = 'DSDS'.read (sdsFocus tid tonicInstances) world
-  = case mbpref of
-      Ok bpref -> (Just bpref, world)
-      _        -> (Nothing, world)
-
-getWithDefault :: a !(ReadWriteShared a w) -> Task a | iTask a
-getWithDefault def shared = mkInstantTask eval
+tonicWrapTraversable` :: !ModuleName !TaskName !ModuleName !TaskName !ExprId !([Task a] -> Task b) [Task a] -> Task b | iTask b
+tonicWrapTraversable` parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid f ts = Task eval
   where
-  eval taskId iworld
-    # (val,iworld) = 'DSDS'.read shared iworld
-    = case val of
-        Ok val -> (Ok val, iworld)
-        _      -> (Ok def, iworld)
+  eval event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
+    # (ts, iworld) = case taskIdFromTaskTree taskTree of
+                       Ok (TaskId instanceNo taskNo)
+                         # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+                         = case mrtMap of
+                             Ok rtMap
+                               # (cct, iworld) = mkCompleteTrace instanceNo [taskNo : callTrace] iworld
+                               = case firstParent rtMap cct of
+                                   Ok parent=:{bpr_instance = Just pinst}
+                                     # (_, iworld) = 'DSDS'.write 'DIS'.newMap (sdsFocus (pinst.bpi_taskId, nid) tonicUpdatesForTaskAndExprId) iworld
+                                     = (tonicWrapListOfTask parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid pinst.bpi_taskId ts, iworld)
+                                   _ = (ts, iworld)
+                             _ = (ts, iworld)
+                       _ = (ts, iworld)
+    = case f ts of
+        Task eval` -> eval` event evalOpts taskTree iworld
 
-tonicWrapListOfTask :: !ModuleName !TaskName !ExprId !TaskId ![Task a] -> [Task a]
-tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
+tonicWrapListOfTask :: !ModuleName !TaskName !ModuleName !TaskName !ExprId !TaskId !(f (Task a)) -> f (Task a) | Traversable f
+tonicWrapListOfTask parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid parentId ts = traverseWithIdx registerTask ts
   where
   registerTask :: !Int !(Task a) -> Task a
   registerTask n (Task eval) = Task eval`
@@ -511,6 +501,13 @@ tonicWrapListOfTask mn tn nid parentId ts = zipWith registerTask [0..] ts
             # (_, iworld) = 'DSDS'.write tidMap (sdsFocus (parentId, nid) tonicUpdatesForTaskAndExprId) iworld
             = iworld
           _ = iworld
+
+getBlueprintRef :: !TaskId !*IWorld -> *(!Maybe BlueprintRef, !*IWorld)
+getBlueprintRef tid world
+  # (mbpref, world) = 'DSDS'.read (sdsFocus tid tonicInstances) world
+  = case mbpref of
+      Ok bpref -> (Just bpref, world)
+      _        -> (Nothing, world)
 
 getModule :: !String -> Task TonicModule
 getModule moduleName = mkInstantTask (const (getModule` moduleName))
