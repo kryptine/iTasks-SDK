@@ -58,7 +58,7 @@ ArialItalic10px :== { fontfamily  = "Arial"
   , inh_in_step      :: !Bool
   , inh_in_mapp      :: !Bool
   , inh_in_fapp      :: !Bool
-  , inh_selected     :: !Set (ModuleName, TaskName, ExprId)
+  , inh_selected     :: !Set (!ModuleName, !TaskName, !ExprId)
   , inh_outputs      :: !Map TaskId TStability
   , inh_selDetail    :: !Maybe ClickMeta
   }
@@ -86,21 +86,14 @@ mkTaskImage rs prev trt maplot outputs selected selDetail compact {ActionState |
   = img
 
 tExpr2Image :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
-//tExpr2Image inh (TBind lhs mpat rhs)       tsrc = tBind         inh lhs mpat rhs tsrc
-//tExpr2Image inh (TReturn eid e)            tsrc = tReturn       inh eid e tsrc
 tExpr2Image inh (TMApp eid mty mn tn targs) tsrc = tMApp         inh eid mty mn tn targs tsrc
 tExpr2Image inh (TFApp assoc fn targs)      tsrc = tFApp         inh assoc fn targs tsrc
 tExpr2Image inh (TLet pats bdy)             tsrc
   | inh.inh_compact = tExpr2Image inh bdy tsrc
   | otherwise       = tLet inh pats bdy tsrc
 tExpr2Image inh (TCaseOrIf e pats)          tsrc = tCaseOrIf     inh e pats tsrc
-//tExpr2Image inh (TStep lexpr conts)         tsrc = tStep         inh lexpr conts tsrc
-//tExpr2Image inh (TParallel eid par)         tsrc = tParallel     inh eid par tsrc
-//tExpr2Image inh (TAssign usr d t)           tsrc = tAssign       inh usr d t tsrc
-//tExpr2Image inh (TFmap lhs vn args)         tsrc = tFunctorApp   inh lhs vn args tsrc
 tExpr2Image inh (TVar eid pp)               tsrc = tVar          inh eid pp tsrc
 tExpr2Image inh (TLit pp)                   tsrc = tLit          inh pp tsrc
-//tExpr2Image inh (TCleanExpr eid pp)         tsrc = tCleanExpr    inh eid pp tsrc
 tExpr2Image inh (TExpand tn e)              tsrc = tExpand       inh tn e tsrc
 tExpr2Image inh (TSel e es)                 tsrc = tSel          inh e es tsrc
 tExpr2Image inh (TLam args e)               tsrc = tLam          inh args e tsrc
@@ -171,17 +164,28 @@ tLit inh pp tsrc
       #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (ArialRegular10px.fontysize + 10.0)) <@< { dash = [5, 5] }
       = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing, tsrc)
 
-tVar :: !MkImageInh !ExprId !String !*TagSource -> *(!Image ModelTy, !*TagSource)
+instance toString (Maybe a) | toString a where
+  toString (Just x) = "Just " +++ toString x
+  toString _        = "Nothing"
+
+import StdDebug
+tVar :: !MkImageInh !(Maybe ExprId) !String !*TagSource -> *(!Image ModelTy, !*TagSource)
 tVar inh eid pp tsrc
-  = case inh.inh_trt.bpr_instance of
-      Just bpinst
+  = case (inh.inh_trt.bpr_instance, eid) of
+      (Just bpinst, Just eid)
+        #! tsrc = trace_n ("tVar Just bpinst " +++ toString bpinst.bpi_taskId +++ " " +++ toString eid) tsrc
         = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
             Just mptids
+              #! tsrc = trace_n ("tVar Just mptids" +++ toString bpinst.bpi_taskId +++ " " +++ toString eid) tsrc
               = case 'DIS'.elems mptids of
                   [(moduleName, taskName) : _]
                     = tMApp inh eid Nothing moduleName taskName [] tsrc
-                  _ = mkDef tsrc
-            _ = mkDef tsrc
+                  _
+                    #! tsrc = trace_n ("tVar Nothing elems" +++ toString bpinst.bpi_taskId +++ " " +++ toString eid) tsrc
+                    = mkDef tsrc
+            _
+             #! tsrc = trace_n ("tVar Nothing mptids " +++ toString bpinst.bpi_taskId +++ " " +++ toString eid) tsrc
+             = mkDef tsrc
       _ = mkDef tsrc
   where
   mkDef :: !*TagSource -> *(!Image ModelTy, !*TagSource)
@@ -437,7 +441,7 @@ tMApp inh eid _ "iTasks.API.Extensions.User" "@:" [lhsExpr : rhsExpr : _] tsrc
 tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>|" [lhsExpr : rhsExpr : _] tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam [var : _] rhsExpr : _] tsrc
-  = tBind inh lhsExpr (Just (TVar [] var)) rhsExpr tsrc
+  = tBind inh lhsExpr (Just (TVar Nothing var)) rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] tsrc

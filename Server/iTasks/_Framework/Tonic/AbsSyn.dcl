@@ -34,18 +34,18 @@ derive gEq TonicModule, TonicTask, TExpr, TAssoc
 :: FunName  :== String
 :: PPExpr   :== String
 :: SAction  :== String
-:: ExprId   :== [Int]
+:: ExprId   :== Int
 
 :: TExpr
-  = TVar      ExprId PPExpr
-  | TLit      PPExpr
-  | TMApp     ExprId (Maybe TypeName) ModuleName VarName [TExpr]
-  | TFApp     TAssoc VarName [TExpr]
-  | TLam      [VarName] TExpr
-  | TSel      TExpr [TExpr]
-  | TLet      [(Pattern, TExpr)] TExpr
-  | TCaseOrIf TExpr [(Pattern, TExpr)]
-  | TExpand   TaskName TExpr
+  = TVar      !(Maybe ExprId) !PPExpr
+  | TLit      !PPExpr
+  | TMApp     !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr]
+  | TFApp     !TAssoc !VarName ![TExpr]
+  | TLam      ![VarName] !TExpr
+  | TSel      !TExpr ![TExpr]
+  | TLet      ![(!Pattern, !TExpr)] !TExpr
+  | TCaseOrIf !TExpr ![(!Pattern, !TExpr)]
+  | TExpand   !VarName !TExpr
   //| TListCompr // TODO
 
 :: TAssoc
