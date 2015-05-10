@@ -1049,12 +1049,12 @@ desugarAndTag img = go
       where
       calculateGridOffsets :: ![Span] ![Span] ![[ImageAlign]] ![[Image s]] ![[(!Span, !Span)]] -> [[(!Span, !Span)]]
       calculateGridOffsets cellXSpans cellYSpans alignss imagess offsetss
-        = fst (foldl (mkRows cellXSpans) ([], zero) (strictTRZip4 alignss imagess cellYSpans offsetss))
+        = fst (strictFoldl (mkRows cellXSpans) ([], zero) (strictTRZip4 alignss imagess cellYSpans offsetss))
         where
         mkRows :: ![Span] !(![[(!Span, !Span)]], !Span) !(![(!XAlign, !YAlign)], ![Image s], !Span, ![(!Span, !Span)])
                -> (![[(!Span, !Span)]], !Span)
         mkRows cellXSpans (acc, yoff) (aligns, imgs, cellYSpan, offsets)
-          = ( [fst (foldl (mkCols cellYSpan yoff) ([], zero) (strictTRZip4 aligns imgs cellXSpans offsets)) : acc]
+          = ( [fst (strictFoldl (mkCols cellYSpan yoff) ([], zero) (strictTRZip4 aligns imgs cellXSpans offsets)) : acc]
             , yoff + cellYSpan)
         mkCols :: !Span !Span !(![(!Span, !Span)], !Span) !(!(!XAlign, !YAlign), !Image s, !Span, !(!Span, !Span))
                -> (![(!Span, !Span)], !Span)
