@@ -237,7 +237,7 @@ mkNClickCB mkEventHandler sttf local cid args clval=:{svgClSt, svgClickTimeout} 
                Just to -> snd (("clearTimeout" .$ to) world)
                _       -> world
   #! cb = mkEventHandler (handleNClick sttf local) cid
-  #! (timeOut, world) = ("setTimeout" .$ (cb, 300)) world
+  #! (timeOut, world) = ("setTimeout" .$ (cb, 150)) world
   = ({clval & svgClickTimeout = Just timeOut, svgNumClicks = clval.svgNumClicks + 1}, NoDiff, world)
 
 handleNClick :: !(Int s -> s) !Bool !String !{JSObj JSEvent} !(SVGClSt s)
