@@ -1086,8 +1086,8 @@ desugarAndTag img = go
       #! (  maxXSpan
           , maxYSpan)   = maybe (maxSpan (strictTRMap fst spans), maxSpan (strictTRMap snd spans))
                                 (\x -> x.totalSpanPreTrans) mbhost
-      #! alignOffsets   = zipWith (calcAlignOffset maxXSpan maxYSpan) spans ias
-      #! placingOffsets = zipWith3 addOffset alignOffsets offsets imgs
+      #! alignOffsets   = strictTRZipWith (calcAlignOffset maxXSpan maxYSpan) spans ias
+      #! placingOffsets = strictTRZipWith3 addOffset alignOffsets offsets imgs
       = ( ( AsCollage placingOffsets imgs
           , maybe (calculateComposedSpan spans placingOffsets) (\x -> x.totalSpanPostTrans) mbhost)
         , st)
@@ -1829,7 +1829,7 @@ genSVG img = imageCata genSVGAllAlgs img
     mkCollage offsets imgs _ totalSpanPreTrans imAts imTrs imTas st
       #! (offsets, st) = evalOffsets offsets st
       #! (imgsSps, st) = sequence imgs st
-      = ({ genSVGSyn_svgElts       = flatten (zipWith mkTranslateGroup offsets (strictTRMap (\x -> x.genSVGSyn_svgElts) imgsSps))
+      = ({ genSVGSyn_svgElts       = flatten (strictTRZipWith mkTranslateGroup offsets (strictTRMap (\x -> x.genSVGSyn_svgElts) imgsSps))
          , genSVGSyn_events        = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_events) imgsSps)
          , genSVGSyn_draggable     = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_draggable) imgsSps)
          , genSVGSyn_idMap         = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_idMap) imgsSps)
