@@ -1029,9 +1029,6 @@ desugarAndTag img = go
     mkGrid (numcols, numrows) offsetss iass imgss mbhost imTrs imTas st
       #! (offsetss, st) = strictTRMapSt evalOffsets offsetss st
       #! (imgss, st)    = strictTRMapSt sequence imgss st
-      #! imgss          = strictTRMapRev reverseTR imgss // TODO This is more or less a hack... why do we need this?
-      #! offsetss       = strictTRMapRev reverseTR offsetss // TODO This is more or less a hack... why do we need this?
-      #! iass           = strictTRMapRev reverseTR iass // TODO This is more or less a hack... why do we need this?
       #! (tag, st)      = nextNo st
       #! sysTags        = ImageTagSystem tag
       #! colIndices     = [0 .. numcols - 1]
@@ -1041,27 +1038,30 @@ desugarAndTag img = go
                                 )
                                 (\x -> x.totalSpanPostTrans) mbhost
       #! spanss         = strictTRMap (strictTRMap (\x -> x.totalSpanPostTrans)) imgss
-      #! st             = cacheGridSpans tag ('DS'.insert sysTags imTas) (strictTRMap (maxSpan o strictTRMap fst) (transpose spanss)) (strictTRMap (maxSpan o strictTRMap snd) spanss) st
-      #! offsets`       = flatten (calculateGridOffsets (strictTRMap (\n -> LookupSpan (ColumnXSpan sysTags n)) colIndices)
-                                                        (strictTRMap (\n -> LookupSpan (RowYSpan sysTags n))    rowIndices) iass imgss offsetss)
+      #! st             = cacheGridSpans tag ('DS'.insert sysTags imTas)
+                                         (strictTRMap (maxSpan o strictTRMap fst) (transpose spanss))
+                                         (strictTRMap (maxSpan o strictTRMap snd) spanss) st
+      #! offsets`       = calculateGridOffsets (strictTRMap (\n -> LookupSpan (ColumnXSpan sysTags n)) colIndices)
+                                               (strictTRMap (\n -> LookupSpan (RowYSpan sysTags n))    rowIndices) iass imgss offsetss
+      #! offsets`       = reverseTR (flatten offsets`)
       = (( AsCollage offsets` (flatten imgss)
          , gridSpan), st)
       where
       calculateGridOffsets :: ![Span] ![Span] ![[ImageAlign]] ![[Image s]] ![[(!Span, !Span)]] -> [[(!Span, !Span)]]
       calculateGridOffsets cellXSpans cellYSpans alignss imagess offsetss
-        = fst (foldr (mkRows cellXSpans) ([], px 0.0) (strictTRZip4 alignss imagess cellYSpans offsetss))
+        = fst (foldl (mkRows cellXSpans) ([], zero) (strictTRZip4 alignss imagess cellYSpans offsetss))
         where
-        mkRows :: ![Span] !(![(!XAlign, !YAlign)], ![Image s], !Span, ![(!Span, !Span)]) !(![[(!Span, !Span)]], !Span)
+        mkRows :: ![Span] !(![[(!Span, !Span)]], !Span) !(![(!XAlign, !YAlign)], ![Image s], !Span, ![(!Span, !Span)])
                -> (![[(!Span, !Span)]], !Span)
-        mkRows cellXSpans (aligns, imgs, cellYSpan, offsets) (acc, yoff)
-          = ( [fst (foldr (mkCols cellYSpan yoff) ([], px 0.0) (strictTRZip4 aligns imgs cellXSpans offsets)) : acc]
+        mkRows cellXSpans (acc, yoff) (aligns, imgs, cellYSpan, offsets)
+          = ( [fst (foldl (mkCols cellYSpan yoff) ([], zero) (strictTRZip4 aligns imgs cellXSpans offsets)) : acc]
             , yoff + cellYSpan)
-        mkCols :: !Span !Span !(!(!XAlign, !YAlign), !Image s, !Span, !(!Span, !Span)) !(![(!Span, !Span)], !Span)
+        mkCols :: !Span !Span !(![(!Span, !Span)], !Span) !(!(!XAlign, !YAlign), !Image s, !Span, !(!Span, !Span))
                -> (![(!Span, !Span)], !Span)
-        mkCols cellYSpan yoff (align, img=:{totalSpanPostTrans, transformCorrection = (tfXCorr, tfYCorr)}, cellXSpan, (manXOff, manYOff)) (acc, xoff)
+        mkCols cellYSpan yoff (acc, xoff) (align, img=:{totalSpanPostTrans, transformCorrection = (tfXCorr, tfYCorr)}, cellXSpan, (manXOff, manYOff))
           #! (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan totalSpanPostTrans align
-          = ([( alignXOff + xoff + manXOff + tfXCorr
-              , alignYOff + yoff + manYOff + tfYCorr) : acc], xoff + cellXSpan)
+          = ([( xoff + alignXOff + manXOff + tfXCorr
+              , yoff + alignYOff + manYOff + tfYCorr) : acc], xoff + cellXSpan)
 
     mkCollage :: ![(DesugarAndTagSt Span, DesugarAndTagSt Span)]
                  ![DesugarAndTagSt (Image s)] !(Maybe (Image s))
