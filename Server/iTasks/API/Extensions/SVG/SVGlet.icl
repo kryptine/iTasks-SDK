@@ -1089,7 +1089,7 @@ desugarAndTag img = go
       #! alignOffsets   = zipWith (calcAlignOffset maxXSpan maxYSpan) spans ias
       #! placingOffsets = zipWith3 addOffset alignOffsets offsets imgs
       = ( ( AsCollage placingOffsets imgs
-          , maybe (calculateComposedSpan spans alignOffsets) (\x -> x.totalSpanPostTrans) mbhost)
+          , maybe (calculateComposedSpan spans placingOffsets) (\x -> x.totalSpanPostTrans) mbhost)
         , st)
       where
       addOffset :: !(!Span, !Span) !(!Span, !Span) !(Image s) -> (!Span, !Span) | iTask s
