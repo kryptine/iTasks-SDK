@@ -731,20 +731,13 @@ where
 	row x =  [Text cell \\ cell <- gText{|*|} AsRow (Just x)]
 	
 //* Simple tree type (used primarily for creating trees to choose from)
-derive gDefault			Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gText	        Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gEditor	        Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gEditMeta		Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gUpdate			Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gVerify			Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gDefault			ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gText	        ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gEditor	        ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gEditMeta		ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gUpdate			ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gVerify			ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 		
-instance Functor Tree
-where
-	fmap f (Tree nodes) = Tree (map fmap` nodes)
-	where
-		fmap` node = case node of
-			Leaf a			= Leaf (f a)
-			Node a nodes	= Node (f a) [fmap` node \\ node <- nodes]
 instance Functor ChoiceTree
 where
     fmap f t=:{ChoiceTree|label,type}
@@ -756,9 +749,9 @@ where
     fmap f (CollapsedNode c) = CollapsedNode [fmap f x \\ x <- c]
     fmap f (ExpandedNode c) = ExpandedNode [fmap f x \\ x <- c]
 
-derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 
 //* Choices
 gDefault{|ComboChoice|} _ = ComboChoice [] Nothing

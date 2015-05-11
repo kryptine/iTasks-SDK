@@ -1,6 +1,6 @@
 implementation module iTasks.API.Extensions.Development.Codebase
 import iTasks
-import System.File, System.Directory, Text, StdFile, Data.List
+import System.File, System.Directory, Text, StdFile, Data.List, Data.Tree
 import iTasks.API.Extensions.CodeMirror
 
 derive class iTask SourceTree, SourceTreeSelection, ModuleType, Extension
@@ -159,7 +159,7 @@ where
 
 :: FileExtension :== String
 
-getFilesInDir :: [FilePath] [FileExtension] !Bool !*World -> ([(FilePath,[TreeNode FilePath])],*World)
+getFilesInDir :: [FilePath] [FileExtension] !Bool !*World -> ([(FilePath,RForest FilePath)],*World)
 getFilesInDir [] extensions showExtension w = ([],w)
 getFilesInDir [path:paths] extensions showExtension w
 # (treeFiles,w)	= getTree (takeDirectory path) [dropDirectory path] w
@@ -177,11 +177,11 @@ where
         # (filesNodes,w)		= getTree absolutePath fileNames w
         = case dirNodes of
             [] -> (filesNodes,w)
-            _  -> ([Node fileName dirNodes:filesNodes],w)
+            _  -> ([RNode fileName dirNodes:filesNodes],w)
     | isEmpty extensions || isMember (snd (splitExtension fileName)) extensions
         # (treeNodes,w)         = getTree absolutePath fileNames w
 		# name 					= if showExtension fileName (dropExtension fileName)
-        = ([Leaf name:treeNodes],w)
+        = ([RNode name []:treeNodes],w)
     = getTree absolutePath fileNames w
 
 getFilesInPath :: !FilePath !*World -> ([FilePath],!*World)

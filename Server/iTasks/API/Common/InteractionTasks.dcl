@@ -1,7 +1,7 @@
 definition module iTasks.API.Common.InteractionTasks
 
 import iTasks.API.Core.Tasks
-from iTasks.API.Core.Types import :: Tree, :: ChoiceTree, :: ChoiceTreeValue, :: Date, :: Time, :: DateTime, :: Action
+from iTasks.API.Core.Types import :: ChoiceTree, :: ChoiceTreeValue, :: Date, :: Time, :: DateTime, :: Action
 from Data.Functor import class Functor
 
 //Option types for customizing interaction

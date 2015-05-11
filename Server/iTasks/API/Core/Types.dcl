@@ -215,10 +215,6 @@ instance toString FormButton
 
 toTable	:: ![a] -> Table | gText{|*|} a
 
-//* Simple tree type (used primarily for creating trees to choose from)
-:: Tree a = Tree !.[.TreeNode a]
-:: TreeNode a = Leaf !a | Node !a !.[TreeNode a]
-
 //* More elaborate tree type for grouping elements hierarchically from a choice
 :: ChoiceTree v =
     { label     :: v
@@ -244,18 +240,17 @@ ifExpandedChoice :: Int [ChoiceTreeValue] [ChoiceTree v] -> ChoiceTreeType v
 
 instance == ChoiceTreeValue
 
-instance Functor Tree
 instance Functor ChoiceTree
 
-derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gText	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gEditor	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gEditMeta		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gUpdate			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gVerify			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, Tree, TreeNode, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gText	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gEditor	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gEditMeta		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gUpdate			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
+derive gVerify			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 
 //* Represents the choice of one element from a list represented as combo box
 :: ComboChoice v = ComboChoice ![v] !(Maybe Int)
