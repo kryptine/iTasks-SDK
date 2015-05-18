@@ -1,0 +1,18 @@
+Conceptueel:
+
+grafisch weergeven voor *iedere* taak in een dynamische blueprint: toestand + resultaat indicatie
+- wat is zijn toestand (klaar / blauw, wordt aan gewerkt / groen, niet gekozen / grijs , nog te doen /wit)
+- als klaar: wat was zijn resultaat (stable / blauw, unstable / groen, novalue / wit, exception /rood)
+- als wordt aan gewerkt: wat is het huidige resultaat: (stable / blauw, unstable / groen, novalue / wit, exception /rood)
+
+let op bij parallelle taken: zowel de parallelle taken als de parallel zelf heeft een resultaat!
+misschien een taakdoos om het geheel zetten ??
+
+als taak wordt getraced:
+- bij selectie waardes van de argumenten + (huidige) waardes van het resultaat
+
+
+
+Bugs:
+
+- 
