@@ -1,18 +1,49 @@
-Conceptueel:
+Conceptueel / wishlist
 
-grafisch weergeven voor *iedere* taak in een dynamische blueprint: toestand + resultaat indicatie
+Statisch en Dynamisch
+
+* let op bij parallelle taken: zowel de parallelle taken als de parallel zelf heeft een resultaat!
+misschien een taakdoos om het geheel zetten ??
+Ook een functie die een taak opleverd is een taak abstractie en zou je als een taak moeten laten zien (dus kunnen selecteren voor een trace, resultaat kunnen opvragen)
+
+* stepcombinator: eerst de conditie dan de aktie zou mooi zijn
+
+
+Dynamisch
+
+* grafisch weergeven voor *iedere* taak in een dynamische blueprint: toestand + resultaat indicatie
 - wat is zijn toestand (klaar / blauw, wordt aan gewerkt / groen, niet gekozen / grijs , nog te doen /wit)
 - als klaar: wat was zijn resultaat (stable / blauw, unstable / groen, novalue / wit, exception /rood)
 - als wordt aan gewerkt: wat is het huidige resultaat: (stable / blauw, unstable / groen, novalue / wit, exception /rood)
 
-let op bij parallelle taken: zowel de parallelle taken als de parallel zelf heeft een resultaat!
-misschien een taakdoos om het geheel zetten ??
+* let op: iedere taak heeft een toestand + resultaat.
+Dit geldt voor bv een parallelle taak, maar ook voor iedere functie die een taak opleverd.
 
-als taak wordt getraced:
+
+
+* als taak wordt getraced:
 - bij selectie waardes van de argumenten + (huidige) waardes van het resultaat
 
+* optie om alle flows te laten zien met dezelfde hoofdtaaknummer 
+
+* geef bij iedere flow aan wat zijn taaknummer is
+
+* stepcombinator: bij het trace van een step zou je willen zien weke paden wel of niet gekozen kunnen worden op grond van de huidige waarde
 
 
 Bugs:
 
-- 
+Statische Tonic
+- unfold depth werkt niet meer
+
+Dynamische Tonic
+- unfold depth werkt niet goed: laat dezefde flow meerdere keren zien
+
+- resultaat van taak die getraced wordt wordt niet getoond
+
+- kleur toestand / kleur resultaat lijkt niet altijd correct, in het bijzonder bij parallelle taken
+
+
+
+
+
