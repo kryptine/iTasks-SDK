@@ -1,12 +1,20 @@
 Conceptueel / wishlist
 
-Statisch en Dynamisch
+Statische flow weergave (en Dynamisch)
+
 
 * let op bij parallelle taken: zowel de parallelle taken als de parallel zelf heeft een resultaat!
-misschien een taakdoos om het geheel zetten ??
-Ook een functie die een taak opleverd is een taak abstractie en zou je als een taak moeten laten zien (dus kunnen selecteren voor een trace, resultaat kunnen opvragen)
+misschien een taakdoos om de parallel als geheel zetten ??
+Dan kun je daar ok de naam van de parallel kwijt (-||-, anyTask, -&&-, parallel)
+
+* Ook een functie die een taak opleverd is een taak abstractie en zou je als een taak moeten laten zien 
+(dus kunnen selecteren voor een trace, resultaat kunnen opvragen)
+Heeft ook zin: ipv een bepaalde applicatie van een taak zou je daarmee iedere applicatie van een taak die je hebt gedefinieerd kunnen tracen
 
 * stepcombinator: eerst de conditie dan de aktie zou mooi zijn
+haal de ster voor en achter de splitsing maar weg
+
+* withShared: functie wordt niet getoond
 
 
 Dynamisch
@@ -16,7 +24,7 @@ Dynamisch
 - als klaar: wat was zijn resultaat (stable / blauw, unstable / groen, novalue / wit, exception /rood)
 - als wordt aan gewerkt: wat is het huidige resultaat: (stable / blauw, unstable / groen, novalue / wit, exception /rood)
 
-* let op: iedere taak heeft een toestand + resultaat.
+* let op: *iedere* taak heeft een toestand + resultaat.
 Dit geldt voor bv een parallelle taak, maar ook voor iedere functie die een taak opleverd.
 
 
@@ -39,11 +47,15 @@ Statische Tonic
 Dynamische Tonic
 - unfold depth werkt niet goed: laat dezefde flow meerdere keren zien
 
-- resultaat van taak die getraced wordt wordt niet getoond
+- resultaat van taak die getraced wordt, wordt niet (altijd) getoond
 
 - kleur toestand / kleur resultaat lijkt niet altijd correct, in het bijzonder bij parallelle taken
 
+- lijstcomprehensions bij parallelle constructies...
 
+- stepcombinator plaatje ziet er nog niet in alle gevallen goed uit
+
+- het systeem is nog steeds erg traag
 
 
 

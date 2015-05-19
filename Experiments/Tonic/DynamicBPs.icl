@@ -13,6 +13,16 @@ Start world = startEngine [ publish "/" (WebApp []) (\_-> dynamicBPs1 (viewStep 
                           , publish "/view" (WebApp []) (\_-> viewStep 5)	
                           , publish "/seq" (WebApp []) (\_-> seqTest 5)	
                           , publish "/or" (WebApp []) (\_-> orTest )	
+                          , publish "/and" (WebApp []) (\_-> andTest )	
+                          , publish "/andor" (WebApp []) (\_-> andOrTest )	
+                          , publish "/any" (WebApp []) (\_-> anyTest )	
+                          , publish "/anyall" (WebApp []) (\_-> anyAllTest 4 )	
+                          , publish "/highin" (WebApp []) (\_-> highInTest seqTest )	
+                          , publish "/highout" (WebApp []) (\_-> highOutTest seqTest)	
+                          , publish "/highinout" (WebApp []) (\_-> highInOutTest )	
+
+                          , publish "/updown" (WebApp []) (\_-> shareTest )	
+
                           , publish "/step" (WebApp []) (\_-> stepTest 5)	
                           ] world
 
@@ -33,9 +43,74 @@ andTest = seqTest 3 -&&- seqTest 2 >>= \(v1,v2) -> return (v1 + v2)
 andOrTest :: Task Int
 andOrTest = andTest -||- andTest
 
+anyTest :: Task Int
+anyTest = anyTask [viewStep 1, viewStep 2, viewStep 3]
+
+anyAllTest :: Int -> Task Int
+anyAllTest n 
+	=			allTasks [updateInformation ("task " +++ toString n) [] i \\ i <- [0..n] ] 
+	>>= \list -> 	anyTask [viewInformation ("task " +++ toString n) [] i \\ i <-list]
+
+highInTest :: (Int -> Task Int) -> Task Int
+highInTest ifun
+	=			enterInformation "enter a number:" []
+	>>= \i ->	if (i > 0) (ifun i) (return i)
+
+highOutTest :: (Int -> Task Int) -> Task Int
+highOutTest itask 
+	= 				enterInformation "enter a number:" []
+	>>= \n ->		itask n
+	>>= \m ->		itask m
+	>>= \o -> 		return (itask (n+m+o))
+	>>= \task -> 	task
+
+highInOutTest :: Task Int
+highInOutTest 
+	= 				highInOut [viewStep 7, seqTest 2, andOrTest, anyTest, anyAllTest 3, highInOutTest] 
+	>>= \task ->	task
+
+highInOut:: [Task Int] -> Task (Task Int)
+highInOut funs
+	=			enterChoice "choose a task" [ChooseWith (AutoChoice (\t -> toSingleLineText t))] funs
+	>>= \fun ->	return fun
+ 
+stepTest :: Int -> Task Int
+stepTest n
+    =            updateInformation "step test" [] n
+    >>*         [ OnAction ActionYes (always (stepTest n))                               
+                , OnAction ActionNo  (always (stepTest n))
+                , OnAction (Action "Pos" []) (ifValue ((<=) 0) stepTest)
+                , OnAction (Action "Neg" []) (ifValue ((>=) 0) (\n -> stepTest n))
+                , OnAction (Action "Stable" []) (ifStable         stepTest)
+                , OnAction (Action "Unstable" []) (ifUnstable         stepTest)
+                , OnAction (Action "Cond" []) (ifCond (n>10)   (return n))
+				, OnValue  (ifCond (n>1000) (return n))
+				, OnException  (\n -> return n)
+                ]
+
+enterInt n
+	= updateInformation "enter an integer value" [] n
+
+shareTest :: Task Int
+shareTest
+	=		withShared 0 (\s -> up s -||- down s)
+where
+	up s 	=  viewSharedInformation "up" [] s >>= \n -> set (n+1) s >>| up s
+	down s 	=  viewSharedInformation "down" [] s >>= \n -> set (n-1) s >>| down s
 
 
 
+
+
+test :: Int -> Task Int
+test n
+	= do (enterInt n) >>= \number -> allTasks [do (enterInt n) \\ n <- [1..number]] >>= \s -> return (sum s) 
+
+do :: (Task a) -> Task a | iTask a
+do task
+ =				task
+ >>= \res ->	viewInformation "result is:" [] res
+ >>|			return res
 
 dynamicBPs1 :: (Task Int) -> Task Int
 dynamicBPs1 vs42
@@ -52,33 +127,3 @@ dynamicBPs1 vs42
   >>| viewStep 9
   where
   restOfSteps = map viewStep [4, 5, 6, 7]
-  
-
-
-test :: Int -> Task Int
-test n
-	= do (enterInt n) >>= \number -> allTasks [do (enterInt n) \\ n <- [1..number]] >>= \s -> return (sum s) 
-
-
-
-stepTest :: Int -> Task Int
-stepTest n
-    =            updateInformation "step test" [] n
-    >>*            [ OnAction ActionYes (always (stepTest n))                               
-                , OnAction ActionNo  (always (stepTest n))
-                , OnAction (Action "Pos" []) (ifValue ((<=) 0) stepTest)
-                , OnAction (Action "Neg" []) (ifValue ((>=) 0) (\n -> stepTest n))
-                , OnAction (Action "Stable" []) (ifStable         stepTest)
-                , OnAction (Action "Unstable" []) (ifUnstable         stepTest)
-                , OnAction (Action "Cond" []) (ifCond (n>10)   (return n))
-                ]
-
-enterInt n
-	= updateInformation "enter an integer value" [] n
-
-do :: (Task a) -> Task a | iTask a
-do task
- =				task
- >>= \res ->	viewInformation "result is:" [] res
- >>|			return res
-
