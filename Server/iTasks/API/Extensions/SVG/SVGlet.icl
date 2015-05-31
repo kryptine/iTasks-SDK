@@ -705,7 +705,7 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     mkCompositeImage host compose = gatherFontsUnions [compose : maybeToList host]
   gatherFontsComposeAlgs :: ComposeAlg (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsComposeAlgs =
-    { composeAsGridAlg    = \_ offss _ imgss -> gatherFontsUnions (flatten imgss ++ (strictFoldl (\acc (x, y) -> [x:y:acc]) [] (flatten offss)))
+    { composeAsGridAlg    = \_ offss _ imgss -> gatherFontsUnions (flattenTR imgss ++ (strictFoldl (\acc (x, y) -> [x:y:acc]) [] (flattenTR offss)))
     , composeAsCollageAlg = \  offs    imgs  -> gatherFontsUnions (imgs ++ strictFoldl (\acc (x, y) -> [x:y:acc]) [] offs)
     , composeAsOverlayAlg = \  offs  _ imgs  -> gatherFontsUnions (imgs ++ strictFoldl (\acc (x, y) -> [x:y:acc]) [] offs)
     }
@@ -1043,8 +1043,8 @@ desugarAndTag img = go
                                          (strictTRMap (maxSpan o strictTRMap snd) spanss) st
       #! offsets`       = calculateGridOffsets (strictTRMap (\n -> LookupSpan (ColumnXSpan sysTags n)) colIndices)
                                                (strictTRMap (\n -> LookupSpan (RowYSpan sysTags n))    rowIndices) iass imgss offsetss
-      #! offsets`       = reverseTR (flatten offsets`)
-      = (( AsCollage offsets` (flatten imgss)
+      #! offsets`       = reverseTR (flattenTR offsets`)
+      = (( AsCollage offsets` (flattenTR imgss)
          , gridSpan), st)
       where
       calculateGridOffsets :: ![Span] ![Span] ![[ImageAlign]] ![[Image s]] ![[(!Span, !Span)]] -> [[(!Span, !Span)]]
@@ -1587,14 +1587,14 @@ genSVG img = imageCata genSVGAllAlgs img
                     !(GenSVGStVal s)
                  -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
     mkFlipXImage (xsp, _) _ st
-      = (([TranslateTransform (toString xsp) "0", ScaleTransform "-1" "1"], FlipXImage), st)
+      = (([TranslateTransform (toString (~ xsp)) "0", ScaleTransform "-1" "1"], FlipXImage), st)
 
     mkFlipYImage :: !(Real /* Not used */, !Real)
                     Bool // Not used
                     !(GenSVGStVal s)
                  -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
     mkFlipYImage (_, ysp) _ st
-      = (([TranslateTransform "0" (toString ysp), ScaleTransform "1" "-1"], FlipYImage), st)
+      = (([TranslateTransform "0" (toString (~ ysp)), ScaleTransform "1" "-1"], FlipYImage), st)
   genSVGImageSpanAlgs :: ImageSpanAlg (GenSVGSt s Real) (GenSVGSt s ImageSpanReal) | iTask s
   genSVGImageSpanAlgs =
     { imageSpanAlg = mkImageSpan
@@ -1829,7 +1829,7 @@ genSVG img = imageCata genSVGAllAlgs img
     mkCollage offsets imgs _ totalSpanPreTrans imAts imTrs imTas st
       #! (offsets, st) = evalOffsets offsets st
       #! (imgsSps, st) = sequence imgs st
-      = ({ genSVGSyn_svgElts       = flatten (strictTRZipWith mkTranslateGroup offsets (strictTRMap (\x -> x.genSVGSyn_svgElts) imgsSps))
+      = ({ genSVGSyn_svgElts       = flattenTR (strictTRZipWith mkTranslateGroup offsets (strictTRMap (\x -> x.genSVGSyn_svgElts) imgsSps))
          , genSVGSyn_events        = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_events) imgsSps)
          , genSVGSyn_draggable     = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_draggable) imgsSps)
          , genSVGSyn_idMap         = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_idMap) imgsSps)
@@ -1873,9 +1873,18 @@ evalMaybe _ st = (Nothing, st)
 ret :: !a !.s -> (!a, !.s)
 ret x st = (x, st)
 
+flattenTR :: ![[a]] -> [a]
+flattenTR xss = flattenTRAcc xss []
+
+flattenTRAcc :: ![[a]] [a] -> [a]
+flattenTRAcc [] acc = acc
+flattenTRAcc [xs:xss] acc
+  #! r = reverseTR xs ++ acc
+  = flattenTRAcc xss r
+
 mkAttrs :: ![Maybe SVGAttr] ![(![SVGTransform], !ImageTransform)] -> [Maybe SVGAttr]
 mkAttrs imAts [] = imAts
-mkAttrs imAts xs = [Just (TransformAttr (flatten (strictTRMap fst xs))):imAts]
+mkAttrs imAts xs = [Just (TransformAttr (flattenTR (strictTRMap fst xs))):imAts]
 
 calcAlignOffset :: !Span !Span !(!Span, !Span) !ImageAlign -> (!Span, !Span)
 calcAlignOffset maxxsp maxysp (imXSp, imYSp) (xal, yal) = (mkXAl maxxsp imXSp xal, mkYAl maxysp imYSp yal)
