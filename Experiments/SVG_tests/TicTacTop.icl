@@ -94,6 +94,9 @@ play_games players
         , OnAction (Action "/File/Quit" [ActionIcon "quit"]) (always (return ()))
         ])
 
+play_tic_tac_toe :: Task ()
+play_tic_tac_toe = find_players >>= play_games
+
 // Tic-Tac-Toe rendering:
 render :: TicTac Game *TagSource -> Image Game
 render playing game tags
@@ -131,7 +134,7 @@ import MultiUser	// for working with multiply registered users
 Start :: *World -> *World
 Start world
 	= StartMultiUserTasks
-	              [workflow "Tic-Tac-Top" "Play Tic-Tac-Toe" ((find_players >>= play_games)            <<@ FullScreen)]
+	              [workflow "Tic-Tac-Top" "Play Tic-Tac-Toe" (play_tic_tac_toe                         <<@ FullScreen)]
 	              [publish "/users" (WebApp []) (const (set_up_users                                   <<@ FullScreen))
 	              ,publish "/show"  (WebApp []) (const (viewSharedInformation "Current users" [] users <<@ FullScreen))
 	              ,publish "/find"  (WebApp []) (const (find_players                                   <<@ FullScreen))
