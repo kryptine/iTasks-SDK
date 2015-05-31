@@ -1536,8 +1536,8 @@ genSVG img = imageCata genSVGAllAlgs img
   genSVGImageTransformAlgs :: ImageTransformAlg (GenSVGSt s Real) (ImageSpanReal Bool -> GenSVGSt s (![SVGTransform], !ImageTransform)) | iTask s
   genSVGImageTransformAlgs =
     { imageTransformRotateImageAlg = mkRotateTransform
-    , imageTransformSkewXImageAlg  = \imAn _ _ s -> (([SkewXTransform (toString (toDeg imAn))], SkewXImage imAn), s)
-    , imageTransformSkewYImageAlg  = \imAn _ _ s -> (([SkewYTransform (toString (toDeg imAn))], SkewYImage imAn), s)
+    , imageTransformSkewXImageAlg  = mkSkewX
+    , imageTransformSkewYImageAlg  = mkSkewY
     , imageTransformFitImageAlg    = mkFitImage
     , imageTransformFitXImageAlg   = mkFitXImage
     , imageTransformFitYImageAlg   = mkFitYImage
@@ -1550,6 +1550,28 @@ genSVG img = imageCata genSVGAllAlgs img
       // FIXME: We currently devide ysp by 4.0 as an approximation of the text descent height. Text is transformed from the baseline, not top-left. The actual offset for text would be ~((fontyspan / 2) - descent), but we currently don't know the descent.
       #! yoff = if isText (~ (ysp / 4.0)) (ysp / 2.0)
       = (([RotateTransform (toString (to2dec (toDeg imAn))) (Just (toString (to2dec (xsp / 2.0)), toString (to2dec yoff)))], RotateImage imAn), s)
+
+    mkSkewX :: !Angle
+               !(!Real, Real /* Not used */)
+               Bool // Not used
+               !(GenSVGStVal s)
+            -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
+    mkSkewX imAn (_, ysp) isText s = (([SkewXTransform (toString (toDeg imAn))], SkewXImage imAn), s)
+
+    mkSkewY :: !Angle
+               !(Real /* Not used */, !Real)
+               !Bool
+               !(GenSVGStVal s)
+            -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
+    mkSkewY imAn (_, ysp) isText s
+      #! attrs = [SkewYTransform (toString (toDeg imAn))]
+      #! attrs = case isText of
+                   True
+                     #! yoff = ysp * 0.75
+                     #! yoff = if (toDeg imAn < 0.0) yoff (~ yoff)
+                     = [TranslateTransform "0" (toString yoff) : attrs]
+                   _ = attrs
+      = ((attrs, SkewYImage imAn), s)
 
     mkFitImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s))
                   !((GenSVGStVal s) -> (!Real, !GenSVGStVal s))
@@ -1593,8 +1615,9 @@ genSVG img = imageCata genSVGAllAlgs img
                     Bool // Not used
                     !(GenSVGStVal s)
                  -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
-    mkFlipYImage (_, ysp) _ st
-      = (([TranslateTransform "0" (toString (~ ysp)), ScaleTransform "1" "-1"], FlipYImage), st)
+    mkFlipYImage (_, ysp) isText st
+      #! ysp = if isText (ysp * 0.75) (~ ysp)
+      = (([TranslateTransform "0" (toString ysp), ScaleTransform "1" "-1"], FlipYImage), st)
   genSVGImageSpanAlgs :: ImageSpanAlg (GenSVGSt s Real) (GenSVGSt s ImageSpanReal) | iTask s
   genSVGImageSpanAlgs =
     { imageSpanAlg = mkImageSpan
