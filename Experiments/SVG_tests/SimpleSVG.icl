@@ -2,15 +2,13 @@ module SimpleSVG
 
 /* How to create and test an iTask program:
    1. Install the iTask Clean compiler
-   2. Copy this main file (SimpleSVG.icl) in the folder:
-      {iTasks-SDK}\Experiments\SVG_tests\ 
-   3. Create a new project with this module as main module
-   4. Select the 'iTasks' environment
-   5. Bring the project Up-Uo-Date
-   6. Start the generated exe (this launches a local web server, allow your OS to unblock the exe)
-   7. Open a web browser (Google Chrome gives the best results)
-   8. Navigate to http://localhost/ activates the root-application (hello world)
-   9. Navigate to http://localhost/LABEL activates the application with the corresponding LABEL (e.g. http://localhost/basic)
+   2. Create a new project with this module as main module
+   3. Select the 'iTasks' environment
+   4. Bring the project Up-Uo-Date
+   5. Start the generated exe (this launches a local web server, allow your OS to unblock the exe)
+   6. Open a web browser (Google Chrome gives the best results)
+   7. Navigate to http://localhost/ activates the root-application (hello world)
+   8. Navigate to http://localhost/LABEL activates the application with the corresponding LABEL (e.g. http://localhost/basic)
 */
 
 import iTasks								// the iTask API
@@ -88,7 +86,7 @@ where
 transformed_images :: m *TagSource -> Image m
 transformed_images model tags
 	= margin (px 100.0) (
-	    grid (Columns 4) (RowMajor,LeftToRight,TopToBottom) [] []
+	    grid (Columns 4) (RowMajor,LeftToRight,TopToBottom) (repeat (AtMiddleX,AtBottom)) []
 	       [ above (repeat AtMiddleX) [] [img,                    txt "img"]                           Nothing
 	       , above (repeat AtMiddleX) [] [fit    (px  100.0) 
 	                                             (px  100.0) img, txt "fit (px 100.0) (px 100.0) img"] Nothing
