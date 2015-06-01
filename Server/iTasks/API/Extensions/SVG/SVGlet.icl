@@ -1897,7 +1897,7 @@ ret :: !a !.s -> (!a, !.s)
 ret x st = (x, st)
 
 flattenTR :: ![[a]] -> [a]
-flattenTR xss = flattenTRAcc xss []
+flattenTR xss = reverseTR (flattenTRAcc xss [])
 
 flattenTRAcc :: ![[a]] [a] -> [a]
 flattenTRAcc [] acc = acc
