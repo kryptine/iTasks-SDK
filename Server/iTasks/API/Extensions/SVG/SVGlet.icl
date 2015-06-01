@@ -580,7 +580,7 @@ skewXImageWidth angle (xspan, yspan)
   #! rAngle   = toRad angle
   #! newXSpan = xspan + (abs (yspan *. tan rAngle))
   #! spanDiff = newXSpan - xspan
-  #! mkOffset = if (rAngle <= 0.0) (zero - spanDiff) spanDiff
+  #! mkOffset = if (rAngle < 0.0) spanDiff zero
   = (newXSpan, mkOffset)
 
 // Skew an image by a given angle. This function is naive as well, for the same
@@ -596,8 +596,8 @@ skewYImageHeight :: !Angle !(!Span, !Span) -> (!Span, !Span)
 skewYImageHeight angle (xspan, yspan)
   #! rAngle   = toRad angle
   #! newYSpan = yspan + (abs (xspan *. tan rAngle))
-  #! spanDiff = newYSpan - xspan
-  #! mkOffset = if (rAngle <= 0.0) (zero - spanDiff) spanDiff
+  #! spanDiff = newYSpan - yspan
+  #! mkOffset = if (rAngle < 0.0) spanDiff zero
   = (newYSpan, mkOffset)
 
 gatherFonts :: !(Image s) -> Map FontDef (Set String)
@@ -1564,14 +1564,7 @@ genSVG img = imageCata genSVGAllAlgs img
                !(GenSVGStVal s)
             -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
     mkSkewY imAn (_, ysp) isText s
-      #! attrs = [SkewYTransform (toString (toDeg imAn))]
-      #! attrs = case isText of
-                   True
-                     #! yoff = ysp * 0.75
-                     #! yoff = if (toDeg imAn < 0.0) yoff (~ yoff)
-                     = [TranslateTransform "0" (toString yoff) : attrs]
-                   _ = attrs
-      = ((attrs, SkewYImage imAn), s)
+      = (([SkewYTransform (toString (toDeg imAn))], SkewYImage imAn), s)
 
     mkFitImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s))
                   !((GenSVGStVal s) -> (!Real, !GenSVGStVal s))
