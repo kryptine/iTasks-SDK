@@ -1576,33 +1576,55 @@ genSVG img = imageCata genSVGAllAlgs img
     mkFitImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s))
                   !((GenSVGStVal s) -> (!Real, !GenSVGStVal s))
                   !(!Real, !Real)
-                  Bool // Not used
+                  !Bool
                   !(GenSVGStVal s)
                -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
-    mkFitImage sp1 sp2 (xsp, ysp) _ st
+    mkFitImage sp1 sp2 (xsp, ysp) isText st
       #! (sp1, st) = sp1 st
       #! (sp2, st) = sp2 st
-      = (([ScaleTransform (toString (to2dec (sp1 / xsp))) (toString (to2dec (sp2 / ysp)))], FitImage (px sp1) (px sp2)), st)
+      #! factorx  = to2dec (sp1 / xsp)
+      #! factory  = to2dec (sp2 / ysp)
+      #! scalex   = if (xsp > 0.0) (toString factorx) "1.0"
+      #! scaley   = if (ysp > 0.0) (toString factory) "1.0"
+      #! attrs    = [ScaleTransform (toString factorx) (toString factory)]
+      #! attrs    = case isText of
+                      True
+                        = [TranslateTransform "0" (toString ysp) : attrs]
+                      _ = attrs
+      = ((attrs, FitImage (px sp1) (px sp2)), st)
 
     mkFitXImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s))
-                   !(!Real, Real /* Not used*/)
-                   Bool // Not used
+                   !(!Real, !Real)
+                   !Bool
                    !(GenSVGStVal s)
                 -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
-    mkFitXImage sp (xsp, _) _ st
+    mkFitXImage sp (xsp, ysp) isText st
       #! (sp, st) = sp st
-      #! scale    = if (xsp > 0.0) (toString (to2dec (sp / xsp))) "1.0"
-      = (([ScaleTransform scale scale], FitXImage (px sp)), st)
+      #! factor   = to2dec (sp / xsp)
+      #! scale    = if (xsp > 0.0) (toString factor) "1.0"
+      #! attrs    = [ScaleTransform scale scale]
+      #! attrs    = case isText of
+                      True
+                        #! yoff = to2dec (ysp * 0.7 * factor)
+                        = [TranslateTransform "0" (toString yoff) : attrs]
+                      _ = attrs
+      = ((attrs, FitXImage (px sp)), st)
 
     mkFitYImage :: !((GenSVGStVal s) -> (!Real, !GenSVGStVal s))
                    !(Real /* Not used */, !Real)
-                   Bool // Not used
+                   !Bool
                    !(GenSVGStVal s)
                 -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
-    mkFitYImage sp (_, ysp) _ st
+    mkFitYImage sp (_, ysp) isText st
       #! (sp, st) = sp st
-      #! scale    = if (ysp > 0.0) (toString (to2dec (sp / ysp))) "1.0"
-      = (([ScaleTransform scale scale], FitYImage (px sp)), st)
+      #! factor   = to2dec (sp / ysp)
+      #! scale    = if (ysp > 0.0) (toString factor) "1.0"
+      #! attrs    = [ScaleTransform scale scale]
+      #! attrs    = case isText of
+                      True
+                        = [TranslateTransform "0" (toString ysp) : attrs]
+                      _ = attrs
+      = ((attrs, FitYImage (px sp)), st)
 
     mkFlipXImage :: !(!Real, Real /* Not used */) 
                     Bool /* Not used */
