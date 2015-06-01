@@ -1609,14 +1609,14 @@ genSVG img = imageCata genSVGAllAlgs img
                     !(GenSVGStVal s)
                  -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
     mkFlipXImage (xsp, _) _ st
-      = (([TranslateTransform (toString (~ xsp)) "0", ScaleTransform "-1" "1"], FlipXImage), st)
+      = (([TranslateTransform (toString xsp) "0", ScaleTransform "-1" "1"], FlipXImage), st)
 
     mkFlipYImage :: !(Real /* Not used */, !Real)
                     Bool // Not used
                     !(GenSVGStVal s)
                  -> .(!(![SVGTransform], !ImageTransform), !GenSVGStVal s)
     mkFlipYImage (_, ysp) isText st
-      #! ysp = if isText (ysp * 0.75) (~ ysp)
+      #! ysp = if isText ((~ ysp) * 0.7) ysp
       = (([TranslateTransform "0" (toString ysp), ScaleTransform "1" "-1"], FlipYImage), st)
   genSVGImageSpanAlgs :: ImageSpanAlg (GenSVGSt s Real) (GenSVGSt s ImageSpanReal) | iTask s
   genSVGImageSpanAlgs =
