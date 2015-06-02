@@ -10,29 +10,34 @@ import iTasks._Framework.Tonic.AbsSyn
 
 ppTExpr :: !TExpr -> String
 ppTExpr tcexpr = ppTExpr` 0 tcexpr
-  where
-  ppTExpr` :: !Int !TExpr -> String
-  ppTExpr` _ (TVar _ pp)             = sugarPP pp
-  ppTExpr` _ (TLit pp)               = sugarPP pp
-  ppTExpr` _ (TFApp _ pp [])         = sugarPP pp
-  ppTExpr` _ (TFApp _ "_List" [x:_]) = "[" +++ ppTExpr x +++ "]"
-  ppTExpr` _ (TFApp _ "_Cons" xs)    = "[" +++ ppTExprList xs +++ "]"
-  ppTExpr` _ (TFApp _ "_Tuple2" xs)  = "(" +++ ppTExprTuple xs +++ ")"
-  ppTExpr` _ (TFApp _ "_Tuple3" xs)  = "(" +++ ppTExprTuple xs +++ ")"
-  ppTExpr` _ (TFApp _ "_Tuple4" xs)  = "(" +++ ppTExprTuple xs +++ ")"
-  ppTExpr` _ (TFApp _ pp [x:xs])
-    | size pp > 0 && pp.[0] == '_' = "{ " +++ pp % (1, size pp) +++ " | " +++ ppTExprTuple xs +++ " }"
-  ppTExpr` d (TFApp (TLeftAssoc  n) pp [l, r]) = if (d > 0) "(" "" +++ ppTExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTExpr` (d + 1) r +++ if (d > 0) ")" ""
-  ppTExpr` d (TFApp (TRightAssoc n) pp [l, r]) = if (d > 0) "(" "" +++ ppTExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTExpr` (d + 1) r +++ if (d > 0) ")" ""
-  ppTExpr` d (TFApp _               pp xs)     = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTExpr` (d + 1)) xs) +++ if (d > 0) ")" ""
-  ppTExpr` _ (TMApp _ _ _ pp [])         = sugarPP pp
-  ppTExpr` _ (TMApp _ _ _ pp [x:xs])
-    | size pp > 0 && pp.[0] == '_' = "{ " +++ pp % (1, size pp) +++ " | " +++ ppTExprTuple xs +++ " }"
-  ppTExpr` d (TMApp _ _ _ pp xs)     = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTExpr` (d + 1)) xs) +++ if (d > 0) ")" ""
-  ppTExpr` d (TSel e es) = ppTExpr e +++ "." +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTExpr` (d + 1)) es)
-  ppTExpr` _ (TLam vars e) = "λ" +++ foldr (\x xs -> x +++ " " +++ xs) "" vars +++ "→ " +++ ppTExpr e
-  ppTExpr` d (TExpand _ e) = ppTExpr` d e
-  ppTExpr` _ _ = "ppTExpr: encountered more complex expression than we would like to pretty-print here..."
+
+ppTExpr` :: !Int !TExpr -> String
+ppTExpr` _ (TVar _ pp)             = sugarPP pp
+ppTExpr` _ (TLit pp)               = sugarPP pp
+ppTExpr` _ (TFApp _ pp [])         = sugarPP pp
+ppTExpr` _ (TFApp _ "_List" [x:_]) = "[" +++ ppTExpr x +++ "]"
+ppTExpr` _ (TFApp _ "_Cons" xs)    = "[" +++ ppTExprList xs +++ "]"
+ppTExpr` _ (TFApp _ "_Tuple2" xs)  = "(" +++ ppTExprTuple xs +++ ")"
+ppTExpr` _ (TFApp _ "_Tuple3" xs)  = "(" +++ ppTExprTuple xs +++ ")"
+ppTExpr` _ (TFApp _ "_Tuple4" xs)  = "(" +++ ppTExprTuple xs +++ ")"
+ppTExpr` _ (TFApp _ pp [x:xs])
+  | size pp > 0 && pp.[0] == '_' = "{ " +++ pp % (1, size pp) +++ " | " +++ ppTExprTuple xs +++ " }"
+ppTExpr` d (TFApp (TLeftAssoc  n) pp [l, r]) = if (d > 0) "(" "" +++ ppTExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTExpr` (d + 1) r +++ if (d > 0) ")" ""
+ppTExpr` d (TFApp (TRightAssoc n) pp [l, r]) = if (d > 0) "(" "" +++ ppTExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTExpr` (d + 1) r +++ if (d > 0) ")" ""
+ppTExpr` d (TFApp _               pp xs)     = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTExpr` (d + 1)) xs) +++ if (d > 0) ")" ""
+ppTExpr` _ (TMApp _ _ _ pp [])         = sugarPP pp
+ppTExpr` _ (TMApp _ _ _ pp [x:xs])
+  | size pp > 0 && pp.[0] == '_' = "{ " +++ pp % (1, size pp) +++ " | " +++ ppTExprTuple xs +++ " }"
+ppTExpr` d (TMApp _ _ _ pp xs)     = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTExpr` (d + 1)) xs) +++ if (d > 0) ")" ""
+ppTExpr` d (TSel e es) = ppTExpr e +++ "." +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTExpr` (d + 1)) es)
+ppTExpr` _ (TLam vars e) = "λ" +++ foldr (\x xs -> x +++ " " +++ xs) "" vars +++ "→ " +++ ppTExpr e
+ppTExpr` d (TCaseOrIf e cs) = "case " +++ ppTExpr` d e +++ " of { " +++ ppCases d cs +++ "}"
+ppTExpr` d (TExpand _ e) = ppTExpr` d e
+ppTExpr` _ _ = "ppTExpr: encountered more complex expression than we would like to pretty-print here..."
+
+ppCases _ []               = ""
+ppCases d [(pat, expr)]    = ppTExpr` d pat +++ " -> " +++ ppTExpr` d expr
+ppCases d [(pat, expr):xs] = ppTExpr` d pat +++ " -> " +++ ppTExpr` d expr +++ "; " +++ ppCases d xs
 
 ppTExprList :: ![TExpr] -> String
 ppTExprList []                      = ""
