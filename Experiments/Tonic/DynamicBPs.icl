@@ -5,6 +5,8 @@ import iTasks
 import iTasks._Framework.Tonic
 import iTasks.API.Extensions.Admin.TonicAdmin
 
+import StdArray
+
 Start :: *World -> *World
 Start world = startEngine [ publish "/" (WebApp []) (\_-> dynamicBPs1 (viewStep 42))
                           , publish "/tonic" (WebApp []) (\_-> tonicDashboard [])
@@ -127,3 +129,64 @@ dynamicBPs1 vs42
   >>| viewStep 9
   where
   restOfSteps = map viewStep [4, 5, 6, 7]
+  
+// sheets
+
+
+
+
+myTask :: Task Int
+myTask = enterInformation "Enter an integer" []
+
+palindrome :: Task (Maybe String)
+palindrome 
+	=   		enterInformation "Enter a palindrome" []
+    	>>* 	[ OnAction  ActionOk     (ifValue isPalindrome  (\v -> return (Just v)))
+               	, OnAction  ActionCancel (always	            (return Nothing))
+               	]
+where
+	isPalindrome s = l == reverse l where l = [e \\ e <-: s]
+
+
+
+:: Person 	=  { name :: String, gender :: Gender, dateOfBirth :: Date}
+:: Gender 	= Male | Female
+
+derive class iTask Person, Gender
+
+/*
+person1by1 :: [Person] -> Task [Person]
+person1by1 persons
+	=		enterInformation "Add a person" []
+		    -|| 
+		    viewInformation "List so far.." [] persons
+	 >>*  	[ OnAction (Action "Add" [])    (hasValue  (\v -> person1by1 [v : persons]))  
+		    , OnAction (Action "Finish" []) (always (return persons))
+		    , OnAction ActionCancel 	    (always (return []))
+	        ]
+*/
+
+calculateSum :: Task Int
+calculateSum
+  =   			enterInformation ("Number 1","Enter a number") []
+  	>>= \num1 ->	enterInformation ("Number 2","Enter another number") []
+ 	>>= \num2 ->	viewInformation   ("Sum","The sum of those numbers is:") [] (num1 + num2)
+ 	
+
+
+twoTasks :: User User  -> Task a      	   | iTask a 
+twoTasks user1 user2   
+= withShared defaultValue (\share -> (user1  @: updateSharedInformation  ("Shared with" <+++ user2) [] share)
+		              		                 -||  
+		              		         ( user2  @: viewSharedInformation   ("Shared with" <+++ user1)  [] share) )
+
+
+
+
+
+
+
+
+
+
+
