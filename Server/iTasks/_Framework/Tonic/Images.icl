@@ -14,6 +14,7 @@ import qualified Data.Set as DS
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Graphics.Scalable
+import Graphics.Scalable.Internal
 import iTasks._Framework.Generic
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
@@ -101,13 +102,15 @@ tExpr2Image inh (TLam args e)               tsrc = tLam          inh args e tsrc
 tLam :: !MkImageInh ![VarName] !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tLam inh vars e tsrc
   #! (r, tsrc) = tExpr2Image inh e tsrc
-  #! linePart  = case vars of
-                   []   -> [tHorizConnArr, r]
-                   vars -> [tHorizConn, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> x +++ " " +++ xs) "" vars), tHorizConnArr, r]
-  = (text ArialRegular10px "tSel", tsrc)
+  #! lineParts  = case vars of
+                    []   -> [tHorizConnArr, r]
+                    vars -> [tHorizConn, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> x +++ " " +++ xs) "" vars), tHorizConnArr, r]
+  = (beside (repeat AtMiddleY) [] lineParts Nothing, tsrc)
 
 tSel :: !MkImageInh !TExpr ![TExpr] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tSel inh e es tsrc = (text ArialRegular10px "tSel", tsrc)
+tSel inh e es tsrc
+  #! (eImg, tsrc) = tExpr2Image inh e tsrc
+  = (eImg, tsrc) // TODO es
 
 tFApp :: !MkImageInh !TAssoc !FunName ![TExpr] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tFApp inh assoc fn args tsrc = (text ArialRegular10px (ppTExpr (TFApp assoc fn args)), tsrc)
@@ -206,9 +209,6 @@ containsActiveNodes inh _                  = False
 
 tCaseOrIf :: !MkImageInh !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tCaseOrIf inh texpr pats tsrc
-  #! ppexpr         = case texpr of
-                        TVar _ x -> x
-                        _        -> "TODO RENDER GRAPH"
   #! patStrs        = map (ppTExpr o fst) pats
   #! patExprs       = map snd pats
   #! branchActivity = map (containsActiveNodes inh) patExprs
@@ -218,23 +218,28 @@ tCaseOrIf inh texpr pats tsrc
   #! (nextTasks, refs, tsrc) = prepCases patStrs nextTasks tsrc
   #! vertConn     = mkVertConn refs
   #! nextTasks`   = above (repeat AtMiddleX) [] nextTasks Nothing
-  #! textHeight   = ArialRegular10px.fontysize
-  #! textWidth    = textxspan ArialRegular10px ppexpr
-  #! edgeMargin   = textHeight * 2.0
-  #! centerX      = (textWidth /. 2.0) + px edgeMargin
-  #! leftCorner   = (px 0.0, y textHeight edgeMargin (px 0.0))
-  #! topCorner    = (centerX, ~ (y textHeight edgeMargin centerX))
-  #! rightCorner  = (centerX *. 2.0, y textHeight edgeMargin (px 0.0))
-  #! bottomCorner = (centerX, y textHeight edgeMargin centerX)
-  #! diamond      = polygon Nothing [ leftCorner, topCorner, rightCorner, bottomCorner ]
-                      <@< { fill   = toSVGColor "white" }
-                      <@< { stroke = toSVGColor "black" }
-  #! diamond`     = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ diamond
-                                                               , text ArialRegular10px ppexpr] Nothing
-  = (beside (repeat AtMiddleY) [] [diamond`, tHorizConn, vertConn, nextTasks`, vertConn] Nothing, tsrc)
+  #! (diamond, tsrc) = tCaseDiamond inh texpr tsrc
+  = (beside (repeat AtMiddleY) [] [diamond, tHorizConn, vertConn, nextTasks`, vertConn] Nothing, tsrc)
+
+tCaseDiamond :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
+tCaseDiamond inh texpr [(diamondTag, uDiamondTag) : tsrc]
+  #! (exprImg, tsrc) = tExpr2Image inh texpr tsrc
+  #! exprImg         = tag uDiamondTag exprImg
+  #! textHeight      = imageyspan diamondTag
+  #! textWidth       = imagexspan diamondTag
+  #! edgeMargin      = textHeight *. 2.0
+  #! centerX         = (textWidth /. 2.0) + edgeMargin
+  #! leftCorner      = (px 0.0, y textHeight edgeMargin (px 0.0))
+  #! topCorner       = (centerX, ~ (y textHeight edgeMargin centerX))
+  #! rightCorner     = (centerX *. 2.0, y textHeight edgeMargin (px 0.0))
+  #! bottomCorner    = (centerX, y textHeight edgeMargin centerX)
+  #! diamond         = polygon Nothing [ leftCorner, topCorner, rightCorner, bottomCorner ]
+                         <@< { fill   = toSVGColor "white" }
+                         <@< { stroke = toSVGColor "black" }
+  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [diamond, exprImg] Nothing, tsrc)
   where
-  y :: !Real !Real !Span -> Span
-  y textHeight edgeMargin x = x *. (textHeight / edgeMargin)
+  y :: !Span !Span !Span -> Span
+  y textHeight edgeMargin x = x * (textHeight / edgeMargin)
 
 //tShare :: !MkImageInh !TShare !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
 //tShare inh sh sn args [(sharetag, uShareTag) : tsrc]
@@ -650,8 +655,7 @@ tStep inh eid lhsExpr conts tsrc
   #! (conts`, refs, tsrc) = prepCases [] conts` tsrc
   #! vertConn             = mkVertConn refs
   #! contsImg             = above (repeat AtMiddleX) [] conts` Nothing
-  = (beside (repeat AtMiddleY) [] [lhs, tHorizConnArr, tStepStar, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr, tStepStar] Nothing
-  //= (beside (repeat AtMiddleY) [] [lhs, tHorizConnArr, tStepStar, tHorizConn, text ArialRegular10px "TODO Step conts", tHorizConnArr, tStepStar] Nothing
+  = (beside (repeat AtMiddleY) [] [lhs, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr] Nothing
     , tsrc)
 
 tExprIsList :: TExpr -> Bool
@@ -690,20 +694,30 @@ mkStepCont inh mact (TFApp _ "ifStable" [mapp=:(TMApp _ _ _ _ _) : _]) [ref : ts
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction Nothing tStable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp _ "ifValue" [(TFApp assoc vn args) : mapp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
+mkStepCont inh mact (TFApp _ "ifUnstable" [TLam pats e : _]) [ref : tsrc]
+  #! (x, tsrc) = tExpr2Image inh e tsrc
+  = ( beside (repeat AtMiddleY) [] [addAction Nothing tUnstable ref, tHorizConnArr, /* TODO edge */ x] Nothing
+    , tsrc)
+mkStepCont inh mact (TFApp _ "ifUnstable" [mapp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
+  #! (x, tsrc) = tExpr2Image inh mapp tsrc
+  = ( beside (repeat AtMiddleY) [] [addAction Nothing tUnstable ref, tHorizConnArr, /* TODO edge */ x] Nothing
+    , tsrc)
+mkStepCont inh mact (TFApp _ "ifValue" [conditionApp=:(TFApp assoc vn args) : continuationApp : _]) [ref : tsrc]
+  #! (conditionImg, tsrc)    = tCaseDiamond inh conditionApp tsrc
+  #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction Nothing alwaysFilter ref, tHorizConnArr, /* TODO edge */ continuationImg] Nothing
+    , tsrc)
         //("ifValue", [e1=:((App fApp) @ fAppArgs):(App tApp):_])
         //("ifValue", [(App fApp):(App tApp):_])
   // TODO TFApp
-  #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction Nothing hasValueFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
-    , tsrc)
 mkStepCont inh mact (TFApp _ "hasValue" [mapp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction Nothing hasValueFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp _ "ifCond" [mapp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
-  #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction Nothing alwaysFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
+mkStepCont inh mact (TFApp _ "ifCond" [conditionApp : continuationApp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
+  #! (conditionImg, tsrc)    = tCaseDiamond inh conditionApp tsrc
+  #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction Nothing alwaysFilter ref, tHorizConnArr, /* TODO edge */ continuationImg] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp _ "always" [mapp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
@@ -792,10 +806,10 @@ mkVertConn ts
 
 littleman :: Image a
 littleman
-  #! maskRect = rect (px 16.0) (px 16.0) <@< {fill = toSVGColor "white"}
-                                         <@< {strokewidth = px 0.0}
-  = (overlay [] [(px -2.0, px 8.0), (px 3.0, px 1.0)] [ circle (px 20.0) <@< {strokewidth = px 1.0} <@< {stroke = toSVGColor "white"}
-                                                              , circle (px 10.0) <@< {strokewidth = px 1.0} <@< {stroke = toSVGColor "white"}] (Just maskRect)) <@< {mask = maskRect}
+  #! maskRect = rect (px 16.0) (px 16.0) <@< {FillAttr | fill = toSVGColor "white"}
+                                         <@< {StrokeWidthAttr | strokewidth = px 0.0}
+  = (overlay [] [(px -2.0, px 8.0), (px 3.0, px 1.0)] [ circle (px 20.0) <@< {StrokeWidthAttr | strokewidth = px 1.0} <@< {StrokeAttr | stroke = toSVGColor "white"}
+                                                      , circle (px 10.0) <@< {StrokeWidthAttr | strokewidth = px 1.0} <@< {StrokeAttr | stroke = toSVGColor "white"}] (Just maskRect)) <@< {MaskAttr | mask = maskRect}
 
 tIfValue :: !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tIfValue tffun args [(nameTag, uNameTag) : (argsTag, uArgsTag) : tsrc]
