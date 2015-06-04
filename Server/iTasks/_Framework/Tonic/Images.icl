@@ -610,23 +610,23 @@ tDefaultMApp` isCompact isActive wasActive isInAccessible nodeId selectedNodes p
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
 
 tAssign :: !MkImageInh !TExpr !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
-tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (taskNameTag, uTaskNameTag) : (manTag, uManTag) : tsrc]
+tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (headerTag, uHeaderTag) : tsrc]
   #! (desc, user)         = case lhsExpr of
                               (TFApp _ "_Tuple2" [usr, str : _]) -> (ppTExpr str, mkUser usr)
                               usr                                -> ("", mkUser usr)
   #! (assignedTask, tsrc) = tExpr2Image inh assignedTask tsrc
   #! assignedTask         = tag uAssignTaskTag (margin (px 5.0) assignedTask)
-  #! maxXSpan             = maxSpan [imagexspan taskNameTag + imagexspan manTag, imagexspan assignTaskTag]
-  #! taskNameImg          = tag uTaskNameTag (margin (px 5.0) (text ArialBold10px (user +++ if (desc == "") "" (": " +++ desc))))
-  #! bgRect               = rect maxXSpan (imageyspan taskNameTag + imageyspan assignTaskTag)
+  #! maxXSpan             = maxSpan [imagexspan headerTag, imagexspan assignTaskTag]
+  #! taskNameImg          = margin (px 5.0) (text ArialBold10px (user +++ if (desc == "") "" (": " +++ desc)))
+  #! assignHeader         = tag uHeaderTag (beside (repeat AtMiddleY) [] [littleman, taskNameImg] Nothing)
+  #! content              = above (repeat AtMiddleX) [] [assignHeader, xline Nothing maxXSpan, assignedTask] Nothing
+  #! bgRect               = rect maxXSpan (imageyspan headerTag + imageyspan assignTaskTag)
                               <@< { fill        = toSVGColor "white" }
                               <@< { stroke      = toSVGColor "black" }
                               <@< { strokewidth = px 1.0 }
                               <@< { xradius     = px 5.0 }
                               <@< { yradius     = px 5.0 }
                               <@< { dash        = [5, 5] }
-  #! littleman            = tag uManTag littleman
-  #! content              = above (repeat AtMiddleX) [] [beside (repeat AtMiddleY) [] [littleman, taskNameImg] Nothing, xline Nothing maxXSpan, assignedTask] Nothing
   = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
   where
   mkUser (TFApp _ "AnyUser" _)          = "Any user"
@@ -635,7 +635,10 @@ tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (taskNameTag
   mkUser (TFApp _ "SystemUser" _)       = "System user"
   mkUser (TFApp _ "AnonymousUser" _)    = "Anonymous user"
   mkUser (TFApp _ "AuthenticatedUser" [uid:rs:_]) = ppTExpr uid +++ " with roles " +++ foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" (tSafeExpr2List rs)
-  mkUser (TFApp _ usr _)               = usr
+  mkUser (TFApp _ usr _)                = usr
+  mkUser (TVar _ ppe)                   = ppe
+  mkUser (TLit ppe)                     = ppe
+  mkUser _                              = ""
 
 tStep :: !MkImageInh !ExprId !TExpr !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tStep inh eid lhsExpr conts tsrc
@@ -788,8 +791,11 @@ mkVertConn ts
           Nothing
 
 littleman :: Image a
-littleman = (overlay [] [(px -2.0, px 8.0), (px 3.0, px 1.0)] [ circle (px 20.0) <@< {strokewidth = px 1.0} <@< {stroke = toSVGColor "white"}
-                                                              , circle (px 10.0) <@< {strokewidth = px 1.0} <@< {stroke = toSVGColor "white"}] Nothing) <@< {mask = rect (px 16.0) (px 16.0) <@< {fill = toSVGColor "white"}}
+littleman
+  #! maskRect = rect (px 16.0) (px 16.0) <@< {fill = toSVGColor "white"}
+                                         <@< {strokewidth = px 0.0}
+  = (overlay [] [(px -2.0, px 8.0), (px 3.0, px 1.0)] [ circle (px 20.0) <@< {strokewidth = px 1.0} <@< {stroke = toSVGColor "white"}
+                                                              , circle (px 10.0) <@< {strokewidth = px 1.0} <@< {stroke = toSVGColor "white"}] (Just maskRect)) <@< {mask = maskRect}
 
 tIfValue :: !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tIfValue tffun args [(nameTag, uNameTag) : (argsTag, uArgsTag) : tsrc]
