@@ -992,9 +992,9 @@ expandTask allbps n tt
 
 expandTExpr :: !AllBlueprints !Int !TExpr -> TExpr
 expandTExpr _      0 texpr = texpr
-expandTExpr allbps n texpr=:(TFApp assoc vn args)
-  = TFApp assoc vn (map (expandTExpr allbps n) args)
-expandTExpr allbps n texpr=:(TMApp eid _ mn tn args)
+expandTExpr allbps n texpr=:(TFApp vn args assoc)
+  = TFApp vn (map (expandTExpr allbps n) args) assoc
+expandTExpr allbps n texpr=:(TMApp eid _ mn tn args _)
   = case reifyTonicTask mn tn allbps of
       Just tt
         # binds = [(old, new) \\ (old, _) <- tt.tt_args & new <- args | not (isSame old new)]

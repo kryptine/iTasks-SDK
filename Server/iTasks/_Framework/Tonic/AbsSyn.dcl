@@ -39,8 +39,8 @@ derive gEq TonicModule, TonicTask, TExpr, TAssoc
 :: TExpr
   = TVar      !(Maybe ExprId) !PPExpr
   | TLit      !PPExpr
-  | TMApp     !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr]
-  | TFApp     !TAssoc !VarName ![TExpr]
+  | TMApp     !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr] !TAssoc
+  | TFApp     !VarName ![TExpr] !TAssoc
   | TLam      ![VarName] !TExpr
   | TSel      !TExpr ![TExpr]
   | TLet      ![(!Pattern, !TExpr)] !TExpr

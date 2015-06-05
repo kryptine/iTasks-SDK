@@ -87,8 +87,8 @@ mkTaskImage rs prev trt maplot outputs selected selDetail compact {ActionState |
   = img
 
 tExpr2Image :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
-tExpr2Image inh (TMApp eid mty mn tn targs) tsrc = tMApp         inh eid mty mn tn targs tsrc
-tExpr2Image inh (TFApp assoc fn targs)      tsrc = tFApp         inh assoc fn targs tsrc
+tExpr2Image inh (TMApp eid mty mn tn targs prio) tsrc = tMApp         inh eid mty mn tn targs prio tsrc
+tExpr2Image inh (TFApp fn targs assoc)      tsrc = tFApp         inh fn targs assoc tsrc
 tExpr2Image inh (TLet pats bdy)             tsrc
   | inh.inh_compact = tExpr2Image inh bdy tsrc
   | otherwise       = tLet inh pats bdy tsrc
@@ -112,8 +112,8 @@ tSel inh e es tsrc
   #! (eImg, tsrc) = tExpr2Image inh e tsrc
   = (eImg, tsrc) // TODO es
 
-tFApp :: !MkImageInh !TAssoc !FunName ![TExpr] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tFApp inh assoc fn args tsrc = (text ArialRegular10px (ppTExpr (TFApp assoc fn args)), tsrc)
+tFApp :: !MkImageInh !FunName ![TExpr] !TAssoc !*TagSource -> *(!Image ModelTy, !*TagSource)
+tFApp inh fn args assoc tsrc = (text ArialRegular10px (ppTExpr (TFApp fn args assoc)), tsrc)
 
 tArrowTip :: Image ModelTy
 tArrowTip = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
@@ -182,7 +182,7 @@ tVar inh eid pp tsrc
               #! tsrc = trace_n ("tVar Just mptids" +++ toString bpinst.bpi_taskId +++ " " +++ toString eid) tsrc
               = case 'DIS'.elems mptids of
                   [(moduleName, taskName) : _]
-                    = tMApp inh eid Nothing moduleName taskName [] tsrc
+                    = tMApp inh eid Nothing moduleName taskName [] TNonAssoc tsrc
                   _
                     #! tsrc = trace_n ("tVar Nothing elems" +++ toString bpinst.bpi_taskId +++ " " +++ toString eid) tsrc
                     = mkDef tsrc
@@ -199,13 +199,13 @@ tVar inh eid pp tsrc
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing, tsrc)
 
 containsActiveNodes :: !MkImageInh !TExpr -> Bool
-containsActiveNodes inh (TFApp _ _ args)     = foldr (\e acc -> acc || containsActiveNodes inh e) False args
-containsActiveNodes inh (TMApp eid _ _ _ _)  = 'DM'.member eid inh.inh_prev || maybe False (\bpi -> isJust (activeNodeTaskId eid bpi.bpi_activeNodes)) inh.inh_trt.bpr_instance
-containsActiveNodes inh (TLet pats bdy)      = containsActiveNodes inh bdy
-containsActiveNodes inh (TCaseOrIf e pats)   = foldr (\(_, e) acc -> acc || containsActiveNodes inh e) False pats
-containsActiveNodes inh (TExpand _ e)      = containsActiveNodes inh e
-containsActiveNodes inh (TSel e es)        = containsActiveNodes inh e || foldr (\e acc -> acc || containsActiveNodes inh e) False es
-containsActiveNodes inh _                  = False
+containsActiveNodes inh (TFApp _ args _)      = foldr (\e acc -> acc || containsActiveNodes inh e) False args
+containsActiveNodes inh (TMApp eid _ _ _ _ _) = 'DM'.member eid inh.inh_prev || maybe False (\bpi -> isJust (activeNodeTaskId eid bpi.bpi_activeNodes)) inh.inh_trt.bpr_instance
+containsActiveNodes inh (TLet pats bdy)       = containsActiveNodes inh bdy
+containsActiveNodes inh (TCaseOrIf e pats)    = foldr (\(_, e) acc -> acc || containsActiveNodes inh e) False pats
+containsActiveNodes inh (TExpand _ e)         = containsActiveNodes inh e
+containsActiveNodes inh (TSel e es)           = containsActiveNodes inh e || foldr (\e acc -> acc || containsActiveNodes inh e) False es
+containsActiveNodes inh _                     = False
 
 tCaseOrIf :: !MkImageInh !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tCaseOrIf inh texpr pats tsrc
@@ -340,7 +340,7 @@ tParSumN inh eid ts tsrc
         Just bpinst
           = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
               Just mptids
-                = mapSt (\(moduleName, taskName) -> tMApp inh eid Nothing moduleName taskName []) ('DIS'.elems mptids) tsrc
+                = mapSt (\(moduleName, taskName) -> tMApp inh eid Nothing moduleName taskName [] TNonAssoc) ('DIS'.elems mptids) tsrc
               _ = mkDef tsrc
         _ = mkDef tsrc
     where
@@ -363,7 +363,7 @@ tParProdN inh eid ts tsrc
         Just bpinst
           = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
               Just mptids
-                = mapSt (\(moduleName, taskName) -> tMApp inh eid Nothing moduleName taskName []) ('DIS'.elems mptids) tsrc
+                = mapSt (\(moduleName, taskName) -> tMApp inh eid Nothing moduleName taskName [] TNonAssoc) ('DIS'.elems mptids) tsrc
               _ = mkDef tsrc
         _ = mkDef tsrc
     where
@@ -440,32 +440,32 @@ activeNodeTaskId eid activeNodes
       [tid : _] -> Just tid
       _         -> Nothing
 
-tMApp :: !MkImageInh !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tMApp inh eid _ "iTasks.API.Extensions.User" "@:" [lhsExpr : rhsExpr : _] tsrc
+tMApp :: !MkImageInh !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr] !TAssoc !*TagSource -> *(!Image ModelTy, !*TagSource)
+tMApp inh eid _ "iTasks.API.Extensions.User" "@:" [lhsExpr : rhsExpr : _] _ tsrc
   = tAssign inh lhsExpr rhsExpr tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>|" [lhsExpr : rhsExpr : _] tsrc
+tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>|" [lhsExpr : rhsExpr : _] _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
-tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam [var : _] rhsExpr : _] tsrc
+tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam [var : _] rhsExpr : _] _ tsrc
   = tBind inh lhsExpr (Just (TVar Nothing var)) rhsExpr tsrc
-tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] tsrc
+tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] tsrc
+tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ tsrc
   = tStep inh eid lhsExpr rhsExpr tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "-&&-" [lhsExpr : rhsExpr : _] tsrc
+tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "-&&-" [lhsExpr : rhsExpr : _] _ tsrc
   = tParProdN inh eid (Right [lhsExpr, rhsExpr]) tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "allTasks" [x] tsrc
+tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "allTasks" [x] _ tsrc
   #! ts = if (tExprIsList x) (Right (tUnsafeExpr2List x)) (Left x)
   = tParProdN inh eid ts tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "anyTask" [x] tsrc
+tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "anyTask" [x] _ tsrc
   #! ts = if (tExprIsList x) (Right (tUnsafeExpr2List x)) (Left x)
   = tParSumN inh eid ts tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "-||-" [lhsExpr : rhsExpr : _] tsrc
+tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "-||-" [lhsExpr : rhsExpr : _] _ tsrc
   = tParSumN inh eid (Right [lhsExpr, rhsExpr]) tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "||-" [lhsExpr : rhsExpr : _] tsrc
+tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "||-" [lhsExpr : rhsExpr : _] _ tsrc
   = tParSumR inh eid lhsExpr rhsExpr tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "-||" [lhsExpr : rhsExpr : _] tsrc
+tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "-||" [lhsExpr : rhsExpr : _] _ tsrc
   = tParSumL inh eid lhsExpr rhsExpr tsrc
-tMApp inh eid _ modName taskName taskArgs tsrc
+tMApp inh eid _ modName taskName taskArgs _ tsrc
   #! (taskArgs`, tsrc)  = mapSt (tExpr2Image {inh & inh_in_mapp = True}) taskArgs tsrc
   #! mActiveTid         = case inh.inh_trt.bpr_instance of
                             Just bpinst -> activeNodeTaskId eid bpinst.bpi_activeNodes
@@ -617,7 +617,7 @@ tDefaultMApp` isCompact isActive wasActive isInAccessible nodeId selectedNodes p
 tAssign :: !MkImageInh !TExpr !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (headerTag, uHeaderTag) : tsrc]
   #! (desc, user)         = case lhsExpr of
-                              (TFApp _ "_Tuple2" [usr, str : _]) -> (ppTExpr str, mkUser usr)
+                              (TFApp "_Tuple2" [usr, str : _] _) -> (ppTExpr str, mkUser usr)
                               usr                                -> ("", mkUser usr)
   #! (assignedTask, tsrc) = tExpr2Image inh assignedTask tsrc
   #! assignedTask         = tag uAssignTaskTag (margin (px 5.0) assignedTask)
@@ -634,13 +634,13 @@ tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (headerTag, 
                               <@< { dash        = [5, 5] }
   = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
   where
-  mkUser (TFApp _ "AnyUser" _)          = "Any user"
-  mkUser (TFApp _ "UserWithId" [uid:_]) = ppTExpr uid
-  mkUser (TFApp _ "UserWithRole" [r:_]) = "Anyone with role " +++ ppTExpr r
-  mkUser (TFApp _ "SystemUser" _)       = "System user"
-  mkUser (TFApp _ "AnonymousUser" _)    = "Anonymous user"
-  mkUser (TFApp _ "AuthenticatedUser" [uid:rs:_]) = ppTExpr uid +++ " with roles " +++ foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" (tSafeExpr2List rs)
-  mkUser (TFApp _ usr _)                = usr
+  mkUser (TFApp "AnyUser" _ _)          = "Any user"
+  mkUser (TFApp "UserWithId" [uid:_] _) = ppTExpr uid
+  mkUser (TFApp "UserWithRole" [r:_] _) = "Anyone with role " +++ ppTExpr r
+  mkUser (TFApp "SystemUser" _ _)       = "System user"
+  mkUser (TFApp "AnonymousUser" _ _)    = "Anonymous user"
+  mkUser (TFApp "AuthenticatedUser" [uid:rs:_] _) = ppTExpr uid +++ " with roles " +++ foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" (tSafeExpr2List rs)
+  mkUser (TFApp usr _ _)                = usr
   mkUser (TVar _ ppe)                   = ppe
   mkUser (TLit ppe)                     = ppe
   mkUser _                              = ""
@@ -659,50 +659,50 @@ tStep inh eid lhsExpr conts tsrc
     , tsrc)
 
 tExprIsList :: TExpr -> Bool
-tExprIsList (TFApp _ "_Cons" _) = True
-tExprIsList (TFApp _ "_Nil"  _) = True
+tExprIsList (TFApp "_Cons" _ _) = True
+tExprIsList (TFApp "_Nil"  _ _) = True
 tExprIsList _                   = False
 
 tUnsafeExpr2List :: TExpr -> [TExpr]
-tUnsafeExpr2List (TFApp _ "_Cons" [hd : tl : _]) = [hd : tUnsafeExpr2List tl]
-tUnsafeExpr2List (TFApp _ "_Nil"  _            ) = []
+tUnsafeExpr2List (TFApp "_Cons" [hd : tl : _] _) = [hd : tUnsafeExpr2List tl]
+tUnsafeExpr2List (TFApp "_Nil"  _             _) = []
 
 tSafeExpr2List :: TExpr -> [TExpr]
-tSafeExpr2List (TFApp _ "_Cons" [hd : tl : _]) = [hd : tUnsafeExpr2List tl]
-tSafeExpr2List (TFApp _ "_Nil"  _            ) = []
+tSafeExpr2List (TFApp "_Cons" [hd : tl : _] _) = [hd : tUnsafeExpr2List tl]
+tSafeExpr2List (TFApp "_Nil"  _             _) = []
 tSafeExpr2List e                               = [e]
 
 tStepCont :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
-tStepCont inh (TFApp _ "OnAction" [TFApp _ "Action" [TLit action : _] : cont : _ ]) tsrc
+tStepCont inh (TFApp "OnAction" [TFApp "Action" [TLit action : _] _ : cont : _ ] _) tsrc
   = mkStepCont inh (Just action) cont tsrc
-tStepCont inh (TFApp _ "OnValue"  [cont : _ ]) tsrc
+tStepCont inh (TFApp "OnValue"  [cont : _ ] _) tsrc
   = mkStepCont inh Nothing cont tsrc
-tStepCont inh (TFApp _ "OnException" [cont : _ ])     tsrc
+tStepCont inh (TFApp "OnException" [cont : _ ] _)     tsrc
   = mkStepCont inh Nothing cont tsrc
-tStepCont inh (TFApp _ "OnAllExceptions" [cont : _ ]) tsrc
+tStepCont inh (TFApp "OnAllExceptions" [cont : _ ] _) tsrc
   = mkStepCont inh Nothing cont tsrc
 
-mkStepCont inh mact (TFApp _ "always" [x : _]) [ref : tsrc]
+mkStepCont inh mact (TFApp "always" [x : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh x tsrc
   = ( beside (repeat AtMiddleY) [] [addAction mact alwaysFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp _ "ifStable" [TLam pats e : _]) [ref : tsrc]
+mkStepCont inh mact (TFApp "ifStable" [TLam pats e : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh e tsrc
   = ( beside (repeat AtMiddleY) [] [addAction Nothing tStable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp _ "ifStable" [mapp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
+mkStepCont inh mact (TFApp "ifStable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction Nothing tStable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp _ "ifUnstable" [TLam pats e : _]) [ref : tsrc]
+mkStepCont inh mact (TFApp "ifUnstable" [TLam pats e : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh e tsrc
   = ( beside (repeat AtMiddleY) [] [addAction Nothing tUnstable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp _ "ifUnstable" [mapp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
+mkStepCont inh mact (TFApp "ifUnstable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction Nothing tUnstable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp _ "ifValue" [conditionApp=:(TFApp assoc vn args) : continuationApp : _]) [ref : tsrc]
+mkStepCont inh mact (TFApp "ifValue" [conditionApp=:(TFApp assoc vn args) : continuationApp : _] _) [ref : tsrc]
   #! (conditionImg, tsrc)    = tCaseDiamond inh conditionApp tsrc
   #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
   = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction Nothing alwaysFilter ref, tHorizConnArr, /* TODO edge */ continuationImg] Nothing
@@ -710,32 +710,32 @@ mkStepCont inh mact (TFApp _ "ifValue" [conditionApp=:(TFApp assoc vn args) : co
         //("ifValue", [e1=:((App fApp) @ fAppArgs):(App tApp):_])
         //("ifValue", [(App fApp):(App tApp):_])
   // TODO TFApp
-mkStepCont inh mact (TFApp _ "hasValue" [mapp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
+mkStepCont inh mact (TFApp "hasValue" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction Nothing hasValueFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp _ "ifCond" [conditionApp : continuationApp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
+mkStepCont inh mact (TFApp "ifCond" [conditionApp : continuationApp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (conditionImg, tsrc)    = tCaseDiamond inh conditionApp tsrc
   #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
   = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction Nothing alwaysFilter ref, tHorizConnArr, /* TODO edge */ continuationImg] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp _ "always" [mapp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
+mkStepCont inh mact (TFApp "always" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction Nothing alwaysFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp _ "withoutValue" [mapp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
+mkStepCont inh mact (TFApp "withoutValue" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction Nothing alwaysFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp _ "withValue" [mapp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
+mkStepCont inh mact (TFApp "withValue" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction Nothing hasValueFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp _ "withStable" [mapp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
+mkStepCont inh mact (TFApp "withStable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction Nothing tStable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp _ "withUnstable" [mapp=:(TMApp _ _ _ _ _) : _]) [ref : tsrc]
+mkStepCont inh mact (TFApp "withUnstable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction Nothing tUnstable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
