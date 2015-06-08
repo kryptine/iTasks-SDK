@@ -26,6 +26,11 @@ Start world = startEngine [ publish "/" (WebApp []) (\_-> dynamicBPs1 (viewStep 
                           , publish "/updown" (WebApp []) (\_-> shareTest )	
 
                           , publish "/step" (WebApp []) (\_-> stepTest 5)	
+
+                          , publish "/palindrome" (WebApp []) (\_-> palindrome)	
+                          , publish "/1by1" (WebApp []) (\_-> person1by1 [])	
+
+
                           ] world
 
 viewStep :: Int -> Task Int
@@ -154,7 +159,7 @@ where
 
 derive class iTask Person, Gender
 
-/*
+
 person1by1 :: [Person] -> Task [Person]
 person1by1 persons
 	=		enterInformation "Add a person" []
@@ -164,7 +169,7 @@ person1by1 persons
 		    , OnAction (Action "Finish" []) (always (return persons))
 		    , OnAction ActionCancel 	    (always (return []))
 	        ]
-*/
+
 
 calculateSum :: Task Int
 calculateSum
