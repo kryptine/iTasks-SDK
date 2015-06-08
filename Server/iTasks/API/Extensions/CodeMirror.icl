@@ -335,6 +335,8 @@ genDiffServer val1 val2
 						   ++
 						   if (val1.selection === val2.selection) [] [SetSelection val2.selection]
 						   ++
+						   if ((not (isEmpty val1.highlighted) && isEmpty val2.highlighted) || (not (isEmpty val2.highlighted))) [SetHighlights val2.highlighted] []
+						   ++
 						   maybe [] (\(flines,llines,diff) -> [ReplaceRange (flines,llines) diff]) (genDiffRange val1.source val2.source)
 						   ) of
        []      = Nothing
