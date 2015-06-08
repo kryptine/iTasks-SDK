@@ -688,7 +688,7 @@ mkStepCont inh mact (TFApp "always" [x : _] _) [ref : tsrc]
     , tsrc)
 mkStepCont inh mact (TFApp "ifStable" [TLam pats e : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh e tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction mact tStable ref, tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact tStable ref, tHorizConn, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "ifStable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
@@ -696,7 +696,7 @@ mkStepCont inh mact (TFApp "ifStable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : 
     , tsrc)
 mkStepCont inh mact (TFApp "ifUnstable" [TLam pats e : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh e tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction mact tUnstable ref, tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact tUnstable ref, tHorizConn, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "ifUnstable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
@@ -750,7 +750,7 @@ mkStepCont inh mact e [ref : tsrc]
 
 addAction :: !(Maybe String) !(Image ModelTy) !*TagRef -> Image ModelTy
 addAction (Just action) img (t, uT)
-  #! l = tag uT (above (repeat AtMiddleX) [] [ beside (repeat AtMiddleY) [] [littleman, text ArialBold10px action] Nothing
+  #! l = tag uT (above (repeat AtMiddleX) [] [ margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, text ArialBold10px (" " +++ action)] Nothing)
                                              , img] Nothing)
   = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
                                                , l] Nothing
