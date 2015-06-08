@@ -620,23 +620,13 @@ tonicStaticBrowser rs
   noModuleSelection = viewInformation () [] "Select module..."
   noTaskSelection   = viewInformation () [] "Select task..."
 
-viewBPTitle :: !String !String !TExpr -> Task String
-viewBPTitle tmName ttName resTy = viewInformation (Title title) [ViewWith view] a <<@ InContainer
-  where
-  a = tmName +++ "." +++ ttName +++ " :: " +++ ppTExpr resTy
-  title = toSingleLineText a
-  view a = DivTag [] [SpanTag [StyleAttr "font-size: 16px"] [Text title]]
-
 import StdDebug
 viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !TonicRTMap !TonicModule !TonicTask !Scale !Bool -> Task ()
 viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
   =          get navstack
   >>~ \ns -> get selectedNodes
-  >>~ \selectedNodes -> viewBPTitle tm_name tt.tt_name tt.tt_resty
-         ||- (if (length tt.tt_args > 0)
-               (viewInformation "Arguments" [ViewWith (map (\(varnm, ty) -> ppTExpr varnm +++ " :: " +++ ppTExpr ty))] tt.tt_args @! ())
-               (return ()))
-         ||- showBlueprint rs 'DM'.newMap { BlueprintRef
+  >>~ \selectedNodes ->
+             showBlueprint rs 'DM'.newMap { BlueprintRef
                                           | bpr_moduleName = tm_name
                                           , bpr_taskName   = tt.tt_name
                                           , bpr_instance   = Nothing
@@ -874,10 +864,8 @@ viewInstance allbps rs navstack dynSett trt selDetail showButtons action=:(Just 
                Just bpref=:{bpr_moduleName, bpr_taskName, bpr_instance = Just bpinst}
                  =              dynamicParent bpinst.bpi_taskId
                  >>~ \mbprnt -> case 'DM'.get bpr_moduleName allbps `b` 'DM'.get bpr_taskName of
-                                  Just blueprint
-                                    =               viewBPTitle bpr_moduleName bpr_taskName blueprint.tt_resty
-                                                ||- viewTaskArguments bpref bpinst blueprint
-                                                ||- whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
+                                  Just blueprint =
+                                                    whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
                                     \(_, maplot) -> (showBlueprint rs bpinst.bpi_previouslyActive bpref maplot selectedNodes blueprint selDetail False { Scale | min = 0, cur = 0, max = 0})
                                                 -|| showChildTasks dynSett bpinst)
                                                 >>* [ OnValue (doAction (handleClicks bpr_moduleName bpr_taskName)) : if showButtons
@@ -987,26 +975,26 @@ instance == TAssoc where
 
 expandTask :: !AllBlueprints !Int !TonicTask -> TonicTask
 expandTask allbps n tt
-  | n >= 0    = {tt & tt_body = expandTExpr allbps n tt.tt_body}
+  | n > 0     = {tt & tt_body = expandTExpr allbps n tt.tt_body}
   | otherwise = tt
 
 expandTExpr :: !AllBlueprints !Int !TExpr -> TExpr
 expandTExpr _      0 texpr = texpr
 expandTExpr allbps n texpr=:(TFApp vn args assoc)
   = TFApp vn (map (expandTExpr allbps n) args) assoc
-expandTExpr allbps n texpr=:(TMApp eid _ mn tn args _)
+expandTExpr allbps n texpr=:(TMApp eid mtn mn tn args assoc)
   = case reifyTonicTask mn tn allbps of
       Just tt
-        # binds = [(old, new) \\ (old, _) <- tt.tt_args & new <- args | not (isSame old new)]
-        # e     = case expandTExpr allbps (n - 1) tt.tt_body of
-                    TLet pats bdy                 -> TLet (binds ++ pats) bdy
-                    //TBind (TLet pats bdy) pat rhs -> TBind (TLet (binds ++ pats) bdy) pat rhs
-                    bdy                           -> TLet binds bdy
-        = TExpand tn e
-      _ = texpr
+        //# binds = [(old, new) \\ (old, _) <- tt.tt_args & new <- args | not (isSame old new)]
+        //# e     = case expandTExpr allbps (n - 1) tt.tt_body of
+                    //TLet pats bdy                 -> TLet (binds ++ pats) bdy
+                    ////TBind (TLet pats bdy) pat rhs -> TBind (TLet (binds ++ pats) bdy) pat rhs
+                    //bdy                           -> TLet binds bdy
+        = TExpand args tt
+      _ = TMApp eid mtn mn tn (map (expandTExpr allbps n) args) assoc
   where
-  isSame :: !TExpr !TExpr -> Bool
-  isSame (TVar _ old) (TVar _ new) = old == new
+  //isSame :: !TExpr !TExpr -> Bool
+  //isSame (TVar _ old) (TVar _ new) = old == new
 
   reifyTonicTask :: !ModuleName !TaskName !AllBlueprints -> Maybe TonicTask
   reifyTonicTask mn tn allbps = case 'DM'.get mn allbps of
@@ -1054,6 +1042,6 @@ expandTExpr allbps n (TCaseOrIf e pats)
   //= TAssign usr d (expandTExpr allbps n e)
 //expandTExpr allbps n (TFmap e vn args)
   //= TFmap (expandTExpr allbps n e) vn args
-expandTExpr allbps n (TExpand tn e) = TExpand tn (expandTExpr allbps n e)
+expandTExpr allbps n (TExpand vars tt) = TExpand vars {tt & tt_body = expandTExpr allbps n tt.tt_body}
 expandTExpr allbps n (TSel e es) = TSel (expandTExpr allbps n e) (map (expandTExpr allbps n) es)
 expandTExpr _ n texpr = texpr

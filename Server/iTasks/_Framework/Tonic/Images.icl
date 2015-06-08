@@ -64,7 +64,10 @@ ArialItalic10px :== { fontfamily  = "Arial"
   , inh_selDetail    :: !Maybe ClickMeta
   }
 
-mkTaskImage :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !ListsOfTasks !(Map TaskId TStability) !(Set (ModuleName, TaskName, ExprId)) !(Maybe ClickMeta) !Bool !ModelTy *TagSource -> Image ModelTy
+mkTaskImage :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef
+               !ListsOfTasks !(Map TaskId TStability)
+               !(Set (ModuleName, TaskName, ExprId)) !(Maybe ClickMeta) !Bool
+               !ModelTy *TagSource -> Image ModelTy
 mkTaskImage rs prev trt maplot outputs selected selDetail compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
   #! inh              = { MkImageInh
@@ -83,7 +86,7 @@ mkTaskImage rs prev trt maplot outputs selected selDetail compact {ActionState |
                         , inh_selDetail    = selDetail
                         }
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
-  #! (img, _)         = tTaskDef tt.tt_name tt.tt_resty tt.tt_args tt_body` tsrc
+  #! (img, _)         = tTaskDef tt.tt_module tt.tt_name tt.tt_resty tt.tt_args [] tt_body` tsrc
   = img
 
 tExpr2Image :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
@@ -95,7 +98,7 @@ tExpr2Image inh (TLet pats bdy)             tsrc
 tExpr2Image inh (TCaseOrIf e pats)          tsrc = tCaseOrIf     inh e pats tsrc
 tExpr2Image inh (TVar eid pp)               tsrc = tVar          inh eid pp tsrc
 tExpr2Image inh (TLit pp)                   tsrc = tLit          inh pp tsrc
-tExpr2Image inh (TExpand tn e)              tsrc = tExpand       inh tn e tsrc
+tExpr2Image inh (TExpand args tt)           tsrc = tExpand       inh args tt tsrc
 tExpr2Image inh (TSel e es)                 tsrc = tSel          inh e es tsrc
 tExpr2Image inh (TLam args e)               tsrc = tLam          inh args e tsrc
 
@@ -143,22 +146,10 @@ tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (d
 //tReturn inh=:{inh_in_maybe = True} eid expr tsrc = tExpr2Image inh expr tsrc
 //tReturn inh                        eid expr tsrc = tMApp inh eid "" "return" [expr] tsrc
 
-tExpand :: !MkImageInh !TaskName !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
-tExpand inh tn e [(exprTag, uExprTag) : (taskNameTag, uTaskNameTag) : tsrc]
-  #! (childExpr, tsrc) = tExpr2Image inh e tsrc
-  #! childExpr         = tag uExprTag (margin (px 5.0) childExpr)
-  #! maxXSpan          = maxSpan [imagexspan taskNameTag, imagexspan exprTag]
-  #! taskNameImg       = tag uTaskNameTag (margin (px 5.0) (text ArialBold10px tn))
-  #! bgRect            = rect maxXSpan (imageyspan taskNameTag + imageyspan exprTag)
-                           <@< { fill        = toSVGColor "white" }
-                           <@< { stroke      = toSVGColor "black" }
-                           <@< { strokewidth = px 1.0 }
-                           <@< { xradius     = px 5.0 }
-                           <@< { yradius     = px 5.0 }
-                           <@< { dash        = [5, 5] }
-  #! lineImg           = xline Nothing maxXSpan <@< { dash = [5, 5] }
-  #! content           = above (repeat AtMiddleX) [] [taskNameImg, lineImg, childExpr] Nothing
-  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
+tExpand :: !MkImageInh ![TExpr] !TonicTask !*TagSource -> *(!Image ModelTy, !*TagSource)
+tExpand inh argnames tt tsrc
+  #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
+  = tTaskDef tt.tt_module tt.tt_name tt.tt_resty tt.tt_args argnames tt_body` tsrc
 
 tLit :: !MkImageInh !String !*TagSource -> *(!Image ModelTy, !*TagSource)
 tLit inh pp tsrc
@@ -203,7 +194,7 @@ containsActiveNodes inh (TFApp _ args _)      = foldr (\e acc -> acc || contains
 containsActiveNodes inh (TMApp eid _ _ _ _ _) = 'DM'.member eid inh.inh_prev || maybe False (\bpi -> isJust (activeNodeTaskId eid bpi.bpi_activeNodes)) inh.inh_trt.bpr_instance
 containsActiveNodes inh (TLet pats bdy)       = containsActiveNodes inh bdy
 containsActiveNodes inh (TCaseOrIf e pats)    = foldr (\(_, e) acc -> acc || containsActiveNodes inh e) False pats
-containsActiveNodes inh (TExpand _ e)         = containsActiveNodes inh e
+containsActiveNodes inh (TExpand args tt)     = containsActiveNodes inh tt.tt_body
 containsActiveNodes inh (TSel e es)           = containsActiveNodes inh e || foldr (\e acc -> acc || containsActiveNodes inh e) False es
 containsActiveNodes inh _                     = False
 
@@ -409,14 +400,21 @@ tStartSymb = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 
 tStopSymb :: Image ModelTy
 tStopSymb = rect (px 16.0) (px 16.0)
 
-tTaskDef :: !String !TExpr [(TExpr, TExpr)] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
-tTaskDef taskName resultTy _ tdbody [(bdytag, uBodyTag) : tsrc]
+tTaskDef :: !String !String !TExpr ![(!TExpr, !TExpr)] ![TExpr] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
+tTaskDef moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTag) : (argsTag, uArgsTag) : (bdytag, uBodyTag) : tsrc]
+  #! taskNameImg  = tag uNameTag (margin (px 5.0) (text ArialBold10px (moduleName +++ "." +++ taskName +++ " :: " +++ ppTExpr resultTy)))
+  #! argsImg      = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] (map mkArgAndTy (zip2 args (map Just argvars ++ repeat Nothing))) Nothing))
   #! taskBodyImgs = tag uBodyTag (margin (px 5.0) tdbody)
-  #! bgRect       = tRoundedRect (imagexspan bdytag) (imageyspan bdytag)
-  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskBodyImgs] Nothing, tsrc)
+  #! maxX         = maxSpan [imagexspan nameTag, imagexspan argsTag, imagexspan bdytag]
+  #! maxXLine     = xline Nothing maxX
+  #! bgRect       = tRoundedRect maxX
+                                 (imageyspan nameTag + imageyspan argsTag + imageyspan bdytag)
+  #! imgs         = if (length args < 1) [taskNameImg, maxXLine, taskBodyImgs] [taskNameImg, maxXLine, argsImg, maxXLine, taskBodyImgs]
+  #! contentsImg  = above (repeat AtLeft) [] imgs Nothing
+  = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, contentsImg] Nothing, tsrc)
   where
-  mkArgAndTy :: !(!String, !TExpr) -> String
-  mkArgAndTy (arg, ty) = arg +++ " :: " +++ ppTExpr ty
+  mkArgAndTy :: !(!(!TExpr, !TExpr), !Maybe TExpr) -> Image ModelTy
+  mkArgAndTy ((arg, ty), mvar) = text ArialRegular10px (ppTExpr arg +++ " :: " +++ ppTExpr ty +++ (maybe "" (\x -> " = " +++ ppTExpr x) mvar))
 
 //tFunctorApp :: !MkImageInh !TExpr !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
 //tFunctorApp inh texpr tffun args [(nmtag, uNmTag) : (argstag, uArgsTag) : tsrc]

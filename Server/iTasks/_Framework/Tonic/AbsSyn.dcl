@@ -45,7 +45,7 @@ derive gEq TonicModule, TonicTask, TExpr, TAssoc
   | TSel      !TExpr ![TExpr]
   | TLet      ![(!Pattern, !TExpr)] !TExpr
   | TCaseOrIf !TExpr ![(!Pattern, !TExpr)]
-  | TExpand   !VarName !TExpr
+  | TExpand   ![TExpr] !TonicTask
   //| TListCompr // TODO
 
 :: TAssoc
