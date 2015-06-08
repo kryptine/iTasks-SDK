@@ -16,7 +16,7 @@ ppTExpr` _ (TVar _ pp)             = sugarPP pp
 ppTExpr` _ (TLit pp)               = sugarPP pp
 ppTExpr` _ (TFApp pp [] _)         = sugarPP pp
 ppTExpr` _ (TFApp "_List" [x:_] _) = "[" +++ ppTExpr x +++ "]"
-ppTExpr` _ (TFApp "_Cons" xs _)    = "[" +++ ppTExprList xs +++ "]"
+ppTExpr` _ xs=:(TFApp "_Cons" _ _) = "[" +++ ppTExprList xs +++ "]"
 ppTExpr` _ (TFApp "_Tuple2" xs _)  = "(" +++ ppTExprTuple xs +++ ")"
 ppTExpr` _ (TFApp "_Tuple3" xs _)  = "(" +++ ppTExprTuple xs +++ ")"
 ppTExpr` _ (TFApp "_Tuple4" xs _)  = "(" +++ ppTExprTuple xs +++ ")"
@@ -39,12 +39,10 @@ ppCases _ []               = ""
 ppCases d [(pat, expr)]    = ppTExpr` d pat +++ " -> " +++ ppTExpr` d expr
 ppCases d [(pat, expr):xs] = ppTExpr` d pat +++ " -> " +++ ppTExpr` d expr +++ "; " +++ ppCases d xs
 
-ppTExprList :: ![TExpr] -> String
-ppTExprList []                      = ""
-ppTExprList [TVar _ "_Nil"]         = ""
-ppTExprList [x, TVar _ "_Nil"]      = ppTExpr x
-ppTExprList [x, TFApp "_Cons" xs _] = ppTExpr x +++ ", " +++ ppTExprList xs
-ppTExprList [x:xs]                  = ppTExpr x +++ ", " +++ ppTExprList xs
+ppTExprList :: !TExpr -> String
+ppTExprList (TFApp "_Cons" [x, xs] _) = ppTExpr x +++ " : " +++ ppTExprList xs
+ppTExprList (TFApp "_Nil" _ _)        = ""
+ppTExprList x                         = ppTExpr x
 
 ppTExprTuple :: ![TExpr] -> String
 ppTExprTuple []     = ""

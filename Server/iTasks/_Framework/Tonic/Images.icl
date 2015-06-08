@@ -323,7 +323,7 @@ tParSumR inh eid l r tsrc // TODO This is actually not correct yet... second ima
   #! (conts`, refs, tsrc) = prepCases [] [l`, r`] tsrc
   #! vertConn             = mkVertConn refs
   #! parImg               = above (repeat AtMiddleX) [] conts` Nothing
-  = (beside (repeat AtMiddleY) [] [vertConn,  parImg, vertConn, tHorizConnArr] Nothing, tsrc)
+  = (beside (repeat AtMiddleY) [] [vertConn, parImg, vertConn] Nothing, tsrc)
 tParSumN :: !MkImageInh !ExprId !(Either TExpr [TExpr]) !*TagSource -> *(!Image ModelTy, !*TagSource)
 tParSumN inh eid ts tsrc
   #! (ts`, tsrc)       = mkParSum inh eid ts tsrc
@@ -331,7 +331,7 @@ tParSumN inh eid ts tsrc
   #! (ts`, refs, tsrc) = prepCases [] ts` tsrc
   #! vertConn          = mkVertConn refs
   #! contsImg          = above (repeat AtMiddleX) [] ts` Nothing
-  = ( beside (repeat AtMiddleY) [] [vertConn, contsImg, vertConn, tHorizConnArr] Nothing
+  = ( beside (repeat AtMiddleY) [] [vertConn, contsImg, vertConn] Nothing
     , tsrc)
   where
   mkParSum :: !MkImageInh !ExprId !(Either TExpr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource) // TODO This is wrong
@@ -354,7 +354,7 @@ tParProdN inh eid ts tsrc
   #! (imgs, tsrc)     = mkParProd inh eid ts tsrc
   #! (ts, refs, tsrc) = prepCases [] imgs tsrc
   #! vertConn         = mkVertConn refs
-  = ( beside (repeat AtMiddleY) [] [tHorizConn, vertConn, above (repeat AtMiddleX) [] ts Nothing, vertConn, tHorizConnArr] Nothing
+  = ( beside (repeat AtMiddleY) [] [vertConn, above (repeat AtMiddleX) [] ts Nothing, vertConn] Nothing
     , tsrc)
   where
   mkParProd :: !MkImageInh !ExprId !(Either TExpr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource)
@@ -655,7 +655,7 @@ tStep inh eid lhsExpr conts tsrc
   #! (conts`, refs, tsrc) = prepCases [] conts` tsrc
   #! vertConn             = mkVertConn refs
   #! contsImg             = above (repeat AtMiddleX) [] conts` Nothing
-  = (beside (repeat AtMiddleY) [] [lhs, tHorizConn, vertConn, contsImg, vertConn, tHorizConnArr] Nothing
+  = (beside (repeat AtMiddleY) [] [lhs, tHorizConn, vertConn, contsImg, vertConn] Nothing
     , tsrc)
 
 tExprIsList :: TExpr -> Bool
@@ -688,56 +688,60 @@ mkStepCont inh mact (TFApp "always" [x : _] _) [ref : tsrc]
     , tsrc)
 mkStepCont inh mact (TFApp "ifStable" [TLam pats e : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh e tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction Nothing tStable ref, tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact tStable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "ifStable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction Nothing tStable ref, tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact tStable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "ifUnstable" [TLam pats e : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh e tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction Nothing tUnstable ref, tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact tUnstable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "ifUnstable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction Nothing tUnstable ref, tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact tUnstable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "ifValue" [conditionApp=:(TFApp assoc vn args) : continuationApp : _] _) [ref : tsrc]
   #! (conditionImg, tsrc)    = tCaseDiamond inh conditionApp tsrc
   #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
-  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction Nothing alwaysFilter ref, tHorizConnArr, /* TODO edge */ continuationImg] Nothing
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact alwaysFilter ref, tHorizConnArr, /* TODO edge */ continuationImg] Nothing
     , tsrc)
         //("ifValue", [e1=:((App fApp) @ fAppArgs):(App tApp):_])
         //("ifValue", [(App fApp):(App tApp):_])
   // TODO TFApp
+mkStepCont inh mact (TFApp "hasValue" [TLam pats e : _] _) [ref : tsrc]
+  #! (x, tsrc) = tExpr2Image inh e tsrc
+  = ( beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConn, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> x +++ " " +++ xs) "" pats), tHorizConnArr, /* TODO edge */ x] Nothing
+    , tsrc)
 mkStepCont inh mact (TFApp "hasValue" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction Nothing hasValueFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "ifCond" [conditionApp : continuationApp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (conditionImg, tsrc)    = tCaseDiamond inh conditionApp tsrc
   #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
-  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction Nothing alwaysFilter ref, tHorizConnArr, /* TODO edge */ continuationImg] Nothing
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact alwaysFilter ref, tHorizConnArr, /* TODO edge */ continuationImg] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "always" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction Nothing alwaysFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact alwaysFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "withoutValue" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction Nothing alwaysFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact alwaysFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "withValue" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction Nothing hasValueFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "withStable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction Nothing tStable ref, tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact tStable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "withUnstable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction Nothing tUnstable ref, tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact tUnstable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact e [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh e tsrc
@@ -776,13 +780,13 @@ prepCases patStrs pats tsrc
     = case patStr of
         ""
           #! linePart  = (maxXSpan - imagexspan tag) /. 2.0
-          #! leftLine  = xline tLineMarker (px 16.0 + linePart)
+          #! leftLine  = xline tLineMarker (px 8.0 + linePart)
           #! rightLine = xline Nothing (px 8.0 + linePart)
           = beside (repeat AtMiddleY) [] [xline Nothing (px 8.0), leftLine, margin (px 2.5, px 0.0) pat, rightLine] Nothing
         patStr
           #! textWidth = textxspan ArialRegular10px patStr + px 10.0
           #! linePart  = (maxXSpan - imagexspan tag - textWidth) /. 2.0
-          #! leftLine  = xline tLineMarker (px 16.0 + linePart)
+          #! leftLine  = xline tLineMarker (px 8.0 + linePart)
           #! rightLine = xline Nothing (px 8.0 + linePart)
           #! textBox   = tTextWithGreyBackground ArialRegular10px patStr
           = beside (repeat AtMiddleY) [] [xline Nothing (px 8.0), textBox, leftLine, margin (px 2.5, px 0.0) pat, rightLine] Nothing
