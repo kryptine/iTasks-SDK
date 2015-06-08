@@ -12,8 +12,9 @@ import iTasks.API.Core.Client.Tasklet
 		}
  
 :: CodeMirrorClient = {
-		  val	:: CodeMirror
-		, mbSt	:: Maybe CodeMirrorClientSt
+		  val	    :: CodeMirror
+		, initQueue :: [CodeMirrorDiff]
+		, mbSt	    :: Maybe CodeMirrorClientSt
 		}
 
 :: CodeMirrorPosition :== (Int, Int) // line, cursor position

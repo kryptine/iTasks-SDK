@@ -7,8 +7,6 @@ import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Tasklet
 import iTasks.API.Core.Client.Interface
 
-import StdDebug
-
 derive JSONEncode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive JSONDecode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gDefault         CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
@@ -88,27 +86,89 @@ where
 	isSetTheme (CMTheme _) = True
 	isSetTheme _ = False
 
-onInitClient :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) !ComponentId -> JSFun JSCM)
-                ![(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
-                !(String {JSVal (JSObject JSEvent)} CodeMirrorClient *JSWorld -> *(CodeMirrorClient, ComponentDiff [CodeMirrorDiff] CodeMirrorClient, *JSWorld))
-                !(String CodeMirrorClient *JSWorld -> *(CodeMirrorClient, ComponentDiff [CodeMirrorDiff] CodeMirrorClient, *JSWorld))
-                !String !CodeMirrorClient !*JSWorld
-             -> *(!CodeMirrorClient, !ComponentDiff [CodeMirrorDiff] CodeMirrorClient, !*JSWorld)
-onInitClient mkHandler eventhandlers onLoadWrapper onLoadCont cid clval world
-	# (obj, world) = findObject "CodeMirror.defaults" world
-	| not (jsIsUndefined obj)
-	    = onLoad mkHandler eventhandlers onLoadCont cid undef clval world
-	# world = addCSSFromUrl "codemirror.css" world
-	# world = addJSFromUrl "codemirror.js" Nothing world
-	# world = addJSFromUrl "addon/mode/loadmode.js" (Just (mkHandler onLoadWrapper cid)) world
-    = (clval, NoDiff, world)
 
-onLoad :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) !ComponentId -> JSFun JSCM)
-          ![(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
-          !(String CodeMirrorClient *JSWorld -> *(CodeMirrorClient, ComponentDiff [CodeMirrorDiff] CodeMirrorClient, *JSWorld))
-          !String c !CodeMirrorClient !*JSWorld
-       -> *(!CodeMirrorClient, !ComponentDiff [CodeMirrorDiff] CodeMirrorClient, !*JSWorld)
-onLoad mkHandler eventhandlers cont cid _ clval=:{val={source,configuration}} world
+applyDiffs :: !ComponentId ![CodeMirrorDiff] !CodeMirrorClient !*JSWorld
+             -> *(!CodeMirrorClient, !*JSWorld)
+             
+applyDiffs cid diffs clval=:{initQueue,mbSt=Nothing} world
+	// Save updates until initialization is finished
+	= ({clval & initQueue = initQueue ++ diffs}, world)
+	
+applyDiffs cid [] clval=:{mbSt=Just st=:{codeMirror,marks}} world	
+	// Nothing to do
+	= (clval, world)
+		
+applyDiffs cid diffs clval=:{mbSt=Just st=:{codeMirror,marks}} world
+	
+	// disable system event handlers
+	# world = manageSystemEvents "off" st world		
+	
+	# world = setOptions opts codeMirror world
+	# world = loadModulesIfNeeded opts codeMirror world
+		
+	# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
+
+	# world = case find isSetPos nopts of
+		Nothing    	= world
+		(Just (SetPosition idx))	
+					# (pos, world) = tupleToPos idx world 
+					= snd (callObjectMethod "setCursor" [toJSArg pos] cmdoc world)
+
+	# world = case find isSetSel nopts of
+		Nothing    		= world
+		(Just (SetSelection Nothing))
+					// Clear the selection
+					# (pos, world) = callObjectMethod "getCursor" [] cmdoc world
+					= snd (callObjectMethod "setSelection" [toJSArg pos, toJSArg pos] cmdoc world)
+		(Just (SetSelection (Just (idx1,idx2)))) 	
+					# (pos1, world) = tupleToPos idx1 world 
+					# (pos2, world) = tupleToPos idx2 world 							
+					= snd (callObjectMethod "setSelection" [toJSArg pos1, toJSArg pos2] cmdoc world)
+
+	# world = case find isReplaceRange nopts of
+		Nothing    	= world
+		(Just (ReplaceRange (flines,llines) diff)) = applyDiffClient cmdoc flines llines diff world
+
+	# (marks, world) = case find isSetHighlights nopts of
+		Nothing    	= (marks, world)
+		(Just (SetHighlights newmarks)) 	
+
+					// Clear all marks
+					//# (marks, world) = (cmdoc .# "getAllMarks" .$ ()) world
+					//# (marks, world) = fromJSArray marks id world
+					# world = foldl (\world m -> snd ((m .# "clear" .$ ()) world)) world marks
+
+					// Set marks
+					= foldl (\(ms, world) pos -> let (m,w) = addMark cmdoc pos world in ([m:ms], w)) ([], world) newmarks
+
+	// enable system event handlers
+	# world = manageSystemEvents "on" st world
+					
+	= ({clval & mbSt = Just {st & marks = marks}}, world)
+where
+	(opts`, nopts) = splitWith isSetOpt diffs
+	opts = map (\(SetOption opt) -> opt) opts`
+	
+	isSetPos (SetPosition _) = True
+	isSetPos _ = False
+
+	isSetSel (SetSelection _) = True
+	isSetSel _ = False
+
+	isSetOpt (SetOption _) = True
+	isSetOpt _ = False
+
+	isReplaceRange (ReplaceRange _ _) = True
+	isReplaceRange _ = False
+
+	isSetHighlights (SetHighlights _) = True
+	isSetHighlights _ = False
+	
+initializeClient :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) ComponentId -> JSFun JSCM)
+		  			![(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
+          			ComponentId {JSObj JSEvent} !CodeMirrorClient !*JSWorld
+       			 -> *(!CodeMirrorClient, !ComponentDiff [CodeMirrorDiff] CodeMirrorClient, !*JSWorld)
+initializeClient mkHandler eventHandlers cid _ clval=:{val={source,configuration},initQueue} world
 	# (ta, world)       = .? (getElementById (sourcearea cid)) world
 	# (co, world)       = createConfigurationObject configuration world
     # (cmobj, world)    = findObject "CodeMirror" world
@@ -117,7 +177,7 @@ onLoad mkHandler eventhandlers cont cid _ clval=:{val={source,configuration}} wo
 	# world 			= loadModulesIfNeeded configuration cm world
 	# st 				= {codeMirror = cm, systemEventHandlers = systemEvents mkHandler, marks = []}
 	# world 			= manageSystemEvents "on" st world	
-	# world 			= foldl (putOnEventHandler mkHandler cm) world eventhandlers
+	# world 			= foldl (putOnEventHandler mkHandler cm) world eventHandlers
 
     # (editlets,world)  = findObject "itwc.controller.editlets" world    
     # (cmp,world)       = .? (editlets .# cid) world
@@ -125,8 +185,9 @@ onLoad mkHandler eventhandlers cont cid _ clval=:{val={source,configuration}} wo
     # world             = (cmp .# "afterResize" .= (toJSVal (mkHandler (onAfterShow cm) cid))) world
     # world             = (cmp .# "afterShow" .= (toJSVal (mkHandler (onAfterShow cm) cid))) world        
 	
-    //Call continuation to initialize the editor	
-    = cont cid {clval & mbSt = Just st} world
+	// apply diffs queued during the initialization
+	# (clval, world)    = applyDiffs cid initQueue {clval & mbSt = Just st} world
+    = (clval, NoDiff, world)
 where
 	// Set the size directly because CodeMirror seems that cannot work with CSS3 FlexBox stuff
     onAfterShow cm cid _ st world
@@ -212,14 +273,14 @@ sourcearea id = "cm_source_" +++ id
 codeMirrorEditlet :: !CodeMirror
 					 ![(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
 				  -> Editlet CodeMirror [CodeMirrorDiff]
-codeMirrorEditlet g eventhandlers
+codeMirrorEditlet g eventHandlers
   = { Editlet
     | currVal    = g
     
     , defValSrv  = {source = [], configuration = [], position = (0,0), selection = Nothing, highlighted = []}
-    , defValClt  = {val = {source = [], configuration = [], position = (0,0), selection = Nothing, highlighted = []}, mbSt = Nothing}
     
     , genUI      = \cid world -> (editletUIDef cid, world)
+    , initClient = onInit
     , appDiffClt = appDiffClient
     , genDiffSrv = genDiffServer
     , appDiffSrv = appDiffServer
@@ -232,129 +293,50 @@ where
 								[StyleTag [] [Text "span.cm-highlight { background: #F3FA25 } \n .CodeMirror-focused span.cm-highlight { background: #F3FA25; !important }"] //FAD328
 								,DivTag [IdAttr (sourcearea (toString cid)), StyleAttr "display: block; position: absolute;"] []]
 								
-          , eventHandlers 	= \mkHandler -> [ComponentEvent "editlet" "init" (onInit mkHandler)]
+          , eventHandlers 	= const []
 		  , width 			= ExactSize 300
 		  , height			= ExactSize 300
 		  }
 
-	// init
-    onInit :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) !ComponentId -> JSFun JSCM)
-              !String a !CodeMirrorClient !*JSWorld
-           -> *(!CodeMirrorClient, !ComponentDiff [CodeMirrorDiff] CodeMirrorClient, !*JSWorld)
-	onInit mkHandler cid _ clval world	
-		= onInitClient mkHandler eventhandlers onLoadWrapper onLoadCont cid clval world 
-    where
-        onLoadWrapper :: !(String {JSVal (JSObject JSEvent)} CodeMirrorClient *JSWorld
-                      -> *(CodeMirrorClient, ComponentDiff [CodeMirrorDiff] CodeMirrorClient, *JSWorld))
-		onLoadWrapper = onLoad mkHandler eventhandlers onLoadCont
-        onLoadCont :: !String !CodeMirrorClient !*JSWorld
-                   -> *(!CodeMirrorClient, !ComponentDiff [CodeMirrorDiff] CodeMirrorClient, !*JSWorld)
-		onLoadCont cid clval world
-          # (a, world) = onUpdate cid [] clval world
-          = (a,NoDiff,world)
-
-	// update
-    onUpdate :: !String ![CodeMirrorDiff] !CodeMirrorClient !*JSWorld
-             -> *(!CodeMirrorClient, !*JSWorld)
-	onUpdate cid diffs clval=:{mbSt=Nothing} world
-		= (clval, world)
-	
-	onUpdate cid diffs clval=:{mbSt=Just st=:{codeMirror,marks}} world	
-		// disable system event handlers
-		# world = manageSystemEvents "off" st world		
-	
-		# world = setOptions opts codeMirror world
-		# world = loadModulesIfNeeded opts codeMirror world
-		
-		# (cmdoc, world) = callObjectMethod "getDoc" [] codeMirror world
-
-		# world = case find isSetPos nopts of
-			Nothing    	= world
-			(Just (SetPosition idx))	
-						# (pos, world) = tupleToPos idx world 
-						= snd (callObjectMethod "setCursor" [toJSArg pos] cmdoc world)
-
-		# world = case find isSetSel nopts of
-			Nothing    		= world
-			(Just (SetSelection Nothing))
-						// Clear the selection
-						# (pos, world) = callObjectMethod "getCursor" [] cmdoc world
-						= snd (callObjectMethod "setSelection" [toJSArg pos, toJSArg pos] cmdoc world)
-			(Just (SetSelection (Just (idx1,idx2)))) 	
-						# (pos1, world) = tupleToPos idx1 world 
-						# (pos2, world) = tupleToPos idx2 world 							
-						= snd (callObjectMethod "setSelection" [toJSArg pos1, toJSArg pos2] cmdoc world)
-
-		# world = case find isReplaceRange nopts of
-			Nothing    	= world
-			(Just (ReplaceRange (flines,llines) diff)) = applyDiffClient cmdoc flines llines diff world
-
-		# (marks, world) = case find isSetHighlights nopts of
-			Nothing    	= (marks, world)
-			(Just (SetHighlights newmarks)) 	
-
-						// Clear all marks
-						//# (marks, world) = (cmdoc .# "getAllMarks" .$ ()) world
-						//# (marks, world) = fromJSArray marks id world
-						# world = foldl (\world m -> snd ((m .# "clear" .$ ()) world)) world marks
-
-						// Set marks
-						= foldl (\(ms, world) pos -> let (m,w) = addMark cmdoc pos world in ([m:ms], w)) ([], world) newmarks
-
-		// enable system event handlers
-		# world = manageSystemEvents "on" st world
-					
-		= ({clval & mbSt = Just {st & marks = marks}}, world)
-	where
-		(opts`, nopts) = splitWith isSetOpt diffs
-		opts = map (\(SetOption opt) -> opt) opts`
-	
-		isSetPos (SetPosition _) = True
-		isSetPos _ = False
-
-		isSetSel (SetSelection _) = True
-		isSetSel _ = False
-
-		isSetOpt (SetOption _) = True
-		isSetOpt _ = False
-
-		isReplaceRange (ReplaceRange _ _) = True
-		isReplaceRange _ = False
-
-		isSetHighlights (SetHighlights _) = True
-		isSetHighlights _ = False
-	
-    unPackPosition :: !(JSVal (JSObject p)) !*JSWorld -> *(!(!JSVal a, !JSVal b), !*JSWorld)
-	unPackPosition pos world
-		# (line, world) = jsGetObjectAttr "line" pos world
-		# (ch, world) = jsGetObjectAttr "ch" pos world		
-		= ((line, ch), world)
-
-    appDiffClient :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) !ComponentId -> JSFun f)
-                     !String ![CodeMirrorDiff] !CodeMirrorClient !*JSWorld
-                  -> *(!CodeMirrorClient, !*JSWorld)
-	appDiffClient mkHandler cid diffs clval world
-		= onUpdate cid diffs {clval & val = appDiffServer diffs clval.val} world
-		
-    appDiffServer :: ![CodeMirrorDiff] !CodeMirror -> CodeMirror
-	appDiffServer diffs val = foldl upd val diffs
-	where
-		upd val=:{configuration} (SetOption opt) = {val & configuration = replaceInList shallowEq opt configuration}
-		upd val=:{position} (SetPosition pos) = {val & position = pos}
-		upd val=:{selection} (SetSelection sel) = {val & selection = sel}	
-		upd val=:{source} (ReplaceRange (flines,llines) diff) = {val & source = applyDiffServer source flines llines diff}
-		upd val=:{highlighted} (SetHighlights hs) = {val & highlighted = hs}					
+    onInit :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) ComponentId -> JSFun JSCM)
+              !ComponentId !*JSWorld
+           -> (!CodeMirrorClient, !*JSWorld)
+	onInit mkHandler cid world
+		# clval = {val = {source = [], configuration = [], position = (0,0), selection = Nothing, highlighted = []}, initQueue = [], mbSt = Nothing}	
+		# (obj, world) = findObject "CodeMirror.defaults" world
+		| not (jsIsUndefined obj)
+		    # (clval, _, world) = initializeClient mkHandler eventHandlers cid {} clval world
+		    = (clval, world)
+		# world = addCSSFromUrl "codemirror.css" world
+		# world = addJSFromUrl "codemirror.js" Nothing world
+		# world = addJSFromUrl "addon/mode/loadmode.js" (Just (mkHandler (initializeClient mkHandler eventHandlers) cid)) world
+    	= (clval, world)	
+			
+appDiffClient :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) ComponentId -> JSFun f)
+                 !String ![CodeMirrorDiff] !CodeMirrorClient !*JSWorld
+              -> *(!CodeMirrorClient, !*JSWorld)
+appDiffClient mkHandler cid diffs clval world
+	= applyDiffs cid diffs {clval & val = appDiffServer diffs clval.val} world		
+			
+appDiffServer :: ![CodeMirrorDiff] !CodeMirror -> CodeMirror
+appDiffServer diffs val = foldl upd val diffs
+where
+	upd val=:{configuration} (SetOption opt) = {val & configuration = replaceInList shallowEq opt configuration}
+	upd val=:{position} (SetPosition pos) = {val & position = pos}
+	upd val=:{selection} (SetSelection sel) = {val & selection = sel}	
+	upd val=:{source} (ReplaceRange (flines,llines) diff) = {val & source = applyDiffServer source flines llines diff}
+	upd val=:{highlighted} (SetHighlights hs) = {val & highlighted = hs}					
 
 genDiffServer :: !CodeMirror !CodeMirror -> Maybe [CodeMirrorDiff]
-genDiffServer val1 val2 = case ( map SetOption (differenceBy (===) val2.configuration val1.configuration)
+genDiffServer val1 val2 
+						= case ( map SetOption (differenceBy (===) val2.configuration val1.configuration)
 						   ++
 						   if (val1.position == val2.position) [] [SetPosition val2.position]
 						   ++
 						   if (val1.selection === val2.selection) [] [SetSelection val2.selection]
 						   ++
 						   maybe [] (\(flines,llines,diff) -> [ReplaceRange (flines,llines) diff]) (genDiffRange val1.source val2.source)
-						   ++ 
-						   [SetHighlights val2.highlighted]) of
+						   ) of
        []      = Nothing
        diffs   = Just diffs
 

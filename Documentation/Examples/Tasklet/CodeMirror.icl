@@ -4,6 +4,9 @@ import iTasks, iTasks.API.Core.Client.Tasklet
 import iTasks.API.Core.Client.Interface
 import iTasks.API.Extensions.CodeMirror
 
+import _SystemStrictLists
+import _SystemArray
+
 from StdArray import class Array(uselect), instance Array {} a
 
 //-------------------------------------------------------------------------
@@ -13,7 +16,7 @@ taskletExamples =
 	[workflow "Editor" "Editor" editor]
 
 defcm = { configuration = [CMMode "haskell", CMLineNumbers True]
-        , position = (0,0)
+        , position = (0,1)
         , selection = Nothing
         , highlighted = [((0,1),(0,3))]
         , source = [ 
@@ -45,18 +48,46 @@ defcm = { configuration = [CMMode "haskell", CMLineNumbers True]
 			"	,	StdOverloaded", 
 			"", 
 			"from StdFunc import id, const, o", 
-			"from Data.List import instance Functor []"] }
-
+			"from Data.List import instance Functor []"] 
+			}
+			
 //editor :: Task CodeMirror
 //editor
 //	= mkTask (codeMirrorTasklet defcm) <<@ AfterLayout (tweakUI (setSize (ExactSize 300) (ExactSize 300)))
 		    
-		    
+/*		    
 editor :: Task [String]
 editor
 	= (updateInformation "" [UpdateWith (\source -> codeMirrorEditlet {defcm & source = source} [])
 									   (\_ editlet -> editlet.currVal.source)] defcm.source) <<@ AfterLayout (tweakUI (setSize (ExactSize 300) (ExactSize 300)))		    
-		                                                  				 							 
+*/
+/*
+editor :: Task [String]
+editor
+	= 
+	withShared [] (\source -> updateSharedInformation "1" [UpdateWith (\source -> codeMirrorEditlet {defcm & source = source} [])
+									   (\_ editlet -> editlet.currVal.source)] source
+													-|| 
+									           viewSharedInformation "1" [] source)
+		    
+*/
+
+editor :: Task CodeMirror
+editor
+	= 
+	withShared defcm (\cm -> updateSharedInformation "1" [UpdateWith (\cm -> codeMirrorEditlet cm []) (\_ editlet -> editlet.currVal)] cm
+													-|| 
+									    updateSharedInformation "1" [] cm)
+
+/*
+editor :: Task CodeMirror
+editor
+	=
+	withShared defcm (\cm -> (updateSharedInformation "1" [] cm
+													-|| 
+									    updateSharedInformation "1" [] cm))
+*/
+						 
 ifValue pred (Value v _) | pred v
 	= Just (return v)
 	= Nothing
@@ -73,17 +104,6 @@ returnV (Value v _) = return v
 Start :: *World -> *World
 Start world = startEngine editor world 
 
-import Text.JSON
 
-//Start :: Maybe CodeMirrorDiff
-//Start = fromJSON (fromString "[[\"SetHighlights\",[[[0,1],[0,3]]]]]")
 
-//Start :: 	
-//Start = fromJSON (fromString "[[\"SetSelection\",[[[0,0],[30,0]]]],[\"SetHighlights\",[[[0,1],[0,3]]]]]")
 
-//Start :: Maybe [CodeMirrorDiff]
-//Start = fromJSON (fromString "[[[\"SetHighlights\",[[[0,1],[0,3]]]]]]")
-
-//buu = [SetSelection (Just ((0,0),(30,0)))]
-//Start :: JSONNode
-//Start = toString (toJSON buu)

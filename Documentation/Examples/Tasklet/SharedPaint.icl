@@ -85,10 +85,9 @@ painterEditlet
   = { Editlet
     | currVal   = Drawing []
     , defValSrv = Drawing []
-    , defValClt = {selectedTool = TLine, selectedColor = Black, currentOrigin = Nothing, currentShape = Nothing}  
     
     , genUI     = painterGUI
-
+	, initClient = \_ _ world = ({selectedTool = TLine, selectedColor = Black, currentOrigin = Nothing, currentShape = Nothing}, world)
 	, appDiffClt = updateUI    
 	, genDiffSrv = srvGenDiff
 	, appDiffSrv = \ns (Drawing ds) -> Drawing (ds ++ ns)

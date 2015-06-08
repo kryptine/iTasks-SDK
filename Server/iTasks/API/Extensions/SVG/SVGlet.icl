@@ -318,8 +318,8 @@ svgRenderer resolve origState state2Image
   #! dst = defaultSrvSt origState
   = { currVal    = {dst & svgSrvIsDefault = False}
     , defValSrv  = dst
-    , defValClt  = defaultClSt origState
     , genUI      = genUI
+    , initClient = \_ _ world = (defaultClSt origState, world)
     , appDiffClt = appClientDiff resolve state2Image
     , genDiffSrv = genServerDiff
     , appDiffSrv = appServerDiff

@@ -293,9 +293,10 @@ function __iTasks_API_Core_Client_Tasklet_createTaskletEventHandler(expr, taskId
 	return ___wrapJS(eventHandler(expr, taskId));
 }
 
-// createEditletEventHandler :: (ComponentEventHandlerFunc a st) !ComponentId -> (JSVal (JSFunction b)) 
+// createEditletEventHandler :: (EditletEventHandlerFunc a st) !ComponentId -> (JSVal (JSFunction b)) 
 function __iTasks_API_Core_Client_Editlet_createEditletEventHandler(expr, componentId){
 	
 	var comp = itwc.global.controller.editlets[componentId];
 	return ___wrapJS(comp.eventHandler(true,expr));
 }
+

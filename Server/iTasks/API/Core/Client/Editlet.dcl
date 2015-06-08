@@ -18,12 +18,12 @@ import iTasks.API.Core.Client.Component
   = E.cl f:
   { currVal    :: sv // TODO: implementation detail, remove it
 
-  // These fields are unnecessary, gDefault could be used instead of them
-  // However, Jurrien like them, so why not to be here :)
+  // This field is unnecessary, gDefault could be used instead of it
+  // However, Jurrien like it, so why not to be here :)
   , defValSrv  :: sv
-  , defValClt  :: cl
 
   , genUI      :: GenUI d cl
+  , initClient :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun f) ComponentId *JSWorld -> *(cl, *JSWorld)
   , appDiffClt :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun f) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
   , genDiffSrv :: sv sv -> Maybe d
   , appDiffSrv :: d  sv -> sv
