@@ -86,7 +86,7 @@ mkTaskImage rs prev trt maplot outputs selected selDetail compact {ActionState |
                         , inh_selDetail    = selDetail
                         }
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
-  #! (img, _)         = tTaskDef tt.tt_module tt.tt_name tt.tt_resty tt.tt_args [] tt_body` tsrc
+  #! (img, _)         = tTaskDef trt tt.tt_module tt.tt_name tt.tt_resty tt.tt_args [] tt_body` tsrc
   = img
 
 tExpr2Image :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
@@ -152,7 +152,7 @@ tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (d
 tExpand :: !MkImageInh ![TExpr] !TonicTask !*TagSource -> *(!Image ModelTy, !*TagSource)
 tExpand inh argnames tt tsrc
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
-  = tTaskDef tt.tt_module tt.tt_name tt.tt_resty tt.tt_args argnames tt_body` tsrc
+  = tTaskDef inh.inh_trt tt.tt_module tt.tt_name tt.tt_resty tt.tt_args argnames tt_body` tsrc
 
 tLit :: !MkImageInh !String !*TagSource -> *(!Image ModelTy, !*TagSource)
 tLit inh pp tsrc
@@ -403,9 +403,12 @@ tStartSymb = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 
 tStopSymb :: Image ModelTy
 tStopSymb = rect (px 16.0) (px 16.0)
 
-tTaskDef :: !String !String !TExpr ![(!TExpr, !TExpr)] ![TExpr] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
-tTaskDef moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTag) : (argsTag, uArgsTag) : (bdytag, uBodyTag) : tsrc]
-  #! taskNameImg  = tag uNameTag (margin (px 5.0) (beside (repeat AtMiddleY) [] [text ArialRegular10px (moduleName +++ "."), text ArialBold10px (taskName +++ " :: " +++ ppTExpr resultTy)] Nothing))
+tTaskDef :: !BlueprintRef !String !String !TExpr ![(!TExpr, !TExpr)] ![TExpr] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
+tTaskDef bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTag) : (argsTag, uArgsTag) : (bdytag, uBodyTag) : tsrc]
+  #! taskIdStr    = case bpr of
+                      {bpr_instance = Just {bpi_taskId}} -> " (" +++ toString bpi_taskId +++ ")"
+                      _                                  -> ""
+  #! taskNameImg  = tag uNameTag (margin (px 5.0) (beside (repeat AtMiddleY) [] [text ArialRegular10px (moduleName +++ "."), text ArialBold10px (taskName +++ " :: " +++ ppTExpr resultTy), text ArialRegular10px taskIdStr] Nothing))
   #! argsImg      = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] (map mkArgAndTy (zip2 args (map Just argvars ++ repeat Nothing))) Nothing))
   #! taskBodyImgs = tag uBodyTag (margin (px 5.0) tdbody)
   #! maxX         = maxSpan [imagexspan nameTag, imagexspan argsTag, imagexspan bdytag]

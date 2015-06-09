@@ -801,12 +801,6 @@ tonicDynamicBrowser` allbps rs navstack =
                   }
     filterTasks (trt, q) = filterActiveTasks q ('DM'.elems trt)
 
-  //additionalInfo = whileUnchanged tonicSharedRT (\trt -> mkAdditionalInfo trt >>~ \ai -> viewInformation (Title "Additional info") [] ai)
-  //additionalInfo = whileUnchanged selectedDetail viewDetail
-    //where
-    //viewDetail (Just (Right tid=:(TaskId instanceNo _))) = get (sdsFocus instanceNo taskInstanceAttributesByNo) >>= \x -> viewInformation (Title "Detailed information") [] (map (\(x, y) -> x +++ ": " +++ y) ('DM'.toList x)) @! ()
-    //viewDetail (Just (Left (mn, tn))) = viewInformation (Title "Detailed information") [] (mn, tn) @! ()
-    //viewDetail _                      = viewInformation (Title "Detailed information") [] "Select task" @! ()
   additionalInfo = whileUnchanged selectedDetail viewDetail
     where
     viewDetail (Just {click_target_bpident = {bpident_taskId = Just tid}}) = whileUnchanged storedOutputEditors (viewOutput tid)
@@ -814,7 +808,6 @@ tonicDynamicBrowser` allbps rs navstack =
 
     viewOutput tid=:(TaskId ino tno) ts = case 'DM'.get tid ts of
                                             Just (remote, _) -> remote
-                                            //_           -> viewInformation (Title ("Error displaying task " +++ toString tid)) [] "Could not find task in storedOutputEditors" @! ()
                                             _                -> viewInformation (Title ("Error displaying task " +++ toString tid)) [] ts @! ()
 
   blueprintViewer
@@ -883,7 +876,13 @@ viewInstance allbps rs navstack dynSett trt selDetail showButtons action=:(Just 
     # viewTasks = map (viewInstance allbps rs navstack {dynSett & unfold_depth = {dynSett.unfold_depth & cur = d - 1}} trt selDetail False o Just o mkClickMeta) childIds
     = allTasks viewTasks @! ()
     where
-    mkClickMeta childId = meta
+    mkClickMeta childId = {meta & click_origin_mbbpident = Nothing
+                                , click_origin_mbnodeId  = Nothing
+                                , click_target_bpident   = { bpident_taskId     = Just childId
+                                                           , bpident_moduleName = ""
+                                                           , bpident_taskName   = ""
+                                                           }
+                          }
 
   defaultBack pref showButtons ns
     # msg = viewInformation () [] ()
