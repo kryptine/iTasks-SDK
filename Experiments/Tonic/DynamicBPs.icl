@@ -27,8 +27,12 @@ Start world = startEngine [ publish "/" (WebApp []) (\_-> dynamicBPs1 (viewStep 
 
                           , publish "/step" (WebApp []) (\_-> stepTest 5)	
 
+                          , publish "/myTask" (WebApp []) (\_-> myTask)	
+                          , publish "/myTask2" (WebApp []) (\_-> myTask2)	
+                          , publish "/myTask3" (WebApp []) (\_-> myTask3)	
                           , publish "/palindrome" (WebApp []) (\_-> palindrome)	
                           , publish "/1by1" (WebApp []) (\_-> person1by1 [])	
+                          , publish "/bikes" (WebApp []) (\_-> bikes)	
 
 
                           ] world
@@ -135,13 +139,23 @@ dynamicBPs1 vs42
   where
   restOfSteps = map viewStep [4, 5, 6, 7]
   
-// sheets
+// the following examples are used in the CEFP sheets
 
+:: Person 	=  { name :: String, gender :: Gender, dateOfBirth :: Date}
+:: Gender 	= Male | Female
 
+derive class iTask Person, Gender
 
 
 myTask :: Task Int
 myTask = enterInformation "Enter an integer" []
+
+myTask2 :: Task Person
+myTask2 = enterInformation "Enter data" []
+
+myTask3 :: Task [Person]
+myTask3 = enterInformation "Enter a list of data" []
+
 
 palindrome :: Task (Maybe String)
 palindrome 
@@ -154,10 +168,6 @@ where
 
 
 
-:: Person 	=  { name :: String, gender :: Gender, dateOfBirth :: Date}
-:: Gender 	= Male | Female
-
-derive class iTask Person, Gender
 
 
 person1by1 :: [Person] -> Task [Person]
@@ -189,6 +199,24 @@ twoTasks user1 user2
 
 
 
+//-----
+
+
+:: Bicycle = { id :: Int }
+
+derive class iTask Bicycle
+
+
+station :: Shared [Bicycle]
+station = sharedStore "Bikes" []
+
+bikes 
+	=				set [{id = i} \\ i <- [0..9]] station
+	>>| 			updateSharedInformation "update bikes in station" [] station
+	>>|				get station
+	>>= \bikes ->	viewInformation "number of bikes in station:" [] (length bikes)
+	
+	
 
 
 
