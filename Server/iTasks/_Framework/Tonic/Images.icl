@@ -750,7 +750,7 @@ mkStepCont inh mact (TFApp "withUnstable" [mapp : _] _) [ref : tsrc]
     , tsrc)
 mkStepCont inh mact e [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh e tsrc
-  = ( beside (repeat AtMiddleY) [] [tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [tException, x] Nothing
     , tsrc)
 
 addAction :: !(Maybe String) !(Image ModelTy) !*TagRef -> Image ModelTy
@@ -776,22 +776,22 @@ tagImgs [i : is] tsrc
 
 prepCases :: ![String] ![Image ModelTy] !*TagSource -> *(![Image ModelTy], ![ImageTag], *TagSource)
 prepCases patStrs pats tsrc
+  #! allPatStrs         = patStrs ++ repeat ""
+  #! pats               = zipWith addLhs pats allPatStrs
   #! (pats, tags, tsrc) = tagImgs pats tsrc
-  #! maxXSpan = maxSpan (map imagexspan tags)
-  = (zipWith3 (prepCase maxXSpan) pats (patStrs ++ repeat "") tags, tags, tsrc)
+  #! maxXSpan           = maxSpan (map imagexspan tags)
+  = (zipWith (prepCase maxXSpan) pats tags, tags, tsrc)
   where
-  prepCase :: !Span !(Image ModelTy) !String !ImageTag -> Image ModelTy
-  prepCase maxXSpan pat patStr tag
-    #! pat = margin (px 2.5, px 0.0) pat
-    = case patStr of
-        ""
-          #! rightLine = xline Nothing (maxXSpan - imagexspan tag + px 8.0)
-          = beside (repeat AtMiddleY) [] [tHorizConnArr, pat, rightLine] Nothing
-        patStr
-          #! textWidth = textxspan ArialRegular10px patStr
-          #! rightLine = xline Nothing (maxXSpan - imagexspan tag - textWidth)
-          #! textBox   = tTextWithGreyBackground ArialRegular10px patStr
-          = beside (repeat AtMiddleY) [] [tHorizConn, textBox, tHorizConnArr, pat, rightLine] Nothing
+  addLhs :: !(Image ModelTy) !String -> Image ModelTy
+  addLhs pat "" = beside (repeat AtMiddleY) [] [tHorizConnArr, pat] Nothing
+  addLhs pat patStr
+    #! textBox = tTextWithGreyBackground ArialRegular10px patStr
+    = beside (repeat AtMiddleY) [] [tHorizConn, textBox, tHorizConnArr, pat] Nothing
+
+  prepCase :: !Span !(Image ModelTy) !ImageTag -> Image ModelTy
+  prepCase maxXSpan pat tag
+    #! rightLine = xline Nothing ((maxXSpan - imagexspan tag) + px 8.0)
+    = margin (px 2.5, px 0.0) (beside (repeat AtMiddleY) [] [pat, rightLine] Nothing)
 
 tTextWithGreyBackground font txt
   #! textWidth = textxspan font txt + px 10.0
