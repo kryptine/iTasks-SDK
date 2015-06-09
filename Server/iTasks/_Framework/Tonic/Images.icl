@@ -59,6 +59,7 @@ ArialItalic10px :== { fontfamily  = "Arial"
   , inh_in_step      :: !Bool
   , inh_in_mapp      :: !Bool
   , inh_in_fapp      :: !Bool
+  , inh_in_case      :: !Bool
   , inh_selected     :: !Set (!ModuleName, !TaskName, !ExprId)
   , inh_outputs      :: !Map TaskId TStability
   , inh_selDetail    :: !Maybe ClickMeta
@@ -81,6 +82,7 @@ mkTaskImage rs prev trt maplot outputs selected selDetail compact {ActionState |
                         , inh_in_step      = False
                         , inh_in_mapp      = False
                         , inh_in_fapp      = False
+                        , inh_in_case      = False
                         , inh_selected     = selected
                         , inh_outputs      = outputs
                         , inh_selDetail    = selDetail
@@ -187,7 +189,7 @@ tVar inh eid pp tsrc
   where
   mkDef :: !*TagSource -> *(!Image ModelTy, !*TagSource)
   mkDef tsrc
-    | inh.inh_in_mapp || inh.inh_in_fapp = (text ArialRegular10px pp, tsrc)
+    | inh.inh_in_mapp || inh.inh_in_fapp || inh.inh_in_case = (text ArialRegular10px pp, tsrc)
     | otherwise
         #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (ArialRegular10px.fontysize + 10.0)) <@< { dash = [5, 5] }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing, tsrc)
@@ -203,6 +205,7 @@ containsActiveNodes inh _                     = False
 
 tCaseOrIf :: !MkImageInh !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tCaseOrIf inh texpr pats tsrc
+  #! inh            = {inh & inh_in_case = True}
   #! patStrs        = map (ppTExpr o fst) pats
   #! patExprs       = map snd pats
   #! branchActivity = map (containsActiveNodes inh) patExprs
