@@ -158,7 +158,7 @@ tExpand inh argnames tt tsrc
 
 tLit :: !MkImageInh !String !*TagSource -> *(!Image ModelTy, !*TagSource)
 tLit inh pp tsrc
-  | inh.inh_in_mapp || inh.inh_in_fapp = (text ArialRegular10px pp, tsrc)
+  | inh.inh_in_mapp || inh.inh_in_fapp || inh.inh_in_case = (text ArialRegular10px pp, tsrc)
   | otherwise
       #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (ArialRegular10px.fontysize + 10.0)) <@< { dash = [5, 5] }
       = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing, tsrc)
@@ -206,22 +206,21 @@ containsActiveNodes inh _                     = False
 
 tCaseOrIf :: !MkImageInh !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tCaseOrIf inh texpr pats tsrc
-  #! inh            = {inh & inh_in_case = True}
-  #! patStrs        = map (ppTExpr o fst) pats
-  #! patExprs       = map snd pats
-  #! branchActivity = map (containsActiveNodes inh) patExprs
-  #! someActivity   = foldr (\x acc -> x || acc) False branchActivity
-  #! patExprs`      = zip2 patExprs branchActivity
+  #! patStrs         = map (ppTExpr o fst) pats
+  #! patExprs        = map snd pats
+  #! branchActivity  = map (containsActiveNodes inh) patExprs
+  #! someActivity    = foldr (\x acc -> x || acc) False branchActivity
+  #! patExprs`       = zip2 patExprs branchActivity
   #! (nextTasks, tsrc)       = mapSt (\(patExpr, possiblyActive) tsrc -> tExpr2Image {inh & inh_inaccessible = someActivity && not possiblyActive} patExpr tsrc) patExprs` tsrc
   #! (nextTasks, refs, tsrc) = prepCases patStrs nextTasks tsrc
-  #! vertConn     = mkVertConn refs
-  #! nextTasks`   = above (repeat AtLeft) [] nextTasks Nothing
+  #! vertConn        = mkVertConn refs
+  #! nextTasks`      = above (repeat AtLeft) [] nextTasks Nothing
   #! (diamond, tsrc) = tCaseDiamond inh texpr tsrc
   = (beside (repeat AtMiddleY) [] [diamond, tHorizConn, vertConn, nextTasks`, vertConn] Nothing, tsrc)
 
 tCaseDiamond :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tCaseDiamond inh texpr [(diamondTag, uDiamondTag) : tsrc]
-  #! (exprImg, tsrc) = tExpr2Image inh texpr tsrc
+  #! (exprImg, tsrc) = tExpr2Image {inh & inh_in_case = True} texpr tsrc
   #! exprImg         = tag uDiamondTag exprImg
   #! textHeight      = imageyspan diamondTag
   #! textWidth       = imagexspan diamondTag
@@ -459,21 +458,23 @@ tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ tsrc
   = tStep inh eid lhsExpr rhsExpr tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "-&&-" [lhsExpr : rhsExpr : _] _ tsrc
-  = tParProdN inh eid (Right [lhsExpr, rhsExpr]) tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "allTasks" [x] _ tsrc
-  #! ts = if (tExprIsList x) (Right (tUnsafeExpr2List x)) (Left x)
-  = tParProdN inh eid ts tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "anyTask" [x] _ tsrc
-  #! ts = if (tExprIsList x) (Right (tUnsafeExpr2List x)) (Left x)
-  = tParSumN inh eid ts tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "-||-" [lhsExpr : rhsExpr : _] _ tsrc
-  = tParSumN inh eid (Right [lhsExpr, rhsExpr]) tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "||-" [lhsExpr : rhsExpr : _] _ tsrc
-  = tParSumR inh eid lhsExpr rhsExpr tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" "-||" [lhsExpr : rhsExpr : _] _ tsrc
-  = tParSumL inh eid lhsExpr rhsExpr tsrc
-tMApp inh eid _ modName taskName taskArgs _ tsrc
+tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-&&-" [lhsExpr : rhsExpr : _] _ tsrc
+  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel: all tasks" tsrc
+tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"allTasks" [x] assoc tsrc
+  #! ts = if (tExprIsList x) (tUnsafeExpr2List x) [x]
+  = renderTaskApp inh eid mn tn ts "Parallel: all tasks" tsrc
+tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"anyTask" [x] assoc tsrc
+  #! ts = if (tExprIsList x) (tUnsafeExpr2List x) [x]
+  = renderTaskApp inh eid mn tn ts "Parallel: any task" tsrc
+tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||-" [lhsExpr : rhsExpr : _] _ tsrc
+  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel: any task" tsrc
+tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"||-" [lhsExpr : rhsExpr : _] _ tsrc
+  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel: second result" tsrc
+tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||" [lhsExpr : rhsExpr : _] _ tsrc
+  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel: first result" tsrc
+tMApp inh eid _ modName taskName taskArgs _ tsrc = renderTaskApp inh eid modName taskName taskArgs taskName tsrc
+
+renderTaskApp inh eid modName taskName taskArgs displayName tsrc
   #! (taskArgs`, tsrc)  = mapSt (tExpr2Image {inh & inh_in_mapp = True}) taskArgs tsrc
   #! mActiveTid         = case inh.inh_trt.bpr_instance of
                             Just bpinst -> activeNodeTaskId eid bpinst.bpi_activeNodes
@@ -487,11 +488,11 @@ tMApp inh eid _ modName taskName taskArgs _ tsrc
                             (Just x, _) -> " (" +++ toString x +++ ")"
                             (_, Just x) -> " (" +++ toString x +++ ")"
                             _           -> ""
-  #! taskName           = taskName +++ taskIdStr
-  #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_selected eid inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName modName taskName taskArgs`) inh.inh_task_apps tsrc
+  #! displayName        = displayName +++ taskIdStr
+  #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_selected eid inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName modName displayName taskArgs`) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
-                            _          -> tDefaultMApp inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_selected eid inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName modName taskName taskArgs taskArgs` tsrc
+                            _          -> tDefaultMApp inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_selected eid inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName modName displayName taskArgs taskArgs` tsrc
   #! clickMeta          = mkClickMeta (fmap (\x -> x.bpi_taskId) inh.inh_trt.bpr_instance) mbNavTo
   #! taskApp            = taskApp <@< { onclick = navigateOrSelect clickMeta, local = False }
   #! valNodeIsSelected  = case inh.inh_selDetail of
@@ -614,6 +615,7 @@ tDefaultMApp` isCompact isActive wasActive isInAccessible nodeId selectedNodes p
                                                                        <@< { strokewidth = if isSelected (px 3.0) (px 1.0) }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskNameImg] Nothing, tsrc)
       taskArgs
+        #! taskArgs = map (margin (px 1.5, px 0.0)) taskArgs
         #! argsImg  = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] taskArgs Nothing))
         #! maxXSpan = maxSpan [imagexspan tntag, imagexspan argstag]
         #! content  = above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, argsImg] Nothing
