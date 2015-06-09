@@ -31,12 +31,21 @@ Start world = startEngine [ publish "/" (WebApp []) (\_-> dynamicBPs1 (viewStep 
                           , publish "/myTask2" (WebApp []) (\_-> myTask2)	
                           , publish "/myTask3" (WebApp []) (\_-> myTask3)	
                           , publish "/palindrome" (WebApp []) (\_-> palindrome)	
-                          , publish "/1by1" (WebApp []) (\_-> person1by1 [])	
+                          , publish "/1by1" 	(WebApp []) (\_-> person1by1 [])
+                          , publish "/bob" 		(WebApp []) (\_-> workAs (AuthenticatedUser "bob" [] Nothing)   doMyWork)
+                          , publish "/alice"	(WebApp []) (\_-> workAs (AuthenticatedUser "alice" [] Nothing) doMyWork)
+                          , publish "/twoTasksTest" (WebApp []) (\_-> twoTasksTest)	
                           , publish "/bikes" (WebApp []) (\_-> bikes)	
 
 
                           ] world
 
+doMyWork :: Task Void 
+doMyWork
+	=					enterChoiceWithShared "choose a task to do..." [] processesForCurrentUser
+	>>= \task -> 		workOn task.TaskListItem.taskId >>| doMyWork
+	
+	
 viewStep :: Int -> Task Int
 viewStep n = viewInformation ("Step " +++ toString n) [] n
 
@@ -189,15 +198,16 @@ calculateSum
  	
 
 
-twoTasks :: User User  -> Task a      	   | iTask a 
+twoTasks :: w1 w2  -> Task a      	   | iTask a & toUserConstraint w1 & toUserConstraint w2 
 twoTasks user1 user2   
-= withShared defaultValue (\share -> (user1  @: updateSharedInformation  ("Shared with" <+++ user2) [] share)
+= withShared defaultValue (\share -> (user1  @: updateSharedInformation  ("Shared with" <+++ toTitle user2) [] share)
 		              		                 -||  
-		              		         ( user2  @: viewSharedInformation   ("Shared with" <+++ user1)  [] share) )
+		              		         ( user2  @: viewSharedInformation   ("Shared with" <+++ toTitle user1)  [] share) )
 
 
 
-
+twoTasksTest :: Task [Person]
+twoTasksTest = twoTasks (UserWithId "Alice") (UserWithId "Bob")
 
 //-----
 
