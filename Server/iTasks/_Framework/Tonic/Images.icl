@@ -130,6 +130,9 @@ tSmallHorizConn = xline Nothing (px 4.0)
 tHorizConn :: Image ModelTy
 tHorizConn = xline Nothing (px 8.0)
 
+tShortHorizConn :: Image ModelTy
+tShortHorizConn = xline Nothing (px 4.0)
+
 tHorizConnArr :: Image ModelTy
 tHorizConnArr = xline tLineMarker (px 16.0)
 
@@ -402,7 +405,7 @@ tStopSymb = rect (px 16.0) (px 16.0)
 
 tTaskDef :: !String !String !TExpr ![(!TExpr, !TExpr)] ![TExpr] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
 tTaskDef moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTag) : (argsTag, uArgsTag) : (bdytag, uBodyTag) : tsrc]
-  #! taskNameImg  = tag uNameTag (margin (px 5.0) (text ArialBold10px (moduleName +++ "." +++ taskName +++ " :: " +++ ppTExpr resultTy)))
+  #! taskNameImg  = tag uNameTag (margin (px 5.0) (beside (repeat AtMiddleY) [] [text ArialRegular10px (moduleName +++ "."), text ArialBold10px (taskName +++ " :: " +++ ppTExpr resultTy)] Nothing))
   #! argsImg      = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] (map mkArgAndTy (zip2 args (map Just argvars ++ repeat Nothing))) Nothing))
   #! taskBodyImgs = tag uBodyTag (margin (px 5.0) tdbody)
   #! maxX         = maxSpan [imagexspan nameTag, imagexspan argsTag, imagexspan bdytag]
@@ -688,7 +691,7 @@ mkStepCont inh mact (TFApp "ifStable" [TLam pats e : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh e tsrc
   = ( beside (repeat AtMiddleY) [] [addAction mact tStable ref, tHorizConn, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp "ifStable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
+mkStepCont inh mact (TFApp "ifStable" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction mact tStable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
@@ -696,48 +699,45 @@ mkStepCont inh mact (TFApp "ifUnstable" [TLam pats e : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh e tsrc
   = ( beside (repeat AtMiddleY) [] [addAction mact tUnstable ref, tHorizConn, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp "ifUnstable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
+mkStepCont inh mact (TFApp "ifUnstable" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction mact tUnstable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp "ifValue" [conditionApp=:(TFApp assoc vn args) : continuationApp : _] _) [ref : tsrc]
+mkStepCont inh mact (TFApp "ifValue" [conditionApp : continuationApp : _] _) [ref : tsrc]
   #! (conditionImg, tsrc)    = tCaseDiamond inh conditionApp tsrc
   #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
-  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact alwaysFilter ref, tHorizConnArr, /* TODO edge */ continuationImg] Nothing
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact alwaysFilter ref, tShortHorizConn, /* TODO edge */ continuationImg] Nothing
     , tsrc)
-        //("ifValue", [e1=:((App fApp) @ fAppArgs):(App tApp):_])
-        //("ifValue", [(App fApp):(App tApp):_])
-  // TODO TFApp
 mkStepCont inh mact (TFApp "hasValue" [TLam pats e : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh e tsrc
   = ( beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConn, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> x +++ " " +++ xs) "" pats), tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp "hasValue" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
+mkStepCont inh mact (TFApp "hasValue" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp "ifCond" [conditionApp : continuationApp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
+mkStepCont inh mact (TFApp "ifCond" [conditionApp : continuationApp : _] _) [ref : tsrc]
   #! (conditionImg, tsrc)    = tCaseDiamond inh conditionApp tsrc
   #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
   = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact alwaysFilter ref, tHorizConnArr, /* TODO edge */ continuationImg] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp "always" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
+mkStepCont inh mact (TFApp "always" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction mact alwaysFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp "withoutValue" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
+mkStepCont inh mact (TFApp "withoutValue" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction mact alwaysFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp "withValue" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
+mkStepCont inh mact (TFApp "withValue" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp "withStable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
+mkStepCont inh mact (TFApp "withStable" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction mact tStable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
-mkStepCont inh mact (TFApp "withUnstable" [mapp=:(TMApp _ _ _ _ _ _) : _] _) [ref : tsrc]
+mkStepCont inh mact (TFApp "withUnstable" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
   = ( beside (repeat AtMiddleY) [] [addAction mact tUnstable ref, tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)

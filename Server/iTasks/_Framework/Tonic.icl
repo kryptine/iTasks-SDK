@@ -980,68 +980,26 @@ expandTask allbps n tt
 
 expandTExpr :: !AllBlueprints !Int !TExpr -> TExpr
 expandTExpr _      0 texpr = texpr
-expandTExpr allbps n texpr=:(TFApp vn args assoc)
+expandTExpr allbps n (TFApp vn args assoc)
   = TFApp vn (map (expandTExpr allbps n) args) assoc
 expandTExpr allbps n texpr=:(TMApp eid mtn mn tn args assoc)
-  = case reifyTonicTask mn tn allbps of
+  = case 'DM'.get mn allbps >>= 'DM'.get tn of
       Just tt
-        //# binds = [(old, new) \\ (old, _) <- tt.tt_args & new <- args | not (isSame old new)]
-        //# e     = case expandTExpr allbps (n - 1) tt.tt_body of
-                    //TLet pats bdy                 -> TLet (binds ++ pats) bdy
-                    ////TBind (TLet pats bdy) pat rhs -> TBind (TLet (binds ++ pats) bdy) pat rhs
-                    //bdy                           -> TLet binds bdy
-        = TExpand args tt
+        = TExpand args (expandTask allbps (n - 1) tt)
       _ = TMApp eid mtn mn tn (map (expandTExpr allbps n) args) assoc
-  where
-  //isSame :: !TExpr !TExpr -> Bool
-  //isSame (TVar _ old) (TVar _ new) = old == new
-
-  reifyTonicTask :: !ModuleName !TaskName !AllBlueprints -> Maybe TonicTask
-  reifyTonicTask mn tn allbps = case 'DM'.get mn allbps of
-                                  Just mod -> 'DM'.get tn mod
-                                  _        -> Nothing
-//expandTExpr allbps n (TBind lhs pat rhs)
-  //= TBind (expandTExpr allbps n lhs) pat (expandTExpr allbps n rhs)
-//expandTExpr allbps n (TReturn eid e)
-  //= TReturn eid (expandTExpr allbps n e)
 expandTExpr allbps n (TLet pats bdy)
-  # pats = map f pats
-  = case expandTExpr allbps n bdy of
-      TLet pats` bdy`                -> TLet (pats ++ pats`) bdy`
-      //TBind (TLet pats` bdy) pat rhs -> TBind (TLet (pats ++ pats`) bdy) pat rhs
-      bdy`                           -> TLet pats bdy`
+  = TLet (map f pats) (expandTExpr allbps n bdy)
   where
   f (pat, rhs) = (pat, expandTExpr allbps n rhs)
 expandTExpr allbps n (TCaseOrIf e pats)
-  = TCaseOrIf (expandTExpr allbps n e) (map f pats)
+  = TCaseOrIf (expandTExpr allbps n e)
+              (map f pats)
   where
   f (pat, rhs) = (pat, expandTExpr allbps n rhs)
-//expandTExpr allbps n (TStep lhs conts)
-  //= TStep (expandTExpr allbps n lhs) (map f conts)
-  //where
-  //f (T (StepOnValue      fil))  = T (StepOnValue      (g fil))
-  //f (T (StepOnAction act fil))  = T (StepOnAction act (g fil))
-  //f (T (StepOnException pat e)) = T (StepOnException pat (expandTExpr allbps n e))
-  //f x = x
-  //g (Always                    e) = Always (expandTExpr allbps n e)
-  //g (HasValue              pat e) = HasValue pat (expandTExpr allbps n e)
-  //g (IfStable              pat e) = IfStable pat (expandTExpr allbps n e)
-  //g (IfUnstable            pat e) = IfUnstable pat (expandTExpr allbps n e)
-  //g (IfCond     pp         pat e) = IfCond pp pat (expandTExpr allbps n e)
-  //g (IfValue    pp fn args pat e) = IfValue pp fn args pat (expandTExpr allbps n e)
-  //g e = e
-//expandTExpr allbps n (TParallel eid par)
-  //= TParallel eid (expandPar par)
-  //where
-  //expandPar (ParSumL l r)    = ParSumL (expandTExpr allbps n l) (expandTExpr allbps n r)
-  //expandPar (ParSumR l r)    = ParSumR (expandTExpr allbps n l) (expandTExpr allbps n r)
-  //expandPar (ParSumN (T es)) = ParSumN (T (map (expandTExpr allbps n) es))
-  //expandPar (ParProd (T es)) = ParProd (T (map (expandTExpr allbps n) es))
-  //expandPar p = p
-//expandTExpr allbps n (TAssign usr d e)
-  //= TAssign usr d (expandTExpr allbps n e)
-//expandTExpr allbps n (TFmap e vn args)
-  //= TFmap (expandTExpr allbps n e) vn args
-expandTExpr allbps n (TExpand vars tt) = TExpand vars {tt & tt_body = expandTExpr allbps n tt.tt_body}
-expandTExpr allbps n (TSel e es) = TSel (expandTExpr allbps n e) (map (expandTExpr allbps n) es)
-expandTExpr _ n texpr = texpr
+expandTExpr allbps n (TExpand vars tt)
+  = TExpand vars (expandTask allbps n tt)
+expandTExpr allbps n (TSel e es)
+  = TSel (expandTExpr allbps n e) (map (expandTExpr allbps n) es)
+expandTExpr allbps n (TLam vars e)
+  = TLam vars (expandTExpr allbps n e)
+expandTExpr _ _ texpr = texpr
