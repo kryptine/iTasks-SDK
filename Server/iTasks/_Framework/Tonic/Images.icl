@@ -201,6 +201,7 @@ containsActiveNodes inh (TLet pats bdy)       = containsActiveNodes inh bdy
 containsActiveNodes inh (TCaseOrIf e pats)    = foldr (\(_, e) acc -> acc || containsActiveNodes inh e) False pats
 containsActiveNodes inh (TExpand args tt)     = containsActiveNodes inh tt.tt_body
 containsActiveNodes inh (TSel e es)           = containsActiveNodes inh e || foldr (\e acc -> acc || containsActiveNodes inh e) False es
+containsActiveNodes inh (TLam _ e)            = containsActiveNodes inh e
 containsActiveNodes inh _                     = False
 
 tCaseOrIf :: !MkImageInh !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!Image ModelTy, !*TagSource)
@@ -214,7 +215,7 @@ tCaseOrIf inh texpr pats tsrc
   #! (nextTasks, tsrc)       = mapSt (\(patExpr, possiblyActive) tsrc -> tExpr2Image {inh & inh_inaccessible = someActivity && not possiblyActive} patExpr tsrc) patExprs` tsrc
   #! (nextTasks, refs, tsrc) = prepCases patStrs nextTasks tsrc
   #! vertConn     = mkVertConn refs
-  #! nextTasks`   = above (repeat AtMiddleX) [] nextTasks Nothing
+  #! nextTasks`   = above (repeat AtLeft) [] nextTasks Nothing
   #! (diamond, tsrc) = tCaseDiamond inh texpr tsrc
   = (beside (repeat AtMiddleY) [] [diamond, tHorizConn, vertConn, nextTasks`, vertConn] Nothing, tsrc)
 
@@ -309,7 +310,7 @@ tParSumL inh eid l r tsrc // TODO This is actually not correct yet... first imag
   #! r` = margin (px 5.0, px 0.0) r`
   #! (conts`, refs, tsrc) = prepCases [] [l`, r`] tsrc
   #! vertConn             = mkVertConn refs
-  #! parImg               = above (repeat AtMiddleX) [] conts` Nothing
+  #! parImg               = above (repeat AtLeft) [] conts` Nothing
   = (beside (repeat AtMiddleY) [] [vertConn,  parImg, vertConn, tHorizConn ] Nothing, tsrc)
 tParSumR :: !MkImageInh !ExprId !TExpr !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tParSumR inh eid l r tsrc // TODO This is actually not correct yet... second image shouldn't have lines
@@ -319,7 +320,7 @@ tParSumR inh eid l r tsrc // TODO This is actually not correct yet... second ima
   #! r`                   = margin (px 5.0, px 0.0) r`
   #! (conts`, refs, tsrc) = prepCases [] [l`, r`] tsrc
   #! vertConn             = mkVertConn refs
-  #! parImg               = above (repeat AtMiddleX) [] conts` Nothing
+  #! parImg               = above (repeat AtLeft) [] conts` Nothing
   = (beside (repeat AtMiddleY) [] [vertConn, parImg, vertConn] Nothing, tsrc)
 tParSumN :: !MkImageInh !ExprId !(Either TExpr [TExpr]) !*TagSource -> *(!Image ModelTy, !*TagSource)
 tParSumN inh eid ts tsrc
@@ -327,7 +328,7 @@ tParSumN inh eid ts tsrc
   #! ts`               = map (margin (px 5.0, px 0.0)) ts`
   #! (ts`, refs, tsrc) = prepCases [] ts` tsrc
   #! vertConn          = mkVertConn refs
-  #! contsImg          = above (repeat AtMiddleX) [] ts` Nothing
+  #! contsImg          = above (repeat AtLeft) [] ts` Nothing
   = ( beside (repeat AtMiddleY) [] [vertConn, contsImg, vertConn] Nothing
     , tsrc)
   where
@@ -351,7 +352,7 @@ tParProdN inh eid ts tsrc
   #! (imgs, tsrc)     = mkParProd inh eid ts tsrc
   #! (ts, refs, tsrc) = prepCases [] imgs tsrc
   #! vertConn         = mkVertConn refs
-  = ( beside (repeat AtMiddleY) [] [vertConn, above (repeat AtMiddleX) [] ts Nothing, vertConn] Nothing
+  = ( beside (repeat AtMiddleY) [] [vertConn, above (repeat AtLeft) [] ts Nothing, vertConn] Nothing
     , tsrc)
   where
   mkParProd :: !MkImageInh !ExprId !(Either TExpr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource)
@@ -661,7 +662,7 @@ tStep inh eid lhsExpr conts tsrc
   #! (conts`, tsrc)       = mapSt (\(cont, possiblyActive) -> tStepCont {inh & inh_inaccessible = someActivity && not possiblyActive} cont) (zip2 conts branchActivity) tsrc
   #! (conts`, refs, tsrc) = prepCases [] conts` tsrc
   #! vertConn             = mkVertConn refs
-  #! contsImg             = above (repeat AtMiddleX) [] conts` Nothing
+  #! contsImg             = above (repeat AtLeft) [] conts` Nothing
   = (beside (repeat AtMiddleY) [] [lhs, tHorizConn, vertConn, contsImg, vertConn] Nothing
     , tsrc)
 
@@ -781,19 +782,16 @@ prepCases patStrs pats tsrc
   where
   prepCase :: !Span !(Image ModelTy) !String !ImageTag -> Image ModelTy
   prepCase maxXSpan pat patStr tag
+    #! pat = margin (px 2.5, px 0.0) pat
     = case patStr of
         ""
-          #! linePart  = (maxXSpan - imagexspan tag) /. 2.0
-          #! leftLine  = xline tLineMarker (px 8.0 + linePart)
-          #! rightLine = xline Nothing (px 8.0 + linePart)
-          = beside (repeat AtMiddleY) [] [xline Nothing (px 8.0), leftLine, margin (px 2.5, px 0.0) pat, rightLine] Nothing
+          #! rightLine = xline Nothing (maxXSpan - imagexspan tag + px 8.0)
+          = beside (repeat AtMiddleY) [] [tHorizConnArr, pat, rightLine] Nothing
         patStr
-          #! textWidth = textxspan ArialRegular10px patStr + px 10.0
-          #! linePart  = (maxXSpan - imagexspan tag - textWidth) /. 2.0
-          #! leftLine  = xline tLineMarker (px 8.0 + linePart)
-          #! rightLine = xline Nothing (px 8.0 + linePart)
+          #! textWidth = textxspan ArialRegular10px patStr
+          #! rightLine = xline Nothing (maxXSpan - imagexspan tag - textWidth)
           #! textBox   = tTextWithGreyBackground ArialRegular10px patStr
-          = beside (repeat AtMiddleY) [] [xline Nothing (px 8.0), textBox, leftLine, margin (px 2.5, px 0.0) pat, rightLine] Nothing
+          = beside (repeat AtMiddleY) [] [tHorizConn, textBox, tHorizConnArr, pat, rightLine] Nothing
 
 tTextWithGreyBackground font txt
   #! textWidth = textxspan font txt + px 10.0
@@ -805,11 +803,13 @@ mkVertConn ts
   | otherwise
       #! firstTag  = hd ts
       #! lastTag   = last ts
-      #! allYSpans = foldr (\x acc -> imageyspan x + acc) (px 0.0) ts
+      #! allYSpans = (foldr (\x acc -> imageyspan x + acc) (px 0.0) ts) + px (toReal (length ts) * 5.0)
+      #! firstY    = imageyspan firstTag + px 5.0
+      #! lastY     = imageyspan lastTag + px 5.0
       = above (repeat AtMiddleX) []
-          [ yline Nothing (imageyspan firstTag /. 2.0) <@< { stroke = toSVGColor "white" }
-          , yline Nothing (allYSpans - (imageyspan firstTag /. 2.0) - (imageyspan lastTag /. 2.0) + px (toReal (length ts) * 2.5)) <@< { stroke = toSVGColor "black" }
-          , yline Nothing (imageyspan lastTag /. 2.0) <@< { stroke = toSVGColor "white" } ]
+          [ yline Nothing (firstY /. 2.0) <@< { stroke = toSVGColor "white" }
+          , yline Nothing (allYSpans - (firstY /. 2.0) - (lastY /. 2.0)) <@< { stroke = toSVGColor "black" }
+          , yline Nothing (lastY /. 2.0) <@< { stroke = toSVGColor "white" } ]
           Nothing
 
 littleman :: Image a
