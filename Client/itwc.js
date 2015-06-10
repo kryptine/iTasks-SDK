@@ -1051,22 +1051,9 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 		Sapl.feval(ys[2]);
 		Sapl.feval(ys[3]);
 
-		// save state return by appDiff
+		// save state return by initClient
 		me.value = ys[2];		
-			
-		// Attach event handlers
-		if(me.definition.events){
-			for (var i=0; i<me.definition.events.length; ++i){
-				var elname = me.definition.events[i][0];
-				var eventName = me.definition.events[i][1];
-				eval("tmp = " + me.definition.events[i][2] + ";");
-				var expr = tmp;
-							
-				var el = document.getElementById(elname);
-				el.addEventListener(eventName, me.eventHandler(true,expr));
-			}
-		}		
-		
+					
 		if(me.initDiff != null && me.initDiff[0]==1) /* Just */ {
 			var ys = Sapl.feval([me.appDiff,[me.htmlId,me.initDiff[2],me.value,"JSWorld"]]);
 

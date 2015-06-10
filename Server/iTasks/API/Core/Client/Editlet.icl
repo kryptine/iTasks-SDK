@@ -17,7 +17,7 @@ gDefault{|Editlet|} fa _
     | currVal   = fa
     , defValSrv = fa
         
-    , genUI     = \_ world -> ({html = RawText "", eventHandlers = \_ -> [], height = FlexSize, width = FlexSize}, world)
+    , genUI     = \_ world -> ({ComponentHTML | html = RawText "", height = FlexSize, width = FlexSize}, world)
     , initClient = \_ _ world -> (fa, world)
     , appDiffClt = \_ _ _ a world -> (a, world)
     , genDiffSrv = \_ _ -> Nothing
@@ -53,23 +53,21 @@ gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD
       //Create editlet definition and store reference value for future diffs
       Nothing
       	# diffs = initDiff
-        # (jsScript, jsEvents, jsID, jsIC, jsAD, iworld)
-            = editletLinker [(cid, event, f) \\ ComponentEvent cid event f <- uiDef.eventHandlers createEditletEventHandler]
-                initDiff (initClient createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld
-        # opts = editletOpts jsScript jsEvents jsID jsIC jsAD uiDef
+        # (jsScript, jsID, jsIC, jsAD, iworld)
+            = editletLinker initDiff (initClient createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld
+        # opts = editletOpts jsScript jsID jsIC jsAD uiDef
         # iworld = setEditletDiffs 1 currVal {UIEditletOpts|opts & value = JSONNull} [] iworld
         = (NormalEditor [(ui uiDef opts, newMap)],{VSt|vst & iworld = iworld})
 where
     htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
 
-    editletOpts jsScript jsEvents jsID jsIC jsAD uiDef
+    editletOpts jsScript jsID jsIC jsAD uiDef
         = { UIEditletOpts
 		  | taskId 	    = taskId
 		  , editorId	= editorId dp
 		  , value		= toJSONA currVal
 		  , html 		= toString uiDef.ComponentHTML.html
 		  , script	    = jsScript
-		  , events 	    = jsEvents
 		  , initClient  = jsIC
 		  , initDiff	= jsID
 		  , appDiff 	= jsAD

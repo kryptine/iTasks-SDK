@@ -292,6 +292,10 @@ callObjectMethod method args obj world
 	#! (fun, world) = jsGetObjectAttr method obj world
 	= jsApply fun obj args world
 
+// TODO: use instead one of these:
+// 1. https://github.com/rgrove/lazyload/blob/master/lazyload.js
+// 2. https://github.com/getify/LABjs
+
 addJSFromUrl :: !String !(Maybe (JSFun a)) !*JSWorld -> *JSWorld
 addJSFromUrl url mbCallback world
 	//Create script tag

@@ -14,9 +14,8 @@ import iTasks._Framework.UIDefinition
 :: ComponentDiff diff state = NoDiff | Diff diff 
                    (Conflict state *JSWorld -> *(state, ComponentDiff diff state, *JSWorld))
                    
-:: ComponentHTML diff st = E.f:
-	{ width 			:: !UISize
-	, height			:: !UISize
-	, html				:: !HtmlTag
-	, eventHandlers		:: !((ComponentEventHandlerFunc diff st) ComponentId -> JSFun f) -> [ComponentEvent diff st]
+:: ComponentHTML = 
+	{ width 	:: !UISize
+	, height	:: !UISize
+	, html		:: !HtmlTag
 	} 

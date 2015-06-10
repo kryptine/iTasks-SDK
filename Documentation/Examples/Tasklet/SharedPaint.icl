@@ -6,9 +6,14 @@ from StdArray import class Array(uselect), instance Array {} a
 
 import Text
 
-:: Tool = TLine | TRect | TRectF | TCircle | TCircleF
-
+:: Tool  = TLine | TRect | TRectF | TCircle | TCircleF
 :: Color = Yellow | Red | Green | Blue | Black
+
+colors = [Yellow, Red, Green, Blue, Black]
+tools  = [TLine, TRect, TRectF, TCircle, TCircleF]
+
+canvasWidth :== 300
+canvasHeight :== 300
 
 instance toString Color
 where
@@ -87,7 +92,7 @@ painterEditlet
     , defValSrv = Drawing []
     
     , genUI     = painterGUI
-	, initClient = \_ _ world = ({selectedTool = TLine, selectedColor = Black, currentOrigin = Nothing, currentShape = Nothing}, world)
+	, initClient = onInitUI
 	, appDiffClt = updateUI    
 	, genDiffSrv = srvGenDiff
 	, appDiffSrv = \ns (Drawing ds) -> Drawing (ds ++ ns)
@@ -102,121 +107,20 @@ where
 		# (context, world) = getContext cid "pcanvas" world
 		= (cl, foldl (\world dr = draw context dr world) world ds)
 
-:: JSCanvasContext = JSCanvasContext
-:: Context :== JSVal JSCanvasContext
-
-getContext :: ComponentId String *JSWorld -> *(Context, *JSWorld)
-getContext cid canvasId world
- 	# canvas = getElementById (canvasId +++ "_" +++ cid)
-	= (canvas .# "getContext" .$ ("2d")) world // not "2D" !
-
-clearCanvas :: Context *JSWorld -> *JSWorld
-clearCanvas context world
-	= (context .# "clearRect" .$! (0, 0, canvasWidth, canvasHeight)) world
-			
-drawLine :: Context Color Int Int Int Int *JSWorld -> *JSWorld			
-drawLine context color x1 y1 x2 y2 world
-	# world = (context .# "beginPath" .$! ()     ) world
-	# world = (context .# "strokeStyle" .= color ) world
-	# world = (context .# "moveTo" .$! (x1, y1)  ) world
-	# world = (context .# "lineTo" .$! (x2, y2)  ) world
-	# world = (context .# "stroke" .$! ()        ) world
-	= world
-
-drawRect :: Context Color Filled Int Int Int Int *JSWorld -> *JSWorld
-drawRect context color False x1 y1 x2 y2 world
-	# world = (context .# "strokeStyle" .= color                     ) world
-	# world = (context .# "strokeRect" .$! (x1, y1, x2 - x1, y2 - y1)) world
-	= world
-
-drawRect context color True x1 y1 x2 y2 world
-	# world = (context .# "fillStyle" .= color					   ) world
-	# world = (context .# "fillRect" .$! (x1, y1, x2 - x1, y2 - y1)) world
-	= world
-
-drawCircle :: Context Color Filled Int Int Int Int *JSWorld -> *JSWorld
-drawCircle context color filled x1 y1 x2 y2 world
-	# world = (context .# "beginPath" .$! ()      ) world
-	# world = (context .# "strokeStyle" .= color  ) world
-	# world = (context .# "fillStyle" .= color    ) world
-	
-	# world = (context .# "arc" .$! (center x1 x2, 
-									 center y1 y2, 
-									 toInt ((distance x1 y1 x2 y2)/2.0),
-									 0, 
-									 3.14159265*2.0, 
-									 True)) world
-							
-	# world  = case filled of 
-					True = (context .# "fill" .$! ()) world
-					_	 = (context .# "stroke" .$! ()) world
-
-	= (context .# "closePath" .$! ()) world
+onInitUI mkHandler cid world
+	# world = foldl addEventListener world eventHandlers
+	= ({selectedTool = TLine, selectedColor = Black, currentOrigin = Nothing, currentShape = Nothing}, world)
 where
-	center x1 x2 = (max x1 x2) - (abs (x1 - x2))/2
-	distance x1 y1 x2 y2 = sqrt (toReal ((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2)))
-				
-draw :: Context Shape *JSWorld -> *JSWorld
-draw context (Line color x1 y1 x2 y2) world
-	= drawLine context color x1 y1 x2 y2 world
-draw context (Rect color filled x1 y1 x2 y2) world
-	= drawRect context color filled x1 y1 x2 y2 world
-draw context (Circle color filled x1 y1 x2 y2) world
-	= drawCircle context color filled x1 y1 x2 y2 world
+	addEventListener world (ComponentEvent elementId event handler)
+	 	= ((getElementById elementId) .# "addEventListener" .$! (event, mkHandler handler cid)) world
 
-canvasWidth :== 300
-canvasHeight :== 300
+	mkId color = "sel_" +++ toString color +++ "_" +++ cid
 
-// TODO: http://jaspervdj.be/blaze/tutorial.html
-// http://stackoverflow.com/questions/18201257/drawing-a-rectangle-without-clearing-the-canvas-eventlisteners
-
-:: PainterEventHand :== ComponentId {JSObj JSEvent} PainterState *JSWorld -> *(!PainterState, !ComponentDiff [Shape] PainterState, !*JSWorld)
-
-painterGUI :: ComponentId *World -> *(EditletHTML [Shape] PainterState, *World)
-painterGUI cid world  
-
-	# ws = toString canvasWidth
-	# hs = toString canvasHeight
-	
-	# canvas = 
-			DivTag [StyleAttr "position: relative; float: left;"] [
-					CanvasTag [IdAttr ("pcanvas_"+++cid), WidthAttr ws, HeightAttr hs, StyleAttr "border: 1px solid #000;"] [],
-					CanvasTag [IdAttr ("tcanvas_"+++cid), WidthAttr ws, HeightAttr hs, StyleAttr "position: absolute; top: 1px; left: 1px;"] []
-					]
-
-	# editor = [
-			DivTag [StyleAttr "float: right;"] selectors,
-			DivTag [StyleAttr "clear: both;"] [],
-			DivTag [] [Text "Tool: ",SelectTag [IdAttr ("tool_"+++cid)] optionTags]
-			]
-					
-	# html = DivTag [StyleAttr "width: 360px; margin-right: auto;"] [canvas:editor]		
-
-	# eventHandlers = selectorEvents ++ [
+	eventHandlers = map (\color -> ComponentEvent (mkId color) "click" (onSelectColor color)) colors ++ [
 			ComponentEvent ("tcanvas_"+++cid) "mousedown" onMouseDown,			
 			ComponentEvent ("tcanvas_"+++cid) "mouseup" onMouseUp,			
 			ComponentEvent ("tcanvas_"+++cid) "mousemove" onMouseMove,
 			ComponentEvent ("tool_"+++cid) "change" onChangeTool]
-
-	# gui = {ComponentHTML
-			| width  		= ExactSize (canvasWidth + 70)
-			, height 		= ExactSize (canvasHeight + 50)
-			, html   		= html
-			, eventHandlers = \_ -> eventHandlers
-			}
-			
-	= (gui, world)
-where
-	optionTags = map (\tool -> let label = toString tool in OptionTag [ValueAttr label] [Text label]) tools
-		
-	selectors = map (\color -> DivTag [IdAttr (mkId color), 
-			StyleAttr ("border-style:solid; border-color:white; background-color:" +++ toString color +++ "; width: 40px; height:40px; margin: 5px;")] []) colors
-
-	selectorEvents = map (\color -> ComponentEvent (mkId color) "click" (onSelectColor color)) colors
-
-	tools  = [TLine, TRect, TRectF, TCircle, TCircleF]
-	colors = [Yellow, Red, Green, Blue, Black]
-	mkId color = "sel_" +++ toString color +++ "_" +++ cid
 	
 	onChangeTool :: ComponentId {JSObj JSEvent} PainterState *JSWorld -> *(!PainterState, !ComponentDiff [Shape] PainterState, !*JSWorld)
 	onChangeTool _ {[0]=e} state world
@@ -287,6 +191,110 @@ where
 		# world = draw tempcontext currentShape world
 			
 		= ({state & currentShape = Just currentShape}, NoDiff, world)
+
+
+:: JSCanvasContext = JSCanvasContext
+:: Context :== JSVal JSCanvasContext
+
+getContext :: ComponentId String *JSWorld -> *(Context, *JSWorld)
+getContext cid canvasId world
+ 	# canvas = getElementById (canvasId +++ "_" +++ cid)
+	= (canvas .# "getContext" .$ ("2d")) world // not "2D" !
+
+clearCanvas :: Context *JSWorld -> *JSWorld
+clearCanvas context world
+	= (context .# "clearRect" .$! (0, 0, canvasWidth, canvasHeight)) world
+			
+drawLine :: Context Color Int Int Int Int *JSWorld -> *JSWorld			
+drawLine context color x1 y1 x2 y2 world
+	# world = (context .# "beginPath" .$! ()     ) world
+	# world = (context .# "strokeStyle" .= color ) world
+	# world = (context .# "moveTo" .$! (x1, y1)  ) world
+	# world = (context .# "lineTo" .$! (x2, y2)  ) world
+	# world = (context .# "stroke" .$! ()        ) world
+	= world
+
+drawRect :: Context Color Filled Int Int Int Int *JSWorld -> *JSWorld
+drawRect context color False x1 y1 x2 y2 world
+	# world = (context .# "strokeStyle" .= color                     ) world
+	# world = (context .# "strokeRect" .$! (x1, y1, x2 - x1, y2 - y1)) world
+	= world
+
+drawRect context color True x1 y1 x2 y2 world
+	# world = (context .# "fillStyle" .= color					   ) world
+	# world = (context .# "fillRect" .$! (x1, y1, x2 - x1, y2 - y1)) world
+	= world
+
+drawCircle :: Context Color Filled Int Int Int Int *JSWorld -> *JSWorld
+drawCircle context color filled x1 y1 x2 y2 world
+	# world = (context .# "beginPath" .$! ()      ) world
+	# world = (context .# "strokeStyle" .= color  ) world
+	# world = (context .# "fillStyle" .= color    ) world
+	
+	# world = (context .# "arc" .$! (center x1 x2, 
+									 center y1 y2, 
+									 toInt ((distance x1 y1 x2 y2)/2.0),
+									 0, 
+									 3.14159265*2.0, 
+									 True)) world
+							
+	# world  = case filled of 
+					True = (context .# "fill" .$! ()) world
+					_	 = (context .# "stroke" .$! ()) world
+
+	= (context .# "closePath" .$! ()) world
+where
+	center x1 x2 = (max x1 x2) - (abs (x1 - x2))/2
+	distance x1 y1 x2 y2 = sqrt (toReal ((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2)))
+				
+draw :: Context Shape *JSWorld -> *JSWorld
+draw context (Line color x1 y1 x2 y2) world
+	= drawLine context color x1 y1 x2 y2 world
+draw context (Rect color filled x1 y1 x2 y2) world
+	= drawRect context color filled x1 y1 x2 y2 world
+draw context (Circle color filled x1 y1 x2 y2) world
+	= drawCircle context color filled x1 y1 x2 y2 world
+
+// TODO: http://jaspervdj.be/blaze/tutorial.html
+// http://stackoverflow.com/questions/18201257/drawing-a-rectangle-without-clearing-the-canvas-eventlisteners
+
+:: PainterEventHand :== ComponentId {JSObj JSEvent} PainterState *JSWorld -> *(!PainterState, !ComponentDiff [Shape] PainterState, !*JSWorld)
+
+painterGUI :: ComponentId *World -> *(EditletHTML, *World)
+painterGUI cid world  
+
+	# ws = toString canvasWidth
+	# hs = toString canvasHeight
+	
+	# canvas = 
+			DivTag [StyleAttr "position: relative; float: left;"] [
+					CanvasTag [IdAttr ("pcanvas_"+++cid), WidthAttr ws, HeightAttr hs, StyleAttr "border: 1px solid #000;"] [],
+					CanvasTag [IdAttr ("tcanvas_"+++cid), WidthAttr ws, HeightAttr hs, StyleAttr "position: absolute; top: 1px; left: 1px;"] []
+					]
+
+	# editor = [
+			DivTag [StyleAttr "float: right;"] selectors,
+			DivTag [StyleAttr "clear: both;"] [],
+			DivTag [] [Text "Tool: ",SelectTag [IdAttr ("tool_"+++cid)] optionTags]
+			]
+					
+	# html = DivTag [StyleAttr "width: 360px; margin-right: auto;"] [canvas:editor]		
+
+	# gui = {ComponentHTML
+			| width  		= ExactSize (canvasWidth + 70)
+			, height 		= ExactSize (canvasHeight + 50)
+			, html   		= html
+			}
+			
+	= (gui, world)
+where
+	optionTags = map (\tool -> let label = toString tool in OptionTag [ValueAttr label] [Text label]) tools
+		
+	selectors = map (\color -> DivTag [IdAttr (mkId color), 
+			StyleAttr ("border-style:solid; border-color:white; background-color:" +++ toString color +++ "; width: 40px; height:40px; margin: 5px;")] []) colors
+
+	mkId color = "sel_" +++ toString color +++ "_" +++ cid
+
 
 //-------------------------------------------------------------------------
 

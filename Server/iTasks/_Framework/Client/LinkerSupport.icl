@@ -148,22 +148,20 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put taskInstance skipset skipmap)})
 
 editletLinker :: 
-	![(!String, !String, EditletEventHandlerFunc d a)]	// event handlers
 	!id													// initDiff
 	!icf												// initClient function
 	!adf												// appDiff function
 	!*IWorld
 	->
 	*(!String									// JS code of the support code for all the expressions
-	 ,![(!String,!String,!String)]				// JS code of the eventhandlers
 	 ,!String									// JS code of the initDiff
 	 ,!String									// JS code of the defVal function
 	 ,!String									// JS code of the adddiff function
 	 ,!*IWorld)
 
-editletLinker eventHandlers initDiff initClientFunc appDiffFunc
-						iworld=:{world,current={sessionInstance=Nothing}} = ("",[],"","","",iworld)
-editletLinker eventHandlers initDiff initClientFunc appDiffFunc
+editletLinker initDiff initClientFunc appDiffFunc
+						iworld=:{world,current={sessionInstance=Nothing}} = ("","","","",iworld)
+editletLinker initDiff initClientFunc appDiffFunc
 						iworld=:{world,current={sessionInstance=Just currentInstance},jsCompilerState}
 
 	// unpack "compiler state"
@@ -175,13 +173,6 @@ editletLinker eventHandlers initDiff initClientFunc appDiffFunc
 	# (linkerstate, lib, sapl_ID, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string initDiff) world
 	# (linkerstate, lib, sapl_IC, world) = linkByExpr linkerstate lib (graph_to_sapl_string initClientFunc) world
 	# (linkerstate, lib, sapl_AD, world) = linkByExpr linkerstate lib (graph_to_sapl_string appDiffFunc) world
-
-	// link functions indicated by event handlers
-	# (linkerstate, lib, sapl_eventHandlers, world)
-			= foldl (\(linkerstate, lib, os, world) (id, event, f) =
-				let (linkerstate`, lib`, f`, world`) = linkByExpr linkerstate lib (graph_to_sapl_string f) world
-				 in (linkerstate`, lib`, [(id,event,f`):os], world`))
-			(linkerstate, lib, [], world) eventHandlers
 
 	// unwrap linker state
 	# (loaderstate, ftmap, skipset) = linkerstate
@@ -199,11 +190,6 @@ editletLinker eventHandlers initDiff initClientFunc appDiffFunc
 	# (js_IC, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_IC (Just parserstate) js_lib)
 	# (js_AD, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_AD (Just parserstate) js_lib)
 
-	# (js_eventHandlers, js_lib, parserstate)
-			= foldl (\(os,js_lib,parserstate) (id,event,saplhandler) = 
-							let (ejs,js_lib`,parserstate`) = handlerr (exprGenerateJS flavour False saplhandler (Just parserstate) js_lib)
-							 in ([(id,event,ejs):os],js_lib`,parserstate`)) ([],js_lib,parserstate) sapl_eventHandlers
-
     // For debugging:
 	//# world = debugToFile "debug_id.sapl" sapl_ID world
 	//# world = debugToFile "debug_dv.sapl" sapl_DV world
@@ -211,7 +197,7 @@ editletLinker eventHandlers initDiff initClientFunc appDiffFunc
 	//# world = debugToFile "debug.sapl"    sapl_lib world
 	//# world = debugToFile "debug.js"      (toString js_lib) world
 
-	= (toString js_lib, js_eventHandlers, js_ID, js_IC, js_AD, 
+	= (toString js_lib, js_ID, js_IC, js_AD, 
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
 
 debugToFile :: String String *World -> *World

@@ -286,14 +286,13 @@ codeMirrorEditlet g eventHandlers
     , appDiffSrv = appDiffServer
     }
 where
-	editletUIDef :: a -> ComponentHTML [CodeMirrorDiff] CodeMirrorClient | toString a
+	editletUIDef :: a -> ComponentHTML | toString a
 	editletUIDef cid
 		= { ComponentHTML
 		  | html 			= DivTag [] 
 								[StyleTag [] [Text "span.cm-highlight { background: #F3FA25 } \n .CodeMirror-focused span.cm-highlight { background: #F3FA25; !important }"] //FAD328
 								,DivTag [IdAttr (sourcearea (toString cid)), StyleAttr "display: block; position: absolute;"] []]
 								
-          , eventHandlers 	= const []
 		  , width 			= ExactSize 300
 		  , height			= ExactSize 300
 		  }

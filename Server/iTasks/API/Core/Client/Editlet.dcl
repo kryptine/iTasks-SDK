@@ -11,8 +11,7 @@ import iTasks.API.Core.Client.Component
 
 :: EditletEventHandlerFunc d a :== ComponentEventHandlerFunc d a
 :: EditletEvent d a            :== ComponentEvent d a
-:: EditletHTML d cl            :== ComponentHTML d cl
-:: GenUI d cl                  :== ComponentId *World -> *(EditletHTML d cl, *World)
+:: EditletHTML                 :== ComponentHTML
 
 :: Editlet sv d
   = E.cl f:
@@ -22,7 +21,7 @@ import iTasks.API.Core.Client.Component
   // However, Jurrien like it, so why not to be here :)
   , defValSrv  :: sv
 
-  , genUI      :: GenUI d cl
+  , genUI      :: ComponentId *World -> *(EditletHTML, *World)
   , initClient :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun f) ComponentId *JSWorld -> *(cl, *JSWorld)
   , appDiffClt :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun f) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
   , genDiffSrv :: sv sv -> Maybe d

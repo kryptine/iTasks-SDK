@@ -308,7 +308,6 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	, value			:: !JSONNode
 	, html			:: !String
 	, script		:: !String
-	, events		:: ![(!String,!String,!String)]
 	, initClient	:: !String	
 	, initDiff		:: !String
 	, appDiff		:: !String

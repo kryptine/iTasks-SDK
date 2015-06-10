@@ -325,13 +325,11 @@ svgRenderer resolve origState state2Image
     , appDiffSrv = appServerDiff
     }
   where
-  genUI :: GenUI (SVGDiff s) (SVGClSt s) | iTask s
   genUI = \cid world
     = ({ ComponentHTML
        | width         = FlexSize
        , height        = FlexSize
        , html          = DivTag [IdAttr (mainSvgId cid)] []
-       , eventHandlers = \_ -> []
        }
        , world
       )
