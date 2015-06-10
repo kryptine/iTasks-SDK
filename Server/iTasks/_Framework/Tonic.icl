@@ -707,10 +707,10 @@ enterQuery :: Task (Maybe BlueprintQuery)
 enterQuery = enterInformation "Enter filter query" []
 
 :: BlueprintQuery
-  //= ModuleName String
   = TaskName String
   //| UserInvolved String
   | IsActive
+  | HasInstanceNo Int
   | AndQuery BlueprintQuery BlueprintQuery
   | OrQuery BlueprintQuery BlueprintQuery
 
@@ -823,6 +823,7 @@ tonicDynamicBrowser` allbps rs navstack =
     doFilter bp=:{bpr_instance = Just trt} (TaskName tn)     = tn == "" || indexOf tn bp.bpr_taskName >= 0
     //doFilter bp=:{bpr_instance = Just trt} (UserInvolved un) = un == "" || indexOf un (toString (toJSON trt.bpi_involvedUsers)) >= 0
     doFilter bp=:{bpr_instance = Just trt} IsActive          = isNothing trt.bpi_endTime
+    doFilter bp=:{bpr_instance = Just {bpi_taskId = TaskId tinst _}} (HasInstanceNo n) = tinst == n
     doFilter bp=:{bpr_instance = Just trt} (AndQuery l r)    = doFilter bp l && doFilter bp r
     doFilter bp=:{bpr_instance = Just trt} (OrQuery l r)     = doFilter bp l || doFilter bp r
     doFilter _                             _                 = True
