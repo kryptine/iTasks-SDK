@@ -30,7 +30,7 @@ ppTExpr` _ (TMApp _ _ _ pp [x:xs] _)
   | size pp > 0 && pp.[0] == '_' = "{ " +++ pp % (1, size pp) +++ " | " +++ ppTExprTuple xs +++ " }"
 ppTExpr` d (TMApp _ _ _ pp xs _) = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTExpr` (d + 1)) xs) +++ if (d > 0) ")" ""
 ppTExpr` d (TSel e es) = ppTExpr e +++ "." +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTExpr` (d + 1)) es)
-ppTExpr` _ (TLam vars e) = "λ" +++ foldr (\x xs -> x +++ " " +++ xs) "" vars +++ "→ " +++ ppTExpr e
+ppTExpr` _ (TLam vars e) = "λ" +++ foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" vars +++ "→ " +++ ppTExpr e
 ppTExpr` d (TCaseOrIf e cs) = "case " +++ ppTExpr` d e +++ " of { " +++ ppCases d cs +++ "}"
 ppTExpr` d (TExpand _ tt) = ppTExpr` d tt.tt_body
 ppTExpr` _ _ = "ppTExpr: encountered more complex expression than we would like to pretty-print here..."

@@ -104,12 +104,12 @@ tExpr2Image inh (TExpand args tt)           tsrc = tExpand       inh args tt tsr
 tExpr2Image inh (TSel e es)                 tsrc = tSel          inh e es tsrc
 tExpr2Image inh (TLam args e)               tsrc = tLam          inh args e tsrc
 
-tLam :: !MkImageInh ![VarName] !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
+tLam :: !MkImageInh ![TExpr] !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tLam inh vars e tsrc
   #! (r, tsrc) = tExpr2Image inh e tsrc
   #! lineParts  = case vars of
                     []   -> [tHorizConnArr, r]
-                    vars -> [tHorizConn, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> x +++ " " +++ xs) "" vars), tHorizConnArr, r]
+                    vars -> [tHorizConn, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" vars), tHorizConnArr, r]
   = (beside (repeat AtMiddleY) [] lineParts Nothing, tsrc)
 
 tSel :: !MkImageInh !TExpr ![TExpr] !*TagSource -> *(!Image ModelTy, !*TagSource)
@@ -453,25 +453,25 @@ tMApp inh eid _ "iTasks.API.Extensions.User" "@:" [lhsExpr : rhsExpr : _] _ tsrc
 tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>|" [lhsExpr : rhsExpr : _] _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam [var : _] rhsExpr : _] _ tsrc
-  = tBind inh lhsExpr (Just (TVar Nothing var)) rhsExpr tsrc
+  = tBind inh lhsExpr (Just var) rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ tsrc
   = tStep inh eid lhsExpr rhsExpr tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-&&-" [lhsExpr : rhsExpr : _] _ tsrc
-  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel: all tasks" tsrc
+  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel (-&&-): both tasks" tsrc
 tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"allTasks" [x] assoc tsrc
   #! ts = if (tExprIsList x) (tUnsafeExpr2List x) [x]
-  = renderTaskApp inh eid mn tn ts "Parallel: all tasks" tsrc
+  = renderTaskApp inh eid mn tn ts "Parallel allTasks" tsrc
 tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"anyTask" [x] assoc tsrc
   #! ts = if (tExprIsList x) (tUnsafeExpr2List x) [x]
-  = renderTaskApp inh eid mn tn ts "Parallel: any task" tsrc
+  = renderTaskApp inh eid mn tn ts "Parallel anyTask" tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||-" [lhsExpr : rhsExpr : _] _ tsrc
-  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel: any task" tsrc
+  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel (-||-): any task" tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"||-" [lhsExpr : rhsExpr : _] _ tsrc
-  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel: second result" tsrc
+  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel (||-): right bias" tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||" [lhsExpr : rhsExpr : _] _ tsrc
-  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel: first result" tsrc
+  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel (-||): left bias" tsrc
 tMApp inh eid _ modName taskName taskArgs _ tsrc = renderTaskApp inh eid modName taskName taskArgs taskName tsrc
 
 renderTaskApp inh eid modName taskName taskArgs displayName tsrc
@@ -719,7 +719,7 @@ mkStepCont inh mact (TFApp "ifValue" [conditionApp : continuationApp : _] _) [re
     , tsrc)
 mkStepCont inh mact (TFApp "hasValue" [TLam pats e : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh e tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConn, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> x +++ " " +++ xs) "" pats), tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact hasValueFilter ref, tHorizConn, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" pats), tHorizConnArr, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "hasValue" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
