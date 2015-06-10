@@ -41,9 +41,23 @@ ppCases d [(pat, expr)]    = ppTExpr` d pat +++ " -> " +++ ppTExpr` d expr
 ppCases d [(pat, expr):xs] = ppTExpr` d pat +++ " -> " +++ ppTExpr` d expr +++ "; " +++ ppCases d xs
 
 ppTExprList :: !TExpr -> String
-ppTExprList (TFApp "_Cons" [x, xs] _) = ppTExpr x +++ " : " +++ ppTExprList xs
-ppTExprList (TFApp "_Nil" _ _)        = ""
-ppTExprList x                         = ppTExpr x
+ppTExprList e
+  | endsWithNil e = ppTExprNilList e
+  | otherwise     = ppTExprList e
+  where
+  ppTExprList` :: !TExpr -> String
+  ppTExprList` (TFApp "_Cons" [x, xs] _) = ppTExpr x +++ " : " +++ ppTExprList xs
+  ppTExprList` x                         = ppTExpr x
+
+  ppTExprNilList :: !TExpr -> String
+  ppTExprNilList (TFApp "_Cons" [x, TFApp "_Nil" _ _] _) = ppTExpr x
+  ppTExprNilList (TFApp "_Cons" [x, xs] _)               = ppTExpr x +++ ", " +++ ppTExprList xs
+  ppTExprNilList x                                       = ppTExpr x
+
+endsWithNil :: !TExpr -> Bool
+endsWithNil (TFApp "_Cons" [x, xs] _) = endsWithNil xs
+endsWithNil (TFApp "_Nil" _ _)        = True
+endsWithNil _                         = False
 
 ppTExprTuple :: ![TExpr] -> String
 ppTExprTuple []     = ""
