@@ -117,7 +117,7 @@ tSel inh e es tsrc
   #! (eImg, tsrc) = tExpr2Image inh e tsrc
   = (eImg, tsrc) // TODO es
 
-tFApp :: !MkImageInh !FunName ![TExpr] !TAssoc !*TagSource -> *(!Image ModelTy, !*TagSource)
+tFApp :: !MkImageInh !FunName ![TExpr] !TPriority !*TagSource -> *(!Image ModelTy, !*TagSource)
 tFApp inh fn args assoc tsrc = (text ArialRegular10px (ppTExpr (TFApp fn args assoc)), tsrc)
 
 tArrowTip :: Image ModelTy
@@ -178,7 +178,7 @@ tVar inh eid pp tsrc
               #! tsrc = trace_n ("tVar Just mptids" +++ toString bpinst.bpi_taskId +++ " " +++ toString eid) tsrc
               = case 'DIS'.elems mptids of
                   [(moduleName, taskName) : _]
-                    = tMApp inh eid Nothing moduleName taskName [] TNonAssoc tsrc
+                    = tMApp inh eid Nothing moduleName taskName [] TNoPrio tsrc
                   _
                     #! tsrc = trace_n ("tVar Nothing elems" +++ toString bpinst.bpi_taskId +++ " " +++ toString eid) tsrc
                     = mkDef tsrc
@@ -337,7 +337,7 @@ tParSumN inh eid ts tsrc
         Just bpinst
           = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
               Just mptids
-                = mapSt (\(moduleName, taskName) -> tMApp inh eid Nothing moduleName taskName [] TNonAssoc) ('DIS'.elems mptids) tsrc
+                = mapSt (\(moduleName, taskName) -> tMApp inh eid Nothing moduleName taskName [] TNoPrio) ('DIS'.elems mptids) tsrc
               _ = mkDef tsrc
         _ = mkDef tsrc
     where
@@ -360,7 +360,7 @@ tParProdN inh eid ts tsrc
         Just bpinst
           = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
               Just mptids
-                = mapSt (\(moduleName, taskName) -> tMApp inh eid Nothing moduleName taskName [] TNonAssoc) ('DIS'.elems mptids) tsrc
+                = mapSt (\(moduleName, taskName) -> tMApp inh eid Nothing moduleName taskName [] TNoPrio) ('DIS'.elems mptids) tsrc
               _ = mkDef tsrc
         _ = mkDef tsrc
     where
@@ -447,7 +447,7 @@ activeNodeTaskId eid activeNodes
       [tid : _] -> Just tid
       _         -> Nothing
 
-tMApp :: !MkImageInh !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr] !TAssoc !*TagSource -> *(!Image ModelTy, !*TagSource)
+tMApp :: !MkImageInh !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr] !TPriority !*TagSource -> *(!Image ModelTy, !*TagSource)
 tMApp inh eid _ "iTasks.API.Extensions.User" "@:" [lhsExpr : rhsExpr : _] _ tsrc
   = tAssign inh lhsExpr rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>|" [lhsExpr : rhsExpr : _] _ tsrc

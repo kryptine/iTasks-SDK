@@ -5,11 +5,11 @@ from Data.Maybe import :: Maybe
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
-derive JSONEncode TonicModule, TonicTask, TExpr, TAssoc
+derive JSONEncode TonicModule, TonicTask, TExpr, TPriority, TAssoc
 
-derive JSONDecode TonicModule, TonicTask, TExpr, TAssoc
+derive JSONDecode TonicModule, TonicTask, TExpr, TPriority, TAssoc
 
-derive gEq TonicModule, TonicTask, TExpr, TAssoc
+derive gEq TonicModule, TonicTask, TExpr, TPriority, TAssoc
 
 :: TonicModule =
   { tm_name  :: ModuleName
@@ -40,8 +40,8 @@ derive gEq TonicModule, TonicTask, TExpr, TAssoc
 :: TExpr
   = TVar      !(Maybe ExprId) !PPExpr
   | TLit      !PPExpr
-  | TMApp     !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr] !TAssoc
-  | TFApp     !VarName ![TExpr] !TAssoc
+  | TMApp     !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr] !TPriority
+  | TFApp     !VarName ![TExpr] !TPriority
   | TLam      ![TExpr] !TExpr
   | TSel      !TExpr ![TExpr]
   | TLet      ![(!Pattern, !TExpr)] !TExpr
@@ -50,6 +50,10 @@ derive gEq TonicModule, TonicTask, TExpr, TAssoc
   //| TListCompr // TODO
 
 :: TAssoc
-  = TLeftAssoc Int
-  | TRightAssoc Int
-  | TNonAssoc
+  = TLeftAssoc
+  | TRightAssoc
+  | TNoAssoc
+
+:: TPriority
+  = TPrio TAssoc Int
+  | TNoPrio

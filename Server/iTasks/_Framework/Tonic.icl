@@ -967,12 +967,6 @@ allBlueprints
         Just _ -> acc
         _      -> 'DM'.put mod.tm_name mod.tm_tasks acc
 
-instance == TAssoc where
-  (==) (TLeftAssoc n1)  (TLeftAssoc n2)  = n1 == n2
-  (==) (TRightAssoc n1) (TRightAssoc n2) = n1 == n2
-  (==) TNonAssoc        TNonAssoc        = True
-  (==) _                _                = False
-
 expandTask :: !AllBlueprints !Int !TonicTask -> TonicTask
 expandTask allbps n tt
   | n > 0     = {tt & tt_body = expandTExpr allbps n tt.tt_body}
