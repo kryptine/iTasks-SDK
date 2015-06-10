@@ -43,7 +43,7 @@ ppCases d [(pat, expr):xs] = ppTExpr` d pat +++ " -> " +++ ppTExpr` d expr +++ "
 ppTExprList :: !TExpr -> String
 ppTExprList e
   | endsWithNil e = ppTExprNilList e
-  | otherwise     = ppTExprList e
+  | otherwise     = ppTExprList` e
   where
   ppTExprList` :: !TExpr -> String
   ppTExprList` (TFApp "_Cons" [x, xs] _) = ppTExpr x +++ " : " +++ ppTExprList xs
