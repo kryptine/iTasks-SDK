@@ -2,7 +2,6 @@ Conceptueel / wishlist
 
 Statische flow weergave (en Dynamisch)
 
-
 * let op bij parallelle taken: zowel de parallelle taken als de parallel zelf heeft een resultaat!
 zet een taakdoos om de parallel als geheel heen.
 Dan kun je daar ok de naam van de parallel kwijt (-||-, anyTask, -&&-, parallel)
@@ -10,8 +9,6 @@ Dan kun je daar ok de naam van de parallel kwijt (-||-, anyTask, -&&-, parallel)
 * Ook een functie die een taak opleverd is een taak abstractie en zou je als een taak moeten laten zien (*gedaan*) 
 (dus kunnen selecteren voor een trace, resultaat kunnen opvragen)
 Heeft ook zin: ipv een bepaalde applicatie van een taak zou je daarmee iedere applicatie van een taak die je hebt gedefinieerd kunnen tracen
-
-* Bij een bind van de vorm >>= \(v1,v2) –> ... wordt dit tuple niet getoond maar een _x ??
 
 * In een predicaat staat de infix operator nog prefix (bv in seqTest)
 
@@ -21,9 +18,8 @@ Heeft ook zin: ipv een bepaalde applicatie van een taak zou je daarmee iedere ap
 
 * optie om de Clean code te laten zien die bij een taakdefinitie hoort.
 
-* Een extra lijn onder de parameter van een withShare in withShare param (\v –> ...) zetten ?
+* Een extra lijn onder de parameter van een withShare in withShare param (\v ?> ...) zetten ?
 Wellicht kun je ook het type van de share erbij vermelden ?
-
 
 
 Dynamisch
@@ -40,11 +36,10 @@ Dit geldt voor bv een parallelle taak, maar ook voor iedere functie die een taak
 * als taak wordt getraced:
 - bij selectie waardes van de argumenten + (huidige) waardes van het resultaat
 
-* optie om alle flows te laten zien met dezelfde hoofdtaaknummer 
-
 * geef bij iedere flow aan wat zijn taaknummer is
 
 * stepcombinator: bij het trace van een step zou je willen zien weke paden wel of niet gekozen kunnen worden op grond van de huidige waarde
+
 
 Bugs:
 
@@ -62,7 +57,13 @@ Dynamische Tonic
 
 - het systeem is nog steeds erg traag
 
+
+
 Gedaan:
+
+* optie om alle flows te laten zien met dezelfde hoofdtaaknummer 
+
+* Bij een bind van de vorm >>= \(v1,v2) ?> ... wordt dit tuple niet getoond maar een _x ??
 
 * stepcombinator: eerst de conditie dan de aktie zou mooi zijn
 haal de ster voor en achter de splitsing maar weg
