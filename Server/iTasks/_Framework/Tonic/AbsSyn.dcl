@@ -21,11 +21,12 @@ derive gEq TonicModule, TonicTask, TExpr, TAssoc
 :: TaskName     :== String
 
 :: TonicTask =
-  { tt_module :: !ModuleName
-  , tt_name   :: !TaskName
-  , tt_resty  :: !TExpr
-  , tt_args   :: ![(TExpr, TExpr)]
-  , tt_body   :: !TExpr
+  { tt_module    :: !ModuleName
+  , tt_name      :: !TaskName
+  , tt_iclLineNo :: !Int
+  , tt_resty     :: !TExpr
+  , tt_args      :: ![(TExpr, TExpr)]
+  , tt_body      :: !TExpr
   }
 
 :: Pattern  :== TExpr
