@@ -20,8 +20,12 @@ ppTExpr` _ xs=:(TFApp "_Cons" _ _) = "[" +++ ppTExprList xs +++ "]"
 ppTExpr` _ (TFApp "_Tuple2" xs _)  = "(" +++ ppTExprTuple xs +++ ")"
 ppTExpr` _ (TFApp "_Tuple3" xs _)  = "(" +++ ppTExprTuple xs +++ ")"
 ppTExpr` _ (TFApp "_Tuple4" xs _)  = "(" +++ ppTExprTuple xs +++ ")"
-ppTExpr` _ (TFApp pp [x:xs] _)
-  | size pp > 0 && pp.[0] == '_' = "{ " +++ pp % (1, size pp) +++ " | " +++ ppTExprTuple xs +++ " }"
+ppTExpr` _ (TFApp pp xs _)
+  | size pp > 0 && pp.[0] == '_' = "{ " +++ pp % (1, size pp) +++ " | " +++ ppFields xs +++ " }"
+  where
+  ppFields [] = ""
+  ppFields [x] = ppTExpr x
+  ppFields [x:xs] = ppTExpr x +++ ", " +++ ppFields xs
 ppTExpr` d (TFApp pp [l, r] (TPrio TLeftAssoc n)) = if (d > 0) "(" "" +++ ppTExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTExpr` (d + 1) r +++ if (d > 0) ")" ""
 ppTExpr` d (TFApp pp [l, r] (TPrio TRightAssoc n)) = if (d > 0) "(" "" +++ ppTExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTExpr` (d + 1) r +++ if (d > 0) ")" ""
 ppTExpr` d (TFApp pp [l, r] (TPrio TNoAssoc n)) = ppTExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTExpr` (d + 1) r
@@ -31,7 +35,7 @@ ppTExpr` _ (TMApp _ _ _ pp [x:xs] _)
   | size pp > 0 && pp.[0] == '_' = "{ " +++ pp % (1, size pp) +++ " | " +++ ppTExprTuple xs +++ " }"
 ppTExpr` d (TMApp _ _ _ pp xs _) = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTExpr` (d + 1)) xs) +++ if (d > 0) ")" ""
 ppTExpr` d (TSel e es) = ppTExpr e +++ "." +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTExpr` (d + 1)) es)
-ppTExpr` _ (TLam vars e) = "\\" +++ foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" vars +++ "-> " +++ ppTExpr e
+ppTExpr` d (TLam vars e) = if (d > 0) "(" "" +++ "\\" +++ foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" vars +++ "-> " +++ ppTExpr e +++ if (d > 0) ")" ""
 ppTExpr` d (TCaseOrIf e cs) = "case " +++ ppTExpr` d e +++ " of { " +++ ppCases d cs +++ "}"
 ppTExpr` d (TExpand _ tt) = ppTExpr` d tt.tt_body
 ppTExpr` _ _ = "ppTExpr: encountered more complex expression than we would like to pretty-print here..."
