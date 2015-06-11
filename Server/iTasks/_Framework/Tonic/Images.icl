@@ -223,7 +223,7 @@ tCaseDiamond :: !MkImageInh !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*
 tCaseDiamond inh exprImg [(diamondTag, uDiamondTag) : tsrc]
   #! exprImg         = tag uDiamondTag exprImg
   #! textHeight      = imageyspan diamondTag
-  #! textWidth       = imagexspan diamondTag
+  #! textWidth       = maxSpan [px 50.0, imagexspan diamondTag]
   #! edgeMargin      = textHeight *. 2.0
   #! centerX         = (textWidth /. 2.0) + edgeMargin
   #! leftCorner      = (px 0.0, y textHeight edgeMargin (px 0.0))
@@ -694,71 +694,72 @@ tStepCont inh (TFApp "OnAllExceptions" [cont : _ ] _) tsrc
 
 mkStepCont inh mact (TFApp "always" [x : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh x tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction mact Nothing tHorizConnArr ref, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact tHorizConnArr ref, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "ifStable" [TLam pats e : _] _) [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh e tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh tStable tsrc
-  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact Nothing tHorizConn ref, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact tHorizConn ref, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" pats), tHorizConnArr, x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "ifStable" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh mapp tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh tStable tsrc
-  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact Nothing tHorizConnArr ref, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact tHorizConnArr ref, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "ifUnstable" [TLam pats e : _] _) [ref : tsrc]
-  #! (x, tsrc) = tExpr2Image inh e tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction mact (Just tUnstable) tHorizConn ref, /* TODO edge */ x] Nothing
+  #! (x, tsrc)            = tExpr2Image inh e tsrc
+  #! (conditionImg, tsrc) = tCaseDiamond inh tUnstable tsrc
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact tHorizConn ref, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" pats), tHorizConnArr, x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "ifUnstable" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh mapp tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh tUnstable tsrc
-  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact Nothing tHorizConnArr ref, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact tHorizConnArr ref, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "ifValue" [conditionApp : continuationApp : _] _) [ref : tsrc]
   #! (exprImg, tsrc)         = tExpr2Image {inh & inh_in_case = True} conditionApp tsrc
   #! (conditionImg, tsrc)    = tCaseDiamond inh exprImg tsrc
   #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
-  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact Nothing tShortHorizConn ref, /* TODO edge */ continuationImg] Nothing
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact tShortHorizConn ref, /* TODO edge */ continuationImg] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "hasValue" [TLam pats e : _] _) [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh e tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh hasValueFilter tsrc
-  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact Nothing tHorizConn ref, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" pats), tHorizConnArr, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact tHorizConn ref, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" pats), tHorizConnArr, x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "hasValue" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh mapp tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh hasValueFilter tsrc
-  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact Nothing tHorizConnArr ref, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact tHorizConnArr ref, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "ifCond" [conditionApp : continuationApp : _] _) [ref : tsrc]
   #! (exprImg, tsrc)         = tExpr2Image {inh & inh_in_case = True} conditionApp tsrc
   #! (conditionImg, tsrc)    = tCaseDiamond inh exprImg tsrc
   #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
-  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact Nothing tHorizConnArr ref, /* TODO edge */ continuationImg] Nothing
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact tHorizConnArr ref, /* TODO edge */ continuationImg] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "always" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction mact Nothing tHorizConnArr ref, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact tHorizConnArr ref, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "withoutValue" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  = ( beside (repeat AtMiddleY) [] [addAction mact Nothing tHorizConnArr ref, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [addAction mact tHorizConnArr ref, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "withValue" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh mapp tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh hasValueFilter tsrc
-  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact Nothing tHorizConnArr ref, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact tHorizConnArr ref, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "withStable" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh mapp tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh tStable tsrc
-  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact Nothing tHorizConnArr ref, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact tHorizConnArr ref, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact (TFApp "withUnstable" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh mapp tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh tUnstable tsrc
-  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact Nothing tHorizConnArr ref, /* TODO edge */ x] Nothing
+  = ( beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr, addAction mact tHorizConnArr ref, /* TODO edge */ x] Nothing
     , tsrc)
 mkStepCont inh mact e [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh e tsrc
@@ -766,18 +767,18 @@ mkStepCont inh mact e [ref : tsrc]
   = ( beside (repeat AtMiddleY) [] [conditionImg, x] Nothing
     , tsrc)
 
-addAction :: !(Maybe String) !(Maybe (Image ModelTy)) !(Image ModelTy) !*TagRef -> Image ModelTy
-addAction (Just action) (Just img) arr (t, uT)
-  #! l = tag uT (beside (repeat AtMiddleY) [] [ margin (px 3.0) img, margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, text ArialBold10px (" " +++ action)] Nothing) ] Nothing)
-  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
-                                                     , l] Nothing
-  = beside (repeat AtMiddleY) [] [l`, arr] Nothing
-addAction (Just action) Nothing arr (t, uT)
+addAction :: !(Maybe String) !(Image ModelTy) !*TagRef -> Image ModelTy
+addAction (Just action) arr (t, uT)
   #! l = tag uT (margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, text ArialBold10px (" " +++ action)] Nothing))
   #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
                                                      , l] Nothing
   = beside (repeat AtMiddleY) [] [l`, arr] Nothing
-addAction _ _ _ _ = empty (px 0.0) (px 0.0)
+addAction (Just action) arr (t, uT)
+  #! l = tag uT (margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, text ArialBold10px (" " +++ action)] Nothing))
+  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
+                                                     , l] Nothing
+  = beside (repeat AtMiddleY) [] [l`, arr] Nothing
+addAction _ _ _ = empty (px 0.0) (px 0.0)
 
 alwaysFilter :: Image ModelTy
 alwaysFilter = beside (repeat AtMiddleY) [] [tStable, tUnstable, tNoVal] Nothing
@@ -852,10 +853,8 @@ tIfValue tffun args [(nameTag, uNameTag) : (argsTag, uArgsTag) : tsrc]
   = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing, tsrc)
 
 tException :: Image ModelTy
-tException
-  #! bgRect = rect (px 16.0) (px 16.0) <@< { fill   = toSVGColor "OrangeRed " }
-                                       <@< { stroke = toSVGColor "black" }
-  = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, text ArialBold10px "!!"] Nothing
+tException = rect (px 16.0) (px 8.0) <@< { fill   = toSVGColor "OrangeRed " }
+                                     <@< { stroke = toSVGColor "black" }
 
 tStable :: Image ModelTy
 tStable = rect (px 16.0) (px 8.0) <@< { fill = toSVGColor "DeepSkyBlue" }
