@@ -59,16 +59,16 @@ googleMapEditlet g
     = { Editlet
       | currVal     = g
       , defValSrv   = gDefault{|*|}
-      , defValClt   = {val = gDefault{|*|}, mbSt = Nothing, libsAdded = False}
       , genUI       = uiDef 
+      , initClient  = onInit
       , appDiffClt  = appDiffClt
       , genDiffSrv  = genDiff 
       , appDiffSrv  = appDiff
       }
 where
 	uiDef cid world
-		= ({ html 			= DivTag [IdAttr (mapdomid cid), StyleAttr "width:100%; height:100%"] []
-		  , eventHandlers	= \mkEventHandler -> [ComponentEvent "editlet" "init" (onInit mkEventHandler)]
+		= ({ ComponentHTML |
+		    html 			= DivTag [IdAttr (mapdomid cid), StyleAttr "width:100%; height:100%"] []
 		  , width 			= ExactSize 600
 		  , height			= ExactSize 300
 		  },world)
@@ -76,7 +76,8 @@ where
 	mapdomid cid    = "map_place_holder_" +++ cid
     mapcanvasid cid = "map_canvas_" +++ cid
 
-	onInit mkEventHandler cid updates clval world 
+	onInit mkEventHandler cid world 
+		# clval = {val = gDefault{|*|}, mbSt = Nothing, libsAdded = False}
         # (gmaps_loaded,world)    = findObject "googlemaps_loaded" world
         | jsIsUndefined gmaps_loaded
             //Check if another editlet has already loaded the javascript
@@ -90,13 +91,14 @@ where
                         = jsWrapFun onScriptLoad world
                 # world = jsSetObjectAttr "googlemaps_callback" cb jsWindow world
                 # world = addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=googlemaps_callback" Nothing world
-		        = (clval, NoDiff, world)
+		        = (clval, world)
             | otherwise
                 //Just add a callback to the existing set of callbacks
                 # world = jsSetObjectAttr cid (mkEventHandler (initEditlet mkEventHandler) cid) gmaps_callbacks world
-		        = (clval, NoDiff, world)
+		        = (clval, world)
         | otherwise
-            = initEditlet mkEventHandler cid updates clval world
+            # (clval, _, world) = initEditlet mkEventHandler cid undef clval world
+            = (clval, world)
 
     initEditlet mkEventHandler cid _ clval=:{val} world
 	    # world = (getElementById (mapdomid cid).# "innerHTML" .= ("<div id=\""+++mapcanvasid cid +++"\" style=\"width: 100%; height: 100%;\"/>")) world

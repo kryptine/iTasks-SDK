@@ -124,30 +124,32 @@ leafletEditlet map
   = { Editlet
     | currVal = map
     , defValSrv = gDefault{|*|}
-    , defValClt = (gDefault{|*|},Nothing)
     , genUI     =  genUI 
+    , initClient = onInit
     , appDiffClt = appDiffClt
     , genDiffSrv = genDiff
     , appDiffSrv = appDiff
     }
 where
     genUI cid world
-          = ({ html          = DivTag [IdAttr (mapdivid cid)] []
-		    , eventHandlers	= \mkHandler -> [ComponentEvent "editlet" "init" (onInit mkHandler)]
+          = ({ ComponentHTML 
+            | html          = DivTag [IdAttr (mapdivid cid)] []
             , width         = ExactSize 600
             , height        = ExactSize 300
             },world)
 
 	mapdivid cid = "map_div_" +++ cid
 
-	onInit mkHandler cid _ (map,Nothing) env
+	onInit mkHandler cid env
+		# map = gDefault{|*|}
         # (l, env) = findObject "L" env
         | jsIsUndefined l
             # env = addCSSFromUrl LEAFLET_CSS env
             # env = addJSFromUrl LEAFLET_JS (Just (mkHandler (onLibLoaded mkHandler) cid)) env
-            = ((map,Nothing), NoDiff, env)
+            = ((map,Nothing), env)
         | otherwise
-            = onLibLoaded mkHandler cid undef (map,Nothing) env
+            # (clval, _, env) = onLibLoaded mkHandler cid undef (map,Nothing) env
+            = (clval, env)
 
 	appDiffClt mkHandler cid updates (map,st) env
 		//Apply diff on local map and then update UI
