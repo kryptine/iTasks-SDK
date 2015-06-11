@@ -202,12 +202,33 @@ twoTasks :: w1 w2  -> Task a      	   | iTask a & toUserConstraint w1 & toUserCo
 twoTasks user1 user2   
 = withShared defaultValue (\share -> (user1  @: updateSharedInformation  ("Shared with" <+++ toTitle user2) [] share)
 		              		                 -||  
-		              		         ( user2  @: viewSharedInformation   ("Shared with" <+++ toTitle user1)  [] share) )
+		              		         (user2  @: viewSharedInformation   ("Shared with" <+++ toTitle user1)  [] share) )
 
 
 
 twoTasksTest :: Task [Person]
 twoTasksTest = twoTasks (UserWithId "Alice") (UserWithId "Bob")
+
+
+chat :: Task Void
+chat = 					get currentUser
+		>>= \me -> 		enterChoiceWithShared "Select someone to chat with:" [] users
+		>>= \you -> 	withShared ("","") (duoChat you me)
+
+duoChat ::  User User  (Shared (String,String)) -> Task Void
+duoChat  you me sharedNotes
+ =	                   chatWith you toView fromView sharedNotes
+	-||- 
+				(you @: chatWith me (toView  o  switch) (switch o fromView) sharedNotes)
+where
+ 	toView 	  (you, me) 				= (Display you, Note me)
+ 	fromView  (Display you, Note me) 	= (you, me) 
+	switch 	  (you, me) 				= (me, you)
+
+chatWith who toV fromV notes
+= 		updateSharedInformation ("Chat with " <+++ who) [UpdateWith toV (\_ view -> fromV view)] notes
+	>>*	[OnAction (Action "Stop" []) (always (return Void))]
+
 
 //-----
 
