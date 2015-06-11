@@ -32,6 +32,11 @@ Dit geldt voor bv een parallelle taak, maar ook voor iedere functie die een taak
 Bugs:
 
 Statische Tonic
+- Deze zijn afkomstig van Experiments\SVG_tests\TicTacTop:
+  - task find_players: in de return wordt "{ Players | you }" getoond in plaats van "{ Players | tic=me, tac=you}"
+  - task set_up_users: 
+    - soortgelijk probleem met new
+    - de expressie bij de set task bevat vreemde tekens en de haakjes-structuur ontbreekt
 
 Dynamische Tonic
 
