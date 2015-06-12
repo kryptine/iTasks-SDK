@@ -26,16 +26,16 @@ analogClockEditlet t
     = {Editlet
       |currVal      = t
       ,defValSrv    = gDefault{|*|}
-      ,defValClt    = ()
       ,genUI        = genUI
+      , initClient = \_ _ world -> ((), world)
       ,appDiffClt   = appDiffClt
       ,genDiffSrv   = genTimeDiff
       ,appDiffSrv   = appTimeDiff
       }
 where
 	genUI cid world
-		  =({ html 			= svgClock cid
-		  	, eventHandlers = \_ -> []
+		  =({ ComponentHTML
+            | html 			= svgClock cid
 		  	, width 		= ExactSize 100
 		  	, height 		= ExactSize 100
 		  	},world)
