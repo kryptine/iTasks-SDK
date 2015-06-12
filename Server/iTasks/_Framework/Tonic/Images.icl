@@ -423,7 +423,9 @@ tTaskDef bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTa
                       {bpr_instance = Just {bpi_taskId}} -> " (" +++ toString bpi_taskId +++ ")"
                       _                                  -> ""
   #! taskNameImg  = tag uNameTag (margin (px 5.0) (beside (repeat AtMiddleY) [] [text ArialRegular10px (moduleName +++ "."), text ArialBold10px (taskName +++ " :: " +++ ppTExpr resultTy), text ArialRegular10px taskIdStr] Nothing))
-  #! argsImg      = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] (map mkArgAndTy (zip2 args (map Just argvars ++ repeat Nothing))) Nothing))
+  #! binds        = foldr (\((arg, ty), mvar) acc -> [text ArialRegular10px (ppTExpr arg) : text ArialRegular10px " :: " : text ArialRegular10px (ppTExpr ty) : text ArialRegular10px (maybe "" (\x -> " = " +++ ppTExpr x) mvar) : acc]) [] (zip2 args (map Just argvars ++ repeat Nothing))
+  #! argsText     = grid (Columns 4) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing
+  #! argsImg      = tag uArgsTag (margin (px 5.0) argsText) // (above (repeat AtLeft) [] (map mkArgAndTy (zip2 args (map Just argvars ++ repeat Nothing))) Nothing))
   #! taskBodyImgs = tag uBodyTag (margin (px 5.0) tdbody)
   #! maxX         = maxSpan [imagexspan nameTag, imagexspan argsTag, imagexspan bdytag]
   #! maxXLine     = xline Nothing maxX
@@ -435,6 +437,9 @@ tTaskDef bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTa
   where
   mkArgAndTy :: !(!(!TExpr, !TExpr), !Maybe TExpr) -> Image ModelTy
   mkArgAndTy ((arg, ty), mvar) = text ArialRegular10px (ppTExpr arg +++ " :: " +++ ppTExpr ty +++ (maybe "" (\x -> " = " +++ ppTExpr x) mvar))
+
+
+
 
 //tFunctorApp :: !MkImageInh !TExpr !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
 //tFunctorApp inh texpr tffun args [(nmtag, uNmTag) : (argstag, uArgsTag) : tsrc]
