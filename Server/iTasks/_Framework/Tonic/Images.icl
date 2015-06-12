@@ -102,6 +102,7 @@ tExpr2Image inh (TVar eid pp)               tsrc = tVar          inh eid pp tsrc
 tExpr2Image inh (TLit pp)                   tsrc = tLit          inh pp tsrc
 tExpr2Image inh (TExpand args tt)           tsrc = tExpand       inh args tt tsrc
 tExpr2Image inh (TSel e es)                 tsrc = tSel          inh e es tsrc
+tExpr2Image inh (TRecUpd vn e es)           tsrc = tRecUpd       inh vn e es tsrc
 tExpr2Image inh (TLam args e)               tsrc = tLam          inh args e tsrc
 
 tLam :: !MkImageInh ![TExpr] !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
@@ -113,9 +114,19 @@ tLam inh vars e tsrc
   = (beside (repeat AtMiddleY) [] lineParts Nothing, tsrc)
 
 tSel :: !MkImageInh !TExpr ![TExpr] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tSel inh e es tsrc
-  #! (eImg, tsrc) = tExpr2Image inh e tsrc
-  = (eImg, tsrc) // TODO es
+tSel inh e es tsrc = (text ArialRegular10px (ppTExpr e +++ "." +++ ppES es), tsrc)
+  where
+  ppES []     = ""
+  ppES [x]    = ppTExpr x
+  ppES [x:xs] = ppTExpr x +++ "." +++ ppES xs
+
+tRecUpd :: !MkImageInh !VarName !TExpr ![TExpr] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tRecUpd inh vn e es tsrc = (text ArialRegular10px ("{ " +++ vn % (1, size vn) +++ " | " +++ ppTExpr e +++ " & " +++ ppES es +++ "}"), tsrc)
+  where
+  ppES []     = ""
+  ppES [x]    = ppTExpr x
+  ppES [TNoBind : xs] = ppES xs
+  ppES [x : xs] = ppTExpr x +++ " " +++ ppES xs
 
 tFApp :: !MkImageInh !FunName ![TExpr] !TPriority !*TagSource -> *(!Image ModelTy, !*TagSource)
 tFApp inh fn args assoc tsrc = (text ArialRegular10px (ppTExpr (TFApp fn args assoc)), tsrc)
@@ -200,7 +211,6 @@ containsActiveNodes inh (TMApp eid _ _ _ _ _) = 'DM'.member eid inh.inh_prev || 
 containsActiveNodes inh (TLet pats bdy)       = containsActiveNodes inh bdy
 containsActiveNodes inh (TCaseOrIf e pats)    = foldr (\(_, e) acc -> acc || containsActiveNodes inh e) False pats
 containsActiveNodes inh (TExpand args tt)     = containsActiveNodes inh tt.tt_body
-containsActiveNodes inh (TSel e es)           = containsActiveNodes inh e || foldr (\e acc -> acc || containsActiveNodes inh e) False es
 containsActiveNodes inh (TLam _ e)            = containsActiveNodes inh e
 containsActiveNodes inh _                     = False
 
@@ -277,8 +287,9 @@ tLet inh pats expr [(txttag, uTxtTag) : tsrc]
       TLet pats` bdy
         = tLet inh (pats ++ pats`) bdy tsrc
       _
-        #! (t, tsrc) = tExpr2Image inh expr tsrc
-        #! binds     = foldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : text ArialRegular10px (ppTExpr expr) : acc]) [] pats
+        #! (t, tsrc)       = tExpr2Image inh expr tsrc
+        #! (patRhss, tsrc) = mapSt (tExpr2Image inh) (map snd pats) tsrc
+        #! binds     = foldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : expr : acc]) [] (zip2 (map fst pats) patRhss)
         #! letText   = tag uTxtTag (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing)
         #! letWidth  = imagexspan txttag + px 10.0
         #! letHeight = px ArialRegular10px.fontysize *. (length pats + 1)
@@ -288,7 +299,7 @@ tLet inh pats expr [(txttag, uTxtTag) : tsrc]
         #! letImg    = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
         #! linePart  = xline Nothing ((letWidth - px 8.0) /. 2.0)
         #! connBox   = beside (repeat AtMiddleY) [] [linePart, rect (px 8.0) (px 8.0), linePart] Nothing
-        #! letImg    = above (repeat AtMiddleX) [] [letImg, yline Nothing (px 8.0), connBox, empty zero (letHeight + px 8.0)] Nothing
+        #! letImg    = above (repeat AtLeft) [] [letImg, yline Nothing (px 8.0), connBox, empty zero (letHeight + px 8.0)] Nothing
         = (beside (repeat AtMiddleY) [] [letImg, tHorizConnArr, t] Nothing, tsrc)
 
 tBind :: !MkImageInh !TExpr !(Maybe Pattern) !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)

@@ -38,6 +38,7 @@ ppTExpr` d (TSel e es) = ppTExpr e +++ "." +++ foldr (\x xs -> x +++ " " +++ xs)
 ppTExpr` d (TLam vars e) = if (d > 0) "(" "" +++ "\\" +++ foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" vars +++ "-> " +++ ppTExpr e +++ if (d > 0) ")" ""
 ppTExpr` d (TCaseOrIf e cs) = "case " +++ ppTExpr` d e +++ " of { " +++ ppCases d cs +++ "}"
 ppTExpr` d (TExpand _ tt) = ppTExpr` d tt.tt_body
+ppTExpr` d TNoBind        = ""
 ppTExpr` _ _ = "ppTExpr: encountered more complex expression than we would like to pretty-print here..."
 
 ppCases _ []               = ""

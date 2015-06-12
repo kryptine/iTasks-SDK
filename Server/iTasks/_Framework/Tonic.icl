@@ -994,6 +994,8 @@ expandTExpr allbps n (TExpand vars tt)
   = TExpand vars (expandTask allbps n tt)
 expandTExpr allbps n (TSel e es)
   = TSel (expandTExpr allbps n e) (map (expandTExpr allbps n) es)
+expandTExpr allbps n (TRecUpd vn e es)
+  = TRecUpd vn (expandTExpr allbps n e) (map (expandTExpr allbps n) es)
 expandTExpr allbps n (TLam vars e)
   = TLam vars (expandTExpr allbps n e)
 expandTExpr _ _ texpr = texpr
