@@ -292,14 +292,14 @@ tLet inh pats expr [(txttag, uTxtTag) : tsrc]
         #! binds     = foldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : expr : acc]) [] (zip2 (map fst pats) patRhss)
         #! letText   = tag uTxtTag (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing)
         #! letWidth  = imagexspan txttag + px 10.0
-        #! letHeight = px ArialRegular10px.fontysize *. (length pats + 1)
+        #! letHeight = imageyspan txttag + px 10.0
         #! letBox    = rect letWidth letHeight
                          <@< { fill   = toSVGColor "white" }
                          <@< { stroke = toSVGColor "black" }
         #! letImg    = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
         #! linePart  = xline Nothing ((letWidth - px 8.0) /. 2.0)
         #! connBox   = beside (repeat AtMiddleY) [] [linePart, rect (px 8.0) (px 8.0), linePart] Nothing
-        #! letImg    = above (repeat AtLeft) [] [letImg, yline Nothing (px 8.0), connBox, empty zero (letHeight + px 8.0)] Nothing
+        #! letImg    = above (repeat AtMiddleX) [] [letImg, yline Nothing (px 8.0), connBox, empty zero (letHeight + px 8.0)] Nothing
         = (beside (repeat AtMiddleY) [] [letImg, tHorizConnArr, t] Nothing, tsrc)
 
 tBind :: !MkImageInh !TExpr !(Maybe Pattern) !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
