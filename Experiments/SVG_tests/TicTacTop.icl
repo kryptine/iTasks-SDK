@@ -2,6 +2,8 @@ module TicTacTop
 
 import iTasks
 import iTasks.API.Extensions.SVG.SVGlet
+import iTasks._Framework.Tonic
+import TaskLayout
 
 // Tic-Tac-Toe entities:
 :: Game       = { board   :: Board
@@ -62,15 +64,17 @@ find_players
     >>= \me  -> updateChoiceWithShared "Find player" [] users me
     >>= \you -> return {tic=me,tac=you}
 
+//  variant 1: all player information is rendered within one task:
 play_game :: TicTac Players -> Task Game
 play_game who players
 	= player @: (
-	      updateSharedInformation (name_of who players) [imageUpdate toViewModel (render who) handleConflict fromViewModel] (shared_game players)
+	      updateSharedInformation (name_of who players) 
+	                              [imageUpdate toViewModel (\game _ -> render who game) handleConflict fromViewModel] 
+	                              (shared_game players)
 	  >>* [OnValue (ifValue game_over (accolades who))]
 	  )
 where
 	player				= if (who === Tic) players.tic players.tac
-	game				= initial_game players
 	toViewModel			= id
 	fromViewModel  _	= id
 	handleConflict _ _	= Nothing
@@ -98,34 +102,38 @@ play_tic_tac_toe :: Task ()
 play_tic_tac_toe = find_players >>= play_games
 
 // Tic-Tac-Toe rendering:
-render :: TicTac Game *TagSource -> Image Game
-render playing game tags
+render :: TicTac Game -> Image Game
+render playing game
 	= beside (repeat AtMiddleY) []
-	     [ grid (Rows 3) (RowMajor,LeftToRight,TopToBottom) (repeat (AtMiddleX,AtMiddleY)) []
-	          [  tuneIf (isNothing c && playing === game.turn)
-	                    (cell c) {onclick = const (move {row=i,col=j}), local = False}
-	          \\ row <- game.board 
-	           & i   <- [0 ..]
-	           , c   <- row
-	           & j   <- [0 ..]
-	          ] Nothing
+	     [ board (playing === game.turn) game.board
 	     , margin (px zero,px 10.0) (text (normalFontDef "Times New Roman" edge) (name_of game.turn game.players))
-	     , margin (px zero,px 10.0) (cell (Just game.turn))
+	     , margin (px zero,px 10.0) (glyph game.turn)
 	     ] Nothing
 
-cell :: (Maybe TicTac) -> Image Game
-cell Nothing
-	= rect (px edge) (px edge) <@< {fill = toSVGColor "white"}
-cell (Just Tic)
-	= circle (px (edge - pencil - 3.0)) <@< {fill = toSVGColor "none"} <@< {strokewidth = px pencil}
-cell (Just Tac)
-	= overlay (repeat (AtMiddleX,AtMiddleY)) [] 
-	     [  line Nothing slash (px edge) (px edge) <@< {strokewidth = px pencil} 
-	     \\ slash <- [Slash,Backslash]
-	     ]  Nothing
+board :: Bool Board -> Image Game
+board am_playing board
+	= grid (Rows 3) (RowMajor,LeftToRight,TopToBottom) (repeat (AtMiddleX,AtMiddleY)) []
+          [  tuneIf (isNothing c && am_playing)
+                    (cell c) {onclick = const (move {row=i,col=j}), local = False}
+          \\ row <- board 
+           & i   <- [0 ..]
+           , c   <- row
+           & j   <- [0 ..]
+          ] Nothing
+
+cell :: (Maybe TicTac) -> Image a
+cell Nothing		= rect (px edge) (px edge) <@< {fill = toSVGColor "white"}
+cell (Just tictac)	= glyph tictac
+
+glyph :: TicTac -> Image a
+glyph Tic			= circle (px (edge - pencil - 3.0)) <@< {fill = toSVGColor "none"} <@< {strokewidth = px pencil}
+glyph Tac			= overlay (repeat (AtMiddleX,AtMiddleY)) [] 
+					     [  line Nothing slash (px edge) (px edge) <@< {strokewidth = px pencil} 
+					     \\ slash <- [Slash,Backslash]
+					     ]  Nothing
 
 edge   = 30.0
-pencil = 4.0
+pencil = edge / 5.0
 font   = normalFontDef "Times New Roman" edge
 
 // The iTask entry code:
@@ -137,7 +145,7 @@ Start world
 	              [workflow "Tic-Tac-Top" "Play Tic-Tac-Toe" (play_tic_tac_toe                         <<@ FullScreen)]
 	              [publish "/users" (WebApp []) (const (set_up_users                                   <<@ FullScreen))
 	              ,publish "/show"  (WebApp []) (const (viewSharedInformation "Current users" [] users <<@ FullScreen))
-	              ,publish "/find"  (WebApp []) (const (find_players                                   <<@ FullScreen))
+	              ,publish "/tonic" (WebApp []) (const (tonicStaticBrowser []                          <<@ FullScreen))
 	              ] world
 
 derive class iTask Game, Players, TicTac
