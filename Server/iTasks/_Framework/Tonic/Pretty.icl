@@ -21,29 +21,25 @@ ppTExpr` _ (TFApp "_Tuple2" xs _)  = "(" +++ ppTExprTuple xs +++ ")"
 ppTExpr` _ (TFApp "_Tuple3" xs _)  = "(" +++ ppTExprTuple xs +++ ")"
 ppTExpr` _ (TFApp "_Tuple4" xs _)  = "(" +++ ppTExprTuple xs +++ ")"
 ppTExpr` _ (TFApp pp xs _)
-  | size pp > 0 && pp.[0] == '_' = "{ " +++ pp % (1, size pp) +++ " | " +++ ppFields xs +++ " }"
-  where
-  ppFields [] = ""
-  ppFields [x] = ppTExpr x
-  ppFields [x:xs] = ppTExpr x +++ ", " +++ ppFields xs
-ppTExpr` d (TFApp pp [l, r] (TPrio TLeftAssoc n)) = if (d > 0) "(" "" +++ ppTExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTExpr` (d + 1) r +++ if (d > 0) ")" ""
+  | size pp > 0 && pp.[0] == '_' = "{ " +++ pp % (1, size pp) +++
+                                   " | " +++ ppIntersperse ppTExpr ", " xs +++ " }"
+ppTExpr` d (TFApp pp [l, r] (TPrio TLeftAssoc n))  = if (d > 0) "(" "" +++ ppTExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTExpr` (d + 1) r +++ if (d > 0) ")" ""
 ppTExpr` d (TFApp pp [l, r] (TPrio TRightAssoc n)) = if (d > 0) "(" "" +++ ppTExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTExpr` (d + 1) r +++ if (d > 0) ")" ""
-ppTExpr` d (TFApp pp [l, r] (TPrio TNoAssoc n)) = ppTExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTExpr` (d + 1) r
-ppTExpr` d (TFApp pp xs _)                   = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTExpr` (d + 1)) xs) +++ if (d > 0) ")" ""
-ppTExpr` _ (TMApp _ _ _ pp [] _)     = sugarPP pp
+ppTExpr` d (TFApp pp [l, r] (TPrio TNoAssoc n))    = ppTExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTExpr` (d + 1) r
+ppTExpr` d (TFApp pp xs _)       = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ ppIntersperse (ppTExpr` (d + 1)) " " xs +++ if (d > 0) ")" ""
+ppTExpr` _ (TMApp _ _ _ pp [] _) = sugarPP pp
 ppTExpr` _ (TMApp _ _ _ pp [x:xs] _)
   | size pp > 0 && pp.[0] == '_' = "{ " +++ pp % (1, size pp) +++ " | " +++ ppTExprTuple xs +++ " }"
-ppTExpr` d (TMApp _ _ _ pp xs _) = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTExpr` (d + 1)) xs) +++ if (d > 0) ")" ""
-ppTExpr` d (TSel e es) = ppTExpr e +++ "." +++ foldr (\x xs -> x +++ " " +++ xs) "" (map (ppTExpr` (d + 1)) es)
-ppTExpr` d (TLam vars e) = if (d > 0) "(" "" +++ "\\" +++ foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" vars +++ "-> " +++ ppTExpr e +++ if (d > 0) ")" ""
+ppTExpr` d (TMApp _ _ _ pp xs _) = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ ppIntersperse (ppTExpr` (d + 1)) " " xs +++ if (d > 0) ")" ""
+ppTExpr` d (TSel e es)      = ppTExpr e +++ "." +++ ppIntersperse (ppTExpr` (d + 1)) " " es
+ppTExpr` d (TLam vars e)    = if (d > 0) "(" "" +++ "\\" +++ ppIntersperse (ppTExpr` (d + 1)) " " vars +++ "-> " +++ ppTExpr e +++ if (d > 0) ")" ""
 ppTExpr` d (TCaseOrIf e cs) = "case " +++ ppTExpr` d e +++ " of { " +++ ppCases d cs +++ "}"
-ppTExpr` d (TExpand _ tt) = ppTExpr` d tt.tt_body
-ppTExpr` d TNoBind        = ""
+ppTExpr` d (TExpand _ tt)   = ppTExpr` d tt.tt_body
+ppTExpr` d TNoBind          = ""
 ppTExpr` _ _ = "ppTExpr: encountered more complex expression than we would like to pretty-print here..."
 
-ppCases _ []               = ""
-ppCases d [(pat, expr)]    = ppTExpr` d pat +++ " -> " +++ ppTExpr` d expr
-ppCases d [(pat, expr):xs] = ppTExpr` d pat +++ " -> " +++ ppTExpr` d expr +++ "; " +++ ppCases d xs
+ppCases :: !Int ![(!Pattern, !TExpr)] -> String
+ppCases d xs = ppIntersperse (\(pat, expr) -> ppTExpr` d pat +++ " -> " +++ ppTExpr` d expr) "; " xs
 
 ppTExprList :: !TExpr -> String
 ppTExprList e
@@ -65,12 +61,14 @@ endsWithNil (TFApp "_Nil" _ _)        = True
 endsWithNil _                         = False
 
 ppTExprTuple :: ![TExpr] -> String
-ppTExprTuple []     = ""
-ppTExprTuple [x]    = ppTExpr x
-ppTExprTuple [x:xs] = ppTExpr x +++ ", " +++ ppTExprTuple xs
+ppTExprTuple xs = ppIntersperse ppTExpr ", " xs
 
 sugarPP "_Nil"    = "[]"
 sugarPP "_Unit"   = "()"
 sugarPP "_String" = "String"
 sugarPP pp = pp
 
+ppIntersperse :: !(a -> String) !String ![a] -> String
+ppIntersperse _ _   []     = ""
+ppIntersperse f _   [x]    = f x
+ppIntersperse f sep [x:xs] = f x +++ sep +++ ppIntersperse f sep xs

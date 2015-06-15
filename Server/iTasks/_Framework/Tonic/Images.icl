@@ -108,17 +108,13 @@ tExpr2Image inh (TLam args e)               tsrc = tLam          inh args e tsrc
 tLam :: !MkImageInh ![TExpr] !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tLam inh vars e tsrc
   #! (r, tsrc) = tExpr2Image inh e tsrc
-  #! lineParts  = case vars of
-                    []   -> [tHorizConnArr, r]
-                    vars -> [tHorizConn, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" vars), tHorizConnArr, r]
+  #! lineParts = case vars of
+                   []   -> [tHorizConnArr, r]
+                   vars -> [tHorizConn, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" vars), tHorizConnArr, r]
   = (beside (repeat AtMiddleY) [] lineParts Nothing, tsrc)
 
 tSel :: !MkImageInh !TExpr ![TExpr] !*TagSource -> *(!Image ModelTy, !*TagSource)
-tSel inh e es tsrc = (text ArialRegular10px (ppTExpr e +++ "." +++ ppES es), tsrc)
-  where
-  ppES []     = ""
-  ppES [x]    = ppTExpr x
-  ppES [x:xs] = ppTExpr x +++ "." +++ ppES xs
+tSel inh e es tsrc = (text ArialRegular10px (ppTExpr e +++ "." +++ ppIntersperse ppTExpr "." es), tsrc)
 
 tRecUpd :: !MkImageInh !VarName !TExpr ![TExpr] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tRecUpd inh vn e es tsrc = (text ArialRegular10px ("{ " +++ vn % (1, size vn) +++ " | " +++ ppTExpr e +++ " & " +++ ppES es +++ "}"), tsrc)
@@ -484,7 +480,7 @@ tTaskDef bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTa
                       _                                  -> ""
   #! taskNameImg  = tag uNameTag (margin (px 5.0) (beside (repeat AtMiddleY) [] [text ArialRegular10px (moduleName +++ "."), text ArialBold10px (taskName +++ " :: " +++ ppTExpr resultTy), text ArialRegular10px taskIdStr] Nothing))
   #! binds        = foldr (\((arg, ty), mvar) acc -> [text ArialRegular10px (ppTExpr arg) : text ArialRegular10px " :: " : text ArialRegular10px (ppTExpr ty) : text ArialRegular10px (maybe "" (\x -> " = " +++ ppTExpr x) mvar) : acc]) [] (zip2 args (map Just argvars ++ repeat Nothing))
-  #! argsText     = grid (Columns 4) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing
+  #! argsText     = grid (Columns 4) (RowMajor, LeftToRight, TopToBottom) [] [] (map (margin (px 1.0, px 0.0)) binds) Nothing
   #! argsImg      = tag uArgsTag (margin (px 5.0) argsText) // (above (repeat AtLeft) [] (map mkArgAndTy (zip2 args (map Just argvars ++ repeat Nothing))) Nothing))
   #! taskBodyImgs = tag uBodyTag (margin (px 5.0) tdbody)
   #! maxX         = maxSpan [imagexspan nameTag, imagexspan argsTag, imagexspan bdytag]
@@ -671,7 +667,7 @@ tDefaultMApp` isCompact isActive wasActive isInAccessible nodeId selectedNodes p
                                                                        <@< { strokewidth = if isSelected (px 3.0) (px 1.0) }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskNameImg] Nothing, tsrc)
       taskArgs
-        #! argsImg  = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] taskArgs Nothing))
+        #! argsImg  = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] (map (margin (px 1.0, px 0.0)) taskArgs) Nothing))
         #! maxXSpan = maxSpan [imagexspan tntag, imagexspan argstag]
         #! content  = above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, argsImg] Nothing
         #! bgRect   = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = bgColor }
