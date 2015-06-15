@@ -347,7 +347,7 @@ stepEval eval nid event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
               # (cct, iworld) = mkCompleteTrace childInstanceNo callTrace iworld
               = case 'DM'.get childTaskId rtMap of
                   Just parentBPRef=:{bpr_instance = Just parentBPInst}
-                    # iworld               = updRTMap nid childTaskId cct parentBPRef parentBPInst iworld
+                    # iworld               = activateStep nid childTaskId cct parentBPRef parentBPInst iworld
                     # (taskResult, iworld) = eval event evalOpts taskTree iworld
                     # actions              = case taskResult of
                                                ValueResult _ _ (TaskRep uiDef) _
@@ -358,6 +358,13 @@ stepEval eval nid event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
                   _ = eval event evalOpts taskTree iworld
             _ = eval event evalOpts taskTree iworld
       _ = eval event evalOpts taskTree iworld
+  where
+  activateStep nid childTaskId=:(TaskId instanceNo _) cct parentBPRef parentBPInst iworld
+    # (newActiveNodes, iworld) = setActiveNodes parentBPInst childTaskId cct nid iworld
+    = snd ('DSDS'.write { parentBPRef
+                        & bpr_instance = Just { parentBPInst
+                                              & bpi_activeNodes = 'DM'.union parentBPInst.bpi_activeNodes newActiveNodes}}
+                        (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld)
 
 /**
  * ModuleName and TaskName identify the blueprint, of which we need to
@@ -431,16 +438,16 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ nid t=:(Task eval)
           = iworld
         _ = iworld
 
-updRTMap nid childTaskId=:(TaskId instanceNo _) cct parentBPRef parentBPInst iworld
-  # (newActiveNodes, iworld) = setActiveNodes parentBPInst childTaskId cct nid iworld
-  # newActiveNodeMap         = 'DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems newActiveNodes)]
-  # oldActiveNodes           = 'DM'.difference ('DM'.union parentBPInst.bpi_previouslyActive
-                                                           ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems parentBPInst.bpi_activeNodes)]))
-                                               newActiveNodeMap // This difference is required, because currently active nodes may up in the old set due to the iteration over parallel branches
-  # (_, iworld) = 'DSDS'.write {parentBPRef & bpr_instance = Just { parentBPInst
-                                                                  & bpi_activeNodes      = newActiveNodes
-                                                                  , bpi_previouslyActive = oldActiveNodes}} (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld
-  = iworld
+  updRTMap nid childTaskId=:(TaskId instanceNo _) cct parentBPRef parentBPInst iworld
+    # (newActiveNodes, iworld) = setActiveNodes parentBPInst childTaskId cct nid iworld
+    # newActiveNodeMap         = 'DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems newActiveNodes)]
+    # oldActiveNodes           = 'DM'.difference ('DM'.union parentBPInst.bpi_previouslyActive
+                                                             ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems parentBPInst.bpi_activeNodes)]))
+                                                 newActiveNodeMap // This difference is required, because currently active nodes may up in the old set due to the iteration over parallel branches
+    # (_, iworld) = 'DSDS'.write {parentBPRef & bpr_instance = Just { parentBPInst
+                                                                    & bpi_activeNodes      = newActiveNodes
+                                                                    , bpi_previouslyActive = oldActiveNodes}} (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld
+    = iworld
 
 
 setActiveNodes :: !BlueprintInstance !TaskId !Calltrace !ExprId !*IWorld -> *(!Map ListId (IntMap (TaskId, ExprId)), !*IWorld)
@@ -673,7 +680,7 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
                                           | bpr_moduleName = tm_name
                                           , bpr_taskName   = tt.tt_name
                                           , bpr_instance   = Nothing
-                                          } 'DM'.newMap selectedNodes (expandTask allbps depth.cur tt) Nothing compact depth
+                                          } 'DM'.newMap selectedNodes (expandTask allbps depth.cur tt) Nothing 'DM'.newMap compact depth
          >>* [ OnValue (doAction (handleClicks tm tt))
              , OnAction (Action "Back" [ActionIcon "previous"]) (navigateBackwards tm tt ns)
              ] @! ()
@@ -714,14 +721,12 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
     onNavVal bpident_taskName (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs navstack trt tm` tt` depth compact @! ()) (getTonicTask tm` bpident_taskName)
     onNavVal _                _             = Nothing
 
-showBlueprint :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !ListsOfTasks !(Set (ModuleName, TaskName, ExprId)) !TonicTask !(Maybe ClickMeta) !Bool !Scale
+showBlueprint :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !ListsOfTasks !(Set (ModuleName, TaskName, ExprId)) !TonicTask !(Maybe ClickMeta) !(Map TaskId [UIAction]) !Bool !Scale
               -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
-showBlueprint rs prev bpref maplot selected task selDetail compact depth
+showBlueprint rs prev bpref maplot selected task selDetail enabledSteps compact depth
   =               get (mapRead (fmap snd) storedOutputEditors)
-  >>~ \outputs -> get tonicEnabledSteps
-  >>~ \steps   ->
-                  updateInformation ()
-                    [imageUpdate id (mkTaskImage rs prev bpref maplot outputs steps selected selDetail compact) (\_ _ -> Nothing) (const id)]
+  >>~ \outputs ->                   updateInformation ()
+                    [imageUpdate id (mkTaskImage rs prev bpref maplot outputs enabledSteps selected selDetail compact) (\_ _ -> Nothing) (const id)]
                     { ActionState
                     | state  = { tis_task    = task
                                , tis_depth   = depth
@@ -904,8 +909,8 @@ viewInstance allbps rs navstack dynSett trt selDetail showButtons action=:(Just 
                  =              dynamicParent bpinst.bpi_taskId
                  >>~ \mbprnt -> case 'DM'.get bpr_moduleName allbps `b` 'DM'.get bpr_taskName of
                                   Just blueprint =
-                                                    whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates) (
-                                    \(_, maplot) -> (showBlueprint rs bpinst.bpi_previouslyActive bpref maplot selectedNodes blueprint selDetail False { Scale | min = 0, cur = 0, max = 0})
+                                                    whileUnchanged (tonicSharedRT |+| tonicDynamicUpdates |+| tonicEnabledSteps) (
+                                    \((_, maplot), enabledSteps) -> (showBlueprint rs bpinst.bpi_previouslyActive bpref maplot selectedNodes blueprint selDetail enabledSteps False { Scale | min = 0, cur = 0, max = 0})
                                                 -|| showChildTasks dynSett bpinst)
                                                 >>* [ OnValue (doAction (handleClicks bpr_moduleName bpr_taskName)) : if showButtons
                                                                                           [ OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
