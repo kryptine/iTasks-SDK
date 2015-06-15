@@ -185,9 +185,9 @@ person1by1 persons
 	=		enterInformation "Add a person" []
 		    -|| 
 		    viewInformation "List so far.." [] persons
-	 >>*  	[ OnAction (Action "Add" [])    (hasValue  (\v -> person1by1 [v : persons]))  
-		    , OnAction (Action "Finish" []) (always (return persons))
-		    , OnAction ActionCancel 	    (always (return []))
+     >>*  	[ OnAction (Action "Add" [])    (hasValue  (\v -> person1by1 [v : persons]))  
+            , OnAction (Action "Finish" []) (always (return persons))
+            , OnAction ActionCancel 	    (always (return []))
 	        ]
 
 
@@ -211,24 +211,27 @@ twoTasksTest :: Task [Person]
 twoTasksTest = twoTasks (UserWithId "Alice") (UserWithId "Bob")
 
 
-chat :: Task Void
-chat = 					get currentUser
-		>>= \me -> 		enterChoiceWithShared "Select someone to chat with:" [] users
-		>>= \you -> 	withShared ("","") (duoChat you me)
+//chat :: Task Void
+//chat = 					get currentUser
+        //>>= \me -> 		enterChoiceWithShared "Select someone to chat with:" [] users
+        //>>= \you -> 	withShared ("","") (duoChat you me)
 
-duoChat ::  User User  (Shared (String,String)) -> Task Void
-duoChat  you me sharedNotes
- =	                   chatWith you toView fromView sharedNotes
-	-||- 
-				(you @: chatWith me (toView  o  switch) (switch o fromView) sharedNotes)
-where
- 	toView 	  (you, me) 				= (Display you, Note me)
- 	fromView  (Display you, Note me) 	= (you, me) 
-	switch 	  (you, me) 				= (me, you)
+//duoChat ::  User User  (Shared (String, String)) -> Task Void
+//duoChat  you me sharedNotes
+ //=	                   chatWith you toView fromView sharedNotes
+    //-||- 
+                //(you @: chatWith me (toView o switch) (switch o fromView) sharedNotes)
+//where
+     //toView 	  (you, me) 				= (Display you, Note me)
+     //fromView  (Display you, Note me) 	= (you, me) 
+    //switch 	  (you, me) 				= (me, you)
 
+chatWith :: User ((String, String) -> (Display String, Note))
+            ((Display String, Note) -> (String, String))
+            (Shared (String, String)) -> Task Void
 chatWith who toV fromV notes
-= 		updateSharedInformation ("Chat with " <+++ who) [UpdateWith toV (\_ view -> fromV view)] notes
-	>>*	[OnAction (Action "Stop" []) (always (return Void))]
+= 		updateSharedInformation ("Chat with " <+++ who) [UpdateWith toV (\_ view -> fromV view)] notes @! Void
+	//>>*	[OnAction (Action "Stop" []) (always (return Void))]
 
 
 //-----

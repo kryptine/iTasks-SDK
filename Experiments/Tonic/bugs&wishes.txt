@@ -2,10 +2,6 @@ Conceptueel / wishlist
 
 Statische flow weergave (en Dynamisch)
 
-* Ook een functie die een taak opleverd is een taak abstractie en zou je als een taak moeten laten zien (*gedaan*) 
-(dus kunnen selecteren voor een trace, resultaat kunnen opvragen)
-Heeft ook zin: ipv een bepaalde applicatie van een taak zou je daarmee iedere applicatie van een taak die je hebt gedefinieerd kunnen tracen
-
 * basic tasks definities verzamelen per module in de statische pull-down menu
 
 * Een extra lijn onder de parameter van een withShare in withShare param (\v ?> ...) zetten ?
@@ -32,11 +28,6 @@ Dit geldt voor bv een parallelle taak, maar ook voor iedere functie die een taak
 Bugs:
 
 Statische Tonic
-- Deze zijn afkomstig van Experiments\SVG_tests\TicTacTop:
-  - task find_players: in de return wordt "{ Players | you }" getoond in plaats van "{ Players | tic=me, tac=you}"
-  - task set_up_users: 
-    - soortgelijk probleem met new
-    - de expressie bij de set task bevat vreemde tekens en de haakjes-structuur ontbreekt
 
 Dynamische Tonic
 
@@ -82,3 +73,12 @@ Dan kun je daar ok de naam van de parallel kwijt (-||-, anyTask, -&&-, parallel)
 
 * In een predicaat staat de infix operator nog prefix (bv in seqTest)
 
+* Deze zijn afkomstig van Experiments\SVG_tests\TicTacTop:
+  - task find_players: in de return wordt "{ Players | you }" getoond in plaats van "{ Players | tic=me, tac=you}"
+  - task set_up_users: 
+    - soortgelijk probleem met new
+    - de expressie bij de set task bevat vreemde tekens en de haakjes-structuur ontbreekt
+
+* Ook een functie die een taak opleverd is een taak abstractie en zou je als een taak moeten laten zien (*gedaan*) 
+(dus kunnen selecteren voor een trace, resultaat kunnen opvragen)
+Heeft ook zin: ipv een bepaalde applicatie van een taak zou je daarmee iedere applicatie van een taak die je hebt gedefinieerd kunnen tracen
