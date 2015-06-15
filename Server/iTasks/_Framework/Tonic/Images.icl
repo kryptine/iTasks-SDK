@@ -412,12 +412,12 @@ renderParallelContainer inh eid mn tn descr ts refs tsrc
     #! bgColor     = appColor False False isInAccessible
     #! isSelected  = 'DS'.member (parentModName, parentTaskName, nodeId) selectedNodes
     #! maxXSpan    = maxSpan [imagexspan tntag : map imagexspan refs]
-    #! taskArgs    = map (\(x, r) -> beside (repeat AtMiddleY) [] [x, xline Nothing (maxXSpan - imagexspan r)] Nothing) (zip2 taskArgs refs)
+    #! taskArgs    = map (\(x, r) -> beside (repeat AtMiddleY) [] [x, xline tLineMarker ((maxXSpan - imagexspan r) + px 8.0)] Nothing) (zip2 taskArgs refs)
     #! argsImg     = tag uArgsTag (above (repeat AtLeft) [] taskArgs Nothing)
-    #! content     = above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, argsImg] Nothing
-    #! bgRect      = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = bgColor }
-                                                                                   <@< { stroke = if isSelected (toSVGColor "navy") (toSVGColor "black") }
-                                                                                   <@< { strokewidth = if isSelected (px 3.0) (px 1.0) }
+    #! content     = above (repeat AtLeft) [] [taskNameImg, xline Nothing (maxXSpan + px 8.0), argsImg] Nothing
+    #! bgRect      = tRoundedRect (maxXSpan + px 8.0) (imageyspan tntag + imageyspan argstag) <@< { fill = bgColor }
+                                                                                              <@< { stroke = if isSelected (toSVGColor "navy") (toSVGColor "black") }
+                                                                                              <@< { strokewidth = if isSelected (px 3.0) (px 1.0) }
     = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
 
   navigateOrSelect :: !ClickMeta !Int !ModelTy -> ModelTy
@@ -876,15 +876,15 @@ mkVertConn :: ![ImageTag] -> Image ModelTy
 mkVertConn ts
   | length ts < 2 = empty (px 0.0) (px 0.0)
   | otherwise
-      #! firstTag  = hd ts
-      #! lastTag   = last ts
-      #! allYSpans = (foldr (\x acc -> imageyspan x + acc) (px 0.0) ts) + px (toReal (length ts) * 5.0)
-      #! firstY    = imageyspan firstTag + px 5.0
-      #! lastY     = imageyspan lastTag + px 5.0
+      #! firstTag   = hd ts
+      #! lastTag    = last ts
+      #! allYSpans  = foldr (\x acc -> imageyspan x + acc) (px 0.0) ts
+      #! halfFirstY = imageyspan firstTag /. 2.0
+      #! halfLastY  = imageyspan lastTag /. 2.0
       = above (repeat AtMiddleX) []
-          [ yline Nothing (firstY /. 2.0) <@< { stroke = toSVGColor "white" }
-          , yline Nothing (allYSpans - (firstY /. 2.0) - (lastY /. 2.0)) <@< { stroke = toSVGColor "black" }
-          , yline Nothing (lastY /. 2.0) <@< { stroke = toSVGColor "white" } ]
+          [ yline Nothing halfFirstY <@< { stroke = toSVGColor "white" }
+          , yline Nothing (allYSpans - halfFirstY - halfLastY) <@< { stroke = toSVGColor "black" }
+          , yline Nothing halfLastY <@< { stroke = toSVGColor "white" } ]
           Nothing
 
 littleman :: Image a
