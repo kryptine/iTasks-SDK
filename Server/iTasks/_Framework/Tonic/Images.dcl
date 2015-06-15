@@ -8,6 +8,7 @@ from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
 
 from iTasks._Framework.Tonic.AbsSyn import :: TonicTask, :: ExprId, :: TaskName, :: ModuleName, :: TExpr
 from iTasks._Framework.Tonic.Types import :: TStability, :: BlueprintRef, :: ListsOfTasks
+from iTasks._Framework.UIDefinition import :: UIAction
 import iTasks._Framework.Generic
 
 from iTasks.API.Core.Types import :: Scale, :: TaskId
@@ -43,7 +44,7 @@ derive class iTask TonicImageState, TClickAction, ClickMeta, BlueprintIdent
                     -> *(!Maybe (Image ModelTy), !*TagSource)
 
 mkTaskImage     :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef
-                   !ListsOfTasks !(Map TaskId TStability)
+                   !ListsOfTasks !(Map TaskId TStability) !(Map TaskId [UIAction])
                    !(Set (ModuleName, TaskName, ExprId)) !(Maybe ClickMeta)
                    !Bool !ModelTy *TagSource
                 -> Image ModelTy

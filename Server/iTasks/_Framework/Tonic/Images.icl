@@ -21,6 +21,7 @@ import iTasks._Framework.Tonic.Types
 import iTasks._Framework.Tonic.Pretty
 import iTasks.API.Core.Types
 import iTasks.API.Extensions.SVG.SVGlet
+import Text
 
 derive class iTask TonicImageState, TClickAction, ClickMeta, BlueprintIdent
 
@@ -63,13 +64,14 @@ ArialItalic10px :== { fontfamily  = "Arial"
   , inh_selected     :: !Set (!ModuleName, !TaskName, !ExprId)
   , inh_outputs      :: !Map TaskId TStability
   , inh_selDetail    :: !Maybe ClickMeta
+  , inh_stepActions  :: !Map TaskId [UIAction]
   }
 
 mkTaskImage :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef
-               !ListsOfTasks !(Map TaskId TStability)
+               !ListsOfTasks !(Map TaskId TStability) !(Map TaskId [UIAction])
                !(Set (ModuleName, TaskName, ExprId)) !(Maybe ClickMeta) !Bool
                !ModelTy *TagSource -> Image ModelTy
-mkTaskImage rs prev trt maplot outputs selected selDetail compact {ActionState | state = tis} tsrc
+mkTaskImage rs prev trt maplot outputs stepActions selected selDetail compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
   #! inh              = { MkImageInh
                         | inh_trt          = trt
@@ -86,6 +88,7 @@ mkTaskImage rs prev trt maplot outputs selected selDetail compact {ActionState |
                         , inh_selected     = selected
                         , inh_outputs      = outputs
                         , inh_selDetail    = selDetail
+                        , inh_stepActions  = stepActions
                         }
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
   #! (img, _)         = tTaskDef trt tt.tt_module tt.tt_name tt.tt_resty tt.tt_args [] tt_body` tsrc
@@ -514,7 +517,7 @@ tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam [var : _] rhsExpr 
 tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] _ tsrc
   #! inh = {inh & inh_in_mapp = True}
   = tBind inh lhsExpr Nothing rhsExpr tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ tsrc
+tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ tsrc // TODO case for "step" as well
   #! inh = {inh & inh_in_mapp = True}
   = tStep inh eid lhsExpr rhsExpr tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-&&-" [lhsExpr : rhsExpr : _] _ tsrc
@@ -722,11 +725,16 @@ tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (headerTag, 
 
 tStep :: !MkImageInh !ExprId !TExpr !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
 tStep inh eid lhsExpr conts tsrc
+  #! actions              = case inh.inh_trt.bpr_instance of
+                              Just bpinst -> case 'DM'.get bpinst.bpi_taskId inh.inh_stepActions of
+                                               Just xs -> xs
+                                               _       -> []
+                              _           -> []
   #! (lhs, tsrc)          = tExpr2Image inh lhsExpr tsrc
   #! conts                = tSafeExpr2List conts
   #! branchActivity       = map (containsActiveNodes inh) conts
   #! someActivity         = foldr (\x acc -> x || acc) False branchActivity
-  #! (conts`, tsrc)       = mapSt (\(cont, possiblyActive) -> tStepCont {inh & inh_inaccessible = someActivity && not possiblyActive} cont) (zip2 conts branchActivity) tsrc
+  #! (conts`, tsrc)       = mapSt (\(cont, possiblyActive) -> tStepCont {inh & inh_inaccessible = someActivity && not possiblyActive} actions cont) (zip2 conts branchActivity) tsrc
   #! (conts`, refs, tsrc) = prepCases [] conts` tsrc
   #! vertConn             = mkVertConn refs
   #! contsImg             = above (repeat AtLeft) [] conts` Nothing
@@ -747,14 +755,17 @@ tSafeExpr2List (TFApp "_Cons" [hd : tl : _] _) = [hd : tUnsafeExpr2List tl]
 tSafeExpr2List (TFApp "_Nil"  _             _) = []
 tSafeExpr2List e                               = [e]
 
-tStepCont :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
-tStepCont inh (TFApp "OnAction" [TFApp "Action" [TLit action : _] _ : cont : _ ] _) tsrc
-  = mkStepCont inh (Just action) cont tsrc
-tStepCont inh (TFApp "OnValue"  [cont : _ ] _) tsrc
+tStepCont :: !MkImageInh ![UIAction] !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
+tStepCont inh actions (TFApp "OnAction" [TFApp "Action" [TLit actionLit : _] _ : cont : _ ] _) tsrc
+  = mkStepCont inh (Just (actionLit, foldr f False actions)) cont tsrc
+  where
+  f {UIAction | action = Action an _, enabled} acc = (replaceSubString "\"" "" an == replaceSubString "\"" "" actionLit && enabled) || acc
+  f _ acc = acc
+tStepCont inh _ (TFApp "OnValue"  [cont : _ ] _) tsrc
   = mkStepCont inh Nothing cont tsrc
-tStepCont inh (TFApp "OnException" [cont : _ ] _)     tsrc
+tStepCont inh _ (TFApp "OnException" [cont : _ ] _)     tsrc
   = mkStepCont inh Nothing cont tsrc
-tStepCont inh (TFApp "OnAllExceptions" [cont : _ ] _) tsrc
+tStepCont inh _ (TFApp "OnAllExceptions" [cont : _ ] _) tsrc
   = mkStepCont inh Nothing cont tsrc
 
 mkStepCont inh mact (TFApp "always" [x : _] _) [ref : tsrc]
@@ -832,15 +843,17 @@ mkStepCont inh mact e [ref : tsrc]
   = ( beside (repeat AtMiddleY) [] [conditionImg, x] Nothing
     , tsrc)
 
-addAction :: !(Maybe String) !(Image ModelTy) !*TagRef -> Image ModelTy
-addAction (Just action) arr (t, uT)
+addAction :: !(Maybe (String, Bool)) !(Image ModelTy) !*TagRef -> Image ModelTy
+addAction (Just (action, enabled)) arr (t, uT)
   #! l = tag uT (margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, text ArialBold10px (" " +++ action)] Nothing))
-  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
+  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill = toSVGColor (if enabled "#ccc" "#ebebeb")}
+                                                                                                            <@< {strokewidth = px (if enabled 1.0 0.0)}
                                                      , l] Nothing
   = beside (repeat AtMiddleY) [] [l`, arr] Nothing
-addAction (Just action) arr (t, uT)
+addAction (Just (action, enabled)) arr (t, uT)
   #! l = tag uT (margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, text ArialBold10px (" " +++ action)] Nothing))
-  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill = toSVGColor "#ebebeb"} <@< {strokewidth = px 0.0}
+  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill = toSVGColor (if enabled "#ccc" "#ebebeb")}
+                                                                                                            <@< {strokewidth = px (if enabled 1.0 0.0)}
                                                      , l] Nothing
   = beside (repeat AtMiddleY) [] [l`, arr] Nothing
 addAction _ _ _ = empty (px 0.0) (px 0.0)

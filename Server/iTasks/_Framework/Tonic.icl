@@ -309,6 +309,7 @@ tonicExtWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrap
 isSpecialBlueprintTask :: !(!String, !String) -> Bool
 isSpecialBlueprintTask ("iTasks.API.Core.Types"            , ">>="     ) = True
 isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", ">>|"     ) = True
+isSpecialBlueprintTask ("iTasks.API.Core.TaskCombinators"  , "step"    ) = True
 isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", ">>*"     ) = True
 isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", "-&&-"    ) = True
 isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", "-||-"    ) = True
@@ -319,11 +320,52 @@ isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", "allTasks") = True
 isSpecialBlueprintTask ("iTasks.API.Extension.User"        , "@:"      ) = True
 isSpecialBlueprintTask _                                                 = False
 
+tonicEnabledSteps :: RWShared () (Map TaskId [UIAction]) (Map TaskId [UIAction])
+tonicEnabledSteps = sdsTranslate "tonicEnabledSteps" (\t -> t +++> "-tonicEnabledSteps")
+                                 (cachedJSONFileStore NS_TONIC_INSTANCES True True False (Just 'DM'.newMap))
+
+tonicActionsForTaskID :: RWShared TaskId [UIAction] [UIAction]
+tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicEnabledSteps
+  where
+  read :: TaskId (Map TaskId [UIAction]) -> MaybeError TaskException [UIAction]
+  read tid trtMap = maybe (Error (exception ("Could not find UIAction for task " <+++ tid))) Ok ('DM'.get tid trtMap)
+
+  write :: TaskId (Map TaskId [UIAction]) [UIAction] -> MaybeError TaskException (Maybe (Map TaskId [UIAction]))
+  write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
+
+  notify :: TaskId (Map TaskId [UIAction]) [UIAction] -> SDSNotifyPred TaskId
+  notify tid _ _ = \tid` -> tid == tid`
+
+derive class iTask UIAction
+
+stepEval eval nid event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
+  = case taskIdFromTaskTree taskTree of
+      Ok childTaskId=:(TaskId childInstanceNo _)
+        # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+        = case mrtMap of
+            Ok rtMap
+              # (cct, iworld) = mkCompleteTrace childInstanceNo callTrace iworld
+              = case 'DM'.get childTaskId rtMap of
+                  Just parentBPRef=:{bpr_instance = Just parentBPInst}
+                    # iworld               = updRTMap nid childTaskId cct parentBPRef parentBPInst iworld
+                    # (taskResult, iworld) = eval event evalOpts taskTree iworld
+                    # actions              = case taskResult of
+                                               ValueResult _ _ (TaskRep uiDef) _
+                                                 = uiDefActions uiDef
+                                               _ = []
+                    # iworld               = snd ('DSDS'.write actions (sdsFocus childTaskId tonicActionsForTaskID) iworld)
+                    = (taskResult, iworld)
+                  _ = eval event evalOpts taskTree iworld
+            _ = eval event evalOpts taskTree iworld
+      _ = eval event evalOpts taskTree iworld
+
 /**
  * ModuleName and TaskName identify the blueprint, of which we need to
  * highlight nodes.
  */
 tonicWrapApp` :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId (Task a) -> Task a | iTask a
+tonicWrapApp` _ _ ("iTasks.API.Common.TaskCombinators", ">>*") nid (Task eval) = Task (stepEval eval nid)
+tonicWrapApp` _ _ ("iTasks.API.Core.TaskCombinators", "step") nid (Task eval) = Task (stepEval eval nid)
 tonicWrapApp` _ _ wrapInfo _ t
   | isSpecialBlueprintTask wrapInfo = t
 tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ nid t=:(Task eval)
@@ -340,7 +382,7 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ nid t=:(Task eval)
                 //#! iworld = trace_n ("childTaskId = " +++ toString childTaskId +++ " nid = " +++ toString nid +++
                 //" parentBPInst.bpi_taskId = " +++ toString parentBPInst.bpi_taskId +++ " parentModuleName = " +++ parentModuleName +++
                 //" parentTaskName = " +++ parentTaskName +++ " appModNm = " +++ appModNm +++ " appFnNm = " +++ appFnNm +++ " wrappedModuleName = " +++ wrappedModuleName +++ " wrappedTaskName = " +++ wrappedTaskName) iworld
-                # iworld       = updRTMap childTaskId cct parentBPRef parentBPInst iworld
+                # iworld       = updRTMap nid childTaskId cct parentBPRef parentBPInst iworld
                 # (tr, iworld) = eval event evalOpts taskTree iworld
                 # iworld       = evalInteract tr eval childTaskId event evalOpts taskTree iworld
                 # iworld       = updLoTMap childTaskId parentBPInst.bpi_taskId iworld
@@ -381,17 +423,6 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ nid t=:(Task eval)
                           _ = (viewInformation (Title "Notice") [] (pp3 (parentModuleName, parentTaskName, nid) +++ " not selected for tracing") @! (), TNoVal)
     = snd ('DSDS'.modify ('DM'.put childTaskId editor) storedOutputEditors iworld)
 
-  updRTMap childTaskId=:(TaskId instanceNo _) cct parentBPRef parentBPInst iworld
-    # (newActiveNodes, iworld) = setActiveNodes parentBPInst childTaskId cct nid iworld
-    # newActiveNodeMap         = 'DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems newActiveNodes)]
-    # oldActiveNodes           = 'DM'.difference ('DM'.union parentBPInst.bpi_previouslyActive
-                                                             ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems parentBPInst.bpi_activeNodes)]))
-                                                 newActiveNodeMap // This difference is required, because currently active nodes may up in the old set due to the iteration over parallel branches
-    # (_, iworld) = 'DSDS'.write {parentBPRef & bpr_instance = Just { parentBPInst
-                                                                    & bpi_activeNodes      = newActiveNodes
-                                                                    , bpi_previouslyActive = oldActiveNodes}} (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld
-    = iworld
-
   updLoTMap childTaskId parentTaskId iworld
     # (mbChildBPRef, iworld) = getBlueprintRef childTaskId iworld
     = case mbChildBPRef of
@@ -399,6 +430,18 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ nid t=:(Task eval)
           # (_, iworld) = 'DSDS'.write ('DIS'.singleton 0 (childBPRef.bpr_moduleName, childBPRef.bpr_taskName)) (sdsFocus (parentTaskId, nid) tonicUpdatesForTaskAndExprId) iworld
           = iworld
         _ = iworld
+
+updRTMap nid childTaskId=:(TaskId instanceNo _) cct parentBPRef parentBPInst iworld
+  # (newActiveNodes, iworld) = setActiveNodes parentBPInst childTaskId cct nid iworld
+  # newActiveNodeMap         = 'DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems newActiveNodes)]
+  # oldActiveNodes           = 'DM'.difference ('DM'.union parentBPInst.bpi_previouslyActive
+                                                           ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems parentBPInst.bpi_activeNodes)]))
+                                               newActiveNodeMap // This difference is required, because currently active nodes may up in the old set due to the iteration over parallel branches
+  # (_, iworld) = 'DSDS'.write {parentBPRef & bpr_instance = Just { parentBPInst
+                                                                  & bpi_activeNodes      = newActiveNodes
+                                                                  , bpi_previouslyActive = oldActiveNodes}} (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld
+  = iworld
+
 
 setActiveNodes :: !BlueprintInstance !TaskId !Calltrace !ExprId !*IWorld -> *(!Map ListId (IntMap (TaskId, ExprId)), !*IWorld)
 setActiveNodes {bpi_taskId = parentTaskId, bpi_activeNodes = parentActiveNodes} childTaskId cct nid iworld
@@ -675,8 +718,10 @@ showBlueprint :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !ListsOfT
               -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showBlueprint rs prev bpref maplot selected task selDetail compact depth
   =               get (mapRead (fmap snd) storedOutputEditors)
-  >>~ \outputs -> updateInformation ()
-                    [imageUpdate id (mkTaskImage rs prev bpref maplot outputs selected selDetail compact) (\_ _ -> Nothing) (const id)]
+  >>~ \outputs -> get tonicEnabledSteps
+  >>~ \steps   ->
+                  updateInformation ()
+                    [imageUpdate id (mkTaskImage rs prev bpref maplot outputs steps selected selDetail compact) (\_ _ -> Nothing) (const id)]
                     { ActionState
                     | state  = { tis_task    = task
                                , tis_depth   = depth
