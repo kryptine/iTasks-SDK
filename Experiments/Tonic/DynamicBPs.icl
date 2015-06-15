@@ -36,6 +36,7 @@ Start world = startEngine [ publish "/" (WebApp []) (\_-> dynamicBPs1 (viewStep 
                           , publish "/alice"	(WebApp []) (\_-> workAs (AuthenticatedUser "alice" [] Nothing) doMyWork)
                           , publish "/twoTasksTest" (WebApp []) (\_-> twoTasksTest)	
                           , publish "/bikes" (WebApp []) (\_-> bikes)	
+                          , publish "/bikes2" (WebApp []) (\_-> bikes2)	
 
 
                           ] world
@@ -246,6 +247,15 @@ bikes
 	>>| 			updateSharedInformation "update bikes in station" [] station
 	>>|				get station
 	>>= \bikes ->	viewInformation "number of bikes in station:" [] (length bikes)
+	
+
+bikes2
+	=				(		set [{id = i} \\ i <- [0..3]] station
+					>>|		updateSharedInformation "update bikes in station" [] station)
+					-&&-
+					(wait "lets wait for enough bikes" (\bikes -> length bikes >= 6) station
+					>>= \bikes -> viewInformation "we have enough bikes" [] bikes)	
+					
 	
 	
 
