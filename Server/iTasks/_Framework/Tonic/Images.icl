@@ -312,35 +312,28 @@ tBind inh l mpat r tsrc
   = (beside (repeat AtMiddleY) [] linePart Nothing, tsrc)
 
 //// TODO Highlight nodes here?
-tParSumL :: !MkImageInh !ExprId !TExpr !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
-tParSumL inh eid l r tsrc // TODO This is actually not correct yet... first image shouldn't have lines
-  #! (l`, tsrc) = tExpr2Image inh l tsrc
-  #! (r`, tsrc) = tExpr2Image inh r tsrc
-  #! l` = margin (px 5.0, px 0.0) l`
-  #! r` = margin (px 5.0, px 0.0) r`
-  #! (conts`, refs, tsrc) = prepCases [] [l`, r`] tsrc
-  #! vertConn             = mkVertConn refs
-  #! parImg               = above (repeat AtLeft) [] conts` Nothing
-  = (beside (repeat AtMiddleY) [] [vertConn,  parImg, vertConn, tHorizConn ] Nothing, tsrc)
-tParSumR :: !MkImageInh !ExprId !TExpr !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
-tParSumR inh eid l r tsrc // TODO This is actually not correct yet... second image shouldn't have lines
+tParSumL :: !MkImageInh !ExprId !String !String !TExpr !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
+tParSumL inh eid mn tn l r tsrc // TODO This is actually not correct yet... first image shouldn't have lines
   #! (l`, tsrc)           = tExpr2Image inh l tsrc
   #! (r`, tsrc)           = tExpr2Image inh r tsrc
   #! l`                   = margin (px 5.0, px 0.0) l`
   #! r`                   = margin (px 5.0, px 0.0) r`
   #! (conts`, refs, tsrc) = prepCases [] [l`, r`] tsrc
-  #! vertConn             = mkVertConn refs
-  #! parImg               = above (repeat AtLeft) [] conts` Nothing
-  = (beside (repeat AtMiddleY) [] [vertConn, parImg, vertConn] Nothing, tsrc)
-tParSumN :: !MkImageInh !ExprId !(Either TExpr [TExpr]) !*TagSource -> *(!Image ModelTy, !*TagSource)
-tParSumN inh eid ts tsrc
+  = renderParallelContainer inh eid mn tn "Parallel (-||): left bias" conts` refs tsrc
+tParSumR :: !MkImageInh !ExprId !String !String !TExpr !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
+tParSumR inh eid mn tn l r tsrc // TODO This is actually not correct yet... second image shouldn't have lines
+  #! (l`, tsrc)           = tExpr2Image inh l tsrc
+  #! (r`, tsrc)           = tExpr2Image inh r tsrc
+  #! l`                   = margin (px 5.0, px 0.0) l`
+  #! r`                   = margin (px 5.0, px 0.0) r`
+  #! (conts`, refs, tsrc) = prepCases [] [l`, r`] tsrc
+  = renderParallelContainer inh eid mn tn "Parallel (||-): right bias" conts` refs tsrc
+tParSumN :: !MkImageInh !ExprId !String !String !String !(Either TExpr [TExpr]) !*TagSource -> *(!Image ModelTy, !*TagSource)
+tParSumN inh eid mn tn descr ts tsrc
   #! (ts`, tsrc)       = mkParSum inh eid ts tsrc
   #! ts`               = map (margin (px 5.0, px 0.0)) ts`
   #! (ts`, refs, tsrc) = prepCases [] ts` tsrc
-  #! vertConn          = mkVertConn refs
-  #! contsImg          = above (repeat AtLeft) [] ts` Nothing
-  = ( beside (repeat AtMiddleY) [] [vertConn, contsImg, vertConn] Nothing
-    , tsrc)
+  = renderParallelContainer inh eid mn tn descr ts` refs tsrc
   where
   mkParSum :: !MkImageInh !ExprId !(Either TExpr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource) // TODO This is wrong
   mkParSum inh eid (Left e) tsrc
@@ -357,13 +350,11 @@ tParSumN inh eid ts tsrc
       # (img, tsrc) = tExpr2Image inh e tsrc
       = ([img], tsrc)
   mkParSum _ _ (Right es) tsrc = mapSt (tExpr2Image inh) es tsrc
-tParProdN :: !MkImageInh !ExprId !(Either TExpr [TExpr]) !*TagSource -> *(!Image ModelTy, !*TagSource)
-tParProdN inh eid ts tsrc
+tParProdN :: !MkImageInh !ExprId !String !String !String !(Either TExpr [TExpr]) !*TagSource -> *(!Image ModelTy, !*TagSource)
+tParProdN inh eid mn tn descr ts [(contentsTag, uContentsTag) : tsrc]
   #! (imgs, tsrc)     = mkParProd inh eid ts tsrc
   #! (ts, refs, tsrc) = prepCases [] imgs tsrc
-  #! vertConn         = mkVertConn refs
-  = ( beside (repeat AtMiddleY) [] [vertConn, above (repeat AtLeft) [] ts Nothing, vertConn] Nothing
-    , tsrc)
+  = renderParallelContainer inh eid mn tn descr ts refs tsrc
   where
   mkParProd :: !MkImageInh !ExprId !(Either TExpr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource)
   mkParProd inh eid (Left pp) tsrc
@@ -380,6 +371,75 @@ tParProdN inh eid ts tsrc
       # (img, tsrc) = tExpr2Image inh pp tsrc
       = ([img], tsrc)
   mkParProd _ _ (Right xs) tsrc = mapSt (tExpr2Image inh) xs tsrc
+
+renderParallelContainer :: !MkImageInh !ExprId !ModuleName !TaskName !String ![Image ModelTy] ![ImageTag] !*TagSource -> *(!Image ModelTy, !*TagSource)
+renderParallelContainer inh eid mn tn descr ts refs tsrc
+  #! mActiveTid         = case inh.inh_trt.bpr_instance of
+                            Just bpinst -> activeNodeTaskId eid bpinst.bpi_activeNodes
+                            _           -> Nothing
+  #! isActive           = isJust mActiveTid
+  #! mPrevActiveTid     = 'DM'.get eid inh.inh_prev
+  #! mbNavTo            = if isActive mActiveTid mPrevActiveTid
+  #! stability          = maybe (maybe TNoVal (const TStable) mPrevActiveTid) (\tid -> fromMaybe TNoVal ('DM'.get tid inh.inh_outputs)) mActiveTid
+  #! taskIdStr          = case (mActiveTid, mPrevActiveTid) of
+                            (Just x, _) -> " (" +++ toString x +++ ")"
+                            (_, Just x) -> " (" +++ toString x +++ ")"
+                            _           -> ""
+  #! displayName        = descr +++ taskIdStr
+  #! (taskApp, tsrc)    = tParApp inh.inh_compact inh.inh_inaccessible eid inh.inh_selected inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName displayName ts refs tsrc
+  #! clickMeta          = mkClickMeta (fmap (\x -> x.bpi_taskId) inh.inh_trt.bpr_instance) mbNavTo
+  #! valNodeIsSelected  = case inh.inh_selDetail of
+                            Just { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}
+                                 , click_origin_mbnodeId} -> bpident_moduleName == inh.inh_trt.bpr_moduleName && bpident_taskName == inh.inh_trt.bpr_taskName && click_origin_mbnodeId == Just eid
+                            _                             -> False
+  #! taskApp            = taskApp <@< { onclick = navigateOrSelect clickMeta, local = False }
+  #! valAnchor          = circle (px 12.0) <@< { onclick = openDetails clickMeta, local = False }
+                                           <@< { fill = case stability of
+                                                          TNoVal    -> WhiteColor
+                                                          TStable   -> PrevActiveColor
+                                                          TUnstable -> CurrActiveColor
+                                               }
+                                           <@< { stroke = if valNodeIsSelected (toSVGColor "navy") (toSVGColor "black") }
+                                           <@< { strokewidth = if valNodeIsSelected (px 3.0) (px 1.0) }
+  #! isSelected         = 'DS'.member (inh.inh_trt.bpr_moduleName, inh.inh_trt.bpr_taskName, eid) inh.inh_selected
+  #! inclArr            = beside (repeat AtMiddleY) [] (if isSelected [taskApp, valAnchor] [taskApp]) Nothing
+  #! resImg             = inclArr
+  = (resImg, tsrc)
+  where
+  tParApp :: !Bool !Bool !ExprId !(Set (ModuleName, TaskName, ExprId)) !ModuleName !TaskName !TaskName ![Image ModelTy] ![ImageTag] !*TagSource -> *(!Image ModelTy, !*TagSource)
+  tParApp isCompact isInAccessible nodeId selectedNodes parentModName parentTaskName taskName taskArgs refs [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
+    #! taskNameImg = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
+    #! bgColor     = appColor False False isInAccessible
+    #! isSelected  = 'DS'.member (parentModName, parentTaskName, nodeId) selectedNodes
+    #! maxXSpan    = maxSpan [imagexspan tntag : map imagexspan refs]
+    #! taskArgs    = map (\(x, r) -> beside (repeat AtMiddleY) [] [x, xline Nothing (maxXSpan - imagexspan r)] Nothing) (zip2 taskArgs refs)
+    #! argsImg     = tag uArgsTag (above (repeat AtLeft) [] taskArgs Nothing)
+    #! content     = above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, argsImg] Nothing
+    #! bgRect      = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = bgColor }
+                                                                                   <@< { stroke = if isSelected (toSVGColor "navy") (toSVGColor "black") }
+                                                                                   <@< { strokewidth = if isSelected (px 3.0) (px 1.0) }
+    = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
+
+  navigateOrSelect :: !ClickMeta !Int !ModelTy -> ModelTy
+  navigateOrSelect meta 1 st = { ActionState | st & action = Just (TSelectNode, meta) }
+  navigateOrSelect _    _ st = st
+
+  mkClickMeta :: !(Maybe TaskId) !(Maybe TaskId) -> ClickMeta
+  mkClickMeta mborig mbtarget =
+    { click_origin_mbbpident = Just { bpident_moduleName = inh.inh_trt.bpr_moduleName
+                                    , bpident_taskName   = inh.inh_trt.bpr_taskName
+                                    , bpident_taskId     = mborig
+                                    }
+    , click_origin_mbnodeId  = Just eid
+    , click_target_bpident   = { bpident_moduleName = mn
+                               , bpident_taskName   = tn
+                               , bpident_taskId     = mbtarget
+                               }
+    }
+
+  openDetails :: !ClickMeta !Int !ModelTy -> ModelTy
+  openDetails meta 1 st = { ActionState | st & action = Just (TDetailAction, meta) }
+  openDetails _    _ st = st
 
 tDiamond :: Image ModelTy
 tDiamond = rotate (deg 45.0) (rect (px 16.0) (px 16.0))
@@ -438,25 +498,6 @@ tTaskDef bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTa
   mkArgAndTy :: !(!(!TExpr, !TExpr), !Maybe TExpr) -> Image ModelTy
   mkArgAndTy ((arg, ty), mvar) = text ArialRegular10px (ppTExpr arg +++ " :: " +++ ppTExpr ty +++ (maybe "" (\x -> " = " +++ ppTExpr x) mvar))
 
-
-
-
-//tFunctorApp :: !MkImageInh !TExpr !VarName ![VarName] !*TagSource -> *(!Image ModelTy, !*TagSource)
-//tFunctorApp inh texpr tffun args [(nmtag, uNmTag) : (argstag, uArgsTag) : tsrc]
-  //#! tfNameImg    = tag uNmTag (margin (px 5.0) (text ArialItalic10px tffun))
-  //#! tfArgsImgs   = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] (map (text ArialItalic10px) args) Nothing))
-  //#! (expr, tsrc) = tExpr2Image inh texpr tsrc
-  //#! maxXSpan     = maxSpan [imagexspan nmtag, imagexspan argstag]
-  //#! bgRect       = rect maxXSpan (imageyspan nmtag + imageyspan argstag)
-                      //<@< { fill        = toSVGColor "white" }
-                      //<@< { stroke      = toSVGColor "black" }
-                      //<@< { strokewidth = px 1.0 }
-  //#! tfContents   = above (repeat AtLeft) [] (case args of
-                                                //[] -> [tfNameImg]
-                                                //_  -> [tfNameImg, xline Nothing maxXSpan, tfArgsImgs]) Nothing
-  //#! tfApp        = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing
-  //= (beside (repeat AtMiddleY) [] [tfApp, tHorizConnArr, expr] Nothing, tsrc)
-
 activeNodeTaskId :: !ExprId !(Map ListId (IntMap (TaskId, ExprId))) -> Maybe TaskId
 activeNodeTaskId eid activeNodes
   = case [tid \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems activeNodes) | eid == nid] of
@@ -475,21 +516,20 @@ tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] _ tsrc
 tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ tsrc
   = tStep inh eid lhsExpr rhsExpr tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-&&-" [lhsExpr : rhsExpr : _] _ tsrc
-  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel (-&&-): both tasks" tsrc
+  = tParProdN inh eid mn tn "Parallel (-&&-): both tasks" (Right [lhsExpr, rhsExpr]) tsrc
 tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"allTasks" [x] assoc tsrc
-  #! ts = if (tExprIsList x) (tUnsafeExpr2List x) [x]
-  = renderTaskApp inh eid mn tn ts "Parallel allTasks" tsrc
+  = tParProdN inh eid mn tn "Parallel allTasks" (if (tExprIsList x) (Right (tUnsafeExpr2List x)) (Left x)) tsrc
 tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"anyTask" [x] assoc tsrc
-  #! ts = if (tExprIsList x) (tUnsafeExpr2List x) [x]
-  = renderTaskApp inh eid mn tn ts "Parallel anyTask" tsrc
+  = tParSumN inh eid mn tn "Parallel anyTask" (if (tExprIsList x) (Right (tUnsafeExpr2List x)) (Left x)) tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||-" [lhsExpr : rhsExpr : _] _ tsrc
-  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel (-||-): any task" tsrc
+  = tParSumN inh eid mn tn "Parallel (-||-): any task" (Right [lhsExpr, rhsExpr]) tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"||-" [lhsExpr : rhsExpr : _] _ tsrc
-  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel (||-): right bias" tsrc
+  = tParSumR inh eid mn tn lhsExpr rhsExpr tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||" [lhsExpr : rhsExpr : _] _ tsrc
-  = renderTaskApp inh eid mn tn [lhsExpr, rhsExpr] "Parallel (-||): left bias" tsrc
+  = tParSumL inh eid mn tn lhsExpr rhsExpr tsrc
 tMApp inh eid _ modName taskName taskArgs _ tsrc = renderTaskApp inh eid modName taskName taskArgs taskName tsrc
 
+renderTaskApp :: !MkImageInh !ExprId !String !String ![TExpr] !String !*TagSource -> *(!Image ModelTy, !*TagSource)
 renderTaskApp inh eid modName taskName taskArgs displayName tsrc
   #! (taskArgs`, tsrc)  = mapSt (tExpr2Image {inh & inh_in_mapp = True}) taskArgs tsrc
   #! mActiveTid         = case inh.inh_trt.bpr_instance of
@@ -631,7 +671,6 @@ tDefaultMApp` isCompact isActive wasActive isInAccessible nodeId selectedNodes p
                                                                        <@< { strokewidth = if isSelected (px 3.0) (px 1.0) }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskNameImg] Nothing, tsrc)
       taskArgs
-        #! taskArgs = map (margin (px 1.5, px 0.0)) taskArgs
         #! argsImg  = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] taskArgs Nothing))
         #! maxXSpan = maxSpan [imagexspan tntag, imagexspan argstag]
         #! content  = above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, argsImg] Nothing
@@ -815,7 +854,8 @@ prepCases patStrs pats tsrc
   #! pats               = zipWith addLhs pats allPatStrs
   #! (pats, tags, tsrc) = tagImgs pats tsrc
   #! maxXSpan           = maxSpan (map imagexspan tags)
-  = (zipWith (prepCase maxXSpan) pats tags, tags, tsrc)
+  #! imgs               = zipWith (prepCase maxXSpan) pats tags
+  = tagImgs imgs tsrc
   where
   addLhs :: !(Image ModelTy) !String -> Image ModelTy
   addLhs pat "" = beside (repeat AtMiddleY) [] [tHorizConnArr, pat] Nothing
