@@ -349,6 +349,7 @@ tParSumN inh eid mn tn descr ts tsrc
 tParProdN :: !MkImageInh !ExprId !String !String !String !(Either TExpr [TExpr]) !*TagSource -> *(!Image ModelTy, !*TagSource)
 tParProdN inh eid mn tn descr ts [(contentsTag, uContentsTag) : tsrc]
   #! (imgs, tsrc)     = mkParProd inh eid ts tsrc
+  #! imgs             = map (margin (px 5.0, px 0.0)) imgs
   #! (ts, refs, tsrc) = prepCases [] imgs tsrc
   = renderParallelContainer inh eid mn tn descr ts refs tsrc
   where
@@ -502,32 +503,45 @@ activeNodeTaskId eid activeNodes
 
 tMApp :: !MkImageInh !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr] !TPriority !*TagSource -> *(!Image ModelTy, !*TagSource)
 tMApp inh eid _ "iTasks.API.Extensions.User" "@:" [lhsExpr : rhsExpr : _] _ tsrc
+  #! inh = {inh & inh_in_mapp = True}
   = tAssign inh lhsExpr rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>|" [lhsExpr : rhsExpr : _] _ tsrc
+  #! inh = {inh & inh_in_mapp = True}
   = tBind inh lhsExpr Nothing rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam [var : _] rhsExpr : _] _ tsrc
+  #! inh = {inh & inh_in_mapp = True}
   = tBind inh lhsExpr (Just var) rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] _ tsrc
+  #! inh = {inh & inh_in_mapp = True}
   = tBind inh lhsExpr Nothing rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ tsrc
+  #! inh = {inh & inh_in_mapp = True}
   = tStep inh eid lhsExpr rhsExpr tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-&&-" [lhsExpr : rhsExpr : _] _ tsrc
+  #! inh = {inh & inh_in_mapp = True}
   = tParProdN inh eid mn tn "Parallel (-&&-): both tasks" (Right [lhsExpr, rhsExpr]) tsrc
 tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"allTasks" [x] assoc tsrc
+  #! inh = {inh & inh_in_mapp = True}
   = tParProdN inh eid mn tn "Parallel allTasks" (if (tExprIsList x) (Right (tUnsafeExpr2List x)) (Left x)) tsrc
 tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"anyTask" [x] assoc tsrc
+  #! inh = {inh & inh_in_mapp = True}
   = tParSumN inh eid mn tn "Parallel anyTask" (if (tExprIsList x) (Right (tUnsafeExpr2List x)) (Left x)) tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||-" [lhsExpr : rhsExpr : _] _ tsrc
+  #! inh = {inh & inh_in_mapp = True}
   = tParSumN inh eid mn tn "Parallel (-||-): any task" (Right [lhsExpr, rhsExpr]) tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"||-" [lhsExpr : rhsExpr : _] _ tsrc
+  #! inh = {inh & inh_in_mapp = True}
   = tParSumR inh eid mn tn lhsExpr rhsExpr tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||" [lhsExpr : rhsExpr : _] _ tsrc
+  #! inh = {inh & inh_in_mapp = True}
   = tParSumL inh eid mn tn lhsExpr rhsExpr tsrc
-tMApp inh eid _ modName taskName taskArgs _ tsrc = renderTaskApp inh eid modName taskName taskArgs taskName tsrc
+tMApp inh eid _ modName taskName taskArgs _ tsrc
+  #! inh = {inh & inh_in_mapp = True}
+  = renderTaskApp inh eid modName taskName taskArgs taskName tsrc
 
 renderTaskApp :: !MkImageInh !ExprId !String !String ![TExpr] !String !*TagSource -> *(!Image ModelTy, !*TagSource)
 renderTaskApp inh eid modName taskName taskArgs displayName tsrc
-  #! (taskArgs`, tsrc)  = mapSt (tExpr2Image {inh & inh_in_mapp = True}) taskArgs tsrc
+  #! (taskArgs`, tsrc)  = mapSt (tExpr2Image inh) taskArgs tsrc
   #! mActiveTid         = case inh.inh_trt.bpr_instance of
                             Just bpinst -> activeNodeTaskId eid bpinst.bpi_activeNodes
                             _           -> Nothing
