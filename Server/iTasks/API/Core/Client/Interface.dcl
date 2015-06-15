@@ -1,10 +1,13 @@
 definition module iTasks.API.Core.Client.Interface
 
 import StdString, StdGeneric, Data.Void, Data.Maybe
+import iTasks
 
 from Control.Applicative import class Applicative
 from Data.Functor        import class Functor
 from Control.Monad       import class Monad
+
+derive class iTask JSVal, JSObject, JSFunction, JSArray
 
 :: DomElementId	:== String
 

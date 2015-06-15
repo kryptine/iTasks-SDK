@@ -13,8 +13,8 @@ import iTasks.API.Core.Client.Component
 :: EditletEvent d a            :== ComponentEvent d a
 :: EditletHTML                 :== ComponentHTML
 
-:: Editlet sv d
-  = E.cl f:
+:: Editlet sv d cl
+  =
   { currVal    :: sv // TODO: implementation detail, remove it
 
   // This field is unnecessary, gDefault could be used instead of it
@@ -22,8 +22,8 @@ import iTasks.API.Core.Client.Component
   , defValSrv  :: sv
 
   , genUI      :: ComponentId *World -> *(EditletHTML, *World)
-  , initClient :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun f) ComponentId *JSWorld -> *(cl, *JSWorld)
-  , appDiffClt :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun f) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
+  , initClient :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId *JSWorld -> *(cl, *JSWorld)
+  , appDiffClt :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
   , genDiffSrv :: sv sv -> Maybe d
   , appDiffSrv :: d  sv -> sv
   }

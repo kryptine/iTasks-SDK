@@ -8,30 +8,30 @@ from Data.Map import qualified get
 import StdMisc
  
 // Client-side types
-JSONEncode{|Editlet|} _ _ _ tt = [dynamicJSONEncode tt]		
-JSONDecode{|Editlet|} _ _ _ [tt:c] = (dynamicJSONDecode tt,c)
-JSONDecode{|Editlet|} _ _ _ c = (Nothing,c)
+JSONEncode{|Editlet|} _ _ _ _ tt = [dynamicJSONEncode tt]		
+JSONDecode{|Editlet|} _ _ _ _ [tt:c] = (dynamicJSONDecode tt,c)
+JSONDecode{|Editlet|} _ _ _ _ c = (Nothing,c)
  
-gDefault{|Editlet|} fa _
+gDefault{|Editlet|} fa _ fc
   = { Editlet
     | currVal   = fa
     , defValSrv = fa
         
     , genUI     = \_ world -> ({ComponentHTML | html = RawText "", height = FlexSize, width = FlexSize}, world)
-    , initClient = \_ _ world -> (fa, world)
+    , initClient = \_ _ world -> (fc, world)
     , appDiffClt = \_ _ _ a world -> (a, world)
     , genDiffSrv = \_ _ -> Nothing
     , appDiffSrv = \_ x -> x                  
   }
 
-gEq{|Editlet|} fa _ editlet1 editlet2 = fa editlet1.Editlet.currVal editlet2.Editlet.currVal //Only compare values
+gEq{|Editlet|} fa _ _ editlet1 editlet2 = fa editlet1.Editlet.currVal editlet2.Editlet.currVal //Only compare values
 
-gText{|Editlet|} fa _ mode (Just editlet) = fa mode (Just editlet.Editlet.currVal)
-gText{|Editlet|} fa _ mode Nothing = fa mode Nothing
+gText{|Editlet|} fa _ _ mode (Just editlet) = fa mode (Just editlet.Editlet.currVal)
+gText{|Editlet|} fa _ _ mode Nothing = fa mode Nothing
 
 import graph_to_sapl_string
 
-gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncD jsonDecD dp
+gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ _ _ _ _ _ _ jsonEncD jsonDecD dp
     ({ Editlet | currVal, defValSrv, genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv}, mask, ver) 
     meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
     
@@ -91,9 +91,9 @@ where
     setEditletDiffs ver value opts diffs iworld=:{IWorld|current=current=:{editletDiffs}}
         = {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId dp) (ver,toJSONA value,opts,diffs) editletDiffs}}
 
-gEditMeta{|Editlet|} fa _ editlet = fa editlet.Editlet.currVal
+gEditMeta{|Editlet|} fa _ _ editlet = fa editlet.Editlet.currVal
 
-gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (ov, omask) ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
+gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd _ _ _ _ [] jsonDiff (ov, omask) ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
 
 	// Bit dirty, but we need to unwrap the "unexpected" version number and the expected diff
 	# (ver, diffId, jsonDiff) = case jsonDiff of
@@ -120,8 +120,8 @@ gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd [] jsonDiff (ov, omask) ust=
             = (({ ov & currVal = ov.Editlet.appDiffSrv diff ov.Editlet.currVal }
                 , Touched),{USt|ust & iworld = iworld})
 		_	= ((ov,omask), trace_n ("Failed to decode JSON: " +++ toString jsonDiff) ust)
-gUpdate{|Editlet|} fa _ _ _ _ _ _ _ _ _ mv iworld = (mv,iworld)
-gVerify{|Editlet|} fa _ _ mv = alwaysValid mv
+gUpdate{|Editlet|} fa _ _ _ _ _ _ _ _ _ _ _ _ _ mv iworld = (mv,iworld)
+gVerify{|Editlet|} fa _ _ _ mv = alwaysValid mv
 import StdDebug
 
 createEditletEventHandler :: (EditletEventHandlerFunc d a) !ComponentId -> JSFun b

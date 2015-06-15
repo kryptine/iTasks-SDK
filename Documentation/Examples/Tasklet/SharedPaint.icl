@@ -85,7 +85,7 @@ withEditlet2 editlet dp upd (val,mask) env
 gUpdate{|Drawing|} dp upd vv iworld = withEditlet2 painterEditlet dp upd vv iworld
 //gUpdate{|Drawing|} = withEditlet2 painterEditlet
 
-painterEditlet :: Editlet Drawing [Shape]
+painterEditlet :: Editlet Drawing [Shape] PainterState
 painterEditlet
   = { Editlet
     | currVal   = Drawing []

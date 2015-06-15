@@ -21,7 +21,7 @@ gUpdate{|AnalogClock|} dp upd (AnalogClock t,mask) iworld
     = ((AnalogClock editlet.currVal,mask),iworld)
 
 //SVG Based analog clock editlet
-analogClockEditlet :: Time -> Editlet Time [(Int,Int)]
+analogClockEditlet :: Time -> Editlet Time [(Int,Int)] ()
 analogClockEditlet t 
     = {Editlet
       |currVal      = t

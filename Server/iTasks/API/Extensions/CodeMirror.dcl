@@ -7,7 +7,7 @@ import iTasks.API.Core.Client.Tasklet
 
 :: CodeMirrorClientSt = {
 		  codeMirror 			:: !JSObj JSCM
-		, systemEventHandlers	:: ![(!String, !JSFun JSCM)]
+		, systemEventHandlers	:: ![(!String, !JSFun ())]
 		, marks					:: ![JSObj JSCM]
 		}
  
@@ -66,6 +66,9 @@ import iTasks.API.Core.Client.Tasklet
 		| ReplaceRange !(Int,Int) [String] // number of valid lines from the left/right
 		| SetHighlights ![(CodeMirrorPosition,CodeMirrorPosition)]
 
+derive class iTask CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror, CodeMirrorClient, CodeMirrorClientSt
+
+/*
 derive JSONEncode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive JSONDecode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gDefault         CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
@@ -75,8 +78,9 @@ derive gEditor          CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gEditMeta        CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gUpdate          CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gVerify	        CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
+*/
 
 codeMirrorEditlet :: !CodeMirror
 					 ![(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
-				  -> Editlet CodeMirror [CodeMirrorDiff]
+				  -> Editlet CodeMirror [CodeMirrorDiff] CodeMirrorClient
 

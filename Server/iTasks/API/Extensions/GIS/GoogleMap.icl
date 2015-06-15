@@ -54,7 +54,9 @@ from StdArray import class Array(uselect), instance Array {} a
 				   ,id		   :: String
 				   }
 
-googleMapEditlet :: GoogleMap -> Editlet GoogleMap [GoogleMapDiff]
+derive class iTask GoogleMapClient, GoogleMapState, JSGM
+
+googleMapEditlet :: GoogleMap -> Editlet GoogleMap [GoogleMapDiff] GoogleMapClient
 googleMapEditlet g 
     = { Editlet
       | currVal     = g

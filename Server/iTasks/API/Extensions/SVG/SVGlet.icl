@@ -312,10 +312,11 @@ defaultClSt s = { svgClIsDefault  = True
 :: SVGDiff s
   = SetState s
 
-derive class iTask SVGDiff, SVGSrvSt
+derive class iTask Set, DropTarget, MousePos, ImageTag
+derive class iTask SVGDiff, SVGSrvSt, SVGClSt
 
 svgRenderer :: !(Conflict s -> Maybe s) !s !(s *TagSource -> Image s)
-            -> Editlet (SVGSrvSt s) (SVGDiff s) | iTask s
+            -> Editlet (SVGSrvSt s) (SVGDiff s) (SVGClSt s) | iTask s
 svgRenderer resolve origState state2Image
   #! dst = defaultSrvSt origState
   = { currVal    = {dst & svgSrvIsDefault = False}

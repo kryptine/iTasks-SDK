@@ -1,10 +1,14 @@
 implementation module iTasks.API.Core.Client.Interface
 
-import StdGeneric, StdString, StdMisc, StdBool, StdFunc, StdEnum, StdTuple, StdList
+import iTasks
+
+import StdGeneric, StdString, StdMisc, StdBool, StdEnum, StdTuple, StdList
 import Data.Void, Data.Maybe, Text
 
 import Control.Applicative
-from Control.Monad import class Monad, >>=
+import qualified Control.Monad as M
+
+derive class iTask JSVal, JSObject, JSFunction, JSArray
 
 :: *JSWorld = JSWorld
 :: JSVal a  = JSVal !a
@@ -25,7 +29,7 @@ instance Applicative JSIO where
   (<*>) f g  = liftA2 id f g
 
 instance Functor JSIO where
-  fmap f x = x >>= (lift o f)
+  fmap f x = 'M'.bind x (lift o f)
 
 instance Monad JSIO where
   bind (JSIO f) a2mb = JSIO run

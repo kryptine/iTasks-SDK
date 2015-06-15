@@ -7,6 +7,9 @@ import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Tasklet
 import iTasks.API.Core.Client.Interface
 
+derive class iTask CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror, CodeMirrorClient, CodeMirrorClientSt, JSCM
+
+/*
 derive JSONEncode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive JSONDecode       CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gDefault         CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
@@ -16,6 +19,7 @@ derive gEditor          CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gEditMeta        CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gUpdate          CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
 derive gVerify	        CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror
+*/
 
 :: JSCM = JSCM
 
@@ -164,7 +168,7 @@ where
 	isSetHighlights (SetHighlights _) = True
 	isSetHighlights _ = False
 	
-initializeClient :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) ComponentId -> JSFun JSCM)
+initializeClient :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) ComponentId -> JSFun ())
 		  			![(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
           			ComponentId {JSObj JSEvent} !CodeMirrorClient !*JSWorld
        			 -> *(!CodeMirrorClient, !ComponentDiff [CodeMirrorDiff] CodeMirrorClient, !*JSWorld)
@@ -272,7 +276,7 @@ sourcearea id = "cm_source_" +++ id
 
 codeMirrorEditlet :: !CodeMirror
 					 ![(String, EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient)]
-				  -> Editlet CodeMirror [CodeMirrorDiff]
+				  -> Editlet CodeMirror [CodeMirrorDiff] CodeMirrorClient
 codeMirrorEditlet g eventHandlers
   = { Editlet
     | currVal    = g
@@ -297,7 +301,7 @@ where
 		  , height			= ExactSize 300
 		  }
 
-    onInit :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) ComponentId -> JSFun JSCM)
+    onInit :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) ComponentId -> JSFun ())
               !ComponentId !*JSWorld
            -> (!CodeMirrorClient, !*JSWorld)
 	onInit mkHandler cid world
@@ -311,7 +315,7 @@ where
 		# world = addJSFromUrl "addon/mode/loadmode.js" (Just (mkHandler (initializeClient mkHandler eventHandlers) cid)) world
     	= (clval, world)	
 			
-appDiffClient :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) ComponentId -> JSFun f)
+appDiffClient :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) ComponentId -> JSFun ())
                  !String ![CodeMirrorDiff] !CodeMirrorClient !*JSWorld
               -> *(!CodeMirrorClient, !*JSWorld)
 appDiffClient mkHandler cid diffs clval world
