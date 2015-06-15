@@ -858,11 +858,10 @@ addAction (Just (action, enabled)) arr (t, uT)
   = beside (repeat AtMiddleY) [] [l`, arr] Nothing
 addAction _ _ _ = empty (px 0.0) (px 0.0)
 
-alwaysFilter :: Image ModelTy
-alwaysFilter = beside (repeat AtMiddleY) [] [tStable, tUnstable, tNoVal] Nothing
-
 hasValueFilter :: Image ModelTy
-hasValueFilter = beside (repeat AtMiddleY) [] [tStable, tUnstable] Nothing
+hasValueFilter = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fill = toSVGColor "DeepSkyBlue" }
+                                              , rect (px 16.0) (px 8.0) <@< { fill = toSVGColor "LimeGreen" }
+                                              , text ArialBold10px " Has value"] Nothing
 
 tagImgs :: ![Image ModelTy] !*TagSource -> *(![Image ModelTy], ![ImageTag], !*TagSource)
 tagImgs [] tsrc = ([], [], tsrc)
@@ -932,17 +931,16 @@ tIfValue tffun args [(nameTag, uNameTag) : (argsTag, uArgsTag) : tsrc]
   = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, tfContents] Nothing, tsrc)
 
 tException :: Image ModelTy
-tException = rect (px 16.0) (px 8.0) <@< { fill   = toSVGColor "OrangeRed " }
-                                     <@< { stroke = toSVGColor "black" }
+tException = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fill = toSVGColor "OrangeRed" }
+                                          , text ArialBold10px " Exception"] Nothing
 
 tStable :: Image ModelTy
-tStable = rect (px 16.0) (px 8.0) <@< { fill = toSVGColor "DeepSkyBlue" }
+tStable = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fill = toSVGColor "DeepSkyBlue" }
+                                       , text ArialBold10px " Stable"] Nothing
 
 tUnstable :: Image ModelTy
-tUnstable = rect (px 16.0) (px 8.0) <@< { fill = toSVGColor "LimeGreen" }
-
-tNoVal :: Image ModelTy
-tNoVal = rect (px 16.0) (px 8.0) <@< { fill = toSVGColor "White" }
+tUnstable = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fill = toSVGColor "LimeGreen" }
+                                         , text ArialBold10px " Unstable"] Nothing
 
 tLineArrow :: Image ModelTy
 tLineArrow = polygon Nothing [ (px 0.0, px 0.0)
