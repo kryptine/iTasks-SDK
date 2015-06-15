@@ -845,14 +845,14 @@ mkStepCont inh mact e [ref : tsrc]
 
 addAction :: !(Maybe (String, Bool)) !(Image ModelTy) !*TagRef -> Image ModelTy
 addAction (Just (action, enabled)) arr (t, uT)
-  #! l = tag uT (margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, text ArialBold10px (" " +++ action)] Nothing))
-  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill = toSVGColor (if enabled "#ccc" "#ebebeb")}
+  #! l = tag uT (margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, tuneIf (not enabled) (text ArialBold10px (" " +++ action)) {fill = toSVGColor "#666"}] Nothing))
+  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill = toSVGColor (if enabled "#ebebeb" "#ccc")}
                                                                                                             <@< {strokewidth = px (if enabled 1.0 0.0)}
                                                      , l] Nothing
   = beside (repeat AtMiddleY) [] [l`, arr] Nothing
 addAction (Just (action, enabled)) arr (t, uT)
-  #! l = tag uT (margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, text ArialBold10px (" " +++ action)] Nothing))
-  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill = toSVGColor (if enabled "#ccc" "#ebebeb")}
+  #! l = tag uT (margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, tuneIf (not enabled) (text ArialBold10px (" " +++ action)) {fill = toSVGColor "#666"}] Nothing))
+  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill = toSVGColor (if enabled "#ebebeb" "#ccc")}
                                                                                                             <@< {strokewidth = px (if enabled 1.0 0.0)}
                                                      , l] Nothing
   = beside (repeat AtMiddleY) [] [l`, arr] Nothing
