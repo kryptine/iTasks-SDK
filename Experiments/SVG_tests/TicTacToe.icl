@@ -8,7 +8,7 @@ import MultiUser
 Start :: *World -> *World
 Start world = StartMultiUserTasks [ workflow  "Original Tic-Tac-Toe" "Play tic-tac-toe"  	 tictactoe
 								  , workflow  "SVG Tic-Tac-Toe"      "Play SVG tic-tac-toe"  tictactoe2
-								  ] world
+								  ] [] world
 
 // tic-tac-toe, simplistic
 
@@ -137,10 +137,10 @@ tictactoe2
 playGame2 :: User User TicTacToe -> Task User
 playGame2 me you ttt 
 	= withShared ttt
-		(\share ->  updateSharedInformation (toString me) [imageUpdate toAction (toImage True) fromAction] share 
+		(\share ->  updateSharedInformation (toString me) [imageUpdate toAction (toImage True) (\_ _ -> Nothing) fromAction] share 
 					-||
 //					(you @: updateSharedInformation (toString you) [imageUpdate toAction (toImage False) fromAction] share)  // not working
-					updateSharedInformation (toString you) [imageUpdate toAction (toImage False) fromAction] share
+					updateSharedInformation (toString you) [imageUpdate toAction (toImage False) (\_ _ -> Nothing) fromAction] share
 		) 
 		>>* [ OnValue (ifValue game_over declare_winner)
 		  	]
@@ -155,9 +155,9 @@ fromAction _ {ActionState|state = ttt, action = Just (i,j)}
 	}
 fromAction _ as = as.ActionState.state
 
-toImage ::  Bool (ActionState (Int,Int) TicTacToe) -> Image (ActionState (Int,Int) TicTacToe)
-toImage turn ttt
-	= grid (Rows 3) (LeftToRight, TopToBottom) [] [] 
+toImage ::  Bool (ActionState (Int,Int) TicTacToe) *TagSource -> Image (ActionState (Int,Int) TicTacToe)
+toImage turn ttt _
+	= grid (Rows 3) (RowMajor,LeftToRight,TopToBottom) [] [] 
 		[ text ArialRegular12px showTurn
 		, text ArialRegular12px ""
 		, tttBoard
@@ -165,30 +165,23 @@ toImage turn ttt
 where	
 	myTurn 	 = turn == ttt.ActionState.state.turn 
 	showTurn = if myTurn "play: it is your turn..." "wait: it is not your turn..." 
-	tttBoard = grid (Rows 3) (LeftToRight,TopToBottom) [] [] 
+	tttBoard = grid (Rows 3) (RowMajor,LeftToRight,TopToBottom) [] [] 
 	       		[ mkTile x y myTurn cell 
 	       			\\ row <- ttt.ActionState.state.board & y <- [1..3], cell <- row & x <- [1..3] 
 	      		] Nothing
 
 mkTile i j _ (Just Tic)   = cross
 mkTile i j _ (Just Tac)   = null
-mkTile i j True Nothing   = blank <@< {onclick = \st -> {st & ActionState.action = Just (i,j)}}
+mkTile i j True Nothing   = blank <@< {onclick = \_ st -> {st & ActionState.action = Just (i,j)}, local = False}
 mkTile i j False Nothing  = blank 
 
-cross = maskWith emptyTile (overlay [] [] [blank,bar Slash,bar Backslash] Nothing)
+cross = overlay [] [] [blank,bar Slash,bar Backslash] Nothing <@< {mask = emptyTile}
 where
 	bar dir = line Nothing dir (px 30.0) (px 30.0) <@< {strokewidth = px 5.0} <@< {stroke = SVGColorText "red" }
 
 null  = overlay [] [] [blank,naught] Nothing
 where
-	naught = maskWith (circle (px 30.0)	<@< {fill = toSVGColor "white"} 
-	      								<@< {strokewidth = zero })
-	      			  (circle (px 30.0) <@< {fill        = SVGColorText "white"}
-	      								<@< {stroke      = toSVGColor "blue"}) 
-	      			 
-
-
-
+	naught = circle (px 30.0) <@< {fill = SVGColorText "white"} <@< {stroke = toSVGColor "blue"} <@< {mask = circle (px 30.0) <@< {fill = toSVGColor "white"} <@< {strokewidth = zero }}
 
 emptyTile 	= rect (px 30.0) (px 30.0) <@< {fill = SVGColorText "white"}
 blank 		= emptyTile <@< {stroke = SVGColorText "black"} <@< {strokewidth = px 1.0} <@< {fill = toSVGColor "white"}
