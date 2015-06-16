@@ -157,10 +157,6 @@ tVertUpConnArr = yline (Just {defaultMarkers & markerEnd = Just tArrowTip}) (px 
 tVertUpDownConnArr :: Image ModelTy
 tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) tArrowTip), markerEnd = Just tArrowTip}) (px 16.0)
 
-//tReturn :: !MkImageInh !ExprId !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
-//tReturn inh=:{inh_in_maybe = True} eid expr tsrc = tExpr2Image inh expr tsrc
-//tReturn inh                        eid expr tsrc = tMApp inh eid "" "return" [expr] tsrc
-
 tExpand :: !MkImageInh ![TExpr] !TonicTask !*TagSource -> *(!Image ModelTy, !*TagSource)
 tExpand inh argnames tt tsrc
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
@@ -508,7 +504,6 @@ activeNodeTaskId eid activeNodes
 
 tMApp :: !MkImageInh !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr] !TPriority !*TagSource -> *(!Image ModelTy, !*TagSource)
 tMApp inh eid _ "iTasks.API.Extensions.User" "@:" [lhsExpr : rhsExpr : _] _ tsrc
-  #! inh = {inh & inh_in_mapp = True}
   = tAssign inh lhsExpr rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>|" [lhsExpr : rhsExpr : _] _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
@@ -516,26 +511,21 @@ tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam [var : _] rhsExpr 
   = tBind inh lhsExpr (Just var) rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ tsrc // TODO case for "step" as well
-  #! inh = {inh & inh_in_mapp = True}
+tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ tsrc
+  = tStep inh eid lhsExpr rhsExpr tsrc
+tMApp inh eid _ "iTasks.API.Core.TaskCombinators" "step" [lhsExpr : _ : rhsExpr : _] _ tsrc
   = tStep inh eid lhsExpr rhsExpr tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-&&-" [lhsExpr : rhsExpr : _] _ tsrc
-  #! inh = {inh & inh_in_mapp = True}
   = tParProdN inh eid mn tn "Parallel (-&&-): both tasks" (Right [lhsExpr, rhsExpr]) tsrc
 tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"allTasks" [x] assoc tsrc
-  #! inh = {inh & inh_in_mapp = True}
   = tParProdN inh eid mn tn "Parallel allTasks" (if (tExprIsList x) (Right (tUnsafeExpr2List x)) (Left x)) tsrc
 tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"anyTask" [x] assoc tsrc
-  #! inh = {inh & inh_in_mapp = True}
   = tParSumN inh eid mn tn "Parallel anyTask" (if (tExprIsList x) (Right (tUnsafeExpr2List x)) (Left x)) tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||-" [lhsExpr : rhsExpr : _] _ tsrc
-  #! inh = {inh & inh_in_mapp = True}
   = tParSumN inh eid mn tn "Parallel (-||-): any task" (Right [lhsExpr, rhsExpr]) tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"||-" [lhsExpr : rhsExpr : _] _ tsrc
-  #! inh = {inh & inh_in_mapp = True}
   = tParSumR inh eid mn tn lhsExpr rhsExpr tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||" [lhsExpr : rhsExpr : _] _ tsrc
-  #! inh = {inh & inh_in_mapp = True}
   = tParSumL inh eid mn tn lhsExpr rhsExpr tsrc
 tMApp inh eid _ modName taskName taskArgs _ tsrc
   #! inh = {inh & inh_in_mapp = True}
@@ -845,14 +835,18 @@ mkStepCont inh mact e [ref : tsrc]
 addAction :: !(Maybe (String, Bool)) !(Image ModelTy) !*TagRef -> Image ModelTy
 addAction (Just (action, enabled)) arr (t, uT)
   #! l = tag uT (margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, tuneIf (not enabled) (text ArialBold10px (" " +++ action)) {fill = toSVGColor "#666"}] Nothing))
-  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill = toSVGColor (if enabled "#ebebeb" "#ccc")}
-                                                                                                            <@< {strokewidth = px (if enabled 1.0 0.0)}
+  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill        = toSVGColor (if enabled "#ebebeb" "#fff")}
+                                                                                                            <@< {strokewidth = px 1.0}
+                                                                                                            <@< {stroke      = toSVGColor (if enabled "#000" "#ccc")}
+                                                                                                            <@< {dash        = if enabled [] [5, 5] }
                                                      , l] Nothing
   = beside (repeat AtMiddleY) [] [l`, arr] Nothing
 addAction (Just (action, enabled)) arr (t, uT)
   #! l = tag uT (margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, tuneIf (not enabled) (text ArialBold10px (" " +++ action)) {fill = toSVGColor "#666"}] Nothing))
-  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill = toSVGColor (if enabled "#ebebeb" "#ccc")}
-                                                                                                            <@< {strokewidth = px (if enabled 1.0 0.0)}
+  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill        = toSVGColor (if enabled "#ebebeb" "#fff")}
+                                                                                                            <@< {strokewidth = px 1.0}
+                                                                                                            <@< {stroke      = toSVGColor (if enabled "#000" "#ccc")}
+                                                                                                            <@< {dash        = if enabled [] [5, 5] }
                                                      , l] Nothing
   = beside (repeat AtMiddleY) [] [l`, arr] Nothing
 addAction _ _ _ = empty (px 0.0) (px 0.0)
