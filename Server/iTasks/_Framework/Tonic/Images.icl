@@ -329,48 +329,32 @@ tParSumR inh eid mn tn l r tsrc // TODO This is actually not correct yet... seco
   = renderParallelContainer inh eid mn tn "Parallel (||-): right bias" conts` refs tsrc
 tParSumN :: !MkImageInh !ExprId !String !String !String !(Either TExpr [TExpr]) !*TagSource -> *(!Image ModelTy, !*TagSource)
 tParSumN inh eid mn tn descr ts tsrc
-  #! (ts`, tsrc)       = mkParSum inh eid ts tsrc
+  #! (ts`, tsrc)       = mkParCases inh eid ts tsrc
   #! ts`               = map (margin (px 5.0, px 0.0)) ts`
   #! (ts`, refs, tsrc) = prepCases [] ts` tsrc
   = renderParallelContainer inh eid mn tn descr ts` refs tsrc
-  where
-  mkParSum :: !MkImageInh !ExprId !(Either TExpr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource) // TODO This is wrong
-  mkParSum inh eid (Left e) tsrc
-    = case inh.inh_trt.bpr_instance of
-        Just bpinst
-          = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
-              Just mptids
-                = mapSt (\(moduleName, taskName, taskId) -> tMApp inh eid Nothing moduleName taskName [] TNoPrio) ('DIS'.elems mptids) tsrc
-              _ = mkDef tsrc
-        _ = mkDef tsrc
-    where
-    mkDef :: !*TagSource -> *(![Image ModelTy], !*TagSource)
-    mkDef tsrc
-      # (img, tsrc) = tExpr2Image inh e tsrc
-      = ([img], tsrc)
-  mkParSum _ _ (Right es) tsrc = mapSt (tExpr2Image inh) es tsrc
 tParProdN :: !MkImageInh !ExprId !String !String !String !(Either TExpr [TExpr]) !*TagSource -> *(!Image ModelTy, !*TagSource)
 tParProdN inh eid mn tn descr ts [(contentsTag, uContentsTag) : tsrc]
-  #! (imgs, tsrc)     = mkParProd inh eid ts tsrc
+  #! (imgs, tsrc)     = mkParCases inh eid ts tsrc
   #! imgs             = map (margin (px 5.0, px 0.0)) imgs
   #! (ts, refs, tsrc) = prepCases [] imgs tsrc
   = renderParallelContainer inh eid mn tn descr ts refs tsrc
+
+mkParCases :: !MkImageInh !ExprId !(Either TExpr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource)
+mkParCases inh eid (Left pp) tsrc
+  = case inh.inh_trt.bpr_instance of
+      Just bpinst
+        = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
+            Just mptids
+              = mapSt (\(moduleName, taskName, taskId) -> tMApp {inh & inh_trt = {inh.inh_trt & bpr_instance = Just {bpinst & bpi_activeNodes = 'DM'.singleton bpinst.bpi_taskId ('DIS'.singleton 0 (taskId, eid))}}} eid Nothing moduleName taskName [] TNoPrio) ('DIS'.elems mptids) tsrc
+            _ = mkDef tsrc
+      _ = mkDef tsrc
   where
-  mkParProd :: !MkImageInh !ExprId !(Either TExpr [TExpr]) !*TagSource -> *(![Image ModelTy], !*TagSource)
-  mkParProd inh eid (Left pp) tsrc
-    = case inh.inh_trt.bpr_instance of
-        Just bpinst
-          = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
-              Just mptids
-                = mapSt (\(moduleName, taskName, taskId) -> tMApp {inh & inh_trt = {inh.inh_trt & bpr_instance = Just {bpinst & bpi_activeNodes = 'DM'.singleton bpinst.bpi_taskId ('DIS'.singleton 0 (taskId, eid))}}} eid Nothing moduleName taskName [] TNoPrio) ('DIS'.elems mptids) tsrc
-              _ = mkDef tsrc
-        _ = mkDef tsrc
-    where
-    mkDef :: !*TagSource -> *(![Image ModelTy], !*TagSource)
-    mkDef tsrc
-      # (img, tsrc) = tExpr2Image inh pp tsrc
-      = ([img], tsrc)
-  mkParProd _ _ (Right xs) tsrc = mapSt (tExpr2Image inh) xs tsrc
+  mkDef :: !*TagSource -> *(![Image ModelTy], !*TagSource)
+  mkDef tsrc
+    # (img, tsrc) = tExpr2Image inh pp tsrc
+    = ([img], tsrc)
+mkParCases inh _ (Right xs) tsrc = mapSt (tExpr2Image inh) xs tsrc
 
 renderParallelContainer :: !MkImageInh !ExprId !ModuleName !TaskName !String ![Image ModelTy] ![ImageTag] !*TagSource -> *(!Image ModelTy, !*TagSource)
 renderParallelContainer inh eid mn tn descr ts refs tsrc
