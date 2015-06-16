@@ -338,41 +338,29 @@ tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read
 
 derive class iTask UIAction
 
-stepEval eval nid event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
-  = case taskIdFromTaskTree taskTree of
-      Ok childTaskId=:(TaskId childInstanceNo _)
-        # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-        = case mrtMap of
-            Ok rtMap
-              # (cct, iworld) = mkCompleteTrace childInstanceNo callTrace iworld
-              = case 'DM'.get childTaskId rtMap of
-                  Just parentBPRef=:{bpr_instance = Just parentBPInst}
-                    # iworld               = activateStep nid childTaskId cct parentBPRef parentBPInst iworld
-                    # (taskResult, iworld) = eval event evalOpts taskTree iworld
-                    # actions              = case taskResult of
-                                               ValueResult _ _ (TaskRep uiDef) _
-                                                 = uiDefActions uiDef
-                                               _ = []
-                    # iworld               = snd ('DSDS'.write actions (sdsFocus childTaskId tonicActionsForTaskID) iworld)
-                    = (taskResult, iworld)
-                  _ = eval event evalOpts taskTree iworld
-            _ = eval event evalOpts taskTree iworld
-      _ = eval event evalOpts taskTree iworld
-  where
-  activateStep nid childTaskId=:(TaskId instanceNo _) cct parentBPRef parentBPInst iworld
-    # (newActiveNodes, iworld) = setActiveNodes parentBPInst childTaskId cct nid iworld
-    = snd ('DSDS'.write { parentBPRef
-                        & bpr_instance = Just { parentBPInst
-                                              & bpi_activeNodes = 'DM'.union parentBPInst.bpi_activeNodes newActiveNodes}}
-                        (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld)
+stepEval eval event evalOpts taskTree=:(TCInit childTaskId _) iworld
+  = stepEval` childTaskId eval event evalOpts taskTree iworld
+stepEval eval event evalOpts taskTree=:(TCStep childTaskId _ (Left _)) iworld
+  = stepEval` childTaskId eval event evalOpts taskTree iworld
+stepEval eval event evalOpts taskTree iworld
+  = eval event evalOpts taskTree iworld
+
+stepEval` childTaskId eval event evalOpts taskTree iworld
+  # (taskResult, iworld) = eval event evalOpts taskTree iworld
+  # actions              = case taskResult of
+                             ValueResult _ _ (TaskRep uiDef) _
+                               = uiDefActions uiDef
+                             _ = []
+  # iworld               = snd ('DSDS'.write actions (sdsFocus childTaskId tonicActionsForTaskID) iworld)
+  = (taskResult, iworld)
 
 /**
  * ModuleName and TaskName identify the blueprint, of which we need to
  * highlight nodes.
  */
 tonicWrapApp` :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId (Task a) -> Task a | iTask a
-tonicWrapApp` _ _ ("iTasks.API.Common.TaskCombinators", ">>*") nid (Task eval) = Task (stepEval eval nid)
-tonicWrapApp` _ _ ("iTasks.API.Core.TaskCombinators", "step") nid (Task eval) = Task (stepEval eval nid)
+tonicWrapApp` _ _ ("iTasks.API.Common.TaskCombinators", ">>*") _ (Task eval) = Task (stepEval eval)
+tonicWrapApp` _ _ ("iTasks.API.Core.TaskCombinators", "step") _ (Task eval) = Task (stepEval eval)
 tonicWrapApp` _ _ wrapInfo _ t
   | isSpecialBlueprintTask wrapInfo = t
 tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ nid t=:(Task eval)
