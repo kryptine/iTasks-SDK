@@ -16,7 +16,7 @@ from iTasks.API.Extensions.SVG.SVGlet import :: ActionState
 
 :: ModelTy :== ActionState (TClickAction, ClickMeta) TonicImageState
 
-:: TClickAction = TNavAction | TDetailAction | TSelectNode
+:: TClickAction = TNavAction | TDetailAction | TSelectNode | TSelectArg Int
 
 :: TonicImageState
   = { tis_task    :: TonicTask

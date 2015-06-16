@@ -91,7 +91,7 @@ mkTaskImage rs prev trt maplot outputs stepActions selected selDetail compact {A
                         , inh_stepActions  = stepActions
                         }
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
-  #! (img, _)         = tTaskDef trt tt.tt_module tt.tt_name tt.tt_resty tt.tt_args [] tt_body` tsrc
+  #! (img, _)         = tTaskDef inh trt tt.tt_module tt.tt_name tt.tt_resty tt.tt_args [] tt_body` tsrc
   = img
 
 tExpr2Image :: !MkImageInh !TExpr !*TagSource -> *(!Image ModelTy, !*TagSource)
@@ -164,7 +164,7 @@ tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (d
 tExpand :: !MkImageInh ![TExpr] !TonicTask !*TagSource -> *(!Image ModelTy, !*TagSource)
 tExpand inh argnames tt tsrc
   #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
-  = tTaskDef inh.inh_trt tt.tt_module tt.tt_name tt.tt_resty tt.tt_args argnames tt_body` tsrc
+  = tTaskDef inh inh.inh_trt tt.tt_module tt.tt_name tt.tt_resty tt.tt_args argnames tt_body` tsrc
 
 tLit :: !MkImageInh !String !*TagSource -> *(!Image ModelTy, !*TagSource)
 tLit inh pp tsrc
@@ -393,8 +393,7 @@ renderParallelContainer inh eid mn tn descr ts refs tsrc
                                  , click_origin_mbnodeId} -> bpident_moduleName == inh.inh_trt.bpr_moduleName && bpident_taskName == inh.inh_trt.bpr_taskName && click_origin_mbnodeId == Just eid
                             _                             -> False
   #! taskApp            = taskApp <@< { onclick = navigateOrSelect clickMeta, local = False }
-  #! valAnchor          = circle (px 12.0) <@< { onclick = openDetails clickMeta, local = False }
-                                           <@< { fill = case stability of
+  #! valAnchor          = circle (px 12.0) <@< { fill = case stability of
                                                           TNoVal    -> WhiteColor
                                                           TStable   -> PrevActiveColor
                                                           TUnstable -> CurrActiveColor
@@ -437,10 +436,6 @@ renderParallelContainer inh eid mn tn descr ts refs tsrc
                                }
     }
 
-  openDetails :: !ClickMeta !Int !ModelTy -> ModelTy
-  openDetails meta 1 st = { ActionState | st & action = Just (TDetailAction, meta) }
-  openDetails _    _ st = st
-
 tDiamond :: Image ModelTy
 tDiamond = rotate (deg 45.0) (rect (px 16.0) (px 16.0))
              <@< { fill   = toSVGColor "black" }
@@ -477,15 +472,15 @@ tStartSymb = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 
 tStopSymb :: Image ModelTy
 tStopSymb = rect (px 16.0) (px 16.0)
 
-tTaskDef :: !BlueprintRef !String !String !TExpr ![(!TExpr, !TExpr)] ![TExpr] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
-tTaskDef bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTag) : (argsTag, uArgsTag) : (bdytag, uBodyTag) : tsrc]
+tTaskDef :: !MkImageInh !BlueprintRef !String !String !TExpr ![(!TExpr, !TExpr)] ![TExpr] !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
+tTaskDef inh bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTag) : (argsTag, uArgsTag) : (bdytag, uBodyTag) : tsrc]
   #! taskIdStr    = case bpr of
                       {bpr_instance = Just {bpi_taskId}} -> " (" +++ toString bpi_taskId +++ ")"
                       _                                  -> ""
   #! taskNameImg  = tag uNameTag (margin (px 5.0) (beside (repeat AtMiddleY) [] [text ArialRegular10px (moduleName +++ "."), text ArialBold10px (taskName +++ " :: " +++ ppTExpr resultTy), text ArialRegular10px taskIdStr] Nothing))
-  #! binds        = foldr (\((arg, ty), mvar) acc -> [text ArialRegular10px (ppTExpr arg) : text ArialRegular10px " :: " : text ArialRegular10px (ppTExpr ty) : text ArialRegular10px (maybe "" (\x -> " = " +++ ppTExpr x) mvar) : acc]) [] (zip2 args (map Just argvars ++ repeat Nothing))
+  #! binds        = flatten (zipWith3 mkArgAndTy args [0..] (map Just argvars ++ repeat Nothing))
   #! argsText     = grid (Columns 4) (RowMajor, LeftToRight, TopToBottom) [] [] (map (margin (px 1.0, px 0.0)) binds) Nothing
-  #! argsImg      = tag uArgsTag (margin (px 5.0) argsText) // (above (repeat AtLeft) [] (map mkArgAndTy (zip2 args (map Just argvars ++ repeat Nothing))) Nothing))
+  #! argsImg      = tag uArgsTag (margin (px 5.0) argsText)
   #! taskBodyImgs = tag uBodyTag (margin (px 5.0) tdbody)
   #! maxX         = maxSpan [imagexspan nameTag, imagexspan argsTag, imagexspan bdytag]
   #! maxXLine     = xline Nothing maxX
@@ -495,8 +490,31 @@ tTaskDef bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTa
   #! contentsImg  = above (repeat AtLeft) [] imgs Nothing
   = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, contentsImg] Nothing, tsrc)
   where
-  mkArgAndTy :: !(!(!TExpr, !TExpr), !Maybe TExpr) -> Image ModelTy
-  mkArgAndTy ((arg, ty), mvar) = text ArialRegular10px (ppTExpr arg +++ " :: " +++ ppTExpr ty +++ (maybe "" (\x -> " = " +++ ppTExpr x) mvar))
+  mkArgAndTy :: !(!TExpr, !TExpr) !Int !(Maybe TExpr) -> [Image ModelTy]
+  mkArgAndTy (arg, ty) i mvar
+    #! meta = mkClickMeta Nothing Nothing
+    = [ text ArialRegular10px (ppTExpr arg) <@< { onclick = selectArg bpr meta i, local = False}
+      , text ArialRegular10px " :: "        <@< { onclick = selectArg bpr meta i, local = False}
+      , text ArialRegular10px (ppTExpr ty)  <@< { onclick = selectArg bpr meta i, local = False}
+      , text ArialRegular10px (maybe "" (\x -> " = " +++ ppTExpr x) mvar) <@< { onclick = selectArg bpr meta i, local = False}
+      ]
+
+  selectArg :: !BlueprintRef !ClickMeta !Int !Int !ModelTy -> ModelTy
+  selectArg {bpr_instance = Just {bpi_taskId}} meta i 1 st = { ActionState | st & action = Just (TSelectArg i, meta) }
+  selectArg _                                  _    _ _ st = st
+
+  mkClickMeta :: !(Maybe TaskId) !(Maybe TaskId) -> ClickMeta
+  mkClickMeta mborig mbtarget =
+    { click_origin_mbbpident = Just { bpident_moduleName = inh.inh_trt.bpr_moduleName
+                                    , bpident_taskName   = inh.inh_trt.bpr_taskName
+                                    , bpident_taskId     = mborig
+                                    }
+    , click_origin_mbnodeId  = Nothing
+    , click_target_bpident   = { bpident_moduleName = moduleName
+                               , bpident_taskName   = taskName
+                               , bpident_taskId     = mbtarget
+                               }
+    }
 
 activeNodeTaskId :: !ExprId !(Map ListId (IntMap (TaskId, ExprId))) -> Maybe TaskId
 activeNodeTaskId eid activeNodes
@@ -509,13 +527,10 @@ tMApp inh eid _ "iTasks.API.Extensions.User" "@:" [lhsExpr : rhsExpr : _] _ tsrc
   #! inh = {inh & inh_in_mapp = True}
   = tAssign inh lhsExpr rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>|" [lhsExpr : rhsExpr : _] _ tsrc
-  #! inh = {inh & inh_in_mapp = True}
   = tBind inh lhsExpr Nothing rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam [var : _] rhsExpr : _] _ tsrc
-  #! inh = {inh & inh_in_mapp = True}
   = tBind inh lhsExpr (Just var) rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] _ tsrc
-  #! inh = {inh & inh_in_mapp = True}
   = tBind inh lhsExpr Nothing rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ tsrc // TODO case for "step" as well
   #! inh = {inh & inh_in_mapp = True}

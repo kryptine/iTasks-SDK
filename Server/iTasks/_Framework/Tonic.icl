@@ -338,6 +338,9 @@ tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read
 
 derive class iTask UIAction
 
+stepEval :: (Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult d, *IWorld))
+            Event TaskEvalOpts TaskTree *IWorld
+         -> *(TaskResult d, *IWorld)
 stepEval eval event evalOpts taskTree=:(TCInit childTaskId _) iworld
   = stepEval` childTaskId eval event evalOpts taskTree iworld
 stepEval eval event evalOpts taskTree=:(TCStep childTaskId _ (Left _)) iworld
@@ -345,6 +348,9 @@ stepEval eval event evalOpts taskTree=:(TCStep childTaskId _ (Left _)) iworld
 stepEval eval event evalOpts taskTree iworld
   = eval event evalOpts taskTree iworld
 
+stepEval` :: TaskId (Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult d, *IWorld))
+             Event TaskEvalOpts TaskTree *IWorld
+          -> *(TaskResult d, *IWorld)
 stepEval` childTaskId eval event evalOpts taskTree iworld
   # (taskResult, iworld) = eval event evalOpts taskTree iworld
   = case taskResult of
@@ -946,6 +952,9 @@ viewInstance allbps rs navstack dynSett trt selDetail showButtons action=:(Just 
                             >>| set ('DS'.delete sel selNodes) selectedNodes)
                             (set ('DS'.insert sel selNodes) selectedNodes)
     >>| viewInstance allbps rs navstack dynSett trt selDetail showButtons action
+  handleClicks _  _  (TSelectArg i, meta) _
+    =   // TODO Implement
+        viewInstance allbps rs navstack dynSett trt selDetail showButtons action
   handleClicks _ _ _ _ = viewInstance allbps rs navstack dynSett trt selDetail showButtons action
 
   navigateBackwards :: !NavStack -> Maybe (Task ())
