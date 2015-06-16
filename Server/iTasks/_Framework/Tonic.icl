@@ -81,16 +81,16 @@ tonicDynamicUpdates :: RWShared () ListsOfTasks ListsOfTasks
 tonicDynamicUpdates = sdsTranslate "tonicDynamicUpdates" (\t -> t +++> "-tonicDynamicUpdates")
                                    (cachedJSONFileStore NS_TONIC_INSTANCES True True False (Just 'DM'.newMap))
 
-tonicUpdatesForTaskAndExprId :: RWShared (TaskId, ExprId) (IntMap (ModuleName, TaskName)) (IntMap (ModuleName, TaskName))
+tonicUpdatesForTaskAndExprId :: RWShared (TaskId, ExprId) (IntMap (ModuleName, TaskName, TaskId)) (IntMap (ModuleName, TaskName, TaskId))
 tonicUpdatesForTaskAndExprId = sdsLens "tonicUpdatesForTaskAndExprId" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicDynamicUpdates
   where
-  read :: (TaskId, ExprId) ListsOfTasks -> MaybeError TaskException (IntMap (ModuleName, TaskName))
+  read :: (TaskId, ExprId) ListsOfTasks -> MaybeError TaskException (IntMap (ModuleName, TaskName, TaskId))
   read tid trtMap = maybe (Error (exception ("Could not find list of refs for index " <+++ tid))) Ok ('DM'.get tid trtMap)
 
-  write :: (TaskId, ExprId) ListsOfTasks (IntMap (ModuleName, TaskName)) -> MaybeError TaskException (Maybe ListsOfTasks)
+  write :: (TaskId, ExprId) ListsOfTasks (IntMap (ModuleName, TaskName, TaskId)) -> MaybeError TaskException (Maybe ListsOfTasks)
   write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
 
-  notify :: (TaskId, ExprId) ListsOfTasks (IntMap (ModuleName, TaskName)) -> SDSNotifyPred (TaskId, ExprId)
+  notify :: (TaskId, ExprId) ListsOfTasks (IntMap (ModuleName, TaskName, TaskId)) -> SDSNotifyPred (TaskId, ExprId)
   notify tid _ _ = \tid` -> tid == tid`
 
 tonicExtWrapArg :: !String !a -> m () | iTask a & TonicTopLevelBlueprint m
@@ -430,7 +430,7 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ nid t=:(Task eval)
     # (mbChildBPRef, iworld) = getBlueprintRef childTaskId iworld
     = case mbChildBPRef of
         Just childBPRef
-          # (_, iworld) = 'DSDS'.write ('DIS'.singleton 0 (childBPRef.bpr_moduleName, childBPRef.bpr_taskName)) (sdsFocus (parentTaskId, nid) tonicUpdatesForTaskAndExprId) iworld
+          # (_, iworld) = 'DSDS'.write ('DIS'.singleton 0 (childBPRef.bpr_moduleName, childBPRef.bpr_taskName, childTaskId)) (sdsFocus (parentTaskId, nid) tonicUpdatesForTaskAndExprId) iworld
           = iworld
         _ = iworld
 
@@ -501,7 +501,7 @@ tonicExtWrapAppLam3 :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!Mo
 tonicExtWrapAppLam3 (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) nid f = \x y z -> tonicWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) nid (f x y z)
 
 traverseWithIdx :: (Int a -> a) (f a) -> f a | Traversable f
-traverseWithIdx f xs = snd ('DT'.mapAccumR (\idx elm -> (idx + 1, f idx elm)) 0 xs)
+traverseWithIdx f xs = snd ('DT'.mapAccumL (\idx elm -> (idx + 1, f idx elm)) 0 xs)
 
 tonicExtWrapTraversable :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId !([m a] -> m b) [m a] -> m b | TonicBlueprintPart m & iTask b
 tonicExtWrapTraversable (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) nid f ts = tonicWrapTraversable (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) nid f ts
@@ -548,7 +548,7 @@ tonicWrapListOfTask parentFnModuleName parentFnName wrappedFnModuleName wrappedF
             # tidMap = case mbTidMap of
                           Ok tidMap -> tidMap
                           _         -> 'DIS'.newMap
-            # tidMap = 'DIS'.put n (bpref.bpr_moduleName, bpref.bpr_taskName) tidMap
+            # tidMap = 'DIS'.put n (bpref.bpr_moduleName, bpref.bpr_taskName, tid) tidMap
             # (_, iworld) = 'DSDS'.write tidMap (sdsFocus (parentId, nid) tonicUpdatesForTaskAndExprId) iworld
             = iworld
           _ = iworld

@@ -187,7 +187,7 @@ tVar inh eid pp tsrc
             Just mptids
               #! tsrc = trace_n ("tVar Just mptids" +++ toString bpinst.bpi_taskId +++ " " +++ toString eid) tsrc
               = case 'DIS'.elems mptids of
-                  [(moduleName, taskName) : _]
+                  [(moduleName, taskName, taskId) : _]
                     = tMApp inh eid Nothing moduleName taskName [] TNoPrio tsrc
                   _
                     #! tsrc = trace_n ("tVar Nothing elems" +++ toString bpinst.bpi_taskId +++ " " +++ toString eid) tsrc
@@ -340,7 +340,7 @@ tParSumN inh eid mn tn descr ts tsrc
         Just bpinst
           = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
               Just mptids
-                = mapSt (\(moduleName, taskName) -> tMApp inh eid Nothing moduleName taskName [] TNoPrio) ('DIS'.elems mptids) tsrc
+                = mapSt (\(moduleName, taskName, taskId) -> tMApp inh eid Nothing moduleName taskName [] TNoPrio) ('DIS'.elems mptids) tsrc
               _ = mkDef tsrc
         _ = mkDef tsrc
     where
@@ -362,7 +362,7 @@ tParProdN inh eid mn tn descr ts [(contentsTag, uContentsTag) : tsrc]
         Just bpinst
           = case 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_maplot of
               Just mptids
-                = mapSt (\(moduleName, taskName) -> tMApp inh eid Nothing moduleName taskName [] TNoPrio) ('DIS'.elems mptids) tsrc
+                = mapSt (\(moduleName, taskName, taskId) -> tMApp {inh & inh_trt = {inh.inh_trt & bpr_instance = Just {bpinst & bpi_activeNodes = 'DM'.singleton bpinst.bpi_taskId ('DIS'.singleton 0 (taskId, eid))}}} eid Nothing moduleName taskName [] TNoPrio) ('DIS'.elems mptids) tsrc
               _ = mkDef tsrc
         _ = mkDef tsrc
     where

@@ -7,7 +7,7 @@ import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Generic
 from iTasks.API.Core.Types import :: DateTime
 
-:: ListsOfTasks :== Map (TaskId, ExprId) (IntMap (ModuleName, TaskName))
+:: ListsOfTasks :== Map (TaskId, ExprId) (IntMap (ModuleName, TaskName, TaskId))
 
 :: ListId :== TaskId
 
