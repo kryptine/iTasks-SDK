@@ -347,12 +347,14 @@ stepEval eval event evalOpts taskTree iworld
 
 stepEval` childTaskId eval event evalOpts taskTree iworld
   # (taskResult, iworld) = eval event evalOpts taskTree iworld
-  # actions              = case taskResult of
-                             ValueResult _ _ (TaskRep uiDef) _
-                               = uiDefActions uiDef
-                             _ = []
-  # iworld               = snd ('DSDS'.write actions (sdsFocus childTaskId tonicActionsForTaskID) iworld)
-  = (taskResult, iworld)
+  = case taskResult of
+      ValueResult _ _ (TaskRep uiDef) _
+        = case uiDefActions uiDef of
+            [] = (taskResult, iworld)
+            xs
+              # iworld = snd ('DSDS'.write xs (sdsFocus childTaskId tonicActionsForTaskID) iworld)
+              = (taskResult, iworld)
+      _ = (taskResult, iworld)
 
 /**
  * ModuleName and TaskName identify the blueprint, of which we need to
