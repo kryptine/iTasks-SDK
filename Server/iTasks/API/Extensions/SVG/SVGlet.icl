@@ -1901,8 +1901,12 @@ mkGroup _      _      []                  = []
 mkGroup []     []     xs                  = xs
 mkGroup hattrs []     [GElt [] sattrs xs] = [GElt hattrs sattrs xs]
 mkGroup []     sattrs [GElt hattrs [] xs] = [GElt hattrs sattrs xs]
-mkGroup []     [TransformAttr [TranslateTransform x y]] [GElt hattrs [TransformAttr [TranslateTransform x` y`]] elts] = [GElt hattrs [TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))]] elts]
-mkGroup has sas elts = [GElt has sas elts]
+mkGroup []     [TransformAttr [TranslateTransform x y]] [GElt        hattrs [TransformAttr [TranslateTransform x` y`] : attrs] elts] = [GElt        hattrs [TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))] : attrs] elts]
+mkGroup []     [TransformAttr [TranslateTransform x y]] [TextElt     hattrs [TransformAttr [TranslateTransform x` y`] : attrs] elts] = [TextElt     hattrs [TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))] : attrs] elts]
+mkGroup []     [TransformAttr [TranslateTransform x y]] [EllipseElt  hattrs [TransformAttr [TranslateTransform x` y`] : attrs]]      = [EllipseElt  hattrs [TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))] : attrs]]
+mkGroup []     [TransformAttr [TranslateTransform x y]] [RectElt     hattrs [TransformAttr [TranslateTransform x` y`] : attrs]]      = [RectElt     hattrs [TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))] : attrs]]
+mkGroup []     [TransformAttr [TranslateTransform x y]] [CircleElt   hattrs [TransformAttr [TranslateTransform x` y`] : attrs]]      = [CircleElt   hattrs [TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))] : attrs]]
+mkGroup has    sas elts = [GElt has sas elts]
 
 evalOffsets :: ![(!State .st a, !State .st a)] !.st -> .(![(!a, !a)], !.st)
 evalOffsets offsets st = strictTRMapSt f offsets st
