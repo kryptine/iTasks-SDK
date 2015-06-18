@@ -1897,27 +1897,24 @@ mkGroup _      _      []                  = []
 mkGroup []     []     xs                  = xs
 mkGroup hattrs []     [GElt [] sattrs xs] = [GElt hattrs sattrs xs]
 mkGroup []     sattrs [GElt hattrs [] xs] = [GElt hattrs sattrs xs]
-mkGroup []     [TransformAttr [TranslateTransform x y]] elts = map f elts
+mkGroup []     [tfattr=:(TransformAttr [TranslateTransform x y])] xs = map f xs
   where
   f :: !SVGElt -> SVGElt
-  f (GElt hattrs [TransformAttr [TranslateTransform x` y`] : attrs] xs)          = GElt        hattrs [dualTransformTranslate x y x` y` : attrs] xs
-  f (TextElt     hattrs [TransformAttr [TranslateTransform x` y`] : attrs] elts) = TextElt     hattrs [dualTransformTranslate x y x` y` : attrs] elts
-  f (TextElt     hattrs attrs elts)                                              = TextElt     hattrs [singleTransformTranslate x y : attrs] elts
-  f (EllipseElt  hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = EllipseElt  hattrs [dualTransformTranslate x y x` y` : attrs]
-  f (EllipseElt  hattrs attrs)                                                   = EllipseElt  hattrs [singleTransformTranslate x y : attrs]
-  f (RectElt     hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = RectElt     hattrs [dualTransformTranslate x y x` y` : attrs]
-  f (RectElt     hattrs attrs)                                                   = RectElt     hattrs [singleTransformTranslate x y : attrs]
-  f (CircleElt   hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = CircleElt   hattrs [dualTransformTranslate x y x` y` : attrs]
-  f (CircleElt   hattrs attrs)                                                   = CircleElt   hattrs [singleTransformTranslate x y : attrs]
-
+  f (GElt        hattrs [TransformAttr [TranslateTransform x` y`] : attrs] elts) = GElt       hattrs [dualTransformTranslate x y x` y` : attrs] elts
+  f (GElt        hattrs attrs elts)                                              = GElt       hattrs [tfattr : attrs] elts
+  f (TextElt     hattrs [TransformAttr [TranslateTransform x` y`] : attrs] elts) = TextElt    hattrs [dualTransformTranslate x y x` y` : attrs] elts
+  f (TextElt     hattrs attrs elts)                                              = TextElt    hattrs [tfattr : attrs] elts
+  f (EllipseElt  hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = EllipseElt hattrs [dualTransformTranslate x y x` y` : attrs]
+  f (EllipseElt  hattrs attrs)                                                   = EllipseElt hattrs [tfattr : attrs]
+  f (RectElt     hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = RectElt    hattrs [dualTransformTranslate x y x` y` : attrs]
+  f (RectElt     hattrs attrs)                                                   = RectElt    hattrs [tfattr : attrs]
+  f (CircleElt   hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = CircleElt  hattrs [dualTransformTranslate x y x` y` : attrs]
+  f (CircleElt   hattrs attrs)                                                   = CircleElt  hattrs [tfattr : attrs]
   f (LineElt _ [X1Attr (x1, PX), X2Attr (x2, PX), Y1Attr (y1, PX), Y2Attr (y2, PX) : attrs]) = LineElt [] [X1Attr (lineAdd x1 x, PX), X2Attr (lineAdd x2 x, PX), Y1Attr (lineAdd y1 y, PX), Y2Attr (lineAdd y2 y, PX) : attrs]
-  f elt                                                                                      = GElt    [] [singleTransformTranslate x y] [elt]
+  f elt                                                                                      = GElt    [] [tfattr] [elt]
   lineAdd :: !String !SVGNumber -> String
   lineAdd strVal n = toString (to2dec (toReal strVal + toReal n))
 mkGroup has    sas elts = [GElt has sas elts]
-
-singleTransformTranslate :: !a !a -> SVGAttr | toReal a
-singleTransformTranslate x y = TransformAttr [TranslateTransform (toString (to2dec (toReal x))) (toString (to2dec (toReal y)))]
 
 dualTransformTranslate :: !a !a !a !a -> SVGAttr | toReal a
 dualTransformTranslate x y x` y` = TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))]
