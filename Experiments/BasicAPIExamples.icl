@@ -7,7 +7,7 @@ import iTasks.API.Extensions.Admin.WorkflowAdmin
 import iTasks.API.Extensions.GIS.GoogleMap
 import Text, StdArray
 
-import iTasks.Framework.Tonic
+import iTasks._Framework.Tonic
 import iTasks.API.Extensions.Admin.TonicAdmin
 
 import qualified Data.Map as DM
@@ -79,27 +79,10 @@ basicAPIExamples =
 
 
 Start :: *World -> *World
-Start world = startEngine [ publish "/" (WebApp []) (\_-> browseExamples basicAPIExamples)
+Start world = startEngine [ publish "/" (WebApp []) (\_-> loginAndManageWorkList "iTasks Example Collection" basicAPIExamples)
 						  , publish "/persons" (WebApp []) (const enterPersons)
 						  , publish "/tonic" (WebApp []) (\_-> tonicDashboard [])
  						  ] world
-where
-	browseExamples examples = forever (
-		 	(viewTitle "iTasks Example Collection"
-		||-
-		 	enterInformation "Enter your credentials and login or press continue to remain anonymous" [])
-		>>* [OnAction (Action "Login" [ActionIcon "login",ActionKey (unmodified KEY_ENTER)]) (hasValue (browseAuthenticated examples))
-			,OnAction (Action "Continue" []) (always (browseAnonymous examples))
-			])
-	
-	browseAuthenticated examples {Credentials|username,password}
-		= authenticateUser username password
-		>>= \mbUser -> case mbUser of
-			Just user 	= workAs user (manageWorklist examples)
-			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
-	
-	browseAnonymous examples
-		= manageWorklist examples
 		
 		
 //* utility functions
