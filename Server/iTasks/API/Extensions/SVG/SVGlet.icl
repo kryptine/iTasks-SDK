@@ -1759,15 +1759,11 @@ genSVG img = imageCata genSVGAllAlgs img
     mkLineImage :: !Slash !ImageSpanReal !(Maybe (!Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s)))
                    ![Maybe SVGAttr] ![(![SVGTransform], !ImageTransform)] !(Set ImageTag)
                 -> GenSVGSt s (GenSVGSyn s) | iTask s
-    mkLineImage sl sp mmarkers imAts imTrs imTas
-      = mkLine LineElt (getSvgAttrs (mkAttrs imAts imTrs) ++ mkLineAttrs sl sp) sp mmarkers
-      where
-      mkLineAttrs :: !Slash !(!Real, !Real) -> [SVGAttr]
-      mkLineAttrs slash (xspan, yspan)
-        #! (y1, y2) = case slash of
-                        Slash     -> (toString (to2dec yspan), "0.0")
-                        Backslash -> ("0.0", toString (to2dec yspan))
-        = [ X1Attr ("0.0", PX), X2Attr (toString (to2dec xspan), PX), Y1Attr (y1, PX), Y2Attr (y2, PX)]
+    mkLineImage sl sp=:(xspan, yspan) mmarkers imAts imTrs imTas
+      #! (y1, y2) = case sl of
+                      Slash     -> (toString (to2dec yspan), "0.0")
+                      Backslash -> ("0.0", toString (to2dec yspan))
+      = mkLine LineElt [X1Attr ("0.0", PX), X2Attr (toString (to2dec xspan), PX), Y1Attr (y1, PX), Y2Attr (y2, PX) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers
     mkPolygonImage :: ![(!GenSVGSt s Real, !GenSVGSt s Real)] !ImageSpanReal
                       !(Maybe (!Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s)))
                       ![Maybe SVGAttr] ![(![SVGTransform], !ImageTransform)]
@@ -1794,7 +1790,7 @@ genSVG img = imageCata genSVGAllAlgs img
                                                                      , mkMarkerAndId mmMid   (mkMarkerId editletId uid2) MarkerMidAttr
                                                                      , mkMarkerAndId mmEnd   (mkMarkerId editletId uid3) MarkerEndAttr ]]
       = ({ mkGenSVGSyn
-         & genSVGSyn_svgElts   = [ constr [] (strictTRMap (\(_, x, _, _, _) -> x) markersAndIds ++ atts)
+         & genSVGSyn_svgElts   = [ constr [] (atts ++ strictTRMap (\(_, x, _, _, _) -> x) markersAndIds)
                                  , DefsElt [] [] (strictTRMap (\(x, _, _, _, _) -> x) markersAndIds)]
          , genSVGSyn_events    = 'DM'.unions (strictTRMap (\(_, _, x, _, _) -> x) markersAndIds)
          , genSVGSyn_draggable = 'DM'.unions (strictTRMap (\(_, _, _, x, _) -> x) markersAndIds)
@@ -1913,7 +1909,11 @@ mkGroup []     [TransformAttr [TranslateTransform x y]] elts = map f elts
   f (RectElt     hattrs attrs)                                                   = RectElt     hattrs [singleTransformTranslate x y : attrs]
   f (CircleElt   hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = CircleElt   hattrs [dualTransformTranslate x y x` y` : attrs]
   f (CircleElt   hattrs attrs)                                                   = CircleElt   hattrs [singleTransformTranslate x y : attrs]
-  f elt                                                                          = GElt        []     [singleTransformTranslate x y] [elt]
+
+  f (LineElt _ [X1Attr (x1, PX), X2Attr (x2, PX), Y1Attr (y1, PX), Y2Attr (y2, PX) : attrs]) = LineElt [] [X1Attr (lineAdd x1 x, PX), X2Attr (lineAdd x2 x, PX), Y1Attr (lineAdd y1 y, PX), Y2Attr (lineAdd y2 y, PX) : attrs]
+  f elt                                                                                      = GElt    [] [singleTransformTranslate x y] [elt]
+  lineAdd :: !String !SVGNumber -> String
+  lineAdd strVal n = toString (to2dec (toReal strVal + toReal n))
 mkGroup has    sas elts = [GElt has sas elts]
 
 singleTransformTranslate :: !a !a -> SVGAttr | toReal a
