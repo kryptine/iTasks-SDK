@@ -1901,12 +1901,26 @@ mkGroup _      _      []                  = []
 mkGroup []     []     xs                  = xs
 mkGroup hattrs []     [GElt [] sattrs xs] = [GElt hattrs sattrs xs]
 mkGroup []     sattrs [GElt hattrs [] xs] = [GElt hattrs sattrs xs]
-mkGroup []     [TransformAttr [TranslateTransform x y]] [GElt        hattrs [TransformAttr [TranslateTransform x` y`] : attrs] elts] = [GElt        hattrs [TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))] : attrs] elts]
-mkGroup []     [TransformAttr [TranslateTransform x y]] [TextElt     hattrs [TransformAttr [TranslateTransform x` y`] : attrs] elts] = [TextElt     hattrs [TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))] : attrs] elts]
-mkGroup []     [TransformAttr [TranslateTransform x y]] [EllipseElt  hattrs [TransformAttr [TranslateTransform x` y`] : attrs]]      = [EllipseElt  hattrs [TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))] : attrs]]
-mkGroup []     [TransformAttr [TranslateTransform x y]] [RectElt     hattrs [TransformAttr [TranslateTransform x` y`] : attrs]]      = [RectElt     hattrs [TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))] : attrs]]
-mkGroup []     [TransformAttr [TranslateTransform x y]] [CircleElt   hattrs [TransformAttr [TranslateTransform x` y`] : attrs]]      = [CircleElt   hattrs [TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))] : attrs]]
+mkGroup []     [TransformAttr [TranslateTransform x y]] elts = map f elts
+  where
+  f :: !SVGElt -> SVGElt
+  f (GElt hattrs [TransformAttr [TranslateTransform x` y`] : attrs] xs)          = GElt        hattrs [dualTransformTranslate x y x` y` : attrs] xs
+  f (TextElt     hattrs [TransformAttr [TranslateTransform x` y`] : attrs] elts) = TextElt     hattrs [dualTransformTranslate x y x` y` : attrs] elts
+  f (TextElt     hattrs attrs elts)                                              = TextElt     hattrs [singleTransformTranslate x y : attrs] elts
+  f (EllipseElt  hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = EllipseElt  hattrs [dualTransformTranslate x y x` y` : attrs]
+  f (EllipseElt  hattrs attrs)                                                   = EllipseElt  hattrs [singleTransformTranslate x y : attrs]
+  f (RectElt     hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = RectElt     hattrs [dualTransformTranslate x y x` y` : attrs]
+  f (RectElt     hattrs attrs)                                                   = RectElt     hattrs [singleTransformTranslate x y : attrs]
+  f (CircleElt   hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = CircleElt   hattrs [dualTransformTranslate x y x` y` : attrs]
+  f (CircleElt   hattrs attrs)                                                   = CircleElt   hattrs [singleTransformTranslate x y : attrs]
+  f elt                                                                          = GElt        []     [singleTransformTranslate x y] [elt]
 mkGroup has    sas elts = [GElt has sas elts]
+
+singleTransformTranslate :: !a !a -> SVGAttr | toReal a
+singleTransformTranslate x y = TransformAttr [TranslateTransform (toString (to2dec (toReal x))) (toString (to2dec (toReal y)))]
+
+dualTransformTranslate :: !a !a !a !a -> SVGAttr | toReal a
+dualTransformTranslate x y x` y` = TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))]
 
 evalOffsets :: ![(!State .st a, !State .st a)] !.st -> .(![(!a, !a)], !.st)
 evalOffsets offsets st = strictTRMapSt f offsets st
