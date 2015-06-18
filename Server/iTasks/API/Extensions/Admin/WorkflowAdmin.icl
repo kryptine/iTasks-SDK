@@ -79,6 +79,29 @@ installInitialWorkflows iflows
 	>>= \flows -> case flows of
 		[]	= set iflows workflows @! Void
 		_	= return Void
+		
+loginAndManageWorkList :: !String ![Workflow] -> Task Void
+loginAndManageWorkList welcome workflows 
+	= forever 
+		(		(	viewTitle welcome
+					||-
+	 				enterInformation "Enter your credentials and login or press continue to remain anonymous" []
+	 			)
+		>>* 	[OnAction (Action "Login" [ActionIcon "login",ActionKey (unmodified KEY_ENTER)]) (hasValue (browseAuthenticated workflows))
+				,OnAction (Action "Continue" []) (always (browseAnonymous workflows))
+		]
+		)
+where
+	browseAuthenticated workflows {Credentials|username,password}
+		= authenticateUser username password
+		>>= \mbUser -> case mbUser of
+			Just user 	= workAs user (manageWorklist workflows)
+			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
+	
+	browseAnonymous workflows
+		= manageWorklist workflows
+		
+		
 
 // Application specific types
 :: ClientPart

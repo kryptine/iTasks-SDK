@@ -6,6 +6,10 @@ import iTasks._Framework.SDS, iTasks._Framework.Generic.Interaction, iTasks.API.
 from StdFunc import seq
 import qualified Data.Map as DM
 
+tonic :: Task ()
+
+tonic = tonicDashboard []
+
 tonicDashboard :: [TaskAppRenderer] -> Task ()
 tonicDashboard rs = ((tonicStaticBrowser rs <<@ FullScreen <<@ Title "Static Blueprints")
                -||- (tonicDynamicBrowser rs <<@ FullScreen <<@ Title "Dynamic Blueprints")) <<@ ArrangeWithTabs <<@ FullScreen

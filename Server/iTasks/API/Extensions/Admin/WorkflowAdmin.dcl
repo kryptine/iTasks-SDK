@@ -73,6 +73,9 @@ manageWorkflows :: ![Workflow] ->  Task Void
 
 manageWorklist :: ![Workflow] -> Task Void
 
+loginAndManageWorkList :: !String ![Workflow] -> Task Void
+
+
 /**
 * Dynamically adds a workflow to the system.
 *
