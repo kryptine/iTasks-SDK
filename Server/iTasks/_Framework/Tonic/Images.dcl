@@ -45,7 +45,7 @@ derive class iTask TonicImageState, TClickAction, ClickMeta, BlueprintIdent
 
 mkTaskImage     :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef
                    !ListsOfTasks !(Map TaskId TStability) !(Map TaskId [UIAction])
-                   !(Set (ModuleName, TaskName, ExprId)) !(Maybe ClickMeta)
+                   !(Set (ModuleName, TaskName, ExprId)) !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int)))
                    !Bool !ModelTy *TagSource
                 -> Image ModelTy
 

@@ -63,13 +63,13 @@ ArialItalic10px :== { fontfamily  = "Arial"
   , inh_in_case      :: !Bool
   , inh_selected     :: !Set (!ModuleName, !TaskName, !ExprId)
   , inh_outputs      :: !Map TaskId TStability
-  , inh_selDetail    :: !Maybe ClickMeta
+  , inh_selDetail    :: !Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int))
   , inh_stepActions  :: !Map TaskId [UIAction]
   }
 
 mkTaskImage :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef
                !ListsOfTasks !(Map TaskId TStability) !(Map TaskId [UIAction])
-               !(Set (ModuleName, TaskName, ExprId)) !(Maybe ClickMeta) !Bool
+               !(Set (ModuleName, TaskName, ExprId)) !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int))) !Bool
                !ModelTy *TagSource -> Image ModelTy
 mkTaskImage rs prev trt maplot outputs stepActions selected selDetail compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
@@ -369,9 +369,10 @@ renderParallelContainer inh eid mn tn descr ts refs tsrc
   #! (taskApp, tsrc)    = tParApp inh.inh_compact inh.inh_inaccessible eid inh.inh_selected inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName displayName ts refs tsrc
   #! clickMeta          = mkClickMeta (fmap (\x -> x.bpi_taskId) inh.inh_trt.bpr_instance) mbNavTo
   #! valNodeIsSelected  = case inh.inh_selDetail of
-                            Just { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}
-                                 , click_origin_mbnodeId} -> bpident_moduleName == inh.inh_trt.bpr_moduleName && bpident_taskName == inh.inh_trt.bpr_taskName && click_origin_mbnodeId == Just eid
-                            _                             -> False
+                            Just (Left
+                                   { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}
+                                   , click_origin_mbnodeId}) -> bpident_moduleName == inh.inh_trt.bpr_moduleName && bpident_taskName == inh.inh_trt.bpr_taskName && click_origin_mbnodeId == Just eid
+                            _                                -> False
   #! taskApp            = taskApp <@< { onclick = navigateOrSelect clickMeta, local = False }
   #! valAnchor          = circle (px 12.0) <@< { fill = case stability of
                                                           TNoVal    -> WhiteColor
@@ -554,9 +555,10 @@ renderTaskApp inh eid modName taskName taskArgs displayName tsrc
   #! clickMeta          = mkClickMeta (fmap (\x -> x.bpi_taskId) inh.inh_trt.bpr_instance) mbNavTo
   #! taskApp            = taskApp <@< { onclick = navigateOrSelect clickMeta, local = False }
   #! valNodeIsSelected  = case inh.inh_selDetail of
-                            Just { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}
-                                 , click_origin_mbnodeId} -> bpident_moduleName == inh.inh_trt.bpr_moduleName && bpident_taskName == inh.inh_trt.bpr_taskName && click_origin_mbnodeId == Just eid
-                            _                             -> False
+                            Just (Left
+                                   { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}
+                                   , click_origin_mbnodeId}) -> bpident_moduleName == inh.inh_trt.bpr_moduleName && bpident_taskName == inh.inh_trt.bpr_taskName && click_origin_mbnodeId == Just eid
+                            _                                -> False
   #! valAnchor          = circle (px 12.0) <@< { onclick = openDetails clickMeta, local = False }
                                            <@< { fill = case stability of
                                                           TNoVal    -> WhiteColor

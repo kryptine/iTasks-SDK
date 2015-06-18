@@ -282,9 +282,6 @@ ppCCT ct = foldr (\x acc -> toString x +++ " " +++ acc) "" ct
 
 ppNid nid = foldr (\x acc -> toString x +++ " " +++ acc) "" nid
 
-mkTaskId :: Task TaskId
-mkTaskId = mkInstantTask (\tid world -> (Ok tid, world))
-
 getParentContext :: !TaskId !TaskId ![Int] !*IWorld -> *(!TaskId, !*IWorld)
 getParentContext parentTaskId _ [] iworld = (parentTaskId, iworld)
 getParentContext parentTaskId currentListId=:(TaskId currentListInstanceNo _) [parentTraceId : parentTraces] iworld
@@ -717,7 +714,7 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
     onNavVal bpident_taskName (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs navstack trt tm` tt` depth compact @! ()) (getTonicTask tm` bpident_taskName)
     onNavVal _                _             = Nothing
 
-showBlueprint :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !ListsOfTasks !(Set (ModuleName, TaskName, ExprId)) !TonicTask !(Maybe ClickMeta) !(Map TaskId [UIAction]) !Bool !Scale
+showBlueprint :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !ListsOfTasks !(Set (ModuleName, TaskName, ExprId)) !TonicTask !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int))) !(Map TaskId [UIAction]) !Bool !Scale
               -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showBlueprint rs prev bpref maplot selected task selDetail enabledSteps compact depth
   =               get (mapRead (fmap snd) storedOutputEditors)
@@ -786,7 +783,7 @@ tonicDynamicBrowser rs
 selectedBlueprint :: Shared (Maybe ClickMeta)
 selectedBlueprint = sharedStore "selectedBlueprint" Nothing
 
-selectedDetail :: Shared (Maybe ClickMeta)
+selectedDetail :: Shared (Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int)))
 selectedDetail = sharedStore "selectedDetail" Nothing
 
 storedOutputEditors :: Shared (Map TaskId (Task (), TStability))
@@ -849,8 +846,17 @@ tonicDynamicBrowser` allbps rs navstack =
 
   additionalInfo = whileUnchanged selectedDetail viewDetail
     where
-    viewDetail (Just {click_target_bpident = {bpident_taskId = Just tid}}) = whileUnchanged storedOutputEditors (viewOutput tid)
-    viewDetail _                                                           = viewInformation (Title "Notice") [] "Select dynamic task" @! ()
+    viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Just tid}})) = whileUnchanged storedOutputEditors (viewOutput tid)
+    viewDetail (Just (Right (mn, tn, tid, argIdx))) = readParams mn tn tid >>= \params -> case getN params argIdx of
+                                                                                            Just (_, vi) -> vi
+                                                                                            _            -> viewInformation (Title "Notice") [] "Argument value not found" @! ()
+      where
+      getN []     _ = Nothing
+      getN [x:_]  0 = Just x
+      getN [_:xs] n
+        | n < 0     = Nothing
+        | otherwise = getN xs (n - 1)
+    viewDetail _                                    = viewInformation (Title "Notice") [] "Select dynamic task" @! ()
 
     viewOutput tid=:(TaskId ino tno) ts = case 'DM'.get tid ts of
                                             Just (remote, _) -> remote
@@ -896,7 +902,11 @@ getModuleAndTask allbps mn tn
                 Just tt -> return (mod, tt)
                 _       -> throw "Can't get module and task"
 
-viewInstance :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !DisplaySettings !TonicRTMap !(Maybe ClickMeta) !Bool !(Maybe ClickMeta) -> Task ()
+viewInstance :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack)
+                !DisplaySettings !TonicRTMap
+                !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int))) !Bool
+                !(Maybe ClickMeta)
+             -> Task ()
 viewInstance allbps rs navstack dynSett trt selDetail showButtons action=:(Just meta=:{click_target_bpident = {bpident_taskId = Just tid}})
   =          get navstack
   >>~ \ns -> get selectedNodes
@@ -919,7 +929,7 @@ viewInstance allbps rs navstack dynSett trt selDetail showButtons action=:(Just 
   showChildTasks :: DisplaySettings BlueprintInstance -> Task ()
   showChildTasks {DisplaySettings | unfold_depth = {Scale | cur = 0} } bpinst = return ()
   showChildTasks {DisplaySettings | unfold_depth = {Scale | cur = d} } bpinst
-    # childIds = [tid \\ tid <- map fst (concatMap 'DIS'.elems ('DM'.elems bpinst.bpi_activeNodes)) | not (tid == bpinst.bpi_taskId)]
+    # childIds  = [tid \\ tid <- map fst (concatMap 'DIS'.elems ('DM'.elems bpinst.bpi_activeNodes)) | not (tid == bpinst.bpi_taskId)]
     # viewTasks = map (viewInstance allbps rs navstack {dynSett & unfold_depth = {dynSett.unfold_depth & cur = d - 1}} trt selDetail False o Just o mkClickMeta) childIds
     = allTasks viewTasks @! ()
     where
@@ -937,11 +947,11 @@ viewInstance allbps rs navstack dynSett trt selDetail showButtons action=:(Just 
     | otherwise   = msg
 
   handleClicks :: !ModuleName !TaskName !(TClickAction, ClickMeta) (ActionState (TClickAction, ClickMeta) TonicImageState) -> Task ()
-  handleClicks _  _  (TNavAction,    meta) _
+  handleClicks _ _ (TNavAction, meta) _
     =   upd (\xs -> [meta : xs]) navstack
     >>| viewInstance allbps rs navstack dynSett trt selDetail showButtons (Just meta)
-  handleClicks _  _  (TDetailAction, meta) _
-    =   set (Just meta) selectedDetail
+  handleClicks _ _ (TDetailAction, meta) _
+    =   set (Just (Left meta)) selectedDetail
     >>| viewInstance allbps rs navstack dynSett trt selDetail showButtons action
   handleClicks mn tn (TSelectNode, meta=:{click_origin_mbnodeId = Just nodeId, click_target_bpident = {bpident_taskId}}) _
     # sel = (mn, tn, nodeId)
@@ -952,9 +962,9 @@ viewInstance allbps rs navstack dynSett trt selDetail showButtons action=:(Just 
                             >>| set ('DS'.delete sel selNodes) selectedNodes)
                             (set ('DS'.insert sel selNodes) selectedNodes)
     >>| viewInstance allbps rs navstack dynSett trt selDetail showButtons action
-  handleClicks _  _  (TSelectArg i, meta) _
-    =   // TODO Implement
-        viewInstance allbps rs navstack dynSett trt selDetail showButtons action
+  handleClicks mn tn (TSelectArg i, meta) _
+    =   set (Just (Right (mn, tn, tid, i))) selectedDetail
+    >>| viewInstance allbps rs navstack dynSett trt selDetail showButtons action
   handleClicks _ _ _ _ = viewInstance allbps rs navstack dynSett trt selDetail showButtons action
 
   navigateBackwards :: !NavStack -> Maybe (Task ())
