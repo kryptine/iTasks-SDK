@@ -353,7 +353,7 @@ mkParCases inh eid (Left pp) tsrc
 mkParCases inh _ (Right xs) tsrc = mapSt (tExpr2Image inh) xs tsrc
 
 renderParallelContainer :: !MkImageInh !ExprId !ModuleName !TaskName !String ![Image ModelTy] ![ImageTag] !*TagSource -> *(!Image ModelTy, !*TagSource)
-renderParallelContainer inh eid mn tn descr ts refs tsrc
+renderParallelContainer inh eid moduleName taskName descr ts refs tsrc
   #! mActiveTid         = case inh.inh_trt.bpr_instance of
                             Just bpinst -> activeNodeTaskId eid bpinst.bpi_activeNodes
                             _           -> Nothing
@@ -367,14 +367,15 @@ renderParallelContainer inh eid mn tn descr ts refs tsrc
                             _           -> ""
   #! displayName        = descr +++ taskIdStr
   #! (taskApp, tsrc)    = tParApp inh.inh_compact inh.inh_inaccessible eid inh.inh_selected inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName displayName ts refs tsrc
-  #! clickMeta          = mkClickMeta (fmap (\x -> x.bpi_taskId) inh.inh_trt.bpr_instance) mbNavTo
+  #! clickMeta          = mkClickMeta inh (Just eid) moduleName taskName (fmap (\x -> x.bpi_taskId) inh.inh_trt.bpr_instance) mbNavTo
   #! valNodeIsSelected  = case inh.inh_selDetail of
                             Just (Left
                                    { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}
                                    , click_origin_mbnodeId}) -> bpident_moduleName == inh.inh_trt.bpr_moduleName && bpident_taskName == inh.inh_trt.bpr_taskName && click_origin_mbnodeId == Just eid
                             _                                -> False
   #! taskApp            = taskApp <@< { onclick = navigateOrSelect clickMeta, local = False }
-  #! valAnchor          = circle (px 12.0) <@< { fill = case stability of
+  #! valAnchor          = circle (px 12.0) <@< { onclick = openDetails clickMeta, local = False }
+                                           <@< { fill = case stability of
                                                           TNoVal    -> WhiteColor
                                                           TStable   -> PrevActiveColor
                                                           TUnstable -> CurrActiveColor
@@ -404,18 +405,18 @@ renderParallelContainer inh eid mn tn descr ts refs tsrc
   navigateOrSelect meta 1 st = { ActionState | st & action = Just (TSelectNode, meta) }
   navigateOrSelect _    _ st = st
 
-  mkClickMeta :: !(Maybe TaskId) !(Maybe TaskId) -> ClickMeta
-  mkClickMeta mborig mbtarget =
-    { click_origin_mbbpident = Just { bpident_moduleName = inh.inh_trt.bpr_moduleName
-                                    , bpident_taskName   = inh.inh_trt.bpr_taskName
-                                    , bpident_taskId     = mborig
-                                    }
-    , click_origin_mbnodeId  = Just eid
-    , click_target_bpident   = { bpident_moduleName = mn
-                               , bpident_taskName   = tn
-                               , bpident_taskId     = mbtarget
-                               }
-    }
+mkClickMeta :: !MkImageInh !(Maybe ExprId) !ModuleName !TaskName !(Maybe TaskId) !(Maybe TaskId) -> ClickMeta
+mkClickMeta inh mbnid modName taskName mborig mbtarget =
+  { click_origin_mbbpident = Just { bpident_moduleName = inh.inh_trt.bpr_moduleName
+                                  , bpident_taskName   = inh.inh_trt.bpr_taskName
+                                  , bpident_taskId     = mborig
+                                  }
+  , click_origin_mbnodeId  = mbnid
+  , click_target_bpident   = { bpident_moduleName = modName
+                             , bpident_taskName   = taskName
+                             , bpident_taskId     = mbtarget
+                             }
+  }
 
 tDiamond :: Image ModelTy
 tDiamond = rotate (deg 45.0) (rect (px 16.0) (px 16.0))
@@ -473,7 +474,7 @@ tTaskDef inh bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNa
   where
   mkArgAndTy :: !(!TExpr, !TExpr) !Int !(Maybe TExpr) -> [Image ModelTy]
   mkArgAndTy (arg, ty) i mvar
-    #! meta = mkClickMeta Nothing Nothing
+    #! meta = mkClickMeta inh Nothing moduleName taskName Nothing Nothing
     = [ text ArialRegular10px (ppTExpr arg) <@< { onclick = selectArg bpr meta i, local = False}
       , text ArialRegular10px " :: "        <@< { onclick = selectArg bpr meta i, local = False}
       , text ArialRegular10px (ppTExpr ty)  <@< { onclick = selectArg bpr meta i, local = False}
@@ -483,19 +484,6 @@ tTaskDef inh bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNa
   selectArg :: !BlueprintRef !ClickMeta !Int !Int !ModelTy -> ModelTy
   selectArg {bpr_instance = Just {bpi_taskId}} meta i 1 st = { ActionState | st & action = Just (TSelectArg i, meta) }
   selectArg _                                  _    _ _ st = st
-
-  mkClickMeta :: !(Maybe TaskId) !(Maybe TaskId) -> ClickMeta
-  mkClickMeta mborig mbtarget =
-    { click_origin_mbbpident = Just { bpident_moduleName = inh.inh_trt.bpr_moduleName
-                                    , bpident_taskName   = inh.inh_trt.bpr_taskName
-                                    , bpident_taskId     = mborig
-                                    }
-    , click_origin_mbnodeId  = Nothing
-    , click_target_bpident   = { bpident_moduleName = moduleName
-                               , bpident_taskName   = taskName
-                               , bpident_taskId     = mbtarget
-                               }
-    }
 
 activeNodeTaskId :: !ExprId !(Map ListId (IntMap (TaskId, ExprId))) -> Maybe TaskId
 activeNodeTaskId eid activeNodes
@@ -533,7 +521,7 @@ tMApp inh eid _ modName taskName taskArgs _ tsrc
   = renderTaskApp inh eid modName taskName taskArgs taskName tsrc
 
 renderTaskApp :: !MkImageInh !ExprId !String !String ![TExpr] !String !*TagSource -> *(!Image ModelTy, !*TagSource)
-renderTaskApp inh eid modName taskName taskArgs displayName tsrc
+renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
   #! (taskArgs`, tsrc)  = mapSt (tExpr2Image inh) taskArgs tsrc
   #! mActiveTid         = case inh.inh_trt.bpr_instance of
                             Just bpinst -> activeNodeTaskId eid bpinst.bpi_activeNodes
@@ -548,11 +536,11 @@ renderTaskApp inh eid modName taskName taskArgs displayName tsrc
                             (_, Just x) -> " (" +++ toString x +++ ")"
                             _           -> ""
   #! displayName        = displayName +++ taskIdStr
-  #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_selected eid inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName modName displayName taskArgs`) inh.inh_task_apps tsrc
+  #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_selected eid inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName moduleName displayName taskArgs`) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
-                            _          -> tDefaultMApp inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_selected eid inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName modName displayName taskArgs taskArgs` tsrc
-  #! clickMeta          = mkClickMeta (fmap (\x -> x.bpi_taskId) inh.inh_trt.bpr_instance) mbNavTo
+                            _          -> tDefaultMApp inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_selected eid inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName moduleName displayName taskArgs taskArgs` tsrc
+  #! clickMeta          = mkClickMeta inh (Just eid) moduleName taskName (fmap (\x -> x.bpi_taskId) inh.inh_trt.bpr_instance) mbNavTo
   #! taskApp            = taskApp <@< { onclick = navigateOrSelect clickMeta, local = False }
   #! valNodeIsSelected  = case inh.inh_selDetail of
                             Just (Left
@@ -572,27 +560,14 @@ renderTaskApp inh eid modName taskName taskArgs displayName tsrc
   #! resImg             = inclArr
   = (resImg, tsrc)
   where
-  mkClickMeta :: !(Maybe TaskId) !(Maybe TaskId) -> ClickMeta
-  mkClickMeta mborig mbtarget =
-    { click_origin_mbbpident = Just { bpident_moduleName = inh.inh_trt.bpr_moduleName
-                                    , bpident_taskName   = inh.inh_trt.bpr_taskName
-                                    , bpident_taskId     = mborig
-                                    }
-    , click_origin_mbnodeId  = Just eid
-    , click_target_bpident   = { bpident_moduleName = modName
-                               , bpident_taskName   = taskName
-                               , bpident_taskId     = mbtarget
-                               }
-    }
-
   navigateOrSelect :: !ClickMeta !Int !ModelTy -> ModelTy
   navigateOrSelect meta 1 st = { ActionState | st & action = Just (TSelectNode, meta) }
   navigateOrSelect meta 2 st = { ActionState | st & action = Just (TNavAction, meta) }
   navigateOrSelect _    _ st = st
 
-  openDetails :: !ClickMeta !Int !ModelTy -> ModelTy
-  openDetails meta 1 st = { ActionState | st & action = Just (TDetailAction, meta) }
-  openDetails _    _ st = st
+openDetails :: !ClickMeta !Int !ModelTy -> ModelTy
+openDetails meta 1 st = { ActionState | st & action = Just (TDetailAction, meta) }
+openDetails _    _ st = st
 
 tRoundedRect :: !Span !Span -> Image a
 tRoundedRect width height

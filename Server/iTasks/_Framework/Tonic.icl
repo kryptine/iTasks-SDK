@@ -304,8 +304,6 @@ tonicExtWrapApp :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!Module
 tonicExtWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) tid mapp = tonicWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) tid mapp
 
 isSpecialBlueprintTask :: !(!String, !String) -> Bool
-isSpecialBlueprintTask ("iTasks.API.Core.Types"            , ">>="     ) = True
-isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", ">>|"     ) = True
 isSpecialBlueprintTask ("iTasks.API.Core.TaskCombinators"  , "step"    ) = True
 isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", ">>*"     ) = True
 isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", "-&&-"    ) = True
@@ -315,7 +313,12 @@ isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", "-||"     ) = True
 isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", "anyTask" ) = True
 isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", "allTasks") = True
 isSpecialBlueprintTask ("iTasks.API.Extension.User"        , "@:"      ) = True
-isSpecialBlueprintTask _                                                 = False
+isSpecialBlueprintTask x                                                 = isBind x
+
+isBind :: !(!String, !String) -> Bool
+isBind ("iTasks.API.Core.Types"            , ">>=") = True
+isBind ("iTasks.API.Common.TaskCombinators", ">>|") = True
+isBind _                                            = False
 
 tonicEnabledSteps :: RWShared () (Map TaskId [UIAction]) (Map TaskId [UIAction])
 tonicEnabledSteps = sdsTranslate "tonicEnabledSteps" (\t -> t +++> "-tonicEnabledSteps")
@@ -367,7 +370,7 @@ tonicWrapApp` :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleNa
 tonicWrapApp` _ _ ("iTasks.API.Common.TaskCombinators", ">>*") _ (Task eval) = Task (stepEval eval)
 tonicWrapApp` _ _ ("iTasks.API.Core.TaskCombinators", "step") _ (Task eval) = Task (stepEval eval)
 tonicWrapApp` _ _ wrapInfo _ t
-  | isSpecialBlueprintTask wrapInfo = t
+  | isBind wrapInfo = t
 tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ nid t=:(Task eval)
   | isSpecialBlueprintTask appInfo || appInfo == ("", "") = return () >>~ \_ -> Task eval`
   | otherwise                                             = t
@@ -379,12 +382,9 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ nid t=:(Task eval)
           # (cct, iworld) = mkCompleteTrace childInstanceNo callTrace iworld
           = case firstParent rtMap cct of
               Ok parentBPRef=:{bpr_instance = Just parentBPInst}
-                //#! iworld = trace_n ("childTaskId = " +++ toString childTaskId +++ " nid = " +++ toString nid +++
-                //" parentBPInst.bpi_taskId = " +++ toString parentBPInst.bpi_taskId +++ " parentModuleName = " +++ parentModuleName +++
-                //" parentTaskName = " +++ parentTaskName +++ " appModNm = " +++ appModNm +++ " appFnNm = " +++ appFnNm +++ " wrappedModuleName = " +++ wrappedModuleName +++ " wrappedTaskName = " +++ wrappedTaskName) iworld
                 # iworld       = updRTMap nid childTaskId cct parentBPRef parentBPInst iworld
                 # (tr, iworld) = eval event evalOpts taskTree iworld
-                # iworld       = evalInteract tr eval childTaskId event evalOpts taskTree iworld
+                # iworld       = evalInteract parentModuleName parentTaskName nid tr childTaskId iworld
                 # iworld       = updLoTMap childTaskId parentBPInst.bpi_taskId iworld
                 = (tr, iworld)
               _ = eval event evalOpts taskTree iworld
@@ -410,18 +410,9 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ nid t=:(Task eval)
           # iworld       = case tr of
                              (ValueResult (Value x True) _ _ _) -> snd (markStable parentModuleName parentTaskName tid tr event evalOpts taskTree iworld)
                              _                                  -> iworld
-          # iworld       = evalInteract tr eval tid event evalOpts taskTree iworld
+          # iworld       = evalInteract parentModuleName parentTaskName nid tr tid iworld
           = (tr, iworld)
         _ = eval event evalOpts taskTree iworld
-
-  evalInteract tr eval childTaskId event evalOpts taskTree iworld
-    # (mbnds, iworld) = 'DSDS'.read selectedNodes iworld
-    # editor          = case mbnds of
-                          Ok nodes
-                            | 'DS'.member (parentModuleName, parentTaskName, nid) nodes
-                            = resultToOutput childTaskId tr
-                          _ = (viewInformation (Title "Notice") [] (pp3 (parentModuleName, parentTaskName, nid) +++ " not selected for tracing") @! (), TNoVal)
-    = snd ('DSDS'.modify ('DM'.put childTaskId editor) storedOutputEditors iworld)
 
   updLoTMap childTaskId parentTaskId iworld
     # (mbChildBPRef, iworld) = getBlueprintRef childTaskId iworld
@@ -441,6 +432,15 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ nid t=:(Task eval)
                                                                     & bpi_activeNodes      = newActiveNodes
                                                                     , bpi_previouslyActive = oldActiveNodes}} (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld
     = iworld
+
+evalInteract parentModuleName parentTaskName nid tr childTaskId iworld
+  # (mbnds, iworld) = 'DSDS'.read selectedNodes iworld
+  # editor          = case mbnds of
+                        Ok nodes
+                          | 'DS'.member (parentModuleName, parentTaskName, nid) nodes
+                          = resultToOutput childTaskId tr
+                        _ = (viewInformation (Title "Notice") [] (pp3 (parentModuleName, parentTaskName, nid) +++ " not selected for tracing") @! (), TNoVal)
+  = snd ('DSDS'.modify ('DM'.put childTaskId editor) storedOutputEditors iworld)
 
 
 setActiveNodes :: !BlueprintInstance !TaskId !Calltrace !ExprId !*IWorld -> *(!Map ListId (IntMap (TaskId, ExprId)), !*IWorld)
@@ -509,21 +509,27 @@ tonicWrapTraversable` :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!
 tonicWrapTraversable` (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) nid f ts = Task eval
   where
   eval event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
-    # (ts, iworld) = case taskIdFromTaskTree taskTree of
-                       Ok (TaskId instanceNo taskNo)
-                         # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
-                         = case mrtMap of
-                             Ok rtMap
-                               # (cct, iworld) = mkCompleteTrace instanceNo [taskNo : callTrace] iworld
-                               = case firstParent rtMap cct of
-                                   Ok parent=:{bpr_instance = Just pinst}
-                                     # (_, iworld) = 'DSDS'.write 'DIS'.newMap (sdsFocus (pinst.bpi_taskId, nid) tonicUpdatesForTaskAndExprId) iworld
-                                     = (tonicWrapListOfTask parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid pinst.bpi_taskId ts, iworld)
-                                   _ = (ts, iworld)
-                             _ = (ts, iworld)
-                       _ = (ts, iworld)
+    # (ts, mctid, iworld) = case taskIdFromTaskTree taskTree of
+                              Ok ctid=:(TaskId instanceNo taskNo)
+                                # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
+                                = case mrtMap of
+                                    Ok rtMap
+                                      # (cct, iworld) = mkCompleteTrace instanceNo [taskNo : callTrace] iworld
+                                      = case firstParent rtMap cct of
+                                          Ok parent=:{bpr_instance = Just pinst}
+                                            # (_, iworld) = 'DSDS'.write 'DIS'.newMap (sdsFocus (pinst.bpi_taskId, nid) tonicUpdatesForTaskAndExprId) iworld
+                                            = (tonicWrapListOfTask parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid pinst.bpi_taskId ts, Just ctid, iworld)
+                                          _ = (ts, Just ctid, iworld)
+                                    _ = (ts, Just ctid, iworld)
+                              _ = (ts, Nothing, iworld)
     = case f ts of
-        Task eval` -> eval` event evalOpts taskTree iworld
+        Task eval`
+          # (tr, iworld) = eval` event evalOpts taskTree iworld
+          = case mctid of
+              Just ctid
+                # iworld = evalInteract parentFnModuleName parentFnName nid tr ctid iworld
+                = (tr, iworld)
+              _ = (tr, iworld)
 
 tonicWrapListOfTask :: !ModuleName !TaskName !ModuleName !TaskName !ExprId !TaskId !(f (Task a)) -> f (Task a) | Traversable f
 tonicWrapListOfTask parentFnModuleName parentFnName wrappedFnModuleName wrappedFnName nid parentId ts = traverseWithIdx registerTask ts
@@ -847,6 +853,7 @@ tonicDynamicBrowser` allbps rs navstack =
   additionalInfo = whileUnchanged selectedDetail viewDetail
     where
     viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Just tid}})) = whileUnchanged storedOutputEditors (viewOutput tid)
+    viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Nothing}}))  = viewInformation (Title "Notice") [] "No data available for selected task. " @! ()
     viewDetail (Just (Right (mn, tn, tid, argIdx))) = readParams mn tn tid >>= \params -> case getN params argIdx of
                                                                                             Just (_, vi) -> vi
                                                                                             _            -> viewInformation (Title "Notice") [] "Argument value not found" @! ()
