@@ -226,7 +226,7 @@ registerNClick mkEventHandler resolve state2image cid svg elemId sttf local worl
   #! elemId        = replaceSubString editletId cid elemId
   #! (elem, world) = (svg .# "getElementById" .$ elemId) world
   #! cb            = mkEventHandler (mkNClickCB elemId mkEventHandler sttf local) cid
-  #! (_, world)    = (elem `addEventListener` ("click", cb, True)) world
+  #! (_, world)    = (elem `addEventListener` ("click", cb, False)) world
   = world
 
 mkNClickCB :: !String !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f)
@@ -234,11 +234,12 @@ mkNClickCB :: !String !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) Compon
               !*JSWorld
            -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
 mkNClickCB elemID mkEventHandler sttf local cid args clval=:{svgClSt, svgClickTimeout} world
+  #! world = if (size args > 0) (snd ((args.[0] .# "stopPropagation" .$ ()) world)) world
   #! world = case svgClickTimeout of
                Just to -> snd (("clearTimeout" .$ to) world)
                _       -> world
   #! cb = mkEventHandler (handleNClick sttf local) cid
-  #! (timeOut, world) = ("setTimeout" .$ (cb, 150)) world
+  #! (timeOut, world) = ("setTimeout" .$ (cb, 225)) world
   = ({clval & svgClickTimeout = Just timeOut, svgNumClicks = clval.svgNumClicks + 1}, NoDiff, world)
 
 handleNClick :: !(Int s -> s) !Bool !String !{JSObj JSEvent} !(SVGClSt s)
