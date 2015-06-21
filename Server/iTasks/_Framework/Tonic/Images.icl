@@ -794,9 +794,9 @@ tStepCont inh _ (TFApp "OnException" [cont : _ ] _)     tsrc
 tStepCont inh _ (TFApp "OnAllExceptions" [cont : _ ] _) tsrc
   = mkStepCont inh Nothing cont tsrc
 
-mkStepCont inh mact (TFApp "always" [x : _] _) [ref : tsrc]
-  #! (x, tsrc) = tExpr2Image inh x tsrc
-  #! img       = beside (repeat AtMiddleY) [] [addAction mact (tHorizConnArr x.syn_visited) ref, /* TODO edge */ x.syn_img] Nothing
+mkStepCont inh mact (TFApp "always" [mapp : _] _) [ref : tsrc]
+  #! (x, tsrc) = tExpr2Image inh mapp tsrc
+  #! img       = beside (repeat AtMiddleY) [] [addAction mact (tHorizConnArr x.syn_visited) ref, x.syn_img] Nothing
   = ( {syn_img = img, syn_visited = x.syn_visited}
     , tsrc)
 mkStepCont inh mact (TFApp "ifStable" [TLam pats e : _] _) [ref : tsrc]
@@ -808,7 +808,7 @@ mkStepCont inh mact (TFApp "ifStable" [TLam pats e : _] _) [ref : tsrc]
 mkStepCont inh mact (TFApp "ifStable" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh mapp tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh tStable tsrc
-  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr x.syn_visited, addAction mact (tHorizConnArr x.syn_visited) ref, /* TODO edge */ x.syn_img] Nothing
+  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr x.syn_visited, addAction mact (tHorizConnArr x.syn_visited) ref, x.syn_img] Nothing
   = ( {syn_img = img, syn_visited = x.syn_visited}
     , tsrc)
 mkStepCont inh mact (TFApp "ifUnstable" [TLam pats e : _] _) [ref : tsrc]
@@ -820,14 +820,14 @@ mkStepCont inh mact (TFApp "ifUnstable" [TLam pats e : _] _) [ref : tsrc]
 mkStepCont inh mact (TFApp "ifUnstable" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh mapp tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh tUnstable tsrc
-  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr x.syn_visited, addAction mact (tHorizConnArr x.syn_visited) ref, /* TODO edge */ x.syn_img] Nothing
+  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr x.syn_visited, addAction mact (tHorizConnArr x.syn_visited) ref, x.syn_img] Nothing
   = ( {syn_img = img, syn_visited = x.syn_visited}
     , tsrc)
 mkStepCont inh mact (TFApp "ifValue" [conditionApp : continuationApp : _] _) [ref : tsrc]
   #! (exprImg, tsrc)         = tExpr2Image {inh & inh_in_case = True} conditionApp tsrc
   #! (conditionImg, tsrc)    = tCaseDiamond inh exprImg.syn_img tsrc
   #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
-  #! img                     = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr exprImg.syn_visited, addAction mact (tShortHorizConn exprImg.syn_visited) ref, /* TODO edge */ continuationImg.syn_img] Nothing
+  #! img                     = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr exprImg.syn_visited, addAction mact (tShortHorizConn exprImg.syn_visited) ref, continuationImg.syn_img] Nothing
   = ( {syn_img = img, syn_visited = continuationImg.syn_visited}
     , tsrc)
 mkStepCont inh mact (TFApp "hasValue" [TLam pats e : _] _) [ref : tsrc]
@@ -839,42 +839,37 @@ mkStepCont inh mact (TFApp "hasValue" [TLam pats e : _] _) [ref : tsrc]
 mkStepCont inh mact (TFApp "hasValue" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh mapp tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh hasValueFilter tsrc
-  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr x.syn_visited, addAction mact (tHorizConnArr x.syn_visited) ref, /* TODO edge */ x.syn_img] Nothing
+  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr x.syn_visited, addAction mact (tHorizConnArr x.syn_visited) ref, x.syn_img] Nothing
   = ( {syn_img = img, syn_visited = x.syn_visited}
     , tsrc)
 mkStepCont inh mact (TFApp "ifCond" [conditionApp : continuationApp : _] _) [ref : tsrc]
   #! (exprImg, tsrc)         = tExpr2Image {inh & inh_in_case = True} conditionApp tsrc
   #! (conditionImg, tsrc)    = tCaseDiamond inh exprImg.syn_img tsrc
   #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
-  #! img                     = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr exprImg.syn_visited, addAction mact (tHorizConnArr exprImg.syn_visited) ref, /* TODO edge */ continuationImg.syn_img] Nothing
+  #! img                     = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr exprImg.syn_visited, addAction mact (tHorizConnArr exprImg.syn_visited) ref, continuationImg.syn_img] Nothing
   = ( {syn_img = img, syn_visited = continuationImg.syn_visited}
-    , tsrc)
-mkStepCont inh mact (TFApp "always" [mapp : _] _) [ref : tsrc]
-  #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  #! img       = beside (repeat AtMiddleY) [] [addAction mact (tHorizConnArr x.syn_visited) ref, /* TODO edge */ x.syn_img] Nothing
-  = ( {syn_img = img, syn_visited = x.syn_visited}
     , tsrc)
 mkStepCont inh mact (TFApp "withoutValue" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  #! img       = beside (repeat AtMiddleY) [] [addAction mact (tHorizConnArr x.syn_visited) ref, /* TODO edge */ x.syn_img] Nothing 
+  #! img       = beside (repeat AtMiddleY) [] [addAction mact (tHorizConnArr x.syn_visited) ref, x.syn_img] Nothing 
   = ( {syn_img = img, syn_visited = x.syn_visited}
     , tsrc)
 mkStepCont inh mact (TFApp "withValue" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh mapp tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh hasValueFilter tsrc
-  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr x.syn_visited, addAction mact (tHorizConnArr x.syn_visited) ref, /* TODO edge */ x.syn_img] Nothing
+  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr x.syn_visited, addAction mact (tHorizConnArr x.syn_visited) ref, x.syn_img] Nothing
   = ( {syn_img = img, syn_visited = x.syn_visited}
     , tsrc)
 mkStepCont inh mact (TFApp "withStable" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh mapp tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh tStable tsrc
-  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr x.syn_visited, addAction mact (tHorizConnArr x.syn_visited) ref, /* TODO edge */ x.syn_img] Nothing
+  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr x.syn_visited, addAction mact (tHorizConnArr x.syn_visited) ref, x.syn_img] Nothing
   = ( {syn_img = img, syn_visited = x.syn_visited}
     , tsrc)
 mkStepCont inh mact (TFApp "withUnstable" [mapp : _] _) [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh mapp tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh tUnstable tsrc
-  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr x.syn_visited, addAction mact (tHorizConnArr x.syn_visited) ref, /* TODO edge */ x.syn_img] Nothing
+  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr x.syn_visited, addAction mact (tHorizConnArr x.syn_visited) ref, x.syn_img] Nothing
   = ( {syn_img = img, syn_visited = x.syn_visited}
     , tsrc)
 mkStepCont inh mact e [ref : tsrc]
@@ -885,14 +880,6 @@ mkStepCont inh mact e [ref : tsrc]
     , tsrc)
 
 addAction :: !(Maybe (String, Bool)) !(Image ModelTy) !*TagRef -> Image ModelTy
-addAction (Just (action, enabled)) arr (t, uT)
-  #! l = tag uT (margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, tuneIf (not enabled) (text ArialBold10px (" " +++ action)) {fill = toSVGColor "#666"}] Nothing))
-  #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill        = toSVGColor (if enabled "#ebebeb" "#fff")}
-                                                                                                            <@< {strokewidth = px 1.0}
-                                                                                                            <@< {stroke      = toSVGColor (if enabled "#000" "#ccc")}
-                                                                                                            <@< {dash        = if enabled [] [5, 5] }
-                                                     , l] Nothing
-  = beside (repeat AtMiddleY) [] [l`, arr] Nothing
 addAction (Just (action, enabled)) arr (t, uT)
   #! l = tag uT (margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, tuneIf (not enabled) (text ArialBold10px (" " +++ action)) {fill = toSVGColor "#666"}] Nothing))
   #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill        = toSVGColor (if enabled "#ebebeb" "#fff")}
