@@ -7,8 +7,8 @@ Global
 		CheckStacks:	False
 		CheckIndexes:	True
 	Application
-		HeapSize:	2097152
-		StackSize:	512000
+		HeapSize:	209715200
+		StackSize:	2097152
 		ExtraMemory:	81920
 		IntialHeapSize:	204800
 		HeapSizeMultiplier:	4096
@@ -46,7 +46,7 @@ MainModule
 		NeverMemoryProfile:	False
 		NeverTimeProfile:	False
 		StrictnessAnalysis:	True
-		ListTypes:	StrictExportTypes
+		ListTypes:	InferredTypes
 		ListAttributes:	True
 		Warnings:	True
 		Verbose:	True
