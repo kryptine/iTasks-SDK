@@ -110,6 +110,10 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
         Just bprep
           # (curr,   iworld) = iworld!current
           # (clocks, iworld) = iworld!clocks
+          # (muser, iworld)  = 'DSDS'.read (sdsFocus instanceNo taskInstanceUser) iworld
+          # muser            = case muser of
+                                 Ok u -> Just u
+                                 _    -> Nothing
           # (cct, iworld)    = mkCompleteTrace instanceNo callTrace iworld
           # bpinst           = { BlueprintInstance
                                | bpi_taskId           = currTaskId
@@ -122,6 +126,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                                           Ok p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
                                                           _    -> Nothing
                                , bpi_blueprint        = bprep
+                               , bpi_currentUser      = muser
                                }
           # blueprint        = { BlueprintRef
                                | bpr_moduleName = mn
@@ -808,6 +813,7 @@ dynamicParent childId
   , startTime   :: !String
   , lastUpdate  :: !String
   , endTime     :: !String
+  , user        :: !String
   }
 
 derive class iTask DynamicView
@@ -817,7 +823,7 @@ enterQuery = enterInformation "Enter filter query" []
 
 :: BlueprintQuery
   = TaskName String
-  //| UserInvolved String
+  | UserInvolved String
   | IsActive
   | HasInstanceNo Int
   | AndQuery BlueprintQuery BlueprintQuery
@@ -937,9 +943,8 @@ tonicDynamicBrowser` rs navstack =
   filterActiveTasks (Just q) tasks
     = [bp \\ bp=:{bpr_instance = Just trt} <- tasks | not (startsWith "iTasks" bp.bpr_moduleName) && isNothing trt.bpi_endTime && doFilter bp q]
     where
-    //doFilter bp=:{bpr_instance = Just trt} (ModuleName mn)   = mn == "" || indexOf mn bp.bpr_moduleName >= 0
     doFilter bp=:{bpr_instance = Just trt} (TaskName tn)     = tn == "" || indexOf tn bp.bpr_taskName >= 0
-    //doFilter bp=:{bpr_instance = Just trt} (UserInvolved un) = un == "" || indexOf un (toString (toJSON trt.bpi_involvedUsers)) >= 0
+    doFilter bp=:{bpr_instance = Just {bpi_currentUser = Just u}} (UserInvolved un) = un == "" || indexOf un (toString u) >= 0
     doFilter bp=:{bpr_instance = Just trt} IsActive          = isNothing trt.bpi_endTime
     doFilter bp=:{bpr_instance = Just {bpi_taskId = TaskId tinst _}} (HasInstanceNo n) = tinst == n
     doFilter bp=:{bpr_instance = Just trt} (AndQuery l r)    = doFilter bp l && doFilter bp r
@@ -951,12 +956,14 @@ tonicDynamicBrowser` rs navstack =
       , startTime   = toString bpi.bpi_startTime
       , lastUpdate  = toString bpi.bpi_lastUpdated
       , endTime     = maybe "" toString bpi.bpi_endTime
+      , user        = maybe "" toString bpi.bpi_currentUser
       }
   customView bpr = { DynamicView
                    | taskName    = bpr.bpr_moduleName +++ "." +++ bpr.bpr_taskName
                    , startTime   = ""
                    , lastUpdate  = ""
                    , endTime     = ""
+                   , user        = ""
                    }
 
 getModuleAndTask :: !AllBlueprints !ModuleName !TaskName -> Task (TonicModule, TonicTask)
