@@ -341,11 +341,14 @@ stepEval eval event evalOpts taskTree iworld
 stepEval` :: TaskId (Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult d, *IWorld))
              Event TaskEvalOpts TaskTree *IWorld
           -> *(TaskResult d, *IWorld)
-stepEval` childTaskId eval event evalOpts taskTree iworld
+stepEval` childTaskId=:(TaskId ino tno) eval event evalOpts taskTree iworld
   # (taskResult, iworld) = eval event evalOpts taskTree iworld
   = case taskResult of
       ValueResult _ _ (TaskRep uiDef) _
-        = case uiDefActions uiDef of
+        // TODO
+        // This LC filters out the actions for the current task. For some reason, we sometimes
+        // get actions for the _next_ step here. Why is this? Ideally, we should remove this LC here.
+        = case [a \\ a <- uiDefActions uiDef | a.UIAction.taskId == toString ino +++ "-" +++ toString tno] of
             [] = (taskResult, iworld)
             xs
               # iworld = snd ('DSDS'.write xs (sdsFocus childTaskId tonicActionsForTaskID) iworld)
@@ -980,12 +983,12 @@ viewInstance :: ![TaskAppRenderer] !(Shared NavStack)
              -> Task ()
 viewInstance rs navstack dynSett trt selDetail showButtons action=:(Just meta=:{click_target_bpident = {bpident_taskId = Just tid}})
   =          get navstack
-  >>~ \ns -> get selectedNodes
-  >>~ \selectedNodes -> case 'DM'.get tid trt of
+  >>~ \ns -> case 'DM'.get tid trt of
                Just bpref=:{bpr_moduleName, bpr_taskName, bpr_instance = Just bpinst}
                  =                dynamicParent bpinst.bpi_taskId
-                 >>~ \mbprnt ->   whileUnchanged tonicEnabledSteps (
-                 \enabledSteps -> (showBlueprint rs bpinst.bpi_previouslyActive bpref selectedNodes bpinst.bpi_blueprint selDetail enabledSteps False { Scale | min = 0, cur = 0, max = 0})
+                 >>~ \mbprnt ->   get selectedNodes
+                 >>~ \selNodes -> whileUnchanged tonicEnabledSteps (
+                 \enabledSteps -> (showBlueprint rs bpinst.bpi_previouslyActive bpref selNodes bpinst.bpi_blueprint selDetail enabledSteps False { Scale | min = 0, cur = 0, max = 0})
                                   -|| showChildTasks dynSett bpinst)
                                   >>* [ OnValue (doAction (handleClicks bpr_moduleName bpr_taskName))
                                       : if showButtons

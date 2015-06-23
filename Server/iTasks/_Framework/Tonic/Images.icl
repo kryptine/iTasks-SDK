@@ -327,9 +327,8 @@ tBind inh l mpat r tsrc
   #! img        = beside (repeat AtMiddleY) [] linePart Nothing
   #! newStat    = case (l`.syn_status, r`.syn_status) of
                     (NotActive, NotActive) -> NotActive
-                    (s, NotActive)         -> IsActive
-                    (s, IsActive)          -> IsActive
-                    (_, AllDone)           -> AllDone
+                    (_,         NotActive) -> IsActive
+                    (_,         x)         -> x
   = ({syn_img = img, syn_status = newStat}, tsrc)
 
 tParSumL :: !InhMkImg !(Maybe ExprId) !String !String !TExpr !TExpr !*TagSource
@@ -697,9 +696,14 @@ tStep inh eid lhsExpr conts [(contextTag, _) : tsrc]
   #! (lhs, tsrc)          = tExpr2Image inh lhsExpr tsrc
   #! conts                = tSafeExpr2List conts
   #! (syn_branches, tsrc) = tBranches inh (tStepCont actions) False True (map (\t -> (Nothing, t, True)) conts) contextTag tsrc
-  #! img                  = beside (repeat AtMiddleY) [] [lhs.syn_img, tHorizConn syn_branches.syn_status, syn_branches.syn_img] Nothing
-  = ( {syn_img = img, syn_status = lhs.syn_status}
+  #! img                  = beside (repeat AtMiddleY) [] [lhs.syn_img, tHorizConn (lineStatus syn_branches.syn_status), syn_branches.syn_img] Nothing
+  = ( {syn_img = img, syn_status = syn_branches.syn_status}
     , tsrc)
+
+
+lineStatus :: !TStatus -> TStatus
+lineStatus NotActive = NotActive
+lineStatus _         = AllDone
 
 tExprIsList :: TExpr -> Bool
 tExprIsList (TFApp "_Cons" _ _) = True
@@ -714,6 +718,8 @@ tSafeExpr2List :: TExpr -> [TExpr]
 tSafeExpr2List (TFApp "_Cons" [hd : tl : _] _) = [hd : tUnsafeExpr2List tl]
 tSafeExpr2List (TFApp "_Nil"  _             _) = []
 tSafeExpr2List e                               = [e]
+
+derive class iTask UIAction
 
 tStepCont :: ![UIAction] !InhMkImg !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tStepCont actions inh (TFApp "OnAction" [TFApp "Action" [TLit actionLit : _] _ : cont : _ ] _) tsrc
@@ -762,7 +768,7 @@ stepAlwaysNeverWithoutVal :: !InhMkImg !(Maybe (!String, !Bool)) !TExpr !*TagSou
                           -> *(!SynMkImg, !*TagSource)
 stepAlwaysNeverWithoutVal inh mact mapp [ref : tsrc]
   #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  #! img       = beside (repeat AtMiddleY) [] [addAction mact (tHorizConnArr x.syn_status) ref, x.syn_img] Nothing
+  #! img       = beside (repeat AtMiddleY) [] [addAction mact (tHorizConnArr (lineStatus x.syn_status)) ref, x.syn_img] Nothing
   = ( {syn_img = img, syn_status = x.syn_status}
     , tsrc)
 
@@ -772,7 +778,7 @@ stepIfValueCond inh mact conditionApp continuationApp [ref : tsrc]
   #! (exprImg, tsrc)         = tExpr2Image {inh & inh_in_case = True} conditionApp tsrc
   #! (conditionImg, tsrc)    = tCaseDiamond inh exprImg.syn_img tsrc
   #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
-  #! img                     = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr exprImg.syn_status, addAction mact (tShortHorizConn exprImg.syn_status) ref, continuationImg.syn_img] Nothing
+  #! img                     = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr (lineStatus exprImg.syn_status), addAction mact (tShortHorizConn (lineStatus exprImg.syn_status)) ref, continuationImg.syn_img] Nothing
   = ( {syn_img = img, syn_status = continuationImg.syn_status}
     , tsrc)
 
@@ -781,7 +787,7 @@ stepWithValue :: !InhMkImg !(Maybe (!String, !Bool)) !(Image ModelTy) !TExpr !*T
 stepWithValue inh mact filter mapp [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh mapp tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh filter tsrc
-  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr x.syn_status, addAction mact (tHorizConnArr x.syn_status) ref, x.syn_img] Nothing
+  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr (lineStatus x.syn_status), addAction mact (tHorizConnArr (lineStatus x.syn_status)) ref, x.syn_img] Nothing
   = ( {syn_img = img, syn_status = x.syn_status}
     , tsrc)
 
@@ -791,13 +797,13 @@ stepIfStableUnstableHasValue :: !InhMkImg !(Maybe (!String, !Bool))
 stepIfStableUnstableHasValue inh mact filter [TLam pats e : _] [ref : tsrc]
   #! (syn_e, tsrc)        = tExpr2Image inh e tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh filter tsrc
-  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr syn_e.syn_status, addAction mact (tHorizConn syn_e.syn_status) ref, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" pats), tHorizConnArr syn_e.syn_status, syn_e.syn_img] Nothing
+  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr (lineStatus syn_e.syn_status), addAction mact (tHorizConn (lineStatus syn_e.syn_status)) ref, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" pats), tHorizConnArr (lineStatus syn_e.syn_status), syn_e.syn_img] Nothing
   = ( {syn_img = img, syn_status = syn_e.syn_status}
     , tsrc)
 stepIfStableUnstableHasValue inh mact filter [e : _] [ref : tsrc]
   #! (syn_e, tsrc)        = tExpr2Image inh e tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh filter tsrc
-  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr syn_e.syn_status, addAction mact (tHorizConnArr syn_e.syn_status) ref, syn_e.syn_img] Nothing
+  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr (lineStatus syn_e.syn_status), addAction mact (tHorizConnArr (lineStatus syn_e.syn_status)) ref, syn_e.syn_img] Nothing
   = ( {syn_img = img, syn_status = syn_e.syn_status}
     , tsrc)
 
