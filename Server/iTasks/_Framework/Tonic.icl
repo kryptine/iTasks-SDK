@@ -983,16 +983,16 @@ viewInstance rs navstack dynSett trt selDetail showButtons action=:(Just meta=:{
   >>~ \ns -> get selectedNodes
   >>~ \selectedNodes -> case 'DM'.get tid trt of
                Just bpref=:{bpr_moduleName, bpr_taskName, bpr_instance = Just bpinst}
-                 =                     dynamicParent bpinst.bpi_taskId
-                 >>~ \mbprnt ->        whileUnchanged (tonicSharedRT |+| tonicEnabledSteps) (
-                 \(_, enabledSteps) -> (showBlueprint rs bpinst.bpi_previouslyActive bpref selectedNodes bpinst.bpi_blueprint selDetail enabledSteps False { Scale | min = 0, cur = 0, max = 0})
-                                       -|| showChildTasks dynSett bpinst)
-                                       >>* [ OnValue (doAction (handleClicks bpr_moduleName bpr_taskName))
-                                           : if showButtons
-                                               [ OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
-                                               , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent bpref rs mbprnt) ]
-                                               []
-                                           ]
+                 =                dynamicParent bpinst.bpi_taskId
+                 >>~ \mbprnt ->   whileUnchanged tonicEnabledSteps (
+                 \enabledSteps -> (showBlueprint rs bpinst.bpi_previouslyActive bpref selectedNodes bpinst.bpi_blueprint selDetail enabledSteps False { Scale | min = 0, cur = 0, max = 0})
+                                  -|| showChildTasks dynSett bpinst)
+                                  >>* [ OnValue (doAction (handleClicks bpr_moduleName bpr_taskName))
+                                      : if showButtons
+                                          [ OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
+                                          , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent bpref rs mbprnt) ]
+                                          []
+                                      ]
                _ = defaultBack "Selected" showButtons ns
   where
   showChildTasks :: DisplaySettings BlueprintInstance -> Task ()

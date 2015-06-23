@@ -294,6 +294,9 @@ tLet inh pats expr [(txttag, uTxtTag) : tsrc]
         = tLet inh (pats ++ pats`) bdy tsrc
       _
         #! (t, tsrc)       = tExpr2Image inh expr tsrc
+        #! lineAct         = case t.syn_status of
+                               NotActive -> NotActive
+                               _         -> AllDone
         #! (patRhss, tsrc) = mapSt (tExpr2Image inh) (map snd pats) tsrc
         #! binds     = foldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : expr.syn_img : acc]) [] (zip2 (map fst pats) patRhss)
         #! letText   = tag uTxtTag (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing)
@@ -303,10 +306,12 @@ tLet inh pats expr [(txttag, uTxtTag) : tsrc]
                          <@< { fill   = TonicWhite }
                          <@< { stroke = TonicBlack }
         #! letImg    = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
-        #! linePart  = xline Nothing ((letWidth - px 8.0) /. 2.0)
+        #! linePart         = case t.syn_status of
+                               NotActive -> xline Nothing ((letWidth - px 8.0) /. 2.0)
+                               _         -> rect ((letWidth - px 8.0) /. 2.0) (px 3.0) <@< { fill = TonicBlue }
         #! connBox   = beside (repeat AtMiddleY) [] [linePart, rect (px 8.0) (px 8.0), linePart] Nothing
         #! letImg    = above (repeat AtMiddleX) [] [letImg, yline Nothing (px 8.0), connBox, empty zero (letHeight + px 8.0)] Nothing
-        #! img       = beside (repeat AtMiddleY) [] [letImg, tHorizConnArr t.syn_status, t.syn_img] Nothing
+        #! img       = beside (repeat AtMiddleY) [] [letImg, tHorizConnArr lineAct, t.syn_img] Nothing
         = ({syn_img = img, syn_status = t.syn_status}, tsrc)
 
 tBind :: !InhMkImg !TExpr !(Maybe Pattern) !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
@@ -320,7 +325,12 @@ tBind inh l mpat r tsrc
                     Just pat -> [l`.syn_img, tHorizConn lineAct, tTextWithGreyBackground ArialRegular10px (ppTExpr pat), tHorizConnArr lineAct, r`.syn_img]
                     _        -> [l`.syn_img, tHorizConnArr lineAct, r`.syn_img]
   #! img        = beside (repeat AtMiddleY) [] linePart Nothing
-  = ({syn_img = img, syn_status = r`.syn_status}, tsrc)
+  #! newStat    = case (l`.syn_status, r`.syn_status) of
+                    (NotActive, NotActive) -> NotActive
+                    (s, NotActive)         -> IsActive
+                    (s, IsActive)          -> IsActive
+                    (_, AllDone)           -> AllDone
+  = ({syn_img = img, syn_status = newStat}, tsrc)
 
 tParSumL :: !InhMkImg !(Maybe ExprId) !String !String !TExpr !TExpr !*TagSource
          -> *(!SynMkImg, !*TagSource)
