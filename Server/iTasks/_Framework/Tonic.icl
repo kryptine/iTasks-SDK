@@ -61,7 +61,7 @@ NS_TONIC_INSTANCES :== "tonic-instances"
 
 tonicSharedRT :: RWShared () TonicRTMap TonicRTMap
 tonicSharedRT = sdsTranslate "tonicSharedRT" (\t -> t +++> "-tonicSharedRT")
-                             (cachedJSONFileStore NS_TONIC_INSTANCES True True False (Just 'DM'.newMap))
+                             (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
 
 tonicInstances :: RWShared TaskId BlueprintRef BlueprintRef
 tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicSharedRT
@@ -312,7 +312,7 @@ isBind _                                            = False
 
 tonicEnabledSteps :: RWShared () (Map TaskId [UIAction]) (Map TaskId [UIAction])
 tonicEnabledSteps = sdsTranslate "tonicEnabledSteps" (\t -> t +++> "-tonicEnabledSteps")
-                                 (cachedJSONFileStore NS_TONIC_INSTANCES True True False (Just 'DM'.newMap))
+                                 (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
 
 tonicActionsForTaskID :: RWShared TaskId [UIAction] [UIAction]
 tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicEnabledSteps
@@ -702,16 +702,16 @@ tonicDynamicWorkflow rs = workflow "Tonic Dynamic Browser" "Tonic Dynamic Browse
 
 derive class iTask DisplaySettings
 
-staticDisplaySettings :: Shared DisplaySettings
-staticDisplaySettings = sharedStore "staticDisplaySettings"
-                                    { DisplaySettings
-                                    | unfold_depth    = { Scale
-                                                        | min = 0
-                                                        , cur = 0
-                                                        , max = 25
-                                                        }
-                                    , display_compact = False
-                                    }
+staticDisplaySettings :: RWShared () DisplaySettings DisplaySettings
+staticDisplaySettings = sdsFocus "staticDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
+                                     { DisplaySettings
+                                     | unfold_depth    = { Scale
+                                                         | min = 0
+                                                         , cur = 0
+                                                         , max = 25
+                                                         }
+                                     , display_compact = False
+                                     }))
 
 (>>~) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 (>>~) taska taskbf = step taska (const Nothing) [OnValue (hasValue taskbf)]
@@ -834,11 +834,11 @@ enterQuery = enterInformation "Enter filter query" []
 
 derive class iTask BlueprintQuery
 
-queryShare :: Shared (Maybe BlueprintQuery)
-queryShare = sharedStore "queryShare" Nothing
+queryShare :: RWShared () (Maybe BlueprintQuery) (Maybe BlueprintQuery)
+queryShare = sdsFocus "queryShare" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
 
-dynamicDisplaySettings :: Shared DisplaySettings
-dynamicDisplaySettings = sharedStore "dynamicDisplaySettings"
+dynamicDisplaySettings :: RWShared () DisplaySettings DisplaySettings
+dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
                                      { DisplaySettings
                                      | unfold_depth    = { Scale
                                                          | min = 0
@@ -846,7 +846,7 @@ dynamicDisplaySettings = sharedStore "dynamicDisplaySettings"
                                                          , max = 5
                                                          }
                                      , display_compact = False
-                                     }
+                                     }))
 
 tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
 tonicDynamicBrowser rs
@@ -854,18 +854,18 @@ tonicDynamicBrowser rs
       \navstack -> (updateSharedInformation "Display settings" [] dynamicDisplaySettings
               -&&- tonicDynamicBrowser` rs navstack) @! ())
 
-selectedBlueprint :: Shared (Maybe ClickMeta)
-selectedBlueprint = sharedStore "selectedBlueprint" Nothing
+selectedBlueprint :: RWShared () (Maybe ClickMeta) (Maybe ClickMeta)
+selectedBlueprint = sdsFocus "selectedBlueprint" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
 
-selectedDetail :: Shared (Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int)))
-selectedDetail = sharedStore "selectedDetail" Nothing
+selectedDetail :: RWShared () (Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int))) (Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int)))
+selectedDetail = sdsFocus "selectedDetail" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
 
-storedOutputEditors :: Shared (Map TaskId (Task (), TStability))
+storedOutputEditors :: RWShared () (Map TaskId (Task (), TStability)) (Map TaskId (Task (), TStability))
 storedOutputEditors = sdsTranslate "storedOutputEditors" (\t -> t +++> "-storedOutputEditors")
-                                  (jsonFileStore NS_TONIC_INSTANCES True True (Just 'DM'.newMap))
+                                  (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
 
 selectedNodes :: RWShared () (Set (ModuleName, TaskName, ExprId)) (Set (ModuleName, TaskName, ExprId))
-selectedNodes = sharedStore "selectedNodes" 'DS'.newSet
+selectedNodes = sdsFocus "selectedNodes" (cachedJSONFileStore NS_TONIC_INSTANCES True True True (Just 'DS'.newSet))
 
 :: AdditionalInfo =
   { numberOfActiveTasks  :: !Int
