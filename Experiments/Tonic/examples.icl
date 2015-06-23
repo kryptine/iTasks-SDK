@@ -17,8 +17,9 @@ Start world
 myExamples :: [Workflow]
 myExamples = 	[	workflow "palindrome" 					"accepts palindrome string " 	palindrome
 				,	workflow "create list of persons"		"one by one" 					person1by1
-				,	workflow "create list of palindromes"	"one by one" 					person1by1
+				,	workflow "create list of palindromes"	"one by one" 					palindrome1by1
 				,	workflow "delegate  list of persons"	"delegate the creation" 		(delegate person1by1)
+				,	workflow "two tasks"					"one to updatea and ont to monitor" chooseTwo
 
 
 				,	workflow "Manage users"	"Manage system users..." 		manageUsers
@@ -66,5 +67,25 @@ delegate task
 	=					enterChoiceWithShared "Select someone to delegate the task to:" [] users
 		>>= \user -> 	user @: (task >>= return)
 		>>= \result ->	viewInformation "The result is:" [] result
+
+
+import iTasks.API.Extensions.GIS.GoogleMap
+
+chooseTwo ::  Task GoogleMap
+chooseTwo 
+	=					enterChoiceWithShared "Select someone to enter information:" [] users
+		>>= \worker -> 	enterChoiceWithShared "Select someone to view what is entered:" [] users
+		>>= \viewer -> 	twoTasks worker viewer 
+	
+
+
+twoTasks :: w1 w2 -> Task a  | iTask a & toUserConstraint w1 & toUserConstraint w2 & gText{|*|} w1 & gText{|*|} w2
+twoTasks user1 user2   
+= withShared defaultValue 
+	(\share -> (user1 @: updateSharedInformation  ("Update, viewer is " <+++ user2) [] share)
+		        -||  
+		       (user2 @: viewSharedInformation    ("Viewer, creator is" <+++ user1)  [] share) 
+    )
+
 
 
