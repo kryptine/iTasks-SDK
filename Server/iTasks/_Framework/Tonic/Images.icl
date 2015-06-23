@@ -70,7 +70,7 @@ ArialItalic10px :== { fontfamily  = "Arial"
   , inh_in_case      :: !Bool
   , inh_selected     :: !Set (!ModuleName, !TaskName, !ExprId)
   , inh_outputs      :: !Map TaskId TStability
-  , inh_selDetail    :: !Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int))
+  , inh_selDetail    :: !Maybe (Either ClickMeta (!ModuleName, !TaskName, !TaskId, !Int))
   , inh_stepActions  :: !Map TaskId [UIAction]
   }
 
@@ -91,7 +91,7 @@ instance == TStatus where
 
 mkTaskImage :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef
                !(Map TaskId TStability) !(Map TaskId [UIAction])
-               !(Set (ModuleName, TaskName, ExprId)) !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int))) !Bool
+               !(Set (!ModuleName, !TaskName, !ExprId)) !(Maybe (Either ClickMeta (!ModuleName, !TaskName, !TaskId, !Int))) !Bool
                !ModelTy *TagSource -> Image ModelTy
 mkTaskImage rs prev trt outputs stepActions selected selDetail compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
@@ -257,8 +257,8 @@ determineSynStatus :: !Bool ![SynMkImg] -> TStatus
 determineSynStatus needAllActive syns = determineStatus needAllActive (map (\x -> x.syn_status) syns)
 
 tCaseOrIf :: !InhMkImg !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!SynMkImg, !*TagSource)
-tCaseOrIf inh texpr pats tsrc
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True (map (\(p, t) -> (Just p, t, True)) pats) tsrc
+tCaseOrIf inh texpr pats [(contextTag, _) : tsrc]
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True (map (\(p, t) -> (Just p, t, True)) pats) contextTag tsrc
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} texpr tsrc
   #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
   #! lineAct              = case syn_branches.syn_status of
@@ -324,31 +324,31 @@ tBind inh l mpat r tsrc
 
 tParSumL :: !InhMkImg !(Maybe ExprId) !String !String !TExpr !TExpr !*TagSource
          -> *(!SynMkImg, !*TagSource)
-tParSumL inh eid mn tn l r tsrc
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False [(Nothing, l, True), (Nothing, r, False)] tsrc
-  = renderParallelContainer inh eid mn tn "Parallel (-||): left bias" syn_branches tsrc
+tParSumL inh eid mn tn l r [(contextTag, uContextTag) : tsrc]
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False [(Nothing, l, True), (Nothing, r, False)] contextTag tsrc
+  = renderParallelContainer inh eid mn tn "Parallel (-||): left bias" syn_branches uContextTag tsrc
 tParSumR :: !InhMkImg !(Maybe ExprId) !String !String !TExpr !TExpr !*TagSource
          -> *(!SynMkImg, !*TagSource)
-tParSumR inh eid mn tn l r tsrc
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False [(Nothing, l, False), (Nothing, r, True)] tsrc
-  = renderParallelContainer inh eid mn tn "Parallel (||-): right bias" syn_branches tsrc
+tParSumR inh eid mn tn l r [(contextTag, uContextTag) : tsrc]
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False [(Nothing, l, False), (Nothing, r, True)] contextTag tsrc
+  = renderParallelContainer inh eid mn tn "Parallel (||-): right bias" syn_branches uContextTag tsrc
 tParSumN :: !InhMkImg !(Maybe ExprId) !String !String !String ![TExpr]
             !*TagSource
          -> *(!SynMkImg, !*TagSource)
-tParSumN inh eid mn tn descr ts tsrc
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x, True)) ts) tsrc
-  = renderParallelContainer inh eid mn tn descr syn_branches tsrc
+tParSumN inh eid mn tn descr ts [(contextTag, uContextTag) : tsrc]
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x, True)) ts) contextTag tsrc
+  = renderParallelContainer inh eid mn tn descr syn_branches uContextTag tsrc
 tParProdN :: !InhMkImg !(Maybe ExprId) !String !String !String ![TExpr]
              !*TagSource
           -> *(!SynMkImg, !*TagSource)
-tParProdN inh eid mn tn descr ts tsrc
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x, True)) ts) tsrc
-  = renderParallelContainer inh eid mn tn descr syn_branches tsrc
+tParProdN inh eid mn tn descr ts [(contextTag, uContextTag) : tsrc]
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x, True)) ts) contextTag tsrc
+  = renderParallelContainer inh eid mn tn descr syn_branches uContextTag tsrc
 
 renderParallelContainer :: !InhMkImg !(Maybe ExprId) !ModuleName !TaskName !String
-                           !SynMkImg !*TagSource
+                           !SynMkImg !*ImageTag !*TagSource
                         -> *(!SynMkImg, !*TagSource)
-renderParallelContainer inh meid moduleName taskName descr syn_branches tsrc
+renderParallelContainer inh meid moduleName taskName descr syn_branches uContextTag tsrc
   #! mActiveTid         = case (inh.inh_trt.bpr_instance, meid) of
                             (Just bpinst, Just eid) -> activeNodeTaskId eid bpinst.bpi_activeNodes
                             _                       -> Nothing
@@ -390,6 +390,7 @@ renderParallelContainer inh meid moduleName taskName descr syn_branches tsrc
           -> *(!Image ModelTy, !*TagSource)
   tParApp isCompact mNodeId selectedNodes parentModName parentTaskName taskName syn_branches [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
     #! taskNameImg = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
+    #! taskNameImg = tag uContextTag taskNameImg
     #! isSelected  = case mNodeId of
                        Just nodeId -> 'DS'.member (parentModName, parentTaskName, nodeId) selectedNodes
                        _           -> False
@@ -464,13 +465,13 @@ tTaskDef inh bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNa
   selectArg {bpr_instance = Just {bpi_taskId}} meta i 1 st = { ActionState | st & action = Just (TSelectArg i, meta) }
   selectArg _                                  _    _ _ st = st
 
-activeNodeTaskId :: !ExprId !(Map ListId (IntMap (TaskId, ExprId))) -> Maybe TaskId
+activeNodeTaskId :: !ExprId !(Map ListId (IntMap (!TaskId, !ExprId))) -> Maybe TaskId
 activeNodeTaskId eid activeNodes
   = case [tid \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems activeNodes) | eid == nid] of
       [tid : _] -> Just tid
       _         -> Nothing
 
-tMApp :: !InhMkImg !(Maybe ExprId) !(Maybe (Int, Int)) !(Maybe TypeName) !ModuleName !VarName ![TExpr]
+tMApp :: !InhMkImg !(Maybe ExprId) !(Maybe (!Int, !Int)) !(Maybe TypeName) !ModuleName !VarName ![TExpr]
          !TPriority !*TagSource
       -> *(!SynMkImg, !*TagSource)
 tMApp inh _ _ _ "iTasks.API.Extensions.User" "@:" [lhsExpr : rhsExpr : _] _ tsrc
@@ -501,7 +502,7 @@ tMApp inh eid mtid _ modName taskName taskArgs _ tsrc
   #! inh = {inh & inh_in_mapp = True}
   = renderTaskApp inh eid mtid modName taskName taskArgs taskName tsrc
 
-renderTaskApp :: !InhMkImg !(Maybe ExprId) !(Maybe (Int, Int)) !String !String ![TExpr] !String !*TagSource
+renderTaskApp :: !InhMkImg !(Maybe ExprId) !(Maybe (!Int, !Int)) !String !String ![TExpr] !String !*TagSource
               -> *(!SynMkImg, !*TagSource)
 renderTaskApp inh meid mtid moduleName taskName taskArgs displayName tsrc
   #! (taskArgs`, tsrc)  = mapSt (tExpr2Image inh) taskArgs tsrc
@@ -564,7 +565,7 @@ tRoundedRect width height
       <@< { xradius     = px 5.0 }
       <@< { yradius     = px 5.0 }
 
-tDefaultMApp :: !Bool !Bool !Bool !Bool !(Set (ModuleName, TaskName, ExprId))
+tDefaultMApp :: !Bool !Bool !Bool !Bool !(Set (!ModuleName, !TaskName, !ExprId))
                 !(Maybe ExprId) !ModuleName !TaskName !ModuleName !TaskName ![TExpr]
                 ![Image ModelTy] !*TagSource
              -> *(!Image ModelTy, !*TagSource)
@@ -622,7 +623,7 @@ appColor isActive wasActive isInAccessible
           )
       )
 
-tDefaultMApp` :: !Bool !Bool !Bool !Bool !(Maybe ExprId) !(Set (ModuleName, TaskName, ExprId)) !ModuleName !TaskName !ModuleName !TaskName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
+tDefaultMApp` :: !Bool !Bool !Bool !Bool !(Maybe ExprId) !(Set (!ModuleName, !TaskName, !ExprId)) !ModuleName !TaskName !ModuleName !TaskName ![Image ModelTy] !*TagSource -> *(!Image ModelTy, !*TagSource)
 tDefaultMApp` isCompact isActive wasActive isInAccessible mNodeId selectedNodes parentModName parentTaskName modName taskName taskArgs [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
   #! taskNameImg = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
   #! bgColor     = appColor isActive wasActive isInAccessible
@@ -677,7 +678,7 @@ tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (headerTag, 
   mkUser _                              = ""
 
 tStep :: !InhMkImg !(Maybe ExprId) !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
-tStep inh eid lhsExpr conts tsrc
+tStep inh eid lhsExpr conts [(contextTag, _) : tsrc]
   #! actions              = case inh.inh_trt.bpr_instance of
                               Just bpinst -> case 'DM'.get bpinst.bpi_taskId inh.inh_stepActions of
                                                Just xs -> xs
@@ -685,7 +686,7 @@ tStep inh eid lhsExpr conts tsrc
                               _           -> []
   #! (lhs, tsrc)          = tExpr2Image inh lhsExpr tsrc
   #! conts                = tSafeExpr2List conts
-  #! (syn_branches, tsrc) = tBranches inh (tStepCont actions) False True (map (\t -> (Nothing, t, True)) conts) tsrc
+  #! (syn_branches, tsrc) = tBranches inh (tStepCont actions) False True (map (\t -> (Nothing, t, True)) conts) contextTag tsrc
   #! img                  = beside (repeat AtMiddleY) [] [lhs.syn_img, tHorizConn syn_branches.syn_status, syn_branches.syn_img] Nothing
   = ( {syn_img = img, syn_status = lhs.syn_status}
     , tsrc)
@@ -802,7 +803,7 @@ mkStepCont inh mact e [ref : tsrc]
   = ( {syn_img = img, syn_status = x.syn_status}
     , tsrc)
 
-addAction :: !(Maybe (String, Bool)) !(Image ModelTy) !*TagRef -> Image ModelTy
+addAction :: !(Maybe (!String, !Bool)) !(Image ModelTy) !*TagRef -> Image ModelTy
 addAction (Just (action, enabled)) arr (t, uT)
   #! l = tag uT (margin (px 3.0) (beside (repeat AtMiddleY) [] [littleman, tuneIf (not enabled) (text ArialBold10px (" " +++ action)) {fill = toSVGColor "#666"}] Nothing))
   #! l` = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (imagexspan t + px 5.0) (imageyspan t + px 5.0) <@< {fill        = toSVGColor (if enabled "#ebebeb" "#fff")}
@@ -819,11 +820,11 @@ hasValueFilter = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fi
                                               , text ArialBold10px " Has value"] Nothing
 
 tBranches :: !InhMkImg !(InhMkImg TExpr *TagSource -> *(!SynMkImg, !*TagSource))
-             !Bool !Bool ![(!Maybe Pattern, !TExpr, !Bool)] !*TagSource
+             !Bool !Bool ![(!Maybe Pattern, !TExpr, !Bool)] !ImageTag !*TagSource
           -> *(!SynMkImg, !*TagSource)
-tBranches inh mkBranch needAllActive inclVertConns exprs tsrc
+tBranches inh mkBranch needAllActive inclVertConns exprs contextTag tsrc
   #! (allTags, nonUTags, tsrc) = takeNTags (length exprs) tsrc
-  #! maxXSpan                  = maxSpan (map imagexspan nonUTags)
+  #! maxXSpan                  = maxSpan (map imagexspan [contextTag : nonUTags])
   #! allBranchActivity         = map (activityStatus needAllActive inh o (\(_, x, _) -> x)) exprs
   #! existsSomeActivity        = let f AllDone  _   = True
                                      f IsActive _   = True
