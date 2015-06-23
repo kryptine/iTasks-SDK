@@ -258,7 +258,7 @@ determineSynStatus needAllActive syns = determineStatus needAllActive (map (\x -
 
 tCaseOrIf :: !InhMkImg !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!SynMkImg, !*TagSource)
 tCaseOrIf inh texpr pats tsrc
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True (map (\(p, t) -> (Just p, t)) pats) tsrc
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True (map (\(p, t) -> (Just p, t, True)) pats) tsrc
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} texpr tsrc
   #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
   #! lineAct              = case syn_branches.syn_status of
@@ -324,25 +324,25 @@ tBind inh l mpat r tsrc
 
 tParSumL :: !InhMkImg !(Maybe ExprId) !String !String !TExpr !TExpr !*TagSource
          -> *(!SynMkImg, !*TagSource)
-tParSumL inh eid mn tn l r tsrc // TODO This is actually not correct yet... first image shouldn't have lines
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False [(Nothing, l), (Nothing, r)] tsrc
+tParSumL inh eid mn tn l r tsrc
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False [(Nothing, l, True), (Nothing, r, False)] tsrc
   = renderParallelContainer inh eid mn tn "Parallel (-||): left bias" syn_branches tsrc
 tParSumR :: !InhMkImg !(Maybe ExprId) !String !String !TExpr !TExpr !*TagSource
          -> *(!SynMkImg, !*TagSource)
-tParSumR inh eid mn tn l r tsrc // TODO This is actually not correct yet... second image shouldn't have lines
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False [(Nothing, l), (Nothing, r)] tsrc
+tParSumR inh eid mn tn l r tsrc
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False [(Nothing, l, False), (Nothing, r, True)] tsrc
   = renderParallelContainer inh eid mn tn "Parallel (||-): right bias" syn_branches tsrc
 tParSumN :: !InhMkImg !(Maybe ExprId) !String !String !String ![TExpr]
             !*TagSource
          -> *(!SynMkImg, !*TagSource)
 tParSumN inh eid mn tn descr ts tsrc
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x)) ts) tsrc
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x, True)) ts) tsrc
   = renderParallelContainer inh eid mn tn descr syn_branches tsrc
 tParProdN :: !InhMkImg !(Maybe ExprId) !String !String !String ![TExpr]
              !*TagSource
           -> *(!SynMkImg, !*TagSource)
-tParProdN inh eid mn tn descr ts [(contentsTag, uContentsTag) : tsrc]
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x)) ts) tsrc
+tParProdN inh eid mn tn descr ts tsrc
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x, True)) ts) tsrc
   = renderParallelContainer inh eid mn tn descr syn_branches tsrc
 
 renderParallelContainer :: !InhMkImg !(Maybe ExprId) !ModuleName !TaskName !String
@@ -433,9 +433,13 @@ tTaskDef inh bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNa
   #! taskIdStr    = case bpr of
                       {bpr_instance = Just {bpi_taskId}} -> " (" +++ toString bpi_taskId +++ ")"
                       _                                  -> ""
-  #! taskNameImg  = tag uNameTag (margin (px 5.0) (beside (repeat AtMiddleY) [] [text ArialRegular10px (moduleName +++ "."), text ArialBold10px (taskName +++ " :: " +++ ppTExpr resultTy), text ArialRegular10px taskIdStr, text ArialRegular10px userStr] Nothing))
+  #! taskNameImg  = beside (repeat AtMiddleY) [] [ text ArialRegular10px (moduleName +++ ".")
+                                                 , text ArialBold10px (taskName +++ " :: " +++ ppTExpr resultTy)
+                                                 , text ArialRegular10px taskIdStr
+                                                 , text ArialRegular10px userStr] Nothing
+  #! taskNameImg  = tag uNameTag (margin (px 5.0) taskNameImg)
   #! binds        = flatten (zipWith3 mkArgAndTy args [0..] (map Just argvars ++ repeat Nothing))
-  #! argsText     = grid (Columns 5) (RowMajor, LeftToRight, TopToBottom) [] [] (map (margin (px 1.0, px 0.0)) binds) Nothing
+  #! argsText     = grid (Columns 4) (RowMajor, LeftToRight, TopToBottom) [] [] (map (margin (px 1.0, px 0.0)) binds) Nothing
   #! argsImg      = tag uArgsTag (margin (px 5.0) argsText)
   #! taskBodyImgs = tag uBodyTag (margin (px 5.0) tdbody)
   #! maxX         = maxSpan [imagexspan nameTag, imagexspan argsTag, imagexspan bdytag]
@@ -681,7 +685,7 @@ tStep inh eid lhsExpr conts tsrc
                               _           -> []
   #! (lhs, tsrc)          = tExpr2Image inh lhsExpr tsrc
   #! conts                = tSafeExpr2List conts
-  #! (syn_branches, tsrc) = tBranches inh (tStepCont actions) False True (map (\t -> (Nothing, t)) conts) tsrc
+  #! (syn_branches, tsrc) = tBranches inh (tStepCont actions) False True (map (\t -> (Nothing, t, True)) conts) tsrc
   #! img                  = beside (repeat AtMiddleY) [] [lhs.syn_img, tHorizConn syn_branches.syn_status, syn_branches.syn_img] Nothing
   = ( {syn_img = img, syn_status = lhs.syn_status}
     , tsrc)
@@ -815,12 +819,12 @@ hasValueFilter = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fi
                                               , text ArialBold10px " Has value"] Nothing
 
 tBranches :: !InhMkImg !(InhMkImg TExpr *TagSource -> *(!SynMkImg, !*TagSource))
-             !Bool !Bool ![(Maybe Pattern, TExpr)] !*TagSource
+             !Bool !Bool ![(!Maybe Pattern, !TExpr, !Bool)] !*TagSource
           -> *(!SynMkImg, !*TagSource)
 tBranches inh mkBranch needAllActive inclVertConns exprs tsrc
   #! (allTags, nonUTags, tsrc) = takeNTags (length exprs) tsrc
   #! maxXSpan                  = maxSpan (map imagexspan nonUTags)
-  #! allBranchActivity         = map (activityStatus needAllActive inh o snd) exprs
+  #! allBranchActivity         = map (activityStatus needAllActive inh o (\(_, x, _) -> x)) exprs
   #! existsSomeActivity        = let f AllDone  _   = True
                                      f IsActive _   = True
                                      f _        acc = acc
@@ -837,10 +841,10 @@ tBranches inh mkBranch needAllActive inclVertConns exprs tsrc
       _ = ({ syn_img    = branchImg
            , syn_status = status}, tsrc)
   where
-  iter :: !Bool !Span !(!(!Maybe Pattern, !TExpr), !TStatus, !*TagRef)
+  iter :: !Bool !Span !(!(!Maybe Pattern, !TExpr, !Bool), !TStatus, !*TagRef)
           !*(![SynMkImg], !*TagSource)
        -> *(![SynMkImg], !*TagSource)
-  iter existsSomeActivity maxXSpan ((pat, texpr), currBranchActivity, (imgTag, uImgTag)) (syns, tsrc)
+  iter existsSomeActivity maxXSpan ((pat, texpr, showRhs), currBranchActivity, (imgTag, uImgTag)) (syns, tsrc)
     #! (syn, tsrc) = mkBranch {inh & inh_inaccessible = existsSomeActivity && currBranchActivity == NotActive} texpr tsrc
     #! lhsLineAct  = case (currBranchActivity, syn.syn_status) of
                        (NotActive, NotActive) -> NotActive
@@ -853,10 +857,13 @@ tBranches inh mkBranch needAllActive inclVertConns exprs tsrc
                          = beside (repeat AtMiddleY) [] [tHorizConn lhsLineAct, textBox, tHorizConnArr lhsLineAct, syn.syn_img] Nothing
     #! lhs         = tag uImgTag (margin (px 2.5, px 0.0) lhs)
     #! lineWidth   = (maxXSpan - imagexspan imgTag) + px 8.0
-    #! rhs         = case syn.syn_status of
-                       AllDone  -> rect lineWidth (px 3.0) <@< { fill = TonicBlue }
-                       _        -> xline Nothing lineWidth
-    #! img         = beside (repeat AtMiddleY) [] [lhs, rhs] Nothing
+    #! img = case showRhs of
+               True
+                 #! rhs = case syn.syn_status of
+                            AllDone  -> rect lineWidth (px 3.0) <@< { fill = TonicBlue }
+                            _        -> xline Nothing lineWidth
+                 = beside (repeat AtMiddleY) [] [lhs, rhs] Nothing
+               _ = lhs
     = ([{syn_img = img, syn_status = currBranchActivity} : syns], tsrc)
 
   takeNTags :: !Int !*TagSource -> *(!*[*TagRef], ![ImageTag], !*TagSource)
