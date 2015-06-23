@@ -719,47 +719,51 @@ tStepCont _ inh (TFApp "OnAllExceptions" [cont : _ ] _) tsrc
   = mkStepCont inh Nothing cont tsrc
 
 mkStepCont :: !InhMkImg !(Maybe (!String, !Bool)) !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
-mkStepCont inh mact (TFApp "always" [mapp : _] _) [ref : tsrc]
-  #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  #! img       = beside (repeat AtMiddleY) [] [addAction mact (tHorizConnArr x.syn_status) ref, x.syn_img] Nothing
-  = ( {syn_img = img, syn_status = x.syn_status}
-    , tsrc)
+mkStepCont inh mact (TFApp "always" [mapp : _] _) tsrc
+  = stepAlwaysNeverWithoutVal inh mact mapp tsrc
+mkStepCont inh mact (TFApp "never" [mapp : _] _) tsrc
+  = stepAlwaysNeverWithoutVal inh mact mapp tsrc
+mkStepCont inh mact (TFApp "withoutValue" [mapp : _] _) tsrc
+  = stepAlwaysNeverWithoutVal inh mact mapp tsrc
 mkStepCont inh mact (TFApp "ifStable" e _) tsrc
   = stepIfStableUnstableHasValue inh mact tStable e tsrc
 mkStepCont inh mact (TFApp "ifUnstable" e _) tsrc
   = stepIfStableUnstableHasValue inh mact tUnstable e tsrc
 mkStepCont inh mact (TFApp "hasValue" e _) [ref : tsrc]
   = stepIfStableUnstableHasValue inh mact hasValueFilter e tsrc
-mkStepCont inh mact (TFApp "ifValue" [conditionApp : continuationApp : _] _) [ref : tsrc]
-  #! (exprImg, tsrc)         = tExpr2Image {inh & inh_in_case = True} conditionApp tsrc
-  #! (conditionImg, tsrc)    = tCaseDiamond inh exprImg.syn_img tsrc
-  #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
-  #! img                     = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr exprImg.syn_status, addAction mact (tShortHorizConn exprImg.syn_status) ref, continuationImg.syn_img] Nothing
-  = ( {syn_img = img, syn_status = continuationImg.syn_status}
-    , tsrc)
-mkStepCont inh mact (TFApp "ifCond" [conditionApp : continuationApp : _] _) [ref : tsrc]
-  #! (exprImg, tsrc)         = tExpr2Image {inh & inh_in_case = True} conditionApp tsrc
-  #! (conditionImg, tsrc)    = tCaseDiamond inh exprImg.syn_img tsrc
-  #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
-  #! img                     = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr exprImg.syn_status, addAction mact (tHorizConnArr exprImg.syn_status) ref, continuationImg.syn_img] Nothing
-  = ( {syn_img = img, syn_status = continuationImg.syn_status}
-    , tsrc)
-mkStepCont inh mact (TFApp "withoutValue" [mapp : _] _) [ref : tsrc]
-  #! (x, tsrc) = tExpr2Image inh mapp tsrc
-  #! img       = beside (repeat AtMiddleY) [] [addAction mact (tHorizConnArr x.syn_status) ref, x.syn_img] Nothing 
-  = ( {syn_img = img, syn_status = x.syn_status}
-    , tsrc)
+mkStepCont inh mact (TFApp "ifValue" [conditionApp : continuationApp : _] _) tsrc
+  = stepIfValueCond inh mact conditionApp continuationApp tsrc
+mkStepCont inh mact (TFApp "ifCond" [conditionApp : continuationApp : _] _) tsrc
+  = stepIfValueCond inh mact conditionApp continuationApp tsrc
 mkStepCont inh mact (TFApp "withValue" [mapp : _] _) tsrc
   = stepWithValue inh mact hasValueFilter mapp tsrc
-mkStepCont inh mact (TFApp "withStable" [mapp : _] _) [ref : tsrc]
+mkStepCont inh mact (TFApp "withStable" [mapp : _] _) tsrc
   = stepWithValue inh mact tStable mapp tsrc
-mkStepCont inh mact (TFApp "withUnstable" [mapp : _] _) [ref : tsrc]
+mkStepCont inh mact (TFApp "withUnstable" [mapp : _] _) tsrc
   = stepWithValue inh mact tUnstable mapp tsrc
 mkStepCont inh mact e [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh e tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh tException tsrc
   #! img                  = beside (repeat AtMiddleY) [] [conditionImg, x.syn_img] Nothing 
   = ( {syn_img = img, syn_status = x.syn_status}
+    , tsrc)
+
+stepAlwaysNeverWithoutVal :: !InhMkImg !(Maybe (!String, !Bool)) !TExpr !*TagSource
+                          -> *(!SynMkImg, !*TagSource)
+stepAlwaysNeverWithoutVal inh mact mapp [ref : tsrc]
+  #! (x, tsrc) = tExpr2Image inh mapp tsrc
+  #! img       = beside (repeat AtMiddleY) [] [addAction mact (tHorizConnArr x.syn_status) ref, x.syn_img] Nothing
+  = ( {syn_img = img, syn_status = x.syn_status}
+    , tsrc)
+
+stepIfValueCond :: !InhMkImg !(Maybe (!String, !Bool)) !TExpr !TExpr !*TagSource
+                -> *(!SynMkImg, !*TagSource)
+stepIfValueCond inh mact conditionApp continuationApp [ref : tsrc]
+  #! (exprImg, tsrc)         = tExpr2Image {inh & inh_in_case = True} conditionApp tsrc
+  #! (conditionImg, tsrc)    = tCaseDiamond inh exprImg.syn_img tsrc
+  #! (continuationImg, tsrc) = tExpr2Image inh continuationApp tsrc
+  #! img                     = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr exprImg.syn_status, addAction mact (tShortHorizConn exprImg.syn_status) ref, continuationImg.syn_img] Nothing
+  = ( {syn_img = img, syn_status = continuationImg.syn_status}
     , tsrc)
 
 stepWithValue :: !InhMkImg !(Maybe (!String, !Bool)) !(Image ModelTy) !TExpr !*TagSource
