@@ -7,7 +7,7 @@ from Data.Maybe import :: Maybe
 from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
 
 from iTasks._Framework.Tonic.AbsSyn import :: TonicTask, :: ExprId, :: TaskName, :: ModuleName, :: TExpr
-from iTasks._Framework.Tonic.Types import :: TStability, :: BlueprintRef, :: ListsOfTasks
+from iTasks._Framework.Tonic.Types import :: TStability, :: BlueprintRef
 from iTasks._Framework.UIDefinition import :: UIAction
 import iTasks._Framework.Generic
 
@@ -39,18 +39,18 @@ from iTasks.API.Extensions.SVG.SVGlet import :: ActionState
 derive class iTask TonicImageState, TClickAction, ClickMeta, BlueprintIdent
 
 :: TaskAppRenderer :== Bool Bool Bool Bool (Set (ModuleName, TaskName, ExprId))
-                       ExprId ModuleName TaskName ModuleName TaskName
+                       (Maybe ExprId) ModuleName TaskName ModuleName TaskName
                        [Image ModelTy] *TagSource
                     -> *(!Maybe (Image ModelTy), !*TagSource)
 
 mkTaskImage     :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef
-                   !ListsOfTasks !(Map TaskId TStability) !(Map TaskId [UIAction])
+                   !(Map TaskId TStability) !(Map TaskId [UIAction])
                    !(Set (ModuleName, TaskName, ExprId)) !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int)))
                    !Bool !ModelTy *TagSource
                 -> Image ModelTy
 
 tDefaultMApp :: !Bool !Bool !Bool !Bool
-                !(Set (ModuleName, TaskName, ExprId)) !ExprId !ModuleName
+                !(Set (ModuleName, TaskName, ExprId)) !(Maybe ExprId) !ModuleName
                 !TaskName !ModuleName !TaskName ![TExpr] ![Image ModelTy]
                 !*TagSource
              -> *(!Image ModelTy, !*TagSource)

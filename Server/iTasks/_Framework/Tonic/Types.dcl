@@ -7,8 +7,6 @@ import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Generic
 from iTasks.API.Core.Types import :: DateTime
 
-:: ListsOfTasks :== Map (TaskId, ExprId) (IntMap (ModuleName, TaskName, TaskId))
-
 :: ListId :== TaskId
 
 :: TStability = TNoVal | TStable | TUnstable
@@ -27,6 +25,7 @@ from iTasks.API.Core.Types import :: DateTime
   , bpi_activeNodes      :: !Map ListId (IntMap (TaskId, ExprId))
   , bpi_previouslyActive :: !Map ExprId TaskId
   , bpi_parentTaskId     :: !Maybe TaskId
+  , bpi_blueprint        :: !TonicTask
   }
 
 :: TonicRTMap :== Map TaskId BlueprintRef
