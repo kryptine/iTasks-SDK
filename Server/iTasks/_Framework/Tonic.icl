@@ -49,9 +49,15 @@ from Control.Applicative import class Applicative, instance Applicative Maybe
 // TYPES
 //-----------------------------------------------------------------------------
 
-:: DisplaySettings
+:: StaticDisplaySettings
   = { unfold_depth    :: !Scale
     , display_compact :: !Bool
+    }
+
+:: DynamicDisplaySettings
+  = { unfold_depth             :: !Scale
+    , display_compact          :: !Bool
+    , keep_finished_blueprints :: !Bool
     }
 
 :: NavStack :== [ClickMeta]
@@ -101,7 +107,8 @@ instance TonicBlueprintPart Maybe where
   tonicWrapApp _ _ _ _ mb = mb
   tonicWrapTraversable _ _ _ _ f args = f args
 
-derive class iTask Set, DisplaySettings, DynamicView, AdditionalInfo, BlueprintQuery, UIAction
+derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
+                   DynamicView, AdditionalInfo, BlueprintQuery, UIAction
 
 //-----------------------------------------------------------------------------
 // SHARES
@@ -165,9 +172,9 @@ tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read
   notify :: TaskId (Map TaskId [UIAction]) [UIAction] -> SDSNotifyPred TaskId
   notify tid _ _ = \tid` -> tid == tid`
 
-staticDisplaySettings :: RWShared () DisplaySettings DisplaySettings
+staticDisplaySettings :: RWShared () StaticDisplaySettings StaticDisplaySettings
 staticDisplaySettings = sdsFocus "staticDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
-                                     { DisplaySettings
+                                     { StaticDisplaySettings
                                      | unfold_depth    = { Scale
                                                          | min = 0
                                                          , cur = 0
@@ -179,15 +186,16 @@ staticDisplaySettings = sdsFocus "staticDisplaySettings" (memoryStore NS_TONIC_I
 queryShare :: RWShared () (Maybe BlueprintQuery) (Maybe BlueprintQuery)
 queryShare = sdsFocus "queryShare" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
 
-dynamicDisplaySettings :: RWShared () DisplaySettings DisplaySettings
+dynamicDisplaySettings :: RWShared () DynamicDisplaySettings DynamicDisplaySettings
 dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
-                                     { DisplaySettings
+                                     { DynamicDisplaySettings
                                      | unfold_depth    = { Scale
                                                          | min = 0
                                                          , cur = 0
                                                          , max = 5
                                                          }
                                      , display_compact = False
+                                     , keep_finished_blueprints = False
                                      }))
 
 mkStoreName mn tn taskId sn = mn +++ "_" +++ tn +++ "_" +++ toString taskId +++ "_" +++ sn
@@ -793,7 +801,7 @@ tonicStaticBrowser rs
                >&> withSelection noTaskSelection (
       \tn       -> maybe (return ()) (
       \tt       ->   whileUnchanged staticDisplaySettings (
-      \sett     ->   viewStaticTask allbps rs navstack 'DM'.newMap tm tt sett.unfold_depth sett.display_compact @! ()))
+      \sett     ->   viewStaticTask allbps rs navstack 'DM'.newMap tm tt sett.StaticDisplaySettings.unfold_depth sett.StaticDisplaySettings.display_compact @! ()))
                    (getTonicTask tm tn)
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
          )) <<@ FullScreen))) @! ()
@@ -990,7 +998,7 @@ getModuleAndTask allbps mn tn
                 _       -> throw "Can't get module and task"
 
 viewInstance :: ![TaskAppRenderer] !(Shared NavStack)
-                !DisplaySettings !TonicRTMap
+                !DynamicDisplaySettings !TonicRTMap
                 !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int))) !Bool
                 !(Maybe ClickMeta)
              -> Task ()
@@ -1011,11 +1019,14 @@ viewInstance rs navstack dynSett trt selDetail showButtons action=:(Just meta=:{
                                       ]
                _ = defaultBack "Selected" showButtons ns
   where
-  showChildTasks :: DisplaySettings BlueprintInstance -> Task ()
-  showChildTasks {DisplaySettings | unfold_depth = {Scale | cur = 0} } bpinst = return ()
-  showChildTasks {DisplaySettings | unfold_depth = {Scale | cur = d} } bpinst
+  showChildTasks :: DynamicDisplaySettings BlueprintInstance -> Task ()
+  showChildTasks {DynamicDisplaySettings | unfold_depth = {Scale | cur = 0} } bpinst = return ()
+  showChildTasks {DynamicDisplaySettings | unfold_depth = {Scale | cur = d}, keep_finished_blueprints } bpinst
     # childIds  = [tid \\ tid <- map fst (concatMap 'DIS'.elems ('DM'.elems bpinst.bpi_activeNodes)) | not (tid == bpinst.bpi_taskId)]
-    # viewTasks = map (viewInstance rs navstack {dynSett & unfold_depth = {dynSett.unfold_depth & cur = d - 1}} trt selDetail False o Just o mkClickMeta) childIds
+    # childIds  = if keep_finished_blueprints
+                    ([tid \\ tid <- 'DM'.elems bpinst.bpi_previouslyActive | not (tid == bpinst.bpi_taskId)] ++ childIds)
+                    childIds
+    # viewTasks = map (viewInstance rs navstack {DynamicDisplaySettings | dynSett & unfold_depth = {dynSett.DynamicDisplaySettings.unfold_depth & cur = d - 1}} trt selDetail False o Just o mkClickMeta) childIds
     = allTasks viewTasks @! ()
     where
     mkClickMeta childId = {meta & click_origin_mbbpident = Nothing
