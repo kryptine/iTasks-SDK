@@ -19,7 +19,7 @@ myExamples = 	[	workflow "palindrome" 					"accepts palindrome string " 	palindr
 				,	workflow "create list of persons"		"one by one" 					person1by1
 				,	workflow "create list of palindromes"	"one by one" 					palindrome1by1
 				,	workflow "delegate  list of persons"	"delegate the creation" 		(delegate person1by1)
-				,	workflow "two tasks"					"one to updatea and ont to monitor" chooseTwo
+				,	workflow "two google maps workers"		"one to update and one to monitor" twoGoogleMaps
 
 
 				,	workflow "Manage users"	"Manage system users..." 		manageUsers
@@ -71,8 +71,8 @@ delegate task
 
 import iTasks.API.Extensions.GIS.GoogleMap
 
-chooseTwo ::  Task GoogleMap
-chooseTwo 
+twoGoogleMaps ::  Task GoogleMap
+twoGoogleMaps 
 	=					enterChoiceWithShared "Select someone to enter information:" [] users
 		>>= \worker -> 	enterChoiceWithShared "Select someone to view what is entered:" [] users
 		>>= \viewer -> 	twoTasks worker viewer 
