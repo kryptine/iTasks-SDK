@@ -438,16 +438,16 @@ tStopSymb = rect (px 16.0) (px 16.0)
 tTaskDef :: !InhMkImg !BlueprintRef !String !String !TExpr ![(!TExpr, !TExpr)] ![TExpr] !(Image ModelTy) !*TagSource
          -> *(!Image ModelTy, !*TagSource)
 tTaskDef inh bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTag) : (argsTag, uArgsTag) : (bdytag, uBodyTag) : tsrc]
-  #! userStr      = case bpr of
-                      {bpr_instance = Just {bpi_currentUser = Just cu}} -> " Performed by " +++ toString cu
-                      _                                                 -> ""
+  #! userImg      = case bpr of
+                      {bpr_instance = Just {bpi_currentUser = Just cu}} -> beside (repeat AtMiddleY) [] [margin (px 0.0, px 0.0, px 0.0, px 8.0) littleman, text ArialRegular10px (" " +++ toString cu)] Nothing
+                      _                                                 -> empty zero zero
   #! taskIdStr    = case bpr of
                       {bpr_instance = Just {bpi_taskId}} -> " (" +++ toString bpi_taskId +++ ")"
                       _                                  -> ""
   #! taskNameImg  = beside (repeat AtMiddleY) [] [ text ArialRegular10px (moduleName +++ ".")
                                                  , text ArialBold10px (taskName +++ " :: " +++ ppTExpr resultTy)
                                                  , text ArialRegular10px taskIdStr
-                                                 , text ArialRegular10px userStr] Nothing
+                                                 , userImg] Nothing
   #! taskNameImg  = tag uNameTag (margin (px 5.0) taskNameImg)
   #! binds        = flatten (zipWith3 mkArgAndTy args [0..] (map Just argvars ++ repeat Nothing))
   #! argsText     = grid (Columns 4) (RowMajor, LeftToRight, TopToBottom) [] [] (map (margin (px 1.0, px 0.0)) binds) Nothing
