@@ -45,6 +45,50 @@ from Control.Monad import `b`, class Monad, instance Monad Maybe
 import qualified Control.Applicative as CA
 from Control.Applicative import class Applicative, instance Applicative Maybe
 
+//-----------------------------------------------------------------------------
+// TYPES
+//-----------------------------------------------------------------------------
+
+:: DisplaySettings
+  = { unfold_depth    :: !Scale
+    , display_compact :: !Bool
+    }
+
+:: NavStack :== [ClickMeta]
+
+:: DynamicView =
+  { taskName    :: !String
+  , startTime   :: !String
+  , lastUpdate  :: !String
+  , endTime     :: !String
+  , user        :: !String
+  }
+
+:: BlueprintQuery
+  = TaskName String
+  | UserInvolved String
+  | IsActive
+  | HasInstanceNo Int
+  | AndQuery BlueprintQuery BlueprintQuery
+  | OrQuery BlueprintQuery BlueprintQuery
+
+:: AdditionalInfo =
+  { numberOfActiveTasks  :: !Int
+  , tasksNearingDeadline :: ![BlueprintRef]
+  , highestPriorityTasks :: ![BlueprintRef]
+  , staleTasks           :: ![BlueprintRef]
+  , busiestUsers         :: ![(User, Int)]
+  , leastBusyUsers       :: ![(User, Int)]
+  }
+
+:: AllBlueprints :== Map ModuleName (Map TaskName TonicTask)
+
+NS_TONIC_INSTANCES :== "tonic-instances"
+
+//-----------------------------------------------------------------------------
+// INSTANCES
+//-----------------------------------------------------------------------------
+
 instance TonicTopLevelBlueprint Task where
   tonicWrapBody mn tn args t = tonicWrapTaskBody` mn tn args t
   tonicWrapArg d v = viewInformation d [] v @! ()
@@ -57,7 +101,37 @@ instance TonicBlueprintPart Maybe where
   tonicWrapApp _ _ _ _ mb = mb
   tonicWrapTraversable _ _ _ _ f args = f args
 
-NS_TONIC_INSTANCES :== "tonic-instances"
+derive class iTask Set, DisplaySettings, DynamicView, AdditionalInfo, BlueprintQuery, UIAction
+
+//-----------------------------------------------------------------------------
+// SHARES
+//-----------------------------------------------------------------------------
+
+selectedBlueprint :: RWShared () (Maybe ClickMeta) (Maybe ClickMeta)
+selectedBlueprint = sdsFocus "selectedBlueprint" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
+
+selectedDetail :: RWShared () (Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int))) (Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int)))
+selectedDetail = sdsFocus "selectedDetail" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
+
+storedOutputEditors :: RWShared () (Map TaskId (Int, Task (), TStability)) (Map TaskId (Int, Task (), TStability))
+storedOutputEditors = sdsTranslate "storedOutputEditors" (\t -> t +++> "-storedOutputEditors")
+                                  (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
+
+outputForTaskId :: RWShared TaskId (Int, Task (), TStability) (Int, Task (), TStability)
+outputForTaskId = sdsLens "outputForTaskId" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) storedOutputEditors
+  where
+  read :: TaskId (Map TaskId (Int, Task (), TStability)) -> MaybeError TaskException (Int, Task (), TStability)
+  read tid trtMap = maybe (Error (exception ("Could not find output for task " <+++ tid))) Ok ('DM'.get tid trtMap)
+
+  write :: TaskId (Map TaskId (Int, Task (), TStability)) (Int, Task (), TStability) -> MaybeError TaskException (Maybe (Map TaskId (Int, Task (), TStability)))
+  write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
+
+  notify :: TaskId (Map TaskId (Int, Task (), TStability)) (Int, Task (), TStability) -> SDSNotifyPred TaskId
+  notify tid _ _ = \tid` -> tid == tid`
+
+selectedNodes :: RWShared () (Set (ModuleName, TaskName, ExprId)) (Set (ModuleName, TaskName, ExprId))
+selectedNodes = sdsFocus "selectedNodes" (cachedJSONFileStore NS_TONIC_INSTANCES True True True (Just 'DS'.newSet))
+
 
 tonicSharedRT :: RWShared () TonicRTMap TonicRTMap
 tonicSharedRT = sdsTranslate "tonicSharedRT" (\t -> t +++> "-tonicSharedRT")
@@ -75,7 +149,70 @@ tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite wr
   notify :: TaskId TonicRTMap BlueprintRef -> SDSNotifyPred TaskId
   notify tid _ _ = \tid` -> tid == tid`
 
-derive class iTask Set
+tonicEnabledSteps :: RWShared () (Map TaskId [UIAction]) (Map TaskId [UIAction])
+tonicEnabledSteps = sdsTranslate "tonicEnabledSteps" (\t -> t +++> "-tonicEnabledSteps")
+                                 (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
+
+tonicActionsForTaskID :: RWShared TaskId [UIAction] [UIAction]
+tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicEnabledSteps
+  where
+  read :: TaskId (Map TaskId [UIAction]) -> MaybeError TaskException [UIAction]
+  read tid trtMap = maybe (Error (exception ("Could not find UIAction for task " <+++ tid))) Ok ('DM'.get tid trtMap)
+
+  write :: TaskId (Map TaskId [UIAction]) [UIAction] -> MaybeError TaskException (Maybe (Map TaskId [UIAction]))
+  write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
+
+  notify :: TaskId (Map TaskId [UIAction]) [UIAction] -> SDSNotifyPred TaskId
+  notify tid _ _ = \tid` -> tid == tid`
+
+staticDisplaySettings :: RWShared () DisplaySettings DisplaySettings
+staticDisplaySettings = sdsFocus "staticDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
+                                     { DisplaySettings
+                                     | unfold_depth    = { Scale
+                                                         | min = 0
+                                                         , cur = 0
+                                                         , max = 25
+                                                         }
+                                     , display_compact = False
+                                     }))
+
+queryShare :: RWShared () (Maybe BlueprintQuery) (Maybe BlueprintQuery)
+queryShare = sdsFocus "queryShare" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
+
+dynamicDisplaySettings :: RWShared () DisplaySettings DisplaySettings
+dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
+                                     { DisplaySettings
+                                     | unfold_depth    = { Scale
+                                                         | min = 0
+                                                         , cur = 0
+                                                         , max = 5
+                                                         }
+                                     , display_compact = False
+                                     }))
+
+mkStoreName mn tn taskId sn = mn +++ "_" +++ tn +++ "_" +++ toString taskId +++ "_" +++ sn
+
+storeParams :: !ModuleName !TaskName !TaskId ![(!VarName, !Task ())] -> Task ()
+storeParams mn tn taskId params = mkInstantTask (\_ -> (\w -> (Ok (), w)) o storeParams` mn tn taskId params)
+
+storeParams` :: !ModuleName !TaskName !TaskId ![(!VarName, !Task ())] !*IWorld -> *IWorld
+storeParams` mn tn taskId params world = writeToDisk NS_TONIC_INSTANCES (mkStoreName mn tn taskId "params") (toString (toJSON params)) world
+
+readParams :: !ModuleName !TaskName !TaskId -> Task [(!VarName, !Task ())]
+readParams mn tn taskId = mkInstantTask (\_ -> (\(xs, w) -> (Ok xs, w)) o readParams` mn tn taskId)
+
+readParams` :: !ModuleName !TaskName !TaskId !*IWorld -> *(![(!VarName, !Task ())], !*IWorld)
+readParams` mn tn taskId world
+  # (mbok, world) = readFromDisk NS_TONIC_INSTANCES (mkStoreName mn tn taskId "params") world
+  = case mbok of
+      Ok (_, json) -> case fromJSON (fromString json) of
+                        Just xs -> (xs, world)
+                        _       -> ([], world)
+      _            -> ([], world)
+
+//-----------------------------------------------------------------------------
+// REST
+//-----------------------------------------------------------------------------
 
 tonicExtWrapArg :: !String !a -> m () | iTask a & TonicTopLevelBlueprint m
 tonicExtWrapArg d v = tonicWrapArg d v
@@ -195,15 +332,13 @@ markStable mn tn currTaskId tr event evalOpts taskTree iworld
                                                                 , bpi_endTime          = Just currDateTime
                                                                 }
                                           } (sdsFocus currTaskId tonicInstances) iworld
-        # iworld = storeResult` mn tn currTaskId (resultToOutput currTaskId tr) iworld
-        # iworld = snd ('DSDS'.modify ('DM'.del currTaskId) storedOutputEditors iworld)
         = (tr, iworld)
       _ = (tr, iworld)
 
-resultToOutput :: !TaskId !(TaskResult a) -> (Task (), TStability) | iTask a
-resultToOutput tid (ValueResult (Value v s) _ _ _) = (viewInformation (Title ("Value for task " +++ toString tid)) [] v @! (), if s TStable TUnstable)
-resultToOutput tid (ValueResult NoValue _ _ _)     = (viewInformation (Title ("Value for task " +++ toString tid)) [] "No value" @! (), TNoVal)
-resultToOutput tid _                               = (viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! (), TNoVal)
+resultToOutput :: !Int !TaskId !(TaskResult a) -> (!Int, !Task (), !TStability) | iTask a
+resultToOutput newN tid (ValueResult (Value v s) _ _ _) = (newN, viewInformation (Title ("Value for task " +++ toString tid)) [] v @! (), if s TStable TUnstable)
+resultToOutput newN tid (ValueResult NoValue _ _ _)     = (newN, viewInformation (Title ("Value for task " +++ toString tid)) [] "No value" @! (), TNoVal)
+resultToOutput newN tid _                               = (newN, viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! (), TNoVal)
 
 firstParent :: !TonicRTMap !Calltrace -> MaybeError TaskException BlueprintRef
 firstParent _     [] = Error (exception "iTasks._Framework.Tonic.firstParent: no parent found")
@@ -211,44 +346,6 @@ firstParent rtMap [parent : parents]
   = case 'DM'.get parent rtMap of
       Just trt -> Ok trt
       _        -> firstParent rtMap parents
-
-mkStoreName mn tn taskId sn = mn +++ "_" +++ tn +++ "_" +++ toString taskId +++ "_" +++ sn
-
-storeParams :: !ModuleName !TaskName !TaskId ![(!VarName, !Task ())] -> Task ()
-storeParams mn tn taskId params = mkInstantTask (\_ -> (\w -> (Ok (), w)) o storeParams` mn tn taskId params)
-
-storeParams` :: !ModuleName !TaskName !TaskId ![(!VarName, !Task ())] !*IWorld -> *IWorld
-storeParams` mn tn taskId params world = writeToDisk NS_TONIC_INSTANCES (mkStoreName mn tn taskId "params") (toString (toJSON params)) world
-
-readParams :: !ModuleName !TaskName !TaskId -> Task [(!VarName, !Task ())]
-readParams mn tn taskId = mkInstantTask (\_ -> (\(xs, w) -> (Ok xs, w)) o readParams` mn tn taskId)
-
-readParams` :: !ModuleName !TaskName !TaskId !*IWorld -> *(![(!VarName, !Task ())], !*IWorld)
-readParams` mn tn taskId world
-  # (mbok, world) = readFromDisk NS_TONIC_INSTANCES (mkStoreName mn tn taskId "params") world
-  = case mbok of
-      Ok (_, json) -> case fromJSON (fromString json) of
-                        Just xs -> (xs, world)
-                        _       -> ([], world)
-      _            -> ([], world)
-
-storeResult :: !ModuleName !TaskName !TaskId !(!Task (), !TStability) -> Task ()
-storeResult mn tn taskId params = mkInstantTask (\_ -> (\w -> (Ok (), w)) o storeResult` mn tn taskId params)
-
-storeResult` :: !ModuleName !TaskName !TaskId !(!Task (), !TStability) !*IWorld -> *IWorld
-storeResult` mn tn taskId result world = writeToDisk NS_TONIC_INSTANCES (mkStoreName mn tn taskId "result") (toString (toJSON result)) world
-
-readResult :: !ModuleName !TaskName !TaskId -> Task (!Task (), !TStability)
-readResult mn tn taskId = mkInstantTask (\_ -> (\(xs, w) -> (Ok xs, w)) o readResult` mn tn taskId)
-
-readResult` :: !ModuleName !TaskName !TaskId !*IWorld -> *(!(!Task (), !TStability), !*IWorld)
-readResult` mn tn taskId world
-  # (mbok, world) = readFromDisk NS_TONIC_INSTANCES (mkStoreName mn tn taskId "result") world
-  = case mbok of
-      Ok (_, json) -> case fromJSON (fromString json) of
-                        Just xs -> (xs, world)
-                        _       -> ((return (), TNoVal), world)
-      _            -> ((return (), TNoVal), world)
 
 mkCompleteTrace :: !InstanceNo !InstanceTrace !*IWorld -> *(!Calltrace, !*IWorld)
 mkCompleteTrace _          []        iworld = ([], iworld)
@@ -309,24 +406,6 @@ isBind :: !(!String, !String) -> Bool
 isBind ("iTasks.API.Core.Types"            , ">>=") = True
 isBind ("iTasks.API.Common.TaskCombinators", ">>|") = True
 isBind _                                            = False
-
-tonicEnabledSteps :: RWShared () (Map TaskId [UIAction]) (Map TaskId [UIAction])
-tonicEnabledSteps = sdsTranslate "tonicEnabledSteps" (\t -> t +++> "-tonicEnabledSteps")
-                                 (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
-
-tonicActionsForTaskID :: RWShared TaskId [UIAction] [UIAction]
-tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicEnabledSteps
-  where
-  read :: TaskId (Map TaskId [UIAction]) -> MaybeError TaskException [UIAction]
-  read tid trtMap = maybe (Error (exception ("Could not find UIAction for task " <+++ tid))) Ok ('DM'.get tid trtMap)
-
-  write :: TaskId (Map TaskId [UIAction]) [UIAction] -> MaybeError TaskException (Maybe (Map TaskId [UIAction]))
-  write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
-
-  notify :: TaskId (Map TaskId [UIAction]) [UIAction] -> SDSNotifyPred TaskId
-  notify tid _ _ = \tid` -> tid == tid`
-
-derive class iTask UIAction
 
 stepEval :: (Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult d, *IWorld))
             Event TaskEvalOpts TaskTree *IWorld
@@ -435,13 +514,17 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ nid t=:(Task eval)
 
 evalInteract parentModuleName parentTaskName nid tr childTaskId iworld
   # (mbnds, iworld) = 'DSDS'.read selectedNodes iworld
+  # childFocus      = sdsFocus childTaskId outputForTaskId
+  # (mboe, iworld)  = 'DSDS'.read childFocus iworld
+  # newN            = case mboe of
+                        Ok (n, _, _) = n + 1
+                        _            = 0
   # editor          = case mbnds of
                         Ok nodes
                           | 'DS'.member (parentModuleName, parentTaskName, nid) nodes
-                          = resultToOutput childTaskId tr
-                        _ = (viewInformation (Title "Notice") [] (pp3 (parentModuleName, parentTaskName, nid) +++ " not selected for tracing") @! (), TNoVal)
-  = snd ('DSDS'.modify ('DM'.put childTaskId editor) storedOutputEditors iworld)
-
+                          = resultToOutput newN childTaskId tr
+                        _ = (newN, viewInformation (Title "Notice") [] (pp3 (parentModuleName, parentTaskName, nid) +++ " not selected for tracing") @! (), TNoVal)
+  = snd ('DSDS'.write editor childFocus iworld)
 
 setActiveNodes :: !BlueprintInstance !TaskId !Calltrace !ExprId !*IWorld -> *(!Map ListId (IntMap (TaskId, ExprId)), !*IWorld)
 setActiveNodes {bpi_taskId = parentTaskId, bpi_activeNodes = parentActiveNodes} childTaskId cct nid iworld
@@ -695,24 +778,6 @@ tonicStaticWorkflow rs = workflow "Tonic Static Browser" "Tonic Static Browser" 
 tonicDynamicWorkflow :: [TaskAppRenderer] -> Workflow
 tonicDynamicWorkflow rs = workflow "Tonic Dynamic Browser" "Tonic Dynamic Browser" (tonicDynamicBrowser rs)
 
-:: DisplaySettings
-  = { unfold_depth    :: !Scale
-    , display_compact :: !Bool
-    }
-
-derive class iTask DisplaySettings
-
-staticDisplaySettings :: RWShared () DisplaySettings DisplaySettings
-staticDisplaySettings = sdsFocus "staticDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
-                                     { DisplaySettings
-                                     | unfold_depth    = { Scale
-                                                         | min = 0
-                                                         , cur = 0
-                                                         , max = 25
-                                                         }
-                                     , display_compact = False
-                                     }))
-
 (>>~) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 (>>~) taska taskbf = step taska (const Nothing) [OnValue (hasValue taskbf)]
 
@@ -766,9 +831,8 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
   handleClicks tm tt (TSelectNode, meta=:{click_origin_mbnodeId = Just nodeId, click_target_bpident = {bpident_taskId}}) _
     # sel = (tm.tm_name, tt.tt_name, nodeId)
     =                     get selectedNodes
-    >>= \selNodes      -> get storedOutputEditors
-    >>= \outputEditors -> if ('DS'.member sel selNodes)
-                            (   maybe (return ()) (\ttid -> set ('DM'.del ttid outputEditors) storedOutputEditors @! ()) bpident_taskId
+    >>~ \selNodes      -> if ('DS'.member sel selNodes)
+                            (maybe (return ()) (\ttid -> upd ('DM'.del ttid) storedOutputEditors @! ()) bpident_taskId
                             >>| set ('DS'.delete sel selNodes) selectedNodes)
                             (set ('DS'.insert sel selNodes) selectedNodes)
     >>| viewStaticTask allbps rs navstack trt tm tt depth compact
@@ -789,19 +853,31 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
     onNavVal bpident_taskName (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs navstack trt tm` tt` depth compact @! ()) (getTonicTask tm` bpident_taskName)
     onNavVal _                _             = Nothing
 
-showBlueprint :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !(Set (ModuleName, TaskName, ExprId)) !TonicTask !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int))) !(Map TaskId [UIAction]) !Bool !Scale
+showBlueprint :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef
+                 !(Set (ModuleName, TaskName, ExprId)) !TonicTask
+                 !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int)))
+                 !(Map TaskId [UIAction]) !Bool !Scale
               -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
+showBlueprint rs prev bpref=:{bpr_instance = Just _} selected task selDetail enabledSteps compact depth
+  =               get (mapRead (fmap (\(_, _, x) -> x)) storedOutputEditors)
+  >>~ \outputs -> showBlueprint` outputs rs prev bpref selected task selDetail enabledSteps compact depth
 showBlueprint rs prev bpref selected task selDetail enabledSteps compact depth
-  =               get (mapRead (fmap snd) storedOutputEditors)
-  >>~ \outputs ->                   updateInformation ()
-                    [imageUpdate id (mkTaskImage rs prev bpref outputs enabledSteps selected selDetail compact) (\_ _ -> Nothing) (const id)]
-                    { ActionState
-                    | state  = { tis_task    = task
-                               , tis_depth   = depth
-                               , tis_compact = compact }
-                    , action = Nothing}
+  = showBlueprint` 'DM'.newMap rs prev bpref selected task selDetail enabledSteps compact depth
 
-:: NavStack :== [ClickMeta]
+showBlueprint` :: !(Map TaskId TStability) ![TaskAppRenderer]
+                  !(Map ExprId TaskId) !BlueprintRef
+                  !(Set (ModuleName, TaskName, ExprId)) !TonicTask
+                  !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int)))
+                  !(Map TaskId [UIAction]) !Bool !Scale
+              -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
+showBlueprint` oes rs prev bpref selected task selDetail enabledSteps compact depth
+  = updateInformation ()
+      [imageUpdate id (mkTaskImage rs prev bpref oes enabledSteps selected selDetail compact) (\_ _ -> Nothing) (const id)]
+      { ActionState
+      | state  = { tis_task    = task
+                 , tis_depth   = depth
+                 , tis_compact = compact }
+      , action = Nothing}
 
 dynamicParent :: !TaskId -> Task (Maybe BlueprintRef)
 dynamicParent childId
@@ -811,72 +887,14 @@ dynamicParent childId
     `b` \bpi   -> bpi.bpi_parentTaskId
     `b` \pid   -> 'DM'.get pid rtm)
 
-:: DynamicView =
-  { taskName    :: !String
-  , startTime   :: !String
-  , lastUpdate  :: !String
-  , endTime     :: !String
-  , user        :: !String
-  }
-
-derive class iTask DynamicView
-
 enterQuery :: Task (Maybe BlueprintQuery)
 enterQuery = enterInformation "Enter filter query" []
-
-:: BlueprintQuery
-  = TaskName String
-  | UserInvolved String
-  | IsActive
-  | HasInstanceNo Int
-  | AndQuery BlueprintQuery BlueprintQuery
-  | OrQuery BlueprintQuery BlueprintQuery
-
-derive class iTask BlueprintQuery
-
-queryShare :: RWShared () (Maybe BlueprintQuery) (Maybe BlueprintQuery)
-queryShare = sdsFocus "queryShare" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
-
-dynamicDisplaySettings :: RWShared () DisplaySettings DisplaySettings
-dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
-                                     { DisplaySettings
-                                     | unfold_depth    = { Scale
-                                                         | min = 0
-                                                         , cur = 0
-                                                         , max = 5
-                                                         }
-                                     , display_compact = False
-                                     }))
 
 tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
 tonicDynamicBrowser rs
   =                withShared [] (
       \navstack -> (updateSharedInformation "Display settings" [] dynamicDisplaySettings
               -&&- tonicDynamicBrowser` rs navstack) @! ())
-
-selectedBlueprint :: RWShared () (Maybe ClickMeta) (Maybe ClickMeta)
-selectedBlueprint = sdsFocus "selectedBlueprint" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
-
-selectedDetail :: RWShared () (Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int))) (Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int)))
-selectedDetail = sdsFocus "selectedDetail" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
-
-storedOutputEditors :: RWShared () (Map TaskId (Task (), TStability)) (Map TaskId (Task (), TStability))
-storedOutputEditors = sdsTranslate "storedOutputEditors" (\t -> t +++> "-storedOutputEditors")
-                                  (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
-
-selectedNodes :: RWShared () (Set (ModuleName, TaskName, ExprId)) (Set (ModuleName, TaskName, ExprId))
-selectedNodes = sdsFocus "selectedNodes" (cachedJSONFileStore NS_TONIC_INSTANCES True True True (Just 'DS'.newSet))
-
-:: AdditionalInfo =
-  { numberOfActiveTasks  :: !Int
-  , tasksNearingDeadline :: ![BlueprintRef]
-  , highestPriorityTasks :: ![BlueprintRef]
-  , staleTasks           :: ![BlueprintRef]
-  , busiestUsers         :: ![(User, Int)]
-  , leastBusyUsers       :: ![(User, Int)]
-  }
-
-derive class iTask AdditionalInfo
 
 mkAdditionalInfo :: TonicRTMap -> Task AdditionalInfo
 mkAdditionalInfo trt
@@ -920,7 +938,7 @@ tonicDynamicBrowser` rs navstack =
 
   additionalInfo = whileUnchanged selectedDetail viewDetail
     where
-    viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Just tid}})) = whileUnchanged storedOutputEditors (viewOutput tid)
+    viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Just tid}})) = whileUnchanged (sdsFocus tid outputForTaskId) (\(_, x, _) -> x)
     viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Nothing}}))  = viewInformation (Title "Notice") [] "No data available for selected task. " @! ()
     viewDetail (Just (Right (mn, tn, tid, argIdx))) = readParams mn tn tid >>= \params -> case getN params argIdx of
                                                                                             Just (_, vi) -> vi
@@ -931,16 +949,11 @@ tonicDynamicBrowser` rs navstack =
       getN [_:xs] n
         | n < 0     = Nothing
         | otherwise = getN xs (n - 1)
-    viewDetail _                                    = viewInformation (Title "Notice") [] "Select dynamic task" @! ()
-
-    viewOutput tid=:(TaskId ino tno) ts = case 'DM'.get tid ts of
-                                            Just (remote, _) -> remote
-                                            _                -> viewInformation (Title ("Error displaying task " +++ toString tid)) [] ts @! ()
+    viewDetail _ = viewInformation (Title "Notice") [] "Select dynamic task" @! ()
 
   blueprintViewer
-    =                        whileUnchanged (selectedBlueprint |+| tonicSharedRT |+| dynamicDisplaySettings |+| selectedDetail) (
-    \(((bp, trt), dynSett), selDetail) -> viewInstance rs navstack dynSett trt selDetail True bp
-                             )
+    =                                     whileUnchanged (selectedBlueprint |+| tonicSharedRT |+| dynamicDisplaySettings |+| selectedDetail) (
+    \(((bp, trt), dynSett), selDetail) -> viewInstance rs navstack dynSett trt selDetail True bp)
 
   filterActiveTasks Nothing tasks = tasks
   filterActiveTasks (Just q) tasks
@@ -1085,8 +1098,6 @@ viewInstance rs navstack dynSett trt selDetail showButtons (Just {click_target_b
 viewInstance _ _ _ _ _ _ _ = viewInformation () [] "Select blueprint instance" @! ()
 
 pp3 (x, y, ns) = toString x +++ " " +++ toString y +++ " " +++ toString ns
-
-:: AllBlueprints :== Map ModuleName (Map TaskName TonicTask)
 
 allBlueprints :: Task AllBlueprints
 allBlueprints

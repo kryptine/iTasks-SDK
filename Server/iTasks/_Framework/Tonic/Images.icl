@@ -91,7 +91,8 @@ instance == TStatus where
 
 mkTaskImage :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef
                !(Map TaskId TStability) !(Map TaskId [UIAction])
-               !(Set (!ModuleName, !TaskName, !ExprId)) !(Maybe (Either ClickMeta (!ModuleName, !TaskName, !TaskId, !Int))) !Bool
+               !(Set (!ModuleName, !TaskName, !ExprId))
+               !(Maybe (Either ClickMeta (!ModuleName, !TaskName, !TaskId, !Int))) !Bool
                !ModelTy *TagSource -> Image ModelTy
 mkTaskImage rs prev trt outputs stepActions selected selDetail compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
