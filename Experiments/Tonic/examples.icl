@@ -71,7 +71,7 @@ delegate task
 
 import iTasks.API.Extensions.GIS.GoogleMap
 
-twoGoogleMaps ::  Task GoogleMap
+twoGoogleMaps ::  Task (GoogleMap, Note)
 twoGoogleMaps 
 	=					enterChoiceWithShared "Select someone to enter information:" [] users
 		>>= \worker -> 	enterChoiceWithShared "Select someone to view what is entered:" [] users
@@ -79,12 +79,12 @@ twoGoogleMaps
 	
 
 
-twoTasks :: w1 w2 -> Task a  | iTask a & toUserConstraint w1 & toUserConstraint w2 & gText{|*|} w1 & gText{|*|} w2
-twoTasks user1 user2   
+twoTasks :: User User -> Task a  | iTask a
+twoTasks user1 user2
 = withShared defaultValue 
-	(\share -> (user1 @: updateSharedInformation  ("Update, viewer is " <+++ user2) [] share)
+	(\share -> ((user1, "Enter something") @: updateSharedInformation  ("Update, viewer is " <+++ user2) [] share)
 		        -||  
-		       (user2 @: viewSharedInformation    ("Viewer, creator is" <+++ user1)  [] share) 
+		       ((user2, "View something") @: viewSharedInformation    ("Viewer, creator is " <+++ user1)  [] share) 
     )
 
 
