@@ -71,3 +71,12 @@ deleteUser			:: !UserId -> Task Void
 * Browse and manage the existing users
 */
 manageUsers			:: Task Void
+/**
+* Create set of user names handy for giving demo's: alice, bob, carol, ...
+*/
+importDemoUsersFlow :: Task [UserAccount]
+
+
+
+
+

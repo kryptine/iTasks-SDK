@@ -8,7 +8,7 @@ import iTasks.API.Extensions.Admin.TonicAdmin
 Start :: *World -> *World
 Start world 
     = startEngine 
-    	[ publish "/"      (WebApp []) (\_-> loginAndManageWorkList "welcome to my examples" myExamples)
+    	[ publish "/"      (WebApp []) (\_-> importDemoUsersFlow >>| loginAndManageWorkList "welcome to my examples" myExamples)
         , publish "/tonic" (WebApp []) (\_-> tonicDashboard [])
         ] world
  
@@ -19,7 +19,7 @@ myExamples = 	[	workflow "palindrome" 					"accepts palindrome string " 	palindr
 				,	workflow "create list of persons"		"one by one" 					person1by1
 				,	workflow "create list of palindromes"	"one by one" 					palindrome1by1
 				,	workflow "delegate  list of persons"	"delegate the creation" 		(delegate person1by1)
-				,	workflow "two google maps workers"		"one to update and one to monitor" twoGoogleMaps
+				,	workflow "monitor a GoogleMap browser"	"one user browses and another can monitor this" monitorGoogleMap
 
 
 				,	workflow "Manage users"	"Manage system users..." 		manageUsers
@@ -71,21 +71,18 @@ delegate task
 
 import iTasks.API.Extensions.GIS.GoogleMap
 
-twoGoogleMaps ::  Task (GoogleMap, Note)
-twoGoogleMaps 
-	=					enterChoiceWithShared "Select someone to enter information:" [] users
+monitorGoogleMap ::  Task (GoogleMap, Note)
+monitorGoogleMap =	monitorWorker 
+
+monitorWorker :: Task a  | iTask a
+monitorWorker
+	=					enterChoiceWithShared "Select someone to enter information:"    [] users
 		>>= \worker -> 	enterChoiceWithShared "Select someone to view what is entered:" [] users
-		>>= \viewer -> 	twoTasks worker viewer 
-	
-
-
-twoTasks :: User User -> Task a  | iTask a
-twoTasks user1 user2
-= withShared defaultValue 
-	(\share -> ((user1, "Enter something") @: updateSharedInformation  ("Update, viewer is " <+++ user2) [] share)
-		        -||  
-		       ((user2, "View something") @: viewSharedInformation    ("Viewer, creator is " <+++ user1)  [] share) 
-    )
+		>>= \viewer ->	withShared defaultValue 
+						(\share -> ((worker, "Update Information") @: updateSharedInformation  ("Update, viewer is " <+++ viewer) [] share)
+							        -||  
+							       ((viewer, "View Information") @: viewSharedInformation    ("Viewer, creator is " <+++ worker)  [] share) 
+					    )
 
 
 
