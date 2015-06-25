@@ -57,13 +57,8 @@ from Control.Applicative import class Applicative, instance Applicative Maybe
 :: DynamicDisplaySettings
   = { unfold_depth             :: !Scale
     , display_compact          :: !Bool
-    , keep_finished_blueprints :: !Bool
-    }
-
-:: DynamicWindowSettings
-  = { show_filter     :: !Bool
-    , show_taskviewer :: !Bool
-    , show_settings   :: !Bool
+    , show_finished_blueprints :: !Bool
+    , show_task_value          :: !Bool
     }
 
 :: NavStack :== [ClickMeta]
@@ -114,8 +109,7 @@ instance TonicBlueprintPart Maybe where
   tonicWrapTraversable _ _ _ _ f args = f args
 
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
-                   DynamicView, AdditionalInfo, BlueprintQuery, UIAction,
-                   DynamicWindowSettings
+                   DynamicView, AdditionalInfo, BlueprintQuery, UIAction
 
 //-----------------------------------------------------------------------------
 // SHARES
@@ -202,7 +196,8 @@ dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (memoryStore NS_TONIC
                                                          , max = 5
                                                          }
                                      , display_compact = False
-                                     , keep_finished_blueprints = False
+                                     , show_finished_blueprints = False
+                                     , show_task_value = False
                                      }))
 
 mkStoreName mn tn taskId sn = mn +++ "_" +++ tn +++ "_" +++ toString taskId +++ "_" +++ sn
@@ -224,13 +219,6 @@ readParams` mn tn taskId world
                         Just xs -> (xs, world)
                         _       -> ([], world)
       _            -> ([], world)
-
-
-dynamicWindowSettingShare :: RWShared () DynamicWindowSettings DynamicWindowSettings
-dynamicWindowSettingShare
-  = sdsFocus "dynamicWindowSettingShare" (cachedJSONFileStore NS_TONIC_INSTANCES True True True (Just { show_filter     = False
-                                                                                               , show_taskviewer = False
-                                                                                               , show_settings   = False}))
 
 //-----------------------------------------------------------------------------
 // REST
@@ -502,8 +490,6 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ parentNid nid t=:(Tas
                                                                                                                                         TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [_ : as] assoc
                                                                                                                                           | meid == Just parentNid = TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr) : as] assoc
                                                                                                                                           | otherwise              = x
-//["TFApp", "_Tuple2", [["TVar", ["Nothing"], "user2"], ["TLit", "\"View something\""]], [
-          //"TNoPrio"]]
                                                                                                                                         e = e
                                                                                                                                ) new_parent_instance.bpi_blueprint.tt_body
                                                                                   = (parent_body, chng, iworld)
@@ -940,16 +926,25 @@ enterQuery = enterInformation "Enter filter query" []
 tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
 tonicDynamicBrowser rs
   =            withShared [] (
-  \navstack -> (whileUnchanged dynamicWindowSettingShare
-                  (\wsett -> allTasks [ windowIf wsett.show_filter filterQuery
-                                      , windowIf wsett.show_taskviewer taskViewer
-                                      , windowIf wsett.show_settings settingsViewer
-                                      ])
-               -&&- tonicDynamicBrowser` rs navstack)) @! ()
+  \navstack -> (parallel [ (Embedded, \_ -> tonicDynamicBrowser` rs navstack)
+                         , (Embedded, \_ -> settingsViewer)
+                         , (Embedded, \_ -> filterQuery)
+                         , (Embedded, \_ -> taskViewer)
+                         ] [] <<@ ArrangeCustom layout <<@ FullScreen
+               )) @! ()
   where
+  layout [mainTask, settingsTask, filterTask : _] actions
+    = arrangeWithSideBar 0 RightSide 250 True [supportArea, mainTask] actions
+    where
+    supportArea = arrangeWithSideBar 0 TopSide 150 False [settingsTask, filterTask] []
+
   filterQuery = updateSharedInformation (Title "Filter query") [] queryShare @! ()
 
-  taskViewer = whileUnchanged selectedDetail viewDetail @! ()
+  taskViewer = whileUnchanged dynamicDisplaySettings (
+            \{show_task_value} -> if show_task_value
+                                    (whileUnchanged selectedDetail viewDetail <<@ InWindow)
+                                    (viewInformation () [] ())
+               ) @! ()
     where
     viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Just tid}})) = whileUnchanged (sdsFocus tid outputForTaskId) (\(_, x, _) -> x)
     viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Nothing}}))  = viewInformation (Title "Notice") [] "No data available for selected task. " @! ()
@@ -965,21 +960,14 @@ tonicDynamicBrowser rs
     viewDetail _ = viewInformation (Title "Task viewer") [] "Select dynamic task" @! ()
 
   settingsViewer
-    =   updateSharedInformation (Title "Settings") [] dynamicDisplaySettings
-    >>* [OnAction (Action "Clear old (> 1h) data" []) (always (clearOldData >>| settingsViewer))]
-    where
-    clearOldData = return ()
+    =   updateSharedInformation (Title "Settings") [] dynamicDisplaySettings @! ()
 
   windowIf True t = t <<@ InWindow
   windowIf _    _ = return ()
 
 tonicDynamicBrowser` :: ![TaskAppRenderer] !(Shared NavStack) -> Task ()
 tonicDynamicBrowser` rs navstack =
-  (activeBlueprintInstances -&&- blueprintViewer)
-  >>* [ OnAction (Action "/Filter"      [ActionIcon "find", ActionKey (ctrl KEY_F)])  (always (upd (\wsett -> {wsett & show_filter = not wsett.show_filter}) dynamicWindowSettingShare >>| tonicDynamicBrowser` rs navstack))
-      , OnAction (Action "/Task viewer" [ActionIcon "zoom", ActionKey (ctrl KEY_O)])  (always (upd (\wsett -> {wsett & show_taskviewer = not wsett.show_taskviewer}) dynamicWindowSettingShare >>| tonicDynamicBrowser` rs navstack))
-      , OnAction (Action "/Settings"    [ActionIcon "cog" , ActionKey (ctrl KEY_F2)]) (always (upd (\wsett -> {wsett & show_settings = not wsett.show_settings}) dynamicWindowSettingShare >>| tonicDynamicBrowser` rs navstack))
-      ]
+  ((activeBlueprintInstances -&&- blueprintViewer) <<@ ArrangeVertical) @! ()
   where
   activeBlueprintInstances = editSharedChoiceWithSharedAs (Title "Active blueprint instances") [ChooseWith (ChooseFromGrid customView)] (mapRead filterTasks (tonicSharedRT |+| queryShare)) setTaskId selectedBlueprint <<@ ArrangeWithSideBar 0 TopSide 175 True
     where
@@ -1054,9 +1042,9 @@ viewInstance rs navstack dynSett trt selDetail showButtons action=:(Just meta=:{
   where
   showChildTasks :: DynamicDisplaySettings BlueprintInstance -> Task ()
   showChildTasks {DynamicDisplaySettings | unfold_depth = {Scale | cur = 0} } bpinst = return ()
-  showChildTasks {DynamicDisplaySettings | unfold_depth = {Scale | cur = d}, keep_finished_blueprints } bpinst
+  showChildTasks {DynamicDisplaySettings | unfold_depth = {Scale | cur = d}, show_finished_blueprints } bpinst
     # childIds  = [tid \\ tid <- map fst (concatMap 'DIS'.elems ('DM'.elems bpinst.bpi_activeNodes)) | not (tid == bpinst.bpi_taskId)]
-    # childIds  = if keep_finished_blueprints
+    # childIds  = if show_finished_blueprints
                     ([tid \\ tid <- 'DM'.elems bpinst.bpi_previouslyActive | not (tid == bpinst.bpi_taskId)] ++ childIds)
                     childIds
     # viewTasks = map (viewInstance rs navstack {DynamicDisplaySettings | dynSett & unfold_depth = {dynSett.DynamicDisplaySettings.unfold_depth & cur = d - 1}} trt selDetail False o Just o mkClickMeta) childIds
