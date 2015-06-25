@@ -60,6 +60,12 @@ from Control.Applicative import class Applicative, instance Applicative Maybe
     , keep_finished_blueprints :: !Bool
     }
 
+:: WindowSettings
+  = { show_filter     :: !Bool
+    , show_taskviewer :: !Bool
+    , show_settings   :: !Bool
+    }
+
 :: NavStack :== [ClickMeta]
 
 :: DynamicView =
@@ -108,7 +114,8 @@ instance TonicBlueprintPart Maybe where
   tonicWrapTraversable _ _ _ _ f args = f args
 
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
-                   DynamicView, AdditionalInfo, BlueprintQuery, UIAction
+                   DynamicView, AdditionalInfo, BlueprintQuery, UIAction,
+                   WindowSettings
 
 //-----------------------------------------------------------------------------
 // SHARES
@@ -217,6 +224,10 @@ readParams` mn tn taskId world
                         Just xs -> (xs, world)
                         _       -> ([], world)
       _            -> ([], world)
+
+
+windowSettingShare :: RWShared () WindowSettings WindowSettings
+windowSettingShare = sdsFocus "windowSettingShare" (cachedJSONFileStore NS_TONIC_INSTANCES True True True (Just {show_filter = False, show_taskviewer = False, show_settings = False}))
 
 //-----------------------------------------------------------------------------
 // REST
@@ -399,21 +410,31 @@ tonicExtWrapApp :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!Module
 tonicExtWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) tid mapp = tonicWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) tid mapp
 
 isSpecialBlueprintTask :: !(!String, !String) -> Bool
-isSpecialBlueprintTask ("iTasks.API.Core.TaskCombinators"  , "step"    ) = True
-isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", ">>*"     ) = True
-isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", "-&&-"    ) = True
-isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", "-||-"    ) = True
-isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", "||-"     ) = True
-isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", "-||"     ) = True
-isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", "anyTask" ) = True
-isSpecialBlueprintTask ("iTasks.API.Common.TaskCombinators", "allTasks") = True
-isSpecialBlueprintTask ("iTasks.API.Extension.User"        , "@:"      ) = True
-isSpecialBlueprintTask x                                                 = isBind x
+isSpecialBlueprintTask info = isStep info || isBind info || isParallel info || isAssign info
 
 isBind :: !(!String, !String) -> Bool
 isBind ("iTasks.API.Core.Types"            , ">>=") = True
 isBind ("iTasks.API.Common.TaskCombinators", ">>|") = True
 isBind _                                            = False
+
+isStep :: !(!String, !String) -> Bool
+isStep ("iTasks.API.Core.TaskCombinators"  , "step") = True
+isStep ("iTasks.API.Common.TaskCombinators", ">>*")  = True
+isStep _                                             = False
+
+isParallel :: !(!String, !String) -> Bool
+isParallel ("iTasks.API.Core.TaskCombinators"  , "parallel") = True
+isParallel ("iTasks.API.Common.TaskCombinators", "-&&-"    ) = True
+isParallel ("iTasks.API.Common.TaskCombinators", "-||-"    ) = True
+isParallel ("iTasks.API.Common.TaskCombinators", "||-"     ) = True
+isParallel ("iTasks.API.Common.TaskCombinators", "-||"     ) = True
+isParallel ("iTasks.API.Common.TaskCombinators", "anyTask" ) = True
+isParallel ("iTasks.API.Common.TaskCombinators", "allTasks") = True
+isParallel _                                                 = False
+
+isAssign :: !(!String, !String) -> Bool
+isAssign ("iTasks.API.Extensions.User", "@:") = True
+isAssign _                                    = False
 
 stepEval :: (Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult d, *IWorld))
             Event TaskEvalOpts TaskTree *IWorld
@@ -447,11 +468,10 @@ stepEval` childTaskId=:(TaskId ino tno) eval event evalOpts taskTree iworld
  * highlight nodes.
  */
 tonicWrapApp` :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId (Task a) -> Task a | iTask a
-tonicWrapApp` _ _ ("iTasks.API.Common.TaskCombinators", ">>*") _ (Task eval) = Task (stepEval eval)
-tonicWrapApp` _ _ ("iTasks.API.Core.TaskCombinators", "step") _ (Task eval) = Task (stepEval eval)
-tonicWrapApp` _ _ wrapInfo _ t
+tonicWrapApp` _ _ wrapInfo _ t=:(Task eval)
   | isBind wrapInfo = t
-tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ nid t=:(Task eval)
+  | isStep wrapInfo = Task (stepEval eval)
+tonicWrapApp` (parentModuleName, parentTaskName) appInfo=:(l, r) _ /* wrapInfo */ nid t=:(Task eval)
   | isSpecialBlueprintTask appInfo || appInfo == ("", "") = return () >>~ \_ -> Task eval`
   | otherwise                                             = t
   where
@@ -773,13 +793,6 @@ getTasks tm = 'DM'.keys tm.tm_tasks
 getTonicTask :: !TonicModule !String -> Maybe TonicTask
 getTonicTask tm tn = 'DM'.get tn tm.tm_tasks
 
-tonicUI :: [TaskAppRenderer] -> Task ()
-tonicUI rs
-  = viewInformation "Select a view mode" [] (Note "With the Static Task Browser, you can view the static structure of the tasks as defined by the programmer.\n\nIn the Dynamic Task Instance Browser it is possible to monitor the application while it executes.") >>*
-    [ OnAction (Action "Static Task Browser" []) (\_ -> Just (tonicStaticBrowser rs))
-    , OnAction (Action "Dynamic Task Instance Browser" []) (\_ -> Just (tonicDynamicBrowser rs))
-    ]
-
 tonicStaticWorkflow :: [TaskAppRenderer] -> Workflow
 tonicStaticWorkflow rs = workflow "Tonic Static Browser" "Tonic Static Browser" (tonicStaticBrowser rs)
 
@@ -811,7 +824,6 @@ tonicStaticBrowser rs
   noModuleSelection = viewInformation () [] "Select module..."
   noTaskSelection   = viewInformation () [] "Select task..."
 
-import StdDebug
 viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !TonicRTMap !TonicModule !TonicTask !Scale !Bool -> Task ()
 viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
   =          get navstack
@@ -900,51 +912,17 @@ enterQuery = enterInformation "Enter filter query" []
 
 tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
 tonicDynamicBrowser rs
-  =                withShared [] (
-      \navstack -> (updateSharedInformation "Display settings" [] dynamicDisplaySettings
-              -&&- tonicDynamicBrowser` rs navstack) @! ())
-
-mkAdditionalInfo :: TonicRTMap -> Task AdditionalInfo
-mkAdditionalInfo trt
-  =           get currentDateTime
-  >>~ \cdt -> let numActiveTasks = length [0 \\ {bpr_instance = Just {bpi_endTime = Nothing}} <- 'DM'.elems trt]
-           in return { AdditionalInfo
-                     | numberOfActiveTasks  = numActiveTasks
-                     , tasksNearingDeadline = []
-                     , highestPriorityTasks = []
-                     , staleTasks           = []
-                     , busiestUsers         = []
-                     , leastBusyUsers       = []
-                     }
+  =            withShared [] (
+  \navstack -> (whileUnchanged windowSettingShare
+                  (\wsett -> allTasks [ windowIf wsett.show_filter filterQuery
+                                      , windowIf wsett.show_taskviewer taskViewer
+                                      , windowIf wsett.show_settings settingsViewer
+                                      ])
+               -&&- tonicDynamicBrowser` rs navstack)) @! ()
   where
-  getOldest _ bpr=:{bpr_instance = Just bpi} (Just bpr`=:{bpr_instance = Just bpi`})
-     | bpi.bpi_startTime < bpi`.bpi_startTime = Just bpr
-     | otherwise                              = Just bpr`
-  getOldest _ bpr=:{bpr_instance = Just _} _  = Just bpr
-  getOldest _ _ _ = Nothing
+  filterQuery = updateSharedInformation (Title "Filter query") [] queryShare @! ()
 
-tonicDynamicBrowser` :: ![TaskAppRenderer] !(Shared NavStack) -> Task ()
-tonicDynamicBrowser` rs navstack =
-       (((((((
-       filterQuery               <<@ ArrangeWithSideBar 0 LeftSide 200 True)
-  -&&- activeBlueprintInstances) <<@ ArrangeWithSideBar 0 LeftSide 200 True)
-  -&&- additionalInfo)           <<@ ArrangeWithSideBar 0 LeftSide 1000 True)
-  -&&- blueprintViewer)          <<@ ArrangeWithSideBar 0 TopSide 200 True)
-       <<@ FullScreen @! ()
-  where
-  filterQuery = updateSharedInformation (Title "Filter query") [] queryShare
-  activeBlueprintInstances = editSharedChoiceWithSharedAs (Title "Active blueprint instances") [ChooseWith (ChooseFromGrid customView)] (mapRead filterTasks (tonicSharedRT |+| queryShare)) setTaskId selectedBlueprint
-    where
-    setTaskId x = { click_origin_mbbpident  = Nothing
-                  , click_origin_mbnodeId   = Nothing
-                  , click_target_bpident    = { bpident_moduleName = x.bpr_moduleName
-                                              , bpident_taskName   = x.bpr_taskName
-                                              , bpident_taskId     = fmap (\bpi -> bpi.bpi_taskId) x.bpr_instance
-                                              }
-                  }
-    filterTasks (trt, q) = filterActiveTasks q ('DM'.elems trt)
-
-  additionalInfo = whileUnchanged selectedDetail viewDetail
+  taskViewer = whileUnchanged selectedDetail viewDetail @! ()
     where
     viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Just tid}})) = whileUnchanged (sdsFocus tid outputForTaskId) (\(_, x, _) -> x)
     viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Nothing}}))  = viewInformation (Title "Notice") [] "No data available for selected task. " @! ()
@@ -957,7 +935,35 @@ tonicDynamicBrowser` rs navstack =
       getN [_:xs] n
         | n < 0     = Nothing
         | otherwise = getN xs (n - 1)
-    viewDetail _ = viewInformation (Title "Notice") [] "Select dynamic task" @! ()
+    viewDetail _ = viewInformation (Title "Task viewer") [] "Select dynamic task" @! ()
+
+  settingsViewer = updateSharedInformation (Title "Display settings") [] dynamicDisplaySettings @! ()
+
+  windowIf True t = t <<@ InWindow
+  windowIf _    _ = return ()
+
+doOrClose :: (Task a) -> Task (Maybe a) | iTask a
+doOrClose task = ((task @ Just) -||- chooseAction [(ActionClose,Nothing)]) >>- return
+
+tonicDynamicBrowser` :: ![TaskAppRenderer] !(Shared NavStack) -> Task ()
+tonicDynamicBrowser` rs navstack =
+  (((activeBlueprintInstances <<@ ArrangeWithSideBar 0 TopSide 175 True) -&&- blueprintViewer)
+       >>* [ OnAction (Action "/Filter" [ActionIcon "find", ActionKey (ctrl KEY_F)]) (always (upd (\wsett -> {wsett & show_filter = not wsett.show_filter}) windowSettingShare >>| tonicDynamicBrowser` rs navstack))
+           , OnAction (Action "/Task viewer" [ActionIcon "zoom", ActionKey (ctrl KEY_O)]) (always (upd (\wsett -> {wsett & show_taskviewer = not wsett.show_taskviewer}) windowSettingShare >>| tonicDynamicBrowser` rs navstack))
+           , OnAction (Action "/Settings" [ActionIcon "cog", ActionKey (ctrl KEY_F2)]) (always (upd (\wsett -> {wsett & show_settings = not wsett.show_settings}) windowSettingShare >>| tonicDynamicBrowser` rs navstack))
+           ]
+       ) <<@ FullScreen @! ()
+  where
+  activeBlueprintInstances = editSharedChoiceWithSharedAs (Title "Active blueprint instances") [ChooseWith (ChooseFromGrid customView)] (mapRead filterTasks (tonicSharedRT |+| queryShare)) setTaskId selectedBlueprint
+    where
+    setTaskId x = { click_origin_mbbpident  = Nothing
+                  , click_origin_mbnodeId   = Nothing
+                  , click_target_bpident    = { bpident_moduleName = x.bpr_moduleName
+                                              , bpident_taskName   = x.bpr_taskName
+                                              , bpident_taskId     = fmap (\bpi -> bpi.bpi_taskId) x.bpr_instance
+                                              }
+                  }
+    filterTasks (trt, q) = filterActiveTasks q ('DM'.elems trt)
 
   blueprintViewer
     =                                     whileUnchanged (selectedBlueprint |+| tonicSharedRT |+| dynamicDisplaySettings |+| selectedDetail) (
