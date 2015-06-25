@@ -332,7 +332,7 @@ svgRenderer resolve origState state2Image
     = ({ ComponentHTML
        | width         = FlexSize
        , height        = FlexSize
-       , html          = DivTag [IdAttr (mainSvgId cid)] []
+       , html          = DivTag [IdAttr (mainSvgId cid), StyleAttr "overflow: auto;"] []
        }
        , world
       )
