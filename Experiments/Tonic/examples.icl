@@ -19,7 +19,10 @@ myExamples = 	[	workflow "palindrome" 					"accepts palindrome string " 	palindr
 				,	workflow "create list of persons"		"one by one" 					person1by1
 				,	workflow "create list of palindromes"	"one by one" 					palindrome1by1
 				,	workflow "delegate  list of persons"	"delegate the creation" 		(delegate person1by1)
+				,	workflow "monitor a list maker"			"one user creates a list and another can monitor this" monitorPersons
+
 				,	workflow "monitor a GoogleMap browser"	"one user browses and another can monitor this" monitorGoogleMap
+				,	workflow "chat with a GoogleMap browser"	"one user browses and another can monitor and comment on this" chatAboutMap
 
 
 				,	workflow "Manage users"	"Manage system users..." 		manageUsers
@@ -65,24 +68,53 @@ add1by1 list_so_far
 delegate :: (Task a) -> Task a | iTask a
 delegate task
 	=					enterChoiceWithShared "Select someone to delegate the task to:" [] users
-		>>= \user -> 	user @: (task >>= return)
+		>>= \user -> 	(user,"delegated task") @: (task >>= return)
 		>>= \result ->	viewInformation "The result is:" [] result
+
+
+monitorPersons ::  Task [Person]
+monitorPersons =	selectCoWorker "who do you want to monitor ? " >>= monitorWorker 
 
 
 import iTasks.API.Extensions.GIS.GoogleMap
 
 monitorGoogleMap ::  Task (GoogleMap, Note)
-monitorGoogleMap =	monitorWorker 
+monitorGoogleMap =	selectCoWorker "who do you want to monitor ?" >>= monitorWorker 
 
-monitorWorker :: Task a  | iTask a
-monitorWorker
-	=					enterChoiceWithShared "Select someone to enter information:"    [] users
-		>>= \worker -> 	enterChoiceWithShared "Select someone to view what is entered:" [] users
-		>>= \viewer ->	withShared defaultValue 
-						(\share -> ((worker, "Update Information") @: updateSharedInformation  ("Update, viewer is " <+++ viewer) [] share)
-							        -||  
-							       ((viewer, "View Information") @: viewSharedInformation    ("Viewer, creator is " <+++ worker)  [] share) 
-					    )
+selectCoWorker :: String -> Task (User,User)
+selectCoWorker  prompt
+	=						get currentUser
+		>>= \me -> 			enterChoiceWithShared prompt [] users
+		>>= \colleague ->	return (me,colleague)
+
+
+monitorWorker :: (User, User) -> Task a  | iTask a
+monitorWorker (me,worker)
+	=	withShared defaultValue 
+		(\share -> ((worker, "Update Information") @: updateSharedInformation  ("Update, viewer is " <+++ me) [] share)
+			        -||  
+			       ((me, "View Information") @: viewSharedInformation    ("Viewer, worker is " <+++ worker)  [] share) 
+	    )
+
+chatAboutMap :: Task (Note,Note)
+chatAboutMap = chat
+	    
+chat :: Task (a,b) | iTask a & iTask b
+chat =							selectCoWorker "with whom do you want to work ? "
+		>>= \(me,colleague) ->	withShared defaultValue 
+			(\workOfMe ->		withShared defaultValue
+			(\workOfColleague ->((me,"chat") @: updateAndView (me,workOfMe) (colleague,workOfColleague))
+								-&&-
+								((colleague,"chat") @: updateAndView (colleague,workOfColleague) (me,workOfMe))
+			))
+where
+	updateAndView (me,workOfMe) (you,workOfYou)
+		= 	updateSharedInformation  ("Please enter your information: " <+++ me) [] workOfMe
+			-||  
+			viewSharedInformation    ("You are looking at the information of: " <+++ you) [] workOfYou 
+	    
+	    
+	    
 
 
 
