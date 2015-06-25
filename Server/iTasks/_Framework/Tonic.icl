@@ -462,7 +462,7 @@ tonicWrapApp` :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleNa
 tonicWrapApp` _ _ wrapInfo _ _ t=:(Task eval)
   | isBind wrapInfo = t
   | isStep wrapInfo = Task (stepEval eval)
-tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ parentNid nid t=:(Task eval)
+tonicWrapApp` (parentModuleName, parentTaskName) appInfo (wrapModuleName, wrapTaskName) parentNid nid t=:(Task eval)
   | isSpecialBlueprintTask appInfo || appInfo == ("", "") = return () >>~ \_ -> Task eval`
   | otherwise                                             = t
   where
@@ -475,7 +475,7 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ parentNid nid t=:(Tas
               Ok parentBPRef=:{bpr_instance = Just parentBPInst}
                 # iworld                = updRTMap nid childTaskId cct parentBPRef parentBPInst iworld
                 # (tr, iworld)          = eval event evalOpts taskTree iworld
-                # iworld                = evalInteract parentModuleName parentTaskName nid tr childTaskId iworld
+                # iworld                = evalInteract parentModuleName parentTaskName wrapTaskName nid tr childTaskId iworld
                 # (mparent_bpr, iworld) = 'DSDS'.read (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld
                 # (mchild_bpr, iworld)  = 'DSDS'.read (sdsFocus childTaskId tonicInstances) iworld
                 # iworld                = case (isAssign appInfo, mparent_bpr) of
@@ -537,7 +537,7 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ parentNid nid t=:(Tas
           # iworld       = case tr of
                              (ValueResult (Value x True) _ _ _) -> snd (markStable parentModuleName parentTaskName tid tr event evalOpts taskTree iworld)
                              _                                  -> iworld
-          # iworld       = evalInteract parentModuleName parentTaskName nid tr tid iworld
+          # iworld       = evalInteract parentModuleName parentTaskName wrapTaskName nid tr tid iworld
           = (tr, iworld)
         _ = eval event evalOpts taskTree iworld
 
@@ -553,7 +553,7 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ parentNid nid t=:(Tas
     # (_, iworld) = 'DSDS'.write newParent (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld
     = iworld
 
-evalInteract parentModuleName parentTaskName nid tr childTaskId iworld
+evalInteract parentModuleName parentTaskName childTaskName nid tr childTaskId iworld
   # (mbnds, iworld) = 'DSDS'.read selectedNodes iworld
   # childFocus      = sdsFocus childTaskId outputForTaskId
   # (mboe, iworld)  = 'DSDS'.read childFocus iworld
@@ -564,7 +564,7 @@ evalInteract parentModuleName parentTaskName nid tr childTaskId iworld
                         Ok nodes
                           | 'DS'.member (parentModuleName, parentTaskName, nid) nodes
                           = resultToOutput newN childTaskId tr
-                        _ = (newN, viewInformation (Title "Notice") [] (pp3 (parentModuleName, parentTaskName, nid) +++ " not selected for tracing") @! (), TNoVal)
+                        _ = (newN, viewInformation (Title "Notice") [] ("No task value for task \"" +++ childTaskName +++ " (" +++ toString childTaskId +++ ")\" in blueprint \"" +++ parentTaskName +++ "\". Try entering or updating a value in its editor.") @! (), TNoVal)
   = snd ('DSDS'.write editor childFocus iworld)
 
 setActiveNodes :: !BlueprintInstance !TaskId !Calltrace !ExprId !*IWorld -> *(!Map ListId (IntMap (TaskId, ExprId)), !*IWorld)
@@ -659,7 +659,7 @@ tonicWrapTraversable` (parentFnModuleName, parentFnName) (appModName, appFnName)
           # (tr, iworld) = eval` event evalOpts taskTree iworld
           = case mctid of
               Just ctid
-                # iworld = evalInteract parentFnModuleName parentFnName nid tr ctid iworld
+                # iworld = evalInteract parentFnModuleName parentFnName wrappedFnName nid tr ctid iworld
                 = (tr, iworld)
               _ = (tr, iworld)
 
@@ -948,7 +948,7 @@ tonicDynamicBrowser rs
     where
     viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Just tid}})) = whileUnchanged (sdsFocus tid outputForTaskId) (\(_, x, _) -> x)
     viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Nothing}}))  = viewInformation (Title "Notice") [] "No data available for selected task. " @! ()
-    viewDetail (Just (Right (mn, tn, tid, argIdx))) = readParams mn tn tid >>= \params -> case getN params argIdx of
+    viewDetail (Just (Right (mn, tn, tid, argIdx))) = readParams mn tn tid >>~ \params -> case getN params argIdx of
                                                                                             Just (_, vi) -> vi
                                                                                             _            -> viewInformation (Title "Notice") [] "Argument value not found" @! ()
       where
