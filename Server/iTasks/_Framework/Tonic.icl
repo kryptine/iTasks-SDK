@@ -470,7 +470,6 @@ stepEval` childTaskId=:(TaskId ino tno) eval event evalOpts taskTree iworld
  * ModuleName and TaskName identify the blueprint, of which we need to
  * highlight nodes.
  */
-import StdDebug
 tonicWrapApp` :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId !ExprId (Task a) -> Task a | iTask a
 tonicWrapApp` _ _ wrapInfo _ _ t=:(Task eval)
   | isBind wrapInfo = t
@@ -497,9 +496,14 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ parentNid nid t=:(Tas
                                               # (parent_body, chng, iworld) = case muser of
                                                                                 Ok usr
                                                                                   # (parent_body, chng) = updateNode parentNid (\x -> case x of
+                                                                                                                                        TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [_, TLit descr] _ : as] assoc
+                                                                                                                                          | meid == Just parentNid = TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr +++ ": " +++ descr) : as] assoc
+                                                                                                                                          | otherwise              = x
                                                                                                                                         TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [_ : as] assoc
                                                                                                                                           | meid == Just parentNid = TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr) : as] assoc
                                                                                                                                           | otherwise              = x
+//["TFApp", "_Tuple2", [["TVar", ["Nothing"], "user2"], ["TLit", "\"View something\""]], [
+          //"TNoPrio"]]
                                                                                                                                         e = e
                                                                                                                                ) new_parent_instance.bpi_blueprint.tt_body
                                                                                   = (parent_body, chng, iworld)
