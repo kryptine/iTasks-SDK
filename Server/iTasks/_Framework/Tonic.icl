@@ -60,7 +60,7 @@ from Control.Applicative import class Applicative, instance Applicative Maybe
     , keep_finished_blueprints :: !Bool
     }
 
-:: WindowSettings
+:: DynamicWindowSettings
   = { show_filter     :: !Bool
     , show_taskviewer :: !Bool
     , show_settings   :: !Bool
@@ -106,16 +106,16 @@ instance TonicTopLevelBlueprint Task where
   tonicWrapArg d v = viewInformation d [] v @! ()
 
 instance TonicBlueprintPart Task where
-  tonicWrapApp parentInfo appInfo wrapInfo nid t = tonicWrapApp` parentInfo appInfo wrapInfo nid t
+  tonicWrapApp parentInfo appInfo wrapInfo parentNid nid t = tonicWrapApp` parentInfo appInfo wrapInfo parentNid nid t
   tonicWrapTraversable parentInfo appInfo wrapInfo nid f args = tonicWrapTraversable` parentInfo appInfo wrapInfo nid f args
 
 instance TonicBlueprintPart Maybe where
-  tonicWrapApp _ _ _ _ mb = mb
+  tonicWrapApp _ _ _ _ _ mb = mb
   tonicWrapTraversable _ _ _ _ f args = f args
 
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
                    DynamicView, AdditionalInfo, BlueprintQuery, UIAction,
-                   WindowSettings
+                   DynamicWindowSettings
 
 //-----------------------------------------------------------------------------
 // SHARES
@@ -226,8 +226,11 @@ readParams` mn tn taskId world
       _            -> ([], world)
 
 
-windowSettingShare :: RWShared () WindowSettings WindowSettings
-windowSettingShare = sdsFocus "windowSettingShare" (cachedJSONFileStore NS_TONIC_INSTANCES True True True (Just {show_filter = False, show_taskviewer = False, show_settings = False}))
+dynamicWindowSettingShare :: RWShared () DynamicWindowSettings DynamicWindowSettings
+dynamicWindowSettingShare
+  = sdsFocus "dynamicWindowSettingShare" (cachedJSONFileStore NS_TONIC_INSTANCES True True True (Just { show_filter     = False
+                                                                                               , show_taskviewer = False
+                                                                                               , show_settings   = False}))
 
 //-----------------------------------------------------------------------------
 // REST
@@ -406,8 +409,8 @@ getCurrentListId [traceTaskId : xs] iworld
       Ok currentListId -> (Just currentListId, iworld)
       _                -> getCurrentListId xs iworld
 
-tonicExtWrapApp :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId (m a) -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) tid mapp = tonicWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) tid mapp
+tonicExtWrapApp :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId !ExprId (m a) -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) parentNid nid mapp = tonicWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) parentNid nid mapp
 
 isSpecialBlueprintTask :: !(!String, !String) -> Bool
 isSpecialBlueprintTask info = isStep info || isBind info || isParallel info || isAssign info
@@ -467,11 +470,12 @@ stepEval` childTaskId=:(TaskId ino tno) eval event evalOpts taskTree iworld
  * ModuleName and TaskName identify the blueprint, of which we need to
  * highlight nodes.
  */
-tonicWrapApp` :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId (Task a) -> Task a | iTask a
-tonicWrapApp` _ _ wrapInfo _ t=:(Task eval)
+import StdDebug
+tonicWrapApp` :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId !ExprId (Task a) -> Task a | iTask a
+tonicWrapApp` _ _ wrapInfo _ _ t=:(Task eval)
   | isBind wrapInfo = t
   | isStep wrapInfo = Task (stepEval eval)
-tonicWrapApp` (parentModuleName, parentTaskName) appInfo=:(l, r) _ /* wrapInfo */ nid t=:(Task eval)
+tonicWrapApp` (parentModuleName, parentTaskName) appInfo _ parentNid nid t=:(Task eval)
   | isSpecialBlueprintTask appInfo || appInfo == ("", "") = return () >>~ \_ -> Task eval`
   | otherwise                                             = t
   where
@@ -482,24 +486,43 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo=:(l, r) _ /* wrapInfo *
           # (cct, iworld) = mkCompleteTrace childInstanceNo callTrace iworld
           = case firstParent rtMap cct of
               Ok parentBPRef=:{bpr_instance = Just parentBPInst}
-                # iworld              = updRTMap nid childTaskId cct parentBPRef parentBPInst iworld
-                # (tr, iworld)        = eval event evalOpts taskTree iworld
-                # iworld              = evalInteract parentModuleName parentTaskName nid tr childTaskId iworld
+                # iworld                = updRTMap nid childTaskId cct parentBPRef parentBPInst iworld
+                # (tr, iworld)          = eval event evalOpts taskTree iworld
+                # iworld                = evalInteract parentModuleName parentTaskName nid tr childTaskId iworld
                 # (mparent_bpr, iworld) = 'DSDS'.read (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld
                 # (mchild_bpr, iworld)  = 'DSDS'.read (sdsFocus childTaskId tonicInstances) iworld
-                # iworld               = case (mchild_bpr, mparent_bpr) of
-                                           (Ok child_bpr=:{bpr_instance = Just child_instance}, Ok parent_bpr=:{bpr_instance = Just new_parent_instance})
-                                             # childId     = case child_instance.bpi_taskId of (TaskId i t) = (i, t)
-                                             # (parent_body, chng) = updateNode nid (\x -> case x of
-                                                                                             TVar meid _ -> TMApp meid (Just childId) Nothing child_bpr.bpr_moduleName child_bpr.bpr_taskName [] TNoPrio
-                                                                                             e -> e
-                                                                                    ) new_parent_instance.bpi_blueprint.tt_body
-                                             = case chng of
-                                                 True
-                                                   # parent_bpr = {parent_bpr & bpr_instance = Just {new_parent_instance & bpi_blueprint = {new_parent_instance.bpi_blueprint & tt_body = parent_body}}}
-                                                   = snd ('DSDS'.write parent_bpr (sdsFocus new_parent_instance.bpi_taskId tonicInstances) iworld)
-                                                 _ = iworld
-                                           _ = iworld
+                # iworld                = case (isAssign appInfo, mparent_bpr) of
+                                            (True, Ok parent_bpr=:{bpr_instance = Just new_parent_instance})
+                                              # (muser, iworld)             = 'DSDS'.read (sdsFocus childInstanceNo taskInstanceUser) iworld
+                                              # (parent_body, chng, iworld) = case muser of
+                                                                                Ok usr
+                                                                                  # (parent_body, chng) = updateNode parentNid (\x -> case x of
+                                                                                                                                        TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [_ : as] assoc
+                                                                                                                                          | meid == Just parentNid = TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr) : as] assoc
+                                                                                                                                          | otherwise              = x
+                                                                                                                                        e = e
+                                                                                                                               ) new_parent_instance.bpi_blueprint.tt_body
+                                                                                  = (parent_body, chng, iworld)
+                                                                                _ = (new_parent_instance.bpi_blueprint.tt_body, False, iworld)
+                                              = case chng of
+                                                  True
+                                                    # parent_bpr = {parent_bpr & bpr_instance = Just {new_parent_instance & bpi_blueprint = {new_parent_instance.bpi_blueprint & tt_body = parent_body}}}
+                                                    = snd ('DSDS'.write parent_bpr (sdsFocus new_parent_instance.bpi_taskId tonicInstances) iworld)
+                                                  _ = iworld
+                                            _ = iworld
+                # iworld                = case (mchild_bpr, mparent_bpr) of
+                                            (Ok child_bpr=:{bpr_instance = Just child_instance}, Ok parent_bpr=:{bpr_instance = Just new_parent_instance})
+                                              # childId     = case child_instance.bpi_taskId of (TaskId i t) = (i, t)
+                                              # (parent_body, chng) = updateNode nid (\x -> case x of
+                                                                                              TVar meid _ -> TMApp meid (Just childId) Nothing child_bpr.bpr_moduleName child_bpr.bpr_taskName [] TNoPrio
+                                                                                              e -> e
+                                                                                     ) new_parent_instance.bpi_blueprint.tt_body
+                                              = case chng of
+                                                  True
+                                                    # parent_bpr = {parent_bpr & bpr_instance = Just {new_parent_instance & bpi_blueprint = {new_parent_instance.bpi_blueprint & tt_body = parent_body}}}
+                                                    = snd ('DSDS'.write parent_bpr (sdsFocus new_parent_instance.bpi_taskId tonicInstances) iworld)
+                                                  _ = iworld
+                                            _ = iworld
                 = (tr, iworld)
               _ = eval event evalOpts taskTree iworld
         _ = eval event evalOpts taskTree iworld
@@ -599,14 +622,14 @@ withSharedRT f world
       Ok rtMap -> f rtMap world
       _        -> world
 
-tonicExtWrapAppLam1 :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapAppLam1 (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) nid f = \x -> tonicWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) nid (f x)
+tonicExtWrapAppLam1 :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId !ExprId !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam1 (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) parentNid nid f = \x -> tonicWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) parentNid nid (f x)
 
-tonicExtWrapAppLam2 :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapAppLam2 (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) nid f = \x y -> tonicWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) nid (f x y)
+tonicExtWrapAppLam2 :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId !ExprId !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam2 (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) parentNid nid f = \x y -> tonicWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) parentNid nid (f x y)
 
-tonicExtWrapAppLam3 :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapAppLam3 (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) nid f = \x y z -> tonicWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) nid (f x y z)
+tonicExtWrapAppLam3 :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam3 (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) parentNid nid f = \x y z -> tonicWrapApp (parentFnModuleName, parentFnName) (appModName, appFnName) (wrappedFnModuleName, wrappedFnName) parentNid nid (f x y z)
 
 traverseWithIdx :: (Int a -> a) (f a) -> f a | Traversable f
 traverseWithIdx f xs = snd ('DT'.mapAccumL (\idx elm -> (idx + 1, f idx elm)) 0 xs)
@@ -913,7 +936,7 @@ enterQuery = enterInformation "Enter filter query" []
 tonicDynamicBrowser :: [TaskAppRenderer] -> Task ()
 tonicDynamicBrowser rs
   =            withShared [] (
-  \navstack -> (whileUnchanged windowSettingShare
+  \navstack -> (whileUnchanged dynamicWindowSettingShare
                   (\wsett -> allTasks [ windowIf wsett.show_filter filterQuery
                                       , windowIf wsett.show_taskviewer taskViewer
                                       , windowIf wsett.show_settings settingsViewer
@@ -937,24 +960,24 @@ tonicDynamicBrowser rs
         | otherwise = getN xs (n - 1)
     viewDetail _ = viewInformation (Title "Task viewer") [] "Select dynamic task" @! ()
 
-  settingsViewer = updateSharedInformation (Title "Display settings") [] dynamicDisplaySettings @! ()
+  settingsViewer
+    =   updateSharedInformation (Title "Settings") [] dynamicDisplaySettings
+    >>* [OnAction (Action "Clear old (> 1h) data" []) (always (clearOldData >>| settingsViewer))]
+    where
+    clearOldData = return ()
 
   windowIf True t = t <<@ InWindow
   windowIf _    _ = return ()
 
-doOrClose :: (Task a) -> Task (Maybe a) | iTask a
-doOrClose task = ((task @ Just) -||- chooseAction [(ActionClose,Nothing)]) >>- return
-
 tonicDynamicBrowser` :: ![TaskAppRenderer] !(Shared NavStack) -> Task ()
 tonicDynamicBrowser` rs navstack =
-  (((activeBlueprintInstances <<@ ArrangeWithSideBar 0 TopSide 175 True) -&&- blueprintViewer)
-       >>* [ OnAction (Action "/Filter" [ActionIcon "find", ActionKey (ctrl KEY_F)]) (always (upd (\wsett -> {wsett & show_filter = not wsett.show_filter}) windowSettingShare >>| tonicDynamicBrowser` rs navstack))
-           , OnAction (Action "/Task viewer" [ActionIcon "zoom", ActionKey (ctrl KEY_O)]) (always (upd (\wsett -> {wsett & show_taskviewer = not wsett.show_taskviewer}) windowSettingShare >>| tonicDynamicBrowser` rs navstack))
-           , OnAction (Action "/Settings" [ActionIcon "cog", ActionKey (ctrl KEY_F2)]) (always (upd (\wsett -> {wsett & show_settings = not wsett.show_settings}) windowSettingShare >>| tonicDynamicBrowser` rs navstack))
-           ]
-       ) <<@ FullScreen @! ()
+  (activeBlueprintInstances -&&- blueprintViewer)
+  >>* [ OnAction (Action "/Filter"      [ActionIcon "find", ActionKey (ctrl KEY_F)])  (always (upd (\wsett -> {wsett & show_filter = not wsett.show_filter}) dynamicWindowSettingShare >>| tonicDynamicBrowser` rs navstack))
+      , OnAction (Action "/Task viewer" [ActionIcon "zoom", ActionKey (ctrl KEY_O)])  (always (upd (\wsett -> {wsett & show_taskviewer = not wsett.show_taskviewer}) dynamicWindowSettingShare >>| tonicDynamicBrowser` rs navstack))
+      , OnAction (Action "/Settings"    [ActionIcon "cog" , ActionKey (ctrl KEY_F2)]) (always (upd (\wsett -> {wsett & show_settings = not wsett.show_settings}) dynamicWindowSettingShare >>| tonicDynamicBrowser` rs navstack))
+      ]
   where
-  activeBlueprintInstances = editSharedChoiceWithSharedAs (Title "Active blueprint instances") [ChooseWith (ChooseFromGrid customView)] (mapRead filterTasks (tonicSharedRT |+| queryShare)) setTaskId selectedBlueprint
+  activeBlueprintInstances = editSharedChoiceWithSharedAs (Title "Active blueprint instances") [ChooseWith (ChooseFromGrid customView)] (mapRead filterTasks (tonicSharedRT |+| queryShare)) setTaskId selectedBlueprint <<@ ArrangeWithSideBar 0 TopSide 175 True
     where
     setTaskId x = { click_origin_mbbpident  = Nothing
                   , click_origin_mbnodeId   = Nothing
