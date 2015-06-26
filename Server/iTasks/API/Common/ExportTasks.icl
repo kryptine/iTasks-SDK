@@ -1,6 +1,6 @@
 implementation module iTasks.API.Common.ExportTasks
 
-import StdBool, StdList, System.FilePath, Text,Text.CSV, System.File, Data.Map, Data.Error, Text.JSON
+import StdBool, StdList, System.FilePath, Text,Text.CSV, System.File, Data.Error, Text.JSON
 import iTasks._Framework.IWorld, iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskStore
 
 exportDocument :: !FilePath !Document -> Task Document
