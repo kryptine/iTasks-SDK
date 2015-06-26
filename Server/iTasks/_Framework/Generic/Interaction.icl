@@ -1,8 +1,10 @@
 implementation module iTasks._Framework.Generic.Interaction
 
+from Data.Map import :: Map
+import qualified Data.Map as DM
 from StdFunc import const
 import StdList, StdBool, StdTuple, StdMisc
-import Data.Maybe, Data.Either, Data.Error, Data.Map, Data.Generic, Data.Functor, Data.Tuple
+import Data.Maybe, Data.Either, Data.Error, Data.Generic, Data.Functor, Data.Tuple
 import Text, Text.JSON
 import iTasks._Framework.IWorld
 import iTasks._Framework.UIDefinition
@@ -39,7 +41,7 @@ gEditor{|RECORD of {grd_arity}|} fx _ _ mx _ _ dp (RECORD x,mask,ver) meta vst=:
 	# viz = if (optional && not disabled) (OptionalEditor [checkbox True:controlsOf fieldsViz]) fieldsViz	
 	= (viz,vst)
 where
-	checkbox checked = (UIEditCheckbox defaultFSizeOpts {UIEditOpts|taskId = taskId, editorId = editorId dp, value = Just (JSONBool checked)},newMap)
+	checkbox checked = (UIEditCheckbox defaultFSizeOpts {UIEditOpts|taskId = taskId, editorId = editorId dp, value = Just (JSONBool checked)},'DM'.newMap)
 
 gEditor{|FIELD of {gfd_name}|} fx _ _ mx _ _ dp (FIELD x,mask,ver) _ vst=:{VSt|disabled,layout}
 	# (vizBody,vst)		= fx dp (x,mask,ver) (mx x) vst
@@ -60,7 +62,7 @@ gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ mx _ _ dp vv=:(OBJECT x,
             Untouched   = ([],[])
             Blanked     = ([],[])
             _           = (controlsOf items,[selectedConsIndex])
-		# content	= layout.layoutSubEditor {UIForm|attributes = newMap, controls = controls,size = defaultSizeOpts}
+		# content	= layout.layoutSubEditor {UIForm|attributes = 'DM'.newMap, controls = controls,size = defaultSizeOpts}
 		= (NormalEditor [(UIDropdown defaultHSizeOpts
 								{UIChoiceOpts
 								| taskId = taskId
@@ -71,18 +73,18 @@ gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ mx _ _ dp vv=:(OBJECT x,
 						: content
 						]
 		  			,{vst & selectedConsIndex = oldSelectedConsIndex})
-	//ADT with one constructor or static render: put content into container, if empty show cons name
+	//ADT with one constructor or static render: 'DM'.put content into container, if empty show cons name
 	| otherwise
 		# (vis,vst) = fx dp (x,mask,ver) meta vst
 		# vis = case vis of
 			HiddenEditor 	= HiddenEditor
 			NormalEditor []
-                = NormalEditor [(stringDisplay (if (isTouched mask) (gtd_conses !! vst.selectedConsIndex).gcd_name ""),newMap)]
-				//= if (isTouched mask) (NormalEditor [((stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name)),newMap)]) (NormalEditor [])			
+                = NormalEditor [(stringDisplay (if (isTouched mask) (gtd_conses !! vst.selectedConsIndex).gcd_name ""),'DM'.newMap)]
+				//= if (isTouched mask) (NormalEditor [((stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name)),'DM'.newMap)]) (NormalEditor [])			
 			NormalEditor items
-				= NormalEditor (layout.layoutSubEditor {UIForm|attributes = newMap, controls = items, size = defaultSizeOpts})
+				= NormalEditor (layout.layoutSubEditor {UIForm|attributes = 'DM'.newMap, controls = items, size = defaultSizeOpts})
 			OptionalEditor items
-				= OptionalEditor (layout.layoutSubEditor {UIForm|attributes = newMap, controls = items, size = defaultSizeOpts})
+				= OptionalEditor (layout.layoutSubEditor {UIForm|attributes = 'DM'.newMap, controls = items, size = defaultSizeOpts})
 		= (vis,{vst & selectedConsIndex = oldSelectedConsIndex})
 
 gEditor{|CONS of {gcd_index,gcd_arity}|} fx _ _ mx _ _ dp (CONS x,mask,ver) meta vst=:{VSt|taskId,optional,disabled}
@@ -120,37 +122,37 @@ where
 		
 gEditor{|Int|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled	
-		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString (checkMask mask val)},newMap)],vst)
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString (checkMask mask val)},'DM'.newMap)],vst)
 	| otherwise
         = (NormalEditor [(UIEditInt defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes vv meta)],vst)
 
 gEditor{|Real|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled	
-		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString (checkMask mask val)},newMap)],vst)
+		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString (checkMask mask val)},'DM'.newMap)],vst)
 	| otherwise
         = (NormalEditor [(UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes vv meta)],vst)
 
 gEditor{|Char|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled	
-    	= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString (checkMask mask val)},newMap)],vst)
+    	= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString (checkMask mask val)},'DM'.newMap)],vst)
 	| otherwise
         = (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes vv meta)],vst)
 
 gEditor{|String|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
 	| disabled
-    	= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value= checkMask mask val},newMap)],vst)
+    	= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value= checkMask mask val},'DM'.newMap)],vst)
 	| otherwise
         = (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes vv meta)],vst)
 
 gEditor{|Bool|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled} //Bools are shown as optional by default, because a mandatory bool makes little sense
 	| disabled		
-		= (OptionalEditor [(UIViewCheckbox defaultFSizeOpts {UIViewOpts|value =checkMask mask val},newMap)],vst)
+		= (OptionalEditor [(UIViewCheckbox defaultFSizeOpts {UIViewOpts|value =checkMask mask val},'DM'.newMap)],vst)
 	| otherwise	
 		= (OptionalEditor [(UIEditCheckbox defaultFSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes vv meta)],vst)
 
 gEditor{|[]|} fx _ _ mx _ _ dp (val,mask,ver) meta vst=:{VSt|taskId,disabled,layout}
 	# (items,vst)	= listControl dp val (subMasks (length val) mask) (subVerifications (length val) ver) vst
-	= (NormalEditor [(listContainer items,newMap)],vst)
+	= (NormalEditor [(listContainer items,'DM'.newMap)],vst)
 where
 	listControl dp items masks vers vst=:{VSt|optional,disabled}
 		# (itemsVis,vst)	= childVisualizations fx mx dp items masks vers vst
@@ -163,8 +165,8 @@ where
 			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [addItemControl numItems],vst)	
 						
 	listItemControl disabled numItems idx item
-		//# controls	= map fst (layout.layoutSubEditor {UIForm| attributes = newMap, controls = controlsOf item, size = defaultSizeOpts})
-		# controls	= decorateControls (layout.layoutSubEditor {UIForm| attributes = newMap, controls = controlsOf item, size = defaultSizeOpts})
+		//# controls	= map fst (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = controlsOf item, size = defaultSizeOpts})
+		# controls	= decorateControls (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = controlsOf item, size = defaultSizeOpts})
 		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False}
@@ -172,7 +174,7 @@ where
 		= setHeight WrapSize (setDirection Horizontal (defaultContainer (if disabled controls (controls ++ buttons))))
 /*
 	newItemControl item
-		# controls	= map fst (layout.layoutSubEditor (newMap,controlsOf item))
+		# controls	= map fst (layout.layoutSubEditor ('DM'.newMap,controlsOf item))
 		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=True}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= True}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=True}
@@ -192,7 +194,7 @@ where
 
 gEditor{|EditableList|} fx _ _ mx _ _ dp ({EditableList|items,add,remove,reorder,count},mask,ver) meta vst=:{VSt|taskId,disabled,layout}
 	# (controls,vst) = listControls dp items (subMasks (length items) mask) (subVerifications (length items) ver) vst
-	= (NormalEditor [(listContainer controls,newMap)],vst)
+	= (NormalEditor [(listContainer controls,'DM'.newMap)],vst)
 where
     enableAdd = case add of ELNoAdd = False ; _ = True;
 
@@ -205,7 +207,7 @@ where
 			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
 						
 	listItemControl disabled numItems idx item
-		# controls	= map (setWidth FlexSize) (decorateControls (layout.layoutSubEditor {UIForm| attributes = newMap, controls = controlsOf item, size = defaultSizeOpts}))
+		# controls	= map (setWidth FlexSize) (decorateControls (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = controlsOf item, size = defaultSizeOpts}))
 		# buttons	= (if reorder
                       [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
@@ -250,7 +252,7 @@ where
 	
 gEditor{|Void|} _ _ _ vst = (HiddenEditor,vst)
 gEditor{|HtmlTag|}	dp (val,mask,ver) meta vst
-	= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just val},newMap)], vst)
+	= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just val},'DM'.newMap)], vst)
 gEditor{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ vst = (HiddenEditor,vst)
 
 derive gEditor JSONNode, Either, MaybeError, (,,), (,,,), Timestamp, Map //TODO Make specializations for (,,) and (,,,)
@@ -546,18 +548,18 @@ editorAttributes (val,mask,ver) meta
         [{EditMeta|hint}]   = hint
         _                   = Nothing
     # attr = case meta of
-        [{EditMeta|unit=Just (Left unit)}:_]    = put PREFIX_ATTRIBUTE unit newMap
-        [{EditMeta|unit=Just (Right unit)}:_]   = put POSTFIX_ATTRIBUTE unit newMap
-        _                                       = newMap
+        [{EditMeta|unit=Just (Left unit)}:_]    = 'DM'.put PREFIX_ATTRIBUTE unit 'DM'.newMap
+        [{EditMeta|unit=Just (Right unit)}:_]   = 'DM'.put POSTFIX_ATTRIBUTE unit 'DM'.newMap
+        _                                       = 'DM'.newMap
     | isTouched mask = case ver of
-        (CorrectValue msg)		= put VALID_ATTRIBUTE (fromMaybe "This value is ok" msg) attr
-        (WarningValue msg)		= put WARNING_ATTRIBUTE msg attr
-        (IncorrectValue msg)	= put ERROR_ATTRIBUTE msg attr
-        (UnparsableValue)		= put ERROR_ATTRIBUTE "This value not in the required format" attr
-        (MissingValue)			= put ERROR_ATTRIBUTE "This value is required" attr
+        (CorrectValue msg)		= 'DM'.put VALID_ATTRIBUTE (fromMaybe "This value is ok" msg) attr
+        (WarningValue msg)		= 'DM'.put WARNING_ATTRIBUTE msg attr
+        (IncorrectValue msg)	= 'DM'.put ERROR_ATTRIBUTE msg attr
+        (UnparsableValue)		= 'DM'.put ERROR_ATTRIBUTE "This value not in the required format" attr
+        (MissingValue)			= 'DM'.put ERROR_ATTRIBUTE "This value is required" attr
         _						= attr
     | otherwise
-        = maybe attr (\h -> put HINT_ATTRIBUTE h attr) hint
+        = maybe attr (\h -> 'DM'.put HINT_ATTRIBUTE h attr) hint
 
 controlsOf :: !VisualizationResult -> [(UIControl,UIAttributes)]
 controlsOf (NormalEditor controls)		= controls
@@ -568,7 +570,7 @@ addLabel :: !Bool !String !UIAttributes -> UIAttributes
 addLabel optional label attr = putCond LABEL_ATTRIBUTE (format optional label) attr
 where
 	format optional label = camelCaseToWords label +++ if optional "" "*" +++ ":" //TODO: Move to layout
-    putCond k v m = maybe (put k v m) (const m) (get k m)
+    putCond k v m = maybe ('DM'.put k v m) (const m) ('DM'.get k m)
 
 childVisualizations :: !(DataPath (VerifiedValue a) [EditMeta] -> .(*VSt -> *(!VisualizationResult,*VSt))) !(a -> [EditMeta]) !DataPath ![a] ![InteractionMask] ![Verification] !*VSt -> *(![VisualizationResult],!*VSt)
 childVisualizations fx mx dp children masks vers vst = childVisualizations` 0 children masks vers [] vst

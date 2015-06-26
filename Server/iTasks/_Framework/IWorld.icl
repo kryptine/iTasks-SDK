@@ -15,7 +15,7 @@ from StdFunc import const
 from Data.List import splitWith
 from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SChannel_, :: TCP_DuplexChannel, :: DuplexChannel, :: IPAddress, :: ByteSeq
 
-import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.JSON, Data.Error, Data.Map
+import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.JSON, Data.Error
 import iTasks._Framework.TaskStore, iTasks._Framework.Util
 import iTasks._Framework.Serialization
 import iTasks._Framework.SDS

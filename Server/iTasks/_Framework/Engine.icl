@@ -2,7 +2,9 @@ implementation module iTasks._Framework.Engine
 
 import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool, StdEnum
 from StdFunc import o, seqList, ::St, const
-import Data.Map, Data.Error, Data.Func, Data.Tuple, Math.Random, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
+from Data.Map import :: Map
+import qualified Data.Map as DM
+import Data.Error, Data.Func, Data.Tuple, Math.Random, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil
 import iTasks._Framework.IWorld, iTasks._Framework.WebService, iTasks._Framework.SDSService
@@ -241,18 +243,18 @@ initIWorld mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
         ,sessionInstance        = Nothing
         ,attachmentChain        = []
 	    ,nextTaskNo			    = 0
-        ,eventRoute			    = newMap
-        ,editletDiffs           = newMap
+        ,eventRoute			    = 'DM'.newMap
+        ,editletDiffs           = 'DM'.newMap
         }
       ,sdsNotifyRequests    = []
-      ,memoryShares         = newMap
-      ,cachedShares         = newMap
-	  ,exposedShares		= newMap
-	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, newMap)
+      ,memoryShares         = 'DM'.newMap
+      ,cachedShares         = 'DM'.newMap
+	  ,exposedShares		= 'DM'.newMap
+	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, 'DM'.newMap)
 	  ,refreshQueue			= []
 	  ,shutdown				= False
       ,ioTasks              = {done = [], todo = []}
-      ,ioStates             = newMap
+      ,ioStates             = 'DM'.newMap
 	  ,world				= world
       ,resources            = Nothing
       ,random               = genRandInt seed

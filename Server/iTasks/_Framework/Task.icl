@@ -2,7 +2,9 @@ implementation module iTasks._Framework.Task
 
 from StdFunc import const, id
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdBool, StdMisc
-import Text.HTML, Internet.HTTP, Data.Map, Data.Error, Text.JSON
+from Data.Map import :: Map
+import qualified Data.Map as DM
+import Text.HTML, Internet.HTTP, Data.Error, Text.JSON
 import iTasks._Framework.IWorld, iTasks._Framework.UIDefinition, iTasks._Framework.Util
 import iTasks.API.Core.Types
 import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction
@@ -31,7 +33,7 @@ gUpdate{|Task|} _ _ _ _ target upd val iworld = basicUpdate (\Void t -> Just t) 
 gVerify{|Task|} _ _ mv = alwaysValid mv
 
 gText{|Task|} _ _ _ = ["<Task>"]
-gEditor{|Task|} _ _ _ _ _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>",newMap)],vst)
+gEditor{|Task|} _ _ _ _ _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>", 'DM'.newMap)],vst)
 
 gEditMeta{|Task|} _ _ 		= [{label=Just "Task",hint=Nothing,unit=Nothing}]
 gEq{|Task|} _ _ _			= True // tasks are always equal??

@@ -2,7 +2,9 @@ implementation module iTasks._Framework.Store
 
 import StdEnv
 import Data.Void
-import Data.Maybe, Data.Map, Data.Functor, Data.Error
+from Data.Map import :: Map
+import qualified Data.Map as DM
+import Data.Maybe, Data.Functor, Data.Error
 import System.File, System.Directory, System.OSError, System.FilePath
 import Text, Text.JSON
 
@@ -39,14 +41,14 @@ memoryStore :: !StoreNamespace !(Maybe a) -> RWShared StoreName a a | TC a
 memoryStore namespace defaultV = createReadWriteSDS namespace "memoryStore" read write
 where
     read key iworld=:{IWorld|memoryShares}
-        = case get (namespace,key) memoryShares of
+        = case 'DM'.get (namespace,key) memoryShares of
             (Just (val :: a^))  = (Ok val,iworld)
             (Just _)            = (Error (exception StoreReadTypeError), iworld)
             _                   = case defaultV of
                 Nothing     = (Error (exception StoreReadMissingError), iworld)
-                Just val    = (Ok val, {IWorld|iworld & memoryShares = put (namespace,key) (dynamic val :: a^) memoryShares})
+                Just val    = (Ok val, {IWorld|iworld & memoryShares = 'DM'.put (namespace,key) (dynamic val :: a^) memoryShares})
 	write key val iworld=:{IWorld|memoryShares}
-        = (Ok ((==) key),{IWorld|iworld & memoryShares = put (namespace,key) (dynamic val :: a^) memoryShares})
+        = (Ok ((==) key),{IWorld|iworld & memoryShares = 'DM'.put (namespace,key) (dynamic val :: a^) memoryShares})
 
 //'Core' file storage SDS
 fullFileStore :: !StoreNamespace !Bool !(Maybe {#Char}) -> RWShared StoreName (!BuildID,!{#Char}) {#Char}
@@ -112,7 +114,7 @@ where
             # (mbVal,iworld) = jsLoadValue namespace key iworld
 	        = (maybe (Error (exception StoreReadMissingError)) Ok mbVal, iworld)
         //Try cache first
-        # mbResult = case get (namespace,key) cachedShares of
+        # mbResult = case 'DM'.get (namespace,key) cachedShares of
             (Just (val :: a^,_,_))  = Just (Ok val)
             (Just _)                = Just (Error (exception StoreReadTypeError))
             Nothing                 = Nothing
@@ -129,14 +131,14 @@ where
                     = case fromJSON json of
                         Just value
                             //Keep in cache
-                            # iworld = {iworld & cachedShares = put (namespace,key) (dynamic value,keepBetweenEvals,Nothing) cachedShares}
+                            # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic value,keepBetweenEvals,Nothing) cachedShares}
                             = (Ok value,iworld)
                         Nothing = (Error (exception StoreReadTypeError),iworld)
             (Error StoreReadMissingError,Just def)
-                # iworld = {iworld & cachedShares = put (namespace,key) (dynamic def, keepBetweenEvals,Just (DeferredJSON def)) cachedShares}
+                # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic def, keepBetweenEvals,Just (DeferredJSON def)) cachedShares}
                 = (Ok def,iworld)
             (Error e,Just def) | resetOnError
-                # iworld = {iworld & cachedShares = put (namespace,key) (dynamic def, keepBetweenEvals,Just (DeferredJSON def)) cachedShares}
+                # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic def, keepBetweenEvals,Just (DeferredJSON def)) cachedShares}
                 = (Ok def,iworld)
             (Error e,Nothing) | resetOnError
                 # iworld = deleteValue namespace key iworld
@@ -149,15 +151,15 @@ where
 	        = (Ok ((==) key),jsStoreValue namespace key value iworld)
         | otherwise
             //Write to cache
-            # iworld = {iworld & cachedShares = put (namespace,key) (dynamic value, keepBetweenEvals,Just (DeferredJSON value)) cachedShares}
+            # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic value, keepBetweenEvals,Just (DeferredJSON value)) cachedShares}
 	        = (Ok ((==) key),iworld)
 
 flushShareCache :: *IWorld -> *IWorld
 flushShareCache iworld=:{IWorld|onClient,cachedShares}
     | onClient = iworld
     | otherwise
-        # (shares,iworld) = foldr flushShare ([],iworld) (toList cachedShares)
-        = {iworld & cachedShares = fromList shares}
+        # (shares,iworld) = foldr flushShare ([],iworld) ('DM'.toList cachedShares)
+        = {iworld & cachedShares = 'DM'.fromList shares}
 where
     flushShare cached=:((namespace,key),(val,keep,mbDeferredWrite)) (shares,iworld)
         # iworld = case mbDeferredWrite of

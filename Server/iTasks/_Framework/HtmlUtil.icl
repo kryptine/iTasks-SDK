@@ -1,6 +1,8 @@
 implementation module iTasks._Framework.HtmlUtil
 
-import Text.HTML, Text.JSON, Text, Internet.HTTP, Data.Map, System.OS
+from Data.Map import :: Map
+import qualified Data.Map as DM
+import Text.HTML, Text.JSON, Text, Internet.HTTP, System.OS
 import StdList, StdBool
 
 embeddedStyle :: HtmlTag
@@ -40,14 +42,14 @@ notFoundResponse req
 
 paramValue :: !String !HTTPRequest -> String
 paramValue name req
-	= case get name req.arg_post of
+	= case 'DM'.get name req.arg_post of
 		Just val	= val
-		Nothing		= case get name req.arg_get of
+		Nothing		= case 'DM'.get name req.arg_get of
 			Just val	= val
 			Nothing		= ""
 
 hasParam :: !String !HTTPRequest -> Bool
-hasParam name req = isJust (get name req.arg_post) || isJust (get name req.arg_get)
+hasParam name req = isJust ('DM'.get name req.arg_post) || isJust ('DM'.get name req.arg_get)
 
 nl2br :: !String -> HtmlTag
 nl2br str = html [[Text line,BrTag []] \\ line <- split OS_NEWLINE str]

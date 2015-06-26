@@ -2,7 +2,9 @@ implementation module iTasks._Framework.SDS
 
 from StdFunc import const
 import StdString, StdTuple, StdMisc, StdList, StdBool
-import Data.Error, Data.Func, Data.Tuple, Data.Map, System.Time, Text, Text.JSON
+from Data.Map import :: Map
+import qualified Data.Map as DM
+import Data.Error, Data.Func, Data.Tuple, System.Time, Text, Text.JSON
 import qualified Data.Set as Set
 import iTasks._Framework.IWorld
 import iTasks._Framework.Task, iTasks._Framework.TaskStore, iTasks._Framework.TaskEval
@@ -309,10 +311,10 @@ where
 	keep (TaskId no _) nos = not (isMember no nos)
 
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
-listAllSDSRegistrations iworld=:{IWorld|sdsNotifyRequests} = (toList (foldr addReg newMap sdsNotifyRequests),iworld)
+listAllSDSRegistrations iworld=:{IWorld|sdsNotifyRequests} = ('DM'.toList (foldr addReg 'DM'.newMap sdsNotifyRequests),iworld)
 where
     addReg {SDSNotifyRequest|reqTaskId=reqTaskId=:(TaskId taskInstance _),cmpSDSId} list
-        = put taskInstance [(reqTaskId,cmpSDSId):fromMaybe [] (get taskInstance list)] list
+        = 'DM'.put taskInstance [(reqTaskId,cmpSDSId):fromMaybe [] ('DM'.get taskInstance list)] list
 
 formatSDSRegistrationsList :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 formatSDSRegistrationsList list

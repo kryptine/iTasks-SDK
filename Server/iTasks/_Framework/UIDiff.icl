@@ -1,7 +1,9 @@
 implementation module iTasks._Framework.UIDiff
 
 import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple, sapldebug
-import Text, Text.JSON, Data.Map
+from Data.Map import :: Map
+import qualified Data.Map as DM
+import Text, Text.JSON
 import iTasks._Framework.Util, iTasks._Framework.UIDefinition
 from iTasks._Framework.Task import :: Event(..), :: EventNo
 
@@ -35,7 +37,7 @@ diffUIDefinitions {UIDef|content=UIFinal (UIViewport iOpts1 opts1),windows=w1} {
     ++  diffMenus [] event editletDiffs opts1.UIViewportOpts.menu opts2.UIViewportOpts.menu
     , removeEditletDiffs (findEditletsInViewport vp2 ++ findEditletsInWindows w2 []) editletDiffs)
 
-removeEditletDiffs removeIds editletDiffs = fromList [(editletId,(ver,value,opts,if (isMember editletId removeIds) [] diffs)) \\ (editletId,(ver,value,opts,diffs)) <- toList editletDiffs]
+removeEditletDiffs removeIds editletDiffs = 'DM'.fromList [(editletId,(ver,value,opts,if (isMember editletId removeIds) [] diffs)) \\ (editletId,(ver,value,opts,diffs)) <- 'DM'.toList editletDiffs]
 
 //Compare controls
 diffControls :: !UIPath !Event !UIEditletDiffs !UIControl !UIControl -> DiffResult
@@ -146,7 +148,7 @@ diffEditletOpts path editletDiffs opts1 opts2
 	//Check if we have a local diff function for this editor...
     |    opts1.UIEditletOpts.taskId   == opts2.UIEditletOpts.taskId
       && opts1.UIEditletOpts.editorId == opts2.UIEditletOpts.editorId
-        = case get (opts2.UIEditletOpts.taskId,opts2.UIEditletOpts.editorId) editletDiffs of
+        = case 'DM'.get (opts2.UIEditletOpts.taskId,opts2.UIEditletOpts.editorId) editletDiffs of
             Just (_,_,_,[])      = DiffPossible []
             Just (ver,_,_,diffs) = DiffPossible [UIUpdate path (map (toUpdFunc ver) diffs)]
             _                    = DiffImpossible
