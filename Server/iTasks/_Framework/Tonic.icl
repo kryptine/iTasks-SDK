@@ -578,16 +578,14 @@ setActiveNodes {bpi_taskId = parentTaskId, bpi_activeNodes = parentActiveNodes} 
             Ok parentCallTrace
               # (parentCtx, iworld) = getParentContext parentTaskId currentListId parentCallTrace iworld
               # activeTasks         = 'DM'.del parentCtx parentActiveNodes
-              # activeTasks         = 'DM'.filterWithKey (\k _ -> k >= currentListId) activeTasks
+              # activeTasks         = 'DM'.filterWithKey (\k _ -> k >= parentCtx) activeTasks
               # taskListFilter      = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
-              # (mtl, iworld)       = 'DSDS'.read (sdsFocus (currentListId, taskListFilter) taskInstanceParallelTaskList) iworld
-              = case mtl of
-                  Ok tl
-                    = case getIndex cct tl of
+              # (mTaskList, iworld) = 'DSDS'.read (sdsFocus (currentListId, taskListFilter) taskInstanceParallelTaskList) iworld
+              = case mTaskList of
+                  Ok taskList
+                    = case getTaskListIndex cct taskList of
                         Just index
-                          # activeSubTasks = case 'DM'.get currentListId activeTasks of
-                                               Just activeSubTasks -> activeSubTasks
-                                               _                   -> 'DIS'.newMap
+                          # activeSubTasks = fromMaybe 'DIS'.newMap ('DM'.get currentListId activeTasks)
                           # activeSubTasks = 'DIS'.put index (childTaskId, nid) activeSubTasks
                           = ('DM'.put currentListId activeSubTasks activeTasks, iworld)
                         _ = (defVal currentListId, iworld)
@@ -598,12 +596,12 @@ setActiveNodes {bpi_taskId = parentTaskId, bpi_activeNodes = parentActiveNodes} 
   defVal :: !TaskId -> Map ListId (IntMap (!TaskId, !ExprId))
   defVal tid = 'DM'.singleton tid ('DIS'.singleton 0 (childTaskId, nid))
 
-  getIndex :: !Calltrace ![ParallelTaskState] -> Maybe Int
-  getIndex [] _ = Nothing
-  getIndex [ct : callTrace] ss
+  getTaskListIndex :: !Calltrace ![ParallelTaskState] -> Maybe Int
+  getTaskListIndex [] _ = Nothing
+  getTaskListIndex [ct : callTrace] ss
     = case [index \\ {ParallelTaskState | taskId, index} <- ss | ct == taskId] of
         [idx : _] -> Just idx
-        _         -> getIndex callTrace ss
+        _         -> getTaskListIndex callTrace ss
 
 withSharedRT :: (TonicRTMap *IWorld -> *IWorld) *IWorld -> *IWorld
 withSharedRT f world
