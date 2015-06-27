@@ -350,7 +350,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
     # tree              = fromMaybe (TCInit taskId taskTime) ('DM'.get taskId taskTrees)
     //Evaluate or destroy branch
     | change === Just RemoveParallelTask
-        # (result,iworld) = evala (RefreshEvent Nothing) {TaskEvalOpts|useLayout=Nothing,modLayout=Nothing,noUI=True,callTrace=[]} (TCDestroy tree) iworld
+        # (result,iworld) = evala (RefreshEvent Nothing) {mkEvalOpts & noUI = True} (TCDestroy tree) iworld
         //TODO: remove the task evaluation function
         = evalParallelTasks listId taskTrees event evalOpts conts [result:completed] todo iworld
     | otherwise
@@ -412,7 +412,8 @@ where
                 | mbTask =:(Error _) = ([ExceptionResult (fromError mbTask):rs],iworld) //TODO figure out what to do with this exception
                 # (Task evala)       = fromOk mbTask
                 //TODO: remove the task evaluation function
-                # (r,iworld)         = evala (RefreshEvent Nothing) {TaskEvalOpts|useLayout=Nothing,modLayout=Nothing,noUI=True,callTrace=[]} (TCDestroy tree) iworld
+                # evalOpts           = {mkEvalOpts & noUI = True}
+                # (r,iworld)         = evala (RefreshEvent Nothing) evalOpts (TCDestroy tree) iworld
                 # (rs,iworld)        = destroyRemoved removed rs iworld
                 = ([r:rs],iworld)
             | otherwise

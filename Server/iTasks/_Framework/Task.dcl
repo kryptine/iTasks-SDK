@@ -42,7 +42,16 @@ derive gEq				Task
 	, modLayout			:: Maybe (LayoutRules -> LayoutRules)
     , noUI              :: Bool
     , callTrace         :: [Int]
+    , tonicOpts         :: TonicOpts
 	}
+
+:: TonicOpts =
+  { inAssignNode      :: Maybe Int
+  , currBlueprintName :: (String, String)
+  , currContextName   :: (String, String)
+  }
+
+mkEvalOpts :: TaskEvalOpts
 
 //Additional information passed up from the tree when evaluating a task
 :: TaskEvalInfo =

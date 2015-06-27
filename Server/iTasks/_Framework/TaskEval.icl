@@ -49,7 +49,6 @@ where
         (True,_)                                  = (Just instanceNo,[])
         (_,[])                                    = (Nothing,[])
         (_,attachment=:[TaskId sessionNo _:_])    = (Just sessionNo,attachment)
-    # evalOpts					= {TaskEvalOpts|useLayout=Nothing,modLayout=Nothing,noUI=False,callTrace=[]}
 	//Update current process id & eval stack in iworld
 	# taskId					= TaskId instanceNo 0
 	//# eventRoute				= determineEventRoute event lists
@@ -64,7 +63,7 @@ where
                                         , editletDiffs = current.editletDiffs //FIXME: MEMLEAK//'DM'.newMap
 										}}
 	//Apply task's eval function and take updated nextTaskId from iworld
-	# (newResult,iworld=:{current})	= eval event evalOpts tree iworld
+	# (newResult,iworld=:{current})	= eval event mkEvalOpts tree iworld
     //Finalize task UI
     # newResult                 = finalizeUI session newResult
     # tree                      = case newResult of

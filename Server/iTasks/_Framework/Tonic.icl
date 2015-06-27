@@ -459,10 +459,9 @@ stepEval` childTaskId=:(TaskId ino tno) eval event evalOpts taskTree iworld
  * highlight nodes.
  */
 tonicWrapApp` :: !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !(!ModuleName, !TaskName) !ExprId !ExprId (Task a) -> Task a | iTask a
-tonicWrapApp` _ _ wrapInfo _ _ t=:(Task eval)
+tonicWrapApp` (parentModuleName, parentTaskName) appInfo wrapInfo=:(wrapModuleName, wrapTaskName) parentNid nid t=:(Task eval)
   | isBind wrapInfo = t
   | isStep wrapInfo = Task (stepEval eval)
-tonicWrapApp` (parentModuleName, parentTaskName) appInfo (wrapModuleName, wrapTaskName) parentNid nid t=:(Task eval)
   | isSpecialBlueprintTask appInfo || appInfo == ("", "") = return () >>~ \_ -> Task eval`
   | otherwise                                             = t
   where
@@ -478,9 +477,11 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo (wrapModuleName, wrapTa
                 # iworld                = evalInteract parentModuleName parentTaskName wrapTaskName nid tr childTaskId iworld
                 # (mparent_bpr, iworld) = 'DSDS'.read (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld
                 # (mchild_bpr, iworld)  = 'DSDS'.read (sdsFocus childTaskId tonicInstances) iworld
+                // TODO isAssign appInfo is probably wrong (in the example it is probably >>|). We should instead just maintain an inherited attribute that indicates whether we are in an assign. 
+                // Alternatively, match on isAssign appInfo early in the tonicWrapApp` definition and act accordingly.
                 # iworld                = case (isAssign appInfo, mparent_bpr) of
                                             (True, Ok parent_bpr=:{bpr_instance = Just new_parent_instance})
-                                              # (muser, iworld)             = 'DSDS'.read (sdsFocus childInstanceNo taskInstanceUser) iworld
+                                              # (muser, iworld) = 'DSDS'.read (sdsFocus childInstanceNo taskInstanceUser) iworld
                                               # (parent_body, chng, iworld) = case muser of
                                                                                 Ok usr
                                                                                   # (parent_body, chng) = updateNode parentNid (\x -> case x of
@@ -502,6 +503,7 @@ tonicWrapApp` (parentModuleName, parentTaskName) appInfo (wrapModuleName, wrapTa
                                             _ = iworld
                 # iworld                = case (mchild_bpr, mparent_bpr) of
                                             (Ok child_bpr=:{bpr_instance = Just child_instance}, Ok parent_bpr=:{bpr_instance = Just new_parent_instance})
+
                                               # childId     = case child_instance.bpi_taskId of (TaskId i t) = (i, t)
                                               # (parent_body, chng) = updateNode nid (\x -> case x of
                                                                                               TVar meid _ -> TMApp meid (Just childId) Nothing child_bpr.bpr_moduleName child_bpr.bpr_taskName [] TNoPrio

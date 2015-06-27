@@ -14,6 +14,20 @@ from iTasks.API.Core.LayoutCombinators	import :: LayoutRules(..), autoLayoutRule
 from iTasks.API.Common.SDSCombinators	import toDynamic 
 from iTasks								import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
+mkEvalOpts :: TaskEvalOpts
+mkEvalOpts =
+  { TaskEvalOpts
+  | useLayout = Nothing
+  , modLayout = Nothing
+  , noUI      = False
+  , callTrace = []
+  , tonicOpts = { TonicOpts
+                | inAssignNode      = Nothing
+                , currBlueprintName = ("", "")
+                , currContextName   = ("", "")
+                }
+  }
+
 fromJSONOfDeferredJSON :: !DeferredJSON -> Maybe a | TC a & JSONDecode{|*|} a
 fromJSONOfDeferredJSON (DeferredJSON v)
 	= case make_dynamic v of
