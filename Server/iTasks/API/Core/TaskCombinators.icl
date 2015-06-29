@@ -270,7 +270,7 @@ initParallelTasks evalOpts listId index [(parType,parTask):parTasks] iworld
       err = (liftError err, iworld)
 
 initParallelTask :: !TaskEvalOpts !TaskId !Int !ParallelTaskType !(ParallelTask a) !*IWorld -> (!MaybeError TaskException (ParallelTaskState,Maybe (TaskId,Task a)),!*IWorld) | iTask a
-initParallelTask evalOpts=:{callTrace} listId index parType parTask iworld=:{current={taskTime},clocks={localDate,localTime}}
+initParallelTask evalOpts=:{tonicOpts = {callTrace}} listId index parType parTask iworld=:{current={taskTime},clocks={localDate,localTime}}
   # (mbTaskStuff,iworld) = case parType of
                              Embedded           = mkEmbedded 'DM'.newMap iworld
                              NamedEmbedded name = mkEmbedded ('DM'.singleton "name" name) iworld
@@ -728,10 +728,10 @@ instance tune SetLayout
 where
 	tune (SetLayout layout) (Task eval)	= Task eval`
 	where
-		eval` event evalOpts=:{useLayout=Nothing,modLayout,callTrace} state iworld
-			= eval event {TaskEvalOpts|evalOpts & useLayout = Just ((fromMaybe id modLayout) layout), modLayout = Nothing,callTrace=callTrace} state iworld
-		eval` event evalOpts=:{useLayout=Just _,modLayout,callTrace} state iworld
-			= eval event {TaskEvalOpts|evalOpts & useLayout = Just layout, modLayout = Nothing,callTrace=callTrace} state iworld
+		eval` event evalOpts=:{useLayout=Nothing,modLayout} state iworld
+			= eval event {TaskEvalOpts|evalOpts & useLayout = Just ((fromMaybe id modLayout) layout), modLayout = Nothing} state iworld
+		eval` event evalOpts=:{useLayout=Just _,modLayout} state iworld
+			= eval event {TaskEvalOpts|evalOpts & useLayout = Just layout, modLayout = Nothing} state iworld
 	
 instance tune AfterLayout
 where

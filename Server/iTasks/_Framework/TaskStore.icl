@@ -136,6 +136,7 @@ defaultTonicOpts = { TonicOpts
                    | inAssignNode      = Nothing // TODO
                    , currBlueprintName = ("", "")
                    , currContextName   = ("", "")
+                   , callTrace         = []
                    }
 
 

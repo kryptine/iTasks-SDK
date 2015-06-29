@@ -41,7 +41,6 @@ derive gEq				Task
 	{ useLayout			:: Maybe LayoutRules
 	, modLayout			:: Maybe (LayoutRules -> LayoutRules)
     , noUI              :: Bool
-    , callTrace         :: [Int]
     , tonicOpts         :: TonicOpts
 	}
 
@@ -49,6 +48,7 @@ derive gEq				Task
   { inAssignNode      :: Maybe Int
   , currBlueprintName :: (String, String)
   , currContextName   :: (String, String)
+  , callTrace         :: [Int]
   }
 
 mkEvalOpts :: TaskEvalOpts

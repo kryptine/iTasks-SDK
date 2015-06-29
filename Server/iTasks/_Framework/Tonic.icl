@@ -242,6 +242,7 @@ tonicExtWrapBodyLam3 mn tn args f = \x y z -> tonicWrapBody mn tn args (f x y z)
 tonicWrapTaskBody` :: !ModuleName !TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
 tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
   where
+  setBlueprintInfo :: !TaskEvalOpts -> TaskEvalOpts
   setBlueprintInfo evalOpts = modTonicOpts evalOpts (\teo -> {teo & currBlueprintName = (mn, tn)})
 
   preEval event evalOpts taskTree iworld
@@ -249,7 +250,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
     = case mmn of
         Ok mod -> eval` mod event evalOpts taskTree iworld
         _      -> eval event (setBlueprintInfo evalOpts) taskTree iworld
-  eval` mod event evalOpts=:{callTrace} taskTree=:(TCInit currTaskId=:(TaskId instanceNo taskNo) _) iworld
+  eval` mod event evalOpts=:{tonicOpts={callTrace}} taskTree=:(TCInit currTaskId=:(TaskId instanceNo taskNo) _) iworld
     # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
     # iworld           = okSt iworld (updateInstance instanceNo) mrtMap
     = eval event (setBlueprintInfo evalOpts) taskTree iworld
@@ -325,7 +326,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                        _                                          -> iworld
     = (tr, iworld)
 
-modTonicOpts :: TaskEvalOpts (TonicOpts -> TonicOpts) -> TaskEvalOpts
+modTonicOpts :: !TaskEvalOpts !(TonicOpts -> TonicOpts) -> TaskEvalOpts
 modTonicOpts teo f = {teo & tonicOpts = f teo.tonicOpts}
 
 markStable currTaskId tr event taskTree iworld
@@ -487,11 +488,11 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
                                        }
                          }
 
-  eval` event evalOpts=:{TaskEvalOpts|callTrace,tonicOpts} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo _) _) iworld
+  eval` event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo _) _) iworld
     # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
     = case mrtMap of
         Ok rtMap
-          # (cct, iworld) = mkCompleteTrace childInstanceNo callTrace iworld
+          # (cct, iworld) = mkCompleteTrace childInstanceNo tonicOpts.callTrace iworld
           = case firstParent rtMap cct of
               Ok parentBPRef=:{bpr_instance = Just parentBPInst}
                 # (parentBPRef, parentBPInst, iworld)
@@ -501,14 +502,14 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
                           # (parent_body, chng, iworld) = case muser of
                                                             Ok usr
                                                               # (parent_body, chng) = updateNode assignNode (\x -> case x of
-                                                                                                                    TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [_, TLit descr] _ : as] assoc
-                                                                                                                      | meid == Just assignNode = TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr +++ ": " +++ descr) : as] assoc
-                                                                                                                      | otherwise              = x
-                                                                                                                    TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [_ : as] assoc
-                                                                                                                      | meid == Just assignNode = TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr) : as] assoc
-                                                                                                                      | otherwise              = x
-                                                                                                                    e = e
-                                                                                                           ) parentBPInst.bpi_blueprint.tt_body
+                                                                                                                     TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [_, TLit descr] _ : as] assoc
+                                                                                                                       | meid == Just assignNode = TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr +++ ": " +++ descr) : as] assoc
+                                                                                                                       | otherwise              = x
+                                                                                                                     TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [_ : as] assoc
+                                                                                                                       | meid == Just assignNode = TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr) : as] assoc
+                                                                                                                       | otherwise              = x
+                                                                                                                     e = e
+                                                                                                            ) parentBPInst.bpi_blueprint.tt_body
                                                               = (parent_body, chng, iworld)
                                                             _ = (parentBPInst.bpi_blueprint.tt_body, False, iworld)
                           = case chng of
@@ -654,7 +655,7 @@ TODO We should generalise this
 tonicWrapTraversable` :: !(!ModuleName, !TaskName) !ExprId !((f (Task a)) -> Task b) (f (Task a)) -> Task b | Traversable f & iTask b
 tonicWrapTraversable` (wrappedFnModuleName, wrappedFnName) nid f ts = Task eval
   where
-  eval event evalOpts=:{TaskEvalOpts|callTrace} taskTree iworld
+  eval event evalOpts=:{TaskEvalOpts|tonicOpts={callTrace}} taskTree iworld
     # (ts, mctid, iworld) = case taskIdFromTaskTree taskTree of
                               Ok ctid=:(TaskId instanceNo taskNo)
                                 # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
