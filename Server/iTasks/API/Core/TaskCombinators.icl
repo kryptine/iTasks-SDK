@@ -301,8 +301,9 @@ initParallelTask evalOpts=:{tonicOpts = {callTrace}} listId index parType parTas
     # (mbInstanceNo,iworld) = newInstanceNo iworld
     = case mbInstanceNo of
         Ok instanceNo
-          # listShare         = if (listId == TaskId 0 0) topLevelTaskList (sdsTranslate "setTaskAndList" (\listFilter -> (listId,TaskId instanceNo 0,listFilter)) parallelTaskList)
-          # (mbTaskId,iworld) = createDetachedTaskInstance (parTask listShare) evalOpts instanceNo attributes listId evalDirect iworld
+          # isTopLevel        = listId == TaskId 0 0
+          # listShare         = if isTopLevel topLevelTaskList (sdsTranslate "setTaskAndList" (\listFilter -> (listId,TaskId instanceNo 0,listFilter)) parallelTaskList)
+          # (mbTaskId,iworld) = createDetachedTaskInstance (parTask listShare) isTopLevel evalOpts instanceNo attributes listId evalDirect iworld
           = case mbTaskId of
               Ok taskId
                 # (_, iworld) = write callTrace (sdsFocus listId taskInstanceParallelCallTrace) iworld
