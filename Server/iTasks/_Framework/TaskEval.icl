@@ -33,7 +33,7 @@ where
 	# constants=:{InstanceConstants|instanceKey,session,listId} = fromOk constants
 	# (oldReduct, iworld)		= 'SDS'.read (sdsFocus instanceNo taskInstanceReduct) iworld
 	| isError oldReduct			= ((\(Error (e,msg)) -> Error msg) oldReduct, iworld)
-	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,tasks} = fromOk oldReduct
+	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,tasks,tonicRedOpts} = fromOk oldReduct
     # (oldProgress,iworld)      = 'SDS'.read (sdsFocus instanceNo taskInstanceProgress) iworld
 	| isError oldProgress       = ((\(Error (e,msg)) -> Error msg) oldProgress, iworld)
     # oldProgress=:{InstanceProgress|value,attachedTo} = fromOk oldProgress
@@ -63,7 +63,7 @@ where
                                         , editletDiffs = current.editletDiffs //FIXME: MEMLEAK//'DM'.newMap
 										}}
 	//Apply task's eval function and take updated nextTaskId from iworld
-	# (newResult,iworld=:{current})	= eval event mkEvalOpts tree iworld
+	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & tonicOpts = tonicRedOpts} tree iworld
     //Finalize task UI
     # newResult                 = finalizeUI session newResult
     # tree                      = case newResult of

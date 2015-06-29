@@ -2,7 +2,7 @@ definition module iTasks._Framework.TaskState
 
 import iTasks.API.Core.Types
 
-from iTasks._Framework.Task	import :: TaskTime, :: TaskResult, :: TaskRep, :: EventNo
+from iTasks._Framework.Task	import :: TaskTime, :: TaskResult, :: TaskRep, :: EventNo, :: TonicOpts
 from iTasks._Framework.Task	import :: TaskException
 
 derive JSONEncode TIMeta, TIReduct, TaskTree
@@ -28,6 +28,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 :: TIReduct =
 	{ task			:: !Task JSONNode                   //Main task definition
     , tree          :: !TaskTree                        //Main task state
+    , tonicRedOpts  :: !TonicOpts                       //Tonic data
 	, nextTaskNo	:: !TaskNo                          //Local task number counter
 	, nextTaskTime	:: !TaskTime                        //Local task time (incremented at every evaluation)
     , lastEventNo   :: !EventNo                         //Last event number received from a client
