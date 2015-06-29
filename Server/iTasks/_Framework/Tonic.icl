@@ -264,7 +264,6 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
           # muser            = case muser of
                                  Ok u -> Just u
                                  _    -> Nothing
-          # (cct, iworld)    = mkCompleteTrace instanceNo callTrace iworld
           # bpinst           = { BlueprintInstance
                                | bpi_taskId           = currTaskId
                                , bpi_startTime        = DateTime clocks.localDate clocks.localTime
@@ -272,7 +271,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                , bpi_endTime          = Nothing
                                , bpi_activeNodes      = 'DM'.newMap
                                , bpi_previouslyActive = 'DM'.newMap
-                               , bpi_parentTaskId     = case firstParent rtMap cct of
+                               , bpi_parentTaskId     = case firstParent rtMap callTrace of
                                                           Ok p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
                                                           _    -> Nothing
                                , bpi_blueprint        = bprep
@@ -363,32 +362,14 @@ firstParent rtMap [parent : parents]
       Just trt -> Ok trt
       _        -> firstParent rtMap parents
 
-mkCompleteTrace :: !InstanceNo !InstanceTrace !*IWorld -> *(!Calltrace, !*IWorld)
-mkCompleteTrace _          []        iworld = ([], iworld)
-mkCompleteTrace instanceNo callTrace iworld
-  # (mtinst, iworld) = 'DSDS'.read (sdsFocus instanceNo taskInstance) iworld
-  = case mtinst of
-      Ok (_, Just {InstanceConstants | listId = TaskId 0 _}, _, _)
-        = (default, iworld)
-      Ok (_, Just {InstanceConstants | listId = listId=:(TaskId lInstNo _)}, _, _)
-        # (mpct, iworld) = 'DSDS'.read (sdsFocus listId taskInstanceParallelCallTrace) iworld
-        = case mpct of
-            Ok pct
-              # (tr, iworld) = mkCompleteTrace lInstNo pct iworld
-              = (default ++ tr, iworld)
-            _ = (default, iworld)
-      _ = (default, iworld)
-  where
-  default = map (TaskId instanceNo) callTrace
-
 ppCCT ct = foldr (\x acc -> toString x +++ " " +++ acc) "" ct
 
 ppNid nid = foldr (\x acc -> toString x +++ " " +++ acc) "" nid
 
-getParentContext :: !TaskId !TaskId ![Int] !*IWorld -> *(!TaskId, !*IWorld)
+getParentContext :: !TaskId !TaskId ![TaskId] !*IWorld -> *(!TaskId, !*IWorld)
 getParentContext parentTaskId _ [] iworld = (parentTaskId, iworld)
-getParentContext parentTaskId currentListId=:(TaskId currentListInstanceNo _) [parentTraceId : parentTraces] iworld
-  # (mplid, iworld) = 'DSDS'.read (sdsFocus (TaskId currentListInstanceNo parentTraceId) parallelListId) iworld
+getParentContext parentTaskId currentListId [parentTraceId : parentTraces] iworld
+  # (mplid, iworld) = 'DSDS'.read (sdsFocus parentTraceId parallelListId) iworld
   = case mplid of
       Ok parentContextId
         | parentContextId < parentTaskId = (parentTaskId, iworld)
@@ -492,8 +473,7 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
     # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
     = case mrtMap of
         Ok rtMap
-          # (cct, iworld) = mkCompleteTrace childInstanceNo tonicOpts.callTrace iworld
-          = case firstParent rtMap cct of
+          = case firstParent rtMap tonicOpts.callTrace of
               Ok parentBPRef=:{bpr_instance = Just parentBPInst}
                 # (parentBPRef, parentBPInst, iworld)
                     = case tonicOpts.inAssignNode of
@@ -519,7 +499,7 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
                                 = (parent_bpr, bpi, iworld)
                               _ = (parentBPRef, parentBPInst, iworld)
                         _ = (parentBPRef, parentBPInst, iworld)
-                # iworld                = updRTMap nid childTaskId cct parentBPRef parentBPInst iworld
+                # iworld                = updRTMap nid childTaskId tonicOpts.callTrace parentBPRef parentBPInst iworld
                 # (tr, iworld)          = eval event (updEvalOpts evalOpts) taskTree iworld
                 # iworld                = evalInteract evalOpts.tonicOpts.currBlueprintName wrapTaskName nid tr childTaskId iworld
                 # (mparent_bpr, iworld) = 'DSDS'.read (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld
@@ -661,7 +641,7 @@ tonicWrapTraversable` (wrappedFnModuleName, wrappedFnName) nid f ts = Task eval
                                 # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
                                 = case mrtMap of
                                     Ok rtMap
-                                      # (cct, iworld) = mkCompleteTrace instanceNo [taskNo : callTrace] iworld
+                                      # cct = [ctid : callTrace]
                                       = case firstParent rtMap cct of
                                           Ok parent=:{bpr_instance = Just pinst}
                                             # (tt_body, chng) = updateNode nid (\x -> case x of

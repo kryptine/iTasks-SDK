@@ -32,10 +32,7 @@ from iTasks.API.Core.Types import :: DateTime
 
 :: TonicRTMap :== Map TaskId BlueprintRef
 
-:: InstanceTrace :== [Int]
-
 :: Calltrace :== [TaskId]
-
 
 derive class iTask TStability, BlueprintRef, BlueprintInstance
 

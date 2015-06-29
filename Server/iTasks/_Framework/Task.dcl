@@ -48,7 +48,7 @@ derive gEq				Task
   { inAssignNode      :: Maybe Int
   , currBlueprintName :: (String, String)
   , currContextName   :: (String, String)
-  , callTrace         :: [Int]
+  , callTrace         :: [TaskId]
   }
 
 mkEvalOpts :: TaskEvalOpts

@@ -53,7 +53,7 @@ taskInstanceShares      :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId
 localShare              :: RWShared TaskId a a | iTask a
 
 // Match parallel task IDs to callTraces
-taskInstanceParallelCallTrace :: RWShared TaskId [Int] [Int]
+taskInstanceParallelCallTrace :: RWShared TaskId [TaskId] [TaskId]
 
 // Match TaskIds to the parallel listId which maintains them
 parallelListId :: RWShared TaskId TaskId TaskId
