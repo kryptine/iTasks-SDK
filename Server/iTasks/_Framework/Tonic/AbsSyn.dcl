@@ -4,12 +4,19 @@ from Data.Map import :: Map
 from Data.Maybe import :: Maybe
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
+from StdOverloaded import class ==
 
 derive JSONEncode TonicModule, TonicTask, TExpr, TPriority, TAssoc
 
 derive JSONDecode TonicModule, TonicTask, TExpr, TPriority, TAssoc
 
 derive gEq TonicModule, TonicTask, TExpr, TPriority, TAssoc
+
+instance == TonicModule
+instance == TonicTask
+instance == TExpr
+instance == TAssoc
+instance == TPriority
 
 :: TonicModule =
   { tm_name  :: ModuleName
@@ -38,9 +45,9 @@ derive gEq TonicModule, TonicTask, TExpr, TPriority, TAssoc
 :: ExprId   :== Int
 
 :: TExpr
-  = TVar      !(Maybe ExprId) !PPExpr
+  = TVar      !ExprId !PPExpr
   | TLit      !PPExpr
-  | TMApp     !(Maybe ExprId) !(Maybe (Int, Int)) !(Maybe TypeName) !ModuleName !VarName ![TExpr] !TPriority
+  | TMApp     !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr] !TPriority
   | TFApp     !VarName ![TExpr] !TPriority
   | TLam      ![TExpr] !TExpr
   | TSel      !TExpr ![TExpr]

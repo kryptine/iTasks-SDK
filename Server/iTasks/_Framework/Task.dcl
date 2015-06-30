@@ -52,6 +52,7 @@ derive gEq				Task
   }
 
 mkEvalOpts :: TaskEvalOpts
+defaultTonicOpts :: TonicOpts
 
 //Additional information passed up from the tree when evaluating a task
 :: TaskEvalInfo =

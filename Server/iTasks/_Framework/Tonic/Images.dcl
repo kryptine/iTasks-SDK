@@ -39,7 +39,7 @@ from iTasks.API.Extensions.SVG.SVGlet import :: ActionState
 derive class iTask TonicImageState, TClickAction, ClickMeta, BlueprintIdent
 
 :: TaskAppRenderer :== Bool Bool Bool Bool (Set (!ModuleName, !TaskName, !ExprId))
-                       (Maybe ExprId) ModuleName TaskName ModuleName TaskName
+                       ExprId ModuleName TaskName ModuleName TaskName
                        [Image ModelTy] *TagSource
                     -> *(!Maybe (Image ModelTy), !*TagSource)
 
@@ -51,7 +51,7 @@ mkTaskImage     :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef
                 -> Image ModelTy
 
 tDefaultMApp :: !Bool !Bool !Bool !Bool
-                !(Set (!ModuleName, !TaskName, !ExprId)) !(Maybe ExprId)
+                !(Set (!ModuleName, !TaskName, !ExprId)) !ExprId
                 !ModuleName !TaskName !ModuleName !TaskName ![TExpr]
                 ![Image ModelTy] !*TagSource
              -> *(!Image ModelTy, !*TagSource)

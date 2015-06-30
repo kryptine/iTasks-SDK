@@ -132,13 +132,6 @@ createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId
                       (queueUrgentRefresh [instanceNo] ["First refresh of detached instance "<+++ instanceNo] iworld)
                       iworld)
 
-defaultTonicOpts = { TonicOpts
-                   | inAssignNode      = Nothing
-                   , currBlueprintName = ("", "")
-                   , currContextName   = ("", "")
-                   , callTrace         = []
-                   }
-
 createReduct :: !TonicOpts !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
 createReduct tonicOpts instanceNo task taskTime
 	= { TIReduct

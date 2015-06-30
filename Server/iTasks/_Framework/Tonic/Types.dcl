@@ -10,8 +10,6 @@ from iTasks.API.Core.Types import :: DateTime
 
 :: ListId :== TaskId
 
-:: TStability = TNoVal | TStable | TUnstable
-
 :: BlueprintRef =
   { bpr_moduleName :: !ModuleName
   , bpr_taskName   :: !TaskName
@@ -28,11 +26,14 @@ from iTasks.API.Core.Types import :: DateTime
   , bpi_parentTaskId     :: !Maybe TaskId
   , bpi_currentUser      :: !Maybe User
   , bpi_blueprint        :: !TonicTask
+  , bpi_nodeTaskIdMap    :: Map Int TaskId
   }
 
 :: TonicRTMap :== Map TaskId BlueprintRef
 
 :: Calltrace :== [TaskId]
+
+:: TStability = TNoVal | TStable | TUnstable
 
 derive class iTask TStability, BlueprintRef, BlueprintInstance
 

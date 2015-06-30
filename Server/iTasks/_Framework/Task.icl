@@ -20,13 +20,16 @@ mkEvalOpts =
   | useLayout = Nothing
   , modLayout = Nothing
   , noUI      = False
-  , tonicOpts = { TonicOpts
-                | inAssignNode      = Nothing
-                , currBlueprintName = ("", "")
-                , currContextName   = ("", "")
-                , callTrace         = []
-                }
+  , tonicOpts = defaultTonicOpts
   }
+
+defaultTonicOpts :: TonicOpts
+defaultTonicOpts = { TonicOpts
+                   | inAssignNode      = Nothing
+                   , currBlueprintName = ("", "")
+                   , currContextName   = ("", "")
+                   , callTrace         = []
+                   }
 
 fromJSONOfDeferredJSON :: !DeferredJSON -> Maybe a | TC a & JSONDecode{|*|} a
 fromJSONOfDeferredJSON (DeferredJSON v)

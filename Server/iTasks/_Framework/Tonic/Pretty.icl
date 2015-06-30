@@ -27,10 +27,10 @@ ppTExpr` d (TFApp pp [l, r] (TPrio TLeftAssoc n))  = if (d > 0) "(" "" +++ ppTEx
 ppTExpr` d (TFApp pp [l, r] (TPrio TRightAssoc n)) = if (d > 0) "(" "" +++ ppTExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTExpr` (d + 1) r +++ if (d > 0) ")" ""
 ppTExpr` d (TFApp pp [l, r] (TPrio TNoAssoc n))    = ppTExpr` (d + 1) l +++ " " +++ sugarPP pp +++ " " +++ ppTExpr` (d + 1) r
 ppTExpr` d (TFApp pp xs _)       = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ ppIntersperse (ppTExpr` (d + 1)) " " xs +++ if (d > 0) ")" ""
-ppTExpr` _ (TMApp _ _ _ _ pp [] _) = sugarPP pp
-ppTExpr` _ (TMApp _ _ _ _ pp [x:xs] _)
+ppTExpr` _ (TMApp _ _ _ pp [] _) = sugarPP pp
+ppTExpr` _ (TMApp _ _ _ pp [x:xs] _)
   | size pp > 0 && pp.[0] == '_' = "{ " +++ pp % (1, size pp) +++ " | " +++ ppTExprTuple xs +++ " }"
-ppTExpr` d (TMApp _ _ _ _ pp xs _) = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ ppIntersperse (ppTExpr` (d + 1)) " " xs +++ if (d > 0) ")" ""
+ppTExpr` d (TMApp _ _ _ pp xs _) = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ ppIntersperse (ppTExpr` (d + 1)) " " xs +++ if (d > 0) ")" ""
 ppTExpr` d (TSel e es)      = ppTExpr e +++ "." +++ ppIntersperse (ppTExpr` (d + 1)) " " es
 ppTExpr` d (TLam vars e)    = if (d > 0) "(" "" +++ "\\" +++ ppIntersperse (ppTExpr` (d + 1)) " " vars +++ "-> " +++ ppTExpr e +++ if (d > 0) ")" ""
 ppTExpr` d (TCaseOrIf e cs) = "case " +++ ppTExpr` d e +++ " of { " +++ ppCases d cs +++ "}"
