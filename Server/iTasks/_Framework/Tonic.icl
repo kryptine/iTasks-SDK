@@ -252,15 +252,18 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
   setBlueprintInfo :: !TaskEvalOpts -> TaskEvalOpts
   setBlueprintInfo evalOpts = modTonicOpts evalOpts (\teo -> {teo & currBlueprintName = (mn, tn)})
 
+  setBPTaskId :: !TaskId !TaskEvalOpts -> TaskEvalOpts
+  setBPTaskId tid evalOpts = modTonicOpts evalOpts (\teo -> {teo & currBlueprintTaskId = tid})
+
   preEval event evalOpts taskTree iworld
     # (mmn, iworld) = getModule` mn iworld
     = case mmn of
         Ok mod -> eval` mod event evalOpts taskTree iworld
         _      -> eval event (setBlueprintInfo evalOpts) taskTree iworld
-  eval` mod event evalOpts=:{tonicOpts={callTrace}} taskTree=:(TCInit currTaskId=:(TaskId instanceNo _) _) iworld
+  eval` mod event evalOpts=:{tonicOpts={callTrace, currBlueprintTaskId}} taskTree=:(TCInit currTaskId=:(TaskId instanceNo _) _) iworld
     # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
     # iworld           = okSt iworld updateInstance mrtMap
-    = eval event (setBlueprintInfo evalOpts) taskTree iworld
+    = eval event (setBPTaskId currTaskId (setBlueprintInfo evalOpts)) taskTree iworld
     where
     updateInstance rtMap iworld =
       case getTonicTask mod tn of
@@ -278,9 +281,9 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                , bpi_endTime          = Nothing
                                , bpi_activeNodes      = 'DM'.newMap
                                , bpi_previouslyActive = 'DM'.newMap
-                               , bpi_parentTaskId     = case firstParent rtMap callTrace of
-                                                          Ok p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
-                                                          _    -> Nothing
+                               , bpi_parentTaskId     = case 'DM'.get currBlueprintTaskId rtMap of
+                                                          Just p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
+                                                          _      -> Nothing
                                , bpi_blueprint        = bprep
                                , bpi_currentUser      = muser
                                , bpi_nodeTaskIdMap    = 'DM'.newMap
@@ -317,7 +320,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
           _  = iworld
 
   eval` _ event evalOpts taskTree=:(TCStable currTaskId _ _) iworld
-    # (tr, iworld) = eval event (setBlueprintInfo evalOpts) taskTree iworld
+    # (tr, iworld) = eval event (setBPTaskId currTaskId (setBlueprintInfo evalOpts)) taskTree iworld
     = markStable currTaskId tr event taskTree iworld
 
   eval` _ event evalOpts taskTree=:TCNop iworld
@@ -327,6 +330,9 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
     = eval event (setBlueprintInfo evalOpts) taskTree iworld
 
   eval` _ event evalOpts taskTree iworld
+    # evalOpts     = case taskIdFromTaskTree taskTree of
+                       Ok tid -> setBPTaskId tid evalOpts
+                       _      -> evalOpts
     # (tr, iworld) = eval event (setBlueprintInfo evalOpts) taskTree iworld
     # iworld       = case (taskIdFromTaskTree taskTree, tr) of
                        (Ok tid, ValueResult (Value _ True) _ _ _) -> snd (markStable tid tr event taskTree iworld)
@@ -362,17 +368,6 @@ resultToOutput :: !Int !TaskId !(TaskResult a) -> (!Int, !Task (), !TStability) 
 resultToOutput newN tid (ValueResult (Value v s) _ _ _) = (newN, viewInformation (Title ("Value for task " +++ toString tid)) [] v @! (), if s TStable TUnstable)
 resultToOutput newN tid (ValueResult NoValue _ _ _)     = (newN, viewInformation (Title ("Value for task " +++ toString tid)) [] "No value" @! (), TNoVal)
 resultToOutput newN tid _                               = (newN, viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! (), TNoVal)
-
-firstParent :: !TonicRTMap !Calltrace -> MaybeError TaskException BlueprintRef
-firstParent _     [] = Error (exception "iTasks._Framework.Tonic.firstParent: no parent found")
-firstParent rtMap [parent : parents]
-  = case 'DM'.get parent rtMap of
-      Just trt -> Ok trt
-      _        -> firstParent rtMap parents
-
-ppCCT ct = foldr (\x acc -> toString x +++ " " +++ acc) "" ct
-
-ppNid nid = foldr (\x acc -> toString x +++ " " +++ acc) "" nid
 
 getParentContext :: !TaskId !TaskId ![TaskId] !*IWorld -> *(!TaskId, !*IWorld)
 getParentContext parentTaskId _ [] iworld = (parentTaskId, iworld)
@@ -461,13 +456,6 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
   | isStep wrapInfo = Task (stepEval eval)
   | otherwise       = return () >>~ \_ -> Task eval`
   where
-  setContextForNode evalOpts
-    = { evalOpts
-      & tonicOpts = { evalOpts.tonicOpts
-                    & currContextName = wrapInfo
-                    }
-      }
-
   updateAssignStatus evalOpts
     = { evalOpts
       & tonicOpts = { evalOpts.tonicOpts
@@ -483,8 +471,8 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
     # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
     = case mrtMap of
         Ok rtMap
-          = case firstParent rtMap tonicOpts.callTrace of
-              Ok parentBPRef=:{bpr_instance = Just parentBPInst}
+          = case 'DM'.get tonicOpts.currBlueprintTaskId rtMap of
+              Just parentBPRef=:{bpr_instance = Just parentBPInst}
                 # parentBPInst = {parentBPInst & bpi_nodeTaskIdMap = 'DM'.put nid childTaskId parentBPInst.bpi_nodeTaskIdMap}
                 # (parentBPRef, parentBPInst, iworld)
                     = case tonicOpts.inAssignNode of
@@ -493,8 +481,8 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
                           # (parent_body, _) = case muser of
                                                  Ok usr
                                                    = updateNode assignNode (\x -> case x of
-                                                                                    TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [_, TLit descr] prio : as] assoc
-                                                                                      | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [TLit (toString usr), TLit descr] prio : as] assoc
+                                                                                    TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [_, descr] prio : as] assoc
+                                                                                      | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [TLit (toString usr), descr] prio : as] assoc
                                                                                       | otherwise         = x
                                                                                     TMApp eid mtn "iTasks.API.Extensions.User" "@:" [_ : as] assoc
                                                                                       | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr) : as] assoc
@@ -506,8 +494,8 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
                           # parent_bpr = {parentBPRef & bpr_instance = Just bpi}
                           = (parent_bpr, bpi, iworld)
                         _ = (parentBPRef, parentBPInst, iworld)
-                # iworld                = updRTMap nid childTaskId tonicOpts.callTrace parentBPRef parentBPInst iworld
-                # (tr, iworld)          = eval event (updateAssignStatus (setContextForNode evalOpts)) taskTree iworld
+                # iworld                = updRTMap tonicOpts nid childTaskId parentBPRef parentBPInst iworld
+                # (tr, iworld)          = eval event (updateAssignStatus evalOpts) taskTree iworld
                 # iworld                = evalInteract evalOpts.tonicOpts.currBlueprintName wrapTaskName nid tr childTaskId iworld
                 // These reads need to be done here, because:
                 // - The parent blueprint may have been altered while evaluating the continuation
@@ -526,35 +514,35 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
                                               | otherwise = iworld
                                             _ = iworld
                 = (tr, iworld)
-              _ = eval event (updateAssignStatus (setContextForNode evalOpts)) taskTree iworld
-        _ = eval event (updateAssignStatus (setContextForNode evalOpts)) taskTree iworld
+              _ = eval event (updateAssignStatus evalOpts) taskTree iworld
+        _ = eval event (updateAssignStatus evalOpts) taskTree iworld
 
   eval` event evalOpts taskTree=:(TCStable currTaskId _ _) iworld
-    # (tr, iworld) = eval event (setContextForNode evalOpts) taskTree iworld
+    # (tr, iworld) = eval event evalOpts taskTree iworld
     = markStable currTaskId tr event taskTree iworld
 
   eval` event evalOpts taskTree=:TCNop iworld
-    = eval event (setContextForNode evalOpts) taskTree iworld
+    = eval event evalOpts taskTree iworld
 
   eval` event evalOpts taskTree=:(TCDestroy _) iworld
-    = eval event (setContextForNode evalOpts) taskTree iworld
+    = eval event evalOpts taskTree iworld
 
   eval` event evalOpts taskTree=:TCTasklet iworld
-    = eval event (setContextForNode evalOpts) taskTree iworld
+    = eval event evalOpts taskTree iworld
 
   eval` event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree iworld
     = case taskIdFromTaskTree taskTree of
         Ok tid
-          # (tr, iworld) = eval event (updateAssignStatus (setContextForNode evalOpts)) taskTree iworld
+          # (tr, iworld) = eval event (updateAssignStatus evalOpts) taskTree iworld
           # iworld       = case tr of
                              (ValueResult (Value x True) _ _ _) -> snd (markStable tid tr event taskTree iworld)
                              _                                  -> iworld
           # iworld       = evalInteract evalOpts.tonicOpts.currBlueprintName wrapTaskName nid tr tid iworld
           = (tr, iworld)
-        _ = eval event (updateAssignStatus (setContextForNode evalOpts)) taskTree iworld
+        _ = eval event (updateAssignStatus evalOpts) taskTree iworld
 
-  updRTMap nid childTaskId cct parentBPRef parentBPInst iworld
-    # (newActiveNodes, iworld) = setActiveNodes parentBPInst childTaskId cct nid iworld
+  updRTMap tonicOpts nid childTaskId parentBPRef parentBPInst iworld
+    # (newActiveNodes, iworld) = setActiveNodes tonicOpts parentBPInst childTaskId  nid iworld
     # newActiveNodeMap         = 'DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems newActiveNodes)]
     # oldActiveNodes           = 'DM'.difference ('DM'.union parentBPInst.bpi_previouslyActive
                                                              ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems parentBPInst.bpi_activeNodes)]))
@@ -575,9 +563,9 @@ evalInteract (parentModuleName, parentTaskName) childTaskName nid tr childTaskId
             = snd ('DSDS'.write (resultToOutput (n + 1) childTaskId tr) childFocus iworld)
       _ = iworld
 
-setActiveNodes :: !BlueprintInstance !TaskId !Calltrace !ExprId !*IWorld -> *(!Map ListId (IntMap (TaskId, ExprId)), !*IWorld)
-setActiveNodes {bpi_taskId = parentTaskId, bpi_activeNodes = parentActiveNodes} childTaskId cct nid iworld
-  # (mclid, iworld) = getCurrentListId cct iworld
+setActiveNodes :: !TonicOpts !BlueprintInstance !TaskId !ExprId !*IWorld -> *(!Map ListId (IntMap (TaskId, ExprId)), !*IWorld)
+setActiveNodes tonicOpts {bpi_taskId = parentTaskId, bpi_activeNodes = parentActiveNodes} childTaskId nid iworld
+  # (mclid, iworld) = getCurrentListId tonicOpts.callTrace iworld
   = case mclid of
       Just currentListId
         | currentListId < parentTaskId = (defVal parentTaskId, iworld)
@@ -591,7 +579,7 @@ setActiveNodes {bpi_taskId = parentTaskId, bpi_activeNodes = parentActiveNodes} 
               # (mTaskList, iworld) = 'DSDS'.read (sdsFocus (currentListId, taskListFilter) taskInstanceParallelTaskList) iworld
               = case mTaskList of
                   Ok taskList
-                    = case getTaskListIndex cct taskList of
+                    = case getTaskListIndex tonicOpts.callTrace taskList of
                         Just index
                           # activeSubTasks = fromMaybe 'DIS'.newMap ('DM'.get currentListId activeTasks)
                           # activeSubTasks = 'DIS'.put index (childTaskId, nid) activeSubTasks
@@ -638,15 +626,15 @@ TODO We should generalise this
 tonicWrapTraversable` :: !(!ModuleName, !TaskName) !ExprId !((f (Task a)) -> Task b) (f (Task a)) -> Task b | Traversable f & iTask b
 tonicWrapTraversable` (wrappedFnModuleName, wrappedFnName) nid f ts = Task eval
   where
-  eval event evalOpts=:{TaskEvalOpts|tonicOpts={callTrace}} taskTree iworld
+  eval event evalOpts=:{TaskEvalOpts|tonicOpts={currBlueprintTaskId, callTrace}} taskTree iworld
     # (ts, mctid, iworld) = case taskIdFromTaskTree taskTree of
                               Ok childTaskId
                                 # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
                                 = case mrtMap of
                                     Ok rtMap
                                       # cct = [childTaskId : callTrace]
-                                      = case firstParent rtMap cct of
-                                          Ok parent=:{bpr_instance = Just pinst}
+                                      = case 'DM'.get currBlueprintTaskId rtMap of
+                                          Just parent=:{bpr_instance = Just pinst}
                                             # pinst = {pinst & bpi_nodeTaskIdMap = 'DM'.put nid childTaskId pinst.bpi_nodeTaskIdMap}
                                             # (tt_body, _) = updateNode nid (\x -> case x of
                                                                                      TMApp eid mtn mn tn _ pr -> TMApp eid mtn mn tn [TFApp "_Nil" [] TNoPrio] pr

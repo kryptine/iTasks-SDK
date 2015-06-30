@@ -25,10 +25,10 @@ mkEvalOpts =
 
 defaultTonicOpts :: TonicOpts
 defaultTonicOpts = { TonicOpts
-                   | inAssignNode      = Nothing
-                   , currBlueprintName = ("", "")
-                   , currContextName   = ("", "")
-                   , callTrace         = []
+                   | inAssignNode        = Nothing
+                   , currBlueprintName   = ("", "")
+                   , currBlueprintTaskId = TaskId 0 0
+                   , callTrace           = []
                    }
 
 fromJSONOfDeferredJSON :: !DeferredJSON -> Maybe a | TC a & JSONDecode{|*|} a
