@@ -563,28 +563,36 @@ evalInteract (parentModuleName, parentTaskName) childTaskName nid tr childTaskId
             = snd ('DSDS'.write (resultToOutput (n + 1) childTaskId tr) childFocus iworld)
       _ = iworld
 
+
+dropFirstInstances :: ![TaskId] -> [TaskId]
+dropFirstInstances [] = []
+dropFirstInstances [TaskId ino _ : xs] = dropFirstInstances` ino xs
+
+dropFirstInstances` :: !Int ![TaskId] -> [TaskId]
+dropFirstInstances` _   [] = []
+dropFirstInstances` ino [TaskId ino` _ : xs]
+  | ino == ino` = dropFirstInstances` ino xs
+  | otherwise   = xs
+
 setActiveNodes :: !TonicOpts !BlueprintInstance !TaskId !ExprId !*IWorld -> *(!Map ListId (IntMap (TaskId, ExprId)), !*IWorld)
 setActiveNodes tonicOpts {bpi_taskId = parentTaskId, bpi_activeNodes = parentActiveNodes} childTaskId nid iworld
   # (mclid, iworld) = getCurrentListId tonicOpts.callTrace iworld
   = case mclid of
       Just currentListId
         | currentListId < parentTaskId = (defVal parentTaskId, iworld)
-        # (mpct, iworld) = 'DSDS'.read (sdsFocus currentListId taskInstanceParallelCallTrace) iworld
-        = case mpct of
-            Ok parentCallTrace
-              # (parentCtx, iworld) = getParentContext parentTaskId currentListId parentCallTrace iworld
-              # activeTasks         = 'DM'.del parentCtx parentActiveNodes
-              # activeTasks         = 'DM'.filterWithKey (\k _ -> k >= parentCtx) activeTasks
-              # taskListFilter      = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
-              # (mTaskList, iworld) = 'DSDS'.read (sdsFocus (currentListId, taskListFilter) taskInstanceParallelTaskList) iworld
-              = case mTaskList of
-                  Ok taskList
-                    = case getTaskListIndex tonicOpts.callTrace taskList of
-                        Just index
-                          # activeSubTasks = fromMaybe 'DIS'.newMap ('DM'.get currentListId activeTasks)
-                          # activeSubTasks = 'DIS'.put index (childTaskId, nid) activeSubTasks
-                          = ('DM'.put currentListId activeSubTasks activeTasks, iworld)
-                        _ = (defVal currentListId, iworld)
+        # parentCallTrace     = dropFirstInstances tonicOpts.callTrace
+        # (parentCtx, iworld) = getParentContext parentTaskId currentListId parentCallTrace iworld
+        # activeTasks         = 'DM'.del parentCtx parentActiveNodes
+        # activeTasks         = 'DM'.filterWithKey (\k _ -> k >= parentCtx) activeTasks
+        # taskListFilter      = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
+        # (mTaskList, iworld) = 'DSDS'.read (sdsFocus (currentListId, taskListFilter) taskInstanceParallelTaskList) iworld
+        = case mTaskList of
+            Ok taskList
+              = case getTaskListIndex tonicOpts.callTrace taskList of
+                  Just index
+                    # activeSubTasks = fromMaybe 'DIS'.newMap ('DM'.get currentListId activeTasks)
+                    # activeSubTasks = 'DIS'.put index (childTaskId, nid) activeSubTasks
+                    = ('DM'.put currentListId activeSubTasks activeTasks, iworld)
                   _ = (defVal currentListId, iworld)
             _ = (defVal currentListId, iworld)
       _ = (defVal parentTaskId, iworld)
@@ -632,7 +640,6 @@ tonicWrapTraversable` (wrappedFnModuleName, wrappedFnName) nid f ts = Task eval
                                 # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
                                 = case mrtMap of
                                     Ok rtMap
-                                      # cct = [childTaskId : callTrace]
                                       = case 'DM'.get currBlueprintTaskId rtMap of
                                           Just parent=:{bpr_instance = Just pinst}
                                             # pinst = {pinst & bpi_nodeTaskIdMap = 'DM'.put nid childTaskId pinst.bpi_nodeTaskIdMap}

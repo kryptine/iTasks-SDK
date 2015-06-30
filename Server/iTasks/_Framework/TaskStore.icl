@@ -309,9 +309,6 @@ where
     notify taskId _ = (==) taskId
 
 // Match parallel task IDs to callTraces
-taskInstanceParallelCallTrace :: RWShared TaskId [TaskId] [TaskId]
-taskInstanceParallelCallTrace = sdsTranslate "taskInstanceParallelCallTrace" (\t -> t +++> "-taskInstanceParallelCallTrace") (cachedJSONFileStore NS_TASK_INSTANCES True False True (Just []))
-
 parallelListId :: RWShared TaskId TaskId TaskId
 parallelListId = sdsTranslate "parallelListId" (\t -> t +++> "-parallelListId") (cachedJSONFileStore NS_TASK_INSTANCES True False True Nothing)
 

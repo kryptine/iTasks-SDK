@@ -306,7 +306,6 @@ initParallelTask evalOpts=:{tonicOpts = {callTrace}} listId index parType parTas
           # (mbTaskId,iworld) = createDetachedTaskInstance (parTask listShare) isTopLevel evalOpts instanceNo attributes listId evalDirect iworld
           = case mbTaskId of
               Ok taskId
-                # (_, iworld) = write callTrace (sdsFocus listId taskInstanceParallelCallTrace) iworld
                 = (Ok (taskId, attributes, Nothing), iworld)
               err       = (liftError err, iworld)
         err = (liftError err, iworld)
