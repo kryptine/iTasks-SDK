@@ -207,7 +207,7 @@ where
     //Create initial task list
     eval event evalOpts (TCInit taskId ts) iworld=:{IWorld|current}
       //Create the states for the initial tasks
-      # (mbParTasks,iworld) = initParallelTasks evalOpts taskId 0 initTasks iworld
+      # (mbParTasks,iworld) = initParallelTasks (extendCallTrace taskId evalOpts) taskId 0 initTasks iworld
       = case mbParTasks of
           Ok (taskList,embeddedTasks)
             //Write the local task list
