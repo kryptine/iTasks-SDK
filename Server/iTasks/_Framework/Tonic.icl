@@ -482,8 +482,8 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
                           # (parent_body, chng, iworld) = case muser of
                                                             Ok usr
                                                               # (parent_body, chng) = updateNode assignNode (\x -> case x of
-                                                                                                                     TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [_, TLit descr] _ : as] assoc
-                                                                                                                       | meid == Just assignNode = TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr +++ ": " +++ descr) : as] assoc
+                                                                                                                     TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [_, TLit descr] prio : as] assoc
+                                                                                                                       | meid == Just assignNode = TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [TLit (toString usr), TLit descr] prio : as] assoc
                                                                                                                        | otherwise              = x
                                                                                                                      TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [_ : as] assoc
                                                                                                                        | meid == Just assignNode = TMApp meid mtid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr) : as] assoc
