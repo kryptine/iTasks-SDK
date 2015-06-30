@@ -26,6 +26,7 @@ mkEvalOpts =
 defaultTonicOpts :: TonicOpts
 defaultTonicOpts = { TonicOpts
                    | inAssignNode        = Nothing
+                   , inParallel          = Nothing
                    , currBlueprintName   = ("", "")
                    , currBlueprintTaskId = TaskId 0 0
                    , callTrace           = []

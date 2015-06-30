@@ -369,23 +369,15 @@ resultToOutput newN tid (ValueResult (Value v s) _ _ _) = (newN, viewInformation
 resultToOutput newN tid (ValueResult NoValue _ _ _)     = (newN, viewInformation (Title ("Value for task " +++ toString tid)) [] "No value" @! (), TNoVal)
 resultToOutput newN tid _                               = (newN, viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! (), TNoVal)
 
-getParentContext :: !TaskId !TaskId ![TaskId] !*IWorld -> *(!TaskId, !*IWorld)
-getParentContext parentTaskId _ [] iworld = (parentTaskId, iworld)
-getParentContext parentTaskId currentListId [parentTraceId : parentTraces] iworld
+getParentContext :: !TaskId ![TaskId] !*IWorld -> *(!TaskId, !*IWorld)
+getParentContext parentTaskId [] iworld = (parentTaskId, iworld)
+getParentContext parentTaskId [parentTraceId : parentTraces] iworld
   # (mplid, iworld) = 'DSDS'.read (sdsFocus parentTraceId parallelListId) iworld
   = case mplid of
       Ok parentContextId
         | parentContextId < parentTaskId = (parentTaskId, iworld)
         | otherwise                      = (parentContextId, iworld)
-      _ = getParentContext parentTaskId currentListId parentTraces iworld
-
-getCurrentListId :: !Calltrace !*IWorld -> *(!Maybe TaskId, !*IWorld)
-getCurrentListId [] iworld = (Nothing, iworld)
-getCurrentListId [traceTaskId : xs] iworld
-  # (mclid, iworld) = 'DSDS'.read (sdsFocus traceTaskId parallelListId) iworld
-  = case mclid of
-      Ok currentListId -> (Just currentListId, iworld)
-      _                -> getCurrentListId xs iworld
+      _ = getParentContext parentTaskId parentTraces iworld
 
 tonicExtWrapApp :: !(!ModuleName, !TaskName) !ExprId (m a) -> m a | TonicBlueprintPart m & iTask a
 tonicExtWrapApp wrapFn nid mapp = tonicWrapApp wrapFn nid mapp
@@ -576,12 +568,11 @@ dropFirstInstances` ino [TaskId ino` _ : xs]
 
 setActiveNodes :: !TonicOpts !BlueprintInstance !TaskId !ExprId !*IWorld -> *(!Map ListId (IntMap (TaskId, ExprId)), !*IWorld)
 setActiveNodes tonicOpts {bpi_taskId = parentTaskId, bpi_activeNodes = parentActiveNodes} childTaskId nid iworld
-  # (mclid, iworld) = getCurrentListId tonicOpts.callTrace iworld
-  = case mclid of
+  = case tonicOpts.inParallel of
       Just currentListId
         | currentListId < parentTaskId = (defVal parentTaskId, iworld)
         # parentCallTrace     = dropFirstInstances tonicOpts.callTrace
-        # (parentCtx, iworld) = getParentContext parentTaskId currentListId parentCallTrace iworld
+        # (parentCtx, iworld) = getParentContext parentTaskId parentCallTrace iworld
         # activeTasks         = 'DM'.del parentCtx parentActiveNodes
         # activeTasks         = 'DM'.filterWithKey (\k _ -> k >= parentCtx) activeTasks
         # taskListFilter      = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}

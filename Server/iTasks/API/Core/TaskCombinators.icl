@@ -200,6 +200,8 @@ where
     match f (e :: e^)	= Just (f e, DeferredJSON e)
     match _ _			= Nothing
 
+setParallel taskId evalOpts = {evalOpts & tonicOpts = {evalOpts.tonicOpts & inParallel = Just taskId}}
+
 // Parallel composition
 parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | iTask a
 parallel initTasks conts = Task eval
@@ -207,7 +209,7 @@ where
     //Create initial task list
     eval event evalOpts (TCInit taskId ts) iworld=:{IWorld|current}
       //Create the states for the initial tasks
-      # (mbParTasks,iworld) = initParallelTasks (extendCallTrace taskId evalOpts) taskId 0 initTasks iworld
+      # (mbParTasks,iworld) = initParallelTasks (setParallel taskId (extendCallTrace taskId evalOpts)) taskId 0 initTasks iworld
       = case mbParTasks of
           Ok (taskList,embeddedTasks)
             //Write the local task list
@@ -218,7 +220,7 @@ where
             # (e,iworld) = writeAll embeddedTasks taskInstanceEmbeddedTask iworld
             | isError e = (ExceptionResult (fromError e),iworld)
             //Evaluate the parallel
-            = eval event (extendCallTrace taskId evalOpts) (TCParallel taskId ts []) iworld
+            = eval event (setParallel taskId (extendCallTrace taskId evalOpts)) (TCParallel taskId ts []) iworld
           Error err = (ExceptionResult err, iworld)
       where
       writeAll [] sds iworld = (Ok (),iworld)
@@ -354,7 +356,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
         //TODO: remove the task evaluation function
         = evalParallelTasks listId taskTrees event evalOpts conts [result:completed] todo iworld
     | otherwise
-        # (result,iworld)   = evala event (extendCallTrace taskId {TaskEvalOpts|evalOpts & useLayout=Nothing,modLayout=Nothing}) tree iworld
+        # (result,iworld)   = evala event (setParallel listId (extendCallTrace taskId {TaskEvalOpts|evalOpts & useLayout=Nothing,modLayout=Nothing})) tree iworld
         = case result of
             //If an exception occured, check if we can handle it at this level
             ExceptionResult e
