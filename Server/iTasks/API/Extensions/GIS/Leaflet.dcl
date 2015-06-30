@@ -2,7 +2,7 @@ definition module iTasks.API.Extensions.GIS.Leaflet
 
 import iTasks
 
-:: JSLM = JSLM
+//:: JSLM = JSLM
 
 :: LeafletMap =
     { perspective   :: LeafletPerspective

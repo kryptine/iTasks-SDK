@@ -19,12 +19,12 @@ gUpdate{|ControlLight|} dp upd (v,mask) iworld
     = ((editlet.currVal,mask),iworld)
 
 //SVG Based fake control light
-controlLightEditlet :: ControlLight -> Editlet ControlLight ControlLight
+controlLightEditlet :: ControlLight -> Editlet ControlLight ControlLight ()
 controlLightEditlet t
     = {Editlet
       |currVal = t
       ,defValSrv = gDefault{|*|}
-      ,defValClt = ()
+	  ,initClient = \_ _ w -> ((),w)
       ,genUI = genUI
       ,appDiffClt = updateUI
       ,genDiffSrv = \a b -> if (a===b) Nothing (Just b)
@@ -32,8 +32,8 @@ controlLightEditlet t
       }
 where
 	genUI cid world
-		  =({ html 			= svgLight cid
-		  	, eventHandlers = const []
+		  =({ ComponentHTML
+            | html 			= svgLight cid
 		  	, width 		= ExactSize 20
 		  	, height 		= ExactSize 20
 		  	},world)
