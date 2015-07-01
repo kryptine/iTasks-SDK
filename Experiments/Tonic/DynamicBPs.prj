@@ -7,7 +7,7 @@ Global
 		CheckStacks:	False
 		CheckIndexes:	True
 	Application
-		HeapSize:	2097152000
+		HeapSize:	362144000
 		StackSize:	20971520
 		ExtraMemory:	81920
 		IntialHeapSize:	8388608
@@ -661,20 +661,6 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Data.Generic
-		Dir:	{Application}/lib/iTasks-SDK/Dependencies/Platform/OS-Independent
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	Data.Graph
 		Dir:	{Application}/lib/iTasks-SDK/Dependencies/Platform/OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
