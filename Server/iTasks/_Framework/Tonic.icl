@@ -255,15 +255,19 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
   setBPTaskId :: !TaskId !TaskEvalOpts -> TaskEvalOpts
   setBPTaskId tid evalOpts = modTonicOpts evalOpts (\teo -> {teo & currBlueprintTaskId = tid})
 
+  resetInhOpts :: !TaskEvalOpts -> TaskEvalOpts
+  resetInhOpts evalOpts = modTonicOpts evalOpts (\teo -> {teo & inParallel = Nothing
+                                                              , inAssignNode = Nothing })
+
   preEval event evalOpts taskTree iworld
     # (mmn, iworld) = getModule` mn iworld
     = case mmn of
         Ok mod -> eval` mod event evalOpts taskTree iworld
-        _      -> eval event (setBlueprintInfo evalOpts) taskTree iworld
+        _      -> eval event (resetInhOpts (setBlueprintInfo evalOpts)) taskTree iworld
   eval` mod event evalOpts=:{tonicOpts={callTrace, currBlueprintTaskId}} taskTree=:(TCInit currTaskId=:(TaskId instanceNo _) _) iworld
     # (mrtMap, iworld) = 'DSDS'.read tonicSharedRT iworld
     # iworld           = okSt iworld updateInstance mrtMap
-    = eval event (setBPTaskId currTaskId (setBlueprintInfo evalOpts)) taskTree iworld
+    = eval event (resetInhOpts (setBPTaskId currTaskId (setBlueprintInfo evalOpts))) taskTree iworld
     where
     updateInstance rtMap iworld =
       case getTonicTask mod tn of
@@ -271,9 +275,6 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
           # (curr,   iworld) = iworld!current
           # (clocks, iworld) = iworld!clocks
           # (muser, iworld)  = 'DSDS'.read (sdsFocus instanceNo taskInstanceUser) iworld
-          # muser            = case muser of
-                                 Ok u -> Just u
-                                 _    -> Nothing
           # bpinst           = { BlueprintInstance
                                | bpi_taskId           = currTaskId
                                , bpi_startTime        = DateTime clocks.localDate clocks.localTime
@@ -285,7 +286,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                                           Just p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
                                                           _      -> Nothing
                                , bpi_blueprint        = bprep
-                               , bpi_currentUser      = muser
+                               , bpi_currentUser      = error2mb muser
                                , bpi_nodeTaskIdMap    = 'DM'.newMap
                                }
           # blueprint        = { BlueprintRef
@@ -299,7 +300,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
         _ = iworld
 
   eval` _ event evalOpts taskTree=:(TCDestroy _) iworld
-    # (tr, iworld) = eval event (setBlueprintInfo evalOpts) taskTree iworld
+    # (tr, iworld) = eval event (resetInhOpts (setBlueprintInfo evalOpts)) taskTree iworld
     = (tr, okSt iworld logTaskEnd (taskIdFromTaskTree taskTree))
     where
     logTaskEnd currTaskId iworld
@@ -320,20 +321,20 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
           _  = iworld
 
   eval` _ event evalOpts taskTree=:(TCStable currTaskId _ _) iworld
-    # (tr, iworld) = eval event (setBPTaskId currTaskId (setBlueprintInfo evalOpts)) taskTree iworld
+    # (tr, iworld) = eval event (resetInhOpts (setBPTaskId currTaskId (setBlueprintInfo evalOpts))) taskTree iworld
     = markStable currTaskId tr event taskTree iworld
 
   eval` _ event evalOpts taskTree=:TCNop iworld
-    = eval event (setBlueprintInfo evalOpts) taskTree iworld
+    = eval event (resetInhOpts (setBlueprintInfo evalOpts)) taskTree iworld
 
   eval` _ event evalOpts taskTree=:TCTasklet iworld
-    = eval event (setBlueprintInfo evalOpts) taskTree iworld
+    = eval event (resetInhOpts (setBlueprintInfo evalOpts)) taskTree iworld
 
   eval` _ event evalOpts taskTree iworld
     # evalOpts     = case taskIdFromTaskTree taskTree of
                        Ok tid -> setBPTaskId tid evalOpts
                        _      -> evalOpts
-    # (tr, iworld) = eval event (setBlueprintInfo evalOpts) taskTree iworld
+    # (tr, iworld) = eval event (resetInhOpts (setBlueprintInfo evalOpts)) taskTree iworld
     # iworld       = case (taskIdFromTaskTree taskTree, tr) of
                        (Ok tid, ValueResult (Value _ True) _ _ _) -> snd (markStable tid tr event taskTree iworld)
                        _                                          -> iworld
