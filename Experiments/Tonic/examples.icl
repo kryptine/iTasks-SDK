@@ -22,10 +22,11 @@ myExamples = 	[	workflow "palindrome" 					"accepts palindrome string " 	palindr
 				,	workflow "monitor a list maker"			"one user creates a list and another can monitor this" monitorPersons
 
 				,	workflow "monitor a GoogleMap browser"	"one user browses and another can monitor this" monitorGoogleMap
-				,	workflow "chat with a GoogleMap browser"	"one user browses and another can monitor and comment on this" chatAboutMap
+				,	workflow "chat 1"							"two users can chat with each other" chat1
+				,	workflow "chat 2"							"two users can chat with each other, and point to interesting points on a map" chat2
 
 
-				,	workflow "Manage users"	"Manage system users..." 		manageUsers
+				,	workflow "Manage users"					"Create users and logins..." 		manageUsers
 			 	]
  
  
@@ -96,9 +97,19 @@ monitorWorker (me,worker)
 			       ((me, "View Information") @: viewSharedInformation    ("Viewer, worker is " <+++ worker)  [] share) 
 	    )
 
-chatAboutMap :: Task (Note,Note)
-chatAboutMap = chat
+chat1 :: Task (Note,Note)
+chat1 = chat
 	    
+chat2 :: Task ((GoogleMap,Situation),Reaction)
+chat2 = chat
+
+:: Situation	= AllIsFine | Fire | WaterProblem | TrafficAccident | OtherIssue Note
+:: Reaction		= NoActionProposed | SendFireBrigate | SendPolice | SendSpecialForces | OtherProposal Note
+
+derive class iTask Situation, Reaction
+
+// general chat where one user provides information of arbitrary type a, and the other can respond with arbitrary type b
+
 chat :: Task (a,b) | iTask a & iTask b
 chat =							selectCoWorker "with whom do you want to work ? "
 		>>= \(me,colleague) ->	withShared defaultValue 
@@ -109,9 +120,10 @@ chat =							selectCoWorker "with whom do you want to work ? "
 			))
 where
 	updateAndView (me,workOfMe) (you,workOfYou)
-		= 	updateSharedInformation  ("Please enter your information: " <+++ me) [] workOfMe
-			-||  
-			viewSharedInformation    ("You are looking at the information of: " <+++ you) [] workOfYou 
+		= 	viewSharedInformation    ("You are looking at the response of: " <+++ you) [] workOfYou 
+			||-
+			updateSharedInformation  ("Please enter your information: " <+++ me) [] workOfMe
+			
 	    
 	    
 	    
