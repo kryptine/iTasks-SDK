@@ -18,11 +18,12 @@ import iTasks.API.Extensions.Admin.TonicAdmin
 //
 // Known issues:
 // You cannot create an new aplication when the old one is still running, it results in a linker error.
-// It often happens that you start the application, while the previous version is still running. You have to kill the previous one first.
-// If the browser does not show anything: remove the examples-data folder from disk, and restart the application.
+// It may happen that you start the application, while the previous version is still running. You have to kill the previous one first.
+// If the browser does not show anything: remove the "examples-data" and "tonic" folders from directory where this examples.icl file is located, and restart the application.
 // If a browser page only shows fragments: use an html 5 compatible browser.
 // If you have started a task, but you don't see it appear: click somewhere in the page, and the new task should appear now.
 // If you inspect a task value, but it is not shown: wait until a new value has been created with the task or refresh the tab (close it and open it again)
+// It may take a while when Google maps are syncronized between the users, and due to a known bug, sometimes updates get lost... 
 
 
 Start :: *World -> *World
@@ -60,8 +61,8 @@ myExamples = 	[	workflow "enter a value" 				"Enter a value and inspect its resu
 enterValue :: Task Int
 enterValue = enterInformation "Enter a value" [] >>= \number -> viewInformation "You entered the value: " [] number
 
-// Exercise 2: Change the type of enterValue and try again
-// Define your own type (algebraic data type / record type) and try again.
+// Exercise 2: Change the type of enterValue to :: Task [Person] and try again
+// Define your own type (algebraic data type / record type) myType :: .... | ...| ... and try again.
 // Don't forget to add: derive class iTask myType
 
 // -- palindrome
@@ -97,9 +98,9 @@ add1by1 list_so_far
 		    ,  OnAction  ActionCancel 	      (always (return []))
 	        ]
 
-// Exercise 4: Define a task integers1by1 which creates a list of Int.
+// Exercise 4: Define a task integers1by1 which creates a list of Int in the same style as persons1by1.
 
-// Exercise 5: See exercise 4, but now do it again for the type you have defined in Exercise 2.
+// Exercise 5: See exercise 4, but now do it again for the type myType you have defined in Exercise 2.
 
 // -- delegate
 
@@ -110,7 +111,7 @@ delegate task
 		>>= \result ->	viewInformation "The result is:" [] result
 
 
-// Exercise 6: Use delegate to let someone else create a list of values of the type defined in Exercise 2.
+// Exercise 6: Use delegate to let someone else create a list of values of the type myType defined in Exercise 2.
 
 // -- Monitor the work of someone else
 
@@ -138,7 +139,7 @@ monitorWorker (me,worker)
 			       ((me, "View Information") @: viewSharedInformation    ("Viewer, worker is " <+++ worker)  [] share) 
 	    )
 
-// Exercise 7: Let someone else work on creating a value of you favorite type and monitor its progress while the work takes place
+// Exercise 7: Let someone else work on creating a value of you favorite type myType and monitor its progress while the work takes place
 
 // -- Chat variants
 
