@@ -5,13 +5,18 @@ import iTasks
  
 import iTasks.API.Extensions.Admin.TonicAdmin
 
+// You need to have or to make an "example.prj" file (
+// If it is not avaialble, open and select examples.icl, the choose "File/New Project ..." in the Clean IDE
+// Choose "Environment/iTaskTonic" environment as environment.
+// Choose "Project/Update and Run (Ctrl R)" to compile and execute this module
+// Repair the errors reported by the Clean compiler...
+
 // To work with the iTask tasks defined in this module, start your browser and surf to "localhost".
 // You can login as "root", "alice", "bob", "carol", "dave", "eve", "fred"... with as password the same as the login name.
 // You can login with any number of users.
 // If you like, you can add other users with the task "Manage users".
 //
 // When you want to use Tonic to inspect the work that is going on, surf to "localhost/tonic" 
-// This will only work if you have compiled this module with the iTaskTonic environment as chosen environment.
 //
 // If you know the IP address of the machine this application is running on, you can login with any other browser running on any other machine.
 // It should work on any browser supporting Html 5, but we strongly recommend Google Chrome.
