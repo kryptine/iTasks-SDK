@@ -572,18 +572,18 @@ setActiveNodes tonicOpts {bpi_taskId = parentTaskId, bpi_activeNodes = parentAct
   = case tonicOpts.inParallel of
       Just currentListId
         | currentListId < parentTaskId = (defVal parentTaskId, iworld)
-        # parentCallTrace     = dropFirstInstances tonicOpts.callTrace
-        # (parentCtx, iworld) = getParentContext parentTaskId parentCallTrace iworld
-        # activeTasks         = 'DM'.del parentCtx parentActiveNodes
-        # activeTasks         = 'DM'.filterWithKey (\k _ -> k >= parentCtx) activeTasks
         # taskListFilter      = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
         # (mTaskList, iworld) = 'DSDS'.read (sdsFocus (currentListId, taskListFilter) taskInstanceParallelTaskList) iworld
         = case mTaskList of
             Ok taskList
               = case getTaskListIndex tonicOpts.callTrace taskList of
                   Just index
-                    # activeSubTasks = fromMaybe 'DIS'.newMap ('DM'.get currentListId activeTasks)
-                    # activeSubTasks = 'DIS'.put index (childTaskId, nid) activeSubTasks
+                    # parentCallTrace     = dropFirstInstances tonicOpts.callTrace
+                    # (parentCtx, iworld) = getParentContext parentTaskId parentCallTrace iworld
+                    # activeTasks         = 'DM'.del parentCtx parentActiveNodes
+                    # activeTasks         = 'DM'.filterWithKey (\k _ -> k >= parentCtx) activeTasks
+                    # activeSubTasks      = fromMaybe 'DIS'.newMap ('DM'.get currentListId activeTasks)
+                    # activeSubTasks      = 'DIS'.put index (childTaskId, nid) activeSubTasks
                     = ('DM'.put currentListId activeSubTasks activeTasks, iworld)
                   _ = (defVal currentListId, iworld)
             _ = (defVal currentListId, iworld)
