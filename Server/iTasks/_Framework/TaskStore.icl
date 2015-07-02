@@ -310,7 +310,7 @@ where
 
 // Match parallel task IDs to callTraces
 parallelListId :: RWShared TaskId TaskId TaskId
-parallelListId = sdsTranslate "parallelListId" (\t -> t +++> "-parallelListId") (cachedJSONFileStore NS_TASK_INSTANCES True False True Nothing)
+parallelListId = sdsTranslate "parallelListId" (\t -> t +++> "-parallelListId") (memoryStore NS_TASK_INSTANCES Nothing)
 
 import StdDebug
 derive gText ParallelTaskState
