@@ -67,8 +67,8 @@ enterValue :: Task Int
 enterValue = enterInformation "Enter a value" [] >>= \number -> viewInformation "You entered the value: " [] number
 
 // Exercise 2: Change the type of enterValue to :: Task [Person] and try again
-// Define your own type (algebraic data type / record type) myType :: .... | ...| ... and try again.
-// Don't forget to add: derive class iTask myType
+// Define your own type (algebraic data type / record type) :: MyType = .... | ...| ... or :: MyType = { .. :: .., .. :: .. } and try again.
+// Don't forget to add: derive class iTask MyType
 
 // -- palindrome
  
@@ -105,7 +105,7 @@ add1by1 list_so_far
 
 // Exercise 4: Define a task integers1by1 which creates a list of Int in the same style as persons1by1.
 
-// Exercise 5: See exercise 4, but now do it again for the type myType you have defined in Exercise 2.
+// Exercise 5: See exercise 4, but now do it again for the type MyType you have defined in Exercise 2.
 
 // -- delegate
 
@@ -116,7 +116,7 @@ delegate task
 		>>= \result ->	viewInformation "The result is:" [] result
 
 
-// Exercise 6: Use delegate to let someone else create a list of values of the type myType defined in Exercise 2.
+// Exercise 6: Use delegate to let someone else create a list of values of the type MyType defined in Exercise 2.
 
 // -- Monitor the work of someone else
 
@@ -144,7 +144,7 @@ monitorWorker (me,worker)
 			       ((me, "View Information") @: viewSharedInformation    ("Viewer, worker is " <+++ worker)  [] share) 
 	    )
 
-// Exercise 7: Let someone else work on creating a value of you favorite type myType and monitor its progress while the work takes place
+// Exercise 7: Let someone else work on creating a value of you favorite type MyType and monitor its progress while the work takes place
 
 // -- Chat variants
 
