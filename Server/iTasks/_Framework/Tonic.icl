@@ -44,6 +44,7 @@ import GenLexOrd
 from Control.Monad import `b`, class Monad, instance Monad Maybe
 import qualified Control.Applicative as CA
 from Control.Applicative import class Applicative, instance Applicative Maybe
+import Data.CircularStack
 
 //-----------------------------------------------------------------------------
 // TYPES
@@ -109,7 +110,8 @@ instance TonicBlueprintPart Maybe where
   tonicWrapTraversable _ _ f args = f args
 
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
-                   DynamicView, AdditionalInfo, BlueprintQuery, UIAction
+                   DynamicView, AdditionalInfo, BlueprintQuery, UIAction,
+                   CircularStack
 
 //-----------------------------------------------------------------------------
 // SHARES
@@ -546,16 +548,18 @@ evalInteract (parentModuleName, parentTaskName) childTaskName nid tr childTaskId
             = snd ('DSDS'.write (resultToOutput (n + 1) childTaskId tr) childFocus iworld)
       _ = iworld
 
+dropFirstInstances :: !Calltrace -> Calltrace
+dropFirstInstances trace
+  = case pop trace of
+      (Just (TaskId ino _), trace) = dropFirstInstances` ino trace
+      _                            = trace
 
-dropFirstInstances :: ![TaskId] -> [TaskId]
-dropFirstInstances [] = []
-dropFirstInstances [TaskId ino _ : xs] = dropFirstInstances` ino xs
-
-dropFirstInstances` :: !Int ![TaskId] -> [TaskId]
-dropFirstInstances` _   [] = []
-dropFirstInstances` ino [TaskId ino` _ : xs]
-  | ino == ino` = dropFirstInstances` ino xs
-  | otherwise   = xs
+dropFirstInstances` :: !Int !Calltrace -> Calltrace
+dropFirstInstances` ino trace
+  = case pop trace of
+      (Just (TaskId ino` _), trace)
+        | ino == ino` = dropFirstInstances` ino trace
+      _ = trace
 
 dump x = toString (toJSON x)
 
@@ -583,29 +587,35 @@ setActiveNodes tonicOpts {bpi_taskId = parentTaskId, bpi_activeNodes = parentAct
   defVal tid = 'DM'.singleton tid ('DIS'.singleton 0 (childTaskId, nid))
 
   getTaskState :: !Calltrace ![ParallelTaskState] -> Maybe ParallelTaskState
-  getTaskState [] _ = Nothing
-  getTaskState [ct : callTrace] ss
-    = case [ts \\ ts=:{ParallelTaskState | taskId} <- ss | ct == taskId] of
-        [ts : _] -> Just ts
-        _        -> getTaskState callTrace ss
+  getTaskState trace ss
+     = case pop trace of
+         (Just ct, trace)
+           = case [ts \\ ts=:{ParallelTaskState | taskId} <- ss | ct == taskId] of
+               [ts : _] -> Just ts
+               _        -> getTaskState trace ss
+         _ = Nothing
 
   getParentContext :: !TaskId !Calltrace -> TaskId
-  getParentContext parentTaskId [] = parentTaskId
-  getParentContext parentTaskId [TaskId ino _ : xs]
-    # parentTraceId = TaskId ino 0
-    | parentTraceId < parentTaskId = parentTaskId
-    | otherwise
-        = case findNext ino xs of
-            Just parentContextId
-              | parentContextId < parentTaskId = parentTaskId
-              | otherwise                      = parentContextId
-            _ = parentTaskId
+  getParentContext parentTaskId trace
+    = case pop trace of
+        (Just (TaskId ino _), trace)
+          # parentTraceId = TaskId ino 0
+          | parentTraceId < parentTaskId = parentTaskId
+          | otherwise
+              = case findNext ino trace of
+                  Just parentContextId
+                    | parentContextId < parentTaskId = parentTaskId
+                    | otherwise                      = parentContextId
+                  _ = parentTaskId
+        _ = parentTaskId
     where
     findNext :: !InstanceNo !Calltrace -> Maybe TaskId
-    findNext _ [] = Nothing
-    findNext ino [tid=:(TaskId ino` _) : xs]
-      | ino <> ino` = Just tid
-      | otherwise   = findNext ino xs
+    findNext ino trace
+      = case pop trace of
+          (Just tid=:(TaskId ino` _), trace)
+            | ino <> ino` = Just tid
+            | otherwise   = findNext ino trace
+          _ = Nothing
 
 withSharedRT :: (TonicRTMap *IWorld -> *IWorld) *IWorld -> *IWorld
 withSharedRT f world

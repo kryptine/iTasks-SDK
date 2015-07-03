@@ -31,7 +31,7 @@ from iTasks.API.Core.Types import :: DateTime
 
 :: TonicRTMap :== Map TaskId BlueprintRef
 
-:: Calltrace :== [TaskId]
+:: Calltrace :== CircularStack TaskId
 
 :: TStability = TNoVal | TStable | TUnstable
 

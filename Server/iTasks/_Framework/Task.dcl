@@ -9,6 +9,7 @@ import iTasks._Framework.Generic
 from iTasks._Framework.TaskState			import :: TaskTree
 from iTasks.API.Core.LayoutCombinators	import :: LayoutRules
 from Data.Map				import :: Map
+from Data.CircularStack import :: CircularStack
 
 derive JSONEncode		Task
 derive JSONDecode		Task
@@ -49,7 +50,7 @@ derive gEq				Task
   , inParallel          :: Maybe TaskId
   , currBlueprintName   :: (String, String)
   , currBlueprintTaskId :: TaskId
-  , callTrace           :: [TaskId]
+  , callTrace           :: CircularStack TaskId
   }
 
 mkEvalOpts :: TaskEvalOpts

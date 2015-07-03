@@ -13,6 +13,7 @@ from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :
 from iTasks.API.Core.LayoutCombinators	import :: LayoutRules(..), autoLayoutRules
 from iTasks.API.Common.SDSCombinators	import toDynamic 
 from iTasks								import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
+import qualified Data.CircularStack as DCS
 
 mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =
@@ -29,7 +30,7 @@ defaultTonicOpts = { TonicOpts
                    , inParallel          = Nothing
                    , currBlueprintName   = ("", "")
                    , currBlueprintTaskId = TaskId 0 0
-                   , callTrace           = []
+                   , callTrace           = 'DCS'.newStack 1024
                    }
 
 fromJSONOfDeferredJSON :: !DeferredJSON -> Maybe a | TC a & JSONDecode{|*|} a
@@ -78,10 +79,11 @@ finalizeRep repOpts=:{TaskEvalOpts|noUI=True} _ = NoRep
 finalizeRep repOpts rep = rep
 
 extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
-extendCallTrace taskId repOpts=:{TaskEvalOpts|tonicOpts = {callTrace = []}} = {repOpts & tonicOpts = {repOpts.tonicOpts & callTrace = [taskId]}}
-extendCallTrace taskId repOpts=:{TaskEvalOpts|tonicOpts = {callTrace = xs=:[x : _]}}
-  | taskId == x = repOpts
-  | otherwise   = {repOpts & tonicOpts = {repOpts.tonicOpts & callTrace = [taskId : xs]}}
+extendCallTrace taskId repOpts=:{TaskEvalOpts|tonicOpts = {callTrace = xs}}
+  = case 'DCS'.peek xs of
+      Just topTaskId
+        | taskId == topTaskId = repOpts
+      _ = {repOpts & tonicOpts = {repOpts.tonicOpts & callTrace = 'DCS'.push taskId repOpts.tonicOpts.callTrace}}
 
 wrapConnectionTask :: (ConnectionHandlers l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
 wrapConnectionTask {ConnectionHandlers|onConnect,whileConnected,onDisconnect} sds
