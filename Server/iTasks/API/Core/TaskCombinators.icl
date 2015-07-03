@@ -280,7 +280,6 @@ initParallelTask evalOpts=:{tonicOpts = {callTrace}} listId index parType parTas
                              NamedDetached name attributes evalDirect = mkDetached ('DM'.put "name" name attributes) evalDirect iworld
   = case mbTaskStuff of
       Ok (taskId,attributes,mbTask)
-        # (_, iworld) = write listId (sdsFocus taskId parallelListId) iworld
         # state       = { ParallelTaskState
                         | taskId     = taskId
                         , index      = index

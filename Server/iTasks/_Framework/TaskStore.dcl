@@ -52,9 +52,6 @@ taskInstanceShares      :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId
 //Shared source 
 localShare              :: RWShared TaskId a a | iTask a
 
-// Match TaskIds to the parallel listId which maintains them
-parallelListId :: RWShared TaskId TaskId TaskId
-
 //Core parallel task list state structure
 taskInstanceParallelTaskList        :: RWShared (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
 //Private interface used during evaluation of parallel combinator

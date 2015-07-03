@@ -49,7 +49,6 @@ derive gEq				Task
   , inParallel          :: Maybe TaskId
   , currBlueprintName   :: (String, String)
   , currBlueprintTaskId :: TaskId
-  //, currContextName     :: (String, String)
   , callTrace           :: [TaskId]
   }
 

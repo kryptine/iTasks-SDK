@@ -308,11 +308,6 @@ where
     write taskId shares w = Ok (Just ('DM'.put taskId (toJSON w) shares))
     notify taskId _ = (==) taskId
 
-// Match parallel task IDs to callTraces
-parallelListId :: RWShared TaskId TaskId TaskId
-parallelListId = sdsTranslate "parallelListId" (\t -> t +++> "-parallelListId") (memoryStore NS_TASK_INSTANCES Nothing)
-
-import StdDebug
 derive gText ParallelTaskState
 
 taskInstanceParallelTaskList :: RWShared (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
