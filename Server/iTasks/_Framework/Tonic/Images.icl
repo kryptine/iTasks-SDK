@@ -416,7 +416,8 @@ renderParallelContainer inh eid moduleName taskName descr syn_branches uContextT
   #! isActive           = isJust mActiveTid
   #! mPrevActiveTid     = 'DM'.get eid inh.inh_prev
   #! mbNavTo            = if isActive mActiveTid mPrevActiveTid
-  #! stability          = maybe (maybe TNoVal (const TStable) mPrevActiveTid) (\tid -> fromMaybe TNoVal ('DM'.get tid inh.inh_outputs)) mActiveTid
+  #! stability          = let f tid = fromMaybe TNoVal ('DM'.get tid inh.inh_outputs)
+                          in maybe (maybe TNoVal f mPrevActiveTid) f mActiveTid
   #! mTaskId            = case (mActiveTid, mPrevActiveTid) of
                             (Just x, _) -> Just x
                             (_, Just x) -> Just x
@@ -566,7 +567,8 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
   #! mPrevActiveTid     = 'DM'.get eid inh.inh_prev
   #! mbNavTo            = if isActive mActiveTid mPrevActiveTid
   #! wasActive          = isJust mPrevActiveTid
-  #! stability          = maybe (maybe TNoVal (const TStable) mPrevActiveTid) (\tid -> fromMaybe TNoVal ('DM'.get tid inh.inh_outputs)) mActiveTid
+  #! stability          = let f tid = fromMaybe TNoVal ('DM'.get tid inh.inh_outputs)
+                          in maybe (maybe TNoVal f mPrevActiveTid) f mActiveTid
   #! mTaskId            = case (mActiveTid, mPrevActiveTid) of
                             (Just x, _) -> Just x
                             (_, Just x) -> Just x
