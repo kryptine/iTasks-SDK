@@ -16,8 +16,6 @@ from Data.Set import :: Set
 from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
 from iTasks.API.Core.Types import class TMonad, class TApplicative, class TFunctor
 from Data.Functor import class Functor
-from Data.Foldable import class Foldable
-from Data.Traversable import class Traversable
 
 // For all of these classes goes that the iTask context restriction shouldn't
 // be there. Ideally, we would have something like associated type families
@@ -28,7 +26,6 @@ class TonicTopLevelBlueprint m | TMonad m where
 
 class TonicBlueprintPart m | TMonad m where
   tonicWrapApp         :: !(!ModuleName, !TaskName) !ExprId (m a) -> m a | iTask a
-  tonicWrapTraversable :: !(!ModuleName, !TaskName) !ExprId !([m a] -> m b) [m a] -> m b | iTask b // TODO Generalise
 
 instance TonicTopLevelBlueprint Task
 instance TonicBlueprintPart Task
@@ -59,5 +56,3 @@ tonicExtWrapAppLam1     :: !(!ModuleName, !TaskName) !ExprId !(b     -> m a) -> 
 tonicExtWrapAppLam2     :: !(!ModuleName, !TaskName) !ExprId !(b c   -> m a) -> b c   -> m a | TonicBlueprintPart m & iTask a
 
 tonicExtWrapAppLam3     :: !(!ModuleName, !TaskName) !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
-
-tonicExtWrapTraversable :: !(!ModuleName, !TaskName) !ExprId !([m a] -> m b) [m a] -> m b | TonicBlueprintPart m & iTask b
