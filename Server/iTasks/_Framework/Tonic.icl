@@ -905,23 +905,36 @@ tonicDynamicBrowser rs
   activeUsers :: Task ()
   activeUsers
     = whileUnchanged taskInstanceIndex (
-    \timetas -> viewInformation (Title "Active users") [] (mergeSort (nub [usr \\ Ok usr <- map (\timeta -> userFromAttr () timeta.TIMeta.attributes) timetas]))
-    ) @! ()
+        \timetas -> let userData = mergeSortBy (\(l, _) (r, _) -> l <= r) (nub [(usr, dt) \\ (Ok usr, dt) <- map (\timeta -> (userFromAttr () timeta.TIMeta.attributes, timeta.TIMeta.progress.InstanceProgress.lastIO)) timetas | usr <> SystemUser])
+                    in  whileUnchanged currentDateTime (
+    \currDT -> enterChoice (Title "Active users") [ChooseWith (ChooseFromGrid (mkUsersView currDT))] userData
+    )) @! ()
 
-merge []         ys = ys
-merge xs         [] = xs
-merge xs=:[x:xt] ys=:[y:yt]
-  | x <= y    = [x : merge xt ys]
-  | otherwise = [y : merge xs yt]
+:: UsersView = { username :: User, inactivity :: String }
+derive class iTask UsersView
+
+mkUsersView :: DateTime (User, Maybe DateTime) -> UsersView
+mkUsersView currDT (usr, Just mLastIO)
+  # (DateTime _ dt) = currDT - mLastIO
+  # st = if (dt.Time.min > 0) "> 1m" (if (dt.Time.sec > 30) "> 30s" "")
+  = { username = usr, inactivity = st }
+mkUsersView currDT (usr, _) = { username = usr, inactivity = ""}
+
+merge _ []         ys = ys
+merge _ xs         [] = xs
+merge f xs=:[x:xt] ys=:[y:yt]
+  | f x y    = [x : merge f xt ys]
+  | otherwise = [y : merge f xs yt]
 
 split [x:y:zs] = let (xs,ys) = split zs in ([x:xs], [y:ys])
 split [x]      = ([x],[])
 split []       = ([],[])
 
-mergeSort []  = []
-mergeSort [x] = [x]
-mergeSort xs  = let (as,bs) = split xs
-                in merge (mergeSort as) (mergeSort bs)
+mergeSortBy _ []  = []
+mergeSortBy _ [x] = [x]
+mergeSortBy f xs
+  # (as,bs) = split xs
+  = merge f (mergeSortBy f as) (mergeSortBy f bs)
 
 derive gDefault  TIMeta
 derive gEq       TIMeta
