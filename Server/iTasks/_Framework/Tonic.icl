@@ -906,9 +906,8 @@ tonicDynamicBrowser rs
   activeUsers
     = whileUnchanged taskInstanceIndex (
         \timetas -> let userData = mergeSortBy (\(l, _) (r, _) -> l <= r) (nub [(usr, dt) \\ (Ok usr, dt) <- map (\timeta -> (userFromAttr () timeta.TIMeta.attributes, timeta.TIMeta.progress.InstanceProgress.lastIO)) timetas | usr <> SystemUser])
-                    in  whileUnchanged currentDateTime (
-    \currDT -> enterChoice (Title "Active users") [ChooseWith (ChooseFromGrid (mkUsersView currDT))] userData
-    )) @! ()
+                    in  get currentDateTime >>= \currDT -> enterChoice (Title "Active users") [ChooseWith (ChooseFromGrid (mkUsersView currDT))] userData
+      ) @! ()
 
 :: UsersView = { username :: User, inactivity :: String }
 derive class iTask UsersView
