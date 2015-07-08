@@ -30,6 +30,8 @@ newInstanceNo           :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*I
 newInstanceKey          :: !*IWorld -> (!InstanceKey,!*IWorld)
 newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)
 
+taskInstanceIndex :: RWShared () [TIMeta] [TIMeta]
+
 //Task instance state is accessible as shared data sources
 filteredInstanceIndex   :: RWShared InstanceFilter [InstanceData] [InstanceData]
 

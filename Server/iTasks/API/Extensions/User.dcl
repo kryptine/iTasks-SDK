@@ -118,3 +118,5 @@ assign :: !TaskAttributes !(Task a) -> Task a | iTask a
 
 
 appendTopLevelTaskFor :: !worker !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
+
+userFromAttr :: a TaskAttributes -> MaybeError TaskException User

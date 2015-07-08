@@ -140,19 +140,21 @@ taskInstanceUser = sdsLens "taskInstanceUser" id (SDSRead userFromAttr) (SDSWrit
 where
 	notify _ _ _ = const True
 
+userFromAttr :: a TaskAttributes -> MaybeError TaskException User
 userFromAttr _ attr = case 'DM'.get "auth-user" attr of
 	Just userId 	= Ok (AuthenticatedUser userId (maybe [] (split ",") ('DM'.get "auth-roles" attr)) ('DM'.get "auth-title" attr))
 	_ 				= case 'DM'.get "session" attr of
 		Just session 	= Ok (AnonymousUser session)
 		_				= Ok SystemUser
 
+userToAttr :: a TaskAttributes User -> MaybeError TaskException (Maybe TaskAttributes)
 userToAttr _ attr (AuthenticatedUser userId userRoles userTitle)
 	//Update user properties
 	# attr = 'DM'.put "auth-user" userId attr
 	# attr = if (isEmpty userRoles) ('DM'.del "auth-roles" attr) ('DM'.put "auth-roles" (join "," userRoles) attr)
 	# attr = maybe ('DM'.del "auth-title" attr) (\title -> 'DM'.put "auth-title" title attr) userTitle
 	= Ok (Just attr) 
-userToAttr _ attr _  
+userToAttr _ attr _
 	//Remove user properties
 	# attr = 'DM'.del "auth-user" attr
 	# attr = 'DM'.del "auth-roles" attr

@@ -863,14 +863,15 @@ tonicDynamicBrowser rs
   \navstack -> (parallel [ (Embedded, \_ -> tonicDynamicBrowser` rs navstack)
                          , (Embedded, \_ -> settingsViewer)
                          , (Embedded, \_ -> filterQuery)
+                         , (Embedded, \_ -> activeUsers)
                          , (Embedded, \_ -> taskViewer)
                          ] [] <<@ ArrangeCustom layout <<@ FullScreen
                )) @! ()
   where
-  layout [mainTask, settingsTask, filterTask : _] actions
+  layout [mainTask, settingsTask, filterTask, usersTask : _] actions
     = arrangeWithSideBar 0 RightSide 250 True [supportArea, mainTask] actions
     where
-    supportArea = arrangeWithSideBar 0 TopSide 150 False [settingsTask, filterTask] []
+    supportArea = arrangeWithSideBar 0 TopSide 150 False [settingsTask, filterTask, usersTask] []
 
   filterQuery = updateSharedInformation (Title "Filter query") [] queryShare @! ()
 
@@ -894,11 +895,41 @@ tonicDynamicBrowser rs
         | otherwise = getN xs (n - 1)
     viewDetail _ = viewInformation (Title "Task viewer") [] "Select dynamic task" @! ()
 
+  settingsViewer :: Task ()
   settingsViewer
     =   updateSharedInformation (Title "Settings") [] dynamicDisplaySettings @! ()
 
   windowIf True t = t <<@ InWindow
   windowIf _    _ = return ()
+
+  activeUsers :: Task ()
+  activeUsers
+    = whileUnchanged taskInstanceIndex (
+    \timetas -> viewInformation (Title "Active users") [] (mergeSort (nub [usr \\ Ok usr <- map (\timeta -> userFromAttr () timeta.TIMeta.attributes) timetas]))
+    ) @! ()
+
+merge []         ys = ys
+merge xs         [] = xs
+merge xs=:[x:xt] ys=:[y:yt]
+  | x <= y    = [x : merge xt ys]
+  | otherwise = [y : merge xs yt]
+
+split [x:y:zs] = let (xs,ys) = split zs in ([x:xs], [y:ys])
+split [x]      = ([x],[])
+split []       = ([],[])
+
+mergeSort []  = []
+mergeSort [x] = [x]
+mergeSort xs  = let (as,bs) = split xs
+                in merge (mergeSort as) (mergeSort bs)
+
+derive gDefault  TIMeta
+derive gEq       TIMeta
+derive gText     TIMeta
+derive gEditor   TIMeta
+derive gEditMeta TIMeta
+derive gUpdate   TIMeta
+derive gVerify   TIMeta
 
 tonicDynamicBrowser` :: ![TaskAppRenderer] !(Shared NavStack) -> Task ()
 tonicDynamicBrowser` rs navstack =
