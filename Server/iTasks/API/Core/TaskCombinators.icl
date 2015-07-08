@@ -8,6 +8,7 @@ import iTasks._Framework.Util, iTasks._Framework.Store
 import iTasks._Framework.Generic, iTasks._Framework.UIDefinition
 import iTasks.API.Core.Types, iTasks.API.Core.LayoutCombinators
 import iTasks._Framework.IWorld
+import iTasks._Framework.Tonic
 
 import iTasks._Framework.Client.Override
 
@@ -202,6 +203,8 @@ where
 
 setParallel taskId evalOpts = {evalOpts & tonicOpts = {evalOpts.tonicOpts & inParallel = Just taskId}}
 
+import StdDebug
+
 // Parallel composition
 parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | iTask a
 parallel initTasks conts = Task eval
@@ -355,7 +358,13 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
         //TODO: remove the task evaluation function
         = evalParallelTasks listId taskTrees event evalOpts conts [result:completed] todo iworld
     | otherwise
-        # (result,iworld)   = evala event (setParallel listId (extendCallTrace taskId {TaskEvalOpts|evalOpts & useLayout=Nothing,modLayout=Nothing})) tree iworld
+        # evalOpts        = {evalOpts & tonicOpts = {evalOpts.tonicOpts & captureParallel = evalOpts.tonicOpts.inParallel == Just listId
+                                                                        , inParallel      = Just listId}}
+
+        # (result,iworld) = evala event (setParallel listId (extendCallTrace taskId {TaskEvalOpts|evalOpts & useLayout=Nothing})) tree iworld
+        # iworld          = if evalOpts.tonicOpts.captureParallel
+                              (storeTaskOutputViewer result taskId iworld)
+                              iworld
         = case result of
             //If an exception occured, check if we can handle it at this level
             ExceptionResult e

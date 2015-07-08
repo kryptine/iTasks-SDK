@@ -235,7 +235,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
   setBPTaskId tid evalOpts = modTonicOpts evalOpts (\teo -> {teo & currBlueprintTaskId = tid})
 
   resetInhOpts :: !TaskEvalOpts -> TaskEvalOpts
-  resetInhOpts evalOpts = modTonicOpts evalOpts (\teo -> {teo & inParallel = Nothing
+  resetInhOpts evalOpts = modTonicOpts evalOpts (\teo -> {teo & inParallel   = Nothing
                                                               , inAssignNode = Nothing })
 
   preEval event evalOpts taskTree iworld
@@ -459,6 +459,9 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
                     # parent_bpr = {parentBPRef & bpr_instance = Just bpi}
                     = (parent_bpr, bpi, iworld)
                   _ = (parentBPRef, parentBPInst, iworld)
+          # evalOpts     = if (isParallel wrapInfo)
+                             {evalOpts & tonicOpts = {tonicOpts & inParallel = Just childTaskId}}
+                             evalOpts
           # iworld       = updRTMap tonicOpts nid childTaskId parentBPRef parentBPInst iworld
           # (tr, iworld) = eval event (updateAssignStatus evalOpts) taskTree iworld
           // These reads need to be done here, because:
@@ -545,6 +548,7 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
     # iworld = storeTaskOutputViewer tr childTaskId iworld
     = iworld
     where
+    // TODO Register output for parallel tasks
     registerTask (TaskId parentInstanceNo parentTaskNo) (TaskId listInstanceNo listTaskNo) (n, (tid, _)) (acc, currActive, iworld)
       # (mchild_bpr, iworld) = 'DSDS'.read (sdsFocus tid tonicInstances) iworld
       = case mchild_bpr of

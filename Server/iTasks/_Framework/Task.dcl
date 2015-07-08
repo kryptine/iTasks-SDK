@@ -48,6 +48,7 @@ derive gEq				Task
 :: TonicOpts =
   { inAssignNode        :: Maybe Int
   , inParallel          :: Maybe TaskId
+  , captureParallel     :: Bool
   , currBlueprintName   :: (String, String)
   , currBlueprintTaskId :: TaskId
   , callTrace           :: CircularStack TaskId

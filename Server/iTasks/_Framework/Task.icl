@@ -28,6 +28,7 @@ defaultTonicOpts :: TonicOpts
 defaultTonicOpts = { TonicOpts
                    | inAssignNode        = Nothing
                    , inParallel          = Nothing
+                   , captureParallel     = False
                    , currBlueprintName   = ("", "")
                    , currBlueprintTaskId = TaskId 0 0
                    , callTrace           = 'DCS'.newStack 1024

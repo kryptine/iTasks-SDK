@@ -4,7 +4,7 @@ from iTasks._Framework.SDS import :: Shared, :: ReadWriteShared, :: RWShared
 from iTasks._Framework.IWorld import :: IWorld, :: SystemClocks
 from iTasks._Framework.Engine import :: PublishedTask
 import iTasks._Framework.Generic
-from iTasks._Framework.Task import :: TaskEvalOpts
+from iTasks._Framework.Task import :: TaskEvalOpts, :: TaskResult
 from iTasks.API.Core.TaskCombinators import class tune
 from iTasks.API.Core.Tasks import :: Task, :: InstanceNo
 import iTasks._Framework.Tonic.AbsSyn
@@ -56,3 +56,5 @@ tonicExtWrapAppLam1     :: !(!ModuleName, !TaskName) !ExprId !(b     -> m a) -> 
 tonicExtWrapAppLam2     :: !(!ModuleName, !TaskName) !ExprId !(b c   -> m a) -> b c   -> m a | TonicBlueprintPart m & iTask a
 
 tonicExtWrapAppLam3     :: !(!ModuleName, !TaskName) !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
+
+storeTaskOutputViewer   :: !(TaskResult a) !TaskId !*IWorld -> *IWorld | iTask a
