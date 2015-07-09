@@ -410,6 +410,7 @@ renderParallelContainer :: !InhMkImg !ExprId !ModuleName !TaskName !String
                            !SynMkImg !*ImageTag !*TagSource
                         -> *(!SynMkImg, !*TagSource)
 renderParallelContainer inh eid moduleName taskName descr syn_branches uContextTag tsrc
+  #! isDynamic          = isJust inh.inh_trt.bpr_instance
   #! mActiveTid         = case inh.inh_trt.bpr_instance of
                             Just bpinst -> activeNodeTaskId eid bpinst.bpi_activeNodes
                             _           -> Nothing
@@ -439,7 +440,7 @@ renderParallelContainer inh eid moduleName taskName descr syn_branches uContextT
                                                }
                                            <@< { stroke = if valNodeIsSelected TonicDarkBlue TonicBlack }
                                            <@< { strokewidth = if valNodeIsSelected (px 3.0) (px 1.0) }
-  #! inclArr            = beside (repeat AtMiddleY) [] [taskApp, valAnchor] Nothing
+  #! inclArr            = beside (repeat AtMiddleY) [] (if isDynamic [taskApp, valAnchor] [taskApp]) Nothing
   = ( { syn_img       = inclArr
       , syn_status    = if isActive TIsActive (if (isJust mPrevActiveTid) TAllDone TNotActive)
       , syn_stability = stability
@@ -551,6 +552,8 @@ tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"||-" [lhsExpr : rhs
   = tParSumR inh eid mn tn lhsExpr rhsExpr tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||" [lhsExpr : rhsExpr : _] _ tsrc
   = tParSumL inh eid mn tn lhsExpr rhsExpr tsrc
+tMApp inh _ _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"@!" [lhsExpr : _] _ tsrc
+  = tExpr2Image inh lhsExpr tsrc
 tMApp inh eid _ modName taskName taskArgs _ tsrc
   #! inh = {inh & inh_in_mapp = True}
   = renderTaskApp inh eid modName taskName taskArgs taskName tsrc
@@ -560,6 +563,7 @@ renderTaskApp :: !InhMkImg !ExprId !String !String ![TExpr] !String !*TagSource
 renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
   #! (taskArgs`, tsrc)  = mapSt (tExpr2Image inh) taskArgs tsrc
   #! taskArgs`          = map (\x -> x.syn_img) taskArgs`
+  #! isDynamic          = isJust inh.inh_trt.bpr_instance
   #! mActiveTid         = case inh.inh_trt.bpr_instance of
                             Just bpinst -> activeNodeTaskId eid bpinst.bpi_activeNodes
                             _           -> Nothing
@@ -594,7 +598,7 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
                                                }
                                            <@< { stroke = if valNodeIsSelected TonicDarkBlue TonicBlack }
                                            <@< { strokewidth = if valNodeIsSelected (px 3.0) (px 1.0) }
-  #! inclArr            = beside (repeat AtMiddleY) [] [taskApp, valAnchor] Nothing
+  #! inclArr            = beside (repeat AtMiddleY) [] (if isDynamic [taskApp, valAnchor] [taskApp]) Nothing
   = ( { syn_img       = inclArr
       , syn_status    = if isActive TIsActive (if (isJust mPrevActiveTid) TAllDone TNotActive)
       , syn_stability = stability
