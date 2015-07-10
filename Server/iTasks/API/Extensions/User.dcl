@@ -34,7 +34,7 @@ instance toUserConstraint UserId
 
 :: UserId		:== String
 :: Role			:== String
-:: UserTitle	:== String			//* A descriptive name of a user (not used for identification)
+:: UserTitle	:== String			// A descriptive name of a user (not used for identification)
 	
 instance toUserConstraint (a,b) | toUserConstraint a & toString b
 

@@ -302,13 +302,13 @@ derive gVerify			CheckMultiChoice
 */
 class Choice t
 where
-	//* Gets the current selection's view if present
+	// Gets the current selection's view if present
 	getSelectionView		:: !(t v)						-> Maybe v
-    //* Sets the selection based on the view value
+    // Sets the selection based on the view value
     setSelectionView        :: !(Maybe v) !(t v)            -> t v | gEq {|*|} v
-    //* Gets the index of the selection
+    // Gets the index of the selection
     getSelectionIndex       :: !(t v)                       -> Maybe Int
-    //* Sets the index of the selection
+    // Sets the index of the selection
     setSelectionIndex       :: !(Maybe Int) !(t v)          -> t v
 
 instance Choice ComboChoice,RadioChoice,ListChoice,TreeChoice,GridChoice,DynamicChoice
@@ -323,11 +323,11 @@ instance Choice ComboChoice,RadioChoice,ListChoice,TreeChoice,GridChoice,Dynamic
 */
 class MultiChoice choiceType
 where
-	//* Selects the given options, selections not present in list of options are ignored
+	// Selects the given options, selections not present in list of options are ignored
 	selectOptions			:: ![o] !(choiceType v o)					-> choiceType v o | gEq{|*|} o
-	//* Gets the current selections
+	// Gets the current selections
 	getSelections			:: !(choiceType v o)						-> [o]
-	//* Gets the current selection's views
+	// Gets the current selection's views
 	getSelectionViews		:: !(choiceType v o)						-> [v]
 
 instance MultiChoice CheckMultiChoice
