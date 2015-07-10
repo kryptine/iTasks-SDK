@@ -118,7 +118,7 @@ autoAccuWorkOn def attributes
     # def = uiDefSetSize FlexSize FlexSize def
 	= (maybe def (\title -> uiDefSetAttribute TITLE_ATTRIBUTE title def) ('Data.Map'.get "title" attributes))
 
-	/**
+/**
 * The basic data layout groups the controls of a part of a compound datastructure in a fieldset
 */
 autoLayoutSubEditor :: UIForm -> [(UIControl,UIAttributes)]
