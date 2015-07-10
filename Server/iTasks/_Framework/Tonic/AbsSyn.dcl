@@ -28,7 +28,8 @@ instance == TPriority
 :: TaskName     :== String
 
 :: TonicTask =
-  { tt_module    :: !ModuleName
+  { tt_comments  :: !String
+  , tt_module    :: !ModuleName
   , tt_name      :: !TaskName
   , tt_iclLineNo :: !Int
   , tt_resty     :: !TExpr
