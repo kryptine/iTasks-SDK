@@ -51,6 +51,7 @@ import Data.CircularStack
 :: StaticDisplaySettings
   = { unfold_depth    :: !Scale
     , display_compact :: !Bool
+    , show_comments   :: !Bool
     }
 
 :: DynamicDisplaySettings
@@ -58,6 +59,7 @@ import Data.CircularStack
     , display_compact          :: !Bool
     , show_finished_blueprints :: !Bool
     , show_task_value          :: !Bool
+    , show_comments            :: !Bool
     }
 
 :: NavStack :== [ClickMeta]
@@ -183,6 +185,7 @@ staticDisplaySettings = sdsFocus "staticDisplaySettings" (memoryStore NS_TONIC_I
                                                          , max = 25
                                                          }
                                      , display_compact = False
+                                     , show_comments   = True
                                      }))
 
 queryShare :: RWShared () (Maybe BlueprintQuery) (Maybe BlueprintQuery)
@@ -199,6 +202,7 @@ dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (memoryStore NS_TONIC
                                      , display_compact = False
                                      , show_finished_blueprints = False
                                      , show_task_value = False
+                                     , show_comments = False
                                      }))
 
 
@@ -773,7 +777,11 @@ tonicStaticBrowser rs
                >&> withSelection noTaskSelection (
       \tn       -> maybe (return ()) (
       \tt       ->   whileUnchanged staticDisplaySettings (
-      \sett     ->   viewStaticTask allbps rs navstack 'DM'.newMap tm tt sett.StaticDisplaySettings.unfold_depth sett.StaticDisplaySettings.display_compact @! ()))
+      \sett     ->   (if sett.StaticDisplaySettings.show_comments
+                        (viewInformation "Task comments" [] tt.tt_comments @! ())
+                        (return ()))
+                     -&&-
+                     viewStaticTask allbps rs navstack 'DM'.newMap tm tt sett.StaticDisplaySettings.unfold_depth sett.StaticDisplaySettings.display_compact @! ()))
                    (getTonicTask tm tn)
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
          )) <<@ FullScreen))) @! ()
@@ -909,6 +917,22 @@ tonicDynamicBrowser rs
                     in  get currentDateTime >>= \currDT -> enterChoice (Title "Active users") [ChooseWith (ChooseFromGrid (mkUsersView currDT))] userData
       ) @! ()
 
+
+
+//poll :: !Int (Task a) -> Task a
+//poll n t
+  //=                               get currentDateTime
+  //>>- \(DateTime _ currenTime) -> if (currenTime.Time.sec modulo n == 0) t
+  // TODO similar trick to whileUnchanged
+
+(modulo) infixr 4 :: !Int !Int -> Int
+(modulo) i n
+  | n == 0    = abort "Division by zero"
+  | n == -1   = 0
+  | i == n    = 0
+  | i < n     = i
+  | otherwise = i - ((i / n) * n)
+
 :: UsersView = { username :: User, inactivity :: String }
 derive class iTask UsersView
 
@@ -1006,7 +1030,11 @@ viewInstance rs navstack dynSett trt selDetail showButtons action=:(Just meta=:{
   >>~ \ns -> case 'DM'.get tid trt of
                Just bpref=:{bpr_moduleName, bpr_taskName, bpr_instance = Just bpinst}
                  =                dynamicParent bpinst.bpi_taskId
-                 >>~ \mbprnt ->   whileUnchanged tonicEnabledSteps (
+                 >>~ \mbprnt ->   (if dynSett.DynamicDisplaySettings.show_comments
+                                     (viewInformation "Task comments" [] bpinst.bpi_blueprint.tt_comments @! ())
+                                     (return ()))
+                                  -&&-
+                                  (whileUnchanged tonicEnabledSteps (
                  \enabledSteps -> (showBlueprint rs bpinst.bpi_previouslyActive bpref bpinst.bpi_blueprint selDetail enabledSteps False { Scale | min = 0, cur = 0, max = 0})
                                   -|| showChildTasks dynSett bpinst)
                                   >>* [ OnValue (doAction (handleClicks bpr_moduleName bpr_taskName))
@@ -1014,7 +1042,7 @@ viewInstance rs navstack dynSett trt selDetail showButtons action=:(Just meta=:{
                                           [ OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards ns)
                                           , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent bpref rs mbprnt) ]
                                           []
-                                      ]
+                                      ]) @! ()
                _ = defaultBack "Selected" showButtons ns
   where
   showChildTasks :: DynamicDisplaySettings BlueprintInstance -> Task ()
