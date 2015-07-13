@@ -52,6 +52,7 @@ toAttrValue (CMFlattenSpans a) 				= ("flattenSpans", toJSVal a)
 toAttrValue (CMMaxHighlightLength a) 		= ("maxHighlightLength", toJSVal a)
 toAttrValue (CMCrudeMeasuringFrom a)		= ("crudeMeasuringFrom", toJSVal a)
 toAttrValue (CMViewportMargin a) 			= ("viewportMargin", toJSVal a)
+toAttrValue (CMStyleActiveLine a)			= ("styleActiveLine", toJSVal a)
 
 shallowEq a b = fst (toAttrValue a) == fst (toAttrValue b)
 
@@ -297,8 +298,8 @@ where
 								[StyleTag [] [Text "span.cm-highlight { background: #F3FA25 } \n .CodeMirror-focused span.cm-highlight { background: #F3FA25; !important }"] //FAD328
 								,DivTag [IdAttr (sourcearea (toString cid)), StyleAttr "display: block; position: absolute;"] []]
 								
-		  , width 			= ExactSize 300
-		  , height			= ExactSize 300
+		  , width 			= ExactSize 600
+		  , height			= ExactSize 600
 		  }
 
     onInit :: !((EditletEventHandlerFunc [CodeMirrorDiff] CodeMirrorClient) ComponentId -> JSFun ())

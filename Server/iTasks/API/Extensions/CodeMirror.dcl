@@ -49,6 +49,7 @@ import iTasks.API.Core.Client.Tasklet
 		| CMMaxHighlightLength !Int
 		| CMCrudeMeasuringFrom !Int
 		| CMViewportMargin !Int
+		| CMStyleActiveLine !Bool
 
 // TODO: CodeMirror a
 :: CodeMirror = {
