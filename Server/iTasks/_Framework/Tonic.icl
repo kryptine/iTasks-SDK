@@ -777,7 +777,7 @@ tonicStaticBrowser rs
                >&> withSelection noTaskSelection (
       \tn       -> maybe (return ()) (
       \tt       ->   whileUnchanged staticDisplaySettings (
-      \sett     ->   (if sett.StaticDisplaySettings.show_comments
+      \sett     ->   (if (sett.StaticDisplaySettings.show_comments && tt.tt_comments <> "")
                         (viewInformation "Task comments" [] tt.tt_comments @! ())
                         (return ()))
                      -&&-
@@ -1030,7 +1030,7 @@ viewInstance rs navstack dynSett trt selDetail showButtons action=:(Just meta=:{
   >>~ \ns -> case 'DM'.get tid trt of
                Just bpref=:{bpr_moduleName, bpr_taskName, bpr_instance = Just bpinst}
                  =                dynamicParent bpinst.bpi_taskId
-                 >>~ \mbprnt ->   (if dynSett.DynamicDisplaySettings.show_comments
+                 >>~ \mbprnt ->   (if (dynSett.DynamicDisplaySettings.show_comments && bpinst.bpi_blueprint.tt_comments <> "")
                                      (viewInformation "Task comments" [] bpinst.bpi_blueprint.tt_comments @! ())
                                      (return ()))
                                   -&&-
