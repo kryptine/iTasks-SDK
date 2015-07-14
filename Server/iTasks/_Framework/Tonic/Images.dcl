@@ -6,7 +6,7 @@ from Data.Set import :: Set
 from Data.Maybe import :: Maybe
 from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
 
-from iTasks._Framework.Tonic.AbsSyn import :: TonicTask, :: ExprId, :: TaskName, :: ModuleName, :: TExpr
+from iTasks._Framework.Tonic.AbsSyn import :: TonicFunc, :: ExprId, :: TaskName, :: ModuleName, :: TExpr
 from iTasks._Framework.Tonic.Types import :: TStability, :: BlueprintRef
 from iTasks._Framework.UIDefinition import :: UIAction
 import iTasks._Framework.Generic
@@ -19,7 +19,7 @@ from iTasks.API.Extensions.SVG.SVGlet import :: ActionState
 :: TClickAction = TNavAction | TDetailAction | TSelectArg Int
 
 :: TonicImageState
-  = { tis_task    :: TonicTask
+  = { tis_task    :: TonicFunc
     , tis_depth   :: Scale
     , tis_compact :: Bool
     }

@@ -6,35 +6,35 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 from StdOverloaded import class ==
 
-derive JSONEncode TonicModule, TonicTask, TExpr, TPriority, TAssoc
+derive JSONEncode TonicModule, TonicFunc, TExpr, TPriority, TAssoc
 
-derive JSONDecode TonicModule, TonicTask, TExpr, TPriority, TAssoc
+derive JSONDecode TonicModule, TonicFunc, TExpr, TPriority, TAssoc
 
-derive gEq TonicModule, TonicTask, TExpr, TPriority, TAssoc
+derive gEq TonicModule, TonicFunc, TExpr, TPriority, TAssoc
 
 instance == TonicModule
-instance == TonicTask
+instance == TonicFunc
 instance == TExpr
 instance == TAssoc
 instance == TPriority
 
 :: TonicModule =
   { tm_name  :: ModuleName
-  , tm_tasks :: Map TaskName TonicTask
+  , tm_funcs :: Map TaskName TonicFunc
   }
 
 :: ModuleName   :== String
 :: VariableName :== String
 :: TaskName     :== String
 
-:: TonicTask =
-  { tt_comments  :: !String
-  , tt_module    :: !ModuleName
-  , tt_name      :: !TaskName
-  , tt_iclLineNo :: !Int
-  , tt_resty     :: !TExpr
-  , tt_args      :: ![(TExpr, TExpr)]
-  , tt_body      :: !TExpr
+:: TonicFunc =
+  { tf_comments  :: !String
+  , tf_module    :: !ModuleName
+  , tf_name      :: !TaskName
+  , tf_iclLineNo :: !Int
+  , tf_resty     :: !TExpr
+  , tf_args      :: ![(TExpr, TExpr)]
+  , tf_body      :: !TExpr
   }
 
 :: Pattern  :== TExpr
@@ -56,7 +56,7 @@ instance == TPriority
   | TNoBind
   | TLet      ![(!Pattern, !TExpr)] !TExpr
   | TCaseOrIf !TExpr ![(!Pattern, !TExpr)]
-  | TExpand   ![TExpr] !TonicTask
+  | TExpand   ![TExpr] !TonicFunc
   //| TListCompr // TODO
 
 :: TAssoc

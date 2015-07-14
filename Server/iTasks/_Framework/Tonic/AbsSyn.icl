@@ -7,23 +7,23 @@ import qualified Data.Map as DM
 import StdBool, StdList, StdTuple
 from StdOverloaded import class == (..)
 
-derive JSONEncode TonicModule, TonicTask, TExpr, TPriority, TAssoc
+derive JSONEncode TonicModule, TonicFunc, TExpr, TPriority, TAssoc
 
-derive JSONDecode TonicModule, TonicTask, TExpr, TPriority, TAssoc
+derive JSONDecode TonicModule, TonicFunc, TExpr, TPriority, TAssoc
 
-derive gEq TonicModule, TonicTask, TExpr, TPriority, TAssoc
+derive gEq TonicModule, TonicFunc, TExpr, TPriority, TAssoc
 
 instance == TonicModule where
   (==) tm1 tm2 =  tm1.tm_name              == tm2.tm_name
-               && 'DM'.toList tm1.tm_tasks == 'DM'.toList tm2.tm_tasks
+               && 'DM'.toList tm1.tm_funcs == 'DM'.toList tm2.tm_funcs
 
-instance == TonicTask where
-  (==) tt1 tt2 =  tt1.tt_module    == tt2.tt_module
-               && tt1.tt_name      == tt2.tt_name
-               && tt1.tt_iclLineNo == tt2.tt_iclLineNo
-               && tt1.tt_resty     == tt2.tt_resty
-               && tt1.tt_args      == tt2.tt_args
-               && tt1.tt_body      == tt2.tt_body
+instance == TonicFunc where
+  (==) tt1 tt2 =  tt1.tf_module    == tt2.tf_module
+               && tt1.tf_name      == tt2.tf_name
+               && tt1.tf_iclLineNo == tt2.tf_iclLineNo
+               && tt1.tf_resty     == tt2.tf_resty
+               && tt1.tf_args      == tt2.tf_args
+               && tt1.tf_body      == tt2.tf_body
 
 instance == TExpr where
   (==) (TVar  eid1 ppe1) (TVar eid2 ppe2) = eid1 == eid2 && ppe1 == ppe2

@@ -80,7 +80,7 @@ import Data.CircularStack
   | AndQuery BlueprintQuery BlueprintQuery
   | OrQuery BlueprintQuery BlueprintQuery
 
-:: AllBlueprints :== Map ModuleName (Map TaskName TonicTask)
+:: AllBlueprints :== Map ModuleName (Map TaskName TonicFunc)
 
 NS_TONIC_INSTANCES :== "tonic-instances"
 
@@ -243,7 +243,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
     = eval event (resetInhOpts (setBPTaskId currTaskId (setBlueprintInfo evalOpts))) taskTree iworld
     where
     updateInstance rtMap iworld =
-      case getTonicTask mod tn of
+      case getTonicFunc mod tn of
         Just bprep
           # (curr,   iworld) = iworld!current
           # (clocks, iworld) = iworld!clocks
@@ -447,9 +447,9 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
                                                                                 | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr) : as] assoc
                                                                                 | otherwise         = x
                                                                               e = e
-                                                                     ) parentBPInst.bpi_blueprint.tt_body
-                                           _ = (parentBPInst.bpi_blueprint.tt_body, False)
-                    # bpi        = {parentBPInst & bpi_blueprint = {parentBPInst.bpi_blueprint & tt_body = parent_body}}
+                                                                     ) parentBPInst.bpi_blueprint.tf_body
+                                           _ = (parentBPInst.bpi_blueprint.tf_body, False)
+                    # bpi        = {parentBPInst & bpi_blueprint = {parentBPInst.bpi_blueprint & tf_body = parent_body}}
                     # parent_bpr = {parentBPRef & bpr_instance = Just bpi}
                     = (parent_bpr, bpi, iworld)
                   _ = (parentBPRef, parentBPInst, iworld)
@@ -473,9 +473,9 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
                                                        # (parent_body, chng) = updateNode nid (\x -> case x of
                                                                                                        TVar eid _ -> TMApp eid Nothing child_bpr.bpr_moduleName child_bpr.bpr_taskName [] TNoPrio
                                                                                                        e -> e
-                                                                                              ) new_parent_instance.bpi_blueprint.tt_body
+                                                                                              ) new_parent_instance.bpi_blueprint.tf_body
                                                        | chng
-                                                           # parent_bpr = {parent_bpr & bpr_instance = Just {new_parent_instance & bpi_blueprint = {new_parent_instance.bpi_blueprint & tt_body = parent_body}}}
+                                                           # parent_bpr = {parent_bpr & bpr_instance = Just {new_parent_instance & bpi_blueprint = {new_parent_instance.bpi_blueprint & tf_body = parent_body}}}
                                                            = snd ('DSDS'.write parent_bpr (sdsFocus new_parent_instance.bpi_taskId tonicInstances) iworld)
                                                        | otherwise = iworld
                                                      _ = iworld
@@ -528,15 +528,15 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
                      Just ns -> ns
                      _       -> 'DIS'.newMap
     # (childNodes, currActive, iworld) = foldr (registerTask pinst.bpi_taskId childTaskId) ([], currActive, iworld) (zip2 [0..] parallelChildren)
-    # (tt_body, _) = updateNode nid (\x -> case x of
+    # (tf_body, _) = updateNode nid (\x -> case x of
                                              e=:(TMApp _ _ _ _ [TMApp _ _ _ _ _ _ : _] _) -> e
                                              e=:(TMApp _ _ _ _ [TFApp "_Cons" _ _ : _] _) -> e // TODO This is probably insufficient. It will capture things like [t1:someOtherTasks], where we would like to expand someOtherTasks at runtime
                                              TMApp eid mtn mn tn _ pr -> TMApp eid mtn mn tn [list2TExpr childNodes] pr
                                              e -> e
-                                    ) pinst.bpi_blueprint.tt_body
+                                    ) pinst.bpi_blueprint.tf_body
     # parent = { parent
                & bpr_instance = Just { pinst
-                                     & bpi_blueprint = { pinst.bpi_blueprint & tt_body = tt_body}
+                                     & bpi_blueprint = { pinst.bpi_blueprint & tf_body = tf_body}
                                      , bpi_activeNodes = 'DM'.put childTaskId currActive pinst.bpi_activeNodes}}
     # iworld = snd ('DSDS'.write parent (sdsFocus pinst.bpi_taskId tonicInstances) iworld)
     # iworld = storeTaskOutputViewer tr childTaskId iworld
@@ -737,10 +737,10 @@ getTonicDir iworld
   = (server.paths.appDirectory </> "tonic", iworld)
 
 getTasks :: !TonicModule -> [String]
-getTasks tm = 'DM'.keys tm.tm_tasks
+getTasks tm = 'DM'.keys tm.tm_funcs
 
-getTonicTask :: !TonicModule !String -> Maybe TonicTask
-getTonicTask tm tn = 'DM'.get tn tm.tm_tasks
+getTonicFunc :: !TonicModule !String -> Maybe TonicFunc
+getTonicFunc tm tn = 'DM'.get tn tm.tm_funcs
 
 tonicStaticWorkflow :: [TaskAppRenderer] -> Workflow
 tonicStaticWorkflow rs = workflow "Tonic Static Browser" "Tonic Static Browser" (tonicStaticBrowser rs)
@@ -763,12 +763,12 @@ tonicStaticBrowser rs
                >&> withSelection noTaskSelection (
       \tn       -> maybe (return ()) (
       \tt       ->   whileUnchanged staticDisplaySettings (
-      \sett     ->   (if (sett.StaticDisplaySettings.show_comments && tt.tt_comments <> "")
-                        (viewInformation "Task comments" [] tt.tt_comments @! ())
+      \sett     ->   (if (sett.StaticDisplaySettings.show_comments && tt.tf_comments <> "")
+                        (viewInformation "Task comments" [] tt.tf_comments @! ())
                         (return ()))
                      -&&-
                      viewStaticTask allbps rs navstack 'DM'.newMap tm tt sett.StaticDisplaySettings.unfold_depth sett.StaticDisplaySettings.display_compact @! ()))
-                   (getTonicTask tm tn)
+                   (getTonicFunc tm tn)
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
          )) <<@ FullScreen))) @! ()
   where
@@ -777,30 +777,30 @@ tonicStaticBrowser rs
   noModuleSelection = viewInformation () [] "Select module..."
   noTaskSelection   = viewInformation () [] "Select task..."
 
-viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !TonicRTMap !TonicModule !TonicTask !Scale !Bool -> Task ()
+viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !TonicRTMap !TonicModule !TonicFunc !Scale !Bool -> Task ()
 viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
   =          get navstack
   >>~ \ns -> showBlueprint rs 'DM'.newMap { BlueprintRef
                                           | bpr_moduleName = tm_name
-                                          , bpr_taskName   = tt.tt_name
+                                          , bpr_taskName   = tt.tf_name
                                           , bpr_instance   = Nothing
                                           } (expandTask allbps depth.cur tt) Nothing 'DM'.newMap compact depth
          >>* [ OnValue (doAction (handleClicks tm tt))
              , OnAction (Action "Back" [ActionIcon "previous"]) (navigateBackwards tm tt ns)
              ] @! ()
   where
-  navigateBackwards :: TonicModule TonicTask NavStack a -> Maybe (Task ())
+  navigateBackwards :: TonicModule TonicFunc NavStack a -> Maybe (Task ())
   navigateBackwards _  _  []           _ = Nothing
   navigateBackwards tm tt [prev:stack] _ = Just (navigate pop tm tt prev)
     where
     pop [] = []
     pop [_:xs] = xs
 
-  handleClicks :: TonicModule TonicTask (TClickAction, ClickMeta) a -> Task ()
+  handleClicks :: TonicModule TonicFunc (TClickAction, ClickMeta) a -> Task ()
   handleClicks tm tt (TNavAction, meta) _ = navigate (\ns -> [meta : ns]) tm tt meta
   handleClicks tm tt (TDetailAction, _) _ = viewStaticTask allbps rs navstack trt tm tt depth compact
 
-  navigate :: (NavStack -> NavStack) TonicModule TonicTask ClickMeta -> Task ()
+  navigate :: (NavStack -> NavStack) TonicModule TonicFunc ClickMeta -> Task ()
   navigate mkNavStack _ _ meta=:{click_target_bpident = {bpident_taskId = Just _}}
     =                 upd mkNavStack navstack
     >>|               get dynamicDisplaySettings
@@ -813,10 +813,10 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
         , OnAllExceptions (const (viewStaticTask allbps rs navstack trt tm tt depth compact))
         ] @! ()
     where
-    onNavVal bpident_taskName (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs navstack trt tm` tt` depth compact @! ()) (getTonicTask tm` bpident_taskName)
+    onNavVal bpident_taskName (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs navstack trt tm` tt` depth compact @! ()) (getTonicFunc tm` bpident_taskName)
     onNavVal _                _             = Nothing
 
-showBlueprint :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !TonicTask
+showBlueprint :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !TonicFunc
                  !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int)))
                  !(Map TaskId [UIAction]) !Bool !Scale
               -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
@@ -827,7 +827,7 @@ showBlueprint rs prev bpref task selDetail enabledSteps compact depth
   = showBlueprint` 'DM'.newMap rs prev bpref task selDetail enabledSteps compact depth
 
 showBlueprint` :: !(Map TaskId TStability) ![TaskAppRenderer]
-                  !(Map ExprId TaskId) !BlueprintRef !TonicTask
+                  !(Map ExprId TaskId) !BlueprintRef !TonicFunc
                   !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int)))
                   !(Map TaskId [UIAction]) !Bool !Scale
               -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
@@ -991,7 +991,7 @@ tonicDynamicBrowser` rs navstack =
                    , user        = ""
                    }
 
-getModuleAndTask :: !AllBlueprints !ModuleName !TaskName -> Task (TonicModule, TonicTask)
+getModuleAndTask :: !AllBlueprints !ModuleName !TaskName -> Task (TonicModule, TonicFunc)
 getModuleAndTask allbps mn tn
   =           getModule mn
   >>~ \mod -> case 'DM'.get mn allbps `b` 'DM'.get tn of
@@ -1008,8 +1008,8 @@ viewInstance rs navstack dynSett trt selDetail showButtons action=:(Just meta=:{
   >>~ \ns -> case 'DM'.get tid trt of
                Just bpref=:{bpr_moduleName, bpr_taskName, bpr_instance = Just bpinst}
                  =                dynamicParent bpinst.bpi_taskId
-                 >>~ \mbprnt ->   (if (dynSett.DynamicDisplaySettings.show_comments && bpinst.bpi_blueprint.tt_comments <> "")
-                                     (viewInformation "Task comments" [] bpinst.bpi_blueprint.tt_comments @! ())
+                 >>~ \mbprnt ->   (if (dynSett.DynamicDisplaySettings.show_comments && bpinst.bpi_blueprint.tf_comments <> "")
+                                     (viewInformation "Task comments" [] bpinst.bpi_blueprint.tf_comments @! ())
                                      (return ()))
                                   -&&-
                                   (whileUnchanged tonicEnabledSteps (
@@ -1081,7 +1081,7 @@ viewInstance rs navstack dynSett trt selDetail showButtons action=:(Just meta=:{
       }
   navToParent _ _ _ = Nothing
 
-  viewTaskArguments :: !BlueprintRef !BlueprintInstance !TonicTask -> Task ()
+  viewTaskArguments :: !BlueprintRef !BlueprintInstance !TonicFunc -> Task ()
   viewTaskArguments bpref bpinst graph
     =            collectArgs bpref bpinst graph
     >>~ \args -> (enterChoice "Task arguments" [ChooseWith (ChooseFromList fst)] args
@@ -1090,13 +1090,13 @@ viewInstance rs navstack dynSett trt selDetail showButtons action=:(Just meta=:{
   noSelection :: Task String
   noSelection = viewInformation () [] "Select argument..."
 
-  collectArgs :: !BlueprintRef !BlueprintInstance !TonicTask -> Task [(String, Task ())]
+  collectArgs :: !BlueprintRef !BlueprintInstance !TonicFunc -> Task [(String, Task ())]
   collectArgs bpref bpinst graph = mkInstantTask f
     where
     f _ iworld
       # (mparams, iworld) = 'DSDS'.read (sdsFocus (bpref.bpr_moduleName, bpref.bpr_taskName, bpinst.bpi_taskId) paramsForTaskInstance) iworld
       = case mparams of
-          Ok params -> (Ok (zipWith (\(argnm, argty) (_, vi) -> (ppTExpr argnm +++ " :: " +++ ppTExpr argty, vi)) graph.tt_args params), iworld)
+          Ok params -> (Ok (zipWith (\(argnm, argty) (_, vi) -> (ppTExpr argnm +++ " :: " +++ ppTExpr argty, vi)) graph.tf_args params), iworld)
           _         -> (Ok [], iworld)
 
 viewInstance rs navstack dynSett trt selDetail showButtons (Just {click_target_bpident = {bpident_moduleName, bpident_taskName}})
@@ -1116,11 +1116,11 @@ allBlueprints
   f mod acc
     = case 'DM'.get mod.tm_name acc of
         Just _ -> acc
-        _      -> 'DM'.put mod.tm_name mod.tm_tasks acc
+        _      -> 'DM'.put mod.tm_name mod.tm_funcs acc
 
-expandTask :: !AllBlueprints !Int !TonicTask -> TonicTask
+expandTask :: !AllBlueprints !Int !TonicFunc -> TonicFunc
 expandTask allbps n tt
-  | n > 0     = {tt & tt_body = expandTExpr allbps n tt.tt_body}
+  | n > 0     = {tt & tf_body = expandTExpr allbps n tt.tf_body}
   | otherwise = tt
 
 expandTExpr :: !AllBlueprints !Int !TExpr -> TExpr

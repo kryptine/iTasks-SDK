@@ -25,7 +25,7 @@ from iTasks.API.Core.Types import :: DateTime
   , bpi_previouslyActive :: !Map ExprId TaskId
   , bpi_parentTaskId     :: !Maybe TaskId
   , bpi_currentUser      :: !Maybe User
-  , bpi_blueprint        :: !TonicTask
+  , bpi_blueprint        :: !TonicFunc
   , bpi_nodeTaskIdMap    :: !Map ExprId TaskId
   }
 
@@ -38,19 +38,19 @@ from iTasks.API.Core.Types import :: DateTime
 derive class iTask TStability, BlueprintRef, BlueprintInstance
 
 derive gEditor
-  TonicModule, TonicTask, TExpr, TPriority, TAssoc, IntMap
+  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap
 
 derive gEditMeta
-  TonicModule, TonicTask, TExpr, TPriority, TAssoc, IntMap
+  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap
 
 derive gDefault
-  TonicModule, TonicTask, TExpr, TPriority, TAssoc, IntMap
+  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap
 
 derive gUpdate
-  TonicModule, TonicTask, TExpr, TPriority, TAssoc, IntMap
+  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap
 
 derive gVerify
-  TonicModule, TonicTask, TExpr, TPriority, TAssoc, IntMap
+  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap
 
 derive gText
-  TonicModule, TonicTask, TExpr, TPriority, TAssoc, IntMap
+  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap

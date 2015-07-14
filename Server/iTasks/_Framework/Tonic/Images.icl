@@ -108,8 +108,8 @@ mkTaskImage rs prev trt outputs stepActions selDetail compact {ActionState | sta
                         , inh_selDetail    = selDetail
                         , inh_stepActions  = stepActions
                         }
-  #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
-  #! (img, _)         = tTaskDef inh trt tt.tt_module tt.tt_name tt.tt_resty tt.tt_args [] tt_body`.syn_img tsrc
+  #! (tf_body`, tsrc) = tExpr2Image inh tt.tf_body tsrc
+  #! (img, _)         = tTaskDef inh trt tt.tf_module tt.tf_name tt.tf_resty tt.tf_args [] tf_body`.syn_img tsrc
   = img
 
 tExpr2Image :: !InhMkImg !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
@@ -211,13 +211,13 @@ tVertUpConnArr = yline (Just {defaultMarkers & markerEnd = Just (tArrowTip (TNot
 tVertUpDownConnArr :: Image ModelTy
 tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) (tArrowTip (TNotActive, TNoVal))), markerEnd = Just (tArrowTip (TNotActive, TNoVal))}) (px 16.0)
 
-tExpand :: !InhMkImg ![TExpr] !TonicTask !*TagSource -> *(!SynMkImg, !*TagSource)
+tExpand :: !InhMkImg ![TExpr] !TonicFunc !*TagSource -> *(!SynMkImg, !*TagSource)
 tExpand inh argnames tt tsrc
-  #! (tt_body`, tsrc) = tExpr2Image inh tt.tt_body tsrc
-  #! (td_img, tsrc)   = tTaskDef inh inh.inh_trt tt.tt_module tt.tt_name tt.tt_resty tt.tt_args argnames tt_body`.syn_img tsrc
+  #! (tf_body`, tsrc) = tExpr2Image inh tt.tf_body tsrc
+  #! (td_img, tsrc)   = tTaskDef inh inh.inh_trt tt.tf_module tt.tf_name tt.tf_resty tt.tf_args argnames tf_body`.syn_img tsrc
   = ({ syn_img       = td_img
-     , syn_status    = tt_body`.syn_status
-     , syn_stability = tt_body`.syn_stability
+     , syn_status    = tf_body`.syn_status
+     , syn_stability = tf_body`.syn_stability
      }
     , tsrc)
 
@@ -269,7 +269,7 @@ activityStatus needAllActive inh (TMApp eid _ _ _ exprs _)
           _ = determineStatus needAllActive (map (activityStatus needAllActive inh) exprs)
 activityStatus needAllActive inh (TLet pats bdy)       = activityStatus needAllActive inh bdy
 activityStatus needAllActive inh (TCaseOrIf e pats)    = determineStatus needAllActive (map (activityStatus needAllActive inh o snd) pats)
-activityStatus needAllActive inh (TExpand args tt)     = activityStatus needAllActive inh tt.tt_body
+activityStatus needAllActive inh (TExpand args tt)     = activityStatus needAllActive inh tt.tf_body
 activityStatus needAllActive inh (TLam _ e)            = activityStatus needAllActive inh e
 activityStatus needAllActive inh _                     = TNotActive
 
