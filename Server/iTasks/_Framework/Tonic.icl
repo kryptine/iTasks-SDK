@@ -80,15 +80,6 @@ import Data.CircularStack
   | AndQuery BlueprintQuery BlueprintQuery
   | OrQuery BlueprintQuery BlueprintQuery
 
-:: AdditionalInfo =
-  { numberOfActiveTasks  :: !Int
-  , tasksNearingDeadline :: ![BlueprintRef]
-  , highestPriorityTasks :: ![BlueprintRef]
-  , staleTasks           :: ![BlueprintRef]
-  , busiestUsers         :: ![(User, Int)]
-  , leastBusyUsers       :: ![(User, Int)]
-  }
-
 :: AllBlueprints :== Map ModuleName (Map TaskName TonicTask)
 
 NS_TONIC_INSTANCES :== "tonic-instances"
@@ -108,8 +99,7 @@ instance TonicBlueprintPart Maybe where
   tonicWrapApp _ _ mb = mb
 
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
-                   DynamicView, AdditionalInfo, BlueprintQuery, UIAction,
-                   CircularStack
+                   DynamicView, BlueprintQuery, UIAction, CircularStack
 
 //-----------------------------------------------------------------------------
 // SHARES
@@ -552,19 +542,15 @@ tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
     # iworld = storeTaskOutputViewer tr childTaskId iworld
     = iworld
     where
-    // TODO Register output for parallel tasks
     registerTask (TaskId parentInstanceNo parentTaskNo) (TaskId listInstanceNo listTaskNo) (n, (tid, _)) (acc, currActive, iworld)
       # (mchild_bpr, iworld) = 'DSDS'.read (sdsFocus tid tonicInstances) iworld
       = case mchild_bpr of
           (Ok child_bpr=:{bpr_instance = Just child_instance=:{bpi_taskId = TaskId childTaskNo childInstanceNo}})
-            # newNodeId  = mkNodeId [parentInstanceNo, parentTaskNo, listInstanceNo, listTaskNo, childTaskNo, childInstanceNo]
+            # newNodeId  = nid ++ [n]
             # childApp   = TMApp newNodeId Nothing child_bpr.bpr_moduleName child_bpr.bpr_taskName [] TNoPrio
             # currActive = 'DIS'.put n (tid, newNodeId) currActive
             = ([childApp:acc], currActive, iworld)
           _ = (acc, currActive, iworld)
-      where
-      mkNodeId :: ![Int] -> Int
-      mkNodeId xs = toInt (foldr (+++) "" (map toString xs))
 
 storeTaskOutputViewer :: !(TaskResult a) !TaskId !*IWorld -> *IWorld | iTask a
 storeTaskOutputViewer tr childTaskId iworld
@@ -638,7 +624,7 @@ setActiveNodes tonicOpts {bpi_taskId = parentTaskId, bpi_activeNodes = parentAct
         (Just (TaskId ino _), trace) = dropFirstInstances` ino trace
         _                            = trace
     where
-    dropFirstInstances` :: !Int !Calltrace -> Calltrace
+    dropFirstInstances` :: !InstanceNo !Calltrace -> Calltrace
     dropFirstInstances` ino trace
       = case pop trace of
           (Just (TaskId ino` _), trace)
@@ -911,27 +897,11 @@ tonicDynamicBrowser rs
   windowIf _    _ = return ()
 
   activeUsers :: Task ()
-  activeUsers
-    = whileUnchanged taskInstanceIndex (
-        \timetas -> let userData = mergeSortBy (\(l, _) (r, _) -> l <= r) (nub [(usr, dt) \\ (Ok usr, dt) <- map (\timeta -> (userFromAttr () timeta.TIMeta.attributes, timeta.TIMeta.progress.InstanceProgress.lastIO)) timetas | usr <> SystemUser])
-                    in  get currentDateTime >>= \currDT -> enterChoice (Title "Active users") [ChooseWith (ChooseFromGrid (mkUsersView currDT))] userData
-      ) @! ()
-
-
-
-//poll :: !Int (Task a) -> Task a
-//poll n t
-  //=                               get currentDateTime
-  //>>- \(DateTime _ currenTime) -> if (currenTime.Time.sec modulo n == 0) t
-  // TODO similar trick to whileUnchanged
-
-(modulo) infixr 4 :: !Int !Int -> Int
-(modulo) i n
-  | n == 0    = abort "Division by zero"
-  | n == -1   = 0
-  | i == n    = 0
-  | i < n     = i
-  | otherwise = i - ((i / n) * n)
+  activeUsers = return ()
+    //= whileUnchanged taskInstanceIndex (
+        //\timetas -> let userData = mergeSortBy (\(l, _) (r, _) -> l <= r) (nub [(usr, dt) \\ (Ok usr, dt) <- map (\timeta -> (userFromAttr () timeta.TIMeta.attributes, timeta.TIMeta.progress.InstanceProgress.lastIO)) timetas | usr <> SystemUser])
+                    //in  get currentDateTime >>= \currDT -> enterChoice (Title "Active users") [ChooseWith (ChooseFromGrid (mkUsersView currDT))] userData
+      //) @! ()
 
 :: UsersView = { username :: User, inactivity :: String }
 derive class iTask UsersView

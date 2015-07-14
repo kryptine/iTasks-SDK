@@ -26,7 +26,7 @@ from iTasks.API.Core.Types import :: DateTime
   , bpi_parentTaskId     :: !Maybe TaskId
   , bpi_currentUser      :: !Maybe User
   , bpi_blueprint        :: !TonicTask
-  , bpi_nodeTaskIdMap    :: Map Int TaskId
+  , bpi_nodeTaskIdMap    :: !Map ExprId TaskId
   }
 
 :: TonicRTMap :== Map TaskId BlueprintRef

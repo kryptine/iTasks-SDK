@@ -5,6 +5,7 @@ definition module iTasks._Framework.Task
 
 import iTasks.API.Core.Types
 import iTasks._Framework.Generic
+from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
 
 from iTasks._Framework.TaskState			import :: TaskTree
 from iTasks.API.Core.LayoutCombinators	import :: LayoutRules
@@ -46,7 +47,7 @@ derive gEq				Task
 	}
 
 :: TonicOpts =
-  { inAssignNode        :: Maybe Int
+  { inAssignNode        :: Maybe ExprId
   , inParallel          :: Maybe TaskId
   , captureParallel     :: Bool
   , currBlueprintName   :: (String, String)

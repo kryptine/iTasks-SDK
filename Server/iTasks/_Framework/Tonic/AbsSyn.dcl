@@ -43,7 +43,7 @@ instance == TPriority
 :: FunName  :== String
 :: PPExpr   :== String
 :: SAction  :== String
-:: ExprId   :== Int
+:: ExprId   :== [Int]
 
 :: TExpr
   = TVar      !ExprId !PPExpr

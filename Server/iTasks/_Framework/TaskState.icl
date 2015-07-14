@@ -5,6 +5,7 @@ import iTasks._Framework.UIDefinition
 
 from iTasks					import JSONEncode, JSONDecode
 from iTasks._Framework.Task	import :: Event, :: TaskTime, :: TaskResult(..), :: TaskException(..), :: TaskEvalInfo(..), :: TaskRep(..), :: EventNo, exception, :: TonicOpts(..)
+from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
 import Data.CircularStack
 import iTasks.API.Core.Types
 import Data.Error
