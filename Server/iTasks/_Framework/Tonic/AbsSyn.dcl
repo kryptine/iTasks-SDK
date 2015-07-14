@@ -20,36 +20,32 @@ instance == TPriority
 
 :: TonicModule =
   { tm_name  :: ModuleName
-  , tm_funcs :: Map TaskName TonicFunc
+  , tm_funcs :: Map FuncName TonicFunc
   }
-
-:: ModuleName   :== String
-:: VariableName :== String
-:: TaskName     :== String
 
 :: TonicFunc =
   { tf_comments  :: !String
   , tf_module    :: !ModuleName
-  , tf_name      :: !TaskName
+  , tf_name      :: !FuncName
   , tf_iclLineNo :: !Int
   , tf_resty     :: !TExpr
   , tf_args      :: ![(TExpr, TExpr)]
   , tf_body      :: !TExpr
   }
 
-:: Pattern  :== TExpr
-:: TypeName :== String
-:: VarName  :== String
-:: FunName  :== String
-:: PPExpr   :== String
-:: SAction  :== String
-:: ExprId   :== [Int]
+:: ModuleName :== String
+:: FuncName   :== String
+:: Pattern    :== TExpr
+:: TypeName   :== String
+:: PPExpr     :== String
+:: ExprId     :== [Int]
+:: VarName    :== String
 
 :: TExpr
   = TVar      !ExprId !PPExpr
   | TLit      !PPExpr
-  | TMApp     !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr] !TPriority
-  | TFApp     !VarName ![TExpr] !TPriority
+  | TMApp     !ExprId !(Maybe TypeName) !ModuleName !FuncName ![TExpr] !TPriority
+  | TFApp     !FuncName ![TExpr] !TPriority
   | TLam      ![TExpr] !TExpr
   | TSel      !TExpr ![TExpr]
   | TRecUpd   !VarName !TExpr ![TExpr]
@@ -57,7 +53,6 @@ instance == TPriority
   | TLet      ![(!Pattern, !TExpr)] !TExpr
   | TCaseOrIf !TExpr ![(!Pattern, !TExpr)]
   | TExpand   ![TExpr] !TonicFunc
-  //| TListCompr // TODO
 
 :: TAssoc
   = TLeftAssoc
