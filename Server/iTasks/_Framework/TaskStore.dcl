@@ -15,6 +15,7 @@ from System.Time    import :: Timestamp
 :: InstanceFilter =
     { //'Vertical' filters
       onlyInstanceNo    :: !Maybe [InstanceNo]
+    , notInstanceNo     :: !Maybe [InstanceNo]
     , onlySession       :: !Maybe Bool
       //'Horizontal' filters
     , includeConstants  :: !Bool

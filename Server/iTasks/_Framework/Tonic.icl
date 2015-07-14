@@ -898,9 +898,17 @@ tonicDynamicBrowser rs
 
   activeUsers :: Task ()
   activeUsers = return ()
-    //= whileUnchanged taskInstanceIndex (
-        //\timetas -> let userData = mergeSortBy (\(l, _) (r, _) -> l <= r) (nub [(usr, dt) \\ (Ok usr, dt) <- map (\timeta -> (userFromAttr () timeta.TIMeta.attributes, timeta.TIMeta.progress.InstanceProgress.lastIO)) timetas | usr <> SystemUser])
-                    //in  get currentDateTime >>= \currDT -> enterChoice (Title "Active users") [ChooseWith (ChooseFromGrid (mkUsersView currDT))] userData
+    //=           get currentTaskInstanceNo
+    //>>- \ino -> let filter = { onlyInstanceNo    = Nothing
+                             //, notInstanceNo     = Just [ino]
+                             //, onlySession       = Nothing
+                             //, includeConstants  = False
+                             //, includeProgress   = True
+                             //, includeAttributes = True
+                             //}
+                //in whileUnchanged (sdsFocus filter filteredInstanceIndex) (
+        //\idatas -> let userData = mergeSortBy (\(l, _) (r, _) -> l <= r) (nub [(usr, dt) \\ (Ok usr, dt) <- map (\(_,_, Just {InstanceProgress | lastIO}, Just attributes) -> (userFromAttr () attributes, lastIO)) idatas | usr <> SystemUser])
+                   //in  get currentDateTime >>= \currDT -> enterChoice (Title "Active users") [ChooseWith (ChooseFromGrid (mkUsersView currDT))] userData
       //) @! ()
 
 :: UsersView = { username :: User, inactivity :: String }

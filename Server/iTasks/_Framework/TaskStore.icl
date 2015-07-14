@@ -224,8 +224,9 @@ where
         # i = if includeAttributes (maybe i (\attributes -> {TIMeta|i & attributes = attributes}) mbA) i
         = {TIMeta|i & instanceNo = iNo}
 
-    filterPredicate {InstanceFilter|onlyInstanceNo,onlySession} i
+    filterPredicate {InstanceFilter|onlyInstanceNo,notInstanceNo,onlySession} i
         =   (maybe True (\m -> isMember i.TIMeta.instanceNo m) onlyInstanceNo)
+        &&  (maybe True (\m -> not (isMember i.TIMeta.instanceNo m)) notInstanceNo)
         &&  (maybe True (\m -> i.TIMeta.session == m) onlySession)
 
     notifyFun _ ws qfilter = any (filterPredicate qfilter) ws
@@ -234,7 +235,7 @@ where
 taskInstance :: RWShared InstanceNo InstanceData InstanceData
 taskInstance = sdsLens "taskInstance" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) filteredInstanceIndex
 where
-    param no = {InstanceFilter|onlyInstanceNo=Just [no],onlySession=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True}
+    param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True}
     read no [data]  = Ok data
     read no _       = Error (exception ("Could not find task instance "<+++ no))
     write no data   = Ok (Just [data])
@@ -243,7 +244,7 @@ where
 taskInstanceConstants :: ROShared InstanceNo InstanceConstants
 taskInstanceConstants = sdsLens "taskInstanceConstants" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) filteredInstanceIndex
 where
-    param no = {InstanceFilter|onlyInstanceNo=Just [no],onlySession=Nothing,includeConstants=True,includeProgress=False,includeAttributes=False}
+    param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,includeConstants=True,includeProgress=False,includeAttributes=False}
     read no [(_,Just c,_,_)]    = Ok c
     read no _                   = Error (exception ("Could not find constants for task instance "<+++ no))
     write _ _                   = Ok Nothing
@@ -252,7 +253,7 @@ where
 taskInstanceProgress :: RWShared InstanceNo InstanceProgress InstanceProgress
 taskInstanceProgress = sdsLens "taskInstanceProgress" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) filteredInstanceIndex
 where
-    param no = {InstanceFilter|onlyInstanceNo=Just [no],onlySession=Nothing,includeConstants=False,includeProgress=True,includeAttributes=False}
+    param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,includeConstants=False,includeProgress=True,includeAttributes=False}
     read no [(_,_,Just p,_)]    = Ok p
     read no _                   = Error (exception ("Could not find progress for task instance "<+++ no))
     write no [(n,c,_,a)] p      = Ok (Just [(n,c,Just p,a)])
@@ -262,7 +263,7 @@ where
 taskInstanceAttributes :: RWShared InstanceNo TaskAttributes TaskAttributes
 taskInstanceAttributes = sdsLens "taskInstanceAttributes" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) filteredInstanceIndex
 where
-    param no = {InstanceFilter|onlyInstanceNo=Just [no],onlySession=Nothing,includeConstants=False,includeProgress=False,includeAttributes=True}
+    param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,includeConstants=False,includeProgress=False,includeAttributes=True}
     read no [(_,_,_,Just a)]    = Ok a
     read no _                   = Error (exception ("Could not find attributes for task instance "<+++ no))
     write no [(n,c,p,_)] a      = Ok (Just [(n,c,p,Just a)])
@@ -275,7 +276,7 @@ topLevelTaskList = sdsLens "topLevelTaskList" param (SDSRead read) (SDSWrite wri
                      (sdsFocus filter filteredInstanceIndex >+| currentInstanceShare)
 where
     param _ = ()
-    filter = {InstanceFilter|onlyInstanceNo=Nothing,onlySession=Just False
+    filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False
              ,includeConstants=True,includeProgress=True,includeAttributes=True}
     read _ (instances,curInstance) = Ok (TaskId 0 0, items)
     where
@@ -403,7 +404,7 @@ where
         notify (listId,_,_) states (regListId,_,_) = regListId == listId //Only check list id, the listFilter is checked one level up
 
 
-    param2 _ (listId,items) = {InstanceFilter|onlyInstanceNo=Just [instanceNo \\ {TaskListItem|taskId=(TaskId instanceNo _),detached} <- items | detached]
+    param2 _ (listId,items) = {InstanceFilter|onlyInstanceNo=Just [instanceNo \\ {TaskListItem|taskId=(TaskId instanceNo _),detached} <- items | detached],notInstanceNo=Nothing
                      ,onlySession=Nothing, includeConstants = False, includeAttributes = True,includeProgress = True}
 
     read ((listId,items),detachedInstances)
