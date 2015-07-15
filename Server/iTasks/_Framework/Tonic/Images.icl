@@ -69,7 +69,7 @@ ArialItalic10px :== { fontfamily  = "Arial"
   , inh_in_fapp      :: !Bool
   , inh_in_case      :: !Bool
   , inh_outputs      :: !Map TaskId TStability
-  , inh_selDetail    :: !Maybe (Either ClickMeta (!ModuleName, !TaskName, !TaskId, !Int))
+  , inh_selDetail    :: !Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int))
   , inh_stepActions  :: !Map TaskId [UIAction]
   }
 
@@ -89,7 +89,7 @@ instance == TStatus where
 
 mkTaskImage :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef
                !(Map TaskId TStability) !(Map TaskId [UIAction])
-               !(Maybe (Either ClickMeta (!ModuleName, !TaskName, !TaskId, !Int))) !Bool
+               !(Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int))) !Bool
                !ModelTy *TagSource -> Image ModelTy
 mkTaskImage rs prev trt outputs stepActions selDetail compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
@@ -160,7 +160,7 @@ tRecUpd inh vn e es tsrc
   ppES [TNoBind : xs] = ppES xs
   ppES [x : xs] = ppTExpr x +++ " " +++ ppES xs
 
-tFApp :: !InhMkImg !FunName ![TExpr] !TPriority !*TagSource -> *(!SynMkImg, !*TagSource)
+tFApp :: !InhMkImg !FuncName ![TExpr] !TPriority !*TagSource -> *(!SynMkImg, !*TagSource)
 tFApp inh fn args assoc tsrc
   = ( { syn_img       = text ArialRegular10px (ppTExpr (TFApp fn args assoc))
       , syn_status    = TNotActive
@@ -406,7 +406,7 @@ tParProdN inh eid mn tn descr ts [(contextTag, uContextTag) : tsrc]
   #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x, True)) ts) contextTag tsrc
   = renderParallelContainer inh eid mn tn descr syn_branches uContextTag tsrc
 
-renderParallelContainer :: !InhMkImg !ExprId !ModuleName !TaskName !String
+renderParallelContainer :: !InhMkImg !ExprId !ModuleName !FuncName !String
                            !SynMkImg !*ImageTag !*TagSource
                         -> *(!SynMkImg, !*TagSource)
 renderParallelContainer inh eid moduleName taskName descr syn_branches uContextTag tsrc
@@ -447,9 +447,9 @@ renderParallelContainer inh eid moduleName taskName descr syn_branches uContextT
       }
     , tsrc)
   where
-  tParApp :: !Bool !ExprId !ModuleName !TaskName !TaskName !SynMkImg !*TagSource
+  tParApp :: !Bool !ExprId !ModuleName !FuncName !FuncName !SynMkImg !*TagSource
           -> *(!Image ModelTy, !*TagSource)
-  tParApp isCompact eid parentModName parentTaskName taskName syn_branches [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
+  tParApp isCompact eid parentModName parentFuncName taskName syn_branches [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
     #! taskNameImg = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
     #! taskNameImg = tag uContextTag taskNameImg
     #! maxXSpan    = maxSpan [imagexspan tntag, imagexspan argstag]
@@ -460,7 +460,7 @@ renderParallelContainer inh eid moduleName taskName descr syn_branches uContextT
     #! img         = overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing
     = (img, tsrc)
 
-mkClickMeta :: !InhMkImg !(Maybe ExprId) !ModuleName !TaskName !(Maybe TaskId) !(Maybe TaskId) -> ClickMeta
+mkClickMeta :: !InhMkImg !(Maybe ExprId) !ModuleName !FuncName !(Maybe TaskId) !(Maybe TaskId) -> ClickMeta
 mkClickMeta inh mbnid modName taskName mborig mbtarget =
   { click_origin_mbbpident = Just { bpident_moduleName = inh.inh_trt.bpr_moduleName
                                   , bpident_taskName   = inh.inh_trt.bpr_taskName
@@ -622,10 +622,10 @@ tRoundedRect width height
       <@< { xradius     = px 5.0 }
       <@< { yradius     = px 5.0 }
 
-tDefaultMApp :: !Bool !Bool !Bool !Bool !ExprId !ModuleName !TaskName
-                !ModuleName !TaskName ![TExpr] ![Image ModelTy] !*TagSource
+tDefaultMApp :: !Bool !Bool !Bool !Bool !ExprId !ModuleName !FuncName
+                !ModuleName !FuncName ![TExpr] ![Image ModelTy] !*TagSource
              -> *(!Image ModelTy, !*TagSource)
-tDefaultMApp isCompact isActive wasActive isInAccessible eid parentModName parentTaskName modName taskName argsExprs taskArgs tsrc
+tDefaultMApp isCompact isActive wasActive isInAccessible eid parentModName parentFuncName modName taskName argsExprs taskArgs tsrc
   #! isEditor = elem taskName [ "viewInformation"
                               , "updateInformation"
                               , "enterInformation"
@@ -665,7 +665,7 @@ tDefaultMApp isCompact isActive wasActive isInAccessible eid parentModName paren
                   (True, True, [TVar _ tn : _]) -> if (size tn > 0 && tn.[0] == '"') [text ArialRegular10px tn] []
                   (True, _, _) -> []
                   _            -> taskArgs
-  = tDefaultMApp` isCompact isActive wasActive isInAccessible eid parentModName parentTaskName modName taskName taskArgs tsrc
+  = tDefaultMApp` isCompact isActive wasActive isInAccessible eid parentModName parentFuncName modName taskName taskArgs tsrc
 
 appColor :: !Bool !Bool !Bool -> SVGColor
 appColor isActive wasActive isInAccessible
@@ -679,10 +679,10 @@ appColor isActive wasActive isInAccessible
           )
       )
 
-tDefaultMApp` :: !Bool !Bool !Bool !Bool !ExprId !ModuleName !TaskName
-                 !ModuleName !TaskName ![Image ModelTy] !*TagSource
+tDefaultMApp` :: !Bool !Bool !Bool !Bool !ExprId !ModuleName !FuncName
+                 !ModuleName !FuncName ![Image ModelTy] !*TagSource
               -> *(!Image ModelTy, !*TagSource)
-tDefaultMApp` isCompact isActive wasActive isInAccessible eid parentModName parentTaskName modName taskName taskArgs [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
+tDefaultMApp` isCompact isActive wasActive isInAccessible eid parentModName parentFuncName modName taskName taskArgs [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
   #! taskNameImg = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
   #! bgColor     = appColor isActive wasActive isInAccessible
   = case taskArgs of

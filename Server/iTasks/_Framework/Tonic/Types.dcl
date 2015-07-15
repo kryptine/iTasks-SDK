@@ -12,7 +12,7 @@ from iTasks.API.Core.Types import :: DateTime
 
 :: BlueprintRef =
   { bpr_moduleName :: !ModuleName
-  , bpr_taskName   :: !TaskName
+  , bpr_taskName   :: !FuncName
   , bpr_instance   :: !Maybe BlueprintInstance
   }
 

@@ -73,14 +73,14 @@ import Data.CircularStack
   }
 
 :: BlueprintQuery
-  = TaskName String
+  = FuncName String
   | UserInvolved String
   | IsActiveTask
   | HasInstanceNo Int
   | AndQuery BlueprintQuery BlueprintQuery
   | OrQuery BlueprintQuery BlueprintQuery
 
-:: AllBlueprints :== Map ModuleName (Map TaskName TonicFunc)
+:: AllBlueprints :== Map ModuleName (Map FuncName TonicFunc)
 
 NS_TONIC_INSTANCES :== "tonic-instances"
 
@@ -114,7 +114,7 @@ sdsUnsafeRead focus iworld
 selectedBlueprint :: RWShared () (Maybe ClickMeta) (Maybe ClickMeta)
 selectedBlueprint = sdsFocus "selectedBlueprint" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
 
-selectedDetail :: RWShared () (Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int))) (Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int)))
+selectedDetail :: RWShared () (Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int))) (Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int)))
 selectedDetail = sdsFocus "selectedDetail" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
 
 storedOutputEditors :: RWShared () (Map TaskId (Int, Task (), TStability)) (Map TaskId (Int, Task (), TStability))
@@ -196,7 +196,7 @@ dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (memoryStore NS_TONIC
                                      }))
 
 
-paramsForTaskInstance :: RWShared (ModuleName, TaskName, TaskId) [(VarName, Task ())] [(VarName, Task ())]
+paramsForTaskInstance :: RWShared (ModuleName, FuncName, TaskId) [(VarName, Task ())] [(VarName, Task ())]
 paramsForTaskInstance = sdsTranslate "paramsForTaskInstance" (\t -> t +++> "-paramsForTaskInstance")
                              (memoryStore NS_TONIC_INSTANCES Nothing)
 
@@ -207,19 +207,19 @@ paramsForTaskInstance = sdsTranslate "paramsForTaskInstance" (\t -> t +++> "-par
 tonicExtWrapArg :: !String !a -> m () | iTask a & TonicTopLevelBlueprint m
 tonicExtWrapArg d v = tonicWrapArg d v
 
-tonicExtWrapBody :: !ModuleName !TaskName [(VarName, m ())] (         m a) -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBody :: !ModuleName !FuncName [(VarName, m ())] (         m a) -> m a | TonicTopLevelBlueprint m & iTask a
 tonicExtWrapBody mn tn args t = tonicWrapBody mn tn args t
 
-tonicExtWrapBodyLam1 :: !ModuleName !TaskName [(VarName, m ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam1 :: !ModuleName !FuncName [(VarName, m ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
 tonicExtWrapBodyLam1 mn tn args f = \x -> tonicWrapBody mn tn args (f x)
 
-tonicExtWrapBodyLam2 :: !ModuleName !TaskName [(VarName, m ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam2 :: !ModuleName !FuncName [(VarName, m ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
 tonicExtWrapBodyLam2 mn tn args f = \x y -> tonicWrapBody mn tn args (f x y)
 
-tonicExtWrapBodyLam3 :: !ModuleName !TaskName [(VarName, m ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam3 :: !ModuleName !FuncName [(VarName, m ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
 tonicExtWrapBodyLam3 mn tn args f = \x y z -> tonicWrapBody mn tn args (f x y z)
 
-tonicWrapTaskBody` :: !ModuleName !TaskName [(VarName, Task ())] (Task a) -> Task a | iTask a
+tonicWrapTaskBody` :: !ModuleName !FuncName [(VarName, Task ())] (Task a) -> Task a | iTask a
 tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
   where
   setBlueprintInfo :: !TaskEvalOpts -> TaskEvalOpts
@@ -348,7 +348,7 @@ resultToOutput newN tid (ValueResult (Value v s) _ _ _) = (newN, viewInformation
 resultToOutput newN tid (ValueResult NoValue _ _ _)     = (newN, viewInformation (Title ("Value for task " +++ toString tid)) [] "No value" @! (), TNoVal)
 resultToOutput newN tid _                               = (newN, viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! (), TNoVal)
 
-tonicExtWrapApp :: !(!ModuleName, !TaskName) !ExprId (m a) -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapApp :: !(!ModuleName, !FuncName) !ExprId (m a) -> m a | TonicBlueprintPart m & iTask a
 tonicExtWrapApp wrapFn nid mapp = tonicWrapApp wrapFn nid mapp
 
 isSpecialBlueprintTask :: !(!String, !String) -> Bool
@@ -408,11 +408,11 @@ stepEval` childTaskId=:(TaskId ino tno) eval event evalOpts taskTree iworld
 import StdDebug
 derive class iTask TonicOpts
 /**
- * ModuleName and TaskName identify the blueprint, of which we need to
+ * ModuleName and FuncName identify the blueprint, of which we need to
  * highlight nodes.
  */
-tonicWrapApp` :: !(!ModuleName, !TaskName) !ExprId (Task a) -> Task a | iTask a
-tonicWrapApp` wrapInfo=:(_, wrapTaskName) nid t=:(Task eval)
+tonicWrapApp` :: !(!ModuleName, !FuncName) !ExprId (Task a) -> Task a | iTask a
+tonicWrapApp` wrapInfo=:(_, wrapFuncName) nid t=:(Task eval)
   | isBind wrapInfo = t
   | isStep wrapInfo = Task (stepEval eval)
   | otherwise       = return () >>~ \_ -> Task eval`
@@ -631,13 +631,13 @@ setActiveNodes tonicOpts {bpi_taskId = parentTaskId, bpi_activeNodes = parentAct
             | ino == ino` = dropFirstInstances` ino trace
           _ = trace
 
-tonicExtWrapAppLam1 :: !(!ModuleName, !TaskName) !ExprId !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam1 :: !(!ModuleName, !FuncName) !ExprId !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
 tonicExtWrapAppLam1 wrapFn nid f = \x -> tonicWrapApp wrapFn nid (f x)
 
-tonicExtWrapAppLam2 :: !(!ModuleName, !TaskName) !ExprId !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam2 :: !(!ModuleName, !FuncName) !ExprId !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
 tonicExtWrapAppLam2 wrapFn nid f = \x y -> tonicWrapApp wrapFn nid (f x y)
 
-tonicExtWrapAppLam3 :: !(!ModuleName, !TaskName) !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam3 :: !(!ModuleName, !FuncName) !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
 tonicExtWrapAppLam3 wrapFn nid f = \x y z -> tonicWrapApp wrapFn nid (f x y z)
 
 anyTrue :: ![Bool] -> Bool
@@ -817,7 +817,7 @@ viewStaticTask allbps rs navstack trt tm=:{tm_name} tt depth compact
     onNavVal _                _             = Nothing
 
 showBlueprint :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !TonicFunc
-                 !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int)))
+                 !(Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int)))
                  !(Map TaskId [UIAction]) !Bool !Scale
               -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showBlueprint rs prev bpref=:{bpr_instance = Just _} task selDetail enabledSteps compact depth
@@ -828,7 +828,7 @@ showBlueprint rs prev bpref task selDetail enabledSteps compact depth
 
 showBlueprint` :: !(Map TaskId TStability) ![TaskAppRenderer]
                   !(Map ExprId TaskId) !BlueprintRef !TonicFunc
-                  !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int)))
+                  !(Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int)))
                   !(Map TaskId [UIAction]) !Bool !Scale
               -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showBlueprint` oes rs prev bpref task selDetail enabledSteps compact depth
@@ -968,7 +968,7 @@ tonicDynamicBrowser` rs navstack =
   filterActiveTasks (Just q) tasks
     = [bp \\ bp=:{bpr_instance = Just trt} <- tasks | not (startsWith "iTasks" bp.bpr_moduleName) && isNothing trt.bpi_endTime && doFilter bp q]
     where
-    doFilter bp=:{bpr_instance = Just trt} (TaskName tn)     = tn == "" || indexOf tn bp.bpr_taskName >= 0
+    doFilter bp=:{bpr_instance = Just trt} (FuncName tn)     = tn == "" || indexOf tn bp.bpr_taskName >= 0
     doFilter bp=:{bpr_instance = Just {bpi_currentUser = Just u}} (UserInvolved un) = un == "" || indexOf un (toString u) >= 0
     doFilter bp=:{bpr_instance = Just trt} IsActiveTask      = isNothing trt.bpi_endTime
     doFilter bp=:{bpr_instance = Just {bpi_taskId = TaskId tinst _}} (HasInstanceNo n) = tinst == n
@@ -991,7 +991,7 @@ tonicDynamicBrowser` rs navstack =
                    , user        = ""
                    }
 
-getModuleAndTask :: !AllBlueprints !ModuleName !TaskName -> Task (TonicModule, TonicFunc)
+getModuleAndTask :: !AllBlueprints !ModuleName !FuncName -> Task (TonicModule, TonicFunc)
 getModuleAndTask allbps mn tn
   =           getModule mn
   >>~ \mod -> case 'DM'.get mn allbps `b` 'DM'.get tn of
@@ -1000,7 +1000,7 @@ getModuleAndTask allbps mn tn
 
 viewInstance :: ![TaskAppRenderer] !(Shared NavStack)
                 !DynamicDisplaySettings !TonicRTMap
-                !(Maybe (Either ClickMeta (ModuleName, TaskName, TaskId, Int))) !Bool
+                !(Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int))) !Bool
                 !(Maybe ClickMeta)
              -> Task ()
 viewInstance rs navstack dynSett trt selDetail showButtons action=:(Just meta=:{click_target_bpident = {bpident_taskId = Just tid}})
@@ -1046,7 +1046,7 @@ viewInstance rs navstack dynSett trt selDetail showButtons action=:(Just meta=:{
     | showButtons = msg >>* [ OnAction (Action "Back" [ActionIcon "previous"]) (\_ -> navigateBackwards ns) ]
     | otherwise   = msg
 
-  handleClicks :: !ModuleName !TaskName !(TClickAction, ClickMeta) (ActionState (TClickAction, ClickMeta) TonicImageState) -> Task ()
+  handleClicks :: !ModuleName !FuncName !(TClickAction, ClickMeta) (ActionState (TClickAction, ClickMeta) TonicImageState) -> Task ()
   handleClicks _ _ (TNavAction, meta) _
     =   upd (\xs -> [meta : xs]) navstack
     >>| viewInstance rs navstack dynSett trt selDetail showButtons (Just meta)
