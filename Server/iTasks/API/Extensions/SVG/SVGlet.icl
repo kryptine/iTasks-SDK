@@ -368,7 +368,7 @@ appClientDiff resolve state2Image mkEventHandler cid (SetState s) clst world
   #! fixVal           = fixEnvs {FixSpansStVal | fixSpansDidChange = False, fixSpansSpanEnvs = spanEnvs}
   #! (syn, clval)     = genSVG img { uniqueIdCounter = 0, genStates = fixVal.fixSpansSpanEnvs }
   #! (imXSp, imYSp)   = syn.genSVGSyn_imageSpanReal
-  #! (imXSp, imYSp)   = (toString (toInt (roundUp imXSp)), toString (toInt (roundUp imYSp)))
+  #! (imXSp, imYSp)   = (toString (to2dec imXSp), toString (to2dec imYSp))
   #! svgStr           = browserFriendlySVGEltToString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
                                          [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
                                          syn.genSVGSyn_svgElts)
@@ -1357,16 +1357,10 @@ mkUrl :: !String -> String
 mkUrl ref = "url(#" +++ ref +++ ")"
 
 mkWH :: !ImageSpanReal -> [HtmlAttr]
-mkWH (imXSp, imYSp) = [WidthAttr (toString (toInt (roundUp imXSp))), HeightAttr (toString (toInt (roundUp imYSp)))]
+mkWH (imXSp, imYSp) = [WidthAttr (toString (to2dec imXSp)), HeightAttr (toString (to2dec imYSp))]
 
 to2dec :: !Real -> Real
 to2dec n = toReal (toInt (n * 100.0)) / 100.0
-
-roundUp :: !Real -> Real
-roundUp n
-  # rDown = toReal (entier n)
-  | n - rDown > 0.0 = rDown + 1.0
-  | otherwise       = n
 
 mkUniqId :: !String !Int -> String
 mkUniqId editletId uniqId = "uniqId-" +++ editletId +++ toString uniqId
@@ -1801,12 +1795,12 @@ genSVG img = imageCata genSVGAllAlgs img
       // TODO Marker size etc?
       mkMarkerAndId :: !(Maybe (GenSVGSyn s)) !String !(String -> SVGAttr) -> Maybe (!SVGElt, !SVGAttr, !Map String (ImageAttr s), !Map String (ImageAttr s), !Map String (Set ImageTag)) | iTask s
       mkMarkerAndId (Just {genSVGSyn_svgElts, genSVGSyn_imageSpanReal = (w, h), genSVGSyn_events, genSVGSyn_draggable, genSVGSyn_idMap}) mid posAttr
-        #! wStr = toString (toInt (roundUp w))
-        #! hStr = toString (toInt (roundUp h))
+        #! wStr = toString (to2dec w)
+        #! hStr = toString (to2dec h)
         = Just ( MarkerElt [IdAttr mid] [ OrientAttr "auto"
                                         , ViewBoxAttr "0" "0" wStr hStr
                                         , RefXAttr (wStr, PX)
-                                        , RefYAttr (toString (toInt (roundUp (h / 2.0))), PX)
+                                        , RefYAttr (toString (to2dec (h / 2.0)), PX)
                                         , MarkerHeightAttr (hStr, PX)
                                         , MarkerWidthAttr (wStr, PX)
                                         ] genSVGSyn_svgElts
