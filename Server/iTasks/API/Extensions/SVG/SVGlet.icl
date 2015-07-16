@@ -1656,7 +1656,7 @@ genSVG img = imageCata genSVGAllAlgs img
     mkEmptyImage uniqId interactive imSp imAts imTrs st
       #! hattrs = mkWH imSp
       #! hattrs = if interactive [IdAttr (mkUniqId editletId uniqId) : hattrs] hattrs
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup hattrs (getSvgAttrs (mkAttrs imAts imTrs)) [] }, False), st)
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = mkGroup hattrs (mkAttrs imAts imTrs) [] }, False), st)
     mkTextImage :: !FontDef !String !Int !Bool !ImageSpanReal
                    ![Maybe SVGAttr]
                    ![(![SVGTransform], !ImageTransform)]
@@ -1667,7 +1667,7 @@ genSVG img = imageCata genSVGAllAlgs img
     // We need to offset by the font's descent height, but that's not easy to calculate currently (there are no JS APIs for that yet). Current heuristic: we assume that the ex-height is half of the font height. We assume that the descent height is half of the ex-height. Therefore, we multiply by 0.75
       #! hattrs = [XmlspaceAttr "preserve"]
       #! hattrs = if interactive [IdAttr (mkUniqId editletId uniqId) : hattrs] hattrs
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = [TextElt hattrs [TransformAttr [TranslateTransform (toString 0.0) (toString (fd.fontysize * 0.75))] : (getSvgAttrs (mkAttrs imAts imTrs) ++ fontAttrs fd.fontysize)] str] }
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = [TextElt hattrs (addAttr (TransformAttr [TranslateTransform (toString 0.0) (toString (fd.fontysize * 0.75))]) (mkAttrs imAts imTrs ++ fontAttrs fd.fontysize)) str] }
          , True), st)
       where
       fontAttrs :: !Real -> [SVGAttr]
@@ -1688,7 +1688,7 @@ genSVG img = imageCata genSVGAllAlgs img
     mkRectImage uniqId interactive imSp imAts imTrs st
       #! hattrs = mkWH imSp
       #! hattrs = if interactive [IdAttr (mkUniqId editletId uniqId) : hattrs] hattrs
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = [RectElt hattrs (getSvgAttrs (mkAttrs imAts imTrs))] }, False), st)
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = [RectElt hattrs (mkAttrs imAts imTrs)] }, False), st)
     mkCircleImage :: !Int !Bool !ImageSpanReal ![Maybe SVGAttr]
                      ![(![SVGTransform], !ImageTransform)]
                      !(GenSVGStVal s)
@@ -1697,13 +1697,13 @@ genSVG img = imageCata genSVGAllAlgs img
       #! r = imXSp` / 2.0
       = (({ mkGenSVGSyn & genSVGSyn_svgElts = [CircleElt (if interactive [IdAttr (mkUniqId editletId uniqId)] [])
                                                 [ RAttr (toString (to2dec r), PX), CxAttr (toString (to2dec r), PX)
-                                                , CyAttr (toString (to2dec r), PX) : (getSvgAttrs (mkAttrs imAts imTrs)) ]] }, False), st)
+                                                , CyAttr (toString (to2dec r), PX) : (mkAttrs imAts imTrs) ]] }, False), st)
     mkEllipseImage :: !Int !Bool !ImageSpanReal ![Maybe SVGAttr]
                       ![(![SVGTransform], !ImageTransform)]
                       !(GenSVGStVal s)
                    -> .(!(!GenSVGSyn s, !Bool), GenSVGStVal s) | iTask s
     mkEllipseImage uniqId interactive imSp=:(imXSp, imYSp) imAts imTrs st
-      = (({ mkGenSVGSyn & genSVGSyn_svgElts = [EllipseElt (if interactive [IdAttr (mkUniqId editletId uniqId)] []) (getSvgAttrs (mkAttrs imAts imTrs) ++
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = [EllipseElt (if interactive [IdAttr (mkUniqId editletId uniqId)] []) (mkAttrs imAts imTrs ++
                                                 [ RxAttr (toString (to2dec (imXSp / 2.0)), PX), RyAttr (toString (to2dec (imYSp / 2.0)), PX)
                                                 , CxAttr (toString (to2dec (imXSp / 2.0)), PX), CyAttr (toString (to2dec (imYSp / 2.0)), PX)])] }, False), st)
 
@@ -1758,7 +1758,7 @@ genSVG img = imageCata genSVGAllAlgs img
       #! (y1, y2) = case sl of
                       Slash     -> (toString (to2dec yspan), "0.0")
                       Backslash -> ("0.0", toString (to2dec yspan))
-      = mkLine LineElt [X1Attr ("0.0", PX), X2Attr (toString (to2dec xspan), PX), Y1Attr (y1, PX), Y2Attr (y2, PX) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers
+      = mkLine LineElt [X1Attr ("0.0", PX), X2Attr (toString (to2dec xspan), PX), Y1Attr (y1, PX), Y2Attr (y2, PX) : mkAttrs imAts imTrs] sp mmarkers
     mkPolygonImage :: ![(!GenSVGSt s Real, !GenSVGSt s Real)] !ImageSpanReal
                       !(Maybe (!Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s)))
                       ![Maybe SVGAttr] ![(![SVGTransform], !ImageTransform)]
@@ -1766,7 +1766,7 @@ genSVG img = imageCata genSVGAllAlgs img
                    -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
     mkPolygonImage points sp mmarkers imAts imTrs imTas st
       #! (offsets, st) = evalOffsets points st
-      = mkLine PolygonElt [PointsAttr (strictTRMap (\(x, y) -> (toString (to2dec x), toString (to2dec y))) offsets) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers st
+      = mkLine PolygonElt [PointsAttr (strictTRMap (\(x, y) -> (toString (to2dec x), toString (to2dec y))) offsets) : mkAttrs imAts imTrs] sp mmarkers st
     mkPolylineImage :: ![(!GenSVGSt s Real, !GenSVGSt s Real)] !ImageSpanReal
                        !(Maybe (!Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s)))
                        ![Maybe SVGAttr] ![(![SVGTransform], !ImageTransform)]
@@ -1774,7 +1774,7 @@ genSVG img = imageCata genSVGAllAlgs img
                     -> .(!GenSVGSyn s, GenSVGStVal s) | iTask s
     mkPolylineImage points sp mmarkers imAts imTrs imTas st
       #! (offsets, st) = evalOffsets points st
-      = mkLine PolylineElt [PointsAttr (strictTRMap (\(x, y) -> (toString (to2dec x), toString (to2dec y))) offsets) : getSvgAttrs (mkAttrs imAts imTrs)] sp mmarkers st
+      = mkLine PolylineElt [PointsAttr (strictTRMap (\(x, y) -> (toString (to2dec x), toString (to2dec y))) offsets) : mkAttrs imAts imTrs] sp mmarkers st
 
     mkLine :: !([HtmlAttr] [SVGAttr] -> SVGElt) ![SVGAttr] !ImageSpanReal !(Maybe (Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s), !Maybe (GenSVGSyn s))) !(GenSVGStVal s) -> .(!GenSVGSyn s, !GenSVGStVal s) | iTask s
     mkLine constr atts spans (Just (mmStart, mmMid, mmEnd)) clval
@@ -1837,9 +1837,8 @@ genSVG img = imageCata genSVGAllAlgs img
                  = (genSVGSyn_svgElts ++ compose.genSVGSyn_svgElts, genSVGSyn_imageSpanReal, 'DM'.union genSVGSyn_events compose.genSVGSyn_events, 'DM'.union genSVGSyn_draggable compose.genSVGSyn_draggable, 'DM'.union genSVGSyn_idMap compose.genSVGSyn_idMap)
                _ = (compose.genSVGSyn_svgElts, compose.genSVGSyn_imageSpanReal, compose.genSVGSyn_events, compose.genSVGSyn_draggable, compose.genSVGSyn_idMap)
       #! (imTrs, st) = sequence (strictTRMap (\f -> f spans False) imTrs) st
-      #! attrs = mkAttrs imAts imTrs
       = ({ genSVGSyn_imageSpanReal = (0.0, 0.0)
-         , genSVGSyn_svgElts       = mkGroup (if interactive [IdAttr (mkUniqId editletId uniqId)] []) (getSvgAttrs attrs) elts
+         , genSVGSyn_svgElts       = mkGroup (if interactive [IdAttr (mkUniqId editletId uniqId)] []) (mkAttrs imAts imTrs) elts
          , genSVGSyn_events        = onclicks
          , genSVGSyn_draggable     = draggables
          , genSVGSyn_idMap         = idMap
@@ -1895,16 +1894,16 @@ mkGroup []     sattrs [GElt hattrs [] xs] = [GElt hattrs sattrs xs]
 mkGroup []     [tfattr=:(TransformAttr [TranslateTransform x y])] xs = map f xs
   where
   f :: !SVGElt -> SVGElt
-  f (GElt        hattrs [TransformAttr [TranslateTransform x` y`] : attrs] elts) = GElt       hattrs [dualTransformTranslate x y x` y` : attrs] elts
-  f (GElt        hattrs attrs elts)                                              = GElt       hattrs [tfattr : attrs] elts
-  f (TextElt     hattrs [TransformAttr [TranslateTransform x` y`] : attrs] elts) = TextElt    hattrs [dualTransformTranslate x y x` y` : attrs] elts
-  f (TextElt     hattrs attrs elts)                                              = TextElt    hattrs [tfattr : attrs] elts
-  f (EllipseElt  hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = EllipseElt hattrs [dualTransformTranslate x y x` y` : attrs]
-  f (EllipseElt  hattrs attrs)                                                   = EllipseElt hattrs [tfattr : attrs]
-  f (RectElt     hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = RectElt    hattrs [dualTransformTranslate x y x` y` : attrs]
-  f (RectElt     hattrs attrs)                                                   = RectElt    hattrs [tfattr : attrs]
-  f (CircleElt   hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = CircleElt  hattrs [dualTransformTranslate x y x` y` : attrs]
-  f (CircleElt   hattrs attrs)                                                   = CircleElt  hattrs [tfattr : attrs]
+  f (GElt        hattrs [TransformAttr [TranslateTransform x` y`] : attrs] elts) = GElt       hattrs (addAttr (dualTransformTranslate x y x` y`) attrs) elts
+  f (GElt        hattrs attrs elts)                                              = GElt       hattrs (addAttr tfattr attrs) elts
+  f (TextElt     hattrs [TransformAttr [TranslateTransform x` y`] : attrs] elts) = TextElt    hattrs (addAttr (dualTransformTranslate x y x` y`) attrs) elts
+  f (TextElt     hattrs attrs elts)                                              = TextElt    hattrs (addAttr tfattr attrs) elts
+  f (EllipseElt  hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = EllipseElt hattrs (addAttr (dualTransformTranslate x y x` y`) attrs)
+  f (EllipseElt  hattrs attrs)                                                   = EllipseElt hattrs (addAttr tfattr attrs)
+  f (RectElt     hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = RectElt    hattrs (addAttr (dualTransformTranslate x y x` y`) attrs)
+  f (RectElt     hattrs attrs)                                                   = RectElt    hattrs (addAttr tfattr attrs)
+  f (CircleElt   hattrs [TransformAttr [TranslateTransform x` y`] : attrs])      = CircleElt  hattrs (addAttr (dualTransformTranslate x y x` y`) attrs)
+  f (CircleElt   hattrs attrs)                                                   = CircleElt  hattrs (addAttr tfattr attrs)
   f (LineElt _ [X1Attr (x1, PX), X2Attr (x2, PX), Y1Attr (y1, PX), Y2Attr (y2, PX) : attrs]) = LineElt [] [X1Attr (lineAdd x1 x, PX), X2Attr (lineAdd x2 x, PX), Y1Attr (lineAdd y1 y, PX), Y2Attr (lineAdd y2 y, PX) : attrs]
   f elt                                                                                      = GElt    [] [tfattr] [elt]
   lineAdd :: !String !SVGNumber -> String
@@ -1913,6 +1912,75 @@ mkGroup has    sas elts = [GElt has sas elts]
 
 dualTransformTranslate :: !a !a !a !a -> SVGAttr | toReal a
 dualTransformTranslate x y x` y` = TransformAttr [TranslateTransform (toString (to2dec (toReal x + toReal x`))) (toString (to2dec (toReal y + toReal y`)))]
+
+
+addAttr :: !SVGAttr ![SVGAttr] -> [SVGAttr]
+//addAttr (AlignmentBaselineAttr   !String
+//addAttr (BaseProfileAttr         !String
+//addAttr (ContentScriptTypeAttr   !String
+//addAttr (ClipPathAttr            !String
+//addAttr (CxAttr                  !SVGCoordinate
+//addAttr (CyAttr                  !SVGCoordinate
+//addAttr (DominantBaselineAttr    !String
+//addAttr (ExternalResourcesRequiredAttr !Bool
+//addAttr (FillAttr                !SVGPaint
+//addAttr (FillOpacityAttr         !SVGFillOpacity
+//addAttr (FillRuleAttr            !SVGFillRule
+//addAttr (FontFamilyAttr          !String
+//addAttr (FontSizeAttr            !String
+//addAttr (FontStyleAttr           !String
+//addAttr (FontStretchAttr         !String
+//addAttr (FontVariantAttr         !String
+//addAttr (FontWeightAttr          !String
+//addAttr (LengthAdjustAttr        !SVGLengthAdjust
+//addAttr (MarkerStartAttr         !String
+//addAttr (MarkerMidAttr           !String
+//addAttr (MarkerEndAttr           !String
+//addAttr (MarkerHeightAttr        !SVGLength
+//addAttr (MarkerWidthAttr         !SVGLength
+//addAttr (MaskAttr                !String
+//addAttr (OffsetAttr              !String
+//addAttr (OrientAttr              !String
+//addAttr (PointsAttr              ![(String, String)]
+//addAttr (PreserveAspectRatioAttr !(Maybe SVGDefer) !(Maybe SVGAlign) !(Maybe SVGMeetOrSlice)
+//addAttr (RAttr                   !SVGLength
+//addAttr (RefXAttr                !SVGLength
+//addAttr (RefYAttr                !SVGLength
+//addAttr (RxAttr                  !SVGLength
+//addAttr (RyAttr                  !SVGLength
+//addAttr (StopColorAttr           !String
+//addAttr (StopOpacityAttr         !String
+//addAttr (StrokeAttr              !SVGPaint
+//addAttr (StrokeDashArrayAttr     !SVGStrokeDashArray
+//addAttr (StrokeDashOffsetAttr    !SVGStrokeDashOffset
+//addAttr (StrokeLineCapAttr       !SVGLineCap
+//addAttr (StrokeLineJoinAttr      !SVGLineJoin
+//addAttr (StrokeMiterLimitAttr    !SVGStrokeMiterLimit
+//addAttr (StrokeOpacityAttr       !String
+//addAttr (StrokeWidthAttr         !SVGStrokeWidth
+//addAttr (TextAnchorAttr          !String
+//addAttr (TextLengthAttr          !SVGLength
+//addAttr (TextRenderingAttr       !String
+addAttr (TransformAttr tfs) attrs = addTransforms tfs attrs []
+  where
+  addTransforms :: ![SVGTransform] ![SVGAttr] ![SVGAttr] -> [SVGAttr]
+  addTransforms tfs []                            acc = reverseTR acc ++ [TransformAttr tfs]
+  addTransforms tfs [TransformAttr tfs` : attrs`] acc = reverseTR acc ++ [TransformAttr (tfs ++ tfs`) : attrs`]
+  addTransforms tfs [attr:attrs]                  acc = addTransforms tfs attrs [attr:acc]
+//addAttr (VersionAttr             !String
+//addAttr (ViewBoxAttr             !SVGNumber !SVGNumber !SVGNumber !SVGNumber
+//addAttr (XAttr                   !SVGCoordinate
+//addAttr (X1Attr                  !SVGLength
+//addAttr (X2Attr                  !SVGLength
+//addAttr (XLinkHRefAttr           !String
+//addAttr (YAttr                   !SVGCoordinate
+//addAttr (Y1Attr                  !SVGLength
+//addAttr (Y2Attr                  !SVGLength
+//addAttr (ZoomAndPanAttr          !SVGZoomAndPan
+addAttr attr attrs = [attr:attrs]
+
+addAttrs :: ![SVGAttr] ![SVGAttr] -> [SVGAttr]
+addAttrs newAttrs oldAttrs = foldr addAttr oldAttrs newAttrs
 
 evalOffsets :: ![(!State .st a, !State .st a)] !.st -> .(![(!a, !a)], !.st)
 evalOffsets offsets st = strictTRMapSt f offsets st
@@ -1941,9 +2009,9 @@ flattenTRAcc [xs:xss] acc
   #! r = reverseTR xs ++ acc
   = flattenTRAcc xss r
 
-mkAttrs :: ![Maybe SVGAttr] ![(![SVGTransform], !ImageTransform)] -> [Maybe SVGAttr]
-mkAttrs imAts [] = imAts
-mkAttrs imAts xs = [Just (TransformAttr (flattenTR (strictTRMap fst xs))):imAts]
+mkAttrs :: ![Maybe SVGAttr] ![(![SVGTransform], !ImageTransform)] -> [SVGAttr]
+mkAttrs imAts [] = getSvgAttrs imAts
+mkAttrs imAts xs = addAttr (TransformAttr (flattenTR (strictTRMap fst xs))) (getSvgAttrs imAts)
 
 calcAlignOffset :: !Span !Span !(!Span, !Span) !ImageAlign -> (!Span, !Span)
 calcAlignOffset maxxsp maxysp (imXSp, imYSp) (xal, yal) = (mkXAl maxxsp imXSp xal, mkYAl maxysp imYSp yal)
