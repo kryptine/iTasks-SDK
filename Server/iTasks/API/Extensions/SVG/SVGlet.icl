@@ -17,6 +17,7 @@ from StdFunc import `bind`, flip
 import Text
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
+import Data.Matrix
 
 :: GenSVGStVal s =
   { uniqueIdCounter :: !Int
@@ -505,101 +506,99 @@ cacheGridSpans n imTas xsps ysps st
   f :: !Int !ImageTag !(Map ImageTag Int) -> Map ImageTag Int
   f n t env = 'DM'.put t n env
 
+
+point2Vec :: !(!Span, !Span) -> Vector Span
+point2Vec (x, y) = {x, y, px 1.0}
+
+translateTF :: !Span !Span !(!Span, !Span) -> (!Span, !Span)
+translateTF sx sy p
+  #! m = mulMatrixVec { {px 1.0, px 0.0, sx}
+                      , {px 0.0, px 1.0, sy}
+                      , {px 0.0, px 0.0, px 1.0}
+                      }
+                      (point2Vec p)
+  = (m.[0].[0], m.[1].[0])
+
+scaleTF :: !Span !Span !(!Span, !Span) -> (!Span, !Span)
+scaleTF sx sy p
+  #! m = mulMatrixVec { {sx,     px 0.0, px 0.0}
+                      , {px 0.0, sy,     px 0.0}
+                      , {px 0.0, px 0.0, px 1.0}
+                      } (point2Vec p)
+  = (m.[0].[0], m.[1].[0])
+
+rotateTF :: !Angle !(!Span, !Span) -> (!Span, !Span)
+rotateTF a p
+  #! a = toRad a
+  #! m = mulMatrixVec { {px (cos a), px (0.0 - sin a), zero}
+                      , {px (sin a), px (cos a),       zero}
+                      , {zero,       zero,             px 1.0}
+                      }
+                      (point2Vec p)
+  = (m.[0].[0], m.[1].[0])
+
+skewXTF :: !Angle !(!Span, !Span) -> (!Span, !Span)
+skewXTF a p
+  #! a = toRad a
+  #! m = mulMatrixVec { {px 1.0, px (tan a), zero}
+                      , {zero,   px 1.0,     zero}
+                      , {zero,   zero,       px 1.0}
+                      }
+                      (point2Vec p)
+  = (m.[0].[0], m.[1].[0])
+
+skewYTF :: !Angle !(!Span, !Span) -> (!Span, !Span)
+skewYTF a p
+  #! a = toRad a
+  #! m = mulMatrixVec { {px 1.0,     zero,   zero}
+                      , {px (tan a), px 1.0, zero}
+                      , {zero,       zero,   px 1.0}
+                      }
+                      (point2Vec p)
+  = (m.[0].[0], m.[1].[0])
+
 applyTransforms :: ![ImageTransform] !ImageSpan -> (!ImageSpan, !ImageOffset)
-applyTransforms ts sp = foldr f (sp, (px 0.0, px 0.0)) ts
+applyTransforms ts (xsp, ysp)
+  #! origPoints = [(zero, zero), (xsp, zero), (zero, ysp), (xsp, ysp)]
+  #! newPoints  = foldr f origPoints ts
+  #! allXs      = strictTRMap fst newPoints
+  #! allYs      = strictTRMap snd newPoints
+  #! minX       = minSpan allXs
+  #! maxX       = maxSpan allXs
+  #! minY       = minSpan allYs
+  #! maxY       = maxSpan allYs
+  = ((maxX - minX, maxY - minY), (zero - minX, zero - minY))
   where
-  f :: !ImageTransform !(!(!Span, !Span), !(!Span, !Span)) -> (!(!Span, !Span), !(!Span, !Span))
-  f (RotateImage th) (accSp, accOff)
-    #! (imSp, offs) = rotatedImageSpan th accSp
-    = (imSp, accOff + offs)
-  f (SkewXImage th) (accSp=:(_, ysp), (xoff, yoff))
-    #! (xsp, offs) = skewXImageWidth th accSp
-    = ((xsp, ysp), (xoff + offs, yoff))
-  f (SkewYImage th) (accSp=:(xsp, _), (xoff, yoff))
-    #! (ysp, offs) = skewYImageHeight th accSp
-    = ((xsp, ysp), (xoff, yoff + offs))
-  f (FitImage xsp ysp) (_, accOff)
-    = ((xsp, ysp), accOff)
-  f (FitXImage sp) ((xsp, ysp), accOff)
-    = ((sp, (sp / xsp) * ysp), accOff)
-  f (FitYImage sp) ((xsp, ysp), accOff)
-    = (((sp / ysp) * xsp, sp), accOff)
-  f FlipXImage (spans, accOff)
-    = (spans, accOff)
-  f FlipYImage (spans, accOff)
-    = (spans, accOff)
-
-// Rotates a rectangle by a given angle. Currently, this function is rather
-// naive. It rotates the rectangle (usually the bounding box of a shape) around
-// its centre point. It returns the span of the entire rotated image, i.e., the
-// new bounding box of the rotated image. If you rotate a square by, e.g. 45
-// degrees, then the resulting bounding box will be larger than the original
-// square bounding box. If you rotate the square again by 45 degrees, you would
-// expect that the bounding box after the second rotation is as big as the
-// original square again. However, with this particular function, the
-// resulting bounding box is bigger still, because the new bounding box was
-// rotated.
-//
-// @param th | Angle th      angle          The angle of rotation
-// @param (a, a) | IsSpan a  (xspan, yspan) The original x and y spans of the
-//                                          non-rotated image
-// @return ((a, a), (a, a)) | IsSpan a      The span of the rotated image and
-//                                          the offset from between the old and
-//                                          new top-left corner of the bounding
-//                                          box
-rotatedImageSpan :: !Angle !(!Span, !Span) -> (!(!Span, !Span), !(!Span, !Span))
-rotatedImageSpan angle (xspan, yspan)
-  #! cx        = xspan /. 2.0
-  #! cy        = yspan /. 2.0
-  #! angle`    = toRad angle
-  #! allPoints = [ mkTransform angle` cx cy zero  zero
-                 , mkTransform angle` cx cy xspan zero
-                 , mkTransform angle` cx cy zero  yspan
-                 , mkTransform angle` cx cy xspan yspan ]
-  #! allX      = strictTRMap fst allPoints
-  #! allY      = strictTRMap snd allPoints
-  #! minAllX   = minSpan allX
-  #! minAllY   = minSpan allY
-  = ( (abs (maxSpan allX - minAllX), abs (maxSpan allY - minAllY))
-    , (zero - minAllX, zero - minAllY))
-  where
-  mkTransform :: !Real !Span !Span !Span !Span -> (!Span, !Span)
-  mkTransform angle` cx cy x y = ( cx + (x - cx) *. cos angle` + (y - cy) *. sin angle`
-                                 , cy - (x - cx) *. sin angle` + (y - cy) *. cos angle`)
-
-// Skew an image by a given angle. This function is naive as well, for the same
-// reasons as the rotation function.
-// TODO : We need to calculate the difference between the original and skewed
-// top-left coordinate here as well, because we need it in grid layouts
-//
-// @param (th | Angle th)     angle          The skew angle
-// @param ((a, a) | IsSpan a) (xspan, yspan) The original x and y spans of the
-//                                           non-skewed image
-// @return ((a, a) | IsSpan a) The new width of the skewed image and possible offset
-skewXImageWidth :: !Angle !(!Span, !Span) -> (!Span, !Span)
-skewXImageWidth angle (xspan, yspan)
-  #! rAngle   = toRad angle
-  #! newXSpan = xspan + (abs (yspan *. tan rAngle))
-  #! spanDiff = newXSpan - xspan
-  #! mkOffset = if (rAngle < 0.0) spanDiff zero
-  = (newXSpan, mkOffset)
-
-// Skew an image by a given angle. This function is naive as well, for the same
-// reasons as the rotation function.
-// TODO: We need to calculate the difference between the original and skewed
-// top-left coordinate here as well, because we need it in grid layouts
-//
-// @param (th | Angle th)     angle          The skew angle
-// @param ((a, a) | IsSpan a) (xspan, yspan) The original x and y spans of the
-//                                           non-skewed image
-// @return ((a, a) | IsSpan a) The new height of the skewed image and possible offset
-skewYImageHeight :: !Angle !(!Span, !Span) -> (!Span, !Span)
-skewYImageHeight angle (xspan, yspan)
-  #! rAngle   = toRad angle
-  #! newYSpan = yspan + (abs (xspan *. tan rAngle))
-  #! spanDiff = newYSpan - yspan
-  #! mkOffset = if (rAngle < 0.0) spanDiff zero
-  = (newYSpan, mkOffset)
+  f :: !ImageTransform ![(!Span, !Span)] -> [(!Span, !Span)]
+  f (RotateImage th) coords
+    #! allXs      = strictTRMap fst coords
+    #! allYs      = strictTRMap snd coords
+    #! minX       = minSpan allXs
+    #! maxX       = maxSpan allXs
+    #! minY       = minSpan allYs
+    #! maxY       = maxSpan allYs
+    #! cx         = (maxX - minX) /. 2.0
+    #! cy         = (maxY - minY) /. 2.0
+    #! translated = strictTRMap (translateTF (zero - cx) (zero - cy)) coords
+    #! rotated    = strictTRMap (rotateTF th) translated
+    = strictTRMap (translateTF cx cy) rotated
+  f (SkewXImage th)      coords = strictTRMap (skewXTF th) coords
+  f (SkewYImage th)      coords = strictTRMap (skewYTF th) coords
+  f (FitImage xsp` ysp`) coords
+    = case coords of
+        [(tlX, tlY), _, _, (brX, brY)]
+          = strictTRMap (scaleTF (xsp` / (brX - tlX)) (ysp` / (brY - tlX))) coords
+  f (FitXImage xsp`)     coords
+    = case coords of
+        [(tlX, tlY), _, _, (brX, brY)]
+          #! factor  = xsp` / (brX - tlX)
+          = strictTRMap (scaleTF factor factor) coords
+  f (FitYImage ysp`)     coords
+    = case coords of
+        [(tlX, tlY), _, _, (brX, brY)]
+          #! factor  = ysp` / (brY - tlY)
+          = strictTRMap (scaleTF factor factor) coords
+  f _ coords = coords
 
 gatherFonts :: !(Image s) -> Map FontDef (Set String)
 gatherFonts img = imageCata gatherFontsAllAlgs img
