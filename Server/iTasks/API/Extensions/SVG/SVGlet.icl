@@ -510,77 +510,72 @@ cacheGridSpans n imTas xsps ysps st
 point2Vec :: !(!Span, !Span) -> Vector Span
 point2Vec (x, y) = {x, y, px 1.0}
 
+appTF :: !(Matrix Span) !(!Span, !Span) -> (!Span, !Span)
+appTF m p
+  #! m = mulMatrixVec m (point2Vec p)
+  = (m.[0].[0], m.[1].[0])
+
 translateTF :: !Span !Span !(!Span, !Span) -> (!Span, !Span)
 translateTF sx sy p
-  #! m = mulMatrixVec { {px 1.0, px 0.0, sx}
-                      , {px 0.0, px 1.0, sy}
-                      , {px 0.0, px 0.0, px 1.0}
-                      }
-                      (point2Vec p)
-  = (m.[0].[0], m.[1].[0])
+  = appTF { {px 1.0, px 0.0, sx}
+          , {px 0.0, px 1.0, sy}
+          , {px 0.0, px 0.0, px 1.0}
+          } p
 
 scaleTF :: !Span !Span !(!Span, !Span) -> (!Span, !Span)
 scaleTF sx sy p
-  #! m = mulMatrixVec { {sx,     px 0.0, px 0.0}
-                      , {px 0.0, sy,     px 0.0}
-                      , {px 0.0, px 0.0, px 1.0}
-                      } (point2Vec p)
-  = (m.[0].[0], m.[1].[0])
+  = appTF { {sx,     px 0.0, px 0.0}
+          , {px 0.0, sy,     px 0.0}
+          , {px 0.0, px 0.0, px 1.0}
+          } p
 
 rotateTF :: !Angle !(!Span, !Span) -> (!Span, !Span)
 rotateTF a p
   #! a = toRad a
-  #! m = mulMatrixVec { {px (cos a), px (0.0 - sin a), zero}
-                      , {px (sin a), px (cos a),       zero}
-                      , {zero,       zero,             px 1.0}
-                      }
-                      (point2Vec p)
-  = (m.[0].[0], m.[1].[0])
+  = appTF { {px (cos a), px (0.0 - sin a), px 0.0}
+          , {px (sin a), px (cos a),       px 0.0}
+          , {px 0.0,     px 0.0,           px 1.0}
+          } p
 
 skewXTF :: !Angle !(!Span, !Span) -> (!Span, !Span)
 skewXTF a p
-  #! a = toRad a
-  #! m = mulMatrixVec { {px 1.0, px (tan a), zero}
-                      , {zero,   px 1.0,     zero}
-                      , {zero,   zero,       px 1.0}
-                      }
-                      (point2Vec p)
-  = (m.[0].[0], m.[1].[0])
+  = appTF { {px 1.0, px (tan (toRad a)), px 0.0}
+          , {px 0.0, px 1.0,             px 0.0}
+          , {px 0.0, px 0.0,             px 1.0}
+          } p
 
 skewYTF :: !Angle !(!Span, !Span) -> (!Span, !Span)
 skewYTF a p
-  #! a = toRad a
-  #! m = mulMatrixVec { {px 1.0,     zero,   zero}
-                      , {px (tan a), px 1.0, zero}
-                      , {zero,       zero,   px 1.0}
-                      }
-                      (point2Vec p)
-  = (m.[0].[0], m.[1].[0])
+  = appTF { {px 1.0,             px 0.0, px 0.0}
+          , {px (tan (toRad a)), px 1.0, px 0.0}
+          , {px 0.0,             px 0.0, px 1.0}
+          } p
+
+revFstsSnds :: ![(!a, !b)] -> (![a], ![b])
+revFstsSnds xs = strictFoldl (\(xs, ys) (x, y) -> ([x:xs], [y:ys])) ([], []) xs
 
 applyTransforms :: ![ImageTransform] !ImageSpan -> (!ImageSpan, !ImageOffset)
 applyTransforms ts (xsp, ysp)
-  #! origPoints = [(zero, zero), (xsp, zero), (zero, ysp), (xsp, ysp)]
-  #! newPoints  = foldr f origPoints ts
-  #! allXs      = strictTRMap fst newPoints
-  #! allYs      = strictTRMap snd newPoints
-  #! minX       = minSpan allXs
-  #! maxX       = maxSpan allXs
-  #! minY       = minSpan allYs
-  #! maxY       = maxSpan allYs
+  #! origPoints     = [(zero, zero), (xsp, zero), (zero, ysp), (xsp, ysp)]
+  #! newPoints      = foldr f origPoints ts
+  #! (allXs, allYs) = revFstsSnds newPoints
+  #! minX           = minSpan allXs
+  #! maxX           = maxSpan allXs
+  #! minY           = minSpan allYs
+  #! maxY           = maxSpan allYs
   = ((maxX - minX, maxY - minY), (zero - minX, zero - minY))
   where
   f :: !ImageTransform ![(!Span, !Span)] -> [(!Span, !Span)]
   f (RotateImage th) coords
-    #! allXs      = strictTRMap fst coords
-    #! allYs      = strictTRMap snd coords
-    #! minX       = minSpan allXs
-    #! maxX       = maxSpan allXs
-    #! minY       = minSpan allYs
-    #! maxY       = maxSpan allYs
-    #! cx         = (maxX - minX) /. 2.0
-    #! cy         = (maxY - minY) /. 2.0
-    #! translated = strictTRMap (translateTF (zero - cx) (zero - cy)) coords
-    #! rotated    = strictTRMap (rotateTF th) translated
+    #! (allXs, allYs) = revFstsSnds coords
+    #! minX           = minSpan allXs
+    #! maxX           = maxSpan allXs
+    #! minY           = minSpan allYs
+    #! maxY           = maxSpan allYs
+    #! cx             = (maxX - minX) /. 2.0
+    #! cy             = (maxY - minY) /. 2.0
+    #! translated     = strictTRMap (translateTF (zero - cx) (zero - cy)) coords
+    #! rotated        = strictTRMap (rotateTF th) translated
     = strictTRMap (translateTF cx cy) rotated
   f (SkewXImage th)      coords = strictTRMap (skewXTF th) coords
   f (SkewYImage th)      coords = strictTRMap (skewYTF th) coords
