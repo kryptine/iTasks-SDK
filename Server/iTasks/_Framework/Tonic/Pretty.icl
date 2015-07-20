@@ -12,7 +12,7 @@ ppTExpr :: !TExpr -> String
 ppTExpr tcexpr = ppTExpr` 0 tcexpr
 
 ppTExpr` :: !Int !TExpr -> String
-ppTExpr` _ (TVar _ pp)             = sugarPP pp
+ppTExpr` _ (TVar _ pp _)           = sugarPP pp
 ppTExpr` _ (TLit pp)               = sugarPP pp
 ppTExpr` _ (TFApp pp [] _)         = sugarPP pp
 ppTExpr` _ (TFApp "_List" [x:_] _) = "[" +++ ppTExpr x +++ "]"

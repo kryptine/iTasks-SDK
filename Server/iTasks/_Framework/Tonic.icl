@@ -436,19 +436,19 @@ tonicWrapApp` wrapInfo=:(_, wrapFuncName) nid t=:(Task eval)
           # (parentBPRef, parentBPInst, iworld)
               = case tonicOpts.inAssignNode of
                   Just assignNode
-                    # (muser, iworld)  = 'DSDS'.read (sdsFocus childInstanceNo taskInstanceUser) iworld
-                    # (parent_body, _) = case muser of
-                                           Ok usr
-                                             = updateNode assignNode (\x -> case x of
-                                                                              TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [_, descr] prio : as] assoc
-                                                                                | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [TLit (toString usr), descr] prio : as] assoc
-                                                                                | otherwise         = x
-                                                                              TMApp eid mtn "iTasks.API.Extensions.User" "@:" [_ : as] assoc
-                                                                                | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr) : as] assoc
-                                                                                | otherwise         = x
-                                                                              e = e
-                                                                     ) parentBPInst.bpi_blueprint.tf_body
-                                           _ = (parentBPInst.bpi_blueprint.tf_body, False)
+                    # (muser, iworld)     = 'DSDS'.read (sdsFocus childInstanceNo taskInstanceUser) iworld
+                    # (parent_body, _, _) = case muser of
+                                              Ok usr
+                                                = updateNode assignNode (\x -> case x of
+                                                                                 TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [_, descr] prio : as] assoc
+                                                                                   | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [TLit (toString usr), descr] prio : as] assoc
+                                                                                   | otherwise         = x
+                                                                                 TMApp eid mtn "iTasks.API.Extensions.User" "@:" [_ : as] assoc
+                                                                                   | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr) : as] assoc
+                                                                                   | otherwise         = x
+                                                                                 e = e
+                                                                        ) parentBPInst.bpi_blueprint.tf_body
+                                              _ = (parentBPInst.bpi_blueprint.tf_body, False, Nothing)
                     # bpi        = {parentBPInst & bpi_blueprint = {parentBPInst.bpi_blueprint & tf_body = parent_body}}
                     # parent_bpr = {parentBPRef & bpr_instance = Just bpi}
                     = (parent_bpr, bpi, iworld)
@@ -470,12 +470,15 @@ tonicWrapApp` wrapInfo=:(_, wrapFuncName) nid t=:(Task eval)
                           # (mchild_bpr, iworld) = 'DSDS'.read (sdsFocus childTaskId tonicInstances) iworld
                           # iworld               = case mchild_bpr of
                                                      Ok child_bpr=:{bpr_instance = Just child_instance}
-                                                       # (parent_body, chng) = updateNode nid (\x -> case x of
-                                                                                                       TVar eid _ -> TMApp eid Nothing child_bpr.bpr_moduleName child_bpr.bpr_taskName [] TNoPrio
-                                                                                                       e -> e
-                                                                                              ) new_parent_instance.bpi_blueprint.tf_body
+                                                       # (parent_body, chng, mvid) = updateNode nid (\x -> case x of
+                                                                                                             TVar eid _ _ -> TMApp eid Nothing child_bpr.bpr_moduleName child_bpr.bpr_taskName [] TNoPrio
+                                                                                                             e -> e
+                                                                                                    ) new_parent_instance.bpi_blueprint.tf_body
                                                        | chng
-                                                           # parent_bpr = {parent_bpr & bpr_instance = Just {new_parent_instance & bpi_blueprint = {new_parent_instance.bpi_blueprint & tf_body = parent_body}}}
+                                                           # parent_body = case mvid of
+                                                                             Just (vid, expr) -> replaceNode vid expr parent_body
+                                                                             _                -> parent_body
+                                                           # parent_bpr  = {parent_bpr & bpr_instance = Just {new_parent_instance & bpi_blueprint = {new_parent_instance.bpi_blueprint & tf_body = parent_body}}}
                                                            = snd ('DSDS'.write parent_bpr (sdsFocus new_parent_instance.bpi_taskId tonicInstances) iworld)
                                                        | otherwise = iworld
                                                      _ = iworld
@@ -528,12 +531,12 @@ tonicWrapApp` wrapInfo=:(_, wrapFuncName) nid t=:(Task eval)
                      Just ns -> ns
                      _       -> 'DIS'.newMap
     # (childNodes, currActive, iworld) = foldr (registerTask pinst.bpi_taskId childTaskId) ([], currActive, iworld) (zip2 [0..] parallelChildren)
-    # (tf_body, _) = updateNode nid (\x -> case x of
-                                             e=:(TMApp _ _ _ _ [TMApp _ _ _ _ _ _ : _] _) -> e
-                                             e=:(TMApp _ _ _ _ [TFApp "_Cons" _ _ : _] _) -> e // TODO This is probably insufficient. It will capture things like [t1:someOtherTasks], where we would like to expand someOtherTasks at runtime
-                                             TMApp eid mtn mn tn _ pr -> TMApp eid mtn mn tn [list2TExpr childNodes] pr
-                                             e -> e
-                                    ) pinst.bpi_blueprint.tf_body
+    # (tf_body, _, _) = updateNode nid (\x -> case x of
+                                                e=:(TMApp _ _ _ _ [TMApp _ _ _ _ _ _ : _] _) -> e
+                                                e=:(TMApp _ _ _ _ [TFApp "_Cons" _ _ : _] _) -> e // TODO This is probably insufficient. It will capture things like [t1:someOtherTasks], where we would like to expand someOtherTasks at runtime
+                                                TMApp eid mtn mn tn _ pr -> TMApp eid mtn mn tn [list2TExpr childNodes] pr
+                                                e -> e
+                                       ) pinst.bpi_blueprint.tf_body
     # parent = { parent
                & bpr_instance = Just { pinst
                                      & bpi_blueprint = { pinst.bpi_blueprint & tf_body = tf_body}
@@ -645,45 +648,98 @@ anyTrue [True : _] = True
 anyTrue [_ : xs]   = anyTrue xs
 anyTrue _          = False
 
-updateNode :: !ExprId !(TExpr -> TExpr) !TExpr -> (!TExpr, !Bool)
-updateNode eid f expr=:(TVar eid` _)
-  | eid == eid` = (f expr, True)
+replaceNode :: !Int !TExpr !TExpr -> TExpr
+replaceNode varid newExpr expr=:(TVar eid _ varid`)
+  | varid == varid` = case newExpr of
+                        TMApp _ mtn mn tn es p -> TMApp eid mtn mn tn es p
+                        TVar _ x vid           -> TVar eid x vid
+                        _                      -> newExpr
+  | otherwise       = expr
+replaceNode varid newExpr (TMApp eid` mtn mn tn es p)
+  #! es` = map (replaceNode varid newExpr) es
+  = TMApp eid` mtn mn tn es` p
+replaceNode varid newExpr (TFApp fn es p)
+  #! es` = map (replaceNode varid newExpr) es
+  = TFApp fn es` p
+replaceNode varid newExpr (TLam es e)
+  #! e`  = replaceNode varid newExpr e
+  #! es` = map (replaceNode varid newExpr) es
+  = TLam es` e`
+replaceNode varid newExpr (TSel e es)
+  #! e`  = replaceNode varid newExpr e
+  #! es` = map (replaceNode varid newExpr) es
+  = TSel e` es`
+replaceNode varid newExpr (TRecUpd vn e es)
+  #! e`  = replaceNode varid newExpr e
+  #! es` = map (replaceNode varid newExpr) es
+  = TRecUpd vn e` es`
+replaceNode varid newExpr (TLet pats e)
+  #! e`   = replaceNode varid newExpr e
+  #! pats = replaceNodePats varid newExpr pats
+  = TLet pats e`
+replaceNode varid newExpr (TCaseOrIf e pats)
+  #! e`   = replaceNode varid newExpr e
+  #! pats = replaceNodePats varid newExpr pats
+  = TCaseOrIf e` pats
+replaceNode _ _ e = e
+
+replaceNodePats _ _ [] = []
+replaceNodePats varid newExpr [(pat, e) : xs]
+  #! pat` = replaceNode varid newExpr pat
+  #! e`   = replaceNode varid newExpr e
+  #! pats = replaceNodePats varid newExpr xs
+  = [(pat`, e`) : pats]
+
+fst3 (x, _, _) = x
+snd3 (_, x, _) = x
+thrd (_, _, x) = x
+
+getMVid :: ![Maybe a] -> Maybe a
+getMVid xs = case [x \\ Just x <- xs] of
+               [x : _] -> Just x
+               _       -> Nothing
+
+// TODO This can be made faster by using the ExprId's structure
+updateNode :: !ExprId !(TExpr -> TExpr) !TExpr -> (!TExpr, !Bool, !Maybe (!Int, !TExpr))
+updateNode eid f expr=:(TVar eid` _ varid)
+  # expr` = f expr
+  | eid == eid` = (expr`, True, Just (varid, expr`))
 updateNode eid f expr=:(TMApp eid` mtn mn tn es p)
-  | eid == eid` = (f expr, True)
+  | eid == eid` = (f expr, True, Nothing)
   | otherwise
       #! es` = map (updateNode eid f) es
-      = (TMApp eid` mtn mn tn (map fst es`) p, anyTrue (map snd es`))
+      = (TMApp eid` mtn mn tn (map fst3 es`) p, anyTrue (map snd3 es`), getMVid (map thrd es`))
 updateNode eid f (TFApp fn es p)
   #! es` = map (updateNode eid f) es
-  = (TFApp fn (map fst es`) p, anyTrue (map snd es`))
+  = (TFApp fn (map fst3 es`) p, anyTrue (map snd3 es`), getMVid (map thrd es`))
 updateNode eid f (TLam es e)
-  #! (e`, eb) = updateNode eid f e
-  #! es`      = map (updateNode eid f) es
-  = (TLam (map fst es`) e`, anyTrue [eb : map snd es`])
+  #! (e`, eb, mvid) = updateNode eid f e
+  #! es`            = map (updateNode eid f) es
+  = (TLam (map fst3 es`) e`, anyTrue [eb : map snd3 es`], getMVid [mvid : (map thrd es`)])
 updateNode eid f (TSel e es)
-  #! (e`, eb) = updateNode eid f e
-  #! es`      = map (updateNode eid f) es
-  = (TSel e` (map fst es`), anyTrue [eb : map snd es`])
+  #! (e`, eb, mvid) = updateNode eid f e
+  #! es`            = map (updateNode eid f) es
+  = (TSel e` (map fst3 es`), anyTrue [eb : map snd3 es`], getMVid [mvid : (map thrd es`)])
 updateNode eid f (TRecUpd vn e es)
-  #! (e`, eb) = updateNode eid f e
-  #! es`      = map (updateNode eid f) es
-  = (TRecUpd vn e` (map fst es`), anyTrue [eb : map snd es`])
+  #! (e`, eb, mvid) = updateNode eid f e
+  #! es`            = map (updateNode eid f) es
+  = (TRecUpd vn e` (map fst3 es`), anyTrue [eb : map snd3 es`], getMVid [mvid : (map thrd es`)])
 updateNode eid f (TLet pats e)
-  #! (e`, eb)  = updateNode eid f e
-  #! (pats, b) = updatePats eid f pats
-  = (TLet pats e`, b || eb)
+  #! (e`, eb, mvid)   = updateNode eid f e
+  #! (pats, b, mvids) = updatePats eid f pats
+  = (TLet pats e`, b || eb, getMVid [mvid : mvids])
 updateNode eid f (TCaseOrIf e pats)
-  #! (e`, eb) = updateNode eid f e
-  #! (pats, b) = updatePats eid f pats
-  = (TCaseOrIf e` pats, b || eb)
-updateNode _ _ e = (e, False)
+  #! (e`, eb, mvid)   = updateNode eid f e
+  #! (pats, b, mvids) = updatePats eid f pats
+  = (TCaseOrIf e` pats, b || eb, getMVid [mvid : mvids])
+updateNode _ _ e = (e, False, Nothing)
 
-updatePats _ _ [] = ([], False)
+updatePats _ _ [] = ([], False, [])
 updatePats eid f [(pat, e) : xs]
-  #! (pat`, pb) = updateNode eid f pat
-  #! (e`, eb)   = updateNode eid f e
-  #! (pats, b)  = updatePats eid f xs
-  = ([(pat`, e`) : pats], pb || eb || b)
+  #! (pat`, pb, mvid1) = updateNode eid f pat
+  #! (e`, eb, mvid2)   = updateNode eid f e
+  #! (pats, b, mvids)  = updatePats eid f xs
+  = ([(pat`, e`) : pats], pb || eb || b, [mvid1 : mvid2 : mvids])
 
 getBlueprintRef :: !TaskId !*IWorld -> *(!Maybe BlueprintRef, !*IWorld)
 getBlueprintRef tid world

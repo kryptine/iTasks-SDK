@@ -26,7 +26,7 @@ instance == TonicFunc where
                && tt1.tf_body      == tt2.tf_body
 
 instance == TExpr where
-  (==) (TVar  eid1 ppe1) (TVar eid2 ppe2) = eid1 == eid2 && ppe1 == ppe2
+  (==) (TVar  _ _ p1) (TVar _ _ p2) = p1 == p2
   (==) (TLit  ppe1) (TLit ppe2) = ppe1 == ppe2
   (==) (TMApp eid1 tn1 mn1 vn1 as1 p1) (TMApp eid2 tn2 mn2 vn2 as2 p2) = eid1 == eid2 && tn1 == tn2 && mn1 == mn2 && vn1 == vn2 && as1 == as2 && p1 == p2
   (==) (TFApp vn1 es1 p1) (TFApp vn2 es2 p2) = vn1 == vn2 && es1 == es2 && p1 == p2

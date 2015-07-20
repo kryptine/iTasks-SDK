@@ -119,7 +119,7 @@ tExpr2Image inh (TLet pats bdy)                  tsrc
   | inh.inh_compact = tExpr2Image inh bdy tsrc
   | otherwise       = tLet inh pats bdy tsrc
 tExpr2Image inh (TCaseOrIf e pats)               tsrc = tCaseOrIf inh e pats tsrc
-tExpr2Image inh (TVar eid pp)                    tsrc = tVar      inh eid pp tsrc
+tExpr2Image inh (TVar eid pp _)                  tsrc = tVar      inh eid pp tsrc
 tExpr2Image inh (TLit pp)                        tsrc = tLit      inh pp tsrc
 tExpr2Image inh (TExpand args tt)                tsrc = tExpand   inh args tt tsrc
 tExpr2Image inh (TSel e es)                      tsrc = tSel      inh e es tsrc
@@ -662,7 +662,7 @@ tDefaultMApp isCompact isActive wasActive isInAccessible eid parentModName paren
                               , "viewSharedTitle"
                               ]
   #! taskArgs = case (isCompact, isEditor, argsExprs) of
-                  (True, True, [TVar _ tn : _]) -> if (size tn > 0 && tn.[0] == '"') [text ArialRegular10px tn] []
+                  (True, True, [TVar _ tn _ : _]) -> if (size tn > 0 && tn.[0] == '"') [text ArialRegular10px tn] []
                   (True, _, _) -> []
                   _            -> taskArgs
   = tDefaultMApp` isCompact isActive wasActive isInAccessible eid parentModName parentFuncName modName taskName taskArgs tsrc
@@ -732,7 +732,7 @@ tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (headerTag, 
   mkUser (TFApp "AnonymousUser" _ _)    = "Anonymous user"
   mkUser (TFApp "AuthenticatedUser" [uid:rs:_] _) = ppTExpr uid +++ " with roles " +++ foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" (tSafeExpr2List rs)
   mkUser (TFApp usr _ _)                = usr
-  mkUser (TVar _ ppe)                   = ppe
+  mkUser (TVar _ ppe _)                 = ppe
   mkUser (TLit ppe)                     = ppe
   mkUser _                              = ""
 

@@ -40,9 +40,10 @@ instance == TPriority
 :: PPExpr     :== String
 :: ExprId     :== [Int]
 :: VarName    :== String
+:: VarPtr     :== Int
 
 :: TExpr
-  = TVar      !ExprId !PPExpr
+  = TVar      !ExprId !PPExpr !VarPtr
   | TLit      !PPExpr
   | TMApp     !ExprId !(Maybe TypeName) !ModuleName !FuncName ![TExpr] !TPriority
   | TFApp     !FuncName ![TExpr] !TPriority
