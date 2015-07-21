@@ -90,7 +90,15 @@ NS_TONIC_INSTANCES :== "tonic-instances"
 
 instance TonicTopLevelBlueprint Task where
   tonicWrapBody mn tn args t = tonicWrapTaskBody` mn tn args t
-  tonicWrapArg d _ v = viewInformation (Title d) [] v @! ()
+  tonicWrapArg d ptr v
+    # mval = case toJSON v of
+               (JSONBool   x) -> Just (TLit (TBool x))
+               (JSONInt    x) -> Just (TLit (TInt x))
+               (JSONReal   x) -> Just (TLit (TReal x))
+               (JSONString x) -> Just (TLit (TString x))
+               _              -> Nothing
+    =   maybe (return ()) (\val -> set val (sdsFocus ptr valueForVariable) @! ()) mval
+    >>| viewInformation (Title d) [] v @! ()
 
 instance TonicBlueprintPart Task where
   tonicWrapApp wrapInfo nid t = tonicWrapApp` wrapInfo nid t
@@ -200,6 +208,20 @@ paramsForTaskInstance :: RWShared (ModuleName, FuncName, TaskId) [(VarName, Int,
 paramsForTaskInstance = sdsTranslate "paramsForTaskInstance" (\t -> t +++> "-paramsForTaskInstance")
                              (memoryStore NS_TONIC_INSTANCES Nothing)
 
+variableValues :: RWShared () (Map Int TExpr) (Map Int TExpr)
+variableValues = sdsFocus "variableValues" (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
+
+valueForVariable :: RWShared Int (Maybe TExpr) TExpr
+valueForVariable = sdsLens "valueForVariable" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) variableValues
+  where
+  read :: Int (Map Int TExpr) -> MaybeError TaskException (Maybe TExpr)
+  read tid trtMap = Ok ('DM'.get tid trtMap)
+
+  write :: Int (Map Int TExpr) TExpr -> MaybeError TaskException (Maybe (Map Int TExpr))
+  write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
+
+  notify tid _ _ = \tid` -> tid == tid`
+
 //-----------------------------------------------------------------------------
 // REST
 //-----------------------------------------------------------------------------
@@ -220,7 +242,7 @@ tonicExtWrapBodyLam3 :: !ModuleName !FuncName [(VarName, Int, m ())] (b c d -> m
 tonicExtWrapBodyLam3 mn tn args f = \x y z -> tonicWrapBody mn tn args (f x y z)
 
 tonicWrapTaskBody` :: !ModuleName !FuncName [(VarName, Int, Task ())] (Task a) -> Task a | iTask a
-tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
+tonicWrapTaskBody` mn tn args (Task eval) = sequence "" [t \\ (_, _, t) <- args] >>* [OnValue (always (Task preEval))]
   where
   setBlueprintInfo :: !TaskEvalOpts -> TaskEvalOpts
   setBlueprintInfo evalOpts = modTonicOpts evalOpts (\teo -> {teo & currBlueprintName = (mn, tn)})
@@ -247,6 +269,9 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
         Just bprep
           # (curr,   iworld) = iworld!current
           # (clocks, iworld) = iworld!clocks
+          # (vars, iworld)   = case 'DSDS'.read variableValues iworld of
+                                 (Ok vs, iworld) -> (vs, iworld)
+                                 (_    , iworld) -> ('DM'.newMap, iworld)
           # (muser, iworld)  = 'DSDS'.read (sdsFocus instanceNo taskInstanceUser) iworld
           # bpinst           = { BlueprintInstance
                                | bpi_taskId           = currTaskId
@@ -258,7 +283,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                , bpi_parentTaskId     = case 'DM'.get currBlueprintTaskId rtMap of
                                                           Just p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
                                                           _      -> Nothing
-                               , bpi_blueprint        = initialSymbolicEval bprep
+                               , bpi_blueprint        = initialSymbolicEval vars bprep
                                , bpi_currentUser      = error2mb muser
                                , bpi_nodeTaskIdMap    = 'DM'.newMap
                                }
@@ -317,38 +342,38 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                        _ = iworld
     = (tr, iworld)
 
-initialSymbolicEval :: !TonicFunc -> TonicFunc
-initialSymbolicEval bprep = {bprep & tf_body = initialSymbolicEval` bprep.tf_body}
+initialSymbolicEval :: !(Map Int TExpr) !TonicFunc -> TonicFunc
+initialSymbolicEval env bprep = {bprep & tf_body = initialSymbolicEval` env bprep.tf_body}
   where
-  initialSymbolicEval` :: !TExpr -> TExpr
-  initialSymbolicEval` expr=:(TLit _)      = evalTExpr expr
-  initialSymbolicEval` expr=:(TFApp _ _ _) = evalTExpr expr
-  initialSymbolicEval` expr=:(TMApp eid` mtn mn tn es p)
-    #! es` = map initialSymbolicEval` es
+  initialSymbolicEval` :: !(Map Int TExpr) !TExpr -> TExpr
+  initialSymbolicEval` env expr=:(TLit _)      = evalTExpr env expr
+  initialSymbolicEval` env expr=:(TFApp _ _ _) = evalTExpr env expr
+  initialSymbolicEval` env expr=:(TMApp eid` mtn mn tn es p)
+    #! es` = map (initialSymbolicEval` env) es
     = TMApp eid` mtn mn tn es` p
-  initialSymbolicEval` (TLam es e)
-    #! e` = initialSymbolicEval` e
+  initialSymbolicEval` env (TLam es e)
+    #! e` = initialSymbolicEval` env e
     = TLam es e`
-  initialSymbolicEval` (TLet pats e)
-    #! e`    = initialSymbolicEval` e
-    #! pats` = initialSymbolicEvalPats pats
+  initialSymbolicEval` env (TLet pats e)
+    #! e`    = initialSymbolicEval` env e
+    #! pats` = initialSymbolicEvalPats env pats
     = TLet pats` e`
-  initialSymbolicEval` (TIf c t e )
-    #! c` = initialSymbolicEval` c
-    #! t` = initialSymbolicEval` t
-    #! e` = initialSymbolicEval` e
+  initialSymbolicEval` env (TIf c t e )
+    #! c` = initialSymbolicEval` env c
+    #! t` = initialSymbolicEval` env t
+    #! e` = initialSymbolicEval` env e
     = TIf c` t` e`
-  initialSymbolicEval` (TCase e pats)
-    #! e`    = initialSymbolicEval` e
-    #! pats` = initialSymbolicEvalPats pats
+  initialSymbolicEval` env (TCase e pats)
+    #! e`    = initialSymbolicEval` env e
+    #! pats` = initialSymbolicEvalPats env pats
     = TCase e` pats`
-  initialSymbolicEval` e = e
+  initialSymbolicEval` _ e = e
 
-  initialSymbolicEvalPats [] = []
-  initialSymbolicEvalPats [(pat, e) : xs]
-    #! pat` = initialSymbolicEval` pat
-    #! e`   = initialSymbolicEval` e
-    #! pats = initialSymbolicEvalPats xs
+  initialSymbolicEvalPats _ [] = []
+  initialSymbolicEvalPats env [(pat, e) : xs]
+    #! pat` = initialSymbolicEval` env pat
+    #! e`   = initialSymbolicEval` env e
+    #! pats = initialSymbolicEvalPats env xs
     = [(pat`, e`) : pats]
 
 modTonicOpts :: !TaskEvalOpts !(TonicOpts -> TonicOpts) -> TaskEvalOpts
@@ -1253,49 +1278,53 @@ expandTExpr allbps n (TLam vars e)
   = TLam vars (expandTExpr allbps n e)
 expandTExpr _ _ texpr = texpr
 
-evalTExprInt :: !TExpr -> Maybe Int
-evalTExprInt e
-  = case evalTExpr e of
+evalTExprInt :: !(Map Int TExpr) !TExpr -> Maybe Int
+evalTExprInt env e
+  = case evalTExpr env e of
       TLit (TInt x) -> Just x
       _             -> Nothing
 
-evalTExprReal :: !TExpr -> Maybe Real
-evalTExprReal e
-  = case evalTExpr e of
+evalTExprReal :: !(Map Int TExpr) !TExpr -> Maybe Real
+evalTExprReal env e
+  = case evalTExpr env e of
       TLit (TReal x) -> Just x
       _              -> Nothing
 
-evalTExprBool :: !TExpr -> Maybe Bool
-evalTExprBool e
-  = case evalTExpr e of
+evalTExprBool :: !(Map Int TExpr) !TExpr -> Maybe Bool
+evalTExprBool env e
+  = case evalTExpr env e of
       TLit (TBool x) -> Just x
       _              -> Nothing
 
-evalTExpr :: !TExpr -> TExpr
-evalTExpr e=:(TFApp "<" _ _)
-  = evalTExprBinOp lt e
-evalTExpr e=:(TFApp "<=" _ _)
-  = evalTExprBinOp lte e
-evalTExpr e=:(TFApp ">" _ _)
-  = evalTExprBinOp gt e
-evalTExpr e=:(TFApp "=>" _ _)
-  = evalTExprBinOp gte e
-evalTExpr e=:(TFApp "==" _ _)
-  = evalTExprBinOp eq e
-evalTExpr e=:(TFApp "+" _ _)
-  = evalTExprBinOp add e
-evalTExpr e=:(TFApp "-" _ _)
-  = evalTExprBinOp sub e
-evalTExpr e=:(TFApp "/" _ _)
-  = evalTExprBinOp div e
-evalTExpr e=:(TFApp "*" _ _)
-  = evalTExprBinOp mul e
-evalTExpr e = e
+evalTExpr :: !(Map Int TExpr) !TExpr -> TExpr
+evalTExpr env e=:(TFApp "<" _ _)
+  = evalTExprBinOp env lt e
+evalTExpr env e=:(TFApp "<=" _ _)
+  = evalTExprBinOp env lte e
+evalTExpr env e=:(TFApp ">" _ _)
+  = evalTExprBinOp env gt e
+evalTExpr env e=:(TFApp "=>" _ _)
+  = evalTExprBinOp env gte e
+evalTExpr env e=:(TFApp "==" _ _)
+  = evalTExprBinOp env eq e
+evalTExpr env e=:(TFApp "+" _ _)
+  = evalTExprBinOp env add e
+evalTExpr env e=:(TFApp "-" _ _)
+  = evalTExprBinOp env sub e
+evalTExpr env e=:(TFApp "/" _ _)
+  = evalTExprBinOp env div e
+evalTExpr env e=:(TFApp "*" _ _)
+  = evalTExprBinOp env mul e
+evalTExpr env e=:(TVar _ _ ptr)
+  = case 'DM'.get ptr env of
+      Just e -> e
+      _      -> e
+evalTExpr env e = e
 
-evalTExprBinOp :: !(TExpr TExpr -> Maybe TExpr) !TExpr -> TExpr
-evalTExprBinOp f e=:(TFApp _ [l, r] _)
-  # l` = evalTExpr l
-  # r` = evalTExpr r
+evalTExprBinOp :: !(Map Int TExpr) !(TExpr TExpr -> Maybe TExpr) !TExpr -> TExpr
+evalTExprBinOp env f e=:(TFApp _ [l, r] _)
+  # l` = evalTExpr env l
+  # r` = evalTExpr env r
   = case f l` r` of
       Just res -> TAugment e res
       _        -> e
