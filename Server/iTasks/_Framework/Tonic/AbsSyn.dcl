@@ -44,19 +44,20 @@ instance == TLit
 :: VarPtr     :== Int
 
 :: TExpr
-  = TVar    !ExprId !PPExpr !VarPtr
-  | TLit    !TLit
-  | TPPExpr !PPExpr
-  | TMApp   !ExprId !(Maybe TypeName) !ModuleName !FuncName ![TExpr] !TPriority
-  | TFApp   !FuncName ![TExpr] !TPriority
-  | TLam    ![TExpr] !TExpr
-  | TSel    !TExpr ![TExpr]
-  | TRecUpd !VarName !TExpr ![TExpr]
+  = TVar     !ExprId !PPExpr !VarPtr
+  | TLit     !TLit
+  | TPPExpr  !PPExpr
+  | TMApp    !ExprId !(Maybe TypeName) !ModuleName !FuncName ![TExpr] !TPriority
+  | TFApp    !FuncName ![TExpr] !TPriority
+  | TLam     ![TExpr] !TExpr
+  | TSel     !TExpr ![TExpr]
+  | TRecUpd  !VarName !TExpr ![TExpr]
   | TNoBind
-  | TLet    ![(!Pattern, !TExpr)] !TExpr
-  | TIf     !TExpr !TExpr !TExpr
-  | TCase   !TExpr ![(!Pattern, !TExpr)]
-  | TExpand ![TExpr] !TonicFunc
+  | TLet     ![(!Pattern, !TExpr)] !TExpr
+  | TIf      !TExpr !TExpr !TExpr
+  | TCase    !TExpr ![(!Pattern, !TExpr)]
+  | TExpand  ![TExpr] !TonicFunc
+  | TAugment !TExpr !TExpr
 
 :: TLit
   = TBool   Bool

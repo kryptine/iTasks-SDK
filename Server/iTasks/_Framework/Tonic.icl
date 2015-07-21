@@ -258,7 +258,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                , bpi_parentTaskId     = case 'DM'.get currBlueprintTaskId rtMap of
                                                           Just p -> fmap (\i -> i.bpi_taskId) p.bpr_instance
                                                           _      -> Nothing
-                               , bpi_blueprint        = bprep
+                               , bpi_blueprint        = initialSymbolicEval bprep
                                , bpi_currentUser      = error2mb muser
                                , bpi_nodeTaskIdMap    = 'DM'.newMap
                                }
@@ -316,6 +316,40 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                          = storeTaskOutputViewer tr tid iworld
                        _ = iworld
     = (tr, iworld)
+
+initialSymbolicEval :: !TonicFunc -> TonicFunc
+initialSymbolicEval bprep = {bprep & tf_body = initialSymbolicEval` bprep.tf_body}
+  where
+  initialSymbolicEval` :: !TExpr -> TExpr
+  initialSymbolicEval` expr=:(TLit _)      = evalTExpr expr
+  initialSymbolicEval` expr=:(TFApp _ _ _) = evalTExpr expr
+  initialSymbolicEval` expr=:(TMApp eid` mtn mn tn es p)
+    #! es` = map initialSymbolicEval` es
+    = TMApp eid` mtn mn tn es` p
+  initialSymbolicEval` (TLam es e)
+    #! e` = initialSymbolicEval` e
+    = TLam es e`
+  initialSymbolicEval` (TLet pats e)
+    #! e`    = initialSymbolicEval` e
+    #! pats` = initialSymbolicEvalPats pats
+    = TLet pats` e`
+  initialSymbolicEval` (TIf c t e )
+    #! c` = initialSymbolicEval` c
+    #! t` = initialSymbolicEval` t
+    #! e` = initialSymbolicEval` e
+    = TIf c` t` e`
+  initialSymbolicEval` (TCase e pats)
+    #! e`    = initialSymbolicEval` e
+    #! pats` = initialSymbolicEvalPats pats
+    = TCase e` pats`
+  initialSymbolicEval` e = e
+
+  initialSymbolicEvalPats [] = []
+  initialSymbolicEvalPats [(pat, e) : xs]
+    #! pat` = initialSymbolicEval` pat
+    #! e`   = initialSymbolicEval` e
+    #! pats = initialSymbolicEvalPats xs
+    = [(pat`, e`) : pats]
 
 modTonicOpts :: !TaskEvalOpts !(TonicOpts -> TonicOpts) -> TaskEvalOpts
 modTonicOpts teo f = {teo & tonicOpts = f teo.tonicOpts}
@@ -1219,50 +1253,52 @@ expandTExpr allbps n (TLam vars e)
   = TLam vars (expandTExpr allbps n e)
 expandTExpr _ _ texpr = texpr
 
-evalInt :: !TExpr -> Maybe Int
-evalInt e = case eval e of
-              Just (TLit (TInt x)) -> Just x
-              _                    -> Nothing
+evalTExprInt :: !TExpr -> Maybe Int
+evalTExprInt e
+  = case evalTExpr e of
+      TLit (TInt x) -> Just x
+      _             -> Nothing
 
-evalReal :: !TExpr -> Maybe Real
-evalReal e = case eval e of
-               Just (TLit (TReal x)) -> Just x
-               _                     -> Nothing
+evalTExprReal :: !TExpr -> Maybe Real
+evalTExprReal e
+  = case evalTExpr e of
+      TLit (TReal x) -> Just x
+      _              -> Nothing
 
-evalBool :: !TExpr -> Maybe Bool
-evalBool e = case eval e of
-               Just (TLit (TBool x)) -> Just x
-               _                     -> Nothing
+evalTExprBool :: !TExpr -> Maybe Bool
+evalTExprBool e
+  = case evalTExpr e of
+      TLit (TBool x) -> Just x
+      _              -> Nothing
 
-eval :: !TExpr -> Maybe TExpr
-eval (TFApp "<" [l, r] _)
-  = evalBinOp lt l r
-eval (TFApp "<=" [l, r] _)
-  = evalBinOp lte l r
-eval (TFApp ">" [l, r] _)
-  = evalBinOp gt l r
-eval (TFApp "=>" [l, r] _)
-  = evalBinOp gte l r
-eval (TFApp "==" [l, r] _)
-  = evalBinOp eq l r
-eval (TFApp "+" [l, r] _)
-  = evalBinOp add l r
-eval (TFApp "-" [l, r] _)
-  = evalBinOp sub l r
-eval (TFApp "/" [l, r] _)
-  = evalBinOp div l r
-eval (TFApp "*" [l, r] _)
-  = evalBinOp mul l r
-eval e=:(TLit _) = Just e
-eval _           = Nothing
+evalTExpr :: !TExpr -> TExpr
+evalTExpr e=:(TFApp "<" _ _)
+  = evalTExprBinOp lt e
+evalTExpr e=:(TFApp "<=" _ _)
+  = evalTExprBinOp lte e
+evalTExpr e=:(TFApp ">" _ _)
+  = evalTExprBinOp gt e
+evalTExpr e=:(TFApp "=>" _ _)
+  = evalTExprBinOp gte e
+evalTExpr e=:(TFApp "==" _ _)
+  = evalTExprBinOp eq e
+evalTExpr e=:(TFApp "+" _ _)
+  = evalTExprBinOp add e
+evalTExpr e=:(TFApp "-" _ _)
+  = evalTExprBinOp sub e
+evalTExpr e=:(TFApp "/" _ _)
+  = evalTExprBinOp div e
+evalTExpr e=:(TFApp "*" _ _)
+  = evalTExprBinOp mul e
+evalTExpr e = e
 
-evalBinOp :: !(TExpr TExpr -> Maybe TExpr) !TExpr !TExpr -> Maybe TExpr
-evalBinOp f l r
-  = case eval l of
-      Just l` -> case eval r of
-                   Just r` -> f l` r`
-                   _       -> Nothing
-      _       -> Nothing
+evalTExprBinOp :: !(TExpr TExpr -> Maybe TExpr) !TExpr -> TExpr
+evalTExprBinOp f e=:(TFApp _ [l, r] _)
+  # l` = evalTExpr l
+  # r` = evalTExpr r
+  = case f l` r` of
+      Just res -> TAugment e res
+      _        -> e
 
 lt :: !TExpr !TExpr -> Maybe TExpr
 lt (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TBool (n < m)))

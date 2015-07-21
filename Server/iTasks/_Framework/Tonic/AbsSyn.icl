@@ -38,6 +38,7 @@ instance == TExpr where
   (==) (TIf e1 e2 e3) (TIf e1` e2` e3`) = e1 == e1` && e2 == e2` && e3 == e3`
   (==) (TCase e1 ps1) (TCase e2 ps2) = e1 == e2 && ps1 == ps2
   (==) (TExpand es1 tt1) (TExpand es2 tt2) = es1 == es2 && tt1 == tt2
+  (==) (TAugment e1 _) (TAugment e2 _) = e1 == e2
   (==) _ _ = False
 
 instance == TAssoc where

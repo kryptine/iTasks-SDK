@@ -127,6 +127,14 @@ tExpr2Image inh (TExpand args tt)                tsrc = tExpand   inh args tt ts
 tExpr2Image inh (TSel e es)                      tsrc = tSel      inh e es tsrc
 tExpr2Image inh (TRecUpd vn e es)                tsrc = tRecUpd   inh vn e es tsrc
 tExpr2Image inh (TLam args e)                    tsrc = tLam      inh args e tsrc
+tExpr2Image inh (TAugment orig extra)            tsrc = tAugment  inh orig extra tsrc
+
+tAugment :: !InhMkImg !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
+tAugment inh orig extra tsrc
+  #! (orig`, tsrc)  = tExpr2Image inh orig tsrc
+  #! (extra`, tsrc) = tExpr2Image inh extra tsrc
+  = ( {orig` & syn_img = beside (repeat AtMiddleY) [] [orig`.syn_img, text ArialRegular10px " (", extra`.syn_img, text ArialRegular10px ")"] Nothing}
+    , tsrc)
 
 tLam :: !InhMkImg ![TExpr] !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tLam inh vars e tsrc
@@ -307,8 +315,13 @@ determineSynStatus needAllActive syns = determineStatus needAllActive (map (\x -
 
 tIf :: !InhMkImg !TExpr !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tIf inh cexpr texpr eexpr [(contextTag, _) : tsrc]
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True [(Just (TLit (TBool True)), texpr, True), (Just (TLit (TBool False)), eexpr, True)] contextTag tsrc
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} cexpr tsrc
+  #! (ut, ue)             = case cexpr of
+                              TAugment _ (TLit (TBool True))  -> (False, True)
+                              TAugment _ (TLit (TBool False)) -> (True,  False)
+                              _                               -> (False, False)
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True [ (Just (TLit (TBool True)), texpr, True, ut)
+                                                                 , (Just (TLit (TBool False)), eexpr, True, ue)] contextTag tsrc
   #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
   #! lineAct              = case syn_branches.syn_status of
                               TNotActive -> (TNotActive, TNoVal)
@@ -322,7 +335,7 @@ tIf inh cexpr texpr eexpr [(contextTag, _) : tsrc]
 
 tCase :: !InhMkImg !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!SynMkImg, !*TagSource)
 tCase inh texpr pats [(contextTag, _) : tsrc]
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True (map (\(p, t) -> (Just p, t, True)) pats) contextTag tsrc
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True (map (\(p, t) -> (Just p, t, True, False)) pats) contextTag tsrc
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} texpr tsrc
   #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
   #! lineAct              = case syn_branches.syn_status of
@@ -410,24 +423,24 @@ tBind inh l mpat r tsrc
 tParSumL :: !InhMkImg !ExprId !String !String !TExpr !TExpr !*TagSource
          -> *(!SynMkImg, !*TagSource)
 tParSumL inh eid mn tn l r [(contextTag, uContextTag) : tsrc]
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False [(Nothing, l, True), (Nothing, r, False)] contextTag tsrc
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False [(Nothing, l, True, False), (Nothing, r, False, False)] contextTag tsrc
   = renderParallelContainer inh eid mn tn "Parallel (-||): left bias" syn_branches uContextTag tsrc
 tParSumR :: !InhMkImg !ExprId !String !String !TExpr !TExpr !*TagSource
          -> *(!SynMkImg, !*TagSource)
 tParSumR inh eid mn tn l r [(contextTag, uContextTag) : tsrc]
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False [(Nothing, l, False), (Nothing, r, True)] contextTag tsrc
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False [(Nothing, l, False, False), (Nothing, r, True, False)] contextTag tsrc
   = renderParallelContainer inh eid mn tn "Parallel (||-): right bias" syn_branches uContextTag tsrc
 tParSumN :: !InhMkImg !ExprId !String !String !String ![TExpr]
             !*TagSource
          -> *(!SynMkImg, !*TagSource)
 tParSumN inh eid mn tn descr ts [(contextTag, uContextTag) : tsrc]
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x, True)) ts) contextTag tsrc
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x, True, False)) ts) contextTag tsrc
   = renderParallelContainer inh eid mn tn descr syn_branches uContextTag tsrc
 tParProdN :: !InhMkImg !ExprId !String !String !String ![TExpr]
              !*TagSource
           -> *(!SynMkImg, !*TagSource)
 tParProdN inh eid mn tn descr ts [(contextTag, uContextTag) : tsrc]
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x, True)) ts) contextTag tsrc
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x, True, False)) ts) contextTag tsrc
   = renderParallelContainer inh eid mn tn descr syn_branches uContextTag tsrc
 
 renderParallelContainer :: !InhMkImg !ExprId !ModuleName !FuncName !String
@@ -770,7 +783,7 @@ tStep inh eid lhsExpr conts [(contextTag, _) : tsrc]
                               _           -> []
   #! (lhs, tsrc)          = tExpr2Image inh lhsExpr tsrc
   #! conts                = tSafeExpr2List conts
-  #! (syn_branches, tsrc) = tBranches inh (tStepCont actions) False True (map (\t -> (Nothing, t, True)) conts) contextTag tsrc
+  #! (syn_branches, tsrc) = tBranches inh (tStepCont actions) False True (map (\t -> (Nothing, t, True, False)) conts) contextTag tsrc
   #! img                  = beside (repeat AtMiddleY) [] [lhs.syn_img, tHorizConn (lineStatus syn_branches), syn_branches.syn_img] Nothing
   = ( { syn_img       = img
       , syn_status    = syn_branches.syn_status
@@ -920,12 +933,12 @@ hasValueFilter = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fi
                                               , text ArialBold10px " Has value"] Nothing
 
 tBranches :: !InhMkImg !(InhMkImg TExpr *TagSource -> *(!SynMkImg, !*TagSource))
-             !Bool !Bool ![(!Maybe Pattern, !TExpr, !Bool)] !ImageTag !*TagSource
+             !Bool !Bool ![(!Maybe Pattern, !TExpr, !Bool, !Bool)] !ImageTag !*TagSource
           -> *(!SynMkImg, !*TagSource)
 tBranches inh mkBranch needAllActive inclVertConns exprs contextTag tsrc
   #! (allTags, nonUTags, tsrc) = takeNTags (length exprs) tsrc
   #! maxXSpan                  = maxSpan (map imagexspan [contextTag : nonUTags])
-  #! allBranchActivity         = map (activityStatus needAllActive inh o (\(_, x, _) -> x)) exprs
+  #! allBranchActivity         = map (activityStatus needAllActive inh o (\(_, x, _, _) -> x)) exprs
   #! existsSomeActivity        = let f TAllDone  _   = True
                                      f TIsActive _   = True
                                      f _        acc = acc
@@ -947,11 +960,11 @@ tBranches inh mkBranch needAllActive inclVertConns exprs contextTag tsrc
             }
           , tsrc)
   where
-  iter :: !Bool !Span !(!(!Maybe Pattern, !TExpr, !Bool), !TStatus, !*TagRef)
+  iter :: !Bool !Span !(!(!Maybe Pattern, !TExpr, !Bool, !Bool), !TStatus, !*TagRef)
           !*(![SynMkImg], !*TagSource)
        -> *(![SynMkImg], !*TagSource)
-  iter existsSomeActivity maxXSpan ((pat, texpr, showRhs), currBranchActivity, (imgTag, uImgTag)) (syns, tsrc)
-    #! (syn, tsrc) = mkBranch {inh & inh_inaccessible = existsSomeActivity && currBranchActivity == TNotActive} texpr tsrc
+  iter existsSomeActivity maxXSpan ((pat, texpr, showRhs, unreachable), currBranchActivity, (imgTag, uImgTag)) (syns, tsrc)
+    #! (syn, tsrc) = mkBranch {inh & inh_inaccessible = unreachable || (existsSomeActivity && currBranchActivity == TNotActive)} texpr tsrc
     #! lhsLineAct  = case (currBranchActivity, syn.syn_status) of
                        (TNotActive, TNotActive) -> (TNotActive, TNoVal)
                        _                        -> (TAllDone, syn.syn_stability)
