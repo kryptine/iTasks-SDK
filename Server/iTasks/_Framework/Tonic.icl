@@ -90,7 +90,7 @@ NS_TONIC_INSTANCES :== "tonic-instances"
 
 instance TonicTopLevelBlueprint Task where
   tonicWrapBody mn tn args t = tonicWrapTaskBody` mn tn args t
-  tonicWrapArg d v = viewInformation (Title d) [] v @! ()
+  tonicWrapArg d _ v = viewInformation (Title d) [] v @! ()
 
 instance TonicBlueprintPart Task where
   tonicWrapApp wrapInfo nid t = tonicWrapApp` wrapInfo nid t
@@ -196,7 +196,7 @@ dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (memoryStore NS_TONIC
                                      }))
 
 
-paramsForTaskInstance :: RWShared (ModuleName, FuncName, TaskId) [(VarName, Task ())] [(VarName, Task ())]
+paramsForTaskInstance :: RWShared (ModuleName, FuncName, TaskId) [(VarName, Int, Task ())] [(VarName, Int, Task ())]
 paramsForTaskInstance = sdsTranslate "paramsForTaskInstance" (\t -> t +++> "-paramsForTaskInstance")
                              (memoryStore NS_TONIC_INSTANCES Nothing)
 
@@ -204,22 +204,22 @@ paramsForTaskInstance = sdsTranslate "paramsForTaskInstance" (\t -> t +++> "-par
 // REST
 //-----------------------------------------------------------------------------
 
-tonicExtWrapArg :: !String !a -> m () | iTask a & TonicTopLevelBlueprint m
-tonicExtWrapArg d v = tonicWrapArg d v
+tonicExtWrapArg :: !VarName !Int !a -> m () | iTask a & TonicTopLevelBlueprint m
+tonicExtWrapArg d n v = tonicWrapArg d n v
 
-tonicExtWrapBody :: !ModuleName !FuncName [(VarName, m ())] (         m a) -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBody :: !ModuleName !FuncName [(VarName, Int, m ())] (         m a) -> m a | TonicTopLevelBlueprint m & iTask a
 tonicExtWrapBody mn tn args t = tonicWrapBody mn tn args t
 
-tonicExtWrapBodyLam1 :: !ModuleName !FuncName [(VarName, m ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam1 :: !ModuleName !FuncName [(VarName, Int, m ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
 tonicExtWrapBodyLam1 mn tn args f = \x -> tonicWrapBody mn tn args (f x)
 
-tonicExtWrapBodyLam2 :: !ModuleName !FuncName [(VarName, m ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam2 :: !ModuleName !FuncName [(VarName, Int, m ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
 tonicExtWrapBodyLam2 mn tn args f = \x y -> tonicWrapBody mn tn args (f x y)
 
-tonicExtWrapBodyLam3 :: !ModuleName !FuncName [(VarName, m ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam3 :: !ModuleName !FuncName [(VarName, Int, m ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
 tonicExtWrapBodyLam3 mn tn args f = \x y z -> tonicWrapBody mn tn args (f x y z)
 
-tonicWrapTaskBody` :: !ModuleName !FuncName [(VarName, Task ())] (Task a) -> Task a | iTask a
+tonicWrapTaskBody` :: !ModuleName !FuncName [(VarName, Int, Task ())] (Task a) -> Task a | iTask a
 tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
   where
   setBlueprintInfo :: !TaskEvalOpts -> TaskEvalOpts
@@ -979,8 +979,8 @@ tonicDynamicBrowser rs
     viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Nothing}}))  = viewInformation (Title "Notice") [] "No data available for selected task. " @! ()
     viewDetail (Just (Right (mn, tn, tid, argIdx))) =                get (sdsFocus (mn, tn, tid) paramsForTaskInstance)
                                                       >>~ \params -> case getN params argIdx of
-                                                                       Just (_, vi) -> vi
-                                                                       _            -> viewInformation (Title "Notice") [] "Argument value not found" @! ()
+                                                                       Just (_, _, vi) -> vi
+                                                                       _               -> viewInformation (Title "Notice") [] "Argument value not found" @! ()
       where
       getN []     _ = Nothing
       getN [x:_]  0 = Just x

@@ -21,11 +21,11 @@ from Data.Functor import class Functor
 // be there. Ideally, we would have something like associated type families
 // and constraintkinds to determine the context restriction per monad.
 class TonicTopLevelBlueprint m | TMonad m where
-  tonicWrapBody :: !ModuleName !FuncName [(VarName, m ())] (m a) -> m a | iTask a
-  tonicWrapArg  :: !String a -> m () | iTask a
+  tonicWrapBody :: !ModuleName !FuncName [(VarName, Int, m ())] (m a) -> m a | iTask a
+  tonicWrapArg  :: !VarName !Int a -> m () | iTask a
 
 class TonicBlueprintPart m | TMonad m where
-  tonicWrapApp         :: !(!ModuleName, !FuncName) !ExprId (m a) -> m a | iTask a
+  tonicWrapApp  :: !(!ModuleName, !FuncName) !ExprId (m a) -> m a | iTask a
 
 instance TonicTopLevelBlueprint Task
 instance TonicBlueprintPart Task
@@ -39,15 +39,15 @@ tonicDynamicBrowser     :: [TaskAppRenderer] -> Task ()
 
 tonicDynamicWorkflow    :: [TaskAppRenderer] -> Workflow
 
-tonicExtWrapArg         :: !String !a -> m () | iTask a & TonicTopLevelBlueprint m
+tonicExtWrapArg         :: !VarName !Int !a -> m () | iTask a & TonicTopLevelBlueprint m
 
-tonicExtWrapBody        :: !ModuleName !FuncName [(VarName, m ())] (         m a)          -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBody        :: !ModuleName !FuncName [(VarName, Int, m ())] (         m a)          -> m a | TonicTopLevelBlueprint m & iTask a
 
-tonicExtWrapBodyLam1    :: !ModuleName !FuncName [(VarName, m ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam1    :: !ModuleName !FuncName [(VarName, Int, m ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
 
-tonicExtWrapBodyLam2    :: !ModuleName !FuncName [(VarName, m ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam2    :: !ModuleName !FuncName [(VarName, Int, m ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
 
-tonicExtWrapBodyLam3    :: !ModuleName !FuncName [(VarName, m ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam3    :: !ModuleName !FuncName [(VarName, Int, m ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
 
 tonicExtWrapApp         :: !(!ModuleName, !FuncName) !ExprId (          m a)          -> m a | TonicBlueprintPart m & iTask a
 
