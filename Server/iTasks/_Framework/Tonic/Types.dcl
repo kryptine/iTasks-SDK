@@ -38,19 +38,19 @@ from iTasks.API.Core.Types import :: DateTime
 derive class iTask TStability, BlueprintRef, BlueprintInstance
 
 derive gEditor
-  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap
+  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
 
 derive gEditMeta
-  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap
+  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
 
 derive gDefault
-  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap
+  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
 
 derive gUpdate
-  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap
+  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
 
 derive gVerify
-  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap
+  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
 
 derive gText
-  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap
+  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit

@@ -7,11 +7,11 @@ import qualified Data.Map as DM
 import StdBool, StdList, StdTuple
 from StdOverloaded import class == (..)
 
-derive JSONEncode TonicModule, TonicFunc, TExpr, TPriority, TAssoc
+derive JSONEncode TonicModule, TonicFunc, TExpr, TPriority, TAssoc, TLit
 
-derive JSONDecode TonicModule, TonicFunc, TExpr, TPriority, TAssoc
+derive JSONDecode TonicModule, TonicFunc, TExpr, TPriority, TAssoc, TLit
 
-derive gEq TonicModule, TonicFunc, TExpr, TPriority, TAssoc
+derive gEq TonicModule, TonicFunc, TExpr, TPriority, TAssoc, TLit
 
 instance == TonicModule where
   (==) tm1 tm2 =  tm1.tm_name              == tm2.tm_name
@@ -35,7 +35,8 @@ instance == TExpr where
   (==) (TRecUpd vn1 te1 es1) (TRecUpd vn2 te2 es2) = vn1 == vn2 && te1 == te2 && es1 == es2
   (==) TNoBind TNoBind = True
   (==) (TLet bs1 e1) (TLet bs2 e2) = bs1 == bs2 && e1 == e2
-  (==) (TCaseOrIf e1 ps1) (TCaseOrIf e2 ps2) = e1 == e2 && ps1 == ps2
+  (==) (TIf e1 e2 e3) (TIf e1` e2` e3`) = e1 == e1` && e2 == e2` && e3 == e3`
+  (==) (TCase e1 ps1) (TCase e2 ps2) = e1 == e2 && ps1 == ps2
   (==) (TExpand es1 tt1) (TExpand es2 tt2) = es1 == es2 && tt1 == tt2
   (==) _ _ = False
 
@@ -49,3 +50,11 @@ instance == TPriority where
   (==) (TPrio a1 n1) (TPrio a2 n2) = a1 == a2 && n1 == n2
   (==) TNoPrio       TNoPrio       = True
   (==) _             _             = False
+
+instance == TLit where
+  (==) (TBool   l) (TBool   r) = l == r
+  (==) (TInt    l) (TInt    r) = l == r
+  (==) (TReal   l) (TReal   r) = l == r
+  (==) (TString l) (TString r) = l == r
+  (==) _ _ = False
+

@@ -118,9 +118,11 @@ tExpr2Image inh (TFApp fn targs assoc)           tsrc = tFApp     inh fn targs a
 tExpr2Image inh (TLet pats bdy)                  tsrc
   | inh.inh_compact = tExpr2Image inh bdy tsrc
   | otherwise       = tLet inh pats bdy tsrc
-tExpr2Image inh (TCaseOrIf e pats)               tsrc = tCaseOrIf inh e pats tsrc
+tExpr2Image inh (TIf c t e)                      tsrc = tIf       inh c t e tsrc
+tExpr2Image inh (TCase e pats)                   tsrc = tCase     inh e pats tsrc
 tExpr2Image inh (TVar eid pp _)                  tsrc = tVar      inh eid pp tsrc
 tExpr2Image inh (TLit pp)                        tsrc = tLit      inh pp tsrc
+tExpr2Image inh (TPPExpr pp)                     tsrc = tPPExpr   inh pp tsrc
 tExpr2Image inh (TExpand args tt)                tsrc = tExpand   inh args tt tsrc
 tExpr2Image inh (TSel e es)                      tsrc = tSel      inh e es tsrc
 tExpr2Image inh (TRecUpd vn e es)                tsrc = tRecUpd   inh vn e es tsrc
@@ -221,8 +223,8 @@ tExpand inh argnames tt tsrc
      }
     , tsrc)
 
-tLit :: !InhMkImg !String !*TagSource -> *(!SynMkImg, !*TagSource)
-tLit inh pp tsrc
+tPPExpr :: !InhMkImg !String !*TagSource -> *(!SynMkImg, !*TagSource)
+tPPExpr inh pp tsrc
   | inh.inh_in_mapp || inh.inh_in_fapp || inh.inh_in_case
       = ( { syn_img       = text ArialRegular10px pp
           , syn_status    = TNotActive
@@ -237,6 +239,12 @@ tLit inh pp tsrc
           , syn_stability = TStable
           }
         , tsrc)
+
+tLit :: !InhMkImg !TLit !*TagSource -> *(!SynMkImg, !*TagSource)
+tLit inh (TBool   x) tsrc = tPPExpr inh (toString x) tsrc
+tLit inh (TInt    x) tsrc = tPPExpr inh (toString x) tsrc
+tLit inh (TReal   x) tsrc = tPPExpr inh (toString x) tsrc
+tLit inh (TString x) tsrc = tPPExpr inh x tsrc
 
 instance toString (Maybe a) | toString a where
   toString (Just x) = "Just " +++ toString x
@@ -268,7 +276,8 @@ activityStatus needAllActive inh (TMApp eid _ _ _ exprs _)
           Just {bpi_activeNodes} | isJust (activeNodeTaskId eid bpi_activeNodes) = TIsActive
           _ = determineStatus needAllActive (map (activityStatus needAllActive inh) exprs)
 activityStatus needAllActive inh (TLet pats bdy)       = activityStatus needAllActive inh bdy
-activityStatus needAllActive inh (TCaseOrIf e pats)    = determineStatus needAllActive (map (activityStatus needAllActive inh o snd) pats)
+activityStatus needAllActive inh (TIf c t e)           = determineStatus needAllActive (map (activityStatus needAllActive inh) [t, e])
+activityStatus needAllActive inh (TCase e pats)        = determineStatus needAllActive (map (activityStatus needAllActive inh o snd) pats)
 activityStatus needAllActive inh (TExpand args tt)     = activityStatus needAllActive inh tt.tf_body
 activityStatus needAllActive inh (TLam _ e)            = activityStatus needAllActive inh e
 activityStatus needAllActive inh _                     = TNotActive
@@ -296,8 +305,23 @@ determineStatus _ _        = TNotActive
 determineSynStatus :: !Bool ![SynMkImg] -> TStatus
 determineSynStatus needAllActive syns = determineStatus needAllActive (map (\x -> x.syn_status) syns)
 
-tCaseOrIf :: !InhMkImg !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!SynMkImg, !*TagSource)
-tCaseOrIf inh texpr pats [(contextTag, _) : tsrc]
+tIf :: !InhMkImg !TExpr !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
+tIf inh cexpr texpr eexpr [(contextTag, _) : tsrc]
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True [(Just (TLit (TBool True)), texpr, True), (Just (TLit (TBool False)), eexpr, True)] contextTag tsrc
+  #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} texpr tsrc
+  #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
+  #! lineAct              = case syn_branches.syn_status of
+                              TNotActive -> (TNotActive, TNoVal)
+                              _          -> (TAllDone, syn_branches.syn_stability)
+  #! img                  = beside (repeat AtMiddleY) [] [diamond, tHorizConn lineAct, syn_branches.syn_img] Nothing
+  = ( { syn_img       = img
+      , syn_status    = syn_branches.syn_status
+      , syn_stability = syn_branches.syn_stability
+      }
+    , tsrc)
+
+tCase :: !InhMkImg !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!SynMkImg, !*TagSource)
+tCase inh texpr pats [(contextTag, _) : tsrc]
   #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True (map (\(p, t) -> (Just p, t, True)) pats) contextTag tsrc
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} texpr tsrc
   #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
@@ -733,7 +757,8 @@ tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (headerTag, 
   mkUser (TFApp "AuthenticatedUser" [uid:rs:_] _) = ppTExpr uid +++ " with roles " +++ foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" (tSafeExpr2List rs)
   mkUser (TFApp usr _ _)                = usr
   mkUser (TVar _ ppe _)                 = ppe
-  mkUser (TLit ppe)                     = ppe
+  mkUser (TLit (TString ppe))           = ppe
+  mkUser (TPPExpr ppe)                  = ppe
   mkUser _                              = ""
 
 tStep :: !InhMkImg !ExprId !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
@@ -775,10 +800,10 @@ tSafeExpr2List e                               = [e]
 derive class iTask UIAction
 
 tStepCont :: ![UIAction] !InhMkImg !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
-tStepCont actions inh (TFApp "OnAction" [TFApp "Action" [TLit actionLit : _] _ : cont : _ ] _) tsrc
-  = mkStepCont inh (Just (actionLit, foldr f False actions)) cont tsrc
+tStepCont actions inh (TFApp "OnAction" [TFApp "Action" [actionLit : _] _ : cont : _ ] _) tsrc
+  = mkStepCont inh (Just (ppTExpr actionLit, foldr f False actions)) cont tsrc
   where
-  f {UIAction | action = Action an _, enabled} acc = (replaceSubString "\"" "" an == replaceSubString "\"" "" actionLit && enabled) || acc
+  f {UIAction | action = Action an _, enabled} acc = (replaceSubString "\"" "" an == replaceSubString "\"" "" (ppTExpr actionLit) && enabled) || acc
   f _ acc = acc
 tStepCont _ inh (TFApp "OnValue"  [cont : _ ] _) tsrc
   = mkStepCont inh Nothing cont tsrc

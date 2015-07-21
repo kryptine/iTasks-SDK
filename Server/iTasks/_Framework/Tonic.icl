@@ -441,10 +441,10 @@ tonicWrapApp` wrapInfo=:(_, wrapFuncName) nid t=:(Task eval)
                                               Ok usr
                                                 = updateNode assignNode (\x -> case x of
                                                                                  TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [_, descr] prio : as] assoc
-                                                                                   | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [TLit (toString usr), descr] prio : as] assoc
+                                                                                   | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [TLit (TString (toString usr)), descr] prio : as] assoc
                                                                                    | otherwise         = x
                                                                                  TMApp eid mtn "iTasks.API.Extensions.User" "@:" [_ : as] assoc
-                                                                                   | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TLit (toString usr) : as] assoc
+                                                                                   | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TLit (TString (toString usr)) : as] assoc
                                                                                    | otherwise         = x
                                                                                  e = e
                                                                         ) parentBPInst.bpi_blueprint.tf_body
@@ -677,10 +677,15 @@ replaceNode varid newExpr (TLet pats e)
   #! e`   = replaceNode varid newExpr e
   #! pats = replaceNodePats varid newExpr pats
   = TLet pats e`
-replaceNode varid newExpr (TCaseOrIf e pats)
+replaceNode varid newExpr (TIf c t e)
+  #! c` = replaceNode varid newExpr c
+  #! t` = replaceNode varid newExpr t
+  #! e` = replaceNode varid newExpr e
+  = TIf c` t` e`
+replaceNode varid newExpr (TCase e pats)
   #! e`   = replaceNode varid newExpr e
   #! pats = replaceNodePats varid newExpr pats
-  = TCaseOrIf e` pats
+  = TCase e` pats
 replaceNode _ _ e = e
 
 replaceNodePats _ _ [] = []
@@ -728,10 +733,15 @@ updateNode eid f (TLet pats e)
   #! (e`, eb, mvid)   = updateNode eid f e
   #! (pats, b, mvids) = updatePats eid f pats
   = (TLet pats e`, b || eb, getMVid [mvid : mvids])
-updateNode eid f (TCaseOrIf e pats)
+updateNode eid f (TIf c t e )
+  #! (c`, cb, mvidc) = updateNode eid f c
+  #! (t`, tb, mvidt) = updateNode eid f t
+  #! (e`, eb, mvide) = updateNode eid f e
+  = (TIf c` t` e`, cb || tb || eb, getMVid [mvidc, mvidt, mvide])
+updateNode eid f (TCase e pats)
   #! (e`, eb, mvid)   = updateNode eid f e
   #! (pats, b, mvids) = updatePats eid f pats
-  = (TCaseOrIf e` pats, b || eb, getMVid [mvid : mvids])
+  = (TCase e` pats, b || eb, getMVid [mvid : mvids])
 updateNode _ _ e = (e, False, Nothing)
 
 updatePats _ _ [] = ([], False, [])
@@ -1192,8 +1202,10 @@ expandTExpr allbps n (TLet pats bdy)
   = TLet (map f pats) (expandTExpr allbps n bdy)
   where
   f (pat, rhs) = (pat, expandTExpr allbps n rhs)
-expandTExpr allbps n (TCaseOrIf e pats)
-  = TCaseOrIf (expandTExpr allbps n e)
+expandTExpr allbps n (TIf c t e)
+  = TIf c (expandTExpr allbps n t) (expandTExpr allbps n e)
+expandTExpr allbps n (TCase e pats)
+  = TCase (expandTExpr allbps n e)
               (map f pats)
   where
   f (pat, rhs) = (pat, expandTExpr allbps n rhs)
@@ -1206,3 +1218,94 @@ expandTExpr allbps n (TRecUpd vn e es)
 expandTExpr allbps n (TLam vars e)
   = TLam vars (expandTExpr allbps n e)
 expandTExpr _ _ texpr = texpr
+
+evalInt :: !TExpr -> Maybe Int
+evalInt e = case eval e of
+              Just (TLit (TInt x)) -> Just x
+              _                    -> Nothing
+
+evalReal :: !TExpr -> Maybe Real
+evalReal e = case eval e of
+               Just (TLit (TReal x)) -> Just x
+               _                     -> Nothing
+
+evalBool :: !TExpr -> Maybe Bool
+evalBool e = case eval e of
+               Just (TLit (TBool x)) -> Just x
+               _                     -> Nothing
+
+eval :: !TExpr -> Maybe TExpr
+eval (TFApp "<" [l, r] _)
+  = evalBinOp lt l r
+eval (TFApp "<=" [l, r] _)
+  = evalBinOp lte l r
+eval (TFApp ">" [l, r] _)
+  = evalBinOp gt l r
+eval (TFApp "=>" [l, r] _)
+  = evalBinOp gte l r
+eval (TFApp "==" [l, r] _)
+  = evalBinOp eq l r
+eval (TFApp "+" [l, r] _)
+  = evalBinOp add l r
+eval (TFApp "-" [l, r] _)
+  = evalBinOp sub l r
+eval (TFApp "/" [l, r] _)
+  = evalBinOp div l r
+eval (TFApp "*" [l, r] _)
+  = evalBinOp mul l r
+eval e=:(TLit _) = Just e
+eval _           = Nothing
+
+evalBinOp :: !(TExpr TExpr -> Maybe TExpr) !TExpr !TExpr -> Maybe TExpr
+evalBinOp f l r
+  = case eval l of
+      Just l` -> case eval r of
+                   Just r` -> f l` r`
+                   _       -> Nothing
+      _       -> Nothing
+
+lt :: !TExpr !TExpr -> Maybe TExpr
+lt (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TBool (n < m)))
+lt (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TBool (n < m)))
+lt _                _                = Nothing
+
+lte :: !TExpr !TExpr -> Maybe TExpr
+lte (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TBool (n <= m)))
+lte (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TBool (n <= m)))
+lte _                _                = Nothing
+
+gt :: !TExpr !TExpr -> Maybe TExpr
+gt (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TBool (n > m)))
+gt (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TBool (n > m)))
+gt _                _                = Nothing
+
+gte :: !TExpr !TExpr -> Maybe TExpr
+gte (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TBool (n >= m)))
+gte (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TBool (n >= m)))
+gte _                _                = Nothing
+
+eq :: !TExpr !TExpr -> Maybe TExpr
+eq (TLit (TBool l)) (TLit (TBool r)) = Just (TLit (TBool (l == r)))
+eq (TLit (TInt l))  (TLit (TInt r))  = Just (TLit (TBool (l == r)))
+eq (TLit (TReal l)) (TLit (TReal r)) = Just (TLit (TBool (l == r)))
+eq _                _                = Nothing
+
+add :: !TExpr !TExpr -> Maybe TExpr
+add (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TInt (n + m)))
+add (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TReal (n + m)))
+add _                _                = Nothing
+
+sub :: !TExpr !TExpr -> Maybe TExpr
+sub (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TInt (n - m)))
+sub (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TReal (n - m)))
+sub _                _                = Nothing
+
+div :: !TExpr !TExpr -> Maybe TExpr
+div (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TInt (n / m)))
+div (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TReal (n / m)))
+div _                _                = Nothing
+
+mul :: !TExpr !TExpr -> Maybe TExpr
+mul (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TInt (n * m)))
+mul (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TReal (n * m)))
+mul _                _                = Nothing

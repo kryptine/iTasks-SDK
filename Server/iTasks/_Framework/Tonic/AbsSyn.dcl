@@ -6,17 +6,18 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 from StdOverloaded import class ==
 
-derive JSONEncode TonicModule, TonicFunc, TExpr, TPriority, TAssoc
+derive JSONEncode TonicModule, TonicFunc, TExpr, TPriority, TAssoc, TLit
 
-derive JSONDecode TonicModule, TonicFunc, TExpr, TPriority, TAssoc
+derive JSONDecode TonicModule, TonicFunc, TExpr, TPriority, TAssoc, TLit
 
-derive gEq TonicModule, TonicFunc, TExpr, TPriority, TAssoc
+derive gEq TonicModule, TonicFunc, TExpr, TPriority, TAssoc, TLit
 
 instance == TonicModule
 instance == TonicFunc
 instance == TExpr
 instance == TAssoc
 instance == TPriority
+instance == TLit
 
 :: TonicModule =
   { tm_name  :: ModuleName
@@ -43,17 +44,25 @@ instance == TPriority
 :: VarPtr     :== Int
 
 :: TExpr
-  = TVar      !ExprId !PPExpr !VarPtr
-  | TLit      !PPExpr
-  | TMApp     !ExprId !(Maybe TypeName) !ModuleName !FuncName ![TExpr] !TPriority
-  | TFApp     !FuncName ![TExpr] !TPriority
-  | TLam      ![TExpr] !TExpr
-  | TSel      !TExpr ![TExpr]
-  | TRecUpd   !VarName !TExpr ![TExpr]
+  = TVar    !ExprId !PPExpr !VarPtr
+  | TLit    !TLit
+  | TPPExpr !PPExpr
+  | TMApp   !ExprId !(Maybe TypeName) !ModuleName !FuncName ![TExpr] !TPriority
+  | TFApp   !FuncName ![TExpr] !TPriority
+  | TLam    ![TExpr] !TExpr
+  | TSel    !TExpr ![TExpr]
+  | TRecUpd !VarName !TExpr ![TExpr]
   | TNoBind
-  | TLet      ![(!Pattern, !TExpr)] !TExpr
-  | TCaseOrIf !TExpr ![(!Pattern, !TExpr)]
-  | TExpand   ![TExpr] !TonicFunc
+  | TLet    ![(!Pattern, !TExpr)] !TExpr
+  | TIf     !TExpr !TExpr !TExpr
+  | TCase   !TExpr ![(!Pattern, !TExpr)]
+  | TExpand ![TExpr] !TonicFunc
+
+:: TLit
+  = TBool   Bool
+  | TInt    Int
+  | TReal   Real
+  | TString String
 
 :: TAssoc
   = TLeftAssoc
