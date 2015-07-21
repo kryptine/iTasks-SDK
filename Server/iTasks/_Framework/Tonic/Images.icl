@@ -308,7 +308,7 @@ determineSynStatus needAllActive syns = determineStatus needAllActive (map (\x -
 tIf :: !InhMkImg !TExpr !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tIf inh cexpr texpr eexpr [(contextTag, _) : tsrc]
   #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True [(Just (TLit (TBool True)), texpr, True), (Just (TLit (TBool False)), eexpr, True)] contextTag tsrc
-  #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} texpr tsrc
+  #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} cexpr tsrc
   #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
   #! lineAct              = case syn_branches.syn_status of
                               TNotActive -> (TNotActive, TNoVal)
