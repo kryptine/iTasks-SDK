@@ -68,7 +68,7 @@ ArialItalic10px :== { fontfamily  = "Arial"
   , inh_in_mapp      :: !Bool
   , inh_in_fapp      :: !Bool
   , inh_in_case      :: !Bool
-  , inh_outputs      :: !Map TaskId TStability
+  , inh_outputs      :: !Map (TaskId, ExprId) TStability
   , inh_selDetail    :: !Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int))
   , inh_stepActions  :: !Map TaskId [UIAction]
   }
@@ -88,7 +88,7 @@ instance == TStatus where
   (==) _          _          = False
 
 mkTaskImage :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef
-               !(Map TaskId TStability) !(Map TaskId [UIAction])
+               !(Map (TaskId, ExprId) TStability) !(Map TaskId [UIAction])
                !(Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int))) !Bool
                !ModelTy *TagSource -> Image ModelTy
 mkTaskImage rs prev trt outputs stepActions selDetail compact {ActionState | state = tis} tsrc
@@ -454,7 +454,7 @@ renderParallelContainer inh eid moduleName taskName descr syn_branches uContextT
   #! isActive           = isJust mActiveTid
   #! mPrevActiveTid     = 'DM'.get eid inh.inh_prev
   #! mbNavTo            = if isActive mActiveTid mPrevActiveTid
-  #! stability          = let f tid = fromMaybe TNoVal ('DM'.get tid inh.inh_outputs)
+  #! stability          = let f tid = fromMaybe TNoVal (maybe Nothing (\bpinst -> 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_outputs) inh.inh_trt.bpr_instance)
                           in maybe (maybe TNoVal f mPrevActiveTid) f mActiveTid
   #! mTaskId            = case (mActiveTid, mPrevActiveTid) of
                             (Just x, _) -> Just x
@@ -608,7 +608,7 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
   #! mPrevActiveTid     = 'DM'.get eid inh.inh_prev
   #! mbNavTo            = if isActive mActiveTid mPrevActiveTid
   #! wasActive          = isJust mPrevActiveTid
-  #! stability          = let f tid = fromMaybe TNoVal ('DM'.get tid inh.inh_outputs)
+  #! stability          = let f tid = fromMaybe TNoVal (maybe Nothing (\bpinst -> 'DM'.get (bpinst.bpi_taskId, eid) inh.inh_outputs) inh.inh_trt.bpr_instance)
                           in maybe (maybe TNoVal f mPrevActiveTid) f mActiveTid
   #! mTaskId            = case (mActiveTid, mPrevActiveTid) of
                             (Just x, _) -> Just x

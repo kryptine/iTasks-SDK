@@ -57,4 +57,4 @@ tonicExtWrapAppLam2     :: !(!ModuleName, !FuncName) !ExprId !(b c   -> m a) -> 
 
 tonicExtWrapAppLam3     :: !(!ModuleName, !FuncName) !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
 
-storeTaskOutputViewer   :: !(TaskResult a) !TaskId !*IWorld -> *IWorld | iTask a
+storeTaskOutputViewer   :: !(TaskResult a) !ExprId !TaskId !TaskId !*IWorld -> *IWorld | iTask a

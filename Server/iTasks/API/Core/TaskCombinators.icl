@@ -362,8 +362,8 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
                                                                         , inParallel      = Just listId}}
 
         # (result,iworld) = evala event (setParallel listId (extendCallTrace taskId {TaskEvalOpts|evalOpts & useLayout=Nothing})) tree iworld
-        # iworld          = if evalOpts.tonicOpts.captureParallel
-                              (storeTaskOutputViewer result taskId iworld)
+        # iworld          = if (evalOpts.tonicOpts.captureParallel && evalOpts.tonicOpts.currBlueprintExprId <> [] && evalOpts.tonicOpts.currBlueprintTaskId <> TaskId 0 0)
+                              (storeTaskOutputViewer result evalOpts.tonicOpts.currBlueprintExprId evalOpts.tonicOpts.currBlueprintTaskId taskId iworld)
                               iworld
         = case result of
             //If an exception occured, check if we can handle it at this level
