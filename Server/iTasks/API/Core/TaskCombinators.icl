@@ -698,7 +698,6 @@ where
 	eval _ _ _ iworld
 		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)
 
-import StdDebug
 exposeShared :: !(RWShared p r w) !(String (RWShared p r w) -> Task a) -> Task a | iTask a & iTask r & iTask w & iTask p
 exposeShared shared stask = Task eval
 where	

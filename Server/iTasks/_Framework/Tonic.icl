@@ -1006,13 +1006,16 @@ showBlueprint :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !TonicFun
                  !(Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int)))
                  !(Map TaskId [UIAction]) !Bool !Scale
               -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
-showBlueprint rs prev bpref=:{bpr_instance = Just _} task selDetail enabledSteps compact depth
+showBlueprint rs prev bpref=:{bpr_instance = Just bpi} task selDetail enabledSteps compact depth
   =               get (mapRead (fmap (\(_, _, _, _, x) -> x)) storedOutputEditors)
-  >>~ \outputs -> showBlueprint` outputs rs prev bpref task selDetail enabledSteps compact depth
+  >>~ \outputs -> let outputs` = 'DM'.foldlWithKey (\m (tid, eid) v -> if (tid == bpi.bpi_taskId)
+                                                                         ('DM'.put eid v m)
+                                                                         m) 'DM'.newMap outputs
+                   in showBlueprint` outputs` rs prev bpref task selDetail enabledSteps compact depth
 showBlueprint rs prev bpref task selDetail enabledSteps compact depth
   = showBlueprint` 'DM'.newMap rs prev bpref task selDetail enabledSteps compact depth
 
-showBlueprint` :: !(Map (TaskId, ExprId) TStability) ![TaskAppRenderer]
+showBlueprint` :: !(Map ExprId TStability) ![TaskAppRenderer]
                   !(Map ExprId TaskId) !BlueprintRef !TonicFunc
                   !(Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int)))
                   !(Map TaskId [UIAction]) !Bool !Scale
