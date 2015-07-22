@@ -33,7 +33,7 @@ derive gEditor
 	RECORD of {grd_arity} with ve1 _ _ em1 _ _,
 	FIELD of {gfd_name} with ve1 _ _ em1 _ _
 	
-derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (->), Dynamic
+derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (->), Dynamic
 derive gEditor Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
 derive gEditor EditableList
 derive gEditor RWShared
@@ -52,7 +52,7 @@ derive gEditMeta
 	RECORD with fx,
 	FIELD of {gfd_name} with fx
 	
-derive gEditMeta Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (->), Dynamic
+derive gEditMeta Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (->), Dynamic
 derive gEditMeta Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
 derive gEditMeta EditableList
 derive gEditMeta RWShared
@@ -61,7 +61,7 @@ derive gEditMeta RWShared
 generic gVerify a :: !VerifyOptions (MaskedValue a) -> Verification
 
 derive gVerify UNIT, PAIR, EITHER, OBJECT, CONS of {gcd_arity}, RECORD of {grd_arity}, FIELD
-derive gVerify Int, Real, Char, Bool, String, [], (), (,), (,,),(,,,),(->), Dynamic
+derive gVerify Int, Real, Char, Bool, String, [], (), (,), (,,),(,,,), (,,,,),(->), Dynamic
 derive gVerify Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
 derive gVerify EditableList
 derive gVerify RWShared
@@ -70,7 +70,7 @@ derive gVerify RWShared
 generic gUpdate a | gDefault a, JSONEncode a, JSONDecode a :: !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt)
 
 derive gUpdate UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses,gtd_conses}, CONS of {gcd_arity,gcd_index}, RECORD of {grd_arity}, FIELD
-derive gUpdate Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (->), Dynamic
+derive gUpdate Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (->), Dynamic
 derive gUpdate Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
 derive gUpdate EditableList
 derive gUpdate RWShared

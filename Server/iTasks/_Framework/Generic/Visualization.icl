@@ -84,6 +84,11 @@ gText{|(,,,)|} fa fb fc fd AsRow        (Just (a,b,c,d))    = [concat (fa AsSing
 gText{|(,,,)|} fa fb fc fd AsSingleLine (Just (a,b,c,d))    = [concat (fa AsSingleLine (Just a)),", ",concat (fb AsSingleLine (Just b)),", ",concat (fc AsSingleLine (Just c)),", ",concat (fd AsSingleLine (Just d))]
 gText{|(,,,)|} fa fb fc fd mode         (Just (a,b,c,d))    = fa mode (Just a) ++ fb mode (Just b) ++ fc mode (Just c) ++ fd mode (Just d)
 
+gText{|(,,,,)|} fa fb fc fd fe AsHeader     _                   = ["","","","",""]
+gText{|(,,,,)|} fa fb fc fd fe AsRow        (Just (a,b,c,d,e))  = [concat (fa AsSingleLine (Just a)),concat (fb AsSingleLine (Just b)),concat (fc AsSingleLine (Just c)),concat (fd AsSingleLine (Just d)),concat (fe AsSingleLine (Just e))]
+gText{|(,,,,)|} fa fb fc fd fe AsSingleLine (Just (a,b,c,d,e))  = [concat (fa AsSingleLine (Just a)),", ",concat (fb AsSingleLine (Just b)),", ",concat (fc AsSingleLine (Just c)),", ",concat (fd AsSingleLine (Just d)),", ",concat (fe AsSingleLine (Just e))]
+gText{|(,,,,)|} fa fb fc fd fe mode         (Just (a,b,c,d,e))  = fa mode (Just a) ++ fb mode (Just b) ++ fc mode (Just c) ++ fd mode (Just d) ++ fe mode (Just e)
+
 derive gText Either, MaybeError, Timestamp, Map
 
 (+++>) infixr 5	:: !a !String -> String | gText{|*|} a
