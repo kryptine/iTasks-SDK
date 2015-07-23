@@ -23,7 +23,7 @@ from iTasks.API.Core.Types import :: DateTime
   , bpi_endTime          :: !Maybe DateTime
   , bpi_activeNodes      :: !Map ListId (IntMap (TaskId, ExprId))
   , bpi_previouslyActive :: !Map ExprId TaskId
-  , bpi_parentTaskId     :: !Maybe TaskId
+  , bpi_parentTaskId     :: !TaskId
   , bpi_currentUser      :: !Maybe User
   , bpi_blueprint        :: !TonicFunc
   , bpi_nodeTaskIdMap    :: !Map ExprId TaskId
