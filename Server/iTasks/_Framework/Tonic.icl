@@ -172,7 +172,7 @@ tonicActionsForTaskID :: RWShared TaskId [UIAction] [UIAction]
 tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicEnabledSteps
   where
   read :: TaskId (Map TaskId [UIAction]) -> MaybeError TaskException [UIAction]
-  read tid trtMap = maybe (Error (exception ("Could not find UIAction for task " <+++ tid))) Ok ('DM'.get tid trtMap)
+  read tid trtMap = maybe (Ok []) Ok ('DM'.get tid trtMap)
 
   write :: TaskId (Map TaskId [UIAction]) [UIAction] -> MaybeError TaskException (Maybe (Map TaskId [UIAction]))
   write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
