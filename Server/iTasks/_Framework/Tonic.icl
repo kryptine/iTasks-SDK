@@ -290,7 +290,6 @@ tonicWrapTaskBody` mn tn args (Task eval)
                                , bpi_parentTaskId     = currBlueprintTaskId
                                , bpi_blueprint        = substituteBPVars vars bprep
                                , bpi_currentUser      = error2mb muser
-                               , bpi_nodeTaskIdMap    = 'DM'.newMap
                                }
           # blueprint        = { BlueprintRef
                                | bpr_moduleName = mn
@@ -442,6 +441,9 @@ isAssign :: !(!String, !String) -> Bool
 isAssign ("iTasks.API.Extensions.User", "@:") = True
 isAssign _                                    = False
 
+isLambda :: !(String, !String) -> Bool
+isLambda (_, str) = startsWith "\;" str
+
 stepEval :: (Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult d, *IWorld))
             Event TaskEvalOpts TaskTree *IWorld
          -> *(TaskResult d, *IWorld)
@@ -484,9 +486,10 @@ ppeid xs = foldr (\x xs -> toString x +++ "," +++ xs) "" xs
  */
 tonicWrapApp` :: !(!ModuleName, !FuncName) !ExprId (Task a) -> Task a | iTask a
 tonicWrapApp` wrapInfo=:(_, wrapFuncName) nid t=:(Task eval)
-  | isBind wrapInfo = Task (bindEval eval)
-  | isStep wrapInfo = Task (stepEval eval)
-  | otherwise       = return () >>~ \_ -> Task eval`
+  | isBind wrapInfo   = Task (bindEval eval)
+  | isStep wrapInfo   = Task (stepEval eval)
+  | isLambda wrapInfo = Task evalLam
+  | otherwise         = return () >>~ \_ -> Task eval`
   where
   updateAssignStatus evalOpts
     = { evalOpts
@@ -499,26 +502,32 @@ tonicWrapApp` wrapInfo=:(_, wrapFuncName) nid t=:(Task eval)
                     }
       }
 
+  evalLam event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo _) _) iworld
+    # (mParentBP, iworld) = 'DSDS'.read (sdsFocus tonicOpts.currBlueprintTaskId tonicInstances) iworld
+    # iworld = case mParentBP of
+                 Ok parentBPRef=:{bpr_instance = Just parentBPInst}
+                   | evalOpts.tonicOpts.inBind
+                       # parentNid = init nid
+                       = case getNode parentNid parentBPInst.bpi_blueprint.tf_body of
+                           Just (TMApp _ _ "iTasks.API.Core.Types" ">>=" [TMApp eid _ _ _ _ _ : TLam [TVar _ _ ptr] _ : _] _)
+                             # (mout, iworld) = 'DSDS'.read (sdsFocus (parentBPInst.bpi_taskId, eid) outputForTaskId) iworld
+                             = case mout of
+                                 Ok (_, _, Just texpr, _, _)
+                                   # bpi_blueprint = substituteBPVars ('DM'.singleton ptr texpr) parentBPInst.bpi_blueprint
+                                   # parentBPInst  = {parentBPInst & bpi_blueprint = bpi_blueprint}
+                                   # parentBPRef   = {parentBPRef & bpr_instance = Just parentBPInst}
+                                   = snd ('DSDS'.write parentBPRef (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld)
+                                 _ = iworld
+                           _ = iworld
+                   | otherwise = iworld
+    = eval event evalOpts taskTree iworld
+  evalLam event evalOpts taskTree iworld
+    = eval event evalOpts taskTree iworld
+
   eval` event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo _) _) iworld
     # (mParentBP, iworld) = 'DSDS'.read (sdsFocus tonicOpts.currBlueprintTaskId tonicInstances) iworld
     = case mParentBP of
         Ok parentBPRef=:{bpr_instance = Just parentBPInst}
-          # parentBPInst = {parentBPInst & bpi_nodeTaskIdMap = 'DM'.put nid childTaskId parentBPInst.bpi_nodeTaskIdMap}
-          # (parentBPRef, parentBPInst, iworld)
-              = case evalOpts.tonicOpts.inBind of
-                  True
-                    # parentNid = init nid
-                    = case getNode parentNid parentBPInst.bpi_blueprint.tf_body of
-                        Just (TMApp _ _ "iTasks.API.Core.Types" ">>=" [TMApp eid _ _ _ _ _ : TLam [TVar _ _ ptr] _ : _] _)
-                          # (mout, iworld) = 'DSDS'.read (sdsFocus (parentBPInst.bpi_taskId, eid) outputForTaskId) iworld
-                          = case mout of
-                              Ok (_, _, Just texpr, _, _)
-                                # bpi_blueprint = substituteBPVars ('DM'.singleton ptr texpr) parentBPInst.bpi_blueprint
-                                # parentBPInst  = {parentBPInst & bpi_blueprint = bpi_blueprint}
-                                = (parentBPRef, parentBPInst, iworld)
-                              _ = (parentBPRef, parentBPInst, iworld)
-                        _ = (parentBPRef, parentBPInst, iworld)
-                  _ = (parentBPRef, parentBPInst, iworld)
           # (parentBPRef, parentBPInst, iworld)
               = case tonicOpts.inAssignNode of
                   Just assignNode
@@ -615,7 +624,6 @@ tonicWrapApp` wrapInfo=:(_, wrapFuncName) nid t=:(Task eval)
     = iworld
 
   evalParallel parent pinst tr evalOpts childTaskId parallelChildren iworld
-    # pinst      = {pinst & bpi_nodeTaskIdMap = 'DM'.put nid childTaskId pinst.bpi_nodeTaskIdMap}
     # currActive = case 'DM'.get childTaskId pinst.bpi_activeNodes of
                      Just ns -> ns
                      _       -> 'DIS'.newMap
@@ -867,13 +875,6 @@ updatePats eid f [(pat, e) : xs]
   #! (e`, eb, mvid2)   = updateNode eid f e
   #! (pats, b, mvids)  = updatePats eid f xs
   = ([(pat`, e`) : pats], pb || eb || b, [mvid1 : mvid2 : mvids])
-
-getBlueprintRef :: !TaskId !*IWorld -> *(!Maybe BlueprintRef, !*IWorld)
-getBlueprintRef tid world
-  # (mbpref, world) = 'DSDS'.read (sdsFocus tid tonicInstances) world
-  = case mbpref of
-      Ok bpref -> (Just bpref, world)
-      _        -> (Nothing, world)
 
 getModule :: !String -> Task TonicModule
 getModule moduleName = mkInstantTask (const (getModule` moduleName))
@@ -1128,7 +1129,11 @@ tonicDynamicBrowser` :: ![TaskAppRenderer] !(Shared NavStack) -> Task ()
 tonicDynamicBrowser` rs navstack =
   ((activeBlueprintInstances -&&- blueprintViewer) <<@ ArrangeVertical) @! ()
   where
-  activeBlueprintInstances = editSharedChoiceWithSharedAs (Title "Active blueprint instances") [ChooseWith (ChooseFromGrid customView)] (mapRead filterTasks (tonicSharedRT |+| queryShare)) setTaskId selectedBlueprint <<@ ArrangeWithSideBar 0 TopSide 175 True
+  activeBlueprintInstances = editSharedChoiceWithSharedAs
+                               (Title "Active blueprint instances")
+                               [ChooseWith (ChooseFromGrid customView)]
+                               (mapRead filterTasks (tonicSharedRT |+| queryShare))
+                               setTaskId selectedBlueprint <<@ ArrangeWithSideBar 0 TopSide 175 True
     where
     setTaskId x = { click_origin_mbbpident  = Nothing
                   , click_origin_mbnodeId   = Nothing
