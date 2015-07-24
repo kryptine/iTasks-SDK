@@ -168,11 +168,11 @@ tonicEnabledSteps :: RWShared () (Map TaskId [UIAction]) (Map TaskId [UIAction])
 tonicEnabledSteps = sdsTranslate "tonicEnabledSteps" (\t -> t +++> "-tonicEnabledSteps")
                                  (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
 
-tonicActionsForTaskID :: RWShared TaskId [UIAction] [UIAction]
+tonicActionsForTaskID :: RWShared TaskId () [UIAction]
 tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicEnabledSteps
   where
-  read :: TaskId (Map TaskId [UIAction]) -> MaybeError TaskException [UIAction]
-  read tid trtMap = maybe (Ok []) Ok ('DM'.get tid trtMap)
+  read :: TaskId (Map TaskId [UIAction]) -> MaybeError TaskException ()
+  read tid trtMap = Ok ()
 
   write :: TaskId (Map TaskId [UIAction]) [UIAction] -> MaybeError TaskException (Maybe (Map TaskId [UIAction]))
   write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
@@ -1144,10 +1144,10 @@ tonicDynamicBrowser` rs navstack =
         \(bpmeta, ns) -> case bpmeta of
                            Just meta=:{click_target_bpident = {bpident_taskId = Just tid}} =
                                             dynamicParent tid
-                             >>~ \mbprnt -> whileUnchanged (sdsFocus tid tonicInstances |+| dynamicDisplaySettings |+| selectedDetail |+| sdsFocus tid tonicActionsForTaskID) (
-                                              \(((bpref, dynSett), selDetail), _) -> viewInstance rs navstack dynSett bpref selDetail meta
-                                                                                 >>* [ OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards bpref dynSett selDetail ns)
-                                                                                     , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent bpref dynSett selDetail tid rs mbprnt) ]
+                             >>~ \mbprnt -> whileUnchanged (sdsFocus tid tonicInstances |+| dynamicDisplaySettings |+| selectedDetail) (
+                                              \((bpref, dynSett), selDetail) -> viewInstance rs navstack dynSett bpref selDetail meta
+                                                                            >>* [ OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards bpref dynSett selDetail ns)
+                                                                                , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent bpref dynSett selDetail tid rs mbprnt) ]
                                             )
 
                            _ = viewInformation () [] "Please select a blueprint" @! ()
@@ -1216,9 +1216,10 @@ viewInstance rs navstack dynSett bpref=:{bpr_moduleName, bpr_taskName, bpr_insta
        (viewInformation "Task comments" [] bpinst.bpi_blueprint.tf_comments @! ())
        (return ()))
     -&&-
-    ((showBlueprint rs bpinst.bpi_previouslyActive bpref bpinst.bpi_blueprint selDetail 'DM'.newMap False { Scale | min = 0, cur = 0, max = 0}
+    ((whileUnchanged tonicEnabledSteps (
+        \steps -> showBlueprint rs bpinst.bpi_previouslyActive bpref bpinst.bpi_blueprint selDetail steps False { Scale | min = 0, cur = 0, max = 0})
     -|| showChildTasks dynSett bpinst)
-    >>* [ OnValue (doAction (handleClicks bpr_moduleName bpr_taskName))]) @! ()
+    >>* [OnValue (doAction (handleClicks bpr_moduleName bpr_taskName))]) @! ()
   where
   showChildTasks :: DynamicDisplaySettings BlueprintInstance -> Task ()
   showChildTasks {DynamicDisplaySettings | unfold_depth = {Scale | cur = 0} } bpinst = return ()
