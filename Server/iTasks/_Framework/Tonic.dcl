@@ -17,6 +17,9 @@ from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
 from iTasks.API.Core.Types import class TMonad, class TApplicative, class TFunctor
 from Data.Functor import class Functor
 
+from System.IO import :: IO
+from Text.Parsers.Parsers import :: Parser
+
 // For all of these classes goes that the iTask context restriction shouldn't
 // be there. Ideally, we would have something like associated type families
 // and constraintkinds to determine the context restriction per monad.
@@ -30,6 +33,20 @@ class TonicBlueprintPart m | TMonad m where
 instance TonicTopLevelBlueprint Task
 instance TonicBlueprintPart Task
 instance TonicBlueprintPart Maybe
+
+instance TonicTopLevelBlueprint IO
+instance TonicBlueprintPart IO
+
+instance TApplicative IO
+instance TFunctor IO
+instance TMonad IO
+
+instance TonicTopLevelBlueprint (Parser s t)
+instance TonicBlueprintPart (Parser s t)
+
+instance TFunctor (Parser s t)
+instance TApplicative (Parser s t)
+instance TMonad (Parser s t)
 
 tonicStaticBrowser      :: [TaskAppRenderer] -> Task ()
 

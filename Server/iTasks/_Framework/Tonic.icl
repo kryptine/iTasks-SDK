@@ -44,6 +44,10 @@ import qualified Control.Applicative as CA
 from Control.Applicative import class Applicative, instance Applicative Maybe
 import Data.CircularStack
 
+import System.IO
+from Text.Parsers.Parsers import :: Parser
+import qualified Text.Parsers.Parsers as PS
+
 //-----------------------------------------------------------------------------
 // TYPES
 //-----------------------------------------------------------------------------
@@ -108,6 +112,93 @@ instance TonicBlueprintPart Task where
 
 instance TonicBlueprintPart Maybe where
   tonicWrapApp _ _ mb = mb
+
+:: TonicIOState =
+  { currIndent :: Int
+  }
+
+derive class iTask TonicIOState
+
+TonicIOFile = "TonicIOFile"
+
+readTonicState :: IO TonicIOState
+readTonicState
+  =             readFileM TonicIOFile
+  >>= \tfile -> case fromJSON (fromString tfile) of
+                  Just ts -> return ts
+                  _       -> return { TonicIOState | currIndent = 0 }
+
+writeTonicState :: TonicIOState -> IO ()
+writeTonicState st = writeFileM TonicIOFile (toString (toJSON st))
+
+indent :: !Int -> String
+indent n = repeatStr "  " n
+
+underline :: !Int -> String
+underline n = repeatStr "-" n
+
+repeatStr :: !String !Int -> String
+repeatStr str n = foldr (+++) "" (repeatn n str)
+
+instance TonicTopLevelBlueprint IO where
+  tonicWrapBody mn tn args t
+    =                             readTonicState
+    >>= \ts=:{currIndent = ci} -> let message = "In " +++ mn +++ "." +++ tn +++ " (" +++ toString (length args) +++ " arguments)"
+                                  in  putStrLn (indent ci +++ if (ci > 0) "| " "" +++ message)
+    >>= \_ ->                     putStrLn (indent ci +++ if (ci > 0) "|" "" +++ underline (size message + 1))
+    >>= \_ ->                     writeTonicState {ts & currIndent = ci + 1}
+    >>= \_ ->                     t
+    >>= \tr ->                    writeTonicState ts
+    >>= \_ ->                     return tr
+  tonicWrapArg _ _ _ = return ()
+
+instance TonicBlueprintPart IO where
+  tonicWrapApp wrapInfo=:(mn, tn) nid mb
+    | isLambda wrapInfo = mb
+    | otherwise
+        =                             readTonicState
+        >>= \ts=:{currIndent = ci} -> putStrLn (indent (ci - 1) +++ if (ci - 1 > 0) "| " "" +++ "Applying " +++ mn +++ "." +++ tn +++ " (node ID " +++ ppnid nid +++ ").")
+        >>= \_ ->                     mb
+
+instance TApplicative IO where
+  return x   = IO (\s -> (x, s))
+  (<#>) f g  = liftA2 id f g
+
+instance TFunctor IO where
+  tmap f x = x >>= (return o f)
+
+instance TMonad IO where
+  (>>=) (IO f) a2mb = IO run
+    where
+      run world
+        # (x, world) = f world
+        # (IO g)     = a2mb x
+        = g world
+
+ppnid nid = "[" +++ ppnid` nid +++ "]"
+  where
+  ppnid` [] = ""
+  ppnid` [x] = toString x
+  ppnid` [x:xs] = toString x +++ ", " +++ ppnid` xs
+
+liftA2 f a b = (tmap f a) <#> b
+
+instance TonicTopLevelBlueprint (Parser s t) where
+  tonicWrapBody mn tn args t = t
+  tonicWrapArg _ _ _ = return ()
+
+instance TonicBlueprintPart (Parser s t) where
+  tonicWrapApp wrapInfo=:(mn, tn) nid mb = mb
+
+instance TFunctor (Parser s t) where
+  tmap f a = f 'PS'. @> a
+
+instance TApplicative (Parser s t) where
+  return a      = 'PS'.yield a
+  (<#>) fab fa  = fab 'PS'. <++> fa
+
+instance TMonad (Parser s t) where
+  (>>=) ma a2mb  = ma 'PS'. <&> a2mb
 
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
                    DynamicView, BlueprintQuery, UIAction, CircularStack
