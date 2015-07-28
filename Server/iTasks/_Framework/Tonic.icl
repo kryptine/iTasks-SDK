@@ -108,10 +108,10 @@ taskValToTLit v
       _              -> Nothing
 
 instance TonicBlueprintPart Task where
-  tonicWrapApp wrapInfo nid t = tonicWrapApp` wrapInfo nid t
+  tonicWrapApp mn fn nid t = tonicWrapApp` mn fn nid t
 
 instance TonicBlueprintPart Maybe where
-  tonicWrapApp _ _ mb = mb
+  tonicWrapApp _ _ _ mb = mb
 
 :: TonicIOState =
   { currIndent :: Int
@@ -153,11 +153,11 @@ instance TonicTopLevelBlueprint IO where
   tonicWrapArg _ _ _ = return ()
 
 instance TonicBlueprintPart IO where
-  tonicWrapApp wrapInfo=:(mn, tn) nid mb
-    | isLambda wrapInfo = mb
+  tonicWrapApp mn fn nid mb
+    | isLambda fn = mb
     | otherwise
         =                             readTonicState
-        >>= \ts=:{currIndent = ci} -> putStrLn (indent (ci - 1) +++ if (ci - 1 > 0) "| " "" +++ "Applying " +++ mn +++ "." +++ tn +++ " (node ID " +++ ppnid nid +++ ").")
+        >>= \ts=:{currIndent = ci} -> putStrLn (indent (ci - 1) +++ if (ci - 1 > 0) "| " "" +++ "Applying " +++ mn +++ "." +++ fn +++ " (node ID " +++ ppnid nid +++ ").")
         >>= \_ ->                     mb
 
 instance TApplicative IO where
@@ -188,7 +188,7 @@ instance TonicTopLevelBlueprint (Parser s t) where
   tonicWrapArg _ _ _ = return ()
 
 instance TonicBlueprintPart (Parser s t) where
-  tonicWrapApp wrapInfo=:(mn, tn) nid mb = mb
+  tonicWrapApp mn tn nid mb = mb
 
 instance TFunctor (Parser s t) where
   tmap f a = f 'PS'. @> a
@@ -502,38 +502,35 @@ resultToOutput newN tid (ValueResult (Value v s) _ _ _) = (tid, newN, taskValToT
 resultToOutput newN tid (ValueResult NoValue _ _ _)     = (tid, newN, Nothing, viewInformation (Title ("Value for task " +++ toString tid)) [] "No value" @! (), TNoVal)
 resultToOutput newN tid _                               = (tid, newN, Nothing, viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! (), TNoVal)
 
-tonicExtWrapApp :: !(!ModuleName, !FuncName) !ExprId (m a) -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapApp wrapFn nid mapp = tonicWrapApp wrapFn nid mapp
+tonicExtWrapApp :: !ModuleName !FuncName !ExprId (m a) -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapApp mn tn nid mapp = tonicWrapApp mn tn nid mapp
 
-isSpecialBlueprintTask :: !(!String, !String) -> Bool
-isSpecialBlueprintTask info = isStep info || isBind info || isParallel info || isAssign info
+isBind :: !String !String -> Bool
+isBind "iTasks.API.Core.Types"             ">>=" = True
+isBind "iTasks.API.Common.TaskCombinators" ">>|" = True
+isBind _                                   _     = False
 
-isBind :: !(!String, !String) -> Bool
-isBind ("iTasks.API.Core.Types"            , ">>=") = True
-isBind ("iTasks.API.Common.TaskCombinators", ">>|") = True
-isBind _                                            = False
+isStep :: !String !String -> Bool
+isStep "iTasks.API.Core.TaskCombinators"   "step" = True
+isStep "iTasks.API.Common.TaskCombinators" ">>*"  = True
+isStep _                                   _      = False
 
-isStep :: !(!String, !String) -> Bool
-isStep ("iTasks.API.Core.TaskCombinators"  , "step") = True
-isStep ("iTasks.API.Common.TaskCombinators", ">>*")  = True
-isStep _                                             = False
+isParallel :: !String !String -> Bool
+isParallel "iTasks.API.Core.TaskCombinators"   "parallel" = True
+isParallel "iTasks.API.Common.TaskCombinators" "-&&-"     = True
+isParallel "iTasks.API.Common.TaskCombinators" "-||-"     = True
+isParallel "iTasks.API.Common.TaskCombinators" "||-"      = True
+isParallel "iTasks.API.Common.TaskCombinators" "-||"      = True
+isParallel "iTasks.API.Common.TaskCombinators" "anyTask"  = True
+isParallel "iTasks.API.Common.TaskCombinators" "allTasks" = True
+isParallel _                                   _          = False
 
-isParallel :: !(!String, !String) -> Bool
-isParallel ("iTasks.API.Core.TaskCombinators"  , "parallel") = True
-isParallel ("iTasks.API.Common.TaskCombinators", "-&&-"    ) = True
-isParallel ("iTasks.API.Common.TaskCombinators", "-||-"    ) = True
-isParallel ("iTasks.API.Common.TaskCombinators", "||-"     ) = True
-isParallel ("iTasks.API.Common.TaskCombinators", "-||"     ) = True
-isParallel ("iTasks.API.Common.TaskCombinators", "anyTask" ) = True
-isParallel ("iTasks.API.Common.TaskCombinators", "allTasks") = True
-isParallel _                                                 = False
+isAssign :: !String !String -> Bool
+isAssign "iTasks.API.Extensions.User" "@:" = True
+isAssign _                            _    = False
 
-isAssign :: !(!String, !String) -> Bool
-isAssign ("iTasks.API.Extensions.User", "@:") = True
-isAssign _                                    = False
-
-isLambda :: !(String, !String) -> Bool
-isLambda (_, str) = startsWith "\;" str
+isLambda :: !FuncName -> Bool
+isLambda str = startsWith "\;" str
 
 stepEval :: (Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult d, *IWorld))
             Event TaskEvalOpts TaskTree *IWorld
@@ -575,19 +572,19 @@ ppeid xs = foldr (\x xs -> toString x +++ "," +++ xs) "" xs
  * ModuleName and FuncName identify the blueprint, of which we need to
  * highlight nodes.
  */
-tonicWrapApp` :: !(!ModuleName, !FuncName) !ExprId (Task a) -> Task a | iTask a
-tonicWrapApp` wrapInfo=:(_, wrapFuncName) nid t=:(Task eval)
-  | isBind wrapInfo   = Task (bindEval eval)
-  | isStep wrapInfo   = Task (stepEval eval)
-  | isLambda wrapInfo = Task evalLam
-  | otherwise         = return () >>~ \_ -> Task eval`
+tonicWrapApp` :: !ModuleName !FuncName !ExprId (Task a) -> Task a | iTask a
+tonicWrapApp` mn fn nid t=:(Task eval)
+  | isBind mn fn = Task (bindEval eval)
+  | isStep mn fn = Task (stepEval eval)
+  | isLambda fn  = Task evalLam
+  | otherwise    = return () >>~ \_ -> Task eval`
   where
   updateAssignStatus evalOpts
     = { evalOpts
       & tonicOpts = { evalOpts.tonicOpts
                     & inAssignNode = if (isJust evalOpts.tonicOpts.inAssignNode)
                                        Nothing
-                                       (if (isAssign wrapInfo)
+                                       (if (isAssign mn fn)
                                           (Just nid)
                                           evalOpts.tonicOpts.inAssignNode)
                     }
@@ -639,7 +636,7 @@ tonicWrapApp` wrapInfo=:(_, wrapFuncName) nid t=:(Task eval)
                     # parent_bpr = {parentBPRef & bpr_instance = Just bpi}
                     = (parent_bpr, bpi, iworld)
                   _ = (parentBPRef, parentBPInst, iworld)
-          # evalOpts     = if (isParallel wrapInfo)
+          # evalOpts     = if (isParallel mn fn)
                              {evalOpts & tonicOpts = {tonicOpts & inParallel = Just childTaskId}}
                              evalOpts
           # evalOpts     = {evalOpts & tonicOpts = {tonicOpts & currBlueprintExprId = nid}}
@@ -850,14 +847,14 @@ setActiveNodes tonicOpts {bpi_taskId = parentTaskId, bpi_activeNodes = parentAct
             | ino == ino` = dropFirstInstances` ino trace
           _ = trace
 
-tonicExtWrapAppLam1 :: !(!ModuleName, !FuncName) !ExprId !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapAppLam1 wrapFn nid f = \x -> tonicWrapApp wrapFn nid (f x)
+tonicExtWrapAppLam1 :: !ModuleName !FuncName !ExprId !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam1 mn fn nid f = \x -> tonicWrapApp mn fn nid (f x)
 
-tonicExtWrapAppLam2 :: !(!ModuleName, !FuncName) !ExprId !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapAppLam2 wrapFn nid f = \x y -> tonicWrapApp wrapFn nid (f x y)
+tonicExtWrapAppLam2 :: !ModuleName !FuncName !ExprId !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam2 mn fn nid f = \x y -> tonicWrapApp mn fn nid (f x y)
 
-tonicExtWrapAppLam3 :: !(!ModuleName, !FuncName) !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapAppLam3 wrapFn nid f = \x y z -> tonicWrapApp wrapFn nid (f x y z)
+tonicExtWrapAppLam3 :: !ModuleName !FuncName !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam3 mn fn nid f = \x y z -> tonicWrapApp mn fn nid (f x y z)
 
 anyTrue :: ![Bool] -> Bool
 anyTrue [True : _] = True
