@@ -28,7 +28,7 @@ class TonicTopLevelBlueprint m | TMonad m where
   tonicWrapArg  :: !VarName !Int a -> m () | iTask a
 
 class TonicBlueprintPart m | TMonad m where
-  tonicWrapApp  :: !ModuleName !FuncName !ExprId (m a) -> m a | iTask a
+  tonicWrapApp  :: !ModuleName !FuncName !ExprId [(ExprId, Int)] (m a) -> m a | iTask a
 
 instance TonicTopLevelBlueprint Task
 instance TonicBlueprintPart Task
@@ -66,12 +66,12 @@ tonicExtWrapBodyLam2  :: !ModuleName !FuncName [(VarName, Int, m ())] (b c   -> 
 
 tonicExtWrapBodyLam3  :: !ModuleName !FuncName [(VarName, Int, m ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
 
-tonicExtWrapApp       :: !ModuleName !FuncName !ExprId (          m a)          -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapApp       :: !ModuleName !FuncName !ExprId [(ExprId, Int)] (          m a)          -> m a | TonicBlueprintPart m & iTask a
 
-tonicExtWrapAppLam1   :: !ModuleName !FuncName !ExprId !(b     -> m a) -> b     -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam1   :: !ModuleName !FuncName !ExprId [(ExprId, Int)] !(b     -> m a) -> b     -> m a | TonicBlueprintPart m & iTask a
 
-tonicExtWrapAppLam2   :: !ModuleName !FuncName !ExprId !(b c   -> m a) -> b c   -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam2   :: !ModuleName !FuncName !ExprId [(ExprId, Int)] !(b c   -> m a) -> b c   -> m a | TonicBlueprintPart m & iTask a
 
-tonicExtWrapAppLam3   :: !ModuleName !FuncName !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam3   :: !ModuleName !FuncName !ExprId [(ExprId, Int)] !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
 
 storeTaskOutputViewer :: !(TaskResult a) !ExprId !TaskId !TaskId !*IWorld -> *IWorld | iTask a

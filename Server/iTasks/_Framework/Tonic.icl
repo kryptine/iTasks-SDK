@@ -108,10 +108,10 @@ taskValToTLit v
       _              -> Nothing
 
 instance TonicBlueprintPart Task where
-  tonicWrapApp mn fn nid t = tonicWrapApp` mn fn nid t
+  tonicWrapApp mn fn nid cases t = tonicWrapApp` mn fn nid cases t
 
 instance TonicBlueprintPart Maybe where
-  tonicWrapApp _ _ _ mb = mb
+  tonicWrapApp _ _ _ _ mb = mb
 
 :: TonicIOState =
   { currIndent :: Int
@@ -153,7 +153,7 @@ instance TonicTopLevelBlueprint IO where
   tonicWrapArg _ _ _ = return ()
 
 instance TonicBlueprintPart IO where
-  tonicWrapApp mn fn nid mb
+  tonicWrapApp mn fn nid _ mb
     | isLambda fn = mb
     | otherwise
         =                             readTonicState
@@ -188,7 +188,7 @@ instance TonicTopLevelBlueprint (Parser s t) where
   tonicWrapArg _ _ _ = return ()
 
 instance TonicBlueprintPart (Parser s t) where
-  tonicWrapApp mn tn nid mb = mb
+  tonicWrapApp mn tn nid _ mb = mb
 
 instance TFunctor (Parser s t) where
   tmap f a = f 'PS'. @> a
@@ -381,6 +381,7 @@ tonicWrapTaskBody` mn tn args (Task eval)
                                , bpi_parentTaskId     = currBlueprintTaskId
                                , bpi_blueprint        = substituteBPVars vars bprep
                                , bpi_currentUser      = error2mb muser
+                               , bpi_case_branches    = 'DM'.newMap
                                }
           # blueprint        = { BlueprintRef
                                | bpr_moduleName = mn
@@ -453,15 +454,15 @@ substituteBPVars env bprep = {bprep & tf_body = substituteBPVars` env bprep.tf_b
     #! e`    = substituteBPVars` env e
     #! pats` = substituteBPVarsPats env pats
     = TLet pats` e`
-  substituteBPVars` env (TIf c t e )
+  substituteBPVars` env (TIf cs c t e )
     #! c` = substituteBPVars` env c
     #! t` = substituteBPVars` env t
     #! e` = substituteBPVars` env e
-    = TIf c` t` e`
-  substituteBPVars` env (TCase e pats)
+    = TIf cs c` t` e`
+  substituteBPVars` env (TCase cs e pats)
     #! e`    = substituteBPVars` env e
     #! pats` = substituteBPVarsPats env pats
-    = TCase e` pats`
+    = TCase cs e` pats`
   substituteBPVars` _ e = e
 
   substituteBPVarsPats _ [] = []
@@ -502,8 +503,8 @@ resultToOutput newN tid (ValueResult (Value v s) _ _ _) = (tid, newN, taskValToT
 resultToOutput newN tid (ValueResult NoValue _ _ _)     = (tid, newN, Nothing, viewInformation (Title ("Value for task " +++ toString tid)) [] "No value" @! (), TNoVal)
 resultToOutput newN tid _                               = (tid, newN, Nothing, viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! (), TNoVal)
 
-tonicExtWrapApp :: !ModuleName !FuncName !ExprId (m a) -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapApp mn tn nid mapp = tonicWrapApp mn tn nid mapp
+tonicExtWrapApp :: !ModuleName !FuncName !ExprId [(ExprId, Int)] (m a) -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapApp mn tn nid cases mapp = tonicWrapApp mn tn nid cases mapp
 
 isBind :: !String !String -> Bool
 isBind "iTasks.API.Core.Types"             ">>=" = True
@@ -546,7 +547,6 @@ stepEval` :: TaskId (Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult d, *IWo
              Event TaskEvalOpts TaskTree *IWorld
           -> *(TaskResult d, *IWorld)
 stepEval` childTaskId=:(TaskId ino tno) eval event evalOpts taskTree iworld
-  # evalOpts = {evalOpts & tonicOpts = {evalOpts.tonicOpts & inBind = False}}
   # (taskResult, iworld) = eval event evalOpts taskTree iworld
   = case taskResult of
       ValueResult _ _ (TaskRep uiDef) _
@@ -563,18 +563,15 @@ stepEval` childTaskId=:(TaskId ino tno) eval event evalOpts taskTree iworld
 import StdDebug
 derive class iTask TonicOpts
 
-bindEval eval event evalOpts taskTree iworld
-  = eval event {evalOpts & tonicOpts = {evalOpts.tonicOpts & inBind = True}} taskTree iworld
-
 ppeid xs = foldr (\x xs -> toString x +++ "," +++ xs) "" xs
 
 /**
  * ModuleName and FuncName identify the blueprint, of which we need to
  * highlight nodes.
  */
-tonicWrapApp` :: !ModuleName !FuncName !ExprId (Task a) -> Task a | iTask a
-tonicWrapApp` mn fn nid t=:(Task eval)
-  | isBind mn fn = Task (bindEval eval)
+tonicWrapApp` :: !ModuleName !FuncName !ExprId [(ExprId, Int)] (Task a) -> Task a | iTask a
+tonicWrapApp` mn fn nid cases t=:(Task eval)
+  | isBind mn fn = Task bindEval
   | isStep mn fn = Task (stepEval eval)
   | isLambda fn  = Task evalLam
   | otherwise    = return () >>~ \_ -> Task eval`
@@ -590,25 +587,19 @@ tonicWrapApp` mn fn nid t=:(Task eval)
                     }
       }
 
-  evalLam event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo _) _) iworld
-    # (mParentBP, iworld) = 'DSDS'.read (sdsFocus tonicOpts.currBlueprintTaskId tonicInstances) iworld
-    # iworld = case mParentBP of
-                 Ok parentBPRef=:{bpr_instance = Just parentBPInst}
-                   | evalOpts.tonicOpts.inBind
-                       # parentNid = init nid
-                       = case getNode parentNid parentBPInst.bpi_blueprint.tf_body of
-                           Just (TMApp _ _ "iTasks.API.Core.Types" ">>=" [TMApp eid _ _ _ _ _ : TLam [TVar _ _ ptr] _ : _] _)
-                             # (mout, iworld) = 'DSDS'.read (sdsFocus (parentBPInst.bpi_taskId, eid) outputForTaskId) iworld
-                             = case mout of
-                                 Ok (_, _, Just texpr, _, _)
-                                   # bpi_blueprint = substituteBPVars ('DM'.singleton ptr texpr) parentBPInst.bpi_blueprint
-                                   # parentBPInst  = {parentBPInst & bpi_blueprint = bpi_blueprint}
-                                   # parentBPRef   = {parentBPRef & bpr_instance = Just parentBPInst}
-                                   = snd ('DSDS'.write parentBPRef (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld)
-                                 _ = iworld
-                           _ = iworld
-                   | otherwise = iworld
+  bindEval event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree iworld
+    # iworld = case cases of
+                 [] = iworld
+                 cases
+                   # (mParentBP, iworld) = 'DSDS'.read (sdsFocus tonicOpts.currBlueprintTaskId tonicInstances) iworld
+                   = case mParentBP of
+                       Ok parentBPRef=:{bpr_instance = Just parentBPInst}
+                         # parentBPInst = {parentBPInst & bpi_case_branches = 'DM'.union ('DM'.fromList cases) parentBPInst.bpi_case_branches}
+                         # parentBPRef  = {parentBPRef & bpr_instance = Just parentBPInst}
+                         = snd ('DSDS'.write parentBPRef (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld)
+                       _ = iworld
     = eval event evalOpts taskTree iworld
+
   evalLam event evalOpts taskTree iworld
     = eval event evalOpts taskTree iworld
 
@@ -641,7 +632,7 @@ tonicWrapApp` mn fn nid t=:(Task eval)
                              evalOpts
           # evalOpts     = {evalOpts & tonicOpts = {tonicOpts & currBlueprintExprId = nid}}
           # iworld       = updRTMap tonicOpts nid childTaskId parentBPRef parentBPInst iworld
-          # (tr, iworld) = eval event (updateAssignStatus {evalOpts & tonicOpts = {evalOpts.tonicOpts & inBind = False}}) taskTree iworld
+          # (tr, iworld) = eval event (updateAssignStatus evalOpts) taskTree iworld
           // These reads need to be done here, because:
           // - The parent blueprint may have been altered while evaluating the continuation
           // - The childTaskId blueprint won't be instantiated before the continuation is evaluated
@@ -756,11 +747,11 @@ getNode eid (TFApp _ es _)
 getNode eid (TLam _ e)
   = getNode eid e
 getNode eid (TLet pats e) = getNode eid e
-getNode eid (TIf c t e)
+getNode eid (TIf _ c t e)
   = case [e \\ Just e <- [getNode eid t, getNode eid e]] of
       [x : _] -> Just x
       _       -> Nothing
-getNode eid (TCase e pats)
+getNode eid (TCase _ e pats)
   = case [e \\ Just e <- map (getNode eid o snd) pats] of
       [x : _] -> Just x
       _       -> Nothing
@@ -847,14 +838,14 @@ setActiveNodes tonicOpts {bpi_taskId = parentTaskId, bpi_activeNodes = parentAct
             | ino == ino` = dropFirstInstances` ino trace
           _ = trace
 
-tonicExtWrapAppLam1 :: !ModuleName !FuncName !ExprId !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapAppLam1 mn fn nid f = \x -> tonicWrapApp mn fn nid (f x)
+tonicExtWrapAppLam1 :: !ModuleName !FuncName !ExprId [(ExprId, Int)] !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam1 mn fn nid cases f = \x -> tonicWrapApp mn fn nid cases (f x)
 
-tonicExtWrapAppLam2 :: !ModuleName !FuncName !ExprId !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapAppLam2 mn fn nid f = \x y -> tonicWrapApp mn fn nid (f x y)
+tonicExtWrapAppLam2 :: !ModuleName !FuncName !ExprId [(ExprId, Int)] !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam2 mn fn nid cases f = \x y -> tonicWrapApp mn fn nid cases (f x y)
 
-tonicExtWrapAppLam3 :: !ModuleName !FuncName !ExprId !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapAppLam3 mn fn nid f = \x y z -> tonicWrapApp mn fn nid (f x y z)
+tonicExtWrapAppLam3 :: !ModuleName !FuncName !ExprId [(ExprId, Int)] !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam3 mn fn nid cases f = \x y z -> tonicWrapApp mn fn nid cases (f x y z)
 
 anyTrue :: ![Bool] -> Bool
 anyTrue [True : _] = True
@@ -890,15 +881,15 @@ replaceNode varid newExpr (TLet pats e)
   #! e`   = replaceNode varid newExpr e
   #! pats = replaceNodePats varid newExpr pats
   = TLet pats e`
-replaceNode varid newExpr (TIf c t e)
+replaceNode varid newExpr (TIf cs c t e)
   #! c` = replaceNode varid newExpr c
   #! t` = replaceNode varid newExpr t
   #! e` = replaceNode varid newExpr e
-  = TIf c` t` e`
-replaceNode varid newExpr (TCase e pats)
+  = TIf cs c` t` e`
+replaceNode varid newExpr (TCase cs e pats)
   #! e`   = replaceNode varid newExpr e
   #! pats = replaceNodePats varid newExpr pats
-  = TCase e` pats
+  = TCase cs e` pats
 replaceNode _ _ e = e
 
 replaceNodePats _ _ [] = []
@@ -946,15 +937,15 @@ updateNode eid f (TLet pats e)
   #! (e`, eb, mvid)   = updateNode eid f e
   #! (pats, b, mvids) = updatePats eid f pats
   = (TLet pats e`, b || eb, getMVid [mvid : mvids])
-updateNode eid f (TIf c t e )
+updateNode eid f (TIf cs c t e )
   #! (c`, cb, mvidc) = updateNode eid f c
   #! (t`, tb, mvidt) = updateNode eid f t
   #! (e`, eb, mvide) = updateNode eid f e
-  = (TIf c` t` e`, cb || tb || eb, getMVid [mvidc, mvidt, mvide])
-updateNode eid f (TCase e pats)
+  = (TIf cs c` t` e`, cb || tb || eb, getMVid [mvidc, mvidt, mvide])
+updateNode eid f (TCase cs e pats)
   #! (e`, eb, mvid)   = updateNode eid f e
   #! (pats, b, mvids) = updatePats eid f pats
-  = (TCase e` pats, b || eb, getMVid [mvid : mvids])
+  = (TCase cs e` pats, b || eb, getMVid [mvid : mvids])
 updateNode _ _ e = (e, False, Nothing)
 
 updatePats _ _ [] = ([], False, [])
@@ -1398,10 +1389,10 @@ expandTExpr allbps n (TLet pats bdy)
   = TLet (map f pats) (expandTExpr allbps n bdy)
   where
   f (pat, rhs) = (pat, expandTExpr allbps n rhs)
-expandTExpr allbps n (TIf c t e)
-  = TIf c (expandTExpr allbps n t) (expandTExpr allbps n e)
-expandTExpr allbps n (TCase e pats)
-  = TCase (expandTExpr allbps n e)
+expandTExpr allbps n (TIf cs c t e)
+  = TIf cs c (expandTExpr allbps n t) (expandTExpr allbps n e)
+expandTExpr allbps n (TCase cs e pats)
+  = TCase cs (expandTExpr allbps n e)
               (map f pats)
   where
   f (pat, rhs) = (pat, expandTExpr allbps n rhs)

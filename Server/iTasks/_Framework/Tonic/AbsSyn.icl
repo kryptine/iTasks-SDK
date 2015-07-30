@@ -35,8 +35,8 @@ instance == TExpr where
   (==) (TRecUpd vn1 te1 es1) (TRecUpd vn2 te2 es2) = vn1 == vn2 && te1 == te2 && es1 == es2
   (==) TNoBind TNoBind = True
   (==) (TLet bs1 e1) (TLet bs2 e2) = bs1 == bs2 && e1 == e2
-  (==) (TIf e1 e2 e3) (TIf e1` e2` e3`) = e1 == e1` && e2 == e2` && e3 == e3`
-  (==) (TCase e1 ps1) (TCase e2 ps2) = e1 == e2 && ps1 == ps2
+  (==) (TIf eid1 e1 e2 e3) (TIf eid2 e1` e2` e3`) = eid1 == eid2 && e1 == e1` && e2 == e2` && e3 == e3`
+  (==) (TCase eid1 e1 ps1) (TCase eid2 e2 ps2) = eid1 == eid2 && e1 == e2 && ps1 == ps2
   (==) (TExpand es1 tt1) (TExpand es2 tt2) = es1 == es2 && tt1 == tt2
   (==) (TAugment e1 _) (TAugment e2 _) = e1 == e2
   (==) _ _ = False

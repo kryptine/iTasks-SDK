@@ -34,8 +34,8 @@ ppTExpr` _ (TMApp _ _ _ pp [x:xs] _)
 ppTExpr` d (TMApp _ _ _ pp xs _) = if (d > 0) "(" "" +++ sugarPP pp +++ " " +++ ppIntersperse (ppTExpr` (d + 1)) " " xs +++ if (d > 0) ")" ""
 ppTExpr` d (TSel e es)      = ppTExpr e +++ "." +++ ppIntersperse (ppTExpr` (d + 1)) " " es
 ppTExpr` d (TLam vars e)    = if (d > 0) "(" "" +++ "\\" +++ ppIntersperse (ppTExpr` (d + 1)) " " vars +++ "-> " +++ ppTExpr e +++ if (d > 0) ")" ""
-ppTExpr` d (TIf c t e)      = "if (" +++ ppTExpr` d c +++ ") (" +++ ppTExpr` d t +++ ") (" +++ ppTExpr` d e +++ ")"
-ppTExpr` d (TCase e cs)     = "case " +++ ppTExpr` d e +++ " of { " +++ ppCases d cs +++ "}"
+ppTExpr` d (TIf _ c t e)    = "if (" +++ ppTExpr` d c +++ ") (" +++ ppTExpr` d t +++ ") (" +++ ppTExpr` d e +++ ")"
+ppTExpr` d (TCase _ e cs)   = "case " +++ ppTExpr` d e +++ " of { " +++ ppCases d cs +++ "}"
 ppTExpr` d (TExpand _ tt)   = ppTExpr` d tt.tf_body
 ppTExpr` d TNoBind          = ""
 ppTExpr` _ _ = "ppTExpr: encountered more complex expression than we would like to pretty-print here..."

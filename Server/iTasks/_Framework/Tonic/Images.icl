@@ -58,19 +58,19 @@ ArialItalic10px :== { fontfamily  = "Arial"
                     }
 
 :: InhMkImg =
-  { inh_trt          :: !BlueprintRef
-  , inh_task_apps    :: ![TaskAppRenderer]
-  , inh_compact      :: !Bool
-  , inh_prev         :: !Map ExprId TaskId
-  , inh_inaccessible :: !Bool
-  , inh_in_maybe     :: !Bool
-  , inh_in_step      :: !Bool
-  , inh_in_mapp      :: !Bool
-  , inh_in_fapp      :: !Bool
-  , inh_in_case      :: !Bool
-  , inh_outputs      :: !Map ExprId TStability
-  , inh_selDetail    :: !Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int))
-  , inh_stepActions  :: !Map TaskId [UIAction]
+  { inh_trt           :: !BlueprintRef
+  , inh_task_apps     :: ![TaskAppRenderer]
+  , inh_compact       :: !Bool
+  , inh_prev          :: !Map ExprId TaskId
+  , inh_inaccessible  :: !Bool
+  , inh_in_maybe      :: !Bool
+  , inh_in_step       :: !Bool
+  , inh_in_mapp       :: !Bool
+  , inh_in_fapp       :: !Bool
+  , inh_in_case       :: !Bool
+  , inh_outputs       :: !Map ExprId TStability
+  , inh_selDetail     :: !Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int))
+  , inh_stepActions   :: !Map TaskId [UIAction]
   }
 
 :: SynMkImg =
@@ -118,8 +118,8 @@ tExpr2Image inh (TFApp fn targs assoc)           tsrc = tFApp     inh fn targs a
 tExpr2Image inh (TLet pats bdy)                  tsrc
   | inh.inh_compact = tExpr2Image inh bdy tsrc
   | otherwise       = tLet inh pats bdy tsrc
-tExpr2Image inh (TIf c t e)                      tsrc = tIf       inh c t e tsrc
-tExpr2Image inh (TCase e pats)                   tsrc = tCase     inh e pats tsrc
+tExpr2Image inh (TIf eid c t e)                  tsrc = tIf       inh eid c t e tsrc
+tExpr2Image inh (TCase eid e pats)               tsrc = tCase     inh eid e pats tsrc
 tExpr2Image inh (TVar eid pp _)                  tsrc = tVar      inh eid pp tsrc
 tExpr2Image inh (TLit pp)                        tsrc = tLit      inh pp tsrc
 tExpr2Image inh (TPPExpr pp)                     tsrc = tPPExpr   inh pp tsrc
@@ -284,8 +284,8 @@ activityStatus needAllActive inh (TMApp eid _ _ _ exprs _)
           Just {bpi_activeNodes} | isJust (activeNodeTaskId eid bpi_activeNodes) = TIsActive
           _ = determineStatus needAllActive (map (activityStatus needAllActive inh) exprs)
 activityStatus needAllActive inh (TLet pats bdy)       = activityStatus needAllActive inh bdy
-activityStatus needAllActive inh (TIf c t e)           = determineStatus needAllActive (map (activityStatus needAllActive inh) [t, e])
-activityStatus needAllActive inh (TCase e pats)        = determineStatus needAllActive (map (activityStatus needAllActive inh o snd) pats)
+activityStatus needAllActive inh (TIf _ c t e)         = determineStatus needAllActive (map (activityStatus needAllActive inh) [t, e])
+activityStatus needAllActive inh (TCase _ e pats)      = determineStatus needAllActive (map (activityStatus needAllActive inh o snd) pats)
 activityStatus needAllActive inh (TExpand args tt)     = activityStatus needAllActive inh tt.tf_body
 activityStatus needAllActive inh (TLam _ e)            = activityStatus needAllActive inh e
 activityStatus needAllActive inh _                     = TNotActive
@@ -313,13 +313,15 @@ determineStatus _ _        = TNotActive
 determineSynStatus :: !Bool ![SynMkImg] -> TStatus
 determineSynStatus needAllActive syns = determineStatus needAllActive (map (\x -> x.syn_status) syns)
 
-tIf :: !InhMkImg !TExpr !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
-tIf inh cexpr texpr eexpr [(contextTag, _) : tsrc]
+tIf :: !InhMkImg !ExprId !TExpr !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
+tIf inh eid cexpr texpr eexpr [(contextTag, _) : tsrc]
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} cexpr tsrc
-  #! (ut, ue)             = case cexpr of
-                              TAugment _ (TLit (TBool True))  -> (False, True)
-                              TAugment _ (TLit (TBool False)) -> (True,  False)
-                              _                               -> (False, False)
+  #! (ut, ue) = case inh.inh_trt of
+                  {bpr_instance = Just bpi} -> case 'DM'.get eid bpi.bpi_case_branches of
+                                                 Just 0 -> (False, True)
+                                                 Just -1 -> (True, False)
+                                                 _      -> (False, False)
+                  _      -> (False, False)
   #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True [ (Just (TLit (TBool True)), texpr, True, ut)
                                                                  , (Just (TLit (TBool False)), eexpr, True, ue)] contextTag tsrc
   #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
@@ -333,8 +335,8 @@ tIf inh cexpr texpr eexpr [(contextTag, _) : tsrc]
       }
     , tsrc)
 
-tCase :: !InhMkImg !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!SynMkImg, !*TagSource)
-tCase inh texpr pats [(contextTag, _) : tsrc]
+tCase :: !InhMkImg !ExprId !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!SynMkImg, !*TagSource)
+tCase inh eid texpr pats [(contextTag, _) : tsrc]
   #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True (map (\(p, t) -> (Just p, t, True, False)) pats) contextTag tsrc
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} texpr tsrc
   #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
