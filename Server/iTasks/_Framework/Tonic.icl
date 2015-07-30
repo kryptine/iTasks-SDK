@@ -442,8 +442,6 @@ substituteBPVars :: !(Map Int TExpr) !TonicFunc -> TonicFunc
 substituteBPVars env bprep = {bprep & tf_body = substituteBPVars` env bprep.tf_body}
   where
   substituteBPVars` :: !(Map Int TExpr) !TExpr -> TExpr
-  substituteBPVars` env expr=:(TLit _)      = evalTExpr env expr
-  substituteBPVars` env expr=:(TFApp _ _ _) = evalTExpr env expr
   substituteBPVars` env expr=:(TMApp eid` mtn mn tn es p)
     #! es` = map (substituteBPVars` env) es
     = TMApp eid` mtn mn tn es` p
@@ -1406,99 +1404,3 @@ expandTExpr allbps n (TLam vars e)
   = TLam vars (expandTExpr allbps n e)
 expandTExpr _ _ texpr = texpr
 
-evalTExprInt :: !(Map Int TExpr) !TExpr -> Maybe Int
-evalTExprInt env e
-  = case evalTExpr env e of
-      TLit (TInt x) -> Just x
-      _             -> Nothing
-
-evalTExprReal :: !(Map Int TExpr) !TExpr -> Maybe Real
-evalTExprReal env e
-  = case evalTExpr env e of
-      TLit (TReal x) -> Just x
-      _              -> Nothing
-
-evalTExprBool :: !(Map Int TExpr) !TExpr -> Maybe Bool
-evalTExprBool env e
-  = case evalTExpr env e of
-      TLit (TBool x) -> Just x
-      _              -> Nothing
-
-evalTExpr :: !(Map Int TExpr) !TExpr -> TExpr
-evalTExpr env e=:(TFApp "<" _ _)
-  = evalTExprBinOp env lt e
-evalTExpr env e=:(TFApp "<=" _ _)
-  = evalTExprBinOp env lte e
-evalTExpr env e=:(TFApp ">" _ _)
-  = evalTExprBinOp env gt e
-evalTExpr env e=:(TFApp "=>" _ _)
-  = evalTExprBinOp env gte e
-evalTExpr env e=:(TFApp "==" _ _)
-  = evalTExprBinOp env eq e
-evalTExpr env e=:(TFApp "+" _ _)
-  = evalTExprBinOp env add e
-evalTExpr env e=:(TFApp "-" _ _)
-  = evalTExprBinOp env sub e
-evalTExpr env e=:(TFApp "/" _ _)
-  = evalTExprBinOp env div e
-evalTExpr env e=:(TFApp "*" _ _)
-  = evalTExprBinOp env mul e
-evalTExpr env e=:(TVar _ _ ptr)
-  = case 'DM'.get ptr env of
-      Just e -> e
-      _      -> e
-evalTExpr env e = e
-
-evalTExprBinOp :: !(Map Int TExpr) !(TExpr TExpr -> Maybe TExpr) !TExpr -> TExpr
-evalTExprBinOp env f e=:(TFApp _ [l, r] _)
-  # l` = evalTExpr env l
-  # r` = evalTExpr env r
-  = case f l` r` of
-      Just res -> TAugment e res
-      _        -> e
-
-lt :: !TExpr !TExpr -> Maybe TExpr
-lt (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TBool (n < m)))
-lt (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TBool (n < m)))
-lt _                _                = Nothing
-
-lte :: !TExpr !TExpr -> Maybe TExpr
-lte (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TBool (n <= m)))
-lte (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TBool (n <= m)))
-lte _                _                = Nothing
-
-gt :: !TExpr !TExpr -> Maybe TExpr
-gt (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TBool (n > m)))
-gt (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TBool (n > m)))
-gt _                _                = Nothing
-
-gte :: !TExpr !TExpr -> Maybe TExpr
-gte (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TBool (n >= m)))
-gte (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TBool (n >= m)))
-gte _                _                = Nothing
-
-eq :: !TExpr !TExpr -> Maybe TExpr
-eq (TLit (TBool l)) (TLit (TBool r)) = Just (TLit (TBool (l == r)))
-eq (TLit (TInt l))  (TLit (TInt r))  = Just (TLit (TBool (l == r)))
-eq (TLit (TReal l)) (TLit (TReal r)) = Just (TLit (TBool (l == r)))
-eq _                _                = Nothing
-
-add :: !TExpr !TExpr -> Maybe TExpr
-add (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TInt (n + m)))
-add (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TReal (n + m)))
-add _                _                = Nothing
-
-sub :: !TExpr !TExpr -> Maybe TExpr
-sub (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TInt (n - m)))
-sub (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TReal (n - m)))
-sub _                _                = Nothing
-
-div :: !TExpr !TExpr -> Maybe TExpr
-div (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TInt (n / m)))
-div (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TReal (n / m)))
-div _                _                = Nothing
-
-mul :: !TExpr !TExpr -> Maybe TExpr
-mul (TLit (TInt n))  (TLit (TInt m))  = Just (TLit (TInt (n * m)))
-mul (TLit (TReal n)) (TLit (TReal m)) = Just (TLit (TReal (n * m)))
-mul _                _                = Nothing

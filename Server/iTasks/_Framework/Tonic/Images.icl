@@ -315,13 +315,13 @@ determineSynStatus needAllActive syns = determineStatus needAllActive (map (\x -
 
 tIf :: !InhMkImg !ExprId !TExpr !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tIf inh eid cexpr texpr eexpr [(contextTag, _) : tsrc]
+  #! (cexpr, ut, ue)      = case inh.inh_trt of
+                              {bpr_instance = Just bpi} -> case 'DM'.get eid bpi.bpi_case_branches of
+                                                             Just 0  -> (TAugment cexpr (TLit (TBool True)), False, True)
+                                                             Just -1 -> (TAugment cexpr (TLit (TBool False)), True, False)
+                                                             _       -> (cexpr, False, False)
+                              _      -> (cexpr, False, False)
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} cexpr tsrc
-  #! (ut, ue) = case inh.inh_trt of
-                  {bpr_instance = Just bpi} -> case 'DM'.get eid bpi.bpi_case_branches of
-                                                 Just 0 -> (False, True)
-                                                 Just -1 -> (True, False)
-                                                 _      -> (False, False)
-                  _      -> (False, False)
   #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True [ (Just (TLit (TBool True)), texpr, True, ut)
                                                                  , (Just (TLit (TBool False)), eexpr, True, ue)] contextTag tsrc
   #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
