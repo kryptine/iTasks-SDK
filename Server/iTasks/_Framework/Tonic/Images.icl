@@ -337,7 +337,11 @@ tIf inh eid cexpr texpr eexpr [(contextTag, _) : tsrc]
 
 tCase :: !InhMkImg !ExprId !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!SynMkImg, !*TagSource)
 tCase inh eid texpr pats [(contextTag, _) : tsrc]
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True (map (\(p, t) -> (Just p, t, True, False)) pats) contextTag tsrc
+  #! mbranch              = case inh.inh_trt of
+                              {bpr_instance = Just bpi} -> 'DM'.get eid bpi.bpi_case_branches
+                              _                         -> Nothing
+  #! pats`                = map (\(n, (p, t)) -> (Just p, t, True, Just n == mbranch)) (zip2 [0..] pats)
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True pats` contextTag tsrc
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} texpr tsrc
   #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
   #! lineAct              = case syn_branches.syn_status of
