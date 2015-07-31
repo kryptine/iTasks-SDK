@@ -31,7 +31,7 @@ TonicBlack    =: toSVGColor "black"
 TonicRed      =: toSVGColor "OrangeRed"
 TonicGrey     =: toSVGColor "Gainsboro"
 
-derive class iTask TonicImageState, TClickAction, ClickMeta, BlueprintIdent
+derive class iTask TonicImageState, TClickAction, ClickMeta, BlueprintRef
 
 ArialRegular10px :== { fontfamily  = "Arial"
                      , fontysize   = 10.0
@@ -58,7 +58,8 @@ ArialItalic10px :== { fontfamily  = "Arial"
                     }
 
 :: InhMkImg =
-  { inh_trt           :: !BlueprintRef
+  { inh_bpinst        :: !Maybe BlueprintInstance
+  , inh_bpref         :: !BlueprintIdent
   , inh_task_apps     :: ![TaskAppRenderer]
   , inh_compact       :: !Bool
   , inh_prev          :: !Map ExprId TaskId
@@ -87,17 +88,44 @@ instance == TStatus where
   (==) TNotActive TNotActive = True
   (==) _          _          = False
 
-mkTaskImage :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef
-               !(Map ExprId TStability) !(Map TaskId [UIAction])
-               !(Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int))) !Bool
-               !ModelTy *TagSource -> Image ModelTy
-mkTaskImage rs prev trt outputs stepActions selDetail compact {ActionState | state = tis} tsrc
+mkStaticImage   :: ![TaskAppRenderer] !BlueprintIdent !Bool !ModelTy *TagSource
+                -> Image ModelTy
+mkStaticImage rs bpident compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
   #! inh              = { InhMkImg
-                        | inh_trt          = trt
+                        | inh_bpinst       = Nothing
+                        , inh_bpref        = bpident
                         , inh_task_apps    = rs
                         , inh_compact      = compact
-                        , inh_prev         = prev
+                        , inh_prev         = 'DM'.newMap
+                        , inh_inaccessible = False
+                        , inh_in_maybe     = False
+                        , inh_in_step      = False
+                        , inh_in_mapp      = False
+                        , inh_in_fapp      = False
+                        , inh_in_case      = False
+                        , inh_outputs      = 'DM'.newMap
+                        , inh_selDetail    = Nothing
+                        , inh_stepActions  = 'DM'.newMap
+                        }
+  #! (tf_body`, tsrc) = tExpr2Image inh tt.tf_body tsrc
+  #! (img, _)         = tTaskDef inh tt.tf_module tt.tf_name tt.tf_resty tt.tf_args [] tf_body`.syn_img tsrc
+  = img
+
+
+mkInstanceImage :: ![TaskAppRenderer] !BlueprintInstance
+                   !(Map ExprId TStability) !(Map TaskId [UIAction])
+                   !(Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int)))
+                   !Bool !ModelTy *TagSource
+                -> Image ModelTy
+mkInstanceImage rs bpi outputs stepActions selDetail compact {ActionState | state = tis} tsrc
+  #! tt               = tis.tis_task
+  #! inh              = { InhMkImg
+                        | inh_bpinst       = Just bpi
+                        , inh_bpref        = bpi.bpi_bpref
+                        , inh_task_apps    = rs
+                        , inh_compact      = compact
+                        , inh_prev         = bpi.bpi_previouslyActive
                         , inh_inaccessible = False
                         , inh_in_maybe     = False
                         , inh_in_step      = False
@@ -109,7 +137,7 @@ mkTaskImage rs prev trt outputs stepActions selDetail compact {ActionState | sta
                         , inh_stepActions  = stepActions
                         }
   #! (tf_body`, tsrc) = tExpr2Image inh tt.tf_body tsrc
-  #! (img, _)         = tTaskDef inh trt tt.tf_module tt.tf_name tt.tf_resty tt.tf_args [] tf_body`.syn_img tsrc
+  #! (img, _)         = tTaskDef inh tt.tf_module tt.tf_name tt.tf_resty tt.tf_args [] tf_body`.syn_img tsrc
   = img
 
 tExpr2Image :: !InhMkImg !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
@@ -224,7 +252,7 @@ tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (d
 tExpand :: !InhMkImg ![TExpr] !TonicFunc !*TagSource -> *(!SynMkImg, !*TagSource)
 tExpand inh argnames tt tsrc
   #! (tf_body`, tsrc) = tExpr2Image inh tt.tf_body tsrc
-  #! (td_img, tsrc)   = tTaskDef inh inh.inh_trt tt.tf_module tt.tf_name tt.tf_resty tt.tf_args argnames tf_body`.syn_img tsrc
+  #! (td_img, tsrc)   = tTaskDef inh tt.tf_module tt.tf_name tt.tf_resty tt.tf_args argnames tf_body`.syn_img tsrc
   = ({ syn_img       = td_img
      , syn_status    = tf_body`.syn_status
      , syn_stability = tf_body`.syn_stability
@@ -280,7 +308,7 @@ activityStatus needAllActive inh (TFApp _ args _)      = determineStatus needAll
 activityStatus needAllActive inh (TMApp eid _ _ _ exprs _)
   | 'DM'.member eid inh.inh_prev = TAllDone
   | otherwise
-      = case inh.inh_trt.bpr_instance of
+      = case inh.inh_bpinst of
           Just {bpi_activeNodes} | isJust (activeNodeTaskId eid bpi_activeNodes) = TIsActive
           _ = determineStatus needAllActive (map (activityStatus needAllActive inh) exprs)
 activityStatus needAllActive inh (TLet pats bdy)       = activityStatus needAllActive inh bdy
@@ -315,12 +343,12 @@ determineSynStatus needAllActive syns = determineStatus needAllActive (map (\x -
 
 tIf :: !InhMkImg !ExprId !TExpr !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tIf inh eid cexpr texpr eexpr [(contextTag, _) : tsrc]
-  #! (cexpr, ut, ue)      = case inh.inh_trt of
-                              {bpr_instance = Just bpi} -> case 'DM'.get eid bpi.bpi_case_branches of
-                                                             Just 0  -> (TAugment cexpr (TLit (TBool True)), False, True)
-                                                             Just -1 -> (TAugment cexpr (TLit (TBool False)), True, False)
-                                                             _       -> (cexpr, False, False)
-                              _      -> (cexpr, False, False)
+  #! (cexpr, ut, ue)      = case inh.inh_bpinst of
+                              Just bpi -> case 'DM'.get eid bpi.bpi_case_branches of
+                                            Just 0  -> (TAugment cexpr (TLit (TBool True)), False, True)
+                                            Just -1 -> (TAugment cexpr (TLit (TBool False)), True, False)
+                                            _       -> (cexpr, False, False)
+                              _        -> (cexpr, False, False)
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} cexpr tsrc
   #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True [ (Just (TLit (TBool True)), texpr, True, ut)
                                                                  , (Just (TLit (TBool False)), eexpr, True, ue)] contextTag tsrc
@@ -337,9 +365,9 @@ tIf inh eid cexpr texpr eexpr [(contextTag, _) : tsrc]
 
 tCase :: !InhMkImg !ExprId !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!SynMkImg, !*TagSource)
 tCase inh eid texpr pats [(contextTag, _) : tsrc]
-  #! mbranch              = case inh.inh_trt of
-                              {bpr_instance = Just bpi} -> 'DM'.get eid bpi.bpi_case_branches
-                              _                         -> Nothing
+  #! mbranch              = case inh.inh_bpinst of
+                              Just bpi -> 'DM'.get eid bpi.bpi_case_branches
+                              _        -> Nothing
   #! pats`                = map (\(n, (p, t)) -> (Just p, t, True, Just n == mbranch)) (zip2 [0..] pats)
   #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True pats` contextTag tsrc
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} texpr tsrc
@@ -453,14 +481,14 @@ renderParallelContainer :: !InhMkImg !ExprId !ModuleName !FuncName !String
                            !SynMkImg !*ImageTag !*TagSource
                         -> *(!SynMkImg, !*TagSource)
 renderParallelContainer inh eid moduleName taskName descr syn_branches uContextTag tsrc
-  #! isDynamic          = isJust inh.inh_trt.bpr_instance
-  #! mActiveTid         = case inh.inh_trt.bpr_instance of
+  #! isDynamic          = isJust inh.inh_bpinst
+  #! mActiveTid         = case inh.inh_bpinst of
                             Just bpinst -> activeNodeTaskId eid bpinst.bpi_activeNodes
                             _           -> Nothing
   #! isActive           = isJust mActiveTid
   #! mPrevActiveTid     = 'DM'.get eid inh.inh_prev
   #! mbNavTo            = if isActive mActiveTid mPrevActiveTid
-  #! stability          = let f tid = fromMaybe TNoVal (maybe Nothing (\bpinst -> 'DM'.get eid inh.inh_outputs) inh.inh_trt.bpr_instance)
+  #! stability          = let f tid = fromMaybe TNoVal (maybe Nothing (\bpinst -> 'DM'.get eid inh.inh_outputs) inh.inh_bpinst)
                           in maybe (maybe TNoVal f mPrevActiveTid) f mActiveTid
   #! mTaskId            = case (mActiveTid, mPrevActiveTid) of
                             (Just x, _) -> Just x
@@ -468,12 +496,12 @@ renderParallelContainer inh eid moduleName taskName descr syn_branches uContextT
                             _           -> Nothing
   #! taskIdStr          = maybe "" (\x -> " (" +++ toString x +++ ")") mTaskId
   #! displayName        = descr +++ taskIdStr
-  #! (taskApp, tsrc)    = tParApp inh.inh_compact eid inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName displayName syn_branches tsrc
-  #! clickMeta          = mkClickMeta inh (Just eid) moduleName taskName (fmap (\x -> x.bpi_taskId) inh.inh_trt.bpr_instance) mbNavTo
+  #! (taskApp, tsrc)    = tParApp inh.inh_compact eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName displayName syn_branches tsrc
+  #! clickMeta          = mkClickMeta inh (Just eid) moduleName taskName (fmap (\x -> x.bpi_taskId) inh.inh_bpinst) mbNavTo
   #! valNodeIsSelected  = case inh.inh_selDetail of
                             Just (Left
                                    { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}
-                                   , click_origin_mbnodeId}) -> bpident_moduleName == inh.inh_trt.bpr_moduleName && bpident_taskName == inh.inh_trt.bpr_taskName && click_origin_mbnodeId == Just eid
+                                   , click_origin_mbnodeId}) -> bpident_moduleName == inh.inh_bpref.bpr_moduleName && bpident_taskName == inh.inh_bpref.bpr_taskName && click_origin_mbnodeId == Just eid
                             _                                -> False
   #! valAnchor          = circle (px 12.0) <@< { onclick = openDetails clickMeta, local = False }
                                            <@< { fill = case stability of
@@ -505,8 +533,8 @@ renderParallelContainer inh eid moduleName taskName descr syn_branches uContextT
 
 mkClickMeta :: !InhMkImg !(Maybe ExprId) !ModuleName !FuncName !(Maybe TaskId) !(Maybe TaskId) -> ClickMeta
 mkClickMeta inh mbnid modName taskName mborig mbtarget =
-  { click_origin_mbbpident = Just { bpident_moduleName = inh.inh_trt.bpr_moduleName
-                                  , bpident_taskName   = inh.inh_trt.bpr_taskName
+  { click_origin_mbbpident = Just { bpident_moduleName = inh.inh_bpref.bpr_moduleName
+                                  , bpident_taskName   = inh.inh_bpref.bpr_taskName
                                   , bpident_taskId     = mborig
                                   }
   , click_origin_mbnodeId  = mbnid
@@ -522,15 +550,15 @@ tStartSymb = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 
 tStopSymb :: Image ModelTy
 tStopSymb = rect (px 16.0) (px 16.0)
 
-tTaskDef :: !InhMkImg !BlueprintRef !String !String !TExpr ![(!TExpr, !TExpr)] ![TExpr] !(Image ModelTy) !*TagSource
+tTaskDef :: !InhMkImg !String !String !TExpr ![(!TExpr, !TExpr)] ![TExpr] !(Image ModelTy) !*TagSource
          -> *(!Image ModelTy, !*TagSource)
-tTaskDef inh bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTag) : (argsTag, uArgsTag) : (bdytag, uBodyTag) : tsrc]
-  #! userImg      = case bpr of
-                      {bpr_instance = Just {bpi_currentUser = Just cu}} -> beside (repeat AtMiddleY) [] [margin (px 0.0, px 0.0, px 0.0, px 8.0) littleman, text ArialRegular10px (" " +++ toString cu)] Nothing
-                      _                                                 -> empty zero zero
-  #! taskIdStr    = case bpr of
-                      {bpr_instance = Just {bpi_taskId}} -> " (" +++ toString bpi_taskId +++ ")"
-                      _                                  -> ""
+tTaskDef inh moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTag) : (argsTag, uArgsTag) : (bdytag, uBodyTag) : tsrc]
+  #! userImg      = case inh.inh_bpinst of
+                      Just {bpi_currentUser = Just cu} -> beside (repeat AtMiddleY) [] [margin (px 0.0, px 0.0, px 0.0, px 8.0) littleman, text ArialRegular10px (" " +++ toString cu)] Nothing
+                      _                                -> empty zero zero
+  #! taskIdStr    = case inh.inh_bpinst of
+                      Just {bpi_taskId} -> " (" +++ toString bpi_taskId +++ ")"
+                      _                 -> ""
   #! taskNameImg  = beside (repeat AtMiddleY) [] [ text ArialRegular10px (moduleName +++ ".")
                                                  , text ArialBold10px (taskName +++ " :: " +++ ppTExpr resultTy)
                                                  , text ArialRegular10px taskIdStr
@@ -552,15 +580,15 @@ tTaskDef inh bpr moduleName taskName resultTy args argvars tdbody [(nameTag, uNa
   mkArgAndTy :: !(!TExpr, !TExpr) !Int !(Maybe TExpr) -> [Image ModelTy]
   mkArgAndTy (arg, ty) i mvar
     #! meta = mkClickMeta inh Nothing moduleName taskName Nothing Nothing
-    = [ text ArialRegular10px (ppTExpr arg) <@< { onclick = selectArg bpr meta i, local = False}
-      , text ArialRegular10px " :: "        <@< { onclick = selectArg bpr meta i, local = False}
-      , text ArialRegular10px (ppTExpr ty)  <@< { onclick = selectArg bpr meta i, local = False}
-      , text ArialRegular10px (maybe "" (\x -> " = " +++ ppTExpr x) mvar) <@< { onclick = selectArg bpr meta i, local = False}
+    = [ text ArialRegular10px (ppTExpr arg) <@< { onclick = selectArg inh.inh_bpinst meta i, local = False}
+      , text ArialRegular10px " :: "        <@< { onclick = selectArg inh.inh_bpinst meta i, local = False}
+      , text ArialRegular10px (ppTExpr ty)  <@< { onclick = selectArg inh.inh_bpinst meta i, local = False}
+      , text ArialRegular10px (maybe "" (\x -> " = " +++ ppTExpr x) mvar) <@< { onclick = selectArg inh.inh_bpinst meta i, local = False}
       ]
 
-  selectArg :: !BlueprintRef !ClickMeta !Int !Int !ModelTy -> ModelTy
-  selectArg {bpr_instance = Just {bpi_taskId}} meta i 1 st = { ActionState | st & action = Just (TSelectArg i, meta) }
-  selectArg _                                  _    _ _ st = st
+  selectArg :: !(Maybe BlueprintInstance) !ClickMeta !Int !Int !ModelTy -> ModelTy
+  selectArg (Just {bpi_taskId}) meta i 1 st = { ActionState | st & action = Just (TSelectArg i, meta) }
+  selectArg _                   _    _ _ st = st
 
 activeNodeTaskId :: !ExprId !(Map ListId (IntMap (!TaskId, !ExprId))) -> Maybe TaskId
 activeNodeTaskId eid activeNodes
@@ -606,15 +634,15 @@ renderTaskApp :: !InhMkImg !ExprId !String !String ![TExpr] !String !*TagSource
 renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
   #! (taskArgs`, tsrc)  = mapSt (tExpr2Image inh) taskArgs tsrc
   #! taskArgs`          = map (\x -> x.syn_img) taskArgs`
-  #! isDynamic          = isJust inh.inh_trt.bpr_instance
-  #! mActiveTid         = case inh.inh_trt.bpr_instance of
+  #! isDynamic          = isJust inh.inh_bpinst
+  #! mActiveTid         = case inh.inh_bpinst of
                             Just bpinst -> activeNodeTaskId eid bpinst.bpi_activeNodes
                             _           -> Nothing
   #! isActive           = isJust mActiveTid
   #! mPrevActiveTid     = 'DM'.get eid inh.inh_prev
   #! mbNavTo            = if isActive mActiveTid mPrevActiveTid
   #! wasActive          = isJust mPrevActiveTid
-  #! stability          = let f tid = fromMaybe TNoVal (maybe Nothing (\bpinst -> 'DM'.get eid inh.inh_outputs) inh.inh_trt.bpr_instance)
+  #! stability          = let f tid = fromMaybe TNoVal (maybe Nothing (\bpinst -> 'DM'.get eid inh.inh_outputs) inh.inh_bpinst)
                           in maybe (maybe TNoVal f mPrevActiveTid) f mActiveTid
   #! mTaskId            = case (mActiveTid, mPrevActiveTid) of
                             (Just x, _) -> Just x
@@ -622,16 +650,16 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
                             _           -> Nothing
   #! taskIdStr          = maybe "" (\x -> " (" +++ toString x +++ ")") mTaskId
   #! displayName        = displayName +++ taskIdStr
-  #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive wasActive inh.inh_inaccessible eid inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName moduleName displayName taskArgs`) inh.inh_task_apps tsrc
+  #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive wasActive inh.inh_inaccessible eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs`) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
-                            _          -> tDefaultMApp inh.inh_compact isActive wasActive inh.inh_inaccessible eid inh.inh_trt.bpr_moduleName inh.inh_trt.bpr_taskName moduleName displayName taskArgs taskArgs` tsrc
-  #! clickMeta          = mkClickMeta inh (Just eid) moduleName taskName (fmap (\x -> x.bpi_taskId) inh.inh_trt.bpr_instance) mbNavTo
+                            _          -> tDefaultMApp inh.inh_compact isActive wasActive inh.inh_inaccessible eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs taskArgs` tsrc
+  #! clickMeta          = mkClickMeta inh (Just eid) moduleName taskName (fmap (\x -> x.bpi_taskId) inh.inh_bpinst) mbNavTo
   #! taskApp            = taskApp <@< { onclick = navigateOrSelect clickMeta, local = False }
   #! valNodeIsSelected  = case inh.inh_selDetail of
                             Just (Left
                                    { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}
-                                   , click_origin_mbnodeId}) -> bpident_moduleName == inh.inh_trt.bpr_moduleName && bpident_taskName == inh.inh_trt.bpr_taskName && click_origin_mbnodeId == Just eid
+                                   , click_origin_mbnodeId}) -> bpident_moduleName == inh.inh_bpref.bpr_moduleName && bpident_taskName == inh.inh_bpref.bpr_taskName && click_origin_mbnodeId == Just eid
                             _                                -> False
   #! valAnchor          = circle (px 12.0) <@< { onclick = openDetails clickMeta, local = False }
                                            <@< { fill = case stability of
@@ -782,7 +810,7 @@ tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (headerTag, 
 
 tStep :: !InhMkImg !ExprId !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tStep inh eid lhsExpr conts [(contextTag, _) : tsrc]
-  #! actions              = case inh.inh_trt.bpr_instance of
+  #! actions              = case inh.inh_bpinst of
                               Just bpinst -> case 'DM'.get bpinst.bpi_taskId inh.inh_stepActions of
                                                Just xs -> xs
                                                _       -> []

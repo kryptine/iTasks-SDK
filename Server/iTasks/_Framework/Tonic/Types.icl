@@ -6,7 +6,7 @@ import Data.IntMap.Strict
 import iTasks._Framework.Generic
 import iTasks._Framework.Tonic.AbsSyn
 
-derive class iTask TStability, BlueprintRef, BlueprintInstance
+derive class iTask TStability, BlueprintIdent, BlueprintInstance
 
 derive gEditor
   TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit

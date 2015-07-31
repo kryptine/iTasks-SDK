@@ -10,10 +10,9 @@ from iTasks.API.Core.Types import :: DateTime
 
 :: ListId :== TaskId
 
-:: BlueprintRef =
+:: BlueprintIdent =
   { bpr_moduleName :: !ModuleName
   , bpr_taskName   :: !FuncName
-  , bpr_instance   :: !Maybe BlueprintInstance
   }
 
 :: BlueprintInstance =
@@ -27,15 +26,16 @@ from iTasks.API.Core.Types import :: DateTime
   , bpi_currentUser      :: !Maybe User
   , bpi_blueprint        :: !TonicFunc
   , bpi_case_branches    :: !Map ExprId Int
+  , bpi_bpref            :: !BlueprintIdent
   }
 
-:: TonicRTMap :== Map TaskId BlueprintRef
+:: TonicRTMap :== Map TaskId BlueprintInstance
 
 :: Calltrace :== CircularStack TaskId
 
 :: TStability = TNoVal | TStable | TUnstable
 
-derive class iTask TStability, BlueprintRef, BlueprintInstance
+derive class iTask TStability, BlueprintIdent, BlueprintInstance
 
 derive gEditor
   TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
