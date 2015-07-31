@@ -832,27 +832,27 @@ tStepCont _ inh (TFApp "OnAllExceptions" [cont : _ ] _) tsrc
   = mkStepCont inh Nothing cont tsrc
 
 mkStepCont :: !InhMkImg !(Maybe (!String, !Bool)) !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
-mkStepCont inh mact (TFApp "always" [mapp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "always" [mapp : _] _) tsrc
   = stepAlwaysNeverWithoutVal inh mact mapp tsrc
-mkStepCont inh mact (TFApp "never" [mapp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "never" [mapp : _] _) tsrc
   = stepAlwaysNeverWithoutVal inh mact mapp tsrc
-mkStepCont inh mact (TFApp "withoutValue" [mapp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withoutValue" [mapp : _] _) tsrc
   = stepAlwaysNeverWithoutVal inh mact mapp tsrc
-mkStepCont inh mact (TFApp "ifStable" e _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifStable" e _) tsrc
   = stepIfStableUnstableHasValue inh mact tStable e tsrc
-mkStepCont inh mact (TFApp "ifUnstable" e _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifUnstable" e _) tsrc
   = stepIfStableUnstableHasValue inh mact tUnstable e tsrc
-mkStepCont inh mact (TFApp "hasValue" e _) [ref : tsrc]
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "hasValue" e _) [ref : tsrc]
   = stepIfStableUnstableHasValue inh mact hasValueFilter e tsrc
-mkStepCont inh mact (TFApp "ifValue" [conditionApp : continuationApp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifValue" [conditionApp : continuationApp : _] _) tsrc
   = stepIfValueCond inh mact conditionApp continuationApp tsrc
-mkStepCont inh mact (TFApp "ifCond" [conditionApp : continuationApp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifCond" [conditionApp : continuationApp : _] _) tsrc
   = stepIfValueCond inh mact conditionApp continuationApp tsrc
-mkStepCont inh mact (TFApp "withValue" [mapp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withValue" [mapp : _] _) tsrc
   = stepWithValue inh mact hasValueFilter mapp tsrc
-mkStepCont inh mact (TFApp "withStable" [mapp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withStable" [mapp : _] _) tsrc
   = stepWithValue inh mact tStable mapp tsrc
-mkStepCont inh mact (TFApp "withUnstable" [mapp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withUnstable" [mapp : _] _) tsrc
   = stepWithValue inh mact tUnstable mapp tsrc
 mkStepCont inh mact e [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh e tsrc
