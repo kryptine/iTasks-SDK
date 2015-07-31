@@ -1086,23 +1086,23 @@ showBlueprintInstance :: ![TaskAppRenderer] !BlueprintInstance
                          !(Map TaskId [UIAction]) !Bool !Scale
                       -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showBlueprintInstance rs bpi selDetail enabledSteps compact depth
-  #! rs = trace_n "showBlueprint dynamic" rs
   =               get (mapRead (fmap (\(_, _, _, x) -> x)) storedOutputEditors)
   >>~ \outputs -> let outputs` = 'DM'.foldlWithKey (\m (tid, eid) v -> if (tid == bpi.bpi_taskId)
                                                                          ('DM'.put eid v m)
                                                                          m) 'DM'.newMap outputs
                    in updateInformation ()
-                        [imageUpdate id (mkInstanceImage rs bpi outputs` enabledSteps selDetail compact) (\_ _ -> Nothing) (const id)]
+                        [imageUpdate id (trace_n "showBlueprint dynamic" mkInstanceImage rs bpi outputs` enabledSteps selDetail compact) (\_ _ -> Nothing) (const id)]
                         { ActionState
                         | state  = { tis_task    = bpi.bpi_blueprint
                                    , tis_depth   = depth
                                    , tis_compact = compact }
                         , action = Nothing}
 
+showStaticBlueprint :: ![TaskAppRenderer] !BlueprintIdent !TonicFunc !Bool !Scale
+                    -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showStaticBlueprint rs bpref task compact depth
-  #! rs = trace_n "showBlueprint static" rs
   = updateInformation ()
-      [imageUpdate id (mkStaticImage rs bpref compact) (\_ _ -> Nothing) (const id)]
+      [imageUpdate id (trace_n "showBlueprint static" mkStaticImage rs bpref compact) (\_ _ -> Nothing) (const id)]
       { ActionState
       | state  = { tis_task    = task
                  , tis_depth   = depth
@@ -1205,7 +1205,7 @@ mergeSortBy f xs
   # (as,bs) = split xs
   = merge f (mergeSortBy f as) (mergeSortBy f bs)
 
-tonicDynamicBrowser` :: ![TaskAppRenderer] !(Shared NavStack) -> Task ()
+tonicDynamicBrowser` :: [TaskAppRenderer] (Shared NavStack) -> Task ()
 tonicDynamicBrowser` rs navstack =
   ((activeBlueprintInstances -&&- blueprintViewer) <<@ ArrangeVertical) @! ()
   where
