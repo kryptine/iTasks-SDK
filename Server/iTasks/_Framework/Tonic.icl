@@ -94,18 +94,7 @@ NS_TONIC_INSTANCES :== "tonic-instances"
 
 instance TonicTopLevelBlueprint Task where
   tonicWrapBody mn tn args t = tonicWrapTaskBody` mn tn args t
-  tonicWrapArg d ptr v
-    =   maybe (return ()) (\val -> set val (sdsFocus ptr valueForVariable) @! ()) (taskValToTLit v)
-    >>| viewInformation (Title d) [] v @! ()
-
-taskValToTLit :: !a -> Maybe TExpr | iTask a
-taskValToTLit v
-  = case toJSON v of
-      (JSONBool   x) -> Just (TLit (TBool x))
-      (JSONInt    x) -> Just (TLit (TInt x))
-      (JSONReal   x) -> Just (TLit (TReal x))
-      (JSONString x) -> Just (TLit (TString x))
-      _              -> Nothing
+  tonicWrapArg d ptr v = viewInformation (Title d) [] v @! ()
 
 instance TonicBlueprintPart Task where
   tonicWrapApp mn fn nid cases t = tonicWrapApp` mn fn nid cases t
@@ -219,23 +208,23 @@ selectedBlueprint = sdsFocus "selectedBlueprint" (memoryStore NS_TONIC_INSTANCES
 selectedDetail :: RWShared () (Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int))) (Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int)))
 selectedDetail = sdsFocus "selectedDetail" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
 
-storedOutputEditors :: RWShared () (Map (TaskId, ExprId) (TaskId, Int, Maybe TExpr, Task (), TStability)) (Map (TaskId, ExprId) (TaskId, Int, Maybe TExpr, Task (), TStability))
+storedOutputEditors :: RWShared () (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)) (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability))
 storedOutputEditors = sdsTranslate "storedOutputEditors" (\t -> t +++> "-storedOutputEditors")
                                   (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
 
-outputForTaskId :: RWShared (TaskId, ExprId) (TaskId, Int, Maybe TExpr, Task (), TStability) (TaskId, Int, Maybe TExpr, Task (), TStability)
+outputForTaskId :: RWShared (TaskId, ExprId) (TaskId, Int, Task (), TStability) (TaskId, Int, Task (), TStability)
 outputForTaskId = sdsLens "outputForTaskId" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) storedOutputEditors
   where
-  read :: (TaskId, ExprId) (Map (TaskId, ExprId) (TaskId, Int, Maybe TExpr, Task (), TStability))
-       -> MaybeError TaskException (TaskId, Int, Maybe TExpr, Task (), TStability)
-  read oid=:(tid, _) trtMap = maybe (Ok (TaskId 0 0, 0, Nothing, viewInformation (Title "Notice") [] ("No task value for the selected task. Try entering or updating a value in its editor.") @! (), TNoVal))
+  read :: (TaskId, ExprId) (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability))
+       -> MaybeError TaskException (TaskId, Int, Task (), TStability)
+  read oid=:(tid, _) trtMap = maybe (Ok (TaskId 0 0, 0, viewInformation (Title "Notice") [] ("No task value for the selected task. Try entering or updating a value in its editor.") @! (), TNoVal))
                           Ok ('DM'.get oid trtMap)
 
-  write :: (TaskId, ExprId) (Map (TaskId, ExprId) (TaskId, Int, Maybe TExpr, Task (), TStability)) (TaskId, Int, Maybe TExpr, Task (), TStability)
-        -> MaybeError TaskException (Maybe (Map (TaskId, ExprId) (TaskId, Int, Maybe TExpr, Task (), TStability)))
+  write :: (TaskId, ExprId) (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)) (TaskId, Int, Task (), TStability)
+        -> MaybeError TaskException (Maybe (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)))
   write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
 
-  notify :: (TaskId, ExprId) (Map (TaskId, ExprId) (TaskId, Int, Maybe TExpr, Task (), TStability)) (TaskId, Int, Maybe TExpr, Task (), TStability)
+  notify :: (TaskId, ExprId) (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)) (TaskId, Int, Task (), TStability)
          -> SDSNotifyPred (TaskId, ExprId)
   notify tid _ _ = \tid` -> tid == tid`
 
@@ -496,10 +485,10 @@ markStable currTaskId iworld
         = iworld
       _ = iworld
 
-resultToOutput :: !Int !TaskId !(TaskResult a) -> (!TaskId, !Int, !Maybe TExpr, !Task (), !TStability) | iTask a
-resultToOutput newN tid (ValueResult (Value v s) _ _ _) = (tid, newN, taskValToTLit v, viewInformation (Title ("Value for task " +++ toString tid)) [] v @! (), if s TStable TUnstable)
-resultToOutput newN tid (ValueResult NoValue _ _ _)     = (tid, newN, Nothing, viewInformation (Title ("Value for task " +++ toString tid)) [] "No value" @! (), TNoVal)
-resultToOutput newN tid _                               = (tid, newN, Nothing, viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! (), TNoVal)
+resultToOutput :: !Int !TaskId !(TaskResult a) -> (!TaskId, !Int, !Task (), !TStability) | iTask a
+resultToOutput newN tid (ValueResult (Value v s) _ _ _) = (tid, newN, viewInformation (Title ("Value for task " +++ toString tid)) [] v @! (), if s TStable TUnstable)
+resultToOutput newN tid (ValueResult NoValue _ _ _)     = (tid, newN, viewInformation (Title ("Value for task " +++ toString tid)) [] "No value" @! (), TNoVal)
+resultToOutput newN tid _                               = (tid, newN, viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! (), TNoVal)
 
 tonicExtWrapApp :: !ModuleName !FuncName !ExprId [(ExprId, Int)] (m a) -> m a | TonicBlueprintPart m & iTask a
 tonicExtWrapApp mn tn nid cases mapp = tonicWrapApp mn tn nid cases mapp
@@ -759,7 +748,7 @@ storeTaskOutputViewer :: !(TaskResult a) !ExprId !TaskId !TaskId !*IWorld -> *IW
 storeTaskOutputViewer tr nid parentTaskId childTaskId iworld
   | nid <> [] && parentTaskId <> TaskId 0 0
     # childFocus                = sdsFocus (parentTaskId, nid) outputForTaskId
-    # ((_, n, _, _, _), iworld) = sdsUnsafeRead childFocus iworld
+    # ((_, n, _, _), iworld) = sdsUnsafeRead childFocus iworld
     = snd ('DSDS'.write (resultToOutput (n + 1) childTaskId tr) childFocus iworld)
   | otherwise = iworld
 
@@ -1050,23 +1039,47 @@ viewStaticTask allbps rs navstack bpref tm tt depth compact
              , OnAction (Action "Back" [ActionIcon "previous"]) (navigateBackwards tm tt ns)
              ] @! ()
   where
+
   navigateBackwards :: TonicModule TonicFunc NavStack a -> Maybe (Task ())
   navigateBackwards _  _  []           _ = Nothing
-  navigateBackwards tm tt [prev:stack] _ = Just (navigate pop tm tt prev)
+  navigateBackwards tm tt [prev:stack] _ = navigateBackwards` prev
     where
+    navigateBackwards` :: ClickMeta -> Maybe (Task ())
+    navigateBackwards` meta`=:{click_origin_mbbpident = Just {bpident_taskId = Just tid}}
+      =                 Just (upd pop navstack
+      >>|               get dynamicDisplaySettings
+      >>~ \sett ->      get selectedDetail
+      >>~ \selDetail -> get (sdsFocus tid tonicInstances)
+      >>~ \mbpref ->    case mbpref of
+                          Just bpref` -> viewInstance rs navstack sett bpref` selDetail meta`
+                          _           -> return ())
+    navigateBackwards` meta=:{click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}}
+      =   Just (upd pop navstack
+      >>| getModule bpident_moduleName
+      >>* [ OnValue (onNavVal bpident_taskName)
+          , OnAllExceptions (const (viewInformation "Error" [] "Something went wrong with navigating backwards" @! ()))
+          ] @! ())
+      where
+      onNavVal bpident_taskName (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs navstack {bpr_moduleName = bpident_moduleName, bpr_taskName = bpident_taskName, bpr_instance = Nothing} tm` tt` depth compact @! ()) (getTonicFunc tm` bpident_taskName)
+      onNavVal _                _             = Nothing
+    navigateBackwards` _ = Nothing
     pop [] = []
     pop [_:xs] = xs
 
   handleClicks :: TonicModule TonicFunc (TClickAction, ClickMeta) a -> Task ()
   handleClicks tm tt (TNavAction, meta) _ = navigate (\ns -> [meta : ns]) tm tt meta
-  handleClicks tm tt (TDetailAction, _) _ = viewStaticTask allbps rs navstack bpref tm tt depth compact
+  handleClicks tm tt _                  _ = viewStaticTask allbps rs navstack bpref tm tt depth compact
 
   navigate :: (NavStack -> NavStack) TonicModule TonicFunc ClickMeta -> Task ()
-  navigate mkNavStack _ _ meta`=:{click_target_bpident = {bpident_taskId = Just _}}
-    =                 upd mkNavStack navstack
-    >>|               get dynamicDisplaySettings
-    >>~ \sett ->      get selectedDetail
-    >>~ \selDetail -> viewInstance rs navstack sett bpref selDetail meta`
+  navigate mkNavStack _ _ meta`=:{click_target_bpident = {bpident_taskId = Just tid}}
+    =              get (sdsFocus tid tonicInstances)
+    >>~ \mbpref -> case mbpref of
+                     Just bpref`
+                       =                   upd mkNavStack navstack
+                         >>|               get dynamicDisplaySettings
+                         >>~ \sett ->      get selectedDetail
+                         >>~ \selDetail -> viewInstance rs navstack sett bpref` selDetail meta`
+                     _ = return ()
   navigate mkNavStack tm tt meta=:{click_target_bpident = {bpident_moduleName, bpident_taskName}}
     =   upd mkNavStack navstack
     >>| getModule bpident_moduleName
@@ -1074,7 +1087,7 @@ viewStaticTask allbps rs navstack bpref tm tt depth compact
         , OnAllExceptions (const (viewStaticTask allbps rs navstack bpref tm tt depth compact))
         ] @! ()
     where
-    onNavVal bpident_taskName (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs navstack bpref tm` tt` depth compact @! ()) (getTonicFunc tm` bpident_taskName)
+    onNavVal bpident_taskName (Value tm` _) = fmap (\tt` -> viewStaticTask allbps rs navstack {bpr_moduleName = bpident_moduleName, bpr_taskName = bpident_taskName, bpr_instance = Nothing} tm` tt` depth compact @! ()) (getTonicFunc tm` bpident_taskName)
     onNavVal _                _             = Nothing
 
 showBlueprint :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !TonicFunc
@@ -1082,7 +1095,7 @@ showBlueprint :: ![TaskAppRenderer] !(Map ExprId TaskId) !BlueprintRef !TonicFun
                  !(Map TaskId [UIAction]) !Bool !Scale
               -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showBlueprint rs prev bpref=:{bpr_instance = Just bpi} task selDetail enabledSteps compact depth
-  =               get (mapRead (fmap (\(_, _, _, _, x) -> x)) storedOutputEditors)
+  =               get (mapRead (fmap (\(_, _, _, x) -> x)) storedOutputEditors)
   >>~ \outputs -> let outputs` = 'DM'.foldlWithKey (\m (tid, eid) v -> if (tid == bpi.bpi_taskId)
                                                                          ('DM'.put eid v m)
                                                                          m) 'DM'.newMap outputs
@@ -1140,7 +1153,7 @@ tonicDynamicBrowser rs
                ) @! ()
     where
     viewDetail (Just (Left { click_origin_mbbpident = Just {bpident_taskId = Just tid}
-                           , click_origin_mbnodeId  = Just nid })) = whileUnchanged (sdsFocus (tid, nid) outputForTaskId) (\(_, _, _, x, _) -> x)
+                           , click_origin_mbnodeId  = Just nid })) = whileUnchanged (sdsFocus (tid, nid) outputForTaskId) (\(_, _, x, _) -> x)
     viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Nothing}}))  = viewInformation (Title "Notice") [] "No data available for selected task. " @! ()
     viewDetail (Just (Right (mn, tn, tid, argIdx))) =                get (sdsFocus (mn, tn, tid) paramsForTaskInstance)
                                                       >>~ \params -> case getN params argIdx of
@@ -1230,7 +1243,7 @@ tonicDynamicBrowser` rs navstack =
                                               \shareData ->
                                                  case shareData of
                                                     ((Just bpref, dynSett), selDetail) -> viewInstance rs navstack dynSett bpref selDetail meta
-                                                                                      >>* [ OnAction (Action "Back"        [ActionIcon "previous"]) (\_ -> navigateBackwards bpref dynSett selDetail ns)
+                                                                                      >>* [ OnAction (Action "Back"        [ActionIcon "previous"]) (navigateBackwards dynSett selDetail ns)
                                                                                           , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent bpref dynSett selDetail tid rs mbprnt) ]
                                                     _                                  -> return ()
                                             )
@@ -1256,8 +1269,29 @@ tonicDynamicBrowser` rs navstack =
          }
      navToParent _ _ _ _ _ _ = Nothing
 
-     navigateBackwards bpref dynSett selDetail []           = Nothing
-     navigateBackwards bpref dynSett selDetail [prev:stack] = Just (set stack navstack >>| viewInstance rs navstack dynSett bpref selDetail prev)
+     navigateBackwards :: !DynamicDisplaySettings !(Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int))) NavStack a -> Maybe (Task ())
+     navigateBackwards _ _ [] _ = Nothing
+     navigateBackwards dynSett selDetail [prev:stack] _ = navigateBackwards` prev
+       where
+       navigateBackwards` :: ClickMeta -> Maybe (Task ())
+       navigateBackwards` meta`=:{click_origin_mbbpident = Just {bpident_taskId = Just tid}}
+         =                 Just (upd pop navstack
+         >>|               get (sdsFocus tid tonicInstances)
+         >>~ \mbpref ->    case mbpref of
+                             Just bpref` -> viewInstance rs navstack dynSett bpref` selDetail meta`
+                             _           -> return ())
+       navigateBackwards` meta=:{click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}}
+         =   Just (upd pop navstack
+         >>| getModule bpident_moduleName
+         >>* [ OnValue (onNavVal bpident_taskName)
+             , OnAllExceptions (const (viewInformation "Error" [] "Something went wrong with navigating backwards" @! ()))
+             ] @! ())
+         where
+         onNavVal bpident_taskName (Value tm` _) = fmap (\tt` -> allBlueprints >>- \allbps -> viewStaticTask allbps rs navstack {bpr_moduleName = bpident_moduleName, bpr_taskName = bpident_taskName, bpr_instance = Nothing} tm` tt` dynSett.DynamicDisplaySettings.unfold_depth dynSett.DynamicDisplaySettings.display_compact @! ()) (getTonicFunc tm` bpident_taskName)
+         onNavVal _                _             = Nothing
+       navigateBackwards` _ = Nothing
+       pop [] = []
+       pop [_:xs] = xs
 
   filterActiveTasks Nothing tasks = tasks
   filterActiveTasks (Just q) tasks
