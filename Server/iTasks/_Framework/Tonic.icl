@@ -254,10 +254,10 @@ tonicEnabledSteps = sdsTranslate "tonicEnabledSteps" (\t -> t +++> "-tonicEnable
                                  (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
 
 tonicActionsForTaskID :: RWShared TaskId () [UIAction]
-tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicEnabledSteps
+tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSReadConst read) (SDSWrite write) (SDSNotify notify) tonicEnabledSteps
   where
-  read :: TaskId (Map TaskId [UIAction]) -> MaybeError TaskException ()
-  read tid trtMap = Ok ()
+  read :: TaskId -> ()
+  read _ = ()
 
   write :: TaskId (Map TaskId [UIAction]) [UIAction] -> MaybeError TaskException (Maybe (Map TaskId [UIAction]))
   write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
@@ -301,20 +301,6 @@ paramsForTaskInstance :: RWShared (ModuleName, FuncName, TaskId) [(VarName, Int,
 paramsForTaskInstance = sdsTranslate "paramsForTaskInstance" (\t -> t +++> "-paramsForTaskInstance")
                              (memoryStore NS_TONIC_INSTANCES Nothing)
 
-variableValues :: RWShared () (Map Int TExpr) (Map Int TExpr)
-variableValues = sdsFocus "variableValues" (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
-
-valueForVariable :: RWShared Int (Maybe TExpr) TExpr
-valueForVariable = sdsLens "valueForVariable" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) variableValues
-  where
-  read :: Int (Map Int TExpr) -> MaybeError TaskException (Maybe TExpr)
-  read tid trtMap = Ok ('DM'.get tid trtMap)
-
-  write :: Int (Map Int TExpr) TExpr -> MaybeError TaskException (Maybe (Map Int TExpr))
-  write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
-
-  notify tid _ _ = \tid` -> tid == tid`
-
 //-----------------------------------------------------------------------------
 // REST
 //-----------------------------------------------------------------------------
@@ -335,9 +321,7 @@ tonicExtWrapBodyLam3 :: !ModuleName !FuncName [(VarName, Int, m ())] (b c d -> m
 tonicExtWrapBodyLam3 mn tn args f = \x y z -> tonicWrapBody mn tn args (f x y z)
 
 tonicWrapTaskBody` :: !ModuleName !FuncName [(VarName, Int, Task ())] (Task a) -> Task a | iTask a
-tonicWrapTaskBody` mn tn args (Task eval)
-  //= sequence "" [t \\ (_, _, t) <- args] >>* [OnValue (always (Task preEval))]
-  = Task preEval
+tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
   where
   setBlueprintInfo :: !TaskEvalOpts -> TaskEvalOpts
   setBlueprintInfo evalOpts = modTonicOpts evalOpts (\teo -> {teo & currBlueprintName = (mn, tn)})
@@ -363,9 +347,6 @@ tonicWrapTaskBody` mn tn args (Task eval)
         Just bprep
           # (curr,   iworld) = iworld!current
           # (clocks, iworld) = iworld!clocks
-          # (vars, iworld)   = case 'DSDS'.read variableValues iworld of
-                                 (Ok vs, iworld) -> (vs, iworld)
-                                 (_    , iworld) -> ('DM'.newMap, iworld)
           # (muser, iworld)  = 'DSDS'.read (sdsFocus instanceNo taskInstanceUser) iworld
           # bpinst           = { BlueprintInstance
                                | bpi_taskId           = currTaskId
@@ -375,7 +356,7 @@ tonicWrapTaskBody` mn tn args (Task eval)
                                , bpi_activeNodes      = 'DM'.newMap
                                , bpi_previouslyActive = 'DM'.newMap
                                , bpi_parentTaskId     = currBlueprintTaskId
-                               , bpi_blueprint        = substituteBPVars vars bprep
+                               , bpi_blueprint        = bprep
                                , bpi_currentUser      = error2mb muser
                                , bpi_case_branches    = 'DM'.newMap
                                , bpi_bpref            = { BlueprintIdent
@@ -430,38 +411,6 @@ tonicWrapTaskBody` mn tn args (Task eval)
                          = storeTaskOutputViewer tr evalOpts.tonicOpts.currBlueprintExprId evalOpts.tonicOpts.currBlueprintTaskId tid iworld
                        _ = iworld
     = (tr, iworld)
-
-substituteBPVars :: !(Map Int TExpr) !TonicFunc -> TonicFunc
-substituteBPVars env bprep = {bprep & tf_body = substituteBPVars` env bprep.tf_body}
-  where
-  substituteBPVars` :: !(Map Int TExpr) !TExpr -> TExpr
-  substituteBPVars` env expr=:(TMApp eid` mtn mn tn es p)
-    #! es` = map (substituteBPVars` env) es
-    = TMApp eid` mtn mn tn es` p
-  substituteBPVars` env (TLam es e)
-    #! e` = substituteBPVars` env e
-    = TLam es e`
-  substituteBPVars` env (TLet pats e)
-    #! e`    = substituteBPVars` env e
-    #! pats` = substituteBPVarsPats env pats
-    = TLet pats` e`
-  substituteBPVars` env (TIf cs c t e )
-    #! c` = substituteBPVars` env c
-    #! t` = substituteBPVars` env t
-    #! e` = substituteBPVars` env e
-    = TIf cs c` t` e`
-  substituteBPVars` env (TCase cs e pats)
-    #! e`    = substituteBPVars` env e
-    #! pats` = substituteBPVarsPats env pats
-    = TCase cs e` pats`
-  substituteBPVars` _ e = e
-
-  substituteBPVarsPats _ [] = []
-  substituteBPVarsPats env [(pat, e) : xs]
-    #! pat` = substituteBPVars` env pat
-    #! e`   = substituteBPVars` env e
-    #! pats = substituteBPVarsPats env xs
-    = [(pat`, e`) : pats]
 
 modTonicOpts :: !TaskEvalOpts !(TonicOpts -> TonicOpts) -> TaskEvalOpts
 modTonicOpts teo f = {teo & tonicOpts = f teo.tonicOpts}
