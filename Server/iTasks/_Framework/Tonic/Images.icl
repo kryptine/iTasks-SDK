@@ -88,8 +88,10 @@ instance == TStatus where
   (==) TNotActive TNotActive = True
   (==) _          _          = False
 
-mkStaticImage   :: ![TaskAppRenderer] !BlueprintIdent !Bool !ModelTy *TagSource
-                -> Image ModelTy
+import StdDebug
+
+mkStaticImage :: ![TaskAppRenderer] !BlueprintIdent !Bool !ModelTy *TagSource
+              -> Image ModelTy
 mkStaticImage rs bpident compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
   #! inh              = { InhMkImg
@@ -110,7 +112,7 @@ mkStaticImage rs bpident compact {ActionState | state = tis} tsrc
                         }
   #! (tf_body`, tsrc) = tExpr2Image inh tt.tf_body tsrc
   #! (img, _)         = tTaskDef inh tt.tf_module tt.tf_name tt.tf_resty tt.tf_args [] tf_body`.syn_img tsrc
-  = img
+  = trace_n "mkStaticImage" img
 
 
 mkInstanceImage :: ![TaskAppRenderer] !BlueprintInstance
@@ -138,7 +140,7 @@ mkInstanceImage rs bpi outputs stepActions selDetail compact {ActionState | stat
                         }
   #! (tf_body`, tsrc) = tExpr2Image inh tt.tf_body tsrc
   #! (img, _)         = tTaskDef inh tt.tf_module tt.tf_name tt.tf_resty tt.tf_args [] tf_body`.syn_img tsrc
-  = img
+  = trace_n "mkInstanceImage" img
 
 tExpr2Image :: !InhMkImg !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tExpr2Image inh (TMApp eid mty mn tn targs prio) tsrc = tMApp     inh eid mty mn tn targs prio tsrc

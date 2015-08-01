@@ -226,7 +226,9 @@ outputForTaskId = sdsLens "outputForTaskId" (const ()) (SDSRead read) (SDSWrite 
 
   notify :: (TaskId, ExprId) (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)) (TaskId, Int, Task (), TStability)
          -> SDSNotifyPred (TaskId, ExprId)
-  notify tid _ _ = \tid` -> tid == tid`
+  notify tid oldmap (_, n, _, st) = \tid` -> case (tid == tid`, 'DM'.get tid oldmap) of
+                                               (True, Just (_, n`, _, st`)) -> n <> n` || st =!= st`
+                                               _                            -> False
 
 tonicSharedRT :: RWShared () TonicRTMap TonicRTMap
 tonicSharedRT = sdsTranslate "tonicSharedRT" (\t -> t +++> "-tonicSharedRT")
@@ -242,7 +244,10 @@ tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite wr
   write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
 
   notify :: TaskId TonicRTMap BlueprintInstance -> SDSNotifyPred TaskId
-  notify tid _ _ = \tid` -> tid == tid`
+  notify tid oldmap inst = \tid` -> case (tid == tid`, 'DM'.get tid oldmap) of
+                                      (True, Just oldinst) -> oldinst =!= inst
+                                      _                    -> False
+
 
 tonicEnabledSteps :: RWShared () (Map TaskId [UIAction]) (Map TaskId [UIAction])
 tonicEnabledSteps = sdsTranslate "tonicEnabledSteps" (\t -> t +++> "-tonicEnabledSteps")
@@ -258,7 +263,9 @@ tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read
   write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
 
   notify :: TaskId (Map TaskId [UIAction]) [UIAction] -> SDSNotifyPred TaskId
-  notify tid _ _ = \tid` -> tid == tid`
+  notify tid oldmap acts = \tid` -> case (tid == tid`, 'DM'.get tid oldmap) of
+                                      (True, Just oldacts) -> oldacts =!= acts
+                                      _                    -> False
 
 staticDisplaySettings :: RWShared () StaticDisplaySettings StaticDisplaySettings
 staticDisplaySettings = sdsFocus "staticDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
