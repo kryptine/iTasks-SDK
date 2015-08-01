@@ -253,11 +253,11 @@ tonicEnabledSteps :: RWShared () (Map TaskId [UIAction]) (Map TaskId [UIAction])
 tonicEnabledSteps = sdsTranslate "tonicEnabledSteps" (\t -> t +++> "-tonicEnabledSteps")
                                  (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
 
-tonicActionsForTaskID :: RWShared TaskId () [UIAction]
-tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSReadConst read) (SDSWrite write) (SDSNotify notify) tonicEnabledSteps
+tonicActionsForTaskID :: RWShared TaskId [UIAction] [UIAction]
+tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicEnabledSteps
   where
-  read :: TaskId -> ()
-  read _ = ()
+  read :: TaskId (Map TaskId [UIAction])-> MaybeError TaskException [UIAction]
+  read tid acts = Ok (fromMaybe [] ('DM'.get tid acts))
 
   write :: TaskId (Map TaskId [UIAction]) [UIAction] -> MaybeError TaskException (Maybe (Map TaskId [UIAction]))
   write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
@@ -494,7 +494,11 @@ stepEval` childTaskId=:(TaskId ino tno) eval event evalOpts taskTree iworld
         = case [a \\ a <- uiDefActions uiDef | a.UIAction.taskId == toString ino +++ "-" +++ toString tno] of
             [] = (taskResult, iworld)
             xs
-              # iworld = snd ('DSDS'.write xs (sdsFocus childTaskId tonicActionsForTaskID) iworld)
+              # focus         = sdsFocus childTaskId tonicActionsForTaskID
+              # (mas, iworld) = 'DSDS'.read focus iworld
+              # iworld        = case mas of
+                                  Ok as | as === xs -> iworld
+                                  _                 -> snd ('DSDS'.write xs focus iworld)
               = (taskResult, iworld)
       _ = (taskResult, iworld)
 
