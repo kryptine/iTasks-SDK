@@ -341,7 +341,9 @@ svgRenderer resolve origState state2Image
       )
 
   genServerDiff :: !(SVGSrvSt s) !(SVGSrvSt s) -> Maybe (SVGDiff s) | iTask s
-  genServerDiff oldSrvSt newSrvSt = Just (SetState newSrvSt.svgSrvSt)
+  genServerDiff oldSrvSt newSrvSt
+    | oldSrvSt.svgSrvSt === newSrvSt.svgSrvSt = Just (SetState newSrvSt.svgSrvSt)
+    | otherwise                               = Nothing
 
   appServerDiff :: !(SVGDiff s) !(SVGSrvSt s) -> SVGSrvSt s | iTask s
   appServerDiff (SetState st) srvSt = {srvSt & svgSrvIsDefault = False, svgSrvSt = st}
