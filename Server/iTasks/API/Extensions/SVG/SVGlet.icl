@@ -362,28 +362,30 @@ appClientDiff :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s)
                  !String !(SVGDiff s) !(SVGClSt s) !*JSWorld
               -> *(!SVGClSt s, !*JSWorld) | iTask s
 appClientDiff resolve state2Image mkEventHandler cid (SetState s) clst world
-  #! image            = state2Image s [(ImageTagUser no cid,ImageTagUser no cid) \\ no <- [0..]]
-  #! fontMap          = gatherFonts image
+  | not clst.svgClIsDefault &&
+    clst.svgClSt === s    = (clst, world)
+  #! image                = state2Image s [(ImageTagUser no cid,ImageTagUser no cid) \\ no <- [0..]]
+  #! fontMap              = gatherFonts image
   #! (realFontMap, world) = if ('DM'.null fontMap) ('DM'.newMap, world) (calcTextLengths fontMap world)
-  #! (img, spanEnvs)  = imageFromState image realFontMap
-  #! fixVal           = fixEnvs {FixSpansStVal | fixSpansDidChange = False, fixSpansSpanEnvs = spanEnvs}
-  #! (syn, clval)     = genSVG img { uniqueIdCounter = 0, genStates = fixVal.fixSpansSpanEnvs }
-  #! (imXSp, imYSp)   = syn.genSVGSyn_imageSpanReal
-  #! (imXSp, imYSp)   = (toString (to2dec imXSp), toString (to2dec imYSp))
-  #! svgStr           = browserFriendlySVGEltToString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
-                                         [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
-                                         syn.genSVGSyn_svgElts)
-  #! svgStr           = replaceSubString editletId cid svgStr
-  #! (parser, world)  = new "DOMParser" () world
-  #! (doc, world)     = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
-  #! (newSVG, world)  = .? (doc .# "firstChild") world
-  #! svgDiv           = getElementById (mainSvgId cid)
-  #! (currSVG, world) = .? (svgDiv .# "firstChild") world
-  #! (_, world)       = if (jsIsNull currSVG)
-                          ((svgDiv `appendChild` newSVG) world)
-                          ((svgDiv .# "replaceChild" .$ (newSVG, currSVG)) world)
-  #! world            = registerSVGEvents mkEventHandler resolve state2Image cid newSVG syn.genSVGSyn_events world
-  #! world            = registerDraggables mkEventHandler resolve state2Image cid newSVG syn.genSVGSyn_draggable syn.genSVGSyn_idMap world
+  #! (img, spanEnvs)      = imageFromState image realFontMap
+  #! fixVal               = fixEnvs {FixSpansStVal | fixSpansDidChange = False, fixSpansSpanEnvs = spanEnvs}
+  #! (syn, clval)         = genSVG img { uniqueIdCounter = 0, genStates = fixVal.fixSpansSpanEnvs }
+  #! (imXSp, imYSp)       = syn.genSVGSyn_imageSpanReal
+  #! (imXSp, imYSp)       = (toString (to2dec imXSp), toString (to2dec imYSp))
+  #! svgStr               = browserFriendlySVGEltToString (SVGElt [WidthAttr imXSp, HeightAttr imYSp, XmlnsAttr svgns]
+                                             [VersionAttr "1.1", ViewBoxAttr "0" "0" imXSp imYSp]
+                                             syn.genSVGSyn_svgElts)
+  #! svgStr               = replaceSubString editletId cid svgStr
+  #! (parser, world)      = new "DOMParser" () world
+  #! (doc, world)         = (parser .# "parseFromString" .$ (svgStr, "image/svg+xml")) world
+  #! (newSVG, world)      = .? (doc .# "firstChild") world
+  #! svgDiv               = getElementById (mainSvgId cid)
+  #! (currSVG, world)     = .? (svgDiv .# "firstChild") world
+  #! (_, world)           = if (jsIsNull currSVG)
+                              ((svgDiv `appendChild` newSVG) world)
+                              ((svgDiv .# "replaceChild" .$ (newSVG, currSVG)) world)
+  #! world                = registerSVGEvents mkEventHandler resolve state2Image cid newSVG syn.genSVGSyn_events world
+  #! world                = registerDraggables mkEventHandler resolve state2Image cid newSVG syn.genSVGSyn_draggable syn.genSVGSyn_idMap world
   = ({clst & svgClIsDefault = False, svgClSt = s}, world)
 
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
