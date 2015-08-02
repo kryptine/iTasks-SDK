@@ -283,13 +283,11 @@ ifAction _ _ _ _ = Nothing
 svgns =: "http://www.w3.org/2000/svg"
 
 :: SVGSrvSt s =
-  { svgSrvIsDefault  :: !Bool
-  , svgSrvSt         :: !s
+  { svgSrvSt :: !s
   }
 
 defaultSrvSt :: !s -> SVGSrvSt s
-defaultSrvSt s = { svgSrvIsDefault  = True
-                 , svgSrvSt         = s
+defaultSrvSt s = { svgSrvSt = s
                  }
 
 :: MousePos = MouseDown | MouseUp
@@ -322,7 +320,7 @@ svgRenderer :: !(Conflict s -> Maybe s) !s !(s *TagSource -> Image s)
             -> Editlet (SVGSrvSt s) (SVGDiff s) (SVGClSt s) | iTask s
 svgRenderer resolve origState state2Image
   #! dst = defaultSrvSt origState
-  = { currVal    = {dst & svgSrvIsDefault = False}
+  = { currVal    = dst
     , defValSrv  = dst
     , genUI      = genUI
     , initClient = \_ _ world = (defaultClSt, world)
@@ -346,7 +344,7 @@ svgRenderer resolve origState state2Image
     | otherwise                               = Nothing
 
   appServerDiff :: !(SVGDiff s) !(SVGSrvSt s) -> SVGSrvSt s | iTask s
-  appServerDiff (SetState st) srvSt = {srvSt & svgSrvIsDefault = False, svgSrvSt = st}
+  appServerDiff (SetState st) srvSt = {srvSt & svgSrvSt = st}
 
 imageFromState :: !(Image s) !(Map FontDef (Map String Real)) -> (!Image s, !SpanEnvs) | iTask s
 imageFromState img env
