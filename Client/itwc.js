@@ -1037,10 +1037,6 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 	},
     addManagedListener: function(obj,eventname,handler,thisObj) {
         var me = this;
-        //TEMPORARY FOR EXTJS STUFF IN EXTJS STYLE
-        if(eventname == "afterlayout") {
-            me.eventAfterLayout = handler;
-        }
     },
     afterAdd: function() {
         var me = this;
@@ -1064,11 +1060,6 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 			// save state return by appDiff
 			me.value = ys[2];	
 		}	
-
-        //TEMPORARY FOR EXTJS STUFF
-        if(me.eventAfterLayout) {
-            me.eventAfterLayout.apply(me,["dummy event"]);
-        }			
     },
     afterShow: function() {},
 	// Creating a closure
