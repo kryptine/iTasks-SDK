@@ -290,7 +290,7 @@ defaultSrvSt :: !s -> SVGSrvSt s
 defaultSrvSt s = { svgSrvSt = s
                  }
 
-:: MousePos = MouseDown | MouseUp
+:: MousePos = MouseUp | MouseDown
 
 instance == MousePos where
   (==) MouseDown MouseDown = True
@@ -323,20 +323,20 @@ svgRenderer resolve origState state2Image
   = { currVal    = dst
     , defValSrv  = dst
     , genUI      = genUI
-    , initClient = \_ _ world = (defaultClSt, world)
+    , initClient = \_ _ world -> (defaultClSt, world)
     , appDiffClt = appClientDiff resolve state2Image
     , genDiffSrv = genServerDiff
     , appDiffSrv = appServerDiff
     }
   where
-  genUI = \cid world
-    = ({ ComponentHTML
-       | width         = FlexSize
-       , height        = FlexSize
-       , html          = DivTag [IdAttr (mainSvgId cid), StyleAttr "overflow: auto;"] []
-       }
-       , world
-      )
+  genUI = \cid world ->
+    ({ ComponentHTML
+     | width  = FlexSize
+     , height = FlexSize
+     , html   = DivTag [IdAttr (mainSvgId cid), StyleAttr "overflow: auto;"] []
+     }
+     , world
+    )
 
   genServerDiff :: !(SVGSrvSt s) !(SVGSrvSt s) -> Maybe (SVGDiff s) | iTask s
   genServerDiff oldSrvSt newSrvSt
@@ -1571,8 +1571,6 @@ genSVG img = imageCata genSVGAllAlgs img
       #! (sp2, st) = sp2 st
       #! factorx  = to2dec (sp1 / xsp)
       #! factory  = to2dec (sp2 / ysp)
-      #! scalex   = if (xsp > 0.0) (toString factorx) "1.0"
-      #! scaley   = if (ysp > 0.0) (toString factory) "1.0"
       #! attrs    = [ScaleTransform (toString factorx) (toString factory)]
       #! attrs    = case isText of
                       True
