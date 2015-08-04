@@ -1217,31 +1217,31 @@ fixEnvs st
           (v, st`)
           (v, {st` & fixSpansDidChange = st.fixSpansDidChange})
 
-mapArrSt :: !(a *st -> *(!a, !*st)) !*(arr a) !*st -> *(!*(arr a), !*st) | Array arr a
+mapArrSt :: !(.a *st -> *(!.a, !*st)) !*(arr .a) !*st -> *(!*(arr .a), !*st) | Array arr a
 mapArrSt f arr st
-  #! sz = size arr
+  #! (sz, arr) = usize arr
   = mapArrSt` sz 0 f arr st
   where
-  mapArrSt` :: !Int !Int !(a *st -> *(!a, !*st)) !*(arr a) !*st -> *(!*(arr a), !*st) | Array arr a
+  mapArrSt` :: !Int !Int !(.a *st -> *(!.a, !*st)) !*(arr .a) !*st -> *(!*(arr .a), !*st) | Array arr a
   mapArrSt` sz idx f arr st
     | idx == sz = (arr, st)
     | otherwise
-        #! e       = arr.[idx]
-        #! (e, st) = f e st
-        #! arr     = {arr & [idx] = e}
+        #! (e, arr) = arr![idx]
+        #! (e, st)  = f e st
+        #! arr      = {arr & [idx] = e}
         = mapArrSt` sz (idx + 1) f arr st
 
-foldrArr :: !(a -> .b -> .b) !.b !.(arr a) -> .b | Array arr a
+foldrArr :: !(a .b -> .b) !.b !.(arr a) -> .b | Array arr a
 foldrArr f b arr
-  #! arrSz = size arr
+  #! (arrSz, arr) = usize arr
   = foldrArr` arrSz 0 f b arr
   where
   foldrArr` :: !Int !Int !(a .b -> .b) !.b !.(arr a) -> .b | Array arr a
-  foldrArr` arrSz n f b arr
-    | n < arrSz
-        #! (e, arr) = arr![n]
-        = f e (foldrArr` arrSz (n + 1) f b arr)
-    | otherwise  = b
+  foldrArr` arrSz idx f b arr
+    | idx == arrSz = b
+    | otherwise
+        #! (e, arr) = arr![idx]
+        = f e (foldrArr` arrSz (idx + 1) f b arr)
 
 mkBin` :: !(a b -> Span) !(*FixSpansSt -> *(!a, !*FixSpansSt))
           !(*FixSpansSt -> *(!b, !*FixSpansSt)) !*FixSpansSt
