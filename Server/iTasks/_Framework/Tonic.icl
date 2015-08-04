@@ -249,23 +249,51 @@ tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite wr
                                       _                    -> False
 
 
-tonicEnabledSteps :: RWShared () (Map TaskId [UIAction]) (Map TaskId [UIAction])
+tonicEnabledSteps :: RWShared () (Map TaskId (Map ExprId [UIAction])) (Map TaskId (Map ExprId [UIAction]))
 tonicEnabledSteps = sdsTranslate "tonicEnabledSteps" (\t -> t +++> "-tonicEnabledSteps")
                                  (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
 
-tonicActionsForTaskID :: RWShared TaskId [UIAction] [UIAction]
+tonicActionsForTaskID :: RWShared TaskId (Map ExprId [UIAction]) (Map ExprId [UIAction])
 tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicEnabledSteps
   where
-  read :: TaskId (Map TaskId [UIAction])-> MaybeError TaskException [UIAction]
-  read tid acts = Ok (fromMaybe [] ('DM'.get tid acts))
+  read :: TaskId (Map TaskId (Map ExprId [UIAction])) -> MaybeError TaskException (Map ExprId [UIAction])
+  read tid acts
+    = case 'DM'.get tid acts of
+        Just acts` -> Ok acts`
+        _          -> Ok 'DM'.newMap
 
-  write :: TaskId (Map TaskId [UIAction]) [UIAction] -> MaybeError TaskException (Maybe (Map TaskId [UIAction]))
-  write tid trtMap bpref = Ok (Just ('DM'.put tid bpref trtMap))
+  write :: TaskId (Map TaskId (Map ExprId [UIAction])) (Map ExprId [UIAction]) -> MaybeError TaskException (Maybe (Map TaskId (Map ExprId [UIAction])))
+  write tid oldmap acts
+    = Ok (Just ('DM'.put tid acts oldmap))
 
-  notify :: TaskId (Map TaskId [UIAction]) [UIAction] -> SDSNotifyPred TaskId
-  notify tid oldmap acts = \tid` -> case (tid == tid`, 'DM'.get tid oldmap) of
-                                      (True, Just oldacts) -> oldacts =!= acts
-                                      _                    -> False
+  notify :: TaskId (Map TaskId (Map ExprId [UIAction])) (Map ExprId [UIAction]) -> SDSNotifyPred TaskId
+  notify tid oldmap acts = \tid` -> case read tid oldmap of
+                                      Ok oldacts -> oldacts =!= acts
+                                      _          -> False
+
+tonicActionsForTaskIDAndExpr :: RWShared (TaskId, ExprId) [UIAction] [UIAction]
+tonicActionsForTaskIDAndExpr = sdsLens "tonicActionsForTaskIDAndExpr" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicEnabledSteps
+  where
+  read :: (TaskId, ExprId) (Map TaskId (Map ExprId [UIAction])) -> MaybeError TaskException [UIAction]
+  read (tid, eid) acts
+    = case 'DM'.get tid acts of
+        Just acts` -> case 'DM'.get eid acts` of
+                        Just xs -> Ok xs
+                        _       -> Ok []
+        _          -> Ok []
+
+  write :: (TaskId, ExprId) (Map TaskId (Map ExprId [UIAction])) [UIAction] -> MaybeError TaskException (Maybe (Map TaskId (Map ExprId [UIAction])))
+  write (tid, eid) oldmap acts
+    # m = case 'DM'.get tid oldmap of
+            Just acts` -> acts`
+            _          -> 'DM'.newMap
+    # m = 'DM'.put eid acts m
+    = Ok (Just ('DM'.put tid m oldmap))
+
+  notify :: (TaskId, ExprId) (Map TaskId (Map ExprId [UIAction])) [UIAction] -> SDSNotifyPred (TaskId, ExprId)
+  notify tid oldmap acts = \tid` -> case read tid oldmap of
+                                      Ok oldacts -> oldacts =!= acts
+                                      _          -> False
 
 staticDisplaySettings :: RWShared () StaticDisplaySettings StaticDisplaySettings
 staticDisplaySettings = sdsFocus "staticDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
@@ -472,19 +500,19 @@ isLambda :: !FuncName -> Bool
 isLambda str = startsWith "\;" str
 
 stepEval :: (Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult d, *IWorld))
-            Event TaskEvalOpts TaskTree *IWorld
+            ExprId Event TaskEvalOpts TaskTree *IWorld
          -> *(TaskResult d, *IWorld)
-stepEval eval event evalOpts taskTree=:(TCInit childTaskId _) iworld
-  = stepEval` childTaskId eval event evalOpts taskTree iworld
-stepEval eval event evalOpts taskTree=:(TCStep childTaskId _ (Left _)) iworld
-  = stepEval` childTaskId eval event evalOpts taskTree iworld
-stepEval eval event evalOpts taskTree iworld
+stepEval eval nid event evalOpts taskTree=:(TCInit childTaskId _) iworld
+  = stepEval` nid childTaskId eval event evalOpts taskTree iworld
+stepEval eval nid event evalOpts taskTree=:(TCStep childTaskId _ (Left _)) iworld
+  = stepEval` nid childTaskId eval event evalOpts taskTree iworld
+stepEval eval nid event evalOpts taskTree iworld
   = eval event evalOpts taskTree iworld
 
-stepEval` :: TaskId (Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult d, *IWorld))
+stepEval` :: ExprId TaskId (Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult d, *IWorld))
              Event TaskEvalOpts TaskTree *IWorld
           -> *(TaskResult d, *IWorld)
-stepEval` childTaskId=:(TaskId ino tno) eval event evalOpts taskTree iworld
+stepEval` nid childTaskId=:(TaskId ino tno) eval event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree iworld
   # (taskResult, iworld) = eval event evalOpts taskTree iworld
   = case taskResult of
       ValueResult _ _ (TaskRep uiDef) _
@@ -494,7 +522,7 @@ stepEval` childTaskId=:(TaskId ino tno) eval event evalOpts taskTree iworld
         = case [a \\ a <- uiDefActions uiDef | a.UIAction.taskId == toString ino +++ "-" +++ toString tno] of
             [] = (taskResult, iworld)
             xs
-              # focus         = sdsFocus childTaskId tonicActionsForTaskID
+              # focus         = sdsFocus (tonicOpts.currBlueprintTaskId, nid) tonicActionsForTaskIDAndExpr
               # (mas, iworld) = 'DSDS'.read focus iworld
               # iworld        = case mas of
                                   Ok as | as === xs -> iworld
@@ -514,7 +542,7 @@ ppeid xs = foldr (\x xs -> toString x +++ "," +++ xs) "" xs
 tonicWrapApp` :: !ModuleName !FuncName !ExprId [(ExprId, Int)] (Task a) -> Task a | iTask a
 tonicWrapApp` mn fn nid cases t=:(Task eval)
   | isBind mn fn = Task bindEval
-  | isStep mn fn = Task (stepEval eval)
+  | isStep mn fn = Task (stepEval eval nid)
   | isLambda fn  = Task evalLam
   | otherwise    = return () >>~ \_ -> Task eval`
   where
@@ -1043,7 +1071,7 @@ viewStaticTask allbps rs navstack bpref tm tt depth compact
 
 showBlueprintInstance :: ![TaskAppRenderer] !BlueprintInstance
                          !(Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int)))
-                         !(Map TaskId [UIAction]) !Bool !Scale
+                         !(Map ExprId [UIAction]) !Bool !Scale
                       -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showBlueprintInstance rs bpi selDetail enabledSteps compact depth
   =               get (mapRead (fmap (\(_, _, _, x) -> x)) storedOutputEditors)
@@ -1278,7 +1306,7 @@ viewInstance rs navstack dynSett bpinst=:{bpi_bpref = {bpr_moduleName, bpr_taskN
        (viewInformation "Task comments" [] bpinst.bpi_blueprint.tf_comments @! ())
        (return ()))
     -&&-
-    ((whileUnchanged tonicEnabledSteps (
+    ((whileUnchanged (sdsFocus bpinst.bpi_taskId tonicActionsForTaskID) (
         \steps -> showBlueprintInstance rs bpinst selDetail steps False { Scale | min = 0, cur = 0, max = 0})
     -|| showChildTasks dynSett bpinst)
     >>* [OnValue (doAction (handleClicks bpr_moduleName bpr_taskName))]) @! ()

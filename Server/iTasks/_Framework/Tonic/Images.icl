@@ -71,7 +71,7 @@ ArialItalic10px :== { fontfamily  = "Arial"
   , inh_in_case       :: !Bool
   , inh_outputs       :: !Map ExprId TStability
   , inh_selDetail     :: !Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int))
-  , inh_stepActions   :: !Map TaskId [UIAction]
+  , inh_stepActions   :: !Map ExprId [UIAction]
   }
 
 :: SynMkImg =
@@ -116,7 +116,7 @@ mkStaticImage rs bpident compact {ActionState | state = tis} tsrc
 
 
 mkInstanceImage :: ![TaskAppRenderer] !BlueprintInstance
-                   !(Map ExprId TStability) !(Map TaskId [UIAction])
+                   !(Map ExprId TStability) !(Map ExprId [UIAction])
                    !(Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int)))
                    !Bool !ModelTy *TagSource
                 -> Image ModelTy
@@ -812,11 +812,9 @@ tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (headerTag, 
 
 tStep :: !InhMkImg !ExprId !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tStep inh eid lhsExpr conts [(contextTag, _) : tsrc]
-  #! actions              = case inh.inh_bpinst of
-                              Just bpinst -> case 'DM'.get bpinst.bpi_taskId inh.inh_stepActions of
-                                               Just xs -> xs
-                                               _       -> []
-                              _           -> []
+  #! actions              = case 'DM'.get eid inh.inh_stepActions of
+                              Just xs -> xs
+                              _       -> []
   #! (lhs, tsrc)          = tExpr2Image inh lhsExpr tsrc
   #! conts                = tSafeExpr2List conts
   #! (syn_branches, tsrc) = tBranches inh (tStepCont actions) False True (map (\t -> (Nothing, t, True, False)) conts) contextTag tsrc

@@ -47,7 +47,7 @@ mkStaticImage   :: ![TaskAppRenderer] !BlueprintIdent !Bool !ModelTy *TagSource
 
 
 mkInstanceImage :: ![TaskAppRenderer] !BlueprintInstance
-                   !(Map ExprId TStability) !(Map TaskId [UIAction])
+                   !(Map ExprId TStability) !(Map ExprId [UIAction])
                    !(Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int)))
                    !Bool !ModelTy *TagSource
                 -> Image ModelTy
