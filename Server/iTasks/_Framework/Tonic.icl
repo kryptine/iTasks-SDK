@@ -499,20 +499,16 @@ isAssign _                            _    = False
 isLambda :: !FuncName -> Bool
 isLambda str = startsWith "\;" str
 
-stepEval :: (Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult d, *IWorld))
-            ExprId Event TaskEvalOpts TaskTree *IWorld
-         -> *(TaskResult d, *IWorld)
-stepEval eval nid event evalOpts taskTree=:(TCInit childTaskId _) iworld
-  = stepEval` nid childTaskId eval event evalOpts taskTree iworld
-stepEval eval nid event evalOpts taskTree=:(TCStep childTaskId _ (Left _)) iworld
-  = stepEval` nid childTaskId eval event evalOpts taskTree iworld
-stepEval eval nid event evalOpts taskTree iworld
+stepEval cases eval nid event evalOpts taskTree=:(TCInit childTaskId _) iworld
+  = stepEval` cases nid childTaskId eval event evalOpts taskTree iworld
+stepEval cases eval nid event evalOpts taskTree=:(TCStep childTaskId _ (Left _)) iworld
+  = stepEval` cases nid childTaskId eval event evalOpts taskTree iworld
+stepEval cases eval nid event evalOpts taskTree iworld
+  # iworld = addCases evalOpts cases iworld
   = eval event evalOpts taskTree iworld
 
-stepEval` :: ExprId TaskId (Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult d, *IWorld))
-             Event TaskEvalOpts TaskTree *IWorld
-          -> *(TaskResult d, *IWorld)
-stepEval` nid childTaskId=:(TaskId ino tno) eval event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree iworld
+stepEval` cases nid childTaskId=:(TaskId ino tno) eval event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree iworld
+  # iworld = addCases evalOpts cases iworld
   # (taskResult, iworld) = eval event evalOpts taskTree iworld
   = case taskResult of
       ValueResult _ _ (TaskRep uiDef) _
@@ -535,6 +531,20 @@ derive class iTask TonicOpts
 
 ppeid xs = foldr (\x xs -> toString x +++ "," +++ xs) "" xs
 
+addCases evalOpts [] iworld = iworld
+addCases evalOpts=:{TaskEvalOpts|tonicOpts} cases iworld
+  # (mParentBP, iworld) = 'DSDS'.read (sdsFocus tonicOpts.currBlueprintTaskId tonicInstances) iworld
+  = case mParentBP of
+      Ok (Just parentBPInst)
+        = addCases` parentBPInst evalOpts cases iworld
+      _ = iworld
+
+addCases` parentBPInst evalOpts [] iworld = iworld
+addCases` parentBPInst evalOpts=:{TaskEvalOpts|tonicOpts} cases iworld
+  # parentBPInst = {parentBPInst & bpi_case_branches = 'DM'.union ('DM'.fromList cases) parentBPInst.bpi_case_branches}
+  = snd ('DSDS'.write parentBPInst (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld)
+
+
 /**
  * ModuleName and FuncName identify the blueprint, of which we need to
  * highlight nodes.
@@ -542,8 +552,8 @@ ppeid xs = foldr (\x xs -> toString x +++ "," +++ xs) "" xs
 tonicWrapApp` :: !ModuleName !FuncName !ExprId [(ExprId, Int)] (Task a) -> Task a | iTask a
 tonicWrapApp` mn fn nid cases t=:(Task eval)
   | isBind mn fn = Task bindEval
-  | isStep mn fn = Task (stepEval eval nid)
-  | isLambda fn  = Task evalLam
+  | isStep mn fn = Task (stepEval cases eval nid)
+  | isLambda fn  = t
   | otherwise    = return () >>~ \_ -> Task eval`
   where
   updateAssignStatus evalOpts
@@ -569,13 +579,11 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                        _ = iworld
     = eval event evalOpts taskTree iworld
 
-  evalLam event evalOpts taskTree iworld
-    = eval event evalOpts taskTree iworld
-
   eval` event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo _) _) iworld
     # (mParentBP, iworld) = 'DSDS'.read (sdsFocus tonicOpts.currBlueprintTaskId tonicInstances) iworld
     = case mParentBP of
         Ok (Just parentBPInst)
+          # iworld = addCases` parentBPInst evalOpts cases iworld
           # (parentBPInst, iworld)
               = case tonicOpts.inAssignNode of
                   Just assignNode

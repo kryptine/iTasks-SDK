@@ -980,19 +980,19 @@ tBranches inh mkBranch needAllActive inclVertConns exprs contextTag tsrc
   #! (syns, tsrc)              = foldr (iter existsSomeActivity maxXSpan) ([], tsrc) (zip3 exprs allBranchActivity allTags)
   #! branchImg                 = above (repeat AtLeft) [] (map (\x -> x.syn_img) syns) Nothing
   #! status                    = determineSynStatus needAllActive syns
-  = case inclVertConns of
-      True
-        #! vertConn = mkVertConn nonUTags
-        = ( { syn_img       = beside (repeat AtMiddleY) [] [vertConn, branchImg, vertConn] Nothing
-            , syn_status    = status
-            , syn_stability = determineSynStability syns
-            }
-          , tsrc)
-      _ = ( { syn_img       = branchImg
-            , syn_status    = status
-            , syn_stability = determineSynStability syns
-            }
-          , tsrc)
+  | inclVertConns
+    #! vertConn = mkVertConn nonUTags
+    = ( { syn_img       = beside (repeat AtMiddleY) [] [vertConn, branchImg, vertConn] Nothing
+        , syn_status    = status
+        , syn_stability = determineSynStability syns
+        }
+      , tsrc)
+  | otherwise
+    = ( { syn_img       = branchImg
+        , syn_status    = status
+        , syn_stability = determineSynStability syns
+        }
+      , tsrc)
   where
   iter :: !Bool !Span !(!(!Maybe Pattern, !TExpr, !Bool, !Bool), !TStatus, !*TagRef)
           !*(![SynMkImg], !*TagSource)
