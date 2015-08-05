@@ -24,7 +24,7 @@ from Text.Parsers.Parsers import :: Parser
 // be there. Ideally, we would have something like associated type families
 // and constraintkinds to determine the context restriction per monad.
 class TonicTopLevelBlueprint m | TMonad m where
-  tonicWrapBody :: !ModuleName !FuncName [(VarName, Int, m ())] (m a) -> m a | iTask a
+  tonicWrapBody :: !ModuleName !FuncName [(VarName, Int, m ())] [(ExprId, Int)] (m a) -> m a | iTask a
   tonicWrapArg  :: !VarName !Int a -> m () | iTask a
 
 class TonicBlueprintPart m | TMonad m where
@@ -58,13 +58,13 @@ tonicDynamicWorkflow  :: [TaskAppRenderer] -> Workflow
 
 tonicExtWrapArg       :: !VarName !Int !a -> m () | iTask a & TonicTopLevelBlueprint m
 
-tonicExtWrapBody      :: !ModuleName !FuncName [(VarName, Int, m ())] (         m a)          -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBody      :: !ModuleName !FuncName [(VarName, Int, m ())] [(ExprId, Int)] (         m a)          -> m a | TonicTopLevelBlueprint m & iTask a
 
-tonicExtWrapBodyLam1  :: !ModuleName !FuncName [(VarName, Int, m ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam1  :: !ModuleName !FuncName [(VarName, Int, m ())] [(ExprId, Int)] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
 
-tonicExtWrapBodyLam2  :: !ModuleName !FuncName [(VarName, Int, m ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam2  :: !ModuleName !FuncName [(VarName, Int, m ())] [(ExprId, Int)] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
 
-tonicExtWrapBodyLam3  :: !ModuleName !FuncName [(VarName, Int, m ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam3  :: !ModuleName !FuncName [(VarName, Int, m ())] [(ExprId, Int)] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
 
 tonicExtWrapApp       :: !ModuleName !FuncName !ExprId [(ExprId, Int)] (          m a)          -> m a | TonicBlueprintPart m & iTask a
 

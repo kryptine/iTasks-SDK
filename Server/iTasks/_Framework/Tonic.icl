@@ -93,7 +93,7 @@ NS_TONIC_INSTANCES :== "tonic-instances"
 //-----------------------------------------------------------------------------
 
 instance TonicTopLevelBlueprint Task where
-  tonicWrapBody mn tn args t = tonicWrapTaskBody` mn tn args t
+  tonicWrapBody mn tn args cases t = tonicWrapTaskBody` mn tn args cases t
   tonicWrapArg d ptr v = viewInformation (Title d) [] v @! ()
 
 instance TonicBlueprintPart Task where
@@ -130,7 +130,7 @@ repeatStr :: !String !Int -> String
 repeatStr str n = foldr (+++) "" (repeatn n str)
 
 instance TonicTopLevelBlueprint IO where
-  tonicWrapBody mn tn args t
+  tonicWrapBody mn tn args _ t
     =                             readTonicState
     >>= \ts=:{currIndent = ci} -> let message = "In " +++ mn +++ "." +++ tn +++ " (" +++ toString (length args) +++ " arguments)"
                                   in  putStrLn (indent ci +++ if (ci > 0) "| " "" +++ message)
@@ -173,7 +173,7 @@ ppnid nid = "[" +++ ppnid` nid +++ "]"
 liftA2 f a b = (tmap f a) <#> b
 
 instance TonicTopLevelBlueprint (Parser s t) where
-  tonicWrapBody mn tn args t = t
+  tonicWrapBody _ _ _ _ t = t
   tonicWrapArg _ _ _ = return ()
 
 instance TonicBlueprintPart (Parser s t) where
@@ -336,20 +336,20 @@ paramsForTaskInstance = sdsTranslate "paramsForTaskInstance" (\t -> t +++> "-par
 tonicExtWrapArg :: !VarName !Int !a -> m () | iTask a & TonicTopLevelBlueprint m
 tonicExtWrapArg d n v = tonicWrapArg d n v
 
-tonicExtWrapBody :: !ModuleName !FuncName [(VarName, Int, m ())] (         m a) -> m a | TonicTopLevelBlueprint m & iTask a
-tonicExtWrapBody mn tn args t = tonicWrapBody mn tn args t
+tonicExtWrapBody :: !ModuleName !FuncName [(VarName, Int, m ())] [(ExprId, Int)] (         m a) -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBody mn tn args cases t = tonicWrapBody mn tn args cases t
 
-tonicExtWrapBodyLam1 :: !ModuleName !FuncName [(VarName, Int, m ())] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
-tonicExtWrapBodyLam1 mn tn args f = \x -> tonicWrapBody mn tn args (f x)
+tonicExtWrapBodyLam1 :: !ModuleName !FuncName [(VarName, Int, m ())] [(ExprId, Int)] (b     -> m a) -> b     -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam1 mn tn args cases f = \x -> tonicWrapBody mn tn args cases (f x)
 
-tonicExtWrapBodyLam2 :: !ModuleName !FuncName [(VarName, Int, m ())] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
-tonicExtWrapBodyLam2 mn tn args f = \x y -> tonicWrapBody mn tn args (f x y)
+tonicExtWrapBodyLam2 :: !ModuleName !FuncName [(VarName, Int, m ())] [(ExprId, Int)] (b c   -> m a) -> b c   -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam2 mn tn args cases f = \x y -> tonicWrapBody mn tn args cases (f x y)
 
-tonicExtWrapBodyLam3 :: !ModuleName !FuncName [(VarName, Int, m ())] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
-tonicExtWrapBodyLam3 mn tn args f = \x y z -> tonicWrapBody mn tn args (f x y z)
+tonicExtWrapBodyLam3 :: !ModuleName !FuncName [(VarName, Int, m ())] [(ExprId, Int)] (b c d -> m a) -> b c d -> m a | TonicTopLevelBlueprint m & iTask a
+tonicExtWrapBodyLam3 mn tn args cases f = \x y z -> tonicWrapBody mn tn args cases (f x y z)
 
-tonicWrapTaskBody` :: !ModuleName !FuncName [(VarName, Int, Task ())] (Task a) -> Task a | iTask a
-tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
+tonicWrapTaskBody` :: !ModuleName !FuncName [(VarName, Int, Task ())] [(ExprId, Int)] (Task a) -> Task a | iTask a
+tonicWrapTaskBody` mn tn args cases (Task eval) = Task preEval
   where
   setBlueprintInfo :: !TaskEvalOpts -> TaskEvalOpts
   setBlueprintInfo evalOpts = modTonicOpts evalOpts (\teo -> {teo & currBlueprintName = (mn, tn)})
@@ -392,6 +392,7 @@ tonicWrapTaskBody` mn tn args (Task eval) = Task preEval
                                                         , bpr_taskName   = tn
                                                         }
                                }
+          # iworld           = addCases` bpinst evalOpts cases iworld
           # (_, iworld)      = 'DSDS'.write bpinst (sdsFocus currTaskId tonicInstances) iworld
           # (_, iworld)      = 'DSDS'.write args (sdsFocus (mn, tn, currTaskId) paramsForTaskInstance) iworld
           = iworld
@@ -568,15 +569,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
       }
 
   bindEval event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree iworld
-    # iworld = case cases of
-                 [] = iworld
-                 cases
-                   # (mParentBP, iworld) = 'DSDS'.read (sdsFocus tonicOpts.currBlueprintTaskId tonicInstances) iworld
-                   = case mParentBP of
-                       Ok (Just parentBPInst)
-                         # parentBPInst = {parentBPInst & bpi_case_branches = 'DM'.union ('DM'.fromList cases) parentBPInst.bpi_case_branches}
-                         = snd ('DSDS'.write parentBPInst (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld)
-                       _ = iworld
+    # iworld = addCases evalOpts cases iworld
     = eval event evalOpts taskTree iworld
 
   eval` event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo _) _) iworld
