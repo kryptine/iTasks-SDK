@@ -1202,20 +1202,20 @@ fixEnvs st
     where
     f :: !Int !(!{!Span}, !{!Span}) !*FixSpansSt -> *FixSpansSt
     f k (xsps, ysps) st=:{fixSpansDidChange = origDidChange}
-      #! (xsps`, st) = mapArrSt g {x \\ x <-: xsps} {st & fixSpansDidChange = False}
-      #! (ysps`, st) = mapArrSt g {y \\ y <-: ysps} st
+      #! (xsps`, _, st) = foldrArr g ({x \\ x <-: xsps}, size xsps - 1, {st & fixSpansDidChange = False}) xsps
+      #! (ysps`, _, st) = foldrArr g ({y \\ y <-: ysps}, size ysps - 1, st) ysps
       | st.fixSpansDidChange
         #! fixSpansSpanEnvs = st.fixSpansSpanEnvs
         #! spanEnvGridSpan  = 'DIS'.put k (xsps`, ysps`) fixSpansSpanEnvs.spanEnvGridSpan
         #! fixSpansSpanEnvs = {fixSpansSpanEnvs & spanEnvGridSpan = spanEnvGridSpan}
         = {st & fixSpansSpanEnvs  = fixSpansSpanEnvs}
       | otherwise = {st & fixSpansDidChange = origDidChange}
-    g :: !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
-    g v st
+    g :: !Span !*(!*{!Span}, !Int, !*FixSpansSt) -> *(!*{!Span}, !Int, !*FixSpansSt)
+    g v (acc, n, st)
       #! (v, st`) = spanCata fixSpansSpanAlgs fixSpansLookupSpanAlgs v {st & fixSpansDidChange = False}
       = if st`.fixSpansDidChange
-          (v, st`)
-          (v, {st` & fixSpansDidChange = st.fixSpansDidChange})
+          ({acc & [n] = v}, n - 1, st`)
+          (acc, n - 1, {st` & fixSpansDidChange = st.fixSpansDidChange} )
 
 mapArrSt :: !(.a *st -> *(!.a, !*st)) !*(arr .a) !*st -> *(!*(arr .a), !*st) | Array arr a
 mapArrSt f arr st
