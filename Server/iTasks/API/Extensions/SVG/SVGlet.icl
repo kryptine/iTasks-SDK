@@ -366,6 +366,7 @@ appClientDiff :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s)
                  !String !(SVGDiff s) !(SVGClSt s) !*JSWorld
               -> *(!SVGClSt s, !*JSWorld) | iTask s
 appClientDiff resolve state2Image mkEventHandler cid (SetState s) clst world
+  #! world = jsTrace "appClientDiff" world
   | clst.svgClSt === Just s = (clst, world)
   #! image                = state2Image s [(ImageTagUser no cid,ImageTagUser no cid) \\ no <- [0..]]
   #! fontMap              = gatherFonts image
