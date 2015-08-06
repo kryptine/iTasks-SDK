@@ -392,7 +392,7 @@ tonicWrapTaskBody` mn tn args cases (Task eval) = Task preEval
                                                         , bpr_taskName   = tn
                                                         }
                                }
-          # iworld           = addCases` bpinst evalOpts cases iworld
+          # bpinst           = addCases` bpinst evalOpts cases
           # (_, iworld)      = 'DSDS'.write bpinst (sdsFocus currTaskId tonicInstances) iworld
           # (_, iworld)      = 'DSDS'.write args (sdsFocus (mn, tn, currTaskId) paramsForTaskInstance) iworld
           = iworld
@@ -537,13 +537,12 @@ addCases evalOpts=:{TaskEvalOpts|tonicOpts} cases iworld
   # (mParentBP, iworld) = 'DSDS'.read (sdsFocus tonicOpts.currBlueprintTaskId tonicInstances) iworld
   = case mParentBP of
       Ok (Just parentBPInst)
-        = addCases` parentBPInst evalOpts cases iworld
+        # bpi = addCases` parentBPInst evalOpts cases
+        = snd ('DSDS'.write bpi (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld)
       _ = iworld
 
-addCases` parentBPInst evalOpts [] iworld = iworld
-addCases` parentBPInst evalOpts=:{TaskEvalOpts|tonicOpts} cases iworld
-  # parentBPInst = {parentBPInst & bpi_case_branches = 'DM'.union ('DM'.fromList cases) parentBPInst.bpi_case_branches}
-  = snd ('DSDS'.write parentBPInst (sdsFocus parentBPInst.bpi_taskId tonicInstances) iworld)
+addCases` parentBPInst evalOpts=:{TaskEvalOpts|tonicOpts} cases
+  = {parentBPInst & bpi_case_branches = 'DM'.union ('DM'.fromList cases) parentBPInst.bpi_case_branches}
 
 
 /**
@@ -576,7 +575,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
     # (mParentBP, iworld) = 'DSDS'.read (sdsFocus tonicOpts.currBlueprintTaskId tonicInstances) iworld
     = case mParentBP of
         Ok (Just parentBPInst)
-          # iworld = addCases` parentBPInst evalOpts cases iworld
+          # parentBPInst = addCases` parentBPInst evalOpts cases
           # (parentBPInst, iworld)
               = case tonicOpts.inAssignNode of
                   Just assignNode
