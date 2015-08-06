@@ -28,7 +28,7 @@ class TonicTopLevelBlueprint m | TMonad m where
   tonicWrapArg  :: !VarName !Int a -> m () | iTask a
 
 class TonicBlueprintPart m | TMonad m where
-  tonicWrapApp  :: !ModuleName !FuncName !ExprId [(ExprId, Int)] (m a) -> m a | iTask a
+  tonicWrapApp  :: !ModuleName !FuncName !ExprId                [(ExprId, Int)] (m a) -> m a | iTask a
 
 instance TonicTopLevelBlueprint Task
 instance TonicBlueprintPart Task

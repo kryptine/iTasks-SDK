@@ -349,7 +349,9 @@ tonicExtWrapBodyLam3 :: !ModuleName !FuncName [(VarName, Int, m ())] [(ExprId, I
 tonicExtWrapBodyLam3 mn tn args cases f = \x y z -> tonicWrapBody mn tn args cases (f x y z)
 
 tonicWrapTaskBody` :: !ModuleName !FuncName [(VarName, Int, Task ())] [(ExprId, Int)] (Task a) -> Task a | iTask a
-tonicWrapTaskBody` mn tn args cases (Task eval) = Task preEval
+tonicWrapTaskBody` mn tn args cases t=:(Task eval)
+  | isLambda tn = Task updCases
+  | otherwise   = Task preEval
   where
   setBlueprintInfo :: !TaskEvalOpts -> TaskEvalOpts
   setBlueprintInfo evalOpts = modTonicOpts evalOpts (\teo -> {teo & currBlueprintName = (mn, tn)})
@@ -361,11 +363,16 @@ tonicWrapTaskBody` mn tn args cases (Task eval) = Task preEval
   resetInhOpts evalOpts = modTonicOpts evalOpts (\teo -> {teo & inParallel   = Nothing
                                                               , inAssignNode = Nothing })
 
+  updCases event evalOpts taskTree iworld
+    # iworld = addCases evalOpts cases iworld
+    = eval event evalOpts taskTree iworld
+
   preEval event evalOpts taskTree iworld
     # (mmn, iworld) = getModule` mn iworld
     = case mmn of
         Ok mod -> eval` mod event evalOpts taskTree iworld
         _      -> eval event (resetInhOpts (setBlueprintInfo evalOpts)) taskTree iworld
+
   eval` mod event evalOpts=:{tonicOpts={callTrace, currBlueprintTaskId}} taskTree=:(TCInit currTaskId=:(TaskId instanceNo _) _) iworld
     # iworld = updateInstance iworld
     = eval event (resetInhOpts (setBPTaskId currTaskId (setBlueprintInfo evalOpts))) taskTree iworld
