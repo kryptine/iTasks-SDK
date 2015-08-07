@@ -353,7 +353,9 @@ tCase inh eid texpr pats [(contextTag, _) : tsrc]
   #! mbranch              = case inh.inh_bpinst of
                               Just bpi -> 'DM'.get eid bpi.bpi_case_branches
                               _        -> Nothing
-  #! pats`                = map (\(n, (p, t)) -> (Just p, t, True, Just n == mbranch)) (zip2 [0..] pats)
+  #! pats`                = case mbranch of
+                              Just bridx -> map (\(n, (p, t)) -> (Just p, t, True, n <> bridx)) (zip2 [0..] pats)
+                              _          -> map (\(p, t) -> (Just p, t, True, False)) pats
   #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True pats` contextTag tsrc
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} texpr tsrc
   #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
