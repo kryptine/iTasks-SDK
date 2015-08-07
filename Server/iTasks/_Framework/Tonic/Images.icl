@@ -303,21 +303,6 @@ tVar inh eid pp tsrc
           }
         , tsrc)
 
-activityStatus :: !Bool !InhMkImg !TExpr -> TStatus
-activityStatus needAllActive inh (TFApp _ args _)      = determineStatus needAllActive (map (activityStatus needAllActive inh) args)
-activityStatus needAllActive inh (TMApp eid _ _ _ exprs _)
-  | 'DM'.member eid inh.inh_prev = TAllDone
-  | otherwise
-      = case inh.inh_bpinst of
-          Just {bpi_activeNodes} | isJust (activeNodeTaskId eid bpi_activeNodes) = TIsActive
-          _ = determineStatus needAllActive (map (activityStatus needAllActive inh) exprs)
-activityStatus needAllActive inh (TLet pats bdy)       = activityStatus needAllActive inh bdy
-activityStatus needAllActive inh (TIf _ c t e)         = determineStatus needAllActive (map (activityStatus needAllActive inh) [t, e])
-activityStatus needAllActive inh (TCase _ e pats)      = determineStatus needAllActive (map (activityStatus needAllActive inh o snd) pats)
-activityStatus needAllActive inh (TExpand args tt)     = activityStatus needAllActive inh tt.tf_body
-activityStatus needAllActive inh (TLam _ e)            = activityStatus needAllActive inh e
-activityStatus needAllActive inh _                     = TNotActive
-
 determineStability :: ![TStability] -> TStability
 determineStability []              = TNoVal
 determineStability [TUnstable : _] = TUnstable
@@ -329,17 +314,17 @@ determineSynStability syns = determineStability (map (\x -> x.syn_stability) syn
 
 determineStatus :: !Bool ![TStatus] -> TStatus
 determineStatus _ [TIsActive : _] = TIsActive
-determineStatus needAllActive [TAllDone : xs]
-  | needAllActive
-      = case determineStatus needAllActive xs of
+determineStatus needAllDone [TAllDone : xs]
+  | needAllDone
+      = case determineStatus needAllDone xs of
           TAllDone -> TAllDone
           x       -> x
   | otherwise = TAllDone
-determineStatus needAllActive [_ : xs] = determineStatus needAllActive xs
+determineStatus needAllDone [_ : xs] = determineStatus needAllDone xs
 determineStatus _ _        = TNotActive
 
 determineSynStatus :: !Bool ![SynMkImg] -> TStatus
-determineSynStatus needAllActive syns = determineStatus needAllActive (map (\x -> x.syn_status) syns)
+determineSynStatus needAllDone syns = determineStatus needAllDone (map (\x -> x.syn_status) syns)
 
 tIf :: !InhMkImg !ExprId !TExpr !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tIf inh eid cexpr texpr eexpr [(contextTag, _) : tsrc]
@@ -967,17 +952,18 @@ hasValueFilter = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fi
 tBranches :: !InhMkImg !(InhMkImg TExpr *TagSource -> *(!SynMkImg, !*TagSource))
              !Bool !Bool ![(!Maybe Pattern, !TExpr, !Bool, !Bool)] !ImageTag !*TagSource
           -> *(!SynMkImg, !*TagSource)
-tBranches inh mkBranch needAllActive inclVertConns exprs contextTag tsrc
+tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
   #! (allTags, nonUTags, tsrc) = takeNTags (length exprs) tsrc
   #! maxXSpan                  = maxSpan (map imagexspan [contextTag : nonUTags])
-  #! allBranchActivity         = map (activityStatus needAllActive inh o (\(_, x, _, _) -> x)) exprs
+  #! (allBranchActivity, tsrc) = mapSt (\(_, x, _, _) -> mkBranch inh x) exprs tsrc
+  #! allBranchActivity         = map (\syn -> syn.syn_status) allBranchActivity
   #! existsSomeActivity        = let f TAllDone  _   = True
                                      f TIsActive _   = True
-                                     f _        acc = acc
+                                     f _         acc = acc
                                  in foldr f False allBranchActivity
   #! (syns, tsrc)              = foldr (iter existsSomeActivity maxXSpan) ([], tsrc) (zip3 exprs allBranchActivity allTags)
   #! branchImg                 = above (repeat AtLeft) [] (map (\x -> x.syn_img) syns) Nothing
-  #! status                    = determineSynStatus needAllActive syns
+  #! status                    = determineSynStatus needAllDone syns
   | inclVertConns
     #! vertConn = mkVertConn nonUTags
     = ( { syn_img       = beside (repeat AtMiddleY) [] [vertConn, branchImg, vertConn] Nothing
@@ -996,7 +982,7 @@ tBranches inh mkBranch needAllActive inclVertConns exprs contextTag tsrc
           !*(![SynMkImg], !*TagSource)
        -> *(![SynMkImg], !*TagSource)
   iter existsSomeActivity maxXSpan ((pat, texpr, showRhs, unreachable), currBranchActivity, (imgTag, uImgTag)) (syns, tsrc)
-    #! (syn, tsrc) = mkBranch {inh & inh_inaccessible = unreachable || (existsSomeActivity && currBranchActivity == TNotActive)} texpr tsrc
+    #! (syn, tsrc) = mkBranch {inh & inh_inaccessible = inh.inh_inaccessible || unreachable || (existsSomeActivity && currBranchActivity == TNotActive)} texpr tsrc
     #! lhsLineAct  = case (currBranchActivity, syn.syn_status) of
                        (TNotActive, TNotActive) -> (TNotActive, TNoVal)
                        _                        -> (TAllDone, syn.syn_stability)
