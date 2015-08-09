@@ -433,7 +433,7 @@ calcTextLengths fontdefs world
                      , ("x", "-10000")
                      , ("y", "-10000")
                      ]
-    #! world       = foldr (\args world -> snd ((elem `setAttribute` args) world)) world fontAttrs
+    #! world       = strictFoldl (\world args -> snd ((elem `setAttribute` args) world)) world fontAttrs
     #! (ws, world) = 'DS'.fold (g elem) ('DM'.newMap, world) strs
     = ('DM'.put fontdef ws acc, world)
   g :: !(JSVal (JSObject a)) !String !*(!Map String Real, !*JSWorld) -> *(!Map String Real, !*JSWorld)
@@ -441,6 +441,13 @@ calcTextLengths fontdefs world
     #! world        = (elem .# "textContent" .= str) world
     #! (ctl, world) = (elem `getComputedTextLength` ()) world
     = ('DM'.put str (jsValToReal ctl) acc, world)
+
+strictFoldl :: !(.a -> .(.b -> .a)) !.a ![.b] -> .a
+strictFoldl f b [] = b
+strictFoldl f b [x:xs]
+  #! r = f b x
+  = strictFoldl f r xs
+
 
 :: *FixSpansSt =
   { fixSpansDidChange :: !Bool
@@ -472,6 +479,63 @@ instance nextNo DesugarAndTagStVal where
   , desugarAndTagSyn_TotalSpan_PostTrans :: !ImageSpan
   , desugarAndTagSyn_OffsetCorrection    :: !ImageOffset
   }
+
+strictTRMapSt :: !(a .st -> (!b, !.st)) ![a] !.st -> (![b], !.st)
+strictTRMapSt f xs st
+  #! (rs, st) = strictTRMapStAcc f xs [] st
+  = (reverseTR rs, st)
+
+strictTRMapStAcc :: !(a .st -> (!b, !.st)) ![a] ![b] !.st -> (![b], !.st)
+strictTRMapStAcc f []     acc st = (acc, st)
+strictTRMapStAcc f [x:xs] acc st
+  #! (r, st) = f x st
+  = strictTRMapStAcc f xs [r : acc] st
+
+strictTRZipWith :: !(a b -> c) ![a] ![b] -> [c]
+strictTRZipWith f as bs = reverseTR (strictTRZipWithRev f as bs)
+
+strictTRZipWithRev :: !(a b -> c) ![a] ![b] -> [c]
+strictTRZipWithRev f as bs = strictTRZipWithAcc f as bs []
+
+strictTRZipWithAcc :: !(a b -> c) ![a] ![b] ![c] -> [c]
+strictTRZipWithAcc f [a:as] [b:bs] acc
+  = strictTRZipWithAcc f as bs [f a b : acc]
+strictTRZipWithAcc _ _ _ acc = acc
+
+
+strictTRZip4 :: ![a] ![b] ![c] ![d] -> [(!a, !b, !c, !d)]
+strictTRZip4 as bs cs ds = reverseTR (strictTRZip4Rev as bs cs ds)
+
+strictTRZip4Rev :: ![a] ![b] ![c] ![d] -> [(!a, !b, !c, !d)]
+strictTRZip4Rev as bs cs ds = strictTRZip4Acc as bs cs ds []
+
+strictTRZip4Acc :: ![a] ![b] ![c] ![d] ![(!a, !b, !c, !d)] -> [(!a, !b, !c, !d)]
+strictTRZip4Acc [a:as] [b:bs] [c:cs] [d:ds] acc
+  = strictTRZip4Acc as bs cs ds [(a, b, c, d):acc]
+strictTRZip4Acc _ _ _ _ acc = acc
+
+strictTRZip2 :: ![a] ![b]-> [(!a, !b)]
+strictTRZip2 as bs = reverseTR (strictTRZip2Rev as bs)
+
+strictTRZip2Rev :: ![a] ![b]-> [(!a, !b)]
+strictTRZip2Rev as bs = strictTRZip2Acc as bs []
+
+strictTRZip2Acc :: ![a] ![b] ![(!a, !b)] -> [(!a, !b)]
+strictTRZip2Acc [a:as] [b:bs] acc
+  = strictTRZip2Acc as bs [(a, b):acc]
+strictTRZip2Acc _ _ acc = acc
+
+strictTRZipWith3 :: !(a b c -> d) ![a] ![b] ![c] -> [d]
+strictTRZipWith3 f as bs cs = reverseTR (strictTRZipWith3Rev f as bs cs)
+
+strictTRZipWith3Rev :: !(a b c -> d) ![a] ![b] ![c] -> [d]
+strictTRZipWith3Rev f as bs cs = strictTRZipWith3Acc f as bs cs []
+
+strictTRZipWith3Acc :: !(a b c -> d) ![a] ![b] ![c] ![d] -> [d]
+strictTRZipWith3Acc f [a:as] [b:bs] [c:cs] acc
+  = strictTRZipWith3Acc f as bs cs [f a b c : acc]
+strictTRZipWith3Acc _ _ _ _ acc = acc
+
 
 sequence ms :== strictTRMapSt id ms
 
@@ -1244,8 +1308,8 @@ foldrArr f b arr
         #! (e, arr) = arr![idx]
         = f e (foldrArr` arrSz (idx + 1) f b arr)
 
-mkBin` :: !(a b -> Span) !(*FixSpansSt -> *(!a, !*FixSpansSt))
-          !(*FixSpansSt -> *(!b, !*FixSpansSt)) !*FixSpansSt
+mkBin` :: !(Span Span -> Span) !(*FixSpansSt -> *(!Span, !*FixSpansSt))
+          !(*FixSpansSt -> *(!Span, !*FixSpansSt)) !*FixSpansSt
        -> *(!Span, !*FixSpansSt)
 mkBin` op x y st
   #! (x, st) = x st
@@ -1257,11 +1321,11 @@ mkBin` op x y st
 mkAbs` :: !(*FixSpansSt -> *(!Span, !*FixSpansSt)) !*FixSpansSt -> *(!Span, !*FixSpansSt)
 mkAbs` x st
   #! (x, st) = x st
-  = case abs x of
-      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
-      sp             -> (sp, st)
+  = case x of
+      PxSpan x` | x` < 0.0 = (PxSpan (abs x`), {st & fixSpansDidChange = True})
+      _                    = (x, st)
 
-mkList` :: !([a] -> Span) ![*FixSpansSt -> *(!a, !*FixSpansSt)] !*FixSpansSt
+mkList` :: !([Span] -> Span) ![*FixSpansSt -> *(!Span, !*FixSpansSt)] !*FixSpansSt
         -> *(!Span, !*FixSpansSt)
 mkList` f xs st
   #! (xs, st) = sequence xs st
