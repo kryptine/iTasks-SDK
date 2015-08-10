@@ -1230,7 +1230,7 @@ fixEnvs st
     f k (PxSpan _, PxSpan _) st = {FixSpansSt | st & fixSpansDidChange = False}
     f k (w=:(PxSpan _), h) st
       #! fixSpansDidChange  = st.fixSpansDidChange
-      #! (h`, st`)          = spanCata fixSpansSpanAlgs fixSpansLookupSpanAlgs h {st & fixSpansDidChange = False}
+      #! (h`, st`)          = fixSpans h {st & fixSpansDidChange = False}
       | st`.fixSpansDidChange
         #! fixSpansSpanEnvs          = st`.fixSpansSpanEnvs
         #! spanEnvImageSpanPostTrans = 'DIS'.put k (w, h`) fixSpansSpanEnvs.spanEnvImageSpanPostTrans
@@ -1239,7 +1239,7 @@ fixEnvs st
       | otherwise
         = {FixSpansSt | st` & fixSpansDidChange = fixSpansDidChange}
     f k (w, h=:(PxSpan _)) st
-      #! (w`, st`) = spanCata fixSpansSpanAlgs fixSpansLookupSpanAlgs w {st & fixSpansDidChange = False}
+      #! (w`, st`)          = fixSpans w {st & fixSpansDidChange = False}
       | st`.fixSpansDidChange
         #! fixSpansSpanEnvs          = st`.fixSpansSpanEnvs
         #! spanEnvImageSpanPostTrans = 'DIS'.put k (w`, h) fixSpansSpanEnvs.spanEnvImageSpanPostTrans
@@ -1248,8 +1248,8 @@ fixEnvs st
       | otherwise
         = {FixSpansSt | st` & fixSpansDidChange = st.fixSpansDidChange}
     f k (w, h) st
-      #! (w`, st`) = spanCata fixSpansSpanAlgs fixSpansLookupSpanAlgs w {st & fixSpansDidChange = False}
-      #! (h`, st`) = spanCata fixSpansSpanAlgs fixSpansLookupSpanAlgs h st`
+      #! (w`, st`)          = fixSpans w {st & fixSpansDidChange = False}
+      #! (h`, st`)          = fixSpans h st`
       | st`.fixSpansDidChange
         #! fixSpansSpanEnvs          = st`.fixSpansSpanEnvs
         #! spanEnvImageSpanPostTrans = 'DIS'.put k (w`, h`) fixSpansSpanEnvs.spanEnvImageSpanPostTrans
@@ -1277,7 +1277,7 @@ fixEnvs st
       | otherwise = {st & fixSpansDidChange = origDidChange}
     g :: !Span !*(!*{!Span}, !Int, !*FixSpansSt) -> *(!*{!Span}, !Int, !*FixSpansSt)
     g v (acc, n, st)
-      #! (v, st`) = spanCata fixSpansSpanAlgs fixSpansLookupSpanAlgs v {st & fixSpansDidChange = False}
+      #! (v, st`) = fixSpans v {st & fixSpansDidChange = False}
       = if st`.fixSpansDidChange
           ({acc & [n] = v}, n - 1, st`)
           (acc, n - 1, {st` & fixSpansDidChange = st.fixSpansDidChange} )
@@ -1308,126 +1308,99 @@ foldrArr f b arr
         #! (e, arr) = arr![idx]
         = f e (foldrArr` arrSz (idx + 1) f b arr)
 
-mkBin` :: !(Span Span -> Span) !(*FixSpansSt -> *(!Span, !*FixSpansSt))
-          !(*FixSpansSt -> *(!Span, !*FixSpansSt)) !*FixSpansSt
-       -> *(!Span, !*FixSpansSt)
+mkBin` :: !(Span Span -> Span) !Span !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
 mkBin` op x y st
-  #! (x, st) = x st
-  #! (y, st) = y st
+  #! (x, st) = fixSpans x st
+  #! (y, st) = fixSpans y st
   = case op x y of
       sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
       sp             -> (sp, st)
 
-mkAbs` :: !(*FixSpansSt -> *(!Span, !*FixSpansSt)) !*FixSpansSt -> *(!Span, !*FixSpansSt)
-mkAbs` x st
-  #! (x, st) = x st
-  = case x of
-      PxSpan x` | x` < 0.0 = (PxSpan (abs x`), {st & fixSpansDidChange = True})
-      _                    = (x, st)
-
-mkList` :: !([Span] -> Span) ![*FixSpansSt -> *(!Span, !*FixSpansSt)] !*FixSpansSt
-        -> *(!Span, !*FixSpansSt)
+mkList` :: !([Span] -> Span) ![Span] !*FixSpansSt -> *(!Span, !*FixSpansSt)
 mkList` f xs st
-  #! (xs, st) = sequence xs st
+  #! (xs, st) = mapSt fixSpans xs st
   = case f xs of
       sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
       sp             -> (sp, st)
 
-fixSpansSpanAlgs :: SpanAlg (*FixSpansSt -> *(Span, *FixSpansSt)) (*FixSpansSt -> *(Span, *FixSpansSt))
-fixSpansSpanAlgs =
-  { spanPxSpanAlg     = mkPxSpan
-  , spanLookupSpanAlg = ($)
-  , spanAddSpanAlg    = mkBin` (+)
-  , spanSubSpanAlg    = mkBin` (-)
-  , spanMulSpanAlg    = mkBin` (*)
-  , spanDivSpanAlg    = mkBin` (/)
-  , spanAbsSpanAlg    = mkAbs`
-  , spanMinSpanAlg    = mkList` minSpan
-  , spanMaxSpanAlg    = mkList` maxSpan
-  }
-  where
-  mkPxSpan :: !Real !*FixSpansSt -> *(!Span, !*FixSpansSt)
-  mkPxSpan r st = (PxSpan r, {st & fixSpansDidChange = False})
 
-fixSpansLookupSpanAlgs :: LookupSpanAlg (*FixSpansSt -> *(Span, *FixSpansSt))
-fixSpansLookupSpanAlgs =
-  { lookupSpanColumnXSpanAlg = fixSpansMkImageGridColSpan
-  , lookupSpanRowYSpanAlg    = fixSpansMkImageGridRowSpan
-  , lookupSpanImageXSpanAlg  = fixSpansMkImageXSpan
-  , lookupSpanImageYSpanAlg  = fixSpansMkImageYSpan
-  , lookupSpanTextXSpanAlg   = fixSpansMkTextLU
-  }
-  where
-  fixSpansMkTextLU :: !FontDef !String !*FixSpansSt -> *(!Span, !*FixSpansSt)
-  fixSpansMkTextLU fd str st = (PxSpan 0.0, {st & fixSpansDidChange = True})
+fixSpans :: !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
+fixSpans (PxSpan r)    st = (PxSpan r, {st & fixSpansDidChange = False})
+fixSpans (AddSpan l r) st = mkBin` (+) l r st
+fixSpans (SubSpan l r) st = mkBin` (-) l r st
+fixSpans (MulSpan l r) st = mkBin` (*) l r st
+fixSpans (DivSpan l r) st = mkBin` (/) l r st
+fixSpans (AbsSpan x)   st
+  #! (x, st) = fixSpans x st
+  = case x of
+      PxSpan x` | x` < 0.0 = (PxSpan (abs x`), {st & fixSpansDidChange = True})
+      _                    = (x, st)
+fixSpans (MinSpan xs) st = mkList` minSpan xs st
+fixSpans (MaxSpan xs) st = mkList` maxSpan xs st
+fixSpans (LookupSpan lu) st = fixLookupSpans lu st
 
-  fixSpansMkImageXSpan :: !ImageTag !*FixSpansSt -> *(!Span, !*FixSpansSt)
-  fixSpansMkImageXSpan t st
-    #! ses                      = st.fixSpansSpanEnvs
-    #! spanEnvImageTagPostTrans = ses.spanEnvImageTagPostTrans
-    #! ses                      = {ses & spanEnvImageTagPostTrans = spanEnvImageTagPostTrans}
-    = case 'DM'.get t spanEnvImageTagPostTrans of
-        Just n
-          #! spanEnvImageSpanPostTrans = ses.spanEnvImageSpanPostTrans
-          #! ses                       = {ses & spanEnvImageSpanPostTrans = spanEnvImageSpanPostTrans}
-          = case 'DIS'.get n spanEnvImageSpanPostTrans of
-              Just (xsp=:(PxSpan _), _)
-                = (xsp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
-              Just _
-                = (LookupSpan (ImageXSpan t), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-              _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-        _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-
-  fixSpansMkImageYSpan :: !ImageTag !*FixSpansSt -> *(!Span, !*FixSpansSt)
-  fixSpansMkImageYSpan t st
-    #! ses                      = st.fixSpansSpanEnvs
-    #! spanEnvImageTagPostTrans = ses.spanEnvImageTagPostTrans
-    #! ses                      = {ses & spanEnvImageTagPostTrans = spanEnvImageTagPostTrans}
-    = case 'DM'.get t spanEnvImageTagPostTrans of
-        Just n
-          #! spanEnvImageSpanPostTrans = ses.spanEnvImageSpanPostTrans
-          #! ses                       = {ses & spanEnvImageSpanPostTrans = spanEnvImageSpanPostTrans}
-          = case 'DIS'.get n spanEnvImageSpanPostTrans of
-              Just (_, ysp=:(PxSpan _))
-                = (ysp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
-              Just _
-                = (LookupSpan (ImageYSpan t), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-              _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-        _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-
-  fixSpansMkImageGridColSpan :: !ImageTag !Int !*FixSpansSt -> *(!Span, !*FixSpansSt)
-  fixSpansMkImageGridColSpan t n st
-    #! ses            = st.fixSpansSpanEnvs
-    #! spanEnvGridTag = ses.spanEnvGridTag
-    #! ses            = {ses & spanEnvGridTag = spanEnvGridTag}
-    = case 'DM'.get t spanEnvGridTag of
-        Just cacheIdx
-          #! spanEnvGridSpan = ses.spanEnvGridSpan
-          #! ses             = {ses & spanEnvGridSpan = spanEnvGridSpan}
-          = case 'DIS'.get cacheIdx spanEnvGridSpan of
-              Just (xs, _)
-                = case xs.[n] of
-                    xsn=:(PxSpan _) -> (xsn, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
-                    _               -> (LookupSpan (ColumnXSpan t n), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-              _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-        _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-
-  fixSpansMkImageGridRowSpan :: !ImageTag !Int !*FixSpansSt -> *(!Span, !*FixSpansSt)
-  fixSpansMkImageGridRowSpan t n st
-    #! ses            = st.fixSpansSpanEnvs
-    #! spanEnvGridTag = ses.spanEnvGridTag
-    #! ses            = {ses & spanEnvGridTag = spanEnvGridTag}
-    = case 'DM'.get t spanEnvGridTag of
-        Just cacheIdx
-          #! spanEnvGridSpan = ses.spanEnvGridSpan
-          #! ses             = {ses & spanEnvGridSpan = spanEnvGridSpan}
-          = case 'DIS'.get cacheIdx spanEnvGridSpan of
-              Just (_, xs)
-                = case xs.[n] of
-                    xsn=:(PxSpan _) -> (xsn, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
-                    _               -> (LookupSpan (RowYSpan t n), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-              _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-        _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+fixLookupSpans :: !LookupSpan !*FixSpansSt -> *(!Span, !*FixSpansSt)
+fixLookupSpans (TextXSpan _ _) st = (PxSpan 0.0, {st & fixSpansDidChange = True})
+fixLookupSpans (ImageXSpan t) st
+  #! ses                      = st.fixSpansSpanEnvs
+  #! spanEnvImageTagPostTrans = ses.spanEnvImageTagPostTrans
+  #! ses                      = {ses & spanEnvImageTagPostTrans = spanEnvImageTagPostTrans}
+  = case 'DM'.get t spanEnvImageTagPostTrans of
+      Just n
+        #! spanEnvImageSpanPostTrans = ses.spanEnvImageSpanPostTrans
+        #! ses                       = {ses & spanEnvImageSpanPostTrans = spanEnvImageSpanPostTrans}
+        = case 'DIS'.get n spanEnvImageSpanPostTrans of
+            Just (xsp=:(PxSpan _), _)
+              = (xsp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
+            Just _
+              = (LookupSpan (ImageXSpan t), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+            _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+      _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+fixLookupSpans (ImageYSpan t) st
+  #! ses                      = st.fixSpansSpanEnvs
+  #! spanEnvImageTagPostTrans = ses.spanEnvImageTagPostTrans
+  #! ses                      = {ses & spanEnvImageTagPostTrans = spanEnvImageTagPostTrans}
+  = case 'DM'.get t spanEnvImageTagPostTrans of
+      Just n
+        #! spanEnvImageSpanPostTrans = ses.spanEnvImageSpanPostTrans
+        #! ses                       = {ses & spanEnvImageSpanPostTrans = spanEnvImageSpanPostTrans}
+        = case 'DIS'.get n spanEnvImageSpanPostTrans of
+            Just (_, ysp=:(PxSpan _))
+              = (ysp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
+            Just _
+              = (LookupSpan (ImageYSpan t), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+            _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+      _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+fixLookupSpans (ColumnXSpan t n) st
+  #! ses            = st.fixSpansSpanEnvs
+  #! spanEnvGridTag = ses.spanEnvGridTag
+  #! ses            = {ses & spanEnvGridTag = spanEnvGridTag}
+  = case 'DM'.get t spanEnvGridTag of
+      Just cacheIdx
+        #! spanEnvGridSpan = ses.spanEnvGridSpan
+        #! ses             = {ses & spanEnvGridSpan = spanEnvGridSpan}
+        = case 'DIS'.get cacheIdx spanEnvGridSpan of
+            Just (xs, _)
+              = case xs.[n] of
+                  xsn=:(PxSpan _) -> (xsn, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
+                  _               -> (LookupSpan (ColumnXSpan t n), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+            _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+      _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+fixLookupSpans (RowYSpan t n) st
+  #! ses            = st.fixSpansSpanEnvs
+  #! spanEnvGridTag = ses.spanEnvGridTag
+  #! ses            = {ses & spanEnvGridTag = spanEnvGridTag}
+  = case 'DM'.get t spanEnvGridTag of
+      Just cacheIdx
+        #! spanEnvGridSpan = ses.spanEnvGridSpan
+        #! ses             = {ses & spanEnvGridSpan = spanEnvGridSpan}
+        = case 'DIS'.get cacheIdx spanEnvGridSpan of
+            Just (_, xs)
+              = case xs.[n] of
+                  xsn=:(PxSpan _) -> (xsn, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
+                  _               -> (LookupSpan (RowYSpan t n), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+            _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+      _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
 
 :: ImageSpanReal :== (!Real, !Real)
 
