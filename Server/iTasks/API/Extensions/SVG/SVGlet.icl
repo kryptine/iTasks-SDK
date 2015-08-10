@@ -1375,8 +1375,8 @@ fixSpansLookupSpanAlgs =
                 = (xsp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
               Just _
                 = (LookupSpan (ImageXSpan t), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-              _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
-        _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
+              _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+        _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
 
   fixSpansMkImageYSpan :: !ImageTag !*FixSpansSt -> *(!Span, !*FixSpansSt)
   fixSpansMkImageYSpan t st
@@ -1392,8 +1392,8 @@ fixSpansLookupSpanAlgs =
                 = (ysp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
               Just _
                 = (LookupSpan (ImageYSpan t), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-              _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
-        _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
+              _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+        _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
 
   fixSpansMkImageGridColSpan :: !ImageTag !Int !*FixSpansSt -> *(!Span, !*FixSpansSt)
   fixSpansMkImageGridColSpan t n st
@@ -1409,8 +1409,8 @@ fixSpansLookupSpanAlgs =
                 = case xs.[n] of
                     xsn=:(PxSpan _) -> (xsn, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
                     _               -> (LookupSpan (ColumnXSpan t n), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-              _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
-        _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
+              _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+        _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
 
   fixSpansMkImageGridRowSpan :: !ImageTag !Int !*FixSpansSt -> *(!Span, !*FixSpansSt)
   fixSpansMkImageGridRowSpan t n st
@@ -1426,8 +1426,8 @@ fixSpansLookupSpanAlgs =
                 = case xs.[n] of
                     xsn=:(PxSpan _) -> (xsn, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
                     _               -> (LookupSpan (RowYSpan t n), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-              _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
-        _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
+              _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+        _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
 
 :: ImageSpanReal :== (!Real, !Real)
 

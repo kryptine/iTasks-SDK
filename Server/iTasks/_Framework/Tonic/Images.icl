@@ -354,7 +354,7 @@ tCase inh eid texpr pats [(contextTag, _) : tsrc]
                               Just bpi -> 'DM'.get eid bpi.bpi_case_branches
                               _        -> Nothing
   #! pats`                = case mbranch of
-                              Just bridx -> map (\(n, (p, t)) -> (Just p, t, True, n <> bridx)) (zip2 [0..] pats)
+                              Just bridx -> map (\(n, (p, t)) -> (Just p, t, True, n <> bridx)) (strictTRZip2 [0..] pats)
                               _          -> map (\(p, t) -> (Just p, t, True, False)) pats
   #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True pats` contextTag tsrc
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} texpr tsrc
@@ -399,8 +399,8 @@ tLet inh pats expr [(txttag, uTxtTag) : tsrc]
         #! lineAct         = case t.syn_status of
                                TNotActive -> (TNotActive, TNoVal)
                                _          -> (TAllDone, t.syn_stability)
-        #! (patRhss, tsrc) = mapSt (tExpr2Image inh) (map snd pats) tsrc
-        #! binds     = foldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : expr.syn_img : acc]) [] (zip2 (map fst pats) patRhss)
+        #! (patRhss, tsrc) = strictTRMapSt (tExpr2Image inh) (map snd pats) tsrc
+        #! binds     = foldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : expr.syn_img : acc]) [] (strictTRZip2 (strictTRMap fst pats) patRhss)
         #! letText   = tag uTxtTag (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing)
         #! letWidth  = imagexspan txttag + px 10.0
         #! letHeight = imageyspan txttag + px 10.0
@@ -455,13 +455,13 @@ tParSumN :: !InhMkImg !ExprId !String !String !String ![TExpr]
             !*TagSource
          -> *(!SynMkImg, !*TagSource)
 tParSumN inh eid mn tn descr ts [(contextTag, uContextTag) : tsrc]
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x, True, False)) ts) contextTag tsrc
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (strictTRMap (\x -> (Nothing, x, True, False)) ts) contextTag tsrc
   = renderParallelContainer inh eid mn tn descr syn_branches uContextTag tsrc
 tParProdN :: !InhMkImg !ExprId !String !String !String ![TExpr]
              !*TagSource
           -> *(!SynMkImg, !*TagSource)
 tParProdN inh eid mn tn descr ts [(contextTag, uContextTag) : tsrc]
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (map (\x -> (Nothing, x, True, False)) ts) contextTag tsrc
+  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (strictTRMap (\x -> (Nothing, x, True, False)) ts) contextTag tsrc
   = renderParallelContainer inh eid mn tn descr syn_branches uContextTag tsrc
 
 renderParallelContainer :: !InhMkImg !ExprId !ModuleName !FuncName !String
@@ -551,8 +551,8 @@ tTaskDef inh moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTa
                                                  , text ArialRegular10px taskIdStr
                                                  , userImg] Nothing
   #! taskNameImg  = tag uNameTag (margin (px 5.0) taskNameImg)
-  #! binds        = flatten (zipWith3 mkArgAndTy args [0..] (map Just argvars ++ repeat Nothing))
-  #! argsText     = grid (Columns 4) (RowMajor, LeftToRight, TopToBottom) [] [] (map (margin (px 1.0, px 0.0)) binds) Nothing
+  #! binds        = flatten (strictTRZipWith3 mkArgAndTy args [0..] (strictTRMap Just argvars ++ repeat Nothing))
+  #! argsText     = grid (Columns 4) (RowMajor, LeftToRight, TopToBottom) [] [] (strictTRMap (margin (px 1.0, px 0.0)) binds) Nothing
   #! argsImg      = tag uArgsTag (margin (px 5.0) argsText)
   #! taskBodyImgs = tag uBodyTag (margin (px 5.0) tdbody)
   #! maxX         = maxSpan [imagexspan nameTag, imagexspan argsTag, imagexspan bdytag]
@@ -619,8 +619,8 @@ tMApp inh eid _ modName taskName taskArgs _ tsrc
 renderTaskApp :: !InhMkImg !ExprId !String !String ![TExpr] !String !*TagSource
               -> *(!SynMkImg, !*TagSource)
 renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
-  #! (taskArgs`, tsrc)  = mapSt (tExpr2Image inh) taskArgs tsrc
-  #! taskArgs`          = map (\x -> x.syn_img) taskArgs`
+  #! (taskArgs`, tsrc)  = strictTRMapSt (tExpr2Image inh) taskArgs tsrc
+  #! taskArgs`          = strictTRMap (\x -> x.syn_img) taskArgs`
   #! isDynamic          = isJust inh.inh_bpinst
   #! mActiveTid         = case inh.inh_bpinst of
                             Just bpinst -> activeNodeTaskId eid bpinst.bpi_activeNodes
@@ -637,7 +637,7 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
                             _           -> Nothing
   #! taskIdStr          = maybe "" (\x -> " (" +++ toString x +++ ")") mTaskId
   #! displayName        = displayName +++ taskIdStr
-  #! (renderOpts, tsrc) = mapSt (\ta -> ta inh.inh_compact isActive wasActive inh.inh_inaccessible eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs`) inh.inh_task_apps tsrc
+  #! (renderOpts, tsrc) = strictTRMapSt (\ta -> ta inh.inh_compact isActive wasActive inh.inh_inaccessible eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs`) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
                             _          -> tDefaultMApp inh.inh_compact isActive wasActive inh.inh_inaccessible eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs taskArgs` tsrc
@@ -750,7 +750,7 @@ tDefaultMApp` isCompact isActive wasActive isInAccessible eid parentModName pare
                                                                        <@< { strokewidth = px 1.0 }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskNameImg] Nothing, tsrc)
       taskArgs
-        #! argsImg  = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] (map (margin (px 1.0, px 0.0)) taskArgs) Nothing))
+        #! argsImg  = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] (strictTRMap (margin (px 1.0, px 0.0)) taskArgs) Nothing))
         #! maxXSpan = maxSpan [imagexspan tntag, imagexspan argstag]
         #! content  = above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, argsImg] Nothing
         #! bgRect   = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = bgColor }
@@ -802,7 +802,7 @@ tStep inh eid lhsExpr conts [(contextTag, _) : tsrc]
                               _       -> []
   #! (lhs, tsrc)          = tExpr2Image inh lhsExpr tsrc
   #! conts                = tSafeExpr2List conts
-  #! (syn_branches, tsrc) = tBranches inh (tStepCont actions) False True (map (\t -> (Nothing, t, True, False)) conts) contextTag tsrc
+  #! (syn_branches, tsrc) = tBranches inh (tStepCont actions) False True (strictTRMap (\t -> (Nothing, t, True, False)) conts) contextTag tsrc
   #! img                  = beside (repeat AtMiddleY) [] [lhs.syn_img, tHorizConn (lineStatus syn_branches), syn_branches.syn_img] Nothing
   = ( { syn_img       = img
       , syn_status    = syn_branches.syn_status
@@ -956,15 +956,15 @@ tBranches :: !InhMkImg !(InhMkImg TExpr *TagSource -> *(!SynMkImg, !*TagSource))
           -> *(!SynMkImg, !*TagSource)
 tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
   #! (allTags, nonUTags, tsrc) = takeNTags (length exprs) tsrc
-  #! maxXSpan                  = maxSpan (map imagexspan [contextTag : nonUTags])
-  #! (allBranchActivity, tsrc) = mapSt (\(_, x, _, _) -> mkBranch inh x) exprs tsrc
-  #! allBranchActivity         = map (\syn -> syn.syn_status) allBranchActivity
+  #! maxXSpan                  = maxSpan (strictTRMap imagexspan [contextTag : nonUTags])
+  #! (allBranchActivity, tsrc) = strictTRMapSt (\(_, x, _, _) -> mkBranch inh x) exprs tsrc
+  #! allBranchActivity         = strictTRMap (\syn -> syn.syn_status) allBranchActivity
   #! existsSomeActivity        = let f TAllDone  _   = True
                                      f TIsActive _   = True
                                      f _         acc = acc
                                  in foldr f False allBranchActivity
-  #! (syns, tsrc)              = foldr (iter existsSomeActivity maxXSpan) ([], tsrc) (zip3 exprs allBranchActivity allTags)
-  #! branchImg                 = above (repeat AtLeft) [] (map (\x -> x.syn_img) syns) Nothing
+  #! (syns, tsrc)              = foldr (iter existsSomeActivity maxXSpan) ([], tsrc) (strictTRZip3 exprs allBranchActivity allTags)
+  #! branchImg                 = above (repeat AtLeft) [] (strictTRMap (\x -> x.syn_img) syns) Nothing
   #! status                    = determineSynStatus needAllDone syns
   | inclVertConns
     #! vertConn = mkVertConn nonUTags
@@ -985,9 +985,7 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
        -> *(![SynMkImg], !*TagSource)
   iter existsSomeActivity maxXSpan ((pat, texpr, showRhs, unreachable), currBranchActivity, (imgTag, uImgTag)) (syns, tsrc)
     #! (syn, tsrc) = mkBranch {inh & inh_inaccessible = inh.inh_inaccessible || unreachable || (existsSomeActivity && currBranchActivity == TNotActive)} texpr tsrc
-    #! lhsLineAct  = case (currBranchActivity, syn.syn_status) of
-                       (TNotActive, TNotActive) -> (TNotActive, TNoVal)
-                       _                        -> (TAllDone, syn.syn_stability)
+    #! lhsLineAct  = (syn.syn_status, syn.syn_stability)
     #! lhs         = case pat of
                        Nothing
                          = beside (repeat AtMiddleY) [] [tHorizConnArr lhsLineAct, syn.syn_img] Nothing
@@ -996,15 +994,15 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
                          = beside (repeat AtMiddleY) [] [tHorizConn lhsLineAct, textBox, tHorizConnArr lhsLineAct, syn.syn_img] Nothing
     #! lhs         = tag uImgTag (margin (px 2.5, px 0.0) lhs)
     #! lineWidth   = (maxXSpan - imagexspan imgTag) + px 8.0
-    #! img = case showRhs of
-               True
-                 #! rhs = case syn.syn_status of
-                            TAllDone  -> rect lineWidth (px 3.0) <@< { fill = TonicBlue }
-                            _        -> xline Nothing lineWidth
-                 = beside (repeat AtMiddleY) [] [lhs, rhs] Nothing
-               _ = lhs
-    = ([{ syn_img = img
-        , syn_status = currBranchActivity
+    #! img         = case showRhs of
+                       True
+                         #! rhs = case syn.syn_status of
+                                    TAllDone -> rect lineWidth (px 3.0) <@< { fill = TonicBlue }
+                                    _        -> xline Nothing lineWidth
+                         = beside (repeat AtMiddleY) [] [lhs, rhs] Nothing
+                       _ = lhs
+    = ([{ syn_img       = img
+        , syn_status    = syn.syn_status
         , syn_stability = syn.syn_stability
         } : syns], tsrc)
 
@@ -1053,3 +1051,47 @@ tStable = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fill = To
 tUnstable :: Image ModelTy
 tUnstable = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fill = TonicGreen }
                                          , text ArialBold10px " Unstable"] Nothing
+
+strictTRMapSt :: !(a .st -> (!b, !.st)) ![a] !.st -> (![b], !.st)
+strictTRMapSt f xs st
+  #! (rs, st) = strictTRMapStAcc f xs [] st
+  = (reverseTR rs, st)
+
+strictTRMapStAcc :: !(a .st -> (!b, !.st)) ![a] ![b] !.st -> (![b], !.st)
+strictTRMapStAcc f []     acc st = (acc, st)
+strictTRMapStAcc f [x:xs] acc st
+  #! (r, st) = f x st
+  = strictTRMapStAcc f xs [r : acc] st
+
+strictTRZip2 :: ![a] ![b] -> [(!a, !b)]
+strictTRZip2 as bs = reverseTR (strictTRZip2Rev as bs)
+
+strictTRZip2Rev :: ![a] ![b] -> [(!a, !b)]
+strictTRZip2Rev as bs = strictTRZip2Acc as bs []
+
+strictTRZip2Acc :: ![a] ![b] ![(!a, !b)] -> [(!a, !b)]
+strictTRZip2Acc [a:as] [b:bs] acc
+  = strictTRZip2Acc as bs [(a, b):acc]
+strictTRZip2Acc _ _ acc = acc
+
+strictTRZip3 :: ![.a] ![.b] ![.c] -> [(!.a, !.b, !.c)]
+strictTRZip3 as bs cs = reverseTR (strictTRZip3Rev as bs cs)
+
+strictTRZip3Rev :: ![.a] ![.b] ![.c] -> [(!.a, !.b, !.c)]
+strictTRZip3Rev as bs cs = strictTRZip3Acc as bs cs []
+
+strictTRZip3Acc :: !u:[v:a] !w:[x:b] !y:[z:c] !u0:[v0:(!v:a, !x:b, !z:c)] -> w0:[x0:(!v:a, !x:b, !z:c)], [x0 u <= v,x0 w <= x,x0 y <= z,u0 <= v0,u0 <= w0,w0 v0 <= x0]
+strictTRZip3Acc [a:as] [b:bs] [c:cs] acc
+  = strictTRZip3Acc as bs cs [(a, b, c):acc]
+strictTRZip3Acc _ _ _ acc = acc
+
+strictTRZipWith3 :: !(a b c -> d) ![a] ![b] ![c] -> [d]
+strictTRZipWith3 f as bs cs = reverseTR (strictTRZipWith3Rev f as bs cs)
+
+strictTRZipWith3Rev :: !(a b c -> d) ![a] ![b] ![c] -> [d]
+strictTRZipWith3Rev f as bs cs = strictTRZipWith3Acc f as bs cs []
+
+strictTRZipWith3Acc :: !(a b c -> d) ![a] ![b] ![c] ![d] -> [d]
+strictTRZipWith3Acc f [a:as] [b:bs] [c:cs] acc
+  = strictTRZipWith3Acc f as bs cs [f a b c : acc]
+strictTRZipWith3Acc _ _ _ _ acc = acc
