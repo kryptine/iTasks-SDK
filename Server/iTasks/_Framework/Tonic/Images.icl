@@ -313,15 +313,14 @@ determineSynStability :: ![SynMkImg] -> TStability
 determineSynStability syns = determineStability (map (\x -> x.syn_stability) syns)
 
 determineStatus :: !Bool ![TStatus] -> TStatus
-determineStatus _ [TIsActive : _] = TIsActive
+determineStatus _           [TIsActive : _] = TIsActive
 determineStatus needAllDone [TAllDone : xs]
-  | needAllDone
-      = case determineStatus needAllDone xs of
-          TAllDone -> TAllDone
-          x       -> x
-  | otherwise = TAllDone
+  | needAllDone = determineStatus needAllDone xs
+  | otherwise   = TAllDone
 determineStatus needAllDone [_ : xs] = determineStatus needAllDone xs
-determineStatus _ _        = TNotActive
+determineStatus needAllDone _
+  | needAllDone = TAllDone
+  | otherwise   = TNotActive
 
 determineSynStatus :: !Bool ![SynMkImg] -> TStatus
 determineSynStatus needAllDone syns = determineStatus needAllDone (map (\x -> x.syn_status) syns)
@@ -959,11 +958,11 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
   #! maxXSpan                  = maxSpan (strictTRMap imagexspan [contextTag : nonUTags])
   #! (allBranchActivity, tsrc) = strictTRMapSt (\(_, x, _, _) -> mkBranch inh x) exprs tsrc
   #! allBranchActivity         = strictTRMap (\syn -> syn.syn_status) allBranchActivity
-  #! existsSomeActivity        = let f TAllDone  _   = True
-                                     f TIsActive _   = True
-                                     f _         acc = acc
-                                 in foldr f False allBranchActivity
-  #! (syns, tsrc)              = foldr (iter existsSomeActivity maxXSpan) ([], tsrc) (strictTRZip3 exprs allBranchActivity allTags)
+  #! existsSomeActivity        = let f _   TAllDone  = True
+                                     f _   TIsActive = True
+                                     f acc _         = acc
+                                 in strictFoldl f False allBranchActivity
+  #! (syns, tsrc)              = strictTRMapSt (iter existsSomeActivity maxXSpan) (strictTRZip3 exprs allBranchActivity allTags) tsrc
   #! branchImg                 = above (repeat AtLeft) [] (strictTRMap (\x -> x.syn_img) syns) Nothing
   #! status                    = determineSynStatus needAllDone syns
   | inclVertConns
@@ -981,9 +980,9 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
       , tsrc)
   where
   iter :: !Bool !Span !(!(!Maybe Pattern, !TExpr, !Bool, !Bool), !TStatus, !*TagRef)
-          !*(![SynMkImg], !*TagSource)
-       -> *(![SynMkImg], !*TagSource)
-  iter existsSomeActivity maxXSpan ((pat, texpr, showRhs, unreachable), currBranchActivity, (imgTag, uImgTag)) (syns, tsrc)
+          !*TagSource
+       -> *(!SynMkImg, !*TagSource)
+  iter existsSomeActivity maxXSpan ((pat, texpr, showRhs, unreachable), currBranchActivity, (imgTag, uImgTag)) tsrc
     #! (syn, tsrc) = mkBranch {inh & inh_inaccessible = inh.inh_inaccessible || unreachable || (existsSomeActivity && currBranchActivity == TNotActive)} texpr tsrc
     #! lhsLineAct  = (syn.syn_status, syn.syn_stability)
     #! lhs         = case pat of
@@ -1001,10 +1000,10 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
                                     _        -> xline Nothing lineWidth
                          = beside (repeat AtMiddleY) [] [lhs, rhs] Nothing
                        _ = lhs
-    = ([{ syn_img       = img
-        , syn_status    = syn.syn_status
-        , syn_stability = syn.syn_stability
-        } : syns], tsrc)
+    = ({ syn_img       = img
+       , syn_status    = syn.syn_status
+       , syn_stability = syn.syn_stability
+       }, tsrc)
 
   takeNTags :: !Int !*TagSource -> *(!*[*TagRef], ![ImageTag], !*TagSource)
   takeNTags n [tr=:(_, nonUTag):tsrc]
@@ -1052,12 +1051,12 @@ tUnstable :: Image ModelTy
 tUnstable = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fill = TonicGreen }
                                          , text ArialBold10px " Unstable"] Nothing
 
-strictTRMapSt :: !(a .st -> (!b, !.st)) ![a] !.st -> (![b], !.st)
+strictTRMapSt :: !(.a -> .(.st -> .(!b, !.st))) ![.a] !.st -> .(![b], !.st)
 strictTRMapSt f xs st
   #! (rs, st) = strictTRMapStAcc f xs [] st
   = (reverseTR rs, st)
 
-strictTRMapStAcc :: !(a .st -> (!b, !.st)) ![a] ![b] !.st -> (![b], !.st)
+strictTRMapStAcc :: !(.a -> .(.st -> .(!b, !.st))) ![.a] ![b] !.st -> .(![b], !.st)
 strictTRMapStAcc f []     acc st = (acc, st)
 strictTRMapStAcc f [x:xs] acc st
   #! (r, st) = f x st
@@ -1095,3 +1094,9 @@ strictTRZipWith3Acc :: !(a b c -> d) ![a] ![b] ![c] ![d] -> [d]
 strictTRZipWith3Acc f [a:as] [b:bs] [c:cs] acc
   = strictTRZipWith3Acc f as bs cs [f a b c : acc]
 strictTRZipWith3Acc _ _ _ _ acc = acc
+
+strictFoldl :: !(.a -> .(.b -> .a)) !.a ![.b] -> .a
+strictFoldl f b [] = b
+strictFoldl f b [x:xs]
+  #! r = f b x
+  = strictFoldl f r xs
