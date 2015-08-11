@@ -995,9 +995,9 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
     #! inaccessible = inh.inh_inaccessible || unreachable || (existsSomeActivity && currBranchActivity == TNotActive)
     #! (syn, tsrc)  = mkBranch {inh & inh_inaccessible = inaccessible} texpr tsrc
     #! lhsLineAct   = if inaccessible (TNotActive, TNoVal)
-                        (case (syn.syn_status, syn.syn_stability) of
-                           (TNotActive, TNoVal) -> (TNotActive, TNoVal)
-                           _                    -> inh.inh_prev_statstab)
+                        (case syn.syn_status of
+                           TNotActive -> (TNotActive, TNoVal)
+                           _          -> inh.inh_prev_statstab)
     #! lhs          = case pat of
                         Nothing
                           = beside (repeat AtMiddleY) [] [tHorizConnArr lhsLineAct, syn.syn_img] Nothing
