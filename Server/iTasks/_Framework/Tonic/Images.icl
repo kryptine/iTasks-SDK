@@ -397,25 +397,22 @@ tLet inh pats expr [(txttag, uTxtTag) : tsrc]
       TLet pats` bdy
         = tLet inh (pats ++ pats`) bdy tsrc
       _
-        #! (t, tsrc)       = tExpr2Image inh expr tsrc
-        #! lineAct         = case t.syn_status of
-                               TNotActive -> (TNotActive, TNoVal)
-                               _          -> (TAllDone, t.syn_stability)
-        #! (patRhss, tsrc) = strictTRMapSt (tExpr2Image inh) (map snd pats) tsrc
-        #! binds     = foldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : expr.syn_img : acc]) [] (strictTRZip2 (strictTRMap fst pats) patRhss)
-        #! letText   = tag uTxtTag (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing)
-        #! letWidth  = imagexspan txttag + px 10.0
-        #! letHeight = imageyspan txttag + px 10.0
-        #! letBox    = rect letWidth letHeight
-                         <@< { fill   = TonicWhite }
-                         <@< { stroke = TonicBlack }
-        #! letImg    = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
-        #! linePart         = case t.syn_status of
-                               TNotActive -> xline Nothing ((letWidth - px 8.0) /. 2.0)
-                               _          -> rect ((letWidth - px 8.0) /. 2.0) (px 3.0) <@< { fill = TonicBlue }
-        #! connBox   = beside (repeat AtMiddleY) [] [linePart, rect (px 8.0) (px 8.0), linePart] Nothing
-        #! letImg    = above (repeat AtMiddleX) [] [letImg, yline Nothing (px 8.0), connBox, empty zero (letHeight + px 8.0)] Nothing
-        #! img       = beside (repeat AtMiddleY) [] [letImg, tHorizConnArr lineAct, t.syn_img] Nothing
+        #! (t, tsrc)           = tExpr2Image inh expr tsrc
+        #! (patRhss, tsrc)     = strictTRMapSt (tExpr2Image inh) (map snd pats) tsrc
+        #! binds               = foldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : expr.syn_img : acc]) [] (strictTRZip2 (strictTRMap fst pats) patRhss)
+        #! letText             = tag uTxtTag (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing)
+        #! letWidth            = imagexspan txttag + px 10.0
+        #! letHeight           = imageyspan txttag + px 10.0
+        #! letBox              = rect letWidth letHeight
+                                   <@< { fill   = TonicWhite }
+                                   <@< { stroke = TonicBlack }
+        #! letImg              = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
+        #! (linePart, lineAct) = case t.syn_status of
+                                   TNotActive -> (xline Nothing ((letWidth - px 8.0) /. 2.0), (TNotActive, TNoVal))
+                                   _          -> (rect ((letWidth - px 8.0) /. 2.0) (px 3.0) <@< { fill = TonicBlue }, (TAllDone, TStable))
+        #! connBox             = beside (repeat AtMiddleY) [] [linePart, rect (px 8.0) (px 8.0), linePart] Nothing
+        #! letImg              = above (repeat AtMiddleX) [] [letImg, yline Nothing (px 8.0), connBox, empty zero (letHeight + px 8.0)] Nothing
+        #! img                 = beside (repeat AtMiddleY) [] [letImg, tHorizConnArr lineAct, t.syn_img] Nothing
         = ( { syn_img       = img
             , syn_status    = t.syn_status
             , syn_stability = t.syn_stability
@@ -997,20 +994,27 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
   iter existsSomeActivity maxXSpan ((pat, texpr, showRhs, unreachable), currBranchActivity, (imgTag, uImgTag)) tsrc
     #! inaccessible = inh.inh_inaccessible || unreachable || (existsSomeActivity && currBranchActivity == TNotActive)
     #! (syn, tsrc)  = mkBranch {inh & inh_inaccessible = inaccessible} texpr tsrc
-    #! lhsLineAct   = if inaccessible (TNotActive, TNoVal) inh.inh_prev_statstab
+    #! lhsLineAct   = if inaccessible (TNotActive, TNoVal)
+                        (case (syn.syn_status, syn.syn_stability) of
+                           (TNotActive, TNoVal) -> (TNotActive, TNoVal)
+                           _                    -> inh.inh_prev_statstab)
     #! lhs          = case pat of
                         Nothing
                           = beside (repeat AtMiddleY) [] [tHorizConnArr lhsLineAct, syn.syn_img] Nothing
                         Just pat
                           #! textBox = tTextWithGreyBackground ArialRegular10px (ppTExpr pat)
                           = beside (repeat AtMiddleY) [] [tHorizConn lhsLineAct, textBox, tHorizConnArr lhsLineAct, syn.syn_img] Nothing
-    #! lhs          = tag uImgTag (margin (px 2.5, px 0.0) lhs)
-    #! lineWidth    = (maxXSpan - imagexspan imgTag) + px 8.0
     #! img          = case showRhs of
                         True
-                          #! rhs = case syn.syn_status of
-                                     TAllDone -> rect lineWidth (px 3.0) <@< { fill = TonicBlue }
-                                     _        -> xline Nothing lineWidth
+                          #! lhs       = tag uImgTag (margin (px 2.5, px 0.0) lhs)
+                          #! lineWidth = (maxXSpan - imagexspan imgTag) + px 8.0
+                          #! rhs       = case syn.syn_status of
+                                           TAllDone ->
+                                             case syn.syn_stability of
+                                               TNoVal    -> rect lineWidth (px 3.0) <@< { fill = TonicWhite }
+                                               TStable   -> rect lineWidth (px 3.0) <@< { fill = TonicBlue }
+                                               TUnstable -> rect lineWidth (px 3.0) <@< { fill = TonicGreen }
+                                           _        -> xline Nothing lineWidth
                           = beside (repeat AtMiddleY) [] [lhs, rhs] Nothing
                         _ = lhs
     = ({ syn_img       = img
