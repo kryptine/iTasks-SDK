@@ -64,6 +64,7 @@ import qualified Text.Parsers.Parsers as PS
     , show_finished_blueprints :: !Bool
     , show_task_value          :: !Bool
     , show_comments            :: !Bool
+    , show_all_child_tasks     :: !Bool
     }
 
 :: NavStack :== [ClickMeta]
@@ -322,6 +323,7 @@ dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (memoryStore NS_TONIC
                                      , show_finished_blueprints = False
                                      , show_task_value = False
                                      , show_comments = False
+                                     , show_all_child_tasks = False
                                      }))
 
 
@@ -1127,7 +1129,7 @@ tonicDynamicBrowser rs
   layout [mainTask, settingsTask, filterTask, usersTask : _] actions
     = arrangeWithSideBar 0 RightSide 250 True [supportArea, mainTask] actions
     where
-    supportArea = arrangeWithSideBar 0 TopSide 150 False [settingsTask, filterTask, usersTask] []
+    supportArea = arrangeWithSideBar 0 TopSide 175 False [settingsTask, filterTask, usersTask] []
 
   filterQuery = updateSharedInformation (Title "Filter query") [] queryShare @! ()
 
@@ -1319,16 +1321,19 @@ viewInstance rs navstack dynSett bpinst=:{bpi_bpref = {bpr_moduleName, bpr_taskN
     >>* [OnValue (doAction (handleClicks bpr_moduleName bpr_taskName))]) @! ()
   where
   showChildTasks :: DynamicDisplaySettings BlueprintInstance -> Task ()
-  showChildTasks {DynamicDisplaySettings | unfold_depth = {Scale | cur = 0} } bpinst = return ()
-  showChildTasks {DynamicDisplaySettings | unfold_depth = {Scale | cur = d}, show_finished_blueprints } bpinst
+  showChildTasks {DynamicDisplaySettings | show_all_child_tasks = False, unfold_depth = {Scale | cur = 0} } bpinst = return ()
+  showChildTasks {DynamicDisplaySettings | show_all_child_tasks, unfold_depth = {Scale | cur = d}, show_finished_blueprints } bpinst
     # childIds  = [tid \\ tid <- map fst (concatMap 'DIS'.elems ('DM'.elems bpinst.bpi_activeNodes)) | not (tid == bpinst.bpi_taskId)]
     # childIds  = if show_finished_blueprints
                     ([tid \\ tid <- 'DM'.elems bpinst.bpi_previouslyActive | not (tid == bpinst.bpi_taskId)] ++ childIds)
                     childIds
     # viewTasks = map (    \childId -> get (sdsFocus childId tonicInstances)
                        >>~ \mbpref ->  case mbpref of
-                                         Just bpref` -> viewInstance rs navstack {DynamicDisplaySettings | dynSett & unfold_depth = {dynSett.DynamicDisplaySettings.unfold_depth & cur = d - 1}} bpref` selDetail (mkClickMeta childId)
-                                         _           -> return ()) childIds
+                                         Just bpref`
+                                           # dynSett = if show_all_child_tasks dynSett
+                                                         {DynamicDisplaySettings | dynSett & unfold_depth = {dynSett.DynamicDisplaySettings.unfold_depth & cur = d - 1}}
+                                           = viewInstance rs navstack dynSett bpref` selDetail (mkClickMeta childId)
+                                         _ = return ()) childIds
     = allTasks viewTasks @! ()
     where
     mkClickMeta childId = {meta & click_origin_mbbpident = Nothing
