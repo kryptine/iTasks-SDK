@@ -1,7 +1,7 @@
 [submodule "Dependencies/clean-sapl"]
 	path = Dependencies/clean-sapl
-	url = git@gitlab.science.ru.nl:clean-and-itasks/clean-sapl.git
+	url = https://gitlab.science.ru.nl/clean-and-itasks/clean-sapl.git
 	branch = hierarchical
 [submodule "Dependencies/clean-platform"]
 	path = Dependencies/clean-platform
-	url = git@gitlab.science.ru.nl:clean-and-itasks/clean-platform.git
+	url = https://gitlab.science.ru.nl/clean-and-itasks/clean-platform.git
