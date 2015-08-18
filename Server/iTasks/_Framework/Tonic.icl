@@ -479,7 +479,7 @@ resultToOutput newN tid (ValueResult (Value v s) _ _ _) = (tid, newN, viewInform
 resultToOutput newN tid (ValueResult NoValue _ _ _)     = (tid, newN, viewInformation (Title ("Value for task " +++ toString tid)) [] "No value" @! (), TNoVal)
 resultToOutput newN tid _                               = (tid, newN, viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! (), TNoVal)
 
-tonicExtWrapApp :: !ModuleName !FuncName !ExprId [(ExprId, Int)] (m a) -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapApp :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] (m a) -> m a | TonicBlueprintPart m & iTask a
 tonicExtWrapApp mn tn nid cases mapp = tonicWrapApp mn tn nid cases mapp
 
 isBind :: !String !String -> Bool
@@ -514,14 +514,17 @@ stepEval cases eval nid event evalOpts taskTree=:(TCInit childTaskId _) iworld
 stepEval cases eval nid event evalOpts taskTree=:(TCStep childTaskId _ (Left _)) iworld
   = stepEval` cases nid childTaskId eval event evalOpts taskTree iworld
 stepEval cases eval nid event evalOpts taskTree iworld
-  # iworld = addCases evalOpts cases iworld
-  = eval event evalOpts taskTree iworld
+  # (tr, iworld) = eval event evalOpts taskTree iworld
+  # iworld = case tr of
+               ValueResult (Value x _) _ _ _ -> addCases evalOpts (map (\(eid, f) -> (eid, f x)) cases) iworld
+               _ -> iworld
+  = (tr, iworld)
 
 stepEval` cases nid childTaskId=:(TaskId ino tno) eval event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree iworld
-  # iworld = addCases evalOpts cases iworld
   # (taskResult, iworld) = eval event evalOpts taskTree iworld
   = case taskResult of
-      ValueResult _ _ (TaskRep uiDef) _
+      ValueResult (Value x _) _ (TaskRep uiDef) _
+        # iworld = addCases evalOpts (map (\(eid, f) -> (eid, f x)) cases) iworld
         // TODO
         // This LC filters out the actions for the current task. For some reason, we sometimes
         // get actions for the _next_ step here. Why is this? Ideally, we should remove this LC here.
@@ -558,9 +561,9 @@ addCases` parentBPInst evalOpts=:{TaskEvalOpts|tonicOpts} cases
  * ModuleName and FuncName identify the blueprint, of which we need to
  * highlight nodes.
  */
-tonicWrapApp` :: !ModuleName !FuncName !ExprId [(ExprId, Int)] (Task a) -> Task a | iTask a
+tonicWrapApp` :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] (Task a) -> Task a | iTask a
 tonicWrapApp` mn fn nid cases t=:(Task eval)
-  | isBind mn fn = Task bindEval
+  //| isBind mn fn = Task bindEval
   | isStep mn fn = Task (stepEval cases eval nid)
   | isLambda fn  = t
   | otherwise    = return () >>~ \_ -> Task eval`
@@ -576,15 +579,14 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                     }
       }
 
-  bindEval event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree iworld
-    # iworld = addCases evalOpts cases iworld
-    = eval event evalOpts taskTree iworld
+  //bindEval event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree iworld
+    //# iworld = addCases evalOpts cases iworld
+    //= eval event evalOpts taskTree iworld
 
   eval` event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo _) _) iworld
     # (mParentBP, iworld) = 'DSDS'.read (sdsFocus tonicOpts.currBlueprintTaskId tonicInstances) iworld
     = case mParentBP of
         Ok (Just parentBPInst)
-          # parentBPInst = addCases` parentBPInst evalOpts cases
           # (parentBPInst, iworld)
               = case tonicOpts.inAssignNode of
                   Just assignNode
@@ -618,23 +620,27 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                         (ValueResult _ _ _ (TCParallel childTaskId _ parallelChildren), Ok (Just new_parent_instance))
                           = evalParallel new_parent_instance tr evalOpts childTaskId parallelChildren iworld
                         (_, Ok (Just new_parent_instance))
-                          # iworld               = storeTaskOutputViewer tr nid parentBPInst.bpi_taskId childTaskId iworld
-                          # (mchild_bpr, iworld) = 'DSDS'.read (sdsFocus childTaskId tonicInstances) iworld
-                          # iworld               = case mchild_bpr of
-                                                     Ok (Just {bpi_bpref})
-                                                       # (parent_body, chng, mvid) = updateNode nid (\x -> case x of
-                                                                                                             TVar eid _ _ -> TMApp eid Nothing bpi_bpref.bpr_moduleName bpi_bpref.bpr_taskName [] TNoPrio
-                                                                                                             e -> e
-                                                                                                    ) new_parent_instance.bpi_blueprint.tf_body
-                                                       | chng
-                                                           # parent_body = case mvid of
-                                                                             Just (vid, expr) -> replaceNode vid expr parent_body
-                                                                             _                -> parent_body
-                                                           # parent_bpr  = {new_parent_instance & bpi_blueprint = {new_parent_instance.bpi_blueprint & tf_body = parent_body}}
-                                                           = snd ('DSDS'.write parent_bpr (sdsFocus new_parent_instance.bpi_taskId tonicInstances) iworld)
-                                                       | otherwise = iworld
-                                                     _ = iworld
-                          = iworld
+                          # (new_parent_instance, chng)          = case tr of
+                                                                     (ValueResult (Value x _) _ _ _) -> (addCases` new_parent_instance evalOpts (map (\(eid, f) -> (eid, f x)) cases), True)
+                                                                     _                               -> (new_parent_instance, False)
+                          # iworld                               = storeTaskOutputViewer tr nid parentBPInst.bpi_taskId childTaskId iworld
+                          # (mchild_bpr, iworld)                 = 'DSDS'.read (sdsFocus childTaskId tonicInstances) iworld
+                          # (new_parent_instance, chng`, iworld) = case mchild_bpr of
+                                                                     Ok (Just {bpi_bpref})
+                                                                       # (parent_body, chng, mvid) = updateNode nid (\x -> case x of
+                                                                                                                             TVar eid _ _ -> TMApp eid Nothing bpi_bpref.bpr_moduleName bpi_bpref.bpr_taskName [] TNoPrio
+                                                                                                                             e -> e
+                                                                                                                    ) new_parent_instance.bpi_blueprint.tf_body
+                                                                       | chng
+                                                                           # parent_body = case mvid of
+                                                                                             Just (vid, expr) -> replaceNode vid expr parent_body
+                                                                                             _                -> parent_body
+                                                                           # parent_bpr  = {new_parent_instance & bpi_blueprint = {new_parent_instance.bpi_blueprint & tf_body = parent_body}}
+                                                                           = (parent_bpr, True, iworld)
+                                                                       | otherwise = (new_parent_instance, False, iworld)
+                                                                     _ = (new_parent_instance, False, iworld)
+                          | chng || chng` = snd ('DSDS'.write new_parent_instance (sdsFocus new_parent_instance.bpi_taskId tonicInstances) iworld)
+                          | otherwise     = iworld
                         _ = iworld
           = (tr, iworld)
         _ = eval event (updateAssignStatus evalOpts) taskTree iworld
@@ -661,8 +667,11 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
           # evalOpts     = {evalOpts & tonicOpts = {evalOpts.tonicOpts & currBlueprintExprId = nid}}
           # (tr, iworld) = eval event (updateAssignStatus evalOpts) taskTree iworld
           # iworld       = case tr of
-                             (ValueResult (Value x True) _ _ _) -> markStable tid iworld
-                             _                                  -> iworld
+                             (ValueResult (Value x stable) _ _ _)
+                               #! iworld = trace_n "eval`" iworld
+                               # iworld = addCases evalOpts (map (\(eid, f) -> (eid, f x)) cases) iworld
+                               = if stable (markStable tid iworld) iworld
+                             _ = iworld
           # iworld       = storeTaskOutputViewer tr nid evalOpts.tonicOpts.currBlueprintTaskId tid iworld
           = (tr, iworld)
         _ = eval event (updateAssignStatus evalOpts) taskTree iworld
@@ -814,13 +823,13 @@ setActiveNodes tonicOpts {bpi_taskId = parentTaskId, bpi_activeNodes = parentAct
             | ino == ino` = dropFirstInstances` ino trace
           _ = trace
 
-tonicExtWrapAppLam1 :: !ModuleName !FuncName !ExprId [(ExprId, Int)] !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam1 :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
 tonicExtWrapAppLam1 mn fn nid cases f = \x -> tonicWrapApp mn fn nid cases (f x)
 
-tonicExtWrapAppLam2 :: !ModuleName !FuncName !ExprId [(ExprId, Int)] !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam2 :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
 tonicExtWrapAppLam2 mn fn nid cases f = \x y -> tonicWrapApp mn fn nid cases (f x y)
 
-tonicExtWrapAppLam3 :: !ModuleName !FuncName !ExprId [(ExprId, Int)] !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam3 :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
 tonicExtWrapAppLam3 mn fn nid cases f = \x y z -> tonicWrapApp mn fn nid cases (f x y z)
 
 anyTrue :: ![Bool] -> Bool
