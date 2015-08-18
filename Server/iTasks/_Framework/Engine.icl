@@ -200,7 +200,7 @@ initIWorld mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 		Just path 	= path
 		Nothing 	= appDir</>"sapl"
 	# flavourPath = case mbSDKPath of
-		Just sdkPath 	= sdkPath </> "Dependencies" </> "SAPL" </>"clean.f"
+		Just sdkPath 	= sdkPath </> "Dependencies" </> "clean-sapl" </> "src" </>"clean.f"
 		Nothing 		= saplPath </> "clean.f"
 	# (res,world)				= getFileInfo appPath world
 	| isError res				= abort "Cannot get executable info."
