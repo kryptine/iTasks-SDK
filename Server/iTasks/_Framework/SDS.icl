@@ -128,7 +128,7 @@ write w sds iworld
     = case write` () w sds iworld of
 		(Ok notify, iworld)
 			# instanceNos = [no \\ (TaskId no _) <- 'Set'.toList notify]
-			# iworld = queueRefresh instanceNos [] iworld
+			# iworld = queueRefresh [(i,"Notification for write of " +++ sdsIdentity sds) \\ i <- instanceNos] iworld
 			# iworld = clearInstanceSDSRegistrations instanceNos iworld
 			= (Ok (), iworld)
         (Error e,iworld)    	= (Error e,iworld)
@@ -296,9 +296,11 @@ where
 			//In case of a type mismatch, just ignore (should not happen)
             _                        = (match,nomatch)
 
-modify :: !(r -> w) !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
+modify :: !(r -> (!a,!w)) !(RWShared () r w) !*IWorld -> (!MaybeError TaskException a, !*IWorld)
 modify f sds iworld = case read sds iworld of
-    (Ok r,iworld)      = write (f r) sds iworld
+    (Ok r,iworld)      = let (a,w) = f r in case write w sds iworld of
+		(Ok (),iworld)    = (Ok a,iworld)	
+		(Error e,iworld)  = (Error e, iworld)
     (Error e,iworld)   = (Error e,iworld)
 
 notify :: !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)

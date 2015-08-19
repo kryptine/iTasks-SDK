@@ -9,8 +9,9 @@ import iTasks.API.Core.Client.Tasklet
 import iTasks._Framework.UIDiff
 import qualified iTasks._Framework.SDS as SDS
 
-from Data.Map import qualified newMap, toList, get
+from Data.Map import qualified newMap, toList, fromList, get
 from Data.List import find
+from Data.Queue as DQ import qualified newQueue, dequeue
 
 import System.Time, Math.Random
 import Text.JSON
@@ -57,41 +58,41 @@ controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Nothing}
 	# (mbTaskId, iworld) = createClientTaskInstance task sessionId instanceNo iworld
     = case mbTaskId of
         Ok taskId
-	      # (mbResult,iworld)  = evalTaskInstance instanceNo (RefreshEvent Nothing) iworld
+	      # (mbResult,iworld)  = evalTaskInstance instanceNo (RefreshEvent Nothing "Client init") iworld
 	      = case mbResult of
-	      	Ok (_,_,updates)
-	      				= (Just updates, {TaskState | st & taskId = Just taskId}, iworld)
+	      	Ok (_,_)
+	      				= (Nothing, {TaskState | st & taskId = Just taskId}, iworld)
 	      	_			= (Nothing, {TaskState | st & taskId = Just taskId}, iworld)
         _ = (Nothing, st, iworld)
 
 // Refresh
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} Nothing Nothing Nothing iworld
-	# (mbResult,iworld)	= evalTaskInstance instanceNo (RefreshEvent Nothing) iworld
+	# (mbResult,iworld)	= evalTaskInstance instanceNo (RefreshEvent Nothing "Client refresh") iworld
 	= case mbResult of
-		Ok (_,value,updates)
-					= (Just updates, {TaskState | st & value = Just value}, iworld)
+		Ok (_,value)
+					= (Nothing, {TaskState | st & value = Just value}, iworld)
 		Error msg	= abort msg
 // Focus
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} (Just eventNo) Nothing Nothing iworld
 	# iworld = trace_n "c_focus" iworld
 	# (mbResult,iworld)	= evalTaskInstance instanceNo (FocusEvent eventNo t) iworld
 	= case mbResult of
-		Ok (_,value,updates)
-					= (Just updates, {TaskState | st & value = Just value}, iworld)
+		Ok (_,value)
+					= (Nothing, {TaskState | st & value = Just value}, iworld)
 		Error msg	= abort msg
 // Edit
 controllerFunc taskId st=:{TaskState | sessionId, instanceNo} (Just eventNo) (Just name) (Just jsonval) iworld
 	# (mbResult,iworld)	= evalTaskInstance instanceNo (EditEvent eventNo taskId name (fromString jsonval)) iworld
 	= case mbResult of
-		Ok (_,value,updates)
-					= (Just updates, {TaskState | st & value = Just value}, iworld)
+		Ok (_,value)
+					= (Nothing, {TaskState | st & value = Just value}, iworld)
 		Error msg	= abort msg
 // Action
 controllerFunc taskId st=:{TaskState | sessionId, instanceNo} (Just eventNo) (Just name) Nothing iworld
 	# (mbResult,iworld)	= evalTaskInstance instanceNo (ActionEvent eventNo taskId name) iworld
 	= case mbResult of
-		Ok (_,value,updates)
-					= (Just updates, {TaskState | st & value = Just value}, iworld)
+		Ok (_,value)
+					= (Nothing, {TaskState | st & value = Just value}, iworld)
 		Error msg	= abort msg
 
 newWorld :: *World
@@ -99,17 +100,23 @@ newWorld = undef
 
 getUIUpdates :: !*IWorld -> (!Maybe [(InstanceNo, [String])], *IWorld)
 getUIUpdates iworld
-	= case 'SDS'.read taskOutput iworld of
-		(Ok uiUpdates,iworld)
-			= case 'Data.Map'.toList uiUpdates of
-				[]   = (Nothing, iworld)		
-				msgs 
-					# (_,iworld) = 'SDS'.write 'Data.Map'.newMap taskOutput iworld
-					= (Just (map getUpdates msgs), iworld)
+	= case 'SDS'.read taskInstanceUIs iworld of
+		(Ok uiStates,iworld)
+			= case 'Data.Map'.toList uiStates of
+				[] = (Nothing,iworld)
+				states
+					# (_,iworld) = 'SDS'.write ('Data.Map'.fromList (map clearOutput states)) taskInstanceUIs iworld
+					= (Just (map getUpdates states), iworld)
 		(_,iworld)
 			= (Nothing, iworld)
 where
-	getUpdates (instanceNo,upds) = (instanceNo, [toString (encodeUIUpdates upds)])
+	getUpdates (instanceNo,UIEnabled _ _ upds) = (instanceNo, [toString (encodeUIUpdates (toList upds))])
+	toList q = case 'DQ'.dequeue q of //TODO SHOULD BE IN Data.Queue
+		(Nothing,q) 	= []
+		(Just x,q) 		= [x:toList q]
+
+	clearOutput (instanceNo,UIEnabled version refUI _) = (instanceNo, UIEnabled version refUI 'DQ'.newQueue)
+	clearOutput state = state
 
 createClientIWorld :: !String !InstanceNo -> *IWorld
 createClientIWorld serverURL currentInstance
@@ -145,7 +152,6 @@ createClientIWorld serverURL currentInstance
           ,cachedShares         = 'Data.Map'.newMap
 		  ,exposedShares		= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
-		  ,refreshQueue			= []
 		  ,shutdown				= False
           ,random               = genRandInt seed
           ,ioTasks              = {done=[],todo=[]}

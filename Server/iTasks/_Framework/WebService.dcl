@@ -6,7 +6,8 @@ definition module iTasks._Framework.WebService
 from Internet.HTTP					import :: HTTPRequest, :: HTTPResponse
 from iTasks._Framework.Engine		import :: ServiceFormat, :: ConnectionType
 from iTasks._Framework.IWorld		import :: IWorld
-from iTasks._Framework.Task 			import :: Task, :: ConnectionTask
+from iTasks._Framework.Task 	    import :: Task, :: ConnectionTask
+from iTasks._Framework.TaskState 	import :: TIUIState
 from iTasks._Framework.UIDiff 		import :: UIUpdate
 from iTasks.API.Core.Types	        import :: InstanceNo
 from iTasks._Framework.SDS 			import :: RWShared
@@ -22,7 +23,7 @@ httpServer :: !Int !Int ![(!String -> Bool
 
 webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
                  (!(String -> Bool)
-                 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
-                 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
-                 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) ConnectionType *IWorld -> (!Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
+                 ,!(HTTPRequest (Map InstanceNo TIUIState) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
+                 ,!(HTTPRequest (Map InstanceNo TIUIState) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
+                 ,!(HTTPRequest (Map InstanceNo TIUIState) ConnectionType *IWorld -> (!Maybe (Map InstanceNo TIUIState), !*IWorld))
                  ) | iTask a

@@ -28,7 +28,7 @@ derive gEq				Task
 :: Event	= EditEvent		!EventNo !TaskId !String !JSONNode		//Update something in an interaction: Task id, edit name, value
 			| ActionEvent	!EventNo !TaskId !String				//Progress in a step combinator: Task id, action id
 			| FocusEvent	!EventNo !TaskId						//Update last event time without changing anything: Task id
-			| RefreshEvent	!(Maybe EventNo)						//Nop event, just recalcalutate the entire task instance
+			| RefreshEvent	!(Maybe EventNo) !String	    		//Nop event, just recalcalutate the entire task instance (the string is the reason for the refresh)
             | ResetEvent                                            //Nop event, recalculate the entire task and reset output stream
 
 :: EventNo	:== Int	

@@ -14,9 +14,11 @@ import iTasks._Framework.SDSService
 import iTasks._Framework.Client.Override
 
 import qualified Data.Map as DM
+import qualified Data.Queue as DQ
+from Data.Queue import :: Queue
 
 //Derives required for storage of UI definitions
-derive JSONEncode TaskResult, TaskEvalInfo, TaskRep, TIValue, ParallelTaskState, ParallelTaskChange
+derive JSONEncode TaskResult, TaskEvalInfo, TaskRep, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
 derive JSONEncode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONEncode UIEmpty, UIForm, UIBlock
@@ -24,8 +26,9 @@ derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, U
 derive JSONEncode UISize, UIBound, UIDirection, UIWindowType,  UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 derive JSONEncode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 derive JSONEncode UIUpdate, UIStep
+derive JSONEncode Queue, Event
 
-derive JSONDecode TaskResult, TaskEvalInfo, TaskRep, TIValue, ParallelTaskState, ParallelTaskChange
+derive JSONDecode TaskResult, TaskEvalInfo, TaskRep, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
 derive JSONDecode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONDecode UIEmpty, UIForm, UIBlock
@@ -33,6 +36,7 @@ derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, U
 derive JSONDecode UISize, UIBound, UIDirection, UIWindowType, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 derive JSONDecode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 derive JSONDecode UIUpdate, UIStep
+derive JSONDecode Queue, Event
 
 derive gDefault TIMeta
 derive gEq ParallelTaskChange
@@ -47,6 +51,11 @@ taskInstanceIndex = sdsFocus "instances" (cachedJSONFileStore NS_TASK_INSTANCES 
 nextInstanceNo :: RWShared () Int Int
 nextInstanceNo = sdsFocus "increment" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just 1))
 
+
+//Event queues of task instances
+taskEvents :: RWShared () (Queue (InstanceNo,Event)) (Queue (InstanceNo,Event))
+taskEvents = sdsFocus "events" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just 'DQ'.newQueue))
+
 //Instance evaluation state
 taskInstanceReduct :: RWShared InstanceNo TIReduct TIReduct
 taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") (cachedJSONFileStore NS_TASK_INSTANCES True False False Nothing)
@@ -55,20 +64,27 @@ taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") 
 taskInstanceValue :: RWShared InstanceNo TIValue TIValue
 taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") (cachedJSONFileStore NS_TASK_INSTANCES True False False Nothing)
 
-//Last computed user interface for task instance
-taskInstanceRep :: RWShared InstanceNo TaskRep TaskRep
-taskInstanceRep = sdsTranslate "taskInstanceRep" (\t -> t +++> "-rep") (cachedJSONFileStore NS_TASK_INSTANCES True False False Nothing)
-
+//Local shared data
 taskInstanceShares :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
 taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
+
+//UIS of task instances
+taskInstanceUIs :: RWShared () (Map InstanceNo TIUIState) (Map InstanceNo TIUIState)
+taskInstanceUIs = sdsFocus "taskInstanceUIs" (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
+
+taskInstanceUI :: RWShared InstanceNo TIUIState TIUIState
+taskInstanceUI = sdsLens "taskInstanceUI" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceUIs
+where
+	read instanceNo uis = case 'DM'.get instanceNo uis of
+		Just ui = Ok ui
+		Nothing = Error (exception ("Could not find task instance UI for instance "<+++ instanceNo))
+
+	write instanceNo uis ui = Ok (Just ('DM'.put instanceNo ui uis))
+	notify instanceNo _ = (==) instanceNo
 
 //Task instance parallel lists
 taskInstanceParallelTaskLists :: RWShared InstanceNo (Map TaskId [ParallelTaskState]) (Map TaskId [ParallelTaskState])
 taskInstanceParallelTaskLists = sdsTranslate "taskInstanceParallelLists" (\t -> t +++> "-tasklists") (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
-
-//Output of task instances
-taskOutput :: RWShared () (Map InstanceNo [UIUpdate]) (Map InstanceNo [UIUpdate])
-taskOutput = sdsFocus "output" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just 'DM'.newMap))
 
 newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceNo iworld
@@ -97,7 +113,7 @@ createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},cur
     # constants = {InstanceConstants|instanceKey="client",session=True,listId=TaskId 0 0,build=buildID,issuedAt=DateTime localDate localTime}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-  `b` \iworld -> 'SDS'.write (TaskRep emptyUI) (sdsFocus instanceNo taskInstanceRep) iworld
+  `b` \iworld -> 'SDS'.write UIDisabled (sdsFocus instanceNo taskInstanceUI) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
@@ -110,7 +126,7 @@ createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={loc
     # constants             = {InstanceConstants|instanceKey=instanceKey,session=True,listId=TaskId 0 0,build=buildID,issuedAt=DateTime localDate localTime}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-  `b` \iworld -> 'SDS'.write (TaskRep emptyUI) (sdsFocus instanceNo taskInstanceRep) iworld
+  `b` \iworld -> 'SDS'.write UIDisabled (sdsFocus instanceNo taskInstanceUI) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> (Ok (instanceNo,instanceKey), iworld)
 
@@ -125,11 +141,11 @@ createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId
     # constants            = {InstanceConstants|instanceKey=instanceKey,session=False,listId=listId,build=buildID,issuedAt=DateTime localDate localTime}
     =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-  `b` \iworld -> 'SDS'.write (TaskRep emptyUI) (sdsFocus instanceNo taskInstanceRep) iworld
+  `b` \iworld -> 'SDS'.write UIDisabled (sdsFocus instanceNo taskInstanceUI) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> ( Ok (TaskId instanceNo 0)
 				 , if refreshImmediate
-                      (queueUrgentRefresh [instanceNo] ["First refresh of detached instance "<+++ instanceNo] iworld)
+                      (queueRefresh [(instanceNo,"First refresh of detached instance "<+++ instanceNo)] iworld)
                       iworld)
 
 createReduct :: !TonicOpts !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
@@ -155,7 +171,7 @@ replaceTaskInstance instanceNo task iworld=:{server={buildID},current={taskTime}
     # (meta, iworld)        = 'SDS'.read (sdsFocus instanceNo taskInstance) iworld
     | isError meta          = (liftError meta, iworld)
     =            'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-  `b` \iworld -> 'SDS'.write (TaskRep emptyUI) (sdsFocus instanceNo taskInstanceRep) iworld
+  `b` \iworld -> 'SDS'.write UIDisabled (sdsFocus instanceNo taskInstanceUI) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> let (_,Just constants,progress,attributes) = fromOk meta
                  in  'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=buildID},progress,attributes) (sdsFocus instanceNo taskInstance) iworld
@@ -166,10 +182,9 @@ deleteTaskInstance instanceNo iworld
     //Delete all states
     # iworld        = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-reduct") iworld
     # iworld        = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-value") iworld
-    # iworld        = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-rep") iworld
     # iworld        = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-shares") iworld
     # iworld        = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-tasklists") iworld
-    # (_,iworld)    = 'SDS'.modify (\is -> [i \\ i=:(no,_,_,_) <- is | no <> instanceNo]) (sdsFocus defaultValue filteredInstanceIndex) iworld
+    # (_,iworld)    = 'SDS'.modify (\is -> ((),[i \\ i=:(no,_,_,_) <- is | no <> instanceNo])) (sdsFocus defaultValue filteredInstanceIndex) iworld
     = iworld
 
 //Filtered interface to the instance index. This interface should always be used to access instance data
@@ -224,10 +239,11 @@ where
         # i = if includeAttributes (maybe i (\attributes -> {TIMeta|i & attributes = attributes}) mbA) i
         = {TIMeta|i & instanceNo = iNo}
 
-    filterPredicate {InstanceFilter|onlyInstanceNo,notInstanceNo,onlySession} i
+    filterPredicate {InstanceFilter|onlyInstanceNo,notInstanceNo,onlySession,matchAttribute} i
         =   (maybe True (\m -> isMember i.TIMeta.instanceNo m) onlyInstanceNo)
         &&  (maybe True (\m -> not (isMember i.TIMeta.instanceNo m)) notInstanceNo)
         &&  (maybe True (\m -> i.TIMeta.session == m) onlySession)
+		&&  (maybe True (\(mk,mv) -> (maybe False ((==) mv) ('DM'.get mk i.TIMeta.attributes))) matchAttribute)
 
     notifyFun _ ws qfilter = any (filterPredicate qfilter) ws
 
@@ -235,7 +251,8 @@ where
 taskInstance :: RWShared InstanceNo InstanceData InstanceData
 taskInstance = sdsLens "taskInstance" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) filteredInstanceIndex
 where
-    param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True}
+    param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
+               ,includeConstants=True,includeProgress=True,includeAttributes=True}
     read no [data]  = Ok data
     read no _       = Error (exception ("Could not find task instance "<+++ no))
     write no data   = Ok (Just [data])
@@ -244,7 +261,8 @@ where
 taskInstanceConstants :: ROShared InstanceNo InstanceConstants
 taskInstanceConstants = sdsLens "taskInstanceConstants" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) filteredInstanceIndex
 where
-    param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,includeConstants=True,includeProgress=False,includeAttributes=False}
+    param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
+               ,includeConstants=True,includeProgress=False,includeAttributes=False}
     read no [(_,Just c,_,_)]    = Ok c
     read no _                   = Error (exception ("Could not find constants for task instance "<+++ no))
     write _ _                   = Ok Nothing
@@ -253,7 +271,8 @@ where
 taskInstanceProgress :: RWShared InstanceNo InstanceProgress InstanceProgress
 taskInstanceProgress = sdsLens "taskInstanceProgress" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) filteredInstanceIndex
 where
-    param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,includeConstants=False,includeProgress=True,includeAttributes=False}
+    param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
+               ,includeConstants=False,includeProgress=True,includeAttributes=False}
     read no [(_,_,Just p,_)]    = Ok p
     read no _                   = Error (exception ("Could not find progress for task instance "<+++ no))
     write no [(n,c,_,a)] p      = Ok (Just [(n,c,Just p,a)])
@@ -263,7 +282,8 @@ where
 taskInstanceAttributes :: RWShared InstanceNo TaskAttributes TaskAttributes
 taskInstanceAttributes = sdsLens "taskInstanceAttributes" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) filteredInstanceIndex
 where
-    param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,includeConstants=False,includeProgress=False,includeAttributes=True}
+    param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
+               ,includeConstants=False,includeProgress=False,includeAttributes=True}
     read no [(_,_,_,Just a)]    = Ok a
     read no _                   = Error (exception ("Could not find attributes for task instance "<+++ no))
     write no [(n,c,p,_)] a      = Ok (Just [(n,c,p,Just a)])
@@ -276,7 +296,7 @@ topLevelTaskList = sdsLens "topLevelTaskList" param (SDSRead read) (SDSWrite wri
                      (sdsFocus filter filteredInstanceIndex >+| currentInstanceShare)
 where
     param _ = ()
-    filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False
+    filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False,matchAttribute=Nothing
              ,includeConstants=True,includeProgress=True,includeAttributes=True}
     read _ (instances,curInstance) = Ok (TaskId 0 0, items)
     where
@@ -405,7 +425,7 @@ where
 
 
     param2 _ (listId,items) = {InstanceFilter|onlyInstanceNo=Just [instanceNo \\ {TaskListItem|taskId=(TaskId instanceNo _),detached} <- items | detached],notInstanceNo=Nothing
-                     ,onlySession=Nothing, includeConstants = False, includeAttributes = True,includeProgress = True}
+                     ,onlySession=Nothing, matchAttribute=Nothing, includeConstants = False, includeAttributes = True,includeProgress = True}
 
     read ((listId,items),detachedInstances)
         # detachedProgress = 'DM'.fromList [(TaskId instanceNo 0,progress) \\ (instanceNo,_,Just progress,_) <- detachedInstances]

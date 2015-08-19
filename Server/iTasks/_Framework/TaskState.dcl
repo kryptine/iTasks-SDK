@@ -4,6 +4,8 @@ import iTasks.API.Core.Types
 
 from iTasks._Framework.Task	import :: TaskTime, :: TaskResult, :: TaskRep, :: EventNo, :: TonicOpts
 from iTasks._Framework.Task	import :: TaskException
+from iTasks._Framework.UIDiff import :: UIUpdate
+from Data.Queue import :: Queue
 
 derive JSONEncode TIMeta, TIReduct, TaskTree
 derive JSONDecode TIMeta, TIReduct, TaskTree
@@ -39,6 +41,12 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 :: TIValue
    = TIValue !(TaskValue JSONNode)
    | TIException !Dynamic !String
+
+// UI State
+:: TIUIState
+	= UIDisabled 								//The UI is disabled (e.g. when nobody is viewing the task)
+	| UIEnabled !Int !TaskRep !(Queue UIUpdate) //The UI is enabled and streams incremental diffs, a version number and the previous task rep are stored for comparision
+	| UIException !String 						//An unhandled exception occurred and the UI should only show the error message
 
 :: TaskTree
 	= TCInit		            !TaskId !TaskTime													//Initial state for all tasks

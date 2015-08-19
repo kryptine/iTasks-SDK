@@ -56,6 +56,7 @@ allTaskInstances                :: ROShared () [TaskInstance]
 detachedTaskInstances	        :: ROShared () [TaskInstance] //Exclude sessions
 taskInstanceByNo                :: RWShared InstanceNo TaskInstance TaskAttributes
 taskInstanceAttributesByNo      :: RWShared InstanceNo TaskAttributes TaskAttributes
+taskInstancesByAttribute		:: ROShared (!String,!String) [TaskInstance] //Parameter is (key,value)
 
 // Application
 applicationName			:: ReadOnlyShared String	// Application name

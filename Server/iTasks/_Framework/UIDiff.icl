@@ -26,7 +26,7 @@ derive JSONEncode UITreeNode, UIActionOpts, UIFSizeOpts, UISizeOpts, UIHSizeOpts
 //TODO Make a good diffViewports function that considers also the other parts of a viewport
 diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIUpdate],!UIEditletDiffs)
 diffUIDefinitions _ def ResetEvent editletDiffs
-    # (updates, editletDiffs) = diffUIDefinitions emptyUI def (RefreshEvent Nothing) editletDiffs
+    # (updates, editletDiffs) = diffUIDefinitions emptyUI def (RefreshEvent Nothing "Converted from ResetEvent by diff") editletDiffs
     = ([UIUpdate [] [("reset",[])]:updates],editletDiffs)
 diffUIDefinitions {UIDef|content=UIFinal (UIViewport iOpts1 opts1),windows=w1} {UIDef|content=UIFinal vp2=:(UIViewport iOpts2 opts2),windows=w2} event editletDiffs
 	= (

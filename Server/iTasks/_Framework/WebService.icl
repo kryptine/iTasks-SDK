@@ -6,6 +6,7 @@ import Data.Maybe, Data.Functor
 from Data.Map import :: Map, :: Size
 import qualified Data.List as DL
 import qualified Data.Map as DM
+import qualified Data.Queue as DQ
 import qualified iTasks._Framework.SDS as SDS
 
 import System.Time, Text, Text.JSON, Internet.HTTP, Data.Error
@@ -46,9 +47,9 @@ DEFAULT_THEME :== "gray"
 // unauthorized downloading of documents and DDOS uploading.
 webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
 						 (!(String -> Bool)
-                         ,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
-						 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
-						 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) ConnectionType *IWorld -> (!Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
+                         ,!(HTTPRequest (Map InstanceNo TIUIState) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
+						 ,!(HTTPRequest (Map InstanceNo TIUIState) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
+						 ,!(HTTPRequest (Map InstanceNo TIUIState) ConnectionType *IWorld -> (!Maybe (Map InstanceNo TIUIState), !*IWorld))
 						 ) | iTask a
 webService url task defaultFormat = (matchFun url,reqFun` url task defaultFormat,dataFun,disconnectFun)
 where
@@ -99,7 +100,9 @@ where
                         (Error (_,err), iworld)
 				            = (errorResponse err, Nothing, Nothing, iworld)
                         (Ok (instanceNo,instanceKey),iworld)
+							# iworld = queueEvent instanceNo (RefreshEvent Nothing "First refresh") iworld
 				            = (itwcStartResponse url instanceNo instanceKey (theme opts) serverName customCSS, Nothing, Nothing, iworld)
+				/*
                 JSONPlain
                     = case createTaskInstance (task req) iworld of
                         (Error (_,err), iworld)
@@ -109,6 +112,7 @@ where
                                 (Error err,iworld)            = (errorResponse err, Nothing, Nothing, iworld)
 					            (Ok (_,Value val _,_),iworld) = (jsonResponse val, Nothing, Nothing, iworld)
 					            (Ok (_,NoValue,_),iworld)     = (jsonResponse JSONNull, Nothing, Nothing, iworld)
+				*/
 			    _
 				    = (jsonResponse (JSONString "Unknown service format"), Nothing, Nothing, iworld)
         | otherwise
@@ -116,7 +120,7 @@ where
                 ["gui-stream"]
                     //Stream messages for multiple instances
                     # iworld            = updateInstanceConnect req.client_name instances iworld
-					# (messages,output) = popOutput instances output //TODO: Check keys
+					# (messages,output) = dequeueOutput instances output //TODO: Check keys
                     = (eventsResponse messages, Just (EventSourceConnection instances), Just output, iworld)
                 [instanceNo,instanceKey]
                     = (itwcStartResponse url instanceNo instanceKey (theme []) serverName customCSS, Nothing, Nothing, iworld)
@@ -124,27 +128,14 @@ where
                     //Load task instance and edit / evaluate
                     # instanceNo         = toInt instanceNo
                     # iworld             = updateInstanceLastIO [instanceNo] iworld
-                    # (mbResult, iworld) = evalTaskInstance instanceNo event iworld
-                    # (json, iworld) = case mbResult of
-                        Error err
-					        = (JSONObject [("error",JSONString err)],iworld)
-                        Ok (lastEventNo,value,updates)
-                            //Determine expiry date	
-                            # (expiresIn,iworld) = getResponseExpiry instanceNo iworld
-                            # json	= JSONObject [("instance",JSONInt instanceNo)
-                                                 ,("expiresIn",toJSONInField expiresIn)
-                                                 ,("lastEvent",JSONInt lastEventNo)
-                                                 ,("updates",encodeUIUpdates updates)
-                                                 ]
-                            = (json,iworld)
-                        _
-					        = (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
+					# iworld 			 = queueEvent instanceNo event iworld
+					# json				 = JSONObject [("instance",JSONInt instanceNo)]
                     = (jsonResponse json, Nothing, Nothing, iworld)
                 //Stream messages for a specific instance
                 [instanceNo,instanceKey,"gui-stream"]
                     # instances         = [toInt instanceNo]
                     # iworld            = updateInstanceConnect req.client_name instances iworld
-					# (messages,output) = popOutput instances output
+					# (messages,output) = dequeueOutput instances output
                     = (eventsResponse messages, Just (EventSourceConnection instances), Nothing, iworld)
                 _
 				    = (errorResponse "Requested service format not available for this task", Nothing, Nothing, iworld)
@@ -174,7 +165,7 @@ where
 				    Just (taskId,actionId)	= ActionEvent eventNo (fromString taskId) actionId
 				    _	= case (fromJSON (fromString focusEventParam)) of
 					    Just taskId			= FocusEvent eventNo (fromString taskId)
-					    _   = if (resetEventParam == "") (RefreshEvent (Just eventNo)) ResetEvent
+					    _   = if (resetEventParam == "") (RefreshEvent (Just eventNo) "Browser refresh") ResetEvent
 
         webSocketHandShake key = base64Encode digest
         where
@@ -183,7 +174,7 @@ where
     dataFun req output mbData (WebSocketConnection instances) iworld
         = (maybe [] (\d -> [d]) mbData,False,(WebSocketConnection instances),Nothing,iworld) //TEMPORARY ECHO WEBSOCKET
 	dataFun req output _ (EventSourceConnection instances) iworld
-		# (messages,output) = popOutput instances output
+		# (messages,output) = dequeueOutput instances output
 		= case filter (not o isEmpty o snd) messages of //Ignore empty updates
 			[]	= ([],False,(EventSourceConnection instances),Nothing,iworld)
             messages	
@@ -193,12 +184,18 @@ where
 	disconnectFun _ _ (EventSourceConnection instances) iworld    = (Nothing, updateInstanceDisconnect instances iworld)
 	disconnectFun _ _ _ iworld                                    = (Nothing, iworld)
 
-	popOutput :: ![InstanceNo] (Map InstanceNo [UIUpdate]) -> (![(!InstanceNo,![UIUpdate])],(Map InstanceNo [UIUpdate]))
-	popOutput instances taskOutput
-    	# taskOutput 	= 'DM'.toList taskOutput
-    	# outUpdates    = [m \\ m=:(instanceNo,updates) <- taskOutput | isMember instanceNo instances]
-    	# taskOutput    = [m \\ m=:(instanceNo,_) <- taskOutput | not (isMember instanceNo instances)]
-		= (outUpdates, 'DM'.fromList taskOutput)
+	dequeueOutput :: ![InstanceNo] !(Map InstanceNo TIUIState) -> (![(!InstanceNo,![UIUpdate])],!Map InstanceNo TIUIState)
+	dequeueOutput [] states = ([],states)
+	dequeueOutput [i:is] states
+		# (output,states) = dequeueOutput is states
+		= case 'DM'.get i states of
+			Just (UIEnabled version ref out)
+				= ([(i,toList out):output],'DM'.put i (UIEnabled version ref 'DQ'.newQueue) states)
+			_ 		= (output,states)
+	where
+		toList q = case 'DQ'.dequeue q of
+			(Nothing,q) 	= []
+			(Just x,q) 		= [x:toList q]
 
 	jsonResponse json
 		= {okResponse & rsp_headers = [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = toString json}

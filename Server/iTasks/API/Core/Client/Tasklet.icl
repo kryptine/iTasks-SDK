@@ -67,7 +67,7 @@ where
 //		= (ValueResult NoValue (taskInfo ts) norep context, printlnI ("refresh, no session id") iworld)
 
 	// Refresh: server restart. anything else?
-	taskFunc (RefreshEvent _) taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
+	taskFunc (RefreshEvent _ _) taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
 		# (rep, _, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld
 
 		//No! because state and value will be out of sync!
