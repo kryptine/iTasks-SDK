@@ -525,19 +525,26 @@ stepEval` cases nid childTaskId=:(TaskId ino tno) eval event evalOpts=:{TaskEval
   = case taskResult of
       ValueResult (Value x _) _ (TaskRep uiDef) _
         # iworld = addCases evalOpts (map (\(eid, f) -> (eid, f x)) cases) iworld
-        // TODO
-        // This LC filters out the actions for the current task. For some reason, we sometimes
-        // get actions for the _next_ step here. Why is this? Ideally, we should remove this LC here.
-        = case [a \\ a <- uiDefActions uiDef | a.UIAction.taskId == toString ino +++ "-" +++ toString tno] of
-            [] = (taskResult, iworld)
-            xs
-              # focus         = sdsFocus (tonicOpts.currBlueprintTaskId, nid) tonicActionsForTaskIDAndExpr
-              # (mas, iworld) = 'DSDS'.read focus iworld
-              # iworld        = case mas of
-                                  Ok as | as === xs -> iworld
-                                  _                 -> snd ('DSDS'.write xs focus iworld)
-              = (taskResult, iworld)
+        # iworld = storeActions uiDef iworld
+        = (taskResult, iworld)
+      ValueResult _ _ (TaskRep uiDef) _
+        # iworld = storeActions uiDef iworld
+        = (taskResult, iworld)
       _ = (taskResult, iworld)
+  where
+  storeActions uiDef iworld
+    // TODO
+    // This LC filters out the actions for the current task. For some reason, we sometimes
+    // get actions for the _next_ step here. Why is this? Ideally, we should remove this LC here.
+    = case [a \\ a <- uiDefActions uiDef | a.UIAction.taskId == toString ino +++ "-" +++ toString tno] of
+        [] = iworld
+        xs
+          # focus         = sdsFocus (tonicOpts.currBlueprintTaskId, nid) tonicActionsForTaskIDAndExpr
+          # (mas, iworld) = 'DSDS'.read focus iworld
+          # iworld        = case mas of
+                              Ok as | as === xs -> iworld
+                              _                 -> snd ('DSDS'.write xs focus iworld)
+          = iworld
 
 import StdDebug
 derive class iTask TonicOpts
@@ -668,7 +675,6 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
           # (tr, iworld) = eval event (updateAssignStatus evalOpts) taskTree iworld
           # iworld       = case tr of
                              (ValueResult (Value x stable) _ _ _)
-                               #! iworld = trace_n "eval`" iworld
                                # iworld = addCases evalOpts (map (\(eid, f) -> (eid, f x)) cases) iworld
                                = if stable (markStable tid iworld) iworld
                              _ = iworld
@@ -1097,7 +1103,7 @@ showBlueprintInstance rs bpi selDetail enabledSteps compact depth
                                                                          ('DM'.put eid v m)
                                                                          m) 'DM'.newMap outputs
                    in updateInformation ()
-                        [imageUpdate id (trace_n "showBlueprint dynamic" mkInstanceImage rs bpi outputs` enabledSteps selDetail compact) (\_ _ -> Nothing) (const id)]
+                        [imageUpdate id (mkInstanceImage rs bpi outputs` enabledSteps selDetail compact) (\_ _ -> Nothing) (const id)]
                         { ActionState
                         | state  = { tis_task    = bpi.bpi_blueprint
                                    , tis_depth   = depth
@@ -1108,7 +1114,7 @@ showStaticBlueprint :: ![TaskAppRenderer] !BlueprintIdent !TonicFunc !Bool !Scal
                     -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showStaticBlueprint rs bpref task compact depth
   = updateInformation ()
-      [imageUpdate id (trace_n "showBlueprint static" mkStaticImage rs bpref compact) (\_ _ -> Nothing) (const id)]
+      [imageUpdate id (mkStaticImage rs bpref compact) (\_ _ -> Nothing) (const id)]
       { ActionState
       | state  = { tis_task    = task
                  , tis_depth   = depth
@@ -1316,7 +1322,7 @@ getModuleAndTask allbps mn tn
   >>~ \mod -> case 'DM'.get mn allbps `b` 'DM'.get tn of
                 Just tt -> return (mod, tt)
                 _       -> throw "Can't get module and task"
-
+import StdDebug
 viewInstance :: ![TaskAppRenderer] !(Shared NavStack) !DynamicDisplaySettings !BlueprintInstance
                 !(Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int))) !ClickMeta
              -> Task ()
