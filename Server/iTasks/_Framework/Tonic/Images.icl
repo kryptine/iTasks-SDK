@@ -151,7 +151,7 @@ tExpr2Image inh (TLet pats bdy)                  tsrc
   | otherwise       = tLet inh pats bdy tsrc
 tExpr2Image inh (TIf eid c t e)                  tsrc = tIf       inh eid c t e tsrc
 tExpr2Image inh (TCase eid e pats)               tsrc = tCase     inh eid e pats tsrc
-tExpr2Image inh (TVar eid pp _)                  tsrc = tVar      inh eid pp tsrc
+tExpr2Image inh (TVar eid pp ptr)                tsrc = tVar      inh eid pp ptr tsrc
 tExpr2Image inh (TLit pp)                        tsrc = tLit      inh pp tsrc
 tExpr2Image inh (TPPExpr pp)                     tsrc = tPPExpr   inh pp tsrc
 tExpr2Image inh (TExpand args tt)                tsrc = tExpand   inh args tt tsrc
@@ -289,17 +289,19 @@ instance toString (Maybe a) | toString a where
   toString (Just x) = "Just " +++ toString x
   toString _        = "Nothing"
 
-tVar :: !InhMkImg !ExprId !String !*TagSource -> *(!SynMkImg, !*TagSource)
-tVar inh eid pp tsrc
+tVar :: !InhMkImg !ExprId !String !Int !*TagSource -> *(!SynMkImg, !*TagSource)
+tVar inh eid pp ptr tsrc
+  #! pp = if (pp == "_x") ("x" +++ toString ptr) pp
+  #! txtImg = text ArialRegular10px pp
   | inh.inh_in_mapp || inh.inh_in_fapp || inh.inh_in_case
-      = ( { syn_img       = text ArialRegular10px pp
+      = ( { syn_img       = txtImg
           , syn_status    = TNotActive
           , syn_stability = TStable
           }
         , tsrc)
   | otherwise
       #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (ArialRegular10px.fontysize + 10.0)) <@< { dash = [5, 5] }
-      #! img = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing
+      #! img = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, txtImg] Nothing
       = ( { syn_img       = img
           , syn_status    = TNotActive
           , syn_stability = TStable
@@ -351,6 +353,27 @@ tIf inh eid cexpr texpr eexpr [(contextTag, _) : tsrc]
     , tsrc)
 
 tCase :: !InhMkImg !ExprId !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!SynMkImg, !*TagSource)
+//tCase inh eid texpr=:(TVar _ "_x" ptr) pats tsrc
+  //#! syns = mapSt (tExpr2Image inh o snd) pats tsrc
+  //#! mbranch              = case inh.inh_bpinst of
+                            //Just bpi -> 'DM'.get eid bpi.bpi_case_branches
+                            //_        -> Nothing
+  //#! pats`                = case mbranch of
+                            //Just bridx -> map (\(n, (p, t)) -> (Just p, t, True, n <> bridx)) (strictTRZip2 [0..] pats)
+                            //_          -> map (\(p, t) -> (Just p, t, True, False)) pats
+  //#! (syn_branches, tsrc) = tBranches inh tExpr2Image False True pats` contextTag tsrc
+  //#! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} texpr tsrc
+  //#! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
+  //#! lineAct              = case syn_branches.syn_status of
+                            //TNotActive -> (TNotActive, TNoVal)
+                            //_          -> (TAllDone, syn_branches.syn_stability)
+  //#! img                  = beside (repeat AtMiddleY) [] [diamond, tHorizConn lineAct, syn_branches.syn_img] Nothing
+  //#! patMap = 'DM'.singleton ptr (map fst pats)
+  //= ( { syn_img       = img
+      //, syn_status    = syn_branches.syn_status
+      //, syn_stability = syn_branches.syn_stability
+      //}
+    //, tsrc)
 tCase inh eid texpr pats [(contextTag, _) : tsrc]
   #! mbranch              = case inh.inh_bpinst of
                               Just bpi -> 'DM'.get eid bpi.bpi_case_branches

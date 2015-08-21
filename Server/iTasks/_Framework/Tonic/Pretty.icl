@@ -12,6 +12,7 @@ ppTExpr :: !TExpr -> String
 ppTExpr tcexpr = ppTExpr` 0 tcexpr
 
 ppTExpr` :: !Int !TExpr -> String
+ppTExpr` _ (TVar _ "_x" ptr)       = sugarPP ("x" +++ toString ptr)
 ppTExpr` _ (TVar _ pp _)           = sugarPP pp
 ppTExpr` _ (TPPExpr pp)            = sugarPP pp
 ppTExpr` _ (TLit lit)              = ppLit lit
