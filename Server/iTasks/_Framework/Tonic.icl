@@ -522,15 +522,14 @@ stepEval cases eval nid event evalOpts taskTree iworld
 
 stepEval` cases nid childTaskId=:(TaskId ino tno) eval event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree iworld
   # (taskResult, iworld) = eval event evalOpts taskTree iworld
-  = case taskResult of
-      ValueResult (Value x _) _ (TaskRep uiDef) _
-        # iworld = addCases evalOpts (map (\(eid, f) -> (eid, f x)) cases) iworld
-        # iworld = storeActions uiDef iworld
-        = (taskResult, iworld)
-      ValueResult _ _ (TaskRep uiDef) _
-        # iworld = storeActions uiDef iworld
-        = (taskResult, iworld)
-      _ = (taskResult, iworld)
+  # iworld               = case taskResult of
+                             ValueResult (Value x _) _ (TaskRep uiDef) _
+                               # iworld = addCases evalOpts (map (\(eid, f) -> (eid, f x)) cases) iworld
+                               = storeActions uiDef iworld
+                             ValueResult _ _ (TaskRep uiDef) _
+                               = storeActions uiDef iworld
+                             _ = iworld
+  = (taskResult, iworld)
   where
   storeActions uiDef iworld
     // TODO
