@@ -512,14 +512,14 @@ renderParallelContainer inh eid moduleName taskName descr syn_branches uContextT
                                    { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}
                                    , click_origin_mbnodeId}) -> bpident_moduleName == inh.inh_bpref.bpr_moduleName && bpident_taskName == inh.inh_bpref.bpr_taskName && click_origin_mbnodeId == Just eid
                             _                                -> False
-  #! valAnchor          = circle (px 12.0) <@< { onclick = openDetails clickMeta, local = False }
-                                           <@< { fill = case stability of
-                                                          TNoVal    -> TonicWhite
-                                                          TStable   -> TonicBlue
-                                                          TUnstable -> TonicGreen
-                                               }
-                                           <@< { stroke = if valNodeIsSelected TonicDarkBlue TonicBlack }
-                                           <@< { strokewidth = if valNodeIsSelected (px 3.0) (px 1.0) }
+  #! valAnchor          = anchor <@< { onclick = openDetails clickMeta, local = False }
+                                 <@< { fill = case stability of
+                                                TNoVal    -> TonicWhite
+                                                TStable   -> TonicBlue
+                                                TUnstable -> TonicGreen
+                                     }
+                                 <@< { stroke = if valNodeIsSelected TonicDarkBlue TonicBlack }
+                                 <@< { strokewidth = if valNodeIsSelected (px 3.0) (px 1.0) }
   #! inclArr            = beside (repeat AtMiddleY) [] (if isDynamic [taskApp, valAnchor] [taskApp]) Nothing
   = ( { syn_img       = inclArr
       , syn_status    = if isActive TIsActive (if (isJust mPrevActiveTid) TAllDone TNotActive)
@@ -670,14 +670,14 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
                                    { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}
                                    , click_origin_mbnodeId}) -> bpident_moduleName == inh.inh_bpref.bpr_moduleName && bpident_taskName == inh.inh_bpref.bpr_taskName && click_origin_mbnodeId == Just eid
                             _                                -> False
-  #! valAnchor          = circle (px 12.0) <@< { onclick = openDetails clickMeta, local = False }
-                                           <@< { fill = case stability of
-                                                          TNoVal    -> TonicWhite
-                                                          TStable   -> TonicBlue
-                                                          TUnstable -> TonicGreen
-                                               }
-                                           <@< { stroke = if valNodeIsSelected TonicDarkBlue TonicBlack }
-                                           <@< { strokewidth = if valNodeIsSelected (px 3.0) (px 1.0) }
+  #! valAnchor          = anchor <@< { onclick = openDetails clickMeta, local = False }
+                                 <@< { fill = case stability of
+                                                TNoVal    -> TonicWhite
+                                                TStable   -> TonicBlue
+                                                TUnstable -> TonicGreen
+                                     }
+                                 <@< { stroke = if valNodeIsSelected TonicDarkBlue TonicBlack }
+                                 <@< { strokewidth = if valNodeIsSelected (px 3.0) (px 1.0) }
   #! inclArr            = beside (repeat AtMiddleY) [] (if isDynamic [taskApp, valAnchor] [taskApp]) Nothing
   = ( { syn_img       = inclArr
       , syn_status    = if isActive TIsActive (if (isJust mPrevActiveTid) TAllDone TNotActive)
@@ -688,6 +688,9 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
   navigateOrSelect :: !ClickMeta !Int !ModelTy -> ModelTy
   navigateOrSelect meta 2 st = { ActionState | st & action = Just (TNavAction, meta) }
   navigateOrSelect _    _ st = st
+
+anchor :: Image a
+anchor = polygon Nothing [(px 0.0, px 0.0), (px 6.0, px 6.0), (px 0.0, px 12.0)]
 
 openDetails :: !ClickMeta !Int !ModelTy -> ModelTy
 openDetails meta 1 st = { ActionState | st & action = Just (TDetailAction, meta) }
