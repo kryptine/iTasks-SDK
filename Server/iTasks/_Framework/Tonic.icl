@@ -1234,15 +1234,16 @@ tonicDynamicBrowser` rs navstack =
     = whileUnchanged (selectedBlueprint |+| navstack) (
         \(bpmeta, ns) -> case bpmeta of
                            Just meta=:{click_target_bpident = {bpident_taskId = Just tid}} =
-                                            dynamicParent tid
-                             >>~ \mbprnt -> whileUnchanged (sdsFocus tid tonicInstances |+| dynamicDisplaySettings |+| selectedDetail) (
-                                              \shareData ->
-                                                 case shareData of
-                                                    ((Just bpinst, dynSett), selDetail) -> viewInstance rs navstack dynSett bpinst selDetail meta
-                                                                                            >>* [ OnAction (Action "Back"        [ActionIcon "previous"]) (navigateBackwards dynSett selDetail ns)
-                                                                                                , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent bpinst dynSett selDetail tid rs mbprnt) ]
-                                                    _                                       -> return ()
-                                            )
+                                               dynamicParent tid
+                             >>~ \mbprnt ->    get selectedDetail
+                             >>~ \selDetail -> whileUnchanged (sdsFocus tid tonicInstances |+| dynamicDisplaySettings) (
+                                                 \shareData ->
+                                                    case shareData of
+                                                       (Just bpinst, dynSett) ->     viewInstance rs navstack dynSett bpinst selDetail meta
+                                                                                 >>*   [ OnAction (Action "Back"        [ActionIcon "previous"]) (navigateBackwards dynSett selDetail ns)
+                                                                                       , OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent bpinst dynSett selDetail tid rs mbprnt) ]
+                                                       _                      -> return ()
+                                               )
 
                            _ = viewInformation () [] "Please select a blueprint" @! ()
       )
@@ -1336,13 +1337,13 @@ viewInstance rs navstack dynSett bpinst=:{bpi_bpref = {bpr_moduleName, bpr_taskN
     # childIds  = if show_finished_blueprints
                     ([tid \\ tid <- 'DM'.elems bpinst.bpi_previouslyActive | not (tid == bpinst.bpi_taskId)] ++ childIds)
                     childIds
-    # viewTasks = map (    \childId -> whileUnchanged (sdsFocus childId tonicInstances) (
-                           \mbpref ->  case mbpref of
-                                         Just bpref`
-                                           # dynSett = if show_all_child_tasks dynSett
-                                                         {DynamicDisplaySettings | dynSett & unfold_depth = {dynSett.DynamicDisplaySettings.unfold_depth & cur = d - 1}}
-                                           = viewInstance rs navstack dynSett bpref` selDetail (mkClickMeta childId)
-                                         _ = return ())) childIds
+    # viewTasks = map (\childId -> whileUnchanged (sdsFocus childId tonicInstances) (
+                       \mbpref ->  case mbpref of
+                                     Just bpref`
+                                       # dynSett = if show_all_child_tasks dynSett
+                                                     {DynamicDisplaySettings | dynSett & unfold_depth = {dynSett.DynamicDisplaySettings.unfold_depth & cur = d - 1}}
+                                       = viewInstance rs navstack dynSett bpref` selDetail (mkClickMeta childId)
+                                     _ = return ())) childIds
     = allTasks viewTasks @! ()
     where
     mkClickMeta childId = {meta & click_origin_mbbpident = Nothing
@@ -1359,7 +1360,7 @@ viewInstance rs navstack dynSett bpinst=:{bpi_bpref = {bpr_moduleName, bpr_taskN
     >>| viewInstance rs navstack dynSett bpinst selDetail meta`
   handleClicks _ _ (TDetailAction, meta) _
     =   set (Just (Left meta)) selectedDetail
-    >>| viewInstance rs navstack dynSett bpinst selDetail meta
+    >>| viewInstance rs navstack dynSett bpinst (Just (Left meta)) meta
   handleClicks mn tn (TSelectArg i, meta) _
     =   set (Just (Right (mn, tn, tid, i))) selectedDetail
     >>| viewInstance rs navstack dynSett bpinst selDetail meta
