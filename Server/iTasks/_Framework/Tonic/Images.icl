@@ -509,9 +509,14 @@ renderParallelContainer inh eid moduleName taskName descr syn_branches uContextT
   #! clickMeta          = mkClickMeta inh (Just eid) moduleName taskName (fmap (\x -> x.bpi_taskId) inh.inh_bpinst) mbNavTo
   #! valNodeIsSelected  = case inh.inh_selDetail of
                             Just (Left
-                                   { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}
-                                   , click_origin_mbnodeId}) -> bpident_moduleName == inh.inh_bpref.bpr_moduleName && bpident_taskName == inh.inh_bpref.bpr_taskName && click_origin_mbnodeId == Just eid
-                            _                                -> False
+                                   { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName, bpident_taskId}
+                                   , click_origin_mbnodeId})
+                              ->    bpident_moduleName == inh.inh_bpref.bpr_moduleName
+                                 && bpident_taskName == inh.inh_bpref.bpr_taskName
+                                 && bpident_taskId == fmap (\x -> x.bpi_taskId) inh.inh_bpinst
+                                 && click_origin_mbnodeId == Just eid
+                            _ -> False
+
   #! valAnchor          = rect (px 8.0) (px 8.0) <@< { onclick = openDetails clickMeta, local = False }
                                                  <@< { fill = case stability of
                                                                 TNoVal    -> TonicWhite
@@ -667,9 +672,13 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
   #! taskApp            = taskApp <@< { onclick = navigateOrSelect clickMeta, local = False }
   #! valNodeIsSelected  = case inh.inh_selDetail of
                             Just (Left
-                                   { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName}
-                                   , click_origin_mbnodeId}) -> bpident_moduleName == inh.inh_bpref.bpr_moduleName && bpident_taskName == inh.inh_bpref.bpr_taskName && click_origin_mbnodeId == Just eid
-                            _                                -> False
+                                   { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName, bpident_taskId}
+                                   , click_origin_mbnodeId})
+                              ->    bpident_moduleName == inh.inh_bpref.bpr_moduleName
+                                 && bpident_taskName == inh.inh_bpref.bpr_taskName
+                                 && bpident_taskId == fmap (\x -> x.bpi_taskId) inh.inh_bpinst
+                                 && click_origin_mbnodeId == Just eid
+                            _ -> False
   #! valAnchor          = rect (px 8.0) (px 8.0) <@< { onclick = openDetails clickMeta, local = False }
                                                  <@< { fill = case stability of
                                                                 TNoVal    -> TonicWhite
