@@ -12,6 +12,18 @@ itwc.util.urlEncode = function (obj) {
     }
     return parts.join('&');
 };
+itwc.util.equalArgs = function (a1,a2) { //Shallow array comparison
+	var i, len = a1.length;
+	if(a2.length !== len) {
+		return false;
+	}
+	for(i = 0; i < len; i++) {
+		if(a1[i] !== a2[i]) {	
+			return false;
+		}
+	}
+	return true;
+}
 //Define a new prototype object by extending the prototype of an existing one
 itwc.extend = function(inheritFrom,definition) {
     var c = function() {};
@@ -212,12 +224,29 @@ itwc.Component.prototype = {
     applyUpdate: function(operation,args) {
         var me = this;
         if(me[operation] && typeof me[operation] == 'function') {
+			//Check first if we already applied this update
+			me.appliedUpdates = me.appliedUpdates || [];
+			var nextAppliedUpdate = me.appliedUpdates.shift();
+			if(isArray(nextAppliedUpdate)) {
+				if(nextAppliedUpdate[0] == operation && itwc.util.equalArgs(nextAppliedUpdate[1],args)) {
+					//On a match we are done
+					return
+				} else {
+					delete(me.appliedUpdates);
+				}
+			}
             me[operation].apply(me,args);
         } else {
             console.log("Unsupported operation on component", me, operation,args);
         }
     },
-	
+	addAlreadyAppliedUpdate(operation,args) {
+		//Sometimes we already know we will get an update from the server that we already applied.
+		//If we have already changed in the meantime, this update should not be applied
+		var me = this;
+		me.appliedUpdates = me.appliedUpdates || [];
+		me.appliedUpdates.push([operation,args]);
+	},	
     getChildIndex: function() {
         var me = this,
             siblings = me.parentCmp.items,
@@ -689,7 +718,9 @@ itwc.component.itwc_edit_string = itwc.extend(itwc.Component,{
         el.type = 'text';
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value, true);
+			var value = e.target.value === "" ? null : e.target.value
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value, true);
+			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
     },
     setEditorValue: function(value) {
@@ -704,7 +735,9 @@ itwc.component.itwc_edit_password = itwc.extend(itwc.Component,{
         el.type = 'password';
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value, true);
+			var value = e.target.value === "" ? null : e.target.value
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value, true);
+			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
     },
     setEditorValue: function(value) {
@@ -718,7 +751,9 @@ itwc.component.itwc_edit_note= itwc.extend(itwc.Component,{
             el = this.domEl;
         el.innerHTML = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value, true);
+			var value = e.target.value === "" ? null : e.target.value
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,target.value, true);
+			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
     },
     setEditorValue: function(value) {
@@ -735,7 +770,9 @@ itwc.component.itwc_edit_checkbox = itwc.extend(itwc.Component,{
         el.checked = me.definition.value;
 
         el.addEventListener('click',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.checked,false);
+			var value = e.target.checked;
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value,false);
+			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
     },
     setValue: function(value) {
