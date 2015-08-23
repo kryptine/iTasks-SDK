@@ -21,10 +21,8 @@ getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
     = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
 
-derive gText Event
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
 queueEvent instanceNo event iworld
-	# iworld = trace_n ("NEW EVENT: "<+++ instanceNo <+++ " " <+++ event) iworld
 	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue (instanceNo,event) q)) taskEvents iworld
 	= iworld
 
@@ -32,7 +30,7 @@ dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
 dequeueEvent iworld
 	= case 'SDS'.modify 'DQ'.dequeue taskEvents iworld of
 		(Ok mbEvent,iworld) 	= (mbEvent,iworld)
-		(Error (_,e),iworld) 	= trace_n e (Nothing,iworld)
+		(Error (_,e),iworld) 	= (Nothing,iworld) //TODO handle errors
 
 processEvents :: !Int *IWorld -> *IWorld
 processEvents max iworld  
@@ -45,7 +43,6 @@ processEvents max iworld
 					(Ok taskValue,iworld)
 						= processEvents (max - 1) iworld
 					(Error msg,iworld)
-						# iworld = trace_n msg iworld
 						= processEvents (max - 1) iworld //TODO: Do something useful with this error
 where
 	addUIUpdates instanceNo updates output
