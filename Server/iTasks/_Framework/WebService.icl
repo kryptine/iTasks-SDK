@@ -100,19 +100,8 @@ where
                         (Error (_,err), iworld)
 				            = (errorResponse err, Nothing, Nothing, iworld)
                         (Ok (instanceNo,instanceKey),iworld)
-							# iworld = queueEvent instanceNo (RefreshEvent Nothing "First refresh") iworld
+							# iworld = queueEvent instanceNo (RefreshEvent "First refresh") iworld
 				            = (itwcStartResponse url instanceNo instanceKey (theme opts) serverName customCSS, Nothing, Nothing, iworld)
-				/*
-                JSONPlain
-                    = case createTaskInstance (task req) iworld of
-                        (Error (_,err), iworld)
-				            = (errorResponse err, Nothing, Nothing, iworld)
-                        (Ok (instanceNo,instanceKey),iworld)
-                            = case evalTaskInstance instanceNo event iworld of
-                                (Error err,iworld)            = (errorResponse err, Nothing, Nothing, iworld)
-					            (Ok (_,Value val _,_),iworld) = (jsonResponse val, Nothing, Nothing, iworld)
-					            (Ok (_,NoValue,_),iworld)     = (jsonResponse JSONNull, Nothing, Nothing, iworld)
-				*/
 			    _
 				    = (jsonResponse (JSONString "Unknown service format"), Nothing, Nothing, iworld)
         | otherwise
@@ -145,10 +134,6 @@ where
 		    downloadParam		= paramValue "download" req
 		    uploadParam			= paramValue "upload" req
 
-
-		    eventNoParam		= paramValue "eventNo" req
-		    eventNo				= toInt eventNoParam
-
 		    editEventParam		= paramValue "editEvent" req
 		    actionEventParam	= paramValue "actionEvent" req
 		    focusEventParam		= paramValue "focusEvent" req
@@ -160,12 +145,12 @@ where
             theme _              = DEFAULT_THEME
 
 		    event = case (fromJSON (fromString editEventParam)) of
-			    Just (taskId,name,value)	= EditEvent eventNo (fromString taskId) name value
+			    Just (taskId,name,value)	= EditEvent (fromString taskId) name value
 			    _	= case (fromJSON (fromString actionEventParam)) of
-				    Just (taskId,actionId)	= ActionEvent eventNo (fromString taskId) actionId
+				    Just (taskId,actionId)	= ActionEvent (fromString taskId) actionId
 				    _	= case (fromJSON (fromString focusEventParam)) of
-					    Just taskId			= FocusEvent eventNo (fromString taskId)
-					    _   = if (resetEventParam == "") (RefreshEvent (Just eventNo) "Browser refresh") ResetEvent
+					    Just taskId			= FocusEvent (fromString taskId)
+					    _   = if (resetEventParam == "") (RefreshEvent "Browser refresh") ResetEvent
 
         webSocketHandShake key = base64Encode digest
         where

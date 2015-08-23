@@ -162,7 +162,7 @@ where
             Nothing -> Nothing
 
 matchAction :: TaskId Event -> Maybe String
-matchAction taskId (ActionEvent _ matchId action)
+matchAction taskId (ActionEvent matchId action)
     | matchId == taskId     = Just action
                             = Nothing
 matchAction taskId _        = Nothing
@@ -341,7 +341,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [] iworld
                       //Store the task function
                       # (mbError,iworld)          = write (snd (fromJust mbTask)) (sdsFocus taskId taskInstanceEmbeddedTask) iworld
                       | mbError =:(Error _)       = (liftError mbError,iworld)
-                      = evalParallelTasks listId taskTrees (RefreshEvent Nothing "Refresh in new parallel branch") evalOpts conts completed [state] iworld //Continue
+                      = evalParallelTasks listId taskTrees (RefreshEvent "Refresh in new parallel branch") evalOpts conts completed [state] iworld //Continue
                     err = (liftError err, iworld)
         todo    = evalParallelTasks listId taskTrees event evalOpts conts completed todo iworld     //Evaluate the remaining items
 
@@ -354,7 +354,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
     # tree              = fromMaybe (TCInit taskId taskTime) ('DM'.get taskId taskTrees)
     //Evaluate or destroy branch
     | change === Just RemoveParallelTask
-        # (result,iworld) = evala (RefreshEvent Nothing "Destroying parallel branch") {mkEvalOpts & noUI = True} (TCDestroy tree) iworld
+        # (result,iworld) = evala (RefreshEvent "Destroying parallel branch") {mkEvalOpts & noUI = True} (TCDestroy tree) iworld
         //TODO: remove the task evaluation function
         = evalParallelTasks listId taskTrees event evalOpts conts [result:completed] todo iworld
     | otherwise
@@ -374,7 +374,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
             ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,removedTasks} rep tree
                 //Check for a focus event targeted at this branc
                 # mbNewFocus= case event of
-                    (FocusEvent _ focusId)  = if (focusId == taskId) (Just taskTime) Nothing
+                    (FocusEvent focusId)  = if (focusId == taskId) (Just taskTime) Nothing
                     _                       = Nothing
                 # lastFocus     = maybe lastFocus Just mbNewFocus
                 //Add some attributes to the user interface that are needed to generate complex
@@ -423,7 +423,7 @@ where
                 # (Task evala)       = fromOk mbTask
                 //TODO: remove the task evaluation function
                 # evalOpts           = {mkEvalOpts & noUI = True}
-                # (r,iworld)         = evala (RefreshEvent Nothing "Destroying removed parallel branch") evalOpts (TCDestroy tree) iworld
+                # (r,iworld)         = evala (RefreshEvent "Destroying removed parallel branch") evalOpts (TCDestroy tree) iworld
                 # (rs,iworld)        = destroyRemoved removed rs iworld
                 = ([r:rs],iworld)
             | otherwise

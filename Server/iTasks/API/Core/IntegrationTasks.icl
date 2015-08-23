@@ -156,7 +156,7 @@ where
         # (mbErr,world)             = setCurrentDirectory tmpDir world
         | isError mbErr             = (ExceptionResult (exception (fromError mbErr)), {IWorld|iworld & world = world})
 		# ts						= case event of
-			(FocusEvent _ focusId)	= if (focusId == taskId) taskTime ts
+			(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
 			_						= ts
 		# (Task evala)			= taskfun tmpDir
 		# (resa,iworld=:{world})	= evala event evalOpts treea {IWorld|iworld & world = world}

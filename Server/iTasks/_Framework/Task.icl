@@ -64,11 +64,11 @@ where
 	error = "Creating default task functions is impossible"
 	
 toRefresh :: Event -> Event
-toRefresh (EditEvent no _ _ _)			= RefreshEvent (Just no) "Converted from Edit"
-toRefresh (ActionEvent no _ _)			= RefreshEvent (Just no) "Converted from Action"
-toRefresh (FocusEvent no _)				= RefreshEvent (Just no) "Converted from Focus"
-toRefresh (RefreshEvent mbNo reason)	= RefreshEvent mbNo reason
-toRefresh (ResetEvent)          		= RefreshEvent Nothing "Converted from Reset"
+toRefresh (EditEvent _ _ _)		= RefreshEvent "Converted from Edit"
+toRefresh (ActionEvent _ _)		= RefreshEvent "Converted from Action"
+toRefresh (FocusEvent _)		= RefreshEvent "Converted from Focus"
+toRefresh (RefreshEvent reason)	= RefreshEvent reason
+toRefresh (ResetEvent)          = RefreshEvent "Converted from Reset"
 
 exception :: !e -> TaskException | TC, toString e
 exception e = (dynamic e, toString e)

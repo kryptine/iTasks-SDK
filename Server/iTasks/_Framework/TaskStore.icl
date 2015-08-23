@@ -155,7 +155,6 @@ createReduct tonicOpts instanceNo task taskTime
       , tree = TCInit (TaskId instanceNo 0) 1
       , nextTaskNo = 2
       , nextTaskTime = 1
-      , lastEventNo = 0
       , tasks = 'DM'.newMap
       , tonicRedOpts = tonicOpts
       }

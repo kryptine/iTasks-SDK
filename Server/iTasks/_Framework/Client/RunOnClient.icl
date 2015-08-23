@@ -58,40 +58,41 @@ controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Nothing}
 	# (mbTaskId, iworld) = createClientTaskInstance task sessionId instanceNo iworld
     = case mbTaskId of
         Ok taskId
-	      # (mbResult,iworld)  = evalTaskInstance instanceNo (RefreshEvent Nothing "Client init") iworld
+	      # (mbResult,iworld)  = evalTaskInstance instanceNo (RefreshEvent "Client init") iworld
 	      = case mbResult of
-	      	Ok (_,_)
+	      	Ok _ 
 	      				= (Nothing, {TaskState | st & taskId = Just taskId}, iworld)
 	      	_			= (Nothing, {TaskState | st & taskId = Just taskId}, iworld)
         _ = (Nothing, st, iworld)
-
+/* FIXME
 // Refresh
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} Nothing Nothing Nothing iworld
-	# (mbResult,iworld)	= evalTaskInstance instanceNo (RefreshEvent Nothing "Client refresh") iworld
+	# (mbResult,iworld)	= evalTaskInstance instanceNo (RefreshEvent "Client refresh") iworld
 	= case mbResult of
 		Ok (_,value)
 					= (Nothing, {TaskState | st & value = Just value}, iworld)
 		Error msg	= abort msg
 // Focus
-controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} (Just eventNo) Nothing Nothing iworld
+controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} Nothing Nothing Nothing iworld
 	# iworld = trace_n "c_focus" iworld
-	# (mbResult,iworld)	= evalTaskInstance instanceNo (FocusEvent eventNo t) iworld
+	# (mbResult,iworld)	= evalTaskInstance instanceNo (FocusEvent t) iworld
 	= case mbResult of
 		Ok (_,value)
 					= (Nothing, {TaskState | st & value = Just value}, iworld)
 		Error msg	= abort msg
+*/
 // Edit
-controllerFunc taskId st=:{TaskState | sessionId, instanceNo} (Just eventNo) (Just name) (Just jsonval) iworld
-	# (mbResult,iworld)	= evalTaskInstance instanceNo (EditEvent eventNo taskId name (fromString jsonval)) iworld
+controllerFunc taskId st=:{TaskState | sessionId, instanceNo} Nothing (Just name) (Just jsonval) iworld
+	# (mbResult,iworld)	= evalTaskInstance instanceNo (EditEvent taskId name (fromString jsonval)) iworld
 	= case mbResult of
-		Ok (_,value)
+		Ok value
 					= (Nothing, {TaskState | st & value = Just value}, iworld)
 		Error msg	= abort msg
 // Action
-controllerFunc taskId st=:{TaskState | sessionId, instanceNo} (Just eventNo) (Just name) Nothing iworld
-	# (mbResult,iworld)	= evalTaskInstance instanceNo (ActionEvent eventNo taskId name) iworld
+controllerFunc taskId st=:{TaskState | sessionId, instanceNo} Nothing (Just name) Nothing iworld
+	# (mbResult,iworld)	= evalTaskInstance instanceNo (ActionEvent taskId name) iworld
 	= case mbResult of
-		Ok (_,value)
+		Ok value
 					= (Nothing, {TaskState | st & value = Just value}, iworld)
 		Error msg	= abort msg
 

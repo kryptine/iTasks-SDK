@@ -42,7 +42,7 @@ processEvents max iworld
 			(Nothing,iworld) = iworld 
 			(Just (instanceNo,event),iworld)
 				= case evalTaskInstance instanceNo event iworld of 
-					(Ok (eventNo,taskValue),iworld)
+					(Ok taskValue,iworld)
 						= processEvents (max - 1) iworld
 					(Error msg,iworld)
 						# iworld = trace_n msg iworld
@@ -52,7 +52,7 @@ where
 		= ((), 'DM'.put instanceNo (maybe updates (\q -> q ++ updates) ('DM'.get instanceNo output)) output)
 
 //Evaluate a single task instance
-evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!EventNo,!TaskValue JSONNode),!*IWorld)
+evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue JSONNode),!*IWorld)
 evalTaskInstance instanceNo event iworld
     # iworld            = mbResetUIState instanceNo event iworld
     # (res,iworld)      = evalTaskInstance` instanceNo event iworld
@@ -111,7 +111,7 @@ where
         Ok _
             //Store updated reduct
             # (nextTaskNo,iworld)		= getNextTaskNo iworld
-            # (_,iworld)                = 'SDS'.modify (\r -> ((),{TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1,lastEventNo = lastEventNo event}))
+            # (_,iworld)                = 'SDS'.modify (\r -> ((),{TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1}))
                                                 (sdsFocus instanceNo taskInstanceReduct) iworld //FIXME: Don't write the full reduct (all parallel shares are triggered then!)
             //Store update value
             # newValue                  = case newResult of
@@ -126,7 +126,7 @@ where
                     (ValueResult value _ newRep _)	
 						= case 'SDS'.read (sdsFocus instanceNo taskInstanceUI) iworld of
 							(Ok UIDisabled, iworld)
-								= (Ok (lastEventNo event,value), iworld) //Nothing to do, the UI is disabled
+								= (Ok value, iworld) //Nothing to do, the UI is disabled
 							(Ok (UIEnabled uiVersion prevRep outputQueue),iworld)
                                 # oldUI = case prevRep of (TaskRep oldUI) = oldUI; _ = emptyUI
                                 # newUI = case newRep of (TaskRep newUI) = newUI; _ = emptyUI
@@ -136,7 +136,7 @@ where
                                 # (mbErr,iworld) 	= if deleted (Ok (),iworld) ('SDS'.write (UIEnabled (uiVersion + 1) newRep (enqueueAll updates outputQueue)) (sdsFocus instanceNo taskInstanceUI) iworld)
                                 //Flush the share cache 
                                 # iworld = flushShareCache iworld
-								= (Ok (lastEventNo event,value), iworld)
+								= (Ok value, iworld)
 							(Ok (UIException msg), iworld)
 								= (Error msg, iworld) //Just dump the old error message for now
 							(Error (e,msg),iworld)
@@ -172,12 +172,6 @@ where
 			(ValueResult _ _ _ _)	
                 = {InstanceProgress|progress & value = None}
 			_									= {InstanceProgress|progress & value = None}
-
-	lastEventNo (EditEvent eventNo _ _ _)       = eventNo
-	lastEventNo (ActionEvent eventNo _ _)       = eventNo
-	lastEventNo (FocusEvent eventNo _)          = eventNo
-	lastEventNo (RefreshEvent (Just eventNo) _) = eventNo
-	lastEventNo _ = 0
 
     mbResetUIState instanceNo ResetEvent iworld 
 		# (_,iworld) = 'SDS'.write (UIEnabled -1 NoRep 'DQ'.newQueue) (sdsFocus instanceNo taskInstanceUI) iworld 
@@ -226,7 +220,7 @@ queueRefresh :: ![(InstanceNo,String)] !*IWorld -> *IWorld
 queueRefresh instances iworld
     //Clear the instance's share change registrations, we are going to evaluate anyway
 	# iworld	= clearInstanceSDSRegistrations (map fst instances) iworld
-	# iworld 	= foldl (\w (i,r) -> queueEvent i (RefreshEvent Nothing r) w) iworld instances
+	# iworld 	= foldl (\w (i,r) -> queueEvent i (RefreshEvent r) w) iworld instances
 	= iworld
 
 updateInstanceLastIO ::![InstanceNo] !*IWorld -> *IWorld

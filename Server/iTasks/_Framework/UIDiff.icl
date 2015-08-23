@@ -5,7 +5,7 @@ from Data.Map import :: Map
 import qualified Data.Map as DM
 import Text, Text.JSON
 import iTasks._Framework.Util, iTasks._Framework.UIDefinition
-from iTasks._Framework.Task import :: Event(..), :: EventNo
+from iTasks._Framework.Task import :: Event(..)
 
 :: DiffResult
 	= DiffImpossible
@@ -26,7 +26,7 @@ derive JSONEncode UITreeNode, UIActionOpts, UIFSizeOpts, UISizeOpts, UIHSizeOpts
 //TODO Make a good diffViewports function that considers also the other parts of a viewport
 diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIUpdate],!UIEditletDiffs)
 diffUIDefinitions _ def ResetEvent editletDiffs
-    # (updates, editletDiffs) = diffUIDefinitions emptyUI def (RefreshEvent Nothing "Converted from ResetEvent by diff") editletDiffs
+    # (updates, editletDiffs) = diffUIDefinitions emptyUI def (RefreshEvent "Converted from ResetEvent by diff") editletDiffs
     = ([UIUpdate [] [("reset",[])]:updates],editletDiffs)
 diffUIDefinitions {UIDef|content=UIFinal (UIViewport iOpts1 opts1),windows=w1} {UIDef|content=UIFinal vp2=:(UIViewport iOpts2 opts2),windows=w2} event editletDiffs
 	= (
@@ -138,10 +138,10 @@ where
 		| otherwise
 			= if (opts1.UIEditOpts.value === opts2.UIEditOpts.value) [] [UIUpdate path [("setEditorValue",[fromMaybe JSONNull opts2.UIEditOpts.value])]]
 
-	eventMatch {UIEditOpts|taskId,editorId} (EditEvent _ matchTask matchEditor _) = (taskId == toString matchTask) && (editorId == matchEditor)
+	eventMatch {UIEditOpts|taskId,editorId} (EditEvent matchTask matchEditor _) = (taskId == toString matchTask) && (editorId == matchEditor)
 	eventMatch _ _ = False
 	
-	eventValue (EditEvent _ _ _ value) = Just value
+	eventValue (EditEvent _ _ value) = Just value
 	
 diffEditletOpts :: UIPath UIEditletDiffs UIEditletOpts UIEditletOpts -> DiffResult
 diffEditletOpts path editletDiffs opts1 opts2

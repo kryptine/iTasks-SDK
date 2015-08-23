@@ -53,7 +53,7 @@ processEvents :: !Int *IWorld -> *IWorld
 * @return The result of the targeted main task or an error
 * @return The IWorld state
 */
-evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!EventNo,!TaskValue JSONNode),!*IWorld)
+evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue JSONNode),!*IWorld)
 
 //Update the I/O information for task instances
 updateInstanceLastIO        ::          ![InstanceNo]       !*IWorld -> *IWorld

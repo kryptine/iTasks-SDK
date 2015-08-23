@@ -67,7 +67,7 @@ where
 //		= (ValueResult NoValue (taskInfo ts) norep context, printlnI ("refresh, no session id") iworld)
 
 	// Refresh: server restart. anything else?
-	taskFunc (RefreshEvent _ _) taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
+	taskFunc (RefreshEvent _) taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
 		# (rep, _, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld
 
 		//No! because state and value will be out of sync!
@@ -78,14 +78,14 @@ where
 		= (result, printlnI "refresh" iworld)
 
 	// Focus: tab switch. anything else?
-	taskFunc (FocusEvent _ _) taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
+	taskFunc (FocusEvent _) taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
 		# (rep, _, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld	
 		# res = fromJust (fromJSON (jsonRes))
 		# result = ValueResult res (taskInfo ts) rep context
 		= (result, printlnI "focus" iworld)
  
 	// Edit: "result"
-	taskFunc (EditEvent _ targetTaskId "result" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
+	taskFunc (EditEvent targetTaskId "result" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
 		| targetTaskId == taskId
 			# (rep, _, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld			
 			# res = fromJust (fromJSON (jsonRes))
@@ -93,7 +93,7 @@ where
 			= (result, printlnI "result" iworld) 
  
 	// Edit: "finalize"
-	taskFunc (EditEvent _ targetTaskId "finalize" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
+	taskFunc (EditEvent targetTaskId "finalize" jsonRes) taskRepOpts (TCBasic taskId ts _ _) iworld
 		| targetTaskId == taskId	
 			# res = fromJust (fromJSON (jsonRes))
 			# result = DestroyedResult
