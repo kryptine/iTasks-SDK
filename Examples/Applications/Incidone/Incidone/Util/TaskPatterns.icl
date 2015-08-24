@@ -179,7 +179,7 @@ where
     status (Just (_,Stable))    = (LightOnGreen,"stopped")
     status (Just (_,Exception)) = (LightOnRed,"stopped with an error")
 
-    taskPid = mapRead find allTaskInstances //TODO: Use a filter on attributes
+    taskPid = mapRead find (sdsFocus ("name",identity) taskInstancesByAttribute)
     where
         find instances = case [(instanceNo,value) \\ {TaskInstance|instanceNo,value,attributes} <- instances | hasName identity attributes] of
             [(i,v):_]   = Just (TaskId i 0,v)

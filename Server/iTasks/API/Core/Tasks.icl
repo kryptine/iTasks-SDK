@@ -104,7 +104,7 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-	matchAndApplyEvent (EditEvent eventNo taskId name value) matchId taskTime v mask ts iworld
+	matchAndApplyEvent (EditEvent taskId name value) matchId taskTime v mask ts iworld
 		| taskId == matchId
 			| otherwise
 				# ((nv,nmask),iworld)	= updateValueAndMask taskId (s2dp name) value (v,mask) iworld

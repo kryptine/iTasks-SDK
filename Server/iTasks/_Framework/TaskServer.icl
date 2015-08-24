@@ -123,12 +123,12 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                     # (ConnectionTask handlers sds) = lopts.ListenerInstanceOpts.connectionTask
                     # (mbr,iworld) = 'SDS'.read sds {iworld & ioTasks={done=done,todo=todo},world=world}
                     | mbr =:(Error _)
-                        # iworld=:{ioTasks={done,todo},world} = queueUrgentRefresh [instanceNo] ["IO Exception for instance "<+++instanceNo] iworld
+                        # iworld=:{ioTasks={done,todo},world} = queueRefresh [(instanceNo,"IO Exception for instance "<+++instanceNo)] iworld
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (snd (fromError mbr))) ioStates
  	                    # world = closeRChannel listener world
                         = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
                     # (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (toString ip) (fromOk mbr) iworld
-                    # iworld = queueUrgentRefresh [instanceNo] ["New TCP connection for instance "<+++instanceNo] iworld
+                    # iworld = queueRefresh [(instanceNo,"New TCP connection for instance "<+++instanceNo)] iworld
                     # iworld=:{ioTasks={done,todo},world}  = writeShareIfNeeded sds mbw iworld
                     | mbConState =:(Error _)
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (fromError mbConState)) ioStates
@@ -200,7 +200,7 @@ process i chList iworld=:{ioTasks={done,todo=[ConnectionInstance opts {rChannel,
             | mbSelect =:(Just SR_Disconnected) || mbSelect=:(Just SR_EOM)
                 //Call disconnect function
                 # (conState,mbw,iworld) = handlers.ConnectionHandlersIWorld.onDisconnect conState (fromOk mbr) {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world}
-                # iworld = queueUrgentRefresh [instanceNo] ["TCP connection disconnected for "<+++instanceNo] iworld
+                # iworld = queueRefresh [(instanceNo,"TCP connection disconnected for "<+++instanceNo)] iworld
                 # iworld=:{world,ioStates} = writeShareIfNeeded sds mbw iworld
                 # ioStates = case conState of
                     Ok state
@@ -221,8 +221,8 @@ process i chList iworld=:{ioTasks={done,todo=[ConnectionInstance opts {rChannel,
             # (mbConState,mbw,out,close,iworld)
                 = handlers.ConnectionHandlersIWorld.whileConnected data conState (fromOk mbr) {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world} 
             //Queue refresh when there was new data or when the connection was closed
-            # iworld = if (isNothing data) iworld (queueUrgentRefresh [instanceNo] ["New TCP data for "<+++instanceNo] iworld)
-            # iworld = if close (queueUrgentRefresh [instanceNo] ["TCP connection closed for "<+++instanceNo] iworld) iworld
+            # iworld = if (isNothing data) iworld (queueRefresh [(instanceNo, "New TCP data for "<+++instanceNo)] iworld)
+            # iworld = if close (queueRefresh [(instanceNo, "TCP connection closed for "<+++instanceNo)] iworld) iworld
             //Write share
             # iworld=:{ioTasks={todo,done},ioStates,world} = writeShareIfNeeded sds mbw iworld
             | mbConState =:(Error _)

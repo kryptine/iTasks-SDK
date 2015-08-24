@@ -3,15 +3,18 @@ implementation module iTasks._Framework.Engine
 import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool, StdEnum
 from StdFunc import o, seqList, ::St, const
 from Data.Map import :: Map
+from Data.Queue import :: Queue(..)
 import qualified Data.Map as DM
 import Data.Error, Data.Func, Data.Tuple, Math.Random, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil
 import iTasks._Framework.IWorld, iTasks._Framework.WebService, iTasks._Framework.SDSService
 import iTasks.API.Common.SDSCombinators
+import qualified iTasks._Framework.SDS as SDS
 
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 SESSION_TIMEOUT :== fromString "0000-00-00 00:10:00"
+MAX_EVENTS 		:== 5
 
 //The following modules are excluded by the SAPL -> Javascript compiler
 //because they contain functions implemented in ABC code that cannot
@@ -71,7 +74,7 @@ startEngine publishable world
 	// mark all instance as outdated initially
     # iworld                = queueAllPersistent iworld
     //Start task server
-	# iworld				= serve port (httpServer port keepalive (engine publishable) taskOutput) [BackgroundTask removeOutdatedSessions,BackgroundTask refreshTaskInstances] timeout iworld
+	# iworld				= serve port (httpServer port keepalive (engine publishable) taskInstanceUIs) [BackgroundTask removeOutdatedSessions,BackgroundTask updateClocks, BackgroundTask (processEvents MAX_EVENTS)] timeout iworld
 	= finalizeIWorld iworld
 where
 	infoline :: !String -> [String]
@@ -120,7 +123,10 @@ where
 					= stringOpt key [v:r]
 					
 	timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
-    timeout iworld = (Just 25, iworld)					//Run 40 times a second, using blocking behaviour
+	timeout iworld = case 'SDS'.read taskEvents iworld of //Check if there are events in the queue
+		(Ok (Queue [] []),iworld)   = (Just 100,iworld) //Empty queue, don't waste CPU, but refresh
+		(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
+		(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
 
     //Read the content of the master instance index on disk to the "ti" field in the iworld
     clearConnections :: !*IWorld -> *IWorld
@@ -128,21 +134,14 @@ where
     where
         //When the server starts we make sure all have a blank connectedTo field
         filter = {InstanceFilter|defaultValue & includeProgress = True}
-        clear index = [(n,c,Just {InstanceProgress|p & connectedTo = Nothing},a) \\(n,c,Just p,a) <-index]
+        clear index = ((),[(n,c,Just {InstanceProgress|p & connectedTo = Nothing},a) \\(n,c,Just p,a) <-index])
 
 queueAllPersistent :: !*IWorld -> *IWorld
 queueAllPersistent iworld
     # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just False} filteredInstanceIndex) iworld
     = case mbIndex of
-        Ok index    = queueRefresh [instanceNo \\ (instanceNo,_,_,_)<- index] [] iworld
+        Ok index    = queueRefresh [(instanceNo,"Persistent first refresh") \\ (instanceNo,_,_,_)<- index]  iworld
         _           = iworld
-
-refreshTaskInstances :: !*IWorld -> *IWorld
-refreshTaskInstances iworld
-	# iworld			= updateClocks iworld
-    = case dequeueRefresh iworld of
-        (Just instanceNo,mbReason,iworld)   = refreshTaskInstance instanceNo mbReason iworld
-        (_,_,iworld)                        = iworld
 
 removeOutdatedSessions :: !*IWorld -> *IWorld
 removeOutdatedSessions iworld
@@ -159,14 +158,14 @@ where
 
 //HACK FOR RUNNING BACKGROUND TASKS ON A CLIENT
 background :: !*IWorld -> *IWorld
-background iworld = removeOutdatedSessions (refreshTaskInstances iworld)
+background iworld = (processEvents MAX_EVENTS o removeOutdatedSessions) iworld
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: publish -> [(!String -> Bool
 					  ,!Bool
-					  ,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
-					  ,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
-					  ,!(HTTPRequest (Map InstanceNo [UIUpdate]) ConnectionType *IWorld -> (!Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo TIUIState) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo TIUIState) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo TIUIState) ConnectionType *IWorld -> (!Maybe (Map InstanceNo TIUIState), !*IWorld))
 					  )] | Publishable publish
 engine publishable
 	= taskHandlers (publishAll publishable) ++ defaultHandlers
@@ -251,7 +250,6 @@ initIWorld mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
       ,cachedShares         = 'DM'.newMap
 	  ,exposedShares		= 'DM'.newMap
 	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, 'DM'.newMap)
-	  ,refreshQueue			= []
 	  ,shutdown				= False
       ,ioTasks              = {done = [], todo = []}
       ,ioStates             = 'DM'.newMap
@@ -316,9 +314,9 @@ where
 simpleHTTPResponse ::
 	(!(String -> Bool),HTTPRequest *IWorld -> (!HTTPResponse,*IWorld))
 	->
-	(!(String -> Bool),!Bool,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> (HTTPResponse, Maybe loc, Maybe (Map InstanceNo [UIUpdate]) ,*IWorld))
-							,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe (Map InstanceNo [UIUpdate]) ,!*IWorld))
-							,!(HTTPRequest (Map InstanceNo [UIUpdate]) loc *IWorld -> (!Maybe (Map InstanceNo [UIUpdate]),!*IWorld)))
+	(!(String -> Bool),!Bool,!(HTTPRequest (Map InstanceNo TIUIState) *IWorld -> (HTTPResponse, Maybe loc, Maybe (Map InstanceNo TIUIState) ,*IWorld))
+							,!(HTTPRequest (Map InstanceNo TIUIState) (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe (Map InstanceNo TIUIState) ,!*IWorld))
+							,!(HTTPRequest (Map InstanceNo TIUIState) loc *IWorld -> (!Maybe (Map InstanceNo TIUIState),!*IWorld)))
 simpleHTTPResponse (pred,responseFun) = (pred,True,initFun,dataFun,lostFun)
 where
 	initFun req _ env

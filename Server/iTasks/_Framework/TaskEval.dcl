@@ -20,41 +20,40 @@ from Data.Error import :: MaybeErrorString, :: MaybeError
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 
 /**
-* Evaluate a task instance
+* Queue an event for a task instance
+* events are applied in FIFO order when the task instance is evaluated
+*
+* By splitting up event queuing and instance evaluation, events can come in asynchronously without
+* the need to directly processing them. 
 *
 * @param The instance id
 * @param An event
 * @param The IWorld state
 *
+* @return The IWorld state
+*/
+queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
+
+//Update the refresh queue (add multiple refresh events at conce)
+queueRefresh :: ![(InstanceNo,String)] !*IWorld -> *IWorld
+
+/**
+* Dequeues events from the event queue and evaluates the tasks instances
+* @param Maximum amount of events to process at once
+*/
+processEvents :: !Int *IWorld -> *IWorld
+
+/**
+* Evaluate a task instance
+*
+* @param The instance id
+* @param The event to process
+* @param The IWorld state
+*
 * @return The result of the targeted main task or an error
 * @return The IWorld state
 */
-evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (!EventNo,!TaskValue JSONNode,![UIUpdate]),!*IWorld)
-
-/**
-* Evaluate a task instance without any events
-*
-* @param The task instance number
-* @param The IWorld state
-*
-* @return The IWorld state
-*/
-refreshTaskInstance :: !InstanceNo !(Maybe String) !*IWorld -> *IWorld
-
-/**
-* Evaluate a task instance without any events and restart output stream
-*
-* @param The task instance number
-* @param The IWorld state
-*
-* @return The IWorld state
-*/
-resetTaskInstance   :: !InstanceNo !*IWorld -> *IWorld
-
-//Update the refresh queue
-queueRefresh                :: ![InstanceNo] [String]       !*IWorld -> *IWorld
-queueUrgentRefresh          :: ![InstanceNo] [String]		!*IWorld -> *IWorld
-dequeueRefresh              :: 								!*IWorld -> (!Maybe InstanceNo, !Maybe String, !*IWorld)
+evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue JSONNode),!*IWorld)
 
 //Update the I/O information for task instances
 updateInstanceLastIO        ::          ![InstanceNo]       !*IWorld -> *IWorld

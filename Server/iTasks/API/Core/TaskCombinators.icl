@@ -162,7 +162,7 @@ where
             Nothing -> Nothing
 
 matchAction :: TaskId Event -> Maybe String
-matchAction taskId (ActionEvent _ matchId action)
+matchAction taskId (ActionEvent matchId action)
     | matchId == taskId     = Just action
                             = Nothing
 matchAction taskId _        = Nothing
@@ -252,7 +252,7 @@ where
     eval event evalOpts (TCDestroy (TCParallel taskId ts taskTrees)) iworld=:{current}
         //Mark all tasks as deleted and use the standar evaluation function to clean up
         # taskListFilter         = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
-        # (mbError,iworld)       = modify (map (\pts -> {ParallelTaskState|pts & change=Just RemoveParallelTask})) (sdsFocus (taskId,taskListFilter) taskInstanceParallelTaskList) iworld
+        # (mbError,iworld)       = modify (\ptss -> ((),map (\pts -> {ParallelTaskState|pts & change=Just RemoveParallelTask}) ptss)) (sdsFocus (taskId,taskListFilter) taskInstanceParallelTaskList) iworld
         | mbError =:(Error _)    = (ExceptionResult (fromError mbError),iworld)
         # (mbResults,iworld)     = evalParallelTasks taskId ('DM'.fromList taskTrees) event evalOpts conts [] [] iworld
         = (DestroyedResult,iworld)
@@ -326,7 +326,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [] iworld
             Nothing //We have evaluated all branches and nothing is added
                 //Remove all entries that are marked as removed from the list, they have been cleaned up by now
                 # taskListFilter        = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
-                # (mbError,iworld)      = modify (\l -> [x \\ x <- l | x.ParallelTaskState.change =!= Just RemoveParallelTask]) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
+                # (mbError,iworld)      = modify (\l -> ((),[x \\ x <- l | x.ParallelTaskState.change =!= Just RemoveParallelTask])) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
                 | mbList =:(Error _)    = (Error (fromError mbList),iworld)
                 = (Ok completed,iworld)
             Just (_,(type,task),_) //Add extension
@@ -335,13 +335,13 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [] iworld
                     Ok (state,mbTask)
                       //Update the task list (TODO, be specific about what we are writing here)
                       # taskListFilter            = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
-                      # (mbError,iworld)          = modify (\states -> states ++ [{ParallelTaskState|state & index = length states}]) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
+                      # (mbError,iworld)          = modify (\states -> ((),states ++ [{ParallelTaskState|state & index = length states}])) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
                       | mbError =:(Error _)       = (liftError mbError,iworld)
                       # taskId                    = state.ParallelTaskState.taskId
                       //Store the task function
                       # (mbError,iworld)          = write (snd (fromJust mbTask)) (sdsFocus taskId taskInstanceEmbeddedTask) iworld
                       | mbError =:(Error _)       = (liftError mbError,iworld)
-                      = evalParallelTasks listId taskTrees (RefreshEvent Nothing) evalOpts conts completed [state] iworld //Continue
+                      = evalParallelTasks listId taskTrees (RefreshEvent "Refresh in new parallel branch") evalOpts conts completed [state] iworld //Continue
                     err = (liftError err, iworld)
         todo    = evalParallelTasks listId taskTrees event evalOpts conts completed todo iworld     //Evaluate the remaining items
 
@@ -354,7 +354,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
     # tree              = fromMaybe (TCInit taskId taskTime) ('DM'.get taskId taskTrees)
     //Evaluate or destroy branch
     | change === Just RemoveParallelTask
-        # (result,iworld) = evala (RefreshEvent Nothing) {mkEvalOpts & noUI = True} (TCDestroy tree) iworld
+        # (result,iworld) = evala (RefreshEvent "Destroying parallel branch") {mkEvalOpts & noUI = True} (TCDestroy tree) iworld
         //TODO: remove the task evaluation function
         = evalParallelTasks listId taskTrees event evalOpts conts [result:completed] todo iworld
     | otherwise
@@ -374,7 +374,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
             ValueResult val evalInfo=:{TaskEvalInfo|lastEvent,removedTasks} rep tree
                 //Check for a focus event targeted at this branc
                 # mbNewFocus= case event of
-                    (FocusEvent _ focusId)  = if (focusId == taskId) (Just taskTime) Nothing
+                    (FocusEvent focusId)  = if (focusId == taskId) (Just taskTime) Nothing
                     _                       = Nothing
                 # lastFocus     = maybe lastFocus Just mbNewFocus
                 //Add some attributes to the user interface that are needed to generate complex
@@ -393,9 +393,9 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
                 # valueChanged = newValue =!= value
                 //Write updated value, and optionally the new lastFocus time to the tasklist
                 # (mbError,iworld) = if valueChanged
-                    (modify (\pts -> {ParallelTaskState|pts & value = encode val, lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus})
+                    (modify (\pts -> ((),{ParallelTaskState|pts & value = encode val, lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus}))
                         (sdsFocus (listId,taskId,True) taskInstanceParallelTaskListItem) iworld)
-                    (modify (\pts -> {ParallelTaskState|pts & lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus})
+                    (modify (\pts -> ((),{ParallelTaskState|pts & lastFocus = maybe pts.ParallelTaskState.lastFocus Just mbNewFocus}))
                         (sdsFocus (listId,taskId,False) taskInstanceParallelTaskListItem) iworld)
                 | mbError =:(Error _) = (Error (fromError mbError),iworld)
                 //Add the current result before checking for removals
@@ -423,7 +423,7 @@ where
                 # (Task evala)       = fromOk mbTask
                 //TODO: remove the task evaluation function
                 # evalOpts           = {mkEvalOpts & noUI = True}
-                # (r,iworld)         = evala (RefreshEvent Nothing) evalOpts (TCDestroy tree) iworld
+                # (r,iworld)         = evala (RefreshEvent "Destroying removed parallel branch") evalOpts (TCDestroy tree) iworld
                 # (rs,iworld)        = destroyRemoved removed rs iworld
                 = ([r:rs],iworld)
             | otherwise
@@ -498,7 +498,7 @@ where
                   = (Ok taskId, iworld)
               //Update the task list
               # taskListFilter      = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
-              # (mbError,iworld)    =  modify (\states -> states ++ [{ParallelTaskState|state & index = nextIndex states}]) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
+              # (mbError,iworld)    =  modify (\states -> ((),states ++ [{ParallelTaskState|state & index = nextIndex states}])) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
               | mbError =:(Error _) = (liftError mbError,iworld)
               //If the task is an embedded one, we also need to store the task function
               | mbTask =:(Just _)
@@ -528,7 +528,7 @@ where
             = (ValueResult (Value () True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
         //Mark the task as removed, and update the indices of the tasks afterwards
         # taskListFilter        = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
-        # (mbError,iworld)      = modify (markAsRemoved removeId) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
+        # (mbError,iworld)      = modify (\xs -> ((),markAsRemoved removeId xs)) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
         | mbError =:(Error _)   = (ExceptionResult (fromError mbError),iworld)
         //If it is a detached task, remove the detached instance, if it is embedded, pass notify the currently evaluating parallel
         | taskNo == 0 //(if the taskNo equals zero the instance is embedded)
@@ -574,7 +574,7 @@ where
         | otherwise
             # task                  = parTask (sdsTranslate "setTaskAndList" (\listFilter -> (listId,taskId,listFilter)) parallelTaskList)
             # taskListFilter        = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
-            # (mbError,iworld)      = modify (scheduleReplacement replaceId task) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
+            # (mbError,iworld)      = modify (\ts -> ((),scheduleReplacement replaceId task ts)) (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
             | mbError =:(Error _)   = (ExceptionResult (fromError mbError),iworld)
             = (ValueResult (Value () True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
     eval _ evalOpts state=:(TCStable taskId ts _) iworld
@@ -597,7 +597,7 @@ where
         # listId                = fromOk mbListId
         | listId == TaskId 0 0
             = (Ok (), iworld)
-        # (mbError,iworld)      = modify (\pts -> {ParallelTaskState|pts & lastFocus = Just taskTime}) (sdsFocus (listId,focusId,False) taskInstanceParallelTaskListItem) iworld
+        # (mbError,iworld)      = modify (\pts -> ((),{ParallelTaskState|pts & lastFocus = Just taskTime})) (sdsFocus (listId,focusId,False) taskInstanceParallelTaskListItem) iworld
         | mbError =:(Error _)   = (liftError mbError, iworld)
         = (Ok (), iworld)
 
@@ -611,7 +611,7 @@ where
                 //Just steal the instance, TODO, make stealing optional
                 # progress      = {InstanceProgress|progress & attachedTo = [taskId:attachmentChain]}
 				# (_,iworld)	= write progress (sdsFocus instanceNo taskInstanceProgress) iworld
-				# iworld		= queueUrgentRefresh [instanceNo] ["attach of " <+++ instanceNo <+++ " requires refresh"] iworld
+				# iworld		= queueRefresh [(instanceNo,"attach of " <+++ instanceNo <+++ " requires refresh")] iworld
 				= eval event evalOpts (TCBasic taskId ts JSONNull False) iworld
 			Error e
 				= (ExceptionResult e,iworld)
@@ -690,7 +690,7 @@ where
 		# (resa,iworld)
             = evala event (extendCallTrace taskId evalOpts) (TCDestroy treea) iworld
         //Remove share from reduct
-        # (e,iworld) = modify (\shares -> 'DM'.del taskId shares) (sdsFocus instanceNo taskInstanceShares) iworld
+        # (e,iworld) = modify (\shares -> ((),'DM'.del taskId shares)) (sdsFocus instanceNo taskInstanceShares) iworld
         | isError e
             = (ExceptionResult (fromError e), iworld)
 		= (resa,iworld)

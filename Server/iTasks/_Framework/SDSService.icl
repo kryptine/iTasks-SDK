@@ -5,6 +5,7 @@ import iTasks
 from Internet.HTTP					import :: HTTPRequest {req_method, req_path, req_data}, :: HTTPResponse(..), :: HTTPMethod(..)
 from iTasks._Framework.IWorld		import :: IWorld {exposedShares}
 from iTasks._Framework.Engine	    import :: ConnectionType
+from iTasks._Framework.TaskState 	import :: TIUIState
 from iTasks._Framework.UIDiff 		import :: UIUpdate
 
 import iTasks._Framework.HtmlUtil, iTasks._Framework.DynamicUtil
@@ -24,9 +25,9 @@ import StdMisc, graph_to_sapl_string
 
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
-                 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
-				 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
-				 ,!(HTTPRequest (Map InstanceNo [UIUpdate]) ConnectionType *IWorld -> (!Maybe (Map InstanceNo [UIUpdate]), !*IWorld))
+                 ,!(HTTPRequest (Map InstanceNo TIUIState) *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo TIUIState) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo TIUIState) ConnectionType *IWorld -> (!Maybe (Map InstanceNo TIUIState), !*IWorld))
 				 )
 
 sdsService = (matchFun,True,reqFun,dataFun,disconnectFun)
@@ -36,7 +37,7 @@ where
     					["","sds",_] = True
     							  	 = False
 
-	reqFun :: !HTTPRequest (Map InstanceNo [UIUpdate]) !*IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !Maybe (Map InstanceNo [UIUpdate]), !*IWorld)
+	reqFun :: !HTTPRequest (Map InstanceNo TIUIState) !*IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld)
 	reqFun req _ iworld | hasParam "client_session_id" req
 		= abort "Shareds on clients are not supported yet"
 	reqFun req _ iworld=:{exposedShares} | hasParam "focus" req
@@ -74,10 +75,10 @@ where
 	plainResponse string
 		= {okResponse & rsp_headers = [("Content-Type","text/plain")], rsp_data = string}			
 				
-	dataFun :: !HTTPRequest (Map InstanceNo [UIUpdate]) !(Maybe {#Char}) !ConnectionType !*IWorld -> (![{#Char}], !Bool, !ConnectionType,!Maybe (Map InstanceNo [UIUpdate]), !*IWorld)
+	dataFun :: !HTTPRequest (Map InstanceNo TIUIState) !(Maybe {#Char}) !ConnectionType !*IWorld -> (![{#Char}], !Bool, !ConnectionType,!Maybe (Map InstanceNo TIUIState), !*IWorld)
     dataFun req _ mbData instanceNo iworld = ([], True, instanceNo, Nothing, iworld)
 
-    disconnectFun :: !HTTPRequest (Map InstanceNo [UIUpdate]) !ConnectionType !*IWorld -> (!Maybe (Map InstanceNo [UIUpdate]), !*IWorld)
+    disconnectFun :: !HTTPRequest (Map InstanceNo TIUIState) !ConnectionType !*IWorld -> (!Maybe (Map InstanceNo TIUIState), !*IWorld)
 	disconnectFun _ _ _ iworld = (Nothing,iworld)
 
 readRemoteSDS  :: !JSONNode !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)

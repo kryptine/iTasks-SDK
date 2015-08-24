@@ -57,16 +57,6 @@ updateClocks iworld=:{IWorld|clocks,world}
     # iworld = if (utcTime == clocks.utcTime) iworld (snd (write utcTime iworldUTCTime iworld))
     = iworld
 
-//Determine the expiration of request, thereby determining the poll interval of
-//polling clients
-REGULAR_EXPIRY		:== 10000
-FAST_EXPIRY			:== 100
-IMMEDIATE_EXPIRY	:== 0
-
-getResponseExpiry :: !InstanceNo !*IWorld -> (!Maybe Int, !*IWorld) 
-getResponseExpiry instanceNo iworld=:{refreshQueue=[]} = (Just REGULAR_EXPIRY,iworld)
-getResponseExpiry instanceNo iworld=:{refreshQueue} = (Just FAST_EXPIRY,iworld)
-
 //Wrapper instance for file access
 instance FileSystem IWorld
 where

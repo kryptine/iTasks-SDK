@@ -12,7 +12,7 @@ from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: Con
 from iTasks._Framework.UIDefinition		import :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks._Framework.UIDiff			import :: UIUpdate, :: UIEditletDiffs, :: ReferenceVersion, :: MessageType
 from iTasks._Framework.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
-from iTasks._Framework.Task             import :: TaskValue, :: ConnectionTask, :: BackgroundTask
+from iTasks._Framework.Task             import :: TaskValue, :: ConnectionTask, :: BackgroundTask, :: Event
 from iTasks._Framework.SDS import :: SDSNotifyRequest, :: BasicShareId
 from iTasks._Framework.SDS import :: RWShared, :: ReadWriteShared, :: Shared, :: JSONShared
 
@@ -40,11 +40,8 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 											   ,!Maybe ParserState						// Some information collected by the parser for the code generator
 											   ,!Map InstanceNo (Set String))			// Per client information of the names of the already generated functions
 
-
-                    , refreshQueue          :: ![(!InstanceNo,!Maybe String)]           // Instances that need refreshing (optionally with an explanation)
-
-                    , ioTasks                :: !*IOTasks                                // The low-level input/output tasks
-                    , ioStates               :: !IOStates                                // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
+                    , ioTasks               :: !*IOTasks                                // The low-level input/output tasks
+                    , ioStates              :: !IOStates                                // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
 
 					, world					:: !*World									// The outside world
 
@@ -135,13 +132,5 @@ iworldUTCTime   :: Shared Time
 
 //Update the clock shares
 updateClocks    :: !*IWorld -> *IWorld
-
-getResponseExpiry	:: !InstanceNo					!*IWorld -> (!Maybe Int, !*IWorld) 
-
-/*
-addUIUpdates    :: !InstanceNo ![UIUpdate]  !*IWorld -> *IWorld
-popUIUpdates    :: ![InstanceNo]            !*IWorld -> (![(!InstanceNo,![UIUpdate])],!*IWorld)
-clearUIUpdates  :: !InstanceNo              !*IWorld -> *IWorld
-*/
 
 instance FileSystem IWorld

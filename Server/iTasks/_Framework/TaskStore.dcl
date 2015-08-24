@@ -10,6 +10,7 @@ import iTasks.API.Core.Types
 
 from Data.Maybe     import :: Maybe
 from Data.Error     import :: MaybeError
+from Data.Queue 	import :: Queue
 from System.Time    import :: Timestamp
 
 :: InstanceFilter =
@@ -17,6 +18,7 @@ from System.Time    import :: Timestamp
       onlyInstanceNo    :: !Maybe [InstanceNo]
     , notInstanceNo     :: !Maybe [InstanceNo]
     , onlySession       :: !Maybe Bool
+	, matchAttribute 	:: !Maybe (!String,!String)
       //'Horizontal' filters
     , includeConstants  :: !Bool
     , includeProgress   :: !Bool
@@ -45,10 +47,14 @@ taskInstanceAttributes  :: RWShared InstanceNo TaskAttributes TaskAttributes
 topLevelTaskList        :: RWShared TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
 
 //Evaluation state of instances
+taskEvents              :: RWShared () (Queue (InstanceNo,Event)) (Queue (InstanceNo,Event))
+
 taskInstanceReduct		:: RWShared InstanceNo TIReduct TIReduct
 taskInstanceValue       :: RWShared InstanceNo TIValue TIValue
-taskInstanceRep         :: RWShared InstanceNo TaskRep TaskRep
 taskInstanceShares      :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
+
+taskInstanceUIs 		:: RWShared () (Map InstanceNo TIUIState) (Map InstanceNo TIUIState)
+taskInstanceUI 			:: RWShared InstanceNo TIUIState TIUIState
 
 //Filtered views on evaluation state of instances:
 
@@ -61,12 +67,6 @@ taskInstanceParallelTaskList        :: RWShared (TaskId,TaskListFilter) [Paralle
 taskInstanceParallelTaskListItem    :: RWShared (TaskId,TaskId,Bool) ParallelTaskState ParallelTaskState
 
 taskInstanceEmbeddedTask            :: RWShared TaskId (Task a) (Task a) | iTask a
-
-//Task input and output
-//taskEvents                          :: RWShared () (Map InstanceNo [Event]) (Map InstanceNo [Event])
-taskOutput                          :: RWShared () (Map InstanceNo [UIUpdate]) (Map InstanceNo [UIUpdate])
-//taskInstanceEvents                  :: RWShared InstanceNo [Event] [Event]
-//taskInstanceOutput                  :: RWShared InstanceNo [UIUpdate] [UIUpdate]
 
 //Public interface used by parallel tasks
 parallelTaskList                    :: RWShared (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)] | iTask a

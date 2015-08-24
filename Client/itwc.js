@@ -12,6 +12,18 @@ itwc.util.urlEncode = function (obj) {
     }
     return parts.join('&');
 };
+itwc.util.equalArgs = function (a1,a2) { //Shallow array comparison
+	var i, len = a1.length;
+	if(a2.length !== len) {
+		return false;
+	}
+	for(i = 0; i < len; i++) {
+		if(a1[i] !== a2[i]) {	
+			return false;
+		}
+	}
+	return true;
+}
 //Define a new prototype object by extending the prototype of an existing one
 itwc.extend = function(inheritFrom,definition) {
     var c = function() {};
@@ -212,11 +224,29 @@ itwc.Component.prototype = {
     applyUpdate: function(operation,args) {
         var me = this;
         if(me[operation] && typeof me[operation] == 'function') {
+			//Check first if we already applied this update
+			me.appliedUpdates = me.appliedUpdates || [];
+			var nextAppliedUpdate = me.appliedUpdates.shift();
+			if(isArray(nextAppliedUpdate)) {
+				if(nextAppliedUpdate[0] == operation && itwc.util.equalArgs(nextAppliedUpdate[1],args)) {
+					//On a match we are done
+					return
+				} else {
+					delete(me.appliedUpdates);
+				}
+			}
             me[operation].apply(me,args);
         } else {
-            console.log("Unsupported operation on component",me, operation,args);
+            console.log("Unsupported operation on component", me, operation,args);
         }
     },
+	addAlreadyAppliedUpdate(operation,args) {
+		//Sometimes we already know we will get an update from the server that we already applied.
+		//If we have already changed in the meantime, this update should not be applied
+		var me = this;
+		me.appliedUpdates = me.appliedUpdates || [];
+		me.appliedUpdates.push([operation,args]);
+	},	
     getChildIndex: function() {
         var me = this,
             siblings = me.parentCmp.items,
@@ -688,17 +718,14 @@ itwc.component.itwc_edit_string = itwc.extend(itwc.Component,{
         el.type = 'text';
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value, true);
+			var value = e.target.value === "" ? null : e.target.value
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value, true);
+			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
     },
     setEditorValue: function(value) {
-		var instanceNo = this.definition.taskId.split("-")[0],
-            receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
-			sentNo = this.lastEditNo || 0;
-		if(receivedNo > sentNo) {
-            this.domEl.value = value || '';
-        }
-    }
+		this.domEl.value = value || '';
+	}
 });
 itwc.component.itwc_edit_password = itwc.extend(itwc.Component,{
     domTag: 'input',
@@ -708,17 +735,14 @@ itwc.component.itwc_edit_password = itwc.extend(itwc.Component,{
         el.type = 'password';
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value, true);
+			var value = e.target.value === "" ? null : e.target.value
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value, true);
+			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
     },
     setEditorValue: function(value) {
-		var instanceNo = this.definition.taskId.split("-")[0],
-            receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
-			sentNo = this.lastEditNo || 0;
-		if(receivedNo > sentNo) {
-            this.domEl.value = value || '';
-        }
-    }
+		this.domEl.value = value || '';
+	}
 });
 itwc.component.itwc_edit_note= itwc.extend(itwc.Component,{
     domTag: 'textarea',
@@ -727,18 +751,14 @@ itwc.component.itwc_edit_note= itwc.extend(itwc.Component,{
             el = this.domEl;
         el.innerHTML = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value, true);
+			var value = e.target.value === "" ? null : e.target.value
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,target.value, true);
+			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
     },
     setEditorValue: function(value) {
-        var instanceNo = this.definition.taskId.split("-")[0],
-            receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
-			sentNo = this.lastEditNo || 0;
-
-		if(receivedNo > sentNo) {
-            this.domEl.value = value || '';
-        }
-    }
+		this.domEl.value = value || '';
+	}
 });
 itwc.component.itwc_edit_checkbox = itwc.extend(itwc.Component,{
     domTag: 'input',
@@ -750,7 +770,9 @@ itwc.component.itwc_edit_checkbox = itwc.extend(itwc.Component,{
         el.checked = me.definition.value;
 
         el.addEventListener('click',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.checked,false);
+			var value = e.target.checked;
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value,false);
+			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
     },
     setValue: function(value) {
@@ -802,13 +824,8 @@ itwc.component.itwc_edit_number = itwc.extend(itwc.Component,{
         return false;
     },
     setEditorValue: function(value) {
-		var instanceNo = this.definition.taskId.split("-")[0],
-            receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
-			sentNo = this.lastEditNo || 0;
-		if(receivedNo > sentNo) {
-			this.domEl.value = value;
-        }
-    }
+		this.domEl.value = value;
+	}
 });
 itwc.component.itwc_edit_int = itwc.extend(itwc.component.itwc_edit_number,{
     allowDecimal: false
@@ -829,12 +846,7 @@ itwc.component.itwc_edit_date = itwc.extend(itwc.Component,{
         });
     },
     setEditorValue: function(value) {
-		var instanceNo = this.definition.taskId.split("-")[0],
-            receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
-			sentNo = this.lastEditNo || 0;
-		if(receivedNo > sentNo) {
-			this.domEl.value = value || '';
-        }
+		this.domEl.value = value || '';
     }
 });
 itwc.component.itwc_edit_time = itwc.extend(itwc.Component,{
@@ -850,12 +862,7 @@ itwc.component.itwc_edit_time = itwc.extend(itwc.Component,{
         });
     },
     setEditorValue: function(value) {
-		var instanceNo = this.definition.taskId.split("-")[0],
-            receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
-			sentNo = this.lastEditNo || 0;
-		if(receivedNo > sentNo) {
-			this.domEl.value = value || '';
-        }
+		this.domEl.value = value || '';
     }
 });
 itwc.component.itwc_edit_datetime = itwc.extend(itwc.Component,{
@@ -871,12 +878,7 @@ itwc.component.itwc_edit_datetime = itwc.extend(itwc.Component,{
         });
     },
     setEditorValue: function(value) {
-		var instanceNo = this.definition.taskId.split("-")[0],
-            receivedNo = itwc.controller.instanceProxies[instanceNo].lastReceivedEventNo,	
-			sentNo = this.lastEditNo || 0;
-		if(receivedNo > sentNo) {
-			this.domEl.value = value || '';
-        }
+		this.domEl.value = value || '';
     }
 });
 
@@ -2041,7 +2043,6 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         var me = this,
             urlSplit;
         me.controller = controller;
-        me.nextSendEventNo = 0;
         me.lastReceivedEventNo = 0;
         me.taskEvents = [];
         me.updateSource = null;
@@ -2069,29 +2070,26 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
     },
     queueTaskEvent: function (instanceNo,eventData,replaceId) {
         var me = this,
-            eventNo, queueLen, i;
+            queueLen, i;
 
         if(replaceId) { //If a replaceId is given see if it is already queued and update the queued event
             queueLen = me.taskEvents.length;
             for(i = 0; i < queueLen; i++) {
-                if(me.taskEvents[i].length == 4
+                if(me.taskEvents[i].length == 3
                    && me.taskEvents[i][0] == instanceNo
-                   && me.taskEvents[i][3] == replaceId ) {
+                   && me.taskEvents[i][2] == replaceId ) {
 
-                    me.taskEvents[i][2] = eventData;
+                    me.taskEvents[i][1] = eventData;
                     me.flushTaskEvents();
-                    return me.taskEvents[1];
                 }
             }
         }
-        eventNo = me.nextSendEventNo++;
         if(replaceId) {
-            me.taskEvents.push([instanceNo,eventNo,eventData,replaceId]);
+            me.taskEvents.push([instanceNo,eventData,replaceId]);
         } else {
-            me.taskEvents.push([instanceNo,eventNo,eventData]);
+            me.taskEvents.push([instanceNo,eventData]);
         }
         me.flushTaskEvents();
-        return eventNo;
     },
     flushTaskEvents: function() {
         var me = this,
@@ -2100,11 +2098,9 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         if(!me.flushingTaskEvents && me.taskEvents.length) {
             event = me.taskEvents.shift();
             instanceNo = event[0];
-            //Set event number
-            params['eventNo'] = event[1];
             //Copy event params
-            for(k in event[2]) {
-                params[k] = event[2][k];
+            for(k in event[1]) {
+                params[k] = event[1][k];
             }
 
             me.flushingTaskEvents = true;
@@ -2129,8 +2125,6 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         if(msg.error) {
             console.log("Server error",msg.error);
         }
-        //Update event no
-        me.lastReceivedEventNo = msg.lastEvent;
         //Update user interface
         if(msg.updates) {
             me.controller.updateUI({instance: msg.instance,updates: msg.updates},me.instances[msg.instance].rootNode);
@@ -2184,23 +2178,23 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
     },
     sendResetEvent: function(instanceNo) {
         var me = this;
-        return me.queueTaskEvent(instanceNo, {resetEvent: instanceNo});
+        me.queueTaskEvent(instanceNo, {resetEvent: instanceNo});
     },
 	sendEditEvent: function(taskId, editorId, value, replace) {
 		var me = this,
             instanceNo = (taskId.split("-")[0] | 0);
 
-		return me.queueTaskEvent(instanceNo,{editEvent: JSON.stringify([taskId,editorId,value])}, replace ? editorId : null );
+		me.queueTaskEvent(instanceNo,{editEvent: JSON.stringify([taskId,editorId,value])}, replace ? editorId : null );
 	},
 	sendActionEvent: function(taskId, actionId) {
 		var me = this,
             instanceNo = (taskId.split("-")[0] | 0);
-		return me.queueTaskEvent(instanceNo,{actionEvent: JSON.stringify([taskId,actionId])});
+		me.queueTaskEvent(instanceNo,{actionEvent: JSON.stringify([taskId,actionId])});
     },
     sendFocusEvent: function(taskId) {
         var me = this,
             instanceNo = (taskId.split("-")[0] | 0);
-        return me.queueTaskEvent(instanceNo,{focusEvent: JSON.stringify(taskId)});
+        me.queueTaskEvent(instanceNo,{focusEvent: JSON.stringify(taskId)});
     }
 });
 itwc.taskletInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
@@ -2208,24 +2202,23 @@ itwc.taskletInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
     init: function(controller) {
         var me = this;
         me.controller = controller;
-        me.nextSendEventNo = 0;
     },
     setRootNode: function(rootNode) {
         this.rootNode = rootNode;
     },
     sendResetEvent: function(instanceNo) {
-        this.processEvent(instanceNo.toString(), "reset", this.nextSendEventNo++);
+        this.processEvent(instanceNo.toString(), "reset");
     },
 	sendEditEvent: function(taskId, editorId, value) {
-        this.processEvent(taskId, "edit", this.nextSendEventNo++, editorId, value);
+        this.processEvent(taskId, "edit", editorId, value);
     },
 	sendActionEvent: function(taskId, actionId) {
-        this.processEvent(taskId, "commit", this.nextSendEventNo++, actionId);
+        this.processEvent(taskId, "commit", actionId);
     },
     sendFocusEvent: function(taskId) {
-        this.processEvent(taskId, "focus", this.nextSendEventNo++);
+        this.processEvent(taskId, "focus");
     },
-    processEvent: function(taskId,eventType,eventNo,eventName,eventValue) {
+    processEvent: function(taskId,eventType,eventName,eventValue) {
 	
 	    console.time('controllerWrapper: eval');
         var me = this,
@@ -2237,12 +2230,8 @@ itwc.taskletInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
 	    var tmp = [controllerFunc,[]];
 	    tmp[1].push(taskId);
 	    tmp[1].push(state);
-	
-	    if(eventType == "focus" || eventType == "edit" || eventType == "commit") {
-		    tmp[1].push([1, 'Just', eventNo])
-	    } else {
-		    tmp[1].push([0, 'Nothing']);
-	    }
+		tmp[1].push([0, 'Nothing']); //Event no
+
 	    if(eventType == "edit" || eventType == "commit"){
 		    tmp[1].push([1, 'Just', eventName])
 	    }else{
@@ -2299,7 +2288,6 @@ itwc.controller = function() {
 
     //Event queue and administration
     me.taskEvents = [];
-    me.nextSendEventNo = 0;
     me.flushingTaskEvents = false;
     me.refresher = null;
     me.updateSource = null;
@@ -2441,14 +2429,7 @@ itwc.controller.prototype = {
             prevIdx = insertIdx - 1;
             parentCmp.items[prevIdx].initMargins(prevIdx,false);
         }
-        /*
-        if(!isLast) {
-            nextIdx = insertIdx + 1;
-            parentCmp.items[prevIdx].restore
-        }
-        */
-
-        //Recursively add children
+       //Recursively add children
         if(insertDef.items) {
             insertDef.items.forEach(function(childCmp,childIdx) {
                 me.addComponent(newCmp,childIdx,childCmp);

@@ -25,13 +25,11 @@ derive gEq				Task
 // Tasks
 :: Task a = Task !(Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
 
-:: Event	= EditEvent		!EventNo !TaskId !String !JSONNode		//Update something in an interaction: Task id, edit name, value
-			| ActionEvent	!EventNo !TaskId !String				//Progress in a step combinator: Task id, action id
-			| FocusEvent	!EventNo !TaskId						//Update last event time without changing anything: Task id
-			| RefreshEvent	!(Maybe EventNo)						//Nop event, just recalcalutate the entire task instance
-            | ResetEvent                                            //Nop event, recalculate the entire task and reset output stream
-
-:: EventNo	:== Int	
+:: Event	= EditEvent		!TaskId !String !JSONNode 	//Update something in an interaction: Task id, edit name, value
+			| ActionEvent	!TaskId !String				//Progress in a step combinator: Task id, action id
+			| FocusEvent	!TaskId						//Update last event time without changing anything: Task id
+			| RefreshEvent	!String 					//Nop event, just recalcalutate the entire task instance (the string is the reason for the refresh)
+            | ResetEvent                                //Nop event, recalculate the entire task and reset output stream
 
 :: TaskResult a		= ValueResult !(TaskValue a) !TaskEvalInfo !TaskRep !TaskTree						//If all goes well, a task computes its current value, an observable representation and a new task state
 					| ExceptionResult !TaskException													//If something went wrong, a task produces an exception value

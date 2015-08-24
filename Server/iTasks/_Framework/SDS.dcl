@@ -125,8 +125,9 @@ read			::						    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, 
 readRegister	:: !TaskId                  !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
 //Write an SDS (and queue evaluation of those task instances which contained tasks that registered for notification)
 write			:: !w					    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)	
-//Read followed by write
-modify          :: !(r -> w)                !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
+//Read followed by write. The 'a' typed value is a result that is returned
+modify          :: !(r -> (!a,!w))          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException a, !*IWorld)
+
 //Force notify (queue evaluation of task instances that registered for notification)
 notify          ::                          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 

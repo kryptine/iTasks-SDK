@@ -55,14 +55,14 @@ currentSessions ::ReadOnlyShared [TaskListItem Void]
 currentSessions
     = mapRead (map toTaskListItem) (toReadOnly (sdsFocus filter filteredInstanceIndex))
 where
-    filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just True
+    filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just True,matchAttribute=Nothing
              ,includeConstants=True,includeProgress=True,includeAttributes=True}
 
 currentProcesses ::ReadOnlyShared [TaskListItem Void]
 currentProcesses
     = mapRead (map toTaskListItem) (toReadOnly (sdsFocus filter filteredInstanceIndex))
 where
-    filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False
+    filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False,matchAttribute=Nothing
              ,includeConstants=True,includeProgress=True,includeAttributes=True}
 
 toTaskListItem :: !InstanceData -> TaskListItem a
@@ -89,7 +89,7 @@ allTaskInstances :: ROShared () [TaskInstance]
 allTaskInstances
     = toReadOnly
       (sdsProject (SDSLensRead readInstances) SDSNoWrite
-       (sdsFocus {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
+       (sdsFocus {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
 where
     readInstances is = Ok (map taskInstanceFromInstanceData is)
 
@@ -97,7 +97,7 @@ detachedTaskInstances :: ROShared () [TaskInstance]
 detachedTaskInstances
     = toReadOnly
       (sdsProject (SDSLensRead readInstances) SDSNoWrite
-       (sdsFocus {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
+       (sdsFocus {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
 where
     readInstances is = Ok (map taskInstanceFromInstanceData is)
 
@@ -106,7 +106,7 @@ taskInstanceByNo
     = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem)
       (sdsTranslate "taskInstanceByNo" filter filteredInstanceIndex)
 where
-    filter no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True}
+    filter no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True}
 
     readItem [i]    = Ok (taskInstanceFromInstanceData i)
     readItem _      = Error (exception "Task instance not found")
@@ -119,13 +119,21 @@ taskInstanceAttributesByNo
     = sdsProject (SDSLensRead readItem) (SDSLensWrite writeItem)
       (sdsTranslate "taskInstanceAttributesByNo" filter filteredInstanceIndex)
 where
-    filter no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,includeConstants=False,includeProgress=False,includeAttributes=True}
+    filter no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing,includeConstants=False,includeProgress=False,includeAttributes=True}
 
     readItem [(_,_,_,Just a)]    = Ok a
     readItem _      = Error (exception "Task instance not found")
 
     writeItem [(n,c,p,_)] a = Ok (Just [(n,c,p,Just a)])
     writeItem _ _   = Error (exception "Task instance not found")
+
+taskInstancesByAttribute :: ROShared (!String,!String) [TaskInstance]
+taskInstancesByAttribute 
+    = toReadOnly
+      (sdsProject (SDSLensRead readInstances) SDSNoWrite
+       (sdsTranslate "taskInstancesByAttribute" (\p -> {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Just p,includeConstants=True,includeProgress=True,includeAttributes=True}) filteredInstanceIndex))
+where
+    readInstances is = Ok (map taskInstanceFromInstanceData is)
 
 currentTopTask :: ReadOnlyShared TaskId
 currentTopTask = mapRead (\currentInstance -> TaskId currentInstance 0) currentInstanceShare

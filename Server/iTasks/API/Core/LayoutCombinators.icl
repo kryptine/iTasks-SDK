@@ -8,7 +8,6 @@ import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 from Data.Map import qualified put, get, del, newMap, toList
 from StdFunc import o, const
 
-from iTasks._Framework.Task import :: EventNo
 from iTasks._Framework.TaskState import :: TIMeta(..)
 
 derive gEq UISide
