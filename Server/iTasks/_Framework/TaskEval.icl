@@ -172,9 +172,16 @@ where
 
     mbResetUIState instanceNo ResetEvent iworld 
 		# (_,iworld) = 'SDS'.write (UIEnabled -1 NoRep 'DQ'.newQueue) (sdsFocus instanceNo taskInstanceUI) iworld 
+		//Remove all editlet state for this instance
+		# (diffs,iworld) = getEditletDiffs iworld
+		# diffs = 'DM'.fromList [d \\ d=:((t,_),_) <- 'DM'.toList diffs | let (TaskId i _) = fromString t in i <> instanceNo]
+		# iworld = setEditletDiffs diffs iworld
+		//Remove all js compiler state for this instance
+		# iworld=:{jsCompilerState=(ls,ftm,fl,ps,cm)} = iworld
+		# iworld = {iworld & jsCompilerState = (ls,ftm,fl,ps,'DM'.del instanceNo cm)}
 		= iworld
-    mbResetUIState _ _ iworld = iworld
 
+    mbResetUIState _ _ iworld = iworld
 /*
 //The event route determines for every parallel which branch the event is in
 determineEventRoute :: Event (Map TaskId [ParallelTaskState]) -> Map TaskId Int
