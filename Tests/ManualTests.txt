@@ -1,0 +1,13 @@
+Because automated testing is not yet implemented, this document is a first start to
+collect the common system tests that we do as a basic checklist
+
+Common tests to do manually:
+
+- Check if BasicAPIExamples compiles and runs
+- Check if a UI shows up in the browser
+- Check if the UI responds to events
+- Check if the server is not 100% cpu when idle
+- Check if the clocks are updated properly. For example by viewing the date time shares
+- Check if UIs with share data sources sync properly
+- Check if editlets load and run properly
+- Check if typing fast (fast occuring events) causes sync problems (easy to reintroduce bug)
