@@ -1,7 +1,7 @@
 implementation module iTasks._Framework.TaskState
 
 import Text.JSON
-import iTasks._Framework.UIDefinition
+import iTasks.UI.Definition
 
 from iTasks					import JSONEncode, JSONDecode
 from iTasks._Framework.Task	import :: Event, :: TaskTime, :: TaskResult(..), :: TaskException(..), :: TaskEvalInfo(..), :: TaskRep(..), exception, :: TonicOpts(..)

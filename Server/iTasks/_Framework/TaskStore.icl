@@ -5,7 +5,7 @@ from StdFunc import const, id, o
 import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath, Data.Functor
 
 import iTasks._Framework.IWorld, iTasks._Framework.TaskState, iTasks._Framework.Task, iTasks._Framework.Store
-import iTasks._Framework.TaskEval, iTasks._Framework.Util, iTasks._Framework.UIDefinition, iTasks._Framework.UIDiff
+import iTasks._Framework.TaskEval, iTasks._Framework.Util, iTasks.UI.Definition, iTasks.UI.Diff
 import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
 
 import qualified iTasks._Framework.SDS as SDS

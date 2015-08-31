@@ -2,7 +2,7 @@ definition module iTasks._Framework.Generic.Interaction
 
 from StdGeneric import :: UNIT,::EITHER,::PAIR,::OBJECT,::CONS,::RECORD,::FIELD,::ConsPos
 from iTasks._Framework.IWorld import :: IWorld
-from iTasks._Framework.UIDiff import :: UIControl, :: UIAttributes
+from iTasks.UI.Diff import :: UIControl, :: UIAttributes
 from iTasks.API.Core.Types import :: TaskId, :: DataPath, :: InteractionMask, :: MaskedValue, :: Verification, :: VerifiedValue, :: EditableList
 from iTasks.API.Core.LayoutCombinators import :: LayoutRules
 

@@ -4,7 +4,7 @@ import iTasks.API.Core.Types
 
 from iTasks._Framework.Task	import :: TaskTime, :: TaskResult, :: TaskRep, :: TonicOpts
 from iTasks._Framework.Task	import :: TaskException
-from iTasks._Framework.UIDiff import :: UIUpdate
+from iTasks.UI.Diff import :: UIUpdate
 from Data.Queue import :: Queue
 
 derive JSONEncode TIMeta, TIReduct, TaskTree

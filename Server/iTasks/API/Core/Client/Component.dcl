@@ -1,7 +1,7 @@
 definition module iTasks.API.Core.Client.Component
 
 import iTasks.API.Core.Client.Interface
-import iTasks._Framework.UIDefinition
+import iTasks.UI.Definition
 
 :: ComponentId :== String
 :: ComponentEventName :== String

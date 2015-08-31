@@ -2,7 +2,7 @@ implementation module iTasks.API.Core.Client.Editlet
 
 import iTasks._Framework.Client.LinkerSupport, Data.Maybe, Data.Functor
 import iTasks._Framework.IWorld
-from iTasks._Framework.UIDiff import :: MessageType (MDiff,MRollback,MCommit)
+from iTasks.UI.Diff import :: MessageType (MDiff,MRollback,MCommit)
 from Data.Map import :: Map, newMap, put
 from Data.Map import qualified get
 import StdMisc

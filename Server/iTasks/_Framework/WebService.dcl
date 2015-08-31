@@ -8,9 +8,9 @@ from iTasks._Framework.Engine		import :: ServiceFormat, :: ConnectionType
 from iTasks._Framework.IWorld		import :: IWorld
 from iTasks._Framework.Task 	    import :: Task, :: ConnectionTask
 from iTasks._Framework.TaskState 	import :: TIUIState
-from iTasks._Framework.UIDiff 		import :: UIUpdate
-from iTasks.API.Core.Types	        import :: InstanceNo
 from iTasks._Framework.SDS 			import :: RWShared
+from iTasks.UI.Diff 				import :: UIUpdate
+from iTasks.API.Core.Types	        import :: InstanceNo
 
 import iTasks._Framework.Generic
 

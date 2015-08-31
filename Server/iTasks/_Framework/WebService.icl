@@ -11,7 +11,7 @@ import qualified iTasks._Framework.SDS as SDS
 
 import System.Time, Text, Text.JSON, Internet.HTTP, Data.Error
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskEval, iTasks._Framework.TaskStore
-import iTasks._Framework.UIDiff, iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.Engine, iTasks._Framework.IWorld
+import iTasks.UI.Diff, iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.Engine, iTasks._Framework.IWorld
 import iTasks.API.Core.SDSs, iTasks.API.Common.SDSCombinators
 import iTasks.API.Core.Types
 import Crypto.Hash.SHA1, Text.Encodings.Base64

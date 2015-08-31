@@ -7,7 +7,7 @@ from Data.Map import :: Map, :: Size
 from Data.List import instance Functor []
 import qualified Data.List as DL
 import qualified Data.Map as DM
-import iTasks._Framework.UIDefinition
+import iTasks.UI.Definition
 import iTasks._Framework.Generic.Interaction
 import iTasks._Framework.Generic.Visualization
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.Util
@@ -16,7 +16,7 @@ import iTasks._Framework.IWorld
 
 import System.Time, System.File, System.FilePath
 import iTasks._Framework.SDS
-from iTasks._Framework.UIDefinition import :: UIDef(..), :: UIContent(..), :: UIForm, :: UIActions, :: UIDirection(..), :: UIBlock, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
+from iTasks.UI.Definition import :: UIDef(..), :: UIContent(..), :: UIForm, :: UIActions, :: UIDirection(..), :: UIBlock, :: UIViewport, :: UIAction, :: UIControl, stringDisplay
 from iTasks.API.Core.LayoutCombinators import mergeAttributes, setMargins
 from iTasks.API.Core.Tasks import treturn
 from iTasks.API.Common.TaskCombinators import tbind, @

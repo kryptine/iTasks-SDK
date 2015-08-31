@@ -8,7 +8,7 @@ from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
 
 from iTasks._Framework.Tonic.AbsSyn import :: TonicFunc, :: ExprId, :: FuncName, :: ModuleName, :: TExpr
 from iTasks._Framework.Tonic.Types import :: TStability, :: BlueprintIdent, :: BlueprintInstance
-from iTasks._Framework.UIDefinition import :: UIAction
+from iTasks.UI.Definition import :: UIAction
 import iTasks._Framework.Generic
 
 from iTasks.API.Core.Types import :: Scale, :: TaskId

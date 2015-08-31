@@ -5,7 +5,7 @@ import iTasks._Framework.Task, iTasks._Framework.SDS
 import iTasks._Framework.TaskState
 import iTasks.API.Core.Client.Interface
 import iTasks.API.Core.Client.Component
-from iTasks._Framework.UIDiff import :: UIUpdate
+from iTasks.UI.Diff import :: UIUpdate
 
 :: JSONString :== String
 

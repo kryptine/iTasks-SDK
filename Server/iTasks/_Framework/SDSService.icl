@@ -6,7 +6,7 @@ from Internet.HTTP					import :: HTTPRequest {req_method, req_path, req_data}, :
 from iTasks._Framework.IWorld		import :: IWorld {exposedShares}
 from iTasks._Framework.Engine	    import :: ConnectionType
 from iTasks._Framework.TaskState 	import :: TIUIState
-from iTasks._Framework.UIDiff 		import :: UIUpdate
+from iTasks.UI.Diff 				import :: UIUpdate
 
 import iTasks._Framework.HtmlUtil, iTasks._Framework.DynamicUtil
 import iTasks._Framework.RemoteAccess

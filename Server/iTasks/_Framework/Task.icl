@@ -5,7 +5,7 @@ import StdClass, StdArray, StdTuple, StdInt, StdList, StdBool, StdMisc
 from Data.Map import :: Map
 import qualified Data.Map as DM
 import Text.HTML, Internet.HTTP, Data.Error, Text.JSON
-import iTasks._Framework.IWorld, iTasks._Framework.UIDefinition, iTasks._Framework.Util
+import iTasks._Framework.IWorld, iTasks.UI.Definition, iTasks._Framework.Util
 import iTasks.API.Core.Types
 import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction
 
