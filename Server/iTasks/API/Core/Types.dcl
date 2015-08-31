@@ -37,7 +37,7 @@ from iTasks._Framework.Generic.Interaction	import generic gEditor, generic gEdit
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks._Framework.Generic.Defaults		import generic gDefault
 from iTasks._Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
-from iTasks.API.Core.Client.Interface	import :: JSWorld, :: JSVal
+from iTasks.UI.JS.Interface	import :: JSWorld, :: JSVal
 from iTasks.UI.Layout import :: LayoutRules
 import iTasks._Framework.Serialization
 

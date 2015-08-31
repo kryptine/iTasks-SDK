@@ -1,8 +1,8 @@
 definition module iTasks.API.Core.Client.Editlet
 
 import iTasks
-import iTasks.API.Core.Client.Interface
-import iTasks.API.Core.Client.Component
+import iTasks.UI.Component
+import iTasks.UI.JS.Interface
 
 //****************************************************************************//
 // Wrapper types for defining custom editor components that can process events

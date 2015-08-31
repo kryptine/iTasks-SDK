@@ -12,33 +12,33 @@ function ___unwrapJS(ptr){
 }
 
 //jsNull :: (JSVal a)
-function __iTasks_API_Core_Client_Interface_jsNull() {
+function __iTasks_UI_JS_Interface_jsNull() {
 	return ___wrapJS(null);
 }
 //jsWindow :: (JSVal JSWindow)
-function __iTasks_API_Core_Client_Interface_jsWindow() {
+function __iTasks_UI_JS_Interface_jsWindow() {
 	return ___wrapJS(window);
 }
 
 //jsDocument :: (JSVal JSDocument)
-function __iTasks_API_Core_Client_Interface_jsDocument() {
+function __iTasks_UI_JS_Interface_jsDocument() {
 	return ___wrapJS(document);
 }
 
 //jsThis :: !*JSWorld -> (!JSVal a,!*JSWorld)
-function __iTasks_API_Core_Client_Interface_jsThis(world) {
+function __iTasks_UI_JS_Interface_jsThis(world) {
 	world = Sapl.feval(world);
 	return ___Tuple2(___wrapJS(this), world);
 }
 
 //jsEmptyObject :: !*JSWorld -> (!JSVal a, !*JSWorld)
-function __iTasks_API_Core_Client_Interface_jsEmptyObject(world) {
+function __iTasks_UI_JS_Interface_jsEmptyObject(world) {
 	world = Sapl.feval(world);
 	return ___Tuple2(___wrapJS({}), world);
 }
 
 //jsNewObject :: !String ![JSPtr a] !*JSWorld -> *(!JSPtr b, !*JSWorld)
-function __iTasks_API_Core_Client_Interface_jsNewObject(cons_name, args, world){
+function __iTasks_UI_JS_Interface_jsNewObject(cons_name, args, world){
     world = Sapl.feval(world);
 	cons_name = Sapl.feval(cons_name);
 	args = Sapl.toJS(Sapl.feval(args));
@@ -57,7 +57,7 @@ function __iTasks_API_Core_Client_Interface_jsNewObject(cons_name, args, world){
 }
 
 //jsGetObjectAttr :: !String !(JSVal a) !*JSWorld -> *(!JSVal b, !*JSWorld)
-function __iTasks_API_Core_Client_Interface_jsGetObjectAttr(attr,obj,world) {
+function __iTasks_UI_JS_Interface_jsGetObjectAttr(attr,obj,world) {
 	
 	world = Sapl.feval(world);	
 	attr = Sapl.feval(attr);
@@ -86,7 +86,7 @@ function __iTasks_API_Core_Client_Interface_jsGetObjectAttr(attr,obj,world) {
 }
 
 //jsGetObjectEl :: !Int !(JSVal o) !*JSWorld -> *(!JSVal b, !*JSWorld)
-function __iTasks_API_Core_Client_Interface_jsGetObjectEl(index,obj,world) {
+function __iTasks_UI_JS_Interface_jsGetObjectEl(index,obj,world) {
 
 	world = Sapl.feval(world);
 	index = Sapl.feval(index);
@@ -96,7 +96,7 @@ function __iTasks_API_Core_Client_Interface_jsGetObjectEl(index,obj,world) {
 }
 
 //jsSetObjectAttr :: !String !(JSVal v) !(JSVal o) !*JSWorld -> *JSWorld
-function __iTasks_API_Core_Client_Interface_jsSetObjectAttr(attr,value,obj,world) {
+function __iTasks_UI_JS_Interface_jsSetObjectAttr(attr,value,obj,world) {
     
 	world = Sapl.feval(world);
 	attr = Sapl.feval(attr);   
@@ -113,7 +113,7 @@ function __iTasks_API_Core_Client_Interface_jsSetObjectAttr(attr,value,obj,world
 }
 
 //jsSetObjectEl :: !Int !(JSVal v) !(JSVal o) !*JSWorld -> *JSWorld
-function __iTasks_API_Core_Client_Interface_jsSetObjectEl(index,value,obj,world) {
+function __iTasks_UI_JS_Interface_jsSetObjectEl(index,value,obj,world) {
 
     world = Sapl.feval(world);
     index = Sapl.feval(index);   
@@ -126,7 +126,7 @@ function __iTasks_API_Core_Client_Interface_jsSetObjectEl(index,value,obj,world)
 }
 
 //jsDeleteObjectAttr :: !String !(JSVal o) !*JSWorld -> !*JSWorld
-function __iTasks_API_Core_Client_Interface_jsDeleteObjectAttr(attr,obj,world) {
+function __iTasks_UI_JS_Interface_jsDeleteObjectAttr(attr,obj,world) {
     
 	world = Sapl.feval(world);
 	attr = Sapl.feval(attr);   
@@ -142,7 +142,7 @@ function __iTasks_API_Core_Client_Interface_jsDeleteObjectAttr(attr,obj,world) {
 }
 
 //jsApply :: !(JSVal (JSFunction f)) !(JSVal scope) [JSVal args] !*JSWorld -> *(!JSVal a, !*JSWorld)
-function __iTasks_API_Core_Client_Interface_jsApply(fun,scope,args,world) {
+function __iTasks_UI_JS_Interface_jsApply(fun,scope,args,world) {
 	world = Sapl.feval(world);
 	fun = ___unwrapJS(Sapl.feval(fun));
 	scope = ___unwrapJS(Sapl.feval(scope));
@@ -154,7 +154,7 @@ function __iTasks_API_Core_Client_Interface_jsApply(fun,scope,args,world) {
 	return ___Tuple2(___wrapJS(fun.apply(scope,args)), world);
 }
 //jsWrapFun :: !([JSArg] *JSWorld -> (!*JSVal a, !*JSWorld)) !*JSWorld -> *(!JSVal (JSFunction f)), !*JSWorld)
-function __iTasks_API_Core_Client_Interface_jsWrapFun(fun,world) {
+function __iTasks_UI_JS_Interface_jsWrapFun(fun,world) {
     var wrapped;
 
     fun = Sapl.feval(fun);
@@ -177,28 +177,28 @@ function __iTasks_API_Core_Client_Interface_jsWrapFun(fun,world) {
 }
 
 //jsTypeof :: !(JSVal a) -> !String
-function __iTasks_API_Core_Client_Interface_jsTypeof(obj) {
+function __iTasks_UI_JS_Interface_jsTypeof(obj) {
 	return (typeof ___unwrapJS(Sapl.feval(obj)));
 }
-function __iTasks_API_Core_Client_Interface_jsAbort(obj) {
+function __iTasks_UI_JS_Interface_jsAbort(obj) {
     console.log(obj);
 	//obj = ___unwrapJS(Sapl.feval(obj));
     throw obj;
 }
 
 //jsIsNull :: !(JSVal a) -> !Bool
-function __iTasks_API_Core_Client_Interface_jsIsNull(val) {
+function __iTasks_UI_JS_Interface_jsIsNull(val) {
   return (___unwrapJS(Sapl.feval(val)) === null);
 }
 
 // newJSArray :: !*JSWorld -> *(!JSVal [a], !*JSWorld)
-function __iTasks_API_Core_Client_Interface_newJSArray(world){
+function __iTasks_UI_JS_Interface_newJSArray(world){
 	world = Sapl.feval(world);
 	return ___Tuple2(___wrapJS([]), world);
 }
 
 // toJSVal :: !a -> JSVal b
-function __iTasks_API_Core_Client_Interface_toJSVal(val){
+function __iTasks_UI_JS_Interface_toJSVal(val){
 	val = Sapl.feval(val);
 
 	// if an argument is a function, we handle it as an event handler
@@ -224,7 +224,7 @@ function __iTasks_API_Core_Client_Interface_toJSVal(val){
 }
 
 // toJSArg :: !a -> JSArg
-function __iTasks_API_Core_Client_Interface_toJSArg(val){
+function __iTasks_UI_JS_Interface_toJSArg(val){
 
 	val = Sapl.feval(val);
 
@@ -235,38 +235,38 @@ function __iTasks_API_Core_Client_Interface_toJSArg(val){
 	if(isArray(val) && val[1]=="JSVal"){
 		return val;
 	}else{
-		return __iTasks_API_Core_Client_Interface_toJSVal(val);
+		return __iTasks_UI_JS_Interface_toJSVal(val);
 	}
 }		
 	
 // fromJSValUnsafe :: !(JSVal a) -> Dynamic
-function __iTasks_API_Core_Client_Interface_fromJSValUnsafe(ptr){
+function __iTasks_UI_JS_Interface_fromJSValUnsafe(ptr){
 	return toDynamic(___unwrapJS(Sapl.feval(ptr)));
 }
 
 // fromJSVal :: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
-function __iTasks_API_Core_Client_Interface_fromJSVal(ptr, world){
+function __iTasks_UI_JS_Interface_fromJSVal(ptr, world){
 	world = Sapl.feval(world);
 	return (toDynamic(___unwrapJS(Sapl.feval(ptr))), world);
 }
 
 // jsUnsafeCoerce :: (JSVal a) -> JSVal b
-function __iTasks_API_Core_Client_Interface_jsUnsafeCoerce(expr){
+function __iTasks_UI_JS_Interface_jsUnsafeCoerce(expr){
   return Sapl.feval(expr);
 }
 
 // jsUnsafeObjCoerce :: (JSVal a) -> JSObj b
-function __iTasks_API_Core_Client_Interface_jsUnsafeObjCoerce(expr){
+function __iTasks_UI_JS_Interface_jsUnsafeObjCoerce(expr){
   return Sapl.feval(expr);
 }
 
 // jsUnsafeFunCoerce :: (JSVal a) -> JSFun b
-function __iTasks_API_Core_Client_Interface_jsUnsafeFunCoerce(expr){
+function __iTasks_UI_JS_Interface_jsUnsafeFunCoerce(expr){
   return Sapl.feval(expr);
 }
 
 // jsUnsafeArrCoerce :: (JSVal a) -> JSArr b
-function __iTasks_API_Core_Client_Interface_jsUnsafeArrCoerce(expr){
+function __iTasks_UI_JS_Interface_jsUnsafeArrCoerce(expr){
   return Sapl.feval(expr);
 }
 
