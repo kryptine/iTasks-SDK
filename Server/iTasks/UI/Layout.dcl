@@ -1,10 +1,9 @@
-definition module iTasks.API.Core.LayoutCombinators
+definition module iTasks.UI.Layout
 
 import iTasks.API.Core.Types
 from iTasks.API.Core.TaskCombinators import class tune
 
-from iTasks._Framework.TaskState import :: TIMeta
-import iTasks._Framework.UIDefinition
+import iTasks.UI.Definition
 
 from Data.Maybe import :: Maybe
 

@@ -7,10 +7,10 @@ import StdList, StdBool, StdTuple, StdMisc
 import Data.Maybe, Data.Either, Data.Error, Data.Generic, Data.Functor, Data.Tuple
 import Text, Text.JSON
 import iTasks._Framework.IWorld
-import iTasks._Framework.UIDefinition
+import iTasks.UI.Definition
 import iTasks._Framework.Util
 import iTasks.API.Core.Types
-import iTasks.API.Core.LayoutCombinators
+import iTasks.UI.Layout
 
 visualizeAsEditor :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld -> (![(!UIControl,!UIAttributes)],!*IWorld) | gEditor{|*|} a & gEditMeta{|*|} a
 visualizeAsEditor (v,mask,ver) taskId layout iworld

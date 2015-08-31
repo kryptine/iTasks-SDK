@@ -1,4 +1,4 @@
-definition module iTasks.API.Core.Client.Interface
+definition module iTasks.UI.JS.Interface
 
 import StdString, StdGeneric, Data.Void, Data.Maybe
 import iTasks

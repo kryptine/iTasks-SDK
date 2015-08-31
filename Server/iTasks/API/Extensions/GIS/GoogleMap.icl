@@ -2,8 +2,8 @@ implementation module iTasks.API.Extensions.GIS.GoogleMap
 
 import iTasks
 import iTasks.API.Core.Client.Editlet
-import iTasks.API.Core.Client.Interface
-import iTasks.API.Core.Client.Map
+import iTasks.UI.JS.Interface
+import iTasks.UI.JS.Map
 
 import Data.Functor, Text, StdMisc
 

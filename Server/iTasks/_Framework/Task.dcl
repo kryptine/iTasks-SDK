@@ -8,8 +8,8 @@ import iTasks._Framework.Generic
 from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
 
 from iTasks._Framework.TaskState			import :: TaskTree
-from iTasks.API.Core.LayoutCombinators	import :: LayoutRules
-from Data.Map				import :: Map
+from iTasks.UI.Layout 	import :: LayoutRules
+from Data.Map			import :: Map
 from Data.CircularStack import :: CircularStack
 
 derive JSONEncode		Task

@@ -30,15 +30,15 @@ from Data.Map 				import qualified get
 from Text.HTML 				import class html
 from System.Time				import :: Timestamp
 from iTasks._Framework.IWorld			import :: IWorld
-from iTasks._Framework.UIDefinition		import :: UIDef, :: UIForm, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
+from iTasks.UI.Definition		import :: UIDef, :: UIForm, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
 from iTasks._Framework.Task				import :: Task, :: TaskId
 from iTasks._Framework.Generic				import class iTask
 from iTasks._Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, generic gUpdate, :: VSt, ::USt, :: VisualizationResult,:: EditMeta, :: VerifyOptions
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks._Framework.Generic.Defaults		import generic gDefault
 from iTasks._Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
-from iTasks.API.Core.Client.Interface	import :: JSWorld, :: JSVal
-from iTasks.API.Core.LayoutCombinators	import :: LayoutRules
+from iTasks.UI.JS.Interface	import :: JSWorld, :: JSVal
+from iTasks.UI.Layout import :: LayoutRules
 import iTasks._Framework.Serialization
 
 class TFunctor f where

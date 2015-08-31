@@ -1,6 +1,6 @@
-implementation module iTasks.API.Core.Client.Map
+implementation module iTasks.UI.JS.Map
 
-import iTasks.API.Core.Client.Interface
+import iTasks.UI.JS.Interface
 import StdBool, StdTuple, StdList, StdMisc
 
 jsNewMap :: !*JSWorld -> *(!JSMap k (JSVal v), !*JSWorld) | toString k

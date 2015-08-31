@@ -8,7 +8,7 @@ import Data.Either, System.OS, Text.URI, Internet.HTTP
 import iTasks._Framework.IWorld, iTasks._Framework.Task, iTasks._Framework.TaskState
 import iTasks._Framework.SDS, iTasks._Framework.TaskEval
 import iTasks._Framework.Generic.Interaction
-import iTasks.API.Core.Types, iTasks.API.Core.Tasks, iTasks.API.Core.LayoutCombinators
+import iTasks.API.Core.Types, iTasks.API.Core.Tasks, iTasks.UI.Layout
 import iTasks.API.Core.SDSs
 import iTasks.API.Common.InteractionTasks, iTasks.API.Common.TaskCombinators //TODO don't import from Common in Core
 

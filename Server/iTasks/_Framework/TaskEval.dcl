@@ -7,7 +7,7 @@ from iTasks.API.Core.Types	        import :: TaskListItem, :: TaskId, :: Session
 from iTasks._Framework.IWorld		import :: IWorld
 from iTasks._Framework.Task			import :: Task, :: TaskResult, :: Event, :: TaskEvalOpts
 from iTasks._Framework.SDS          import :: Shared
-from iTasks._Framework.UIDiff		import :: UIUpdate
+from iTasks.UI.Diff					import :: UIUpdate
 
 import iTasks._Framework.TaskState, iTasks._Framework.Generic
 

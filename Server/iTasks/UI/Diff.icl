@@ -1,10 +1,10 @@
-implementation module iTasks._Framework.UIDiff
+implementation module iTasks.UI.Diff
 
 import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple, sapldebug
 from Data.Map import :: Map
 import qualified Data.Map as DM
 import Text, Text.JSON
-import iTasks._Framework.Util, iTasks._Framework.UIDefinition
+import iTasks._Framework.Util, iTasks.UI.Definition
 from iTasks._Framework.Task import :: Event(..)
 
 :: DiffResult

@@ -6,7 +6,7 @@ import iTasks._Framework.TaskStore
 import iTasks._Framework.TaskEval
 import iTasks._Framework.IWorld
 import iTasks.API.Core.Client.Tasklet
-import iTasks._Framework.UIDiff
+import iTasks.UI.Diff
 import qualified iTasks._Framework.SDS as SDS
 
 from Data.Map import qualified newMap, toList, fromList, get

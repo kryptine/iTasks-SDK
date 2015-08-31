@@ -1,4 +1,4 @@
-definition module iTasks._Framework.UIDefinition
+definition module iTasks.UI.Definition
 /**
 * This module provides an abstract representation of user interfaces.
 * This representation seeks a middle ground between being fine grained enough

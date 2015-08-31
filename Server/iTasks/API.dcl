@@ -24,4 +24,4 @@ import
      ,  iTasks.API.Common.SDSCombinators
 
      //  Layout tuning
-     ,  iTasks.API.Core.LayoutCombinators
+     ,  iTasks.UI.Layout

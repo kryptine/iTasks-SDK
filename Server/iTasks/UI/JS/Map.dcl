@@ -1,6 +1,6 @@
-definition module iTasks.API.Core.Client.Map
+definition module iTasks.UI.JS.Map
 
-import iTasks.API.Core.Client.Interface
+import iTasks.UI.JS.Interface
 
 :: JSMap k v :== JSArr v
 

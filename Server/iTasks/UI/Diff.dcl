@@ -1,6 +1,6 @@
-definition module iTasks._Framework.UIDiff
+definition module iTasks.UI.Diff
 
-import iTasks._Framework.UIDefinition
+import iTasks.UI.Definition
 from iTasks._Framework.Task import :: Event
 
 :: UIUpdate = UIUpdate !UIPath ![UIUpdateOperation]

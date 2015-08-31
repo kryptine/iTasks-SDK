@@ -1,4 +1,4 @@
-implementation module iTasks.API.Core.Client.Interface
+implementation module iTasks.UI.JS.Interface
 
 import iTasks
 
