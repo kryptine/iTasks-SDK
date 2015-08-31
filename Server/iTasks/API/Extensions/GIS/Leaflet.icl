@@ -2,7 +2,7 @@ implementation module iTasks.API.Extensions.GIS.Leaflet
 
 import iTasks
 import iTasks.API.Core.Client.Editlet
-import iTasks.API.Core.Client.Map
+import iTasks.UI.JS.Map
 import StdMisc, Data.Tuple
 
 from StdArray import class Array(uselect), instance Array {} a
