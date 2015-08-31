@@ -10,7 +10,7 @@ import iTasks._Framework.IWorld
 import iTasks.UI.Definition
 import iTasks._Framework.Util
 import iTasks.API.Core.Types
-import iTasks.API.Core.LayoutCombinators
+import iTasks.UI.Layout
 
 visualizeAsEditor :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld -> (![(!UIControl,!UIAttributes)],!*IWorld) | gEditor{|*|} a & gEditMeta{|*|} a
 visualizeAsEditor (v,mask,ver) taskId layout iworld

@@ -9,9 +9,10 @@ from Data.Map import qualified get, put
 
 import StdBool, StdList, StdMisc, StdTuple, Data.Functor
 import iTasks.API.Core.Tasks, iTasks.API.Core.OptimizedCoreTasks, iTasks.API.Core.TaskCombinators
-import iTasks.API.Common.TaskCombinators, iTasks.API.Core.LayoutCombinators, iTasks.API.Core.SDSs
+import iTasks.API.Common.TaskCombinators, iTasks.API.Core.SDSs
 import iTasks._Framework.Generic.Interaction, iTasks.API.Common.SDSCombinators
 import iTasks._Framework.Tonic
+import iTasks.UI.Layout
 
 /*
 editInformation :: !d ![UpdateOption m m] (Maybe m) -> Task m | descr d & iTask m

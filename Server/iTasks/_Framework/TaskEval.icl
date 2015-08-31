@@ -4,8 +4,8 @@ import StdList, StdBool, StdTuple, StdMisc, StdDebug
 import Data.Error, Data.Func, Data.Tuple, Data.Either, Data.Functor, Data.List, Text, Text.JSON
 import iTasks._Framework.IWorld, iTasks._Framework.Task, iTasks._Framework.TaskState
 import iTasks._Framework.TaskStore, iTasks._Framework.Util, iTasks._Framework.Generic
-import iTasks.API.Core.Types, iTasks.API.Core.LayoutCombinators
-import iTasks.UI.Diff
+import iTasks.API.Core.Types
+import iTasks.UI.Diff, iTasks.UI.Layout
 import iTasks._Framework.SDSService
 
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)

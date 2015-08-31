@@ -10,7 +10,7 @@ import iTasks.API.Core.Types
 import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction
 
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
-from iTasks.API.Core.LayoutCombinators	import :: LayoutRules(..), autoLayoutRules
+from iTasks.UI.Layout 					import :: LayoutRules(..), autoLayoutRules
 from iTasks.API.Common.SDSCombinators	import toDynamic 
 from iTasks								import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 import qualified Data.CircularStack as DCS

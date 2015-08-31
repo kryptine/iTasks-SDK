@@ -6,7 +6,7 @@ import Internet.HTTP, GenEq, System.Time, Text, Data.Func, Data.Tuple, Data.List
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskStore, iTasks._Framework.TaskEval
 import iTasks._Framework.Util, iTasks._Framework.Store
 import iTasks._Framework.Generic, iTasks.UI.Definition
-import iTasks.API.Core.Types, iTasks.API.Core.LayoutCombinators
+import iTasks.API.Core.Types, iTasks.UI.Layout
 import iTasks._Framework.IWorld
 import iTasks._Framework.Tonic
 

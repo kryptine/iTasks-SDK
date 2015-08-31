@@ -7,7 +7,7 @@ import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction, iTasks.
 import iTasks._Framework.TaskStore, iTasks.UI.Definition
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil
 import iTasks._Framework.IWorld
-import iTasks.API.Core.LayoutCombinators
+import iTasks.UI.Layout
 from iTasks._Framework.SDS as SDS import qualified read, readRegister, write
 from StdFunc						import o, id
 from iTasks.API.Core.SDSs		    import topLevelTasks
