@@ -5,7 +5,7 @@ import Data.Maybe, Data.List, Text
 
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Client.Tasklet
-import iTasks.API.Core.Client.Interface
+import iTasks.UI.JS.Interface
 
 derive class iTask CodeMirrorConfiguration, CodeMirrorDiff, CodeMirror, CodeMirrorClient, CodeMirrorClientSt, JSCM
 
