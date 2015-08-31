@@ -38,10 +38,24 @@ where
 	H = px 32.0				
 	W = H *. 1.5
 
+import iTasks.API.Extensions.GIS.Leaflet
+testLeafletMap = testInteractive "Leaflet Map" tc "Try to zoom and pan the map" "You should see a Leaflet Map in which you can pan and zoom"
+where
+	tc :: Task LeafletMap
+	tc = enterInformation "Test a Leaflet map" []
+
+import iTasks.API.Extensions.GIS.GoogleMap
+testGoogleMap = testInteractive "Google Map" tc "Try to zoom and pan the map" "You should see a Google Map in which you can pan and zoom"
+where
+	tc :: Task GoogleMap
+	tc = enterInformation "Test a Google map" []
+
 testAll :: Task [TestResult]
 testAll = allTasks 
 	[testEditlet
 	,testSVGEditlet
+	,testLeafletMap
+	,testGoogleMap
 	]
 
 Start w = startEngine testAll w
