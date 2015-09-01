@@ -1368,7 +1368,7 @@ viewInstance rs navstack dynSett bpinst=:{bpi_bpref = {bpr_moduleName, bpr_taskN
     >>| viewInstance rs navstack dynSett bpinst (Just (Left meta)) meta
   handleClicks mn tn (TSelectArg i, meta) _
     =   set (Just (Right (mn, tn, tid, i))) selectedDetail
-    >>| viewInstance rs navstack dynSett bpinst selDetail meta
+    >>| viewInstance rs navstack dynSett bpinst (Just (Right (mn, tn, tid, i))) meta
   handleClicks _ _ _ _ = viewInstance rs navstack dynSett bpinst selDetail meta
 
   noSelection :: Task String

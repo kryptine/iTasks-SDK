@@ -593,16 +593,18 @@ tTaskDef inh moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTa
   where
   mkArgAndTy :: !(!TExpr, !TExpr) !Int !(Maybe TExpr) -> [Image ModelTy]
   mkArgAndTy (arg, ty) i mvar
-    #! meta = mkClickMeta inh Nothing moduleName taskName Nothing Nothing
-    = [ text ArialRegular10px (ppTExpr arg) <@< { onclick = selectArg inh.inh_bpinst meta i, local = False}
-      , text ArialRegular10px " :: "        <@< { onclick = selectArg inh.inh_bpinst meta i, local = False}
-      , text ArialRegular10px (ppTExpr ty)  <@< { onclick = selectArg inh.inh_bpinst meta i, local = False}
-      , text ArialRegular10px (maybe "" (\x -> " = " +++ ppTExpr x) mvar) <@< { onclick = selectArg inh.inh_bpinst meta i, local = False}
+    #! clickHandler = { onclick = selectArg inh i, local = False}
+    = [ text ArialRegular10px (ppTExpr arg) <@< clickHandler
+      , text ArialRegular10px " :: "        <@< clickHandler
+      , text ArialRegular10px (ppTExpr ty)  <@< clickHandler
+      , text ArialRegular10px (maybe "" (\x -> " = " +++ ppTExpr x) mvar) <@< clickHandler
       ]
 
-  selectArg :: !(Maybe BlueprintInstance) !ClickMeta !Int !Int !ModelTy -> ModelTy
-  selectArg (Just {bpi_taskId}) meta i 1 st = { ActionState | st & action = Just (TSelectArg i, meta) }
-  selectArg _                   _    _ _ st = st
+  selectArg :: !InhMkImg !Int !Int !ModelTy -> ModelTy
+  selectArg inh=:{inh_bpinst = Just {bpi_taskId}} i 1 st
+    #! meta = mkClickMeta inh Nothing moduleName taskName (Just bpi_taskId) (Just bpi_taskId)
+    = { ActionState | st & action = Just (TSelectArg i, meta) }
+  selectArg _ _ _ st = st
 
 activeNodeTaskId :: !ExprId !(Map ListId (IntMap (!TaskId, !ExprId))) -> Maybe TaskId
 activeNodeTaskId eid activeNodes
