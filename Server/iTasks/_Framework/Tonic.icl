@@ -95,7 +95,14 @@ NS_TONIC_INSTANCES :== "tonic-instances"
 
 instance TonicTopLevelBlueprint Task where
   tonicWrapBody mn tn args cases t = tonicWrapTaskBody` mn tn args cases t
-  tonicWrapArg d ptr v = viewInformation (Title d) [] v @! ()
+  tonicWrapArg d ptr v
+    =            get selectedBlueprint
+    >>- \msbp -> let tidstr = case msbp of
+                                Just sbp -> case sbp.click_target_bpident.bpident_taskId of
+                                              Just tid -> " (" +++ toString tid +++ ")"
+                                              _        -> ""
+                                _        -> ""
+                 in  viewInformation (Title (d +++ tidstr)) [] v @! ()
 
 instance TonicBlueprintPart Task where
   tonicWrapApp mn fn nid cases t = tonicWrapApp` mn fn nid cases t
