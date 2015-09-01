@@ -95,14 +95,7 @@ NS_TONIC_INSTANCES :== "tonic-instances"
 
 instance TonicTopLevelBlueprint Task where
   tonicWrapBody mn tn args cases t = tonicWrapTaskBody` mn tn args cases t
-  tonicWrapArg d ptr v
-    =            get selectedBlueprint
-    >>- \msbp -> let tidstr = case msbp of
-                                Just sbp -> case sbp.click_target_bpident.bpident_taskId of
-                                              Just tid -> " (" +++ toString tid +++ ")"
-                                              _        -> ""
-                                _        -> ""
-                 in  viewInformation (Title (d +++ tidstr)) [] v @! ()
+  tonicWrapArg d ptr v = viewInformation d [] v @! ()
 
 instance TonicBlueprintPart Task where
   tonicWrapApp mn fn nid cases t = tonicWrapApp` mn fn nid cases t
@@ -1165,7 +1158,7 @@ tonicDynamicBrowser rs
     viewDetail (Just (Left {click_target_bpident = {bpident_taskId = Nothing}}))  = viewInformation (Title "Notice") [] "No data available for selected task. " @! ()
     viewDetail (Just (Right (mn, tn, tid, argIdx))) =                get (sdsFocus (mn, tn, tid) paramsForTaskInstance)
                                                       >>~ \params -> case getN params argIdx of
-                                                                       Just (_, _, vi) -> vi
+                                                                       Just (_, _, vi) -> viewInformation (Title ("Selected argument (" +++ toString tid +++ ")")) [] () ||- vi
                                                                        _               -> viewInformation (Title "Notice") [] "Argument value not found" @! ()
       where
       getN []     _ = Nothing
