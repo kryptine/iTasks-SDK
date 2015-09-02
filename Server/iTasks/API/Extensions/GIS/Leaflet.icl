@@ -295,13 +295,21 @@ where
 
     //createObject :: !LeafletObject !(JSObj JSLM) !a !(JSVal (JSObject b)) !(JSVal (JSObject c)) !String !(!Int,!*JSWorld) -> (!Int,!*JSWorld)
     createObject mkHandler (Marker {LeafletMarker|markerId,position,title,icon}) l layer objRefs mapIcons cid (i,env)
-        # (args,env)      = case icon of
-            Nothing         = ([toJSArg [position.lat,position.lng]],env)
-            Just iconIdx
-                # (options,env)     = jsEmptyObject env
-                # (iconRef,env)     = .? (mapIcons .# iconIdx) env
-                # env               = (options .# "icon" .= iconRef) env
-                = ([toJSArg [position.lat,position.lng],toJSArg options],env)
+        # (options,env)     = jsEmptyObject env
+        # (options,env)     = case icon of
+                                Nothing         = (options, env)
+                                Just iconIdx
+                                    # (iconRef, env) = .? (mapIcons .# iconIdx) env
+                                    # env            = (options .# "icon" .= iconRef) env
+                                    = (options, env)
+        # (options,env)     = case title of
+                                Nothing         = (options, env)
+                                Just title
+                                    # env = (options .# "title" .= title) env
+                                    # env = (options .# "alt"   .= title) env
+                                    = (options, env)
+        # args              = [toJSArg [position.lat,position.lng], toJSArg options]
+
         # (marker,env)      = (l .# "marker" .$ args) env
         # env               = (objRefs .# i .= marker) env
         # (_,env)           = (marker .# "addEventListener" .$ ("click",mkHandler (onMarkerClick markerId) cid)) env
