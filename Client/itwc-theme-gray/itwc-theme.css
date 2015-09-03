@@ -3,7 +3,138 @@
  You can use this to easily create branded iTask applications.
  Compile to CSS using 'sass itwc-theme.scss itwc-theme.css'
 */
-/* Color definitions for the theme */
+.itwc-prompt {
+  border: #999 solid;
+  border-width: 0 0 1px 0; }
+
+[tooltip] {
+  position: relative;
+  display: inline-block; }
+
+[tooltip]:before, [tooltip]:after {
+  position: absolute;
+  -webkit-transform: translate3d(0, 0, 0);
+  -moz-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  visibility: hidden;
+  opacity: 0;
+  z-index: 1000000;
+  pointer-events: none;
+  -webkit-transition: 0.3s ease;
+  -moz-transition: 0.3s ease;
+  transition: 0.3s ease; }
+
+[tooltip]:hover:before, [tooltip]:hover:after, [tooltip]:focus:before, [tooltip]:focus:after {
+  visibility: visible;
+  opacity: 1; }
+
+[tooltip]:before {
+  content: '';
+  position: absolute;
+  background: transparent;
+  border: 6px solid transparent;
+  z-index: 1000001; }
+
+[tooltip]:after {
+  content: attr(tooltip);
+  background: #ccc;
+  color: #000;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 12px;
+  white-space: nowrap;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3); }
+
+[tooltip]:before {
+  border-left-color: #ccc;
+  margin-right: -12px;
+  margin-bottom: -6px; }
+
+[tooltip]:after {
+  margin-bottom: -14px; }
+
+[tooltip]:before, [tooltip]:after {
+  right: 100%;
+  bottom: 50%; }
+
+[tooltip]:hover:after, [tooltip]:hover:before, [tooltip]:focus:after, [tooltip]:focus:before {
+  -webkit-transform: translateX(-8px);
+  -moz-transform: translateX(-8px);
+  transform: translateX(-8px); }
+
+/* Icon definitions */
+.icon-help {
+  background-image: url("icons/help.png"); }
+
+.icon-hint {
+  background-image: url("icons/information.png") !important; }
+
+.icon-valid {
+  background-image: url("icons/accept.png") !important; }
+
+.icon-warning {
+  background-image: url("icons/warning.png") !important; }
+
+.icon-invalid {
+  background-image: url("icons/exclamation.png") !important; }
+
+.icon-continue {
+  background-image: url("icons/arrow_right.png"); }
+
+.icon-login, .icon-log-in {
+  background-image: url("icons/tick.png"); }
+
+.icon-logout, .icon-log-out {
+  background-image: url("icons/door_in.png"); }
+
+.icon-view {
+  background-image: url("icons/page.png") !important; }
+
+.icon-edit {
+  background-image: url("icons/pencil.png") !important; }
+
+.icon-delete {
+  background-image: url("icons/trash.png") !important; }
+
+.icon-refresh {
+  background-image: url("icons/refresh.png") !important; }
+
+.icon-up {
+  background-image: url("icons/move-up.png") !important; }
+
+.icon-down {
+  background-image: url("icons/move-down.png") !important; }
+
+.icon-add, .icon-new {
+  background-image: url("icons/add.png") !important; }
+
+.icon-remove {
+  background-image: url("icons/delete.png") !important; }
+
+.icon-ok {
+  background-image: url("icons/tick.png") !important; }
+
+.icon-cancel {
+  background-image: url("icons/cancel.png") !important; }
+
+.icon-open {
+  background-image: url("icons/document-open.png") !important; }
+
+.icon-save {
+  background-image: url("icons/document-save.png") !important; }
+
+.icon-close {
+  background-image: url("icons/cancel.png") !important; }
+
+.icon-previous {
+  background-image: url("icons/arrow_left.png") !important; }
+
+.icon-next {
+  background-image: url("icons/arrow_right.png") !important; }
+
+.icon-preferences {
+  background-image: url("icons/cog.png") !important; }
+
 body {
   width: 100%;
   height: 100%;
@@ -41,7 +172,7 @@ body, input, td, th, select {
   -webkit-align-self: stretch; }
   .header a.close {
     float: right;
-    color: black;
+    color: #000;
     display: inline-block;
     position: relative;
     margin: 4px 4px 0 0;
@@ -50,7 +181,7 @@ body, input, td, th, select {
     font-size: 8px;
     line-height: 8px;
     background: #eeeeee;
-    border: 1px solid black;
+    border: 1px solid #000;
     border-radius: 2px;
     padding: 0 4px 2px 4px;
     text-decoration: none; }
@@ -59,18 +190,18 @@ body, input, td, th, select {
     margin: 4px 0 0 4px; }
 
 .panel {
-  color: black;
-  background-color: #eeeeee;
-  border: 1px solid #cccccc;
+  color: #000;
+  background-color: #eee;
+  border: 1px solid #ccc;
   display: flex;
   display: -webkit-flex;
   flex-direction: column;
   -webkit-flex-direction: column; }
   .panel > .header {
-    color: black;
-    background-color: #cccccc;
-    background: -moz-linear-gradient(top, #eeeeee 0%, #cccccc 100%);
-    background: -webkit-linear-gradient(top, #eeeeee 0%, #cccccc 100%); }
+    color: #000;
+    background-color: #ccc;
+    background: -moz-linear-gradient(top, #eeeeee 0%, #ccc 100%);
+    background: -webkit-linear-gradient(top, #eeeeee 0%, #ccc 100%); }
   .panel > .inner {
     overflow: auto; }
 
@@ -88,27 +219,27 @@ body, input, td, th, select {
     overflow: auto; }
 
 .floating-window, .modal-window {
-  color: black;
-  background-color: #eeeeee;
-  border: 1px solid #cccccc;
+  color: #000;
+  background-color: #eee;
+  border: 1px solid #ccc;
   border-radius: 5px; }
   .floating-window > .header, .modal-window > .header {
-    color: black;
-    background-color: #cccccc;
-    background: -moz-linear-gradient(top, #eeeeee 0%, #cccccc 100%);
-    background: -webkit-linear-gradient(top, #eeeeee 0%, #cccccc 100%); }
+    color: #000;
+    background-color: #ccc;
+    background: -moz-linear-gradient(top, #eeeeee 0%, #ccc 100%);
+    background: -webkit-linear-gradient(top, #eeeeee 0%, #ccc 100%); }
 
 .floating-window {
   box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5); }
 
 .notification-bubble {
-  background-color: #eeeeee;
-  border: 3px solid #cccccc;
+  background-color: #eee;
+  border: 3px solid #ccc;
   border-radius: 10px;
   opacity: 0.9; }
   .notification-bubble > .header {
-    color: black;
-    background-color: #cccccc; }
+    color: #000;
+    background-color: #ccc; }
 
 .vcontainer, .hcontainer {
   display: flex;
@@ -133,8 +264,8 @@ body, input, td, th, select {
 .button {
   font-size: 8pt;
   padding: 3px;
-  background: -moz-linear-gradient(top, #fefefe, #eeeeee);
-  background: -webkit-linear-gradient(top, #fefefe, #eeeeee);
+  background: -moz-linear-gradient(top, #fefefe, #eee);
+  background: -webkit-linear-gradient(top, #fefefe, #eee);
   background-repeat: none;
   border: 1px solid #bbbbbb;
   border-radius: 3px;
@@ -145,7 +276,7 @@ body, input, td, th, select {
   align-items: center;
   -webkit-align-items: center;
   text-decoration: none;
-  color: black;
+  color: #000;
   flex-shrink: 0; }
   .button:hover {
     border-color: #bbbbbb; }
@@ -212,8 +343,8 @@ body, input, td, th, select {
   line-height: 24px;
   position: relative;
   min-height: 24px;
-  background: -moz-linear-gradient(top, #fefefe, #cccccc);
-  background: -webkit-linear-gradient(top, #fefefe, #cccccc);
+  background: -moz-linear-gradient(top, #fefefe, #ccc);
+  background: -webkit-linear-gradient(top, #fefefe, #ccc);
   overflow: hidden; }
 
 .tabbar:after {
@@ -222,7 +353,7 @@ body, input, td, th, select {
   width: 100%;
   bottom: 0;
   left: 0;
-  border-bottom: 1px solid #cccccc;
+  border-bottom: 1px solid #ccc;
   z-index: 1; }
 
 .tabbar:before {
@@ -231,7 +362,7 @@ body, input, td, th, select {
 .tabbar li {
   margin: 0;
   padding: 0 10px;
-  border: 1px solid #cccccc;
+  border: 1px solid #ccc;
   background: #dbdbdb;
   display: inline-block;
   position: relative;
@@ -240,7 +371,7 @@ body, input, td, th, select {
   border-top-right-radius: 5px; }
 
 .tabbar li a {
-  color: black;
+  color: #000;
   text-decoration: none; }
 
 .tabbar li:before,
@@ -250,7 +381,7 @@ body, input, td, th, select {
   width: 5px;
   height: 5px;
   content: " ";
-  border: 1px solid #cccccc; }
+  border: 1px solid #ccc; }
 
 .tabbar li:before {
   left: -6px;
@@ -265,16 +396,16 @@ body, input, td, th, select {
   box-shadow: -2px 2px 0 #dbdbdb; }
 
 .tabbar li.selected {
-  background: #eeeeee;
-  color: black;
+  background: #eee;
+  color: #000;
   z-index: 2;
-  border-bottom-color: #eeeeee; }
+  border-bottom-color: #eee; }
 
 .tabbar li.selected:before {
-  box-shadow: 2px 2px 0 #eeeeee; }
+  box-shadow: 2px 2px 0 #eee; }
 
 .tabbar li.selected:after {
-  box-shadow: -2px 2px 0 #eeeeee; }
+  box-shadow: -2px 2px 0 #eee; }
 
 .tabitems {
   flex: 1;
@@ -286,7 +417,7 @@ body, input, td, th, select {
   flex-direction: column;
   -webkit-flex-direction: column;
   z-index: 2;
-  border: 1px solid #cccccc;
+  border: 1px solid #ccc;
   border-top-width: 0; }
 
 .tabitem {
@@ -331,8 +462,8 @@ body, input, td, th, select {
   -webkit-flex-direction: column; }
 
 .choicegrid-header {
-  color: black;
-  background: #cccccc;
+  color: #000;
+  background: #ccc;
   background: -moz-linear-gradient(center top, #d6d6d6, #c2c3c5);
   background: -webkit-linear-gradient(center top, #d6d6d6, #c2c3c5);
   display: flex;
@@ -374,8 +505,8 @@ body, input, td, th, select {
   background-color: #eee; }
 
 .choicegrid-body > div.selected {
-  background-color: #eeeeee;
-  color: black;
+  background-color: #eee;
+  color: #000;
   border: 1px dotted #333; }
 
 .choicegrid-body > div > div {
@@ -392,7 +523,7 @@ body, input, td, th, select {
 
 .choice-list {
   margin: 0;
-  border: 1px solid #eeeeee;
+  border: 1px solid #eee;
   display: flex;
   display: -webkit-flex;
   overflow: auto;
@@ -402,7 +533,7 @@ body, input, td, th, select {
   -webkit-align-items: stretch; }
 
 .choice-list-option {
-  border: solid #eeeeee;
+  border: solid #eee;
   border-width: 0 0 1px 0;
   padding: 5px 10px;
   flex-shrink: 0;
@@ -411,8 +542,8 @@ body, input, td, th, select {
     border-width: 0; }
 
 .choice-list-option.selected {
-  background-color: #eeeeee;
-  color: black; }
+  background-color: #eee;
+  color: #000; }
 
 .choicetree {
   overflow: auto;
@@ -488,7 +619,7 @@ body, input, td, th, select {
   -webkit-align-items: center;
   margin: 0;
   padding: 2px 5px;
-  background: #eeeeee;
+  background: #eee;
   background: -moz-linear-gradient(center top, #f8f8f8, #e4e5e7);
   background: -webkit-linear-gradient(center top, #f8f8f8, #e4e5e7); }
   .toolbar > .menu-item > a {
@@ -505,8 +636,8 @@ body, input, td, th, select {
     display: block; }
   .menu-item a {
     font-size: 8pt;
-    background: -moz-linear-gradient(top, #fefefe, #eeeeee);
-    background: -webkit-linear-gradient(top, #fefefe, #eeeeee);
+    background: -moz-linear-gradient(top, #fefefe, #eee);
+    background: -webkit-linear-gradient(top, #fefefe, #eee);
     background-repeat: none;
     border: 1px solid #bbbbbb;
     border-radius: 3px;
@@ -565,7 +696,7 @@ body, input, td, th, select {
   align-self: stretch;
   -webkit-align-self: stretch; }
   .vsplitter:hover, .hsplitter:hover {
-    background-color: #cccccc; }
+    background-color: #ccc; }
 
 .vsplitter {
   height: 5px;

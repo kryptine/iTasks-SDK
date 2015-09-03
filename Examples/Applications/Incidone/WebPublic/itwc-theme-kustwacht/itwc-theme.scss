@@ -3,9 +3,10 @@
  You can use this to easily create branded iTask applications.
  Compile to CSS using 'sass itwc-theme.scss itwc-theme.css'
 */
-/* Color definitions for the theme */
-@import "colors.scss";
+@import "start.scss";
 @import "options.scss";
+@import "colors.scss";
+@import "icons.scss";
 
 body {
     width: 100%;

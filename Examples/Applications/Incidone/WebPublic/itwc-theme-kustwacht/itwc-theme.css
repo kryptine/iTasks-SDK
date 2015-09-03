@@ -3,7 +3,138 @@
  You can use this to easily create branded iTask applications.
  Compile to CSS using 'sass itwc-theme.scss itwc-theme.css'
 */
-/* Color definitions for the theme */
+.itwc-prompt {
+  border: #999 solid;
+  border-width: 0 0 1px 0; }
+
+[tooltip] {
+  position: relative;
+  display: inline-block; }
+
+[tooltip]:before, [tooltip]:after {
+  position: absolute;
+  -webkit-transform: translate3d(0, 0, 0);
+  -moz-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  visibility: hidden;
+  opacity: 0;
+  z-index: 1000000;
+  pointer-events: none;
+  -webkit-transition: 0.3s ease;
+  -moz-transition: 0.3s ease;
+  transition: 0.3s ease; }
+
+[tooltip]:hover:before, [tooltip]:hover:after, [tooltip]:focus:before, [tooltip]:focus:after {
+  visibility: visible;
+  opacity: 1; }
+
+[tooltip]:before {
+  content: '';
+  position: absolute;
+  background: transparent;
+  border: 6px solid transparent;
+  z-index: 1000001; }
+
+[tooltip]:after {
+  content: attr(tooltip);
+  background: #ccc;
+  color: #000;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 12px;
+  white-space: nowrap;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3); }
+
+[tooltip]:before {
+  border-left-color: #ccc;
+  margin-right: -12px;
+  margin-bottom: -6px; }
+
+[tooltip]:after {
+  margin-bottom: -14px; }
+
+[tooltip]:before, [tooltip]:after {
+  right: 100%;
+  bottom: 50%; }
+
+[tooltip]:hover:after, [tooltip]:hover:before, [tooltip]:focus:after, [tooltip]:focus:before {
+  -webkit-transform: translateX(-8px);
+  -moz-transform: translateX(-8px);
+  transform: translateX(-8px); }
+
+/* Icon definitions */
+.icon-help {
+  background-image: url("icons/help.png"); }
+
+.icon-hint {
+  background-image: url("icons/information.png") !important; }
+
+.icon-valid {
+  background-image: url("icons/accept.png") !important; }
+
+.icon-warning {
+  background-image: url("icons/warning.png") !important; }
+
+.icon-invalid {
+  background-image: url("icons/exclamation.png") !important; }
+
+.icon-continue {
+  background-image: url("icons/arrow_right.png"); }
+
+.icon-login, .icon-log-in {
+  background-image: url("icons/tick.png"); }
+
+.icon-logout, .icon-log-out {
+  background-image: url("icons/door_in.png"); }
+
+.icon-view {
+  background-image: url("icons/page.png") !important; }
+
+.icon-edit {
+  background-image: url("icons/pencil.png") !important; }
+
+.icon-delete {
+  background-image: url("icons/trash.png") !important; }
+
+.icon-refresh {
+  background-image: url("icons/refresh.png") !important; }
+
+.icon-up {
+  background-image: url("icons/move-up.png") !important; }
+
+.icon-down {
+  background-image: url("icons/move-down.png") !important; }
+
+.icon-add, .icon-new {
+  background-image: url("icons/add.png") !important; }
+
+.icon-remove {
+  background-image: url("icons/delete.png") !important; }
+
+.icon-ok {
+  background-image: url("icons/tick.png") !important; }
+
+.icon-cancel {
+  background-image: url("icons/cancel.png") !important; }
+
+.icon-open {
+  background-image: url("icons/document-open.png") !important; }
+
+.icon-save {
+  background-image: url("icons/document-save.png") !important; }
+
+.icon-close {
+  background-image: url("icons/cancel.png") !important; }
+
+.icon-previous {
+  background-image: url("icons/arrow_left.png") !important; }
+
+.icon-next {
+  background-image: url("icons/arrow_right.png") !important; }
+
+.icon-preferences {
+  background-image: url("icons/cog.png") !important; }
+
 body {
   width: 100%;
   height: 100%;
@@ -41,7 +172,7 @@ body, input, td, th, select {
   -webkit-align-self: stretch; }
   .header a.close {
     float: right;
-    color: white;
+    color: #ffffff;
     display: inline-block;
     position: relative;
     margin: 4px 4px 0 0;
@@ -50,7 +181,7 @@ body, input, td, th, select {
     font-size: 8px;
     line-height: 8px;
     background: #ff9544;
-    border: 1px solid white;
+    border: 1px solid #ffffff;
     border-radius: 2px;
     padding: 0 4px 2px 4px;
     text-decoration: none; }
@@ -59,7 +190,7 @@ body, input, td, th, select {
     margin: 4px 0 0 4px; }
 
 .panel {
-  color: black;
+  color: #000000;
   background-color: #eeeeee;
   border: 1px solid #fb7322;
   display: flex;
@@ -67,7 +198,7 @@ body, input, td, th, select {
   flex-direction: column;
   -webkit-flex-direction: column; }
   .panel > .header {
-    color: white;
+    color: #ffffff;
     background-color: #fb7322;
     background: -moz-linear-gradient(top, #ff9544 0%, #fb7322 100%);
     background: -webkit-linear-gradient(top, #ff9544 0%, #fb7322 100%); }
@@ -88,12 +219,12 @@ body, input, td, th, select {
     overflow: auto; }
 
 .floating-window, .modal-window {
-  color: black;
+  color: #000000;
   background-color: #eeeeee;
   border: 1px solid #fb7322;
   border-radius: 5px; }
   .floating-window > .header, .modal-window > .header {
-    color: white;
+    color: #ffffff;
     background-color: #004584;
     background: -moz-linear-gradient(top, #2267a6 0%, #004584 100%);
     background: -webkit-linear-gradient(top, #2267a6 0%, #004584 100%); }
@@ -107,7 +238,7 @@ body, input, td, th, select {
   border-radius: 10px;
   opacity: 0.9; }
   .notification-bubble > .header {
-    color: white;
+    color: #ffffff;
     background-color: #004584; }
 
 .vcontainer, .hcontainer {
@@ -145,7 +276,7 @@ body, input, td, th, select {
   align-items: center;
   -webkit-align-items: center;
   text-decoration: none;
-  color: black;
+  color: #000000;
   flex-shrink: 0; }
   .button:hover {
     border-color: #bbbbbb; }
@@ -222,7 +353,7 @@ body, input, td, th, select {
   width: 100%;
   bottom: 0;
   left: 0;
-  border-bottom: 1px solid #cccccc;
+  border-bottom: 1px solid #ccc;
   z-index: 1; }
 
 .tabbar:before {
@@ -231,7 +362,7 @@ body, input, td, th, select {
 .tabbar li {
   margin: 0;
   padding: 0 10px;
-  border: 1px solid #cccccc;
+  border: 1px solid #ccc;
   background: #dbdbdb;
   display: inline-block;
   position: relative;
@@ -240,7 +371,7 @@ body, input, td, th, select {
   border-top-right-radius: 5px; }
 
 .tabbar li a {
-  color: black;
+  color: #000000;
   text-decoration: none; }
 
 .tabbar li:before,
@@ -250,7 +381,7 @@ body, input, td, th, select {
   width: 5px;
   height: 5px;
   content: " ";
-  border: 1px solid #cccccc; }
+  border: 1px solid #ccc; }
 
 .tabbar li:before {
   left: -6px;
@@ -266,7 +397,7 @@ body, input, td, th, select {
 
 .tabbar li.selected {
   background: #eeeeee;
-  color: black;
+  color: #000000;
   z-index: 2;
   border-bottom-color: #eeeeee; }
 
@@ -286,7 +417,7 @@ body, input, td, th, select {
   flex-direction: column;
   -webkit-flex-direction: column;
   z-index: 2;
-  border: 1px solid #cccccc;
+  border: 1px solid #ccc;
   border-top-width: 0; }
 
 .tabitem {
@@ -331,7 +462,7 @@ body, input, td, th, select {
   -webkit-flex-direction: column; }
 
 .choicegrid-header {
-  color: white;
+  color: #ffffff;
   background: #fb7322;
   background: -moz-linear-gradient(center top, #ff7d2c, #f16a1b);
   background: -webkit-linear-gradient(center top, #ff7d2c, #f16a1b);
@@ -375,7 +506,7 @@ body, input, td, th, select {
 
 .choicegrid-body > div.selected {
   background-color: #004584;
-  color: white;
+  color: #ffffff;
   border: 1px dotted #333; }
 
 .choicegrid-body > div > div {
@@ -412,7 +543,7 @@ body, input, td, th, select {
 
 .choice-list-option.selected {
   background-color: #004584;
-  color: white; }
+  color: #ffffff; }
 
 .choicetree {
   overflow: auto;

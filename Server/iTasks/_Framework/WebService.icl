@@ -213,8 +213,6 @@ where
 		
 		stylefiles =
             ["itwc-theme-"+++theme+++"/itwc-theme.css"
-			,"css/icons.css"
-			,"css/app.css"
 			: if customCSS [appName +++ ".css"] []]
 
         scriptfiles =
