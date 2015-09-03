@@ -218,12 +218,10 @@ where
 			: if customCSS [appName +++ ".css"] []]
 
         scriptfiles =
-            ["/app/taskeval/utils.js","/app/taskeval/itask.js" //TODO: Clean up SAPL mixed mess
-			,"/app/taskeval/builtin.js"
-			,"/app/taskeval/dynamic.js"
-			,"/app/taskeval/sapl-rt.js", "/app/taskeval/sapl-support.js"
-			,"/app/taskeval/db.js", "/app/taskeval/debug.js"
-			,"/app/taskeval/interface.js"
+            ["/utils.js","/itask.js"
+			,"/builtin.js","/dynamic.js"
+			,"/sapl-rt.js","/sapl-support.js"
+			,"/db.js", "/debug.js","/interface.js"
             ,"/itwc.js"
             ]
 
