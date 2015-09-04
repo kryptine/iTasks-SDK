@@ -26,10 +26,11 @@ from iTasks.API.Core.Types import :: DateTime
   , bpi_currentUser      :: !Maybe User
   , bpi_blueprint        :: !TonicFunc
   , bpi_case_branches    :: !Map ExprId Int
+  , bpi_index            :: !Int
   , bpi_bpref            :: !BlueprintIdent
   }
 
-:: TonicRTMap :== Map TaskId BlueprintInstance
+:: TonicRTMap :== Map TaskId [((ModuleName, FuncName), BlueprintInstance)]
 
 :: Calltrace :== CircularStack TaskId
 

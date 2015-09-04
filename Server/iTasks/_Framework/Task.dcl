@@ -45,13 +45,14 @@ derive gEq				Task
 	}
 
 :: TonicOpts =
-  { inAssignNode        :: Maybe ExprId
-  , inParallel          :: Maybe TaskId
-  , captureParallel     :: Bool
-  , currBlueprintName   :: (String, String)
-  , currBlueprintTaskId :: TaskId
-  , currBlueprintExprId :: ExprId
-  , callTrace           :: CircularStack TaskId
+  { inAssignNode            :: Maybe ExprId
+  , inParallel              :: Maybe TaskId
+  , captureParallel         :: Bool
+  , currBlueprintModuleName :: String
+  , currBlueprintFuncName   :: String
+  , currBlueprintTaskId     :: TaskId
+  , currBlueprintExprId     :: ExprId
+  , callTrace               :: CircularStack TaskId
   }
 
 mkEvalOpts :: TaskEvalOpts
