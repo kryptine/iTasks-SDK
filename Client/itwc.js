@@ -1,13 +1,13 @@
+"use strict";
 //#### iTasks Web Client ####//
 //This javascript program defines the web-based run-time environment of iTasks programs
 itwc = itwc || {};
-itwc.global = {};
 
 //#### UTILITY FUNCTIONS ####//
 itwc.util = {};
 itwc.util.urlEncode = function (obj) {
     var parts = [];
-    for(k in obj) {
+    for(var k in obj) {
         parts.push(k+'='+encodeURIComponent(obj[k]));
     }
     return parts.join('&');
@@ -28,11 +28,12 @@ itwc.util.equalArgs = function (a1,a2) { //Shallow array comparison
 itwc.extend = function(inheritFrom,definition) {
     var c = function() {};
     c.prototype = new inheritFrom();
-    for(k in definition) {
+    for(var k in definition) {
         c.prototype[k] = definition[k];
     }
     return c;
 }
+
 //#### GENERIC UI COMPONENT BASE DEFINITIONS ####//
 itwc.Component = function() {};
 itwc.Component.prototype = {
@@ -40,7 +41,7 @@ itwc.Component.prototype = {
 
     defaultWidth: 'flex',
     defaultHeight: 'wrap',
-    defaultMargins: [0,0,0,00],
+    defaultMargins: [0,0,0,0],
 
     init: function(definition, parentCmp) {
         var me = this;
@@ -632,25 +633,26 @@ itwc.component.itwc_window = itwc.extend(itwc.Layer, {
         window.removeEventListener('mouseup', me.onStopDrag_);
     }
 });
-itwc.component.itwc_view_string = itwc.extend(itwc.Component,{
+
+itwc.ViewComponent = itwc.extend(itwc.Component,{
+	setValue: function(value) {
+        this.domEl.innerHTML = value;
+    }
+});
+
+itwc.component.itwc_view_string = itwc.extend(itwc.ViewComponent,{
     defaultWidth: 'wrap',
     initDOMEl: function() {
         this.domEl.innerHTML = this.definition.value;
-    },
-    setValue: function(value) {
-        this.domEl.innerHTML = value;
     }
 });
-itwc.component.itwc_view_html = itwc.extend(itwc.Component,{
+itwc.component.itwc_view_html = itwc.extend(itwc.ViewComponent,{
     initDOMEl: function() {
         this.domEl.innerHTML = this.definition.value;
         this.domEl.classList.add('view-html');
-    },
-    setValue: function(value) {
-        this.domEl.innerHTML = value;
     }
 });
-itwc.component.itwc_view_checkbox = itwc.extend(itwc.Component,{
+itwc.component.itwc_view_checkbox = itwc.extend(itwc.ViewComponent,{
     domTag: 'input',
     defaultWidth: 'wrap',
     initDOMEl: function() {
@@ -665,7 +667,7 @@ itwc.component.itwc_view_checkbox = itwc.extend(itwc.Component,{
         this.domEl.checked = value;
     }
 });
-itwc.component.itwc_view_progress = itwc.extend(itwc.Component,{
+itwc.component.itwc_view_progress = itwc.extend(itwc.ViewComponent,{
     domTag: 'progress',
     initDOMEl: function() {
         var me = this,
@@ -681,7 +683,7 @@ itwc.component.itwc_view_progress = itwc.extend(itwc.Component,{
         this.domEl.value = value * 100;
     }
 });
-itwc.component.itwc_view_slider = itwc.extend(itwc.Component,{
+itwc.component.itwc_view_slider = itwc.extend(itwc.ViewComponent,{
     domTag: 'input',
     initDOMEl: function() {
         var me = this,
@@ -696,7 +698,7 @@ itwc.component.itwc_view_slider = itwc.extend(itwc.Component,{
         this.domEl.value = value;
     }
 });
-itwc.component.itwc_view_document = itwc.extend(itwc.Component,{
+itwc.component.itwc_view_document = itwc.extend(itwc.ViewComponent,{
     initDOMEl: function() {
         var me = this;
         if(me.definition.value) {
@@ -710,8 +712,40 @@ itwc.component.itwc_view_document = itwc.extend(itwc.Component,{
         }
     }
 });
-itwc.component.itwc_edit_string = itwc.extend(itwc.Component,{
+itwc.component.itwc_view_icon= itwc.extend(itwc.ViewComponent,{
+    defaultWidth: 'wrap',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl;
+        el.classList.add('icon');
+        el.classList.add(me.definition.iconCls);
+        me.currentIcon = me.definition.iconCls;
+
+        if(me.definition.tooltip) {
+            el.setAttribute('tooltip',me.definition.tooltip);
+        }
+    },
+    setIconCls: function(iconCls) {
+        var me = this,
+            el = me.domEl;
+        el.classList.remove(me.currentIcon);
+        me.currentIcon = iconCls;
+        el.classList.add(me.currentIcon);
+    },
+    setTooltip: function(tooltip) {
+        var me = this,
+            el = me.domEl;
+        el.setAttribute('tooltip',tooltip);
+    }
+});
+
+itwc.EditComponent = itwc.extend(itwc.Component,{
     domTag: 'input',
+    setEditorValue: function(value) {
+		this.domEl.value = value || '';
+	}
+});
+itwc.component.itwc_edit_string = itwc.extend(itwc.EditComponent,{
     initDOMEl: function() {
         var me = this,
             el = this.domEl;
@@ -722,13 +756,9 @@ itwc.component.itwc_edit_string = itwc.extend(itwc.Component,{
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value, true);
 			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
-    },
-    setEditorValue: function(value) {
-		this.domEl.value = value || '';
-	}
+    }
 });
-itwc.component.itwc_edit_password = itwc.extend(itwc.Component,{
-    domTag: 'input',
+itwc.component.itwc_edit_password = itwc.extend(itwc.EditComponent,{
     initDOMEl: function() {
         var me = this,
             el = this.domEl;
@@ -739,12 +769,9 @@ itwc.component.itwc_edit_password = itwc.extend(itwc.Component,{
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value, true);
 			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
-    },
-    setEditorValue: function(value) {
-		this.domEl.value = value || '';
-	}
+    }
 });
-itwc.component.itwc_edit_note= itwc.extend(itwc.Component,{
+itwc.component.itwc_edit_note= itwc.extend(itwc.EditComponent,{
     domTag: 'textarea',
     initDOMEl: function() {
         var me = this,
@@ -755,13 +782,9 @@ itwc.component.itwc_edit_note= itwc.extend(itwc.Component,{
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,target.value, true);
 			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
-    },
-    setEditorValue: function(value) {
-		this.domEl.value = value || '';
-	}
+    }
 });
-itwc.component.itwc_edit_checkbox = itwc.extend(itwc.Component,{
-    domTag: 'input',
+itwc.component.itwc_edit_checkbox = itwc.extend(itwc.EditComponent,{
     defaultWidth: 'wrap',
     initDOMEl: function() {
         var me = this,
@@ -782,9 +805,8 @@ itwc.component.itwc_edit_checkbox = itwc.extend(itwc.Component,{
 		this.domEl.checked = value || false;
     }
 });
-itwc.component.itwc_edit_number = itwc.extend(itwc.Component,{
+itwc.EditNumberComponent = itwc.extend(itwc.EditComponent,{
     allowDecimal: false,
-    domTag: 'input',
     initDOMEl: function() {
         var me = this,
             el = this.domEl;
@@ -822,19 +844,15 @@ itwc.component.itwc_edit_number = itwc.extend(itwc.Component,{
             }
         }
         return false;
-    },
-    setEditorValue: function(value) {
-		this.domEl.value = value;
-	}
+    }
 });
-itwc.component.itwc_edit_int = itwc.extend(itwc.component.itwc_edit_number,{
+itwc.component.itwc_edit_int = itwc.extend(itwc.EditNumberComponent,{
     allowDecimal: false
 });
-itwc.component.itwc_edit_decimal = itwc.extend(itwc.component.itwc_edit_number,{
+itwc.component.itwc_edit_decimal = itwc.extend(itwc.EditNumberComponent,{
     allowDecimal: true
 });
-itwc.component.itwc_edit_date = itwc.extend(itwc.Component,{
-    domTag: 'input',
+itwc.component.itwc_edit_date = itwc.extend(itwc.EditComponent,{
     defaultWidth: 'wrap',
     initDOMEl: function() {
         var me = this,
@@ -844,13 +862,9 @@ itwc.component.itwc_edit_date = itwc.extend(itwc.Component,{
         el.addEventListener('keyup',function(e) {
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value,true);
         });
-    },
-    setEditorValue: function(value) {
-		this.domEl.value = value || '';
     }
 });
-itwc.component.itwc_edit_time = itwc.extend(itwc.Component,{
-    domTag: 'input',
+itwc.component.itwc_edit_time = itwc.extend(itwc.EditComponent,{
     defaultWidth: 'wrap',
     initDOMEl: function() {
         var me = this,
@@ -860,13 +874,9 @@ itwc.component.itwc_edit_time = itwc.extend(itwc.Component,{
         el.addEventListener('keyup',function(e) {
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value,true);
         });
-    },
-    setEditorValue: function(value) {
-		this.domEl.value = value || '';
     }
 });
-itwc.component.itwc_edit_datetime = itwc.extend(itwc.Component,{
-    domTag: 'input',
+itwc.component.itwc_edit_datetime = itwc.extend(itwc.EditComponent,{
     defaultWidth: 'wrap',
     initDOMEl: function() {
         var me = this,
@@ -876,14 +886,10 @@ itwc.component.itwc_edit_datetime = itwc.extend(itwc.Component,{
         el.addEventListener('keyup',function(e) {
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value,true);
         });
-    },
-    setEditorValue: function(value) {
-		this.domEl.value = value || '';
     }
 });
 
-itwc.component.itwc_edit_slider = itwc.extend(itwc.Component,{
-    domTag: 'input',
+itwc.component.itwc_edit_slider = itwc.extend(itwc.EditComponent,{
     initDOMEl: function() {
         var me = this,
             el = this.domEl;
@@ -895,15 +901,9 @@ itwc.component.itwc_edit_slider = itwc.extend(itwc.Component,{
         el.addEventListener('change',function(e) {
             itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId, (e.target.value | 0),true);
         });
-    },
-    setValue: function(value) {
-        this.domEl.value = value;
-    },
-    setEditorValue: function(value) {
-		this.domEl.value = value;
     }
 });
-itwc.component.itwc_edit_document = itwc.extend(itwc.Component,{
+itwc.component.itwc_edit_document = itwc.extend(itwc.EditComponent,{
     initDOMEl: function() {
         var me = this,
             el = this.domEl;
@@ -1000,318 +1000,307 @@ itwc.component.itwc_edit_document = itwc.extend(itwc.Component,{
         me.showValue();
     }
 });
-itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
+
+itwc.ChoiceComponent = itwc.extend(itwc.Component,{
+});
+
+itwc.component.itwc_choice_dropdown = itwc.extend(itwc.ChoiceComponent,{
+    defaultWidth: 'wrap',
+    domTag: 'select',
     initDOMEl: function() {
         var me = this,
-            el = me.domEl, tmp;
+            el = me.domEl,
+            value = me.definition.value[0],
+            option;
 
-		me.dataVersion = 1;
-		me.diffContinuations = {};
-		me.diffQueue = [];
-		me.waitingResponse = false;
-		
-        me.htmlId = "editlet-" + me.definition.taskId + "-" + me.definition.editorId;
-		itwc.controller.editlets[me.htmlId] = me;
+        option = document.createElement('option');
+        option.innerHTML = "Select...";
+        option.value = -1;
+        el.appendChild(option);
 
-        el.innerHTML = me.definition.html;
-
-        //Prepare javascript
-        if(me.definition.script != null && me.definition.script != "" && !sapldebug) {
-            evalScript(me.definition.script);
-			delete me.definition.script;
-			_dynamic_hijack();					
-        }
-        if(me.definition.appDiff != null) {
-            eval("tmp = " + me.definition.appDiff + ";");
-            me.appDiff = tmp;
-            delete me.definition.appDiff;
-        }
-        if(me.definition.initDiff != null) {
-            eval("tmp = " + me.definition.initDiff + ";");
-            me.initDiff = tmp;
-            delete me.definition.initDiff;
-        }
-        if(me.definition.initClient != null) {
-			eval("tmp = " + me.definition.initClient + ";");
-			me.initClient = tmp;			
-	        delete me.definition.initClient;
-        }
-	},
-    addManagedListener: function(obj,eventname,handler,thisObj) {
-        var me = this;
-    },
-    afterAdd: function() {
-        var me = this;
-		
-		var ys = Sapl.feval([me.initClient,[me.htmlId,"JSWorld"]]);
-		
-		//Strict evaluation of all the fields in the result tuple
-		Sapl.feval(ys[2]);
-		Sapl.feval(ys[3]);
-
-		// save state return by initClient
-		me.value = ys[2];		
-					
-		if(me.initDiff != null && me.initDiff[0]==1) /* Just */ {
-			var ys = Sapl.feval([me.appDiff,[me.htmlId,me.initDiff[2],me.value,"JSWorld"]]);
-
-			//Strict evaluation of all the fields in the result tuple
-			Sapl.feval(ys[2]);
-			Sapl.feval(ys[3]);
-
-			// save state return by appDiff
-			me.value = ys[2];	
-		}	
-    },
-    afterShow: function() {},
-	// Creating a closure
-	eventHandler: function(jsevent,expr){
-		var me = this;
-		
-		var h = function(dummy){
-
-			var event = dummy;
-		
-			if(jsevent){
-				event = [0,"ARRAY"];
-				for(var i=0; i<arguments.length; i++) event.push(___wrapJS(arguments[i]));
-			}
-			
-			var ys = Sapl.feval([expr,[me.htmlId,event,me.value,"JSWorld"]]);
-
-            if(typeof ys == 'undefined') {
-                console.warn('eventHandler: evaluating expression yielded undefined',expr);
+        me.definition.options.forEach(function(label,index) {
+            option = document.createElement('option');
+            option.value = index;
+            option.innerHTML = label;
+            if(index === value) {
+                option.selected = true;
             }
-			//Strict evaluation of all the fields in the result tuple
-			me.value = Sapl.feval(ys[2]);
-			diffing = Sapl.feval(ys[3]);
-			Sapl.feval(ys[4]); // world
-			
-			if(diffing[0] == 1){ // Diff
+            el.appendChild(option);
+        },me);
 
-				if(me.waitingResponse){
-
-					console.log("queue");
-				
-					me.diffQueue.push(diffing);
-				
-				}else{
-
-					var diff = Sapl.toJS(diffing[2]);
-					var callback = Sapl.heval(diffing[3]);			
-					var diffId = Date.now() | 0;
-
-					me.diffContinuations[diffId] = callback;
-					me.waitingResponse = true;
-		
-					console.log("send", diffId);
-		
-					itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diffId, diff],false);			
-				
-				}
-			}
-			
-		};
-		return h;
-	},
-	diffCallback: function(conflict, diffId){
-        var me = this;
-		
-		console.log("callback", diffId);
-		
-		var callback = me.diffContinuations[diffId];
-		delete me.diffContinuations[diffId];	
-		
-		var ys = Sapl.feval([callback,[conflict,me.value,"JSWorld"]]);
-		
-		//Strict evaluation of all the fields in the result tuple
-		me.value = Sapl.feval(ys[2]);
-		diffing = Sapl.feval(ys[3]);
-		Sapl.feval(ys[4]); // world
-		
-		if(diffing[0] != 1 && me.diffQueue.length > 0) {console.log("dequeue");diffing = me.diffQueue.shift();}
-		
-		if(diffing[0] == 1){ // Diff
-
-/*		
-  var date = new Date();
-  var curDate = null;
-  do { curDate = new Date(); }
-  while(curDate-date < 40);
-*/		
-		
-			var diff = Sapl.toJS(diffing[2]);
-			var callback = Sapl.feval(diffing[3]);			
-			var diffId = Date.now() | 0;
-
-			me.diffContinuations[diffId] = callback;
-
-			console.log("send", diffId);
-			
-			itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diffId, diff],false);			
-		}
-		else
-		{
-			me.waitingResponse = false;
-		}
-	},
-    rollbackDiff: function(diffId) {
-		this.diffCallback(true, diffId);
+        el.addEventListener('change',function(e) {
+            var value = e.target.value | 0;
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value == -1 ? null : value,false);
+        });
     },
-    commitDiff: function(diffId) {
-		this.diffCallback(false, diffId);
-	},		
-    applyDiff: function(dataVersion,saplDiff,extraJS) {
-
+    setValue: function(selection) {
         var me = this,
-            tmp;
-			
-		me.dataVersion = dataVersion;
-					
-        if(extraJS != "") {
-            evalScript(extraJS);
+            value;
+        if(selection.length == 0) {
+            value = -1;
+        } else {
+            value = selection[0];
         }
-        eval("tmp = " + saplDiff + ";");
-
-		var ys = Sapl.feval([me.appDiff,[me.htmlId,tmp[2],me.value,"JSWorld"]]);
-
-		//Strict evaluation of all the fields in the result tuple
-		Sapl.feval(ys[2]);
-		Sapl.feval(ys[3]);
-
-		// save state return by appDiff
-		me.value = ys[2];				
-    },
-	jsFromSaplJSONNode: function (sapl) {
-		switch(sapl[0]) {
-			case 0:	return null;
-			case 1: return sapl[2];
-			case 2: return sapl[2];
-			case 3: return sapl[2];
-			case 4: return sapl[2];
-			case 5: return this.jsFromList(sapl[2]);
-			case 6:
-				return this.jsFromFieldList({},sapl[2]);			
-		}
-	},
-	jsFromList: function(sapl) {
-		if(sapl[0] == 0) {
-			return ([this.jsFromSaplJSONNode(sapl[2])]).concat(this.jsFromList(sapl[3]));
-		} else {
-			return [];
-		}
-	},
-	jsFromFieldList: function (fields,sapl) {
-		
-		if(sapl[0] == 0) {
-			fields = this.jsFromField(fields,sapl[2]);
-			fields = this.jsFromFieldList(fields,sapl[3]);
-		}
-		return fields;
-	},
-	jsFromField: function (fields,sapl) {
-		fields[sapl[2]] = this.jsFromSaplJSONNode(sapl[3]);
-		return fields;
-	}
+        me.domEl.value = value;
+    }
 });
-itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
+
+itwc.component.itwc_choice_radiogroup = itwc.extend(itwc.ChoiceComponent,{
+    domTag: 'ul',
     initDOMEl: function() {
         var me = this,
-            el = me.domEl, tmp, proxy;
+            el = me.domEl,
+            inputName = "choice-" + me.definition.taskId + "-" + me.definition.editorId,
+            value = me.definition.value.length ? me.definition.value[0] : null;
 
-        me.windows = [];
+        el.classList.add('choice-radiogroup');
 
-		if(me.definition.html) {
-			el.innerHTML = me.definition.html;
-        }
-        // Prepare javascript
-        if(me.definition.script != null && me.definition.script != "" && !sapldebug) {
-            evalScript(me.definition.script);
-			delete me.definition.script;
-			_dynamic_hijack();			
-		}
-		
-		// Prepare state
-		eval("var tmp = eval(" + me.definition.st + ");");
-		me.definition.st = Sapl.feval(tmp);
-		itwc.controller.tasklets[me.definition.taskId] = me;
-		
-		if(me.definition.resultFunc != null){
-			eval("tmp = " + me.definition.resultFunc + ";");
-			me.definition.resultFunc = tmp;
-			me.definition.lastResult = Sapl.toJS(Sapl.feval([me.definition.resultFunc,[me.definition.st]]));
-		}
-		
-		if(me.definition.controllerFunc != null){
-		
-			// Prepare IWorld
-			if(!_iworld){
-				var url = "//" + document.location.host;
-				_iworld = Sapl.fapp(__iTasks_Framework_Client_RunOnClient_createClientIWorld, [url, me.definition.instanceNo]);
-			}				
-		
-			console.time('controllerWrapper timer: eval');
-				
-			eval("tmp = " + me.definition.controllerFunc + ";");
-			me.definition.controllerFunc = tmp;
+        me.definition.options.forEach(function(option,idx) {
+            var liEl,inputEl,labelEl;
+            liEl = document.createElement('li');
+            inputEl = document.createElement('input');
+            inputEl.type = 'radio';
+            inputEl.value = idx;
+            inputEl.name = inputName;
+            inputEl.id = inputName + "-option-" + idx;
+            if(idx === value) {
+                inputEl.checked = true;
+            }
+            inputEl.addEventListener('click',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,idx,false);
+            });
+            liEl.appendChild(inputEl);
 
-            //Create task instance proxy
-            proxy = new itwc.taskletInstanceProxy();
-            proxy.init(itwc.controller);
-            proxy.setRootNode(me);
+            labelEl = document.createElement('label');
+            labelEl.setAttribute('for',inputName + "-option-" + idx);
+            labelEl.innerHTML = option;
+            liEl.appendChild(labelEl);
 
-            itwc.controller.instanceProxies[me.definition.instanceNo] = proxy;
-						
-			var ret = Sapl.fapp(me.definition.controllerFunc, [me.definition.taskId, me.definition.st, __Data_Maybe_Nothing, __Data_Maybe_Nothing, __Data_Maybe_Nothing, _iworld]);
-			me.definition.st = Sapl.feval(ret[3]);
-			_iworld = Sapl.feval(ret[4]);
-			
-			var ui = Sapl.toJS(Sapl.feval(ret[2]));
-			
-			console.timeEnd('controllerWrapper timer: eval');
-			
-			console.time('controllerWrapper timer: apply UI');
-			itwc.controller.updateUI({instance: me.definition.instanceNo, updates: JSON.parse(ui)}, me);
-			console.timeEnd('controllerWrapper timer: apply UI');
-
-			// Start background process on _iworld
-			if(!_itask_background_interval){
-				window.setInterval(__itask_background_process,200);
-			}
-		}
-	},
-    afterAdd: function() {
-		var me = this;
-		
-		// Attach event handlers
-		if(me.definition.events){
-			for (var i=0; i<me.definition.events.length; ++i){
-				var elname = me.definition.events[i][0];
-				var eventName = me.definition.events[i][1];
-				var expr = me.definition.events[i][2];
-							
-				if(elname == "tasklet"){
-					if(eventName == "init"){
-						(me.eventHandler(expr))(me);
-					}
-				}else{
-					var el = document.getElementById(elname);
-					el.addEventListener(eventName, me.eventHandler(expr));
-				}
-			}
-		}
-	},
-	// Creating a closure
-	eventHandler: function(expr){
-		
-		var h = function(event){
-			eval("var tmp = " + expr + ";");
-			Sapl.fapp(tmp,[arguments]);
-		};
-
-		return h;
-	}
+            el.appendChild(liEl);
+        });
+    }
 });
+
+itwc.component.itwc_choice_checkboxgroup = itwc.extend(itwc.ChoiceComponent,{
+    domTag: 'ul',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            inputName = "choice-" + me.definition.taskId + "-" + me.definition.editorId,
+            value = me.definition.value || [];
+
+        el.classList.add('choice-checkboxgroup');
+        me.definition.options.forEach(function(option,idx) {
+            var liEl,inputEl,labelEl;
+            liEl = document.createElement('li');
+            inputEl = document.createElement('input');
+            inputEl.type = 'checkbox';
+            inputEl.value = idx;
+            inputEl.id = inputName + "-option-" + idx;
+            if(value.indexOf(idx) !== -1) {
+                inputEl.checked = true;
+            }
+            inputEl.addEventListener('click',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[idx,e.target.checked],false);
+            });
+            liEl.appendChild(inputEl);
+
+            labelEl = document.createElement('label');
+            labelEl.setAttribute('for',inputName + "-option-" + idx);
+            labelEl.innerHTML = option;
+            liEl.appendChild(labelEl);
+
+            el.appendChild(liEl);
+        });
+    }
+});
+
+itwc.component.itwc_choice_list = itwc.extend(itwc.ChoiceComponent,{
+    domTag: 'div',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            value = me.definition.value.length ? me.definition.value[0] : null;
+
+        el.classList.add('choice-list');
+
+        me.definition.options.forEach(function(option,idx) {
+            var optionEl;
+            optionEl = document.createElement('div');
+            optionEl.classList.add('choice-list-option');
+            if(idx === value) {
+                optionEl.classList.add('selected');
+            }
+            optionEl.addEventListener('click',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,idx,false);
+            });
+            optionEl.innerHTML = option;
+
+            el.appendChild(optionEl);
+        });
+    }
+});
+
+itwc.component.itwc_choice_tree = itwc.extend(itwc.ChoiceComponent,{
+    defaultHeight: 'flex',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            rootNodeId = me.definition.taskId+ "-" + me.definition.editorId + "-node",
+            rootNode,node;
+
+        el.classList.add('choicetree');
+
+        rootNode = document.createElement('ol');
+
+        //Create a table for quick access
+        me.selection = me.definition.value || [];
+        me.nodes = [];
+
+        me.definition.options.forEach(function(option,idx) {
+            me.addNode(option,rootNode,rootNodeId,idx);
+        },me);
+
+        me.selection.forEach(function(idx) {
+            me.nodes[idx].classList.add('selected');
+        });
+        el.appendChild(rootNode);
+    },
+    addNode: function(option,parentNode,rootNodeId,idx) {
+        var me = this,
+            node,nodeId,label,childExpand,childOl;
+
+        nodeId = rootNodeId + "-"+ idx;
+        node = document.createElement('li');
+        node.id = nodeId;
+        if(option.leaf) {
+            node.classList.add('leaf');
+        }
+        label = document.createElement('label');
+        label.id = nodeId + "-l";
+
+        if(option.iconCls) {
+            label.classList.add(option.iconCls);
+        } else {
+            label.classList.add('default-' + (option.leaf ? 'leaf' : 'folder'));
+        }
+        label.innerHTML = option.text;
+        label.addEventListener('click',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true],false);
+        },me);
+
+        if(me.definition.doubleClickAction) {
+            label.addEventListener('dblclick',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true],false);
+                itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
+
+                e.stopPropagation();
+                e.preventDefault();
+            });
+        }
+        node.appendChild(label);
+
+        if(option.children && option.children.length) {
+            childExpand = document.createElement('input');
+            childExpand.type = "checkbox"
+            childExpand.id = nodeId + "-e";
+
+            if(option.expanded) {
+                childExpand.checked = true;
+            }
+            childExpand.addEventListener('click',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["exp",option.value,childExpand.checked],false);
+            },me);
+
+            node.appendChild(childExpand);
+            childOl = document.createElement('ol');
+            option.children.forEach(function(option,childIdx) {
+                me.addNode(option,childOl,nodeId,childIdx);
+            },me);
+            node.appendChild(childOl);
+        }
+        parentNode.appendChild(node);
+        //Keep reference
+        me.nodes[option.value] = node;
+    },
+    setValue: function(value) {
+        var me = this;
+        me.selection.forEach(function(idx) {
+            me.nodes[idx].classList.remove('selected');
+        });
+        me.selection = value;
+        me.selection.forEach(function(idx) {
+            me.nodes[idx].classList.add('selected');
+        });
+    }
+});
+
+itwc.component.itwc_choice_grid = itwc.extend(itwc.ChoiceComponent,{
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            headerEl,bodyEl,rowEl,cellEl;
+
+        el.classList.add('choicegrid');
+
+        //Create header
+        headerEl = me.headerEl = document.createElement('div');
+        headerEl.classList.add('choicegrid-header');
+        me.definition.columns.forEach(function(column) {
+            cellEl = document.createElement('div');
+            cellEl.innerHTML = column;
+            headerEl.appendChild(cellEl);
+        });
+        el.appendChild(headerEl);
+
+        //Create body
+        bodyEl = me.bodyEl = document.createElement('div');
+        bodyEl.classList.add('choicegrid-body');
+        me.definition.options.forEach(function(option,rowIdx) {
+            rowEl = document.createElement('div');
+            rowEl.addEventListener('click',function(e) {
+                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx],false);
+            },me);
+            if(me.definition.doubleClickAction) {
+                rowEl.addEventListener('dblclick',function(e) {
+                    itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx],false);
+                    itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
+
+                    e.stopPropagation();
+                    e.preventDefault();
+                },me);
+            }
+            option.forEach(function(cell) {
+                cellEl = document.createElement('div');
+                cellEl.innerHTML = cell;
+                rowEl.appendChild(cellEl);
+            });
+            bodyEl.appendChild(rowEl);
+        });
+        //Indicate selection
+        if(me.definition.value.length) {
+            me.definition.value.forEach(function(selectedIdx) {
+                bodyEl.childNodes[selectedIdx].classList.add('selected');
+            });
+        }
+        el.appendChild(bodyEl);
+    },
+    setValue: function(value) {
+        var me = this,
+            bodyEl = me.bodyEl;
+
+        //Remove old selection
+        me.definition.value.forEach(function(selectedIdx) {
+                bodyEl.childNodes[selectedIdx].classList.remove('selected');
+        });
+        //Indicate new selection
+        me.definition.value = value;
+        me.definition.value.forEach(function(selectedIdx) {
+                bodyEl.childNodes[selectedIdx].classList.add('selected');
+        });
+    }
+});
+
 itwc.ButtonComponent = itwc.extend(itwc.Component,{
     domTag: 'a',
     defaultWidth: 'wrap',
@@ -1433,6 +1422,7 @@ itwc.component.itwc_icon= itwc.extend(itwc.Component,{
         el.setAttribute('tooltip',tooltip);
     }
 });
+
 itwc.component.itwc_label = itwc.extend(itwc.Container,{
     domTag: 'label',
     initDOMEl: function() {
@@ -1706,297 +1696,6 @@ itwc.component.itwc_splitter = itwc.extend(itwc.Component, {
         window.removeEventListener('mouseup', me.onStopDrag_);
     }
 });
-itwc.component.itwc_choice_dropdown = itwc.extend(itwc.Component,{
-    defaultWidth: 'wrap',
-    domTag: 'select',
-    initDOMEl: function() {
-        var me = this,
-            el = me.domEl,
-            value = me.definition.value[0],
-            option;
-
-        option = document.createElement('option');
-        option.innerHTML = "Select...";
-        option.value = -1;
-        el.appendChild(option);
-
-        me.definition.options.forEach(function(label,index) {
-            option = document.createElement('option');
-            option.value = index;
-            option.innerHTML = label;
-            if(index === value) {
-                option.selected = true;
-            }
-            el.appendChild(option);
-        },me);
-
-        el.addEventListener('change',function(e) {
-            var value = e.target.value | 0;
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value == -1 ? null : value,false);
-        });
-    },
-    setValue: function(selection) {
-        var me = this,
-            value;
-        if(selection.length == 0) {
-            value = -1;
-        } else {
-            value = selection[0];
-        }
-        me.domEl.value = value;
-    }
-});
-itwc.component.itwc_choice_radiogroup = itwc.extend(itwc.Component,{
-    domTag: 'ul',
-    initDOMEl: function() {
-        var me = this,
-            el = me.domEl,
-            inputName = "choice-" + me.definition.taskId + "-" + me.definition.editorId,
-            value = me.definition.value.length ? me.definition.value[0] : null;
-
-        el.classList.add('choice-radiogroup');
-
-        me.definition.options.forEach(function(option,idx) {
-            var liEl,inputEl,labelEl;
-            liEl = document.createElement('li');
-            inputEl = document.createElement('input');
-            inputEl.type = 'radio';
-            inputEl.value = idx;
-            inputEl.name = inputName;
-            inputEl.id = inputName + "-option-" + idx;
-            if(idx === value) {
-                inputEl.checked = true;
-            }
-            inputEl.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,idx,false);
-            });
-            liEl.appendChild(inputEl);
-
-            labelEl = document.createElement('label');
-            labelEl.setAttribute('for',inputName + "-option-" + idx);
-            labelEl.innerHTML = option;
-            liEl.appendChild(labelEl);
-
-            el.appendChild(liEl);
-        });
-    }
-});
-itwc.component.itwc_choice_list = itwc.extend(itwc.Component,{
-    domTag: 'div',
-    initDOMEl: function() {
-        var me = this,
-            el = me.domEl,
-            value = me.definition.value.length ? me.definition.value[0] : null;
-
-        el.classList.add('choice-list');
-
-        me.definition.options.forEach(function(option,idx) {
-            var optionEl;
-            optionEl = document.createElement('div');
-            optionEl.classList.add('choice-list-option');
-            if(idx === value) {
-                optionEl.classList.add('selected');
-            }
-            optionEl.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,idx,false);
-            });
-            optionEl.innerHTML = option;
-
-            el.appendChild(optionEl);
-        });
-    }
-});
-itwc.component.itwc_choice_checkboxgroup = itwc.extend(itwc.Component,{
-    domTag: 'ul',
-    initDOMEl: function() {
-        var me = this,
-            el = me.domEl,
-            inputName = "choice-" + me.definition.taskId + "-" + me.definition.editorId,
-            value = me.definition.value || [];
-
-        el.classList.add('choice-checkboxgroup');
-        me.definition.options.forEach(function(option,idx) {
-            var liEl,inputEl,labelEl;
-            liEl = document.createElement('li');
-            inputEl = document.createElement('input');
-            inputEl.type = 'checkbox';
-            inputEl.value = idx;
-            inputEl.id = inputName + "-option-" + idx;
-            if(value.indexOf(idx) !== -1) {
-                inputEl.checked = true;
-            }
-            inputEl.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[idx,e.target.checked],false);
-            });
-            liEl.appendChild(inputEl);
-
-            labelEl = document.createElement('label');
-            labelEl.setAttribute('for',inputName + "-option-" + idx);
-            labelEl.innerHTML = option;
-            liEl.appendChild(labelEl);
-
-            el.appendChild(liEl);
-        });
-    }
-});
-itwc.component.itwc_choice_tree = itwc.extend(itwc.Component,{
-    defaultHeight: 'flex',
-    initDOMEl: function() {
-        var me = this,
-            el = me.domEl,
-            rootNodeId = me.definition.taskId+ "-" + me.definition.editorId + "-node",
-            rootNode,node;
-
-        el.classList.add('choicetree');
-
-        rootNode = document.createElement('ol');
-
-        //Create a table for quick access
-        me.selection = me.definition.value || [];
-        me.nodes = [];
-
-        me.definition.options.forEach(function(option,idx) {
-            me.addNode(option,rootNode,rootNodeId,idx);
-        },me);
-
-        me.selection.forEach(function(idx) {
-            me.nodes[idx].classList.add('selected');
-        });
-        el.appendChild(rootNode);
-    },
-    addNode: function(option,parentNode,rootNodeId,idx) {
-        var me = this,
-            node,nodeId,label,childExpand,childOl;
-
-        nodeId = rootNodeId + "-"+ idx;
-        node = document.createElement('li');
-        node.id = nodeId;
-        if(option.leaf) {
-            node.classList.add('leaf');
-        }
-        label = document.createElement('label');
-        label.id = nodeId + "-l";
-
-        if(option.iconCls) {
-            label.classList.add(option.iconCls);
-        } else {
-            label.classList.add('default-' + (option.leaf ? 'leaf' : 'folder'));
-        }
-        label.innerHTML = option.text;
-        label.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true],false);
-        },me);
-
-        if(me.definition.doubleClickAction) {
-            label.addEventListener('dblclick',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true],false);
-                itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
-
-                e.stopPropagation();
-                e.preventDefault();
-            });
-        }
-        node.appendChild(label);
-
-        if(option.children && option.children.length) {
-            childExpand = document.createElement('input');
-            childExpand.type = "checkbox"
-            childExpand.id = nodeId + "-e";
-
-            if(option.expanded) {
-                childExpand.checked = true;
-            }
-            childExpand.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["exp",option.value,childExpand.checked],false);
-            },me);
-
-            node.appendChild(childExpand);
-            childOl = document.createElement('ol');
-            option.children.forEach(function(option,childIdx) {
-                me.addNode(option,childOl,nodeId,childIdx);
-            },me);
-            node.appendChild(childOl);
-        }
-        parentNode.appendChild(node);
-        //Keep reference
-        me.nodes[option.value] = node;
-    },
-    setValue: function(value) {
-        var me = this;
-        me.selection.forEach(function(idx) {
-            me.nodes[idx].classList.remove('selected');
-        });
-        me.selection = value;
-        me.selection.forEach(function(idx) {
-            me.nodes[idx].classList.add('selected');
-        });
-    }
-});
-itwc.component.itwc_choice_grid = itwc.extend(itwc.Component,{
-    initDOMEl: function() {
-        var me = this,
-            el = me.domEl,
-            headerEl,bodyEl,rowEl,cellEl;
-
-        el.classList.add('choicegrid');
-
-        //Create header
-        headerEl = me.headerEl = document.createElement('div');
-        headerEl.classList.add('choicegrid-header');
-        me.definition.columns.forEach(function(column) {
-            cellEl = document.createElement('div');
-            cellEl.innerHTML = column;
-            headerEl.appendChild(cellEl);
-        });
-        el.appendChild(headerEl);
-
-        //Create body
-        bodyEl = me.bodyEl = document.createElement('div');
-        bodyEl.classList.add('choicegrid-body');
-        me.definition.options.forEach(function(option,rowIdx) {
-            rowEl = document.createElement('div');
-            rowEl.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx],false);
-            },me);
-            if(me.definition.doubleClickAction) {
-                rowEl.addEventListener('dblclick',function(e) {
-                    itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx],false);
-                    itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
-
-                    e.stopPropagation();
-                    e.preventDefault();
-                },me);
-            }
-            option.forEach(function(cell) {
-                cellEl = document.createElement('div');
-                cellEl.innerHTML = cell;
-                rowEl.appendChild(cellEl);
-            });
-            bodyEl.appendChild(rowEl);
-        });
-        //Indicate selection
-        if(me.definition.value.length) {
-            me.definition.value.forEach(function(selectedIdx) {
-                bodyEl.childNodes[selectedIdx].classList.add('selected');
-            });
-        }
-        el.appendChild(bodyEl);
-    },
-    setValue: function(value) {
-        var me = this,
-            bodyEl = me.bodyEl;
-
-        //Remove old selection
-        me.definition.value.forEach(function(selectedIdx) {
-                bodyEl.childNodes[selectedIdx].classList.remove('selected');
-        });
-        //Indicate new selection
-        me.definition.value = value;
-        me.definition.value.forEach(function(selectedIdx) {
-                bodyEl.childNodes[selectedIdx].classList.add('selected');
-        });
-    }
-});
 
 itwc.component.itwc_embedding = itwc.extend(itwc.Panel, {
     initDOMEl: function() {
@@ -2021,6 +1720,311 @@ itwc.component.itwc_embedding = itwc.extend(itwc.Panel, {
         }
     }
 });
+
+itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl, tmp;
+
+		me.dataVersion = 1;
+		me.diffContinuations = {};
+		me.diffQueue = [];
+		me.waitingResponse = false;
+		
+        me.htmlId = "editlet-" + me.definition.taskId + "-" + me.definition.editorId;
+		itwc.controller.editlets[me.htmlId] = me;
+
+        el.innerHTML = me.definition.html;
+
+        //Prepare javascript
+        if(me.definition.script != null && me.definition.script != "" && !sapldebug) {
+            evalScript(me.definition.script);
+			delete me.definition.script;
+			_dynamic_hijack();					
+        }
+        if(me.definition.appDiff != null) {
+            eval("tmp = " + me.definition.appDiff + ";");
+            me.appDiff = tmp;
+            delete me.definition.appDiff;
+        }
+        if(me.definition.initDiff != null) {
+            eval("tmp = " + me.definition.initDiff + ";");
+            me.initDiff = tmp;
+            delete me.definition.initDiff;
+        }
+        if(me.definition.initClient != null) {
+			eval("tmp = " + me.definition.initClient + ";");
+			me.initClient = tmp;			
+	        delete me.definition.initClient;
+        }
+	},
+    afterAdd: function() {
+        var me = this;
+		
+		var ys = Sapl.feval([me.initClient,[me.htmlId,"JSWorld"]]);
+		
+		//Strict evaluation of all the fields in the result tuple
+		Sapl.feval(ys[2]);
+		Sapl.feval(ys[3]);
+
+		// save state return by initClient
+		me.value = ys[2];		
+					
+		if(me.initDiff != null && me.initDiff[0]==1) /* Just */ {
+			var ys = Sapl.feval([me.appDiff,[me.htmlId,me.initDiff[2],me.value,"JSWorld"]]);
+
+			//Strict evaluation of all the fields in the result tuple
+			Sapl.feval(ys[2]);
+			Sapl.feval(ys[3]);
+
+			// save state return by appDiff
+			me.value = ys[2];	
+		}	
+    },
+    afterShow: function() {},
+	// Creating a closure
+	eventHandler: function(jsevent,expr){
+		var me = this;
+		
+		var h = function(dummy){
+
+			var event = dummy;
+		
+			if(jsevent){
+				event = [0,"ARRAY"];
+				for(var i=0; i<arguments.length; i++) event.push(___wrapJS(arguments[i]));
+			}
+			
+			var ys = Sapl.feval([expr,[me.htmlId,event,me.value,"JSWorld"]]);
+
+            if(typeof ys == 'undefined') {
+                console.warn('eventHandler: evaluating expression yielded undefined',expr);
+            }
+			//Strict evaluation of all the fields in the result tuple
+			me.value = Sapl.feval(ys[2]);
+			var diffing = Sapl.feval(ys[3]);
+			Sapl.feval(ys[4]); // world
+			
+			if(diffing[0] == 1){ // Diff
+
+				if(me.waitingResponse){
+
+					console.log("queue");
+				
+					me.diffQueue.push(diffing);
+				
+				}else{
+
+					var diff = Sapl.toJS(diffing[2]);
+					var callback = Sapl.heval(diffing[3]);			
+					var diffId = Date.now() | 0;
+
+					me.diffContinuations[diffId] = callback;
+					me.waitingResponse = true;
+		
+					console.log("send", diffId);
+		
+					itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diffId, diff],false);			
+				
+				}
+			}
+			
+		};
+		return h;
+	},
+	diffCallback: function(conflict, diffId){
+        var me = this;
+		
+		console.log("callback", diffId);
+		
+		var callback = me.diffContinuations[diffId];
+		delete me.diffContinuations[diffId];	
+		
+		var ys = Sapl.feval([callback,[conflict,me.value,"JSWorld"]]);
+		
+		//Strict evaluation of all the fields in the result tuple
+		me.value = Sapl.feval(ys[2]);
+		var diffing = Sapl.feval(ys[3]);
+		Sapl.feval(ys[4]); // world
+		
+		if(diffing[0] != 1 && me.diffQueue.length > 0) {console.log("dequeue");diffing = me.diffQueue.shift();}
+		
+		if(diffing[0] == 1){ // Diff
+
+			var diff = Sapl.toJS(diffing[2]);
+			var callback = Sapl.feval(diffing[3]);			
+			var diffId = Date.now() | 0;
+
+			me.diffContinuations[diffId] = callback;
+
+			console.log("send", diffId);
+			
+			itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diffId, diff],false);			
+		}
+		else
+		{
+			me.waitingResponse = false;
+		}
+	},
+    rollbackDiff: function(diffId) {
+		this.diffCallback(true, diffId);
+    },
+    commitDiff: function(diffId) {
+		this.diffCallback(false, diffId);
+	},		
+    applyDiff: function(dataVersion,saplDiff,extraJS) {
+
+        var me = this,
+            tmp;
+			
+		me.dataVersion = dataVersion;
+					
+        if(extraJS != "") {
+            evalScript(extraJS);
+        }
+        eval("tmp = " + saplDiff + ";");
+
+		var ys = Sapl.feval([me.appDiff,[me.htmlId,tmp[2],me.value,"JSWorld"]]);
+
+		//Strict evaluation of all the fields in the result tuple
+		Sapl.feval(ys[2]);
+		Sapl.feval(ys[3]);
+
+		// save state return by appDiff
+		me.value = ys[2];				
+    },
+	jsFromSaplJSONNode: function (sapl) {
+		switch(sapl[0]) {
+			case 0:	return null;
+			case 1: return sapl[2];
+			case 2: return sapl[2];
+			case 3: return sapl[2];
+			case 4: return sapl[2];
+			case 5: return this.jsFromList(sapl[2]);
+			case 6:
+				return this.jsFromFieldList({},sapl[2]);			
+		}
+	},
+	jsFromList: function(sapl) {
+		if(sapl[0] == 0) {
+			return ([this.jsFromSaplJSONNode(sapl[2])]).concat(this.jsFromList(sapl[3]));
+		} else {
+			return [];
+		}
+	},
+	jsFromFieldList: function (fields,sapl) {
+		
+		if(sapl[0] == 0) {
+			fields = this.jsFromField(fields,sapl[2]);
+			fields = this.jsFromFieldList(fields,sapl[3]);
+		}
+		return fields;
+	},
+	jsFromField: function (fields,sapl) {
+		fields[sapl[2]] = this.jsFromSaplJSONNode(sapl[3]);
+		return fields;
+	}
+});
+
+itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl, tmp, proxy;
+
+        me.windows = [];
+
+		if(me.definition.html) {
+			el.innerHTML = me.definition.html;
+        }
+        // Prepare javascript
+        if(me.definition.script != null && me.definition.script != "" && !sapldebug) {
+            evalScript(me.definition.script);
+			delete me.definition.script;
+			_dynamic_hijack();			
+		}
+		
+		// Prepare state
+		eval("var tmp = eval(" + me.definition.st + ");");
+		me.definition.st = Sapl.feval(tmp);
+		itwc.controller.tasklets[me.definition.taskId] = me;
+		
+		if(me.definition.resultFunc != null){
+			eval("tmp = " + me.definition.resultFunc + ";");
+			me.definition.resultFunc = tmp;
+			me.definition.lastResult = Sapl.toJS(Sapl.feval([me.definition.resultFunc,[me.definition.st]]));
+		}
+		
+		if(me.definition.controllerFunc != null){
+		
+			// Prepare IWorld
+			if(!_iworld){
+				var url = "//" + document.location.host;
+				_iworld = Sapl.fapp(__iTasks_Framework_Client_RunOnClient_createClientIWorld, [url, me.definition.instanceNo]);
+			}				
+		
+			console.time('controllerWrapper timer: eval');
+				
+			eval("tmp = " + me.definition.controllerFunc + ";");
+			me.definition.controllerFunc = tmp;
+
+            //Create task instance proxy
+            proxy = new itwc.taskletInstanceProxy();
+            proxy.init(itwc.controller);
+            proxy.setRootNode(me);
+
+            itwc.controller.instanceProxies[me.definition.instanceNo] = proxy;
+						
+			var ret = Sapl.fapp(me.definition.controllerFunc, [me.definition.taskId, me.definition.st, __Data_Maybe_Nothing, __Data_Maybe_Nothing, __Data_Maybe_Nothing, _iworld]);
+			me.definition.st = Sapl.feval(ret[3]);
+			_iworld = Sapl.feval(ret[4]);
+			
+			var ui = Sapl.toJS(Sapl.feval(ret[2]));
+			
+			console.timeEnd('controllerWrapper timer: eval');
+			
+			console.time('controllerWrapper timer: apply UI');
+			itwc.controller.updateUI({instance: me.definition.instanceNo, updates: JSON.parse(ui)}, me);
+			console.timeEnd('controllerWrapper timer: apply UI');
+
+			// Start background process on _iworld
+			if(!_itask_background_interval){
+				window.setInterval(__itask_background_process,200);
+			}
+		}
+	},
+    afterAdd: function() {
+		var me = this;
+		
+		// Attach event handlers
+		if(me.definition.events){
+			for (var i=0; i<me.definition.events.length; ++i){
+				var elname = me.definition.events[i][0];
+				var eventName = me.definition.events[i][1];
+				var expr = me.definition.events[i][2];
+							
+				if(elname == "tasklet"){
+					if(eventName == "init"){
+						(me.eventHandler(expr))(me);
+					}
+				}else{
+					var el = document.getElementById(elname);
+					el.addEventListener(eventName, me.eventHandler(expr));
+				}
+			}
+		}
+	},
+	// Creating a closure
+	eventHandler: function(expr){
+		
+		var h = function(event){
+			eval("var tmp = " + expr + ";");
+			Sapl.fapp(tmp,[arguments]);
+		};
+
+		return h;
+	}
+});
+
 //#### CENTRAL CONTROLLER ####//
 
 //Proxy that relays events to a local object or
@@ -2099,7 +2103,7 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
             event = me.taskEvents.shift();
             instanceNo = event[0];
             //Copy event params
-            for(k in event[1]) {
+            for(var k in event[1]) {
                 params[k] = event[1][k];
             }
 
@@ -2606,7 +2610,6 @@ itwc.controller.prototype = {
 };
 //Set up a singleton controller object
 itwc.controller = new itwc.controller();
-itwc.global.controller = itwc.controller; //Backwards compatibility
 
 //Start the controller when the bootstrap page has loaded
 window.onload = function() {
