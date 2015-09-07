@@ -349,10 +349,9 @@ svgRenderer resolve origState state2Image
 
 imageFromState :: !(Image s) !(Map FontDef (Map String Real)) -> *(!Image s, !*SpanEnvs) | iTask s
 imageFromState img env
-  #! spanEnvs  = { spanEnvImageTagPreTrans   = 'DM'.newMap
-                 , spanEnvImageTagPostTrans  = 'DM'.newMap
+  #! spanEnvs  = { spanEnvImageTagPostTrans  = 'DIS'.newMap
                  , spanEnvImageSpanPostTrans = 'DIS'.newMap
-                 , spanEnvGridTag            = 'DM'.newMap
+                 , spanEnvGridTag            = 'DIS'.newMap
                  , spanEnvGridSpan           = 'DIS'.newMap
                  , spanEnvFonts              = env
                  }
@@ -540,12 +539,9 @@ cacheImageSpanPostTrans :: !Int !(Set ImageTag) !ImageSpan !*DesugarAndTagStVal 
 cacheImageSpanPostTrans n imTas sp st
   #! spanEnvs = st.desugarAndTagSpanEnvs
   #! spanEnvs = {spanEnvs & spanEnvImageSpanPostTrans = 'DIS'.put n sp spanEnvs.spanEnvImageSpanPostTrans}
-  #! env      = 'DS'.fold (f n) spanEnvs.spanEnvImageTagPostTrans imTas
+  #! env      = 'DS'.fold (putImgTag n) spanEnvs.spanEnvImageTagPostTrans imTas
   #! spanEnvs = {spanEnvs & spanEnvImageTagPostTrans = env}
   = {st & desugarAndTagSpanEnvs = spanEnvs}
-  where
-  f :: !Int !ImageTag !(Map ImageTag Int) -> Map ImageTag Int
-  f n t env = 'DM'.put t n env
 
 cacheGridSpans :: !Int !(Set ImageTag) ![Span] ![Span] !*DesugarAndTagStVal -> *DesugarAndTagStVal
 cacheGridSpans n imTas xsps ysps st
@@ -553,12 +549,12 @@ cacheGridSpans n imTas xsps ysps st
   #! ysps`    = 'DIS'.fromList (strictTRZip2 [0..] ysps)
   #! spanEnvs = st.desugarAndTagSpanEnvs
   #! spanEnvs = {spanEnvs & spanEnvGridSpan = 'DIS'.put n (xsps`, ysps`) spanEnvs.spanEnvGridSpan}
-  #! env      = 'DS'.fold (f n) spanEnvs.spanEnvGridTag imTas
+  #! env      = 'DS'.fold (putImgTag n) spanEnvs.spanEnvGridTag imTas
   #! spanEnvs = {spanEnvs & spanEnvGridTag = env}
   = {st & desugarAndTagSpanEnvs = spanEnvs}
-  where
-  f :: !Int !ImageTag !(Map ImageTag Int) -> Map ImageTag Int
-  f n t env = 'DM'.put t n env
+
+putImgTag :: !Int !ImageTag !(IntMap Int) -> IntMap Int
+putImgTag n t env = 'DIS'.put (numTag t) n env
 
 point2Vec :: !(!Span, !Span) -> Vector Span
 point2Vec (x, y) = {x, y, px 1.0}
@@ -1191,10 +1187,9 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
 import StdDebug
 
 :: *SpanEnvs =
-  { spanEnvImageTagPreTrans   :: !Map ImageTag Int
-  , spanEnvImageTagPostTrans  :: !Map ImageTag Int
+  { spanEnvImageTagPostTrans  :: !IntMap Int
   , spanEnvImageSpanPostTrans :: !IntMap ImageSpan
-  , spanEnvGridTag            :: !Map ImageTag Int
+  , spanEnvGridTag            :: !IntMap Int
   , spanEnvGridSpan           :: !IntMap (!IntMap Span, !IntMap Span)
   , spanEnvFonts              :: !Map FontDef (Map String Real)
   }
@@ -1307,7 +1302,7 @@ fixLookupSpans (ImageXSpan t) st
   #! ses                      = st.fixSpansSpanEnvs
   #! spanEnvImageTagPostTrans = ses.spanEnvImageTagPostTrans
   #! ses                      = {ses & spanEnvImageTagPostTrans = spanEnvImageTagPostTrans}
-  = case 'DM'.get t spanEnvImageTagPostTrans of
+  = case 'DIS'.get (numTag t) spanEnvImageTagPostTrans of
       Just n
         #! spanEnvImageSpanPostTrans = ses.spanEnvImageSpanPostTrans
         #! ses                       = {ses & spanEnvImageSpanPostTrans = spanEnvImageSpanPostTrans}
@@ -1322,7 +1317,7 @@ fixLookupSpans (ImageYSpan t) st
   #! ses                      = st.fixSpansSpanEnvs
   #! spanEnvImageTagPostTrans = ses.spanEnvImageTagPostTrans
   #! ses                      = {ses & spanEnvImageTagPostTrans = spanEnvImageTagPostTrans}
-  = case 'DM'.get t spanEnvImageTagPostTrans of
+  = case 'DIS'.get (numTag t) spanEnvImageTagPostTrans of
       Just n
         #! spanEnvImageSpanPostTrans = ses.spanEnvImageSpanPostTrans
         #! ses                       = {ses & spanEnvImageSpanPostTrans = spanEnvImageSpanPostTrans}
@@ -1337,7 +1332,7 @@ fixLookupSpans (ColumnXSpan t n) st
   #! ses            = st.fixSpansSpanEnvs
   #! spanEnvGridTag = ses.spanEnvGridTag
   #! ses            = {ses & spanEnvGridTag = spanEnvGridTag}
-  = case 'DM'.get t spanEnvGridTag of
+  = case 'DIS'.get (numTag t) spanEnvGridTag of
       Just cacheIdx
         #! spanEnvGridSpan = ses.spanEnvGridSpan
         #! ses             = {ses & spanEnvGridSpan = spanEnvGridSpan}
@@ -1352,7 +1347,7 @@ fixLookupSpans (RowYSpan t n) st
   #! ses            = st.fixSpansSpanEnvs
   #! spanEnvGridTag = ses.spanEnvGridTag
   #! ses            = {ses & spanEnvGridTag = spanEnvGridTag}
-  = case 'DM'.get t spanEnvGridTag of
+  = case 'DIS'.get (numTag t) spanEnvGridTag of
       Just cacheIdx
         #! spanEnvGridSpan = ses.spanEnvGridSpan
         #! ses             = {ses & spanEnvGridSpan = spanEnvGridSpan}
@@ -1363,6 +1358,9 @@ fixLookupSpans (RowYSpan t n) st
                   _                    -> (LookupSpan (RowYSpan t n), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
             _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
       _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+
+numTag (ImageTagUser n _) = n
+numTag (ImageTagSystem n) = n + 8096
 
 :: ImageSpanReal :== (!Real, !Real)
 
@@ -2142,7 +2140,7 @@ evalSpanLookupSpanAlgs =
     #! genStates                = st.genStates
     #! spanEnvImageTagPostTrans = genStates.spanEnvImageTagPostTrans
     #! genStates                = {genStates & spanEnvImageTagPostTrans = spanEnvImageTagPostTrans}
-    = case 'DM'.get t spanEnvImageTagPostTrans of
+    = case 'DIS'.get (numTag t) spanEnvImageTagPostTrans of
         Just n
           #! spanEnvImageSpanPostTrans = genStates.spanEnvImageSpanPostTrans
           #! genStates                 = {genStates & spanEnvImageSpanPostTrans = spanEnvImageSpanPostTrans}
@@ -2159,7 +2157,7 @@ evalSpanLookupSpanAlgs =
     #! genStates                = st.genStates
     #! spanEnvImageTagPostTrans = genStates.spanEnvImageTagPostTrans
     #! genStates                = {genStates & spanEnvImageTagPostTrans = spanEnvImageTagPostTrans}
-    = case 'DM'.get t spanEnvImageTagPostTrans of
+    = case 'DIS'.get (numTag t) spanEnvImageTagPostTrans of
         Just n
           #! spanEnvImageSpanPostTrans = genStates.spanEnvImageSpanPostTrans
           #! genStates                 = {genStates & spanEnvImageSpanPostTrans = spanEnvImageSpanPostTrans}
@@ -2176,7 +2174,7 @@ evalSpanLookupSpanAlgs =
     #! genStates      = st.genStates
     #! spanEnvGridTag = genStates.spanEnvGridTag
     #! genStates      = {genStates & spanEnvGridTag = spanEnvGridTag}
-    = case 'DM'.get t spanEnvGridTag of
+    = case 'DIS'.get (numTag t) spanEnvGridTag of
         Just cacheIdx
           #! spanEnvGridSpan = genStates.spanEnvGridSpan
           #! genStates       = {genStates & spanEnvGridSpan = spanEnvGridSpan}
@@ -2194,7 +2192,7 @@ evalSpanLookupSpanAlgs =
     #! genStates      = st.genStates
     #! spanEnvGridTag = genStates.spanEnvGridTag
     #! genStates      = {genStates & spanEnvGridTag = spanEnvGridTag}
-    = case 'DM'.get t spanEnvGridTag of
+    = case 'DIS'.get (numTag t) spanEnvGridTag of
         Just cacheIdx
           #! spanEnvGridSpan = genStates.spanEnvGridSpan
           #! genStates       = {genStates & spanEnvGridSpan = spanEnvGridSpan}
