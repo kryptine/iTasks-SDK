@@ -334,9 +334,9 @@ tIf :: !InhMkImg !ExprId !TExpr !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagS
 tIf inh eid cexpr texpr eexpr [(contextTag, _) : tsrc]
   #! (cexpr, ut, ue)      = case inh.inh_bpinst of
                               Just bpi -> case 'DM'.get eid bpi.bpi_case_branches of
-                                            Just 0  -> (TAugment cexpr (TLit (TBool True)), False, True)
-                                            Just -1 -> (TAugment cexpr (TLit (TBool False)), True, False)
-                                            _       -> (cexpr, False, False)
+                                            Just 0 -> (TAugment cexpr (TLit (TBool True)), False, True)
+                                            Just 1 -> (TAugment cexpr (TLit (TBool False)), True, False)
+                                            _      -> (cexpr, False, False)
                               _        -> (cexpr, False, False)
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} cexpr tsrc
   #! (syn_branches, tsrc) = tBranches inh tExpr2Image False True [ (Just (TLit (TBool True)), texpr, True, ut)
