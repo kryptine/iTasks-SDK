@@ -1268,20 +1268,20 @@ fixEnvs st
     where
     f :: !Int !(!{!Span}, !{!Span}) !*FixSpansSt -> *FixSpansSt
     f k (xsps, ysps) st=:{fixSpansDidChange = origDidChange}
-      #! (xsps`, _, st) = foldrArr g ({x \\ x <-: xsps}, size xsps - 1, {st & fixSpansDidChange = False}) xsps
-      #! (ysps`, _, st) = foldrArr g ({y \\ y <-: ysps}, size ysps - 1, st) ysps
+      #! (xsps`, _, st) = foldlArrWithKey g ({x \\ x <-: xsps}, 0, {st & fixSpansDidChange = False}) xsps
+      #! (ysps`, _, st) = foldlArrWithKey g ({y \\ y <-: ysps}, 0, st) ysps
       | st.fixSpansDidChange
         #! fixSpansSpanEnvs = st.fixSpansSpanEnvs
         #! spanEnvGridSpan  = 'DIS'.put k (xsps`, ysps`) fixSpansSpanEnvs.spanEnvGridSpan
         #! fixSpansSpanEnvs = {fixSpansSpanEnvs & spanEnvGridSpan = spanEnvGridSpan}
         = {st & fixSpansSpanEnvs  = fixSpansSpanEnvs}
       | otherwise = {st & fixSpansDidChange = origDidChange}
-    g :: !Span !*(!*{!Span}, !Int, !*FixSpansSt) -> *(!*{!Span}, !Int, !*FixSpansSt)
-    g v (acc, n, st)
+    g :: Int !*(!*{!Span}, !Int, !*FixSpansSt) !Span -> *(!*{!Span}, !Int, !*FixSpansSt)
+    g _ (acc, n, st) v
       #! (v, st`) = fixSpans v {st & fixSpansDidChange = False}
       = if st`.fixSpansDidChange
-          ({acc & [n] = v}, n - 1, st`)
-          (acc, n - 1, {st` & fixSpansDidChange = st.fixSpansDidChange} )
+          ({acc & [n] = v}, n + 1, st`)
+          (acc, n + 1, {st` & fixSpansDidChange = st.fixSpansDidChange} )
 
 mkBin` :: !(Span Span -> Span) !Span !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
 mkBin` op x y st
