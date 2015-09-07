@@ -1,6 +1,6 @@
 definition module iTasks._Framework.Generic.Interaction
 
-from StdGeneric import :: UNIT,::EITHER,::PAIR,::OBJECT,::CONS,::RECORD,::FIELD,::ConsPos
+from StdGeneric import :: UNIT,::EITHER,::PAIR,::OBJECT,::CONS,::RECORD,::FIELD,::ConsPos, generic bimap, :: Bimap
 from iTasks._Framework.IWorld import :: IWorld
 from iTasks.UI.Diff import :: UIControl, :: UIAttributes
 from iTasks.API.Core.Types import :: TaskId, :: DataPath, :: InteractionMask, :: MaskedValue, :: Verification, :: VerifiedValue, :: EditableList
@@ -13,17 +13,22 @@ from Text.HTML import :: HtmlTag
 from Data.Maybe import :: Maybe
 from Data.Either import :: Either
 from Data.Error import :: MaybeError
-from Data.Void import :: Void
 from Data.Map import :: Map
 from System.Time import :: Timestamp
 from iTasks._Framework.SDS import :: RWShared
 
+from iTasks.UI.Editor import :: VSt(..), :: VisualizationResult, :: EditMeta, :: Editor
 /**
 * Main eneric editor function
 */
-generic gEditor a | gText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a
-				  :: !DataPath !(VerifiedValue a) ![EditMeta] !*VSt -> (!VisualizationResult,!*VSt)
 
+/*
+generic gEditor a | gText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a 
+				  :: !DataPath !(VerifiedValue a) ![EditMeta] !*VSt -> (!VisualizationResult,!*VSt)
+*/
+
+generic gEditor a | gText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a :: Editor a
+/*
 derive gEditor
 	UNIT,
 	EITHER with ve1 _ _ em1 _ _ ve2 _ _ em2 _ _,
@@ -34,9 +39,25 @@ derive gEditor
 	FIELD of {gfd_name} with ve1 _ _ em1 _ _
 	
 derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (->), Dynamic
-derive gEditor Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
+derive gEditor Maybe, Either, MaybeError, Map, JSONNode, HtmlTag, Timestamp
 derive gEditor EditableList
 derive gEditor RWShared
+*/
+derive gEditor
+	UNIT,
+	EITHER with ve1 _ _ em1 _ _ ve2 _ _ em2 _ _,
+	PAIR with ve1 _ _ em1 _ _ ve2 _ _ em2 _ _,
+	OBJECT of {gtd_num_conses,gtd_conses} with ve1 _ _ em1 _ _,
+	CONS of {gcd_index,gcd_arity} with ve1 _ _ em1 _ _,
+	RECORD of {grd_arity} with ve1 _ _ em1 _ _,
+	FIELD of {gfd_name} with ve1 _ _ em1 _ _
+
+derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (->), Dynamic
+derive gEditor Maybe, Either, MaybeError, Map, JSONNode, HtmlTag, Timestamp
+derive gEditor EditableList
+derive gEditor RWShared
+
+derive bimap Editor
 
 /**
 * Type-dependent meta data useful for generating editors
@@ -53,7 +74,7 @@ derive gEditMeta
 	FIELD of {gfd_name} with fx
 	
 derive gEditMeta Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (->), Dynamic
-derive gEditMeta Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
+derive gEditMeta Maybe, Either, MaybeError,  Map, JSONNode, HtmlTag, Timestamp
 derive gEditMeta EditableList
 derive gEditMeta RWShared
 
@@ -62,7 +83,7 @@ generic gVerify a :: !VerifyOptions (MaskedValue a) -> Verification
 
 derive gVerify UNIT, PAIR, EITHER, OBJECT, CONS of {gcd_arity}, RECORD of {grd_arity}, FIELD
 derive gVerify Int, Real, Char, Bool, String, [], (), (,), (,,),(,,,), (,,,,),(->), Dynamic
-derive gVerify Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
+derive gVerify Maybe, Either, MaybeError,  Map, JSONNode, HtmlTag, Timestamp
 derive gVerify EditableList
 derive gVerify RWShared
 
@@ -71,7 +92,7 @@ generic gUpdate a | gDefault a, JSONEncode a, JSONDecode a :: !DataPath !JSONNod
 
 derive gUpdate UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses,gtd_conses}, CONS of {gcd_arity,gcd_index}, RECORD of {grd_arity}, FIELD
 derive gUpdate Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (->), Dynamic
-derive gUpdate Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
+derive gUpdate Maybe, Either, MaybeError,  Map, JSONNode, HtmlTag, Timestamp
 derive gUpdate EditableList
 derive gUpdate RWShared
 
@@ -80,30 +101,11 @@ visualizeAsEditor   :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld	-> (![(!
 updateValueAndMask  :: !TaskId !DataPath !JSONNode !(MaskedValue a) !*IWorld -> (!MaskedValue a,!*IWorld) | gUpdate{|*|} a
 
 //Support types for generating editors
-:: *VSt =
-	{ selectedConsIndex	:: !Int													// Index of the selected constructor in an Object
-	, optional			:: !Bool												// Create optional form fields
-	, disabled			:: !Bool												// If true the editor is not editable
-	, taskId			:: !String												// The id of the task the visualisation belongs to
-	, layout			:: !LayoutRules											// Layout rules for composite structures
-	, iworld			:: !*IWorld												// The iworld, used for example if external tools are needed to create editors
-	}
 :: *USt =
     { taskId            :: !String
     , editorId          :: !String
     , iworld            :: !*IWorld
     }
-
-:: VisualizationResult
-		= NormalEditor [(!UIControl,!UIAttributes)]
-		| OptionalEditor [(!UIControl,!UIAttributes)]
-		| HiddenEditor
-
-:: EditMeta
-	= { label	:: Maybe String
-	  , hint	:: Maybe String
-      , unit    :: Maybe (Either String String)
-	  }
 
 :: VerifyOptions =
 	{ optional		:: !Bool

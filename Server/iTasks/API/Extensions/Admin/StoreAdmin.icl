@@ -2,11 +2,11 @@ implementation module iTasks.API.Extensions.Admin.StoreAdmin
 import iTasks
 import qualified iTasks._Framework.Store
 
-manageStore :: Task Void
+manageStore :: Task ()
 manageStore
     =   selectStore
     >^* [OnAction ActionDelete (hasValue deleteStore)]
-    @! Void
+    @! ()
 
 selectStore :: Task (String,String) //Namespace and store name
 selectStore

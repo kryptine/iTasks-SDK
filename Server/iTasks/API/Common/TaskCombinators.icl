@@ -229,14 +229,14 @@ onlyJust _                  = NoValue
 
 whileUnchangedWith :: !(r r -> Bool) !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchangedWith eq share task
-	= 	((get share >>= \val -> (wait Void (eq val) share <<@ NoUserInterface @ const Nothing) -||- (task val @ Just)) <! isJust)
+	= 	((get share >>= \val -> (wait () (eq val) share <<@ NoUserInterface @ const Nothing) -||- (task val @ Just)) <! isJust)
 	@?	onlyJust
 
 withSelection :: (Task c) (a -> Task b) (ReadOnlyShared (Maybe a)) -> Task b | iTask a & iTask b & iTask c
 withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
 
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
-appendTopLevelTask attr evalDirect task = appendTask (Detached attr evalDirect) (\_ -> task @ const Void) topLevelTasks
+appendTopLevelTask attr evalDirect task = appendTask (Detached attr evalDirect) (\_ -> task @ const ()) topLevelTasks
 
 valToMaybe :: (TaskValue a) -> Maybe a
 valToMaybe (Value v _)  = Just v

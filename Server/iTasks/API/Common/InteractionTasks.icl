@@ -12,7 +12,7 @@ import iTasks.API.Core.Tasks, iTasks.API.Core.OptimizedCoreTasks, iTasks.API.Cor
 import iTasks.API.Common.TaskCombinators, iTasks.API.Core.SDSs
 import iTasks._Framework.Generic.Interaction, iTasks.API.Common.SDSCombinators
 import iTasks._Framework.Tonic
-import iTasks.UI.Layout
+import iTasks.UI.Layout, iTasks.UI.Editor
 
 /*
 editInformation :: !d ![UpdateOption m m] (Maybe m) -> Task m | descr d & iTask m
@@ -415,7 +415,7 @@ waitForTimer time = get currentTime >>- \now -> waitForTime (now + time)
 
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions
-	=	viewInformation Void [] Void
+	=	viewInformation () [] ()
 	>>* [OnAction action (always (return val)) \\ (action,val) <- actions]
 
 multiChoiceToUpdate :: [MultiChoiceOption o] -> [UpdateOption ([o], [o]) ([o],[o])] | iTask o

@@ -1,5 +1,5 @@
 implementation module Incidone.OP.ConceptsTOP
-import iTasks
+import iTasks, iTasks.UI.Editor
 import Incidone.OP.Concepts
 
 derive class iTask DSCMessage, DSCCategory, INMARSATCMessage, PhoneCall, RadioCall, EmailMessage, P2000Message

@@ -71,7 +71,7 @@ currentUser 			:: RWShared () User User
 taskInstanceUser 		:: RWShared InstanceNo User User
 
 //* Selected task instances
-processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
+processesForCurrentUser	:: ReadOnlyShared [TaskListItem ()]
 
 /*
 * Copies authentication attributes of current task 

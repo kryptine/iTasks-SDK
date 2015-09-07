@@ -48,17 +48,17 @@ currentTimestamp :: ReadOnlyShared Timestamp
 currentTimestamp = mapRead datetimeToTimestamp currentUTCDateTime
 
 // Workflow processes
-topLevelTasks :: SharedTaskList Void
+topLevelTasks :: SharedTaskList ()
 topLevelTasks = topLevelTaskList
 
-currentSessions ::ReadOnlyShared [TaskListItem Void]
+currentSessions ::ReadOnlyShared [TaskListItem ()]
 currentSessions
     = mapRead (map toTaskListItem) (toReadOnly (sdsFocus filter filteredInstanceIndex))
 where
     filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just True,matchAttribute=Nothing
              ,includeConstants=True,includeProgress=True,includeAttributes=True}
 
-currentProcesses ::ReadOnlyShared [TaskListItem Void]
+currentProcesses ::ReadOnlyShared [TaskListItem ()]
 currentProcesses
     = mapRead (map toTaskListItem) (toReadOnly (sdsFocus filter filteredInstanceIndex))
 where

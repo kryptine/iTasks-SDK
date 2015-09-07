@@ -56,7 +56,7 @@ enterInformation :: !d ![EnterOption m] -> Task m | descr d & iTask m
 * 
 * @gin-icon page_edit
 */
-updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
+updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m 
 
 /**
 * Show information to the user. 

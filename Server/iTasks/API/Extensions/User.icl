@@ -2,6 +2,7 @@ implementation module iTasks.API.Extensions.User
 import iTasks
 import Text
 import qualified Data.Map as DM
+import iTasks.UI.Editor
 
 gText{|User|} _ val = [maybe "" toString val]
 
@@ -68,13 +69,15 @@ JSONEncode{|Username|} _ (Username u) = [JSONString u]
 JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
 JSONDecode{|Username|} _ c = (Nothing,c)
 
-gEditor{|Username|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
-	| disabled	
-		# val = checkMask mask val
-		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},'DM'.newMap)],vst)
-	| otherwise
-		# value = checkMaskValue mask ((\(Username v) -> v) val)
-		= (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
+gEditor{|Username|} = {render=render}
+where
+	render dp val mask ver meta vst=:{VSt|taskId,disabled}
+		| disabled	
+			# val = checkMask mask val
+			= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},'DM'.newMap)],vst)
+		| otherwise
+			# value = checkMaskValue mask ((\(Username v) -> v) val)
+			= (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
 
 gUpdate{|Username|} target upd val iworld = basicUpdateSimple target upd val iworld
 gVerify{|Username|} mv options = simpleVerify mv options
@@ -103,12 +106,15 @@ JSONDecode{|Password|} _ c = (Nothing,c)
 gText{|Password|} AsHeader _ = [""]
 gText{|Password|} _ _        = ["********"]
 
-gEditor{|Password|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
-	| disabled	
-		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},'DM'.newMap)],vst)
-	| otherwise	
-		# value = checkMaskValue mask ((\(Password v) -> v) val)
-		= (NormalEditor [(UIEditPassword defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
+gEditor{|Password|} = {render=render}
+where
+	render dp val mask ver meta vst=:{VSt|taskId,disabled}
+		| disabled	
+			= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},'DM'.newMap)],vst)
+		| otherwise	
+			# value = checkMaskValue mask ((\(Password v) -> v) val)
+			= (NormalEditor [(UIEditPassword defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
+
 gUpdate{|Password|} target upd val iworld = basicUpdateSimple target upd val iworld
 gVerify{|Password|} mv options = simpleVerify mv options
 gEditMeta{|Password|} _ = [{label=Nothing,hint=Just "Enter a password",unit=Nothing}]
@@ -161,7 +167,7 @@ userToAttr _ attr _
 	# attr = 'DM'.del "auth-title" attr
 	= Ok (Just attr)
 
-processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
+processesForCurrentUser	:: ReadOnlyShared [TaskListItem ()]
 processesForCurrentUser = mapRead readPrj (currentProcesses >+| currentUser)
 where
 	readPrj (items,user)	= filter (forWorker user) items

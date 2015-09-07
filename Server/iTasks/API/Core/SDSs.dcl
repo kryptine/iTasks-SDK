@@ -7,7 +7,6 @@ from Text.JSON import generic JSONEncode, generic JSONDecode
 import iTasks._Framework.SDS
 from iTasks.API.Core.Types	    import :: DateTime, :: Date, :: Time, :: TaskList, :: TaskAttributes
 from iTasks.API.Core.Types	    import :: TaskListFilter, :: TaskListItem, :: TaskInstance, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: SharedTaskList
-from Data.Void					import :: Void
 from Data.Map                   import :: Map
 from System.FilePath			import :: FilePath
 
@@ -41,10 +40,10 @@ currentUTCDate          :: ReadOnlyShared Date
 currentTimestamp 		:: ReadOnlyShared Timestamp
 
 // Processes
-topLevelTasks 			:: SharedTaskList Void
+topLevelTasks 			:: SharedTaskList () 
 
-currentSessions 		:: ReadOnlyShared [TaskListItem Void]
-currentProcesses		:: ReadOnlyShared [TaskListItem Void]
+currentSessions 		:: ReadOnlyShared [TaskListItem ()]
+currentProcesses		:: ReadOnlyShared [TaskListItem ()]
 
 // Session
 currentTopTask			:: ReadOnlyShared TaskId

@@ -5,20 +5,24 @@ import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
 import iTasks._Framework.SDS, iTasks._Framework.Generic.Interaction, iTasks.API.Core.Types
 from StdFunc import seq
 import qualified Data.Map as DM
+import iTasks.UI.Editor
 
 // SPECIALIZATIONS
 derive class iTask Workflow
 
 gText{|WorkflowTaskContainer|} _ _			            = []
-gEditor{|WorkflowTaskContainer|} _ _ _ vst			    = (HiddenEditor,vst)
+gEditor{|WorkflowTaskContainer|} = {render=render}
+where
+	render _ _ _ _ _ vst			    = (HiddenEditor,vst)
+
 gEditMeta{|WorkflowTaskContainer|} _ 				    = [{label=Just "Workflow task container",hint=Nothing,unit=Nothing}]
-gUpdate{|WorkflowTaskContainer|} target upd val iworld  = basicUpdate (\Void x -> Just x) target upd val iworld
+gUpdate{|WorkflowTaskContainer|} target upd val iworld  = basicUpdate (\() x -> Just x) target upd val iworld
 gVerify{|WorkflowTaskContainer|} _ mv 				    = alwaysValid mv
 JSONEncode{|WorkflowTaskContainer|} _ c				    = [dynamicJSONEncode c]
 JSONDecode{|WorkflowTaskContainer|} _ [c:r]			    = (dynamicJSONDecode c,r)
 JSONDecode{|WorkflowTaskContainer|} _ r				    = (Nothing,r)
 gEq{|WorkflowTaskContainer|} _ _					    = True
-gDefault{|WorkflowTaskContainer|}					    = WorkflowTask (return Void)
+gDefault{|WorkflowTaskContainer|}					    = WorkflowTask (return ())
 
 // SHARES
 // Available workflows
@@ -42,7 +46,7 @@ where
 	filterAllowed (workflows,user) = filter (isAllowedWorkflow user) workflows
 	
 // SERVICE TASKS
-viewTaskList :: Task [TaskListItem Void]
+viewTaskList :: Task [TaskListItem ()]
 viewTaskList 
 	=	doAuthenticated (viewSharedInformation "Tasks" [] processesForCurrentUser)
 
@@ -60,27 +64,27 @@ externalTaskInterface
 	  ]
 
 // MANAGEMENT TASKS
-manageWorkflows :: ![Workflow] ->  Task Void
+manageWorkflows :: ![Workflow] ->  Task ()
 manageWorkflows iflows
 	=	installInitialWorkflows iflows
 	>>| forever (catchAll (doAuthenticated workflowDashboard) viewError)
 where
-	viewError error = viewInformation "Error" [] error >>! \_ -> return Void
+	viewError error = viewInformation "Error" [] error >>! \_ -> return ()
 
-manageWorklist :: ![Workflow] -> Task Void
+manageWorklist :: ![Workflow] -> Task ()
 manageWorklist iflows
 	=	installInitialWorkflows iflows
 	>>| workflowDashboard
 
-installInitialWorkflows ::[Workflow] -> Task Void
-installInitialWorkflows [] = return Void
+installInitialWorkflows ::[Workflow] -> Task ()
+installInitialWorkflows [] = return ()
 installInitialWorkflows iflows
 	=   try (get workflows) (\StoreReadBuildVersionError -> return [])
 	>>= \flows -> case flows of
-		[]	= set iflows workflows @! Void
-		_	= return Void
+		[]	= set iflows workflows @! ()
+		_	= return ()
 		
-loginAndManageWorkList :: !String ![Workflow] -> Task Void
+loginAndManageWorkList :: !String ![Workflow] -> Task ()
 loginAndManageWorkList welcome workflows 
 	= forever 
 		(		(	viewTitle welcome
@@ -96,7 +100,7 @@ where
 		= authenticateUser username password
 		>>= \mbUser -> case mbUser of
 			Just user 	= workAs user (manageWorklist workflows)
-			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return Void
+			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()
 	
 	browseAnonymous workflows
 		= manageWorklist workflows
@@ -122,14 +126,14 @@ where
 
 derive class iTask ClientPart, WorklistRow
 	
-workflowDashboard :: Task Void
+workflowDashboard :: Task ()
 workflowDashboard
 	=  parallel
 		[ (Embedded, startWork)
 		, (Embedded, controlDashboard)
 		, (Embedded, manageWork)
 		] [] <<@ ArrangeCustom layout <<@ FullScreen
-	>>* [OnValue (ifValue (\results -> isValue (snd (results !! 1))) (\_ -> return Void))]
+	>>* [OnValue (ifValue (\results -> isValue (snd (results !! 1))) (\_ -> return ()))]
 where
 	isValue (Value _ _) = True
 	isValue _			= False
@@ -211,12 +215,12 @@ where
     userAttr (AuthenticatedUser uid _ _) = [("user", uid)]
     userAttr _                           = []
 
-unwrapWorkflowTask (WorkflowTask t) = t @ const Void
-unwrapWorkflowTask (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf @ const Void)		
+unwrapWorkflowTask (WorkflowTask t) = t @! ()
+unwrapWorkflowTask (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf @! ())		
 
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
-	(	enterChoiceWithSharedAs Void [ChooseWith (ChooseFromGrid snd)] processes fst
+	(	enterChoiceWithSharedAs () [ChooseWith (ChooseFromGrid snd)] processes fst
 	>>* [OnAction (Action "Open" [ActionTrigger DoubleClick]) (hasValue (\taskId -> openTask taskList taskId @ const OpenProcess))
 		,OnAction (Action "Delete" []) (hasValue (\taskId-> removeTask taskId topLevelTasks @ const OpenProcess))]
 	)
@@ -280,8 +284,8 @@ where
 appendOnce identity task slist
     =   get (taskListMeta slist)
     >>- \items -> if (checkItems name items)
-        (return Void)
-	    (appendTask (NamedEmbedded name) (removeWhenStable task) slist @! Void)
+        (return ())
+	    (appendTask (NamedEmbedded name) (removeWhenStable task) slist @! ())
 where
     name = toString identity
     checkItems name [] = False

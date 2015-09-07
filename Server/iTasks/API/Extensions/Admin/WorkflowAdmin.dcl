@@ -69,11 +69,11 @@ instance toWorkflow (ParamWorkflowContainer a b)	| iTask a & iTask b
 * This task allows users to manage a catalogue of task definitions
 * and let's them create instances of these tasks and work on instances.
 */
-manageWorkflows :: ![Workflow] ->  Task Void
+manageWorkflows :: ![Workflow] ->  Task ()
 
-manageWorklist :: ![Workflow] -> Task Void
+manageWorklist :: ![Workflow] -> Task ()
 
-loginAndManageWorkList :: !String ![Workflow] -> Task Void
+loginAndManageWorkList :: !String ![Workflow] -> Task ()
 
 
 /**
@@ -89,7 +89,7 @@ addWorkflows :: ![Workflow] -> Task [Workflow]
 isAllowedWorkflow :: !User !Workflow -> Bool
 
 //Service tasks
-viewTaskList	:: Task [TaskListItem Void]
+viewTaskList	:: Task [TaskListItem ()]
 viewTask		:: Task AttachmentStatus
 
 //The default external services

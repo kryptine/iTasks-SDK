@@ -2,7 +2,7 @@ implementation module iTasks.API.Extensions.GIS.GoogleMap
 
 import iTasks
 import iTasks.API.Core.Client.Editlet
-import iTasks.UI.JS.Interface
+import iTasks.UI.JS.Interface, iTasks.UI.Editor
 import iTasks.UI.JS.Map
 
 import Data.Functor, Text, StdMisc
@@ -363,8 +363,10 @@ where
 gText{|GoogleMapPosition|} _ (Just {GoogleMapPosition|lat,lng}) = [toString lat + " " + toString lng]
 gText{|GoogleMapPosition|} _ _ = [""]
 
-gEditor{|GoogleMap|} dp vv=:(val,mask,ver) meta vst
-    = gEditor{|*|} dp (googleMapEditlet val,mask,ver) meta vst
+gEditor{|GoogleMap|} = {render=render}
+where
+	render dp val mask ver meta vst
+    	= gEditor{|*|}.render dp (googleMapEditlet val) mask ver meta vst
 
 gUpdate{|GoogleMap|} dp upd (val,mask) iworld
     # ((editlet, mask),iworld) = gUpdate{|*|} dp upd (googleMapEditlet val,mask) iworld

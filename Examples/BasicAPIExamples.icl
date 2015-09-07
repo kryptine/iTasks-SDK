@@ -263,17 +263,17 @@ person1by1 persons
 // BUG? not always all record fields are shown in a choice...
 // sometimes I get several continues... does not looks nice
 
-editPersonList :: Task Void
+editPersonList :: Task ()
 editPersonList = editSharedList personStore
 
-editSharedList :: (Shared [a]) -> Task Void | iTask a
+editSharedList :: (Shared [a]) -> Task () | iTask a
 editSharedList store
 	=			enterChoiceWithShared "Choose an item to edit" [ChooseWith (ChooseFromGrid snd)] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
 		>>*		[ OnAction (Action "Append" [])   (hasValue (showAndDo append))
 				, OnAction (Action "Delete" [])   (hasValue (showAndDo delete))
 				, OnAction (Action "Edit" [])     (hasValue (showAndDo edit))
 				, OnAction (Action "Clear" [])    (always (showAndDo append (-1,undef)))
-				, OnAction (Action "Quit" [])     (always (return Void))
+				, OnAction (Action "Quit" [])     (always (return ()))
 				]
 where
 	showAndDo fun ip
@@ -319,7 +319,7 @@ followTweets
 		>>= \me ->		enterChoiceWithShared "Whoms tweets you want to see?" [] users
 		>>= \user ->	let name = getUserName user in joinTweets me user "type in your tweet" (twitterId name)
 where
-	joinTweets  :: User User String (Shared [Tweet]) -> Task Void
+	joinTweets  :: User User String (Shared [Tweet]) -> Task ()
 	joinTweets me you message tweetsStore
 		=			(viewSharedInformation ("You are following " +++ tweeter) [] tweetsStore)
 					||-
@@ -331,11 +331,11 @@ where
 			=			updateInformation "Add a tweet" [] message
 						-||
 						viewSharedInformation ("Tweets of " +++ tweeter) [] tweetsStore
-				>>*		[ OnAction (Action "Quit" [])    (always (return Void))
+				>>*		[ OnAction (Action "Quit" [])    (always (return ()))
 						, OnAction (Action "Commit" [])  (hasValue commit )
 						]
 
-		commit :: String -> Task Void
+		commit :: String -> Task ()
 		commit message
 			=				upd (\tweets -> [(tweeter,message)] ++ tweets) tweetsStore 
 				>>| 		tweeting 
@@ -463,7 +463,7 @@ where
 	lengthWords "" 	 = 0
 	lengthWords text = length (split " " (replaceSubString "\n" " " text))
 			
-editWithStatistics :: Task Void
+editWithStatistics :: Task ()
 editWithStatistics 
  =						enterInformation "Give name of text file you want to edit..." []
 	>>= \fileName -> 	let file = sharedStore fileName ""
@@ -471,24 +471,24 @@ editWithStatistics
 									  		, (Embedded, editFile fileName file)
 									  		, (Embedded, replace initReplace file)
 									  		] []
-							>>*	 			[ OnAction (ActionQuit) (always (return Void))
+							>>*	 			[ OnAction (ActionQuit) (always (return ()))
 											]
 											
-editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
+editFile :: String (Shared String) (SharedTaskList ()) -> Task ()
 editFile fileName sharedFile _
  =						updateSharedInformation ("edit " +++ fileName) [UpdateWith toV fromV] sharedFile
- 	@ 					const Void
+ 	@!					()
 where
 	toV text 			= Note text
 	fromV _ (Note text) = text
 
 showStatistics sharedFile _  = noStat <<@ InWindow
 where
-	noStat :: Task Void
-	noStat	=			viewInformation Void [] Void
+	noStat :: Task ()
+	noStat	=			viewInformation () [] ()
  				>>*		[ OnAction (Action "/File/Show Statistics" []) (always showStat)
  						]
-	showStat :: Task Void
+	showStat :: Task ()
 	showStat =			viewSharedInformation "Statistics:" [ViewWith stat] sharedFile
  				>>*		[ OnAction (Action "/File/Hide Statistics" []) (always noStat)
  						]
@@ -496,13 +496,13 @@ where
 
 replace cmnd sharedFile _ = noReplace cmnd <<@ InWindow
 where
-	noReplace :: Replace -> Task Void
+	noReplace :: Replace -> Task ()
 	noReplace cmnd 
-		=		viewInformation Void [] Void
+		=		viewInformation () [] () 
  			>>*	[ OnAction (Action "/File/Replace" []) (always (showReplace cmnd))
 				]
 
-	showReplace :: Replace -> Task Void 
+	showReplace :: Replace -> Task ()
 	showReplace cmnd
 		=		updateInformation "Replace:" [] cmnd 
  			>>*	[ OnAction (Action "Replace" []) (hasValue substitute)
@@ -526,7 +526,7 @@ delegate task
 // chat
 
 
-chat :: Task Void
+chat :: Task ()
 chat = 					get currentUser
 		>>= \me ->		enterChoiceWithShared "Select someone to chat with:" [] users
 		>>= \you -> 	withShared ("","") (duoChat me you)
@@ -538,7 +538,7 @@ where
 
 	chat who toView fromView notes
 		= 			updateSharedInformation ("Chat with " <+++ who) [UpdateWith toView fromView] notes
-			>>*		[OnAction (Action "Stop" []) (always (return Void))]
+			>>*		[OnAction (Action "Stop" []) (always (return ()))]
 
 	toView   (me,you) 							= (Display you, Note me)
 	fromView _ (Display you, Note me) 	= (me,you) 

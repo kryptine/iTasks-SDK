@@ -2,7 +2,7 @@ implementation module iTasks.API.Extensions.GIS.Leaflet
 
 import iTasks
 import iTasks.API.Core.Client.Editlet
-import iTasks.UI.JS.Map
+import iTasks.UI.JS.Map, iTasks.UI.Editor
 import StdMisc, Data.Tuple
 
 from StdArray import class Array(uselect), instance Array {} a
@@ -420,8 +420,10 @@ where
 
     ignoreConflict conflict state env = (state, NoDiff, env)
 
-gEditor{|LeafletMap|} dp vv=:(val,mask,ver) meta vst
-    = gEditor{|*|} dp (leafletEditlet val,mask,ver) meta vst
+gEditor{|LeafletMap|} = {render=render} 
+where
+	render dp val mask ver meta vst
+    	= gEditor{|*|}.render dp (leafletEditlet val) mask ver meta vst
 
 gUpdate{|LeafletMap|} dp upd (val,mask) iworld
     # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (leafletEditlet val,mask) iworld

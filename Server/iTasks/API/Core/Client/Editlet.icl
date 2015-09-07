@@ -3,6 +3,7 @@ implementation module iTasks.API.Core.Client.Editlet
 import iTasks._Framework.Client.LinkerSupport, Data.Maybe, Data.Functor
 import iTasks._Framework.IWorld
 from iTasks.UI.Diff import :: MessageType (MDiff,MRollback,MCommit)
+from iTasks.UI.Editor import ::VisualizationResult(..), :: Editor(..)
 from Data.Map import :: Map, newMap, put
 from Data.Map import qualified get
 import StdMisc
@@ -31,65 +32,64 @@ gText{|Editlet|} fa _ _ mode Nothing = fa mode Nothing
 
 import graph_to_sapl_string
 
-gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ _ _ _ _ _ _ jsonEncD jsonDecD dp
-    ({ Editlet | currVal, defValSrv, genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv}, mask, ver) 
-    meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
-    
-  # (uiDef, world)        = genUI htmlId world
-  # iworld                = {iworld & world = world}
-  = case 'Data.Map'.get (taskId,editorId dp) editletDiffs of
-      //Only diff with previous value
-      Just (ver,prevValue,opts,diffs)
-        # currentDiff                        = diffWithPrevValue prevValue currVal
-                
-        # (jsScript,jsCDiff,jsIDiff,iworld)  = diffLinker currentDiff Nothing iworld
-        // Store diffs
-        # diffs                              = if (isJust currentDiff) [MDiff (jsCDiff,jsScript):diffs] diffs
-				
-		// Increase version number if there is a difference between the reference and the new value
-        # ver                                = if (isJust currentDiff) (ver + 1) ver
-        # iworld                             = setEditletDiffs ver currVal opts diffs iworld
-        = (NormalEditor [(ui uiDef {UIEditletOpts|opts & value = toJSONA currVal, initDiff = jsIDiff}, newMap)],{VSt|vst & iworld = iworld})
-      //Create editlet definition and store reference value for future diffs
-      Nothing
-      	# diffs = initDiff
-        # (jsScript, jsID, jsIC, jsAD, iworld)
-            = editletLinker initDiff (initClient createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld
-        # opts = editletOpts jsScript jsID jsIC jsAD uiDef
-        # iworld = setEditletDiffs 1 currVal {UIEditletOpts|opts & value = JSONNull} [] iworld
-        = (NormalEditor [(ui uiDef opts, newMap)],{VSt|vst & iworld = iworld})
+gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ _ _ _ _ _ _ jsonEncD jsonDecD = {render=render}
 where
-    htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
+	render dp {Editlet| currVal, defValSrv, genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv} mask ver meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
+		# (uiDef, world)        = genUI htmlId world
+  		# iworld                = {iworld & world = world}
+		= case 'Data.Map'.get (taskId,editorId dp) editletDiffs of
+			  //Only diff with previous value
+			  Just (ver,prevValue,opts,diffs)
+				# currentDiff                        = diffWithPrevValue prevValue currVal
+						
+				# (jsScript,jsCDiff,jsIDiff,iworld)  = diffLinker currentDiff Nothing iworld
+				// Store diffs
+				# diffs                              = if (isJust currentDiff) [MDiff (jsCDiff,jsScript):diffs] diffs
+						
+				// Increase version number if there is a difference between the reference and the new value
+				# ver                                = if (isJust currentDiff) (ver + 1) ver
+				# iworld                             = setEditletDiffs ver currVal opts diffs iworld
+				= (NormalEditor [(ui uiDef {UIEditletOpts|opts & value = toJSONA currVal, initDiff = jsIDiff}, newMap)],{VSt|vst & iworld = iworld})
+			  //Create editlet definition and store reference value for future diffs
+			  Nothing
+				# diffs = initDiff
+				# (jsScript, jsID, jsIC, jsAD, iworld)
+					= editletLinker initDiff (initClient createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld
+				# opts = editletOpts jsScript jsID jsIC jsAD uiDef
+				# iworld = setEditletDiffs 1 currVal {UIEditletOpts|opts & value = JSONNull} [] iworld
+				= (NormalEditor [(ui uiDef opts, newMap)],{VSt|vst & iworld = iworld})
+		where
+			htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
 
-    editletOpts jsScript jsID jsIC jsAD uiDef
-        = { UIEditletOpts
-		  | taskId 	    = taskId
-		  , editorId	= editorId dp
-		  , value		= toJSONA currVal
-		  , html 		= toString uiDef.ComponentHTML.html
-		  , script	    = jsScript
-		  , initClient  = jsIC
-		  , initDiff	= jsID
-		  , appDiff 	= jsAD
-          }
+			editletOpts jsScript jsID jsIC jsAD uiDef
+				= { UIEditletOpts
+				  | taskId 	    = taskId
+				  , editorId	= editorId dp
+				  , value		= toJSONA currVal
+				  , html 		= toString uiDef.ComponentHTML.html
+				  , script	    = jsScript
+				  , initClient  = jsIC
+				  , initDiff	= jsID
+				  , appDiff 	= jsAD
+				  }
 
-	ui uiDef opts = setSize uiDef.ComponentHTML.width uiDef.ComponentHTML.height (UIEditlet defaultSizeOpts opts)
-	
-	toJSONA a = case jsonEncA False a of
-		[json:_]	= json
-		_			= JSONNull
+			ui uiDef opts = setSize uiDef.ComponentHTML.width uiDef.ComponentHTML.height (UIEditlet defaultSizeOpts opts)
+			
+			toJSONA a = case jsonEncA False a of
+				[json:_]	= json
+				_			= JSONNull
 
-    fromJSONA json = fst (jsonDecA False [json])
-	
-    initDiff = genDiffSrv defValSrv currVal
+			fromJSONA json = fst (jsonDecA False [json])
+			
+			initDiff = genDiffSrv defValSrv currVal
 
-    diffWithPrevValue jsonPrev currVal
-        = case fromJSONA jsonPrev of
-            Just prev = genDiffSrv prev currVal
-            _         = Nothing
+			diffWithPrevValue jsonPrev currVal
+				= case fromJSONA jsonPrev of
+					Just prev = genDiffSrv prev currVal
+					_         = Nothing
 
-    setEditletDiffs ver value opts diffs iworld=:{IWorld|current=current=:{editletDiffs}}
-        = {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId dp) (ver,toJSONA value,opts,diffs) editletDiffs}}
+			setEditletDiffs ver value opts diffs iworld=:{IWorld|current=current=:{editletDiffs}}
+				= {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId dp) (ver,toJSONA value,opts,diffs) editletDiffs}}
 
 gEditMeta{|Editlet|} fa _ _ editlet = fa editlet.Editlet.currVal
 

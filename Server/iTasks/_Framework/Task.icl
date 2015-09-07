@@ -7,7 +7,8 @@ import qualified Data.Map as DM
 import Text.HTML, Internet.HTTP, Data.Error, Text.JSON
 import iTasks._Framework.IWorld, iTasks.UI.Definition, iTasks._Framework.Util
 import iTasks.API.Core.Types
-import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction
+import iTasks._Framework.Generic
+import iTasks.UI.Editor, iTasks._Framework.Generic.Interaction
 
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
 from iTasks.UI.Layout 					import :: LayoutRules(..), autoLayoutRules
@@ -50,12 +51,14 @@ JSONEncode{|Task|} _ _ tt = [dynamicJSONEncode tt]
 JSONDecode{|Task|} _ _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Task|} _ _ c = (Nothing,c)
 
-gUpdate{|Task|} _ _ _ _ target upd val iworld = basicUpdate (\Void t -> Just t) target upd val iworld
+gUpdate{|Task|} _ _ _ _ target upd val iworld = basicUpdate (\() t -> Just t) target upd val iworld
 
 gVerify{|Task|} _ _ mv = alwaysValid mv
 
 gText{|Task|} _ _ _ = ["<Task>"]
-gEditor{|Task|} _ _ _ _ _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>", 'DM'.newMap)],vst)
+gEditor{|Task|} _ _ _ _ _ _ = {render=render}
+where
+	render _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>", 'DM'.newMap)],vst)
 
 gEditMeta{|Task|} _ _ 		= [{label=Just "Task",hint=Nothing,unit=Nothing}]
 gEq{|Task|} _ _ _			= True // tasks are always equal??

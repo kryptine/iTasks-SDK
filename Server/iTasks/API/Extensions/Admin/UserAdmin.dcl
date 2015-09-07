@@ -66,11 +66,11 @@ createUser			:: !UserAccount -> Task UserAccount
 * 
 * @gin-icon user_delete
 */
-deleteUser			:: !UserId -> Task Void
+deleteUser			:: !UserId -> Task ()
 /**
 * Browse and manage the existing users
 */
-manageUsers			:: Task Void
+manageUsers			:: Task ()
 /**
 * Create set of user names handy for giving demo's: alice, bob, carol, ...
 */

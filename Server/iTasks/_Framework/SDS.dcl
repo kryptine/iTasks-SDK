@@ -8,6 +8,7 @@ from iTasks._Framework.Generic import class iTask, generic gEditor, generic gEdi
 from iTasks._Framework.Generic import :: VSt, :: VisualizationResult, :: EditMeta, :: VerifiedValue, :: DataPath, :: Verification, :: InteractionMask
 from iTasks._Framework.Generic import :: USt, :: MaskedValue, :: VerifyOptions, :: TextFormat
 from iTasks.API.Core.Types import :: InstanceNo, :: TaskId
+from iTasks.UI.Editor import :: Editor
 
 :: RWShared p r w
 	= 			            SDSSource		!(SDSSource p r w)

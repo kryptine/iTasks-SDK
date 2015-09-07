@@ -1,7 +1,7 @@
 implementation module iTasks.API.Extensions.Dashboard
 import iTasks
 import iTasks.API.Core.Client.Editlet
-import iTasks.UI.JS.Interface
+import iTasks.UI.Editor, iTasks.UI.JS.Interface
 
 derive JSONEncode ControlLight
 derive JSONDecode ControlLight
@@ -11,8 +11,9 @@ derive gEq ControlLight
 derive gDefault ControlLight
 derive gText ControlLight
 
-gEditor{|ControlLight|} dp vv=:(v,mask,ver) meta vst
-    = gEditor{|*|} dp (controlLightEditlet v,mask,ver) meta vst
+gEditor{|ControlLight|} = {render=render}
+where
+	render dp v mask ver meta vst = gEditor{|*|}.render dp (controlLightEditlet v) mask ver meta vst
 
 gUpdate{|ControlLight|} dp upd (v,mask) iworld
     # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (controlLightEditlet v, mask) iworld

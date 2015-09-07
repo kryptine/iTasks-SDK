@@ -6,7 +6,7 @@ import iTasks
 */
 manageCollection :: !String (c -> i) (Shared [c]) -> Task (Maybe i) | iTask c & iTask i
 manageCollection itemname identify collection
-	= manageCollectionWith (selectItem Void) (viewItem (Title ("Details of " +++ itemname)))
+	= manageCollectionWith (selectItem ()) (viewItem (Title ("Details of " +++ itemname)))
 		[OnAction ActionNew (always (addItem (Title ("Add " +++ itemname)) collection identify))
 		,OnAction ActionEdit (hasValue (editItem ("Edit " +++ itemname) collection (itemShare identify) identify))
 		,OnAction ActionDelete (hasValue (deleteItem ("Delete " +++ itemname,"Are you sure you want to delete the following " +++ itemname +++ "?") collection (itemShare identify) identify))

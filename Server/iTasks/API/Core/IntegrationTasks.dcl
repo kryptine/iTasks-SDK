@@ -4,7 +4,6 @@ definition module iTasks.API.Core.IntegrationTasks
 */
 
 from Data.Maybe  import :: Maybe
-from Data.Void   import :: Void
 from Data.Error  import :: MaybeError, :: MaybeErrorString
 from System.FilePath import :: FilePath
 from Internet.HTTP import :: HTTPMethod, :: HTTPResponse

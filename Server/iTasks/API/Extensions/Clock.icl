@@ -4,6 +4,7 @@ implementation module iTasks.API.Extensions.Clock
 */
 import iTasks
 import iTasks.API.Core.Client.Editlet
+import iTasks.UI.Editor
 
 derive JSONEncode AnalogClock
 derive JSONDecode AnalogClock
@@ -13,8 +14,10 @@ derive gEq AnalogClock
 derive gDefault AnalogClock
 derive gText AnalogClock
 
-gEditor{|AnalogClock|} dp vv=:(AnalogClock t,mask,ver) meta vst
-    = gEditor{|*|} dp (analogClockEditlet t,mask,ver) meta vst
+gEditor{|AnalogClock|} = {render=render}
+where
+	render dp (AnalogClock t) mask ver meta vst
+    	= gEditor{|*|}.render dp (analogClockEditlet t) mask ver meta vst
 
 gUpdate{|AnalogClock|} dp upd (AnalogClock t,mask) iworld
     # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (analogClockEditlet t,mask) iworld

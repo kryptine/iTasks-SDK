@@ -1,6 +1,7 @@
 implementation module iTasks.API.Extensions.Admin.UserAdmin
 
 import iTasks, Text, Data.Tuple, StdArray
+import iTasks.UI.Editor
 
 derive class iTask UserAccount
 
@@ -70,11 +71,11 @@ createUser account
 		_	
 			= throw ("A user with username '" +++ toString account.UserAccount.credentials.Credentials.username +++ "' already exists.")
 
-deleteUser :: !UserId -> Task Void
-deleteUser userId = upd (filter (\acc -> identifyUserAccount acc <> userId)) userAccounts @ const Void
+deleteUser :: !UserId -> Task ()
+deleteUser userId = upd (filter (\acc -> identifyUserAccount acc <> userId)) userAccounts @! ()
 
 
-manageUsers :: Task Void
+manageUsers :: Task ()
 manageUsers =
 	(		enterChoiceWithSharedAs ("Users","The following users are available") [] userAccounts identifyUserAccount
 		>>*	[ OnAction		(Action "New" [])									(always (createUserFlow	@ const False))
@@ -85,16 +86,16 @@ manageUsers =
 			, OnAction      (Action "Import & export/Import demo users" [])		(always (importDemoUsersFlow @ const False))
 			, OnAction      (ActionQuit)										(always (return True))
 			]
-	) <! id @ const Void
+	) <! id @! ()
 
-createUserFlow :: Task Void
+createUserFlow :: Task ()
 createUserFlow =
 		enterInformation ("Create user","Enter user information") []
-	>>*	[ OnAction		ActionCancel	(always (return Void))
+	>>*	[ OnAction		ActionCancel	(always (return ()))
 		, OnAction	    ActionOk 		(hasValue (\user ->
 											createUser user
 										>>|	viewInformation "User created" [] "Successfully added new user"
-										>>| return Void
+										>>| return ()
 									    ))
 		]
 		
@@ -127,8 +128,8 @@ deleteUserFlow userId
 									))
 				]
 				
-importUserFileFlow :: Task Void
-importUserFileFlow = viewInformation "Not implemented" [] Void
+importUserFileFlow :: Task ()
+importUserFileFlow = viewInformation "Not implemented" [] ()
 
 exportUserFileFlow :: Task Document
 exportUserFileFlow

@@ -5,4 +5,4 @@ definition module iTasks.API.Extensions.Admin.StoreAdmin
 */
 import iTasks
 
-manageStore :: Task Void
+manageStore :: Task ()

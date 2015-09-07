@@ -1,6 +1,7 @@
 implementation module Incidone.ActionManagementTasks
 
 import iTasks
+import iTasks.UI.Editor
 import Incidone.Util.TaskPatterns
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.Conversions
 import Incidone.OP.IncidentManagementTasks, Incidone.OP.ContactManagementTasks, Incidone.OP.CommunicationManagementTasks
@@ -227,7 +228,10 @@ gEq{|ActionTasks|} x y = True
 
 gDefault{|ActionTasks|} = ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
 gText{|ActionTasks|} _ _ = ["Action item task definition"]
-gEditor{|ActionTasks|} _ _ _ vst = (HiddenEditor,vst)
+gEditor{|ActionTasks|} = {render=render}
+where
+	render _ _ _ _ _ vst = (HiddenEditor,vst)
+
 gEditMeta{|ActionTasks|} _ = [{label=Nothing,hint=Nothing,unit=Nothing}]
 gUpdate{|ActionTasks|} _ _ val ust = (val,ust)
 gVerify{|ActionTasks|} _ val = alwaysValid val

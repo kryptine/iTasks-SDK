@@ -5,6 +5,7 @@ from iTasks._Framework.Task import :: TaskException
 from iTasks._Framework.Generic import class iTask, generic gEditor, generic gEditMeta, generic gUpdate, generic gVerify, generic gEq, generic gDefault, generic gText
 from iTasks._Framework.Generic import :: VSt, :: VisualizationResult, :: EditMeta, :: VerifiedValue, :: DataPath, :: Verification, :: InteractionMask
 from iTasks._Framework.Generic import :: USt, :: MaskedValue, :: VerifyOptions, :: TextFormat
+from iTasks.UI.Editor import :: Editor
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from Data.Void import :: Void
 from Data.Maybe import :: Maybe
