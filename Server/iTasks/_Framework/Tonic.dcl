@@ -23,7 +23,7 @@ from Text.Parsers.Parsers import :: Parser
 // For all of these classes goes that the iTask context restriction shouldn't
 // be there. Ideally, we would have something like associated type families
 // and constraintkinds to determine the context restriction per monad.
-class TonicTopLevelBlueprint m | TMonad m where
+class TonicTopLevelBlueprint m | TonicBlueprintPart m where
   tonicWrapBody :: !ModuleName !FuncName [(VarName, Int, m ())] [(ExprId, Int)     ] (m a) -> m a | iTask a
   tonicWrapArg  :: !VarName !Int a -> m () | iTask a
 
