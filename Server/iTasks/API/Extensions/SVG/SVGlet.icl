@@ -1281,11 +1281,10 @@ mkBin` op x y st
 
 mkList` :: !([Span] -> Span) ![Span] !*FixSpansSt -> *(!Span, !*FixSpansSt)
 mkList` f xs st
-  #! (xs, st) = mapSt fixSpans xs st
+  #! (xs, st) = strictTRMapSt fixSpans xs st
   = case f xs of
       sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
       sp             -> (sp, st)
-
 
 fixSpans :: !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
 fixSpans (PxSpan r)    st = (PxSpan r, {st & fixSpansDidChange = False})
