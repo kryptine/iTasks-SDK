@@ -21,28 +21,8 @@ from iTasks.UI.Editor import :: VSt(..), :: VisualizationResult, :: EditMeta, ::
 /**
 * Main eneric editor function
 */
-
-/*
-generic gEditor a | gText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a 
-				  :: !DataPath !(VerifiedValue a) ![EditMeta] !*VSt -> (!VisualizationResult,!*VSt)
-*/
-
 generic gEditor a | gText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a :: Editor a
-/*
-derive gEditor
-	UNIT,
-	EITHER with ve1 _ _ em1 _ _ ve2 _ _ em2 _ _,
-	PAIR with ve1 _ _ em1 _ _ ve2 _ _ em2 _ _,
-	OBJECT of {gtd_num_conses,gtd_conses} with ve1 _ _ em1 _ _,
-	CONS of {gcd_index,gcd_arity} with ve1 _ _ em1 _ _,
-	RECORD of {grd_arity} with ve1 _ _ em1 _ _,
-	FIELD of {gfd_name} with ve1 _ _ em1 _ _
-	
-derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (->), Dynamic
-derive gEditor Maybe, Either, MaybeError, Map, JSONNode, HtmlTag, Timestamp
-derive gEditor EditableList
-derive gEditor RWShared
-*/
+
 derive gEditor
 	UNIT,
 	EITHER with ve1 _ _ em1 _ _ ve2 _ _ em2 _ _,
