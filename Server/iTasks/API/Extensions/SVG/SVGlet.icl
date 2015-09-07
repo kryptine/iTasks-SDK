@@ -1269,9 +1269,7 @@ fixEnvs st
     g :: !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
     g v st
       #! (v, st`) = fixSpans v {st & fixSpansDidChange = False}
-      = if st`.fixSpansDidChange
-          (v, st`)
-          (v, {st` & fixSpansDidChange = st.fixSpansDidChange} )
+      = (v, {st` & fixSpansDidChange = st`.fixSpansDidChange || st.fixSpansDidChange})
 
 mkBin` :: !(Span Span -> Span) !Span !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
 mkBin` op x y st
