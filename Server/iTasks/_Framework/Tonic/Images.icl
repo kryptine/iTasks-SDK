@@ -58,21 +58,22 @@ ArialItalic10px :== { fontfamily  = "Arial"
                     }
 
 :: InhMkImg =
-  { inh_bpinst        :: !Maybe BlueprintInstance
-  , inh_bpref         :: !BlueprintIdent
-  , inh_task_apps     :: ![TaskAppRenderer]
-  , inh_compact       :: !Bool
-  , inh_prev          :: !Map ExprId TaskId
-  , inh_inaccessible  :: !Bool
-  , inh_in_maybe      :: !Bool
-  , inh_in_step       :: !Bool
-  , inh_in_mapp       :: !Bool
-  , inh_in_fapp       :: !Bool
-  , inh_in_case       :: !Bool
-  , inh_outputs       :: !Map ExprId TStability
-  , inh_selDetail     :: !Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int))
-  , inh_stepActions   :: !Map ExprId [UIAction]
-  , inh_prev_statstab :: !(!TStatus, !TStability)
+  { inh_bpinst             :: !Maybe BlueprintInstance
+  , inh_bpref              :: !BlueprintIdent
+  , inh_task_apps          :: ![TaskAppRenderer]
+  , inh_compact            :: !Bool
+  , inh_prev               :: !Map ExprId TaskId
+  , inh_inaccessible       :: !Bool
+  , inh_future_unreachable :: !Bool
+  , inh_in_maybe           :: !Bool
+  , inh_in_step            :: !Bool
+  , inh_in_mapp            :: !Bool
+  , inh_in_fapp            :: !Bool
+  , inh_in_case            :: !Bool
+  , inh_outputs            :: !Map ExprId TStability
+  , inh_selDetail          :: !Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int))
+  , inh_stepActions        :: !Map ExprId [UIAction]
+  , inh_prev_statstab      :: !(!TStatus, !TStability)
   }
 
 :: SynMkImg =
@@ -94,21 +95,22 @@ mkStaticImage :: ![TaskAppRenderer] !BlueprintIdent !Bool !ModelTy *TagSource
 mkStaticImage rs bpident compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
   #! inh              = { InhMkImg
-                        | inh_bpinst        = Nothing
-                        , inh_bpref         = bpident
-                        , inh_task_apps     = rs
-                        , inh_compact       = compact
-                        , inh_prev          = 'DM'.newMap
-                        , inh_inaccessible  = False
-                        , inh_in_maybe      = False
-                        , inh_in_step       = False
-                        , inh_in_mapp       = False
-                        , inh_in_fapp       = False
-                        , inh_in_case       = False
-                        , inh_outputs       = 'DM'.newMap
-                        , inh_selDetail     = Nothing
-                        , inh_stepActions   = 'DM'.newMap
-                        , inh_prev_statstab = (TNotActive, TNoVal)
+                        | inh_bpinst             = Nothing
+                        , inh_bpref              = bpident
+                        , inh_task_apps          = rs
+                        , inh_compact            = compact
+                        , inh_prev               = 'DM'.newMap
+                        , inh_inaccessible       = False
+                        , inh_future_unreachable = False
+                        , inh_in_maybe           = False
+                        , inh_in_step            = False
+                        , inh_in_mapp            = False
+                        , inh_in_fapp            = False
+                        , inh_in_case            = False
+                        , inh_outputs            = 'DM'.newMap
+                        , inh_selDetail          = Nothing
+                        , inh_stepActions        = 'DM'.newMap
+                        , inh_prev_statstab      = (TNotActive, TNoVal)
                         }
   #! (tf_body`, tsrc) = tExpr2Image inh tt.tf_body tsrc
   #! (img, _)         = tTaskDef inh tt.tf_module tt.tf_name tt.tf_resty tt.tf_args [] tf_body`.syn_img tsrc
@@ -123,21 +125,22 @@ mkInstanceImage :: ![TaskAppRenderer] !BlueprintInstance
 mkInstanceImage rs bpi outputs stepActions selDetail compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
   #! inh              = { InhMkImg
-                        | inh_bpinst        = Just bpi
-                        , inh_bpref         = bpi.bpi_bpref
-                        , inh_task_apps     = rs
-                        , inh_compact       = compact
-                        , inh_prev          = bpi.bpi_previouslyActive
-                        , inh_inaccessible  = False
-                        , inh_in_maybe      = False
-                        , inh_in_step       = False
-                        , inh_in_mapp       = False
-                        , inh_in_fapp       = False
-                        , inh_in_case       = False
-                        , inh_outputs       = outputs
-                        , inh_selDetail     = selDetail
-                        , inh_stepActions   = stepActions
-                        , inh_prev_statstab = (TNotActive, TNoVal)
+                        | inh_bpinst             = Just bpi
+                        , inh_bpref              = bpi.bpi_bpref
+                        , inh_task_apps          = rs
+                        , inh_compact            = compact
+                        , inh_prev               = bpi.bpi_previouslyActive
+                        , inh_inaccessible       = False
+                        , inh_future_unreachable = False
+                        , inh_in_maybe           = False
+                        , inh_in_step            = False
+                        , inh_in_mapp            = False
+                        , inh_in_fapp            = False
+                        , inh_in_case            = False
+                        , inh_outputs            = outputs
+                        , inh_selDetail          = selDetail
+                        , inh_stepActions        = stepActions
+                        , inh_prev_statstab      = (TNotActive, TNoVal)
                         }
   #! (tf_body`, tsrc) = tExpr2Image inh tt.tf_body tsrc
   #! (img, _)         = tTaskDef inh tt.tf_module tt.tf_name tt.tf_resty tt.tf_args [] tf_body`.syn_img tsrc
@@ -666,10 +669,10 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
                             _           -> Nothing
   #! taskIdStr          = maybe "" (\x -> " (" +++ toString x +++ ")") mTaskId
   #! displayName        = displayName +++ taskIdStr
-  #! (renderOpts, tsrc) = strictTRMapSt (\ta -> ta inh.inh_compact isActive wasActive inh.inh_inaccessible eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs`) inh.inh_task_apps tsrc
+  #! (renderOpts, tsrc) = strictTRMapSt (\ta -> ta inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_future_unreachable eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs`) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
-                            _          -> tDefaultMApp inh.inh_compact isActive wasActive inh.inh_inaccessible eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs taskArgs` tsrc
+                            _          -> tDefaultMApp inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_future_unreachable eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs taskArgs` tsrc
   #! clickMeta          = mkClickMeta inh (Just eid) moduleName taskName (fmap (\x -> x.bpi_taskId) inh.inh_bpinst) mbNavTo
   #! taskApp            = taskApp <@< { onclick = navigateOrSelect clickMeta, local = False }
   #! valNodeIsSelected  = case inh.inh_selDetail of
@@ -713,10 +716,10 @@ tRoundedRect width height
       <@< { xradius     = px 5.0 }
       <@< { yradius     = px 5.0 }
 
-tDefaultMApp :: !Bool !Bool !Bool !Bool !ExprId !ModuleName !FuncName
+tDefaultMApp :: !Bool !Bool !Bool !Bool !Bool !ExprId !ModuleName !FuncName
                 !ModuleName !FuncName ![TExpr] ![Image ModelTy] !*TagSource
              -> *(!Image ModelTy, !*TagSource)
-tDefaultMApp isCompact isActive wasActive isInAccessible eid parentModName parentFuncName modName taskName argsExprs taskArgs tsrc
+tDefaultMApp isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName argsExprs taskArgs tsrc
   #! isEditor = elem taskName [ "viewInformation"
                               , "updateInformation"
                               , "enterInformation"
@@ -756,7 +759,7 @@ tDefaultMApp isCompact isActive wasActive isInAccessible eid parentModName paren
                   (True, True, [TVar _ tn _ : _]) -> if (size tn > 0 && tn.[0] == '"') [text ArialRegular10px tn] []
                   (True, _, _) -> []
                   _            -> taskArgs
-  = tDefaultMApp` isCompact isActive wasActive isInAccessible eid parentModName parentFuncName modName taskName taskArgs tsrc
+  = tDefaultMApp` isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName taskArgs tsrc
 
 appColor :: !Bool !Bool !Bool -> SVGColor
 appColor isActive wasActive isInAccessible
@@ -770,25 +773,30 @@ appColor isActive wasActive isInAccessible
           )
       )
 
-tDefaultMApp` :: !Bool !Bool !Bool !Bool !ExprId !ModuleName !FuncName
+tDefaultMApp` :: !Bool !Bool !Bool !Bool !Bool !ExprId !ModuleName !FuncName
                  !ModuleName !FuncName ![Image ModelTy] !*TagSource
               -> *(!Image ModelTy, !*TagSource)
-tDefaultMApp` isCompact isActive wasActive isInAccessible eid parentModName parentFuncName modName taskName taskArgs [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
-  #! taskNameImg = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
-  #! bgColor     = appColor isActive wasActive isInAccessible
+tDefaultMApp` isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName taskArgs [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
+  #! taskNameImg       = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
+  #! bgColor           = appColor isActive wasActive isInAccessible
+  #! futureUnreachable = isUnreachable && not isInAccessible
+  #! strokeColor       = if futureUnreachable TonicRed TonicBlack
+  #! strokeWidth       = if futureUnreachable (px 3.0) (px 1.0)
   = case taskArgs of
       []
         #! bgRect = tRoundedRect (imagexspan tntag) (imageyspan tntag) <@< { fill = bgColor }
-                                                                       <@< { stroke = TonicBlack }
-                                                                       <@< { strokewidth = px 1.0 }
+                                                                       <@< { stroke = strokeColor }
+                                                                       <@< { strokewidth = strokeWidth }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskNameImg] Nothing, tsrc)
       taskArgs
         #! argsImg  = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] (strictTRMap (margin (px 1.0, px 0.0)) taskArgs) Nothing))
         #! maxXSpan = maxSpan [imagexspan tntag, imagexspan argstag]
-        #! content  = above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, argsImg] Nothing
+        #! lineImg  =  xline Nothing maxXSpan <@< { stroke = strokeColor }
+                                              <@< { strokewidth = strokeWidth }
+        #! content  = above (repeat AtLeft) [] [taskNameImg, lineImg, argsImg] Nothing
         #! bgRect   = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = bgColor }
-                                                                                    <@< { stroke = TonicBlack }
-                                                                                    <@< { strokewidth = px 1.0 }
+                                                                                    <@< { stroke = strokeColor }
+                                                                                    <@< { strokewidth = strokeWidth }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
 
 tAssign :: !InhMkImg !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
@@ -1026,8 +1034,9 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
           !*TagSource
        -> *(!SynMkImg, !*TagSource)
   iter existsSomeActivity maxXSpan ((pat, texpr, showRhs, unreachable), currBranchActivity, (imgTag, uImgTag)) tsrc
-    #! inaccessible = inh.inh_inaccessible || unreachable || (existsSomeActivity && currBranchActivity == TNotActive)
-    #! (syn, tsrc)  = mkBranch {inh & inh_inaccessible = inaccessible} texpr tsrc
+    #! inaccessible = inh.inh_inaccessible || (existsSomeActivity && currBranchActivity == TNotActive)
+    #! unreachable  = inh.inh_future_unreachable || unreachable
+    #! (syn, tsrc)  = mkBranch {inh & inh_inaccessible = inaccessible, inh_future_unreachable = unreachable} texpr tsrc
     #! lhsLineAct   = if inaccessible (TNotActive, TNoVal)
                         (case syn.syn_status of
                            TNotActive -> (TNotActive, TNoVal)
