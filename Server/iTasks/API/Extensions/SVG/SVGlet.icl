@@ -352,11 +352,9 @@ imageFromState img env
   #! spanEnvs  = { spanEnvImageTagPreTrans   = 'DM'.newMap
                  , spanEnvImageTagPostTrans  = 'DM'.newMap
                  , spanEnvImageSpanPostTrans = 'DIS'.newMap
-                 //, spanEnvImageSpanPostTrans` = createArray 1024 (PxSpan 0.0, PxSpan 0.0)
-                 , spanEnvGridTag   = 'DM'.newMap
-                 , spanEnvGridSpan  = 'DIS'.newMap
-                 //, spanEnvGridSpan` = createArray 1024 (createArray 0 (PxSpan 0.0), createArray 0 (PxSpan 0.0))
-                 , spanEnvFonts     = env
+                 , spanEnvGridTag            = 'DM'.newMap
+                 , spanEnvGridSpan           = 'DIS'.newMap
+                 , spanEnvFonts              = env
                  }
   #! (img, st) = desugarAndTag img { desugarAndTagCounter  = 0
                                    , desugarAndTagSpanEnvs = spanEnvs}
@@ -503,7 +501,6 @@ strictTRZipWithAcc f [a:as] [b:bs] acc
   = strictTRZipWithAcc f as bs [f a b : acc]
 strictTRZipWithAcc _ _ _ acc = acc
 
-
 strictTRZip4 :: ![a] ![b] ![c] ![d] -> [(!a, !b, !c, !d)]
 strictTRZip4 as bs cs ds = reverseTR (strictTRZip4Rev as bs cs ds)
 
@@ -537,16 +534,12 @@ strictTRZipWith3Acc f [a:as] [b:bs] [c:cs] acc
   = strictTRZipWith3Acc f as bs cs [f a b c : acc]
 strictTRZipWith3Acc _ _ _ _ acc = acc
 
-
 sequence ms :== strictTRMapSt id ms
 
 cacheImageSpanPostTrans :: !Int !(Set ImageTag) !ImageSpan !*DesugarAndTagStVal -> *DesugarAndTagStVal
 cacheImageSpanPostTrans n imTas sp st
   #! spanEnvs = st.desugarAndTagSpanEnvs
-  //#! spanEnvImageSpanPostTrans` = spanEnvs.spanEnvImageSpanPostTrans`
-  //#! spanEnvImageSpanPostTrans` = {spanEnvImageSpanPostTrans` & [n] = sp}
   #! spanEnvs = {spanEnvs & spanEnvImageSpanPostTrans = 'DIS'.put n sp spanEnvs.spanEnvImageSpanPostTrans}
-  //#! spanEnvs = {spanEnvs & spanEnvImageSpanPostTrans` = spanEnvImageSpanPostTrans`}
   #! env      = 'DS'.fold (f n) spanEnvs.spanEnvImageTagPostTrans imTas
   #! spanEnvs = {spanEnvs & spanEnvImageTagPostTrans = env}
   = {st & desugarAndTagSpanEnvs = spanEnvs}
@@ -556,8 +549,8 @@ cacheImageSpanPostTrans n imTas sp st
 
 cacheGridSpans :: !Int !(Set ImageTag) ![Span] ![Span] !*DesugarAndTagStVal -> *DesugarAndTagStVal
 cacheGridSpans n imTas xsps ysps st
-  #! xsps` = {x \\ x <- xsps}
-  #! ysps` = {y \\ y <- ysps}
+  #! xsps`    = 'DIS'.fromList (strictTRZip2 [0..] xsps)
+  #! ysps`    = 'DIS'.fromList (strictTRZip2 [0..] ysps)
   #! spanEnvs = st.desugarAndTagSpanEnvs
   #! spanEnvs = {spanEnvs & spanEnvGridSpan = 'DIS'.put n (xsps`, ysps`) spanEnvs.spanEnvGridSpan}
   #! env      = 'DS'.fold (f n) spanEnvs.spanEnvGridTag imTas
@@ -566,7 +559,6 @@ cacheGridSpans n imTas xsps ysps st
   where
   f :: !Int !ImageTag !(Map ImageTag Int) -> Map ImageTag Int
   f n t env = 'DM'.put t n env
-
 
 point2Vec :: !(!Span, !Span) -> Vector Span
 point2Vec (x, y) = {x, y, px 1.0}
@@ -1202,10 +1194,8 @@ import StdDebug
   { spanEnvImageTagPreTrans   :: !Map ImageTag Int
   , spanEnvImageTagPostTrans  :: !Map ImageTag Int
   , spanEnvImageSpanPostTrans :: !IntMap ImageSpan
-  //, spanEnvImageSpanPostTrans` :: !*{!ImageSpan}
   , spanEnvGridTag            :: !Map ImageTag Int
-  , spanEnvGridSpan           :: !IntMap (!{!Span}, !{!Span})
-  //, spanEnvGridSpan`          :: !*{!(!*{!Span}, !*{!Span})}
+  , spanEnvGridSpan           :: !IntMap (!IntMap Span, !IntMap Span)
   , spanEnvFonts              :: !Map FontDef (Map String Real)
   }
 
@@ -1249,8 +1239,8 @@ fixEnvs st
       | otherwise
         = {FixSpansSt | st` & fixSpansDidChange = st.fixSpansDidChange}
     f k (w, h) st
-      #! (w`, st`)          = fixSpans w {st & fixSpansDidChange = False}
-      #! (h`, st`)          = fixSpans h st`
+      #! (w`, st`) = fixSpans w {st & fixSpansDidChange = False}
+      #! (h`, st`) = fixSpans h st`
       | st`.fixSpansDidChange
         #! fixSpansSpanEnvs          = st`.fixSpansSpanEnvs
         #! spanEnvImageSpanPostTrans = 'DIS'.put k (w`, h`) fixSpansSpanEnvs.spanEnvImageSpanPostTrans
@@ -1266,22 +1256,22 @@ fixEnvs st
     #! st               = {st & fixSpansSpanEnvs = fixSpansSpanEnvs}
     = 'DIS'.foldrWithKey f st spanEnvGridSpan
     where
-    f :: !Int !(!{!Span}, !{!Span}) !*FixSpansSt -> *FixSpansSt
+    f :: !Int !(!IntMap Span, !IntMap Span) !*FixSpansSt -> *FixSpansSt
     f k (xsps, ysps) st=:{fixSpansDidChange = origDidChange}
-      #! (xsps`, _, st) = foldlArrWithKey g ({x \\ x <-: xsps}, 0, {st & fixSpansDidChange = False}) xsps
-      #! (ysps`, _, st) = foldlArrWithKey g ({y \\ y <-: ysps}, 0, st) ysps
+      #! (xsps`, st) = 'DIS'.mapSt g xsps {st & fixSpansDidChange = False}
+      #! (ysps`, st) = 'DIS'.mapSt g ysps st
       | st.fixSpansDidChange
         #! fixSpansSpanEnvs = st.fixSpansSpanEnvs
         #! spanEnvGridSpan  = 'DIS'.put k (xsps`, ysps`) fixSpansSpanEnvs.spanEnvGridSpan
         #! fixSpansSpanEnvs = {fixSpansSpanEnvs & spanEnvGridSpan = spanEnvGridSpan}
         = {st & fixSpansSpanEnvs  = fixSpansSpanEnvs}
       | otherwise = {st & fixSpansDidChange = origDidChange}
-    g :: Int !*(!*{!Span}, !Int, !*FixSpansSt) !Span -> *(!*{!Span}, !Int, !*FixSpansSt)
-    g _ (acc, n, st) v
+    g :: !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
+    g v st
       #! (v, st`) = fixSpans v {st & fixSpansDidChange = False}
       = if st`.fixSpansDidChange
-          ({acc & [n] = v}, n + 1, st`)
-          (acc, n + 1, {st` & fixSpansDidChange = st.fixSpansDidChange} )
+          (v, st`)
+          (v, {st` & fixSpansDidChange = st.fixSpansDidChange} )
 
 mkBin` :: !(Span Span -> Span) !Span !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
 mkBin` op x y st
@@ -1356,8 +1346,8 @@ fixLookupSpans (ColumnXSpan t n) st
         #! ses             = {ses & spanEnvGridSpan = spanEnvGridSpan}
         = case 'DIS'.get cacheIdx spanEnvGridSpan of
             Just (xs, _)
-              = case xs.[n] of
-                  xsn=:(PxSpan _) -> (xsn, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
+              = case 'DIS'.get n xs of
+                  Just xsn=:(PxSpan _) -> (xsn, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
                   _               -> (LookupSpan (ColumnXSpan t n), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
             _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
       _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
@@ -1371,9 +1361,9 @@ fixLookupSpans (RowYSpan t n) st
         #! ses             = {ses & spanEnvGridSpan = spanEnvGridSpan}
         = case 'DIS'.get cacheIdx spanEnvGridSpan of
             Just (_, xs)
-              = case xs.[n] of
-                  xsn=:(PxSpan _) -> (xsn, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
-                  _               -> (LookupSpan (RowYSpan t n), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+              = case 'DIS'.get n xs of
+                  Just xsn=:(PxSpan _) -> (xsn, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
+                  _                    -> (LookupSpan (RowYSpan t n), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
             _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
       _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
 
@@ -2195,9 +2185,10 @@ evalSpanLookupSpanAlgs =
           #! genStates       = {genStates & spanEnvGridSpan = spanEnvGridSpan}
           = case 'DIS'.get cacheIdx spanEnvGridSpan of
               Just (xs, _)
-                = case xs.[colIdx] of
-                    PxSpan x -> (x, {st & genStates = genStates})
-                    sp       -> evalSpan sp {st & genStates = genStates}
+                = case 'DIS'.get colIdx xs of
+                    Just (PxSpan x) -> (x, {st & genStates = genStates})
+                    Just sp         -> evalSpan sp {st & genStates = genStates}
+                    _               -> (0.0, {st & genStates = genStates})
               _ = (0.0, {st & genStates = genStates})
         _ = (0.0, {st & genStates = genStates})
 
@@ -2212,9 +2203,10 @@ evalSpanLookupSpanAlgs =
           #! genStates       = {genStates & spanEnvGridSpan = spanEnvGridSpan}
           = case 'DIS'.get cacheIdx spanEnvGridSpan of
               Just (_, xs)
-                = case xs.[rowIdx] of
-                    PxSpan x -> (x, {st & genStates = genStates})
-                    sp       -> evalSpan sp {st & genStates = genStates}
+                = case 'DIS'.get rowIdx xs of
+                    Just (PxSpan x) -> (x, {st & genStates = genStates})
+                    Just sp         -> evalSpan sp {st & genStates = genStates}
+                    _               -> (0.0, {st & genStates = genStates})
               _ = (0.0, {st & genStates = genStates})
         _ = (0.0, {st & genStates = genStates})
 
