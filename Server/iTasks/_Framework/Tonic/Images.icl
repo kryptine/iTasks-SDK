@@ -780,8 +780,9 @@ tDefaultMApp` isCompact isActive wasActive isInAccessible isUnreachable eid pare
   #! taskNameImg       = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
   #! bgColor           = appColor isActive wasActive isInAccessible
   #! futureUnreachable = isUnreachable && not isInAccessible
-  #! strokeColor       = if futureUnreachable TonicRed TonicBlack
-  #! strokeWidth       = if futureUnreachable (px 3.0) (px 1.0)
+  #! futureReachable   = not isUnreachable && not isInAccessible && not (isActive || wasActive)
+  #! strokeColor       = if futureUnreachable TonicRed (if futureReachable TonicGreen TonicBlack)
+  #! strokeWidth       = if (futureUnreachable || futureReachable) (px 3.0) (px 1.0)
   = case taskArgs of
       []
         #! bgRect = tRoundedRect (imagexspan tntag) (imageyspan tntag) <@< { fill = bgColor }
