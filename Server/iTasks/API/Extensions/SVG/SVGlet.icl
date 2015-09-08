@@ -1126,15 +1126,31 @@ desugarAndTagSpanPair (xsp, ysp) st
 
 desugarAndTagSpan :: !Span !*DesugarAndTagStVal -> *(!Span, !*DesugarAndTagStVal)
 desugarAndTagSpan (PxSpan r)      st = (PxSpan r, st)
-desugarAndTagSpan (AddSpan l r)   st = desugarAndTagBin (+) l r st
-desugarAndTagSpan (SubSpan l r)   st = desugarAndTagBin (-) l r st
-desugarAndTagSpan (MulSpan l r)   st = desugarAndTagBin (*) l r st
-desugarAndTagSpan (DivSpan l r)   st = desugarAndTagBin (/) l r st
+desugarAndTagSpan (AddSpan l r)   st
+  #! (l, st) = desugarAndTagSpan l st
+  #! (r, st) = desugarAndTagSpan r st
+  = (l + r, st)
+desugarAndTagSpan (SubSpan l r)   st
+  #! (l, st) = desugarAndTagSpan l st
+  #! (r, st) = desugarAndTagSpan r st
+  = (l - r, st)
+desugarAndTagSpan (MulSpan l r)   st
+  #! (l, st) = desugarAndTagSpan l st
+  #! (r, st) = desugarAndTagSpan r st
+  = (l * r, st)
+desugarAndTagSpan (DivSpan l r)   st
+  #! (l, st) = desugarAndTagSpan l st
+  #! (r, st) = desugarAndTagSpan r st
+  = (l / r, st)
 desugarAndTagSpan (AbsSpan x)     st
   #! (x, st) = desugarAndTagSpan x st
   = (abs x, st)
-desugarAndTagSpan (MinSpan xs)    st = desugarAndTagList minSpan xs st
-desugarAndTagSpan (MaxSpan xs)    st = desugarAndTagList maxSpan xs st
+desugarAndTagSpan (MinSpan xs)    st
+  #! (xs, st) = mapSt desugarAndTagSpan xs st
+  = (minSpan xs, st)
+desugarAndTagSpan (MaxSpan xs)    st
+  #! (xs, st) = mapSt desugarAndTagSpan xs st
+  = (maxSpan xs, st)
 desugarAndTagSpan (LookupSpan lu) st = desugarAndTagLookupSpan lu st
 
 desugarAndTagLookupSpan :: !LookupSpan !*DesugarAndTagStVal -> *(!Span, !*DesugarAndTagStVal)
@@ -1146,17 +1162,6 @@ desugarAndTagLookupSpan (TextXSpan fd str) st
             _       -> 0.0
   = (PxSpan sw, st)
 desugarAndTagLookupSpan lusp st = (LookupSpan lusp, st)
-
-desugarAndTagBin :: !(Span Span -> Span) !Span !Span !*DesugarAndTagStVal -> *(!Span, !*DesugarAndTagStVal)
-desugarAndTagBin f l r st
-  #! (l, st) = desugarAndTagSpan l st
-  #! (r, st) = desugarAndTagSpan r st
-  = (f l r, st)
-
-desugarAndTagList :: !([Span] -> Span) ![Span] !*DesugarAndTagStVal -> *(!Span, !*DesugarAndTagStVal)
-desugarAndTagList f xs st
-  #! (xs, st) = mapSt desugarAndTagSpan xs st
-  = (f xs, st)
 
 import StdDebug
 
@@ -1240,34 +1245,47 @@ fixEnvs st
       #! (v, st`) = fixSpans v {st & fixSpansDidChange = False}
       = (v, {st` & fixSpansDidChange = st`.fixSpansDidChange || st.fixSpansDidChange})
 
-mkBin` :: !(Span Span -> Span) !Span !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
-mkBin` op x y st
-  #! (x, st) = fixSpans x st
-  #! (y, st) = fixSpans y st
-  = case op x y of
-      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
-      sp             -> (sp, st)
-
-mkList` :: !([Span] -> Span) ![Span] !*FixSpansSt -> *(!Span, !*FixSpansSt)
-mkList` f xs st
-  #! (xs, st) = strictTRMapSt fixSpans xs st
-  = case f xs of
-      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
-      sp             -> (sp, st)
-
 fixSpans :: !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
 fixSpans (PxSpan r)    st = (PxSpan r, {st & fixSpansDidChange = False})
-fixSpans (AddSpan l r) st = mkBin` (+) l r st
-fixSpans (SubSpan l r) st = mkBin` (-) l r st
-fixSpans (MulSpan l r) st = mkBin` (*) l r st
-fixSpans (DivSpan l r) st = mkBin` (/) l r st
+fixSpans (AddSpan x y) st
+  #! (x, st) = fixSpans x st
+  #! (y, st) = fixSpans y st
+  = case x + y of
+      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
+      sp             -> (sp, st)
+fixSpans (SubSpan x y) st
+  #! (x, st) = fixSpans x st
+  #! (y, st) = fixSpans y st
+  = case x - y of
+      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
+      sp             -> (sp, st)
+fixSpans (MulSpan x y) st
+  #! (x, st) = fixSpans x st
+  #! (y, st) = fixSpans y st
+  = case x * y of
+      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
+      sp             -> (sp, st)
+fixSpans (DivSpan x y) st
+  #! (x, st) = fixSpans x st
+  #! (y, st) = fixSpans y st
+  = case x / y of
+      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
+      sp             -> (sp, st)
 fixSpans (AbsSpan x)   st
   #! (x, st) = fixSpans x st
   = case x of
       PxSpan x` | x` < 0.0 = (PxSpan (abs x`), {st & fixSpansDidChange = True})
       _                    = (x, st)
-fixSpans (MinSpan xs) st = mkList` minSpan xs st
-fixSpans (MaxSpan xs) st = mkList` maxSpan xs st
+fixSpans (MinSpan xs) st
+  #! (xs, st) = strictTRMapSt fixSpans xs st
+  = case minSpan xs of
+      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
+      sp             -> (sp, st)
+fixSpans (MaxSpan xs) st
+  #! (xs, st) = strictTRMapSt fixSpans xs st
+  = case maxSpan xs of
+      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
+      sp             -> (sp, st)
 fixSpans (LookupSpan lu) st = fixLookupSpans lu st
 
 fixLookupSpans :: !LookupSpan !*FixSpansSt -> *(!Span, !*FixSpansSt)
@@ -2072,17 +2090,6 @@ mkTransformTranslateAttr :: !(!Real, !Real) -> [SVGAttr]
 mkTransformTranslateAttr (0.0,   0.0)   = []
 mkTransformTranslateAttr (xGOff, yGOff) = [TransformAttr [TranslateTransform (toString xGOff) (toString yGOff)]]
 
-evalBin :: !(Real Real -> Real) !Span !Span !*(GenSVGStVal s) -> *(!Real, !*GenSVGStVal s) | iTask s
-evalBin f l r st
-  #! (l, st) = evalSpan l st
-  #! (r, st) = evalSpan r st
-  = (f l r, st)
-
-evalList :: !([Real] -> Real) ![Span] !*(GenSVGStVal s) -> *(!Real, !*GenSVGStVal s) | iTask s
-evalList f xs st
-  #! (xs, st) = mapSt evalSpan xs st
-  = (f xs, st)
-
 evalListOfSpanPair :: ![(!Span, !Span)] !*(GenSVGStVal s) -> *(![(!Real, !Real)], !*(GenSVGStVal s)) | iTask s
 evalListOfSpanPair xs st = mapSt evalSpanPair xs st
 
@@ -2092,33 +2099,38 @@ evalSpanPair (xsp, ysp) st
     #! (ysp, st) = evalSpan ysp st
     = ((xsp, ysp), st)
 
-
 evalSpan :: !Span !*(GenSVGStVal s) -> *(!Real, !*GenSVGStVal s) | iTask s
 evalSpan (PxSpan r)    st = (r, st)
-evalSpan (AddSpan l r) st = evalBin (+) l r st
-evalSpan (SubSpan l r) st = evalBin (-) l r st
-evalSpan (MulSpan l r) st = evalBin (*) l r st
-evalSpan (DivSpan l r) st = evalBin (/) l r st
+evalSpan (AddSpan l r) st
+  #! (l, st) = evalSpan l st
+  #! (r, st) = evalSpan r st
+  = (l + r, st)
+evalSpan (SubSpan l r) st
+  #! (l, st) = evalSpan l st
+  #! (r, st) = evalSpan r st
+  = (l - r, st)
+evalSpan (MulSpan l r) st
+  #! (l, st) = evalSpan l st
+  #! (r, st) = evalSpan r st
+  = (l * r, st)
+evalSpan (DivSpan l r) st
+  #! (l, st) = evalSpan l st
+  #! (r, st) = evalSpan r st
+  = (l / r, st)
 evalSpan (AbsSpan x)   st
   #! (x, st) = evalSpan x st
   = (abs x, st)
-evalSpan (MinSpan xs)  st = evalList minList xs st
-evalSpan (MaxSpan xs)  st = evalList maxList xs st
+evalSpan (MinSpan xs)  st
+  #! (xs, st) = mapSt evalSpan xs st
+  = (minList xs, st)
+evalSpan (MaxSpan xs)  st
+  #! (xs, st) = mapSt evalSpan xs st
+  = (maxList xs, st)
 evalSpan (LookupSpan lu) st = evalLookupSpans lu st
 
 evalLookupSpans :: !LookupSpan !*(GenSVGStVal s) -> *(!Real, !*GenSVGStVal s) | iTask s
-evalLookupSpans (TextXSpan fd str) st = evalSpanMkTextLU fd str st
-evalLookupSpans (ImageXSpan t)     st = evalSpanMkImageXSpan t st
-evalLookupSpans (ImageYSpan t)     st = evalSpanMkImageYSpan t st
-evalLookupSpans (ColumnXSpan t n)  st = evalSpanMkImageGridColSpan t n st
-evalLookupSpans (RowYSpan t n)     st = evalSpanMkImageGridRowSpan t n st
-
-// TODO FIXME
-evalSpanMkTextLU :: !FontDef !String !*(GenSVGStVal s) -> *(!Real, !*GenSVGStVal s) | iTask s
-evalSpanMkTextLU fd str st = (0.0, st)
-
-evalSpanMkImageXSpan :: !ImageTag !*(GenSVGStVal s) -> *(!Real, !*GenSVGStVal s) | iTask s
-evalSpanMkImageXSpan t st
+evalLookupSpans (TextXSpan fd str) st = (0.0, st)
+evalLookupSpans (ImageXSpan t)     st
   #! genStates                = st.genStates
   #! spanEnvImageTagPostTrans = genStates.spanEnvImageTagPostTrans
   #! genStates                = {genStates & spanEnvImageTagPostTrans = spanEnvImageTagPostTrans}
@@ -2133,9 +2145,7 @@ evalSpanMkImageXSpan t st
               = evalSpan xsp {st & genStates = genStates}
             _ = (0.0, {st & genStates = genStates})
       _ = (0.0, {st & genStates = genStates})
-
-evalSpanMkImageYSpan :: !ImageTag !*(GenSVGStVal s) -> *(!Real, !*GenSVGStVal s) | iTask s
-evalSpanMkImageYSpan t st
+evalLookupSpans (ImageYSpan t)     st
   #! genStates                = st.genStates
   #! spanEnvImageTagPostTrans = genStates.spanEnvImageTagPostTrans
   #! genStates                = {genStates & spanEnvImageTagPostTrans = spanEnvImageTagPostTrans}
@@ -2150,9 +2160,7 @@ evalSpanMkImageYSpan t st
               = evalSpan ysp {st & genStates = genStates}
             _ = (0.0, {st & genStates = genStates})
       _ = (0.0, {st & genStates = genStates})
-
-evalSpanMkImageGridColSpan :: !ImageTag !Int !*(GenSVGStVal s) -> *(!Real, !*GenSVGStVal s) | iTask s
-evalSpanMkImageGridColSpan t colIdx st
+evalLookupSpans (ColumnXSpan t colIdx)  st
   #! genStates      = st.genStates
   #! spanEnvGridTag = genStates.spanEnvGridTag
   #! genStates      = {genStates & spanEnvGridTag = spanEnvGridTag}
@@ -2168,9 +2176,7 @@ evalSpanMkImageGridColSpan t colIdx st
                   _               -> (0.0, {st & genStates = genStates})
             _ = (0.0, {st & genStates = genStates})
       _ = (0.0, {st & genStates = genStates})
-
-evalSpanMkImageGridRowSpan :: !ImageTag !Int !*(GenSVGStVal s) -> *(!Real, !*GenSVGStVal s) | iTask s
-evalSpanMkImageGridRowSpan t rowIdx st
+evalLookupSpans (RowYSpan t rowIdx)     st
   #! genStates      = st.genStates
   #! spanEnvGridTag = genStates.spanEnvGridTag
   #! genStates      = {genStates & spanEnvGridTag = spanEnvGridTag}
@@ -2186,22 +2192,6 @@ evalSpanMkImageGridRowSpan t rowIdx st
                   _               -> (0.0, {st & genStates = genStates})
             _ = (0.0, {st & genStates = genStates})
       _ = (0.0, {st & genStates = genStates})
-
-mkAbs :: !(*a -> *(!b, !*a)) !*a -> *(!b, !*a) | abs b
-mkAbs x st
-  #! (x, st) = x st
-  = (abs x, st)
-
-mkBin :: !(a b -> c) !(*s -> *(!a, !*s)) !(*s -> *(!b, !*s)) !*s -> *(!c, !*s)
-mkBin op x y st
-  #! (x, st) = x st
-  #! (y, st) = y st
-  = (op x y, st)
-
-mkList :: !([a] -> b) ![*c -> *(!a, !*c)] !*c -> *(!b, !*c)
-mkList f xs st
-  #! (xs, st) = sequence xs st
-  = (f xs, st)
 
 :: Algebras m imCo imAt imTr im baIm imSp coIm ho co ma liIm liCo =
   { imageAlgs          :: !ImageAlg imCo imAt imTr im
