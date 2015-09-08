@@ -440,13 +440,6 @@ calcTextLengths fontdefs world
     #! (ctl, world) = (elem `getComputedTextLength` ()) world
     = ('DM'.put str (jsValToReal ctl) acc, world)
 
-strictFoldl :: !(.a -> .(.b -> .a)) !.a ![.b] -> .a
-strictFoldl f b [] = b
-strictFoldl f b [x:xs]
-  #! r = f b x
-  = strictFoldl f r xs
-
-
 :: *FixSpansSt =
   { fixSpansDidChange :: !Bool
   , fixSpansSpanEnvs  :: !*SpanEnvs
@@ -606,7 +599,7 @@ revFstsSnds xs = strictFoldl (\(xs, ys) (x, y) -> ([x:xs], [y:ys])) ([], []) xs
 applyTransforms :: ![ImageTransform] !ImageSpan -> (!ImageSpan, !ImageOffset)
 applyTransforms ts (xsp, ysp)
   #! origPoints     = [(zero, zero), (xsp, zero), (zero, ysp), (xsp, ysp)]
-  #! newPoints      = foldr f origPoints ts
+  #! newPoints      = strictFoldr f origPoints ts
   #! (allXs, allYs) = revFstsSnds newPoints
   #! minX           = minSpan allXs
   #! maxX           = maxSpan allXs
@@ -2029,7 +2022,7 @@ addAttr (TransformAttr tfs) attrs = addTransforms tfs attrs []
 addAttr attr attrs = [attr:attrs]
 
 addAttrs :: ![SVGAttr] ![SVGAttr] -> [SVGAttr]
-addAttrs newAttrs oldAttrs = foldr addAttr oldAttrs newAttrs
+addAttrs newAttrs oldAttrs = strictFoldr addAttr oldAttrs newAttrs
 
 evalOffsets :: ![(!State .st a, !State .st a)] !.st -> *(![(!a, !a)], !.st)
 evalOffsets offsets st = strictTRMapSt f offsets st
