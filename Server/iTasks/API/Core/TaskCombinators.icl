@@ -770,3 +770,15 @@ where
 			= case (eval event evalOpts state iworld) of
 				(ValueResult value info rep tree,iworld) = (ValueResult value {TaskEvalInfo|info&refreshSensitive=False} rep tree, iworld)
 				(res,iworld) = (res,iworld)
+
+withTaskId :: (Task a) -> Task (a, TaskId)
+withTaskId (Task eval) = Task eval`
+  where
+  eval` event evalOpts state iworld
+    = case eval event evalOpts state iworld of
+        (ValueResult (Value x st) info rep tree, iworld) -> case taskIdFromTaskTree tree of
+                                                              Ok tid -> (ValueResult (Value (x, tid) st) info rep tree, iworld)
+                                                              _      -> (ValueResult (Value (x, TaskId 0 0) st) info rep tree, iworld)
+        (ValueResult NoValue info rep tree, iworld) -> (ValueResult NoValue info rep tree, iworld)
+        (ExceptionResult te, iworld) -> (ExceptionResult te, iworld)
+        (DestroyedResult, iworld) -> (DestroyedResult, iworld)

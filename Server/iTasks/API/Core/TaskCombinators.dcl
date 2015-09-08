@@ -145,3 +145,5 @@ instance tune	ModifyLayout			//Modify the existing layout
 *  Fine tune evaluation behaviour
 */
 instance tune	LazyRefresh
+
+withTaskId :: (Task a) -> Task (a, TaskId)
