@@ -175,7 +175,7 @@ tLam inh vars e tsrc
   #! (r, tsrc) = tExpr2Image inh e tsrc
   #! lineParts = case vars of
                    []   -> [tHorizConnArr (r.syn_status, r.syn_stability), r.syn_img]
-                   vars -> [tHorizConn (r.syn_status, r.syn_stability), tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" vars), tHorizConnArr (r.syn_status, r.syn_stability), r.syn_img]
+                   vars -> [tHorizConn (r.syn_status, r.syn_stability), tTextWithGreyBackground ArialRegular10px (strictFoldr (\x xs -> ppTExpr x +++ " " +++ xs) "" vars), tHorizConnArr (r.syn_status, r.syn_stability), r.syn_img]
   #! img       = beside (repeat AtMiddleY) [] lineParts Nothing
   = ( { syn_img       = img
       , syn_status    = r.syn_status
@@ -425,7 +425,7 @@ tLet inh pats expr [(txttag, uTxtTag) : tsrc]
       _
         #! (t, tsrc)           = tExpr2Image inh expr tsrc
         #! (patRhss, tsrc)     = strictTRMapSt (tExpr2Image inh) (map snd pats) tsrc
-        #! binds               = foldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : expr.syn_img : acc]) [] (strictTRZip2 (strictTRMap fst pats) patRhss)
+        #! binds               = strictFoldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : expr.syn_img : acc]) [] (strictTRZip2 (strictTRMap fst pats) patRhss)
         #! letText             = tag uTxtTag (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing)
         #! letWidth            = imagexspan txttag + px 10.0
         #! letHeight           = imageyspan txttag + px 10.0
@@ -830,7 +830,7 @@ tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (headerTag, 
   mkUser (TFApp "UserWithRole" [r:_] _) = "Anyone with role " +++ ppTExpr r
   mkUser (TFApp "SystemUser" _ _)       = "System user"
   mkUser (TFApp "AnonymousUser" _ _)    = "Anonymous user"
-  mkUser (TFApp "AuthenticatedUser" [uid:rs:_] _) = ppTExpr uid +++ " with roles " +++ foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" (tSafeExpr2List rs)
+  mkUser (TFApp "AuthenticatedUser" [uid:rs:_] _) = ppTExpr uid +++ " with roles " +++ strictFoldr (\x xs -> ppTExpr x +++ " " +++ xs) "" (tSafeExpr2List rs)
   mkUser (TFApp usr _ _)                = usr
   mkUser (TVar _ ppe _)                 = ppe
   mkUser (TLit (TString ppe))           = ppe
@@ -875,7 +875,7 @@ derive class iTask UIAction
 
 tStepCont :: ![UIAction] !InhMkImg !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tStepCont actions inh (TFApp "OnAction" [TFApp "Action" [actionLit : _] _ : cont : _ ] _) tsrc
-  = mkStepCont inh (Just (ppTExpr actionLit, foldr f False actions)) cont tsrc
+  = mkStepCont inh (Just (ppTExpr actionLit, strictFoldr f False actions)) cont tsrc
   where
   f {UIAction | action = Action an _, enabled} acc = (replaceSubString "\"" "" an == replaceSubString "\"" "" (ppTExpr actionLit) && enabled) || acc
   f _ acc = acc
@@ -961,7 +961,7 @@ stepIfStableUnstableHasValue :: !InhMkImg !(Maybe (!String, !Bool))
 stepIfStableUnstableHasValue inh mact filter [TLam pats e : _] [ref : tsrc]
   #! (syn_e, tsrc)        = tExpr2Image inh e tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh filter tsrc
-  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr (stepArrActivity inh syn_e), addAction mact (tHorizConn (stepArrActivity inh syn_e)) ref, tTextWithGreyBackground ArialRegular10px (foldr (\x xs -> ppTExpr x +++ " " +++ xs) "" pats), tHorizConnArr (stepArrActivity inh syn_e), syn_e.syn_img] Nothing
+  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr (stepArrActivity inh syn_e), addAction mact (tHorizConn (stepArrActivity inh syn_e)) ref, tTextWithGreyBackground ArialRegular10px (strictFoldr (\x xs -> ppTExpr x +++ " " +++ xs) "" pats), tHorizConnArr (stepArrActivity inh syn_e), syn_e.syn_img] Nothing
   = ( { syn_img       = img
       , syn_status    = syn_e.syn_status
       , syn_stability = syn_e.syn_stability
@@ -1005,10 +1005,7 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
   #! (allTags, nonUTags, tsrc) = takeNTags (length exprs) tsrc
   #! maxXSpan                  = maxSpan (strictTRMap imagexspan [contextTag : nonUTags])
   #! (allBranchActivity, tsrc) = strictTRMapSt branchStatus exprs tsrc
-  #! existsSomeActivity        = let f _   TAllDone  = True
-                                     f _   TIsActive = True
-                                     f acc _         = acc
-                                 in strictFoldl f False allBranchActivity
+  #! existsSomeActivity        = someActivity allBranchActivity
   #! (syns, tsrc)              = strictTRMapSt (iter existsSomeActivity maxXSpan) (strictTRZip3 exprs allBranchActivity allTags) tsrc
   #! branchImg                 = above (repeat AtLeft) [] (strictTRMap (\x -> x.syn_img) syns) Nothing
   #! status                    = determineSynStatus needAllDone syns
@@ -1026,6 +1023,12 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
         }
       , tsrc)
   where
+  someActivity :: ![TStatus] -> Bool
+  someActivity [TAllDone : _]  = True
+  someActivity [TIsActive : _] = True
+  someActivity [_ : xs]        = someActivity xs
+  someActivity _               = False
+
   branchStatus :: !(Maybe Pattern, !TExpr, Bool, Bool) !*TagSource -> *(!TStatus, !*TagSource)
   branchStatus (_, x, _, _) tsrc
     #! (syn, tsrc) = mkBranch inh x tsrc
@@ -1079,7 +1082,7 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
     | otherwise
         #! firstTag   = hd ts
         #! lastTag    = last ts
-        #! allYSpans  = foldr (\x acc -> imageyspan x + acc) (px 0.0) ts
+        #! allYSpans  = strictFoldl (\acc x -> imageyspan x + acc) (px 0.0) ts
         #! halfFirstY = imageyspan firstTag /. 2.0
         #! halfLastY  = imageyspan lastTag /. 2.0
         = above (repeat AtMiddleX) []

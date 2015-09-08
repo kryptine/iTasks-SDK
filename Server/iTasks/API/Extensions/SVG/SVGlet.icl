@@ -817,11 +817,10 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
       #! (imAts, st)  = sequence imAts st
       #! (imTrs, st)  = sequence imTrs st
       #! (syn, st)    = imCo imTrs imTas st
-      #! (prexsp,  preysp)  = syn.desugarAndTagSyn_TotalSpan_PreTrans
-      #! (postxsp, postysp) = syn.desugarAndTagSyn_TotalSpan_PostTrans
       #! (no, st)     = nextNo st
-      #! imTas        = 'DS'.insert (ImageTagSystem no) imTas
-      #! st           = cacheImageSpanPostTrans no imTas (postxsp, postysp) st
+      #! newTag       = ImageTagSystem no
+      #! imTas        = 'DS'.insert newTag imTas
+      #! st           = cacheImageSpanPostTrans no imTas syn.desugarAndTagSyn_TotalSpan_PostTrans st
       #! img          = { Image
                         | content             = syn.desugarAndTagSyn_ImageContent
                         , mask                = mask
@@ -829,9 +828,9 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
                         , transform           = imTrs
                         , tags                = imTas
                         , uniqId              = no
-                        , totalSpanPreTrans   = (prexsp, preysp)
-                        , totalSpanPostTrans  = (postxsp, postysp)
-                        , transformCorrection = syn.desugarAndTagSyn_OffsetCorrection
+                        , totalSpanPreTrans   = syn.desugarAndTagSyn_TotalSpan_PreTrans // TODO Get rid of these fields in favor of cached spans
+                        , totalSpanPostTrans  = (LookupSpan (ImageXSpan newTag), LookupSpan (ImageYSpan newTag))  // TODO Get rid of these fields in favor of cached spans
+                        , transformCorrection = syn.desugarAndTagSyn_OffsetCorrection   // TODO Get rid of these fields in favor of cached spans
                         }
       = (img, st)
 
@@ -1118,7 +1117,7 @@ desugarAndTagSpanPair (xsp, ysp) st
     = ((xsp, ysp), st)
 
 desugarAndTagSpan :: !Span !*DesugarAndTagStVal -> *(!Span, !*DesugarAndTagStVal)
-desugarAndTagSpan (PxSpan r)      st = (PxSpan r, st)
+desugarAndTagSpan sp=:(PxSpan _)  st = (sp, st)
 desugarAndTagSpan (AddSpan l r)   st
   #! (l, st) = desugarAndTagSpan l st
   #! (r, st) = desugarAndTagSpan r st
@@ -1187,103 +1186,113 @@ fixEnvs st
     f :: !Int !(!Span, !Span) !*FixSpansSt -> *FixSpansSt
     f k (PxSpan _, PxSpan _) st = {FixSpansSt | st & fixSpansDidChange = False}
     f k (w=:(PxSpan _), h) st
-      #! fixSpansDidChange  = st.fixSpansDidChange
-      #! (h`, st`)          = fixSpans h {st & fixSpansDidChange = False}
+      #! (h`, st`) = fixSpans h {st & fixSpansDidChange = False}
       | st`.fixSpansDidChange
         #! fixSpansSpanEnvs          = st`.fixSpansSpanEnvs
         #! spanEnvImageSpanPostTrans = 'DIS'.put k (w, h`) fixSpansSpanEnvs.spanEnvImageSpanPostTrans
         #! fixSpansSpanEnvs          = {fixSpansSpanEnvs & spanEnvImageSpanPostTrans = spanEnvImageSpanPostTrans}
         = {st` & fixSpansSpanEnvs = fixSpansSpanEnvs}
-      | otherwise
-        = {FixSpansSt | st` & fixSpansDidChange = fixSpansDidChange}
+      | otherwise = st`
     f k (w, h=:(PxSpan _)) st
-      #! (w`, st`)          = fixSpans w {st & fixSpansDidChange = False}
+      #! (w`, st`) = fixSpans w {st & fixSpansDidChange = False}
       | st`.fixSpansDidChange
         #! fixSpansSpanEnvs          = st`.fixSpansSpanEnvs
         #! spanEnvImageSpanPostTrans = 'DIS'.put k (w`, h) fixSpansSpanEnvs.spanEnvImageSpanPostTrans
         #! fixSpansSpanEnvs          = {fixSpansSpanEnvs & spanEnvImageSpanPostTrans = spanEnvImageSpanPostTrans}
         = {st` & fixSpansSpanEnvs = fixSpansSpanEnvs}
-      | otherwise
-        = {FixSpansSt | st` & fixSpansDidChange = st.fixSpansDidChange}
+      | otherwise = st`
     f k (w, h) st
-      #! (w`, st`) = fixSpans w {st & fixSpansDidChange = False}
-      #! (h`, st`) = fixSpans h st`
-      | st`.fixSpansDidChange
-        #! fixSpansSpanEnvs          = st`.fixSpansSpanEnvs
+      #! (w`, st1) = fixSpans w {st & fixSpansDidChange = False}
+      #! (h`, st2) = fixSpans h {st1 & fixSpansDidChange = False}
+      | st1.fixSpansDidChange || st2.fixSpansDidChange
+        #! fixSpansSpanEnvs          = st2.fixSpansSpanEnvs
         #! spanEnvImageSpanPostTrans = 'DIS'.put k (w`, h`) fixSpansSpanEnvs.spanEnvImageSpanPostTrans
         #! fixSpansSpanEnvs          = {fixSpansSpanEnvs & spanEnvImageSpanPostTrans = spanEnvImageSpanPostTrans}
-        = {st` & fixSpansSpanEnvs = fixSpansSpanEnvs}
-      | otherwise
-        = {FixSpansSt | st` & fixSpansDidChange = st.fixSpansDidChange}
+        = {st2 & fixSpansSpanEnvs = fixSpansSpanEnvs}
+      | otherwise = st2
   fixGridSpans :: !*FixSpansSt -> *FixSpansSt
-  fixGridSpans st=:{fixSpansSpanEnvs}
+  fixGridSpans st=:{fixSpansSpanEnvs, fixSpansDidChange = origDidChange}
     #! fixSpansSpanEnvs = st.fixSpansSpanEnvs
     #! spanEnvGridSpan  = fixSpansSpanEnvs.spanEnvGridSpan
     #! fixSpansSpanEnvs = {fixSpansSpanEnvs & spanEnvGridSpan = spanEnvGridSpan}
     #! st               = {st & fixSpansSpanEnvs = fixSpansSpanEnvs}
-    = 'DIS'.foldrWithKey f st spanEnvGridSpan
+    #! st               = 'DIS'.foldrWithKey f {st & fixSpansDidChange = False} spanEnvGridSpan
+    = {st & fixSpansDidChange = st.fixSpansDidChange || origDidChange}
     where
     f :: !Int !(!IntMap Span, !IntMap Span) !*FixSpansSt -> *FixSpansSt
     f k (xsps, ysps) st=:{fixSpansDidChange = origDidChange}
-      #! (xsps`, st) = 'DIS'.mapSt g xsps {st & fixSpansDidChange = False}
-      #! (ysps`, st) = 'DIS'.mapSt g ysps st
-      | st.fixSpansDidChange
-        #! fixSpansSpanEnvs = st.fixSpansSpanEnvs
+      #! (xsps`, st1) = 'DIS'.mapSt fixWithState xsps {st & fixSpansDidChange = False}
+      #! (ysps`, st2) = 'DIS'.mapSt fixWithState ysps {st1 & fixSpansDidChange = False}
+      | st1.fixSpansDidChange || st2.fixSpansDidChange
+        #! fixSpansSpanEnvs = st2.fixSpansSpanEnvs
         #! spanEnvGridSpan  = 'DIS'.put k (xsps`, ysps`) fixSpansSpanEnvs.spanEnvGridSpan
         #! fixSpansSpanEnvs = {fixSpansSpanEnvs & spanEnvGridSpan = spanEnvGridSpan}
-        = {st & fixSpansSpanEnvs  = fixSpansSpanEnvs}
-      | otherwise = {st & fixSpansDidChange = origDidChange}
-    g :: !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
-    g v st
-      #! (v, st`) = fixSpans v {st & fixSpansDidChange = False}
-      = (v, {st` & fixSpansDidChange = st`.fixSpansDidChange || st.fixSpansDidChange})
+        = {st2 & fixSpansSpanEnvs = fixSpansSpanEnvs, fixSpansDidChange = True}
+      | otherwise = {st2 & fixSpansDidChange = origDidChange}
+
+fixWithState :: !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
+fixWithState v st
+  #! (v, st`) = fixSpans v {st & fixSpansDidChange = False}
+  = (v, {st` & fixSpansDidChange = st`.fixSpansDidChange || st.fixSpansDidChange})
 
 fixSpans :: !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
-fixSpans (PxSpan r)    st = (PxSpan r, {st & fixSpansDidChange = False})
-fixSpans (AddSpan x y) st
-  #! (x, st) = fixSpans x st
-  #! (y, st) = fixSpans y st
-  = case x + y of
-      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
-      sp             -> (sp, st)
-fixSpans (SubSpan x y) st
-  #! (x, st) = fixSpans x st
-  #! (y, st) = fixSpans y st
-  = case x - y of
-      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
-      sp             -> (sp, st)
-fixSpans (MulSpan x y) st
-  #! (x, st) = fixSpans x st
-  #! (y, st) = fixSpans y st
-  = case x * y of
-      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
-      sp             -> (sp, st)
-fixSpans (DivSpan x y) st
-  #! (x, st) = fixSpans x st
-  #! (y, st) = fixSpans y st
-  = case x / y of
-      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
-      sp             -> (sp, st)
-fixSpans (AbsSpan x)   st
-  #! (x, st) = fixSpans x st
-  = case x of
+fixSpans sp=:(PxSpan _) st = (sp, {st & fixSpansDidChange = False})
+fixSpans osp=:(AddSpan x y) st
+  #! (x`, st1) = fixSpans x {st & fixSpansDidChange = False}
+  #! (y`, st2) = fixSpans y {st1 & fixSpansDidChange = False}
+  | not (st1.fixSpansDidChange || st2.fixSpansDidChange) = (osp, st2)
+  | otherwise
+  = case x` + y` of
+      sp=:(PxSpan _) -> (sp, {st2 & fixSpansDidChange = True})
+      sp             -> (sp, st2)
+fixSpans osp=:(SubSpan x y) st
+  #! (x`, st1) = fixSpans x {st & fixSpansDidChange = False}
+  #! (y`, st2) = fixSpans y {st1 & fixSpansDidChange = False}
+  | not (st1.fixSpansDidChange || st2.fixSpansDidChange) = (osp, st2)
+  | otherwise
+  = case x` - y` of
+      sp=:(PxSpan _) -> (sp, {st2 & fixSpansDidChange = True})
+      sp             -> (sp, st2)
+fixSpans osp=:(MulSpan x y) st
+  #! (x`, st1) = fixSpans x {st & fixSpansDidChange = False}
+  #! (y`, st2) = fixSpans y {st1 & fixSpansDidChange = False}
+  | not (st1.fixSpansDidChange || st2.fixSpansDidChange) = (osp, st2)
+  | otherwise
+  = case x` * y` of
+      sp=:(PxSpan _) -> (sp, {st2 & fixSpansDidChange = True})
+      sp             -> (sp, st2)
+fixSpans osp=:(DivSpan x y) st
+  #! (x`, st1) = fixSpans x {st & fixSpansDidChange = False}
+  #! (y`, st2) = fixSpans y {st1 & fixSpansDidChange = False}
+  | not (st1.fixSpansDidChange || st2.fixSpansDidChange) = (osp, st2)
+  | otherwise
+  = case x` / y` of
+      sp=:(PxSpan _) -> (sp, {st2 & fixSpansDidChange = True})
+      sp             -> (sp, st2)
+fixSpans osp=:(AbsSpan x) st
+  #! (x`, st1) = fixSpans x {st & fixSpansDidChange = False}
+  | not st1.fixSpansDidChange = (osp, st1)
+  | otherwise
+  = case x` of
       PxSpan x` | x` < 0.0 = (PxSpan (abs x`), {st & fixSpansDidChange = True})
-      _                    = (x, st)
-fixSpans (MinSpan xs) st
-  #! (xs, st) = strictTRMapSt fixSpans xs st
+      sp                   = (sp, st1)
+fixSpans osp=:(MinSpan xs) st
+  #! (xs, st1) = strictTRMapSt fixWithState xs {st & fixSpansDidChange = False}
+  | not st1.fixSpansDidChange = (osp, st1)
   = case minSpan xs of
-      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
-      sp             -> (sp, st)
-fixSpans (MaxSpan xs) st
-  #! (xs, st) = strictTRMapSt fixSpans xs st
+      sp=:(PxSpan _) -> (sp, {st1 & fixSpansDidChange = True})
+      sp             -> (sp, st1)
+fixSpans osp=:(MaxSpan xs) st
+  #! (xs, st1) = strictTRMapSt fixWithState xs {st & fixSpansDidChange = False}
+  | not st1.fixSpansDidChange = (osp, st1)
   = case maxSpan xs of
-      sp=:(PxSpan _) -> (sp, {st & fixSpansDidChange = True})
-      sp             -> (sp, st)
+      sp=:(PxSpan _) -> (sp, {st1 & fixSpansDidChange = True})
+      sp             -> (sp, st1)
 fixSpans (LookupSpan lu) st = fixLookupSpans lu st
 
 fixLookupSpans :: !LookupSpan !*FixSpansSt -> *(!Span, !*FixSpansSt)
-fixLookupSpans (TextXSpan _ _) st = (PxSpan 0.0, {st & fixSpansDidChange = True})
-fixLookupSpans (ImageXSpan t) st
+fixLookupSpans (TextXSpan _ _) st = (PxSpan 0.0, {st & fixSpansDidChange = False})
+fixLookupSpans osp=:(ImageXSpan t) st
   #! ses                      = st.fixSpansSpanEnvs
   #! spanEnvImageTagPostTrans = ses.spanEnvImageTagPostTrans
   #! ses                      = {ses & spanEnvImageTagPostTrans = spanEnvImageTagPostTrans}
@@ -1295,10 +1304,10 @@ fixLookupSpans (ImageXSpan t) st
             Just (xsp=:(PxSpan _), _)
               = (xsp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
             Just _
-              = (LookupSpan (ImageXSpan t), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+              = (LookupSpan osp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
             _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
       _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-fixLookupSpans (ImageYSpan t) st
+fixLookupSpans osp=:(ImageYSpan t) st
   #! ses                      = st.fixSpansSpanEnvs
   #! spanEnvImageTagPostTrans = ses.spanEnvImageTagPostTrans
   #! ses                      = {ses & spanEnvImageTagPostTrans = spanEnvImageTagPostTrans}
@@ -1310,10 +1319,10 @@ fixLookupSpans (ImageYSpan t) st
             Just (_, ysp=:(PxSpan _))
               = (ysp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
             Just _
-              = (LookupSpan (ImageYSpan t), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+              = (LookupSpan osp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
             _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
       _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-fixLookupSpans (ColumnXSpan t n) st
+fixLookupSpans osp=:(ColumnXSpan t n) st
   #! ses            = st.fixSpansSpanEnvs
   #! spanEnvGridTag = ses.spanEnvGridTag
   #! ses            = {ses & spanEnvGridTag = spanEnvGridTag}
@@ -1325,10 +1334,10 @@ fixLookupSpans (ColumnXSpan t n) st
             Just (xs, _)
               = case 'DIS'.get n xs of
                   Just xsn=:(PxSpan _) -> (xsn, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
-                  _               -> (LookupSpan (ColumnXSpan t n), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+                  _                    -> (LookupSpan osp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
             _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
       _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-fixLookupSpans (RowYSpan t n) st
+fixLookupSpans osp=:(RowYSpan t n) st
   #! ses            = st.fixSpansSpanEnvs
   #! spanEnvGridTag = ses.spanEnvGridTag
   #! ses            = {ses & spanEnvGridTag = spanEnvGridTag}
@@ -1340,7 +1349,7 @@ fixLookupSpans (RowYSpan t n) st
             Just (_, xs)
               = case 'DIS'.get n xs of
                   Just xsn=:(PxSpan _) -> (xsn, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
-                  _                    -> (LookupSpan (RowYSpan t n), {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+                  _                    -> (LookupSpan osp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
             _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
       _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
 
