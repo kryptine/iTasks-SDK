@@ -469,6 +469,7 @@ instance nextNo DesugarAndTagStVal where
   , desugarAndTagSyn_TotalSpan_PreTrans  :: !ImageSpan
   , desugarAndTagSyn_TotalSpan_PostTrans :: !ImageSpan
   , desugarAndTagSyn_OffsetCorrection    :: !ImageOffset
+  , desugarAndTagSyn_IsBasic             :: !Bool
   }
 
 strictTRMapSt :: !(a .st -> (!b, !.st)) ![a] !.st -> (![b], !.st)
@@ -829,7 +830,9 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
                         , tags                = imTas
                         , uniqId              = no
                         , totalSpanPreTrans   = syn.desugarAndTagSyn_TotalSpan_PreTrans  // TODO Get rid of these fields in favor of cached spans
-                        , totalSpanPostTrans  = syn.desugarAndTagSyn_TotalSpan_PostTrans // TODO Get rid of these fields in favor of cached spans
+                        , totalSpanPostTrans  = if syn.desugarAndTagSyn_IsBasic
+                                                  (LookupSpan (ImageXSpan newTag), LookupSpan (ImageYSpan newTag)) // TODO Get rid of these fields in favor of cached spans
+                                                  syn.desugarAndTagSyn_TotalSpan_PostTrans
                         , transformCorrection = syn.desugarAndTagSyn_OffsetCorrection    // TODO Get rid of these fields in favor of cached spans
                         }
       = (img, st)
@@ -936,7 +939,8 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
       = ({ desugarAndTagSyn_ImageContent        = Basic ctor imSp
          , desugarAndTagSyn_TotalSpan_PreTrans  = imSp
          , desugarAndTagSyn_TotalSpan_PostTrans = imSp`
-         , desugarAndTagSyn_OffsetCorrection    = imOff }, st)
+         , desugarAndTagSyn_OffsetCorrection    = imOff
+         , desugarAndTagSyn_IsBasic             = True }, st)
 
   desugarAndTagLineImageAlgs :: LineImageAlg (DesugarAndTagSt ImageSpan)
                                         (DesugarAndTagSt (Markers s))
@@ -961,7 +965,8 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
                                                   , lineContent = liCo }
          , desugarAndTagSyn_TotalSpan_PreTrans  = imSp
          , desugarAndTagSyn_TotalSpan_PostTrans = imSp`
-         , desugarAndTagSyn_OffsetCorrection    = imOff }, st)
+         , desugarAndTagSyn_OffsetCorrection    = imOff
+         , desugarAndTagSyn_IsBasic             = False }, st)
   desugarAndTagMarkersAlgs :: MarkersAlg (DesugarAndTagSt (Image s)) (DesugarAndTagSt (Markers s)) | iTask s
   desugarAndTagMarkersAlgs =
     { markersMarkersAlg = mkMarkers
@@ -1024,7 +1029,8 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
                                                             }
          , desugarAndTagSyn_TotalSpan_PreTrans  = span
          , desugarAndTagSyn_TotalSpan_PostTrans = span`
-         , desugarAndTagSyn_OffsetCorrection    = corr }, st)
+         , desugarAndTagSyn_OffsetCorrection    = corr
+         , desugarAndTagSyn_IsBasic             = False }, st)
   desugarAndTagComposeAlgs :: ComposeAlg (DesugarAndTagSt (Image s))
                                     ((Maybe (Image s)) [ImageTransform] (Set ImageTag) *DesugarAndTagStVal -> *(!(!Compose s, !ImageSpan), !*DesugarAndTagStVal)) | iTask s
   desugarAndTagComposeAlgs =
