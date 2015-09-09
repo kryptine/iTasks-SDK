@@ -828,9 +828,9 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
                         , transform           = imTrs
                         , tags                = imTas
                         , uniqId              = no
-                        , totalSpanPreTrans   = syn.desugarAndTagSyn_TotalSpan_PreTrans // TODO Get rid of these fields in favor of cached spans
-                        , totalSpanPostTrans  = (LookupSpan (ImageXSpan newTag), LookupSpan (ImageYSpan newTag))  // TODO Get rid of these fields in favor of cached spans
-                        , transformCorrection = syn.desugarAndTagSyn_OffsetCorrection   // TODO Get rid of these fields in favor of cached spans
+                        , totalSpanPreTrans   = syn.desugarAndTagSyn_TotalSpan_PreTrans  // TODO Get rid of these fields in favor of cached spans
+                        , totalSpanPostTrans  = syn.desugarAndTagSyn_TotalSpan_PostTrans // TODO Get rid of these fields in favor of cached spans
+                        , transformCorrection = syn.desugarAndTagSyn_OffsetCorrection    // TODO Get rid of these fields in favor of cached spans
                         }
       = (img, st)
 
