@@ -11,9 +11,10 @@ import iTasks.UI.Editor
 derive class iTask Workflow
 
 gText{|WorkflowTaskContainer|} _ _			            = []
-gEditor{|WorkflowTaskContainer|} = {render=render}
+gEditor{|WorkflowTaskContainer|} = {render=render,edit=edit}
 where
 	render _ _ _ _ _ vst			    = (HiddenEditor,vst)
+	edit _ _ val mask ust 				= (val,mask,ust)
 
 gEditMeta{|WorkflowTaskContainer|} _ 				    = [{label=Just "Workflow task container",hint=Nothing,unit=Nothing}]
 gUpdate{|WorkflowTaskContainer|} target upd val iworld  = basicUpdate (\() x -> Just x) target upd val iworld

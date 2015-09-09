@@ -14,10 +14,14 @@ derive gEq AnalogClock
 derive gDefault AnalogClock
 derive gText AnalogClock
 
-gEditor{|AnalogClock|} = {render=render}
+gEditor{|AnalogClock|} = {render=render,edit=edit}
 where
 	render dp (AnalogClock t) mask ver meta vst
     	= gEditor{|*|}.render dp (analogClockEditlet t) mask ver meta vst
+	
+	edit dp e (AnalogClock t) mask ust
+		# (editlet,mask,ust) = gEditor{|*|}.edit dp e (analogClockEditlet t) mask ust
+		= (AnalogClock editlet.currVal,mask,ust) 
 
 gUpdate{|AnalogClock|} dp upd (AnalogClock t,mask) iworld
     # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (analogClockEditlet t,mask) iworld

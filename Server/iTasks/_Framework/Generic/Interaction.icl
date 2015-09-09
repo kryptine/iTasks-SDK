@@ -19,37 +19,73 @@ visualizeAsEditor (v,mask,ver) taskId layout iworld
 	# (res,vst=:{VSt|iworld})	= (gEditor{|*|}).render [] v mask ver (gEditMeta{|*|} v) vst
 	= (controlsOf res,iworld)
 
-updateValueAndMask :: !TaskId !DataPath !JSONNode !(MaskedValue a) !*IWorld -> (!MaskedValue a,!*IWorld) | gUpdate{|*|} a
+updateValueAndMask :: !TaskId !DataPath !JSONNode !(MaskedValue a) !*IWorld -> (!MaskedValue a,!*IWorld) | gEditor{|*|} a
 updateValueAndMask taskId path update (a,mask) iworld
-    # (res,ust=:{USt|iworld}) = gUpdate{|*|} path update (a,mask) {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
-    = (res,iworld)
+    //# (res,ust=:{USt|iworld}) = gUpdate{|*|} path update (a,mask) {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
+    //= (res,iworld)
+    # (val,mask,ust=:{USt|iworld}) = gEditor{|*|}.edit path update a mask {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
+    = ((val,mask),iworld)
 
 generic gEditor a | gText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a :: Editor a
-derive bimap Editor
+derive bimap Editor,(,,),(,,,)
 
-gEditor{|UNIT|} = {render=render}
+gEditor{|UNIT|} = {render=render,edit}
 where
 	render dp _ _ _ _ vst = (NormalEditor [],vst)
+	edit dp e val mask ust = (val,mask,ust)
 
-gEditor{|EITHER|} ex _ _ mx _ _ ey _ _ my _ _  = {render=render}
+gEditor{|EITHER|} ex _ dx mx _ _ ey _ dy my _ _  = {render=render,edit=edit}
 where
 	render dp (LEFT x) mask ver meta vst = ex.render dp x mask ver (mx x) vst
 	render dp (RIGHT y) mask ver meta vst =  ey.render dp y mask ver (my y) vst	
 
-gEditor{|RECORD of {grd_arity}|} fx _ _ mx _ _ = {render=render}
+	edit [d:ds] e either mask ust
+		| d == -1 = case ds of
+        	[] = (LEFT dx, Untouched, ust)
+			_ 
+				# (x,mask,ust) = ex.edit ds e dx Untouched ust
+				= (LEFT x, mask, ust)
+		| d == -2 = case ds of
+			[] = (RIGHT dy, Untouched, ust)
+			_ 
+				# (y,mask,ust) = ey.edit ds e dy Untouched ust
+				= (RIGHT y, mask, ust)
+		| otherwise
+			= case either of
+				(LEFT x)
+					# (x,mask,ust) = ex.edit [d:ds] e x mask ust
+					= (LEFT x, mask, ust)
+				(RIGHT y)
+					# (y,mask,ust) = ey.edit [d:ds] e y mask ust
+					= (RIGHT y, mask, ust)
+
+gEditor{|RECORD of {grd_arity}|} ex _ _ mx _ _ = {render=render,edit=edit}
 where
 	render dp (RECORD x) mask ver meta vst=:{VSt|optional,disabled,taskId}
 		//When optional and no value yet, just show the checkbox
 		| optional && not (isTouched mask)
 			= if disabled (OptionalEditor [],vst) (OptionalEditor [checkbox False], vst)
-		# (fieldsViz,vst) = fx.render (pairPath grd_arity dp) x (toPairMask grd_arity mask) (toPairVerification grd_arity ver) (mx x) {VSt|vst & optional = False}
+		# (fieldsViz,vst) = ex.render (pairPath grd_arity dp) x (toPairMask grd_arity mask) (toPairVerification grd_arity ver) (mx x) {VSt|vst & optional = False}
 		//For optional records we add the checkbox to clear the entire record
 		# viz = if (optional && not disabled) (OptionalEditor [checkbox True:controlsOf fieldsViz]) fieldsViz	
 		= (viz,vst)
 	where
 		checkbox checked = (UIEditCheckbox defaultFSizeOpts {UIEditOpts|taskId = taskId, editorId = editorId dp, value = Just (JSONBool checked)},'DM'.newMap)
 
-gEditor{|FIELD of {gfd_name}|} ex _ _ mx _ _ = {render=render}
+	edit [] e (RECORD record) mask ust
+    	# mask = case e of
+        	JSONBool False  = Blanked
+        	_               = Touched
+    	= (RECORD record,mask,ust)
+	edit [d:ds] e (RECORD record) mask ust
+		| d >= grd_arity
+			= (RECORD record,mask,ust)
+		# childMasks = subMasks grd_arity mask
+		# (record,targetMask,ust) = ex.edit (updPairPath d grd_arity ++ ds) e record (childMasks !! d) ust
+		= (RECORD record,CompoundMask (updateAt d targetMask childMasks),ust)
+	edit _ _ val mask ust = (val,mask,ust)
+
+gEditor{|FIELD of {gfd_name}|} ex _ _ mx _ _ = {render=render,edit=edit}
 where
 	render dp (FIELD x) mask ver _ vst=:{VSt|disabled}
 		# (vizBody,vst)		= ex.render dp x mask ver (mx x) vst
@@ -60,7 +96,11 @@ where
 			OptionalEditor controls	
 				= (OptionalEditor [(c,addLabel True gfd_name a) \\ (c,a) <- controls], vst)
 
-gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ mx _ _ = {render=render}
+	edit dp e (FIELD field) mask ust
+		# (field,mask,ust) = ex.edit dp e field mask ust
+		= (FIELD field,mask,ust)
+
+gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ mx _ _ = {render=render,edit=edit}
 where
 	render dp (OBJECT x) mask ver meta vst=:{selectedConsIndex = oldSelectedConsIndex,disabled,taskId,layout}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
@@ -97,13 +137,34 @@ where
 				= OptionalEditor (layout.layoutSubEditor {UIForm|attributes = 'DM'.newMap, controls = items, size = defaultSizeOpts})
 		= (vis,{vst & selectedConsIndex = oldSelectedConsIndex})
 
-gEditor{|CONS of {gcd_index,gcd_arity}|} ex _ _ mx _ _ = {render=render}
+	edit [] e (OBJECT val) mask ust //Update is a constructor switch
+		# consIdx = case e of
+			JSONInt i	= i
+			_			= 0
+		# mask	        = case e of
+			JSONNull	= Blanked	//Reset
+			_			= CompoundMask (repeatn (gtd_conses !! consIdx).gcd_arity Untouched)
+    	# (val,_,ust)	= ex.edit (updConsPath (if (consIdx < gtd_num_conses) consIdx 0) gtd_num_conses) e val mask ust
+		= (OBJECT val, mask, ust)
+	edit dp e (OBJECT val) mask ust //Update is targeted somewhere in a substructure of this value
+		# (val,mask,ust) = ex.edit dp e val mask ust
+		= (OBJECT val,mask,ust)
+
+gEditor{|CONS of {gcd_index,gcd_arity}|} ex _ _ mx _ _ = {render=render,edit=edit}
 where
 	render dp (CONS x) mask ver meta vst=:{VSt|taskId,optional,disabled}
-	# (viz,vst)	= ex.render (pairPath gcd_arity dp) x (toPairMask gcd_arity mask) (toPairVerification gcd_arity ver) meta vst
-    = (viz,{VSt | vst & selectedConsIndex = gcd_index})
+		# (viz,vst)	= ex.render (pairPath gcd_arity dp) x (toPairMask gcd_arity mask) (toPairVerification gcd_arity ver) meta vst
+    	= (viz,{VSt | vst & selectedConsIndex = gcd_index})
 
-gEditor{|PAIR|} ex _ _ mx _ _ ey _ _ my _ _ = {render=render}
+	edit [d:ds] e (CONS val) mask ust
+		| d >= gcd_arity
+			= (CONS val,mask,ust)	
+		# childMasks = subMasks gcd_arity mask
+		# (val,targetMask,ust) = ex.edit (updPairPath d gcd_arity ++ ds) e val (childMasks !! d) ust
+		= (CONS val,CompoundMask (updateAt d targetMask childMasks),ust)
+	edit _ _ val mask ust = (val,mask,ust)
+
+gEditor{|PAIR|} ex _ _ mx _ _ ey _ _ my _ _ = {render=render,edit=edit}
 where
 	render dp (PAIR x y) (CompoundMask [xmask,ymask]) (CompoundVerification [xver,yver]) meta vst
 	# (dpx,dpy)		= pairPathSplit dp
@@ -120,6 +181,14 @@ where
 		(HiddenEditor,		OptionalEditor ey)		= (OptionalEditor ey, vst)
 		(HiddenEditor,		HiddenEditor)			= (HiddenEditor, vst)
 
+	edit [0:ds] e (PAIR x y) xmask ust
+		# (x,xmask,ust) = ex.edit ds e x xmask ust
+		= (PAIR x y,xmask,ust)
+	edit [1:ds] e (PAIR x y) ymask ust
+		# (y,ymask,ust) = ey.edit ds e y ymask ust
+		= (PAIR x y,ymask,ust)
+	edit _ _ val mask ust = (val,mask,ust)
+
 //Encode the full range of fields in the datapath, such that it can be decomposed in PAIRs by the pairSplit
 pairPath 0 dp = dp
 pairPath 1 dp = dp ++ [0]
@@ -133,7 +202,7 @@ where
 	range = end - begin + 1
 	middle = begin + range / 2
 
-gEditor{|Int|} = {render=render}
+gEditor{|Int|} = {render=render,edit=edit}
 where 
 	render dp val mask ver meta vst=:{VSt|taskId,disabled}
 	| disabled	
@@ -141,7 +210,9 @@ where
 	| otherwise
         = (NormalEditor [(UIEditInt defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes (val,mask,ver) meta)],vst)
 
-gEditor{|Real|} = {render=render}
+	edit dp e val mask ust = basicUpdateSimple2 dp e val mask ust
+
+gEditor{|Real|} = {render=render,edit=edit}
 where
 	render dp val mask ver meta vst=:{VSt|taskId,disabled}
 	| disabled
@@ -149,7 +220,9 @@ where
 	| otherwise
         = (NormalEditor [(UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes (val,mask,ver) meta)],vst)
 
-gEditor{|Char|} = {render=render}
+	edit dp e val mask ust = basicUpdateSimple2 dp e val mask ust
+
+gEditor{|Char|} = {render=render,edit=edit}
 where
 	render dp val mask ver meta vst=:{VSt|taskId,disabled}
 	| disabled
@@ -157,7 +230,9 @@ where
 	| otherwise
         = (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes (val,mask,ver) meta)],vst)
 
-gEditor{|String|} = {render=render}
+	edit dp e val mask ust = basicUpdateSimple2 dp e val mask ust
+
+gEditor{|String|} = {render=render,edit=edit}
 where
 	render dp val mask ver meta vst=:{VSt|taskId,disabled}
 	| disabled
@@ -165,7 +240,9 @@ where
 	| otherwise
         = (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes (val,mask,ver) meta)],vst)
 
-gEditor{|Bool|} = {render=render}
+	edit dp e val mask ust = basicUpdateSimple2 dp e val mask ust
+
+gEditor{|Bool|} = {render=render,edit=edit}
 where
 	render dp val mask ver meta vst=:{VSt|taskId,disabled} //Bools are shown as optional by default, because a mandatory bool makes little sense
 	| disabled		
@@ -173,7 +250,9 @@ where
 	| otherwise	
 		= (OptionalEditor [(UIEditCheckbox defaultFSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes (val,mask,ver) meta)],vst)
 
-gEditor{|[]|} ex _ _ mx _ _ = {render=render} 
+	edit dp e val mask ust = basicUpdateSimple2 dp e val mask ust
+
+gEditor{|[]|} ex _ dx mx _ _ = {render=render,edit=edit} 
 where 
 	render dp val mask ver meta vst=:{VSt|taskId,disabled,layout}
 	# (items,vst)	= listControl dp val (subMasks (length val) mask) (subVerifications (length val) ver) vst
@@ -209,7 +288,47 @@ where
 			numItemsText 1 = "1 item"
 			numItemsText n = toString n +++ " items"
 
-gEditor{|EditableList|} ex _ _ mx _ _ = {render=render}
+	edit dp e l listMask ust
+		# (l,childMasks) = case ((not (isEmpty dp)) && (hd dp >= (length l))) of
+			True
+				= (l++[dx], subMasks (length l) listMask ++ [Untouched])
+			False
+				= (l, subMasks (length l) listMask)
+		# (l,childMasks,ust) = updateElements ex.edit dp e l childMasks ust
+		| isEmpty dp
+			//Process the reordering commands
+			# split = split "_" (fromMaybe "" (fromJSON e))
+			# index = toInt (last split)
+			# (l,childMasks) = case hd split of	
+				"mup" = (swap l index,swap childMasks index) 
+				"mdn" = (swap l (index+1),swap childMasks (index+1))
+				"rem" = (removeAt index l,removeAt index childMasks)	
+				"add"
+					= (insertAt (length l) dx l, insertAt (length l) Untouched childMasks)
+				_	
+					= (l,childMasks)
+			= (l,CompoundMask childMasks,ust)
+		| otherwise
+			= (l,CompoundMask childMasks,ust)
+	where
+		updateElements fx [i:target] upd elems masks ust
+			| i >= (length elems)
+				= (elems,masks,ust)
+				# (nx,nm,ust)	= fx target upd (elems !! i) (masks !! i) ust
+				= (updateAt i nx elems, updateAt i nm masks,ust)
+		updateElements fx target upd elems masks ust
+			= (elems,masks,ust)
+			
+swap []	  _		= []
+swap list index
+	| index == 0 			= list //prevent move first element up
+	| index >= length list 	= list //prevent move last element down
+	| otherwise				
+		# f = list !! (index-1)
+		# l = list !! (index)
+		= updateAt (index-1) l (updateAt index f list)
+
+gEditor{|EditableList|} ex _ dx mx _ _ = {render=render,edit=edit}
 where
 	render dp {EditableList|items,add,remove,reorder,count} mask ver meta vst=:{VSt|taskId,disabled,layout}
 	# (controls,vst) = listControls dp items (subMasks (length items) mask) (subVerifications (length items) ver) vst
@@ -246,29 +365,75 @@ where
 			numItemsText 1 = "1 item"
 			numItemsText n = toString n +++ " items"
 
-gEditor{|()|} = {render=render}
+	edit dp e l=:{EditableList|items,add,remove,reorder} listMask ust
+		# (items,childMasks)
+			= case ((not (isEmpty dp)) && (hd dp >= (length items))) of
+				True
+					= (items++[dx], subMasks (length items) listMask ++ [Untouched])
+				False
+					= (items, subMasks (length items) listMask)
+		# (items,childMasks,ust) = updateElements ex.edit dp e items childMasks ust
+		| isEmpty dp
+			//Process the reordering commands
+			# split = split "_" (fromMaybe "" (fromJSON e))
+			# index = toInt (last split)
+			# (items,childMasks) = case hd split of	
+				"mup" = if reorder (swap items index,swap childMasks index) (items,childMasks)
+				"mdn" = if reorder (swap items (index+1),swap childMasks (index+1)) (items,childMasks)
+				"rem" = if remove  (removeAt index items,removeAt index childMasks)	(items,childMasks)
+				"add"
+                	= case add of
+                    	ELAddBlank      = (insertAt (length items) dx items, insertAt (length items) Untouched childMasks)
+                    	ELAddValue f    = (insertAt (length items) (f items) items, insertAt (length items) Touched childMasks)
+                    	_               = (items,childMasks)
+				_	
+					= (items,childMasks)
+			= ({EditableList|l & items = items},CompoundMask childMasks,ust)
+		| otherwise
+			= ({EditableList|l & items = items},CompoundMask childMasks,ust)
+	where
+		updateElements fx [i:target] upd elems masks ust
+			| i >= (length elems)
+				= (elems,masks,ust)
+			# (nx,nm,ust)	= fx target upd (elems !! i) (masks !! i) ust
+			= (updateAt i nx elems, updateAt i nm masks,ust)
+		updateElements fx target upd elems masks ust
+			= (elems,masks,ust)
+	
+gEditor{|()|} = {render=render,edit=edit}
 where
 	render dp _ _ _ meta vst = (HiddenEditor,vst)
+	edit _ _ val mask ust = (val,mask,ust)
 
-gEditor{|(,)|} ex _ _ mx _ _ ey _ _ my _ _ = {render=render}
+gEditor{|(,)|} ex _ _ mx _ _ ey _ _ my _ _ = {render=render,edit=edit}
 where
 	render dp (x,y) mask ver meta vst
-	# (vizx, vst)	= ex.render (dp ++ [0]) x (subMasks 2 mask !! 0) (subVerifications 2 ver !! 0) (mx x) vst
-	# (vizy, vst)	= ey.render (dp ++ [1]) y (subMasks 2 mask !! 1) (subVerifications 2 ver !! 1) (my y) vst
-	# viz = case (vizx,vizy) of
-		(HiddenEditor,HiddenEditor) = HiddenEditor
-		_	= NormalEditor (controlsOf vizx ++ controlsOf vizy)
+		# (vizx, vst)	= ex.render (dp ++ [0]) x (subMasks 2 mask !! 0) (subVerifications 2 ver !! 0) (mx x) vst
+		# (vizy, vst)	= ey.render (dp ++ [1]) y (subMasks 2 mask !! 1) (subVerifications 2 ver !! 1) (my y) vst
+		# viz = case (vizx,vizy) of
+			(HiddenEditor,HiddenEditor) = HiddenEditor
+			_							= NormalEditor (controlsOf vizx ++ controlsOf vizy)
 	= (viz, vst)
 
-gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ _ _ = {render=render}
-where
-	render  _ _ _ _ _ vst = (HiddenEditor,vst)
+	edit [0:ds] e (x,y) xmask ust
+		# (x,xmask,ust) = ex.edit ds e x xmask ust
+		= ((x,y),xmask,ust)
+	edit [1:ds] e (x,y) ymask ust
+		# (y,ymask,ust) = ey.edit ds e y ymask ust
+		= ((x,y),ymask,ust)
+	edit _ _ val mask ust = (val,mask,ust)
 
-gEditor{|Dynamic|} = {render=render}
+gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ _ _ = {render=render,edit=edit}
 where
 	render _ _ _ _ _ vst = (HiddenEditor,vst)
+	edit _ _ val mask ust = (val,mask,ust)
 
-gEditor{|Maybe|} ex _ dx mx _ _ = {render=render}
+gEditor{|Dynamic|} = {render=render,edit=edit}
+where
+	render _ _ _ _ _ vst = (HiddenEditor,vst)
+	edit _ _ val mask ust = (val,mask,ust)
+
+gEditor{|Maybe|} ex _ dx mx _ _ = {render=render,edit=edit}
 where
 	render dp val mask ver meta vst=:{VSt|optional,disabled}
 	# (viz,vst) = case val of
@@ -279,14 +444,26 @@ where
 		toOptional	(NormalEditor ex)	= OptionalEditor ex
 		toOptional	viz					= viz
 
-gEditor{|HtmlTag|}	= {render=render}
+	edit dp e val mask ust
+		| isEmpty dp && (e === JSONNull || e === JSONBool False)
+			= (Nothing, Blanked,ust) //Reset
+		| otherwise
+			# (x,xmask) = maybe (dx,Untouched) (\x -> (x,mask)) val
+			# (x,xmask,ust) = ex.edit dp e x xmask ust
+			= (Just x,xmask,ust)
+
+gEditor{|HtmlTag|}	= {render=render,edit=edit}
 where
 	render dp val mask ver meta vst
 		= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just val},'DM'.newMap)], vst)
 
-gEditor{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = {render=render}
+	edit _ _ val mask ust = (val,mask,ust)
+
+gEditor{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = {render=render,edit=edit}
 where
 	render _ _ _ _ _ vst = (HiddenEditor,vst)
+
+	edit _ _ val mask ust = (val,mask,ust)
 
 derive gEditor JSONNode, Either, MaybeError, (,,), (,,,), (,,,,), Timestamp, Map //TODO Make specializations for (,,) and (,,,)
 
@@ -667,5 +844,18 @@ basicUpdate toV target upd (v,vmask) ust
 	| otherwise
 		= ((v,vmask),ust)
 
+basicUpdate2 :: !(upd a -> Maybe a) !DataPath !JSONNode !a !InteractionMask !*USt -> *(!a, !InteractionMask, !*USt) | JSONDecode{|*|} upd
+basicUpdate2 toV target upd v vmask ust
+	| isEmpty target
+        # mbV   = maybe Nothing (\u -> toV u v) (fromJSON upd)
+        # v     = fromMaybe v mbV
+        # vmask = if (upd === JSONNull) Blanked (if (isNothing mbV) (TouchedUnparsed upd) Touched)
+        = (v,vmask,ust)
+	| otherwise
+		= (v,vmask,ust)
+
 basicUpdateSimple :: !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt) | JSONDecode{|*|} a
 basicUpdateSimple target upd val iworld = basicUpdate (\json old -> fromJSON json) target upd val iworld
+
+basicUpdateSimple2 :: !DataPath !JSONNode !a !InteractionMask !*USt -> *(!a,!InteractionMask,!*USt) | JSONDecode{|*|} a
+basicUpdateSimple2 target upd val mask iworld = basicUpdate2 (\json old -> fromJSON json) target upd val mask iworld

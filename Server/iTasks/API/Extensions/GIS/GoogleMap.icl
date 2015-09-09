@@ -363,10 +363,13 @@ where
 gText{|GoogleMapPosition|} _ (Just {GoogleMapPosition|lat,lng}) = [toString lat + " " + toString lng]
 gText{|GoogleMapPosition|} _ _ = [""]
 
-gEditor{|GoogleMap|} = {render=render}
+gEditor{|GoogleMap|} = {render=render,edit=edit}
 where
 	render dp val mask ver meta vst
     	= gEditor{|*|}.render dp (googleMapEditlet val) mask ver meta vst
+	edit dp e val mask ust 
+    	# (editlet,mask,ust) = gEditor{|*|}.edit dp e (googleMapEditlet val) mask ust
+    	= (editlet.currVal,mask,ust)
 
 gUpdate{|GoogleMap|} dp upd (val,mask) iworld
     # ((editlet, mask),iworld) = gUpdate{|*|} dp upd (googleMapEditlet val,mask) iworld

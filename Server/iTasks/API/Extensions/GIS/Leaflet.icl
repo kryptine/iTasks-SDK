@@ -420,10 +420,13 @@ where
 
     ignoreConflict conflict state env = (state, NoDiff, env)
 
-gEditor{|LeafletMap|} = {render=render} 
+gEditor{|LeafletMap|} = {render=render,edit=edit} 
 where
 	render dp val mask ver meta vst
     	= gEditor{|*|}.render dp (leafletEditlet val) mask ver meta vst
+	edit dp e val mask ust 
+    	# (editlet,mask,ust) = gEditor{|*|}.edit dp e (leafletEditlet val) mask ust
+    	= (editlet.currVal,mask,ust)
 
 gUpdate{|LeafletMap|} dp upd (val,mask) iworld
     # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (leafletEditlet val,mask) iworld

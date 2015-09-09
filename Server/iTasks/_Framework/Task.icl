@@ -56,9 +56,10 @@ gUpdate{|Task|} _ _ _ _ target upd val iworld = basicUpdate (\() t -> Just t) ta
 gVerify{|Task|} _ _ mv = alwaysValid mv
 
 gText{|Task|} _ _ _ = ["<Task>"]
-gEditor{|Task|} _ _ _ _ _ _ = {render=render}
+gEditor{|Task|} _ _ _ _ _ _ = {render=render,edit=edit}
 where
 	render _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>", 'DM'.newMap)],vst)
+	edit dp e val mask ust = basicUpdate2 (\() t -> Just t) dp e val mask ust
 
 gEditMeta{|Task|} _ _ 		= [{label=Just "Task",hint=Nothing,unit=Nothing}]
 gEq{|Task|} _ _ _			= True // tasks are always equal??

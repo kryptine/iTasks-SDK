@@ -3,7 +3,7 @@ implementation module iTasks.API.Core.Client.Editlet
 import iTasks._Framework.Client.LinkerSupport, Data.Maybe, Data.Functor
 import iTasks._Framework.IWorld
 from iTasks.UI.Diff import :: MessageType (MDiff,MRollback,MCommit)
-from iTasks.UI.Editor import ::VisualizationResult(..), :: Editor(..)
+from iTasks.UI.Editor import ::VisualizationResult(..), :: Editor(..), :: USt(..)
 from Data.Map import :: Map, newMap, put
 from Data.Map import qualified get
 import StdMisc
@@ -32,7 +32,7 @@ gText{|Editlet|} fa _ _ mode Nothing = fa mode Nothing
 
 import graph_to_sapl_string
 
-gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ _ _ _ _ _ _ jsonEncD jsonDecD = {render=render}
+gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncB jsonDecB fd textD defaultD headersD jsonEncD jsonDecD = {render=render,edit=edit}
 where
 	render dp {Editlet| currVal, defValSrv, genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv} mask ver meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
 		# (uiDef, world)        = genUI htmlId world
@@ -90,6 +90,30 @@ where
 
 			setEditletDiffs ver value opts diffs iworld=:{IWorld|current=current=:{editletDiffs}}
 				= {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId dp) (ver,toJSONA value,opts,diffs) editletDiffs}}
+	edit [] jsonDiff ov omask ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
+		// Bit dirty, but we need to unwrap the "unexpected" version number and the expected diff
+		# (ver, diffId, jsonDiff) = case jsonDiff of
+			JSONArray [ver, diffId, diff] 	= (maybe -1 id (fromJSON ver), maybe -1 id (fromJSON diffId), diff)
+											= (-1, -1, JSONNull)
+		= case jsonDecB False [jsonDiff] of
+			(Just diff,_)	
+				# iworld = case 'Data.Map'.get (taskId,editorId) editletDiffs of
+                	Just (refver,jsonRef,opts,diffs) = case jsonDecA False [jsonRef] of
+                    	(Just ref,_)
+                    		| ver <> refver
+                    			= {IWorld|iworld & current = {current & 
+                    					editletDiffs = put (taskId,editorId) (ver,jsonRef,opts,[MRollback diffId:diffs]) editletDiffs}}
+
+  	                      	# ref = ov.Editlet.appDiffSrv diff ref
+   	                     	# [jsonRef:_] = jsonEncA False ref
+                        	// If the reference value is changed by its client, keep the version number
+                        	= {IWorld|iworld & current = {current &
+                        			editletDiffs = put (taskId,editorId) (ver,jsonRef,opts,[MCommit diffId:diffs]) editletDiffs}}
+                    	_ = iworld
+					Nothing = iworld
+				= ({ov & currVal = ov.Editlet.appDiffSrv diff ov.Editlet.currVal}, Touched, {USt|ust & iworld = iworld})
+			_	= (ov,omask, trace_n ("Failed to decode JSON: " +++ toString jsonDiff) ust)
+	edit dp _ val mask ust = (val,mask,ust)
 
 gEditMeta{|Editlet|} fa _ _ editlet = fa editlet.Editlet.currVal
 
@@ -121,6 +145,7 @@ gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd _ _ _ _ [] jsonDiff (ov, oma
                 , Touched),{USt|ust & iworld = iworld})
 		_	= ((ov,omask), trace_n ("Failed to decode JSON: " +++ toString jsonDiff) ust)
 gUpdate{|Editlet|} fa _ _ _ _ _ _ _ _ _ _ _ _ _ mv iworld = (mv,iworld)
+
 gVerify{|Editlet|} fa _ _ _ mv = alwaysValid mv
 import StdDebug
 

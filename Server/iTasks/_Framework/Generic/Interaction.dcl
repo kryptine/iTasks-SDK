@@ -17,7 +17,7 @@ from Data.Map import :: Map
 from System.Time import :: Timestamp
 from iTasks._Framework.SDS import :: RWShared
 
-from iTasks.UI.Editor import :: VSt(..), :: VisualizationResult, :: EditMeta, :: Editor
+from iTasks.UI.Editor import :: Editor, :: VSt(..), :: VisualizationResult, :: EditMeta, :: USt
 /**
 * Main eneric editor function
 */
@@ -25,7 +25,8 @@ generic gEditor a | gText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a
 
 derive gEditor
 	UNIT,
-	EITHER with ve1 _ _ em1 _ _ ve2 _ _ em2 _ _,
+	//EITHER with ve1 _ _ em1 _ _ ve2 _ _ em2 _ _,
+	EITHER with ex _ dx mx _ _ ey _ dy my _ _,
 	PAIR with ve1 _ _ em1 _ _ ve2 _ _ em2 _ _,
 	OBJECT of {gtd_num_conses,gtd_conses} with ve1 _ _ em1 _ _,
 	CONS of {gcd_index,gcd_arity} with ve1 _ _ em1 _ _,
@@ -78,15 +79,9 @@ derive gUpdate RWShared
 
 //Wrapper functions for generating editors
 visualizeAsEditor   :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld	-> (![(!UIControl,!UIAttributes)],!*IWorld)	| gEditor{|*|} a & gEditMeta{|*|} a
-updateValueAndMask  :: !TaskId !DataPath !JSONNode !(MaskedValue a) !*IWorld -> (!MaskedValue a,!*IWorld) | gUpdate{|*|} a
+updateValueAndMask  :: !TaskId !DataPath !JSONNode !(MaskedValue a) !*IWorld -> (!MaskedValue a,!*IWorld) | gEditor{|*|} a
 
 //Support types for generating editors
-:: *USt =
-    { taskId            :: !String
-    , editorId          :: !String
-    , iworld            :: !*IWorld
-    }
-
 :: VerifyOptions =
 	{ optional		:: !Bool
 	, disabled		:: !Bool
@@ -143,6 +138,7 @@ customVerify :: !(a -> Bool) !(a -> String) !VerifyOptions (MaskedValue a) -> Ve
 * @return The modified value
 */
 basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt) | JSONDecode{|*|} upd
+basicUpdate2 :: !(upd a -> Maybe a) !DataPath !JSONNode !a !InteractionMask !*USt -> *(!a, !InteractionMask, !*USt) | JSONDecode{|*|} upd
 /**
 * Updates a value which's new value can be calculated from the update-json
 * without knowledge of the previous value.
@@ -152,3 +148,4 @@ basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !(MaskedValue a) !*USt ->
 * @return The modified value
 */
 basicUpdateSimple :: !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt) | JSONDecode{|*|} a
+basicUpdateSimple2 :: !DataPath !JSONNode !a !InteractionMask !*USt -> *(!a,!InteractionMask,!*USt) | JSONDecode{|*|} a

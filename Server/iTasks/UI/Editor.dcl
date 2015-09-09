@@ -8,6 +8,7 @@ from iTasks.API.Core.Types import :: DataPath, :: Verification, :: VerifiedValue
 from Data.Maybe import :: Maybe
 from Data.Either import :: Either
 from Data.Map import :: Map
+from Text.JSON import :: JSONNode
 
 /**
 * This module defines the interface for task editors
@@ -18,6 +19,7 @@ from Data.Map import :: Map
 	{ //render :: DataPath (VerifiedValue a) [EditMeta] *VSt2 -> *(!VisualizationResult,!*VSt2)
 	  //render :: DataPath (a,InteractionMask,Verification) [EditMeta] *VSt -> *(!VisualizationResult,!*VSt)
 	  render :: DataPath a InteractionMask Verification [EditMeta] *VSt -> *(!VisualizationResult,!*VSt)
+	, edit :: DataPath JSONNode a InteractionMask *USt -> *(!a, !InteractionMask, !*USt)
 	}
 
 :: *VSt =
@@ -39,3 +41,10 @@ from Data.Map import :: Map
 	  , hint	:: Maybe String
       , unit    :: Maybe (Either String String)
 	  }
+
+:: *USt =
+    { taskId            :: !String
+    , editorId          :: !String
+    , iworld            :: !*IWorld
+    }
+

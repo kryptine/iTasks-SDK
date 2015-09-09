@@ -69,7 +69,7 @@ JSONEncode{|Username|} _ (Username u) = [JSONString u]
 JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
 JSONDecode{|Username|} _ c = (Nothing,c)
 
-gEditor{|Username|} = {render=render}
+gEditor{|Username|} = {render=render,edit=edit}
 where
 	render dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled	
@@ -78,6 +78,8 @@ where
 		| otherwise
 			# value = checkMaskValue mask ((\(Username v) -> v) val)
 			= (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
+
+	edit dp e val mask ust = basicUpdateSimple2 dp e val mask ust
 
 gUpdate{|Username|} target upd val iworld = basicUpdateSimple target upd val iworld
 gVerify{|Username|} mv options = simpleVerify mv options
@@ -106,7 +108,7 @@ JSONDecode{|Password|} _ c = (Nothing,c)
 gText{|Password|} AsHeader _ = [""]
 gText{|Password|} _ _        = ["********"]
 
-gEditor{|Password|} = {render=render}
+gEditor{|Password|} = {render=render,edit=edit}
 where
 	render dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled	
@@ -114,6 +116,8 @@ where
 		| otherwise	
 			# value = checkMaskValue mask ((\(Password v) -> v) val)
 			= (NormalEditor [(UIEditPassword defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
+
+	edit dp e val mask ust = basicUpdateSimple2 dp e val mask ust
 
 gUpdate{|Password|} target upd val iworld = basicUpdateSimple target upd val iworld
 gVerify{|Password|} mv options = simpleVerify mv options
