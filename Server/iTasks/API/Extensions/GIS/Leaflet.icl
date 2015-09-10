@@ -1,7 +1,6 @@
 implementation module iTasks.API.Extensions.GIS.Leaflet
 
 import iTasks
-import iTasks.API.Core.Client.Editlet
 import iTasks.UI.JS.Map, iTasks.UI.Editor
 import StdMisc, Data.Tuple
 

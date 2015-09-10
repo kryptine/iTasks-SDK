@@ -4,7 +4,7 @@ import qualified Data.Map as DM
 import Graphics.Scalable
 import Graphics.Scalable.Internal
 import iTasks
-import iTasks.API.Core.Client.Editlet
+import iTasks.UI.Editor
 from StdOrdList import minList, maxList
 import StdOverloaded
 import StdArray

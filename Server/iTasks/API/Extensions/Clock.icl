@@ -3,7 +3,6 @@ implementation module iTasks.API.Extensions.Clock
 * This module provides a type for visualizing time as an an analog clock
 */
 import iTasks
-import iTasks.API.Core.Client.Editlet
 import iTasks.UI.Editor
 
 derive JSONEncode AnalogClock

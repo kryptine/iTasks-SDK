@@ -4,7 +4,7 @@ import Graphics.Scalable
 from Text.JSON import generic JSONEncode, generic JSONDecode
 from GenEq import generic gEq
 import iTasks
-import iTasks.API.Core.Client.Editlet
+import iTasks.UI.Editor
 
 imageView   ::           !(s *TagSource -> Image s) !(Conflict s -> Maybe s)              -> ViewOption s | iTask s
 

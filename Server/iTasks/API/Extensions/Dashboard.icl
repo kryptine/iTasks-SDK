@@ -1,6 +1,5 @@
 implementation module iTasks.API.Extensions.Dashboard
 import iTasks
-import iTasks.API.Core.Client.Editlet
 import iTasks.UI.Editor, iTasks.UI.JS.Interface
 
 derive JSONEncode ControlLight

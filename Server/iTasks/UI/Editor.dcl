@@ -1,7 +1,14 @@
 definition module iTasks.UI.Editor
+/**
+* This module defines the interfaces for task editors used in the interact task
+* the interact core task uses these editors to generate and update the user interface
+*/
 
 from iTasks.UI.Layout import :: LayoutRules
 from iTasks.UI.Definition import :: UIControl, :: UIAttributes
+
+import iTasks.UI.Component
+import iTasks.UI.JS.Interface
 
 from iTasks._Framework.IWorld import :: IWorld
 from iTasks.API.Core.Types import :: DataPath, :: Verification, :: VerifiedValue, :: InteractionMask
@@ -10,16 +17,12 @@ from Data.Either import :: Either
 from Data.Map import :: Map
 from Text.JSON import :: JSONNode
 
-/**
-* This module defines the interface for task editors
-* the interact core task uses these editors to generate and update the user interface
+/*
+*	Standard editor
 */
-
 :: Editor a = 
-	{ //render :: DataPath (VerifiedValue a) [EditMeta] *VSt2 -> *(!VisualizationResult,!*VSt2)
-	  //render :: DataPath (a,InteractionMask,Verification) [EditMeta] *VSt -> *(!VisualizationResult,!*VSt)
-	  render :: DataPath a InteractionMask Verification [EditMeta] *VSt -> *(!VisualizationResult,!*VSt)
-	, edit :: DataPath JSONNode a InteractionMask *USt -> *(!a, !InteractionMask, !*USt)
+	{ render :: DataPath a InteractionMask Verification [EditMeta] *VSt -> *(!VisualizationResult,!*VSt)
+	, edit   :: DataPath JSONNode a InteractionMask *USt -> *(!a, !InteractionMask, !*USt)
 	}
 
 :: *VSt =
@@ -32,9 +35,9 @@ from Text.JSON import :: JSONNode
 	}
 
 :: VisualizationResult
-		= NormalEditor [(!UIControl,!UIAttributes)]
-		| OptionalEditor [(!UIControl,!UIAttributes)]
-		| HiddenEditor
+	= NormalEditor [(!UIControl,!UIAttributes)]
+	| OptionalEditor [(!UIControl,!UIAttributes)]
+	| HiddenEditor
 
 :: EditMeta
 	= { label	:: Maybe String
@@ -47,4 +50,38 @@ from Text.JSON import :: JSONNode
     , editorId          :: !String
     , iworld            :: !*IWorld
     }
+
+
+//****************************************************************************//
+// Wrapper types for defining custom editor components that can process events
+// that are defined server-side but run client-side
+//****************************************************************************//
+
+:: EditletEventHandlerFunc d a :== ComponentEventHandlerFunc d a
+:: EditletEvent d a            :== ComponentEvent d a
+:: EditletHTML                 :== ComponentHTML
+
+:: Editlet sv d cl
+  =
+  { currVal    :: sv // TODO: implementation detail, remove it
+
+  // This field is unnecessary, gDefault could be used instead of it
+  // However, Jurrien like it, so why not to be here :)
+  , defValSrv  :: sv
+
+  , genUI      :: ComponentId *World -> *(EditletHTML, *World)
+  , initClient :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId *JSWorld -> *(cl, *JSWorld)
+  , appDiffClt :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
+  , genDiffSrv :: sv sv -> Maybe d
+  , appDiffSrv :: d  sv -> sv
+  }
+
+derive JSONEncode Editlet
+derive JSONDecode Editlet
+derive gDefault   Editlet
+derive gEq        Editlet
+derive gText      Editlet
+derive gEditor    Editlet
+derive gEditMeta  Editlet
+derive gVerify    Editlet
 

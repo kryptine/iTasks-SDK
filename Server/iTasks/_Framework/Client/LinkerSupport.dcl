@@ -3,7 +3,7 @@ definition module iTasks._Framework.Client.LinkerSupport
 import StdString
 import Data.Maybe, Data.Void
 import iTasks._Framework.IWorld
-import iTasks.API.Core.Client.Editlet
+import iTasks.UI.Editor
 
 //taskletUpdateLinker :: !val !*IWorld -> *(!String, !*IWorld)
 

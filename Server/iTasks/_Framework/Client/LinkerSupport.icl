@@ -12,7 +12,7 @@ from Data.Set import :: Set, newSet
 
 from iTasks.UI.JS.Interface import :: JSWorld, :: JSEvent, :: JSObj, :: JSObject
 from iTasks.UI.Component import :: ComponentEventHandlerFunc, :: ComponentEvent, :: ComponentDiff
-from iTasks.API.Core.Client.Editlet import :: EditletEventHandlerFunc, :: EditletEvent, :: ComponentId
+from iTasks.UI.Editor import :: EditletEventHandlerFunc, :: EditletEvent, :: ComponentId
 
 from iTasks._Framework.Client.RunOnClient import createClientIWorld, getUIUpdates
 from iTasks._Framework.Engine import background
