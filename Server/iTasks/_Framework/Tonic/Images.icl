@@ -331,41 +331,31 @@ determineSynStatus :: !Bool ![SynMkImg] -> TStatus
 determineSynStatus needAllDone syns = determineStatus needAllDone (map (\x -> x.syn_status) syns)
 
 tIf :: !InhMkImg !ExprId !TExpr !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
-tIf inh eid cexpr texpr eexpr [(contextTag, _) : tsrc]
-  #! (cexpr, ut, ue)      = case inh.inh_bpinst of
-                              Just bpi -> case 'DM'.get eid bpi.bpi_case_branches of
-                                            Just 0 -> (TAugment cexpr (TLit (TBool True)), False, True)
-                                            Just 1 -> (TAugment cexpr (TLit (TBool False)), True, False)
-                                            _      -> (cexpr, False, False)
-                              _        -> (cexpr, False, False)
-  #! (syn_branches, tsrc) = tBranches {inh & inh_in_branch = True} tExpr2Image False True [ (Just (TLit (TBool True)), texpr, True, ut)
-                                                                                          , (Just (TLit (TBool False)), eexpr, True, ue)] contextTag tsrc
-  #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} cexpr tsrc
-  #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
-  #! lineAct              = case syn_branches.syn_status of
-                              TNotActive -> Nothing
-                              _          -> case inh.inh_prev_statstab of
-                                              (_, TStable)   -> Just TonicBlue
-                                              (_, TUnstable) -> Just TonicGreen
-                                              _              -> Just TonicWhite
-  #! img                  = beside (repeat AtMiddleY) [] [diamond, tHorizConn lineAct, syn_branches.syn_img] Nothing
-  = ( { syn_img       = img
-      , syn_status    = syn_branches.syn_status
-      , syn_stability = syn_branches.syn_stability
-      }
-    , tsrc)
+tIf inh eid cexpr texpr eexpr tsrc
+  #! (cexpr, ut, ue) = case inh.inh_bpinst of
+                         Just bpi -> case 'DM'.get eid bpi.bpi_case_branches of
+                                       Just 0 -> (TAugment cexpr (TLit (TBool True)), False, True)
+                                       Just 1 -> (TAugment cexpr (TLit (TBool False)), True, False)
+                                       _      -> (cexpr, False, False)
+                         _        -> (cexpr, False, False)
+  = tCaseOrIf inh texpr [ (Just (TLit (TBool True)), texpr, True, ut)
+                        , (Just (TLit (TBool False)), eexpr, True, ue)] tsrc
 
 tCase :: !InhMkImg !ExprId !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!SynMkImg, !*TagSource)
-tCase inh eid texpr pats [(contextTag, _) : tsrc]
-  #! mbranch              = case inh.inh_bpinst of
-                              Just bpi -> 'DM'.get eid bpi.bpi_case_branches
-                              _        -> Nothing
-  #! pats`                = case mbranch of
-                              Just bridx -> map (\(n, (p, t)) -> (Just p, t, True, n <> bridx)) (strictTRZip2 [0..] pats)
-                              _          -> map (\(p, t) -> (Just p, t, True, False)) pats
-  #! (syn_branches, tsrc) = tBranches {inh & inh_in_branch = True} tExpr2Image False True pats` contextTag tsrc
+tCase inh eid texpr pats tsrc
+  #! mbranch = case inh.inh_bpinst of
+                 Just bpi -> 'DM'.get eid bpi.bpi_case_branches
+                 _        -> Nothing
+  #! pats`   = case mbranch of
+                 Just bridx -> map (\(n, (p, t)) -> (Just p, t, True, n <> bridx)) (strictTRZip2 [0..] pats)
+                 _          -> map (\(p, t) -> (Just p, t, True, False)) pats
+  = tCaseOrIf inh texpr pats` tsrc
+
+tCaseOrIf :: !InhMkImg !TExpr ![(Maybe TExpr, TExpr, Bool, Bool)] !*TagSource -> *(!SynMkImg, !*TagSource)
+tCaseOrIf inh texpr pats [(contextTag, _) : tsrc]
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} texpr tsrc
   #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
+  #! (syn_branches, tsrc) = tBranches {inh & inh_in_branch = True} tExpr2Image False True pats contextTag tsrc
   #! lineAct              = case syn_branches.syn_status of
                               TNotActive -> Nothing
                               _          -> case inh.inh_prev_statstab of
