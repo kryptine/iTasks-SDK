@@ -21,8 +21,6 @@ visualizeAsEditor (v,mask,ver) taskId layout iworld
 
 updateValueAndMask :: !TaskId !DataPath !JSONNode !(MaskedValue a) !*IWorld -> (!MaskedValue a,!*IWorld) | gEditor{|*|} a
 updateValueAndMask taskId path update (a,mask) iworld
-    //# (res,ust=:{USt|iworld}) = gUpdate{|*|} path update (a,mask) {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
-    //= (res,iworld)
     # (val,mask,ust=:{USt|iworld}) = gEditor{|*|}.edit path update a mask {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
     = ((val,mask),iworld)
 
@@ -553,69 +551,6 @@ gVerify{|RWShared|} _ _ _ _ mv = alwaysValid mv
 
 derive gVerify (,), (,,), (,,,), (,,,,), Either, MaybeError, Timestamp, Map
 
-//Generic updater
-generic gUpdate a | gDefault a, JSONEncode a, JSONDecode a :: !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt)
-
-gUpdate{|UNIT|} _ _ val ust = (val,ust)
-
-gUpdate{|PAIR|} gUpdx gDefx jEncx jDecx gUpdy gDefy jEncy jDecy [0:target] upd (PAIR x y, xmask) ust
-	# ((x,xmask),ust) = gUpdx target upd (x,xmask) ust
-	= ((PAIR x y,xmask),ust)
-gUpdate{|PAIR|} gUpdx gDefx jEncx jDecx gUpdy gDefy jEncy jDecy [1:target] upd (PAIR x y, ymask) ust
-	# ((y,ymask),ust) = gUpdy target upd (y,ymask) ust
-	= ((PAIR x y,ymask),ust)
-gUpdate{|PAIR|} gUpdx gDefx jEncx jDecx gUpdy gDefy jEncy jDecy target upd val ust = (val,ust)
-
-gUpdate{|EITHER|} gUpdx gDefx jEncx jDecx gUpdy gDefy jEncy jDecy [t:ts] upd (either,mask) ust
-    | t == -1 = case ts of
-        [] = ((LEFT (gDefx), Untouched),ust)
-        _  = appFst (appFst LEFT) (gUpdx ts upd (gDefx,Untouched) ust)
-    | t == -2 = case ts of
-        [] = ((RIGHT (gDefy), Untouched),ust)
-        _  = appFst (appFst RIGHT) (gUpdy ts upd (gDefy,Untouched) ust)
-    | otherwise
-        = case either of
-            (LEFT x)  = appFst (appFst LEFT) (gUpdx [t:ts] upd (x,mask) ust)
-            (RIGHT y) = appFst (appFst RIGHT) (gUpdy [t:ts] upd (y,mask) ust)
-
-gUpdate{|OBJECT of {gtd_num_conses,gtd_conses}|} gUpdx gDefx jEncx jDecx [] upd (OBJECT x,mask) ust//Update is a constructor switch
-	# consIdx = case upd of
-		JSONInt i	= i
-		_			= 0
-	# mask	        = case upd of
-		JSONNull	= Blanked	//Reset
-		_			= CompoundMask (repeatn (gtd_conses !! consIdx).gcd_arity Untouched)
-    # ((x,_),ust)= gUpdx (updConsPath (if (consIdx < gtd_num_conses) consIdx 0) gtd_num_conses) upd (x,mask) ust
-	= ((OBJECT x, mask),ust)
-
-gUpdate{|OBJECT|} gUpdx gDefx jEncx jDecx target upd (OBJECT object, mask) ust //Update is targeted somewhere in a substructure of this value
-	= appFst (appFst OBJECT) (gUpdx target upd (object,mask) ust)
-
-gUpdate{|CONS of {gcd_arity,gcd_index}|} gUpdx gDefx jEncx jDecx [index:target] upd (CONS cons,mask) ust
-	| index >= gcd_arity
-		= ((CONS cons,mask),ust)	
-	# childMasks = subMasks gcd_arity mask
-	# ((cons,targetMask),ust) = gUpdx (updPairPath index gcd_arity ++ target) upd (cons,childMasks !! index) ust
-	= ((CONS cons,CompoundMask (updateAt index targetMask childMasks)),ust)
-gUpdate{|CONS|} gUpdx gDefx jEncx jDecx target upd val ust = (val,ust)
-
-gUpdate{|RECORD of {grd_arity}|} gUpdx gDefx jEncx jDecx [] upd (RECORD record,mask) ust
-    # mask = case upd of
-        JSONBool False  = Blanked
-        _               = Touched
-    = ((RECORD record,mask),ust)
-gUpdate{|RECORD of {grd_arity}|} gUpdx gDefx jEncx jDecx [index:target] upd (RECORD record,mask) ust
-	| index >= grd_arity
-		= ((RECORD record,mask),ust)
-	# childMasks = subMasks grd_arity mask
-	# ((record,targetMask),ust) = gUpdx (updPairPath index grd_arity ++ target) upd (record,childMasks !! index) ust
-	= ((RECORD record,CompoundMask (updateAt index targetMask childMasks)),ust)
-
-gUpdate{|RECORD|} gUpdx gDefx jEncx jDecx _ _ val ust = (val,ust)
-	
-gUpdate{|FIELD|} gUpdx gDefx jEncx jDecx target upd (FIELD field,mask) ust
-    = appFst (appFst FIELD) (gUpdx target upd (field,mask) ust)
-
 updConsPath i n
  	| i >= n	
 		= []
@@ -635,112 +570,6 @@ updPairPath i n
 		= [0: updPairPath i (n /2)]
 	| otherwise
 		= [1: updPairPath (i - (n/2)) (n - (n/2))]
-
-gUpdate{|Int|}		target upd val ust = basicUpdateSimple target upd val ust
-gUpdate{|Real|}		target upd val ust = basicUpdateSimple target upd val ust
-gUpdate{|Char|}		target upd val ust = basicUpdateSimple target upd val ust
-gUpdate{|Bool|}		target upd val ust = basicUpdateSimple target upd val ust
-gUpdate{|String|}	target upd val ust = basicUpdateSimple target upd val ust
-			
-gUpdate{|Maybe|} gUpdx gDefx jEncx jDecx target upd (m,mmask) ust
-	| isEmpty target && (upd === JSONNull || upd === JSONBool False)
-		= ((Nothing, Blanked),ust) //Reset
-	| otherwise
-		= appFst (appFst Just) (gUpdx target upd (maybe (gDefx,Untouched) (\x -> (x,mmask)) m) ust)
-
-gUpdate{|[]|} gUpdx gDefx jEncx jDecx target upd (l,listMask) ust
-	# (l,childMasks)
-		= case ((not (isEmpty target)) && (hd target >= (length l))) of
-			True
-				= (l++[gDefx], subMasks (length l) listMask ++ [Untouched])
-			False
-				= (l, subMasks (length l) listMask)
-	# ((l,childMasks),ust) = updateElements gUpdx target upd l childMasks ust
-	| isEmpty target
-		//Process the reordering commands
-		# split = split "_" (fromMaybe "" (fromJSON upd))
-		# index = toInt (last split)
-		# (l,childMasks) = case hd split of	
-			"mup" = (swap l index,swap childMasks index) 
-			"mdn" = (swap l (index+1),swap childMasks (index+1))
-			"rem" = (removeAt index l,removeAt index childMasks)	
-			"add"
-				= (insertAt (length l) gDefx l, insertAt (length l) Untouched childMasks)
-			_	
-				= (l,childMasks)
-		= ((l,CompoundMask childMasks),ust)
-	| otherwise
-		= ((l,CompoundMask childMasks),ust)
-where
-	updateElements fx [i:target] upd elems masks ust
-		| i >= (length elems)
-			= ((elems,masks),ust)
-		# ((nx,nm),ust)	= fx target upd (elems !! i,masks !! i) ust
-		= ((updateAt i nx elems, updateAt i nm masks),ust)
-	updateElements fx target upd elems masks ust
-		= ((elems,masks),ust)
-	
-	swap []	  _		= []
-	swap list index
-		| index == 0 			= list //prevent move first element up
-		| index >= length list 	= list //prevent move last element down
-		| otherwise				
-			# f = list !! (index-1)
-			# l = list !! (index)
-			= updateAt (index-1) l (updateAt index f list)
-
-gUpdate{|EditableList|} gUpdx gDefx jEncx jDecx target upd (l=:{EditableList|items,add,remove,reorder},listMask) ust
-	# (items,childMasks)
-		= case ((not (isEmpty target)) && (hd target >= (length items))) of
-			True
-				= (items++[gDefx], subMasks (length items) listMask ++ [Untouched])
-			False
-				= (items, subMasks (length items) listMask)
-	# ((items,childMasks),ust) = updateElements gUpdx target upd items childMasks ust
-	| isEmpty target
-		//Process the reordering commands
-		# split = split "_" (fromMaybe "" (fromJSON upd))
-		# index = toInt (last split)
-		# (items,childMasks) = case hd split of	
-			"mup" = if reorder (swap items index,swap childMasks index) (items,childMasks)
-			"mdn" = if reorder (swap items (index+1),swap childMasks (index+1)) (items,childMasks)
-			"rem" = if remove  (removeAt index items,removeAt index childMasks)	(items,childMasks)
-			"add"
-                = case add of
-                    ELAddBlank      = (insertAt (length items) gDefx items, insertAt (length items) Untouched childMasks)
-                    ELAddValue f    = (insertAt (length items) (f items) items, insertAt (length items) Touched childMasks)
-                    _               = (items,childMasks)
-			_	
-				= (items,childMasks)
-		= (({EditableList|l & items = items},CompoundMask childMasks),ust)
-	| otherwise
-		= (({EditableList|l & items = items},CompoundMask childMasks),ust)
-where
-	updateElements fx [i:target] upd elems masks ust
-		| i >= (length elems)
-			= ((elems,masks),ust)
-		# ((nx,nm),ust)	= fx target upd (elems !! i,masks !! i) ust
-		= ((updateAt i nx elems, updateAt i nm masks),ust)
-	updateElements fx target upd elems masks ust
-		= ((elems,masks),ust)
-	
-	swap []	  _		= []
-	swap list index
-		| index == 0 			= list //prevent move first element up
-		| index >= length list 	= list //prevent move last element down
-		| otherwise				
-			# f = list !! (index-1)
-			# l = list !! (index)
-			= updateAt (index-1) l (updateAt index f list)
-
-gUpdate{|Dynamic|} target upd val ust = basicUpdate (\() v -> Just v) target upd val ust
-gUpdate{|(->)|} _ _ _ gUpdy _ _ _ _ target upd val ust = basicUpdate (\() v -> Just v) target upd val ust
-
-gUpdate{|HtmlTag|} target upd val ust = (val,ust)
-gUpdate{|()|} target upd val ust = (val,ust)
-gUpdate{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ val ust = (val,ust)
-
-derive gUpdate Either, MaybeError, (,), (,,), (,,,), (,,,,), JSONNode, Timestamp, Map
 
 checkMask :: !InteractionMask a -> Maybe a
 checkMask mask val

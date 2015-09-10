@@ -11,13 +11,13 @@ derive gEq ControlLight
 derive gDefault ControlLight
 derive gText ControlLight
 
-gEditor{|ControlLight|} = {render=render}
+gEditor{|ControlLight|} = {render=render,edit=edit}
 where
 	render dp v mask ver meta vst = gEditor{|*|}.render dp (controlLightEditlet v) mask ver meta vst
 
-gUpdate{|ControlLight|} dp upd (v,mask) iworld
-    # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (controlLightEditlet v, mask) iworld
-    = ((editlet.currVal,mask),iworld)
+	edit dp e v mask ust
+    	# (editlet,mask,ust) = gEditor{|*|}.edit dp e (controlLightEditlet v) mask ust
+    	= (editlet.currVal,mask,ust)
 
 //SVG Based fake control light
 controlLightEditlet :: ControlLight -> Editlet ControlLight ControlLight ()

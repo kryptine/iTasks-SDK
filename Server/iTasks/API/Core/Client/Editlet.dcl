@@ -35,6 +35,5 @@ derive gEq        Editlet
 derive gText      Editlet
 derive gEditor    Editlet
 derive gEditMeta  Editlet
-derive gUpdate    Editlet
 derive gVerify    Editlet
 

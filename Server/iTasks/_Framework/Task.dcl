@@ -15,7 +15,6 @@ from Data.CircularStack import :: CircularStack
 derive JSONEncode		Task
 derive JSONDecode		Task
 derive gDefault			Task
-derive gUpdate			Task
 derive gVerify			Task
 derive gText	        Task
 derive gEditor			Task

@@ -116,37 +116,8 @@ where
 	edit dp _ val mask ust = (val,mask,ust)
 
 gEditMeta{|Editlet|} fa _ _ editlet = fa editlet.Editlet.currVal
-
-gUpdate{|Editlet|} fa _ jEnca jDeca _ _ jEncd jDecd _ _ _ _ [] jsonDiff (ov, omask) ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
-
-	// Bit dirty, but we need to unwrap the "unexpected" version number and the expected diff
-	# (ver, diffId, jsonDiff) = case jsonDiff of
-			JSONArray [ver, diffId, diff] = (maybe -1 id (fromJSON ver), maybe -1 id (fromJSON diffId), diff)
-								  = (-1, -1, JSONNull)
-				
-	= case jDecd False [jsonDiff] of
-		(Just diff,_)	
-            # iworld = case 'Data.Map'.get (taskId,editorId) editletDiffs of
-                Just (refver,jsonRef,opts,diffs) = case jDeca False [jsonRef] of
-                    (Just ref,_)
-                    	| ver <> refver
-                    		= {IWorld|iworld & current = {current & 
-                    				editletDiffs = put (taskId,editorId) (ver,jsonRef,opts,[MRollback diffId:diffs]) editletDiffs}}
-
-                        # ref = ov.Editlet.appDiffSrv diff ref
-                        # [jsonRef:_] = jEnca False ref
-                        // If the reference value is changed by its client, keep the version number
-                        = {IWorld|iworld & current = {current &
-                        			editletDiffs = put (taskId,editorId) (ver,jsonRef,opts,[MCommit diffId:diffs]) editletDiffs}}
-                        			
-                    _ = iworld
-                Nothing = iworld
-            = (({ ov & currVal = ov.Editlet.appDiffSrv diff ov.Editlet.currVal }
-                , Touched),{USt|ust & iworld = iworld})
-		_	= ((ov,omask), trace_n ("Failed to decode JSON: " +++ toString jsonDiff) ust)
-gUpdate{|Editlet|} fa _ _ _ _ _ _ _ _ _ _ _ _ _ mv iworld = (mv,iworld)
-
 gVerify{|Editlet|} fa _ _ _ mv = alwaysValid mv
+
 import StdDebug
 
 createEditletEventHandler :: (EditletEventHandlerFunc d a) !ComponentId -> JSFun b

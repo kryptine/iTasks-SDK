@@ -17,7 +17,6 @@ where
 	edit _ _ val mask ust 				= (val,mask,ust)
 
 gEditMeta{|WorkflowTaskContainer|} _ 				    = [{label=Just "Workflow task container",hint=Nothing,unit=Nothing}]
-gUpdate{|WorkflowTaskContainer|} target upd val iworld  = basicUpdate (\() x -> Just x) target upd val iworld
 gVerify{|WorkflowTaskContainer|} _ mv 				    = alwaysValid mv
 JSONEncode{|WorkflowTaskContainer|} _ c				    = [dynamicJSONEncode c]
 JSONDecode{|WorkflowTaskContainer|} _ [c:r]			    = (dynamicJSONDecode c,r)

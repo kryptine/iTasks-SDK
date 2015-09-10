@@ -11,7 +11,6 @@ class iTask a
 	//Interaction
 	| gEditor{|*|}
 	, gEditMeta{|*|}
-	, gUpdate{|*|}
 	, gVerify{|*|}
 	//Visualization
 	, gText{|*|}

@@ -81,7 +81,6 @@ derive gEq				EmailAddress
 derive gText	        EmailAddress
 derive gEditor			EmailAddress
 derive gEditMeta		EmailAddress
-derive gUpdate			EmailAddress
 derive gVerify			EmailAddress
 
 instance toString EmailAddress
@@ -100,7 +99,6 @@ derive gEq				PhoneNumber
 derive gText	        PhoneNumber
 derive gEditor			PhoneNumber
 derive gEditMeta		PhoneNumber
-derive gUpdate			PhoneNumber
 derive gVerify			PhoneNumber
 
 instance toString PhoneNumber
@@ -126,7 +124,6 @@ where
 
 	edit dp e val mask ust = basicUpdate2 (\json url -> Just (maybe url (\s -> URL s) (fromJSON json))) dp e val mask ust
 
-gUpdate{|URL|} target upd val iworld = basicUpdate (\json url -> Just (maybe url (\s -> URL s) (fromJSON json))) target upd val iworld
 
 gVerify{|URL|} mv options = simpleVerify mv options
 
@@ -174,8 +171,6 @@ where
 
 	edit dp e val mask ust = basicUpdateSimple2 dp e val mask ust
 
-gUpdate{|Note|} target upd val iworld = basicUpdateSimple target upd val iworld
-
 gVerify{|Note|} mv options = simpleVerify mv options
 gEditMeta{|Note|} _ = [{label=Nothing,hint=Just "You may enter multiple lines of text",unit=Nothing}]
 
@@ -207,7 +202,6 @@ gVerify{|CleanCode|} mv options = simpleVerify mv options
 gEditMeta{|CleanCode|} _ = [{label=Nothing,hint=Just "Enter a piece of Clean code",unit=Nothing}]
 
 derive gEditor  CleanCode
-derive gUpdate  CleanCode
 derive gDefault	CleanCode
 derive gEq		CleanCode
 
@@ -229,8 +223,6 @@ where
 			# value = checkMaskValue mask ((\(EUR v) -> toReal v / 100.0) val)
 			= (NormalEditor [(UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
 	edit dp e val mask ust = basicUpdateSimple2 dp e val mask ust
-
-gUpdate{|EUR|} target upd val iworld = basicUpdateSimple target upd val iworld
 
 gVerify{|EUR|} mv options = simpleVerify mv options
 gEditMeta{|EUR|} _ = [{label=Nothing,hint=Just "Enter an amount in EUR",unit=Just (Left "&euro;")}]
@@ -275,8 +267,6 @@ where
 			# value = checkMaskValue mask ((\(USD v) -> toReal v / 100.0) val)
 			= (NormalEditor [(UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
 	edit dp e val mask ust = basicUpdateSimple2 dp e val mask ust
-
-gUpdate{|USD|} target upd val iworld = basicUpdateSimple target upd val iworld
 
 gVerify{|USD|} mv options = simpleVerify mv options
 gEditMeta{|USD|} _ = [{label=Nothing,hint=Just "Enter an amount in USD",unit=Just (Left "$")}]
@@ -336,7 +326,6 @@ where
 	edit dp e val mask ust = basicUpdate2 (\json old -> fromJSON json) dp e val mask ust
 
 gDefault{|Date|} = {Date|day = 1, mon = 1, year = 1970}
-gUpdate{|Date|} target upd val iworld = basicUpdate (\json old -> fromJSON json) target upd val iworld
 gVerify{|Date|} mv options = simpleVerify mv options
 gEditMeta{|Date|} _ = [{label=Nothing,hint=Just "Enter a date (yyyy-mm-dd)",unit=Nothing}]
 
@@ -417,8 +406,6 @@ where
 			# value = checkMaskValue mask val
 			= (NormalEditor [(UIEditTime defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
 	edit dp e val mask ust = basicUpdate2 (\json old -> fromJSON json) dp e val mask ust
-
-gUpdate{|Time|} target upd val iworld = basicUpdate (\json old -> fromJSON json) target upd val iworld
 
 gVerify{|Time|} mv options = simpleVerify mv options
 gEditMeta{|Time|} _ = [{label=Nothing,hint=Just "Enter a time (hh:mm:ss)",unit=Nothing}]
@@ -501,7 +488,6 @@ where
 			= (NormalEditor [(UIEditDateTime defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
 	edit dp e val mask ust = basicUpdate2 (\json old -> fromJSON json) dp e val mask ust
 
-gUpdate{|DateTime|} target upd val iworld = basicUpdate (\json old -> fromJSON json) target upd val iworld
 gVerify{|DateTime|} mv options = simpleVerify mv options
 gEditMeta{|DateTime|} _ = [{label=Nothing,hint=Just "Enter a date and time (yyyy-mm-dd hh:mm:ss)",unit=Nothing}]
 
@@ -568,10 +554,6 @@ where
 		Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},Blanked,ust)// Reset
 		Just doc	= (doc,Touched,ust) //Update
 	
-gUpdate {|Document|} [] upd (val,mask) iworld = case fromJSON upd of 
-	Nothing		= (({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},Blanked),iworld)// Reset
-	Just doc	= ((doc,Touched),iworld) //Update
-
 gVerify{|Document|} mv options = simpleVerify mv options
 gEditMeta{|Document|} _ = [{label=Nothing,hint=Just "Upload a document",unit=Nothing}]
 
@@ -647,9 +629,6 @@ where
 	
 	edit dp e val mask ust = basicUpdate2 (\json i -> Just (maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json))) dp e val mask ust
 
-gUpdate{|Scale|} target upd val iworld
-	= basicUpdate (\json i -> Just (maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json))) target upd val iworld
-
 gVerify{|Scale|} _ mv = alwaysValid mv
 
 gDefault{|Scale|} = {Scale|min=1,cur=3,max=5}
@@ -673,7 +652,6 @@ where
 
 	edit dp e val mask ust = (val,mask,ust)
 
-gUpdate{|Progress|}	target upd val iworld = (val,iworld)
 gVerify{|Progress|} _ mv = alwaysValid mv
 gEditMeta{|Progress|} _		= [{label=Nothing,hint=Nothing,unit=Nothing}]
 
@@ -686,7 +664,6 @@ gText{|ProgressAmount|} _ _		                    = [""]
 derive gDefault			ProgressAmount
 derive gEditor 			ProgressAmount
 derive gEditMeta		ProgressAmount
-derive gUpdate			ProgressAmount
 derive gVerify			ProgressAmount
 
 //* Inclusion of external html files
@@ -698,8 +675,6 @@ where
 	render dp (HtmlInclude path) mask ver meta vst
 		= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value=Just (IframeTag [SrcAttr path] [])},editorAttributes (HtmlInclude path,mask,ver) meta)],vst)
 	edit dp e val mask ust = (val,mask,ust)
-
-gUpdate{|HtmlInclude|} target upd val iworld = (val,iworld)
 
 gVerify{|HtmlInclude|} _ mv = alwaysValid mv
 
@@ -717,9 +692,6 @@ where
 		= (NormalEditor [(UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "pressed")} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False},editorAttributes (val,mask,ver) meta)],vst)
 
 	edit dp e val mask ust = basicUpdate2 (\st b -> Just {FormButton|b & state = st}) dp e val mask ust
-
-gUpdate{|FormButton|} target upd val iworld
-	= basicUpdate (\st b -> Just {FormButton|b & state = st}) target upd val iworld
 
 gVerify{|FormButton|} _ mv = alwaysValid mv
 
@@ -742,7 +714,6 @@ gText{|ButtonState|}	_ _                 = [""]
 derive gDefault		ButtonState
 derive gEditor		ButtonState
 derive gEditMeta	ButtonState
-derive gUpdate		ButtonState
 derive gVerify		ButtonState
 
 //* Table consisting of headers, the displayed data cells & possibly a selection
@@ -760,9 +731,6 @@ where
 		options (Table _ cells _)	= map (map toString) cells
 
 	edit dp e val mask ust = basicUpdate2 (\json (Table headers cells _) -> case fromJSON json of Just i = Just (Table headers cells (Just i)); _ = Just (Table headers cells Nothing)) dp e val mask ust
-
-gUpdate{|Table|} target upd val iworld
-	= basicUpdate (\json (Table headers cells _) -> case fromJSON json of Just i = Just (Table headers cells (Just i)); _ = Just (Table headers cells Nothing)) target upd val iworld
 
 gVerify{|Table|} _ mv = alwaysValid mv
 gDefault{|Table|} = Table [] [] Nothing
@@ -782,7 +750,6 @@ derive gDefault			ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gText	        ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gEditor	        ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gEditMeta		ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gUpdate			ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gVerify			ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 		
 instance Functor ChoiceTree
@@ -820,8 +787,6 @@ where
 		options (ComboChoice options _)			= [concat (gx AsSingleLine (Just v)) \\ v <- options]
 	edit dp e val mask ust = updateChoice2 (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) dp e val mask ust
 
-gUpdate{|ComboChoice|} _ _ _ _ target upd val iworld = updateChoice (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) target upd val iworld
-
 gVerify{|ComboChoice|} _ mv options = customVerify (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") mv options
 
 instance Choice ComboChoice
@@ -852,9 +817,6 @@ where
 
 	edit dp e val mask ust = updateChoice2 (\idx (RadioChoice options _) -> RadioChoice options (Just idx)) dp e val mask ust
 
-gUpdate{|RadioChoice|} _ _ _ _ target upd val iworld
-	= updateChoice (\idx (RadioChoice options _) -> RadioChoice options (Just idx)) target upd val iworld
-
 gVerify{|RadioChoice|} _ mv options = simpleVerify mv options
 
 instance Choice RadioChoice
@@ -883,9 +845,6 @@ where
 		options (ListChoice options _)			= [concat (gx AsSingleLine (Just v)) \\ v <- options]
 
 	edit dp e val mask ust = updateChoice2 (\idx (ListChoice options _) -> ListChoice options (Just idx)) dp e val mask ust
-
-gUpdate{|ListChoice|} _ _ _ _ target upd val iworld
-	= updateChoice (\idx (ListChoice options _) -> ListChoice options (Just idx)) target upd val iworld
 
 gVerify{|ListChoice|} _ mv options = simpleVerify mv options
 
@@ -931,13 +890,6 @@ where
 		Just ("exp",idx,val)	= (TreeChoice (setTreeExpanded idx val tree) sel,touch mask, ust)
 		_						= ((TreeChoice tree sel), mask, ust)
 
-gUpdate{|TreeChoice|} _ _ _ _ [] upd (TreeChoice tree sel,mask) iworld = case fromJSON upd of
-	Just ("sel",idx,val)	= ((TreeChoice tree (if val (Just idx) Nothing), touch mask),iworld)
-	Just ("exp",idx,val)	= ((TreeChoice (setTreeExpanded idx val tree) sel,touch mask),iworld)
-	_						= (((TreeChoice tree sel), mask),iworld)
-
-gUpdate{|TreeChoice|} _ _ _ _ target upd val iworld = (val,iworld)
-
 gVerify{|TreeChoice|} _ mv options = simpleVerify mv options
 
 instance Choice TreeChoice
@@ -964,9 +916,6 @@ where
    		columns = gx AsHeader Nothing
 
 	edit dp e val mask ust = updateChoice2 (\idxs (GridChoice options _) -> GridChoice options (case idxs of [idx:_] = (Just idx); _ = Nothing)) dp e val mask ust
-
-gUpdate{|GridChoice|} _ _ _ _ target upd val iworld
-	= updateChoice (\idxs (GridChoice options _) -> GridChoice options (case idxs of [idx:_] = (Just idx); _ = Nothing)) target upd val iworld
 
 gVerify{|GridChoice|} _ _ mv = alwaysValid mv
 
@@ -1009,12 +958,6 @@ where
 	edit dp e (DCGrid val) mask ust 
 		# (val,mask,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5 f6).edit dp e val mask ust) 
 		= (DCGrid val,mask,ust)
-
-gUpdate{|DynamicChoice|} gUpdx gDefx jEncx jDecx target upd	(DCCombo val,mask) iworld	= appFst (appFst DCCombo) (gUpdate{|*->*|} gUpdx gDefx jEncx jDecx target upd (val,mask) iworld)
-gUpdate{|DynamicChoice|} gUpdx gDefx jEncx jDecx target upd	(DCRadio val,mask) iworld	= appFst (appFst DCRadio) (gUpdate{|*->*|} gUpdx gDefx jEncx jDecx target upd (val,mask) iworld)
-gUpdate{|DynamicChoice|} gUpdx gDefx jEncx jDecx target upd	(DCList val,mask) iworld	= appFst (appFst DCList) (gUpdate{|*->*|} gUpdx gDefx jEncx jDecx target upd (val,mask) iworld)
-gUpdate{|DynamicChoice|} gUpdx gDefx jEncx jDecx target upd	(DCTree val,mask) iworld	= appFst (appFst DCTree) (gUpdate{|*->*|} gUpdx gDefx jEncx jDecx target upd (val,mask) iworld)
-gUpdate{|DynamicChoice|} gUpdx gDefx jEncx jDecx target upd	(DCGrid val,mask) iworld	= appFst (appFst DCGrid) (gUpdate{|*->*|} gUpdx gDefx jEncx jDecx target upd (val,mask) iworld)
 
 gVerify{|DynamicChoice|} fx options (DCCombo v,mask) = gVerify{|*->*|} fx options (v,mask)
 gVerify{|DynamicChoice|} fx options (DCRadio v,mask) = gVerify{|*->*|} fx options (v,mask)
@@ -1069,11 +1012,6 @@ where
 	where
 		updateSel i True sel	= removeDup [i:sel]
 		updateSel i False sel 	= removeMember i sel
-
-gUpdate{|CheckMultiChoice|} _ _ _ _ _ _ _ _ target upd val iworld = basicUpdate (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = Just (CheckMultiChoice opts (updateSel i v sel)); _ = (Just (CheckMultiChoice opts sel))) target upd val iworld
-where
-	updateSel i True sel	= removeDup [i:sel]
-	updateSel i False sel 	= removeMember i sel
 
 gVerify{|CheckMultiChoice|} _ _	vm options = simpleVerify vm options
 	
@@ -1236,13 +1174,9 @@ where
 		VHDisplay x		= (gEditor{|* -> *|} fx gx dx hx jex jdx).render dp (Display x) mask ver meta vst
 		VHEditable x	= (gEditor{|* -> *|} fx gx dx hx jex jdx).render dp (Editable x) mask ver meta vst
 
-	edit dp e val=:(VHEditable s) mask ust = wrapperUpdate2 fx.edit fromVisualizationHint VHEditable dp e val mask ust
-	edit dp e val=:(VHDisplay s) mask ust = wrapperUpdate2 fx.edit fromVisualizationHint VHDisplay dp e val mask ust
-	edit dp e val=:(VHHidden s) mask ust = wrapperUpdate2 fx.edit fromVisualizationHint VHHidden dp e val mask ust
-
-gUpdate{|VisualizationHint|} 	gUpdx gDefx jEncx jDecx target upd val=:(VHEditable s,mask) iworld	= wrapperUpdate gUpdx fromVisualizationHint VHEditable target upd val iworld
-gUpdate{|VisualizationHint|} 	gUpdx gDefx jEncx jDecx target upd val=:(VHDisplay s,mask) iworld	= wrapperUpdate gUpdx fromVisualizationHint VHDisplay target upd val iworld
-gUpdate{|VisualizationHint|} 	gUpdx gDefx jEncx jDecx target upd val=:(VHHidden s,mask) iworld	= wrapperUpdate gUpdx fromVisualizationHint VHHidden target upd val iworld
+	edit dp e val=:(VHEditable s) mask ust = wrapperUpdate fx.edit fromVisualizationHint VHEditable dp e val mask ust
+	edit dp e val=:(VHDisplay s) mask ust = wrapperUpdate fx.edit fromVisualizationHint VHDisplay dp e val mask ust
+	edit dp e val=:(VHHidden s) mask ust = wrapperUpdate fx.edit fromVisualizationHint VHHidden dp e val mask ust
 
 gVerify{|VisualizationHint|} fx options (v,mask) = case v of
 	(VHEditable v) = verifyEditable fx options (v,mask)
@@ -1264,8 +1198,6 @@ where
 	render dp val mask ver meta vst = (HiddenEditor,vst)
 	edit dp e val mask ust = (val,mask,ust)
 
-gUpdate{|Hidden|} gUpdx gDefx jEncx jDecx target upd val iworld = wrapperUpdate gUpdx fromHidden Hidden target upd val iworld
-
 gVerify{|Hidden|} fx options (Hidden v,mask) = fx options (v,mask)
 
 fromHidden :: !(Hidden .a) -> .a
@@ -1283,9 +1215,7 @@ where
 		# (def,vst) = fx.render dp (fromDisplay val) mask ver meta {VSt | vst &  disabled = True}
 		= (def,{VSt | vst & disabled = disabled})
 
-	edit dp e val mask ust = wrapperUpdate2 fx.edit fromDisplay Display dp e val mask ust
-
-gUpdate{|Display|} gUpdx gDefx jEncx jDecx target upd val iworld = wrapperUpdate gUpdx fromDisplay Display target upd val iworld
+	edit dp e val mask ust = wrapperUpdate fx.edit fromDisplay Display dp e val mask ust
 
 gVerify{|Display|} fx options (Display d,mask) = verifyDisplay fx options (d,mask)
 
@@ -1304,9 +1234,7 @@ where
 		# (def,vst) = fx.render dp (fromEditable val) mask ver meta {VSt | vst & disabled = False}
 		= (def,{VSt | vst & disabled = disabled})
 
-	edit dp e val mask ust = wrapperUpdate2 fx.edit fromEditable Editable dp e val mask ust
-
-gUpdate{|Editable|} gUpdx gDefx jEncx jDecx target upd val iworld = wrapperUpdate gUpdx fromEditable Editable target upd val iworld
+	edit dp e val mask ust = wrapperUpdate fx.edit fromEditable Editable dp e val mask ust
 
 gVerify{|Editable|} fx options (Editable e,mask) = verifyEditable fx options (e,mask)
 	
@@ -1323,9 +1251,8 @@ gEditor{|Row|} gEditx _ _ _ _ _ = {render=render,edit=edit}
 where
 	render dp (Row val) mask ver meta vst
  		= appFst (applyToControls (setDirection Horizontal)) (gEditx.render dp val mask ver meta vst)
-	edit dp e val mask ust = wrapperUpdate2 gEditx.edit (\(Row x) -> x) Row dp e val mask ust
+	edit dp e val mask ust = wrapperUpdate gEditx.edit (\(Row x) -> x) Row dp e val mask ust
 
-gUpdate{|Row|} gUpdx gDefx jEncx jDecx target upd val iworld = wrapperUpdate gUpdx (\(Row x) -> x) Row target upd val iworld
 gVerify{|Row|} gVerx options (Row x,mask) = gVerx options (x,mask)
 	
 gText{|Col|} gVizx mode (Just (Col val)) = gVizx mode (Just val)
@@ -1335,9 +1262,8 @@ gEditor{|Col|} gEditx _ _ _ _ _ = {render=render,edit=edit}
 where
 	render dp (Col val) mask ver meta vst
  		= appFst (applyToControls (setDirection Vertical)) (gEditx.render dp val mask ver meta vst)
-	edit dp e val mask ust = wrapperUpdate2 gEditx.edit (\(Col x) -> x) Col dp e val mask ust
+	edit dp e val mask ust = wrapperUpdate gEditx.edit (\(Col x) -> x) Col dp e val mask ust
 	
-gUpdate{|Col|} gUpdx gDefx jEncx jDecx target upd val iworld = wrapperUpdate gUpdx (\(Col x) -> x) Col target upd val iworld
 gVerify{|Col|} gVerx options (Col x,mask) = gVerx options (x,mask)
 	
 //Utility for gEditor
@@ -1345,15 +1271,9 @@ applyToControls f (NormalEditor controls) = NormalEditor (map (appFst f) control
 applyToControls f (OptionalEditor controls) = OptionalEditor (map (appFst f) controls)
 applyToControls f def = def
 
-//Utility for gUpdate
-wrapperUpdate fx get set target upd (val,mask) iworld
-	# ((w,mask),iworld) = fx target upd (get val,mask) iworld
-	= ((set w,mask),iworld)
-
-wrapperUpdate2 fx get set target upd val mask ust
+wrapperUpdate fx get set target upd val mask ust
 	# (w,mask,ust) = fx target upd (get val) mask ust
 	= (set w,mask,ust)
-
 
 //Utility for gVerify	
 verifyEditable fx options mv = fx {VerifyOptions|options & disabled = False} mv
@@ -1483,7 +1403,6 @@ derive gEq				TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskI
 derive gText	        TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
 derive gEditor			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
 derive gEditMeta		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
-derive gUpdate			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
 derive gVerify			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
 
 derive class iTask TaskId, Config, ProcessStatus
@@ -1545,7 +1464,6 @@ derive gDefault			Icon
 derive gEq				Icon
 derive gText	        Icon
 derive gEditMeta		Icon
-derive gUpdate			Icon
 derive gVerify			Icon
 
 gEditor{|Icon|} = {render=render,edit=edit}
@@ -1583,6 +1501,5 @@ where
 	edit _ _ val mask ust = (val,mask,ust)
 
 gText{|{}|} _ _ _ = undef
-gUpdate{|{}|} _ _ _ _ _ _ _ _ = undef
 gVerify{|{}|} _ _ _ = undef
 

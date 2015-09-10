@@ -14,22 +14,21 @@ import Incidone.Util.TaskPatterns
 derive JSONEncode ContactPosition
 derive JSONDecode ContactPosition
 
-gEditor{|ContactPosition|} = {render=render}
+gEditor{|ContactPosition|} = {render=render,edit=edit}
 where
 	render path val mask ver meta vst=:{VSt|taskId,disabled}
-    | disabled
-        = (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just (toSingleLineText val)},'DM'.newMap)], vst)
-    | otherwise
-    # value = case val of
-        PositionDescription s _ = JSONString s
-        PositionLatLng l        = JSONString (formatLatLng l)
-    # control = UIEditString defaultHSizeOpts {UIEditOpts| taskId = taskId,editorId = editorId path, value = Just value}
-    # attributes = 'DM'.newMap
-    = (NormalEditor [(control,editorAttributes (val,mask,ver) meta)],vst)
+    	| disabled
+        	= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just (toSingleLineText val)},'DM'.newMap)], vst)
+    	# value = case val of
+        	PositionDescription s _ = JSONString s
+        	PositionLatLng l        = JSONString (formatLatLng l)
+    	# control = UIEditString defaultHSizeOpts {UIEditOpts| taskId = taskId,editorId = editorId path, value = Just value}
+    	# attributes = 'DM'.newMap
+    	= (NormalEditor [(control,editorAttributes (val,mask,ver) meta)],vst)
 
-gUpdate{|ContactPosition|} [] JSONNull mv=:(val,_) ust  = ((PositionDescription "" Nothing,Blanked),ust)
-gUpdate{|ContactPosition|} [] (JSONString nval) _ ust   = ((parsePosition nval,Touched),ust)
-gUpdate{|ContactPosition|} _ _ mv ust = (mv,ust)
+	edit [] JSONNull val _ ust = (PositionDescription "" Nothing,Blanked,ust)
+	edit [] (JSONString nval) _ _ ust = (parsePosition nval, Touched, ust)
+	edit dp e val mask ust = (val,mask,ust)
 
 gVerify{|ContactPosition|} {VerifyOptions|optional=False} (_,Blanked)   = MissingValue
 gVerify{|ContactPosition|} _ (PositionDescription _ Nothing,mask)       = WarningValue "This position can not be plotted on a map"
@@ -108,7 +107,6 @@ derive JSONEncode ContactMapPerspective
 derive JSONDecode ContactMapPerspective
 derive gEditor ContactMapPerspective
 derive gEditMeta ContactMapPerspective
-derive gUpdate ContactMapPerspective
 derive gVerify ContactMapPerspective
 derive gText ContactMapPerspective
 

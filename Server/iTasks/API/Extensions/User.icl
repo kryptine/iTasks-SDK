@@ -13,7 +13,6 @@ derive gEq				User, UserConstraint
 derive gText	        UserConstraint
 derive gEditor			User, UserConstraint
 derive gEditMeta		User, UserConstraint
-derive gUpdate			User, UserConstraint
 derive gVerify			User, UserConstraint
 
 instance toString User
@@ -81,7 +80,6 @@ where
 
 	edit dp e val mask ust = basicUpdateSimple2 dp e val mask ust
 
-gUpdate{|Username|} target upd val iworld = basicUpdateSimple target upd val iworld
 gVerify{|Username|} mv options = simpleVerify mv options
 gEditMeta{|Username|} _ = [{label=Nothing,hint=Just "Enter a username",unit=Nothing}]
 
@@ -119,7 +117,6 @@ where
 
 	edit dp e val mask ust = basicUpdateSimple2 dp e val mask ust
 
-gUpdate{|Password|} target upd val iworld = basicUpdateSimple target upd val iworld
 gVerify{|Password|} mv options = simpleVerify mv options
 gEditMeta{|Password|} _ = [{label=Nothing,hint=Just "Enter a password",unit=Nothing}]
 

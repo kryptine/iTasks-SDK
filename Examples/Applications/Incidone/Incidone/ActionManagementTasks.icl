@@ -214,7 +214,6 @@ derive gDefault CatalogAction
 derive gText CatalogAction
 derive gEditor CatalogAction
 derive gEditMeta CatalogAction
-derive gUpdate CatalogAction
 derive gVerify CatalogAction
 
 gEq{|CatalogAction|} x y = x.CatalogAction.identity == y.CatalogAction.identity //NECESSARY
@@ -228,12 +227,12 @@ gEq{|ActionTasks|} x y = True
 
 gDefault{|ActionTasks|} = ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
 gText{|ActionTasks|} _ _ = ["Action item task definition"]
-gEditor{|ActionTasks|} = {render=render}
+gEditor{|ActionTasks|} = {render=render,edit=edit}
 where
 	render _ _ _ _ _ vst = (HiddenEditor,vst)
+	edit _ _ val mask ust = (val,mask,ust)
 
 gEditMeta{|ActionTasks|} _ = [{label=Nothing,hint=Nothing,unit=Nothing}]
-gUpdate{|ActionTasks|} _ _ val ust = (val,ust)
 gVerify{|ActionTasks|} _ val = alwaysValid val
 
 instance toString ActionProgress

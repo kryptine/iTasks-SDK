@@ -17,9 +17,6 @@ derive gEditMeta
 derive gDefault
   TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
 
-derive gUpdate
-  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
-
 derive gVerify
   TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
 

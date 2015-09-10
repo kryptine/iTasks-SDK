@@ -145,7 +145,6 @@ derive gText            CatalogAction
 derive gEditor          CatalogAction
 derive gEditMeta        CatalogAction
 derive gVerify          CatalogAction
-derive gUpdate          CatalogAction
 
 toInstantAction             :: c ActionProgress [ContactNo] [IncidentNo] (ActionDefinition c) -> CatalogAction | iTask c
 toConfigurableAction        :: ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) (ActionDefinition c) -> CatalogAction | iTask c

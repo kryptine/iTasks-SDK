@@ -23,10 +23,6 @@ where
 		# (editlet,mask,ust) = gEditor{|*|}.edit dp e (analogClockEditlet t) mask ust
 		= (AnalogClock editlet.currVal,mask,ust) 
 
-gUpdate{|AnalogClock|} dp upd (AnalogClock t,mask) iworld
-    # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (analogClockEditlet t,mask) iworld
-    = ((AnalogClock editlet.currVal,mask),iworld)
-
 //SVG Based analog clock editlet
 analogClockEditlet :: Time -> Editlet Time [(Int,Int)] ()
 analogClockEditlet t 

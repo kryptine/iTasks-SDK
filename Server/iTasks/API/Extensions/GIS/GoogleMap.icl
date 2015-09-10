@@ -371,10 +371,6 @@ where
     	# (editlet,mask,ust) = gEditor{|*|}.edit dp e (googleMapEditlet val) mask ust
     	= (editlet.currVal,mask,ust)
 
-gUpdate{|GoogleMap|} dp upd (val,mask) iworld
-    # ((editlet, mask),iworld) = gUpdate{|*|} dp upd (googleMapEditlet val,mask) iworld
-    = ((editlet.currVal,mask),iworld)
-
 //derive gUpdate GoogleMap
 gVerify{|GoogleMap|} _ mv = alwaysValid mv
 
@@ -402,6 +398,5 @@ derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosit
 derive gText	        GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
 derive gEditor                     GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
 derive gEditMeta		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
-derive gUpdate			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
 derive gVerify			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
 

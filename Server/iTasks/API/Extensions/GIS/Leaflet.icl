@@ -428,10 +428,6 @@ where
     	# (editlet,mask,ust) = gEditor{|*|}.edit dp e (leafletEditlet val) mask ust
     	= (editlet.currVal,mask,ust)
 
-gUpdate{|LeafletMap|} dp upd (val,mask) iworld
-    # ((editlet,mask),iworld) = gUpdate{|*|} dp upd (leafletEditlet val,mask) iworld
-    = ((editlet.currVal,mask),iworld)
-
 gVerify{|LeafletMap|} _ vst = alwaysValid vst
 
 gDefault{|LeafletPerspective|}
@@ -449,5 +445,4 @@ derive gEq              LeafletMap, LeafletPerspective, LeafletIcon,            
 derive gText            LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletDiff, LeafletClientState, JSLM
 derive gEditor                      LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletDiff, LeafletClientState, JSLM
 derive gEditMeta        LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletDiff, LeafletClientState, JSLM
-derive gUpdate                      LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletDiff, LeafletClientState, JSLM
 derive gVerify	                    LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletDiff, LeafletClientState, JSLM

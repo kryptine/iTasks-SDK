@@ -68,15 +68,6 @@ derive gVerify Maybe, Either, MaybeError,  Map, JSONNode, HtmlTag, Timestamp
 derive gVerify EditableList
 derive gVerify RWShared
 
-//Update an existing value and its interaction mask
-generic gUpdate a | gDefault a, JSONEncode a, JSONDecode a :: !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt)
-
-derive gUpdate UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses,gtd_conses}, CONS of {gcd_arity,gcd_index}, RECORD of {grd_arity}, FIELD
-derive gUpdate Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (->), Dynamic
-derive gUpdate Maybe, Either, MaybeError,  Map, JSONNode, HtmlTag, Timestamp
-derive gUpdate EditableList
-derive gUpdate RWShared
-
 //Wrapper functions for generating editors
 visualizeAsEditor   :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld	-> (![(!UIControl,!UIAttributes)],!*IWorld)	| gEditor{|*|} a & gEditMeta{|*|} a
 updateValueAndMask  :: !TaskId !DataPath !JSONNode !(MaskedValue a) !*IWorld -> (!MaskedValue a,!*IWorld) | gEditor{|*|} a
@@ -92,7 +83,6 @@ checkMask			:: !InteractionMask a -> Maybe a
 checkMaskValue      :: !InteractionMask a -> Maybe JSONNode | JSONEncode{|*|} a
 
 editorAttributes	:: !(VerifiedValue a) [EditMeta] -> UIAttributes
-
 
 /**
 * Verify a value.
