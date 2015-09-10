@@ -178,8 +178,8 @@ tLam :: !InhMkImg ![TExpr] !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tLam inh vars e tsrc
   #! (r, tsrc) = tExpr2Image inh e tsrc
   #! lineParts = case vars of
-                   []   -> [tHorizConnArr (r.syn_status, r.syn_stability), r.syn_img]
-                   vars -> [tHorizConn (r.syn_status, r.syn_stability), tTextWithGreyBackground ArialRegular10px (strictFoldr (\x xs -> ppTExpr x +++ " " +++ xs) "" vars), tHorizConnArr (r.syn_status, r.syn_stability), r.syn_img]
+                   []   -> [tHorizConnArr (fillColorFromStatStab (r.syn_status, r.syn_stability)), r.syn_img]
+                   vars -> [tHorizConn (fillColorFromStatStab (r.syn_status, r.syn_stability)), tTextWithGreyBackground ArialRegular10px (strictFoldr (\x xs -> ppTExpr x +++ " " +++ xs) "" vars), tHorizConnArr (fillColorFromStatStab (r.syn_status, r.syn_stability)), r.syn_img]
   #! img       = beside (repeat AtMiddleY) [] lineParts Nothing
   = ( { syn_img       = img
       , syn_status    = r.syn_status
@@ -216,48 +216,41 @@ tFApp inh fn args assoc tsrc
       }
     , tsrc)
 
-tArrowTip :: !(!TStatus, !TStability) -> Image ModelTy
-tArrowTip status
-  #! tip = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ]
-  = case status of
-      (TNotActive, _) = tip <@< { fill   = TonicBlack }
-                            <@< { stroke = TonicBlack }
-      (_, TNoVal)     = tip <@< { fill   = TonicWhite }
-                            <@< { stroke = TonicBlack }
-      (_, TStable)    = tip <@< { fill   = TonicBlue }
-                            <@< { stroke = TonicBlack }
-      (_, TUnstable)  = tip <@< { fill   = TonicGreen }
-                            <@< { stroke = TonicBlack }
+tArrowTip :: !(Maybe SVGColor) -> Image ModelTy
+tArrowTip color
+  = polygon Nothing [ (px 0.0, px 0.0), (px 8.0, px 4.0), (px 0.0, px 8.0) ] <@< { stroke = TonicBlack }
+                                                                             <@< { fill   = fromMaybe TonicBlack color }
 
-tLineMarker :: !(!TStatus, !TStability) -> Maybe (Markers ModelTy)
+fillColorFromStatStab (TNotActive, _) = Nothing
+fillColorFromStatStab (_, TNoVal)     = Just TonicWhite
+fillColorFromStatStab (_, TStable)    = Just TonicBlue
+fillColorFromStatStab (_, TUnstable)  = Just TonicGreen
+
+tLineMarker :: !(Maybe SVGColor) -> Maybe (Markers ModelTy)
 tLineMarker status = Just {defaultMarkers & markerEnd = Just (tArrowTip status)}
 
 tSmallHorizConn :: Image ModelTy
 tSmallHorizConn = xline Nothing (px 4.0)
 
-tHorizConn :: !(!TStatus, !TStability) -> Image ModelTy
-tHorizConn (TNotActive, _) = xline Nothing (px 8.0)
-tHorizConn (_, TNoVal)     = rect (px 8.0) (px 3.0) <@< { fill = TonicWhite }
-tHorizConn (_, TStable)    = rect (px 8.0) (px 3.0) <@< { fill = TonicBlue }
-tHorizConn (_, TUnstable)  = rect (px 8.0) (px 3.0) <@< { fill = TonicGreen }
+tHorizConn :: !(Maybe SVGColor) -> Image ModelTy
+tHorizConn Nothing  = xline Nothing (px 8.0)
+tHorizConn (Just c) = rect (px 8.0) (px 3.0) <@< { fill = c }
 
-tShortHorizConn :: !(!TStatus, !TStability) -> Image ModelTy
-tShortHorizConn (TNotActive, _) = xline Nothing (px 4.0)
-tShortHorizConn (_, TNoVal)     = rect (px 4.0) (px 3.0) <@< { fill = TonicWhite }
-tShortHorizConn (_, TStable)    = rect (px 4.0) (px 3.0) <@< { fill = TonicBlue }
-tShortHorizConn (_, TUnstable)  = rect (px 4.0) (px 3.0) <@< { fill = TonicGreen }
+tShortHorizConn :: !(Maybe SVGColor) -> Image ModelTy
+tShortHorizConn Nothing  = xline Nothing (px 4.0)
+tShortHorizConn (Just c) = rect (px 4.0) (px 3.0) <@< { fill = c }
 
-tHorizConnArr :: !(!TStatus, !TStability) -> Image ModelTy
+tHorizConnArr :: !(Maybe SVGColor) -> Image ModelTy
 tHorizConnArr status = beside (repeat AtMiddleY) [] [tHorizConn status, tArrowTip status] Nothing
 
 tVertDownConnArr :: Image ModelTy
-tVertDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) (tArrowTip (TNotActive, TNoVal)))}) (px 16.0)
+tVertDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) (tArrowTip Nothing))}) (px 16.0)
 
 tVertUpConnArr :: Image ModelTy
-tVertUpConnArr = yline (Just {defaultMarkers & markerEnd = Just (tArrowTip (TNotActive, TNoVal))}) (px 16.0)
+tVertUpConnArr = yline (Just {defaultMarkers & markerEnd = Just (tArrowTip Nothing)}) (px 16.0)
 
 tVertUpDownConnArr :: Image ModelTy
-tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) (tArrowTip (TNotActive, TNoVal))), markerEnd = Just (tArrowTip (TNotActive, TNoVal))}) (px 16.0)
+tVertUpDownConnArr = yline (Just {defaultMarkers & markerStart = Just (rotate (deg 180.0) (tArrowTip Nothing)), markerEnd = Just (tArrowTip Nothing)}) (px 16.0)
 
 tExpand :: !InhMkImg ![TExpr] !TonicFunc !*TagSource -> *(!SynMkImg, !*TagSource)
 tExpand inh argnames tt tsrc
@@ -350,8 +343,11 @@ tIf inh eid cexpr texpr eexpr [(contextTag, _) : tsrc]
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} cexpr tsrc
   #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
   #! lineAct              = case syn_branches.syn_status of
-                              TNotActive -> (TNotActive, TNoVal)
-                              _          -> (TAllDone, syn_branches.syn_stability)
+                              TNotActive -> Nothing
+                              _          -> case inh.inh_prev_statstab of
+                                              (_, TStable)   -> Just TonicBlue
+                                              (_, TUnstable) -> Just TonicGreen
+                                              _              -> Just TonicWhite
   #! img                  = beside (repeat AtMiddleY) [] [diamond, tHorizConn lineAct, syn_branches.syn_img] Nothing
   = ( { syn_img       = img
       , syn_status    = syn_branches.syn_status
@@ -371,8 +367,11 @@ tCase inh eid texpr pats [(contextTag, _) : tsrc]
   #! (exprImg, tsrc)      = tExpr2Image {inh & inh_in_case = True} texpr tsrc
   #! (diamond, tsrc)      = tCaseDiamond inh exprImg.syn_img tsrc
   #! lineAct              = case syn_branches.syn_status of
-                              TNotActive -> (TNotActive, TNoVal)
-                              _          -> (TAllDone, syn_branches.syn_stability)
+                              TNotActive -> Nothing
+                              _          -> case inh.inh_prev_statstab of
+                                              (_, TStable)   -> Just TonicBlue
+                                              (_, TUnstable) -> Just TonicGreen
+                                              _              -> Just TonicWhite
   #! img                  = beside (repeat AtMiddleY) [] [diamond, tHorizConn lineAct, syn_branches.syn_img] Nothing
   = ( { syn_img       = img
       , syn_status    = syn_branches.syn_status
@@ -406,22 +405,31 @@ tLet inh pats expr [(txttag, uTxtTag) : tsrc]
       TLet pats` bdy
         = tLet inh (pats ++ pats`) bdy tsrc
       _
-        #! (t, tsrc)           = tExpr2Image inh expr tsrc
-        #! (patRhss, tsrc)     = strictTRMapSt (tExpr2Image inh) (map snd pats) tsrc
-        #! binds               = strictFoldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : expr.syn_img : acc]) [] (strictTRZip2 (strictTRMap fst pats) patRhss)
-        #! letText             = tag uTxtTag (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing)
-        #! letWidth            = imagexspan txttag + px 10.0
-        #! letHeight           = imageyspan txttag + px 10.0
-        #! letBox              = rect letWidth letHeight
-                                   <@< { fill   = TonicWhite }
-                                   <@< { stroke = TonicBlack }
-        #! letImg              = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
-        #! (linePart, lineAct) = case t.syn_status of
-                                   TNotActive -> (xline Nothing ((letWidth - px 8.0) /. 2.0), (TNotActive, TNoVal))
-                                   _          -> (rect ((letWidth - px 8.0) /. 2.0) (px 3.0) <@< { fill = TonicBlue }, (TAllDone, TStable))
-        #! connBox             = beside (repeat AtMiddleY) [] [linePart, rect (px 8.0) (px 8.0), linePart] Nothing
-        #! letImg              = above (repeat AtMiddleX) [] [letImg, yline Nothing (px 8.0), connBox, empty zero (letHeight + px 8.0)] Nothing
-        #! img                 = beside (repeat AtMiddleY) [] [letImg, tHorizConnArr lineAct, t.syn_img] Nothing
+        #! (t, tsrc)       = tExpr2Image inh expr tsrc
+        #! (patRhss, tsrc) = strictTRMapSt (tExpr2Image inh) (map snd pats) tsrc
+        #! binds           = strictFoldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : expr.syn_img : acc]) [] (strictTRZip2 (strictTRMap fst pats) patRhss)
+        #! letText         = tag uTxtTag (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing)
+        #! letWidth        = imagexspan txttag + px 10.0
+        #! letHeight       = imageyspan txttag + px 10.0
+        #! letBox          = rect letWidth letHeight
+                               <@< { fill   = TonicWhite }
+                               <@< { stroke = TonicBlack }
+        #! letImg          = overlay (repeat (AtMiddleX, AtMiddleY)) [] [letBox, letText] Nothing
+        #! linePart        = case t.syn_status of
+                               TNotActive -> xline Nothing ((letWidth - px 8.0) /. 2.0)
+                               _          -> rect ((letWidth - px 8.0) /. 2.0) (px 3.0) <@< { fill = case inh.inh_prev_statstab of
+                                                                                                       (_, TUnstable) -> TonicGreen
+                                                                                                       (_, TStable)   -> TonicBlue
+                                                                                                       _              -> TonicWhite }
+        #! lineAct              = case t.syn_status of
+                                    TNotActive -> Nothing
+                                    _          -> case inh.inh_prev_statstab of
+                                                    (_, TStable)   -> Just TonicBlue
+                                                    (_, TUnstable) -> Just TonicGreen
+                                                    _              -> Just TonicWhite
+        #! connBox         = beside (repeat AtMiddleY) [] [linePart, rect (px 8.0) (px 8.0), linePart] Nothing
+        #! letImg          = above (repeat AtMiddleX) [] [letImg, yline Nothing (px 8.0), connBox, empty zero (letHeight + px 8.0)] Nothing
+        #! img             = beside (repeat AtMiddleY) [] [letImg, tHorizConnArr lineAct, t.syn_img] Nothing
         = ( { syn_img       = img
             , syn_status    = t.syn_status
             , syn_stability = t.syn_stability
@@ -435,6 +443,7 @@ tBind inh l mpat r tsrc
   #! lineAct    = case r`.syn_status of
                     TNotActive -> (TNotActive, TNoVal)
                     _          -> (TAllDone, l`.syn_stability)
+  #! lineAct    = fillColorFromStatStab lineAct
   #! linePart   = case mpat of
                     Just pat -> [l`.syn_img, tHorizConn lineAct, tTextWithGreyBackground ArialRegular10px (ppTExpr pat), tHorizConnArr lineAct, r`.syn_img]
                     _        -> [l`.syn_img, tHorizConnArr lineAct, r`.syn_img]
@@ -827,7 +836,7 @@ tStep inh eid lhsExpr conts [(contextTag, _) : tsrc]
   #! (lhs, tsrc)          = tExpr2Image inh lhsExpr tsrc
   #! conts                = tSafeExpr2List conts
   #! (syn_branches, tsrc) = tBranches {inh & inh_prev_statstab = (lhs.syn_status, lhs.syn_stability)} (tStepCont actions) False True (strictTRMap (\t -> (Nothing, t, True, False)) conts) contextTag tsrc
-  #! img                  = beside (repeat AtMiddleY) [] [lhs.syn_img, tHorizConn (lineStatus lhs), syn_branches.syn_img] Nothing
+  #! img                  = beside (repeat AtMiddleY) [] [lhs.syn_img, tHorizConn (fillColorFromStatStab (lineStatus lhs)), syn_branches.syn_img] Nothing
   = ( { syn_img       = img
       , syn_status    = syn_branches.syn_status
       , syn_stability = syn_branches.syn_stability
@@ -960,9 +969,9 @@ stepIfStableUnstableHasValue inh mact filter [e : _] [ref : tsrc]
     , tsrc)
 
 stepArrActivity inh syn
-  = case (syn.syn_status, syn.syn_stability) of
-      (TNotActive, _) -> (TNotActive, TNoVal)
-      _               -> inh.inh_prev_statstab
+  = fillColorFromStatStab (case (syn.syn_status, syn.syn_stability) of
+                             (TNotActive, _) -> (TNotActive, TNoVal)
+                             _               -> inh.inh_prev_statstab)
 
 addAction :: !(Maybe (!String, !Bool)) !(Image ModelTy) !*TagRef -> Image ModelTy
 addAction (Just (action, enabled)) arr (t, uT)
@@ -1005,12 +1014,6 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
         }
       , tsrc)
   where
-  someActivity :: ![TStatus] -> Bool
-  someActivity [TAllDone : _]  = True
-  someActivity [TIsActive : _] = True
-  someActivity [_ : xs]        = someActivity xs
-  someActivity _               = False
-
   branchStatus :: !(Maybe Pattern, !TExpr, Bool, Bool) !*TagSource -> *(!TStatus, !*TagSource)
   branchStatus (_, x, _, _) tsrc
     #! (syn, tsrc) = mkBranch inh x tsrc
@@ -1023,10 +1026,10 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
     #! inaccessible = inh.inh_inaccessible || (existsSomeActivity && currBranchActivity == TNotActive)
     #! unreachable  = inh.inh_future_unreachable || unreachable
     #! (syn, tsrc)  = mkBranch {inh & inh_inaccessible = inaccessible, inh_future_unreachable = unreachable} texpr tsrc
-    #! lhsLineAct   = if inaccessible (TNotActive, TNoVal)
-                        (case syn.syn_status of
-                           TNotActive -> (TNotActive, TNoVal)
-                           _          -> inh.inh_prev_statstab)
+    #! lhsLineAct   = fillColorFromStatStab (if inaccessible (TNotActive, TNoVal)
+                                               (case syn.syn_status of
+                                                  TNotActive -> (TNotActive, TNoVal)
+                                                  _          -> inh.inh_prev_statstab))
     #! lhs          = case pat of
                         Nothing
                           = beside (repeat AtMiddleY) [] [tHorizConnArr lhsLineAct, syn.syn_img] Nothing
@@ -1072,6 +1075,12 @@ tBranches inh mkBranch needAllDone inclVertConns exprs contextTag tsrc
             , yline Nothing (allYSpans - halfFirstY - halfLastY) <@< { stroke = TonicBlack }
             , yline Nothing halfLastY <@< { stroke = TonicWhite } ]
             Nothing
+
+someActivity :: ![TStatus] -> Bool
+someActivity [TAllDone : _]  = True
+someActivity [TIsActive : _] = True
+someActivity [_ : xs]        = someActivity xs
+someActivity _               = False
 
 tTextWithGreyBackground :: !FontDef !String -> Image ModelTy
 tTextWithGreyBackground font txt
