@@ -75,6 +75,7 @@ ArialItalic10px :== { fontfamily  = "Arial"
   , inh_selDetail          :: !Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int))
   , inh_stepActions        :: !Map ExprId [UIAction]
   , inh_prev_statstab      :: !(!TStatus, !TStability)
+  , inh_augments           :: ![Image ModelTy]
   }
 
 :: SynMkImg =
@@ -113,6 +114,7 @@ mkStaticImage rs bpident compact {ActionState | state = tis} tsrc
                         , inh_selDetail          = Nothing
                         , inh_stepActions        = 'DM'.newMap
                         , inh_prev_statstab      = (TNotActive, TNoVal)
+                        , inh_augments           = []
                         }
   #! (tf_body`, tsrc) = tExpr2Image inh tt.tf_body tsrc
   #! (img, _)         = tTaskDef inh tt.tf_module tt.tf_name tt.tf_resty tt.tf_args [] tf_body`.syn_img tsrc
@@ -144,34 +146,33 @@ mkInstanceImage rs bpi outputs stepActions selDetail compact {ActionState | stat
                         , inh_selDetail          = selDetail
                         , inh_stepActions        = stepActions
                         , inh_prev_statstab      = (TNotActive, TNoVal)
+                        , inh_augments           = []
                         }
   #! (tf_body`, tsrc) = tExpr2Image inh tt.tf_body tsrc
   #! (img, _)         = tTaskDef inh tt.tf_module tt.tf_name tt.tf_resty tt.tf_args [] tf_body`.syn_img tsrc
   = img
 
 tExpr2Image :: !InhMkImg !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
-tExpr2Image inh (TMApp eid mty mn tn targs prio) tsrc = tMApp     inh eid mty mn tn targs prio tsrc
-tExpr2Image inh (TFApp fn targs assoc)           tsrc = tFApp     inh fn targs assoc tsrc
-tExpr2Image inh (TLet pats bdy)                  tsrc
+tExpr2Image inh (TMApp eid mty mn tn targs prio ptr) tsrc = tMApp     inh eid mty mn tn targs prio ptr tsrc
+tExpr2Image inh (TFApp fn targs assoc)               tsrc = tFApp     inh fn targs assoc tsrc
+tExpr2Image inh (TLet pats bdy)                      tsrc
   | inh.inh_compact = tExpr2Image inh bdy tsrc
   | otherwise       = tLet inh pats bdy tsrc
-tExpr2Image inh (TIf eid c t e)                  tsrc = tIf       inh eid c t e tsrc
-tExpr2Image inh (TCase eid e pats)               tsrc = tCase     inh eid e pats tsrc
-tExpr2Image inh (TVar eid pp ptr)                tsrc = tVar      inh eid pp ptr tsrc
-tExpr2Image inh (TLit pp)                        tsrc = tLit      inh pp tsrc
-tExpr2Image inh (TPPExpr pp)                     tsrc = tPPExpr   inh pp tsrc
-tExpr2Image inh (TExpand args tt)                tsrc = tExpand   inh args tt tsrc
-tExpr2Image inh (TSel e es)                      tsrc = tSel      inh e es tsrc
-tExpr2Image inh (TRecUpd vn e es)                tsrc = tRecUpd   inh vn e es tsrc
-tExpr2Image inh (TLam args e)                    tsrc = tLam      inh args e tsrc
-tExpr2Image inh (TAugment orig extra)            tsrc = tAugment  inh orig extra tsrc
+tExpr2Image inh (TIf eid c t e)                      tsrc = tIf       inh eid c t e tsrc
+tExpr2Image inh (TCase eid e pats)                   tsrc = tCase     inh eid e pats tsrc
+tExpr2Image inh (TVar eid pp ptr)                    tsrc = tVar      inh eid pp ptr tsrc
+tExpr2Image inh (TLit pp)                            tsrc = tLit      inh pp tsrc
+tExpr2Image inh (TPPExpr pp)                         tsrc = tPPExpr   inh pp tsrc
+tExpr2Image inh (TExpand args tt)                    tsrc = tExpand   inh args tt tsrc
+tExpr2Image inh (TSel e es)                          tsrc = tSel      inh e es tsrc
+tExpr2Image inh (TRecUpd vn e es)                    tsrc = tRecUpd   inh vn e es tsrc
+tExpr2Image inh (TLam args e)                        tsrc = tLam      inh args e tsrc
+tExpr2Image inh (TAugment orig extra)                tsrc = tAugment  inh orig extra tsrc
 
 tAugment :: !InhMkImg !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tAugment inh orig extra tsrc
-  #! (orig`, tsrc)  = tExpr2Image inh orig tsrc
-  #! (extra`, tsrc) = tExpr2Image inh extra tsrc
-  = ( {orig` & syn_img = beside (repeat AtMiddleY) [] [orig`.syn_img, text ArialRegular10px " (", extra`.syn_img, text ArialRegular10px ")"] Nothing}
-    , tsrc)
+  #! (extra`, tsrc) = tExpr2Image {inh & inh_in_case = True} extra tsrc
+  = tExpr2Image {inh & inh_augments = [extra`.syn_img : inh.inh_augments]} orig tsrc
 
 tLam :: !InhMkImg ![TExpr] !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tLam inh vars e tsrc
@@ -598,35 +599,35 @@ activeNodeTaskId eid activeNodes
       _         -> Nothing
 
 tMApp :: !InhMkImg !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr]
-         !TPriority !*TagSource
+         !TPriority !(Maybe VarPtr) !*TagSource
       -> *(!SynMkImg, !*TagSource)
-tMApp inh _ _ "iTasks.API.Extensions.User" "@:" [lhsExpr : rhsExpr : _] _ tsrc
+tMApp inh _ _ "iTasks.API.Extensions.User" "@:" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tAssign inh lhsExpr rhsExpr tsrc
-tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>|" [lhsExpr : rhsExpr : _] _ tsrc
+tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>|" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
-tMApp inh _ _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam [var : _] rhsExpr : _] _ tsrc
+tMApp inh _ _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam [var : _] rhsExpr : _] _ _ tsrc
   = tBind inh lhsExpr (Just var) rhsExpr tsrc
-tMApp inh _ _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] _ tsrc
+tMApp inh _ _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ tsrc
+tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tStep inh eid lhsExpr rhsExpr tsrc
-tMApp inh eid _ "iTasks.API.Core.TaskCombinators" "step" [lhsExpr : _ : rhsExpr : _] _ tsrc
+tMApp inh eid _ "iTasks.API.Core.TaskCombinators" "step" [lhsExpr : _ : rhsExpr : _] _ _ tsrc
   = tStep inh eid lhsExpr rhsExpr tsrc
-tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-&&-" [lhsExpr : rhsExpr : _] _ tsrc
+tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-&&-" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tParProdN inh eid mn tn "Parallel (-&&-): both tasks" [lhsExpr, rhsExpr] tsrc
-tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"allTasks" [x] assoc tsrc
+tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"allTasks" [x] assoc _ tsrc
   = tParProdN inh eid mn tn "Parallel allTasks" (if (tExprIsList x) (tUnsafeExpr2List x) [x]) tsrc
-tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"anyTask" [x] assoc tsrc
+tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"anyTask" [x] assoc _ tsrc
   = tParSumN inh eid mn tn "Parallel anyTask" (if (tExprIsList x) (tUnsafeExpr2List x) [x]) tsrc
-tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||-" [lhsExpr : rhsExpr : _] _ tsrc
+tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||-" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tParSumN inh eid mn tn "Parallel (-||-): any task" [lhsExpr, rhsExpr] tsrc
-tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"||-" [lhsExpr : rhsExpr : _] _ tsrc
+tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"||-" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tParSumR inh eid mn tn lhsExpr rhsExpr tsrc
-tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||" [lhsExpr : rhsExpr : _] _ tsrc
+tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tParSumL inh eid mn tn lhsExpr rhsExpr tsrc
-tMApp inh _ _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"@!" [lhsExpr : _] _ tsrc
+tMApp inh _ _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"@!" [lhsExpr : _] _ _ tsrc
   = tExpr2Image inh lhsExpr tsrc
-tMApp inh eid _ modName taskName taskArgs _ tsrc
+tMApp inh eid _ modName taskName taskArgs _ _ tsrc
   #! inh = {inh & inh_in_mapp = True}
   = renderTaskApp inh eid modName taskName taskArgs taskName tsrc
 
@@ -649,12 +650,11 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
                             (Just x, _) -> Just x
                             (_, Just x) -> Just x
                             _           -> Nothing
-  #! taskIdStr          = maybe "" (\x -> " (" +++ toString x +++ ")") mTaskId
-  #! displayName        = displayName +++ taskIdStr
-  #! (renderOpts, tsrc) = strictTRMapSt (\ta -> ta inh.inh_in_branch inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_future_unreachable eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs`) inh.inh_task_apps tsrc
+  #! augments           = maybe inh.inh_augments (\x -> [text ArialBold10px ("(" +++ toString x +++ ")") : inh.inh_augments]) mTaskId
+  #! (renderOpts, tsrc) = strictTRMapSt (\ta -> ta inh.inh_in_branch inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_future_unreachable eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs` augments) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
-                            _          -> tDefaultMApp inh.inh_in_branch inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_future_unreachable eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs taskArgs` tsrc
+                            _          -> tDefaultMApp inh.inh_in_branch inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_future_unreachable eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs taskArgs` augments tsrc
   #! clickMeta          = mkClickMeta inh (Just eid) moduleName taskName (fmap (\x -> x.bpi_taskId) inh.inh_bpinst) mbNavTo
   #! taskApp            = taskApp <@< { onclick = navigateOrSelect clickMeta, local = False }
   #! valNodeIsSelected  = case inh.inh_selDetail of
@@ -699,9 +699,9 @@ tRoundedRect width height
       <@< { yradius     = px 5.0 }
 
 tDefaultMApp :: !Bool !Bool !Bool !Bool !Bool !Bool !ExprId !ModuleName !FuncName
-                !ModuleName !FuncName ![TExpr] ![Image ModelTy] !*TagSource
+                !ModuleName !FuncName ![TExpr] ![Image ModelTy] ![Image ModelTy] !*TagSource
              -> *(!Image ModelTy, !*TagSource)
-tDefaultMApp inBranch isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName argsExprs taskArgs tsrc
+tDefaultMApp inBranch isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName argsExprs taskArgs augments tsrc
   #! isEditor = elem taskName [ "viewInformation"
                               , "updateInformation"
                               , "enterInformation"
@@ -741,7 +741,7 @@ tDefaultMApp inBranch isCompact isActive wasActive isInAccessible isUnreachable 
                   (True, True, [TVar _ tn _ : _]) -> if (size tn > 0 && tn.[0] == '"') [text ArialRegular10px tn] []
                   (True, _, _) -> []
                   _            -> taskArgs
-  = tDefaultMApp` inBranch isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName taskArgs tsrc
+  = tDefaultMApp` inBranch isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName taskArgs augments tsrc
 
 appColor :: !Bool !Bool !Bool -> SVGColor
 appColor isActive wasActive isInAccessible
@@ -756,10 +756,10 @@ appColor isActive wasActive isInAccessible
       )
 
 tDefaultMApp` :: !Bool !Bool !Bool !Bool !Bool !Bool !ExprId !ModuleName !FuncName
-                 !ModuleName !FuncName ![Image ModelTy] !*TagSource
+                 !ModuleName !FuncName ![Image ModelTy] ![Image ModelTy] !*TagSource
               -> *(!Image ModelTy, !*TagSource)
-tDefaultMApp` inBranch isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName taskArgs [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
-  #! taskNameImg       = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
+tDefaultMApp` inBranch isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName taskArgs augments [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
+  #! taskNameImg       = tag uTnTag (margin (px 5.0) (beside (repeat AtMiddleY) [] [text ArialBold10px taskName : text ArialRegular10px " " : intersperse (text ArialRegular10px " ") augments] Nothing))
   #! bgColor           = appColor isActive wasActive isInAccessible
   #! futureUnreachable = isUnreachable && not isInAccessible
   #! futureReachable   = not isUnreachable && not isInAccessible && not (isActive || wasActive)
@@ -869,27 +869,27 @@ tStepCont _ inh (TFApp "OnAllExceptions" [cont : _ ] _) tsrc
   = mkStepCont inh Nothing cont tsrc
 
 mkStepCont :: !InhMkImg !(Maybe (!String, !Bool)) !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "always" [mapp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "always" [mapp : _] _ _) tsrc
   = stepAlwaysNeverWithoutVal inh mact mapp tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "never" [mapp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "never" [mapp : _] _ _) tsrc
   = stepAlwaysNeverWithoutVal inh mact mapp tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withoutValue" [mapp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withoutValue" [mapp : _] _ _) tsrc
   = stepAlwaysNeverWithoutVal inh mact mapp tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifStable" e _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifStable" e _ _) tsrc
   = stepIfStableUnstableHasValue inh mact tStable e tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifUnstable" e _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifUnstable" e _ _) tsrc
   = stepIfStableUnstableHasValue inh mact tUnstable e tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "hasValue" e _) [ref : tsrc]
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "hasValue" e _ _) [ref : tsrc]
   = stepIfStableUnstableHasValue inh mact hasValueFilter e tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifValue" [conditionApp : continuationApp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifValue" [conditionApp : continuationApp : _] _ _) tsrc
   = stepIfValueCond inh mact conditionApp continuationApp tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifCond" [conditionApp : continuationApp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifCond" [conditionApp : continuationApp : _] _ _) tsrc
   = stepIfValueCond inh mact conditionApp continuationApp tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withValue" [mapp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withValue" [mapp : _] _ _) tsrc
   = stepWithValue inh mact hasValueFilter mapp tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withStable" [mapp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withStable" [mapp : _] _ _) tsrc
   = stepWithValue inh mact tStable mapp tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withUnstable" [mapp : _] _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withUnstable" [mapp : _] _ _) tsrc
   = stepWithValue inh mact tUnstable mapp tsrc
 mkStepCont inh mact e [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh e tsrc

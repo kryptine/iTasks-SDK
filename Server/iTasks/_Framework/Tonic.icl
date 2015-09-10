@@ -623,11 +623,11 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                     # (parent_body, _, _) = case muser of
                                               Ok usr
                                                 = updateNode assignNode (\x -> case x of
-                                                                                 TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [_, descr] prio : as] assoc
-                                                                                   | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [TLit (TString (toString usr)), descr] prio : as] assoc
+                                                                                 TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [_, descr] prio : as] assoc ptr
+                                                                                   | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [TLit (TString (toString usr)), descr] prio : as] assoc ptr
                                                                                    | otherwise         = x
-                                                                                 TMApp eid mtn "iTasks.API.Extensions.User" "@:" [_ : as] assoc
-                                                                                   | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TLit (TString (toString usr)) : as] assoc
+                                                                                 TMApp eid mtn "iTasks.API.Extensions.User" "@:" [_ : as] assoc ptr
+                                                                                   | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TLit (TString (toString usr)) : as] assoc ptr
                                                                                    | otherwise         = x
                                                                                  e = e
                                                                         ) parentBPInst.bpi_blueprint.tf_body
@@ -653,14 +653,17 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                                                                     (ValueResult (Value x _) _ _ _) -> (addCases` new_parent_instance evalOpts (map (\(eid, f) -> (eid, f x)) cases), True)
                                                                     _                               -> (new_parent_instance, False)
                          # iworld                               = storeTaskOutputViewer tr nid parentBPInst.bpi_taskId childTaskId iworld
-                         # (mchild_bpr, iworld)                 = 'DSDS'.read (sdsFocus childTaskId allTonicInstances) iworld
-
+                         # (mchild_bpr, iworld)                 = case fn of
+                                                                    "(Var)"      -> 'DSDS'.read (sdsFocus childTaskId allTonicInstances) iworld
+                                                                    "(Var @ es)" -> 'DSDS'.read (sdsFocus childTaskId allTonicInstances) iworld
+                                                                    _            -> (Ok [], iworld)
                          # (new_parent_instance, chng`, iworld) = case mchild_bpr of
-                                                                    Ok bprefs
+                                                                    Ok bprefs=:[_ : _]
                                                                       = case [bpi \\ (_, bpi=:{bpi_taskId, bpi_index}) <- bprefs | bpi_taskId > parentBPInst.bpi_taskId || (bpi_taskId == parentBPInst.bpi_taskId && bpi_index > parentBPInst.bpi_index)] of
                                                                           [{bpi_bpref} : _]
                                                                             # (parent_body, chng, mvid) = updateNode nid (\x -> case x of
-                                                                                                                                  TVar eid _ _ -> TMApp eid Nothing bpi_bpref.bpr_moduleName bpi_bpref.bpr_taskName [] TNoPrio
+                                                                                                                                  TVar eid _ _ -> TMApp eid Nothing bpi_bpref.bpr_moduleName bpi_bpref.bpr_taskName [] TNoPrio Nothing
+                                                                                                                                  TMApp _ _ _ _ _ _ (Just _) -> TAugment x (TLit (TString (bpi_bpref.bpr_moduleName +++ "." +++ bpi_bpref.bpr_taskName)))
                                                                                                                                   e -> e
                                                                                                                          ) new_parent_instance.bpi_blueprint.tf_body
                                                                             | chng
@@ -734,9 +737,9 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                      _       -> 'DIS'.newMap
     # (childNodes, currActive, iworld) = foldr (registerTask pinst.bpi_taskId childTaskId) ([], currActive, iworld) (zip2 [0..] parallelChildren)
     # (tf_body, _, _) = updateNode nid (\x -> case x of
-                                                e=:(TMApp _ _ _ _ [TMApp _ _ _ _ _ _ : _] _) -> e
-                                                e=:(TMApp _ _ _ _ [TFApp "_Cons" _ _ : _] _) -> e // TODO This is probably insufficient. It will capture things like [t1:someOtherTasks], where we would like to expand someOtherTasks at runtime
-                                                TMApp eid mtn mn tn _ pr -> TMApp eid mtn mn tn [list2TExpr childNodes] pr
+                                                e=:(TMApp _ _ _ _ [TMApp _ _ _ _ _ _ _ : _] _ _) -> e
+                                                e=:(TMApp _ _ _ _ [TFApp "_Cons" _ _ : _] _ _) -> e // TODO This is probably insufficient. It will capture things like [t1:someOtherTasks], where we would like to expand someOtherTasks at runtime
+                                                TMApp eid mtn mn tn _ pr ptr -> TMApp eid mtn mn tn [list2TExpr childNodes] pr ptr
                                                 e -> e
                                        ) pinst.bpi_blueprint.tf_body
     # pinst = { pinst
@@ -751,7 +754,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
       = case mchild_bpr of
           (Ok [(_, {bpi_bpref}) : _])
             # newNodeId  = nid ++ [n]
-            # childApp   = TMApp newNodeId Nothing bpi_bpref.bpr_moduleName bpi_bpref.bpr_taskName [] TNoPrio
+            # childApp   = TMApp newNodeId Nothing bpi_bpref.bpr_moduleName bpi_bpref.bpr_taskName [] TNoPrio Nothing
             # currActive = 'DIS'.put n (tid, newNodeId) currActive
             = ([childApp:acc], currActive, iworld)
           _ = (acc, currActive, iworld)
@@ -759,7 +762,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
 getNode :: !ExprId !TExpr -> Maybe TExpr
 getNode eid expr=:(TVar eid` _ _)
   | eid == eid` = Just expr
-getNode eid expr=:(TMApp eid` _ _ _ es _)
+getNode eid expr=:(TMApp eid` _ _ _ es _ _)
   | eid == eid` = Just expr
   | otherwise
       = case [e \\ Just e <- map (getNode eid) es] of
@@ -880,13 +883,13 @@ anyTrue _          = False
 replaceNode :: !Int !TExpr !TExpr -> TExpr
 replaceNode varid newExpr expr=:(TVar eid _ varid`)
   | varid == varid` = case newExpr of
-                        TMApp _ mtn mn tn es p -> TMApp eid mtn mn tn es p
-                        TVar _ x vid           -> TVar eid x vid
-                        _                      -> newExpr
+                        TMApp _ mtn mn tn es p ptr -> TMApp eid mtn mn tn es p ptr
+                        TVar _ x vid               -> TVar eid x vid
+                        _                          -> newExpr
   | otherwise       = expr
-replaceNode varid newExpr (TMApp eid` mtn mn tn es p)
+replaceNode varid newExpr (TMApp eid` mtn mn tn es p ptr)
   #! es` = map (replaceNode varid newExpr) es
-  = TMApp eid` mtn mn tn es` p
+  = TMApp eid` mtn mn tn es` p ptr
 replaceNode varid newExpr (TFApp fn es p)
   #! es` = map (replaceNode varid newExpr) es
   = TFApp fn es` p
@@ -938,11 +941,11 @@ updateNode :: !ExprId !(TExpr -> TExpr) !TExpr -> (!TExpr, !Bool, !Maybe (!Int, 
 updateNode eid f expr=:(TVar eid` _ varid)
   # expr` = f expr
   | eid == eid` = (expr`, True, Just (varid, expr`))
-updateNode eid f expr=:(TMApp eid` mtn mn tn es p)
+updateNode eid f expr=:(TMApp eid` mtn mn tn es p ptr)
   | eid == eid` = (f expr, True, Nothing)
   | otherwise
       #! es` = map (updateNode eid f) es
-      = (TMApp eid` mtn mn tn (map fst3 es`) p, anyTrue (map snd3 es`), getMVid (map thrd es`))
+      = (TMApp eid` mtn mn tn (map fst3 es`) p ptr, anyTrue (map snd3 es`), getMVid (map thrd es`))
 updateNode eid f (TFApp fn es p)
   #! es` = map (updateNode eid f) es
   = (TFApp fn (map fst3 es`) p, anyTrue (map snd3 es`), getMVid (map thrd es`))
@@ -1447,11 +1450,11 @@ expandTExpr :: !AllBlueprints !Int !TExpr -> TExpr
 expandTExpr _      0 texpr = texpr
 expandTExpr allbps n (TFApp vn args assoc)
   = TFApp vn (map (expandTExpr allbps n) args) assoc
-expandTExpr allbps n texpr=:(TMApp eid mtn mn tn args assoc)
+expandTExpr allbps n texpr=:(TMApp eid mtn mn tn args assoc ptr)
   = case 'DM'.get mn allbps >>= 'DM'.get tn of
       Just tt
         = TExpand args (expandTask allbps (n - 1) tt)
-      _ = TMApp eid mtn mn tn (map (expandTExpr allbps n) args) assoc
+      _ = TMApp eid mtn mn tn (map (expandTExpr allbps n) args) assoc ptr
 expandTExpr allbps n (TLet pats bdy)
   = TLet (map f pats) (expandTExpr allbps n bdy)
   where
