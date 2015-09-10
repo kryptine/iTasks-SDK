@@ -27,7 +27,6 @@ analogClockEditlet :: Time -> Editlet Time [(Int,Int)] ()
 analogClockEditlet t 
     = {Editlet
       |currVal      = t
-      ,defValSrv    = gDefault{|*|}
       ,genUI        = genUI
       , initClient = \_ _ world -> ((), world)
       ,appDiffClt   = appDiffClt

@@ -65,10 +65,6 @@ from Text.JSON import :: JSONNode
   =
   { currVal    :: sv // TODO: implementation detail, remove it
 
-  // This field is unnecessary, gDefault could be used instead of it
-  // However, Jurrien like it, so why not to be here :)
-  , defValSrv  :: sv
-
   , genUI      :: ComponentId sv *World -> *(EditletHTML, *World)
   , initClient :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId *JSWorld -> *(cl, *JSWorld)
   , appDiffClt :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId d cl *JSWorld -> *(cl, *JSWorld)

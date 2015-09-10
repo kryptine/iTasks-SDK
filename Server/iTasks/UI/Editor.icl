@@ -16,7 +16,6 @@ JSONDecode{|Editlet|} _ _ _ _ c = (Nothing,c)
 gDefault{|Editlet|} fa _ fc
   = { Editlet
     | currVal   = fa
-    , defValSrv = fa
         
     , genUI     = \_ _ world -> ({ComponentHTML | html = RawText "", height = FlexSize, width = FlexSize}, world)
     , initClient = \_ _ world -> (fc, world)
@@ -30,10 +29,9 @@ gEq{|Editlet|} fa _ _ editlet1 editlet2 = fa editlet1.Editlet.currVal editlet2.E
 gText{|Editlet|} fa _ _ mode (Just editlet) = fa mode (Just editlet.Editlet.currVal)
 gText{|Editlet|} fa _ _ mode Nothing = fa mode Nothing
 
-
 gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncB jsonDecB fd textD defaultD headersD jsonEncD jsonDecD = {Editor|genUI=genUI,appDiff=appDiff}
 where
-	genUI dp {Editlet| currVal, defValSrv, genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv} mask ver meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
+	genUI dp {Editlet| currVal, genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv} mask ver meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
 		# (uiDef, world)        = genUI htmlId currVal world
   		# iworld                = {iworld & world = world}
 		= case 'Data.Map'.get (taskId,editorId dp) editletDiffs of
@@ -80,7 +78,7 @@ where
 
 			fromJSONA json = fst (jsonDecA False [json])
 			
-			initDiff = genDiffSrv defValSrv currVal
+			initDiff = genDiffSrv defaultA currVal
 
 			diffWithPrevValue jsonPrev currVal
 				= case fromJSONA jsonPrev of

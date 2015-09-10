@@ -322,7 +322,6 @@ svgRenderer :: !(Conflict s -> Maybe s) !s !(s *TagSource -> Image s)
 svgRenderer resolve origState state2Image
   #! dst = defaultSrvSt origState
   = { currVal    = dst
-    , defValSrv  = dst
     , genUI      = genUI
     , initClient = initClient resolve state2Image origState
     , appDiffClt = appClientDiff resolve state2Image

@@ -59,7 +59,6 @@ googleMapEditlet :: GoogleMap -> Editlet GoogleMap [GoogleMapDiff] GoogleMapClie
 googleMapEditlet g 
     = { Editlet
       | currVal     = g
-      , defValSrv   = gDefault{|*|}
       , genUI       = uiDef 
       , initClient  = onInit
       , appDiffClt  = appDiffClt

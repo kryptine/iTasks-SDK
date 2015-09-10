@@ -23,7 +23,6 @@ controlLightEditlet :: ControlLight -> Editlet ControlLight ControlLight ()
 controlLightEditlet t
     = {Editlet
       |currVal = t
-      ,defValSrv = gDefault{|*|}
 	  ,initClient = \_ _ w -> ((),w)
       ,genUI = genUI
       ,appDiffClt = updateUI

@@ -124,7 +124,6 @@ leafletEditlet :: LeafletMap -> Editlet LeafletMap [LeafletDiff] (LeafletMap, Ma
 leafletEditlet map
   = { Editlet
     | currVal = map
-    , defValSrv = gDefault{|*|}
     , genUI     =  genUI 
     , initClient = onInit
     , appDiffClt = appDiffClt
