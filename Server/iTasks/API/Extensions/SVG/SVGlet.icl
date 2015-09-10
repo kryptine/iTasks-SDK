@@ -817,9 +817,9 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
       #! (mask, st)   = evalMaybe mask st
       #! (imAts, st)  = sequence imAts st
       #! (imTrs, st)  = sequence imTrs st
-      #! (syn, st)    = imCo imTrs imTas st
       #! (no, st)     = nextNo st
       #! newTag       = ImageTagSystem no
+      #! (syn, st)    = imCo imTrs imTas st
       #! imTas        = 'DS'.insert newTag imTas
       #! st           = cacheImageSpanPostTrans no imTas syn.desugarAndTagSyn_TotalSpan_PostTrans st
       #! img          = { Image
@@ -830,9 +830,7 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
                         , tags                = imTas
                         , uniqId              = no
                         , totalSpanPreTrans   = syn.desugarAndTagSyn_TotalSpan_PreTrans  // TODO Get rid of these fields in favor of cached spans
-                        , totalSpanPostTrans  = if syn.desugarAndTagSyn_IsBasic
-                                                  (LookupSpan (ImageXSpan newTag), LookupSpan (ImageYSpan newTag)) // TODO Get rid of these fields in favor of cached spans
-                                                  syn.desugarAndTagSyn_TotalSpan_PostTrans
+                        , totalSpanPostTrans  = (LookupSpan (ImageXSpan newTag), LookupSpan (ImageYSpan newTag)) // TODO Get rid of these fields in favor of cached spans
                         , transformCorrection = syn.desugarAndTagSyn_OffsetCorrection    // TODO Get rid of these fields in favor of cached spans
                         }
       = (img, st)
@@ -1197,16 +1195,16 @@ fixEnvs st
         #! fixSpansSpanEnvs          = st`.fixSpansSpanEnvs
         #! spanEnvImageSpanPostTrans = 'DIS'.put k (w, h`) fixSpansSpanEnvs.spanEnvImageSpanPostTrans
         #! fixSpansSpanEnvs          = {fixSpansSpanEnvs & spanEnvImageSpanPostTrans = spanEnvImageSpanPostTrans}
-        = {st` & fixSpansSpanEnvs = fixSpansSpanEnvs}
-      | otherwise = st`
+        = {st` & fixSpansSpanEnvs = fixSpansSpanEnvs, fixSpansDidChange = True}
+      | otherwise = {st` & fixSpansDidChange = st.fixSpansDidChange}
     f k (w, h=:(PxSpan _)) st
       #! (w`, st`) = fixSpans w {st & fixSpansDidChange = False}
       | st`.fixSpansDidChange
         #! fixSpansSpanEnvs          = st`.fixSpansSpanEnvs
         #! spanEnvImageSpanPostTrans = 'DIS'.put k (w`, h) fixSpansSpanEnvs.spanEnvImageSpanPostTrans
         #! fixSpansSpanEnvs          = {fixSpansSpanEnvs & spanEnvImageSpanPostTrans = spanEnvImageSpanPostTrans}
-        = {st` & fixSpansSpanEnvs = fixSpansSpanEnvs}
-      | otherwise = st`
+        = {st` & fixSpansSpanEnvs = fixSpansSpanEnvs, fixSpansDidChange = True}
+      | otherwise = {st` & fixSpansDidChange = st.fixSpansDidChange}
     f k (w, h) st
       #! (w`, st1) = fixSpans w {st & fixSpansDidChange = False}
       #! (h`, st2) = fixSpans h {st1 & fixSpansDidChange = False}
@@ -1214,8 +1212,8 @@ fixEnvs st
         #! fixSpansSpanEnvs          = st2.fixSpansSpanEnvs
         #! spanEnvImageSpanPostTrans = 'DIS'.put k (w`, h`) fixSpansSpanEnvs.spanEnvImageSpanPostTrans
         #! fixSpansSpanEnvs          = {fixSpansSpanEnvs & spanEnvImageSpanPostTrans = spanEnvImageSpanPostTrans}
-        = {st2 & fixSpansSpanEnvs = fixSpansSpanEnvs}
-      | otherwise = st2
+        = {st2 & fixSpansSpanEnvs = fixSpansSpanEnvs, fixSpansDidChange = True}
+      | otherwise = {st2 & fixSpansDidChange = st.fixSpansDidChange}
   fixGridSpans :: !*FixSpansSt -> *FixSpansSt
   fixGridSpans st=:{fixSpansSpanEnvs, fixSpansDidChange = origDidChange}
     #! fixSpansSpanEnvs = st.fixSpansSpanEnvs
