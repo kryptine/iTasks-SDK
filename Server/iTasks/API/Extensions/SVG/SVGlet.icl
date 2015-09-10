@@ -330,7 +330,7 @@ svgRenderer resolve origState state2Image
     , appDiffSrv = appServerDiff
     }
   where
-  genUI = \cid world ->
+  genUI = \cid val world ->
     ({ ComponentHTML
      | width  = FlexSize
      , height = FlexSize

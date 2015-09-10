@@ -35,7 +35,7 @@ analogClockEditlet t
       ,appDiffSrv   = appTimeDiff
       }
 where
-	genUI cid world
+	genUI cid val world
 		  =({ ComponentHTML
             | html 			= svgClock cid
 		  	, width 		= ExactSize 100

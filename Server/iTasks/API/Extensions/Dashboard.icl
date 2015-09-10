@@ -31,7 +31,7 @@ controlLightEditlet t
       ,appDiffSrv = \a _ -> a
       }
 where
-	genUI cid world
+	genUI cid val world
 		  =({ ComponentHTML
             | html 			= svgLight cid
 		  	, width 		= ExactSize 20

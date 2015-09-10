@@ -67,7 +67,7 @@ googleMapEditlet g
       , appDiffSrv  = appDiff
       }
 where
-	uiDef cid world
+	uiDef cid val world
 		= ({ ComponentHTML |
 		    html 			= DivTag [IdAttr (mapdomid cid), StyleAttr "width:100%; height:100%"] []
 		  , width 			= ExactSize 600

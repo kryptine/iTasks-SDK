@@ -18,7 +18,7 @@ gDefault{|Editlet|} fa _ fc
     | currVal   = fa
     , defValSrv = fa
         
-    , genUI     = \_ world -> ({ComponentHTML | html = RawText "", height = FlexSize, width = FlexSize}, world)
+    , genUI     = \_ _ world -> ({ComponentHTML | html = RawText "", height = FlexSize, width = FlexSize}, world)
     , initClient = \_ _ world -> (fc, world)
     , appDiffClt = \_ _ _ a world -> (a, world)
     , genDiffSrv = \_ _ -> Nothing
@@ -34,7 +34,7 @@ gText{|Editlet|} fa _ _ mode Nothing = fa mode Nothing
 gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncB jsonDecB fd textD defaultD headersD jsonEncD jsonDecD = {Editor|genUI=genUI,appDiff=appDiff}
 where
 	genUI dp {Editlet| currVal, defValSrv, genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv} mask ver meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
-		# (uiDef, world)        = genUI htmlId world
+		# (uiDef, world)        = genUI htmlId currVal world
   		# iworld                = {iworld & world = world}
 		= case 'Data.Map'.get (taskId,editorId dp) editletDiffs of
 			  //Only diff with previous value

@@ -69,7 +69,7 @@ from Text.JSON import :: JSONNode
   // However, Jurrien like it, so why not to be here :)
   , defValSrv  :: sv
 
-  , genUI      :: ComponentId *World -> *(EditletHTML, *World)
+  , genUI      :: ComponentId sv *World -> *(EditletHTML, *World)
   , initClient :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId *JSWorld -> *(cl, *JSWorld)
   , appDiffClt :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
   , genDiffSrv :: sv sv -> Maybe d
