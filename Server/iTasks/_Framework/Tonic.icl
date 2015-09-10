@@ -448,7 +448,7 @@ tonicWrapTaskBody` mn tn args cases t=:(Task eval)
 
   eval` _ event evalOpts taskTree=:(TCStable currTaskId _ _) iworld
     # (tr, iworld) = eval event (resetInhOpts (setBPTaskId currTaskId (setBlueprintInfo evalOpts))) taskTree iworld
-    # iworld       = markStable mn tn currTaskId iworld
+    # iworld       = markStable currTaskId mn tn iworld
     # iworld       = storeTaskOutputViewer tr evalOpts.tonicOpts.currBlueprintExprId evalOpts.tonicOpts.currBlueprintTaskId currTaskId iworld
     = (tr, iworld)
 
@@ -465,7 +465,7 @@ tonicWrapTaskBody` mn tn args cases t=:(Task eval)
     # (tr, iworld) = eval event (resetInhOpts (setBlueprintInfo evalOpts)) taskTree iworld
     # iworld       = case (taskIdFromTaskTree taskTree, tr) of
                        (Ok tid, ValueResult (Value _ True) _ _ _)
-                         # iworld = markStable mn tn tid iworld
+                         # iworld = markStable tid mn tn iworld
                          = storeTaskOutputViewer tr evalOpts.tonicOpts.currBlueprintExprId evalOpts.tonicOpts.currBlueprintTaskId tid iworld
                        _ = iworld
     = (tr, iworld)
@@ -473,10 +473,10 @@ tonicWrapTaskBody` mn tn args cases t=:(Task eval)
 modTonicOpts :: !TaskEvalOpts !(TonicOpts -> TonicOpts) -> TaskEvalOpts
 modTonicOpts teo f = {teo & tonicOpts = f teo.tonicOpts}
 
-markStable :: !ModuleName !FuncName !TaskId !*IWorld -> *IWorld
-markStable currBlueprintModuleName currBlueprintFuncName currTaskId iworld
-// TODO Check
-  # (mbpref, iworld) = 'DSDS'.read (sdsFocus (currTaskId, currBlueprintModuleName, currBlueprintFuncName) tonicInstances) iworld
+markStable :: !TaskId !ModuleName !FuncName !*IWorld -> *IWorld
+markStable currTaskId currBlueprintModuleName currBlueprintFuncName iworld
+  # focus            = sdsFocus (currTaskId, currBlueprintModuleName, currBlueprintFuncName) tonicInstances
+  # (mbpref, iworld) = 'DSDS'.read focus iworld
   = case mbpref of
       Ok (Just {bpi_endTime = Just _}) // Already marked as stable, don't do extra work
         = iworld
@@ -491,7 +491,7 @@ markStable currBlueprintModuleName currBlueprintFuncName currTaskId iworld
                                           , bpi_activeNodes      = 'DM'.newMap
                                           , bpi_lastUpdated      = currDateTime
                                           , bpi_endTime          = Just currDateTime
-                                          } (sdsFocus (currTaskId, currBlueprintModuleName, currBlueprintFuncName) tonicInstances) iworld
+                                          } focus iworld
         = iworld
       _ = iworld
 
@@ -687,7 +687,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
     # (mchild_bpr, iworld) = 'DSDS'.read (sdsFocus currTaskId allTonicInstances) iworld
     # iworld               = case mchild_bpr of
                                Ok xs
-                                 = snd (mapSt (\(_, {bpi_bpref}) iworld -> ((), markStable bpi_bpref.bpr_moduleName bpi_bpref.bpr_taskName currTaskId iworld)) xs iworld)
+                                 = snd (mapSt (\(_, {bpi_bpref}) iworld -> ((), markStable currTaskId bpi_bpref.bpr_moduleName bpi_bpref.bpr_taskName iworld)) xs iworld)
                                _ = iworld
     # iworld       = storeTaskOutputViewer tr nid evalOpts.tonicOpts.currBlueprintTaskId currTaskId iworld
     = (tr, iworld)
@@ -709,11 +709,13 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
           # iworld       = case tr of
                              (ValueResult (Value x stable) _ _ _)
                                # iworld = addCases evalOpts (map (\(eid, f) -> (eid, f x)) cases) iworld
-                               # (mchild_bpr, iworld) = 'DSDS'.read (sdsFocus tid allTonicInstances) iworld
-                               = case (stable, mchild_bpr) of
-                                   (True, Ok xs)
-                                     = snd (mapSt (\(_, {bpi_bpref}) iworld -> ((), markStable bpi_bpref.bpr_moduleName bpi_bpref.bpr_taskName tid iworld)) xs iworld)
-                                   _ = iworld
+                               | stable
+                                 # (mchild_bpr, iworld) = 'DSDS'.read (sdsFocus tid allTonicInstances) iworld
+                                 = case mchild_bpr of
+                                     Ok xs
+                                       = snd (mapSt (\(_, {bpi_bpref}) iworld -> ((), markStable tid bpi_bpref.bpr_moduleName bpi_bpref.bpr_taskName iworld)) xs iworld)
+                                     _ = iworld
+                               | otherwise = iworld
                              _ = iworld
           # iworld       = storeTaskOutputViewer tr nid evalOpts.tonicOpts.currBlueprintTaskId tid iworld
           = (tr, iworld)
@@ -1175,7 +1177,7 @@ tonicDynamicBrowser rs
   layout [mainTask, settingsTask, filterTask, usersTask : _] actions
     = arrangeWithSideBar 0 RightSide 250 True [supportArea, mainTask] actions
     where
-    supportArea = arrangeWithSideBar 0 TopSide 175 False [settingsTask, filterTask, usersTask] []
+    supportArea = arrangeWithSideBar 0 TopSide 200 False [settingsTask, filterTask, usersTask] []
 
   filterQuery = updateSharedInformation (Title "Filter query") [] queryShare @! ()
 

@@ -338,7 +338,7 @@ tIf inh eid cexpr texpr eexpr tsrc
                                        Just 1 -> (TAugment cexpr (TLit (TBool False)), True, False)
                                        _      -> (cexpr, False, False)
                          _        -> (cexpr, False, False)
-  = tCaseOrIf inh texpr [ (Just (TLit (TBool True)), texpr, True, ut)
+  = tCaseOrIf inh cexpr [ (Just (TLit (TBool True)), texpr, True, ut)
                         , (Just (TLit (TBool False)), eexpr, True, ue)] tsrc
 
 tCase :: !InhMkImg !ExprId !TExpr ![(!Pattern, !TExpr)] !*TagSource -> *(!SynMkImg, !*TagSource)
@@ -371,19 +371,19 @@ tCaseOrIf inh texpr pats [(contextTag, _) : tsrc]
 
 tCaseDiamond :: !InhMkImg !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
 tCaseDiamond inh exprImg [(diamondTag, uDiamondTag) : tsrc]
-  #! exprImg         = tag uDiamondTag exprImg
-  #! textHeight      = imageyspan diamondTag
-  #! textWidth       = maxSpan [px 50.0, imagexspan diamondTag]
-  #! edgeMargin      = textHeight *. 2.0
-  #! centerX         = (textWidth /. 2.0) + edgeMargin
-  #! leftCorner      = (px 0.0, y textHeight edgeMargin (px 0.0))
-  #! topCorner       = (centerX, ~ (y textHeight edgeMargin centerX))
-  #! rightCorner     = (centerX *. 2.0, y textHeight edgeMargin (px 0.0))
-  #! bottomCorner    = (centerX, y textHeight edgeMargin centerX)
-  #! diamond         = polygon Nothing [ leftCorner, topCorner, rightCorner, bottomCorner ]
-                         <@< { fill   = TonicWhite }
-                         <@< { stroke = TonicBlack }
-  #! img             = overlay (repeat (AtMiddleX, AtMiddleY)) [] [diamond, exprImg] Nothing
+  #! exprImg      = tag uDiamondTag exprImg
+  #! textHeight   = imageyspan diamondTag
+  #! textWidth    = maxSpan [px 50.0, imagexspan diamondTag]
+  #! edgeMargin   = textHeight *. 2.0
+  #! centerX      = (textWidth /. 2.0) + edgeMargin
+  #! leftCorner   = (px 0.0, y textHeight edgeMargin (px 0.0))
+  #! topCorner    = (centerX, ~ (y textHeight edgeMargin centerX))
+  #! rightCorner  = (centerX *. 2.0, y textHeight edgeMargin (px 0.0))
+  #! bottomCorner = (centerX, y textHeight edgeMargin centerX)
+  #! diamond      = polygon Nothing [leftCorner, topCorner, rightCorner, bottomCorner]
+                      <@< { fill   = TonicWhite }
+                      <@< { stroke = TonicBlack }
+  #! img          = overlay (repeat (AtMiddleX, AtMiddleY)) [] [diamond, exprImg] Nothing
   = (img, tsrc)
   where
   y :: !Span !Span !Span -> Span
