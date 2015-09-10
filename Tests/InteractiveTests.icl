@@ -50,12 +50,19 @@ where
 	tc :: Task GoogleMap
 	tc = enterInformation "Test a Google map" []
 
+import iTasks.API.Extensions.Dashboard
+testControlLight = testInteractive "Control light" tc "Look at the rendered ui" "You should see a rendering of a green LED"
+where
+	tc :: Task ControlLight
+	tc = viewInformation () [] LightOnGreen
+
 testAll :: Task [TestResult]
 testAll = allTasks 
 	[testEditlet
 	,testSVGEditlet
 	,testLeafletMap
 	,testGoogleMap
+	,testControlLight
 	]
 
 Start w = startEngine testAll w
