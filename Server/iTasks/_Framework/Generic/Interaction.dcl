@@ -127,8 +127,7 @@ customVerify :: !(a -> Bool) !(a -> String) !VerifyOptions (MaskedValue a) -> Ve
 *
 * @return The modified value
 */
-basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt) | JSONDecode{|*|} upd
-basicUpdate2 :: !(upd a -> Maybe a) !DataPath !JSONNode !a !InteractionMask !*USt -> *(!a, !InteractionMask, !*USt) | JSONDecode{|*|} upd
+basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !a !InteractionMask !*USt -> *(!a, !InteractionMask, !*USt) | JSONDecode{|*|} upd
 /**
 * Updates a value which's new value can be calculated from the update-json
 * without knowledge of the previous value.
@@ -137,5 +136,4 @@ basicUpdate2 :: !(upd a -> Maybe a) !DataPath !JSONNode !a !InteractionMask !*US
 *
 * @return The modified value
 */
-basicUpdateSimple :: !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt) | JSONDecode{|*|} a
-basicUpdateSimple2 :: !DataPath !JSONNode !a !InteractionMask !*USt -> *(!a,!InteractionMask,!*USt) | JSONDecode{|*|} a
+basicUpdateSimple :: !DataPath !JSONNode !a !InteractionMask !*USt -> *(!a,!InteractionMask,!*USt) | JSONDecode{|*|} a

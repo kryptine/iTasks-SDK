@@ -11,10 +11,10 @@ import iTasks.UI.Editor
 derive class iTask Workflow
 
 gText{|WorkflowTaskContainer|} _ _			            = []
-gEditor{|WorkflowTaskContainer|} = {render=render,edit=edit}
+gEditor{|WorkflowTaskContainer|} = {Editor|genUI=genUI,appDiff=appDiff}
 where
-	render _ _ _ _ _ vst			    = (HiddenEditor,vst)
-	edit _ _ val mask ust 				= (val,mask,ust)
+	genUI _ _ _ _ _ vst			    = (HiddenEditor,vst)
+	appDiff _ _ val mask ust 				= (val,mask,ust)
 
 gEditMeta{|WorkflowTaskContainer|} _ 				    = [{label=Just "Workflow task container",hint=Nothing,unit=Nothing}]
 gVerify{|WorkflowTaskContainer|} _ mv 				    = alwaysValid mv

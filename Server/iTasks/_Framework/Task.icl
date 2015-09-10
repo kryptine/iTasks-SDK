@@ -54,10 +54,10 @@ JSONDecode{|Task|} _ _ c = (Nothing,c)
 gVerify{|Task|} _ _ mv = alwaysValid mv
 
 gText{|Task|} _ _ _ = ["<Task>"]
-gEditor{|Task|} _ _ _ _ _ _ = {render=render,edit=edit}
+gEditor{|Task|} _ _ _ _ _ _ = {Editor|genUI=genUI,appDiff=appDiff}
 where
-	render _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>", 'DM'.newMap)],vst)
-	edit dp e val mask ust = basicUpdate2 (\() t -> Just t) dp e val mask ust
+	genUI _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>", 'DM'.newMap)],vst)
+	appDiff dp e val mask ust = basicUpdate (\() t -> Just t) dp e val mask ust
 
 gEditMeta{|Task|} _ _ 		= [{label=Just "Task",hint=Nothing,unit=Nothing}]
 gEq{|Task|} _ _ _			= True // tasks are always equal??

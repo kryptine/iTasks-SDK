@@ -31,9 +31,9 @@ gText{|Editlet|} fa _ _ mode (Just editlet) = fa mode (Just editlet.Editlet.curr
 gText{|Editlet|} fa _ _ mode Nothing = fa mode Nothing
 
 
-gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncB jsonDecB fd textD defaultD headersD jsonEncD jsonDecD = {render=render,edit=edit}
+gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncB jsonDecB fd textD defaultD headersD jsonEncD jsonDecD = {Editor|genUI=genUI,appDiff=appDiff}
 where
-	render dp {Editlet| currVal, defValSrv, genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv} mask ver meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
+	genUI dp {Editlet| currVal, defValSrv, genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv} mask ver meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
 		# (uiDef, world)        = genUI htmlId world
   		# iworld                = {iworld & world = world}
 		= case 'Data.Map'.get (taskId,editorId dp) editletDiffs of
@@ -89,7 +89,8 @@ where
 
 			setEditletDiffs ver value opts diffs iworld=:{IWorld|current=current=:{editletDiffs}}
 				= {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId dp) (ver,toJSONA value,opts,diffs) editletDiffs}}
-	edit [] jsonDiff ov omask ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
+
+	appDiff [] jsonDiff ov omask ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
 		// Bit dirty, but we need to unwrap the "unexpected" version number and the expected diff
 		# (ver, diffId, jsonDiff) = case jsonDiff of
 			JSONArray [ver, diffId, diff] 	= (maybe -1 id (fromJSON ver), maybe -1 id (fromJSON diffId), diff)
@@ -112,7 +113,7 @@ where
 					Nothing = iworld
 				= ({ov & currVal = ov.Editlet.appDiffSrv diff ov.Editlet.currVal}, Touched, {USt|ust & iworld = iworld})
 			_	= (ov,omask,ust)
-	edit dp _ val mask ust = (val,mask,ust)
+	appDiff dp _ val mask ust = (val,mask,ust)
 
 gEditMeta{|Editlet|} fa _ _ editlet = fa editlet.Editlet.currVal
 gVerify{|Editlet|} fa _ _ _ mv = alwaysValid mv

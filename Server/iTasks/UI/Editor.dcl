@@ -21,8 +21,8 @@ from Text.JSON import :: JSONNode
 *	Standard editor
 */
 :: Editor a = 
-	{ render :: DataPath a InteractionMask Verification [EditMeta] *VSt -> *(!VisualizationResult,!*VSt)
-	, edit   :: DataPath JSONNode a InteractionMask *USt -> *(!a, !InteractionMask, !*USt)
+	{ genUI  	:: DataPath a InteractionMask Verification [EditMeta] *VSt -> *(!VisualizationResult,!*VSt)
+	, appDiff 	:: DataPath JSONNode a InteractionMask *USt -> *(!a, !InteractionMask, !*USt)
 	}
 
 :: *VSt =

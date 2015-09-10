@@ -68,9 +68,9 @@ JSONEncode{|Username|} _ (Username u) = [JSONString u]
 JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
 JSONDecode{|Username|} _ c = (Nothing,c)
 
-gEditor{|Username|} = {render=render,edit=edit}
+gEditor{|Username|} = {Editor|genUI=genUI,appDiff=appDiff}
 where
-	render dp val mask ver meta vst=:{VSt|taskId,disabled}
+	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled	
 			# val = checkMask mask val
 			= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},'DM'.newMap)],vst)
@@ -78,7 +78,7 @@ where
 			# value = checkMaskValue mask ((\(Username v) -> v) val)
 			= (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
 
-	edit dp e val mask ust = basicUpdateSimple2 dp e val mask ust
+	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
 gVerify{|Username|} mv options = simpleVerify mv options
 gEditMeta{|Username|} _ = [{label=Nothing,hint=Just "Enter a username",unit=Nothing}]
@@ -106,16 +106,16 @@ JSONDecode{|Password|} _ c = (Nothing,c)
 gText{|Password|} AsHeader _ = [""]
 gText{|Password|} _ _        = ["********"]
 
-gEditor{|Password|} = {render=render,edit=edit}
+gEditor{|Password|} = {Editor|genUI=genUI,appDiff=appDiff}
 where
-	render dp val mask ver meta vst=:{VSt|taskId,disabled}
+	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled	
 			= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},'DM'.newMap)],vst)
 		| otherwise	
 			# value = checkMaskValue mask ((\(Password v) -> v) val)
 			= (NormalEditor [(UIEditPassword defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
 
-	edit dp e val mask ust = basicUpdateSimple2 dp e val mask ust
+	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
 gVerify{|Password|} mv options = simpleVerify mv options
 gEditMeta{|Password|} _ = [{label=Nothing,hint=Just "Enter a password",unit=Nothing}]

@@ -227,10 +227,10 @@ gEq{|ActionTasks|} x y = True
 
 gDefault{|ActionTasks|} = ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
 gText{|ActionTasks|} _ _ = ["Action item task definition"]
-gEditor{|ActionTasks|} = {render=render,edit=edit}
+gEditor{|ActionTasks|} = {Editor|genUI=genUI,appDiff=appDiff}
 where
-	render _ _ _ _ _ vst = (HiddenEditor,vst)
-	edit _ _ val mask ust = (val,mask,ust)
+	genUI _ _ _ _ _ vst = (HiddenEditor,vst)
+	appDiff _ _ val mask ust = (val,mask,ust)
 
 gEditMeta{|ActionTasks|} _ = [{label=Nothing,hint=Nothing,unit=Nothing}]
 gVerify{|ActionTasks|} _ val = alwaysValid val

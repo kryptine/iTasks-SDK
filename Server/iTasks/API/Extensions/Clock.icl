@@ -13,13 +13,13 @@ derive gEq AnalogClock
 derive gDefault AnalogClock
 derive gText AnalogClock
 
-gEditor{|AnalogClock|} = {render=render,edit=edit}
+gEditor{|AnalogClock|} = {Editor|genUI=genUI,appDiff=appDiff}
 where
-	render dp (AnalogClock t) mask ver meta vst
-    	= gEditor{|*|}.render dp (analogClockEditlet t) mask ver meta vst
+	genUI dp (AnalogClock t) mask ver meta vst
+    	= gEditor{|*|}.Editor.genUI dp (analogClockEditlet t) mask ver meta vst
 	
-	edit dp e (AnalogClock t) mask ust
-		# (editlet,mask,ust) = gEditor{|*|}.edit dp e (analogClockEditlet t) mask ust
+	appDiff dp e (AnalogClock t) mask ust
+		# (editlet,mask,ust) = gEditor{|*|}.Editor.appDiff dp e (analogClockEditlet t) mask ust
 		= (AnalogClock editlet.currVal,mask,ust) 
 
 //SVG Based analog clock editlet

@@ -362,12 +362,12 @@ where
 gText{|GoogleMapPosition|} _ (Just {GoogleMapPosition|lat,lng}) = [toString lat + " " + toString lng]
 gText{|GoogleMapPosition|} _ _ = [""]
 
-gEditor{|GoogleMap|} = {render=render,edit=edit}
+gEditor{|GoogleMap|} = {Editor|genUI=genUI,appDiff=appDiff}
 where
-	render dp val mask ver meta vst
-    	= gEditor{|*|}.render dp (googleMapEditlet val) mask ver meta vst
-	edit dp e val mask ust 
-    	# (editlet,mask,ust) = gEditor{|*|}.edit dp e (googleMapEditlet val) mask ust
+	genUI dp val mask ver meta vst
+    	= gEditor{|*|}.Editor.genUI dp (googleMapEditlet val) mask ver meta vst
+	appDiff dp e val mask ust 
+    	# (editlet,mask,ust) = gEditor{|*|}.Editor.appDiff dp e (googleMapEditlet val) mask ust
     	= (editlet.currVal,mask,ust)
 
 //derive gUpdate GoogleMap

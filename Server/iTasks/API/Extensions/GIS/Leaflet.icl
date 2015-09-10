@@ -419,12 +419,12 @@ where
 
     ignoreConflict conflict state env = (state, NoDiff, env)
 
-gEditor{|LeafletMap|} = {render=render,edit=edit} 
+gEditor{|LeafletMap|} = {Editor|genUI=genUI,appDiff=appDiff} 
 where
-	render dp val mask ver meta vst
-    	= gEditor{|*|}.render dp (leafletEditlet val) mask ver meta vst
-	edit dp e val mask ust 
-    	# (editlet,mask,ust) = gEditor{|*|}.edit dp e (leafletEditlet val) mask ust
+	genUI dp val mask ver meta vst
+    	= gEditor{|*|}.Editor.genUI dp (leafletEditlet val) mask ver meta vst
+	appDiff dp e val mask ust 
+    	# (editlet,mask,ust) = gEditor{|*|}.Editor.appDiff dp e (leafletEditlet val) mask ust
     	= (editlet.currVal,mask,ust)
 
 gVerify{|LeafletMap|} _ vst = alwaysValid vst
