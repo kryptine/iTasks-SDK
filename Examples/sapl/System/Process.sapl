@@ -1,0 +1,75 @@
+|| ?module? System.Process
+
+
+System.Process.foldr_10 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> op_0 a_1_0 (System.Process.foldr_10 op_0 r_1 x_1_1)) 
+System.Process.escape_9 !s_0 = if (<{StdInt.==_16}> (Text.indexOf_3 " " s_0) -1) s_0 (if (System.Process.escape_9_select0 s_0) s_0 (<{StdString.+++_11}> "\"" (<{StdString.+++_11}> s_0 "\"")))
+System.Process.escape_9_select0 !s_0 = if (StdBool.not (<{StdInt.<_17}> (_SystemArray.size_20 s_0) 2)) (if (<{StdChar.==_18}> (_SystemArray.select_19 s_0 0) '"') (<{StdChar.==_18}> (_SystemArray.select_19 s_0 (<{StdInt.-_7}> (_SystemArray.size_20 s_0) 1)) '"') False) False
+System.Process.anon_8 !a_0 !b_1 = <{StdString.+++_11}> a_0 (<{StdString.+++_11}> " " b_1)
+System.Process.foldr_54 !r_0 !_x_1 = select _x_1 (_predefined._Nil -> r_0) (_predefined._Cons a_1_0 x_1_1 -> System.Process.anon_8 a_1_0 (System.Process.foldr_54 r_0 x_1_1)) 
+System.Process.runProcess !path_0 !args_1 !mCurrentDirectory_2 !world_3 = let _x_1_0 = <{System.Process._c;33;21_55}> mCurrentDirectory_2 path_0 commandLine_1_3 startup_1_2 process_1_1 world_3, process_1_1 = _SystemArray.createArray_9 4 0, startup_1_2 = _SystemArray.update_13 (_SystemArray.update_13 (_SystemArray.createArray_9 17 0) 0 68) 11 256, commandLine_1_3 = System._Pointer.packString (System.Process.foldr_54 "" (StdList.map System.Process.escape_9 (_predefined._Cons path_0 args_1))) in if (StdBool.not (_predefined.tupsels2v0 _x_1_0)) (System.OSError.getLastOSError (_predefined.tupsels2v1 _x_1_0)) (_Tuple2 (Data.Error.Ok (System.Process._ProcessHandle (_SystemArray.select_11 process_1_1 0) (_SystemArray.select_11 process_1_1 1))) (_predefined.tupsels2v1 _x_1_0))
+<{System.Process._c;33;21_55}> !mCurrentDirectory_0 !path_1 !commandLine_2 !startup_3 !process_4 !world_5 = select mCurrentDirectory_0 (Data.Maybe.Just dir_1_0 -> System._WinBase.createProcessA_dir (System._Pointer.packString path_1) commandLine_2 0 0 True 8 0 (System._Pointer.packString dir_1_0) startup_3 process_4 world_5) (Data.Maybe.Nothing -> System._WinBase.createProcessA (System._Pointer.packString path_1) commandLine_2 0 0 True 8 0 0 startup_3 process_4 world_5) 
+System.Process.closeProcessHandle !handle_0 !world_1 = let _x_1_0 = System._WinBase.closeHandle (System.Process.get_processHandle_0 handle_0) world_1 in if (StdBool.not (_predefined.tupsels2v0 _x_1_0)) (System.OSError.getLastOSError (_predefined.tupsels2v1 _x_1_0)) (let world_2_0 = _predefined.tupsels2v1 _x_1_0, _x_2_1 = System._WinBase.closeHandle (System.Process.get_threadHandle_1 handle_0) world_2_0 in if (StdBool.not (_predefined.tupsels2v0 _x_2_1)) (System.OSError.getLastOSError (_predefined.tupsels2v1 _x_2_1)) (_Tuple2 (Data.Error.Ok Data.Void.Void) (_predefined.tupsels2v1 _x_2_1)))
+System.Process.checkProcess !handle_0 !world_1 = select handle_0 (System.Process._ProcessHandle processHandle_1_0 threadHandle_1_1 -> let _x_2_0 = System._WinBase.getExitCodeProcess processHandle_1_0 world_1 in if (StdBool.not (_predefined.tupsels3v0 _x_2_0)) (System.OSError.getLastOSError (_predefined.tupsels3v2 _x_2_0)) (let exitCode_3_0 = _predefined.tupsels3v1 _x_2_0 in if (<{StdInt.==_16}> exitCode_3_0 259) (_Tuple2 (Data.Error.Ok Data.Maybe.Nothing) (_predefined.tupsels3v2 _x_2_0)) (_Tuple2 (Data.Error.Ok (Data.Maybe.Just exitCode_3_0)) (_predefined.tupsels2v1 (System.Process.closeProcessHandle handle_0 (_predefined.tupsels3v2 _x_2_0)))))) 
+System.Process.waitForProcess !handle_0 !world_1 = select handle_0 (System.Process._ProcessHandle processHandle_1_0 threadHandle_1_1 -> let _x_2_0 = System._WinBase.waitForSingleObject processHandle_1_0 -1 world_1, world_2_1 = _predefined.tupsels2v1 _x_2_0, _x_2_2 = System._WinBase.getExitCodeProcess processHandle_1_0 world_2_1 in if (StdBool.not (_predefined.tupsels3v0 _x_2_2)) (System.OSError.getLastOSError (_predefined.tupsels3v2 _x_2_2)) (_Tuple2 (Data.Error.Ok (_predefined.tupsels3v1 _x_2_2)) (_predefined.tupsels2v1 (System.Process.closeProcessHandle handle_0 (_predefined.tupsels3v2 _x_2_2))))) 
+System.Process.callProcess !path_0 !args_1 !mCurrentDirectory_2 !world_3 = let _x_1_0 = System.Process.runProcess path_0 args_1 mCurrentDirectory_2 world_3, world_1_1 = _predefined.tupsels2v1 _x_1_0 in <{System.Process._c;74;7_56}> (_predefined.tupsels2v0 _x_1_0) world_1_1
+<{System.Process._c;74;7_56}> !_x_0 world_1 = select _x_0 (Data.Error.Error e_1_0 -> _Tuple2 (Data.Error.Error e_1_0) world_1) (Data.Error.Ok handle_1_0 -> System.Process.waitForProcess handle_1_0 world_1) 
+System.Process.undef = System.Process.undef
+System.Process.exit !_x_0 !world_1 = <{_Tuple2!2}> System.Process.undef world_1
+<{System.Process.TD;ProcessHandle}> _x_0 = _predefined._Nil
+
+
+|| Converted Records
+:: System.Process._ProcessHandle = {System.Process.processHandle, System.Process.threadHandle}
+System.Process.get_processHandle_0 rec = select rec (System.Process._ProcessHandle a1 a2 -> a1)
+System.Process.get_threadHandle_1 rec = select rec (System.Process._ProcessHandle a1 a2 -> a2)
+System.Process.set_processHandle_0 rec val = select rec (System.Process._ProcessHandle  a1 a2 -> System.Process._ProcessHandle val a2)
+System.Process.set_threadHandle_1 rec val = select rec (System.Process._ProcessHandle  a1 a2 -> System.Process._ProcessHandle a1 val)
+
+:: <{System.Process.bimap_s;}> = {System.Process.bimap_s}
+System.Process.get_bimap_s_2 rec = select rec (<{System.Process.bimap_s;}> a1 -> a1)
+System.Process.set_bimap_s_2 rec val = select rec (<{System.Process.bimap_s;}>  a1 -> <{System.Process.bimap_s;}> val)
+
+:: <{System.Process.bimap_ss;}> = {System.Process.bimap_ss}
+System.Process.get_bimap_ss_3 rec = select rec (<{System.Process.bimap_ss;}> a1 -> a1)
+System.Process.set_bimap_ss_3 rec val = select rec (<{System.Process.bimap_ss;}>  a1 -> <{System.Process.bimap_ss;}> val)
+
+:: <{System.Process.bimap_sss;}> = {System.Process.bimap_sss}
+System.Process.get_bimap_sss_4 rec = select rec (<{System.Process.bimap_sss;}> a1 -> a1)
+System.Process.set_bimap_sss_4 rec val = select rec (<{System.Process.bimap_sss;}>  a1 -> <{System.Process.bimap_sss;}> val)
+
+:: <{System.Process.gEq_s;}> = {System.Process.gEq_s}
+System.Process.get_gEq_s_5 rec = select rec (<{System.Process.gEq_s;}> a1 -> a1)
+System.Process.set_gEq_s_5 rec val = select rec (<{System.Process.gEq_s;}>  a1 -> <{System.Process.gEq_s;}> val)
+
+:: <{System.Process.gEq_ss;}> = {System.Process.gEq_ss}
+System.Process.get_gEq_ss_6 rec = select rec (<{System.Process.gEq_ss;}> a1 -> a1)
+System.Process.set_gEq_ss_6 rec val = select rec (<{System.Process.gEq_ss;}>  a1 -> <{System.Process.gEq_ss;}> val)
+
+:: <{System.Process.gEq_sss;}> = {System.Process.gEq_sss}
+System.Process.get_gEq_sss_7 rec = select rec (<{System.Process.gEq_sss;}> a1 -> a1)
+System.Process.set_gEq_sss_7 rec val = select rec (<{System.Process.gEq_sss;}>  a1 -> <{System.Process.gEq_sss;}> val)
+
+:: <{System.Process.gEq_ssss;}> = {System.Process.gEq_ssss}
+System.Process.get_gEq_ssss_8 rec = select rec (<{System.Process.gEq_ssss;}> a1 -> a1)
+System.Process.set_gEq_ssss_8 rec val = select rec (<{System.Process.gEq_ssss;}>  a1 -> <{System.Process.gEq_ssss;}> val)
+
+:: <{System.Process.gEq_sssss;}> = {System.Process.gEq_sssss}
+System.Process.get_gEq_sssss_9 rec = select rec (<{System.Process.gEq_sssss;}> a1 -> a1)
+System.Process.set_gEq_sssss_9 rec val = select rec (<{System.Process.gEq_sssss;}>  a1 -> <{System.Process.gEq_sssss;}> val)
+
+:: <{System.Process.gEq_ssssss;}> = {System.Process.gEq_ssssss}
+System.Process.get_gEq_ssssss_10 rec = select rec (<{System.Process.gEq_ssssss;}> a1 -> a1)
+System.Process.set_gEq_ssssss_10 rec val = select rec (<{System.Process.gEq_ssssss;}>  a1 -> <{System.Process.gEq_ssssss;}> val)
+
+:: <{System.Process.gEq_sssssss;}> = {System.Process.gEq_sssssss}
+System.Process.get_gEq_sssssss_11 rec = select rec (<{System.Process.gEq_sssssss;}> a1 -> a1)
+System.Process.set_gEq_sssssss_11 rec val = select rec (<{System.Process.gEq_sssssss;}>  a1 -> <{System.Process.gEq_sssssss;}> val)
+
+:: <{System.Process.gEq_ssssssss;}> = {System.Process.gEq_ssssssss}
+System.Process.get_gEq_ssssssss_12 rec = select rec (<{System.Process.gEq_ssssssss;}> a1 -> a1)
+System.Process.set_gEq_ssssssss_12 rec val = select rec (<{System.Process.gEq_ssssssss;}>  a1 -> <{System.Process.gEq_ssssssss;}> val)
+
+:: <{System.Process.gEq_sssssssss;}> = {System.Process.gEq_sssssssss}
+System.Process.get_gEq_sssssssss_13 rec = select rec (<{System.Process.gEq_sssssssss;}> a1 -> a1)
+System.Process.set_gEq_sssssssss_13 rec val = select rec (<{System.Process.gEq_sssssssss;}>  a1 -> <{System.Process.gEq_sssssssss;}> val)
+

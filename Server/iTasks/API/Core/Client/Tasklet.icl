@@ -10,7 +10,7 @@ import iTasks.UI.JS.Interface
 
 import Data.Functor, Data.Error
 
-from Data.Map import newMap
+from Data.Map import newMap, singleton
 
 :: EventQueue :== Void
 
@@ -59,7 +59,7 @@ where
 	taskFunc event evalOpts (TCInit taskId ts) iworld
 		# (rep, st, iworld) = genRep tasklet taskId evalOpts Nothing iworld
 		# res = tasklet.Tasklet.resultFunc st
-		# result = ValueResult res (taskInfo ts) rep (TCBasic taskId ts (toJSON res) False)
+		# result = ValueResult res (taskInfo ts) (TaskRep rep) (TCBasic taskId ts (toJSON res) False) (singleton taskId (Left rep))
 		= (result, printlnI ("init") iworld) 
 
 	// Refresh: no session id
@@ -74,14 +74,14 @@ where
 		# res = fromJust (fromJSON (jsonRes))
 		//# res = tasklet.Tasklet.resultFunc st
 		
-		# result = ValueResult res (taskInfo ts) rep context
+		# result = ValueResult res (taskInfo ts) (TaskRep rep) context (singleton taskId (Left rep))
 		= (result, printlnI "refresh" iworld)
 
 	// Focus: tab switch. anything else?
 	taskFunc (FocusEvent _) taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
 		# (rep, _, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld	
 		# res = fromJust (fromJSON (jsonRes))
-		# result = ValueResult res (taskInfo ts) rep context
+		# result = ValueResult res (taskInfo ts) (TaskRep rep) context (singleton taskId (Left rep))
 		= (result, printlnI "focus" iworld)
  
 	// Edit: "result"
@@ -89,7 +89,7 @@ where
 		| targetTaskId == taskId
 			# (rep, _, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld			
 			# res = fromJust (fromJSON (jsonRes))
-			# result = ValueResult res (taskInfo ts) rep (TCBasic taskId ts jsonRes False)
+			# result = ValueResult res (taskInfo ts) (TaskRep rep) (TCBasic taskId ts jsonRes False) (singleton taskId (Left rep))
 			= (result, printlnI "result" iworld) 
  
 	// Edit: "finalize"
@@ -103,7 +103,7 @@ where
 	taskFunc event taskRepOpts (TCBasic taskId ts jsonRes _) iworld
 		# (rep, _, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld
 		# res = fromJust (fromJSON (jsonRes))
-		# result = ValueResult res (taskInfo ts) rep (TCBasic taskId ts jsonRes False)
+		# result = ValueResult res (taskInfo ts) (TaskRep rep) (TCBasic taskId ts jsonRes False) (singleton taskId (Left rep))
 		= (result, printlnI "commit" iworld)
 
 	// Destroy
@@ -127,7 +127,7 @@ genRep tasklet taskId taskRepOpts mbState iworld
 						     iworld
 					
 				# tui = tHTMLToTasklet gui taskId state_js script_js events_js intfcs_js rf_js
-				# rep = TaskRep (appTweak tasklet tui)
+				# rep = appTweak tasklet tui
 				= (rep, state, iworld)
 
 			TaskletTUI gui
@@ -144,7 +144,7 @@ genRep tasklet taskId taskRepOpts mbState iworld
 						     iworld
 					
 				# tui = tTUIToTasklet taskId state_js script_js mb_ino rf_js mb_cf_js
-				# rep = TaskRep (appTweak tasklet tui)
+				# rep = appTweak tasklet tui
 				= (rep, state, iworld)
 
 			NoGUI
@@ -169,7 +169,7 @@ genRep tasklet taskId taskRepOpts mbState iworld
 							, instanceNo	 = Nothing
 							, controllerFunc = Nothing})			
 			
-				# rep = TaskRep (appTweak tasklet tui)
+				# rep = appTweak tasklet tui
 				= (rep, state, iworld)
 where
 	tTUIToTasklet taskId state_js script_js mb_ino rf_js mb_cf_js

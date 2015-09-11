@@ -1,0 +1,64 @@
+|| ?module? Sapl.Transform.AddSelectors
+
+
+Sapl.Transform.AddSelectors.foldr_4 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> op_0 a_1_0 (Sapl.Transform.AddSelectors.foldr_4 op_0 r_1 x_1_1)) 
+Sapl.Transform.AddSelectors.anon_2 x_0 v_1 !acc_2 = if acc_2 True (Sapl.SaplStruct.eqVarByName v_1 x_0)
+Sapl.Transform.AddSelectors.foldr_48 x_0 !r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> Sapl.Transform.AddSelectors.anon_2 x_0 a_1_0 (Sapl.Transform.AddSelectors.foldr_48 x_0 r_1 x_1_1)) 
+Sapl.Transform.AddSelectors.addSelectors_3 !_x_0 = select _x_0 (Sapl.SaplStruct.SaplLetDef v_1_0 t_1_1 -> Sapl.SaplStruct.SaplLetDef v_1_0 (Sapl.Transform.AddSelectors.addSelectors_0 t_1_1)) 
+Sapl.Transform.AddSelectors.addSelectors_0 !_x_0 = select _x_0 (Sapl.SaplStruct.SApplication v_1_0 ts_1_1 -> Sapl.SaplStruct.SApplication v_1_0 (StdList.map Sapl.Transform.AddSelectors.addSelectors_0 ts_1_1)) (Sapl.SaplStruct.SIf c_1_0 t_1_1 e_1_2 -> Sapl.SaplStruct.SIf (Sapl.Transform.AddSelectors.addSelectors_0 c_1_0) (Sapl.Transform.AddSelectors.addSelectors_0 t_1_1) (Sapl.Transform.AddSelectors.addSelectors_0 e_1_2)) (Sapl.SaplStruct.SSelect t_1_0 ps_1_1 -> select ps_1_1 (_predefined._Cons _x_2_0 _x_2_1 -> select _x_2_0 (_Tuple2 _x_3_0 _x_3_1 -> select _x_3_0 (Sapl.SaplStruct.PCons _x_4_0 vs_4_1 -> select _x_3_1 (Sapl.SaplStruct.SVar x_5_0 -> select _x_2_1 (_predefined._Nil -> if (Sapl.Transform.AddSelectors.foldr_48 x_5_0 False vs_4_1) (Sapl.SaplStruct.SSelector (Sapl.SaplStruct.SSelect (Sapl.Transform.AddSelectors.addSelectors_0 t_1_0) ps_1_1)) (Sapl.SaplStruct.SSelect (Sapl.Transform.AddSelectors.addSelectors_0 t_1_0) ps_1_1)) ) ) ) ) ) (Sapl.SaplStruct.SLet t_1_0 lds_1_1 -> Sapl.SaplStruct.SLet (Sapl.Transform.AddSelectors.addSelectors_0 t_1_0) (StdList.map Sapl.Transform.AddSelectors.addSelectors_3 lds_1_1)) (_ -> _x_0)
+<{Sapl.Transform.AddSelectors.TD;addSelectors;}> _x_0 = _predefined._Nil
+
+
+|| Converted Records
+:: <{Sapl.Transform.AddSelectors.addSelectors;}> = {!Sapl.Transform.AddSelectors.addSelectors}
+Sapl.Transform.AddSelectors.get_addSelectors_0 rec = select rec (<{Sapl.Transform.AddSelectors.addSelectors;}> a1 -> a1)
+Sapl.Transform.AddSelectors.set_addSelectors_0 rec !val = select rec (<{Sapl.Transform.AddSelectors.addSelectors;}>  a1 -> <{Sapl.Transform.AddSelectors.addSelectors;}> val)
+
+:: <{Sapl.Transform.AddSelectors.bimap_s;}> = {Sapl.Transform.AddSelectors.bimap_s}
+Sapl.Transform.AddSelectors.get_bimap_s_1 rec = select rec (<{Sapl.Transform.AddSelectors.bimap_s;}> a1 -> a1)
+Sapl.Transform.AddSelectors.set_bimap_s_1 rec val = select rec (<{Sapl.Transform.AddSelectors.bimap_s;}>  a1 -> <{Sapl.Transform.AddSelectors.bimap_s;}> val)
+
+:: <{Sapl.Transform.AddSelectors.bimap_ss;}> = {Sapl.Transform.AddSelectors.bimap_ss}
+Sapl.Transform.AddSelectors.get_bimap_ss_2 rec = select rec (<{Sapl.Transform.AddSelectors.bimap_ss;}> a1 -> a1)
+Sapl.Transform.AddSelectors.set_bimap_ss_2 rec val = select rec (<{Sapl.Transform.AddSelectors.bimap_ss;}>  a1 -> <{Sapl.Transform.AddSelectors.bimap_ss;}> val)
+
+:: <{Sapl.Transform.AddSelectors.bimap_sss;}> = {Sapl.Transform.AddSelectors.bimap_sss}
+Sapl.Transform.AddSelectors.get_bimap_sss_3 rec = select rec (<{Sapl.Transform.AddSelectors.bimap_sss;}> a1 -> a1)
+Sapl.Transform.AddSelectors.set_bimap_sss_3 rec val = select rec (<{Sapl.Transform.AddSelectors.bimap_sss;}>  a1 -> <{Sapl.Transform.AddSelectors.bimap_sss;}> val)
+
+:: <{Sapl.Transform.AddSelectors.gEq_s;}> = {Sapl.Transform.AddSelectors.gEq_s}
+Sapl.Transform.AddSelectors.get_gEq_s_4 rec = select rec (<{Sapl.Transform.AddSelectors.gEq_s;}> a1 -> a1)
+Sapl.Transform.AddSelectors.set_gEq_s_4 rec val = select rec (<{Sapl.Transform.AddSelectors.gEq_s;}>  a1 -> <{Sapl.Transform.AddSelectors.gEq_s;}> val)
+
+:: <{Sapl.Transform.AddSelectors.gEq_ss;}> = {Sapl.Transform.AddSelectors.gEq_ss}
+Sapl.Transform.AddSelectors.get_gEq_ss_5 rec = select rec (<{Sapl.Transform.AddSelectors.gEq_ss;}> a1 -> a1)
+Sapl.Transform.AddSelectors.set_gEq_ss_5 rec val = select rec (<{Sapl.Transform.AddSelectors.gEq_ss;}>  a1 -> <{Sapl.Transform.AddSelectors.gEq_ss;}> val)
+
+:: <{Sapl.Transform.AddSelectors.gEq_sss;}> = {Sapl.Transform.AddSelectors.gEq_sss}
+Sapl.Transform.AddSelectors.get_gEq_sss_6 rec = select rec (<{Sapl.Transform.AddSelectors.gEq_sss;}> a1 -> a1)
+Sapl.Transform.AddSelectors.set_gEq_sss_6 rec val = select rec (<{Sapl.Transform.AddSelectors.gEq_sss;}>  a1 -> <{Sapl.Transform.AddSelectors.gEq_sss;}> val)
+
+:: <{Sapl.Transform.AddSelectors.gEq_ssss;}> = {Sapl.Transform.AddSelectors.gEq_ssss}
+Sapl.Transform.AddSelectors.get_gEq_ssss_7 rec = select rec (<{Sapl.Transform.AddSelectors.gEq_ssss;}> a1 -> a1)
+Sapl.Transform.AddSelectors.set_gEq_ssss_7 rec val = select rec (<{Sapl.Transform.AddSelectors.gEq_ssss;}>  a1 -> <{Sapl.Transform.AddSelectors.gEq_ssss;}> val)
+
+:: <{Sapl.Transform.AddSelectors.gEq_sssss;}> = {Sapl.Transform.AddSelectors.gEq_sssss}
+Sapl.Transform.AddSelectors.get_gEq_sssss_8 rec = select rec (<{Sapl.Transform.AddSelectors.gEq_sssss;}> a1 -> a1)
+Sapl.Transform.AddSelectors.set_gEq_sssss_8 rec val = select rec (<{Sapl.Transform.AddSelectors.gEq_sssss;}>  a1 -> <{Sapl.Transform.AddSelectors.gEq_sssss;}> val)
+
+:: <{Sapl.Transform.AddSelectors.gEq_ssssss;}> = {Sapl.Transform.AddSelectors.gEq_ssssss}
+Sapl.Transform.AddSelectors.get_gEq_ssssss_9 rec = select rec (<{Sapl.Transform.AddSelectors.gEq_ssssss;}> a1 -> a1)
+Sapl.Transform.AddSelectors.set_gEq_ssssss_9 rec val = select rec (<{Sapl.Transform.AddSelectors.gEq_ssssss;}>  a1 -> <{Sapl.Transform.AddSelectors.gEq_ssssss;}> val)
+
+:: <{Sapl.Transform.AddSelectors.gEq_sssssss;}> = {Sapl.Transform.AddSelectors.gEq_sssssss}
+Sapl.Transform.AddSelectors.get_gEq_sssssss_10 rec = select rec (<{Sapl.Transform.AddSelectors.gEq_sssssss;}> a1 -> a1)
+Sapl.Transform.AddSelectors.set_gEq_sssssss_10 rec val = select rec (<{Sapl.Transform.AddSelectors.gEq_sssssss;}>  a1 -> <{Sapl.Transform.AddSelectors.gEq_sssssss;}> val)
+
+:: <{Sapl.Transform.AddSelectors.gEq_ssssssss;}> = {Sapl.Transform.AddSelectors.gEq_ssssssss}
+Sapl.Transform.AddSelectors.get_gEq_ssssssss_11 rec = select rec (<{Sapl.Transform.AddSelectors.gEq_ssssssss;}> a1 -> a1)
+Sapl.Transform.AddSelectors.set_gEq_ssssssss_11 rec val = select rec (<{Sapl.Transform.AddSelectors.gEq_ssssssss;}>  a1 -> <{Sapl.Transform.AddSelectors.gEq_ssssssss;}> val)
+
+:: <{Sapl.Transform.AddSelectors.gEq_sssssssss;}> = {Sapl.Transform.AddSelectors.gEq_sssssssss}
+Sapl.Transform.AddSelectors.get_gEq_sssssssss_12 rec = select rec (<{Sapl.Transform.AddSelectors.gEq_sssssssss;}> a1 -> a1)
+Sapl.Transform.AddSelectors.set_gEq_sssssssss_12 rec val = select rec (<{Sapl.Transform.AddSelectors.gEq_sssssssss;}>  a1 -> <{Sapl.Transform.AddSelectors.gEq_sssssssss;}> val)
+

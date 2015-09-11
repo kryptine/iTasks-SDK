@@ -1,7 +1,9 @@
 definition module iTasks.API.Core.TaskLayout
 
 from iTasks._Framework.Task import :: TaskId
-from Graphics.Scalable.Types import :: XAlign, :: YAlign, :: GridDimension, :: GridLayout, :: GridXLayout, :: GridYLayout, :: GridMajor
+from Graphics.Scalable import :: XAlign, :: YAlign, :: GridDimension, :: GridLayout, :: GridXLayout, :: GridYLayout, :: GridMajor
+from Text.JSON import generic JSONEncode, generic JSONDecode, ::JSONNode
+import Data.Maybe
 
 :: TaskLayout = TaskLayout (TaskUITree -> TaskUILayout)
 
@@ -9,7 +11,7 @@ from Graphics.Scalable.Types import :: XAlign, :: YAlign, :: GridDimension, :: G
   = DefaultUI  !UITag										// the default rendering of the task identified by UITag
   | ParallelUI !UITag ![TaskUITree]							// the parallel sub-tasks of a parallel and its derived task combinators
   | StepUI     !UITag !TaskUITree ![(String,TaskUITree)]	// the step sub-task and its continuation-tasks
-:: UITag (:== TaskId)
+:: UITag :== TaskId	// for the time being not an abstract data type, but should be one
 
 :: TaskUILayout
   = TaskUIDefault !UITag																	// use the task UI associated with UITag

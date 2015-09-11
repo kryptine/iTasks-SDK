@@ -1,0 +1,23 @@
+|| ?module? Text.Unicode
+
+
+<{Text.Unicode.c;8;34_6}> !_vArray_0 !_vfromChar_1 !g_i_2 !g_s_3 g_a_4 = if (StdBool.not (<{StdInt.<_17}> g_s_3 g_i_2)) (let !g_a_1_0 = _predefined._dummyForStrictAlias (_predefined.tupsels2v1 _x_1_1), _x_1_1 = _SystemArray.get_uselect_6 _vArray_0 g_a_4 g_i_2 in _predefined._Cons (StdOverloaded.get_fromChar_27 _vfromChar_1 (_predefined.tupsels2v0 _x_1_1)) (<{Text.Unicode.c;8;34_6}> _vArray_0 _vfromChar_1 (<{StdInt.+_6}> g_i_2 StdInt.one_11) g_s_3 g_a_1_0)) _predefined._Nil
+<{Text.Unicode.c;8;34_7}> !_vfromChar_0 !g_i_1 !g_s_2 g_a_3 = if (StdBool.not (<{StdInt.<_17}> g_s_2 g_i_1)) (let !g_a_1_0 = _predefined._dummyForStrictAlias (_predefined.tupsels2v1 _x_1_1), _x_1_1 = _SystemArray.uselect_22 g_a_3 g_i_1 in _predefined._Cons (StdOverloaded.get_fromChar_27 _vfromChar_0 (_predefined.tupsels2v0 _x_1_1)) (<{Text.Unicode.c;8;34_7}> _vfromChar_0 (<{StdInt.+_6}> g_i_1 StdInt.one_11) g_s_2 g_a_1_0)) _predefined._Nil
+<{Text.Unicode.c;8;34_8}> !g_i_0 !g_s_1 g_a_2 = if (StdBool.not (<{StdInt.<_17}> g_s_1 g_i_0)) (let !g_a_1_0 = _predefined._dummyForStrictAlias (_predefined.tupsels2v1 _x_1_1), _x_1_1 = _SystemArray.uselect_22 g_a_2 g_i_0 in _predefined._Cons (Text.Unicode.UChar.fromChar_26 (_predefined.tupsels2v0 _x_1_1)) (<{Text.Unicode.c;8;34_8}> (<{StdInt.+_6}> g_i_0 StdInt.one_11) g_s_1 g_a_1_0)) _predefined._Nil
+Text.Unicode.fromString_0 !str_0 = let _x_1_0 = _SystemArray.usize_23 str_0 in <{Text.Unicode.c;8;34_8}> 0 (<{StdInt.-_7}> (_predefined.tupsels2v0 _x_1_0) 1) (_predefined.tupsels2v1 _x_1_0)
+<{Text.Unicode.%_1}> !str_0 !_x_1 = select _x_1 (_Tuple2 f_1_0 t_1_1 -> StdList.take (<{StdInt.+_6}> (<{StdInt.-_7}> t_1_1 f_1_0) 1) (StdList.drop f_1_0 str_0)) 
+<{Text.Unicode.+++_2}> !str1_0 !str2_1 = <{StdList.++}> str1_0 str2_1
+<{Text.Unicode.TD;UString}> _x_0 = _predefined._Nil
+<{Text.Unicode.TD;fromUnicode;}> _x_0 = _predefined._Nil
+<{Text.Unicode.TD;toUnicode;}> _x_0 = _predefined._Nil
+
+
+|| Converted Records
+:: <{Text.Unicode.fromUnicode;}> = {!Text.Unicode.fromUnicode}
+Text.Unicode.get_fromUnicode_0 rec = select rec (<{Text.Unicode.fromUnicode;}> a1 -> a1)
+Text.Unicode.set_fromUnicode_0 rec !val = select rec (<{Text.Unicode.fromUnicode;}>  a1 -> <{Text.Unicode.fromUnicode;}> val)
+
+:: <{Text.Unicode.toUnicode;}> = {Text.Unicode.toUnicode}
+Text.Unicode.get_toUnicode_1 rec = select rec (<{Text.Unicode.toUnicode;}> a1 -> a1)
+Text.Unicode.set_toUnicode_1 rec val = select rec (<{Text.Unicode.toUnicode;}>  a1 -> <{Text.Unicode.toUnicode;}> val)
+

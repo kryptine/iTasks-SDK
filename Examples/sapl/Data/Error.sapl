@@ -1,0 +1,79 @@
+|| ?module? Data.Error
+
+
+Data.Error.isOk !_x_0 = select _x_0 (Data.Error.Ok _x_1_0 -> True) (Data.Error.Error _x_1_0 -> False) 
+Data.Error.isError !_x_0 = select _x_0 (Data.Error.Ok _x_1_0 -> False) (Data.Error.Error _x_1_0 -> True) 
+Data.Error.fromOk !_x_0 = select _x_0 (Data.Error.Ok b_1_0 -> b_1_0) (Data.Error.Error _x_1_0 -> StdMisc.abort "Data.Error.fromOk: argument is Error") 
+Data.Error.fromError !_x_0 = select _x_0 (Data.Error.Error a_1_0 -> a_1_0) (Data.Error.Ok _x_1_0 -> StdMisc.abort "Data.Error.fromError: argument is Ok") 
+Data.Error.liftError !_x_0 = select _x_0 (Data.Error.Error a_1_0 -> Data.Error.Error a_1_0) (Data.Error.Ok _x_1_0 -> StdMisc.abort "Data.Error.liftError: argument is Ok") 
+Data.Error.mb2error !error_0 !mbV_1 = Data.Maybe.maybe (Data.Error.Error error_0) Data.Error.Ok mbV_1
+Data.Error.okSt st_0 f_1 !_x_2 = select _x_2 (Data.Error.Error _x_1_0 -> st_0) (Data.Error.Ok x_1_0 -> f_1 x_1_0 st_0) 
+Data.Error.error2mb !_x_0 = select _x_0 (Data.Error.Error _x_1_0 -> Data.Maybe.Nothing) (Data.Error.Ok a_1_0 -> Data.Maybe.Just a_1_0) 
+Data.Error.seqErrors !a_0 bfunc_1 = <{Data.Error._c;54;21_61}> a_0 bfunc_1
+<{Data.Error._c;54;21_61}> !a_0 bfunc_1 = select a_0 (Data.Error.Ok a_1_0 -> bfunc_1 a_1_0) (Data.Error.Error e_1_0 -> Data.Error.Error e_1_0) 
+Data.Error.combineErrors !a_0 b_1 combf_2 = <{Data.Error._c;59;27_63}> a_0 b_1 combf_2
+<{Data.Error._c;59;27_63}> !a_0 b_1 combf_2 = select a_0 (Data.Error.Error e_1_0 -> Data.Error.Error e_1_0) (Data.Error.Ok a_1_0 -> <{Data.Error._c;61;12_62}> b_1 combf_2 a_1_0) 
+<{Data.Error._c;61;12_62}> !b_0 combf_1 a_2 = select b_0 (Data.Error.Error e_1_0 -> Data.Error.Error e_1_0) (Data.Error.Ok b_1_0 -> combf_1 a_2 b_1_0) 
+Data.Error.seqErrorsSt !aop_0 bop_1 !st_2 = let _x_1_0 = aop_0 st_2, st_1_1 = _predefined.tupsels2v1 _x_1_0 in <{Data.Error._c;68;7_64}> (_predefined.tupsels2v0 _x_1_0) st_1_1 bop_1
+<{Data.Error._c;68;7_64}> !_x_0 st_1 bop_2 = select _x_0 (Data.Error.Error e_1_0 -> <{_Tuple2!2}> (Data.Error.Error e_1_0) st_1) (Data.Error.Ok a_1_0 -> bop_2 a_1_0 st_1) 
+Data.Error.combineErrorsSt !aop_0 bop_1 combf_2 !st_3 = let _x_1_0 = aop_0 st_3, st_1_1 = _predefined.tupsels2v1 _x_1_0 in <{Data.Error._c;76;7_66}> (_predefined.tupsels2v0 _x_1_0) st_1_1 bop_1 combf_2
+<{Data.Error._c;76;7_66}> !_x_0 st_1 bop_2 combf_3 = select _x_0 (Data.Error.Error e_1_0 -> <{_Tuple2!3}> (Data.Error.Error e_1_0) st_1) (Data.Error.Ok a_1_0 -> let _x_2_0 = bop_2 st_1, st_2_1 = _predefined.tupsels2v1 _x_2_0 in <{Data.Error._c;80;15_65}> (_predefined.tupsels2v0 _x_2_0) st_2_1 combf_3 a_1_0) 
+<{Data.Error._c;80;15_65}> !_x_0 !st_1 combf_2 a_3 = select _x_0 (Data.Error.Error e_1_0 -> <{_Tuple2!3}> (Data.Error.Error e_1_0) st_1) (Data.Error.Ok b_1_0 -> <{_Tuple2!3}> (combf_2 a_3 b_1_0) st_1) 
+Data.Error.fmap_12 f_0 !_x_1 = select _x_1 (Data.Error.Ok x_1_0 -> Data.Error.Ok (f_0 x_1_0)) (Data.Error.Error x_1_0 -> Data.Error.Error x_1_0) 
+<{Data.Error.<*>_13}> !_x_0 _x_1 = select _x_0 (Data.Error.Error e_1_0 -> Data.Error.Error e_1_0) (Data.Error.Ok f_1_0 -> Data.Error.fmap_12 f_1_0 _x_1) 
+Data.Error.pure_14 x_0 = Data.Error.Ok x_0
+Data.Error.bind_15 !_x_0 _x_1 = select _x_0 (Data.Error.Error l_1_0 -> Data.Error.Error l_1_0) (Data.Error.Ok r_1_0 -> _x_1 r_1_0) 
+<{Data.Error.TD;MaybeError}> _x_0 = _predefined._Nil
+<{Data.Error.TD;MaybeErrorString}> _x_0 = _predefined._Nil
+
+:: Data.Error.MaybeError = Data.Error.Error a1 | Data.Error.Ok a1
+
+|| Converted Records
+:: <{Data.Error.bimap_s;}> = {!Data.Error.bimap_s}
+Data.Error.get_bimap_s_0 rec = select rec (<{Data.Error.bimap_s;}> a1 -> a1)
+Data.Error.set_bimap_s_0 rec !val = select rec (<{Data.Error.bimap_s;}>  a1 -> <{Data.Error.bimap_s;}> val)
+
+:: <{Data.Error.bimap_ss;}> = {Data.Error.bimap_ss}
+Data.Error.get_bimap_ss_1 rec = select rec (<{Data.Error.bimap_ss;}> a1 -> a1)
+Data.Error.set_bimap_ss_1 rec val = select rec (<{Data.Error.bimap_ss;}>  a1 -> <{Data.Error.bimap_ss;}> val)
+
+:: <{Data.Error.bimap_sss;}> = {Data.Error.bimap_sss}
+Data.Error.get_bimap_sss_2 rec = select rec (<{Data.Error.bimap_sss;}> a1 -> a1)
+Data.Error.set_bimap_sss_2 rec val = select rec (<{Data.Error.bimap_sss;}>  a1 -> <{Data.Error.bimap_sss;}> val)
+
+:: <{Data.Error.gEq_s;}> = {Data.Error.gEq_s}
+Data.Error.get_gEq_s_3 rec = select rec (<{Data.Error.gEq_s;}> a1 -> a1)
+Data.Error.set_gEq_s_3 rec val = select rec (<{Data.Error.gEq_s;}>  a1 -> <{Data.Error.gEq_s;}> val)
+
+:: <{Data.Error.gEq_ss;}> = {Data.Error.gEq_ss}
+Data.Error.get_gEq_ss_4 rec = select rec (<{Data.Error.gEq_ss;}> a1 -> a1)
+Data.Error.set_gEq_ss_4 rec val = select rec (<{Data.Error.gEq_ss;}>  a1 -> <{Data.Error.gEq_ss;}> val)
+
+:: <{Data.Error.gEq_sss;}> = {Data.Error.gEq_sss}
+Data.Error.get_gEq_sss_5 rec = select rec (<{Data.Error.gEq_sss;}> a1 -> a1)
+Data.Error.set_gEq_sss_5 rec val = select rec (<{Data.Error.gEq_sss;}>  a1 -> <{Data.Error.gEq_sss;}> val)
+
+:: <{Data.Error.gEq_ssss;}> = {Data.Error.gEq_ssss}
+Data.Error.get_gEq_ssss_6 rec = select rec (<{Data.Error.gEq_ssss;}> a1 -> a1)
+Data.Error.set_gEq_ssss_6 rec val = select rec (<{Data.Error.gEq_ssss;}>  a1 -> <{Data.Error.gEq_ssss;}> val)
+
+:: <{Data.Error.gEq_sssss;}> = {Data.Error.gEq_sssss}
+Data.Error.get_gEq_sssss_7 rec = select rec (<{Data.Error.gEq_sssss;}> a1 -> a1)
+Data.Error.set_gEq_sssss_7 rec val = select rec (<{Data.Error.gEq_sssss;}>  a1 -> <{Data.Error.gEq_sssss;}> val)
+
+:: <{Data.Error.gEq_ssssss;}> = {Data.Error.gEq_ssssss}
+Data.Error.get_gEq_ssssss_8 rec = select rec (<{Data.Error.gEq_ssssss;}> a1 -> a1)
+Data.Error.set_gEq_ssssss_8 rec val = select rec (<{Data.Error.gEq_ssssss;}>  a1 -> <{Data.Error.gEq_ssssss;}> val)
+
+:: <{Data.Error.gEq_sssssss;}> = {Data.Error.gEq_sssssss}
+Data.Error.get_gEq_sssssss_9 rec = select rec (<{Data.Error.gEq_sssssss;}> a1 -> a1)
+Data.Error.set_gEq_sssssss_9 rec val = select rec (<{Data.Error.gEq_sssssss;}>  a1 -> <{Data.Error.gEq_sssssss;}> val)
+
+:: <{Data.Error.gEq_ssssssss;}> = {Data.Error.gEq_ssssssss}
+Data.Error.get_gEq_ssssssss_10 rec = select rec (<{Data.Error.gEq_ssssssss;}> a1 -> a1)
+Data.Error.set_gEq_ssssssss_10 rec val = select rec (<{Data.Error.gEq_ssssssss;}>  a1 -> <{Data.Error.gEq_ssssssss;}> val)
+
+:: <{Data.Error.gEq_sssssssss;}> = {Data.Error.gEq_sssssssss}
+Data.Error.get_gEq_sssssssss_11 rec = select rec (<{Data.Error.gEq_sssssssss;}> a1 -> a1)
+Data.Error.set_gEq_sssssssss_11 rec val = select rec (<{Data.Error.gEq_sssssssss;}>  a1 -> <{Data.Error.gEq_sssssssss;}> val)
+

@@ -1,0 +1,62 @@
+|| ?module? TCPEvent
+
+
+TCPEvent.Cast !a_0 = error "no AnyCodeExpr"
+TCPEvent.accSChannel_0 !f_0 tcpSChanPolymorph_1 = let !_x_1_0 = f_0 (TCPEvent.Cast tcpSChanPolymorph_1) in _Tuple2 (_predefined.tupsels2v0 _x_1_0) (TCPEvent.Cast (_predefined.tupsels2v1 _x_1_0))
+TCPEvent.accSChannel_1 !f_0 !sChannel_1 = select sChannel_1 (tcp_bytestreams._TCP_SCharStream_ sbs_schan_1_0 -> let !_x_2_0 = f_0 sbs_schan_1_0 in _Tuple2 (_predefined.tupsels2v0 _x_2_0) (tcp_bytestreams.set_sbs_schan_3 sChannel_1 (_predefined.tupsels2v1 _x_2_0))) 
+<{TCPEvent.TD;accSChannel;}> _x_0 = _predefined._Nil
+
+
+|| Converted Records
+:: <{TCPEvent.accSChannel;}> = {!TCPEvent.accSChannel}
+TCPEvent.get_accSChannel_0 rec = select rec (<{TCPEvent.accSChannel;}> a1 -> a1)
+TCPEvent.set_accSChannel_0 rec !val = select rec (<{TCPEvent.accSChannel;}>  a1 -> <{TCPEvent.accSChannel;}> val)
+
+:: <{TCPEvent.bimap_s;}> = {TCPEvent.bimap_s}
+TCPEvent.get_bimap_s_1 rec = select rec (<{TCPEvent.bimap_s;}> a1 -> a1)
+TCPEvent.set_bimap_s_1 rec val = select rec (<{TCPEvent.bimap_s;}>  a1 -> <{TCPEvent.bimap_s;}> val)
+
+:: <{TCPEvent.bimap_ss;}> = {TCPEvent.bimap_ss}
+TCPEvent.get_bimap_ss_2 rec = select rec (<{TCPEvent.bimap_ss;}> a1 -> a1)
+TCPEvent.set_bimap_ss_2 rec val = select rec (<{TCPEvent.bimap_ss;}>  a1 -> <{TCPEvent.bimap_ss;}> val)
+
+:: <{TCPEvent.bimap_sss;}> = {TCPEvent.bimap_sss}
+TCPEvent.get_bimap_sss_3 rec = select rec (<{TCPEvent.bimap_sss;}> a1 -> a1)
+TCPEvent.set_bimap_sss_3 rec val = select rec (<{TCPEvent.bimap_sss;}>  a1 -> <{TCPEvent.bimap_sss;}> val)
+
+:: <{TCPEvent.gEq_s;}> = {TCPEvent.gEq_s}
+TCPEvent.get_gEq_s_4 rec = select rec (<{TCPEvent.gEq_s;}> a1 -> a1)
+TCPEvent.set_gEq_s_4 rec val = select rec (<{TCPEvent.gEq_s;}>  a1 -> <{TCPEvent.gEq_s;}> val)
+
+:: <{TCPEvent.gEq_ss;}> = {TCPEvent.gEq_ss}
+TCPEvent.get_gEq_ss_5 rec = select rec (<{TCPEvent.gEq_ss;}> a1 -> a1)
+TCPEvent.set_gEq_ss_5 rec val = select rec (<{TCPEvent.gEq_ss;}>  a1 -> <{TCPEvent.gEq_ss;}> val)
+
+:: <{TCPEvent.gEq_sss;}> = {TCPEvent.gEq_sss}
+TCPEvent.get_gEq_sss_6 rec = select rec (<{TCPEvent.gEq_sss;}> a1 -> a1)
+TCPEvent.set_gEq_sss_6 rec val = select rec (<{TCPEvent.gEq_sss;}>  a1 -> <{TCPEvent.gEq_sss;}> val)
+
+:: <{TCPEvent.gEq_ssss;}> = {TCPEvent.gEq_ssss}
+TCPEvent.get_gEq_ssss_7 rec = select rec (<{TCPEvent.gEq_ssss;}> a1 -> a1)
+TCPEvent.set_gEq_ssss_7 rec val = select rec (<{TCPEvent.gEq_ssss;}>  a1 -> <{TCPEvent.gEq_ssss;}> val)
+
+:: <{TCPEvent.gEq_sssss;}> = {TCPEvent.gEq_sssss}
+TCPEvent.get_gEq_sssss_8 rec = select rec (<{TCPEvent.gEq_sssss;}> a1 -> a1)
+TCPEvent.set_gEq_sssss_8 rec val = select rec (<{TCPEvent.gEq_sssss;}>  a1 -> <{TCPEvent.gEq_sssss;}> val)
+
+:: <{TCPEvent.gEq_ssssss;}> = {TCPEvent.gEq_ssssss}
+TCPEvent.get_gEq_ssssss_9 rec = select rec (<{TCPEvent.gEq_ssssss;}> a1 -> a1)
+TCPEvent.set_gEq_ssssss_9 rec val = select rec (<{TCPEvent.gEq_ssssss;}>  a1 -> <{TCPEvent.gEq_ssssss;}> val)
+
+:: <{TCPEvent.gEq_sssssss;}> = {TCPEvent.gEq_sssssss}
+TCPEvent.get_gEq_sssssss_10 rec = select rec (<{TCPEvent.gEq_sssssss;}> a1 -> a1)
+TCPEvent.set_gEq_sssssss_10 rec val = select rec (<{TCPEvent.gEq_sssssss;}>  a1 -> <{TCPEvent.gEq_sssssss;}> val)
+
+:: <{TCPEvent.gEq_ssssssss;}> = {TCPEvent.gEq_ssssssss}
+TCPEvent.get_gEq_ssssssss_11 rec = select rec (<{TCPEvent.gEq_ssssssss;}> a1 -> a1)
+TCPEvent.set_gEq_ssssssss_11 rec val = select rec (<{TCPEvent.gEq_ssssssss;}>  a1 -> <{TCPEvent.gEq_ssssssss;}> val)
+
+:: <{TCPEvent.gEq_sssssssss;}> = {TCPEvent.gEq_sssssssss}
+TCPEvent.get_gEq_sssssssss_12 rec = select rec (<{TCPEvent.gEq_sssssssss;}> a1 -> a1)
+TCPEvent.set_gEq_sssssssss_12 rec val = select rec (<{TCPEvent.gEq_sssssssss;}>  a1 -> <{TCPEvent.gEq_sssssssss;}> val)
+

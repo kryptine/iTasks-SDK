@@ -1,0 +1,14 @@
+|| ?module? dynamic_string
+
+
+dynamic_string.copy_to_string !g_0 = error "no AnyCodeExpr"
+dynamic_string.dynamic_to_string !d_0 = dynamic_string.copy_to_string d_0
+dynamic_string.copy_from_string !g_0 = error "no AnyCodeExpr"
+dynamic_string.string_to_dynamic !s_0 = _predefined.tupsels2v0 (dynamic_string.copy_from_string s_0)
+<{dynamic_string.cu;37;19_5}> !_vArray_0 !_vArray_1 c_a_2 !g_i_3 !g_s_4 g_a_5 = if (StdBool.not (<{StdInt.<_17}> g_s_4 g_i_3)) (let !g_a_1_0 = _predefined._dummyForStrictAlias (_predefined.tupsels2v1 _x_1_1), _x_1_1 = _SystemArray.get_uselect_6 _vArray_0 g_a_5 g_i_3 in <{dynamic_string.cu;37;19_5}> _vArray_0 _vArray_1 (_SystemArray.get_update_5 _vArray_1 c_a_2 g_i_3 (_predefined.tupsels2v0 _x_1_1)) (<{StdInt.+_6}> g_i_3 StdInt.one_11) g_s_4 g_a_1_0) c_a_2
+<{dynamic_string.cu;37;19_6}> !_vArray_0 c_a_1 !g_i_2 !g_s_3 g_a_4 = if (StdBool.not (<{StdInt.<_17}> g_s_3 g_i_2)) (let !g_a_1_0 = _predefined._dummyForStrictAlias (_predefined.tupsels2v1 _x_1_1), _x_1_1 = _SystemArray.uselect_22 g_a_4 g_i_2 in <{dynamic_string.cu;37;19_6}> _vArray_0 (_SystemArray.get_update_5 _vArray_0 c_a_1 g_i_2 (_predefined.tupsels2v0 _x_1_1)) (<{StdInt.+_6}> g_i_2 StdInt.one_11) g_s_3 g_a_1_0) c_a_1
+<{dynamic_string.cu;37;19_7}> !c_a_0 !g_i_1 !g_s_2 g_a_3 = if (StdBool.not (<{StdInt.<_17}> g_s_2 g_i_1)) (let !g_a_1_0 = _predefined._dummyForStrictAlias (_predefined.tupsels2v1 _x_1_1), _x_1_1 = _SystemArray.uselect_22 g_a_3 g_i_1 in <{dynamic_string.cu;37;19_7}> (_SystemArray.update_21 c_a_0 g_i_1 (_predefined.tupsels2v0 _x_1_1)) (<{StdInt.+_6}> g_i_1 StdInt.one_11) g_s_2 g_a_1_0) c_a_0
+dynamic_string.mk_unique !s_0 = let _x_1_0 = _SystemArray.usize_23 s_0, g_s2_1_1 = <{StdInt.-_7}> (_predefined.tupsels2v0 _x_1_0) 1 in <{dynamic_string.cu;37;19_7}> (_SystemArray._createArray_16 (<{StdInt.+_6}> g_s2_1_1 StdInt.one_11)) 0 g_s2_1_1 (_predefined.tupsels2v1 _x_1_0)
+
+
+|| Converted Records

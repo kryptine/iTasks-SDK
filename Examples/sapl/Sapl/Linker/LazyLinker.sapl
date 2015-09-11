@@ -1,0 +1,159 @@
+|| ?module? Sapl.Linker.LazyLinker
+
+
+Sapl.Linker.LazyLinker.anon_36 !<{_v<_0}> !k_1 !m_2 = Data.Map.del <{_v<_0}> k_1 m_2
+Sapl.Linker.LazyLinker.foldr_35 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> op_0 a_1_0 (Sapl.Linker.LazyLinker.foldr_35 op_0 r_1 x_1_1)) 
+Sapl.Linker.LazyLinker.fst_34 !tuple_0 = _predefined.tupsels2v0 tuple_0
+Sapl.Linker.LazyLinker.anon_33 k_0 x_1 xs_2 = _predefined._Cons (_Tuple2 k_0 x_1) xs_2
+Sapl.Linker.LazyLinker.anon_32 !<{_v<_0}> !k_1 !m_2 = Data.Map.del <{_v<_0}> k_1 m_2
+Sapl.Linker.LazyLinker.foldr_31 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> op_0 a_1_0 (Sapl.Linker.LazyLinker.foldr_31 op_0 r_1 x_1_1)) 
+Sapl.Linker.LazyLinker.anon_30 k_0 x_1 xs_2 = _predefined._Cons (_Tuple2 k_0 x_1) xs_2
+Sapl.Linker.LazyLinker.fst_29 !tuple_0 = _predefined.tupsels2v0 tuple_0
+Sapl.Linker.LazyLinker.anon_28 !<{_v<_0}> !k_1 !m_2 = Data.Map.del <{_v<_0}> k_1 m_2
+Sapl.Linker.LazyLinker.foldr_27 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> op_0 a_1_0 (Sapl.Linker.LazyLinker.foldr_27 op_0 r_1 x_1_1)) 
+Sapl.Linker.LazyLinker.foldl_26 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> Sapl.Linker.LazyLinker.foldl_26 op_0 (op_0 r_1 a_1_0) x_1_1) 
+Sapl.Linker.LazyLinker.anon_11 !f_0 = Text.endsWith_2 ".sapl" f_0
+Sapl.Linker.LazyLinker.handlerr !_x_0 = select _x_0 (Data.Error.Error _x_1_0 -> select _x_1_0 (_Tuple2 c_2_0 str_2_1 -> StdMisc.abort (<{StdString.+++_11}> "LazyLinker.icl: " str_2_1)) ) (Data.Error.Ok a_1_0 -> a_1_0) 
+Sapl.Linker.LazyLinker.anon_8 !fullPath_0 !m_1 = <{System.FilePath.</>}> fullPath_0 (System.FilePath.dropDirectory m_1)
+Sapl.Linker.LazyLinker.isDirectory !path_0 !world_1 = <{Sapl.Linker.LazyLinker._c;24;7_139}> (System.File.getFileInfo path_0 world_1)
+<{Sapl.Linker.LazyLinker._c;24;7_139}> !_x_0 = select _x_0 (_Tuple2 _x_1_0 world_1_1 -> select _x_1_0 (Data.Error.Ok fi_2_0 -> <{_Tuple2!3}> (System.File.get_directory_0 fi_2_0) world_1_1) (Data.Error.Error _x_2_0 -> <{_Tuple2!3}> False world_1_1) ) 
+Sapl.Linker.LazyLinker.perFile_9 ffilter_0 path_1 _x_2 !_x_3 !ms_4 !os_5 !world_6 = select _x_3 (_predefined._Nil -> <{_Tuple3!7}> ms_4 os_5 world_6) (_predefined._Cons f_1_0 fs_1_1 -> if (Sapl.Linker.LazyLinker.perFile_9_select0 f_1_0 fs_1_1 ffilter_0 path_1 _x_2 _x_3 ms_4 os_5 world_6) (Sapl.Linker.LazyLinker.perFile_9 ffilter_0 path_1 path_1 fs_1_1 ms_4 os_5 world_6) (if (<{StdString.==_2}> f_1_0 "_override_") (let fullPath_2_0 = <{System.FilePath.</>}> _x_2 f_1_0, _x_2_1 = System.Directory.readDirectory fullPath_2_0 world_6 in Sapl.Linker.LazyLinker.perFile_9 ffilter_0 path_1 path_1 fs_1_1 ms_4 (<{StdList.++}> os_5 (StdList.map (Sapl.Linker.LazyLinker.anon_8 fullPath_2_0) (StdList.filter ffilter_0 (Sapl.Linker.LazyLinker.handlerr (_predefined.tupsels2v0 _x_2_1))))) (_predefined.tupsels2v1 _x_2_1)) (let fullPath_2_0 = <{System.FilePath.</>}> _x_2 f_1_0 in <{Sapl.Linker.LazyLinker._c;48;15_140}> (Sapl.Linker.LazyLinker.isDirectory fullPath_2_0 world_6) fullPath_2_0 ffilter_0 path_1 fs_1_1 ms_4 os_5 f_1_0))) 
+Sapl.Linker.LazyLinker.perFile_9_select0 f_1_0 fs_1_1 ffilter_0 path_1 _x_2 !_x_3 !ms_4 !os_5 !world_6 = if (<{StdString.==_2}> f_1_0 ".") True (<{StdString.==_2}> f_1_0 "..")
+Sapl.Linker.LazyLinker.fileList !path_0 ffilter_1 !world_2 = let _x_1_0 = System.Directory.readDirectory path_0 world_2, fs_1_1 = _predefined.tupsels2v0 _x_1_0 in if (Data.Error.isOk fs_1_1) (Sapl.Linker.LazyLinker.perFile_9 ffilter_1 path_0 path_0 (Data.Error.fromOk fs_1_1) _predefined._Nil _predefined._Nil (_predefined.tupsels2v1 _x_1_0)) (<{_Tuple3!7}> _predefined._Nil _predefined._Nil (_predefined.tupsels2v1 _x_1_0))
+<{Sapl.Linker.LazyLinker._c;48;15_140}> !_x_0 fullPath_1 ffilter_2 path_3 !fs_4 ms_5 os_6 f_7 = select _x_0 (_Tuple2 _x_1_0 world_1_1 -> if _x_1_0 (let _x_2_0 = Sapl.Linker.LazyLinker.fileList fullPath_1 ffilter_2 world_1_1 in Sapl.Linker.LazyLinker.perFile_9 ffilter_2 path_3 path_3 fs_4 (<{StdList.++}> ms_5 (_predefined.tupsels3v0 _x_2_0)) (<{StdList.++}> os_6 (_predefined.tupsels3v1 _x_2_0)) (_predefined.tupsels3v2 _x_2_0)) (if (ffilter_2 f_7) (Sapl.Linker.LazyLinker.perFile_9 ffilter_2 path_3 path_3 fs_4 (<{StdList.++}> ms_5 (_predefined._Cons fullPath_1 _predefined._Nil)) os_6 world_1_1) (Sapl.Linker.LazyLinker.perFile_9 ffilter_2 path_3 path_3 fs_4 ms_5 os_6 world_1_1))) 
+Sapl.Linker.LazyLinker.anon_25 !f_0 g_1 x_2 = f_0 (g_1 x_2)
+Sapl.Linker.LazyLinker.anon_22 !f_0 g_1 x_2 = f_0 (g_1 x_2)
+Sapl.Linker.LazyLinker.anon_123 !g_0 x_1 = StdBool.not (g_0 x_1)
+Sapl.Linker.LazyLinker.anon_124 !_x_0 !x_1 = StdBool.not (<{StdString.==_2}> _x_0 x_1)
+Sapl.Linker.LazyLinker.toModuleName_15 !module_directory_0 !path_1 = let moduleDirs_1_0 = StdList.filter (Sapl.Linker.LazyLinker.anon_124 "_override_") (Text.split_12 (StdString.toString_6 System.FilePath.pathSeparator) (<{Sapl.Linker.LazyLinker._if;91;23_141}> (<{StdString.==_2}> module_directory_0 "") path_1 module_directory_0)) in Text.join_5 "." (<{StdList.++}> (StdList.init moduleDirs_1_0) (_predefined._Cons (StdList.last (Text.split_12 ";" (StdList.last moduleDirs_1_0))) _predefined._Nil))
+<{Sapl.Linker.LazyLinker._if;91;23_141}> !_x_0 !path_1 module_directory_2 = select _x_0 (True -> path_1) (_ -> Text.subString_14 (<{StdInt.+_6}> (_SystemArray.size_20 module_directory_2) 1) (_SystemArray.size_20 path_1) path_1)
+Sapl.Linker.LazyLinker.anon_125 !module_directory_0 !g_1 x_2 = Sapl.Linker.LazyLinker.toModuleName_15 module_directory_0 (g_1 x_2)
+Sapl.Linker.LazyLinker.anon_126 !module_directory_0 !x_1 = Sapl.Linker.LazyLinker.toModuleName_15 module_directory_0 (System.FilePath.dropExtension x_1)
+Sapl.Linker.LazyLinker.toPair_13 module_directory_0 !ms_1 = StdList.zip2 (StdList.map (Sapl.Linker.LazyLinker.anon_126 module_directory_0) ms_1) ms_1
+Sapl.Linker.LazyLinker.findModules_12 module_directory_0 world_1 = let _x_1_0 = Sapl.Linker.LazyLinker.fileList module_directory_0 Sapl.Linker.LazyLinker.anon_11 world_1 in _Tuple3 (Sapl.Linker.LazyLinker.toPair_13 module_directory_0 (_predefined.tupsels3v0 _x_1_0)) (Sapl.Linker.LazyLinker.toPair_13 module_directory_0 (_predefined.tupsels3v1 _x_1_0)) (_predefined.tupsels3v2 _x_1_0)
+Sapl.Linker.LazyLinker.anon_10 !_x_0 module_directory_1 = select _x_0 (_Tuple3 ms_1_0 os_1_1 w_1_2 -> let _x_2_0 = Sapl.Linker.LazyLinker.findModules_12 module_directory_1 w_1_2 in _Tuple3 (<{StdList.++}> ms_1_0 (_predefined.tupsels3v0 _x_2_0)) (<{StdList.++}> os_1_1 (_predefined.tupsels3v1 _x_2_0)) (_predefined.tupsels3v2 _x_2_0)) 
+Sapl.Linker.LazyLinker.anon_24 !f_0 g_1 x_2 = f_0 (g_1 x_2)
+Sapl.Linker.LazyLinker.anon_23 !f_0 g_1 x_2 = f_0 (g_1 x_2)
+Sapl.Linker.LazyLinker.anon_127 !g_0 x_1 = System.FilePath.dropExtension (g_0 x_1)
+Sapl.Linker.LazyLinker.anon_128 !module_directory_0 !g_1 x_2 = Sapl.Linker.LazyLinker.toModuleName_15 module_directory_0 (g_1 x_2)
+Sapl.Linker.LazyLinker.anon_129 !x_0 = System.FilePath.dropExtension (System.FilePath.dropDirectory x_0)
+Sapl.Linker.LazyLinker.anon_130 !module_directory_0 !x_1 = Sapl.Linker.LazyLinker.toModuleName_15 module_directory_0 (Sapl.Linker.LazyLinker.anon_129 x_1)
+Sapl.Linker.LazyLinker.toPairTopLevel_14 module_directory_0 !ms_1 = StdList.zip2 (StdList.map (Sapl.Linker.LazyLinker.anon_130 module_directory_0) ms_1) ms_1
+Sapl.Linker.LazyLinker.foldl_131 !r_0 !_x_1 = select _x_1 (_predefined._Nil -> r_0) (_predefined._Cons a_1_0 x_1_1 -> Sapl.Linker.LazyLinker.foldl_131 (Sapl.Linker.LazyLinker.anon_10 r_0 a_1_0) x_1_1) 
+Sapl.Linker.LazyLinker.anon_132 !k_0 !m_1 = Data.Map.del (<{StdOverloaded.<;}> <{StdString.<_3}>) k_0 m_1
+Sapl.Linker.LazyLinker.foldr_133 !r_0 !_x_1 = select _x_1 (_predefined._Nil -> r_0) (_predefined._Cons a_1_0 x_1_1 -> Sapl.Linker.LazyLinker.anon_132 a_1_0 (Sapl.Linker.LazyLinker.foldr_133 r_0 x_1_1)) 
+Sapl.Linker.LazyLinker.anon_134 !k_0 !m_1 = Data.Map.del (<{StdOverloaded.<;}> <{StdString.<_3}>) k_0 m_1
+Sapl.Linker.LazyLinker.foldr_135 !r_0 !_x_1 = select _x_1 (_predefined._Nil -> r_0) (_predefined._Cons a_1_0 x_1_1 -> Sapl.Linker.LazyLinker.anon_134 a_1_0 (Sapl.Linker.LazyLinker.foldr_135 r_0 x_1_1)) 
+Sapl.Linker.LazyLinker.anon_136 !k_0 !m_1 = Data.Map.del (<{StdOverloaded.<;}> <{StdString.<_3}>) k_0 m_1
+Sapl.Linker.LazyLinker.foldr_137 !r_0 !_x_1 = select _x_1 (_predefined._Nil -> r_0) (_predefined._Cons a_1_0 x_1_1 -> Sapl.Linker.LazyLinker.anon_136 a_1_0 (Sapl.Linker.LazyLinker.foldr_137 r_0 x_1_1)) 
+Sapl.Linker.LazyLinker.generateLoaderState !dirs_0 !mods_1 !exclude_2 !world_3 = let _x_1_0 = Sapl.Linker.LazyLinker.foldl_131 (_Tuple3 _predefined._Nil _predefined._Nil world_3) dirs_0, omap_1_1 = Data.Map.fromList (<{StdOverloaded.==;}> <{StdString.==_2}>) (<{StdOverloaded.<;}> <{StdString.<_3}>) (_predefined.tupsels3v1 _x_1_0), mmap_1_2 = Sapl.Linker.LazyLinker.foldr_133 (Data.Map.fromList (<{StdOverloaded.==;}> <{StdString.==_2}>) (<{StdOverloaded.<;}> <{StdString.<_3}>) (<{StdList.++}> (Sapl.Linker.LazyLinker.toPairTopLevel_14 "" mods_1) (_predefined.tupsels3v0 _x_1_0))) exclude_2, onlyoverride_1_3 = Data.Map.foldrWithKey Sapl.Linker.LazyLinker.anon_33 _predefined._Nil (Sapl.Linker.LazyLinker.foldr_135 omap_1_1 (StdList.map Sapl.Linker.LazyLinker.fst_29 (Data.Map.foldrWithKey Sapl.Linker.LazyLinker.anon_30 _predefined._Nil mmap_1_2))) in <{_Tuple2!2}> (_Tuple3 (_Tuple4 (Data.Map.union (<{StdOverloaded.<;}> <{StdString.<_3}>) (Data.Map.fromList (<{StdOverloaded.==;}> <{StdString.==_2}>) (<{StdOverloaded.<;}> <{StdString.<_3}>) onlyoverride_1_3) mmap_1_2) (Sapl.Linker.LazyLinker.foldr_137 omap_1_1 (StdList.map Sapl.Linker.LazyLinker.fst_34 onlyoverride_1_3)) _predefined._Nil 0) Data.Map.newMap Data.Set.newSet) (_predefined.tupsels3v2 _x_1_0)
+Sapl.Linker.LazyLinker.foldl_37 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> Sapl.Linker.LazyLinker.foldl_37 op_0 (op_0 r_1 a_1_0) x_1_1) 
+Sapl.Linker.LazyLinker.getModuleName_17 !name_0 = let _x_1_0 = Sapl.FastString.charIndexBackwards name_0 (<{StdInt.-_7}> (_SystemArray.size_20 name_0) 1) '.' in if (_predefined.tupsels2v0 _x_1_0) (<{StdString.%_10}> name_0 (_Tuple2 0 (<{StdInt.-_7}> (_predefined.tupsels2v1 _x_1_0) 1))) ""
+Sapl.Linker.LazyLinker.lazy_loader_18 !ls_0 !fn_1 !lmap_2 world_3 = select ls_0 (_Tuple4 mmap_1_0 bmmap_1_1 messages_1_2 id_1_3 -> let line_2_0 = Data.Map.get (<{StdOverloaded.<;}> <{StdString.<_3}>) fn_1 lmap_2 in if (Data.Maybe.isJust line_2_0) (_Tuple4 line_2_0 lmap_2 ls_0 world_3) (let m_3_0 = Sapl.Linker.LazyLinker.getModuleName_17 fn_1 in if (<{StdInt.==_16}> (_SystemArray.size_20 m_3_0) 0) (_Tuple4 Data.Maybe.Nothing lmap_2 ls_0 world_3) (let _x_4_0 = Data.Map.delU (<{StdOverloaded.==;}> <{StdString.==_2}>) (<{StdOverloaded.<;}> <{StdString.<_3}>) m_3_0 mmap_1_0, mpath_4_1 = _predefined.tupsels2v0 _x_4_0 in if (Data.Maybe.isNothing mpath_4_1) (_Tuple4 Data.Maybe.Nothing lmap_2 ls_0 world_3) (let _x_5_0 = Data.Map.delU (<{StdOverloaded.==;}> <{StdString.==_2}>) (<{StdOverloaded.<;}> <{StdString.<_3}>) m_3_0 bmmap_1_1, bmpath_5_1 = _predefined.tupsels2v0 _x_5_0, _x_5_2 = <{Sapl.Linker.LazyLinker._if;144;25_142}> (Data.Maybe.isJust bmpath_5_1) mpath_4_1 lmap_2 messages_1_2 id_1_3 world_3 bmpath_5_1, lmap_5_3 = _predefined.tupsels4v0 _x_5_2 in _Tuple4 (Data.Map.get (<{StdOverloaded.<;}> <{StdString.<_3}>) fn_1 lmap_5_3) lmap_5_3 (_Tuple4 (_predefined.tupsels2v1 _x_4_0) (_predefined.tupsels2v1 _x_5_0) (_predefined.tupsels4v2 _x_5_2) (_predefined.tupsels4v1 _x_5_2)) (_predefined.tupsels4v3 _x_5_2))))) 
+<{Sapl.Linker.LazyLinker._if;144;25_142}> !_x_0 mpath_1 lmap_2 messages_3 id_4 world_5 bmpath_6 = select _x_0 (True -> let _x_2_0 = Sapl.Linker.SaplLinkerShared.read_module (Data.Maybe.fromJust mpath_1) lmap_2 messages_3 id_4 world_5 in Sapl.Linker.SaplLinkerShared.read_module (Data.Maybe.fromJust bmpath_6) (_predefined.tupsels4v0 _x_2_0) (_predefined.tupsels4v2 _x_2_0) (_predefined.tupsels4v1 _x_2_0) (_predefined.tupsels4v3 _x_2_0)) (_ -> let _x_1_0 = Sapl.Linker.SaplLinkerShared.read_module (Data.Maybe.fromJust mpath_1) lmap_2 messages_3 id_4 world_5 in _Tuple4 (_predefined.tupsels4v0 _x_1_0) (_predefined.tupsels4v1 _x_1_0) (_predefined.tupsels4v2 _x_1_0) (_predefined.tupsels4v3 _x_1_0))
+Sapl.Linker.LazyLinker.anon_16 !_x_0 !d_1 = select _x_0 (_Tuple5 lmap_1_0 ss_1_1 loader_1_2 a_1_3 world_1_4 -> Sapl.Linker.SaplLinkerShared.generate_source lmap_1_0 ss_1_1 loader_1_2 d_1 a_1_3 world_1_4) 
+Sapl.Linker.LazyLinker.foldl_138 !r_0 !_x_1 = select _x_1 (_predefined._Nil -> r_0) (_predefined._Cons a_1_0 x_1_1 -> Sapl.Linker.LazyLinker.foldl_138 (Sapl.Linker.LazyLinker.anon_16 r_0 a_1_0) x_1_1) 
+Sapl.Linker.LazyLinker.linkByExpr !_x_0 !a_1 !expr_2 !world_3 = select _x_0 (_Tuple3 ls_1_0 lmap_1_1 ss_1_2 -> let maindeps_2_0 = Sapl.Linker.SaplLinkerShared.generate_dependencies (Sapl.SaplTokenizer.tokens expr_2) _predefined._Nil, _x_2_1 = Sapl.Linker.SaplLinkerShared.substitute_macros lmap_1_1 maindeps_2_0 (_Tuple2 Sapl.Linker.LazyLinker.lazy_loader_18 ls_1_0) expr_2 Text.StringAppender.newAppender world_3, _x_2_2 = Sapl.Linker.LazyLinker.foldl_138 (_Tuple5 (_predefined.tupsels4v0 _x_2_1) ss_1_2 (_Tuple2 Sapl.Linker.LazyLinker.lazy_loader_18 (_predefined.tupsels2v1 (_predefined.tupsels4v1 _x_2_1))) a_1 (_predefined.tupsels4v3 _x_2_1)) maindeps_2_0 in <{_Tuple4!15}> (_Tuple3 (_predefined.tupsels2v1 (_predefined.tupsels5v2 _x_2_2)) (_predefined.tupsels5v0 _x_2_2) (_predefined.tupsels5v1 _x_2_2)) (_predefined.tupsels5v3 _x_2_2) (Text.StringAppender.toString_4 (_predefined.tupsels4v2 _x_2_1)) (_predefined.tupsels5v4 _x_2_2)) 
+Sapl.Linker.LazyLinker.getWarnings !_x_0 = select _x_0 (_Tuple3 _x_1_0 _x_1_1 _x_1_2 -> select _x_1_0 (_Tuple4 _x_2_0 _x_2_1 ws_2_2 _x_2_3 -> ws_2_2) ) 
+<{Sapl.Linker.LazyLinker.TD;LoaderState}> _x_0 = _predefined._Nil
+<{Sapl.Linker.LazyLinker.TD;LoaderStateExt}> _x_0 = _predefined._Nil
+<{Sapl.Linker.LazyLinker.TD;ModuleMap}> _x_0 = _predefined._Nil
+
+
+|| Converted Records
+:: <{Sapl.Linker.LazyLinker.JSONEncode_s;}> = {!Sapl.Linker.LazyLinker.JSONEncode_s}
+Sapl.Linker.LazyLinker.get_JSONEncode_s_0 rec = select rec (<{Sapl.Linker.LazyLinker.JSONEncode_s;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_JSONEncode_s_0 rec !val = select rec (<{Sapl.Linker.LazyLinker.JSONEncode_s;}>  a1 -> <{Sapl.Linker.LazyLinker.JSONEncode_s;}> val)
+
+:: <{Sapl.Linker.LazyLinker.JSONEncode_ss;}> = {Sapl.Linker.LazyLinker.JSONEncode_ss}
+Sapl.Linker.LazyLinker.get_JSONEncode_ss_1 rec = select rec (<{Sapl.Linker.LazyLinker.JSONEncode_ss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_JSONEncode_ss_1 rec val = select rec (<{Sapl.Linker.LazyLinker.JSONEncode_ss;}>  a1 -> <{Sapl.Linker.LazyLinker.JSONEncode_ss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.JSONEncode_sss;}> = {Sapl.Linker.LazyLinker.JSONEncode_sss}
+Sapl.Linker.LazyLinker.get_JSONEncode_sss_2 rec = select rec (<{Sapl.Linker.LazyLinker.JSONEncode_sss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_JSONEncode_sss_2 rec val = select rec (<{Sapl.Linker.LazyLinker.JSONEncode_sss;}>  a1 -> <{Sapl.Linker.LazyLinker.JSONEncode_sss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.JSONEncode_ssss;}> = {Sapl.Linker.LazyLinker.JSONEncode_ssss}
+Sapl.Linker.LazyLinker.get_JSONEncode_ssss_3 rec = select rec (<{Sapl.Linker.LazyLinker.JSONEncode_ssss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_JSONEncode_ssss_3 rec val = select rec (<{Sapl.Linker.LazyLinker.JSONEncode_ssss;}>  a1 -> <{Sapl.Linker.LazyLinker.JSONEncode_ssss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.JSONEncode_sssss;}> = {Sapl.Linker.LazyLinker.JSONEncode_sssss}
+Sapl.Linker.LazyLinker.get_JSONEncode_sssss_4 rec = select rec (<{Sapl.Linker.LazyLinker.JSONEncode_sssss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_JSONEncode_sssss_4 rec val = select rec (<{Sapl.Linker.LazyLinker.JSONEncode_sssss;}>  a1 -> <{Sapl.Linker.LazyLinker.JSONEncode_sssss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.JSONEncode_ssssss;}> = {Sapl.Linker.LazyLinker.JSONEncode_ssssss}
+Sapl.Linker.LazyLinker.get_JSONEncode_ssssss_5 rec = select rec (<{Sapl.Linker.LazyLinker.JSONEncode_ssssss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_JSONEncode_ssssss_5 rec val = select rec (<{Sapl.Linker.LazyLinker.JSONEncode_ssssss;}>  a1 -> <{Sapl.Linker.LazyLinker.JSONEncode_ssssss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.JSONDecode_s;}> = {Sapl.Linker.LazyLinker.JSONDecode_s}
+Sapl.Linker.LazyLinker.get_JSONDecode_s_6 rec = select rec (<{Sapl.Linker.LazyLinker.JSONDecode_s;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_JSONDecode_s_6 rec val = select rec (<{Sapl.Linker.LazyLinker.JSONDecode_s;}>  a1 -> <{Sapl.Linker.LazyLinker.JSONDecode_s;}> val)
+
+:: <{Sapl.Linker.LazyLinker.JSONDecode_ss;}> = {Sapl.Linker.LazyLinker.JSONDecode_ss}
+Sapl.Linker.LazyLinker.get_JSONDecode_ss_7 rec = select rec (<{Sapl.Linker.LazyLinker.JSONDecode_ss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_JSONDecode_ss_7 rec val = select rec (<{Sapl.Linker.LazyLinker.JSONDecode_ss;}>  a1 -> <{Sapl.Linker.LazyLinker.JSONDecode_ss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.JSONDecode_sss;}> = {Sapl.Linker.LazyLinker.JSONDecode_sss}
+Sapl.Linker.LazyLinker.get_JSONDecode_sss_8 rec = select rec (<{Sapl.Linker.LazyLinker.JSONDecode_sss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_JSONDecode_sss_8 rec val = select rec (<{Sapl.Linker.LazyLinker.JSONDecode_sss;}>  a1 -> <{Sapl.Linker.LazyLinker.JSONDecode_sss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.JSONDecode_ssss;}> = {Sapl.Linker.LazyLinker.JSONDecode_ssss}
+Sapl.Linker.LazyLinker.get_JSONDecode_ssss_9 rec = select rec (<{Sapl.Linker.LazyLinker.JSONDecode_ssss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_JSONDecode_ssss_9 rec val = select rec (<{Sapl.Linker.LazyLinker.JSONDecode_ssss;}>  a1 -> <{Sapl.Linker.LazyLinker.JSONDecode_ssss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.JSONDecode_sssss;}> = {Sapl.Linker.LazyLinker.JSONDecode_sssss}
+Sapl.Linker.LazyLinker.get_JSONDecode_sssss_10 rec = select rec (<{Sapl.Linker.LazyLinker.JSONDecode_sssss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_JSONDecode_sssss_10 rec val = select rec (<{Sapl.Linker.LazyLinker.JSONDecode_sssss;}>  a1 -> <{Sapl.Linker.LazyLinker.JSONDecode_sssss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.JSONDecode_ssssss;}> = {Sapl.Linker.LazyLinker.JSONDecode_ssssss}
+Sapl.Linker.LazyLinker.get_JSONDecode_ssssss_11 rec = select rec (<{Sapl.Linker.LazyLinker.JSONDecode_ssssss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_JSONDecode_ssssss_11 rec val = select rec (<{Sapl.Linker.LazyLinker.JSONDecode_ssssss;}>  a1 -> <{Sapl.Linker.LazyLinker.JSONDecode_ssssss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.bimap_s;}> = {Sapl.Linker.LazyLinker.bimap_s}
+Sapl.Linker.LazyLinker.get_bimap_s_12 rec = select rec (<{Sapl.Linker.LazyLinker.bimap_s;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_bimap_s_12 rec val = select rec (<{Sapl.Linker.LazyLinker.bimap_s;}>  a1 -> <{Sapl.Linker.LazyLinker.bimap_s;}> val)
+
+:: <{Sapl.Linker.LazyLinker.bimap_ss;}> = {Sapl.Linker.LazyLinker.bimap_ss}
+Sapl.Linker.LazyLinker.get_bimap_ss_13 rec = select rec (<{Sapl.Linker.LazyLinker.bimap_ss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_bimap_ss_13 rec val = select rec (<{Sapl.Linker.LazyLinker.bimap_ss;}>  a1 -> <{Sapl.Linker.LazyLinker.bimap_ss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.bimap_sss;}> = {Sapl.Linker.LazyLinker.bimap_sss}
+Sapl.Linker.LazyLinker.get_bimap_sss_14 rec = select rec (<{Sapl.Linker.LazyLinker.bimap_sss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_bimap_sss_14 rec val = select rec (<{Sapl.Linker.LazyLinker.bimap_sss;}>  a1 -> <{Sapl.Linker.LazyLinker.bimap_sss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.gEq_s;}> = {Sapl.Linker.LazyLinker.gEq_s}
+Sapl.Linker.LazyLinker.get_gEq_s_15 rec = select rec (<{Sapl.Linker.LazyLinker.gEq_s;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_gEq_s_15 rec val = select rec (<{Sapl.Linker.LazyLinker.gEq_s;}>  a1 -> <{Sapl.Linker.LazyLinker.gEq_s;}> val)
+
+:: <{Sapl.Linker.LazyLinker.gEq_ss;}> = {Sapl.Linker.LazyLinker.gEq_ss}
+Sapl.Linker.LazyLinker.get_gEq_ss_16 rec = select rec (<{Sapl.Linker.LazyLinker.gEq_ss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_gEq_ss_16 rec val = select rec (<{Sapl.Linker.LazyLinker.gEq_ss;}>  a1 -> <{Sapl.Linker.LazyLinker.gEq_ss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.gEq_sss;}> = {Sapl.Linker.LazyLinker.gEq_sss}
+Sapl.Linker.LazyLinker.get_gEq_sss_17 rec = select rec (<{Sapl.Linker.LazyLinker.gEq_sss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_gEq_sss_17 rec val = select rec (<{Sapl.Linker.LazyLinker.gEq_sss;}>  a1 -> <{Sapl.Linker.LazyLinker.gEq_sss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.gEq_ssss;}> = {Sapl.Linker.LazyLinker.gEq_ssss}
+Sapl.Linker.LazyLinker.get_gEq_ssss_18 rec = select rec (<{Sapl.Linker.LazyLinker.gEq_ssss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_gEq_ssss_18 rec val = select rec (<{Sapl.Linker.LazyLinker.gEq_ssss;}>  a1 -> <{Sapl.Linker.LazyLinker.gEq_ssss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.gEq_sssss;}> = {Sapl.Linker.LazyLinker.gEq_sssss}
+Sapl.Linker.LazyLinker.get_gEq_sssss_19 rec = select rec (<{Sapl.Linker.LazyLinker.gEq_sssss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_gEq_sssss_19 rec val = select rec (<{Sapl.Linker.LazyLinker.gEq_sssss;}>  a1 -> <{Sapl.Linker.LazyLinker.gEq_sssss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.gEq_ssssss;}> = {Sapl.Linker.LazyLinker.gEq_ssssss}
+Sapl.Linker.LazyLinker.get_gEq_ssssss_20 rec = select rec (<{Sapl.Linker.LazyLinker.gEq_ssssss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_gEq_ssssss_20 rec val = select rec (<{Sapl.Linker.LazyLinker.gEq_ssssss;}>  a1 -> <{Sapl.Linker.LazyLinker.gEq_ssssss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.gEq_sssssss;}> = {Sapl.Linker.LazyLinker.gEq_sssssss}
+Sapl.Linker.LazyLinker.get_gEq_sssssss_21 rec = select rec (<{Sapl.Linker.LazyLinker.gEq_sssssss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_gEq_sssssss_21 rec val = select rec (<{Sapl.Linker.LazyLinker.gEq_sssssss;}>  a1 -> <{Sapl.Linker.LazyLinker.gEq_sssssss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.gEq_ssssssss;}> = {Sapl.Linker.LazyLinker.gEq_ssssssss}
+Sapl.Linker.LazyLinker.get_gEq_ssssssss_22 rec = select rec (<{Sapl.Linker.LazyLinker.gEq_ssssssss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_gEq_ssssssss_22 rec val = select rec (<{Sapl.Linker.LazyLinker.gEq_ssssssss;}>  a1 -> <{Sapl.Linker.LazyLinker.gEq_ssssssss;}> val)
+
+:: <{Sapl.Linker.LazyLinker.gEq_sssssssss;}> = {Sapl.Linker.LazyLinker.gEq_sssssssss}
+Sapl.Linker.LazyLinker.get_gEq_sssssssss_23 rec = select rec (<{Sapl.Linker.LazyLinker.gEq_sssssssss;}> a1 -> a1)
+Sapl.Linker.LazyLinker.set_gEq_sssssssss_23 rec val = select rec (<{Sapl.Linker.LazyLinker.gEq_sssssssss;}>  a1 -> <{Sapl.Linker.LazyLinker.gEq_sssssssss;}> val)
+

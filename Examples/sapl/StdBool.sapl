@@ -1,0 +1,14 @@
+|| ?module? StdBool
+
+
+StdBool.not !a_0 = error "no AnyCodeExpr"
+<{StdBool.||}> !a_0 b_1 = error "no AnyCodeExpr"
+<{StdBool.&&}> !a_0 b_1 = error "no AnyCodeExpr"
+<{StdBool.==_3}> !a_0 !b_1 = error "no AnyCodeExpr"
+StdBool.toBool_4 !a_0 = error "no AnyCodeExpr"
+StdBool.fromBool_5 !a_0 = error "no AnyCodeExpr"
+StdBool.fromBool_6 !a_0 = error "no AnyCodeExpr"
+StdBool.toString_7 !a_0 = error "no AnyCodeExpr"
+
+
+|| Converted Records

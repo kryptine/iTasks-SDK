@@ -1,0 +1,178 @@
+|| ?module? Graphics.Scalable.Types
+
+
+<{Graphics.Scalable.Types.TD;Span}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;LookupSpan}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;FontDef}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;ImageAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;StrokeAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;StrokeWidthAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;XRadiusAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;YRadiusAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;FillAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;OpacityAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;OnClickAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;OnMouseDownAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;OnMouseUpAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;OnMouseOverAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;OnMouseMoveAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;OnMouseOutAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;DraggableAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;DashAttr}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;ImageTag}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;Angle}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;XAlign}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;YAlign}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;ImageAlign}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;ImageOffset}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;GridDimension}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;GridLayout}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;GridMajor}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;GridXLayout}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;GridYLayout}> _x_0 = _predefined._Nil
+<{Graphics.Scalable.Types.TD;Slash}> _x_0 = _predefined._Nil
+
+:: Graphics.Scalable.Types.Span = Graphics.Scalable.Types.PxSpan !a1 | Graphics.Scalable.Types.LookupSpan !a1 | Graphics.Scalable.Types.AddSpan !a1 !a2 | Graphics.Scalable.Types.SubSpan !a1 !a2 | Graphics.Scalable.Types.MulSpan !a1 !a2 | Graphics.Scalable.Types.DivSpan !a1 !a2 | Graphics.Scalable.Types.AbsSpan !a1 | Graphics.Scalable.Types.MinSpan !a1 | Graphics.Scalable.Types.MaxSpan !a1
+:: Graphics.Scalable.Types.LookupSpan = Graphics.Scalable.Types.ColumnXSpan !a1 !a2 | Graphics.Scalable.Types.RowYSpan !a1 !a2 | Graphics.Scalable.Types.ImageXSpan !a1 | Graphics.Scalable.Types.ImageYSpan !a1 | Graphics.Scalable.Types.TextXSpan !a1 !a2
+:: Graphics.Scalable.Types.ImageAttr = Graphics.Scalable.Types.ImageStrokeAttr !a1 | Graphics.Scalable.Types.ImageStrokeWidthAttr !a1 | Graphics.Scalable.Types.ImageXRadiusAttr !a1 | Graphics.Scalable.Types.ImageYRadiusAttr !a1 | Graphics.Scalable.Types.ImageStrokeOpacityAttr !a1 | Graphics.Scalable.Types.ImageFillAttr !a1 | Graphics.Scalable.Types.ImageFillOpacityAttr !a1 | Graphics.Scalable.Types.ImageDashAttr !a1 | Graphics.Scalable.Types.ImageOnClickAttr !a1 | Graphics.Scalable.Types.ImageOnMouseDownAttr !a1 | Graphics.Scalable.Types.ImageOnMouseUpAttr !a1 | Graphics.Scalable.Types.ImageOnMouseOverAttr !a1 | Graphics.Scalable.Types.ImageOnMouseMoveAttr !a1 | Graphics.Scalable.Types.ImageOnMouseOutAttr !a1 | Graphics.Scalable.Types.ImageDraggableAttr !a1
+:: Graphics.Scalable.Types.ImageTag = Graphics.Scalable.Types.ImageTagUser !a1 !a2 | Graphics.Scalable.Types.ImageTagSystem !a1
+:: Graphics.Scalable.Types.Angle = Graphics.Scalable.Types.Deg !a1 | Graphics.Scalable.Types.Rad !a1
+:: Graphics.Scalable.Types.XAlign = Graphics.Scalable.Types.AtLeft | Graphics.Scalable.Types.AtMiddleX | Graphics.Scalable.Types.AtRight
+:: Graphics.Scalable.Types.YAlign = Graphics.Scalable.Types.AtTop | Graphics.Scalable.Types.AtMiddleY | Graphics.Scalable.Types.AtBottom
+:: Graphics.Scalable.Types.GridDimension = Graphics.Scalable.Types.Rows !a1 | Graphics.Scalable.Types.Columns !a1
+:: Graphics.Scalable.Types.GridMajor = Graphics.Scalable.Types.ColumnMajor | Graphics.Scalable.Types.RowMajor
+:: Graphics.Scalable.Types.GridXLayout = Graphics.Scalable.Types.LeftToRight | Graphics.Scalable.Types.RightToLeft
+:: Graphics.Scalable.Types.GridYLayout = Graphics.Scalable.Types.TopToBottom | Graphics.Scalable.Types.BottomToTop
+:: Graphics.Scalable.Types.Slash = Graphics.Scalable.Types.Slash | Graphics.Scalable.Types.Backslash
+
+|| Converted Records
+:: Graphics.Scalable.Types._FontDef = {!Graphics.Scalable.Types.fontfamily, !Graphics.Scalable.Types.fontysize, !Graphics.Scalable.Types.fontstretch, !Graphics.Scalable.Types.fontstyle, !Graphics.Scalable.Types.fontvariant, !Graphics.Scalable.Types.fontweight}
+Graphics.Scalable.Types.get_fontfamily_0 rec = select rec (Graphics.Scalable.Types._FontDef a1 a2 a3 a4 a5 a6 -> a1)
+Graphics.Scalable.Types.get_fontysize_1 rec = select rec (Graphics.Scalable.Types._FontDef a1 a2 a3 a4 a5 a6 -> a2)
+Graphics.Scalable.Types.get_fontstretch_2 rec = select rec (Graphics.Scalable.Types._FontDef a1 a2 a3 a4 a5 a6 -> a3)
+Graphics.Scalable.Types.get_fontstyle_3 rec = select rec (Graphics.Scalable.Types._FontDef a1 a2 a3 a4 a5 a6 -> a4)
+Graphics.Scalable.Types.get_fontvariant_4 rec = select rec (Graphics.Scalable.Types._FontDef a1 a2 a3 a4 a5 a6 -> a5)
+Graphics.Scalable.Types.get_fontweight_5 rec = select rec (Graphics.Scalable.Types._FontDef a1 a2 a3 a4 a5 a6 -> a6)
+Graphics.Scalable.Types.set_fontfamily_0 rec !val = select rec (Graphics.Scalable.Types._FontDef  a1 a2 a3 a4 a5 a6 -> Graphics.Scalable.Types._FontDef val a2 a3 a4 a5 a6)
+Graphics.Scalable.Types.set_fontysize_1 rec !val = select rec (Graphics.Scalable.Types._FontDef  a1 a2 a3 a4 a5 a6 -> Graphics.Scalable.Types._FontDef a1 val a3 a4 a5 a6)
+Graphics.Scalable.Types.set_fontstretch_2 rec !val = select rec (Graphics.Scalable.Types._FontDef  a1 a2 a3 a4 a5 a6 -> Graphics.Scalable.Types._FontDef a1 a2 val a4 a5 a6)
+Graphics.Scalable.Types.set_fontstyle_3 rec !val = select rec (Graphics.Scalable.Types._FontDef  a1 a2 a3 a4 a5 a6 -> Graphics.Scalable.Types._FontDef a1 a2 a3 val a5 a6)
+Graphics.Scalable.Types.set_fontvariant_4 rec !val = select rec (Graphics.Scalable.Types._FontDef  a1 a2 a3 a4 a5 a6 -> Graphics.Scalable.Types._FontDef a1 a2 a3 a4 val a6)
+Graphics.Scalable.Types.set_fontweight_5 rec !val = select rec (Graphics.Scalable.Types._FontDef  a1 a2 a3 a4 a5 a6 -> Graphics.Scalable.Types._FontDef a1 a2 a3 a4 a5 val)
+
+:: Graphics.Scalable.Types._StrokeAttr = {Graphics.Scalable.Types.stroke}
+Graphics.Scalable.Types.get_stroke_6 rec = select rec (Graphics.Scalable.Types._StrokeAttr a1 -> a1)
+Graphics.Scalable.Types.set_stroke_6 rec val = select rec (Graphics.Scalable.Types._StrokeAttr  a1 -> Graphics.Scalable.Types._StrokeAttr val)
+
+:: Graphics.Scalable.Types._StrokeWidthAttr = {Graphics.Scalable.Types.strokewidth}
+Graphics.Scalable.Types.get_strokewidth_7 rec = select rec (Graphics.Scalable.Types._StrokeWidthAttr a1 -> a1)
+Graphics.Scalable.Types.set_strokewidth_7 rec val = select rec (Graphics.Scalable.Types._StrokeWidthAttr  a1 -> Graphics.Scalable.Types._StrokeWidthAttr val)
+
+:: Graphics.Scalable.Types._XRadiusAttr = {Graphics.Scalable.Types.xradius}
+Graphics.Scalable.Types.get_xradius_8 rec = select rec (Graphics.Scalable.Types._XRadiusAttr a1 -> a1)
+Graphics.Scalable.Types.set_xradius_8 rec val = select rec (Graphics.Scalable.Types._XRadiusAttr  a1 -> Graphics.Scalable.Types._XRadiusAttr val)
+
+:: Graphics.Scalable.Types._YRadiusAttr = {Graphics.Scalable.Types.yradius}
+Graphics.Scalable.Types.get_yradius_9 rec = select rec (Graphics.Scalable.Types._YRadiusAttr a1 -> a1)
+Graphics.Scalable.Types.set_yradius_9 rec val = select rec (Graphics.Scalable.Types._YRadiusAttr  a1 -> Graphics.Scalable.Types._YRadiusAttr val)
+
+:: Graphics.Scalable.Types._FillAttr = {Graphics.Scalable.Types.fill}
+Graphics.Scalable.Types.get_fill_10 rec = select rec (Graphics.Scalable.Types._FillAttr a1 -> a1)
+Graphics.Scalable.Types.set_fill_10 rec val = select rec (Graphics.Scalable.Types._FillAttr  a1 -> Graphics.Scalable.Types._FillAttr val)
+
+:: Graphics.Scalable.Types._OpacityAttr = {Graphics.Scalable.Types.opacity}
+Graphics.Scalable.Types.get_opacity_11 rec = select rec (Graphics.Scalable.Types._OpacityAttr a1 -> a1)
+Graphics.Scalable.Types.set_opacity_11 rec val = select rec (Graphics.Scalable.Types._OpacityAttr  a1 -> Graphics.Scalable.Types._OpacityAttr val)
+
+:: Graphics.Scalable.Types._OnClickAttr = {Graphics.Scalable.Types.onclick, Graphics.Scalable.Types.local}
+Graphics.Scalable.Types.get_onclick_12 rec = select rec (Graphics.Scalable.Types._OnClickAttr a1 a2 -> a1)
+Graphics.Scalable.Types.get_local_13 rec = select rec (Graphics.Scalable.Types._OnClickAttr a1 a2 -> a2)
+Graphics.Scalable.Types.set_onclick_12 rec val = select rec (Graphics.Scalable.Types._OnClickAttr  a1 a2 -> Graphics.Scalable.Types._OnClickAttr val a2)
+Graphics.Scalable.Types.set_local_13 rec val = select rec (Graphics.Scalable.Types._OnClickAttr  a1 a2 -> Graphics.Scalable.Types._OnClickAttr a1 val)
+
+:: Graphics.Scalable.Types._OnMouseDownAttr = {Graphics.Scalable.Types.onmousedown, Graphics.Scalable.Types.local}
+Graphics.Scalable.Types.get_onmousedown_14 rec = select rec (Graphics.Scalable.Types._OnMouseDownAttr a1 a2 -> a1)
+Graphics.Scalable.Types.get_local_15 rec = select rec (Graphics.Scalable.Types._OnMouseDownAttr a1 a2 -> a2)
+Graphics.Scalable.Types.set_onmousedown_14 rec val = select rec (Graphics.Scalable.Types._OnMouseDownAttr  a1 a2 -> Graphics.Scalable.Types._OnMouseDownAttr val a2)
+Graphics.Scalable.Types.set_local_15 rec val = select rec (Graphics.Scalable.Types._OnMouseDownAttr  a1 a2 -> Graphics.Scalable.Types._OnMouseDownAttr a1 val)
+
+:: Graphics.Scalable.Types._OnMouseUpAttr = {Graphics.Scalable.Types.onmouseup, Graphics.Scalable.Types.local}
+Graphics.Scalable.Types.get_onmouseup_16 rec = select rec (Graphics.Scalable.Types._OnMouseUpAttr a1 a2 -> a1)
+Graphics.Scalable.Types.get_local_17 rec = select rec (Graphics.Scalable.Types._OnMouseUpAttr a1 a2 -> a2)
+Graphics.Scalable.Types.set_onmouseup_16 rec val = select rec (Graphics.Scalable.Types._OnMouseUpAttr  a1 a2 -> Graphics.Scalable.Types._OnMouseUpAttr val a2)
+Graphics.Scalable.Types.set_local_17 rec val = select rec (Graphics.Scalable.Types._OnMouseUpAttr  a1 a2 -> Graphics.Scalable.Types._OnMouseUpAttr a1 val)
+
+:: Graphics.Scalable.Types._OnMouseOverAttr = {Graphics.Scalable.Types.onmouseover, Graphics.Scalable.Types.local}
+Graphics.Scalable.Types.get_onmouseover_18 rec = select rec (Graphics.Scalable.Types._OnMouseOverAttr a1 a2 -> a1)
+Graphics.Scalable.Types.get_local_19 rec = select rec (Graphics.Scalable.Types._OnMouseOverAttr a1 a2 -> a2)
+Graphics.Scalable.Types.set_onmouseover_18 rec val = select rec (Graphics.Scalable.Types._OnMouseOverAttr  a1 a2 -> Graphics.Scalable.Types._OnMouseOverAttr val a2)
+Graphics.Scalable.Types.set_local_19 rec val = select rec (Graphics.Scalable.Types._OnMouseOverAttr  a1 a2 -> Graphics.Scalable.Types._OnMouseOverAttr a1 val)
+
+:: Graphics.Scalable.Types._OnMouseMoveAttr = {Graphics.Scalable.Types.onmousemove, Graphics.Scalable.Types.local}
+Graphics.Scalable.Types.get_onmousemove_20 rec = select rec (Graphics.Scalable.Types._OnMouseMoveAttr a1 a2 -> a1)
+Graphics.Scalable.Types.get_local_21 rec = select rec (Graphics.Scalable.Types._OnMouseMoveAttr a1 a2 -> a2)
+Graphics.Scalable.Types.set_onmousemove_20 rec val = select rec (Graphics.Scalable.Types._OnMouseMoveAttr  a1 a2 -> Graphics.Scalable.Types._OnMouseMoveAttr val a2)
+Graphics.Scalable.Types.set_local_21 rec val = select rec (Graphics.Scalable.Types._OnMouseMoveAttr  a1 a2 -> Graphics.Scalable.Types._OnMouseMoveAttr a1 val)
+
+:: Graphics.Scalable.Types._OnMouseOutAttr = {Graphics.Scalable.Types.onmouseout, Graphics.Scalable.Types.local}
+Graphics.Scalable.Types.get_onmouseout_22 rec = select rec (Graphics.Scalable.Types._OnMouseOutAttr a1 a2 -> a1)
+Graphics.Scalable.Types.get_local_23 rec = select rec (Graphics.Scalable.Types._OnMouseOutAttr a1 a2 -> a2)
+Graphics.Scalable.Types.set_onmouseout_22 rec val = select rec (Graphics.Scalable.Types._OnMouseOutAttr  a1 a2 -> Graphics.Scalable.Types._OnMouseOutAttr val a2)
+Graphics.Scalable.Types.set_local_23 rec val = select rec (Graphics.Scalable.Types._OnMouseOutAttr  a1 a2 -> Graphics.Scalable.Types._OnMouseOutAttr a1 val)
+
+:: Graphics.Scalable.Types._DraggableAttr = {Graphics.Scalable.Types.draggable}
+Graphics.Scalable.Types.get_draggable_24 rec = select rec (Graphics.Scalable.Types._DraggableAttr a1 -> a1)
+Graphics.Scalable.Types.set_draggable_24 rec val = select rec (Graphics.Scalable.Types._DraggableAttr  a1 -> Graphics.Scalable.Types._DraggableAttr val)
+
+:: Graphics.Scalable.Types._DashAttr = {Graphics.Scalable.Types.dash}
+Graphics.Scalable.Types.get_dash_25 rec = select rec (Graphics.Scalable.Types._DashAttr a1 -> a1)
+Graphics.Scalable.Types.set_dash_25 rec val = select rec (Graphics.Scalable.Types._DashAttr  a1 -> Graphics.Scalable.Types._DashAttr val)
+
+:: <{Graphics.Scalable.Types.bimap_s;}> = {Graphics.Scalable.Types.bimap_s}
+Graphics.Scalable.Types.get_bimap_s_26 rec = select rec (<{Graphics.Scalable.Types.bimap_s;}> a1 -> a1)
+Graphics.Scalable.Types.set_bimap_s_26 rec val = select rec (<{Graphics.Scalable.Types.bimap_s;}>  a1 -> <{Graphics.Scalable.Types.bimap_s;}> val)
+
+:: <{Graphics.Scalable.Types.bimap_ss;}> = {Graphics.Scalable.Types.bimap_ss}
+Graphics.Scalable.Types.get_bimap_ss_27 rec = select rec (<{Graphics.Scalable.Types.bimap_ss;}> a1 -> a1)
+Graphics.Scalable.Types.set_bimap_ss_27 rec val = select rec (<{Graphics.Scalable.Types.bimap_ss;}>  a1 -> <{Graphics.Scalable.Types.bimap_ss;}> val)
+
+:: <{Graphics.Scalable.Types.bimap_sss;}> = {Graphics.Scalable.Types.bimap_sss}
+Graphics.Scalable.Types.get_bimap_sss_28 rec = select rec (<{Graphics.Scalable.Types.bimap_sss;}> a1 -> a1)
+Graphics.Scalable.Types.set_bimap_sss_28 rec val = select rec (<{Graphics.Scalable.Types.bimap_sss;}>  a1 -> <{Graphics.Scalable.Types.bimap_sss;}> val)
+
+:: <{Graphics.Scalable.Types.gEq_s;}> = {Graphics.Scalable.Types.gEq_s}
+Graphics.Scalable.Types.get_gEq_s_29 rec = select rec (<{Graphics.Scalable.Types.gEq_s;}> a1 -> a1)
+Graphics.Scalable.Types.set_gEq_s_29 rec val = select rec (<{Graphics.Scalable.Types.gEq_s;}>  a1 -> <{Graphics.Scalable.Types.gEq_s;}> val)
+
+:: <{Graphics.Scalable.Types.gEq_ss;}> = {Graphics.Scalable.Types.gEq_ss}
+Graphics.Scalable.Types.get_gEq_ss_30 rec = select rec (<{Graphics.Scalable.Types.gEq_ss;}> a1 -> a1)
+Graphics.Scalable.Types.set_gEq_ss_30 rec val = select rec (<{Graphics.Scalable.Types.gEq_ss;}>  a1 -> <{Graphics.Scalable.Types.gEq_ss;}> val)
+
+:: <{Graphics.Scalable.Types.gEq_sss;}> = {Graphics.Scalable.Types.gEq_sss}
+Graphics.Scalable.Types.get_gEq_sss_31 rec = select rec (<{Graphics.Scalable.Types.gEq_sss;}> a1 -> a1)
+Graphics.Scalable.Types.set_gEq_sss_31 rec val = select rec (<{Graphics.Scalable.Types.gEq_sss;}>  a1 -> <{Graphics.Scalable.Types.gEq_sss;}> val)
+
+:: <{Graphics.Scalable.Types.gEq_ssss;}> = {Graphics.Scalable.Types.gEq_ssss}
+Graphics.Scalable.Types.get_gEq_ssss_32 rec = select rec (<{Graphics.Scalable.Types.gEq_ssss;}> a1 -> a1)
+Graphics.Scalable.Types.set_gEq_ssss_32 rec val = select rec (<{Graphics.Scalable.Types.gEq_ssss;}>  a1 -> <{Graphics.Scalable.Types.gEq_ssss;}> val)
+
+:: <{Graphics.Scalable.Types.gEq_sssss;}> = {Graphics.Scalable.Types.gEq_sssss}
+Graphics.Scalable.Types.get_gEq_sssss_33 rec = select rec (<{Graphics.Scalable.Types.gEq_sssss;}> a1 -> a1)
+Graphics.Scalable.Types.set_gEq_sssss_33 rec val = select rec (<{Graphics.Scalable.Types.gEq_sssss;}>  a1 -> <{Graphics.Scalable.Types.gEq_sssss;}> val)
+
+:: <{Graphics.Scalable.Types.gEq_ssssss;}> = {Graphics.Scalable.Types.gEq_ssssss}
+Graphics.Scalable.Types.get_gEq_ssssss_34 rec = select rec (<{Graphics.Scalable.Types.gEq_ssssss;}> a1 -> a1)
+Graphics.Scalable.Types.set_gEq_ssssss_34 rec val = select rec (<{Graphics.Scalable.Types.gEq_ssssss;}>  a1 -> <{Graphics.Scalable.Types.gEq_ssssss;}> val)
+
+:: <{Graphics.Scalable.Types.gEq_sssssss;}> = {Graphics.Scalable.Types.gEq_sssssss}
+Graphics.Scalable.Types.get_gEq_sssssss_35 rec = select rec (<{Graphics.Scalable.Types.gEq_sssssss;}> a1 -> a1)
+Graphics.Scalable.Types.set_gEq_sssssss_35 rec val = select rec (<{Graphics.Scalable.Types.gEq_sssssss;}>  a1 -> <{Graphics.Scalable.Types.gEq_sssssss;}> val)
+
+:: <{Graphics.Scalable.Types.gEq_ssssssss;}> = {Graphics.Scalable.Types.gEq_ssssssss}
+Graphics.Scalable.Types.get_gEq_ssssssss_36 rec = select rec (<{Graphics.Scalable.Types.gEq_ssssssss;}> a1 -> a1)
+Graphics.Scalable.Types.set_gEq_ssssssss_36 rec val = select rec (<{Graphics.Scalable.Types.gEq_ssssssss;}>  a1 -> <{Graphics.Scalable.Types.gEq_ssssssss;}> val)
+
+:: <{Graphics.Scalable.Types.gEq_sssssssss;}> = {Graphics.Scalable.Types.gEq_sssssssss}
+Graphics.Scalable.Types.get_gEq_sssssssss_37 rec = select rec (<{Graphics.Scalable.Types.gEq_sssssssss;}> a1 -> a1)
+Graphics.Scalable.Types.set_gEq_sssssssss_37 rec val = select rec (<{Graphics.Scalable.Types.gEq_sssssssss;}>  a1 -> <{Graphics.Scalable.Types.gEq_sssssssss;}> val)
+

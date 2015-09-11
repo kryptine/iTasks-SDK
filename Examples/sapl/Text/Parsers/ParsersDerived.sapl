@@ -1,0 +1,100 @@
+|| ?module? Text.Parsers.ParsersDerived
+
+
+Text.Parsers.ParsersDerived.anon_43 !f_0 g_1 x_2 = f_0 (g_1 x_2)
+Text.Parsers.ParsersDerived.anon_87 g_0 x_1 = Text.Parsers.ParsersKernel.yield (g_0 x_1)
+<{Text.Parsers.ParsersDerived.<@}> p_0 f_1 = <{Text.Parsers.ParsersKernel.<&>}> p_0 (Text.Parsers.ParsersDerived.anon_87 f_1)
+Text.Parsers.ParsersDerived.anon_24 p2_0 r1_1 = <{Text.Parsers.ParsersDerived.<@}> p2_0 (StdFunc.const r1_1)
+<{Text.Parsers.ParsersDerived.<&}> p1_0 p2_1 = <{Text.Parsers.ParsersKernel.<&>}> p1_0 (Text.Parsers.ParsersDerived.anon_24 p2_1)
+Text.Parsers.ParsersDerived.anon_25 r1_0 r2_1 = _Tuple2 r1_0 r2_1
+Text.Parsers.ParsersDerived.anon_26 p2_0 r1_1 = <{Text.Parsers.ParsersDerived.<@}> p2_0 (Text.Parsers.ParsersDerived.anon_25 r1_1)
+<{Text.Parsers.ParsersDerived.<&&>}> p1_0 p2_1 = <{Text.Parsers.ParsersKernel.<&>}> p1_0 (Text.Parsers.ParsersDerived.anon_26 p2_1)
+Text.Parsers.ParsersDerived.anon_27 r1_0 r2_1 = _predefined._Cons r1_0 r2_1
+Text.Parsers.ParsersDerived.anon_28 p2_0 r1_1 = <{Text.Parsers.ParsersDerived.<@}> p2_0 (Text.Parsers.ParsersDerived.anon_27 r1_1)
+<{Text.Parsers.ParsersDerived.<:&>}> p1_0 p2_1 = <{Text.Parsers.ParsersKernel.<&>}> p1_0 (Text.Parsers.ParsersDerived.anon_28 p2_1)
+Text.Parsers.ParsersDerived.anon_29 r1_0 r2_1 rest_2 = _predefined._Cons r1_0 (r2_1 rest_2)
+Text.Parsers.ParsersDerived.anon_30 r1_0 r2_1 = Text.Parsers.ParsersDerived.anon_29 r1_0 r2_1
+Text.Parsers.ParsersDerived.anon_31 p2_0 r1_1 = <{Text.Parsers.ParsersDerived.<@}> p2_0 (Text.Parsers.ParsersDerived.anon_30 r1_1)
+<{Text.Parsers.ParsersDerived.<:&:>}> p1_0 p2_1 = <{Text.Parsers.ParsersKernel.<&>}> p1_0 (Text.Parsers.ParsersDerived.anon_31 p2_1)
+<{Text.Parsers.ParsersDerived.c;28;25_32}> !<{_v<_0}> !_vone_1 !<{_v+_2}> p_3 g_i_4 g_s_5 = if (StdBool.not (<{StdOverloaded.get_<_7}> <{_v<_0}> g_s_5 g_i_4)) (_predefined._Cons p_3 (<{Text.Parsers.ParsersDerived.c;28;25_32}> <{_v<_0}> _vone_1 <{_v+_2}> p_3 (<{StdOverloaded.get_+_0}> <{_v+_2}> g_i_4 (StdOverloaded.get_one_5 _vone_1)) g_s_5)) _predefined._Nil
+<{Text.Parsers.ParsersDerived.c;28;25_88}> !_vone_0 !<{_v+_1}> p_2 !g_i_3 !g_s_4 = if (StdBool.not (<{StdInt.<_17}> g_s_4 g_i_3)) (_predefined._Cons p_2 (<{Text.Parsers.ParsersDerived.c;28;25_88}> _vone_0 <{_v+_1}> p_2 (<{StdOverloaded.get_+_0}> <{_v+_1}> g_i_3 (StdOverloaded.get_one_5 _vone_0)) g_s_4)) _predefined._Nil
+<{Text.Parsers.ParsersDerived.c;28;25_89}> !<{_v+_0}> p_1 !g_i_2 !g_s_3 = if (StdBool.not (<{StdInt.<_17}> g_s_3 g_i_2)) (_predefined._Cons p_1 (<{Text.Parsers.ParsersDerived.c;28;25_89}> <{_v+_0}> p_1 (<{StdOverloaded.get_+_0}> <{_v+_0}> g_i_2 StdInt.one_11) g_s_3)) _predefined._Nil
+<{Text.Parsers.ParsersDerived.c;28;25_90}> p_0 !g_i_1 !g_s_2 = if (StdBool.not (<{StdInt.<_17}> g_s_2 g_i_1)) (_predefined._Cons p_0 (<{Text.Parsers.ParsersDerived.c;28;25_90}> p_0 (<{StdInt.+_6}> g_i_1 StdInt.one_11) g_s_2)) _predefined._Nil
+Text.Parsers.ParsersDerived.count !n_0 p_1 = if (StdBool.not (<{StdInt.<_17}> 0 n_0)) (Control.Monad.return (<{Control.Monad.Monad;}> Text.Parsers.ParsersKernel.bind_41 (<{Control.Applicative.Applicative;}> <{Text.Parsers.ParsersKernel.<*>_35}> Text.Parsers.ParsersKernel.pure_36 (<{Data.Functor.Functor;}> Text.Parsers.ParsersKernel.fmap_34))) _predefined._Nil) (Control.Monad.sequence (<{Control.Monad.Monad;}> Text.Parsers.ParsersKernel.bind_41 (<{Control.Applicative.Applicative;}> <{Text.Parsers.ParsersKernel.<*>_35}> Text.Parsers.ParsersKernel.pure_36 (<{Data.Functor.Functor;}> Text.Parsers.ParsersKernel.fmap_34))) (<{Text.Parsers.ParsersDerived.c;28;25_90}> p_1 1 n_0))
+<{Text.Parsers.ParsersDerived.<.*>}> p_0 = <{Text.Parsers.ParsersKernel.<|>_37}> (<{Text.Parsers.ParsersDerived.<:&>}> p_0 (<{Text.Parsers.ParsersDerived.<.*>}> p_0)) (Text.Parsers.ParsersKernel.yield _predefined._Nil)
+<{Text.Parsers.ParsersDerived.<*:>}> p_0 = <{Text.Parsers.ParsersKernel.<|>_37}> (<{Text.Parsers.ParsersDerived.<:&:>}> p_0 (<{Text.Parsers.ParsersDerived.<*:>}> p_0)) (Text.Parsers.ParsersKernel.yield StdFunc.id)
+<{Text.Parsers.ParsersDerived.<+>}> p_0 = <{Text.Parsers.ParsersDerived.<:&>}> p_0 (<{Text.Parsers.ParsersDerived.<.*>}> p_0)
+<{Text.Parsers.ParsersDerived.<+:>}> p_0 = <{Text.Parsers.ParsersDerived.<:&:>}> p_0 (<{Text.Parsers.ParsersDerived.<*:>}> p_0)
+Text.Parsers.ParsersDerived.anon_33 r_0 rs_1 = _predefined._Cons r_0 rs_1
+Text.Parsers.ParsersDerived.anon_34 p_0 r_1 = <{Text.Parsers.ParsersDerived.<@}> (<{Text.Parsers.ParsersDerived.<!*>}> p_0) (Text.Parsers.ParsersDerived.anon_33 r_1)
+<{Text.Parsers.ParsersDerived.<!*>}> p_0 = <{Text.Parsers.ParsersKernel.<-!>_49}> (<{Text.Parsers.ParsersKernel.<&->}> p_0 (Text.Parsers.ParsersDerived.anon_34 p_0)) (Text.Parsers.ParsersKernel.yield _predefined._Nil)
+Text.Parsers.ParsersDerived.anon_35 r_0 rs_1 rest_2 = _predefined._Cons r_0 (rs_1 rest_2)
+Text.Parsers.ParsersDerived.anon_36 r_0 rs_1 = Text.Parsers.ParsersDerived.anon_35 r_0 rs_1
+Text.Parsers.ParsersDerived.anon_37 p_0 r_1 = <{Text.Parsers.ParsersDerived.<@}> (<{Text.Parsers.ParsersDerived.<!*:>}> p_0) (Text.Parsers.ParsersDerived.anon_36 r_1)
+<{Text.Parsers.ParsersDerived.<!*:>}> p_0 = <{Text.Parsers.ParsersKernel.<-!>_49}> (<{Text.Parsers.ParsersKernel.<&->}> p_0 (Text.Parsers.ParsersDerived.anon_37 p_0)) (Text.Parsers.ParsersKernel.yield StdFunc.id)
+<{Text.Parsers.ParsersDerived.<!+>}> p_0 = <{Text.Parsers.ParsersDerived.<:&>}> p_0 (<{Text.Parsers.ParsersDerived.<!*>}> p_0)
+<{Text.Parsers.ParsersDerived.<!+:>}> p_0 = <{Text.Parsers.ParsersDerived.<:&:>}> p_0 (<{Text.Parsers.ParsersDerived.<!+:>}> p_0)
+<{Text.Parsers.ParsersDerived.<?>}> p_0 f_1 c_2 = <{Text.Parsers.ParsersKernel.<!>}> (<{Text.Parsers.ParsersDerived.<@}> p_0 f_1) (Text.Parsers.ParsersKernel.yield c_2)
+<{Text.Parsers.ParsersDerived.<!?>}> p_0 f_1 c_2 = Text.Parsers.ParsersKernel.first (<{Text.Parsers.ParsersDerived.<?>}> p_0 f_1 c_2)
+Text.Parsers.ParsersDerived.grazeTo until_0 = let p_1_0 = <{Text.Parsers.ParsersKernel.<|>_37}> (<{Text.Parsers.ParsersDerived.<@}> (Text.Parsers.ParsersKernel.rewind until_0) (StdFunc.const _predefined._Nil)) (<{Text.Parsers.ParsersDerived.<:&>}> Text.Parsers.ParsersKernel.anySymbol p_1_0) in p_1_0
+Text.Parsers.ParsersDerived.grazeOver until_0 = let p_1_0 = <{Text.Parsers.ParsersKernel.<|>_37}> (<{Text.Parsers.ParsersDerived.<@}> until_0 (StdFunc.const _predefined._Nil)) (<{Text.Parsers.ParsersDerived.<:&>}> Text.Parsers.ParsersKernel.anySymbol p_1_0) in p_1_0
+Text.Parsers.ParsersDerived.grazeOnce until_0 = Text.Parsers.ParsersKernel.first (Text.Parsers.ParsersDerived.grazeTo until_0)
+Text.Parsers.ParsersDerived.skipTo until_0 = let p_1_0 = <{Text.Parsers.ParsersKernel.<|>_37}> (<{Text.Parsers.ParsersDerived.<@}> (Text.Parsers.ParsersKernel.rewind until_0) (StdFunc.const (StdMisc.abort "result of rewind-parser constructor accessed in skipTo"))) (<{Text.Parsers.ParsersKernel.<&>}> Text.Parsers.ParsersKernel.anySymbol (StdFunc.const p_1_0)) in p_1_0
+Text.Parsers.ParsersDerived.skipOver until_0 = let p_1_0 = <{Text.Parsers.ParsersKernel.<|>_37}> (<{Text.Parsers.ParsersDerived.<@}> until_0 (StdFunc.const (StdMisc.abort "result of until-parser accessed in skipOver"))) (<{Text.Parsers.ParsersKernel.<&>}> Text.Parsers.ParsersKernel.anySymbol (StdFunc.const p_1_0)) in p_1_0
+Text.Parsers.ParsersDerived.skipOnce until_0 = Text.Parsers.ParsersKernel.first (Text.Parsers.ParsersDerived.skipTo until_0)
+Text.Parsers.ParsersDerived.anon_39 adv_0 wp2_1 pb_2 r1_3 = <{Text.Parsers.ParsersKernel.<&>}> (Text.Parsers.ParsersKernel.setParsable pb_2) (StdFunc.const (<{Text.Parsers.ParsersKernel.<&>}> (Text.Parsers.ParsersKernel.advancePosition (adv_0 r1_3)) (StdFunc.const (wp2_1 r1_3))))
+Text.Parsers.ParsersDerived.anon_40 adv_0 wp2_1 p1_2 pb_3 = <{Text.Parsers.ParsersKernel.<&>}> p1_2 (Text.Parsers.ParsersDerived.anon_39 adv_0 wp2_1 pb_3)
+Text.Parsers.ParsersDerived.scrape p1_0 adv_1 wp2_2 = <{Text.Parsers.ParsersKernel.<&>}> Text.Parsers.ParsersKernel.getParsable (Text.Parsers.ParsersDerived.anon_40 adv_1 wp2_2 p1_0)
+Text.Parsers.ParsersDerived.anon_38 wp_0 f_1 u_2 = <{Text.Parsers.ParsersDerived.<@}> (wp_0 u_2) f_1
+<{Text.Parsers.ParsersDerived.<=@}> wp_0 f_1 = Text.Parsers.ParsersDerived.anon_38 wp_0 f_1
+
+
+|| Converted Records
+:: <{Text.Parsers.ParsersDerived.bimap_s;}> = {!Text.Parsers.ParsersDerived.bimap_s}
+Text.Parsers.ParsersDerived.get_bimap_s_0 rec = select rec (<{Text.Parsers.ParsersDerived.bimap_s;}> a1 -> a1)
+Text.Parsers.ParsersDerived.set_bimap_s_0 rec !val = select rec (<{Text.Parsers.ParsersDerived.bimap_s;}>  a1 -> <{Text.Parsers.ParsersDerived.bimap_s;}> val)
+
+:: <{Text.Parsers.ParsersDerived.bimap_ss;}> = {Text.Parsers.ParsersDerived.bimap_ss}
+Text.Parsers.ParsersDerived.get_bimap_ss_1 rec = select rec (<{Text.Parsers.ParsersDerived.bimap_ss;}> a1 -> a1)
+Text.Parsers.ParsersDerived.set_bimap_ss_1 rec val = select rec (<{Text.Parsers.ParsersDerived.bimap_ss;}>  a1 -> <{Text.Parsers.ParsersDerived.bimap_ss;}> val)
+
+:: <{Text.Parsers.ParsersDerived.bimap_sss;}> = {Text.Parsers.ParsersDerived.bimap_sss}
+Text.Parsers.ParsersDerived.get_bimap_sss_2 rec = select rec (<{Text.Parsers.ParsersDerived.bimap_sss;}> a1 -> a1)
+Text.Parsers.ParsersDerived.set_bimap_sss_2 rec val = select rec (<{Text.Parsers.ParsersDerived.bimap_sss;}>  a1 -> <{Text.Parsers.ParsersDerived.bimap_sss;}> val)
+
+:: <{Text.Parsers.ParsersDerived.gEq_s;}> = {Text.Parsers.ParsersDerived.gEq_s}
+Text.Parsers.ParsersDerived.get_gEq_s_3 rec = select rec (<{Text.Parsers.ParsersDerived.gEq_s;}> a1 -> a1)
+Text.Parsers.ParsersDerived.set_gEq_s_3 rec val = select rec (<{Text.Parsers.ParsersDerived.gEq_s;}>  a1 -> <{Text.Parsers.ParsersDerived.gEq_s;}> val)
+
+:: <{Text.Parsers.ParsersDerived.gEq_ss;}> = {Text.Parsers.ParsersDerived.gEq_ss}
+Text.Parsers.ParsersDerived.get_gEq_ss_4 rec = select rec (<{Text.Parsers.ParsersDerived.gEq_ss;}> a1 -> a1)
+Text.Parsers.ParsersDerived.set_gEq_ss_4 rec val = select rec (<{Text.Parsers.ParsersDerived.gEq_ss;}>  a1 -> <{Text.Parsers.ParsersDerived.gEq_ss;}> val)
+
+:: <{Text.Parsers.ParsersDerived.gEq_sss;}> = {Text.Parsers.ParsersDerived.gEq_sss}
+Text.Parsers.ParsersDerived.get_gEq_sss_5 rec = select rec (<{Text.Parsers.ParsersDerived.gEq_sss;}> a1 -> a1)
+Text.Parsers.ParsersDerived.set_gEq_sss_5 rec val = select rec (<{Text.Parsers.ParsersDerived.gEq_sss;}>  a1 -> <{Text.Parsers.ParsersDerived.gEq_sss;}> val)
+
+:: <{Text.Parsers.ParsersDerived.gEq_ssss;}> = {Text.Parsers.ParsersDerived.gEq_ssss}
+Text.Parsers.ParsersDerived.get_gEq_ssss_6 rec = select rec (<{Text.Parsers.ParsersDerived.gEq_ssss;}> a1 -> a1)
+Text.Parsers.ParsersDerived.set_gEq_ssss_6 rec val = select rec (<{Text.Parsers.ParsersDerived.gEq_ssss;}>  a1 -> <{Text.Parsers.ParsersDerived.gEq_ssss;}> val)
+
+:: <{Text.Parsers.ParsersDerived.gEq_sssss;}> = {Text.Parsers.ParsersDerived.gEq_sssss}
+Text.Parsers.ParsersDerived.get_gEq_sssss_7 rec = select rec (<{Text.Parsers.ParsersDerived.gEq_sssss;}> a1 -> a1)
+Text.Parsers.ParsersDerived.set_gEq_sssss_7 rec val = select rec (<{Text.Parsers.ParsersDerived.gEq_sssss;}>  a1 -> <{Text.Parsers.ParsersDerived.gEq_sssss;}> val)
+
+:: <{Text.Parsers.ParsersDerived.gEq_ssssss;}> = {Text.Parsers.ParsersDerived.gEq_ssssss}
+Text.Parsers.ParsersDerived.get_gEq_ssssss_8 rec = select rec (<{Text.Parsers.ParsersDerived.gEq_ssssss;}> a1 -> a1)
+Text.Parsers.ParsersDerived.set_gEq_ssssss_8 rec val = select rec (<{Text.Parsers.ParsersDerived.gEq_ssssss;}>  a1 -> <{Text.Parsers.ParsersDerived.gEq_ssssss;}> val)
+
+:: <{Text.Parsers.ParsersDerived.gEq_sssssss;}> = {Text.Parsers.ParsersDerived.gEq_sssssss}
+Text.Parsers.ParsersDerived.get_gEq_sssssss_9 rec = select rec (<{Text.Parsers.ParsersDerived.gEq_sssssss;}> a1 -> a1)
+Text.Parsers.ParsersDerived.set_gEq_sssssss_9 rec val = select rec (<{Text.Parsers.ParsersDerived.gEq_sssssss;}>  a1 -> <{Text.Parsers.ParsersDerived.gEq_sssssss;}> val)
+
+:: <{Text.Parsers.ParsersDerived.gEq_ssssssss;}> = {Text.Parsers.ParsersDerived.gEq_ssssssss}
+Text.Parsers.ParsersDerived.get_gEq_ssssssss_10 rec = select rec (<{Text.Parsers.ParsersDerived.gEq_ssssssss;}> a1 -> a1)
+Text.Parsers.ParsersDerived.set_gEq_ssssssss_10 rec val = select rec (<{Text.Parsers.ParsersDerived.gEq_ssssssss;}>  a1 -> <{Text.Parsers.ParsersDerived.gEq_ssssssss;}> val)
+
+:: <{Text.Parsers.ParsersDerived.gEq_sssssssss;}> = {Text.Parsers.ParsersDerived.gEq_sssssssss}
+Text.Parsers.ParsersDerived.get_gEq_sssssssss_11 rec = select rec (<{Text.Parsers.ParsersDerived.gEq_sssssssss;}> a1 -> a1)
+Text.Parsers.ParsersDerived.set_gEq_sssssssss_11 rec val = select rec (<{Text.Parsers.ParsersDerived.gEq_sssssssss;}>  a1 -> <{Text.Parsers.ParsersDerived.gEq_sssssssss;}> val)
+

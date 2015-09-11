@@ -95,8 +95,8 @@ where
     //Finalize task UI
     # newResult                 = finalizeUI session newResult
     # tree                      = case newResult of
-        (ValueResult _ _ _ newTree)  = newTree
-        _                                                   = tree
+        (ValueResult _ _ _ newTree _)  = newTree
+        _                              = tree
     //Reset necessary 'current' values in iworld
     # iworld = {IWorld|iworld & current = {TaskEvalState|current & taskInstance = 0}}
     // Check if instance was deleted by trying to reread the instance constants share
@@ -112,15 +112,15 @@ where
                                                 (sdsFocus instanceNo taskInstanceReduct) iworld //FIXME: Don't write the full reduct (all parallel shares are triggered then!)
             //Store update value
             # newValue                  = case newResult of
-                (ValueResult val _ _ _)     = TIValue val
-                (ExceptionResult (e,str))   = TIException e str
+                (ValueResult val _ _ _ _) = TIValue val
+                (ExceptionResult (e,str)) = TIException e str
             # (mbErr,iworld)            = if deleted (Ok (),iworld) ('SDS'.write newValue (sdsFocus instanceNo taskInstanceValue) iworld)
             = case mbErr of
                 Error (e,msg)          = (Error msg,iworld)
                 Ok _
                 //Determine user interface updates by comparing the previous UI to the newly calculated one
                 = case newResult of
-                    (ValueResult value _ newRep _)	
+                    (ValueResult value _ newRep _ _)	
 						= case 'SDS'.read (sdsFocus instanceNo taskInstanceUI) iworld of
 							(Ok UIDisabled, iworld)
 								= (Ok value, iworld) //Nothing to do, the UI is disabled
@@ -152,9 +152,9 @@ where
 	getEditletDiffs iworld=:{IWorld|current={editletDiffs}}	= (editletDiffs,iworld)
     setEditletDiffs editletDiffs iworld=:{current} = {IWorld|iworld & current = {current & editletDiffs = editletDiffs}}
 
-    finalizeUI session (ValueResult value info (TaskRep ui) tree)
+    finalizeUI session (ValueResult value info (TaskRep ui) tree taskUIs)
         # ui = if session (uiDefSetAttribute "session" "true" ui) ui
-        = (ValueResult value info (TaskRep (autoLayoutFinal ui)) tree)
+        = (ValueResult value info (TaskRep (autoLayoutFinal ui)) tree taskUIs)
     finalizeUI session res = res
 
 	updateProgress now result progress
@@ -164,9 +164,9 @@ where
 		# progress = {InstanceProgress|progress & firstEvent = Just (fromMaybe now progress.InstanceProgress.firstEvent), lastEvent = Nothing} //EXPERIMENT
 		= case result of
 			(ExceptionResult _)				    = {InstanceProgress|progress & value = Exception}
-			(ValueResult (Value _ stable) _  _ _)	
+			(ValueResult (Value _ stable) _ _ _ _)
                 = {InstanceProgress|progress & value = if stable Stable Unstable}
-			(ValueResult _ _ _ _)	
+			(ValueResult _ _ _ _ _)
                 = {InstanceProgress|progress & value = None}
 			_									= {InstanceProgress|progress & value = None}
 

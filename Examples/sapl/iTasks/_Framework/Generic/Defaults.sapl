@@ -1,0 +1,160 @@
+|| ?module? iTasks._Framework.Generic.Defaults
+
+
+iTasks._Framework.Generic.Defaults.defaultValue !<{_vgDefault*_0}> = iTasks._Framework.Generic.Defaults.get_gDefault_s_24 <{_vgDefault*_0}>
+iTasks._Framework.Generic.Defaults.gDefault_UNIT_1 = StdGeneric.UNIT
+iTasks._Framework.Generic.Defaults.gDefault_PAIR_2 fa_0 fb_1 = StdGeneric.PAIR fa_0 fb_1
+iTasks._Framework.Generic.Defaults.gDefault_EITHER_3 fa_0 fb_1 = StdGeneric.LEFT fa_0
+iTasks._Framework.Generic.Defaults.gDefault_CONS_4 fa_0 = StdGeneric.CONS fa_0
+iTasks._Framework.Generic.Defaults.gDefault_OBJECT_5 fa_0 = StdGeneric.OBJECT fa_0
+iTasks._Framework.Generic.Defaults.gDefault_RECORD_6 fa_0 = StdGeneric.RECORD fa_0
+iTasks._Framework.Generic.Defaults.gDefault_FIELD_7 fa_0 = StdGeneric.FIELD fa_0
+iTasks._Framework.Generic.Defaults.gDefault_Int_8 = 0
+iTasks._Framework.Generic.Defaults.gDefault_Real_9 = 0
+iTasks._Framework.Generic.Defaults.gDefault_Char_10 = '\0'
+iTasks._Framework.Generic.Defaults.gDefault_Bool_11 = False
+iTasks._Framework.Generic.Defaults.gDefault__String_12 = ""
+iTasks._Framework.Generic.Defaults.gDefault__List_13 fa_0 = _predefined._Nil
+iTasks._Framework.Generic.Defaults.gDefault__Unit_14 = _predefined._Unit
+iTasks._Framework.Generic.Defaults.gDefault__Tuple2_15 fa_0 fb_1 = _Tuple2 fa_0 fb_1
+iTasks._Framework.Generic.Defaults.gDefault__Tuple3_16 fa_0 fb_1 fc_2 = _Tuple3 fa_0 fb_1 fc_2
+iTasks._Framework.Generic.Defaults.gDefault__Tuple4_17 fa_0 fb_1 fc_2 fd_3 = _Tuple4 fa_0 fb_1 fc_2 fd_3
+iTasks._Framework.Generic.Defaults.gDefault__Tuple5_18 fa_0 fb_1 fc_2 fd_3 fe_4 = _Tuple5 fa_0 fb_1 fc_2 fd_3 fe_4
+iTasks._Framework.Generic.Defaults.gDefault_ARROW_19 fa_0 !fb_1 = StdFunc.const fb_1
+iTasks._Framework.Generic.Defaults.gDefault_Dynamic_20 = _SystemDynamic._DynamicTemp 42 (_SystemDynamic.TypeCons (_SystemDynamic._TypeCodeConstructor _SystemDynamic.TC_Int))
+iTasks._Framework.Generic.Defaults.gDefault_Maybe_21 fa_0 = Data.Maybe.Nothing
+iTasks._Framework.Generic.Defaults.fromGenericEither_35 !c_0 = select c_0 (StdGeneric.OBJECT c_1_0 -> select c_1_0 (StdGeneric.LEFT c_2_0 -> select c_2_0 (StdGeneric.CONS x1_3_0 -> Data.Either.Left x1_3_0) ) (StdGeneric.RIGHT c_2_0 -> select c_2_0 (StdGeneric.CONS x1_3_0 -> Data.Either.Right x1_3_0) ) ) 
+iTasks._Framework.Generic.Defaults.gDefault_Either_22 <{gDefault_a_68-0_a_0}> <{gDefault_a_68-0_b_1}> = iTasks._Framework.Generic.Defaults.fromGenericEither_35 (iTasks._Framework.Generic.Defaults.gDefault_OBJECT_5 (iTasks._Framework.Generic.Defaults.gDefault_EITHER_3 (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 <{gDefault_a_68-0_a_0}>) (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 <{gDefault_a_68-0_b_1}>)))
+iTasks._Framework.Generic.Defaults.fromGenericMaybeError_44 !c_0 = select c_0 (StdGeneric.OBJECT c_1_0 -> select c_1_0 (StdGeneric.LEFT c_2_0 -> select c_2_0 (StdGeneric.CONS x1_3_0 -> Data.Error.Error x1_3_0) ) (StdGeneric.RIGHT c_2_0 -> select c_2_0 (StdGeneric.CONS x1_3_0 -> Data.Error.Ok x1_3_0) ) ) 
+iTasks._Framework.Generic.Defaults.gDefault_MaybeError_23 <{gDefault_a_68-0_a_0}> <{gDefault_a_68-0_b_1}> = iTasks._Framework.Generic.Defaults.fromGenericMaybeError_44 (iTasks._Framework.Generic.Defaults.gDefault_OBJECT_5 (iTasks._Framework.Generic.Defaults.gDefault_EITHER_3 (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 <{gDefault_a_68-0_a_0}>) (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 <{gDefault_a_68-0_b_1}>)))
+iTasks._Framework.Generic.Defaults.fromGenericVoid_51 !c_0 = select c_0 (StdGeneric.OBJECT c_1_0 -> select c_1_0 (StdGeneric.CONS c_2_0 -> select c_2_0 (StdGeneric.UNIT -> Data.Void.Void) ) ) 
+iTasks._Framework.Generic.Defaults.gDefault_Void_24 = iTasks._Framework.Generic.Defaults.fromGenericVoid_51 (iTasks._Framework.Generic.Defaults.gDefault_OBJECT_5 (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 iTasks._Framework.Generic.Defaults.gDefault_UNIT_1))
+iTasks._Framework.Generic.Defaults.gDefault_Map_25 fa_0 fb_1 = Data.Map.newMap
+iTasks._Framework.Generic.Defaults.fromGenericJSONNode_74 !c_0 = select c_0 (StdGeneric.OBJECT c_1_0 -> select c_1_0 (StdGeneric.LEFT c_2_0 -> select c_2_0 (StdGeneric.LEFT c_3_0 -> select c_3_0 (StdGeneric.LEFT c_4_0 -> select c_4_0 (StdGeneric.CONS c_5_0 -> select c_5_0 (StdGeneric.UNIT -> Text.JSON.JSONNull) ) ) (StdGeneric.RIGHT c_4_0 -> select c_4_0 (StdGeneric.CONS x1_5_0 -> Text.JSON.JSONBool x1_5_0) ) ) (StdGeneric.RIGHT c_3_0 -> select c_3_0 (StdGeneric.LEFT c_4_0 -> select c_4_0 (StdGeneric.CONS x1_5_0 -> Text.JSON.JSONInt x1_5_0) ) (StdGeneric.RIGHT c_4_0 -> select c_4_0 (StdGeneric.CONS x1_5_0 -> Text.JSON.JSONReal x1_5_0) ) ) ) (StdGeneric.RIGHT c_2_0 -> select c_2_0 (StdGeneric.LEFT c_3_0 -> select c_3_0 (StdGeneric.LEFT c_4_0 -> select c_4_0 (StdGeneric.CONS x1_5_0 -> Text.JSON.JSONString x1_5_0) ) (StdGeneric.RIGHT c_4_0 -> select c_4_0 (StdGeneric.CONS x1_5_0 -> Text.JSON.JSONArray x1_5_0) ) ) (StdGeneric.RIGHT c_3_0 -> select c_3_0 (StdGeneric.LEFT c_4_0 -> select c_4_0 (StdGeneric.CONS x1_5_0 -> Text.JSON.JSONObject x1_5_0) ) (StdGeneric.RIGHT c_4_0 -> select c_4_0 (StdGeneric.LEFT c_5_0 -> select c_5_0 (StdGeneric.CONS x1_6_0 -> Text.JSON.JSONRaw x1_6_0) ) (StdGeneric.RIGHT c_5_0 -> select c_5_0 (StdGeneric.CONS c_6_0 -> select c_6_0 (StdGeneric.UNIT -> Text.JSON.JSONError) ) ) ) ) ) ) 
+iTasks._Framework.Generic.Defaults.gDefault_JSONNode_26 = iTasks._Framework.Generic.Defaults.fromGenericJSONNode_74 (iTasks._Framework.Generic.Defaults.gDefault_OBJECT_5 (iTasks._Framework.Generic.Defaults.gDefault_EITHER_3 (iTasks._Framework.Generic.Defaults.gDefault_EITHER_3 (iTasks._Framework.Generic.Defaults.gDefault_EITHER_3 (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 iTasks._Framework.Generic.Defaults.gDefault_UNIT_1) (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 iTasks._Framework.Generic.Defaults.gDefault_Bool_11)) (iTasks._Framework.Generic.Defaults.gDefault_EITHER_3 (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 iTasks._Framework.Generic.Defaults.gDefault_Int_8) (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 iTasks._Framework.Generic.Defaults.gDefault_Real_9))) (iTasks._Framework.Generic.Defaults.gDefault_EITHER_3 (iTasks._Framework.Generic.Defaults.gDefault_EITHER_3 (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 iTasks._Framework.Generic.Defaults.gDefault__String_12) (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 (iTasks._Framework.Generic.Defaults.gDefault__List_13 iTasks._Framework.Generic.Defaults.gDefault_JSONNode_26))) (iTasks._Framework.Generic.Defaults.gDefault_EITHER_3 (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 (iTasks._Framework.Generic.Defaults.gDefault__List_13 (iTasks._Framework.Generic.Defaults.gDefault__Tuple2_15 iTasks._Framework.Generic.Defaults.gDefault__String_12 iTasks._Framework.Generic.Defaults.gDefault_JSONNode_26))) (iTasks._Framework.Generic.Defaults.gDefault_EITHER_3 (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 iTasks._Framework.Generic.Defaults.gDefault__String_12) (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 iTasks._Framework.Generic.Defaults.gDefault_UNIT_1))))))
+iTasks._Framework.Generic.Defaults.gDefault_HtmlTag_27 = Text.HTML.Html ""
+iTasks._Framework.Generic.Defaults.fromGenericTimestamp_81 !c_0 = select c_0 (StdGeneric.OBJECT c_1_0 -> select c_1_0 (StdGeneric.CONS x1_2_0 -> System.Time.Timestamp x1_2_0) ) 
+iTasks._Framework.Generic.Defaults.gDefault_Timestamp_28 = iTasks._Framework.Generic.Defaults.fromGenericTimestamp_81 (iTasks._Framework.Generic.Defaults.gDefault_OBJECT_5 (iTasks._Framework.Generic.Defaults.gDefault_CONS_4 iTasks._Framework.Generic.Defaults.gDefault_Int_8))
+
+
+|| Converted Records
+:: <{iTasks._Framework.Generic.Defaults.JSONEncode_s;}> = {!iTasks._Framework.Generic.Defaults.JSONEncode_s}
+iTasks._Framework.Generic.Defaults.get_JSONEncode_s_0 rec = select rec (<{iTasks._Framework.Generic.Defaults.JSONEncode_s;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_JSONEncode_s_0 rec !val = select rec (<{iTasks._Framework.Generic.Defaults.JSONEncode_s;}>  a1 -> <{iTasks._Framework.Generic.Defaults.JSONEncode_s;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.JSONEncode_ss;}> = {iTasks._Framework.Generic.Defaults.JSONEncode_ss}
+iTasks._Framework.Generic.Defaults.get_JSONEncode_ss_1 rec = select rec (<{iTasks._Framework.Generic.Defaults.JSONEncode_ss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_JSONEncode_ss_1 rec val = select rec (<{iTasks._Framework.Generic.Defaults.JSONEncode_ss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.JSONEncode_ss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.JSONEncode_sss;}> = {iTasks._Framework.Generic.Defaults.JSONEncode_sss}
+iTasks._Framework.Generic.Defaults.get_JSONEncode_sss_2 rec = select rec (<{iTasks._Framework.Generic.Defaults.JSONEncode_sss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_JSONEncode_sss_2 rec val = select rec (<{iTasks._Framework.Generic.Defaults.JSONEncode_sss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.JSONEncode_sss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.JSONEncode_ssss;}> = {iTasks._Framework.Generic.Defaults.JSONEncode_ssss}
+iTasks._Framework.Generic.Defaults.get_JSONEncode_ssss_3 rec = select rec (<{iTasks._Framework.Generic.Defaults.JSONEncode_ssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_JSONEncode_ssss_3 rec val = select rec (<{iTasks._Framework.Generic.Defaults.JSONEncode_ssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.JSONEncode_ssss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.JSONEncode_sssss;}> = {iTasks._Framework.Generic.Defaults.JSONEncode_sssss}
+iTasks._Framework.Generic.Defaults.get_JSONEncode_sssss_4 rec = select rec (<{iTasks._Framework.Generic.Defaults.JSONEncode_sssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_JSONEncode_sssss_4 rec val = select rec (<{iTasks._Framework.Generic.Defaults.JSONEncode_sssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.JSONEncode_sssss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.JSONEncode_ssssss;}> = {iTasks._Framework.Generic.Defaults.JSONEncode_ssssss}
+iTasks._Framework.Generic.Defaults.get_JSONEncode_ssssss_5 rec = select rec (<{iTasks._Framework.Generic.Defaults.JSONEncode_ssssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_JSONEncode_ssssss_5 rec val = select rec (<{iTasks._Framework.Generic.Defaults.JSONEncode_ssssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.JSONEncode_ssssss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.JSONDecode_s;}> = {iTasks._Framework.Generic.Defaults.JSONDecode_s}
+iTasks._Framework.Generic.Defaults.get_JSONDecode_s_6 rec = select rec (<{iTasks._Framework.Generic.Defaults.JSONDecode_s;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_JSONDecode_s_6 rec val = select rec (<{iTasks._Framework.Generic.Defaults.JSONDecode_s;}>  a1 -> <{iTasks._Framework.Generic.Defaults.JSONDecode_s;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.JSONDecode_ss;}> = {iTasks._Framework.Generic.Defaults.JSONDecode_ss}
+iTasks._Framework.Generic.Defaults.get_JSONDecode_ss_7 rec = select rec (<{iTasks._Framework.Generic.Defaults.JSONDecode_ss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_JSONDecode_ss_7 rec val = select rec (<{iTasks._Framework.Generic.Defaults.JSONDecode_ss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.JSONDecode_ss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.JSONDecode_sss;}> = {iTasks._Framework.Generic.Defaults.JSONDecode_sss}
+iTasks._Framework.Generic.Defaults.get_JSONDecode_sss_8 rec = select rec (<{iTasks._Framework.Generic.Defaults.JSONDecode_sss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_JSONDecode_sss_8 rec val = select rec (<{iTasks._Framework.Generic.Defaults.JSONDecode_sss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.JSONDecode_sss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.JSONDecode_ssss;}> = {iTasks._Framework.Generic.Defaults.JSONDecode_ssss}
+iTasks._Framework.Generic.Defaults.get_JSONDecode_ssss_9 rec = select rec (<{iTasks._Framework.Generic.Defaults.JSONDecode_ssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_JSONDecode_ssss_9 rec val = select rec (<{iTasks._Framework.Generic.Defaults.JSONDecode_ssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.JSONDecode_ssss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.JSONDecode_sssss;}> = {iTasks._Framework.Generic.Defaults.JSONDecode_sssss}
+iTasks._Framework.Generic.Defaults.get_JSONDecode_sssss_10 rec = select rec (<{iTasks._Framework.Generic.Defaults.JSONDecode_sssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_JSONDecode_sssss_10 rec val = select rec (<{iTasks._Framework.Generic.Defaults.JSONDecode_sssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.JSONDecode_sssss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.JSONDecode_ssssss;}> = {iTasks._Framework.Generic.Defaults.JSONDecode_ssssss}
+iTasks._Framework.Generic.Defaults.get_JSONDecode_ssssss_11 rec = select rec (<{iTasks._Framework.Generic.Defaults.JSONDecode_ssssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_JSONDecode_ssssss_11 rec val = select rec (<{iTasks._Framework.Generic.Defaults.JSONDecode_ssssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.JSONDecode_ssssss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.bimap_s;}> = {iTasks._Framework.Generic.Defaults.bimap_s}
+iTasks._Framework.Generic.Defaults.get_bimap_s_12 rec = select rec (<{iTasks._Framework.Generic.Defaults.bimap_s;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_bimap_s_12 rec val = select rec (<{iTasks._Framework.Generic.Defaults.bimap_s;}>  a1 -> <{iTasks._Framework.Generic.Defaults.bimap_s;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.bimap_ss;}> = {iTasks._Framework.Generic.Defaults.bimap_ss}
+iTasks._Framework.Generic.Defaults.get_bimap_ss_13 rec = select rec (<{iTasks._Framework.Generic.Defaults.bimap_ss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_bimap_ss_13 rec val = select rec (<{iTasks._Framework.Generic.Defaults.bimap_ss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.bimap_ss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.bimap_sss;}> = {iTasks._Framework.Generic.Defaults.bimap_sss}
+iTasks._Framework.Generic.Defaults.get_bimap_sss_14 rec = select rec (<{iTasks._Framework.Generic.Defaults.bimap_sss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_bimap_sss_14 rec val = select rec (<{iTasks._Framework.Generic.Defaults.bimap_sss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.bimap_sss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gEq_s;}> = {iTasks._Framework.Generic.Defaults.gEq_s}
+iTasks._Framework.Generic.Defaults.get_gEq_s_15 rec = select rec (<{iTasks._Framework.Generic.Defaults.gEq_s;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gEq_s_15 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gEq_s;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gEq_s;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gEq_ss;}> = {iTasks._Framework.Generic.Defaults.gEq_ss}
+iTasks._Framework.Generic.Defaults.get_gEq_ss_16 rec = select rec (<{iTasks._Framework.Generic.Defaults.gEq_ss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gEq_ss_16 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gEq_ss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gEq_ss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gEq_sss;}> = {iTasks._Framework.Generic.Defaults.gEq_sss}
+iTasks._Framework.Generic.Defaults.get_gEq_sss_17 rec = select rec (<{iTasks._Framework.Generic.Defaults.gEq_sss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gEq_sss_17 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gEq_sss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gEq_sss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gEq_ssss;}> = {iTasks._Framework.Generic.Defaults.gEq_ssss}
+iTasks._Framework.Generic.Defaults.get_gEq_ssss_18 rec = select rec (<{iTasks._Framework.Generic.Defaults.gEq_ssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gEq_ssss_18 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gEq_ssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gEq_ssss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gEq_sssss;}> = {iTasks._Framework.Generic.Defaults.gEq_sssss}
+iTasks._Framework.Generic.Defaults.get_gEq_sssss_19 rec = select rec (<{iTasks._Framework.Generic.Defaults.gEq_sssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gEq_sssss_19 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gEq_sssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gEq_sssss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gEq_ssssss;}> = {iTasks._Framework.Generic.Defaults.gEq_ssssss}
+iTasks._Framework.Generic.Defaults.get_gEq_ssssss_20 rec = select rec (<{iTasks._Framework.Generic.Defaults.gEq_ssssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gEq_ssssss_20 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gEq_ssssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gEq_ssssss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gEq_sssssss;}> = {iTasks._Framework.Generic.Defaults.gEq_sssssss}
+iTasks._Framework.Generic.Defaults.get_gEq_sssssss_21 rec = select rec (<{iTasks._Framework.Generic.Defaults.gEq_sssssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gEq_sssssss_21 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gEq_sssssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gEq_sssssss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gEq_ssssssss;}> = {iTasks._Framework.Generic.Defaults.gEq_ssssssss}
+iTasks._Framework.Generic.Defaults.get_gEq_ssssssss_22 rec = select rec (<{iTasks._Framework.Generic.Defaults.gEq_ssssssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gEq_ssssssss_22 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gEq_ssssssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gEq_ssssssss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gEq_sssssssss;}> = {iTasks._Framework.Generic.Defaults.gEq_sssssssss}
+iTasks._Framework.Generic.Defaults.get_gEq_sssssssss_23 rec = select rec (<{iTasks._Framework.Generic.Defaults.gEq_sssssssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gEq_sssssssss_23 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gEq_sssssssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gEq_sssssssss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gDefault_s;}> = {iTasks._Framework.Generic.Defaults.gDefault_s}
+iTasks._Framework.Generic.Defaults.get_gDefault_s_24 rec = select rec (<{iTasks._Framework.Generic.Defaults.gDefault_s;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gDefault_s_24 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gDefault_s;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gDefault_s;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gDefault_ss;}> = {iTasks._Framework.Generic.Defaults.gDefault_ss}
+iTasks._Framework.Generic.Defaults.get_gDefault_ss_25 rec = select rec (<{iTasks._Framework.Generic.Defaults.gDefault_ss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gDefault_ss_25 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gDefault_ss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gDefault_ss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gDefault_sss;}> = {iTasks._Framework.Generic.Defaults.gDefault_sss}
+iTasks._Framework.Generic.Defaults.get_gDefault_sss_26 rec = select rec (<{iTasks._Framework.Generic.Defaults.gDefault_sss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gDefault_sss_26 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gDefault_sss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gDefault_sss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gDefault_ssss;}> = {iTasks._Framework.Generic.Defaults.gDefault_ssss}
+iTasks._Framework.Generic.Defaults.get_gDefault_ssss_27 rec = select rec (<{iTasks._Framework.Generic.Defaults.gDefault_ssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gDefault_ssss_27 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gDefault_ssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gDefault_ssss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gDefault_sssss;}> = {iTasks._Framework.Generic.Defaults.gDefault_sssss}
+iTasks._Framework.Generic.Defaults.get_gDefault_sssss_28 rec = select rec (<{iTasks._Framework.Generic.Defaults.gDefault_sssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gDefault_sssss_28 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gDefault_sssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gDefault_sssss;}> val)
+
+:: <{iTasks._Framework.Generic.Defaults.gDefault_ssssss;}> = {iTasks._Framework.Generic.Defaults.gDefault_ssssss}
+iTasks._Framework.Generic.Defaults.get_gDefault_ssssss_29 rec = select rec (<{iTasks._Framework.Generic.Defaults.gDefault_ssssss;}> a1 -> a1)
+iTasks._Framework.Generic.Defaults.set_gDefault_ssssss_29 rec val = select rec (<{iTasks._Framework.Generic.Defaults.gDefault_ssssss;}>  a1 -> <{iTasks._Framework.Generic.Defaults.gDefault_ssssss;}> val)
+

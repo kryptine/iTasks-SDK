@@ -7,6 +7,7 @@ import qualified Data.Map as DM
 import Text.HTML, Internet.HTTP, Data.Error, Text.JSON
 import iTasks._Framework.IWorld, iTasks.UI.Definition, iTasks._Framework.Util
 import iTasks.API.Core.Types
+import iTasks.API.Core.TaskLayout
 import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction
 
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
@@ -81,6 +82,10 @@ finalizeRep :: !TaskEvalOpts !TaskRep -> TaskRep
 finalizeRep repOpts=:{TaskEvalOpts|noUI=True} _ = NoRep
 finalizeRep repOpts rep = rep
 
+finalizeTaskUIs :: !TaskEvalOpts !TaskUIs -> TaskUIs
+finalizeTaskUIs repOpts=:{TaskEvalOpts|noUI=True} _ = 'DM'.newMap
+finalizeTaskUIs repOpts taskUIs = taskUIs
+
 extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
 extendCallTrace taskId repOpts=:{TaskEvalOpts|tonicOpts = {callTrace = xs}}
   = case 'DCS'.peek xs of
@@ -148,12 +153,12 @@ mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -
 mkInstantTask iworldfun = Task (evalOnce iworldfun)
 where
 	evalOnce f _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of	
-		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep repOpts NoRep) (TCStable taskId ts (DeferredJSON a)), iworld)
+		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} NoRep (TCStable taskId ts (DeferredJSON a)) 'DM'.newMap, iworld)
 		(Error e, iworld)					    = (ExceptionResult e, iworld)
 
 	evalOnce f _ repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
-		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep repOpts NoRep) state, iworld)
+		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} NoRep state 'DM'.newMap, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
-	evalOnce f _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)
-
+	evalOnce f _ _ (TCDestroy _) iworld
+		= (DestroyedResult,iworld)

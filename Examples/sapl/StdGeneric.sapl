@@ -1,0 +1,134 @@
+|| ?module? StdGeneric
+
+
+StdGeneric.bimapId = StdGeneric._Bimap StdFunc.id StdFunc.id
+StdGeneric.doit_34 !i_0 !n_1 = if (<{StdInt.==_16}> n_1 0) (StdMisc.abort "getConsPath: zero conses\n") (if (StdBool.not (<{StdInt.<_17}> i_0 n_1)) (StdMisc.abort "getConsPath: cons index >= number of conses") (if (<{StdInt.==_16}> n_1 1) _predefined._Nil (if (<{StdInt.<_17}> i_0 (<{StdInt./_10}> n_1 2)) (_predefined._Cons StdGeneric.ConsLeft (StdGeneric.doit_34 i_0 (<{StdInt./_10}> n_1 2))) (_predefined._Cons StdGeneric.ConsRight (StdGeneric.doit_34 (<{StdInt.-_7}> i_0 (<{StdInt./_10}> n_1 2)) (<{StdInt.-_7}> n_1 (<{StdInt./_10}> n_1 2)))))))
+StdGeneric.getConsPath !_x_0 = select _x_0 (StdGeneric._GenericConsDescriptor gcd_name_1_0 gcd_arity_1_1 gcd_prio_1_2 _x_1_3 gcd_type_1_4 gcd_index_1_5 -> select _x_1_3 (StdGeneric._GenericTypeDefDescriptor gtd_name_2_0 gtd_arity_2_1 gtd_num_conses_2_2 gtd_conses_2_3 -> StdGeneric.doit_34 gcd_index_1_5 gtd_num_conses_2_2) ) 
+StdGeneric.is_id_32 !f_0 = error "no AnyCodeExpr"
+StdGeneric.cast_33 !f_0 = error "no AnyCodeExpr"
+StdGeneric.anon_29 !g_0 h_1 x_2 = g_0 (h_1 x_2)
+StdGeneric.anon_30 !f_0 g_1 x_2 = f_0 (g_1 x_2)
+StdGeneric.anon_31 !f_0 g_1 h_2 x_3 = f_0 (g_1 (h_2 x_3))
+StdGeneric.comp3 !f_0 g_1 !h_2 = if (StdGeneric.is_id_32 f_0) (if (StdGeneric.is_id_32 h_2) (StdGeneric.cast_33 g_1) (StdGeneric.cast_33 (StdGeneric.anon_29 g_1 h_2))) (if (StdGeneric.is_id_32 h_2) (StdGeneric.cast_33 (StdGeneric.anon_30 f_0 g_1)) (StdGeneric.anon_31 f_0 g_1 h_2))
+StdGeneric.bimap_c_2 = StdGeneric._Bimap StdFunc.id StdFunc.id
+StdGeneric.map_to_35 bx_0 by_1 !_x_2 = select _x_2 (StdGeneric.PAIR x_1_0 y_1_1 -> StdGeneric.PAIR (StdGeneric.get_map_to_0 bx_0 x_1_0) (StdGeneric.get_map_to_0 by_1 y_1_1)) 
+StdGeneric.map_from_36 bx_0 by_1 !_x_2 = select _x_2 (StdGeneric.PAIR x_1_0 y_1_1 -> StdGeneric.PAIR (StdGeneric.get_map_from_1 bx_0 x_1_0) (StdGeneric.get_map_from_1 by_1 y_1_1)) 
+StdGeneric.bimap_PAIR_3 bx_0 by_1 = StdGeneric._Bimap (StdGeneric.map_to_35 bx_0 by_1) (StdGeneric.map_from_36 bx_0 by_1)
+StdGeneric.map_to_37 br_0 bl_1 !_x_2 = select _x_2 (StdGeneric.LEFT x_1_0 -> StdGeneric.LEFT (StdGeneric.get_map_to_0 bl_1 x_1_0)) (StdGeneric.RIGHT x_1_0 -> StdGeneric.RIGHT (StdGeneric.get_map_to_0 br_0 x_1_0)) 
+StdGeneric.map_from_38 br_0 bl_1 !_x_2 = select _x_2 (StdGeneric.LEFT x_1_0 -> StdGeneric.LEFT (StdGeneric.get_map_from_1 bl_1 x_1_0)) (StdGeneric.RIGHT x_1_0 -> StdGeneric.RIGHT (StdGeneric.get_map_from_1 br_0 x_1_0)) 
+StdGeneric.bimap_EITHER_4 bl_0 br_1 = StdGeneric._Bimap (StdGeneric.map_to_37 br_1 bl_0) (StdGeneric.map_from_38 br_1 bl_0)
+StdGeneric.map_to_47 barg_0 !_x_1 = select _x_1 (StdGeneric.OBJECT x_1_0 -> StdGeneric.OBJECT (StdGeneric.get_map_to_0 barg_0 x_1_0)) 
+StdGeneric.map_from_48 barg_0 !_x_1 = select _x_1 (StdGeneric.OBJECT x_1_0 -> StdGeneric.OBJECT (StdGeneric.get_map_from_1 barg_0 x_1_0)) 
+StdGeneric.bimap_OBJECT_5 barg_0 = StdGeneric._Bimap (StdGeneric.map_to_47 barg_0) (StdGeneric.map_from_48 barg_0)
+StdGeneric.map_to_41 barg_0 !_x_1 = select _x_1 (StdGeneric.CONS x_1_0 -> StdGeneric.CONS (StdGeneric.get_map_to_0 barg_0 x_1_0)) 
+StdGeneric.map_from_42 barg_0 !_x_1 = select _x_1 (StdGeneric.CONS x_1_0 -> StdGeneric.CONS (StdGeneric.get_map_from_1 barg_0 x_1_0)) 
+StdGeneric.bimap_CONS_6 barg_0 = StdGeneric._Bimap (StdGeneric.map_to_41 barg_0) (StdGeneric.map_from_42 barg_0)
+StdGeneric.map_to_43 barg_0 !_x_1 = select _x_1 (StdGeneric.RECORD x_1_0 -> StdGeneric.RECORD (StdGeneric.get_map_to_0 barg_0 x_1_0)) 
+StdGeneric.map_from_44 barg_0 !_x_1 = select _x_1 (StdGeneric.RECORD x_1_0 -> StdGeneric.RECORD (StdGeneric.get_map_from_1 barg_0 x_1_0)) 
+StdGeneric.bimap_RECORD_7 barg_0 = StdGeneric._Bimap (StdGeneric.map_to_43 barg_0) (StdGeneric.map_from_44 barg_0)
+StdGeneric.map_to_45 barg_0 !_x_1 = select _x_1 (StdGeneric.FIELD x_1_0 -> StdGeneric.FIELD (StdGeneric.get_map_to_0 barg_0 x_1_0)) 
+StdGeneric.map_from_46 barg_0 !_x_1 = select _x_1 (StdGeneric.FIELD x_1_0 -> StdGeneric.FIELD (StdGeneric.get_map_from_1 barg_0 x_1_0)) 
+StdGeneric.bimap_FIELD_8 barg_0 = StdGeneric._Bimap (StdGeneric.map_to_45 barg_0) (StdGeneric.map_from_46 barg_0)
+StdGeneric.map_to_39 !bres_0 !barg_1 f_2 = StdGeneric.comp3 (StdGeneric.get_map_to_0 bres_0) f_2 (StdGeneric.get_map_from_1 barg_1)
+StdGeneric.map_from_40 !bres_0 !barg_1 f_2 = StdGeneric.comp3 (StdGeneric.get_map_from_1 bres_0) f_2 (StdGeneric.get_map_to_0 barg_1)
+StdGeneric.bimap_ARROW_9 barg_0 bres_1 = StdGeneric._Bimap (StdGeneric.map_to_39 bres_1 barg_0) (StdGeneric.map_from_40 bres_1 barg_0)
+StdGeneric.map_to_49 y_0 x_1 !_x_2 = select _x_2 (StdGeneric._Bimap map_to_1_0 map_from_1_1 -> StdGeneric._Bimap (StdGeneric.comp3 (StdGeneric.get_map_to_0 y_0) map_to_1_0 (StdGeneric.get_map_from_1 x_1)) (StdGeneric.comp3 (StdGeneric.get_map_to_0 x_1) map_from_1_1 (StdGeneric.get_map_from_1 y_0))) 
+StdGeneric.map_from_50 y_0 x_1 !_x_2 = select _x_2 (StdGeneric._Bimap map_to_1_0 map_from_1_1 -> StdGeneric._Bimap (StdGeneric.comp3 (StdGeneric.get_map_from_1 y_0) map_to_1_0 (StdGeneric.get_map_to_0 x_1)) (StdGeneric.comp3 (StdGeneric.get_map_from_1 x_1) map_from_1_1 (StdGeneric.get_map_to_0 y_0))) 
+StdGeneric.bimap_Bimap_10 x_0 y_1 = StdGeneric._Bimap (StdGeneric.map_to_49 y_1 x_0) (StdGeneric.map_from_50 y_1 x_0)
+<{StdGeneric.TD;Bimap}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;UNIT}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;EITHER}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;PAIR}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;OBJECT}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;CONS}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;RECORD}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;FIELD}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;GenericTypeDefDescriptor}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;GenericConsDescriptor}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;GenConsPrio}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;GenConsAssoc}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;GenericRecordDescriptor}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;GenericFieldDescriptor}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;GenType}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;ConsPos}> _x_0 = _predefined._Nil
+<{StdGeneric.TD;GenericDict}> _x_0 = _predefined._Nil
+
+:: StdGeneric.UNIT = StdGeneric.UNIT
+:: StdGeneric.EITHER = StdGeneric.LEFT a1 | StdGeneric.RIGHT a1
+:: StdGeneric.PAIR = StdGeneric.PAIR a1 a2
+:: StdGeneric.OBJECT = StdGeneric.OBJECT a1
+:: StdGeneric.CONS = StdGeneric.CONS a1
+:: StdGeneric.RECORD = StdGeneric.RECORD a1
+:: StdGeneric.FIELD = StdGeneric.FIELD a1
+:: StdGeneric.GenConsPrio = StdGeneric.GenConsNoPrio | StdGeneric.GenConsPrio a1 a2
+:: StdGeneric.GenConsAssoc = StdGeneric.GenConsAssocNone | StdGeneric.GenConsAssocLeft | StdGeneric.GenConsAssocRight
+:: StdGeneric.GenType = StdGeneric.GenTypeCons a1 | StdGeneric.GenTypeVar !a1 | StdGeneric.GenTypeApp a1 a2 | StdGeneric.GenTypeArrow a1 a2
+:: StdGeneric.ConsPos = StdGeneric.ConsLeft | StdGeneric.ConsRight
+
+|| Converted Records
+:: StdGeneric._Bimap = {StdGeneric.map_to, StdGeneric.map_from}
+StdGeneric.get_map_to_0 rec = select rec (StdGeneric._Bimap a1 a2 -> a1)
+StdGeneric.get_map_from_1 rec = select rec (StdGeneric._Bimap a1 a2 -> a2)
+StdGeneric.set_map_to_0 rec val = select rec (StdGeneric._Bimap  a1 a2 -> StdGeneric._Bimap val a2)
+StdGeneric.set_map_from_1 rec val = select rec (StdGeneric._Bimap  a1 a2 -> StdGeneric._Bimap a1 val)
+
+:: StdGeneric._GenericTypeDefDescriptor = {StdGeneric.gtd_name, StdGeneric.gtd_arity, StdGeneric.gtd_num_conses, StdGeneric.gtd_conses}
+StdGeneric.get_gtd_name_2 rec = select rec (StdGeneric._GenericTypeDefDescriptor a1 a2 a3 a4 -> a1)
+StdGeneric.get_gtd_arity_3 rec = select rec (StdGeneric._GenericTypeDefDescriptor a1 a2 a3 a4 -> a2)
+StdGeneric.get_gtd_num_conses_4 rec = select rec (StdGeneric._GenericTypeDefDescriptor a1 a2 a3 a4 -> a3)
+StdGeneric.get_gtd_conses_5 rec = select rec (StdGeneric._GenericTypeDefDescriptor a1 a2 a3 a4 -> a4)
+StdGeneric.set_gtd_name_2 rec val = select rec (StdGeneric._GenericTypeDefDescriptor  a1 a2 a3 a4 -> StdGeneric._GenericTypeDefDescriptor val a2 a3 a4)
+StdGeneric.set_gtd_arity_3 rec val = select rec (StdGeneric._GenericTypeDefDescriptor  a1 a2 a3 a4 -> StdGeneric._GenericTypeDefDescriptor a1 val a3 a4)
+StdGeneric.set_gtd_num_conses_4 rec val = select rec (StdGeneric._GenericTypeDefDescriptor  a1 a2 a3 a4 -> StdGeneric._GenericTypeDefDescriptor a1 a2 val a4)
+StdGeneric.set_gtd_conses_5 rec val = select rec (StdGeneric._GenericTypeDefDescriptor  a1 a2 a3 a4 -> StdGeneric._GenericTypeDefDescriptor a1 a2 a3 val)
+
+:: StdGeneric._GenericConsDescriptor = {StdGeneric.gcd_name, StdGeneric.gcd_arity, StdGeneric.gcd_prio, StdGeneric.gcd_type_def, StdGeneric.gcd_type, StdGeneric.gcd_index}
+StdGeneric.get_gcd_name_6 rec = select rec (StdGeneric._GenericConsDescriptor a1 a2 a3 a4 a5 a6 -> a1)
+StdGeneric.get_gcd_arity_7 rec = select rec (StdGeneric._GenericConsDescriptor a1 a2 a3 a4 a5 a6 -> a2)
+StdGeneric.get_gcd_prio_8 rec = select rec (StdGeneric._GenericConsDescriptor a1 a2 a3 a4 a5 a6 -> a3)
+StdGeneric.get_gcd_type_def_9 rec = select rec (StdGeneric._GenericConsDescriptor a1 a2 a3 a4 a5 a6 -> a4)
+StdGeneric.get_gcd_type_10 rec = select rec (StdGeneric._GenericConsDescriptor a1 a2 a3 a4 a5 a6 -> a5)
+StdGeneric.get_gcd_index_11 rec = select rec (StdGeneric._GenericConsDescriptor a1 a2 a3 a4 a5 a6 -> a6)
+StdGeneric.set_gcd_name_6 rec val = select rec (StdGeneric._GenericConsDescriptor  a1 a2 a3 a4 a5 a6 -> StdGeneric._GenericConsDescriptor val a2 a3 a4 a5 a6)
+StdGeneric.set_gcd_arity_7 rec val = select rec (StdGeneric._GenericConsDescriptor  a1 a2 a3 a4 a5 a6 -> StdGeneric._GenericConsDescriptor a1 val a3 a4 a5 a6)
+StdGeneric.set_gcd_prio_8 rec val = select rec (StdGeneric._GenericConsDescriptor  a1 a2 a3 a4 a5 a6 -> StdGeneric._GenericConsDescriptor a1 a2 val a4 a5 a6)
+StdGeneric.set_gcd_type_def_9 rec val = select rec (StdGeneric._GenericConsDescriptor  a1 a2 a3 a4 a5 a6 -> StdGeneric._GenericConsDescriptor a1 a2 a3 val a5 a6)
+StdGeneric.set_gcd_type_10 rec val = select rec (StdGeneric._GenericConsDescriptor  a1 a2 a3 a4 a5 a6 -> StdGeneric._GenericConsDescriptor a1 a2 a3 a4 val a6)
+StdGeneric.set_gcd_index_11 rec val = select rec (StdGeneric._GenericConsDescriptor  a1 a2 a3 a4 a5 a6 -> StdGeneric._GenericConsDescriptor a1 a2 a3 a4 a5 val)
+
+:: StdGeneric._GenericRecordDescriptor = {StdGeneric.grd_name, StdGeneric.grd_arity, StdGeneric.grd_type_arity, StdGeneric.grd_type, StdGeneric.grd_fields}
+StdGeneric.get_grd_name_12 rec = select rec (StdGeneric._GenericRecordDescriptor a1 a2 a3 a4 a5 -> a1)
+StdGeneric.get_grd_arity_13 rec = select rec (StdGeneric._GenericRecordDescriptor a1 a2 a3 a4 a5 -> a2)
+StdGeneric.get_grd_type_arity_14 rec = select rec (StdGeneric._GenericRecordDescriptor a1 a2 a3 a4 a5 -> a3)
+StdGeneric.get_grd_type_15 rec = select rec (StdGeneric._GenericRecordDescriptor a1 a2 a3 a4 a5 -> a4)
+StdGeneric.get_grd_fields_16 rec = select rec (StdGeneric._GenericRecordDescriptor a1 a2 a3 a4 a5 -> a5)
+StdGeneric.set_grd_name_12 rec val = select rec (StdGeneric._GenericRecordDescriptor  a1 a2 a3 a4 a5 -> StdGeneric._GenericRecordDescriptor val a2 a3 a4 a5)
+StdGeneric.set_grd_arity_13 rec val = select rec (StdGeneric._GenericRecordDescriptor  a1 a2 a3 a4 a5 -> StdGeneric._GenericRecordDescriptor a1 val a3 a4 a5)
+StdGeneric.set_grd_type_arity_14 rec val = select rec (StdGeneric._GenericRecordDescriptor  a1 a2 a3 a4 a5 -> StdGeneric._GenericRecordDescriptor a1 a2 val a4 a5)
+StdGeneric.set_grd_type_15 rec val = select rec (StdGeneric._GenericRecordDescriptor  a1 a2 a3 a4 a5 -> StdGeneric._GenericRecordDescriptor a1 a2 a3 val a5)
+StdGeneric.set_grd_fields_16 rec val = select rec (StdGeneric._GenericRecordDescriptor  a1 a2 a3 a4 a5 -> StdGeneric._GenericRecordDescriptor a1 a2 a3 a4 val)
+
+:: StdGeneric._GenericFieldDescriptor = {StdGeneric.gfd_name, StdGeneric.gfd_index, StdGeneric.gfd_cons}
+StdGeneric.get_gfd_name_17 rec = select rec (StdGeneric._GenericFieldDescriptor a1 a2 a3 -> a1)
+StdGeneric.get_gfd_index_18 rec = select rec (StdGeneric._GenericFieldDescriptor a1 a2 a3 -> a2)
+StdGeneric.get_gfd_cons_19 rec = select rec (StdGeneric._GenericFieldDescriptor a1 a2 a3 -> a3)
+StdGeneric.set_gfd_name_17 rec val = select rec (StdGeneric._GenericFieldDescriptor  a1 a2 a3 -> StdGeneric._GenericFieldDescriptor val a2 a3)
+StdGeneric.set_gfd_index_18 rec val = select rec (StdGeneric._GenericFieldDescriptor  a1 a2 a3 -> StdGeneric._GenericFieldDescriptor a1 val a3)
+StdGeneric.set_gfd_cons_19 rec val = select rec (StdGeneric._GenericFieldDescriptor  a1 a2 a3 -> StdGeneric._GenericFieldDescriptor a1 a2 val)
+
+:: StdGeneric._GenericDict = {StdGeneric.generic_dict}
+StdGeneric.get_generic_dict_20 rec = select rec (StdGeneric._GenericDict a1 -> a1)
+StdGeneric.set_generic_dict_20 rec val = select rec (StdGeneric._GenericDict  a1 -> StdGeneric._GenericDict val)
+
+:: <{StdGeneric.bimap_s;}> = {StdGeneric.bimap_s}
+StdGeneric.get_bimap_s_21 rec = select rec (<{StdGeneric.bimap_s;}> a1 -> a1)
+StdGeneric.set_bimap_s_21 rec val = select rec (<{StdGeneric.bimap_s;}>  a1 -> <{StdGeneric.bimap_s;}> val)
+
+:: <{StdGeneric.bimap_ss;}> = {StdGeneric.bimap_ss}
+StdGeneric.get_bimap_ss_22 rec = select rec (<{StdGeneric.bimap_ss;}> a1 -> a1)
+StdGeneric.set_bimap_ss_22 rec val = select rec (<{StdGeneric.bimap_ss;}>  a1 -> <{StdGeneric.bimap_ss;}> val)
+
+:: <{StdGeneric.bimap_sss;}> = {StdGeneric.bimap_sss}
+StdGeneric.get_bimap_sss_23 rec = select rec (<{StdGeneric.bimap_sss;}> a1 -> a1)
+StdGeneric.set_bimap_sss_23 rec val = select rec (<{StdGeneric.bimap_sss;}>  a1 -> <{StdGeneric.bimap_sss;}> val)
+

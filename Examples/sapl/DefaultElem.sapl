@@ -1,0 +1,23 @@
+|| ?module? DefaultElem
+
+
+DefaultElem.default_elem_0 = 0
+DefaultElem.default_elem_1 = ' '
+DefaultElem.default_elem_2 = False
+DefaultElem.default_elem_3 !_vArray_0 !_vDefaultElem_1 = _SystemArray.get_update_5 _vArray_0 (_SystemArray.get__createArray_0 _vArray_0 1) 0 (DefaultElem.get_default_elem_0 _vDefaultElem_1)
+DefaultElem.default_elem_4 !_vArray_0 = _SystemArray.get__createArray_0 _vArray_0 0
+DefaultElem.default_elem_5 !_vDefaultElem_0 !_vDefaultElem_1 = _Tuple2 (DefaultElem.get_default_elem_0 _vDefaultElem_0) (DefaultElem.get_default_elem_0 _vDefaultElem_1)
+DefaultElem.default_elem_8 = _predefined._Nil
+<{DefaultElem.TD;DefaultElem;}> _x_0 = _predefined._Nil
+<{DefaultElem.TD;DefaultElemU;}> _x_0 = _predefined._Nil
+
+
+|| Converted Records
+:: <{DefaultElem.DefaultElem;}> = {!DefaultElem.default_elem}
+DefaultElem.get_default_elem_0 rec = select rec (<{DefaultElem.DefaultElem;}> a1 -> a1)
+DefaultElem.set_default_elem_0 rec !val = select rec (<{DefaultElem.DefaultElem;}>  a1 -> <{DefaultElem.DefaultElem;}> val)
+
+:: <{DefaultElem.DefaultElemU;}> = {DefaultElem.default_elemU}
+DefaultElem.get_default_elemU_1 rec = select rec (<{DefaultElem.DefaultElemU;}> a1 -> a1)
+DefaultElem.set_default_elemU_1 rec val = select rec (<{DefaultElem.DefaultElemU;}>  a1 -> <{DefaultElem.DefaultElemU;}> val)
+

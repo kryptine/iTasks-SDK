@@ -1,0 +1,89 @@
+|| ?module? shared_buffer
+
+
+shared_buffer.CreateSharedBufferFromFile2 !dynamic_rts_process_handle_0 !file_name_1 = let _x_1_0 = memory_mapped_files.CreateFile (<{StdString.+++_11}> file_name_1 "\0") -2147483648 1 memory_mapped_files.NULL 3 128 0 memory_mapped_files.initialState, file_handle_1_1 = _predefined.tupsels2v0 _x_1_0 in if (<{StdInt.==_16}> file_handle_1_1 -1) (StdMisc.abort "CreateSharedBuffer: CreateFile failed") (let st_2_0 = _predefined.tupsels2v1 _x_1_0, _x_2_1 = memory_mapped_files.GetFileSize file_handle_1_1 memory_mapped_files.NULL st_2_0, file_size_2_2 = _predefined.tupsels2v0 _x_2_1 in if (<{StdInt.==_16}> file_size_2_2 -1) (StdMisc.abort "CreateSharedBuffer: GetFileSize") (let st_3_0 = _predefined.tupsels2v1 _x_2_1, _x_3_1 = memory_mapped_files.CreateFileMapping file_handle_1_1 memory_mapped_files.NULL 2 0 0 memory_mapped_files.NULL st_3_0, file_mapping_handle_3_2 = _predefined.tupsels2v0 _x_3_1 in if (<{StdInt.==_16}> file_mapping_handle_3_2 0) (StdMisc.abort (<{StdString.+++_11}> "CreateSharedBuffer: CreateFileMapping failed" (StdString.toString_5 memory_mapped_files.GetLastError))) (let st_4_0 = _predefined.tupsels2v1 _x_3_1, _x_4_1 = memory_mapped_files.MapViewOfFile file_mapping_handle_3_2 4 0 0 0 st_4_0, view_4_2 = _predefined.tupsels2v0 _x_4_1 in if (<{StdInt.==_16}> view_4_2 0) (StdMisc.abort "CreateSharedBuffer: MapViewOfFile") (let st_5_0 = _predefined.tupsels2v1 _x_4_1, _x_5_1 = memory_mapped_files.GetCurrentProcess st_5_0, current_process_handle_5_2 = _predefined.tupsels2v0 _x_5_1, st_5_3 = _predefined.tupsels2v1 _x_5_1, _x_5_4 = memory.address_of_buffer st_5_3, a_5_5 = _predefined.tupsels2v0 _x_5_4, st_5_6 = _predefined.tupsels2v1 _x_5_4, _x_5_7 = memory_mapped_files.DuplicateHandle current_process_handle_5_2 file_mapping_handle_3_2 dynamic_rts_process_handle_0 (memory_mapped_files.Ptr a_5_5) 0 0 2 st_5_6 in if (<{StdInt.==_16}> (_predefined.tupsels2v0 _x_5_7) 0) (StdMisc.abort (<{StdString.+++_11}> "copy_to_dynamic_rts: failure of DuplicateHandle" (StdString.toString_5 memory_mapped_files.GetLastError))) (let st_6_0 = _predefined.tupsels2v1 _x_5_7, _x_6_1 = memory.readWord1 a_5_5 st_6_0 in select (memory_mapped_files.CloseST (_predefined.tupsels2v1 _x_6_1)) (True -> _Tuple3 True (_Tuple2 0 (shared_buffer._StdDynamicSharedBufferInfo file_handle_1_1 file_mapping_handle_3_2 view_4_2)) (_Tuple2 (_predefined.tupsels2v0 _x_6_1) file_size_2_2)) )))))
+shared_buffer.CreateSharedBufferFromFile !dynamic_rts_process_handle_0 !file_name_1 = let !_x_1_0 = shared_buffer.CreateSharedBufferFromFile2 dynamic_rts_process_handle_0 file_name_1, _x_1_1 = _predefined.tupsels3v2 _x_1_0 in <{_Tuple3!4}> True (_predefined.tupsels3v1 _x_1_0) (<{StdString.+++_11}> (StdString.toString_5 (_predefined.tupsels2v0 _x_1_1)) (<{StdString.+++_11}> "\n" (StdString.toString_5 (_predefined.tupsels2v1 _x_1_1))))
+shared_buffer.CloseSharedBufferFromFile !_x_0 = select _x_0 (_Tuple2 _x_1_0 _x_1_1 -> select _x_1_1 (shared_buffer._StdDynamicSharedBufferInfo hfile_2_0 hmap_2_1 view_2_2 -> let !_x_3_0 = memory_mapped_files.UnmapViewOfFile view_2_2 memory_mapped_files.initialState in if (<{StdInt.==_16}> (_predefined.tupsels2v0 _x_3_0) 0) (StdMisc.abort "CloseSharedBufferFromFile; failure of CloseSharedBufferFromFile") (let st_4_0 = memory_mapped_files.initialState, _x_4_1 = memory_mapped_files.CloseHandle hmap_2_1 st_4_0 in if (<{StdInt.==_16}> (_predefined.tupsels2v0 _x_4_1) 0) (StdMisc.abort "CloseSharedBufferFromFile; failure of CloseHandle (1)") (let st_5_0 = _predefined.tupsels2v1 _x_4_1, _x_5_1 = memory_mapped_files.CloseHandle hfile_2_0 st_5_0 in if (<{StdInt.==_16}> (_predefined.tupsels2v0 _x_5_1) 0) (StdMisc.abort "CloseSharedBufferFromFile; failure of CloseHandle (2)") (memory_mapped_files.CloseST (_predefined.tupsels2v1 _x_5_1))))) ) 
+shared_buffer.FromStringToInt !array_0 !i_1 = <{StdInt.+_6}> (<{StdInt.+_6}> (<{StdInt.+_6}> (StdInt.toInt_20 (_SystemArray.select_19 array_0 i_1)) (<{StdInt.<<}> (StdInt.toInt_20 (_SystemArray.select_19 array_0 (<{StdInt.+_6}> i_1 1))) 8)) (<{StdInt.<<}> (StdInt.toInt_20 (_SystemArray.select_19 array_0 (<{StdInt.+_6}> i_1 2))) 16)) (<{StdInt.<<}> (StdInt.toInt_20 (_SystemArray.select_19 array_0 (<{StdInt.+_6}> i_1 3))) 24)
+shared_buffer.copy_string_per_word_21 !i_0 !limit_1 !dynamic_as_string_2 !view_3 !st_4 = if (StdBool.not (<{StdInt.<_17}> i_0 limit_1)) st_4 (shared_buffer.copy_string_per_word_21 (<{StdInt.+_6}> i_0 4) limit_1 dynamic_as_string_2 view_3 (memory.writeWord1 (shared_buffer.FromStringToInt dynamic_as_string_2 i_0) (<{StdInt.+_6}> view_3 i_0) st_4))
+shared_buffer.copy_string_per_byte_22 !i_0 !limit_1 !dynamic_as_string_2 !view_3 !st_4 = if (<{StdInt.==_16}> i_0 limit_1) st_4 (shared_buffer.copy_string_per_byte_22 (<{StdInt.+_6}> i_0 StdInt.one_11) limit_1 dynamic_as_string_2 view_3 (memory.writeByte1 (_SystemArray.select_19 dynamic_as_string_2 i_0) (<{StdInt.+_6}> view_3 i_0) st_4))
+shared_buffer.copy_string_23 !i_0 !limit_1 !dynamic_as_string_2 !view_3 !st_4 = let !rest_1_0 = StdInt.rem_28 limit_1 4, !st_1_1 = shared_buffer.copy_string_per_word_21 i_0 (<{StdInt.-_7}> limit_1 rest_1_0) dynamic_as_string_2 view_3 st_4, !st_1_2 = shared_buffer.copy_string_per_byte_22 (<{StdInt.-_7}> limit_1 rest_1_0) limit_1 dynamic_as_string_2 view_3 st_1_1 in st_1_2
+shared_buffer.CreateSharedBufferFromPageFile !dynamic_rts_process_handle_0 !dynamic_as_string_1 = let file_size_1_0 = _SystemArray.size_20 dynamic_as_string_1, _x_1_1 = memory_mapped_files.CreateFileMapping -1 memory_mapped_files.NULL 4 0 file_size_1_0 memory_mapped_files.NULL memory_mapped_files.initialState, file_mapping_handle_1_2 = _predefined.tupsels2v0 _x_1_1 in if (<{StdInt.==_16}> file_mapping_handle_1_2 0) (StdMisc.abort (<{StdString.+++_11}> "CreateSharedBufferFromPageFile: CreateFileMapping failed" (StdString.toString_5 memory_mapped_files.GetLastError))) (let st_2_0 = _predefined.tupsels2v1 _x_1_1, _x_2_1 = memory_mapped_files.MapViewOfFile file_mapping_handle_1_2 2 0 0 file_size_1_0 st_2_0, view_2_2 = _predefined.tupsels2v0 _x_2_1 in if (<{StdInt.==_16}> view_2_2 0) (StdMisc.abort "CreateSharedBufferFromPageFile: MapViewOfFile failed") (let st_3_0 = _predefined.tupsels2v1 _x_2_1, _x_3_1 = memory_mapped_files.GetCurrentProcess st_3_0, current_process_handle_3_2 = _predefined.tupsels2v0 _x_3_1, st_3_3 = _predefined.tupsels2v1 _x_3_1, _x_3_4 = memory.address_of_buffer st_3_3, a_3_5 = _predefined.tupsels2v0 _x_3_4, st_3_6 = _predefined.tupsels2v1 _x_3_4, _x_3_7 = memory_mapped_files.DuplicateHandle current_process_handle_3_2 file_mapping_handle_1_2 dynamic_rts_process_handle_0 (memory_mapped_files.Ptr a_3_5) 0 0 2 st_3_6 in if (<{StdInt.==_16}> (_predefined.tupsels2v0 _x_3_7) 0) (StdMisc.abort "copy_to_dynamic_rts: failure of DuplicateHandle") (let st_4_0 = _predefined.tupsels2v1 _x_3_7, _x_4_1 = memory.readWord1 a_3_5 st_4_0 in select (memory_mapped_files.CloseST (shared_buffer.copy_string_23 0 file_size_1_0 dynamic_as_string_1 view_2_2 (_predefined.tupsels2v1 _x_4_1))) (True -> <{_Tuple3!4}> True (_Tuple2 0 (shared_buffer._StdDynamicSharedBufferInfo 0 file_mapping_handle_1_2 view_2_2)) (<{StdString.+++_11}> (StdString.toString_5 (_predefined.tupsels2v0 _x_4_1)) (<{StdString.+++_11}> "\n" (StdString.toString_5 file_size_1_0)))) )))
+shared_buffer.CloseSharedBufferFromPageFile !_x_0 = select _x_0 (_Tuple2 _x_1_0 _x_1_1 -> select _x_1_1 (shared_buffer._StdDynamicSharedBufferInfo hfile_2_0 hmap_2_1 view_2_2 -> let !_x_3_0 = memory_mapped_files.UnmapViewOfFile view_2_2 memory_mapped_files.initialState in if (<{StdInt.==_16}> (_predefined.tupsels2v0 _x_3_0) 0) (StdMisc.abort "CloseSharedBufferFromFile; failure of CloseSharedBufferFromFile") (let st_4_0 = memory_mapped_files.initialState, _x_4_1 = memory_mapped_files.CloseHandle hmap_2_1 st_4_0 in if (<{StdInt.==_16}> (_predefined.tupsels2v0 _x_4_1) 0) (StdMisc.abort "CloseSharedBufferFromFile; failure of CloseHandle (1)") (memory_mapped_files.CloseST (_predefined.tupsels2v1 _x_4_1)))) ) 
+shared_buffer.call_debugger !_x_0 = error "no AnyCodeExpr"
+shared_buffer.OpenExistingSharedBuffer !file_mapping_handle_0 !s_buffer_1 = let _x_1_0 = memory_mapped_files.MapViewOfFile file_mapping_handle_0 4 0 0 s_buffer_1 memory_mapped_files.initialState, view_1_1 = _predefined.tupsels2v0 _x_1_0 in if (<{StdInt.==_16}> view_1_1 0) (StdMisc.abort (<{StdString.+++_11}> "OpenExistingSharedBuffer: MapViewOfFile failed" (StdString.toString_5 memory_mapped_files.GetLastError))) (_Tuple2 True (_Tuple2 0 (shared_buffer._StdDynamicSharedBufferInfo 0 file_mapping_handle_0 view_1_1)))
+shared_buffer.OpenExistingSharedBuffer2 !_x_0 = select _x_0 (_Tuple2 file_mapping_handle_1_0 s_buffer_1_1 -> shared_buffer.OpenExistingSharedBuffer file_mapping_handle_1_0 s_buffer_1_1) 
+shared_buffer.CloseExistingSharedBuffer !_x_0 = select _x_0 (_Tuple2 _x_1_0 _x_1_1 -> select _x_1_1 (shared_buffer._StdDynamicSharedBufferInfo hfile_2_0 hmap_2_1 view_2_2 -> let st_3_0 = memory_mapped_files.initialState, _x_3_1 = memory_mapped_files.UnmapViewOfFile view_2_2 st_3_0 in if (<{StdInt.==_16}> (_predefined.tupsels2v0 _x_3_1) 0) (StdMisc.abort (<{StdString.+++_11}> "get_tables_from_dynamic; could not close view" (StdString.toString_5 memory_mapped_files.GetLastError))) (let st_4_0 = _predefined.tupsels2v1 _x_3_1, _x_4_1 = memory_mapped_files.CloseHandle hmap_2_1 st_4_0 in if (<{StdInt.==_16}> (_predefined.tupsels2v0 _x_4_1) 0) (StdMisc.abort "get_tables_from_dynamic; could not close view") (memory_mapped_files.CloseST (_predefined.tupsels2v1 _x_4_1)))) ) 
+shared_buffer.GetHandleToServer2 = error "no AnyCodeExpr"
+shared_buffer.GetHandleToServer !st_0 = <{_Tuple2!3}> shared_buffer.GetHandleToServer2 st_0
+shared_buffer.FromStringToIntU !array_0 !i_1 = let !_x_1_0 = _SystemArray.uselect_22 array_0 i_1, !_x_1_1 = _SystemArray.uselect_22 (_predefined.tupsels2v1 _x_1_0) (<{StdInt.+_6}> i_1 1), !_x_1_2 = _SystemArray.uselect_22 (_predefined.tupsels2v1 _x_1_1) (<{StdInt.+_6}> i_1 2), !_x_1_3 = _SystemArray.uselect_22 (_predefined.tupsels2v1 _x_1_2) (<{StdInt.+_6}> i_1 3), !i_1_4 = <{StdInt.+_6}> (<{StdInt.+_6}> (<{StdInt.+_6}> (StdInt.toInt_20 (_predefined.tupsels2v0 _x_1_0)) (<{StdInt.<<}> (StdInt.toInt_20 (_predefined.tupsels2v0 _x_1_1)) 8)) (<{StdInt.<<}> (StdInt.toInt_20 (_predefined.tupsels2v0 _x_1_2)) 16)) (<{StdInt.<<}> (StdInt.toInt_20 (_predefined.tupsels2v0 _x_1_3)) 24) in <{_Tuple2!3}> i_1_4 (_predefined.tupsels2v1 _x_1_3)
+shared_buffer.WriteLong !array_0 !i_1 !v_2 = _SystemArray.update_21 (_SystemArray.update_21 (_SystemArray.update_21 (_SystemArray.update_21 array_0 i_1 (StdChar.toChar_21 v_2)) (<{StdInt.+_6}> i_1 1) (StdChar.toChar_21 (<{StdInt.>>}> v_2 8))) (<{StdInt.+_6}> i_1 2) (StdChar.toChar_21 (<{StdInt.>>}> v_2 16))) (<{StdInt.+_6}> i_1 3) (StdChar.toChar_21 (<{StdInt.>>}> v_2 24))
+shared_buffer.bd_delta_fp_9 !file_0 = <{_Tuple2!3}> 0 file_0
+shared_buffer.bd_read_substring_25 !i_0 !s_s_1 !s_2 !offset_3 !mem_4 = if (StdBool.not (<{StdInt.<_17}> i_0 s_s_1)) (<{_Tuple3!7}> offset_3 s_2 mem_4) (let !_x_1_0 = memory.readByte1 offset_3 mem_4 in shared_buffer.bd_read_substring_25 (<{StdInt.+_6}> i_0 StdInt.one_11) s_s_1 (_SystemArray.update_21 s_2 i_0 (StdChar.toChar_21 (_predefined.tupsels2v0 _x_1_0))) (<{StdInt.+_6}> offset_3 StdInt.one_11) (_predefined.tupsels2v1 _x_1_0))
+shared_buffer.bd_freadsubstring_10 !i_0 !n_1 !s_2 !_x_3 = select _x_3 (_Tuple2 ptr_1_0 mem_1_1 -> let !_x_2_0 = _SystemArray.usize_23 s_2, !_x_2_1 = shared_buffer.bd_read_substring_25 i_0 (_predefined.tupsels2v0 _x_2_0) (_predefined.tupsels2v1 _x_2_0) ptr_1_0 mem_1_1, new_offset_2_2 = _predefined.tupsels3v0 _x_2_1 in <{_Tuple3!7}> (<{StdInt.-_7}> new_offset_2_2 ptr_1_0) (_predefined.tupsels3v1 _x_2_1) (_Tuple2 new_offset_2_2 (_predefined.tupsels3v2 _x_2_1))) 
+shared_buffer.bd_readi_11 !_x_0 = select _x_0 (_Tuple2 ptr_1_0 mem_1_1 -> let _x_2_0 = memory.readWord1 ptr_1_0 mem_1_1 in <{_Tuple3!7}> True (_predefined.tupsels2v0 _x_2_0) (_Tuple2 (<{StdInt.+_6}> ptr_1_0 4) (_predefined.tupsels2v1 _x_2_0))) 
+shared_buffer.bd_reads_loop_24 !_vArray_0 !n_characters_1 !i_2 ptr_3 string_4 mem_5 = if (<{StdInt.==_16}> i_2 n_characters_1) (_Tuple3 ptr_3 string_4 mem_5) (let _x_1_0 = memory.readByte1 ptr_3 mem_5 in shared_buffer.bd_reads_loop_24 _vArray_0 n_characters_1 (<{StdInt.+_6}> i_2 StdInt.one_11) (<{StdInt.+_6}> ptr_3 StdInt.one_11) (_SystemArray.get_update_5 _vArray_0 string_4 i_2 (StdChar.toChar_21 (_predefined.tupsels2v0 _x_1_0))) (_predefined.tupsels2v1 _x_1_0))
+shared_buffer.bd_reads_loop_69 !n_characters_0 !i_1 ptr_2 string_3 mem_4 = if (<{StdInt.==_16}> i_1 n_characters_0) (_Tuple3 ptr_2 string_3 mem_4) (let _x_1_0 = memory.readByte1 ptr_2 mem_4 in shared_buffer.bd_reads_loop_69 n_characters_0 (<{StdInt.+_6}> i_1 StdInt.one_11) (<{StdInt.+_6}> ptr_2 StdInt.one_11) (_SystemArray.update_21 string_3 i_1 (StdChar.toChar_21 (_predefined.tupsels2v0 _x_1_0))) (_predefined.tupsels2v1 _x_1_0))
+shared_buffer.bd_reads_12 !_x_0 !n_characters_1 = select _x_0 (_Tuple2 ptr_1_0 mem_1_1 -> let _x_2_0 = shared_buffer.bd_reads_loop_69 n_characters_1 0 ptr_1_0 (_SystemArray.createArray_17 n_characters_1 ' ') mem_1_1 in <{_Tuple2!3}> (_predefined.tupsels3v1 _x_2_0) (_Tuple2 (_predefined.tupsels3v0 _x_2_0) (_predefined.tupsels3v2 _x_2_0))) 
+shared_buffer.bd_seek_13 !_x_0 !offset_1 !_x_2 = select _x_0 (_Tuple2 _x_1_0 buffer_1_1 -> select buffer_1_1 (shared_buffer._StdDynamicSharedBufferInfo hfile_2_0 hmap_2_1 view_2_2 -> select _x_2 (0 -> <{_Tuple2!3}> True (_Tuple2 (<{StdInt.+_6}> view_2_2 offset_1) buffer_1_1)) ) ) 
+shared_buffer.default_elemU_14 = shared_buffer._StdDynamicSharedBufferInfo DefaultElem.default_elem_0 DefaultElem.default_elem_0 DefaultElem.default_elem_0
+<{shared_buffer.TD;StdDynamicSharedBufferInfo}> _x_0 = _predefined._Nil
+
+
+|| Converted Records
+:: shared_buffer._StdDynamicSharedBufferInfo = {!shared_buffer.hfile, !shared_buffer.hmap, !shared_buffer.view}
+shared_buffer.get_hfile_0 rec = select rec (shared_buffer._StdDynamicSharedBufferInfo a1 a2 a3 -> a1)
+shared_buffer.get_hmap_1 rec = select rec (shared_buffer._StdDynamicSharedBufferInfo a1 a2 a3 -> a2)
+shared_buffer.get_view_2 rec = select rec (shared_buffer._StdDynamicSharedBufferInfo a1 a2 a3 -> a3)
+shared_buffer.set_hfile_0 rec !val = select rec (shared_buffer._StdDynamicSharedBufferInfo  a1 a2 a3 -> shared_buffer._StdDynamicSharedBufferInfo val a2 a3)
+shared_buffer.set_hmap_1 rec !val = select rec (shared_buffer._StdDynamicSharedBufferInfo  a1 a2 a3 -> shared_buffer._StdDynamicSharedBufferInfo a1 val a3)
+shared_buffer.set_view_2 rec !val = select rec (shared_buffer._StdDynamicSharedBufferInfo  a1 a2 a3 -> shared_buffer._StdDynamicSharedBufferInfo a1 a2 val)
+
+:: <{shared_buffer.bimap_s;}> = {shared_buffer.bimap_s}
+shared_buffer.get_bimap_s_3 rec = select rec (<{shared_buffer.bimap_s;}> a1 -> a1)
+shared_buffer.set_bimap_s_3 rec val = select rec (<{shared_buffer.bimap_s;}>  a1 -> <{shared_buffer.bimap_s;}> val)
+
+:: <{shared_buffer.bimap_ss;}> = {shared_buffer.bimap_ss}
+shared_buffer.get_bimap_ss_4 rec = select rec (<{shared_buffer.bimap_ss;}> a1 -> a1)
+shared_buffer.set_bimap_ss_4 rec val = select rec (<{shared_buffer.bimap_ss;}>  a1 -> <{shared_buffer.bimap_ss;}> val)
+
+:: <{shared_buffer.bimap_sss;}> = {shared_buffer.bimap_sss}
+shared_buffer.get_bimap_sss_5 rec = select rec (<{shared_buffer.bimap_sss;}> a1 -> a1)
+shared_buffer.set_bimap_sss_5 rec val = select rec (<{shared_buffer.bimap_sss;}>  a1 -> <{shared_buffer.bimap_sss;}> val)
+
+:: <{shared_buffer.gEq_s;}> = {shared_buffer.gEq_s}
+shared_buffer.get_gEq_s_6 rec = select rec (<{shared_buffer.gEq_s;}> a1 -> a1)
+shared_buffer.set_gEq_s_6 rec val = select rec (<{shared_buffer.gEq_s;}>  a1 -> <{shared_buffer.gEq_s;}> val)
+
+:: <{shared_buffer.gEq_ss;}> = {shared_buffer.gEq_ss}
+shared_buffer.get_gEq_ss_7 rec = select rec (<{shared_buffer.gEq_ss;}> a1 -> a1)
+shared_buffer.set_gEq_ss_7 rec val = select rec (<{shared_buffer.gEq_ss;}>  a1 -> <{shared_buffer.gEq_ss;}> val)
+
+:: <{shared_buffer.gEq_sss;}> = {shared_buffer.gEq_sss}
+shared_buffer.get_gEq_sss_8 rec = select rec (<{shared_buffer.gEq_sss;}> a1 -> a1)
+shared_buffer.set_gEq_sss_8 rec val = select rec (<{shared_buffer.gEq_sss;}>  a1 -> <{shared_buffer.gEq_sss;}> val)
+
+:: <{shared_buffer.gEq_ssss;}> = {shared_buffer.gEq_ssss}
+shared_buffer.get_gEq_ssss_9 rec = select rec (<{shared_buffer.gEq_ssss;}> a1 -> a1)
+shared_buffer.set_gEq_ssss_9 rec val = select rec (<{shared_buffer.gEq_ssss;}>  a1 -> <{shared_buffer.gEq_ssss;}> val)
+
+:: <{shared_buffer.gEq_sssss;}> = {shared_buffer.gEq_sssss}
+shared_buffer.get_gEq_sssss_10 rec = select rec (<{shared_buffer.gEq_sssss;}> a1 -> a1)
+shared_buffer.set_gEq_sssss_10 rec val = select rec (<{shared_buffer.gEq_sssss;}>  a1 -> <{shared_buffer.gEq_sssss;}> val)
+
+:: <{shared_buffer.gEq_ssssss;}> = {shared_buffer.gEq_ssssss}
+shared_buffer.get_gEq_ssssss_11 rec = select rec (<{shared_buffer.gEq_ssssss;}> a1 -> a1)
+shared_buffer.set_gEq_ssssss_11 rec val = select rec (<{shared_buffer.gEq_ssssss;}>  a1 -> <{shared_buffer.gEq_ssssss;}> val)
+
+:: <{shared_buffer.gEq_sssssss;}> = {shared_buffer.gEq_sssssss}
+shared_buffer.get_gEq_sssssss_12 rec = select rec (<{shared_buffer.gEq_sssssss;}> a1 -> a1)
+shared_buffer.set_gEq_sssssss_12 rec val = select rec (<{shared_buffer.gEq_sssssss;}>  a1 -> <{shared_buffer.gEq_sssssss;}> val)
+
+:: <{shared_buffer.gEq_ssssssss;}> = {shared_buffer.gEq_ssssssss}
+shared_buffer.get_gEq_ssssssss_13 rec = select rec (<{shared_buffer.gEq_ssssssss;}> a1 -> a1)
+shared_buffer.set_gEq_ssssssss_13 rec val = select rec (<{shared_buffer.gEq_ssssssss;}>  a1 -> <{shared_buffer.gEq_ssssssss;}> val)
+
+:: <{shared_buffer.gEq_sssssssss;}> = {shared_buffer.gEq_sssssssss}
+shared_buffer.get_gEq_sssssssss_14 rec = select rec (<{shared_buffer.gEq_sssssssss;}> a1 -> a1)
+shared_buffer.set_gEq_sssssssss_14 rec val = select rec (<{shared_buffer.gEq_sssssssss;}>  a1 -> <{shared_buffer.gEq_sssssssss;}> val)
+

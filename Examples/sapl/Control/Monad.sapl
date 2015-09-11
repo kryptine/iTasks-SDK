@@ -1,0 +1,137 @@
+|| ?module? Control.Monad
+
+
+Control.Monad.return !_vMonad_0 x_1 = Control.Applicative.get_pure_1 (Control.Monad.get_Applicative_1 _vMonad_0) x_1
+<{Control.Monad.>>=}> !_vMonad_0 ma_1 a2mb_2 = Control.Monad.get_bind_0 _vMonad_0 ma_1 a2mb_2
+<{Control.Monad.`b`}> !_vMonad_0 ma_1 a2mb_2 = Control.Monad.get_bind_0 _vMonad_0 ma_1 a2mb_2
+Control.Monad.anon_33 !mb_0 _x_1 = mb_0
+<{Control.Monad.>>|}> !_vMonad_0 ma_1 mb_2 = <{Control.Monad.>>=}> _vMonad_0 ma_1 (Control.Monad.anon_33 mb_2)
+<{Control.Monad.=<<}> !_vMonad_0 f_1 x_2 = <{Control.Monad.>>=}> _vMonad_0 x_2 f_1
+Control.Monad.foldr_55 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> op_0 a_1_0 (Control.Monad.foldr_55 op_0 r_1 x_1_1)) 
+Control.Monad.anon_34 !_vApplicative_0 x_1 xs_2 = Control.Applicative.lift _vApplicative_0 (_predefined._Cons x_1 xs_2)
+Control.Monad.anon_35 !_vMonad_0 <{m`_1}> x_2 = <{Control.Monad.>>=}> _vMonad_0 <{m`_1}> (Control.Monad.anon_34 (Control.Monad.get_Applicative_1 _vMonad_0) x_2)
+Control.Monad.k_36 !_vMonad_0 m_1 <{m`_2}> = <{Control.Monad.>>=}> _vMonad_0 m_1 (Control.Monad.anon_35 _vMonad_0 <{m`_2}>)
+Control.Monad.foldr_105 !_vMonad_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> Control.Monad.k_36 _vMonad_0 a_1_0 (Control.Monad.foldr_105 _vMonad_0 r_1 x_1_1)) 
+Control.Monad.sequence !_vMonad_0 !ms_1 = Control.Monad.foldr_105 _vMonad_0 (Control.Applicative.lift (Control.Monad.get_Applicative_1 _vMonad_0) _predefined._Nil) ms_1
+Control.Monad.foldr_56 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> op_0 a_1_0 (Control.Monad.foldr_56 op_0 r_1 x_1_1)) 
+Control.Monad.foldr_106 _vMonad_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> <{Control.Monad.>>|}> _vMonad_0 a_1_0 (Control.Monad.foldr_106 _vMonad_0 r_1 x_1_1)) 
+Control.Monad.sequence_ !_vMonad_0 !ms_1 = Control.Monad.foldr_106 _vMonad_0 (Control.Applicative.lift (Control.Monad.get_Applicative_1 _vMonad_0) Data.Void.Void) ms_1
+Control.Monad.mapM !_vMonad_0 f_1 !as_2 = Control.Monad.sequence _vMonad_0 (StdList.map f_1 as_2)
+Control.Monad.mapM_ !_vMonad_0 f_1 !as_2 = Control.Monad.sequence_ _vMonad_0 (StdList.map f_1 as_2)
+Control.Monad.flip_57 !f_0 a_1 b_2 = f_0 b_2 a_1
+Control.Monad.flip_107 !_vMonad_0 !a_1 b_2 = Control.Monad.mapM _vMonad_0 b_2 a_1
+Control.Monad.forM !_vMonad_0 = Control.Monad.flip_107 _vMonad_0
+Control.Monad.flip_58 !f_0 a_1 b_2 = f_0 b_2 a_1
+Control.Monad.flip_108 !_vMonad_0 !a_1 b_2 = Control.Monad.mapM_ _vMonad_0 b_2 a_1
+Control.Monad.forM_ !_vMonad_0 = Control.Monad.flip_108 _vMonad_0
+Control.Monad.forever !_vMonad_0 a_1 = let <{a`_1_0}> = <{Control.Monad.>>|}> _vMonad_0 a_1 <{a`_1_0}> in <{a`_1_0}>
+Control.Monad.join !_vMonad_0 x_1 = <{Control.Monad.>>=}> _vMonad_0 x_1 StdFunc.id
+Control.Monad.zipWithM !_vMonad_0 f_1 !xs_2 ys_3 = Control.Monad.sequence _vMonad_0 (Data.List.zipWith f_1 xs_2 ys_3)
+Control.Monad.anon_37 !_vMonad_0 f_1 !xs_2 fax_3 = Control.Monad.foldM _vMonad_0 f_1 fax_3 xs_2
+Control.Monad.foldM !_vMonad_0 _x_1 a_2 !_x_3 = select _x_3 (_predefined._Nil -> Control.Applicative.lift (Control.Monad.get_Applicative_1 _vMonad_0) a_2) (_predefined._Cons x_1_0 xs_1_1 -> <{Control.Monad.>>=}> _vMonad_0 (_x_1 a_2 x_1_0) (Control.Monad.anon_37 _vMonad_0 _x_1 xs_1_1)) 
+Control.Monad.replicateM !_vMonad_0 n_1 x_2 = Control.Monad.sequence _vMonad_0 (Data.List.replicate n_1 x_2)
+Control.Monad.anon_38 !_vMonad_0 f_1 g_2 x_3 = <{Control.Monad.>>=}> _vMonad_0 (f_1 x_3) g_2
+<{Control.Monad.>=>}> !_vMonad_0 f_1 g_2 = Control.Monad.anon_38 _vMonad_0 f_1 g_2
+Control.Monad.flip_59 !f_0 a_1 b_2 = f_0 b_2 a_1
+Control.Monad.flip_109 !_vMonad_0 a_1 b_2 = <{Control.Monad.>=>}> _vMonad_0 b_2 a_1
+<{Control.Monad.<=<}> !_vMonad_0 = Control.Monad.flip_109 _vMonad_0
+Control.Monad.anon_39 !_vApplicative_0 f_1 x1_2 = Control.Applicative.lift _vApplicative_0 (f_1 x1_2)
+Control.Monad.liftM !_vMonad_0 f_1 m1_2 = <{Control.Monad.>>=}> _vMonad_0 m1_2 (Control.Monad.anon_39 (Control.Monad.get_Applicative_1 _vMonad_0) f_1)
+Control.Monad.anon_40 !_vApplicative_0 f_1 x1_2 x2_3 = Control.Applicative.lift _vApplicative_0 (f_1 x1_2 x2_3)
+Control.Monad.anon_41 !_vMonad_0 f_1 m2_2 x1_3 = <{Control.Monad.>>=}> _vMonad_0 m2_2 (Control.Monad.anon_40 (Control.Monad.get_Applicative_1 _vMonad_0) f_1 x1_3)
+Control.Monad.liftM2 !_vMonad_0 f_1 m1_2 m2_3 = <{Control.Monad.>>=}> _vMonad_0 m1_2 (Control.Monad.anon_41 _vMonad_0 f_1 m2_3)
+Control.Monad.anon_42 !_vApplicative_0 f_1 x1_2 x2_3 x3_4 = Control.Applicative.lift _vApplicative_0 (f_1 x1_2 x2_3 x3_4)
+Control.Monad.anon_43 !_vMonad_0 f_1 m3_2 x1_3 x2_4 = <{Control.Monad.>>=}> _vMonad_0 m3_2 (Control.Monad.anon_42 (Control.Monad.get_Applicative_1 _vMonad_0) f_1 x1_3 x2_4)
+Control.Monad.anon_44 !_vMonad_0 f_1 m3_2 m2_3 x1_4 = <{Control.Monad.>>=}> _vMonad_0 m2_3 (Control.Monad.anon_43 _vMonad_0 f_1 m3_2 x1_4)
+Control.Monad.liftM3 !_vMonad_0 f_1 m1_2 m2_3 m3_4 = <{Control.Monad.>>=}> _vMonad_0 m1_2 (Control.Monad.anon_44 _vMonad_0 f_1 m3_4 m2_3)
+Control.Monad.anon_45 !_vApplicative_0 f_1 x1_2 x2_3 x3_4 x4_5 = Control.Applicative.lift _vApplicative_0 (f_1 x1_2 x2_3 x3_4 x4_5)
+Control.Monad.anon_46 !_vMonad_0 f_1 m4_2 x1_3 x2_4 x3_5 = <{Control.Monad.>>=}> _vMonad_0 m4_2 (Control.Monad.anon_45 (Control.Monad.get_Applicative_1 _vMonad_0) f_1 x1_3 x2_4 x3_5)
+Control.Monad.anon_47 !_vMonad_0 f_1 m4_2 m3_3 x1_4 x2_5 = <{Control.Monad.>>=}> _vMonad_0 m3_3 (Control.Monad.anon_46 _vMonad_0 f_1 m4_2 x1_4 x2_5)
+Control.Monad.anon_48 !_vMonad_0 f_1 m4_2 m3_3 m2_4 x1_5 = <{Control.Monad.>>=}> _vMonad_0 m2_4 (Control.Monad.anon_47 _vMonad_0 f_1 m4_2 m3_3 x1_5)
+Control.Monad.liftM4 !_vMonad_0 f_1 m1_2 m2_3 m3_4 m4_5 = <{Control.Monad.>>=}> _vMonad_0 m1_2 (Control.Monad.anon_48 _vMonad_0 f_1 m4_5 m3_4 m2_3)
+Control.Monad.anon_49 !_vApplicative_0 f_1 x1_2 x2_3 x3_4 x4_5 x5_6 = Control.Applicative.lift _vApplicative_0 (f_1 x1_2 x2_3 x3_4 x4_5 x5_6)
+Control.Monad.anon_50 !_vMonad_0 f_1 m5_2 x1_3 x2_4 x3_5 x4_6 = <{Control.Monad.>>=}> _vMonad_0 m5_2 (Control.Monad.anon_49 (Control.Monad.get_Applicative_1 _vMonad_0) f_1 x1_3 x2_4 x3_5 x4_6)
+Control.Monad.anon_51 !_vMonad_0 f_1 m5_2 m4_3 x1_4 x2_5 x3_6 = <{Control.Monad.>>=}> _vMonad_0 m4_3 (Control.Monad.anon_50 _vMonad_0 f_1 m5_2 x1_4 x2_5 x3_6)
+Control.Monad.anon_52 !_vMonad_0 f_1 m5_2 m4_3 m3_4 x1_5 x2_6 = <{Control.Monad.>>=}> _vMonad_0 m3_4 (Control.Monad.anon_51 _vMonad_0 f_1 m5_2 m4_3 x1_5 x2_6)
+Control.Monad.anon_53 !_vMonad_0 f_1 m5_2 m4_3 m3_4 m2_5 x1_6 = <{Control.Monad.>>=}> _vMonad_0 m2_5 (Control.Monad.anon_52 _vMonad_0 f_1 m5_2 m4_3 m3_4 x1_6)
+Control.Monad.liftM5 !_vMonad_0 f_1 m1_2 m2_3 m3_4 m4_5 m5_6 = <{Control.Monad.>>=}> _vMonad_0 m1_2 (Control.Monad.anon_53 _vMonad_0 f_1 m5_6 m4_5 m3_4 m2_3)
+Control.Monad.ap !_vMonad_0 = Control.Monad.liftM2 _vMonad_0 StdFunc.id
+Control.Monad.anon_54 !a2mb_0 ma_1 r_2 = a2mb_0 (ma_1 r_2) r_2
+Control.Monad.bind_24 ma_0 a2mb_1 = Control.Monad.anon_54 a2mb_1 ma_0
+Control.Monad.foldr_61 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> op_0 a_1_0 (Control.Monad.foldr_61 op_0 r_1 x_1_1)) 
+Control.Monad.anon_60 !f_0 g_1 x_2 = f_0 (g_1 x_2)
+Control.Monad.anon_110 !g_0 x_1 = <{StdList.++}> (g_0 x_1)
+Control.Monad.foldr_111 g_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> Control.Monad.anon_110 g_0 a_1_0 (Control.Monad.foldr_111 g_0 r_1 x_1_1)) 
+Control.Monad.bind_25 !m_0 k_1 = Control.Monad.foldr_111 k_1 _predefined._Nil m_0
+Control.Monad.bind_26 !_x_0 k_1 = select _x_0 (Data.Maybe.Just x_1_0 -> k_1 x_1_0) (Data.Maybe.Nothing -> Data.Maybe.Nothing) 
+Control.Monad.mplus_27 !xs_0 ys_1 = <{StdList.++}> xs_0 ys_1
+Control.Monad.mzero_28 = _predefined._Nil
+Control.Monad.mplus_29 !_x_0 ys_1 = select _x_0 (Data.Maybe.Nothing -> ys_1) (_ -> _x_0)
+Control.Monad.mzero_30 = Data.Maybe.Nothing
+<{Control.Monad.TD;Monad;}> _x_0 = _predefined._Nil
+<{Control.Monad.TD;MonadPlus;}> _x_0 = _predefined._Nil
+
+
+|| Converted Records
+:: <{Control.Monad.Monad;}> = {!Control.Monad.bind, !Control.Monad.Applicative}
+Control.Monad.get_bind_0 rec = select rec (<{Control.Monad.Monad;}> a1 a2 -> a1)
+Control.Monad.get_Applicative_1 rec = select rec (<{Control.Monad.Monad;}> a1 a2 -> a2)
+Control.Monad.set_bind_0 rec !val = select rec (<{Control.Monad.Monad;}>  a1 a2 -> <{Control.Monad.Monad;}> val a2)
+Control.Monad.set_Applicative_1 rec !val = select rec (<{Control.Monad.Monad;}>  a1 a2 -> <{Control.Monad.Monad;}> a1 val)
+
+:: <{Control.Monad.MonadPlus;}> = {!Control.Monad.mplus, Control.Monad.mzero, Control.Monad.Monad}
+Control.Monad.get_mplus_2 rec = select rec (<{Control.Monad.MonadPlus;}> a1 a2 a3 -> a1)
+Control.Monad.get_mzero_3 rec = select rec (<{Control.Monad.MonadPlus;}> a1 a2 a3 -> a2)
+Control.Monad.get_Monad_4 rec = select rec (<{Control.Monad.MonadPlus;}> a1 a2 a3 -> a3)
+Control.Monad.set_mplus_2 rec !val = select rec (<{Control.Monad.MonadPlus;}>  a1 a2 a3 -> <{Control.Monad.MonadPlus;}> val a2 a3)
+Control.Monad.set_mzero_3 rec val = select rec (<{Control.Monad.MonadPlus;}>  a1 a2 a3 -> <{Control.Monad.MonadPlus;}> a1 val a3)
+Control.Monad.set_Monad_4 rec val = select rec (<{Control.Monad.MonadPlus;}>  a1 a2 a3 -> <{Control.Monad.MonadPlus;}> a1 a2 val)
+
+:: <{Control.Monad.bimap_s;}> = {Control.Monad.bimap_s}
+Control.Monad.get_bimap_s_5 rec = select rec (<{Control.Monad.bimap_s;}> a1 -> a1)
+Control.Monad.set_bimap_s_5 rec val = select rec (<{Control.Monad.bimap_s;}>  a1 -> <{Control.Monad.bimap_s;}> val)
+
+:: <{Control.Monad.bimap_ss;}> = {Control.Monad.bimap_ss}
+Control.Monad.get_bimap_ss_6 rec = select rec (<{Control.Monad.bimap_ss;}> a1 -> a1)
+Control.Monad.set_bimap_ss_6 rec val = select rec (<{Control.Monad.bimap_ss;}>  a1 -> <{Control.Monad.bimap_ss;}> val)
+
+:: <{Control.Monad.bimap_sss;}> = {Control.Monad.bimap_sss}
+Control.Monad.get_bimap_sss_7 rec = select rec (<{Control.Monad.bimap_sss;}> a1 -> a1)
+Control.Monad.set_bimap_sss_7 rec val = select rec (<{Control.Monad.bimap_sss;}>  a1 -> <{Control.Monad.bimap_sss;}> val)
+
+:: <{Control.Monad.gEq_s;}> = {Control.Monad.gEq_s}
+Control.Monad.get_gEq_s_8 rec = select rec (<{Control.Monad.gEq_s;}> a1 -> a1)
+Control.Monad.set_gEq_s_8 rec val = select rec (<{Control.Monad.gEq_s;}>  a1 -> <{Control.Monad.gEq_s;}> val)
+
+:: <{Control.Monad.gEq_ss;}> = {Control.Monad.gEq_ss}
+Control.Monad.get_gEq_ss_9 rec = select rec (<{Control.Monad.gEq_ss;}> a1 -> a1)
+Control.Monad.set_gEq_ss_9 rec val = select rec (<{Control.Monad.gEq_ss;}>  a1 -> <{Control.Monad.gEq_ss;}> val)
+
+:: <{Control.Monad.gEq_sss;}> = {Control.Monad.gEq_sss}
+Control.Monad.get_gEq_sss_10 rec = select rec (<{Control.Monad.gEq_sss;}> a1 -> a1)
+Control.Monad.set_gEq_sss_10 rec val = select rec (<{Control.Monad.gEq_sss;}>  a1 -> <{Control.Monad.gEq_sss;}> val)
+
+:: <{Control.Monad.gEq_ssss;}> = {Control.Monad.gEq_ssss}
+Control.Monad.get_gEq_ssss_11 rec = select rec (<{Control.Monad.gEq_ssss;}> a1 -> a1)
+Control.Monad.set_gEq_ssss_11 rec val = select rec (<{Control.Monad.gEq_ssss;}>  a1 -> <{Control.Monad.gEq_ssss;}> val)
+
+:: <{Control.Monad.gEq_sssss;}> = {Control.Monad.gEq_sssss}
+Control.Monad.get_gEq_sssss_12 rec = select rec (<{Control.Monad.gEq_sssss;}> a1 -> a1)
+Control.Monad.set_gEq_sssss_12 rec val = select rec (<{Control.Monad.gEq_sssss;}>  a1 -> <{Control.Monad.gEq_sssss;}> val)
+
+:: <{Control.Monad.gEq_ssssss;}> = {Control.Monad.gEq_ssssss}
+Control.Monad.get_gEq_ssssss_13 rec = select rec (<{Control.Monad.gEq_ssssss;}> a1 -> a1)
+Control.Monad.set_gEq_ssssss_13 rec val = select rec (<{Control.Monad.gEq_ssssss;}>  a1 -> <{Control.Monad.gEq_ssssss;}> val)
+
+:: <{Control.Monad.gEq_sssssss;}> = {Control.Monad.gEq_sssssss}
+Control.Monad.get_gEq_sssssss_14 rec = select rec (<{Control.Monad.gEq_sssssss;}> a1 -> a1)
+Control.Monad.set_gEq_sssssss_14 rec val = select rec (<{Control.Monad.gEq_sssssss;}>  a1 -> <{Control.Monad.gEq_sssssss;}> val)
+
+:: <{Control.Monad.gEq_ssssssss;}> = {Control.Monad.gEq_ssssssss}
+Control.Monad.get_gEq_ssssssss_15 rec = select rec (<{Control.Monad.gEq_ssssssss;}> a1 -> a1)
+Control.Monad.set_gEq_ssssssss_15 rec val = select rec (<{Control.Monad.gEq_ssssssss;}>  a1 -> <{Control.Monad.gEq_ssssssss;}> val)
+
+:: <{Control.Monad.gEq_sssssssss;}> = {Control.Monad.gEq_sssssssss}
+Control.Monad.get_gEq_sssssssss_16 rec = select rec (<{Control.Monad.gEq_sssssssss;}> a1 -> a1)
+Control.Monad.set_gEq_sssssssss_16 rec val = select rec (<{Control.Monad.gEq_sssssssss;}>  a1 -> <{Control.Monad.gEq_sssssssss;}> val)
+

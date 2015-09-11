@@ -1,0 +1,443 @@
+|| ?module? iTasks._Framework.IWorld
+
+
+iTasks._Framework.IWorld.write_26 _x_0 localDate_1 !iworld_2 = select iworld_2 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> _Tuple2 (Data.Error.Ok (StdFunc.const True)) (iTasks._Framework.IWorld.set_clocks_2 iworld_2 (iTasks._Framework.IWorld.set_localDate_25 clocks_1_2 localDate_1))) 
+iTasks._Framework.IWorld.read_25 _x_0 !iworld_1 = select iworld_1 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> select clocks_1_2 (iTasks._Framework.IWorld._SystemClocks localDate_2_0 localTime_2_1 utcDate_2_2 utcTime_2_3 -> _Tuple2 (Data.Error.Ok localDate_2_0) iworld_1) ) 
+iTasks._Framework.IWorld.iworldLocalDate = iTasks._Framework.SDS.createReadWriteSDS "IWorld" "localDate" iTasks._Framework.IWorld.read_25 iTasks._Framework.IWorld.write_26
+iTasks._Framework.IWorld.write_28 _x_0 localTime_1 !iworld_2 = select iworld_2 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> _Tuple2 (Data.Error.Ok (StdFunc.const True)) (iTasks._Framework.IWorld.set_clocks_2 iworld_2 (iTasks._Framework.IWorld.set_localTime_26 clocks_1_2 localTime_1))) 
+iTasks._Framework.IWorld.read_27 _x_0 !iworld_1 = select iworld_1 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> select clocks_1_2 (iTasks._Framework.IWorld._SystemClocks localDate_2_0 localTime_2_1 utcDate_2_2 utcTime_2_3 -> _Tuple2 (Data.Error.Ok localTime_2_1) iworld_1) ) 
+iTasks._Framework.IWorld.iworldLocalTime = iTasks._Framework.SDS.createReadWriteSDS "IWorld" "localTime" iTasks._Framework.IWorld.read_27 iTasks._Framework.IWorld.write_28
+iTasks._Framework.IWorld.write_30 _x_0 utcDate_1 !iworld_2 = select iworld_2 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> _Tuple2 (Data.Error.Ok (StdFunc.const True)) (iTasks._Framework.IWorld.set_clocks_2 iworld_2 (iTasks._Framework.IWorld.set_utcDate_27 clocks_1_2 utcDate_1))) 
+iTasks._Framework.IWorld.read_29 _x_0 !iworld_1 = select iworld_1 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> select clocks_1_2 (iTasks._Framework.IWorld._SystemClocks localDate_2_0 localTime_2_1 utcDate_2_2 utcTime_2_3 -> _Tuple2 (Data.Error.Ok utcDate_2_2) iworld_1) ) 
+iTasks._Framework.IWorld.iworldUTCDate = iTasks._Framework.SDS.createReadWriteSDS "IWorld" "utcDate" iTasks._Framework.IWorld.read_29 iTasks._Framework.IWorld.write_30
+iTasks._Framework.IWorld.write_32 _x_0 utcTime_1 !iworld_2 = select iworld_2 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> _Tuple2 (Data.Error.Ok (StdFunc.const True)) (iTasks._Framework.IWorld.set_clocks_2 iworld_2 (iTasks._Framework.IWorld.set_utcTime_28 clocks_1_2 utcTime_1))) 
+iTasks._Framework.IWorld.read_31 _x_0 !iworld_1 = select iworld_1 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> select clocks_1_2 (iTasks._Framework.IWorld._SystemClocks localDate_2_0 localTime_2_1 utcDate_2_2 utcTime_2_3 -> _Tuple2 (Data.Error.Ok utcTime_2_3) iworld_1) ) 
+iTasks._Framework.IWorld.iworldUTCTime = iTasks._Framework.SDS.createReadWriteSDS "IWorld" "utcTime" iTasks._Framework.IWorld.read_31 iTasks._Framework.IWorld.write_32
+iTasks._Framework.IWorld.updateClocks !iworld_0 = select iworld_0 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> let _x_2_0 = iTasks._Framework.Util.currentLocalDateTimeWorld world_1_13, world_2_1 = _predefined.tupsels2v1 _x_2_0, _x_2_2 = iTasks._Framework.Util.currentUTCDateTimeWorld world_2_1, _x_2_3 = _predefined.tupsels2v0 _x_2_2, utcTime_2_4 = _predefined.tupsels2v1 _x_2_3, world_2_5 = _predefined.tupsels2v1 _x_2_2, utcDate_2_6 = _predefined.tupsels2v0 _x_2_3 in if (<{iTasks.API.Core.Types.==_78}> utcTime_2_4 (iTasks._Framework.IWorld.get_utcTime_28 clocks_1_2)) (if (<{iTasks.API.Core.Types.==_77}> utcDate_2_6 (iTasks._Framework.IWorld.get_utcDate_27 clocks_1_2)) (let _x_3_0 = _predefined.tupsels2v0 _x_2_0, localTime_3_1 = _predefined.tupsels2v1 _x_3_0, localDate_3_2 = _predefined.tupsels2v0 _x_3_0 in if (<{iTasks.API.Core.Types.==_78}> localTime_3_1 (iTasks._Framework.IWorld.get_localTime_26 clocks_1_2)) (if (<{iTasks.API.Core.Types.==_77}> localDate_3_2 (iTasks._Framework.IWorld.get_localDate_25 clocks_1_2)) (iTasks._Framework.IWorld.set_world_13 iworld_0 world_2_5) (_predefined.tupsels2v1 (iTasks._Framework.SDS.write localDate_3_2 iTasks._Framework.IWorld.iworldLocalDate (iTasks._Framework.IWorld.set_world_13 iworld_0 world_2_5)))) (_predefined.tupsels2v1 (iTasks._Framework.SDS.write localTime_3_1 iTasks._Framework.IWorld.iworldLocalTime (<{iTasks._Framework.IWorld._if;54;16_587}> (<{iTasks.API.Core.Types.==_77}> localDate_3_2 (iTasks._Framework.IWorld.get_localDate_25 clocks_1_2)) iworld_0 world_2_5 localDate_3_2)))) (let _x_3_0 = _predefined.tupsels2v0 _x_2_0, localTime_3_1 = _predefined.tupsels2v1 _x_3_0, localDate_3_2 = _predefined.tupsels2v0 _x_3_0 in _predefined.tupsels2v1 (iTasks._Framework.SDS.write utcDate_2_6 iTasks._Framework.IWorld.iworldUTCDate (<{iTasks._Framework.IWorld._if;55;16_589}> (<{iTasks.API.Core.Types.==_78}> localTime_3_1 (iTasks._Framework.IWorld.get_localTime_26 clocks_1_2)) localDate_3_2 clocks_1_2 iworld_0 world_2_5 localTime_3_1)))) (_predefined.tupsels2v1 (iTasks._Framework.SDS.write utcTime_2_4 iTasks._Framework.IWorld.iworldUTCTime (<{iTasks._Framework.IWorld._if;56;16_593}> (<{iTasks.API.Core.Types.==_77}> utcDate_2_6 (iTasks._Framework.IWorld.get_utcDate_27 clocks_1_2)) _x_2_0 clocks_1_2 iworld_0 world_2_5 utcDate_2_6)))) 
+<{iTasks._Framework.IWorld._if;56;16_593}> !_x_0 !_x_1 !clocks_2 !iworld_3 !world_4 utcDate_5 = select _x_0 (True -> let _x_2_0 = _predefined.tupsels2v0 _x_1, localTime_2_1 = _predefined.tupsels2v1 _x_2_0, localDate_2_2 = _predefined.tupsels2v0 _x_2_0 in if (<{iTasks.API.Core.Types.==_78}> localTime_2_1 (iTasks._Framework.IWorld.get_localTime_26 clocks_2)) (if (<{iTasks.API.Core.Types.==_77}> localDate_2_2 (iTasks._Framework.IWorld.get_localDate_25 clocks_2)) (iTasks._Framework.IWorld.set_world_13 iworld_3 world_4) (_predefined.tupsels2v1 (iTasks._Framework.SDS.write localDate_2_2 iTasks._Framework.IWorld.iworldLocalDate (iTasks._Framework.IWorld.set_world_13 iworld_3 world_4)))) (_predefined.tupsels2v1 (iTasks._Framework.SDS.write localTime_2_1 iTasks._Framework.IWorld.iworldLocalTime (<{iTasks._Framework.IWorld._if;54;16_590}> (<{iTasks.API.Core.Types.==_77}> localDate_2_2 (iTasks._Framework.IWorld.get_localDate_25 clocks_2)) iworld_3 world_4 localDate_2_2)))) (_ -> let _x_1_0 = _predefined.tupsels2v0 _x_1, localTime_1_1 = _predefined.tupsels2v1 _x_1_0, localDate_1_2 = _predefined.tupsels2v0 _x_1_0 in _predefined.tupsels2v1 (iTasks._Framework.SDS.write utcDate_5 iTasks._Framework.IWorld.iworldUTCDate (<{iTasks._Framework.IWorld._if;55;16_592}> (<{iTasks.API.Core.Types.==_78}> localTime_1_1 (iTasks._Framework.IWorld.get_localTime_26 clocks_2)) localDate_1_2 clocks_2 iworld_3 world_4 localTime_1_1)))
+<{iTasks._Framework.IWorld._if;55;16_592}> !_x_0 !localDate_1 !clocks_2 !iworld_3 !world_4 localTime_5 = select _x_0 (True -> if (<{iTasks.API.Core.Types.==_77}> localDate_1 (iTasks._Framework.IWorld.get_localDate_25 clocks_2)) (iTasks._Framework.IWorld.set_world_13 iworld_3 world_4) (_predefined.tupsels2v1 (iTasks._Framework.SDS.write localDate_1 iTasks._Framework.IWorld.iworldLocalDate (iTasks._Framework.IWorld.set_world_13 iworld_3 world_4)))) (_ -> _predefined.tupsels2v1 (iTasks._Framework.SDS.write localTime_5 iTasks._Framework.IWorld.iworldLocalTime (<{iTasks._Framework.IWorld._if;54;16_591}> (<{iTasks.API.Core.Types.==_77}> localDate_1 (iTasks._Framework.IWorld.get_localDate_25 clocks_2)) iworld_3 world_4 localDate_1)))
+<{iTasks._Framework.IWorld._if;54;16_591}> !_x_0 !iworld_1 !world_2 localDate_3 = select _x_0 (True -> iTasks._Framework.IWorld.set_world_13 iworld_1 world_2) (_ -> _predefined.tupsels2v1 (iTasks._Framework.SDS.write localDate_3 iTasks._Framework.IWorld.iworldLocalDate (iTasks._Framework.IWorld.set_world_13 iworld_1 world_2)))
+<{iTasks._Framework.IWorld._if;54;16_590}> !_x_0 !iworld_1 !world_2 localDate_3 = select _x_0 (True -> iTasks._Framework.IWorld.set_world_13 iworld_1 world_2) (_ -> _predefined.tupsels2v1 (iTasks._Framework.SDS.write localDate_3 iTasks._Framework.IWorld.iworldLocalDate (iTasks._Framework.IWorld.set_world_13 iworld_1 world_2)))
+<{iTasks._Framework.IWorld._if;55;16_589}> !_x_0 !localDate_1 !clocks_2 !iworld_3 !world_4 localTime_5 = select _x_0 (True -> if (<{iTasks.API.Core.Types.==_77}> localDate_1 (iTasks._Framework.IWorld.get_localDate_25 clocks_2)) (iTasks._Framework.IWorld.set_world_13 iworld_3 world_4) (_predefined.tupsels2v1 (iTasks._Framework.SDS.write localDate_1 iTasks._Framework.IWorld.iworldLocalDate (iTasks._Framework.IWorld.set_world_13 iworld_3 world_4)))) (_ -> _predefined.tupsels2v1 (iTasks._Framework.SDS.write localTime_5 iTasks._Framework.IWorld.iworldLocalTime (<{iTasks._Framework.IWorld._if;54;16_588}> (<{iTasks.API.Core.Types.==_77}> localDate_1 (iTasks._Framework.IWorld.get_localDate_25 clocks_2)) iworld_3 world_4 localDate_1)))
+<{iTasks._Framework.IWorld._if;54;16_588}> !_x_0 !iworld_1 !world_2 localDate_3 = select _x_0 (True -> iTasks._Framework.IWorld.set_world_13 iworld_1 world_2) (_ -> _predefined.tupsels2v1 (iTasks._Framework.SDS.write localDate_3 iTasks._Framework.IWorld.iworldLocalDate (iTasks._Framework.IWorld.set_world_13 iworld_1 world_2)))
+<{iTasks._Framework.IWorld._if;54;16_587}> !_x_0 !iworld_1 !world_2 localDate_3 = select _x_0 (True -> iTasks._Framework.IWorld.set_world_13 iworld_1 world_2) (_ -> _predefined.tupsels2v1 (iTasks._Framework.SDS.write localDate_3 iTasks._Framework.IWorld.iworldLocalDate (iTasks._Framework.IWorld.set_world_13 iworld_1 world_2)))
+iTasks._Framework.IWorld.getResponseExpiry !instanceNo_0 !iworld_1 = select iworld_1 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> select refreshQueue_1_10 (_predefined._Nil -> <{_Tuple2!3}> (Data.Maybe.Just 10000) iworld_1) (_ -> <{_Tuple2!3}> (Data.Maybe.Just 100) iworld_1)) 
+iTasks._Framework.IWorld.fclose_6 !file_0 !iworld_1 = select iworld_1 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> let _x_2_0 = StdFile.fclose_30 file_0 world_1_13 in <{_Tuple2!3}> (_predefined.tupsels2v0 _x_2_0) (iTasks._Framework.IWorld.set_world_13 iworld_1 (_predefined.tupsels2v1 _x_2_0))) 
+iTasks._Framework.IWorld.fopen_7 !filename_0 !mode_1 !iworld_2 = select iworld_2 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> let _x_2_0 = StdFile.fopen_31 filename_0 mode_1 world_1_13 in <{_Tuple3!7}> (_predefined.tupsels3v0 _x_2_0) (_predefined.tupsels3v1 _x_2_0) (iTasks._Framework.IWorld.set_world_13 iworld_2 (_predefined.tupsels3v2 _x_2_0))) 
+iTasks._Framework.IWorld.sfopen_8 !filename_0 !mode_1 !iworld_2 = select iworld_2 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> let _x_2_0 = StdFile.sfopen_32 filename_0 mode_1 world_1_13 in <{_Tuple3!7}> (_predefined.tupsels3v0 _x_2_0) (_predefined.tupsels3v1 _x_2_0) (iTasks._Framework.IWorld.set_world_13 iworld_2 (_predefined.tupsels3v2 _x_2_0))) 
+iTasks._Framework.IWorld.stdio_9 !iworld_0 = select iworld_0 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> let _x_2_0 = StdFile.stdio_33 world_1_13 in <{_Tuple2!3}> (_predefined.tupsels2v0 _x_2_0) (iTasks._Framework.IWorld.set_world_13 iworld_0 (_predefined.tupsels2v1 _x_2_0))) 
+<{iTasks._Framework.IWorld.TD;IWorld}> _x_0 = _predefined._Nil
+<{iTasks._Framework.IWorld.TD;ServerInfo}> _x_0 = _predefined._Nil
+<{iTasks._Framework.IWorld.TD;SystemPaths}> _x_0 = _predefined._Nil
+<{iTasks._Framework.IWorld.TD;SystemClocks}> _x_0 = _predefined._Nil
+<{iTasks._Framework.IWorld.TD;ShareCache}> _x_0 = _predefined._Nil
+<{iTasks._Framework.IWorld.TD;TaskEvalState}> _x_0 = _predefined._Nil
+<{iTasks._Framework.IWorld.TD;IOTasks}> _x_0 = _predefined._Nil
+<{iTasks._Framework.IWorld.TD;IOTaskInstance}> _x_0 = _predefined._Nil
+<{iTasks._Framework.IWorld.TD;ListenerInstanceOpts}> _x_0 = _predefined._Nil
+<{iTasks._Framework.IWorld.TD;ConnectionInstanceOpts}> _x_0 = _predefined._Nil
+<{iTasks._Framework.IWorld.TD;ConnectionId}> _x_0 = _predefined._Nil
+<{iTasks._Framework.IWorld.TD;IOStates}> _x_0 = _predefined._Nil
+<{iTasks._Framework.IWorld.TD;IOState}> _x_0 = _predefined._Nil
+<{iTasks._Framework.IWorld.TD;IOConnectionState}> _x_0 = _predefined._Nil
+<{iTasks._Framework.IWorld.TD;Resource}> _x_0 = _predefined._Nil
+
+:: iTasks._Framework.IWorld.IOTaskInstance = iTasks._Framework.IWorld.ListenerInstance !a1 !a2 | iTasks._Framework.IWorld.ConnectionInstance !a1 !a2 | iTasks._Framework.IWorld.BackgroundInstance !a1
+:: iTasks._Framework.IWorld.IOState = iTasks._Framework.IWorld.IOActive !a1 | iTasks._Framework.IWorld.IODestroyed !a1 | iTasks._Framework.IWorld.IOException !a1
+:: iTasks._Framework.IWorld.Resource = iTasks._Framework.IWorld.Resource
+
+|| Converted Records
+:: iTasks._Framework.IWorld._IWorld = {!iTasks._Framework.IWorld.server, !iTasks._Framework.IWorld.config, !iTasks._Framework.IWorld.clocks, !iTasks._Framework.IWorld.current, iTasks._Framework.IWorld.random, !iTasks._Framework.IWorld.sdsNotifyRequests, !iTasks._Framework.IWorld.memoryShares, !iTasks._Framework.IWorld.cachedShares, !iTasks._Framework.IWorld.exposedShares, iTasks._Framework.IWorld.jsCompilerState, !iTasks._Framework.IWorld.refreshQueue, !iTasks._Framework.IWorld.ioTasks, !iTasks._Framework.IWorld.ioStates, !iTasks._Framework.IWorld.world, !iTasks._Framework.IWorld.resources, !iTasks._Framework.IWorld.onClient, !iTasks._Framework.IWorld.shutdown}
+iTasks._Framework.IWorld.get_server_0 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a1)
+iTasks._Framework.IWorld.get_config_1 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a2)
+iTasks._Framework.IWorld.get_clocks_2 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a3)
+iTasks._Framework.IWorld.get_current_3 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a4)
+iTasks._Framework.IWorld.get_random_4 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a5)
+iTasks._Framework.IWorld.get_sdsNotifyRequests_5 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a6)
+iTasks._Framework.IWorld.get_memoryShares_6 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a7)
+iTasks._Framework.IWorld.get_cachedShares_7 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a8)
+iTasks._Framework.IWorld.get_exposedShares_8 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a9)
+iTasks._Framework.IWorld.get_jsCompilerState_9 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a10)
+iTasks._Framework.IWorld.get_refreshQueue_10 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a11)
+iTasks._Framework.IWorld.get_ioTasks_11 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a12)
+iTasks._Framework.IWorld.get_ioStates_12 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a13)
+iTasks._Framework.IWorld.get_world_13 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a14)
+iTasks._Framework.IWorld.get_resources_14 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a15)
+iTasks._Framework.IWorld.get_onClient_15 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a16)
+iTasks._Framework.IWorld.get_shutdown_16 rec = select rec (iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> a17)
+iTasks._Framework.IWorld.set_server_0 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld val a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17)
+iTasks._Framework.IWorld.set_config_1 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 val a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17)
+iTasks._Framework.IWorld.set_clocks_2 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 val a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17)
+iTasks._Framework.IWorld.set_current_3 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 a3 val a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17)
+iTasks._Framework.IWorld.set_random_4 rec val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 val a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17)
+iTasks._Framework.IWorld.set_sdsNotifyRequests_5 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 val a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17)
+iTasks._Framework.IWorld.set_memoryShares_6 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 val a8 a9 a10 a11 a12 a13 a14 a15 a16 a17)
+iTasks._Framework.IWorld.set_cachedShares_7 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 val a9 a10 a11 a12 a13 a14 a15 a16 a17)
+iTasks._Framework.IWorld.set_exposedShares_8 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 val a10 a11 a12 a13 a14 a15 a16 a17)
+iTasks._Framework.IWorld.set_jsCompilerState_9 rec val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 val a11 a12 a13 a14 a15 a16 a17)
+iTasks._Framework.IWorld.set_refreshQueue_10 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 val a12 a13 a14 a15 a16 a17)
+iTasks._Framework.IWorld.set_ioTasks_11 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 val a13 a14 a15 a16 a17)
+iTasks._Framework.IWorld.set_ioStates_12 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 val a14 a15 a16 a17)
+iTasks._Framework.IWorld.set_world_13 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 val a15 a16 a17)
+iTasks._Framework.IWorld.set_resources_14 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 val a16 a17)
+iTasks._Framework.IWorld.set_onClient_15 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 val a17)
+iTasks._Framework.IWorld.set_shutdown_16 rec !val = select rec (iTasks._Framework.IWorld._IWorld  a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 -> iTasks._Framework.IWorld._IWorld a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 val)
+
+:: iTasks._Framework.IWorld._ServerInfo = {iTasks._Framework.IWorld.serverName, iTasks._Framework.IWorld.serverURL, iTasks._Framework.IWorld.buildID, iTasks._Framework.IWorld.paths, iTasks._Framework.IWorld.customCSS}
+iTasks._Framework.IWorld.get_serverName_17 rec = select rec (iTasks._Framework.IWorld._ServerInfo a1 a2 a3 a4 a5 -> a1)
+iTasks._Framework.IWorld.get_serverURL_18 rec = select rec (iTasks._Framework.IWorld._ServerInfo a1 a2 a3 a4 a5 -> a2)
+iTasks._Framework.IWorld.get_buildID_19 rec = select rec (iTasks._Framework.IWorld._ServerInfo a1 a2 a3 a4 a5 -> a3)
+iTasks._Framework.IWorld.get_paths_20 rec = select rec (iTasks._Framework.IWorld._ServerInfo a1 a2 a3 a4 a5 -> a4)
+iTasks._Framework.IWorld.get_customCSS_21 rec = select rec (iTasks._Framework.IWorld._ServerInfo a1 a2 a3 a4 a5 -> a5)
+iTasks._Framework.IWorld.set_serverName_17 rec val = select rec (iTasks._Framework.IWorld._ServerInfo  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ServerInfo val a2 a3 a4 a5)
+iTasks._Framework.IWorld.set_serverURL_18 rec val = select rec (iTasks._Framework.IWorld._ServerInfo  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ServerInfo a1 val a3 a4 a5)
+iTasks._Framework.IWorld.set_buildID_19 rec val = select rec (iTasks._Framework.IWorld._ServerInfo  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ServerInfo a1 a2 val a4 a5)
+iTasks._Framework.IWorld.set_paths_20 rec val = select rec (iTasks._Framework.IWorld._ServerInfo  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ServerInfo a1 a2 a3 val a5)
+iTasks._Framework.IWorld.set_customCSS_21 rec val = select rec (iTasks._Framework.IWorld._ServerInfo  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ServerInfo a1 a2 a3 a4 val)
+
+:: iTasks._Framework.IWorld._SystemPaths = {iTasks._Framework.IWorld.appDirectory, iTasks._Framework.IWorld.dataDirectory, iTasks._Framework.IWorld.publicWebDirectories}
+iTasks._Framework.IWorld.get_appDirectory_22 rec = select rec (iTasks._Framework.IWorld._SystemPaths a1 a2 a3 -> a1)
+iTasks._Framework.IWorld.get_dataDirectory_23 rec = select rec (iTasks._Framework.IWorld._SystemPaths a1 a2 a3 -> a2)
+iTasks._Framework.IWorld.get_publicWebDirectories_24 rec = select rec (iTasks._Framework.IWorld._SystemPaths a1 a2 a3 -> a3)
+iTasks._Framework.IWorld.set_appDirectory_22 rec val = select rec (iTasks._Framework.IWorld._SystemPaths  a1 a2 a3 -> iTasks._Framework.IWorld._SystemPaths val a2 a3)
+iTasks._Framework.IWorld.set_dataDirectory_23 rec val = select rec (iTasks._Framework.IWorld._SystemPaths  a1 a2 a3 -> iTasks._Framework.IWorld._SystemPaths a1 val a3)
+iTasks._Framework.IWorld.set_publicWebDirectories_24 rec val = select rec (iTasks._Framework.IWorld._SystemPaths  a1 a2 a3 -> iTasks._Framework.IWorld._SystemPaths a1 a2 val)
+
+:: iTasks._Framework.IWorld._SystemClocks = {iTasks._Framework.IWorld.localDate, iTasks._Framework.IWorld.localTime, iTasks._Framework.IWorld.utcDate, iTasks._Framework.IWorld.utcTime}
+iTasks._Framework.IWorld.get_localDate_25 rec = select rec (iTasks._Framework.IWorld._SystemClocks a1 a2 a3 a4 -> a1)
+iTasks._Framework.IWorld.get_localTime_26 rec = select rec (iTasks._Framework.IWorld._SystemClocks a1 a2 a3 a4 -> a2)
+iTasks._Framework.IWorld.get_utcDate_27 rec = select rec (iTasks._Framework.IWorld._SystemClocks a1 a2 a3 a4 -> a3)
+iTasks._Framework.IWorld.get_utcTime_28 rec = select rec (iTasks._Framework.IWorld._SystemClocks a1 a2 a3 a4 -> a4)
+iTasks._Framework.IWorld.set_localDate_25 rec val = select rec (iTasks._Framework.IWorld._SystemClocks  a1 a2 a3 a4 -> iTasks._Framework.IWorld._SystemClocks val a2 a3 a4)
+iTasks._Framework.IWorld.set_localTime_26 rec val = select rec (iTasks._Framework.IWorld._SystemClocks  a1 a2 a3 a4 -> iTasks._Framework.IWorld._SystemClocks a1 val a3 a4)
+iTasks._Framework.IWorld.set_utcDate_27 rec val = select rec (iTasks._Framework.IWorld._SystemClocks  a1 a2 a3 a4 -> iTasks._Framework.IWorld._SystemClocks a1 a2 val a4)
+iTasks._Framework.IWorld.set_utcTime_28 rec val = select rec (iTasks._Framework.IWorld._SystemClocks  a1 a2 a3 a4 -> iTasks._Framework.IWorld._SystemClocks a1 a2 a3 val)
+
+:: iTasks._Framework.IWorld._TaskEvalState = {iTasks._Framework.IWorld.taskTime, iTasks._Framework.IWorld.taskInstance, iTasks._Framework.IWorld.sessionInstance, iTasks._Framework.IWorld.attachmentChain, iTasks._Framework.IWorld.nextTaskNo, iTasks._Framework.IWorld.eventRoute, iTasks._Framework.IWorld.editletDiffs}
+iTasks._Framework.IWorld.get_taskTime_29 rec = select rec (iTasks._Framework.IWorld._TaskEvalState a1 a2 a3 a4 a5 a6 a7 -> a1)
+iTasks._Framework.IWorld.get_taskInstance_30 rec = select rec (iTasks._Framework.IWorld._TaskEvalState a1 a2 a3 a4 a5 a6 a7 -> a2)
+iTasks._Framework.IWorld.get_sessionInstance_31 rec = select rec (iTasks._Framework.IWorld._TaskEvalState a1 a2 a3 a4 a5 a6 a7 -> a3)
+iTasks._Framework.IWorld.get_attachmentChain_32 rec = select rec (iTasks._Framework.IWorld._TaskEvalState a1 a2 a3 a4 a5 a6 a7 -> a4)
+iTasks._Framework.IWorld.get_nextTaskNo_33 rec = select rec (iTasks._Framework.IWorld._TaskEvalState a1 a2 a3 a4 a5 a6 a7 -> a5)
+iTasks._Framework.IWorld.get_eventRoute_34 rec = select rec (iTasks._Framework.IWorld._TaskEvalState a1 a2 a3 a4 a5 a6 a7 -> a6)
+iTasks._Framework.IWorld.get_editletDiffs_35 rec = select rec (iTasks._Framework.IWorld._TaskEvalState a1 a2 a3 a4 a5 a6 a7 -> a7)
+iTasks._Framework.IWorld.set_taskTime_29 rec val = select rec (iTasks._Framework.IWorld._TaskEvalState  a1 a2 a3 a4 a5 a6 a7 -> iTasks._Framework.IWorld._TaskEvalState val a2 a3 a4 a5 a6 a7)
+iTasks._Framework.IWorld.set_taskInstance_30 rec val = select rec (iTasks._Framework.IWorld._TaskEvalState  a1 a2 a3 a4 a5 a6 a7 -> iTasks._Framework.IWorld._TaskEvalState a1 val a3 a4 a5 a6 a7)
+iTasks._Framework.IWorld.set_sessionInstance_31 rec val = select rec (iTasks._Framework.IWorld._TaskEvalState  a1 a2 a3 a4 a5 a6 a7 -> iTasks._Framework.IWorld._TaskEvalState a1 a2 val a4 a5 a6 a7)
+iTasks._Framework.IWorld.set_attachmentChain_32 rec val = select rec (iTasks._Framework.IWorld._TaskEvalState  a1 a2 a3 a4 a5 a6 a7 -> iTasks._Framework.IWorld._TaskEvalState a1 a2 a3 val a5 a6 a7)
+iTasks._Framework.IWorld.set_nextTaskNo_33 rec val = select rec (iTasks._Framework.IWorld._TaskEvalState  a1 a2 a3 a4 a5 a6 a7 -> iTasks._Framework.IWorld._TaskEvalState a1 a2 a3 a4 val a6 a7)
+iTasks._Framework.IWorld.set_eventRoute_34 rec val = select rec (iTasks._Framework.IWorld._TaskEvalState  a1 a2 a3 a4 a5 a6 a7 -> iTasks._Framework.IWorld._TaskEvalState a1 a2 a3 a4 a5 val a7)
+iTasks._Framework.IWorld.set_editletDiffs_35 rec val = select rec (iTasks._Framework.IWorld._TaskEvalState  a1 a2 a3 a4 a5 a6 a7 -> iTasks._Framework.IWorld._TaskEvalState a1 a2 a3 a4 a5 a6 val)
+
+:: iTasks._Framework.IWorld._IOTasks = {iTasks._Framework.IWorld.done, iTasks._Framework.IWorld.todo}
+iTasks._Framework.IWorld.get_done_36 rec = select rec (iTasks._Framework.IWorld._IOTasks a1 a2 -> a1)
+iTasks._Framework.IWorld.get_todo_37 rec = select rec (iTasks._Framework.IWorld._IOTasks a1 a2 -> a2)
+iTasks._Framework.IWorld.set_done_36 rec val = select rec (iTasks._Framework.IWorld._IOTasks  a1 a2 -> iTasks._Framework.IWorld._IOTasks val a2)
+iTasks._Framework.IWorld.set_todo_37 rec val = select rec (iTasks._Framework.IWorld._IOTasks  a1 a2 -> iTasks._Framework.IWorld._IOTasks a1 val)
+
+:: iTasks._Framework.IWorld._ListenerInstanceOpts = {iTasks._Framework.IWorld.taskId, iTasks._Framework.IWorld.nextConnectionId, iTasks._Framework.IWorld.port, iTasks._Framework.IWorld.connectionTask, iTasks._Framework.IWorld.removeOnClose}
+iTasks._Framework.IWorld.get_taskId_38 rec = select rec (iTasks._Framework.IWorld._ListenerInstanceOpts a1 a2 a3 a4 a5 -> a1)
+iTasks._Framework.IWorld.get_nextConnectionId_39 rec = select rec (iTasks._Framework.IWorld._ListenerInstanceOpts a1 a2 a3 a4 a5 -> a2)
+iTasks._Framework.IWorld.get_port_40 rec = select rec (iTasks._Framework.IWorld._ListenerInstanceOpts a1 a2 a3 a4 a5 -> a3)
+iTasks._Framework.IWorld.get_connectionTask_41 rec = select rec (iTasks._Framework.IWorld._ListenerInstanceOpts a1 a2 a3 a4 a5 -> a4)
+iTasks._Framework.IWorld.get_removeOnClose_42 rec = select rec (iTasks._Framework.IWorld._ListenerInstanceOpts a1 a2 a3 a4 a5 -> a5)
+iTasks._Framework.IWorld.set_taskId_38 rec val = select rec (iTasks._Framework.IWorld._ListenerInstanceOpts  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ListenerInstanceOpts val a2 a3 a4 a5)
+iTasks._Framework.IWorld.set_nextConnectionId_39 rec val = select rec (iTasks._Framework.IWorld._ListenerInstanceOpts  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ListenerInstanceOpts a1 val a3 a4 a5)
+iTasks._Framework.IWorld.set_port_40 rec val = select rec (iTasks._Framework.IWorld._ListenerInstanceOpts  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ListenerInstanceOpts a1 a2 val a4 a5)
+iTasks._Framework.IWorld.set_connectionTask_41 rec val = select rec (iTasks._Framework.IWorld._ListenerInstanceOpts  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ListenerInstanceOpts a1 a2 a3 val a5)
+iTasks._Framework.IWorld.set_removeOnClose_42 rec val = select rec (iTasks._Framework.IWorld._ListenerInstanceOpts  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ListenerInstanceOpts a1 a2 a3 a4 val)
+
+:: iTasks._Framework.IWorld._ConnectionInstanceOpts = {iTasks._Framework.IWorld.taskId, iTasks._Framework.IWorld.connectionId, iTasks._Framework.IWorld.remoteHost, iTasks._Framework.IWorld.connectionTask, iTasks._Framework.IWorld.removeOnClose}
+iTasks._Framework.IWorld.get_taskId_43 rec = select rec (iTasks._Framework.IWorld._ConnectionInstanceOpts a1 a2 a3 a4 a5 -> a1)
+iTasks._Framework.IWorld.get_connectionId_44 rec = select rec (iTasks._Framework.IWorld._ConnectionInstanceOpts a1 a2 a3 a4 a5 -> a2)
+iTasks._Framework.IWorld.get_remoteHost_45 rec = select rec (iTasks._Framework.IWorld._ConnectionInstanceOpts a1 a2 a3 a4 a5 -> a3)
+iTasks._Framework.IWorld.get_connectionTask_46 rec = select rec (iTasks._Framework.IWorld._ConnectionInstanceOpts a1 a2 a3 a4 a5 -> a4)
+iTasks._Framework.IWorld.get_removeOnClose_47 rec = select rec (iTasks._Framework.IWorld._ConnectionInstanceOpts a1 a2 a3 a4 a5 -> a5)
+iTasks._Framework.IWorld.set_taskId_43 rec val = select rec (iTasks._Framework.IWorld._ConnectionInstanceOpts  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ConnectionInstanceOpts val a2 a3 a4 a5)
+iTasks._Framework.IWorld.set_connectionId_44 rec val = select rec (iTasks._Framework.IWorld._ConnectionInstanceOpts  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ConnectionInstanceOpts a1 val a3 a4 a5)
+iTasks._Framework.IWorld.set_remoteHost_45 rec val = select rec (iTasks._Framework.IWorld._ConnectionInstanceOpts  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ConnectionInstanceOpts a1 a2 val a4 a5)
+iTasks._Framework.IWorld.set_connectionTask_46 rec val = select rec (iTasks._Framework.IWorld._ConnectionInstanceOpts  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ConnectionInstanceOpts a1 a2 a3 val a5)
+iTasks._Framework.IWorld.set_removeOnClose_47 rec val = select rec (iTasks._Framework.IWorld._ConnectionInstanceOpts  a1 a2 a3 a4 a5 -> iTasks._Framework.IWorld._ConnectionInstanceOpts a1 a2 a3 a4 val)
+
+:: iTasks._Framework.IWorld._IOConnectionState = {iTasks._Framework.IWorld.connectionTaskState, iTasks._Framework.IWorld.closed}
+iTasks._Framework.IWorld.get_connectionTaskState_48 rec = select rec (iTasks._Framework.IWorld._IOConnectionState a1 a2 -> a1)
+iTasks._Framework.IWorld.get_closed_49 rec = select rec (iTasks._Framework.IWorld._IOConnectionState a1 a2 -> a2)
+iTasks._Framework.IWorld.set_connectionTaskState_48 rec val = select rec (iTasks._Framework.IWorld._IOConnectionState  a1 a2 -> iTasks._Framework.IWorld._IOConnectionState val a2)
+iTasks._Framework.IWorld.set_closed_49 rec val = select rec (iTasks._Framework.IWorld._IOConnectionState  a1 a2 -> iTasks._Framework.IWorld._IOConnectionState a1 val)
+
+:: <{iTasks._Framework.IWorld.JSONEncode_s;}> = {iTasks._Framework.IWorld.JSONEncode_s}
+iTasks._Framework.IWorld.get_JSONEncode_s_50 rec = select rec (<{iTasks._Framework.IWorld.JSONEncode_s;}> a1 -> a1)
+iTasks._Framework.IWorld.set_JSONEncode_s_50 rec val = select rec (<{iTasks._Framework.IWorld.JSONEncode_s;}>  a1 -> <{iTasks._Framework.IWorld.JSONEncode_s;}> val)
+
+:: <{iTasks._Framework.IWorld.JSONEncode_ss;}> = {iTasks._Framework.IWorld.JSONEncode_ss}
+iTasks._Framework.IWorld.get_JSONEncode_ss_51 rec = select rec (<{iTasks._Framework.IWorld.JSONEncode_ss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_JSONEncode_ss_51 rec val = select rec (<{iTasks._Framework.IWorld.JSONEncode_ss;}>  a1 -> <{iTasks._Framework.IWorld.JSONEncode_ss;}> val)
+
+:: <{iTasks._Framework.IWorld.JSONEncode_sss;}> = {iTasks._Framework.IWorld.JSONEncode_sss}
+iTasks._Framework.IWorld.get_JSONEncode_sss_52 rec = select rec (<{iTasks._Framework.IWorld.JSONEncode_sss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_JSONEncode_sss_52 rec val = select rec (<{iTasks._Framework.IWorld.JSONEncode_sss;}>  a1 -> <{iTasks._Framework.IWorld.JSONEncode_sss;}> val)
+
+:: <{iTasks._Framework.IWorld.JSONDecode_s;}> = {iTasks._Framework.IWorld.JSONDecode_s}
+iTasks._Framework.IWorld.get_JSONDecode_s_53 rec = select rec (<{iTasks._Framework.IWorld.JSONDecode_s;}> a1 -> a1)
+iTasks._Framework.IWorld.set_JSONDecode_s_53 rec val = select rec (<{iTasks._Framework.IWorld.JSONDecode_s;}>  a1 -> <{iTasks._Framework.IWorld.JSONDecode_s;}> val)
+
+:: <{iTasks._Framework.IWorld.JSONDecode_ss;}> = {iTasks._Framework.IWorld.JSONDecode_ss}
+iTasks._Framework.IWorld.get_JSONDecode_ss_54 rec = select rec (<{iTasks._Framework.IWorld.JSONDecode_ss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_JSONDecode_ss_54 rec val = select rec (<{iTasks._Framework.IWorld.JSONDecode_ss;}>  a1 -> <{iTasks._Framework.IWorld.JSONDecode_ss;}> val)
+
+:: <{iTasks._Framework.IWorld.JSONDecode_sss;}> = {iTasks._Framework.IWorld.JSONDecode_sss}
+iTasks._Framework.IWorld.get_JSONDecode_sss_55 rec = select rec (<{iTasks._Framework.IWorld.JSONDecode_sss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_JSONDecode_sss_55 rec val = select rec (<{iTasks._Framework.IWorld.JSONDecode_sss;}>  a1 -> <{iTasks._Framework.IWorld.JSONDecode_sss;}> val)
+
+:: <{iTasks._Framework.IWorld.gDefault_s;}> = {iTasks._Framework.IWorld.gDefault_s}
+iTasks._Framework.IWorld.get_gDefault_s_56 rec = select rec (<{iTasks._Framework.IWorld.gDefault_s;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gDefault_s_56 rec val = select rec (<{iTasks._Framework.IWorld.gDefault_s;}>  a1 -> <{iTasks._Framework.IWorld.gDefault_s;}> val)
+
+:: <{iTasks._Framework.IWorld.gDefault_ss;}> = {iTasks._Framework.IWorld.gDefault_ss}
+iTasks._Framework.IWorld.get_gDefault_ss_57 rec = select rec (<{iTasks._Framework.IWorld.gDefault_ss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gDefault_ss_57 rec val = select rec (<{iTasks._Framework.IWorld.gDefault_ss;}>  a1 -> <{iTasks._Framework.IWorld.gDefault_ss;}> val)
+
+:: <{iTasks._Framework.IWorld.gDefault_sss;}> = {iTasks._Framework.IWorld.gDefault_sss}
+iTasks._Framework.IWorld.get_gDefault_sss_58 rec = select rec (<{iTasks._Framework.IWorld.gDefault_sss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gDefault_sss_58 rec val = select rec (<{iTasks._Framework.IWorld.gDefault_sss;}>  a1 -> <{iTasks._Framework.IWorld.gDefault_sss;}> val)
+
+:: <{iTasks._Framework.IWorld.gUpdate_s;}> = {iTasks._Framework.IWorld.gUpdate_s}
+iTasks._Framework.IWorld.get_gUpdate_s_59 rec = select rec (<{iTasks._Framework.IWorld.gUpdate_s;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gUpdate_s_59 rec val = select rec (<{iTasks._Framework.IWorld.gUpdate_s;}>  a1 -> <{iTasks._Framework.IWorld.gUpdate_s;}> val)
+
+:: <{iTasks._Framework.IWorld.gUpdate_ss;}> = {iTasks._Framework.IWorld.gUpdate_ss}
+iTasks._Framework.IWorld.get_gUpdate_ss_60 rec = select rec (<{iTasks._Framework.IWorld.gUpdate_ss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gUpdate_ss_60 rec val = select rec (<{iTasks._Framework.IWorld.gUpdate_ss;}>  a1 -> <{iTasks._Framework.IWorld.gUpdate_ss;}> val)
+
+:: <{iTasks._Framework.IWorld.gUpdate_sss;}> = {iTasks._Framework.IWorld.gUpdate_sss}
+iTasks._Framework.IWorld.get_gUpdate_sss_61 rec = select rec (<{iTasks._Framework.IWorld.gUpdate_sss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gUpdate_sss_61 rec val = select rec (<{iTasks._Framework.IWorld.gUpdate_sss;}>  a1 -> <{iTasks._Framework.IWorld.gUpdate_sss;}> val)
+
+:: <{iTasks._Framework.IWorld.gVerify_s;}> = {iTasks._Framework.IWorld.gVerify_s}
+iTasks._Framework.IWorld.get_gVerify_s_62 rec = select rec (<{iTasks._Framework.IWorld.gVerify_s;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gVerify_s_62 rec val = select rec (<{iTasks._Framework.IWorld.gVerify_s;}>  a1 -> <{iTasks._Framework.IWorld.gVerify_s;}> val)
+
+:: <{iTasks._Framework.IWorld.gVerify_ss;}> = {iTasks._Framework.IWorld.gVerify_ss}
+iTasks._Framework.IWorld.get_gVerify_ss_63 rec = select rec (<{iTasks._Framework.IWorld.gVerify_ss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gVerify_ss_63 rec val = select rec (<{iTasks._Framework.IWorld.gVerify_ss;}>  a1 -> <{iTasks._Framework.IWorld.gVerify_ss;}> val)
+
+:: <{iTasks._Framework.IWorld.gVerify_sss;}> = {iTasks._Framework.IWorld.gVerify_sss}
+iTasks._Framework.IWorld.get_gVerify_sss_64 rec = select rec (<{iTasks._Framework.IWorld.gVerify_sss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gVerify_sss_64 rec val = select rec (<{iTasks._Framework.IWorld.gVerify_sss;}>  a1 -> <{iTasks._Framework.IWorld.gVerify_sss;}> val)
+
+:: <{iTasks._Framework.IWorld.gText_s;}> = {iTasks._Framework.IWorld.gText_s}
+iTasks._Framework.IWorld.get_gText_s_65 rec = select rec (<{iTasks._Framework.IWorld.gText_s;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gText_s_65 rec val = select rec (<{iTasks._Framework.IWorld.gText_s;}>  a1 -> <{iTasks._Framework.IWorld.gText_s;}> val)
+
+:: <{iTasks._Framework.IWorld.gText_ss;}> = {iTasks._Framework.IWorld.gText_ss}
+iTasks._Framework.IWorld.get_gText_ss_66 rec = select rec (<{iTasks._Framework.IWorld.gText_ss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gText_ss_66 rec val = select rec (<{iTasks._Framework.IWorld.gText_ss;}>  a1 -> <{iTasks._Framework.IWorld.gText_ss;}> val)
+
+:: <{iTasks._Framework.IWorld.gText_sss;}> = {iTasks._Framework.IWorld.gText_sss}
+iTasks._Framework.IWorld.get_gText_sss_67 rec = select rec (<{iTasks._Framework.IWorld.gText_sss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gText_sss_67 rec val = select rec (<{iTasks._Framework.IWorld.gText_sss;}>  a1 -> <{iTasks._Framework.IWorld.gText_sss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEditor_s;}> = {iTasks._Framework.IWorld.gEditor_s}
+iTasks._Framework.IWorld.get_gEditor_s_68 rec = select rec (<{iTasks._Framework.IWorld.gEditor_s;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEditor_s_68 rec val = select rec (<{iTasks._Framework.IWorld.gEditor_s;}>  a1 -> <{iTasks._Framework.IWorld.gEditor_s;}> val)
+
+:: <{iTasks._Framework.IWorld.gEditor_ss;}> = {iTasks._Framework.IWorld.gEditor_ss}
+iTasks._Framework.IWorld.get_gEditor_ss_69 rec = select rec (<{iTasks._Framework.IWorld.gEditor_ss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEditor_ss_69 rec val = select rec (<{iTasks._Framework.IWorld.gEditor_ss;}>  a1 -> <{iTasks._Framework.IWorld.gEditor_ss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEditor_sss;}> = {iTasks._Framework.IWorld.gEditor_sss}
+iTasks._Framework.IWorld.get_gEditor_sss_70 rec = select rec (<{iTasks._Framework.IWorld.gEditor_sss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEditor_sss_70 rec val = select rec (<{iTasks._Framework.IWorld.gEditor_sss;}>  a1 -> <{iTasks._Framework.IWorld.gEditor_sss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEditMeta_s;}> = {iTasks._Framework.IWorld.gEditMeta_s}
+iTasks._Framework.IWorld.get_gEditMeta_s_71 rec = select rec (<{iTasks._Framework.IWorld.gEditMeta_s;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEditMeta_s_71 rec val = select rec (<{iTasks._Framework.IWorld.gEditMeta_s;}>  a1 -> <{iTasks._Framework.IWorld.gEditMeta_s;}> val)
+
+:: <{iTasks._Framework.IWorld.gEditMeta_ss;}> = {iTasks._Framework.IWorld.gEditMeta_ss}
+iTasks._Framework.IWorld.get_gEditMeta_ss_72 rec = select rec (<{iTasks._Framework.IWorld.gEditMeta_ss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEditMeta_ss_72 rec val = select rec (<{iTasks._Framework.IWorld.gEditMeta_ss;}>  a1 -> <{iTasks._Framework.IWorld.gEditMeta_ss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEditMeta_sss;}> = {iTasks._Framework.IWorld.gEditMeta_sss}
+iTasks._Framework.IWorld.get_gEditMeta_sss_73 rec = select rec (<{iTasks._Framework.IWorld.gEditMeta_sss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEditMeta_sss_73 rec val = select rec (<{iTasks._Framework.IWorld.gEditMeta_sss;}>  a1 -> <{iTasks._Framework.IWorld.gEditMeta_sss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEq_s;}> = {iTasks._Framework.IWorld.gEq_s}
+iTasks._Framework.IWorld.get_gEq_s_74 rec = select rec (<{iTasks._Framework.IWorld.gEq_s;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEq_s_74 rec val = select rec (<{iTasks._Framework.IWorld.gEq_s;}>  a1 -> <{iTasks._Framework.IWorld.gEq_s;}> val)
+
+:: <{iTasks._Framework.IWorld.gEq_ss;}> = {iTasks._Framework.IWorld.gEq_ss}
+iTasks._Framework.IWorld.get_gEq_ss_75 rec = select rec (<{iTasks._Framework.IWorld.gEq_ss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEq_ss_75 rec val = select rec (<{iTasks._Framework.IWorld.gEq_ss;}>  a1 -> <{iTasks._Framework.IWorld.gEq_ss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEq_sss;}> = {iTasks._Framework.IWorld.gEq_sss}
+iTasks._Framework.IWorld.get_gEq_sss_76 rec = select rec (<{iTasks._Framework.IWorld.gEq_sss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEq_sss_76 rec val = select rec (<{iTasks._Framework.IWorld.gEq_sss;}>  a1 -> <{iTasks._Framework.IWorld.gEq_sss;}> val)
+
+:: <{iTasks._Framework.IWorld.JSONEncode_ssss;}> = {iTasks._Framework.IWorld.JSONEncode_ssss}
+iTasks._Framework.IWorld.get_JSONEncode_ssss_77 rec = select rec (<{iTasks._Framework.IWorld.JSONEncode_ssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_JSONEncode_ssss_77 rec val = select rec (<{iTasks._Framework.IWorld.JSONEncode_ssss;}>  a1 -> <{iTasks._Framework.IWorld.JSONEncode_ssss;}> val)
+
+:: <{iTasks._Framework.IWorld.JSONDecode_ssss;}> = {iTasks._Framework.IWorld.JSONDecode_ssss}
+iTasks._Framework.IWorld.get_JSONDecode_ssss_78 rec = select rec (<{iTasks._Framework.IWorld.JSONDecode_ssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_JSONDecode_ssss_78 rec val = select rec (<{iTasks._Framework.IWorld.JSONDecode_ssss;}>  a1 -> <{iTasks._Framework.IWorld.JSONDecode_ssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEq_ssss;}> = {iTasks._Framework.IWorld.gEq_ssss}
+iTasks._Framework.IWorld.get_gEq_ssss_79 rec = select rec (<{iTasks._Framework.IWorld.gEq_ssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEq_ssss_79 rec val = select rec (<{iTasks._Framework.IWorld.gEq_ssss;}>  a1 -> <{iTasks._Framework.IWorld.gEq_ssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gDefault_ssss;}> = {iTasks._Framework.IWorld.gDefault_ssss}
+iTasks._Framework.IWorld.get_gDefault_ssss_80 rec = select rec (<{iTasks._Framework.IWorld.gDefault_ssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gDefault_ssss_80 rec val = select rec (<{iTasks._Framework.IWorld.gDefault_ssss;}>  a1 -> <{iTasks._Framework.IWorld.gDefault_ssss;}> val)
+
+:: <{iTasks._Framework.IWorld.JSONEncode_sssss;}> = {iTasks._Framework.IWorld.JSONEncode_sssss}
+iTasks._Framework.IWorld.get_JSONEncode_sssss_81 rec = select rec (<{iTasks._Framework.IWorld.JSONEncode_sssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_JSONEncode_sssss_81 rec val = select rec (<{iTasks._Framework.IWorld.JSONEncode_sssss;}>  a1 -> <{iTasks._Framework.IWorld.JSONEncode_sssss;}> val)
+
+:: <{iTasks._Framework.IWorld.JSONEncode_ssssss;}> = {iTasks._Framework.IWorld.JSONEncode_ssssss}
+iTasks._Framework.IWorld.get_JSONEncode_ssssss_82 rec = select rec (<{iTasks._Framework.IWorld.JSONEncode_ssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_JSONEncode_ssssss_82 rec val = select rec (<{iTasks._Framework.IWorld.JSONEncode_ssssss;}>  a1 -> <{iTasks._Framework.IWorld.JSONEncode_ssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.JSONDecode_sssss;}> = {iTasks._Framework.IWorld.JSONDecode_sssss}
+iTasks._Framework.IWorld.get_JSONDecode_sssss_83 rec = select rec (<{iTasks._Framework.IWorld.JSONDecode_sssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_JSONDecode_sssss_83 rec val = select rec (<{iTasks._Framework.IWorld.JSONDecode_sssss;}>  a1 -> <{iTasks._Framework.IWorld.JSONDecode_sssss;}> val)
+
+:: <{iTasks._Framework.IWorld.JSONDecode_ssssss;}> = {iTasks._Framework.IWorld.JSONDecode_ssssss}
+iTasks._Framework.IWorld.get_JSONDecode_ssssss_84 rec = select rec (<{iTasks._Framework.IWorld.JSONDecode_ssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_JSONDecode_ssssss_84 rec val = select rec (<{iTasks._Framework.IWorld.JSONDecode_ssssss;}>  a1 -> <{iTasks._Framework.IWorld.JSONDecode_ssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.bimap_s;}> = {iTasks._Framework.IWorld.bimap_s}
+iTasks._Framework.IWorld.get_bimap_s_85 rec = select rec (<{iTasks._Framework.IWorld.bimap_s;}> a1 -> a1)
+iTasks._Framework.IWorld.set_bimap_s_85 rec val = select rec (<{iTasks._Framework.IWorld.bimap_s;}>  a1 -> <{iTasks._Framework.IWorld.bimap_s;}> val)
+
+:: <{iTasks._Framework.IWorld.bimap_ss;}> = {iTasks._Framework.IWorld.bimap_ss}
+iTasks._Framework.IWorld.get_bimap_ss_86 rec = select rec (<{iTasks._Framework.IWorld.bimap_ss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_bimap_ss_86 rec val = select rec (<{iTasks._Framework.IWorld.bimap_ss;}>  a1 -> <{iTasks._Framework.IWorld.bimap_ss;}> val)
+
+:: <{iTasks._Framework.IWorld.bimap_sss;}> = {iTasks._Framework.IWorld.bimap_sss}
+iTasks._Framework.IWorld.get_bimap_sss_87 rec = select rec (<{iTasks._Framework.IWorld.bimap_sss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_bimap_sss_87 rec val = select rec (<{iTasks._Framework.IWorld.bimap_sss;}>  a1 -> <{iTasks._Framework.IWorld.bimap_sss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEq_sssss;}> = {iTasks._Framework.IWorld.gEq_sssss}
+iTasks._Framework.IWorld.get_gEq_sssss_88 rec = select rec (<{iTasks._Framework.IWorld.gEq_sssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEq_sssss_88 rec val = select rec (<{iTasks._Framework.IWorld.gEq_sssss;}>  a1 -> <{iTasks._Framework.IWorld.gEq_sssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEq_ssssss;}> = {iTasks._Framework.IWorld.gEq_ssssss}
+iTasks._Framework.IWorld.get_gEq_ssssss_89 rec = select rec (<{iTasks._Framework.IWorld.gEq_ssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEq_ssssss_89 rec val = select rec (<{iTasks._Framework.IWorld.gEq_ssssss;}>  a1 -> <{iTasks._Framework.IWorld.gEq_ssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEq_sssssss;}> = {iTasks._Framework.IWorld.gEq_sssssss}
+iTasks._Framework.IWorld.get_gEq_sssssss_90 rec = select rec (<{iTasks._Framework.IWorld.gEq_sssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEq_sssssss_90 rec val = select rec (<{iTasks._Framework.IWorld.gEq_sssssss;}>  a1 -> <{iTasks._Framework.IWorld.gEq_sssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEq_ssssssss;}> = {iTasks._Framework.IWorld.gEq_ssssssss}
+iTasks._Framework.IWorld.get_gEq_ssssssss_91 rec = select rec (<{iTasks._Framework.IWorld.gEq_ssssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEq_ssssssss_91 rec val = select rec (<{iTasks._Framework.IWorld.gEq_ssssssss;}>  a1 -> <{iTasks._Framework.IWorld.gEq_ssssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEq_sssssssss;}> = {iTasks._Framework.IWorld.gEq_sssssssss}
+iTasks._Framework.IWorld.get_gEq_sssssssss_92 rec = select rec (<{iTasks._Framework.IWorld.gEq_sssssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEq_sssssssss_92 rec val = select rec (<{iTasks._Framework.IWorld.gEq_sssssssss;}>  a1 -> <{iTasks._Framework.IWorld.gEq_sssssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEditor_ssss;}> = {iTasks._Framework.IWorld.gEditor_ssss}
+iTasks._Framework.IWorld.get_gEditor_ssss_93 rec = select rec (<{iTasks._Framework.IWorld.gEditor_ssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEditor_ssss_93 rec val = select rec (<{iTasks._Framework.IWorld.gEditor_ssss;}>  a1 -> <{iTasks._Framework.IWorld.gEditor_ssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gText_ssss;}> = {iTasks._Framework.IWorld.gText_ssss}
+iTasks._Framework.IWorld.get_gText_ssss_94 rec = select rec (<{iTasks._Framework.IWorld.gText_ssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gText_ssss_94 rec val = select rec (<{iTasks._Framework.IWorld.gText_ssss;}>  a1 -> <{iTasks._Framework.IWorld.gText_ssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEditMeta_ssss;}> = {iTasks._Framework.IWorld.gEditMeta_ssss}
+iTasks._Framework.IWorld.get_gEditMeta_ssss_95 rec = select rec (<{iTasks._Framework.IWorld.gEditMeta_ssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEditMeta_ssss_95 rec val = select rec (<{iTasks._Framework.IWorld.gEditMeta_ssss;}>  a1 -> <{iTasks._Framework.IWorld.gEditMeta_ssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEditor_sssss;}> = {iTasks._Framework.IWorld.gEditor_sssss}
+iTasks._Framework.IWorld.get_gEditor_sssss_96 rec = select rec (<{iTasks._Framework.IWorld.gEditor_sssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEditor_sssss_96 rec val = select rec (<{iTasks._Framework.IWorld.gEditor_sssss;}>  a1 -> <{iTasks._Framework.IWorld.gEditor_sssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gText_sssss;}> = {iTasks._Framework.IWorld.gText_sssss}
+iTasks._Framework.IWorld.get_gText_sssss_97 rec = select rec (<{iTasks._Framework.IWorld.gText_sssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gText_sssss_97 rec val = select rec (<{iTasks._Framework.IWorld.gText_sssss;}>  a1 -> <{iTasks._Framework.IWorld.gText_sssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gDefault_sssss;}> = {iTasks._Framework.IWorld.gDefault_sssss}
+iTasks._Framework.IWorld.get_gDefault_sssss_98 rec = select rec (<{iTasks._Framework.IWorld.gDefault_sssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gDefault_sssss_98 rec val = select rec (<{iTasks._Framework.IWorld.gDefault_sssss;}>  a1 -> <{iTasks._Framework.IWorld.gDefault_sssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEditMeta_sssss;}> = {iTasks._Framework.IWorld.gEditMeta_sssss}
+iTasks._Framework.IWorld.get_gEditMeta_sssss_99 rec = select rec (<{iTasks._Framework.IWorld.gEditMeta_sssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEditMeta_sssss_99 rec val = select rec (<{iTasks._Framework.IWorld.gEditMeta_sssss;}>  a1 -> <{iTasks._Framework.IWorld.gEditMeta_sssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEditor_ssssss;}> = {iTasks._Framework.IWorld.gEditor_ssssss}
+iTasks._Framework.IWorld.get_gEditor_ssssss_100 rec = select rec (<{iTasks._Framework.IWorld.gEditor_ssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEditor_ssssss_100 rec val = select rec (<{iTasks._Framework.IWorld.gEditor_ssssss;}>  a1 -> <{iTasks._Framework.IWorld.gEditor_ssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gText_ssssss;}> = {iTasks._Framework.IWorld.gText_ssssss}
+iTasks._Framework.IWorld.get_gText_ssssss_101 rec = select rec (<{iTasks._Framework.IWorld.gText_ssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gText_ssssss_101 rec val = select rec (<{iTasks._Framework.IWorld.gText_ssssss;}>  a1 -> <{iTasks._Framework.IWorld.gText_ssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gDefault_ssssss;}> = {iTasks._Framework.IWorld.gDefault_ssssss}
+iTasks._Framework.IWorld.get_gDefault_ssssss_102 rec = select rec (<{iTasks._Framework.IWorld.gDefault_ssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gDefault_ssssss_102 rec val = select rec (<{iTasks._Framework.IWorld.gDefault_ssssss;}>  a1 -> <{iTasks._Framework.IWorld.gDefault_ssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gEditMeta_ssssss;}> = {iTasks._Framework.IWorld.gEditMeta_ssssss}
+iTasks._Framework.IWorld.get_gEditMeta_ssssss_103 rec = select rec (<{iTasks._Framework.IWorld.gEditMeta_ssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gEditMeta_ssssss_103 rec val = select rec (<{iTasks._Framework.IWorld.gEditMeta_ssssss;}>  a1 -> <{iTasks._Framework.IWorld.gEditMeta_ssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gVerify_ssss;}> = {iTasks._Framework.IWorld.gVerify_ssss}
+iTasks._Framework.IWorld.get_gVerify_ssss_104 rec = select rec (<{iTasks._Framework.IWorld.gVerify_ssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gVerify_ssss_104 rec val = select rec (<{iTasks._Framework.IWorld.gVerify_ssss;}>  a1 -> <{iTasks._Framework.IWorld.gVerify_ssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gVerify_sssss;}> = {iTasks._Framework.IWorld.gVerify_sssss}
+iTasks._Framework.IWorld.get_gVerify_sssss_105 rec = select rec (<{iTasks._Framework.IWorld.gVerify_sssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gVerify_sssss_105 rec val = select rec (<{iTasks._Framework.IWorld.gVerify_sssss;}>  a1 -> <{iTasks._Framework.IWorld.gVerify_sssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gVerify_ssssss;}> = {iTasks._Framework.IWorld.gVerify_ssssss}
+iTasks._Framework.IWorld.get_gVerify_ssssss_106 rec = select rec (<{iTasks._Framework.IWorld.gVerify_ssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gVerify_ssssss_106 rec val = select rec (<{iTasks._Framework.IWorld.gVerify_ssssss;}>  a1 -> <{iTasks._Framework.IWorld.gVerify_ssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gUpdate_ssss;}> = {iTasks._Framework.IWorld.gUpdate_ssss}
+iTasks._Framework.IWorld.get_gUpdate_ssss_107 rec = select rec (<{iTasks._Framework.IWorld.gUpdate_ssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gUpdate_ssss_107 rec val = select rec (<{iTasks._Framework.IWorld.gUpdate_ssss;}>  a1 -> <{iTasks._Framework.IWorld.gUpdate_ssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gUpdate_sssss;}> = {iTasks._Framework.IWorld.gUpdate_sssss}
+iTasks._Framework.IWorld.get_gUpdate_sssss_108 rec = select rec (<{iTasks._Framework.IWorld.gUpdate_sssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gUpdate_sssss_108 rec val = select rec (<{iTasks._Framework.IWorld.gUpdate_sssss;}>  a1 -> <{iTasks._Framework.IWorld.gUpdate_sssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gUpdate_ssssss;}> = {iTasks._Framework.IWorld.gUpdate_ssssss}
+iTasks._Framework.IWorld.get_gUpdate_ssssss_109 rec = select rec (<{iTasks._Framework.IWorld.gUpdate_ssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gUpdate_ssssss_109 rec val = select rec (<{iTasks._Framework.IWorld.gUpdate_ssssss;}>  a1 -> <{iTasks._Framework.IWorld.gUpdate_ssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gLexOrd_s;}> = {iTasks._Framework.IWorld.gLexOrd_s}
+iTasks._Framework.IWorld.get_gLexOrd_s_110 rec = select rec (<{iTasks._Framework.IWorld.gLexOrd_s;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gLexOrd_s_110 rec val = select rec (<{iTasks._Framework.IWorld.gLexOrd_s;}>  a1 -> <{iTasks._Framework.IWorld.gLexOrd_s;}> val)
+
+:: <{iTasks._Framework.IWorld.gLexOrd_ss;}> = {iTasks._Framework.IWorld.gLexOrd_ss}
+iTasks._Framework.IWorld.get_gLexOrd_ss_111 rec = select rec (<{iTasks._Framework.IWorld.gLexOrd_ss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gLexOrd_ss_111 rec val = select rec (<{iTasks._Framework.IWorld.gLexOrd_ss;}>  a1 -> <{iTasks._Framework.IWorld.gLexOrd_ss;}> val)
+
+:: <{iTasks._Framework.IWorld.gLexOrd_sss;}> = {iTasks._Framework.IWorld.gLexOrd_sss}
+iTasks._Framework.IWorld.get_gLexOrd_sss_112 rec = select rec (<{iTasks._Framework.IWorld.gLexOrd_sss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gLexOrd_sss_112 rec val = select rec (<{iTasks._Framework.IWorld.gLexOrd_sss;}>  a1 -> <{iTasks._Framework.IWorld.gLexOrd_sss;}> val)
+
+:: <{iTasks._Framework.IWorld.gLexOrd_ssss;}> = {iTasks._Framework.IWorld.gLexOrd_ssss}
+iTasks._Framework.IWorld.get_gLexOrd_ssss_113 rec = select rec (<{iTasks._Framework.IWorld.gLexOrd_ssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gLexOrd_ssss_113 rec val = select rec (<{iTasks._Framework.IWorld.gLexOrd_ssss;}>  a1 -> <{iTasks._Framework.IWorld.gLexOrd_ssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gLexOrd_sssss;}> = {iTasks._Framework.IWorld.gLexOrd_sssss}
+iTasks._Framework.IWorld.get_gLexOrd_sssss_114 rec = select rec (<{iTasks._Framework.IWorld.gLexOrd_sssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gLexOrd_sssss_114 rec val = select rec (<{iTasks._Framework.IWorld.gLexOrd_sssss;}>  a1 -> <{iTasks._Framework.IWorld.gLexOrd_sssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gLexOrd_ssssss;}> = {iTasks._Framework.IWorld.gLexOrd_ssssss}
+iTasks._Framework.IWorld.get_gLexOrd_ssssss_115 rec = select rec (<{iTasks._Framework.IWorld.gLexOrd_ssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gLexOrd_ssssss_115 rec val = select rec (<{iTasks._Framework.IWorld.gLexOrd_ssssss;}>  a1 -> <{iTasks._Framework.IWorld.gLexOrd_ssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gLexOrd_sssssss;}> = {iTasks._Framework.IWorld.gLexOrd_sssssss}
+iTasks._Framework.IWorld.get_gLexOrd_sssssss_116 rec = select rec (<{iTasks._Framework.IWorld.gLexOrd_sssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gLexOrd_sssssss_116 rec val = select rec (<{iTasks._Framework.IWorld.gLexOrd_sssssss;}>  a1 -> <{iTasks._Framework.IWorld.gLexOrd_sssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gLexOrd_ssssssss;}> = {iTasks._Framework.IWorld.gLexOrd_ssssssss}
+iTasks._Framework.IWorld.get_gLexOrd_ssssssss_117 rec = select rec (<{iTasks._Framework.IWorld.gLexOrd_ssssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gLexOrd_ssssssss_117 rec val = select rec (<{iTasks._Framework.IWorld.gLexOrd_ssssssss;}>  a1 -> <{iTasks._Framework.IWorld.gLexOrd_ssssssss;}> val)
+
+:: <{iTasks._Framework.IWorld.gLexOrd_sssssssss;}> = {iTasks._Framework.IWorld.gLexOrd_sssssssss}
+iTasks._Framework.IWorld.get_gLexOrd_sssssssss_118 rec = select rec (<{iTasks._Framework.IWorld.gLexOrd_sssssssss;}> a1 -> a1)
+iTasks._Framework.IWorld.set_gLexOrd_sssssssss_118 rec val = select rec (<{iTasks._Framework.IWorld.gLexOrd_sssssssss;}>  a1 -> <{iTasks._Framework.IWorld.gLexOrd_sssssssss;}> val)
+

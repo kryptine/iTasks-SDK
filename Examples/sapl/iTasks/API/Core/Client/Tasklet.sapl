@@ -1,0 +1,346 @@
+|| ?module? iTasks.API.Core.Client.Tasklet
+
+
+iTasks.API.Core.Client.Tasklet.createTaskletEventHandler !origHandler_0 !task_1 = StdMisc.undef
+iTasks.API.Core.Client.Tasklet.interfaceWrapper !_vtoString_0 task_1 !_x_2 = select _x_2 (iTasks.API.Core.Client.Tasklet.InterfaceFun fn_1_0 f_1_1 -> _Tuple2 fn_1_0 (iTasks._Framework.Client.Tasklet.handleInterfaceCall f_1_1 (StdOverloaded.get_toString_25 _vtoString_0 task_1))) 
+iTasks.API.Core.Client.Tasklet.toDef c_0 = iTasks._Framework.UIDefinition._UIDef (iTasks._Framework.UIDefinition.UIForm (iTasks._Framework.UIDefinition._UIForm Data.Map.newMap (_predefined._Cons (_Tuple2 c_0 Data.Map.newMap) _predefined._Nil) iTasks._Framework.UIDefinition.defaultSizeOpts)) _predefined._Nil
+iTasks.API.Core.Client.Tasklet.appTweak tasklet_0 taskTuiRep_1 = iTasks.API.Core.LayoutCombinators.tweakUI (iTasks.API.Core.Client.Tasklet.get_tweakUI_8 tasklet_0) taskTuiRep_1
+iTasks.API.Core.Client.Tasklet.anon_26 !f_0 g_1 x_2 = f_0 (g_1 x_2)
+iTasks.API.Core.Client.Tasklet.anon_605 !g_0 x_1 = Text.JSON.toString_7 (g_0 x_1)
+iTasks.API.Core.Client.Tasklet.anon_606 !x_0 = Text.JSON.toString_7 (iTasks._Framework.UIDiff.encodeUIUpdates x_0)
+iTasks.API.Core.Client.Tasklet.controllerWrapper !_vfromString_0 !_vFunctor_1 cf_2 strTask_3 st_4 eventNo_5 mbEventName_6 mbEventHandler_7 iworld_8 = let _x_1_0 = cf_2 (StdOverloaded.get_fromString_30 _vfromString_0 strTask_3) st_4 eventNo_5 mbEventName_6 mbEventHandler_7 iworld_8 in _Tuple3 (Data.Functor.get_fmap_0 _vFunctor_1 iTasks.API.Core.Client.Tasklet.anon_606 (_predefined.tupsels3v0 _x_1_0)) (_predefined.tupsels3v1 _x_1_0) (_predefined.tupsels3v2 _x_1_0)
+iTasks.API.Core.Client.Tasklet.tTUIToTasklet_24 !_vtoString_0 task_1 state_js_2 script_js_3 mb_ino_4 rf_js_5 mb_cf_js_6 = iTasks.API.Core.Client.Tasklet.toDef (iTasks._Framework.UIDefinition.UITasklet iTasks._Framework.UIDefinition.defaultSizeOpts (iTasks._Framework.UIDefinition._UITaskletOpts (StdOverloaded.get_toString_25 _vtoString_0 task_1) Data.Maybe.Nothing (Data.Maybe.Just state_js_2) (Data.Maybe.Just script_js_3) Data.Maybe.Nothing Data.Maybe.Nothing (Data.Maybe.Just rf_js_5) mb_ino_4 mb_cf_js_6))
+iTasks.API.Core.Client.Tasklet.eventHandlerWrapper task_0 !_x_1 = select _x_1 (iTasks.API.Core.Client.Tasklet.TaskletEvent id_1_0 event_1_1 f_1_2 -> _Tuple3 id_1_0 event_1_1 (iTasks._Framework.Client.Tasklet.handleJSEvent f_1_2 task_0)) 
+iTasks.API.Core.Client.Tasklet.tHTMLToTasklet_25 !_vtoString_0 !_x_1 task_2 state_js_3 script_js_4 events_js_5 intfcs_js_6 rf_js_7 = select _x_1 (iTasks.API.Core.Client.Tasklet._TaskletHTML width_1_0 height_1_1 html_1_2 eventHandlers_1_3 -> iTasks.API.Core.Client.Tasklet.toDef (iTasks._Framework.UIDefinition.setSize width_1_0 height_1_1 (iTasks._Framework.UIDefinition.UITasklet iTasks._Framework.UIDefinition.defaultSizeOpts (iTasks._Framework.UIDefinition._UITaskletOpts (StdOverloaded.get_toString_25 _vtoString_0 task_2) (Data.Maybe.Just (Text.HTML.toString_7 html_1_2)) (Data.Maybe.Just state_js_3) (Data.Maybe.Just script_js_4) (Data.Maybe.Just events_js_5) (Data.Maybe.Just intfcs_js_6) (Data.Maybe.Just rf_js_7) Data.Maybe.Nothing Data.Maybe.Nothing)))) 
+iTasks.API.Core.Client.Tasklet.interfaceWrapper_607 task_0 !_x_1 = select _x_1 (iTasks.API.Core.Client.Tasklet.InterfaceFun fn_1_0 f_1_1 -> _Tuple2 fn_1_0 (iTasks._Framework.Client.Tasklet.handleInterfaceCall f_1_1 (iTasks.API.Core.Types.toString_123 task_0))) 
+iTasks.API.Core.Client.Tasklet.controllerWrapper_609 !_vFunctor_0 cf_1 strTask_2 st_3 eventNo_4 mbEventName_5 mbEventHandler_6 iworld_7 = let _x_1_0 = cf_1 (iTasks.API.Core.Types.fromString_124 strTask_2) st_3 eventNo_4 mbEventName_5 mbEventHandler_6 iworld_7 in _Tuple3 (Data.Functor.get_fmap_0 _vFunctor_0 iTasks.API.Core.Client.Tasklet.anon_606 (_predefined.tupsels3v0 _x_1_0)) (_predefined.tupsels3v1 _x_1_0) (_predefined.tupsels3v2 _x_1_0)
+iTasks.API.Core.Client.Tasklet.tTUIToTasklet_610 task_0 state_js_1 script_js_2 mb_ino_3 rf_js_4 mb_cf_js_5 = iTasks.API.Core.Client.Tasklet.toDef (iTasks._Framework.UIDefinition.UITasklet iTasks._Framework.UIDefinition.defaultSizeOpts (iTasks._Framework.UIDefinition._UITaskletOpts (iTasks.API.Core.Types.toString_123 task_0) Data.Maybe.Nothing (Data.Maybe.Just state_js_1) (Data.Maybe.Just script_js_2) Data.Maybe.Nothing Data.Maybe.Nothing (Data.Maybe.Just rf_js_4) mb_ino_3 mb_cf_js_5))
+iTasks.API.Core.Client.Tasklet.tHTMLToTasklet_608 !_x_0 task_1 state_js_2 script_js_3 events_js_4 intfcs_js_5 rf_js_6 = select _x_0 (iTasks.API.Core.Client.Tasklet._TaskletHTML width_1_0 height_1_1 html_1_2 eventHandlers_1_3 -> iTasks.API.Core.Client.Tasklet.toDef (iTasks._Framework.UIDefinition.setSize width_1_0 height_1_1 (iTasks._Framework.UIDefinition.UITasklet iTasks._Framework.UIDefinition.defaultSizeOpts (iTasks._Framework.UIDefinition._UITaskletOpts (iTasks.API.Core.Types.toString_123 task_1) (Data.Maybe.Just (Text.HTML.toString_7 html_1_2)) (Data.Maybe.Just state_js_2) (Data.Maybe.Just script_js_3) (Data.Maybe.Just events_js_4) (Data.Maybe.Just intfcs_js_5) (Data.Maybe.Just rf_js_6) Data.Maybe.Nothing Data.Maybe.Nothing)))) 
+iTasks.API.Core.Client.Tasklet.controllerWrapper_611 cf_0 strTask_1 st_2 eventNo_3 mbEventName_4 mbEventHandler_5 iworld_6 = let _x_1_0 = cf_0 (iTasks.API.Core.Types.fromString_124 strTask_1) st_2 eventNo_3 mbEventName_4 mbEventHandler_5 iworld_6 in _Tuple3 (Data.Maybe.fmap_12 iTasks.API.Core.Client.Tasklet.anon_606 (_predefined.tupsels3v0 _x_1_0)) (_predefined.tupsels3v1 _x_1_0) (_predefined.tupsels3v2 _x_1_0)
+iTasks.API.Core.Client.Tasklet.genRep !tasklet_0 task_1 taskRepOpts_2 mbState_3 iworld_4 = let _x_1_0 = iTasks.API.Core.Client.Tasklet.get_genUI_6 tasklet_0 task_1 mbState_3 iworld_4, iworld_1_1 = _predefined.tupsels3v2 _x_1_0, state_1_2 = _predefined.tupsels3v1 _x_1_0 in <{iTasks.API.Core.Client.Tasklet._c;117;7_612}> (_predefined.tupsels3v0 _x_1_0) state_1_2 task_1 tasklet_0 iworld_1_1
+<{iTasks.API.Core.Client.Tasklet._c;117;7_612}> !_x_0 state_1 task_2 tasklet_3 iworld_4 = select _x_0 (iTasks.API.Core.Client.Tasklet.TaskletHTML gui_1_0 -> let _x_2_0 = iTasks._Framework.Client.LinkerSupport.taskletLinker state_1 (StdList.map (iTasks.API.Core.Client.Tasklet.interfaceWrapper_607 task_2) _predefined._Nil) (StdList.map (iTasks.API.Core.Client.Tasklet.eventHandlerWrapper task_2) (iTasks.API.Core.Client.Tasklet.get_eventHandlers_3 gui_1_0)) (iTasks.API.Core.Client.Tasklet.get_resultFunc_7 tasklet_3) Data.Maybe.Nothing iworld_4 in _Tuple3 (iTasks.API.Core.Client.Tasklet.appTweak tasklet_3 (iTasks.API.Core.Client.Tasklet.tHTMLToTasklet_608 gui_1_0 task_2 (_predefined.tupsels7v0 _x_2_0) (_predefined.tupsels7v1 _x_2_0) (_predefined.tupsels7v2 _x_2_0) (_predefined.tupsels7v3 _x_2_0) (_predefined.tupsels7v4 _x_2_0))) state_1 (_predefined.tupsels7v6 _x_2_0)) (iTasks.API.Core.Client.Tasklet.TaskletTUI gui_1_0 -> let _x_2_0 = iTasks._Framework.Client.LinkerSupport.taskletLinker state_1 _predefined._Nil _predefined._Nil (iTasks.API.Core.Client.Tasklet.get_resultFunc_7 tasklet_3) (Data.Maybe.fmap_12 iTasks.API.Core.Client.Tasklet.controllerWrapper_611 (Data.Maybe.Just (iTasks.API.Core.Client.Tasklet.get_controllerFunc_5 gui_1_0))) iworld_4 in _Tuple3 (iTasks.API.Core.Client.Tasklet.appTweak tasklet_3 (iTasks.API.Core.Client.Tasklet.tTUIToTasklet_610 task_2 (_predefined.tupsels7v0 _x_2_0) (_predefined.tupsels7v1 _x_2_0) (Data.Maybe.Just (StdString.toString_5 (iTasks.API.Core.Client.Tasklet.get_instanceNo_4 gui_1_0))) (_predefined.tupsels7v4 _x_2_0) (_predefined.tupsels7v5 _x_2_0))) state_1 (_predefined.tupsels7v6 _x_2_0)) (iTasks.API.Core.Client.Tasklet.NoGUI -> let _x_2_0 = iTasks._Framework.Client.LinkerSupport.taskletLinker state_1 (StdList.map (iTasks.API.Core.Client.Tasklet.interfaceWrapper_607 task_2) _predefined._Nil) _predefined._Nil (iTasks.API.Core.Client.Tasklet.get_resultFunc_7 tasklet_3) Data.Maybe.Nothing iworld_4 in _Tuple3 (iTasks.API.Core.Client.Tasklet.appTweak tasklet_3 (iTasks.API.Core.Client.Tasklet.toDef (iTasks._Framework.UIDefinition.UITasklet iTasks._Framework.UIDefinition.defaultSizeOpts (iTasks._Framework.UIDefinition._UITaskletOpts (iTasks.API.Core.Types.toString_123 task_2) Data.Maybe.Nothing (Data.Maybe.Just (_predefined.tupsels7v0 _x_2_0)) (Data.Maybe.Just (_predefined.tupsels7v1 _x_2_0)) Data.Maybe.Nothing (Data.Maybe.Just (_predefined.tupsels7v3 _x_2_0)) (Data.Maybe.Just (_predefined.tupsels7v4 _x_2_0)) Data.Maybe.Nothing Data.Maybe.Nothing)))) state_1 (_predefined.tupsels7v6 _x_2_0)) 
+iTasks.API.Core.Client.Tasklet.taskInfo !ts_0 = iTasks._Framework.Task._TaskEvalInfo ts_0 _predefined._Nil True
+iTasks.API.Core.Client.Tasklet.printlnI !msg_0 !iw_1 = select iw_1 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> let _x_2_0 = StdFile.stdio_33 world_1_13 in iTasks._Framework.IWorld.set_world_13 iw_1 (_predefined.tupsels2v1 (StdFile.fclose_30 (StdFile.fwrites "\n" (StdFile.fwrites msg_0 (_predefined.tupsels2v0 _x_2_0))) (_predefined.tupsels2v1 _x_2_0)))) 
+iTasks.API.Core.Client.Tasklet.JSONEncode_s_190 !_vJSONEncode_s_0 !x1_1 !x2_2 = iTasks.API.Core.Types.JSONEncode_TaskValue_531 (iTasks.API.Core.Client.Tasklet.get_JSONEncode_s_9 _vJSONEncode_s_0) x1_1 x2_2
+iTasks.API.Core.Client.Tasklet.JSONDecode_s_192 !_vJSONDecode_s_0 !x1_1 !x2_2 = iTasks.API.Core.Types.JSONDecode_TaskValue_541 (iTasks.API.Core.Client.Tasklet.get_JSONDecode_s_12 _vJSONDecode_s_0) x1_1 x2_2
+iTasks.API.Core.Client.Tasklet.taskFunc_23 !_vJSONEncode_s_0 !_vJSONDecode_s_1 tasklet_2 event_3 evalOpts_4 !_x_5 iworld_6 = select _x_5 (iTasks._Framework.TaskState.TCInit task_1_0 ts_1_1 -> let _x_2_0 = iTasks.API.Core.Client.Tasklet.genRep tasklet_2 task_1_0 evalOpts_4 Data.Maybe.Nothing iworld_6, res_2_1 = iTasks.API.Core.Client.Tasklet.get_resultFunc_7 tasklet_2 (_predefined.tupsels3v1 _x_2_0), rep_2_2 = _predefined.tupsels3v0 _x_2_0 in _Tuple2 (iTasks._Framework.Task.ValueResult res_2_1 (iTasks.API.Core.Client.Tasklet.taskInfo ts_1_1) (iTasks._Framework.Task.TaskRep rep_2_2) (iTasks._Framework.TaskState.TCBasic task_1_0 ts_1_1 (Text.JSON.toJSON (<{iTasks.API.Core.Client.Tasklet.JSONEncode_s;}> (iTasks.API.Core.Client.Tasklet.JSONEncode_s_190 _vJSONEncode_s_0)) res_2_1) False) (Data.Map.singleton task_1_0 (Data.Either.Left rep_2_2))) (iTasks.API.Core.Client.Tasklet.printlnI "init" (_predefined.tupsels3v2 _x_2_0))) (iTasks._Framework.TaskState.TCBasic task_1_0 ts_1_1 jsonRes_1_2 _x_1_3 -> select event_3 (iTasks._Framework.Task.RefreshEvent _x_2_0 -> let _x_3_0 = iTasks.API.Core.Client.Tasklet.genRep tasklet_2 task_1_0 evalOpts_4 Data.Maybe.Nothing iworld_6, rep_3_1 = _predefined.tupsels3v0 _x_3_0 in _Tuple2 (iTasks._Framework.Task.ValueResult (Data.Maybe.fromJust (Text.JSON.fromJSON (<{iTasks.API.Core.Client.Tasklet.JSONDecode_s;}> (iTasks.API.Core.Client.Tasklet.JSONDecode_s_192 _vJSONDecode_s_1)) jsonRes_1_2)) (iTasks.API.Core.Client.Tasklet.taskInfo ts_1_1) (iTasks._Framework.Task.TaskRep rep_3_1) _x_5 (Data.Map.singleton task_1_0 (Data.Either.Left rep_3_1))) (iTasks.API.Core.Client.Tasklet.printlnI "refresh" (_predefined.tupsels3v2 _x_3_0))) (iTasks._Framework.Task.FocusEvent _x_2_0 _x_2_1 -> let _x_3_0 = iTasks.API.Core.Client.Tasklet.genRep tasklet_2 task_1_0 evalOpts_4 Data.Maybe.Nothing iworld_6, rep_3_1 = _predefined.tupsels3v0 _x_3_0 in _Tuple2 (iTasks._Framework.Task.ValueResult (Data.Maybe.fromJust (Text.JSON.fromJSON (<{iTasks.API.Core.Client.Tasklet.JSONDecode_s;}> (iTasks.API.Core.Client.Tasklet.JSONDecode_s_192 _vJSONDecode_s_1)) jsonRes_1_2)) (iTasks.API.Core.Client.Tasklet.taskInfo ts_1_1) (iTasks._Framework.Task.TaskRep rep_3_1) _x_5 (Data.Map.singleton task_1_0 (Data.Either.Left rep_3_1))) (iTasks.API.Core.Client.Tasklet.printlnI "focus" (_predefined.tupsels3v2 _x_3_0))) (iTasks._Framework.Task.EditEvent _x_2_0 targetTask_2_1 _x_2_2 jsonRes_2_3 -> select _x_2_2 ("result" -> select (<{iTasks.API.Core.Types.==_125}> targetTask_2_1 task_1_0) (True -> let _x_5_0 = iTasks.API.Core.Client.Tasklet.genRep tasklet_2 task_1_0 evalOpts_4 Data.Maybe.Nothing iworld_6, rep_5_1 = _predefined.tupsels3v0 _x_5_0 in _Tuple2 (iTasks._Framework.Task.ValueResult (Data.Maybe.fromJust (Text.JSON.fromJSON (<{iTasks.API.Core.Client.Tasklet.JSONDecode_s;}> (iTasks.API.Core.Client.Tasklet.JSONDecode_s_192 _vJSONDecode_s_1)) jsonRes_2_3)) (iTasks.API.Core.Client.Tasklet.taskInfo ts_1_1) (iTasks._Framework.Task.TaskRep rep_5_1) (iTasks._Framework.TaskState.TCBasic task_1_0 ts_1_1 jsonRes_2_3 False) (Data.Map.singleton task_1_0 (Data.Either.Left rep_5_1))) (iTasks.API.Core.Client.Tasklet.printlnI "result" (_predefined.tupsels3v2 _x_5_0))) ) ("finalize" -> select (<{iTasks.API.Core.Types.==_125}> targetTask_2_1 task_1_0) (True -> _Tuple2 iTasks._Framework.Task.DestroyedResult (iTasks.API.Core.Client.Tasklet.printlnI "finalize" iworld_6)) ) ) (_ -> let _x_2_0 = iTasks.API.Core.Client.Tasklet.genRep tasklet_2 task_1_0 evalOpts_4 Data.Maybe.Nothing iworld_6, rep_2_1 = _predefined.tupsels3v0 _x_2_0 in _Tuple2 (iTasks._Framework.Task.ValueResult (Data.Maybe.fromJust (Text.JSON.fromJSON (<{iTasks.API.Core.Client.Tasklet.JSONDecode_s;}> (iTasks.API.Core.Client.Tasklet.JSONDecode_s_192 _vJSONDecode_s_1)) jsonRes_1_2)) (iTasks.API.Core.Client.Tasklet.taskInfo ts_1_1) (iTasks._Framework.Task.TaskRep rep_2_1) (iTasks._Framework.TaskState.TCBasic task_1_0 ts_1_1 jsonRes_1_2 False) (Data.Map.singleton task_1_0 (Data.Either.Left rep_2_1))) (iTasks.API.Core.Client.Tasklet.printlnI "commit" (_predefined.tupsels3v2 _x_2_0)))) (iTasks._Framework.TaskState.TCDestroy _x_1_0 -> _Tuple2 iTasks._Framework.Task.DestroyedResult (iTasks.API.Core.Client.Tasklet.printlnI "destroy" iworld_6)) 
+iTasks.API.Core.Client.Tasklet.mkInterfaceTask !<{_vJSONDecode*_0}> !<{_vJSONEncode*_1}> tasklet_2 fs_3 = iTasks._Framework.Task.Task (iTasks.API.Core.Client.Tasklet.taskFunc_23 <{_vJSONEncode*_1}> <{_vJSONDecode*_0}> tasklet_2)
+iTasks.API.Core.Client.Tasklet.mkTask !_viTask_0 ti_1 = iTasks.API.Core.Client.Tasklet.mkInterfaceTask (iTasks._Framework.Generic.get_JSONDecode_s_6 _viTask_0) (iTasks._Framework.Generic.get_JSONEncode_s_5 _viTask_0) ti_1 _predefined._Nil
+iTasks.API.Core.Client.Tasklet.fireEvent !eventqueue_0 !task_1 !eventName_2 !eventValue_3 = StdMisc.undef
+iTasks.API.Core.Client.Tasklet.println !msg_0 !world_1 = let _x_1_0 = StdFile.stdio_33 world_1 in _predefined.tupsels2v1 (StdFile.fclose_30 (StdFile.fwrites "\n" (StdFile.fwrites msg_0 (_predefined.tupsels2v0 _x_1_0))) (_predefined.tupsels2v1 _x_1_0))
+<{iTasks.API.Core.Client.Tasklet.TD;JSONString}> _x_0 = _predefined._Nil
+<{iTasks.API.Core.Client.Tasklet.TD;TaskletEventHandlerFunc}> _x_0 = _predefined._Nil
+<{iTasks.API.Core.Client.Tasklet.TD;TaskletEvent}> _x_0 = _predefined._Nil
+<{iTasks.API.Core.Client.Tasklet.TD;TaskletHTML}> _x_0 = _predefined._Nil
+<{iTasks.API.Core.Client.Tasklet.TD;TaskletGUI}> _x_0 = _predefined._Nil
+<{iTasks.API.Core.Client.Tasklet.TD;ControllerFunc}> _x_0 = _predefined._Nil
+<{iTasks.API.Core.Client.Tasklet.TD;TaskletTUI}> _x_0 = _predefined._Nil
+<{iTasks.API.Core.Client.Tasklet.TD;Tasklet}> _x_0 = _predefined._Nil
+<{iTasks.API.Core.Client.Tasklet.TD;InterfaceFun}> _x_0 = _predefined._Nil
+<{iTasks.API.Core.Client.Tasklet.TD;EventQueue}> _x_0 = _predefined._Nil
+
+:: iTasks.API.Core.Client.Tasklet.TaskletEvent = iTasks.API.Core.Client.Tasklet.TaskletEvent !a1 !a2 a3
+:: iTasks.API.Core.Client.Tasklet.TaskletGUI = iTasks.API.Core.Client.Tasklet.TaskletHTML !a1 | iTasks.API.Core.Client.Tasklet.TaskletTUI !a1 | iTasks.API.Core.Client.Tasklet.NoGUI
+:: iTasks.API.Core.Client.Tasklet.InterfaceFun = iTasks.API.Core.Client.Tasklet.InterfaceFun !a1 !a2
+
+|| Converted Records
+:: iTasks.API.Core.Client.Tasklet._TaskletHTML = {!iTasks.API.Core.Client.Tasklet.width, !iTasks.API.Core.Client.Tasklet.height, !iTasks.API.Core.Client.Tasklet.html, !iTasks.API.Core.Client.Tasklet.eventHandlers}
+iTasks.API.Core.Client.Tasklet.get_width_0 rec = select rec (iTasks.API.Core.Client.Tasklet._TaskletHTML a1 a2 a3 a4 -> a1)
+iTasks.API.Core.Client.Tasklet.get_height_1 rec = select rec (iTasks.API.Core.Client.Tasklet._TaskletHTML a1 a2 a3 a4 -> a2)
+iTasks.API.Core.Client.Tasklet.get_html_2 rec = select rec (iTasks.API.Core.Client.Tasklet._TaskletHTML a1 a2 a3 a4 -> a3)
+iTasks.API.Core.Client.Tasklet.get_eventHandlers_3 rec = select rec (iTasks.API.Core.Client.Tasklet._TaskletHTML a1 a2 a3 a4 -> a4)
+iTasks.API.Core.Client.Tasklet.set_width_0 rec !val = select rec (iTasks.API.Core.Client.Tasklet._TaskletHTML  a1 a2 a3 a4 -> iTasks.API.Core.Client.Tasklet._TaskletHTML val a2 a3 a4)
+iTasks.API.Core.Client.Tasklet.set_height_1 rec !val = select rec (iTasks.API.Core.Client.Tasklet._TaskletHTML  a1 a2 a3 a4 -> iTasks.API.Core.Client.Tasklet._TaskletHTML a1 val a3 a4)
+iTasks.API.Core.Client.Tasklet.set_html_2 rec !val = select rec (iTasks.API.Core.Client.Tasklet._TaskletHTML  a1 a2 a3 a4 -> iTasks.API.Core.Client.Tasklet._TaskletHTML a1 a2 val a4)
+iTasks.API.Core.Client.Tasklet.set_eventHandlers_3 rec !val = select rec (iTasks.API.Core.Client.Tasklet._TaskletHTML  a1 a2 a3 a4 -> iTasks.API.Core.Client.Tasklet._TaskletHTML a1 a2 a3 val)
+
+:: iTasks.API.Core.Client.Tasklet._TaskletTUI = {iTasks.API.Core.Client.Tasklet.instanceNo, iTasks.API.Core.Client.Tasklet.controllerFunc}
+iTasks.API.Core.Client.Tasklet.get_instanceNo_4 rec = select rec (iTasks.API.Core.Client.Tasklet._TaskletTUI a1 a2 -> a1)
+iTasks.API.Core.Client.Tasklet.get_controllerFunc_5 rec = select rec (iTasks.API.Core.Client.Tasklet._TaskletTUI a1 a2 -> a2)
+iTasks.API.Core.Client.Tasklet.set_instanceNo_4 rec val = select rec (iTasks.API.Core.Client.Tasklet._TaskletTUI  a1 a2 -> iTasks.API.Core.Client.Tasklet._TaskletTUI val a2)
+iTasks.API.Core.Client.Tasklet.set_controllerFunc_5 rec val = select rec (iTasks.API.Core.Client.Tasklet._TaskletTUI  a1 a2 -> iTasks.API.Core.Client.Tasklet._TaskletTUI a1 val)
+
+:: iTasks.API.Core.Client.Tasklet._Tasklet = {iTasks.API.Core.Client.Tasklet.genUI, iTasks.API.Core.Client.Tasklet.resultFunc, iTasks.API.Core.Client.Tasklet.tweakUI}
+iTasks.API.Core.Client.Tasklet.get_genUI_6 rec = select rec (iTasks.API.Core.Client.Tasklet._Tasklet a1 a2 a3 -> a1)
+iTasks.API.Core.Client.Tasklet.get_resultFunc_7 rec = select rec (iTasks.API.Core.Client.Tasklet._Tasklet a1 a2 a3 -> a2)
+iTasks.API.Core.Client.Tasklet.get_tweakUI_8 rec = select rec (iTasks.API.Core.Client.Tasklet._Tasklet a1 a2 a3 -> a3)
+iTasks.API.Core.Client.Tasklet.set_genUI_6 rec val = select rec (iTasks.API.Core.Client.Tasklet._Tasklet  a1 a2 a3 -> iTasks.API.Core.Client.Tasklet._Tasklet val a2 a3)
+iTasks.API.Core.Client.Tasklet.set_resultFunc_7 rec val = select rec (iTasks.API.Core.Client.Tasklet._Tasklet  a1 a2 a3 -> iTasks.API.Core.Client.Tasklet._Tasklet a1 val a3)
+iTasks.API.Core.Client.Tasklet.set_tweakUI_8 rec val = select rec (iTasks.API.Core.Client.Tasklet._Tasklet  a1 a2 a3 -> iTasks.API.Core.Client.Tasklet._Tasklet a1 a2 val)
+
+:: <{iTasks.API.Core.Client.Tasklet.JSONEncode_s;}> = {iTasks.API.Core.Client.Tasklet.JSONEncode_s}
+iTasks.API.Core.Client.Tasklet.get_JSONEncode_s_9 rec = select rec (<{iTasks.API.Core.Client.Tasklet.JSONEncode_s;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_JSONEncode_s_9 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.JSONEncode_s;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.JSONEncode_s;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.JSONEncode_ss;}> = {iTasks.API.Core.Client.Tasklet.JSONEncode_ss}
+iTasks.API.Core.Client.Tasklet.get_JSONEncode_ss_10 rec = select rec (<{iTasks.API.Core.Client.Tasklet.JSONEncode_ss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_JSONEncode_ss_10 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.JSONEncode_ss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.JSONEncode_ss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.JSONEncode_sss;}> = {iTasks.API.Core.Client.Tasklet.JSONEncode_sss}
+iTasks.API.Core.Client.Tasklet.get_JSONEncode_sss_11 rec = select rec (<{iTasks.API.Core.Client.Tasklet.JSONEncode_sss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_JSONEncode_sss_11 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.JSONEncode_sss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.JSONEncode_sss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.JSONDecode_s;}> = {iTasks.API.Core.Client.Tasklet.JSONDecode_s}
+iTasks.API.Core.Client.Tasklet.get_JSONDecode_s_12 rec = select rec (<{iTasks.API.Core.Client.Tasklet.JSONDecode_s;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_JSONDecode_s_12 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.JSONDecode_s;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.JSONDecode_s;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.JSONDecode_ss;}> = {iTasks.API.Core.Client.Tasklet.JSONDecode_ss}
+iTasks.API.Core.Client.Tasklet.get_JSONDecode_ss_13 rec = select rec (<{iTasks.API.Core.Client.Tasklet.JSONDecode_ss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_JSONDecode_ss_13 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.JSONDecode_ss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.JSONDecode_ss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.JSONDecode_sss;}> = {iTasks.API.Core.Client.Tasklet.JSONDecode_sss}
+iTasks.API.Core.Client.Tasklet.get_JSONDecode_sss_14 rec = select rec (<{iTasks.API.Core.Client.Tasklet.JSONDecode_sss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_JSONDecode_sss_14 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.JSONDecode_sss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.JSONDecode_sss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gDefault_s;}> = {iTasks.API.Core.Client.Tasklet.gDefault_s}
+iTasks.API.Core.Client.Tasklet.get_gDefault_s_15 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gDefault_s;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gDefault_s_15 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gDefault_s;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gDefault_s;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gDefault_ss;}> = {iTasks.API.Core.Client.Tasklet.gDefault_ss}
+iTasks.API.Core.Client.Tasklet.get_gDefault_ss_16 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gDefault_ss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gDefault_ss_16 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gDefault_ss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gDefault_ss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gDefault_sss;}> = {iTasks.API.Core.Client.Tasklet.gDefault_sss}
+iTasks.API.Core.Client.Tasklet.get_gDefault_sss_17 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gDefault_sss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gDefault_sss_17 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gDefault_sss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gDefault_sss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gUpdate_s;}> = {iTasks.API.Core.Client.Tasklet.gUpdate_s}
+iTasks.API.Core.Client.Tasklet.get_gUpdate_s_18 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gUpdate_s;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gUpdate_s_18 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gUpdate_s;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gUpdate_s;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gUpdate_ss;}> = {iTasks.API.Core.Client.Tasklet.gUpdate_ss}
+iTasks.API.Core.Client.Tasklet.get_gUpdate_ss_19 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gUpdate_ss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gUpdate_ss_19 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gUpdate_ss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gUpdate_ss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gUpdate_sss;}> = {iTasks.API.Core.Client.Tasklet.gUpdate_sss}
+iTasks.API.Core.Client.Tasklet.get_gUpdate_sss_20 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gUpdate_sss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gUpdate_sss_20 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gUpdate_sss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gUpdate_sss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gVerify_s;}> = {iTasks.API.Core.Client.Tasklet.gVerify_s}
+iTasks.API.Core.Client.Tasklet.get_gVerify_s_21 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gVerify_s;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gVerify_s_21 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gVerify_s;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gVerify_s;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gVerify_ss;}> = {iTasks.API.Core.Client.Tasklet.gVerify_ss}
+iTasks.API.Core.Client.Tasklet.get_gVerify_ss_22 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gVerify_ss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gVerify_ss_22 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gVerify_ss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gVerify_ss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gVerify_sss;}> = {iTasks.API.Core.Client.Tasklet.gVerify_sss}
+iTasks.API.Core.Client.Tasklet.get_gVerify_sss_23 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gVerify_sss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gVerify_sss_23 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gVerify_sss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gVerify_sss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gText_s;}> = {iTasks.API.Core.Client.Tasklet.gText_s}
+iTasks.API.Core.Client.Tasklet.get_gText_s_24 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gText_s;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gText_s_24 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gText_s;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gText_s;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gText_ss;}> = {iTasks.API.Core.Client.Tasklet.gText_ss}
+iTasks.API.Core.Client.Tasklet.get_gText_ss_25 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gText_ss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gText_ss_25 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gText_ss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gText_ss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gText_sss;}> = {iTasks.API.Core.Client.Tasklet.gText_sss}
+iTasks.API.Core.Client.Tasklet.get_gText_sss_26 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gText_sss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gText_sss_26 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gText_sss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gText_sss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEditor_s;}> = {iTasks.API.Core.Client.Tasklet.gEditor_s}
+iTasks.API.Core.Client.Tasklet.get_gEditor_s_27 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEditor_s;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEditor_s_27 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEditor_s;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEditor_s;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEditor_ss;}> = {iTasks.API.Core.Client.Tasklet.gEditor_ss}
+iTasks.API.Core.Client.Tasklet.get_gEditor_ss_28 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEditor_ss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEditor_ss_28 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEditor_ss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEditor_ss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEditor_sss;}> = {iTasks.API.Core.Client.Tasklet.gEditor_sss}
+iTasks.API.Core.Client.Tasklet.get_gEditor_sss_29 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEditor_sss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEditor_sss_29 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEditor_sss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEditor_sss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEditMeta_s;}> = {iTasks.API.Core.Client.Tasklet.gEditMeta_s}
+iTasks.API.Core.Client.Tasklet.get_gEditMeta_s_30 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEditMeta_s;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEditMeta_s_30 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEditMeta_s;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEditMeta_s;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEditMeta_ss;}> = {iTasks.API.Core.Client.Tasklet.gEditMeta_ss}
+iTasks.API.Core.Client.Tasklet.get_gEditMeta_ss_31 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEditMeta_ss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEditMeta_ss_31 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEditMeta_ss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEditMeta_ss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEditMeta_sss;}> = {iTasks.API.Core.Client.Tasklet.gEditMeta_sss}
+iTasks.API.Core.Client.Tasklet.get_gEditMeta_sss_32 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEditMeta_sss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEditMeta_sss_32 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEditMeta_sss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEditMeta_sss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEq_s;}> = {iTasks.API.Core.Client.Tasklet.gEq_s}
+iTasks.API.Core.Client.Tasklet.get_gEq_s_33 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_s;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEq_s_33 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_s;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEq_s;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEq_ss;}> = {iTasks.API.Core.Client.Tasklet.gEq_ss}
+iTasks.API.Core.Client.Tasklet.get_gEq_ss_34 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_ss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEq_ss_34 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_ss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEq_ss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEq_sss;}> = {iTasks.API.Core.Client.Tasklet.gEq_sss}
+iTasks.API.Core.Client.Tasklet.get_gEq_sss_35 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_sss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEq_sss_35 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_sss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEq_sss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.JSONEncode_ssss;}> = {iTasks.API.Core.Client.Tasklet.JSONEncode_ssss}
+iTasks.API.Core.Client.Tasklet.get_JSONEncode_ssss_36 rec = select rec (<{iTasks.API.Core.Client.Tasklet.JSONEncode_ssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_JSONEncode_ssss_36 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.JSONEncode_ssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.JSONEncode_ssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.JSONDecode_ssss;}> = {iTasks.API.Core.Client.Tasklet.JSONDecode_ssss}
+iTasks.API.Core.Client.Tasklet.get_JSONDecode_ssss_37 rec = select rec (<{iTasks.API.Core.Client.Tasklet.JSONDecode_ssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_JSONDecode_ssss_37 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.JSONDecode_ssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.JSONDecode_ssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEq_ssss;}> = {iTasks.API.Core.Client.Tasklet.gEq_ssss}
+iTasks.API.Core.Client.Tasklet.get_gEq_ssss_38 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_ssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEq_ssss_38 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_ssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEq_ssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gDefault_ssss;}> = {iTasks.API.Core.Client.Tasklet.gDefault_ssss}
+iTasks.API.Core.Client.Tasklet.get_gDefault_ssss_39 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gDefault_ssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gDefault_ssss_39 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gDefault_ssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gDefault_ssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.JSONEncode_sssss;}> = {iTasks.API.Core.Client.Tasklet.JSONEncode_sssss}
+iTasks.API.Core.Client.Tasklet.get_JSONEncode_sssss_40 rec = select rec (<{iTasks.API.Core.Client.Tasklet.JSONEncode_sssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_JSONEncode_sssss_40 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.JSONEncode_sssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.JSONEncode_sssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.JSONEncode_ssssss;}> = {iTasks.API.Core.Client.Tasklet.JSONEncode_ssssss}
+iTasks.API.Core.Client.Tasklet.get_JSONEncode_ssssss_41 rec = select rec (<{iTasks.API.Core.Client.Tasklet.JSONEncode_ssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_JSONEncode_ssssss_41 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.JSONEncode_ssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.JSONEncode_ssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.JSONDecode_sssss;}> = {iTasks.API.Core.Client.Tasklet.JSONDecode_sssss}
+iTasks.API.Core.Client.Tasklet.get_JSONDecode_sssss_42 rec = select rec (<{iTasks.API.Core.Client.Tasklet.JSONDecode_sssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_JSONDecode_sssss_42 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.JSONDecode_sssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.JSONDecode_sssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.JSONDecode_ssssss;}> = {iTasks.API.Core.Client.Tasklet.JSONDecode_ssssss}
+iTasks.API.Core.Client.Tasklet.get_JSONDecode_ssssss_43 rec = select rec (<{iTasks.API.Core.Client.Tasklet.JSONDecode_ssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_JSONDecode_ssssss_43 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.JSONDecode_ssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.JSONDecode_ssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.bimap_s;}> = {iTasks.API.Core.Client.Tasklet.bimap_s}
+iTasks.API.Core.Client.Tasklet.get_bimap_s_44 rec = select rec (<{iTasks.API.Core.Client.Tasklet.bimap_s;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_bimap_s_44 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.bimap_s;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.bimap_s;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.bimap_ss;}> = {iTasks.API.Core.Client.Tasklet.bimap_ss}
+iTasks.API.Core.Client.Tasklet.get_bimap_ss_45 rec = select rec (<{iTasks.API.Core.Client.Tasklet.bimap_ss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_bimap_ss_45 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.bimap_ss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.bimap_ss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.bimap_sss;}> = {iTasks.API.Core.Client.Tasklet.bimap_sss}
+iTasks.API.Core.Client.Tasklet.get_bimap_sss_46 rec = select rec (<{iTasks.API.Core.Client.Tasklet.bimap_sss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_bimap_sss_46 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.bimap_sss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.bimap_sss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEq_sssss;}> = {iTasks.API.Core.Client.Tasklet.gEq_sssss}
+iTasks.API.Core.Client.Tasklet.get_gEq_sssss_47 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_sssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEq_sssss_47 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_sssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEq_sssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEq_ssssss;}> = {iTasks.API.Core.Client.Tasklet.gEq_ssssss}
+iTasks.API.Core.Client.Tasklet.get_gEq_ssssss_48 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_ssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEq_ssssss_48 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_ssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEq_ssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEq_sssssss;}> = {iTasks.API.Core.Client.Tasklet.gEq_sssssss}
+iTasks.API.Core.Client.Tasklet.get_gEq_sssssss_49 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_sssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEq_sssssss_49 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_sssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEq_sssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEq_ssssssss;}> = {iTasks.API.Core.Client.Tasklet.gEq_ssssssss}
+iTasks.API.Core.Client.Tasklet.get_gEq_ssssssss_50 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_ssssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEq_ssssssss_50 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_ssssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEq_ssssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEq_sssssssss;}> = {iTasks.API.Core.Client.Tasklet.gEq_sssssssss}
+iTasks.API.Core.Client.Tasklet.get_gEq_sssssssss_51 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_sssssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEq_sssssssss_51 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEq_sssssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEq_sssssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEditor_ssss;}> = {iTasks.API.Core.Client.Tasklet.gEditor_ssss}
+iTasks.API.Core.Client.Tasklet.get_gEditor_ssss_52 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEditor_ssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEditor_ssss_52 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEditor_ssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEditor_ssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gText_ssss;}> = {iTasks.API.Core.Client.Tasklet.gText_ssss}
+iTasks.API.Core.Client.Tasklet.get_gText_ssss_53 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gText_ssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gText_ssss_53 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gText_ssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gText_ssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEditMeta_ssss;}> = {iTasks.API.Core.Client.Tasklet.gEditMeta_ssss}
+iTasks.API.Core.Client.Tasklet.get_gEditMeta_ssss_54 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEditMeta_ssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEditMeta_ssss_54 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEditMeta_ssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEditMeta_ssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEditor_sssss;}> = {iTasks.API.Core.Client.Tasklet.gEditor_sssss}
+iTasks.API.Core.Client.Tasklet.get_gEditor_sssss_55 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEditor_sssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEditor_sssss_55 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEditor_sssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEditor_sssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gText_sssss;}> = {iTasks.API.Core.Client.Tasklet.gText_sssss}
+iTasks.API.Core.Client.Tasklet.get_gText_sssss_56 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gText_sssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gText_sssss_56 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gText_sssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gText_sssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gDefault_sssss;}> = {iTasks.API.Core.Client.Tasklet.gDefault_sssss}
+iTasks.API.Core.Client.Tasklet.get_gDefault_sssss_57 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gDefault_sssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gDefault_sssss_57 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gDefault_sssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gDefault_sssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEditMeta_sssss;}> = {iTasks.API.Core.Client.Tasklet.gEditMeta_sssss}
+iTasks.API.Core.Client.Tasklet.get_gEditMeta_sssss_58 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEditMeta_sssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEditMeta_sssss_58 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEditMeta_sssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEditMeta_sssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEditor_ssssss;}> = {iTasks.API.Core.Client.Tasklet.gEditor_ssssss}
+iTasks.API.Core.Client.Tasklet.get_gEditor_ssssss_59 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEditor_ssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEditor_ssssss_59 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEditor_ssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEditor_ssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gText_ssssss;}> = {iTasks.API.Core.Client.Tasklet.gText_ssssss}
+iTasks.API.Core.Client.Tasklet.get_gText_ssssss_60 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gText_ssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gText_ssssss_60 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gText_ssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gText_ssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gDefault_ssssss;}> = {iTasks.API.Core.Client.Tasklet.gDefault_ssssss}
+iTasks.API.Core.Client.Tasklet.get_gDefault_ssssss_61 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gDefault_ssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gDefault_ssssss_61 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gDefault_ssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gDefault_ssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gEditMeta_ssssss;}> = {iTasks.API.Core.Client.Tasklet.gEditMeta_ssssss}
+iTasks.API.Core.Client.Tasklet.get_gEditMeta_ssssss_62 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gEditMeta_ssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gEditMeta_ssssss_62 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gEditMeta_ssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gEditMeta_ssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gVerify_ssss;}> = {iTasks.API.Core.Client.Tasklet.gVerify_ssss}
+iTasks.API.Core.Client.Tasklet.get_gVerify_ssss_63 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gVerify_ssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gVerify_ssss_63 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gVerify_ssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gVerify_ssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gVerify_sssss;}> = {iTasks.API.Core.Client.Tasklet.gVerify_sssss}
+iTasks.API.Core.Client.Tasklet.get_gVerify_sssss_64 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gVerify_sssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gVerify_sssss_64 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gVerify_sssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gVerify_sssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gVerify_ssssss;}> = {iTasks.API.Core.Client.Tasklet.gVerify_ssssss}
+iTasks.API.Core.Client.Tasklet.get_gVerify_ssssss_65 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gVerify_ssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gVerify_ssssss_65 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gVerify_ssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gVerify_ssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gUpdate_ssss;}> = {iTasks.API.Core.Client.Tasklet.gUpdate_ssss}
+iTasks.API.Core.Client.Tasklet.get_gUpdate_ssss_66 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gUpdate_ssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gUpdate_ssss_66 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gUpdate_ssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gUpdate_ssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gUpdate_sssss;}> = {iTasks.API.Core.Client.Tasklet.gUpdate_sssss}
+iTasks.API.Core.Client.Tasklet.get_gUpdate_sssss_67 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gUpdate_sssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gUpdate_sssss_67 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gUpdate_sssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gUpdate_sssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gUpdate_ssssss;}> = {iTasks.API.Core.Client.Tasklet.gUpdate_ssssss}
+iTasks.API.Core.Client.Tasklet.get_gUpdate_ssssss_68 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gUpdate_ssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gUpdate_ssssss_68 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gUpdate_ssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gUpdate_ssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gLexOrd_s;}> = {iTasks.API.Core.Client.Tasklet.gLexOrd_s}
+iTasks.API.Core.Client.Tasklet.get_gLexOrd_s_69 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_s;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gLexOrd_s_69 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_s;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gLexOrd_s;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gLexOrd_ss;}> = {iTasks.API.Core.Client.Tasklet.gLexOrd_ss}
+iTasks.API.Core.Client.Tasklet.get_gLexOrd_ss_70 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_ss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gLexOrd_ss_70 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_ss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gLexOrd_ss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gLexOrd_sss;}> = {iTasks.API.Core.Client.Tasklet.gLexOrd_sss}
+iTasks.API.Core.Client.Tasklet.get_gLexOrd_sss_71 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_sss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gLexOrd_sss_71 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_sss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gLexOrd_sss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gLexOrd_ssss;}> = {iTasks.API.Core.Client.Tasklet.gLexOrd_ssss}
+iTasks.API.Core.Client.Tasklet.get_gLexOrd_ssss_72 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_ssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gLexOrd_ssss_72 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_ssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gLexOrd_ssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gLexOrd_sssss;}> = {iTasks.API.Core.Client.Tasklet.gLexOrd_sssss}
+iTasks.API.Core.Client.Tasklet.get_gLexOrd_sssss_73 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_sssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gLexOrd_sssss_73 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_sssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gLexOrd_sssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gLexOrd_ssssss;}> = {iTasks.API.Core.Client.Tasklet.gLexOrd_ssssss}
+iTasks.API.Core.Client.Tasklet.get_gLexOrd_ssssss_74 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_ssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gLexOrd_ssssss_74 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_ssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gLexOrd_ssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gLexOrd_sssssss;}> = {iTasks.API.Core.Client.Tasklet.gLexOrd_sssssss}
+iTasks.API.Core.Client.Tasklet.get_gLexOrd_sssssss_75 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_sssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gLexOrd_sssssss_75 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_sssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gLexOrd_sssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gLexOrd_ssssssss;}> = {iTasks.API.Core.Client.Tasklet.gLexOrd_ssssssss}
+iTasks.API.Core.Client.Tasklet.get_gLexOrd_ssssssss_76 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_ssssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gLexOrd_ssssssss_76 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_ssssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gLexOrd_ssssssss;}> val)
+
+:: <{iTasks.API.Core.Client.Tasklet.gLexOrd_sssssssss;}> = {iTasks.API.Core.Client.Tasklet.gLexOrd_sssssssss}
+iTasks.API.Core.Client.Tasklet.get_gLexOrd_sssssssss_77 rec = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_sssssssss;}> a1 -> a1)
+iTasks.API.Core.Client.Tasklet.set_gLexOrd_sssssssss_77 rec val = select rec (<{iTasks.API.Core.Client.Tasklet.gLexOrd_sssssssss;}>  a1 -> <{iTasks.API.Core.Client.Tasklet.gLexOrd_sssssssss;}> val)
+

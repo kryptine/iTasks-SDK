@@ -1,0 +1,285 @@
+|| ?module? Text.Parsers.ParsersKernel
+
+
+Text.Parsers.ParsersKernel.pure_45 !_vFunctor_0 a_1 = Text.Parsers.ParsersKernel.Gram _predefined._Nil (Data.Maybe.Just a_1)
+Text.Parsers.ParsersKernel.anon_87 !_vFunctor_0 p_1 = _predefined._Cons (Text.Parsers.ParsersKernel.Seq (<{Data.Functor.<$>}> _vFunctor_0 StdFunc.const p_1) (Text.Parsers.ParsersKernel.pure_45 _vFunctor_0 Data.Void.Void)) _predefined._Nil
+Text.Parsers.ParsersKernel.mkG !_vSplittable_0 !_vFunctor_1 p_2 = Text.Parsers.ParsersKernel.Gram (Data.Maybe.maybe _predefined._Nil (Text.Parsers.ParsersKernel.anon_87 _vFunctor_1) (Text.Parsers.ParsersKernel.get_getNonPure_0 _vSplittable_0 p_2)) (Text.Parsers.ParsersKernel.get_getPure_1 _vSplittable_0 p_2)
+Text.Parsers.ParsersKernel.flip_177 !f_0 a_1 b_2 = f_0 b_2 a_1
+Text.Parsers.ParsersKernel.anon_148 !_vFunctor_0 f_1 x_2 = <{Data.Functor.<$>}> _vFunctor_0 f_1 x_2
+Text.Parsers.ParsersKernel.anon_184 !f_0 g_1 x_2 = f_0 (g_1 x_2)
+Text.Parsers.ParsersKernel.anon_149 a2c_0 f_1 = Text.Parsers.ParsersKernel.anon_184 a2c_0 f_1
+Text.Parsers.ParsersKernel.anon_150 !_vFunctor_0 a2c_1 b2ga_2 b_3 = Data.Functor.get_fmap_0 _vFunctor_0 a2c_1 (b2ga_2 b_3)
+Text.Parsers.ParsersKernel.anon_229 !_vFunctor_0 a2c_1 !b2ga_2 b_3 = Text.Parsers.ParsersKernel.fmap_42 _vFunctor_0 a2c_1 (b2ga_2 b_3)
+Text.Parsers.ParsersKernel.fmap_43 !_vFunctor_0 a2c_1 !_x_2 = select _x_2 (Text.Parsers.ParsersKernel.Seq fb2a_1_0 gb_1_1 -> Text.Parsers.ParsersKernel.Seq (<{Data.Functor.<$>}> _vFunctor_0 (Text.Parsers.ParsersKernel.anon_149 a2c_1) fb2a_1_0) gb_1_1) (Text.Parsers.ParsersKernel.Bind fb_1_0 b2ga_1_1 -> Text.Parsers.ParsersKernel.Bind fb_1_0 (Text.Parsers.ParsersKernel.anon_229 _vFunctor_0 a2c_1 b2ga_1_1)) 
+Text.Parsers.ParsersKernel.anon_228 !_vFunctor_0 f_1 x_2 = <{Data.Functor.<$>}> (<{Data.Functor.Functor;}> (Text.Parsers.ParsersKernel.fmap_43 _vFunctor_0)) f_1 x_2
+Text.Parsers.ParsersKernel.fmap_42 !_vFunctor_0 f_1 !_x_2 = select _x_2 (Text.Parsers.ParsersKernel.Gram alts_1_0 e_1_1 -> Text.Parsers.ParsersKernel.Gram (StdList.map (Text.Parsers.ParsersKernel.anon_228 _vFunctor_0 f_1) alts_1_0) (<{Data.Functor.<$>}> (<{Data.Functor.Functor;}> Data.Maybe.fmap_12) f_1 e_1_1)) 
+<{Text.Parsers.ParsersKernel.<|>_46}> !_vFunctor_0 !_x_1 !_x_2 = select _x_1 (Text.Parsers.ParsersKernel.Gram ps_1_0 pe_1_1 -> select _x_2 (Text.Parsers.ParsersKernel.Gram qs_2_0 qe_2_1 -> Text.Parsers.ParsersKernel.Gram (<{StdList.++}> ps_1_0 qs_2_0) (<{Control.Applicative.<|>_18}> pe_1_1 qe_2_1)) ) 
+Text.Parsers.ParsersKernel.anon_89 x_0 y_1 = _Tuple2 x_0 y_1
+Text.Parsers.ParsersKernel.flip_230 !a_0 !b_1 = <{Data.Func.$}> b_1 a_0
+<{Text.Parsers.ParsersKernel.<||>}> !_vFunctor_0 !fb2a_1 fb_2 = <{Text.Parsers.ParsersKernel.<|>_46}> _vFunctor_0 (<{Text.Parsers.ParsersKernel.<<||>}> _vFunctor_0 fb2a_1 fb_2) (<{Text.Parsers.ParsersKernel.<<||>}> _vFunctor_0 (<{Data.Functor.<$>}> (<{Data.Functor.Functor;}> (Text.Parsers.ParsersKernel.fmap_42 _vFunctor_0)) Text.Parsers.ParsersKernel.flip_230 fb_2) fb2a_1)
+Text.Parsers.ParsersKernel.l_90 !_vFunctor_0 !c2gb2a_1 gb_2 c_3 = <{Text.Parsers.ParsersKernel.<||>}> _vFunctor_0 (c2gb2a_1 c_3) gb_2
+Text.Parsers.ParsersKernel.fwdby1 !_vFunctor_0 !_x_1 gb_2 = select _x_1 (Text.Parsers.ParsersKernel.Seq fc2b2a_1_0 gc_1_1 -> Text.Parsers.ParsersKernel.Seq (<{Data.Functor.<$>}> _vFunctor_0 StdTuple.uncurry fc2b2a_1_0) (<{Text.Parsers.ParsersKernel.<||>}> _vFunctor_0 (<{Data.Functor.<$>}> (<{Data.Functor.Functor;}> (Text.Parsers.ParsersKernel.fmap_42 _vFunctor_0)) Text.Parsers.ParsersKernel.anon_89 gc_1_1) gb_2)) (Text.Parsers.ParsersKernel.Bind fc_1_0 c2gb2a_1_1 -> Text.Parsers.ParsersKernel.Bind fc_1_0 (Text.Parsers.ParsersKernel.l_90 _vFunctor_0 c2gb2a_1_1 gb_2)) 
+Text.Parsers.ParsersKernel.anon_88 !_vFunctor_0 gb_1 !x_2 = Text.Parsers.ParsersKernel.fwdby1 _vFunctor_0 x_2 gb_1
+<{Text.Parsers.ParsersKernel.<<||>}> !_vFunctor_0 !gb2a_1 gb_2 = select gb2a_1 (Text.Parsers.ParsersKernel.Gram lb2a_1_0 eb2a_1_1 -> Text.Parsers.ParsersKernel.Gram (StdList.map (Text.Parsers.ParsersKernel.anon_88 _vFunctor_0 gb_2) lb2a_1_0) (<{Control.Applicative.<*>_14}> eb2a_1_1 (_predefined.tupsels2v1 gb_2))) 
+Text.Parsers.ParsersKernel.foldr_178 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> op_0 a_1_0 (Text.Parsers.ParsersKernel.foldr_178 op_0 r_1 x_1_1)) 
+Text.Parsers.ParsersKernel.anon_179 !f_0 g_1 x_2 = f_0 (g_1 x_2)
+Text.Parsers.ParsersKernel.anon_231 !_vMonad_0 !_vApplicative_1 !_vAlternative_2 !g_3 x_4 = Text.Parsers.ParsersKernel.mkP _vMonad_0 _vApplicative_1 _vAlternative_2 (g_3 x_4)
+Text.Parsers.ParsersKernel.mkP_Alt_93 !_vAlternative_0 !_vMonad_1 !_x_2 = select _x_2 (Text.Parsers.ParsersKernel.Seq f_b2a_1_0 g_b_1_1 -> <{Control.Applicative.get_<*>_0}> (Control.Applicative.get_Applicative_5 _vAlternative_0) f_b2a_1_0 (Text.Parsers.ParsersKernel.mkP _vMonad_1 (Control.Applicative.get_Applicative_5 _vAlternative_0) _vAlternative_0 g_b_1_1)) (Text.Parsers.ParsersKernel.Bind f_b_1_0 b2g_a_1_1 -> <{Control.Monad.>>=}> _vMonad_1 f_b_1_0 (Text.Parsers.ParsersKernel.anon_231 _vMonad_1 (Control.Applicative.get_Applicative_5 _vAlternative_0) _vAlternative_0 b2g_a_1_1)) 
+Text.Parsers.ParsersKernel.mkP !_vMonad_0 !_vApplicative_1 !_vAlternative_2 !_x_3 = select _x_3 (Text.Parsers.ParsersKernel.Gram l_a_1_0 m_a_1_1 -> Text.Parsers.ParsersKernel.foldr_178 (<{Control.Applicative.get_<|>_3}> _vAlternative_2) (Data.Maybe.maybe (Control.Applicative.get_empty_4 _vAlternative_2) (Control.Applicative.get_pure_1 (Control.Applicative.get_Applicative_5 _vAlternative_2)) m_a_1_1) (StdList.map (Text.Parsers.ParsersKernel.mkP_Alt_93 _vAlternative_2 _vMonad_0) l_a_1_0)) 
+Text.Parsers.ParsersKernel.anon_180 !f_0 g_1 x_2 = f_0 (g_1 x_2)
+Text.Parsers.ParsersKernel.prefixSepInAlt !_vMonad_0 !_vApplicative_1 !_vAlternative_2 sep_3 !_x_4 = select _x_4 (Text.Parsers.ParsersKernel.Seq fb2a_1_0 gb_1_1 -> Text.Parsers.ParsersKernel.Seq (<{Control.Applicative.*>}> (Control.Monad.get_Applicative_1 _vMonad_0) sep_3 fb2a_1_0) (Text.Parsers.ParsersKernel.prefixSepInGram _vMonad_0 (Control.Monad.get_Applicative_1 _vMonad_0) _vAlternative_2 sep_3 gb_1_1)) 
+Text.Parsers.ParsersKernel.prefixSepInGram !_vMonad_0 !_vApplicative_1 !_vAlternative_2 sep_3 !_x_4 = select _x_4 (Text.Parsers.ParsersKernel.Gram na_1_0 ne_1_1 -> Text.Parsers.ParsersKernel.Gram (StdList.map (Text.Parsers.ParsersKernel.prefixSepInAlt _vMonad_0 (Control.Monad.get_Applicative_1 _vMonad_0) _vAlternative_2 sep_3) na_1_0) ne_1_1) 
+Text.Parsers.ParsersKernel.anon_232 !_vMonad_0 !_vApplicative_1 !_vAlternative_2 sep_3 !g_4 x_5 = Text.Parsers.ParsersKernel.insertSep _vMonad_0 _vApplicative_1 _vAlternative_2 sep_3 (g_4 x_5)
+Text.Parsers.ParsersKernel.insertSepInAlt_94 !_vMonad_0 !_vAlternative_1 sep_2 !_x_3 = select _x_3 (Text.Parsers.ParsersKernel.Seq fb2a_1_0 gb_1_1 -> Text.Parsers.ParsersKernel.Seq fb2a_1_0 (Text.Parsers.ParsersKernel.prefixSepInGram _vMonad_0 (Control.Monad.get_Applicative_1 _vMonad_0) _vAlternative_1 sep_2 gb_1_1)) (Text.Parsers.ParsersKernel.Bind fc_1_0 c2ga_1_1 -> Text.Parsers.ParsersKernel.Bind fc_1_0 (Text.Parsers.ParsersKernel.anon_232 _vMonad_0 (Control.Monad.get_Applicative_1 _vMonad_0) _vAlternative_1 sep_2 c2ga_1_1)) 
+Text.Parsers.ParsersKernel.insertSep !_vMonad_0 !_vApplicative_1 !_vAlternative_2 sep_3 !_x_4 = select _x_4 (Text.Parsers.ParsersKernel.Gram na_1_0 ea_1_1 -> Text.Parsers.ParsersKernel.Gram (StdList.map (Text.Parsers.ParsersKernel.insertSepInAlt_94 _vMonad_0 _vAlternative_2 sep_3) na_1_0) ea_1_1) 
+Text.Parsers.ParsersKernel.sepBy !_vMonad_0 !_vApplicative_1 !_vAlternative_2 !g_3 sep_4 = Text.Parsers.ParsersKernel.mkP _vMonad_0 (Control.Monad.get_Applicative_1 _vMonad_0) _vAlternative_2 (Text.Parsers.ParsersKernel.insertSep _vMonad_0 (Control.Monad.get_Applicative_1 _vMonad_0) _vAlternative_2 sep_4 g_3)
+Text.Parsers.ParsersKernel.anon_95 x_0 xs_1 = _predefined._Cons x_0 xs_1
+Text.Parsers.ParsersKernel.gmList !_vFunctor_0 p_1 = let pm_1_0 = <{Text.Parsers.ParsersKernel.<|>_46}> _vFunctor_0 (<{Text.Parsers.ParsersKernel.<<||>}> _vFunctor_0 (<{Data.Functor.<$>}> (<{Data.Functor.Functor;}> (Text.Parsers.ParsersKernel.fmap_42 _vFunctor_0)) Text.Parsers.ParsersKernel.anon_95 p_1) pm_1_0) (Text.Parsers.ParsersKernel.pure_45 _vFunctor_0 _predefined._Nil) in pm_1_0
+Text.Parsers.ParsersKernel.anon_96 hy_0 sc_1 !ac_2 xc_3 sg_4 ss_5 = ac_2 xc_3 sg_4
+Text.Parsers.ParsersKernel.fail = Text.Parsers.ParsersKernel.Parser Text.Parsers.ParsersKernel.anon_96
+Text.Parsers.ParsersKernel.anon_86 sg_0 = _Tuple2 sg_0 _predefined._Nil
+Text.Parsers.ParsersKernel.empty_xc = Text.Parsers.ParsersKernel.anon_86
+Text.Parsers.ParsersKernel.anon_97 x_0 hy_1 !sc_2 ac_3 xc_4 = sc_2 x_0 ac_3 Text.Parsers.ParsersKernel.empty_xc
+Text.Parsers.ParsersKernel.yield x_0 = Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.anon_97 x_0)
+Text.Parsers.ParsersKernel.posLength =: 2
+<{Text.Parsers.ParsersKernel.+_166}> !sg1_0 !sg2_1 = select sg1_0 (<{Text.Parsers.ParsersKernel.@}> _x_1_0 i1_1_1 -> select _x_1_0 (_Tuple2 symTypes_2_0 hyp1_2_1 -> select sg2_1 (<{Text.Parsers.ParsersKernel.@}> _x_3_0 i2_3_1 -> select _x_3_0 (_Tuple2 _x_4_0 hyp2_4_1 -> if (<{StdList.<_82}> i2_3_1 i1_1_1) sg1_0 (if (<{StdList.<_82}> i1_1_1 i2_3_1) sg2_1 (<{Text.Parsers.ParsersKernel.@}> (_Tuple2 symTypes_2_0 (<{StdList.++}> hyp1_2_1 hyp2_4_1)) i1_1_1))) ) ) ) 
+Text.Parsers.ParsersKernel.p_98 hy_0 sc_1 ac_2 xc_3 sg_4 !_x_5 = select _x_5 (_Tuple4 is_1_0 i_1_1 _x_1_2 symTypes_1_3 -> select _x_1_2 (_predefined._Cons s_2_0 ss_2_1 -> sc_1 s_2_0 ac_2 Text.Parsers.ParsersKernel.empty_xc sg_4 (_Tuple4 is_1_0 (<{StdInt.+_6}> i_1_1 Text.Parsers.ParsersKernel.posLength) ss_2_1 symTypes_1_3)) (_predefined._Nil -> ac_2 xc_3 (<{Text.Parsers.ParsersKernel.+_166}> sg_4 (<{Text.Parsers.ParsersKernel.@}> (_Tuple2 symTypes_1_3 (_predefined._Cons hy_0 _predefined._Nil)) (<{StdList.++}> is_1_0 (_predefined._Cons i_1_1 _predefined._Nil))))) ) 
+Text.Parsers.ParsersKernel.anySymbol = Text.Parsers.ParsersKernel.Parser Text.Parsers.ParsersKernel.p_98
+Text.Parsers.ParsersKernel.p_99 !<{_v==_0}> x_1 hy_2 sc_3 ac_4 xc_5 sg_6 !_x_7 = select _x_7 (_Tuple4 is_1_0 i_1_1 _x_1_2 symTypes_1_3 -> select _x_1_2 (_predefined._Cons s_2_0 ss_2_1 -> select (<{StdOverloaded.get_==_6}> <{_v==_0}> x_1 s_2_0) (True -> sc_3 s_2_0 ac_4 Text.Parsers.ParsersKernel.empty_xc sg_6 (_Tuple4 is_1_0 (<{StdInt.+_6}> i_1_1 Text.Parsers.ParsersKernel.posLength) ss_2_1 symTypes_1_3)) ) (_ -> ac_4 xc_5 (<{Text.Parsers.ParsersKernel.+_166}> sg_6 (<{Text.Parsers.ParsersKernel.@}> (_Tuple2 symTypes_1_3 (_predefined._Cons hy_2 _predefined._Nil)) (<{StdList.++}> is_1_0 (_predefined._Cons i_1_1 _predefined._Nil)))))) 
+Text.Parsers.ParsersKernel.symbol !<{_v==_0}> x_1 = Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.p_99 <{_v==_0}> x_1)
+Text.Parsers.ParsersKernel.p_100 ok_0 hy_1 sc_2 ac_3 xc_4 sg_5 !_x_6 = select _x_6 (_Tuple4 is_1_0 i_1_1 _x_1_2 symTypes_1_3 -> select _x_1_2 (_predefined._Cons s_2_0 ss_2_1 -> select (ok_0 s_2_0) (True -> sc_2 s_2_0 ac_3 Text.Parsers.ParsersKernel.empty_xc sg_5 (_Tuple4 is_1_0 (<{StdInt.+_6}> i_1_1 Text.Parsers.ParsersKernel.posLength) ss_2_1 symTypes_1_3)) ) (_ -> ac_3 xc_4 (<{Text.Parsers.ParsersKernel.+_166}> sg_5 (<{Text.Parsers.ParsersKernel.@}> (_Tuple2 symTypes_1_3 (_predefined._Cons hy_1 _predefined._Nil)) (<{StdList.++}> is_1_0 (_predefined._Cons i_1_1 _predefined._Nil)))))) 
+Text.Parsers.ParsersKernel.satisfy ok_0 = Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.p_100 ok_0)
+Text.Parsers.ParsersKernel.fromPos_181 !i_0 = <{StdInt.>>}> i_0 1
+Text.Parsers.ParsersKernel.anon_101 hy_0 !sc_1 ac_2 xc_3 sg_4 !ss_5 = select ss_5 (_Tuple4 is_1_0 i_1_1 _x_1_2 _x_1_3 -> sc_1 (StdList.map Text.Parsers.ParsersKernel.fromPos_181 (<{StdList.++}> is_1_0 (_predefined._Cons i_1_1 _predefined._Nil))) ac_2 Text.Parsers.ParsersKernel.empty_xc sg_4 ss_5) 
+Text.Parsers.ParsersKernel.getPosition = Text.Parsers.ParsersKernel.Parser Text.Parsers.ParsersKernel.anon_101
+Text.Parsers.ParsersKernel.p_102 !n_0 u_1 hy_2 sc_3 ac_4 xc_5 sg_6 !_x_7 = select _x_7 (_Tuple4 is_1_0 i_1_1 ss_1_2 symTypes_1_3 -> if (<{StdInt.<_17}> n_0 0) (ac_4 xc_5 (<{Text.Parsers.ParsersKernel.+_166}> sg_6 (<{Text.Parsers.ParsersKernel.@}> (_Tuple2 symTypes_1_3 (_predefined._Cons hy_2 _predefined._Nil)) (<{StdList.++}> is_1_0 (_predefined._Cons i_1_1 _predefined._Nil))))) (let _x_2_0 = StdList.splitAt n_0 ss_1_2 in if (<{StdInt.==_16}> (StdList.length_47 (_predefined.tupsels2v0 _x_2_0)) n_0) (sc_3 u_1 ac_4 Text.Parsers.ParsersKernel.empty_xc sg_6 (_Tuple4 is_1_0 (<{StdInt.+_6}> i_1_1 (<{StdInt.<<}> n_0 1)) (_predefined.tupsels2v1 _x_2_0) symTypes_1_3)) (ac_4 xc_5 (<{Text.Parsers.ParsersKernel.+_166}> sg_6 (<{Text.Parsers.ParsersKernel.@}> (_Tuple2 symTypes_1_3 (_predefined._Cons hy_2 _predefined._Nil)) (<{StdList.++}> is_1_0 (_predefined._Cons i_1_1 _predefined._Nil))))))) 
+Text.Parsers.ParsersKernel.advancePosition !n_0 = Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.p_102 n_0 (StdMisc.abort "undefined result of parser-constructor 'advancePosition' accessed"))
+Text.Parsers.ParsersKernel.anon_103 hy_0 !sc_1 ac_2 xc_3 sg_4 ss_5 = sc_1 ss_5 ac_2 Text.Parsers.ParsersKernel.empty_xc sg_4 ss_5
+Text.Parsers.ParsersKernel.getParsable = Text.Parsers.ParsersKernel.Parser Text.Parsers.ParsersKernel.anon_103
+Text.Parsers.ParsersKernel.anon_104 ss_0 u_1 hy_2 !sc_3 ac_4 xc_5 sg_6 <{ss`_7}> = sc_3 u_1 ac_4 Text.Parsers.ParsersKernel.empty_xc sg_6 ss_0
+Text.Parsers.ParsersKernel.setParsable ss_0 = Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.anon_104 ss_0 (StdMisc.abort "undefined result of parser-constructor 'setParsable' accessed"))
+Text.Parsers.ParsersKernel.p_105 !<{_v==_0}> !ss_1 hy_2 sc_3 ac_4 xc_5 sg_6 !_x_7 = select _x_7 (_Tuple4 is_1_0 i_1_1 ssi_1_2 symTypes_1_3 -> let n_2_0 = StdList.length_47 ss_1, _x_2_1 = StdList.splitAt n_2_0 ssi_1_2 in if (<{StdList.==_45}> <{_v==_0}> (_predefined.tupsels2v0 _x_2_1) ss_1) (sc_3 ss_1 ac_4 Text.Parsers.ParsersKernel.empty_xc sg_6 (_Tuple4 is_1_0 (<{StdInt.+_6}> i_1_1 (<{StdInt.<<}> n_2_0 1)) (_predefined.tupsels2v1 _x_2_1) symTypes_1_3)) (ac_4 xc_5 (<{Text.Parsers.ParsersKernel.+_166}> sg_6 (<{Text.Parsers.ParsersKernel.@}> (_Tuple2 symTypes_1_3 (_predefined._Cons hy_2 _predefined._Nil)) (<{StdList.++}> is_1_0 (_predefined._Cons i_1_1 _predefined._Nil)))))) 
+Text.Parsers.ParsersKernel.token !<{_v==_0}> ss_1 = Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.p_105 <{_v==_0}> ss_1)
+Text.Parsers.ParsersKernel.p_106 u1_0 u2_1 hy_2 sc_3 ac_4 xc_5 sg_6 !_x_7 = select _x_7 (_Tuple4 is_1_0 i_1_1 ss_1_2 symTypes_1_3 -> <{Text.Parsers.ParsersKernel._c;264;47_240}> ss_1_2 sc_3 u1_0 ac_4 sg_6 u2_1 xc_5 symTypes_1_3 hy_2 is_1_0 i_1_1) 
+<{Text.Parsers.ParsersKernel._c;264;47_240}> !ss_0 sc_1 u1_2 ac_3 sg_4 u2_5 xc_6 symTypes_7 hy_8 is_9 i_10 = select ss_0 (_predefined._Nil -> sc_1 u1_2 ac_3 Text.Parsers.ParsersKernel.empty_xc sg_4 u2_5) (_ -> ac_3 xc_6 (<{Text.Parsers.ParsersKernel.+_166}> sg_4 (<{Text.Parsers.ParsersKernel.@}> (_Tuple2 symTypes_7 (_predefined._Cons hy_8 _predefined._Nil)) (<{StdList.++}> is_9 (_predefined._Cons i_10 _predefined._Nil)))))
+Text.Parsers.ParsersKernel.epsilon = Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.p_106 (StdMisc.abort "undefined result of parser-constructor 'empty' accessed") (StdMisc.abort "undefined rest-input of parser-constructor 'empty' accessed"))
+Text.Parsers.ParsersKernel.anon_114 !p2_0 hy_1 sc_2 ac_3 xc_4 ss_5 <{sg`_6}> = p2_0 hy_1 sc_2 ac_3 xc_4 <{sg`_6}> ss_5
+Text.Parsers.ParsersKernel.choose ac_0 !xc_1 sg_2 = let res_1_0 = xc_1 sg_2 in if (StdList.isEmpty (_predefined.tupsels2v1 res_1_0)) (ac_0 Text.Parsers.ParsersKernel.empty_xc (_predefined.tupsels2v0 res_1_0)) res_1_0
+Text.Parsers.ParsersKernel.anon_115 p2_0 !p1_1 hy_2 sc_3 ac_4 xc_5 sg_6 ss_7 = p1_1 hy_2 sc_3 (Text.Parsers.ParsersKernel.choose ac_4) (Text.Parsers.ParsersKernel.anon_114 p2_0 hy_2 sc_3 ac_4 xc_5 ss_7) sg_6 ss_7
+<{Text.Parsers.ParsersKernel.<!>}> !_x_0 !_x_1 = select _x_0 (Text.Parsers.ParsersKernel.Parser p1_1_0 -> select _x_1 (Text.Parsers.ParsersKernel.Parser p2_2_0 -> Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.anon_115 p2_2_0 p1_1_0)) ) 
+Text.Parsers.ParsersKernel.runParser !_x_0 = select _x_0 (Text.Parsers.ParsersKernel.Parser p_1_0 -> p_1_0) 
+Text.Parsers.ParsersKernel.anon_109 !u2wp_0 hy_1 sc_2 xc_3 t_4 ac1_5 xc1_6 = Text.Parsers.ParsersKernel.runParser (u2wp_0 t_4) hy_1 sc_2 ac1_5 xc_3
+Text.Parsers.ParsersKernel.anon_110 u2wp_0 !p_1 hy_2 sc_3 ac_4 xc_5 = p_1 hy_2 (Text.Parsers.ParsersKernel.anon_109 u2wp_0 hy_2 sc_3 xc_5) ac_4 xc_5
+<{Text.Parsers.ParsersKernel.<&>}> !_x_0 u2wp_1 = select _x_0 (Text.Parsers.ParsersKernel.Parser p_1_0 -> Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.anon_110 u2wp_1 p_1_0)) 
+Text.Parsers.ParsersKernel.anon_111 !sc_0 f_1 rp_2 = sc_0 (f_1 rp_2)
+Text.Parsers.ParsersKernel.anon_112 !p2_0 sc_1 hy_2 xc_3 f_4 ac1_5 xc1_6 = p2_0 hy_2 (Text.Parsers.ParsersKernel.anon_111 sc_1 f_4) ac1_5 xc_3
+Text.Parsers.ParsersKernel.anon_113 p2_0 !p1_1 hy_2 sc_3 ac_4 xc_5 = p1_1 hy_2 (Text.Parsers.ParsersKernel.anon_112 p2_0 sc_3 hy_2 xc_5) ac_4 xc_5
+<{Text.Parsers.ParsersKernel.<++>}> !_x_0 !_x_1 = select _x_0 (Text.Parsers.ParsersKernel.Parser p1_1_0 -> select _x_1 (Text.Parsers.ParsersKernel.Parser p2_2_0 -> Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.anon_113 p2_2_0 p1_1_0)) ) 
+Text.Parsers.ParsersKernel.anon_116 !sc_0 ac_1 r_2 <{ac`_3}> xc_4 = sc_0 r_2 ac_1 Text.Parsers.ParsersKernel.empty_xc
+Text.Parsers.ParsersKernel.anon_117 !p_0 hy_1 sc_2 ac_3 xc_4 sg_5 = p_0 hy_1 (Text.Parsers.ParsersKernel.anon_116 sc_2 ac_3) ac_3 xc_4 sg_5
+Text.Parsers.ParsersKernel.first !_x_0 = select _x_0 (Text.Parsers.ParsersKernel.Parser p_1_0 -> Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.anon_117 p_1_0)) 
+Text.Parsers.ParsersKernel.halfPosLength =: 1
+Text.Parsers.ParsersKernel.wp_118 !test_0 r_1 hy_2 sc_3 ac_4 xc_5 sg_6 !ss_7 = select ss_7 (_Tuple4 is_1_0 i_1_1 _x_1_2 symTypes_1_3 -> if (test_0 r_1) (sc_3 r_1 ac_4 Text.Parsers.ParsersKernel.empty_xc sg_6 ss_7) (ac_4 xc_5 (<{Text.Parsers.ParsersKernel.+_166}> sg_6 (<{Text.Parsers.ParsersKernel.@}> (_Tuple2 symTypes_1_3 (_predefined._Cons hy_2 _predefined._Nil)) (<{StdList.++}> is_1_0 (_predefined._Cons (<{StdInt.-_7}> i_1_1 Text.Parsers.ParsersKernel.halfPosLength) _predefined._Nil)))))) 
+<{Text.Parsers.ParsersKernel.checkIf`}> test_0 r_1 = Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.wp_118 test_0 r_1)
+Text.Parsers.ParsersKernel.checkIf !p_0 test_1 = <{Text.Parsers.ParsersKernel.<&>}> p_0 (<{Text.Parsers.ParsersKernel.checkIf`}> test_1)
+Text.Parsers.ParsersKernel.anon_119 p_0 pp_1 = <{Text.Parsers.ParsersDerived.<&}> p_0 (Text.Parsers.ParsersKernel.setParsable pp_1)
+Text.Parsers.ParsersKernel.rewind p_0 = <{Text.Parsers.ParsersKernel.<&>}> Text.Parsers.ParsersKernel.getParsable (Text.Parsers.ParsersKernel.anon_119 p_0)
+Text.Parsers.ParsersKernel.drop_121 pred_0 !all_1 !i_2 = select all_1 (_predefined._Cons a_1_0 as_1_1 -> if (pred_0 a_1_0) (Text.Parsers.ParsersKernel.drop_121 pred_0 as_1_1 (<{StdInt.+_6}> i_2 Text.Parsers.ParsersKernel.posLength)) (<{_Tuple2!2}> all_1 i_2)) (_ -> <{_Tuple2!2}> all_1 i_2)
+Text.Parsers.ParsersKernel.p2_120 !p_0 pred_1 hy_2 sc_3 ac_4 xc_5 sg_6 !_x_7 = select _x_7 (_Tuple4 is_1_0 i_1_1 ss_1_2 symTypes_1_3 -> let _x_2_0 = Text.Parsers.ParsersKernel.drop_121 pred_1 ss_1_2 0 in p_0 hy_2 sc_3 ac_4 xc_5 sg_6 (_Tuple4 is_1_0 (<{StdInt.+_6}> i_1_1 (_predefined.tupsels2v1 _x_2_0)) (_predefined.tupsels2v0 _x_2_0) symTypes_1_3)) 
+Text.Parsers.ParsersKernel.dropCheck pred_0 !_x_1 = select _x_1 (Text.Parsers.ParsersKernel.Parser p_1_0 -> Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.p2_120 p_1_0 pred_0)) 
+Text.Parsers.ParsersKernel.anon_122 !sc_0 symTypes_1 rest_2 t_3 ac_4 <{xc`_5}> sg_6 !_x_7 = select _x_7 (_Tuple4 js_1_0 j_1_1 ss_1_2 _x_1_3 -> sc_0 t_3 ac_4 Text.Parsers.ParsersKernel.empty_xc sg_6 (_Tuple4 js_1_0 j_1_1 (<{StdList.++}> ss_1_2 rest_2) symTypes_1)) 
+Text.Parsers.ParsersKernel.slice_124 !_x_0 n_1 = select _x_0 (Text.Parsers.ParsersKernel.Whole str_1_0 -> Text.Parsers.ParsersKernel.Slice str_1_0 n_1) (Text.Parsers.ParsersKernel.Slice str_1_0 m_1_1 -> Text.Parsers.ParsersKernel.Slice str_1_0 (<{Text.Parsers.ParsersKernel._c;48;16_241}> (<{StdInt.<_17}> n_1 m_1_1) n_1 m_1_1)) 
+<{Text.Parsers.ParsersKernel._c;48;16_241}> !_x_0 n_1 m_2 = select _x_0 (True -> n_1) (_ -> m_2)
+Text.Parsers.ParsersKernel.p1_123 p_0 !n_1 hy_2 sc_3 ac_4 xc_5 sg_6 !_x_7 = select _x_7 (_Tuple4 is_1_0 i_1_1 ss_1_2 symTypes_1_3 -> select symTypes_1_3 (_predefined._Cons word_2_0 _x_2_1 -> select _x_2_1 (_predefined._Cons sentence_3_0 rSymTypes_3_1 -> if (<{StdInt.<_17}> n_1 0) (ac_4 xc_5 (<{Text.Parsers.ParsersKernel.+_166}> sg_6 (<{Text.Parsers.ParsersKernel.@}> (_Tuple2 symTypes_1_3 (_predefined._Cons hy_2 _predefined._Nil)) (<{StdList.++}> is_1_0 (_predefined._Cons i_1_1 _predefined._Nil))))) (let _x_4_0 = StdList.splitAt n_1 ss_1_2, firstn_4_1 = _predefined.tupsels2v0 _x_4_0 in p_0 hy_2 (Text.Parsers.ParsersKernel.anon_122 sc_3 symTypes_1_3 (_predefined.tupsels2v1 _x_4_0)) ac_4 xc_5 sg_6 (_Tuple4 is_1_0 i_1_1 firstn_4_1 (<{Text.Parsers.ParsersKernel._if;371;31_242}> (<{StdInt.==_16}> (StdList.length_47 firstn_4_1) n_1) word_2_0 sentence_3_0 n_1 rSymTypes_3_1 symTypes_1_3)))) ) ) (_ -> StdMisc.abort "parser-transformer 'atMost' called with fewer than two symboltype-levels")
+<{Text.Parsers.ParsersKernel._if;371;31_242}> !_x_0 word_1 sentence_2 n_3 rSymTypes_4 symTypes_5 = select _x_0 (True -> _predefined._Cons word_1 (_predefined._Cons (Text.Parsers.ParsersKernel.slice_124 sentence_2 n_3) rSymTypes_4)) (_ -> symTypes_5)
+Text.Parsers.ParsersKernel.atMost !n_0 !_x_1 = select _x_1 (Text.Parsers.ParsersKernel.Parser p_1_0 -> Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.p1_123 p_1_0 n_0)) 
+Text.Parsers.ParsersKernel.f_127 symTypes_0 i_1 is_2 ss_3 !_x_4 = select _x_4 (_Tuple2 parsable_1_0 res_1_1 -> _Tuple2 (_Tuple4 is_2 (<{StdInt.+_6}> i_1 Text.Parsers.ParsersKernel.posLength) ss_3 symTypes_0) res_1_1) 
+Text.Parsers.ParsersKernel.anon_129 sc_0 ac_1 !rs_2 <{xc`_3}> <{sg`_4}> = Text.Parsers.ParsersKernel.yieldAll sc_0 ac_1 <{xc`_3}> <{sg`_4}> rs_2
+Text.Parsers.ParsersKernel.yieldAll sc_0 ac_1 xc_2 sg_3 !_x_4 = select _x_4 (_predefined._Cons _x_1_0 rs_1_1 -> select _x_1_0 (_Tuple2 ss`_2_0 r_2_1 -> sc_0 r_2_1 (Text.Parsers.ParsersKernel.anon_129 sc_0 ac_1 rs_1_1) Text.Parsers.ParsersKernel.empty_xc sg_3 <{ss`_2_0}>) ) (_predefined._Nil -> ac_1 xc_2 sg_3) 
+Text.Parsers.ParsersKernel.startPos =: Text.Parsers.ParsersKernel.posLength
+Text.Parsers.ParsersKernel.anon_136 !p_0 hyl_1 hy_2 sc_3 ac_4 xc_5 sg_6 !ss_7 = select ss_7 (_Tuple4 is_1_0 i_1_1 _x_1_2 _x_1_3 -> p_0 (_predefined._Cons (_Tuple2 hyl_1 (<{StdList.++}> is_1_0 (_predefined._Cons i_1_1 _predefined._Nil))) hy_2) sc_3 ac_4 xc_5 sg_6 ss_7) 
+<{Text.Parsers.ParsersKernel.:>}> hyl_0 !_x_1 = select _x_1 (Text.Parsers.ParsersKernel.Parser p_1_0 -> Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.anon_136 p_1_0 hyl_0)) 
+Text.Parsers.ParsersKernel.anon_125 r_0 ac_1 xc_2 sg_3 ss_4 = let _x_1_0 = ac_1 xc_2 sg_3 in _Tuple2 (_predefined.tupsels2v0 _x_1_0) (_predefined._Cons (_Tuple2 ss_4 r_0) (_predefined.tupsels2v1 _x_1_0))
+Text.Parsers.ParsersKernel.anon_126 !xc_0 sg_1 = xc_0 sg_1
+Text.Parsers.ParsersKernel.p1_128 p_0 subSymbol_1 hy_2 sc_3 ac_4 xc_5 sg_6 !_x_7 = select _x_7 (_Tuple4 is_1_0 i_1_1 ss`_1_2 symTypes_1_3 -> select symTypes_1_3 (_predefined._Cons st_2_0 _x_2_1 -> let _x_3_0 = <{Text.Parsers.ParsersKernel._c;385;31_243}> <{ss`_1_2}>, _x_3_1 = Text.Parsers.ParsersKernel.runParser (<{Text.Parsers.ParsersDerived.<&}> p_0 (<{Text.Parsers.ParsersKernel.:>}> (<{StdString.+++_11}> Text.Parsers.ParserLanguage.endOf (<{StdString.+++_11}> " " (Text.Parsers.ParsersAccessories.toString_19 st_2_0))) Text.Parsers.ParsersKernel.epsilon)) hy_2 Text.Parsers.ParsersKernel.anon_125 Text.Parsers.ParsersKernel.anon_126 Text.Parsers.ParsersKernel.empty_xc sg_6 (_Tuple4 (<{StdList.++}> is_1_0 (_predefined._Cons i_1_1 _predefined._Nil)) Text.Parsers.ParsersKernel.startPos (_predefined.tupsels2v0 _x_3_0) (_predefined._Cons (Text.Parsers.ParsersKernel.Whole subSymbol_1) symTypes_1_3)) in Text.Parsers.ParsersKernel.yieldAll sc_3 ac_4 xc_5 (_predefined.tupsels2v0 _x_3_1) (StdList.map (Text.Parsers.ParsersKernel.f_127 symTypes_1_3 i_1_1 is_1_0 (_predefined.tupsels2v1 _x_3_0)) (_predefined.tupsels2v1 _x_3_1))) ) (_ -> StdMisc.abort "parser-transformer 'drill' called with empty symbol types")
+<{Text.Parsers.ParsersKernel._c;385;31_243}> !<{ss`_0}> = select <{ss`_0}> (_predefined._Nil -> _Tuple2 _predefined._Nil _predefined._Nil) (_predefined._Cons s_1_0 ss_1_1 -> _Tuple2 s_1_0 ss_1_1) 
+Text.Parsers.ParsersKernel.drill p_0 subSymbol_1 = Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.p1_128 p_0 subSymbol_1)
+Text.Parsers.ParsersKernel.xc_143 = Text.Parsers.ParsersKernel.empty_xc
+Text.Parsers.ParsersKernel.anon_140 !xc_0 sg_1 = xc_0 sg_1
+Text.Parsers.ParsersKernel.ac_142 = Text.Parsers.ParsersKernel.anon_140
+Text.Parsers.ParsersKernel.anon_139 r_0 ac_1 xc_2 sg_3 ss_4 = let _x_1_0 = ac_1 xc_2 sg_3 in _Tuple2 (_predefined.tupsels2v0 _x_1_0) (_predefined._Cons (_Tuple2 ss_4 r_0) (_predefined.tupsels2v1 _x_1_0))
+Text.Parsers.ParsersKernel.sc_141 = Text.Parsers.ParsersKernel.anon_139
+<{Text.Parsers.ParsersKernel.parse`}> !p_0 hy_1 sg_2 ss_3 = p_0 hy_1 Text.Parsers.ParsersKernel.sc_141 Text.Parsers.ParsersKernel.ac_142 Text.Parsers.ParsersKernel.xc_143 sg_2 ss_3
+Text.Parsers.ParsersKernel.anon_130 !less_0 !_x_1 !_x_2 = select _x_1 (_Tuple2 _x_1_0 r1_1_1 -> select _x_2 (_Tuple2 _x_2_0 r2_2_1 -> less_0 r1_1_1 r2_2_1) ) 
+Text.Parsers.ParsersKernel.p1_131 less_0 !p_1 hy_2 sc_3 ac_4 xc_5 sg_6 ss_7 = let _x_1_0 = <{Text.Parsers.ParsersKernel.parse`}> p_1 hy_2 sg_6 ss_7 in Text.Parsers.ParsersKernel.yieldAll sc_3 ac_4 xc_5 (_predefined.tupsels2v0 _x_1_0) (StdOrdList.sortBy (Text.Parsers.ParsersKernel.anon_130 less_0) (_predefined.tupsels2v1 _x_1_0))
+Text.Parsers.ParsersKernel.sortResultBy less_0 !_x_1 = select _x_1 (Text.Parsers.ParsersKernel.Parser p_1_0 -> Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.p1_131 less_0 p_1_0)) 
+Text.Parsers.ParsersKernel.anon_133 !less_0 !_x_1 !_x_2 = select _x_1 (_Tuple2 _x_1_0 r1_1_1 -> select _x_2 (_Tuple2 _x_2_0 r2_2_1 -> less_0 r1_1_1 r2_2_1) ) 
+Text.Parsers.ParsersKernel.min1_132 less_0 a_1 cum_2 !_x_3 = select _x_3 (_predefined._Cons b_1_0 bs_1_1 -> if (less_0 a_1 b_1_0) (Text.Parsers.ParsersKernel.min1_132 less_0 a_1 cum_2 bs_1_1) (if (less_0 b_1_0 a_1) (Text.Parsers.ParsersKernel.min1_132 less_0 b_1_0 _predefined._Nil bs_1_1) (Text.Parsers.ParsersKernel.min1_132 less_0 a_1 (_predefined._Cons b_1_0 cum_2) bs_1_1))) (_predefined._Nil -> _predefined._Cons a_1 cum_2) 
+Text.Parsers.ParsersKernel.minListByAll less_0 !_x_1 = select _x_1 (_predefined._Cons a_1_0 as_1_1 -> Text.Parsers.ParsersKernel.min1_132 less_0 a_1_0 _predefined._Nil as_1_1) (_predefined._Nil -> _predefined._Nil) 
+Text.Parsers.ParsersKernel.p1_134 less_0 !p_1 hy_2 sc_3 ac_4 xc_5 sg_6 ss_7 = let _x_1_0 = <{Text.Parsers.ParsersKernel.parse`}> p_1 hy_2 sg_6 ss_7 in Text.Parsers.ParsersKernel.yieldAll sc_3 ac_4 xc_5 (_predefined.tupsels2v0 _x_1_0) (Text.Parsers.ParsersKernel.minListByAll (Text.Parsers.ParsersKernel.anon_133 less_0) (_predefined.tupsels2v1 _x_1_0))
+Text.Parsers.ParsersKernel.minResultBy less_0 !_x_1 = select _x_1 (Text.Parsers.ParsersKernel.Parser p_1_0 -> Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.p1_134 less_0 p_1_0)) 
+Text.Parsers.ParsersKernel.fstLonger !_x_0 !_x_1 = select _x_0 (_Tuple2 _x_1_0 _x_1_1 -> select _x_1_0 (_Tuple4 is1_2_0 i1_2_1 _x_2_2 _x_2_3 -> select _x_1 (_Tuple2 _x_3_0 _x_3_1 -> select _x_3_0 (_Tuple4 is2_4_0 i2_4_1 _x_4_2 _x_4_3 -> if (Text.Parsers.ParsersKernel.fstLonger_select0 is2_4_0 i2_4_1 _x_4_2 _x_4_3 _x_3_0 _x_3_1 is1_2_0 i1_2_1 _x_2_2 _x_2_3 _x_1_0 _x_1_1 _x_0 _x_1) True (<{StdList.<_82}> is2_4_0 is1_2_0)) ) ) ) 
+Text.Parsers.ParsersKernel.fstLonger_select0 is2_4_0 i2_4_1 _x_4_2 _x_4_3 _x_3_0 _x_3_1 is1_2_0 i1_2_1 _x_2_2 _x_2_3 _x_1_0 _x_1_1 !_x_0 !_x_1 = if (<{StdList.==_85}> is1_2_0 is2_4_0) (<{StdInt.<_17}> i2_4_1 i1_2_1) False
+Text.Parsers.ParsersKernel.p1_135 !p_0 hy_1 sc_2 ac_3 xc_4 sg_5 ss_6 = let _x_1_0 = <{Text.Parsers.ParsersKernel.parse`}> p_0 hy_1 sg_5 ss_6 in Text.Parsers.ParsersKernel.yieldAll sc_2 ac_3 xc_4 (_predefined.tupsels2v0 _x_1_0) (Text.Parsers.ParsersKernel.minListByAll Text.Parsers.ParsersKernel.fstLonger (_predefined.tupsels2v1 _x_1_0))
+Text.Parsers.ParsersKernel.longest !_x_0 = select _x_0 (Text.Parsers.ParsersKernel.Parser p_1_0 -> Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.p1_135 p_1_0)) 
+Text.Parsers.ParsersKernel.anon_137 whyl_0 !wp_1 r_2 = <{Text.Parsers.ParsersKernel.:>}> (whyl_0 r_2) (wp_1 r_2)
+<{Text.Parsers.ParsersKernel.:=>}> whyl_0 wp_1 = Text.Parsers.ParsersKernel.anon_137 whyl_0 wp_1
+Text.Parsers.ParsersKernel.symTypes_146 word_0 sentence_1 = _predefined._Cons (Text.Parsers.ParsersKernel.Whole word_0) (_predefined._Cons (Text.Parsers.ParsersKernel.Whole sentence_1) _predefined._Nil)
+Text.Parsers.ParsersKernel.startErrorPos =: _predefined._Cons Text.Parsers.ParsersKernel.startPos _predefined._Nil
+Text.Parsers.ParsersKernel.sg_145 word_0 sentence_1 = <{Text.Parsers.ParsersKernel.@}> (_Tuple2 (Text.Parsers.ParsersKernel.symTypes_146 word_0 sentence_1) _predefined._Nil) Text.Parsers.ParsersKernel.startErrorPos
+Text.Parsers.ParsersKernel.hy_144 = _predefined._Nil
+Text.Parsers.ParsersKernel.snd_183 !tuple_0 = _predefined.tupsels2v1 tuple_0
+Text.Parsers.ParsersKernel.toSugPos !i_0 = if (StdInt.isEven_18 i_0) (Text.Parsers.ParsersKernel.At (<{StdInt.>>}> i_0 1)) (Text.Parsers.ParsersKernel.EndAt (<{StdInt.>>}> i_0 1))
+<{Text.Parsers.ParsersKernel.toSugPos`}> !_x_0 = select _x_0 (_Tuple2 str_1_0 hyPos_1_1 -> _Tuple2 str_1_0 (StdList.map Text.Parsers.ParsersKernel.toSugPos hyPos_1_1)) 
+Text.Parsers.ParsersKernel.foldl_182 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> Text.Parsers.ParsersKernel.foldl_182 op_0 (op_0 r_1 a_1_0) x_1_1) 
+Text.Parsers.ParsersKernel.addPath_138 !<{_v==_0}> !_x_1 !_x_2 = select _x_1 (_predefined._Nil -> select _x_2 (_predefined._Cons a_2_0 as_2_1 -> _predefined._Cons (Text.Parsers.ParsersKernel.RoseTwig a_2_0 (Text.Parsers.ParsersKernel.addPath_138 <{_v==_0}> _predefined._Nil as_2_1)) _predefined._Nil) ) (_ -> select _x_2 (_predefined._Nil -> _predefined._Cons Text.Parsers.ParsersKernel.RoseLeaf _x_1) (_predefined._Cons a_1_0 as_1_1 -> select _x_1 (_predefined._Cons _x_2_0 rest_2_1 -> select _x_2_0 (Text.Parsers.ParsersKernel.RoseTwig b_3_0 bs_3_1 -> select (<{StdOverloaded.get_==_6}> <{_v==_0}> a_1_0 b_3_0) (True -> _predefined._Cons (Text.Parsers.ParsersKernel.RoseTwig b_3_0 (Text.Parsers.ParsersKernel.addPath_138 <{_v==_0}> bs_3_1 as_1_1)) rest_2_1) ) ) ) (_ -> select _x_1 (_predefined._Cons e_1_0 rest_1_1 -> _predefined._Cons e_1_0 (Text.Parsers.ParsersKernel.addPath_138 <{_v==_0}> rest_1_1 _x_2)) ))
+Text.Parsers.ParsersKernel.foldl_233 <{_v==_0}> !r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> Text.Parsers.ParsersKernel.foldl_233 <{_v==_0}> (Text.Parsers.ParsersKernel.addPath_138 <{_v==_0}> r_1 a_1_0) x_1_1) 
+Text.Parsers.ParsersKernel.toRose !<{_v==_0}> !as_1 = Text.Parsers.ParsersKernel.foldl_233 <{_v==_0}> _predefined._Nil as_1
+<{Text.Parsers.ParsersKernel.==_33}> !_x_0 !sp_1 = select _x_0 (Text.Parsers.ParsersKernel.At i_1_0 -> <{Text.Parsers.ParsersKernel._c;82;31_244}> sp_1 i_1_0) (Text.Parsers.ParsersKernel.EndAt i_1_0 -> <{Text.Parsers.ParsersKernel._c;85;31_245}> sp_1 i_1_0) 
+<{Text.Parsers.ParsersKernel._c;85;31_245}> !sp_0 i_1 = select sp_0 (Text.Parsers.ParsersKernel.EndAt j_1_0 -> <{StdInt.==_16}> i_1 j_1_0) (_ -> False)
+<{Text.Parsers.ParsersKernel._c;82;31_244}> !sp_0 i_1 = select sp_0 (Text.Parsers.ParsersKernel.At j_1_0 -> <{StdInt.==_16}> i_1 j_1_0) (_ -> False)
+Text.Parsers.ParsersKernel.addPath_236 !_x_0 !_x_1 = select _x_0 (_predefined._Nil -> select _x_1 (_predefined._Cons a_2_0 as_2_1 -> _predefined._Cons (Text.Parsers.ParsersKernel.RoseTwig a_2_0 (Text.Parsers.ParsersKernel.addPath_236 _predefined._Nil as_2_1)) _predefined._Nil) ) (_ -> select _x_1 (_predefined._Nil -> _predefined._Cons Text.Parsers.ParsersKernel.RoseLeaf _x_0) (_predefined._Cons a_1_0 as_1_1 -> select _x_0 (_predefined._Cons _x_2_0 rest_2_1 -> select _x_2_0 (Text.Parsers.ParsersKernel.RoseTwig b_3_0 bs_3_1 -> select (<{StdTuple.==_4}> (<{StdClass.Eq;}> (<{StdOverloaded.==;}> <{StdString.==_2}>)) (<{StdClass.Eq;}> (<{StdOverloaded.==;}> (<{StdList.==_45}> (<{StdOverloaded.==;}> <{Text.Parsers.ParsersKernel.==_33}>)))) a_1_0 b_3_0) (True -> _predefined._Cons (Text.Parsers.ParsersKernel.RoseTwig b_3_0 (Text.Parsers.ParsersKernel.addPath_236 bs_3_1 as_1_1)) rest_2_1) ) ) ) (_ -> select _x_0 (_predefined._Cons e_1_0 rest_1_1 -> _predefined._Cons e_1_0 (Text.Parsers.ParsersKernel.addPath_236 rest_1_1 _x_1)) ))
+Text.Parsers.ParsersKernel.foldl_235 !r_0 !_x_1 = select _x_1 (_predefined._Nil -> r_0) (_predefined._Cons a_1_0 x_1_1 -> Text.Parsers.ParsersKernel.foldl_235 (Text.Parsers.ParsersKernel.addPath_236 r_0 a_1_0) x_1_1) 
+Text.Parsers.ParsersKernel.toRose_234 !as_0 = Text.Parsers.ParsersKernel.foldl_235 _predefined._Nil as_0
+Text.Parsers.ParsersKernel.prettify_147 !_x_0 = select _x_0 (_Tuple2 sug_1_0 _x_1_1 -> select _x_1_1 (_predefined._Nil -> let _x_3_1 = _predefined.tupsels2v0 sug_1_0 in Text.Parsers.ParsersKernel.Err (_predefined.tupsels2v0 _x_3_1) (Text.Parsers.ParsersKernel.toRose_234 (StdList.map (StdList.map <{Text.Parsers.ParsersKernel.toSugPos`}>) (StdList.map StdList.reverse (_predefined.tupsels2v1 _x_3_1)))) (StdList.map Text.Parsers.ParsersKernel.toSugPos (_predefined.tupsels2v1 sug_1_0))) (_ -> Text.Parsers.ParsersKernel.Succ (StdList.map Text.Parsers.ParsersKernel.snd_183 _x_1_1))) 
+Text.Parsers.ParsersKernel.parse !_x_0 syms_1 sentence_2 word_3 = select _x_0 (Text.Parsers.ParsersKernel.Parser p_1_0 -> Text.Parsers.ParsersKernel.prettify_147 (<{Text.Parsers.ParsersKernel.parse`}> p_1_0 Text.Parsers.ParsersKernel.hy_144 (Text.Parsers.ParsersKernel.sg_145 word_3 sentence_2) (_Tuple4 _predefined._Nil Text.Parsers.ParsersKernel.startPos syms_1 (Text.Parsers.ParsersKernel.symTypes_146 word_3 sentence_2)))) 
+Text.Parsers.ParsersKernel.anon_91 x_0 y_1 = _Tuple2 x_0 y_1
+Text.Parsers.ParsersKernel.l_92 !_vFunctor_0 !c2gb2a_1 gb_2 c_3 = <{Text.Parsers.ParsersKernel.<||>}> _vFunctor_0 (c2gb2a_1 c_3) gb_2
+<{Text.Parsers.ParsersKernel.c;163;82_152}> !_vFunctor_0 !g_l_1 g_l_2 = <{Text.Parsers.ParsersKernel.g_c1;163;72_248}> g_l_1 g_l_2 _vFunctor_0
+<{Text.Parsers.ParsersKernel.g_c1;163;72_248}> !g_l_0 g_l_1 _vFunctor_2 = select g_l_0 (_predefined._Cons g_h_1_0 g_t_1_1 -> <{Text.Parsers.ParsersKernel.g_c1;163;87_247}> g_l_1 g_h_1_0 _vFunctor_2 g_t_1_1) (_ -> _predefined._Nil)
+<{Text.Parsers.ParsersKernel.g_c1;163;87_247}> !g_l_0 g_h_1 _vFunctor_2 g_t_3 = select g_l_0 (_predefined._Cons g_h_1_0 g_t_1_1 -> <{Text.Parsers.ParsersKernel.g_c2;163;72_246}> g_h_1 _vFunctor_2 g_h_1_0 g_t_3 g_t_1_1) (_ -> _predefined._Nil)
+<{Text.Parsers.ParsersKernel.g_c2;163;72_246}> !g_h_0 _vFunctor_1 g_h_2 g_t_3 g_t_4 = select g_h_0 (Data.Maybe.Just b2a_1_0 -> _predefined._Cons (<{Data.Functor.<$>}> _vFunctor_1 b2a_1_0 g_h_2) (<{Text.Parsers.ParsersKernel.c;163;82_152}> _vFunctor_1 g_t_3 g_t_4)) (_ -> <{Text.Parsers.ParsersKernel.c;163;82_152}> _vFunctor_1 g_t_3 g_t_4)
+<{Text.Parsers.ParsersKernel.c;163;82_237}> !_vFunctor_0 !g_l_1 g_l_2 = <{Text.Parsers.ParsersKernel.g_c1;163;72_251}> g_l_1 g_l_2 _vFunctor_0
+<{Text.Parsers.ParsersKernel.g_c1;163;72_251}> !g_l_0 g_l_1 _vFunctor_2 = select g_l_0 (_predefined._Cons g_h_1_0 g_t_1_1 -> <{Text.Parsers.ParsersKernel.g_c1;163;87_250}> g_l_1 g_h_1_0 _vFunctor_2 g_t_1_1) (_ -> _predefined._Nil)
+<{Text.Parsers.ParsersKernel.g_c1;163;87_250}> !g_l_0 g_h_1 _vFunctor_2 g_t_3 = select g_l_0 (_predefined._Cons g_h_1_0 g_t_1_1 -> <{Text.Parsers.ParsersKernel.g_c2;163;72_249}> g_h_1 _vFunctor_2 g_h_1_0 g_t_3 g_t_1_1) (_ -> _predefined._Nil)
+<{Text.Parsers.ParsersKernel.g_c2;163;72_249}> !g_h_0 _vFunctor_1 g_h_2 g_t_3 g_t_4 = select g_h_0 (Data.Maybe.Just b2a_1_0 -> _predefined._Cons (<{Data.Functor.<$>}> (<{Data.Functor.Functor;}> (Text.Parsers.ParsersKernel.fmap_43 _vFunctor_1)) b2a_1_0 g_h_2) (<{Text.Parsers.ParsersKernel.c;163;82_237}> _vFunctor_1 g_t_3 g_t_4)) (_ -> <{Text.Parsers.ParsersKernel.c;163;82_237}> _vFunctor_1 g_t_3 g_t_4)
+Text.Parsers.ParsersKernel.anon_151 !_vFunctor_0 gb_1 !x_2 = Text.Parsers.ParsersKernel.fwdby2 _vFunctor_0 x_2 gb_1
+<{Text.Parsers.ParsersKernel.<*>_44}> !_vFunctor_0 !_x_1 gb_2 = select _x_1 (Text.Parsers.ParsersKernel.Gram lb2a_1_0 mb2a_1_1 -> Text.Parsers.ParsersKernel.Gram (<{StdList.++}> (StdList.map (Text.Parsers.ParsersKernel.anon_151 _vFunctor_0 gb_2) lb2a_1_0) (<{Text.Parsers.ParsersKernel.c;163;82_237}> _vFunctor_0 (_predefined._Cons mb2a_1_1 _predefined._Nil) (_predefined.tupsels2v0 gb_2))) (<{Control.Applicative.<*>_14}> mb2a_1_1 (_predefined.tupsels2v1 gb_2))) 
+Text.Parsers.ParsersKernel.fwdby2 !_vFunctor_0 !_x_1 gb_2 = select _x_1 (Text.Parsers.ParsersKernel.Seq fc2b2a_1_0 gc_1_1 -> Text.Parsers.ParsersKernel.Seq (<{Data.Functor.<$>}> _vFunctor_0 StdTuple.uncurry fc2b2a_1_0) (<{Text.Parsers.ParsersKernel.<*>_44}> _vFunctor_0 (<{Data.Functor.<$>}> (<{Data.Functor.Functor;}> (Text.Parsers.ParsersKernel.fmap_42 _vFunctor_0)) Text.Parsers.ParsersKernel.anon_91 gc_1_1) gb_2)) (Text.Parsers.ParsersKernel.Bind fc_1_0 c2gb2a_1_1 -> Text.Parsers.ParsersKernel.Bind fc_1_0 (Text.Parsers.ParsersKernel.l_92 _vFunctor_0 c2gb2a_1_1 gb_2)) 
+Text.Parsers.ParsersKernel.pure_36 a_0 = Text.Parsers.ParsersKernel.yield a_0
+Text.Parsers.ParsersKernel.anon_107 !p2_0 hy_1 sc_2 ac_3 ss_4 xc3_5 <{sg`_6}> = p2_0 hy_1 sc_2 ac_3 xc3_5 <{sg`_6}> ss_4
+Text.Parsers.ParsersKernel.anon_108 p2_0 !p1_1 hy_2 sc_3 ac_4 xc_5 sg_6 ss_7 = p1_1 hy_2 sc_3 (Text.Parsers.ParsersKernel.anon_107 p2_0 hy_2 sc_3 ac_4 ss_7) xc_5 sg_6 ss_7
+Text.Parsers.ParsersKernel.alternative !_x_0 !_x_1 = select _x_0 (Text.Parsers.ParsersKernel.Parser p1_1_0 -> select _x_1 (Text.Parsers.ParsersKernel.Parser p2_2_0 -> Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.anon_108 p2_2_0 p1_1_0)) ) 
+<{Text.Parsers.ParsersKernel.<|>_37}> !fa_0 !<{fa`_1}> = Text.Parsers.ParsersKernel.alternative fa_0 <{fa`_1}>
+Text.Parsers.ParsersKernel.opt !p_0 a_1 = <{Text.Parsers.ParsersKernel.<|>_37}> p_0 (Text.Parsers.ParsersKernel.pure_36 a_1)
+Text.Parsers.ParsersKernel.fmap_34 f_0 !a_1 = <{Text.Parsers.ParsersKernel.<++>}> (Text.Parsers.ParsersKernel.yield f_0) a_1
+<{Text.Parsers.ParsersKernel.<*>_35}> !fab_0 !fa_1 = <{Text.Parsers.ParsersKernel.<++>}> fab_0 fa_1
+Text.Parsers.ParsersKernel.empty_38 = Text.Parsers.ParsersKernel.fail
+Text.Parsers.ParsersKernel.getNonPure_39 x_0 = Data.Maybe.Just x_0
+Text.Parsers.ParsersKernel.getPure_40 !_x_0 = select _x_0 (Text.Parsers.ParsersKernel.Parser pc_1_0 -> Data.Maybe.Nothing) 
+Text.Parsers.ParsersKernel.bind_41 !ma_0 a2mb_1 = <{Text.Parsers.ParsersKernel.<&>}> ma_0 a2mb_1
+Text.Parsers.ParsersKernel.empty_47 !_vFunctor_0 = Text.Parsers.ParsersKernel.Gram _predefined._Nil Data.Maybe.Nothing
+Text.Parsers.ParsersKernel.anon_154 !_vMonad_0 g_c_1 b2g_a_2 c2b_3 = <{Control.Monad.>>=}> _vMonad_0 (<{Data.Functor.<$>}> (Control.Applicative.get_Functor_2 (Control.Monad.get_Applicative_1 _vMonad_0)) c2b_3 g_c_1) b2g_a_2
+Text.Parsers.ParsersKernel.anon_155 !_vMonad_0 c2g_b_1 b2g_a_2 c_3 = <{Control.Monad.>>=}> _vMonad_0 (c2g_b_1 c_3) b2g_a_2
+Text.Parsers.ParsersKernel.anon_238 !_vFunctor_0 g_c_1 b2g_a_2 c2b_3 = <{Control.Monad.>>=}> (<{Control.Monad.Monad;}> (Text.Parsers.ParsersKernel.bind_48 _vFunctor_0) (<{Control.Applicative.Applicative;}> (<{Text.Parsers.ParsersKernel.<*>_44}> _vFunctor_0) (Text.Parsers.ParsersKernel.pure_45 _vFunctor_0) (<{Data.Functor.Functor;}> (Text.Parsers.ParsersKernel.fmap_42 _vFunctor_0)))) (<{Data.Functor.<$>}> (<{Data.Functor.Functor;}> (Text.Parsers.ParsersKernel.fmap_42 _vFunctor_0)) c2b_3 g_c_1) b2g_a_2
+Text.Parsers.ParsersKernel.anon_239 !_vFunctor_0 c2g_b_1 b2g_a_2 c_3 = <{Control.Monad.>>=}> (<{Control.Monad.Monad;}> (Text.Parsers.ParsersKernel.bind_48 _vFunctor_0) (<{Control.Applicative.Applicative;}> (<{Text.Parsers.ParsersKernel.<*>_44}> _vFunctor_0) (Text.Parsers.ParsersKernel.pure_45 _vFunctor_0) (<{Data.Functor.Functor;}> (Text.Parsers.ParsersKernel.fmap_42 _vFunctor_0)))) (c2g_b_1 c_3) b2g_a_2
+Text.Parsers.ParsersKernel.bindto_156 !_vFunctor_0 !_x_1 b2g_a_2 = select _x_1 (Text.Parsers.ParsersKernel.Seq f_c2b_1_0 g_c_1_1 -> Text.Parsers.ParsersKernel.Bind f_c2b_1_0 (Text.Parsers.ParsersKernel.anon_238 _vFunctor_0 g_c_1_1 b2g_a_2)) (Text.Parsers.ParsersKernel.Bind f_c_1_0 c2g_b_1_1 -> Text.Parsers.ParsersKernel.Bind f_c_1_0 (Text.Parsers.ParsersKernel.anon_239 _vFunctor_0 c2g_b_1_1 b2g_a_2)) 
+Text.Parsers.ParsersKernel.anon_153 !_vFunctor_0 b2g_a_1 !x_2 = Text.Parsers.ParsersKernel.bindto_156 _vFunctor_0 x_2 b2g_a_1
+Text.Parsers.ParsersKernel.bind_48 !_vFunctor_0 !_x_1 b2g_a_2 = select _x_1 (Text.Parsers.ParsersKernel.Gram lb_1_0 mb_1_1 -> <{Text.Parsers.ParsersKernel._c;181;9_252}> mb_1_1 _vFunctor_0 b2g_a_2 lb_1_0) 
+<{Text.Parsers.ParsersKernel._c;181;9_252}> !mb_0 _vFunctor_1 b2g_a_2 lb_3 = select mb_0 (Data.Maybe.Nothing -> Text.Parsers.ParsersKernel.Gram (StdList.map (Text.Parsers.ParsersKernel.anon_153 _vFunctor_1 b2g_a_2) lb_3) Data.Maybe.Nothing) (Data.Maybe.Just b_1_0 -> let _x_2_0 = b2g_a_2 b_1_0 in Text.Parsers.ParsersKernel.Gram (<{StdList.++}> (StdList.map (Text.Parsers.ParsersKernel.anon_153 _vFunctor_1 b2g_a_2) lb_3) (_predefined.tupsels2v0 _x_2_0)) (_predefined.tupsels2v1 _x_2_0)) 
+Text.Parsers.ParsersKernel.anon_158 !p2_0 hy_1 sc_2 ac_3 xc_4 ss_5 <{sg`_6}> = p2_0 hy_1 sc_2 ac_3 xc_4 <{sg`_6}> ss_5
+Text.Parsers.ParsersKernel.anon_157 !u2wp_0 hy_1 sc_2 xc_3 r_4 ac1_5 xc1_6 = Text.Parsers.ParsersKernel.runParser (u2wp_0 r_4) hy_1 sc_2 ac1_5 xc_3
+Text.Parsers.ParsersKernel.anon_159 p2_0 u2wp_1 !p1_2 hy_3 sc_4 ac_5 xc_6 sg_7 ss_8 = p1_2 hy_3 (Text.Parsers.ParsersKernel.anon_157 u2wp_1 hy_3 sc_4 xc_6) (Text.Parsers.ParsersKernel.choose ac_5) (Text.Parsers.ParsersKernel.anon_158 p2_0 hy_3 sc_4 ac_5 xc_6 ss_8) sg_7 ss_8
+<{Text.Parsers.ParsersKernel.<-!>_49}> !_x_0 !_x_1 = select _x_0 (<{Text.Parsers.ParsersKernel.<&->}> _x_1_0 u2wp_1_1 -> select _x_1_0 (Text.Parsers.ParsersKernel.Parser p1_2_0 -> select _x_1 (Text.Parsers.ParsersKernel.Parser p2_3_0 -> Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.anon_159 p2_3_0 u2wp_1_1 p1_2_0)) ) ) 
+Text.Parsers.ParsersKernel.anon_162 !p3_0 hy_1 sc_2 ac_3 xc_4 ss_5 <{sg`_6}> = p3_0 hy_1 sc_2 ac_3 xc_4 <{sg`_6}> ss_5
+Text.Parsers.ParsersKernel.anon_160 !sc_0 f_1 r2_2 = sc_0 (f_1 r2_2)
+Text.Parsers.ParsersKernel.anon_161 !p2_0 sc_1 hy_2 xc_3 f_4 ac1_5 xc1_6 = p2_0 hy_2 (Text.Parsers.ParsersKernel.anon_160 sc_1 f_4) ac1_5 xc_3
+Text.Parsers.ParsersKernel.anon_163 p3_0 p2_1 !p1_2 hy_3 sc_4 ac_5 xc_6 sg_7 ss_8 = p1_2 hy_3 (Text.Parsers.ParsersKernel.anon_161 p2_1 sc_4 hy_3 xc_6) (Text.Parsers.ParsersKernel.choose ac_5) (Text.Parsers.ParsersKernel.anon_162 p3_0 hy_3 sc_4 ac_5 xc_6 ss_8) sg_7 ss_8
+<{Text.Parsers.ParsersKernel.<-!>_50}> !_x_0 !_x_1 = select _x_0 (<{Text.Parsers.ParsersKernel.<++->}> _x_1_0 _x_1_1 -> select _x_1_0 (Text.Parsers.ParsersKernel.Parser p1_2_0 -> select _x_1_1 (Text.Parsers.ParsersKernel.Parser p2_3_0 -> select _x_1 (Text.Parsers.ParsersKernel.Parser p3_4_0 -> Text.Parsers.ParsersKernel.Parser (Text.Parsers.ParsersKernel.anon_163 p3_4_0 p2_3_0 p1_2_0)) ) ) ) 
+<{Text.Parsers.ParsersKernel.<_167}> !_x_0 !sp_1 = select _x_0 (Text.Parsers.ParsersKernel.At i_1_0 -> <{Text.Parsers.ParsersKernel._c;90;31_253}> sp_1 i_1_0) (Text.Parsers.ParsersKernel.EndAt i_1_0 -> <{Text.Parsers.ParsersKernel._c;93;31_254}> sp_1 i_1_0) 
+<{Text.Parsers.ParsersKernel._c;93;31_254}> !sp_0 !i_1 = select sp_0 (Text.Parsers.ParsersKernel.EndAt j_1_0 -> <{StdInt.<_17}> i_1 j_1_0) (Text.Parsers.ParsersKernel.At j_1_0 -> StdBool.not (<{StdInt.<_17}> j_1_0 i_1)) 
+<{Text.Parsers.ParsersKernel._c;90;31_253}> !sp_0 !i_1 = select sp_0 (Text.Parsers.ParsersKernel.At j_1_0 -> <{StdInt.<_17}> i_1 j_1_0) (Text.Parsers.ParsersKernel.EndAt j_1_0 -> <{StdInt.<_17}> i_1 j_1_0) 
+<{Text.Parsers.ParsersKernel.TD;Parsable}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;Parser}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;SymbolType}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;SymbolTypes}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;SugPosition}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;Gram}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;PAlt}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;MonadicSeq}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;ArrowSeq}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;Result}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;RoseNode}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;Rose}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;Splittable;}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;Orr;}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;ParseResult}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;BareParser}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;Alt}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;Succ}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;PCont}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;Xor}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;Suggestions}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;Hypothesis}> _x_0 = _predefined._Nil
+<{Text.Parsers.ParsersKernel.TD;HypPos}> _x_0 = _predefined._Nil
+
+:: Text.Parsers.ParsersKernel.SymbolType = Text.Parsers.ParsersKernel.Whole a1 | Text.Parsers.ParsersKernel.Slice a1 a2
+:: Text.Parsers.ParsersKernel.SugPosition = Text.Parsers.ParsersKernel.At a1 | Text.Parsers.ParsersKernel.EndAt a1
+:: Text.Parsers.ParsersKernel.Gram = Text.Parsers.ParsersKernel.Gram a1 a2
+:: Text.Parsers.ParsersKernel.PAlt = Text.Parsers.ParsersKernel.Seq a1 a2 | Text.Parsers.ParsersKernel.Bind a1 a2
+:: Text.Parsers.ParsersKernel.MonadicSeq = <{Text.Parsers.ParsersKernel.<&->}> a1 a2
+:: Text.Parsers.ParsersKernel.ArrowSeq = <{Text.Parsers.ParsersKernel.<++->}> a1 a2
+:: Text.Parsers.ParsersKernel.Result = Text.Parsers.ParsersKernel.Err a1 a2 a3 | Text.Parsers.ParsersKernel.Succ a1
+:: Text.Parsers.ParsersKernel.RoseNode = Text.Parsers.ParsersKernel.RoseLeaf | Text.Parsers.ParsersKernel.RoseTwig a1 a2
+:: Text.Parsers.ParsersKernel.Parser = Text.Parsers.ParsersKernel.Parser a1
+:: Text.Parsers.ParsersKernel.Suggestions = <{Text.Parsers.ParsersKernel.@}> a1 a2
+
+|| Converted Records
+:: <{Text.Parsers.ParsersKernel.Splittable;}> = {!Text.Parsers.ParsersKernel.getNonPure, !Text.Parsers.ParsersKernel.getPure}
+Text.Parsers.ParsersKernel.get_getNonPure_0 rec = select rec (<{Text.Parsers.ParsersKernel.Splittable;}> a1 a2 -> a1)
+Text.Parsers.ParsersKernel.get_getPure_1 rec = select rec (<{Text.Parsers.ParsersKernel.Splittable;}> a1 a2 -> a2)
+Text.Parsers.ParsersKernel.set_getNonPure_0 rec !val = select rec (<{Text.Parsers.ParsersKernel.Splittable;}>  a1 a2 -> <{Text.Parsers.ParsersKernel.Splittable;}> val a2)
+Text.Parsers.ParsersKernel.set_getPure_1 rec !val = select rec (<{Text.Parsers.ParsersKernel.Splittable;}>  a1 a2 -> <{Text.Parsers.ParsersKernel.Splittable;}> a1 val)
+
+:: <{Text.Parsers.ParsersKernel.Orr;}> = {<{Text.Parsers.ParsersKernel.<-!>}>}
+<{Text.Parsers.ParsersKernel.get_<-!>_2}> rec = select rec (<{Text.Parsers.ParsersKernel.Orr;}> a1 -> a1)
+<{Text.Parsers.ParsersKernel.set_<-!>_2}> rec val = select rec (<{Text.Parsers.ParsersKernel.Orr;}>  a1 -> <{Text.Parsers.ParsersKernel.Orr;}> val)
+
+:: <{Text.Parsers.ParsersKernel.bimap_s;}> = {Text.Parsers.ParsersKernel.bimap_s}
+Text.Parsers.ParsersKernel.get_bimap_s_3 rec = select rec (<{Text.Parsers.ParsersKernel.bimap_s;}> a1 -> a1)
+Text.Parsers.ParsersKernel.set_bimap_s_3 rec val = select rec (<{Text.Parsers.ParsersKernel.bimap_s;}>  a1 -> <{Text.Parsers.ParsersKernel.bimap_s;}> val)
+
+:: <{Text.Parsers.ParsersKernel.bimap_ss;}> = {Text.Parsers.ParsersKernel.bimap_ss}
+Text.Parsers.ParsersKernel.get_bimap_ss_4 rec = select rec (<{Text.Parsers.ParsersKernel.bimap_ss;}> a1 -> a1)
+Text.Parsers.ParsersKernel.set_bimap_ss_4 rec val = select rec (<{Text.Parsers.ParsersKernel.bimap_ss;}>  a1 -> <{Text.Parsers.ParsersKernel.bimap_ss;}> val)
+
+:: <{Text.Parsers.ParsersKernel.bimap_sss;}> = {Text.Parsers.ParsersKernel.bimap_sss}
+Text.Parsers.ParsersKernel.get_bimap_sss_5 rec = select rec (<{Text.Parsers.ParsersKernel.bimap_sss;}> a1 -> a1)
+Text.Parsers.ParsersKernel.set_bimap_sss_5 rec val = select rec (<{Text.Parsers.ParsersKernel.bimap_sss;}>  a1 -> <{Text.Parsers.ParsersKernel.bimap_sss;}> val)
+
+:: <{Text.Parsers.ParsersKernel.gEq_s;}> = {Text.Parsers.ParsersKernel.gEq_s}
+Text.Parsers.ParsersKernel.get_gEq_s_6 rec = select rec (<{Text.Parsers.ParsersKernel.gEq_s;}> a1 -> a1)
+Text.Parsers.ParsersKernel.set_gEq_s_6 rec val = select rec (<{Text.Parsers.ParsersKernel.gEq_s;}>  a1 -> <{Text.Parsers.ParsersKernel.gEq_s;}> val)
+
+:: <{Text.Parsers.ParsersKernel.gEq_ss;}> = {Text.Parsers.ParsersKernel.gEq_ss}
+Text.Parsers.ParsersKernel.get_gEq_ss_7 rec = select rec (<{Text.Parsers.ParsersKernel.gEq_ss;}> a1 -> a1)
+Text.Parsers.ParsersKernel.set_gEq_ss_7 rec val = select rec (<{Text.Parsers.ParsersKernel.gEq_ss;}>  a1 -> <{Text.Parsers.ParsersKernel.gEq_ss;}> val)
+
+:: <{Text.Parsers.ParsersKernel.gEq_sss;}> = {Text.Parsers.ParsersKernel.gEq_sss}
+Text.Parsers.ParsersKernel.get_gEq_sss_8 rec = select rec (<{Text.Parsers.ParsersKernel.gEq_sss;}> a1 -> a1)
+Text.Parsers.ParsersKernel.set_gEq_sss_8 rec val = select rec (<{Text.Parsers.ParsersKernel.gEq_sss;}>  a1 -> <{Text.Parsers.ParsersKernel.gEq_sss;}> val)
+
+:: <{Text.Parsers.ParsersKernel.gEq_ssss;}> = {Text.Parsers.ParsersKernel.gEq_ssss}
+Text.Parsers.ParsersKernel.get_gEq_ssss_9 rec = select rec (<{Text.Parsers.ParsersKernel.gEq_ssss;}> a1 -> a1)
+Text.Parsers.ParsersKernel.set_gEq_ssss_9 rec val = select rec (<{Text.Parsers.ParsersKernel.gEq_ssss;}>  a1 -> <{Text.Parsers.ParsersKernel.gEq_ssss;}> val)
+
+:: <{Text.Parsers.ParsersKernel.gEq_sssss;}> = {Text.Parsers.ParsersKernel.gEq_sssss}
+Text.Parsers.ParsersKernel.get_gEq_sssss_10 rec = select rec (<{Text.Parsers.ParsersKernel.gEq_sssss;}> a1 -> a1)
+Text.Parsers.ParsersKernel.set_gEq_sssss_10 rec val = select rec (<{Text.Parsers.ParsersKernel.gEq_sssss;}>  a1 -> <{Text.Parsers.ParsersKernel.gEq_sssss;}> val)
+
+:: <{Text.Parsers.ParsersKernel.gEq_ssssss;}> = {Text.Parsers.ParsersKernel.gEq_ssssss}
+Text.Parsers.ParsersKernel.get_gEq_ssssss_11 rec = select rec (<{Text.Parsers.ParsersKernel.gEq_ssssss;}> a1 -> a1)
+Text.Parsers.ParsersKernel.set_gEq_ssssss_11 rec val = select rec (<{Text.Parsers.ParsersKernel.gEq_ssssss;}>  a1 -> <{Text.Parsers.ParsersKernel.gEq_ssssss;}> val)
+
+:: <{Text.Parsers.ParsersKernel.gEq_sssssss;}> = {Text.Parsers.ParsersKernel.gEq_sssssss}
+Text.Parsers.ParsersKernel.get_gEq_sssssss_12 rec = select rec (<{Text.Parsers.ParsersKernel.gEq_sssssss;}> a1 -> a1)
+Text.Parsers.ParsersKernel.set_gEq_sssssss_12 rec val = select rec (<{Text.Parsers.ParsersKernel.gEq_sssssss;}>  a1 -> <{Text.Parsers.ParsersKernel.gEq_sssssss;}> val)
+
+:: <{Text.Parsers.ParsersKernel.gEq_ssssssss;}> = {Text.Parsers.ParsersKernel.gEq_ssssssss}
+Text.Parsers.ParsersKernel.get_gEq_ssssssss_13 rec = select rec (<{Text.Parsers.ParsersKernel.gEq_ssssssss;}> a1 -> a1)
+Text.Parsers.ParsersKernel.set_gEq_ssssssss_13 rec val = select rec (<{Text.Parsers.ParsersKernel.gEq_ssssssss;}>  a1 -> <{Text.Parsers.ParsersKernel.gEq_ssssssss;}> val)
+
+:: <{Text.Parsers.ParsersKernel.gEq_sssssssss;}> = {Text.Parsers.ParsersKernel.gEq_sssssssss}
+Text.Parsers.ParsersKernel.get_gEq_sssssssss_14 rec = select rec (<{Text.Parsers.ParsersKernel.gEq_sssssssss;}> a1 -> a1)
+Text.Parsers.ParsersKernel.set_gEq_sssssssss_14 rec val = select rec (<{Text.Parsers.ParsersKernel.gEq_sssssssss;}>  a1 -> <{Text.Parsers.ParsersKernel.gEq_sssssssss;}> val)
+

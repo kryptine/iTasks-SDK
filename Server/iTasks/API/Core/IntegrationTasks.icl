@@ -15,7 +15,7 @@ import iTasks.API.Common.InteractionTasks, iTasks.API.Common.TaskCombinators //T
 from iTasks.API.Common.ImportTasks		import importTextFile
 
 from System.File				import qualified fileExists, readFile
-from Data.Map				import qualified newMap, put
+from Data.Map				import qualified newMap, singleton, put
 from System.Process			import qualified ::ProcessHandle, runProcess, checkProcess,callProcess
 from System.Process			import :: ProcessHandle(..)
 from StdFunc			import o
@@ -49,10 +49,10 @@ where
     //Check the process
 	eval event evalOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{IWorld|world,current={TaskEvalState|taskInstance}}
 		| stable
-            # status        = fromJust (fromJSON encv)
-            # (rep,iworld)  = makeRep taskId evalOpts status iworld
-            # iworld = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
-			= (ValueResult (Value status True) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
+            # status          = fromJust (fromJSON encv)
+            # (taskUI,iworld) = makeRep taskId evalOpts status iworld
+            # iworld          = queueRefresh [taskInstance] ["Checked OS process for instance "<+++ taskInstance] iworld
+			= (ValueResult (Value status True) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} (TaskRep taskUI) state ('Data.Map'.singleton taskId (Left taskUI)), iworld)
 		| otherwise
             //Check status
             # handle = fromJust (fromJSON encv)
@@ -63,9 +63,9 @@ where
                     # (status,stable,state) = case mbExitCode of
                         Just c  = (CompletedProcess c,True, TCBasic taskId lastEvent (toJSON (CompletedProcess c)) False)
                         Nothing = (RunningProcess cmd,False, state)
-                    # (rep,iworld)  = makeRep taskId evalOpts status {IWorld|iworld & world = world}
-                    # iworld = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
-                    = (ValueResult (Value status stable) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
+                    # (taskUI,iworld) = makeRep taskId evalOpts status {IWorld|iworld & world = world}
+                    # iworld          = queueRefresh [taskInstance] ["Checked OS process for instance "<+++ taskInstance] iworld
+                    = (ValueResult (Value status stable) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} (TaskRep taskUI) state ('Data.Map'.singleton taskId (Left taskUI)), iworld)
 
 	eval event repAs (TCDestroy _) iworld
 		= (DestroyedResult,iworld)
@@ -75,7 +75,7 @@ where
 		# (controls,iworld)	= makeView opts status taskId layout iworld
 		# prompt			= toPrompt desc
 		# editor			= {UIForm| attributes = 'Data.Map'.newMap, controls = controls, size = defaultSizeOpts}
-		= (TaskRep ({UIDef|content=UIForm (layout.LayoutRules.accuInteract prompt editor),windows=[]}),iworld)
+		= ({UIDef|content=UIForm (layout.LayoutRules.accuInteract prompt editor),windows=[]},iworld)
 						
 	makeView [ViewWith viewFun] status taskId layout iworld
 		# ver = verifyMaskedValue (Display (viewFun status),Touched)
@@ -163,9 +163,9 @@ where
         # (_,world)                 = setCurrentDirectory (fromOk mbCurdir) world
         | isError mbErr             = (ExceptionResult (exception (fromError mbErr)), {IWorld|iworld & world = world})
 		= case resa of
-			ValueResult value info rep ntreea
+			ValueResult value info rep ntreea ntaskUIs
 				# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
-				= (ValueResult value info rep (TCShared taskId info.TaskEvalInfo.lastEvent ntreea),{IWorld|iworld & world = world})
+				= (ValueResult value info rep (TCShared taskId info.TaskEvalInfo.lastEvent ntreea) ntaskUIs,{IWorld|iworld & world = world})
 			ExceptionResult e = (ExceptionResult e,{IWorld|iworld & world = world})
 	
 	eval event evalOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{server={buildID,paths={dataDirectory}}} //First destroy inner task

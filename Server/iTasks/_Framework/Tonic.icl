@@ -271,8 +271,8 @@ tonicWrapTaskBody` mn tn args cases t=:(Task eval)
                        _      -> evalOpts
     # (tr, iworld) = eval event (resetInhOpts (setBlueprintInfo evalOpts)) taskTree iworld
     # iworld       = case (taskIdFromTaskTree taskTree, tr) of
-                       (Ok tid, ValueResult (Value _ True) _ _ _)
-                         # iworld = markStable tid mn tn iworld
+                       (Ok tid, ValueResult (Value _ True) _ _ _ _)
+                         # iworld = markStable tid iworld
                          = storeTaskOutputViewer tr evalOpts.tonicOpts.currBlueprintExprId evalOpts.tonicOpts.currBlueprintTaskId tid iworld
                        _ = iworld
     = (tr, iworld)
@@ -339,17 +339,17 @@ stepEval cases eval nid event evalOpts taskTree=:(TCStep childTaskId _ (Left _))
 stepEval cases eval nid event evalOpts taskTree iworld
   # (tr, iworld) = eval event evalOpts taskTree iworld
   # iworld = case tr of
-               ValueResult (Value x _) _ _ _ -> addCases evalOpts (map (\(eid, f) -> (eid, f x)) cases) iworld
+               ValueResult (Value x _) _ _ _ _ -> addCases evalOpts (map (\(eid, f) -> (eid, f x)) cases) iworld
                _ -> iworld
   = (tr, iworld)
 
 stepEval` cases nid childTaskId=:(TaskId ino tno) eval event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree iworld
   # (taskResult, iworld) = eval event evalOpts taskTree iworld
   # iworld               = case taskResult of
-                             ValueResult (Value x _) _ (TaskRep uiDef) _
+                             ValueResult (Value x _) _ (TaskRep uiDef) _ _
                                # iworld = addCases evalOpts (map (\(eid, f) -> (eid, f x)) cases) iworld
                                = storeActions uiDef iworld
-                             ValueResult _ _ (TaskRep uiDef) _
+                             ValueResult _ _ (TaskRep uiDef) _ _
                                = storeActions uiDef iworld
                              _ = iworld
   = (taskResult, iworld)
@@ -448,6 +448,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
           // - The childTaskId blueprint won't be instantiated before the continuation is evaluated
           # (mparent_bpr, iworld) = 'DSDS'.read (sdsFocus (parentBPInst.bpi_taskId, currBlueprintModuleName, currBlueprintFuncName) tonicInstances) iworld
           # iworld = case (tr, mparent_bpr) of
+<<<<<<< HEAD
                        (ValueResult _ _ _ (TCParallel childTaskId _ parallelChildren), Ok (Just new_parent_instance))
                          = evalParallel new_parent_instance tr evalOpts childTaskId parallelChildren iworld
                        (_, Ok (Just new_parent_instance))
@@ -479,6 +480,33 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                          | chng || chng` = snd ('DSDS'.write new_parent_instance (sdsFocus (new_parent_instance.bpi_taskId, currBlueprintModuleName, currBlueprintFuncName) tonicInstances) iworld)
                          | otherwise     = iworld
                        _ = iworld
+=======
+                        (ValueResult _ _ _ (TCParallel childTaskId _ parallelChildren) _, Ok (Just new_parent_instance))
+                          = evalParallel new_parent_instance tr evalOpts childTaskId parallelChildren iworld
+                        (_, Ok (Just new_parent_instance))
+                          # (new_parent_instance, chng)          = case tr of
+                                                                     (ValueResult (Value x _) _ _ _ _) -> (addCases` new_parent_instance evalOpts (map (\(eid, f) -> (eid, f x)) cases), True)
+                                                                     _                                 -> (new_parent_instance, False)
+                          # iworld                               = storeTaskOutputViewer tr nid parentBPInst.bpi_taskId childTaskId iworld
+                          # (mchild_bpr, iworld)                 = 'DSDS'.read (sdsFocus childTaskId tonicInstances) iworld
+                          # (new_parent_instance, chng`, iworld) = case mchild_bpr of
+                                                                     Ok (Just {bpi_bpref})
+                                                                       # (parent_body, chng, mvid) = updateNode nid (\x -> case x of
+                                                                                                                             TVar eid _ _ -> TMApp eid Nothing bpi_bpref.bpr_moduleName bpi_bpref.bpr_taskName [] TNoPrio
+                                                                                                                             e -> e
+                                                                                                                    ) new_parent_instance.bpi_blueprint.tf_body
+                                                                       | chng
+                                                                           # parent_body = case mvid of
+                                                                                             Just (vid, expr) -> replaceNode vid expr parent_body
+                                                                                             _                -> parent_body
+                                                                           # parent_bpr  = {new_parent_instance & bpi_blueprint = {new_parent_instance.bpi_blueprint & tf_body = parent_body}}
+                                                                           = (parent_bpr, True, iworld)
+                                                                       | otherwise = (new_parent_instance, False, iworld)
+                                                                     _ = (new_parent_instance, False, iworld)
+                          | chng || chng` = snd ('DSDS'.write new_parent_instance (sdsFocus new_parent_instance.bpi_taskId tonicInstances) iworld)
+                          | otherwise     = iworld
+                        _ = iworld
+>>>>>>> 89c1e87... not my changes, but seems to be required to commit
           = (tr, iworld)
         _ = eval event (updateAssignStatus evalOpts) taskTree iworld
 
@@ -508,7 +536,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
           # evalOpts     = {evalOpts & tonicOpts = {evalOpts.tonicOpts & currBlueprintExprId = nid}}
           # (tr, iworld) = eval event (updateAssignStatus evalOpts) taskTree iworld
           # iworld       = case tr of
-                             (ValueResult (Value x stable) _ _ _)
+                             (ValueResult (Value x stable) _ _ _ _)
                                # iworld = addCases evalOpts (map (\(eid, f) -> (eid, f x)) cases) iworld
                                | stable
                                  # (mchild_bpr, iworld) = 'DSDS'.read (sdsFocus tid allTonicInstances) iworld

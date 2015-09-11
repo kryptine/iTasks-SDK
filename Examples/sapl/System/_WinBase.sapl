@@ -1,0 +1,58 @@
+|| ?module? System._WinBase
+
+
+System._WinBase.closeHandle !handle_0 !world_1 = error "no AnyCodeExpr"
+System._WinBase.createFileA !lpFileName_0 !dwDesiredAccess_1 !dwShareMode_2 !lpSecurityAttributes_3 !dwCreationDisposition_4 !dwFlagsAndAttributes_5 !hTemplateFile_6 !world_7 = error "no AnyCodeExpr"
+System._WinBase.readFile !hFile_0 !lpBuffer_1 !nNumberOfBytesToRead_2 !lpNumberOfBytesRead_3 !lpOverlapped_4 !world_5 = error "no AnyCodeExpr"
+System._WinBase.writeFile !hFile_0 !lpBuffer_1 !nNumberOfBytesToWrite_2 !lpNumberOfBytesWritten_3 !lpOverlapped_4 !world_5 = error "no AnyCodeExpr"
+System._WinBase.setEndOfFile !hFile_0 !world_1 = error "no AnyCodeExpr"
+System._WinBase.lockFileEx !hFile_0 !dwFlags_1 !dwReserved_2 !nNumberOfBytesToLockLow_3 !nNumberOfBytesToLockHigh_4 !lpOverlapped_5 !world_6 = error "no AnyCodeExpr"
+System._WinBase.unlockFile !hFile_0 !dwFileOffsetLow_1 !dwFileOffsetHigh_2 !nNumberOfBytesToUnlockLow_3 !nNumberOfBytesToUnlockHigh_4 !world_5 = error "no AnyCodeExpr"
+System._WinBase.getFileSize !hFile_0 !lpFileSizeHigh_1 !world_2 = error "no AnyCodeExpr"
+System._WinBase.createDirectoryA !lpFileName_0 !lpSecurityAttributes_1 !world_2 = error "no AnyCodeExpr"
+System._WinBase.createProcessA !lpApplicationName_0 !commandLine_1 !lpProcessAttributes_2 !lpThreadAttributes_3 !inheritHandles_4 !creationFlags_5 !lpEnvironment_6 !currentDirectory_7 !lpStartup_8 !lpProcess_9 !os_10 = error "no AnyCodeExpr"
+System._WinBase.createProcessA_dir !lpApplicationName_0 !commandLine_1 !lpProcessAttributes_2 !lpThreadAttributes_3 !inheritHandles_4 !creationFlags_5 !lpEnvironment_6 !currentDirectory_7 !lpStartup_8 !lpProcess_9 !os_10 = error "no AnyCodeExpr"
+System._WinBase.deleteFileA !path_0 !world_1 = error "no AnyCodeExpr"
+System._WinBase.fileTimeToSystemTime !lpFileTime_0 !lpSystemTime_1 !world_2 = error "no AnyCodeExpr"
+System._WinBase.findClose !handle_0 !world_1 = error "no AnyCodeExpr"
+System._WinBase.findFirstFileA !filename_0 !win32FindData_1 !world_2 = error "no AnyCodeExpr"
+System._WinBase.findNextFileA !hFindFile_0 !lpFindFileData_1 !world_2 = error "no AnyCodeExpr"
+System._WinBase.formatMessageA !dwFlags_0 !lpSource_1 !dwMessage_2 !dwLanguage_3 !lpBuffer_4 !nSize_5 !args_6 = error "no AnyCodeExpr"
+System._WinBase.getCurrentDirectoryA !nBufferLength_0 !lpBuffer_1 !world_2 = error "no AnyCodeExpr"
+System._WinBase.getExitCodeProcess !handle_0 !world_1 = error "no AnyCodeExpr"
+System._WinBase.getLastError !world_0 = error "no AnyCodeExpr"
+System._WinBase.localFree !hMem_0 = error "no AnyCodeExpr"
+System._WinBase.moveFileA !lpExistingFileName_0 !lpNewFileName_1 !world_2 = error "no AnyCodeExpr"
+System._WinBase.removeDirectoryA !lpFileName_0 !world_1 = error "no AnyCodeExpr"
+System._WinBase.setCurrentDirectoryA !lpPathName_0 !world_1 = error "no AnyCodeExpr"
+System._WinBase.waitForSingleObject !handle_0 !timeout_1 !world_2 = error "no AnyCodeExpr"
+System._WinBase.getProcessHeap !world_0 = error "no AnyCodeExpr"
+System._WinBase.heapAlloc !hHeap_0 !dwFlags_1 !dwBytes_2 !world_3 = error "no AnyCodeExpr"
+System._WinBase.heapFree !hHeap_0 !dwFlags_1 !lpMem_2 !world_3 = error "no AnyCodeExpr"
+System._WinBase.heapCreate !flOptions_0 !dw_1 !dwMaximumSize_2 !world_3 = error "no AnyCodeExpr"
+System._WinBase.CreateThread !threadAttributes_0 !stackSize_1 !startAddress_2 !parameter_3 !creationFlags_4 !world_5 = error "no AnyCodeExpr"
+System._WinBase.ResumeThread !threadHandle_0 !world_1 = error "no AnyCodeExpr"
+System._WinBase.initializeCriticalSection !lpCriticalSection_0 !world_1 = error "no AnyCodeExpr"
+System._WinBase.initializeCriticalSectionAndSpinCount !lpCriticalSection_0 !dwSpinCount_1 !world_2 = error "no AnyCodeExpr"
+System._WinBase.enterCriticalSection !lpCriticalSection_0 !world_1 = error "no AnyCodeExpr"
+System._WinBase.leaveCriticalSection !lpCriticalSection_0 !world_1 = error "no AnyCodeExpr"
+System._WinBase.createMutexA !lpMutexAttributes_0 !b_1 !lpName_2 !world_3 = error "no AnyCodeExpr"
+System._WinBase.releaseMutex !hMutex_0 !world_1 = error "no AnyCodeExpr"
+System._WinBase.createEventA !lpEventAttributes_0 !bManualReset_1 !b_2 !lpName_3 !world_4 = error "no AnyCodeExpr"
+System._WinBase.setEvent !hEvent_0 !world_1 = error "no AnyCodeExpr"
+System._WinBase.WinGetThreadId !handle_0 !world_1 = error "no AnyCodeExpr"
+System._WinBase.WinGetCurrentThreadId !world_0 = error "no AnyCodeExpr"
+System._WinBase.WinOpenThread !dwDesiredAccess_0 !b_1 !dwThread_2 world_3 = error "no AnyCodeExpr"
+System._WinBase.sleep !dwMilliseconds_0 !world_1 = error "no AnyCodeExpr"
+<{System._WinBase.TD;FILETIME}> _x_0 = _predefined._Nil
+<{System._WinBase.TD;LPSYSTEMTIME}> _x_0 = _predefined._Nil
+<{System._WinBase.TD;LPSECURITY_ATTRIBUTES}> _x_0 = _predefined._Nil
+<{System._WinBase.TD;LPTHREAD_START_ROUTINE}> _x_0 = _predefined._Nil
+<{System._WinBase.TD;LPOVERLAPPED}> _x_0 = _predefined._Nil
+<{System._WinBase.TD;LPCRITICAL_SECTION}> _x_0 = _predefined._Nil
+<{System._WinBase.TD;LPSTARTUPINFO}> _x_0 = _predefined._Nil
+<{System._WinBase.TD;LPWIN32_FIND_DATA}> _x_0 = _predefined._Nil
+<{System._WinBase.TD;LPPROCESS_INFORMATION}> _x_0 = _predefined._Nil
+
+
+|| Converted Records

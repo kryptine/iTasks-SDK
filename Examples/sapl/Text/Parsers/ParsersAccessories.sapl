@@ -1,0 +1,112 @@
+|| ?module? Text.Parsers.ParsersAccessories
+
+
+Text.Parsers.ParsersAccessories.foldl_36 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> Text.Parsers.ParsersAccessories.foldl_36 op_0 (op_0 r_1 a_1_0) x_1_1) 
+Text.Parsers.ParsersAccessories.foldl_35 op_0 r_1 !l_2 = Text.Parsers.ParsersAccessories.foldl_36 op_0 r_1 l_2
+Text.Parsers.ParsersAccessories.anon_25 !n_0 !d_1 = <{StdInt.+_6}> (<{StdInt.*_9}> 10 n_0) (StdChar.digitToInt d_1)
+Text.Parsers.ParsersAccessories.anon_27 c_0 = StdList.isMember_52 c_0 (_SystemEnum._from_to_7 '0' '9')
+Text.Parsers.ParsersAccessories.digit = Text.Parsers.ParsersKernel.satisfy Text.Parsers.ParsersAccessories.anon_27
+Text.Parsers.ParsersAccessories.foldl_85 !r_0 !_x_1 = select _x_1 (_predefined._Nil -> r_0) (_predefined._Cons a_1_0 x_1_1 -> Text.Parsers.ParsersAccessories.foldl_85 (Text.Parsers.ParsersAccessories.anon_25 r_0 a_1_0) x_1_1) 
+Text.Parsers.ParsersAccessories.foldl_84 !r_0 !l_1 = Text.Parsers.ParsersAccessories.foldl_85 r_0 l_1
+Text.Parsers.ParsersAccessories.number = <{Text.Parsers.ParsersDerived.<@}> (<{Text.Parsers.ParsersDerived.<!+>}> Text.Parsers.ParsersAccessories.digit) (Text.Parsers.ParsersAccessories.foldl_84 0)
+Text.Parsers.ParsersAccessories.foldl_38 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> Text.Parsers.ParsersAccessories.foldl_38 op_0 (op_0 r_1 a_1_0) x_1_1) 
+Text.Parsers.ParsersAccessories.foldl_37 op_0 r_1 !l_2 = Text.Parsers.ParsersAccessories.foldl_38 op_0 r_1 l_2
+Text.Parsers.ParsersAccessories.anon_26 !n_0 !d_1 = <{StdInt.+_6}> (<{StdInt.*_9}> 10 n_0) (StdChar.digitToInt d_1)
+Text.Parsers.ParsersAccessories.foldl_87 !r_0 !_x_1 = select _x_1 (_predefined._Nil -> r_0) (_predefined._Cons a_1_0 x_1_1 -> Text.Parsers.ParsersAccessories.foldl_87 (Text.Parsers.ParsersAccessories.anon_26 r_0 a_1_0) x_1_1) 
+Text.Parsers.ParsersAccessories.foldl_86 !r_0 !l_1 = Text.Parsers.ParsersAccessories.foldl_87 r_0 l_1
+<{Text.Parsers.ParsersAccessories.number`}> = <{Text.Parsers.ParsersDerived.<@}> (<{Text.Parsers.ParsersDerived.<.*>}> Text.Parsers.ParsersAccessories.digit) (Text.Parsers.ParsersAccessories.foldl_86 0)
+Text.Parsers.ParsersAccessories.hexDigit = Text.Parsers.ParsersKernel.satisfy StdChar.isHexDigit
+Text.Parsers.ParsersAccessories.letter = Text.Parsers.ParsersKernel.satisfy StdChar.isAlpha
+Text.Parsers.ParsersAccessories.alphaNum = Text.Parsers.ParsersKernel.satisfy StdChar.isAlphanum
+Text.Parsers.ParsersAccessories.anon_28 !_vEq_0 !cs_1 c_2 = StdList.isMember _vEq_0 c_2 cs_1
+Text.Parsers.ParsersAccessories.anon_88 !cs_0 c_1 = StdList.isMember_52 c_1 cs_0
+Text.Parsers.ParsersAccessories.oneOf cs_0 = Text.Parsers.ParsersKernel.satisfy (Text.Parsers.ParsersAccessories.anon_88 cs_0)
+Text.Parsers.ParsersAccessories.foldl_39 op_0 r_1 !_x_2 = select _x_2 (_predefined._Nil -> r_1) (_predefined._Cons a_1_0 x_1_1 -> Text.Parsers.ParsersAccessories.foldl_39 op_0 (op_0 r_1 a_1_0) x_1_1) 
+Text.Parsers.ParsersAccessories.foldl_89 r_0 !_x_1 = select _x_1 (_predefined._Nil -> r_0) (_predefined._Cons a_1_0 x_1_1 -> Text.Parsers.ParsersAccessories.foldl_89 (<{Text.Parsers.ParsersKernel.<!>}> r_0 a_1_0) x_1_1) 
+Text.Parsers.ParsersAccessories.choice !l_0 = Text.Parsers.ParsersAccessories.foldl_89 Text.Parsers.ParsersKernel.fail l_0
+Text.Parsers.ParsersAccessories.ds !_vspace_0 p_1 = Text.Parsers.ParsersKernel.dropCheck (Text.Parsers.ParsersAccessories.get_space_0 _vspace_0) p_1
+Text.Parsers.ParsersAccessories.symbolH !<{_v==_0}> !_vtoString_1 = <{Text.Parsers.ParsersKernel.:=>}> (StdOverloaded.get_toString_25 _vtoString_1) (Text.Parsers.ParsersKernel.symbol <{_v==_0}>)
+Text.Parsers.ParsersAccessories.tokenH !<{_v==_0}> !_vtoChar_1 = <{Text.Parsers.ParsersKernel.:=>}> (StdList.toString_49 _vtoChar_1) (Text.Parsers.ParsersKernel.token <{_v==_0}>)
+Text.Parsers.ParsersAccessories.anon_29 !_vtoChar_0 c_1 r_2 = StdList.toString_49 _vtoChar_0 (_predefined._Cons c_1 r_2)
+Text.Parsers.ParsersAccessories.anon_90 c_0 r_1 = StdList.toString_79 (_predefined._Cons c_0 r_1)
+Text.Parsers.ParsersAccessories.anon_30 c_0 = <{Text.Parsers.ParsersDerived.<@}> (<{Text.Parsers.ParsersDerived.<.*>}> (Text.Parsers.ParsersKernel.satisfy StdChar.isAlphanum)) (Text.Parsers.ParsersAccessories.anon_90 c_0)
+Text.Parsers.ParsersAccessories.identifier = <{Text.Parsers.ParsersKernel.<&>}> (Text.Parsers.ParsersKernel.satisfy StdChar.isAlpha) Text.Parsers.ParsersAccessories.anon_30
+Text.Parsers.ParsersAccessories.lnc_31 tab_0 !_x_1 !_x_2 line_3 col_4 = select _x_1 (_predefined._Cons c_1_0 _x_1_1 -> select _x_2 (1 -> _Tuple2 line_3 col_4) (_ -> <{Text.Parsers.ParsersAccessories._c;65;33_94}> c_1_0 tab_0 _x_1_1 _x_2 line_3 col_4)) (_predefined._Nil -> StdMisc.abort "ParserKernel.icl: position beyond input-list") 
+<{Text.Parsers.ParsersAccessories._c;65;33_94}> !c_0 tab_1 !_x_2 !_x_3 line_4 col_5 = select c_0 ('\n' -> Text.Parsers.ParsersAccessories.lnc_31 tab_1 _x_2 (<{StdInt.-_7}> _x_3 1) (<{StdInt.+_6}> line_4 1) 1) ('\t' -> Text.Parsers.ParsersAccessories.lnc_31 tab_1 _x_2 (<{StdInt.-_7}> _x_3 1) line_4 (<{StdInt.-_7}> (<{StdInt.+_6}> col_5 tab_1) (StdInt.rem_28 (<{StdInt.-_7}> col_5 1) tab_1))) (_ -> Text.Parsers.ParsersAccessories.lnc_31 tab_1 _x_2 (<{StdInt.-_7}> _x_3 1) line_4 (<{StdInt.+_6}> col_5 1))
+Text.Parsers.ParsersAccessories.lineAndColumn !cs_0 !pos_1 tab_2 = if (<{StdInt.<_17}> pos_1 1) (StdMisc.abort "ParserKernel.icl: position less than one") (Text.Parsers.ParsersAccessories.lnc_31 tab_2 cs_0 pos_1 1 1)
+<{Text.Parsers.ParsersAccessories.myZip`_33}> !_vtoString_0 !_vtoString_1 !_x_2 _x_3 = select _x_2 (_predefined._Nil -> "") (_predefined._Cons s_1_0 ss_1_1 -> select _x_3 (_predefined._Cons p_2_0 pp_2_1 -> <{StdString.+++_11}> ", " (<{StdString.+++_11}> (StdOverloaded.get_toString_25 _vtoString_0 s_1_0) (<{StdString.+++_11}> " " (<{StdString.+++_11}> (StdOverloaded.get_toString_25 _vtoString_1 p_2_0) (<{Text.Parsers.ParsersAccessories.myZip`_33}> _vtoString_0 _vtoString_1 ss_1_1 pp_2_1))))) ) (_ -> StdMisc.abort "'myZip' in ParserAccessories called with unexpected combination of list lengths")
+Text.Parsers.ParsersAccessories.toString_19 !_x_0 = select _x_0 (Text.Parsers.ParsersKernel.Whole str_1_0 -> str_1_0) (Text.Parsers.ParsersKernel.Slice str_1_0 i_1_1 -> <{StdString.+++_11}> (StdString.toString_5 i_1_1) (<{StdString.+++_11}> Text.Parsers.ParserLanguage.sliceOf str_1_0)) 
+Text.Parsers.ParsersAccessories.toString_34 !_x_0 = select _x_0 (Text.Parsers.ParsersKernel.At i_1_0 -> StdString.toString_5 i_1_0) (Text.Parsers.ParsersKernel.EndAt i_1_0 -> <{StdString.+++_11}> ".." (StdString.toString_5 i_1_0)) 
+<{Text.Parsers.ParsersAccessories.myZip`_91}> !_vtoString_0 !_x_1 _x_2 = select _x_1 (_predefined._Nil -> "") (_predefined._Cons s_1_0 ss_1_1 -> select _x_2 (_predefined._Cons p_2_0 pp_2_1 -> <{StdString.+++_11}> ", " (<{StdString.+++_11}> (Text.Parsers.ParsersAccessories.toString_19 s_1_0) (<{StdString.+++_11}> " " (<{StdString.+++_11}> (StdOverloaded.get_toString_25 _vtoString_0 p_2_0) (<{Text.Parsers.ParsersAccessories.myZip`_91}> _vtoString_0 ss_1_1 pp_2_1))))) ) (_ -> StdMisc.abort "'myZip' in ParserAccessories called with unexpected combination of list lengths")
+<{Text.Parsers.ParsersAccessories.myZip`_92}> !_x_0 _x_1 = select _x_0 (_predefined._Nil -> "") (_predefined._Cons s_1_0 ss_1_1 -> select _x_1 (_predefined._Cons p_2_0 pp_2_1 -> <{StdString.+++_11}> ", " (<{StdString.+++_11}> (Text.Parsers.ParsersAccessories.toString_19 s_1_0) (<{StdString.+++_11}> " " (<{StdString.+++_11}> (Text.Parsers.ParsersAccessories.toString_34 p_2_0) (<{Text.Parsers.ParsersAccessories.myZip`_92}> ss_1_1 pp_2_1))))) ) (_ -> StdMisc.abort "'myZip' in ParserAccessories called with unexpected combination of list lengths")
+Text.Parsers.ParsersAccessories.myZip !syms_0 ps_1 = let _x_1_0 = StdList.reverse syms_0 in <{StdString.+++_11}> (Text.Parsers.ParsersAccessories.toString_19 (_predefined.tupsels2v0 _x_1_0)) (<{Text.Parsers.ParsersAccessories.myZip`_92}> (_predefined.tupsels2v1 _x_1_0) ps_1)
+Text.Parsers.ParsersAccessories.isEmptyRose !_x_0 = select _x_0 (_predefined._Nil -> True) (_predefined._Cons _x_1_0 as_1_1 -> select _x_1_0 (Text.Parsers.ParsersKernel.RoseLeaf -> Text.Parsers.ParsersAccessories.isEmptyRose as_1_1) ) (_ -> False)
+Text.Parsers.ParsersAccessories.flattenSep !_vtoString_0 s_1 !_x_2 = select _x_2 (_predefined._Cons a_1_0 rest_1_1 -> select rest_1_1 (_predefined._Cons b_2_0 _x_2_1 -> <{StdString.+++_11}> (StdOverloaded.get_toString_25 _vtoString_0 a_1_0) (<{StdString.+++_11}> s_1 (Text.Parsers.ParsersAccessories.flattenSep _vtoString_0 s_1 rest_1_1))) (_predefined._Nil -> StdOverloaded.get_toString_25 _vtoString_0 a_1_0) ) (_ -> "")
+Text.Parsers.ParsersAccessories.flattenSep_93 s_0 !_x_1 = select _x_1 (_predefined._Cons a_1_0 rest_1_1 -> select rest_1_1 (_predefined._Cons b_2_0 _x_2_1 -> <{StdString.+++_11}> (StdString.toString_9 a_1_0) (<{StdString.+++_11}> s_0 (Text.Parsers.ParsersAccessories.flattenSep_93 s_0 rest_1_1))) (_predefined._Nil -> StdString.toString_9 a_1_0) ) (_ -> "")
+Text.Parsers.ParsersAccessories.pos2str !sp_0 !globalPos_1 = if (<{StdList.==_45}> (<{StdOverloaded.==;}> <{Text.Parsers.ParsersKernel.==_33}>) sp_0 globalPos_1) "" (<{StdString.+++_11}> " [" (<{StdString.+++_11}> (Text.Parsers.ParsersAccessories.flattenSep_93 "," (StdList.map Text.Parsers.ParsersAccessories.toString_34 sp_0)) "]"))
+Text.Parsers.ParsersAccessories.fromRose !_x_0 _x_1 _x_2 = select _x_0 (_predefined._Nil -> _predefined._Nil) (_predefined._Cons _x_1_0 rest_1_1 -> select _x_1_0 (Text.Parsers.ParsersKernel.RoseLeaf -> Text.Parsers.ParsersAccessories.fromRose rest_1_1 _x_1 _x_2) (Text.Parsers.ParsersKernel.RoseTwig _x_2_0 down_2_1 -> select _x_2_0 (_Tuple2 str_3_0 pos_3_1 -> let _x_4_0 = <{Text.Parsers.ParsersAccessories._if;123;11_95}> (Text.Parsers.ParsersAccessories.isEmptyRose down_2_1) down_2_1 _x_1 _x_2 in <{StdList.++}> (_predefined._Cons (_Tuple2 _x_1 (<{StdString.+++_11}> str_3_0 (<{StdString.+++_11}> (Text.Parsers.ParsersAccessories.pos2str pos_3_1 _x_2) (_predefined.tupsels2v0 _x_4_0)))) (_predefined.tupsels2v1 _x_4_0)) (Text.Parsers.ParsersAccessories.fromRose rest_1_1 _x_1 _x_2)) ) ) 
+<{Text.Parsers.ParsersAccessories._if;123;11_95}> !_x_0 down_1 _x_2 _x_3 = select _x_0 (True -> _Tuple2 "" _predefined._Nil) (_ -> _Tuple2 (<{StdString.+++_11}> ", " (<{StdString.+++_11}> Text.Parsers.ParserLanguage.andWithinThat ":")) (Text.Parsers.ParsersAccessories.fromRose down_1 (<{StdInt.+_6}> _x_2 1) _x_3))
+Text.Parsers.ParsersAccessories.errorToFormat symbolTypes_0 hypotheses_1 position_2 = _predefined._Cons (_Tuple2 0 (<{StdString.+++_11}> Text.Parsers.ParserLanguage.cantAnalyseAsOf ":")) (_predefined._Cons (_Tuple2 0 (<{StdString.+++_11}> (Text.Parsers.ParsersAccessories.myZip symbolTypes_0 position_2) ".")) (_predefined._Cons (_Tuple2 0 (<{Text.Parsers.ParsersAccessories._if;97;15_96}> (Text.Parsers.ParsersAccessories.isEmptyRose hypotheses_1))) (Text.Parsers.ParsersAccessories.fromRose hypotheses_1 0 position_2)))
+<{Text.Parsers.ParsersAccessories._if;97;15_96}> !_x_0 = select _x_0 (True -> Text.Parsers.ParserLanguage.noOptions) (_ -> <{StdString.+++_11}> Text.Parsers.ParserLanguage.optionsToSolve ":")
+Text.Parsers.ParsersAccessories.anon_32 !_x_0 = select _x_0 (_Tuple2 i_1_0 s_1_1 -> <{StdString.+++_11}> (StdList.toString_79 (StdList.repeatn (<{StdInt.*_9}> i_1_0 4) ' ')) s_1_1) 
+Text.Parsers.ParsersAccessories.errorToStrings symbolTypes_0 hypotheses_1 position_2 = StdList.map Text.Parsers.ParsersAccessories.anon_32 (Text.Parsers.ParsersAccessories.errorToFormat symbolTypes_0 hypotheses_1 position_2)
+Text.Parsers.ParsersAccessories.errorToString symbolTypes_0 hypotheses_1 position_2 = Text.Parsers.ParsersAccessories.flattenSep_93 "\n" (Text.Parsers.ParsersAccessories.errorToStrings symbolTypes_0 hypotheses_1 position_2)
+Text.Parsers.ParsersAccessories.snd_40 !tuple_0 = _predefined.tupsels2v1 tuple_0
+Text.Parsers.ParsersAccessories.simpleErrorToString symbolTypes_0 !hypotheses_1 !position_2 = <{StdString.+++_11}> (<{StdString.+++_11}> "[" (<{StdString.+++_11}> (Text.Parsers.ParsersAccessories.flattenSep_93 "," (StdList.map Text.Parsers.ParsersAccessories.toString_34 position_2)) "]: ")) (Text.Parsers.ParsersAccessories.flattenSep_93 "/" (StdList.map Text.Parsers.ParsersAccessories.snd_40 (Text.Parsers.ParsersAccessories.fromRose hypotheses_1 StdMisc.undef position_2)))
+Text.Parsers.ParsersAccessories.space_18 !c_0 = StdChar.isSpace c_0
+<{Text.Parsers.ParsersAccessories.TD;space;}> _x_0 = _predefined._Nil
+
+
+|| Converted Records
+:: <{Text.Parsers.ParsersAccessories.space;}> = {!Text.Parsers.ParsersAccessories.space}
+Text.Parsers.ParsersAccessories.get_space_0 rec = select rec (<{Text.Parsers.ParsersAccessories.space;}> a1 -> a1)
+Text.Parsers.ParsersAccessories.set_space_0 rec !val = select rec (<{Text.Parsers.ParsersAccessories.space;}>  a1 -> <{Text.Parsers.ParsersAccessories.space;}> val)
+
+:: <{Text.Parsers.ParsersAccessories.bimap_s;}> = {Text.Parsers.ParsersAccessories.bimap_s}
+Text.Parsers.ParsersAccessories.get_bimap_s_1 rec = select rec (<{Text.Parsers.ParsersAccessories.bimap_s;}> a1 -> a1)
+Text.Parsers.ParsersAccessories.set_bimap_s_1 rec val = select rec (<{Text.Parsers.ParsersAccessories.bimap_s;}>  a1 -> <{Text.Parsers.ParsersAccessories.bimap_s;}> val)
+
+:: <{Text.Parsers.ParsersAccessories.bimap_ss;}> = {Text.Parsers.ParsersAccessories.bimap_ss}
+Text.Parsers.ParsersAccessories.get_bimap_ss_2 rec = select rec (<{Text.Parsers.ParsersAccessories.bimap_ss;}> a1 -> a1)
+Text.Parsers.ParsersAccessories.set_bimap_ss_2 rec val = select rec (<{Text.Parsers.ParsersAccessories.bimap_ss;}>  a1 -> <{Text.Parsers.ParsersAccessories.bimap_ss;}> val)
+
+:: <{Text.Parsers.ParsersAccessories.bimap_sss;}> = {Text.Parsers.ParsersAccessories.bimap_sss}
+Text.Parsers.ParsersAccessories.get_bimap_sss_3 rec = select rec (<{Text.Parsers.ParsersAccessories.bimap_sss;}> a1 -> a1)
+Text.Parsers.ParsersAccessories.set_bimap_sss_3 rec val = select rec (<{Text.Parsers.ParsersAccessories.bimap_sss;}>  a1 -> <{Text.Parsers.ParsersAccessories.bimap_sss;}> val)
+
+:: <{Text.Parsers.ParsersAccessories.gEq_s;}> = {Text.Parsers.ParsersAccessories.gEq_s}
+Text.Parsers.ParsersAccessories.get_gEq_s_4 rec = select rec (<{Text.Parsers.ParsersAccessories.gEq_s;}> a1 -> a1)
+Text.Parsers.ParsersAccessories.set_gEq_s_4 rec val = select rec (<{Text.Parsers.ParsersAccessories.gEq_s;}>  a1 -> <{Text.Parsers.ParsersAccessories.gEq_s;}> val)
+
+:: <{Text.Parsers.ParsersAccessories.gEq_ss;}> = {Text.Parsers.ParsersAccessories.gEq_ss}
+Text.Parsers.ParsersAccessories.get_gEq_ss_5 rec = select rec (<{Text.Parsers.ParsersAccessories.gEq_ss;}> a1 -> a1)
+Text.Parsers.ParsersAccessories.set_gEq_ss_5 rec val = select rec (<{Text.Parsers.ParsersAccessories.gEq_ss;}>  a1 -> <{Text.Parsers.ParsersAccessories.gEq_ss;}> val)
+
+:: <{Text.Parsers.ParsersAccessories.gEq_sss;}> = {Text.Parsers.ParsersAccessories.gEq_sss}
+Text.Parsers.ParsersAccessories.get_gEq_sss_6 rec = select rec (<{Text.Parsers.ParsersAccessories.gEq_sss;}> a1 -> a1)
+Text.Parsers.ParsersAccessories.set_gEq_sss_6 rec val = select rec (<{Text.Parsers.ParsersAccessories.gEq_sss;}>  a1 -> <{Text.Parsers.ParsersAccessories.gEq_sss;}> val)
+
+:: <{Text.Parsers.ParsersAccessories.gEq_ssss;}> = {Text.Parsers.ParsersAccessories.gEq_ssss}
+Text.Parsers.ParsersAccessories.get_gEq_ssss_7 rec = select rec (<{Text.Parsers.ParsersAccessories.gEq_ssss;}> a1 -> a1)
+Text.Parsers.ParsersAccessories.set_gEq_ssss_7 rec val = select rec (<{Text.Parsers.ParsersAccessories.gEq_ssss;}>  a1 -> <{Text.Parsers.ParsersAccessories.gEq_ssss;}> val)
+
+:: <{Text.Parsers.ParsersAccessories.gEq_sssss;}> = {Text.Parsers.ParsersAccessories.gEq_sssss}
+Text.Parsers.ParsersAccessories.get_gEq_sssss_8 rec = select rec (<{Text.Parsers.ParsersAccessories.gEq_sssss;}> a1 -> a1)
+Text.Parsers.ParsersAccessories.set_gEq_sssss_8 rec val = select rec (<{Text.Parsers.ParsersAccessories.gEq_sssss;}>  a1 -> <{Text.Parsers.ParsersAccessories.gEq_sssss;}> val)
+
+:: <{Text.Parsers.ParsersAccessories.gEq_ssssss;}> = {Text.Parsers.ParsersAccessories.gEq_ssssss}
+Text.Parsers.ParsersAccessories.get_gEq_ssssss_9 rec = select rec (<{Text.Parsers.ParsersAccessories.gEq_ssssss;}> a1 -> a1)
+Text.Parsers.ParsersAccessories.set_gEq_ssssss_9 rec val = select rec (<{Text.Parsers.ParsersAccessories.gEq_ssssss;}>  a1 -> <{Text.Parsers.ParsersAccessories.gEq_ssssss;}> val)
+
+:: <{Text.Parsers.ParsersAccessories.gEq_sssssss;}> = {Text.Parsers.ParsersAccessories.gEq_sssssss}
+Text.Parsers.ParsersAccessories.get_gEq_sssssss_10 rec = select rec (<{Text.Parsers.ParsersAccessories.gEq_sssssss;}> a1 -> a1)
+Text.Parsers.ParsersAccessories.set_gEq_sssssss_10 rec val = select rec (<{Text.Parsers.ParsersAccessories.gEq_sssssss;}>  a1 -> <{Text.Parsers.ParsersAccessories.gEq_sssssss;}> val)
+
+:: <{Text.Parsers.ParsersAccessories.gEq_ssssssss;}> = {Text.Parsers.ParsersAccessories.gEq_ssssssss}
+Text.Parsers.ParsersAccessories.get_gEq_ssssssss_11 rec = select rec (<{Text.Parsers.ParsersAccessories.gEq_ssssssss;}> a1 -> a1)
+Text.Parsers.ParsersAccessories.set_gEq_ssssssss_11 rec val = select rec (<{Text.Parsers.ParsersAccessories.gEq_ssssssss;}>  a1 -> <{Text.Parsers.ParsersAccessories.gEq_ssssssss;}> val)
+
+:: <{Text.Parsers.ParsersAccessories.gEq_sssssssss;}> = {Text.Parsers.ParsersAccessories.gEq_sssssssss}
+Text.Parsers.ParsersAccessories.get_gEq_sssssssss_12 rec = select rec (<{Text.Parsers.ParsersAccessories.gEq_sssssssss;}> a1 -> a1)
+Text.Parsers.ParsersAccessories.set_gEq_sssssssss_12 rec val = select rec (<{Text.Parsers.ParsersAccessories.gEq_sssssssss;}>  a1 -> <{Text.Parsers.ParsersAccessories.gEq_sssssssss;}> val)
+

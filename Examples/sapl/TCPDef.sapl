@@ -1,0 +1,79 @@
+|| ?module? TCPDef
+
+
+TCPDef.toByteSeq !_vtoString_0 !x_1 = TCPDef._ByteSeq (StdOverloaded.get_toString_25 _vtoString_0 x_1)
+TCPDef.byteSeqSize !_x_0 = select _x_0 (TCPDef._ByteSeq data_1_0 -> _SystemArray.size_20 data_1_0) 
+TCPDef.toString_2 !_x_0 = select _x_0 (TCPDef._ByteSeq data_1_0 -> data_1_0) 
+<{TCPDef.==_3}> !bs1_0 !bs2_1 = <{StdString.==_2}> (TCPDef.toString_2 bs1_0) (TCPDef.toString_2 bs2_1)
+TCPDef.toString_4 !inetHost_0 = tcp.toDottedDecimal (tcp.unpack_ipaddr inetHost_0)
+<{TCPDef.TD;TCP_SChannel}> _x_0 = _predefined._Nil
+<{TCPDef.TD;TCP_RChannel}> _x_0 = _predefined._Nil
+<{TCPDef.TD;TCP_Listener}> _x_0 = _predefined._Nil
+<{TCPDef.TD;Port}> _x_0 = _predefined._Nil
+<{TCPDef.TD;TCP_DuplexChannel}> _x_0 = _predefined._Nil
+<{TCPDef.TD;ByteSeq}> _x_0 = _predefined._Nil
+<{TCPDef.TD;TCP_RChannels}> _x_0 = _predefined._Nil
+<{TCPDef.TD;TCP_SChannels}> _x_0 = _predefined._Nil
+<{TCPDef.TD;TCP_Listeners}> _x_0 = _predefined._Nil
+<{TCPDef.TD;PrimitiveRChannel}> _x_0 = _predefined._Nil
+<{TCPDef.TD;SelectResult}> _x_0 = _predefined._Nil
+
+:: TCPDef.TCP_RChannels = TCPDef.TCP_RChannels a1
+:: TCPDef.TCP_SChannels = TCPDef.TCP_SChannels a1
+:: TCPDef.TCP_Listeners = TCPDef.TCP_Listeners a1
+:: TCPDef.PrimitiveRChannel = TCPDef.TCP_RCHANNEL a1 | TCPDef.TCP_LISTENER a1
+:: TCPDef.SelectResult = TCPDef.SR_Available | TCPDef.SR_EOM | TCPDef.SR_Sendable | TCPDef.SR_Disconnected
+
+|| Converted Records
+:: TCPDef._ByteSeq = {!TCPDef.data}
+TCPDef.get_data_0 rec = select rec (TCPDef._ByteSeq a1 -> a1)
+TCPDef.set_data_0 rec !val = select rec (TCPDef._ByteSeq  a1 -> TCPDef._ByteSeq val)
+
+:: <{TCPDef.bimap_s;}> = {TCPDef.bimap_s}
+TCPDef.get_bimap_s_1 rec = select rec (<{TCPDef.bimap_s;}> a1 -> a1)
+TCPDef.set_bimap_s_1 rec val = select rec (<{TCPDef.bimap_s;}>  a1 -> <{TCPDef.bimap_s;}> val)
+
+:: <{TCPDef.bimap_ss;}> = {TCPDef.bimap_ss}
+TCPDef.get_bimap_ss_2 rec = select rec (<{TCPDef.bimap_ss;}> a1 -> a1)
+TCPDef.set_bimap_ss_2 rec val = select rec (<{TCPDef.bimap_ss;}>  a1 -> <{TCPDef.bimap_ss;}> val)
+
+:: <{TCPDef.bimap_sss;}> = {TCPDef.bimap_sss}
+TCPDef.get_bimap_sss_3 rec = select rec (<{TCPDef.bimap_sss;}> a1 -> a1)
+TCPDef.set_bimap_sss_3 rec val = select rec (<{TCPDef.bimap_sss;}>  a1 -> <{TCPDef.bimap_sss;}> val)
+
+:: <{TCPDef.gEq_s;}> = {TCPDef.gEq_s}
+TCPDef.get_gEq_s_4 rec = select rec (<{TCPDef.gEq_s;}> a1 -> a1)
+TCPDef.set_gEq_s_4 rec val = select rec (<{TCPDef.gEq_s;}>  a1 -> <{TCPDef.gEq_s;}> val)
+
+:: <{TCPDef.gEq_ss;}> = {TCPDef.gEq_ss}
+TCPDef.get_gEq_ss_5 rec = select rec (<{TCPDef.gEq_ss;}> a1 -> a1)
+TCPDef.set_gEq_ss_5 rec val = select rec (<{TCPDef.gEq_ss;}>  a1 -> <{TCPDef.gEq_ss;}> val)
+
+:: <{TCPDef.gEq_sss;}> = {TCPDef.gEq_sss}
+TCPDef.get_gEq_sss_6 rec = select rec (<{TCPDef.gEq_sss;}> a1 -> a1)
+TCPDef.set_gEq_sss_6 rec val = select rec (<{TCPDef.gEq_sss;}>  a1 -> <{TCPDef.gEq_sss;}> val)
+
+:: <{TCPDef.gEq_ssss;}> = {TCPDef.gEq_ssss}
+TCPDef.get_gEq_ssss_7 rec = select rec (<{TCPDef.gEq_ssss;}> a1 -> a1)
+TCPDef.set_gEq_ssss_7 rec val = select rec (<{TCPDef.gEq_ssss;}>  a1 -> <{TCPDef.gEq_ssss;}> val)
+
+:: <{TCPDef.gEq_sssss;}> = {TCPDef.gEq_sssss}
+TCPDef.get_gEq_sssss_8 rec = select rec (<{TCPDef.gEq_sssss;}> a1 -> a1)
+TCPDef.set_gEq_sssss_8 rec val = select rec (<{TCPDef.gEq_sssss;}>  a1 -> <{TCPDef.gEq_sssss;}> val)
+
+:: <{TCPDef.gEq_ssssss;}> = {TCPDef.gEq_ssssss}
+TCPDef.get_gEq_ssssss_9 rec = select rec (<{TCPDef.gEq_ssssss;}> a1 -> a1)
+TCPDef.set_gEq_ssssss_9 rec val = select rec (<{TCPDef.gEq_ssssss;}>  a1 -> <{TCPDef.gEq_ssssss;}> val)
+
+:: <{TCPDef.gEq_sssssss;}> = {TCPDef.gEq_sssssss}
+TCPDef.get_gEq_sssssss_10 rec = select rec (<{TCPDef.gEq_sssssss;}> a1 -> a1)
+TCPDef.set_gEq_sssssss_10 rec val = select rec (<{TCPDef.gEq_sssssss;}>  a1 -> <{TCPDef.gEq_sssssss;}> val)
+
+:: <{TCPDef.gEq_ssssssss;}> = {TCPDef.gEq_ssssssss}
+TCPDef.get_gEq_ssssssss_11 rec = select rec (<{TCPDef.gEq_ssssssss;}> a1 -> a1)
+TCPDef.set_gEq_ssssssss_11 rec val = select rec (<{TCPDef.gEq_ssssssss;}>  a1 -> <{TCPDef.gEq_ssssssss;}> val)
+
+:: <{TCPDef.gEq_sssssssss;}> = {TCPDef.gEq_sssssssss}
+TCPDef.get_gEq_sssssssss_12 rec = select rec (<{TCPDef.gEq_sssssssss;}> a1 -> a1)
+TCPDef.set_gEq_sssssssss_12 rec val = select rec (<{TCPDef.gEq_sssssssss;}>  a1 -> <{TCPDef.gEq_sssssssss;}> val)
+

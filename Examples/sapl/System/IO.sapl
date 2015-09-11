@@ -1,0 +1,78 @@
+|| ?module? System.IO
+
+
+System.IO.execIO !_x_0 world_1 = select _x_0 (System.IO.IO f_1_0 -> _predefined.tupsels2v1 (f_1_0 world_1)) 
+System.IO.evalIO !_x_0 world_1 = select _x_0 (System.IO.IO f_1_0 -> f_1_0 world_1) 
+System.IO.withWorld f_0 = System.IO.IO f_0
+System.IO.f_12 !_vFileSystem_0 str_1 world_2 = let _x_1_0 = StdFile.get_stdio_3 _vFileSystem_0 world_2 in _Tuple2 _predefined._Unit (_predefined.tupsels2v1 (StdFile.get_fclose_0 _vFileSystem_0 (StdFile.fwrites (<{StdString.+++_11}> str_1 "\n") (_predefined.tupsels2v0 _x_1_0)) (_predefined.tupsels2v1 _x_1_0)))
+System.IO.f_61 str_0 world_1 = let _x_1_0 = StdFile.stdio_33 world_1 in _Tuple2 _predefined._Unit (_predefined.tupsels2v1 (StdFile.fclose_30 (StdFile.fwrites (<{StdString.+++_11}> str_0 "\n") (_predefined.tupsels2v0 _x_1_0)) (_predefined.tupsels2v1 _x_1_0)))
+System.IO.putStrLn str_0 = System.IO.withWorld (System.IO.f_61 str_0)
+System.IO.print !_vtoString_0 x_1 = System.IO.putStrLn (StdOverloaded.get_toString_25 _vtoString_0 x_1)
+System.IO.f_13 !_vFileSystem_0 name_1 world_2 = let _x_1_0 = StdFile.get_fopen_1 _vFileSystem_0 name_1 0 world_2, _x_1_1 = StdFile.freads (_predefined.tupsels3v1 _x_1_0) 16777216 in _Tuple2 (_predefined.tupsels2v0 _x_1_1) (_predefined.tupsels2v1 (StdFile.get_fclose_0 _vFileSystem_0 (_predefined.tupsels2v1 _x_1_1) (_predefined.tupsels3v2 _x_1_0)))
+System.IO.f_62 name_0 world_1 = let _x_1_0 = StdFile.fopen_31 name_0 0 world_1, _x_1_1 = StdFile.freads (_predefined.tupsels3v1 _x_1_0) 16777216 in _Tuple2 (_predefined.tupsels2v0 _x_1_1) (_predefined.tupsels2v1 (StdFile.fclose_30 (_predefined.tupsels2v1 _x_1_1) (_predefined.tupsels3v2 _x_1_0)))
+System.IO.readFileM !name_0 = System.IO.withWorld (System.IO.f_62 name_0)
+System.IO.f_14 !_vFileSystem_0 txt_1 name_2 world_3 = let _x_1_0 = StdFile.get_fopen_1 _vFileSystem_0 name_2 1 world_3 in _Tuple2 _predefined._Unit (_predefined.tupsels2v1 (StdFile.get_fclose_0 _vFileSystem_0 (StdFile.fwrites txt_1 (_predefined.tupsels3v1 _x_1_0)) (_predefined.tupsels3v2 _x_1_0)))
+System.IO.f_63 txt_0 name_1 world_2 = let _x_1_0 = StdFile.fopen_31 name_1 1 world_2 in _Tuple2 _predefined._Unit (_predefined.tupsels2v1 (StdFile.fclose_30 (StdFile.fwrites txt_0 (_predefined.tupsels3v1 _x_1_0)) (_predefined.tupsels3v2 _x_1_0)))
+System.IO.writeFileM !name_0 !txt_1 = System.IO.withWorld (System.IO.f_63 txt_1 name_0)
+System.IO.anon_15 x_0 s_1 = _Tuple2 x_0 s_1
+System.IO.pure_8 x_0 = System.IO.IO (System.IO.anon_15 x_0)
+System.IO.anon_17 !f_0 g_1 x_2 = f_0 (g_1 x_2)
+System.IO.run_16 !a2mb_0 f_1 world_2 = let _x_1_0 = f_1 world_2 in _predefined.tupsels1v0 (a2mb_0 (_predefined.tupsels2v0 _x_1_0)) (_predefined.tupsels2v1 _x_1_0)
+System.IO.bind_10 !_x_0 a2mb_1 = select _x_0 (System.IO.IO f_1_0 -> System.IO.IO (System.IO.run_16 a2mb_1 f_1_0)) 
+System.IO.anon_64 !_x_0 g_1 x_2 = Control.Applicative.lift _x_0 (g_1 x_2)
+System.IO.anon_65 g_0 x_1 = Control.Applicative.lift (<{Control.Applicative.Applicative;}> <{System.IO.<*>_7}> System.IO.pure_8 (<{Data.Functor.Functor;}> System.IO.fmap_9)) (g_0 x_1)
+System.IO.fmap_9 f_0 x_1 = <{Control.Monad.>>=}> (<{Control.Monad.Monad;}> System.IO.bind_10 (<{Control.Applicative.Applicative;}> <{System.IO.<*>_7}> System.IO.pure_8 (<{Data.Functor.Functor;}> System.IO.fmap_9))) x_1 (System.IO.anon_65 f_0)
+<{System.IO.<*>_7}> f_0 g_1 = Control.Applicative.liftA2 (<{Control.Applicative.Applicative;}> <{System.IO.<*>_7}> System.IO.pure_8 (<{Data.Functor.Functor;}> System.IO.fmap_9)) StdFunc.id f_0 g_1
+<{System.IO.TD;IO}> _x_0 = _predefined._Nil
+
+:: System.IO.IO = System.IO.IO a1
+
+|| Converted Records
+:: <{System.IO.bimap_s;}> = {!System.IO.bimap_s}
+System.IO.get_bimap_s_0 rec = select rec (<{System.IO.bimap_s;}> a1 -> a1)
+System.IO.set_bimap_s_0 rec !val = select rec (<{System.IO.bimap_s;}>  a1 -> <{System.IO.bimap_s;}> val)
+
+:: <{System.IO.bimap_ss;}> = {System.IO.bimap_ss}
+System.IO.get_bimap_ss_1 rec = select rec (<{System.IO.bimap_ss;}> a1 -> a1)
+System.IO.set_bimap_ss_1 rec val = select rec (<{System.IO.bimap_ss;}>  a1 -> <{System.IO.bimap_ss;}> val)
+
+:: <{System.IO.bimap_sss;}> = {System.IO.bimap_sss}
+System.IO.get_bimap_sss_2 rec = select rec (<{System.IO.bimap_sss;}> a1 -> a1)
+System.IO.set_bimap_sss_2 rec val = select rec (<{System.IO.bimap_sss;}>  a1 -> <{System.IO.bimap_sss;}> val)
+
+:: <{System.IO.gEq_s;}> = {System.IO.gEq_s}
+System.IO.get_gEq_s_3 rec = select rec (<{System.IO.gEq_s;}> a1 -> a1)
+System.IO.set_gEq_s_3 rec val = select rec (<{System.IO.gEq_s;}>  a1 -> <{System.IO.gEq_s;}> val)
+
+:: <{System.IO.gEq_ss;}> = {System.IO.gEq_ss}
+System.IO.get_gEq_ss_4 rec = select rec (<{System.IO.gEq_ss;}> a1 -> a1)
+System.IO.set_gEq_ss_4 rec val = select rec (<{System.IO.gEq_ss;}>  a1 -> <{System.IO.gEq_ss;}> val)
+
+:: <{System.IO.gEq_sss;}> = {System.IO.gEq_sss}
+System.IO.get_gEq_sss_5 rec = select rec (<{System.IO.gEq_sss;}> a1 -> a1)
+System.IO.set_gEq_sss_5 rec val = select rec (<{System.IO.gEq_sss;}>  a1 -> <{System.IO.gEq_sss;}> val)
+
+:: <{System.IO.gEq_ssss;}> = {System.IO.gEq_ssss}
+System.IO.get_gEq_ssss_6 rec = select rec (<{System.IO.gEq_ssss;}> a1 -> a1)
+System.IO.set_gEq_ssss_6 rec val = select rec (<{System.IO.gEq_ssss;}>  a1 -> <{System.IO.gEq_ssss;}> val)
+
+:: <{System.IO.gEq_sssss;}> = {System.IO.gEq_sssss}
+System.IO.get_gEq_sssss_7 rec = select rec (<{System.IO.gEq_sssss;}> a1 -> a1)
+System.IO.set_gEq_sssss_7 rec val = select rec (<{System.IO.gEq_sssss;}>  a1 -> <{System.IO.gEq_sssss;}> val)
+
+:: <{System.IO.gEq_ssssss;}> = {System.IO.gEq_ssssss}
+System.IO.get_gEq_ssssss_8 rec = select rec (<{System.IO.gEq_ssssss;}> a1 -> a1)
+System.IO.set_gEq_ssssss_8 rec val = select rec (<{System.IO.gEq_ssssss;}>  a1 -> <{System.IO.gEq_ssssss;}> val)
+
+:: <{System.IO.gEq_sssssss;}> = {System.IO.gEq_sssssss}
+System.IO.get_gEq_sssssss_9 rec = select rec (<{System.IO.gEq_sssssss;}> a1 -> a1)
+System.IO.set_gEq_sssssss_9 rec val = select rec (<{System.IO.gEq_sssssss;}>  a1 -> <{System.IO.gEq_sssssss;}> val)
+
+:: <{System.IO.gEq_ssssssss;}> = {System.IO.gEq_ssssssss}
+System.IO.get_gEq_ssssssss_10 rec = select rec (<{System.IO.gEq_ssssssss;}> a1 -> a1)
+System.IO.set_gEq_ssssssss_10 rec val = select rec (<{System.IO.gEq_ssssssss;}>  a1 -> <{System.IO.gEq_ssssssss;}> val)
+
+:: <{System.IO.gEq_sssssssss;}> = {System.IO.gEq_sssssssss}
+System.IO.get_gEq_sssssssss_11 rec = select rec (<{System.IO.gEq_sssssssss;}> a1 -> a1)
+System.IO.set_gEq_sssssssss_11 rec val = select rec (<{System.IO.gEq_sssssssss;}>  a1 -> <{System.IO.gEq_sssssssss;}> val)
+

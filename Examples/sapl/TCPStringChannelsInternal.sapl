@@ -1,0 +1,73 @@
+|| ?module? TCPStringChannelsInternal
+
+
+<{TCPStringChannelsInternal.c;17;32_4}> !_vArray_0 string_1 !g_i_2 !g_s_3 = if (StdBool.not (<{StdInt.<_17}> g_s_3 g_i_2)) (_predefined._Cons (_SystemArray.get_select_3 _vArray_0 string_1 g_i_2) (<{TCPStringChannelsInternal.c;17;32_4}> _vArray_0 string_1 (<{StdInt.+_6}> g_i_2 StdInt.one_11) g_s_3)) _predefined._Nil
+TCPStringChannelsInternal.transition_5 !digit_0 !int_1 = <{StdInt.+_6}> (<{StdInt.*_9}> 10 int_1) (StdChar.digitToInt digit_0)
+TCPStringChannelsInternal.strcpy !dest_0 !destBegin_1 !src_2 !srcBegin_3 !nrOfBytes_4 = if (StdBool.not (<{StdInt.<_17}> 0 nrOfBytes_4)) dest_0 (TCPStringChannelsInternal.strcpy (_SystemArray.update_21 dest_0 destBegin_1 (_SystemArray.select_19 src_2 srcBegin_3)) (<{StdInt.+_6}> destBegin_1 StdInt.one_11) src_2 (<{StdInt.+_6}> srcBegin_3 StdInt.one_11) (<{StdInt.-_7}> nrOfBytes_4 StdInt.one_11))
+<{TCPStringChannelsInternal.c;17;32_49}> string_0 !g_i_1 !g_s_2 = if (StdBool.not (<{StdInt.<_17}> g_s_2 g_i_1)) (_predefined._Cons (_SystemArray.select_19 string_0 g_i_1) (<{TCPStringChannelsInternal.c;17;32_49}> string_0 (<{StdInt.+_6}> g_i_1 StdInt.one_11) g_s_2)) _predefined._Nil
+TCPStringChannelsInternal.addString !_x_0 !readPhase_1 !_x_2 = select readPhase_1 (TCPStringChannelsInternal.EndOfMessages -> <{_Tuple2!3}> _predefined._Nil readPhase_1) (TCPStringChannelsInternal.ReadingLength l_1_0 -> select _x_0 (_Tuple2 string_2_0 stringBegin_2_1 -> if (StdBool.not (<{StdInt.<_17}> stringBegin_2_1 (_SystemArray.size_20 string_2_0))) (<{_Tuple2!3}> _predefined._Nil readPhase_1) (let !chList_3_0 = <{TCPStringChannelsInternal.c;17;32_49}> string_2_0 stringBegin_2_1 (<{StdInt.-_7}> (_SystemArray.size_20 string_2_0) 1), !digits_3_1 = StdList.takeWhile StdChar.isDigit chList_3_0, !newL_3_2 = StdFunc.seq (StdList.map TCPStringChannelsInternal.transition_5 digits_3_1) l_1_0 in if (TCPStringChannelsInternal.addString_select0 chList_3_0 digits_3_1 newL_3_2 string_2_0 stringBegin_2_1 l_1_0 _x_0 readPhase_1 _x_2) (<{_Tuple2!3}> _predefined._Nil TCPStringChannelsInternal.EndOfMessages) (if (<{StdInt.<_17}> (StdList.length_47 digits_3_1) (<{StdInt.-_7}> (_SystemArray.size_20 string_2_0) stringBegin_2_1)) (TCPStringChannelsInternal.addString (_Tuple2 string_2_0 (<{StdInt.+_6}> (<{StdInt.+_6}> stringBegin_2_1 (StdList.length_47 digits_3_1)) 1)) (TCPStringChannelsInternal.ReadingString (_SystemArray.createArray_17 newL_3_2 ' ') newL_3_2 newL_3_2) _x_2) (<{_Tuple2!3}> _predefined._Nil (TCPStringChannelsInternal.ReadingLength newL_3_2))))) ) (TCPStringChannelsInternal.ReadingString wholeString_1_0 stillToReceive_1_1 total_1_2 -> select _x_0 (_Tuple2 string_2_0 stringBegin_2_1 -> if (StdBool.not (<{StdInt.<_17}> stringBegin_2_1 (_SystemArray.size_20 string_2_0))) (<{_Tuple2!3}> _predefined._Nil readPhase_1) (let !readyBytes_3_0 = <{StdInt.-_7}> (_SystemArray.size_20 string_2_0) stringBegin_2_1 in if (StdBool.not (<{StdInt.<_17}> readyBytes_3_0 stillToReceive_1_1)) (let !wholeString_4_0 = TCPStringChannelsInternal.strcpy wholeString_1_0 (<{StdInt.-_7}> total_1_2 stillToReceive_1_1) string_2_0 stringBegin_2_1 stillToReceive_1_1, !newBegin_4_1 = <{StdInt.+_6}> (<{StdInt.+_6}> stringBegin_2_1 stillToReceive_1_1) 1, !_x_4_2 = TCPStringChannelsInternal.addString (_Tuple2 string_2_0 newBegin_4_1) (TCPStringChannelsInternal.ReadingLength 0) _x_2 in <{_Tuple2!3}> (_predefined._Cons wholeString_4_0 (_predefined.tupsels2v0 _x_4_2)) (_predefined.tupsels2v1 _x_4_2)) (let !wholeString_4_0 = TCPStringChannelsInternal.strcpy wholeString_1_0 (<{StdInt.-_7}> total_1_2 stillToReceive_1_1) string_2_0 stringBegin_2_1 readyBytes_3_0 in <{_Tuple2!3}> _predefined._Nil (TCPStringChannelsInternal.ReadingString wholeString_4_0 (<{StdInt.-_7}> stillToReceive_1_1 readyBytes_3_0) total_1_2)))) ) 
+TCPStringChannelsInternal.addString_select0 chList_3_0 digits_3_1 newL_3_2 string_2_0 stringBegin_2_1 l_1_0 !_x_0 !readPhase_1 !_x_2 = if (<{StdInt.<_17}> _x_2 newL_3_2) (<{StdInt.<_17}> 0 _x_2) False
+<{TCPStringChannelsInternal.TD;ReadPhase}> _x_0 = _predefined._Nil
+<{TCPStringChannelsInternal.TD;StringRChannel_}> _x_0 = _predefined._Nil
+
+:: TCPStringChannelsInternal.ReadPhase = TCPStringChannelsInternal.ReadingLength !a1 | TCPStringChannelsInternal.ReadingString !a1 !a2 !a3 | TCPStringChannelsInternal.EndOfMessages
+
+|| Converted Records
+:: TCPStringChannelsInternal._StringRChannel_ = {!TCPStringChannelsInternal.tcp_rchan, !TCPStringChannelsInternal.readPhase, !TCPStringChannelsInternal.receivedStrings, !TCPStringChannelsInternal.maxSize}
+TCPStringChannelsInternal.get_tcp_rchan_0 rec = select rec (TCPStringChannelsInternal._StringRChannel_ a1 a2 a3 a4 -> a1)
+TCPStringChannelsInternal.get_readPhase_1 rec = select rec (TCPStringChannelsInternal._StringRChannel_ a1 a2 a3 a4 -> a2)
+TCPStringChannelsInternal.get_receivedStrings_2 rec = select rec (TCPStringChannelsInternal._StringRChannel_ a1 a2 a3 a4 -> a3)
+TCPStringChannelsInternal.get_maxSize_3 rec = select rec (TCPStringChannelsInternal._StringRChannel_ a1 a2 a3 a4 -> a4)
+TCPStringChannelsInternal.set_tcp_rchan_0 rec !val = select rec (TCPStringChannelsInternal._StringRChannel_  a1 a2 a3 a4 -> TCPStringChannelsInternal._StringRChannel_ val a2 a3 a4)
+TCPStringChannelsInternal.set_readPhase_1 rec !val = select rec (TCPStringChannelsInternal._StringRChannel_  a1 a2 a3 a4 -> TCPStringChannelsInternal._StringRChannel_ a1 val a3 a4)
+TCPStringChannelsInternal.set_receivedStrings_2 rec !val = select rec (TCPStringChannelsInternal._StringRChannel_  a1 a2 a3 a4 -> TCPStringChannelsInternal._StringRChannel_ a1 a2 val a4)
+TCPStringChannelsInternal.set_maxSize_3 rec !val = select rec (TCPStringChannelsInternal._StringRChannel_  a1 a2 a3 a4 -> TCPStringChannelsInternal._StringRChannel_ a1 a2 a3 val)
+
+:: <{TCPStringChannelsInternal.bimap_s;}> = {TCPStringChannelsInternal.bimap_s}
+TCPStringChannelsInternal.get_bimap_s_4 rec = select rec (<{TCPStringChannelsInternal.bimap_s;}> a1 -> a1)
+TCPStringChannelsInternal.set_bimap_s_4 rec val = select rec (<{TCPStringChannelsInternal.bimap_s;}>  a1 -> <{TCPStringChannelsInternal.bimap_s;}> val)
+
+:: <{TCPStringChannelsInternal.bimap_ss;}> = {TCPStringChannelsInternal.bimap_ss}
+TCPStringChannelsInternal.get_bimap_ss_5 rec = select rec (<{TCPStringChannelsInternal.bimap_ss;}> a1 -> a1)
+TCPStringChannelsInternal.set_bimap_ss_5 rec val = select rec (<{TCPStringChannelsInternal.bimap_ss;}>  a1 -> <{TCPStringChannelsInternal.bimap_ss;}> val)
+
+:: <{TCPStringChannelsInternal.bimap_sss;}> = {TCPStringChannelsInternal.bimap_sss}
+TCPStringChannelsInternal.get_bimap_sss_6 rec = select rec (<{TCPStringChannelsInternal.bimap_sss;}> a1 -> a1)
+TCPStringChannelsInternal.set_bimap_sss_6 rec val = select rec (<{TCPStringChannelsInternal.bimap_sss;}>  a1 -> <{TCPStringChannelsInternal.bimap_sss;}> val)
+
+:: <{TCPStringChannelsInternal.gEq_s;}> = {TCPStringChannelsInternal.gEq_s}
+TCPStringChannelsInternal.get_gEq_s_7 rec = select rec (<{TCPStringChannelsInternal.gEq_s;}> a1 -> a1)
+TCPStringChannelsInternal.set_gEq_s_7 rec val = select rec (<{TCPStringChannelsInternal.gEq_s;}>  a1 -> <{TCPStringChannelsInternal.gEq_s;}> val)
+
+:: <{TCPStringChannelsInternal.gEq_ss;}> = {TCPStringChannelsInternal.gEq_ss}
+TCPStringChannelsInternal.get_gEq_ss_8 rec = select rec (<{TCPStringChannelsInternal.gEq_ss;}> a1 -> a1)
+TCPStringChannelsInternal.set_gEq_ss_8 rec val = select rec (<{TCPStringChannelsInternal.gEq_ss;}>  a1 -> <{TCPStringChannelsInternal.gEq_ss;}> val)
+
+:: <{TCPStringChannelsInternal.gEq_sss;}> = {TCPStringChannelsInternal.gEq_sss}
+TCPStringChannelsInternal.get_gEq_sss_9 rec = select rec (<{TCPStringChannelsInternal.gEq_sss;}> a1 -> a1)
+TCPStringChannelsInternal.set_gEq_sss_9 rec val = select rec (<{TCPStringChannelsInternal.gEq_sss;}>  a1 -> <{TCPStringChannelsInternal.gEq_sss;}> val)
+
+:: <{TCPStringChannelsInternal.gEq_ssss;}> = {TCPStringChannelsInternal.gEq_ssss}
+TCPStringChannelsInternal.get_gEq_ssss_10 rec = select rec (<{TCPStringChannelsInternal.gEq_ssss;}> a1 -> a1)
+TCPStringChannelsInternal.set_gEq_ssss_10 rec val = select rec (<{TCPStringChannelsInternal.gEq_ssss;}>  a1 -> <{TCPStringChannelsInternal.gEq_ssss;}> val)
+
+:: <{TCPStringChannelsInternal.gEq_sssss;}> = {TCPStringChannelsInternal.gEq_sssss}
+TCPStringChannelsInternal.get_gEq_sssss_11 rec = select rec (<{TCPStringChannelsInternal.gEq_sssss;}> a1 -> a1)
+TCPStringChannelsInternal.set_gEq_sssss_11 rec val = select rec (<{TCPStringChannelsInternal.gEq_sssss;}>  a1 -> <{TCPStringChannelsInternal.gEq_sssss;}> val)
+
+:: <{TCPStringChannelsInternal.gEq_ssssss;}> = {TCPStringChannelsInternal.gEq_ssssss}
+TCPStringChannelsInternal.get_gEq_ssssss_12 rec = select rec (<{TCPStringChannelsInternal.gEq_ssssss;}> a1 -> a1)
+TCPStringChannelsInternal.set_gEq_ssssss_12 rec val = select rec (<{TCPStringChannelsInternal.gEq_ssssss;}>  a1 -> <{TCPStringChannelsInternal.gEq_ssssss;}> val)
+
+:: <{TCPStringChannelsInternal.gEq_sssssss;}> = {TCPStringChannelsInternal.gEq_sssssss}
+TCPStringChannelsInternal.get_gEq_sssssss_13 rec = select rec (<{TCPStringChannelsInternal.gEq_sssssss;}> a1 -> a1)
+TCPStringChannelsInternal.set_gEq_sssssss_13 rec val = select rec (<{TCPStringChannelsInternal.gEq_sssssss;}>  a1 -> <{TCPStringChannelsInternal.gEq_sssssss;}> val)
+
+:: <{TCPStringChannelsInternal.gEq_ssssssss;}> = {TCPStringChannelsInternal.gEq_ssssssss}
+TCPStringChannelsInternal.get_gEq_ssssssss_14 rec = select rec (<{TCPStringChannelsInternal.gEq_ssssssss;}> a1 -> a1)
+TCPStringChannelsInternal.set_gEq_ssssssss_14 rec val = select rec (<{TCPStringChannelsInternal.gEq_ssssssss;}>  a1 -> <{TCPStringChannelsInternal.gEq_ssssssss;}> val)
+
+:: <{TCPStringChannelsInternal.gEq_sssssssss;}> = {TCPStringChannelsInternal.gEq_sssssssss}
+TCPStringChannelsInternal.get_gEq_sssssssss_15 rec = select rec (<{TCPStringChannelsInternal.gEq_sssssssss;}> a1 -> a1)
+TCPStringChannelsInternal.set_gEq_sssssssss_15 rec val = select rec (<{TCPStringChannelsInternal.gEq_sssssssss;}>  a1 -> <{TCPStringChannelsInternal.gEq_sssssssss;}> val)
+

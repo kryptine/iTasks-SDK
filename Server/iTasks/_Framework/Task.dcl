@@ -4,6 +4,7 @@ definition module iTasks._Framework.Task
 */
 
 import iTasks.API.Core.Types
+import iTasks.API.Core.TaskLayout
 import iTasks._Framework.Generic
 from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
 
@@ -31,10 +32,11 @@ derive gEq				Task
 			| RefreshEvent	!String 					//Nop event, just recalcalutate the entire task instance (the string is the reason for the refresh)
             | ResetEvent                                //Nop event, recalculate the entire task and reset output stream
 
-:: TaskResult a		= ValueResult !(TaskValue a) !TaskEvalInfo !TaskRep !TaskTree						//If all goes well, a task computes its current value, an observable representation and a new task state
+:: TaskResult a		= ValueResult !(TaskValue a) !TaskEvalInfo !TaskRep !TaskTree !TaskUIs				//If all goes well, a task computes its current value, an observable representation and a new task state
 					| ExceptionResult !TaskException													//If something went wrong, a task produces an exception value
 					| DestroyedResult																	//If a task finalizes and cleaned up it gives this result
 :: TaskException    :== (!Dynamic,!String) //The dynamic contains the actual exception which can be matched, the string is an error message
+:: TaskUIs          :== Map TaskId (Either UIDef TaskLayout)
 
 //Additional options to pass down the tree when evaluating a task
 :: TaskEvalOpts	=
@@ -108,6 +110,11 @@ repLayoutRules :: !TaskEvalOpts -> LayoutRules
 * Apply the final layout if necessary
 */
 finalizeRep :: !TaskEvalOpts !TaskRep -> TaskRep
+
+/**
+* Analogous to finalizeRep: if noUI is set, then the empty set of taskUIs is returned, and otherwise simply the given taskUIs
+*/
+finalizeTaskUIs :: !TaskEvalOpts !TaskUIs -> TaskUIs
 
 /**
 * Extend the call trace with the current task number

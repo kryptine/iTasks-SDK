@@ -1,0 +1,346 @@
+|| ?module? iTasks._Framework.TaskEval
+
+
+iTasks._Framework.TaskEval.getNextTaskId !iworld_0 = select iworld_0 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> select current_1_3 (iTasks._Framework.IWorld._TaskEvalState taskTime_2_0 task_2_1 session_2_2 attachmentChain_2_3 nextTaskNo_2_4 eventRoute_2_5 editletDiffs_2_6 -> <{_Tuple2!3}> (iTasks.API.Core.Types.TaskId task_2_1 nextTaskNo_2_4) (iTasks._Framework.IWorld.set_current_3 iworld_0 (iTasks._Framework.IWorld.set_nextTaskNo_33 current_1_3 (<{StdInt.+_6}> nextTaskNo_2_4 1)))) ) 
+iTasks._Framework.TaskEval.anon_15 !<{_v<_0}> !instanceNo_1 !output_2 = Data.Map.del <{_v<_0}> instanceNo_1 output_2
+iTasks._Framework.TaskEval.anon_600 !instanceNo_0 !output_1 = Data.Map.del (<{StdOverloaded.<;}> <{StdInt.<_17}>) instanceNo_0 output_1
+iTasks._Framework.TaskEval.resetUIUpdates_23 instanceNo_0 !_x_1 !iworld_2 = select _x_1 (iTasks._Framework.Task.ResetEvent -> _predefined.tupsels2v1 (iTasks._Framework.SDS.modify (iTasks._Framework.TaskEval.anon_600 instanceNo_0) iTasks._Framework.TaskStore.taskOutput iworld_2)) (_ -> iworld_2)
+iTasks._Framework.TaskEval.anon_11 !_x_0 = select _x_0 (Data.Error.Error _x_1_0 -> select _x_1_0 (_Tuple2 e_2_0 msg_2_1 -> Data.Error.Error msg_2_1) ) 
+iTasks._Framework.TaskEval.anon_12 !_x_0 = select _x_0 (Data.Error.Error _x_1_0 -> select _x_1_0 (_Tuple2 e_2_0 msg_2_1 -> Data.Error.Error msg_2_1) ) 
+iTasks._Framework.TaskEval.anon_13 !_x_0 = select _x_0 (Data.Error.Error _x_1_0 -> select _x_1_0 (_Tuple2 e_2_0 msg_2_1 -> Data.Error.Error msg_2_1) ) 
+iTasks._Framework.TaskEval.finalizeUI_20 session_0 !_x_1 = select _x_1 (iTasks._Framework.Task.ValueResult value_1_0 info_1_1 _x_1_2 tree_1_3 taskU_1_4 -> select _x_1_2 (iTasks._Framework.Task.TaskRep ui_2_0 -> iTasks._Framework.Task.ValueResult value_1_0 info_1_1 (iTasks._Framework.Task.TaskRep (iTasks.API.Core.LayoutCombinators.autoLayoutFinal (<{iTasks._Framework.TaskEval._if;121;16_603}> session_0 ui_2_0))) tree_1_3 taskU_1_4) ) (_ -> _x_1)
+<{iTasks._Framework.TaskEval._if;121;16_603}> !session_0 ui_1 = select session_0 (True -> iTasks._Framework.UIDefinition.uiDefSetAttribute "session" "true" ui_1) (_ -> ui_1)
+iTasks._Framework.TaskEval.updateProgress_21 now_0 !result_1 !progress_2 = <{iTasks._Framework.TaskEval._c;130;11_606}> result_1 progress_2 now_0
+<{iTasks._Framework.TaskEval._c;130;11_606}> !result_0 !progress_1 now_2 = select result_0 (iTasks._Framework.Task.ExceptionResult _x_1_0 -> iTasks.API.Core.Types.set_value_33 (iTasks.API.Core.Types.set_lastEvent_36 (iTasks.API.Core.Types.set_firstEvent_35 progress_1 (Data.Maybe.Just (Data.Maybe.fromMaybe now_2 (iTasks.API.Core.Types.get_firstEvent_35 progress_1)))) Data.Maybe.Nothing) iTasks.API.Core.Types.Exception) (iTasks._Framework.Task.ValueResult _x_1_0 _x_1_1 _x_1_2 _x_1_3 _x_1_4 -> iTasks._Framework.TaskEval._f605_605 _x_1_0 progress_1 now_2) (_ -> iTasks.API.Core.Types.set_value_33 (iTasks.API.Core.Types.set_lastEvent_36 (iTasks.API.Core.Types.set_firstEvent_35 progress_1 (Data.Maybe.Just (Data.Maybe.fromMaybe now_2 (iTasks.API.Core.Types.get_firstEvent_35 progress_1)))) Data.Maybe.Nothing) iTasks.API.Core.Types.None)
+iTasks._Framework.TaskEval._f605_605 !_x_0 !progress_1 now_2 = select _x_0 (iTasks.API.Core.Types.Value _x_1_0 stable_1_1 -> iTasks.API.Core.Types.set_value_33 (iTasks.API.Core.Types.set_lastEvent_36 (iTasks.API.Core.Types.set_firstEvent_35 progress_1 (Data.Maybe.Just (Data.Maybe.fromMaybe now_2 (iTasks.API.Core.Types.get_firstEvent_35 progress_1)))) Data.Maybe.Nothing) (<{iTasks._Framework.TaskEval._if;133;56_604}> stable_1_1)) (_ -> iTasks.API.Core.Types.set_value_33 (iTasks.API.Core.Types.set_lastEvent_36 (iTasks.API.Core.Types.set_firstEvent_35 progress_1 (Data.Maybe.Just (Data.Maybe.fromMaybe now_2 (iTasks.API.Core.Types.get_firstEvent_35 progress_1)))) Data.Maybe.Nothing) iTasks.API.Core.Types.None)
+<{iTasks._Framework.TaskEval._if;133;56_604}> !stable_0 = select stable_0 (True -> iTasks.API.Core.Types.Stable) (_ -> iTasks.API.Core.Types.Unstable)
+iTasks._Framework.TaskEval.getNextTaskNo_17 !iworld_0 = select iworld_0 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> select current_1_3 (iTasks._Framework.IWorld._TaskEvalState taskTime_2_0 task_2_1 session_2_2 attachmentChain_2_3 nextTaskNo_2_4 eventRoute_2_5 editletDiffs_2_6 -> _Tuple2 nextTaskNo_2_4 iworld_0) ) 
+iTasks._Framework.TaskEval.lastEventNo_22 !_x_0 = select _x_0 (iTasks._Framework.Task.EditEvent eventNo_1_0 _x_1_1 _x_1_2 _x_1_3 -> eventNo_1_0) (iTasks._Framework.Task.ActionEvent eventNo_1_0 _x_1_1 _x_1_2 -> eventNo_1_0) (iTasks._Framework.Task.FocusEvent eventNo_1_0 _x_1_1 -> eventNo_1_0) (iTasks._Framework.Task.RefreshEvent _x_1_0 -> select _x_1_0 (Data.Maybe.Just eventNo_2_0 -> eventNo_2_0) ) (_ -> 0)
+iTasks._Framework.TaskEval.anon_14 !event_0 !nextTaskTime_1 !tree_2 !nextTaskNo_3 !r_4 = iTasks._Framework.TaskState.set_lastEventNo_13 (iTasks._Framework.TaskState.set_nextTaskTime_12 (iTasks._Framework.TaskState.set_nextTaskNo_11 (iTasks._Framework.TaskState.set_tree_9 r_4 tree_2) nextTaskNo_3) (<{StdInt.+_6}> nextTaskTime_1 1)) (iTasks._Framework.TaskEval.lastEventNo_22 event_0)
+iTasks._Framework.TaskEval.getEditletDiffs_18 !iworld_0 = select iworld_0 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> select current_1_3 (iTasks._Framework.IWorld._TaskEvalState taskTime_2_0 task_2_1 session_2_2 attachmentChain_2_3 nextTaskNo_2_4 eventRoute_2_5 editletDiffs_2_6 -> _Tuple2 editletDiffs_2_6 iworld_0) ) 
+iTasks._Framework.TaskEval.setEditletDiffs_19 !editletDiffs_0 !iworld_1 = select iworld_1 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> iTasks._Framework.IWorld.set_current_3 iworld_1 (iTasks._Framework.IWorld.set_editletDiffs_35 current_1_3 editletDiffs_0)) 
+<{iTasks._Framework.TaskEval.evalTaskInstance`_16}> !instanceNo_0 event_1 !iworld_2 = select iworld_2 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> select clocks_1_2 (iTasks._Framework.IWorld._SystemClocks localDate_2_0 localTime_2_1 utcDate_2_2 utcTime_2_3 -> let _x_3_0 = iTasks._Framework.SDS.read (iTasks.API.Common.SDSCombinators.sdsFocus (<{iTasks._Framework.Generic.iTask;}> (<{iTasks._Framework.TaskEval.gEditor_s;}> iTasks._Framework.Generic.Interaction.gEditor_Int_20) (<{iTasks._Framework.TaskEval.gEditMeta_s;}> iTasks._Framework.Generic.Interaction.gEditMeta_Int_50) (<{iTasks._Framework.TaskEval.gUpdate_s;}> iTasks._Framework.Generic.Interaction.gUpdate_Int_110) (<{iTasks._Framework.TaskEval.gVerify_s;}> iTasks._Framework.Generic.Interaction.gVerify_Int_80) (<{iTasks._Framework.TaskEval.gText_s;}> iTasks._Framework.Generic.Visualization.gText_Int_11) (<{iTasks._Framework.TaskEval.JSONEncode_s;}> Text.JSON.JSONEncode_Int_10) (<{iTasks._Framework.TaskEval.JSONDecode_s;}> Text.JSON.JSONDecode_Int_31) (<{iTasks._Framework.TaskEval.gDefault_s;}> iTasks._Framework.Generic.Defaults.gDefault_Int_8) (<{iTasks._Framework.TaskEval.gEq_s;}> GenEq.gEq_Int_2) (_SystemDynamic.TypeCons (_SystemDynamic._TypeCodeConstructor _SystemDynamic.TC_Int))) instanceNo_0 iTasks._Framework.TaskStore.taskInstanceConstants) iworld_2, constants_3_1 = _predefined.tupsels2v0 _x_3_0 in if (Data.Error.isError constants_3_1) (_Tuple2 (iTasks._Framework.TaskEval.anon_11 constants_3_1) (_predefined.tupsels2v1 _x_3_0)) (let iworld_4_0 = _predefined.tupsels2v1 _x_3_0, _x_4_1 = iTasks._Framework.SDS.read (iTasks.API.Common.SDSCombinators.sdsFocus (<{iTasks._Framework.Generic.iTask;}> (<{iTasks._Framework.TaskEval.gEditor_s;}> iTasks._Framework.Generic.Interaction.gEditor_Int_20) (<{iTasks._Framework.TaskEval.gEditMeta_s;}> iTasks._Framework.Generic.Interaction.gEditMeta_Int_50) (<{iTasks._Framework.TaskEval.gUpdate_s;}> iTasks._Framework.Generic.Interaction.gUpdate_Int_110) (<{iTasks._Framework.TaskEval.gVerify_s;}> iTasks._Framework.Generic.Interaction.gVerify_Int_80) (<{iTasks._Framework.TaskEval.gText_s;}> iTasks._Framework.Generic.Visualization.gText_Int_11) (<{iTasks._Framework.TaskEval.JSONEncode_s;}> Text.JSON.JSONEncode_Int_10) (<{iTasks._Framework.TaskEval.JSONDecode_s;}> Text.JSON.JSONDecode_Int_31) (<{iTasks._Framework.TaskEval.gDefault_s;}> iTasks._Framework.Generic.Defaults.gDefault_Int_8) (<{iTasks._Framework.TaskEval.gEq_s;}> GenEq.gEq_Int_2) (_SystemDynamic.TypeCons (_SystemDynamic._TypeCodeConstructor _SystemDynamic.TC_Int))) instanceNo_0 iTasks._Framework.TaskStore.taskInstanceReduct) iworld_4_0, oldReduct_4_2 = _predefined.tupsels2v0 _x_4_1 in if (Data.Error.isError oldReduct_4_2) (_Tuple2 (iTasks._Framework.TaskEval.anon_12 oldReduct_4_2) (_predefined.tupsels2v1 _x_4_1)) (let iworld_5_0 = _predefined.tupsels2v1 _x_4_1, _x_5_1 = iTasks._Framework.SDS.read (iTasks.API.Common.SDSCombinators.sdsFocus (<{iTasks._Framework.Generic.iTask;}> (<{iTasks._Framework.TaskEval.gEditor_s;}> iTasks._Framework.Generic.Interaction.gEditor_Int_20) (<{iTasks._Framework.TaskEval.gEditMeta_s;}> iTasks._Framework.Generic.Interaction.gEditMeta_Int_50) (<{iTasks._Framework.TaskEval.gUpdate_s;}> iTasks._Framework.Generic.Interaction.gUpdate_Int_110) (<{iTasks._Framework.TaskEval.gVerify_s;}> iTasks._Framework.Generic.Interaction.gVerify_Int_80) (<{iTasks._Framework.TaskEval.gText_s;}> iTasks._Framework.Generic.Visualization.gText_Int_11) (<{iTasks._Framework.TaskEval.JSONEncode_s;}> Text.JSON.JSONEncode_Int_10) (<{iTasks._Framework.TaskEval.JSONDecode_s;}> Text.JSON.JSONDecode_Int_31) (<{iTasks._Framework.TaskEval.gDefault_s;}> iTasks._Framework.Generic.Defaults.gDefault_Int_8) (<{iTasks._Framework.TaskEval.gEq_s;}> GenEq.gEq_Int_2) (_SystemDynamic.TypeCons (_SystemDynamic._TypeCodeConstructor _SystemDynamic.TC_Int))) instanceNo_0 iTasks._Framework.TaskStore.taskInstanceProgress) iworld_5_0, oldProgress_5_2 = _predefined.tupsels2v0 _x_5_1 in if (Data.Error.isError oldProgress_5_2) (_Tuple2 (iTasks._Framework.TaskEval.anon_13 oldProgress_5_2) (_predefined.tupsels2v1 _x_5_1)) (let oldProgress_6_0 = Data.Error.fromOk oldProgress_5_2 in if (<{GenEq.===}> (<{iTasks._Framework.TaskEval.gEq_s;}> iTasks.API.Core.Types.gEq_ValueStatus_565) (iTasks.API.Core.Types.get_value_33 oldProgress_6_0) iTasks.API.Core.Types.Exception) (let iworld_7_0 = _predefined.tupsels2v1 _x_5_1, _x_7_1 = iTasks._Framework.SDS.read (iTasks.API.Common.SDSCombinators.sdsFocus (<{iTasks._Framework.Generic.iTask;}> (<{iTasks._Framework.TaskEval.gEditor_s;}> iTasks._Framework.Generic.Interaction.gEditor_Int_20) (<{iTasks._Framework.TaskEval.gEditMeta_s;}> iTasks._Framework.Generic.Interaction.gEditMeta_Int_50) (<{iTasks._Framework.TaskEval.gUpdate_s;}> iTasks._Framework.Generic.Interaction.gUpdate_Int_110) (<{iTasks._Framework.TaskEval.gVerify_s;}> iTasks._Framework.Generic.Interaction.gVerify_Int_80) (<{iTasks._Framework.TaskEval.gText_s;}> iTasks._Framework.Generic.Visualization.gText_Int_11) (<{iTasks._Framework.TaskEval.JSONEncode_s;}> Text.JSON.JSONEncode_Int_10) (<{iTasks._Framework.TaskEval.JSONDecode_s;}> Text.JSON.JSONDecode_Int_31) (<{iTasks._Framework.TaskEval.gDefault_s;}> iTasks._Framework.Generic.Defaults.gDefault_Int_8) (<{iTasks._Framework.TaskEval.gEq_s;}> GenEq.gEq_Int_2) (_SystemDynamic.TypeCons (_SystemDynamic._TypeCodeConstructor _SystemDynamic.TC_Int))) instanceNo_0 iTasks._Framework.TaskStore.taskInstanceValue) iworld_7_0, iworld_7_2 = _predefined.tupsels2v1 _x_7_1 in <{iTasks._Framework.TaskEval._c;43;11_607}> (_predefined.tupsels2v0 _x_7_1) iworld_7_2) (let constants_7_0 = Data.Error.fromOk constants_3_1, session_7_1 = iTasks.API.Core.Types.get_session_30 constants_7_0, oldReduct_7_2 = Data.Error.fromOk oldReduct_4_2, eval_7_3 = _predefined.tupsels1v0 (iTasks._Framework.TaskState.get_task_8 oldReduct_7_2), tonicRedOpts_7_4 = iTasks._Framework.TaskState.get_tonicRedOpts_10 oldReduct_7_2, tree_7_5 = iTasks._Framework.TaskState.get_tree_9 oldReduct_7_2, iworld_7_6 = _predefined.tupsels2v1 _x_5_1, attachedTo_7_7 = iTasks.API.Core.Types.get_attachedTo_34 oldProgress_6_0, _x_7_8 = <{iTasks._Framework.TaskEval._c;48;44_608}> (_Tuple2 session_7_1 attachedTo_7_7) instanceNo_0, currentSession_7_9 = _predefined.tupsels2v0 _x_7_8, currentAttachment_7_10 = _predefined.tupsels2v1 _x_7_8, eventRoute_7_11 = Data.Map.newMap, iworld_7_12 = iTasks._Framework.IWorld.set_current_3 iworld_7_6 (iTasks._Framework.IWorld._TaskEvalState (iTasks._Framework.TaskState.get_nextTaskTime_12 oldReduct_7_2) instanceNo_0 currentSession_7_9 currentAttachment_7_10 (iTasks._Framework.TaskState.get_nextTaskNo_11 oldReduct_7_2) eventRoute_7_11 (iTasks._Framework.IWorld.get_editletDiffs_35 current_1_3)), _x_7_13 = eval_7_3 event_1 (iTasks._Framework.Task.set_tonicOpts_3 iTasks._Framework.Task.mkEvalOpts tonicRedOpts_7_4) tree_7_5 iworld_7_12, newResult_7_14 = _predefined.tupsels2v0 _x_7_13, newResult_7_15 = iTasks._Framework.TaskEval.finalizeUI_20 session_7_1 newResult_7_14, iworld_7_16 = _predefined.tupsels2v1 _x_7_13, current_7_17 = iTasks._Framework.IWorld.get_current_3 iworld_7_16, iworld_7_18 = iTasks._Framework.IWorld.set_current_3 iworld_7_16 (iTasks._Framework.IWorld.set_taskInstance_30 current_7_17 0), _x_7_19 = Data.Tuple.appFst Data.Error.isError (iTasks._Framework.SDS.read (iTasks.API.Common.SDSCombinators.sdsFocus (<{iTasks._Framework.Generic.iTask;}> (<{iTasks._Framework.TaskEval.gEditor_s;}> iTasks._Framework.Generic.Interaction.gEditor_Int_20) (<{iTasks._Framework.TaskEval.gEditMeta_s;}> iTasks._Framework.Generic.Interaction.gEditMeta_Int_50) (<{iTasks._Framework.TaskEval.gUpdate_s;}> iTasks._Framework.Generic.Interaction.gUpdate_Int_110) (<{iTasks._Framework.TaskEval.gVerify_s;}> iTasks._Framework.Generic.Interaction.gVerify_Int_80) (<{iTasks._Framework.TaskEval.gText_s;}> iTasks._Framework.Generic.Visualization.gText_Int_11) (<{iTasks._Framework.TaskEval.JSONEncode_s;}> Text.JSON.JSONEncode_Int_10) (<{iTasks._Framework.TaskEval.JSONDecode_s;}> Text.JSON.JSONDecode_Int_31) (<{iTasks._Framework.TaskEval.gDefault_s;}> iTasks._Framework.Generic.Defaults.gDefault_Int_8) (<{iTasks._Framework.TaskEval.gEq_s;}> GenEq.gEq_Int_2) (_SystemDynamic.TypeCons (_SystemDynamic._TypeCodeConstructor _SystemDynamic.TC_Int))) instanceNo_0 iTasks._Framework.TaskStore.taskInstanceConstants) iworld_7_18), iworld_7_20 = _predefined.tupsels2v1 _x_7_19, _x_7_21 = iTasks._Framework.SDS.modify (iTasks._Framework.TaskEval.updateProgress_21 (iTasks.API.Core.Types.DateTime localDate_2_0 localTime_2_1) newResult_7_15) (iTasks.API.Common.SDSCombinators.sdsFocus (<{iTasks._Framework.Generic.iTask;}> (<{iTasks._Framework.TaskEval.gEditor_s;}> iTasks._Framework.Generic.Interaction.gEditor_Int_20) (<{iTasks._Framework.TaskEval.gEditMeta_s;}> iTasks._Framework.Generic.Interaction.gEditMeta_Int_50) (<{iTasks._Framework.TaskEval.gUpdate_s;}> iTasks._Framework.Generic.Interaction.gUpdate_Int_110) (<{iTasks._Framework.TaskEval.gVerify_s;}> iTasks._Framework.Generic.Interaction.gVerify_Int_80) (<{iTasks._Framework.TaskEval.gText_s;}> iTasks._Framework.Generic.Visualization.gText_Int_11) (<{iTasks._Framework.TaskEval.JSONEncode_s;}> Text.JSON.JSONEncode_Int_10) (<{iTasks._Framework.TaskEval.JSONDecode_s;}> Text.JSON.JSONDecode_Int_31) (<{iTasks._Framework.TaskEval.gDefault_s;}> iTasks._Framework.Generic.Defaults.gDefault_Int_8) (<{iTasks._Framework.TaskEval.gEq_s;}> GenEq.gEq_Int_2) (_SystemDynamic.TypeCons (_SystemDynamic._TypeCodeConstructor _SystemDynamic.TC_Int))) instanceNo_0 iTasks._Framework.TaskStore.taskInstanceProgress) iworld_7_20, iworld_7_22 = _predefined.tupsels2v1 _x_7_21, deleted_7_23 = _predefined.tupsels2v0 _x_7_19, nextTaskTime_7_24 = iTasks._Framework.TaskState.get_nextTaskTime_12 oldReduct_7_2 in <{iTasks._Framework.TaskEval._c;78;7_621}> (_predefined.tupsels2v0 _x_7_21) iworld_7_22 event_1 nextTaskTime_7_24 instanceNo_0 newResult_7_15 tree_7_5 deleted_7_23))))) ) 
+<{iTasks._Framework.TaskEval._c;78;7_621}> !_x_0 iworld_1 event_2 nextTaskTime_3 instanceNo_4 newResult_5 tree_6 deleted_7 = select _x_0 (Data.Error.Error _x_1_0 -> select _x_1_0 (_Tuple2 e_2_0 msg_2_1 -> _Tuple2 (Data.Error.Error msg_2_1) iworld_1) ) (Data.Error.Ok _x_1_0 -> let _x_2_0 = <{iTasks._Framework.TaskEval._if;89;43_611}> deleted_7 iworld_2_8 newValue_2_2 instanceNo_4, iworld_2_1 = _predefined.tupsels2v1 _x_2_0, newValue_2_2 = <{iTasks._Framework.TaskEval._c;86;43_610}> newResult_5, tree_2_3 = <{iTasks._Framework.TaskEval._c;69;35_609}> newResult_5 tree_6, _x_2_4 = iTasks._Framework.TaskEval.getNextTaskNo_17 iworld_1, nextTaskNo_2_5 = _predefined.tupsels2v0 _x_2_4, iworld_2_6 = _predefined.tupsels2v1 _x_2_4, _x_2_7 = iTasks._Framework.SDS.modify (iTasks._Framework.TaskEval.anon_14 event_2 nextTaskTime_3 tree_2_3 nextTaskNo_2_5) (iTasks.API.Common.SDSCombinators.sdsFocus (<{iTasks._Framework.Generic.iTask;}> (<{iTasks._Framework.TaskEval.gEditor_s;}> iTasks._Framework.Generic.Interaction.gEditor_Int_20) (<{iTasks._Framework.TaskEval.gEditMeta_s;}> iTasks._Framework.Generic.Interaction.gEditMeta_Int_50) (<{iTasks._Framework.TaskEval.gUpdate_s;}> iTasks._Framework.Generic.Interaction.gUpdate_Int_110) (<{iTasks._Framework.TaskEval.gVerify_s;}> iTasks._Framework.Generic.Interaction.gVerify_Int_80) (<{iTasks._Framework.TaskEval.gText_s;}> iTasks._Framework.Generic.Visualization.gText_Int_11) (<{iTasks._Framework.TaskEval.JSONEncode_s;}> Text.JSON.JSONEncode_Int_10) (<{iTasks._Framework.TaskEval.JSONDecode_s;}> Text.JSON.JSONDecode_Int_31) (<{iTasks._Framework.TaskEval.gDefault_s;}> iTasks._Framework.Generic.Defaults.gDefault_Int_8) (<{iTasks._Framework.TaskEval.gEq_s;}> GenEq.gEq_Int_2) (_SystemDynamic.TypeCons (_SystemDynamic._TypeCodeConstructor _SystemDynamic.TC_Int))) instanceNo_4 iTasks._Framework.TaskStore.taskInstanceReduct) iworld_2_6, iworld_2_8 = _predefined.tupsels2v1 _x_2_7 in <{iTasks._Framework.TaskEval._c;90;15_620}> (_predefined.tupsels2v0 _x_2_0) iworld_2_1 newResult_5 instanceNo_4 event_2 deleted_7) 
+<{iTasks._Framework.TaskEval._c;90;15_620}> !_x_0 iworld_1 newResult_2 instanceNo_3 event_4 deleted_5 = select _x_0 (Data.Error.Error _x_1_0 -> select _x_1_0 (_Tuple2 e_2_0 msg_2_1 -> _Tuple2 (Data.Error.Error msg_2_1) iworld_1) ) (Data.Error.Ok _x_1_0 -> <{iTasks._Framework.TaskEval._c;94;19_619}> newResult_2 instanceNo_3 iworld_1 event_4 deleted_5) 
+<{iTasks._Framework.TaskEval._c;94;19_619}> !newResult_0 instanceNo_1 iworld_2 event_3 deleted_4 = select newResult_0 (iTasks._Framework.Task.ValueResult value_1_0 _x_1_1 newRep_1_2 _x_1_3 _x_1_4 -> <{iTasks._Framework.TaskEval._c;96;27_618}> (iTasks._Framework.SDS.read (iTasks.API.Common.SDSCombinators.sdsFocus (<{iTasks._Framework.Generic.iTask;}> (<{iTasks._Framework.TaskEval.gEditor_s;}> iTasks._Framework.Generic.Interaction.gEditor_Int_20) (<{iTasks._Framework.TaskEval.gEditMeta_s;}> iTasks._Framework.Generic.Interaction.gEditMeta_Int_50) (<{iTasks._Framework.TaskEval.gUpdate_s;}> iTasks._Framework.Generic.Interaction.gUpdate_Int_110) (<{iTasks._Framework.TaskEval.gVerify_s;}> iTasks._Framework.Generic.Interaction.gVerify_Int_80) (<{iTasks._Framework.TaskEval.gText_s;}> iTasks._Framework.Generic.Visualization.gText_Int_11) (<{iTasks._Framework.TaskEval.JSONEncode_s;}> Text.JSON.JSONEncode_Int_10) (<{iTasks._Framework.TaskEval.JSONDecode_s;}> Text.JSON.JSONDecode_Int_31) (<{iTasks._Framework.TaskEval.gDefault_s;}> iTasks._Framework.Generic.Defaults.gDefault_Int_8) (<{iTasks._Framework.TaskEval.gEq_s;}> GenEq.gEq_Int_2) (_SystemDynamic.TypeCons (_SystemDynamic._TypeCodeConstructor _SystemDynamic.TC_Int))) instanceNo_1 iTasks._Framework.TaskStore.taskInstanceRep) iworld_2) event_3 newRep_1_2 deleted_4 instanceNo_1 value_1_0) (iTasks._Framework.Task.ExceptionResult _x_1_0 -> select _x_1_0 (_Tuple2 e_2_0 msg_2_1 -> _Tuple2 (Data.Error.Error msg_2_1) iworld_2) ) 
+<{iTasks._Framework.TaskEval._c;96;27_618}> !_x_0 event_1 newRep_2 deleted_3 instanceNo_4 value_5 = select _x_0 (_Tuple2 _x_1_0 iworld_1_1 -> select _x_1_0 (Data.Error.Ok oldRep_2_0 -> let _x_3_0 = <{iTasks._Framework.TaskEval._if;105;52_614}> deleted_3 iworld_3_9 newRep_2 instanceNo_4, iworld_3_1 = _predefined.tupsels2v1 _x_3_0, oldU_3_2 = <{iTasks._Framework.TaskEval._c;98;43_613}> oldRep_2_0, newU_3_3 = <{iTasks._Framework.TaskEval._c;99;43_612}> newRep_2, _x_3_4 = iTasks._Framework.TaskEval.getEditletDiffs_18 iworld_1_1, editletDiffs_3_5 = _predefined.tupsels2v0 _x_3_4, _x_3_6 = iTasks._Framework.UIDiff.diffUIDefinitions oldU_3_2 newU_3_3 event_1 editletDiffs_3_5, editletDiffs_3_7 = _predefined.tupsels2v1 _x_3_6, iworld_3_8 = _predefined.tupsels2v1 _x_3_4, iworld_3_9 = iTasks._Framework.TaskEval.setEditletDiffs_19 editletDiffs_3_7 iworld_3_8, updates_3_10 = _predefined.tupsels2v0 _x_3_6 in <{iTasks._Framework.TaskEval._c;108;35_617}> (_predefined.tupsels2v0 _x_3_0) iworld_3_1 event_1 value_5 updates_3_10) (Data.Error.Error _x_2_0 -> select _x_2_0 (_Tuple2 e_3_0 msg_3_1 -> _Tuple2 (Data.Error.Error msg_3_1) iworld_1_1) ) ) 
+<{iTasks._Framework.TaskEval._c;108;35_617}> !_x_0 iworld_1 event_2 value_3 updates_4 = select _x_0 (Data.Error.Error _x_1_0 -> iTasks._Framework.TaskEval._f616_616 _x_1_0 iworld_1 _x_0 event_2 value_3 updates_4) (_ -> <{iTasks._Framework.TaskEval._c;108;35_615}> _x_0 event_2 value_3 updates_4 iworld_1)
+iTasks._Framework.TaskEval._f616_616 !_x_0 iworld_1 _x_2 event_3 value_4 updates_5 = select _x_0 (_Tuple2 e_1_0 msg_1_1 -> _Tuple2 (Data.Error.Error msg_1_1) (iTasks._Framework.Store.flushShareCache iworld_1)) (_ -> <{iTasks._Framework.TaskEval._c;108;35_615}> _x_2 event_3 value_4 updates_5 iworld_1)
+<{iTasks._Framework.TaskEval._c;108;35_615}> !_x_0 event_1 value_2 updates_3 iworld_4 = select _x_0 (Data.Error.Ok _x_1_0 -> _Tuple2 (Data.Error.Ok (_Tuple3 (iTasks._Framework.TaskEval.lastEventNo_22 event_1) value_2 updates_3)) (iTasks._Framework.Store.flushShareCache iworld_4)) 
+<{iTasks._Framework.TaskEval._if;105;52_614}> !deleted_0 iworld_1 newRep_2 instanceNo_3 = select deleted_0 (True -> _Tuple2 (Data.Error.Ok _predefined._Unit) iworld_1) (_ -> iTasks._Framework.SDS.write newRep_2 (iTasks.API.Common.SDSCombinators.sdsFocus (<{iTasks._Framework.Generic.iTask;}> (<{iTasks._Framework.TaskEval.gEditor_s;}> iTasks._Framework.Generic.Interaction.gEditor_Int_20) (<{iTasks._Framework.TaskEval.gEditMeta_s;}> iTasks._Framework.Generic.Interaction.gEditMeta_Int_50) (<{iTasks._Framework.TaskEval.gUpdate_s;}> iTasks._Framework.Generic.Interaction.gUpdate_Int_110) (<{iTasks._Framework.TaskEval.gVerify_s;}> iTasks._Framework.Generic.Interaction.gVerify_Int_80) (<{iTasks._Framework.TaskEval.gText_s;}> iTasks._Framework.Generic.Visualization.gText_Int_11) (<{iTasks._Framework.TaskEval.JSONEncode_s;}> Text.JSON.JSONEncode_Int_10) (<{iTasks._Framework.TaskEval.JSONDecode_s;}> Text.JSON.JSONDecode_Int_31) (<{iTasks._Framework.TaskEval.gDefault_s;}> iTasks._Framework.Generic.Defaults.gDefault_Int_8) (<{iTasks._Framework.TaskEval.gEq_s;}> GenEq.gEq_Int_2) (_SystemDynamic.TypeCons (_SystemDynamic._TypeCodeConstructor _SystemDynamic.TC_Int))) instanceNo_3 iTasks._Framework.TaskStore.taskInstanceRep) iworld_1)
+<{iTasks._Framework.TaskEval._c;98;43_613}> !oldRep_0 = select oldRep_0 (iTasks._Framework.Task.TaskRep oldU_1_0 -> oldU_1_0) (_ -> iTasks._Framework.UIDefinition.emptyUI)
+<{iTasks._Framework.TaskEval._c;99;43_612}> !newRep_0 = select newRep_0 (iTasks._Framework.Task.TaskRep newU_1_0 -> newU_1_0) (_ -> iTasks._Framework.UIDefinition.emptyUI)
+<{iTasks._Framework.TaskEval._if;89;43_611}> !deleted_0 iworld_1 newValue_2 instanceNo_3 = select deleted_0 (True -> _Tuple2 (Data.Error.Ok _predefined._Unit) iworld_1) (_ -> iTasks._Framework.SDS.write newValue_2 (iTasks.API.Common.SDSCombinators.sdsFocus (<{iTasks._Framework.Generic.iTask;}> (<{iTasks._Framework.TaskEval.gEditor_s;}> iTasks._Framework.Generic.Interaction.gEditor_Int_20) (<{iTasks._Framework.TaskEval.gEditMeta_s;}> iTasks._Framework.Generic.Interaction.gEditMeta_Int_50) (<{iTasks._Framework.TaskEval.gUpdate_s;}> iTasks._Framework.Generic.Interaction.gUpdate_Int_110) (<{iTasks._Framework.TaskEval.gVerify_s;}> iTasks._Framework.Generic.Interaction.gVerify_Int_80) (<{iTasks._Framework.TaskEval.gText_s;}> iTasks._Framework.Generic.Visualization.gText_Int_11) (<{iTasks._Framework.TaskEval.JSONEncode_s;}> Text.JSON.JSONEncode_Int_10) (<{iTasks._Framework.TaskEval.JSONDecode_s;}> Text.JSON.JSONDecode_Int_31) (<{iTasks._Framework.TaskEval.gDefault_s;}> iTasks._Framework.Generic.Defaults.gDefault_Int_8) (<{iTasks._Framework.TaskEval.gEq_s;}> GenEq.gEq_Int_2) (_SystemDynamic.TypeCons (_SystemDynamic._TypeCodeConstructor _SystemDynamic.TC_Int))) instanceNo_3 iTasks._Framework.TaskStore.taskInstanceValue) iworld_1)
+<{iTasks._Framework.TaskEval._c;86;43_610}> !newResult_0 = select newResult_0 (iTasks._Framework.Task.ValueResult val_1_0 _x_1_1 _x_1_2 _x_1_3 _x_1_4 -> iTasks._Framework.TaskState.TIValue val_1_0) (iTasks._Framework.Task.ExceptionResult _x_1_0 -> select _x_1_0 (_Tuple2 e_2_0 str_2_1 -> iTasks._Framework.TaskState.TIException e_2_0 str_2_1) ) 
+<{iTasks._Framework.TaskEval._c;69;35_609}> !newResult_0 tree_1 = select newResult_0 (iTasks._Framework.Task.ValueResult _x_1_0 _x_1_1 _x_1_2 newTree_1_3 _x_1_4 -> newTree_1_3) (_ -> tree_1)
+<{iTasks._Framework.TaskEval._c;48;44_608}> !_x_0 instanceNo_1 = select _x_0 (_Tuple2 _x_1_0 _x_1_1 -> if _x_1_0 (_Tuple2 (Data.Maybe.Just instanceNo_1) _predefined._Nil) (select _x_1_1 (_predefined._Nil -> _Tuple2 Data.Maybe.Nothing _predefined._Nil) (_predefined._Cons _x_2_0 _x_2_1 -> select _x_2_0 (iTasks.API.Core.Types.TaskId sessionNo_3_0 _x_3_1 -> _Tuple2 (Data.Maybe.Just sessionNo_3_0) _x_1_1) ) )) 
+<{iTasks._Framework.TaskEval._c;43;11_607}> !_x_0 iworld_1 = select _x_0 (Data.Error.Error _x_1_0 -> select _x_1_0 (_Tuple2 e_2_0 msg_2_1 -> _Tuple2 (Data.Error.Error msg_2_1) iworld_1) ) (Data.Error.Ok _x_1_0 -> select _x_1_0 (iTasks._Framework.TaskState.TIException e_2_0 msg_2_1 -> _Tuple2 (Data.Error.Error msg_2_1) iworld_1) (_ -> _Tuple2 (Data.Error.Error "Exception no longer available") iworld_1)) 
+iTasks._Framework.TaskEval.evalTaskInstance !instanceNo_0 !event_1 !iworld_2 = let _x_1_0 = <{iTasks._Framework.TaskEval.evalTaskInstance`_16}> instanceNo_0 event_1 (iTasks._Framework.TaskEval.resetUIUpdates_23 instanceNo_0 event_1 iworld_2) in <{_Tuple2!3}> (_predefined.tupsels2v0 _x_1_0) (_predefined.tupsels2v1 _x_1_0)
+iTasks._Framework.TaskEval.anon_24 updates_0 !u_1 = <{StdList.++}> u_1 updates_0
+iTasks._Framework.TaskEval.anon_25 !<{_v<_0}> !instanceNo_1 updates_2 !output_3 = Data.Map.put <{_v<_0}> instanceNo_1 (Data.Maybe.maybe updates_2 (iTasks._Framework.TaskEval.anon_24 updates_2) (Data.Map.get <{_v<_0}> instanceNo_1 output_3)) output_3
+iTasks._Framework.TaskEval.anon_601 !instanceNo_0 updates_1 !output_2 = Data.Map.put (<{StdOverloaded.<;}> <{StdInt.<_17}>) instanceNo_0 (Data.Maybe.maybe updates_1 (iTasks._Framework.TaskEval.anon_24 updates_1) (Data.Map.get (<{StdOverloaded.<;}> <{StdInt.<_17}>) instanceNo_0 output_2)) output_2
+iTasks._Framework.TaskEval.refreshTaskInstance !instanceNo_0 !mbReason_1 !iworld_2 = let _x_1_0 = iTasks._Framework.TaskEval.evalTaskInstance instanceNo_0 (iTasks._Framework.Task.RefreshEvent Data.Maybe.Nothing) iworld_2, iworld_1_1 = _predefined.tupsels2v1 _x_1_0 in <{iTasks._Framework.TaskEval._c;154;7_622}> (_predefined.tupsels2v0 _x_1_0) instanceNo_0 iworld_1_1
+<{iTasks._Framework.TaskEval._c;154;7_622}> !_x_0 instanceNo_1 !iworld_2 = select _x_0 (Data.Error.Ok _x_1_0 -> select _x_1_0 (_Tuple3 _x_2_0 _x_2_1 updates_2_2 -> _predefined.tupsels2v1 (iTasks._Framework.SDS.modify (iTasks._Framework.TaskEval.anon_601 instanceNo_1 updates_2_2) iTasks._Framework.TaskStore.taskOutput iworld_2)) ) (_ -> iworld_2)
+iTasks._Framework.TaskEval.anon_26 updates_0 !u_1 = <{StdList.++}> u_1 updates_0
+iTasks._Framework.TaskEval.anon_27 !<{_v<_0}> !instanceNo_1 updates_2 !output_3 = Data.Map.put <{_v<_0}> instanceNo_1 (Data.Maybe.maybe updates_2 (iTasks._Framework.TaskEval.anon_26 updates_2) (Data.Map.get <{_v<_0}> instanceNo_1 output_3)) output_3
+iTasks._Framework.TaskEval.anon_602 !instanceNo_0 updates_1 !output_2 = Data.Map.put (<{StdOverloaded.<;}> <{StdInt.<_17}>) instanceNo_0 (Data.Maybe.maybe updates_1 (iTasks._Framework.TaskEval.anon_26 updates_1) (Data.Map.get (<{StdOverloaded.<;}> <{StdInt.<_17}>) instanceNo_0 output_2)) output_2
+iTasks._Framework.TaskEval.resetTaskInstance !instanceNo_0 !iworld_1 = let _x_1_0 = iTasks._Framework.TaskEval.evalTaskInstance instanceNo_0 iTasks._Framework.Task.ResetEvent iworld_1, iworld_1_1 = _predefined.tupsels2v1 _x_1_0 in <{iTasks._Framework.TaskEval._c;163;7_623}> (_predefined.tupsels2v0 _x_1_0) instanceNo_0 iworld_1_1
+<{iTasks._Framework.TaskEval._c;163;7_623}> !_x_0 instanceNo_1 !iworld_2 = select _x_0 (Data.Error.Ok _x_1_0 -> select _x_1_0 (_Tuple3 _x_2_0 _x_2_1 updates_2_2 -> _predefined.tupsels2v1 (iTasks._Framework.SDS.modify (iTasks._Framework.TaskEval.anon_602 instanceNo_1 updates_2_2) iTasks._Framework.TaskStore.taskOutput iworld_2)) ) (_ -> iworld_2)
+<{iTasks._Framework.TaskEval.c;211;86_28}> !g_l_0 g_l_1 = <{iTasks._Framework.TaskEval.g_c1;211;71_625}> g_l_0 g_l_1
+<{iTasks._Framework.TaskEval.g_c1;211;71_625}> !g_l_0 g_l_1 = select g_l_0 (_predefined._Cons g_h_1_0 g_t_1_1 -> <{iTasks._Framework.TaskEval.g_c1;211;90_624}> g_l_1 g_h_1_0 g_t_1_1) (_ -> _predefined._Nil)
+<{iTasks._Framework.TaskEval.g_c1;211;90_624}> !g_l_0 g_h_1 g_t_2 = select g_l_0 (_predefined._Cons g_h_1_0 g_t_1_1 -> _predefined._Cons (_Tuple2 g_h_1 g_h_1_0) (<{iTasks._Framework.TaskEval.c;211;86_28}> g_t_2 g_t_1_1)) (_ -> _predefined._Nil)
+iTasks._Framework.TaskEval.queueRefresh !instanceNos_0 reasons_1 !iworld_2 = select iworld_2 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> iTasks._Framework.IWorld.set_refreshQueue_10 (iTasks._Framework.SDS.clearInstanceSDSRegistrations instanceNos_0 iworld_2) (StdList.removeDup (<{StdClass.Eq;}> (<{StdOverloaded.==;}> (<{StdTuple.==_4}> (<{StdClass.Eq;}> (<{StdOverloaded.==;}> <{StdInt.==_16}>)) (<{StdClass.Eq;}> (<{StdOverloaded.==;}> (<{Data.Maybe.==_11}> (<{StdOverloaded.==;}> <{StdString.==_2}>))))))) (<{StdList.++}> refreshQueue_1_10 (<{iTasks._Framework.TaskEval.c;211;86_28}> instanceNos_0 (<{StdList.++}> (StdList.map Data.Maybe.Just reasons_1) (StdList.repeat Data.Maybe.Nothing)))))) 
+<{iTasks._Framework.TaskEval.c;217;70_29}> !g_l_0 g_l_1 = <{iTasks._Framework.TaskEval.g_c1;217;55_627}> g_l_0 g_l_1
+<{iTasks._Framework.TaskEval.g_c1;217;55_627}> !g_l_0 g_l_1 = select g_l_0 (_predefined._Cons g_h_1_0 g_t_1_1 -> <{iTasks._Framework.TaskEval.g_c1;217;74_626}> g_l_1 g_h_1_0 g_t_1_1) (_ -> _predefined._Nil)
+<{iTasks._Framework.TaskEval.g_c1;217;74_626}> !g_l_0 g_h_1 g_t_2 = select g_l_0 (_predefined._Cons g_h_1_0 g_t_1_1 -> _predefined._Cons (_Tuple2 g_h_1 g_h_1_0) (<{iTasks._Framework.TaskEval.c;217;70_29}> g_t_2 g_t_1_1)) (_ -> _predefined._Nil)
+iTasks._Framework.TaskEval.queueUrgentRefresh !instanceNos_0 reasons_1 !iworld_2 = select iworld_2 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> iTasks._Framework.IWorld.set_refreshQueue_10 (iTasks._Framework.SDS.clearInstanceSDSRegistrations instanceNos_0 iworld_2) (StdList.removeDup (<{StdClass.Eq;}> (<{StdOverloaded.==;}> (<{StdTuple.==_4}> (<{StdClass.Eq;}> (<{StdOverloaded.==;}> <{StdInt.==_16}>)) (<{StdClass.Eq;}> (<{StdOverloaded.==;}> (<{Data.Maybe.==_11}> (<{StdOverloaded.==;}> <{StdString.==_2}>))))))) (<{StdList.++}> (<{iTasks._Framework.TaskEval.c;217;70_29}> instanceNos_0 (<{StdList.++}> (StdList.map Data.Maybe.Just reasons_1) (StdList.repeat Data.Maybe.Nothing))) refreshQueue_1_10))) 
+iTasks._Framework.TaskEval.dequeueRefresh !iworld_0 = select iworld_0 (iTasks._Framework.IWorld._IWorld server_1_0 config_1_1 clocks_1_2 current_1_3 random_1_4 sdsNotifyRequests_1_5 memoryShares_1_6 cachedShares_1_7 exposedShares_1_8 jsCompilerState_1_9 refreshQueue_1_10 ioTasks_1_11 ioStates_1_12 world_1_13 resources_1_14 onClient_1_15 shutdown_1_16 -> select refreshQueue_1_10 (_predefined._Nil -> <{_Tuple3!7}> Data.Maybe.Nothing Data.Maybe.Nothing iworld_0) (_predefined._Cons _x_2_0 refreshQueue_2_1 -> select _x_2_0 (_Tuple2 instanceNo_3_0 mbReason_3_1 -> <{_Tuple3!7}> (Data.Maybe.Just instanceNo_3_0) mbReason_3_1 (iTasks._Framework.IWorld.set_refreshQueue_10 iworld_0 refreshQueue_2_1)) ) ) 
+iTasks._Framework.TaskEval.anon_30 localDate_0 localTime_1 !p_2 = iTasks.API.Core.Types.set_lastIO_38 p_2 (Data.Maybe.Just (iTasks.API.Core.Types.DateTime localDate_0 localTime_1))
+iTasks._Framework.TaskEval.updateInstanceLastIO !_x_0 !iworld_1 = select _x_0 (_predefined._Nil -> iworld_1) (_predefined._Cons instanceNo_1_0 instanceNos_1_1 -> select iworld_1 (iTasks._Framework.IWorld._IWorld server_2_0 config_2_1 clocks_2_2 current_2_3 random_2_4 sdsNotifyRequests_2_5 memoryShares_2_6 cachedShares_2_7 exposedShares_2_8 jsCompilerState_2_9 refreshQueue_2_10 ioTasks_2_11 ioStates_2_12 world_2_13 resources_2_14 onClient_2_15 shutdown_2_16 -> select clocks_2_2 (iTasks._Framework.IWorld._SystemClocks localDate_3_0 localTime_3_1 utcDate_3_2 utcTime_3_3 -> iTasks._Framework.TaskEval.updateInstanceLastIO instanceNos_1_1 (_predefined.tupsels2v1 (iTasks._Framework.SDS.modify (iTasks._Framework.TaskEval.anon_30 localDate_3_0 localTime_3_1) (iTasks.API.Common.SDSCombinators.sdsFocus (<{iTasks._Framework.Generic.iTask;}> (<{iTasks._Framework.TaskEval.gEditor_s;}> iTasks._Framework.Generic.Interaction.gEditor_Int_20) (<{iTasks._Framework.TaskEval.gEditMeta_s;}> iTasks._Framework.Generic.Interaction.gEditMeta_Int_50) (<{iTasks._Framework.TaskEval.gUpdate_s;}> iTasks._Framework.Generic.Interaction.gUpdate_Int_110) (<{iTasks._Framework.TaskEval.gVerify_s;}> iTasks._Framework.Generic.Interaction.gVerify_Int_80) (<{iTasks._Framework.TaskEval.gText_s;}> iTasks._Framework.Generic.Visualization.gText_Int_11) (<{iTasks._Framework.TaskEval.JSONEncode_s;}> Text.JSON.JSONEncode_Int_10) (<{iTasks._Framework.TaskEval.JSONDecode_s;}> Text.JSON.JSONDecode_Int_31) (<{iTasks._Framework.TaskEval.gDefault_s;}> iTasks._Framework.Generic.Defaults.gDefault_Int_8) (<{iTasks._Framework.TaskEval.gEq_s;}> GenEq.gEq_Int_2) (_SystemDynamic.TypeCons (_SystemDynamic._TypeCodeConstructor _SystemDynamic.TC_Int))) instanceNo_1_0 iTasks._Framework.TaskStore.taskInstanceProgress) iworld_1))) ) ) 
+iTasks._Framework.TaskEval.anon_31 localDate_0 localTime_1 client_2 !p_3 = iTasks.API.Core.Types.set_lastIO_38 (iTasks.API.Core.Types.set_connectedTo_37 p_3 (Data.Maybe.Just client_2)) (Data.Maybe.Just (iTasks.API.Core.Types.DateTime localDate_0 localTime_1))
+iTasks._Framework.TaskEval.updateInstanceConnect !client_0 !_x_1 !iworld_2 = select _x_1 (_predefined._Nil -> iworld_2) (_predefined._Cons instanceNo_1_0 instanceNos_1_1 -> select iworld_2 (iTasks._Framework.IWorld._IWorld server_2_0 config_2_1 clocks_2_2 current_2_3 random_2_4 sdsNotifyRequests_2_5 memoryShares_2_6 cachedShares_2_7 exposedShares_2_8 jsCompilerState_2_9 refreshQueue_2_10 ioTasks_2_11 ioStates_2_12 world_2_13 resources_2_14 onClient_2_15 shutdown_2_16 -> select clocks_2_2 (iTasks._Framework.IWorld._SystemClocks localDate_3_0 localTime_3_1 utcDate_3_2 utcTime_3_3 -> iTasks._Framework.TaskEval.updateInstanceConnect client_0 instanceNos_1_1 (_predefined.tupsels2v1 (iTasks._Framework.SDS.modify (iTasks._Framework.TaskEval.anon_31 localDate_3_0 localTime_3_1 client_0) (iTasks.API.Common.SDSCombinators.sdsFocus (<{iTasks._Framework.Generic.iTask;}> (<{iTasks._Framework.TaskEval.gEditor_s;}> iTasks._Framework.Generic.Interaction.gEditor_Int_20) (<{iTasks._Framework.TaskEval.gEditMeta_s;}> iTasks._Framework.Generic.Interaction.gEditMeta_Int_50) (<{iTasks._Framework.TaskEval.gUpdate_s;}> iTasks._Framework.Generic.Interaction.gUpdate_Int_110) (<{iTasks._Framework.TaskEval.gVerify_s;}> iTasks._Framework.Generic.Interaction.gVerify_Int_80) (<{iTasks._Framework.TaskEval.gText_s;}> iTasks._Framework.Generic.Visualization.gText_Int_11) (<{iTasks._Framework.TaskEval.JSONEncode_s;}> Text.JSON.JSONEncode_Int_10) (<{iTasks._Framework.TaskEval.JSONDecode_s;}> Text.JSON.JSONDecode_Int_31) (<{iTasks._Framework.TaskEval.gDefault_s;}> iTasks._Framework.Generic.Defaults.gDefault_Int_8) (<{iTasks._Framework.TaskEval.gEq_s;}> GenEq.gEq_Int_2) (_SystemDynamic.TypeCons (_SystemDynamic._TypeCodeConstructor _SystemDynamic.TC_Int))) instanceNo_1_0 iTasks._Framework.TaskStore.taskInstanceProgress) iworld_2))) ) ) 
+iTasks._Framework.TaskEval.anon_32 localDate_0 localTime_1 !p_2 = iTasks.API.Core.Types.set_lastIO_38 (iTasks.API.Core.Types.set_connectedTo_37 p_2 Data.Maybe.Nothing) (Data.Maybe.Just (iTasks.API.Core.Types.DateTime localDate_0 localTime_1))
+iTasks._Framework.TaskEval.updateInstanceDisconnect !_x_0 !iworld_1 = select _x_0 (_predefined._Nil -> iworld_1) (_predefined._Cons instanceNo_1_0 instanceNos_1_1 -> select iworld_1 (iTasks._Framework.IWorld._IWorld server_2_0 config_2_1 clocks_2_2 current_2_3 random_2_4 sdsNotifyRequests_2_5 memoryShares_2_6 cachedShares_2_7 exposedShares_2_8 jsCompilerState_2_9 refreshQueue_2_10 ioTasks_2_11 ioStates_2_12 world_2_13 resources_2_14 onClient_2_15 shutdown_2_16 -> select clocks_2_2 (iTasks._Framework.IWorld._SystemClocks localDate_3_0 localTime_3_1 utcDate_3_2 utcTime_3_3 -> iTasks._Framework.TaskEval.updateInstanceDisconnect instanceNos_1_1 (_predefined.tupsels2v1 (iTasks._Framework.SDS.modify (iTasks._Framework.TaskEval.anon_32 localDate_3_0 localTime_3_1) (iTasks.API.Common.SDSCombinators.sdsFocus (<{iTasks._Framework.Generic.iTask;}> (<{iTasks._Framework.TaskEval.gEditor_s;}> iTasks._Framework.Generic.Interaction.gEditor_Int_20) (<{iTasks._Framework.TaskEval.gEditMeta_s;}> iTasks._Framework.Generic.Interaction.gEditMeta_Int_50) (<{iTasks._Framework.TaskEval.gUpdate_s;}> iTasks._Framework.Generic.Interaction.gUpdate_Int_110) (<{iTasks._Framework.TaskEval.gVerify_s;}> iTasks._Framework.Generic.Interaction.gVerify_Int_80) (<{iTasks._Framework.TaskEval.gText_s;}> iTasks._Framework.Generic.Visualization.gText_Int_11) (<{iTasks._Framework.TaskEval.JSONEncode_s;}> Text.JSON.JSONEncode_Int_10) (<{iTasks._Framework.TaskEval.JSONDecode_s;}> Text.JSON.JSONDecode_Int_31) (<{iTasks._Framework.TaskEval.gDefault_s;}> iTasks._Framework.Generic.Defaults.gDefault_Int_8) (<{iTasks._Framework.TaskEval.gEq_s;}> GenEq.gEq_Int_2) (_SystemDynamic.TypeCons (_SystemDynamic._TypeCodeConstructor _SystemDynamic.TC_Int))) instanceNo_1_0 iTasks._Framework.TaskStore.taskInstanceProgress) iworld_1))) ) ) 
+iTasks._Framework.TaskEval.anon_33 !_x_0 !iworld_1 = select _x_0 (_predefined._Unit -> select iworld_1 (iTasks._Framework.IWorld._IWorld server_2_0 config_2_1 clocks_2_2 current_2_3 random_2_4 sdsNotifyRequests_2_5 memoryShares_2_6 cachedShares_2_7 exposedShares_2_8 jsCompilerState_2_9 refreshQueue_2_10 ioTasks_2_11 ioStates_2_12 world_2_13 resources_2_14 onClient_2_15 shutdown_2_16 -> select current_2_3 (iTasks._Framework.IWorld._TaskEvalState taskTime_3_0 task_3_1 session_3_2 attachmentChain_3_3 nextTaskNo_3_4 eventRoute_3_5 editletDiffs_3_6 -> _Tuple2 task_3_1 iworld_1) ) ) 
+iTasks._Framework.TaskEval.currentInstanceShare = iTasks._Framework.SDS.createReadOnlySDS iTasks._Framework.TaskEval.anon_33
+iTasks._Framework.TaskEval.toGenericTIMeta_47 !x_0 = select x_0 (iTasks._Framework.TaskState._TIMeta x11_1_0 x12_1_1 x13_1_2 x14_1_3 x15_1_4 x16_1_5 x17_1_6 x18_1_7 -> StdGeneric.RECORD (StdGeneric.PAIR (StdGeneric.PAIR (StdGeneric.PAIR (StdGeneric.FIELD x11_1_0) (StdGeneric.FIELD x12_1_1)) (StdGeneric.PAIR (StdGeneric.FIELD x13_1_2) (StdGeneric.FIELD x14_1_3))) (StdGeneric.PAIR (StdGeneric.PAIR (StdGeneric.FIELD x15_1_4) (StdGeneric.FIELD x16_1_5)) (StdGeneric.PAIR (StdGeneric.FIELD x17_1_6) (StdGeneric.FIELD x18_1_7))))) 
+iTasks._Framework.TaskEval.gEq_TIMeta_34 x1_0 x2_1 = GenEq.gEq_RECORD_11 (GenEq.gEq_PAIR_8 (GenEq.gEq_PAIR_8 (GenEq.gEq_PAIR_8 (GenEq.gEq_FIELD_12 GenEq.gEq_Int_2) (GenEq.gEq_FIELD_12 GenEq.gEq__String_6)) (GenEq.gEq_PAIR_8 (GenEq.gEq_FIELD_12 iTasks.API.Core.Types.gEq_TaskId_629) (GenEq.gEq_FIELD_12 GenEq.gEq_Bool_4))) (GenEq.gEq_PAIR_8 (GenEq.gEq_PAIR_8 (GenEq.gEq_FIELD_12 GenEq.gEq__String_6) (GenEq.gEq_FIELD_12 iTasks.API.Core.Types.gEq_DateTime_181)) (GenEq.gEq_PAIR_8 (GenEq.gEq_FIELD_12 iTasks.API.Core.Types.gEq_InstanceProgress_564) (GenEq.gEq_FIELD_12 (Data.Map.gEq_Map_30 GenEq.gEq__String_6 GenEq.gEq__String_6))))) (iTasks._Framework.TaskEval.toGenericTIMeta_47 x1_0) (iTasks._Framework.TaskEval.toGenericTIMeta_47 x2_1)
+
+
+|| Converted Records
+:: <{iTasks._Framework.TaskEval.JSONEncode_s;}> = {!iTasks._Framework.TaskEval.JSONEncode_s}
+iTasks._Framework.TaskEval.get_JSONEncode_s_0 rec = select rec (<{iTasks._Framework.TaskEval.JSONEncode_s;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_JSONEncode_s_0 rec !val = select rec (<{iTasks._Framework.TaskEval.JSONEncode_s;}>  a1 -> <{iTasks._Framework.TaskEval.JSONEncode_s;}> val)
+
+:: <{iTasks._Framework.TaskEval.JSONEncode_ss;}> = {iTasks._Framework.TaskEval.JSONEncode_ss}
+iTasks._Framework.TaskEval.get_JSONEncode_ss_1 rec = select rec (<{iTasks._Framework.TaskEval.JSONEncode_ss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_JSONEncode_ss_1 rec val = select rec (<{iTasks._Framework.TaskEval.JSONEncode_ss;}>  a1 -> <{iTasks._Framework.TaskEval.JSONEncode_ss;}> val)
+
+:: <{iTasks._Framework.TaskEval.JSONEncode_sss;}> = {iTasks._Framework.TaskEval.JSONEncode_sss}
+iTasks._Framework.TaskEval.get_JSONEncode_sss_2 rec = select rec (<{iTasks._Framework.TaskEval.JSONEncode_sss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_JSONEncode_sss_2 rec val = select rec (<{iTasks._Framework.TaskEval.JSONEncode_sss;}>  a1 -> <{iTasks._Framework.TaskEval.JSONEncode_sss;}> val)
+
+:: <{iTasks._Framework.TaskEval.JSONDecode_s;}> = {iTasks._Framework.TaskEval.JSONDecode_s}
+iTasks._Framework.TaskEval.get_JSONDecode_s_3 rec = select rec (<{iTasks._Framework.TaskEval.JSONDecode_s;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_JSONDecode_s_3 rec val = select rec (<{iTasks._Framework.TaskEval.JSONDecode_s;}>  a1 -> <{iTasks._Framework.TaskEval.JSONDecode_s;}> val)
+
+:: <{iTasks._Framework.TaskEval.JSONDecode_ss;}> = {iTasks._Framework.TaskEval.JSONDecode_ss}
+iTasks._Framework.TaskEval.get_JSONDecode_ss_4 rec = select rec (<{iTasks._Framework.TaskEval.JSONDecode_ss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_JSONDecode_ss_4 rec val = select rec (<{iTasks._Framework.TaskEval.JSONDecode_ss;}>  a1 -> <{iTasks._Framework.TaskEval.JSONDecode_ss;}> val)
+
+:: <{iTasks._Framework.TaskEval.JSONDecode_sss;}> = {iTasks._Framework.TaskEval.JSONDecode_sss}
+iTasks._Framework.TaskEval.get_JSONDecode_sss_5 rec = select rec (<{iTasks._Framework.TaskEval.JSONDecode_sss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_JSONDecode_sss_5 rec val = select rec (<{iTasks._Framework.TaskEval.JSONDecode_sss;}>  a1 -> <{iTasks._Framework.TaskEval.JSONDecode_sss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gDefault_s;}> = {iTasks._Framework.TaskEval.gDefault_s}
+iTasks._Framework.TaskEval.get_gDefault_s_6 rec = select rec (<{iTasks._Framework.TaskEval.gDefault_s;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gDefault_s_6 rec val = select rec (<{iTasks._Framework.TaskEval.gDefault_s;}>  a1 -> <{iTasks._Framework.TaskEval.gDefault_s;}> val)
+
+:: <{iTasks._Framework.TaskEval.gDefault_ss;}> = {iTasks._Framework.TaskEval.gDefault_ss}
+iTasks._Framework.TaskEval.get_gDefault_ss_7 rec = select rec (<{iTasks._Framework.TaskEval.gDefault_ss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gDefault_ss_7 rec val = select rec (<{iTasks._Framework.TaskEval.gDefault_ss;}>  a1 -> <{iTasks._Framework.TaskEval.gDefault_ss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gDefault_sss;}> = {iTasks._Framework.TaskEval.gDefault_sss}
+iTasks._Framework.TaskEval.get_gDefault_sss_8 rec = select rec (<{iTasks._Framework.TaskEval.gDefault_sss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gDefault_sss_8 rec val = select rec (<{iTasks._Framework.TaskEval.gDefault_sss;}>  a1 -> <{iTasks._Framework.TaskEval.gDefault_sss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gUpdate_s;}> = {iTasks._Framework.TaskEval.gUpdate_s}
+iTasks._Framework.TaskEval.get_gUpdate_s_9 rec = select rec (<{iTasks._Framework.TaskEval.gUpdate_s;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gUpdate_s_9 rec val = select rec (<{iTasks._Framework.TaskEval.gUpdate_s;}>  a1 -> <{iTasks._Framework.TaskEval.gUpdate_s;}> val)
+
+:: <{iTasks._Framework.TaskEval.gUpdate_ss;}> = {iTasks._Framework.TaskEval.gUpdate_ss}
+iTasks._Framework.TaskEval.get_gUpdate_ss_10 rec = select rec (<{iTasks._Framework.TaskEval.gUpdate_ss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gUpdate_ss_10 rec val = select rec (<{iTasks._Framework.TaskEval.gUpdate_ss;}>  a1 -> <{iTasks._Framework.TaskEval.gUpdate_ss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gUpdate_sss;}> = {iTasks._Framework.TaskEval.gUpdate_sss}
+iTasks._Framework.TaskEval.get_gUpdate_sss_11 rec = select rec (<{iTasks._Framework.TaskEval.gUpdate_sss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gUpdate_sss_11 rec val = select rec (<{iTasks._Framework.TaskEval.gUpdate_sss;}>  a1 -> <{iTasks._Framework.TaskEval.gUpdate_sss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gVerify_s;}> = {iTasks._Framework.TaskEval.gVerify_s}
+iTasks._Framework.TaskEval.get_gVerify_s_12 rec = select rec (<{iTasks._Framework.TaskEval.gVerify_s;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gVerify_s_12 rec val = select rec (<{iTasks._Framework.TaskEval.gVerify_s;}>  a1 -> <{iTasks._Framework.TaskEval.gVerify_s;}> val)
+
+:: <{iTasks._Framework.TaskEval.gVerify_ss;}> = {iTasks._Framework.TaskEval.gVerify_ss}
+iTasks._Framework.TaskEval.get_gVerify_ss_13 rec = select rec (<{iTasks._Framework.TaskEval.gVerify_ss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gVerify_ss_13 rec val = select rec (<{iTasks._Framework.TaskEval.gVerify_ss;}>  a1 -> <{iTasks._Framework.TaskEval.gVerify_ss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gVerify_sss;}> = {iTasks._Framework.TaskEval.gVerify_sss}
+iTasks._Framework.TaskEval.get_gVerify_sss_14 rec = select rec (<{iTasks._Framework.TaskEval.gVerify_sss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gVerify_sss_14 rec val = select rec (<{iTasks._Framework.TaskEval.gVerify_sss;}>  a1 -> <{iTasks._Framework.TaskEval.gVerify_sss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gText_s;}> = {iTasks._Framework.TaskEval.gText_s}
+iTasks._Framework.TaskEval.get_gText_s_15 rec = select rec (<{iTasks._Framework.TaskEval.gText_s;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gText_s_15 rec val = select rec (<{iTasks._Framework.TaskEval.gText_s;}>  a1 -> <{iTasks._Framework.TaskEval.gText_s;}> val)
+
+:: <{iTasks._Framework.TaskEval.gText_ss;}> = {iTasks._Framework.TaskEval.gText_ss}
+iTasks._Framework.TaskEval.get_gText_ss_16 rec = select rec (<{iTasks._Framework.TaskEval.gText_ss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gText_ss_16 rec val = select rec (<{iTasks._Framework.TaskEval.gText_ss;}>  a1 -> <{iTasks._Framework.TaskEval.gText_ss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gText_sss;}> = {iTasks._Framework.TaskEval.gText_sss}
+iTasks._Framework.TaskEval.get_gText_sss_17 rec = select rec (<{iTasks._Framework.TaskEval.gText_sss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gText_sss_17 rec val = select rec (<{iTasks._Framework.TaskEval.gText_sss;}>  a1 -> <{iTasks._Framework.TaskEval.gText_sss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEditor_s;}> = {iTasks._Framework.TaskEval.gEditor_s}
+iTasks._Framework.TaskEval.get_gEditor_s_18 rec = select rec (<{iTasks._Framework.TaskEval.gEditor_s;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEditor_s_18 rec val = select rec (<{iTasks._Framework.TaskEval.gEditor_s;}>  a1 -> <{iTasks._Framework.TaskEval.gEditor_s;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEditor_ss;}> = {iTasks._Framework.TaskEval.gEditor_ss}
+iTasks._Framework.TaskEval.get_gEditor_ss_19 rec = select rec (<{iTasks._Framework.TaskEval.gEditor_ss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEditor_ss_19 rec val = select rec (<{iTasks._Framework.TaskEval.gEditor_ss;}>  a1 -> <{iTasks._Framework.TaskEval.gEditor_ss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEditor_sss;}> = {iTasks._Framework.TaskEval.gEditor_sss}
+iTasks._Framework.TaskEval.get_gEditor_sss_20 rec = select rec (<{iTasks._Framework.TaskEval.gEditor_sss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEditor_sss_20 rec val = select rec (<{iTasks._Framework.TaskEval.gEditor_sss;}>  a1 -> <{iTasks._Framework.TaskEval.gEditor_sss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEditMeta_s;}> = {iTasks._Framework.TaskEval.gEditMeta_s}
+iTasks._Framework.TaskEval.get_gEditMeta_s_21 rec = select rec (<{iTasks._Framework.TaskEval.gEditMeta_s;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEditMeta_s_21 rec val = select rec (<{iTasks._Framework.TaskEval.gEditMeta_s;}>  a1 -> <{iTasks._Framework.TaskEval.gEditMeta_s;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEditMeta_ss;}> = {iTasks._Framework.TaskEval.gEditMeta_ss}
+iTasks._Framework.TaskEval.get_gEditMeta_ss_22 rec = select rec (<{iTasks._Framework.TaskEval.gEditMeta_ss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEditMeta_ss_22 rec val = select rec (<{iTasks._Framework.TaskEval.gEditMeta_ss;}>  a1 -> <{iTasks._Framework.TaskEval.gEditMeta_ss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEditMeta_sss;}> = {iTasks._Framework.TaskEval.gEditMeta_sss}
+iTasks._Framework.TaskEval.get_gEditMeta_sss_23 rec = select rec (<{iTasks._Framework.TaskEval.gEditMeta_sss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEditMeta_sss_23 rec val = select rec (<{iTasks._Framework.TaskEval.gEditMeta_sss;}>  a1 -> <{iTasks._Framework.TaskEval.gEditMeta_sss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEq_s;}> = {iTasks._Framework.TaskEval.gEq_s}
+iTasks._Framework.TaskEval.get_gEq_s_24 rec = select rec (<{iTasks._Framework.TaskEval.gEq_s;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEq_s_24 rec val = select rec (<{iTasks._Framework.TaskEval.gEq_s;}>  a1 -> <{iTasks._Framework.TaskEval.gEq_s;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEq_ss;}> = {iTasks._Framework.TaskEval.gEq_ss}
+iTasks._Framework.TaskEval.get_gEq_ss_25 rec = select rec (<{iTasks._Framework.TaskEval.gEq_ss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEq_ss_25 rec val = select rec (<{iTasks._Framework.TaskEval.gEq_ss;}>  a1 -> <{iTasks._Framework.TaskEval.gEq_ss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEq_sss;}> = {iTasks._Framework.TaskEval.gEq_sss}
+iTasks._Framework.TaskEval.get_gEq_sss_26 rec = select rec (<{iTasks._Framework.TaskEval.gEq_sss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEq_sss_26 rec val = select rec (<{iTasks._Framework.TaskEval.gEq_sss;}>  a1 -> <{iTasks._Framework.TaskEval.gEq_sss;}> val)
+
+:: <{iTasks._Framework.TaskEval.JSONEncode_ssss;}> = {iTasks._Framework.TaskEval.JSONEncode_ssss}
+iTasks._Framework.TaskEval.get_JSONEncode_ssss_27 rec = select rec (<{iTasks._Framework.TaskEval.JSONEncode_ssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_JSONEncode_ssss_27 rec val = select rec (<{iTasks._Framework.TaskEval.JSONEncode_ssss;}>  a1 -> <{iTasks._Framework.TaskEval.JSONEncode_ssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.JSONDecode_ssss;}> = {iTasks._Framework.TaskEval.JSONDecode_ssss}
+iTasks._Framework.TaskEval.get_JSONDecode_ssss_28 rec = select rec (<{iTasks._Framework.TaskEval.JSONDecode_ssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_JSONDecode_ssss_28 rec val = select rec (<{iTasks._Framework.TaskEval.JSONDecode_ssss;}>  a1 -> <{iTasks._Framework.TaskEval.JSONDecode_ssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEq_ssss;}> = {iTasks._Framework.TaskEval.gEq_ssss}
+iTasks._Framework.TaskEval.get_gEq_ssss_29 rec = select rec (<{iTasks._Framework.TaskEval.gEq_ssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEq_ssss_29 rec val = select rec (<{iTasks._Framework.TaskEval.gEq_ssss;}>  a1 -> <{iTasks._Framework.TaskEval.gEq_ssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gDefault_ssss;}> = {iTasks._Framework.TaskEval.gDefault_ssss}
+iTasks._Framework.TaskEval.get_gDefault_ssss_30 rec = select rec (<{iTasks._Framework.TaskEval.gDefault_ssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gDefault_ssss_30 rec val = select rec (<{iTasks._Framework.TaskEval.gDefault_ssss;}>  a1 -> <{iTasks._Framework.TaskEval.gDefault_ssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.JSONEncode_sssss;}> = {iTasks._Framework.TaskEval.JSONEncode_sssss}
+iTasks._Framework.TaskEval.get_JSONEncode_sssss_31 rec = select rec (<{iTasks._Framework.TaskEval.JSONEncode_sssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_JSONEncode_sssss_31 rec val = select rec (<{iTasks._Framework.TaskEval.JSONEncode_sssss;}>  a1 -> <{iTasks._Framework.TaskEval.JSONEncode_sssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.JSONEncode_ssssss;}> = {iTasks._Framework.TaskEval.JSONEncode_ssssss}
+iTasks._Framework.TaskEval.get_JSONEncode_ssssss_32 rec = select rec (<{iTasks._Framework.TaskEval.JSONEncode_ssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_JSONEncode_ssssss_32 rec val = select rec (<{iTasks._Framework.TaskEval.JSONEncode_ssssss;}>  a1 -> <{iTasks._Framework.TaskEval.JSONEncode_ssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.JSONDecode_sssss;}> = {iTasks._Framework.TaskEval.JSONDecode_sssss}
+iTasks._Framework.TaskEval.get_JSONDecode_sssss_33 rec = select rec (<{iTasks._Framework.TaskEval.JSONDecode_sssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_JSONDecode_sssss_33 rec val = select rec (<{iTasks._Framework.TaskEval.JSONDecode_sssss;}>  a1 -> <{iTasks._Framework.TaskEval.JSONDecode_sssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.JSONDecode_ssssss;}> = {iTasks._Framework.TaskEval.JSONDecode_ssssss}
+iTasks._Framework.TaskEval.get_JSONDecode_ssssss_34 rec = select rec (<{iTasks._Framework.TaskEval.JSONDecode_ssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_JSONDecode_ssssss_34 rec val = select rec (<{iTasks._Framework.TaskEval.JSONDecode_ssssss;}>  a1 -> <{iTasks._Framework.TaskEval.JSONDecode_ssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.bimap_s;}> = {iTasks._Framework.TaskEval.bimap_s}
+iTasks._Framework.TaskEval.get_bimap_s_35 rec = select rec (<{iTasks._Framework.TaskEval.bimap_s;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_bimap_s_35 rec val = select rec (<{iTasks._Framework.TaskEval.bimap_s;}>  a1 -> <{iTasks._Framework.TaskEval.bimap_s;}> val)
+
+:: <{iTasks._Framework.TaskEval.bimap_ss;}> = {iTasks._Framework.TaskEval.bimap_ss}
+iTasks._Framework.TaskEval.get_bimap_ss_36 rec = select rec (<{iTasks._Framework.TaskEval.bimap_ss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_bimap_ss_36 rec val = select rec (<{iTasks._Framework.TaskEval.bimap_ss;}>  a1 -> <{iTasks._Framework.TaskEval.bimap_ss;}> val)
+
+:: <{iTasks._Framework.TaskEval.bimap_sss;}> = {iTasks._Framework.TaskEval.bimap_sss}
+iTasks._Framework.TaskEval.get_bimap_sss_37 rec = select rec (<{iTasks._Framework.TaskEval.bimap_sss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_bimap_sss_37 rec val = select rec (<{iTasks._Framework.TaskEval.bimap_sss;}>  a1 -> <{iTasks._Framework.TaskEval.bimap_sss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEq_sssss;}> = {iTasks._Framework.TaskEval.gEq_sssss}
+iTasks._Framework.TaskEval.get_gEq_sssss_38 rec = select rec (<{iTasks._Framework.TaskEval.gEq_sssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEq_sssss_38 rec val = select rec (<{iTasks._Framework.TaskEval.gEq_sssss;}>  a1 -> <{iTasks._Framework.TaskEval.gEq_sssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEq_ssssss;}> = {iTasks._Framework.TaskEval.gEq_ssssss}
+iTasks._Framework.TaskEval.get_gEq_ssssss_39 rec = select rec (<{iTasks._Framework.TaskEval.gEq_ssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEq_ssssss_39 rec val = select rec (<{iTasks._Framework.TaskEval.gEq_ssssss;}>  a1 -> <{iTasks._Framework.TaskEval.gEq_ssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEq_sssssss;}> = {iTasks._Framework.TaskEval.gEq_sssssss}
+iTasks._Framework.TaskEval.get_gEq_sssssss_40 rec = select rec (<{iTasks._Framework.TaskEval.gEq_sssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEq_sssssss_40 rec val = select rec (<{iTasks._Framework.TaskEval.gEq_sssssss;}>  a1 -> <{iTasks._Framework.TaskEval.gEq_sssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEq_ssssssss;}> = {iTasks._Framework.TaskEval.gEq_ssssssss}
+iTasks._Framework.TaskEval.get_gEq_ssssssss_41 rec = select rec (<{iTasks._Framework.TaskEval.gEq_ssssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEq_ssssssss_41 rec val = select rec (<{iTasks._Framework.TaskEval.gEq_ssssssss;}>  a1 -> <{iTasks._Framework.TaskEval.gEq_ssssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEq_sssssssss;}> = {iTasks._Framework.TaskEval.gEq_sssssssss}
+iTasks._Framework.TaskEval.get_gEq_sssssssss_42 rec = select rec (<{iTasks._Framework.TaskEval.gEq_sssssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEq_sssssssss_42 rec val = select rec (<{iTasks._Framework.TaskEval.gEq_sssssssss;}>  a1 -> <{iTasks._Framework.TaskEval.gEq_sssssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEditor_ssss;}> = {iTasks._Framework.TaskEval.gEditor_ssss}
+iTasks._Framework.TaskEval.get_gEditor_ssss_43 rec = select rec (<{iTasks._Framework.TaskEval.gEditor_ssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEditor_ssss_43 rec val = select rec (<{iTasks._Framework.TaskEval.gEditor_ssss;}>  a1 -> <{iTasks._Framework.TaskEval.gEditor_ssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gText_ssss;}> = {iTasks._Framework.TaskEval.gText_ssss}
+iTasks._Framework.TaskEval.get_gText_ssss_44 rec = select rec (<{iTasks._Framework.TaskEval.gText_ssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gText_ssss_44 rec val = select rec (<{iTasks._Framework.TaskEval.gText_ssss;}>  a1 -> <{iTasks._Framework.TaskEval.gText_ssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEditMeta_ssss;}> = {iTasks._Framework.TaskEval.gEditMeta_ssss}
+iTasks._Framework.TaskEval.get_gEditMeta_ssss_45 rec = select rec (<{iTasks._Framework.TaskEval.gEditMeta_ssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEditMeta_ssss_45 rec val = select rec (<{iTasks._Framework.TaskEval.gEditMeta_ssss;}>  a1 -> <{iTasks._Framework.TaskEval.gEditMeta_ssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEditor_sssss;}> = {iTasks._Framework.TaskEval.gEditor_sssss}
+iTasks._Framework.TaskEval.get_gEditor_sssss_46 rec = select rec (<{iTasks._Framework.TaskEval.gEditor_sssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEditor_sssss_46 rec val = select rec (<{iTasks._Framework.TaskEval.gEditor_sssss;}>  a1 -> <{iTasks._Framework.TaskEval.gEditor_sssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gText_sssss;}> = {iTasks._Framework.TaskEval.gText_sssss}
+iTasks._Framework.TaskEval.get_gText_sssss_47 rec = select rec (<{iTasks._Framework.TaskEval.gText_sssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gText_sssss_47 rec val = select rec (<{iTasks._Framework.TaskEval.gText_sssss;}>  a1 -> <{iTasks._Framework.TaskEval.gText_sssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gDefault_sssss;}> = {iTasks._Framework.TaskEval.gDefault_sssss}
+iTasks._Framework.TaskEval.get_gDefault_sssss_48 rec = select rec (<{iTasks._Framework.TaskEval.gDefault_sssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gDefault_sssss_48 rec val = select rec (<{iTasks._Framework.TaskEval.gDefault_sssss;}>  a1 -> <{iTasks._Framework.TaskEval.gDefault_sssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEditMeta_sssss;}> = {iTasks._Framework.TaskEval.gEditMeta_sssss}
+iTasks._Framework.TaskEval.get_gEditMeta_sssss_49 rec = select rec (<{iTasks._Framework.TaskEval.gEditMeta_sssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEditMeta_sssss_49 rec val = select rec (<{iTasks._Framework.TaskEval.gEditMeta_sssss;}>  a1 -> <{iTasks._Framework.TaskEval.gEditMeta_sssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEditor_ssssss;}> = {iTasks._Framework.TaskEval.gEditor_ssssss}
+iTasks._Framework.TaskEval.get_gEditor_ssssss_50 rec = select rec (<{iTasks._Framework.TaskEval.gEditor_ssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEditor_ssssss_50 rec val = select rec (<{iTasks._Framework.TaskEval.gEditor_ssssss;}>  a1 -> <{iTasks._Framework.TaskEval.gEditor_ssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gText_ssssss;}> = {iTasks._Framework.TaskEval.gText_ssssss}
+iTasks._Framework.TaskEval.get_gText_ssssss_51 rec = select rec (<{iTasks._Framework.TaskEval.gText_ssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gText_ssssss_51 rec val = select rec (<{iTasks._Framework.TaskEval.gText_ssssss;}>  a1 -> <{iTasks._Framework.TaskEval.gText_ssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gDefault_ssssss;}> = {iTasks._Framework.TaskEval.gDefault_ssssss}
+iTasks._Framework.TaskEval.get_gDefault_ssssss_52 rec = select rec (<{iTasks._Framework.TaskEval.gDefault_ssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gDefault_ssssss_52 rec val = select rec (<{iTasks._Framework.TaskEval.gDefault_ssssss;}>  a1 -> <{iTasks._Framework.TaskEval.gDefault_ssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gEditMeta_ssssss;}> = {iTasks._Framework.TaskEval.gEditMeta_ssssss}
+iTasks._Framework.TaskEval.get_gEditMeta_ssssss_53 rec = select rec (<{iTasks._Framework.TaskEval.gEditMeta_ssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gEditMeta_ssssss_53 rec val = select rec (<{iTasks._Framework.TaskEval.gEditMeta_ssssss;}>  a1 -> <{iTasks._Framework.TaskEval.gEditMeta_ssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gVerify_ssss;}> = {iTasks._Framework.TaskEval.gVerify_ssss}
+iTasks._Framework.TaskEval.get_gVerify_ssss_54 rec = select rec (<{iTasks._Framework.TaskEval.gVerify_ssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gVerify_ssss_54 rec val = select rec (<{iTasks._Framework.TaskEval.gVerify_ssss;}>  a1 -> <{iTasks._Framework.TaskEval.gVerify_ssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gVerify_sssss;}> = {iTasks._Framework.TaskEval.gVerify_sssss}
+iTasks._Framework.TaskEval.get_gVerify_sssss_55 rec = select rec (<{iTasks._Framework.TaskEval.gVerify_sssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gVerify_sssss_55 rec val = select rec (<{iTasks._Framework.TaskEval.gVerify_sssss;}>  a1 -> <{iTasks._Framework.TaskEval.gVerify_sssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gVerify_ssssss;}> = {iTasks._Framework.TaskEval.gVerify_ssssss}
+iTasks._Framework.TaskEval.get_gVerify_ssssss_56 rec = select rec (<{iTasks._Framework.TaskEval.gVerify_ssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gVerify_ssssss_56 rec val = select rec (<{iTasks._Framework.TaskEval.gVerify_ssssss;}>  a1 -> <{iTasks._Framework.TaskEval.gVerify_ssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gUpdate_ssss;}> = {iTasks._Framework.TaskEval.gUpdate_ssss}
+iTasks._Framework.TaskEval.get_gUpdate_ssss_57 rec = select rec (<{iTasks._Framework.TaskEval.gUpdate_ssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gUpdate_ssss_57 rec val = select rec (<{iTasks._Framework.TaskEval.gUpdate_ssss;}>  a1 -> <{iTasks._Framework.TaskEval.gUpdate_ssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gUpdate_sssss;}> = {iTasks._Framework.TaskEval.gUpdate_sssss}
+iTasks._Framework.TaskEval.get_gUpdate_sssss_58 rec = select rec (<{iTasks._Framework.TaskEval.gUpdate_sssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gUpdate_sssss_58 rec val = select rec (<{iTasks._Framework.TaskEval.gUpdate_sssss;}>  a1 -> <{iTasks._Framework.TaskEval.gUpdate_sssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gUpdate_ssssss;}> = {iTasks._Framework.TaskEval.gUpdate_ssssss}
+iTasks._Framework.TaskEval.get_gUpdate_ssssss_59 rec = select rec (<{iTasks._Framework.TaskEval.gUpdate_ssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gUpdate_ssssss_59 rec val = select rec (<{iTasks._Framework.TaskEval.gUpdate_ssssss;}>  a1 -> <{iTasks._Framework.TaskEval.gUpdate_ssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gLexOrd_s;}> = {iTasks._Framework.TaskEval.gLexOrd_s}
+iTasks._Framework.TaskEval.get_gLexOrd_s_60 rec = select rec (<{iTasks._Framework.TaskEval.gLexOrd_s;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gLexOrd_s_60 rec val = select rec (<{iTasks._Framework.TaskEval.gLexOrd_s;}>  a1 -> <{iTasks._Framework.TaskEval.gLexOrd_s;}> val)
+
+:: <{iTasks._Framework.TaskEval.gLexOrd_ss;}> = {iTasks._Framework.TaskEval.gLexOrd_ss}
+iTasks._Framework.TaskEval.get_gLexOrd_ss_61 rec = select rec (<{iTasks._Framework.TaskEval.gLexOrd_ss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gLexOrd_ss_61 rec val = select rec (<{iTasks._Framework.TaskEval.gLexOrd_ss;}>  a1 -> <{iTasks._Framework.TaskEval.gLexOrd_ss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gLexOrd_sss;}> = {iTasks._Framework.TaskEval.gLexOrd_sss}
+iTasks._Framework.TaskEval.get_gLexOrd_sss_62 rec = select rec (<{iTasks._Framework.TaskEval.gLexOrd_sss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gLexOrd_sss_62 rec val = select rec (<{iTasks._Framework.TaskEval.gLexOrd_sss;}>  a1 -> <{iTasks._Framework.TaskEval.gLexOrd_sss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gLexOrd_ssss;}> = {iTasks._Framework.TaskEval.gLexOrd_ssss}
+iTasks._Framework.TaskEval.get_gLexOrd_ssss_63 rec = select rec (<{iTasks._Framework.TaskEval.gLexOrd_ssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gLexOrd_ssss_63 rec val = select rec (<{iTasks._Framework.TaskEval.gLexOrd_ssss;}>  a1 -> <{iTasks._Framework.TaskEval.gLexOrd_ssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gLexOrd_sssss;}> = {iTasks._Framework.TaskEval.gLexOrd_sssss}
+iTasks._Framework.TaskEval.get_gLexOrd_sssss_64 rec = select rec (<{iTasks._Framework.TaskEval.gLexOrd_sssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gLexOrd_sssss_64 rec val = select rec (<{iTasks._Framework.TaskEval.gLexOrd_sssss;}>  a1 -> <{iTasks._Framework.TaskEval.gLexOrd_sssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gLexOrd_ssssss;}> = {iTasks._Framework.TaskEval.gLexOrd_ssssss}
+iTasks._Framework.TaskEval.get_gLexOrd_ssssss_65 rec = select rec (<{iTasks._Framework.TaskEval.gLexOrd_ssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gLexOrd_ssssss_65 rec val = select rec (<{iTasks._Framework.TaskEval.gLexOrd_ssssss;}>  a1 -> <{iTasks._Framework.TaskEval.gLexOrd_ssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gLexOrd_sssssss;}> = {iTasks._Framework.TaskEval.gLexOrd_sssssss}
+iTasks._Framework.TaskEval.get_gLexOrd_sssssss_66 rec = select rec (<{iTasks._Framework.TaskEval.gLexOrd_sssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gLexOrd_sssssss_66 rec val = select rec (<{iTasks._Framework.TaskEval.gLexOrd_sssssss;}>  a1 -> <{iTasks._Framework.TaskEval.gLexOrd_sssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gLexOrd_ssssssss;}> = {iTasks._Framework.TaskEval.gLexOrd_ssssssss}
+iTasks._Framework.TaskEval.get_gLexOrd_ssssssss_67 rec = select rec (<{iTasks._Framework.TaskEval.gLexOrd_ssssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gLexOrd_ssssssss_67 rec val = select rec (<{iTasks._Framework.TaskEval.gLexOrd_ssssssss;}>  a1 -> <{iTasks._Framework.TaskEval.gLexOrd_ssssssss;}> val)
+
+:: <{iTasks._Framework.TaskEval.gLexOrd_sssssssss;}> = {iTasks._Framework.TaskEval.gLexOrd_sssssssss}
+iTasks._Framework.TaskEval.get_gLexOrd_sssssssss_68 rec = select rec (<{iTasks._Framework.TaskEval.gLexOrd_sssssssss;}> a1 -> a1)
+iTasks._Framework.TaskEval.set_gLexOrd_sssssssss_68 rec val = select rec (<{iTasks._Framework.TaskEval.gLexOrd_sssssssss;}>  a1 -> <{iTasks._Framework.TaskEval.gLexOrd_sssssssss;}> val)
+

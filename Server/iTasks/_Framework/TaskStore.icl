@@ -19,6 +19,7 @@ from Data.Queue import :: Queue
 
 //Derives required for storage of UI definitions
 derive JSONEncode TaskResult, TaskEvalInfo, TaskRep, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
+derive JSONEncode TaskLayout, TaskUILayout, TaskUITree, XAlign, YAlign, GridXLayout, GridYLayout, GridDimension, GridMajor
 derive JSONEncode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONEncode UIEmpty, UIForm, UIBlock
@@ -29,6 +30,7 @@ derive JSONEncode UIUpdate, UIStep
 derive JSONEncode Queue, Event
 
 derive JSONDecode TaskResult, TaskEvalInfo, TaskRep, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
+derive JSONDecode TaskLayout, TaskUILayout, TaskUITree, XAlign, YAlign, GridXLayout, GridYLayout, GridDimension, GridMajor
 derive JSONDecode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONDecode UIEmpty, UIForm, UIBlock
@@ -162,8 +164,8 @@ where
 	toJSONTask (Task eval) = Task eval`
 	where
 		eval` event repOpts tree iworld = case eval event repOpts tree iworld of
-			(ValueResult val ts rep tree,iworld)	= (ValueResult (fmap toJSON val) ts rep tree, iworld)
-			(ExceptionResult e,iworld)			    = (ExceptionResult e,iworld)
+			(ValueResult val ts rep tree taskUIs,iworld)	= (ValueResult (fmap toJSON val) ts rep tree taskUIs, iworld)
+			(ExceptionResult e,iworld)					    = (ExceptionResult e,iworld)
 
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
 replaceTaskInstance instanceNo task iworld=:{server={buildID},current={taskTime}}
