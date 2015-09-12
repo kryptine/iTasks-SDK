@@ -7,31 +7,14 @@ from iTasks.UI.Diff import :: MessageType (MDiff,MRollback,MCommit)
 from iTasks.UI.Editor import ::VisualizationResult(..), :: Editor(..), :: USt(..)
 from Data.Map import :: Map, newMap, put
 from Data.Map import qualified get
- 
-// Client-side types
-JSONEncode{|Editlet|} _ _ _ _ tt = [dynamicJSONEncode tt]		
-JSONDecode{|Editlet|} _ _ _ _ [tt:c] = (dynamicJSONDecode tt,c)
-JSONDecode{|Editlet|} _ _ _ _ c = (Nothing,c)
- 
-gDefault{|Editlet|} fa _ fc
-  = { Editlet
-    | currVal   = fa
-        
-    , genUI     = \_ _ world -> ({ComponentHTML | html = RawText "", height = FlexSize, width = FlexSize}, world)
-    , initClient = \_ _ world -> (fc, world)
-    , appDiffClt = \_ _ _ a world -> (a, world)
-    , genDiffSrv = \_ _ -> Nothing
-    , appDiffSrv = \_ x -> x                  
-  }
 
-gEq{|Editlet|} fa _ _ editlet1 editlet2 = fa editlet1.Editlet.currVal editlet2.Editlet.currVal //Only compare values
+createEditletEventHandler :: (EditletEventHandlerFunc d a) !ComponentId -> JSFun b
+createEditletEventHandler handler id = undef
 
-gText{|Editlet|} fa _ _ mode (Just editlet) = fa mode (Just editlet.Editlet.currVal)
-gText{|Editlet|} fa _ _ mode Nothing = fa mode Nothing
-
-gEditor{|Editlet|} fa textA defaultA headersA jsonEncA jsonDecA _ _ _ _ jsonEncB jsonDecB fd textD defaultD headersD jsonEncD jsonDecD = {Editor|genUI=genUI,appDiff=appDiff}
+fromEditlet :: (Editlet a d cl) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONDecode{|*|} d
+fromEditlet editlet=:{Editlet| genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv} = {Editor|genUI=genUI`,appDiff=appDiff`}
 where
-	genUI dp {Editlet| currVal, genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv} mask ver meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
+	genUI` dp currVal mask ver meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
 		# (uiDef, world)        = genUI htmlId currVal world
   		# iworld                = {iworld & world = world}
 		= case 'Data.Map'.get (taskId,editorId dp) editletDiffs of
@@ -72,13 +55,13 @@ where
 
 			ui uiDef opts = setSize uiDef.ComponentHTML.width uiDef.ComponentHTML.height (UIEditlet defaultSizeOpts opts)
 			
-			toJSONA a = case jsonEncA False a of
+			toJSONA a = case JSONEncode{|*|} False a of
 				[json:_]	= json
 				_			= JSONNull
 
-			fromJSONA json = fst (jsonDecA False [json])
+			fromJSONA json = fst (JSONDecode{|*|} False [json])
 			
-			initDiff = genDiffSrv defaultA currVal
+			initDiff = genDiffSrv gDefault{|*|} currVal
 
 			diffWithPrevValue jsonPrev currVal
 				= case fromJSONA jsonPrev of
@@ -88,34 +71,27 @@ where
 			setEditletDiffs ver value opts diffs iworld=:{IWorld|current=current=:{editletDiffs}}
 				= {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId dp) (ver,toJSONA value,opts,diffs) editletDiffs}}
 
-	appDiff [] jsonDiff ov omask ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
+	appDiff` [] jsonDiff ov omask ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
 		// Bit dirty, but we need to unwrap the "unexpected" version number and the expected diff
 		# (ver, diffId, jsonDiff) = case jsonDiff of
 			JSONArray [ver, diffId, diff] 	= (maybe -1 id (fromJSON ver), maybe -1 id (fromJSON diffId), diff)
 											= (-1, -1, JSONNull)
-		= case jsonDecB False [jsonDiff] of
+		= case JSONDecode{|*|} False [jsonDiff] of
 			(Just diff,_)	
 				# iworld = case 'Data.Map'.get (taskId,editorId) editletDiffs of
-                	Just (refver,jsonRef,opts,diffs) = case jsonDecA False [jsonRef] of
+                	Just (refver,jsonRef,opts,diffs) = case JSONDecode{|*|} False [jsonRef] of
                     	(Just ref,_)
                     		| ver <> refver
                     			= {IWorld|iworld & current = {current & 
                     					editletDiffs = put (taskId,editorId) (ver,jsonRef,opts,[MRollback diffId:diffs]) editletDiffs}}
 
-  	                      	# ref = ov.Editlet.appDiffSrv diff ref
-   	                     	# [jsonRef:_] = jsonEncA False ref
+  	                      	# ref = appDiffSrv diff ref
+   	                     	# [jsonRef:_] = JSONEncode{|*|} False ref
                         	// If the reference value is changed by its client, keep the version number
                         	= {IWorld|iworld & current = {current &
                         			editletDiffs = put (taskId,editorId) (ver,jsonRef,opts,[MCommit diffId:diffs]) editletDiffs}}
                     	_ = iworld
 					Nothing = iworld
-				= ({ov & currVal = ov.Editlet.appDiffSrv diff ov.Editlet.currVal}, Touched, {USt|ust & iworld = iworld})
+				= (appDiffSrv diff ov, Touched, {USt|ust & iworld = iworld})
 			_	= (ov,omask,ust)
 	appDiff dp _ val mask ust = (val,mask,ust)
-
-gEditMeta{|Editlet|} fa _ _ editlet = fa editlet.Editlet.currVal
-gVerify{|Editlet|} fa _ _ _ mv = alwaysValid mv
-
-createEditletEventHandler :: (EditletEventHandlerFunc d a) !ComponentId -> JSFun b
-createEditletEventHandler handler id = undef
-

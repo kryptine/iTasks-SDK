@@ -26,10 +26,21 @@ where
 
 import Graphics.Scalable, StdReal
 import iTasks.API.Extensions.SVG.SVGlet
-testSVGEditlet = testInteractive "SVG editlet rendering" tc "Look at the image presented" "You should see the dutch flag"
-where
-	tc = viewInformation "SVG image" [imageView (\_ _ -> nederland) (\_ _ -> Nothing)] ()
 
+//Flag is an example type for which we'll create an svglet
+:: Flag = DutchFlag
+
+//Derive iTask generics
+derive JSONEncode Flag
+derive JSONDecode Flag
+derive gEq Flag
+derive gDefault Flag
+derive gText Flag
+derive gVerify Flag
+derive gEditMeta Flag
+
+gEditor{|Flag|} = fromSVGLet {toImage = \_ _ -> nederland, resolve = \_ _ -> Nothing} 
+where
 	nederland :: Image m
 	nederland = banden (H *. 3 /. 2,H) [toSVGColor {r=174,g=28,b=40},toSVGColor "white",toSVGColor {r=33,g=70,b=139}]
 
@@ -37,6 +48,11 @@ where
 
 	H = px 32.0				
 	W = H *. 1.5
+
+
+testSVGEditlet = testInteractive "SVG editlet rendering" tc "Look at the image presented" "You should see the dutch flag"
+where
+	tc = viewInformation "SVG Flag image" [] DutchFlag //[imageView (\_ _ -> nederland) (\_ _ -> Nothing)] ()
 
 import iTasks.API.Extensions.GIS.Leaflet
 testLeafletMap = testInteractive "Leaflet Map" tc "Try to zoom and pan the map" "You should see a Leaflet Map in which you can pan and zoom"

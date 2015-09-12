@@ -63,21 +63,12 @@ from Text.JSON import :: JSONNode
 
 :: Editlet sv d cl
   =
-  { currVal    :: sv // TODO: implementation detail, remove it
-
-  , genUI      :: ComponentId sv *World -> *(EditletHTML, *World)
+  { genUI      :: ComponentId sv *World -> *(EditletHTML, *World)
   , initClient :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId *JSWorld -> *(cl, *JSWorld)
   , appDiffClt :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
   , genDiffSrv :: sv sv -> Maybe d
   , appDiffSrv :: d  sv -> sv
   }
 
-derive JSONEncode Editlet
-derive JSONDecode Editlet
-derive gDefault   Editlet
-derive gEq        Editlet
-derive gText      Editlet
-derive gEditor    Editlet
-derive gEditMeta  Editlet
-derive gVerify    Editlet
+fromEditlet :: (Editlet a d cl) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONDecode{|*|} d
 

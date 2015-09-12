@@ -123,8 +123,7 @@ openStreetMapTiles = TileLayer "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.pn
 leafletEditlet :: LeafletMap -> Editlet LeafletMap [LeafletDiff] (LeafletMap, Maybe LeafletClientState)
 leafletEditlet map
   = { Editlet
-    | currVal = map
-    , genUI     =  genUI 
+    | genUI     =  genUI 
     , initClient = onInit
     , appDiffClt = appDiffClt
     , genDiffSrv = genDiff
@@ -418,14 +417,7 @@ where
 
     ignoreConflict conflict state env = (state, NoDiff, env)
 
-gEditor{|LeafletMap|} = {Editor|genUI=genUI,appDiff=appDiff} 
-where
-	genUI dp val mask ver meta vst
-    	= gEditor{|*|}.Editor.genUI dp (leafletEditlet val) mask ver meta vst
-	appDiff dp e val mask ust 
-    	# (editlet,mask,ust) = gEditor{|*|}.Editor.appDiff dp e (leafletEditlet val) mask ust
-    	= (editlet.currVal,mask,ust)
-
+gEditor{|LeafletMap|} = fromEditlet (leafletEditlet defaultValue)
 gVerify{|LeafletMap|} _ vst = alwaysValid vst
 
 gDefault{|LeafletPerspective|}

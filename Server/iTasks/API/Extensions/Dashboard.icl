@@ -10,20 +10,13 @@ derive gEq ControlLight
 derive gDefault ControlLight
 derive gText ControlLight
 
-gEditor{|ControlLight|} = {Editor|genUI=genUI,appDiff=appDiff}
-where
-	genUI dp v mask ver meta vst = gEditor{|*|}.Editor.genUI dp (controlLightEditlet v) mask ver meta vst
-
-	appDiff dp e v mask ust
-    	# (editlet,mask,ust) = gEditor{|*|}.Editor.appDiff dp e (controlLightEditlet v) mask ust
-    	= (editlet.currVal,mask,ust)
+gEditor{|ControlLight|} = fromEditlet (controlLightEditlet defaultValue)
 
 //SVG Based fake control light
 controlLightEditlet :: ControlLight -> Editlet ControlLight ControlLight ()
 controlLightEditlet t
     = {Editlet
-      |currVal = t
-	  ,initClient = \_ _ w -> ((),w)
+      |initClient = \_ _ w -> ((),w)
       ,genUI = genUI
       ,appDiffClt = updateUI
       ,genDiffSrv = \a b -> if (a===b) Nothing (Just b)

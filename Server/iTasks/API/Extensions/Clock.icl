@@ -13,22 +13,14 @@ derive gEq AnalogClock
 derive gDefault AnalogClock
 derive gText AnalogClock
 
-gEditor{|AnalogClock|} = {Editor|genUI=genUI,appDiff=appDiff}
-where
-	genUI dp (AnalogClock t) mask ver meta vst
-    	= gEditor{|*|}.Editor.genUI dp (analogClockEditlet t) mask ver meta vst
-	
-	appDiff dp e (AnalogClock t) mask ust
-		# (editlet,mask,ust) = gEditor{|*|}.Editor.appDiff dp e (analogClockEditlet t) mask ust
-		= (AnalogClock editlet.currVal,mask,ust) 
+gEditor{|AnalogClock|} = fromEditlet (analogClockEditlet defaultValue)
 
 //SVG Based analog clock editlet
-analogClockEditlet :: Time -> Editlet Time [(Int,Int)] ()
+analogClockEditlet :: AnalogClock -> Editlet AnalogClock [(Int,Int)] ()
 analogClockEditlet t 
     = {Editlet
-      |currVal      = t
-      ,genUI        = genUI
-      , initClient = \_ _ world -> ((), world)
+      |genUI        = genUI
+      ,initClient = \_ _ world -> ((), world)
       ,appDiffClt   = appDiffClt
       ,genDiffSrv   = genTimeDiff
       ,appDiffSrv   = appTimeDiff
@@ -65,15 +57,15 @@ where
         # (_,world)    = callObjectMethod "setAttribute" [toJSArg "transform",toJSArg ("rotate("+++toString (degrees - 90)+++" 50 50)")] hand world
         = world
 
-genTimeDiff :: Time Time -> Maybe [(Int,Int)]
-genTimeDiff t1 t2 = case (  (if (t1.Time.sec == t2.Time.sec) [] [(0,t2.Time.sec)])
+genTimeDiff :: AnalogClock AnalogClock -> Maybe [(Int,Int)]
+genTimeDiff (AnalogClock t1) (AnalogClock t2) = case (  (if (t1.Time.sec == t2.Time.sec) [] [(0,t2.Time.sec)])
 						 ++ (if (t1.Time.min == t2.Time.min) [] [(1,t2.Time.min)])
 						 ++ (if (t1.Time.hour == t2.Time.hour) [] [(2,t2.Time.hour)])
 						 ) of [] = Nothing ; delta = Just delta
 
-appTimeDiff :: [(Int,Int)] Time -> Time
+appTimeDiff :: [(Int,Int)] AnalogClock -> AnalogClock
 appTimeDiff [] t = t
-appTimeDiff [(0,s):d] t = appTimeDiff d {Time|t & sec = s}
-appTimeDiff [(1,m):d] t = appTimeDiff d {Time|t & min = m}
-appTimeDiff [(2,h):d] t = appTimeDiff d {Time|t & hour = h}	
+appTimeDiff [(0,s):d] (AnalogClock t) = appTimeDiff d (AnalogClock {Time|t & sec = s})
+appTimeDiff [(1,m):d] (AnalogClock t) = appTimeDiff d (AnalogClock {Time|t & min = m})
+appTimeDiff [(2,h):d] (AnalogClock t) = appTimeDiff d (AnalogClock {Time|t & hour = h})
 
