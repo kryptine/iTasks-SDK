@@ -4,8 +4,12 @@ import iTasks.API.Core.Tasks
 from iTasks.API.Core.Types import :: ChoiceTree, :: ChoiceTreeValue, :: Date, :: Time, :: DateTime, :: Action
 from Data.Functor import class Functor
 
+//TODO: Introduce custom editor versions for all option types
+
 //Option types for customizing interaction
 :: ViewOption a 		= E.v: ViewWith 	(a -> v)			& iTask v
+						| E.v: ViewUsing 	(a -> v) (Editor v) & iTask v //Use a custom editor to view the data
+
 :: EnterOption a		= E.v: EnterWith	(v -> a)			& iTask v
 :: UpdateOption a b		= E.v: UpdateWith	      (a -> v) (a v -> b)	          & iTask v
                         //When using an update option for a task that uses a shared data source
@@ -14,6 +18,7 @@ from Data.Functor import class Functor
                         //the user changed the view simultaneously. This conflict resolution function
                         //is applied before the new 'b' is generated from the view ('v') value
                         | E.v: UpdateWithShared   (a -> v) (a v -> b) (v v -> v)  & iTask v 
+						| E.v: UpdateUsing (a -> v) (a v -> b) (Editor v) 		  & iTask v
 
 :: ChoiceOption o       = E.v: ChooseWith (ChoiceType o v)      & iTask v
 :: ChoiceType o v	    = AutoChoice (o -> v)

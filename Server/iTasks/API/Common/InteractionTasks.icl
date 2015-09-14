@@ -36,7 +36,7 @@ enterInformation d [EnterWith fromf:_]
 		(\r -> let v = defaultValue in (fromf v,v,Untouched))
 		(\l r v m ok -> if ok (fromf v,v,m) (l,v,m))
 */
-	= interactNullEnter d defaultValue fromf
+	= interactNullEnter d defaultValue fromf Nothing
 enterInformation d _ = enterInformation d [EnterWith id]
 
 updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
@@ -44,7 +44,12 @@ updateInformation d [UpdateWith tof fromf:_] m
 	= interact d null
 		(\r -> let v = tof m in (m,(v,Touched)))
 		(\l r (v,m) rCh vCh vOk -> if vOk (let nl = fromf l v in (let nv = tof nl in (nl,(nv,m)))) (l,(v,m)))
-
+		Nothing
+updateInformation d [UpdateUsing tof fromf editor:_] m
+	= interact d null
+		(\r -> let v = tof m in (m,(v,Touched)))
+		(\l r (v,m) rCh vCh vOk -> if vOk (let nl = fromf l v in (let nv = tof nl in (nl,(nv,m)))) (l,(v,m)))
+		(Just editor)
 //TODO: THIS OPTIMIZATION IS WRONG!
 //	= interactNullUpdate d tof fromf m
 updateInformation d _ m = updateInformation d [UpdateWith (\l -> l) (\_ v -> v)] m
@@ -56,7 +61,9 @@ viewInformation d [ViewWith tof:_] m
 		(\r -> let v = Display (tof m) in (m,v,defaultMask v))
 		(\l r v m ok -> (l,v,m))
 */
-	= interactNullView d tof m
+	= interactNullView d (Display o tof) Nothing m
+viewInformation d [ViewUsing tof editor:_] m
+	= interactNullView d tof (Just editor) m
 viewInformation d _ m = viewInformation d [ViewWith id] m
 
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
@@ -70,6 +77,19 @@ updateSharedInformation d [UpdateWith tof fromf:_] shared
 					)
 					(l,(v,m))
 				)
+				Nothing
+				@> (mapval,shared)
+updateSharedInformation d [UpdateUsing tof fromf editor:_] shared
+	= interact d (toReadOnly shared)
+				(\r -> let v = tof r in (fromf r v,(v,Touched)))
+				(\l r (v,m) rCh vCh vOk -> if vOk
+					(if rCh //If the share changed, refresh the view
+						(let nv = tof r in (fromf r nv,(nv,Touched)))
+						(fromf r v,(v,m))
+					)
+					(l,(v,m))
+				)
+				(Just editor)
 				@> (mapval,shared)
 updateSharedInformation d [UpdateWithShared tof fromf conflictf:_] shared
 	= interact d (toReadOnly shared)
@@ -86,6 +106,7 @@ updateSharedInformation d [UpdateWithShared tof fromf conflictf:_] shared
 					)
 					(l,(v,m))
 				)
+				Nothing
 				@> (mapval,shared)
 updateSharedInformation d _ shared			
 	//Use dynamics to test if r == w, if so we can use an update view	
@@ -95,11 +116,13 @@ updateSharedInformation d _ shared
 			= interact d (toReadOnly shared)
 				(\r -> let v = rtow r in (rtow r,(v,Touched)))
 				(\l r (v,m) rCh vCh vOk -> if vOk (if (rtow r =!= l) (let nv = rtow r in (nv,(nv,Touched))) (v,(v,m))) (l,(v,m)))
+				Nothing
 				@> (mapval,shared)
 		_
 			= interact d (toReadOnly shared)
 				(\r -> let v = (Display r,defaultValue) in (defaultValue,(v,CompoundMask [Touched,Untouched])))
 				(\l r ((_,v),(CompoundMask [_,m])) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,(nv,CompoundMask [Touched,m]))))
+				Nothing
 				@> (mapval,shared)	
 
 mapval (Value w _) _	= Just w
@@ -112,7 +135,7 @@ viewSharedInformation d [ViewWith tof:_] shared
 		(\r -> let v = Display (tof r) in (r,v,defaultMask v))
 		(\l r v m ok -> let v = Display (tof r) in (r,v,defaultMask v)) 
 */
-	= interactSharedInformation d (toReadOnly shared) (\r -> Display (tof r))
+	= interactSharedInformation d (toReadOnly shared) (\r -> Display (tof r)) Nothing
 viewSharedInformation d _ shared = viewSharedInformation d [ViewWith id] shared
 
 updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | descr d & iTask r & iTask m
@@ -120,15 +143,17 @@ updateInformationWithShared d [UpdateWith tof fromf:_] shared m
 	= interact d (toReadOnly shared)
 		(\r -> let v = tof (r,m) in (m,(v,Touched)))
 		(\l r (v,msk) rCh vCh vOk -> let nl = if vOk (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,(v,Touched))))
+		Nothing
 updateInformationWithShared d _ shared m
 	= interact d (toReadOnly shared)
 		(\r -> let v = (Display r,m) in (m,(v,CompoundMask [Touched,Untouched])))
 		(\l r ((_,v),(CompoundMask [_,msk])) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,(nv,CompoundMask [Touched,msk]))))
+		Nothing
 
 //Core choice tasks
 editChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Maybe a) -> Task a | descr d & iTask o & iTask a
 editChoiceAs d [ChooseWith type:_] container target mbSel
-    = interactLocalExposed d (initFun type container target mbSel) updateFun @? choiceRes
+    = interactLocalExposed d (initFun type container target mbSel) updateFun Nothing @? choiceRes
 where
     initFun :: (ChoiceType o v) [o] (o -> a) (Maybe a) -> ([a], (DynamicChoice v,InteractionMask)) | iTask o & iTask a & iTask v
     initFun type container target mbSel = (map target container, initChoiceView type container target mbSel)
@@ -140,14 +165,14 @@ editChoiceAs d _ container target mbSel = editChoiceAs d [ChooseWith (AutoChoice
 
 editChoiceSimple :: !d ![o] (Maybe o) -> Task o | descr d & iTask o
 editChoiceSimple d container mbSel
-    = interactLocalViewOnly d (initSimpleChoiceView container mbSel) updateFun @? simpleChoiceRes
+    = interactLocalViewOnly d (initSimpleChoiceView container mbSel) updateFun Nothing @? simpleChoiceRes
 where
     updateFun :: (DynamicChoice o,InteractionMask) Bool -> (DynamicChoice o,InteractionMask)
     updateFun (view,mask) viewOk = (view,mask)
 
 editChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Maybe a) -> Task a | descr d & iTask o & iTask w & iTask a
 editChoiceWithSharedAs d [ChooseWith type:_] sharedContainer target mbSel
-    = interactExposed d (toReadOnly sharedContainer) (initFun type target mbSel) (updateFun type target) @? choiceRes
+    = interactExposed d (toReadOnly sharedContainer) (initFun type target mbSel) (updateFun type target) Nothing @? choiceRes
 where
     initFun :: (ChoiceType o v) (o -> a) (Maybe a) [o] -> ([a], (DynamicChoice v, InteractionMask)) | iTask o & iTask v & iTask a
     initFun type target mbSel container = (map target container,initChoiceView type container target mbSel)
@@ -165,7 +190,7 @@ editChoiceWithSharedAs d _ container target mbSel = editChoiceWithSharedAs d [Ch
 
 editChoiceWithSharedSimple :: !d !(ReadWriteShared [o] w) (Maybe o) -> Task o | descr d & iTask o & iTask w
 editChoiceWithSharedSimple d sharedContainer mbSel
-    = interactViewOnly d (toReadOnly sharedContainer) (initFun mbSel) updateFun @? simpleChoiceRes
+    = interactViewOnly d (toReadOnly sharedContainer) (initFun mbSel) updateFun Nothing @? simpleChoiceRes
 where
     initFun :: (Maybe o) [o] -> (DynamicChoice o,InteractionMask) | iTask o
     initFun mbSel container = initSimpleChoiceView container mbSel
@@ -178,8 +203,8 @@ where
             = (view,mask)
 
 editSharedChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Shared (Maybe a)) -> Task a | descr d & iTask o & iTask a
-editSharedChoiceAs d [ChooseWith type:_] container target sharedSel
-    =  interactExposed d (toReadOnly sharedSel) (initFun type container target) updateFun
+editSharedChoiceAs d [ChooseWith type:_] container target sharedSel 
+    =  interactExposed d (toReadOnly sharedSel) (initFun type container target) updateFun Nothing
     @> (mapSharedSel,sharedSel)
     @? choiceRes
 where
@@ -195,7 +220,7 @@ editSharedChoiceAs d _ container target sharedSel = editSharedChoiceAs d [Choose
 
 editSharedChoiceSimple :: !d ![o] (Shared (Maybe o)) -> Task o | descr d & iTask o
 editSharedChoiceSimple d container sharedSel
-    = interactViewOnly d (toReadOnly sharedSel) (initSimpleChoiceView container) (updateFun container)
+    = interactViewOnly d (toReadOnly sharedSel) (initSimpleChoiceView container) (updateFun container) Nothing
     @> (mapSimpleSharedSel,sharedSel)
     @? simpleChoiceRes
 where
@@ -206,7 +231,7 @@ where
 
 editSharedChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Shared (Maybe a)) -> Task a | descr d & iTask o & iTask w & iTask a
 editSharedChoiceWithSharedAs d [ChooseWith type:_] sharedContainer target sharedSel
-    =  interactExposed d (sharedContainer |+| sharedSel) (initFun type target) (updateFun type target)
+    =  interactExposed d (sharedContainer |+| sharedSel) (initFun type target) (updateFun type target) Nothing
     @> (mapSharedSel,sharedSel)
     @? choiceRes
 where
@@ -223,7 +248,7 @@ editSharedChoiceWithSharedAs d _ sharedContainer target sharedSel = editSharedCh
 
 editSharedChoiceWithSharedSimple :: !d !(ReadWriteShared [o] w) (Shared (Maybe o)) -> Task o | descr d & iTask o & iTask w
 editSharedChoiceWithSharedSimple d sharedContainer sharedSel
-    = interactViewOnly d (sharedContainer |+| sharedSel) initFun updateFun
+    = interactViewOnly d (sharedContainer |+| sharedSel) initFun updateFun Nothing
     @> (mapSimpleSharedSel,sharedSel)
     @? simpleChoiceRes
 where

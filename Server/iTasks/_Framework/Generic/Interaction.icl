@@ -601,11 +601,6 @@ editorAttributes (val,mask,ver) meta
     | otherwise
         = maybe attr (\h -> 'DM'.put HINT_ATTRIBUTE h attr) hint
 
-controlsOf :: !VisualizationResult -> [(UIControl,UIAttributes)]
-controlsOf (NormalEditor controls)		= controls
-controlsOf (OptionalEditor controls)	= controls
-controlsOf HiddenEditor					= []
-
 addLabel :: !Bool !String !UIAttributes -> UIAttributes
 addLabel optional label attr = putCond LABEL_ATTRIBUTE (format optional label) attr
 where

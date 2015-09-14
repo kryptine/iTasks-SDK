@@ -51,6 +51,7 @@ from Text.JSON import :: JSONNode
     , iworld            :: !*IWorld
     }
 
+controlsOf :: !VisualizationResult -> [(UIControl,UIAttributes)]
 
 //****************************************************************************//
 // Wrapper types for defining custom editor components that can process events

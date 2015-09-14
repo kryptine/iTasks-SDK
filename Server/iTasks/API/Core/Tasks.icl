@@ -5,7 +5,7 @@ import System.Time, Data.Error, System.OSError, Data.Tuple, Text, Text.JSON
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.TaskServer
 import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction, iTasks._Framework.Task, iTasks._Framework.TaskState
 import iTasks._Framework.TaskEval, iTasks._Framework.TaskStore, iTasks.UI.Definition, iTasks._Framework.IWorld
-import iTasks.UI.Layout
+import iTasks.UI.Layout, iTasks.UI.Editor
 import iTasks.API.Core.SDSs, iTasks.API.Common.SDSCombinators
 
 from iTasks._Framework.SDS as SDS import qualified read, readRegister, write
@@ -69,9 +69,11 @@ where
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 
-interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask)))
-			-> Task l | descr d & iTask l & iTask r & iTask v
-interact desc shared initFun refreshFun = Task eval
+interact :: !d !(ReadOnlyShared r)
+				(r -> (l,(v,InteractionMask)))
+				(l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask)))
+				(Maybe (Editor v)) -> Task l | descr d & iTask l & iTask r & iTask v
+interact desc shared initFun refreshFun mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
@@ -97,7 +99,7 @@ where
 		# (nl,(nv,nmask)) 		= if (rChanged || vChanged) (refreshFun l nr (nv,nmask) rChanged vChanged vValid) (l,(nv,nmask))
 		//Make visualization
 		# nver					= verifyMaskedValue (nv,nmask)
-		# (rep,iworld) 			= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
+		# (rep,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
 		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts rep)
 			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
@@ -113,10 +115,12 @@ where
 	matchAndApplyEvent _ matchId taskTime v mask ts iworld
 		= (v,mask,ts,iworld)
 
-	visualizeView taskId evalOpts value=:(v,vmask,vver) desc iworld
-		# layout	= repLayoutRules evalOpts
-		# (controls,iworld) = visualizeAsEditor value taskId layout iworld
-		# uidef		= {UIDef|content=UIForm (layout.LayoutRules.accuInteract (toPrompt desc) {UIForm|attributes='DM'.newMap,controls=controls,size=defaultSizeOpts}),windows=[]}
+	visualizeView taskId evalOpts mbEditor value=:(v,vmask,vver) desc iworld
+		# layout = repLayoutRules evalOpts
+		# editor = fromMaybe gEditor{|*|} mbEditor
+		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, layout = layout, iworld = iworld}
+		# (editUI,vst=:{VSt|iworld})	= editor.Editor.genUI [] v vmask vver (gEditMeta{|*|} v) vst
+		# uidef		= {UIDef|content=UIForm (layout.LayoutRules.accuInteract (toPrompt desc) {UIForm|attributes='DM'.newMap,controls=controlsOf editUI,size=defaultSizeOpts}),windows=[]}
 		= (TaskRep uidef, iworld)
 
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w

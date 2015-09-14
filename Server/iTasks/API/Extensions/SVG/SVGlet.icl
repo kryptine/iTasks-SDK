@@ -258,13 +258,13 @@ handleNClick sttf local _ args clval world = (clval, NoDiff, world)
 
 imageView :: !(s *TagSource -> Image s) !(Conflict s -> Maybe s) 
           -> ViewOption s | iTask s
-imageView toImage resolve = abort "DEPRECATED"
+imageView toImage resolve = ViewUsing id (fromSVGLet {toImage=toImage,resolve=resolve})
 
 
 imageUpdate :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v)
                !(s v -> s`)
             -> UpdateOption s s` | iTask v
-imageUpdate toViewState toImage resolve fromViewState = abort "DEPRECATED"
+imageUpdate toViewState toImage resolve fromViewState = UpdateUsing toViewState fromViewState (fromSVGLet {toImage=toImage,resolve=resolve})
 
 derive class iTask ActionState
 

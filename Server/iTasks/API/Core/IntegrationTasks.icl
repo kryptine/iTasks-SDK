@@ -7,10 +7,10 @@ import Data.Either, System.OS, Text.URI, Internet.HTTP
 
 import iTasks._Framework.IWorld, iTasks._Framework.Task, iTasks._Framework.TaskState
 import iTasks._Framework.SDS, iTasks._Framework.TaskEval
-import iTasks._Framework.Generic.Interaction
 import iTasks.API.Core.Types, iTasks.API.Core.Tasks, iTasks.UI.Layout
 import iTasks.API.Core.SDSs
 import iTasks.API.Common.InteractionTasks, iTasks.API.Common.TaskCombinators //TODO don't import from Common in Core
+import iTasks.UI.Editor
 
 from iTasks.API.Common.ImportTasks		import importTextFile
 
@@ -80,11 +80,16 @@ where
 						
 	makeView [ViewWith viewFun] status taskId layout iworld
 		# ver = verifyMaskedValue (Display (viewFun status),Touched)
-		= visualizeAsEditor (Display (viewFun status),Touched,ver) taskId layout iworld
+		= makeEditor (Display (viewFun status),Touched,ver) taskId layout iworld
 	makeView _ status taskId layout iworld
 		# ver = verifyMaskedValue (Display (defaultViewFun status),Touched)
-		= visualizeAsEditor (Display (defaultViewFun status),Touched,ver) taskId layout iworld
-	
+		= makeEditor (Display (defaultViewFun status),Touched,ver) taskId layout iworld
+
+	makeEditor value=:(v,vmask,vver) taskId layout iworld
+		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, layout = layout, iworld = iworld}
+		# (editUI,vst=:{VSt|iworld}) = gEditor{|*|}.Editor.genUI [] v vmask vver (gEditMeta{|*|} v) vst
+		= (controlsOf editUI,iworld)
+
 	//By default show a progress bar 
 	defaultViewFun (RunningProcess cmd) = {Progress|progress=ProgressUndetermined,description="Running " +++ cmd +++ "..."}
 	defaultViewFun (CompletedProcess exit) = {Progress|progress=ProgressRatio 1.0,description=cmd +++ " done (" +++ toString exit +++ ")"}

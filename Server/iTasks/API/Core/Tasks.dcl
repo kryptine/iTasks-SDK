@@ -94,13 +94,16 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 * @param ReadOnlyShared: A reference to shared data the task has access to
 * @param Initialization function: Computes the initial local state and view
 * @param Refresh function: Recomputes the local state and view when either the view is edited or the shared data changes.
+* @param Custom editor: Optional custom editor for the interaction
 *
 * @return The local state
 *
 * @gin False
 */
-interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask))) -> Task l | descr d & iTask l & iTask r & iTask v
-
+interact :: !d !(ReadOnlyShared r)
+				(r -> (l,(v,InteractionMask)))
+				(l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask)))
+				(Maybe (Editor v)) -> Task l | descr d & iTask l & iTask r & iTask v
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed
 * @param Hostname

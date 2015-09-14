@@ -8,6 +8,11 @@ from iTasks.UI.Editor import ::VisualizationResult(..), :: Editor(..), :: USt(..
 from Data.Map import :: Map, newMap, put
 from Data.Map import qualified get
 
+controlsOf :: !VisualizationResult -> [(UIControl,UIAttributes)]
+controlsOf (NormalEditor controls)		= controls
+controlsOf (OptionalEditor controls)	= controls
+controlsOf HiddenEditor					= []
+
 createEditletEventHandler :: (EditletEventHandlerFunc d a) !ComponentId -> JSFun b
 createEditletEventHandler handler id = undef
 
