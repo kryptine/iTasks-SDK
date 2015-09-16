@@ -1239,10 +1239,15 @@ fixWithState v st
   #! (v, st`) = fixSpans v {st & fixSpansDidChange = False}
   = (v, {st` & fixSpansDidChange = st`.fixSpansDidChange || st.fixSpansDidChange})
 
+isPxSpan :: !Span -> Bool
+isPxSpan (PxSpan _) = True
+isPxSpan _          = False
+
 fixSpans :: !Span !*FixSpansSt -> *(!Span, !*FixSpansSt)
 fixSpans sp=:(PxSpan _) st = (sp, {st & fixSpansDidChange = False})
 fixSpans osp=:(AddSpan x y) st
   #! (x`, st1) = fixSpans x {st & fixSpansDidChange = False}
+  | not (isPxSpan x` || st1.fixSpansDidChange) = (osp, {st1 & fixSpansDidChange = False})
   #! (y`, st2) = fixSpans y {st1 & fixSpansDidChange = False}
   | not (st1.fixSpansDidChange || st2.fixSpansDidChange) = (osp, st2)
   | otherwise
@@ -1251,6 +1256,7 @@ fixSpans osp=:(AddSpan x y) st
       sp             -> (sp, st2)
 fixSpans osp=:(SubSpan x y) st
   #! (x`, st1) = fixSpans x {st & fixSpansDidChange = False}
+  | not (isPxSpan x` || st1.fixSpansDidChange) = (osp, {st1 & fixSpansDidChange = False})
   #! (y`, st2) = fixSpans y {st1 & fixSpansDidChange = False}
   | not (st1.fixSpansDidChange || st2.fixSpansDidChange) = (osp, st2)
   | otherwise
@@ -1259,6 +1265,7 @@ fixSpans osp=:(SubSpan x y) st
       sp             -> (sp, st2)
 fixSpans osp=:(MulSpan x y) st
   #! (x`, st1) = fixSpans x {st & fixSpansDidChange = False}
+  | not (isPxSpan x` || st1.fixSpansDidChange) = (osp, {st1 & fixSpansDidChange = False})
   #! (y`, st2) = fixSpans y {st1 & fixSpansDidChange = False}
   | not (st1.fixSpansDidChange || st2.fixSpansDidChange) = (osp, st2)
   | otherwise
@@ -1267,6 +1274,7 @@ fixSpans osp=:(MulSpan x y) st
       sp             -> (sp, st2)
 fixSpans osp=:(DivSpan x y) st
   #! (x`, st1) = fixSpans x {st & fixSpansDidChange = False}
+  | not (isPxSpan x` || st1.fixSpansDidChange) = (osp, {st1 & fixSpansDidChange = False})
   #! (y`, st2) = fixSpans y {st1 & fixSpansDidChange = False}
   | not (st1.fixSpansDidChange || st2.fixSpansDidChange) = (osp, st2)
   | otherwise
