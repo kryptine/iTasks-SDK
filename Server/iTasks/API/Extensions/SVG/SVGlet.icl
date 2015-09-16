@@ -1249,8 +1249,6 @@ fixSpans osp=:(AddSpan x y) st
   #! (x`, st1) = fixSpans x {st & fixSpansDidChange = False}
   | not (isPxSpan x` || st1.fixSpansDidChange) = (osp, {st1 & fixSpansDidChange = False})
   #! (y`, st2) = fixSpans y {st1 & fixSpansDidChange = False}
-  | not (st1.fixSpansDidChange || st2.fixSpansDidChange) = (osp, st2)
-  | otherwise
   = case x` + y` of
       sp=:(PxSpan _) -> (sp, {st2 & fixSpansDidChange = True})
       sp             -> (sp, st2)
@@ -1258,8 +1256,6 @@ fixSpans osp=:(SubSpan x y) st
   #! (x`, st1) = fixSpans x {st & fixSpansDidChange = False}
   | not (isPxSpan x` || st1.fixSpansDidChange) = (osp, {st1 & fixSpansDidChange = False})
   #! (y`, st2) = fixSpans y {st1 & fixSpansDidChange = False}
-  | not (st1.fixSpansDidChange || st2.fixSpansDidChange) = (osp, st2)
-  | otherwise
   = case x` - y` of
       sp=:(PxSpan _) -> (sp, {st2 & fixSpansDidChange = True})
       sp             -> (sp, st2)
@@ -1267,8 +1263,6 @@ fixSpans osp=:(MulSpan x y) st
   #! (x`, st1) = fixSpans x {st & fixSpansDidChange = False}
   | not (isPxSpan x` || st1.fixSpansDidChange) = (osp, {st1 & fixSpansDidChange = False})
   #! (y`, st2) = fixSpans y {st1 & fixSpansDidChange = False}
-  | not (st1.fixSpansDidChange || st2.fixSpansDidChange) = (osp, st2)
-  | otherwise
   = case x` * y` of
       sp=:(PxSpan _) -> (sp, {st2 & fixSpansDidChange = True})
       sp             -> (sp, st2)
@@ -1276,8 +1270,6 @@ fixSpans osp=:(DivSpan x y) st
   #! (x`, st1) = fixSpans x {st & fixSpansDidChange = False}
   | not (isPxSpan x` || st1.fixSpansDidChange) = (osp, {st1 & fixSpansDidChange = False})
   #! (y`, st2) = fixSpans y {st1 & fixSpansDidChange = False}
-  | not (st1.fixSpansDidChange || st2.fixSpansDidChange) = (osp, st2)
-  | otherwise
   = case x` / y` of
       sp=:(PxSpan _) -> (sp, {st2 & fixSpansDidChange = True})
       sp             -> (sp, st2)
