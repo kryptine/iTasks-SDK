@@ -591,7 +591,6 @@ addCases` parentBPInst evalOpts=:{TaskEvalOpts|tonicOpts} cases
  */
 tonicWrapApp` :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] (Task a) -> Task a | iTask a
 tonicWrapApp` mn fn nid cases t=:(Task eval)
-  //| isBind mn fn = Task bindEval
   | isStep mn fn = Task (stepEval cases eval nid)
   | isLambda fn  = t
   | otherwise    = Task eval`
@@ -606,10 +605,6 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                                           evalOpts.tonicOpts.inAssignNode)
                     }
       }
-
-  //bindEval event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree iworld
-    //# iworld = addCases evalOpts cases iworld
-    //= eval event evalOpts taskTree iworld
 
   // TODO Double check focusses (foci?)
   eval` event evalOpts=:{TaskEvalOpts|tonicOpts = tonicOpts=:{currBlueprintTaskId, currBlueprintModuleName, currBlueprintFuncName}} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo _) _) iworld
@@ -722,7 +717,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
         _ = eval event (updateAssignStatus evalOpts) taskTree iworld
 
   updRTMap tonicOpts nid childTaskId parentBPInst iworld
-    # (newActiveNodes, iworld) = setActiveNodes tonicOpts parentBPInst childTaskId  nid iworld
+    # (newActiveNodes, iworld) = setActiveNodes tonicOpts parentBPInst childTaskId nid iworld
     # newActiveNodeMap         = 'DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems newActiveNodes)]
     # oldActiveNodes           = 'DM'.difference ('DM'.union parentBPInst.bpi_previouslyActive
                                                              ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems parentBPInst.bpi_activeNodes)]))

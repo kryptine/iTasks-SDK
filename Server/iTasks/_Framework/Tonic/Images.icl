@@ -650,10 +650,10 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
                             (_, Just x) -> Just x
                             _           -> Nothing
   #! augments           = maybe inh.inh_augments (\x -> [text ArialBold10px ("(" +++ toString x +++ ")") : inh.inh_augments]) mTaskId
-  #! (renderOpts, tsrc) = strictTRMapSt (\ta -> ta inh.inh_in_branch inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_future_unreachable eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs` augments) inh.inh_task_apps tsrc
+  #! (renderOpts, tsrc) = strictTRMapSt (\ta -> ta isDynamic inh.inh_in_branch inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_future_unreachable eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs` augments) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)
-                            _          -> tDefaultMApp inh.inh_in_branch inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_future_unreachable eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs taskArgs` augments tsrc
+                            _          -> tDefaultMApp isDynamic inh.inh_in_branch inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_future_unreachable eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs taskArgs` augments tsrc
   #! clickMeta          = mkClickMeta inh (Just eid) moduleName taskName (fmap (\x -> x.bpi_taskId) inh.inh_bpinst) mbNavTo
   #! taskApp            = taskApp <@< { onclick = navigateOrSelect clickMeta, local = False }
   #! valNodeIsSelected  = case inh.inh_selDetail of
@@ -697,10 +697,10 @@ tRoundedRect width height
       <@< { xradius     = px 5.0 }
       <@< { yradius     = px 5.0 }
 
-tDefaultMApp :: !Bool !Bool !Bool !Bool !Bool !Bool !ExprId !ModuleName !FuncName
+tDefaultMApp :: !Bool !Bool !Bool !Bool !Bool !Bool !Bool !ExprId !ModuleName !FuncName
                 !ModuleName !FuncName ![TExpr] ![Image ModelTy] ![Image ModelTy] !*TagSource
              -> *(!Image ModelTy, !*TagSource)
-tDefaultMApp inBranch isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName argsExprs taskArgs augments tsrc
+tDefaultMApp isDynamic inBranch isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName argsExprs taskArgs augments tsrc
   #! isEditor = elem taskName [ "viewInformation"
                               , "updateInformation"
                               , "enterInformation"
@@ -740,7 +740,7 @@ tDefaultMApp inBranch isCompact isActive wasActive isInAccessible isUnreachable 
                   (True, True, [TVar _ tn _ : _]) -> if (size tn > 0 && tn.[0] == '"') [text ArialRegular10px tn] []
                   (True, _, _) -> []
                   _            -> taskArgs
-  = tDefaultMApp` inBranch isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName taskArgs augments tsrc
+  = tDefaultMApp` isDynamic inBranch isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName taskArgs augments tsrc
 
 appColor :: !Bool !Bool !Bool -> SVGColor
 appColor isActive wasActive isInAccessible
@@ -754,16 +754,18 @@ appColor isActive wasActive isInAccessible
           )
       )
 
-tDefaultMApp` :: !Bool !Bool !Bool !Bool !Bool !Bool !ExprId !ModuleName !FuncName
+tDefaultMApp` :: !Bool !Bool !Bool !Bool !Bool !Bool !Bool !ExprId !ModuleName !FuncName
                  !ModuleName !FuncName ![Image ModelTy] ![Image ModelTy] !*TagSource
               -> *(!Image ModelTy, !*TagSource)
-tDefaultMApp` inBranch isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName taskArgs augments [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
+tDefaultMApp` isDynamic inBranch isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName taskArgs augments [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
   #! taskNameImg       = tag uTnTag (margin (px 5.0) (beside (repeat AtMiddleY) [] [text ArialBold10px taskName : text ArialRegular10px " " : intersperse (text ArialRegular10px " ") augments] Nothing))
   #! bgColor           = appColor isActive wasActive isInAccessible
   #! futureUnreachable = isUnreachable && not isInAccessible
   #! futureReachable   = not isUnreachable && not isInAccessible && not (isActive || wasActive)
-  #! strokeColor       = if futureUnreachable TonicRed (if (futureReachable && inBranch) TonicGreen TonicBlack)
-  #! strokeWidth       = if ((futureUnreachable || futureReachable) && inBranch) (px 3.0) (px 1.0)
+  #! strokeColor       = if isDynamic
+                           (if futureUnreachable TonicRed (if (futureReachable && inBranch) TonicGreen TonicBlack))
+                           TonicBlack
+  #! strokeWidth       = if (isDynamic && (futureUnreachable || futureReachable) && inBranch) (px 3.0) (px 1.0)
   = case taskArgs of
       []
         #! bgRect = tRoundedRect (imagexspan tntag) (imageyspan tntag) <@< { fill = bgColor }
