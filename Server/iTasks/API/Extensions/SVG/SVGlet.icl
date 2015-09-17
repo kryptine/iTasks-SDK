@@ -282,15 +282,6 @@ ifAction _ _ _ _ = Nothing
 
 svgns =: "http://www.w3.org/2000/svg"
 
-
-:: SVGSrvSt s =
-  { svgSrvSt :: !s
-  }
-
-defaultSrvSt :: !s -> SVGSrvSt s
-defaultSrvSt s = { svgSrvSt = s
-                 }
-
 :: MousePos = MouseUp | MouseDown
 
 instance == MousePos where
@@ -315,7 +306,7 @@ defaultClSt = { svgNumClicks    = 0
   = SetState s
 
 derive class iTask Set, DropTarget, MousePos, ImageTag
-derive class iTask SVGDiff, SVGSrvSt, SVGClSt
+derive class iTask SVGDiff, SVGClSt
 
 fromSVGLet :: (SVGLet s) -> Editor s | gEq{|*|} s & gDefault{|*|} s & JSONEncode{|*|} s & JSONDecode{|*|} s
 fromSVGLet {toImage,resolve} = fromEditlet (svgRenderer resolve toImage)
