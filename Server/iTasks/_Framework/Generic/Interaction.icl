@@ -13,17 +13,6 @@ import iTasks.API.Core.Types
 import iTasks.UI.Layout
 import iTasks.UI.Editor
 
-visualizeAsEditor :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld -> (![(!UIControl,!UIAttributes)],!*IWorld) | gEditor{|*|} a & gEditMeta{|*|} a
-visualizeAsEditor (v,mask,ver) taskId layout iworld
-	# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, layout = layout, iworld = iworld}
-	# (res,vst=:{VSt|iworld})	= (gEditor{|*|}).Editor.genUI [] v mask ver (gEditMeta{|*|} v) vst
-	= (controlsOf res,iworld)
-
-updateValueAndMask :: !TaskId !DataPath !JSONNode !(MaskedValue a) !*IWorld -> (!MaskedValue a,!*IWorld) | gEditor{|*|} a
-updateValueAndMask taskId path update (a,mask) iworld
-    # (val,mask,ust=:{USt|iworld}) = gEditor{|*|}.Editor.appDiff path update a mask {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
-    = ((val,mask),iworld)
-
 generic gEditor a | gText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a :: Editor a
 derive bimap Editor,(,,),(,,,)
 

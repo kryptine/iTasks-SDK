@@ -350,6 +350,7 @@ svgRenderer resolve state2Image
 
   appServerDiff :: !(SVGDiff s) !s -> s 
   appServerDiff (SetState st) _ = st
+  appServerDiff _  st = st
 
 imageFromState :: !(Image s) !(Map FontDef (Map String Real)) -> *(!Image s, !*SpanEnvs)
 imageFromState img env

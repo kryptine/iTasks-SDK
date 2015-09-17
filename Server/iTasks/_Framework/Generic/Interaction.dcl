@@ -68,10 +68,6 @@ derive gVerify Maybe, Either, MaybeError,  Map, JSONNode, HtmlTag, Timestamp
 derive gVerify EditableList
 derive gVerify RWShared
 
-//Wrapper functions for generating editors
-//visualizeAsEditor   :: !(VerifiedValue a) !TaskId !LayoutRules !*IWorld	-> (![(!UIControl,!UIAttributes)],!*IWorld)	| gEditor{|*|} a & gEditMeta{|*|} a
-updateValueAndMask  :: !TaskId !DataPath !JSONNode !(MaskedValue a) !*IWorld -> (!MaskedValue a,!*IWorld) | gEditor{|*|} a
-
 //Support types for generating editors
 :: VerifyOptions =
 	{ optional		:: !Bool

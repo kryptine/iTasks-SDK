@@ -99,4 +99,5 @@ where
 					Nothing = iworld
 				= (appDiffSrv diff ov, Touched, {USt|ust & iworld = iworld})
 			_	= (ov,omask,ust)
-	appDiff dp _ val mask ust = (val,mask,ust)
+	appDiff` dp _ val mask ust = (val,mask,ust)
+

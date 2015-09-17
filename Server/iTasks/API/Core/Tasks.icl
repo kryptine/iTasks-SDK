@@ -109,7 +109,7 @@ where
 	matchAndApplyEvent (EditEvent taskId name value) matchId taskTime v mask ts iworld
 		| taskId == matchId
 			| otherwise
-				# ((nv,nmask),iworld)	= updateValueAndMask taskId (s2dp name) value (v,mask) iworld
+				# ((nv,nmask),iworld)	= updateValueAndMask taskId (s2dp name) mbEditor value (v,mask) iworld
 				= (nv,nmask,taskTime,iworld)
 		| otherwise	= (v,mask,ts,iworld)
 	matchAndApplyEvent _ matchId taskTime v mask ts iworld
@@ -122,6 +122,12 @@ where
 		# (editUI,vst=:{VSt|iworld})	= editor.Editor.genUI [] v vmask vver (gEditMeta{|*|} v) vst
 		# uidef		= {UIDef|content=UIForm (layout.LayoutRules.accuInteract (toPrompt desc) {UIForm|attributes='DM'.newMap,controls=controlsOf editUI,size=defaultSizeOpts}),windows=[]}
 		= (TaskRep uidef, iworld)
+
+	updateValueAndMask taskId path mbEditor update (a,mask) iworld
+		# editor = fromMaybe gEditor{|*|} mbEditor
+    	# (val,mask,ust=:{USt|iworld}) = editor.Editor.appDiff path update a mask {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
+    	= ((val,mask),iworld)
+
 
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w
 tcplisten port removeClosed sds handlers = Task eval

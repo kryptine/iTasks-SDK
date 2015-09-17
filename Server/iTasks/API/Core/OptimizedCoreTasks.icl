@@ -31,7 +31,7 @@ where
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable 	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
+		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -62,7 +62,7 @@ where
 		//Decode stored values
 		# (l,v)				    = (fromJust (fromJSON encl), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
+		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
 		# vValid				= isValid (verifyMaskedValue (nv,nmask))
@@ -92,7 +92,7 @@ where
 		//Decode stored values
 		# (r,v)				    = (fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
+		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -124,7 +124,7 @@ where
 		//Decode stored values
 		# v				        = fromJust (fromJSON encv)
 		//Determine next v by applying edit event if applicable
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
+		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
 		# vValid				= isValid (verifyMaskedValue (nv,nmask))
@@ -158,7 +158,7 @@ where
 		  r = fromJust (fromJSON encr)
 		  v = toView r l
 		//Determine next v by applying edit event if applicable 	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
+		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -201,7 +201,7 @@ where
 		  r = fromJust (fromJSON encr)
 		  v = toViewId r l
 		//Determine next v by applying edit event if applicable 	
-		# (nv,nmask,nts,iworld)	= matchAndApplyEvent event taskId taskTime v mask ts iworld
+		# (nv,nmask,nts,iworld)	= matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -242,7 +242,7 @@ where
 		  r = fromJust (fromJSON encr)
 		  v = toView r
 		//Determine next v by applying edit event if applicable 	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
+		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr), iworld)
@@ -274,7 +274,7 @@ where
 		# v = fromJust (fromJSON encv)
 		  l = fromf v
 		//Determine next v by applying edit event if applicable 	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
+		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Apply refresh function if v changed
 		# changed				= nts =!= ts
 		# valid					= isValid (verifyMaskedValue (nv,nmask))
@@ -304,7 +304,7 @@ where
 		# l	= fromJust (fromJSON encl)
 		  v = tof l
 		//Determine next v by applying edit event if applicable 	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
+		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Apply refresh function if v changed
 		# changed				= nts =!= ts
 		# valid					= isValid (verifyMaskedValue (nv,nmask))
@@ -336,7 +336,7 @@ where
 		# l	= fromJust (fromJSON encl)
 		  v = tof l
 		//Determine next v by applying edit event if applicable 	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
+		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		# nl = l
 		//Make visualization
 		# nver					= verifyMaskedValue (nv,nmask)
@@ -345,16 +345,21 @@ where
 		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-matchAndApplyEvent (EditEvent taskId name value) matchId taskTime v mask ts iworld
+matchAndApplyEvent (EditEvent taskId name value) matchId taskTime mbEditor v mask ts iworld
 	| taskId == matchId
 		| otherwise
-			# ((nv,nmask),iworld)	= updateValueAndMask taskId (s2dp name) value (v,mask) iworld
+			# ((nv,nmask),iworld)	= updateValueAndMask taskId (s2dp name) mbEditor value (v,mask) iworld
 			= (nv,nmask,taskTime,iworld)
 	| otherwise	= (v,mask,ts,iworld)
-matchAndApplyEvent (FocusEvent taskId) matchId taskTime v mask ts iworld
+matchAndApplyEvent (FocusEvent taskId) matchId taskTime mbEditor v mask ts iworld
 	= (v,mask, if (taskId == matchId) taskTime ts, iworld)
-matchAndApplyEvent _ matchId taskTime v mask ts iworld
+matchAndApplyEvent _ matchId taskTime mbEditor v mask ts iworld
 	= (v,mask,ts,iworld)
+
+updateValueAndMask taskId path mbEditor update (a,mask) iworld
+	# editor = fromMaybe gEditor{|*|} mbEditor
+   	# (val,mask,ust=:{USt|iworld}) = editor.Editor.appDiff path update a mask {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
+   	= ((val,mask),iworld)
 
 visualizeView taskId evalOpts mbEditor value=:(v,vmask,vver) desc iworld
 		# layout = repLayoutRules evalOpts
