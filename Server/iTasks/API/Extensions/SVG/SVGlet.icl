@@ -669,8 +669,11 @@ desugarAndTag {Image | content, mask, attribs, transform, tags} st
 
   desugarAndTagImageContent :: ![ImageTransform] !(Set ImageTag) !(ImageContent s) !*DesugarAndTagStVal
                             -> *(!(!ImageContent s, !ImageSpan, !ImageSpan, !ImageOffset, !Map FontDef (Set String)), !*DesugarAndTagStVal) | iTask s
-  desugarAndTagImageContent imTrs _ ic=:(Basic _ imSp) st
+  desugarAndTagImageContent imTrs _ ic=:(Basic bi imSp) st
     #! imSpFonts      = desugarAndTagSpanPair imSp
+    #! imSpFonts      = case bi of
+                          TextImage fd str -> desugarAndTagFontsUnions ['DM'.singleton fd ('DS'.singleton str), imSpFonts]
+                          _                -> imSpFonts
     #! (imSp`, imOff) = applyTransforms imTrs imSp
     = ((ic, imSp, imSp`, imOff, imSpFonts), st)
   desugarAndTagImageContent imTrs imTas (Line {LineImage | lineSpan, markers, lineContent}) st
@@ -768,13 +771,14 @@ desugarAndTag {Image | content, mask, attribs, transform, tags} st
     #! imSp                   = calculateComposedSpan sps offsets
     = ((AsCollage offsets imgs, imSp, imSpFonts), st)
   desugarAndTagCompose imTas (AsOverlay offsets ias imgs) st
-    #! imSpFonts                      = desugarAndTagListOfSpanPair offsets
-    #! (imgs, st)                     = strictTRMapSt desugarAndTag imgs st
-    #! (imgs, spans, corr, imSpFonts) = strictFoldr (\(img, _, sp, cor, imSpFonts`) (imgs, sps, corr, imSpFonts) -> ([img:imgs], [sp:sps], [cor:corr], desugarAndTagFontsUnions [imSpFonts, imSpFonts`])) ([], [], [], imSpFonts) imgs
-    #! (maxXSpan, maxYSpan)           = (maxSpan (strictTRMap fst spans), maxSpan (strictTRMap snd spans))
-    #! alignOffsets                   = strictTRZipWith (calcAlignOffset maxXSpan maxYSpan) spans ias
-    #! placingOffsets                 = strictTRZipWith3 addOffset alignOffsets offsets corr
-    #! imSp                           = calculateComposedSpan spans placingOffsets
+    #! imSpFonts                  = desugarAndTagListOfSpanPair offsets
+    #! (imgs, st)                 = strictTRMapSt desugarAndTag imgs st
+    #! (imgs, spans, corr, fonts) = strictFoldr (\(img, _, sp, cor, fonts`) (imgs, sps, corr, fonts) -> ([img:imgs], [sp:sps], [cor:corr], [fonts`:fonts])) ([], [], [], []) imgs
+    #! imSpFonts                  = desugarAndTagFontsUnions [imSpFonts : fonts]
+    #! (maxXSpan, maxYSpan)       = (maxSpan (strictTRMap fst spans), maxSpan (strictTRMap snd spans))
+    #! alignOffsets               = strictTRZipWith (calcAlignOffset maxXSpan maxYSpan) spans ias
+    #! placingOffsets             = strictTRZipWith3 addOffset alignOffsets offsets corr
+    #! imSp                       = calculateComposedSpan spans placingOffsets
     = ((AsCollage offsets imgs, imSp, imSpFonts), st)
     where
     addOffset :: !(!Span, !Span) !(!Span, !Span) !(!Span, !Span) -> (!Span, !Span)
