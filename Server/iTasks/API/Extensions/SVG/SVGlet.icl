@@ -461,19 +461,6 @@ instance nextNo DesugarAndTagStVal where
 
 :: ErrorMessage :== String
 
-:: DesugarAndTagSyn s =
-  { desugarAndTagSyn_ImageContent            :: !ImageContent s
-  , desugarAndTagSyn_TotalSpan_PreTrans      :: !ImageSpan
-  , desugarAndTagSyn_TotalSpan_PostTrans     :: !ImageSpan
-  , desugarAndTagSyn_OffsetCorrection        :: !ImageOffset
-  , desugarAndTagSyn_IsBasic                 :: !Bool
-  , desugarAndTagSyn_Fonts                   :: !Map FontDef (Set String)
-  //, desugarAndTagSyn_Image                   :: !Image s
-  //, desugarAndTagSyn_Env_TotalSpan_PreTrans  :: !IntMap ImageSpan
-  //, desugarAndTagSyn_Env_TotalSpan_PostTrans :: !IntMap ImageSpan
-  //, desugarAndTagSyn_Env_OffsetCorrection    :: !IntMap ImageOffset
-  }
-
 strictTRMapSt :: !(a .st -> (!b, !.st)) ![a] !.st -> (![b], !.st)
 strictTRMapSt f xs st
   #! (rs, st) = strictTRMapStAcc f xs [] st
@@ -640,13 +627,8 @@ applyTransforms ts (xsp, ysp)
           = strictTRMap (scaleTF factor factor) coords
   f _ coords = coords
 
-mapStMb :: !(a .st -> .(b, .st)) !(Maybe a) !.st -> .(!Maybe b, !.st)
-mapStMb f (Just a) st
-  #! (b, st) = f a st
-  = (Just b, st)
-mapStMb _ _ st = (Nothing, st)
-
-desugarAndTag :: !(Image s) !*DesugarAndTagStVal -> *(!(!Image s, !ImageSpan, !ImageSpan, !ImageOffset, !Map FontDef (Set String)), !*DesugarAndTagStVal) | iTask s
+desugarAndTag :: !(Image s) !*DesugarAndTagStVal
+              -> *(!(!Image s, !ImageSpan, !ImageSpan, !ImageOffset, !Map FontDef (Set String)), !*DesugarAndTagStVal) | iTask s
 desugarAndTag {Image | content, mask, attribs, transform, tags} st
   #! (no, st)                = nextNo st
   #! newTag                  = ImageTagSystem no
@@ -658,7 +640,7 @@ desugarAndTag {Image | content, mask, attribs, transform, tags} st
   #! imSpFonts               = 'DS'.fold (\a imSpFonts -> desugarAndTagFontsUnions [desugarAndTagImageAttr a, imSpFonts]) imSpFonts attribs
   #! imSpFonts               = strictFoldr (\t imSpFonts -> desugarAndTagFontsUnions [desugarAndTagImageTransform t, imSpFonts]) imSpFonts transform
   #! tags                    = 'DS'.insert newTag tags
-  #! ((content, imSp, imSp`, imOff, imSpFonts`), st)   = desugarAndTagImageContent transform tags content st
+  #! ((content, imSp, imSp`, imOff, imSpFonts`), st) = desugarAndTagImageContent transform tags content st
   #! st                      = cacheImageSpanPostTrans no tags imSp` st
   #! img                     = { Image
                                | content             = content
@@ -685,6 +667,8 @@ desugarAndTag {Image | content, mask, attribs, transform, tags} st
   desugarAndTagImageTransform (FitYImage y)  = desugarAndTagSpan y
   desugarAndTagImageTransform _              = 'DM'.newMap
 
+  desugarAndTagImageContent :: ![ImageTransform] !(Set ImageTag) !(ImageContent s) !*DesugarAndTagStVal
+                            -> *(!(!ImageContent s, !ImageSpan, !ImageSpan, !ImageOffset, !Map FontDef (Set String)), !*DesugarAndTagStVal) | iTask s
   desugarAndTagImageContent imTrs _ ic=:(Basic _ imSp) st
     #! imSpFonts      = desugarAndTagSpanPair imSp
     #! (imSp`, imOff) = applyTransforms imTrs imSp
@@ -733,32 +717,36 @@ desugarAndTag {Image | content, mask, attribs, transform, tags} st
     = ( (Composite {CompositeImage | host = Nothing, compose = compose}
       , imSp, imSp`, imOff, imSpFonts), st)
 
+  desugarAndTagCompose :: !(Set ImageTag) !(Compose s) !*DesugarAndTagStVal
+                       -> *(!(!Compose s, !ImageSpan, !Map FontDef (Set String)), !*DesugarAndTagStVal) | iTask s
   desugarAndTagCompose imTas (AsGrid (numcols, numrows) offsetss iass imgss) st
-    #! imSpFonts                  = desugarAndTagFontsUnions (strictTRMap desugarAndTagListOfSpanPair offsetss)
-    #! (imgss, st)                = strictTRMapSt (strictTRMapSt desugarAndTag) imgss st
-    #! (imgss, spanss, imSpFonts) = strictFoldr unpluckImgss ([], [], imSpFonts) imgss
-    #! (tag, st)                  = nextNo st
-    #! sysTag                     = ImageTagSystem tag
-    #! colIndices                 = [0 .. numcols - 1]
-    #! rowIndices                 = [0 .. numrows - 1]
-    #! gridSpan                   = ( strictFoldl (\acc n -> LookupSpan (ColumnXSpan sysTag n) + acc) (px 0.0) colIndices
-                                    , strictFoldl (\acc n -> LookupSpan (RowYSpan sysTag n)    + acc) (px 0.0) rowIndices
-                                    )
-    #! st                         = cacheGridSpans tag ('DS'.insert sysTag imTas)
-                                                   (strictTRMap (maxSpan o strictTRMap fst) (transpose spanss))
-                                                   (strictTRMap (maxSpan o strictTRMap snd) spanss) st
-    #! offsets`                   = calculateGridOffsets (strictTRMap (\n -> LookupSpan (ColumnXSpan sysTag n)) colIndices)
-                                                         (strictTRMap (\n -> LookupSpan (RowYSpan sysTag n))    rowIndices) iass imgss offsetss
-    #! offsets`                   = reverseTR (flattenTR offsets`)
+    #! imSpFonts               = desugarAndTagFontsUnions (strictTRMap desugarAndTagListOfSpanPair offsetss)
+    #! (imgss, st)             = strictTRMapSt (strictTRMapSt desugarAndTag) imgss st
+    #! (imgss, spanss, fontss) = strictFoldr unpluckImgss ([], [], []) imgss
+    #! imSpFonts               = desugarAndTagFontsUnions (flattenTR fontss)
+    #! (tag, st)               = nextNo st
+    #! sysTag                  = ImageTagSystem tag
+    #! colIndices              = [0 .. numcols - 1]
+    #! rowIndices              = [0 .. numrows - 1]
+    #! gridSpan                = ( strictFoldl (\acc n -> LookupSpan (ColumnXSpan sysTag n) + acc) (px 0.0) colIndices
+                                 , strictFoldl (\acc n -> LookupSpan (RowYSpan sysTag n)    + acc) (px 0.0) rowIndices
+                                 )
+    #! st                      = cacheGridSpans tag ('DS'.insert sysTag imTas)
+                                                (strictTRMap (maxSpan o strictTRMap fst) (transpose spanss))
+                                                (strictTRMap (maxSpan o strictTRMap snd) spanss) st
+    #! offsets`                = calculateGridOffsets (strictTRMap (\n -> LookupSpan (ColumnXSpan sysTag n)) colIndices)
+                                                      (strictTRMap (\n -> LookupSpan (RowYSpan sysTag n))    rowIndices) iass imgss offsetss
+    #! offsets`                = reverseTR (flattenTR offsets`)
     = ((AsCollage offsets` (flattenTR imgss), gridSpan, imSpFonts), st)
     where
-    unpluckImgss imgs (imgss, spss, imSpFonts)
-      #! (imgs, sps, imSpFonts) = strictFoldr unpluckImgs ([], [], imSpFonts) imgs
-      = ([imgs:imgss], [sps:spss], imSpFonts)
-    unpluckImgs (img, _, sp, _, imSpFonts`) (imgs, sps, imSpFonts)
-      = ([img:imgs], [sp:sps], desugarAndTagFontsUnions [imSpFonts, imSpFonts`])
+    unpluckImgss imgs (imgss, spss, fontss)
+      #! (imgs, sps, fonts) = strictFoldr unpluckImgs ([], [], []) imgs
+      = ([imgs:imgss], [sps:spss], [fonts:fontss])
+    unpluckImgs (img, _, sp, _, font) (imgs, sps, fonts)
+      = ([img:imgs], [sp:sps], [font:fonts])
 
-    calculateGridOffsets :: ![Span] ![Span] ![[ImageAlign]] ![[Image s]] ![[(!Span, !Span)]] -> [[(!Span, !Span)]]
+    calculateGridOffsets :: ![Span] ![Span] ![[ImageAlign]] ![[Image s]] ![[(!Span, !Span)]]
+                         -> [[(!Span, !Span)]]
     calculateGridOffsets cellXSpans cellYSpans alignss imagess offsetss
       = fst (strictFoldl (mkRows cellXSpans) ([], zero) (strictTRZip4 alignss imagess cellYSpans offsetss))
       where
@@ -773,7 +761,6 @@ desugarAndTag {Image | content, mask, attribs, transform, tags} st
         #! (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan totalSpanPostTrans align
         = ([( xoff + alignXOff + manXOff + tfXCorr
             , yoff + alignYOff + manYOff + tfYCorr) : acc], xoff + cellXSpan)
-
   desugarAndTagCompose imTas (AsCollage offsets imgs) st
     #! imSpFonts              = desugarAndTagListOfSpanPair offsets
     #! (imgs, st)             = strictTRMapSt desugarAndTag imgs st
