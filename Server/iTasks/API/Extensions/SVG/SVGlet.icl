@@ -352,7 +352,6 @@ appClientDiff :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s)
                  !String !(SVGDiff s) !(SVGClSt s) !*JSWorld
               -> *(!SVGClSt s, !*JSWorld) | iTask s
 appClientDiff resolve state2Image mkEventHandler cid (SetState s) clst world
-  #! world = jsTrace "appClientDiff" world
   | clst.svgClSt === Just s = (clst, world)
   #! image                = state2Image s [(ImageTagUser no cid,ImageTagUser no cid) \\ no <- [0..]]
   #! spanEnvs             = { spanEnvImageTagPostTrans  = 'DIS'.newMap
@@ -364,7 +363,6 @@ appClientDiff resolve state2Image mkEventHandler cid (SetState s) clst world
   #! ((img, _, _, _, fontMap), st) = desugarAndTag image { desugarAndTagCounter  = 0
                                                          , desugarAndTagSpanEnvs = spanEnvs
                                                          }
-  #! world = jsTrace (toString (toJSON fontMap)) world
   #! (realFontMap, world) = if ('DM'.null fontMap) ('DM'.newMap, world) (calcTextLengths fontMap world)
   #! spanEnvs             = {st.desugarAndTagSpanEnvs & spanEnvFonts = realFontMap}
   #! fixVal               = fixEnvs {FixSpansSt | fixSpansDidChange = False, fixSpansSpanEnvs = spanEnvs}
