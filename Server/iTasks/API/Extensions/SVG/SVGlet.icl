@@ -795,8 +795,8 @@ desugarAndTagSpan (SubSpan l r)                   = desugarAndTagFontsUnions [de
 desugarAndTagSpan (MulSpan l r)                   = desugarAndTagFontsUnions [desugarAndTagSpan l, desugarAndTagSpan r]
 desugarAndTagSpan (DivSpan l r)                   = desugarAndTagFontsUnions [desugarAndTagSpan l, desugarAndTagSpan r]
 desugarAndTagSpan (AbsSpan x)                     = desugarAndTagSpan x
-desugarAndTagSpan (MinSpan xs)                    = desugarAndTagFontsUnions (map desugarAndTagSpan xs)
-desugarAndTagSpan (MaxSpan xs)                    = desugarAndTagFontsUnions (map desugarAndTagSpan xs)
+desugarAndTagSpan (MinSpan xs)                    = desugarAndTagFontsUnions (strictTRMap desugarAndTagSpan xs)
+desugarAndTagSpan (MaxSpan xs)                    = desugarAndTagFontsUnions (strictTRMap desugarAndTagSpan xs)
 desugarAndTagSpan (LookupSpan (TextXSpan fd str)) = 'DM'.singleton fd ('DS'.singleton str)
 desugarAndTagSpan _                               = 'DM'.newMap
 
