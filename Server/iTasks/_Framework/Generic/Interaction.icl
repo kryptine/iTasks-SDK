@@ -54,7 +54,7 @@ where
 			= if disabled (OptionalEditor [],vst) (OptionalEditor [checkbox False], vst)
 		# (fieldsViz,vst) = ex.Editor.genUI (pairPath grd_arity dp) x (toPairMask grd_arity mask) (toPairVerification grd_arity ver) (mx x) {VSt|vst & optional = False}
 		//For optional records we add the checkbox to clear the entire record
-		# viz = if (optional && not disabled) (OptionalEditor [checkbox True:controlsOf fieldsViz]) fieldsViz	
+		# viz = if (optional && not disabled) (OptionalEditor [checkbox True:editorControls fieldsViz]) fieldsViz	
 		= (viz,vst)
 	where
 		checkbox checked = (UIEditCheckbox defaultFSizeOpts {UIEditOpts|taskId = taskId, editorId = editorId dp, value = Just (JSONBool checked)},'DM'.newMap)
@@ -98,7 +98,7 @@ where
         # (controls,choice) = case mask of
             Untouched   = ([],[])
             Blanked     = ([],[])
-            _           = (controlsOf items,[selectedConsIndex])
+            _           = (editorControls items,[selectedConsIndex])
 		# content	= layout.layoutSubEditor {UIForm|attributes = 'DM'.newMap, controls = controls,size = defaultSizeOpts}
 		= (NormalEditor [(UIDropdown defaultHSizeOpts
 								{UIChoiceOpts
@@ -256,8 +256,7 @@ where
 					= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [addItemControl numItems],vst)	
 								
 			listItemControl disabled numItems idx item
-				//# controls	= map fst (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = controlsOf item, size = defaultSizeOpts})
-				# controls	= decorateControls (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = controlsOf item, size = defaultSizeOpts})
+				# controls	= decorateControls (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = editorControls item, size = defaultSizeOpts})
 				# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
 							  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
 							  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False}
@@ -332,7 +331,7 @@ where
 					= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
 								
 			listItemControl disabled numItems idx item
-				# controls	= map (setWidth FlexSize) (decorateControls (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = controlsOf item, size = defaultSizeOpts}))
+				# controls	= map (setWidth FlexSize) (decorateControls (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = editorControls item, size = defaultSizeOpts}))
 				# buttons	= (if reorder
 							  [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
 							  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
@@ -399,7 +398,7 @@ where
 		# (vizy, vst)	= ey.Editor.genUI (dp ++ [1]) y (subMasks 2 mask !! 1) (subVerifications 2 ver !! 1) (my y) vst
 		# viz = case (vizx,vizy) of
 			(HiddenEditor,HiddenEditor) = HiddenEditor
-			_							= NormalEditor (controlsOf vizx ++ controlsOf vizy)
+			_							= NormalEditor (editorControls vizx ++ editorControls vizy)
 	= (viz, vst)
 
 	appDiff [0:ds] e (x,y) xmask ust

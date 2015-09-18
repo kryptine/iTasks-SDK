@@ -88,7 +88,7 @@ where
 	makeEditor value=:(v,vmask,vver) taskId layout iworld
 		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, layout = layout, iworld = iworld}
 		# (editUI,vst=:{VSt|iworld}) = gEditor{|*|}.Editor.genUI [] v vmask vver (gEditMeta{|*|} v) vst
-		= (controlsOf editUI,iworld)
+		= (editorControls editUI,iworld)
 
 	//By default show a progress bar 
 	defaultViewFun (RunningProcess cmd) = {Progress|progress=ProgressUndetermined,description="Running " +++ cmd +++ "..."}
