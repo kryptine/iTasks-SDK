@@ -347,18 +347,6 @@ svgRenderer resolve origState state2Image
   appServerDiff :: !(SVGDiff s) !(SVGSrvSt s) -> SVGSrvSt s | iTask s
   appServerDiff (SetState st) srvSt = {srvSt & svgSrvSt = st}
 
-imageFromState :: !(Image s) !(Map FontDef (Map String Real)) -> *(!Image s, !*SpanEnvs) | iTask s
-imageFromState img env
-  #! spanEnvs  = { spanEnvImageTagPostTrans  = 'DIS'.newMap
-                 , spanEnvImageSpanPostTrans = 'DIS'.newMap
-                 , spanEnvGridTag            = 'DIS'.newMap
-                 , spanEnvGridSpan           = 'DIS'.newMap
-                 , spanEnvFonts              = env
-                 }
-  #! (img, st) = desugarAndTag img { desugarAndTagCounter  = 0
-                                   , desugarAndTagSpanEnvs = spanEnvs}
-  = (img, st.desugarAndTagSpanEnvs)
-
 appClientDiff :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s)
                  !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f)
                  !String !(SVGDiff s) !(SVGClSt s) !*JSWorld
@@ -368,8 +356,17 @@ appClientDiff resolve state2Image mkEventHandler cid (SetState s) clst world
   | clst.svgClSt === Just s = (clst, world)
   #! image                = state2Image s [(ImageTagUser no cid,ImageTagUser no cid) \\ no <- [0..]]
   #! fontMap              = gatherFonts image
+  #! spanEnvs             = { spanEnvImageTagPostTrans  = 'DIS'.newMap
+                            , spanEnvImageSpanPostTrans = 'DIS'.newMap
+                            , spanEnvGridTag            = 'DIS'.newMap
+                            , spanEnvGridSpan           = 'DIS'.newMap
+                            , spanEnvFonts              = 'DM'.newMap
+                            }
+  #! (img, st)            = desugarAndTag image { desugarAndTagCounter  = 0
+                                                , desugarAndTagSpanEnvs = spanEnvs
+                                                }
   #! (realFontMap, world) = if ('DM'.null fontMap) ('DM'.newMap, world) (calcTextLengths fontMap world)
-  #! (img, spanEnvs)      = imageFromState image realFontMap
+  #! spanEnvs             = {st.desugarAndTagSpanEnvs & spanEnvFonts = realFontMap}
   #! fixVal               = fixEnvs {FixSpansSt | fixSpansDidChange = False, fixSpansSpanEnvs = spanEnvs}
   #! (syn, clval)         = genSVG img { uniqueIdCounter = 0, genStates = fixVal.fixSpansSpanEnvs }
   #! (imXSp, imYSp)       = syn.genSVGSyn_imageSpanReal
@@ -465,11 +462,16 @@ instance nextNo DesugarAndTagStVal where
 :: ErrorMessage :== String
 
 :: DesugarAndTagSyn s =
-  { desugarAndTagSyn_ImageContent        :: !ImageContent s
-  , desugarAndTagSyn_TotalSpan_PreTrans  :: !ImageSpan
-  , desugarAndTagSyn_TotalSpan_PostTrans :: !ImageSpan
-  , desugarAndTagSyn_OffsetCorrection    :: !ImageOffset
-  , desugarAndTagSyn_IsBasic             :: !Bool
+  { desugarAndTagSyn_ImageContent            :: !ImageContent s
+  , desugarAndTagSyn_TotalSpan_PreTrans      :: !ImageSpan
+  , desugarAndTagSyn_TotalSpan_PostTrans     :: !ImageSpan
+  , desugarAndTagSyn_OffsetCorrection        :: !ImageOffset
+  , desugarAndTagSyn_IsBasic                 :: !Bool
+  , desugarAndTagSyn_Fonts                   :: !Map FontDef (Set String)
+  //, desugarAndTagSyn_Image                   :: !Image s
+  //, desugarAndTagSyn_Env_TotalSpan_PreTrans  :: !IntMap ImageSpan
+  //, desugarAndTagSyn_Env_TotalSpan_PostTrans :: !IntMap ImageSpan
+  //, desugarAndTagSyn_Env_OffsetCorrection    :: !IntMap ImageOffset
   }
 
 strictTRMapSt :: !(a .st -> (!b, !.st)) ![a] !.st -> (![b], !.st)
@@ -664,7 +666,7 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     mkImage imCo mask imAts imTrs _ _ _ _ _ = gatherFontsUnions [imCo : maybeToList mask ++ imAts ++ imTrs]
   gatherFontsImageContentAlgs :: ImageContentAlg (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
   gatherFontsImageContentAlgs =
-    { imageContentBasicAlg     = binUnion
+    { imageContentBasicAlg     = \x y -> gatherFontsUnions [x, y]
     , imageContentLineAlg      = id
     , imageContentCompositeAlg = id
     }
@@ -691,7 +693,7 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     { imageTransformRotateImageAlg = const 'DM'.newMap
     , imageTransformSkewXImageAlg  = const 'DM'.newMap
     , imageTransformSkewYImageAlg  = const 'DM'.newMap
-    , imageTransformFitImageAlg    = \x y -> binUnion (gatherFontsSpan x) (gatherFontsSpan y)
+    , imageTransformFitImageAlg    = \x y -> gatherFontsUnions [gatherFontsSpan x, gatherFontsSpan y]
     , imageTransformFitXImageAlg   = gatherFontsSpan
     , imageTransformFitYImageAlg   = gatherFontsSpan
     , imageTransformFlipXImageAlg  = 'DM'.newMap
@@ -699,7 +701,7 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     }
   gatherFontsImageSpanAlgs :: ImageSpanAlg (Map FontDef (Set String))
   gatherFontsImageSpanAlgs =
-    { imageSpanAlg = \x y -> binUnion (gatherFontsSpan x) (gatherFontsSpan y)
+    { imageSpanAlg = \x y -> gatherFontsUnions [gatherFontsSpan x, gatherFontsSpan y]
     }
   gatherFontsBasicImageAlgs :: BasicImageAlg (Map FontDef (Set String))
   gatherFontsBasicImageAlgs =
@@ -747,22 +749,15 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     }
 
 gatherFontsSpan :: !Span -> Map FontDef (Set String)
-gatherFontsSpan (PxSpan r)      = 'DM'.newMap
-gatherFontsSpan (AddSpan l r)   = binUnion (gatherFontsSpan l) (gatherFontsSpan r)
-gatherFontsSpan (SubSpan l r)   = binUnion (gatherFontsSpan l) (gatherFontsSpan r)
-gatherFontsSpan (MulSpan l r)   = binUnion (gatherFontsSpan l) (gatherFontsSpan r)
-gatherFontsSpan (DivSpan l r)   = binUnion (gatherFontsSpan l) (gatherFontsSpan r)
-gatherFontsSpan (AbsSpan x)     = gatherFontsSpan x
-gatherFontsSpan (MinSpan xs)    = gatherFontsUnions (map gatherFontsSpan xs)
-gatherFontsSpan (MaxSpan xs)    = gatherFontsUnions (map gatherFontsSpan xs)
-gatherFontsSpan (LookupSpan lu) = gatherFontsLookupSpan lu
-
-gatherFontsLookupSpan :: !LookupSpan -> Map FontDef (Set String)
-gatherFontsLookupSpan (TextXSpan fd str) = 'DM'.singleton fd ('DS'.singleton str)
-gatherFontsLookupSpan _                  = 'DM'.newMap
-
-binUnion :: !(Map FontDef (Set String)) !(Map FontDef (Set String)) -> Map FontDef (Set String)
-binUnion x y = gatherFontsUnions [x, y]
+gatherFontsSpan (AddSpan l r)                   = gatherFontsUnions [gatherFontsSpan l, gatherFontsSpan r]
+gatherFontsSpan (SubSpan l r)                   = gatherFontsUnions [gatherFontsSpan l, gatherFontsSpan r]
+gatherFontsSpan (MulSpan l r)                   = gatherFontsUnions [gatherFontsSpan l, gatherFontsSpan r]
+gatherFontsSpan (DivSpan l r)                   = gatherFontsUnions [gatherFontsSpan l, gatherFontsSpan r]
+gatherFontsSpan (AbsSpan x)                     = gatherFontsSpan x
+gatherFontsSpan (MinSpan xs)                    = gatherFontsUnions (map gatherFontsSpan xs)
+gatherFontsSpan (MaxSpan xs)                    = gatherFontsUnions (map gatherFontsSpan xs)
+gatherFontsSpan (LookupSpan (TextXSpan fd str)) = 'DM'.singleton fd ('DS'.singleton str)
+gatherFontsSpan _                               = 'DM'.newMap
 
 const2 :: !a b c -> a
 const2 x _ _ = x
@@ -886,13 +881,13 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
     mkFitImage :: !Span !Span !*DesugarAndTagStVal
                -> *(!ImageTransform, !*DesugarAndTagStVal)
     mkFitImage sp1 sp2 st
-      #! (sp1, st) = desugarAndTagSpan sp1 st
-      #! (sp2, st) = desugarAndTagSpan sp2 st
+      //#! sp1 = desugarAndTagSpan sp1
+      //#! sp2 = desugarAndTagSpan sp2
       = (FitImage sp1 sp2, st)
     mkFitDim :: !(Span -> ImageTransform) !Span !*DesugarAndTagStVal
              -> *(!ImageTransform, !*DesugarAndTagStVal)
     mkFitDim ctr sp st
-      #! (sp, st) = desugarAndTagSpan sp st
+      //#! sp = desugarAndTagSpan sp
       = (ctr sp, st)
   desugarAndTagImageSpanAlgs :: ImageSpanAlg (*DesugarAndTagStVal -> *(ImageSpan, *DesugarAndTagStVal))
   desugarAndTagImageSpanAlgs =
@@ -902,8 +897,8 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
     mkSpan :: !Span !Span !*DesugarAndTagStVal
            -> *(!ImageSpan, !*DesugarAndTagStVal)
     mkSpan xspan yspan st
-      #! (xspan, st) = desugarAndTagSpan xspan st
-      #! (yspan, st) = desugarAndTagSpan yspan st
+      //#! xspan = desugarAndTagSpan xspan
+      //#! yspan = desugarAndTagSpan yspan
       = ((xspan, yspan), st)
   desugarAndTagBasicImageAlgs :: BasicImageAlg (ImageSpan [ImageTransform] -> DesugarAndTagSt (DesugarAndTagSyn s)) | iTask s
   desugarAndTagBasicImageAlgs =
@@ -938,7 +933,8 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
          , desugarAndTagSyn_TotalSpan_PreTrans  = imSp
          , desugarAndTagSyn_TotalSpan_PostTrans = imSp`
          , desugarAndTagSyn_OffsetCorrection    = imOff
-         , desugarAndTagSyn_IsBasic             = True }, st)
+         , desugarAndTagSyn_IsBasic             = True
+         , desugarAndTagSyn_Fonts               = 'DM'.newMap }, st)
 
   desugarAndTagLineImageAlgs :: LineImageAlg (DesugarAndTagSt ImageSpan)
                                         (DesugarAndTagSt (Markers s))
@@ -948,23 +944,25 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
     { lineImageLineImageAlg = mkLine
     }
     where
-    mkLine :: !(DesugarAndTagSt ImageSpan) !(Maybe (DesugarAndTagSt (Markers s))) !(DesugarAndTagSt LineContent)
-              ![ImageTransform] !(Set ImageTag)
+    mkLine :: !(DesugarAndTagSt ImageSpan) !(Maybe (DesugarAndTagSt (Markers s)))
+              !(DesugarAndTagSt LineContent) ![ImageTransform] !(Set ImageTag)
               !*DesugarAndTagStVal
            -> *(!DesugarAndTagSyn s, !*DesugarAndTagStVal) | iTask s
     mkLine imSp mmarkers liCo imTrs imTas st
-      #! (imSp, st)     = imSp st
-      #! (mmarkers, st) = evalMaybe mmarkers st
-      #! (liCo, st)     = liCo st
-      #! (imSp`, imOff) = applyTransforms imTrs imSp
+      #! (imSp=:(xsp, ysp), st) = imSp st
+      #! (mmarkers, st)         = evalMaybe mmarkers st
+      #! (liCo, st)             = liCo st
+      #! (imSp`, imOff)         = applyTransforms imTrs imSp
       = ({ desugarAndTagSyn_ImageContent        = Line { LineImage
-                                                  | lineSpan    = imSp
-                                                  , markers     = mmarkers
-                                                  , lineContent = liCo }
+                                                       | lineSpan    = imSp
+                                                       , markers     = mmarkers
+                                                       , lineContent = liCo }
          , desugarAndTagSyn_TotalSpan_PreTrans  = imSp
          , desugarAndTagSyn_TotalSpan_PostTrans = imSp`
          , desugarAndTagSyn_OffsetCorrection    = imOff
-         , desugarAndTagSyn_IsBasic             = False }, st)
+         , desugarAndTagSyn_IsBasic             = False
+         , desugarAndTagSyn_Fonts               = 'DM'.newMap // TODO gatherFontsUnions [liCo: gatherFonts xsp : gatherFonts : maybeToList mmarkers]
+         }, st)
   desugarAndTagMarkersAlgs :: MarkersAlg (DesugarAndTagSt (Image s)) (DesugarAndTagSt (Markers s)) | iTask s
   desugarAndTagMarkersAlgs =
     { markersMarkersAlg = mkMarkers
@@ -994,12 +992,12 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
 
     mkPolygon :: ![(!Span, !Span)] !*DesugarAndTagStVal -> *(!LineContent, !*DesugarAndTagStVal)
     mkPolygon coords st
-      #! (coords, st) = desugarAndTagListOfSpanPair coords st
+      //#! coords = desugarAndTagListOfSpanPair coords
       = (PolygonImage coords, st)
 
     mkPolyline :: ![(!Span, !Span)] !*DesugarAndTagStVal -> *(!LineContent, !*DesugarAndTagStVal)
     mkPolyline coords st
-      #! (coords, st) = desugarAndTagListOfSpanPair coords st
+      //#! coords = desugarAndTagListOfSpanPair coords
       = (PolylineImage coords, st)
   desugarAndTagCompositeImageAlgs :: CompositeImageAlg (DesugarAndTagSt (Image s))
                                                        ((Maybe (Image s)) [ImageTransform] (Set ImageTag) -> DesugarAndTagSt (!Compose s, !ImageSpan))
@@ -1028,7 +1026,9 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
          , desugarAndTagSyn_TotalSpan_PreTrans  = span
          , desugarAndTagSyn_TotalSpan_PostTrans = span`
          , desugarAndTagSyn_OffsetCorrection    = corr
-         , desugarAndTagSyn_IsBasic             = False }, st)
+         , desugarAndTagSyn_IsBasic             = False
+         , desugarAndTagSyn_Fonts               = 'DM'.newMap // TODO FIXME
+         }, st)
   desugarAndTagComposeAlgs :: ComposeAlg (DesugarAndTagSt (Image s))
                                     ((Maybe (Image s)) [ImageTransform] (Set ImageTag) *DesugarAndTagStVal -> *(!(!Compose s, !ImageSpan), !*DesugarAndTagStVal)) | iTask s
   desugarAndTagComposeAlgs =
@@ -1043,23 +1043,23 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
               !*DesugarAndTagStVal
            -> *(!(!Compose s, !ImageSpan), !*DesugarAndTagStVal) | iTask s
     mkGrid (numcols, numrows) offsetss iass imgss mbhost imTrs imTas st
-      #! (offsetss, st) = strictTRMapSt desugarAndTagListOfSpanPair offsetss st
-      #! (imgss, st)    = strictTRMapSt sequence imgss st
-      #! (tag, st)      = nextNo st
-      #! sysTags        = ImageTagSystem tag
-      #! colIndices     = [0 .. numcols - 1]
-      #! rowIndices     = [0 .. numrows - 1]
-      #! gridSpan       = maybe ( strictFoldl (\acc n -> LookupSpan (ColumnXSpan sysTags n) + acc) (px 0.0) colIndices
-                                , strictFoldl (\acc n -> LookupSpan (RowYSpan sysTags n)    + acc) (px 0.0) rowIndices
-                                )
-                                (\x -> x.totalSpanPostTrans) mbhost
-      #! spanss         = strictTRMap (strictTRMap (\x -> x.totalSpanPostTrans)) imgss
-      #! st             = cacheGridSpans tag ('DS'.insert sysTags imTas)
-                                         (strictTRMap (maxSpan o strictTRMap fst) (transpose spanss))
-                                         (strictTRMap (maxSpan o strictTRMap snd) spanss) st
-      #! offsets`       = calculateGridOffsets (strictTRMap (\n -> LookupSpan (ColumnXSpan sysTags n)) colIndices)
-                                               (strictTRMap (\n -> LookupSpan (RowYSpan sysTags n))    rowIndices) iass imgss offsetss
-      #! offsets`       = reverseTR (flattenTR offsets`)
+      //#! offsetss    = strictTRMap desugarAndTagListOfSpanPair offsetss
+      #! (imgss, st) = strictTRMapSt sequence imgss st
+      #! (tag, st)   = nextNo st
+      #! sysTags     = ImageTagSystem tag
+      #! colIndices  = [0 .. numcols - 1]
+      #! rowIndices  = [0 .. numrows - 1]
+      #! gridSpan    = maybe ( strictFoldl (\acc n -> LookupSpan (ColumnXSpan sysTags n) + acc) (px 0.0) colIndices
+                             , strictFoldl (\acc n -> LookupSpan (RowYSpan sysTags n)    + acc) (px 0.0) rowIndices
+                             )
+                             (\x -> x.totalSpanPostTrans) mbhost
+      #! spanss      = strictTRMap (strictTRMap (\x -> x.totalSpanPostTrans)) imgss
+      #! st          = cacheGridSpans tag ('DS'.insert sysTags imTas)
+                                      (strictTRMap (maxSpan o strictTRMap fst) (transpose spanss))
+                                      (strictTRMap (maxSpan o strictTRMap snd) spanss) st
+      #! offsets`    = calculateGridOffsets (strictTRMap (\n -> LookupSpan (ColumnXSpan sysTags n)) colIndices)
+                                            (strictTRMap (\n -> LookupSpan (RowYSpan sysTags n))    rowIndices) iass imgss offsetss
+      #! offsets`    = reverseTR (flattenTR offsets`)
       = (( AsCollage offsets` (flattenTR imgss)
          , gridSpan), st)
       where
@@ -1085,8 +1085,8 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
                  !*DesugarAndTagStVal
               -> *(!(!Compose s, !ImageSpan), !*DesugarAndTagStVal) | iTask s
     mkCollage offsets imgs mbhost imTrs imTas st
-      #! (offsets, st) = desugarAndTagListOfSpanPair offsets st
-      #! (imgs, st)    = sequence imgs st
+      //#! offsets    = desugarAndTagListOfSpanPair offsets
+      #! (imgs, st) = sequence imgs st
       = (( AsCollage offsets imgs
          , maybe (calculateComposedSpan (strictTRMap (\x -> x.totalSpanPostTrans) imgs) offsets) (\x -> x.totalSpanPostTrans) mbhost), st)
 
@@ -1096,7 +1096,7 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
                  !*DesugarAndTagStVal
               -> *(!(!Compose s, !ImageSpan), !*DesugarAndTagStVal) | iTask s
     mkOverlay offsets ias imgs mbhost imTrs imTas st
-      #! (offsets, st)  = desugarAndTagListOfSpanPair offsets st
+      //#! offsets        = desugarAndTagListOfSpanPair offsets
       #! (imgs, st)     = sequence imgs st
       #! spans          = strictTRMap (\x -> x.totalSpanPostTrans) imgs
       #! (  maxXSpan
@@ -1111,53 +1111,22 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
       addOffset :: !(!Span, !Span) !(!Span, !Span) !(Image s) -> (!Span, !Span) | iTask s
       addOffset (x1, y1) (x2, y2) {transformCorrection = (xoff, yoff)} = (x1 + x2 + xoff, y1 + y2 + yoff)
 
-desugarAndTagListOfSpanPair :: ![(!Span, !Span)] !*DesugarAndTagStVal -> *(![(!Span, !Span)], !*DesugarAndTagStVal)
-desugarAndTagListOfSpanPair xs st = mapSt desugarAndTagSpanPair xs st
+desugarAndTagListOfSpanPair :: ![(!Span, !Span)] -> Map FontDef (Set String)
+desugarAndTagListOfSpanPair xs = 'DM'.unions (strictTRMap desugarAndTagSpanPair xs)
 
-desugarAndTagSpanPair :: !(!Span, !Span) !*DesugarAndTagStVal -> *(!(!Span, !Span), !*DesugarAndTagStVal)
-desugarAndTagSpanPair (xsp, ysp) st
-    #! (xsp, st) = desugarAndTagSpan xsp st
-    #! (ysp, st) = desugarAndTagSpan ysp st
-    = ((xsp, ysp), st)
+desugarAndTagSpanPair :: !(!Span, !Span) -> Map FontDef (Set String)
+desugarAndTagSpanPair (xsp, ysp) = gatherFontsUnions [desugarAndTagSpan xsp, desugarAndTagSpan ysp]
 
-desugarAndTagSpan :: !Span !*DesugarAndTagStVal -> *(!Span, !*DesugarAndTagStVal)
-desugarAndTagSpan sp=:(PxSpan _)  st = (sp, st)
-desugarAndTagSpan (AddSpan l r)   st
-  #! (l, st) = desugarAndTagSpan l st
-  #! (r, st) = desugarAndTagSpan r st
-  = (l + r, st)
-desugarAndTagSpan (SubSpan l r)   st
-  #! (l, st) = desugarAndTagSpan l st
-  #! (r, st) = desugarAndTagSpan r st
-  = (l - r, st)
-desugarAndTagSpan (MulSpan l r)   st
-  #! (l, st) = desugarAndTagSpan l st
-  #! (r, st) = desugarAndTagSpan r st
-  = (l * r, st)
-desugarAndTagSpan (DivSpan l r)   st
-  #! (l, st) = desugarAndTagSpan l st
-  #! (r, st) = desugarAndTagSpan r st
-  = (l / r, st)
-desugarAndTagSpan (AbsSpan x)     st
-  #! (x, st) = desugarAndTagSpan x st
-  = (abs x, st)
-desugarAndTagSpan (MinSpan xs)    st
-  #! (xs, st) = mapSt desugarAndTagSpan xs st
-  = (minSpan xs, st)
-desugarAndTagSpan (MaxSpan xs)    st
-  #! (xs, st) = mapSt desugarAndTagSpan xs st
-  = (maxSpan xs, st)
-desugarAndTagSpan (LookupSpan lu) st = desugarAndTagLookupSpan lu st
-
-desugarAndTagLookupSpan :: !LookupSpan !*DesugarAndTagStVal -> *(!Span, !*DesugarAndTagStVal)
-desugarAndTagLookupSpan (TextXSpan fd str) st
-  #! sw = case 'DM'.get fd st.desugarAndTagSpanEnvs.spanEnvFonts of
-            Just fs -> case 'DM'.get str fs of
-                         Just sw -> sw
-                         _       -> 0.0
-            _       -> 0.0
-  = (PxSpan sw, st)
-desugarAndTagLookupSpan lusp st = (LookupSpan lusp, st)
+desugarAndTagSpan :: !Span -> Map FontDef (Set String)
+desugarAndTagSpan (AddSpan l r)                   = gatherFontsUnions [desugarAndTagSpan l, desugarAndTagSpan r]
+desugarAndTagSpan (SubSpan l r)                   = gatherFontsUnions [desugarAndTagSpan l, desugarAndTagSpan r]
+desugarAndTagSpan (MulSpan l r)                   = gatherFontsUnions [desugarAndTagSpan l, desugarAndTagSpan r]
+desugarAndTagSpan (DivSpan l r)                   = gatherFontsUnions [desugarAndTagSpan l, desugarAndTagSpan r]
+desugarAndTagSpan (AbsSpan x)                     = desugarAndTagSpan x
+desugarAndTagSpan (MinSpan xs)                    = gatherFontsUnions (map desugarAndTagSpan xs)
+desugarAndTagSpan (MaxSpan xs)                    = gatherFontsUnions (map desugarAndTagSpan xs)
+desugarAndTagSpan (LookupSpan (TextXSpan fd str)) = 'DM'.singleton fd ('DS'.singleton str)
+desugarAndTagSpan _                               = 'DM'.newMap
 
 import StdDebug
 
@@ -1295,7 +1264,16 @@ fixSpans osp=:(MaxSpan xs) st
 fixSpans (LookupSpan lu) st = fixLookupSpans lu st
 
 fixLookupSpans :: !LookupSpan !*FixSpansSt -> *(!Span, !*FixSpansSt)
-fixLookupSpans (TextXSpan _ _) st = (PxSpan 0.0, {st & fixSpansDidChange = False})
+fixLookupSpans (TextXSpan fd str) st
+  #! ses          = st.fixSpansSpanEnvs
+  #! spanEnvFonts = ses.spanEnvFonts
+  #! ses          = {ses & spanEnvFonts = spanEnvFonts}
+  #! sw           = case 'DM'.get fd spanEnvFonts of
+                      Just fs -> case 'DM'.get str fs of
+                                   Just sw -> sw
+                                   _       -> 0.0
+                      _       -> 0.0
+  = (PxSpan sw, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
 fixLookupSpans osp=:(ImageXSpan t) st
   #! ses                      = st.fixSpansSpanEnvs
   #! spanEnvImageTagPostTrans = ses.spanEnvImageTagPostTrans
