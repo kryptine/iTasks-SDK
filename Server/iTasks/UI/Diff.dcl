@@ -5,6 +5,9 @@ from iTasks._Framework.Task import :: Event
 
 :: UIUpdate = UIUpdate !UIPath ![UIUpdateOperation]
 :: UIUpdateOperation :== (String,[JSONNode])
+:: UIDiffResult
+	= DiffImpossible
+	| DiffPossible [UIUpdate]
 
 :: ReferenceVersion :== Int
 

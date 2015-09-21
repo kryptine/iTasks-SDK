@@ -22,6 +22,8 @@ from Text.JSON import :: JSONNode
 */
 :: Editor a = 
 	{ genUI  	:: DataPath a InteractionMask Verification [EditMeta] *VSt -> *(!VisualizationResult,!*VSt)
+	//, genDiff	:: DataPath a a -> [UIUpdate] //Eventually diffs can use the value and don't need the previous UI
+	//, genDiff 	:: UIDef UIDef -> UIDiffResult
 	, appDiff 	:: DataPath JSONNode a InteractionMask *USt -> *(!a, !InteractionMask, !*USt)
 	}
 
