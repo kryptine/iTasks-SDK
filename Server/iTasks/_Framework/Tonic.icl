@@ -506,9 +506,9 @@ tonicExtWrapApp :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] (m a) -> m
 tonicExtWrapApp mn tn nid cases mapp = tonicWrapApp mn tn nid cases mapp
 
 isBind :: !String !String -> Bool
-isBind "iTasks.API.Core.Types"             ">>=" = True
-isBind "iTasks.API.Common.TaskCombinators" ">>|" = True
-isBind _                                   _     = False
+isBind "iTasks.API.Core.Types" ">>=" = True
+isBind "iTasks.API.Core.Types" ">>|" = True
+isBind _                       _     = False
 
 isStep :: !String !String -> Bool
 isStep "iTasks.API.Core.TaskCombinators"   "step" = True
