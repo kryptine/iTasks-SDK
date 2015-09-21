@@ -28,6 +28,7 @@ instance TApplicative Task where
   return x    = treturn x
 instance TMonad Task where
   (>>=) l r = tbind l r
+  (>>|) l r = l >>= const r
 
 instance TFunctor Maybe where
   tmap f (Just x) = Just (f x)
@@ -40,6 +41,7 @@ instance TApplicative Maybe where
 instance TMonad Maybe where
   (>>=) (Just x) f = f x
   (>>=) _ _ = Nothing
+  (>>|) l r = l >>= const r
 
 instance TFunctor [] where
   tmap f xs = map f xs
@@ -48,6 +50,7 @@ instance TApplicative [] where
   return x = [x]
 instance TMonad [] where
   (>>=) xs f = [y \\ x <- xs, y <- f x]
+  (>>|) l r = l >>= const r
 
 instance TFunctor (Either e) where
   tmap f (Right x) = Right (f x)
@@ -60,6 +63,7 @@ instance TApplicative (Either e) where
 instance TMonad (Either e) where
   (>>=) (Left x) _ = Left x
   (>>=) (Right x) f = f x
+  (>>|) l r = l >>= const r
 
 (@$) infixl 1 :: (a -> b) (f a) -> f b | iTask a & iTask b & TFunctor f
 (@$) f x = tmap f x

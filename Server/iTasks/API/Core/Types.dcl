@@ -52,6 +52,7 @@ class TApplicative f | TFunctor f where
 
 class TMonad m | TApplicative m where
     (>>=) infixl 1 :: (m a) (a -> m b) -> m b | iTask a & iTask b
+    (>>|) infixl 1 :: (m a) (     m b) -> m b | iTask a & iTask b
 
 instance TFunctor Task
 instance TApplicative Task

@@ -164,6 +164,7 @@ instance TMonad IO where
         # (x, world) = f world
         # (IO g)     = a2mb x
         = g world
+  (>>|) l r = l >>= const r
 
 ppnid nid = "[" +++ ppnid` nid +++ "]"
   where
@@ -189,6 +190,7 @@ instance TApplicative (Parser s t) where
 
 instance TMonad (Parser s t) where
   (>>=) ma a2mb  = ma 'PS'. <&> a2mb
+  (>>|) l r = l >>= const r
 
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
                    DynamicView, BlueprintQuery, UIAction, CircularStack
