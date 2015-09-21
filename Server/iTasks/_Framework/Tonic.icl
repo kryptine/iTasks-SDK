@@ -645,14 +645,13 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                        (ValueResult _ _ _ (TCParallel childTaskId _ parallelChildren), Ok (Just new_parent_instance))
                          = evalParallel new_parent_instance tr evalOpts childTaskId parallelChildren iworld
                        (_, Ok (Just new_parent_instance))
-                         # (new_parent_instance, chng)          = case tr of
-                                                                    (ValueResult (Value x _) _ _ _) -> (addCases` new_parent_instance evalOpts (map (\(eid, f) -> (eid, f x)) cases), True)
-                                                                    _                               -> (new_parent_instance, False)
+                         # (new_parent_instance, chng)          = case (tr, cases) of
+                                                                    (ValueResult (Value x _) _ _ _, [_ : _]) -> (addCases` new_parent_instance evalOpts (map (\(eid, f) -> (eid, f x)) cases), True)
+                                                                    _                                        -> (new_parent_instance, False)
                          # iworld                               = storeTaskOutputViewer tr nid parentBPInst.bpi_taskId childTaskId iworld
-                         # (mchild_bpr, iworld)                 = case fn of
-                                                                    "(Var)"      -> 'DSDS'.read (sdsFocus childTaskId allTonicInstances) iworld
-                                                                    "(Var @ es)" -> 'DSDS'.read (sdsFocus childTaskId allTonicInstances) iworld
-                                                                    _            -> (Ok [], iworld)
+                         # (mchild_bpr, iworld)                 = if (fn == "(Var)" || fn == "(Var @ es)")
+                                                                    ('DSDS'.read (sdsFocus childTaskId allTonicInstances) iworld)
+                                                                    (Ok [], iworld)
                          # (new_parent_instance, chng`, iworld) = case mchild_bpr of
                                                                     Ok bprefs=:[_ : _]
                                                                       = case [bpi \\ (_, bpi=:{bpi_taskId, bpi_index}) <- bprefs | bpi_taskId > parentBPInst.bpi_taskId || (bpi_taskId == parentBPInst.bpi_taskId && bpi_index > parentBPInst.bpi_index)] of
