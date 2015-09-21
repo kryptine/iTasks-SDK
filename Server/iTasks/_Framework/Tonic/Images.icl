@@ -602,7 +602,7 @@ tMApp :: !InhMkImg !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr]
       -> *(!SynMkImg, !*TagSource)
 tMApp inh _ _ "iTasks.API.Extensions.User" "@:" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tAssign inh lhsExpr rhsExpr tsrc
-tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>|" [lhsExpr : rhsExpr : _] _ _ tsrc
+tMApp inh _ _ "iTasks.API.Core.Types" ">>|" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
 tMApp inh _ _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam [var : _] rhsExpr : _] _ _ tsrc
   = tBind inh lhsExpr (Just var) rhsExpr tsrc
