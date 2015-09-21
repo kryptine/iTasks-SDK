@@ -593,6 +593,7 @@ tonicWrapApp` :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] (Task a) -> 
 tonicWrapApp` mn fn nid cases t=:(Task eval)
   | isStep mn fn = Task (stepEval cases eval nid)
   | isLambda fn  = t
+  | isBind mn fn = t
   | otherwise    = Task eval`
   where
   updateAssignStatus evalOpts
