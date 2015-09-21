@@ -98,10 +98,10 @@ instance TonicTopLevelBlueprint Task where
   tonicWrapArg d ptr v = viewInformation d [] v @! ()
 
 instance TonicBlueprintPart Task where
-  tonicWrapApp mn fn nid cases t = tonicWrapApp` mn fn nid cases t
+  tonicWrapApp inTLBind mn fn nid cases t = tonicWrapApp` inTLBind mn fn nid cases t
 
 instance TonicBlueprintPart Maybe where
-  tonicWrapApp _ _ _ _ mb = mb
+  tonicWrapApp _ _ _ _ _ mb = mb
 
 :: TonicIOState =
   { currIndent :: Int
@@ -143,7 +143,7 @@ instance TonicTopLevelBlueprint IO where
   tonicWrapArg _ _ _ = return ()
 
 instance TonicBlueprintPart IO where
-  tonicWrapApp mn fn nid _ mb
+  tonicWrapApp _ mn fn nid _ mb
     | isLambda fn = mb
     | otherwise
         =                             readTonicState
@@ -164,7 +164,7 @@ instance TMonad IO where
         # (x, world) = f world
         # (IO g)     = a2mb x
         = g world
-  (>>|) l r = l >>= const r
+  (>>|) l r = l >>= \_ -> r
 
 ppnid nid = "[" +++ ppnid` nid +++ "]"
   where
@@ -179,7 +179,7 @@ instance TonicTopLevelBlueprint (Parser s t) where
   tonicWrapArg _ _ _ = return ()
 
 instance TonicBlueprintPart (Parser s t) where
-  tonicWrapApp mn tn nid _ mb = mb
+  tonicWrapApp _ mn tn nid _ mb = mb
 
 instance TFunctor (Parser s t) where
   tmap f a = f 'PS'. @> a
@@ -190,7 +190,7 @@ instance TApplicative (Parser s t) where
 
 instance TMonad (Parser s t) where
   (>>=) ma a2mb  = ma 'PS'. <&> a2mb
-  (>>|) l r = l >>= const r
+  (>>|) l r = l >>= \_ -> r
 
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
                    DynamicView, BlueprintQuery, UIAction, CircularStack
@@ -502,8 +502,8 @@ resultToOutput newN tid (ValueResult (Value v s) _ _ _) = (tid, newN, viewInform
 resultToOutput newN tid (ValueResult NoValue _ _ _)     = (tid, newN, viewInformation (Title ("Value for task " +++ toString tid)) [] "No value" @! (), TNoVal)
 resultToOutput newN tid _                               = (tid, newN, viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! (), TNoVal)
 
-tonicExtWrapApp :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] (m a) -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapApp mn tn nid cases mapp = tonicWrapApp mn tn nid cases mapp
+tonicExtWrapApp :: !Bool !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] (m a) -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapApp inTLBind mn tn nid cases mapp = tonicWrapApp inTLBind mn tn nid cases mapp
 
 isBind :: !String !String -> Bool
 isBind "iTasks.API.Core.Types" ">>=" = True
@@ -586,17 +586,22 @@ addCases evalOpts=:{TaskEvalOpts|tonicOpts={currBlueprintTaskId, currBlueprintMo
 addCases` parentBPInst evalOpts=:{TaskEvalOpts|tonicOpts} cases
   = {parentBPInst & bpi_case_branches = 'DM'.union ('DM'.fromList cases) parentBPInst.bpi_case_branches}
 
+isVar :: !String -> Bool
+isVar "(Var)"      = True
+isVar "(Var @ es)" = True
+isVar _            = False
 
 /**
  * ModuleName and FuncName identify the blueprint, of which we need to
  * highlight nodes.
  */
-tonicWrapApp` :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] (Task a) -> Task a | iTask a
-tonicWrapApp` mn fn nid cases t=:(Task eval)
-  | isStep mn fn = Task (stepEval cases eval nid)
-  | isLambda fn  = t
-  | isBind mn fn = t
-  | otherwise    = Task eval`
+tonicWrapApp` :: !Bool !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] (Task a) -> Task a | iTask a
+tonicWrapApp` inTLBind mn fn nid cases t=:(Task eval)
+  | isStep mn fn             = Task (stepEval cases eval nid)
+  | isLambda fn              = t
+  | isBind mn fn             = t
+  | isVar fn && not inTLBind = t
+  | otherwise                = Task eval`
   where
   updateAssignStatus evalOpts
     = { evalOpts
@@ -651,7 +656,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                                                                     (ValueResult (Value x _) _ _ _, [_ : _]) -> (addCases` new_parent_instance evalOpts (map (\(eid, f) -> (eid, f x)) cases), True)
                                                                     _                                        -> (new_parent_instance, False)
                          # iworld                               = storeTaskOutputViewer tr nid parentBPInst.bpi_taskId childTaskId iworld
-                         # (mchild_bpr, iworld)                 = if (fn == "(Var)" || fn == "(Var @ es)")
+                         # (mchild_bpr, iworld)                 = if (isVar fn && inTLBind)
                                                                     ('DSDS'.read (sdsFocus childTaskId allTonicInstances) iworld)
                                                                     (Ok [], iworld)
                          # (new_parent_instance, chng`, iworld) = case mchild_bpr of
@@ -865,14 +870,14 @@ setActiveNodes tonicOpts {bpi_taskId = parentTaskId, bpi_activeNodes = parentAct
             | ino == ino` = dropFirstInstances` ino trace
           _ = trace
 
-tonicExtWrapAppLam1 :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapAppLam1 mn fn nid cases f = \x -> tonicWrapApp mn fn nid cases (f x)
+tonicExtWrapAppLam1 :: !Bool !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] !(b -> m a)     -> b     -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam1 inTLBind mn fn nid cases f = \x -> tonicWrapApp inTLBind mn fn nid cases (f x)
 
-tonicExtWrapAppLam2 :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapAppLam2 mn fn nid cases f = \x y -> tonicWrapApp mn fn nid cases (f x y)
+tonicExtWrapAppLam2 :: !Bool !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] !(b c -> m a)   -> b c   -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam2 inTLBind mn fn nid cases f = \x y -> tonicWrapApp inTLBind mn fn nid cases (f x y)
 
-tonicExtWrapAppLam3 :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
-tonicExtWrapAppLam3 mn fn nid cases f = \x y z -> tonicWrapApp mn fn nid cases (f x y z)
+tonicExtWrapAppLam3 :: !Bool !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
+tonicExtWrapAppLam3 inTLBind mn fn nid cases f = \x y z -> tonicWrapApp inTLBind mn fn nid cases (f x y z)
 
 anyTrue :: ![Bool] -> Bool
 anyTrue [True : _] = True
