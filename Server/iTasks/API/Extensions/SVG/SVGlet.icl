@@ -311,10 +311,10 @@ derive class iTask SVGDiff, SVGClSt
 fromSVGLet :: (SVGLet s) -> Editor s | gEq{|*|} s & gDefault{|*|} s & JSONEncode{|*|} s & JSONDecode{|*|} s
 fromSVGLet {toImage,resolve} = fromEditlet (svgRenderer resolve toImage)
 
-svgRenderer :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) -> Editlet s (SVGDiff s) (SVGClSt s) | gEq{|*|} s
+svgRenderer :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) -> Editlet s (SVGDiff s) (SVGClSt s) | gEq{|*|} s & gDefault{|*|} s
 svgRenderer resolve state2Image 
   = { genUI      = genUI
-    , initClient = initClient resolve state2Image origState //\_ _ world -> (defaultClSt, world)
+    , initClient = initClient resolve state2Image
     , appDiffClt = appClientDiff resolve state2Image
     , genDiffSrv = genServerDiff
     , appDiffSrv = appServerDiff
@@ -329,12 +329,12 @@ svgRenderer resolve state2Image
      , world
     )
 
-  initClient :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !s
+  initClient :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) s
                 !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f) !String !*JSWorld
-             -> *(!SVGClSt s, !*JSWorld) | iTask s
-  initClient resolve state2Image origState mkEventHandler cid world = appClientDiff resolve state2Image mkEventHandler cid (SetState origState) defaultClSt world
+	             -> *(!SVGClSt s, !*JSWorld) | gEq{|*|} s 
+  initClient resolve state2Image initVal mkEventHandler cid world = appClientDiff resolve state2Image mkEventHandler cid (SetState initVal) defaultClSt world
 
-  genServerDiff :: !s !s -> Maybe (SVGDiff s) | iTask s
+  genServerDiff :: !s !s -> Maybe (SVGDiff s) | gEq{|*|} s
   genServerDiff oldSrvSt newSrvSt
     | oldSrvSt === newSrvSt = Nothing
     | otherwise            = Just (SetState newSrvSt)

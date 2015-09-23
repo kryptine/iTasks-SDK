@@ -39,7 +39,7 @@ where
 			  Nothing
 				# diffs = initDiff
 				# (jsScript, jsID, jsIC, jsAD, iworld)
-					= editletLinker initDiff (initClient createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld
+					= editletLinker initDiff (initClient currVal createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld
 				# opts = editletOpts jsScript jsID jsIC jsAD uiDef
 				# iworld = setEditletDiffs 1 currVal {UIEditletOpts|opts & value = JSONNull} [] iworld
 				= (NormalEditor [(ui uiDef opts, newMap)],{VSt|vst & iworld = iworld})

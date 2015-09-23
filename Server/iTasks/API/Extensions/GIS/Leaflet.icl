@@ -139,7 +139,7 @@ where
 
 	mapdivid cid = "map_div_" +++ cid
 
-	onInit mkHandler cid env
+	onInit _ mkHandler cid env
 		# map = gDefault{|*|}
         # (l, env) = findObject "L" env
         | jsIsUndefined l

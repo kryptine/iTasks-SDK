@@ -20,7 +20,7 @@ analogClockEditlet :: AnalogClock -> Editlet AnalogClock [(Int,Int)] ()
 analogClockEditlet t 
     = {Editlet
       |genUI        = genUI
-      ,initClient = \_ _ world -> ((), world)
+      ,initClient = \_ _ _ world -> ((), world)
       ,appDiffClt   = appDiffClt
       ,genDiffSrv   = genTimeDiff
       ,appDiffSrv   = appTimeDiff

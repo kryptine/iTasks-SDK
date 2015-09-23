@@ -67,7 +67,7 @@ editorControls :: !VisualizationResult -> [(UIControl,UIAttributes)]
 :: Editlet sv d cl
   =
   { genUI      :: ComponentId sv *World -> *(EditletHTML, *World)
-  , initClient :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId *JSWorld -> *(cl, *JSWorld)
+  , initClient :: sv ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId *JSWorld -> *(cl, *JSWorld)
   , appDiffClt :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
   , genDiffSrv :: sv sv -> Maybe d
   , appDiffSrv :: d  sv -> sv

@@ -16,7 +16,7 @@ gEditor{|ControlLight|} = fromEditlet (controlLightEditlet defaultValue)
 controlLightEditlet :: ControlLight -> Editlet ControlLight ControlLight ()
 controlLightEditlet t
     = {Editlet
-      |initClient = \_ _ w -> ((),w)
+      |initClient = \_ _ _ w -> ((),w)
       ,genUI = genUI
       ,appDiffClt = updateUI
       ,genDiffSrv = \a b -> if (a===b) Nothing (Just b)

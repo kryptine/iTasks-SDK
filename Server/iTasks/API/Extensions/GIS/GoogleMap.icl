@@ -75,8 +75,8 @@ where
 	mapdomid cid    = "map_place_holder_" +++ cid
     mapcanvasid cid = "map_canvas_" +++ cid
 
-	onInit mkEventHandler cid world 
-		# clval = {val = gDefault{|*|}, mbSt = Nothing, libsAdded = False}
+	onInit initVal mkEventHandler cid world 
+		# clval = {val = initVal, mbSt = Nothing, libsAdded = False}
         # (gmaps_loaded,world)    = findObject "googlemaps_loaded" world
         | jsIsUndefined gmaps_loaded
             //Check if another editlet has already loaded the javascript
