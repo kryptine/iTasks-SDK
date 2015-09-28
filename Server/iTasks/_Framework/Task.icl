@@ -22,6 +22,8 @@ mkEvalOpts =
   | useLayout = Nothing
   , modLayout = Nothing
   , noUI      = False
+  , prevUI    = Nothing
+  , diffPath  = []
   , tonicOpts = defaultTonicOpts
   }
 

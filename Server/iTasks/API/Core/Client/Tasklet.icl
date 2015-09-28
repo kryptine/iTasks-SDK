@@ -127,7 +127,7 @@ genRep tasklet taskId taskRepOpts mbState iworld
 						     iworld
 					
 				# tui = tHTMLToTasklet gui taskId state_js script_js events_js intfcs_js rf_js
-				# rep = TaskRep (appTweak tasklet tui)
+				# rep = TaskRep (appTweak tasklet tui) []
 				= (rep, state, iworld)
 
 			TaskletTUI gui
@@ -144,7 +144,7 @@ genRep tasklet taskId taskRepOpts mbState iworld
 						     iworld
 					
 				# tui = tTUIToTasklet taskId state_js script_js mb_ino rf_js mb_cf_js
-				# rep = TaskRep (appTweak tasklet tui)
+				# rep = TaskRep (appTweak tasklet tui) []
 				= (rep, state, iworld)
 
 			NoGUI
@@ -169,7 +169,7 @@ genRep tasklet taskId taskRepOpts mbState iworld
 							, instanceNo	 = Nothing
 							, controllerFunc = Nothing})			
 			
-				# rep = TaskRep (appTweak tasklet tui)
+				# rep = TaskRep (appTweak tasklet tui) []
 				= (rep, state, iworld)
 where
 	tTUIToTasklet taskId state_js script_js mb_ino rf_js mb_cf_js

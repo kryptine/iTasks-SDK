@@ -76,7 +76,7 @@ where
 		# (controls,iworld)	= makeView opts status taskId layout iworld
 		# prompt			= toPrompt desc
 		# editor			= {UIForm| attributes = 'Data.Map'.newMap, controls = controls, size = defaultSizeOpts}
-		= (TaskRep ({UIDef|content=UIForm (layout.LayoutRules.accuInteract prompt editor),windows=[]}),iworld)
+		= (TaskRep {UIDef|content=UIForm (layout.LayoutRules.accuInteract prompt editor),windows=[]} [],iworld)
 						
 	makeView [ViewWith viewFun] status taskId layout iworld
 		# ver = verifyMaskedValue (Display (viewFun status),Touched)

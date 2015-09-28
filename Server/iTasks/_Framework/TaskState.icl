@@ -1,7 +1,7 @@
 implementation module iTasks._Framework.TaskState
 
 import Text.JSON
-import iTasks.UI.Definition
+import iTasks.UI.Definition, iTasks.UI.Diff
 
 from iTasks					import JSONEncode, JSONDecode
 from iTasks._Framework.Task	import :: Event, :: TaskTime, :: TaskResult(..), :: TaskException(..), :: TaskEvalInfo(..), :: TaskRep(..), exception, :: TonicOpts(..)
@@ -20,6 +20,7 @@ derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOp
 derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONEncode UISize, UIBound, UIDirection, UIWindowType, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 derive JSONEncode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
+derive JSONEncode UIUpdate, UIStep
 
 //derive JSONDecode TaskCompositionType
 derive JSONDecode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
@@ -28,6 +29,7 @@ derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOp
 derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONDecode UISize, UIBound, UIDirection, UIWindowType, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 derive JSONDecode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
+derive JSONDecode UIUpdate, UIStep
 
 JSONEncode{|DeferredJSON|} _ (DeferredJSON a)
 	= JSONEncode{|*|} False a

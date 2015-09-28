@@ -9,6 +9,7 @@ from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
 
 from iTasks._Framework.TaskState			import :: TaskTree
 from iTasks.UI.Layout 	import :: LayoutRules
+from iTasks.UI.Diff     import :: UIUpdate, :: UIPath, :: UIStep
 from Data.Map			import :: Map
 from Data.CircularStack import :: CircularStack
 
@@ -40,6 +41,8 @@ derive gEq				Task
 	{ useLayout			:: Maybe LayoutRules
 	, modLayout			:: Maybe (LayoutRules -> LayoutRules)
     , noUI              :: Bool
+	, prevUI			:: Maybe UIDef
+	, diffPath 			:: UIPath
     , tonicOpts         :: TonicOpts
 	}
 
@@ -64,8 +67,8 @@ defaultTonicOpts :: TonicOpts
 	, refreshSensitive	:: !Bool		        //Can refresh events change the value or ui of this task (e.g. because shared data is read)
 	}
 	
-:: TaskRep	= NoRep				//For some tasks no external representation is generated
-			| TaskRep !UIDef 	//Compute both the UI and the raw service representation simultaneously
+:: TaskRep	= NoRep							//For some tasks no external representation is generated
+			| TaskRep !UIDef [UIUpdate]		//Compute both the UI and the changes simultaniously
 
 //Low-level tasks that handle network connections
 :: ConnectionTask = ConnectionTask !(ConnectionHandlersIWorld Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)

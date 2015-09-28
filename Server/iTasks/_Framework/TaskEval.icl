@@ -125,8 +125,8 @@ where
 							(Ok UIDisabled, iworld)
 								= (Ok value, iworld) //Nothing to do, the UI is disabled
 							(Ok (UIEnabled uiVersion prevRep outputQueue),iworld)
-                                # oldUI = case prevRep of (TaskRep oldUI) = oldUI; _ = emptyUI
-                                # newUI = case newRep of (TaskRep newUI) = newUI; _ = emptyUI
+                                # oldUI = case prevRep of (TaskRep oldUI _) = oldUI; _ = emptyUI
+                                # newUI = case newRep of (TaskRep newUI _) = newUI; _ = emptyUI
 							    # (editletDiffs,iworld)		= getEditletDiffs iworld
                                 # (updates,editletDiffs)    = diffUIDefinitions oldUI newUI event editletDiffs
                                 # iworld                    = setEditletDiffs editletDiffs iworld
@@ -152,9 +152,9 @@ where
 	getEditletDiffs iworld=:{IWorld|current={editletDiffs}}	= (editletDiffs,iworld)
     setEditletDiffs editletDiffs iworld=:{current} = {IWorld|iworld & current = {current & editletDiffs = editletDiffs}}
 
-    finalizeUI session (ValueResult value info (TaskRep ui) tree)
+    finalizeUI session (ValueResult value info (TaskRep ui diffs) tree)
         # ui = if session (uiDefSetAttribute "session" "true" ui) ui
-        = (ValueResult value info (TaskRep (autoLayoutFinal ui)) tree)
+        = (ValueResult value info (TaskRep (autoLayoutFinal ui) diffs) tree)
     finalizeUI session res = res
 
 	updateProgress now result progress
