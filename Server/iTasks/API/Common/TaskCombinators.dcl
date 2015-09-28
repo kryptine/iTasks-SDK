@@ -52,16 +52,6 @@ tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 */
 (>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 /**
-* Combines two tasks sequentially just as >>=, but the result of the first task is disregarded.
-*
-* @param First: The first task to be executed
-* @param Second: The second task to be executed
-* @return The combined task
-*
-* @gin False
-*/
-(>>|) infixl 1 :: !(Task a) (Task b)					-> Task b		| iTask a & iTask b
-/**
 * Combines two tasks sequentially just as >>=, but the result of the second task is disregarded.
 *
 * @param First: The first task to be executed

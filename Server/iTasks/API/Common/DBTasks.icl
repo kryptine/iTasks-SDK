@@ -5,7 +5,7 @@ import iTasks._Framework.Generic, iTasks._Framework.Task, iTasks._Framework.SDS
 import iTasks._Framework.Util
 import iTasks.API.Core.Types
 from iTasks.API.Core.Tasks			    import get, set
-from iTasks.API.Common.TaskCombinators	import >>|
+import iTasks.API.Common.TaskCombinators
 
 //	Convenient operations on databases
 eqItemId :: a a -> Bool | DB a

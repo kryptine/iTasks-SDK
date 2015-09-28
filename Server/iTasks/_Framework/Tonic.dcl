@@ -48,14 +48,6 @@ instance TFunctor (Parser s t)
 instance TApplicative (Parser s t)
 instance TMonad (Parser s t)
 
-tonicStaticBrowser    :: [TaskAppRenderer] -> Task ()
-
-tonicStaticWorkflow   :: [TaskAppRenderer] -> Workflow
-
-tonicDynamicBrowser   :: [TaskAppRenderer] -> Task ()
-
-tonicDynamicWorkflow  :: [TaskAppRenderer] -> Workflow
-
 tonicExtWrapArg       :: !VarName !Int !a -> m () | iTask a & TonicTopLevelBlueprint m
 
 tonicExtWrapBody      :: !ModuleName !FuncName [(VarName, Int, m ())] [(ExprId, Int)] (         m a)          -> m a | TonicTopLevelBlueprint m & iTask a
@@ -73,5 +65,3 @@ tonicExtWrapAppLam1   :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] !(b 
 tonicExtWrapAppLam2   :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] !(b c   -> m a) -> b c   -> m a | TonicBlueprintPart m & iTask a
 
 tonicExtWrapAppLam3   :: !ModuleName !FuncName !ExprId [(ExprId, a -> Int)] !(b c d -> m a) -> b c d -> m a | TonicBlueprintPart m & iTask a
-
-storeTaskOutputViewer :: !(TaskResult a) !ExprId !TaskId !TaskId !*IWorld -> *IWorld | iTask a

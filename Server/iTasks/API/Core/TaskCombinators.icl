@@ -8,8 +8,7 @@ import iTasks._Framework.Util, iTasks._Framework.Store
 import iTasks._Framework.Generic, iTasks.UI.Definition
 import iTasks.API.Core.Types, iTasks.UI.Layout
 import iTasks._Framework.IWorld
-import iTasks._Framework.Tonic
-
+import iTasks._Framework.Tonic.Shares
 import iTasks._Framework.Client.Override
 
 import qualified Data.Map as DM
