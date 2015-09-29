@@ -612,6 +612,12 @@ tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _
   = tStep inh eid lhsExpr rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Core.TaskCombinators" "step" [lhsExpr : _ : rhsExpr : _] _ _ tsrc
   = tStep inh eid lhsExpr rhsExpr tsrc
+tMApp inh eid mtn mn=:"iTasks.API.Core.TaskCombinators" tn=:"parallel" [x : _] assoc _ tsrc
+  # xs = if (tExprIsList x) (tUnsafeExpr2List x) [x]
+  # xs = let f (TFApp "_Tuple2" [_ : x : _] _) = x
+             f x                               = x
+          in strictTRMap f xs
+  = tParProdN inh eid mn tn "Parallel tasks" xs tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-&&-" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tParProdN inh eid mn tn "Parallel (-&&-): both tasks" [lhsExpr, rhsExpr] tsrc
 tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"allTasks" [x] assoc _ tsrc
@@ -626,6 +632,10 @@ tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||" [lhsExpr : rhs
   = tParSumL inh eid mn tn lhsExpr rhsExpr tsrc
 tMApp inh _ _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"@!" [lhsExpr : _] _ _ tsrc
   = tExpr2Image inh lhsExpr tsrc
+tMApp inh _ _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"<<@" [lhsExpr : _] _ _ tsrc
+  = tExpr2Image inh lhsExpr tsrc
+tMApp inh _ _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"@>>" [_ : rhsExpr : _] _ _ tsrc
+  = tExpr2Image inh rhsExpr tsrc
 tMApp inh eid _ modName taskName taskArgs _ _ tsrc
   #! inh = {inh & inh_in_mapp = True}
   = renderTaskApp inh eid modName taskName taskArgs taskName tsrc
