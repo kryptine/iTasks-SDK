@@ -3,8 +3,8 @@ implementation module iTasks.UI.Editor
 import StdMisc
 import iTasks._Framework.Client.LinkerSupport, Data.Maybe, Data.Functor
 import iTasks._Framework.IWorld
-from iTasks.UI.Diff import :: MessageType (MDiff,MRollback,MCommit)
-from iTasks.UI.Editor import ::VisualizationResult(..), :: Editor(..), :: USt(..)
+from iTasks.UI.Diff import :: MessageType (MDiff,MRollback,MCommit), :: UIDiffResult(..)
+from iTasks.UI.Editor import ::VisualizationResult(..), :: Editor(..), :: USt(..) 
 from Data.Map import :: Map, newMap, put
 from Data.Map import qualified get
 
@@ -17,7 +17,7 @@ createEditletEventHandler :: (EditletEventHandlerFunc d a) !ComponentId -> JSFun
 createEditletEventHandler handler id = undef
 
 fromEditlet :: (Editlet a d cl) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONDecode{|*|} d
-fromEditlet editlet=:{Editlet| genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv} = {Editor|genUI=genUI`,appDiff=appDiff`}
+fromEditlet editlet=:{Editlet| genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv} = {Editor|genUI=genUI`,genDiff=genDiff`,appDiff=appDiff`}
 where
 	genUI` dp currVal mask ver meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
 		# (uiDef, world)        = genUI htmlId currVal world
@@ -75,6 +75,8 @@ where
 
 			setEditletDiffs ver value opts diffs iworld=:{IWorld|current=current=:{editletDiffs}}
 				= {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId dp) (ver,toJSONA value,opts,diffs) editletDiffs}}
+
+	genDiff` up old new vst = (DiffImpossible,vst)
 
 	appDiff` [] jsonDiff ov omask ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
 		// Bit dirty, but we need to unwrap the "unexpected" version number and the expected diff

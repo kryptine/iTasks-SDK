@@ -5,16 +5,17 @@ import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
 import iTasks._Framework.SDS, iTasks._Framework.Generic.Interaction, iTasks.API.Core.Types
 from StdFunc import seq
 import qualified Data.Map as DM
-import iTasks.UI.Editor
+import iTasks.UI.Editor, iTasks.UI.Diff
 
 // SPECIALIZATIONS
 derive class iTask Workflow
 
 gText{|WorkflowTaskContainer|} _ _			            = []
-gEditor{|WorkflowTaskContainer|} = {Editor|genUI=genUI,appDiff=appDiff}
+gEditor{|WorkflowTaskContainer|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
 	genUI _ _ _ _ _ vst			    = (HiddenEditor,vst)
-	appDiff _ _ val mask ust 				= (val,mask,ust)
+	genDiff _ _ _ vst 				= (DiffPossible [], vst)
+	appDiff _ _ val mask ust 		= (val,mask,ust)
 
 gEditMeta{|WorkflowTaskContainer|} _ 				    = [{label=Just "Workflow task container",hint=Nothing,unit=Nothing}]
 gVerify{|WorkflowTaskContainer|} _ mv 				    = alwaysValid mv

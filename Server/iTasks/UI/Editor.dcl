@@ -6,6 +6,7 @@ definition module iTasks.UI.Editor
 
 from iTasks.UI.Layout import :: LayoutRules
 from iTasks.UI.Definition import :: UIControl, :: UIAttributes
+from iTasks.UI.Diff import :: UIPath, :: UIDiffResult
 
 import iTasks.UI.Component
 import iTasks.UI.JS.Interface
@@ -22,8 +23,7 @@ from Text.JSON import :: JSONNode
 */
 :: Editor a = 
 	{ genUI  	:: DataPath a InteractionMask Verification [EditMeta] *VSt -> *(!VisualizationResult,!*VSt)
-	//, genDiff	:: DataPath a a -> [UIUpdate] //Eventually diffs can use the value and don't need the previous UI
-	//, genDiff 	:: UIDef UIDef -> UIDiffResult
+	, genDiff 	:: UIPath a a *VSt -> *(!UIDiffResult,!*VSt)
 	, appDiff 	:: DataPath JSONNode a InteractionMask *USt -> *(!a, !InteractionMask, !*USt)
 	}
 

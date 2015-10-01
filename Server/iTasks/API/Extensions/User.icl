@@ -2,7 +2,7 @@ implementation module iTasks.API.Extensions.User
 import iTasks
 import Text
 import qualified Data.Map as DM
-import iTasks.UI.Editor
+import iTasks.UI.Editor, iTasks.UI.Diff
 
 gText{|User|} _ val = [maybe "" toString val]
 
@@ -68,7 +68,7 @@ JSONEncode{|Username|} _ (Username u) = [JSONString u]
 JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
 JSONDecode{|Username|} _ c = (Nothing,c)
 
-gEditor{|Username|} = {Editor|genUI=genUI,appDiff=appDiff}
+gEditor{|Username|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled	
@@ -77,6 +77,8 @@ where
 		| otherwise
 			# value = checkMaskValue mask ((\(Username v) -> v) val)
 			= (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
+	genDiff up (Username old) (Username new) vst=:{VSt|disabled}
+		= (DiffPossible (if (old === new) [] [UIUpdate up [(if disabled "setValue" "setEditorValue",[encodeUIValue new])]]),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -106,7 +108,7 @@ JSONDecode{|Password|} _ c = (Nothing,c)
 gText{|Password|} AsHeader _ = [""]
 gText{|Password|} _ _        = ["********"]
 
-gEditor{|Password|} = {Editor|genUI=genUI,appDiff=appDiff}
+gEditor{|Password|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled	
@@ -114,6 +116,8 @@ where
 		| otherwise	
 			# value = checkMaskValue mask ((\(Password v) -> v) val)
 			= (NormalEditor [(UIEditPassword defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
+	genDiff up (Password old) (Password new) vst=:{VSt|disabled}
+		= (DiffPossible (if (old === new) [] [UIUpdate up [(if disabled "setValue" "setEditorValue",[encodeUIValue new])]]),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
