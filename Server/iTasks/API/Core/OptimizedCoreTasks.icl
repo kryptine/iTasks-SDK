@@ -367,5 +367,5 @@ visualizeView taskId evalOpts mbEditor value=:(v,vmask,vver) desc iworld
 		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, layout = layout, iworld = iworld}
 		# (editUI,vst=:{VSt|iworld})	= editor.Editor.genUI [] v vmask vver (gEditMeta{|*|} v) vst
 		# uidef		= {UIDef|content=UIForm (layout.LayoutRules.accuInteract (toPrompt desc) {UIForm|attributes=newMap,controls=editorControls editUI,size=defaultSizeOpts}),windows=[]}
-		= (TaskRep uidef [], iworld)
+		= (TaskRep uidef NoChange, iworld)
 

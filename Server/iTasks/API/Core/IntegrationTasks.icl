@@ -10,7 +10,7 @@ import iTasks._Framework.SDS, iTasks._Framework.TaskEval
 import iTasks.API.Core.Types, iTasks.API.Core.Tasks, iTasks.UI.Layout
 import iTasks.API.Core.SDSs
 import iTasks.API.Common.InteractionTasks, iTasks.API.Common.TaskCombinators //TODO don't import from Common in Core
-import iTasks.UI.Editor
+import iTasks.UI.Editor, iTasks.UI.Diff
 
 from iTasks.API.Common.ImportTasks		import importTextFile
 
@@ -76,7 +76,7 @@ where
 		# (controls,iworld)	= makeView opts status taskId layout iworld
 		# prompt			= toPrompt desc
 		# editor			= {UIForm| attributes = 'Data.Map'.newMap, controls = controls, size = defaultSizeOpts}
-		= (TaskRep {UIDef|content=UIForm (layout.LayoutRules.accuInteract prompt editor),windows=[]} [],iworld)
+		= (TaskRep {UIDef|content=UIForm (layout.LayoutRules.accuInteract prompt editor),windows=[]} NoChange,iworld)
 						
 	makeView [ViewWith viewFun] status taskId layout iworld
 		# ver = verifyMaskedValue (Display (viewFun status),Touched)

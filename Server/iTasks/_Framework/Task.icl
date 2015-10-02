@@ -23,8 +23,6 @@ mkEvalOpts =
   | useLayout = Nothing
   , modLayout = Nothing
   , noUI      = False
-  , prevUI    = Nothing
-  , diffPath  = []
   , tonicOpts = defaultTonicOpts
   }
 
@@ -60,7 +58,7 @@ gText{|Task|} _ _ _ = ["<Task>"]
 gEditor{|Task|} _ _ _ _ _ _ = {Editor|genUI=genUI,genDiff,appDiff=appDiff}
 where
 	genUI _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>", 'DM'.newMap)],vst)
-	genDiff old new vst = (DiffPossible [],vst)
+	genDiff dp old new vst = (NoChange,vst)
 	appDiff dp e val mask ust = basicUpdate (\() t -> Just t) dp e val mask ust
 
 gEditMeta{|Task|} _ _ 		= [{label=Just "Task",hint=Nothing,unit=Nothing}]

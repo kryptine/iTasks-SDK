@@ -25,7 +25,7 @@ derive JSONEncode UIEmpty, UIForm, UIBlock
 derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONEncode UISize, UIBound, UIDirection, UIWindowType,  UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 derive JSONEncode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
-derive JSONEncode UIUpdate, UIStep
+derive JSONEncode UIChangeDef, UIUpdate, UIStep
 derive JSONEncode Queue, Event
 
 derive JSONDecode TaskResult, TaskEvalInfo, TaskRep, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
@@ -35,7 +35,7 @@ derive JSONDecode UIEmpty, UIForm, UIBlock
 derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
 derive JSONDecode UISize, UIBound, UIDirection, UIWindowType, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 derive JSONDecode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
-derive JSONDecode UIUpdate, UIStep
+derive JSONDecode UIChangeDef, UIUpdate, UIStep
 derive JSONDecode Queue, Event
 
 derive gDefault TIMeta

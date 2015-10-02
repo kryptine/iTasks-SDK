@@ -138,7 +138,7 @@ where
 		(OnAllExceptions taskbf)	= callWithDeferredJSON taskbf d_json_a
 	
 	doStepLayout taskId evalOpts NoRep val
-		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]} (contActions taskId val conts)) [])
+		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]} (contActions taskId val conts)) NoChange)
 	doStepLayout taskId evalOpts (TaskRep def diffs) val
 		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep def (contActions taskId val conts)) diffs)
 
@@ -459,7 +459,7 @@ genParallelValue results = Value [(lastEvent,val) \\ ValueResult val {TaskEvalIn
 
 genParallelRep :: !TaskEvalOpts [UIAction] [TaskResult a] -> TaskRep
 genParallelRep evalOpts actions results
-	= TaskRep ((repLayoutRules evalOpts).LayoutRules.accuParallel [def \\ ValueResult _ _ (TaskRep def diffs) _ <- results] actions) [] 
+	= TaskRep ((repLayoutRules evalOpts).LayoutRules.accuParallel [def \\ ValueResult _ _ (TaskRep def diffs) _ <- results] actions) NoChange
 
 genParallelEvalInfo :: [TaskResult a] -> TaskEvalInfo
 genParallelEvalInfo results = foldr addResult {TaskEvalInfo|lastEvent=0,removedTasks=[],refreshSensitive=False} results
@@ -628,11 +628,11 @@ where
                 | value === Exception
 				    = (ValueResult (Value ASExcepted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
 				| attachedId == taskId
-                    # rep       = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn (embedTaskDef instanceNo instanceKey) attributes) [])
+                    # rep       = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn (embedTaskDef instanceNo instanceKey) attributes) NoChange)
                     # stable    = value === Stable
 					= (ValueResult (Value (ASAttached stable) stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
 				| otherwise
-					# rep = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn inUseDef attributes) [])
+					# rep = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn inUseDef attributes) NoChange)
 					= (ValueResult (Value (ASInUse attachedId) False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} rep tree, iworld)		
 			_
 				= (ValueResult (Value ASDeleted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
@@ -749,7 +749,7 @@ where
 	        (ValueResult value info rep tree,iworld) = (ValueResult value info (updRep rep) tree, iworld)
             (res,iworld) = (res,iworld)
 
-        updRep NoRep          		= TaskRep (f {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]}) []
+        updRep NoRep          		= TaskRep (f {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]}) NoChange
         updRep (TaskRep def diffs)  = TaskRep (f def) diffs
 		
 instance tune ModifyLayout

@@ -6,7 +6,7 @@ definition module iTasks.UI.Editor
 
 from iTasks.UI.Layout import :: LayoutRules
 from iTasks.UI.Definition import :: UIControl, :: UIAttributes
-from iTasks.UI.Diff import :: UIPath, :: UIDiffResult
+from iTasks.UI.Diff import :: UIChangeDef, :: UIPath
 
 import iTasks.UI.Component
 import iTasks.UI.JS.Interface
@@ -23,7 +23,7 @@ from Text.JSON import :: JSONNode
 */
 :: Editor a = 
 	{ genUI  	:: DataPath a InteractionMask Verification [EditMeta] *VSt -> *(!VisualizationResult,!*VSt)
-	, genDiff 	:: a a *VSt -> *(!UIDiffResult,!*VSt)
+	, genDiff 	:: DataPath a a *VSt -> *(!UIChangeDef,!*VSt)
 	, appDiff 	:: DataPath JSONNode a InteractionMask *USt -> *(!a, !InteractionMask, !*USt)
 	}
 
@@ -53,7 +53,8 @@ from Text.JSON import :: JSONNode
     , iworld            :: !*IWorld
     }
 
-editorControls :: !VisualizationResult -> [(UIControl,UIAttributes)]
+editorControls 	:: !VisualizationResult -> [(UIControl,UIAttributes)]
+editorUIDef 	:: !VisualizationResult !*VSt -> *(!UIDef,!*VSt)
 
 //****************************************************************************//
 // Wrapper types for defining custom editor components that can process events

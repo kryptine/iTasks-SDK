@@ -1,7 +1,7 @@
 implementation module Incidone.ActionManagementTasks
 
 import iTasks
-import iTasks.UI.Editor
+import iTasks.UI.Editor, iTasks.UI.Diff
 import Incidone.Util.TaskPatterns
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.Conversions
 import Incidone.OP.IncidentManagementTasks, Incidone.OP.ContactManagementTasks, Incidone.OP.CommunicationManagementTasks
@@ -227,9 +227,10 @@ gEq{|ActionTasks|} x y = True
 
 gDefault{|ActionTasks|} = ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
 gText{|ActionTasks|} _ _ = ["Action item task definition"]
-gEditor{|ActionTasks|} = {Editor|genUI=genUI,appDiff=appDiff}
+gEditor{|ActionTasks|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
 	genUI _ _ _ _ _ vst = (HiddenEditor,vst)
+	genDiff _ _ _ vst = (NoChange,vst)
 	appDiff _ _ val mask ust = (val,mask,ust)
 
 gEditMeta{|ActionTasks|} _ = [{label=Nothing,hint=Nothing,unit=Nothing}]

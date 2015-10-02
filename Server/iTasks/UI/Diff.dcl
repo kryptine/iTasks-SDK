@@ -22,6 +22,17 @@ from iTasks._Framework.Task import :: Event
 	| MenuStep			//Select the menu bar
 	| WindowStep !Int	//Select window i (only possible as first step)
 
+
+//EXPERIMENTAL:
+//Representation of a collection of changes that need to be applied to an existing UI
+:: UIChangeDef
+	= NoChange								//No changes are needed
+	| ReplaceUI UIDef						//Replace the entire UI with a new version
+	| ChangeUI [UIChange] [UIChildChange]	//Change the current UI and/or its children
+
+:: UIChange 		:== (!String,![JSONNode]) 	//A change method+arguments to call to effect the local change
+:: UIChildChange 	:== (!UIStep,!UIChangeDef) 	//Select a sub-component and apply the change definition there
+
 //Compare a user interface to a previous version and compute
 diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIUpdate],!UIEditletDiffs)
 

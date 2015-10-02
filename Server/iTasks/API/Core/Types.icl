@@ -125,8 +125,8 @@ where
 			# value = checkMaskValue mask url
 			# ui = UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}
 			= (NormalEditor [(ui,editorAttributes (URL url,mask,ver) meta)],vst)
-	genDiff (URL old) (URL new) vst
-		= (DiffPossible (if (old === new) [] [UIUpdate [] [("setValue",[toJSON new])]]),vst)
+	genDiff dp (URL old) (URL new) vst
+		= (if (old === new) NoChange (ChangeUI [("setValue",[toJSON new])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json url -> Just (maybe url (\s -> URL s) (fromJSON json))) dp e val mask ust
 
@@ -174,8 +174,8 @@ where
 			[line]	= Text line
 			lines	= SpanTag [] ('DL'.intersperse (BrTag []) (map Text lines))
 
-	genDiff old new vst
-		= (DiffPossible (if (old === new) [] [UIUpdate [] [("setValue",[encodeUIValue (noteToHtml new)])]]),vst)
+	genDiff dp old new vst
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue (noteToHtml new)])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -230,9 +230,9 @@ where
 		| otherwise
 			# value = checkMaskValue mask ((\(EUR v) -> toReal v / 100.0) val)
 			= (NormalEditor [(UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
-	genDiff (EUR old) (EUR new) vst=:{VSt|disabled}
+	genDiff dp (EUR old) (EUR new) vst=:{VSt|disabled}
 		# nval = if disabled (encodeUIValue (toString new)) (encodeUIValue (toReal new / 100.0))
-		= (DiffPossible (if (old === new) [] [UIUpdate [] [("setValue",[encodeUIValue nval])]]),vst)
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue nval])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -279,9 +279,9 @@ where
 			# value = checkMaskValue mask ((\(USD v) -> toReal v / 100.0) val)
 			= (NormalEditor [(UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
 
-	genDiff (USD old) (USD new) vst=:{VSt|disabled}
+	genDiff dp (USD old) (USD new) vst=:{VSt|disabled}
 		# nval = if disabled (encodeUIValue (toString new)) (encodeUIValue (toReal new / 100.0))
-		= (DiffPossible (if (old === new) [] [UIUpdate [] [("setValue",[encodeUIValue nval])]]),vst)
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue nval])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -340,9 +340,10 @@ where
 		| otherwise
 			# value	= checkMaskValue mask val
 			= (NormalEditor [(UIEditDate defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
-	genDiff old new vst=:{VSt|disabled}
+
+	genDiff dp old new vst=:{VSt|disabled}
 		# nval = if disabled (encodeUIValue (toString new)) (encodeUIValue new)
-		= (DiffPossible (if (old === new) [] [UIUpdate [] [("setValue",[encodeUIValue nval])]]),vst)
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue nval])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
 
@@ -426,9 +427,10 @@ where
 		| otherwise
 			# value = checkMaskValue mask val
 			= (NormalEditor [(UIEditTime defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
-	genDiff old new vst=:{VSt|disabled}
+
+	genDiff dp old new vst=:{VSt|disabled}
 		# nval = if disabled (encodeUIValue (toString new)) (encodeUIValue new)
-		= (DiffPossible (if (old === new) [] [UIUpdate [] [("setValue",[encodeUIValue nval])]]),vst)
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue nval])] []), vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
 
@@ -511,9 +513,9 @@ where
 		| otherwise
 			# value = checkMaskValue mask val
 			= (NormalEditor [(UIEditDateTime defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
-	genDiff old new vst=:{VSt|disabled}
+	genDiff dp old new vst=:{VSt|disabled}
 		# nval = if disabled (encodeUIValue (toString new)) (toJSON new)
-		= (DiffPossible (if (old === new) [] [UIUpdate [] [("setValue",[encodeUIValue nval])]]),vst)
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue nval])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
 
@@ -579,8 +581,8 @@ where
 		| otherwise
 			# value = checkMaskValue mask val
 			= (NormalEditor [(UIEditDocument defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
-	genDiff old new vst
-		= (DiffPossible (if (old === new) [] [UIUpdate [] [("setValue",[encodeUIValue new])]]),vst)
+	genDiff dp old new vst
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue new])] []),vst)
 
 	appDiff dp e val mask ust = case fromJSON e of 
 		Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},Blanked,ust)// Reset
@@ -659,8 +661,8 @@ where
 	where
 		curVal {Scale|cur} = cur
 	
-	genDiff {Scale|cur=old} {Scale|cur=new} vst
-		= (DiffPossible (if (old === new) [] [UIUpdate [] [("setValue",[encodeUIValue new])]]),vst)
+	genDiff dp {Scale|cur=old} {Scale|cur=new} vst
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue new])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json i -> Just (maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json))) dp e val mask ust
 
@@ -685,8 +687,8 @@ where
 					 	= ProgressRatio ratio
 	value {Progress|progress} = progress
 
-	genDiff old new vst
-		= (DiffPossible (if (old === new) [] [UIUpdate [] [("setValue",[encodeUIValue (value new)])]]),vst)
+	genDiff dp old new vst
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue (value new)])] []),vst)
 
 	appDiff dp e val mask ust = (val,mask,ust)
 
@@ -713,8 +715,8 @@ where
 	genUI dp (HtmlInclude path) mask ver meta vst
 		= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value=Just (IframeTag [SrcAttr path] [])},editorAttributes (HtmlInclude path,mask,ver) meta)],vst)
 
-	genDiff (HtmlInclude old) (HtmlInclude new) vst
-		= (DiffPossible (if (old === new) [] [UIUpdate [] [("setValue",[encodeUIValue new])]]),vst)
+	genDiff dp (HtmlInclude old) (HtmlInclude new) vst
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue new])] []),vst)
 
 	appDiff dp e val mask ust = (val,mask,ust)
 
@@ -733,8 +735,8 @@ where
 		# iconCls = Just val.FormButton.icon
 		= (NormalEditor [(UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "pressed")} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False},editorAttributes (val,mask,ver) meta)],vst)
 
-	genDiff {FormButton|state=old} {FormButton|state=new} vst
-		= (DiffPossible (if (old === new) [] [UIUpdate [] [("setEditorValue",[toJSON new])]]),vst)
+	genDiff dp {FormButton|state=old} {FormButton|state=new} vst
+		= (if (old === new) NoChange (ChangeUI [("setEditorValue",[toJSON new])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdate (\st b -> Just {FormButton|b & state = st}) dp e val mask ust
 
@@ -769,14 +771,18 @@ where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		= (NormalEditor [(UIGrid defaultSizeOpts
         	{UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val}
-        	{UIGridOpts|columns = columns val,doubleClickAction=Nothing},editorAttributes (val,mask,ver) meta)],vst)
+        	{UIGridOpts|columns = columns val,doubleClickAction=Nothing}, editorAttributes (val,mask,ver) meta)],vst)
 	where
 		value (Table _ _ mbSel)	= maybe [] (\s->[s]) mbSel
 		columns (Table headers _ _)	= headers
 		options (Table _ cells _)	= map (map toString) cells
 
-	genDiff old new vst
-		= (if (old === new) (DiffPossible []) DiffImpossible,vst)
+	genDiff dp old new vst 
+		| old === new 
+			= (NoChange,vst)
+		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
+		# (ndef,vst) = editorUIDef nviz vst
+		= (ReplaceUI ndef,vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json (Table headers cells _) -> case fromJSON json of Just i = Just (Table headers cells (Just i)); _ = Just (Table headers cells Nothing)) dp e val mask ust
 
@@ -834,9 +840,12 @@ where
 
 	options (ComboChoice options _)			= [concat (gx AsSingleLine (Just v)) \\ v <- options]
 
-	genDiff old new vst
-		= (if (options old === options new && evalue old === evalue new)
-			 (DiffPossible []) DiffImpossible,vst)
+	genDiff dp old new vst
+		| options old === options new && evalue old === evalue new
+			= (NoChange,vst)
+		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
+		# (ndef,vst) = editorUIDef nviz vst
+		= (ReplaceUI ndef,vst)
 
 	appDiff dp e val mask ust = updateChoice (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) dp e val mask ust
 
@@ -868,8 +877,12 @@ where
 	
 	options (RadioChoice options _)			= [concat (gx AsSingleLine (Just v)) \\ v <- options]
 
-	genDiff old new vst
-		= (if (options old === options new && evalue old === evalue new) (DiffPossible []) DiffImpossible,vst)
+	genDiff dp old new vst
+		| options old === options new && evalue old === evalue new
+			= (NoChange,vst)
+		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
+		# (ndef,vst) = editorUIDef nviz vst
+		= (ReplaceUI ndef,vst)
 
 	appDiff dp e val mask ust = updateChoice (\idx (RadioChoice options _) -> RadioChoice options (Just idx)) dp e val mask ust
 
@@ -900,8 +913,12 @@ where
 	
 	options (ListChoice options _)			= [concat (gx AsSingleLine (Just v)) \\ v <- options]
 
-	genDiff old new vst
-		= (if (options old === options new && evalue old === evalue new) (DiffPossible []) DiffImpossible,vst)
+	genDiff dp old new vst
+		| options old === options new && evalue old === evalue new
+			= (NoChange,vst)
+		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
+		# (ndef,vst) = editorUIDef nviz vst
+		= (ReplaceUI ndef,vst)
 
 	appDiff dp e val mask ust = updateChoice (\idx (ListChoice options _) -> ListChoice options (Just idx)) dp e val mask ust
 
@@ -945,8 +962,12 @@ where
 
 	options _ _ _ = []
 
-	genDiff old new vst
-		= (if (options gx old Untouched === options gx new Untouched && value old === value new) (DiffPossible []) DiffImpossible,vst)
+	genDiff dp old new vst
+		| options gx old Untouched === options gx new Untouched && value old === value new
+			= (NoChange,vst)
+		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
+		# (ndef,vst) = editorUIDef nviz vst
+		= (ReplaceUI ndef,vst)
 
 	appDiff dp e (TreeChoice tree sel) mask ust = case fromJSON e of
 		Just ("sel",idx,val)	= (TreeChoice tree (if val (Just idx) Nothing), touch mask, ust)
@@ -980,8 +1001,12 @@ where
 	options (GridChoice options _)		= [gx AsRow (Just opt) \\ opt <- options]
    	columns = gx AsHeader Nothing
 
-	genDiff old new vst
-		= (if (options old === options new && value old === value new) (DiffPossible []) DiffImpossible,vst)
+	genDiff dp old new vst
+		| options old === options new && value old === value new
+			= (NoChange,vst)
+		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
+		# (ndef,vst) = editorUIDef nviz vst
+		= (ReplaceUI ndef,vst)
 
  	appDiff dp e val mask ust = updateChoice (\idxs (GridChoice options _) -> GridChoice options (case idxs of [idx:_] = (Just idx); _ = Nothing)) dp e val mask ust
 
@@ -1011,18 +1036,20 @@ where
 	genUI dp (DCTree val) mask ver meta vst = (gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.genUI dp val mask ver meta vst
 	genUI dp (DCGrid val) mask ver meta vst = (gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.genUI dp val mask ver meta vst
 
-	genDiff (DCCombo old) (DCCombo new) vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.genDiff old new vst
-	genDiff (DCRadio old) (DCRadio new) vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.genDiff old new vst
-	genDiff (DCList old) (DCList new) vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.genDiff old new vst
-	genDiff (DCTree old) (DCTree new) vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.genDiff old new vst
-	genDiff (DCGrid old) (DCGrid new) vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.genDiff old new vst
-	genDiff _ _ vst
-		= (DiffImpossible,vst)
+	genDiff dp (DCCombo old) (DCCombo new) vst
+		= (gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.genDiff dp old new vst
+	genDiff dp (DCRadio old) (DCRadio new) vst
+		= (gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.genDiff dp old new vst
+	genDiff dp (DCList old) (DCList new) vst
+		= (gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.genDiff dp old new vst
+	genDiff dp (DCTree old) (DCTree new) vst
+		= (gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.genDiff dp old new vst
+	genDiff dp (DCGrid old) (DCGrid new) vst
+		= (gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.genDiff dp old new vst
+	genDiff dp old new vst
+		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
+		# (ndef,vst) = editorUIDef nviz vst
+		= (ReplaceUI ndef,vst)
 
 	appDiff dp e (DCCombo val) mask ust 
 		# (val,mask,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.appDiff dp e val mask ust) 
@@ -1089,8 +1116,12 @@ where
 	evalue (CheckMultiChoice _ sel)			= sel
 	options (CheckMultiChoice options _)	= [concat (gx AsSingleLine (Just v)) \\ (v,_) <- options]
 
-	genDiff old new vst
-		= (if (options old === options new && evalue old === evalue new) (DiffPossible []) DiffImpossible,vst)
+	genDiff dp old new vst
+		| options old === options new && evalue old === evalue new
+			= (NoChange,vst)
+		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
+		# (ndef,vst) = editorUIDef nviz vst
+		= (ReplaceUI ndef,vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = Just (CheckMultiChoice opts (updateSel i v sel)); _ = (Just (CheckMultiChoice opts sel))) dp e val mask ust
 	where
@@ -1255,10 +1286,10 @@ where
 		VHDisplay x		= (gEditor{|* -> *|} fx gx dx hx jex jdx).Editor.genUI dp (Display x) mask ver meta vst
 		VHEditable x	= (gEditor{|* -> *|} fx gx dx hx jex jdx).Editor.genUI dp (Editable x) mask ver meta vst
 
-	genDiff (VHEditable old) (VHEditable new) vst = (gEditor{|* -> *|} fx gx dx hx jex jdx).Editor.genDiff (Editable old) (Editable new) vst
-	genDiff (VHDisplay old) (VHDisplay new) vst   = (gEditor{|* -> *|} fx gx dx hx jex jdx).Editor.genDiff (Display old) (Display new) vst
-	genDiff (VHHidden old) (VHHidden new) vst     = (gEditor{|* -> *|} fx gx dx hx jex jdx).Editor.genDiff (Hidden old) (Hidden new) vst
-	genDiff _ _ vst = (DiffImpossible,vst)
+	genDiff dp (VHEditable old) (VHEditable new) vst = (gEditor{|* -> *|} fx gx dx hx jex jdx).Editor.genDiff dp (Editable old) (Editable new) vst
+	genDiff dp (VHDisplay old) (VHDisplay new) vst   = (gEditor{|* -> *|} fx gx dx hx jex jdx).Editor.genDiff dp (Display old) (Display new) vst
+	genDiff dp (VHHidden old) (VHHidden new) vst     = (gEditor{|* -> *|} fx gx dx hx jex jdx).Editor.genDiff dp (Hidden old) (Hidden new) vst
+	genDiff _ _ _ vst = (NoChange,vst)
 
 	appDiff dp e val=:(VHEditable s) mask ust = wrapperUpdate fx.Editor.appDiff fromVisualizationHint VHEditable dp e val mask ust
 	appDiff dp e val=:(VHDisplay s) mask ust = wrapperUpdate fx.Editor.appDiff fromVisualizationHint VHDisplay dp e val mask ust
@@ -1282,7 +1313,7 @@ gText{|Hidden|} _ _ _ = []
 gEditor{|Hidden|} fx _ _ _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp val mask ver meta vst = (HiddenEditor,vst)
-	genDiff old new vst = (DiffPossible [],vst)
+	genDiff dp old new vst = (NoChange,vst)
 	appDiff dp e val mask ust = (val,mask,ust)
 
 gVerify{|Hidden|} fx options (Hidden v,mask) = fx options (v,mask)
@@ -1302,7 +1333,7 @@ where
 		# (def,vst) = ex.Editor.genUI dp (fromDisplay val) mask ver meta {VSt | vst &  disabled = True}
 		= (def,{VSt | vst & disabled = disabled})
 
-	genDiff old new vst = (DiffPossible [],vst)
+	genDiff dp old new vst = (NoChange,vst)
 
 	appDiff dp e val mask ust = wrapperUpdate ex.Editor.appDiff fromDisplay Display dp e val mask ust
 
@@ -1323,8 +1354,8 @@ where
 		# (def,vst) = ex.Editor.genUI dp (fromEditable val) mask ver meta {VSt | vst & disabled = False}
 		= (def,{VSt | vst & disabled = disabled})
 
-	genDiff (Editable old) (Editable new) vst
-		= ex.Editor.genDiff old new vst
+	genDiff dp (Editable old) (Editable new) vst
+		= ex.Editor.genDiff dp old new vst
 
 	appDiff dp e val mask ust = wrapperUpdate ex.Editor.appDiff fromEditable Editable dp e val mask ust
 
@@ -1343,8 +1374,8 @@ gEditor{|Row|} ex _ _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDif
 where
 	genUI dp (Row val) mask ver meta vst
  		= appFst (applyToControls (setDirection Horizontal)) (ex.Editor.genUI dp val mask ver meta vst)
-	genDiff (Row old) (Row new) vst
-		= ex.Editor.genDiff old new vst
+	genDiff dp (Row old) (Row new) vst
+		= ex.Editor.genDiff dp old new vst
 	appDiff dp e val mask ust = wrapperUpdate ex.Editor.appDiff (\(Row x) -> x) Row dp e val mask ust
 
 gVerify{|Row|} gVerx options (Row x,mask) = gVerx options (x,mask)
@@ -1356,8 +1387,8 @@ gEditor{|Col|} ex _ _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDif
 where
 	genUI dp (Col val) mask ver meta vst
  		= appFst (applyToControls (setDirection Vertical)) (ex.Editor.genUI dp val mask ver meta vst)
-	genDiff (Col old) (Col new) vst
-		= ex.Editor.genDiff old new vst
+	genDiff dp (Col old) (Col new) vst
+		= ex.Editor.genDiff dp old new vst
 	appDiff dp e val mask ust = wrapperUpdate ex.Editor.appDiff (\(Col x) -> x) Col dp e val mask ust
 	
 gVerify{|Col|} gVerx options (Col x,mask) = gVerx options (x,mask)
@@ -1565,8 +1596,8 @@ derive gVerify			Icon
 gEditor{|Icon|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
 	genUI _ (Icon icon) mask ver meta vst = (NormalEditor [(UIIcon defaultFSizeOpts {UIIconOpts|iconCls="icon-"+++icon,tooltip=Nothing} ,'DM'.newMap)], vst)
-	genDiff (Icon old) (Icon new) vst
-		= (DiffPossible (if (old === new) [] [UIUpdate [] [("setIconCls",[encodeUIValue ("icon-"+++new)])]]),vst)
+	genDiff _ (Icon old) (Icon new) vst
+		= (if (old === new) NoChange (ChangeUI [("setIconCls",[encodeUIValue ("icon-"+++new)])] []),vst)
 
 	appDiff dp e val mask ust = (val,mask,ust)
 
@@ -1597,7 +1628,7 @@ gEditMeta{|{}|} _ _ = undef
 gEditor{|{}|} _ _ _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
 	genUI _ _ _ _ _ vst = (HiddenEditor,vst)
-	genDiff _ _ vst = (DiffImpossible,vst)
+	genDiff _ _ _ vst = (NoChange,vst)
 	appDiff _ _ val mask ust = (val,mask,ust)
 
 gText{|{}|} _ _ _ = undef

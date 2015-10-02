@@ -1,5 +1,5 @@
 implementation module Incidone.ContactPosition
-import iTasks, iTasks.UI.Editor
+import iTasks, iTasks.UI.Editor, iTasks.UI.Diff
 import qualified Data.Map as DM
 import Data.Functor, Text
 import qualified Text.Parsers.ParsersKernel as PK
@@ -14,7 +14,7 @@ import Incidone.Util.TaskPatterns
 derive JSONEncode ContactPosition
 derive JSONDecode ContactPosition
 
-gEditor{|ContactPosition|} = {Editor|genUI=genUI,appDiff=appDiff}
+gEditor{|ContactPosition|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
 	genUI path val mask ver meta vst=:{VSt|taskId,disabled}
     	| disabled
@@ -25,6 +25,9 @@ where
     	# control = UIEditString defaultHSizeOpts {UIEditOpts| taskId = taskId,editorId = editorId path, value = Just value}
     	# attributes = 'DM'.newMap
     	= (NormalEditor [(control,editorAttributes (val,mask,ver) meta)],vst)
+
+	genDiff dp old new vst
+		= (if (old === new) NoChange (ChangeUI [("setValue",[toJSON new])] []),vst)
 
 	appDiff [] JSONNull val _ ust = (PositionDescription "" Nothing,Blanked,ust)
 	appDiff [] (JSONString nval) _ _ ust = (parsePosition nval, Touched, ust)
