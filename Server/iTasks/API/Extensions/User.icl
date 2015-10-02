@@ -77,8 +77,8 @@ where
 		| otherwise
 			# value = checkMaskValue mask ((\(Username v) -> v) val)
 			= (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
-	genDiff up (Username old) (Username new) vst=:{VSt|disabled}
-		= (DiffPossible (if (old === new) [] [UIUpdate up [(if disabled "setValue" "setEditorValue",[encodeUIValue new])]]),vst)
+	genDiff (Username old) (Username new) vst=:{VSt|disabled}
+		= (DiffPossible (if (old === new) [] [UIUpdate [] [(if disabled "setValue" "setEditorValue",[encodeUIValue new])]]),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -116,8 +116,8 @@ where
 		| otherwise	
 			# value = checkMaskValue mask ((\(Password v) -> v) val)
 			= (NormalEditor [(UIEditPassword defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
-	genDiff up (Password old) (Password new) vst=:{VSt|disabled}
-		= (DiffPossible (if (old === new) [] [UIUpdate up [(if disabled "setValue" "setEditorValue",[encodeUIValue new])]]),vst)
+	genDiff (Password old) (Password new) vst=:{VSt|disabled}
+		= (DiffPossible (if (old === new) [] [UIUpdate [] [(if disabled "setValue" "setEditorValue",[encodeUIValue new])]]),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 

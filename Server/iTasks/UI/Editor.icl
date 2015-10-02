@@ -76,7 +76,7 @@ where
 			setEditletDiffs ver value opts diffs iworld=:{IWorld|current=current=:{editletDiffs}}
 				= {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId dp) (ver,toJSONA value,opts,diffs) editletDiffs}}
 
-	genDiff` up old new vst = (DiffImpossible,vst)
+	genDiff` old new vst = (DiffImpossible,vst)
 
 	appDiff` [] jsonDiff ov omask ust=:{USt|taskId,editorId,iworld=iworld=:{IWorld|current=current=:{editletDiffs}}}
 		// Bit dirty, but we need to unwrap the "unexpected" version number and the expected diff

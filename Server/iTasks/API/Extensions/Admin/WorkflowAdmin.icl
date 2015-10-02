@@ -14,7 +14,7 @@ gText{|WorkflowTaskContainer|} _ _			            = []
 gEditor{|WorkflowTaskContainer|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
 	genUI _ _ _ _ _ vst			    = (HiddenEditor,vst)
-	genDiff _ _ _ vst 				= (DiffPossible [], vst)
+	genDiff _ _ vst 				= (DiffPossible [], vst)
 	appDiff _ _ val mask ust 		= (val,mask,ust)
 
 gEditMeta{|WorkflowTaskContainer|} _ 				    = [{label=Just "Workflow task container",hint=Nothing,unit=Nothing}]
