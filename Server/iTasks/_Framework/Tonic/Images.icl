@@ -783,14 +783,17 @@ tDefaultMApp` isDynamic inBranch isCompact isActive wasActive isInAccessible isU
                                                                        <@< { strokewidth = strokeWidth }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskNameImg] Nothing, tsrc)
       taskArgs
-        #! argsImg  = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] (strictTRMap (margin (px 1.0, px 0.0)) taskArgs) Nothing))
-        #! maxXSpan = maxSpan [imagexspan tntag, imagexspan argstag]
-        #! lineImg  =  xline Nothing maxXSpan <@< { stroke = strokeColor }
+        #! argsImg   = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] (strictTRMap (margin (px 1.0, px 0.0)) taskArgs) Nothing))
+        #! maxXSpan  = maxSpan [imagexspan tntag, imagexspan argstag]
+        #! lineImg   = xline Nothing maxXSpan <@< { stroke = strokeColor }
                                               <@< { strokewidth = strokeWidth }
-        #! content  = above (repeat AtLeft) [] [taskNameImg, lineImg, argsImg] Nothing
-        #! bgRect   = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = bgColor }
-                                                                                    <@< { stroke = strokeColor }
-                                                                                    <@< { strokewidth = strokeWidth }
+        #! txtBgRect = tRoundedRect maxXSpan (px 20.0) <@< { fill = bgColor }
+                                                       <@< { stroke = strokeColor }
+                                                       <@< { strokewidth = strokeWidth }
+        #! content   = above (repeat AtLeft) [] [overlay (repeat (AtMiddleX, AtMiddleY)) [] [txtBgRect, taskNameImg] Nothing, lineImg, argsImg] Nothing
+        #! bgRect    = tRoundedRect maxXSpan (imageyspan tntag + imageyspan argstag) <@< { fill = TonicWhite }
+                                                                                     <@< { stroke = strokeColor }
+                                                                                     <@< { strokewidth = strokeWidth }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, content] Nothing, tsrc)
 
 tAssign :: !InhMkImg !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)

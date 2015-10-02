@@ -434,8 +434,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                                                                                  e = e
                                                                         ) parentBPInst.bpi_blueprint.tf_body
                                               _ = (parentBPInst.bpi_blueprint.tf_body, False, Nothing)
-                    # bpi        = {parentBPInst & bpi_blueprint = {parentBPInst.bpi_blueprint & tf_body = parent_body}}
-                    = (bpi, iworld)
+                    = ({parentBPInst & bpi_blueprint = {parentBPInst.bpi_blueprint & tf_body = parent_body}}, iworld)
                   _ = (parentBPInst, iworld)
           # evalOpts     = if (isParallel mn fn)
                              {evalOpts & tonicOpts = {tonicOpts & inParallel = Just childTaskId}}
@@ -542,7 +541,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
     # (tf_body, _, _) = updateNode nid (\x -> case x of
                                                 e=:(TMApp _ _ _ _ [TMApp _ _ _ _ _ _ _ : _] _ _) -> e
                                                 e=:(TMApp _ _ _ _ [TFApp "_Cons" _ _ : _] _ _) -> e // TODO This is probably insufficient. It will capture things like [t1:someOtherTasks], where we would like to expand someOtherTasks at runtime
-                                                TMApp eid mtn mn tn _ pr ptr -> TMApp eid mtn mn tn [list2TExpr childNodes] pr ptr
+                                                //TMApp eid mtn mn tn _ pr ptr -> TMApp eid mtn mn tn [list2TExpr childNodes] pr ptr
                                                 e -> e
                                        ) pinst.bpi_blueprint.tf_body
     # pinst = { pinst
