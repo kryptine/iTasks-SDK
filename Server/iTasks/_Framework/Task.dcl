@@ -7,6 +7,7 @@ import iTasks.API.Core.Types
 import iTasks.API.Core.TaskLayout
 import iTasks._Framework.Generic
 from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
+from iTasks.UI.Definition import :: UIAction
 
 from iTasks._Framework.TaskState			import :: TaskTree
 from iTasks.UI.Layout 	import :: LayoutRules
@@ -36,7 +37,7 @@ derive gEq				Task
 					| ExceptionResult !TaskException													//If something went wrong, a task produces an exception value
 					| DestroyedResult																	//If a task finalizes and cleaned up it gives this result
 :: TaskException    :== (!Dynamic,!String) //The dynamic contains the actual exception which can be matched, the string is an error message
-:: TaskUIs          :== Map TaskId (Either UIDef TaskLayout)
+:: TaskUIs          :== Map TaskId (Maybe UIDef,[UIAction],Maybe TaskLayout)
 
 //Additional options to pass down the tree when evaluating a task
 :: TaskEvalOpts	=

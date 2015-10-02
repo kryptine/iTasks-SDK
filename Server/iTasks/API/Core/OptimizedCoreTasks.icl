@@ -45,7 +45,7 @@ where
 		# (taskUI,iworld)		= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value (nl,nv) False) NoValue
 		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts (TaskRep taskUI))
-			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Left taskUI))), iworld)
+			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Just taskUI,[],Nothing))), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -71,7 +71,7 @@ where
 		# (taskUI,iworld) 		= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value (nl,nv) False) NoValue
 		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts (TaskRep taskUI))
-			(TCInteractLocal taskId nts (toJSON nl) (toJSON nv) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Left taskUI))), iworld)
+			(TCInteractLocal taskId nts (toJSON nl) (toJSON nv) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Just taskUI,[],Nothing))), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -106,7 +106,7 @@ where
 		# (taskUI,iworld) 		= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nv False) NoValue
 		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts (TaskRep taskUI))
-			(TCInteractViewOnly taskId nts (toJSON nr) (toJSON nv) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Left taskUI))), iworld)
+			(TCInteractViewOnly taskId nts (toJSON nr) (toJSON nv) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Just taskUI,[],Nothing))), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -133,7 +133,7 @@ where
 		# (taskUI,iworld)		= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nv False) NoValue
 		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts (TaskRep taskUI))
-			(TCInteractLocalViewOnly taskId nts (toJSON nv) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Left taskUI))), iworld)
+			(TCInteractLocalViewOnly taskId nts (toJSON nv) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Just taskUI,[],Nothing))), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -255,7 +255,7 @@ where
 		# (taskUI,iworld)		= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
 		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts (TaskRep taskUI)) 
-		                     (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Left taskUI))), iworld)
+		                     (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Just taskUI,[],Nothing))), iworld)
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun r
@@ -284,7 +284,7 @@ where
 		# (taskUI,iworld)		= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
 		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts (TaskRep taskUI)) 
-		                     (TCInteract1 taskId nts (toJSON nv) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Left taskUI))), iworld)
+		                     (TCInteract1 taskId nts (toJSON nv) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Just taskUI,[],Nothing))), iworld)
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l v m ok
@@ -315,7 +315,7 @@ where
 		# (taskUI,iworld)		= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
 		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts (TaskRep taskUI)) 
-		                     (TCInteract1 taskId nts (toJSON nl) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Left taskUI))), iworld)
+		                     (TCInteract1 taskId nts (toJSON nl) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Just taskUI,[],Nothing))), iworld)
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l v m ok
@@ -345,7 +345,7 @@ where
 		# (taskUI,iworld)		= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
 		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts (TaskRep taskUI)) 
-		                     (TCInteract1 taskId nts (toJSON nl) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Left taskUI))), iworld)
+		                     (TCInteract1 taskId nts (toJSON nl) nmask) (finalizeTaskUIs evalOpts (singleton taskId (Just taskUI,[],Nothing))), iworld)
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 matchAndApplyEvent (EditEvent taskId name value) matchId taskTime v mask ts iworld

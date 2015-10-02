@@ -422,33 +422,33 @@ where
     title		= 'Data.Map'.get TITLE_ATTRIBUTE attributes	
     iconCls		= fmap (\icon -> "icon-" +++ icon) ('Data.Map'.get ICON_ATTRIBUTE attributes)
 
-autoLayoutFinal :: UIDef -> UIDef
-autoLayoutFinal {UIDef|content=UIEmpty {UIEmpty|actions},windows}
+autoLayoutFinal :: [UIAction] UIDef -> UIDef
+autoLayoutFinal extra_menu_actions {UIDef|content=UIEmpty {UIEmpty|actions},windows}
 	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing}),windows=windows}
-autoLayoutFinal {UIDef|content=UIForm stack,windows}
-    = autoLayoutFinal {UIDef|content=UIBlock (autoLayoutForm stack),windows=windows}
-autoLayoutFinal {UIDef|content=UIBlock subui=:{UIBlock|attributes,content,actions,hotkeys,size},windows}
+autoLayoutFinal extra_menu_actions {UIDef|content=UIForm stack,windows}
+    = autoLayoutFinal extra_menu_actions {UIDef|content=UIBlock (autoLayoutForm stack),windows=windows}
+autoLayoutFinal extra_menu_actions {UIDef|content=UIBlock subui=:{UIBlock|attributes,content,actions,hotkeys,size},windows}
     # fullScreen = ('Data.Map'.get SCREEN_ATTRIBUTE attributes === Just "full") || isNothing ('Data.Map'.get "session" attributes)
     # (panel,attributes,actions,panelkeys) = blockToPanel (if fullScreen {UIBlock|subui & attributes = 'Data.Map'.del TITLE_ATTRIBUTE attributes} subui)
     # panel = if fullScreen (setSize FlexSize FlexSize panel) ((setSize WrapSize WrapSize o setFramed True) panel)
-	# (menu,menukeys,actions)	= actionsToMenus actions
+	# (menu,menukeys,actions)	= actionsToMenus (actions ++ extra_menu_actions)
 	# items				        = [panel]
 	# itemsOpts			        = {defaultItemsOpts items & direction = Vertical, halign = AlignCenter, valign= AlignMiddle}
 	# hotkeys			        = case panelkeys ++ menukeys of [] = Nothing ; keys = Just keys
 	= {UIDef|content=UIFinal (UIViewport itemsOpts {UIViewportOpts|title = 'Data.Map'.get TITLE_ATTRIBUTE attributes, menu = if (isEmpty menu) Nothing (Just menu), hotkeys = hotkeys}),windows=windows}
-autoLayoutFinal {UIDef|content=UIBlocks blocks actions,windows}
-    = autoLayoutFinal {UIDef|content=UIBlock (autoLayoutBlocks blocks actions),windows=windows}
-autoLayoutFinal {UIDef|content=UIFinal viewport,windows} = {UIDef|content=UIFinal viewport,windows=windows}
+autoLayoutFinal extra_menu_actions {UIDef|content=UIBlocks blocks actions,windows}
+    = autoLayoutFinal extra_menu_actions {UIDef|content=UIBlock (autoLayoutBlocks blocks actions),windows=windows}
+autoLayoutFinal extra_menu_actions {UIDef|content=UIFinal viewport,windows} = {UIDef|content=UIFinal viewport,windows=windows}
 
-plainLayoutFinal :: UIDef -> UIDef
-plainLayoutFinal {UIDef|content=UIEmpty {UIEmpty|actions},windows}
+plainLayoutFinal :: [UIAction] UIDef -> UIDef
+plainLayoutFinal extra_menu_actions {UIDef|content=UIEmpty {UIEmpty|actions},windows}
 	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing}),windows=windows}
-plainLayoutFinal {UIDef|content=UIBlock block=:{UIBlock|attributes,content,actions,hotkeys},windows}
+plainLayoutFinal extra_menu_actions {UIDef|content=UIBlock block=:{UIBlock|attributes,content,actions,hotkeys},windows}
     # (UIContainer sOpts iOpts,attributes,_,_) = blockToContainer block
     = {UIDef|content=UIFinal (UIViewport iOpts {UIViewportOpts|title = 'Data.Map'.get TITLE_ATTRIBUTE attributes, menu = Nothing, hotkeys = Just hotkeys}),windows=windows}
-plainLayoutFinal {UIDef|content=UIBlocks blocks actions,windows}
-    = plainLayoutFinal {UIDef|content=UIBlock (autoLayoutBlocks blocks actions),windows=windows}
-plainLayoutFinal {UIDef|content=UIFinal viewport,windows}
+plainLayoutFinal extra_menu_actions {UIDef|content=UIBlocks blocks actions,windows}
+    = plainLayoutFinal extra_menu_actions {UIDef|content=UIBlock (autoLayoutBlocks blocks actions),windows=windows}
+plainLayoutFinal extra_menu_actions {UIDef|content=UIFinal viewport,windows}
     = {UIDef|content=UIFinal viewport,windows=windows}
 
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin

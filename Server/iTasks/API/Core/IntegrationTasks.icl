@@ -51,8 +51,8 @@ where
 		| stable
             # status          = fromJust (fromJSON encv)
             # (taskUI,iworld) = makeRep taskId evalOpts status iworld
-            # iworld          = queueRefresh [taskInstance] ["Checked OS process for instance "<+++ taskInstance] iworld
-			= (ValueResult (Value status True) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} (TaskRep taskUI) state ('Data.Map'.singleton taskId (Left taskUI)), iworld)
+            # iworld          = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
+			= (ValueResult (Value status True) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} (TaskRep taskUI) state ('Data.Map'.singleton taskId (Just taskUI,[],Nothing)), iworld)
 		| otherwise
             //Check status
             # handle = fromJust (fromJSON encv)
@@ -64,8 +64,8 @@ where
                         Just c  = (CompletedProcess c,True, TCBasic taskId lastEvent (toJSON (CompletedProcess c)) False)
                         Nothing = (RunningProcess cmd,False, state)
                     # (taskUI,iworld) = makeRep taskId evalOpts status {IWorld|iworld & world = world}
-                    # iworld          = queueRefresh [taskInstance] ["Checked OS process for instance "<+++ taskInstance] iworld
-                    = (ValueResult (Value status stable) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} (TaskRep taskUI) state ('Data.Map'.singleton taskId (Left taskUI)), iworld)
+                    # iworld          = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
+                    = (ValueResult (Value status stable) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} (TaskRep taskUI) state ('Data.Map'.singleton taskId (Just taskUI,[],Nothing)), iworld)
 
 	eval event repAs (TCDestroy _) iworld
 		= (DestroyedResult,iworld)

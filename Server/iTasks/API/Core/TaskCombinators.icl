@@ -14,11 +14,11 @@ import iTasks._Framework.Client.Override
 import qualified Data.Map as DM
 from StdFunc					        import id, const, o, seq
 from iTasks						        import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
-from iTasks._Framework.TaskStore         import localShare, parallelTaskList, topLevelTaskList
-from iTasks._Framework.SDS               import write, read, readRegister
+from iTasks._Framework.TaskStore        import localShare, parallelTaskList, topLevelTaskList
+from iTasks._Framework.SDS              import write, read, readRegister
 import iTasks.API.Core.Types
 from iTasks.API.Common.SDSCombinators   import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle
-
+from iTasks._Framework.UILayout         import iso
 derive class iTask ParallelTaskType, AttachmentStatus
 derive gEq ParallelTaskChange
 
@@ -65,6 +65,12 @@ where
 				Nothing = (result, iworld)
 			Error e = (ExceptionResult e, iworld)
 
+registerActions :: !TaskId ![UIAction] !TaskUIs -> TaskUIs
+registerActions taskId actions taskUIs
+	= case 'DM'.get taskId taskUIs of
+	     Just (ui,actions`,layout) = 'DM'.put taskId (ui,actions` ++ actions,layout) taskUIs
+	     nothing                   = 'DM'.put taskId (Nothing,actions,Nothing)       taskUIs
+
 step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTask a & iTask b
 step (Task evala) lhsValFun conts = Task eval
 where
@@ -79,9 +85,11 @@ where
 		# mbCont			= case resa of
 			ValueResult val info rep ntreea ntaskUIs = case searchContValue val mbAction conts of
 				Nothing			
-					# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
-                    # value = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
-					= Left (ValueResult value info (doStepLayout taskId evalOpts rep val) (TCStep taskId info.TaskEvalInfo.lastEvent (Left ntreea)) (finalizeTaskUIs evalOpts ntaskUIs))
+					# info      = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
+                    # value     = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
+                    # actions   = contActions taskId val conts
+                    # ntaskUIs` = registerActions taskId actions ntaskUIs
+					= Left (ValueResult value info (doStepLayout evalOpts rep actions) (TCStep taskId info.TaskEvalInfo.lastEvent (Left ntreea)) (finalizeTaskUIs evalOpts ntaskUIs`))
 				Just rewrite	= Right (rewrite,Just ntreea, info.TaskEvalInfo.lastEvent,info.TaskEvalInfo.removedTasks)
 			ExceptionResult e = case searchContException e conts of
 				Nothing			= Left (ExceptionResult e)
@@ -138,10 +146,12 @@ where
 		(OnException taskbf)		= callWithDeferredJSON taskbf d_json_a
 		(OnAllExceptions taskbf)	= callWithDeferredJSON taskbf d_json_a
 	
-	doStepLayout taskId evalOpts NoRep val
-		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]} (contActions taskId val conts)))
-	doStepLayout taskId evalOpts (TaskRep def) val
-		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep def (contActions taskId val conts)))
+	doStepLayout evalOpts rep actions
+		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep taskUI actions))
+	where
+		taskUI = case rep of
+		            TaskRep ui = ui
+		            NoRep      = {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]}
 
 	callWithDeferredJSONTaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
 	callWithDeferredJSONTaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
@@ -245,8 +255,9 @@ where
                 # results   = reverse results //(the results are returned in reverse order)
                 # value     = genParallelValue results
                 # evalInfo  = genParallelEvalInfo results
-                # rep       = genParallelRep evalOpts (contActions taskId value conts) results
-                # ntaskUIs	= genParallelUIs results
+                # actions   = contActions taskId value conts
+                # ntaskUIs  = registerActions taskId actions (genParallelUIs results)
+                # rep       = genParallelRep evalOpts actions results
                 # taskTrees = [(fromOk (taskIdFromTaskTree tree),tree) \\ ValueResult _ _ _ tree _ <- results | isOk (taskIdFromTaskTree tree)]
                 = (ValueResult value evalInfo rep (TCParallel taskId ts taskTrees) ntaskUIs,iworld)
     //Cleanup
@@ -630,18 +641,18 @@ where
 		= case (constants,progress,attributes) of
 			(Ok {InstanceConstants|instanceKey,build},Ok progress=:{InstanceProgress|attachedTo=[attachedId],value},Ok attributes)
                 | build <> buildID //Check version
-				    = (ValueResult (Value ASIncompatible True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoRep tree 'DM'.newMap, iworld)
+				    = (ValueResult (Value ASIncompatible True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoRep tree ('DM'.singleton taskId (Nothing,[],Nothing)), iworld)
                 | value === Exception
-				    = (ValueResult (Value ASExcepted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoRep tree 'DM'.newMap, iworld)
+				    = (ValueResult (Value ASExcepted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoRep tree ('DM'.singleton taskId (Nothing,[],Nothing)), iworld)
 				| attachedId == taskId
                     # rep       = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn (embedTaskDef instanceNo instanceKey) attributes))
                     # stable    = value === Stable
-					= (ValueResult (Value (ASAttached stable) stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree 'DM'.newMap, iworld)
+					= (ValueResult (Value (ASAttached stable) stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree ('DM'.singleton taskId (iso rep,[],Nothing)), iworld)
 				| otherwise
 					# rep = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn inUseDef attributes))
-					= (ValueResult (Value (ASInUse attachedId) False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} rep tree 'DM'.newMap, iworld)		
+					= (ValueResult (Value (ASInUse attachedId) False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} rep tree ('DM'.singleton taskId (iso rep,[],Nothing)), iworld)		
 			_
-				= (ValueResult (Value ASDeleted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoRep tree 'DM'.newMap, iworld)
+				= (ValueResult (Value ASDeleted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoRep tree ('DM'.singleton taskId (Nothing,[],Nothing)), iworld)
 
 	eval event evalOpts (TCDestroy (TCBasic taskId _ _ _)) iworld
         /*
@@ -781,9 +792,9 @@ withTaskId (Task eval) = Task eval`
   where
   eval` event evalOpts state iworld
     = case eval event evalOpts state iworld of
-        (ValueResult (Value x st) info rep tree, iworld) -> case taskIdFromTaskTree tree of
-                                                              Ok tid -> (ValueResult (Value (x, tid) st) info rep tree, iworld)
-                                                              _      -> (ValueResult (Value (x, TaskId 0 0) st) info rep tree, iworld)
-        (ValueResult NoValue info rep tree, iworld) -> (ValueResult NoValue info rep tree, iworld)
+        (ValueResult (Value x st) info rep tree taskUIs, iworld) -> case taskIdFromTaskTree tree of
+                                                                       Ok tid -> (ValueResult (Value (x, tid) st) info rep tree taskUIs, iworld)
+                                                                       _      -> (ValueResult (Value (x, TaskId 0 0) st) info rep tree taskUIs, iworld)
+        (ValueResult NoValue info rep tree taskUIs, iworld) -> (ValueResult NoValue info rep tree taskUIs, iworld)
         (ExceptionResult te, iworld) -> (ExceptionResult te, iworld)
         (DestroyedResult, iworld) -> (DestroyedResult, iworld)

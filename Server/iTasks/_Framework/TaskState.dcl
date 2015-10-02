@@ -66,7 +66,8 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	| TCDestroy					!TaskTree															//Marks a task state as garbage that must be destroyed
 	| TCTasklet			
 
-taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
+taskIdFromTaskTree :: !TaskTree -> MaybeError TaskException TaskId
+taskTreeOfTaskId   :: !TaskId !TaskTree -> Maybe TaskTree
 
 :: DeferredJSON
 	= E. a:	DeferredJSON !a & TC a & JSONEncode{|*|} a

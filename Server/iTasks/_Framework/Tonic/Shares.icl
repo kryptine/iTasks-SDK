@@ -170,7 +170,7 @@ storeTaskOutputViewer tr nid parentTaskId childTaskId iworld
   | otherwise = iworld
 
 resultToOutput :: !Int !TaskId !(TaskResult a) -> (!TaskId, !Int, !Task (), !TStability) | iTask a
-resultToOutput newN tid (ValueResult (Value v s) _ _ _) = (tid, newN, viewInformation (Title ("Value for task " +++ toString tid)) [] v @! (), if s TStable TUnstable)
-resultToOutput newN tid (ValueResult NoValue _ _ _)     = (tid, newN, viewInformation (Title ("Value for task " +++ toString tid)) [] "No value" @! (), TNoVal)
-resultToOutput newN tid _                               = (tid, newN, viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! (), TNoVal)
+resultToOutput newN tid (ValueResult (Value v s) _ _ _ _) = (tid, newN, viewInformation (Title ("Value for task " +++ toString tid)) [] v @! (), if s TStable TUnstable)
+resultToOutput newN tid (ValueResult NoValue _ _ _ _)     = (tid, newN, viewInformation (Title ("Value for task " +++ toString tid)) [] "No value" @! (), TNoVal)
+resultToOutput newN tid _                                 = (tid, newN, viewInformation (Title "Error") [] ("No task value for task " +++ toString tid) @! (), TNoVal)
 

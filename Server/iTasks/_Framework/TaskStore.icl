@@ -19,7 +19,6 @@ from Data.Queue import :: Queue
 
 //Derives required for storage of UI definitions
 derive JSONEncode TaskResult, TaskEvalInfo, TaskRep, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
-derive JSONEncode TaskLayout, TaskUILayout, TaskUITree, XAlign, YAlign, GridXLayout, GridYLayout, GridDimension, GridMajor
 derive JSONEncode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONEncode UIEmpty, UIForm, UIBlock
@@ -30,7 +29,6 @@ derive JSONEncode UIUpdate, UIStep
 derive JSONEncode Queue, Event
 
 derive JSONDecode TaskResult, TaskEvalInfo, TaskRep, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
-derive JSONDecode TaskLayout, TaskUILayout, TaskUITree, XAlign, YAlign, GridXLayout, GridYLayout, GridDimension, GridMajor
 derive JSONDecode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
 derive JSONDecode UIEmpty, UIForm, UIBlock

@@ -46,10 +46,10 @@ autoLayoutForm          :: UIForm -> UIBlock
 autoLayoutBlocks        :: [UIBlock] [UIAction] -> UIBlock
 
 //Applied automatically when a published has a UI other than UIFinal
-autoLayoutFinal        :: UIDef -> UIDef
+autoLayoutFinal        :: [UIAction] UIDef -> UIDef
 
 //Alternative plain final layout
-plainLayoutFinal       :: UIDef -> UIDef
+plainLayoutFinal       :: [UIAction] UIDef -> UIDef
 
 //Placement tuning types
 :: ToWindow     = ToWindow UIWindowType UIVAlign UIHAlign

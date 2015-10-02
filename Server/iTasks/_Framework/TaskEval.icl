@@ -8,6 +8,8 @@ import iTasks.API.Core.Types
 import iTasks.UI.Diff, iTasks.UI.Layout
 import iTasks._Framework.SDSService
 
+import iTasks._Framework.UILayout
+
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from Data.Map as DM				        import qualified newMap, fromList, toList, get, put, del 
 from Data.Queue as DQ					import qualified newQueue, enqueue, dequeue, empty
@@ -152,11 +154,19 @@ where
 	getEditletDiffs iworld=:{IWorld|current={editletDiffs}}	= (editletDiffs,iworld)
     setEditletDiffs editletDiffs iworld=:{current} = {IWorld|iworld & current = {current & editletDiffs = editletDiffs}}
 
-    finalizeUI session (ValueResult value info (TaskRep ui) tree taskUIs)
+//	The new definition that only now computes the layout of tasks:
+	finalizeUI session (ValueResult value info _ tree taskUIs)
+    	= ValueResult value info ui tree taskUIs
+    where
+    	ui	= case taskUI taskUIs tree of
+    	         TaskRep ui = TaskRep (if session (uiDefSetAttribute "session" "true" ui) ui)
+    	         NoRep      = NoRep
+/*	The previous definition that uses the accumulated task-UI:    
+	finalizeUI session (ValueResult value info (TaskRep ui) tree taskUIs)
         # ui = if session (uiDefSetAttribute "session" "true" ui) ui
-        = (ValueResult value info (TaskRep (autoLayoutFinal ui)) tree taskUIs)
+        = trace_n (taskUITree tree) (ValueResult value info (TaskRep (autoLayoutFinal [] ui)) tree taskUIs)
     finalizeUI session res = res
-
+*/
 	updateProgress now result progress
         # attachedTo = case progress.InstanceProgress.attachedTo of //Release temporary attachment after first evaluation
             (Just (_,[]))   = Nothing

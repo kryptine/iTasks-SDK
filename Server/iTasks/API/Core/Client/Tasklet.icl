@@ -59,7 +59,7 @@ where
 	taskFunc event evalOpts (TCInit taskId ts) iworld
 		# (rep, st, iworld) = genRep tasklet taskId evalOpts Nothing iworld
 		# res = tasklet.Tasklet.resultFunc st
-		# result = ValueResult res (taskInfo ts) (TaskRep rep) (TCBasic taskId ts (toJSON res) False) (singleton taskId (Left rep))
+		# result = ValueResult res (taskInfo ts) (TaskRep rep) (TCBasic taskId ts (toJSON res) False) (singleton taskId (Just rep,[],Nothing))
 		= (result, printlnI ("init") iworld) 
 
 	// Refresh: no session id
@@ -74,14 +74,14 @@ where
 		# res = fromJust (fromJSON (jsonRes))
 		//# res = tasklet.Tasklet.resultFunc st
 		
-		# result = ValueResult res (taskInfo ts) (TaskRep rep) context (singleton taskId (Left rep))
+		# result = ValueResult res (taskInfo ts) (TaskRep rep) context (singleton taskId (Just rep,[],Nothing))
 		= (result, printlnI "refresh" iworld)
 
 	// Focus: tab switch. anything else?
 	taskFunc (FocusEvent _) taskRepOpts context=:(TCBasic taskId ts jsonRes _) iworld
 		# (rep, _, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld	
 		# res = fromJust (fromJSON (jsonRes))
-		# result = ValueResult res (taskInfo ts) (TaskRep rep) context (singleton taskId (Left rep))
+		# result = ValueResult res (taskInfo ts) (TaskRep rep) context (singleton taskId (Just rep,[],Nothing))
 		= (result, printlnI "focus" iworld)
  
 	// Edit: "result"
@@ -89,7 +89,7 @@ where
 		| targetTaskId == taskId
 			# (rep, _, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld			
 			# res = fromJust (fromJSON (jsonRes))
-			# result = ValueResult res (taskInfo ts) (TaskRep rep) (TCBasic taskId ts jsonRes False) (singleton taskId (Left rep))
+			# result = ValueResult res (taskInfo ts) (TaskRep rep) (TCBasic taskId ts jsonRes False) (singleton taskId (Just rep,[],Nothing))
 			= (result, printlnI "result" iworld) 
  
 	// Edit: "finalize"
@@ -103,7 +103,7 @@ where
 	taskFunc event taskRepOpts (TCBasic taskId ts jsonRes _) iworld
 		# (rep, _, iworld) = genRep tasklet taskId taskRepOpts Nothing iworld
 		# res = fromJust (fromJSON (jsonRes))
-		# result = ValueResult res (taskInfo ts) (TaskRep rep) (TCBasic taskId ts jsonRes False) (singleton taskId (Left rep))
+		# result = ValueResult res (taskInfo ts) (TaskRep rep) (TCBasic taskId ts jsonRes False) (singleton taskId (Just rep,[],Nothing))
 		= (result, printlnI "commit" iworld)
 
 	// Destroy
