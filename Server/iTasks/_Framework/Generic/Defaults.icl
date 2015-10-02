@@ -15,7 +15,7 @@ gDefault{|FIELD|} fa						= FIELD fa
 
 gDefault{|Int|}							    = 0
 gDefault{|Real|}							= 0.0
-gDefault{|Char|}							= '\0'
+gDefault{|Char|}							= '-'
 gDefault{|Bool|}						    = False
 gDefault{|String|}						    = ""
 gDefault{|[]|} fa							= []
