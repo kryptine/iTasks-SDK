@@ -345,9 +345,7 @@ svgRenderer resolve origState state2Image
   initClient resolve state2Image origState mkEventHandler cid world = appClientDiff resolve state2Image mkEventHandler cid (SetState origState) defaultClSt world
 
   genServerDiff :: !(SVGSrvSt s) !(SVGSrvSt s) -> Maybe (SVGDiff s) | iTask s
-  genServerDiff oldSrvSt newSrvSt
-    | oldSrvSt.svgSrvSt === newSrvSt.svgSrvSt = Nothing
-    | otherwise                               = Just (SetState newSrvSt.svgSrvSt)
+  genServerDiff oldSrvSt newSrvSt = Just (SetState newSrvSt.svgSrvSt)
 
   appServerDiff :: !(SVGDiff s) !(SVGSrvSt s) -> SVGSrvSt s | iTask s
   appServerDiff (SetState st) srvSt = {srvSt & svgSrvSt = st}
