@@ -227,35 +227,38 @@ registerNClick :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentI
 registerNClick mkEventHandler resolve state2image cid svg elemId sttf local world
   #! elemId        = replaceSubString editletId cid elemId
   #! (elem, world) = (svg .# "getElementById" .$ elemId) world
-  #! cb            = mkEventHandler (mkNClickCB elemId mkEventHandler sttf local) cid
+  #! cb            = mkEventHandler (mkNClickCB elemId mkEventHandler resolve state2image sttf local) cid
   #! (_, world)    = (elem `addEventListener` ("click", cb, False)) world
   = world
 
 mkNClickCB :: !String !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f)
-              !(Int s -> s) !Bool !String !{JSObj JSEvent} !(SVGClSt s)
-              !*JSWorld
+              !(Conflict s -> Maybe s) !(s *TagSource -> Image s) !(Int s -> s)
+              !Bool !String !{JSObj JSEvent} !(SVGClSt s) !*JSWorld
            -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
-mkNClickCB elemID mkEventHandler sttf local cid args clval=:{svgClSt = Just svgClSt, svgClickTimeout} world
+mkNClickCB elemID mkEventHandler resolve state2image sttf local cid args clval=:{svgClSt = Just svgClSt, svgClickTimeout} world
   #! world = if (size args > 0) (snd ((args.[0] .# "stopPropagation" .$ ()) world)) world
   #! world = case svgClickTimeout of
                Just to -> snd (("clearTimeout" .$ to) world)
                _       -> world
-  #! cb = mkEventHandler (handleNClick sttf local) cid
+  #! cb = mkEventHandler (handleNClick mkEventHandler resolve state2image sttf local) cid
   #! (timeOut, world) = ("setTimeout" .$ (cb, 225)) world
   = ({clval & svgClickTimeout = Just timeOut, svgNumClicks = clval.svgNumClicks + 1}, NoDiff, world)
-mkNClickCB elemID mkEventHandler sttf local cid args clval world
+mkNClickCB elemID mkEventHandler resolve state2image sttf local cid args clval world
   = (clval, NoDiff, world)
 
-handleNClick :: !(Int s -> s) !Bool !String !{JSObj JSEvent} !(SVGClSt s)
+handleNClick :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f)
+                !(Conflict s -> Maybe s) !(s *TagSource -> Image s)
+                !(Int s -> s) !Bool !String !{JSObj JSEvent} !(SVGClSt s)
                 !*JSWorld
              -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) | iTask s
-handleNClick sttf local _ args clval=:{svgClSt = Just svgClSt, svgNumClicks} world
-  #! st` = sttf svgNumClicks svgClSt
-  = ( {clval & svgNumClicks = 0}
-    , if local NoDiff (Diff (SetState st`) (\_ s w -> (s, NoDiff, w)))
-    , world)
-handleNClick sttf local _ args clval world = (clval, NoDiff, world)
-
+handleNClick mkEventHandler resolve state2image sttf local cid args clval=:{svgClSt = Just svgClSt, svgNumClicks} world
+  #! st`   = sttf svgNumClicks svgClSt
+  #! clval = {clval & svgNumClicks = 0}
+  #! diff  = SetState st`
+  #! cdiff = if local NoDiff (Diff diff (\_ s w -> (s, NoDiff, w)))
+  #! (clval, world) = appClientDiff resolve state2image mkEventHandler cid diff clval world
+  = (clval, cdiff, world)
+handleNClick mkEventHandler resolve state2image sttf local _ args clval world = (clval, NoDiff, world)
 
 imageView :: !(s *TagSource -> Image s) !(Conflict s -> Maybe s)
           -> ViewOption s | iTask s
@@ -345,7 +348,9 @@ svgRenderer resolve origState state2Image
   initClient resolve state2Image origState mkEventHandler cid world = appClientDiff resolve state2Image mkEventHandler cid (SetState origState) defaultClSt world
 
   genServerDiff :: !(SVGSrvSt s) !(SVGSrvSt s) -> Maybe (SVGDiff s) | iTask s
-  genServerDiff oldSrvSt newSrvSt = Just (SetState newSrvSt.svgSrvSt)
+  genServerDiff oldSrvSt newSrvSt
+    | oldSrvSt === newSrvSt = Nothing
+    | otherwise             = Just (SetState newSrvSt.svgSrvSt)
 
   appServerDiff :: !(SVGDiff s) !(SVGSrvSt s) -> SVGSrvSt s | iTask s
   appServerDiff (SetState st) srvSt = {srvSt & svgSrvSt = st}
