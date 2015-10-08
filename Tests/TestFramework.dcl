@@ -9,13 +9,30 @@ import iTasks
 	  , taskUnderTest 	:: Task ()
 	  }
 
+:: Test = UnitTest UnitTest
+		| InteractiveTest InteractiveTest
+
+:: UnitTest
+	= { name :: String
+	  , test :: *World -> *(TestResult,*World)
+	  }
+
 :: TestSuite =
 	{ name :: String
 	, description :: Note
-	, tests :: [InteractiveTest]
+	, tests :: [Test]
 	}
 
-derive class iTask TestResult, TestSuite, InteractiveTest
+derive class iTask TestResult, TestSuite, Test, InteractiveTest
+
+derive JSONEncode UnitTest
+derive JSONDecode UnitTest
+derive gEq UnitTest
+derive gEditor UnitTest
+derive gEditMeta UnitTest
+derive gVerify UnitTest
+derive gText UnitTest
+derive gDefault UnitTest
 
 /**
 * Convenient wrapper for defining interactive tests
@@ -25,7 +42,12 @@ derive class iTask TestResult, TestSuite, InteractiveTest
 * @param A description of the expected results
 * @param The task to test
 */
-interactive :: String String String (Task a) -> InteractiveTest | iTask a
+interactive :: String String String (Task a) -> Test | iTask a
+
+
+assertEqual :: String a a -> Test | gEq{|*|} a & gText{|*|} a
+
+assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & gText{|*|} a
 
 /**
 * Convenient wrapper for defining test suites
@@ -34,7 +56,14 @@ interactive :: String String String (Task a) -> InteractiveTest | iTask a
 * @param A short description of the test suite
 * @param The list of tests that make up the suite
 */
-testsuite :: String String [InteractiveTest] -> TestSuite
+testsuite :: String String [Test] -> TestSuite
+
+/**
+* A generic test rig for testing the different editor variants for a type
+*
+* @param The name of the type to test (e.g. "Int" or "MyADT"
+*/
+testEditors :: String -> Task a | iTask a
 
 /**
 * Choose a suite test suite and run all tests
@@ -44,8 +73,7 @@ testsuite :: String String [InteractiveTest] -> TestSuite
 runTests :: [TestSuite] -> Task [TestResult]
 
 /**
-* A generic test rig for testing the different editor variants for a type
-*
-* @param The name of the type to test (e.g. "Int" or "MyADT"
+* Runs the unit tests from the test suites and shows test
+* results on stdout
 */
-testEditors :: String -> Task a | iTask a
+runUnitTestsCLI :: [TestSuite] *World -> *World
