@@ -374,12 +374,15 @@ viewInstance rs navstack dynSett bpinst=:{bpi_bpref = {bpr_moduleName, bpr_taskN
   showChildTasks :: DynamicDisplaySettings BlueprintInstance -> Task ()
   showChildTasks {DynamicDisplaySettings | show_all_child_tasks = False, unfold_depth = {Scale | cur = 0} } bpinst = return ()
   showChildTasks {DynamicDisplaySettings | show_all_child_tasks, unfold_depth = {Scale | cur = d}, show_finished_blueprints } bpinst
-    # childIds  = [tid \\ tid <- map fst (concatMap 'DIS'.elems ('DM'.elems bpinst.bpi_activeNodes)) | not (tid == bpinst.bpi_taskId)]
+    # childIds  = [tid \\ tid <- map fst (concatMap 'DIS'.elems ('DM'.elems bpinst.bpi_activeNodes))]
     # childIds  = if show_finished_blueprints
-                    ([tid \\ tid <- 'DM'.elems bpinst.bpi_previouslyActive | not (tid == bpinst.bpi_taskId)] ++ childIds)
+                    ([tid \\ tid <- 'DM'.elems bpinst.bpi_previouslyActive] ++ childIds)
                     childIds
     # viewTasks = map (\childId -> whileUnchanged (sdsFocus childId allTonicInstances) (
-                       \mbpref ->  case [bpi \\ (_, bpi=:{bpi_taskId, bpi_index}) <- mbpref | bpi_taskId > bpinst.bpi_taskId || (bpi_taskId == bpinst.bpi_taskId && bpi_index > bpinst.bpi_index)] of
+                       \mbpref ->  case [bpi \\ ((bpiMn, bpiTn), bpi=:{bpi_taskId, bpi_index}) <- mbpref
+                                              | (bpi_taskId > bpinst.bpi_taskId || (bpi_taskId == bpinst.bpi_taskId && bpi_index > bpinst.bpi_index))
+                                                && not (bpi_taskId == bpinst.bpi_taskId && bpiMn == bpr_moduleName && bpiTn == bpr_taskName)
+                                        ] of
                                      [bpref` : _]
                                        # dynSett = if show_all_child_tasks dynSett
                                                      {DynamicDisplaySettings | dynSett & unfold_depth = {dynSett.DynamicDisplaySettings.unfold_depth & cur = d - 1}}
