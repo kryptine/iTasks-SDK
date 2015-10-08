@@ -19,22 +19,10 @@ from Data.Queue import :: Queue
 
 //Derives required for storage of UI definitions
 derive JSONEncode TaskResult, TaskEvalInfo, TaskRep, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
-derive JSONEncode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
-derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
-derive JSONEncode UIEmpty, UIForm, UIBlock
-derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
-derive JSONEncode UISize, UIBound, UIDirection, UIWindowType,  UIHAlign, UIVAlign, UISideSizes, UIMenuItem
-derive JSONEncode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 derive JSONEncode UIChangeDef, UIUpdate, UIStep
 derive JSONEncode Queue, Event
 
 derive JSONDecode TaskResult, TaskEvalInfo, TaskRep, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
-derive JSONDecode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
-derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
-derive JSONDecode UIEmpty, UIForm, UIBlock
-derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
-derive JSONDecode UISize, UIBound, UIDirection, UIWindowType, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
-derive JSONDecode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 derive JSONDecode UIChangeDef, UIUpdate, UIStep
 derive JSONDecode Queue, Event
 

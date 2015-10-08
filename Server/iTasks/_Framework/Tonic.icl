@@ -154,7 +154,7 @@ instance TMonad (Parser s t) where
   (>>|) l r = l >>= \_ -> r
 
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
-                   DynamicView, BlueprintQuery, UIAction, CircularStack
+                   DynamicView, BlueprintQuery, CircularStack
 
 //-----------------------------------------------------------------------------
 // REST

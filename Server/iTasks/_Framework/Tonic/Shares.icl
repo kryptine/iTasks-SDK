@@ -7,8 +7,6 @@ import StdMisc
 
 NS_TONIC_INSTANCES :== "tonic-instances"
 
-derive class iTask UIAction
-
 sdsUnsafeRead :: (RWShared () a b) *IWorld -> *(a, *IWorld)
 sdsUnsafeRead focus iworld
   # (res, iworld) = 'DSDS'.read focus iworld

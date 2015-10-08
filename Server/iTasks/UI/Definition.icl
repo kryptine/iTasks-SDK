@@ -5,8 +5,25 @@ from Data.Map import :: Map, :: Size
 import qualified Data.Map as DM
 import qualified Data.List as DL
 from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey
+
+from iTasks._Framework.Generic import class iTask(..)
+from iTasks._Framework.Generic.Interaction import generic gEditor, generic gEditMeta, generic gVerify
+from iTasks._Framework.Generic.Interaction import :: EditMeta, :: VerifyOptions, :: DataPath, :: VerifiedValue, :: MaskedValue, :: Verification, :: InteractionMask
+from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
+from iTasks._Framework.Generic.Defaults			import generic gDefault
+from iTasks.UI.Editor import :: Editor
+from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from GenEq import generic gEq
+
 import Text.HTML
-	
+
+derive class iTask UIDef, UIContent, UIWindow, UIEmpty, UIForm, UIBlock, UIAction, UIViewport, UIControl, UITab
+derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
+derive class iTask UIViewportOpts, UIWindowOpts, UIItemsOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
+derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
+derive class iTask UIPanelOpts, UITabSetOpts, UIFieldSetOpts, UIEditletOpts, UITaskletOpts, UIIconOpts, UILabelOpts
+derive class iTask UIHSizeOpts, UIFSizeOpts, UIButtonOpts, UIMenuButtonOpts, UITreeNode, UIMenuItem
+
 emptyUI :: UIDef
 emptyUI = {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing}),windows = []}
 
@@ -401,169 +418,247 @@ uiDefSetSize width height {UIDef|content=UIBlock ui=:{UIBlock|size},windows}
     = {UIDef|content=UIBlock {UIBlock|ui & size = {UISizeOpts|size & width = Just width, height = Just height}},windows=windows}
 uiDefSetSize width height def = def
 
-encodeUIDefinition :: !UIDef -> JSONNode
-encodeUIDefinition {UIDef|content=UIFinal (UIViewport iopts opts),windows}
-    = enc "itwc_viewport" [toJSON iopts, encViewportOpts opts]
-encodeUIDefinition def
-    = enc "itwc_viewport" [toJSON (defaultItemsOpts (uiDefControls def))]
 
-encodeUIControl :: !UIControl -> JSONNode
-encodeUIControl (UIViewString sopts vopts)				= enc "itwc_view_string" [toJSON sopts,encViewOpts vopts]
-encodeUIControl (UIViewHtml sopts vopts)				= enc "itwc_view_html" [toJSON sopts, encViewOpts vopts]
-encodeUIControl (UIViewDocument sopts vopts)			= enc "itwc_view_document" [toJSON sopts, encViewOpts vopts]
-encodeUIControl (UIViewCheckbox sopts vopts)			= enc "itwc_view_checkbox" [toJSON sopts, encViewOpts vopts]
-encodeUIControl (UIViewSlider sopts vopts opts)			= enc "itwc_view_slider" [toJSON sopts, encViewOpts vopts, toJSON opts]
-encodeUIControl (UIViewProgress sopts vopts opts)		= enc "itwc_view_progress" [toJSON sopts, encViewOpts vopts, toJSON opts]
-encodeUIControl (UIIcon sopts opts)						= enc "itwc_view_icon" [toJSON sopts, toJSON opts]
-encodeUIControl (UIEditString sopts eopts)				= enc "itwc_edit_string" [toJSON sopts, encEditOpts eopts]
-encodeUIControl (UIEditNote sopts eopts)				= enc "itwc_edit_note" [toJSON sopts, encEditOpts eopts]
-encodeUIControl (UIEditPassword sopts eopts)			= enc "itwc_edit_password" [toJSON sopts, encEditOpts eopts]
-encodeUIControl (UIEditInt sopts eopts)					= enc "itwc_edit_int" [toJSON sopts, encEditOpts eopts]
-encodeUIControl (UIEditDecimal sopts eopts)				= enc "itwc_edit_decimal" [toJSON sopts, encEditOpts eopts]
-encodeUIControl (UIEditCheckbox sopts eopts)			= enc "itwc_edit_checkbox" [toJSON sopts, encEditOpts eopts]
-encodeUIControl (UIEditSlider sopts eopts opts)			= enc "itwc_edit_slider" [toJSON sopts, encEditOpts eopts, toJSON opts]
-encodeUIControl (UIEditDate sopts eopts)				= enc "itwc_edit_date" [toJSON sopts, encEditOpts eopts]
-encodeUIControl (UIEditTime sopts eopts)				= enc "itwc_edit_time" [toJSON sopts, encEditOpts eopts]
-encodeUIControl (UIEditDateTime sopts eopts)			= enc "itwc_edit_datetime" [toJSON sopts, encEditOpts eopts]
-encodeUIControl (UIEditDocument sopts eopts)			= enc "itwc_edit_document" [toJSON sopts, encEditOpts eopts]
-encodeUIControl (UIEditButton sopts eopts opts)			= enc "itwc_editbutton" [toJSON sopts, encEditOpts eopts, toJSON opts]
-encodeUIControl (UIDropdown sopts copts)				= enc "itwc_choice_dropdown" [toJSON sopts, toJSON copts]
-encodeUIControl (UIListChoice sopts copts)				= enc "itwc_choice_list" [toJSON sopts, toJSON copts]
-encodeUIControl (UIRadioGroup sopts copts)				= enc "itwc_choice_radiogroup" [toJSON sopts, toJSON copts]
-encodeUIControl (UICheckboxGroup sopts copts)			= enc "itwc_choice_checkboxgroup" [toJSON sopts, toJSON copts]
-encodeUIControl (UIGrid sopts copts opts)				= enc "itwc_choice_grid" [toJSON sopts, toJSON copts, toJSON opts]
-encodeUIControl (UITree sopts copts opts)				= enc "itwc_choice_tree" [toJSON sopts, toJSON copts, toJSON opts]
-encodeUIControl (UIActionButton sopts aopts opts)		= enc "itwc_actionbutton" [toJSON sopts, toJSON aopts, toJSON opts]
-encodeUIControl (UIMenuButton sopts opts)				= enc "itwc_menubutton" [toJSON sopts, toJSON opts]
-encodeUIControl (UILabel sopts opts)					= enc "itwc_label" [toJSON sopts, toJSON opts]
-encodeUIControl (UISplitter)						    = enc "itwc_splitter" []
-//encodeUIControl (UISVG sopts opts)						= enc "itwc_svg" [toJSON sopts, toJSON opts]
-encodeUIControl (UIContainer sopts iopts)			    = enc "itwc_container" [toJSON sopts, toJSON iopts]
-encodeUIControl (UIPanel sopts iopts opts)				= enc "itwc_panel" [toJSON sopts, toJSON iopts, toJSON opts]
-encodeUIControl (UIFieldSet sopts iopts opts)			= enc "itwc_fieldset" [toJSON sopts, toJSON iopts, toJSON opts]
-encodeUIControl (UITabSet sopts opts)					= enc "itwc_tabset" [toJSON sopts, encTabSetOpts opts]
-encodeUIControl (UITasklet sopts opts)					= enc "itwc_tasklet" [toJSON sopts, toJSON opts]
-encodeUIControl (UIEditlet sopts opts)					= enc "itwc_edit_editlet" [toJSON sopts, removeEditletValue (toJSON opts)]
-encodeUIControl (UIEmbedding sopts opts)                = enc "itwc_embedding" [toJSON sopts, toJSON opts]
+//Encoding of UI definitions to the JSON format expected by the client
+class encodeUI a :: a -> JSONNode
 
-removeEditletValue (JSONObject fields) = JSONObject [field \\ field=:(name,_) <- fields | name <> "value"]
-
-encodeUIWindow :: !UIWindow -> JSONNode
-encodeUIWindow (UIWindow sopts iopts opts)				= enc "itwc_window" [toJSON sopts, toJSON iopts, toJSON opts]
-
-encodeUITab :: !UITab -> JSONNode
-encodeUITab (UITab iopts opts) 							= enc "itwc_tabitem" [toJSON iopts,toJSON opts]
-
-derive JSONEncode UIViewOpts, UIChoiceOpts, UIActionOpts, UIItemsOpts
-derive JSONEncode UISliderOpts, UIProgressOpts, UIGridOpts, UITreeOpts, UIButtonOpts, UITreeNode, UILabelOpts
-derive JSONEncode UIIconOpts
-derive JSONEncode UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UITabOpts
-derive JSONEncode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
-
-toJSONField x = case (JSONEncode{|*|} True x) of
-	[node]	= node
-	_		= JSONError
-
-JSONEncode{|UISizeOpts|} _ {UISizeOpts|width,minWidth,maxWidth,height,minHeight,maxHeight,margins}
-    = [JSONObject [field \\ field <- [("itwcWidth",toJSONField width)
-                                     ,("itwcMinWidth",toJSONField minWidth)
-                                     ,("itwcMaxWidth",toJSONField maxWidth)
-                                     ,("itwcHeight",toJSONField height)
-                                     ,("itwcMinHeight",toJSONField minHeight)
-                                     ,("itwcMaxHeight",toJSONField maxHeight)
-                                     ,("margins",toJSONField margins)
-                                     ] | snd field =!= JSONNull]
-      ]
-JSONEncode{|UIHSizeOpts|} _ {UIHSizeOpts|width,minWidth,maxWidth,margins}
-    = [JSONObject [field \\ field <- [("itwcWidth",toJSONField width)
-                                     ,("itwcMinWidth",toJSONField minWidth)
-                                     ,("itwcMaxWidth",toJSONField maxWidth)
-                                     ,("margins",toJSONField margins)
-                                     ] | snd field =!= JSONNull]
-      ]
-JSONEncode{|UIFSizeOpts|} _ {UIFSizeOpts|margins}
-    = [JSONObject [field \\ field <- [("margins",toJSONField margins)] | snd field =!= JSONNull]]
-
-JSONEncode{|UISideSizes|} _ {top,right,bottom,left}
-	= [JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left)]
-
-JSONEncode{|UISize|} _ (ExactSize s)	= [JSONInt s]
-JSONEncode{|UISize|} _ WrapSize			= [JSONString "wrap"]
-JSONEncode{|UISize|} _ FlexSize			= [JSONString "flex"]
-
-JSONEncode{|UIBound|} _ (ExactBound s)	= [JSONInt s]
-JSONEncode{|UIBound|} _ WrapBound		= [JSONString "wrap"]
-
-JSONEncode{|UIVAlign|} _ AlignTop		= [JSONString "top"]
-JSONEncode{|UIVAlign|} _ AlignMiddle	= [JSONString "middle"]
-JSONEncode{|UIVAlign|} _ AlignBottom	= [JSONString "bottom"]
-
-JSONEncode{|UIHAlign|} _ AlignLeft		= [JSONString "left"]
-JSONEncode{|UIHAlign|} _ AlignCenter	= [JSONString "center"]
-JSONEncode{|UIHAlign|} _ AlignRight		= [JSONString "right"]
-
-JSONEncode{|UIDirection|} _ Vertical	= [JSONString "vertical"]
-JSONEncode{|UIDirection|} _ Horizontal	= [JSONString "horizontal"]
-
-JSONEncode{|UIWindowType|} _ FloatingWindow = [JSONString "floating"]
-JSONEncode{|UIWindowType|} _ ModalDialog = [JSONString "modal"]
-JSONEncode{|UIWindowType|} _ NotificationBubble = [JSONString "bubble"]
-
-JSONEncode{|UIMenuButtonOpts|} _ {UIMenuButtonOpts|text,iconCls,disabled,menu}
-	= [JSONObject (text` ++ [("disabled",JSONBool disabled),("menu",menu`)] ++ iconCls`)]
+instance encodeUI String			where encodeUI v = JSONString v
+instance encodeUI Int				where encodeUI v = JSONInt v
+instance encodeUI Real				where encodeUI v = JSONReal v
+instance encodeUI Bool				where encodeUI v = JSONBool v
+instance encodeUI Document			where encodeUI v = toJSON v
+instance encodeUI Date				where encodeUI v = toJSON v
+instance encodeUI Time				where encodeUI v = toJSON v
+instance encodeUI HtmlTag			where encodeUI v = JSONString (toString v)
+instance encodeUI ProgressAmount
 where
-	text`		= maybe [] (\s -> [("text",JSONString s)]) text
-	iconCls`	= maybe [] (\s -> [("iconCls",JSONString s)]) iconCls
-	menu`       = JSONArray (map toJSON menu)
+	encodeUI ProgressUndetermined = JSONString "undetermined"
+	encodeUI (ProgressRatio ratio)	= JSONReal ratio
 
-JSONEncode{|UIMenuItem|} _ (UIActionMenuItem aopts opts)	= [enc "itwc_actionmenuitem" [toJSON aopts,toJSON opts]]
-JSONEncode{|UIMenuItem|} _ (UISubMenuItem opts) 			= [enc "itwc_submenuitem" [toJSON opts]]
-
-JSONEncode{|UIControl|} _ control = [encodeUIControl control]
-
-JSONEncode{|UIDef|} _ uidef = [encodeUIDefinition uidef]
-
-enc :: String [JSONNode] -> JSONNode
-enc xtype opts = JSONObject [("xtype",JSONString xtype):optsfields]
+instance encodeUI JSONNode
 where
-	optsfields = flatten [fields \\ JSONObject fields <- opts]
+	encodeUI v = toJSON v
 
-//Special cases
-encViewOpts :: (UIViewOpts a) -> JSONNode | encodeUIValue a
-encViewOpts {UIViewOpts|value}
-	= JSONObject [("value",encodeUIValue value)]
+instance encodeUI (Maybe a) | encodeUI a
+where
+	encodeUI Nothing = JSONNull
+	encodeUI (Just a) = encodeUI a
 
-encEditOpts :: UIEditOpts  -> JSONNode
-encEditOpts {UIEditOpts|taskId,editorId,value}
-	= JSONObject ([("taskId",JSONString taskId),("editorId",JSONString editorId)] ++ maybe [] (\v -> [("value",v)]) value)
+instance encodeUI [a] | encodeUI a
+where
+	encodeUI l = JSONArray (map encodeUI l)
 
-encViewportOpts :: UIViewportOpts -> JSONNode
-encViewportOpts {UIViewportOpts|title,hotkeys}
+instance encodeUI UIDef
+where
+	encodeUI {UIDef|content=UIFinal (UIViewport iopts opts),windows}
+    	= component "itwc_viewport" [encodeUI iopts, encodeUI opts]
+	encodeUI def
+    	= component "itwc_viewport" [encodeUI (defaultItemsOpts (uiDefControls def))]
+
+instance encodeUI UIControl
+where
+	encodeUI (UIViewString sopts vopts)			= component "itwc_view_string" [encodeUI sopts,encodeUI vopts]
+	encodeUI (UIViewHtml sopts vopts)			= component "itwc_view_html" [encodeUI sopts, encodeUI vopts]
+	encodeUI (UIViewDocument sopts vopts)		= component "itwc_view_document" [encodeUI sopts, encodeUI vopts]
+	encodeUI (UIViewCheckbox sopts vopts)		= component "itwc_view_checkbox" [encodeUI sopts, encodeUI vopts]
+	encodeUI (UIViewSlider sopts vopts opts)	= component "itwc_view_slider" [encodeUI sopts, encodeUI vopts, encodeUI opts]
+	encodeUI (UIViewProgress sopts vopts opts)	= component "itwc_view_progress" [encodeUI sopts, encodeUI vopts, encodeUI opts]
+	encodeUI (UIIcon sopts opts)				= component "itwc_view_icon" [encodeUI sopts, encodeUI opts]
+	encodeUI (UIEditString sopts eopts)			= component "itwc_edit_string" [encodeUI sopts, encodeUI eopts]
+	encodeUI (UIEditNote sopts eopts)			= component "itwc_edit_note" [encodeUI sopts, encodeUI eopts]
+	encodeUI (UIEditPassword sopts eopts)		= component "itwc_edit_password" [encodeUI sopts, encodeUI eopts]
+	encodeUI (UIEditInt sopts eopts)			= component "itwc_edit_int" [encodeUI sopts, encodeUI  eopts]
+	encodeUI (UIEditDecimal sopts eopts)		= component "itwc_edit_decimal" [encodeUI sopts, encodeUI eopts]
+	encodeUI (UIEditCheckbox sopts eopts)		= component "itwc_edit_checkbox" [encodeUI sopts, encodeUI eopts]
+	encodeUI (UIEditSlider sopts eopts opts)	= component "itwc_edit_slider" [encodeUI sopts, encodeUI eopts, encodeUI opts]
+	encodeUI (UIEditDate sopts eopts)			= component "itwc_edit_date" [encodeUI sopts, encodeUI eopts]
+	encodeUI (UIEditTime sopts eopts)			= component "itwc_edit_time" [encodeUI sopts, encodeUI eopts]
+	encodeUI (UIEditDateTime sopts eopts)		= component "itwc_edit_datetime" [encodeUI sopts, encodeUI eopts]
+	encodeUI (UIEditDocument sopts eopts)		= component "itwc_edit_document" [encodeUI sopts, encodeUI eopts]
+	encodeUI (UIEditButton sopts eopts opts)	= component "itwc_editbutton" [encodeUI sopts, encodeUI eopts, encodeUI opts]
+	encodeUI (UIDropdown sopts copts)			= component "itwc_choice_dropdown" [encodeUI sopts, encodeUI copts]
+	encodeUI (UIListChoice sopts copts)			= component "itwc_choice_list" [encodeUI sopts, encodeUI copts]
+	encodeUI (UIRadioGroup sopts copts)			= component "itwc_choice_radiogroup" [encodeUI sopts, encodeUI copts]
+	encodeUI (UICheckboxGroup sopts copts)		= component "itwc_choice_checkboxgroup" [encodeUI sopts, encodeUI copts]
+	encodeUI (UIGrid sopts copts opts)			= component "itwc_choice_grid" [encodeUI sopts, encodeUI copts, encodeUI opts]
+	encodeUI (UITree sopts copts opts)			= component "itwc_choice_tree" [encodeUI sopts, encodeUI copts, encodeUI opts]
+	encodeUI (UIActionButton sopts aopts opts)	= component "itwc_actionbutton" [encodeUI sopts, encodeUI aopts, encodeUI opts]
+	encodeUI (UIMenuButton sopts opts)			= component "itwc_menubutton" [encodeUI sopts, encodeUI opts]
+	encodeUI (UILabel sopts opts)				= component "itwc_label" [encodeUI sopts, encodeUI opts]
+	encodeUI (UISplitter)						= component "itwc_splitter" []
+	encodeUI (UIContainer sopts iopts)			= component "itwc_container" [encodeUI sopts, encodeUI iopts]
+	encodeUI (UIPanel sopts iopts opts)			= component "itwc_panel" [encodeUI sopts, encodeUI iopts, encodeUI opts]
+	encodeUI (UIFieldSet sopts iopts opts)		= component "itwc_fieldset" [encodeUI sopts, encodeUI iopts, encodeUI opts]
+	encodeUI (UITabSet sopts opts)				= component "itwc_tabset" [encodeUI sopts, encodeUI opts]
+	encodeUI (UITasklet sopts opts)				= component "itwc_tasklet" [encodeUI sopts, encodeUI opts]
+	encodeUI (UIEditlet sopts opts)				= component "itwc_edit_editlet" [encodeUI sopts, encodeUI opts]
+	encodeUI (UIEmbedding sopts opts)			= component "itwc_embedding" [encodeUI sopts, encodeUI opts]
+
+instance encodeUI UIWindow
+where
+	encodeUI (UIWindow sopts iopts opts)		= component "itwc_window" [encodeUI sopts, encodeUI iopts, encodeUI opts]
+
+instance encodeUI UITab
+where
+	encodeUI (UITab iopts opts) 				= component "itwc_tabitem" [encodeUI iopts, encodeUI opts]
+
+instance encodeUI UIItemsOpts 
+where
+	encodeUI {UIItemsOpts|items,direction,halign,valign,padding,baseCls,bodyCls}
+		= JSONObject [field \\ field <- [("items",JSONArray (map encodeUI items))
+                                     	,("direction",encodeUI direction)
+                                     	,("halign",encodeUI halign)
+                                     	,("valign",encodeUI valign)
+                                     	,("padding",encodeUI padding)
+                                     	,("baseCls",encodeUI baseCls)
+                                     	,("bodyCls",encodeUI bodyCls)
+                                     	] | snd field =!= JSONNull]
+instance encodeUI UIViewportOpts
+where
+	encodeUI {UIViewportOpts|title,hotkeys}
 	= JSONObject (
 		[("xtype",JSONString "itwc_viewport")]	++
 		maybe [] (\t -> [("title",JSONString t)]) title ++
 		maybe [] (\k -> [("hotkeys",toJSONInField k)]) hotkeys
 		)
-encTabSetOpts :: UITabSetOpts -> JSONNode
-encTabSetOpts {UITabSetOpts|items}
-	= JSONObject [("items",JSONArray [encodeUITab i \\ i <- items])]
-
-class encodeUIValue a :: a -> JSONNode
-instance encodeUIValue String			where encodeUIValue v = JSONString v
-instance encodeUIValue Int				where encodeUIValue v = JSONInt v
-instance encodeUIValue Real				where encodeUIValue v = JSONReal v
-instance encodeUIValue Bool				where encodeUIValue v = JSONBool v
-instance encodeUIValue Document			where encodeUIValue v = toJSON v
-instance encodeUIValue Date				where encodeUIValue v = toJSON v
-instance encodeUIValue Time				where encodeUIValue v = toJSON v
-instance encodeUIValue HtmlTag			where encodeUIValue v = JSONString (toString v)
-instance encodeUIValue ProgressAmount
+instance encodeUI (UIViewOpts a) | encodeUI a
 where
-	encodeUIValue  ProgressUndetermined = JSONString "undetermined"
-	encodeUIValue (ProgressRatio ratio)	= JSONReal ratio
+	encodeUI {UIViewOpts|value} = JSONObject [("value",encodeUI value)]
 
-instance encodeUIValue JSONNode			where encodeUIValue v = toJSON v
-instance encodeUIValue (Maybe a) | encodeUIValue a
+instance encodeUI UIEditOpts
 where
-	encodeUIValue Nothing = JSONNull
-	encodeUIValue (Just a) = encodeUIValue a
+	encodeUI {UIEditOpts|taskId,editorId,value}
+		= JSONObject ([("taskId",JSONString taskId),("editorId",JSONString editorId)] ++ maybe [] (\v -> [("value",v)]) value)
+
+instance encodeUI UITabSetOpts
+where
+	encodeUI {UITabSetOpts|items}
+		= JSONObject [("items",JSONArray [encodeUI i \\ i <- items])]
+
+instance encodeUI UISizeOpts
+where
+	encodeUI {UISizeOpts|width,minWidth,maxWidth,height,minHeight,maxHeight,margins}
+    	= JSONObject [field \\ field <- [("itwcWidth",encodeUI width)
+                                     	,("itwcMinWidth",encodeUI minWidth)
+                                     	,("itwcMaxWidth",encodeUI  maxWidth)
+                                     	,("itwcHeight",encodeUI  height)
+                                     	,("itwcMinHeight",encodeUI minHeight)
+                                     	,("itwcMaxHeight",encodeUI maxHeight)
+                                     	,("margins",encodeUI margins)
+                                     	] | snd field =!= JSONNull]
+
+instance encodeUI UIHSizeOpts
+where
+	encodeUI {UIHSizeOpts|width,minWidth,maxWidth,margins}
+    	= JSONObject [field \\ field <- [("itwcWidth",encodeUI width)
+                                     	,("itwcMinWidth",encodeUI minWidth)
+                                     	,("itwcMaxWidth",encodeUI maxWidth)
+                                     	,("margins",encodeUI margins)
+                                     	] | snd field =!= JSONNull]
+instance encodeUI UIFSizeOpts
+where
+	encodeUI {UIFSizeOpts|margins}
+    	= JSONObject [field \\ field <- [("margins",encodeUI margins)] | snd field =!= JSONNull]
+
+instance encodeUI UISideSizes 
+where
+	encodeUI {top,right,bottom,left}
+		= JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left)
+
+instance encodeUI UISize
+where
+	encodeUI (ExactSize s)	= JSONInt s
+	encodeUI WrapSize		= JSONString "wrap"
+	encodeUI FlexSize		= JSONString "flex"
+
+instance encodeUI UIBound
+where
+	encodeUI (ExactBound s)	= JSONInt s
+	encodeUI WrapBound		= JSONString "wrap"
+
+instance encodeUI UIVAlign
+where
+	encodeUI AlignTop		= JSONString "top"
+	encodeUI AlignMiddle	= JSONString "middle"
+	encodeUI AlignBottom	= JSONString "bottom"
+
+instance encodeUI UIHAlign
+where
+	encodeUI AlignLeft		= JSONString "left"
+	encodeUI AlignCenter	= JSONString "center"
+	encodeUI AlignRight		= JSONString "right"
+
+instance encodeUI UIDirection
+where
+	encodeUI Vertical		= JSONString "vertical"
+	encodeUI Horizontal		= JSONString "horizontal"
+
+instance encodeUI UIWindowType
+where
+	encodeUI FloatingWindow 	= JSONString "floating"
+	encodeUI ModalDialog 		= JSONString "modal"
+	encodeUI NotificationBubble = JSONString "bubble"
+
+instance encodeUI UIMenuButtonOpts 
+where
+	encodeUI {UIMenuButtonOpts|text,iconCls,disabled,menu}
+		= JSONObject (text` ++ [("disabled",JSONBool disabled),("menu",menu`)] ++ iconCls`)
+	where
+		text`		= maybe [] (\s -> [("text",JSONString s)]) text
+		iconCls`	= maybe [] (\s -> [("iconCls",JSONString s)]) iconCls
+		menu`       = JSONArray (map encodeUI menu)
+
+instance encodeUI UIMenuItem
+where
+	encodeUI (UIActionMenuItem aopts opts)	= component "itwc_actionmenuitem" [encodeUI aopts,encodeUI opts]
+	encodeUI (UISubMenuItem opts) 			= component "itwc_submenuitem" [encodeUI opts]
+
+instance encodeUI UIButtonOpts where encodeUI opts = toJSON opts
+instance encodeUI UIActionOpts where encodeUI opts = toJSON opts
+instance encodeUI UIEmbeddingOpts where encodeUI opts = toJSON opts
+instance encodeUI UITaskletOpts where encodeUI opts = toJSON opts
+instance encodeUI UIFieldSetOpts where encodeUI opts = toJSON opts
+instance encodeUI UIPanelOpts where encodeUI opts = toJSON opts
+instance encodeUI UILabelOpts where encodeUI opts = toJSON opts
+instance encodeUI UITreeOpts where encodeUI opts = toJSON opts
+instance encodeUI UIGridOpts where encodeUI opts = toJSON opts
+instance encodeUI UISliderOpts where encodeUI opts = toJSON opts
+instance encodeUI UIIconOpts where encodeUI opts = toJSON opts
+instance encodeUI UIProgressOpts where encodeUI opts = toJSON opts
+
+instance encodeUI (UIChoiceOpts a) | JSONEncode{|*|} a 
+where
+	 encodeUI opts = toJSON opts
+
+instance encodeUI UIEditletOpts
+where
+	encodeUI opts = let (JSONObject fields) = toJSON opts in JSONObject [field \\ field <- fields | fst field <> "value"]
+
+instance encodeUI UIWindowOpts
+where
+	encodeUI {UIWindowOpts|windowType,title,iconCls,menu,hotkeys,vpos,hpos,focusTaskId,closeTaskId}
+    	= JSONObject [field \\ field <- [("windowType",encodeUI windowType)
+                                     	,("title",encodeUI title)
+                                     	,("iconCls",encodeUI iconCls)
+                                     	,("menu",encodeUI menu)
+                                     	,("hotkeys",toJSON hotkeys)
+                                     	,("vpos",encodeUI vpos)
+                                     	,("hpos",encodeUI hpos)
+                                     	,("focusTaskId",encodeUI focusTaskId)
+                                     	,("closeTaskId",encodeUI closeTaskId)
+                                     	] | snd field =!= JSONNull]
+instance encodeUI UITabOpts
+where
+	encodeUI {UITabOpts|title,iconCls,menu,hotkeys,focusTaskId,closeTaskId}
+    	= JSONObject [field \\ field <- [("title",encodeUI title)
+                                     	,("iconCls",encodeUI iconCls)
+                                     	,("menu",encodeUI menu)
+                                     	,("hotkeys",toJSON hotkeys)
+                                     	,("focusTaskId",encodeUI focusTaskId)
+                                     	,("closeTaskId",encodeUI closeTaskId)
+                                     	] | snd field =!= JSONNull]
+
+component :: String [JSONNode] -> JSONNode
+component xtype opts = JSONObject [("xtype",JSONString xtype):optsfields]
+where
+	optsfields = flatten [fields \\ JSONObject fields <- opts]

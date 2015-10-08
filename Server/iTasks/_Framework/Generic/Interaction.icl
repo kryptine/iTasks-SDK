@@ -223,7 +223,7 @@ where
         = (NormalEditor [(UIEditInt defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes (val,mask,ver) meta)],vst)
 
 	genDiff dp old new vst=:{VSt|disabled}
-		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUIValue new])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUI new])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -236,7 +236,7 @@ where
         = (NormalEditor [(UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes (val,mask,ver) meta)],vst)
 
 	genDiff dp old new vst=:{VSt|disabled}
-		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUIValue new])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUI new])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -249,7 +249,7 @@ where
         = (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes (val,mask,ver) meta)],vst)
 
 	genDiff dp old new vst=:{VSt|disabled}
-		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUIValue (toString new)])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUI (toString new)])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -261,7 +261,7 @@ where
 	| otherwise
         = (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes (val,mask,ver) meta)],vst)
 	genDiff dp old new vst=:{VSt|disabled}
-		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUIValue new])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUI new])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -274,7 +274,7 @@ where
 		= (OptionalEditor [(UIEditCheckbox defaultFSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=checkMaskValue mask val},editorAttributes (val,mask,ver) meta)],vst)
 
 	genDiff dp old new vst=:{VSt|disabled}
-		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUIValue new])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUI new])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 

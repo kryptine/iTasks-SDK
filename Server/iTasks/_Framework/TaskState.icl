@@ -14,21 +14,9 @@ derive JSONEncode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, Parall
 derive JSONDecode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskRep, TaskEvalInfo, TonicOpts, CircularStack
 
 //IS ALSO DERIVED IN TASK STORE: SEEMS REDUNDANT
-derive JSONEncode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
-derive JSONEncode UIEmpty, UIForm, UIBlock
-derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
-derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
-derive JSONEncode UISize, UIBound, UIDirection, UIWindowType, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
-derive JSONEncode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 derive JSONEncode UIChangeDef, UIStep
 
 //derive JSONDecode TaskCompositionType
-derive JSONDecode UIDef, UIContent, UIAction, UIViewport, UIWindow, UIControl, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UIItemsOpts
-derive JSONDecode UIEmpty, UIForm, UIBlock
-derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UITreeOpts, UIIconOpts, UILabelOpts, UITreeNode
-derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts, UIViewportOpts, UITabSetOpts, UITab, UITabOpts
-derive JSONDecode UISize, UIBound, UIDirection, UIWindowType, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
-derive JSONDecode UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
 derive JSONDecode UIChangeDef, UIStep
 
 JSONEncode{|DeferredJSON|} _ (DeferredJSON a)

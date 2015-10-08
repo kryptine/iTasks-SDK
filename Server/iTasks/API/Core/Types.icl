@@ -175,7 +175,7 @@ where
 			lines	= SpanTag [] ('DL'.intersperse (BrTag []) (map Text lines))
 
 	genDiff dp old new vst
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue (noteToHtml new)])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI (noteToHtml new)])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -231,8 +231,8 @@ where
 			# value = checkMaskValue mask ((\(EUR v) -> toReal v / 100.0) val)
 			= (NormalEditor [(UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
 	genDiff dp (EUR old) (EUR new) vst=:{VSt|disabled}
-		# nval = if disabled (encodeUIValue (toString new)) (encodeUIValue (toReal new / 100.0))
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue nval])] []),vst)
+		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -280,8 +280,8 @@ where
 			= (NormalEditor [(UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
 
 	genDiff dp (USD old) (USD new) vst=:{VSt|disabled}
-		# nval = if disabled (encodeUIValue (toString new)) (encodeUIValue (toReal new / 100.0))
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue nval])] []),vst)
+		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -342,8 +342,8 @@ where
 			= (NormalEditor [(UIEditDate defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
 
 	genDiff dp old new vst=:{VSt|disabled}
-		# nval = if disabled (encodeUIValue (toString new)) (encodeUIValue new)
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue nval])] []),vst)
+		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
 
@@ -429,8 +429,8 @@ where
 			= (NormalEditor [(UIEditTime defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
 
 	genDiff dp old new vst=:{VSt|disabled}
-		# nval = if disabled (encodeUIValue (toString new)) (encodeUIValue new)
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue nval])] []), vst)
+		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval])] []), vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
 
@@ -514,8 +514,8 @@ where
 			# value = checkMaskValue mask val
 			= (NormalEditor [(UIEditDateTime defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
 	genDiff dp old new vst=:{VSt|disabled}
-		# nval = if disabled (encodeUIValue (toString new)) (toJSON new)
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue nval])] []),vst)
+		# nval = if disabled (encodeUI (toString new)) (toJSON new)
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
 
@@ -582,7 +582,7 @@ where
 			# value = checkMaskValue mask val
 			= (NormalEditor [(UIEditDocument defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
 	genDiff dp old new vst
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue new])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI new])] []),vst)
 
 	appDiff dp e val mask ust = case fromJSON e of 
 		Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},Blanked,ust)// Reset
@@ -662,7 +662,7 @@ where
 		curVal {Scale|cur} = cur
 	
 	genDiff dp {Scale|cur=old} {Scale|cur=new} vst
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue new])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI new])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json i -> Just (maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json))) dp e val mask ust
 
@@ -688,7 +688,7 @@ where
 	value {Progress|progress} = progress
 
 	genDiff dp old new vst
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue (value new)])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI (value new)])] []),vst)
 
 	appDiff dp e val mask ust = (val,mask,ust)
 
@@ -716,7 +716,7 @@ where
 		= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value=Just (IframeTag [SrcAttr path] [])},editorAttributes (HtmlInclude path,mask,ver) meta)],vst)
 
 	genDiff dp (HtmlInclude old) (HtmlInclude new) vst
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUIValue new])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI new])] []),vst)
 
 	appDiff dp e val mask ust = (val,mask,ust)
 
@@ -973,8 +973,6 @@ where
 		Just ("sel",idx,val)	= (TreeChoice tree (if val (Just idx) Nothing), touch mask, ust)
 		Just ("exp",idx,val)	= (TreeChoice (setTreeExpanded idx val tree) sel,touch mask, ust)
 		_						= ((TreeChoice tree sel), mask, ust)
-
-derive gEq UITreeNode
 
 gVerify{|TreeChoice|} _ mv options = simpleVerify mv options
 
@@ -1597,7 +1595,7 @@ gEditor{|Icon|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
 	genUI _ (Icon icon) mask ver meta vst = (NormalEditor [(UIIcon defaultFSizeOpts {UIIconOpts|iconCls="icon-"+++icon,tooltip=Nothing} ,'DM'.newMap)], vst)
 	genDiff _ (Icon old) (Icon new) vst
-		= (if (old === new) NoChange (ChangeUI [("setIconCls",[encodeUIValue ("icon-"+++new)])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [("setIconCls",[encodeUI ("icon-"+++new)])] []),vst)
 
 	appDiff dp e val mask ust = (val,mask,ust)
 

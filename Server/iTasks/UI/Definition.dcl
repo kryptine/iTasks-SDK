@@ -11,6 +11,23 @@ from Text.HTML			import :: HtmlTag
 from Data.Map			import :: Map
 from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: Hotkey
 
+from iTasks._Framework.Generic import class iTask(..)
+from iTasks._Framework.Generic.Interaction import generic gEditor, generic gEditMeta, generic gVerify
+from iTasks._Framework.Generic.Interaction import :: EditMeta, :: VerifyOptions, :: DataPath, :: VerifiedValue, :: MaskedValue, :: Verification, :: InteractionMask
+from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
+from iTasks._Framework.Generic.Defaults			import generic gDefault
+from iTasks.UI.Editor import :: Editor
+from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from GenEq import generic gEq
+
+//Provide generic instances for all UI definitions
+derive class iTask UIDef, UIContent, UIWindow, UIEmpty, UIForm, UIBlock, UIAction, UIViewport, UIControl, UITab
+derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
+derive class iTask UIViewportOpts, UIWindowOpts, UIItemsOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
+derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
+derive class iTask UIPanelOpts, UITabSetOpts, UIFieldSetOpts, UIEditletOpts, UITaskletOpts, UIIconOpts, UILabelOpts
+derive class iTask UIHSizeOpts, UIFSizeOpts, UIButtonOpts, UIMenuButtonOpts, UITreeNode, UIMenuItem
+
 //TODO:
 //- Multi select in grids
 //- Multi select in trees
@@ -82,6 +99,7 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	, focusTaskId	:: !Maybe String
 	, closeTaskId	:: !Maybe String
 	}
+
 :: UIWindowType
     = FloatingWindow        //Normal movable window
     | ModalDialog           //Fixed position modal dialog
@@ -403,23 +421,22 @@ uiDefSetHeight		    :: UISize UIDef -> UIDef
 uiDefSetWidth           :: UISize UIDef -> UIDef
 uiDefSetSize            :: UISize UISize UIDef -> UIDef
 
-//Encode a user interface definition to a format that
-//can be interpreted by the client framework
-encodeUIDefinition		:: !UIDef -> JSONNode
-encodeUIControl			:: !UIControl -> JSONNode
-encodeUITab				:: !UITab -> JSONNode
-encodeUIWindow			:: !UIWindow -> JSONNode
+//Encoding of UI to the format sent to the client framework
+class encodeUI a :: a -> JSONNode
+instance encodeUI String
+instance encodeUI Int
+instance encodeUI Real
+instance encodeUI Bool
+instance encodeUI Document
+instance encodeUI Date
+instance encodeUI Time
+instance encodeUI HtmlTag
+instance encodeUI ProgressAmount
+instance encodeUI JSONNode
+instance encodeUI (Maybe a) | encodeUI a
+instance encodeUI [a] | encodeUI a
+instance encodeUI UIDef
+instance encodeUI UIControl
+instance encodeUI UITab
+instance encodeUI UIWindow
 
-//Encoding of values for use in UI diffs
-class encodeUIValue a :: a -> JSONNode
-instance encodeUIValue String
-instance encodeUIValue Int
-instance encodeUIValue Real
-instance encodeUIValue Bool
-instance encodeUIValue Document
-instance encodeUIValue Date
-instance encodeUIValue Time
-instance encodeUIValue HtmlTag
-instance encodeUIValue ProgressAmount
-instance encodeUIValue JSONNode
-instance encodeUIValue (Maybe a) | encodeUIValue a

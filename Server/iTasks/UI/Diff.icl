@@ -9,15 +9,6 @@ from iTasks._Framework.Task import :: Event(..)
 
 :: UIEditletID :== (String,String)
 
-derive gEq UIFSizeOpts, UISizeOpts, UIHSizeOpts, UISide, UISize, UIBound, UISideSizes, UIViewOpts, UISliderOpts, UIProgressOpts, UIButtonOpts
-derive gEq UIGridOpts, UITreeOpts, UITreeNode, UIMenuButtonOpts, UIMenuItem, UIActionOpts
-derive gEq UILabelOpts, UIIconOpts
-derive gEq UIViewport, UIWindow, UIControl, UIItemsOpts, UIWindowOpts, UIFieldSetOpts, UIPanelOpts, UIViewportOpts, UIChoiceOpts, UIEditOpts
-derive gEq UIVAlign, UIHAlign, UIDirection, UIWindowType, UITabSetOpts, UITab, UITabOpts
-derive gEq UIDef, UIContent, UIEmpty, UIForm, UIBlock, UIAction
-derive gEq UITaskletOpts, UIEditletOpts, UIEmbeddingOpts
-
-derive JSONEncode UITreeNode, UIActionOpts, UIFSizeOpts, UISizeOpts, UIHSizeOpts, UISideSizes, UIBound, UISize
 
 //TODO Make a good diffViewports function that considers also the other parts of a viewport
 diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIUpdate],!UIEditletDiffs)
@@ -114,10 +105,10 @@ diffControls path event editletDiffs c1 c2
 	= DiffPossible (replaceControlIfImpossible path c2 parts)
 
 //As a first step, only do diffs for value changes, all other diffs trigger replacements...
-diffViewOpts :: UIPath (UIViewOpts a) (UIViewOpts a) -> UIDiffResult | gEq{|*|} a & encodeUIValue a
+diffViewOpts :: UIPath (UIViewOpts a) (UIViewOpts a) -> UIDiffResult | gEq{|*|} a & encodeUI a
 diffViewOpts path opts1 opts2
 	| opts1 === opts2	= DiffPossible []
-						= DiffPossible [UIUpdate path [("setValue",[encodeUIValue opts2.UIViewOpts.value])]]
+						= DiffPossible [UIUpdate path [("setValue",[encodeUI opts2.UIViewOpts.value])]]
 
 diffEditOpts :: UIPath Event UIEditOpts UIEditOpts -> UIDiffResult
 diffEditOpts path event opts1 opts2
@@ -204,7 +195,7 @@ diffOpts opts1 opts2
 selfUpdate :: UIPath UIControl UIControl -> UIDiffResult
 selfUpdate path c1 c2
 	| c1 === c2	= DiffPossible []
-				= DiffPossible [UIUpdate path [("selfUpdate",[encodeUIControl c2])]]
+				= DiffPossible [UIUpdate path [("selfUpdate",[encodeUI c2])]]
 
 //Group multiple operations in a single component update
 diffMultiProperties :: UIPath [[UIUpdateOperation]] -> [UIUpdate]
@@ -277,7 +268,7 @@ where
 	diff path event i items1 [] //Less items in new than old (remove starting with the last item)
 		= [UIUpdate path [("remove",[JSONInt n])] \\ n <- reverse [i.. i + length items1 - 1 ]] 
 	diff path event i [] items2 //More items in new than old
-		= [UIUpdate path [("add",[JSONInt n,encodeUIControl def])] \\ n <- [i..] & def <- items2]	
+		= [UIUpdate path [("add",[JSONInt n,encodeUI def])] \\ n <- [i..] & def <- items2]	
 	diff path event i [c1:c1s] [c2:c2s] //Compare side by side
 		=	replaceControlIfImpossible [ItemStep i:path] c2 [diffControls [ItemStep i:path] event editletDiffs c1 c2]
 		++  diff path event (i + 1) c1s c2s
@@ -290,7 +281,7 @@ where
 	diff path event i items1 []
 		= ([UIUpdate path [("remove",[JSONInt n])] \\ n <- reverse [i.. i + length items1 - 1 ]], [])
 	diff path event i [] items2 //More items in new than old
-		= ([UIUpdate path [("add",[JSONInt n,encodeUITab def])] \\ n <- [i..] & def <- items2], [])	
+		= ([UIUpdate path [("add",[JSONInt n,encodeUI def])] \\ n <- [i..] & def <- items2], [])	
 	diff path event i [c1:c1s] [c2:c2s] //Compare side by side
 		# (tabUpdates,replaced) = diffTabs [ItemStep i:path] event editletDiffs c1 c2
 		# (restUpdates,replacedTabs) = diff path event (i + 1) c1s c2s
@@ -302,7 +293,7 @@ diffTabs path event editletDiffs t1=:(UITab iOpts1 opts1) t2=:(UITab iOpts2 opts
 	| allDiffsPossible parts
 		= (flatten [d \\ DiffPossible d <- parts],False)
 	| otherwise
-        = ([UIUpdate parentPath [("replace",[JSONInt parentIndex,encodeUITab t2])]],True)
+        = ([UIUpdate parentPath [("replace",[JSONInt parentIndex,encodeUI t2])]],True)
 where
 	[ItemStep parentIndex:parentPath] = path
 
@@ -314,7 +305,7 @@ where
 	diff event i windows1 [] //Less windows
 		= [UIUpdate [] [("removeWindow",[JSONInt n])] \\ n <- reverse [i.. i + length windows1 - 1 ]] 
 	diff event i [] windows2 //More windows
-		= [UIUpdate [] [("addWindow",[JSONInt n,encodeUIWindow def])] \\ n <- [i..] & def <- windows2]	
+		= [UIUpdate [] [("addWindow",[JSONInt n,encodeUI def])] \\ n <- [i..] & def <- windows2]	
 	diff event i [w1:w1s] [w2:w2s] //Compare side by side (TODO: Make more granular)
 		= diffWindows [WindowStep i] event editletDiffs w1 w2 ++ diff event (i + 1) w1s w2s
 
@@ -332,7 +323,7 @@ diffMenus path event editletDiffs Nothing Nothing = []
 diffMenus path event editletDiffs (Just menu1) (Just menu2)
 	= diffItems [MenuStep:path] event editletDiffs menu1 menu2
 diffMenus path event editletDiffs Nothing (Just menu2)
-    = [UIUpdate path [("addMenu",[JSONArray (map encodeUIControl menu2)])]]
+    = [UIUpdate path [("addMenu",[JSONArray (map encodeUI menu2)])]]
 diffMenus path event editletDiffs (Just _) Nothing
     = [UIUpdate path [("removeMenu",[])]]
 
@@ -341,7 +332,7 @@ replaceControlIfImpossible :: UIPath UIControl [UIDiffResult] -> [UIUpdate]
 replaceControlIfImpossible path fallback parts
 	| allDiffsPossible parts	= flatten [d \\DiffPossible d <- parts]
 								= [UIUpdate parentPath [("remove",[JSONInt parentIndex])
-													   ,("add",[JSONInt parentIndex,encodeUIControl fallback])]]
+													   ,("add",[JSONInt parentIndex,encodeUI fallback])]]
 where
 	[ItemStep parentIndex:parentPath] = path
 
@@ -349,7 +340,7 @@ replaceWindowIfImpossible :: UIPath UIWindow [UIDiffResult] -> [UIUpdate]
 replaceWindowIfImpossible path fallback parts
 	| allDiffsPossible parts	= flatten [d \\ DiffPossible d <- parts]
 								= [UIUpdate [] [("removeWindow",[JSONInt windowIndex])
-											   ,("addWindow",[JSONInt windowIndex,encodeUIWindow fallback])]]
+											   ,("addWindow",[JSONInt windowIndex,encodeUI fallback])]]
 where
 	[WindowStep windowIndex:_]	= path
 

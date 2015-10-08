@@ -864,8 +864,6 @@ tSafeExpr2List (TFApp "_Cons" [hd : tl : _] _) = [hd : tUnsafeExpr2List tl]
 tSafeExpr2List (TFApp "_Nil"  _             _) = []
 tSafeExpr2List e                               = [e]
 
-derive class iTask UIAction
-
 tStepCont :: ![UIAction] !InhMkImg !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tStepCont actions inh (TFApp "OnAction" [TFApp "Action" [actionLit : _] _ : cont : _ ] _) tsrc
   = mkStepCont inh (Just (ppTExpr actionLit, strictFoldr f False actions)) cont tsrc
