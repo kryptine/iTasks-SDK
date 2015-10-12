@@ -374,7 +374,7 @@ viewInstance rs navstack dynSett bpinst=:{bpi_bpref = {bpr_moduleName, bpr_taskN
   showChildTasks :: DynamicDisplaySettings BlueprintInstance -> Task ()
   showChildTasks {DynamicDisplaySettings | show_all_child_tasks = False, unfold_depth = {Scale | cur = 0} } bpinst = return ()
   showChildTasks {DynamicDisplaySettings | show_all_child_tasks, unfold_depth = {Scale | cur = d}, show_finished_blueprints } bpinst
-    # childIds  = [tid \\ tid <- map fst (concatMap 'DIS'.elems ('DM'.elems bpinst.bpi_activeNodes))]
+    # childIds  = [tid \\ tid <- map fst (concatMap 'DIS'.elems ('DM'.elems bpinst.bpi_activeNodes))] // TODO: Should this be retrieved from the runtime map share instead?
     # childIds  = if show_finished_blueprints
                     ([tid \\ tid <- 'DM'.elems bpinst.bpi_previouslyActive] ++ childIds)
                     childIds
@@ -436,8 +436,8 @@ expandTask allbps n tt
 
 expandTExpr :: !AllBlueprints !Int !TExpr -> TExpr
 expandTExpr _      0 texpr = texpr
-expandTExpr allbps n (TFApp vn args assoc)
-  = TFApp vn (map (expandTExpr allbps n) args) assoc
+expandTExpr allbps n (TFApp eid vn args assoc)
+  = TFApp eid vn (map (expandTExpr allbps n) args) assoc
 expandTExpr allbps n texpr=:(TMApp eid mtn mn tn args assoc ptr)
   = case 'DM'.get mn allbps >>= 'DM'.get tn of
       Just tt

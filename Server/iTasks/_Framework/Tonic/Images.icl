@@ -155,7 +155,7 @@ mkInstanceImage rs bpi outputs stepActions selDetail compact {ActionState | stat
 
 tExpr2Image :: !InhMkImg !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tExpr2Image inh (TMApp eid mty mn tn targs prio ptr) tsrc = tMApp     inh eid mty mn tn targs prio ptr tsrc
-tExpr2Image inh (TFApp fn targs assoc)               tsrc = tFApp     inh fn targs assoc tsrc
+tExpr2Image inh (TFApp eid fn targs assoc)           tsrc = tFApp     inh eid fn targs assoc tsrc
 tExpr2Image inh (TLet pats bdy)                      tsrc
   | inh.inh_compact = tExpr2Image inh bdy tsrc
   | otherwise       = tLet inh pats bdy tsrc
@@ -209,9 +209,9 @@ tRecUpd inh vn e es tsrc
   ppES [TNoBind : xs] = ppES xs
   ppES [x : xs] = ppTExpr x +++ " " +++ ppES xs
 
-tFApp :: !InhMkImg !FuncName ![TExpr] !TPriority !*TagSource -> *(!SynMkImg, !*TagSource)
-tFApp inh fn args assoc tsrc
-  = ( { syn_img       = text ArialRegular10px (ppTExpr (TFApp fn args assoc))
+tFApp :: !InhMkImg !ExprId !FuncName ![TExpr] !TPriority !*TagSource -> *(!SynMkImg, !*TagSource)
+tFApp inh eid fn args assoc tsrc
+  = ( { syn_img       = text ArialRegular10px (ppTExpr (TFApp eid fn args assoc))
       , syn_status    = TNotActive
       , syn_stability = TStable
       }
@@ -615,8 +615,8 @@ tMApp inh eid _ "iTasks.API.Core.TaskCombinators" "step" [lhsExpr : _ : rhsExpr 
   = tStep inh eid lhsExpr rhsExpr tsrc
 tMApp inh eid mtn mn=:"iTasks.API.Core.TaskCombinators" tn=:"parallel" [x : _] assoc _ tsrc
   # xs = if (tExprIsList x) (tUnsafeExpr2List x) [x]
-  # xs = let f (TFApp "_Tuple2" [_ : x : _] _) = x
-             f x                               = x
+  # xs = let f (TFApp _ "_Tuple2" [_ : x : _] _) = x
+             f x                                 = x
           in strictTRMap f xs
   = tParProdN inh eid mn tn "Parallel tasks" xs tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-&&-" [lhsExpr : rhsExpr : _] _ _ tsrc
@@ -800,8 +800,8 @@ tDefaultMApp` isDynamic inBranch isCompact isActive wasActive isInAccessible isU
 tAssign :: !InhMkImg !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (headerTag, uHeaderTag) : tsrc]
   #! (desc, user)         = case lhsExpr of
-                              (TFApp "_Tuple2" [usr, str : _] _) -> (ppTExpr str, mkUser usr)
-                              usr                                -> ("", mkUser usr)
+                              (TFApp _ "_Tuple2" [usr, str : _] _) -> (ppTExpr str, mkUser usr)
+                              usr                                  -> ("", mkUser usr)
   #! (assignedTask, tsrc) = tExpr2Image inh assignedTask tsrc
   #! assignedTaskImg      = tag uAssignTaskTag (margin (px 5.0) assignedTask.syn_img)
   #! maxXSpan             = maxSpan [imagexspan headerTag, imagexspan assignTaskTag]
@@ -822,17 +822,17 @@ tAssign inh lhsExpr assignedTask [(assignTaskTag, uAssignTaskTag) : (headerTag, 
       }
     , tsrc)
   where
-  mkUser (TFApp "AnyUser" _ _)          = "Any user"
-  mkUser (TFApp "UserWithId" [uid:_] _) = ppTExpr uid
-  mkUser (TFApp "UserWithRole" [r:_] _) = "Anyone with role " +++ ppTExpr r
-  mkUser (TFApp "SystemUser" _ _)       = "System user"
-  mkUser (TFApp "AnonymousUser" _ _)    = "Anonymous user"
-  mkUser (TFApp "AuthenticatedUser" [uid:rs:_] _) = ppTExpr uid +++ " with roles " +++ strictFoldr (\x xs -> ppTExpr x +++ " " +++ xs) "" (tSafeExpr2List rs)
-  mkUser (TFApp usr _ _)                = usr
-  mkUser (TVar _ ppe _)                 = ppe
-  mkUser (TLit (TString ppe))           = ppe
-  mkUser (TPPExpr ppe)                  = ppe
-  mkUser _                              = ""
+  mkUser (TFApp _ "AnyUser" _ _)          = "Any user"
+  mkUser (TFApp _ "UserWithId" [uid:_] _) = ppTExpr uid
+  mkUser (TFApp _ "UserWithRole" [r:_] _) = "Anyone with role " +++ ppTExpr r
+  mkUser (TFApp _ "SystemUser" _ _)       = "System user"
+  mkUser (TFApp _ "AnonymousUser" _ _)    = "Anonymous user"
+  mkUser (TFApp _ "AuthenticatedUser" [uid:rs:_] _) = ppTExpr uid +++ " with roles " +++ strictFoldr (\x xs -> ppTExpr x +++ " " +++ xs) "" (tSafeExpr2List rs)
+  mkUser (TFApp _ usr _ _)                = usr
+  mkUser (TVar _ ppe _)                   = ppe
+  mkUser (TLit (TString ppe))             = ppe
+  mkUser (TPPExpr ppe)                    = ppe
+  mkUser _                                = ""
 
 tStep :: !InhMkImg !ExprId !TExpr !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tStep inh eid lhsExpr conts [(contextTag, _) : tsrc]
@@ -855,33 +855,33 @@ lineStatus {syn_status = TNotActive} = (TNotActive, TNoVal)
 lineStatus {syn_stability}           = (TAllDone, syn_stability)
 
 tExprIsList :: TExpr -> Bool
-tExprIsList (TFApp "_Cons" _ _) = True
-tExprIsList (TFApp "_Nil"  _ _) = True
-tExprIsList _                   = False
+tExprIsList (TFApp _ "_Cons" _ _) = True
+tExprIsList (TFApp _ "_Nil"  _ _) = True
+tExprIsList _                     = False
 
 tUnsafeExpr2List :: TExpr -> [TExpr]
-tUnsafeExpr2List (TFApp "_Cons" [hd : tl : _] _) = [hd : tUnsafeExpr2List tl]
-tUnsafeExpr2List (TFApp "_Nil"  _             _) = []
-tUnsafeExpr2List _                               = abort "tUnsafeExpr2List"
+tUnsafeExpr2List (TFApp _ "_Cons" [hd : tl : _] _) = [hd : tUnsafeExpr2List tl]
+tUnsafeExpr2List (TFApp _ "_Nil"  _             _) = []
+tUnsafeExpr2List _                                 = abort "tUnsafeExpr2List"
 
 tSafeExpr2List :: TExpr -> [TExpr]
-tSafeExpr2List (TFApp "_Cons" [hd : tl : _] _) = [hd : tUnsafeExpr2List tl]
-tSafeExpr2List (TFApp "_Nil"  _             _) = []
-tSafeExpr2List e                               = [e]
+tSafeExpr2List (TFApp _ "_Cons" [hd : tl : _] _) = [hd : tUnsafeExpr2List tl]
+tSafeExpr2List (TFApp _ "_Nil"  _             _) = []
+tSafeExpr2List e                                 = [e]
 
 derive class iTask UIAction
 
 tStepCont :: ![UIAction] !InhMkImg !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
-tStepCont actions inh (TFApp "OnAction" [TFApp "Action" [actionLit : _] _ : cont : _ ] _) tsrc
+tStepCont actions inh (TFApp _ "OnAction" [TFApp _ "Action" [actionLit : _] _ : cont : _ ] _) tsrc
   = mkStepCont inh (Just (ppTExpr actionLit, strictFoldr f False actions)) cont tsrc
   where
   f {UIAction | action = Action an _, enabled} acc = (replaceSubString "\"" "" an == replaceSubString "\"" "" (ppTExpr actionLit) && enabled) || acc
   f _ acc = acc
-tStepCont _ inh (TFApp "OnValue"  [cont : _ ] _) tsrc
+tStepCont _ inh (TFApp _ "OnValue"  [cont : _ ] _) tsrc
   = mkStepCont inh Nothing cont tsrc
-tStepCont _ inh (TFApp "OnException" [cont : _ ] _)     tsrc
+tStepCont _ inh (TFApp _ "OnException" [cont : _ ] _)     tsrc
   = mkStepCont inh Nothing cont tsrc
-tStepCont _ inh (TFApp "OnAllExceptions" [cont : _ ] _) tsrc
+tStepCont _ inh (TFApp _ "OnAllExceptions" [cont : _ ] _) tsrc
   = mkStepCont inh Nothing cont tsrc
 tStepCont _ inh expr tsrc = tExpr2Image inh expr tsrc
 

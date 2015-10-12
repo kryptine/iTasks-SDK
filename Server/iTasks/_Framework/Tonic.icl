@@ -425,8 +425,8 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                     # (parent_body, _, _) = case muser of
                                               Ok usr
                                                 = updateNode assignNode (\x -> case x of
-                                                                                 TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [_, descr] prio : as] assoc ptr
-                                                                                   | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp "_Tuple2" [TLit (TString (toString usr)), descr] prio : as] assoc ptr
+                                                                                 TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp eid` "_Tuple2" [_, descr] prio : as] assoc ptr
+                                                                                   | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp eid` "_Tuple2" [TLit (TString (toString usr)), descr] prio : as] assoc ptr
                                                                                    | otherwise         = x
                                                                                  TMApp eid mtn "iTasks.API.Extensions.User" "@:" [_ : as] assoc ptr
                                                                                    | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TLit (TString (toString usr)) : as] assoc ptr
@@ -527,6 +527,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
     # oldActiveNodes           = 'DM'.difference ('DM'.union parentBPInst.bpi_previouslyActive
                                                              ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems parentBPInst.bpi_activeNodes)]))
                                                  newActiveNodeMap // This difference is required, because currently active nodes may up in the old set due to the iteration over parallel branches
+    #! iworld = trace_n ("newActiveNodes = " +++ toString (toJSON newActiveNodes) +++ " oldActiveNodes = " +++ toString (toJSON oldActiveNodes)) iworld
     # newParent   = { parentBPInst
                     & bpi_activeNodes      = newActiveNodes
                     , bpi_previouslyActive = oldActiveNodes}
@@ -540,7 +541,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
     # (childNodes, currActive, iworld) = foldr (registerTask pinst.bpi_taskId childTaskId) ([], currActive, iworld) (zip2 [0..] parallelChildren)
     # (tf_body, _, _) = updateNode nid (\x -> case x of
                                                 e=:(TMApp _ _ _ _ [TMApp _ _ _ _ _ _ _ : _] _ _) -> e
-                                                e=:(TMApp _ _ _ _ [TFApp "_Cons" _ _ : _] _ _) -> e // TODO This is probably insufficient. It will capture things like [t1:someOtherTasks], where we would like to expand someOtherTasks at runtime
+                                                e=:(TMApp _ _ _ _ [TFApp _ "_Cons" _ _ : _] _ _) -> e // TODO This is probably insufficient. It will capture things like [t1:someOtherTasks], where we would like to expand someOtherTasks at runtime
                                                 //TMApp eid mtn mn tn _ pr ptr -> TMApp eid mtn mn tn [list2TExpr childNodes] pr ptr
                                                 e -> e
                                        ) pinst.bpi_blueprint.tf_body
@@ -572,7 +573,7 @@ getNode eid expr=:(TMApp eid` _ _ _ es _ _)
       = case [e \\ Just e <- map (getNode eid) es] of
           [x : _] -> Just x
           _       -> Nothing
-getNode eid (TFApp _ es _)
+getNode eid (TFApp _ _ es _)
   = case [e \\ Just e <- map (getNode eid) es] of
       [x : _] -> Just x
       _       -> Nothing
@@ -592,8 +593,8 @@ getNode _ e = Nothing
 dump x = toString (toJSON x)
 
 list2TExpr :: [TExpr] -> TExpr
-list2TExpr []     = TFApp "_Nil"  [] TNoPrio
-list2TExpr [x:xs] = TFApp "_Cons" [x, list2TExpr xs] TNoPrio
+list2TExpr []     = TFApp [] "_Nil"  [] TNoPrio
+list2TExpr [x:xs] = TFApp [] "_Cons" [x, list2TExpr xs] TNoPrio
 
 setActiveNodes :: !TonicOpts !BlueprintInstance !TaskId !ExprId !*IWorld -> *(!Map ListId (IntMap (TaskId, ExprId)), !*IWorld)
 setActiveNodes tonicOpts {bpi_taskId = parentTaskId, bpi_activeNodes = parentActiveNodes} childTaskId nid iworld
@@ -604,13 +605,13 @@ setActiveNodes tonicOpts {bpi_taskId = parentTaskId, bpi_activeNodes = parentAct
             # taskListFilter      = { TaskListFilter | onlyIndex = Nothing, onlyTaskId = Nothing, onlySelf = False, includeValue = False, includeAttributes = False, includeProgress = False}
             # (mTaskList, iworld) = 'DSDS'.read (sdsFocus (currentListId, taskListFilter) taskInstanceParallelTaskList) iworld
             = case error2mb mTaskList `b` getTaskState tonicOpts.callTrace of
-                Just pts
+                Just parallelTaskState
                   # parentCallTrace = dropFirstInstances tonicOpts.callTrace
                   # parentCtx       = getParentContext parentTaskId parentCallTrace
                   # activeTasks     = 'DM'.del parentCtx parentActiveNodes
                   # activeTasks     = 'DM'.filterWithKey (\k _ -> k >= parentCtx) activeTasks
                   # activeSubTasks  = fromMaybe 'DIS'.newMap ('DM'.get currentListId activeTasks)
-                  # activeSubTasks  = 'DIS'.put pts.index (childTaskId, nid) activeSubTasks
+                  # activeSubTasks  = 'DIS'.put parallelTaskState.index (childTaskId, nid) activeSubTasks
                   = ('DM'.put currentListId activeSubTasks activeTasks, iworld)
                 _ = (defVal currentListId, iworld)
       _ = (defVal parentTaskId, iworld)
@@ -686,9 +687,9 @@ replaceNode varid newExpr expr=:(TVar eid _ varid`)
 replaceNode varid newExpr (TMApp eid` mtn mn tn es p ptr)
   #! es` = map (replaceNode varid newExpr) es
   = TMApp eid` mtn mn tn es` p ptr
-replaceNode varid newExpr (TFApp fn es p)
+replaceNode varid newExpr (TFApp eid fn es p)
   #! es` = map (replaceNode varid newExpr) es
-  = TFApp fn es` p
+  = TFApp eid fn es` p
 replaceNode varid newExpr (TLam es e)
   #! e`  = replaceNode varid newExpr e
   #! es` = map (replaceNode varid newExpr) es
@@ -742,9 +743,9 @@ updateNode eid f expr=:(TMApp eid` mtn mn tn es p ptr)
   | otherwise
       #! es` = map (updateNode eid f) es
       = (TMApp eid` mtn mn tn (map fst3 es`) p ptr, anyTrue (map snd3 es`), getMVid (map thrd es`))
-updateNode eid f (TFApp fn es p)
+updateNode eid f (TFApp eid` fn es p)
   #! es` = map (updateNode eid f) es
-  = (TFApp fn (map fst3 es`) p, anyTrue (map snd3 es`), getMVid (map thrd es`))
+  = (TFApp eid` fn (map fst3 es`) p, anyTrue (map snd3 es`), getMVid (map thrd es`))
 updateNode eid f (TLam es e)
   #! (e`, eb, mvid) = updateNode eid f e
   #! es`            = map (updateNode eid f) es

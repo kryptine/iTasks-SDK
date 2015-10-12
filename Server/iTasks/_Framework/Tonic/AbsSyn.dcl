@@ -48,7 +48,7 @@ instance == TLit
   | TLit     !TLit
   | TPPExpr  !PPExpr
   | TMApp    !ExprId !(Maybe TypeName) !ModuleName !FuncName ![TExpr] !TPriority !(Maybe VarPtr)
-  | TFApp    !FuncName ![TExpr] !TPriority
+  | TFApp    !ExprId !FuncName ![TExpr] !TPriority
   | TLam     ![TExpr] !TExpr
   | TSel     !TExpr ![TExpr]
   | TRecUpd  !VarName !TExpr ![TExpr]
