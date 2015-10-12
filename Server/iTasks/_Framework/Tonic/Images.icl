@@ -22,6 +22,7 @@ import iTasks._Framework.Tonic.Pretty
 import iTasks.API.Core.Types
 import iTasks.API.Extensions.SVG.SVGlet
 import Text
+import StdMisc
 
 TonicBlue     =: toSVGColor "DeepSkyBlue"
 TonicDarkBlue =: toSVGColor "navy"
@@ -861,6 +862,7 @@ tExprIsList _                   = False
 tUnsafeExpr2List :: TExpr -> [TExpr]
 tUnsafeExpr2List (TFApp "_Cons" [hd : tl : _] _) = [hd : tUnsafeExpr2List tl]
 tUnsafeExpr2List (TFApp "_Nil"  _             _) = []
+tUnsafeExpr2List _                               = abort "tUnsafeExpr2List"
 
 tSafeExpr2List :: TExpr -> [TExpr]
 tSafeExpr2List (TFApp "_Cons" [hd : tl : _] _) = [hd : tUnsafeExpr2List tl]
@@ -881,6 +883,7 @@ tStepCont _ inh (TFApp "OnException" [cont : _ ] _)     tsrc
   = mkStepCont inh Nothing cont tsrc
 tStepCont _ inh (TFApp "OnAllExceptions" [cont : _ ] _) tsrc
   = mkStepCont inh Nothing cont tsrc
+tStepCont _ inh expr tsrc = tExpr2Image inh expr tsrc
 
 mkStepCont :: !InhMkImg !(Maybe (!String, !Bool)) !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "always" [mapp : _] _ _) tsrc
