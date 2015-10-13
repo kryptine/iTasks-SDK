@@ -527,7 +527,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
     # oldActiveNodes           = 'DM'.difference ('DM'.union parentBPInst.bpi_previouslyActive
                                                              ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems parentBPInst.bpi_activeNodes)]))
                                                  newActiveNodeMap // This difference is required, because currently active nodes may up in the old set due to the iteration over parallel branches
-    #! iworld = trace_n ("newActiveNodes = " +++ toString (toJSON newActiveNodes) +++ " oldActiveNodes = " +++ toString (toJSON oldActiveNodes)) iworld
+    //#! iworld = trace_n ("newActiveNodes = " +++ toString (toJSON newActiveNodes) +++ " oldActiveNodes = " +++ toString (toJSON oldActiveNodes)) iworld
     # newParent   = { parentBPInst
                     & bpi_activeNodes      = newActiveNodes
                     , bpi_previouslyActive = oldActiveNodes}
