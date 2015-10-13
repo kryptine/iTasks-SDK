@@ -255,6 +255,20 @@ workerAttributes worker attr = case toUserConstraint worker of
                              ])
                           task
 
+appendTopLevelTaskPrioFor :: !worker !String !String !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
+appendTopLevelTaskPrioFor worker title priority evalDirect task 
+	= 				  get currentUser -&&- get currentDateTime
+  	>>- \(me,now) ->  appendTopLevelTask (workerAttributes worker 
+  							 [ ("title",      title)
+                             , ("createdBy",  toString (toUserConstraint me))
+                             , ("createdAt",  toString now)
+                             , ("priority",   priority)
+                             , ("createdFor", toString (toUserConstraint worker))
+                             ]) evalDirect task
+
 appendTopLevelTaskFor :: !worker !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
-appendTopLevelTaskFor worker evalDirect task = appendTopLevelTask (workerAttributes worker []) evalDirect task
+appendTopLevelTaskFor worker evalDirect task 
+	= appendTopLevelTask (workerAttributes worker []) evalDirect task
+
+
 	
