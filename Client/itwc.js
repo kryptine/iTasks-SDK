@@ -742,7 +742,7 @@ itwc.component.itwc_view_icon= itwc.extend(itwc.ViewComponent,{
 itwc.EditComponent = itwc.extend(itwc.Component,{
     domTag: 'input',
     setEditorValue: function(value) {
-		this.domEl.value = value || '';
+		this.domEl.value = (value === null) ? '' : value;
 	}
 });
 itwc.component.itwc_edit_string = itwc.extend(itwc.EditComponent,{
@@ -811,7 +811,8 @@ itwc.EditNumberComponent = itwc.extend(itwc.EditComponent,{
         var me = this,
             el = this.domEl;
         el.type = 'text';
-        el.value = me.definition.value ? me.definition.value : '';
+		el.value = (me.definition.value === undefined || me.definition.value === null) ? '' : me.definition.value;
+
         el.addEventListener('keypress',function(e) {
             if(me.invalidKey(e.which)) {
                 e.stopPropagation();
