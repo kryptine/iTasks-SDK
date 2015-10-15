@@ -34,7 +34,6 @@ where
 	tut :: Task Bool
 	tut = testEditors "Bool"
 
-
 :: ADTSingleCons = ADTSingleCons Int
 derive class iTask ADTSingleCons
 

@@ -6,7 +6,7 @@ definition module iTasks.API.Core.Tasks
 import iTasks._Framework.Generic
 import iTasks._Framework.SDS
 from iTasks._Framework.Task			import :: Task, :: ConnectionHandlers
-from iTasks.API.Core.Types	    import class descr
+from iTasks.UI.Layout	    	import class descr
 from Data.Error					import ::MaybeError(..)
 from System.OSError				import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
 

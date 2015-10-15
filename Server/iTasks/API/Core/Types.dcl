@@ -37,7 +37,7 @@ from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat
 from iTasks._Framework.Generic.Defaults		import generic gDefault
 from iTasks._Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 from iTasks.UI.JS.Interface	import :: JSWorld, :: JSVal
-from iTasks.UI.Layout import :: LayoutRules
+from iTasks.UI.Layout import :: LayoutRules, class descr
 import iTasks._Framework.Serialization
 
 class TFunctor f where
@@ -683,9 +683,11 @@ derive class iTask		TaskId, Config, ProcessStatus
 TASK_ATTRIBUTE			:== "task"
 TITLE_ATTRIBUTE			:== "title"
 HINT_ATTRIBUTE			:== "hint"
-VALID_ATTRIBUTE			:== "valid"
-WARNING_ATTRIBUTE		:== "warning"
-ERROR_ATTRIBUTE			:== "error"
+HINT_TYPE_ATTRIBUTE		:== "hint-type"
+HINT_TYPE_INFO 			:== "info"
+HINT_TYPE_VALID 		:== "valid"
+HINT_TYPE_WARNING 		:== "warning"
+HINT_TYPE_INVALID 		:== "invalid"
 LABEL_ATTRIBUTE			:== "label"
 PREFIX_ATTRIBUTE		:== "prefix"
 POSTFIX_ATTRIBUTE		:== "postfix"
@@ -709,14 +711,6 @@ CONTAINER_ATTRIBUTE		:==	"container"	//Container preference for layout functions
 					| IconEdit
 
 
-//Make the UI definition of the interaction prompt
-class descr d
-where
-	toPrompt		:: !d -> UIAttributes
-
-instance descr ()                           //No prompt
-instance descr String						//Simple instruction
-instance descr (!String, !String)			//Title attribute + instruction
 instance descr (!Icon, !String, !String)	//Icon attribute, title attribute, and instruction
 //instance descr (!Icon, !Title)			//Icon attribute, title attribute 
 instance descr Title

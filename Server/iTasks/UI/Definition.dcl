@@ -21,7 +21,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 //Provide generic instances for all UI definitions
-derive class iTask UIDef, UIContent, UIWindow, UIEmpty, UIForm, UIBlock, UIAction, UIViewport, UIControl, UITab
+derive class iTask UIDef, UIContent, UIWindow, UIEmpty, UIForm, UIBlock, UIAction, UIEditor, UIViewport, UIControl, UITab
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
 derive class iTask UIViewportOpts, UIWindowOpts, UIItemsOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
@@ -50,6 +50,15 @@ derive class iTask UIHSizeOpts, UIFSizeOpts, UIButtonOpts, UIMenuButtonOpts, UIT
     | UIBlock   !UIBlock                //A partial user interface, the controls of such a UI have been arranged, but the container they will be put in is not decided yet
     | UIBlocks  ![UIBlock] ![UIAction]  //A set of aggregated blocks that have not yet been arranged
     | UIFinal   !UIViewport             //The final user interface
+
+	//Experimental additional constructors for more structured editors
+	| UIEditor 			!UIEditor !UIControl 			//Leaf editor
+	| UICompoundEditor 	!UIEditor ![UIContent]
+
+::UIEditor = 
+	{ optional		:: Bool
+	, attributes	:: UIAttributes
+	}
 
 :: UIEmpty =
     { actions       :: [UIAction]
@@ -423,9 +432,10 @@ uiDefSetSize            :: UISize UISize UIDef -> UIDef
 
 //Encoding of UI to the format sent to the client framework
 class encodeUI a :: a -> JSONNode
-instance encodeUI String
 instance encodeUI Int
 instance encodeUI Real
+instance encodeUI Char
+instance encodeUI String
 instance encodeUI Bool
 instance encodeUI Document
 instance encodeUI Date

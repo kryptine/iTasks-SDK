@@ -118,9 +118,11 @@ where
 	visualizeView taskId evalOpts mbEditor value=:(v,vmask,vver) desc iworld
 		# layout = repLayoutRules evalOpts
 		# editor = fromMaybe gEditor{|*|} mbEditor
-		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, layout = layout, iworld = iworld}
+		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
 		# (editUI,vst=:{VSt|iworld})	= editor.Editor.genUI [] v vmask vver (gEditMeta{|*|} v) vst
-		# uidef		= {UIDef|content=UIForm (layout.LayoutRules.accuInteract (toPrompt desc) {UIForm|attributes='DM'.newMap,controls=editorControls editUI,size=defaultSizeOpts}),windows=[]}
+		# promptUI  = toPrompt desc
+		# ui 		= UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap} [promptUI,editUI]
+		# uidef		= {UIDef|content=layout.LayoutRules.accuInteract ui, windows=[]} 
 		= (TaskRep uidef NoChange, iworld)
 
 	updateValueAndMask taskId path mbEditor update (a,mask) iworld

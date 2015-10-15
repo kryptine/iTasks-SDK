@@ -120,11 +120,11 @@ gEditor{|URL|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp (URL url) mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled
-			= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just (ATag [HrefAttr url] [Text url])},'DM'.newMap)], vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewHtml defaultSizeOpts {UIViewOpts|value = Just (ATag [HrefAttr url] [Text url])}), vst)
 		| otherwise
 			# value = checkMaskValue mask url
 			# ui = UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}
-			= (NormalEditor [(ui,editorAttributes (URL url,mask,ver) meta)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (URL url,mask,ver) meta} ui,vst)
 	genDiff dp (URL old) (URL new) vst
 		= (if (old === new) NoChange (ChangeUI [("setValue",[toJSON new])] []),vst)
 
@@ -160,10 +160,10 @@ where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled
 			# val = checkMask mask val
-			= (NormalEditor [(setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap noteToHtml val}),'DM'.newMap)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap noteToHtml val})) ,vst)
 		| otherwise	
 			# value = checkMaskValue mask ((\(Note v)  -> v) val)
-			= (NormalEditor [(UIEditNote sizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (val,mask,ver) meta} (UIEditNote sizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}) ,vst)
 	where	
 		sizeOpts = {UISizeOpts|defaultSizeOpts & height = Just FlexSize, minHeight = Just WrapBound}
 	
@@ -226,10 +226,10 @@ where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled	
 			# val = checkMask mask val
-			= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(EUR v) -> toString v) val},'DM'.newMap)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(EUR v) -> toString v) val}) ,vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(EUR v) -> toReal v / 100.0) val)
-			= (NormalEditor [(UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (val,mask,ver) meta} (UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}) ,vst)
 	genDiff dp (EUR old) (EUR new) vst=:{VSt|disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval])] []),vst)
@@ -274,10 +274,10 @@ where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled	
 			# val = checkMask mask val
-			= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},'DM'.newMap)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val}) ,vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(USD v) -> toReal v / 100.0) val)
-			= (NormalEditor [(UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (val,mask,ver) meta} (UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}) ,vst)
 
 	genDiff dp (USD old) (USD new) vst=:{VSt|disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
@@ -336,10 +336,10 @@ where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled
 			# val = checkMask mask val
-			= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},'DM'.newMap)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val}), vst)
 		| otherwise
 			# value	= checkMaskValue mask val
-			= (NormalEditor [(UIEditDate defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (val,mask,ver) meta} (UIEditDate defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}), vst)
 
 	genDiff dp old new vst=:{VSt|disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
@@ -423,10 +423,10 @@ where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled
 			# val = checkMask mask val
-			= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},'DM'.newMap)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val}),vst)
 		| otherwise
 			# value = checkMaskValue mask val
-			= (NormalEditor [(UIEditTime defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (val,mask,ver) meta} (UIEditTime defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}) , vst)
 
 	genDiff dp old new vst=:{VSt|disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
@@ -509,10 +509,10 @@ where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled
 			# val = checkMask mask val
-			= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value=fmap toString val},'DM'.newMap)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewString defaultSizeOpts {UIViewOpts|value=fmap toString val}), vst)
 		| otherwise
 			# value = checkMaskValue mask val
-			= (NormalEditor [(UIEditDateTime defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (val,mask,ver) meta} (UIEditDateTime defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}) ,vst)
 	genDiff dp old new vst=:{VSt|disabled}
 		# nval = if disabled (encodeUI (toString new)) (toJSON new)
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval])] []),vst)
@@ -577,10 +577,10 @@ where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled
 			# val = checkMask mask val
-			= (NormalEditor [(UIViewDocument defaultHSizeOpts {UIViewOpts|value = val},'DM'.newMap)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewDocument defaultHSizeOpts {UIViewOpts|value = val}), vst)
 		| otherwise
 			# value = checkMaskValue mask val
-			= (NormalEditor [(UIEditDocument defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes (val,mask,ver) meta)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (val,mask,ver) meta} (UIEditDocument defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}),vst)
 	genDiff dp old new vst
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI new])] []),vst)
 
@@ -653,11 +653,11 @@ where
 		| disabled
 			# val = checkMask mask val							
 			# viewOpts = {UIViewOpts|value = fmap curVal val}  
-			= (NormalEditor [(UIViewSlider defaultHSizeOpts viewOpts sliderOpts, 'DM'.newMap)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewSlider defaultHSizeOpts viewOpts sliderOpts),vst)
 		| otherwise
 			# value = checkMaskValue mask (curVal val)
 			# editOpts = {UIEditOpts|taskId = taskId, editorId = editorId dp, value = value}
-			= (NormalEditor [(UIEditSlider defaultHSizeOpts editOpts sliderOpts, editorAttributes (val,mask,ver) meta)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (val,mask,ver) meta} (UIEditSlider defaultHSizeOpts editOpts sliderOpts), vst)
 	where
 		curVal {Scale|cur} = cur
 	
@@ -677,7 +677,7 @@ gText{|Progress|}	_ val  = [maybe "" (\{Progress|description} -> description) va
 gEditor{|Progress|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp val mask ver meta vst=:{VSt|taskId}
-		= (NormalEditor [(UIViewProgress defaultHSizeOpts {UIViewOpts|value=Just (value val)} {UIProgressOpts|text = text val},'DM'.newMap)],vst)
+		= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewProgress defaultHSizeOpts {UIViewOpts|value=Just (value val)} {UIProgressOpts|text = text val}), vst)
 	where
 		text {Progress|description}	= description
 		
@@ -713,7 +713,7 @@ gText{|HtmlInclude|}	_ _	                            = [""]
 gEditor{|HtmlInclude|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff} 
 where
 	genUI dp (HtmlInclude path) mask ver meta vst
-		= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value=Just (IframeTag [SrcAttr path] [])},editorAttributes (HtmlInclude path,mask,ver) meta)],vst)
+		= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (HtmlInclude path,mask,ver) meta} (UIViewHtml defaultSizeOpts {UIViewOpts|value=Just (IframeTag [SrcAttr path] [])}) ,vst)
 
 	genDiff dp (HtmlInclude old) (HtmlInclude new) vst
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI new])] []),vst)
@@ -733,7 +733,7 @@ where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		# text = Just val.FormButton.label
 		# iconCls = Just val.FormButton.icon
-		= (NormalEditor [(UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "pressed")} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False},editorAttributes (val,mask,ver) meta)],vst)
+		= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (val,mask,ver) meta} (UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "pressed")} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False}), vst)
 
 	genDiff dp {FormButton|state=old} {FormButton|state=new} vst
 		= (if (old === new) NoChange (ChangeUI [("setEditorValue",[toJSON new])] []),vst)
@@ -769,9 +769,9 @@ gText{|Table|}	_ _	= ["<Table>"]
 gEditor{|Table|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
-		= (NormalEditor [(UIGrid defaultSizeOpts
+		= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (val,mask,ver) meta} (UIGrid defaultSizeOpts
         	{UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val}
-        	{UIGridOpts|columns = columns val,doubleClickAction=Nothing}, editorAttributes (val,mask,ver) meta)],vst)
+        	{UIGridOpts|columns = columns val,doubleClickAction=Nothing}) ,vst)
 	where
 		value (Table _ _ mbSel)	= maybe [] (\s->[s]) mbSel
 		columns (Table headers _ _)	= headers
@@ -830,9 +830,9 @@ gEditor{|ComboChoice|} fx gx _ hx _ _ = {Editor|genUI=genUI,appDiff=appDiff,genD
 where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled
-			= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},'DM'.newMap)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val}), vst)
 		| otherwise
-			= (NormalEditor [(UIDropdown defaultHSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},editorAttributes (val,mask,ver) (gEditMeta{|*->*|} hx val))],vst)
+			= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (val,mask,ver) (gEditMeta{|*->*|} hx val)} (UIDropdown defaultHSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val}), vst)
 
 	vvalue (ComboChoice options (Just sel))	= Just (hd (gx AsSingleLine (Just (options !! sel))))
 	vvalue _								= Nothing
@@ -867,9 +867,9 @@ gEditor{|RadioChoice|} _ gx _ hx _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDi
 where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled
-			= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},'DM'.newMap)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val}),vst)
 		| otherwise
-			= (NormalEditor [(UIRadioGroup defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},editorAttributes (val,mask,ver) (gEditMeta{|*->*|} hx val))],vst)
+			= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (val,mask,ver) (gEditMeta{|*->*|} hx val)} (UIRadioGroup defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val}),vst)
 
 	vvalue (RadioChoice options (Just sel))	= Just (hd (gx AsSingleLine (Just (options !! sel))))
 	vvalue _								= Nothing
@@ -903,9 +903,9 @@ gEditor{|ListChoice|} _ gx _ hx _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDif
 where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled
-			= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},'DM'.newMap)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val}), vst)
 		| otherwise
-			= (NormalEditor [(UIListChoice defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},'DM'.newMap/*editorAttributes vv (gEditMeta{|*->*|} hx val)*/)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap/*editorAttributes vv (gEditMeta{|*->*|} hx val)*/} (UIListChoice defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val}) ,vst)
 
 	vvalue (ListChoice options (Just sel))	= Just (hd (gx AsSingleLine (Just (options !! sel))))
 	vvalue _								= Nothing
@@ -939,8 +939,8 @@ gText{|TreeChoice|} fv _ _ = [""]
 gEditor{|TreeChoice|} _ gx _ _ hx _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
-		# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options gx val mask} {UITreeOpts|doubleClickAction=Nothing}, 'DM'.newMap/*editorAttributes vv (gEditMeta{|*->*|} hx val)*/)]
-		= (NormalEditor viz,vst)
+		# viz		= (UITree defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options gx val mask} {UITreeOpts|doubleClickAction=Nothing})
+		= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} viz,vst)
 
 	value  (TreeChoice _ mbSel) 	= maybe [] (\s->[s]) mbSel
 	
@@ -991,9 +991,9 @@ gText{|GridChoice|} fv _ _ = [""]
 gEditor{|GridChoice|} _ gx _ hx _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
-		= (NormalEditor [(UIGrid defaultSizeOpts
+		= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIGrid defaultSizeOpts
 			{UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val}
-			{UIGridOpts|columns = columns, doubleClickAction=Nothing},'DM'.newMap)],vst)
+			{UIGridOpts|columns = columns, doubleClickAction=Nothing}),vst)
 
 	value (GridChoice options mbSel)	= maybe [] (\s->[s]) mbSel
 	options (GridChoice options _)		= [gx AsRow (Just opt) \\ opt <- options]
@@ -1106,9 +1106,9 @@ gEditor{|CheckMultiChoice|} _ gx _ hx _ _ _ _ _ hy _ _ = {Editor|genUI=genUI,app
 where
 	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
 		| disabled
-			= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just (vvalue val)},'DM'.newMap)],vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewString defaultSizeOpts {UIViewOpts|value = Just (vvalue val)}),vst)
 		| otherwise
-			= (NormalEditor [(UICheckboxGroup defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val},editorAttributes (val,mask,ver) (gEditMeta{|*->*->*|} hx hy val))],vst)
+			= (UIEditor {UIEditor|optional=False,attributes=editorAttributes (val,mask,ver) (gEditMeta{|*->*->*|} hx hy val)} (UICheckboxGroup defaultSizeOpts {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val}),vst)
 
 	vvalue (CheckMultiChoice options sel)	= join "," ([hd (gx AsSingleLine (Just (fst (options !! i )))) \\ i <- sel])
 	evalue (CheckMultiChoice _ sel)			= sel
@@ -1310,7 +1310,7 @@ gText{|Hidden|} _ _ _ = []
 
 gEditor{|Hidden|} fx _ _ _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
-	genUI dp val mask ver meta vst = (HiddenEditor,vst)
+	genUI dp val mask ver meta vst = (UIEmpty {UIEmpty|actions=[]},vst)
 	genDiff dp old new vst = (NoChange,vst)
 	appDiff dp e val mask ust = (val,mask,ust)
 
@@ -1392,8 +1392,8 @@ where
 gVerify{|Col|} gVerx options (Col x,mask) = gVerx options (x,mask)
 	
 //Utility for gEditor
-applyToControls f (NormalEditor controls) = NormalEditor (map (appFst f) controls)
-applyToControls f (OptionalEditor controls) = OptionalEditor (map (appFst f) controls)
+applyToControls f (UICompoundEditor edit fields) = UICompoundEditor edit (map (applyToControls f) fields)
+applyToControls f (UIEditor edit control) = UIEditor edit (f control)
 applyToControls f def = def
 
 wrapperUpdate fx get set target upd val mask ust
@@ -1538,41 +1538,30 @@ where
 	toString (IconView)	= "view"
 	toString (IconEdit) = "edit"
 	
-instance descr ()
-where
-	toPrompt _ = 'DM'.newMap
-
-instance descr String
-where
-	toPrompt hint = 'DM'.fromList [(HINT_ATTRIBUTE,hint)]
-	
-instance descr (!String,!String)
-where
-	toPrompt (title,hint) = 'DM'.fromList [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,hint)]
-
 instance descr (!Icon,!String,!String)
 where
-	toPrompt (icon,title,hint) = 'DM'.fromList [(ICON_ATTRIBUTE,toString icon),(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,hint)]
+	toPrompt (icon,title,hint) = UIEditor {UIEditor|optional=False,attributes='DM'.fromList [(ICON_ATTRIBUTE,toString icon),(TITLE_ATTRIBUTE,title)]}
+									(stringDisplay hint)
 
 instance descr Title
 where
-	toPrompt (Title title) = 'DM'.fromList [(TITLE_ATTRIBUTE,title)]
+	toPrompt (Title title) = UICompoundEditor {UIEditor|optional=False,attributes='DM'.fromList [(TITLE_ATTRIBUTE,title)]} []
 	
 instance descr Label
 where
-	toPrompt (Label label) = 'DM'.fromList [(LABEL_ATTRIBUTE,label)]
+	toPrompt (Label label) = UICompoundEditor {UIEditor|optional=False,attributes='DM'.fromList [(LABEL_ATTRIBUTE,label)]} []
 
 instance descr Hint
 where
-	toPrompt (Hint hint) = 'DM'.fromList [(HINT_ATTRIBUTE,hint)]
+	toPrompt (Hint hint) = UICompoundEditor {UIEditor|optional=False,attributes='DM'.fromList [(HINT_ATTRIBUTE,hint)]} []
 	
 instance descr Icon
 where
-	toPrompt icon = 'DM'.fromList [(ICON_ATTRIBUTE,toString icon)]
+	toPrompt icon = UICompoundEditor {UIEditor|optional=False,attributes='DM'.fromList [(ICON_ATTRIBUTE,toString icon)]} []
 
 instance descr Attribute
 where
-	toPrompt (Attribute k v) = 'DM'.fromList [(k,v)]
+	toPrompt (Attribute k v) = UICompoundEditor {UIEditor|optional=False,attributes='DM'.fromList [(k,v)]} []
 	
 instance descr Att
 where
@@ -1580,7 +1569,7 @@ where
 	
 instance descr [d] | descr d
 where
-	toPrompt list = foldl mergeAttributes 'DM'.newMap (map toPrompt list)
+	toPrompt list = UIEmpty {UIEmpty|actions=[]} //foldl mergeAttributes 'DM'.newMap (map toPrompt list)
 
 
 derive JSONEncode		Icon
@@ -1593,7 +1582,7 @@ derive gVerify			Icon
 
 gEditor{|Icon|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI _ (Icon icon) mask ver meta vst = (NormalEditor [(UIIcon defaultFSizeOpts {UIIconOpts|iconCls="icon-"+++icon,tooltip=Nothing} ,'DM'.newMap)], vst)
+	genUI _ (Icon icon) mask ver meta vst = (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIIcon defaultFSizeOpts {UIIconOpts|iconCls="icon-"+++icon,tooltip=Nothing}), vst)
 	genDiff _ (Icon old) (Icon new) vst
 		= (if (old === new) NoChange (ChangeUI [("setIconCls",[encodeUI ("icon-"+++new)])] []),vst)
 
@@ -1625,7 +1614,7 @@ gDefault{|{}|} _ = undef
 gEditMeta{|{}|} _ _ = undef
 gEditor{|{}|} _ _ _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI _ _ _ _ _ vst = (HiddenEditor,vst)
+	genUI _ _ _ _ _ vst = (UIEmpty {UIEmpty|actions=[]},vst)
 	genDiff _ _ _ vst = (NoChange,vst)
 	appDiff _ _ val mask ust = (val,mask,ust)
 

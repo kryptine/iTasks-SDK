@@ -73,22 +73,22 @@ where
 
     makeRep taskId evalOpts status iworld
 	    # layout			= repLayoutRules evalOpts
-		# (controls,iworld)	= makeView opts status taskId layout iworld
+		# (content,iworld)	= makeView opts status taskId iworld
 		# prompt			= toPrompt desc
-		# editor			= {UIForm| attributes = 'Data.Map'.newMap, controls = controls, size = defaultSizeOpts}
-		= (TaskRep {UIDef|content=UIForm (layout.LayoutRules.accuInteract prompt editor),windows=[]} NoChange,iworld)
+		# ui 				= UICompoundEditor {UIEditor|optional=False,attributes='Data.Map'.newMap} [prompt,content]
+		= (TaskRep {UIDef|content=layout.LayoutRules.accuInteract ui,windows=[]} NoChange,iworld)
 						
-	makeView [ViewWith viewFun] status taskId layout iworld
+	makeView [ViewWith viewFun] status taskId iworld
 		# ver = verifyMaskedValue (Display (viewFun status),Touched)
-		= makeEditor (Display (viewFun status),Touched,ver) taskId layout iworld
-	makeView _ status taskId layout iworld
+		= makeEditor (Display (viewFun status),Touched,ver) taskId iworld
+	makeView _ status taskId iworld
 		# ver = verifyMaskedValue (Display (defaultViewFun status),Touched)
-		= makeEditor (Display (defaultViewFun status),Touched,ver) taskId layout iworld
+		= makeEditor (Display (defaultViewFun status),Touched,ver) taskId iworld
 
-	makeEditor value=:(v,vmask,vver) taskId layout iworld
-		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, layout = layout, iworld = iworld}
+	makeEditor value=:(v,vmask,vver) taskId iworld
+		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
 		# (editUI,vst=:{VSt|iworld}) = gEditor{|*|}.Editor.genUI [] v vmask vver (gEditMeta{|*|} v) vst
-		= (editorControls editUI,iworld)
+		= (editUI,iworld)
 
 	//By default show a progress bar 
 	defaultViewFun (RunningProcess cmd) = {Progress|progress=ProgressUndetermined,description="Running " +++ cmd +++ "..."}

@@ -5,7 +5,7 @@ import Data.Maybe, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 
-from Data.Map import qualified put, get, del, newMap, toList
+from Data.Map as DM import qualified put, get, del, newMap, toList, fromList
 from StdFunc import o, const
 
 from iTasks._Framework.TaskState import :: TIMeta(..)
@@ -15,23 +15,37 @@ derive gEq UISide
 autoLayoutRules :: LayoutRules
 autoLayoutRules
     = {accuInteract = autoAccuInteract, accuStep = autoAccuStep, accuParallel = autoAccuParallel, accuWorkOn = autoAccuWorkOn
-      ,layoutSubEditor = autoLayoutSubEditor, layoutForm = autoLayoutForm, layoutBlocks = autoLayoutBlocks
+      ,layoutForm = autoLayoutForm, layoutBlocks = autoLayoutBlocks
       }
+
+instance descr ()
+where
+	toPrompt _ = UIEmpty {UIEmpty|actions=[]}
+
+instance descr String
+where
+	toPrompt hint = UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (createPrompt hint)
+	
+instance descr (!String,!String)
+where
+	toPrompt (title,hint) = UIEditor {UIEditor|optional=False,attributes='DM'.fromList [(TITLE_ATTRIBUTE,title)]} (createPrompt hint)
 
 /**
 * The basic interaction layout simply decorates the prompt and merges it with the editor.
 */
-autoAccuInteract :: UIAttributes UIForm -> UIForm
-autoAccuInteract prompt editor
+autoAccuInteract :: UIContent -> UIContent
+autoAccuInteract editor
     //If the prompt attributes contain a hint attribute create a prompt
-    # (prompt,pcontrols) = if (isJust ('Data.Map'.get HINT_ATTRIBUTE prompt))
-        ('Data.Map'.del HINT_ATTRIBUTE prompt,[(c,'Data.Map'.newMap) \\ c <-createPrompt prompt])
-        (prompt,[])
-	= {UIForm
-		| attributes = mergeAttributes prompt editor.UIForm.attributes
-		, controls = pcontrols ++ editor.UIForm.controls
-        , size = editor.UIForm.size
+	# controls = collectControls editor
+	= UIForm {UIForm
+		| attributes = foldl mergeAttributes 'DM'.newMap (map snd controls)
+		, controls = controls
+        , size = defaultSizeOpts
 		}
+
+collectControls (UIEditor {UIEditor|attributes} control) = [(control,attributes)]
+collectControls (UICompoundEditor _ parts) = flatten (map collectControls parts)
+collectControls def = []
 
 autoAccuStep :: UIDef [UIAction]-> UIDef
 autoAccuStep {UIDef|content=UIEmpty {UIEmpty|actions},windows} stepActions
@@ -52,6 +66,7 @@ autoAccuStep {UIDef|content=UIBlock sub=:{UIBlock|actions},windows} stepActions
 autoAccuStep {UIDef|content=UIBlocks blocks origActions,windows} stepActions
     # (triggers,actions) = extractTriggers (origActions ++ stepActions)
 	= addTriggersToUIDef triggers {UIDef|content=UIBlock (autoLayoutBlocks blocks actions),windows=windows}
+autoAccuStep def actions = def
 
 autoAccuParallel :: [UIDef] [UIAction] -> UIDef
 autoAccuParallel defs parActions
@@ -69,7 +84,7 @@ autoAccuParallel defs parActions
             = addTriggersToUIDef triggers def
         _
             | allForms defs
-                # form = (foldl mergeForms {UIForm|attributes='Data.Map'.newMap,controls=[],size=defaultSizeOpts} defs)
+                # form = (foldl mergeForms {UIForm|attributes='DM'.newMap,controls=[],size=defaultSizeOpts} defs)
                 | isEmpty parActions
                     = {UIDef|content=UIForm form,windows=windows}
                 # block = autoLayoutForm form
@@ -115,7 +130,7 @@ where
 autoAccuWorkOn :: UIDef TaskAttributes -> UIDef
 autoAccuWorkOn def attributes
     # def = uiDefSetSize FlexSize FlexSize def
-	= (maybe def (\title -> uiDefSetAttribute TITLE_ATTRIBUTE title def) ('Data.Map'.get "title" attributes))
+	= (maybe def (\title -> uiDefSetAttribute TITLE_ATTRIBUTE title def) ('DM'.get "title" attributes))
 
 /**
 * The basic data layout groups the controls of a part of a compound datastructure in a fieldset
@@ -124,7 +139,7 @@ autoLayoutSubEditor :: UIForm -> [(UIControl,UIAttributes)]
 autoLayoutSubEditor {UIForm|controls=[]}	= []
 autoLayoutSubEditor {UIForm|controls=[c]}	= [c]
 autoLayoutSubEditor {UIForm|attributes,controls}
-    = [(defaultFieldSet ('Data.Map'.get LABEL_ATTRIBUTE attributes) (decorateControls controls),attributes)]
+    = [(defaultFieldSet ('DM'.get LABEL_ATTRIBUTE attributes) (decorateControls controls),attributes)]
 
 autoLayoutForm :: UIForm -> UIBlock
 //Special case for choices
@@ -148,24 +163,22 @@ where
 	
 decorateControl :: Bool (!UIControl,!UIAttributes) -> UIControl
 decorateControl last (control,attributes)
-	# mbLabel 	= 'Data.Map'.get LABEL_ATTRIBUTE attributes
-	# mbPrefix  = 'Data.Map'.get PREFIX_ATTRIBUTE attributes
-	# mbPostfix = 'Data.Map'.get POSTFIX_ATTRIBUTE attributes
-	# mbHint 	= 'Data.Map'.get HINT_ATTRIBUTE attributes
-	# mbValid	= 'Data.Map'.get VALID_ATTRIBUTE attributes
-	# mbWarning = 'Data.Map'.get WARNING_ATTRIBUTE attributes
-	# mbError	= 'Data.Map'.get ERROR_ATTRIBUTE attributes
-	# hasMargin	= hasMargin control
-	# noMargins	= noMarginControl control
-	= case (mbLabel,mbPrefix,mbPostfix,mbHint,mbValid,mbWarning,mbError) of
-		(Nothing,Nothing,Nothing,Nothing,Nothing,Nothing,Nothing)	//Just set margins
+	# mbLabel 		= 'DM'.get LABEL_ATTRIBUTE attributes
+	# mbPrefix 	 	= 'DM'.get PREFIX_ATTRIBUTE attributes
+	# mbPostfix 	= 'DM'.get POSTFIX_ATTRIBUTE attributes
+	# mbHint 		= 'DM'.get HINT_ATTRIBUTE attributes
+	# mbHintType 	= 'DM'.get HINT_TYPE_ATTRIBUTE attributes
+	# hasMargin		= hasMargin control
+	# noMargins		= noMarginControl control
+	= case (mbLabel,mbPrefix,mbPostfix,mbHint,mbHintType) of
+		(Nothing,Nothing,Nothing,Nothing,Nothing)	//Just set margins
 			| hasMargin	= control
 						= if noMargins
 							(setMargins 0 0 0 0 control)
 							(if last (setMargins 5 5 5 5 control) (setMargins 5 5 0 5 control))
 
 		_									//Add decoration													
-			# control = row (labelCtrl mbLabel ++ prefixCtrl mbPrefix ++ [control] ++ postfixCtrl mbPostfix ++ iconCtrl control mbHint mbValid mbWarning mbError)
+			# control = row (labelCtrl mbLabel ++ prefixCtrl mbPrefix ++ [control] ++ postfixCtrl mbPostfix ++ iconCtrl control mbHint mbHintType)
 			= if noMargins
 				(setMargins 0 0 0 0 control)
 				(if last (setMargins 5 5 5 5 control) (setMargins 5 5 0 5 control))
@@ -181,12 +194,12 @@ where
 	prefixCtrl (Just prefix)	= [setRightMargin 5 (setWidth (ExactSize 30) (stringDisplay prefix))]
 	prefixCtrl Nothing		    = []
 	
-    iconCtrl (UIEditCheckbox _ _) _ _ _ _ = []
-	iconCtrl _ (Just msg) _ _ _	= icon "icon-hint" msg
-	iconCtrl _ _ (Just msg) _ _	= icon "icon-valid" msg
-	iconCtrl _ _ _ (Just msg) _ = icon "icon-warning" msg
-	iconCtrl _ _ _ _ (Just msg)	= icon "icon-invalid" msg
-	iconCtrl _ _ _ _ _			= []
+    iconCtrl (UIEditCheckbox _ _) _ _ = []
+	iconCtrl _ (Just msg) (Just "info") 	= icon "icon-hint" msg
+	iconCtrl _ (Just msg) (Just "valid") 	= icon "icon-valid" msg
+	iconCtrl _ (Just msg) (Just "warning")  = icon "icon-warning" msg
+	iconCtrl _ (Just msg) (Just "invalid")	= icon "icon-invalid" msg
+	iconCtrl _ _ _ 							= []
 	
 	icon cls tooltip		= [setLeftMargin 5 (UIIcon defaultFSizeOpts {UIIconOpts|iconCls = cls, tooltip = Just tooltip})]
 
@@ -217,7 +230,7 @@ where tune (Icon icon) t = tune (AfterLayout (uiDefSetAttribute ICON_ATTRIBUTE i
 instance tune Attribute
 where tune (Attribute k v) t = tune (AfterLayout (uiDefSetAttribute k v o forceLayout)) t
 instance tune Label
-where tune (Label label) t = tune (AfterLayout (tweakControls (map (\(c,a) -> (c,'Data.Map'.put LABEL_ATTRIBUTE label a))))) t
+where tune (Label label) t = tune (AfterLayout (tweakControls (map (\(c,a) -> (c,'DM'.put LABEL_ATTRIBUTE label a))))) t
 
 instance tune NoUserInterface
 where
@@ -256,7 +269,7 @@ arrangeHorizontal = arrangeStacked Horizontal
 
 arrangeStacked :: UIDirection [UIBlock] [UIAction] -> UIBlock
 arrangeStacked direction blocks actions
-    = foldl append {UIBlock|attributes='Data.Map'.newMap,content={UIItemsOpts|defaultItemsOpts [] & direction=direction},actions=actions,hotkeys=[],size=defaultSizeOpts} blocks
+    = foldl append {UIBlock|attributes='DM'.newMap,content={UIItemsOpts|defaultItemsOpts [] & direction=direction},actions=actions,hotkeys=[],size=defaultSizeOpts} blocks
 where
     append ui1 ui2
         # (control,attributes,actions,hotkeys) = blockToControl ui2
@@ -278,7 +291,7 @@ where
         # tabs          = map fst parts
         # activeTab     = activeIndex parts
         # controls      = [UITabSet defaultSizeOpts {UITabSetOpts|items=tabs,activeTab=activeTab}]
-        = {UIBlock|attributes='Data.Map'.newMap,content={UIItemsOpts|defaultItemsOpts controls & direction=Vertical}
+        = {UIBlock|attributes='DM'.newMap,content={UIItemsOpts|defaultItemsOpts controls & direction=Vertical}
           ,actions=actions,hotkeys=[],size=defaultSizeOpts}
 
     activeIndex parts = find 0 Nothing parts
@@ -289,7 +302,7 @@ where
             | later acur abest  = find (i+1) (Just (i,acur)) ds
                                 = find (i+1) (Just (ibest,abest)) ds
 
-		later a b = case ('Data.Map'.get LAST_FOCUS_ATTRIBUTE a,'Data.Map'.get LAST_FOCUS_ATTRIBUTE b) of
+		later a b = case ('DM'.get LAST_FOCUS_ATTRIBUTE a,'DM'.get LAST_FOCUS_ATTRIBUTE b) of
             (Just fa,Just fb)   = toInt fa > toInt fb
 			(Just _,Nothing)	= True
 			_					= False
@@ -335,7 +348,7 @@ where
         # (bcontrols,_,bactions,bhotkeys) = unzip4 (map blockToPanel blocks)
         # controls = map fill bcontrols
         # controls = if resize (intersperse UISplitter controls) controls
-        = {UIBlock|attributes='Data.Map'.newMap
+        = {UIBlock|attributes='DM'.newMap
                   ,content = {UIItemsOpts|defaultItemsOpts controls & direction = direction}
                   ,actions = actions ++ flatten bactions
                   ,hotkeys = flatten bhotkeys
@@ -348,10 +361,10 @@ where
 
 blockToControl :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
 blockToControl ui=:{UIBlock|attributes}
-    = case ('Data.Map'.get CONTAINER_ATTRIBUTE attributes) of
+    = case ('DM'.get CONTAINER_ATTRIBUTE attributes) of
 		(Just "panel")		= blockToPanel ui
 		(Just "container")	= blockToContainer ui
-        _                   = if (isNothing ('Data.Map'.get TITLE_ATTRIBUTE attributes)) (blockToContainer ui) (blockToPanel ui)
+        _                   = if (isNothing ('DM'.get TITLE_ATTRIBUTE attributes)) (blockToContainer ui) (blockToPanel ui)
 
 blockToContainer :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
 blockToContainer {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
@@ -371,9 +384,9 @@ blockToPanel {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,att
 where
 	sizeOpts	= {UISizeOpts|size & width = Just FlexSize}
 	panelOpts	= {UIPanelOpts|title = title,frame = False, hotkeys = Nothing, iconCls = iconCls}
-	title		= 'Data.Map'.get TITLE_ATTRIBUTE attributes	
-	iconCls		= fmap (\icon -> "icon-" +++ icon) ('Data.Map'.get ICON_ATTRIBUTE attributes)
-    attributes` = ('Data.Map'.del TITLE_ATTRIBUTE o 'Data.Map'.del ICON_ATTRIBUTE) attributes
+	title		= 'DM'.get TITLE_ATTRIBUTE attributes	
+	iconCls		= fmap (\icon -> "icon-" +++ icon) ('DM'.get ICON_ATTRIBUTE attributes)
+    attributes` = ('DM'.del TITLE_ATTRIBUTE o 'DM'.del ICON_ATTRIBUTE) attributes
 
 blockToTab :: UIBlock -> UITab
 blockToTab {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
@@ -390,9 +403,9 @@ where
         = {UITabOpts|title = title, menu = if (isEmpty menus) Nothing (Just menus)
           , hotkeys = if (isEmpty hotkeys) Nothing (Just hotkeys), focusTaskId = taskId, closeTaskId = close,iconCls=iconCls}
 
-	taskId		= 'Data.Map'.get TASK_ATTRIBUTE attributes
-	title       = fromMaybe "Untitled" ('Data.Map'.get TITLE_ATTRIBUTE attributes)
-    iconCls     = fmap (\i -> "icon-" +++ i) ('Data.Map'.get ICON_ATTRIBUTE attributes)
+	taskId		= 'DM'.get TASK_ATTRIBUTE attributes
+	title       = fromMaybe "Untitled" ('DM'.get TITLE_ATTRIBUTE attributes)
+    iconCls     = fmap (\i -> "icon-" +++ i) ('DM'.get ICON_ATTRIBUTE attributes)
 
 uiDefToWindow :: UIWindowType UIVAlign UIHAlign UIDef -> UIDef
 uiDefToWindow windowType vpos hpos {UIDef|content=UIForm form,windows}
@@ -419,8 +432,8 @@ where
         = {UIWindowOpts|windowType = windowType, title = title, menu = if (isEmpty menus) Nothing (Just menus), closeTaskId = close, focusTaskId = Nothing
                       ,hotkeys = if (isEmpty hotkeys) Nothing (Just hotkeys), vpos = Just vpos, hpos = Just hpos, iconCls = iconCls}
 	
-    title		= 'Data.Map'.get TITLE_ATTRIBUTE attributes	
-    iconCls		= fmap (\icon -> "icon-" +++ icon) ('Data.Map'.get ICON_ATTRIBUTE attributes)
+    title		= 'DM'.get TITLE_ATTRIBUTE attributes	
+    iconCls		= fmap (\icon -> "icon-" +++ icon) ('DM'.get ICON_ATTRIBUTE attributes)
 
 autoLayoutFinal :: UIDef -> UIDef
 autoLayoutFinal {UIDef|content=UIEmpty {UIEmpty|actions},windows}
@@ -428,34 +441,33 @@ autoLayoutFinal {UIDef|content=UIEmpty {UIEmpty|actions},windows}
 autoLayoutFinal {UIDef|content=UIForm stack,windows}
     = autoLayoutFinal {UIDef|content=UIBlock (autoLayoutForm stack),windows=windows}
 autoLayoutFinal {UIDef|content=UIBlock subui=:{UIBlock|attributes,content,actions,hotkeys,size},windows}
-    # fullScreen = ('Data.Map'.get SCREEN_ATTRIBUTE attributes === Just "full") || isNothing ('Data.Map'.get "session" attributes)
-    # (panel,attributes,actions,panelkeys) = blockToPanel (if fullScreen {UIBlock|subui & attributes = 'Data.Map'.del TITLE_ATTRIBUTE attributes} subui)
+    # fullScreen = ('DM'.get SCREEN_ATTRIBUTE attributes === Just "full") || isNothing ('DM'.get "session" attributes)
+    # (panel,attributes,actions,panelkeys) = blockToPanel (if fullScreen {UIBlock|subui & attributes = 'DM'.del TITLE_ATTRIBUTE attributes} subui)
     # panel = if fullScreen (setSize FlexSize FlexSize panel) ((setSize WrapSize WrapSize o setFramed True) panel)
 	# (menu,menukeys,actions)	= actionsToMenus actions
 	# items				        = [panel]
 	# itemsOpts			        = {defaultItemsOpts items & direction = Vertical, halign = AlignCenter, valign= AlignMiddle}
 	# hotkeys			        = case panelkeys ++ menukeys of [] = Nothing ; keys = Just keys
-	= {UIDef|content=UIFinal (UIViewport itemsOpts {UIViewportOpts|title = 'Data.Map'.get TITLE_ATTRIBUTE attributes, menu = if (isEmpty menu) Nothing (Just menu), hotkeys = hotkeys}),windows=windows}
+	= {UIDef|content=UIFinal (UIViewport itemsOpts {UIViewportOpts|title = 'DM'.get TITLE_ATTRIBUTE attributes, menu = if (isEmpty menu) Nothing (Just menu), hotkeys = hotkeys}),windows=windows}
 autoLayoutFinal {UIDef|content=UIBlocks blocks actions,windows}
     = autoLayoutFinal {UIDef|content=UIBlock (autoLayoutBlocks blocks actions),windows=windows}
 autoLayoutFinal {UIDef|content=UIFinal viewport,windows} = {UIDef|content=UIFinal viewport,windows=windows}
+autoLayoutFinal def = def
 
 plainLayoutFinal :: UIDef -> UIDef
 plainLayoutFinal {UIDef|content=UIEmpty {UIEmpty|actions},windows}
 	= {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing}),windows=windows}
 plainLayoutFinal {UIDef|content=UIBlock block=:{UIBlock|attributes,content,actions,hotkeys},windows}
     # (UIContainer sOpts iOpts,attributes,_,_) = blockToContainer block
-    = {UIDef|content=UIFinal (UIViewport iOpts {UIViewportOpts|title = 'Data.Map'.get TITLE_ATTRIBUTE attributes, menu = Nothing, hotkeys = Just hotkeys}),windows=windows}
+    = {UIDef|content=UIFinal (UIViewport iOpts {UIViewportOpts|title = 'DM'.get TITLE_ATTRIBUTE attributes, menu = Nothing, hotkeys = Just hotkeys}),windows=windows}
 plainLayoutFinal {UIDef|content=UIBlocks blocks actions,windows}
     = plainLayoutFinal {UIDef|content=UIBlock (autoLayoutBlocks blocks actions),windows=windows}
 plainLayoutFinal {UIDef|content=UIFinal viewport,windows}
     = {UIDef|content=UIFinal viewport,windows=windows}
 
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
-createPrompt :: UIAttributes -> [UIControl]
-createPrompt attributes = case 'Data.Map'.get HINT_ATTRIBUTE attributes of
-    Just hint   = [UIContainer sizeOpts (itemsOpts hint)]
-    Nothing     = []
+createPrompt :: String -> UIControl
+createPrompt hint = UIContainer sizeOpts (itemsOpts hint)
 where
 	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 5, bottom = 10, left = 5}
 			   , width = Just FlexSize, minWidth = Just WrapBound, height = Just WrapSize}
@@ -466,7 +478,7 @@ where
 addButtonPanel :: UIAttributes UIDirection [UIControl] [UIControl] -> (![UIControl],!UIDirection)
 addButtonPanel attr direction [] items = (items,direction)
 addButtonPanel attr direction buttons items
-	= case ('Data.Map'.get "buttonPosition" attr,direction) of
+	= case ('DM'.get "buttonPosition" attr,direction) of
 		(Nothing,Vertical)			= (items ++ [fillWidth (buttonPanel buttons)],Vertical)
 		(Nothing,Horizontal)		= ([setDirection Horizontal (defaultContainer items),fillWidth (buttonPanel buttons)],Vertical)
 		(Just "left",Vertical)		= ([wrapWidth (buttonPanel buttons),setDirection Vertical (defaultContainer items)],Horizontal)
@@ -681,16 +693,16 @@ actionToHotkey {taskId,action=Action actionId options,enabled=True}
 actionToHotkey _ = Nothing
 
 hasWindowContainerAttr :: UIAttributes -> Bool
-hasWindowContainerAttr attributes = maybe False ((==) "window") ('Data.Map'.get CONTAINER_ATTRIBUTE attributes)
+hasWindowContainerAttr attributes = maybe False ((==) "window") ('DM'.get CONTAINER_ATTRIBUTE attributes)
 
 hasPanelContainerAttr :: UIAttributes -> Bool
-hasPanelContainerAttr attributes = maybe False ((==) "panel") ('Data.Map'.get CONTAINER_ATTRIBUTE attributes)
+hasPanelContainerAttr attributes = maybe False ((==) "panel") ('DM'.get CONTAINER_ATTRIBUTE attributes)
 
 hasContainerContainerAttr :: UIAttributes -> Bool
-hasContainerContainerAttr attributes = maybe False ((==) "container") ('Data.Map'.get CONTAINER_ATTRIBUTE attributes)
+hasContainerContainerAttr attributes = maybe False ((==) "container") ('DM'.get CONTAINER_ATTRIBUTE attributes)
 
 hasContainerAttr :: UIAttributes -> Bool
-hasContainerAttr attributes = isJust ('Data.Map'.get CONTAINER_ATTRIBUTE attributes) 
+hasContainerAttr attributes = isJust ('DM'.get CONTAINER_ATTRIBUTE attributes) 
 
 singleControl :: UIDef -> Bool
 singleControl  def = case uiDefControls def of
@@ -699,10 +711,10 @@ singleControl  def = case uiDefControls def of
 
 mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
 mergeAttributes attr1 attr2
-    = foldl setIfNotSet attr1 ('Data.Map'.toList attr2)
+    = foldl setIfNotSet attr1 ('DM'.toList attr2)
 where
     setIfNotSet attr (k,v)
-        = maybe ('Data.Map'.put k v attr) (const attr) ('Data.Map'.get k attr)
+        = maybe ('DM'.put k v attr) (const attr) ('DM'.get k attr)
 
 tweakUI :: (UIControl -> UIControl) UIDef -> UIDef
 tweakUI f {UIDef|content=UIForm stack=:{UIForm|controls},windows}
@@ -724,8 +736,8 @@ tweakControls :: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDe
 tweakControls f {UIDef|content=UIForm stack=:{UIForm|controls},windows}
 	= {UIDef|content=UIForm {UIForm|stack & controls = f controls},windows=windows}
 tweakControls f {UIDef|content=UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}},windows=windows}
-	= {UIDef|content=UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map fst (f [(c,'Data.Map'.newMap) \\ c <- items])}},windows=windows}
+	= {UIDef|content=UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map fst (f [(c,'DM'.newMap) \\ c <- items])}},windows=windows}
 tweakControls f {UIDef|content=UIFinal (UIViewport iOpts=:{UIItemsOpts|items} opts),windows}
-    = {UIDef|content=UIFinal (UIViewport {UIItemsOpts|iOpts & items = map fst (f [(c,'Data.Map'.newMap) \\ c <- items])} opts),windows=windows}
+    = {UIDef|content=UIFinal (UIViewport {UIItemsOpts|iOpts & items = map fst (f [(c,'DM'.newMap) \\ c <- items])} opts),windows=windows}
 tweakControls f def	= def
 

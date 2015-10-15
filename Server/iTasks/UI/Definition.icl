@@ -17,7 +17,7 @@ from GenEq import generic gEq
 
 import Text.HTML
 
-derive class iTask UIDef, UIContent, UIWindow, UIEmpty, UIForm, UIBlock, UIAction, UIViewport, UIControl, UITab
+derive class iTask UIDef, UIContent, UIWindow, UIEmpty, UIForm, UIBlock, UIAction, UIEditor, UIViewport, UIControl, UITab
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
 derive class iTask UIViewportOpts, UIWindowOpts, UIItemsOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
@@ -422,9 +422,10 @@ uiDefSetSize width height def = def
 //Encoding of UI definitions to the JSON format expected by the client
 class encodeUI a :: a -> JSONNode
 
-instance encodeUI String			where encodeUI v = JSONString v
 instance encodeUI Int				where encodeUI v = JSONInt v
 instance encodeUI Real				where encodeUI v = JSONReal v
+instance encodeUI Char 				where encodeUI v = JSONString (toString v)
+instance encodeUI String			where encodeUI v = JSONString v
 instance encodeUI Bool				where encodeUI v = JSONBool v
 instance encodeUI Document			where encodeUI v = toJSON v
 instance encodeUI Date				where encodeUI v = toJSON v

@@ -22,7 +22,7 @@ from Text.JSON import :: JSONNode
 *	Standard editor
 */
 :: Editor a = 
-	{ genUI  	:: DataPath a InteractionMask Verification [EditMeta] *VSt -> *(!VisualizationResult,!*VSt)
+	{ genUI  	:: DataPath a InteractionMask Verification [EditMeta] *VSt -> *(!UIContent,!*VSt)
 	, genDiff 	:: DataPath a a *VSt -> *(!UIChangeDef,!*VSt)
 	, appDiff 	:: DataPath JSONNode a InteractionMask *USt -> *(!a, !InteractionMask, !*USt)
 	}
@@ -32,7 +32,6 @@ from Text.JSON import :: JSONNode
 	, optional			:: !Bool												// Create optional form fields
 	, disabled			:: !Bool												// If true the editor is not editable
 	, taskId			:: !String												// The id of the task the visualisation belongs to
-	, layout			:: !LayoutRules											// Layout rules for composite structures
 	, iworld			:: !*IWorld												// The iworld, used for example if external tools are needed to create editors
 	}
 
@@ -40,6 +39,7 @@ from Text.JSON import :: JSONNode
 	= NormalEditor [(!UIControl,!UIAttributes)]
 	| OptionalEditor [(!UIControl,!UIAttributes)]
 	| HiddenEditor
+
 
 :: EditMeta
 	= { label	:: Maybe String
@@ -53,8 +53,7 @@ from Text.JSON import :: JSONNode
     , iworld            :: !*IWorld
     }
 
-editorControls 	:: !VisualizationResult -> [(UIControl,UIAttributes)]
-editorUIDef 	:: !VisualizationResult !*VSt -> *(!UIDef,!*VSt)
+editorUIDef 	:: !UIContent !*VSt -> *(!UIDef,!*VSt)
 
 //****************************************************************************//
 // Wrapper types for defining custom editor components that can process events

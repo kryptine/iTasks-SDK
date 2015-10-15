@@ -8,15 +8,11 @@ from iTasks.UI.Editor import ::VisualizationResult(..), :: Editor(..), :: USt(..
 from Data.Map import :: Map, newMap, put
 from Data.Map import qualified get
 
-editorControls :: !VisualizationResult -> [(UIControl,UIAttributes)]
-editorControls (NormalEditor controls)		= controls
-editorControls (OptionalEditor controls)	= controls
-editorControls HiddenEditor					= []
-
-editorUIDef :: !VisualizationResult !*VSt -> *(!UIDef,!*VSt)
-editorUIDef viz vst=:{VSt|layout}
-	# controls = layout.LayoutRules.layoutSubEditor {UIForm|attributes=newMap,controls=editorControls viz,size=defaultSizeOpts}
-    = ({UIDef|content=UIForm {UIForm|attributes=newMap,controls=controls,size=defaultSizeOpts},windows=[]},vst)
+editorUIDef :: !UIContent !*VSt -> *(!UIDef,!*VSt)
+editorUIDef content vst
+	= ({UIDef|content=content,windows=[]},vst)
+	//# controls = layout.LayoutRules.layoutSubEditor {UIForm|attributes=newMap,controls=editorControls viz,size=defaultSizeOpts}
+    //= ({UIDef|content=UIForm {UIForm|attributes=newMap,controls=controls,size=defaultSizeOpts},windows=[]},vst)
 
 createEditletEventHandler :: (EditletEventHandlerFunc d a) !ComponentId -> JSFun b
 createEditletEventHandler handler id = undef
@@ -39,7 +35,7 @@ where
 				// Increase version number if there is a difference between the reference and the new value
 				# ver                                = if (isJust currentDiff) (ver + 1) ver
 				# iworld                             = setEditletDiffs ver currVal opts diffs iworld
-				= (NormalEditor [(ui uiDef {UIEditletOpts|opts & value = toJSONA currVal, initDiff = jsIDiff}, newMap)],{VSt|vst & iworld = iworld})
+				= (UIEditor {UIEditor|optional=False,attributes=newMap} (ui uiDef {UIEditletOpts|opts & value = toJSONA currVal, initDiff = jsIDiff}), {VSt|vst & iworld = iworld})
 			  //Create editlet definition and store reference value for future diffs
 			  Nothing
 				# diffs = initDiff
@@ -47,7 +43,7 @@ where
 					= editletLinker initDiff (initClient currVal createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld
 				# opts = editletOpts jsScript jsID jsIC jsAD uiDef
 				# iworld = setEditletDiffs 1 currVal {UIEditletOpts|opts & value = JSONNull} [] iworld
-				= (NormalEditor [(ui uiDef opts, newMap)],{VSt|vst & iworld = iworld})
+				= (UIEditor {UIEditor|optional=False,attributes=newMap} (ui uiDef opts), {VSt|vst & iworld = iworld})
 		where
 			htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
 

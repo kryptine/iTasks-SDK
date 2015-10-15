@@ -11,7 +11,8 @@ from Text.URI import :: URI
 
 import iTasks._Framework.Generic
 from iTasks._Framework.Task              import :: Task
-from iTasks.API.Core.Types              import class descr, :: Note, :: EmailAddress, :: ProcessStatus, :: Document
+from iTasks.API.Core.Types              import :: Note, :: EmailAddress, :: ProcessStatus, :: Document
+from iTasks.UI.Layout 					import class descr
 from iTasks.API.Common.InteractionTasks import :: ViewOption //TODO: We shouldn't import from Common in Core
 
 /**
