@@ -1,7 +1,11 @@
 definition module TestFramework
 import iTasks
 
-:: TestResult = Pass | Fail !(Maybe Note) //Observed behavior
+:: TestResult
+	= Passed 
+	| Failed !(Maybe Note) 	//Observed behavior
+	| Skipped 				//The test was skipped
+
 :: InteractiveTest 
 	= { name :: String
       , instructions  	:: Note
@@ -48,6 +52,8 @@ interactive :: String String String (Task a) -> Test | iTask a
 assertEqual :: String a a -> Test | gEq{|*|} a & gText{|*|} a
 
 assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & gText{|*|} a
+
+skip :: String -> Test
 
 /**
 * Convenient wrapper for defining test suites

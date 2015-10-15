@@ -8,7 +8,7 @@ derive class iTask TestResult, TestSuite, Test, InteractiveTest
 gText{|UnitTest|} _ _			            = []
 gEditor{|UnitTest|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI _ _ _ _ _ vst			    = (HiddenEditor,vst)
+	genUI _ _ _ _ _ vst			    = (UIEmpty {UIEmpty|actions=[]},vst)
 	genDiff _ _ _ vst 				= (NoChange, vst)
 	appDiff _ _ val mask ust 		= (val,mask,ust)
 
@@ -21,7 +21,7 @@ gEq{|UnitTest|} _ _			   = True
 gDefault{|UnitTest|}		   = {UnitTest|name="Default unit test",test=pass}
 where
 	pass :: *World -> *(TestResult,*World)
-	pass w = (Pass,w)
+	pass w = (Passed,w)
 //DEFINING TESTS
 
 interactive :: String String String (Task a) -> Test | iTask a
@@ -31,14 +31,19 @@ interactive name instructions expectation tut
 assertEqual :: String a a -> Test | gEq{|*|} a & gText{|*|} a 
 assertEqual name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
-	test w = (if (exp === sut) Pass (Fail (Just (Note ("Expected :" <+++ exp <+++ "\nActual: " <+++ sut)))),w)
+	test w = (if (exp === sut) Passed (Failed (Just (Note ("Expected: " <+++ exp <+++ "\nActual:   " <+++ sut)))),w)
 
 assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & gText{|*|} a
 assertEqualWorld name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
 	test w
 		# (res,w) = sut w
-		= (if (exp === res) Pass (Fail (Just (Note ("Expected :" <+++ exp <+++ "\nActual: " <+++ res)))),w)
+		= (if (exp === res) Passed (Failed (Just (Note ("Expected: " <+++ exp <+++ "\nActual:   " <+++ res)))),w)
+
+skip :: String -> Test
+skip name = UnitTest {UnitTest|name=name,test=test}
+where
+	test w = (Skipped,w)
 
 testsuite :: String String [Test] -> TestSuite
 testsuite name description tests
@@ -82,27 +87,33 @@ where
 runUnitTestsCLI :: [TestSuite] *World -> *World
 runUnitTestsCLI suites world
 	# (console,world)	= stdio world
-	# (console,world) 	= foldl run (console,world) unittests
+	# (console,world) 	= foldl runSuite (console,world) suites
 	# (_,world)			= fclose console world
 	= world
 where	
-	unittests = flatten [[t \\ UnitTest t <- tests] \\ {TestSuite|tests} <- suites]
-
-	run (console,world) {UnitTest|name,test}
+	runSuite (console,world) {TestSuite|name,tests}
+		# console = fwrites ("===[ "+++ name +++ " ]===\n") console
+		= foldl runTest (console,world) [t \\ UnitTest t <- tests]
+		
+	runTest (console,world) {UnitTest|name,test}
 		# console = fwrites (name +++ "... ") console
 		= case (test world) of
-			(Pass,world)
-				# console = fwrites (green "PASS\n") console
+			(Passed,world)
+				# console = fwrites (green "PASSED\n") console
 				= (console,world)
-			(Fail Nothing,world)
-				# console = fwrites (red "FAIL\n") console
+			(Failed Nothing,world)
+				# console = fwrites (red "FAILED\n") console
 				= (console,world)
-			(Fail (Just (Note msg)),world)
-				# console = fwrites (red ("FAIL\n" +++msg+++"\n")) console
+			(Failed (Just (Note msg)),world)
+				# console = fwrites (red ("FAILED\n" +++msg+++"\n")) console
+				= (console,world)
+			(Skipped,world)
+				# console = fwrites (yellow "SKIPPED\n") console
 				= (console,world)
 
 	//ANSI COLOR CODES -> TODO: Create a library in clean-platform for ANSI colored output
 	red s = toString [toChar 27,'[','3','1','m'] +++ s +++ toString [toChar 27,'[','0','m']
 	green s = toString [toChar 27,'[','3','2','m'] +++ s +++ toString [toChar 27,'[','0','m']
+	yellow s = toString [toChar 27,'[','3','3','m'] +++ s +++ toString [toChar 27,'[','0','m']
 
 
