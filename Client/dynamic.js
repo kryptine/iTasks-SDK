@@ -40,7 +40,7 @@ function _dynamic_hijack(){
 // if the current type is wrapped into a "JSTYPE" data constructor, use the handwritten unification
 // otherwise the original, generated one
 function _gen_unify(subst, t1, t2){
-	if(isArray(t1) && t1[0] == 0 && t1[1] == "JSTYPE"){
+	if(t1 instanceof Array && t1[0] == 0 && t1[1] == "JSTYPE"){
 		return ___Tuple2(unify(t1[2], Sapl.heval(t2), true), subst);
 	}else{
 		return _orig_unify_fun(subst, t1, t2);
@@ -91,7 +91,7 @@ function toDynamic(val){
 
 function getType(val){
 
-	if(isNumber(val)){
+	if(typeof val === "number"){
 	
 		if(isFloat(val)){
 			return floatType();
@@ -107,7 +107,7 @@ function getType(val){
 	
 		return boolType();
 	
-	}else if(isArray(val)){
+	}else if(val instanceof Array){
 	
 		if(val[0] == 0 && val[1].startsWith("_Tuple")){
 			return applyTypes(val.slice(2,val.length), tupleType(val.length-2));

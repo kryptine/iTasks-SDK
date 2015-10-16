@@ -227,7 +227,7 @@ itwc.Component.prototype = {
 			//Check first if we already applied this update
 			me.appliedUpdates = me.appliedUpdates || [];
 			var nextAppliedUpdate = me.appliedUpdates.shift();
-			if(isArray(nextAppliedUpdate)) {
+			if(nextAppliedUpdate instanceof Array) {
 				if(nextAppliedUpdate[0] == operation && itwc.util.equalArgs(nextAppliedUpdate[1],args)) {
 					//On a match we are done
 					return

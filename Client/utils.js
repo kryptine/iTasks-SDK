@@ -1,13 +1,5 @@
 "use strict";
 
-var isArray = function(o){
-	return (o instanceof Array);
-}
-
-var isNumber = function(o){
-	return (typeof o == "number");
-}
-
 var isFloat = function(n){
   return n===+n && n!==(n|0);
 }
