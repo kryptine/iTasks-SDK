@@ -14,7 +14,7 @@ createEditletEventHandler handler id = undef
 fromEditlet :: (Editlet a d cl) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONDecode{|*|} d
 fromEditlet editlet=:{Editlet| genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv} = {Editor|genUI=genUI`,genDiff=genDiff`,appDiff=appDiff`}
 where
-	genUI` dp currVal mask ver meta vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
+	genUI` dp currVal mask ver vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
 		# (uiDef, world)        = genUI htmlId currVal world
   		# iworld                = {iworld & world = world}
 		= case 'Data.Map'.get (taskId,editorId dp) editletDiffs of

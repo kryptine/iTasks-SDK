@@ -8,7 +8,7 @@ derive class iTask TestResult, TestSuite, Test, InteractiveTest
 gText{|UnitTest|} _ _			            = []
 gEditor{|UnitTest|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI _ _ _ _ _ vst			    = (UIEmpty {UIEmpty|actions=[]},vst)
+	genUI _ _ _ _ vst			    = (UIEmpty {UIEmpty|actions=[]},vst)
 	genDiff _ _ _ vst 				= (NoChange, vst)
 	appDiff _ _ val mask ust 		= (val,mask,ust)
 

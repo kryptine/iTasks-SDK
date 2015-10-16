@@ -21,16 +21,16 @@ from iTasks.UI.Editor import :: Editor, :: VSt(..), :: EditMeta, :: USt
 /**
 * Main eneric editor function
 */
-generic gEditor a | gText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a :: Editor a
+generic gEditor a | gText a, gDefault a, JSONEncode a, JSONDecode a :: Editor a
 
 derive gEditor
 	UNIT,
-	EITHER with ex _ dx mx _ _ ey _ dy my _ _,
-	PAIR with ve1 _ _ em1 _ _ ve2 _ _ em2 _ _,
-	OBJECT of {gtd_num_conses,gtd_conses} with ve1 _ _ em1 _ _,
-	CONS of {gcd_index,gcd_arity} with ve1 _ _ em1 _ _,
-	RECORD of {grd_arity} with ve1 _ _ em1 _ _,
-	FIELD of {gfd_name} with ve1 _ _ em1 _ _
+	EITHER with ex _ dx _ _ ey _ dy _ _,
+	PAIR with ex _ _ _ _ ey _ _ _ _,
+	OBJECT of {gtd_num_conses,gtd_conses} with ex _ _ _ _,
+	CONS of {gcd_index,gcd_arity} with ex _ _ _ _,
+	RECORD of {grd_arity} with ex _ _ _ _,
+	FIELD of {gfd_name} with ex _ _ _ _
 
 derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (->), Dynamic
 derive gEditor Maybe, Either, MaybeError, Map, JSONNode, HtmlTag, Timestamp
@@ -77,7 +77,7 @@ derive gVerify RWShared
 checkMask			:: !InteractionMask a -> Maybe a
 checkMaskValue      :: !InteractionMask a -> Maybe JSONNode | JSONEncode{|*|} a
 
-editorAttributes	:: !(VerifiedValue a) [EditMeta] -> UIAttributes
+stdAttributes 		:: String (VerifiedValue a) -> UIAttributes
 
 /**
 * Verify a value.

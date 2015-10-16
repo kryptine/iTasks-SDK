@@ -15,7 +15,7 @@ from iTasks._Framework.IWorld		import :: IWorld {onClient,server,memoryShares,ca
 from iTasks._Framework.Task		    import exception
 from iTasks._Framework.TaskState		import :: DeferredJSON(..)
 from iTasks._Framework.Generic				import class iTask
-from iTasks._Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, :: VSt, ::USt, :: VisualizationResult,:: EditMeta, :: VerifyOptions, :: DataPath, :: VerifiedValue, :: MaskedValue, :: Verification, :: InteractionMask
+from iTasks._Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, :: VSt, ::USt, :: EditMeta, :: VerifyOptions, :: DataPath, :: VerifiedValue, :: MaskedValue, :: Verification, :: InteractionMask
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks._Framework.Generic.Defaults		import generic gDefault
 from iTasks.API.Core.Types	        import :: DateTime, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
