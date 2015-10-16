@@ -35,12 +35,6 @@ from Text.JSON import :: JSONNode
 	, iworld			:: !*IWorld												// The iworld, used for example if external tools are needed to create editors
 	}
 
-:: VisualizationResult
-	= NormalEditor [(!UIControl,!UIAttributes)]
-	| OptionalEditor [(!UIControl,!UIAttributes)]
-	| HiddenEditor
-
-
 :: EditMeta
 	= { label	:: Maybe String
 	  , hint	:: Maybe String
@@ -52,8 +46,6 @@ from Text.JSON import :: JSONNode
     , editorId          :: !String
     , iworld            :: !*IWorld
     }
-
-editorUIDef 	:: !UIContent !*VSt -> *(!UIDef,!*VSt)
 
 //****************************************************************************//
 // Wrapper types for defining custom editor components that can process events

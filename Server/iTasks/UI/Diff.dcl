@@ -27,7 +27,7 @@ from iTasks._Framework.Task import :: Event
 //Representation of a collection of changes that need to be applied to an existing UI
 :: UIChangeDef
 	= NoChange								//No changes are needed
-	| ReplaceUI UIDef						//Replace the entire UI with a new version
+	| ReplaceUI UIContent 					//Replace the entire UI with a new version
 	| ChangeUI [UIChange] [UIChildChange]	//Change the current UI and/or its children
 
 :: UIChange 		:== (!String,![JSONNode]) 	//A change method+arguments to call to effect the local change

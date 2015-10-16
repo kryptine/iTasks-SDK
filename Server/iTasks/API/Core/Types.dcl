@@ -32,7 +32,7 @@ from iTasks._Framework.IWorld			import :: IWorld
 from iTasks.UI.Definition		import :: UIDef, :: UIForm, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
 from iTasks._Framework.Task				import :: Task, :: TaskId
 from iTasks._Framework.Generic				import class iTask
-from iTasks._Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, :: VSt, ::USt, :: VisualizationResult,:: EditMeta, :: VerifyOptions
+from iTasks._Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, :: VSt, ::USt, :: EditMeta, :: VerifyOptions
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks._Framework.Generic.Defaults		import generic gDefault
 from iTasks._Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared

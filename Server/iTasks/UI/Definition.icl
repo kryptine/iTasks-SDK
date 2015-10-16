@@ -2,6 +2,7 @@ implementation module iTasks.UI.Definition
 
 import Text.JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text
 from Data.Map import :: Map, :: Size
+from Data.Functor import class Functor(..)
 import qualified Data.Map as DM
 import qualified Data.List as DL
 from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey
@@ -23,6 +24,9 @@ derive class iTask UIViewportOpts, UIWindowOpts, UIItemsOpts, UISizeOpts, UIEdit
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
 derive class iTask UIPanelOpts, UITabSetOpts, UIFieldSetOpts, UIEditletOpts, UITaskletOpts, UIIconOpts, UILabelOpts
 derive class iTask UIHSizeOpts, UIFSizeOpts, UIButtonOpts, UIMenuButtonOpts, UITreeNode, UIMenuItem
+
+instance Functor UIViewOpts
+where fmap f opts=:{UIViewOpts|value} = {UIViewOpts|opts & value = fmap f value}
 
 emptyUI :: UIDef
 emptyUI = {UIDef|content=UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing}),windows = []}

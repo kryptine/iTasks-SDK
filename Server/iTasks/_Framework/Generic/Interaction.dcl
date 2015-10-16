@@ -17,7 +17,7 @@ from Data.Map import :: Map
 from System.Time import :: Timestamp
 from iTasks._Framework.SDS import :: RWShared
 
-from iTasks.UI.Editor import :: Editor, :: VSt(..), :: VisualizationResult, :: EditMeta, :: USt
+from iTasks.UI.Editor import :: Editor, :: VSt(..), :: EditMeta, :: USt
 /**
 * Main eneric editor function
 */
@@ -25,7 +25,6 @@ generic gEditor a | gText a, gDefault a, gEditMeta a, JSONEncode a, JSONDecode a
 
 derive gEditor
 	UNIT,
-	//EITHER with ve1 _ _ em1 _ _ ve2 _ _ em2 _ _,
 	EITHER with ex _ dx mx _ _ ey _ dy my _ _,
 	PAIR with ve1 _ _ em1 _ _ ve2 _ _ em2 _ _,
 	OBJECT of {gtd_num_conses,gtd_conses} with ve1 _ _ em1 _ _,

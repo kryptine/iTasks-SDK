@@ -6,6 +6,7 @@ definition module iTasks.UI.Definition
 */
 from Text.JSON import :: JSONNode
 from Data.Maybe import :: Maybe
+from Data.Functor import class Functor
 from iTasks._Framework.Task	import :: TaskId
 from Text.HTML			import :: HtmlTag
 from Data.Map			import :: Map
@@ -28,6 +29,7 @@ derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISlide
 derive class iTask UIPanelOpts, UITabSetOpts, UIFieldSetOpts, UIEditletOpts, UITaskletOpts, UIIconOpts, UILabelOpts
 derive class iTask UIHSizeOpts, UIFSizeOpts, UIButtonOpts, UIMenuButtonOpts, UITreeNode, UIMenuItem
 
+instance Functor UIViewOpts
 //TODO:
 //- Multi select in grids
 //- Multi select in trees

@@ -24,26 +24,29 @@ where
 
 gEditor{|RECORD of {grd_arity}|} ex _ _ mx _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI dp (RECORD x) mask ver meta vst=:{VSt|optional,disabled,taskId}
-		//When optional and no value yet, just show the checkbox
-		| optional && not (isTouched mask)
-			= if disabled (UICompoundEditor {UIEditor|optional=True,attributes='DM'.newMap} [],vst) (UICompoundEditor {UIEditor|optional=True,attributes='DM'.newMap} [checkbox False], vst)
-		# (fieldsViz,vst) = ex.Editor.genUI (pairPath grd_arity dp) x (toPairMask grd_arity mask) (toPairVerification grd_arity ver) (mx x) {VSt|vst & optional = False}
-		//For optional records we add the checkbox to clear the entire record
-		# viz = if (optional && not disabled) (UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap} [checkbox True,fieldsViz]) fieldsViz	
-		= (viz,vst)
+	genUI dp (RECORD x) mask ver _ vst=:{VSt|optional,disabled,taskId}
+		# (viz,vst) = ex.Editor.genUI (pairPath grd_arity dp) x (toPairMask grd_arity mask) (toPairVerification grd_arity ver)
+			 (mx x) {VSt|vst & optional = False}
+		# viz = flattenPairUI grd_arity viz
+		//When optional we add a checkbox show the checkbox
+		| optional && not disabled
+			= (UICompoundEditor {UIEditor|optional=True,attributes='DM'.newMap} [checkbox (isTouched mask),viz], vst)
+		| otherwise 
+			= (viz,vst)
 	where
-		checkbox checked = UIEditor {UIEditor|optional=True,attributes='DM'.newMap} (UIEditCheckbox defaultFSizeOpts {UIEditOpts|taskId = taskId, editorId = editorId dp, value = Just (JSONBool checked)}) 
+		checkbox checked = UIEditor {UIEditor|optional=True,attributes='DM'.newMap}
+			(UIEditCheckbox defaultFSizeOpts {UIEditOpts|taskId = taskId, editorId = editorId dp, value = Just (JSONBool checked)}) 
 
 	genDiff dp (RECORD old) (RECORD new) vst 
 		# (diff,vst) = ex.Editor.genDiff (pairPath grd_arity dp) old new vst
-		= (pruneChangeDef(pairDiffSplit 0 grd_arity diff),vst)
+		= (pruneChangeDef (flattenPairDiff 0 grd_arity diff),vst)
 
-	appDiff [] e (RECORD record) mask ust
+	appDiff [] e (RECORD record) mask ust //Enabling or disabling of a record
     	# mask = case e of
         	JSONBool False  = Blanked
         	_               = Touched
     	= (RECORD record,mask,ust)
+
 	appDiff [d:ds] e (RECORD record) mask ust
 		| d >= grd_arity
 			= (RECORD record,mask,ust)
@@ -57,6 +60,7 @@ where
 	genUI dp (FIELD x) mask ver _ vst=:{VSt|disabled}
 		# (viz,vst)		= ex.Editor.genUI dp x mask ver (mx x) vst
 		= case viz of
+			//Add the field name as a label
 			UIEditor edit=:{UIEditor|optional,attributes} ctrl
 				= (UIEditor {UIEditor|edit & attributes = addLabel (optional || disabled) gfd_name attributes} ctrl,vst)
 			UICompoundEditor edit=:{UIEditor|optional,attributes} fields
@@ -70,48 +74,55 @@ where
 		# (field,mask,ust) = ex.Editor.appDiff dp e field mask ust
 		= (FIELD field,mask,ust)
 
-
 gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ mx _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI dp (OBJECT x) mask ver meta vst=:{selectedConsIndex = oldSelectedConsIndex,disabled,taskId}
+	genUI dp (OBJECT x) mask ver _ vst=:{selectedConsIndex = curSelectedConsIndex,disabled,taskId}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
 	| gtd_num_conses > 1 && not disabled
-		# (items, vst=:{selectedConsIndex}) = ex.Editor.genUI dp x mask ver meta {VSt|vst & optional=False}
+		# (items, vst=:{selectedConsIndex}) = ex.Editor.genUI dp x mask ver [] {VSt|vst & optional=False}
         # choice = case mask of
             Untouched   = []
             Blanked     = []
             _           = [selectedConsIndex]
-		# consDropdown = UIEditor {UIEditor|optional=False,attributes=editorAttributes (x,case mask of (CompoundMask _) = Touched; _ = mask,ver) [{EditMeta|hint=Just "Select an option",label=Nothing,unit=Nothing}]}
+		| allConsesArityZero gtd_conses //If all constructors have arity 0, we only need the constructor dropwdown
+			= (consDropdown choice, {vst & selectedConsIndex = curSelectedConsIndex})
+		| otherwise
+			= (UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap} [consDropdown choice,items]
+			, {vst & selectedConsIndex = curSelectedConsIndex})
+	//ADT with one constructor or static render: 'DM'.put content into container, if empty show cons name
+	| otherwise
+		# (viz,vst) = ex.Editor.genUI dp x mask ver [] vst
+		# viz = case viz of
+			UIEmpty _	= UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (stringDisplay (if (isTouched mask) (gtd_conses !! vst.selectedConsIndex).gcd_name "")) 
+			_			= viz
+		= (viz,{vst & selectedConsIndex = curSelectedConsIndex})
+	where
+		consDropdown choice = UIEditor 
+			{UIEditor|optional=False,attributes=attributes mask}
 				(UIDropdown defaultHSizeOpts
 								{UIChoiceOpts
 								| taskId = taskId
 								, editorId = editorId dp
 								, value = choice
-								, options = [gdc.gcd_name \\ gdc <- gtd_conses]}
-							) 
-				
-		= (UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap} [consDropdown,items], {vst & selectedConsIndex = oldSelectedConsIndex})
-	//ADT with one constructor or static render: 'DM'.put content into container, if empty show cons name
-	| otherwise
-		# (viz,vst) = ex.Editor.genUI dp x mask ver meta vst
-		# viz = case viz of
-			UIEmpty _	= UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (stringDisplay (if (isTouched mask) (gtd_conses !! vst.selectedConsIndex).gcd_name "")) 
-			_			= viz
-		= (viz,{vst & selectedConsIndex = oldSelectedConsIndex})
+								, options = [gdc.gcd_name \\ gdc <- gtd_conses]}) 
+		attributes mask
+			| isTouched mask	= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,HINT_TYPE_VALID),(HINT_ATTRIBUTE, "You have correctly selected an option")]
+								= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,HINT_TYPE_INFO),(HINT_ATTRIBUTE, "Select an option")]
 
-	genDiff dp (OBJECT old) (OBJECT new) vst=:{VSt|disabled}
+	genDiff dp (OBJECT old) (OBJECT new) vst=:{VSt|disabled,selectedConsIndex=curSelectedConsIndex}
 		| gtd_num_conses > 1 && not disabled
 			# (diff,vst=:{VSt|selectedConsIndex}) = ex.Editor.genDiff dp old new {vst & selectedConsIndex = 0}
 			| selectedConsIndex < 0 //A cons was changed
-				= (ChangeUI [] [(ItemStep 0,NoChange)
-							   ,(ItemStep 1,diff)
-							   ],vst)
+				# selectedCons = ~selectedConsIndex - 1
+				# consChange = ChangeUI [("setValue",[toJSON selectedCons,JSONBool True])] []
+				| allConsesArityZero gtd_conses
+					= (consChange,{vst & selectedConsIndex = curSelectedConsIndex})
+				| otherwise
+					= (ChangeUI [] [(ItemStep 0,consChange),(ItemStep 1,diff)],{vst & selectedConsIndex = curSelectedConsIndex})
 			| otherwise
-				= case diff of
-					NoChange 	= (NoChange,vst)
-					change 		= (ChangeUI [] [(ItemStep 1,diff)],vst)
+				= (diff,{vst & selectedConsIndex = curSelectedConsIndex})
 		| otherwise
 			= ex.Editor.genDiff dp old new vst
 
@@ -128,23 +139,28 @@ where
 		# (val,mask,ust) = ex.Editor.appDiff dp e val mask ust
 		= (OBJECT val,mask,ust)
 
+	allConsesArityZero [] = True
+	allConsesArityZero [{gcd_arity}:cs]
+		| gcd_arity > 0 = False
+						= allConsesArityZero cs
+
 gEditor{|EITHER|} ex _ dx mx _ _ ey _ dy my _ _  = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI dp (LEFT x) mask ver meta vst = ex.Editor.genUI dp x mask ver (mx x) vst
-	genUI dp (RIGHT y) mask ver meta vst =  ey.Editor.genUI dp y mask ver (my y) vst	
+	genUI dp (LEFT x) mask ver _ vst = ex.Editor.genUI dp x mask ver (mx x) vst
+	genUI dp (RIGHT y) mask ver _ vst =  ey.Editor.genUI dp y mask ver (my y) vst	
 
 	genDiff dp (LEFT old) (LEFT new) vst = ex.Editor.genDiff dp old new vst
 	genDiff dp (RIGHT old) (RIGHT new) vst = ey.Editor.genDiff dp old new vst
 
-	genDiff dp (LEFT old) (RIGHT new) vst //A different constructor is selected -> generate a new UI
-		# (nviz,vst) = ey.Editor.genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
-		# (ndef,vst=:{selectedConsIndex}) = editorUIDef nviz vst
-		= (ReplaceUI ndef, {vst & selectedConsIndex = -1 - selectedConsIndex}) //We use a negative selConsIndex to encode the changed cons
+	//A different constructor is selected -> generate a new UI
+	//We use a negative selConsIndex to encode that the constructor was changed
+	genDiff dp (LEFT old) (RIGHT new) vst 
+		# (viz,vst=:{selectedConsIndex}) = ey.Editor.genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
+		= (ReplaceUI viz, {vst & selectedConsIndex = -1 - selectedConsIndex}) 
 
 	genDiff dp (RIGHT old) (LEFT new) vst 
-		# (nviz,vst) = ex.Editor.genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
-		# (ndef,vst=:{selectedConsIndex}) = editorUIDef nviz vst
-		= (ReplaceUI ndef, {vst & selectedConsIndex = -1 - selectedConsIndex})
+		# (viz,vst=:{selectedConsIndex}) = ex.Editor.genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
+		= (ReplaceUI viz, {vst & selectedConsIndex = -1 - selectedConsIndex})
 
 	appDiff [d:ds] e either mask ust
 		| d == -1 = case ds of
@@ -168,13 +184,13 @@ where
 
 gEditor{|CONS of {gcd_index,gcd_arity}|} ex _ _ mx _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI dp (CONS x) mask ver meta vst=:{VSt|taskId,optional,disabled}
-		# (viz,vst)	= ex.Editor.genUI (pairPath gcd_arity dp) x (toPairMask gcd_arity mask) (toPairVerification gcd_arity ver) meta vst
-    	= (pairUISplit gcd_arity viz,{VSt| vst & selectedConsIndex = gcd_index})
+	genUI dp (CONS x) mask ver _ vst=:{VSt|taskId,optional,disabled}
+		# (viz,vst)	= ex.Editor.genUI (pairPath gcd_arity dp) x (toPairMask gcd_arity mask) (toPairVerification gcd_arity ver) [] vst
+    	= (flattenPairUI gcd_arity viz,{VSt| vst & selectedConsIndex = gcd_index})
 
 	genDiff dp (CONS old) (CONS new) vst 
 		# (diff,vst) = ex.Editor.genDiff (pairPath gcd_arity dp) old new vst 	//Diff all fields of the constructor
-		= (pruneChangeDef (pairDiffSplit 0 gcd_arity diff),vst) 				//Flatten the binary tree of ChangeUI constructors created from
+		= (pruneChangeDef (flattenPairDiff 0 gcd_arity diff),vst) 				//Flatten the binary tree of ChangeUI constructors created from
 																				//the PAIR's into a single ChangeUI constructor
 	appDiff [d:ds] e (CONS val) mask ust
 		| d >= gcd_arity
@@ -186,7 +202,7 @@ where
 
 gEditor{|PAIR|} ex _ _ mx _ _ ey _ _ my _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI dp (PAIR x y) mask ver meta vst
+	genUI dp (PAIR x y) mask ver _ vst
 		# (xmask,ymask) = case mask of
 			CompoundMask [xmask,ymask] 	= (xmask,ymask)
 			_							= (Untouched,Untouched)
@@ -212,6 +228,38 @@ where
 		= (PAIR x y,ymask,ust)
 	appDiff _ _ val mask ust = (val,mask,ust)
 
+//The maybe editor makes it content optional
+gEditor{|Maybe|} ex _ dx mx _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
+where
+	genUI dp val mask ver _ vst=:{VSt|optional,disabled}
+		# (viz,vst) = case val of
+			(Just x)	= ex.Editor.genUI dp x mask ver [] {VSt|vst & optional = True}
+			_			= ex.Editor.genUI dp dx Untouched ver [] {VSt|vst & optional = True}
+		= (toOptional viz, {VSt|vst & optional = optional})
+	where
+		toOptional	(UIEditor e c)			= UIEditor {UIEditor|e & optional = True} c
+		toOptional	(UICompoundEditor e ex)	= UICompoundEditor {UIEditor|e & optional = True} ex
+		toOptional	viz						= viz
+
+	genDiff dp Nothing Nothing vst = (NoChange,vst)
+	genDiff dp Nothing (Just new) vst=:{VSt|optional}
+		# (diff,vst) = ex.Editor.genDiff dp dx new {VSt|vst & optional = True}
+		= (diff,{VSt|vst & optional = optional})
+	genDiff dp (Just old) Nothing vst=:{VSt|optional}
+		# (diff,vst) = ex.Editor.genDiff dp old dx {VSt|vst & optional = True}
+		= (diff,{VSt|vst & optional = optional})
+	genDiff dp (Just old) (Just new) vst=:{VSt|optional}
+		# (diff,vst) = ex.Editor.genDiff dp old new {VSt|vst & optional = True}
+		= (diff,{VSt|vst & optional = optional})
+
+	appDiff dp e val mask ust
+		| isEmpty dp && (e === JSONNull || e === JSONBool False)
+			= (Nothing, Blanked,ust) //Reset
+		| otherwise
+			# (x,xmask) = maybe (dx,Untouched) (\x -> (x,mask)) val
+			# (x,xmask,ust) = ex.Editor.appDiff dp e x xmask ust
+			= (Just x,xmask,ust)
+
 //Encode the full range of fields in the datapath, such that it can be decomposed in PAIRs by the pairSplit
 pairPath 0 dp = dp
 pairPath 1 dp = dp ++ [0]
@@ -228,28 +276,28 @@ where
 //When UIs, or UI differences are aggregated in PAIR's they form a binary tree 
 //These functions flatten this tree back to a single CompoundEditor or ChangeUI definition
 
-pairUISplit 0 d = d
-pairUISplit 1 d = d
-pairUISplit 2 d = d
-pairUISplit 3 (UICompoundEditor e [l,UICompoundEditor _ [m,r]]) = UICompoundEditor e [l,m,r]
-pairUISplit n (UICompoundEditor e [l,r])
-	# (UICompoundEditor _ l) = pairUISplit half l
-	# (UICompoundEditor _ r) = pairUISplit (n - half) r
+flattenPairUI 0 d = d
+flattenPairUI 1 d = d
+flattenPairUI 2 d = d
+flattenPairUI 3 (UICompoundEditor e [l,UICompoundEditor _ [m,r]]) = UICompoundEditor e [l,m,r]
+flattenPairUI n (UICompoundEditor e [l,r])
+	# (UICompoundEditor _ l) = flattenPairUI half l
+	# (UICompoundEditor _ r) = flattenPairUI (n - half) r
 	= UICompoundEditor e (l ++ r)
 where
 	half = n / 2
 
 //No pairs are introduced for 0 or 1 fields
-pairDiffSplit s 0 d = d 
-pairDiffSplit s 1 d = d
+flattenPairDiff s 0 d = d 
+flattenPairDiff s 1 d = d
 //For two and three fields, set the correct ItemStep values 
-pairDiffSplit s 2 (ChangeUI _ [(ItemStep _,l),(ItemStep _,r)]) = ChangeUI [] [(ItemStep s,l),(ItemStep (s + 1),r)]
-pairDiffSplit s 3 (ChangeUI _ [(ItemStep _,l),(ItemStep _,ChangeUI _ [(ItemStep _,m),(ItemStep _,r)])])
+flattenPairDiff s 2 (ChangeUI _ [(ItemStep _,l),(ItemStep _,r)]) = ChangeUI [] [(ItemStep s,l),(ItemStep (s + 1),r)]
+flattenPairDiff s 3 (ChangeUI _ [(ItemStep _,l),(ItemStep _,ChangeUI _ [(ItemStep _,m),(ItemStep _,r)])])
 	= ChangeUI [] [(ItemStep s,l),(ItemStep (s + 1),m),(ItemStep (s + 2),r)]
 //For more fields we aggregate both sides
-pairDiffSplit s n (ChangeUI _ [(ItemStep _,l),(ItemStep _,r)]) 
-	# (ChangeUI _ l) = pairDiffSplit s half l
-	# (ChangeUI _ r) = pairDiffSplit (s + half) (n - half) r 
+flattenPairDiff s n (ChangeUI _ [(ItemStep _,l),(ItemStep _,r)]) 
+	# (ChangeUI _ l) = flattenPairDiff s half l
+	# (ChangeUI _ r) = flattenPairDiff (s + half) (n - half) r 
 	= ChangeUI [] (l ++ r)
 where
 	half = n / 2
@@ -281,17 +329,15 @@ gEditor{|Bool|} = primitiveTypeEditor Nothing
 					(\viewOpts -> UIViewCheckbox defaultFSizeOpts viewOpts)
 					(\editOpts -> UIEditCheckbox defaultFSizeOpts editOpts)
 
-instance Functor UIViewOpts
-where fmap f opts=:{UIViewOpts|value} = {UIViewOpts|opts & value = fmap f value}
 
 primitiveTypeEditor mbTypeDesc mkViewControl mkEditControl = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where 
-	genUI dp val mask ver _ vst=:{VSt|taskId,disabled}
+	genUI dp val mask ver _ vst=:{VSt|taskId,optional,disabled}
 		| disabled	
-			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} 
+			= (UIEditor {UIEditor|optional=optional,attributes='DM'.newMap} 
 				(mkViewControl {UIViewOpts|value = checkMask mask val}),vst)
 		| otherwise
-        	= (UIEditor {UIEditor|optional=False,attributes=maybe 'DM'.newMap (\typeDesc -> stdAttributes typeDesc (val,mask,ver)) mbTypeDesc}
+        	= (UIEditor {UIEditor|optional=optional,attributes=maybe 'DM'.newMap (\typeDesc -> stdAttributes typeDesc (val,mask,ver)) mbTypeDesc}
 				(mkEditControl {UIEditOpts|taskId=taskId, editorId=editorId dp,value = checkMaskValue mask val}), vst)
 
 	genDiff dp old new vst=:{VSt|disabled}
@@ -299,131 +345,74 @@ where
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
-gEditor{|[]|} ex _ dx mx _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff} 
-where 
-	genUI dp val mask ver meta vst=:{VSt|taskId,disabled}
-	# (items,vst)	= listControl dp val (subMasks (length val) mask) (subVerifications (length val) ver) vst
-	= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (listContainer items),vst)
-	where
-			listControl dp items masks vers vst=:{VSt|optional,disabled}
-				# (itemsVis,vst)	= childVisualizations ex.Editor.genUI mx dp items masks vers vst
-				# numItems = length items
-				| disabled
-					= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
-				| otherwise
-					//# (newItem,vst)		= newChildVisualization fx True vst
-					//= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [newItemControl newItem],vst)
-					= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [addItemControl numItems],vst)	
-								
-			listItemControl disabled numItems idx item
-				//# controls	= decorateControls (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = editorControls item, size = defaultSizeOpts})
-				# controls = []
-				# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
-							  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
-							  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False}
-							  ]
-				= setHeight WrapSize (setDirection Horizontal (defaultContainer (if disabled controls (controls ++ buttons))))
-					
-			addItemControl numItems
-				# controls	= [UIViewString /*{*/defaultSizeOpts /* & width=Just FlexSize }*/ {UIViewOpts|value= Just (numItemsText numItems)}]
-				# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "add")} {UIButtonOpts|text=Nothing,iconCls=Just "icon-add",disabled=False}]
-				= setHeight WrapSize (setDirection Horizontal (defaultContainer (controls ++ buttons)))
-			
-			listContainer items
-				= setHeight WrapSize (defaultContainer items)
-					
-			numItemsText 1 = "1 item"
-			numItemsText n = toString n +++ " items"
+gEditor{|EditableList|} ex _ dx mx _ _
+	= listEditor ex dx mx 
+		(\{EditableList|items} -> items)
+		(\{EditableList|add} -> add)
+		(\{EditableList|remove} -> remove)
+		(\{EditableList|reorder} -> reorder)
+		(\{EditableList|count} -> count)
+		(\items el -> {EditableList|el & items = items})
 
-	genDiff dp old new vst 
-		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
-		# (ndef,vst) = editorUIDef nviz vst
-		= (ReplaceUI ndef,vst)
+gEditor{|[]|} ex _ dx mx _ _
+	= listEditor ex dx mx
+		(\x -> x)
+		(const ELAddBlank)
+		(const True)
+		(const True)
+		(const True)
+		(\x _ -> x)
 
-	appDiff dp e l listMask ust
-		# (l,childMasks) = case ((not (isEmpty dp)) && (hd dp >= (length l))) of
-			True
-				= (l++[dx], subMasks (length l) listMask ++ [Untouched])
-			False
-				= (l, subMasks (length l) listMask)
-		# (l,childMasks,ust) = updateElements ex.Editor.appDiff dp e l childMasks ust
-		| isEmpty dp
-			//Process the reordering commands
-			# split = split "_" (fromMaybe "" (fromJSON e))
-			# index = toInt (last split)
-			# (l,childMasks) = case hd split of	
-				"mup" = (swap l index,swap childMasks index) 
-				"mdn" = (swap l (index+1),swap childMasks (index+1))
-				"rem" = (removeAt index l,removeAt index childMasks)	
-				"add"
-					= (insertAt (length l) dx l, insertAt (length l) Untouched childMasks)
-				_	
-					= (l,childMasks)
-			= (l,CompoundMask childMasks,ust)
-		| otherwise
-			= (l,CompoundMask childMasks,ust)
-	where
-		updateElements fx [i:target] upd elems masks ust
-			| i >= (length elems)
-				= (elems,masks,ust)
-				# (nx,nm,ust)	= fx target upd (elems !! i) (masks !! i) ust
-				= (updateAt i nx elems, updateAt i nm masks,ust)
-		updateElements fx target upd elems masks ust
-			= (elems,masks,ust)
-			
-swap []	  _		= []
-swap list index
-	| index == 0 			= list //prevent move first element up
-	| index >= length list 	= list //prevent move last element down
-	| otherwise				
-		# f = list !! (index-1)
-		# l = list !! (index)
-		= updateAt (index-1) l (updateAt index f list)
-
-gEditor{|EditableList|} ex _ dx mx _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
+listEditor ex dx mx getItems getAdd getRemove getReorder getCount setItems
+	= {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI dp {EditableList|items,add,remove,reorder,count} mask ver meta vst=:{VSt|taskId,disabled}
+	genUI dp el mask ver _ vst=:{VSt|taskId,disabled}
 		# (controls,vst) = listControls dp items (subMasks (length items) mask) (subVerifications (length items) ver) vst
 		= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (listContainer controls), vst)
 	where
-			enableAdd = case add of ELNoAdd = False ; _ = True;
+		items = getItems el
+		add = getAdd el
+		remove = getRemove el
+		reorder = getReorder el
+		count = getCount el
 
-			listControls dp items masks vers vst=:{VSt|optional,disabled}
-				# (itemsVis,vst)	= childVisualizations ex.Editor.genUI mx dp items masks vers vst
-				# numItems = length items
-				| not disabled && (enableAdd || count)
-					= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [addItemControl numItems],vst)	
-				| otherwise
-					= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
+		enableAdd = case add of ELNoAdd = False ; _ = True;
+
+		listControls dp items masks vers vst=:{VSt|optional,disabled}
+			# (itemsVis,vst)	= childVisualizations ex.Editor.genUI mx dp items masks vers vst
+			# numItems = length items
+			| not disabled && (enableAdd || count)
+				= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [addItemControl numItems],vst)	
+			| otherwise
+				= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
 								
-			listItemControl disabled numItems idx item
-				//# controls	= map (setWidth FlexSize) (decorateControls (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = editorControls item, size = defaultSizeOpts}))
-				# controls = []
-				# buttons	= (if reorder
+		listItemControl disabled numItems idx item
+			//# controls	= map (setWidth FlexSize) (decorateControls (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = editorControls item, size = defaultSizeOpts}))
+			# controls = []
+			# buttons	= (if reorder
 							  [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
 							  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
 							  ] []) ++
 							  (if remove
 							  [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False}
 							  ] [])
-				= setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (defaultContainer (if disabled controls (controls ++ buttons)))))
-			addItemControl numItems
-				# counter   = if count [UIViewString {UISizeOpts|defaultSizeOpts & width=Just FlexSize} {UIViewOpts|value= Just (numItemsText numItems)}] []
-				# button	= if enableAdd [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "add")} {UIButtonOpts|text=Nothing,iconCls=Just "icon-add",disabled=False}] []
-				= setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (defaultContainer (counter ++ button))))
+			= setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (defaultContainer (if disabled controls (controls ++ buttons)))))
+		addItemControl numItems
+			# counter   = if count [UIViewString {UISizeOpts|defaultSizeOpts & width=Just FlexSize} {UIViewOpts|value= Just (numItemsText numItems)}] []
+			# button	= if enableAdd [UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "add")} {UIButtonOpts|text=Nothing,iconCls=Just "icon-add",disabled=False}] []
+			= setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (defaultContainer (counter ++ button))))
 			
-			listContainer controls
-				= setHeight WrapSize (defaultContainer controls)
+		listContainer controls
+			= setHeight WrapSize (defaultContainer controls)
 			
-			numItemsText 1 = "1 item"
-			numItemsText n = toString n +++ " items"
+		numItemsText 1 = "1 item"
+		numItemsText n = toString n +++ " items"
 
 	genDiff dp old new vst
-		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
-		# (ndef,vst) = editorUIDef nviz vst
-		= (ReplaceUI ndef,vst)
+		# (viz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
+		= (ReplaceUI viz,vst)
 
-	appDiff dp e l=:{EditableList|items,add,remove,reorder} listMask ust
+	appDiff dp e el listMask ust
 		# (items,childMasks)
 			= case ((not (isEmpty dp)) && (hd dp >= (length items))) of
 				True
@@ -446,10 +435,16 @@ where
                     	_               = (items,childMasks)
 				_	
 					= (items,childMasks)
-			= ({EditableList|l & items = items},CompoundMask childMasks,ust)
+			= (setItems items el,CompoundMask childMasks,ust)
 		| otherwise
-			= ({EditableList|l & items = items},CompoundMask childMasks,ust)
+			= (setItems items el,CompoundMask childMasks,ust)
 	where
+		items = getItems el
+		add = getAdd el
+		remove = getRemove el
+		reorder = getReorder el
+		count = getCount el
+
 		updateElements fx [i:target] upd elems masks ust
 			| i >= (length elems)
 				= (elems,masks,ust)
@@ -458,30 +453,19 @@ where
 		updateElements fx target upd elems masks ust
 			= (elems,masks,ust)
 	
+	swap []	  _		= []
+	swap list index
+		| index == 0 			= list //prevent move first element up
+		| index >= length list 	= list //prevent move last element down
+		| otherwise				
+			# f = list !! (index-1)
+			# l = list !! (index)
+			= updateAt (index-1) l (updateAt index f list)
+
 gEditor{|()|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI dp _ _ _ meta vst = (UIEmpty {UIEmpty|actions=[]},vst)
+	genUI dp _ _ _ _ vst = (UIEmpty {UIEmpty|actions=[]},vst)
 	genDiff _ _ _ vst = (NoChange,vst)
-	appDiff _ _ val mask ust = (val,mask,ust)
-
-gEditor{|(,)|} ex _ _ mx _ _ ey _ _ my _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
-where
-	genUI dp (x,y) mask ver meta vst
-		# (vizx, vst)	= ex.Editor.genUI (dp ++ [0]) x (subMasks 2 mask !! 0) (subVerifications 2 ver !! 0) (mx x) vst
-		# (vizy, vst)	= ey.Editor.genUI (dp ++ [1]) y (subMasks 2 mask !! 1) (subVerifications 2 ver !! 1) (my y) vst
-		= (UICompoundEditor {UIEditor|optional=isOptional vizx && isOptional vizy,attributes='DM'.newMap} [vizx,vizy],vst)
-
-	genDiff dp old new vst
-		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
-		# (ndef,vst) = editorUIDef nviz vst
-		= (ReplaceUI ndef,vst)
-
-	appDiff [0:ds] e (x,y) xmask ust
-		# (x,xmask,ust) = ex.Editor.appDiff ds e x xmask ust
-		= ((x,y),xmask,ust)
-	appDiff [1:ds] e (x,y) ymask ust
-		# (y,ymask,ust) = ey.Editor.appDiff ds e y ymask ust
-		= ((x,y),ymask,ust)
 	appDiff _ _ val mask ust = (val,mask,ust)
 
 gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
@@ -496,34 +480,9 @@ where
 	genDiff _ _ _ vst = (NoChange,vst)
 	appDiff _ _ val mask ust = (val,mask,ust)
 
-gEditor{|Maybe|} ex _ dx mx _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
-where
-	genUI dp val mask ver meta vst=:{VSt|optional,disabled}
-		# (viz,vst) = case val of
-			(Just x)	= ex.Editor.genUI dp x mask ver (mx x) {VSt|vst & optional = True}
-			_			= ex.Editor.genUI dp dx Untouched ver (mx dx) {VSt|vst & optional = True}
-		= (toOptional viz, {VSt|vst & optional = optional})
-	where
-		toOptional	(UIEditor e c)			= UIEditor {UIEditor|e & optional = True} c
-		toOptional	(UICompoundEditor e ex)	= UICompoundEditor {UIEditor|e & optional = True} ex
-		toOptional	viz					= viz
-
-	genDiff dp old new vst
-		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
-		# (ndef,vst) = editorUIDef nviz vst
-		= (ReplaceUI ndef,vst)
-
-	appDiff dp e val mask ust
-		| isEmpty dp && (e === JSONNull || e === JSONBool False)
-			= (Nothing, Blanked,ust) //Reset
-		| otherwise
-			# (x,xmask) = maybe (dx,Untouched) (\x -> (x,mask)) val
-			# (x,xmask,ust) = ex.Editor.appDiff dp e x xmask ust
-			= (Just x,xmask,ust)
-
 gEditor{|HtmlTag|}	= {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI dp val mask ver meta vst
+	genUI dp val mask ver _ vst
 		= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewHtml defaultSizeOpts {UIViewOpts|value = Just val}), vst)
 
 	genDiff dp old new vst = (NoChange,vst)
@@ -537,7 +496,7 @@ where
 	genDiff dp old new vst = (NoChange, vst)
 	appDiff _ _ val mask ust = (val,mask,ust)
 
-derive gEditor JSONNode, Either, MaybeError, (,,), (,,,), (,,,,), Timestamp, Map //TODO Make specializations for (,,) and (,,,)
+derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), Timestamp, Map
 
 generic gEditMeta a :: a -> [EditMeta]
 

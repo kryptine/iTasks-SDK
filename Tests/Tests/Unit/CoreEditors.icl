@@ -53,6 +53,9 @@ testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the cor ge
 	,testIntBlanked
 	,testRealTouched
 	,testConsFieldsTouched 
+	,testMultipleConsesTouched
+	,testRecordTouched 
+	,testMaybeIntUntouched
 	]
 
 testGenUI :: String UIContent a InteractionMask -> Test | iTask a
@@ -98,6 +101,40 @@ where
 			(UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
 					   {UIEditOpts|taskId="STUB", editorId=editorId, value = Just (JSONInt val)}))
 
+testMultipleConsesTouched = testGenUI "Touched constructor selection"
+	(UIEditor {UIEditor|optional=False,attributes='DM'.fromList[("hint-type","valid"),("hint","You have correctly selected an option")]}
+		(UIDropdown  {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+					   {UIChoiceOpts|taskId="STUB", editorId="v", value = [0], options = ["ConsA","ConsB"]}))
+	ConsA Touched
+
+testRecordTouched = testGenUI "Touched record"
+	(UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap}
+		[intField,stringField,boolField])
+	{ a = 42, b = "Foo", c = True} Touched
+where
+	intField =
+		(UIEditor {UIEditor|optional=False,attributes='DM'.fromList[("hint-type","valid"),("hint","You have correctly entered a whole number"),("label","A*:")]}
+			(UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+				   {UIEditOpts|taskId="STUB", editorId="v0", value = Just (JSONInt 42)}))
+
+	stringField =
+		(UIEditor {UIEditor|optional=False,attributes='DM'.fromList[("hint-type","valid"),("hint","You have correctly entered a single line of text"),("label","B*:")]}
+			(UIEditString {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+					{UIEditOpts|taskId="STUB", editorId="v1", value = Just (JSONString "Foo")}))
+	boolField =
+		(UIEditor {UIEditor|optional=False,attributes='DM'.fromList[("label","C*:")]}
+		(UIEditCheckbox {UIFSizeOpts|margins=Nothing}
+				        {UIEditOpts|taskId="STUB", editorId="v2", value = Just (JSONBool True)}))
+
+testMaybeIntUntouched = testGenUI "Untouched optional Int"
+		(UIEditor {UIEditor|optional=True,attributes='DM'.fromList[("hint-type","info"),("hint","Please enter a whole number")]}
+			(UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+				   {UIEditOpts|taskId="STUB", editorId="v", value = Nothing}))
+		test Untouched
+where
+	test :: Maybe Int
+	test = Nothing
+
 testGenericEditorDiffs :: TestSuite
 testGenericEditorDiffs = testsuite "Generic diffs" "Tests for the generic diffs"
 	[testSameInt
@@ -105,6 +142,8 @@ testGenericEditorDiffs = testsuite "Generic diffs" "Tests for the generic diffs"
 	,testDiffConsFields
 	,testDiffRecordFields
 	,testDiffConsChange
+	,testMaybeIntChangeToJust
+	,testMaybeIntChangeToNothing
 	]
 
 //General pattern for diff tests
@@ -140,11 +179,23 @@ testDiffRecordFields
 		{TestRecordFields|a=23,b="bar",c=True}
 
 testDiffConsChange :: Test
-testDiffConsChange = skip "Changing a single constructor"
-/*
+testDiffConsChange 
 	= testGenDiff "Changing a single constructor"
-		(ChangeUI [] []) //NOT REALLY
+		(ChangeUI [("setValue",[JSONInt 1,JSONBool True])] [])
 		ConsA
 		ConsB
-*/
+
+testMaybeIntChangeToJust :: Test
+testMaybeIntChangeToJust
+	= testGenDiff "Switch Maybe Int Nothing to Just"
+		(ChangeUI [("setEditorValue", [JSONInt 42])] [])
+		Nothing
+		(Just 42)
+
+testMaybeIntChangeToNothing :: Test
+testMaybeIntChangeToNothing
+	= testGenDiff "Switch Maybe Int Just to Nothing"
+		(ChangeUI [("setEditorValue", [JSONNull])] [])
+		(Just 42)
+		Nothing
 

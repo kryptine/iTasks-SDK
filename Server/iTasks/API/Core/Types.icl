@@ -781,8 +781,7 @@ where
 		| old === new 
 			= (NoChange,vst)
 		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
-		# (ndef,vst) = editorUIDef nviz vst
-		= (ReplaceUI ndef,vst)
+		= (ReplaceUI nviz,vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json (Table headers cells _) -> case fromJSON json of Just i = Just (Table headers cells (Just i)); _ = Just (Table headers cells Nothing)) dp e val mask ust
 
@@ -844,8 +843,7 @@ where
 		| options old === options new && evalue old === evalue new
 			= (NoChange,vst)
 		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
-		# (ndef,vst) = editorUIDef nviz vst
-		= (ReplaceUI ndef,vst)
+		= (ReplaceUI nviz,vst)
 
 	appDiff dp e val mask ust = updateChoice (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) dp e val mask ust
 
@@ -881,8 +879,7 @@ where
 		| options old === options new && evalue old === evalue new
 			= (NoChange,vst)
 		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
-		# (ndef,vst) = editorUIDef nviz vst
-		= (ReplaceUI ndef,vst)
+		= (ReplaceUI nviz,vst)
 
 	appDiff dp e val mask ust = updateChoice (\idx (RadioChoice options _) -> RadioChoice options (Just idx)) dp e val mask ust
 
@@ -917,8 +914,7 @@ where
 		| options old === options new && evalue old === evalue new
 			= (NoChange,vst)
 		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
-		# (ndef,vst) = editorUIDef nviz vst
-		= (ReplaceUI ndef,vst)
+		= (ReplaceUI nviz,vst)
 
 	appDiff dp e val mask ust = updateChoice (\idx (ListChoice options _) -> ListChoice options (Just idx)) dp e val mask ust
 
@@ -966,8 +962,7 @@ where
 		| options gx old Untouched === options gx new Untouched && value old === value new
 			= (NoChange,vst)
 		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
-		# (ndef,vst) = editorUIDef nviz vst
-		= (ReplaceUI ndef,vst)
+		= (ReplaceUI nviz,vst)
 
 	appDiff dp e (TreeChoice tree sel) mask ust = case fromJSON e of
 		Just ("sel",idx,val)	= (TreeChoice tree (if val (Just idx) Nothing), touch mask, ust)
@@ -1003,8 +998,7 @@ where
 		| options old === options new && value old === value new
 			= (NoChange,vst)
 		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
-		# (ndef,vst) = editorUIDef nviz vst
-		= (ReplaceUI ndef,vst)
+		= (ReplaceUI nviz,vst)
 
  	appDiff dp e val mask ust = updateChoice (\idxs (GridChoice options _) -> GridChoice options (case idxs of [idx:_] = (Just idx); _ = Nothing)) dp e val mask ust
 
@@ -1046,8 +1040,7 @@ where
 		= (gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.genDiff dp old new vst
 	genDiff dp old new vst
 		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
-		# (ndef,vst) = editorUIDef nviz vst
-		= (ReplaceUI ndef,vst)
+		= (ReplaceUI nviz,vst)
 
 	appDiff dp e (DCCombo val) mask ust 
 		# (val,mask,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5 f6).Editor.appDiff dp e val mask ust) 
@@ -1118,8 +1111,7 @@ where
 		| options old === options new && evalue old === evalue new
 			= (NoChange,vst)
 		# (nviz,vst) = genUI dp new Untouched (alwaysValid (new,Untouched)) [] vst
-		# (ndef,vst) = editorUIDef nviz vst
-		= (ReplaceUI ndef,vst)
+		= (ReplaceUI nviz,vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = Just (CheckMultiChoice opts (updateSel i v sel)); _ = (Just (CheckMultiChoice opts sel))) dp e val mask ust
 	where

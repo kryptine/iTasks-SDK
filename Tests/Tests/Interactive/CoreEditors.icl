@@ -6,7 +6,7 @@ testCoreEditors :: TestSuite
 testCoreEditors = testsuite "Core editors" "These tests check if editors for the core data types work"
 	[testString,testChar,testInt,testReal,testBool
 	,testADTSingleConsOne,testADTSingleConsMulti,testADTMultiCons
-	,testSingleRecord,testNestedRecord
+	,testSingleRecord,testNestedRecord,testIntList
 	]
 
 testString = interactive "String" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
@@ -88,4 +88,11 @@ testNestedRecord = interactive "Nested Record" "Check the behavior of the editor
 where
 	tut :: Task NestedRecord
 	tut = testEditors "NestedRecord"
+
+testIntList = interactive "Standard Int list" "Check the behavior of the editors"
+	"You should see an editor for a list of integers" tut
+where
+	tut :: Task [Int]
+	tut = testEditors "Int list"
+
 

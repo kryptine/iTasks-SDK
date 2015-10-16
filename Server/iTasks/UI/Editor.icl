@@ -4,15 +4,9 @@ import StdMisc
 import iTasks._Framework.Client.LinkerSupport, Data.Maybe, Data.Functor
 import iTasks._Framework.IWorld
 from iTasks.UI.Diff import :: MessageType (MDiff,MRollback,MCommit), :: UIChangeDef(..), :: UIChildChange(..), :: UIChange(..)
-from iTasks.UI.Editor import ::VisualizationResult(..), :: Editor(..), :: USt(..) 
+from iTasks.UI.Editor import :: Editor(..), :: USt(..) 
 from Data.Map import :: Map, newMap, put
 from Data.Map import qualified get
-
-editorUIDef :: !UIContent !*VSt -> *(!UIDef,!*VSt)
-editorUIDef content vst
-	= ({UIDef|content=content,windows=[]},vst)
-	//# controls = layout.LayoutRules.layoutSubEditor {UIForm|attributes=newMap,controls=editorControls viz,size=defaultSizeOpts}
-    //= ({UIDef|content=UIForm {UIForm|attributes=newMap,controls=controls,size=defaultSizeOpts},windows=[]},vst)
 
 createEditletEventHandler :: (EditletEventHandlerFunc d a) !ComponentId -> JSFun b
 createEditletEventHandler handler id = undef

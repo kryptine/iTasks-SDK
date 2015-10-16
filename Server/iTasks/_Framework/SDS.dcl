@@ -5,7 +5,7 @@ import System.FilePath, Data.Maybe, Data.Either, Data.Error, System.Time, Text.J
 from iTasks._Framework.IWorld import :: IWorld
 from iTasks._Framework.Task import :: TaskException
 from iTasks._Framework.Generic import class iTask, generic gEditor, generic gEditMeta, generic gVerify, generic gEq, generic gDefault, generic gText
-from iTasks._Framework.Generic import :: VSt, :: VisualizationResult, :: EditMeta, :: VerifiedValue, :: DataPath, :: Verification, :: InteractionMask
+from iTasks._Framework.Generic import :: VSt, :: EditMeta, :: VerifiedValue, :: DataPath, :: Verification, :: InteractionMask
 from iTasks._Framework.Generic import :: USt, :: MaskedValue, :: VerifyOptions, :: TextFormat
 from iTasks.API.Core.Types import :: InstanceNo, :: TaskId
 from iTasks.UI.Editor import :: Editor
