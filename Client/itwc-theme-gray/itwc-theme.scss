@@ -95,6 +95,20 @@ body, input, td, th, select {
 .framed {
     border-radius: 5px;
 }
+.wrapping-horizontal {
+	flex-shrink: 0;
+	min-width: fit-content;
+	* {
+		min-width: fit-content;
+	}
+}
+.wrapping-vertical {
+	flex-shrink: 0;
+	min-height: fit-content;
+	* {
+		min-height: fit-content;
+	}
+}
 .floating-window, .modal-window, .notification-bubble {
     position: absolute;
     top: 0px;
@@ -345,9 +359,13 @@ body, input, td, th, select {
    display: -webkit-flex;
    flex-direction: column;
    -webkit-flex-direction: column;
+   min-height: fit-content;
+   min-width: fit-content;
 
    > .inner {
-    overflow: auto;
+     overflow: auto;
+     min-height: fit-content;
+     min-width: fit-content;
    }
 }
 .tabbar li a.tabclose {
@@ -406,6 +424,7 @@ body, input, td, th, select {
     background: #fff;
     color: #000;
     overflow: auto;
+	min-height: 100px;
 }
 .choicegrid-body > div {
     display: flex;

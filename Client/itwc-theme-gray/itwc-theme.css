@@ -5,7 +5,8 @@
 */
 .itwc-prompt {
   border: #999 solid;
-  border-width: 0 0 1px 0; }
+  border-width: 0 0 1px 0;
+  min-height: fit-content; }
 
 [tooltip] {
   position: relative;
@@ -207,6 +208,18 @@ body, input, td, th, select {
 
 .framed {
   border-radius: 5px; }
+
+.wrapping-horizontal {
+  flex-shrink: 0;
+  min-width: fit-content; }
+  .wrapping-horizontal * {
+    min-width: fit-content; }
+
+.wrapping-vertical {
+  flex-shrink: 0;
+  min-height: fit-content; }
+  .wrapping-vertical * {
+    min-height: fit-content; }
 
 .floating-window, .modal-window, .notification-bubble {
   position: absolute;
@@ -429,9 +442,13 @@ body, input, td, th, select {
   display: flex;
   display: -webkit-flex;
   flex-direction: column;
-  -webkit-flex-direction: column; }
+  -webkit-flex-direction: column;
+  min-height: fit-content;
+  min-width: fit-content; }
   .tabitem.selected > .inner {
-    overflow: auto; }
+    overflow: auto;
+    min-height: fit-content;
+    min-width: fit-content; }
 
 .tabbar li a.tabclose {
   color: #aaa;
@@ -486,7 +503,8 @@ body, input, td, th, select {
   -webkit-flex: 1;
   background: #fff;
   color: #000;
-  overflow: auto; }
+  overflow: auto;
+  min-height: 100px; }
 
 .choicegrid-body > div {
   display: flex;
