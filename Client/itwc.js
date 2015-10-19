@@ -100,7 +100,7 @@ itwc.Component.prototype = {
             }
         } else if (width === 'wrap') {
             if(direction == 'horizontal') {
-                el.style.flexShrink = 0;
+				el.classList.add('wrapping-horizontal');
             }
         } else {
             el.style.width = width + 'px';
@@ -117,7 +117,7 @@ itwc.Component.prototype = {
             }
         } else if (height === 'wrap') {
             if(direction == 'vertical') {
-                el.style.flexShrink = 0;
+				el.classList.add('wrapping-vertical');
             }
         } else {
             el.style.height = height + 'px';
