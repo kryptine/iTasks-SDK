@@ -56,18 +56,17 @@ var Sapl = new function () {
 	}
 
 	this.toString = function (expr) {
-
-		if (isArray(expr)) {
+		if (expr instanceof Array) {
 
 			// It's a constructor! We can just drop the selector number
-			if (isNumber(expr[0])) {
+			if (typeof expr[0] === "number") {
 
 				// Very important! Do NOT use splice here! 	
 				var args = expr.slice(2, expr.length);
 				var consname = expr[1];
 				var consfunc = eval(this.escapeName(consname));				
 
-				if (isArray(consfunc.$f)) {
+				if (consfunc.$f instanceof Array) {
 					var res = "{";					
 					
 					for (var i = 0; i < args.length; i++) {
@@ -92,7 +91,7 @@ var Sapl = new function () {
 			}
 
 			// It's an application
-			if (isArray(expr) && isFunction(expr[0]) && isArray(expr[1])) {
+			if (expr instanceof Array && isFunction(expr[0]) && expr[1] instanceof Array) {
 				if (expr[0].length > expr[1].length) {
 					var res = this.toString(expr[0]);
 					var args = expr[1];
@@ -115,7 +114,7 @@ var Sapl = new function () {
 				return this.print_ident(expr.name);
 			}
 		} else {
-			if (isNumber(expr)) {
+			if (typeof expr === "number") {
 				return expr.toString();
 			} else if (isBoolean(expr)) {
 				return expr.toString();
@@ -169,10 +168,10 @@ var Sapl = new function () {
 	// It expects the expression argument to be HNF
 	this._toJS = function (inRecord, expr) {
 
-		if (isArray(expr)) {
+		if (expr instanceof Array) {
 
 			// It's a constructor! We can just drop the selector number
-			if (isNumber(expr[0])) {
+			if (typeof expr[0] === "number") {
 			
 				var consname = expr[1];			
 			
@@ -211,7 +210,7 @@ var Sapl = new function () {
 			
 				// Very important! Do NOT use splice here! 	
 				var consfunc = eval(this.escapeName(consname));
-				if (isArray(consfunc.$f)) {
+				if (consfunc.$f instanceof Array) {
 				    var args = expr.slice(2, expr.length);
 					var res = {};
                     var aarg;
@@ -257,7 +256,7 @@ var Sapl = new function () {
 			}
 
 			// It's an application
-			if (isArray(expr) && isFunction(expr[0]) && isArray(expr[1])) {
+			if (expr instanceof Array && typeof expr[0] === "function" && expr[1] instanceof Array) {
 				if (expr[0].length > expr[1].length) {
 					// it's an partial application. leave it like that
 					return expr;
@@ -275,7 +274,7 @@ var Sapl = new function () {
 	
 	this.dynamicToString = function(expr) {
 
-		if (isArray(expr)) {
+		if (expr instanceof Array) {
 
 			var ret = "[";
 			for(var i=0;i<expr.length;i++){
@@ -291,7 +290,7 @@ var Sapl = new function () {
 			return "\"OBJECT\"";
 			
 		} else {
-			if (isNumber(expr)) {
+			if (typeof expr === "number") {
 				return expr.toString();
 			} else if (isBoolean(expr)) {
 				return expr.toString();
@@ -311,10 +310,10 @@ var Sapl = new function () {
 	this.heval = function (expr) {
 		expr = Sapl.feval(expr);
 		
-		if (isArray(expr)) {
+		if (expr instanceof Array) {
 
 			// It's a constructor
-			if (isNumber(expr[0])) {
+			if (typeof expr[0] === "number") {
 				for(var i = 2; i<expr.length; i++){
 					expr[i] = Sapl.heval(expr[i]);
 				}

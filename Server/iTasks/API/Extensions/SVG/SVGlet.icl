@@ -631,6 +631,12 @@ applyTransforms ts (xsp, ysp)
         [(tlX, tlY), _, _, (brX, brY)]
           #! factor  = ysp` / (brY - tlY)
           = strictTRMap (scaleTF factor factor) coords
+  f (ScaleImage xsp` ysp`) coords
+    = strictTRMap (scaleTF (px xsp`) (px ysp`)) coords
+  f (ScaleXImage xsp`)     coords
+    = strictTRMap (scaleTF (px xsp`) (px 1.0)) coords
+  f (ScaleYImage ysp`)     coords
+    = strictTRMap (scaleTF (px 1.0) (px ysp`)) coords
   f _ coords = coords
 
 gatherFonts :: !(Image s) -> Map FontDef (Set String)
@@ -689,6 +695,9 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     , imageTransformFitImageAlg    = \x y -> binUnion (gatherFontsSpan x) (gatherFontsSpan y)
     , imageTransformFitXImageAlg   = gatherFontsSpan
     , imageTransformFitYImageAlg   = gatherFontsSpan
+    , imageTransformScaleImageAlg  = \x y -> 'DM'.newMap
+    , imageTransformScaleXImageAlg = const 'DM'.newMap
+    , imageTransformScaleYImageAlg = const 'DM'.newMap
     , imageTransformFlipXImageAlg  = 'DM'.newMap
     , imageTransformFlipYImageAlg  = 'DM'.newMap
     }
@@ -874,6 +883,9 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
     , imageTransformFitImageAlg    = mkFitImage
     , imageTransformFitXImageAlg   = mkFitDim FitXImage
     , imageTransformFitYImageAlg   = mkFitDim FitYImage
+    , imageTransformScaleImageAlg  = mkScaleImage
+    , imageTransformScaleXImageAlg = mkScaleDim ScaleXImage
+    , imageTransformScaleYImageAlg = mkScaleDim ScaleYImage
     , imageTransformFlipXImageAlg  = ret FlipXImage
     , imageTransformFlipYImageAlg  = ret FlipYImage
     }
@@ -888,6 +900,14 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
              -> *(!ImageTransform, !*DesugarAndTagStVal)
     mkFitDim ctr sp st
       #! (sp, st) = desugarAndTagSpan sp st
+      = (ctr sp, st)
+    mkScaleImage :: !Real !Real !*DesugarAndTagStVal
+               -> *(!ImageTransform, !*DesugarAndTagStVal)
+    mkScaleImage sp1 sp2 st
+      = (ScaleImage sp1 sp2, st)
+    mkScaleDim :: !(Real -> ImageTransform) !Real !*DesugarAndTagStVal
+             -> *(!ImageTransform, !*DesugarAndTagStVal)
+    mkScaleDim ctr sp st
       = (ctr sp, st)
   desugarAndTagImageSpanAlgs :: ImageSpanAlg (*DesugarAndTagStVal -> *(ImageSpan, *DesugarAndTagStVal))
   desugarAndTagImageSpanAlgs =
@@ -1588,6 +1608,9 @@ genSVG img st = imageCata genSVGAllAlgs img st
     , imageTransformFitImageAlg    = mkFitImage
     , imageTransformFitXImageAlg   = mkFitXImage
     , imageTransformFitYImageAlg   = mkFitYImage
+    , imageTransformScaleImageAlg  = mkScaleImage
+    , imageTransformScaleXImageAlg = mkScaleXImage
+    , imageTransformScaleYImageAlg = mkScaleYImage
     , imageTransformFlipXImageAlg  = mkFlipXImage
     , imageTransformFlipYImageAlg  = mkFlipYImage
     }
@@ -1662,6 +1685,47 @@ genSVG img st = imageCata genSVGAllAlgs img st
                         = [TranslateTransform "0" (toString ysp) : attrs]
                       _ = attrs
       = ((attrs, FitYImage (px sp)), st)
+
+    mkScaleImage :: !Real !Real
+                    !(!Real, !Real)
+                    !Bool
+                    !*(GenSVGStVal s)
+                 -> *(!(![SVGTransform], !ImageTransform), !*GenSVGStVal s)
+    mkScaleImage sp1 sp2 (xsp, ysp) isText st
+      #! attrs = [ScaleTransform (toString sp1) (toString sp2)]
+      #! attrs = case isText of
+                   True
+                     = [TranslateTransform "0" (toString ysp) : attrs]
+                   _ = attrs
+      = ((attrs, ScaleImage sp1 sp2), st)
+
+    mkScaleXImage :: !Real
+                     !(!Real, !Real)
+                     !Bool
+                     !*(GenSVGStVal s)
+                  -> *(!(![SVGTransform], !ImageTransform), !*GenSVGStVal s)
+    mkScaleXImage sp (xsp, ysp) isText st
+      #! attrs = [ScaleTransform (toString sp) "1.0"]
+      #! attrs = case isText of
+                   True
+                     #! yoff = to2dec (ysp * 0.7 * sp)
+                     = [TranslateTransform "0" (toString yoff) : attrs]
+                   _ = attrs
+      = ((attrs, ScaleXImage sp), st)
+
+    mkScaleYImage :: !Real
+                     !(Real /* Not used */, !Real)
+                     !Bool
+                     !*(GenSVGStVal s)
+                  -> *(!(![SVGTransform], !ImageTransform), !*GenSVGStVal s)
+    mkScaleYImage sp (_, ysp) isText st
+      #! attrs = [ScaleTransform "1.0" (toString sp)]
+      #! attrs = case isText of
+                   True
+                     = [TranslateTransform "0" (toString ysp) : attrs]
+                   _ = attrs
+      = ((attrs, ScaleYImage sp), st)
+
 
     mkFlipXImage :: !(!Real, Real /* Not used */) 
                     Bool // Not used
@@ -2245,6 +2309,9 @@ evalLookupSpans (RowYSpan t rowIdx)     st
   , imageTransformFitImageAlg    :: !Span Span -> imTr
   , imageTransformFitXImageAlg   :: !Span    -> imTr
   , imageTransformFitYImageAlg   :: !Span    -> imTr
+  , imageTransformScaleImageAlg  :: !Real Real -> imTr
+  , imageTransformScaleXImageAlg :: !Real    -> imTr
+  , imageTransformScaleYImageAlg :: !Real    -> imTr
   , imageTransformFlipXImageAlg  ::           imTr
   , imageTransformFlipYImageAlg  ::           imTr
   }
@@ -2335,6 +2402,12 @@ imageTransformCata imageTransformAlgs (FitXImage sp)
   = imageTransformAlgs.imageTransformFitXImageAlg sp
 imageTransformCata imageTransformAlgs (FitYImage sp)
   = imageTransformAlgs.imageTransformFitYImageAlg sp
+imageTransformCata imageTransformAlgs (ScaleImage sp1 sp2)
+  = imageTransformAlgs.imageTransformScaleImageAlg sp1 sp2
+imageTransformCata imageTransformAlgs (ScaleXImage sp)
+  = imageTransformAlgs.imageTransformScaleXImageAlg sp
+imageTransformCata imageTransformAlgs (ScaleYImage sp)
+  = imageTransformAlgs.imageTransformScaleYImageAlg sp
 imageTransformCata imageTransformAlgs FlipXImage
   = imageTransformAlgs.imageTransformFlipXImageAlg
 imageTransformCata imageTransformAlgs FlipYImage

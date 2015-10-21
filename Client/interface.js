@@ -202,7 +202,7 @@ function __iTasks_UI_JS_Interface_toJSVal(val){
 	val = Sapl.feval(val);
 
 	// if an argument is a function, we handle it as an event handler
-  if (isArray(val)) {
+  if (val instanceof Array) {
     if (val[1] === "JSVal") {
       return val;
     } else if (isFunction(val[0])) {
@@ -232,7 +232,7 @@ function __iTasks_UI_JS_Interface_toJSArg(val){
         console.warn('toJSArg: toJSArg of undefined value',val);
     }	
 
-	if(isArray(val) && val[1]=="JSVal"){
+	if(val instanceof Array && val[1]=="JSVal") {
 		return val;
 	}else{
 		return __iTasks_UI_JS_Interface_toJSVal(val);

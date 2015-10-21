@@ -374,12 +374,15 @@ viewInstance rs navstack dynSett bpinst=:{bpi_bpref = {bpr_moduleName, bpr_taskN
   showChildTasks :: DynamicDisplaySettings BlueprintInstance -> Task ()
   showChildTasks {DynamicDisplaySettings | show_all_child_tasks = False, unfold_depth = {Scale | cur = 0} } bpinst = return ()
   showChildTasks {DynamicDisplaySettings | show_all_child_tasks, unfold_depth = {Scale | cur = d}, show_finished_blueprints } bpinst
-    # childIds  = [tid \\ tid <- map fst (concatMap 'DIS'.elems ('DM'.elems bpinst.bpi_activeNodes)) | not (tid == bpinst.bpi_taskId)]
+    # childIds  = [tid \\ tid <- map fst (concatMap 'DIS'.elems ('DM'.elems bpinst.bpi_activeNodes))] // TODO: Should this be retrieved from the runtime map share instead?
     # childIds  = if show_finished_blueprints
-                    ([tid \\ tid <- 'DM'.elems bpinst.bpi_previouslyActive | not (tid == bpinst.bpi_taskId)] ++ childIds)
+                    ([tid \\ tid <- 'DM'.elems bpinst.bpi_previouslyActive] ++ childIds)
                     childIds
     # viewTasks = map (\childId -> whileUnchanged (sdsFocus childId allTonicInstances) (
-                       \mbpref ->  case [bpi \\ (_, bpi=:{bpi_taskId, bpi_index}) <- mbpref | bpi_taskId > bpinst.bpi_taskId || (bpi_taskId == bpinst.bpi_taskId && bpi_index > bpinst.bpi_index)] of
+                       \mbpref ->  case [bpi \\ ((bpiMn, bpiTn), bpi=:{bpi_taskId, bpi_index}) <- mbpref
+                                              | (bpi_taskId > bpinst.bpi_taskId || (bpi_taskId == bpinst.bpi_taskId && bpi_index > bpinst.bpi_index))
+                                                && not (bpi_taskId == bpinst.bpi_taskId && bpiMn == bpr_moduleName && bpiTn == bpr_taskName)
+                                        ] of
                                      [bpref` : _]
                                        # dynSett = if show_all_child_tasks dynSett
                                                      {DynamicDisplaySettings | dynSett & unfold_depth = {dynSett.DynamicDisplaySettings.unfold_depth & cur = d - 1}}
@@ -433,8 +436,8 @@ expandTask allbps n tt
 
 expandTExpr :: !AllBlueprints !Int !TExpr -> TExpr
 expandTExpr _      0 texpr = texpr
-expandTExpr allbps n (TFApp vn args assoc)
-  = TFApp vn (map (expandTExpr allbps n) args) assoc
+expandTExpr allbps n (TFApp eid vn args assoc)
+  = TFApp eid vn (map (expandTExpr allbps n) args) assoc
 expandTExpr allbps n texpr=:(TMApp eid mtn mn tn args assoc ptr)
   = case 'DM'.get mn allbps >>= 'DM'.get tn of
       Just tt

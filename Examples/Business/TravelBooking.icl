@@ -9,6 +9,8 @@ import iTasks
 // One by one the chosen bookings will be handled
 // The bill is made up in the end
 
+Start world = startEngine BookTrip world
+
 derive class iTask	PlaceToGo, FlightHotel
 
 BookTrip :: Task FlightHotel

@@ -21,7 +21,6 @@ imageView   ::           !(s *TagSource -> Image s) !(Conflict s -> Maybe s)    
 
 imageUpdate :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v) !(s v -> s`) -> UpdateOption s s` |  iTask v
 
-//BL: No clue what this stuff is for...
 :: ActionState a s = { state   :: s
                      , action  :: Maybe a
                      }

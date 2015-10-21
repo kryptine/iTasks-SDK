@@ -411,10 +411,10 @@ function __sapldebug(str, f){
 
 // Something unique that can be compared for equality
 function __getRunTimeDynamicDescriptor(a){
-	if(isArray(a) && isFunction(a[0])){
+	if(a instanceof Array && isFunction(a[0])){
 		// Wrapped function
 		return a[0];
-	}else if(isArray(a) && isNumber(a[0])){
+	}else if(a instanceof Array && typeof a[0] === "number") {
 		// Data constructor
 		return a[1];
 	}else{

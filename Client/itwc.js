@@ -101,7 +101,7 @@ itwc.Component.prototype = {
             }
         } else if (width === 'wrap') {
             if(direction == 'horizontal') {
-                el.style.flexShrink = 0;
+				el.classList.add('wrapping-horizontal');
             }
         } else {
             el.style.width = width + 'px';
@@ -118,7 +118,7 @@ itwc.Component.prototype = {
             }
         } else if (height === 'wrap') {
             if(direction == 'vertical') {
-                el.style.flexShrink = 0;
+				el.classList.add('wrapping-vertical');
             }
         } else {
             el.style.height = height + 'px';
@@ -228,7 +228,7 @@ itwc.Component.prototype = {
 			//Check first if we already applied this update
 			me.appliedUpdates = me.appliedUpdates || [];
 			var nextAppliedUpdate = me.appliedUpdates.shift();
-			if(isArray(nextAppliedUpdate)) {
+			if(nextAppliedUpdate instanceof Array) {
 				if(nextAppliedUpdate[0] == operation && itwc.util.equalArgs(nextAppliedUpdate[1],args)) {
 					//On a match we are done
 					return
