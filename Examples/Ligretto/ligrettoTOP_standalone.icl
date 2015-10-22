@@ -41,7 +41,7 @@ where
 		= forever (
 		  (   viewTitle "Enter Ligretto"
 		  ||- enterInformation ("Login","Enter your credentials to login") [])
-		  >>* [WithResult (Action "Login" [ActionIcon "login",ActionKey (unmodified KEY_ENTER)]) (const True) (check_login people)]
+		  >>* [OnAction (Action "Login" [ActionIcon "login",ActionKey (unmodified KEY_ENTER)]) (hasValue (check_login people))]
 		  )
 	
 	check_login [(owner,color):friends] person
