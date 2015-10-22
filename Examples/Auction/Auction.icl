@@ -2,13 +2,15 @@ module Auction
 
 import iTasks
 import iTasks.API.Extensions.Admin.UserAdmin
-import iTasks.Framework.Tonic
+import iTasks.API.Extensions.Admin.TonicAdmin
+import iTasks._Framework.Tonic
 
 //:%s/<I\d*, E\d*>\|<\d*>//g 
 
 Start :: *World -> *World
 Start world = startEngine [ publish "/" (WebApp []) (\_ -> runAuction)
-                          , tonicPubTask "Auction"] world
+                          , publish "/tonic" (WebApp []) (\_ -> tonicDashboard [])
+                          ] world
 
 
 runAuction :: Task Void
