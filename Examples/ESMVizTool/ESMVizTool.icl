@@ -161,21 +161,21 @@ mkDigraph name (automaton,s_0,init_states,finished,shared,issues,trace)
 			 	)
 			[ NodeDef -1 // initil black node and arrow to s_0
 				[ ]
-				[ NAttlabel		""
-				, NAttstyle		NStylefilled
-				, NAttcolor		(Color "black")
-				, NAttshape		NShapecircle
-	   			, NAttfixedsize	True
-	  			, NAttwidth		0.2
-				, NAttheight	0.2
-				, NAttmargin	(SingleMargin 0.003)
+				[ NAttLabel		""
+				, NAttStyle		NStyleFilled
+				, NAttColor		(Color "black")
+				, NAttShape		NShapeCircle
+	   			, NAttFixedSize	True
+	  			, NAttWidth		0.2
+				, NAttHeight	0.2
+				, NAttMargin	(SingleMargin 0.003)
 				]
 				[( //if (gisMember s_0 init_states)
 					gIndex s_0 (all_nodes ++ init_states)
 					//(nrOf automaton s_0)
-				 ,	[ EAttcolor		(Color "black")
-					, EAttarrowsize	2.0
-					, EAttstyle		EStylebold
+				 ,	[ EAttColor		(Color "black")
+					, EAttArrowSize	2.0
+					, EAttStyle		EStyleBold
 					]
 				 )
 				]
@@ -193,19 +193,19 @@ mkDigraph name (automaton,s_0,init_states,finished,shared,issues,trace)
 					[ NStAllEdgesFound (gisMember n finished)]
 					(nodeAttributes n init_states (gisMember n finished)
 					(gisMember n shared))
-			         [ (gIndex t all_nodes	, [ EAttlabel (render i+++"/"+++showList ("[","]",",") o)
-			                                , EAttfontname "Ariel"
-			                                , EAttfontsize fontsize
-			                                , EAttlabelfontname "Ariel"
-			                                , EAttlabelfontsize fontsize
-			                                , EAttcolor
+			         [ (gIndex t all_nodes	, [ EAttLabel (render i+++"/"+++showList ("[","]",",") o)
+			                                , EAttFontName "Ariel"
+			                                , EAttFontSize fontsize
+			                                , EAttLabelFontName "Ariel"
+			                                , EAttLabelFontSize fontsize
+			                                , EAttColor
 			                                			 (if (gisMember trans issues)
 			                                						(Color "red")
 			                                			 (if (gisMember trans trace)
 			                                						(Color "blue")
 			                                						(Color "black")))
-			                                , EAttarrowsize (if (gisMember trans trace) 2.0 1.2)
-			                                , EAttstyle (if (gisMember trans trace) EStylebold EStylesolid)
+			                                , EAttArrowSize (if (gisMember trans trace) 2.0 1.2)
+			                                , EAttStyle (if (gisMember trans trace) EStyleBold EStyleSolid)
 			                                ])
 			         \\ trans=:(s,i,o,t) <- edgesFrom n automaton
 			         ]
@@ -213,34 +213,34 @@ mkDigraph name (automaton,s_0,init_states,finished,shared,issues,trace)
 			]
 		)) Nothing
 where
-	graphAttributes				= [ GAttrankdir  RDLR // horizontal
+	graphAttributes				= [ GAttRankDir  RDLR // horizontal
 	//graphAttributes				= [ GAttRankDir  RDTB // RD_LR
-							  	  , GAttsize     		(Sizef 7.2 3.0 False)
+							  	  , GAttSize     		(Sizef 7.2 3.0 False)
 								 // , GAttSize			(Sizef 5.0 3.0 True)
-								  , GAttfontsize		9.0 // 12.0
-								  , GAttbgcolor  		(Color "white")
-								  , GAttordering 		"in"			// "out"
-								  , GAttoutputorder		OMEdgesFirst	// OMBreadthFirst	// OMEdgesFirst	//  PK
+								  , GAttFontSize		9.0 // 12.0
+								  , GAttBGColor  		(Color "white")
+								  , GAttOrdering 		"in"			// "out"
+								  , GAttOutputOrder		OMEdgesFirst	// OMBreadthFirst	// OMEdgesFirst	//  PK
 								  ]
 	all_nodes = toHead s_0 (nodesOf automaton)
 	nodeAttributes n init_states finished shared
 								= (if (gisMember n init_states)
-										(if shared	[ NAttfillcolor shac_backgr, NAttfontcolor shac_txt ]
-													[ NAttfillcolor act_backgr, NAttfontcolor act_txt ])
-								  (if finished [ NAttfillcolor done_backgr,NAttfontcolor done_txt]
-								  		(if shared	[ NAttfillcolor shar_backgr, NAttfontcolor shar_txt ]
-									              	[ NAttfillcolor def_backgr, NAttfontcolor def_txt ])
+										(if shared	[ NAttFillColor shac_backgr, NAttFontColor shac_txt ]
+													[ NAttFillColor act_backgr, NAttFontColor act_txt ])
+								  (if finished [ NAttFillColor done_backgr,NAttFontColor done_txt]
+								  		(if shared	[ NAttFillColor shar_backgr, NAttFontColor shar_txt ]
+									              	[ NAttFillColor def_backgr, NAttFontColor def_txt ])
 								  )) ++
-						          [ NAttlabel		(render n)
-						          , NAtttooltip		(show1 n)
-						          , NAttstyle		NStylefilled
-						          , NAttshape		NShapeellipse
-						          , NAttfontname	"Ariel"
-						          , NAttfontsize	fontsize
-						          , NAttfixedsize	False
-						          , NAttwidth 1.0
-						          ,	NAttheight 1.0
-						          , NAttmargin		(SingleMargin 0.003)
+						          [ NAttLabel		(render n)
+						          , NAttTooltip		(show1 n)
+						          , NAttStyle		NStyleFilled
+						          , NAttShape		NShapeEllipse
+						          , NAttFontName	"Ariel"
+						          , NAttFontSize	fontsize
+						          , NAttFixedSize	False
+						          , NAttWidth 1.0
+						          ,	NAttHeight 1.0
+						          , NAttMargin		(SingleMargin 0.003)
 						          ]
 	where
 		( act_backgr, act_txt)	= active_state_color (length init_states)
@@ -279,12 +279,12 @@ where
 	where
 		all_edges_found							= not (isEmpty [s \\ s=:(NStAllEdgesFound True) <- st])
 		
-		replaceNodeAtt (NAttfillcolor _)		= NAttfillcolor (fst (active_state_color 1))
-		replaceNodeAtt (NAttfontcolor _)		= NAttfontcolor (snd (active_state_color 1))
+		replaceNodeAtt (NAttFillColor _)		= NAttFillColor (fst (active_state_color 1))
+		replaceNodeAtt (NAttFontColor _)		= NAttFontColor (snd (active_state_color 1))
 		replaceNodeAtt att						= att
 		
-		defaultNodeAtt (NAttfillcolor c)		= NAttfillcolor (if all_edges_found (fst finished_state_color) (fst default_state_color))
-		defaultNodeAtt (NAttfontcolor c)		= NAttfontcolor (if all_edges_found (snd finished_state_color) (snd default_state_color))
+		defaultNodeAtt (NAttFillColor c)		= NAttFillColor (if all_edges_found (fst finished_state_color) (fst default_state_color))
+		defaultNodeAtt (NAttFontColor c)		= NAttFontColor (if all_edges_found (snd finished_state_color) (snd default_state_color))
 		defaultNodeAtt att						= att
 
 //TODO: Turn this into a (Diagraph State -> State function)
