@@ -22,7 +22,7 @@ derive bimap (,), Maybe
 					|	SuppliersChosen 		
 					|	ShippedToRequester
 					|	OrderCancelled	
-:: TimeStamp a		:== (a,DateTime)
+:: TimeStamp a		:== (a, DateTime)
 :: SupOrder a		=	{ item			:: [a]
 						, supplier		:: Supplier
 						, supOrderNumber:: (OrderNumber a, SupOrderNumber a)
@@ -37,21 +37,21 @@ derive bimap (,), Maybe
 :: OrderId a		:== (OrderNumber a, OrderStore a)
 :: SupOrderId a		:== (SupOrderNumber a, OrderNumber a, OrderStore a)
 
-:: OrderStore a 	:== Shared [Order a] [Order a]
+:: OrderStore a 	:== RWShared () [Order a] [Order a]
 
 // Delayed ordering process administration
 
 :: OrderingProcess	:== [(Requester,Buyer)]
 :: OrderingProcessStore
-					:== Shared OrderingProcess OrderingProcess
+					:== RWShared () OrderingProcess OrderingProcess
 
 orderingProcessStore :: OrderingProcessStore
-orderingProcessStore = sharedStoreDefault "orderingStore"
+orderingProcessStore = sharedStore "orderingStore" gDefault{|*|}
 	  	
 // start 
 
-Start world = startEngine [ workflow "Order Items" "Order Example" (Title "Request items..." @>> request itemStore)
-						  ] world	  	
+Start world = startEngine [publish "/" (WebApp []) (\_ -> manageWorkflows [workflow "Order Items" "Order Example" (Title "Request items..." @>> request itemStore)])
+						  ] world
 
 // specific instantiations
 
@@ -64,15 +64,15 @@ Start world = startEngine [ workflow "Order Items" "Order Example" (Title "Reque
 :: ItemStore 		:== OrderStore Item
 
 itemStore :: ItemStore
-itemStore = sharedStoreDefault "itemOrderStore"
+itemStore = sharedStore "itemOrderStore" gDefault{|*|}
 
 
 // order storage access utility functions
 
 addOrder ::  Requester Buyer [a] OrderState (OrderStore a) -> Task (OrderNumber a) | iTask a
 addOrder requester buyer items orderstate store 
-	= 						getCurrentDateTime
-		>>= \timestamp ->	readShared store
+	= 						get currentDateTime
+		>>= \timestamp ->	get store
 		>>= \as ->			let orderNumber = length as
 							    new			= { item 		= items
 							 				  , orderNumber = orderNumber
@@ -82,28 +82,28 @@ addOrder requester buyer items orderstate store
 							  				  , supOrders 	= [] 
 							  				  }
 							in
-							    writeShared store (append as new)
+							    set (append as new) store
 							>>| return orderNumber
 
 fetchOrder :: (OrderId a) -> Task (Order a) | iTask a 
 fetchOrder (nr, store)
-	=						readShared store
+	=						get store
 		>>= \orders -> 		return (orders!!nr)
 
 updateOrder :: (Order a) (OrderId a) -> Task (Order a) | iTask a 
 updateOrder order (nr, store)
-	=						updateShared (updateAt nr order) store
+	=						upd (updateAt nr order) store
 		>>|					return order
 
 setOrderState :: OrderState (OrderId a) -> Task (Order a) | iTask a
 setOrderState orderState orderId
-	=						getCurrentDateTime
+	=						get currentDateTime
 		>>= \timestamp ->	fetchOrder orderId
 		>>= \order -> 		updateOrder {order & orderStatus = [(orderState,timestamp):order.orderStatus]} orderId
 
 addSupplier :: [a] Supplier SupOrderState (OrderId a) -> Task (SupOrderNumber a) | iTask a
 addSupplier items supplier supstate orderId=:(orderNumber, store)
-	=						getCurrentDateTime
+	=						get currentDateTime
 		>>= \timestamp ->	fetchOrder orderId
 		>>= \order ->		let subOrderNumber 	= length order.supOrders
 								nsup			= { item 			= items
@@ -117,9 +117,9 @@ addSupplier items supplier supstate orderId=:(orderNumber, store)
 
 changeSupOrderState :: Buyer Supplier SupOrderState SupOrderState (OrderStore a) -> Task [Order a] | iTask a
 changeSupOrderState buyer supplier oldstate newstate store
-	=						getCurrentDateTime
-		>>= \timestamp ->	readShared store
-		>>= \orders ->		writeShared store (foldl (update (newstate, timestamp)) orders (fetchOrderNumbers buyer supplier oldstate orders))
+	=						get currentDateTime
+		>>= \timestamp ->	get store
+		>>= \orders ->		set (foldl (update (newstate, timestamp)) orders (fetchOrderNumbers buyer supplier oldstate orders)) store
 where
 	update :: (TimeStamp SupOrderState) [Order a] (OrderNumber a, SupOrderNumber a) -> [Order a]
 	update nsupstate orders (i,j)
@@ -140,9 +140,9 @@ append xs x = xs ++ [x]
 
 selectUserWithRole :: String -> Task User
 selectUserWithRole role 
-	= 						getUsersWithRole role 
-		>>= \users ->		enterChoice ("Choose a " +++ role) (map userName users)
-		>>= \name ->		return (NamedUser name)
+	= 						get (usersWithRole role)
+		>>= \users ->		enterChoice ("Choose a " +++ role) [] users
+		>>= \user  ->		return user
 
 getProperty :: [TimeStamp a] -> a
 getProperty [(p,_):_] = p
@@ -166,12 +166,12 @@ fetchOrderNumbers buyer supplier supStatus orders
 
 request :: (OrderStore a) -> Task Void | iTask a & Eq a
 request store
-	=						getCurrentUser
-		>>= \requester ->	enterInformation "What do you want to order ?"
+	=						get currentUser
+		>>= \requester ->	enterInformation "What do you want to order ?" []
 		>>= \items ->		selectUserWithRole "buyer"
 		>>= \buyer ->		addOrder requester buyer items OrderCreated store 
 		>>= \orderNr ->		startChooseSuppliers buyer items (orderNr, store)
-		>>|					monitor "Status of your order:" (showStatus orderNr) (finished orderNr) False store
+		>>|					viewSharedInformation "Status of your order:" [] store
 		>>|					return Void
 where
 	showStatus orderNr orders = Display (myOrder orderNr orders)
@@ -182,7 +182,7 @@ where
 
 startChooseSuppliers :: Buyer [a] (OrderId a) -> Task Void | iTask a & Eq a
 startChooseSuppliers buyer items orderId
-	=	spawnProcess True True (buyer @: (Title "Choose suppliers..." @>> chooseWorkflow)) >>| return Void	
+	=	buyer @: (Title "Choose suppliers..." @>> chooseWorkflow) >>| return Void
 where
 	chooseWorkflow 
 		= 					setOrderState SentToBuyer orderId
@@ -193,7 +193,7 @@ chooseSuppliers buyer [] orderId
 	=						setOrderState SuppliersChosen orderId
 		>>|					return Void
 chooseSuppliers buyer items orderId
-	=						( enterMultipleChoice "Select items from list intended for the same supplier " items
+	=						( enterMultipleChoice "Select items from list intended for the same supplier " [] items
 							     -&&-
 							  selectUserWithRole "supplier"
 							)
@@ -205,18 +205,18 @@ chooseSuppliers buyer items orderId
 
 startOrderingProcess :: Buyer Supplier (OrderStore a) -> Task Void | iTask a
 startOrderingProcess buyer supplier store
-	=						readShared orderingProcessStore
+	=						get orderingProcessStore
 		>>= \table ->		if (isMember (buyer,supplier) table)
 							   (		return Void			// process already active
 							   )
-							   (		spawnProcess True True (Title "Collecting orders..." @>> buyer @: shipOrder buyer supplier store)
-								>>| 	writeShared orderingProcessStore [(buyer,supplier):table]
+							   (		buyer @: shipOrder buyer supplier store
+								>>| 	set [(buyer,supplier):table] orderingProcessStore
 								>>|		return Void
 							   )
 
 shipOrder :: Buyer Supplier (OrderStore a) -> Task Void | iTask a
 shipOrder buyer supplier store
-	=						monitor ("Orders collected for " <+++ supplier) showSupOrders (const True) False store
+	=						viewSharedInformation ("Orders collected for " <+++ supplier) [] store
 		>>|					changeSupOrderState buyer supplier ToBeSendToSupplier SentToSupplier store
 		>>= \orders ->		supplier @: deliver (fetchOutstandingSubOrders buyer supplier SentToSupplier orders)
 		>>= \ok -> 			changeSupOrderState buyer supplier SentToSupplier (if ok ShippedToBuyer RejectedBySupplier) store
@@ -228,7 +228,7 @@ where
 
 deliver :: [SupOrder a] -> Task Bool | iTask a
 deliver subOrders
-	=						requestConfirmationAbout "Can you deliver: " subOrders
+	=						return True // requestConfirmationAbout "Can you deliver: " subOrders
 
 
 /* old stuff
