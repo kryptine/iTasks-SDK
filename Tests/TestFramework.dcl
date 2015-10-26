@@ -48,8 +48,11 @@ derive gDefault UnitTest
 */
 interactive :: String String String (Task a) -> Test | iTask a
 
+assert :: String (a -> Bool) a -> Test | gText{|*|} a
 
 assertEqual :: String a a -> Test | gEq{|*|} a & gText{|*|} a
+
+assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | gText{|*|} a
 
 assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & gText{|*|} a
 

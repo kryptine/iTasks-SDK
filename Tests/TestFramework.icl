@@ -28,10 +28,22 @@ interactive :: String String String (Task a) -> Test | iTask a
 interactive name instructions expectation tut
   = InteractiveTest {name=name,instructions = Note instructions, expectation = Note expectation, taskUnderTest = tut @! ()}
 
+assert :: String (a -> Bool) a -> Test | gText{|*|} a
+assert name exp sut = UnitTest {UnitTest|name=name,test=test}
+where
+	test w = (if (exp sut) Passed (Failed (Just (Note ("Actual: " <+++ sut)))),w)
+
 assertEqual :: String a a -> Test | gEq{|*|} a & gText{|*|} a 
 assertEqual name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
 	test w = (if (exp === sut) Passed (Failed (Just (Note ("Expected: " <+++ exp <+++ "\nActual:   " <+++ sut)))),w)
+
+assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | gText{|*|} a
+assertWorld name exp sut = UnitTest {UnitTest|name=name,test=test}
+where
+	test w 
+		# (res,w) = sut w
+		= (if (exp res) Passed (Failed (Just (Note ("Actual: " <+++ res)))),w)
 
 assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & gText{|*|} a
 assertEqualWorld name exp sut = UnitTest {UnitTest|name=name,test=test}
