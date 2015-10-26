@@ -138,7 +138,7 @@ where
 		(OnAllExceptions taskbf)	= callWithDeferredJSON taskbf d_json_a
 	
 	doStepLayout taskId evalOpts NoRep val
-		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]} (contActions taskId val conts)) NoChange)
+		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep (UIEmpty {UIEmpty|actions=[]}) (contActions taskId val conts)) NoChange)
 	doStepLayout taskId evalOpts (TaskRep def diffs) val
 		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep def (contActions taskId val conts)) diffs)
 
@@ -654,12 +654,12 @@ where
     release taskId meta = meta
 
     embedTaskDef instanceNo instanceKey
-		= {UIDef|content=UIForm {UIForm|attributes='DM'.newMap,controls=[(UIEmbedding embedSize {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey},'DM'.newMap)],size=embedSize},windows=[]}
+		= UIForm {UIForm|attributes='DM'.newMap,controls=[(UIEmbedding embedSize {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey},'DM'.newMap)],size=embedSize}
 
     embedSize = {UISizeOpts|defaultSizeOpts & width= Just FlexSize, height=Just FlexSize}
 
 	inUseDef
-		= {UIDef|content=UIForm {UIForm|attributes='DM'.newMap,controls=[(stringDisplay "This task is already in use",'DM'.newMap)],size=defaultSizeOpts},windows=[]}
+		= UIForm {UIForm|attributes='DM'.newMap,controls=[(stringDisplay "This task is already in use",'DM'.newMap)],size=defaultSizeOpts}
 
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 withShared initial stask = Task eval
@@ -749,7 +749,7 @@ where
 	        (ValueResult value info rep tree,iworld) = (ValueResult value info (updRep rep) tree, iworld)
             (res,iworld) = (res,iworld)
 
-        updRep NoRep          		= TaskRep (f {UIDef|content=UIEmpty {UIEmpty|actions=[]},windows=[]}) NoChange
+        updRep NoRep          		= TaskRep (f (UIEmpty {UIEmpty|actions=[]})) NoChange
         updRep (TaskRep def diffs)  = TaskRep (f def) diffs
 		
 instance tune ModifyLayout

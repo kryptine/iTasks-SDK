@@ -20,7 +20,7 @@ import qualified Control.Applicative as CA
 from Control.Applicative import class Applicative, instance Applicative Maybe
 
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
-                   DynamicView, BlueprintQuery, UIAction, CircularStack
+                   DynamicView, BlueprintQuery, CircularStack
 
 tonic :: Task ()
 tonic = tonicDashboard []

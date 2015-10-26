@@ -122,7 +122,7 @@ where
 		# (editUI,vst=:{VSt|iworld})	= editor.Editor.genUI [] v vmask vver vst
 		# promptUI  = toPrompt desc
 		# ui 		= UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap} [promptUI,editUI]
-		# uidef		= {UIDef|content=layout.LayoutRules.accuInteract ui, windows=[]} 
+		# uidef		= layout.LayoutRules.accuInteract.ContentLayout.layout ui 
 		= (TaskRep uidef NoChange, iworld)
 
 	updateValueAndMask taskId path mbEditor update (a,mask) iworld
@@ -158,9 +158,9 @@ where
             _                       = ioStates
         = (DestroyedResult,{iworld & ioStates = ioStates})
 
-    rep port = TaskRep {UIDef|content=UIForm {UIForm|attributes ='DM'.newMap
+    rep port = TaskRep (UIForm {UIForm|attributes ='DM'.newMap
                        ,controls= [(stringDisplay ("Listening for connections on port "<+++ port),'DM'.newMap)]
-                       ,size=defaultSizeOpts},windows = []} NoChange
+                       ,size=defaultSizeOpts}) NoChange
 
 tcpconnect :: !String !Int !(RWShared () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w
 tcpconnect host port sds handlers = Task eval

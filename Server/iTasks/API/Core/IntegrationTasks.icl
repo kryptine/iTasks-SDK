@@ -76,7 +76,7 @@ where
 		# (content,iworld)	= makeView opts status taskId iworld
 		# prompt			= toPrompt desc
 		# ui 				= UICompoundEditor {UIEditor|optional=False,attributes='Data.Map'.newMap} [prompt,content]
-		= (TaskRep {UIDef|content=layout.LayoutRules.accuInteract ui,windows=[]} NoChange,iworld)
+		= (TaskRep (layout.LayoutRules.accuInteract.ContentLayout.layout ui) NoChange,iworld)
 						
 	makeView [ViewWith viewFun] status taskId iworld
 		# ver = verifyMaskedValue (Display (viewFun status),Touched)

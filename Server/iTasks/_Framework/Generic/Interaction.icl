@@ -637,7 +637,7 @@ where
 	format optional label = camelCaseToWords label +++ if optional "" "*" +++ ":" //TODO: Move to layout
     putCond k v m = maybe ('DM'.put k v m) (const m) ('DM'.get k m)
 
-childVisualizations :: !(DataPath a InteractionMask Verification -> .(*VSt -> *(!UIContent,*VSt))) !DataPath ![a] ![InteractionMask] ![Verification] !*VSt -> *(![UIContent],!*VSt)
+childVisualizations :: !(DataPath a InteractionMask Verification -> .(*VSt -> *(!UIDef,*VSt))) !DataPath ![a] ![InteractionMask] ![Verification] !*VSt -> *(![UIDef],!*VSt)
 childVisualizations fx dp children masks vers vst = childVisualizations` 0 children masks vers [] vst
 where
 	childVisualizations` i [] [] [] acc vst

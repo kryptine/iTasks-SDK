@@ -22,7 +22,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 //Provide generic instances for all UI definitions
-derive class iTask UIDef, UIContent, UIWindow, UIEmpty, UIForm, UIBlock, UIAction, UIEditor, UIViewport, UIControl, UITab
+derive class iTask UIDef, UIWindow, UIEmpty, UIForm, UIBlock, UIAction, UIEditor, UIViewport, UIControl, UITab
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
 derive class iTask UIViewportOpts, UIWindowOpts, UIItemsOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
@@ -41,21 +41,25 @@ instance Functor UIViewOpts
 *
 * The UIDef type has contstructors for the various types of partial UI definitions.
 */
-:: UIDef =
-    { content :: UIContent
-    , windows :: [UIWindow]
-    }
 
-:: UIContent
+:: UIDef
     = UIEmpty   !UIEmpty                //An empty task UI, which may still carry windows and actions
+	//Constructors for editors
+	| UIEditor 			!UIEditor !UIControl 
+	| UICompoundEditor 	!UIEditor ![UIDef]
+	//Constructors for combinators
+	| UICompoundContent ![UIDef]
+	| UIAction 			!UIAction
+	| UIWindow 			!UIWindow
+	//Constructors for z-axis stacking
+	| UILayers 			![UIDef]
+	//Contructors for intermediate structures
     | UIForm    !UIForm                 //A set of controls from one or more interact tasks
-    | UIBlock   !UIBlock                //A partial user interface, the controls of such a UI have been arranged, but the container they will be put in is not decided yet
+    | UIBlock   !UIBlock                //A partial user interface, the controls of such a UI have been arranged
+										// but the container they will be put in is not decided yet
     | UIBlocks  ![UIBlock] ![UIAction]  //A set of aggregated blocks that have not yet been arranged
+	//Final
     | UIFinal   !UIViewport             //The final user interface
-
-	//Experimental additional constructors for more structured editors
-	| UIEditor 			!UIEditor !UIControl 			//Leaf editor
-	| UICompoundEditor 	!UIEditor ![UIContent]
 
 ::UIEditor = 
 	{ optional		:: Bool
@@ -97,7 +101,11 @@ instance Functor UIViewOpts
 	}
 
 // Floating window
-:: UIWindow = UIWindow !UISizeOpts !UIItemsOpts !UIWindowOpts					
+:: UIWindow =
+	{ sizeOpts 		:: !UISizeOpts
+	, itemsOpts 	:: !UIItemsOpts
+	, windowOpts	:: !UIWindowOpts
+	}
 	
 :: UIWindowOpts =
 	{ windowType    :: !UIWindowType
@@ -130,8 +138,8 @@ instance Functor UIViewOpts
 	// Components for editing data:
 	| UIEditString		!UIHSizeOpts	!UIEditOpts                                     // - String (single line text field)
 	| UIEditNote		!UISizeOpts	    !UIEditOpts                                     // - Note (multi-line text field)
-	| UIEditPassword	!UIHSizeOpts	!UIEditOpts                                     // - Password (single line text field that hides the text)
-	| UIEditInt			!UIHSizeOpts	!UIEditOpts                                     // - Int (integer number field)
+	| UIEditPassword    !UIHSizeOpts    !UIEditOpts                                     // - Password (single line text field that hides the text)
+	| UIEditInt         !UIHSizeOpts    !UIEditOpts                                     // - Int (integer number field)
 	| UIEditDecimal		!UIHSizeOpts	!UIEditOpts                                     // - Decimal (decimal number field)
 	| UIEditCheckbox	!UIFSizeOpts    !UIEditOpts                                     // - Checkbox (editable checkbox)
 	| UIEditSlider		!UIHSizeOpts	!UIEditOpts  !UISliderOpts				        // - Slider (editable slider)

@@ -9,20 +9,32 @@ from iTasks._Framework.Task import :: Event(..)
 
 :: UIEditletID :== (String,String)
 
-
 //TODO Make a good diffViewports function that considers also the other parts of a viewport
 diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIUpdate],!UIEditletDiffs)
 diffUIDefinitions _ def ResetEvent editletDiffs
     # (updates, editletDiffs) = diffUIDefinitions emptyUI def (RefreshEvent "Converted from ResetEvent by diff") editletDiffs
     = ([UIUpdate [] [("reset",[])]:updates],editletDiffs)
-diffUIDefinitions {UIDef|content=UIFinal (UIViewport iOpts1 opts1),windows=w1} {UIDef|content=UIFinal vp2=:(UIViewport iOpts2 opts2),windows=w2} event editletDiffs
+
+diffUIDefinitions (UILayers [main1:aux1]) (UILayers [main2:aux2]) event editletDiffs
+	# (mainDiffs,editletDiffs) = diffUIDefinitions main1 main2 event editletDiffs
+	# windowDiffs = diffAllWindows event editletDiffs [w \\ UIWindow w <- aux1] [w \\ UIWindow w <- aux2]
+	= (mainDiffs ++ windowDiffs,editletDiffs)
+diffUIDefinitions def1 def2=:(UILayers [main2:aux2]) event editletDiffs
+	# (mainDiffs,editletDiffs) = diffUIDefinitions def1 main2 event editletDiffs
+	# windowDiffs = diffAllWindows event editletDiffs [] [w \\ UIWindow w <- aux2]
+	= (mainDiffs ++ windowDiffs,editletDiffs)
+diffUIDefinitions def1=:(UILayers [main1:aux1]) def2 event editletDiffs
+	# (mainDiffs,editletDiffs) = diffUIDefinitions main1 def2 event editletDiffs
+	# windowDiffs = diffAllWindows event editletDiffs [w \\ UIWindow w <- aux1] []
+	= (mainDiffs ++ windowDiffs,editletDiffs)
+
+diffUIDefinitions (UIFinal (UIViewport iOpts1 opts1)) (UIFinal vp2=:(UIViewport iOpts2 opts2)) event editletDiffs
 	= (
         diffItems [] event editletDiffs iOpts1.UIItemsOpts.items iOpts2.UIItemsOpts.items
-	++	diffAllWindows event editletDiffs w1 w2
 	++	(case (diffHotkeys (fromMaybe [] opts1.UIViewportOpts.hotkeys) (fromMaybe [] opts2.UIViewportOpts.hotkeys)) of [] = []; ops = [UIUpdate [] ops])
 	++	if (opts1.UIViewportOpts.title === opts2.UIViewportOpts.title) [] [UIUpdate [] [("setTitle",[maybe JSONNull toJSON opts2.UIViewportOpts.title])]]
     ++  diffMenus [] event editletDiffs opts1.UIViewportOpts.menu opts2.UIViewportOpts.menu
-    , removeEditletDiffs (findEditletsInViewport vp2 ++ findEditletsInWindows w2 []) editletDiffs)
+    , removeEditletDiffs (findEditletsInViewport vp2) editletDiffs)
 
 removeEditletDiffs removeIds editletDiffs = 'DM'.fromList [(editletId,(ver,value,opts,if (isMember editletId removeIds) [] diffs)) \\ (editletId,(ver,value,opts,diffs)) <- 'DM'.toList editletDiffs]
 
@@ -310,10 +322,10 @@ where
 		= diffWindows [WindowStep i] event editletDiffs w1 w2 ++ diff event (i + 1) w1s w2s
 
 diffWindows :: UIPath Event UIEditletDiffs UIWindow UIWindow -> [UIUpdate]
-diffWindows path event editletDiffs w1=:(UIWindow sOpts1 iOpts1 opts1) w2=:(UIWindow sOpts2 iOpts2 opts2)
-	= replaceWindowIfImpossible path w2 [diffOpts sOpts1 sOpts2
-										,diffItemsOpts path event editletDiffs iOpts1 iOpts2
-										,diffWindowOpts path event editletDiffs opts1 opts2]
+diffWindows path event editletDiffs w1 w2
+	= replaceWindowIfImpossible path w2 [diffOpts w1.UIWindow.sizeOpts w2.UIWindow.sizeOpts
+										,diffItemsOpts path event editletDiffs w1.UIWindow.itemsOpts w2.UIWindow.itemsOpts
+										,diffWindowOpts path event editletDiffs w1.UIWindow.windowOpts w2.UIWindow.windowOpts]
 
 diffHotkeys :: [UIKeyAction] [UIKeyAction] -> [UIUpdateOperation]
 diffHotkeys keys1 keys2 = if (keys1 === keys2) [] [("setHotkeys",[toJSON keys2])]
@@ -357,7 +369,7 @@ findEditletsInWindows :: [UIWindow] [UIEditletID] -> [UIEditletID]
 findEditletsInWindows windows acc = foldr findEditletsInWindow acc windows
 
 findEditletsInWindow :: UIWindow [UIEditletID] -> [UIEditletID]
-findEditletsInWindow (UIWindow _ {UIItemsOpts|items} _) acc = findEditletsInItems items acc
+findEditletsInWindow {UIWindow|itemsOpts={UIItemsOpts|items}} acc = findEditletsInItems items acc
 
 findEditletsInItems :: [UIControl] [UIEditletID] -> [UIEditletID]
 findEditletsInItems controls acc = foldr findEditletsInControl acc controls

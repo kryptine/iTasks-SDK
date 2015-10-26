@@ -4,12 +4,13 @@ import iTasks.API.Core.Types
 from iTasks.API.Core.TaskCombinators import class tune
 
 import iTasks.UI.Definition
+import iTasks.UI.Diff
 
 from Data.Maybe import :: Maybe
 
 // Definition of a layout as collection of combination functions
 :: LayoutRules =
-	{ accuInteract	:: UIContent                  			-> UIContent	//Combine the prompt and editor of an interact
+	{ accuInteract	:: ContentLayout 										//Combine the prompt and editor of an interact
 	, accuStep		:: UIDef [UIAction]                     -> UIDef		//Combine current definition with the step actions
 	, accuParallel	:: [UIDef] [UIAction]                   -> UIDef		//Combine the prompt, parts of a parallel composition and possible actions
 	, accuWorkOn	:: UIDef TaskAttributes                 -> UIDef		//When a detached task is worked on
@@ -28,6 +29,13 @@ from Data.Maybe import :: Maybe
 
 :: SetValueAttribute a = SetValueAttribute !String (a -> String)
 
+// When a layout changes the stucture of the UI, changes to the UI have to be
+// changed too to route the changes to the correct place in the structure
+:: ContentLayout =
+	{ layout 	:: UIDef -> UIDef
+	, route  	:: UIChangeDef -> UIChangeDef
+	}
+
 /**
 * This is a layout that aims to automatically determine a simple, but
 * functional and visually pleasing layout by following some simple layout heuristics.
@@ -35,7 +43,7 @@ from Data.Maybe import :: Maybe
 autoLayoutRules :: LayoutRules
 
 //Partial layouts of autolayout
-autoAccuInteract        :: UIContent -> UIContent
+autoAccuInteract        :: ContentLayout 
 autoAccuStep            :: UIDef [UIAction]-> UIDef
 autoAccuParallel        :: [UIDef] [UIAction] -> UIDef
 autoAccuWorkOn          :: UIDef TaskAttributes -> UIDef
@@ -53,7 +61,7 @@ plainLayoutFinal       :: UIDef -> UIDef
 //Generation of prompts
 class descr d
 where
-	toPrompt		:: !d -> UIContent
+	toPrompt		:: !d -> UIDef
 
 instance descr ()                           //No prompt
 instance descr String						//Simple instruction

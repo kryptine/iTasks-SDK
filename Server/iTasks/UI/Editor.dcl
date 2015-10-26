@@ -22,7 +22,7 @@ from Text.JSON import :: JSONNode
 *	Standard editor
 */
 :: Editor a = 
-	{ genUI  	:: DataPath a InteractionMask Verification *VSt -> *(!UIContent,!*VSt)
+	{ genUI  	:: DataPath a InteractionMask Verification *VSt -> *(!UIDef,!*VSt)
 	, genDiff 	:: DataPath a a *VSt -> *(!UIChangeDef,!*VSt)
 	, appDiff 	:: DataPath JSONNode a InteractionMask *USt -> *(!a, !InteractionMask, !*USt)
 	}

@@ -368,6 +368,6 @@ visualizeView taskId evalOpts mbEditor value=:(v,vmask,vver) desc iworld
 		# (editUI,vst=:{VSt|iworld})	= editor.Editor.genUI [] v vmask vver vst
 		# promptUI  = toPrompt desc
 		# ui 		= UICompoundEditor {UIEditor|optional=False,attributes=newMap} [promptUI,editUI]
-		# uidef		= {UIDef|content=layout.LayoutRules.accuInteract ui, windows=[]} 
+		# uidef		= layout.LayoutRules.accuInteract.ContentLayout.layout ui 
 		= (TaskRep uidef NoChange, iworld)
 
