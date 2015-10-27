@@ -26,6 +26,8 @@ tbind taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasVal
 (>>-) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 (>>-) taska taskbf = step taska (const Nothing) [OnValue (ifStable taskbf)]
 
+(>>~) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>~) taska taskbf = step taska (const Nothing) [OnValue (hasValue taskbf)]
 
 (>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
 (>>^) taska taskb = taska >>= \x -> taskb >>| return x
