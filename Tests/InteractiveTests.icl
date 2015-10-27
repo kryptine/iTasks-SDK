@@ -5,8 +5,9 @@ module InteractiveTests
 */
 import iTasks, TestFramework
 import Tests.Interactive.CoreEditors
+import Tests.Interactive.Layout
 import Tests.Interactive.Editlets
 
-suites = [testCoreEditors,testEditlets]
+suites = [testCoreEditors,testLayout,testEditlets]
 
 Start w = startEngine (runTests suites) w
