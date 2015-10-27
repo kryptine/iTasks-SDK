@@ -542,7 +542,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
     # (tf_body, _, _) = updateNode nid (\x -> case x of
                                                 e=:(TMApp _ _ _ _ [TMApp _ _ _ _ _ _ _ : _] _ _) -> e
                                                 e=:(TMApp _ _ _ _ [TFApp _ "_Cons" _ _ : _] _ _) -> e // TODO This is probably insufficient. It will capture things like [t1:someOtherTasks], where we would like to expand someOtherTasks at runtime
-                                                //TMApp eid mtn mn tn _ pr ptr -> TMApp eid mtn mn tn [list2TExpr childNodes] pr ptr
+                                                TMApp eid mtn mn tn _ pr ptr -> TMApp eid mtn mn tn [list2TExpr childNodes] pr ptr // FIXME This conflicts with another example (I forgot which one)
                                                 e -> e
                                        ) pinst.bpi_blueprint.tf_body
     # pinst = { pinst
