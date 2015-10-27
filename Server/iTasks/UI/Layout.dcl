@@ -10,10 +10,10 @@ from Data.Maybe import :: Maybe
 
 // Definition of a layout as collection of combination functions
 :: LayoutRules =
-	{ accuInteract	:: ContentLayout 										//Combine the prompt and editor of an interact
-	, accuStep		:: UIDef [UIAction]                     -> UIDef		//Combine current definition with the step actions
-	, accuParallel	:: [UIDef] [UIAction]                   -> UIDef		//Combine the prompt, parts of a parallel composition and possible actions
-	, accuWorkOn	:: UIDef TaskAttributes                 -> UIDef		//When a detached task is worked on
+	{ accuInteract	:: ContentLayout 										// Combine the prompt and editor of an interact
+	, accuStep		:: ContentLayout										// Combine current definition with the step actions
+	, accuParallel	:: ContentLayout 										// Combine the prompt, parts of a parallel composition and possible actions
+	, accuAttach	:: ContentLayout										// When a detached task is worked on
 
     , layoutForm        :: UIForm                           -> UIBlock      //Lay out the controls of a control stack to create a sub-user interface
     , layoutBlocks      :: [UIBlock] [UIAction]             -> UIBlock      //Combine a stack of sub-user interfaces into one
@@ -32,8 +32,8 @@ from Data.Maybe import :: Maybe
 // When a layout changes the stucture of the UI, changes to the UI have to be
 // changed too to route the changes to the correct place in the structure
 :: ContentLayout =
-	{ layout 	:: UIDef -> UIDef
-	, route  	:: UIChangeDef -> UIChangeDef
+	{ layout 	:: UIDef  		-> UIDef
+	, route  	:: UIChangeDef  -> UIChangeDef
 	}
 
 /**
@@ -44,19 +44,18 @@ autoLayoutRules :: LayoutRules
 
 //Partial layouts of autolayout
 autoAccuInteract        :: ContentLayout 
-autoAccuStep            :: UIDef [UIAction]-> UIDef
-autoAccuParallel        :: [UIDef] [UIAction] -> UIDef
-autoAccuWorkOn          :: UIDef TaskAttributes -> UIDef
+autoAccuStep            :: ContentLayout
+autoAccuParallel        :: ContentLayout
+autoAccuAttach 			:: ContentLayout
 
-autoLayoutSubEditor     :: UIForm -> [(UIControl,UIAttributes)]
 autoLayoutForm          :: UIForm -> UIBlock
 autoLayoutBlocks        :: [UIBlock] [UIAction] -> UIBlock
 
 //Applied automatically when a published has a UI other than UIFinal
-autoLayoutFinal        :: UIDef -> UIDef
+autoLayoutFinal        :: ContentLayout
 
 //Alternative plain final layout
-plainLayoutFinal       :: UIDef -> UIDef
+plainLayoutFinal       :: ContentLayout
 
 //Generation of prompts
 class descr d

@@ -138,9 +138,11 @@ where
 		(OnAllExceptions taskbf)	= callWithDeferredJSON taskbf d_json_a
 	
 	doStepLayout taskId evalOpts NoRep val
-		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep (UIEmpty {UIEmpty|actions=[]}) (contActions taskId val conts)) NoChange)
+		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep.ContentLayout.layout
+										(UICompoundContent [UIEmpty {UIEmpty|actions=[]}: map UIAction (contActions taskId val conts)])) NoChange)
 	doStepLayout taskId evalOpts (TaskRep def diffs) val
-		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep def (contActions taskId val conts)) diffs)
+		= finalizeRep evalOpts (TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep.ContentLayout.layout
+										(UICompoundContent [def:map UIAction (contActions taskId val conts)])) diffs)
 
 	callWithDeferredJSONTaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
 	callWithDeferredJSONTaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
@@ -459,7 +461,10 @@ genParallelValue results = Value [(lastEvent,val) \\ ValueResult val {TaskEvalIn
 
 genParallelRep :: !TaskEvalOpts [UIAction] [TaskResult a] -> TaskRep
 genParallelRep evalOpts actions results
-	= TaskRep ((repLayoutRules evalOpts).LayoutRules.accuParallel [def \\ ValueResult _ _ (TaskRep def diffs) _ <- results] actions) NoChange
+	# ui = UICompoundContent [UICompoundContent [def \\ ValueResult _ _ (TaskRep def diffs) _ <- results]
+						   	 ,UICompoundContent (map UIAction actions)
+						   	 ]
+	= TaskRep ((repLayoutRules evalOpts).LayoutRules.accuParallel.ContentLayout.layout ui) NoChange
 
 genParallelEvalInfo :: [TaskResult a] -> TaskEvalInfo
 genParallelEvalInfo results = foldr addResult {TaskEvalInfo|lastEvent=0,removedTasks=[],refreshSensitive=False} results
@@ -620,19 +625,18 @@ where
 		# layout			    = repLayoutRules evalOpts
         # (constants,iworld)    = read (sdsFocus instanceNo taskInstanceConstants) iworld
 		# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
-		# (attributes,iworld)	= readRegister taskId (sdsFocus instanceNo taskInstanceAttributes) iworld
-		= case (constants,progress,attributes) of
-			(Ok {InstanceConstants|instanceKey,build},Ok progress=:{InstanceProgress|attachedTo=[attachedId],value},Ok attributes)
+		= case (constants,progress) of
+			(Ok {InstanceConstants|instanceKey,build},Ok progress=:{InstanceProgress|attachedTo=[attachedId],value})
                 | build <> buildID //Check version
 				    = (ValueResult (Value ASIncompatible True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
                 | value === Exception
 				    = (ValueResult (Value ASExcepted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)
 				| attachedId == taskId
-                    # rep       = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn (embedTaskDef instanceNo instanceKey) attributes) NoChange)
+                    # rep       = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuAttach.ContentLayout.layout (embedTaskDef instanceNo instanceKey)) NoChange)
                     # stable    = value === Stable
 					= (ValueResult (Value (ASAttached stable) stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
 				| otherwise
-					# rep = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuWorkOn inUseDef attributes) NoChange)
+					# rep = finalizeRep evalOpts (TaskRep (layout.LayoutRules.accuAttach.ContentLayout.layout inUseDef) NoChange)
 					= (ValueResult (Value (ASInUse attachedId) False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} rep tree, iworld)		
 			_
 				= (ValueResult (Value ASDeleted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts NoRep) tree, iworld)

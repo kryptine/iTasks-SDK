@@ -65,7 +65,6 @@ instance Functor UIViewOpts
 	{ optional		:: Bool
 	, attributes	:: UIAttributes
 	}
-
 :: UIEmpty =
     { actions       :: [UIAction]
     }

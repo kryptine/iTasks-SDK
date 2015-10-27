@@ -154,7 +154,7 @@ where
 
     finalizeUI session (ValueResult value info (TaskRep ui diffs) tree)
         # ui = if session (uiDefSetAttribute "session" "true" ui) ui
-        = (ValueResult value info (TaskRep (autoLayoutFinal ui) diffs) tree)
+        = (ValueResult value info (TaskRep (autoLayoutFinal.ContentLayout.layout ui) diffs) tree)
     finalizeUI session res = res
 
 	updateProgress now result progress

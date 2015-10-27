@@ -190,10 +190,10 @@ where
 workOn :: !TaskId -> Task AttachmentStatus
 workOn taskId=:(TaskId no _) 
 	//Copy authentication attributes from current instance 
-	= 			 	get currentUser
-	>>- \user -> 	set user (sdsFocus no taskInstanceUser)
+	= 			 		get currentUser -&&- get (sdsFocus no taskInstanceAttributesByNo)
+	>>- \(user,attr) -> set user (sdsFocus no taskInstanceUser)
 	//Attach the instance
-	>>|			 	attach taskId
+	>>|			 		attach taskId <<@ Title (fromMaybe "Untitled" ('DM'.get "title" attr))
 
 /*
 * Alters the evaluation functions of a task in such a way
