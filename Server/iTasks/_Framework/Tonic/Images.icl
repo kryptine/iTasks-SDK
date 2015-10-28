@@ -609,6 +609,14 @@ tMApp inh _ _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam [var : _] rhsExpr : 
   = tBind inh lhsExpr (Just var) rhsExpr tsrc
 tMApp inh _ _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
+tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>-" [lhsExpr : TLam [var : _] rhsExpr : _] _ _ tsrc
+  = tBind inh lhsExpr (Just var) rhsExpr tsrc
+tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>-" [lhsExpr : rhsExpr : _] _ _ tsrc
+  = tBind inh lhsExpr Nothing rhsExpr tsrc
+tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>~" [lhsExpr : TLam [var : _] rhsExpr : _] _ _ tsrc
+  = tBind inh lhsExpr (Just var) rhsExpr tsrc
+tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>~" [lhsExpr : rhsExpr : _] _ _ tsrc
+  = tBind inh lhsExpr Nothing rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tStep inh eid lhsExpr rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Core.TaskCombinators" "step" [lhsExpr : _ : rhsExpr : _] _ _ tsrc
