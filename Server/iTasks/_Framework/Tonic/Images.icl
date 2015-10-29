@@ -72,6 +72,7 @@ ArialItalic10px :== { fontfamily  = "Arial"
   , inh_in_fapp            :: !Bool
   , inh_in_case            :: !Bool
   , inh_in_branch          :: !Bool
+  , inh_in_lam             :: !Bool
   , inh_outputs            :: !Map ExprId TStability
   , inh_selDetail          :: !Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int))
   , inh_stepActions        :: !Map ExprId [UIAction]
@@ -111,6 +112,7 @@ mkStaticImage rs bpident compact {ActionState | state = tis} tsrc
                         , inh_in_fapp            = False
                         , inh_in_case            = False
                         , inh_in_branch          = False
+                        , inh_in_lam             = False
                         , inh_outputs            = 'DM'.newMap
                         , inh_selDetail          = Nothing
                         , inh_stepActions        = 'DM'.newMap
@@ -143,6 +145,7 @@ mkInstanceImage rs bpi outputs stepActions selDetail compact {ActionState | stat
                         , inh_in_fapp            = False
                         , inh_in_case            = False
                         , inh_in_branch          = False
+                        , inh_in_lam             = False
                         , inh_outputs            = outputs
                         , inh_selDetail          = selDetail
                         , inh_stepActions        = stepActions
@@ -175,12 +178,23 @@ tAugment inh orig extra tsrc
   #! (extra`, tsrc) = tExpr2Image {inh & inh_in_case = True} extra tsrc
   = tExpr2Image {inh & inh_augments = [extra`.syn_img : inh.inh_augments]} orig tsrc
 
+filterLamVars vars
+  = filter (\x -> case x of
+                    TVar _ "_x" _ -> False
+                    _             -> True) vars
+
 tLam :: !InhMkImg ![TExpr] !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tLam inh vars e tsrc
   #! (r, tsrc) = tExpr2Image inh e tsrc
+  #! vars      = filterLamVars vars
+  #! vars      = map ppTExpr vars
   #! lineParts = case vars of
-                   []   -> [tHorizConnArr (fillColorFromStatStab (r.syn_status, r.syn_stability)), r.syn_img]
-                   vars -> [tHorizConn (fillColorFromStatStab (r.syn_status, r.syn_stability)), tTextWithGreyBackground ArialRegular10px (strictFoldr (\x xs -> ppTExpr x +++ " " +++ xs) "" vars), tHorizConnArr (fillColorFromStatStab (r.syn_status, r.syn_stability)), r.syn_img]
+                   []   -> [ tHorizConnArr (fillColorFromStatStab (r.syn_status, r.syn_stability))
+                           , r.syn_img]
+                   vars -> [ tHorizConn (fillColorFromStatStab (r.syn_status, r.syn_stability))
+                           , tTextWithGreyBackground ArialRegular10px (strictFoldr (\x xs -> x +++ " " +++ xs) "" vars)
+                           , tHorizConnArr (fillColorFromStatStab (r.syn_status, r.syn_stability))
+                           , r.syn_img]
   #! img       = beside (repeat AtMiddleY) [] lineParts Nothing
   = ( { syn_img       = img
       , syn_status    = r.syn_status
@@ -605,16 +619,25 @@ tMApp inh _ _ "iTasks.API.Extensions.User" "@:" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tAssign inh lhsExpr rhsExpr tsrc
 tMApp inh _ _ "iTasks.API.Core.Types" ">>|" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
-tMApp inh _ _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam [var : _] rhsExpr : _] _ _ tsrc
-  = tBind inh lhsExpr (Just var) rhsExpr tsrc
+tMApp inh _ _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam vars rhsExpr : _] _ _ tsrc
+  # var = case filterLamVars vars of
+            [var : _] = Just var
+            _         = Nothing
+  = tBind inh lhsExpr var rhsExpr tsrc
 tMApp inh _ _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
-tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>-" [lhsExpr : TLam [var : _] rhsExpr : _] _ _ tsrc
-  = tBind inh lhsExpr (Just var) rhsExpr tsrc
+tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>-" [lhsExpr : TLam vars rhsExpr : _] _ _ tsrc
+  # var = case filterLamVars vars of
+            [var : _] = Just var
+            _         = Nothing
+  = tBind inh lhsExpr var rhsExpr tsrc
 tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>-" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
-tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>~" [lhsExpr : TLam [var : _] rhsExpr : _] _ _ tsrc
-  = tBind inh lhsExpr (Just var) rhsExpr tsrc
+tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>~" [lhsExpr : TLam vars rhsExpr : _] _ _ tsrc
+  # var = case filterLamVars vars of
+            [var : _] = Just var
+            _         = Nothing
+  = tBind inh lhsExpr var rhsExpr tsrc
 tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>~" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
 tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ _ tsrc
@@ -968,7 +991,18 @@ stepIfStableUnstableHasValue :: !InhMkImg !(Maybe (!String, !Bool))
 stepIfStableUnstableHasValue inh mact filter [TLam pats e : _] [ref : tsrc]
   #! (syn_e, tsrc)        = tExpr2Image inh e tsrc
   #! (conditionImg, tsrc) = tCaseDiamond inh filter tsrc
-  #! img                  = beside (repeat AtMiddleY) [] [conditionImg, tHorizConnArr (stepArrActivity inh syn_e), addAction mact (tHorizConn (stepArrActivity inh syn_e)) ref, tTextWithGreyBackground ArialRegular10px (strictFoldr (\x xs -> ppTExpr x +++ " " +++ xs) "" pats), tHorizConnArr (stepArrActivity inh syn_e), syn_e.syn_img] Nothing
+  #! imgs1                = [ conditionImg
+                            , tHorizConnArr (stepArrActivity inh syn_e)
+                            ]
+  #! pats                 = filterLamVars pats
+  #! imgs2                = if (length pats > 0)
+                              [ addAction mact (tHorizConn (stepArrActivity inh syn_e)) ref
+                              , tTextWithGreyBackground ArialRegular10px (strictFoldr (\x xs -> ppTExpr x +++ " " +++ xs) "" pats)]
+                              [addAction mact (tShortHorizConn (stepArrActivity inh syn_e)) ref]
+  #! imgs3                = [ tHorizConnArr (stepArrActivity inh syn_e)
+                            , syn_e.syn_img
+                            ]
+  #! img                  = beside (repeat AtMiddleY) [] (imgs1 ++ imgs2 ++ imgs3) Nothing
   = ( { syn_img       = img
       , syn_status    = syn_e.syn_status
       , syn_stability = syn_e.syn_stability

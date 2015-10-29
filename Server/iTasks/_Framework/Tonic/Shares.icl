@@ -164,7 +164,7 @@ paramsForTaskInstance = sdsTranslate "paramsForTaskInstance" (\t -> t +++> "-par
 storeTaskOutputViewer :: !(TaskResult a) !ExprId !TaskId !TaskId !*IWorld -> *IWorld | iTask a
 storeTaskOutputViewer tr nid parentTaskId childTaskId iworld
   | nid <> [] && parentTaskId <> TaskId 0 0
-    # childFocus                = sdsFocus (parentTaskId, nid) outputForTaskId
+    # childFocus             = sdsFocus (parentTaskId, nid) outputForTaskId
     # ((_, n, _, _), iworld) = sdsUnsafeRead childFocus iworld
     = snd ('DSDS'.write (resultToOutput (n + 1) childTaskId tr) childFocus iworld)
   | otherwise = iworld

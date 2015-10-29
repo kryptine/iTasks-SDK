@@ -3,8 +3,6 @@ definition module iTasks._Framework.Tonic.Shares
 import iTasks.API.Core.SDSs
 import iTasks._Framework.Tonic.Types
 
-sdsUnsafeRead :: (RWShared () a b) *IWorld -> *(a, *IWorld)
-
 selectedBlueprint :: RWShared () (Maybe ClickMeta) (Maybe ClickMeta)
 
 selectedDetail :: RWShared () (Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int))) (Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int)))
