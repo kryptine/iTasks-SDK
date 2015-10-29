@@ -24,13 +24,13 @@ import iTasks.API.Extensions.SVG.SVGlet
 import Text
 import StdMisc
 
-TonicBlue     =: toSVGColor "DeepSkyBlue"
-TonicDarkBlue =: toSVGColor "navy"
-TonicGreen    =: toSVGColor "LimeGreen"
-TonicWhite    =: toSVGColor "white"
-TonicBlack    =: toSVGColor "black"
-TonicRed      =: toSVGColor "OrangeRed"
-TonicGrey     =: toSVGColor "Gainsboro"
+TonicBlue     =: toSVGColor "#00bfff" // "DeepSkyBlue"
+TonicDarkBlue =: toSVGColor "#000080" // "navy"
+TonicGreen    =: toSVGColor "#32cd32" // "LimeGreen"
+TonicWhite    =: toSVGColor "#ffffff" // "white"
+TonicBlack    =: toSVGColor "#000000" // "black"
+TonicRed      =: toSVGColor "#ff4500" // "OrangeRed"
+TonicGrey     =: toSVGColor "#dcdcdc" // "Gainsboro"
 
 derive class iTask TonicImageState, TClickAction, ClickMeta, BlueprintRef
 
