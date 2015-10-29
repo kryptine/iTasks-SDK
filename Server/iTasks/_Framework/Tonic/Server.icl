@@ -20,30 +20,36 @@ acceptAndViewTonicTraces
                  ||-
                viewSharedInformation "Logged traces" [] log)
 
-acceptTonicTraces :: !(RWShared () [TonicMessage] [TonicMessage]) -> Task [()]
+acceptTonicTraces :: !(RWShared () [TonicMessage] [TonicMessage]) -> Task [String]
 acceptTonicTraces log
   = tcplisten 9000 True log { ConnectionHandlers
-                            | onConnect = onConnect
+                            | onConnect      = onConnect
                             , whileConnected = whileConnected
-                            , onDisconnect
+                            , onDisconnect   = onDisconnect
                             }
   where
-  onConnect :: String [TonicMessage] -> (MaybeErrorString (), Maybe [TonicMessage], [String], Bool)
-  onConnect host lines
-    = (Ok (), Just [debugMsg ("Connection from " +++ host) : lines], ["Welcome!"], False)
+  onConnect :: String [TonicMessage] -> (MaybeErrorString String, Maybe [TonicMessage], [String], Bool)
+  onConnect host olderMessages
+    = (Ok "", Just [debugMsg ("Connection from " +++ host) : olderMessages], ["Welcome!"], False)
 
-  whileConnected :: (Maybe String) () [TonicMessage] -> (MaybeErrorString (), Maybe [TonicMessage], [String], Bool)
-  whileConnected (Just data) _ lines
-    = case 'T'.split "\n" data of
-        [msgJSONString : restData : _]
-          = case fromJSON (fromString msgJSONString) of
-              Just msg = (Ok (), Just [msg : lines], [], False)
-              _        = (Ok (), Just lines, [], False)
-        _ = (Ok (), Just lines, [], False)
+  whileConnected :: (Maybe String) String [TonicMessage] -> (MaybeErrorString String, Maybe [TonicMessage], [String], Bool)
+  whileConnected (Just newData) oldData olderMessages
+    # collectedData        = oldData +++ 'T'.trim newData
+    # (messages, leftover) = partitionMessages ('T'.split "TONIC_EOL" collectedData)
+    # mbTMsgs              = case [msg \\ Just msg <- map (fromJSON o fromString) messages] of
+                               [] -> Nothing
+                               xs -> Just (xs ++ olderMessages)
+    = (Ok leftover, mbTMsgs, [], False)
+    where
+    partitionMessages []  = ([], "")
+    partitionMessages [x] = ([], x)
+    partitionMessages [x:y:xs]
+      # (msgs, leftover) = partitionMessages [y:xs]
+      = ([x:msgs], leftover)
 
-  whileConnected Nothing _ lines
-    = (Ok (), Nothing, [], False)
+  whileConnected Nothing oldData olderMessages
+    = (Ok oldData, Nothing, [], False)
 
-  onDisconnect :: () [TonicMessage] -> (MaybeErrorString (), Maybe [TonicMessage])
-  onDisconnect () lines
-    = (Ok (), Just [debugMsg "Disconnect" : lines])
+  onDisconnect :: String [TonicMessage] -> (MaybeErrorString String, Maybe [TonicMessage])
+  onDisconnect _ lines
+    = (Ok "", Just [debugMsg "Disconnect" : lines])
