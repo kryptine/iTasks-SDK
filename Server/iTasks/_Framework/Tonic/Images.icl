@@ -42,6 +42,14 @@ ArialRegular10px :== { fontfamily  = "Arial"
                      , fontweight  = "normal"
                      }
 
+ArialBold6px :== { fontfamily  = "Arial"
+                 , fontysize   = 6.0
+                 , fontstretch = "normal"
+                 , fontstyle   = "normal"
+                 , fontvariant = "normal"
+                 , fontweight  = "bold"
+                 }
+
 ArialBold10px :== { fontfamily  = "Arial"
                   , fontysize   = 10.0
                   , fontstretch = "normal"
@@ -558,12 +566,6 @@ mkClickMeta inh mbnid modName taskName mborig mbtarget =
                              }
   }
 
-tStartSymb :: Image ModelTy
-tStartSymb = polygon Nothing [ (px 0.0, px 0.0), (px 16.0, px 8.0), (px 0.0, px 16.0) ]
-
-tStopSymb :: Image ModelTy
-tStopSymb = rect (px 16.0) (px 16.0)
-
 tTaskDef :: !InhMkImg !String !String !TExpr ![(!TExpr, !TExpr)] ![TExpr] !(Image ModelTy) !*TagSource
          -> *(!Image ModelTy, !*TagSource)
 tTaskDef inh moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTag) : (argsTag, uArgsTag) : (bdytag, uBodyTag) : tsrc]
@@ -1035,9 +1037,7 @@ addAction (Just (action, enabled)) arr (t, uT)
 addAction _ _ _ = empty (px 0.0) (px 0.0)
 
 hasValueFilter :: Image ModelTy
-hasValueFilter = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fill = TonicBlue }
-                                              , rect (px 16.0) (px 8.0) <@< { fill = TonicGreen }
-                                              , text ArialBold10px " Has value"] Nothing
+hasValueFilter = beside (repeat AtMiddleY) [] [ tStableBox, tUnstableBox, text ArialBold10px " Has value"] Nothing
 
 tBranches :: !InhMkImg !(InhMkImg TExpr *TagSource -> *(!SynMkImg, !*TagSource))
              !Bool !Bool ![(!Maybe Pattern, !TExpr, !Bool, !Bool)] !ImageTag !*TagSource
@@ -1145,16 +1145,24 @@ littleman
                                                       , circle (px 10.0) <@< {StrokeWidthAttr | strokewidth = px 1.0} <@< {StrokeAttr | stroke = TonicWhite}] (Just maskRect)) <@< {MaskAttr | mask = maskRect}
 
 tException :: Image ModelTy
-tException = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fill = TonicRed }
-                                          , text ArialBold10px " Exception"] Nothing
+tException = beside (repeat AtMiddleY) [] [ tExceptionBox, text ArialBold10px " Exception"] Nothing
+
+tExceptionBox = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (px 8.0) (px 8.0) <@< { fill = TonicRed }
+                                                           , text ArialBold6px "E" ] Nothing
 
 tStable :: Image ModelTy
-tStable = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fill = TonicBlue }
-                                       , text ArialBold10px " Stable"] Nothing
+tStable = beside (repeat AtMiddleY) [] [tStableBox, text ArialBold10px " Stable"] Nothing
+
+tStableBox = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (px 8.0) (px 8.0) <@< { fill = TonicBlue }
+                                                        , text ArialBold6px "S" ] Nothing
+
 
 tUnstable :: Image ModelTy
-tUnstable = beside (repeat AtMiddleY) [] [ rect (px 16.0) (px 8.0) <@< { fill = TonicGreen }
-                                         , text ArialBold10px " Unstable"] Nothing
+tUnstable = beside (repeat AtMiddleY) [] [tUnstableBox, text ArialBold10px " Unstable"] Nothing
+
+tUnstableBox = overlay (repeat (AtMiddleX, AtMiddleY)) [] [ rect (px 8.0) (px 8.0) <@< { fill = TonicGreen }
+                                                          , text ArialBold6px "U" ] Nothing
+
 
 strictTRMapSt :: !(.a -> .(.st -> .(!b, !.st))) ![.a] !.st -> .(![b], !.st)
 strictTRMapSt f xs st
