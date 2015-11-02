@@ -395,22 +395,19 @@ tCaseOrIf inh texpr pats [(contextTag, _) : tsrc]
 tCaseDiamond :: !InhMkImg !(Image ModelTy) !*TagSource -> *(!Image ModelTy, !*TagSource)
 tCaseDiamond inh exprImg [(diamondTag, uDiamondTag) : tsrc]
   #! exprImg      = tag uDiamondTag exprImg
-  #! textHeight   = imageyspan diamondTag
-  #! textWidth    = maxSpan [px 50.0, imagexspan diamondTag]
-  #! edgeMargin   = textHeight *. 2.0
-  #! centerX      = (textWidth /. 2.0) + edgeMargin
-  #! leftCorner   = (px 0.0, y textHeight edgeMargin (px 0.0))
-  #! topCorner    = (centerX, ~ (y textHeight edgeMargin centerX))
-  #! rightCorner  = (centerX *. 2.0, y textHeight edgeMargin (px 0.0))
-  #! bottomCorner = (centerX, y textHeight edgeMargin centerX)
+  #! imgHeight    = imageyspan diamondTag
+  #! imgWidth     = maxSpan [px 50.0, imagexspan diamondTag]
+  #! edgeMargin   = imgHeight *. 2.0
+  #! centerX      = (imgWidth /. 2.0) + edgeMargin
+  #! leftCorner   = (px 0.0, px 0.0)
+  #! topCorner    = (centerX, ~ edgeMargin)
+  #! rightCorner  = (centerX *. 2.0, px 0.0)
+  #! bottomCorner = (centerX, edgeMargin)
   #! diamond      = polygon Nothing [leftCorner, topCorner, rightCorner, bottomCorner]
                       <@< { fill   = TonicWhite }
                       <@< { stroke = TonicBlack }
   #! img          = overlay (repeat (AtMiddleX, AtMiddleY)) [] [diamond, exprImg] Nothing
   = (img, tsrc)
-  where
-  y :: !Span !Span !Span -> Span
-  y textHeight edgeMargin x = x * (textHeight / edgeMargin)
 
 tLet :: !InhMkImg ![(!Pattern, !TExpr)] !TExpr !*TagSource -> *(!SynMkImg, *TagSource)
 tLet inh pats expr [(txttag, uTxtTag) : tsrc]
