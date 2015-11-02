@@ -495,42 +495,41 @@ renderParallelContainer :: !InhMkImg !ExprId !ModuleName !FuncName !String
                            !SynMkImg !*ImageTag !*TagSource
                         -> *(!SynMkImg, !*TagSource)
 renderParallelContainer inh eid moduleName taskName descr syn_branches uContextTag tsrc
-  #! isDynamic          = isJust inh.inh_bpinst
-  #! mActiveTid         = case inh.inh_bpinst of
-                            Just bpinst -> activeNodeTaskId eid bpinst.bpi_activeNodes
-                            _           -> Nothing
-  #! isActive           = isJust mActiveTid
-  #! mPrevActiveTid     = 'DM'.get eid inh.inh_prev
-  #! mbNavTo            = if isActive mActiveTid mPrevActiveTid
-  #! stability          = let f tid = fromMaybe TNoVal (maybe Nothing (\bpinst -> 'DM'.get eid inh.inh_outputs) inh.inh_bpinst)
-                          in maybe (maybe TNoVal f mPrevActiveTid) f mActiveTid
-  #! mTaskId            = case (mActiveTid, mPrevActiveTid) of
-                            (Just x, _) -> Just x
-                            (_, Just x) -> Just x
-                            _           -> Nothing
-  #! taskIdStr          = maybe "" (\x -> " (" +++ toString x +++ ")") mTaskId
-  #! displayName        = descr +++ taskIdStr
-  #! (taskApp, tsrc)    = tParApp inh.inh_compact eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName displayName syn_branches tsrc
-  #! clickMeta          = mkClickMeta inh (Just eid) moduleName taskName (fmap (\x -> x.bpi_taskId) inh.inh_bpinst) mbNavTo
-  #! valNodeIsSelected  = case inh.inh_selDetail of
-                            Just (Left
-                                   { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName, bpident_taskId}
-                                   , click_origin_mbnodeId})
-                              ->    bpident_moduleName == inh.inh_bpref.bpr_moduleName
-                                 && bpident_taskName == inh.inh_bpref.bpr_taskName
-                                 && bpident_taskId == fmap (\x -> x.bpi_taskId) inh.inh_bpinst
-                                 && click_origin_mbnodeId == Just eid
-                            _ -> False
-
-  #! valAnchor          = rect (px 8.0) (px 8.0) <@< { onclick = openDetails clickMeta, local = False }
-                                                 <@< { fill = case stability of
-                                                                TNoVal    -> TonicWhite
-                                                                TStable   -> TonicBlue
-                                                                TUnstable -> TonicGreen
-                                                     }
-                                                 <@< { stroke = if valNodeIsSelected TonicDarkBlue TonicBlack }
-                                                 <@< { strokewidth = if valNodeIsSelected (px 3.0) (px 1.0) }
-  #! inclArr            = beside (repeat AtMiddleY) [] (if isDynamic [taskApp, valAnchor] [taskApp]) Nothing
+  #! isDynamic         = isJust inh.inh_bpinst
+  #! mActiveTid        = case inh.inh_bpinst of
+                           Just bpinst -> activeNodeTaskId eid bpinst.bpi_activeNodes
+                           _           -> Nothing
+  #! isActive          = isJust mActiveTid
+  #! mPrevActiveTid    = 'DM'.get eid inh.inh_prev
+  #! mbNavTo           = if isActive mActiveTid mPrevActiveTid
+  #! stability         = let f tid = fromMaybe TNoVal (maybe Nothing (\bpinst -> 'DM'.get eid inh.inh_outputs) inh.inh_bpinst)
+                         in maybe (maybe TNoVal f mPrevActiveTid) f mActiveTid
+  #! mTaskId           = case (mActiveTid, mPrevActiveTid) of
+                           (Just x, _) -> Just x
+                           (_, Just x) -> Just x
+                           _           -> Nothing
+  #! taskIdStr         = maybe "" (\x -> " (" +++ toString x +++ ")") mTaskId
+  #! displayName       = descr +++ taskIdStr
+  #! (taskApp, tsrc)   = tParApp inh.inh_compact eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName displayName syn_branches tsrc
+  #! clickMeta         = mkClickMeta inh (Just eid) moduleName taskName (fmap (\x -> x.bpi_taskId) inh.inh_bpinst) mbNavTo
+  #! valNodeIsSelected = case inh.inh_selDetail of
+                           Just (Left
+                                  { click_origin_mbbpident = Just {bpident_moduleName, bpident_taskName, bpident_taskId}
+                                  , click_origin_mbnodeId})
+                             ->    bpident_moduleName == inh.inh_bpref.bpr_moduleName
+                                && bpident_taskName == inh.inh_bpref.bpr_taskName
+                                && bpident_taskId == fmap (\x -> x.bpi_taskId) inh.inh_bpinst
+                                && click_origin_mbnodeId == Just eid
+                           _ -> False
+  #! valAnchor         = rect (px 8.0) (px 8.0) <@< { onclick = openDetails clickMeta, local = False }
+                                                <@< { fill = case stability of
+                                                               TNoVal    -> TonicWhite
+                                                               TStable   -> TonicBlue
+                                                               TUnstable -> TonicGreen
+                                                    }
+                                                <@< { stroke = if valNodeIsSelected TonicDarkBlue TonicBlack }
+                                                <@< { strokewidth = if valNodeIsSelected (px 3.0) (px 1.0) }
+  #! inclArr           = beside (repeat AtMiddleY) [] (if isDynamic [taskApp, valAnchor] [taskApp]) Nothing
   = ( { syn_img       = inclArr
       , syn_status    = if isActive TIsActive (if (isJust mPrevActiveTid) TAllDone TNotActive)
       , syn_stability = stability
@@ -870,8 +869,10 @@ tStep inh eid lhsExpr conts [(contextTag, _) : tsrc]
                               Just xs -> xs
                               _       -> []
   #! (lhs, tsrc)          = tExpr2Image inh lhsExpr tsrc
-  #! conts                = tSafeExpr2List conts
-  #! (syn_branches, tsrc) = tBranches {inh & inh_prev_statstab = (lhs.syn_status, lhs.syn_stability)} (tStepCont actions) False True (strictTRMap (\t -> (Nothing, t, True, False)) conts) contextTag tsrc
+  #! conts                = case tSafeExpr2List conts of
+                              [t]   -> [(Nothing, t, False, False)]
+                              conts -> strictTRMap (\t -> (Nothing, t, True, False)) conts
+  #! (syn_branches, tsrc) = tBranches {inh & inh_prev_statstab = (lhs.syn_status, lhs.syn_stability)} (tStepCont actions) False True conts contextTag tsrc
   #! img                  = beside (repeat AtMiddleY) [] [lhs.syn_img, tHorizConn (fillColorFromStatStab (lineStatus lhs)), syn_branches.syn_img] Nothing
   = ( { syn_img       = img
       , syn_status    = syn_branches.syn_status
