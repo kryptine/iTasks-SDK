@@ -419,8 +419,8 @@ tLet inh pats expr [(txttag, uTxtTag) : tsrc]
         #! (patRhss, tsrc) = strictTRMapSt (tExpr2Image inh) (map snd pats) tsrc
         #! binds           = strictFoldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : expr.syn_img : acc]) [] (strictTRZip2 (strictTRMap fst pats) patRhss)
         #! letText         = tag uTxtTag (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds Nothing)
-        #! letWidth        = imagexspan txttag + px 10.0
-        #! letHeight       = imageyspan txttag + px 10.0
+        #! letWidth        = imagexspan txttag + px 8.0
+        #! letHeight       = imageyspan txttag + px 8.0
         #! letBox          = rect letWidth letHeight
                                <@< { fill   = TonicWhite }
                                <@< { stroke = TonicBlack }
@@ -540,7 +540,7 @@ renderParallelContainer inh eid moduleName taskName descr syn_branches uContextT
   tParApp :: !Bool !ExprId !ModuleName !FuncName !FuncName !SynMkImg !*TagSource
           -> *(!Image ModelTy, !*TagSource)
   tParApp isCompact eid parentModName parentFuncName taskName syn_branches [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
-    #! taskNameImg = tag uTnTag (margin (px 5.0) (text ArialBold10px taskName))
+    #! taskNameImg = tag uTnTag (margin (px 2.5, px 5.0) (text ArialBold10px taskName))
     #! taskNameImg = tag uContextTag taskNameImg
     #! maxXSpan    = maxSpan [imagexspan tntag, imagexspan argstag]
     #! content     = above (repeat AtLeft) [] [taskNameImg, xline Nothing maxXSpan, tag uArgsTag syn_branches.syn_img] Nothing
@@ -799,7 +799,7 @@ tDefaultMApp` :: !Bool !Bool !Bool !Bool !Bool !Bool !Bool !ExprId !ModuleName !
                  !ModuleName !FuncName ![Image ModelTy] ![Image ModelTy] !*TagSource
               -> *(!Image ModelTy, !*TagSource)
 tDefaultMApp` isDynamic inBranch isCompact isActive wasActive isInAccessible isUnreachable eid parentModName parentFuncName modName taskName taskArgs augments [(tntag, uTnTag) : (argstag, uArgsTag) : tsrc]
-  #! taskNameImg       = tag uTnTag (margin (px 5.0) (beside (repeat AtMiddleY) [] [text ArialBold10px taskName : text ArialRegular10px " " : intersperse (text ArialRegular10px " ") augments] Nothing))
+  #! taskNameImg       = tag uTnTag (margin (px 2.5, px 5.0) (beside (repeat AtMiddleY) [] [text ArialBold10px taskName : text ArialRegular10px " " : intersperse (text ArialRegular10px " ") augments] Nothing))
   #! bgColor           = appColor isActive wasActive isInAccessible
   #! futureUnreachable = isUnreachable && not isInAccessible
   #! futureReachable   = not isUnreachable && not isInAccessible && not (isActive || wasActive)
@@ -814,11 +814,11 @@ tDefaultMApp` isDynamic inBranch isCompact isActive wasActive isInAccessible isU
                                                                        <@< { strokewidth = strokeWidth }
         = (overlay (repeat (AtMiddleX, AtMiddleY)) [] [bgRect, taskNameImg] Nothing, tsrc)
       taskArgs
-        #! argsImg   = tag uArgsTag (margin (px 5.0) (above (repeat AtLeft) [] (strictTRMap (margin (px 1.0, px 0.0)) taskArgs) Nothing))
+        #! argsImg   = tag uArgsTag (margin (px 2.5, px 5.0) (above (repeat AtLeft) [] (strictTRMap (margin (px 1.0, px 0.0)) taskArgs) Nothing))
         #! maxXSpan  = maxSpan [imagexspan tntag, imagexspan argstag]
         #! lineImg   = xline Nothing maxXSpan <@< { stroke = strokeColor }
                                               <@< { strokewidth = strokeWidth }
-        #! txtBgRect = tRoundedRect maxXSpan (px 20.0) <@< { fill = bgColor }
+        #! txtBgRect = tRoundedRect maxXSpan (px 15.0) <@< { fill = bgColor }
                                                        <@< { stroke = strokeColor }
                                                        <@< { strokewidth = strokeWidth }
         #! content   = above (repeat AtLeft) [] [overlay (repeat (AtMiddleX, AtMiddleY)) [] [txtBgRect, taskNameImg] Nothing, lineImg, argsImg] Nothing
