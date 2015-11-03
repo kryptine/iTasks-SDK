@@ -81,6 +81,8 @@ ArialItalic10px :== { fontfamily  = "Arial"
   , inh_in_case            :: !Bool
   , inh_in_branch          :: !Bool
   , inh_in_lam             :: !Bool
+  , inh_in_parallel        :: !Bool
+  , inh_in_let             :: !Bool
   , inh_outputs            :: !Map ExprId TStability
   , inh_selDetail          :: !Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int))
   , inh_stepActions        :: !Map ExprId [UIAction]
@@ -121,6 +123,8 @@ mkStaticImage rs bpident compact {ActionState | state = tis} tsrc
                         , inh_in_case            = False
                         , inh_in_branch          = False
                         , inh_in_lam             = False
+                        , inh_in_parallel        = False
+                        , inh_in_let             = False
                         , inh_outputs            = 'DM'.newMap
                         , inh_selDetail          = Nothing
                         , inh_stepActions        = 'DM'.newMap
@@ -154,6 +158,8 @@ mkInstanceImage rs bpi outputs stepActions selDetail compact {ActionState | stat
                         , inh_in_case            = False
                         , inh_in_branch          = False
                         , inh_in_lam             = False
+                        , inh_in_parallel        = False
+                        , inh_in_let             = False
                         , inh_outputs            = outputs
                         , inh_selDetail          = selDetail
                         , inh_stepActions        = stepActions
@@ -165,7 +171,7 @@ mkInstanceImage rs bpi outputs stepActions selDetail compact {ActionState | stat
   = img
 
 tExpr2Image :: !InhMkImg !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
-tExpr2Image inh (TMApp eid mty mn tn targs prio ptr) tsrc = tMApp     inh eid mty mn tn targs prio ptr tsrc
+tExpr2Image inh (TMApp eid mty mn tn targs prio ptr) tsrc = tMApp     {inh & inh_in_parallel = False} eid mty mn tn targs prio ptr tsrc
 tExpr2Image inh (TFApp eid fn targs assoc)           tsrc = tFApp     inh eid fn targs assoc tsrc
 tExpr2Image inh (TLet pats bdy)                      tsrc
   | inh.inh_compact = tExpr2Image inh bdy tsrc
@@ -233,11 +239,21 @@ tRecUpd inh vn e es tsrc
 
 tFApp :: !InhMkImg !ExprId !FuncName ![TExpr] !TPriority !*TagSource -> *(!SynMkImg, !*TagSource)
 tFApp inh eid fn args assoc tsrc
-  = ( { syn_img       = text ArialRegular10px (ppTExpr (TFApp eid fn args assoc))
-      , syn_status    = TNotActive
-      , syn_stability = TStable
-      }
-    , tsrc)
+  | not (inh.inh_in_step || inh.inh_in_parallel) && (inh.inh_in_let || inh.inh_in_mapp || inh.inh_in_fapp || inh.inh_in_case)
+    = ( { syn_img       = text ArialRegular10px (ppTExpr (TFApp eid fn args assoc))
+        , syn_status    = TNotActive
+        , syn_stability = TStable
+        }
+      , tsrc)
+  | otherwise
+      #! pp  = ppTExpr (TFApp eid fn args assoc)
+      #! box = tRoundedRect (textxspan ArialRegular10px pp + px 10.0) (px (ArialRegular10px.fontysize + 10.0)) <@< { dash = [5, 5] }
+      #! img = overlay (repeat (AtMiddleX, AtMiddleY)) [] [box, text ArialRegular10px pp] Nothing
+      = ( { syn_img       = img
+          , syn_status    = TNotActive
+          , syn_stability = TStable
+          }
+        , tsrc)
 
 tArrowTip :: !(Maybe SVGColor) -> Image ModelTy
 tArrowTip color
@@ -287,7 +303,7 @@ tExpand inh argnames tt tsrc
 
 tPPExpr :: !InhMkImg !String !*TagSource -> *(!SynMkImg, !*TagSource)
 tPPExpr inh pp tsrc
-  | inh.inh_in_mapp || inh.inh_in_fapp || inh.inh_in_case
+  | not (inh.inh_in_step || inh.inh_in_parallel) && (inh.inh_in_let || inh.inh_in_mapp || inh.inh_in_fapp || inh.inh_in_case)
       = ( { syn_img       = text ArialRegular10px pp
           , syn_status    = TNotActive
           , syn_stability = TStable
@@ -316,7 +332,7 @@ tVar :: !InhMkImg !ExprId !String !Int !*TagSource -> *(!SynMkImg, !*TagSource)
 tVar inh eid pp ptr tsrc
   #! pp = if (pp == "_x") ("x" +++ toString ptr) pp
   #! txtImg = text ArialRegular10px pp
-  | inh.inh_in_mapp || inh.inh_in_fapp || inh.inh_in_case
+  | not (inh.inh_in_step || inh.inh_in_parallel) && (inh.inh_in_let || inh.inh_in_mapp || inh.inh_in_fapp || inh.inh_in_case)
       = ( { syn_img       = txtImg
           , syn_status    = TNotActive
           , syn_stability = TStable
@@ -411,6 +427,7 @@ tCaseDiamond inh exprImg [(diamondTag, uDiamondTag) : tsrc]
 
 tLet :: !InhMkImg ![(!Pattern, !TExpr)] !TExpr !*TagSource -> *(!SynMkImg, *TagSource)
 tLet inh pats expr [(txttag, uTxtTag) : tsrc]
+  #! inh = {inh & inh_in_let = True}
   = case expr of
       TLet pats` bdy
         = tLet inh (pats ++ pats`) bdy tsrc
@@ -471,24 +488,24 @@ tBind inh l mpat r tsrc
 tParSumL :: !InhMkImg !ExprId !String !String !TExpr !TExpr !*TagSource
          -> *(!SynMkImg, !*TagSource)
 tParSumL inh eid mn tn l r [(contextTag, uContextTag) : tsrc]
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False [(Nothing, l, True, False), (Nothing, r, False, False)] contextTag tsrc
+  #! (syn_branches, tsrc) = tBranches {inh & inh_in_parallel = True} tExpr2Image True False [(Nothing, l, True, False), (Nothing, r, False, False)] contextTag tsrc
   = renderParallelContainer inh eid mn tn "Parallel (-||): left bias" syn_branches uContextTag tsrc
 tParSumR :: !InhMkImg !ExprId !String !String !TExpr !TExpr !*TagSource
          -> *(!SynMkImg, !*TagSource)
 tParSumR inh eid mn tn l r [(contextTag, uContextTag) : tsrc]
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False [(Nothing, l, False, False), (Nothing, r, True, False)] contextTag tsrc
+  #! (syn_branches, tsrc) = tBranches {inh & inh_in_parallel = True} tExpr2Image True False [(Nothing, l, False, False), (Nothing, r, True, False)] contextTag tsrc
   = renderParallelContainer inh eid mn tn "Parallel (||-): right bias" syn_branches uContextTag tsrc
 tParSumN :: !InhMkImg !ExprId !String !String !String ![TExpr]
             !*TagSource
          -> *(!SynMkImg, !*TagSource)
 tParSumN inh eid mn tn descr ts [(contextTag, uContextTag) : tsrc]
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (strictTRMap (\x -> (Nothing, x, True, False)) ts) contextTag tsrc
+  #! (syn_branches, tsrc) = tBranches {inh & inh_in_parallel = True} tExpr2Image True False (strictTRMap (\x -> (Nothing, x, True, False)) ts) contextTag tsrc
   = renderParallelContainer inh eid mn tn descr syn_branches uContextTag tsrc
 tParProdN :: !InhMkImg !ExprId !String !String !String ![TExpr]
              !*TagSource
           -> *(!SynMkImg, !*TagSource)
 tParProdN inh eid mn tn descr ts [(contextTag, uContextTag) : tsrc]
-  #! (syn_branches, tsrc) = tBranches inh tExpr2Image True False (strictTRMap (\x -> (Nothing, x, True, False)) ts) contextTag tsrc
+  #! (syn_branches, tsrc) = tBranches {inh & inh_in_parallel = True} tExpr2Image True False (strictTRMap (\x -> (Nothing, x, True, False)) ts) contextTag tsrc
   = renderParallelContainer inh eid mn tn descr syn_branches uContextTag tsrc
 
 renderParallelContainer :: !InhMkImg !ExprId !ModuleName !FuncName !String
