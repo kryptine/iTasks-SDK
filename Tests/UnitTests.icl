@@ -3,7 +3,7 @@ module UnitTests
 * This module runs the unit tests on the command line
 */
 import TestFramework
-
+import System.CommandLine
 import Tests.Unit.CoreEditors
 import Tests.Unit.Layout
 import Tests.Unit.Editlets
@@ -16,4 +16,9 @@ suites = [testGenericEditorGenUI
 		 ,testMisc
 		 ]
 
-Start w = runUnitTestsCLI suites w
+Start world
+	# (args,world) = getCommandLine world
+	| isMember "-json" args
+		= runUnitTestsJSON suites world
+	| otherwise
+		= runUnitTestsCLI suites world

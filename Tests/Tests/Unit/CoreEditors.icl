@@ -1,35 +1,12 @@
 implementation module Tests.Unit.CoreEditors
 import TestFramework
+import Tests.Unit.FrameworkStubs
 
 import iTasks.UI.Editor, iTasks.UI.Diff, iTasks.UI.Layout
 import iTasks._Framework.Generic.Interaction
 import iTasks._Framework.IWorld
 import qualified Data.Map as DM
 import StdMisc
-
-//TEST STUBS
-toStubIWorld :: *World -> *IWorld
-toStubIWorld world
-  = {IWorld
-  |server = {serverName = "STUB",serverURL = "//127.0.0.1:80",buildID = "STUB"
-        	,paths = {appDirectory = "./STUB/",dataDirectory = "./STUB/",publicWebDirectories = []},customCSS  = False}
-  ,config = {sessionTime = 3600, smtpServer = "localhost"}
-  ,clocks = {SystemClocks |localDate=defaultValue,localTime=defaultValue,utcDate=defaultValue,utcTime=defaultValue}
-  ,current ={TaskEvalState|taskTime= 0,taskInstance= 0,sessionInstance = Nothing,attachmentChain = []
-            ,nextTaskNo = 0,eventRoute	= 'DM'.newMap,editletDiffs = 'DM'.newMap}
-  ,sdsNotifyRequests = [], memoryShares = 'DM'.newMap, cachedShares = 'DM'.newMap, exposedShares = 'DM'.newMap
-  ,jsCompilerState = abort "STUB js compiler state" ,shutdown = False,ioTasks = {done = [], todo = []},ioStates = 'DM'.newMap
-  ,world = world
-  ,resources = Nothing,random = [],onClient = False }
-	
-fromStubIWorld :: *IWorld -> *World
-fromStubIWorld iworld=:{IWorld|world} = world
-
-toStubVSt :: *IWorld -> *VSt
-toStubVSt iworld = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = "STUB", iworld = iworld}
-
-fromStubVSt :: *VSt -> *IWorld
-fromStubVSt vst=:{VSt|iworld} = iworld
 
 //COMPLEX TYPES FOR TESTING
 
@@ -47,7 +24,7 @@ derive class iTask TestRecordFields
 derive class iTask TestCons
 
 testGenericEditorGenUI :: TestSuite
-testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the cor generic UI generation"
+testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the core generic UI generation"
 	[testIntUntouched
 	,testIntTouched
 	,testIntBlanked
@@ -58,7 +35,7 @@ testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the cor ge
 	,testMaybeIntUntouched
 	]
 
-testGenUI :: String UIContent a InteractionMask -> Test | iTask a
+testGenUI :: String UIDef  a InteractionMask -> Test | iTask a
 testGenUI name exp x mask = assertEqualWorld name exp sut
 where
 	sut world 
@@ -147,7 +124,6 @@ testGenericEditorDiffs = testsuite "Generic diffs" "Tests for the generic diffs"
 	]
 
 //General pattern for diff tests
-derive class iTask UIChangeDef, UIStep
 
 testGenDiff :: String UIChangeDef a a -> Test | iTask a
 testGenDiff name exp x y = assertEqualWorld name exp sut
@@ -156,7 +132,7 @@ where
 		# vst = toStubVSt (toStubIWorld world)
 		# (res,vst) = gEditor{|*|}.genDiff [] x y vst
 		# world = fromStubIWorld (fromStubVSt vst)
-		= (res,world)
+		= (compactChangeDef res,world)
 
 //Integers
 testSameInt :: Test

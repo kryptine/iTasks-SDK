@@ -1,11 +1,6 @@
 definition module TestFramework
 import iTasks
 
-:: TestResult
-	= Passed 
-	| Failed !(Maybe Note) 	//Observed behavior
-	| Skipped 				//The test was skipped
-
 :: InteractiveTest 
 	= { name :: String
       , instructions  	:: Note
@@ -27,7 +22,19 @@ import iTasks
 	, tests :: [Test]
 	}
 
-derive class iTask TestResult, TestSuite, Test, InteractiveTest
+:: TestResult
+	= Passed 
+	| Failed !(Maybe Note) 	//Observed behavior
+	| Skipped 				//The test was skipped
+
+:: SuiteResult =
+	{ suiteName :: String
+	, testResults :: [(String,TestResult)]
+	}
+	
+:: TestReport :== [SuiteResult]
+	
+derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult
 
 derive JSONEncode UnitTest
 derive JSONDecode UnitTest
@@ -79,10 +86,18 @@ testEditors :: String -> Task a | iTask a
 *
 * @param the list of test suites to choose from
 */
-runTests :: [TestSuite] -> Task [TestResult]
+runTests :: [TestSuite] -> Task TestReport
+
+/**
+* Run all unit tests from the test suites
+*/
+runUnitTests :: [TestSuite] *World -> *(!TestReport,!*World)
 
 /**
 * Runs the unit tests from the test suites and shows test
 * results on stdout
 */
 runUnitTestsCLI :: [TestSuite] *World -> *World
+
+runUnitTestsJSON :: [TestSuite] *World -> *World
+

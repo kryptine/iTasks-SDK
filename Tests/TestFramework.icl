@@ -3,7 +3,7 @@ import iTasks, StdFile
 import iTasks.UI.Editor, iTasks.UI.Diff
 
 // TEST FRAMEWORK
-derive class iTask TestResult, TestSuite, Test, InteractiveTest
+derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult
 
 gText{|UnitTest|} _ _			            = []
 gEditor{|UnitTest|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
@@ -86,15 +86,26 @@ testEditors typeName
 				  )
 		 )
 
-runTests :: [TestSuite] -> Task [TestResult]
+runTests :: [TestSuite] -> Task TestReport
 runTests suites =
 		enterChoice ("Suite selection","Which tests do you want to run?") [ChooseWith (ChooseFromRadioButtons (\{TestSuite|name} -> name))] suites
-	>>= testFullSuite
+	>>= testFullSuite @ \r -> [r]
 where
-	testFullSuite :: TestSuite -> Task [TestResult]
-	testFullSuite suite=:{TestSuite|tests=tests}
-		= allTasks [(testInteractive t <<@ ForceLayout) <<@ Title t.InteractiveTest.name \\ InteractiveTest t <- tests] <<@ ArrangeWithTabs
+	testFullSuite :: TestSuite -> Task SuiteResult
+	testFullSuite suite=:{TestSuite|tests,name}
+		= allTasks 		[(testInteractive t <<@ ForceLayout) <<@ Title t.InteractiveTest.name \\ InteractiveTest t <- tests] <<@ ArrangeWithTabs
+		@ \results -> {SuiteResult|suiteName=name,testResults = zip ([t.InteractiveTest.name \\ InteractiveTest t <- tests],results) }
 
+runUnitTests :: [TestSuite] *World -> *(!TestReport,!*World)
+runUnitTests suites world = foldr runSuite ([],world) suites
+where
+	runSuite {TestSuite|name,tests} (report,world)
+		# (testResults,world) = foldr runTest ([],world) [t \\ UnitTest t <- tests]
+		= ([{SuiteResult|suiteName=name,testResults=testResults}:report],world)
+
+	runTest {UnitTest|name,test} (results,world)
+		# (result,world) = test world
+		= ([(name,result):results],world)
 
 runUnitTestsCLI :: [TestSuite] *World -> *World
 runUnitTestsCLI suites world
@@ -128,4 +139,11 @@ where
 	green s = toString [toChar 27,'[','3','2','m'] +++ s +++ toString [toChar 27,'[','0','m']
 	yellow s = toString [toChar 27,'[','3','3','m'] +++ s +++ toString [toChar 27,'[','0','m']
 
+runUnitTestsJSON :: [TestSuite] *World -> *World
+runUnitTestsJSON suites world
+	# (result,world) 	= runUnitTests suites world
+	# (console,world)	= stdio world
+	# console 			= fwrites (toString (toJSON result)) console
+	# (_,world)			= fclose console world
+	= world
 
