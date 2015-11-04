@@ -8,12 +8,14 @@ import Tests.Unit.CoreEditors
 import Tests.Unit.Layout
 import Tests.Unit.Editlets
 import Tests.Unit.Misc
+import Tests.Unit.TaskEvaluation
 
 suites = [testGenericEditorGenUI
 		 ,testGenericEditorDiffs
 		 ,testLayout
 		 ,testEditlets
 		 ,testMisc
+		 ,testTaskEvaluation
 		 ]
 
 Start world

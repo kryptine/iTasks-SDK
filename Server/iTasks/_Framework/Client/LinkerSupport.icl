@@ -73,12 +73,12 @@ taskletLinker :: !st 							// state
 	 ,!*IWorld)
 
 taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc
-						iworld=:{world,current={taskInstance},jsCompilerState}
+						iworld=:{world,current={taskInstance},jsCompilerState=Just {loaderState,functionMap,flavour,parserState,skipMap}}
 						
 	// unpack "compiler state"
-	# (loaderstate, ftmap, flavour, mbparserstate, skipmap) = jsCompilerState
+	//# (loaderstate, ftmap, flavour, mbparserstate, skipmap) = jsCompilerState
 	// create per sesssion "linker state"
-	# linkerstate = (loaderstate, ftmap, maybe newSet id (get taskInstance skipmap))
+	# linkerstate = (loaderState, functionMap, maybe newSet id (get taskInstance skipMap))
 	
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 
@@ -112,18 +112,18 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc
 			(linkerstate, lib, [], world) interfaceFuns
 
 	// unwrap linker state
-	# (loaderstate, ftmap, skipset) = linkerstate
+	# (loaderState, functionMap, skipset) = linkerstate
 
 	/* 2. Generate function definitions and ParserState */
 
 	# sapl_lib = toString lib
-	# (js_lib, mbparserstate) = case sapl_lib of
-		"" = (newAppender, mbparserstate)
-		   = let (script, pst) = handlerr (generateJS flavour False sapl_lib mbparserstate) in (script, Just pst)
+	# (js_lib, parserState) = case sapl_lib of
+		"" = (newAppender, parserState)
+		   = let (script, pst) = handlerr (generateJS flavour False sapl_lib parserState) in (script, Just pst)
 		
 	/* 3. Generate expressions by ParserState */
 									
-	# (js_ST, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_ST mbparserstate js_lib)
+	# (js_ST, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_ST parserState js_lib)
 	# (js_RF, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_RF (Just parserstate) js_lib)
 
 	# (js_eventHandlers, js_lib, parserstate)
@@ -136,7 +136,7 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc
 							let (ijs,js_lib`,parserstate`) = handlerr (exprGenerateJS flavour False saplfun (Just parserstate) js_lib)
 							 in ([(fn,ijs):os],js_lib`,parserstate`)) ([],js_lib,parserstate) sapl_interfaceFuns
 		
-	# (mb_js_CF, js_lib, mbparserstate) = mbExprGenerateJS flavour False (Just parserstate) js_lib mb_sapl_CF
+	# (mb_js_CF, js_lib, parserState) = mbExprGenerateJS flavour False (Just parserstate) js_lib mb_sapl_CF
 	
 /* For debugging:*/
 	# (_, world) = writeFile "debug_state.sapl" sapl_ST world
@@ -144,8 +144,12 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc
 	# (_, world) = writeFile "debug.sapl" sapl_lib world
 	# (_, world) = writeFile "debug.js" (toString js_lib) world
 
+	# jsCompilerState 
+		= {loaderState = loaderState, functionMap = functionMap, flavour = flavour
+		  ,parserState = parserState, skipMap = put taskInstance skipset skipMap}
+
 	= (js_ST, toString js_lib, js_eventHandlers, js_interfaceFuns, js_RF, mb_js_CF, 
-			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put taskInstance skipset skipmap)})
+			{iworld & world=world, jsCompilerState = Just jsCompilerState})
 
 editletLinker :: 
 	!id													// initDiff
@@ -162,12 +166,10 @@ editletLinker ::
 editletLinker initDiff initClientFunc appDiffFunc
 						iworld=:{world,current={sessionInstance=Nothing}} = ("","","","",iworld)
 editletLinker initDiff initClientFunc appDiffFunc
-						iworld=:{world,current={sessionInstance=Just currentInstance},jsCompilerState}
+						iworld=:{world,current={sessionInstance=Just currentInstance},jsCompilerState=Just jsCompilerState=:{loaderState,functionMap,flavour,parserState,skipMap}}
 
-	// unpack "compiler state"
-	# (loaderstate, ftmap, flavour, mbparserstate, skipmap) = jsCompilerState	
 	// create per sesssion "linker state"
-	# linkerstate = (loaderstate, ftmap, maybe newSet id (get currentInstance skipmap)) // (Just newSet))
+	# linkerstate = (loaderState, functionMap, maybe newSet id (get currentInstance skipMap)) // (Just newSet))
 
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 	# (linkerstate, lib, sapl_ID, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string initDiff) world
@@ -175,18 +177,18 @@ editletLinker initDiff initClientFunc appDiffFunc
 	# (linkerstate, lib, sapl_AD, world) = linkByExpr linkerstate lib (graph_to_sapl_string appDiffFunc) world
 
 	// unwrap linker state
-	# (loaderstate, ftmap, skipset) = linkerstate
+	# (loaderState, functionMap, skipset) = linkerstate
 
 	/* 2. Generate function definitions and ParserState */
 
 	# sapl_lib = toString lib
-	# (js_lib, mbparserstate) = case sapl_lib of
-		"" = (newAppender, mbparserstate)
-		   = let (script, pst) = handlerr (generateJS flavour False sapl_lib mbparserstate) in (script, Just pst)
+	# (js_lib, parserState) = case sapl_lib of
+		"" = (newAppender, parserState)
+		   = let (script, pst) = handlerr (generateJS flavour False sapl_lib parserState) in (script, Just pst)
 	
 	/* 3. Generate expressions by ParserState */
 
-	# (js_ID, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_ID mbparserstate js_lib)
+	# (js_ID, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_ID parserState js_lib)
 	# (js_IC, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_IC (Just parserstate) js_lib)
 	# (js_AD, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_AD (Just parserstate) js_lib)
 
@@ -196,9 +198,11 @@ editletLinker initDiff initClientFunc appDiffFunc
 	//# world = debugToFile "debug_ad.sapl" sapl_AD world
 	//# world = debugToFile "debug.sapl"    sapl_lib world
 	//# world = debugToFile "debug.js"      (toString js_lib) world
+	# jsCompilerState 
+		= {jsCompilerState & loaderState = loaderState, parserState = parserState, functionMap = functionMap, flavour = flavour, skipMap = put currentInstance skipset skipMap}
 
 	= (toString js_lib, js_ID, js_IC, js_AD, 
-			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
+			{iworld & world=world, jsCompilerState = Just jsCompilerState})
 
 debugToFile :: String String *World -> *World
 debugToFile fileName debugOutput world
@@ -210,18 +214,16 @@ debugToFile fileName debugOutput world
 
 diffLinker :: !cdf !idf !*IWorld -> (!String,!String,!String,!*IWorld)
 diffLinker cdf idf iworld=:{world,current={sessionInstance=Nothing}} = ("","","",iworld)
-diffLinker cdf idf iworld=:{world,current={sessionInstance=Just currentInstance},jsCompilerState}
+diffLinker cdf idf iworld=:{world,current={sessionInstance=Just currentInstance},jsCompilerState=Just jsCompilerState=:{loaderState,functionMap,flavour,parserState,skipMap}}
 
-    // unpack "compiler state"
-	# (loaderstate, ftmap, flavour, mbparserstate, skipmap) = jsCompilerState	
 	// create per sesssion "linker state"
-	# linkerstate = (loaderstate, ftmap, maybe newSet id (get currentInstance skipmap)) // (Just newSet))  
+	# linkerstate = (loaderState, functionMap, maybe newSet id (get currentInstance skipMap)) // (Just newSet))  
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 	# (linkerstate, lib, sapl_cdf, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string cdf) world
 	# (linkerstate, lib, sapl_idf, world) = linkByExpr linkerstate lib (graph_to_sapl_string idf) world
 
 	// unwrap linker state
-	# (loaderstate, ftmap, skipset) = linkerstate
+	# (loaderState, functionMap, skipset) = linkerstate
 
     # sapl_lib = toString lib
 
@@ -230,13 +232,16 @@ diffLinker cdf idf iworld=:{world,current={sessionInstance=Just currentInstance}
     //# world = debugToFile "debug_diff_idf.sapl" sapl_idf world
     //# world = debugToFile "debug_diff.sapl"     sapl_lib world
 
-	# (js_lib, mbparserstate) = case sapl_lib of
-		"" = (newAppender, mbparserstate)
-		   = let (script, pst) = handlerr (generateJS flavour False sapl_lib mbparserstate) in (script, Just pst)
+	# (js_lib, parserState) = case sapl_lib of
+		"" = (newAppender, parserState)
+		   = let (script, pst) = handlerr (generateJS flavour False sapl_lib parserState) in (script, Just pst)
 
-	# (js_cdf, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_cdf mbparserstate js_lib)
+	# (js_cdf, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_cdf parserState js_lib)
 	# (js_idf, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_idf (Just parserstate) js_lib)
-    = (toString js_lib,	js_cdf, js_idf, {iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
+
+	# jsCompilerState 
+		= {jsCompilerState & loaderState = loaderState, functionMap = functionMap, flavour = flavour, skipMap = put currentInstance skipset skipMap}
+    = (toString js_lib,	js_cdf, js_idf, {iworld & world=world, jsCompilerState = Just jsCompilerState})
 
 
 

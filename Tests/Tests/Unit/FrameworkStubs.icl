@@ -15,7 +15,7 @@ toStubIWorld world
   ,current ={TaskEvalState|taskTime= 0,taskInstance= 0,sessionInstance = Nothing,attachmentChain = []
             ,nextTaskNo = 0,eventRoute	= 'DM'.newMap,editletDiffs = 'DM'.newMap}
   ,sdsNotifyRequests = [], memoryShares = 'DM'.newMap, cachedShares = 'DM'.newMap, exposedShares = 'DM'.newMap
-  ,jsCompilerState = abort "STUB js compiler state" ,shutdown = False,ioTasks = {done = [], todo = []},ioStates = 'DM'.newMap
+  ,jsCompilerState = Nothing ,shutdown = False,ioTasks = {done = [], todo = []},ioStates = 'DM'.newMap
   ,world = world
   ,resources = Nothing,random = [],onClient = False }
 	

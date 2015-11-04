@@ -5,33 +5,15 @@ from StdFunc import o, seqList, ::St, const
 from Data.Map import :: Map
 from Data.Queue import :: Queue(..)
 import qualified Data.Map as DM
-import Data.Error, Data.Func, Data.Tuple, Math.Random, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
+import Data.List, Data.Error, Data.Func, Data.Tuple, Math.Random, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil
 import iTasks._Framework.IWorld, iTasks._Framework.WebService, iTasks._Framework.SDSService
 import iTasks.API.Common.SDSCombinators
 import qualified iTasks._Framework.SDS as SDS
 
-CLEAN_HOME_VAR	:== "CLEAN_HOME"
 SESSION_TIMEOUT :== fromString "0000-00-00 00:10:00"
 MAX_EVENTS 		:== 5
-
-//The following modules are excluded by the SAPL -> Javascript compiler
-//because they contain functions implemented in ABC code that cannot
-//be compiled to javascript anyway. Handwritten Javascript overrides need
-//to be provided for them.
-JS_COMPILER_EXCLUDES :==
-	["iTasks._Framework.Client.Override"
-	,"dynamic_string"
-	,"graph_to_string_with_descriptors"
-	,"graph_to_sapl_string"
-	,"Text.Encodings.Base64"
-	,"Sapl.LazyLinker"
-	,"Sapl.Target.JS.CodeGeneratorJS"
-	,"System.Pointer"
-	,"System.File"
-	,"System.Directory"
-	]
 
 import StdInt, StdChar, StdString
 import tcp
@@ -49,11 +31,11 @@ from Sapl.Target.Flavour import :: Flavour, toFlavour
 startEngine :: a !*World -> *World | Publishable a
 startEngine publishable world
 	# (opts,world)			= getCommandLine world
-	# (app,world)			= determineAppName world
+	# (appName,world)		= determineAppName world
 	# (mbSDKPath,world)		= determineSDKPath SEARCH_PATHS world
 	// Show server name
-	# world					= show (infoline app) world
-  	//Check options
+	# world					= show (infoline appName) world
+  	//Check commandline options
 	# port 					= fromMaybe DEFAULT_PORT (intOpt "-port" opts)
 	# keepalive				= fromMaybe DEFAULT_KEEPALIVE_TIME (intOpt "-keepalive" opts)
 	# help					= boolOpt "-help" opts
@@ -68,14 +50,17 @@ startEngine publishable world
 	# mbSDKPath				= maybe mbSDKPath Just sdkOpt //Commandline SDK option overrides found paths
 	//Normal execution
 	# world					= show (running port) world
-	# iworld				= initIWorld mbSDKPath webDirPaths storeOpt saplOpt world
+	# iworld				= createIWorld appName mbSDKPath webDirPaths storeOpt world
+	# iworld 				= initJsCompilerState saplOpt mbSDKPath iworld
     //Reset connectedTo for all task instances
     # iworld                = clearConnections iworld
 	// mark all instance as outdated initially
     # iworld                = queueAllPersistent iworld
-    //Start task server
-	# iworld				= serve port (httpServer port keepalive (engine publishable) allUIChanges) [BackgroundTask removeOutdatedSessions,BackgroundTask updateClocks, BackgroundTask (processEvents MAX_EVENTS)] timeout iworld
-	= finalizeIWorld iworld
+    //Run task server
+	# iworld				= serve port (httpServer port keepalive (engine publishable) allUIChanges)
+		[BackgroundTask removeOutdatedSessions
+		,BackgroundTask updateClocks, BackgroundTask (processEvents MAX_EVENTS)] timeout iworld
+	= destroyIWorld iworld
 where
 	infoline :: !String -> [String]
 	infoline app	= ["*** " +++ app +++ " HTTP server ***",""]
@@ -176,116 +161,6 @@ where
 	
 	defaultHandlers = [sdsService, simpleHTTPResponse (const True, handleStaticResourceRequest)]
 
-initIWorld :: !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
-initIWorld mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
-	# (appName,world) 			= determineAppName world
-	# (appPath,world)			= determineAppPath world
-	# appDir					= takeDirectory appPath
-	# dataDir					= case mbStorePath of
-		Just path 				= path	
-		Nothing 				= appDir </> appName +++ "-data"
-	# (webdirPaths,world) 	 	= case mbWebdirPaths of
-		Just paths 				= (paths,world)
-		Nothing 
-			# appWebDirs = [appDir </> "WebPublic"]
-			= case mbSDKPath of 
-				Just sdkDir	//Scan extensions for public web files
-					# (libWebDirs,world) = determineWebPublicDirs (sdkDir </>"Server"</>"iTasks"</>"API"</>"Extensions") world
-					= ([sdkDir</>"Client"] ++ appWebDirs ++ libWebDirs,world)	
-				Nothing
-					= (appWebDirs,world)
-    # (customCSS,world)    = checkCustomCSS appName webdirPaths world 
-	# saplPath = case mbSaplPath of
-		Just path 	= path
-		Nothing 	= appDir</>"sapl"
-	# flavourPath = case mbSDKPath of
-		Just sdkPath 	= sdkPath </> "Dependencies" </> "clean-sapl" </> "src" </>"clean.f"
-		Nothing 		= saplPath </> "clean.f"
-	# (res,world)				= getFileInfo appPath world
-	| isError res				= abort "Cannot get executable info."
-	# tm						= (fromOk res).lastModifiedTime
-	# build						= strfTime "%Y%m%d-%H%M%S" tm
-	# (DateTime localDate localTime,world)	= currentLocalDateTimeWorld world
-	# (DateTime utcDate utcTime,world)	    = currentUTCDateTimeWorld world
-	# (_,world)					= ensureDir "data" dataDir world
-	# tmpDir					= dataDir </> "tmp"
-	# (_,world)					= ensureDir "tmp" tmpDir world
-	# storeDir					= dataDir </> "stores"
-	# (exists,world)			= ensureDir "stores" storeDir world
-	# ((lst, ftmap, _), world)  = generateLoaderState [saplPath] [] JS_COMPILER_EXCLUDES world
-	# (flavour, world)			= readFlavour flavourPath world
-	# (Timestamp seed, world)	= time world
-	= {IWorld
-	  |server =
-        {serverName = appName
-	    ,serverURL	= "//127.0.0.1:80"
-	    ,buildID	= build
-        ,paths      =
-            {appDirectory		    = appDir
-	        ,dataDirectory		    = dataDir
-            ,publicWebDirectories   = webdirPaths 
-            }
-        ,customCSS  = customCSS 
-        }
-	  ,config				= initialConfig
-      ,clocks =
-        {SystemClocks
-        |localDate=localDate
-        ,localTime=localTime
-        ,utcDate=utcDate
-        ,utcTime=utcTime
-        }
-      ,current =
-	    {TaskEvalState
-        |taskTime				= 0
-	    ,taskInstance		    = 0
-        ,sessionInstance        = Nothing
-        ,attachmentChain        = []
-	    ,nextTaskNo			    = 0
-        ,eventRoute			    = 'DM'.newMap
-        ,editletDiffs           = 'DM'.newMap
-        }
-      ,sdsNotifyRequests    = []
-      ,memoryShares         = 'DM'.newMap
-      ,cachedShares         = 'DM'.newMap
-	  ,exposedShares		= 'DM'.newMap
-	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, 'DM'.newMap)
-	  ,shutdown				= False
-      ,ioTasks              = {done = [], todo = []}
-      ,ioStates             = 'DM'.newMap
-	  ,world				= world
-      ,resources            = Nothing
-      ,random               = genRandInt seed
-      ,onClient				= False
-	  }
-where
-	initialConfig :: Config
-	initialConfig =
-		{ sessionTime		= 3600
-		, smtpServer		= "localhost"
-		}
-		
-	ensureDir :: !String !FilePath *World -> (!Bool,!*World)
-	ensureDir name path world
-		# (exists, world) = fileExists path world
-		| exists = (True,world)
-		# (res, world) = createDirectory path world
-		| isError res = abort ("Cannot create " +++ name +++ " directory" +++ path +++ " : "  +++ snd (fromError res))
-		= (False,world)
-
-    readFlavour :: !String !*World -> *(!Flavour, !*World)
-    readFlavour flavourPath world
-	    # (flavres, world) 	= readFile flavourPath world
-	    | isError flavres
-		    = abort ("JavaScript Flavour file cannot be found at " +++ flavourPath)
-	    # mbFlav 			= toFlavour (fromOk flavres)
-	    | isNothing mbFlav
-		    = abort "Error in JavaScript flavour file"	
-	    = (fromJust mbFlav, world)
-
-finalizeIWorld :: !*IWorld -> *World
-finalizeIWorld iworld=:{IWorld|world} = world
-
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
@@ -326,7 +201,6 @@ where
 	dataFun _ _ _ s env = ([],True,s,Nothing,env)
 	lostFun _ _ s env = (Nothing,env)
 
-
 publish :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
 publish url format task = {url = url, task = TaskWrapper task, defaultFormat = format}
 
@@ -341,6 +215,12 @@ where
 instance Publishable [PublishedTask]
 where
 	publishAll list = list
+
+// Determines the server executables name
+determineAppName :: !*World -> (!String,!*World)
+determineAppName world 
+	# (appPath, world) = determineAppPath world
+	= ((dropExtension o dropDirectory) appPath, world)
 
 // Determines the server executables path
 determineAppPath :: !*World -> (!FilePath, !*World)
@@ -362,12 +242,6 @@ determineAppPath world
 		cmpFileTime (_,Ok {FileInfo | lastModifiedTime = x})
 					(_,Ok {FileInfo | lastModifiedTime = y}) = mkTime x > mkTime y
 	
-// Determines the server executables name
-determineAppName :: !*World -> (!String,!*World)
-determineAppName world 
-	# (appPath, world) = determineAppPath world
-	= ((dropExtension o dropDirectory) appPath, world)
-
 determineSDKPath :: ![FilePath] !*World -> (!Maybe FilePath, !*World)
 determineSDKPath paths world
 	//Try environment var first
@@ -384,32 +258,4 @@ where
 			_							= searchPaths ps world
 	where
 		path = (p </> "iTasks-SDK")
-
-//Do a recursive scan of a directory for subdirectories with the name "WebPublic"
-//Files in these directories are meant to be publicly served by an iTask webserver
-determineWebPublicDirs :: !FilePath !*World -> (![FilePath], !*World)
-determineWebPublicDirs path world
-	# (dir, world)	= readDirectory path world	
-    = case dir of
-        Ok entries
-            = appFst flatten (mapSt (checkEntry path) entries world)
-        _   = ([],world)
-where
-    checkEntry :: !FilePath !String !*World -> (![FilePath], !*World)
-    checkEntry dir name world
-        # path = dir </> name
-        | name == "." || name == ".." = ([],world)
-        | name == "WebPublic"   = ([path],world) //Dont' recurse into a found WebPublic dir
-        | otherwise
-		    # (mbInfo,world) = getFileInfo path world
-		    = case mbInfo of
-			    Ok info	| info.directory	= determineWebPublicDirs path world //Continue search
-                _                           = ([],world)
-
-checkCustomCSS :: !String ![FilePath] !*World -> (!Bool, !*World)
-checkCustomCSS appName [] world = (False,world)
-checkCustomCSS appName [d:ds] world 
-	# (exists,world) = fileExists (d </> addExtension appName "css") world
-	| exists 	= (True,world)
-				= checkCustomCSS appName ds world
 

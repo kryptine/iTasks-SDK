@@ -172,8 +172,9 @@ where
 		# diffs = 'DM'.fromList [d \\ d=:((t,_),_) <- 'DM'.toList diffs | let (TaskId i _) = fromString t in i <> instanceNo]
 		# iworld = setEditletDiffs diffs iworld
 		//Remove all js compiler state for this instance
-		# iworld=:{jsCompilerState=(ls,ftm,fl,ps,cm)} = iworld
-		# iworld = {iworld & jsCompilerState = (ls,ftm,fl,ps,'DM'.del instanceNo cm)}
+		# iworld=:{jsCompilerState=jsCompilerState} = iworld
+		# jsCompilerState = fmap (\state -> {state & skipMap = 'DM'.del instanceNo state.skipMap}) jsCompilerState
+		# iworld = {iworld & jsCompilerState = jsCompilerState}
 		= iworld
 
     mbResetUIState _ _ iworld = iworld
