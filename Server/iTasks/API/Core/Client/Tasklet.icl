@@ -216,7 +216,7 @@ toDef c = UIForm
  */
 controllerWrapper cf strTaskID st eventNo mbEventName mbEventHandler iworld
 	# (mbTUI, st, iworld) = cf (fromString strTaskID) st eventNo mbEventName mbEventHandler iworld
-	= (fmap (toString o encodeUIUpdates) mbTUI, st, iworld)
+	= (fmap (toString o encodeUIChangeDefs) mbTUI, st, iworld)
 
 // it uses the 2. layer (handleJSEvent), because it's created on the server
 eventHandlerWrapper taskId (TaskletEvent id event f) 

@@ -111,7 +111,7 @@ getUIUpdates iworld
 		(_,iworld)
 			= (Nothing, iworld)
 where
-	getUpdates (instanceNo,upds) = (instanceNo, [toString (encodeUIUpdates (toList upds))])
+	getUpdates (instanceNo,upds) = (instanceNo, [toString (encodeUIChangeDefs (toList upds))])
 	toList q = case 'DQ'.dequeue q of //TODO SHOULD BE IN Data.Queue
 		(Nothing,q) 	= []
 		(Just x,q) 		= [x:toList q]

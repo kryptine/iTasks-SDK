@@ -38,7 +38,10 @@ derive class iTask UIChangeDef, UIStep
 //Remove all paths that lead to a NoChange node
 compactChangeDef :: UIChangeDef -> UIChangeDef
 
-//Compare a user interface to a previous version and compute
+//Serialize change definitions such that they can be sent to a client
+encodeUIChangeDef :: !UIChangeDef -> JSONNode
+encodeUIChangeDefs :: ![UIChangeDef] -> JSONNode
+
+//Compare a user interface to a previous version to compute changes
 diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIChangeDef],!UIEditletDiffs)
 
-encodeUIUpdates :: ![UIChangeDef] -> JSONNode

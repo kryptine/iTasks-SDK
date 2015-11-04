@@ -191,7 +191,7 @@ where
 	
 	formatMessageEvents messages = concat (map format messages)
     where
-        format (instanceNo,updates) = "data: {\"instance\":" +++toString instanceNo+++",\"updates\":" +++ toString (encodeUIUpdates updates) +++ "}\n\n"
+        format (instanceNo,updates) = "data: {\"instance\":" +++toString instanceNo+++",\"updates\":" +++ toString (encodeUIChangeDefs updates) +++ "}\n\n"
 
 	itwcStartResponse path instanceNo instanceKey theme appName customCSS = {okResponse & rsp_data = toString itwcStartPage}
 	where

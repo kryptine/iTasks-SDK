@@ -20,6 +20,39 @@ compactChangeDef (ChangeUI localChanges children)
 		def 			= def
 compactChangeDef def = def
 
+encodeUIChangeDefs :: ![UIChangeDef] -> JSONNode
+encodeUIChangeDefs defs = JSONArray (map encodeUIChangeDef defs)
+
+encodeUIChangeDef :: !UIChangeDef -> JSONNode
+encodeUIChangeDef NoChange = JSONNull
+encodeUIChangeDef (ReplaceUI def)
+	= JSONObject
+		[("type",JSONString "replace")
+		,("definition",encodeUI def)
+		]
+encodeUIChangeDef (ChangeUI operations children)
+	= JSONObject
+		[("type",JSONString "change")
+		,("operations", JSONArray [JSONObject [("method",JSONString method),("arguments",JSONArray arguments)] 
+											\\ (method,arguments) <- operations])
+		,("children",JSONArray [JSONArray [JSONInt i, encodeUIChangeDef child] \\ (ItemStep i,child) <- children])
+		]
+
+encodeUIChangeDef (UpdateUI path operations) //Old update definition
+	= JSONObject 
+		[("type",JSONString "update")
+		,("path",encodeUIPath path)
+		,("operations", JSONArray [JSONObject [("method",JSONString method),("arguments",JSONArray arguments)]
+											  \\ (method,arguments) <- operations])]
+
+encodeUIPath :: UIPath -> JSONNode
+encodeUIPath path = JSONArray (enc (reverse path))
+where
+	enc [] = []
+	enc [ItemStep i:ss]		= [JSONInt i:enc ss]
+	enc [MenuStep:ss]		= [JSONString "m":enc ss]
+	enc [WindowStep i:ss]	= [JSONString "w",JSONInt i:enc ss]
+
 //TODO Make a good diffViewports function that considers also the other parts of a viewport
 diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIChangeDef],!UIEditletDiffs)
 diffUIDefinitions _ def ResetEvent editletDiffs
@@ -396,19 +429,4 @@ findEditletsInControl _ acc = acc
 findEditletsInTab :: UITab [UIEditletID] -> [UIEditletID]
 findEditletsInTab (UITab {UIItemsOpts|items} _) acc = findEditletsInItems items acc
 	
-encodeUIUpdates :: ![UIChangeDef] -> JSONNode
-encodeUIUpdates updates = JSONArray (map encodeUIUpdate updates)
 
-encodeUIUpdate :: !UIChangeDef -> JSONNode
-encodeUIUpdate (UpdateUI path operations)
-	=	JSONObject [("path",encodeUIPath path)
-					,("operations", JSONArray [JSONObject [("method",JSONString method),("arguments",JSONArray arguments)]
-											  \\ (method,arguments) <- operations])]
-
-encodeUIPath :: UIPath -> JSONNode
-encodeUIPath path = JSONArray (enc (reverse path))
-where
-	enc [] = []
-	enc [ItemStep i:ss]		= [JSONInt i:enc ss]
-	enc [MenuStep:ss]		= [JSONString "m":enc ss]
-	enc [WindowStep i:ss]	= [JSONString "w",JSONInt i:enc ss]

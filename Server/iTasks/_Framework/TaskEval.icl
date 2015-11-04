@@ -95,7 +95,8 @@ where
             //Store updated reduct
             # (nextTaskNo,iworld)		= getNextTaskNo iworld
             # (_,iworld)                = 'SDS'.modify (\r -> ((),{TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1}))
-                                                (sdsFocus instanceNo taskInstanceReduct) iworld //FIXME: Don't write the full reduct (all parallel shares are triggered then!)
+                                                (sdsFocus instanceNo taskInstanceReduct) iworld
+												//FIXME: Don't write the full reduct (all parallel shares are triggered then!)
             //Store update value
             # newValue                  = case newResult of
                 (ValueResult val _ _ _)     = TIValue val
@@ -111,15 +112,22 @@ where
 							(Ok UIDisabled, iworld)
 								= (Ok value, iworld) //Nothing to do, the UI is disabled
 							(Ok (UIEnabled uiVersion prevRep),iworld)
+								//Determine output
+								//OLD
                                 # oldUI = case prevRep of (TaskRep oldUI _) = oldUI; _ = emptyUI
                                 # newUI = case newRep of (TaskRep newUI _) = newUI; _ = emptyUI
 							    # (editletDiffs,iworld)		= getEditletDiffs iworld
-                                # (updates,editletDiffs)    = diffUIDefinitions oldUI newUI event editletDiffs
+                                # (changes,editletDiffs)    = diffUIDefinitions oldUI newUI event editletDiffs
                                 # iworld                    = setEditletDiffs editletDiffs iworld
                                 # (mbErr,iworld) 		= if deleted 
 									(Ok (),iworld)
 									('SDS'.write (UIEnabled (uiVersion + 1) newRep) (sdsFocus instanceNo taskInstanceUI) iworld)
-                                # iworld 		= if deleted iworld (queueUIChanges instanceNo updates iworld)
+                                # iworld 		= if deleted iworld (queueUIChanges instanceNo changes iworld)
+								//NEW
+								/*
+								# change 		= case newRep of (TaskRep _ change) = change ; _ = NoChange
+                                # iworld 		= if deleted iworld (queueUIChange instanceNo change iworld)
+								*/
                                 //Flush the share cache 
                                 # iworld = flushShareCache iworld
 								= (Ok value, iworld)
