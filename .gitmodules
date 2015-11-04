@@ -5,3 +5,6 @@
 [submodule "Dependencies/clean-platform"]
 	path = Dependencies/clean-platform
 	url = https://gitlab.science.ru.nl/clean-and-itasks/clean-platform.git
+[submodule "Binaries"]
+	path = Binaries
+	url = https://gitlab.science.ru.nl/clean-and-itasks/clean-pre-built-binaries.git
