@@ -13,12 +13,6 @@ import Data.Error
 derive JSONEncode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskRep, TaskEvalInfo, TonicOpts, CircularStack
 derive JSONDecode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskRep, TaskEvalInfo, TonicOpts, CircularStack
 
-//IS ALSO DERIVED IN TASK STORE: SEEMS REDUNDANT
-derive JSONEncode UIChangeDef, UIStep
-
-//derive JSONDecode TaskCompositionType
-derive JSONDecode UIChangeDef, UIStep
-
 JSONEncode{|DeferredJSON|} _ (DeferredJSON a)
 	= JSONEncode{|*|} False a
 JSONEncode{|DeferredJSON|} _ (DeferredJSONNode json)

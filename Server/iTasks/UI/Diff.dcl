@@ -33,6 +33,11 @@ from iTasks._Framework.Task import :: Event
 :: UIChange 		:== (!String,![JSONNode]) 	//A change method+arguments to call to effect the local change
 :: UIChildChange 	:== (!UIStep,!UIChangeDef) 	//Select a sub-component and apply the change definition there
 
+derive class iTask UIChangeDef, UIStep
+
+//Remove all paths that lead to a NoChange node
+compactChangeDef :: UIChangeDef -> UIChangeDef
+
 //Compare a user interface to a previous version and compute
 diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIUpdate],!UIEditletDiffs)
 

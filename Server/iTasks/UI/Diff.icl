@@ -2,12 +2,23 @@ implementation module iTasks.UI.Diff
 
 import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple, sapldebug
 from Data.Map import :: Map
+import Data.Tuple
 import qualified Data.Map as DM
 import Text, Text.JSON
 import iTasks._Framework.Util, iTasks.UI.Definition
 from iTasks._Framework.Task import :: Event(..)
 
 :: UIEditletID :== (String,String)
+
+derive class iTask UIChangeDef, UIStep
+
+//Remove unnessecary directives
+compactChangeDef :: UIChangeDef -> UIChangeDef
+compactChangeDef (ChangeUI localChanges children)
+	= case ChangeUI localChanges [child \\ child=:(_,change) <- map (appSnd compactChangeDef) children | not (change =: NoChange)] of
+		ChangeUI [] [] 	= NoChange
+		def 			= def
+compactChangeDef def = def
 
 //TODO Make a good diffViewports function that considers also the other parts of a viewport
 diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIUpdate],!UIEditletDiffs)

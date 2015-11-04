@@ -39,7 +39,7 @@ where
 
 	genDiff dp (RECORD old) (RECORD new) vst 
 		# (diff,vst) = ex.Editor.genDiff (pairPath grd_arity dp) old new vst
-		= (pruneChangeDef (flattenPairDiff 0 grd_arity diff),vst)
+		= (flattenPairDiff 0 grd_arity diff,vst)
 
 	appDiff [] e (RECORD record) mask ust //Enabling or disabling of a record
     	# mask = case e of
@@ -190,7 +190,7 @@ where
 
 	genDiff dp (CONS old) (CONS new) vst 
 		# (diff,vst) = ex.Editor.genDiff (pairPath gcd_arity dp) old new vst 	//Diff all fields of the constructor
-		= (pruneChangeDef (flattenPairDiff 0 gcd_arity diff),vst) 				//Flatten the binary tree of ChangeUI constructors created from
+		= (flattenPairDiff 0 gcd_arity diff,vst) 								//Flatten the binary tree of ChangeUI constructors created from
 																				//the PAIR's into a single ChangeUI constructor
 	appDiff [d:ds] e (CONS val) mask ust
 		| d >= gcd_arity
@@ -302,13 +302,6 @@ flattenPairDiff s n (ChangeUI _ [(ItemStep _,l),(ItemStep _,r)])
 where
 	half = n / 2
 
-//Remove unnessecary directives
-pruneChangeDef (ChangeUI localChanges children)
-	= case ChangeUI localChanges [child \\ child=:(_,change) <- children | not (change =: NoChange)] of
-		ChangeUI [] [] 	= NoChange
-		def 			= def
-pruneChangeDef def = def
-
 isOptional (UIEditor {UIEditor|optional} _) 		= optional
 isOptional (UICompoundEditor {UIEditor|optional} _) = optional
 isOptional _ 										= False
@@ -328,7 +321,6 @@ gEditor{|String|} = primitiveTypeEditor (Just "single line of text")
 gEditor{|Bool|} = primitiveTypeEditor Nothing 
 					(\viewOpts -> UIViewCheckbox defaultFSizeOpts viewOpts)
 					(\editOpts -> UIEditCheckbox defaultFSizeOpts editOpts)
-
 
 primitiveTypeEditor mbTypeDesc mkViewControl mkEditControl = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where 
