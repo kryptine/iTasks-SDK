@@ -40,7 +40,7 @@ DEFAULT_THEME :== "gray"
 
 :: WSCRsp
     = AckStartSession !InstanceNo
-    | TaskUpdates !InstanceNo ![UIUpdate]
+    | TaskUpdates !InstanceNo ![UIChangeDef]
 
 //TODO: The upload and download mechanism used here is inherently insecure!!!
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
@@ -169,7 +169,7 @@ where
 	disconnectFun _ _ (EventSourceConnection instances) iworld    = (Nothing, updateInstanceDisconnect instances iworld)
 	disconnectFun _ _ _ iworld                                    = (Nothing, iworld)
 
-	dequeueOutput :: ![InstanceNo] !(Map InstanceNo TIUIState) -> (![(!InstanceNo,![UIUpdate])],!Map InstanceNo TIUIState)
+	dequeueOutput :: ![InstanceNo] !(Map InstanceNo TIUIState) -> (![(!InstanceNo,![UIChangeDef])],!Map InstanceNo TIUIState)
 	dequeueOutput [] states = ([],states)
 	dequeueOutput [i:is] states
 		# (output,states) = dequeueOutput is states

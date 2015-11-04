@@ -3,11 +3,22 @@ definition module iTasks.UI.Diff
 import iTasks.UI.Definition
 from iTasks._Framework.Task import :: Event
 
-:: UIUpdate = UIUpdate !UIPath ![UIUpdateOperation]
+//Representation of a collection of changes that need to be applied to an existing UI
+:: UIChangeDef
+	= NoChange								//No changes are needed
+	| ReplaceUI UIDef 						//Replace the entire UI with a new version
+	| ChangeUI [UIChange] [UIChildChange]	//Change the current UI and/or its children
+	//Original change definition (TO BE REMOVED AFTER NEW CHANGE DEFS ARE FULLY IMPLEMENTED)
+	| UpdateUI !UIPath ![(String,[JSONNode])]
+
+:: UIChange 		:== (!String,![JSONNode]) 	//A change method+arguments to call to effect the local change
+:: UIChildChange 	:== (!UIStep,!UIChangeDef) 	//Select a sub-component and apply the change definition there
+
+//DEPRECATED
 :: UIUpdateOperation :== (String,[JSONNode])
 :: UIDiffResult
 	= DiffImpossible
-	| DiffPossible [UIUpdate]
+	| DiffPossible [UIChangeDef]
 
 :: ReferenceVersion :== Int
 
@@ -22,23 +33,12 @@ from iTasks._Framework.Task import :: Event
 	| MenuStep			//Select the menu bar
 	| WindowStep !Int	//Select window i (only possible as first step)
 
-
-//EXPERIMENTAL:
-//Representation of a collection of changes that need to be applied to an existing UI
-:: UIChangeDef
-	= NoChange								//No changes are needed
-	| ReplaceUI UIDef 						//Replace the entire UI with a new version
-	| ChangeUI [UIChange] [UIChildChange]	//Change the current UI and/or its children
-
-:: UIChange 		:== (!String,![JSONNode]) 	//A change method+arguments to call to effect the local change
-:: UIChildChange 	:== (!UIStep,!UIChangeDef) 	//Select a sub-component and apply the change definition there
-
 derive class iTask UIChangeDef, UIStep
 
 //Remove all paths that lead to a NoChange node
 compactChangeDef :: UIChangeDef -> UIChangeDef
 
 //Compare a user interface to a previous version and compute
-diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIUpdate],!UIEditletDiffs)
+diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIChangeDef],!UIEditletDiffs)
 
-encodeUIUpdates :: ![UIUpdate] -> JSONNode
+encodeUIUpdates :: ![UIChangeDef] -> JSONNode

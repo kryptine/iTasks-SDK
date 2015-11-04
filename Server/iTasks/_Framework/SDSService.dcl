@@ -6,7 +6,7 @@ from iTasks._Framework.Engine	    import :: ConnectionType
 from iTasks._Framework.SDS			import :: RWShared
 from iTasks._Framework.Task			import :: Task, :: InstanceNo
 from iTasks._Framework.TaskState	import :: TIUIState
-from iTasks.UI.Diff 				import :: UIUpdate
+from iTasks.UI.Diff 				import :: UIChangeDef
 
 import iTasks._Framework.Generic
 

@@ -6,7 +6,6 @@ from Data.Maybe						import :: Maybe
 from System.Time					import :: Timestamp, time
 from Text.JSON						import :: JSONNode
 from iTasks.API.Core.Types	        import :: DateTime, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
-from iTasks.UI.Diff				import :: UIUpdate
 
 from StdFile import class FileSystem(..)
 from StdFile import instance FileSystem World

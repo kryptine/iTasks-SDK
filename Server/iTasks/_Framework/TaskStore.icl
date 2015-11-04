@@ -19,11 +19,9 @@ from Data.Queue import :: Queue
 
 //Derives required for storage of UI definitions
 derive JSONEncode TaskResult, TaskEvalInfo, TaskRep, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
-derive JSONEncode UIUpdate
 derive JSONEncode Queue, Event
 
 derive JSONDecode TaskResult, TaskEvalInfo, TaskRep, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
-derive JSONDecode UIUpdate
 derive JSONDecode Queue, Event
 
 derive gDefault TIMeta

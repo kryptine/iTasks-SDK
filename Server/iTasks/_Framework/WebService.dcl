@@ -9,7 +9,7 @@ from iTasks._Framework.IWorld		import :: IWorld
 from iTasks._Framework.Task 	    import :: Task, :: ConnectionTask
 from iTasks._Framework.TaskState 	import :: TIUIState
 from iTasks._Framework.SDS 			import :: RWShared
-from iTasks.UI.Diff 				import :: UIUpdate
+from iTasks.UI.Diff 				import :: UIChangeDef
 from iTasks.API.Core.Types	        import :: InstanceNo
 
 import iTasks._Framework.Generic
