@@ -81,10 +81,6 @@ exception e = (dynamic e, toString e)
 repLayoutRules :: !TaskEvalOpts -> LayoutRules
 repLayoutRules {TaskEvalOpts|useLayout,modLayout}	= (fromMaybe id modLayout) (fromMaybe autoLayoutRules useLayout)
 
-finalizeRep :: !TaskEvalOpts !TaskRep -> TaskRep
-finalizeRep repOpts=:{TaskEvalOpts|noUI=True} _ = NoRep
-finalizeRep repOpts rep = rep
-
 extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
 extendCallTrace taskId repOpts=:{TaskEvalOpts|tonicOpts = {callTrace = xs}}
   = case 'DCS'.peek xs of
@@ -152,11 +148,11 @@ mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -
 mkInstantTask iworldfun = Task (evalOnce iworldfun)
 where
 	evalOnce f _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of	
-		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep repOpts NoRep) (TCStable taskId ts (DeferredJSON a)), iworld)
+		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} NoRep (TCStable taskId ts (DeferredJSON a)), iworld)
 		(Error e, iworld)					    = (ExceptionResult e, iworld)
 
 	evalOnce f _ repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
-		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep repOpts NoRep) state, iworld)
+		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} NoRep state, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
 	evalOnce f _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)

@@ -11,8 +11,7 @@ import iTasks.UI.Layout, iTasks.UI.Editor
 from iTasks._Framework.SDS as SDS import qualified read, readRegister, write
 from StdFunc						import o, id
 from iTasks.API.Core.SDSs		    import topLevelTasks
-from Data.Map						import qualified get
-from Data.Map						import newMap, put
+import qualified Data.Map as DM
 
 interactExposed :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask)))
 						(Maybe (Editor v))
@@ -31,7 +30,8 @@ where
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable 	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
+		# (nv,nmask,nts,change,iworld)
+								= matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -43,9 +43,10 @@ where
 		# (nl,(nv,nmask)) 		= if (rChanged || vChanged) (refreshFun l nr (nv,nmask) rChanged vChanged vValid) (l,(nv,nmask))
 		//Make visualization
 		# nver					= verifyMaskedValue (nv,nmask)
-		# (rep,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
+		# (ui,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value (nl,nv) False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts rep)
+		# rep 					= TaskRep ui change
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} rep
 			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -62,16 +63,18 @@ where
 		//Decode stored values
 		# (l,v)				    = (fromJust (fromJSON encl), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
+		# (nv,nmask,nts,change,iworld)
+								= matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
 		# vValid				= isValid (verifyMaskedValue (nv,nmask))
 		# (nl,(nv,nmask)) 		= if vChanged (refreshFun l (nv,nmask) vValid) (l,(nv,nmask))
 		//Make visualization
 		# nver					= verifyMaskedValue (nv,nmask)
-		# (rep,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
+		# (ui,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value (nl,nv) False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts rep)
+		# rep 					= TaskRep ui change
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} rep
 			(TCInteractLocal taskId nts (toJSON nl) (toJSON nv) nmask), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -92,7 +95,8 @@ where
 		//Decode stored values
 		# (r,v)				    = (fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
+		# (nv,nmask,nts,change,iworld)
+								= matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -104,9 +108,10 @@ where
 		# (nv,nmask) 		    = if (rChanged || vChanged) (refreshFun nr (nv,nmask) rChanged vChanged vValid) (nv,nmask)
 		//Make visualization
 		# nver					= verifyMaskedValue (nv,nmask)
-		# (rep,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
+		# (ui,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nv False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts rep)
+		# rep 					= TaskRep ui change
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} rep
 			(TCInteractViewOnly taskId nts (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -124,107 +129,22 @@ where
 		//Decode stored values
 		# v				        = fromJust (fromJSON encv)
 		//Determine next v by applying edit event if applicable
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
+		# (nv,nmask,nts,change,iworld)
+								= matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
 		# vValid				= isValid (verifyMaskedValue (nv,nmask))
 		# (nv,nmask) 		    = if vChanged (refreshFun (nv,nmask) vValid) (nv,nmask)
 		//Make visualization
 		# nver					= verifyMaskedValue (nv,nmask)
-		# (rep,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
+		# (ui,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nv False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts rep)
+		# rep 					= TaskRep ui change
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} rep
 			(TCInteractLocalViewOnly taskId nts (toJSON nv) nmask), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-//John's versions
-/*
-interactSharedChoice	:: !d !(ReadOnlyShared r) (Maybe s) (l -> s) (r (Maybe s) -> t v l)
-							-> Task (Maybe s) | descr d & Choice t & iTask r & iTask l & iTask (t v l) & iTask s
-interactSharedChoice desc shared initial_mask targetFun toView = Task eval
-where
-	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
-		= case mbr of
-			Error e		= (ExceptionResult e,iworld)
-			Ok r
-				# v = toView r initial_mask
-				# (l,v,mask) = (initial_mask,v,Touched)
-				= eval event evalOpts (TCInteract2 taskId ts (toJSON l) (toJSON r) mask) iworld
-	eval event evalOpts (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr mask) iworld=:{taskTime}
-		//Decode stored values
-		# l	= fromJust (fromJSON encl)
-		  r = fromJust (fromJSON encr)
-		  v = toView r l
-		//Determine next v by applying edit event if applicable 	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
-		//Load next r from shared value
-		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
-		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
-		# nr					= fromOk mbr
-		//Apply refresh function if r or v changed
-		# changed				= (nts =!= ts) || (nr =!= r) 
-		# valid					= isValid (verifyMaskedValue (nv,nmask))
-		# (nl,nv,nmask) 		= if changed
-										(refresh_fun l nr nv nmask valid)
-										(l,nv,nmask)
-		//Make visualization
-		# nver					= verifyMaskedValue (nv,nmask)
-		# (rep,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
-		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,refreshSensitive=True} (finalizeRep evalOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
-	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
-
-	refresh_fun l nr nv nmask valid
-		# nl = if valid (getMbSelection targetFun nv) l
-		# v = toView nr nl
-		| v === nv	= (nl,nv,nmask)	//If the view value is the same, we can keep the mask info
-					= (nl,v,Touched)
-*/
-/*
-interactSharedChoiceNoView	:: !d !(ReadOnlyShared r) (Maybe s) (l -> s) (r (Maybe s) -> t l)
-								-> Task (Maybe s) | descr d & ChoiceNoView t & iTask r & iTask l & iTask (t l) & iTask s
-interactSharedChoiceNoView desc shared initial_mask targetFun toViewId = Task eval
-where
-	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
-		= case mbr of
-			Error e		= (ExceptionResult e,iworld)
-			Ok r
-				# v = toViewId r initial_mask
-				# (l,v,mask) = (initial_mask,v,Touched)
-				= eval event evalOpts (TCInteract2 taskId ts (toJSON l) (toJSON r) mask) iworld
-	eval event evalOpts (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr mask) iworld=:{taskTime}
-		//Decode stored values
-		# l	= fromJust( fromJSON encl)
-		  r = fromJust (fromJSON encr)
-		  v = toViewId r l
-		//Determine next v by applying edit event if applicable 	
-		# (nv,nmask,nts,iworld)	= matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
-		//Load next r from shared value
-		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
-		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
-		# nr					= fromOk mbr
-		//Apply refresh function if r or v changed
-		# changed				= (nts =!= ts) || (nr =!= r) 
-		# valid					= isValid (verifyMaskedValue (nv,nmask))
-		# (nl,nv,nmask) 		= if changed
-										(refresh_fun l nr nv nmask valid)
-										(l,nv,nmask)
-		//Make visualization
-		# nver					= verifyMaskedValue (nv,nmask)
-		# (rep,iworld) 			= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
-		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,refreshSensitive=True} (finalizeRep evalOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
-	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
-
-	refresh_fun l nr nv nmask valid
-		# nl = if valid (getMbSelectionNoView targetFun nv) l
-		# v = toViewId nr nl
-		| v === nv	= (nl,nv,nmask)	//If the view value is the same, we can keep the mask info
-					= (nl,v,Touched)
-*/
 interactSharedInformation :: !d !(ReadOnlyShared r) (r -> v) (Maybe (Editor v)) -> Task r | descr d & iTask r & iTask v
 interactSharedInformation desc shared toView mbEditor = Task eval
 where
@@ -242,7 +162,8 @@ where
 		  r = fromJust (fromJSON encr)
 		  v = toView r
 		//Determine next v by applying edit event if applicable 	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
+		# (nv,nmask,nts,change,iworld)
+								= matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr), iworld)
@@ -253,9 +174,10 @@ where
 		# (nl,nv,nmask) 		= if changed (refresh_fun nr) (l,nv,nmask)
 		//Make visualization
 		# nver					= verifyMaskedValue (nv,nmask)
-		# (rep,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
+		# (ui,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
+		# rep 					= TaskRep ui change
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} rep (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun r
@@ -274,16 +196,18 @@ where
 		# v = fromJust (fromJSON encv)
 		  l = fromf v
 		//Determine next v by applying edit event if applicable 	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
+		# (nv,nmask,nts,change,iworld)
+								= matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Apply refresh function if v changed
 		# changed				= nts =!= ts
 		# valid					= isValid (verifyMaskedValue (nv,nmask))
 		# (nl,nv,nmask) 		= if changed (refresh_fun l nv nmask valid) (l,nv,nmask)
 		//Make visualization
 		# nver					= verifyMaskedValue (nv,nmask)
-		# (rep,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
+		# (ui,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts rep) (TCInteract1 taskId nts (toJSON nv) nmask), iworld)
+		# rep 					= TaskRep ui change
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} rep (TCInteract1 taskId nts (toJSON nv) nmask), iworld)
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l v m ok
@@ -304,16 +228,18 @@ where
 		# l	= fromJust (fromJSON encl)
 		  v = tof l
 		//Determine next v by applying edit event if applicable 	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
+		# (nv,nmask,nts,change,iworld)
+								= matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		//Apply refresh function if v changed
 		# changed				= nts =!= ts
 		# valid					= isValid (verifyMaskedValue (nv,nmask))
 		# (nl,nv,nmask) 		= if changed (refresh_fun l nv nmask valid) (l,nv,nmask)
 		//Make visualization
 		# nver					= verifyMaskedValue (nv,nmask)
-		# (rep,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
+		# (ui,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
+		# rep 					= TaskRep ui change
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} rep (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l v m ok
@@ -336,38 +262,43 @@ where
 		# l	= fromJust (fromJSON encl)
 		  v = tof l
 		//Determine next v by applying edit event if applicable 	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
+		# (nv,nmask,nts,change,iworld) = matchAndApplyEvent event taskId taskTime mbEditor v mask ts iworld
 		# nl = l
 		//Make visualization
 		# nver					= verifyMaskedValue (nv,nmask)
-		# (rep,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
+		# (ui,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} (finalizeRep evalOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
+		# rep = TaskRep ui change
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=False} rep (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 matchAndApplyEvent (EditEvent taskId name value) matchId taskTime mbEditor v mask ts iworld
 	| taskId == matchId
 		| otherwise
-			# ((nv,nmask),iworld)	= updateValueAndMask taskId (s2dp name) mbEditor value (v,mask) iworld
-			= (nv,nmask,taskTime,iworld)
-	| otherwise	= (v,mask,ts,iworld)
+			# ((nv,nmask),change,iworld) = updateValueAndMask taskId (s2dp name) mbEditor value (v,mask) iworld
+			= (nv,nmask,taskTime,change,iworld)
+	| otherwise	= (v,mask,ts,NoChange,iworld)
 matchAndApplyEvent (FocusEvent taskId) matchId taskTime mbEditor v mask ts iworld
-	= (v,mask, if (taskId == matchId) taskTime ts, iworld)
+	= (v,mask, if (taskId == matchId) taskTime ts, NoChange, iworld)
 matchAndApplyEvent _ matchId taskTime mbEditor v mask ts iworld
-	= (v,mask,ts,iworld)
-
-updateValueAndMask taskId path mbEditor update (a,mask) iworld
-	# editor = fromMaybe gEditor{|*|} mbEditor
-   	# (val,mask,ust=:{USt|iworld}) = editor.Editor.appDiff path update a mask {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
-   	= ((val,mask),iworld)
+	= (v,mask,ts,NoChange,iworld)
 
 visualizeView taskId evalOpts mbEditor value=:(v,vmask,vver) desc iworld
-		# layout = repLayoutRules evalOpts
-		# editor = fromMaybe gEditor{|*|} mbEditor
-		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
-		# (editUI,vst=:{VSt|iworld})	= editor.Editor.genUI [] v vmask vver vst
-		# promptUI  = toPrompt desc
-		# ui 		= UICompoundEditor {UIEditor|optional=False,attributes=newMap} [promptUI,editUI]
-		# uidef		= layout.LayoutRules.accuInteract.ContentLayout.layout ui 
-		= (TaskRep uidef NoChange, iworld)
+	# layout = repLayoutRules evalOpts
+	# editor = fromMaybe gEditor{|*|} mbEditor
+	# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
+	# (editUI,vst=:{VSt|iworld})	= editor.Editor.genUI [] v vmask vver vst
+	# promptUI  = toPrompt desc
+	# ui 		= UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap} [promptUI,editUI]
+	# ui		= layout.LayoutRules.accuInteract.ContentLayout.layout ui 
+	= (ui,iworld)
+
+updateValueAndMask taskId path mbEditor update (old,omask) iworld
+	# editor = fromMaybe gEditor{|*|} mbEditor
+    # (new,nmask,ust=:{USt|iworld}) = editor.Editor.appDiff path update old omask {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
+	//Compare for changes
+	# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
+	# (changes,vst=:{VSt|iworld}) 	= editor.Editor.genDiff [] old new vst
+    = ((new,nmask),changes,iworld)
+
 

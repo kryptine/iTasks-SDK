@@ -62,12 +62,10 @@ where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (val,iworld)	= 'SDS'.readRegister taskId shared iworld
 		# res = case val of
-			Ok val		= ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
-				(finalizeRep evalOpts NoRep) (TCInit taskId ts)
+			Ok val		= ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoRep (TCInit taskId ts)
 			Error e		= ExceptionResult e
 		= (res,iworld)
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
-
 
 interact :: !d !(ReadOnlyShared r)
 				(r -> (l,(v,InteractionMask)))
@@ -87,7 +85,8 @@ where
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
+		# (nv,nmask,nts,change,iworld)
+								= matchAndApplyEvent event taskId taskTime v mask ts iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -99,9 +98,10 @@ where
 		# (nl,(nv,nmask)) 		= if (rChanged || vChanged) (refreshFun l nr (nv,nmask) rChanged vChanged vValid) (l,(nv,nmask))
 		//Make visualization
 		# nver					= verifyMaskedValue (nv,nmask)
-		# (rep,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
+		# (ui,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
 		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts rep)
+		# rep 					= TaskRep ui change
+		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} rep
 			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -109,11 +109,11 @@ where
 	matchAndApplyEvent (EditEvent taskId name value) matchId taskTime v mask ts iworld
 		| taskId == matchId
 			| otherwise
-				# ((nv,nmask),iworld)	= updateValueAndMask taskId (s2dp name) mbEditor value (v,mask) iworld
-				= (nv,nmask,taskTime,iworld)
-		| otherwise	= (v,mask,ts,iworld)
+				# ((nv,nmask),change,iworld) = updateValueAndMask taskId (s2dp name) mbEditor value (v,mask) iworld
+				= (nv,nmask,taskTime,change,iworld)
+		| otherwise	= (v,mask,ts,NoChange,iworld)
 	matchAndApplyEvent _ matchId taskTime v mask ts iworld
-		= (v,mask,ts,iworld)
+		= (v,mask,ts,NoChange,iworld)
 
 	visualizeView taskId evalOpts mbEditor value=:(v,vmask,vver) desc iworld
 		# layout = repLayoutRules evalOpts
@@ -122,14 +122,16 @@ where
 		# (editUI,vst=:{VSt|iworld})	= editor.Editor.genUI [] v vmask vver vst
 		# promptUI  = toPrompt desc
 		# ui 		= UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap} [promptUI,editUI]
-		# uidef		= layout.LayoutRules.accuInteract.ContentLayout.layout ui 
-		= (TaskRep uidef NoChange, iworld)
+		# ui		= layout.LayoutRules.accuInteract.ContentLayout.layout ui 
+		= (ui,iworld)
 
-	updateValueAndMask taskId path mbEditor update (a,mask) iworld
+	updateValueAndMask taskId path mbEditor update (old,omask) iworld
 		# editor = fromMaybe gEditor{|*|} mbEditor
-    	# (val,mask,ust=:{USt|iworld}) = editor.Editor.appDiff path update a mask {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
-    	= ((val,mask),iworld)
-
+    	# (new,nmask,ust=:{USt|iworld}) = editor.Editor.appDiff path update old omask {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
+		//Compare for changes
+		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
+		# (changes,vst=:{VSt|iworld}) 	= editor.Editor.genDiff [] old new vst
+    	= ((new,nmask),changes,iworld)
 
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w
 tcplisten port removeClosed sds handlers = Task eval

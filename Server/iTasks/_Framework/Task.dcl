@@ -105,11 +105,6 @@ exception :: !e -> TaskException | TC, toString e
 repLayoutRules :: !TaskEvalOpts -> LayoutRules
 
 /**
-* Apply the final layout if necessary
-*/
-finalizeRep :: !TaskEvalOpts !TaskRep -> TaskRep
-
-/**
 * Extend the call trace with the current task number
 */
 extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
