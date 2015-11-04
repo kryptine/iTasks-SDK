@@ -2,7 +2,7 @@ implementation module iTasks.UI.Layout
 
 import StdTuple, StdList, StdBool, StdOrdList
 import Data.Maybe, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
-import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition
+import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition, iTasks.UI.Diff
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 
 from Data.Map as DM import qualified put, get, del, newMap, toList, fromList
@@ -37,18 +37,32 @@ autoAccuInteract :: ContentLayout
 autoAccuInteract = {ContentLayout|layout=layout,route=route}
 where
 	layout editor
-   	 //If the prompt attributes contain a hint attribute create a prompt
-		# controls = collectControls editor
+		//Just flatten all structure into a form
 		= UIForm {UIForm
-			| attributes = foldl mergeAttributes 'DM'.newMap (map snd controls)
-			, controls = controls
-			, size = defaultSizeOpts
-		}
-	route diffs = diffs
+				 |attributes = foldl mergeAttributes 'DM'.newMap (map snd controls)
+			 	 ,controls = controls
+			 	 ,size = defaultSizeOpts
+				 }
+	where
+		controls = flattenControls editor
 
-collectControls (UIEditor {UIEditor|attributes} control) = [(control,attributes)]
-collectControls (UICompoundEditor _ parts) = flatten (map collectControls parts)
-collectControls def = []
+		flattenControls (UIEditor {UIEditor|attributes} control) = [(control,attributes)]
+		flattenControls (UICompoundEditor _ parts) = flatten (map flattenControls parts)
+		flattenControls def = []
+
+	route change //Also flatten the changes
+		= ChangeUI [] (snd (flattenChanges 0 change))
+	where
+		flattenChanges n NoChange = (n + 1, []) 							//Leaf
+		flattenChanges n c=:(ReplaceUI _) = (n + 1, [(ItemStep n,c)]) 		//Leaf
+		flattenChanges n c=:(ChangeUI local []) = (n + 1,[(ItemStep n,c)])	//Leaf
+		flattenChanges n (ChangeUI _ children) = flattenChildren n children //Container
+		where	
+			flattenChildren n [] = (n,[])
+			flattenChildren n [(ItemStep _,c):cs]
+				# (n, childChanges) = flattenChanges n c
+				# (n, remainderChanges) = flattenChildren n cs
+				= (n, childChanges ++ remainderChanges)
 
 autoAccuStep :: ContentLayout
 autoAccuStep = {ContentLayout|layout=layout,route=route}
