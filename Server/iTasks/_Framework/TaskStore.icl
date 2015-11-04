@@ -9,7 +9,7 @@ import iTasks._Framework.TaskEval, iTasks._Framework.Util, iTasks.UI.Definition,
 import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
 
 import qualified iTasks._Framework.SDS as SDS
-from iTasks._Framework.SDS import :: SDSLensRead(..), :: SDSLensWrite(..), :: SDSLensNotify(..), :: RWShared(SDSDynamic)
+from iTasks._Framework.SDS import :: SDSLensRead(..), :: SDSLensWrite(..), :: SDSLensNotify(..), :: RWShared(SDSDynamic), clearInstanceSDSRegistrations
 import iTasks._Framework.SDSService
 import iTasks._Framework.Client.Override
 
@@ -55,18 +55,21 @@ taskInstanceShares :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSON
 taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
 
 //UIS of task instances
-taskInstanceUIs :: RWShared () (Map InstanceNo TIUIState) (Map InstanceNo TIUIState)
-taskInstanceUIs = sdsFocus "taskInstanceUIs" (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
-
 taskInstanceUI :: RWShared InstanceNo TIUIState TIUIState
-taskInstanceUI = sdsLens "taskInstanceUI" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceUIs
+taskInstanceUI = sdsTranslate "taskInstanceUI" (\t -> t +++> "-ui") (cachedJSONFileStore NS_TASK_INSTANCES True False False Nothing)
+
+allUIChanges :: RWShared () (Map InstanceNo (Queue UIChangeDef)) (Map InstanceNo (Queue UIChangeDef)) 
+allUIChanges = sdsFocus "allUIChanges" (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
+
+taskInstanceUIChanges :: RWShared InstanceNo (Queue UIChangeDef) (Queue UIChangeDef) 
+taskInstanceUIChanges = sdsLens "taskInstanceUIChanges" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) allUIChanges
 where
 	read instanceNo uis = case 'DM'.get instanceNo uis of
 		Just ui = Ok ui
-		Nothing = Error (exception ("Could not find task instance UI for instance "<+++ instanceNo))
+		Nothing = Error (exception ("Could not find task instance UI changes for instance "<+++ instanceNo))
 
 	write instanceNo uis ui = Ok (Just ('DM'.put instanceNo ui uis))
-	notify instanceNo _ = (==) instanceNo
+	notify instanceNo _ 	= (==) instanceNo
 
 //Task instance parallel lists
 taskInstanceParallelTaskLists :: RWShared InstanceNo (Map TaskId [ParallelTaskState]) (Map TaskId [ParallelTaskState])
@@ -422,6 +425,62 @@ where
     write1 p w = Ok (Just w)
     write2 p w = Ok Nothing //TODO: Write attributes of detached instances
 
+queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
+queueEvent instanceNo event iworld
+	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue (instanceNo,event) q)) taskEvents iworld
+	= iworld
+
+queueRefresh :: ![(InstanceNo,String)] !*IWorld -> *IWorld
+queueRefresh instances iworld
+    //Clear the instance's share change registrations, we are going to evaluate anyway
+	# iworld	= clearInstanceSDSRegistrations (map fst instances) iworld
+	# iworld 	= foldl (\w (i,r) -> queueEvent i (RefreshEvent r) w) iworld instances
+	= iworld
+
+dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
+dequeueEvent iworld
+	= case 'SDS'.modify 'DQ'.dequeue taskEvents iworld of
+		(Ok mbEvent,iworld) 	= (mbEvent,iworld)
+		(Error (_,e),iworld) 	= (Nothing,iworld) //TODO handle errors
+
+queueUIChange :: !InstanceNo !UIChangeDef !*IWorld -> *IWorld
+queueUIChange instanceNo change iworld
+	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue change q)) (sdsFocus instanceNo taskInstanceUIChanges) iworld
+	= iworld
+
+queueUIChanges :: !InstanceNo ![UIChangeDef] !*IWorld -> *IWorld
+queueUIChanges instanceNo changes iworld
+	# (_,iworld) = 'SDS'.modify (\q -> ((),enqueueAll changes q)) (sdsFocus instanceNo taskInstanceUIChanges) iworld
+	= iworld
+where
+	enqueueAll [] q = q
+	enqueueAll [x:xs] q = enqueueAll xs ('DQ'.enqueue x q)
+
+createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
+createDocument name mime content iworld
+	# (documentId, iworld)	= newDocumentId iworld
+	# document				= {Document|documentId = documentId, contentUrl = "?download="+++documentId, name = name, mime = mime, size = size content}
+	# iworld				= blobStoreWrite NS_DOCUMENT_CONTENT (documentId +++ "-data") content iworld
+	# (_,iworld)			= 'SDS'.write document (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d +++ "-meta") (jsonFileStore NS_DOCUMENT_CONTENT  False False Nothing))) iworld	
+	= (Ok document,iworld)
+	
+loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
+loadDocumentContent documentId iworld
+	= case blobStoreRead NS_DOCUMENT_CONTENT (documentId +++ "-data") iworld of
+        (Ok content,iworld) = (Just content,iworld)
+        (Error e,iworld)    = (Nothing,iworld)
+
+loadDocumentMeta :: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
+loadDocumentMeta documentId iworld
+	= case ('SDS'.read (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d+++"-meta") (jsonFileStore NS_DOCUMENT_CONTENT False False Nothing))) iworld) of
+        (Ok doc,iworld)     = (Just doc,iworld)
+        (Error e,iworld)    = (Nothing,iworld)
+
+documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
+documentLocation documentId iworld=:{server={buildID,paths={dataDirectory}}}
+	= (dataDirectory </>"stores"</> NS_DOCUMENT_CONTENT </> (documentId +++ "-data.txt"),iworld)
+
+//OBSOLETE
 exposedShare :: !String -> RWShared p r w | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p
 exposedShare url = SDSDynamic f
 where
@@ -448,27 +507,4 @@ where
 							
     mismatchError = "Exposed share type mismatch: " +++ url
 
-createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
-createDocument name mime content iworld
-	# (documentId, iworld)	= newDocumentId iworld
-	# document				= {Document|documentId = documentId, contentUrl = "?download="+++documentId, name = name, mime = mime, size = size content}
-	# iworld				= blobStoreWrite NS_DOCUMENT_CONTENT (documentId +++ "-data") content iworld
-	# (_,iworld)			= 'SDS'.write document (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d +++ "-meta") (jsonFileStore NS_DOCUMENT_CONTENT  False False Nothing))) iworld	
-	= (Ok document,iworld)
-	
-loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
-loadDocumentContent documentId iworld
-	= case blobStoreRead NS_DOCUMENT_CONTENT (documentId +++ "-data") iworld of
-        (Ok content,iworld) = (Just content,iworld)
-        (Error e,iworld)    = (Nothing,iworld)
-
-loadDocumentMeta :: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
-loadDocumentMeta documentId iworld
-	= case ('SDS'.read (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d+++"-meta") (jsonFileStore NS_DOCUMENT_CONTENT False False Nothing))) iworld) of
-        (Ok doc,iworld)     = (Just doc,iworld)
-        (Error e,iworld)    = (Nothing,iworld)
-
-documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
-documentLocation documentId iworld=:{server={buildID,paths={dataDirectory}}}
-	= (dataDirectory </>"stores"</> NS_DOCUMENT_CONTENT </> (documentId +++ "-data.txt"),iworld)
 

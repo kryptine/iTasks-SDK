@@ -74,7 +74,7 @@ startEngine publishable world
 	// mark all instance as outdated initially
     # iworld                = queueAllPersistent iworld
     //Start task server
-	# iworld				= serve port (httpServer port keepalive (engine publishable) taskInstanceUIs) [BackgroundTask removeOutdatedSessions,BackgroundTask updateClocks, BackgroundTask (processEvents MAX_EVENTS)] timeout iworld
+	# iworld				= serve port (httpServer port keepalive (engine publishable) allUIChanges) [BackgroundTask removeOutdatedSessions,BackgroundTask updateClocks, BackgroundTask (processEvents MAX_EVENTS)] timeout iworld
 	= finalizeIWorld iworld
 where
 	infoline :: !String -> [String]
@@ -163,9 +163,9 @@ background iworld = (processEvents MAX_EVENTS o removeOutdatedSessions) iworld
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: publish -> [(!String -> Bool
 					  ,!Bool
-					  ,!(HTTPRequest (Map InstanceNo TIUIState) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
-					  ,!(HTTPRequest (Map InstanceNo TIUIState) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
-					  ,!(HTTPRequest (Map InstanceNo TIUIState) ConnectionType *IWorld -> (!Maybe (Map InstanceNo TIUIState), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
 					  )] | Publishable publish
 engine publishable
 	= taskHandlers (publishAll publishable) ++ defaultHandlers
@@ -314,9 +314,9 @@ where
 simpleHTTPResponse ::
 	(!(String -> Bool),HTTPRequest *IWorld -> (!HTTPResponse,*IWorld))
 	->
-	(!(String -> Bool),!Bool,!(HTTPRequest (Map InstanceNo TIUIState) *IWorld -> (HTTPResponse, Maybe loc, Maybe (Map InstanceNo TIUIState) ,*IWorld))
-							,!(HTTPRequest (Map InstanceNo TIUIState) (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe (Map InstanceNo TIUIState) ,!*IWorld))
-							,!(HTTPRequest (Map InstanceNo TIUIState) loc *IWorld -> (!Maybe (Map InstanceNo TIUIState),!*IWorld)))
+	(!(String -> Bool),!Bool,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
+							,!(HTTPRequest r (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
+							,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld)))
 simpleHTTPResponse (pred,responseFun) = (pred,True,initFun,dataFun,lostFun)
 where
 	initFun req _ env

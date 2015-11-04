@@ -33,6 +33,10 @@ newInstanceNo           :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*I
 newInstanceKey          :: !*IWorld -> (!InstanceKey,!*IWorld)
 newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)
 
+//=== Task instance index: ===
+
+//A global index of all task instances is maintained
+//This index contains all meta-data about the task instances on this engine
 taskInstanceIndex :: RWShared () [TIMeta] [TIMeta]
 
 //Task instance state is accessible as shared data sources
@@ -46,23 +50,24 @@ taskInstanceAttributes  :: RWShared InstanceNo TaskAttributes TaskAttributes
 
 topLevelTaskList        :: RWShared TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
 
-//Evaluation state of instances
+//=== Task instance input: ===
+
+//When events are placed in this queue, the engine will re-evaluate the corresponding task instances.
 taskEvents              :: RWShared () (Queue (InstanceNo,Event)) (Queue (InstanceNo,Event))
 
+// === Evaluation state of instances: ===
 taskInstanceReduct		:: RWShared InstanceNo TIReduct TIReduct
 taskInstanceValue       :: RWShared InstanceNo TIValue TIValue
 taskInstanceShares      :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
 
-taskInstanceUIs 		:: RWShared () (Map InstanceNo TIUIState) (Map InstanceNo TIUIState)
-taskInstanceUI 			:: RWShared InstanceNo TIUIState TIUIState
-
 //Filtered views on evaluation state of instances:
 
 //Shared source 
-localShare              :: RWShared TaskId a a | iTask a
+localShare              			:: RWShared TaskId a a | iTask a
 
 //Core parallel task list state structure
 taskInstanceParallelTaskList        :: RWShared (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
+
 //Private interface used during evaluation of parallel combinator
 taskInstanceParallelTaskListItem    :: RWShared (TaskId,TaskId,Bool) ParallelTaskState ParallelTaskState
 
@@ -71,14 +76,23 @@ taskInstanceEmbeddedTask            :: RWShared TaskId (Task a) (Task a) | iTask
 //Public interface used by parallel tasks
 parallelTaskList                    :: RWShared (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)] | iTask a
 
-//Access to remote shared data
-exposedShare 	        :: !String -> 	RWShared p r w	    | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p
+//===  Task instance output: ===
+
+//When task instances are evaluated, their output consists of instructions to modify the user interface
+//of that instance to reflect the instance's new state
+taskInstanceUI 			:: RWShared InstanceNo TIUIState TIUIState
+
+allUIChanges			:: RWShared () (Map InstanceNo (Queue UIChangeDef)) (Map InstanceNo (Queue UIChangeDef)) 
+taskInstanceUIChanges	:: RWShared InstanceNo (Queue UIChangeDef) (Queue UIChangeDef) 
+
+//=== Access functions: ===
 
 // Create and delete task instances:
 createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
 
 //Create a task instance
 createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
+
 /**
 * Create a stored task instance in the task store (lazily without evaluating it)
 * @param The task to store
@@ -107,9 +121,48 @@ replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskExcepti
 
 deleteTaskInstance		:: !InstanceNo !*IWorld -> *IWorld
 
+/**
+* Queue an event for a task instance
+* events are applied in FIFO order when the task instance is evaluated
+*
+* By splitting up event queuing and instance evaluation, events can come in asynchronously without
+* the need to directly processing them. 
+*/
+queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
+
+/** 
+* Convenience function for queueing multiple refresh multiple refresh events at once
+*/
+queueRefresh :: ![(InstanceNo,String)] !*IWorld -> *IWorld
+
+/**
+* Dequeue a task event
+*/
+dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
+
+/**
+* Queue task output
+*/
+queueUIChange :: !InstanceNo !UIChangeDef !*IWorld -> *IWorld
+/**
+* Convenience function that queues multiple changes at once
+*/
+queueUIChanges :: !InstanceNo ![UIChangeDef] !*IWorld -> *IWorld
+
 //Documents
 createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 loadDocumentContent		:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentMeta		:: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 documentLocation		:: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
+
+
+
+
+//== OBSOLETE ===
+//Access to remote shared data
+exposedShare 	        :: !String -> 	RWShared p r w	    | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p
+
+
+
+
 

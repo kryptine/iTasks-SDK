@@ -21,12 +21,13 @@ from Data.Map import fromList
 import Data.Maybe, Data.Void, Data.Error
 import Text.URI
 import StdMisc, graph_to_sapl_string
+import Data.Queue
 
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
-                 ,!(HTTPRequest (Map InstanceNo TIUIState) *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
-				 ,!(HTTPRequest (Map InstanceNo TIUIState) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
-				 ,!(HTTPRequest (Map InstanceNo TIUIState) ConnectionType *IWorld -> (!Maybe (Map InstanceNo TIUIState), !*IWorld))
+                 ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
 				 )
 
 sdsService = (matchFun,True,reqFun,dataFun,disconnectFun)
@@ -36,7 +37,7 @@ where
     					["","sds",_] = True
     							  	 = False
 
-	reqFun :: !HTTPRequest (Map InstanceNo TIUIState) !*IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld)
+	reqFun :: !HTTPRequest (Map InstanceNo (Queue UIChangeDef)) !*IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld)
 	reqFun req _ iworld | hasParam "client_session_id" req
 		= abort "Shareds on clients are not supported yet"
 	reqFun req _ iworld=:{exposedShares} | hasParam "focus" req
@@ -74,10 +75,10 @@ where
 	plainResponse string
 		= {okResponse & rsp_headers = [("Content-Type","text/plain")], rsp_data = string}			
 				
-	dataFun :: !HTTPRequest (Map InstanceNo TIUIState) !(Maybe {#Char}) !ConnectionType !*IWorld -> (![{#Char}], !Bool, !ConnectionType,!Maybe (Map InstanceNo TIUIState), !*IWorld)
+	dataFun :: !HTTPRequest (Map InstanceNo (Queue UIChangeDef)) !(Maybe {#Char}) !ConnectionType !*IWorld -> (![{#Char}], !Bool, !ConnectionType,!Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld)
     dataFun req _ mbData instanceNo iworld = ([], True, instanceNo, Nothing, iworld)
 
-    disconnectFun :: !HTTPRequest (Map InstanceNo TIUIState) !ConnectionType !*IWorld -> (!Maybe (Map InstanceNo TIUIState), !*IWorld)
+    disconnectFun :: !HTTPRequest (Map InstanceNo (Queue UIChangeDef)) !ConnectionType !*IWorld -> (!Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld)
 	disconnectFun _ _ _ iworld = (Nothing,iworld)
 
 readRemoteSDS  :: !JSONNode !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)

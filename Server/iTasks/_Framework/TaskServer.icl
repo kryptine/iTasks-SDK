@@ -11,6 +11,7 @@ import TCPChannelClass, TCPChannels, TCPEvent, TCPStringChannels, TCPDef, tcp
 import iTasks._Framework.IWorld
 import iTasks._Framework.Task
 import iTasks._Framework.TaskEval
+from iTasks._Framework.TaskStore import queueRefresh
 
 //Helper type that holds the mainloop instances during a select call
 //in these mainloop instances the unique listeners and read channels

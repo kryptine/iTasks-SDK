@@ -17,25 +17,6 @@ from Data.Error import :: MaybeErrorString, :: MaybeError
  * Get the next TaskId
  */
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
-
-/**
-* Queue an event for a task instance
-* events are applied in FIFO order when the task instance is evaluated
-*
-* By splitting up event queuing and instance evaluation, events can come in asynchronously without
-* the need to directly processing them. 
-*
-* @param The instance id
-* @param An event
-* @param The IWorld state
-*
-* @return The IWorld state
-*/
-queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
-
-//Update the refresh queue (add multiple refresh events at conce)
-queueRefresh :: ![(InstanceNo,String)] !*IWorld -> *IWorld
-
 /**
 * Dequeues events from the event queue and evaluates the tasks instances
 * @param Maximum amount of events to process at once

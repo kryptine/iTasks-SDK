@@ -21,17 +21,6 @@ getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
     = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
 
-queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
-queueEvent instanceNo event iworld
-	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue (instanceNo,event) q)) taskEvents iworld
-	= iworld
-
-dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
-dequeueEvent iworld
-	= case 'SDS'.modify 'DQ'.dequeue taskEvents iworld of
-		(Ok mbEvent,iworld) 	= (mbEvent,iworld)
-		(Error (_,e),iworld) 	= (Nothing,iworld) //TODO handle errors
-
 processEvents :: !Int *IWorld -> *IWorld
 processEvents max iworld  
 	| max <= 0 = iworld
@@ -44,9 +33,6 @@ processEvents max iworld
 						= processEvents (max - 1) iworld
 					(Error msg,iworld)
 						= processEvents (max - 1) iworld //TODO: Do something useful with this error
-where
-	addUIUpdates instanceNo updates output
-		= ((), 'DM'.put instanceNo (maybe updates (\q -> q ++ updates) ('DM'.get instanceNo output)) output)
 
 //Evaluate a single task instance
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue JSONNode),!*IWorld)
@@ -124,13 +110,16 @@ where
 						= case 'SDS'.read (sdsFocus instanceNo taskInstanceUI) iworld of
 							(Ok UIDisabled, iworld)
 								= (Ok value, iworld) //Nothing to do, the UI is disabled
-							(Ok (UIEnabled uiVersion prevRep outputQueue),iworld)
+							(Ok (UIEnabled uiVersion prevRep),iworld)
                                 # oldUI = case prevRep of (TaskRep oldUI _) = oldUI; _ = emptyUI
                                 # newUI = case newRep of (TaskRep newUI _) = newUI; _ = emptyUI
 							    # (editletDiffs,iworld)		= getEditletDiffs iworld
                                 # (updates,editletDiffs)    = diffUIDefinitions oldUI newUI event editletDiffs
                                 # iworld                    = setEditletDiffs editletDiffs iworld
-                                # (mbErr,iworld) 	= if deleted (Ok (),iworld) ('SDS'.write (UIEnabled (uiVersion + 1) newRep (enqueueAll updates outputQueue)) (sdsFocus instanceNo taskInstanceUI) iworld)
+                                # (mbErr,iworld) 		= if deleted 
+									(Ok (),iworld)
+									('SDS'.write (UIEnabled (uiVersion + 1) newRep) (sdsFocus instanceNo taskInstanceUI) iworld)
+                                # iworld 		= if deleted iworld (queueUIChanges instanceNo updates iworld)
                                 //Flush the share cache 
                                 # iworld = flushShareCache iworld
 								= (Ok value, iworld)
@@ -144,9 +133,6 @@ where
 						= case 'SDS'.write (UIException msg) (sdsFocus instanceNo taskInstanceUI) iworld of
 							(Ok _,iworld)          = (Error msg, iworld)
 							(Error (e,msg),iworld) = (Error msg, iworld)	
-
-	enqueueAll [] q = q
-	enqueueAll [x:xs] q = enqueueAll xs ('DQ'.enqueue x q)
 
 	getNextTaskNo iworld=:{IWorld|current={TaskEvalState|nextTaskNo}}	    = (nextTaskNo,iworld)
 	getEditletDiffs iworld=:{IWorld|current={editletDiffs}}	= (editletDiffs,iworld)
@@ -171,7 +157,8 @@ where
 			_									= {InstanceProgress|progress & value = None}
 
     mbResetUIState instanceNo ResetEvent iworld 
-		# (_,iworld) = 'SDS'.write (UIEnabled -1 NoRep 'DQ'.newQueue) (sdsFocus instanceNo taskInstanceUI) iworld 
+		# (_,iworld) = 'SDS'.write (UIEnabled -1 NoRep) (sdsFocus instanceNo taskInstanceUI) iworld 
+		# (_,iworld) = 'SDS'.write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceUIChanges) iworld 
 		//Remove all editlet state for this instance
 		# (diffs,iworld) = getEditletDiffs iworld
 		# diffs = 'DM'.fromList [d \\ d=:((t,_),_) <- 'DM'.toList diffs | let (TaskId i _) = fromString t in i <> instanceNo]
@@ -220,12 +207,6 @@ where
 	inTree searchId (TCStable taskId _ _) = searchId == taskId
 	inTree searchId _ = False
 */
-queueRefresh :: ![(InstanceNo,String)] !*IWorld -> *IWorld
-queueRefresh instances iworld
-    //Clear the instance's share change registrations, we are going to evaluate anyway
-	# iworld	= clearInstanceSDSRegistrations (map fst instances) iworld
-	# iworld 	= foldl (\w (i,r) -> queueEvent i (RefreshEvent r) w) iworld instances
-	= iworld
 
 updateInstanceLastIO ::![InstanceNo] !*IWorld -> *IWorld
 updateInstanceLastIO [] iworld = iworld

@@ -47,9 +47,9 @@ DEFAULT_THEME :== "gray"
 // unauthorized downloading of documents and DDOS uploading.
 webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
 						 (!(String -> Bool)
-                         ,!(HTTPRequest (Map InstanceNo TIUIState) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
-						 ,!(HTTPRequest (Map InstanceNo TIUIState) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
-						 ,!(HTTPRequest (Map InstanceNo TIUIState) ConnectionType *IWorld -> (!Maybe (Map InstanceNo TIUIState), !*IWorld))
+                         ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
+						 ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
+						 ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
 						 ) | iTask a
 webService url task defaultFormat = (matchFun url,reqFun` url task defaultFormat,dataFun,disconnectFun)
 where
@@ -169,13 +169,13 @@ where
 	disconnectFun _ _ (EventSourceConnection instances) iworld    = (Nothing, updateInstanceDisconnect instances iworld)
 	disconnectFun _ _ _ iworld                                    = (Nothing, iworld)
 
-	dequeueOutput :: ![InstanceNo] !(Map InstanceNo TIUIState) -> (![(!InstanceNo,![UIChangeDef])],!Map InstanceNo TIUIState)
+	dequeueOutput :: ![InstanceNo] !(Map InstanceNo (Queue UIChangeDef)) -> (![(!InstanceNo,![UIChangeDef])],!Map InstanceNo (Queue UIChangeDef))
 	dequeueOutput [] states = ([],states)
 	dequeueOutput [i:is] states
 		# (output,states) = dequeueOutput is states
 		= case 'DM'.get i states of
-			Just (UIEnabled version ref out)
-				= ([(i,toList out):output],'DM'.put i (UIEnabled version ref 'DQ'.newQueue) states)
+			Just out
+				= ([(i,toList out):output],'DM'.put i 'DQ'.newQueue states)
 			_ 		= (output,states)
 	where
 		toList q = case 'DQ'.dequeue q of

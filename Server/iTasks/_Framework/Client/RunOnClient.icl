@@ -101,23 +101,20 @@ newWorld = undef
 
 getUIUpdates :: !*IWorld -> (!Maybe [(InstanceNo, [String])], *IWorld)
 getUIUpdates iworld
-	= case 'SDS'.read taskInstanceUIs iworld of
-		(Ok uiStates,iworld)
-			= case 'Data.Map'.toList uiStates of
+	= case 'SDS'.read allUIChanges iworld of
+		(Ok uiChanges,iworld)
+			= case 'Data.Map'.toList uiChanges of
 				[] = (Nothing,iworld)
-				states
-					# (_,iworld) = 'SDS'.write ('Data.Map'.fromList (map clearOutput states)) taskInstanceUIs iworld
-					= (Just (map getUpdates states), iworld)
+				changes
+					# (_,iworld) = 'SDS'.write 'Data.Map'.newMap allUIChanges iworld
+					= (Just (map getUpdates changes), iworld)
 		(_,iworld)
 			= (Nothing, iworld)
 where
-	getUpdates (instanceNo,UIEnabled _ _ upds) = (instanceNo, [toString (encodeUIUpdates (toList upds))])
+	getUpdates (instanceNo,upds) = (instanceNo, [toString (encodeUIUpdates (toList upds))])
 	toList q = case 'DQ'.dequeue q of //TODO SHOULD BE IN Data.Queue
 		(Nothing,q) 	= []
 		(Just x,q) 		= [x:toList q]
-
-	clearOutput (instanceNo,UIEnabled version refUI _) = (instanceNo, UIEnabled version refUI 'DQ'.newQueue)
-	clearOutput state = state
 
 createClientIWorld :: !String !InstanceNo -> *IWorld
 createClientIWorld serverURL currentInstance
