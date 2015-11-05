@@ -10,6 +10,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, ::JSONNode
 import Data.Maybe
 
 :: TaskLayout = TaskLayout (TaskUITree -> TaskUILayout)
+			 // | E.s: TaskLayoutWithState (s TaskUITree -> TaskUILayout)
 
 :: TaskUITree
   = UI    !UITag					// the default rendering of the task identified by UITag
@@ -21,10 +22,14 @@ import Data.Maybe
 :: TaskUILayout
 
 uiOf      :: !TaskUITree -> TaskUILayout
-uiCollage ::                                               ![(Int,Int)] ![TaskUILayout] -> TaskUILayout
-uiBeside  ::                            ![YAlign]          ![(Int,Int)] ![TaskUILayout] -> TaskUILayout
-uiAbove   ::                            ![XAlign]          ![(Int,Int)] ![TaskUILayout] -> TaskUILayout
-uiGrid    :: !GridDimension !GridLayout ![(XAlign,YAlign)] ![(Int,Int)] ![TaskUILayout] -> TaskUILayout
+uiBeside  ::                            ![YAlign]          ![TaskUILayout] -> TaskUILayout
+uiAbove   ::                            ![XAlign]          ![TaskUILayout] -> TaskUILayout
+uiGrid    :: !GridDimension !GridLayout ![(XAlign,YAlign)] ![TaskUILayout] -> TaskUILayout
+
+uiFitXY   :: !Int !Int !TaskUILayout -> TaskUILayout
+uiFitX    :: !Int      !TaskUILayout -> TaskUILayout
+uiFitY    :: !Int      !TaskUILayout -> TaskUILayout
+uiFit     ::           !TaskUILayout -> TaskUILayout
 
 derive JSONEncode TaskLayout, UITag, TaskUILayout, TaskUITree, XAlign, YAlign, GridXLayout, GridYLayout, GridMajor, GridDimension
 derive JSONDecode TaskLayout, UITag, TaskUILayout, TaskUITree, XAlign, YAlign, GridXLayout, GridYLayout, GridMajor, GridDimension
