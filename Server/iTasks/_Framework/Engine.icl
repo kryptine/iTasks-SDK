@@ -11,6 +11,8 @@ import iTasks._Framework.Util, iTasks._Framework.HtmlUtil
 import iTasks._Framework.IWorld, iTasks._Framework.WebService, iTasks._Framework.SDSService
 import iTasks.API.Common.SDSCombinators
 import qualified iTasks._Framework.SDS as SDS
+import iTasks.UI.Layout
+from iTasks.API.Core.TaskCombinators import class tune(..), instance tune AfterLayout
 
 SESSION_TIMEOUT :== fromString "0000-00-00 00:10:00"
 MAX_EVENTS 		:== 5
@@ -206,15 +208,21 @@ publish url format task = {url = url, task = TaskWrapper task, defaultFormat = f
 
 instance Publishable (Task a) | iTask a
 where
-	publishAll task = [publish "/" (WebApp []) (\_ -> task)]
+	publishAll task = [publish "/" (WebApp []) (\_ -> (tune finalSessionLayout task))]
 
 instance Publishable (HTTPRequest -> Task a) | iTask a
 where
-	publishAll task = [publish "/" (WebApp []) task]
+	publishAll task = [publish "/" (WebApp []) task`]
+	where
+		task` req = tune finalSessionLayout (task req)
 	
 instance Publishable [PublishedTask]
 where
 	publishAll list = list
+
+finalSessionLayout = AfterLayout layout
+where
+	layout ui = autoLayoutFinal.ContentLayout.layout (uiDefSetAttribute "session" "true" ui) 
 
 // Determines the server executables name
 determineAppName :: !*World -> (!String,!*World)

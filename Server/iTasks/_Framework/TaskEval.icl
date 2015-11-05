@@ -78,8 +78,6 @@ where
 										}}
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & tonicOpts = tonicRedOpts} tree iworld
-    //Finalize task UI
-    # newResult                 = finalizeUI session newResult
     # tree                      = case newResult of
         (ValueResult _ _ _ newTree)  = newTree
         _                                                   = tree
@@ -145,11 +143,6 @@ where
 	getNextTaskNo iworld=:{IWorld|current={TaskEvalState|nextTaskNo}}	    = (nextTaskNo,iworld)
 	getEditletDiffs iworld=:{IWorld|current={editletDiffs}}	= (editletDiffs,iworld)
     setEditletDiffs editletDiffs iworld=:{current} = {IWorld|iworld & current = {current & editletDiffs = editletDiffs}}
-
-    finalizeUI session (ValueResult value info (TaskRep ui diffs) tree)
-        # ui = if session (uiDefSetAttribute "session" "true" ui) ui
-        = (ValueResult value info (TaskRep (autoLayoutFinal.ContentLayout.layout ui) diffs) tree)
-    finalizeUI session res = res
 
 	updateProgress now result progress
         # attachedTo = case progress.InstanceProgress.attachedTo of //Release temporary attachment after first evaluation
