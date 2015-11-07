@@ -473,7 +473,7 @@ where
 	layout (UILayers [main:aux])
 		= UILayers [layout main:aux]
 	layout (UIEmpty {UIEmpty|actions})
-		= UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing})
+		= UIFinal (defaultPanel [])
 	layout (UIForm stack)
     	= layout (UIBlock (autoLayoutForm stack))
 	layout (UIBlock subui=:{UIBlock|attributes,content,actions,hotkeys,size})
@@ -484,10 +484,10 @@ where
 		# items				        = [panel]
 		# itemsOpts			        = {defaultItemsOpts items & direction = Vertical, halign = AlignCenter, valign= AlignMiddle}
 		# hotkeys			        = case panelkeys ++ menukeys of [] = Nothing ; keys = Just keys
-		= UIFinal (UIViewport itemsOpts {UIViewportOpts|title = 'DM'.get TITLE_ATTRIBUTE attributes, menu = if (isEmpty menu) Nothing (Just menu), hotkeys = hotkeys})
+		= UIFinal (UIPanel defaultSizeOpts itemsOpts {UIPanelOpts|title = 'DM'.get TITLE_ATTRIBUTE attributes /*, menu = if (isEmpty menu) Nothing (Just menu) */, hotkeys = hotkeys,iconCls=Nothing,frame=False})
 	layout (UIBlocks blocks actions)
     	= layout (UIBlock (autoLayoutBlocks blocks actions))
-	layout (UIFinal viewport) = UIFinal viewport
+	layout (UIFinal control) = UIFinal control
 	layout def = def
 
 	route diff = diff
@@ -498,14 +498,14 @@ where
 	layout (UILayers [main:rest])
 		= UILayers [layout main:rest]
 	layout (UIEmpty {UIEmpty|actions})
-		= UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing})
+		= UIFinal (defaultContainer [])
 	layout (UIBlock block=:{UIBlock|attributes,content,actions,hotkeys})
-    	# (UIContainer sOpts iOpts,attributes,_,_) = blockToContainer block
-    	= (UIFinal (UIViewport iOpts {UIViewportOpts|title = 'DM'.get TITLE_ATTRIBUTE attributes, menu = Nothing, hotkeys = Just hotkeys}))
+    	# (control,_,_,_) = blockToContainer block
+		= UIFinal control
 	layout (UIBlocks blocks actions)
     	= layout (UIBlock (autoLayoutBlocks blocks actions))
-	layout (UIFinal viewport)
-    	= UIFinal viewport
+	layout (UIFinal control)
+    	= UIFinal control
 	
 	route diffs = diffs
 
@@ -765,8 +765,8 @@ tweakUI f (UIForm stack=:{UIForm|controls})
 	= UIForm {UIForm|stack & controls = [(f c,a) \\ (c,a) <- controls]}
 tweakUI f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
 	= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map f items}}
-tweakUI f (UIFinal (UIViewport iOpts=:{UIItemsOpts|items} opts))
-    = UIFinal (UIViewport {UIItemsOpts|iOpts & items = (map f items)} opts)
+tweakUI f (UIFinal control)
+    = UIFinal (f control)
 tweakUI f def = def
 
 tweakAttr :: (UIAttributes -> UIAttributes) UIDef -> UIDef
@@ -781,7 +781,9 @@ tweakControls f (UIForm stack=:{UIForm|controls})
 	= UIForm {UIForm|stack & controls = f controls}
 tweakControls f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
 	= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map fst (f [(c,'DM'.newMap) \\ c <- items])}}
-tweakControls f (UIFinal (UIViewport iOpts=:{UIItemsOpts|items} opts))
-    = UIFinal (UIViewport {UIItemsOpts|iOpts & items = map fst (f [(c,'DM'.newMap) \\ c <- items])} opts)
+tweakControls f (UIFinal control)
+	= case f [(control,'DM'.newMap)] of
+		[(control,_):_] = UIFinal control
+		_ 				= UIFinal control
 tweakControls f def	= def
 

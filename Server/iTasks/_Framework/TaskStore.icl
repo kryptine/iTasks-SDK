@@ -55,7 +55,7 @@ taskInstanceShares :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSON
 taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
 
 //UIS of task instances
-taskInstanceUI :: RWShared InstanceNo TIUIState TIUIState
+taskInstanceUI :: RWShared InstanceNo TaskRep TaskRep
 taskInstanceUI = sdsTranslate "taskInstanceUI" (\t -> t +++> "-ui") (cachedJSONFileStore NS_TASK_INSTANCES True False False Nothing)
 
 allUIChanges :: RWShared () (Map InstanceNo (Queue UIChangeDef)) (Map InstanceNo (Queue UIChangeDef)) 
@@ -66,7 +66,7 @@ taskInstanceUIChanges = sdsLens "taskInstanceUIChanges" (const ()) (SDSRead read
 where
 	read instanceNo uis = case 'DM'.get instanceNo uis of
 		Just ui = Ok ui
-		Nothing = Error (exception ("Could not find task instance UI changes for instance "<+++ instanceNo))
+		Nothing = Ok 'DQ'.newQueue
 
 	write instanceNo uis ui = Ok (Just ('DM'.put instanceNo ui uis))
 	notify instanceNo _ 	= (==) instanceNo
@@ -102,7 +102,6 @@ createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},cur
     # constants = {InstanceConstants|instanceKey="client",session=True,listId=TaskId 0 0,build=buildID,issuedAt=DateTime localDate localTime}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-  `b` \iworld -> 'SDS'.write UIDisabled (sdsFocus instanceNo taskInstanceUI) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
@@ -115,7 +114,6 @@ createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={loc
     # constants             = {InstanceConstants|instanceKey=instanceKey,session=True,listId=TaskId 0 0,build=buildID,issuedAt=DateTime localDate localTime}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-  `b` \iworld -> 'SDS'.write UIDisabled (sdsFocus instanceNo taskInstanceUI) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> (Ok (instanceNo,instanceKey), iworld)
 
@@ -130,7 +128,6 @@ createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId
     # constants            = {InstanceConstants|instanceKey=instanceKey,session=False,listId=listId,build=buildID,issuedAt=DateTime localDate localTime}
     =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-  `b` \iworld -> 'SDS'.write UIDisabled (sdsFocus instanceNo taskInstanceUI) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> ( Ok (TaskId instanceNo 0)
 				 , if refreshImmediate
@@ -159,7 +156,6 @@ replaceTaskInstance instanceNo task iworld=:{server={buildID},current={taskTime}
     # (meta, iworld)        = 'SDS'.read (sdsFocus instanceNo taskInstance) iworld
     | isError meta          = (liftError meta, iworld)
     =            'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-  `b` \iworld -> 'SDS'.write UIDisabled (sdsFocus instanceNo taskInstanceUI) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> let (_,Just constants,progress,attributes) = fromOk meta
                  in  'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=buildID},progress,attributes) (sdsFocus instanceNo taskInstance) iworld

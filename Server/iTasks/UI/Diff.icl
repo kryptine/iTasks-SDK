@@ -55,10 +55,7 @@ where
 
 //TODO Make a good diffViewports function that considers also the other parts of a viewport
 diffUIDefinitions :: !UIDef !UIDef !Event !UIEditletDiffs -> (![UIChangeDef],!UIEditletDiffs)
-diffUIDefinitions _ def ResetEvent editletDiffs
-    # (updates, editletDiffs) = diffUIDefinitions emptyUI def (RefreshEvent "Converted from ResetEvent by diff") editletDiffs
-    = ([UpdateUI [] [("reset",[])]:updates],editletDiffs)
-
+/*
 diffUIDefinitions (UILayers [main1:aux1]) (UILayers [main2:aux2]) event editletDiffs
 	# (mainDiffs,editletDiffs) = diffUIDefinitions main1 main2 event editletDiffs
 	# windowDiffs = diffAllWindows event editletDiffs [w \\ UIWindow w <- aux1] [w \\ UIWindow w <- aux2]
@@ -71,7 +68,6 @@ diffUIDefinitions def1=:(UILayers [main1:aux1]) def2 event editletDiffs
 	# (mainDiffs,editletDiffs) = diffUIDefinitions main1 def2 event editletDiffs
 	# windowDiffs = diffAllWindows event editletDiffs [w \\ UIWindow w <- aux1] []
 	= (mainDiffs ++ windowDiffs,editletDiffs)
-
 diffUIDefinitions (UIFinal (UIViewport iOpts1 opts1)) (UIFinal vp2=:(UIViewport iOpts2 opts2)) event editletDiffs
 	= (
         diffItems [] event editletDiffs iOpts1.UIItemsOpts.items iOpts2.UIItemsOpts.items
@@ -79,7 +75,11 @@ diffUIDefinitions (UIFinal (UIViewport iOpts1 opts1)) (UIFinal vp2=:(UIViewport 
 	++	if (opts1.UIViewportOpts.title === opts2.UIViewportOpts.title) [] [UpdateUI [] [("setTitle",[maybe JSONNull toJSON opts2.UIViewportOpts.title])]]
     ++  diffMenus [] event editletDiffs opts1.UIViewportOpts.menu opts2.UIViewportOpts.menu
     , removeEditletDiffs (findEditletsInViewport vp2) editletDiffs)
-
+*/
+diffUIDefinitions (UIFinal c1) (UIFinal c2) event editletDiffs
+	= case diffControls [ItemStep 0] event editletDiffs c1 c2 of
+	 	(DiffPossible diffs) = (diffs,removeEditletDiffs (findEditletsInControl c2 []) editletDiffs)
+		_ 					 = ([],editletDiffs)
 diffUIDefinitions _ _ _ editletDiffs
 	= ([],editletDiffs)
 
@@ -407,10 +407,6 @@ allDiffsPossible :: [UIDiffResult] -> Bool
 allDiffsPossible [] 					= True
 allDiffsPossible [DiffImpossible:_]		= False
 allDiffsPossible [(DiffPossible _):ps]	= allDiffsPossible ps
-
-//Collect all editlet definitions
-findEditletsInViewport :: UIViewport -> [UIEditletID]
-findEditletsInViewport (UIViewport {UIItemsOpts|items} _) =findEditletsInItems items []
 
 findEditletsInWindows :: [UIWindow] [UIEditletID] -> [UIEditletID]
 findEditletsInWindows windows acc = foldr findEditletsInWindow acc windows

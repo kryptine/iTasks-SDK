@@ -59,6 +59,7 @@ taskEvents              :: RWShared () (Queue (InstanceNo,Event)) (Queue (Instan
 taskInstanceReduct		:: RWShared InstanceNo TIReduct TIReduct
 taskInstanceValue       :: RWShared InstanceNo TIValue TIValue
 taskInstanceShares      :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
+taskInstanceUI 			:: RWShared InstanceNo TaskRep TaskRep
 
 //Filtered views on evaluation state of instances:
 
@@ -80,7 +81,6 @@ parallelTaskList                    :: RWShared (!TaskId,!TaskId,!TaskListFilter
 
 //When task instances are evaluated, their output consists of instructions to modify the user interface
 //of that instance to reflect the instance's new state
-taskInstanceUI 			:: RWShared InstanceNo TIUIState TIUIState
 
 allUIChanges			:: RWShared () (Map InstanceNo (Queue UIChangeDef)) (Map InstanceNo (Queue UIChangeDef)) 
 taskInstanceUIChanges	:: RWShared InstanceNo (Queue UIChangeDef) (Queue UIChangeDef) 

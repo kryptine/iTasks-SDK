@@ -58,14 +58,14 @@ where
 
 testInitialUI = assertEqualWorld "Generation of initialUI" exp sut
 where
-	exp = Ok 'DQ'.newQueue
+	exp = Ok ('DQ'.enqueue (NoChange) 'DQ'.newQueue)
 
 	sut world 
 		# iworld = createIWorld "TEST" Nothing Nothing Nothing world
 		# (res,iworld) = createTaskInstance helloWorldTask iworld
 		= case res of
 			(Ok (instanceNo,instanceKey))
-				# (_,iworld) = evalTaskInstance instanceNo ResetEvent iworld //Assume ok
+				# (_,iworld) = evalTaskInstance instanceNo (RefreshEvent "First eval") iworld //Assume ok
 				# iworld = flushShareCache iworld
 				# (res,iworld) = 'SDS'.read (sdsFocus instanceNo taskInstanceUIChanges) iworld
 				# world = destroyIWorld iworld

@@ -5,7 +5,7 @@ from Data.Map import :: Map, :: Size
 from Data.Functor import class Functor(..)
 import qualified Data.Map as DM
 import qualified Data.List as DL
-from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey
+from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action(..), ::ActionName, :: ActionOption, :: Hotkey
 
 from iTasks._Framework.Generic import class iTask(..)
 from iTasks._Framework.Generic.Interaction import generic gEditor, generic gEditMeta, generic gVerify
@@ -18,9 +18,9 @@ from GenEq import generic gEq
 
 import Text.HTML
 
-derive class iTask UIDef, UIWindow, UIEmpty, UIForm, UIBlock, UIAction, UIEditor, UIViewport, UIControl, UITab
+derive class iTask UIDef, UIWindow, UIEmpty, UIForm, UIBlock, UIAction, UIEditor, UIControl, UITab
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
-derive class iTask UIViewportOpts, UIWindowOpts, UIItemsOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
+derive class iTask UIWindowOpts, UIItemsOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
 derive class iTask UIPanelOpts, UITabSetOpts, UIFieldSetOpts, UIEditletOpts, UITaskletOpts, UIIconOpts, UILabelOpts
 derive class iTask UIHSizeOpts, UIFSizeOpts, UIButtonOpts, UIMenuButtonOpts, UITreeNode, UIMenuItem
@@ -29,7 +29,7 @@ instance Functor UIViewOpts
 where fmap f opts=:{UIViewOpts|value} = {UIViewOpts|opts & value = fmap f value}
 
 emptyUI :: UIDef
-emptyUI = UIFinal (UIViewport (defaultItemsOpts []) {UIViewportOpts|title=Nothing,menu=Nothing,hotkeys=Nothing})
+emptyUI = UIFinal (defaultPanel [])
 
 defaultSizeOpts :: UISizeOpts
 defaultSizeOpts = {UISizeOpts|width = Nothing, minWidth = Nothing, maxWidth = Nothing, height = Nothing, minHeight = Nothing, maxHeight = Nothing, margins = Nothing}
@@ -339,13 +339,13 @@ uiDefAttributes _								= 'DM'.newMap
 uiDefControls :: UIDef -> [UIControl]
 uiDefControls (UIForm {UIForm|controls})	                = map fst controls
 uiDefControls (UIBlock {UIBlock|content})	                = content.UIItemsOpts.items
-uiDefControls (UIFinal (UIViewport content _))				= content.UIItemsOpts.items
+uiDefControls (UIFinal control)								= [control]
 uiDefControls _												= []
 
 uiDefAnnotatedControls :: UIDef -> [(UIControl,UIAttributes)]
 uiDefAnnotatedControls (UIForm {UIForm|controls}) = controls
 uiDefAnnotatedControls (UIBlock {UIBlock|content})	            = [(c,'DM'.newMap)\\c <- content.UIItemsOpts.items]
-uiDefAnnotatedControls (UIFinal (UIViewport content _))			= [(c,'DM'.newMap)\\c <- content.UIItemsOpts.items]
+uiDefAnnotatedControls (UIFinal control)						= [(control,'DM'.newMap)]
 uiDefAnnotatedControls _										= []
 
 uiDefActions :: UIDef -> [UIAction]
@@ -355,7 +355,6 @@ uiDefActions _								= []
 
 uiDefDirection :: UIDef -> UIDirection
 uiDefDirection (UIBlock {UIBlock|content})	    = content.UIItemsOpts.direction
-uiDefDirection (UIFinal (UIViewport content _))	= content.UIItemsOpts.direction
 uiDefDirection _								= Vertical
 
 uiDefWindows :: UIDef -> [UIWindow]
@@ -457,10 +456,19 @@ where
 
 instance encodeUI UIDef
 where
-	encodeUI (UIFinal (UIViewport iopts opts))
-    	= component "itwc_viewport" [encodeUI iopts, encodeUI opts]
-	encodeUI def
-    	= component "itwc_viewport" [encodeUI (defaultItemsOpts (uiDefControls def))]
+	//For the
+	encodeUI (UIEmpty empty) 				= component "itwc_raw_empty" []
+	encodeUI (UIEditor opts control) 		= component "itwc_raw_editor" [encodeUI opts,encodeUI (defaultItemsOpts [control])]
+	encodeUI (UICompoundEditor opts defs)	= component "itwc_raw_compoundeditor"  [encodeUI opts, JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UICompoundContent defs) 		= component "itwc_raw_compoundcontent" [JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UIAction action) 				= component "itwc_raw_action" [encodeUI action]
+	encodeUI (UIWindow window) 				= component "itwc_raw_window" [encodeUI window]
+	encodeUI (UILayers defs) 				= component "itwc_raw_layers" [JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UIForm form) 					= component "itwc_raw_form" [encodeUI form]
+	encodeUI (UIBlock block) 				= encodeUI block
+	encodeUI (UIBlocks blocks actions) 		= component "itwc_raw_blocks" [JSONObject [("items",JSONArray (map encodeUI blocks ++ map encodeUI actions))]]
+	//The final layout just encodes the finalized component
+	encodeUI (UIFinal control) 				= encodeUI control
 
 instance encodeUI UIControl
 where
@@ -521,14 +529,43 @@ where
                                      	,("baseCls",encodeUI baseCls)
                                      	,("bodyCls",encodeUI bodyCls)
                                      	] | snd field =!= JSONNull]
-instance encodeUI UIViewportOpts
+
+instance encodeUI UIEditor
 where
-	encodeUI {UIViewportOpts|title,hotkeys}
-	= JSONObject (
-		[("xtype",JSONString "itwc_viewport")]	++
-		maybe [] (\t -> [("title",JSONString t)]) title ++
-		maybe [] (\k -> [("hotkeys",toJSONInField k)]) hotkeys
-		)
+	encodeUI {UIEditor|optional,attributes}
+		= JSONObject [("optional",encodeUI optional)
+					 ,("attributes",JSONObject [(k,JSONString v) \\ (k,v) <- 'DM'.toList attributes])
+					 ]
+
+instance encodeUI UIAction
+where
+	encodeUI {UIAction|taskId,action,enabled}
+		= JSONObject [("taskId",encodeUI taskId)
+					 ,("action",encodeUI action)
+					 ,("enabled",encodeUI enabled)
+					 ]
+
+instance encodeUI Action
+where
+	encodeUI (Action name _) = JSONString name
+
+instance encodeUI UIForm
+where
+	encodeUI {UIForm|attributes,controls,size}
+		= JSONObject [("attributes",JSONObject [(k,JSONString v) \\ (k,v) <- 'DM'.toList attributes])
+					 ,("items",JSONArray [encodeUI c \\ (c,_) <- controls])
+					 :sizeAttrs]
+	where
+		(JSONObject sizeAttrs) = encodeUI size
+
+instance encodeUI UIBlock
+where
+	encodeUI {UIBlock|attributes,content,size,actions}
+		= component "itwc_raw_block" [encAttr,encodeUI content,itemActions,encodeUI size]
+	where
+		encAttr = JSONObject [(k,JSONString v) \\ (k,v) <- 'DM'.toList attributes] 
+		itemActions = JSONObject [("itemActions",JSONArray (map encodeUI actions))]
+
 instance encodeUI (UIViewOpts a) | encodeUI a
 where
 	encodeUI {UIViewOpts|value} = JSONObject [("value",encodeUI value)]

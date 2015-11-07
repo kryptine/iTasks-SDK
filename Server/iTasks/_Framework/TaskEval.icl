@@ -80,7 +80,7 @@ where
 	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & tonicOpts = tonicRedOpts} tree iworld
     # tree                      = case newResult of
         (ValueResult _ _ _ newTree)  = newTree
-        _                                                   = tree
+        _                            = tree
     //Reset necessary 'current' values in iworld
     # iworld = {IWorld|iworld & current = {TaskEvalState|current & taskInstance = 0}}
     // Check if instance was deleted by trying to reread the instance constants share
@@ -106,39 +106,29 @@ where
                 //Determine user interface updates by comparing the previous UI to the newly calculated one
                 = case newResult of
                     (ValueResult value _ newRep _)	
+						| deleted
+							= (Ok value,iworld)
+						//Check if a previous task rep was stored, then diff
 						= case 'SDS'.read (sdsFocus instanceNo taskInstanceUI) iworld of
-							(Ok UIDisabled, iworld)
-								= (Ok value, iworld) //Nothing to do, the UI is disabled
-							(Ok (UIEnabled uiVersion prevRep),iworld)
-								//Determine output
-								//OLD
+							(Ok prevRep,iworld)
                                 # oldUI = case prevRep of (TaskRep oldUI _) = oldUI; _ = emptyUI
                                 # newUI = case newRep of (TaskRep newUI _) = newUI; _ = emptyUI
 							    # (editletDiffs,iworld)		= getEditletDiffs iworld
                                 # (changes,editletDiffs)    = diffUIDefinitions oldUI newUI event editletDiffs
                                 # iworld                    = setEditletDiffs editletDiffs iworld
-                                # (mbErr,iworld) 		= if deleted 
-									(Ok (),iworld)
-									('SDS'.write (UIEnabled (uiVersion + 1) newRep) (sdsFocus instanceNo taskInstanceUI) iworld)
-                                # iworld 		= if deleted iworld (queueUIChanges instanceNo changes iworld)
-								//NEW
-								/*
-								# change 		= case newRep of (TaskRep _ change) = change ; _ = NoChange
-                                # iworld 		= if deleted iworld (queueUIChange instanceNo change iworld)
-								*/
-                                //Flush the share cache 
+                                # (mbErr,iworld) 			= 'SDS'.write newRep (sdsFocus instanceNo taskInstanceUI) iworld
+                                # iworld 					= queueUIChanges instanceNo changes iworld
+								//Flush the share cache 
                                 # iworld = flushShareCache iworld
 								= (Ok value, iworld)
-							(Ok (UIException msg), iworld)
-								= (Error msg, iworld) //Just dump the old error message for now
 							(Error (e,msg),iworld)
-								= case 'SDS'.write (UIException msg) (sdsFocus instanceNo taskInstanceUI) iworld of
-									(Ok _,iworld)          = (Error msg, iworld)
-									(Error (e,msg),iworld) = (Error msg, iworld)	
+                                # (mbErr,iworld)  	= 'SDS'.write newRep (sdsFocus instanceNo taskInstanceUI) iworld
+                                # newUI 			= case newRep of (TaskRep newUI _) = newUI; _ = emptyUI
+                                # iworld 			= queueUIChange instanceNo (ReplaceUI newUI) iworld
+                                # iworld = flushShareCache iworld
+								= (Ok value, iworld)
                     (ExceptionResult (e,msg))
-						= case 'SDS'.write (UIException msg) (sdsFocus instanceNo taskInstanceUI) iworld of
-							(Ok _,iworld)          = (Error msg, iworld)
-							(Error (e,msg),iworld) = (Error msg, iworld)	
+						= (Error msg, iworld)
 
 	getNextTaskNo iworld=:{IWorld|current={TaskEvalState|nextTaskNo}}	    = (nextTaskNo,iworld)
 	getEditletDiffs iworld=:{IWorld|current={editletDiffs}}	= (editletDiffs,iworld)
@@ -148,7 +138,10 @@ where
         # attachedTo = case progress.InstanceProgress.attachedTo of //Release temporary attachment after first evaluation
             (Just (_,[]))   = Nothing
             attachment      = attachment
-		# progress = {InstanceProgress|progress & firstEvent = Just (fromMaybe now progress.InstanceProgress.firstEvent), lastEvent = Nothing} //EXPERIMENT
+		# progress = {InstanceProgress|progress
+					 &firstEvent = Just (fromMaybe now progress.InstanceProgress.firstEvent)
+					 ,lastEvent = Nothing
+					 } //EXPERIMENT
 		= case result of
 			(ExceptionResult _)				    = {InstanceProgress|progress & value = Exception}
 			(ValueResult (Value _ stable) _  _ _)	
@@ -158,7 +151,7 @@ where
 			_									= {InstanceProgress|progress & value = None}
 
     mbResetUIState instanceNo ResetEvent iworld 
-		# (_,iworld) = 'SDS'.write (UIEnabled -1 NoRep) (sdsFocus instanceNo taskInstanceUI) iworld 
+		# (_,iworld) = 'SDS'.write NoRep (sdsFocus instanceNo taskInstanceUI) iworld 
 		# (_,iworld) = 'SDS'.write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceUIChanges) iworld 
 		//Remove all editlet state for this instance
 		# (diffs,iworld) = getEditletDiffs iworld

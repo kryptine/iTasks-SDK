@@ -164,7 +164,7 @@ itwc.Component.prototype = {
             //If this element is the last, maybe also adjust bottom margin;
             if(isLast && (valign == 'middle' || 'top')) {
                 el.style.marginBottom = 'auto';
-            }
+            } 
         } else {
             if(height !== 'flex') {
                 switch(valign) {
@@ -439,8 +439,23 @@ itwc.Layer = itwc.extend(itwc.Panel,{
         me.initItemLayout();
     }
 });
-//#### CORE UI COMPONENT DEFINITIONS ####//
+
+//#### RAW UI COMPONENT DEFINITIONS ####//
 itwc.component = {};
+
+itwc.component.itwc_raw_empty = itwc.extend(itwc.Component,{});
+itwc.component.itwc_raw_editor = itwc.extend(itwc.Component,{});
+itwc.component.itwc_raw_compoundeditor = itwc.extend(itwc.Container,{});
+itwc.component.itwc_raw_compoundcontent = itwc.extend(itwc.Container,{});
+itwc.component.itwc_raw_compoundcontent = itwc.extend(itwc.Container,{});
+itwc.component.itwc_raw_action = itwc.extend(itwc.Component,{});
+itwc.component.itwc_raw_window = itwc.extend(itwc.Container,{});
+itwc.component.itwc_raw_layers = itwc.extend(itwc.Container,{});
+itwc.component.itwc_raw_form = itwc.extend(itwc.Container,{});
+itwc.component.itwc_raw_block = itwc.extend(itwc.Container,{});
+itwc.component.itwc_raw_blocks = itwc.extend(itwc.Container,{});
+
+//#### CORE UI COMPONENT DEFINITIONS ####//
 
 itwc.component.itwc_menubar = itwc.extend(itwc.Container, {
     defaultDirection: 'horizontal',
@@ -534,21 +549,14 @@ itwc.component.itwc_viewport = itwc.extend(itwc.Layer,{
         me.maximize = true;
 
         me.domEl.classList.add('viewport');
-        me.initLayer();
-        if(me.definition.menu) {
-            me.setMenu(me.definition.menu);
-        }
-        itwc.controller.instanceProxies[me.definition.instanceNo] = itwc.controller.remoteProxy;
+       	me.initLayer();
+
+		itwc.controller.instanceProxies[me.definition.instanceNo] = itwc.controller.remoteProxy;
         itwc.controller.remoteProxy.addInstance(me.definition.instanceNo,me.definition.instanceKey,me);
     },
     beforeDOMRemove: function() {
         var me = this;
         itwc.controller.remoteProxy.removeInstance(me.definition.instanceNo);
-    },
-    setTitle: function(title) {
-        document.title = title || '';
-    },
-    reset: function() {
     }
 });
 itwc.component.itwc_window = itwc.extend(itwc.Layer, {
@@ -633,7 +641,6 @@ itwc.component.itwc_window = itwc.extend(itwc.Layer, {
         window.removeEventListener('mouseup', me.onStopDrag_);
     }
 });
-
 itwc.ViewComponent = itwc.extend(itwc.Component,{
 	setValue: function(value) {
         this.domEl.innerHTML = value;
@@ -2177,6 +2184,7 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
     onUpdatePushEvent: function (e) {
         var me = this,
             msg = JSON.parse(e.data);			
+
         me.controller.updateUI(msg, me.instances[msg.instance].rootNode);
         me.flushingTaskEvents = false;
         me.flushTaskEvents();
@@ -2342,55 +2350,68 @@ itwc.controller.prototype = {
         }
     },	
     updateUI: function(update,root) {
+
         var me = this,
             instance = update.instance,
             updates = update.updates,
             cmp;
 
-        updates.forEach(function(update) {
-            cmp = me.findComponent(update.path,root);
+        updates.forEach(function(change) {
+			switch(change.type) {
+				case 'replace':
+					me.removeComponent(root, 0, true);
+					me.addComponent(root, 0, change.definition, true);
+					root.items[0].afterAdd();
+					break;
+				case 'change':
+					console.log('CHANGE');
+					break;
+				case 'update':
+		            cmp = me.findComponent(change.path,root);
 
-            if(!cmp) {
-                console.log("Could not find component at path",update.path);
-                return;
-            }
-            //Apply operations
-            //'add' and 'remove' are handled directly by the controller
-            //other operations are passed to the component to deal handle
-            update.operations.forEach(function(op) {
-                switch(op.method) {
-                    case 'add':
-                        me.addComponent(cmp,op.arguments[0],op.arguments[1], op.arguments[0] == cmp.items.length);
-                        //Call initializion function that needs to be applied after the full component and
-                        //its children are available in the DOM
-                        cmp.items[op.arguments[0]].afterAdd();
-                        break;
-                    case 'remove':
-                        me.removeComponent(cmp,op.arguments[0], op.arguments[0] == cmp.items.length - 1);
-                        break;
-                    case 'replace':
-                        me.removeComponent(cmp,op.arguments[0], op.arguments[0] == cmp.items.length - 1);
-                        me.addComponent(cmp,op.arguments[0],op.arguments[1], op.arguments[0] == cmp.items.length);
-                        cmp.items[op.arguments[0]].afterAdd();
-                        break;
-                    case 'addWindow':
-                        me.addWindow(cmp,op.arguments[0],op.arguments[1]);
-                        cmp.windows[op.arguments[0]].afterAdd();
-                        break;
-                    case 'removeWindow':
-                        me.removeWindow(cmp,op.arguments[0]);
-                        break;
-                    case 'addMenu':
-                        me.addMenu(cmp,op.arguments[0]);
-                        break;
-                    case 'removeMenu':
-                        me.removeMenu(cmp,op.arguments[0]);
-                        break;
-                    default:
-                        cmp.applyUpdate(op.method,op.arguments);
-                        break;
-                }
-            });
+					if(!cmp) {
+						console.log("Could not find component at path",change.path);
+						return;
+					}
+		            //Apply operations
+					//'add' and 'remove' are handled directly by the controller
+					//other operations are passed to the component to deal handle
+					change.operations.forEach(function(op) {
+						switch(op.method) {
+                    		case 'add':
+								me.addComponent(cmp,op.arguments[0],op.arguments[1], op.arguments[0] == cmp.items.length);
+								//Call initializion function that needs to be applied after the full component and
+								//its children are available in the DOM
+								cmp.items[op.arguments[0]].afterAdd();
+								break;
+							case 'remove':
+								me.removeComponent(cmp,op.arguments[0], op.arguments[0] == cmp.items.length - 1);
+								break;
+							case 'replace':
+								me.removeComponent(cmp,op.arguments[0], op.arguments[0] == cmp.items.length - 1);
+								me.addComponent(cmp,op.arguments[0],op.arguments[1], op.arguments[0] == cmp.items.length);
+								cmp.items[op.arguments[0]].afterAdd();
+								break;
+							case 'addWindow':
+								me.addWindow(cmp,op.arguments[0],op.arguments[1]);
+								cmp.windows[op.arguments[0]].afterAdd();
+								break;
+							case 'removeWindow':
+								me.removeWindow(cmp,op.arguments[0]);
+								break;
+							case 'addMenu':
+								me.addMenu(cmp,op.arguments[0]);
+								break;
+							case 'removeMenu':
+								me.removeMenu(cmp,op.arguments[0]);
+								break;
+							default:
+								cmp.applyUpdate(op.method,op.arguments);
+							break;
+						}
+					});
+					break;
+			}
         });
     },
     //Apply update instructions to global ui tree.
@@ -2436,8 +2457,11 @@ itwc.controller.prototype = {
         }
        //Recursively add children
         if(insertDef.items) {
+			var numChildren = insertDef.items.length;
+			var i = 0;
             insertDef.items.forEach(function(childCmp,childIdx) {
-                me.addComponent(newCmp,childIdx,childCmp);
+				i++;
+                me.addComponent(newCmp,childIdx,childCmp,i == numChildren);
             });
         }
         //Recursively add menu items
@@ -2594,8 +2618,10 @@ itwc.controller.prototype = {
 
         //Create the viewport layer
         me.layers[0] = new itwc.component.itwc_viewport();
-        me.layers[0].init({instanceNo: itwc.START_INSTANCE_NO, instanceKey: itwc.START_INSTANCE_KEY, halign: 'center', valign: 'middle'});
-        me.layers[0].render(0,false);
+        me.layers[0].init({instanceNo: itwc.START_INSTANCE_NO, instanceKey: itwc.START_INSTANCE_KEY, halign: 'center', valign: 'top'});
+        me.layers[0].render(0,true);
+
+		me.addComponent(me.layers[0],0,{xtype:'itwc_view_string',value: 'Loading...'});
 
         document.body.appendChild(me.layers[0].domEl);
 
@@ -2616,3 +2642,4 @@ itwc.controller = new itwc.controller();
 window.onload = function() {
     itwc.controller.start();
 };
+

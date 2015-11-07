@@ -22,9 +22,9 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 //Provide generic instances for all UI definitions
-derive class iTask UIDef, UIWindow, UIEmpty, UIForm, UIBlock, UIAction, UIEditor, UIViewport, UIControl, UITab
+derive class iTask UIDef, UIWindow, UIEmpty, UIForm, UIBlock, UIAction, UIEditor, UIControl, UITab
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
-derive class iTask UIViewportOpts, UIWindowOpts, UIItemsOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
+derive class iTask UIWindowOpts, UIItemsOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
 derive class iTask UIPanelOpts, UITabSetOpts, UIFieldSetOpts, UIEditletOpts, UITaskletOpts, UIIconOpts, UILabelOpts
 derive class iTask UIHSizeOpts, UIFSizeOpts, UIButtonOpts, UIMenuButtonOpts, UITreeNode, UIMenuItem
@@ -59,7 +59,7 @@ instance Functor UIViewOpts
 										// but the container they will be put in is not decided yet
     | UIBlocks  ![UIBlock] ![UIAction]  //A set of aggregated blocks that have not yet been arranged
 	//Final
-    | UIFinal   !UIViewport             //The final user interface
+    | UIFinal   !UIControl              //The final user interface
 
 ::UIEditor = 
 	{ optional		:: Bool
@@ -88,15 +88,6 @@ instance Functor UIViewOpts
 	{ taskId	:: !String
 	, action	:: !Action
 	, enabled	:: !Bool
-	}
-
-//The top level viewport
-:: UIViewport = UIViewport !UIItemsOpts !UIViewportOpts
-
-:: UIViewportOpts =
-	{ title			:: !Maybe String
-	, menu			:: !Maybe [UIControl]
-	, hotkeys		:: !Maybe [UIKeyAction]
 	}
 
 // Floating window
