@@ -10,7 +10,7 @@ import System.Directory
 import qualified Data.Queue as DQ
 from Data.Queue import :: Queue
 
-from Tests.Common.MinimalTasks import minimalEditor
+from Tests.Common.MinimalTasks import minimalEditor, minimalStep
 
 
 derive gText ServerInfo, SystemPaths, Queue
@@ -62,7 +62,7 @@ where
 
 	sut world 
 		# iworld = createIWorld "TEST" Nothing Nothing Nothing world
-		# (res,iworld) = createTaskInstance minimalEditor iworld
+		# (res,iworld) = createTaskInstance minimalStep iworld
 		= case res of
 			(Ok (instanceNo,instanceKey))
 				# (_,iworld) = evalTaskInstance instanceNo ResetEvent iworld //Assume ok

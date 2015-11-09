@@ -86,7 +86,7 @@ where
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
 		# (nv,nmask,nts,change,iworld)
-								= matchAndApplyEvent event taskId taskTime v mask ts iworld
+								= matchAndApplyEvent event taskId evalOpts mbEditor taskTime v mask ts desc iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -106,13 +106,18 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-	matchAndApplyEvent (EditEvent taskId name value) matchId taskTime v mask ts iworld
+	matchAndApplyEvent ResetEvent matchId evalOpts mbEditor taskTime v mask ts desc iworld
+		//When we get a reset event, we recompute the entire UI
+		# (ui,iworld) = visualizeView matchId evalOpts mbEditor (v,mask,verifyMaskedValue (v,mask)) desc iworld
+		= (v,mask,ts,ReplaceUI ui,iworld)
+
+	matchAndApplyEvent (EditEvent taskId name value) matchId evalOpts mbEditor taskTime v mask ts desc iworld
 		| taskId == matchId
 			| otherwise
 				# ((nv,nmask),change,iworld) = updateValueAndMask taskId (s2dp name) mbEditor value (v,mask) iworld
 				= (nv,nmask,taskTime,change,iworld)
 		| otherwise	= (v,mask,ts,NoChange,iworld)
-	matchAndApplyEvent _ matchId taskTime v mask ts iworld
+	matchAndApplyEvent _ matchId evalOpts mbEditor taskTime v mask ts desc iworld
 		= (v,mask,ts,NoChange,iworld)
 
 	visualizeView taskId evalOpts mbEditor value=:(v,vmask,vver) desc iworld

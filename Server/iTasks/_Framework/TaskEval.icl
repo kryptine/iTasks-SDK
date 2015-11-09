@@ -118,6 +118,7 @@ where
                                 # iworld                    = setEditletDiffs editletDiffs iworld
                                 # (mbErr,iworld) 			= 'SDS'.write newRep (sdsFocus instanceNo taskInstanceUI) iworld
                                 # iworld 					= queueUIChanges instanceNo changes iworld
+								//# iworld 			= case newRep of (TaskRep _ newChange) = queueUIChange instanceNo newChange iworld; _ = iworld
 								//Flush the share cache 
                                 # iworld = flushShareCache iworld
 								= (Ok value, iworld)
@@ -125,6 +126,7 @@ where
                                 # (mbErr,iworld)  	= 'SDS'.write newRep (sdsFocus instanceNo taskInstanceUI) iworld
                                 # newUI 			= case newRep of (TaskRep newUI _) = newUI; _ = emptyUI
                                 # iworld 			= queueUIChange instanceNo (ReplaceUI newUI) iworld
+								//# iworld 			= case newRep of (TaskRep _ newChange) = queueUIChange instanceNo newChange iworld; _ = iworld
                                 # iworld = flushShareCache iworld
 								= (Ok value, iworld)
                     (ExceptionResult (e,msg))
