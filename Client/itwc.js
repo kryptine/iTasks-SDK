@@ -272,7 +272,7 @@ itwc.Component.prototype = {
             me.hotkeyListener = me.domEl.addEventListener('keyup',function(e) {
                 me.hotkeys.forEach(function(hotkey) {
                     if(e.keyCode === hotkey[0].key) {
-                        itwc.controller.sendActionEvent(hotkey[1].taskId,hotkey[1].actionId);
+                        me.sendActionEvent(hotkey[1].taskId,hotkey[1].actionId);
                     }
                 });
             });
@@ -280,7 +280,28 @@ itwc.Component.prototype = {
     },
     setTaskId: function(taskId) {
         this.definition.taskId = taskId;
-    }
+    },
+	sendEditEvent: function(taskId, editorId, value, replace) {
+		if(this.controller) {
+			this.controller.sendEditEvent(taskId, editorId, value, replace);
+		} else if(this.parentCmp) {
+			this.parentCmp.sendEditEvent(taskId, editorId, value, replace);
+		}
+	},
+    sendActionEvent: function(taskId, actionId) {
+		if(this.controller) {
+			this.controller.sendActionEvent(taskId, actionId);
+		} else if(this.parentCmp) {
+			this.parentCmp.sendActionEvent(taskId, actionId);
+		}
+	},
+	sendFocusEvent: function(taskId) {
+		if(this.controller) {
+			this.controller.sendFocusEvent(taskId);
+		} else if(this.parentCmp) {
+			this.parentCmp.sendFocusEvent(taskId);
+		}
+	}
 };
 itwc.Container = itwc.extend(itwc.Component,{
     isContainer: true,
@@ -331,7 +352,7 @@ itwc.Panel = itwc.extend(itwc.Container,{
         me.closeEl.href = '#';
         me.closeEl.classList.add('close');
         me.closeEl.addEventListener('click',function(e) {
-            itwc.controller.sendActionEvent(me.definition.closeTaskId,'Close');
+            me.sendActionEvent(me.definition.closeTaskId,'Close');
             e.preventDefault();
         },me);
 
@@ -511,7 +532,7 @@ itwc.component.itwc_actionmenuitem = itwc.extend(itwc.Component,{
         linkEl.innerHTML = me.definition.text;
         linkEl.addEventListener('click',function(e) {
             if(!me.disabled) {
-                itwc.controller.sendActionEvent(me.definition.taskId,me.definition.actionId);
+                me.sendActionEvent(me.definition.taskId,me.definition.actionId);
             }
             e.preventDefault();
         });
@@ -760,7 +781,7 @@ itwc.component.itwc_edit_string = itwc.extend(itwc.EditComponent,{
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
 			var value = e.target.value === "" ? null : e.target.value
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value, true);
+            me.sendEditEvent(me.definition.taskId,me.definition.editorId,value, true);
 			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
     }
@@ -773,7 +794,7 @@ itwc.component.itwc_edit_password = itwc.extend(itwc.EditComponent,{
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
 			var value = e.target.value === "" ? null : e.target.value
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value, true);
+            me.sendEditEvent(me.definition.taskId,me.definition.editorId,value, true);
 			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
     }
@@ -786,7 +807,7 @@ itwc.component.itwc_edit_note= itwc.extend(itwc.EditComponent,{
         el.innerHTML = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
 			var value = e.target.value === "" ? null : e.target.value
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value, true);
+            me.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value, true);
 			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
     }
@@ -801,7 +822,7 @@ itwc.component.itwc_edit_checkbox = itwc.extend(itwc.EditComponent,{
 
         el.addEventListener('click',function(e) {
 			var value = e.target.checked;
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value,false);
+            me.sendEditEvent(me.definition.taskId,me.definition.editorId,value,false);
 			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
     },
@@ -838,7 +859,7 @@ itwc.EditNumberComponent = itwc.extend(itwc.EditComponent,{
             } else {
                 value = me.allowDecimal ? parseFloat(e.target.value) : (e.target.value | 0);
             }
-            me.lastEditNo = itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value,true);
+            me.sendEditEvent(me.definition.taskId,me.definition.editorId,value,true);
         });
     },
     invalidKey: function(charCode) {
@@ -868,7 +889,7 @@ itwc.component.itwc_edit_date = itwc.extend(itwc.EditComponent,{
         el.type = 'text';
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value,true);
+            me.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value,true);
         });
     }
 });
@@ -880,7 +901,7 @@ itwc.component.itwc_edit_time = itwc.extend(itwc.EditComponent,{
         el.type = 'text';
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value,true);
+            me.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value,true);
         });
     }
 });
@@ -892,7 +913,7 @@ itwc.component.itwc_edit_datetime = itwc.extend(itwc.EditComponent,{
         el.type = 'text';
         el.value = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value,true);
+            me.sendEditEvent(me.definition.taskId,me.definition.editorId,e.target.value === "" ? null : e.target.value,true);
         });
     }
 });
@@ -907,7 +928,7 @@ itwc.component.itwc_edit_slider = itwc.extend(itwc.EditComponent,{
         el.value = me.definition.value;
 
         el.addEventListener('change',function(e) {
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId, (e.target.value | 0),true);
+            me.sendEditEvent(me.definition.taskId,me.definition.editorId, (e.target.value | 0),true);
         });
     }
 });
@@ -962,7 +983,7 @@ itwc.component.itwc_edit_document = itwc.extend(itwc.EditComponent,{
             return;
         }
         if(me.value != null) { //Clear;
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,null,false);
+            me.sendEditEvent(me.definition.taskId,me.definition.editorId,null,false);
             me.value = null;
             me.showValue();
         } else { //Select
@@ -993,7 +1014,7 @@ itwc.component.itwc_edit_document = itwc.extend(itwc.EditComponent,{
             rsp = JSON.parse(me.xhr.responseText);
 
             //Switch to value state
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,rsp[0],false);
+            me.sendEditEvent(me.definition.taskId,me.definition.editorId,rsp[0],false);
             me.xhr = null;
             me.value = rsp[0];
             me.showValue();
@@ -1038,7 +1059,7 @@ itwc.component.itwc_choice_dropdown = itwc.extend(itwc.ChoiceComponent,{
 
         el.addEventListener('change',function(e) {
             var value = e.target.value | 0;
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value == -1 ? null : value,false);
+            me.sendEditEvent(me.definition.taskId,me.definition.editorId,value == -1 ? null : value,false);
         });
     },
     setValue: function(selection) {
@@ -1075,7 +1096,7 @@ itwc.component.itwc_choice_radiogroup = itwc.extend(itwc.ChoiceComponent,{
                 inputEl.checked = true;
             }
             inputEl.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,idx,false);
+                me.sendEditEvent(me.definition.taskId,me.definition.editorId,idx,false);
             });
             liEl.appendChild(inputEl);
 
@@ -1109,7 +1130,7 @@ itwc.component.itwc_choice_checkboxgroup = itwc.extend(itwc.ChoiceComponent,{
                 inputEl.checked = true;
             }
             inputEl.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[idx,e.target.checked],false);
+                me.sendEditEvent(me.definition.taskId,me.definition.editorId,[idx,e.target.checked],false);
             });
             liEl.appendChild(inputEl);
 
@@ -1140,7 +1161,7 @@ itwc.component.itwc_choice_list = itwc.extend(itwc.ChoiceComponent,{
                 optionEl.classList.add('selected');
             }
             optionEl.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,idx,false);
+                me.sendEditEvent(me.definition.taskId,me.definition.editorId,idx,false);
             });
             optionEl.innerHTML = option;
 
@@ -1194,13 +1215,13 @@ itwc.component.itwc_choice_tree = itwc.extend(itwc.ChoiceComponent,{
         }
         label.innerHTML = option.text;
         label.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true],false);
+                me.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true],false);
         },me);
 
         if(me.definition.doubleClickAction) {
             label.addEventListener('dblclick',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true],false);
-                itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
+                me.sendEditEvent(me.definition.taskId,me.definition.editorId,["sel",option.value,true],false);
+                me.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
 
                 e.stopPropagation();
                 e.preventDefault();
@@ -1217,7 +1238,7 @@ itwc.component.itwc_choice_tree = itwc.extend(itwc.ChoiceComponent,{
                 childExpand.checked = true;
             }
             childExpand.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,["exp",option.value,childExpand.checked],false);
+                me.sendEditEvent(me.definition.taskId,me.definition.editorId,["exp",option.value,childExpand.checked],false);
             },me);
 
             node.appendChild(childExpand);
@@ -1267,12 +1288,12 @@ itwc.component.itwc_choice_grid = itwc.extend(itwc.ChoiceComponent,{
         me.definition.options.forEach(function(option,rowIdx) {
             rowEl = document.createElement('div');
             rowEl.addEventListener('click',function(e) {
-                itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx],false);
+                me.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx],false);
             },me);
             if(me.definition.doubleClickAction) {
                 rowEl.addEventListener('dblclick',function(e) {
-                    itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx],false);
-                    itwc.controller.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
+                    me.sendEditEvent(me.definition.taskId,me.definition.editorId,[rowIdx],false);
+                    me.sendActionEvent(me.definition.doubleClickAction[0],me.definition.doubleClickAction[1]);
 
                     e.stopPropagation();
                     e.preventDefault();
@@ -1384,13 +1405,13 @@ itwc.ButtonComponent = itwc.extend(itwc.Component,{
 itwc.component.itwc_actionbutton = itwc.extend(itwc.ButtonComponent,{
     onClick: function (e) {
         var me = this;
-        itwc.controller.sendActionEvent(me.definition.taskId,me.definition.actionId);
+        me.sendActionEvent(me.definition.taskId,me.definition.actionId);
     }
 });
 itwc.component.itwc_editbutton = itwc.extend(itwc.ButtonComponent,{
     onClick: function (e) {
         var me = this;
-        itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,me.definition.value,false);
+        me.sendEditEvent(me.definition.taskId,me.definition.editorId,me.definition.value,false);
     },
     setEditorValue: function(value) {
         var me = this;
@@ -1528,7 +1549,7 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
         label.href = '#';
         if(itemCmp.definition.focusTaskId) {
             label.addEventListener('click',function(e) {
-                itwc.controller.sendFocusEvent(itemCmp.definition.focusTaskId);
+                me.sendFocusEvent(itemCmp.definition.focusTaskId);
                 e.preventDefault();
             },me);
         }
@@ -1546,7 +1567,7 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
             closeLink.href = '#';
             closeLink.classList.add('tabclose');
             closeLink.addEventListener('click',function(e) {
-                itwc.controller.sendActionEvent(itemCmp.definition.closeTaskId,'Close');
+                me.sendActionEvent(itemCmp.definition.closeTaskId,'Close');
                 e.preventDefault();
             },me);
 
@@ -1832,8 +1853,7 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 		
 					console.log("send", diffId);
 		
-					itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diffId, diff],false);			
-				
+					me.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diffId, diff],false);			
 				}
 			}
 			
@@ -1867,10 +1887,8 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 
 			console.log("send", diffId);
 			
-			itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diffId, diff],false);			
-		}
-		else
-		{
+			me.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diffId, diff],false);			
+		} else {
 			me.waitingResponse = false;
 		}
 	},
@@ -2365,6 +2383,7 @@ itwc.controller.prototype = {
 					break;
 				case 'change':
 					console.log('CHANGE');
+					me.applyChange(root,change);
 					break;
 				case 'update':
 		            cmp = me.findComponent(change.path,root);
@@ -2414,6 +2433,22 @@ itwc.controller.prototype = {
 			}
         });
     },
+	applyChange: function(cmp,change) {
+		var me = this;
+
+		//Apply local changes
+		if(change.operations instanceof Array) {
+			change.operations.forEach(function(op) {
+            	cmp[op[0]].apply(cmp,op[1]);
+			});
+		}
+		//Recursively apply changes to children
+		if(cmp.items instanceof Array && change.children instanceof Array) {
+			change.children.forEach(function(child) {
+				me.applyChange(cmp.items[child[0]],child[1]);
+			});	
+		}
+	},
     //Apply update instructions to global ui tree.
     findComponent: function(path,root) {
         var cmp;
@@ -2621,6 +2656,10 @@ itwc.controller.prototype = {
         me.layers[0].init({instanceNo: itwc.START_INSTANCE_NO, instanceKey: itwc.START_INSTANCE_KEY, halign: 'center', valign: 'top'});
         me.layers[0].render(0,true);
 
+		//Set this controller on the viewport
+		me.layers[0].controller = this;
+		
+		//Set initial UI
 		me.addComponent(me.layers[0],0,{xtype:'itwc_view_string',value: 'Loading...'});
 
         document.body.appendChild(me.layers[0].domEl);
