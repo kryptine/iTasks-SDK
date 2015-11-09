@@ -4,7 +4,6 @@ from StdGeneric import :: UNIT,::EITHER,::PAIR,::OBJECT,::CONS,::RECORD,::FIELD,
 from iTasks._Framework.IWorld import :: IWorld
 from iTasks.UI.Diff import :: UIControl, :: UIAttributes
 from iTasks.API.Core.Types import :: TaskId, :: DataPath, :: InteractionMask, :: MaskedValue, :: Verification, :: VerifiedValue, :: EditableList
-from iTasks.UI.Layout import :: LayoutRules
 
 from iTasks._Framework.Generic.Visualization import generic gText, :: TextFormat
 from iTasks._Framework.Generic.Defaults import generic gDefault

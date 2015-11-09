@@ -138,11 +138,11 @@ where
 		(OnAllExceptions taskbf)	= callWithDeferredJSON taskbf d_json_a
 	
 	doStepLayout taskId evalOpts NoRep val
-		= TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep.ContentLayout.layout
-										(UICompoundContent [UIEmpty {UIEmpty|actions=[]}: map UIAction (contActions taskId val conts)])) NoChange
+		# ui = UICompoundContent [UIEmpty {UIEmpty|actions=[]}: map UIAction (contActions taskId val conts)]
+		= TaskRep (if evalOpts.autoLayout (autoAccuStep.ContentLayout.layout ui) ui) NoChange
 	doStepLayout taskId evalOpts (TaskRep def change) val
-		= TaskRep ((repLayoutRules evalOpts).LayoutRules.accuStep.ContentLayout.layout
-										(UICompoundContent [def:map UIAction (contActions taskId val conts)])) change
+		# ui = UICompoundContent [def:map UIAction (contActions taskId val conts)]
+		= TaskRep (if evalOpts.autoLayout (autoAccuStep.ContentLayout.layout ui) ui) change
 
 	callWithDeferredJSONTaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
 	callWithDeferredJSONTaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
@@ -362,7 +362,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
         # evalOpts        = {evalOpts & tonicOpts = {evalOpts.tonicOpts & captureParallel = evalOpts.tonicOpts.inParallel == Just listId
                                                                         , inParallel      = Just listId}}
 
-        # (result,iworld) = evala event (setParallel listId (extendCallTrace taskId {TaskEvalOpts|evalOpts & useLayout=Nothing})) tree iworld
+        # (result,iworld) = evala event (setParallel listId (extendCallTrace taskId evalOpts)) tree iworld
         # iworld          = if (evalOpts.tonicOpts.captureParallel && evalOpts.tonicOpts.currBlueprintExprId <> [] && evalOpts.tonicOpts.currBlueprintTaskId <> TaskId 0 0)
                               (storeTaskOutputViewer result evalOpts.tonicOpts.currBlueprintExprId evalOpts.tonicOpts.currBlueprintTaskId taskId iworld)
                               iworld
@@ -467,7 +467,7 @@ genParallelRep evalOpts actions results
 	# changes = ChangeUI [] [(ItemStep 0,ChangeUI [] [(ItemStep i,change) \\ ValueResult _ _ (TaskRep _ change) _ <- results & i <- [0..]])
 							,(ItemStep 1,NoChange)
 							]
-	= TaskRep ((repLayoutRules evalOpts).LayoutRules.accuParallel.ContentLayout.layout ui) changes
+	= TaskRep (if evalOpts.autoLayout (autoAccuParallel.ContentLayout.layout ui) ui) changes
 
 genParallelEvalInfo :: [TaskResult a] -> TaskEvalInfo
 genParallelEvalInfo results = foldr addResult {TaskEvalInfo|lastEvent=0,removedTasks=[],refreshSensitive=False} results
@@ -625,7 +625,6 @@ where
 		
 	eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{server={buildID},current={taskInstance}}
 		//Load instance
-		# layout			    = repLayoutRules evalOpts
         # (constants,iworld)    = read (sdsFocus instanceNo taskInstanceConstants) iworld
 		# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
 		= case (constants,progress) of
@@ -635,11 +634,13 @@ where
                 | value === Exception
 				    = (ValueResult (Value ASExcepted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoRep tree, iworld)
 				| attachedId == taskId
-                    # rep       = TaskRep (layout.LayoutRules.accuAttach.ContentLayout.layout (embedTaskDef instanceNo instanceKey)) NoChange
+					# ui 		= embedTaskDef instanceNo instanceKey
+                    # rep       = TaskRep (if evalOpts.autoLayout (autoAccuAttach.ContentLayout.layout ui) ui) NoChange
                     # stable    = value === Stable
 					= (ValueResult (Value (ASAttached stable) stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
 				| otherwise
-					# rep = TaskRep (layout.LayoutRules.accuAttach.ContentLayout.layout inUseDef) NoChange
+					# ui 		= inUseDef
+                    # rep       = TaskRep (if evalOpts.autoLayout (autoAccuAttach.ContentLayout.layout ui) ui) NoChange
 					= (ValueResult (Value (ASInUse attachedId) False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} rep tree, iworld)		
 			_
 				= (ValueResult (Value ASDeleted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoRep tree, iworld)
@@ -739,18 +740,9 @@ where
 class tune b :: !b !(Task a) -> Task a
 class tunev b a | iTask a :: !(b a) !(Task a) -> Task a
 
-instance tune SetLayout
+instance tune ApplyLayout
 where
-	tune (SetLayout layout) (Task eval)	= Task eval`
-	where
-		eval` event evalOpts=:{useLayout=Nothing,modLayout} state iworld
-			= eval event {TaskEvalOpts|evalOpts & useLayout = Just ((fromMaybe id modLayout) layout), modLayout = Nothing} state iworld
-		eval` event evalOpts=:{useLayout=Just _,modLayout} state iworld
-			= eval event {TaskEvalOpts|evalOpts & useLayout = Just layout, modLayout = Nothing} state iworld
-	
-instance tune AfterLayout
-where
-	tune (AfterLayout f) (Task eval) = Task eval`
+	tune (ApplyLayout f) (Task eval) = Task eval`
 	where
 		eval` event evalOpts state iworld = case eval event evalOpts state iworld of
 	        (ValueResult value info rep tree,iworld) = (ValueResult value info (updRep rep) tree, iworld)
@@ -758,15 +750,11 @@ where
 
         updRep NoRep          		= TaskRep (f (UIEmpty {UIEmpty|actions=[]})) NoChange
         updRep (TaskRep def diffs)  = TaskRep (f def) diffs
-		
-instance tune ModifyLayout
+
+instance tune AutoLayout
 where
-	tune (ModifyLayout f) (Task eval)	= Task eval`
-	where
-		eval` event evalOpts=:{modLayout=Nothing} state iworld
-			= eval event {TaskEvalOpts|evalOpts & modLayout = Just f} state iworld 
-		eval` event evalOpts=:{modLayout=Just g} state iworld
-			= eval event {TaskEvalOpts|evalOpts & modLayout = Just (g o f)} state iworld 	
+	tune WithAutoLayout (Task eval) = Task (\event evalOpts state iworld = eval event {evalOpts & autoLayout = True} state iworld)
+	tune WithoutAutoLayout (Task eval) = Task (\event evalOpts state iworld = eval event {evalOpts & autoLayout = False} state iworld)
 
 instance tune LazyRefresh
 where

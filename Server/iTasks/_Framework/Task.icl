@@ -12,7 +12,6 @@ import iTasks.UI.Editor, iTasks._Framework.Generic.Interaction
 import iTasks.UI.Diff
 
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
-from iTasks.UI.Layout 					import :: LayoutRules(..), autoLayoutRules
 from iTasks.API.Common.SDSCombinators	import toDynamic 
 from iTasks								import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 import qualified Data.CircularStack as DCS
@@ -20,10 +19,9 @@ import qualified Data.CircularStack as DCS
 mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =
   { TaskEvalOpts
-  | useLayout = Nothing
-  , modLayout = Nothing
-  , noUI      = False
-  , tonicOpts = defaultTonicOpts
+  | autoLayout  = True
+  , noUI        = False
+  , tonicOpts   = defaultTonicOpts
   }
 
 defaultTonicOpts :: TonicOpts
@@ -77,9 +75,6 @@ toRefresh (ResetEvent)          = RefreshEvent "Converted from Reset"
 
 exception :: !e -> TaskException | TC, toString e
 exception e = (dynamic e, toString e)
-
-repLayoutRules :: !TaskEvalOpts -> LayoutRules
-repLayoutRules {TaskEvalOpts|useLayout,modLayout}	= (fromMaybe id modLayout) (fromMaybe autoLayoutRules useLayout)
 
 extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
 extendCallTrace taskId repOpts=:{TaskEvalOpts|tonicOpts = {callTrace = xs}}

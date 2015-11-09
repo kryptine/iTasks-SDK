@@ -72,11 +72,11 @@ where
 		= (DestroyedResult,iworld)
 
     makeRep taskId evalOpts status iworld
-	    # layout			= repLayoutRules evalOpts
 		# (content,iworld)	= makeView opts status taskId iworld
 		# prompt			= toPrompt desc
 		# ui 				= UICompoundEditor {UIEditor|optional=False,attributes='Data.Map'.newMap} [prompt,content]
-		= (TaskRep (layout.LayoutRules.accuInteract.ContentLayout.layout ui) NoChange,iworld)
+		# ui 				= if evalOpts.autoLayout (autoAccuInteract.ContentLayout.layout ui) ui
+		= (TaskRep ui NoChange,iworld)
 						
 	makeView [ViewWith viewFun] status taskId iworld
 		# ver = verifyMaskedValue (Display (viewFun status),Touched)

@@ -289,13 +289,12 @@ matchAndApplyEvent _ matchId evalOpts mbEditor taskTime v mask ts desc iworld
 	= (v,mask,ts,NoChange,iworld)
 
 visualizeView taskId evalOpts mbEditor value=:(v,vmask,vver) desc iworld
-	# layout = repLayoutRules evalOpts
 	# editor = fromMaybe gEditor{|*|} mbEditor
 	# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
 	# (editUI,vst=:{VSt|iworld})	= editor.Editor.genUI [] v vmask vver vst
 	# promptUI  = toPrompt desc
 	# ui 		= UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap} [promptUI,editUI]
-	# ui		= layout.LayoutRules.accuInteract.ContentLayout.layout ui 
+	# ui		= if evalOpts.autoLayout (autoAccuInteract.ContentLayout.layout ui) ui
 	= (ui,iworld)
 
 updateValueAndMask taskId path mbEditor update (old,omask) iworld

@@ -12,7 +12,7 @@ import iTasks._Framework.IWorld, iTasks._Framework.WebService, iTasks._Framework
 import iTasks.API.Common.SDSCombinators
 import qualified iTasks._Framework.SDS as SDS
 import iTasks.UI.Layout
-from iTasks.API.Core.TaskCombinators import class tune(..), instance tune AfterLayout
+from iTasks.API.Core.TaskCombinators import class tune(..), instance tune ApplyLayout, instance tune AutoLayout
 
 SESSION_TIMEOUT :== fromString "0000-00-00 00:10:00"
 MAX_EVENTS 		:== 5
@@ -221,12 +221,12 @@ where
 	publishAll list = list
 
 withFinalSessionLayout :: (Task a) -> Task a | iTask a
-withFinalSessionLayout task = tune (AfterLayout layout) task
+withFinalSessionLayout task = tune (ApplyLayout layout) task
 where
 	layout ui = autoLayoutFinal.ContentLayout.layout (uiDefSetAttribute "session" "true" ui) 
 
 publishRaw :: (Task a) -> PublishedTask | iTask a
-publishRaw task = publish "/" (WebApp []) (const task)
+publishRaw task = publish "/" (WebApp []) (const (tune WithoutAutoLayout task))
 
 // Determines the server executables name
 determineAppName :: !*World -> (!String,!*World)

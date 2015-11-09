@@ -12,12 +12,6 @@ from iTasks._Framework.TaskState import :: TIMeta(..)
 
 derive gEq UISide
 
-autoLayoutRules :: LayoutRules
-autoLayoutRules
-    = {accuInteract = autoAccuInteract, accuStep = autoAccuStep, accuParallel = autoAccuParallel, accuAttach = autoAccuAttach
-      ,layoutForm = autoLayoutForm, layoutBlocks = autoLayoutBlocks
-      }
-
 instance descr ()
 where
 	toPrompt _ = UIEmpty {UIEmpty|actions=[]}
@@ -243,23 +237,23 @@ autoLayoutBlocks :: [UIBlock] [UIAction] -> UIBlock
 autoLayoutBlocks blocks actions = arrangeVertical blocks actions
 
 instance tune ToWindow
-where tune (ToWindow windowType vpos hpos) t = tune (AfterLayout (uiDefToWindow windowType vpos hpos)) t
+where tune (ToWindow windowType vpos hpos) t = tune (ApplyLayout (uiDefToWindow windowType vpos hpos)) t
 
 instance tune InPanel
-where tune InPanel t = tune (AfterLayout (uiDefSetAttribute CONTAINER_ATTRIBUTE "panel" o forceLayout)) t
+where tune InPanel t = tune (ApplyLayout (uiDefSetAttribute CONTAINER_ATTRIBUTE "panel" o forceLayout)) t
 instance tune InContainer
-where tune InContainer t = tune (AfterLayout (uiDefSetAttribute CONTAINER_ATTRIBUTE "container" o forceLayout)) t
+where tune InContainer t = tune (ApplyLayout (uiDefSetAttribute CONTAINER_ATTRIBUTE "container" o forceLayout)) t
 instance tune FullScreen
-where tune FullScreen t = tune (AfterLayout (uiDefSetAttribute SCREEN_ATTRIBUTE "full" o forceLayout)) t
+where tune FullScreen t = tune (ApplyLayout (uiDefSetAttribute SCREEN_ATTRIBUTE "full" o forceLayout)) t
 
 instance tune Title
-where tune (Title title) t = tune (AfterLayout (uiDefSetAttribute TITLE_ATTRIBUTE title o forceLayout)) t
+where tune (Title title) t = tune (ApplyLayout (uiDefSetAttribute TITLE_ATTRIBUTE title o forceLayout)) t
 instance tune Icon
-where tune (Icon icon) t = tune (AfterLayout (uiDefSetAttribute ICON_ATTRIBUTE icon o forceLayout )) t
+where tune (Icon icon) t = tune (ApplyLayout (uiDefSetAttribute ICON_ATTRIBUTE icon o forceLayout )) t
 instance tune Attribute
-where tune (Attribute k v) t = tune (AfterLayout (uiDefSetAttribute k v o forceLayout)) t
+where tune (Attribute k v) t = tune (ApplyLayout (uiDefSetAttribute k v o forceLayout)) t
 instance tune Label
-where tune (Label label) t = tune (AfterLayout (tweakControls (map (\(c,a) -> (c,'DM'.put LABEL_ATTRIBUTE label a))))) t
+where tune (Label label) t = tune (ApplyLayout (tweakControls (map (\(c,a) -> (c,'DM'.put LABEL_ATTRIBUTE label a))))) t
 
 instance tune NoUserInterface
 where
@@ -268,7 +262,7 @@ where
 	    eval` event repOpts state iworld = eval event {repOpts & noUI = True} state iworld
 instance tune ForceLayout
 where
-    tune ForceLayout t = tune (AfterLayout forceLayout) t
+    tune ForceLayout t = tune (ApplyLayout forceLayout) t
 
 forceLayout :: UIDef -> UIDef
 forceLayout (UIForm form)              = UIBlock (autoLayoutForm form)
@@ -283,14 +277,14 @@ arrangeBlocks f def                         = def
 
 instance tune ArrangeVertical
 where
-    tune ArrangeVertical t = tune (AfterLayout (arrangeBlocks arrangeVertical)) t
+    tune ArrangeVertical t = tune (ApplyLayout (arrangeBlocks arrangeVertical)) t
 
 arrangeVertical :: UIBlocksCombinator
 arrangeVertical = arrangeStacked Vertical
 
 instance tune ArrangeHorizontal
 where
-    tune ArrangeHorizontal t = tune (AfterLayout (arrangeBlocks arrangeHorizontal)) t
+    tune ArrangeHorizontal t = tune (ApplyLayout (arrangeBlocks arrangeHorizontal)) t
 
 arrangeHorizontal :: UIBlocksCombinator
 arrangeHorizontal = arrangeStacked Horizontal
@@ -309,7 +303,7 @@ where
 
 instance tune ArrangeWithTabs
 where
-    tune ArrangeWithTabs t = tune (AfterLayout (arrangeBlocks arrangeWithTabs)) t
+    tune ArrangeWithTabs t = tune (ApplyLayout (arrangeBlocks arrangeWithTabs)) t
 
 arrangeWithTabs :: UIBlocksCombinator
 arrangeWithTabs = arrange
@@ -338,7 +332,7 @@ where
 instance tune ArrangeWithSideBar
 where
     tune (ArrangeWithSideBar index side size resize) t
-        = tune (AfterLayout (arrangeBlocks (arrangeWithSideBar index side size resize))) t
+        = tune (ApplyLayout (arrangeBlocks (arrangeWithSideBar index side size resize))) t
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> UIBlocksCombinator
 arrangeWithSideBar index side size resize = arrange
@@ -366,7 +360,7 @@ where
 instance tune ArrangeSplit
 where
     tune (ArrangeSplit direction resize) t
-        = tune (AfterLayout (arrangeBlocks (arrangeSplit direction resize))) t
+        = tune (ApplyLayout (arrangeBlocks (arrangeSplit direction resize))) t
 
 arrangeSplit :: !UIDirection !Bool -> UIBlocksCombinator
 arrangeSplit direction resize = arrange
@@ -385,7 +379,7 @@ where
 
 instance tune ArrangeCustom
 where
-    tune (ArrangeCustom f) t = tune (AfterLayout (arrangeBlocks f)) t
+    tune (ArrangeCustom f) t = tune (ApplyLayout (arrangeBlocks f)) t
 
 blockToControl :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
 blockToControl ui=:{UIBlock|attributes}

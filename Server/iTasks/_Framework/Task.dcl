@@ -8,7 +8,6 @@ import iTasks._Framework.Generic
 from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
 
 from iTasks._Framework.TaskState			import :: TaskTree
-from iTasks.UI.Layout 	import :: LayoutRules
 from iTasks.UI.Diff     import :: UIChangeDef, :: UIStep
 from Data.Map			import :: Map
 from Data.CircularStack import :: CircularStack
@@ -38,8 +37,7 @@ derive gEq				Task
 
 //Additional options to pass down the tree when evaluating a task
 :: TaskEvalOpts	=
-	{ useLayout			:: Maybe LayoutRules
-	, modLayout			:: Maybe (LayoutRules -> LayoutRules)
+	{ autoLayout 		:: Bool
     , noUI              :: Bool
     , tonicOpts         :: TonicOpts
 	}
@@ -98,11 +96,6 @@ toRefresh :: Event -> Event
 * Creates an execption
 */
 exception :: !e -> TaskException | TC, toString e
-
-/**
-* Determine the layout function for a rep target
-*/
-repLayoutRules :: !TaskEvalOpts -> LayoutRules
 
 /**
 * Extend the call trace with the current task number

@@ -37,7 +37,7 @@ from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat
 from iTasks._Framework.Generic.Defaults		import generic gDefault
 from iTasks._Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 from iTasks.UI.JS.Interface	import :: JSWorld, :: JSVal
-from iTasks.UI.Layout import :: LayoutRules, class descr
+from iTasks.UI.Layout import class descr
 import iTasks._Framework.Serialization
 
 class TFunctor f where

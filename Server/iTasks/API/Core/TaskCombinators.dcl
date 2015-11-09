@@ -4,7 +4,7 @@ definition module iTasks.API.Core.TaskCombinators
 * with which additional combinators can be defined.
 */
 from System.Time    import :: Timestamp
-from iTasks.UI.Layout import :: SetLayout, :: AfterLayout, :: ModifyLayout, :: SetValueAttribute, :: LayoutRules
+from iTasks.UI.Layout import :: ApplyLayout, :: AutoLayout, :: SetValueAttribute
 import iTasks._Framework.Task, iTasks._Framework.SDS, iTasks._Framework.Generic
 
 derive class iTask ParallelTaskType, AttachmentStatus
@@ -137,9 +137,8 @@ exposeShared :: !(RWShared p r w) !(String (RWShared p r w) -> Task a) -> Task a
 class tune b    :: !b !(Task a) -> Task a
 class tunev b a | iTask a :: !(b a) !(Task a) -> Task a
 
-instance tune	SetLayout				//Set layout algorithm
-instance tune	AfterLayout				//Apply a modification after a layout has been run
-instance tune	ModifyLayout			//Modify the existing layout
+instance tune	ApplyLayout				//Apply a modification after a layout has been run
+instance tune	AutoLayout				//Enable/disable automatic layouting for a task
 
 /**
 *  Fine tune evaluation behaviour
