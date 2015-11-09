@@ -10,15 +10,15 @@ import System.Directory
 import qualified Data.Queue as DQ
 from Data.Queue import :: Queue
 
+from Tests.Common.MinimalTasks import minimalEditor
+
+
 derive gText ServerInfo, SystemPaths, Queue
 derive gEq Queue
 
 testTaskEvaluation :: TestSuite
 testTaskEvaluation = testsuite "Task evaluation" "Tests to verify properties of task evaluation"
 	[testInitIWorld,testCreateTaskInstance,testEvalFirstEvent,testInitialUI]
-
-//Shared test task
-helloWorldTask = viewInformation () [] "Hello World"
 
 testInitIWorld = assertWorld "Init IWorld" id sut
 where
@@ -37,7 +37,7 @@ where
 	sut world
 		# iworld = createIWorld "TEST" Nothing Nothing Nothing world
 		//Create a task instance
-		# (res,iworld) = createTaskInstance helloWorldTask iworld
+		# (res,iworld) = createTaskInstance minimalEditor iworld
 		# world = destroyIWorld iworld
 		= (res,world)
 
@@ -46,7 +46,7 @@ where
 	exp = isOk
 	sut world 
 		# iworld = createIWorld "TEST" Nothing Nothing Nothing world
-		# (res,iworld) = createTaskInstance helloWorldTask iworld
+		# (res,iworld) = createTaskInstance minimalEditor iworld
 		= case res of
 			(Ok (instanceNo,instanceKey))
 				# (res,iworld) = evalTaskInstance instanceNo (RefreshEvent "First evaluation") iworld
@@ -62,10 +62,10 @@ where
 
 	sut world 
 		# iworld = createIWorld "TEST" Nothing Nothing Nothing world
-		# (res,iworld) = createTaskInstance helloWorldTask iworld
+		# (res,iworld) = createTaskInstance minimalEditor iworld
 		= case res of
 			(Ok (instanceNo,instanceKey))
-				# (_,iworld) = evalTaskInstance instanceNo (RefreshEvent "First eval") iworld //Assume ok
+				# (_,iworld) = evalTaskInstance instanceNo ResetEvent iworld //Assume ok
 				# iworld = flushShareCache iworld
 				# (res,iworld) = 'SDS'.read (sdsFocus instanceNo taskInstanceUIChanges) iworld
 				# world = destroyIWorld iworld

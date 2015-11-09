@@ -66,6 +66,17 @@ instance Publishable (Task a) | iTask a
 instance Publishable (HTTPRequest -> Task a) | iTask a
 instance Publishable [PublishedTask]
 
+/**
+* This function publishes a task with autolayouting turned off 
+* to enable testing and debugging without layout processing
+*/
+publishRaw :: (Task a) -> PublishedTask | iTask a
+
+/**
+* Applies the standard layout for top-level session tasks
+*/
+withFinalSessionLayout :: (Task a) -> Task a | iTask a
+
 determineAppName :: !*World -> (!String,!*World)
 
 //HACK FOR RUNNING BACKGROUND TASKS ON A CLIENT

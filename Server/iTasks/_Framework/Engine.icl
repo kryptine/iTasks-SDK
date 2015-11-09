@@ -208,21 +208,25 @@ publish url format task = {url = url, task = TaskWrapper task, defaultFormat = f
 
 instance Publishable (Task a) | iTask a
 where
-	publishAll task = [publish "/" (WebApp []) (\_ -> (tune finalSessionLayout task))]
+	publishAll task = [publish "/" (WebApp []) (\_ -> (withFinalSessionLayout task))]
 
 instance Publishable (HTTPRequest -> Task a) | iTask a
 where
 	publishAll task = [publish "/" (WebApp []) task`]
 	where
-		task` req = tune finalSessionLayout (task req)
+		task` req = withFinalSessionLayout (task req)
 	
 instance Publishable [PublishedTask]
 where
 	publishAll list = list
 
-finalSessionLayout = AfterLayout layout
+withFinalSessionLayout :: (Task a) -> Task a | iTask a
+withFinalSessionLayout task = tune (AfterLayout layout) task
 where
 	layout ui = autoLayoutFinal.ContentLayout.layout (uiDefSetAttribute "session" "true" ui) 
+
+publishRaw :: (Task a) -> PublishedTask | iTask a
+publishRaw task = publish "/" (WebApp []) (const task)
 
 // Determines the server executables name
 determineAppName :: !*World -> (!String,!*World)
