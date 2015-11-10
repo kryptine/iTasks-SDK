@@ -1152,10 +1152,16 @@ tTextWithGreyBackground font txt
 
 littleman :: Image a
 littleman
-  #! maskRect = rect (px 16.0) (px 16.0) <@< {FillAttr | fill = TonicWhite}
-                                         <@< {StrokeWidthAttr | strokewidth = px 0.0}
-  = (overlay [] [(px -2.0, px 8.0), (px 3.0, px 1.0)] [ circle (px 20.0) <@< {StrokeWidthAttr | strokewidth = px 1.0} <@< {StrokeAttr | stroke = TonicWhite}
-                                                      , circle (px 10.0) <@< {StrokeWidthAttr | strokewidth = px 1.0} <@< {StrokeAttr | stroke = TonicWhite}] (Just maskRect)) <@< {MaskAttr | mask = maskRect}
+  #! head      = circle (px 8.0) <@< {StrokeWidthAttr | strokewidth = px 0.0}
+  #! shoulders = rect (px 16.0) (px 4.0) <@< {StrokeWidthAttr | strokewidth = px 0.0}
+                                         <@< { xradius     = px 5.0 }
+                                         <@< { yradius     = px 5.0 }
+  #! arm       = rect (px 3.0) (px 6.0) <@< {StrokeWidthAttr | strokewidth = px 0.0}
+  #! vline     = yline Nothing (px 4.0) <@< {StrokeAttr | stroke = TonicWhite}
+                                        <@< {StrokeWidthAttr | strokewidth = px 2.0}
+  #! chest     = rect (px 10.0) (px 5.0) <@< {StrokeWidthAttr | strokewidth = px 0.0}
+  #! arms      = beside [] [(px 0.0, px (-2.0)), (px 0.0, px 0.0), (px 0.0, px (-1.0)), (px 0.0, px 0.0), (px 0.0, px (-2.0))] [arm, vline, chest, vline, arm] Nothing
+  = above (repeat AtMiddleX) [] [head, shoulders, arms] Nothing
 
 tException :: Image ModelTy
 tException = beside (repeat AtMiddleY) [] [ tExceptionBox, text ArialBold10px " Exception"] Nothing
