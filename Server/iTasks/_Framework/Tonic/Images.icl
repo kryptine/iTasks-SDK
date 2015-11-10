@@ -592,7 +592,9 @@ tTaskDef inh moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTa
                                                  , text ArialBold10px (taskName +++ " :: " +++ ppTExpr resultTy)
                                                  , text ArialRegular10px taskIdStr
                                                  , userImg] Nothing
-  #! taskNameImg  = tag uNameTag (margin (px 5.0) taskNameImg)
+  #! taskNameImg  = case inh.inh_bpinst of
+                      Just {bpi_currentUser = Just _} -> tag uNameTag (margin (px 2.0, px 5.0) taskNameImg)
+                      _                               -> tag uNameTag (margin (px 5.0) taskNameImg)
   #! binds        = flatten (strictTRZipWith3 mkArgAndTy args [0..] (strictTRMap Just argvars ++ repeat Nothing))
   #! argsText     = grid (Columns 4) (RowMajor, LeftToRight, TopToBottom) [] [] (strictTRMap (margin (px 1.0, px 0.0)) binds) Nothing
   #! argsImg      = tag uArgsTag (margin (px 5.0) argsText)
