@@ -9,27 +9,27 @@ testCoreEditors = testsuite "Core editors" "These tests check if editors for the
 	,testSingleRecord,testNestedRecord,testIntList
 	]
 
-testString = interactive "String" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
+testString = itest "String" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
 where
 	tut :: Task String
 	tut = testEditors "String"
 
-testChar = interactive "Char" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
+testChar = itest "Char" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
 where
 	tut :: Task Char
 	tut = testEditors "Char"
 
-testInt = interactive "Int" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
+testInt = itest "Int" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
 where
 	tut :: Task Int
 	tut = testEditors "Int"
 
-testReal = interactive "Real" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
+testReal = itest "Real" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
 where
 	tut :: Task Real
 	tut = testEditors "Real"
 
-testBool = interactive "Bool" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
+testBool = itest "Bool" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
 where
 	tut :: Task Bool
 	tut = testEditors "Bool"
@@ -37,7 +37,7 @@ where
 :: ADTSingleCons = ADTSingleCons Int
 derive class iTask ADTSingleCons
 
-testADTSingleConsOne = interactive "Single Constructor" "Check the behavior of the editors" "The editors should behave as a normal Int editor" tut
+testADTSingleConsOne = itest "Single Constructor" "Check the behavior of the editors" "The editors should behave as a normal Int editor" tut
 where
 	tut :: Task ADTSingleCons
 	tut = testEditors "ADTSingleCons"
@@ -45,7 +45,7 @@ where
 :: ADTSingleConsMulti = ADTSingleConsMulti Int String
 derive class iTask ADTSingleConsMulti
 
-testADTSingleConsMulti = interactive "Single Constructor Multi" "Check the behavior of the editors" "You should have an Int editor and a String editor" tut
+testADTSingleConsMulti = itest "Single Constructor Multi" "Check the behavior of the editors" "You should have an Int editor and a String editor" tut
 where
 	tut :: Task ADTSingleConsMulti
 	tut = testEditors "ADTSingleConsMulti"
@@ -57,7 +57,7 @@ where
 
 derive class iTask ADTMultiCons
 
-testADTMultiCons = interactive "Multiple Constructor" "Check the behavior of the editors"
+testADTMultiCons = itest "Multiple Constructor" "Check the behavior of the editors"
 	("You should have a dropdown to select the constructor."
 	+++ "The first cons has no editors, the second a single Int and the third has an Int editor and a String editor"
 	) tut
@@ -71,7 +71,7 @@ where
 	}
 derive class iTask TwoFieldRecord
 
-testSingleRecord = interactive "Record" "Check the behavior of the editors" "You should see editors for a record with an Int and a String field" tut
+testSingleRecord = itest "Record" "Check the behavior of the editors" "You should see editors for a record with an Int and a String field" tut
 where
 	tut :: Task TwoFieldRecord
 	tut = testEditors "TwoFieldRecord"
@@ -82,14 +82,14 @@ where
 	}
 derive class iTask NestedRecord
 
-testNestedRecord = interactive "Nested Record" "Check the behavior of the editors"
+testNestedRecord = itest "Nested Record" "Check the behavior of the editors"
 	("You should see editors for a record with as first field a nested record of an Int and a String field.\n"
 	+++ "And as second field a Bool") tut
 where
 	tut :: Task NestedRecord
 	tut = testEditors "NestedRecord"
 
-testIntList = interactive "Standard Int list" "Check the behavior of the editors"
+testIntList = itest "Standard Int list" "Check the behavior of the editors"
 	"You should see an editor for a list of integers" tut
 where
 	tut :: Task [Int]

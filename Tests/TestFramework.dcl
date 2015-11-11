@@ -53,7 +53,15 @@ derive gDefault UnitTest
 * @param A description of the expected results
 * @param The task to test
 */
-interactive :: String String String (Task a) -> Test | iTask a
+itest :: String String String (Task a) -> Test | iTask a
+
+/**
+* Convenient wrapper for defining unit tests
+*
+* @param The name of the test
+* @param The task to test
+*/
+utest :: String (*World -> *(TestResult,*World)) -> Test
 
 assert :: String (a -> Bool) a -> Test | gText{|*|} a
 

@@ -24,9 +24,12 @@ where
 	pass w = (Passed,w)
 //DEFINING TESTS
 
-interactive :: String String String (Task a) -> Test | iTask a
-interactive name instructions expectation tut
+itest :: String String String (Task a) -> Test | iTask a
+itest name instructions expectation tut
   = InteractiveTest {name=name,instructions = Note instructions, expectation = Note expectation, taskUnderTest = tut @! ()}
+
+utest :: String (*World -> *(TestResult,*World)) -> Test
+utest name test = UnitTest {UnitTest|name=name,test=test}
 
 assert :: String (a -> Bool) a -> Test | gText{|*|} a
 assert name exp sut = UnitTest {UnitTest|name=name,test=test}
