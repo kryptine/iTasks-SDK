@@ -161,13 +161,13 @@ replaceTaskInstance instanceNo task iworld=:{server={buildID},current={taskTime}
                  in  'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=buildID},progress,attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> (Ok (), iworld)
 
-deleteTaskInstance	:: !InstanceNo !*IWorld -> *IWorld
+deleteTaskInstance	:: !InstanceNo !*IWorld -> *IWorld //TODO: Propagate error
 deleteTaskInstance instanceNo iworld
     //Delete all states
-    # iworld        = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-reduct") iworld
-    # iworld        = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-value") iworld
-    # iworld        = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-shares") iworld
-    # iworld        = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-tasklists") iworld
+    # (_,iworld)  	= deleteValue NS_TASK_INSTANCES (instanceNo +++> "-reduct") iworld
+    # (_,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-value") iworld
+    # (_,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-shares") iworld
+    # (_,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-tasklists") iworld
     # (_,iworld)    = 'SDS'.modify (\is -> ((),[i \\ i=:(no,_,_,_) <- is | no <> instanceNo])) (sdsFocus defaultValue filteredInstanceIndex) iworld
     = iworld
 

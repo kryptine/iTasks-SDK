@@ -103,16 +103,15 @@ blobStoreWrite	:: !StoreNamespace !StoreName !{#Char}		!*IWorld -> *IWorld
 */
 blobStoreRead	:: !StoreNamespace !StoreName 				!*IWorld -> (!MaybeError StoreReadError {#Char}, !*IWorld)
 
-
 /**
 * Deletes the value with given key from the store
 */
-deleteValue				:: !StoreNamespace !StoreName				!*IWorld -> *IWorld
+deleteValue             :: !StoreNamespace !StoreName !*IWorld -> *(MaybeErrorString (),*IWorld)
 
 /**
 * Deletes all values that start with the prefix from the store
 */
-deleteValues			:: !StoreNamespace !StorePrefix				!*IWorld -> *IWorld
+deleteValues 			:: !StoreNamespace !StorePrefix !*IWorld -> *(MaybeErrorString (),*IWorld)
 
 /**
 * List the namespaces in the store
@@ -123,6 +122,12 @@ listStoreNamespaces     ::                                          !*IWorld -> 
 */
 listStoreNames          :: !StoreNamespace                          !*IWorld -> (!MaybeErrorString [StoreName], !*IWorld)
 
-writeToDisk :: !StoreNamespace !StoreName !String !*IWorld -> *IWorld
+/**
+* Delete all values in the store
+*/
+emptyStore :: !*IWorld -> *IWorld
+
+//writeToDisk :: !StoreNamespace !StoreName !String !*IWorld -> *IWorld
+writeToDisk :: !StoreNamespace !StoreName !String !*IWorld -> (MaybeErrorString (), *IWorld)
 
 readFromDisk :: !StoreNamespace !StoreName !*IWorld -> (MaybeError StoreReadError (!BuildID, !String), !*IWorld)

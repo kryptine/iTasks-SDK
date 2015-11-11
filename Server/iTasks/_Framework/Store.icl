@@ -61,13 +61,17 @@ where
  		    (Ok item,_)
                 = (Ok item,iworld)
             (Error StoreReadMissingError,Just def)
-                # iworld = writeToDisk namespace key def iworld
+                # (mbErr,iworld) = writeToDisk namespace key def iworld
+				| mbErr =: (Error _)
+					= (Error (exception (fromError mbErr)),iworld)
                 = (Ok (buildID,def),iworld)
             (Error e,Just def) | resetOnError
-                # iworld = writeToDisk namespace key def iworld
+                # (mbErr,iworld) = writeToDisk namespace key def iworld
+				| mbErr =: (Error _)
+					= (Error (exception (fromError mbErr)),iworld)
                 = (Ok (buildID,def),iworld)
             (Error e,Nothing) | resetOnError
-                # iworld = deleteValue namespace key iworld
+                # (_,iworld) = deleteValue namespace key iworld //Try to delete the value
                 = (Error (exception e), iworld)
 		    (Error e,_)
                 = (Error (exception e),iworld)
@@ -76,7 +80,10 @@ where
         | onClient //Special case for tasks running on a client
 	        = (Ok ((==) key),jsStoreValue namespace key value iworld)
         | otherwise
-	        = (Ok ((==) key),writeToDisk namespace key value iworld)
+			# (mbErr,iworld) = writeToDisk namespace key value iworld
+			| mbErr =: (Error _)
+				= (Error (exception (fromError mbErr)),iworld)
+	        = (Ok ((==) key),iworld)
 
 //Utility SDS which provides the current build such that higher level stores can check against it
 buildID :: RWShared p BuildID Void
@@ -139,7 +146,7 @@ where
                 # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic def, keepBetweenEvals,Just (DeferredJSON def)) cachedShares}
                 = (Ok def,iworld)
             (Error e,Nothing) | resetOnError
-                # iworld = deleteValue namespace key iworld
+                # (_,iworld) = deleteValue namespace key iworld //Try to delete value
                 = (Error (exception e), iworld)
 		    (Error e,_)
                 = (Error (exception e),iworld)
@@ -152,7 +159,7 @@ where
             # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic value, keepBetweenEvals,Just (DeferredJSON value)) cachedShares}
 	        = (Ok ((==) key),iworld)
 
-flushShareCache :: *IWorld -> *IWorld
+flushShareCache :: *IWorld -> *IWorld //TODO: Propagate error up
 flushShareCache iworld=:{IWorld|onClient,cachedShares}
     | onClient = iworld
     | otherwise
@@ -161,16 +168,19 @@ flushShareCache iworld=:{IWorld|onClient,cachedShares}
 where
     flushShare cached=:((namespace,key),(val,keep,mbDeferredWrite)) (shares,iworld)
         # iworld = case mbDeferredWrite of
-            Just deferred   = writeToDisk namespace key (toString (toJSON deferred)) iworld
+            Just deferred   
+				# (_,iworld) = writeToDisk namespace key (toString (toJSON deferred)) iworld
+				= iworld
             Nothing         = iworld
         | keep  = ([((namespace,key),(val,keep,Nothing)):shares],iworld)
                 = (shares,iworld)
 
-blobStoreWrite :: !StoreNamespace !StoreName !{#Char} !*IWorld -> *IWorld
+blobStoreWrite :: !StoreNamespace !StoreName !{#Char} !*IWorld -> *IWorld //TODO: Propagate error up
 blobStoreWrite namespace key blob iworld=:{IWorld|onClient=True}
 	= jsStoreValue namespace key blob iworld
 blobStoreWrite namespace key blob iworld
-	= writeToDisk namespace key blob iworld
+	# (_,iworld) = writeToDisk namespace key blob iworld 
+	= iworld
 
 blobStoreRead :: !StoreNamespace !StoreName !*IWorld -> (!MaybeError StoreReadError {#Char}, !*IWorld)
 blobStoreRead namespace key iworld=:{onClient=True}
@@ -181,33 +191,37 @@ blobStoreRead namespace key iworld
         (Ok (_,content),iworld) = (Ok content,iworld)
         (Error e,iworld) = (Error e,iworld)
 	
-writeToDisk :: !StoreNamespace !StoreName !String !*IWorld -> *IWorld
+writeToDisk :: !StoreNamespace !StoreName !String !*IWorld -> (MaybeErrorString (), *IWorld)
 writeToDisk namespace key content iworld=:{server={buildID,paths={dataDirectory}},world}
 	# location = dataDirectory </> "stores"
 	//Check if the location exists and create it otherwise
 	# (exists,world)	= fileExists location world
-	# world				= if exists world
+	# (res,world)		= if exists (Ok (),world)
 							( case createDirectory location world of
-								(Ok Void, world) = world
-								(Error e, world) = abort ("Cannot create store: " +++ location +++ ": " +++ snd e)
+								(Ok Void, world) = (Ok (),world)
+								(Error e, world) = (Error ("Cannot create store: " +++ location +++ ": " +++ snd e), world)
 							)
+	| res =: (Error _)
+		= (res,{IWorld|iworld & world = world})
 	//Check if the namespace exists and create it otherwise
 	# (exists,world)	= fileExists (location </> namespace) world
-	# world				= if exists world
+	# (res,world)		= if exists (Ok (),world)
 							( case createDirectory (location </> namespace) world of
-								(Ok Void, world) = world
-								(Error e, world) = abort ("Cannot create namespace " +++ namespace +++ ": " +++ snd e)
+								(Ok Void, world) = (Ok (), world)
+								(Error e, world) = (Error ("Cannot create namespace " +++ namespace +++ ": " +++ snd e), world)
 							)
+	| res =: (Error _)
+		= (res,{IWorld|iworld & world = world})
 	//Write the value
 	# filename 			= addExtension (location </> namespace </> safeName key) "txt"
 	# (ok,file,world)	= fopen filename FWriteData world
-	| not ok			= abort ("Failed to write value to store: " +++ filename +++ "\n") //TODO: USE ERROR INSTEAD OF ABORT
+	| not ok			= (Error ("Failed to write value to store: " +++ filename),{IWorld|iworld & world = world})
     //Write build ID
     # file              = fwrites buildID file
     //Write content
 	# file				= fwrites content file
 	# (ok,world)		= fclose file world
-	= {IWorld|iworld & world = world}
+	= (Ok (),{IWorld|iworld & world = world})
 
 readFromDisk :: !StoreNamespace !StoreName !*IWorld -> (MaybeError StoreReadError (!BuildID,!String), !*IWorld)	
 readFromDisk namespace key iworld=:{server={paths={dataDirectory}},world}
@@ -233,37 +247,48 @@ where
 			| string == "" = (acc, file)
 			| otherwise    = rec file (acc +++ string)
 
-deleteValue :: !StoreNamespace !StoreName !*IWorld -> *IWorld
+deleteValue :: !StoreNamespace !StoreName !*IWorld -> *(MaybeErrorString (),*IWorld)
 deleteValue namespace delKey iworld=:{onClient=True}
-	= jsDeleteValue namespace delKey iworld
+	= (Ok (), jsDeleteValue namespace delKey iworld)
 deleteValue namespace delKey iworld = deleteValues` namespace delKey (==) filterFuncDisk iworld
 where
 	// compare key with filename without extension
 	filterFuncDisk delKey key = dropExtension key == delKey
 
-deleteValues :: !StoreNamespace !StorePrefix !*IWorld -> *IWorld
+deleteValues :: !StoreNamespace !StorePrefix !*IWorld -> *(MaybeErrorString (),*IWorld)
 deleteValues namespace delKey iworld = deleteValues` namespace delKey startsWith startsWith iworld
 
-deleteValues` :: !String !String !(String String -> Bool) !(String String -> Bool) !*IWorld -> *IWorld
+deleteValues` :: !String !String !(String String -> Bool) !(String String -> Bool) !*IWorld -> *(MaybeErrorString (),*IWorld)
 deleteValues` namespace delKey filterFuncCache filterFuncDisk iworld=:{server={buildID,paths={dataDirectory}},world}
 	//Delete items from disk
-	# world = deleteFromDisk world
-	= {iworld & world = world}
+	# (res,world) = deleteFromDisk world
+	= (res,{iworld & world = world})
 where
 	deleteFromDisk world
 		# storeDir		= dataDirectory </>"stores"</> namespace
 		# (res, world)	= readDirectory storeDir world
-		| isError res = abort ("Cannot read store directory " +++ storeDir +++ ": " +++ snd (fromError res))
-		= unlink storeDir (fromOk res) world
-		where
-			unlink _ [] world
-				= world
-			unlink dir [f:fs] world
-				| filterFuncDisk (safeName delKey) f
-					# (err,world) = deleteFile (dir </> f) world
-					= unlink dir fs world
+		= case res of
+			(Ok _) = deleteFiles storeDir (fromOk res) world
+			(Error (errNo,errMsg))
+				| errNo == 2 //The store directory doesn't exist -> nothing to do
+					= (Ok (), world)
 				| otherwise
-					= unlink dir fs world
+					= (Error ("Problem reading store directory " +++ storeDir +++ ": " +++ toString errNo +++ " " +++ errMsg),world)
+
+	deleteFiles _ [] world
+		= (Ok (),world)
+	deleteFiles dir [f:fs] world
+		| filterFuncDisk (safeName delKey) f
+			# (res,world) = deleteFile (dir </> f) world
+			= case res of
+				(Ok _) = deleteFiles dir fs world
+				(Error (errNo,errMsg))
+					| errNo == 2 // The file doesn't exits -> nothing to do
+						= deleteFiles dir fs world
+					| otherwise
+						= (Error ("Problem deleting store file " +++ (dir </> f) +++ ": " +++ toString errNo +++ " " +++ errMsg), world)
+		| otherwise //Skip
+			= deleteFiles dir fs world
 
 //Utility function to make sure we don't use names that escape the file path
 safeName :: !String -> String
@@ -294,4 +319,11 @@ listStoreNames namespace iworld
     = case res of
         Error e     = (Error (snd e), {iworld & world = world})
         Ok keys     = (Ok [dropExtension k \\ k <- keys | not (k == "." || k == "..")], {iworld & world = world})
+
+emptyStore :: !*IWorld -> *IWorld //TODO: Properly delete everything in the store
+emptyStore iworld 
+	# (_,iworld) = deleteValue NS_TASK_INSTANCES "instances" iworld
+	# (_,iworld) = deleteValue NS_TASK_INSTANCES "increment" iworld
+	= iworld
+
 
