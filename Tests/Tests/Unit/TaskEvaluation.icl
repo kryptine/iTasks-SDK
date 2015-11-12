@@ -13,7 +13,7 @@ import qualified Data.Queue as DQ
 import qualified Data.Map as DM
 from Data.Queue import :: Queue(..)
 
-from Tests.Common.MinimalTasks import minimalEditor, minimalStep
+from Tests.Common.MinimalTasks import minimalEditor, minimalStep, minimalParallel
 
 
 derive gText ServerInfo, SystemPaths, Queue
@@ -21,9 +21,12 @@ derive gEq Queue
 
 testTaskEvaluation :: TestSuite
 testTaskEvaluation = testsuite "Task evaluation" "Tests to verify properties of task evaluation"
-	[testInitIWorld,testCreateTaskInstance
+	[testInitIWorld
+	,testCreateTaskInstance
 	,testInitialEditorUI
-	,testInitialStepUI]
+	,testInitialStepUI
+	,testInitialParallelUI
+	]
 
 testInitIWorld = assertWorld "Init IWorld" id sut
 where
@@ -82,6 +85,22 @@ where
 		editorOpts = {UIEditOpts|value=Nothing,taskId="1-1",editorId="v"}
 	
 	expActionOk = UIAction {UIAction|action=ActionOk,taskId="1-0",enabled=False}
+
+testInitialParallelUI = testTaskOutput "Initial UI of minimal step task" minimalParallel events exp
+where
+	events = [ResetEvent]
+	exp = [ReplaceUI expParUI]
+	
+	expParUI = UICompoundContent [UICompoundContent [expMinimalEditorUI 1 "Edit string 1" "A",expMinimalEditorUI 2 "Edit string 2" "B"]
+								 ,UICompoundContent []
+								 ] //No actions
+
+	expMinimalEditorUI taskNum prompt value
+		= UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [expPromptUI prompt,editor]
+	where
+		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
+		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
+		editorOpts = {UIEditOpts|value=Just (JSONString value),taskId="1-"<+++taskNum,editorId="v"}
 
 testTaskOutput :: String (Task a) [Event] [UIChangeDef] -> Test | iTask a
 testTaskOutput name task events exp = utest name test

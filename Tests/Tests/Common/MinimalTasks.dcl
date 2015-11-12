@@ -7,3 +7,4 @@ import TestFramework
 
 minimalEditor :: Task String
 minimalStep :: Task String
+minimalParallel :: Task (String,String)

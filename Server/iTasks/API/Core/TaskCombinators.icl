@@ -258,7 +258,7 @@ where
                 # results   = reverse results //(the results are returned in reverse order)
                 # value     = genParallelValue results
                 # evalInfo  = genParallelEvalInfo results
-                # rep       = genParallelRep evalOpts (contActions taskId value conts) results
+                # rep       = genParallelRep evalOpts event (contActions taskId value conts) results
                 # taskTrees = [(fromOk (taskIdFromTaskTree tree),tree) \\ ValueResult _ _ _ tree <- results | isOk (taskIdFromTaskTree tree)]
                 = (ValueResult value evalInfo rep (TCParallel taskId ts taskTrees),iworld)
     //Cleanup
@@ -471,15 +471,23 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
 genParallelValue :: [TaskResult a] -> TaskValue [(!TaskTime,!TaskValue a)]
 genParallelValue results = Value [(lastEvent,val) \\ ValueResult val {TaskEvalInfo|lastEvent} _ _ <- results] False
 
-genParallelRep :: !TaskEvalOpts [UIAction] [TaskResult a] -> TaskRep
-genParallelRep evalOpts actions results
-	# ui = UICompoundContent [UICompoundContent [def \\ ValueResult _ _ (TaskRep def diffs) _ <- results]
+genParallelRep :: !TaskEvalOpts !Event [UIAction] [TaskResult a] -> TaskRep
+genParallelRep evalOpts event actions results
+	# ui = UICompoundContent [UICompoundContent [def \\ ValueResult _ _ (TaskRep def _) _ <- results]
 						   	 ,UICompoundContent (map UIAction actions)
 						   	 ]
-	# changes = ChangeUI [] [(ItemStep 0,ChangeUI [] [(ItemStep i,change) \\ ValueResult _ _ (TaskRep _ change) _ <- results & i <- [0..]])
-							,(ItemStep 1,NoChange)
-							]
-	= TaskRep (if evalOpts.autoLayout (autoAccuParallel.ContentLayout.layout ui) ui) changes
+	# change = case event of
+		ResetEvent
+			# ui = UICompoundContent [UICompoundContent [def \\ ValueResult _ _ (TaskRep _ (ReplaceUI def)) _ <- results]
+					 				 ,UICompoundContent (map UIAction actions)
+									 ]
+			= ReplaceUI (if evalOpts.autoLayout (autoAccuParallel.ContentLayout.layout ui) ui)
+		_ 
+			# change = ChangeUI [] [(ItemStep 0,ChangeUI [] [(ItemStep i,change) \\ ValueResult _ _ (TaskRep _ change) _ <- results & i <- [0..]])
+						   		   ,(ItemStep 1,NoChange) //TODO Update actions
+								   ]
+			= if evalOpts.autoLayout (autoAccuParallel.ContentLayout.route change) change
+	= TaskRep (if evalOpts.autoLayout (autoAccuParallel.ContentLayout.layout ui) ui) change
 
 genParallelEvalInfo :: [TaskResult a] -> TaskEvalInfo
 genParallelEvalInfo results = foldr addResult {TaskEvalInfo|lastEvent=0,removedTasks=[],refreshSensitive=False} results
