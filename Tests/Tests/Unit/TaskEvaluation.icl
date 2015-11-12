@@ -2,7 +2,7 @@ implementation module Tests.Unit.TaskEvaluation
 
 import TestFramework
 
-from iTasks._Framework.IWorld import createIWorld, destroyIWorld, ::IWorld{server}, :: ServerInfo(..), :: SystemPaths(..)
+from iTasks._Framework.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{server}, :: ServerInfo(..), :: SystemPaths(..)
 from iTasks._Framework.TaskStore import createTaskInstance, taskInstanceUIChanges
 from iTasks._Framework.TaskEval import evalTaskInstance
 from iTasks._Framework.Store import flushShareCache
@@ -13,17 +13,19 @@ import qualified Data.Queue as DQ
 import qualified Data.Map as DM
 from Data.Queue import :: Queue(..)
 
-from Tests.Common.MinimalTasks import minimalEditor, minimalStep, minimalParallel
-
+from Tests.Common.MinimalTasks import minimalEditor, minimalEditlet, minimalStep, minimalParallel
 
 derive gText ServerInfo, SystemPaths, Queue
 derive gEq Queue
+
+SDK_LOCATION :== ".."
 
 testTaskEvaluation :: TestSuite
 testTaskEvaluation = testsuite "Task evaluation" "Tests to verify properties of task evaluation"
 	[testInitIWorld
 	,testCreateTaskInstance
 	,testInitialEditorUI
+	,testInitialEditletUI
 	,testInitialStepUI
 	,testInitialParallelUI
 	]
@@ -32,10 +34,11 @@ testInitIWorld = assertWorld "Init IWorld" id sut
 where
 	sut world
 		# (currentDir,world) = getCurrentDirectory world
-		# iworld=:{server} = createIWorld "TEST" Nothing Nothing Nothing world
+		# iworld=:{server} = createIWorld "TEST" Nothing Nothing Nothing Nothing world
 		//Check some properties
 		# res = case currentDir of
 			Ok dir 	= server.paths.dataDirectory == (dir </>  "TEST-data") //Is the data directory path correctly initialized
+					 && (server.paths.saplFlavourFile == (dir </> "sapl/clean.f"))
 			_ 		= False
 		# world = destroyIWorld {iworld & server = server}
 		= (res,world)
@@ -43,7 +46,7 @@ where
 testCreateTaskInstance = assertWorld "Create task instance" isOk sut
 where
 	sut world
-		# iworld = createIWorld "TEST" Nothing Nothing Nothing world
+		# iworld = createIWorld "TEST" Nothing Nothing Nothing Nothing world
 		//Create a task instance
 		# (res,iworld) = createTaskInstance minimalEditor iworld
 		# world = destroyIWorld iworld
@@ -70,6 +73,18 @@ where
 		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
 		editorOpts = {UIEditOpts|value=Just (JSONString "Hello World"),taskId="1-0",editorId="v"}
 
+testInitialEditletUI = testTaskOutput "Initial UI of minimal editlet task" minimalEditlet events exp  
+where
+	events = [ResetEvent]
+	exp = [ReplaceUI expMinimalEditletUI]
+
+	expMinimalEditletUI
+		= UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [expPromptUI "Minimal editlet",editor]
+	where
+		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
+		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
+		editorOpts = {UIEditOpts|value=Just (JSONString "Hello World"),taskId="1-0",editorId="v"}
+
 testInitialStepUI = testTaskOutput "Initial UI of minimal step task" minimalStep events exp  
 where
 	events = [ResetEvent]
@@ -86,7 +101,7 @@ where
 	
 	expActionOk = UIAction {UIAction|action=ActionOk,taskId="1-0",enabled=False}
 
-testInitialParallelUI = testTaskOutput "Initial UI of minimal step task" minimalParallel events exp
+testInitialParallelUI = testTaskOutput "Initial UI of minimal parallel task" minimalParallel events exp
 where
 	events = [ResetEvent]
 	exp = [ReplaceUI expParUI]
@@ -106,7 +121,11 @@ testTaskOutput :: String (Task a) [Event] [UIChangeDef] -> Test | iTask a
 testTaskOutput name task events exp = utest name test
 where
 	test world 
-		# iworld = createIWorld "TEST" Nothing Nothing Nothing world
+		# iworld = createIWorld "TEST" (Just SDK_LOCATION) Nothing Nothing Nothing world
+		//Initialize JS compiler support
+		# (res,iworld) = initJSCompilerState iworld
+		| res =:(Error _)
+			= (Failed (Just (Note (fromError res))),destroyIWorld iworld)
 		//Empty the store to make sure that we get a reliable task instance no 1
 		# iworld = emptyStore iworld
 		//Create an instance with autolayouting disabled at the top level

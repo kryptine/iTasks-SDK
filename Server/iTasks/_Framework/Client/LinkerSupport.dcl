@@ -5,8 +5,6 @@ import Data.Maybe, Data.Void
 import iTasks._Framework.IWorld
 import iTasks.UI.Editor
 
-//taskletUpdateLinker :: !val !*IWorld -> *(!String, !*IWorld)
-
 taskletLinker :: !st 							// state
 	![(!String, !iarg -> Void)] 				// interface functions
 	![(!String, !String, *JSWorld -> Void)]		// event handlers
@@ -22,16 +20,25 @@ taskletLinker :: !st 							// state
 	 ,!Maybe String								// JS code of the controller function
 	 ,!*IWorld)
 
-editletLinker ::
-	!idf												// initDiff function
-	!dvf												// defVal function
-	!adf												// adddiff function
-	!*IWorld
-	->
-	*(!String									// JS code of the support code for all the expressions
-	 ,!String									// JS code of the initDiff function
-	 ,!String									// JS code of the defVal function
-	 ,!String									// JS code of the adddiff function
-	 ,!*IWorld)
 
-diffLinker :: !cdf !idf !*IWorld -> (!String,!String,!String,!*IWorld)
+/**
+* Links all necessary Sapl functions for an editlet and compiles them to Javascript 
+*
+* @param initDiff function
+* @param defVal function
+* @param adddiff function
+* @param IWorld state
+*
+* @return JS code of the support code for all the expressions
+* @return JS code of the support code for all the expressions
+* @return JS code of the initDiff function
+* @return JS code of the defVal function
+* @return JS code of the adddiff function
+* @return IWorld state
+*/
+editletLinker :: !id !icf !adf !*IWorld -> *(!MaybeErrorString (!String,!String,!String,!String),!*IWorld)
+
+/**
+* Links additional Sapl functions when an editlet computes diffs
+*/
+diffLinker :: !cdf !idf !*IWorld -> (!MaybeErrorString (!String,!String,!String),!*IWorld)

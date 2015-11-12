@@ -151,24 +151,11 @@ taskletLinker state interfaceFuns eventHandlers resultFunc mbControllerFunc
 	= (js_ST, toString js_lib, js_eventHandlers, js_interfaceFuns, js_RF, mb_js_CF, 
 			{iworld & world=world, jsCompilerState = Just jsCompilerState})
 
-editletLinker :: 
-	!id													// initDiff
-	!icf												// initClient function
-	!adf												// appDiff function
-	!*IWorld
-	->
-	*(!String									// JS code of the support code for all the expressions
-	 ,!String									// JS code of the initDiff
-	 ,!String									// JS code of the defVal function
-	 ,!String									// JS code of the adddiff function
-	 ,!*IWorld)
-
-editletLinker initDiff initClientFunc appDiffFunc
-						iworld=:{world,current={sessionInstance=Nothing}} = ("","","","",iworld)
+editletLinker :: !id !icf !adf !*IWorld -> *(!MaybeErrorString (!String,!String,!String,!String),!*IWorld)
+editletLinker initDiff initClientFunc appDiffFunc iworld=:{world,current={sessionInstance=Nothing}} = (Error "Could not link editlet javascript: no session instance",iworld)
 editletLinker initDiff initClientFunc appDiffFunc
 						iworld=:{world,current={sessionInstance=Just currentInstance},jsCompilerState=Just jsCompilerState=:{loaderState,functionMap,flavour,parserState,skipMap}}
-
-	// create per sesssion "linker state"
+	// Create per sesssion "linker state"
 	# linkerstate = (loaderState, functionMap, maybe newSet id (get currentInstance skipMap)) // (Just newSet))
 
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
@@ -180,29 +167,23 @@ editletLinker initDiff initClientFunc appDiffFunc
 	# (loaderState, functionMap, skipset) = linkerstate
 
 	/* 2. Generate function definitions and ParserState */
-
 	# sapl_lib = toString lib
 	# (js_lib, parserState) = case sapl_lib of
 		"" = (newAppender, parserState)
 		   = let (script, pst) = handlerr (generateJS flavour False sapl_lib parserState) in (script, Just pst)
 	
 	/* 3. Generate expressions by ParserState */
-
 	# (js_ID, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_ID parserState js_lib)
 	# (js_IC, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_IC (Just parserstate) js_lib)
 	# (js_AD, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_AD (Just parserstate) js_lib)
 
-    // For debugging:
-	//# world = debugToFile "debug_id.sapl" sapl_ID world
-	//# world = debugToFile "debug_dv.sapl" sapl_DV world
-	//# world = debugToFile "debug_ad.sapl" sapl_AD world
-	//# world = debugToFile "debug.sapl"    sapl_lib world
-	//# world = debugToFile "debug.js"      (toString js_lib) world
+	/* Update global compiler state */
 	# jsCompilerState 
 		= {jsCompilerState & loaderState = loaderState, parserState = parserState, functionMap = functionMap, flavour = flavour, skipMap = put currentInstance skipset skipMap}
 
-	= (toString js_lib, js_ID, js_IC, js_AD, 
-			{iworld & world=world, jsCompilerState = Just jsCompilerState})
+	= (Ok (toString js_lib, js_ID, js_IC, js_AD),{iworld & world=world, jsCompilerState = Just jsCompilerState})
+
+editletLinker initDiff initClientFunc appDiffFunc iworld = (Error "Could not link editlet javascript: js compiler not initialized",iworld)
 
 debugToFile :: String String *World -> *World
 debugToFile fileName debugOutput world
@@ -212,13 +193,13 @@ debugToFile fileName debugOutput world
   # (_, world)      = withFile fileName FAppendData (\file -> (Ok Void, fwrites debugOutput file)) world
   = world
 
-diffLinker :: !cdf !idf !*IWorld -> (!String,!String,!String,!*IWorld)
-diffLinker cdf idf iworld=:{world,current={sessionInstance=Nothing}} = ("","","",iworld)
+diffLinker :: !cdf !idf !*IWorld -> (!MaybeErrorString (!String,!String,!String),!*IWorld)
+diffLinker cdf idf iworld=:{world,current={sessionInstance=Nothing}} = (Error "Could not link editlet diffs: no session instance",iworld)
 diffLinker cdf idf iworld=:{world,current={sessionInstance=Just currentInstance},jsCompilerState=Just jsCompilerState=:{loaderState,functionMap,flavour,parserState,skipMap}}
-
 	// create per sesssion "linker state"
 	# linkerstate = (loaderState, functionMap, maybe newSet id (get currentInstance skipMap)) // (Just newSet))  
-	/* 1. First, we collect all the necessary function definitions to generate ParserState */
+
+	// Collect all the necessary function definitions to generate ParserState
 	# (linkerstate, lib, sapl_cdf, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string cdf) world
 	# (linkerstate, lib, sapl_idf, world) = linkByExpr linkerstate lib (graph_to_sapl_string idf) world
 
@@ -227,11 +208,6 @@ diffLinker cdf idf iworld=:{world,current={sessionInstance=Just currentInstance}
 
     # sapl_lib = toString lib
 
-    // For debugging:
-    //# world = debugToFile "debug_diff_cdf.sapl" sapl_cdf world
-    //# world = debugToFile "debug_diff_idf.sapl" sapl_idf world
-    //# world = debugToFile "debug_diff.sapl"     sapl_lib world
-
 	# (js_lib, parserState) = case sapl_lib of
 		"" = (newAppender, parserState)
 		   = let (script, pst) = handlerr (generateJS flavour False sapl_lib parserState) in (script, Just pst)
@@ -239,9 +215,9 @@ diffLinker cdf idf iworld=:{world,current={sessionInstance=Just currentInstance}
 	# (js_cdf, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_cdf parserState js_lib)
 	# (js_idf, js_lib, parserstate) = handlerr (exprGenerateJS flavour False sapl_idf (Just parserstate) js_lib)
 
+	// Update compiler state
 	# jsCompilerState 
 		= {jsCompilerState & loaderState = loaderState, functionMap = functionMap, flavour = flavour, skipMap = put currentInstance skipset skipMap}
-    = (toString js_lib,	js_cdf, js_idf, {iworld & world=world, jsCompilerState = Just jsCompilerState})
-
-
+    = (Ok (toString js_lib,	js_cdf, js_idf), {iworld & world=world, jsCompilerState = Just jsCompilerState})
+diffLinker cdf idf iworld = (Error "Could not link editlet diffs: js compiler not initialized",iworld)
 

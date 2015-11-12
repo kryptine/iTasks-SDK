@@ -4,6 +4,7 @@ from System.FilePath		import :: FilePath
 from Data.Void				import :: Void
 from Data.Map				import :: Map
 from Data.Maybe				import :: Maybe
+from Data.Error 			import :: MaybeError(..), :: MaybeErrorString(..)
 from Data.Set               import :: Set
 from StdFile			                import class FileSystem		
 from System.Time				        import :: Timestamp
@@ -58,8 +59,10 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
 :: SystemPaths =
     { appDirectory			:: !FilePath		// Location of the application's executable
-	, dataDirectory			:: !FilePath		// Location of the applications data files
+	, dataDirectory			:: !FilePath		// Location of the application's data files
     , publicWebDirectories  :: ![FilePath]      // List of directories that contain files that are served publicly by the iTask webserver
+	, saplDirectory 		:: !FilePath 		// Location of the application's sapl files
+	, saplFlavourFile 		:: !FilePath  		// Location of the sapl flavour file
     }
 
 :: SystemClocks =
@@ -137,16 +140,18 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 * @param The path where the iTasks SDK can be found (optional)
 * @param Additional paths where static web assets can be found (optional)
 * @param The path where the iTasks data store is located (optional)
+* @param Path to where the applications's SAPL files are stored (optional)
 * @param The world
 *
 * @return An initialized iworld
 */
-createIWorld :: !String !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) !*World -> *IWorld
+createIWorld :: !String !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
 
 /**
 * Initialize the SAPL->JS compiler state
+* 
 */
-initJsCompilerState :: (Maybe FilePath) (Maybe FilePath) *IWorld -> *IWorld
+initJSCompilerState :: *IWorld -> *(!MaybeErrorString (), !*IWorld)
 
 /**
 * Destroys the iworld state

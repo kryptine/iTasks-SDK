@@ -3,6 +3,7 @@ implementation module iTasks._Framework.IWorld
 from System.FilePath				import :: FilePath
 from Data.Map						import :: Map
 from Data.Maybe						import :: Maybe
+from Data.Error 					import :: MaybeError(..), :: MaybeErrorString(..)
 from System.Time					import :: Timestamp, time
 from Text.JSON						import :: JSONNode
 from iTasks.API.Core.Types	        import :: DateTime, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
@@ -47,13 +48,19 @@ JS_COMPILER_EXCLUDES :==
 	,"System.Directory"
 	]
 
-createIWorld :: !String !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) !*World -> *IWorld
-createIWorld appName mbSDKPath mbWebdirPaths mbStorePath world
+createIWorld :: !String !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
+createIWorld appName mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 	# (appPath,world)			= determineAppPath world
 	# appDir					= takeDirectory appPath
 	# dataDir					= case mbStorePath of
 		Just path 				= path	
 		Nothing 				= appDir </> appName +++ "-data"
+	# saplDir = case mbSaplPath of
+		Just path 	= path
+		Nothing 	= appDir </>"sapl"
+	# flavourPath = case mbSDKPath of
+		Just sdkPath 	= sdkPath </> "Dependencies" </> "clean-sapl" </> "src" </>"clean.f"
+		Nothing 		= saplDir </> "clean.f"
 	# (webdirPaths,world) 	 	= case mbWebdirPaths of
 		Just paths 				= (paths,world)
 		Nothing 
@@ -86,6 +93,8 @@ createIWorld appName mbSDKPath mbWebdirPaths mbStorePath world
             {appDirectory		    = appDir
 	        ,dataDirectory		    = dataDir
             ,publicWebDirectories   = webdirPaths 
+			,saplDirectory 			= saplDir
+			,saplFlavourFile 		= flavourPath
             }
         ,customCSS  = customCSS 
         }
@@ -135,34 +144,31 @@ where
 		| isError res = abort ("Cannot create " +++ name +++ " directory" +++ path +++ " : "  +++ snd (fromError res))
 		= (False,world)
 
-initJsCompilerState :: (Maybe FilePath) (Maybe FilePath) *IWorld -> *IWorld
-initJsCompilerState mbSaplPath mbSDKPath iworld=:{IWorld|world,server={paths={appDirectory}}}
-	# saplPath = case mbSaplPath of
-		Just path 	= path
-		Nothing 	= appDirectory</>"sapl"
-	# flavourPath = case mbSDKPath of
-		Just sdkPath 	= sdkPath </> "Dependencies" </> "clean-sapl" </> "src" </>"clean.f"
-		Nothing 		= saplPath </> "clean.f"
-	# ((lst, ftmap, _), world)  = generateLoaderState [saplPath] [] JS_COMPILER_EXCLUDES world
-	# (flavour, world)			= readFlavour flavourPath world
- 	# jsCompilerState =
-		{ loaderState = lst
-		, functionMap = ftmap
-		, flavour 		= flavour
-		, parserState = Nothing
-		, skipMap = 'DM'.newMap
-		}
-	= {iworld & jsCompilerState = Just jsCompilerState, world = world}
+initJSCompilerState :: *IWorld -> *(!MaybeErrorString (), !*IWorld)
+initJSCompilerState iworld=:{IWorld|world,server={paths={appDirectory,saplDirectory,saplFlavourFile}}}
+	# ((lst, ftmap, _), world)  = generateLoaderState [saplDirectory] [] JS_COMPILER_EXCLUDES world
+	= case readFlavour saplFlavourFile world of
+		(Ok flavour,world)
+ 			# jsCompilerState =
+				{ loaderState = lst
+				, functionMap = ftmap
+				, flavour 		= flavour
+				, parserState = Nothing
+				, skipMap = 'DM'.newMap
+				}
+			= (Ok (),{iworld & jsCompilerState = Just jsCompilerState, world = world})
+		(Error e,world)
+			= (Error e,{iworld & world = world})
 where
-    readFlavour :: !String !*World -> *(!Flavour, !*World)
+    readFlavour :: !String !*World -> *(!MaybeErrorString Flavour, !*World)
     readFlavour flavourPath world
-	    # (flavres, world) 	= readFile flavourPath world
-	    | isError flavres
-		    = abort ("JavaScript Flavour file cannot be found at " +++ flavourPath)
-	    # mbFlav 			= toFlavour (fromOk flavres)
-	    | isNothing mbFlav
-		    = abort "Error in JavaScript flavour file"	
-	    = (fromJust mbFlav, world)
+	    # (flavRes, world) 	= readFile flavourPath world
+		= case readFile flavourPath world of
+			(Error e,world) = (Error ("JavaScript Flavour file could not be read: " +++ toString e),world)
+			(Ok flavFile,world)
+				= case toFlavour flavFile of
+					Nothing      = (Error "Error in JavaScript flavour file",world)
+					Just flavour = (Ok flavour,world)
 
 // Determines the server executables path
 determineAppPath :: !*World -> (!FilePath, !*World)

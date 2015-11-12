@@ -6,5 +6,6 @@ definition module Tests.Common.MinimalTasks
 import TestFramework
 
 minimalEditor :: Task String
+minimalEditlet :: Task String
 minimalStep :: Task String
 minimalParallel :: Task (String,String)

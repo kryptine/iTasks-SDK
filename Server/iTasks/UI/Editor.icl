@@ -16,28 +16,39 @@ fromEditlet editlet=:{Editlet| genUI, initClient, appDiffClt, genDiffSrv, appDif
 where
 	genUI` dp currVal mask ver vst=:{VSt|taskId,iworld=iworld=:{IWorld|current={editletDiffs},world}}
 		# (uiDef, world)        = genUI htmlId currVal world
-  		# iworld                = {iworld & world = world}
-		= case 'Data.Map'.get (taskId,editorId dp) editletDiffs of
+  		# iworld                = {iworld & world = world} 
+		= case 'Data.Map'.get (taskId,editorId dp) editletDiffs of //TODO: -> Diffing should not happen during UI Generation
 			  //Only diff with previous value
 			  Just (ver,prevValue,opts,diffs)
-				# currentDiff                        = diffWithPrevValue prevValue currVal
-						
-				# (jsScript,jsCDiff,jsIDiff,iworld)  = diffLinker currentDiff Nothing iworld
-				// Store diffs
-				# diffs                              = if (isJust currentDiff) [MDiff (jsCDiff,jsScript):diffs] diffs
-						
-				// Increase version number if there is a difference between the reference and the new value
-				# ver                                = if (isJust currentDiff) (ver + 1) ver
-				# iworld                             = setEditletDiffs ver currVal opts diffs iworld
-				= (UIEditor {UIEditor|optional=False,attributes=newMap} (ui uiDef {UIEditletOpts|opts & value = toJSONA currVal, initDiff = jsIDiff}), {VSt|vst & iworld = iworld})
+				# currentDiff   = diffWithPrevValue prevValue currVal
+				# (res,iworld)  = diffLinker currentDiff Nothing iworld
+				= case res of
+					Ok (jsScript,jsCDiff,jsIDiff)
+						// Store diffs
+						# diffs                              = if (isJust currentDiff) [MDiff (jsCDiff,jsScript):diffs] diffs
+						// Increase version number if there is a difference between the reference and the new value
+						# ver                                = if (isJust currentDiff) (ver + 1) ver
+						# iworld                             = setEditletDiffs ver currVal opts diffs iworld
+						= (UIEditor {UIEditor|optional=False,attributes=newMap}
+							(ui uiDef {UIEditletOpts|opts & value = toJSONA currVal, initDiff = jsIDiff}), {VSt|vst & iworld = iworld})
+
+					Error e //TODO: Propagate error up
+						# jsIDiff = ""
+						= (UIEditor {UIEditor|optional=False,attributes=newMap}
+							(ui uiDef {UIEditletOpts|opts & value = toJSONA currVal, initDiff = jsIDiff}), {VSt|vst & iworld = iworld})
 			  //Create editlet definition and store reference value for future diffs
 			  Nothing
 				# diffs = initDiff
-				# (jsScript, jsID, jsIC, jsAD, iworld)
-					= editletLinker initDiff (initClient currVal createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld
-				# opts = editletOpts jsScript jsID jsIC jsAD uiDef
-				# iworld = setEditletDiffs 1 currVal {UIEditletOpts|opts & value = JSONNull} [] iworld
-				= (UIEditor {UIEditor|optional=False,attributes=newMap} (ui uiDef opts), {VSt|vst & iworld = iworld})
+				# (res, iworld) = editletLinker initDiff (initClient currVal createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld
+				= case res of
+					Ok (jsScript, jsID, jsIC, jsAD)
+						# opts = editletOpts jsScript jsID jsIC jsAD uiDef
+						# iworld = setEditletDiffs 1 currVal {UIEditletOpts|opts & value = JSONNull} [] iworld
+						= (UIEditor {UIEditor|optional=False,attributes=newMap} (ui uiDef opts), {VSt|vst & iworld = iworld})
+					Error e //TODO: Propagate the error to the interact task that creates the editor
+						# opts = editletOpts "" "" "" "" uiDef
+						# iworld = setEditletDiffs 1 currVal {UIEditletOpts|opts & value = JSONNull} [] iworld
+						= (UIEditor {UIEditor|optional=False,attributes=newMap} (ui uiDef opts), {VSt|vst & iworld = iworld})
 		where
 			htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
 

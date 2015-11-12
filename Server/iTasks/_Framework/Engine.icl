@@ -52,8 +52,10 @@ startEngine publishable world
 	# mbSDKPath				= maybe mbSDKPath Just sdkOpt //Commandline SDK option overrides found paths
 	//Normal execution
 	# world					= show (running port) world
-	# iworld				= createIWorld appName mbSDKPath webDirPaths storeOpt world
-	# iworld 				= initJsCompilerState saplOpt mbSDKPath iworld
+	# iworld				= createIWorld appName mbSDKPath webDirPaths storeOpt saplOpt world
+	# (res,iworld) 			= initJSCompilerState iworld
+	| res =:(Error _)
+		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
     //Reset connectedTo for all task instances
     # iworld                = clearConnections iworld
 	// mark all instance as outdated initially
