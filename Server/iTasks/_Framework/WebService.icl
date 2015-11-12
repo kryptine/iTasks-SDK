@@ -100,7 +100,7 @@ where
                         (Error (_,err), iworld)
 				            = (errorResponse err, Nothing, Nothing, iworld)
                         (Ok (instanceNo,instanceKey),iworld)
-							# iworld = queueEvent instanceNo (RefreshEvent "First refresh") iworld
+							# iworld = queueEvent instanceNo ResetEvent iworld
 				            = (itwcStartResponse url instanceNo instanceKey (theme opts) serverName customCSS, Nothing, Nothing, iworld)
 			    _
 				    = (jsonResponse (JSONString "Unknown service format"), Nothing, Nothing, iworld)

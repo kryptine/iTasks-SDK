@@ -139,7 +139,7 @@ createReduct tonicOpts instanceNo task taskTime
 	= { TIReduct
       | task = toJSONTask task
       , tree = TCInit (TaskId instanceNo 0) 1
-      , nextTaskNo = 2
+      , nextTaskNo = 1
       , nextTaskTime = 1
       , tasks = 'DM'.newMap
       , tonicRedOpts = tonicOpts

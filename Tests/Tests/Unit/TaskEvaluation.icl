@@ -46,22 +46,23 @@ where
 		# world = destroyIWorld iworld
 		= (res,world)
 
+//Prompt UI is the same for many tasks
+expPromptUI msg = UIEditor {UIEditor|attributes='DM'.newMap,optional=False} (UIContainer promptSizeOpts promptItemsOpts)
+where
+	promptSizeOpts = {UISizeOpts|width=Just FlexSize,minWidth=Just WrapBound,maxWidth=Nothing,height=Just WrapSize,minHeight=Nothing,maxHeight=Nothing
+		                 ,margins=Just {UISideSizes|top=5,right=5,bottom=10,left=5}}
+	promptItemsOpts = {UIItemsOpts|items=promptItems,direction=Vertical,halign=AlignLeft,valign=AlignTop
+							  ,padding=Nothing,baseCls=Just "itwc-prompt",bodyCls=Nothing}
+	promptItems = [UIViewString defaultSizeOpts {UIViewOpts|value=Just msg}]
+
 testInitialEditorUI = testTaskOutput "Initial UI of minimal editor task" minimalEditor events exp  
 where
 	events = [ResetEvent]
-	exp = [ReplaceUI expMinimalEditor]
+	exp = [ReplaceUI expMinimalEditorUI]
 
-	expMinimalEditor
-		= UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [prompt,editor]
-				
+	expMinimalEditorUI
+		= UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [expPromptUI "Minimal String editor",editor]
 	where
-		prompt = UIEditor {UIEditor|attributes='DM'.newMap,optional=False} (UIContainer promptSizeOpts promptItemsOpts)
-		promptSizeOpts = {UISizeOpts|width=Just FlexSize,minWidth=Just WrapBound,maxWidth=Nothing,height=Just WrapSize,minHeight=Nothing,maxHeight=Nothing
-		                 ,margins=Just {UISideSizes|top=5,right=5,bottom=10,left=5}}
-		promptItemsOpts = {UIItemsOpts|items=promptItems,direction=Vertical,halign=AlignLeft,valign=AlignTop
-							  ,padding=Nothing,baseCls=Just "itwc-prompt",bodyCls=Nothing}
-		promptItems = [UIViewString defaultSizeOpts {UIViewOpts|value=Just "Mimimal String editor"}]
-
 		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
 		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
 		editorOpts = {UIEditOpts|value=Just (JSONString "Hello World"),taskId="1-0",editorId="v"}
@@ -69,7 +70,18 @@ where
 testInitialStepUI = testTaskOutput "Initial UI of minimal step task" minimalStep events exp  
 where
 	events = [ResetEvent]
-	exp = []
+	exp = [ReplaceUI expStepUI]
+
+	//The step is a compound editor with the "sub" UI as first element, and the actions as remaining elements	
+	expStepUI = UICompoundContent [expEditorUI, expActionOk]
+
+	expEditorUI = UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [expPromptUI "Minimal Step combinator",editor]
+	where
+		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
+		editorAttr = 'DM'.fromList [("hint-type","info"),("hint","Please enter a single line of text")]
+		editorOpts = {UIEditOpts|value=Nothing,taskId="1-1",editorId="v"}
+	
+	expActionOk = UIAction {UIAction|action=ActionOk,taskId="1-0",enabled=False}
 
 testTaskOutput :: String (Task a) [Event] [UIChangeDef] -> Test | iTask a
 testTaskOutput name task events exp = utest name test

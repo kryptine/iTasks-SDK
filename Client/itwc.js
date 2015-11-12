@@ -309,6 +309,12 @@ itwc.Container = itwc.extend(itwc.Component,{
     afterItemAdded: null,
     afterItemRemoved: null
 });
+itwc.RawContainer = itwc.extend(itwc.Container,{
+	cssClass: 'itwc-raw-container',
+	initDOMEl: function() {
+		this.domEl.classList.add(this.cssClass);
+	}
+});
 itwc.Panel = itwc.extend(itwc.Container,{
 
     panelEl: null,
@@ -465,16 +471,47 @@ itwc.Layer = itwc.extend(itwc.Panel,{
 itwc.component = {};
 
 itwc.component.itwc_raw_empty = itwc.extend(itwc.Component,{});
-itwc.component.itwc_raw_editor = itwc.extend(itwc.Component,{});
-itwc.component.itwc_raw_compoundeditor = itwc.extend(itwc.Container,{});
-itwc.component.itwc_raw_compoundcontent = itwc.extend(itwc.Container,{});
-itwc.component.itwc_raw_compoundcontent = itwc.extend(itwc.Container,{});
-itwc.component.itwc_raw_action = itwc.extend(itwc.Component,{});
-itwc.component.itwc_raw_window = itwc.extend(itwc.Container,{});
-itwc.component.itwc_raw_layers = itwc.extend(itwc.Container,{});
-itwc.component.itwc_raw_form = itwc.extend(itwc.Container,{});
-itwc.component.itwc_raw_block = itwc.extend(itwc.Container,{});
-itwc.component.itwc_raw_blocks = itwc.extend(itwc.Container,{});
+itwc.component.itwc_raw_editor = itwc.extend(itwc.RawContainer,{
+	cssClass: 'itwc-raw-editor'
+});
+itwc.component.itwc_raw_compoundeditor = itwc.extend(itwc.RawContainer,{
+	cssClass: 'itwc-raw-compound-editor'
+});
+itwc.component.itwc_raw_compoundcontent = itwc.extend(itwc.Container,{
+	cssClass: 'itwc-raw-compound-content'
+});
+//Very mimimal implementation of actions that respond to clicks
+itwc.component.itwc_raw_action = itwc.extend(itwc.Component,{ 
+    domTag: 'a',
+	defaultWidth: 'wrap',
+	initDOMEl: function() {
+		   var me = this,
+            el = me.domEl;
+			el.innerHTML = me.definition.action;
+			el.href = '#';
+			el.classList.add('itwc-raw-action');
+			el.classList.add(me.definition.enabled ? 'itwc-action-enabled' : 'itwc-action-disabled');
+        	el.addEventListener('click',function(e) {
+				me.sendActionEvent(me.definition.taskId,me.definition.action);
+				e.preventDefault();
+			});
+	}
+});
+itwc.component.itwc_raw_window = itwc.extend(itwc.RawContainer,{
+	cssClass: 'itwc-raw-window'
+});
+itwc.component.itwc_raw_layers = itwc.extend(itwc.RawContainer,{
+	cssClass: 'itwc-raw-layers'
+});
+itwc.component.itwc_raw_form = itwc.extend(itwc.RawContainer,{
+	cssClass: 'itwc-raw-form'
+});
+itwc.component.itwc_raw_block = itwc.extend(itwc.RawContainer,{
+	cssClass: 'itwc-raw-block'
+});
+itwc.component.itwc_raw_blocks = itwc.extend(itwc.RawContainer,{
+	cssClass: 'itwc-raw-blocks'
+});
 
 //#### CORE UI COMPONENT DEFINITIONS ####//
 
@@ -2382,7 +2419,6 @@ itwc.controller.prototype = {
 					root.items[0].afterAdd();
 					break;
 				case 'change':
-					console.log('CHANGE');
 					me.applyChange(root,change);
 					break;
 				case 'update':
@@ -2435,18 +2471,23 @@ itwc.controller.prototype = {
     },
 	applyChange: function(cmp,change) {
 		var me = this;
-
-		//Apply local changes
-		if(change.operations instanceof Array) {
-			change.operations.forEach(function(op) {
-            	cmp[op[0]].apply(cmp,op[1]);
-			});
-		}
-		//Recursively apply changes to children
-		if(cmp.items instanceof Array && change.children instanceof Array) {
-			change.children.forEach(function(child) {
-				me.applyChange(cmp.items[child[0]],child[1]);
-			});	
+		if(change) {
+			//Apply local changes
+			if(change.operations instanceof Array) {
+				change.operations.forEach(function(op) {
+					if(op && op.length == 2) {
+           	 			cmp[op[0]].apply(cmp,op[1]);
+					}
+				});
+			}
+			//Recursively apply changes to children
+			if(cmp.items && cmp.items instanceof Array && change.children instanceof Array) {
+				change.children.forEach(function(child) {
+					if(child && child.length == 2) {
+						me.applyChange(cmp.items[child[0]],child[1]);
+					}
+				});	
+			}
 		}
 	},
     //Apply update instructions to global ui tree.

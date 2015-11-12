@@ -80,7 +80,7 @@ where
 				Nothing			
 					# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
                     # value = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
-					= Left (ValueResult value info (doStepLayout taskId evalOpts rep val) (TCStep taskId info.TaskEvalInfo.lastEvent (Left ntreea)) )
+					= Left (ValueResult value info (doStepLayout taskId evalOpts event rep val) (TCStep taskId info.TaskEvalInfo.lastEvent (Left ntreea)) )
 				Just rewrite	= Right (rewrite,Just ntreea, info.TaskEvalInfo.lastEvent,info.TaskEvalInfo.removedTasks)
 			ExceptionResult e = case searchContException e conts of
 				Nothing			= Left (ExceptionResult e)
@@ -137,12 +137,23 @@ where
 		(OnException taskbf)		= callWithDeferredJSON taskbf d_json_a
 		(OnAllExceptions taskbf)	= callWithDeferredJSON taskbf d_json_a
 	
-	doStepLayout taskId evalOpts NoRep val
+	doStepLayout taskId evalOpts event NoRep val
 		# ui = UICompoundContent [UIEmpty {UIEmpty|actions=[]}: map UIAction (contActions taskId val conts)]
 		= TaskRep (if evalOpts.autoLayout (autoAccuStep.ContentLayout.layout ui) ui) NoChange
-	doStepLayout taskId evalOpts (TaskRep def change) val
+	doStepLayout taskId evalOpts event (TaskRep def change) val
 		# ui = UICompoundContent [def:map UIAction (contActions taskId val conts)]
+		# change = case (event,change) of
+			//On reset generate a new step UI
+			(ResetEvent,ReplaceUI ui)  
+				# ui = UICompoundContent [def:map UIAction (contActions taskId val conts)]
+				= ReplaceUI (if evalOpts.autoLayout (autoAccuStep.ContentLayout.layout ui) ui)
+			//Otherwise create a compound change definition
+			_ 	
+				# change = ChangeUI [] [(ItemStep 0,change):actionChanges]
+				= if evalOpts.autoLayout (autoAccuStep.ContentLayout.route change) change
 		= TaskRep (if evalOpts.autoLayout (autoAccuStep.ContentLayout.layout ui) ui) change
+	where
+		actionChanges = [] //TODO: Determine based on previous state which actions are now enabled/disabled
 
 	callWithDeferredJSONTaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
 	callWithDeferredJSONTaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
@@ -161,6 +172,7 @@ where
         = case fromJSON json of
             Just a ->  Just (f_tva_tb a)
             Nothing -> Nothing
+import StdDebug
 
 matchAction :: TaskId Event -> Maybe String
 matchAction taskId (ActionEvent matchId action)
