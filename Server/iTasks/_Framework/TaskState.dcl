@@ -57,7 +57,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	| TCInteract1				!TaskId !TaskTime !JSONNode !InteractionMask
 	| TCInteract2				!TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
 	| TCProject					!TaskId !JSONNode !TaskTree
-	| TCStep					!TaskId !TaskTime !(Either TaskTree (DeferredJSON,Int,TaskTree))
+	| TCStep					!TaskId !TaskTime !(Either (TaskTree,[String]) (DeferredJSON,Int,TaskTree)) 
 	| TCParallel				!TaskId !TaskTime ![(!TaskId,!TaskTree)] //Subtrees of embedded tasks
 	| TCShared					!TaskId !TaskTime !TaskTree
 	| TCExposedShared			!TaskId !TaskTime !String !TaskTree	// +URL

@@ -495,6 +495,14 @@ itwc.component.itwc_raw_action = itwc.extend(itwc.Component,{
 				me.sendActionEvent(me.definition.taskId,me.definition.action);
 				e.preventDefault();
 			});
+	},
+	enable: function() {
+		this.domEl.classList.remove('itwc-action-disabled');
+		this.domEl.classList.add('itwc-action-enabled');
+	},
+	disable: function() {
+		this.domEl.classList.remove('itwc-action-enabled');
+		this.domEl.classList.add('itwc-action-disabled');
 	}
 });
 itwc.component.itwc_raw_window = itwc.extend(itwc.RawContainer,{
@@ -2412,6 +2420,8 @@ itwc.controller.prototype = {
             cmp;
 
         updates.forEach(function(change) {
+			console.log("updateUI",change);
+
 			switch(change.type) {
 				case 'replace':
 					me.removeComponent(root, 0, true);
@@ -2471,7 +2481,7 @@ itwc.controller.prototype = {
     },
 	applyChange: function(cmp,change) {
 		var me = this;
-		if(change) {
+		if(change && cmp) {
 			//Apply local changes
 			if(change.operations instanceof Array) {
 				change.operations.forEach(function(op) {

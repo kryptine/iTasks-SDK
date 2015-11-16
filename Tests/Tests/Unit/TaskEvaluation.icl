@@ -28,6 +28,7 @@ testTaskEvaluation = testsuite "Task evaluation" "Tests to verify properties of 
 	,testInitialEditletUI
 	,testInitialStepUI
 	,testInitialParallelUI
+	,testStepEnableAction
 	]
 
 testInitIWorld = assertWorld "Init IWorld" id sut
@@ -37,7 +38,7 @@ where
 		# iworld=:{server} = createIWorld "TEST" Nothing Nothing Nothing Nothing world
 		//Check some properties
 		# res = case currentDir of
-			Ok dir 	= server.paths.dataDirectory == (dir </>  "TEST-data") //Is the data directory path correctly initialized
+			Ok dir 	= server.paths.dataDirectory == (dir </> "TEST-data") //Is the data directory path correctly initialized
 					 && (server.paths.saplFlavourFile == (dir </> "sapl/clean.f"))
 			_ 		= False
 		# world = destroyIWorld {iworld & server = server}
@@ -73,6 +74,8 @@ where
 		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
 		editorOpts = {UIEditOpts|value=Just (JSONString "Hello World"),taskId="1-0",editorId="v"}
 
+testInitialEditletUI = skip "Initial UI of minimal editlet task"
+/*
 testInitialEditletUI = testTaskOutput "Initial UI of minimal editlet task" minimalEditlet events exp  
 where
 	events = [ResetEvent]
@@ -81,24 +84,25 @@ where
 	expMinimalEditletUI
 		= UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [expPromptUI "Minimal editlet",editor]
 	where
-		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
-		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
-		editorOpts = {UIEditOpts|value=Just (JSONString "Hello World"),taskId="1-0",editorId="v"}
-
+		editor = UIEditor {UIEditor|attributes='DM'.newMap,optional=False} (UIEditlet editletOpts)
+		//editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
+		//editorOpts = {UIEditOpts|value=Just (JSONString "Hello World"),taskId="1-0",editorId="v"}
+		editletOpts = {UIEditletOpts|	
+*/
 testInitialStepUI = testTaskOutput "Initial UI of minimal step task" minimalStep events exp  
 where
 	events = [ResetEvent]
-	exp = [ReplaceUI expStepUI]
+	exp = [ReplaceUI expMinStepInitialUI]
 
-	//The step is a compound editor with the "sub" UI as first element, and the actions as remaining elements	
-	expStepUI = UICompoundContent [expEditorUI, expActionOk]
-
+//The step is a compound editor with the "sub" UI as first element, and the actions as remaining elements	
+expMinStepInitialUI = UICompoundContent [expEditorUI, expActionOk]
+where
 	expEditorUI = UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [expPromptUI "Minimal Step combinator",editor]
 	where
 		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
 		editorAttr = 'DM'.fromList [("hint-type","info"),("hint","Please enter a single line of text")]
 		editorOpts = {UIEditOpts|value=Nothing,taskId="1-1",editorId="v"}
-	
+
 	expActionOk = UIAction {UIAction|action=ActionOk,taskId="1-0",enabled=False}
 
 testInitialParallelUI = testTaskOutput "Initial UI of minimal parallel task" minimalParallel events exp
@@ -116,6 +120,15 @@ where
 		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
 		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
 		editorOpts = {UIEditOpts|value=Just (JSONString value),taskId="1-"<+++taskNum,editorId="v"}
+
+testStepEnableAction = testTaskOutput "Test enabling of an action of a step" minimalStep events exp
+where
+	events = [ResetEvent,EditEvent (TaskId 1 1) "v" (JSONString "foo")] //Reset, then make sure the editor has a valid value
+	exp = [ReplaceUI expMinStepInitialUI, ChangeUI [] [(ItemStep 0,changeEditor),changeAction]]
+
+	changeEditor = ChangeUI [("setEditorValue",[JSONString "foo"])] [] //May not be ok
+
+	changeAction = (ItemStep 1,ChangeUI [("enable",[])] []) //Enable the first action
 
 testTaskOutput :: String (Task a) [Event] [UIChangeDef] -> Test | iTask a
 testTaskOutput name task events exp = utest name test

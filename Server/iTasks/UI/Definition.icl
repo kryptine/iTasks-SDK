@@ -456,9 +456,9 @@ where
 
 instance encodeUI UIDef
 where
-	//For the
 	encodeUI (UIEmpty empty) 				= component "itwc_raw_empty" []
-	encodeUI (UIEditor opts control) 		= component "itwc_raw_editor" [encodeUI opts,encodeUI (defaultItemsOpts [control])]
+	encodeUI (UIEditor _ control) 			= encodeUI control
+	//encodeUI (UIEditor opts control) 		= component "itwc_raw_editor" [encodeUI opts,encodeUI (defaultItemsOpts [control])]
 	encodeUI (UICompoundEditor opts defs)	= component "itwc_raw_compoundeditor"  [encodeUI opts, JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UICompoundContent defs) 		= component "itwc_raw_compoundcontent" [JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UIAction action) 				= component "itwc_raw_action" [encodeUI action]

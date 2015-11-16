@@ -69,10 +69,10 @@ step (Task evala) lhsValFun conts = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld
 		# (taskIda,iworld)	= getNextTaskId iworld
-		= eval event evalOpts (TCStep taskId ts (Left (TCInit taskIda ts))) iworld
+		= eval event evalOpts (TCStep taskId ts (Left (TCInit taskIda ts,[]))) iworld
 
 	//Eval left-hand side
-	eval event evalOpts (TCStep taskId ts (Left treea)) iworld=:{current={taskTime}}
+	eval event evalOpts (TCStep taskId ts (Left (treea,prevEnabledActions))) iworld=:{current={taskTime}}
 		# (resa, iworld) 	= evala event (extendCallTrace taskId evalOpts) treea iworld
         # mbAction          = matchAction taskId event
 		# mbCont			= case resa of
@@ -80,7 +80,10 @@ where
 				Nothing			
 					# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
                     # value = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
-					= Left (ValueResult value info (doStepLayout taskId evalOpts event rep val) (TCStep taskId info.TaskEvalInfo.lastEvent (Left ntreea)) )
+					# actions = contActions taskId val conts
+					# curEnabledActions = [name \\{UIAction|action=(Action name _),enabled} <- actions | enabled]
+					= Left (ValueResult value info (doStepLayout taskId evalOpts event actions prevEnabledActions rep val)
+								(TCStep taskId info.TaskEvalInfo.lastEvent (Left (ntreea,curEnabledActions))))
 				Just rewrite	= Right (rewrite,Just ntreea, info.TaskEvalInfo.lastEvent,info.TaskEvalInfo.removedTasks)
 			ExceptionResult e = case searchContException e conts of
 				Nothing			= Left (ExceptionResult e)
@@ -116,7 +119,7 @@ where
     eval event evalOpts (TCDestroy (TCInit _ _)) iworld
         = (DestroyedResult,iworld) //Removed before first evaluation...
 
-	eval event evalOpts (TCDestroy (TCStep taskId ts (Left treea))) iworld
+	eval event evalOpts (TCDestroy (TCStep taskId ts (Left (treea,_)))) iworld
 		= case evala event (extendCallTrace taskId evalOpts) (TCDestroy treea) iworld of
 			(DestroyedResult,iworld)		= (DestroyedResult,iworld)
 			(ExceptionResult e,iworld)	    = (ExceptionResult e,iworld)
@@ -137,11 +140,11 @@ where
 		(OnException taskbf)		= callWithDeferredJSON taskbf d_json_a
 		(OnAllExceptions taskbf)	= callWithDeferredJSON taskbf d_json_a
 	
-	doStepLayout taskId evalOpts event NoRep val
-		# ui = UICompoundContent [UIEmpty {UIEmpty|actions=[]}: map UIAction (contActions taskId val conts)]
+	doStepLayout taskId evalOpts event actions prevEnabled NoRep val
+		# ui = UICompoundContent [UIEmpty {UIEmpty|actions=[]}: map UIAction actions]
 		= TaskRep (if evalOpts.autoLayout (autoAccuStep.ContentLayout.layout ui) ui) NoChange
-	doStepLayout taskId evalOpts event (TaskRep def change) val
-		# ui = UICompoundContent [def:map UIAction (contActions taskId val conts)]
+	doStepLayout taskId evalOpts event actions prevEnabled (TaskRep def change) val
+		# ui = UICompoundContent [def:map UIAction actions]
 		# change = case (event,change) of
 			//On reset generate a new step UI
 			(ResetEvent,ReplaceUI ui)  
@@ -153,7 +156,10 @@ where
 				= if evalOpts.autoLayout (autoAccuStep.ContentLayout.route change) change
 		= TaskRep (if evalOpts.autoLayout (autoAccuStep.ContentLayout.layout ui) ui) change
 	where
-		actionChanges = [] //TODO: Determine based on previous state which actions are now enabled/disabled
+		actionChanges = [(ItemStep i,switch enabled name) \\ {UIAction|action=(Action name _),enabled} <- actions & i <- [1..]]
+		where
+			switch True name = if (isMember name prevEnabled) NoChange (ChangeUI [("enable",[])] [])
+			switch False name = if (isMember name prevEnabled) (ChangeUI [("disable",[])] []) NoChange
 
 	callWithDeferredJSONTaskValue :: ((TaskValue a) -> (Maybe (Task .b))) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
 	callWithDeferredJSONTaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
