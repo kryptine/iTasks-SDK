@@ -19,6 +19,15 @@ instance == TAssoc
 instance == TPriority
 instance == TLit
 
+:: ModuleName :== String
+:: FuncName   :== String
+:: Pattern    :== TExpr
+:: TypeName   :== String
+:: PPExpr     :== String
+:: ExprId     :== [Int]
+:: VarName    :== String
+:: VarPtr     :== Int
+
 :: TonicModule =
   { tm_name  :: ModuleName
   , tm_funcs :: Map FuncName TonicFunc
@@ -34,20 +43,12 @@ instance == TLit
   , tf_body      :: !TExpr
   }
 
-:: ModuleName :== String
-:: FuncName   :== String
-:: Pattern    :== TExpr
-:: TypeName   :== String
-:: PPExpr     :== String
-:: ExprId     :== [Int]
-:: VarName    :== String
-:: VarPtr     :== Int
-
 :: TExpr
   = TVar     !ExprId !PPExpr !VarPtr
   | TLit     !TLit
   | TPPExpr  !PPExpr
-  | TMApp    !ExprId !(Maybe TypeName) !ModuleName !FuncName ![TExpr] !TPriority !(Maybe VarPtr)
+  | TMApp    !ExprId !(Maybe TypeName) !ModuleName
+             !FuncName ![TExpr] !TPriority !(Maybe VarPtr)
   | TFApp    !ExprId !FuncName ![TExpr] !TPriority
   | TLam     ![TExpr] !TExpr
   | TSel     !TExpr ![TExpr]

@@ -4,46 +4,66 @@ import iTasks
 from Text import class Text, instance Text String
 import qualified Text as T
 
-derive class iTask TonicMessage
+derive class iTask TonicMessage, ServerState
 
 debugMsg str = { TonicMessage
                | computationId = []
-               , nodeId = []
-               , moduleName = "DEBUG"
-               , functionName = str
+               , nodeId        = []
+               , moduleName    = "DEBUG"
+               , functionName  = str
                }
+
+tonicServerShare :: Shared [TonicMessage]
+tonicServerShare = sharedStore "tonicServerShare" []
 
 acceptAndViewTonicTraces :: Task [TonicMessage]
 acceptAndViewTonicTraces
-  = withShared []
-      (\log -> acceptTonicTraces log
-                 ||-
-               viewSharedInformation "Logged traces" [] log)
+  = acceptTonicTraces tonicServerShare
+      ||-
+    viewSharedInformation "Logged traces" [] tonicServerShare
 
-acceptTonicTraces :: !(RWShared () [TonicMessage] [TonicMessage]) -> Task [()]
-acceptTonicTraces log
-  = tcplisten 9000 True log { ConnectionHandlers
-                            | onConnect = onConnect
-                            , whileConnected = whileConnected
-                            , onDisconnect
-                            }
+:: ServerState =
+  { oldData  :: String
+  , clientIp :: String
+  }
+
+acceptTonicTraces :: !(RWShared () [TonicMessage] [TonicMessage]) -> Task [ServerState]
+acceptTonicTraces tonicShare
+  = tcplisten 9000 True tonicShare { ConnectionHandlers
+                                   | onConnect      = onConnect
+                                   , whileConnected = whileConnected
+                                   , onDisconnect   = onDisconnect
+                                   }
   where
-  onConnect :: String [TonicMessage] -> (MaybeErrorString (), Maybe [TonicMessage], [String], Bool)
-  onConnect host lines
-    = (Ok (), Just [debugMsg ("Connection from " +++ host) : lines], ["Welcome!"], False)
+  onConnect :: String [TonicMessage] -> (MaybeErrorString ServerState, Maybe [TonicMessage], [String], Bool)
+  onConnect host olderMessages
+    = ( Ok { oldData = ""
+           , clientIp = host}
+      , Just [debugMsg ("Connection from " +++ host) : olderMessages]
+      , ["Welcome!"]
+      , False)
 
-  whileConnected :: (Maybe String) () [TonicMessage] -> (MaybeErrorString (), Maybe [TonicMessage], [String], Bool)
-  whileConnected (Just data) _ lines
-    = case 'T'.split "\n" data of
-        [msgJSONString : restData : _]
-          = case fromJSON (fromString msgJSONString) of
-              Just msg = (Ok (), Just [msg : lines], [], False)
-              _        = (Ok (), Just lines, [], False)
-        _ = (Ok (), Just lines, [], False)
+  whileConnected :: (Maybe String) ServerState [TonicMessage] -> (MaybeErrorString ServerState, Maybe [TonicMessage], [String], Bool)
+  whileConnected (Just newData) st=:{oldData} olderMessages
+    # collectedData        = oldData +++ 'T'.trim newData
+    # (messages, leftover) = partitionMessages ('T'.split "TONIC_EOL" collectedData)
+    # mbTMsgs              = case [msg \\ Just msg <- map (fromJSON o fromString) messages] of
+                               [] -> Nothing
+                               xs -> Just (xs ++ olderMessages)
+    = (Ok {st & oldData = leftover}, mbTMsgs, [], False)
+    where
+    partitionMessages :: [String] -> ([String], String)
+    partitionMessages []  = ([], "")
+    partitionMessages [x] = ([], x)
+    partitionMessages [x:y:xs]
+      # (msgs, leftover) = partitionMessages [y:xs]
+      = ([x:msgs], leftover)
 
-  whileConnected Nothing _ lines
-    = (Ok (), Nothing, [], False)
+  whileConnected Nothing st olderMessages
+    = (Ok st, Nothing, [], False)
 
-  onDisconnect :: () [TonicMessage] -> (MaybeErrorString (), Maybe [TonicMessage])
-  onDisconnect () lines
-    = (Ok (), Just [debugMsg "Disconnect" : lines])
+  onDisconnect :: ServerState [TonicMessage] -> (MaybeErrorString ServerState, Maybe [TonicMessage])
+  onDisconnect st lines
+    = (Ok st, Just [debugMsg "Disconnect" : lines])
+
+
