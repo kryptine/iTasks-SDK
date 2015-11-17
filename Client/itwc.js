@@ -752,7 +752,7 @@ itwc.component.itwc_edit_note= itwc.extend(itwc.Component,{
         el.innerHTML = me.definition.value ? me.definition.value : '';
         el.addEventListener('keyup',function(e) {
 			var value = e.target.value === "" ? null : e.target.value
-            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,target.value, true);
+            itwc.controller.sendEditEvent(me.definition.taskId,me.definition.editorId,value, true);
 			me.addAlreadyAppliedUpdate("setEditorValue",[value]);
         });
     },
