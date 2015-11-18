@@ -12,7 +12,7 @@ from iTasks._Framework.Task import :: Event
 	| UpdateUI !UIPath ![(String,[JSONNode])]
 
 :: UIChange 		:== (!String,![JSONNode]) 	//A change method+arguments to call to effect the local change
-:: UIChildChange 	:== (!UIStep,!UIChangeDef) 	//Select a sub-component and apply the change definition there
+:: UIChildChange 	:== (!Int,!UIChangeDef) 	//Select a sub-component and apply the change definition there
 
 //DEPRECATED
 :: UIUpdateOperation :== (String,[JSONNode])

@@ -152,11 +152,11 @@ where
 				= ReplaceUI (if evalOpts.autoLayout (autoAccuStep.ContentLayout.layout ui) ui)
 			//Otherwise create a compound change definition
 			_ 	
-				# change = ChangeUI [] [(ItemStep 0,change):actionChanges]
+				# change = ChangeUI [] [(0,change):actionChanges]
 				= if evalOpts.autoLayout (autoAccuStep.ContentLayout.route change) change
 		= TaskRep (if evalOpts.autoLayout (autoAccuStep.ContentLayout.layout ui) ui) change
 	where
-		actionChanges = [(ItemStep i,switch enabled name) \\ {UIAction|action=(Action name _),enabled} <- actions & i <- [1..]]
+		actionChanges = [(i,switch enabled name) \\ {UIAction|action=(Action name _),enabled} <- actions & i <- [1..]]
 		where
 			switch True name = if (isMember name prevEnabled) NoChange (ChangeUI [("enable",[])] [])
 			switch False name = if (isMember name prevEnabled) (ChangeUI [("disable",[])] []) NoChange
@@ -489,8 +489,8 @@ genParallelRep evalOpts event actions results
 									 ]
 			= ReplaceUI (if evalOpts.autoLayout (autoAccuParallel.ContentLayout.layout ui) ui)
 		_ 
-			# change = ChangeUI [] [(ItemStep 0,ChangeUI [] [(ItemStep i,change) \\ ValueResult _ _ (TaskRep _ change) _ <- results & i <- [0..]])
-						   		   ,(ItemStep 1,NoChange) //TODO Update actions
+			# change = ChangeUI [] [(0,ChangeUI [] [(i,change) \\ ValueResult _ _ (TaskRep _ change) _ <- results & i <- [0..]])
+						   		   ,(1,NoChange) //TODO Update actions
 								   ]
 			= if evalOpts.autoLayout (autoAccuParallel.ContentLayout.route change) change
 	= TaskRep (if evalOpts.autoLayout (autoAccuParallel.ContentLayout.layout ui) ui) change

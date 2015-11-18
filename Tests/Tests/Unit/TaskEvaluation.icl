@@ -126,11 +126,11 @@ where
 	events = [ResetEvent,EditEvent (TaskId 1 1) "v" (JSONString "foo")] //Reset, then make sure the editor has a valid value
 	exp = [ReplaceUI expMinStepInitialUI, ChangeUI [] [changeInteract,changeAction]]
 
-	changeInteract = (ItemStep 0, ChangeUI [] [changePrompt,changeEditor] )
-	changePrompt = (ItemStep 0,NoChange)
-	changeEditor = (ItemStep 1,ChangeUI [("setEditorValue",[JSONString "foo"])] [])
+	changeInteract = (0, ChangeUI [] [changePrompt,changeEditor] )
+	changePrompt = (0,NoChange)
+	changeEditor = (1,ChangeUI [("setEditorValue",[JSONString "foo"])] [])
 
-	changeAction = (ItemStep 1,ChangeUI [("enable",[])] []) //Enable the first action
+	changeAction = (1,ChangeUI [("enable",[])] []) //Enable the first action
 
 testTaskOutput :: String (Task a) [Event] [UIChangeDef] -> Test | iTask a
 testTaskOutput name task events exp = utest name test

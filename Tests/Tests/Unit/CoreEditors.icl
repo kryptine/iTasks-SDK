@@ -144,13 +144,13 @@ testDifferentInt = testGenDiff "Different Int" (ChangeUI [("setEditorValue",[JSO
 testDiffConsFields :: Test
 testDiffConsFields 
 	= testGenDiff "Diff constructor fields" 
-		(ChangeUI [] [(ItemStep 3,ChangeUI [("setEditorValue",[JSONInt 44])] [])])
+		(ChangeUI [] [(3,ChangeUI [("setEditorValue",[JSONInt 44])] [])])
 		(TestConsFields 1 2 3 4 5 6) (TestConsFields 1 2 3 44 5 6)
 
 testDiffRecordFields :: Test
 testDiffRecordFields 
 	= testGenDiff "Diff record fields"
-		(ChangeUI [] [(ItemStep 0,ChangeUI [("setEditorValue",[JSONInt 23])] []),(ItemStep 1,ChangeUI [("setEditorValue",[JSONString "bar"])] [])])
+		(ChangeUI [] [(0,ChangeUI [("setEditorValue",[JSONInt 23])] []),(1,ChangeUI [("setEditorValue",[JSONString "bar"])] [])])
 		{TestRecordFields|a=42,b="foo",c=True}
 		{TestRecordFields|a=23,b="bar",c=True}
 

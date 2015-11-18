@@ -35,7 +35,7 @@ encodeUIChangeDef (ChangeUI operations children)
 		[("type",JSONString "change")
 		,("operations", JSONArray [JSONObject [("method",JSONString method),("arguments",JSONArray arguments)] 
 											\\ (method,arguments) <- operations])
-		,("children",JSONArray [JSONArray [JSONInt i, encodeUIChangeDef child] \\ (ItemStep i,child) <- children])
+		,("children",JSONArray [JSONArray [JSONInt i, encodeUIChangeDef child] \\ (i,child) <- children])
 		]
 
 encodeUIChangeDef (UpdateUI path operations) //Old update definition
