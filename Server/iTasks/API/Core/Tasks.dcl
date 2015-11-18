@@ -5,7 +5,9 @@ definition module iTasks.API.Core.Tasks
 
 import iTasks._Framework.Generic
 import iTasks._Framework.SDS
-from iTasks._Framework.Task			import :: Task, :: ConnectionHandlers
+from iTasks._Framework.Task			import :: Task, :: Event, :: ConnectionHandlers, :: TaskEvalOpts, :: TaskTime
+from iTasks.UI.Definition 		import :: UIDef
+from iTasks.UI.Diff 			import :: UIChangeDef
 from iTasks.UI.Layout	    	import class descr
 from Data.Error					import ::MaybeError(..)
 from System.OSError				import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
@@ -170,7 +172,14 @@ accWorldOSError :: !(*World -> (!MaybeOSError a, !*World))             -> Task a
 * Write a value to the server console output for tracing
 */
 traceValue :: a -> Task a | iTask a
+
 /**
 * Terminates a running task server
 */
 shutDown :: Task ()
+
+//INTERNAL FUNCTIONS EXPORTED FOR USE IN OPTIMIZED VERSIONS OF interact,
+matchAndApplyEvent_ :: Event TaskId TaskEvalOpts (Maybe (Editor v)) TaskTime (MaskedValue v) TaskTime d *IWorld
+	-> *(!MaskedValue v,!TaskTime,!*IWorld) | iTask v & descr d
+visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (MaskedValue v) (MaskedValue v) d *IWorld
+	-> *(!UIDef,!UIChangeDef,!Bool,!*IWorld) | iTask v & descr d

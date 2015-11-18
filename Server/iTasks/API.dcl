@@ -6,7 +6,7 @@ import
 
      //  Basic tasks
      ,  iTasks.API.Core.Tasks                // Core basic tasks
-     ,  iTasks.API.Core.OptimizedCoreTasks   // Optimized core basic tasks
+     ,  iTasks.API.Core.Optimized.Tasks      // Optimized core basic tasks
      ,  iTasks.API.Core.IntegrationTasks     // Tasks for integration with other systems
 
      ,  iTasks.API.Common.InteractionTasks   // Tasks for interaction with users

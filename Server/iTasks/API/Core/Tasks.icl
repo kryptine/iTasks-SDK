@@ -81,12 +81,11 @@ where
 				# (l,(v,mask))	= initFun r
 				= eval event evalOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
 				
-	eval event evalOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv mask) iworld=:{current={taskTime}}
+	eval event evalOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv m) iworld=:{current={taskTime}}
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
-		# (nv,nmask,nts,change,iworld)
-								= matchAndApplyEvent event taskId evalOpts mbEditor taskTime v mask ts desc iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -94,48 +93,50 @@ where
 		//Apply refresh function if r or v changed
 		# rChanged				= nr =!= r
 		# vChanged				= nts =!= ts
-		# vValid				= isValid (verifyMaskedValue (nv,nmask))
-		# (nl,(nv,nmask)) 		= if (rChanged || vChanged) (refreshFun l nr (nv,nmask) rChanged vChanged vValid) (l,(nv,nmask))
-		//Make visualization
-		# nver					= verifyMaskedValue (nv,nmask)
-		# (ui,iworld) 			= visualizeView taskId evalOpts mbEditor (nv,nmask,nver) desc iworld
-		# value 				= if (isValid nver) (Value nl False) NoValue
-		# rep 					= TaskRep ui change
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} rep
-			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
+		# vValid				= isValid (verifyMaskedValue (nv,nm))
+		# (nl,(nv,nm)) 			= if (rChanged || vChanged) (refreshFun l nr (nv,nm) rChanged vChanged vValid) (l,(nv,nm))
+		//Update visualization v
+		# (ui,change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
+		# value 				= if valid (Value nl False) NoValue
+		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
+		= (ValueResult value info (TaskRep ui change) (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nm), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-	matchAndApplyEvent ResetEvent matchId evalOpts mbEditor taskTime v mask ts desc iworld
-		//When we get a reset event, we recompute the entire UI
-		# (ui,iworld) = visualizeView matchId evalOpts mbEditor (v,mask,verifyMaskedValue (v,mask)) desc iworld
-		= (v,mask,ts,ReplaceUI ui,iworld)
+matchAndApplyEvent_ :: Event TaskId TaskEvalOpts (Maybe (Editor v)) TaskTime (MaskedValue v) TaskTime d *IWorld -> *(!MaskedValue v,!TaskTime,!*IWorld) | iTask v & descr d
+matchAndApplyEvent_ (EditEvent taskId name value) matchId evalOpts mbEditor taskTime (v,m) ts desc iworld
+	| taskId == matchId
+		# ((nv,nm),iworld) = updateValueAndMask_ taskId (s2dp name) mbEditor value (v,m) iworld
+		= ((nv,nm),taskTime,iworld)
+	| otherwise	= ((v,m),ts,iworld)
+matchAndApplyEvent_ _ matchId evalOpts mbEditor taskTime (v,m) ts desc iworld
+	= ((v,m),ts,iworld)
 
-	matchAndApplyEvent (EditEvent taskId name value) matchId evalOpts mbEditor taskTime v mask ts desc iworld
-		| taskId == matchId
-			| otherwise
-				# ((nv,nmask),change,iworld) = updateValueAndMask taskId (s2dp name) mbEditor value (v,mask) iworld
-				= (nv,nmask,taskTime,change,iworld)
-		| otherwise	= (v,mask,ts,NoChange,iworld)
-	matchAndApplyEvent _ matchId evalOpts mbEditor taskTime v mask ts desc iworld
-		= (v,mask,ts,NoChange,iworld)
+updateValueAndMask_ :: TaskId DataPath (Maybe (Editor v)) JSONNode (MaskedValue v) *IWorld -> *(!MaskedValue v,*IWorld) | iTask v
+updateValueAndMask_ taskId path mbEditor diff (v,m) iworld
+	# editor = fromMaybe gEditor{|*|} mbEditor
+    # (nv,nm,ust=:{USt|iworld}) = editor.Editor.appDiff path diff v m {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
+    = ((nv,nm),iworld)
 
-	visualizeView taskId evalOpts mbEditor value=:(v,vmask,vver) desc iworld
-		# editor = fromMaybe gEditor{|*|} mbEditor
-		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
-		# (editUI,vst=:{VSt|iworld})	= editor.Editor.genUI [] v vmask vver vst
-		# promptUI  = toPrompt desc
-		# ui 		= UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap} [promptUI,editUI]
-		# ui		= if evalOpts.autoLayout (autoAccuInteract.ContentLayout.layout ui) ui
-		= (ui,iworld)
-
-	updateValueAndMask taskId path mbEditor update (old,omask) iworld
-		# editor = fromMaybe gEditor{|*|} mbEditor
-    	# (new,nmask,ust=:{USt|iworld}) = editor.Editor.appDiff path update old omask {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
-		//Compare for changes
-		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
-		# (changes,vst=:{VSt|iworld}) 	= editor.Editor.genDiff [] old new vst
-    	= ((new,nmask),changes,iworld)
+visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (MaskedValue v) (MaskedValue v) d *IWorld -> *(!UIDef,!UIChangeDef,!Bool,!*IWorld) | iTask v & descr d
+visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworld
+	# editor 	= fromMaybe gEditor{|*|} mbEditor
+	# ver 		= verifyMaskedValue (nv,nm)
+	# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
+	# (ui,change,vst=:{VSt|iworld}) = case event of
+		ResetEvent		//(re)generate the initial UI
+			# (editUI,vst)	= editor.Editor.genUI [] nv nm ver vst
+			# promptUI  	= toPrompt desc
+			# ui 			= UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap} [promptUI,editUI]
+			# ui			= if evalOpts.autoLayout (autoAccuInteract.ContentLayout.layout ui) ui
+			= (ui,ReplaceUI ui,vst)
+		_				//compare old and new value to determine changes
+			# (editChange,vst)  = editor.Editor.genDiff [] v nv vst
+			# promptChange 		= NoChange
+			# change 			= ChangeUI [] [(ItemStep 0,promptChange),(ItemStep 1,editChange)]
+			# change 			= if evalOpts.autoLayout (autoAccuInteract.ContentLayout.route change) change
+			= (UIEmpty {UIEmpty|actions=[]},change,vst)
+	= (ui,change,isValid ver,iworld)
 
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w
 tcplisten port removeClosed sds handlers = Task eval

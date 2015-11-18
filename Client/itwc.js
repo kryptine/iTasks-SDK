@@ -2413,15 +2413,12 @@ itwc.controller.prototype = {
         }
     },	
     updateUI: function(update,root) {
-
         var me = this,
             instance = update.instance,
             updates = update.updates,
             cmp;
 
         updates.forEach(function(change) {
-			console.log("updateUI",change);
-
 			switch(change.type) {
 				case 'replace':
 					me.removeComponent(root, 0, true);
@@ -2429,7 +2426,7 @@ itwc.controller.prototype = {
 					root.items[0].afterAdd();
 					break;
 				case 'change':
-					me.applyChange(root,change);
+					me.applyChange(root.items[0],change);
 					break;
 				case 'update':
 		            cmp = me.findComponent(change.path,root);
@@ -2485,8 +2482,8 @@ itwc.controller.prototype = {
 			//Apply local changes
 			if(change.operations instanceof Array) {
 				change.operations.forEach(function(op) {
-					if(op && op.length == 2) {
-           	 			cmp[op[0]].apply(cmp,op[1]);
+					if(op.method && cmp[op.method] && op.arguments && op.arguments instanceof Array) {
+						cmp[op.method].apply(cmp,op.arguments);
 					}
 				});
 			}

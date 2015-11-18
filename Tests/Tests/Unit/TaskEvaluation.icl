@@ -124,9 +124,11 @@ where
 testStepEnableAction = testTaskOutput "Test enabling of an action of a step" minimalStep events exp
 where
 	events = [ResetEvent,EditEvent (TaskId 1 1) "v" (JSONString "foo")] //Reset, then make sure the editor has a valid value
-	exp = [ReplaceUI expMinStepInitialUI, ChangeUI [] [(ItemStep 0,changeEditor),changeAction]]
+	exp = [ReplaceUI expMinStepInitialUI, ChangeUI [] [changeInteract,changeAction]]
 
-	changeEditor = ChangeUI [("setEditorValue",[JSONString "foo"])] [] //May not be ok
+	changeInteract = (ItemStep 0, ChangeUI [] [changePrompt,changeEditor] )
+	changePrompt = (ItemStep 0,NoChange)
+	changeEditor = (ItemStep 1,ChangeUI [("setEditorValue",[JSONString "foo"])] [])
 
 	changeAction = (ItemStep 1,ChangeUI [("enable",[])] []) //Enable the first action
 

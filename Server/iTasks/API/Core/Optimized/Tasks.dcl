@@ -1,4 +1,4 @@
-definition module iTasks.API.Core.OptimizedCoreTasks
+definition module iTasks.API.Core.Optimized.Tasks
 /**
 * This module provides optimized specialized versions of the core 'basic tasks'
 * this keeps the core set 'clean'. Derived tasks can use these for better performance when
