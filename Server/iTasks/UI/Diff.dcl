@@ -22,7 +22,10 @@ from iTasks._Framework.Task import :: Event
 
 :: ReferenceVersion :== Int
 
-:: MessageType = MDiff (String,String) | MRollback Int | MCommit Int
+:: MessageType
+	= MDiff (String,String) //Apply a diff to an editlet ->
+	| MRollback Int 		//Let editlet rollback
+	| MCommit Int 			//Acknowledge event from editlet
 
 // (taskId, editletId) -> (reference version, reference value, editlet opts, diffs)
 :: UIEditletDiffs   :== Map (!String,!String) (!ReferenceVersion,!JSONNode,!UIEditletOpts,![MessageType])
