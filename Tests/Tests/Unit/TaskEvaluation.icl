@@ -29,6 +29,7 @@ testTaskEvaluation = testsuite "Task evaluation" "Tests to verify properties of 
 	,testInitialStepUI
 	,testInitialParallelUI
 	,testStepEnableAction
+	,testStepApplyAction
 	]
 
 testInitIWorld = assertWorld "Init IWorld" id sut
@@ -114,23 +115,31 @@ where
 								 ,UICompoundContent []
 								 ] //No actions
 
-	expMinimalEditorUI taskNum prompt value
-		= UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [expPromptUI prompt,editor]
-	where
-		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
-		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
-		editorOpts = {UIEditOpts|value=Just (JSONString value),taskId="1-"<+++taskNum,editorId="v"}
+expMinimalEditorUI taskNum prompt value
+	= UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [expPromptUI prompt,editor]
+where
+	editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
+	editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
+	editorOpts = {UIEditOpts|value=Just (JSONString value),taskId="1-"<+++taskNum,editorId="v"}
 
 testStepEnableAction = testTaskOutput "Test enabling of an action of a step" minimalStep events exp
 where
-	events = [ResetEvent,EditEvent (TaskId 1 1) "v" (JSONString "foo")] //Reset, then make sure the editor has a valid value
-	exp = [ReplaceUI expMinStepInitialUI, ChangeUI [] [changeInteract,changeAction]]
+	events = [ResetEvent,minimalStepInputEvent] //Reset, then make sure the editor has a valid value
+	exp = [ReplaceUI expMinStepInitialUI, minimalStepInputResponse]
 
+minimalStepInputEvent = EditEvent (TaskId 1 1) "v" (JSONString "foo")
+minimalStepInputResponse =ChangeUI [] [changeInteract,changeAction]
+where
 	changeInteract = (0, ChangeUI [] [changePrompt,changeEditor] )
 	changePrompt = (0,NoChange)
 	changeEditor = (1,ChangeUI [("setEditorValue",[JSONString "foo"])] [])
 
 	changeAction = (1,ChangeUI [("enable",[])] []) //Enable the first action
+
+testStepApplyAction = testTaskOutput "Test replacement of UI after step" minimalStep events exp
+where
+	events = [ResetEvent,minimalStepInputEvent,ActionEvent (TaskId 1 0) "Ok"] 
+	exp = [ReplaceUI expMinStepInitialUI, minimalStepInputResponse, ReplaceUI (expMinimalEditorUI 2 "Result" "foo")] 
 
 testTaskOutput :: String (Task a) [Event] [UIChangeDef] -> Test | iTask a
 testTaskOutput name task events exp = utest name test

@@ -17,7 +17,7 @@ where
 
 minimalStep :: Task String
 minimalStep = enterInformation "Minimal Step combinator" []
-            >>* [OnAction ActionOk (hasValue (viewInformation "Result" []))]
+            >>* [OnAction ActionOk (hasValue (updateInformation "Result" []))]
 
 minimalParallel :: Task (String,String)
 minimalParallel =  	 updateInformation "Edit string 1" [] "A"

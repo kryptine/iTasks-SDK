@@ -96,7 +96,7 @@ where
 					Nothing		= iworld
 					Just treea	= snd (evala (toRefresh event) (extendCallTrace taskId evalOpts) (TCDestroy treea) iworld) //TODO: Check for exceptions during cleanup
 				# (taskIdb,iworld)	= getNextTaskId iworld
-				# (resb,iworld)		= evalb (toRefresh event) (extendCallTrace taskId evalOpts) (TCInit taskIdb lastEvent) iworld
+				# (resb,iworld)		= evalb ResetEvent (extendCallTrace taskId evalOpts) (TCInit taskIdb lastEvent) iworld
 				= case resb of
 					ValueResult val info rep nstateb	
 						# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent, removedTasks = removedTasks ++ info.TaskEvalInfo.removedTasks}
