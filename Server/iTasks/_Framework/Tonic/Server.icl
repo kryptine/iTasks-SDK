@@ -3,15 +3,77 @@ implementation module iTasks._Framework.Tonic.Server
 import iTasks
 from Text import class Text, instance Text String
 import qualified Text as T
+import qualified Data.Map as DM
+from Data.Map import :: Map
+import qualified Data.IntMap.Strict as DIS
+from Data.IntMap.Strict import :: IntMap
+import iTasks._Framework.Tonic.Blueprints
+import iTasks.API.Extensions.Admin.TonicAdmin
+import iTasks.API.Extensions.SVG.SVGlet
 
 derive class iTask TonicMessage, ServerState
 
 debugMsg str = { TonicMessage
                | computationId = []
                , nodeId        = []
-               , moduleName    = "DEBUG"
-               , functionName  = str
+               , moduleName    = "io_examples"
+               , functionName  = "primeCheck"
                }
+
+viewTonic :: Task ()
+viewTonic = whileUnchanged tonicServerShare
+  (\msgs -> case msgs of
+              [msg : _]
+                =           getModule msg.moduleName
+                >>= \mod -> case getTonicFunc mod msg.functionName of
+                              Just func
+                                =             get currInst
+                                >>= \minst -> case minst of
+                                                Just inst
+                                                  # inst & bpi_previouslyActive = 'DM'.fromList [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
+                                                  # inst & bpi_activeNodes      = 'DM'.put (TaskId 0 0) ('DIS'.singleton 0 (TaskId 0 0, msg.nodeId)) inst.bpi_activeNodes
+                                                  = viewInstance inst
+                                                _
+                                                  # inst = mkInstance msg.nodeId func
+                                                  =   set (Just inst) currInst
+                                                  >>| viewInstance inst
+                              _ = viewInformation () [] "Waiting for blueprint" @! ()
+              _ = viewInformation () [] "Waiting for blueprint" @! ()
+  )
+
+currInst :: Shared (Maybe BlueprintInstance)
+currInst = sharedStore "currInst" Nothing
+
+viewInstance :: !BlueprintInstance -> Task ()
+viewInstance bpi=:{bpi_blueprint, bpi_bpref = {bpr_moduleName, bpr_taskName}}
+  = updateInformation ()
+      [imageUpdate id (mkInstanceImage [] bpi 'DM'.newMap 'DM'.newMap Nothing False) (\_ _ -> Nothing) (const id)]
+      { ActionState
+      | state  = { tis_task    = bpi.bpi_blueprint
+                 , tis_depth   = { Scale | min = 0, cur = 0, max = 0}
+                 , tis_compact = False }
+      , action = Nothing} @! ()
+
+nulDT = DateTime { Date | day = 0, mon = 0, year = 0 } { Time | hour = 0, min = 0, sec = 0 }
+
+mkInstance :: NodeId TonicFunc -> BlueprintInstance
+mkInstance nid tf =
+  { BlueprintInstance
+  | bpi_taskId           = TaskId 1 1
+  , bpi_startTime        = nulDT
+  , bpi_lastUpdated      = nulDT
+  , bpi_endTime          = Nothing
+  , bpi_activeNodes      = 'DM'.singleton (TaskId 0 0) ('DIS'.singleton 0 (TaskId 0 0, nid))
+  , bpi_previouslyActive = 'DM'.newMap
+  , bpi_parentTaskId     = TaskId 0 0
+  , bpi_currentUser      = Nothing
+  , bpi_blueprint        = tf
+  , bpi_case_branches    = 'DM'.newMap
+  , bpi_index            = 0
+  , bpi_bpref            = { BlueprintIdent
+                           | bpr_moduleName = tf.tf_module
+                           , bpr_taskName   = tf.tf_name }
+  }
 
 tonicServerShare :: Shared [TonicMessage]
 tonicServerShare = sharedStore "tonicServerShare" []
@@ -21,11 +83,6 @@ acceptAndViewTonicTraces
   = acceptTonicTraces tonicServerShare
       ||-
     viewSharedInformation "Logged traces" [] tonicServerShare
-
-:: ServerState =
-  { oldData  :: String
-  , clientIp :: String
-  }
 
 acceptTonicTraces :: !(RWShared () [TonicMessage] [TonicMessage]) -> Task [ServerState]
 acceptTonicTraces tonicShare
