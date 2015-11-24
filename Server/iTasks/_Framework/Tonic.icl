@@ -96,9 +96,11 @@ underline n = repeatStr "-" n
 
 repeatStr :: !String !Int -> String
 repeatStr str n = foldr (+++) "" (repeatn n str)
-
+import StdDebug
 tcpsend :: TonicMessage *World -> *World
-tcpsend msg world = case tcpsend` "localhost" 9000 [toString (toJSON msg) +++ "TONIC_EOL"] world of
+tcpsend msg world
+  | trace_tn (toString (toJSON msg) +++ "TONIC_EOL")
+  = case tcpsend` "localhost" 9000 [toString (toJSON msg) +++ "TONIC_EOL"] world of
                       (Ok _, world) -> world
                       (Error str, _) -> abort str
 
@@ -132,8 +134,10 @@ tcpsend` host port out world
 
 instance TonicTopLevelBlueprint IO where
   tonicWrapBody mn tn args _ t
-    =   writeTonicState { currIndent = 0, moduleName = mn, funcName = tn }
-    >>| t
+    | isLambda tn = t
+    | otherwise
+        =   writeTonicState { currIndent = 0, moduleName = mn, funcName = tn }
+        >>| t
   tonicWrapArg _ _ _ = return ()
 
 instance TonicBlueprintPart IO where
@@ -145,17 +149,20 @@ instance TonicBlueprintPart IO where
         >>|        mb
     where
     doSend { TonicIOState | moduleName, funcName } world
-      # world = tcpsend { TonicMessage
-                        | /*computationId  = []
-                        ,*/ nodeId         = nid
-                        , mn = moduleName
-                        , tn = funcName
-                        //, bpModuleName   = moduleName
-                        //, bpFunctionName = functionName
-                        //, appModuleName  = mn
-                        //, appFunName     = fn } world
-                        } world
+      # msg = { TonicMessage
+              | /*computationId  = []
+              ,*/ nodeId         = nid
+              , mn = moduleName
+              , tn = funcName
+              //, bpModuleName   = moduleName
+              //, bpFunctionName = functionName
+              //, appModuleName  = mn
+              //, appFunName     = fn } world
+              }
+      # world = tcpsend msg world
       = ((), world)
+
+import StdDebug
 
 instance TApplicative IO where
   return x   = IO (\s -> (x, s))

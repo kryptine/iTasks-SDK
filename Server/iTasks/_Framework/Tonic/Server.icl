@@ -13,45 +13,56 @@ import iTasks.API.Extensions.SVG.SVGlet
 
 derive class iTask TonicMessage, ServerState
 
-debugMsg str = { TonicMessage
-               |  // computationId  = []
-               //,
-                 nodeId         = []
-               , mn = ""
-               , tn = ""
-               //, bpModuleName   = ""
-               //, bpFunctionName = ""
-               //, appModuleName  = ""
-               //, appFunName     = ""
-               }
-
+import StdDebug
 viewTonic :: Task ()
-viewTonic = whileUnchanged tonicServerShare
-  (\msgs -> case msgs of
-              [msg : _]
-                =           getModule msg.mn
-                >>= \mod -> case getTonicFunc mod msg.tn of
-                              Just func
-                                =             get currInst
-                                >>= \minst -> case minst of
-                                                Just inst
-                                                  # currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
-                                                  # inst & bpi_previouslyActive = 'DM'.fromList currActive
-                                                  # inst & bpi_activeNodes      = case currActive of
-                                                                                    [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (tid + 1), msg.nodeId)) inst.bpi_activeNodes
-                                                  # inst & bpi_previouslyActive = 'DM'.fromList [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
-                                                  =   set (Just inst) currInst
-                                                  >>| viewInstance inst
-                                                _
-                                                  # inst = mkInstance msg.nodeId func
-                                                  =   set (Just inst) currInst
-                                                  >>| viewInstance inst
-                              _ = viewInformation () [] "Waiting for blueprint" @! ()
-              _ = viewInformation () [] "Waiting for blueprint" @! ()
-  )
+viewTonic = whileUnchanged tonicServerShare updateBP
+  where
+  updateBP msgs
+    | trace_tn (toString (toJSON (reverse msgs)))
+    = updateBP` Nothing (reverse msgs)
+  updateBP` mbpi [msg:msgs]
+    =           getModule msg.mn
+    >>= \mod -> case getTonicFunc mod msg.tn of
+                  Just func
+                    = case mbpi of
+                        Just inst
+                          # currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
+                          # inst & bpi_previouslyActive = 'DM'.fromList currActive
+                          # inst & bpi_activeNodes      = case currActive of
+                                                            [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (tid + 1), msg.nodeId)) inst.bpi_activeNodes
+                          # inst & bpi_previouslyActive = 'DM'.fromList [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
+                          = updateBP` (Just inst) msgs
+                        _
+                          # inst = mkInstance msg.nodeId func
+                          = updateBP` (Just inst) msgs
+                  _ = viewInformation () [] "Waiting for blueprint" @! ()
+  updateBP` Nothing    [] = viewInformation () [] "Waiting for blueprint" @! ()
+  updateBP` (Just bpi) [] = viewInstance bpi
+  //(\msgs -> case msgs of
+              //[msg : _]
+                //=           getModule msg.mn
+                //>>= \mod -> case getTonicFunc mod msg.tn of
+                              //Just func
+                                //=             get currInst
+                                //>>= \minst -> case minst of
+                                                //Just inst
+                                                  //# currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
+                                                  //# inst & bpi_previouslyActive = 'DM'.fromList currActive
+                                                  //# inst & bpi_activeNodes      = case currActive of
+                                                                                    //[(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (tid + 1), msg.nodeId)) inst.bpi_activeNodes
+                                                  //# inst & bpi_previouslyActive = 'DM'.fromList [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
+                                                  //=   set (Just inst) currInst
+                                                  //>>| viewInstance inst
+                                                //_
+                                                  //# inst = mkInstance msg.nodeId func
+                                                  //=   set (Just inst) currInst
+                                                  //>>| viewInstance inst
+                              //_ = viewInformation () [] "Waiting for blueprint" @! ()
+              //_ = viewInformation () [] "Waiting for blueprint" @! ()
+  //)
 
-currInst :: Shared (Maybe BlueprintInstance)
-currInst = sharedStore "currInst" Nothing
+//currInst :: Shared (Maybe BlueprintInstance)
+//currInst = sharedStore "currInst" Nothing
 
 viewInstance :: !BlueprintInstance -> Task ()
 viewInstance bpi=:{bpi_blueprint, bpi_bpref = {bpr_moduleName, bpr_taskName}}
@@ -113,9 +124,8 @@ acceptTonicTraces tonicShare
   whileConnected (Just newData) st=:{oldData} olderMessages
     # collectedData        = oldData +++ 'T'.trim newData
     # (messages, leftover) = partitionMessages ('T'.split "TONIC_EOL" collectedData)
-    # mbTMsgs              = case [msg \\ Just msg <- map (fromJSON o fromString) messages] of
-                               [] -> Nothing
-                               xs -> Just (xs ++ olderMessages)
+    # mbTMsgs              = Just ([msg \\ Just msg <- map (fromJSON o fromString) messages] ++ olderMessages)
+    | trace_tn ("mbTMsgs " +++ toString (toJSON mbTMsgs))
     = (Ok {st & oldData = leftover}, mbTMsgs, [], False)
     where
     partitionMessages :: [String] -> ([String], String)
@@ -130,6 +140,6 @@ acceptTonicTraces tonicShare
 
   onDisconnect :: ServerState [TonicMessage] -> (MaybeErrorString ServerState, Maybe [TonicMessage])
   onDisconnect st lines
-    = (Ok st, Just [debugMsg "Disconnect" : lines])
+    = (Ok st, Just lines)
 
 
