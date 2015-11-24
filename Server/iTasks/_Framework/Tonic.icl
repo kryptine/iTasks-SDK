@@ -534,6 +534,8 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
     # (_, iworld) = 'DSDS'.write newParent (sdsFocus (parentBPInst.bpi_taskId, tonicOpts.currBlueprintModuleName, tonicOpts.currBlueprintFuncName) tonicInstances) iworld
     = iworld
 
+  evalParallel :: BlueprintInstance (TaskResult a) TaskEvalOpts TaskId [(TaskId, TaskTree)] *IWorld
+               -> *IWorld | iTask a
   evalParallel pinst tr evalOpts childTaskId parallelChildren iworld
     # currActive = case 'DM'.get childTaskId pinst.bpi_activeNodes of
                      Just ns -> ns
@@ -545,13 +547,15 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                                                 TMApp eid mtn mn tn _ pr ptr -> TMApp eid mtn mn tn [list2TExpr childNodes] pr ptr // FIXME This conflicts with another example (I forgot which one)
                                                 e -> e
                                        ) pinst.bpi_blueprint.tf_body
-    # pinst = { pinst
-              & bpi_blueprint = { pinst.bpi_blueprint & tf_body = tf_body}
-              , bpi_activeNodes = 'DM'.put childTaskId currActive pinst.bpi_activeNodes}
+    # pinst  = { pinst
+               & bpi_blueprint = { pinst.bpi_blueprint & tf_body = tf_body}
+               , bpi_activeNodes = 'DM'.put childTaskId currActive pinst.bpi_activeNodes}
     # iworld = snd ('DSDS'.write pinst (sdsFocus (pinst.bpi_taskId, pinst.bpi_bpref.bpr_moduleName, pinst.bpi_bpref.bpr_taskName) tonicInstances) iworld)
     # iworld = storeTaskOutputViewer tr nid evalOpts.tonicOpts.currBlueprintTaskId childTaskId iworld
     = iworld
     where
+    registerTask :: TaskId TaskId (Int, (TaskId, TaskTree)) *([TExpr], IntMap (TaskId, [Int]), *IWorld)
+                 -> *([TExpr], IntMap (TaskId, [Int]), *IWorld)
     registerTask (TaskId parentInstanceNo parentTaskNo) (TaskId listInstanceNo listTaskNo) (n, (tid, _)) (acc, currActive, iworld)
       # (mchild_bpr, iworld) = 'DSDS'.read (sdsFocus tid allTonicInstances) iworld
       = case mchild_bpr of
