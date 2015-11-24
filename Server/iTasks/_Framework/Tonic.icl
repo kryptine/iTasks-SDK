@@ -99,7 +99,8 @@ repeatStr str n = foldr (+++) "" (repeatn n str)
 
 tcpsend :: TonicMessage *World -> *World
 tcpsend msg world = case tcpsend` "localhost" 9000 [toString (toJSON msg) +++ "TONIC_EOL"] world of
-                      (_, world) -> world
+                      (Ok _, world) -> world
+                      (Error str, _) -> abort str
 
 //:: TonicMessage =
   //{ computationId :: ComputationId // Abstraction from TaskId
@@ -108,13 +109,13 @@ tcpsend msg world = case tcpsend` "localhost" 9000 [toString (toJSON msg) +++ "T
   //, functionName  :: FunctionName
   //}
 
-
+tcpsend` :: String Int [String] *World -> *(MaybeError String (), *World)
 tcpsend` host port out world
   # (mbIP, world) = 'TCP'.lookupIPAddress host world
   = case mbIP of
       Nothing = (mkError, world)
       Just ip
-        # (tReport, mbConn, world) = 'TCP'.connectTCP_MT Nothing (fromJust mbIP, port) world
+        # (_, mbConn, world) = 'TCP'.connectTCP_MT Nothing (ip, port) world
         = case mbConn of
             Nothing
               = (mkError, world)
@@ -133,14 +134,6 @@ instance TonicTopLevelBlueprint IO where
   tonicWrapBody mn tn args _ t
     =   writeTonicState { currIndent = 0, moduleName = mn, funcName = tn }
     >>| t
-    //=                             readTonicState
-    //>>= \ts=:{currIndent = ci} -> let message = "In " +++ mn +++ "." +++ tn +++ " (" +++ toString (length args) +++ " arguments)"
-                                  //in  putStrLn (indent ci +++ if (ci > 0) "| " "" +++ message)
-    //>>= \_ ->                     putStrLn (indent ci +++ if (ci > 0) "|" "" +++ underline (size message + 1))
-    //>>= \_ ->                     writeTonicState {ts & currIndent = ci + 1}
-    //>>= \_ ->                     t
-    //>>= \tr ->                    writeTonicState ts
-    //>>= \_ ->                     return tr
   tonicWrapArg _ _ _ = return ()
 
 instance TonicBlueprintPart IO where
@@ -153,14 +146,16 @@ instance TonicBlueprintPart IO where
     where
     doSend { TonicIOState | moduleName, funcName } world
       # world = tcpsend { TonicMessage
-                        | computationId = []
-                        , nodeId        = nid
-                        , moduleName    = moduleName
-                        , functionName  = funcName } world
+                        | /*computationId  = []
+                        ,*/ nodeId         = nid
+                        , mn = moduleName
+                        , tn = funcName
+                        //, bpModuleName   = moduleName
+                        //, bpFunctionName = functionName
+                        //, appModuleName  = mn
+                        //, appFunName     = fn } world
+                        } world
       = ((), world)
-
-        //>>= \ts=:{currIndent = ci} -> putStrLn (indent (ci - 1) +++ if (ci - 1 > 0) "| " "" +++ "Applying " +++ mn +++ "." +++ fn +++ " (node ID " +++ ppnid nid +++ ").")
-        //>>= \_ ->                     mb
 
 instance TApplicative IO where
   return x   = IO (\s -> (x, s))

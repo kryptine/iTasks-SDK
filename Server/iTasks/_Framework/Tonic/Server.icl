@@ -14,25 +14,34 @@ import iTasks.API.Extensions.SVG.SVGlet
 derive class iTask TonicMessage, ServerState
 
 debugMsg str = { TonicMessage
-               | computationId = []
-               , nodeId        = []
-               , moduleName    = "io_examples"
-               , functionName  = "primeCheck"
+               |  // computationId  = []
+               //,
+                 nodeId         = []
+               , mn = ""
+               , tn = ""
+               //, bpModuleName   = ""
+               //, bpFunctionName = ""
+               //, appModuleName  = ""
+               //, appFunName     = ""
                }
 
 viewTonic :: Task ()
 viewTonic = whileUnchanged tonicServerShare
   (\msgs -> case msgs of
               [msg : _]
-                =           getModule msg.moduleName
-                >>= \mod -> case getTonicFunc mod msg.functionName of
+                =           getModule msg.mn
+                >>= \mod -> case getTonicFunc mod msg.tn of
                               Just func
                                 =             get currInst
                                 >>= \minst -> case minst of
                                                 Just inst
+                                                  # currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
+                                                  # inst & bpi_previouslyActive = 'DM'.fromList currActive
+                                                  # inst & bpi_activeNodes      = case currActive of
+                                                                                    [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (tid + 1), msg.nodeId)) inst.bpi_activeNodes
                                                   # inst & bpi_previouslyActive = 'DM'.fromList [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
-                                                  # inst & bpi_activeNodes      = 'DM'.put (TaskId 0 0) ('DIS'.singleton 0 (TaskId 0 0, msg.nodeId)) inst.bpi_activeNodes
-                                                  = viewInstance inst
+                                                  =   set (Just inst) currInst
+                                                  >>| viewInstance inst
                                                 _
                                                   # inst = mkInstance msg.nodeId func
                                                   =   set (Just inst) currInst
@@ -59,11 +68,11 @@ nulDT = DateTime { Date | day = 0, mon = 0, year = 0 } { Time | hour = 0, min = 
 mkInstance :: NodeId TonicFunc -> BlueprintInstance
 mkInstance nid tf =
   { BlueprintInstance
-  | bpi_taskId           = TaskId 1 1
+  | bpi_taskId           = TaskId 1 0
   , bpi_startTime        = nulDT
   , bpi_lastUpdated      = nulDT
   , bpi_endTime          = Nothing
-  , bpi_activeNodes      = 'DM'.singleton (TaskId 0 0) ('DIS'.singleton 0 (TaskId 0 0, nid))
+  , bpi_activeNodes      = 'DM'.singleton (TaskId 0 0) ('DIS'.singleton 0 (TaskId 1 1, nid))
   , bpi_previouslyActive = 'DM'.newMap
   , bpi_parentTaskId     = TaskId 0 0
   , bpi_currentUser      = Nothing
@@ -96,7 +105,7 @@ acceptTonicTraces tonicShare
   onConnect host olderMessages
     = ( Ok { oldData = ""
            , clientIp = host}
-      , Just [debugMsg ("Connection from " +++ host) : olderMessages]
+      , Just olderMessages
       , ["Welcome!"]
       , False)
 
