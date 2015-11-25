@@ -13,56 +13,24 @@ import iTasks.API.Extensions.SVG.SVGlet
 
 derive class iTask TonicMessage, ServerState
 
-import StdDebug
 viewTonic :: Task ()
-viewTonic = whileUnchanged tonicServerShare updateBP
+viewTonic = whileUnchanged tonicServerShare (updateBP Nothing o reverse)
   where
-  updateBP msgs
-    | trace_tn (toString (toJSON (reverse msgs)))
-    = updateBP` Nothing (reverse msgs)
-  updateBP` mbpi [msg:msgs]
-    =           getModule msg.mn
-    >>= \mod -> case getTonicFunc mod msg.tn of
+  updateBP Nothing    [] = viewInformation () [] "Waiting for blueprint" @! ()
+  updateBP (Just bpi) [] = viewInstance bpi
+  updateBP Nothing [msg:msgs]
+    =           getModule msg.bpModuleName
+    >>= \mod -> case getTonicFunc mod msg.bpFunctionName of
                   Just func
-                    = case mbpi of
-                        Just inst
-                          # currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
-                          # inst & bpi_previouslyActive = 'DM'.fromList currActive
-                          # inst & bpi_activeNodes      = case currActive of
-                                                            [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (tid + 1), msg.nodeId)) inst.bpi_activeNodes
-                          # inst & bpi_previouslyActive = 'DM'.fromList [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
-                          = updateBP` (Just inst) msgs
-                        _
-                          # inst = mkInstance msg.nodeId func
-                          = updateBP` (Just inst) msgs
+                    # inst = mkInstance msg.nodeId func
+                    = updateBP (Just inst) msgs
                   _ = viewInformation () [] "Waiting for blueprint" @! ()
-  updateBP` Nothing    [] = viewInformation () [] "Waiting for blueprint" @! ()
-  updateBP` (Just bpi) [] = viewInstance bpi
-  //(\msgs -> case msgs of
-              //[msg : _]
-                //=           getModule msg.mn
-                //>>= \mod -> case getTonicFunc mod msg.tn of
-                              //Just func
-                                //=             get currInst
-                                //>>= \minst -> case minst of
-                                                //Just inst
-                                                  //# currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
-                                                  //# inst & bpi_previouslyActive = 'DM'.fromList currActive
-                                                  //# inst & bpi_activeNodes      = case currActive of
-                                                                                    //[(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (tid + 1), msg.nodeId)) inst.bpi_activeNodes
-                                                  //# inst & bpi_previouslyActive = 'DM'.fromList [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
-                                                  //=   set (Just inst) currInst
-                                                  //>>| viewInstance inst
-                                                //_
-                                                  //# inst = mkInstance msg.nodeId func
-                                                  //=   set (Just inst) currInst
-                                                  //>>| viewInstance inst
-                              //_ = viewInformation () [] "Waiting for blueprint" @! ()
-              //_ = viewInformation () [] "Waiting for blueprint" @! ()
-  //)
-
-//currInst :: Shared (Maybe BlueprintInstance)
-//currInst = sharedStore "currInst" Nothing
+  updateBP (Just inst) [msg:msgs]
+    # currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
+    # inst & bpi_previouslyActive = 'DM'.union ('DM'.fromList currActive) inst.bpi_previouslyActive
+    # inst & bpi_activeNodes      = case currActive of
+                                      [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (tid + 1), msg.nodeId)) inst.bpi_activeNodes
+    = updateBP (Just inst) msgs
 
 viewInstance :: !BlueprintInstance -> Task ()
 viewInstance bpi=:{bpi_blueprint, bpi_bpref = {bpr_moduleName, bpr_taskName}}
@@ -83,7 +51,7 @@ mkInstance nid tf =
   , bpi_startTime        = nulDT
   , bpi_lastUpdated      = nulDT
   , bpi_endTime          = Nothing
-  , bpi_activeNodes      = 'DM'.singleton (TaskId 0 0) ('DIS'.singleton 0 (TaskId 1 1, nid))
+  , bpi_activeNodes      = 'DM'.singleton (TaskId 1 0) ('DIS'.singleton 0 (TaskId 1 1, nid))
   , bpi_previouslyActive = 'DM'.newMap
   , bpi_parentTaskId     = TaskId 0 0
   , bpi_currentUser      = Nothing
@@ -125,7 +93,6 @@ acceptTonicTraces tonicShare
     # collectedData        = oldData +++ 'T'.trim newData
     # (messages, leftover) = partitionMessages ('T'.split "TONIC_EOL" collectedData)
     # mbTMsgs              = Just ([msg \\ Just msg <- map (fromJSON o fromString) messages] ++ olderMessages)
-    | trace_tn ("mbTMsgs " +++ toString (toJSON mbTMsgs))
     = (Ok {st & oldData = leftover}, mbTMsgs, [], False)
     where
     partitionMessages :: [String] -> ([String], String)

@@ -150,19 +150,15 @@ instance TonicBlueprintPart IO where
     where
     doSend { TonicIOState | moduleName, funcName } world
       # msg = { TonicMessage
-              | /*computationId  = []
-              ,*/ nodeId         = nid
-              , mn = moduleName
-              , tn = funcName
-              //, bpModuleName   = moduleName
-              //, bpFunctionName = functionName
-              //, appModuleName  = mn
-              //, appFunName     = fn } world
+              | computationId  = []
+              , nodeId         = nid
+              , bpModuleName   = moduleName
+              , bpFunctionName = funcName
+              , appModuleName  = mn
+              , appFunName     = fn
               }
       # world = tcpsend msg world
       = ((), world)
-
-import StdDebug
 
 instance TApplicative IO where
   return x   = IO (\s -> (x, s))
@@ -421,7 +417,6 @@ stepEval` cases nid childTaskId=:(TaskId ino tno) eval event evalOpts=:{TaskEval
                               _                 -> snd ('DSDS'.write xs focus iworld)
           = iworld
 
-import StdDebug
 derive class iTask TonicOpts
 
 ppeid xs = foldr (\x xs -> toString x +++ "," +++ xs) "" xs

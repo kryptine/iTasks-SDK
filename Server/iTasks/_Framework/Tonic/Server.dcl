@@ -8,15 +8,12 @@ import iTasks._Framework.Tonic.AbsSyn
 :: FunctionName  :== String
 
 :: TonicMessage =
-  { // computationId  :: ComputationId // Abstraction from TaskId
-  //,
-    nodeId         :: NodeId
-  , mn             :: String
-  , tn             :: String
-  //, bpModuleName   :: ModuleName
-  //, bpFunctionName :: FunctionName
-  //, appModuleName  :: ModuleName
-  //, appFunName     :: FunctionName
+  { computationId  :: ComputationId // Abstraction from TaskId
+  , nodeId         :: NodeId
+  , bpModuleName   :: ModuleName
+  , bpFunctionName :: FunctionName
+  , appModuleName  :: ModuleName
+  , appFunName     :: FunctionName
   }
 
 :: ServerState =
