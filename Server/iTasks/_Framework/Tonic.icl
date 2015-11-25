@@ -99,17 +99,9 @@ repeatStr str n = foldr (+++) "" (repeatn n str)
 import StdDebug
 tcpsend :: TonicMessage *World -> *World
 tcpsend msg world
-  | trace_tn (toString (toJSON msg) +++ "TONIC_EOL")
   = case tcpsend` "localhost" 9000 [toString (toJSON msg) +++ "TONIC_EOL"] world of
-                      (Ok _, world) -> world
-                      (Error str, _) -> abort str
-
-//:: TonicMessage =
-  //{ computationId :: ComputationId // Abstraction from TaskId
-  //, nodeId        :: NodeId
-  //, moduleName    :: ModuleName
-  //, functionName  :: FunctionName
-  //}
+      (Ok _, world) -> world
+      (Error str, _) -> abort str
 
 tcpsend` :: String Int [String] *World -> *(MaybeError String (), *World)
 tcpsend` host port out world
