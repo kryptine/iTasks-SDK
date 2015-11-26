@@ -1899,6 +1899,7 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 					console.log("send", diffId);
 		
 					me.sendEditEvent(me.definition.taskId,me.definition.editorId,[me.dataVersion, diffId, diff],false);			
+					me.commitDiff(diffId); //TEMPORARILY ASSUME COMMITS FOR ALL EVENTS (until commit/rollback is fully generalized)
 				}
 			}
 			
@@ -1947,14 +1948,13 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 
         var me = this,
             tmp;
-			
+	
 		me.dataVersion = dataVersion;
 					
         if(extraJS != "") {
             evalScript(extraJS);
         }
         eval("tmp = " + saplDiff + ";");
-
 		var ys = Sapl.feval([me.appDiff,[me.htmlId,tmp[2],me.value,"JSWorld"]]);
 
 		//Strict evaluation of all the fields in the result tuple
