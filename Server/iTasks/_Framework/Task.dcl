@@ -8,7 +8,7 @@ import iTasks._Framework.Generic
 from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
 
 from iTasks._Framework.TaskState			import :: TaskTree
-from iTasks.UI.Diff     import :: UIChangeDef, :: UIStep
+from iTasks.UI.Diff     import :: UIChangeDef
 from Data.Map			import :: Map
 from Data.CircularStack import :: CircularStack
 

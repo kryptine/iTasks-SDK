@@ -5,7 +5,7 @@ definition module iTasks.UI.Editor
 */
 
 from iTasks.UI.Definition import :: UIControl, :: UIAttributes
-from iTasks.UI.Diff import :: UIChangeDef, :: UIPath
+from iTasks.UI.Diff import :: UIChangeDef
 
 import iTasks.UI.Component
 import iTasks.UI.JS.Interface

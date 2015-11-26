@@ -54,10 +54,6 @@ taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") (ca
 taskInstanceShares :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
 taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
 
-//UIS of task instances
-taskInstanceUI :: RWShared InstanceNo TaskRep TaskRep
-taskInstanceUI = sdsTranslate "taskInstanceUI" (\t -> t +++> "-ui") (cachedJSONFileStore NS_TASK_INSTANCES True False False Nothing)
-
 allUIChanges :: RWShared () (Map InstanceNo (Queue UIChangeDef)) (Map InstanceNo (Queue UIChangeDef)) 
 allUIChanges = sdsFocus "allUIChanges" (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
 

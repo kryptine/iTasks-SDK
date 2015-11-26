@@ -14,7 +14,7 @@ toStubIWorld world
   ,config = {sessionTime = 3600, smtpServer = "localhost"}
   ,clocks = {SystemClocks |localDate=defaultValue,localTime=defaultValue,utcDate=defaultValue,utcTime=defaultValue}
   ,current ={TaskEvalState|taskTime= 0,taskInstance= 0,sessionInstance = Nothing,attachmentChain = []
-            ,nextTaskNo = 0,eventRoute	= 'DM'.newMap,editletDiffs = 'DM'.newMap}
+            ,nextTaskNo = 0,eventRoute	= 'DM'.newMap}
   ,sdsNotifyRequests = [], memoryShares = 'DM'.newMap, cachedShares = 'DM'.newMap, exposedShares = 'DM'.newMap
   ,jsCompilerState = Nothing ,shutdown = False,ioTasks = {done = [], todo = []},ioStates = 'DM'.newMap
   ,world = world

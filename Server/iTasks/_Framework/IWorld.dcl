@@ -11,7 +11,6 @@ from System.Time				        import :: Timestamp
 from Text.JSON				            import :: JSONNode
 from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
 from iTasks.UI.Definition				import :: UIDef, :: UIControl, :: UIEditletOpts
-from iTasks.UI.Diff						import :: UIEditletDiffs, :: ReferenceVersion, :: MessageType
 from iTasks._Framework.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
 from iTasks._Framework.Task             import :: TaskValue, :: ConnectionTask, :: BackgroundTask, :: Event
 from iTasks._Framework.SDS import :: SDSNotifyRequest, :: BasicShareId
@@ -89,7 +88,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     , attachmentChain        :: ![TaskId]                           // The current way the evaluated task instance is attached to other instances
     , nextTaskNo			 :: !TaskNo								// The next task number to assign
     , eventRoute			 :: !Map TaskId Int						// Index of parallel branches the event is targeted at
-    , editletDiffs           :: !UIEditletDiffs                     // Diffs of editlets
     }
 
 :: *IOTasks =

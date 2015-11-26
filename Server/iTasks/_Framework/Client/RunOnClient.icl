@@ -145,7 +145,6 @@ createClientIWorld serverURL currentInstance
 		    ,attachmentChain    = []
 		    ,nextTaskNo			= 6666
 		    ,eventRoute			= 'Data.Map'.newMap
-		    ,editletDiffs		= 'Data.Map'.newMap
           }
           ,sdsNotifyRequests    = []
           ,memoryShares         = 'Data.Map'.newMap

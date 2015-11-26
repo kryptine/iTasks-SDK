@@ -59,7 +59,6 @@ taskEvents              :: RWShared () (Queue (InstanceNo,Event)) (Queue (Instan
 taskInstanceReduct		:: RWShared InstanceNo TIReduct TIReduct
 taskInstanceValue       :: RWShared InstanceNo TIValue TIValue
 taskInstanceShares      :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
-taskInstanceUI 			:: RWShared InstanceNo TaskRep TaskRep
 
 //Filtered views on evaluation state of instances:
 

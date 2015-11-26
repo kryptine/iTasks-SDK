@@ -74,7 +74,6 @@ where
 										, taskTime = oldReduct.TIReduct.nextTaskTime
                                         , nextTaskNo = oldReduct.TIReduct.nextTaskNo
 										, eventRoute = eventRoute
-                                        , editletDiffs = current.editletDiffs //FIXME: MEMLEAK//'DM'.newMap
 										}}
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & tonicOpts = tonicRedOpts} tree iworld
@@ -103,38 +102,20 @@ where
             = case mbErr of
                 Error (e,msg)          = (Error msg,iworld)
                 Ok _
-                //Determine user interface updates by comparing the previous UI to the newly calculated one
-                = case newResult of
-                    (ValueResult value _ newRep _)	
-						| deleted
-							= (Ok value,iworld)
-						//Check if a previous task rep was stored, then diff
-						= case 'SDS'.read (sdsFocus instanceNo taskInstanceUI) iworld of
-							(Ok prevRep,iworld)
-                                # oldUI = case prevRep of (TaskRep oldUI _) = oldUI; _ = emptyUI
-                                # newUI = case newRep of (TaskRep newUI _) = newUI; _ = emptyUI
-							    # (editletDiffs,iworld)		= getEditletDiffs iworld
-                                # (changes,editletDiffs)    = diffUIDefinitions oldUI newUI event editletDiffs
-                                # iworld                    = setEditletDiffs editletDiffs iworld
-                                # (mbErr,iworld) 			= 'SDS'.write newRep (sdsFocus instanceNo taskInstanceUI) iworld
-                                //# iworld 					= queueUIChanges instanceNo changes iworld
-								# iworld 			= case newRep of (TaskRep _ newChange) = queueUIChange instanceNo newChange iworld; _ = iworld
-								//Flush the share cache 
-                                # iworld = flushShareCache iworld
-								= (Ok value, iworld)
-							(Error (e,msg),iworld)
-                                # (mbErr,iworld)  	= 'SDS'.write newRep (sdsFocus instanceNo taskInstanceUI) iworld
-                                # newUI 			= case newRep of (TaskRep newUI _) = newUI; _ = emptyUI
-                                //# iworld 			= queueUIChange instanceNo (ReplaceUI newUI) iworld
-								# iworld 			= case newRep of (TaskRep _ newChange) = queueUIChange instanceNo newChange iworld; _ = iworld
-                                # iworld = flushShareCache iworld
-								= (Ok value, iworld)
-                    (ExceptionResult (e,msg))
-						= (Error msg, iworld)
+                	= case newResult of
+                    	(ValueResult value _ newRep _)	
+							| deleted
+								= (Ok value,iworld)
+							# iworld = case newRep of
+								(TaskRep _ newChange) = queueUIChange instanceNo newChange iworld
+								_ = iworld
+							//Flush the share cache 
+                        	# iworld = flushShareCache iworld
+							= (Ok value, iworld)
+                    	(ExceptionResult (e,msg))
+							= (Error msg, iworld)
 
 	getNextTaskNo iworld=:{IWorld|current={TaskEvalState|nextTaskNo}}	    = (nextTaskNo,iworld)
-	getEditletDiffs iworld=:{IWorld|current={editletDiffs}}	= (editletDiffs,iworld)
-    setEditletDiffs editletDiffs iworld=:{current} = {IWorld|iworld & current = {current & editletDiffs = editletDiffs}}
 
 	updateProgress now result progress
         # attachedTo = case progress.InstanceProgress.attachedTo of //Release temporary attachment after first evaluation
@@ -153,12 +134,7 @@ where
 			_									= {InstanceProgress|progress & value = None}
 
     mbResetUIState instanceNo ResetEvent iworld 
-		# (_,iworld) = 'SDS'.write NoRep (sdsFocus instanceNo taskInstanceUI) iworld 
 		# (_,iworld) = 'SDS'.write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceUIChanges) iworld 
-		//Remove all editlet state for this instance
-		# (diffs,iworld) = getEditletDiffs iworld
-		# diffs = 'DM'.fromList [d \\ d=:((t,_),_) <- 'DM'.toList diffs | let (TaskId i _) = fromString t in i <> instanceNo]
-		# iworld = setEditletDiffs diffs iworld
 		//Remove all js compiler state for this instance
 		# iworld=:{jsCompilerState=jsCompilerState} = iworld
 		# jsCompilerState = fmap (\state -> {state & skipMap = 'DM'.del instanceNo state.skipMap}) jsCompilerState
