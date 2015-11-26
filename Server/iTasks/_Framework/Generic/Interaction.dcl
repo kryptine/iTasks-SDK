@@ -3,7 +3,7 @@ definition module iTasks._Framework.Generic.Interaction
 from StdGeneric import :: UNIT,::EITHER,::PAIR,::OBJECT,::CONS,::RECORD,::FIELD,::ConsPos, generic bimap, :: Bimap
 from iTasks._Framework.IWorld import :: IWorld
 from iTasks.UI.Diff import :: UIControl, :: UIAttributes
-from iTasks.API.Core.Types import :: TaskId, :: DataPath, :: InteractionMask, :: MaskedValue, :: Verification, :: VerifiedValue, :: EditableList
+from iTasks.API.Core.Types import :: TaskId, :: DataPath, :: Verification, :: VerifiedValue, :: EditableList
 
 from iTasks._Framework.Generic.Visualization import generic gText, :: TextFormat
 from iTasks._Framework.Generic.Defaults import generic gDefault
@@ -16,7 +16,7 @@ from Data.Map import :: Map
 from System.Time import :: Timestamp
 from iTasks._Framework.SDS import :: RWShared
 
-from iTasks.UI.Editor import :: Editor, :: VSt(..), :: EditMeta, :: USt
+from iTasks.UI.Editor import :: Editor, :: VSt(..), :: EditMask, :: Masked, :: EditMeta, :: USt
 /**
 * Main eneric editor function
 */
@@ -58,7 +58,7 @@ derive gEditMeta EditableList
 derive gEditMeta RWShared
 
 //Check a value to see if it is ok
-generic gVerify a :: !VerifyOptions (MaskedValue a) -> Verification
+generic gVerify a :: !VerifyOptions (Masked a) -> Verification
 
 derive gVerify UNIT, PAIR, EITHER, OBJECT, CONS of {gcd_arity}, RECORD of {grd_arity}, FIELD
 derive gVerify Int, Real, Char, Bool, String, [], (), (,), (,,),(,,,), (,,,,),(->), Dynamic
@@ -73,8 +73,8 @@ derive gVerify RWShared
 	}
 
 //Utility functions making specializations of gEditor
-checkMask			:: !InteractionMask a -> Maybe a
-checkMaskValue      :: !InteractionMask a -> Maybe JSONNode | JSONEncode{|*|} a
+checkMask			:: !EditMask a -> Maybe a
+checkMaskValue      :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
 
 stdAttributes 		:: String (VerifiedValue a) -> UIAttributes
 
@@ -85,7 +85,7 @@ verifyValue :: !a -> Verification | gVerify{|*|} a
 /**
 * Verify a form based on the value and its update mask.
 */
-verifyMaskedValue :: !(MaskedValue a) -> Verification | gVerify{|*|} a
+verifyMaskedValue :: !(Masked a) -> Verification | gVerify{|*|} a
 /**
 * Based on the verification of a value, determine if it is valid.
 * A compound value is valid if the verification contains no invalid parts.
@@ -97,12 +97,12 @@ isValid :: !Verification -> Bool
 * No hint message is shown.
 *
 */
-alwaysValid :: !(MaskedValue a) -> Verification
+alwaysValid :: !(Masked a) -> Verification
 /**
 * Verifies a value which is always valid if filled in (e.g. a basic value).
 *
 */
-simpleVerify :: !VerifyOptions !(MaskedValue a) -> Verification
+simpleVerify :: !VerifyOptions !(Masked a) -> Verification
 /**
 * Verifies a custom ADT.
 * For this ADT also a custom visualization has to be implemented.
@@ -112,7 +112,7 @@ simpleVerify :: !VerifyOptions !(MaskedValue a) -> Verification
 * @param	A function for error message generation, in case the predicate fails
 * @param	The actual value
 */
-customVerify :: !(a -> Bool) !(a -> String) !VerifyOptions (MaskedValue a) -> Verification
+customVerify :: !(a -> Bool) !(a -> String) !VerifyOptions (Masked a) -> Verification
 
 /**
 * Convenient wrapper which automatically updates the interaction mask.
@@ -121,7 +121,7 @@ customVerify :: !(a -> Bool) !(a -> String) !VerifyOptions (MaskedValue a) -> Ve
 *
 * @return The modified value
 */
-basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !a !InteractionMask !*USt -> *(!a, !InteractionMask, !*USt) | JSONDecode{|*|} upd
+basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*USt -> *(!a, !EditMask, !*USt) | JSONDecode{|*|} upd
 /**
 * Updates a value which's new value can be calculated from the update-json
 * without knowledge of the previous value.
@@ -130,4 +130,4 @@ basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !a !InteractionMask !*USt
 *
 * @return The modified value
 */
-basicUpdateSimple :: !DataPath !JSONNode !a !InteractionMask !*USt -> *(!a,!InteractionMask,!*USt) | JSONDecode{|*|} a
+basicUpdateSimple :: !DataPath !JSONNode !a !EditMask !*USt -> *(!a,!EditMask,!*USt) | JSONDecode{|*|} a

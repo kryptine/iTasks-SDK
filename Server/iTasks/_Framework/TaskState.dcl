@@ -50,12 +50,12 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 :: TaskTree
 	= TCInit		            !TaskId !TaskTime													//Initial state for all tasks
 	| TCBasic		            !TaskId !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
-	| TCInteract	            !TaskId !TaskTime !JSONNode !JSONNode !JSONNode !InteractionMask
-	| TCInteractLocal	        !TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
-	| TCInteractViewOnly	    !TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
-	| TCInteractLocalViewOnly   !TaskId !TaskTime !JSONNode !InteractionMask
-	| TCInteract1				!TaskId !TaskTime !JSONNode !InteractionMask
-	| TCInteract2				!TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
+	| TCInteract	            !TaskId !TaskTime !JSONNode !JSONNode !JSONNode !EditMask
+	| TCInteractLocal	        !TaskId !TaskTime !JSONNode !JSONNode !EditMask
+	| TCInteractViewOnly	    !TaskId !TaskTime !JSONNode !JSONNode !EditMask
+	| TCInteractLocalViewOnly   !TaskId !TaskTime !JSONNode !EditMask
+	| TCInteract1				!TaskId !TaskTime !JSONNode !EditMask
+	| TCInteract2				!TaskId !TaskTime !JSONNode !JSONNode !EditMask
 	| TCProject					!TaskId !JSONNode !TaskTree
 	| TCStep					!TaskId !TaskTime !(Either (TaskTree,[String]) (DeferredJSON,Int,TaskTree)) 
 	| TCParallel				!TaskId !TaskTime ![(!TaskId,!TaskTree)] //Subtrees of embedded tasks

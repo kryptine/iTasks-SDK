@@ -14,7 +14,7 @@ from iTasks.API.Core.SDSs		    import topLevelTasks
 import qualified Data.Map as DM
 from iTasks.API.Core.Tasks import matchAndApplyEvent_ , visualizeView_ 
 
-interactExposed :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask)))
+interactExposed :: !d !(ReadOnlyShared r) (r -> (l,(v,EditMask))) (l r (v,EditMask) Bool Bool Bool -> (l,(v,EditMask)))
 						(Maybe (Editor v))
                         -> Task (l,v) | descr d & iTask l & iTask r & iTask v
 interactExposed desc shared initFun refreshFun mbEditor = Task eval
@@ -49,7 +49,7 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-interactLocalExposed :: !d (l,(v,InteractionMask)) (l (v,InteractionMask) Bool -> (l,(v,InteractionMask))) (Maybe (Editor v))
+interactLocalExposed :: !d (l,(v,EditMask)) (l (v,EditMask) Bool -> (l,(v,EditMask))) (Maybe (Editor v))
                         -> Task (l,v) | descr d & iTask l & iTask v
 interactLocalExposed desc initVal refreshFun mbEditor = Task eval
 where
@@ -74,7 +74,7 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-interactViewOnly :: !d !(ReadOnlyShared r) (r -> (v,InteractionMask)) (r (v,InteractionMask) Bool Bool Bool -> (v,InteractionMask)) (Maybe (Editor v))
+interactViewOnly :: !d !(ReadOnlyShared r) (r -> (v,EditMask)) (r (v,EditMask) Bool Bool Bool -> (v,EditMask)) (Maybe (Editor v))
                         -> Task v | descr d & iTask r & iTask v
 interactViewOnly desc shared initFun refreshFun mbEditor = Task eval
 where
@@ -108,7 +108,7 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-interactLocalViewOnly :: !d (v,InteractionMask) ((v,InteractionMask) Bool -> (v,InteractionMask)) (Maybe (Editor v))
+interactLocalViewOnly :: !d (v,EditMask) ((v,EditMask) Bool -> (v,EditMask)) (Maybe (Editor v))
                         -> Task v | descr d & iTask v
 interactLocalViewOnly desc initVal refreshFun mbEditor = Task eval
 where
@@ -160,14 +160,16 @@ where
 		# rChanged				= nr =!= r
 		# vChanged				= nts =!= ts
 		# vValid				= isValid (verifyMaskedValue (nv,nm))
-		# (nl,(nv,nm)) 			= if (rChanged || vChanged) (r,(toView r,Touched)) (l,(nv,nm))
+		# (nl,(nv,nm)) 			= if rChanged (nr,(toView nr,Touched)) (l,(nv,nm))
 		//Update visualization v
 		# (ui,change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
 		# value 				= if valid (Value nl False) NoValue
 		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info (TaskRep ui change) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nm), iworld)
+		= trace_n ("WHAT?" +++ toString (toJSON change)) (ValueResult value info (TaskRep ui change) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nm), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
+
+import StdDebug
 
 interactNullEnter :: !d !v (v->l) (Maybe (Editor v)) -> Task l | descr d & iTask v & iTask l
 interactNullEnter desc initFun fromf mbEditor = Task eval

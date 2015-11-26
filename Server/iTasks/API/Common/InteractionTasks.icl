@@ -155,10 +155,10 @@ editChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Maybe a) -> Task a | descr d
 editChoiceAs d [ChooseWith type:_] container target mbSel
     = interactLocalExposed d (initFun type container target mbSel) updateFun Nothing @? choiceRes
 where
-    initFun :: (ChoiceType o v) [o] (o -> a) (Maybe a) -> ([a], (DynamicChoice v,InteractionMask)) | iTask o & iTask a & iTask v
+    initFun :: (ChoiceType o v) [o] (o -> a) (Maybe a) -> ([a], (DynamicChoice v,EditMask)) | iTask o & iTask a & iTask v
     initFun type container target mbSel = (map target container, initChoiceView type container target mbSel)
 
-    updateFun :: [a] (DynamicChoice v,InteractionMask) Bool -> ([a], (DynamicChoice v,InteractionMask))
+    updateFun :: [a] (DynamicChoice v,EditMask) Bool -> ([a], (DynamicChoice v,EditMask))
     updateFun targets (view,mask) viewOk
         = (targets,(view,mask))
 editChoiceAs d _ container target mbSel = editChoiceAs d [ChooseWith (AutoChoice id)] container target mbSel
@@ -167,17 +167,17 @@ editChoiceSimple :: !d ![o] (Maybe o) -> Task o | descr d & iTask o
 editChoiceSimple d container mbSel
     = interactLocalViewOnly d (initSimpleChoiceView container mbSel) updateFun Nothing @? simpleChoiceRes
 where
-    updateFun :: (DynamicChoice o,InteractionMask) Bool -> (DynamicChoice o,InteractionMask)
+    updateFun :: (DynamicChoice o,EditMask) Bool -> (DynamicChoice o,EditMask)
     updateFun (view,mask) viewOk = (view,mask)
 
 editChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Maybe a) -> Task a | descr d & iTask o & iTask w & iTask a
 editChoiceWithSharedAs d [ChooseWith type:_] sharedContainer target mbSel
     = interactExposed d (toReadOnly sharedContainer) (initFun type target mbSel) (updateFun type target) Nothing @? choiceRes
 where
-    initFun :: (ChoiceType o v) (o -> a) (Maybe a) [o] -> ([a], (DynamicChoice v, InteractionMask)) | iTask o & iTask v & iTask a
+    initFun :: (ChoiceType o v) (o -> a) (Maybe a) [o] -> ([a], (DynamicChoice v, EditMask)) | iTask o & iTask v & iTask a
     initFun type target mbSel container = (map target container,initChoiceView type container target mbSel)
 
-    updateFun :: (ChoiceType o v) (o -> a) [a] [o] (DynamicChoice v,InteractionMask) Bool Bool Bool -> ([a], (DynamicChoice v,InteractionMask)) | iTask o & iTask v & iTask a
+    updateFun :: (ChoiceType o v) (o -> a) [a] [o] (DynamicChoice v,EditMask) Bool Bool Bool -> ([a], (DynamicChoice v,EditMask)) | iTask o & iTask v & iTask a
     updateFun type target targets container (view,mask) shareChanged viewChanged viewOk
         //First check if we changed the selection, then update the view
         | shareChanged
@@ -192,10 +192,10 @@ editChoiceWithSharedSimple :: !d !(ReadWriteShared [o] w) (Maybe o) -> Task o | 
 editChoiceWithSharedSimple d sharedContainer mbSel
     = interactViewOnly d (toReadOnly sharedContainer) (initFun mbSel) updateFun Nothing @? simpleChoiceRes
 where
-    initFun :: (Maybe o) [o] -> (DynamicChoice o,InteractionMask) | iTask o
+    initFun :: (Maybe o) [o] -> (DynamicChoice o,EditMask) | iTask o
     initFun mbSel container = initSimpleChoiceView container mbSel
 
-    updateFun :: [o] (DynamicChoice o,InteractionMask) Bool Bool Bool -> (DynamicChoice o,InteractionMask) | iTask o
+    updateFun :: [o] (DynamicChoice o,EditMask) Bool Bool Bool -> (DynamicChoice o,EditMask) | iTask o
     updateFun container (view,mask) shareChanged viewChanged viewOk
         | shareChanged
             = updateSimpleChoiceView container (getSelectionView view) (view,mask)
@@ -208,10 +208,10 @@ editSharedChoiceAs d [ChooseWith type:_] container target sharedSel
     @> (mapSharedSel,sharedSel)
     @? choiceRes
 where
-    initFun :: (ChoiceType o v) [o] (o -> a) (Maybe a) -> ([a], (DynamicChoice v,InteractionMask)) | iTask o & iTask v & iTask a
+    initFun :: (ChoiceType o v) [o] (o -> a) (Maybe a) -> ([a], (DynamicChoice v,EditMask)) | iTask o & iTask v & iTask a
     initFun type container target mbSel = (map target container, initChoiceView type container target mbSel)
 
-    updateFun :: [a] (Maybe a) (DynamicChoice v,InteractionMask) Bool Bool Bool -> ([a], (DynamicChoice v,InteractionMask)) | iTask v & iTask a
+    updateFun :: [a] (Maybe a) (DynamicChoice v,EditMask) Bool Bool Bool -> ([a], (DynamicChoice v,EditMask)) | iTask v & iTask a
     updateFun targets mbSel (view,mask) shareChanged viewChanged viewOk
         # mbSel         = if (viewChanged && viewOk) (selectionFromChoiceView targets view) mbSel
         # (view,mask)   = if (shareChanged && not (viewChanged && viewOk)) (updateChoiceSelection mbSel targets (view,mask)) (view,mask)
@@ -224,7 +224,7 @@ editSharedChoiceSimple d container sharedSel
     @> (mapSimpleSharedSel,sharedSel)
     @? simpleChoiceRes
 where
-    updateFun :: [o] (Maybe o) (DynamicChoice o,InteractionMask) Bool Bool Bool -> (DynamicChoice o,InteractionMask) | iTask o
+    updateFun :: [o] (Maybe o) (DynamicChoice o,EditMask) Bool Bool Bool -> (DynamicChoice o,EditMask) | iTask o
     updateFun container mbSel (view,mask) shareChanged viewChanged viewOk
         # mbSel         = if (viewChanged && viewOk) (getSelectionView view) mbSel
         = if (shareChanged && not (viewChanged && viewOk)) (updateSimpleChoiceSelection mbSel (view,mask)) (view,mask)
@@ -235,10 +235,10 @@ editSharedChoiceWithSharedAs d [ChooseWith type:_] sharedContainer target shared
     @> (mapSharedSel,sharedSel)
     @? choiceRes
 where
-    initFun :: (ChoiceType o v) (o -> a) ([o], Maybe a) -> ([a], (DynamicChoice v, InteractionMask)) | iTask o & iTask v & iTask a
+    initFun :: (ChoiceType o v) (o -> a) ([o], Maybe a) -> ([a], (DynamicChoice v, EditMask)) | iTask o & iTask v & iTask a
     initFun type target (container,mbSel) = (map target container,initChoiceView type container target mbSel)
 
-    updateFun :: (ChoiceType o v) (o -> a) [a] ([o], Maybe a) (DynamicChoice v,InteractionMask) Bool Bool Bool -> ([a], (DynamicChoice v,InteractionMask)) | iTask o & iTask v & iTask a
+    updateFun :: (ChoiceType o v) (o -> a) [a] ([o], Maybe a) (DynamicChoice v,EditMask) Bool Bool Bool -> ([a], (DynamicChoice v,EditMask)) | iTask o & iTask v & iTask a
     updateFun type target targets (container,mbSel) (view,mask) shareChanged viewChanged viewOk
         # mbSel         = if (viewChanged && viewOk) (selectionFromChoiceView targets view) mbSel
         # (view,mask)   = if shareChanged (updateChoiceView type container target mbSel targets (view,mask)) (view,mask)
@@ -252,16 +252,16 @@ editSharedChoiceWithSharedSimple d sharedContainer sharedSel
     @> (mapSimpleSharedSel,sharedSel)
     @? simpleChoiceRes
 where
-    initFun ::  ([o], Maybe o) -> (DynamicChoice o, InteractionMask) | iTask o
+    initFun ::  ([o], Maybe o) -> (DynamicChoice o, EditMask) | iTask o
     initFun (container,mbSel) = initSimpleChoiceView container mbSel
 
-    updateFun :: ([o], Maybe o) (DynamicChoice o,InteractionMask) Bool Bool Bool -> (DynamicChoice o,InteractionMask) | iTask o
+    updateFun :: ([o], Maybe o) (DynamicChoice o,EditMask) Bool Bool Bool -> (DynamicChoice o,EditMask) | iTask o
     updateFun (container,mbSel) (view,mask) shareChanged viewChanged viewOk
         # mbSel         = if (viewChanged && viewOk) (getSelectionView view) mbSel
         # (view,mask)   = if shareChanged (updateSimpleChoiceView container mbSel (view,mask)) (view,mask)
         = (view,mask)
 
-initChoiceView :: (ChoiceType o v) [o] (o -> a) (Maybe a) -> (DynamicChoice v,InteractionMask) | iTask o & iTask v & iTask a
+initChoiceView :: (ChoiceType o v) [o] (o -> a) (Maybe a) -> (DynamicChoice v,EditMask) | iTask o & iTask v & iTask a
 initChoiceView type container target mbSel
     = updateChoiceSelection mbSel (map target container) (mkDynChoice type container,Untouched)
 where
@@ -282,7 +282,7 @@ where
 
 //When we don't have an (o -> a) transformation and no view transformation, we don't need to keep
 //the choice options in the interact's state (which saves space and time)
-initSimpleChoiceView :: [o] (Maybe o) -> (DynamicChoice o, InteractionMask) | iTask o
+initSimpleChoiceView :: [o] (Maybe o) -> (DynamicChoice o, EditMask) | iTask o
 initSimpleChoiceView container mbSel = updateChoiceSelection mbSel container (mkDynChoice container,Untouched)
 where
     mkDynChoice l = case headers l undef of
@@ -293,7 +293,7 @@ where
         headers :: [a] a -> [String] | gEditMeta{|*|} a
         headers _ a = [fromMaybe "" label \\{EditMeta|label} <- gEditMeta{|*|} a]
 
-updateChoiceView :: (ChoiceType o v) [o] (o -> a) (Maybe a) [a] (DynamicChoice v,InteractionMask) -> (DynamicChoice v,InteractionMask) | iTask o & iTask v & iTask a
+updateChoiceView :: (ChoiceType o v) [o] (o -> a) (Maybe a) [a] (DynamicChoice v,EditMask) -> (DynamicChoice v,EditMask) | iTask o & iTask v & iTask a
 //updateChoiceView type container target mbSel targets (view,mask)
     //Crude solution, just rebuild view and update (will do for now)
  //   = initChoiceView type container target mbSel
@@ -313,15 +313,15 @@ where
 
     expanded tree targets container = remapChoiceIndices targets (map target container) (expandedFromTreeChoiceView tree)
 
-updateSimpleChoiceView :: [o] (Maybe o) (DynamicChoice o,InteractionMask) -> (DynamicChoice o,InteractionMask) | iTask o
+updateSimpleChoiceView :: [o] (Maybe o) (DynamicChoice o,EditMask) -> (DynamicChoice o,EditMask) | iTask o
 updateSimpleChoiceView container mbSel (view,mask)
     = initSimpleChoiceView container mbSel
 
-updateChoiceSelection :: (Maybe a) [a] (DynamicChoice v, InteractionMask) -> (DynamicChoice v, InteractionMask) | iTask v & iTask a
+updateChoiceSelection :: (Maybe a) [a] (DynamicChoice v, EditMask) -> (DynamicChoice v, EditMask) | iTask v & iTask a
 updateChoiceSelection Nothing    targets (dynChoice,_) = (setSelectionIndex Nothing dynChoice, Untouched)
 updateChoiceSelection (Just sel) targets (dynChoice,_) = (setSelectionIndex (findIndex ((===) sel) targets) dynChoice, Touched)
 
-updateSimpleChoiceSelection :: (Maybe o) (DynamicChoice o, InteractionMask) -> (DynamicChoice o, InteractionMask) | iTask o
+updateSimpleChoiceSelection :: (Maybe o) (DynamicChoice o, EditMask) -> (DynamicChoice o, EditMask) | iTask o
 updateSimpleChoiceSelection mbSel (dynChoice,_) = (setSelectionView mbSel dynChoice, if (isJust mbSel) Touched Untouched)
 
 choiceRes :: (TaskValue ([a],DynamicChoice v)) -> TaskValue a

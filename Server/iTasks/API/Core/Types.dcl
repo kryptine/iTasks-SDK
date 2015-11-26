@@ -30,6 +30,7 @@ from Text.HTML 				import class html
 from System.Time				import :: Timestamp
 from iTasks._Framework.IWorld			import :: IWorld
 from iTasks.UI.Definition		import :: UIDef, :: UIForm, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
+from iTasks.UI.Editor 			import :: EditMask, :: Masked
 from iTasks._Framework.Task				import :: Task, :: TaskId
 from iTasks._Framework.Generic				import class iTask
 from iTasks._Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, :: VSt, ::USt, :: EditMeta, :: VerifyOptions
@@ -496,23 +497,6 @@ instance <			TaskId
 
 derive class iTask TaskListFilter
 
-/** Interaction masks contain information about a value as it is being edited
-*   in an interactive task.
-*/  
-:: InteractionMask
-	= Untouched								//The value has not been touched by the user
-	| Touched								//The value has been touched by the user, now it makes sense to check the input
-    | TouchedUnparsed !JSONNode              //The user has edited the value to something that cannot be parsed to a valid value
-	| TouchedWithState !JSONNode			//Some components need to keep local state that can't be encoded in the value
-	| Blanked								//The value was previously touched, but has been made blank again
-	| CompoundMask ![InteractionMask]	    //The value is a compound structure of which some parts are, and some aren't touched
-
-:: MaskedValue a :== (a,InteractionMask)
-
-subMasks	:: !Int InteractionMask -> [InteractionMask]
-toPairMask	:: !Int !InteractionMask -> InteractionMask
-isTouched	:: !InteractionMask -> Bool
-
 :: Verification
     = CorrectValue !(Maybe String)
     | WarningValue !String
@@ -521,14 +505,14 @@ isTouched	:: !InteractionMask -> Bool
     | MissingValue
     | CompoundVerification [Verification]
 
-:: VerifiedValue a :== (a,InteractionMask,Verification)
+:: VerifiedValue a :== (a,EditMask,Verification)
 
 subVerifications :: !Int Verification -> [Verification]
 toPairVerification :: !Int !Verification -> Verification
 fromPairVerification :: !Int !Verification -> Verification
 
-derive JSONEncode InteractionMask, Verification
-derive JSONDecode InteractionMask, Verification
+derive JSONEncode EditMask, Verification
+derive JSONDecode EditMask, Verification
 
 //* Datapaths identify sub structures in a composite structure
 :: DataPath :== [Int]

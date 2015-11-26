@@ -68,8 +68,8 @@ where
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 interact :: !d !(ReadOnlyShared r)
-				(r -> (l,(v,InteractionMask)))
-				(l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask)))
+				(r -> (l,Masked v))
+				(l r (Masked v) Bool Bool Bool -> (l,(Masked v)))
 				(Maybe (Editor v)) -> Task l | descr d & iTask l & iTask r & iTask v
 interact desc shared initFun refreshFun mbEditor = Task eval
 where
@@ -103,7 +103,7 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-matchAndApplyEvent_ :: Event TaskId TaskEvalOpts (Maybe (Editor v)) TaskTime (MaskedValue v) TaskTime d *IWorld -> *(!MaskedValue v,!TaskTime,!*IWorld) | iTask v & descr d
+matchAndApplyEvent_ :: Event TaskId TaskEvalOpts (Maybe (Editor v)) TaskTime (Masked v) TaskTime d *IWorld -> *(!Masked v,!TaskTime,!*IWorld) | iTask v & descr d
 matchAndApplyEvent_ (EditEvent taskId name value) matchId evalOpts mbEditor taskTime (v,m) ts desc iworld
 	| taskId == matchId
 		# ((nv,nm),iworld) = updateValueAndMask_ taskId (s2dp name) mbEditor value (v,m) iworld
@@ -112,13 +112,13 @@ matchAndApplyEvent_ (EditEvent taskId name value) matchId evalOpts mbEditor task
 matchAndApplyEvent_ _ matchId evalOpts mbEditor taskTime (v,m) ts desc iworld
 	= ((v,m),ts,iworld)
 
-updateValueAndMask_ :: TaskId DataPath (Maybe (Editor v)) JSONNode (MaskedValue v) *IWorld -> *(!MaskedValue v,*IWorld) | iTask v
+updateValueAndMask_ :: TaskId DataPath (Maybe (Editor v)) JSONNode (Masked v) *IWorld -> *(!Masked v,*IWorld) | iTask v
 updateValueAndMask_ taskId path mbEditor diff (v,m) iworld
 	# editor = fromMaybe gEditor{|*|} mbEditor
     # (nv,nm,ust=:{USt|iworld}) = editor.Editor.appDiff path diff v m {USt|taskId=toString taskId,editorId=editorId path,iworld=iworld}
     = ((nv,nm),iworld)
 
-visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (MaskedValue v) (MaskedValue v) d *IWorld -> *(!UIDef,!UIChangeDef,!Bool,!*IWorld) | iTask v & descr d
+visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld -> *(!UIDef,!UIChangeDef,!Bool,!*IWorld) | iTask v & descr d
 visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworld
 	# editor 	= fromMaybe gEditor{|*|} mbEditor
 	# ver 		= verifyMaskedValue (nv,nm)

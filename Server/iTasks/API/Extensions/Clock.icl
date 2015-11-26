@@ -13,11 +13,11 @@ derive gEq AnalogClock
 derive gDefault AnalogClock
 derive gText AnalogClock
 
-gEditor{|AnalogClock|} = fromEditlet (analogClockEditlet defaultValue)
+gEditor{|AnalogClock|} = fromEditlet analogClockEditlet
 
 //SVG Based analog clock editlet
-analogClockEditlet :: AnalogClock -> Editlet AnalogClock [(Int,Int)] ()
-analogClockEditlet t 
+analogClockEditlet :: Editlet AnalogClock [(Int,Int)] ()
+analogClockEditlet
     = {Editlet
       |genUI        = genUI
       ,initClient = \_ _ _ world -> ((), world)

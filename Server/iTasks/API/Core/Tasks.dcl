@@ -103,8 +103,8 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 * @gin False
 */
 interact :: !d !(ReadOnlyShared r)
-				(r -> (l,(v,InteractionMask)))
-				(l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask)))
+				(r -> (l,Masked v))
+				(l r (Masked v) Bool Bool Bool -> (l,(Masked v)))
 				(Maybe (Editor v)) -> Task l | descr d & iTask l & iTask r & iTask v
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed
@@ -179,7 +179,7 @@ traceValue :: a -> Task a | iTask a
 shutDown :: Task ()
 
 //INTERNAL FUNCTIONS EXPORTED FOR USE IN OPTIMIZED VERSIONS OF interact,
-matchAndApplyEvent_ :: Event TaskId TaskEvalOpts (Maybe (Editor v)) TaskTime (MaskedValue v) TaskTime d *IWorld
-	-> *(!MaskedValue v,!TaskTime,!*IWorld) | iTask v & descr d
-visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (MaskedValue v) (MaskedValue v) d *IWorld
+matchAndApplyEvent_ :: Event TaskId TaskEvalOpts (Maybe (Editor v)) TaskTime (Masked v) TaskTime d *IWorld
+	-> *(!Masked v,!TaskTime,!*IWorld) | iTask v & descr d
+visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld
 	-> *(!UIDef,!UIChangeDef,!Bool,!*IWorld) | iTask v & descr d

@@ -7,6 +7,33 @@ from iTasks.UI.Diff import :: MessageType (MDiff,MRollback,MCommit), :: UIChange
 from iTasks.UI.Editor import :: Editor(..), :: USt(..) 
 import qualified Data.Map as DM
 
+subMasks :: !Int EditMask -> [EditMask]
+subMasks n (CompoundMask ms) = ms
+subMasks n m = repeatn n m
+
+isTouched :: !EditMask -> Bool
+isTouched Touched = True
+isTouched (TouchedUnparsed _)	= True
+isTouched (TouchedWithState _)	= True
+isTouched Blanked	 			= True
+isTouched (CompoundMask ms) 	= isTouched` ms
+where
+	isTouched` [] = False
+	isTouched` [m:ms]
+		| isTouched m 	= True
+		| otherwise 	= isTouched` ms
+isTouched _						= False
+
+toPairMask :: !Int !EditMask -> EditMask
+toPairMask len mask = split len (subMasks len mask)
+where
+	split 1 [mask] = mask
+	split 2 masks 	= CompoundMask masks
+	split n masks	= CompoundMask [split middle left,split (n - middle) right]
+	where
+		middle = n / 2
+		(left,right) = splitAt middle masks
+
 createEditletEventHandler :: (EditletEventHandlerFunc d a) !ComponentId -> JSFun b
 createEditletEventHandler handler id = undef
 
@@ -42,50 +69,18 @@ where
 		toJSONA a = case JSONEncode{|*|} False a of
 			[json:_]	= json
 			_			= JSONNull
-/*
-		= case 'Data.Map'.get (taskId,editorId dp) editletDiffs of //TODO: -> Diffing should not happen during UI Generation
-			  //Only diff with previous value
-			  Just (ver,prevValue,opts,diffs)
-				# currentDiff   = diffWithPrevValue prevValue currVal
+
+	genDiff` dp old new vst=:{VSt|iworld} //TODO: -> Properly track version numbers
+		= case (genDiffSrv old new) of
+			Nothing 			= (NoChange,{VSt|vst & iworld=iworld})
+			currentDiff
 				# (res,iworld)  = diffLinker currentDiff Nothing iworld
 				= case res of
-					Ok (jsScript,jsCDiff,jsIDiff)
-						// Store diffs
-						# diffs                              = if (isJust currentDiff) [MDiff (jsCDiff,jsScript):diffs] diffs
-						// Increase version number if there is a difference between the reference and the new value
-						# ver                                = if (isJust currentDiff) (ver + 1) ver
-						# iworld                             = setEditletDiffs ver currVal opts diffs iworld
-						= (UIEditor {UIEditor|optional=False,attributes=newMap}
-							(ui uiDef {UIEditletOpts|opts & value = toJSONA currVal, initDiff = jsIDiff}), {VSt|vst & iworld = iworld})
-
-					Error e //TODO: Propagate error up
-						# jsIDiff = ""
-						= (UIEditor {UIEditor|optional=False,attributes=newMap}
-							(ui uiDef {UIEditletOpts|opts & value = toJSONA currVal, initDiff = jsIDiff}), {VSt|vst & iworld = iworld})
-		where
-			toJSONA a = case JSONEncode{|*|} False a of
-				[json:_]	= json
-				_			= JSONNull
-
-			fromJSONA json = fst (JSONDecode{|*|} False [json])
-			
-			diffWithPrevValue jsonPrev currVal
-				= case fromJSONA jsonPrev of
-					Just prev = genDiffSrv prev currVal
-					_         = Nothing
-
-			setEditletDiffs ver value opts diffs iworld=:{IWorld|current=current=:{editletDiffs}}
-				= {IWorld|iworld & current = {current & editletDiffs = put (taskId,editorId dp) (ver,toJSONA value,opts,diffs) editletDiffs}}
-*/
-	genDiff` dp old new vst=:{VSt|iworld} //TODO: -> Properly track version numbers
-		# currentDiff 	= genDiffSrv old new
-		# (res,iworld)  = diffLinker currentDiff Nothing iworld
-		= case res of
-			Ok (jsScript,jsCDiff,_)
-				= (ChangeUI [("applyDiff",[JSONInt 42,JSONString jsCDiff,JSONString jsScript])] [],{VSt|vst & iworld=iworld})
-			Error e
-				//TODO Propagate error up
-				= (NoChange,{VSt|vst & iworld=iworld})
+					Ok (jsScript,jsCDiff,_)
+						= (ChangeUI [("applyDiff",[JSONInt 0,JSONString jsCDiff,JSONString jsScript])] [],{VSt|vst & iworld=iworld})
+					Error e
+						//TODO Propagate error up
+						= (NoChange,{VSt|vst & iworld=iworld})
 
 	appDiff` [] (JSONArray [JSONInt ver, JSONInt diffId, jsonDiff]) ov om ust
 		= case fromJSON jsonDiff of
@@ -95,25 +90,4 @@ where
 			Nothing
 				= (ov,om,ust)
 
-		//TODO: Reinstate version checking
-/*
-		= case JSONDecode{|*|} False [jsonDiff] of
-			(Just diff,_)	
-				# iworld = case 'DM'.get (taskId,editorId) editletDiffs of
-                	Just (refver,jsonRef,opts,diffs) = case JSONDecode{|*|} False [jsonRef] of
-                    	(Just ref,_)
-                    		| ver <> refver
-                    			= {IWorld|iworld & current = {current & 
-                    					editletDiffs = 'DM'.put (taskId,editorId) (ver,jsonRef,opts,[MRollback diffId:diffs]) editletDiffs}}
-  	                      	# ref = appDiffSrv diff ref
-   	                     	# [jsonRef:_] = JSONEncode{|*|} False ref
-                        	// If the reference value is changed by its client, keep the version number
-                        	= {IWorld|iworld & current = {current &
-                        			editletDiffs = 'DM'.put (taskId,editorId) (ver,jsonRef,opts,[MCommit diffId:diffs]) editletDiffs}}
-                    	_ = iworld
-					Nothing = iworld
-				= (appDiffSrv diff ov, Touched, {USt|ust & iworld = iworld})
-			_	= (ov,omask,ust)
-*/
 	appDiff` dp _ val mask ust = (val,mask,ust)
-

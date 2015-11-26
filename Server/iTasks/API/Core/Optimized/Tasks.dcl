@@ -15,16 +15,16 @@ from iTasks.UI.Layout import class descr
 //Interact which yields the view value directly.
 //This way it does not need to be encoded in the local l to access it
 //The local value serves as 'hidden' state from which together with the view value the task value can be derived
-interactExposed :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask))) (Maybe (Editor v))
+interactExposed :: !d !(ReadOnlyShared r) (r -> (l,(v,EditMask))) (l r (v,EditMask) Bool Bool Bool -> (l,(v,EditMask))) (Maybe (Editor v))
                         -> Task (l,v) | descr d & iTask l & iTask r & iTask v
 
 //This version does not use a share, and hence has a simpler update function and needs to store less state
-interactLocalExposed :: !d (l,(v,InteractionMask)) (l (v,InteractionMask) Bool -> (l,(v,InteractionMask))) (Maybe (Editor v))
+interactLocalExposed :: !d (l,(v,EditMask)) (l (v,EditMask) Bool -> (l,(v,EditMask))) (Maybe (Editor v))
                         -> Task (l,v) | descr d & iTask l & iTask v
 
-interactViewOnly :: !d !(ReadOnlyShared r) (r -> (v,InteractionMask)) (r (v,InteractionMask) Bool Bool Bool -> (v,InteractionMask)) (Maybe (Editor v))
+interactViewOnly :: !d !(ReadOnlyShared r) (r -> (v,EditMask)) (r (v,EditMask) Bool Bool Bool -> (v,EditMask)) (Maybe (Editor v))
                         -> Task v | descr d & iTask r & iTask v
-interactLocalViewOnly :: !d (v,InteractionMask) ((v,InteractionMask) Bool -> (v,InteractionMask)) (Maybe (Editor v))
+interactLocalViewOnly :: !d (v,EditMask) ((v,EditMask) Bool -> (v,EditMask)) (Maybe (Editor v))
                         -> Task v | descr d & iTask v
 
 interactNullEnter		:: !d !v (v->l) (Maybe (Editor v)) -> Task l | descr d & iTask v & iTask l

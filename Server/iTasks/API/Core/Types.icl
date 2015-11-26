@@ -1326,11 +1326,11 @@ gText{|Display|} fx mode Nothing               = fx mode Nothing
 
 gEditor{|Display|} ex j _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI dp val mask ver vst=:{VSt|disabled}
-		# (def,vst) = ex.Editor.genUI dp (fromDisplay val) mask ver {VSt | vst &  disabled = True}
+	genUI dp (Display val) mask ver vst=:{VSt|disabled}
+		# (def,vst) = ex.Editor.genUI dp val mask ver {VSt | vst &  disabled = True}
 		= (def,{VSt | vst & disabled = disabled})
 
-	genDiff dp old new vst = (NoChange,vst)
+	genDiff dp (Display old) (Display new) vst = ex.Editor.genDiff dp old new vst
 
 	appDiff dp e val mask ust = wrapperUpdate ex.Editor.appDiff fromDisplay Display dp e val mask ust
 
@@ -1440,28 +1440,6 @@ where
 
 derive class iTask TaskListFilter
 
-subMasks :: !Int InteractionMask -> [InteractionMask]
-subMasks n (CompoundMask ms) = ms
-subMasks n m = repeatn n m
-
-isTouched :: !InteractionMask -> Bool
-isTouched Touched = True
-isTouched (TouchedUnparsed _)	= True
-isTouched (TouchedWithState _)	= True
-isTouched Blanked	 			= True
-isTouched (CompoundMask ms)		= or (map isTouched ms) //TODO make more efficient
-isTouched _						= False
-
-toPairMask :: !Int !InteractionMask -> InteractionMask
-toPairMask len mask = split len (subMasks len mask)
-where
-	split 1 [mask] = mask
-	split 2 masks 	= CompoundMask masks
-	split n masks	= CompoundMask [split middle left,split (n - middle) right]
-	where
-		middle = n / 2
-		(left,right) = splitAt middle masks
-
 subVerifications :: !Int Verification -> [Verification]
 subVerifications n (CompoundVerification vs) = vs
 subVerifications n v = repeatn n v
@@ -1489,8 +1467,8 @@ where
 	where
 		middle = n / 2
 		
-derive JSONEncode InteractionMask, Verification
-derive JSONDecode InteractionMask, Verification
+derive JSONEncode EditMask, Verification
+derive JSONDecode EditMask, Verification
 
 //Utility functions
 editorId :: !DataPath -> String

@@ -522,7 +522,7 @@ gEditMeta{|RWShared|} _ _ _ _ = [{label=Nothing,hint=Nothing,unit=Nothing}]
 derive gEditMeta Either, MaybeError, Map, JSONNode, Timestamp, EditableListAdd
 
 //Generic Verify
-generic gVerify a :: !VerifyOptions (MaskedValue a) -> Verification
+generic gVerify a :: !VerifyOptions (Masked a) -> Verification
 
 gVerify{|UNIT|} _ (value,mask) = CorrectValue Nothing
 
@@ -596,12 +596,12 @@ updPairPath i n
 	| otherwise
 		= [1: updPairPath (i - (n/2)) (n - (n/2))]
 
-checkMask :: !InteractionMask a -> Maybe a
+checkMask :: !EditMask a -> Maybe a
 checkMask mask val
     | isTouched mask    = Just val
                         = Nothing
 
-checkMaskValue :: !InteractionMask a -> Maybe JSONNode | JSONEncode{|*|} a
+checkMaskValue :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
 checkMaskValue Touched val               = Just (toJSON val)
 checkMaskValue (TouchedWithState s) val  = Just (toJSON val)
 checkMaskValue (TouchedUnparsed r) _  	 = Just r
@@ -629,7 +629,7 @@ where
 	format optional label = camelCaseToWords label +++ if optional "" "*" +++ ":" //TODO: Move to layout
     putCond k v m = maybe ('DM'.put k v m) (const m) ('DM'.get k m)
 
-childVisualizations :: !(DataPath a InteractionMask Verification -> .(*VSt -> *(!UIDef,*VSt))) !DataPath ![a] ![InteractionMask] ![Verification] !*VSt -> *(![UIDef],!*VSt)
+childVisualizations :: !(DataPath a EditMask Verification -> .(*VSt -> *(!UIDef,*VSt))) !DataPath ![a] ![EditMask] ![Verification] !*VSt -> *(![UIDef],!*VSt)
 childVisualizations fx dp children masks vers vst = childVisualizations` 0 children masks vers [] vst
 where
 	childVisualizations` i [] [] [] acc vst
@@ -641,7 +641,7 @@ where
 verifyValue :: !a -> Verification | gVerify{|*|} a
 verifyValue val = verifyMaskedValue (val,Touched)
 	
-verifyMaskedValue :: !(MaskedValue a) -> Verification | gVerify{|*|} a
+verifyMaskedValue :: !(Masked a) -> Verification | gVerify{|*|} a
 verifyMaskedValue mv = gVerify{|*|} {VerifyOptions|optional = False, disabled = False} mv 
 
 isValid :: !Verification -> Bool
@@ -650,13 +650,13 @@ isValid (WarningValue _) = True
 isValid (CompoundVerification vs) = foldr (\v t -> t && isValid v) True vs 
 isValid _ = False
 
-alwaysValid :: !(MaskedValue a) -> Verification
+alwaysValid :: !(Masked a) -> Verification
 alwaysValid _ = CorrectValue Nothing
 
-simpleVerify :: !VerifyOptions !(MaskedValue a) -> Verification
+simpleVerify :: !VerifyOptions !(Masked a) -> Verification
 simpleVerify options mv = customVerify (const True) (const undef) options mv
 
-customVerify :: !(a -> Bool) !(a -> String) !VerifyOptions (MaskedValue a) -> Verification
+customVerify :: !(a -> Bool) !(a -> String) !VerifyOptions (Masked a) -> Verification
 customVerify pred mkErrMsg options=:{VerifyOptions|optional,disabled} (val,mask)
 	= case mask of
 		Untouched				= if optional (CorrectValue Nothing) MissingValue
@@ -670,7 +670,7 @@ where
 		| pred val	= CorrectValue Nothing
 		| otherwise	= IncorrectValue(mkErrMsg val)
 
-basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !a !InteractionMask !*USt -> *(!a, !InteractionMask, !*USt) | JSONDecode{|*|} upd
+basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*USt -> *(!a, !EditMask, !*USt) | JSONDecode{|*|} upd
 basicUpdate toV target upd v vmask ust
 	| isEmpty target
         # mbV   = maybe Nothing (\u -> toV u v) (fromJSON upd)
@@ -680,5 +680,5 @@ basicUpdate toV target upd v vmask ust
 	| otherwise
 		= (v,vmask,ust)
 
-basicUpdateSimple :: !DataPath !JSONNode !a !InteractionMask !*USt -> *(!a,!InteractionMask,!*USt) | JSONDecode{|*|} a
+basicUpdateSimple :: !DataPath !JSONNode !a !EditMask !*USt -> *(!a,!EditMask,!*USt) | JSONDecode{|*|} a
 basicUpdateSimple target upd val mask iworld = basicUpdate (\json old -> fromJSON json) target upd val mask iworld

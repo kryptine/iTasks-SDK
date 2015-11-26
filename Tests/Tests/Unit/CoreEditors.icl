@@ -35,7 +35,7 @@ testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the core g
 	,testMaybeIntUntouched
 	]
 
-testGenUI :: String UIDef  a InteractionMask -> Test | iTask a
+testGenUI :: String UIDef a EditMask -> Test | iTask a
 testGenUI name exp x mask = assertEqualWorld name exp sut
 where
 	sut world 

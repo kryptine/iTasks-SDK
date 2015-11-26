@@ -14,10 +14,10 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 
 from iTasks._Framework.Generic import class iTask(..)
 from iTasks._Framework.Generic.Interaction import generic gEditor, generic gEditMeta, generic gVerify
-from iTasks._Framework.Generic.Interaction import :: EditMeta, :: VerifyOptions, :: DataPath, :: VerifiedValue, :: MaskedValue, :: Verification, :: InteractionMask
+from iTasks._Framework.Generic.Interaction import :: EditMeta, :: VerifyOptions, :: DataPath, :: VerifiedValue, :: Verification 
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
 from iTasks._Framework.Generic.Defaults			import generic gDefault
-from iTasks.UI.Editor import :: Editor
+from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
