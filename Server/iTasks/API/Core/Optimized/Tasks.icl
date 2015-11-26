@@ -165,11 +165,9 @@ where
 		# (ui,change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
 		# value 				= if valid (Value nl False) NoValue
 		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= trace_n ("WHAT?" +++ toString (toJSON change)) (ValueResult value info (TaskRep ui change) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nm), iworld)
+		= (ValueResult value info (TaskRep ui change) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nm), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
-
-import StdDebug
 
 interactNullEnter :: !d !v (v->l) (Maybe (Editor v)) -> Task l | descr d & iTask v & iTask l
 interactNullEnter desc initFun fromf mbEditor = Task eval
