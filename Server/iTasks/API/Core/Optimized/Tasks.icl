@@ -45,7 +45,7 @@ where
 		# (ui,change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
 		# value 				= if valid (Value (nl,nv) False) NoValue
 		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info (TaskRep ui change) (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nm), iworld)
+		= (ValueResult value info change (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nm), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -70,7 +70,7 @@ where
 		# (ui,change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
 		# value 				= if valid (Value (nl,nv) False) NoValue
 		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info (TaskRep ui change) (TCInteractLocal taskId nts (toJSON nl) (toJSON nv) nm), iworld)
+		= (ValueResult value info change (TCInteractLocal taskId nts (toJSON nl) (toJSON nv) nm), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -104,7 +104,7 @@ where
 		# (ui,change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
 		# value 				= if valid (Value nv False) NoValue
 		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info (TaskRep ui change) (TCInteractViewOnly taskId nts (toJSON nr) (toJSON nv) nm), iworld)
+		= (ValueResult value info change (TCInteractViewOnly taskId nts (toJSON nr) (toJSON nv) nm), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -129,7 +129,7 @@ where
 		# (ui,change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
 		# value 				= if valid (Value nv False) NoValue
 		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info (TaskRep ui change) (TCInteractLocalViewOnly taskId nts (toJSON nv) nm), iworld)
+		= (ValueResult value info change (TCInteractLocalViewOnly taskId nts (toJSON nv) nm), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -165,7 +165,7 @@ where
 		# (ui,change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
 		# value 				= if valid (Value nl False) NoValue
 		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info (TaskRep ui change) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nm), iworld)
+		= (ValueResult value info change (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nm), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -191,7 +191,7 @@ where
 		# (ui,change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
 		# value 				= if valid (Value nl False) NoValue
 		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info (TaskRep ui change) (TCInteract1 taskId nts (toJSON nv) nm), iworld)
+		= (ValueResult value info change (TCInteract1 taskId nts (toJSON nv) nm), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -220,7 +220,7 @@ where
 		# (ui,change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
 		# value 				= if valid (Value nl False) NoValue
 		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info (TaskRep ui change) (TCInteract1 taskId nts (toJSON nl) nm), iworld)
+		= (ValueResult value info change (TCInteract1 taskId nts (toJSON nl) nm), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -251,6 +251,6 @@ where
 		# (ui,change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
 		# value 				= if valid (Value nl False) NoValue
 		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info (TaskRep ui change) (TCInteract1 taskId nts (toJSON nl) nm), iworld)
+		= (ValueResult value info change (TCInteract1 taskId nts (toJSON nl) nm), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)

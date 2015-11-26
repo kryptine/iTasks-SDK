@@ -48,9 +48,6 @@ mkTask ti = mkInterfaceTask ti []
 mkInterfaceTask :: (Tasklet st res) [InterfaceFun st] -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
 mkInterfaceTask tasklet fs = Task taskFunc
 where
-
-	norep = TaskRep (toDef (stringDisplay "nothing"))
-
 	// Init: no session id
 //	taskFunc event taskRepOpts context=:(TCInit _ ts) iworld=:{currentSession=Nothing}
 //		= (ValueResult NoValue (taskInfo ts) norep context, printlnI ("init, no session id") iworld)
@@ -127,7 +124,7 @@ genRep tasklet taskId taskRepOpts mbState iworld
 						     iworld
 					
 				# tui = tHTMLToTasklet gui taskId state_js script_js events_js intfcs_js rf_js
-				# rep = TaskRep (appTweak tasklet tui) NoChange
+				# rep = ReplaceUI (appTweak tasklet tui)
 				= (rep, state, iworld)
 
 			TaskletTUI gui
@@ -144,7 +141,7 @@ genRep tasklet taskId taskRepOpts mbState iworld
 						     iworld
 					
 				# tui = tTUIToTasklet taskId state_js script_js mb_ino rf_js mb_cf_js
-				# rep = TaskRep (appTweak tasklet tui) NoChange
+				# rep = ReplaceUI (appTweak tasklet tui)
 				= (rep, state, iworld)
 
 			NoGUI
@@ -169,7 +166,7 @@ genRep tasklet taskId taskRepOpts mbState iworld
 							, instanceNo	 = Nothing
 							, controllerFunc = Nothing})			
 			
-				# rep = TaskRep (appTweak tasklet tui) NoChange
+				# rep = ReplaceUI (appTweak tasklet tui)
 				= (rep, state, iworld)
 where
 	tTUIToTasklet taskId state_js script_js mb_ino rf_js mb_cf_js

@@ -76,7 +76,7 @@ where
 		# prompt			= toPrompt desc
 		# ui 				= UICompoundEditor {UIEditor|optional=False,attributes='Data.Map'.newMap} [prompt,content]
 		# ui 				= if evalOpts.autoLayout (autoAccuInteract.ContentLayout.layout ui) ui
-		= (TaskRep ui NoChange,iworld)
+		= (ReplaceUI ui, iworld)
 						
 	makeView [ViewWith viewFun] status taskId iworld
 		# ver = verifyMaskedValue (Display (viewFun status),Touched)

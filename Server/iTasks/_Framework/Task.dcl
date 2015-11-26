@@ -63,8 +63,7 @@ defaultTonicOpts :: TonicOpts
 	, refreshSensitive	:: !Bool		        //Can refresh events change the value or ui of this task (e.g. because shared data is read)
 	}
 	
-:: TaskRep	= NoRep							//For some tasks no external representation is generated
-			| TaskRep !UIDef !UIChangeDef	//Compute both the UI and the changes simultaniously
+:: TaskRep :== UIChangeDef
 
 //Low-level tasks that handle network connections
 :: ConnectionTask = ConnectionTask !(ConnectionHandlersIWorld Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)

@@ -103,13 +103,10 @@ where
                 Error (e,msg)          = (Error msg,iworld)
                 Ok _
                 	= case newResult of
-                    	(ValueResult value _ newRep _)	
+                    	(ValueResult value _ change _)	
 							| deleted
 								= (Ok value,iworld)
-							# iworld = case newRep of
-								(TaskRep _ newChange) = queueUIChange instanceNo newChange iworld
-								_ = iworld
-							//Flush the share cache 
+							# iworld = queueUIChange instanceNo change iworld
                         	# iworld = flushShareCache iworld
 							= (Ok value, iworld)
                     	(ExceptionResult (e,msg))
