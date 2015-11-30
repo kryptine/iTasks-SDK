@@ -59,7 +59,6 @@ isTouched	:: !EditMask -> Bool
 
 :: *USt =
     { taskId            :: !String
-    , editorId          :: !String
     , iworld            :: !*IWorld
     }
 
