@@ -11,6 +11,7 @@ import Tests.Unit.Misc
 import Tests.Unit.TaskEvaluation
 
 suites = [testGenericEditorGenUI
+		 ,testGenericEditorEdits
 		 ,testGenericEditorDiffs
 		 ,testLayout
 		 ,testEditlets

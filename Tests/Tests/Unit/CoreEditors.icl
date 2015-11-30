@@ -8,6 +8,9 @@ import iTasks._Framework.IWorld
 import qualified Data.Map as DM
 import StdMisc
 
+derive gEq EditMask
+derive gText EditMask
+
 //COMPLEX TYPES FOR TESTING
 
 :: TestConsFields = TestConsFields Int Int Int Int Int Int
@@ -23,6 +26,9 @@ derive class iTask TestRecordFields
 :: TestCons = ConsA | ConsB
 derive class iTask TestCons
 
+:: TestConsWithField = ConsWithFieldA | ConsWithFieldB String
+derive class iTask TestConsWithField
+
 testGenericEditorGenUI :: TestSuite
 testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the core generic UI generation"
 	[testIntUntouched
@@ -31,6 +37,7 @@ testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the core g
 	,testRealTouched
 	,testConsFieldsTouched 
 	,testMultipleConsesTouched
+	,testConsesWithFieldTouched
 	,testRecordTouched 
 	,testMaybeIntUntouched
 	]
@@ -84,6 +91,17 @@ testMultipleConsesTouched = testGenUI "Touched constructor selection"
 					   {UIChoiceOpts|taskId="STUB", editorId="v", value = [0], options = ["ConsA","ConsB"]}))
 	ConsA Touched
 
+testConsesWithFieldTouched = testGenUI "Touched constructor with field"
+	(UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap} [consExp,fieldsExp])
+
+	ConsWithFieldA Touched	
+where
+	consExp = (UIEditor {UIEditor|optional=False,attributes='DM'.fromList[("hint-type","valid"),("hint","You have correctly selected an option")]}
+		(UIDropdown  {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+					   {UIChoiceOpts|taskId="STUB", editorId="v", value = [0], options = ["ConsWithFieldA","ConsWithFieldB"]}))
+
+	fieldsExp = UIEmpty {UIEmpty|actions=[]} //Placeholder
+
 testRecordTouched = testGenUI "Touched record"
 	(UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap}
 		[intField,stringField,boolField])
@@ -112,6 +130,26 @@ where
 	test :: Maybe Int
 	test = Nothing
 
+testGenericEditorEdits :: TestSuite
+testGenericEditorEdits = testsuite "Generic edits" "Tests for processing edits by editors"
+	[testEditConsChange
+	]
+
+testGenEdit :: String (Masked a) (Masked a) DataPath JSONNode -> Test | iTask a
+testGenEdit name exp (ov,om) dp edit = assertEqualWorld name exp sut
+where
+	sut world 
+		# ust = toStubUSt (toStubIWorld world)
+		# (nv,nm,ust) = gEditor{|*|}.Editor.appDiff dp edit ov om ust
+		# world = fromStubIWorld (fromStubUSt ust)
+		= ((nv,nm),world)
+
+testEditConsChange = testGenEdit "Change constructor"
+	(ConsB, Touched)
+	(ConsA, Touched)
+	[]
+	(JSONInt 1)
+
 testGenericEditorDiffs :: TestSuite
 testGenericEditorDiffs = testsuite "Generic diffs" "Tests for the generic diffs"
 	[testSameInt
@@ -119,6 +157,7 @@ testGenericEditorDiffs = testsuite "Generic diffs" "Tests for the generic diffs"
 	,testDiffConsFields
 	,testDiffRecordFields
 	,testDiffConsChange
+	,testDiffConsWithFieldChange
 	,testMaybeIntChangeToJust
 	,testMaybeIntChangeToNothing
 	]
@@ -161,6 +200,18 @@ testDiffConsChange
 		ConsA
 		ConsB
 
+testDiffConsWithFieldChange :: Test
+testDiffConsWithFieldChange 
+	= testGenDiff "Changing a constructor with a data field"
+		(ChangeUI [] [(0,ChangeUI [("setValue",[JSONInt 1,JSONBool True])] []),(1,ReplaceUI expField)])
+		ConsWithFieldA
+		(ConsWithFieldB "Foo")
+where
+	expField =
+		(UIEditor {UIEditor|optional=False,attributes='DM'.fromList[("hint-type","info"),("hint","Please enter a single line of text")]}
+			(UIEditString {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+					   {UIEditOpts|taskId="STUB", editorId="v0", value = Nothing}))
+	
 testMaybeIntChangeToJust :: Test
 testMaybeIntChangeToJust
 	= testGenDiff "Switch Maybe Int Nothing to Just"
