@@ -470,7 +470,15 @@ itwc.Layer = itwc.extend(itwc.Panel,{
 //#### RAW UI COMPONENT DEFINITIONS ####//
 itwc.component = {};
 
-itwc.component.itwc_raw_empty = itwc.extend(itwc.Component,{});
+itwc.component.itwc_raw_empty = itwc.extend(itwc.Component,{
+	domTag: 'div',
+	initDOMEl: function() {
+		var me = this,
+		el = me.domEl;
+		el.innerHTML = '(empty)';
+		el.classList.add('itwc-raw-empty');
+	}
+});
 itwc.component.itwc_raw_editor = itwc.extend(itwc.RawContainer,{
 	cssClass: 'itwc-raw-editor'
 });
@@ -2418,16 +2426,11 @@ itwc.controller.prototype = {
             updates = update.updates,
             cmp;
 
+		console.log("UPDATE",update);
         updates.forEach(function(change) {
+			me.applyChange(root.items[0],root,0,change);
+			/*
 			switch(change.type) {
-				case 'replace':
-					me.removeComponent(root, 0, true);
-					me.addComponent(root, 0, change.definition, true);
-					root.items[0].afterAdd();
-					break;
-				case 'change':
-					me.applyChange(root.items[0],change);
-					break;
 				case 'update':
 		            cmp = me.findComponent(change.path,root);
 
@@ -2474,26 +2477,37 @@ itwc.controller.prototype = {
 					});
 					break;
 			}
+			*/
         });
     },
-	applyChange: function(cmp,change) {
+	applyChange: function(cmp,parentCmp,indexInParent,change) {
 		var me = this;
+
 		if(change && cmp) {
-			//Apply local changes
-			if(change.operations instanceof Array) {
-				change.operations.forEach(function(op) {
-					if(op.method && cmp[op.method] && op.arguments && op.arguments instanceof Array) {
-						cmp[op.method].apply(cmp,op.arguments);
+			switch(change.type) {
+				case 'replace':
+					me.removeComponent(parentCmp,indexInParent,indexInParent == parentCmp.items.length - 1);
+					me.addComponent(parentCmp, indexInParent, change.definition, indexInParent == parentCmp.items.length );
+					parentCmp.items[indexInParent].afterAdd();
+					break;
+				case 'change':
+					//Apply local changes
+					if(change.operations instanceof Array) {
+						change.operations.forEach(function(op) {
+							if(op.method && cmp[op.method] && op.arguments && op.arguments instanceof Array) {
+								cmp[op.method].apply(cmp,op.arguments);
+							}
+						});
 					}
-				});
-			}
-			//Recursively apply changes to children
-			if(cmp.items && cmp.items instanceof Array && change.children instanceof Array) {
-				change.children.forEach(function(child) {
-					if(child && child.length == 2) {
-						me.applyChange(cmp.items[child[0]],child[1]);
+					//Recursively apply changes to children
+					if(cmp.items && cmp.items instanceof Array && change.children instanceof Array) {
+						change.children.forEach(function(child) {
+							if(child && child.length == 2) {
+								me.applyChange(cmp.items[child[0]],cmp,child[0],child[1]);
+							}
+						});	
 					}
-				});	
+					break;
 			}
 		}
 	},
