@@ -175,22 +175,36 @@ where
 		# (res,iworld) = createTaskInstance (task <<@ WithoutAutoLayout) iworld
 		= case res of
 			(Ok (instanceNo,instanceKey))
-				//Blindly apply all events
-				# iworld = foldl (\iw e -> snd (evalTaskInstance instanceNo e iw)) iworld events 
-				//Collect output
-				# (res,iworld) = 'SDS'.read (sdsFocus instanceNo taskInstanceUIChanges) iworld
-				# world = destroyIWorld iworld
-				//Compare result
-				# verdict = case res of
-					Ok queue 	
-						# list = toList queue
-						| comparison list exp 	= Passed
-						| otherwise     		= Failed (Just (Note ("Expected: " <+++ exp <+++ "\nActual:   " <+++ list)))
-					(Error (_,e)) = Failed (Just (Note e))
-				= (verdict,world)
+				//Apply all events
+				# (res,iworld) = applyEvents instanceNo events iworld 
+				= case res of
+					(Ok ())
+						//Collect output
+						# (res,iworld) = 'SDS'.read (sdsFocus instanceNo taskInstanceUIChanges) iworld
+						# world = destroyIWorld iworld
+						//Compare result
+						# verdict = case res of
+							Ok queue 	
+								# list = toList queue
+								| comparison list exp 	= Passed
+								| otherwise     		= Failed (Just (Note ("Expected: " <+++ exp <+++ "\nActual:   " <+++ list)))
+							(Error (_,e)) = Failed (Just (Note e))
+						= (verdict,world)
+					(Error e)
+						# world = destroyIWorld iworld
+						= (Failed (Just (Note e)),world)
 			(Error (_,e)) 	
 				# world = destroyIWorld iworld
 				= (Failed (Just (Note e)),world)
 
+	applyEvents _ [] iworld = (Ok (),iworld)
+	applyEvents instanceNo [e:es] iworld
+		= case evalTaskInstance instanceNo e iworld of
+			(Ok _,iworld) = applyEvents instanceNo es iworld
+			(Error e,iworld) = (Error e,iworld)
+
 	//SHOULD BE IN Data.Queue
 	toList (Queue front rear) = front ++ reverse rear
+
+
+
