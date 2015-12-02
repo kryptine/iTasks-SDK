@@ -9,3 +9,4 @@ minimalEditor :: Task String
 minimalEditlet :: Task String
 minimalStep :: Task String
 minimalParallel :: Task (String,String)
+minimalParallelOperations :: Task [Int] 

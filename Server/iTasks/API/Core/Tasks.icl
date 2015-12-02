@@ -133,7 +133,7 @@ visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworl
 		_				//compare old and new value to determine changes
 			# (editChange,vst)  = editor.Editor.genDiff [] v nv vst
 			# promptChange 		= NoChange
-			# change 			= ChangeUI [] [(0,promptChange),(1,editChange)]
+			# change 			= ChangeUI [] [ChangeChild 0 promptChange, ChangeChild 1 editChange]
 			# change 			= if evalOpts.autoLayout (autoAccuInteract.ContentLayout.route change) change
 			= (UIEmpty {UIEmpty|actions=[]},change,vst)
 	= (ui,change,isValid ver,iworld)

@@ -120,7 +120,7 @@ where
 				| allConsesArityZero gtd_conses
 					= (consChange,{vst & selectedConsIndex = curSelectedConsIndex})
 				| otherwise
-					= (ChangeUI [] [(0,consChange),(1,diff)],{vst & selectedConsIndex = curSelectedConsIndex})
+					= (ChangeUI [] [ChangeChild 0 consChange,ChangeChild 1 diff],{vst & selectedConsIndex = curSelectedConsIndex})
 			| otherwise
 				= (diff,{vst & selectedConsIndex = curSelectedConsIndex})
 		| otherwise
@@ -218,7 +218,7 @@ where
 		# (dpx,dpy)		= pairPathSplit dp
 		# (diffx,vst) 	= ex.Editor.genDiff dpx oldx newx vst
 		# (diffy,vst) 	= ey.Editor.genDiff dpx oldy newy vst
-		= (ChangeUI [] [(0,diffx),(1,diffy)],vst)
+		= (ChangeUI [] [ChangeChild 0 diffx,ChangeChild 1 diffy],vst)
 
 	appDiff [0:ds] e (PAIR x y) xmask ust
 		# (x,xmask,ust) = ex.Editor.appDiff ds e x xmask ust
@@ -291,11 +291,11 @@ where
 flattenPairDiff s 0 d = d 
 flattenPairDiff s 1 d = d
 //For two and three fields, set the correct child index values 
-flattenPairDiff s 2 (ChangeUI _ [(_,l),(_,r)]) = ChangeUI [] [(s,l),(s + 1,r)]
-flattenPairDiff s 3 (ChangeUI _ [(_,l),(_,ChangeUI _ [(_,m),(_,r)])])
-	= ChangeUI [] [(s,l),(s + 1,m),(s + 2,r)]
+flattenPairDiff s 2 (ChangeUI _ [ChangeChild _ l,ChangeChild _ r]) = ChangeUI [] [ChangeChild s l,ChangeChild (s + 1) r]
+flattenPairDiff s 3 (ChangeUI _ [ChangeChild _ l,ChangeChild _ (ChangeUI _ [ChangeChild _ m,ChangeChild _ r])])
+	= ChangeUI [] [ChangeChild s l, ChangeChild (s + 1) m, ChangeChild (s + 2) r]
 //For more fields we aggregate both sides
-flattenPairDiff s n (ChangeUI _ [(_,l),(_,r)]) 
+flattenPairDiff s n (ChangeUI _ [ChangeChild _ l, ChangeChild _ r]) 
 	# (ChangeUI _ l) = flattenPairDiff s half l
 	# (ChangeUI _ r) = flattenPairDiff (s + half) (n - half) r 
 	= ChangeUI [] (l ++ r)

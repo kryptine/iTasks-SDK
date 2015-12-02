@@ -183,13 +183,13 @@ testDifferentInt = testGenDiff "Different Int" (ChangeUI [("setEditorValue",[JSO
 testDiffConsFields :: Test
 testDiffConsFields 
 	= testGenDiff "Diff constructor fields" 
-		(ChangeUI [] [(3,ChangeUI [("setEditorValue",[JSONInt 44])] [])])
+		(ChangeUI [] [ChangeChild 3 (ChangeUI [("setEditorValue",[JSONInt 44])] [])])
 		(TestConsFields 1 2 3 4 5 6) (TestConsFields 1 2 3 44 5 6)
 
 testDiffRecordFields :: Test
 testDiffRecordFields 
 	= testGenDiff "Diff record fields"
-		(ChangeUI [] [(0,ChangeUI [("setEditorValue",[JSONInt 23])] []),(1,ChangeUI [("setEditorValue",[JSONString "bar"])] [])])
+		(ChangeUI [] [ChangeChild 0 (ChangeUI [("setEditorValue",[JSONInt 23])] []),ChangeChild 1 (ChangeUI [("setEditorValue",[JSONString "bar"])] [])])
 		{TestRecordFields|a=42,b="foo",c=True}
 		{TestRecordFields|a=23,b="bar",c=True}
 
@@ -203,7 +203,7 @@ testDiffConsChange
 testDiffConsWithFieldChange :: Test
 testDiffConsWithFieldChange 
 	= testGenDiff "Changing a constructor with a data field"
-		(ChangeUI [] [(0,ChangeUI [("setValue",[JSONInt 1,JSONBool True])] []),(1,ReplaceUI expField)])
+		(ChangeUI [] [ChangeChild 0 (ChangeUI [("setValue",[JSONInt 1,JSONBool True])] []), ChangeChild 1 (ReplaceUI expField)])
 		ConsWithFieldA
 		(ConsWithFieldB "Foo")
 where

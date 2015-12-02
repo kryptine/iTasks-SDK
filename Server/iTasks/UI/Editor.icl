@@ -3,7 +3,7 @@ implementation module iTasks.UI.Editor
 import StdMisc
 import iTasks._Framework.Client.LinkerSupport, Data.Maybe, Data.Functor
 import iTasks._Framework.IWorld
-from iTasks.UI.Diff import :: UIChangeDef(..), :: UIChildChange(..), :: UIChange(..)
+from iTasks.UI.Diff import :: UIChangeDef(..), :: UILocalChange(..), :: UIChildChange(..)
 from iTasks.UI.Editor import :: Editor(..), :: USt(..) 
 import qualified Data.Map as DM
 

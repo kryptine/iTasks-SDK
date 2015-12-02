@@ -31,7 +31,7 @@ derive class iTask TestRecInner, TestRecOuter
 testFlatteningOfNestedRecords = assertEqualWorld "Auto interact layout should flatten a nested-record structure" exp sut
 where
 	//We expect a change to the control with index 3, because the autoAccuInteract flattens the form
-	exp = ChangeUI [] [(3,ChangeUI [("setEditorValue", [JSONString "bax"])] [])] 
+	exp = ChangeUI [] [ChangeChild 3 (ChangeUI [("setEditorValue", [JSONString "bax"])] [])] 
 
 	sut world 
 		# vst = toStubVSt (toStubIWorld world)

@@ -47,13 +47,13 @@ where
 	route change //Also flatten the changes
 		= ChangeUI [] (snd (flattenChanges 0 change))
 	where
-		flattenChanges n NoChange = (n + 1, []) 					//Leaf
-		flattenChanges n c=:(ReplaceUI _) = (n + 1, [(n,c)]) 		//Leaf
-		flattenChanges n c=:(ChangeUI local []) = (n + 1,[(n,c)])	//Leaf
+		flattenChanges n NoChange = (n + 1, []) 							//Leaf
+		flattenChanges n c=:(ReplaceUI _) = (n + 1, [ChangeChild n c]) 		//Leaf
+		flattenChanges n c=:(ChangeUI local []) = (n + 1,[ChangeChild n c])	//Leaf
 		flattenChanges n (ChangeUI _ children) = flattenChildren n children //Container
 		where	
 			flattenChildren n [] = (n,[])
-			flattenChildren n [(_,c):cs]
+			flattenChildren n [ChangeChild _ c:cs]
 				# (n, childChanges) = flattenChanges n c
 				# (n, remainderChanges) = flattenChildren n cs
 				= (n, childChanges ++ remainderChanges)

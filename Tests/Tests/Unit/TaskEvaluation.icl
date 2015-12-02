@@ -13,7 +13,7 @@ import qualified Data.Queue as DQ
 import qualified Data.Map as DM
 from Data.Queue import :: Queue(..)
 
-from Tests.Common.MinimalTasks import minimalEditor, minimalEditlet, minimalStep, minimalParallel
+from Tests.Common.MinimalTasks import minimalEditor, minimalEditlet, minimalStep, minimalParallel, minimalParallelOperations
 
 derive gText ServerInfo, SystemPaths, Queue
 derive gEq Queue
@@ -30,6 +30,9 @@ testTaskEvaluation = testsuite "Task evaluation" "Tests to verify properties of 
 	,testInitialParallelUI
 	,testStepEnableAction
 	,testStepApplyAction
+	//Dynamic parallel
+	,testParallelAppend
+	,testParallelRemove
 	]
 
 testInitIWorld = assertWorld "Init IWorld" id sut
@@ -178,16 +181,26 @@ where
 minimalStepInputEvent = EditEvent (TaskId 1 1) "v" (JSONString "foo")
 minimalStepInputResponse =ChangeUI [] [changeInteract,changeAction]
 where
-	changeInteract = (0, ChangeUI [] [changePrompt,changeEditor] )
-	changePrompt = (0,NoChange)
-	changeEditor = (1,ChangeUI [("setEditorValue",[JSONString "foo"])] [])
+	changeInteract = ChangeChild 0 (ChangeUI [] [changePrompt,changeEditor] )
+	changePrompt = ChangeChild 0 NoChange
+	changeEditor = ChangeChild 1 (ChangeUI [("setEditorValue",[JSONString "foo"])] [])
 
-	changeAction = (1,ChangeUI [("enable",[])] []) //Enable the first action
+	changeAction = ChangeChild 1 (ChangeUI [("enable",[])] []) //Enable the first action
 
 testStepApplyAction = testTaskOutput "Test replacement of UI after step" minimalStep events exp
 where
 	events = [ResetEvent,minimalStepInputEvent,ActionEvent (TaskId 1 0) "Ok"] 
 	exp = [ReplaceUI expMinStepInitialUI, minimalStepInputResponse, ReplaceUI (expMinimalEditorUI 2 "Result" "foo")] 
+
+testParallelAppend = testTaskOutput "Test dynamically adding a task to a parallel" minimalParallelOperations events exp
+where
+	events = [ResetEvent,ActionEvent (TaskId 1 0) "Push"]
+	exp = []
+	
+testParallelRemove = testTaskOutput "Test dynamically removing a task from a parallel" minimalParallelOperations events exp
+where
+	events = [ResetEvent,ActionEvent (TaskId 1 0) "Pop"]
+	exp = []
 
 testTaskOutput :: String (Task a) [Event] [UIChangeDef] -> Test | iTask a
 testTaskOutput name task events exp = utest name test

@@ -148,10 +148,10 @@ where
 				= ReplaceUI (if evalOpts.autoLayout (autoAccuStep.ContentLayout.layout ui) ui)
 			//Otherwise create a compound change definition
 			_ 	
-				# change = ChangeUI [] [(0,change):actionChanges]
+				# change = ChangeUI [] [ChangeChild 0 change:actionChanges]
 				= if evalOpts.autoLayout (autoAccuStep.ContentLayout.route change) change
 	where
-		actionChanges = [(i,switch enabled name) \\ {UIAction|action=(Action name _),enabled} <- actions & i <- [1..]]
+		actionChanges = [ChangeChild i (switch enabled name) \\ {UIAction|action=(Action name _),enabled} <- actions & i <- [1..]]
 		where
 			switch True name = if (isMember name prevEnabled) NoChange (ChangeUI [("enable",[])] [])
 			switch False name = if (isMember name prevEnabled) (ChangeUI [("disable",[])] []) NoChange
@@ -173,7 +173,6 @@ where
         = case fromJSON json of
             Just a ->  Just (f_tva_tb a)
             Nothing -> Nothing
-import StdDebug
 
 matchAction :: TaskId Event -> Maybe String
 matchAction taskId (ActionEvent matchId action)
@@ -215,9 +214,6 @@ where
     match f (e :: e^)	= Just (f e, DeferredJSON e)
     match _ _			= Nothing
 
-setParallel taskId evalOpts = {evalOpts & tonicOpts = {evalOpts.tonicOpts & inParallel = Just taskId}}
-
-import StdDebug
 
 // Parallel composition
 parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | iTask a
@@ -275,6 +271,8 @@ where
     	= (ExceptionResult (exception "Corrupt task state in parallel"), iworld)
 
 //Parallel helper functions
+setParallel taskId evalOpts = {evalOpts & tonicOpts = {evalOpts.tonicOpts & inParallel = Just taskId}}
+
 initParallelTasks :: !TaskEvalOpts !TaskId !Int ![(!ParallelTaskType,!ParallelTask a)] !*IWorld -> (!MaybeError TaskException ([ParallelTaskState],[(TaskId,Task a)]),!*IWorld) | iTask a
 initParallelTasks _ _ _ [] iworld = (Ok ([],[]),iworld)
 initParallelTasks evalOpts listId index [(parType,parTask):parTasks] iworld
@@ -483,8 +481,8 @@ genParallelRep evalOpts event actions results
 									 ]
 			= ReplaceUI (if evalOpts.autoLayout (autoAccuParallel.ContentLayout.layout ui) ui)
 		_ 
-			# change = ChangeUI [] [(0,ChangeUI [] [(i,change) \\ ValueResult _ _ change _ <- results & i <- [0..]])
-						   		   ,(1,NoChange) //TODO Update actions
+			# change = ChangeUI [] [ChangeChild 0 (ChangeUI [] [ChangeChild i change \\ ValueResult _ _ change _ <- results & i <- [0..]])
+						   		   ,ChangeChild 1 NoChange //TODO Update actions
 								   ]
 			= if evalOpts.autoLayout (autoAccuParallel.ContentLayout.route change) change
 
@@ -731,7 +729,7 @@ where
 		# (url, iworld)		= newURL iworld
 		// Trick to make it work until John fixes the compiler
 		# exposedShares 	= 'DM'.put url (dynamic shared :: RWShared p^ r^ w^, toJSONShared shared) exposedShares
-		# (taskIda,iworld)	= trace_n ("SDS is exposed as "+++url) (getNextTaskId iworld)
+		# (taskIda,iworld)	= getNextTaskId iworld
 		= eval event evalOpts (TCExposedShared taskId ts url (TCInit taskIda ts)) {iworld & exposedShares = exposedShares}
 		
 	eval event evalOpts (TCExposedShared taskId ts url treea) iworld=:{current={taskTime}}

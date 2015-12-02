@@ -8,14 +8,18 @@ import Text, Text.JSON
 import iTasks._Framework.Util, iTasks.UI.Definition
 from iTasks._Framework.Task import :: Event(..)
 
-derive class iTask UIChangeDef
+derive class iTask UIChangeDef, UIChildChange
 
 //Remove unnessecary directives
 compactChangeDef :: UIChangeDef -> UIChangeDef
 compactChangeDef (ChangeUI localChanges children)
-	= case ChangeUI localChanges [child \\ child=:(_,change) <- map (appSnd compactChangeDef) children | not (change =: NoChange)] of
+	= case ChangeUI localChanges [child \\ child=:(ChangeChild _ change) <- map compactChildDef children | not (change =: NoChange)] of
 		ChangeUI [] [] 	= NoChange
 		def 			= def
+where
+	compactChildDef (ChangeChild idx change) = ChangeChild idx change
+	compactChildDef def = def
+
 compactChangeDef def = def
 
 encodeUIChangeDefs :: ![UIChangeDef] -> JSONNode
@@ -33,5 +37,5 @@ encodeUIChangeDef (ChangeUI operations children)
 		[("type",JSONString "change")
 		,("operations", JSONArray [JSONObject [("method",JSONString method),("arguments",JSONArray arguments)] 
 											\\ (method,arguments) <- operations])
-		,("children",JSONArray [JSONArray [JSONInt i, encodeUIChangeDef child] \\ (i,child) <- children])
+		,("children",JSONArray [JSONArray [JSONInt i, encodeUIChangeDef child] \\ ChangeChild i child <- children])
 		]
