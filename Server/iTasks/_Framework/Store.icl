@@ -320,10 +320,11 @@ listStoreNames namespace iworld
         Error e     = (Error (snd e), {iworld & world = world})
         Ok keys     = (Ok [dropExtension k \\ k <- keys | not (k == "." || k == "..")], {iworld & world = world})
 
-emptyStore :: !*IWorld -> *IWorld //TODO: Properly delete everything in the store
+emptyStore :: !*IWorld -> *IWorld
 emptyStore iworld 
-	# (_,iworld) = deleteValue NS_TASK_INSTANCES "instances" iworld
-	# (_,iworld) = deleteValue NS_TASK_INSTANCES "increment" iworld
-	= iworld
-
-
+	# (namespaces,iworld) = listStoreNamespaces iworld
+	= foldl (\w ns -> emptyNamespace ns w) iworld namespaces
+where
+	emptyNamespace ns iworld = case listStoreNames ns iworld of
+		(Ok stores,iworld) = foldl (\w s -> snd (deleteValue ns s w)) iworld stores
+		(Error _,iworld) = iworld
