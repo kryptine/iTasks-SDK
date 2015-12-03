@@ -338,10 +338,7 @@ where
         Just list = Ok (filter (inFilter listFilter) list)
         Nothing = Error (exception ("Could not find parallel task list of " <+++ taskId))
     write (taskId,listFilter) lists w
-        # r = fromMaybe [] ('DM'.get taskId lists)
-        # w = replaceIf (\x y -> x.ParallelTaskState.taskId == y.ParallelTaskState.taskId) w r
-        //TODO: FIX: You can no longer remove elements from the list with this approach...
-        = Ok (Just ('DM'.put taskId w lists))
+		= Ok (Just ('DM'.put taskId (merge listFilter (fromMaybe [] ('DM'.get taskId lists)) w) lists))
 
     notify (taskId,listFilter) states (regTaskId,regListFilter)
         # states = filter (inFilter listFilter) states //Ignore the states outside our filter
@@ -365,12 +362,20 @@ where
         =  maybe True (\taskIds -> isMember taskId taskIds) onlyTaskId
         && maybe True (\indices -> isMember index indices) onlyIndex
 
-    //For every element of replacements it replaces those elements in source that match the equal predicate
-    replaceIf :: !(a -> a -> Bool) ![a] ![a] -> [a]
-    replaceIf equal replacements source = foldl replaceOrAppend source replacements
-    where
-        replaceOrAppend [] r = [r]
-        replaceOrAppend [x:xs] r = if (equal x r) [r:xs] [x:replaceOrAppend xs r]
+	//ASSUMPTION: BOTH LISTS ARE SORTED BY TASK ID
+	merge listFilter [o:os] [n:ns]
+		| o.ParallelTaskState.taskId == n.ParallelTaskState.taskId //Potential update
+			| inFilter listFilter o = [n:merge listFilter os ns] //Only update the item if it matches the filter
+			| otherwise 			= [o:merge listFilter os ns]
+		| o.ParallelTaskState.taskId < n.ParallelTaskState.taskId //The taskId of the old item is not in the written set
+			| inFilter listFilter o = merge listFilter os [n:ns]  	//The old item was in the filter, so it was removed
+			| otherwise 			= [o:merge listFilter os [n:ns]] //The old item was not in the filter, so it is ok that is not in the written list
+		| otherwise
+			| inFilter listFilter n = [n:merge listFilter [o:os] ns]
+			| otherwise 			= merge listFilter [o:os] ns
+
+	merge listFilter [] ns			= filter (inFilter listFilter) ns //All new elements are only added if they are within the filter
+	merge listFilter os [] 			= filter (not o inFilter listFilter) os //Only keep old elements if they were outside the filter
 
 taskInstanceParallelTaskListItem :: RWShared (TaskId,TaskId,Bool) ParallelTaskState ParallelTaskState
 taskInstanceParallelTaskListItem = sdsLens "taskInstanceParallelTaskListItem" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceParallelTaskList
