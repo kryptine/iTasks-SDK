@@ -2426,58 +2426,8 @@ itwc.controller.prototype = {
             updates = update.updates,
             cmp;
 
-		console.log("UPDATE",update);
         updates.forEach(function(change) {
 			me.applyChange(root.items[0],root,0,change);
-			/*
-			switch(change.type) {
-				case 'update':
-		            cmp = me.findComponent(change.path,root);
-
-					if(!cmp) {
-						console.log("Could not find component at path",change.path);
-						return;
-					}
-		            //Apply operations
-					//'add' and 'remove' are handled directly by the controller
-					//other operations are passed to the component to deal handle
-					change.operations.forEach(function(op) {
-						switch(op.method) {
-                    		case 'add':
-								me.addComponent(cmp,op.arguments[0],op.arguments[1], op.arguments[0] == cmp.items.length);
-								//Call initializion function that needs to be applied after the full component and
-								//its children are available in the DOM
-								cmp.items[op.arguments[0]].afterAdd();
-								break;
-							case 'remove':
-								me.removeComponent(cmp,op.arguments[0], op.arguments[0] == cmp.items.length - 1);
-								break;
-							case 'replace':
-								me.removeComponent(cmp,op.arguments[0], op.arguments[0] == cmp.items.length - 1);
-								me.addComponent(cmp,op.arguments[0],op.arguments[1], op.arguments[0] == cmp.items.length);
-								cmp.items[op.arguments[0]].afterAdd();
-								break;
-							case 'addWindow':
-								me.addWindow(cmp,op.arguments[0],op.arguments[1]);
-								cmp.windows[op.arguments[0]].afterAdd();
-								break;
-							case 'removeWindow':
-								me.removeWindow(cmp,op.arguments[0]);
-								break;
-							case 'addMenu':
-								me.addMenu(cmp,op.arguments[0]);
-								break;
-							case 'removeMenu':
-								me.removeMenu(cmp,op.arguments[0]);
-								break;
-							default:
-								cmp.applyUpdate(op.method,op.arguments);
-							break;
-						}
-					});
-					break;
-			}
-			*/
         });
     },
 	applyChange: function(cmp,parentCmp,indexInParent,change) {
@@ -2486,8 +2436,8 @@ itwc.controller.prototype = {
 		if(change && cmp) {
 			switch(change.type) {
 				case 'replace':
-					me.removeComponent(parentCmp,indexInParent,indexInParent == parentCmp.items.length - 1);
-					me.addComponent(parentCmp, indexInParent, change.definition, indexInParent == parentCmp.items.length );
+					me.removeComponent(parentCmp,indexInParent);
+					me.insertComponent(parentCmp, indexInParent, change.definition);
 					parentCmp.items[indexInParent].afterAdd();
 					break;
 				case 'change':
@@ -2502,8 +2452,19 @@ itwc.controller.prototype = {
 					//Recursively apply changes to children
 					if(cmp.items && cmp.items instanceof Array && change.children instanceof Array) {
 						change.children.forEach(function(child) {
-							if(child && child.length == 2) {
-								me.applyChange(cmp.items[child[0]],cmp,child[0],child[1]);
+							if(child && child.length >= 2) {
+								switch(child[1]) {
+									case 'change':
+										me.applyChange(cmp.items[child[0]], cmp, child[0], child[2]);
+										break;
+									case 'remove':
+										me.removeComponent(cmp, child[0]);
+										break;
+									case 'insert':
+										me.insertComponent(cmp, child[0], child[2]); 
+										cmp.items[child[0]].afterAdd();
+										break;
+								}
 							}
 						});	
 					}
@@ -2529,9 +2490,9 @@ itwc.controller.prototype = {
         });
         return cmp;
     },
-    addComponent: function(parentCmp,insertIdx,insertDef,isLast) {
-        var me = this, newCmp, prevIdx;
-
+    insertComponent: function(parentCmp,insertIdx,insertDef) {
+        var me = this, newCmp, prevIdx,
+				isLast = (insertIdx == parentCmp.items.length);
         //Create component
         if(itwc.component[insertDef.xtype]) {
             newCmp = new itwc.component[insertDef.xtype]();
@@ -2558,7 +2519,7 @@ itwc.controller.prototype = {
 			var i = 0;
             insertDef.items.forEach(function(childCmp,childIdx) {
 				i++;
-                me.addComponent(newCmp,childIdx,childCmp,i == numChildren);
+                me.insertComponent(newCmp,childIdx,childCmp);
             });
         }
         //Recursively add menu items
@@ -2577,9 +2538,9 @@ itwc.controller.prototype = {
             parentCmp.targetEl.insertBefore(newCmp.domEl,parentCmp.targetEl.childNodes[insertIdx]);
         }
     },
-    removeComponent: function(parentCmp,removeIdx,isLast) {
-        var prevIdx;
-
+    removeComponent: function(parentCmp,removeIdx) {
+        var prevIdx,
+			isLast = (removeIdx == parentCmp.items.length - 1);
         //Call pre-removal function
         parentCmp.items[removeIdx].beforeDOMRemove();
 
@@ -2604,13 +2565,13 @@ itwc.controller.prototype = {
         //Add window's children
         if(winDef.items) {
             winDef.items.forEach(function(childCmp,childIdx) {
-                me.addComponent(win,childIdx,childCmp);
+                me.insertComponent(win,childIdx,childCmp);
             });
         }
         //Add window' menus
         if(win.menu && winDef.menu) {
             winDef.menu.forEach(function(childCmp,childIdx) {
-                me.addComponent(win.menu,childIdx,childCmp);
+                me.insertComponent(win.menu,childIdx,childCmp);
             });
         }
         //Register references
@@ -2647,7 +2608,7 @@ itwc.controller.prototype = {
         //Add menu items
         if(cmp.menu) {
             items.forEach(function(childCmp,childIdx) {
-                me.addComponent(cmp.menu,childIdx,childCmp);
+                me.insertComponent(cmp.menu,childIdx,childCmp);
             });
         }
     },
@@ -2722,7 +2683,7 @@ itwc.controller.prototype = {
 		me.layers[0].controller = this;
 		
 		//Set initial UI
-		me.addComponent(me.layers[0],0,{xtype:'itwc_view_string',value: 'Loading...'});
+		me.insertComponent(me.layers[0],0,{xtype:'itwc_view_string',value: 'Loading...'});
 
         document.body.appendChild(me.layers[0].domEl);
 

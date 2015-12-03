@@ -150,15 +150,35 @@ where
 	events = [ResetEvent,minimalStepInputEvent,ActionEvent (TaskId 1 0) "Ok"] 
 	exp = [ReplaceUI expMinStepInitialUI, minimalStepInputResponse, ReplaceUI (expMinimalEditorUI 2 "Result" "foo")] 
 
+expMinParOperationsInitialUI
+	= UICompoundContent [parts,actions]
+where
+	parts = UICompoundContent [expEditorUI]
+
+	expEditorUI
+		= UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [expPromptUI "INITIAL: 0",editor]
+	where
+		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditInt defaultHSizeOpts editorOpts)
+		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a whole number")]
+		editorOpts = {UIEditOpts|value=Just (JSONInt 0),taskId="1-1",editorId="v"}
+
+	actions = UICompoundContent [expActionPush,expActionPop]
+	expActionPush = UIAction {UIAction|action=Action "Push" [],taskId="1-0",enabled=True}
+	expActionPop = UIAction {UIAction|action=Action "Pop" [],taskId="1-0",enabled=True}
+
 testParallelAppend = testTaskOutput "Test dynamically adding a task to a parallel" minimalParallelOperations events exp (===)
 where
-	events = [ResetEvent,ActionEvent (TaskId 1 0) "Push"]
-	exp = []
+	events = [ResetEvent]//,ActionEvent (TaskId 1 0) "Push"]
+	exp = [ReplaceUI expMinParOperationsInitialUI]//,NoChange]
 	
 testParallelRemove = testTaskOutput "Test dynamically removing a task from a parallel" minimalParallelOperations events exp (===)
 where
-	events = [ResetEvent,ActionEvent (TaskId 1 0) "Pop"]
-	exp = []
+	events = [ResetEvent, ActionEvent (TaskId 1 0) "Pop"]
+	exp = [ReplaceUI expMinParOperationsInitialUI, ChangeUI [] [ChangeChild 0 itemChanges, ChangeChild 1 actionChanges]]
+
+	itemChanges = ChangeUI [] [RemoveChild 0] 
+	//When there are no more elements, the pop action should be disabled
+	actionChanges = ChangeUI [] [ChangeChild 0 NoChange, ChangeChild 1 (ChangeUI [("disable",[])] [])] 
 
 testTaskOutput :: String (Task a) [Event] [UIChangeDef] ([UIChangeDef] [UIChangeDef] -> Bool) -> Test | iTask a
 testTaskOutput name task events exp comparison = utest name test

@@ -453,7 +453,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
           // - The childTaskId blueprint won't be instantiated before the continuation is evaluated
           # (mparent_bpr, iworld) = 'DSDS'.read (sdsFocus (parentBPInst.bpi_taskId, currBlueprintModuleName, currBlueprintFuncName) tonicInstances) iworld
           # iworld = case (tr, mparent_bpr) of
-                       (ValueResult _ _ _ (TCParallel childTaskId _ parallelChildren), Ok (Just new_parent_instance))
+                       (ValueResult _ _ _ (TCParallel childTaskId _ parallelChildren _), Ok (Just new_parent_instance))
                          = evalParallel new_parent_instance tr evalOpts childTaskId parallelChildren iworld
                        (_, Ok (Just new_parent_instance))
                          # (new_parent_instance, chng)          = case (tr, cases) of

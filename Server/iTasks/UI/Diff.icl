@@ -37,5 +37,10 @@ encodeUIChangeDef (ChangeUI operations children)
 		[("type",JSONString "change")
 		,("operations", JSONArray [JSONObject [("method",JSONString method),("arguments",JSONArray arguments)] 
 											\\ (method,arguments) <- operations])
-		,("children",JSONArray [JSONArray [JSONInt i, encodeUIChangeDef child] \\ ChangeChild i child <- children])
+		,("children",JSONArray (map encodeChildChange children))
 		]
+where
+	encodeChildChange (ChangeChild i child) = JSONArray [JSONInt i,JSONString "change",encodeUIChangeDef child]
+	encodeChildChange (RemoveChild i) 		= JSONArray [JSONInt i,JSONString "remove"]
+	encodeChildChange (InsertChild i child) = JSONArray [JSONInt i,JSONString "insert",encodeUI child]
+
