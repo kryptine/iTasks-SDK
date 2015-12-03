@@ -23,5 +23,12 @@ The most up-to-date example suite to run at the moment is the examples collectio
 - Open the "iTasks-SDK/Documentation/Examples/BasicAPIExamples.prj" Clean project. ("File" -> "Open...")
 - You build the project by choosing ("Project" -> "Update and Run") from the menu.
 - A BasicAPIExamples.exe server is started automatically which you can access at "http://localhost/"
-- Further instructions for setting up are given by the server 
+- Further instructions for setting up are given by the server
+
+= SDK Path =
+The iTask system has to find the path to the SDK. There are three ways to make sure it can find it:
+
+1. Make sure your executable is executed in a sub-directory of the Clean installation (not more than 5 levels deeper than the Clean root), e.g. by creating your project in such location.
+2. Set the environment variable CLEAN_HOME to the root directory of your Clean installation.
+3. Install Clean in "C:\Clean 2.4".
 
