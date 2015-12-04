@@ -207,7 +207,7 @@ body, input, td, th, select {
     height: 16px;
 }
 .button-disabled {
-    color: $button-text-color - #666;
+    color: $button-text-color + #aaa;
     background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color - #222);
     background: -webkit-linear-gradient(top, $button-base-color + #101010, $button-base-color - #222);
 }

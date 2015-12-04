@@ -335,7 +335,7 @@ body, input, td, th, select {
   height: 16px; }
 
 .button-disabled {
-  color: black;
+  color: #aaaaaa;
   background: -moz-linear-gradient(top, #fefefe, #cccccc);
   background: -webkit-linear-gradient(top, #fefefe, #cccccc); }
 
@@ -755,3 +755,5 @@ body, input, td, th, select {
 .hsplitter {
   width: 5px;
   cursor: col-resize; }
+
+/*# sourceMappingURL=itwc-theme.css.map */

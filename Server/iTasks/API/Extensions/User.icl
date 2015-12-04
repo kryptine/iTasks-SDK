@@ -222,20 +222,28 @@ where
     where
         filter = {TaskListFilter|onlySelf=False,onlyTaskId = Nothing, onlyIndex = Just [1]
                  ,includeValue=False,includeAttributes=True,includeProgress=True}
-					
-	toView (_,[{TaskListItem|progress=Just p,attributes}:_]) =
-		{ assignedTo	= toSingleLineText (case ('DM'.get "user" attributes, 'DM'.get "role" attributes) of
-                                              (Just u, _) -> Just (toString u)
-                                              (_, Just r) -> Just (toString r)
-                                              _           -> Nothing)
-		, firstWorkedOn	= p.InstanceProgress.firstEvent
-		, lastWorkedOn	= p.InstanceProgress.lastEvent
-        , taskStatus    = case p.InstanceProgress.value of
-                            None      -> "No results so far..."
-                            Unstable  -> "In progres..."
-                            Stable    -> "Task done"
-                            Exception -> "Something went wrong"
-        }
+
+    toView (_,[{TaskListItem|progress=Just p,attributes}:_]) =
+      { assignedTo    = mkAssignedTo attributes
+      , firstWorkedOn = p.InstanceProgress.firstEvent
+      , lastWorkedOn  = p.InstanceProgress.lastEvent
+      , taskStatus    = case p.InstanceProgress.value of
+                          None      -> "No results so far..."
+                          Unstable  -> "In progres..."
+                          Stable    -> "Task done"
+                          Exception -> "Something went wrong"
+      }
+    toView (_,[{TaskListItem|attributes}:_]) =
+      { assignedTo    = mkAssignedTo attributes
+      , firstWorkedOn = Nothing
+      , lastWorkedOn  = Nothing
+      , taskStatus    = "No progress"
+      }
+    mkAssignedTo attributes = toSingleLineText (case ('DM'.get "user" attributes, 'DM'.get "role" attributes) of
+                                                  (Just u, _) -> Just (toString u)
+                                                  (_, Just r) -> Just (toString r)
+                                                  _           -> Nothing)
+
 
 	result (Value [_,(_,v)] _)	= v
 	result _					= NoValue

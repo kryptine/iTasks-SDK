@@ -319,7 +319,7 @@ where
         Just list = Ok (filter (inFilter listFilter) list)
         Nothing = Error (exception ("Could not find parallel task list of " <+++ taskId))
     write (taskId,listFilter) lists w
-        = Ok (Just ('DM'.put taskId (merge listFilter (fromMaybe [] ('DM'.get taskId lists)) w) lists))
+		= Ok (Just ('DM'.put taskId (merge listFilter (fromMaybe [] ('DM'.get taskId lists)) w) lists))
 
     notify (taskId,listFilter) states (regTaskId,regListFilter)
         # states = filter (inFilter listFilter) states //Ignore the states outside our filter

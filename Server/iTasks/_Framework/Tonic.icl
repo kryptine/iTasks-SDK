@@ -10,6 +10,7 @@ import iTasks._Framework.Tonic.Images
 import iTasks._Framework.Tonic.Types
 import iTasks._Framework.Tonic.Pretty
 import iTasks._Framework.Tonic.Shares
+import iTasks._Framework.Tonic.Server
 import iTasks._Framework.TaskState
 import iTasks._Framework.TaskStore
 import iTasks._Framework.TaskEval
@@ -45,7 +46,10 @@ from Control.Monad import `b`, class Monad, instance Monad Maybe
 import qualified Control.Applicative as CA
 from Control.Applicative import class Applicative, instance Applicative Maybe
 import Data.CircularStack
-
+import qualified TCPIP as TCP
+from TCPChannelClass import :: DuplexChannel {..}, instance ChannelEnv World, class ChannelEnv
+from TCPChannels import instance Send TCP_SChannel_, class Send, instance closeRChannel	TCP_RChannel_, class closeRChannel
+from TCPEvent import instance accSChannel TCP_SChannel_, class accSChannel
 import System.IO
 from Text.Parsers.Parsers import :: Parser
 import qualified Text.Parsers.Parsers as PS
@@ -66,6 +70,8 @@ instance TonicBlueprintPart Maybe where
 
 :: TonicIOState =
   { currIndent :: Int
+  , moduleName :: String
+  , funcName   :: String
   }
 
 derive class iTask TonicIOState
@@ -77,7 +83,7 @@ readTonicState
   =             readFileM TonicIOFile
   >>= \tfile -> case fromJSON (fromString tfile) of
                   Just ts -> return ts
-                  _       -> return { TonicIOState | currIndent = 0 }
+                  _       -> return { TonicIOState | currIndent = 0, moduleName = "", funcName = "" }
 
 writeTonicState :: TonicIOState -> IO ()
 writeTonicState st = writeFileM TonicIOFile (toString (toJSON st))
@@ -90,26 +96,61 @@ underline n = repeatStr "-" n
 
 repeatStr :: !String !Int -> String
 repeatStr str n = foldr (+++) "" (repeatn n str)
+import StdDebug
+tcpsend :: TonicMessage *World -> *World
+tcpsend msg world
+  = case tcpsend` "localhost" 9000 [toString (toJSON msg) +++ "TONIC_EOL"] world of
+      (Ok _, world) -> world
+      (Error str, _) -> abort str
+
+tcpsend` :: String Int [String] *World -> *(MaybeError String (), *World)
+tcpsend` host port out world
+  # (mbIP, world) = 'TCP'.lookupIPAddress host world
+  = case mbIP of
+      Nothing = (mkError, world)
+      Just ip
+        # (_, mbConn, world) = 'TCP'.connectTCP_MT Nothing (ip, port) world
+        = case mbConn of
+            Nothing
+              = (mkError, world)
+            Just {DuplexChannel | rChannel, sChannel}
+              # (sChannel, world) = case out of
+                                      []   -> (sChannel, world)
+                                      data -> foldl (\(s, w) d -> 'TCP'.send ('TCP'.toByteSeq d) s w) (sChannel, world) data
+              # world = 'TCP'.closeRChannel rChannel world
+              # world = 'TCP'.closeChannel sChannel world
+              = (Ok (), world)
+  where
+  mkError = Error ("Failed to connect to host " +++ host)
+
 
 instance TonicTopLevelBlueprint IO where
   tonicWrapBody mn tn args _ t
-    =                             readTonicState
-    >>= \ts=:{currIndent = ci} -> let message = "In " +++ mn +++ "." +++ tn +++ " (" +++ toString (length args) +++ " arguments)"
-                                  in  putStrLn (indent ci +++ if (ci > 0) "| " "" +++ message)
-    >>= \_ ->                     putStrLn (indent ci +++ if (ci > 0) "|" "" +++ underline (size message + 1))
-    >>= \_ ->                     writeTonicState {ts & currIndent = ci + 1}
-    >>= \_ ->                     t
-    >>= \tr ->                    writeTonicState ts
-    >>= \_ ->                     return tr
+    | isLambda tn = t
+    | otherwise
+        =   writeTonicState { currIndent = 0, moduleName = mn, funcName = tn }
+        >>| t
   tonicWrapArg _ _ _ = return ()
 
 instance TonicBlueprintPart IO where
   tonicWrapApp mn fn nid _ mb
     | isLambda fn = mb
     | otherwise
-        =                             readTonicState
-        >>= \ts=:{currIndent = ci} -> putStrLn (indent (ci - 1) +++ if (ci - 1 > 0) "| " "" +++ "Applying " +++ mn +++ "." +++ fn +++ " (node ID " +++ ppnid nid +++ ").")
-        >>= \_ ->                     mb
+        =          readTonicState
+        >>= \ts -> withWorld (doSend ts)
+        >>|        mb
+    where
+    doSend { TonicIOState | moduleName, funcName } world
+      # msg = { TonicMessage
+              | computationId  = []
+              , nodeId         = nid
+              , bpModuleName   = moduleName
+              , bpFunctionName = funcName
+              , appModuleName  = mn
+              , appFunName     = fn
+              }
+      # world = tcpsend msg world
+      = ((), world)
 
 instance TApplicative IO where
   return x   = IO (\s -> (x, s))
@@ -374,7 +415,6 @@ stepEval` cases nid childTaskId=:(TaskId ino tno) eval event evalOpts=:{TaskEval
                               _                 -> snd ('DSDS'.write xs focus iworld)
           = iworld
 
-import StdDebug
 derive class iTask TonicOpts
 
 ppeid xs = foldr (\x xs -> toString x +++ "," +++ xs) "" xs
@@ -540,6 +580,8 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
     # (_, iworld) = 'DSDS'.write newParent (sdsFocus (parentBPInst.bpi_taskId, tonicOpts.currBlueprintModuleName, tonicOpts.currBlueprintFuncName) tonicInstances) iworld
     = iworld
 
+  evalParallel :: BlueprintInstance (TaskResult a) TaskEvalOpts TaskId [(TaskId, TaskTree)] *IWorld
+               -> *IWorld | iTask a
   evalParallel pinst tr evalOpts childTaskId parallelChildren iworld
     # currActive = case 'DM'.get childTaskId pinst.bpi_activeNodes of
                      Just ns -> ns
@@ -548,16 +590,18 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
     # (tf_body, _, _) = updateNode nid (\x -> case x of
                                                 e=:(TMApp _ _ _ _ [TMApp _ _ _ _ _ _ _ : _] _ _) -> e
                                                 e=:(TMApp _ _ _ _ [TFApp _ "_Cons" _ _ : _] _ _) -> e // TODO This is probably insufficient. It will capture things like [t1:someOtherTasks], where we would like to expand someOtherTasks at runtime
-                                                //TMApp eid mtn mn tn _ pr ptr -> TMApp eid mtn mn tn [list2TExpr childNodes] pr ptr
+                                                TMApp eid mtn mn tn _ pr ptr -> TMApp eid mtn mn tn [list2TExpr childNodes] pr ptr // FIXME This conflicts with another example (I forgot which one)
                                                 e -> e
                                        ) pinst.bpi_blueprint.tf_body
-    # pinst = { pinst
-              & bpi_blueprint = { pinst.bpi_blueprint & tf_body = tf_body}
-              , bpi_activeNodes = 'DM'.put childTaskId currActive pinst.bpi_activeNodes}
+    # pinst  = { pinst
+               & bpi_blueprint = { pinst.bpi_blueprint & tf_body = tf_body}
+               , bpi_activeNodes = 'DM'.put childTaskId currActive pinst.bpi_activeNodes}
     # iworld = snd ('DSDS'.write pinst (sdsFocus (pinst.bpi_taskId, pinst.bpi_bpref.bpr_moduleName, pinst.bpi_bpref.bpr_taskName) tonicInstances) iworld)
     # iworld = storeTaskOutputViewer tr nid evalOpts.tonicOpts.currBlueprintTaskId childTaskId iworld
     = iworld
     where
+    registerTask :: TaskId TaskId (Int, (TaskId, TaskTree)) *([TExpr], IntMap (TaskId, [Int]), *IWorld)
+                 -> *([TExpr], IntMap (TaskId, [Int]), *IWorld)
     registerTask (TaskId parentInstanceNo parentTaskNo) (TaskId listInstanceNo listTaskNo) (n, (tid, _)) (acc, currActive, iworld)
       # (mchild_bpr, iworld) = 'DSDS'.read (sdsFocus tid allTonicInstances) iworld
       = case mchild_bpr of
