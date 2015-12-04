@@ -14,7 +14,7 @@ derive gEq UISide
 
 instance descr ()
 where
-	toPrompt _ = UIEmpty {UIEmpty|actions=[]}
+	toPrompt _ = UIEmpty
 
 instance descr String
 where
@@ -61,12 +61,12 @@ where
 autoAccuStep :: ContentLayout
 autoAccuStep = {ContentLayout|layout=layout,route=route}
 where
-	layout (UICompoundContent [UIEmpty {UIEmpty|actions}:stepActions])
-		= UIEmpty {UIEmpty|actions=actions ++ [a \\ UIAction a <- stepActions]}
+	layout (UICompoundContent [UIEmpty:stepActions]) //Remove the empty element
+		= UICompoundContent stepActions
 	layout (UICompoundContent [UIForm stack=:{UIForm|attributes,controls,size}:stepActions])
 		//Recognize special case of a complete empty interaction wrapped in a step as an actionset
 		| isEmpty controls
-			= UIEmpty {UIEmpty|actions=[a \\ UIAction a <- stepActions]}
+			= UICompoundContent stepActions
     	//Promote to abstract container
 		# stepActions = [a \\ UIAction a <- stepActions]
        	# (triggers,stepActions) = extractTriggers stepActions
@@ -102,8 +102,6 @@ where
             	= addTriggersToUIDef triggers (UIBlock {UIBlock|block & actions = block.UIBlock.actions ++ parActions})
         	[UIBlock block]
             	= addTriggersToUIDef triggers (UIBlock {UIBlock|block & actions = block.UIBlock.actions ++ parActions})
-        	[UIEmpty {UIEmpty|actions}]
-            	= addTriggersToUIDef triggers (UIEmpty {UIEmpty|actions=actions ++ parActions})
         	[def=:(UIFinal _)]
             	= addTriggersToUIDef triggers def
         	_
@@ -142,8 +140,6 @@ where
 
     	collectBlocks (UIForm form) (blocks,actions)
         	= ([autoLayoutForm form:blocks],actions)
-    	collectBlocks (UIEmpty {UIEmpty|actions}) (blocks,actions1)
-        	= (blocks,actions ++ actions1)
     	collectBlocks (UIBlock block) (blocks,actions)
         	= ([block:blocks],actions)
     	collectBlocks (UIBlocks blocks2 actions2) (blocks1,actions1)
@@ -435,11 +431,11 @@ uiDefToWindow windowType vpos hpos (UILayers [main:layers])
 		(UILayers mainlayers) 	= UILayers (mainlayers++layers)
 		main 					= UILayers [main:layers]
 uiDefToWindow windowType vpos hpos (UIForm form)
-	= UILayers [UIEmpty {UIEmpty|actions=[]},UIWindow (blockToWindow windowType vpos hpos (autoLayoutForm form))]
+	= UILayers [UIEmpty, UIWindow (blockToWindow windowType vpos hpos (autoLayoutForm form))]
 uiDefToWindow windowType vpos hpos (UIBlock block)
-    = UILayers [UIEmpty {UIEmpty|actions=[]}, UIWindow (blockToWindow windowType vpos hpos block)]
+    = UILayers [UIEmpty, UIWindow (blockToWindow windowType vpos hpos block)]
 uiDefToWindow windowType vpos hpos (UIBlocks blocks actions)
-    = UILayers [UIEmpty {UIEmpty|actions=[]}, UIWindow (blockToWindow windowType vpos hpos (autoLayoutBlocks blocks actions))]
+    = UILayers [UIEmpty, UIWindow (blockToWindow windowType vpos hpos (autoLayoutBlocks blocks actions))]
 uiDefToWindow windowType vpos hpos def = def
 
 blockToWindow :: UIWindowType UIVAlign UIHAlign UIBlock -> UIWindow
@@ -466,7 +462,7 @@ autoLayoutFinal = {ContentLayout|layout=layout,route=route}
 where
 	layout (UILayers [main:aux])
 		= UILayers [layout main:aux]
-	layout (UIEmpty {UIEmpty|actions})
+	layout UIEmpty
 		= UIFinal (defaultPanel [])
 	layout (UIForm stack)
     	= layout (UIBlock (autoLayoutForm stack))
@@ -491,7 +487,7 @@ plainLayoutFinal = {ContentLayout|layout=layout,route=route}
 where
 	layout (UILayers [main:rest])
 		= UILayers [layout main:rest]
-	layout (UIEmpty {UIEmpty|actions})
+	layout UIEmpty
 		= UIFinal (defaultContainer [])
 	layout (UIBlock block=:{UIBlock|attributes,content,actions,hotkeys})
     	# (control,_,_,_) = blockToContainer block

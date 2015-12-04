@@ -135,7 +135,7 @@ visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworl
 			# promptChange 		= NoChange
 			# change 			= ChangeUI [] [ChangeChild 0 promptChange, ChangeChild 1 editChange]
 			# change 			= if evalOpts.autoLayout (autoAccuInteract.ContentLayout.route change) change
-			= (UIEmpty {UIEmpty|actions=[]},change,vst)
+			= (UIEmpty,change,vst)
 	= (ui,change,isValid ver,iworld)
 
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w

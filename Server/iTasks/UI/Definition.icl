@@ -349,7 +349,6 @@ uiDefAnnotatedControls (UIFinal control)						= [(control,'DM'.newMap)]
 uiDefAnnotatedControls _										= []
 
 uiDefActions :: UIDef -> [UIAction]
-uiDefActions (UIEmpty {UIEmpty|actions})	= actions
 uiDefActions (UIBlock {UIBlock|actions})	= actions
 uiDefActions _								= []
 
@@ -456,7 +455,7 @@ where
 
 instance encodeUI UIDef
 where
-	encodeUI (UIEmpty empty) 				= component "itwc_raw_empty" []
+	encodeUI UIEmpty 						= component "itwc_raw_empty" []
 	encodeUI (UIEditor _ control) 			= encodeUI control
 	//encodeUI (UIEditor opts control) 		= component "itwc_raw_editor" [encodeUI opts,encodeUI (defaultItemsOpts [control])]
 	encodeUI (UICompoundEditor opts defs)	= component "itwc_raw_compoundeditor"  [encodeUI opts, JSONObject [("items",JSONArray (map encodeUI defs))]]

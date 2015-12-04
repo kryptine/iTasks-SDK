@@ -8,8 +8,8 @@ derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult
 gText{|UnitTest|} _ _			            = []
 gEditor{|UnitTest|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI _ _ _ _ vst			    = (UIEmpty {UIEmpty|actions=[]},vst)
-	genDiff _ _ _ vst 				= (NoChange, vst)
+	genUI _ _ _ _ vst			    = (UIEmpty,vst)
+	genDiff _ _ _ vst 				= (NoChange,vst)
 	appDiff _ _ val mask ust 		= (val,mask,ust)
 
 gEditMeta{|UnitTest|} _ 	   = [{label=Just "Unit test",hint=Nothing,unit=Nothing}]

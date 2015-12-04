@@ -43,7 +43,7 @@ instance Functor UIViewOpts
 */
 
 :: UIDef
-    = UIEmpty   !UIEmpty                //An empty task UI, which may still carry windows and actions
+    = UIEmpty
 	//Constructors for editors
 	| UIEditor 			!UIEditor !UIControl 
 	| UICompoundEditor 	!UIEditor ![UIDef]

@@ -100,7 +100,7 @@ where
 		(UIDropdown  {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
 					   {UIChoiceOpts|taskId="STUB", editorId="v", value = [0], options = ["ConsWithFieldA","ConsWithFieldB"]}))
 
-	fieldsExp = UIEmpty {UIEmpty|actions=[]} //Placeholder
+	fieldsExp = UIEmpty //Placeholder
 
 testRecordTouched = testGenUI "Touched record"
 	(UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap}

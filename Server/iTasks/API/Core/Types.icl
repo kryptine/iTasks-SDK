@@ -1309,7 +1309,7 @@ gText{|Hidden|} _ _ _ = []
 
 gEditor{|Hidden|} fx _ _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
-	genUI dp val mask ver vst = (UIEmpty {UIEmpty|actions=[]},vst)
+	genUI dp val mask ver vst = (UIEmpty,vst)
 	genDiff dp old new vst = (NoChange,vst)
 	appDiff dp e val mask ust = (val,mask,ust)
 
@@ -1546,7 +1546,7 @@ where
 	
 instance descr [d] | descr d
 where
-	toPrompt list = UIEmpty {UIEmpty|actions=[]} //foldl mergeAttributes 'DM'.newMap (map toPrompt list)
+	toPrompt list = UIEmpty //foldl mergeAttributes 'DM'.newMap (map toPrompt list)
 
 
 derive JSONEncode		Icon
@@ -1591,7 +1591,7 @@ gDefault{|{}|} _ = undef
 gEditMeta{|{}|} _ _ = undef
 gEditor{|{}|} _ _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI _ _ _ _ vst = (UIEmpty {UIEmpty|actions=[]},vst)
+	genUI _ _ _ _ vst = (UIEmpty,vst)
 	genDiff _ _ _ vst = (NoChange,vst)
 	appDiff _ _ val mask ust = (val,mask,ust)
 
