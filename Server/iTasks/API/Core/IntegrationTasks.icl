@@ -74,9 +74,9 @@ where
     makeRep taskId evalOpts status iworld
 		# (content,iworld)	= makeView opts status taskId iworld
 		# prompt			= toPrompt desc
-		# ui 				= UICompoundEditor {UIEditor|optional=False,attributes='Data.Map'.newMap} [prompt,content]
-		# ui 				= if evalOpts.autoLayout (autoAccuInteract.ContentLayout.layout ui) ui
-		= (ReplaceUI ui, iworld)
+		# change 			= ReplaceUI (UICompoundEditor {UIEditor|optional=False,attributes='Data.Map'.newMap} [prompt,content])
+		# change 			= if evalOpts.autoLayout (autoLayoutInteract change) change
+		= (change, iworld)
 						
 	makeView [ViewWith viewFun] status taskId iworld
 		# ver = verifyMaskedValue (Display (viewFun status),Touched)

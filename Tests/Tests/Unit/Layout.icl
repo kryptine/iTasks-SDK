@@ -38,6 +38,6 @@ where
 		# (res,vst) = gEditor{|*|}.genDiff [] { a = {c="foo",d="foo"}, b = { c = "bar", d = "baz"}} {a={c="foo",d="foo"}, b = { c = "bar", d = "bax"}} vst
 		# world = fromStubIWorld (fromStubVSt vst)
 		//Apply the autoAccuInteract layout to the diff
-		# res = autoAccuInteract.ContentLayout.route res
+		# res = autoLayoutInteract res
 		= (res,world)
 

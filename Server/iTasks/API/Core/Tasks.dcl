@@ -182,4 +182,4 @@ shutDown :: Task ()
 matchAndApplyEvent_ :: Event TaskId TaskEvalOpts (Maybe (Editor v)) TaskTime (Masked v) TaskTime d *IWorld
 	-> *(!Masked v,!TaskTime,!*IWorld) | iTask v & descr d
 visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld
-	-> *(!UIDef,!UIChangeDef,!Bool,!*IWorld) | iTask v & descr d
+	-> *(!UIChangeDef,!Bool,!*IWorld) | iTask v & descr d

@@ -8,37 +8,34 @@ import iTasks.UI.Diff
 
 from Data.Maybe import :: Maybe
 
+// When a layout changes the stucture of the UI, changes to the UI have to be
+// changed too to route the changes to the correct place in the structure
+:: Layout :== UIChangeDef -> UIChangeDef
+
 :: UIFormCombinator     :== UIForm -> UIBlock
 :: UIBlocksCombinator   :== [UIBlock] [UIAction] -> UIBlock
 
 // These types are used to specify when to apply layouts
-:: ApplyLayout	= ApplyLayout (UIDef -> UIDef)
+:: ApplyLayout	= ApplyLayout Layout
 :: AutoLayout = WithAutoLayout | WithoutAutoLayout
-
 
 :: SetValueAttribute a = SetValueAttribute !String (a -> String)
 
-// When a layout changes the stucture of the UI, changes to the UI have to be
-// changed too to route the changes to the correct place in the structure
-:: ContentLayout =
-	{ layout 	:: UIDef  		-> UIDef
-	, route  	:: UIChangeDef  -> UIChangeDef
-	}
 
 //These are the layouts that are applied automatically when auto layouting is enabled
-autoAccuInteract        :: ContentLayout 
-autoAccuStep            :: ContentLayout
-autoAccuParallel        :: ContentLayout
-autoAccuAttach 			:: ContentLayout
+autoLayoutInteract 		:: Layout 
+autoLayoutStep  		:: Layout
+autoLayoutParallel 		:: Layout
+autoLayoutAttach 		:: Layout
 
 autoLayoutForm          :: UIForm -> UIBlock
 autoLayoutBlocks        :: [UIBlock] [UIAction] -> UIBlock
 
 //Applied automatically when a published has a UI other than UIFinal
-autoLayoutFinal        :: ContentLayout
+autoLayoutFinal        :: Layout
 
 //Alternative plain final layout
-plainLayoutFinal       :: ContentLayout
+plainLayoutFinal       :: Layout
 
 //Generation of prompts
 class descr d

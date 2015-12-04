@@ -18,7 +18,7 @@ derive bimap Editor,(,,),(,,,)
 
 gEditor{|UNIT|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI dp _ _ _ vst = (UIEmpty {UIEmpty|actions=[]},vst)
+	genUI dp _ _ _ vst = (UIEmpty,vst)
 	genDiff dp _ _ vst = (NoChange,vst)
 	appDiff dp e val mask ust = (val,mask,ust)
 
@@ -95,7 +95,7 @@ where
 	| otherwise
 		# (viz,vst) = ex.Editor.genUI dp x mask ver vst
 		# viz = case viz of
-			UIEmpty _	= UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (stringDisplay (if (isTouched mask) (gtd_conses !! vst.selectedConsIndex).gcd_name "")) 
+			UIEmpty		= UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (stringDisplay (if (isTouched mask) (gtd_conses !! vst.selectedConsIndex).gcd_name "")) 
 			_			= viz
 		= (viz,{vst & selectedConsIndex = curSelectedConsIndex})
 	where
@@ -456,19 +456,19 @@ where
 
 gEditor{|()|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI dp _ _ _ vst = (UIEmpty {UIEmpty|actions=[]},vst)
+	genUI dp _ _ _ vst = (UIEmpty,vst)
 	genDiff _ _ _ vst = (NoChange,vst)
 	appDiff _ _ val mask ust = (val,mask,ust)
 
 gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI _ _ _ _ vst = (UIEmpty {UIEmpty|actions=[]},vst)
+	genUI _ _ _ _ vst = (UIEmpty,vst)
 	genDiff _ _ _ vst = (NoChange,vst)
 	appDiff _ _ val mask ust = (val,mask,ust)
 
 gEditor{|Dynamic|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI _ _ _ _ vst = (UIEmpty {UIEmpty|actions=[]},vst)
+	genUI _ _ _ _ vst = (UIEmpty,vst)
 	genDiff _ _ _ vst = (NoChange,vst)
 	appDiff _ _ val mask ust = (val,mask,ust)
 
@@ -483,7 +483,7 @@ where
 
 gEditor{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI _ _ _ _ vst = (UIEmpty {UIEmpty|actions=[]},vst)
+	genUI _ _ _ _ vst = (UIEmpty,vst)
 
 	genDiff dp old new vst = (NoChange, vst)
 	appDiff _ _ val mask ust = (val,mask,ust)

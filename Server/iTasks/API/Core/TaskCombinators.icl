@@ -141,15 +141,14 @@ where
 		(OnAllExceptions taskbf)	= callWithDeferredJSON taskbf d_json_a
 	
 	doStepLayout taskId evalOpts event actions prevEnabled change val
-		= case (event,change) of
+		# change = case (event,change) of
 			//On reset generate a new step UI
 			(ResetEvent,ReplaceUI ui)  
-				# ui = UICompoundContent [ui:map UIAction (contActions taskId val conts)]
-				= ReplaceUI (if evalOpts.autoLayout (autoAccuStep.ContentLayout.layout ui) ui)
+				= ReplaceUI (UICompoundContent [ui:map UIAction (contActions taskId val conts)])
 			//Otherwise create a compound change definition
 			_ 	
-				# change = ChangeUI [] [ChangeChild 0 change:actionChanges]
-				= if evalOpts.autoLayout (autoAccuStep.ContentLayout.route change) change
+				= ChangeUI [] [ChangeChild 0 change:actionChanges]
+		= if evalOpts.autoLayout (autoLayoutStep change) change
 	where
 		actionChanges = [ChangeChild i (switch enabled name) \\ {UIAction|action=(Action name _),enabled} <- actions & i <- [1..]]
 		where
@@ -514,17 +513,16 @@ genParallelValue results = Value [(lastEvent,val) \\ ValueResult val {TaskEvalIn
 
 genParallelRep :: !TaskEvalOpts !Event [UIAction] [String] [TaskResult a] Int -> TaskRep
 genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
-	= case event of
+	# change = case event of
 		ResetEvent
-			# ui = UICompoundContent [UICompoundContent [def \\ ValueResult _ _ (ReplaceUI def) _ <- results]
+			= ReplaceUI (UICompoundContent [UICompoundContent [def \\ ValueResult _ _ (ReplaceUI def) _ <- results]
 					 				 ,UICompoundContent (map UIAction actions)
-									 ]
-			= ReplaceUI (if evalOpts.autoLayout (autoAccuParallel.ContentLayout.layout ui) ui)
+									 ])
 		_ 
-			# change = ChangeUI [] [ChangeChild 0 (ChangeUI [] (itemChanges 0 prevNumBranches results))
+			= ChangeUI [] [ChangeChild 0 (ChangeUI [] (itemChanges 0 prevNumBranches results))
 						   		   ,ChangeChild 1 (ChangeUI [] actionChanges)
 								   ]
-			= if evalOpts.autoLayout (autoAccuParallel.ContentLayout.route change) change
+	= if evalOpts.autoLayout (autoLayoutParallel change) change
 where
 	itemChanges i numExisting [] = []
 	itemChanges i numExisting [ValueResult _ _ change _:rs]
@@ -706,13 +704,13 @@ where
                 | value === Exception
 				    = (ValueResult (Value ASExcepted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange tree, iworld)
 				| attachedId == taskId
-					# ui 		= embedTaskDef instanceNo instanceKey
-                    # rep       = ReplaceUI (if evalOpts.autoLayout (autoAccuAttach.ContentLayout.layout ui) ui)
+					# rep 		= ReplaceUI (embedTaskDef instanceNo instanceKey)
+                    # rep       = if evalOpts.autoLayout (autoLayoutAttach rep) rep
                     # stable    = value === Stable
 					= (ValueResult (Value (ASAttached stable) stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
 				| otherwise
-					# ui 		= inUseDef
-                    # rep       = ReplaceUI (if evalOpts.autoLayout (autoAccuAttach.ContentLayout.layout ui) ui)
+					# rep 		= ReplaceUI inUseDef
+                    # rep       = if evalOpts.autoLayout (autoLayoutAttach rep) rep
 					= (ValueResult (Value (ASInUse attachedId) False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} rep tree, iworld)		
 			_
 				= (ValueResult (Value ASDeleted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange tree, iworld)
@@ -817,11 +815,8 @@ where
 	tune (ApplyLayout f) (Task eval) = Task eval`
 	where
 		eval` event evalOpts state iworld = case eval event evalOpts state iworld of
-	        (ValueResult value info rep tree,iworld) = (ValueResult value info (updRep rep) tree, iworld)
+	        (ValueResult value info change tree,iworld) = (ValueResult value info (f change) tree, iworld)
             (res,iworld) = (res,iworld)
-
-		updRep (ReplaceUI ui) 		= ReplaceUI (f ui)
-		updRep change 				= change
 
 instance tune AutoLayout
 where

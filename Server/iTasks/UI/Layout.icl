@@ -27,16 +27,16 @@ where
 /**
 * The basic interaction layout simply decorates the prompt and merges it with the editor.
 */
-autoAccuInteract :: ContentLayout 
-autoAccuInteract = {ContentLayout|layout=layout,route=route}
+autoLayoutInteract :: Layout 
+autoLayoutInteract = layout
 where
-	layout editor
+	layout (ReplaceUI editor)
 		//Just flatten all structure into a form
-		= UIForm {UIForm
+		= ReplaceUI (UIForm {UIForm
 				 |attributes = foldl mergeAttributes 'DM'.newMap (map snd controls)
 			 	 ,controls = controls
 			 	 ,size = defaultSizeOpts
-				 }
+				 })
 	where
 		controls = flattenControls editor
 
@@ -44,8 +44,7 @@ where
 		flattenControls (UICompoundEditor _ parts) = flatten (map flattenControls parts)
 		flattenControls def = []
 
-	route change //Also flatten the changes
-		= ChangeUI [] (snd (flattenChanges 0 change))
+	layout change = ChangeUI [] (snd (flattenChanges 0 change))
 	where
 		flattenChanges n NoChange = (n + 1, []) 							//Leaf
 		flattenChanges n c=:(ReplaceUI _) = (n + 1, [ChangeChild n c]) 		//Leaf
@@ -58,9 +57,11 @@ where
 				# (n, remainderChanges) = flattenChildren n cs
 				= (n, childChanges ++ remainderChanges)
 
-autoAccuStep :: ContentLayout
-autoAccuStep = {ContentLayout|layout=layout,route=route}
+autoLayoutStep :: Layout
+autoLayoutStep = layout 
 where
+	layout change = change
+/*
 	layout (UICompoundContent [UIEmpty:stepActions]) //Remove the empty element
 		= UICompoundContent stepActions
 	layout (UICompoundContent [UIForm stack=:{UIForm|attributes,controls,size}:stepActions])
@@ -86,12 +87,13 @@ where
 		# main = layout (UICompoundContent [main:stepActions])
 		= UILayers [main:aux]
 	layout def = def
+*/
 
-	route diffs = diffs
-
-autoAccuParallel :: ContentLayout
-autoAccuParallel = {ContentLayout|layout=layout,route=route}
+autoLayoutParallel :: Layout
+autoLayoutParallel = layout
 where
+	layout change = change
+/*
 	layout (UICompoundContent [UICompoundContent defs,UICompoundContent parActions])
 		# parActions = [a \\ UIAction a <- parActions]
     	# (triggers,parActions)  = extractTriggers parActions
@@ -149,16 +151,15 @@ where
 
 		collectLayers (UILayers [main:aux]) (defs,layers) = ([main:defs], aux ++layers)
 		collectLayers d (defs,layers) 					= ([d:defs],layers)
-
-	route diffs = diffs
+*/
 /**
 * Overrule the title attribute with the title in the task meta data
 */
-autoAccuAttach :: ContentLayout
-autoAccuAttach = {ContentLayout|layout=layout,route=route}
+autoLayoutAttach :: Layout
+autoLayoutAttach = layout
 where
-	layout def = uiDefSetSize FlexSize FlexSize def
-	route diffs = diffs
+	layout change = change
+//	layout def = uiDefSetSize FlexSize FlexSize def
 
 autoLayoutForm :: UIForm -> UIBlock
 //Special case for choices
@@ -233,32 +234,74 @@ autoLayoutBlocks :: [UIBlock] [UIAction] -> UIBlock
 autoLayoutBlocks blocks actions = arrangeVertical blocks actions
 
 instance tune ToWindow
-where tune (ToWindow windowType vpos hpos) t = tune (ApplyLayout (uiDefToWindow windowType vpos hpos)) t
+where
+	tune (ToWindow windowType vpos hpos) t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI ui) = ReplaceUI (uiDefToWindow windowType vpos hpos ui)
+		layout change = change
 
 instance tune InPanel
-where tune InPanel t = tune (ApplyLayout (uiDefSetAttribute CONTAINER_ATTRIBUTE "panel" o forceLayout)) t
+where
+	tune InPanel t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI ui) = ReplaceUI (uiDefSetAttribute CONTAINER_ATTRIBUTE "panel" (forceLayout ui))
+		layout change = change
+
 instance tune InContainer
-where tune InContainer t = tune (ApplyLayout (uiDefSetAttribute CONTAINER_ATTRIBUTE "container" o forceLayout)) t
+where
+	tune InContainer t = tune (ApplyLayout layout ) t
+	where
+		layout (ReplaceUI ui) = ReplaceUI (uiDefSetAttribute CONTAINER_ATTRIBUTE "container" (forceLayout ui))
+		layout change = change
+
 instance tune FullScreen
-where tune FullScreen t = tune (ApplyLayout (uiDefSetAttribute SCREEN_ATTRIBUTE "full" o forceLayout)) t
+where 
+	tune FullScreen t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI ui) = ReplaceUI (uiDefSetAttribute SCREEN_ATTRIBUTE "full" (forceLayout ui))
+		layout change = change
 
 instance tune Title
-where tune (Title title) t = tune (ApplyLayout (uiDefSetAttribute TITLE_ATTRIBUTE title o forceLayout)) t
+where
+	tune (Title title) t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI ui) = ReplaceUI (uiDefSetAttribute TITLE_ATTRIBUTE title (forceLayout ui))
+		layout change = change
+	
 instance tune Icon
-where tune (Icon icon) t = tune (ApplyLayout (uiDefSetAttribute ICON_ATTRIBUTE icon o forceLayout )) t
+where
+	tune (Icon icon) t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI ui) = ReplaceUI (uiDefSetAttribute ICON_ATTRIBUTE icon (forceLayout ui))
+		layout change = change
+
 instance tune Attribute
-where tune (Attribute k v) t = tune (ApplyLayout (uiDefSetAttribute k v o forceLayout)) t
+where
+	tune (Attribute k v) t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI ui) = ReplaceUI (uiDefSetAttribute k v (forceLayout ui))
+		layout change = change
+
 instance tune Label
-where tune (Label label) t = tune (ApplyLayout (tweakControls (map (\(c,a) -> (c,'DM'.put LABEL_ATTRIBUTE label a))))) t
+where
+	tune (Label label) t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI ui) = ReplaceUI ((tweakControls (map (\(c,a) -> (c,'DM'.put LABEL_ATTRIBUTE label a)))) ui)
+		layout change = change
+
 
 instance tune NoUserInterface
 where
     tune NoUserInterface (Task eval) = Task eval`
     where
 	    eval` event repOpts state iworld = eval event {repOpts & noUI = True} state iworld
+
 instance tune ForceLayout
 where
-    tune ForceLayout t = tune (ApplyLayout forceLayout) t
+    tune ForceLayout t = tune (ApplyLayout layout ) t
+	where
+		layout (ReplaceUI ui) = ReplaceUI (forceLayout ui)
+		layout change = change
 
 forceLayout :: UIDef -> UIDef
 forceLayout (UIForm form)              = UIBlock (autoLayoutForm form)
@@ -273,14 +316,20 @@ arrangeBlocks f def                         = def
 
 instance tune ArrangeVertical
 where
-    tune ArrangeVertical t = tune (ApplyLayout (arrangeBlocks arrangeVertical)) t
+    tune ArrangeVertical t = tune (ApplyLayout layout) t
+	where
+ 		layout (ReplaceUI ui) = ReplaceUI (arrangeBlocks arrangeVertical ui)
+		layout change = change
 
 arrangeVertical :: UIBlocksCombinator
 arrangeVertical = arrangeStacked Vertical
 
 instance tune ArrangeHorizontal
 where
-    tune ArrangeHorizontal t = tune (ApplyLayout (arrangeBlocks arrangeHorizontal)) t
+    tune ArrangeHorizontal t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI ui) = ReplaceUI (arrangeBlocks arrangeHorizontal ui)
+		layout change = change
 
 arrangeHorizontal :: UIBlocksCombinator
 arrangeHorizontal = arrangeStacked Horizontal
@@ -299,7 +348,10 @@ where
 
 instance tune ArrangeWithTabs
 where
-    tune ArrangeWithTabs t = tune (ApplyLayout (arrangeBlocks arrangeWithTabs)) t
+    tune ArrangeWithTabs t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI ui) = ReplaceUI (arrangeBlocks arrangeWithTabs ui)
+		layout change = change
 
 arrangeWithTabs :: UIBlocksCombinator
 arrangeWithTabs = arrange
@@ -327,8 +379,10 @@ where
 
 instance tune ArrangeWithSideBar
 where
-    tune (ArrangeWithSideBar index side size resize) t
-        = tune (ApplyLayout (arrangeBlocks (arrangeWithSideBar index side size resize))) t
+    tune (ArrangeWithSideBar index side size resize) t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI ui) = ReplaceUI (arrangeBlocks (arrangeWithSideBar index side size resize) ui)
+		layout change = change
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> UIBlocksCombinator
 arrangeWithSideBar index side size resize = arrange
@@ -355,8 +409,10 @@ where
 
 instance tune ArrangeSplit
 where
-    tune (ArrangeSplit direction resize) t
-        = tune (ApplyLayout (arrangeBlocks (arrangeSplit direction resize))) t
+    tune (ArrangeSplit direction resize) t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI ui) = ReplaceUI (arrangeBlocks (arrangeSplit direction resize) ui)
+		layout change = change
 
 arrangeSplit :: !UIDirection !Bool -> UIBlocksCombinator
 arrangeSplit direction resize = arrange
@@ -375,7 +431,10 @@ where
 
 instance tune ArrangeCustom
 where
-    tune (ArrangeCustom f) t = tune (ApplyLayout (arrangeBlocks f)) t
+    tune (ArrangeCustom f) t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI ui) = ReplaceUI (arrangeBlocks f ui)
+		layout change = change
 
 blockToControl :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
 blockToControl ui=:{UIBlock|attributes}
@@ -457,9 +516,11 @@ where
     title		= 'DM'.get TITLE_ATTRIBUTE attributes	
     iconCls		= fmap (\icon -> "icon-" +++ icon) ('DM'.get ICON_ATTRIBUTE attributes)
 
-autoLayoutFinal :: ContentLayout
-autoLayoutFinal = {ContentLayout|layout=layout,route=route}
+autoLayoutFinal :: Layout
+autoLayoutFinal = layout
 where
+	layout change = change
+	/*
 	layout (UILayers [main:aux])
 		= UILayers [layout main:aux]
 	layout UIEmpty
@@ -479,12 +540,13 @@ where
     	= layout (UIBlock (autoLayoutBlocks blocks actions))
 	layout (UIFinal control) = UIFinal control
 	layout def = def
+*/
 
-	route diff = diff
-
-plainLayoutFinal :: ContentLayout
-plainLayoutFinal = {ContentLayout|layout=layout,route=route}
+plainLayoutFinal :: Layout
+plainLayoutFinal = layout
 where
+	layout change = change
+/*
 	layout (UILayers [main:rest])
 		= UILayers [layout main:rest]
 	layout UIEmpty
@@ -496,8 +558,7 @@ where
     	= layout (UIBlock (autoLayoutBlocks blocks actions))
 	layout (UIFinal control)
     	= UIFinal control
-	
-	route diffs = diffs
+*/	
 
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
 createPrompt :: String -> UIControl
