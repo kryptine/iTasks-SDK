@@ -2,7 +2,7 @@ definition module iTasks._Framework.Generic.Interaction
 
 from StdGeneric import :: UNIT,::EITHER,::PAIR,::OBJECT,::CONS,::RECORD,::FIELD,::ConsPos, generic bimap, :: Bimap
 from iTasks._Framework.IWorld import :: IWorld
-from iTasks.UI.Diff import :: UIControl, :: UIAttributes
+from iTasks.UI.Diff import :: UIControl, :: UIAttributes, :: UILocalChange
 from iTasks.API.Core.Types import :: TaskId, :: DataPath, :: Verification, :: VerifiedValue, :: EditableList
 
 from iTasks._Framework.Generic.Visualization import generic gText, :: TextFormat
@@ -76,7 +76,8 @@ derive gVerify RWShared
 checkMask			:: !EditMask a -> Maybe a
 checkMaskValue      :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
 
-stdAttributes 		:: String (VerifiedValue a) -> UIAttributes
+stdAttributes 		:: String Bool EditMask -> UIAttributes
+stdAttributeChanges :: String Bool EditMask EditMask -> [UILocalChange]
 
 /**
 * Verify a value.

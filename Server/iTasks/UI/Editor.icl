@@ -7,6 +7,13 @@ from iTasks.UI.Diff import :: UIChangeDef(..), :: UILocalChange(..), :: UIChildC
 from iTasks.UI.Editor import :: Editor(..), :: USt(..) 
 import qualified Data.Map as DM
 
+emptyEditor :: Editor a
+emptyEditor = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
+where
+	genUI _ _ _ vst			    = (UIEmpty,vst)
+	genDiff _ _ _ _ _ vst 		= (NoChange,vst)
+	appDiff _ _ val mask ust 	= (val,mask,ust)
+
 subMasks :: !Int EditMask -> [EditMask]
 subMasks n (CompoundMask ms) = ms
 subMasks n m = repeatn n m
@@ -40,7 +47,7 @@ createEditletEventHandler handler id = undef
 fromEditlet :: (Editlet a d cl) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONDecode{|*|} d
 fromEditlet editlet=:{Editlet| genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv} = {Editor|genUI=genUI`,genDiff=genDiff`,appDiff=appDiff`}
 where
-	genUI` dp currVal mask ver vst=:{VSt|taskId,iworld=iworld=:{IWorld|world}}
+	genUI` dp currVal mask vst=:{VSt|taskId,iworld=iworld=:{IWorld|world}}
 		# (uiDef, world)        = genUI htmlId currVal world
   		# iworld                = {iworld & world = world} 
 		= case editletLinker initDiff (initClient currVal createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld of
@@ -70,8 +77,8 @@ where
 			[json:_]	= json
 			_			= JSONNull
 
-	genDiff` dp old new vst=:{VSt|iworld} //TODO: -> Properly track version numbers
-		= case (genDiffSrv old new) of
+	genDiff` dp ov om nv nm vst=:{VSt|iworld} //TODO: -> Properly track version numbers
+		= case (genDiffSrv ov nv) of
 			Nothing 			= (NoChange,{VSt|vst & iworld=iworld})
 			currentDiff
 				# (res,iworld)  = diffLinker currentDiff Nothing iworld

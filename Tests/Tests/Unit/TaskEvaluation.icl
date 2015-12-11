@@ -72,7 +72,7 @@ where
 	exp = [ReplaceUI expMinimalEditorUI]
 
 	expMinimalEditorUI
-		= UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [expPromptUI "Minimal String editor",editor]
+		= UICompoundContent [expPromptUI "Minimal String editor",editor]
 	where
 		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
 		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
@@ -85,13 +85,13 @@ where
 
 	//Because we can't test if correct Sapl code is generated here, we need to use a custom comparison
 	//function that first replaces all Sapl fields with the marker "IGNORE" before comparing to the expected value
-	compare [ReplaceUI (UICompoundEditor e [p,UIEditor a (UIEditlet s o)])] exp 
+	compare [ReplaceUI (UICompoundContent [p,UIEditor a (UIEditlet s o)])] exp 
 		# o = {UIEditletOpts|o & script="IGNORE",initClient="IGNORE",initDiff="IGNORE",appDiff="IGNORE"}
-		= [ReplaceUI (UICompoundEditor e [p,UIEditor a (UIEditlet s o)])] === exp
+		= [ReplaceUI (UICompoundContent [p,UIEditor a (UIEditlet s o)])] === exp
 	compare _ _ = False
 
 	expMinimalEditletUI
-		= UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [expPromptUI "Minimal String editlet",editor]
+		= UICompoundContent [expPromptUI "Minimal String editlet",editor]
 	where
 		editor = UIEditor {UIEditor|attributes='DM'.newMap,optional=False} (UIEditlet sizeOpts editletOpts)
 		sizeOpts = {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
@@ -107,10 +107,10 @@ where
 //The step is a compound editor with the "sub" UI as first element, and the actions as remaining elements	
 expMinStepInitialUI = UICompoundContent [expEditorUI, expActionOk]
 where
-	expEditorUI = UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [expPromptUI "Minimal Step combinator",editor]
+	expEditorUI = UICompoundContent [expPromptUI "Minimal Step combinator",editor]
 	where
 		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
-		editorAttr = 'DM'.fromList [("hint-type","info"),("hint","Please enter a single line of text")]
+		editorAttr = 'DM'.fromList [("hint-type","info"),("hint","Please enter a single line of text (this value is required)")]
 		editorOpts = {UIEditOpts|value=Nothing,taskId="1-1",editorId="v"}
 
 	expActionOk = UIAction {UIAction|action=ActionOk,taskId="1-0",enabled=False}
@@ -125,7 +125,7 @@ where
 								 ] //No actions
 
 expMinimalEditorUI taskNum prompt value
-	= UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [expPromptUI prompt,editor]
+	= UICompoundContent [expPromptUI prompt,editor]
 where
 	editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
 	editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
@@ -141,7 +141,10 @@ minimalStepInputResponse =ChangeUI [] [changeInteract,changeAction]
 where
 	changeInteract = ChangeChild 0 (ChangeUI [] [changePrompt,changeEditor] )
 	changePrompt = ChangeChild 0 NoChange
-	changeEditor = ChangeChild 1 (ChangeUI [("setEditorValue",[JSONString "foo"])] [])
+	changeEditor = ChangeChild 1 (ChangeUI [("setEditorValue",[JSONString "foo"])
+										   ,("setAttribute",[JSONString HINT_ATTRIBUTE,JSONString "You have correctly entered a single line of text"])
+										   ,("setAttribute",[JSONString HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_VALID])
+											] [])
 
 	changeAction = ChangeChild 1 (ChangeUI [("enable",[])] []) //Enable the first action
 
@@ -156,7 +159,7 @@ where
 	parts = UICompoundContent [expEditorUI]
 
 	expEditorUI
-		= UICompoundEditor {UIEditor|attributes='DM'.newMap,optional=False} [expPromptUI "INITIAL: 0",editor]
+		= UICompoundContent [expPromptUI "INITIAL: 0",editor]
 	where
 		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditInt defaultHSizeOpts editorOpts)
 		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a whole number")]

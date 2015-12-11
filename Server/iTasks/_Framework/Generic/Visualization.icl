@@ -1,6 +1,6 @@
 implementation module iTasks._Framework.Generic.Visualization
 
-import StdGeneric, StdList, StdMisc
+import StdGeneric, StdList, StdMisc, StdArray
 import Data.Maybe, Data.Either, Data.Void, Data.Functor
 from Data.Map import :: Map, :: Size
 import qualified Data.Map as DM
@@ -90,6 +90,16 @@ gText{|(,,,,)|} fa fb fc fd fe AsSingleLine (Just (a,b,c,d,e))  = [concat (fa As
 gText{|(,,,,)|} fa fb fc fd fe mode         (Just (a,b,c,d,e))  = fa mode (Just a) ++ fb mode (Just b) ++ fc mode (Just c) ++ fd mode (Just d) ++ fe mode (Just e)
 
 derive gText Either, MaybeError, Timestamp, Map
+
+//Utility function for visualizing record fields
+camelCaseToWords label = {c \\ c <- [toUpper lname : addspace lnames]}
+where
+	[lname:lnames]		= fromString label
+	addspace []			= []
+	addspace [c:cs]
+		| c == '_'			= [' ':addspace cs]
+		| isUpper c			= [' ',toLower c:addspace cs]
+		| otherwise			= [c:addspace cs]
 
 (+++>) infixr 5	:: !a !String -> String | gText{|*|} a
 (+++>) a s = toSingleLineText a +++ s

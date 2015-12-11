@@ -200,12 +200,7 @@ taskInfo ts = {TaskEvalInfo|lastEvent = ts, removedTasks=[], refreshSensitive = 
 
 appTweak tasklet taskTuiRep = tweakUI tasklet.tweakUI taskTuiRep
 
-toDef c = UIForm
-            {UIForm
-			| attributes = newMap
-			, controls	 = [(c, newMap)]
-            , size = defaultSizeOpts
-			}
+toDef c = UIControl c
 
 /* Controller wrapper to be easier to write controller function:
  * 1. taskId is parsed

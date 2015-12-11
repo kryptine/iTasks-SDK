@@ -11,12 +11,7 @@ import iTasks.UI.Editor, iTasks.UI.Diff
 derive class iTask Workflow
 
 gText{|WorkflowTaskContainer|} _ _			            = []
-gEditor{|WorkflowTaskContainer|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
-where
-	genUI _ _ _ _ vst			    = (UIEmpty,vst)
-	genDiff _ _ _ vst 				= (NoChange, vst)
-	appDiff _ _ val mask ust 		= (val,mask,ust)
-
+gEditor{|WorkflowTaskContainer|} 						= emptyEditor
 gEditMeta{|WorkflowTaskContainer|} _ 				    = [{label=Just "Workflow task container",hint=Nothing,unit=Nothing}]
 gVerify{|WorkflowTaskContainer|} _ mv 				    = alwaysValid mv
 JSONEncode{|WorkflowTaskContainer|} _ c				    = [dynamicJSONEncode c]

@@ -332,18 +332,15 @@ getMargins ctrl
                            = Nothing
 
 uiDefAttributes	:: UIDef -> UIAttributes
-uiDefAttributes (UIForm {UIForm|attributes})	= attributes
 uiDefAttributes (UIBlock {UIBlock|attributes})	= attributes
 uiDefAttributes _								= 'DM'.newMap
 
 uiDefControls :: UIDef -> [UIControl]
-uiDefControls (UIForm {UIForm|controls})	                = map fst controls
 uiDefControls (UIBlock {UIBlock|content})	                = content.UIItemsOpts.items
 uiDefControls (UIFinal control)								= [control]
 uiDefControls _												= []
 
 uiDefAnnotatedControls :: UIDef -> [(UIControl,UIAttributes)]
-uiDefAnnotatedControls (UIForm {UIForm|controls}) = controls
 uiDefAnnotatedControls (UIBlock {UIBlock|content})	            = [(c,'DM'.newMap)\\c <- content.UIItemsOpts.items]
 uiDefAnnotatedControls (UIFinal control)						= [(control,'DM'.newMap)]
 uiDefAnnotatedControls _										= []
@@ -360,12 +357,8 @@ uiDefWindows :: UIDef -> [UIWindow]
 uiDefWindows _													= []
 
 uiDefSetAttribute :: String String UIDef -> UIDef
-uiDefSetAttribute key value (UILayers [UIForm stack=:{UIForm|attributes}:aux])
-	= UILayers [UIForm {UIForm|stack & attributes = 'DM'.put key value attributes}:aux]
 uiDefSetAttribute key value (UILayers [UIBlock sub=:{UIBlock|attributes}:aux])
 	= UILayers [UIBlock {UIBlock|sub & attributes = 'DM'.put key value attributes}:aux]
-uiDefSetAttribute key value (UIForm stack=:{UIForm|attributes})
-	= UIForm {UIForm|stack & attributes = 'DM'.put key value attributes}
 uiDefSetAttribute key value (UIBlock sub=:{UIBlock|attributes})
 	= UIBlock {UIBlock|sub & attributes = 'DM'.put key value attributes}
 uiDefSetAttribute key value def = def
@@ -391,8 +384,6 @@ uiDefSetPadding top right bottom left (UIBlock sub)
 uiDefSetPadding _ _ _ _ def = def
 
 uiDefSetMargins :: Int Int Int Int UIDef -> UIDef
-uiDefSetMargins top right bottom left (UIForm stack=:{UIForm|size})
-    = UIForm {UIForm|stack & size = {UISizeOpts|size & margins = Just {top = top, right = right, bottom = bottom, left = left}}}
 uiDefSetMargins top right bottom left (UIBlock ui=:{UIBlock|size})
     = UIBlock {UIBlock|ui & size = {UISizeOpts|size & margins = Just {top = top, right = right, bottom = bottom, left = left}}}
 uiDefSetMargins _ _ _ _ def = def
@@ -403,22 +394,16 @@ uiDefSetBaseCls baseCls (UIBlock sub)
 uiDefSetBaseCls _ def = def
 
 uiDefSetHeight :: UISize UIDef -> UIDef
-uiDefSetHeight height (UIForm stack=:{UIForm|size})
-    = UIForm {UIForm|stack & size = {UISizeOpts|size & height = Just height}}
 uiDefSetHeight height (UIBlock ui=:{UIBlock|size})
     = UIBlock {UIBlock|ui & size = {UISizeOpts|size & height = Just height}}
 uiDefSetHeight height def = def
 
 uiDefSetWidth :: UISize UIDef -> UIDef
-uiDefSetWidth width (UIForm stack=:{UIForm|size})
-    = UIForm {UIForm|stack & size = {UISizeOpts|size & width = Just width}}
 uiDefSetWidth width (UIBlock ui=:{UIBlock|size})
     = UIBlock {UIBlock|ui & size = {UISizeOpts|size & width = Just width}}
 uiDefSetWidth width def = def
 
 uiDefSetSize :: UISize UISize UIDef -> UIDef
-uiDefSetSize width height (UIForm stack=:{UIForm|size})
-    = UIForm {UIForm|stack & size = {UISizeOpts|size & width = Just width, height = Just height}}
 uiDefSetSize width height (UIBlock ui=:{UIBlock|size})
     = UIBlock {UIBlock|ui & size = {UISizeOpts|size & width = Just width, height = Just height}}
 uiDefSetSize width height def = def
@@ -457,13 +442,14 @@ instance encodeUI UIDef
 where
 	encodeUI UIEmpty 						= component "itwc_raw_empty" []
 	encodeUI (UIEditor _ control) 			= encodeUI control
-	//encodeUI (UIEditor opts control) 		= component "itwc_raw_editor" [encodeUI opts,encodeUI (defaultItemsOpts [control])]
 	encodeUI (UICompoundEditor opts defs)	= component "itwc_raw_compoundeditor"  [encodeUI opts, JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UICompoundContent defs) 		= component "itwc_raw_compoundcontent" [JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UIAction action) 				= component "itwc_raw_action" [encodeUI action]
 	encodeUI (UIWindow window) 				= component "itwc_raw_window" [encodeUI window]
 	encodeUI (UILayers defs) 				= component "itwc_raw_layers" [JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UIForm form) 					= component "itwc_raw_form" [encodeUI form]
+	encodeUI (UIForm defs) 					= component "itwc_raw_form" [JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UIFormItem label def info) 	= component "itwc_raw_form_item" [JSONObject [("items",JSONArray[encodeUI label,encodeUI def,encodeUI info])]]
+	encodeUI (UIControl control) 			= encodeUI control
 	encodeUI (UIBlock block) 				= encodeUI block
 	encodeUI (UIBlocks blocks actions) 		= component "itwc_raw_blocks" [JSONObject [("items",JSONArray (map encodeUI blocks ++ map encodeUI actions))]]
 	//The final layout just encodes the finalized component
@@ -547,15 +533,6 @@ where
 instance encodeUI Action
 where
 	encodeUI (Action name _) = JSONString name
-
-instance encodeUI UIForm
-where
-	encodeUI {UIForm|attributes,controls,size}
-		= JSONObject [("attributes",JSONObject [(k,JSONString v) \\ (k,v) <- 'DM'.toList attributes])
-					 ,("items",JSONArray [encodeUI c \\ (c,_) <- controls])
-					 :sizeAttrs]
-	where
-		(JSONObject sizeAttrs) = encodeUI size
 
 instance encodeUI UIBlock
 where

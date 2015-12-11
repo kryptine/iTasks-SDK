@@ -79,15 +79,13 @@ where
 		= (change, iworld)
 						
 	makeView [ViewWith viewFun] status taskId iworld
-		# ver = verifyMaskedValue (Display (viewFun status),Touched)
-		= makeEditor (Display (viewFun status),Touched,ver) taskId iworld
+		= makeEditor (Display (viewFun status),Touched) taskId iworld
 	makeView _ status taskId iworld
-		# ver = verifyMaskedValue (Display (defaultViewFun status),Touched)
-		= makeEditor (Display (defaultViewFun status),Touched,ver) taskId iworld
+		= makeEditor (Display (defaultViewFun status),Touched) taskId iworld
 
-	makeEditor value=:(v,vmask,vver) taskId iworld
+	makeEditor value=:(v,vmask) taskId iworld
 		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
-		# (editUI,vst=:{VSt|iworld}) = gEditor{|*|}.Editor.genUI [] v vmask vver vst
+		# (editUI,vst=:{VSt|iworld}) = gEditor{|*|}.Editor.genUI [] v vmask vst
 		= (editUI,iworld)
 
 	//By default show a progress bar 

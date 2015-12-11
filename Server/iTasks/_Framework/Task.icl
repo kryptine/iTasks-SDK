@@ -55,8 +55,8 @@ gVerify{|Task|} _ _ mv = alwaysValid mv
 gText{|Task|} _ _ _ = ["<Task>"]
 gEditor{|Task|} _ _ _ _ _ = {Editor|genUI=genUI,genDiff,appDiff=appDiff}
 where
-	genUI _ _ _ _ vst = (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (stringDisplay "<Task>"), vst)
-	genDiff dp old new vst = (NoChange,vst)
+	genUI _ _ _ vst = (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (stringDisplay "<Task>"), vst)
+	genDiff dp ov om nv nm vst = (NoChange,vst)
 	appDiff dp e val mask ust = basicUpdate (\() t -> Just t) dp e val mask ust
 
 gEditMeta{|Task|} _ _ 		= [{label=Just "Task",hint=Nothing,unit=Nothing}]

@@ -13,6 +13,7 @@ import Tests.Common.MinimalTasks
 suites = [testCoreEditors,testLayout,testEditlets]
 
 Start w = startEngine [publish "/" (WebApp []) (\_ -> withFinalSessionLayout (runTests suites))
+					  ,publish "/minimal-suites" (WebApp []) (\_ -> (runTests suites) <<@ WithoutAutoLayout)
 					  ,publish "/minimal-editor" (WebApp []) (\_ -> minimalEditor <<@ WithoutAutoLayout)
 					  ,publish "/minimal-editlet" (WebApp []) (\_ -> minimalEditlet <<@ WithoutAutoLayout)
 					  ,publish "/minimal-step" (WebApp []) (\_ -> minimalStep <<@ WithoutAutoLayout)

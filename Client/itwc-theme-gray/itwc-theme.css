@@ -15,7 +15,8 @@
 , .itwc-raw-window
 , .itwc-raw-layers
 , .itwc-raw-form
-, .itwc-raw-itwc-raw-block
+, .itwc-raw-form-item
+, .itwc-raw-block
 , .itwc-raw-blocks {
   margin-left: 5px;
   border: dashed 2px #ccc;
@@ -99,7 +100,7 @@
 .icon-help {
   background-image: url("icons/help.png"); }
 
-.icon-hint {
+.icon-info {
   background-image: url("icons/information.png") !important; }
 
 .icon-valid {
@@ -755,5 +756,3 @@ body, input, td, th, select {
 .hsplitter {
   width: 5px;
   cursor: col-resize; }
-
-/*# sourceMappingURL=itwc-theme.css.map */

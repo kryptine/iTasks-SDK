@@ -1,6 +1,6 @@
 implementation module iTasks.UI.Layout
 
-import StdTuple, StdList, StdBool, StdOrdList
+import StdTuple, StdList, StdBool, StdOrdList, StdArray
 import Data.Maybe, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition, iTasks.UI.Diff
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
@@ -30,32 +30,69 @@ where
 autoLayoutInteract :: Layout 
 autoLayoutInteract = layout
 where
-	layout (ReplaceUI editor)
-		//Just flatten all structure into a form
-		= ReplaceUI (UIForm {UIForm
-				 |attributes = foldl mergeAttributes 'DM'.newMap (map snd controls)
-			 	 ,controls = controls
-			 	 ,size = defaultSizeOpts
-				 })
-	where
-		controls = flattenControls editor
+	layout (ReplaceUI (UICompoundContent [prompt,editor]))
+		# (ReplaceUI editor) = editorToForm (ReplaceUI editor)
+		= ReplaceUI (UICompoundContent [prompt,editor])
 
-		flattenControls (UIEditor {UIEditor|attributes} control) = [(control,attributes)]
-		flattenControls (UICompoundEditor _ parts) = flatten (map flattenControls parts)
-		flattenControls def = []
+	layout (ChangeUI [] [ChangeChild 0 _,ChangeChild 1 editor])
+		# editor = editorToForm editor 			//Remap changes in the editor
+		= ChangeUI [] [ChangeChild 1 editor] 	//Ignore changes to the prompt, it should be constant
 
-	layout change = ChangeUI [] (snd (flattenChanges 0 change))
+	layout change = change //Catchall
+
+//Flatten an editor into a form
+editorToForm:: Layout
+editorToForm = layout
+where
+	//Flatten the editor to a list of form items
+	layout (ReplaceUI editor) = ReplaceUI (UIForm (items editor))
+	where	
+		items (UIEditor {UIEditor|optional,attributes} control)
+			# label = maybe UIEmpty UIControl (labelControl optional attributes)
+			# info = maybe UIEmpty UIControl (infoControl attributes)
+			= [UIFormItem label (UIControl control) info]
+		items UIEmpty //Placeholders for constructor changes
+			= [UIFormItem UIEmpty UIEmpty UIEmpty] 
+		items (UICompoundEditor _ parts) = flatten (map items parts)
+		items _ = []
+
+	//Remap the changes to the flattened list of form items
+	layout change = (ChangeUI [] (snd (flattenChanges 0 change)))
 	where
-		flattenChanges n NoChange = (n + 1, []) 							//Leaf
-		flattenChanges n c=:(ReplaceUI _) = (n + 1, [ChangeChild n c]) 		//Leaf
-		flattenChanges n c=:(ChangeUI local []) = (n + 1,[ChangeChild n c])	//Leaf
-		flattenChanges n (ChangeUI _ children) = flattenChildren n children //Container
+		//Leaf
+		flattenChanges n NoChange = (n + 1, [])
+		//Leaf (Change the middle element of the form)
+		flattenChanges n c=:(ReplaceUI _) = (n + 1, [ChangeChild n (ChangeUI [] [ChangeChild 1 c])])
+		//Leaf (Update the middle element and check for attribute changes
+		flattenChanges n c=:(ChangeUI local []) = (n + 1,[ChangeChild n (ChangeUI [] (iconChanges ++ [ChangeChild 1 c]))])
+		where
+			iconChanges = case changeType ++ changeTooltip of
+				[] = []
+				changes = [ChangeChild 2 (ChangeUI changes [])]
+
+			changeType = case [t \\ ("setAttribute",[JSONString HINT_TYPE_ATTRIBUTE,JSONString t]) <- local] of
+				[type] 	= [("setIconCls",[JSONString ("icon-" +++ type)])]
+				_ 		= []
+
+			changeTooltip= case [h \\ ("setAttribute",[JSONString HINT_ATTRIBUTE,JSONString h]) <- local] of
+				[hint] 	= [("setTooltip",[JSONString hint])]
+				_ 		= []
+			
+		//Container (search recursively for more form items)
+		flattenChanges n (ChangeUI _ children) = flattenChildren n children
 		where	
 			flattenChildren n [] = (n,[])
 			flattenChildren n [ChangeChild _ c:cs]
 				# (n, childChanges) = flattenChanges n c
 				# (n, remainderChanges) = flattenChildren n cs
 				= (n, childChanges ++ remainderChanges)
+
+//Finalize a form to a final UI container
+formToControl :: Layout
+formToControl = layout
+where
+	layout change = change
+
 
 autoLayoutStep :: Layout
 autoLayoutStep = layout 
@@ -161,6 +198,7 @@ where
 	layout change = change
 //	layout def = uiDefSetSize FlexSize FlexSize def
 
+/*
 autoLayoutForm :: UIForm -> UIBlock
 //Special case for choices
 autoLayoutForm {UIForm|attributes,controls=[(c=:UIListChoice _ _ ,_)],size}
@@ -172,6 +210,32 @@ autoLayoutForm {UIForm|attributes,controls=[(c=:UIGrid _ _ _ ,_)],size}
 //General case
 autoLayoutForm {UIForm|attributes,controls,size}
 	= {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (decorateControls controls) & direction=Vertical},actions=[],hotkeys=[],size=size}
+*/
+
+labelControl :: Bool UIAttributes -> Maybe UIControl
+labelControl optional attributes 
+	= fmap (\l -> setWidth (ExactSize 100) (stringDisplay (formatLabel optional l))) ('DM'.get LABEL_ATTRIBUTE attributes)
+
+infoControl :: UIAttributes -> Maybe UIControl
+infoControl attributes
+	= case ('DM'.get HINT_TYPE_ATTRIBUTE attributes,'DM'.get HINT_ATTRIBUTE attributes) of
+		(Just type, Just hint) 	= Just (icon type hint)
+		_ 						= Nothing
+where
+	icon type tooltip = setLeftMargin 5 (UIIcon defaultFSizeOpts {UIIconOpts|iconCls = "icon-" +++ type, tooltip = Just tooltip})
+
+formatLabel :: Bool String -> String
+formatLabel optional label
+	= camelCaseToWords label +++ if optional "" "*" +++ ":"
+where
+	camelCaseToWords label = {c \\ c <- [toUpper lname : addspace lnames]}
+	where
+		[lname:lnames]		= fromString label
+		addspace []			= []
+		addspace [c:cs]
+			| c == '_'			= [' ':addspace cs]
+			| isUpper c			= [' ',toLower c:addspace cs]
+			| otherwise			= [c:addspace cs]
 
 //Add labels and icons to a set of controls if they have any of those attributes set
 decorateControls :: [(UIControl,UIAttributes)] -> [UIControl]
@@ -180,7 +244,7 @@ where
 	mapLst f [] = []
 	mapLst f [x] = [f True x]
 	mapLst f [x:xs] = [f False x: mapLst f xs]
-	
+
 decorateControl :: Bool (!UIControl,!UIAttributes) -> UIControl
 decorateControl last (control,attributes)
 	# mbLabel 		= 'DM'.get LABEL_ATTRIBUTE attributes
@@ -304,12 +368,12 @@ where
 		layout change = change
 
 forceLayout :: UIDef -> UIDef
-forceLayout (UIForm form)              = UIBlock (autoLayoutForm form)
+//forceLayout (UIForm form)              = UIBlock (autoLayoutForm form)
 forceLayout (UIBlocks blocks actions)  = UIBlock (autoLayoutBlocks blocks actions)
 forceLayout def                        = def
 
 arrangeBlocks :: ([UIBlock] [UIAction] -> UIBlock) UIDef -> UIDef
-arrangeBlocks f (UIForm form) 				= UIBlock (f [autoLayoutForm form] [])
+//arrangeBlocks f (UIForm form) 				= UIBlock (f [autoLayoutForm form] [])
 arrangeBlocks f (UIBlock block)           	= UIBlock (f [block] [])
 arrangeBlocks f (UIBlocks blocks actions) 	= UIBlock (f blocks actions)
 arrangeBlocks f def                         = def
@@ -489,8 +553,8 @@ uiDefToWindow windowType vpos hpos (UILayers [main:layers])
 	= case uiDefToWindow windowType vpos hpos main of
 		(UILayers mainlayers) 	= UILayers (mainlayers++layers)
 		main 					= UILayers [main:layers]
-uiDefToWindow windowType vpos hpos (UIForm form)
-	= UILayers [UIEmpty, UIWindow (blockToWindow windowType vpos hpos (autoLayoutForm form))]
+//uiDefToWindow windowType vpos hpos (UIForm form)
+//	= UILayers [UIEmpty, UIWindow (blockToWindow windowType vpos hpos (autoLayoutForm form))]
 uiDefToWindow windowType vpos hpos (UIBlock block)
     = UILayers [UIEmpty, UIWindow (blockToWindow windowType vpos hpos block)]
 uiDefToWindow windowType vpos hpos (UIBlocks blocks actions)
@@ -519,7 +583,7 @@ where
 autoLayoutFinal :: Layout
 autoLayoutFinal = layout
 where
-	layout change = change
+	layout change = compactChangeDef change
 	/*
 	layout (UILayers [main:aux])
 		= UILayers [layout main:aux]
@@ -586,8 +650,8 @@ addButtonPanel attr direction buttons items
 		(Just "bottom",Horizontal)	= ([setDirection Horizontal (defaultContainer items),fillWidth (buttonPanel buttons)],Vertical)
 
 addTriggersToUIDef :: [(Trigger,String,String)] UIDef -> UIDef
-addTriggersToUIDef triggers (UIForm stack=:{UIForm|controls})
-    = UIForm {UIForm|stack & controls = [(addTriggersToControl triggers c,m)\\ (c,m) <- controls]}
+//addTriggersToUIDef triggers (UIForm stack=:{UIForm|controls})
+//    = UIForm {UIForm|stack & controls = [(addTriggersToControl triggers c,m)\\ (c,m) <- controls]}
 addTriggersToUIDef triggers (UIBlock subui)
     = UIBlock (addTriggersToBlock triggers subui)
 addTriggersToUIDef triggers (UIBlocks blocks actions)
@@ -812,8 +876,8 @@ where
         = maybe ('DM'.put k v attr) (const attr) ('DM'.get k attr)
 
 tweakUI :: (UIControl -> UIControl) UIDef -> UIDef
-tweakUI f (UIForm stack=:{UIForm|controls})
-	= UIForm {UIForm|stack & controls = [(f c,a) \\ (c,a) <- controls]}
+//tweakUI f (UIForm stack=:{UIForm|controls})
+//	= UIForm {UIForm|stack & controls = [(f c,a) \\ (c,a) <- controls]}
 tweakUI f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
 	= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map f items}}
 tweakUI f (UIFinal control)
@@ -821,15 +885,15 @@ tweakUI f (UIFinal control)
 tweakUI f def = def
 
 tweakAttr :: (UIAttributes -> UIAttributes) UIDef -> UIDef
-tweakAttr f (UIForm stack=:{UIForm|attributes})
-	= UIForm {UIForm|stack & attributes = f attributes}
+//tweakAttr f (UIForm stack=:{UIForm|attributes})
+//	= UIForm {UIForm|stack & attributes = f attributes}
 tweakAttr f (UIBlock sub=:{UIBlock|attributes})
 	= UIBlock {UIBlock|sub & attributes = f attributes}
 tweakAttr f def = def
 
 tweakControls :: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDef -> UIDef
-tweakControls f (UIForm stack=:{UIForm|controls})
-	= UIForm {UIForm|stack & controls = f controls}
+//tweakControls f (UIForm stack=:{UIForm|controls})
+//	= UIForm {UIForm|stack & controls = f controls}
 tweakControls f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
 	= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map fst (f [(c,'DM'.newMap) \\ c <- items])}}
 tweakControls f (UIFinal control)

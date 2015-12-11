@@ -125,12 +125,12 @@ visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworl
 	# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
 	# (change,vst=:{VSt|iworld}) = case event of
 		ResetEvent		//(re)generate the initial UI
-			# (editUI,vst)	= editor.Editor.genUI [] nv nm ver vst
+			# (editUI,vst)	= editor.Editor.genUI [] nv nm vst
 			# promptUI  	= toPrompt desc
-			# change 		= ReplaceUI (UICompoundEditor {UIEditor|optional=False,attributes='DM'.newMap} [promptUI,editUI])
+			# change 		= ReplaceUI (UICompoundContent [promptUI,editUI])
 			= (change,vst)
 		_				//compare old and new value to determine changes
-			# (editChange,vst)  = editor.Editor.genDiff [] v nv vst
+			# (editChange,vst)  = editor.Editor.genDiff [] v m nv nm vst
 			# promptChange 		= NoChange
 			# change 			= ChangeUI [] [ChangeChild 0 promptChange, ChangeChild 1 editChange]
 			= (change,vst)
@@ -164,9 +164,7 @@ where
             _                       = ioStates
         = (DestroyedResult,{iworld & ioStates = ioStates})
 
-    rep port = ReplaceUI (UIForm {UIForm|attributes ='DM'.newMap
-                       ,controls= [(stringDisplay ("Listening for connections on port "<+++ port),'DM'.newMap)]
-                       ,size=defaultSizeOpts})
+    rep port = ReplaceUI (UIControl (stringDisplay ("Listening for connections on port "<+++ port)))
 
 tcpconnect :: !String !Int !(RWShared () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w
 tcpconnect host port sds handlers = Task eval

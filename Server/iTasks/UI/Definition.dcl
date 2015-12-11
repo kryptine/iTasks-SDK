@@ -54,7 +54,11 @@ instance Functor UIViewOpts
 	//Constructors for z-axis stacking
 	| UILayers 			![UIDef]
 	//Contructors for intermediate structures
-    | UIForm    !UIForm                 //A set of controls from one or more interact tasks
+    | UIForm    		![UIDef]
+	| UIFormItem		!UIDef !UIDef !UIDef //Label, widget, feedback (usually an icon)
+
+	| UIControl !UIControl 				//A Single control
+
     | UIBlock   !UIBlock                //A partial user interface, the controls of such a UI have been arranged
 										// but the container they will be put in is not decided yet
     | UIBlocks  ![UIBlock] ![UIAction]  //A set of aggregated blocks that have not yet been arranged
@@ -70,8 +74,6 @@ instance Functor UIViewOpts
     }
 :: UIForm =
 	{ attributes	:: UIAttributes
-	, controls		:: [(!UIControl,!UIAttributes)]
-    , size          :: UISizeOpts
 	}
 :: UIBlock =
 	{ attributes	:: UIAttributes

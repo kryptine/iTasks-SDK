@@ -19,16 +19,6 @@ voidNothing = Nothing
 decFormat :: !Int -> String
 decFormat x = toString (x / 100) +++ "." +++ lpad (toString (x rem 100)) 2 '0'
 
-camelCaseToWords :: !String -> String
-camelCaseToWords label = {c \\ c <- [toUpper lname : addspace lnames]}
-where
-	[lname:lnames]		= fromString label
-	addspace []			= []
-	addspace [c:cs]
-		| c == '_'			= [' ':addspace cs]
-		| isUpper c			= [' ',toLower c:addspace cs]
-		| otherwise			= [c:addspace cs]
-
 currentLocalDateTimeWorld :: !*World -> (!DateTime,!*World)
 currentLocalDateTimeWorld world = appFst tmToDateTime (localTime world)
 	

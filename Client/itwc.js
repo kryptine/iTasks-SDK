@@ -186,7 +186,8 @@ itwc.Component.prototype = {
     initItemLayout: function() {
         var me = this,
             el = me.targetEl,
-            horizontal = ((me.definition.direction && me.definition.direction) == 'horizontal') || false;
+			direction = me.definition.direction || me.defaultDirection,
+            horizontal = (direction && (direction == 'horizontal')) || false;
 
         el.classList.add(horizontal ? 'hcontainer' : 'vcontainer');
     },
@@ -521,6 +522,10 @@ itwc.component.itwc_raw_layers = itwc.extend(itwc.RawContainer,{
 });
 itwc.component.itwc_raw_form = itwc.extend(itwc.RawContainer,{
 	cssClass: 'itwc-raw-form'
+});
+itwc.component.itwc_raw_form_item = itwc.extend(itwc.RawContainer,{
+	cssClass: 'itwc-raw-form-item',
+    defaultDirection: 'horizontal'
 });
 itwc.component.itwc_raw_block = itwc.extend(itwc.RawContainer,{
 	cssClass: 'itwc-raw-block'

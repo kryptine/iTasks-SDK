@@ -732,12 +732,12 @@ where
     release taskId meta = meta
 
     embedTaskDef instanceNo instanceKey
-		= UIForm {UIForm|attributes='DM'.newMap,controls=[(UIEmbedding embedSize {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey},'DM'.newMap)],size=embedSize}
+		= UIControl (UIEmbedding embedSize {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey})
 
     embedSize = {UISizeOpts|defaultSizeOpts & width= Just FlexSize, height=Just FlexSize}
 
 	inUseDef
-		= UIForm {UIForm|attributes='DM'.newMap,controls=[(stringDisplay "This task is already in use",'DM'.newMap)],size=defaultSizeOpts}
+		= UIControl (stringDisplay "This task is already in use")
 
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 withShared initial stask = Task eval

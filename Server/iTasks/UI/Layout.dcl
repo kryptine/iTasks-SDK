@@ -28,7 +28,6 @@ autoLayoutStep  		:: Layout
 autoLayoutParallel 		:: Layout
 autoLayoutAttach 		:: Layout
 
-autoLayoutForm          :: UIForm -> UIBlock
 autoLayoutBlocks        :: [UIBlock] [UIAction] -> UIBlock
 
 //Applied automatically when a published has a UI other than UIFinal

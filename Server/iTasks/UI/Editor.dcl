@@ -21,10 +21,15 @@ from Text.JSON import :: JSONNode
 *	Standard editor
 */
 :: Editor a = 
-	{ genUI  	:: DataPath a EditMask Verification *VSt -> *(!UIDef,!*VSt)
-	, genDiff 	:: DataPath a a *VSt -> *(!UIChangeDef,!*VSt)
+	{ genUI  	:: DataPath a EditMask *VSt -> *(!UIDef,!*VSt)
+	, genDiff 	:: DataPath a EditMask a EditMask *VSt -> *(!UIChangeDef,!*VSt)
 	, appDiff 	:: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
 	}
+
+/**
+* Editor that does nothing
+*/
+emptyEditor :: Editor a
 
 /** Edit masks contain information about a value as it is being edited
 *   in an interactive task.

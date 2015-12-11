@@ -70,15 +70,17 @@ JSONDecode{|Username|} _ c = (Nothing,c)
 
 gEditor{|Username|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI dp val mask ver vst=:{VSt|taskId,disabled}
+	typeDesc = "username"
+
+	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
 			# val = checkMask mask val
 			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val}), vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(Username v) -> v) val)
-			= (UIEditor {UIEditor|optional=False,attributes=stdAttributes "username" (val,mask,ver)} (UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}) ,vst)
-	genDiff dp (Username old) (Username new) vst=:{VSt|disabled}
-		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUI new])] []),vst)
+			= (UIEditor {UIEditor|optional=False,attributes=stdAttributes typeDesc optional mask} (UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}) ,vst)
+	genDiff dp (Username old) om (Username new) nm vst=:{VSt|optional,disabled}
+		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -110,14 +112,16 @@ gText{|Password|} _ _        = ["********"]
 
 gEditor{|Password|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI dp val mask ver vst=:{VSt|taskId,disabled}
+	typeDesc = "password"
+
+	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
 			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"}), vst)
 		| otherwise	
 			# value = checkMaskValue mask ((\(Password v) -> v) val)
-			= (UIEditor {UIEditor|optional=False,attributes=stdAttributes "password" (val,mask,ver)} (UIEditPassword defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}) ,vst)
-	genDiff dp (Password old) (Password new) vst=:{VSt|disabled}
-		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUI new])] []),vst)
+			= (UIEditor {UIEditor|optional=False,attributes=stdAttributes typeDesc optional mask} (UIEditPassword defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}) ,vst)
+	genDiff dp (Password old) om (Password new) nm vst=:{VSt|optional,disabled}
+		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
