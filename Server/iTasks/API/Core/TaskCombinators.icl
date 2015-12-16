@@ -148,7 +148,7 @@ where
 			//Otherwise create a compound change definition
 			_ 	
 				= ChangeUI [] [ChangeChild 0 change:actionChanges]
-		= if evalOpts.autoLayout (autoLayoutStep change) change
+		= if evalOpts.autoLayout (fst (autoLayoutStep (change,()))) change
 	where
 		actionChanges = [ChangeChild i (switch enabled name) \\ {UIAction|action=(Action name _),enabled} <- actions & i <- [1..]]
 		where
@@ -522,7 +522,7 @@ genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
 			= ChangeUI [] [ChangeChild 0 (ChangeUI [] (itemChanges 0 prevNumBranches results))
 						   		   ,ChangeChild 1 (ChangeUI [] actionChanges)
 								   ]
-	= if evalOpts.autoLayout (autoLayoutParallel change) change
+	= if evalOpts.autoLayout (fst (autoLayoutParallel (change,()))) change
 where
 	itemChanges i numExisting [] = []
 	itemChanges i numExisting [ValueResult _ _ change _:rs]
@@ -705,12 +705,12 @@ where
 				    = (ValueResult (Value ASExcepted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange tree, iworld)
 				| attachedId == taskId
 					# rep 		= ReplaceUI (embedTaskDef instanceNo instanceKey)
-                    # rep       = if evalOpts.autoLayout (autoLayoutAttach rep) rep
+                    # rep       = if evalOpts.autoLayout (fst (autoLayoutAttach (rep,()))) rep
                     # stable    = value === Stable
 					= (ValueResult (Value (ASAttached stable) stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
 				| otherwise
 					# rep 		= ReplaceUI inUseDef
-                    # rep       = if evalOpts.autoLayout (autoLayoutAttach rep) rep
+                    # rep       = if evalOpts.autoLayout (fst (autoLayoutAttach (rep,()))) rep
 					= (ValueResult (Value (ASInUse attachedId) False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} rep tree, iworld)		
 			_
 				= (ValueResult (Value ASDeleted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange tree, iworld)
@@ -812,11 +812,23 @@ class tunev b a | iTask a :: !(b a) !(Task a) -> Task a
 
 instance tune ApplyLayout
 where
-	tune (ApplyLayout f) (Task eval) = Task eval`
+	tune (ApplyLayout f) task=:(Task eval) = Task eval`
 	where
-		eval` event evalOpts state iworld = case eval event evalOpts state iworld of
-	        (ValueResult value info change tree,iworld) = (ValueResult value info (f change) tree, iworld)
+		eval` event evalOpts tt=:(TCInit _ _) iworld
+			= eval` event evalOpts (TCLayout (toJSON (defaultState f)) tt) iworld
+
+		eval` event evalOpts (TCLayout s tt) iworld = case eval event evalOpts tt iworld of
+	        (ValueResult value info change tt,iworld) 
+				# s = fromMaybe defaultValue (fromJSON s)	
+				# (change,s) = f (change,s)
+				# s = toJSON s
+				= (ValueResult value info change (TCLayout s tt), iworld)
             (res,iworld) = (res,iworld)
+		
+		eval` event evalOpts state iworld = eval event evalOpts state iworld //Catchall
+		
+		defaultState :: (Layout s) -> s | iTask s
+		defaultState f = defaultValue
 
 instance tune AutoLayout
 where

@@ -225,8 +225,8 @@ where
 withFinalSessionLayout :: (Task a) -> Task a | iTask a
 withFinalSessionLayout task = tune (ApplyLayout layout) task
 where
-	layout (ReplaceUI ui) 	= autoLayoutFinal (ReplaceUI (uiDefSetAttribute "session" "true" ui))
-	layout change 			= autoLayoutFinal change
+	layout (ReplaceUI ui,s) 	= autoLayoutFinal (ReplaceUI (uiDefSetAttribute "session" "true" ui),s) 
+	layout (change,s)           = autoLayoutFinal (change,s)
 
 publishRaw :: (Task a) -> PublishedTask | iTask a
 publishRaw task = publish "/" (WebApp []) (const (tune WithoutAutoLayout task))

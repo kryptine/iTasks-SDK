@@ -75,7 +75,7 @@ where
 		# (content,iworld)	= makeView opts status taskId iworld
 		# prompt			= toPrompt desc
 		# change 			= ReplaceUI (UICompoundEditor {UIEditor|optional=False,attributes='Data.Map'.newMap} [prompt,content])
-		# change 			= if evalOpts.autoLayout (autoLayoutInteract change) change
+		# change 			= if evalOpts.autoLayout (fst (autoLayoutInteract (change,()))) change
 		= (change, iworld)
 						
 	makeView [ViewWith viewFun] status taskId iworld

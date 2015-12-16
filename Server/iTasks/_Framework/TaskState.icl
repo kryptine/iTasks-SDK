@@ -40,5 +40,6 @@ taskIdFromTaskTree (TCParallel              taskId _ _ _)     = Ok taskId
 taskIdFromTaskTree (TCShared                taskId _ _)       = Ok taskId
 taskIdFromTaskTree (TCExposedShared         taskId _ _ _)     = Ok taskId
 taskIdFromTaskTree (TCStable                taskId _ _)       = Ok taskId
+taskIdFromTaskTree (TCLayout                _ tt)             = taskIdFromTaskTree tt
 taskIdFromTaskTree (TCDestroy               tt)               = taskIdFromTaskTree tt
 taskIdFromTaskTree _                                          = Error (exception "Unable to obtain TaskId from TaskTree (TCNop or TCTasklet)")

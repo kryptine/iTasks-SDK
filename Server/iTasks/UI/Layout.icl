@@ -10,6 +10,8 @@ from StdFunc import o, const
 
 from iTasks._Framework.TaskState import :: TIMeta(..)
 
+LABEL_WIDTH :== 100
+
 derive gEq UISide
 
 instance descr ()
@@ -27,77 +29,23 @@ where
 /**
 * The basic interaction layout simply decorates the prompt and merges it with the editor.
 */
-autoLayoutInteract :: Layout 
+autoLayoutInteract :: Layout ()
 autoLayoutInteract = layout
 where
-	layout (ReplaceUI (UICompoundContent [prompt,editor]))
-		# (ReplaceUI editor) = editorToForm (ReplaceUI editor)
-		= ReplaceUI (UICompoundContent [prompt,editor])
+	layout (ReplaceUI (UICompoundContent [prompt,editor]),s)
+		# (ReplaceUI editor,_) = editorToForm (ReplaceUI editor,())
+		= (ReplaceUI (UICompoundContent [prompt,editor]),s)
 
-	layout (ChangeUI [] [ChangeChild 0 _,ChangeChild 1 editor])
-		# editor = editorToForm editor 			//Remap changes in the editor
-		= ChangeUI [] [ChangeChild 1 editor] 	//Ignore changes to the prompt, it should be constant
+	layout (ChangeUI [] [ChangeChild 0 _,ChangeChild 1 editor],s)
+		# (editor,_) = editorToForm (editor,()) 	//Remap changes in the editor
+		= (ChangeUI [] [ChangeChild 1 editor],s) 	//Ignore changes to the prompt, it should be constant
 
-	layout change = change //Catchall
+	layout (change,s) = (change,s) //Catchall
 
-//Flatten an editor into a form
-editorToForm:: Layout
-editorToForm = layout
-where
-	//Flatten the editor to a list of form items
-	layout (ReplaceUI editor) = ReplaceUI (UIForm (items editor))
-	where	
-		items (UIEditor {UIEditor|optional,attributes} control)
-			# label = maybe UIEmpty UIControl (labelControl optional attributes)
-			# info = maybe UIEmpty UIControl (infoControl attributes)
-			= [UIFormItem label (UIControl control) info]
-		items UIEmpty //Placeholders for constructor changes
-			= [UIFormItem UIEmpty UIEmpty UIEmpty] 
-		items (UICompoundEditor _ parts) = flatten (map items parts)
-		items _ = []
-
-	//Remap the changes to the flattened list of form items
-	layout change = (ChangeUI [] (snd (flattenChanges 0 change)))
-	where
-		//Leaf
-		flattenChanges n NoChange = (n + 1, [])
-		//Leaf (Change the middle element of the form)
-		flattenChanges n c=:(ReplaceUI _) = (n + 1, [ChangeChild n (ChangeUI [] [ChangeChild 1 c])])
-		//Leaf (Update the middle element and check for attribute changes
-		flattenChanges n c=:(ChangeUI local []) = (n + 1,[ChangeChild n (ChangeUI [] (iconChanges ++ [ChangeChild 1 c]))])
-		where
-			iconChanges = case changeType ++ changeTooltip of
-				[] = []
-				changes = [ChangeChild 2 (ChangeUI changes [])]
-
-			changeType = case [t \\ ("setAttribute",[JSONString HINT_TYPE_ATTRIBUTE,JSONString t]) <- local] of
-				[type] 	= [("setIconCls",[JSONString ("icon-" +++ type)])]
-				_ 		= []
-
-			changeTooltip= case [h \\ ("setAttribute",[JSONString HINT_ATTRIBUTE,JSONString h]) <- local] of
-				[hint] 	= [("setTooltip",[JSONString hint])]
-				_ 		= []
-			
-		//Container (search recursively for more form items)
-		flattenChanges n (ChangeUI _ children) = flattenChildren n children
-		where	
-			flattenChildren n [] = (n,[])
-			flattenChildren n [ChangeChild _ c:cs]
-				# (n, childChanges) = flattenChanges n c
-				# (n, remainderChanges) = flattenChildren n cs
-				= (n, childChanges ++ remainderChanges)
-
-//Finalize a form to a final UI container
-formToControl :: Layout
-formToControl = layout
-where
-	layout change = change
-
-
-autoLayoutStep :: Layout
+autoLayoutStep :: Layout ()
 autoLayoutStep = layout 
 where
-	layout change = change
+	layout (change,s) = (change,s)
 /*
 	layout (UICompoundContent [UIEmpty:stepActions]) //Remove the empty element
 		= UICompoundContent stepActions
@@ -126,10 +74,10 @@ where
 	layout def = def
 */
 
-autoLayoutParallel :: Layout
+autoLayoutParallel :: Layout ()
 autoLayoutParallel = layout
 where
-	layout change = change
+	layout (change,s) = (change,s)
 /*
 	layout (UICompoundContent [UICompoundContent defs,UICompoundContent parActions])
 		# parActions = [a \\ UIAction a <- parActions]
@@ -192,10 +140,10 @@ where
 /**
 * Overrule the title attribute with the title in the task meta data
 */
-autoLayoutAttach :: Layout
+autoLayoutAttach :: Layout ()
 autoLayoutAttach = layout
 where
-	layout change = change
+	layout (change,s) = (change,s)
 //	layout def = uiDefSetSize FlexSize FlexSize def
 
 /*
@@ -212,9 +160,133 @@ autoLayoutForm {UIForm|attributes,controls,size}
 	= {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (decorateControls controls) & direction=Vertical},actions=[],hotkeys=[],size=size}
 */
 
+//Flatten an editor into a form
+editorToForm:: Layout ()
+editorToForm = layout
+where
+	//Flatten the editor to a list of form items
+	layout (ReplaceUI editor,s) = (ReplaceUI (UIForm (items editor)),s)
+	where	
+		items (UIEditor {UIEditor|optional,attributes} control)
+			# label = maybe UIEmpty UIControl (labelControl optional attributes)
+			# info = maybe UIEmpty UIControl (infoControl attributes)
+			= [UIFormItem label (UIControl control) info]
+		items UIEmpty //Placeholders for constructor changes
+			= [UIFormItem UIEmpty UIEmpty UIEmpty] 
+		items (UICompoundEditor _ parts) = flatten (map items parts)
+		items _ = []
+
+	//Remap the changes to the flattened list of form items
+	layout (change,s) = (ChangeUI [] (snd (flattenChanges 0 change)),s)
+	where
+		//Leaf
+		flattenChanges n NoChange = (n + 1, [])
+		//Leaf (Change the middle element of the form)
+		flattenChanges n c=:(ReplaceUI _) = (n + 1, [ChangeChild n (ChangeUI [] [ChangeChild 1 c])])
+		//Leaf (Update the middle element and check for attribute changes
+		flattenChanges n c=:(ChangeUI local []) = (n + 1,[ChangeChild n (ChangeUI [] (iconChanges ++ [ChangeChild 1 c]))])
+		where
+			iconChanges = case changeType ++ changeTooltip of
+				[] = []
+				changes = [ChangeChild 2 (ChangeUI changes [])]
+
+			changeType = case [t \\ ("setAttribute",[JSONString HINT_TYPE_ATTRIBUTE,JSONString t]) <- local] of
+				[type] 	= [("setIconCls",[JSONString ("icon-" +++ type)])]
+				_ 		= []
+
+			changeTooltip= case [h \\ ("setAttribute",[JSONString HINT_ATTRIBUTE,JSONString h]) <- local] of
+				[hint] 	= [("setTooltip",[JSONString hint])]
+				_ 		= []
+			
+		//Container (search recursively for more form items)
+		flattenChanges n (ChangeUI _ children) = flattenChildren n children
+		where	
+			flattenChildren n [] = (n,[])
+			flattenChildren n [ChangeChild _ c:cs]
+				# (n, childChanges) = flattenChanges n c
+				# (n, remainderChanges) = flattenChildren n cs
+				= (n, childChanges ++ remainderChanges)
+
+//Finalize a form to a final UI container
+formToBlock :: Layout (Maybe [Bool])
+formToBlock = applyLayoutToChild 1 layout
+where
+	layout (NoChange,s) = (NoChange,s)
+	layout (ReplaceUI (UIForm items),s)
+		//Transform all items to standard containers
+		# (rows,itemLabels) = unzip (mapLst (makeRow (labelInItems items)) items)
+		# content 	= {UIItemsOpts|defaultItemsOpts rows & direction=Vertical}
+		# block 	= {UIBlock|attributes='DM'.newMap,content=content,actions=[],hotkeys=[],size=defaultSizeOpts}
+		= (ReplaceUI (UIBlock block),Just itemLabels)
+
+	layout (ReplaceUI def,_) = (ReplaceUI def,Nothing) //Do nothing if it isn't a form
+
+	layout (ChangeUI local itemChanges, Just itemLabels)
+		# itemChanges = shiftItemsInRows itemChanges [(i,l) \\ i <- [0..] & l <- itemLabels]
+		= (ChangeUI local itemChanges, Just itemLabels) 
+
+	layout (change,Nothing) = (change,Nothing) //Ignore, if we didn't arrange during replacement
+
+	//Check if one of the form items has a label, in that case all form items need to be indented
+	labelInItems [] = False
+	labelInItems [UIFormItem UIEmpty _ _:is] = labelInItems is
+	labelInItems _ = True
+	
+	makeRow labelsUsed isLast (UIFormItem labelDef itemDef iconDef) 
+		= (setMargins 5 5 (if isLast 5 0) 5 (setSize FlexSize WrapSize (setDirection Horizontal (defaultContainer ctrls))),noLabel)
+	where
+		ctrls = labelCtrl ++ itemCtrl ++ iconCtrl 
+
+		noLabel = isEmpty labelCtrl
+		labelCtrl = fromControl labelDef
+		itemCtrl = if (labelsUsed && noLabel) (map (setLeftMargin LABEL_WIDTH) (fromControl itemDef)) (fromControl itemDef)
+		iconCtrl = fromControl iconDef
+
+		fromControl (UIControl c) 	= [c]	
+		fromControl _ 			 	= []
+
+	//If the label was removed, the indices of the change of the item and its icon are one less
+	//TODO: Handle dynamic forms (AddChild and RemoveChild)
+	shiftItemsInRows [] _ = [] 
+	shiftItemsInRows [(ChangeChild n c):cs] labelInfo
+		//Not all form items have to have explicit changes, so we need to drop the labelInfo for those missing items
+		# [(_,noLabel):ls] = dropWhile (\(i,_) -> i < n) labelInfo 
+		//If we removed the label, decrease all indices
+		= [(ChangeChild n (if noLabel (shiftUp c) c)):shiftItemsInRows cs ls] 
+	where
+		shiftUp (ChangeUI l is) = ChangeUI l [ChangeChild (n - 1) c \\ ChangeChild n c <- is | n > 0]
+		shiftUp c = c
+
+//UTIL
+applyLayoutToChild :: Int (Layout s) -> (Layout s) 
+applyLayoutToChild index childLayout = layout
+where
+	layout (ReplaceUI (UICompoundContent children),s)
+		# (ReplaceUI selChild,s) = childLayout (ReplaceUI (children !! index),s)
+		= (ReplaceUI (UICompoundContent (updateAt index selChild children)),s) 
+
+	layout (ChangeUI local childChanges,s)
+		# (childChanges,s) = updateChildren childChanges s
+		= (ChangeUI local childChanges,s)
+	where
+		updateChildren [] s = ([],s)
+		updateChildren [ChangeChild i c:cs] s | i == index
+			# (c,s) = childLayout (c,s)
+			= ([ChangeChild i c:cs],s)
+		updateChildren [c:cs] s
+			# (cs,s) = updateChildren cs s
+			= ([c:cs],s)
+
+	layout (change,s) = (change,s) //Catchall
+
+mapLst :: (Bool a -> b) [a] -> [b]
+mapLst f [] = []
+mapLst f [x] = [f True x]
+mapLst f [x:xs] = [f False x: mapLst f xs]
+
 labelControl :: Bool UIAttributes -> Maybe UIControl
 labelControl optional attributes 
-	= fmap (\l -> setWidth (ExactSize 100) (stringDisplay (formatLabel optional l))) ('DM'.get LABEL_ATTRIBUTE attributes)
+	= fmap (\l -> setWidth (ExactSize LABEL_WIDTH) (stringDisplay (formatLabel optional l))) ('DM'.get LABEL_ATTRIBUTE attributes)
 
 infoControl :: UIAttributes -> Maybe UIControl
 infoControl attributes
@@ -301,57 +373,57 @@ instance tune ToWindow
 where
 	tune (ToWindow windowType vpos hpos) t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui) = ReplaceUI (uiDefToWindow windowType vpos hpos ui)
-		layout change = change
+		layout (ReplaceUI ui,()) = (ReplaceUI (uiDefToWindow windowType vpos hpos ui),())
+		layout (change,s) = (change,s)
 
 instance tune InPanel
 where
 	tune InPanel t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui) = ReplaceUI (uiDefSetAttribute CONTAINER_ATTRIBUTE "panel" (forceLayout ui))
-		layout change = change
+		layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute CONTAINER_ATTRIBUTE "panel" (forceLayout ui)),())
+		layout (change,s) = (change,s)
 
 instance tune InContainer
 where
 	tune InContainer t = tune (ApplyLayout layout ) t
 	where
-		layout (ReplaceUI ui) = ReplaceUI (uiDefSetAttribute CONTAINER_ATTRIBUTE "container" (forceLayout ui))
-		layout change = change
+		layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute CONTAINER_ATTRIBUTE "container" (forceLayout ui)),())
+		layout (change,s) = (change,s)
 
 instance tune FullScreen
 where 
 	tune FullScreen t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui) = ReplaceUI (uiDefSetAttribute SCREEN_ATTRIBUTE "full" (forceLayout ui))
-		layout change = change
+		layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute SCREEN_ATTRIBUTE "full" (forceLayout ui)),())
+		layout (change,s) = (change,s)
 
 instance tune Title
 where
 	tune (Title title) t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui) = ReplaceUI (uiDefSetAttribute TITLE_ATTRIBUTE title (forceLayout ui))
-		layout change = change
+		layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute TITLE_ATTRIBUTE title (forceLayout ui)),())
+		layout (change,s) = (change,s)
 	
 instance tune Icon
 where
 	tune (Icon icon) t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui) = ReplaceUI (uiDefSetAttribute ICON_ATTRIBUTE icon (forceLayout ui))
-		layout change = change
+		layout ((ReplaceUI ui),()) = (ReplaceUI (uiDefSetAttribute ICON_ATTRIBUTE icon (forceLayout ui)),())
+		layout (change,s) = (change,s)
 
 instance tune Attribute
 where
 	tune (Attribute k v) t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui) = ReplaceUI (uiDefSetAttribute k v (forceLayout ui))
-		layout change = change
+		layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute k v (forceLayout ui)),())
+		layout (change,s) = (change,s)
 
 instance tune Label
 where
 	tune (Label label) t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui) = ReplaceUI ((tweakControls (map (\(c,a) -> (c,'DM'.put LABEL_ATTRIBUTE label a)))) ui)
-		layout change = change
+		layout (ReplaceUI ui,()) = (ReplaceUI ((tweakControls (map (\(c,a) -> (c,'DM'.put LABEL_ATTRIBUTE label a)))) ui),())
+		layout (change,s) = (change,s)
 
 
 instance tune NoUserInterface
@@ -364,8 +436,8 @@ instance tune ForceLayout
 where
     tune ForceLayout t = tune (ApplyLayout layout ) t
 	where
-		layout (ReplaceUI ui) = ReplaceUI (forceLayout ui)
-		layout change = change
+		layout (ReplaceUI ui,()) = (ReplaceUI (forceLayout ui),())
+		layout (change,s) = (change,s)
 
 forceLayout :: UIDef -> UIDef
 //forceLayout (UIForm form)              = UIBlock (autoLayoutForm form)
@@ -382,8 +454,8 @@ instance tune ArrangeVertical
 where
     tune ArrangeVertical t = tune (ApplyLayout layout) t
 	where
- 		layout (ReplaceUI ui) = ReplaceUI (arrangeBlocks arrangeVertical ui)
-		layout change = change
+ 		layout (ReplaceUI ui,()) = (ReplaceUI (arrangeBlocks arrangeVertical ui),())
+		layout (change,s) = (change,s)
 
 arrangeVertical :: UIBlocksCombinator
 arrangeVertical = arrangeStacked Vertical
@@ -392,8 +464,8 @@ instance tune ArrangeHorizontal
 where
     tune ArrangeHorizontal t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui) = ReplaceUI (arrangeBlocks arrangeHorizontal ui)
-		layout change = change
+		layout (ReplaceUI ui,()) = (ReplaceUI (arrangeBlocks arrangeHorizontal ui),())
+		layout (change,s) = (change,s)
 
 arrangeHorizontal :: UIBlocksCombinator
 arrangeHorizontal = arrangeStacked Horizontal
@@ -414,8 +486,8 @@ instance tune ArrangeWithTabs
 where
     tune ArrangeWithTabs t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui) = ReplaceUI (arrangeBlocks arrangeWithTabs ui)
-		layout change = change
+		layout (ReplaceUI ui,()) = (ReplaceUI (arrangeBlocks arrangeWithTabs ui),())
+		layout (change,s) = (change,s)
 
 arrangeWithTabs :: UIBlocksCombinator
 arrangeWithTabs = arrange
@@ -445,8 +517,8 @@ instance tune ArrangeWithSideBar
 where
     tune (ArrangeWithSideBar index side size resize) t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui) = ReplaceUI (arrangeBlocks (arrangeWithSideBar index side size resize) ui)
-		layout change = change
+		layout (ReplaceUI ui,()) = (ReplaceUI (arrangeBlocks (arrangeWithSideBar index side size resize) ui),())
+		layout (change,s) = (change,s)
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> UIBlocksCombinator
 arrangeWithSideBar index side size resize = arrange
@@ -475,8 +547,8 @@ instance tune ArrangeSplit
 where
     tune (ArrangeSplit direction resize) t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui) = ReplaceUI (arrangeBlocks (arrangeSplit direction resize) ui)
-		layout change = change
+		layout (ReplaceUI ui,()) = (ReplaceUI (arrangeBlocks (arrangeSplit direction resize) ui),())
+		layout (change,s) = (change,s)
 
 arrangeSplit :: !UIDirection !Bool -> UIBlocksCombinator
 arrangeSplit direction resize = arrange
@@ -497,8 +569,8 @@ instance tune ArrangeCustom
 where
     tune (ArrangeCustom f) t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui) = ReplaceUI (arrangeBlocks f ui)
-		layout change = change
+		layout (ReplaceUI ui,()) = (ReplaceUI (arrangeBlocks f ui),())
+		layout (change,s) = (change,s)
 
 blockToControl :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
 blockToControl ui=:{UIBlock|attributes}
@@ -580,10 +652,10 @@ where
     title		= 'DM'.get TITLE_ATTRIBUTE attributes	
     iconCls		= fmap (\icon -> "icon-" +++ icon) ('DM'.get ICON_ATTRIBUTE attributes)
 
-autoLayoutFinal :: Layout
+autoLayoutFinal :: Layout ()
 autoLayoutFinal = layout
 where
-	layout change = compactChangeDef change
+	layout (change,s) = (compactChangeDef change,s)
 	/*
 	layout (UILayers [main:aux])
 		= UILayers [layout main:aux]
@@ -606,10 +678,10 @@ where
 	layout def = def
 */
 
-plainLayoutFinal :: Layout
+plainLayoutFinal :: Layout ()
 plainLayoutFinal = layout
 where
-	layout change = change
+	layout (change,s) = (change,s)
 /*
 	layout (UILayers [main:rest])
 		= UILayers [layout main:rest]

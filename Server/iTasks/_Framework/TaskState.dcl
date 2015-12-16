@@ -60,11 +60,12 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	| TCStep					!TaskId !TaskTime !(Either (TaskTree,[String]) (DeferredJSON,Int,TaskTree)) 
 	| TCParallel				!TaskId !TaskTime ![(!TaskId,!TaskTree)] [String] //Subtrees of embedded tasks and enabled actions
 	| TCShared					!TaskId !TaskTime !TaskTree
-	| TCExposedShared			!TaskId !TaskTime !String !TaskTree	// +URL
+	| TCExposedShared			!TaskId !TaskTime !String !TaskTree	// +URL //TODO: Remove
 	| TCStable					!TaskId !TaskTime !DeferredJSON
+	| TCLayout					!JSONNode !TaskTree
 	| TCNop			
-	| TCDestroy					!TaskTree															//Marks a task state as garbage that must be destroyed
-	| TCTasklet			
+	| TCDestroy					!TaskTree	//Marks a task state as garbage that must be destroyed (TODO: replace by explicit event
+	| TCTasklet								//TODO: Remove
 
 taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
 

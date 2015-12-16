@@ -10,31 +10,35 @@ from Data.Maybe import :: Maybe
 
 // When a layout changes the stucture of the UI, changes to the UI have to be
 // changed too to route the changes to the correct place in the structure
-:: Layout :== UIChangeDef -> UIChangeDef
+:: Layout s :== (UIChangeDef,s) -> (UIChangeDef,s)
 
 :: UIFormCombinator     :== UIForm -> UIBlock
 :: UIBlocksCombinator   :== [UIBlock] [UIAction] -> UIBlock
 
 // These types are used to specify when to apply layouts
-:: ApplyLayout	= ApplyLayout Layout
+:: ApplyLayout	= E.s: ApplyLayout (Layout s) & iTask s
 :: AutoLayout = WithAutoLayout | WithoutAutoLayout
 
 :: SetValueAttribute a = SetValueAttribute !String (a -> String)
 
 
 //These are the layouts that are applied automatically when auto layouting is enabled
-autoLayoutInteract 		:: Layout 
-autoLayoutStep  		:: Layout
-autoLayoutParallel 		:: Layout
-autoLayoutAttach 		:: Layout
+autoLayoutInteract 		:: Layout ()
+autoLayoutStep  		:: Layout ()
+autoLayoutParallel 		:: Layout ()
+autoLayoutAttach 		:: Layout ()
+
+//Partial layouts used in the automatic layouts 
+editorToForm :: Layout ()
+formToBlock :: Layout (Maybe [Bool])
 
 autoLayoutBlocks        :: [UIBlock] [UIAction] -> UIBlock
 
 //Applied automatically when a published has a UI other than UIFinal
-autoLayoutFinal        :: Layout
+autoLayoutFinal        :: Layout ()
 
 //Alternative plain final layout
-plainLayoutFinal       :: Layout
+plainLayoutFinal       :: Layout ()
 
 //Generation of prompts
 class descr d
