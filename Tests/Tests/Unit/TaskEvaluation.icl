@@ -105,7 +105,7 @@ where
 	exp = [ReplaceUI expMinStepInitialUI]
 
 //The step is a compound editor with the "sub" UI as first element, and the actions as remaining elements	
-expMinStepInitialUI = UICompoundContent [expEditorUI, expActionOk]
+expMinStepInitialUI = UIStep [expEditorUI, expActionOk]
 where
 	expEditorUI = UICompoundContent [expPromptUI "Minimal Step combinator",editor]
 	where
@@ -120,9 +120,9 @@ where
 	events = [ResetEvent]
 	exp = [ReplaceUI expParUI]
 	
-	expParUI = UICompoundContent [UICompoundContent [expMinimalEditorUI 1 "Edit string 1" "A",expMinimalEditorUI 2 "Edit string 2" "B"]
-								 ,UICompoundContent []
-								 ] //No actions
+	expParUI = UIParallel [UICompoundContent [expMinimalEditorUI 1 "Edit string 1" "A",expMinimalEditorUI 2 "Edit string 2" "B"]
+						  ,UICompoundContent []
+						  ] //No actions
 
 expMinimalEditorUI taskNum prompt value
 	= UICompoundContent [expPromptUI prompt,editor]
@@ -154,7 +154,7 @@ where
 	exp = [ReplaceUI expMinStepInitialUI, minimalStepInputResponse, ReplaceUI (expMinimalEditorUI 2 "Result" "foo")] 
 
 expMinParOperationsInitialUI
-	= UICompoundContent [parts,actions]
+	= UIParallel [parts,actions]
 where
 	parts = UICompoundContent [expEditorUI]
 

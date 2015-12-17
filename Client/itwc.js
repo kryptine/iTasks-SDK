@@ -486,8 +486,14 @@ itwc.component.itwc_raw_editor = itwc.extend(itwc.RawContainer,{
 itwc.component.itwc_raw_compoundeditor = itwc.extend(itwc.RawContainer,{
 	cssClass: 'itwc-raw-compound-editor'
 });
-itwc.component.itwc_raw_compoundcontent = itwc.extend(itwc.Container,{
+itwc.component.itwc_raw_compoundcontent = itwc.extend(itwc.RawContainer,{
 	cssClass: 'itwc-raw-compound-content'
+});
+itwc.component.itwc_raw_step = itwc.extend(itwc.RawContainer,{
+	cssClass: 'itwc-raw-step'
+});
+itwc.component.itwc_raw_parallel = itwc.extend(itwc.RawContainer,{
+	cssClass: 'itwc-raw-parallel'
 });
 //Very mimimal implementation of actions that respond to clicks
 itwc.component.itwc_raw_action = itwc.extend(itwc.Component,{ 

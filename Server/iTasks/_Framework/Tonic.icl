@@ -405,7 +405,7 @@ stepEval` cases nid childTaskId=:(TaskId ino tno) eval event evalOpts=:{TaskEval
     // TODO
     // This LC filters out the actions for the current task. For some reason, we sometimes
     // get actions for the _next_ step here. Why is this? Ideally, we should remove this LC here.
-    = case [a \\ a <- uiDefActions uiDef | a.UIAction.taskId == toString ino +++ "-" +++ toString tno] of
+    = case [a \\ a <- [] /*uiDefActions uiDef*/ | a.UIAction.taskId == toString ino +++ "-" +++ toString tno] of
         [] = iworld
         xs
           # focus         = sdsFocus (tonicOpts.currBlueprintTaskId, nid) tonicActionsForTaskIDAndExpr

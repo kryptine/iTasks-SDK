@@ -144,7 +144,7 @@ where
 		# change = case (event,change) of
 			//On reset generate a new step UI
 			(ResetEvent,ReplaceUI ui)  
-				= ReplaceUI (UICompoundContent [ui:map UIAction (contActions taskId val conts)])
+				= ReplaceUI (UIStep [ui:map UIAction (contActions taskId val conts)])
 			//Otherwise create a compound change definition
 			_ 	
 				= ChangeUI [] [ChangeChild 0 change:actionChanges]
@@ -515,7 +515,7 @@ genParallelRep :: !TaskEvalOpts !Event [UIAction] [String] [TaskResult a] Int ->
 genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
 	# change = case event of
 		ResetEvent
-			= ReplaceUI (UICompoundContent [UICompoundContent [def \\ ValueResult _ _ (ReplaceUI def) _ <- results]
+			= ReplaceUI (UIParallel [UICompoundContent [def \\ ValueResult _ _ (ReplaceUI def) _ <- results]
 					 				 ,UICompoundContent (map UIAction actions)
 									 ])
 		_ 

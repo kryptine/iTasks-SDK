@@ -22,7 +22,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 //Provide generic instances for all UI definitions
-derive class iTask UIDef, UIWindow, UIEmpty, UIForm, UIBlock, UIAction, UIEditor, UIControl, UITab
+derive class iTask UIDef, UIWindow, UIBlock, UIAction, UIEditor, UIControl, UITab
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
 derive class iTask UIWindowOpts, UIItemsOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
@@ -49,6 +49,8 @@ instance Functor UIViewOpts
 	| UICompoundEditor 	!UIEditor ![UIDef]
 	//Constructors for combinators
 	| UICompoundContent ![UIDef]
+	| UIStep            ![UIDef]
+	| UIParallel        ![UIDef]
 	| UIAction 			!UIAction
 	| UIWindow 			!UIWindow
 	//Constructors for z-axis stacking
@@ -62,24 +64,15 @@ instance Functor UIViewOpts
     | UIBlock   !UIBlock                //A partial user interface, the controls of such a UI have been arranged
 										// but the container they will be put in is not decided yet
     | UIBlocks  ![UIBlock] ![UIAction]  //A set of aggregated blocks that have not yet been arranged
-	//Final
-    | UIFinal   !UIControl              //The final user interface
 
 ::UIEditor = 
 	{ optional		:: Bool
 	, attributes	:: UIAttributes
 	}
-:: UIEmpty =
-    { actions       :: [UIAction]
-    }
-:: UIForm =
-	{ attributes	:: UIAttributes
-	}
 :: UIBlock =
 	{ attributes	:: UIAttributes
 	, content       :: UIItemsOpts
     , size          :: UISizeOpts
-	, actions		:: [UIAction]
 	, hotkeys		:: [UIKeyAction]
 	}
 
@@ -363,9 +356,6 @@ instance Functor UIViewOpts
 	, closeTaskId	:: !Maybe String
 	}
 
-//Empty viewport
-emptyUI         :: UIDef
-
 //Modifier functions
 setSize         :: !UISize !UISize          !UIControl -> UIControl
 setWidth		:: !UISize					!UIControl -> UIControl
@@ -417,7 +407,6 @@ stringDisplay			:: !String		-> UIControl
 uiDefAttributes			:: UIDef -> UIAttributes
 uiDefControls			:: UIDef -> [UIControl]
 uiDefAnnotatedControls	:: UIDef -> [(UIControl,UIAttributes)]
-uiDefActions			:: UIDef -> [UIAction]
 uiDefDirection			:: UIDef -> UIDirection
 uiDefWindows			:: UIDef -> [UIWindow]
 

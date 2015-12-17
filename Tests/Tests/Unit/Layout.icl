@@ -34,7 +34,7 @@ derive class iTask TestRecInner, TestRecOuter
 testAutoInteractionLayoutInitial = assertEqual "Test if the auto interaction layout correctly turns an editor into a form" exp sut
 where
 	exp = ReplaceUI (UICompoundContent [stdPrompt,expIntForm])
-	sut = autoLayoutInteract (ReplaceUI (UICompoundContent [stdPrompt,stdIntEditor]))
+	sut = fst (autoLayoutInteract ((ReplaceUI (UICompoundContent [stdPrompt,stdIntEditor])),()))
 	
 	stdPrompt = UIEmpty //STUB Don't care what the prompt is!
 	stdIntEditor = UIEditor {UIEditor|optional=False,attributes='DM'.fromList

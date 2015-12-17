@@ -18,7 +18,7 @@ from GenEq import generic gEq
 
 import Text.HTML
 
-derive class iTask UIDef, UIWindow, UIEmpty, UIForm, UIBlock, UIAction, UIEditor, UIControl, UITab
+derive class iTask UIDef, UIWindow, UIBlock, UIAction, UIEditor, UIControl, UITab
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
 derive class iTask UIWindowOpts, UIItemsOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
@@ -27,9 +27,6 @@ derive class iTask UIHSizeOpts, UIFSizeOpts, UIButtonOpts, UIMenuButtonOpts, UIT
 
 instance Functor UIViewOpts
 where fmap f opts=:{UIViewOpts|value} = {UIViewOpts|opts & value = fmap f value}
-
-emptyUI :: UIDef
-emptyUI = UIFinal (defaultPanel [])
 
 defaultSizeOpts :: UISizeOpts
 defaultSizeOpts = {UISizeOpts|width = Nothing, minWidth = Nothing, maxWidth = Nothing, height = Nothing, minHeight = Nothing, maxHeight = Nothing, margins = Nothing}
@@ -337,17 +334,13 @@ uiDefAttributes _								= 'DM'.newMap
 
 uiDefControls :: UIDef -> [UIControl]
 uiDefControls (UIBlock {UIBlock|content})	                = content.UIItemsOpts.items
-uiDefControls (UIFinal control)								= [control]
+uiDefControls (UIControl control)							= [control]
 uiDefControls _												= []
 
 uiDefAnnotatedControls :: UIDef -> [(UIControl,UIAttributes)]
 uiDefAnnotatedControls (UIBlock {UIBlock|content})	            = [(c,'DM'.newMap)\\c <- content.UIItemsOpts.items]
-uiDefAnnotatedControls (UIFinal control)						= [(control,'DM'.newMap)]
+uiDefAnnotatedControls (UIControl control)						= [(control,'DM'.newMap)]
 uiDefAnnotatedControls _										= []
-
-uiDefActions :: UIDef -> [UIAction]
-uiDefActions (UIBlock {UIBlock|actions})	= actions
-uiDefActions _								= []
 
 uiDefDirection :: UIDef -> UIDirection
 uiDefDirection (UIBlock {UIBlock|content})	    = content.UIItemsOpts.direction
@@ -444,6 +437,8 @@ where
 	encodeUI (UIEditor _ control) 			= encodeUI control
 	encodeUI (UICompoundEditor opts defs)	= component "itwc_raw_compoundeditor"  [encodeUI opts, JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UICompoundContent defs) 		= component "itwc_raw_compoundcontent" [JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UIParallel defs) 				= component "itwc_raw_parallel" [JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UIStep defs) 					= component "itwc_raw_step" [JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UIAction action) 				= component "itwc_raw_action" [encodeUI action]
 	encodeUI (UIWindow window) 				= component "itwc_raw_window" [encodeUI window]
 	encodeUI (UILayers defs) 				= component "itwc_raw_layers" [JSONObject [("items",JSONArray (map encodeUI defs))]]
@@ -452,8 +447,6 @@ where
 	encodeUI (UIControl control) 			= encodeUI control
 	encodeUI (UIBlock block) 				= encodeUI block
 	encodeUI (UIBlocks blocks actions) 		= component "itwc_raw_blocks" [JSONObject [("items",JSONArray (map encodeUI blocks ++ map encodeUI actions))]]
-	//The final layout just encodes the finalized component
-	encodeUI (UIFinal control) 				= encodeUI control
 
 instance encodeUI UIControl
 where
@@ -536,11 +529,10 @@ where
 
 instance encodeUI UIBlock
 where
-	encodeUI {UIBlock|attributes,content,size,actions}
-		= component "itwc_raw_block" [encAttr,encodeUI content,itemActions,encodeUI size]
+	encodeUI {UIBlock|attributes,content,size}
+		= component "itwc_raw_block" [encAttr,encodeUI content,encodeUI size]
 	where
 		encAttr = JSONObject [(k,JSONString v) \\ (k,v) <- 'DM'.toList attributes] 
-		itemActions = JSONObject [("itemActions",JSONArray (map encodeUI actions))]
 
 instance encodeUI (UIViewOpts a) | encodeUI a
 where

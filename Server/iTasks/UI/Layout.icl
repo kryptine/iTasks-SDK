@@ -216,7 +216,7 @@ where
 		//Transform all items to standard containers
 		# (rows,itemLabels) = unzip (mapLst (makeRow (labelInItems items)) items)
 		# content 	= {UIItemsOpts|defaultItemsOpts rows & direction=Vertical}
-		# block 	= {UIBlock|attributes='DM'.newMap,content=content,actions=[],hotkeys=[],size=defaultSizeOpts}
+		# block 	= {UIBlock|attributes='DM'.newMap,content=content,hotkeys=[],size=defaultSizeOpts}
 		= (ReplaceUI (UIBlock block),Just itemLabels)
 
 	layout (ReplaceUI def,_) = (ReplaceUI def,Nothing) //Do nothing if it isn't a form
@@ -472,12 +472,11 @@ arrangeHorizontal = arrangeStacked Horizontal
 
 arrangeStacked :: UIDirection [UIBlock] [UIAction] -> UIBlock
 arrangeStacked direction blocks actions
-    = foldl append {UIBlock|attributes='DM'.newMap,content={UIItemsOpts|defaultItemsOpts [] & direction=direction},actions=actions,hotkeys=[],size=defaultSizeOpts} blocks
+    = foldl append {UIBlock|attributes='DM'.newMap,content={UIItemsOpts|defaultItemsOpts [] & direction=direction},hotkeys=[],size=defaultSizeOpts} blocks
 where
     append ui1 ui2
         # (control,attributes,actions,hotkeys) = blockToControl ui2
         = {UIBlock|ui1 & content = {UIItemsOpts|ui1.UIBlock.content & items = ui1.UIBlock.content.UIItemsOpts.items ++ [control]}
-                       , actions = ui1.UIBlock.actions ++ actions
                        , hotkeys = ui1.UIBlock.hotkeys ++ hotkeys
                        , attributes = mergeAttributes ui1.UIBlock.attributes attributes
                        }
@@ -498,7 +497,7 @@ where
         # activeTab     = activeIndex parts
         # controls      = [UITabSet defaultSizeOpts {UITabSetOpts|items=tabs,activeTab=activeTab}]
         = {UIBlock|attributes='DM'.newMap,content={UIItemsOpts|defaultItemsOpts controls & direction=Vertical}
-          ,actions=actions,hotkeys=[],size=defaultSizeOpts}
+          ,hotkeys=[],size=defaultSizeOpts}
 
     activeIndex parts = find 0 Nothing parts
     where
@@ -538,7 +537,6 @@ where
                   ,content= {UIItemsOpts|defaultItemsOpts (if (side===TopSide || side === LeftSide) (if resize [sideC,UISplitter,restC] [sideC,restC]) (if resize [restC,UISplitter,sideC] [restC,sideC]))
                             &direction = if (side===TopSide || side === BottomSide) Vertical Horizontal
                             }
-                  ,actions = actions ++ restAc ++ sideAc
                   ,hotkeys = restHK ++ sideHK
                   ,size = defaultSizeOpts
                   }
@@ -560,7 +558,7 @@ where
         # controls = if resize (intersperse UISplitter controls) controls
         = {UIBlock|attributes='DM'.newMap
                   ,content = {UIItemsOpts|defaultItemsOpts controls & direction = direction}
-                  ,actions = actions ++ flatten bactions
+                  //,actions = actions ++ flatten bactions
                   ,hotkeys = flatten bhotkeys
                   ,size = defaultSizeOpts
                   }
@@ -580,7 +578,8 @@ blockToControl ui=:{UIBlock|attributes}
         _                   = if (isNothing ('DM'.get TITLE_ATTRIBUTE attributes)) (blockToContainer ui) (blockToPanel ui)
 
 blockToContainer :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-blockToContainer {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
+blockToContainer {UIBlock|content=content=:{UIItemsOpts|items,direction},attributes,size}
+	# actions = []
     //Add button actions
 	# (buttons,hotkeys,actions)	= actionsToButtons actions	
 	# (items,direction)		    = addButtonPanel attributes direction buttons items
@@ -589,7 +588,8 @@ where
 	sizeOpts		= {UISizeOpts|size & width = Just FlexSize}
 
 blockToPanel :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-blockToPanel {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
+blockToPanel {UIBlock|content=content=:{UIItemsOpts|items,direction},attributes,size}
+	# actions = []
     //Add button actions
 	# (buttons,hotkeys,actions)	= actionsToButtons actions	
 	# (items,direction)		    = addButtonPanel attributes direction buttons items
@@ -602,7 +602,8 @@ where
     attributes` = ('DM'.del TITLE_ATTRIBUTE o 'DM'.del ICON_ATTRIBUTE) attributes
 
 blockToTab :: UIBlock -> UITab
-blockToTab {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
+blockToTab {UIBlock|content=content=:{UIItemsOpts|items,direction},attributes,size}
+	# actions = []
     //Check for tab close action
 	# (close,actions)		        = actionsToCloseId actions
     //Add button actions
@@ -634,7 +635,8 @@ uiDefToWindow windowType vpos hpos (UIBlocks blocks actions)
 uiDefToWindow windowType vpos hpos def = def
 
 blockToWindow :: UIWindowType UIVAlign UIHAlign UIBlock -> UIWindow
-blockToWindow windowType vpos hpos {UIBlock|content=content=:{UIItemsOpts|items,direction},actions,attributes,size}
+blockToWindow windowType vpos hpos {UIBlock|content=content=:{UIItemsOpts|items,direction},attributes,size}
+	# actions = []
     //Check for window close action
 	# (close,actions)		        = actionsToCloseId actions
     //Add button actions
@@ -652,8 +654,8 @@ where
     title		= 'DM'.get TITLE_ATTRIBUTE attributes	
     iconCls		= fmap (\icon -> "icon-" +++ icon) ('DM'.get ICON_ATTRIBUTE attributes)
 
-autoLayoutFinal :: Layout ()
-autoLayoutFinal = layout
+autoLayoutSession :: Layout ()
+autoLayoutSession = layout
 where
 	layout (change,s) = (compactChangeDef change,s)
 	/*
@@ -952,8 +954,8 @@ tweakUI :: (UIControl -> UIControl) UIDef -> UIDef
 //	= UIForm {UIForm|stack & controls = [(f c,a) \\ (c,a) <- controls]}
 tweakUI f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
 	= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map f items}}
-tweakUI f (UIFinal control)
-    = UIFinal (f control)
+tweakUI f (UIControl control)
+    = UIControl (f control)
 tweakUI f def = def
 
 tweakAttr :: (UIAttributes -> UIAttributes) UIDef -> UIDef
@@ -968,9 +970,9 @@ tweakControls :: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDe
 //	= UIForm {UIForm|stack & controls = f controls}
 tweakControls f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
 	= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map fst (f [(c,'DM'.newMap) \\ c <- items])}}
-tweakControls f (UIFinal control)
+tweakControls f (UIControl control)
 	= case f [(control,'DM'.newMap)] of
-		[(control,_):_] = UIFinal control
-		_ 				= UIFinal control
+		[(control,_):_] = UIControl control
+		_ 				= UIControl control
 tweakControls f def	= def
 

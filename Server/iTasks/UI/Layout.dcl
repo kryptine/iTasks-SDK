@@ -12,7 +12,6 @@ from Data.Maybe import :: Maybe
 // changed too to route the changes to the correct place in the structure
 :: Layout s :== (UIChangeDef,s) -> (UIChangeDef,s)
 
-:: UIFormCombinator     :== UIForm -> UIBlock
 :: UIBlocksCombinator   :== [UIBlock] [UIAction] -> UIBlock
 
 // These types are used to specify when to apply layouts
@@ -22,20 +21,31 @@ from Data.Maybe import :: Maybe
 :: SetValueAttribute a = SetValueAttribute !String (a -> String)
 
 
-//These are the layouts that are applied automatically when auto layouting is enabled
-autoLayoutInteract 		:: Layout ()
-autoLayoutStep  		:: Layout ()
-autoLayoutParallel 		:: Layout ()
-autoLayoutAttach 		:: Layout ()
+/* 
+* The following layouts are applied automatically when auto-layouting is enabled.
+*  
+*
+* Automatic layouting is done according to a few simple rules:
+* 
+* - interact tasks flatten the UI to unformatted forms
+* - If the left hand side of a step combinator directly contains another step combinator
+*   its disabled actions are removed because these actions only become relevant when the
+*   step inside the 
+* - For parallel tasks 
+*/
+
+autoLayoutInteract 		:: Layout () //Automatically applied by 'interact'
+autoLayoutStep  		:: Layout () //Automatically applied by 'step'
+autoLayoutParallel 		:: Layout () //Automatically applied by 'parallel'
+autoLayoutAttach 		:: Layout () //Automatically applied by 'attach'
+
+autoLayoutSession 		:: Layout () //Added when a task instance is 'published' (can be easily removed or replaced by publishing a task explicitly)
 
 //Partial layouts used in the automatic layouts 
 editorToForm :: Layout ()
 formToBlock :: Layout (Maybe [Bool])
 
 autoLayoutBlocks        :: [UIBlock] [UIAction] -> UIBlock
-
-//Applied automatically when a published has a UI other than UIFinal
-autoLayoutFinal        :: Layout ()
 
 //Alternative plain final layout
 plainLayoutFinal       :: Layout ()

@@ -7,6 +7,8 @@
 .itwc-raw-editor
 	, .itwc-raw-compound-editor
 	, .itwc-raw-compound-content
+	, .itwc-raw-parallel
+	, .itwc-raw-step
 	, .itwc-raw-window 
 	, .itwc-raw-layers
 	, .itwc-raw-form
@@ -14,9 +16,24 @@
 	, .itwc-raw-block
 	, .itwc-raw-blocks
 {
-		margin-left: 5px;
 		border: dashed 2px #ccc;
-		padding: 5px;
+		padding: 5px 5px 5px 10px;
+}
+.itwc-raw-form {
+	border: solid 2px #f33;
+	background: #fee;
+}
+.itwc-raw-form-item {
+	border: dashed 2px #f33;
+	border-radius: 5px;
+}
+.itwc-raw-step {
+	border: solid 2px #33f;
+	background: #eef;
+}
+.itwc-raw-parallel {
+	border: solid 2px #3f3;
+	background: #efe;
 }
 .itwc-raw-empty {
 	border: dashed 2px #eee;
