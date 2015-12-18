@@ -5,6 +5,7 @@ import Graphics.Scalable
 import Graphics.Scalable.Internal
 import iTasks
 import iTasks.API.Core.Client.Editlet
+import iTasks.API.Core.Types
 from StdOrdList import minList, maxList
 import StdOverloaded
 import StdArray
@@ -19,6 +20,13 @@ import Text
 from Data.IntMap.Strict import :: IntMap, instance Functor IntMap
 import qualified Data.IntMap.Strict as DIS
 import Data.Matrix
+
+derive class iTask Image, Span, LookupSpan, FontDef, ImageTransform, ImageAttr
+derive class iTask ImageContent, BasicImage, CompositeImage, LineImage, Markers
+derive class iTask LineContent, Compose, XAlign, YAlign, OnMouseOutAttr, OnMouseMoveAttr
+derive class iTask OpacityAttr, FillAttr, XRadiusAttr, YRadiusAttr, StrokeWidthAttr, StrokeAttr
+derive class iTask Slash, DraggableAttr, OnMouseOverAttr, OnMouseUpAttr, DashAttr
+derive class iTask OnMouseDownAttr, OnClickAttr, Angle
 
 :: *GenSVGStVal s =
   { uniqueIdCounter :: !Int
