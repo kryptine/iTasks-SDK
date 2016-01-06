@@ -16,8 +16,19 @@ from iTasks._Framework.Task import :: Event
 
 derive class iTask UIChangeDef, UIChildChange
 
+childChangeIndex :: UIChildChange -> Int
+updChildChangeIndex :: (Int -> Int) UIChildChange -> UIChildChange
+
 //Remove all paths that lead to a NoChange node
 compactChangeDef :: UIChangeDef -> UIChangeDef
+
+//Makes sure that all children ranging 0 to max(index) are in the list
+completeChildChanges :: [UIChildChange] -> [UIChildChange]
+
+//Reassigns indices from 0 upwarths to the changes in the list
+reindexChildChanges :: [UIChildChange] -> [UIChildChange]
+//Remove all childchanges that do nothing
+compactChildChanges :: [UIChildChange] -> [UIChildChange]
 
 //Serialize change definitions such that they can be sent to a client
 encodeUIChangeDef :: !UIChangeDef -> JSONNode

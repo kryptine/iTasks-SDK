@@ -7,7 +7,7 @@ import Data.Either, System.OS, Text.URI, Internet.HTTP
 
 import iTasks._Framework.IWorld, iTasks._Framework.Task, iTasks._Framework.TaskState
 import iTasks._Framework.SDS, iTasks._Framework.TaskStore, iTasks._Framework.TaskEval
-import iTasks.API.Core.Types, iTasks.API.Core.Tasks, iTasks.UI.Layout
+import iTasks.API.Core.Types, iTasks.API.Core.Tasks, iTasks.UI.Layout, iTasks.UI.Layout.Auto
 import iTasks.API.Core.SDSs
 import iTasks.API.Common.InteractionTasks, iTasks.API.Common.TaskCombinators //TODO don't import from Common in Core
 import iTasks.UI.Editor, iTasks.UI.Diff
@@ -75,7 +75,7 @@ where
 		# (content,iworld)	= makeView opts status taskId iworld
 		# prompt			= toPrompt desc
 		# change 			= ReplaceUI (UICompoundEditor {UIEditor|optional=False,attributes='Data.Map'.newMap} [prompt,content])
-		# change 			= if evalOpts.autoLayout (fst (autoLayoutInteract (change,()))) change
+		# change 			= if evalOpts.autoLayout (fst (autoLayoutInteract (change,JSONNull))) change
 		= (change, iworld)
 						
 	makeView [ViewWith viewFun] status taskId iworld

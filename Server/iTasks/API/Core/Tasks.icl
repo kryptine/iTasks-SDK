@@ -5,7 +5,7 @@ import System.Time, Data.Error, System.OSError, Data.Tuple, Text, Text.JSON
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.TaskServer
 import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction, iTasks._Framework.Task, iTasks._Framework.TaskState
 import iTasks._Framework.TaskEval, iTasks._Framework.TaskStore, iTasks.UI.Definition, iTasks._Framework.IWorld
-import iTasks.UI.Layout, iTasks.UI.Editor
+import iTasks.UI.Layout, iTasks.UI.Layout.Auto, iTasks.UI.Editor
 import iTasks.API.Core.SDSs, iTasks.API.Common.SDSCombinators
 
 from iTasks._Framework.SDS as SDS import qualified read, readRegister, write
@@ -127,14 +127,14 @@ visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworl
 		ResetEvent		//(re)generate the initial UI
 			# (editUI,vst)	= editor.Editor.genUI [] nv nm vst
 			# promptUI  	= toPrompt desc
-			# change 		= ReplaceUI (UICompoundContent [promptUI,editUI])
+			# change 		= ReplaceUI (UIInteract [promptUI,editUI])
 			= (change,vst)
 		_				//compare old and new value to determine changes
 			# (editChange,vst)  = editor.Editor.genDiff [] v m nv nm vst
 			# promptChange 		= NoChange
 			# change 			= ChangeUI [] [ChangeChild 0 promptChange, ChangeChild 1 editChange]
 			= (change,vst)
-	# change		= if evalOpts.autoLayout (fst (autoLayoutInteract (change,()))) change
+	# change		= if evalOpts.autoLayout (fst (autoLayoutInteract (change,JSONNull))) change
 	= (change,isValid ver,iworld)
 
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w

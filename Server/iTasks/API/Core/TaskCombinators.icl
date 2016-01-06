@@ -6,7 +6,7 @@ import Internet.HTTP, GenEq, System.Time, Text, Data.Func, Data.Tuple, Data.List
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskStore, iTasks._Framework.TaskEval
 import iTasks._Framework.Util, iTasks._Framework.Store
 import iTasks._Framework.Generic, iTasks.UI.Definition
-import iTasks.API.Core.Types, iTasks.UI.Layout
+import iTasks.API.Core.Types, iTasks.UI.Layout, iTasks.UI.Layout.Auto
 import iTasks._Framework.IWorld
 import iTasks._Framework.Tonic.Shares
 import iTasks._Framework.Client.Override
@@ -148,7 +148,7 @@ where
 			//Otherwise create a compound change definition
 			_ 	
 				= ChangeUI [] [ChangeChild 0 change:actionChanges]
-		= if evalOpts.autoLayout (fst (autoLayoutStep (change,()))) change
+		= if evalOpts.autoLayout (fst (autoLayoutStep (change,JSONNull))) change
 	where
 		actionChanges = [ChangeChild i (switch enabled name) \\ {UIAction|action=(Action name _),enabled} <- actions & i <- [1..]]
 		where
@@ -522,7 +522,7 @@ genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
 			= ChangeUI [] [ChangeChild 0 (ChangeUI [] (itemChanges 0 prevNumBranches results))
 						   		   ,ChangeChild 1 (ChangeUI [] actionChanges)
 								   ]
-	= if evalOpts.autoLayout (fst (autoLayoutParallel (change,()))) change
+	= if evalOpts.autoLayout (fst (autoLayoutParallel (change,JSONNull))) change
 where
 	itemChanges i numExisting [] = []
 	itemChanges i numExisting [ValueResult _ _ change _:rs]
@@ -705,12 +705,12 @@ where
 				    = (ValueResult (Value ASExcepted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange tree, iworld)
 				| attachedId == taskId
 					# rep 		= ReplaceUI (embedTaskDef instanceNo instanceKey)
-                    # rep       = if evalOpts.autoLayout (fst (autoLayoutAttach (rep,()))) rep
+                    # rep       = if evalOpts.autoLayout (fst (autoLayoutAttach (rep,JSONNull))) rep
                     # stable    = value === Stable
 					= (ValueResult (Value (ASAttached stable) stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
 				| otherwise
 					# rep 		= ReplaceUI inUseDef
-                    # rep       = if evalOpts.autoLayout (fst (autoLayoutAttach (rep,()))) rep
+                    # rep       = if evalOpts.autoLayout (fst (autoLayoutAttach (rep,JSONNull))) rep
 					= (ValueResult (Value (ASInUse attachedId) False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} rep tree, iworld)		
 			_
 				= (ValueResult (Value ASDeleted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange tree, iworld)

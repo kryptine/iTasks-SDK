@@ -20,7 +20,7 @@ import Text.HTML
 
 derive class iTask UIDef, UIWindow, UIBlock, UIAction, UIEditor, UIControl, UITab
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
-derive class iTask UIWindowOpts, UIItemsOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
+derive class iTask UIWindowOpts, UIItemsOpts, UIContainerOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
 derive class iTask UIPanelOpts, UITabSetOpts, UIFieldSetOpts, UIEditletOpts, UITaskletOpts, UIIconOpts, UILabelOpts
 derive class iTask UIHSizeOpts, UIFSizeOpts, UIButtonOpts, UIMenuButtonOpts, UITreeNode, UIMenuItem
@@ -38,7 +38,9 @@ defaultFSizeOpts :: UIFSizeOpts
 defaultFSizeOpts = {UIFSizeOpts|margins = Nothing}
 
 defaultItemsOpts :: [UIControl] -> UIItemsOpts
-defaultItemsOpts items = {items = items, direction = Vertical, halign = AlignLeft, valign = AlignTop, padding = Nothing, baseCls=Nothing,bodyCls=Nothing}
+defaultItemsOpts items = {UIItemsOpts|items = items, direction = Vertical, halign = AlignLeft, valign = AlignTop, padding = Nothing, baseCls=Nothing,bodyCls=Nothing}
+defaultContainerOpts :: UIContainerOpts
+defaultContainerOpts = {UIContainerOpts|direction = Vertical, halign = AlignLeft, valign = AlignTop, padding = Nothing, baseCls=Nothing,bodyCls=Nothing}
 
 defaultContainer :: ![UIControl] -> UIControl
 defaultContainer items = UIContainer defaultSizeOpts (defaultItemsOpts items)
@@ -46,8 +48,11 @@ defaultContainer items = UIContainer defaultSizeOpts (defaultItemsOpts items)
 defaultFieldSet :: !(Maybe String) ![UIControl]	-> UIControl
 defaultFieldSet title items = UIFieldSet defaultSizeOpts (defaultItemsOpts items) {UIFieldSetOpts|title=title}
 
-defaultPanel :: ![UIControl] -> UIControl
-defaultPanel items = UIPanel defaultSizeOpts (defaultItemsOpts items) {UIPanelOpts|title=Nothing,iconCls=Nothing,frame=False,hotkeys=Nothing}
+defaultPanel :: ![UIDef] -> UIDef
+defaultPanel items = UIPanel defaultSizeOpts defaultContainerOpts defaultPanelOpts items
+
+defaultPanelOpts :: UIPanelOpts
+defaultPanelOpts = {UIPanelOpts|title=Nothing,iconCls=Nothing,frame=False,hotkeys=Nothing}
 
 defaultWindow :: ![UIControl] -> UIWindow
 defaultWindow items = {UIWindow|sizeOpts=defaultSizeOpts,itemsOpts=(defaultItemsOpts items),windowOpts={UIWindowOpts|windowType=FloatingWindow,title=Nothing,iconCls=Nothing,menu=Nothing,hotkeys=Nothing,vpos=Nothing,hpos=Nothing,closeTaskId=Nothing,focusTaskId=Nothing}}
@@ -86,7 +91,7 @@ hasSizeOpts (UIMenuButton	sOpts opts)			= True
 hasSizeOpts (UITasklet sOpts opts)				= True
 hasSizeOpts (UIEditlet sOpts opts)              = True
 hasSizeOpts (UIContainer sOpts iOpts)	        = True
-hasSizeOpts (UIPanel sOpts iOpts opts)			= True
+//hasSizeOpts (UIPanel sOpts iOpts opts)			= True
 hasSizeOpts (UIFieldSet sOpts iOpts opts)		= True
 hasSizeOpts (UITabSet sOpts opts)				= True
 hasSizeOpts _                                   = False
@@ -106,7 +111,7 @@ getSizeOpts f (UIMenuButton	sOpts opts)				= f sOpts
 getSizeOpts f (UITasklet sOpts opts)				= f sOpts
 getSizeOpts f (UIEditlet sOpts opts)				= f sOpts
 getSizeOpts f (UIContainer sOpts iOpts)	        	= f sOpts
-getSizeOpts f (UIPanel sOpts iOpts opts)			= f sOpts
+//getSizeOpts f (UIPanel sOpts iOpts opts)			= f sOpts
 getSizeOpts f (UIFieldSet sOpts iOpts opts)			= f sOpts
 getSizeOpts f (UITabSet sOpts opts)					= f sOpts
 
@@ -125,7 +130,7 @@ setSizeOpts f (UIMenuButton	sOpts opts)				= (UIMenuButton	(f sOpts) opts)
 setSizeOpts f (UITasklet sOpts opts)				= (UITasklet (f sOpts) opts)
 setSizeOpts f (UIEditlet sOpts opts)				= (UIEditlet (f sOpts) opts)
 setSizeOpts f (UIContainer sOpts iOpts)	        	= (UIContainer (f sOpts) iOpts)
-setSizeOpts f (UIPanel sOpts iOpts opts)			= (UIPanel (f sOpts) iOpts opts)
+//setSizeOpts f (UIPanel sOpts iOpts opts)			= (UIPanel (f sOpts) iOpts opts)
 setSizeOpts f (UIFieldSet sOpts iOpts opts)			= (UIFieldSet (f sOpts) iOpts opts)
 setSizeOpts f (UITabSet sOpts opts)					= (UITabSet (f sOpts) opts)
 
@@ -278,47 +283,65 @@ setBottomMargin bottom ctrl = setMargin (\m -> {m & bottom = bottom}) ctrl
 setLeftMargin :: !Int !UIControl -> UIControl
 setLeftMargin left ctrl = setMargin (\m -> {m & left = left}) ctrl
 
-setPadding :: !Int !Int !Int !Int !UIControl -> UIControl
-setPadding top right bottom left (UIContainer sOpts iOpts)
-	= UIContainer sOpts {UIItemsOpts|iOpts & padding = Just {top=top,right=right,bottom=bottom,left=left}}
-setPadding top right bottom left (UIPanel sOpts iOpts opts)
-	= UIPanel sOpts {UIItemsOpts|iOpts & padding = Just {top=top,right=right,bottom=bottom,left=left}} opts
-setPadding top right bottom left ctrl = ctrl
+instance setPadding UIControl
+where
+	setPadding top right bottom left (UIContainer sOpts iOpts)
+		= UIContainer sOpts {UIItemsOpts|iOpts & padding = Just {top=top,right=right,bottom=bottom,left=left}}
+	setPadding top right bottom left ctrl = ctrl
+instance setPadding UIDef
+where
+	setPadding top right bottom left (UIPanel sOpts cOpts pOpts items)
+		= UIPanel sOpts {UIContainerOpts|cOpts & padding = Just {top=top,right=right,bottom=bottom,left=left}} pOpts items
+	setPadding top right bottom left def = def
 
 setTitle :: !String !UIControl -> UIControl
-setTitle title (UIPanel sOpts iOpts opts)		= UIPanel sOpts iOpts {UIPanelOpts|opts & title = Just (escapeStr title)}
+//setTitle title (UIPanel sOpts iOpts opts)		= UIPanel sOpts iOpts {UIPanelOpts|opts & title = Just (escapeStr title)}
 setTitle title (UIFieldSet sOpts iOpts opts)	= UIFieldSet sOpts iOpts {UIFieldSetOpts|opts & title = Just (escapeStr title)}
 setTitle title ctrl								= ctrl
 
 setFramed :: !Bool !UIControl -> UIControl
-setFramed frame (UIPanel sOpts iOpts opts)	= UIPanel sOpts iOpts {UIPanelOpts|opts & frame = frame}
+//setFramed frame (UIPanel sOpts iOpts opts)	= UIPanel sOpts iOpts {UIPanelOpts|opts & frame = frame}
 setFramed frame ctrl						= ctrl
 
 setIconCls :: !String !UIControl -> UIControl
 setIconCls iconCls (UIActionButton sOpts aOpts opts)	= UIActionButton sOpts aOpts {UIButtonOpts|opts & iconCls = Just iconCls}
 setIconCls iconCls (UIMenuButton sOpts opts)			= UIMenuButton sOpts {UIMenuButtonOpts|opts & iconCls = Just iconCls}
 setIconCls iconCls (UIIcon sOpts opts)					= UIIcon sOpts {UIIconOpts|opts & iconCls = iconCls}
-setIconCls iconCls (UIPanel sOpts iOpts opts) 			= UIPanel sOpts iOpts {UIPanelOpts|opts & iconCls = Just iconCls}
+//setIconCls iconCls (UIPanel sOpts iOpts opts) 			= UIPanel sOpts iOpts {UIPanelOpts|opts & iconCls = Just iconCls}
 setIconCls iconCls ctrl									= ctrl
 
-setBaseCls :: !String !UIControl -> UIControl
-setBaseCls baseCls (UIContainer sOpts iOpts)	    = UIContainer sOpts {UIItemsOpts|iOpts & baseCls = Just baseCls}
-setBaseCls baseCls (UIPanel sOpts iOpts opts)		= UIPanel sOpts {UIItemsOpts|iOpts & baseCls = Just baseCls} opts
-setBaseCls baseCls ctrl								= ctrl
+instance setBaseCls UIControl
+where
+	setBaseCls baseCls (UIContainer sOpts iOpts)	    = UIContainer sOpts {UIItemsOpts|iOpts & baseCls = Just baseCls}
+	setBaseCls baseCls ctrl								= ctrl
 
-setDirection :: !UIDirection !UIControl -> UIControl
-setDirection dir (UIContainer sOpts iOpts)	    = UIContainer sOpts {UIItemsOpts|iOpts & direction = dir}
-setDirection dir (UIPanel sOpts iOpts opts)		= UIPanel sOpts {UIItemsOpts|iOpts & direction = dir} opts
-setDirection dir ctrl							= ctrl
+instance setBaseCls UIDef
+where
+	setBaseCls baseCls (UIPanel sOpts cOpts pOpts items)	= UIPanel sOpts {UIContainerOpts|cOpts & baseCls = Just baseCls} pOpts items
+	setBaseCls baseCls def = def
 
-setHalign :: !UIHAlign !UIControl -> UIControl
-setHalign align (UIContainer sOpts iOpts)	    = UIContainer sOpts {iOpts & halign = align}
-setHalign align (UIPanel sOpts iOpts opts)		= UIPanel sOpts {iOpts & halign = align} opts
-setHalign align ctrl							= ctrl
+instance setDirection UIControl
+where
+	setDirection dir (UIContainer sOpts iOpts)	    = UIContainer sOpts {UIItemsOpts|iOpts & direction = dir}
+	setDirection dir ctrl							= ctrl
+instance setDirection UIDef
+where
+	setDirection dir (UIPanel sOpts cOpts pOpts items) = UIPanel sOpts {UIContainerOpts|cOpts & direction = dir} pOpts items
+	setDirection dir def = def
+
+instance setHalign UIControl
+where
+	setHalign align (UIContainer sOpts iOpts)	    = UIContainer sOpts {UIItemsOpts|iOpts & halign = align}
+	setHalign align ctrl							= ctrl
+
+instance setHalign UIDef
+where
+	setHalign align (UIPanel sOpts cOpts pOpts items) = UIPanel sOpts {UIContainerOpts|cOpts & halign = align} pOpts items
+	setHalign align def = def
 
 setValign :: !UIVAlign !UIControl -> UIControl
-setValign align (UIContainer sOpts iOpts)	    = UIContainer sOpts {iOpts & valign = align}
-setValign align (UIPanel sOpts iOpts opts)		= UIPanel sOpts {iOpts & valign = align} opts
+setValign align (UIContainer sOpts iOpts)	    = UIContainer sOpts {UIItemsOpts|iOpts & valign = align}
+//setValign align (UIPanel sOpts iOpts opts)		= UIPanel sOpts {iOpts & valign = align} opts
 setValign align ctrl							= ctrl
 
 getMargins :: !UIControl -> (Maybe UISideSizes)
@@ -329,76 +352,72 @@ getMargins ctrl
                            = Nothing
 
 uiDefAttributes	:: UIDef -> UIAttributes
-uiDefAttributes (UIBlock {UIBlock|attributes})	= attributes
+//uiDefAttributes (UIBlock {UIBlock|attributes})	= attributes
 uiDefAttributes _								= 'DM'.newMap
 
 uiDefControls :: UIDef -> [UIControl]
-uiDefControls (UIBlock {UIBlock|content})	                = content.UIItemsOpts.items
+//uiDefControls (UIBlock {UIBlock|content})	                = content.UIItemsOpts.items
 uiDefControls (UIControl control)							= [control]
 uiDefControls _												= []
 
 uiDefAnnotatedControls :: UIDef -> [(UIControl,UIAttributes)]
-uiDefAnnotatedControls (UIBlock {UIBlock|content})	            = [(c,'DM'.newMap)\\c <- content.UIItemsOpts.items]
+//uiDefAnnotatedControls (UIBlock {UIBlock|content})	            = [(c,'DM'.newMap)\\c <- content.UIItemsOpts.items]
 uiDefAnnotatedControls (UIControl control)						= [(control,'DM'.newMap)]
 uiDefAnnotatedControls _										= []
 
 uiDefDirection :: UIDef -> UIDirection
-uiDefDirection (UIBlock {UIBlock|content})	    = content.UIItemsOpts.direction
+//uiDefDirection (UIBlock {UIBlock|content})	    = content.UIItemsOpts.direction
 uiDefDirection _								= Vertical
 
 uiDefWindows :: UIDef -> [UIWindow]
 uiDefWindows _													= []
 
 uiDefSetAttribute :: String String UIDef -> UIDef
-uiDefSetAttribute key value (UILayers [UIBlock sub=:{UIBlock|attributes}:aux])
-	= UILayers [UIBlock {UIBlock|sub & attributes = 'DM'.put key value attributes}:aux]
-uiDefSetAttribute key value (UIBlock sub=:{UIBlock|attributes})
-	= UIBlock {UIBlock|sub & attributes = 'DM'.put key value attributes}
+//uiDefSetAttribute key value (UILayers [UIBlock sub=:{UIBlock|attributes}:aux])
+//	= UILayers [UIBlock {UIBlock|sub & attributes = 'DM'.put key value attributes}:aux]
+//uiDefSetAttribute key value (UIBlock sub=:{UIBlock|attributes})
+	//= UIBlock {UIBlock|sub & attributes = 'DM'.put key value attributes}
 uiDefSetAttribute key value def = def
 
 uiDefSetDirection :: UIDirection UIDef -> UIDef
-uiDefSetDirection direction (UIBlock sub)
-    = UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & direction = direction}}
+//uiDefSetDirection direction (UIBlock sub)
+    //= UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & direction = direction}}
 uiDefSetDirection direction def = def
 
 uiDefSetHalign :: UIHAlign UIDef -> UIDef
-uiDefSetHalign align (UIBlock sub)
-    = UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & halign = align}}
+//uiDefSetHalign align (UIBlock sub)
+ //   = UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & halign = align}}
 uiDefSetHalign align def = def
 
 uiDefSetValign :: UIVAlign UIDef -> UIDef
-uiDefSetValign align (UIBlock sub)
-    = UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & valign = align}}
+//uiDefSetValign align (UIBlock sub)
+ //   = UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & valign = align}}
 uiDefSetValign align def = def
 
 uiDefSetPadding :: Int Int Int Int UIDef -> UIDef
-uiDefSetPadding top right bottom left (UIBlock sub)
-    = UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & padding = Just {top=top,right=right,bottom=bottom,left=left}}}
+//uiDefSetPadding top right bottom left (UIBlock sub)
+ //   = UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & padding = Just {top=top,right=right,bottom=bottom,left=left}}}
 uiDefSetPadding _ _ _ _ def = def
 
 uiDefSetMargins :: Int Int Int Int UIDef -> UIDef
-uiDefSetMargins top right bottom left (UIBlock ui=:{UIBlock|size})
-    = UIBlock {UIBlock|ui & size = {UISizeOpts|size & margins = Just {top = top, right = right, bottom = bottom, left = left}}}
+//uiDefSetMargins top right bottom left (UIBlock ui=:{UIBlock|size})
+//    = UIBlock {UIBlock|ui & size = {UISizeOpts|size & margins = Just {top = top, right = right, bottom = bottom, left = left}}}
 uiDefSetMargins _ _ _ _ def = def
 
 uiDefSetBaseCls :: String UIDef -> UIDef
-uiDefSetBaseCls baseCls (UIBlock sub)
-    = UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & baseCls = Just baseCls}}
+//uiDefSetBaseCls baseCls (UIBlock sub) = UIBlock {UIBlock|sub & content = {UIItemsOpts|sub.UIBlock.content & baseCls = Just baseCls}}
 uiDefSetBaseCls _ def = def
 
 uiDefSetHeight :: UISize UIDef -> UIDef
-uiDefSetHeight height (UIBlock ui=:{UIBlock|size})
-    = UIBlock {UIBlock|ui & size = {UISizeOpts|size & height = Just height}}
+//uiDefSetHeight height (UIBlock ui=:{UIBlock|size}) = UIBlock {UIBlock|ui & size = {UISizeOpts|size & height = Just height}}
 uiDefSetHeight height def = def
 
 uiDefSetWidth :: UISize UIDef -> UIDef
-uiDefSetWidth width (UIBlock ui=:{UIBlock|size})
-    = UIBlock {UIBlock|ui & size = {UISizeOpts|size & width = Just width}}
+//uiDefSetWidth width (UIBlock ui=:{UIBlock|size}) = UIBlock {UIBlock|ui & size = {UISizeOpts|size & width = Just width}}
 uiDefSetWidth width def = def
 
 uiDefSetSize :: UISize UISize UIDef -> UIDef
-uiDefSetSize width height (UIBlock ui=:{UIBlock|size})
-    = UIBlock {UIBlock|ui & size = {UISizeOpts|size & width = Just width, height = Just height}}
+//uiDefSetSize width height (UIBlock ui=:{UIBlock|size}) = UIBlock {UIBlock|ui & size = {UISizeOpts|size & width = Just width, height = Just height}}
 uiDefSetSize width height def = def
 
 //Encoding of UI definitions to the JSON format expected by the client
@@ -438,14 +457,17 @@ where
 	encodeUI (UICompoundEditor opts defs)	= component "itwc_raw_compoundeditor"  [encodeUI opts, JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UICompoundContent defs) 		= component "itwc_raw_compoundcontent" [JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UIParallel defs) 				= component "itwc_raw_parallel" [JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UIInteract defs) 				= component "itwc_raw_interact" [JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UIStep defs) 					= component "itwc_raw_step" [JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UIAction action) 				= component "itwc_raw_action" [encodeUI action]
+	encodeUI (UIPanel sopts iopts opts defs)= component "itwc_panel" [encodeUI sopts, encodeUI iopts, encodeUI opts
+																		,JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UIWindow window) 				= component "itwc_raw_window" [encodeUI window]
 	encodeUI (UILayers defs) 				= component "itwc_raw_layers" [JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UIForm defs) 					= component "itwc_raw_form" [JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UIFormItem label def info) 	= component "itwc_raw_form_item" [JSONObject [("items",JSONArray[encodeUI label,encodeUI def,encodeUI info])]]
 	encodeUI (UIControl control) 			= encodeUI control
-	encodeUI (UIBlock block) 				= encodeUI block
+	encodeUI (UIBlock sopts copts defs)     = component "itwc_raw_block" [encodeUI sopts, encodeUI copts,JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UIBlocks blocks actions) 		= component "itwc_raw_blocks" [JSONObject [("items",JSONArray (map encodeUI blocks ++ map encodeUI actions))]]
 
 instance encodeUI UIControl
@@ -480,7 +502,6 @@ where
 	encodeUI (UILabel sopts opts)				= component "itwc_label" [encodeUI sopts, encodeUI opts]
 	encodeUI (UISplitter)						= component "itwc_splitter" []
 	encodeUI (UIContainer sopts iopts)			= component "itwc_container" [encodeUI sopts, encodeUI iopts]
-	encodeUI (UIPanel sopts iopts opts)			= component "itwc_panel" [encodeUI sopts, encodeUI iopts, encodeUI opts]
 	encodeUI (UIFieldSet sopts iopts opts)		= component "itwc_fieldset" [encodeUI sopts, encodeUI iopts, encodeUI opts]
 	encodeUI (UITabSet sopts opts)				= component "itwc_tabset" [encodeUI sopts, encodeUI opts]
 	encodeUI (UITasklet sopts opts)				= component "itwc_tasklet" [encodeUI sopts, encodeUI opts]
@@ -507,7 +528,16 @@ where
                                      	,("baseCls",encodeUI baseCls)
                                      	,("bodyCls",encodeUI bodyCls)
                                      	] | snd field =!= JSONNull]
-
+instance encodeUI UIContainerOpts 
+where
+	encodeUI {UIContainerOpts|direction,halign,valign,padding,baseCls,bodyCls}
+		= JSONObject [field \\ field <- [("direction",encodeUI direction)
+                                     	,("halign",encodeUI halign)
+                                     	,("valign",encodeUI valign)
+                                     	,("padding",encodeUI padding)
+                                     	,("baseCls",encodeUI baseCls)
+                                     	,("bodyCls",encodeUI bodyCls)
+                                     	] | snd field =!= JSONNull]
 instance encodeUI UIEditor
 where
 	encodeUI {UIEditor|optional,attributes}

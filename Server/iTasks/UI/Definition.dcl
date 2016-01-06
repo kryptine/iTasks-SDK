@@ -24,7 +24,7 @@ from GenEq import generic gEq
 //Provide generic instances for all UI definitions
 derive class iTask UIDef, UIWindow, UIBlock, UIAction, UIEditor, UIControl, UITab
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
-derive class iTask UIWindowOpts, UIItemsOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
+derive class iTask UIWindowOpts, UIItemsOpts, UIContainerOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
 derive class iTask UIPanelOpts, UITabSetOpts, UIFieldSetOpts, UIEditletOpts, UITaskletOpts, UIIconOpts, UILabelOpts
 derive class iTask UIHSizeOpts, UIFSizeOpts, UIButtonOpts, UIMenuButtonOpts, UITreeNode, UIMenuItem
@@ -47,22 +47,24 @@ instance Functor UIViewOpts
 	//Constructors for editors
 	| UIEditor 			!UIEditor !UIControl 
 	| UICompoundEditor 	!UIEditor ![UIDef]
-	//Constructors for combinators
-	| UICompoundContent ![UIDef]
+	//Intermediate containers for combinators
+	| UIInteract        ![UIDef]
 	| UIStep            ![UIDef]
 	| UIParallel        ![UIDef]
 	| UIAction 			!UIAction
+	//Final container
+	| UIPanel 			!UISizeOpts !UIContainerOpts !UIPanelOpts ![UIDef]
 	| UIWindow 			!UIWindow
 	//Constructors for z-axis stacking
 	| UILayers 			![UIDef]
 	//Contructors for intermediate structures
+	| UICompoundContent ![UIDef]
     | UIForm    		![UIDef]
 	| UIFormItem		!UIDef !UIDef !UIDef //Label, widget, feedback (usually an icon)
-
-	| UIControl !UIControl 				//A Single control
-
-    | UIBlock   !UIBlock                //A partial user interface, the controls of such a UI have been arranged
-										// but the container they will be put in is not decided yet
+    //| UIBlock   !UIBlock    //An abstract container. It is still undecided if the content will be put in a panel, a window, a tab or something else
+    | UIBlock   		!UISizeOpts !UIContainerOpts ![UIDef] //An abstract container. It is still undecided if the content will be put in a panel, a window, a tab or something else
+	| UIControl !UIControl 	//A Single control
+	//OBSOLETE
     | UIBlocks  ![UIBlock] ![UIAction]  //A set of aggregated blocks that have not yet been arranged
 
 ::UIEditor = 
@@ -83,6 +85,14 @@ instance Functor UIViewOpts
 	{ taskId	:: !String
 	, action	:: !Action
 	, enabled	:: !Bool
+	}
+
+// Basic panels (containers with decoration like a title header, icon and frame)
+:: UIPanelOpts =
+	{ title			:: !Maybe String
+	, frame			:: !Bool
+	, hotkeys		:: !Maybe [UIKeyAction]
+	, iconCls		:: !Maybe String
 	}
 
 // Floating window
@@ -152,7 +162,6 @@ instance Functor UIViewOpts
 	| UIEditlet			!UISizeOpts	    !UIEditletOpts								    // - Editlet (custom clientside editor)
 	// Container components for composition:
 	| UIContainer		!UISizeOpts     !UIItemsOpts 				                    // - Container (lightweight wrapper to compose components)
-	| UIPanel			!UISizeOpts     !UIItemsOpts !UIPanelOpts					    // - Panel (container with decoration like a title header, icon and frame)
 	| UIFieldSet		!UISizeOpts     !UIItemsOpts !UIFieldSetOpts				    // - Fieldset (wrapper with a simple border and title)
 	| UITabSet			!UISizeOpts     !UITabSetOpts
     | UIEmbedding       !UISizeOpts     !UIEmbeddingOpts                                // - Embedding of a related task gui (like an iframe for tasks)
@@ -191,6 +200,15 @@ instance Functor UIViewOpts
 :: UIItemsOpts =
 	{ items		:: ![UIControl]
 	, direction	:: !UIDirection
+	, halign	:: !UIHAlign
+	, valign	:: !UIVAlign
+	, padding	:: !Maybe UISideSizes
+	, baseCls	:: !Maybe String
+	, bodyCls	:: !Maybe String
+	}
+
+:: UIContainerOpts =
+	{ direction	:: !UIDirection
 	, halign	:: !UIHAlign
 	, valign	:: !UIVAlign
 	, padding	:: !Maybe UISideSizes
@@ -327,13 +345,6 @@ instance Functor UIViewOpts
 	, appDiff		:: !String
 	}
 
-:: UIPanelOpts =
-	{ title			:: !Maybe String
-	, frame			:: !Bool
-	, hotkeys		:: !Maybe [UIKeyAction]
-	, iconCls		:: !Maybe String
-	}
-
 :: UIFieldSetOpts =
 	{ title			:: !Maybe String
 	}
@@ -378,13 +389,23 @@ setTopMargin	:: !Int 					!UIControl -> UIControl
 setRightMargin	:: !Int 					!UIControl -> UIControl
 setBottomMargin	:: !Int 					!UIControl -> UIControl
 setLeftMargin	:: !Int 					!UIControl -> UIControl
-setPadding		:: !Int !Int !Int !Int		!UIControl -> UIControl
+class setPadding a :: !Int !Int !Int !Int !a -> a
+instance setPadding UIDef
+instance setPadding UIControl
 setTitle 		:: !String 					!UIControl -> UIControl
 setFramed		:: !Bool					!UIControl -> UIControl
 setIconCls		:: !String					!UIControl -> UIControl
-setBaseCls		:: !String					!UIControl -> UIControl
-setDirection	:: !UIDirection				!UIControl -> UIControl
-setHalign		:: !UIHAlign				!UIControl -> UIControl
+
+class setBaseCls a :: !String !a -> a
+instance setBaseCls UIDef
+instance setBaseCls UIControl
+class setDirection a :: !UIDirection !a -> a
+instance setDirection UIDef
+instance setDirection UIControl
+class setHalign a :: !UIHAlign !a -> a
+instance setHalign UIDef
+instance setHalign UIControl
+
 setValign		:: !UIVAlign				!UIControl -> UIControl
 
 //Access functions
@@ -396,10 +417,12 @@ defaultHSizeOpts        :: UIHSizeOpts
 defaultFSizeOpts	    :: UIFSizeOpts
 
 defaultItemsOpts 		:: [UIControl] -> UIItemsOpts
+defaultContainerOpts    :: UIContainerOpts
+defaultPanelOpts        :: UIPanelOpts
 
 defaultContainer		:: ![UIControl]	-> UIControl
 defaultFieldSet         :: !(Maybe String) ![UIControl]	-> UIControl
-defaultPanel			:: ![UIControl]	-> UIControl
+defaultPanel			:: ![UIDef]	-> UIDef
 defaultWindow			:: ![UIControl]	-> UIWindow
 stringDisplay			:: !String		-> UIControl
 

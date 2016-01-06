@@ -13,6 +13,7 @@
 , .itwc-raw-compound-editor
 , .itwc-raw-compound-content
 , .itwc-raw-parallel
+, .itwc-raw-interact
 , .itwc-raw-step
 , .itwc-raw-window
 , .itwc-raw-layers
@@ -30,6 +31,10 @@
 .itwc-raw-form-item {
   border: dashed 2px #f33;
   border-radius: 5px; }
+
+.itwc-raw-interact {
+  border: solid 2px #f3f;
+  background: #fef; }
 
 .itwc-raw-step {
   border: solid 2px #33f;
@@ -362,6 +367,9 @@ body, input, td, th, select {
 
 .button-disabled .button-icon {
   opacity: 0.5; }
+
+.buttonbar {
+  background: -moz-linear-gradient(top, #fefefe, #cccccc); }
 
 .vcontainer {
   display: flex;
@@ -773,5 +781,3 @@ body, input, td, th, select {
 .hsplitter {
   width: 5px;
   cursor: col-resize; }
-
-/*# sourceMappingURL=itwc-theme.css.map */

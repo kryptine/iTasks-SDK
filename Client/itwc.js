@@ -489,6 +489,9 @@ itwc.component.itwc_raw_compoundeditor = itwc.extend(itwc.RawContainer,{
 itwc.component.itwc_raw_compoundcontent = itwc.extend(itwc.RawContainer,{
 	cssClass: 'itwc-raw-compound-content'
 });
+itwc.component.itwc_raw_interact = itwc.extend(itwc.RawContainer,{
+	cssClass: 'itwc-raw-interact'
+});
 itwc.component.itwc_raw_step = itwc.extend(itwc.RawContainer,{
 	cssClass: 'itwc-raw-step'
 });

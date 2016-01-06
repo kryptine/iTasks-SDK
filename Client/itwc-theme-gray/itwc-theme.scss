@@ -217,12 +217,15 @@ body, input, td, th, select {
 .button-disabled .button-icon {
     opacity: 0.5;
 }
+.buttonbar {
+    background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color - #222);
+}
+
 @if $touchscreen {
     .buttonbar {
         background: $panel-header-base-color;
     }
 }
-
 .vcontainer {
     display: flex;
     display: -webkit-flex;

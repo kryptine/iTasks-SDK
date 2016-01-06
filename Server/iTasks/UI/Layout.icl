@@ -6,13 +6,13 @@ import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition,
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 
 from Data.Map as DM import qualified put, get, del, newMap, toList, fromList
-from StdFunc import o, const
+from StdFunc import o, const, id, flip
 
 from iTasks._Framework.TaskState import :: TIMeta(..)
 
-LABEL_WIDTH :== 100
-
 derive gEq UISide
+
+LABEL_WIDTH :== 100
 
 instance descr ()
 where
@@ -26,27 +26,257 @@ instance descr (!String,!String)
 where
 	toPrompt (title,hint) = UIEditor {UIEditor|optional=False,attributes='DM'.fromList [(TITLE_ATTRIBUTE,title)]} (createPrompt hint)
 
-/**
-* The basic interaction layout simply decorates the prompt and merges it with the editor.
-*/
-autoLayoutInteract :: Layout ()
-autoLayoutInteract = layout
-where
-	layout (ReplaceUI (UICompoundContent [prompt,editor]),s)
-		# (ReplaceUI editor,_) = editorToForm (ReplaceUI editor,())
-		= (ReplaceUI (UICompoundContent [prompt,editor]),s)
+//Building blocks for layout
 
-	layout (ChangeUI [] [ChangeChild 0 _,ChangeChild 1 editor],s)
-		# (editor,_) = editorToForm (editor,()) 	//Remap changes in the editor
-		= (ChangeUI [] [ChangeChild 1 editor],s) 	//Ignore changes to the prompt, it should be constant
+layoutChild :: NodePath (Layout s) -> (Layout s) 
+layoutChild [] childLayout = childLayout
+layoutChild [i] childLayout = layoutChild` i childLayout
+layoutChild [i:is] childLayout = layoutChild` i (layoutChild is childLayout)
+
+layoutChild` :: Int (Layout s) -> (Layout s) 
+layoutChild` index childLayout = layout
+where
+	layout (ReplaceUI def ,s)
+		# children = getChildren def
+		| index < length children
+			# (ReplaceUI selChild,s) = childLayout (ReplaceUI (children !! index),s)
+			= (ReplaceUI (setChildren (updateAt index selChild children) def),s) 
+		| otherwise
+			= (ReplaceUI def, s)
+
+	layout (ChangeUI local childChanges,s)
+		# (childChanges,s) = updateChildren childChanges s
+		= (ChangeUI local childChanges,s)
+	where
+		updateChildren [] s = ([],s)
+		updateChildren [ChangeChild i c:cs] s | i == index
+			# (c,s) = childLayout (c,s)
+			= ([ChangeChild i c:cs],s)
+		updateChildren [c:cs] s
+			# (cs,s) = updateChildren cs s
+			= ([c:cs],s)
 
 	layout (change,s) = (change,s) //Catchall
 
+insertChild :: NodePath UIDef -> Layout JSONNode
+insertChild [] def = id
+insertChild path def = layoutChild (init path) (insertChild` (last path) def)
+where
+	insertChild` idx def (ReplaceUI container,s) =  (ReplaceUI (setChildren (insertAt idx def (getChildren container)) container),s)
+	insertChild` idx _ (ChangeUI local childChanges,s) = (ChangeUI local (insert idx childChanges),s)
+	insertChild` idx _ (change,s) = (change,s)
+
+	insert idx [] = []
+	insert idx [c:cs]
+		| childChangeIndex c < idx  = [c:insert idx cs]
+									= [ChangeChild idx (ChangeUI [] []): map (updChildChangeIndex ((+) 1)) [c:cs]]
+
+removeChild :: NodePath -> Layout JSONNode
+removeChild [] = id
+removeChild path = layoutChild (init path) (removeChild` (last path))
+where
+	removeChild` idx (ReplaceUI container,s) = (ReplaceUI (setChildren (removeAt idx (getChildren container)) container),s)
+	removeChild` idx (ChangeUI local childChanges,s) = (ChangeUI local (remove idx childChanges),s)
+	removeChild` idx (change,s) = (change,s)
+
+	remove idx [] = []
+	remove idx [c:cs] 
+		| childChangeIndex c < idx 	= [c:remove idx cs]
+		| childChangeIndex c == idx = remove idx cs
+									= [updChildChangeIndex ((-) 1) c:remove idx cs]
+
+//FIXME: Currently this only works when changes are moved to an empty container, needs to be generalized
+moveChildren :: NodePath (UIDef -> Bool) NodePath -> Layout JSONNode
+moveChildren src pred dst = layout
+where
+	layout (ReplaceUI def,_)
+		= case accChildDef src (collect pred) def of
+			(Just (nodes,indices),def)  = (ReplaceUI (snd (accChildDef dst (append nodes) def)), JSONArray (map JSONInt indices))
+			(Nothing,def) 				= (ReplaceUI def,JSONNull)
+	where
+		collect pred def
+			# children = getChildren def	
+			# (nodes,indices,children) = collect` 0 children
+			= ((nodes,indices),setChildren children def)
+		where
+			collect` i [] = ([],[],[])
+			collect` i [n:ns]
+				# (nodes,indices,ns) = collect` (i + 1) ns
+				| pred n
+					= ([n:nodes],[i:indices],ns)
+				| otherwise
+					= (nodes,indices,[n:ns])
+
+		append nodes def = ((),setChildren (getChildren def ++ nodes) def)
+
+	layout (change, s=:(JSONArray indices)) 
+		= case accChildChange src (collect [i \\ JSONInt i <- indices]) change of
+			(Nothing,change)		= (change,s)
+			(Just changes, change) 	= (snd (accChildChange dst (append changes) change),s)
+	where
+		collect indices (ChangeUI local children) 
+			# (move,keep) = splitWith (\c -> isMember (childChangeIndex c) indices) (completeChildChanges children)
+			= (move,ChangeUI local (compactChildChanges (reindexChildChanges keep)))
+		collect indices change = ([],change)
+
+		append changes (ChangeUI local []) = ((),ChangeUI local (reindexChildChanges changes))
+		append changes change = ((),change)
+
+	layout (change,s) = (change,s)
+
+layoutChildrenOf :: NodePath (Layout JSONNode) -> Layout JSONNode
+layoutChildrenOf path childLayout = layout
+where
+	layout (ReplaceUI def,_) = case accChildDef path update def of
+			(Just states,def)  = (ReplaceUI def, JSONArray states)
+			(Nothing,def) = (ReplaceUI def, JSONNull)
+	where
+		update def
+			# (changes,states) = unzip [childLayout (ReplaceUI c,JSONNull) \\ c <- getChildren def]
+			= (states, setChildren [c \\ ReplaceUI c <- changes] def)
+
+	layout (change,JSONArray states) = case accChildChange path (update states) change of
+		(Just states,change) = (change,JSONArray states)
+		(Nothing,change) 	= (change,JSONArray states)
+	where
+		update states (ChangeUI local children)
+			# (children,states) = updateChildren children states	
+			= (states,ChangeUI local children)
+		update states change = (states,change)
+	
+		updateChildren [] states = ([],states)
+		updateChildren [ChangeChild i change:cs] states
+			# (cs,states) = updateChildren cs states
+			# state = states !! i
+			# (change,state) = childLayout (change,state)
+			= ([ChangeChild i change:cs],updateAt i state states)
+		updateChildren [c:cs] states
+			# (cs,states) = updateChildren cs states
+			= ([c:cs],states) 
+		
+		layoutChild (ChangeChild i c,s)
+			# (c,s) = childLayout (c,s)		
+			= (ChangeChild i c,s)
+		layoutChild (c,s) = (c,s)
+	
+	layout (change,s) = (change,s)
+
+changeContainerType :: (UIDef -> UIDef) -> Layout JSONNode 
+changeContainerType f = layout
+where
+	layout (ReplaceUI def,_) = (ReplaceUI (f def),JSONNull) 
+	layout (change,s) = (change,s) //Other changes than replacing are not affected
+
+
+
+sequenceLayouts :: [Layout JSONNode] -> Layout JSONNode
+sequenceLayouts layouts = layout
+where
+	layout (change=:(ReplaceUI _),_)
+		# (change,states) = applyAll layouts [] change 
+		= (change,JSONArray states)
+	
+	layout (change,JSONArray states) 
+		# (change,states) = applyAll layouts states change 
+		= (change,JSONArray states)
+	layout (change,s) = (change,s)
+
+	applyAll [] _ change = (change,[])
+	applyAll [l:ls] states change 
+		# [s:ss] = case states of [] = [JSONNull]; _ = states;
+		# (change,s) = l (change,s) 
+		# (change,ss) = applyAll ls ss change
+		= (change,[s:ss])
+
+conditionalLayout :: (UIDef -> Bool) (Layout JSONNode) -> Layout JSONNode
+conditionalLayout pred condLayout = layout
+where
+	layout (change=:(ReplaceUI def),_)
+		| pred def
+			# (change,s) = condLayout (change,JSONNull)
+			= (change,JSONArray [s])
+		| otherwise
+			= (change,JSONNull)
+
+	layout (change,JSONArray [s]) 
+		# (change,s) = condLayout (change,s)
+		= (change,JSONArray [s])
+
+	layout (change,s) = (change,s)
+
+//Select the first matching layout
+selectLayout :: [(UIDef -> Bool,Layout JSONNode)] -> Layout JSONNode 
+selectLayout layouts = layout
+where
+	layout (change=:(ReplaceUI def),_) = case selectLayout def 0 layouts of
+		Just (index,childLayout)
+			# (change,state) = childLayout (change,JSONNull)
+			= (change,JSONArray [JSONInt index,state])
+		Nothing = (change,JSONNull)
+
+	layout (change,JSONArray [JSONInt index,state])
+		# (change,state) = (snd (layouts !! index)) (change,state)
+		= (change,JSONArray [JSONInt index,state])
+
+	layout (change,s) = (change,s)
+
+	selectLayout def i [] = Nothing
+	selectLayout def i [(pred,layout):ls]
+		| pred def 	= Just (i,layout)
+					= selectLayout def (i + 1) ls
+
+//UTIL
+getChildren :: UIDef -> [UIDef]
+getChildren (UICompoundContent children) = children
+getChildren (UIInteract children) = children
+getChildren (UIStep children) = children
+getChildren (UIParallel children) = children
+getChildren (UIPanel _ _ _ children) = children
+getChildren (UIForm children) = children
+
+setChildren :: [UIDef] UIDef -> UIDef
+setChildren children (UICompoundContent _) = UICompoundContent children
+setChildren children (UIInteract _) = UIInteract children
+setChildren children (UIForm _) = UIForm children
+setChildren children (UIStep _) = UIStep children
+setChildren children (UIParallel _) = UIParallel children
+setChildren children (UIPanel sOpts cOpts pOpts _) = UIPanel sOpts cOpts pOpts children
+setChildren _ def = def
+
+accChildDef :: NodePath (UIDef -> (a,UIDef)) UIDef -> (Maybe a, UIDef)
+accChildDef [] f def = appFst Just (f def)
+accChildDef [s:ss] f def
+	# children = getChildren def
+	| s < length children
+		# (res,selChild) = accChildDef ss f (children !! s)
+		= (res,setChildren (updateAt s selChild children) def)
+	| otherwise =  (Nothing,def)
+
+accChildChange :: NodePath (UIChangeDef -> (a,UIChangeDef)) UIChangeDef -> (Maybe a, UIChangeDef)
+accChildChange [] f change = appFst Just (f change)
+accChildChange [s:ss] f (ChangeUI local children)
+	# (res,children) = accInChildren children
+	= (res,ChangeUI local children)
+where
+	accInChildren [] = (Nothing,[])
+	accInChildren [ChangeChild i c:cs] | i == s
+		# (res,c) = accChildChange ss f c
+		= (res,[ChangeChild i c:cs])
+	accInChildren [c:cs] 
+		# (res,cs) = accInChildren cs
+		= (res,[c:cs])
+
+accChildChange _ f change = (Nothing,change)
+
+// ######################### OBSOLETE ##################################
+// ######################### OBSOLETE ##################################
+// ######################### OBSOLETE ##################################
+// ######################### OBSOLETE ##################################
+
+/*
 autoLayoutStep :: Layout ()
 autoLayoutStep = layout 
 where
-	layout (change,s) = (change,s)
-/*
 	layout (UICompoundContent [UIEmpty:stepActions]) //Remove the empty element
 		= UICompoundContent stepActions
 	layout (UICompoundContent [UIForm stack=:{UIForm|attributes,controls,size}:stepActions])
@@ -73,12 +303,11 @@ where
 		= UILayers [main:aux]
 	layout def = def
 */
-
+/*
 autoLayoutParallel :: Layout ()
 autoLayoutParallel = layout
 where
 	layout (change,s) = (change,s)
-/*
 	layout (UICompoundContent [UICompoundContent defs,UICompoundContent parActions])
 		# parActions = [a \\ UIAction a <- parActions]
     	# (triggers,parActions)  = extractTriggers parActions
@@ -140,12 +369,31 @@ where
 /**
 * Overrule the title attribute with the title in the task meta data
 */
-autoLayoutAttach :: Layout ()
-autoLayoutAttach = layout
+/*
+autoLayoutSession :: Layout Arrangement
+autoLayoutSession = arrangeLayout autoArrange
 where
-	layout (change,s) = (change,s)
-//	layout def = uiDefSetSize FlexSize FlexSize def
-
+	layout (change,s) = (compactChangeDef change,s)
+	layout (UILayers [main:aux])
+		= UILayers [layout main:aux]
+	layout UIEmpty
+		= UIFinal (defaultPanel [])
+	layout (UIForm stack)
+    	= layout (UIBlock (autoLayoutForm stack))
+	layout (UIBlock subui=:{UIBlock|attributes,content,actions,hotkeys,size})
+    	# fullScreen = ('DM'.get SCREEN_ATTRIBUTE attributes === Just "full") || isNothing ('DM'.get "session" attributes)
+    	# (panel,attributes,actions,panelkeys) = blockToPanel (if fullScreen {UIBlock|subui & attributes = 'DM'.del TITLE_ATTRIBUTE attributes} subui)
+    	# panel = if fullScreen (setSize FlexSize FlexSize panel) ((setSize WrapSize WrapSize o setFramed True) panel)
+		# (menu,menukeys,actions)	= actionsToMenus actions
+		# items				        = [panel]
+		# itemsOpts			        = {defaultItemsOpts items & direction = Vertical, halign = AlignCenter, valign= AlignMiddle}
+		# hotkeys			        = case panelkeys ++ menukeys of [] = Nothing ; keys = Just keys
+		= UIFinal (UIPanel defaultSizeOpts itemsOpts {UIPanelOpts|title = 'DM'.get TITLE_ATTRIBUTE attributes /*, menu = if (isEmpty menu) Nothing (Just menu) */, hotkeys = hotkeys,iconCls=Nothing,frame=False})
+	layout (UIBlocks blocks actions)
+    	= layout (UIBlock (autoLayoutBlocks blocks actions))
+	layout (UIFinal control) = UIFinal control
+	layout def = def
+*/
 /*
 autoLayoutForm :: UIForm -> UIBlock
 //Special case for choices
@@ -160,154 +408,13 @@ autoLayoutForm {UIForm|attributes,controls,size}
 	= {UIBlock|attributes=attributes,content={UIItemsOpts|defaultItemsOpts (decorateControls controls) & direction=Vertical},actions=[],hotkeys=[],size=size}
 */
 
-//Flatten an editor into a form
-editorToForm:: Layout ()
-editorToForm = layout
-where
-	//Flatten the editor to a list of form items
-	layout (ReplaceUI editor,s) = (ReplaceUI (UIForm (items editor)),s)
-	where	
-		items (UIEditor {UIEditor|optional,attributes} control)
-			# label = maybe UIEmpty UIControl (labelControl optional attributes)
-			# info = maybe UIEmpty UIControl (infoControl attributes)
-			= [UIFormItem label (UIControl control) info]
-		items UIEmpty //Placeholders for constructor changes
-			= [UIFormItem UIEmpty UIEmpty UIEmpty] 
-		items (UICompoundEditor _ parts) = flatten (map items parts)
-		items _ = []
 
-	//Remap the changes to the flattened list of form items
-	layout (change,s) = (ChangeUI [] (snd (flattenChanges 0 change)),s)
-	where
-		//Leaf
-		flattenChanges n NoChange = (n + 1, [])
-		//Leaf (Change the middle element of the form)
-		flattenChanges n c=:(ReplaceUI _) = (n + 1, [ChangeChild n (ChangeUI [] [ChangeChild 1 c])])
-		//Leaf (Update the middle element and check for attribute changes
-		flattenChanges n c=:(ChangeUI local []) = (n + 1,[ChangeChild n (ChangeUI [] (iconChanges ++ [ChangeChild 1 c]))])
-		where
-			iconChanges = case changeType ++ changeTooltip of
-				[] = []
-				changes = [ChangeChild 2 (ChangeUI changes [])]
 
-			changeType = case [t \\ ("setAttribute",[JSONString HINT_TYPE_ATTRIBUTE,JSONString t]) <- local] of
-				[type] 	= [("setIconCls",[JSONString ("icon-" +++ type)])]
-				_ 		= []
-
-			changeTooltip= case [h \\ ("setAttribute",[JSONString HINT_ATTRIBUTE,JSONString h]) <- local] of
-				[hint] 	= [("setTooltip",[JSONString hint])]
-				_ 		= []
-			
-		//Container (search recursively for more form items)
-		flattenChanges n (ChangeUI _ children) = flattenChildren n children
-		where	
-			flattenChildren n [] = (n,[])
-			flattenChildren n [ChangeChild _ c:cs]
-				# (n, childChanges) = flattenChanges n c
-				# (n, remainderChanges) = flattenChildren n cs
-				= (n, childChanges ++ remainderChanges)
-
-//Finalize a form to a final UI container
-formToBlock :: Layout (Maybe [Bool])
-formToBlock = applyLayoutToChild 1 layout
-where
-	layout (NoChange,s) = (NoChange,s)
-	layout (ReplaceUI (UIForm items),s)
-		//Transform all items to standard containers
-		# (rows,itemLabels) = unzip (mapLst (makeRow (labelInItems items)) items)
-		# content 	= {UIItemsOpts|defaultItemsOpts rows & direction=Vertical}
-		# block 	= {UIBlock|attributes='DM'.newMap,content=content,hotkeys=[],size=defaultSizeOpts}
-		= (ReplaceUI (UIBlock block),Just itemLabels)
-
-	layout (ReplaceUI def,_) = (ReplaceUI def,Nothing) //Do nothing if it isn't a form
-
-	layout (ChangeUI local itemChanges, Just itemLabels)
-		# itemChanges = shiftItemsInRows itemChanges [(i,l) \\ i <- [0..] & l <- itemLabels]
-		= (ChangeUI local itemChanges, Just itemLabels) 
-
-	layout (change,Nothing) = (change,Nothing) //Ignore, if we didn't arrange during replacement
-
-	//Check if one of the form items has a label, in that case all form items need to be indented
-	labelInItems [] = False
-	labelInItems [UIFormItem UIEmpty _ _:is] = labelInItems is
-	labelInItems _ = True
-	
-	makeRow labelsUsed isLast (UIFormItem labelDef itemDef iconDef) 
-		= (setMargins 5 5 (if isLast 5 0) 5 (setSize FlexSize WrapSize (setDirection Horizontal (defaultContainer ctrls))),noLabel)
-	where
-		ctrls = labelCtrl ++ itemCtrl ++ iconCtrl 
-
-		noLabel = isEmpty labelCtrl
-		labelCtrl = fromControl labelDef
-		itemCtrl = if (labelsUsed && noLabel) (map (setLeftMargin LABEL_WIDTH) (fromControl itemDef)) (fromControl itemDef)
-		iconCtrl = fromControl iconDef
-
-		fromControl (UIControl c) 	= [c]	
-		fromControl _ 			 	= []
-
-	//If the label was removed, the indices of the change of the item and its icon are one less
-	//TODO: Handle dynamic forms (AddChild and RemoveChild)
-	shiftItemsInRows [] _ = [] 
-	shiftItemsInRows [(ChangeChild n c):cs] labelInfo
-		//Not all form items have to have explicit changes, so we need to drop the labelInfo for those missing items
-		# [(_,noLabel):ls] = dropWhile (\(i,_) -> i < n) labelInfo 
-		//If we removed the label, decrease all indices
-		= [(ChangeChild n (if noLabel (shiftUp c) c)):shiftItemsInRows cs ls] 
-	where
-		shiftUp (ChangeUI l is) = ChangeUI l [ChangeChild (n - 1) c \\ ChangeChild n c <- is | n > 0]
-		shiftUp c = c
-
-//UTIL
-applyLayoutToChild :: Int (Layout s) -> (Layout s) 
-applyLayoutToChild index childLayout = layout
-where
-	layout (ReplaceUI (UICompoundContent children),s)
-		# (ReplaceUI selChild,s) = childLayout (ReplaceUI (children !! index),s)
-		= (ReplaceUI (UICompoundContent (updateAt index selChild children)),s) 
-
-	layout (ChangeUI local childChanges,s)
-		# (childChanges,s) = updateChildren childChanges s
-		= (ChangeUI local childChanges,s)
-	where
-		updateChildren [] s = ([],s)
-		updateChildren [ChangeChild i c:cs] s | i == index
-			# (c,s) = childLayout (c,s)
-			= ([ChangeChild i c:cs],s)
-		updateChildren [c:cs] s
-			# (cs,s) = updateChildren cs s
-			= ([c:cs],s)
-
-	layout (change,s) = (change,s) //Catchall
 
 mapLst :: (Bool a -> b) [a] -> [b]
 mapLst f [] = []
 mapLst f [x] = [f True x]
 mapLst f [x:xs] = [f False x: mapLst f xs]
-
-labelControl :: Bool UIAttributes -> Maybe UIControl
-labelControl optional attributes 
-	= fmap (\l -> setWidth (ExactSize LABEL_WIDTH) (stringDisplay (formatLabel optional l))) ('DM'.get LABEL_ATTRIBUTE attributes)
-
-infoControl :: UIAttributes -> Maybe UIControl
-infoControl attributes
-	= case ('DM'.get HINT_TYPE_ATTRIBUTE attributes,'DM'.get HINT_ATTRIBUTE attributes) of
-		(Just type, Just hint) 	= Just (icon type hint)
-		_ 						= Nothing
-where
-	icon type tooltip = setLeftMargin 5 (UIIcon defaultFSizeOpts {UIIconOpts|iconCls = "icon-" +++ type, tooltip = Just tooltip})
-
-formatLabel :: Bool String -> String
-formatLabel optional label
-	= camelCaseToWords label +++ if optional "" "*" +++ ":"
-where
-	camelCaseToWords label = {c \\ c <- [toUpper lname : addspace lnames]}
-	where
-		[lname:lnames]		= fromString label
-		addspace []			= []
-		addspace [c:cs]
-			| c == '_'			= [' ':addspace cs]
-			| isUpper c			= [' ',toLower c:addspace cs]
-			| otherwise			= [c:addspace cs]
 
 //Add labels and icons to a set of controls if they have any of those attributes set
 decorateControls :: [(UIControl,UIAttributes)] -> [UIControl]
@@ -361,7 +468,7 @@ where
 
 	hasMargin control = isJust (getMargins control)
 
-	noMarginControl	(UIPanel _ _ _)			= True
+	//noMarginControl	(UIPanel _ _ _)			= True
 	noMarginControl	(UIGrid _ _ _)			= True
 	noMarginControl	(UITree _ _ _)			= True
 	noMarginControl _						= False
@@ -441,13 +548,13 @@ where
 
 forceLayout :: UIDef -> UIDef
 //forceLayout (UIForm form)              = UIBlock (autoLayoutForm form)
-forceLayout (UIBlocks blocks actions)  = UIBlock (autoLayoutBlocks blocks actions)
+//forceLayout (UIBlocks blocks actions)  = UIBlock (autoLayoutBlocks blocks actions)
 forceLayout def                        = def
 
 arrangeBlocks :: ([UIBlock] [UIAction] -> UIBlock) UIDef -> UIDef
 //arrangeBlocks f (UIForm form) 				= UIBlock (f [autoLayoutForm form] [])
-arrangeBlocks f (UIBlock block)           	= UIBlock (f [block] [])
-arrangeBlocks f (UIBlocks blocks actions) 	= UIBlock (f blocks actions)
+//arrangeBlocks f (UIBlock block)           	= UIBlock (f [block] [])
+//arrangeBlocks f (UIBlocks blocks actions) 	= UIBlock (f blocks actions)
 arrangeBlocks f def                         = def
 
 instance tune ArrangeVertical
@@ -593,7 +700,7 @@ blockToPanel {UIBlock|content=content=:{UIItemsOpts|items,direction},attributes,
     //Add button actions
 	# (buttons,hotkeys,actions)	= actionsToButtons actions	
 	# (items,direction)		    = addButtonPanel attributes direction buttons items
-    = (UIPanel sizeOpts {UIItemsOpts|content & items=items,direction=direction} panelOpts,attributes`,actions,hotkeys)
+    = (UIContainer sizeOpts {UIItemsOpts|content & items=items,direction=direction} /*panelOpts*/,attributes`,actions,hotkeys)
 where
 	sizeOpts	= {UISizeOpts|size & width = Just FlexSize}
 	panelOpts	= {UIPanelOpts|title = title,frame = False, hotkeys = Nothing, iconCls = iconCls}
@@ -628,8 +735,8 @@ uiDefToWindow windowType vpos hpos (UILayers [main:layers])
 		main 					= UILayers [main:layers]
 //uiDefToWindow windowType vpos hpos (UIForm form)
 //	= UILayers [UIEmpty, UIWindow (blockToWindow windowType vpos hpos (autoLayoutForm form))]
-uiDefToWindow windowType vpos hpos (UIBlock block)
-    = UILayers [UIEmpty, UIWindow (blockToWindow windowType vpos hpos block)]
+//uiDefToWindow windowType vpos hpos (UIBlock block)
+ //   = UILayers [UIEmpty, UIWindow (blockToWindow windowType vpos hpos block)]
 uiDefToWindow windowType vpos hpos (UIBlocks blocks actions)
     = UILayers [UIEmpty, UIWindow (blockToWindow windowType vpos hpos (autoLayoutBlocks blocks actions))]
 uiDefToWindow windowType vpos hpos def = def
@@ -653,32 +760,6 @@ where
 	
     title		= 'DM'.get TITLE_ATTRIBUTE attributes	
     iconCls		= fmap (\icon -> "icon-" +++ icon) ('DM'.get ICON_ATTRIBUTE attributes)
-
-autoLayoutSession :: Layout ()
-autoLayoutSession = layout
-where
-	layout (change,s) = (compactChangeDef change,s)
-	/*
-	layout (UILayers [main:aux])
-		= UILayers [layout main:aux]
-	layout UIEmpty
-		= UIFinal (defaultPanel [])
-	layout (UIForm stack)
-    	= layout (UIBlock (autoLayoutForm stack))
-	layout (UIBlock subui=:{UIBlock|attributes,content,actions,hotkeys,size})
-    	# fullScreen = ('DM'.get SCREEN_ATTRIBUTE attributes === Just "full") || isNothing ('DM'.get "session" attributes)
-    	# (panel,attributes,actions,panelkeys) = blockToPanel (if fullScreen {UIBlock|subui & attributes = 'DM'.del TITLE_ATTRIBUTE attributes} subui)
-    	# panel = if fullScreen (setSize FlexSize FlexSize panel) ((setSize WrapSize WrapSize o setFramed True) panel)
-		# (menu,menukeys,actions)	= actionsToMenus actions
-		# items				        = [panel]
-		# itemsOpts			        = {defaultItemsOpts items & direction = Vertical, halign = AlignCenter, valign= AlignMiddle}
-		# hotkeys			        = case panelkeys ++ menukeys of [] = Nothing ; keys = Just keys
-		= UIFinal (UIPanel defaultSizeOpts itemsOpts {UIPanelOpts|title = 'DM'.get TITLE_ATTRIBUTE attributes /*, menu = if (isEmpty menu) Nothing (Just menu) */, hotkeys = hotkeys,iconCls=Nothing,frame=False})
-	layout (UIBlocks blocks actions)
-    	= layout (UIBlock (autoLayoutBlocks blocks actions))
-	layout (UIFinal control) = UIFinal control
-	layout def = def
-*/
 
 plainLayoutFinal :: Layout ()
 plainLayoutFinal = layout
@@ -726,8 +807,8 @@ addButtonPanel attr direction buttons items
 addTriggersToUIDef :: [(Trigger,String,String)] UIDef -> UIDef
 //addTriggersToUIDef triggers (UIForm stack=:{UIForm|controls})
 //    = UIForm {UIForm|stack & controls = [(addTriggersToControl triggers c,m)\\ (c,m) <- controls]}
-addTriggersToUIDef triggers (UIBlock subui)
-    = UIBlock (addTriggersToBlock triggers subui)
+//addTriggersToUIDef triggers (UIBlock subui)
+    //= UIBlock (addTriggersToBlock triggers subui)
 addTriggersToUIDef triggers (UIBlocks blocks actions)
     = UIBlocks (map (addTriggersToBlock triggers) blocks) []
 addTriggersToUIDef triggers def = def
@@ -740,8 +821,8 @@ addTriggersToControl :: [(Trigger,String,String)] UIControl -> UIControl
 //Recursive cases
 addTriggersToControl triggers (UIContainer sOpts iOpts=:{UIItemsOpts|items})
     = UIContainer sOpts {UIItemsOpts|iOpts & items = map (addTriggersToControl triggers) items}
-addTriggersToControl triggers (UIPanel sOpts iOpts=:{UIItemsOpts|items} opts)
-    = UIPanel sOpts {UIItemsOpts|iOpts & items = map (addTriggersToControl triggers) items} opts
+//addTriggersToControl triggers (UIPanel sOpts iOpts=:{UIItemsOpts|items} opts)
+    //= UIPanel sOpts {UIItemsOpts|iOpts & items = map (addTriggersToControl triggers) items} opts
 addTriggersToControl triggers (UITabSet sOpts tOpts=:{UITabSetOpts|items})
     = UITabSet sOpts {UITabSetOpts|tOpts & items = map (addTriggersToTab triggers) items}
 //Single controls
@@ -758,34 +839,34 @@ addTriggersToTab triggers (UITab iOpts=:{UIItemsOpts|items} opts) = (UITab {UIIt
 //Container coercion
 toPanel	:: !UIControl -> UIControl
 //Panels are left untouched
-toPanel ctrl=:(UIPanel _ _ _)		= ctrl
+//toPanel ctrl=:(UIPanel _ _ _)		= ctrl
 //Containers are coerced to panels
-toPanel ctrl=:(UIContainer sOpts iOpts)
-	= UIPanel sOpts iOpts {UIPanelOpts|title=Nothing,frame=False,hotkeys=Nothing,iconCls=Nothing}
+//toPanel ctrl=:(UIContainer sOpts iOpts)
+	//= UIPanel sOpts iOpts {UIPanelOpts|title=Nothing,frame=False,hotkeys=Nothing,iconCls=Nothing}
 //Uncoercable items are wrapped in a panel instead
-toPanel ctrl = defaultPanel [ctrl]
+toPanel ctrl = defaultContainer [ctrl]
 
 toContainer :: !UIControl -> UIControl
 //Containers are left untouched
 toContainer ctrl=:(UIContainer _ _) = ctrl
 //Panels can be coerced to containers
-toContainer ctrl=:(UIPanel sOpts iOpts _)
-	= UIContainer sOpts iOpts
+//toContainer ctrl=:(UIPanel sOpts iOpts _)
+	//= UIContainer sOpts iOpts
 //Uncoercable items are wrapped in a container instead
 toContainer ctrl = defaultContainer [ctrl]
 	
 //GUI combinators						
 hjoin :: ![UIControl] -> UIControl
-hjoin items = UIContainer defaultSizeOpts {defaultItemsOpts items & direction = Horizontal, halign = AlignLeft, valign = AlignMiddle}
+hjoin items = UIContainer defaultSizeOpts {UIItemsOpts|defaultItemsOpts items & direction = Horizontal, halign = AlignLeft, valign = AlignMiddle}
 
 vjoin :: ![UIControl] -> UIControl
-vjoin items = UIContainer defaultSizeOpts {defaultItemsOpts items & direction = Vertical, halign = AlignLeft, valign = AlignTop}
+vjoin items = UIContainer defaultSizeOpts {UIItemsOpts|defaultItemsOpts items & direction = Vertical, halign = AlignLeft, valign = AlignTop}
 						
 //Container operations
 addItemToUI :: (Maybe Int) UIControl UIControl -> UIControl
 addItemToUI mbIndex item ctrl = case ctrl of
 	UIContainer sOpts iOpts=:{UIItemsOpts|items}    = UIContainer sOpts {UIItemsOpts|iOpts & items = add mbIndex item items}
-	UIPanel sOpts iOpts=:{UIItemsOpts|items} opts	= UIPanel sOpts {UIItemsOpts|iOpts & items = add mbIndex item items} opts
+//	UIPanel sOpts iOpts=:{UIItemsOpts|items} opts	= UIPanel sOpts {UIItemsOpts|iOpts & items = add mbIndex item items} opts
 	_												= ctrl
 where
 	add Nothing item items		= items ++ [item]
@@ -793,12 +874,12 @@ where
 	
 getItemsOfUI :: UIControl -> [UIControl]
 getItemsOfUI (UIContainer _ {UIItemsOpts|items})	= items
-getItemsOfUI (UIPanel _ {UIItemsOpts|items} _)		= items
+//getItemsOfUI (UIPanel _ {UIItemsOpts|items} _)		= items
 getItemsOfUI ctrl									= [ctrl]
 	
 setItemsOfUI :: [UIControl] UIControl -> UIControl
 setItemsOfUI items (UIContainer sOpts iOpts)	    = UIContainer sOpts {UIItemsOpts|iOpts & items = items}
-setItemsOfUI items (UIPanel sOpts iOpts opts)		= UIPanel sOpts {UIItemsOpts|iOpts & items = items} opts
+//setItemsOfUI items (UIPanel sOpts iOpts opts)		= UIPanel sOpts {UIItemsOpts|iOpts & items = items} opts
 setItemsOfUI items ctrl								= ctrl
 
 //Container for a set of horizontally layed out buttons
@@ -952,8 +1033,8 @@ where
 tweakUI :: (UIControl -> UIControl) UIDef -> UIDef
 //tweakUI f (UIForm stack=:{UIForm|controls})
 //	= UIForm {UIForm|stack & controls = [(f c,a) \\ (c,a) <- controls]}
-tweakUI f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
-	= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map f items}}
+//tweakUI f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
+	//= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map f items}}
 tweakUI f (UIControl control)
     = UIControl (f control)
 tweakUI f def = def
@@ -961,15 +1042,15 @@ tweakUI f def = def
 tweakAttr :: (UIAttributes -> UIAttributes) UIDef -> UIDef
 //tweakAttr f (UIForm stack=:{UIForm|attributes})
 //	= UIForm {UIForm|stack & attributes = f attributes}
-tweakAttr f (UIBlock sub=:{UIBlock|attributes})
-	= UIBlock {UIBlock|sub & attributes = f attributes}
+//tweakAttr f (UIBlock sub=:{UIBlock|attributes})
+//	= UIBlock {UIBlock|sub & attributes = f attributes}
 tweakAttr f def = def
 
 tweakControls :: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDef -> UIDef
 //tweakControls f (UIForm stack=:{UIForm|controls})
 //	= UIForm {UIForm|stack & controls = f controls}
-tweakControls f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
-	= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map fst (f [(c,'DM'.newMap) \\ c <- items])}}
+//tweakControls f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
+	//= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map fst (f [(c,'DM'.newMap) \\ c <- items])}}
 tweakControls f (UIControl control)
 	= case f [(control,'DM'.newMap)] of
 		[(control,_):_] = UIControl control
