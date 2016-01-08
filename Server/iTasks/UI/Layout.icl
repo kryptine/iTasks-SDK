@@ -28,12 +28,12 @@ where
 
 //Building blocks for layout
 
-layoutChild :: NodePath (Layout s) -> (Layout s) 
+layoutChild :: NodePath Layout -> Layout
 layoutChild [] childLayout = childLayout
 layoutChild [i] childLayout = layoutChild` i childLayout
 layoutChild [i:is] childLayout = layoutChild` i (layoutChild is childLayout)
 
-layoutChild` :: Int (Layout s) -> (Layout s) 
+layoutChild` :: Int Layout -> Layout 
 layoutChild` index childLayout = layout
 where
 	layout (ReplaceUI def ,s)
@@ -58,7 +58,7 @@ where
 
 	layout (change,s) = (change,s) //Catchall
 
-insertChild :: NodePath UIDef -> Layout JSONNode
+insertChild :: NodePath UIDef -> Layout
 insertChild [] def = id
 insertChild path def = layoutChild (init path) (insertChild` (last path) def)
 where
@@ -69,9 +69,9 @@ where
 	insert idx [] = []
 	insert idx [c:cs]
 		| childChangeIndex c < idx  = [c:insert idx cs]
-									= [ChangeChild idx (ChangeUI [] []): map (updChildChangeIndex ((+) 1)) [c:cs]]
+									= [ChangeChild idx (ChangeUI [] []): map (updChildChangeIndex (\n -> n + 1)) [c:cs]]
 
-removeChild :: NodePath -> Layout JSONNode
+removeChild :: NodePath -> Layout
 removeChild [] = id
 removeChild path = layoutChild (init path) (removeChild` (last path))
 where
@@ -83,10 +83,10 @@ where
 	remove idx [c:cs] 
 		| childChangeIndex c < idx 	= [c:remove idx cs]
 		| childChangeIndex c == idx = remove idx cs
-									= [updChildChangeIndex ((-) 1) c:remove idx cs]
+									= [updChildChangeIndex (\n -> n - 1) c:remove idx cs]
 
 //FIXME: Currently this only works when changes are moved to an empty container, needs to be generalized
-moveChildren :: NodePath (UIDef -> Bool) NodePath -> Layout JSONNode
+moveChildren :: NodePath (UIDef -> Bool) NodePath -> Layout
 moveChildren src pred dst = layout
 where
 	layout (ReplaceUI def,_)
@@ -124,7 +124,7 @@ where
 
 	layout (change,s) = (change,s)
 
-layoutChildrenOf :: NodePath (Layout JSONNode) -> Layout JSONNode
+layoutChildrenOf :: NodePath Layout -> Layout
 layoutChildrenOf path childLayout = layout
 where
 	layout (ReplaceUI def,_) = case accChildDef path update def of
@@ -161,15 +161,19 @@ where
 	
 	layout (change,s) = (change,s)
 
-changeContainerType :: (UIDef -> UIDef) -> Layout JSONNode 
+changeContainerType :: (UIDef -> UIDef) -> Layout
 changeContainerType f = layout
 where
 	layout (ReplaceUI def,_) = (ReplaceUI (f def),JSONNull) 
 	layout (change,s) = (change,s) //Other changes than replacing are not affected
 
+wrapInContainer :: (UIDef -> UIDef) -> Layout
+wrapInContainer f = layout
+where
+	layout (ReplaceUI def,_) = (ReplaceUI (f def),JSONNull)
+	layout (change,s) = (ChangeUI [] [ChangeChild 0 change],s)
 
-
-sequenceLayouts :: [Layout JSONNode] -> Layout JSONNode
+sequenceLayouts :: [Layout] -> Layout
 sequenceLayouts layouts = layout
 where
 	layout (change=:(ReplaceUI _),_)
@@ -188,7 +192,7 @@ where
 		# (change,ss) = applyAll ls ss change
 		= (change,[s:ss])
 
-conditionalLayout :: (UIDef -> Bool) (Layout JSONNode) -> Layout JSONNode
+conditionalLayout :: (UIDef -> Bool) Layout -> Layout
 conditionalLayout pred condLayout = layout
 where
 	layout (change=:(ReplaceUI def),_)
@@ -205,7 +209,7 @@ where
 	layout (change,s) = (change,s)
 
 //Select the first matching layout
-selectLayout :: [(UIDef -> Bool,Layout JSONNode)] -> Layout JSONNode 
+selectLayout :: [(UIDef -> Bool,Layout)] -> Layout
 selectLayout layouts = layout
 where
 	layout (change=:(ReplaceUI def),_) = case selectLayout def 0 layouts of
@@ -232,6 +236,8 @@ getChildren (UIInteract children) = children
 getChildren (UIStep children) = children
 getChildren (UIParallel children) = children
 getChildren (UIPanel _ _ _ children) = children
+getChildren (UITabSet _ _ children) = children
+getChildren (UITab _ _ children) = children
 getChildren (UIForm children) = children
 
 setChildren :: [UIDef] UIDef -> UIDef
@@ -241,6 +247,8 @@ setChildren children (UIForm _) = UIForm children
 setChildren children (UIStep _) = UIStep children
 setChildren children (UIParallel _) = UIParallel children
 setChildren children (UIPanel sOpts cOpts pOpts _) = UIPanel sOpts cOpts pOpts children
+setChildren children (UITabSet sOpts tOpts _) = UITabSet sOpts tOpts children
+setChildren children (UITab cOpts tOpts _) = UITab cOpts tOpts children
 setChildren _ def = def
 
 accChildDef :: NodePath (UIDef -> (a,UIDef)) UIDef -> (Maybe a, UIDef)
@@ -588,13 +596,7 @@ where
                        , attributes = mergeAttributes ui1.UIBlock.attributes attributes
                        }
 
-instance tune ArrangeWithTabs
-where
-    tune ArrangeWithTabs t = tune (ApplyLayout layout) t
-	where
-		layout (ReplaceUI ui,()) = (ReplaceUI (arrangeBlocks arrangeWithTabs ui),())
-		layout (change,s) = (change,s)
-
+/*
 arrangeWithTabs :: UIBlocksCombinator
 arrangeWithTabs = arrange
 where
@@ -618,7 +620,7 @@ where
             (Just fa,Just fb)   = toInt fa > toInt fb
 			(Just _,Nothing)	= True
 			_					= False
-
+*/
 instance tune ArrangeWithSideBar
 where
     tune (ArrangeWithSideBar index side size resize) t = tune (ApplyLayout layout) t
@@ -708,6 +710,7 @@ where
 	iconCls		= fmap (\icon -> "icon-" +++ icon) ('DM'.get ICON_ATTRIBUTE attributes)
     attributes` = ('DM'.del TITLE_ATTRIBUTE o 'DM'.del ICON_ATTRIBUTE) attributes
 
+/*
 blockToTab :: UIBlock -> UITab
 blockToTab {UIBlock|content=content=:{UIItemsOpts|items,direction},attributes,size}
 	# actions = []
@@ -727,7 +730,7 @@ where
 	taskId		= 'DM'.get TASK_ATTRIBUTE attributes
 	title       = fromMaybe "Untitled" ('DM'.get TITLE_ATTRIBUTE attributes)
     iconCls     = fmap (\i -> "icon-" +++ i) ('DM'.get ICON_ATTRIBUTE attributes)
-
+*/
 uiDefToWindow :: UIWindowType UIVAlign UIHAlign UIDef -> UIDef
 uiDefToWindow windowType vpos hpos (UILayers [main:layers])
 	= case uiDefToWindow windowType vpos hpos main of
@@ -760,24 +763,6 @@ where
 	
     title		= 'DM'.get TITLE_ATTRIBUTE attributes	
     iconCls		= fmap (\icon -> "icon-" +++ icon) ('DM'.get ICON_ATTRIBUTE attributes)
-
-plainLayoutFinal :: Layout ()
-plainLayoutFinal = layout
-where
-	layout (change,s) = (change,s)
-/*
-	layout (UILayers [main:rest])
-		= UILayers [layout main:rest]
-	layout UIEmpty
-		= UIFinal (defaultContainer [])
-	layout (UIBlock block=:{UIBlock|attributes,content,actions,hotkeys})
-    	# (control,_,_,_) = blockToContainer block
-		= UIFinal control
-	layout (UIBlocks blocks actions)
-    	= layout (UIBlock (autoLayoutBlocks blocks actions))
-	layout (UIFinal control)
-    	= UIFinal control
-*/	
 
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
 createPrompt :: String -> UIControl
@@ -823,8 +808,8 @@ addTriggersToControl triggers (UIContainer sOpts iOpts=:{UIItemsOpts|items})
     = UIContainer sOpts {UIItemsOpts|iOpts & items = map (addTriggersToControl triggers) items}
 //addTriggersToControl triggers (UIPanel sOpts iOpts=:{UIItemsOpts|items} opts)
     //= UIPanel sOpts {UIItemsOpts|iOpts & items = map (addTriggersToControl triggers) items} opts
-addTriggersToControl triggers (UITabSet sOpts tOpts=:{UITabSetOpts|items})
-    = UITabSet sOpts {UITabSetOpts|tOpts & items = map (addTriggersToTab triggers) items}
+//addTriggersToControl triggers (UITabSet sOpts tOpts=:{UITabSetOpts|items})
+    //= UITabSet sOpts {UITabSetOpts|tOpts & items = map (addTriggersToTab triggers) items}
 //Single controls
 addTriggersToControl triggers control = foldr addTriggerToControl control triggers
 
@@ -832,9 +817,6 @@ addTriggerToControl :: (Trigger,String,String) UIControl -> UIControl
 addTriggerToControl (DoubleClick,taskId,actionId) (UIGrid sOpts cOpts opts) = UIGrid sOpts cOpts {UIGridOpts|opts & doubleClickAction = Just (taskId,actionId)}
 addTriggerToControl (DoubleClick,taskId,actionId) (UITree sOpts cOpts opts) = UITree sOpts cOpts {UITreeOpts|opts & doubleClickAction = Just (taskId,actionId)}
 addTriggerToControl t c = c
-
-addTriggersToTab :: [(Trigger,String,String)] UITab -> UITab
-addTriggersToTab triggers (UITab iOpts=:{UIItemsOpts|items} opts) = (UITab {UIItemsOpts|iOpts & items = map (addTriggersToControl triggers) items} opts)
 
 //Container coercion
 toPanel	:: !UIControl -> UIControl

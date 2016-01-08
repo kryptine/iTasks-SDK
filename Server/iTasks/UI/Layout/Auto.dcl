@@ -5,13 +5,18 @@ definition module iTasks.UI.Layout.Auto
 
 import iTasks.UI.Layout
 
-autoLayoutInteract 		:: Layout JSONNode //Automatically applied by 'interact'
-autoLayoutStep  		:: Layout JSONNode //Automatically applied by 'step'
-autoLayoutParallel 		:: Layout JSONNode //Automatically applied by 'parallel'
-autoLayoutAttach 		:: Layout JSONNode //Automatically applied by 'attach'
+autoLayoutInteract 		:: Layout //Automatically applied by 'interact'
+autoLayoutStep  		:: Layout //Automatically applied by 'step'
+autoLayoutParallel 		:: Layout //Automatically applied by 'parallel'
+autoLayoutAttach 		:: Layout //Automatically applied by 'attach'
 
-autoLayoutSession 		:: Layout JSONNode //Added when a task instance is 'published' (can be easily removed or replaced by publishing a task explicitly)
+autoLayoutSession 		:: Layout //Added when a task instance is 'published' (can be easily removed or replaced by publishing a task explicitly)
 
 //Partial layouts used in the automatic layouts 
-editorToForm            :: Layout JSONNode
-formToBlock             :: Layout JSONNode
+editorToForm            :: Layout 
+
+finalizeUI 				:: Layout
+finalizeForm 			:: Layout
+finalizeInteract 		:: Layout
+finalizeStep 			:: Layout
+finalizeParallel 		:: Layout

@@ -9,30 +9,35 @@ import qualified Data.Map as DM
 
 LABEL_WIDTH :== 100
 
-autoLayoutInteract :: Layout JSONNode
+autoLayoutInteract :: Layout
 autoLayoutInteract = layoutChild [1] editorToForm //Remap changes in the editor, ignore changes to the prompt, it should be constant
 
-autoLayoutStep :: Layout JSONNode
+autoLayoutStep :: Layout
 autoLayoutStep = id
 
-autoLayoutParallel :: Layout JSONNode
+autoLayoutParallel :: Layout
 autoLayoutParallel = id
 
-autoLayoutAttach :: Layout JSONNode
+autoLayoutAttach :: Layout
 autoLayoutAttach = id
 
-autoLayoutSession :: Layout JSONNode
+autoLayoutSession :: Layout
 autoLayoutSession = finalizeUI
 
 //The finalize layouts remove all intermediate 
-finalizeUI :: Layout JSONNode
+finalizeUI :: Layout
 finalizeUI = selectLayout
 	[(isInteract,finalizeInteract)
 	,(isStep,finalizeStep)
 	,(isParallel,finalizeParallel)
+	,(onlyFinalizeChildren,layoutChildrenOf [] finalizeUI)
 	]
 
-finalizeInteract :: Layout JSONNode
+onlyFinalizeChildren (UITabSet _ _ _) = True
+onlyFinalizeChildren (UITab _ _ _)    = True
+onlyFinalizeChildren _                = False
+
+finalizeInteract :: Layout
 finalizeInteract = conditionalLayout isInteract layout
 where
 	layout = sequenceLayouts 
@@ -40,7 +45,7 @@ where
 		,changeContainerType (\(UIInteract items) -> defaultPanel items)
 		] 
 
-finalizeForm :: Layout JSONNode
+finalizeForm :: Layout
 finalizeForm
 	= sequenceLayouts [layoutChildrenOf [] layoutRow
 					  ,changeContainerType (\(UIForm items) -> defaultPanel items)
@@ -60,7 +65,8 @@ where
 
 	row items = setDirection Horizontal (defaultPanel items)
 	//= setMargins 5 5 5 5 (setSize FlexSize WrapSize (/*setDirection Horizontal*/ (defaultPanel items)))
-finalizeStep :: Layout JSONNode
+
+finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
 where
 	layout = sequenceLayouts
@@ -71,7 +77,7 @@ where
         ,changeContainerType (\(UIStep items) -> defaultPanel items) //Change to a standard container
         ]
 
-finalizeParallel :: Layout JSONNode
+finalizeParallel :: Layout
 finalizeParallel = conditionalLayout isParallel layout
 where
 	layout = sequenceLayouts
@@ -87,7 +93,7 @@ isParallel = \n -> n =:(UIParallel _)
 isAction = \n -> n =:(UIAction _)
 
 //Flatten an editor into a form
-editorToForm:: Layout JSONNode
+editorToForm :: Layout
 editorToForm = layout
 where
 	//Flatten the editor to a list of form items
@@ -134,7 +140,7 @@ where
 				= (n, childChanges ++ remainderChanges)
 
 //Finalize a form to a final UI container
-formToBlock :: Layout JSONNode 
+formToBlock :: Layout
 formToBlock = layout
 where
 	layout (NoChange,s) = (NoChange,s)
@@ -183,7 +189,7 @@ where
 		shiftUp (ChangeUI l is) = ChangeUI l [ChangeChild (n - 1) c \\ ChangeChild n c <- is | n > 0]
 		shiftUp c = c
 
-actionToButton :: Layout JSONNode 
+actionToButton :: Layout
 actionToButton = layout 
 where
 	layout (ReplaceUI (UIAction {UIAction|taskId,action=action=:(Action actionId _),enabled}),_)
@@ -197,74 +203,9 @@ where
 	remap ("disable",[]) = ("setDisabled",[JSONBool True])
 	remap (op,args)      = (op,args)
 
-/*
-autoArrange :: UIDef -> (UIDef,Arrangement)
-autoArrange def=:(UIInteract _) = autoArrangeInteract def
-autoArrange def=:(UIStep _) = autoArrangeStep def
-autoArrange def=:(UIParallel _) = autoArrangeParallel def
-autoArrange def = (def,[])
-
-autoArrangeInteract :: UIDef -> (UIDef,Arrangement)
-autoArrangeInteract (UIInteract [prompt,(UIForm items)])
-	# (rows,itemLabels) = unzip (mapLst (makeRow (labelInItems items)) items)
-	//Describe the arrangement
-	# arrangement = [RemoveChildNode [1,i] 0 \\ noLabel <- itemLabels & i <- [0..] | noLabel]
-	= (defaultPanel [prompt,defaultPanel rows], arrangement)
-where
-	//Check if one of the form items has a label, in that case all form items need to be indented
-	labelInItems [] = False
-	labelInItems [UIFormItem UIEmpty _ _:is] = labelInItems is
-	labelInItems _ = True
-
-	makeRow labelsUsed isLast (UIFormItem labelDef itemDef iconDef) 
-		= (UIControl (setMargins 5 5 (if isLast 5 0) 5 (setSize FlexSize WrapSize (setDirection Horizontal (defaultContainer ctrls)))),noLabel)
-	where
-		ctrls = labelCtrl ++ itemCtrl ++ iconCtrl 
-
-		noLabel = isEmpty labelCtrl
-		labelCtrl = fromControl labelDef
-		itemCtrl = if (labelsUsed && noLabel) (map (setLeftMargin LABEL_WIDTH) (fromControl itemDef)) (fromControl itemDef)
-		iconCtrl = fromControl iconDef
-
-		fromControl (UIControl c) 	= [c]	
-		fromControl _ 			 	= []
-
-autoArrangeInteract def = (def,[])
-*/
 mapLst f [] = []
 mapLst f [x] = [f True x]
 mapLst f [x:xs] = [f False x: mapLst f xs]
-
-/*
-//Arrangement for step
-// -> If there are actions, transform to a buttonbar
-autoArrangeStep :: UIDef -> (UIDef,Arrangement)
-autoArrangeStep (UIStep [inner:actions])
-	//Transform the actions to buttons (and get their arrangements)
-	# (buttons,bArr) = unzip (map actionToButton actions)
-	//Recursively call auto arrangement
-	# (inner,iArr) = autoArrange inner
-	//Arrange the content
-	# items = [inner,buttonBar buttons]
-	# arrangement = subArrangement [0] iArr ++ [InsertChildNode [] 1:flatten [[MoveNode [i + 2] [1,i]:subArrangement [1,i] a] \\ a <- bArr & i <- [0..]]]
-	//Change the container type
-	# def = defaultPanel items
-	= (def,arrangement)
-autoArrangeStep def = (def,[])
-
-autoArrangeParallel :: UIDef -> (UIDef,Arrangement)
-autoArrangeParallel def = (def,[])
-
-actionToButton :: UIDef -> (UIDef,Arrangement)
-actionToButton (UIAction {UIAction|taskId,action=action=:(Action actionId _),enabled})
-	= (UIControl (UIActionButton defaultSizeOpts {UIActionOpts|taskId = toString taskId,actionId=actionId}
-			{UIButtonOpts|text = Just (actionName action), iconCls = (actionIcon action), disabled = not enabled})
-	  ,[RemapLocalChange [] ("enable",[]) ("setDisabled",[JSONBool False])
-	   ,RemapLocalChange [] ("disable",[]) ("setDisabled",[JSONBool True])
-	   ])
-
-actionToButton def = (def,[])
-*/
 
 buttonBar :: UIDef 
 buttonBar = (/* wrapHeight o */ setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight o setBaseCls "buttonbar") (defaultPanel [])
@@ -293,5 +234,4 @@ where
 			| c == '_'			= [' ':addspace cs]
 			| isUpper c			= [' ',toLower c:addspace cs]
 			| otherwise			= [c:addspace cs]
-
 

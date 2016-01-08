@@ -18,7 +18,7 @@ from GenEq import generic gEq
 
 import Text.HTML
 
-derive class iTask UIDef, UIWindow, UIBlock, UIAction, UIEditor, UIControl, UITab
+derive class iTask UIDef, UIWindow, UIBlock, UIAction, UIEditor, UIControl
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
 derive class iTask UIWindowOpts, UIItemsOpts, UIContainerOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
@@ -53,6 +53,18 @@ defaultPanel items = UIPanel defaultSizeOpts defaultContainerOpts defaultPanelOp
 
 defaultPanelOpts :: UIPanelOpts
 defaultPanelOpts = {UIPanelOpts|title=Nothing,iconCls=Nothing,frame=False,hotkeys=Nothing}
+
+defaultTabSet :: ![UIDef] -> UIDef
+defaultTabSet items = UITabSet defaultSizeOpts defaultTabSetOpts items
+
+defaultTabSetOpts :: UITabSetOpts
+defaultTabSetOpts = {UITabSetOpts|activeTab = 0}
+
+defaultTab :: ![UIDef] -> UIDef
+defaultTab items = UITab defaultContainerOpts defaultTabOpts items
+
+defaultTabOpts :: UITabOpts
+defaultTabOpts = {UITabOpts|title="Untitled",iconCls=Nothing,focusTaskId=Nothing,closeTaskId=Nothing}
 
 defaultWindow :: ![UIControl] -> UIWindow
 defaultWindow items = {UIWindow|sizeOpts=defaultSizeOpts,itemsOpts=(defaultItemsOpts items),windowOpts={UIWindowOpts|windowType=FloatingWindow,title=Nothing,iconCls=Nothing,menu=Nothing,hotkeys=Nothing,vpos=Nothing,hpos=Nothing,closeTaskId=Nothing,focusTaskId=Nothing}}
@@ -93,7 +105,7 @@ hasSizeOpts (UIEditlet sOpts opts)              = True
 hasSizeOpts (UIContainer sOpts iOpts)	        = True
 //hasSizeOpts (UIPanel sOpts iOpts opts)			= True
 hasSizeOpts (UIFieldSet sOpts iOpts opts)		= True
-hasSizeOpts (UITabSet sOpts opts)				= True
+//hasSizeOpts (UITabSet sOpts opts)				= True
 hasSizeOpts _                                   = False
 
 getSizeOpts :: (UISizeOpts -> a) UIControl -> a
@@ -113,7 +125,7 @@ getSizeOpts f (UIEditlet sOpts opts)				= f sOpts
 getSizeOpts f (UIContainer sOpts iOpts)	        	= f sOpts
 //getSizeOpts f (UIPanel sOpts iOpts opts)			= f sOpts
 getSizeOpts f (UIFieldSet sOpts iOpts opts)			= f sOpts
-getSizeOpts f (UITabSet sOpts opts)					= f sOpts
+//getSizeOpts f (UITabSet sOpts opts)					= f sOpts
 
 setSizeOpts :: (UISizeOpts -> UISizeOpts) UIControl -> UIControl
 setSizeOpts f (UIViewString	sOpts vOpts)			= (UIViewString	(f sOpts) vOpts)
@@ -132,7 +144,7 @@ setSizeOpts f (UIEditlet sOpts opts)				= (UIEditlet (f sOpts) opts)
 setSizeOpts f (UIContainer sOpts iOpts)	        	= (UIContainer (f sOpts) iOpts)
 //setSizeOpts f (UIPanel sOpts iOpts opts)			= (UIPanel (f sOpts) iOpts opts)
 setSizeOpts f (UIFieldSet sOpts iOpts opts)			= (UIFieldSet (f sOpts) iOpts opts)
-setSizeOpts f (UITabSet sOpts opts)					= (UITabSet (f sOpts) opts)
+//setSizeOpts f (UITabSet sOpts opts)					= (UITabSet (f sOpts) opts)
 
 hasHSizeOpts :: !UIControl -> Bool
 hasHSizeOpts (UIViewDocument sOpts vOpts)	    = True
@@ -462,6 +474,10 @@ where
 	encodeUI (UIAction action) 				= component "itwc_raw_action" [encodeUI action]
 	encodeUI (UIPanel sopts iopts opts defs)= component "itwc_panel" [encodeUI sopts, encodeUI iopts, encodeUI opts
 																		,JSONObject [("items",JSONArray (map encodeUI defs))]]
+
+	encodeUI (UITabSet sopts opts defs)	    = component "itwc_tabset" [encodeUI sopts, encodeUI opts,JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UITab copts opts defs) 	 	= component "itwc_tabitem" [encodeUI copts, encodeUI opts,JSONObject [("items",JSONArray (map encodeUI defs))]]
+
 	encodeUI (UIWindow window) 				= component "itwc_raw_window" [encodeUI window]
 	encodeUI (UILayers defs) 				= component "itwc_raw_layers" [JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UIForm defs) 					= component "itwc_raw_form" [JSONObject [("items",JSONArray (map encodeUI defs))]]
@@ -503,7 +519,6 @@ where
 	encodeUI (UISplitter)						= component "itwc_splitter" []
 	encodeUI (UIContainer sopts iopts)			= component "itwc_container" [encodeUI sopts, encodeUI iopts]
 	encodeUI (UIFieldSet sopts iopts opts)		= component "itwc_fieldset" [encodeUI sopts, encodeUI iopts, encodeUI opts]
-	encodeUI (UITabSet sopts opts)				= component "itwc_tabset" [encodeUI sopts, encodeUI opts]
 	encodeUI (UITasklet sopts opts)				= component "itwc_tasklet" [encodeUI sopts, encodeUI opts]
 	encodeUI (UIEditlet sopts opts)				= component "itwc_edit_editlet" [encodeUI sopts, encodeUI opts]
 	encodeUI (UIEmbedding sopts opts)			= component "itwc_embedding" [encodeUI sopts, encodeUI opts]
@@ -513,9 +528,6 @@ where
 	encodeUI {UIWindow|sizeOpts,itemsOpts,windowOpts}
 		= component "itwc_window" [encodeUI sizeOpts, encodeUI itemsOpts, encodeUI windowOpts]
 
-instance encodeUI UITab
-where
-	encodeUI (UITab iopts opts) 				= component "itwc_tabitem" [encodeUI iopts, encodeUI opts]
 
 instance encodeUI UIItemsOpts 
 where
@@ -575,8 +587,8 @@ where
 
 instance encodeUI UITabSetOpts
 where
-	encodeUI {UITabSetOpts|items}
-		= JSONObject [("items",JSONArray [encodeUI i \\ i <- items])]
+	encodeUI {UITabSetOpts|activeTab}
+		= JSONObject [("activeTab",JSONInt activeTab)]
 
 instance encodeUI UISizeOpts
 where
@@ -692,11 +704,9 @@ where
                                      	] | snd field =!= JSONNull]
 instance encodeUI UITabOpts
 where
-	encodeUI {UITabOpts|title,iconCls,menu,hotkeys,focusTaskId,closeTaskId}
+	encodeUI {UITabOpts|title,iconCls,focusTaskId,closeTaskId}
     	= JSONObject [field \\ field <- [("title",encodeUI title)
                                      	,("iconCls",encodeUI iconCls)
-                                     	,("menu",encodeUI menu)
-                                     	,("hotkeys",toJSON hotkeys)
                                      	,("focusTaskId",encodeUI focusTaskId)
                                      	,("closeTaskId",encodeUI closeTaskId)
                                      	] | snd field =!= JSONNull]

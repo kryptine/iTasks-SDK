@@ -139,7 +139,8 @@ where
     where
         mainArea = arrangeWithSideBar 0 TopSide 30 False [dashBoard,workArea] []
         workArea = arrangeWithSideBar 0 TopSide 200 True [manageWork,tabsArea] []
-        tabsArea = arrangeWithTabs activeWork []
+        //tabsArea = arrangeWithTabs activeWork []
+        tabsArea = arrangeVertical activeWork []
 
     layout blocks actions = autoLayoutBlocks blocks actions
 

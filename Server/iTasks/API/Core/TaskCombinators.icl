@@ -827,7 +827,7 @@ where
 		
 		eval` event evalOpts state iworld = eval event evalOpts state iworld //Catchall
 		
-		defaultState :: (Layout s) -> s | iTask s
+		defaultState :: (LayoutFun s) -> s | iTask s
 		defaultState f = defaultValue
 
 instance tune AutoLayout

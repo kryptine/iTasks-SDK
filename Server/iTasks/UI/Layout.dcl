@@ -12,30 +12,32 @@ from Data.Maybe import :: Maybe
 
 // When a layout changes the stucture of the UI, changes to the UI have to be
 // changed too to route the changes to the correct place in the structure
-:: Layout s :== (UIChangeDef,s) -> (UIChangeDef,s)
+:: LayoutFun s :== (UIChangeDef,s) -> (UIChangeDef,s)
+:: Layout :== LayoutFun JSONNode
 
 // These types are used to specify when to apply layouts
-:: ApplyLayout	= E.s: ApplyLayout (Layout s) & iTask s
+:: ApplyLayout	= E.s: ApplyLayout (LayoutFun s) & iTask s
 :: AutoLayout = WithAutoLayout | WithoutAutoLayout
 
 //Addresing nodes in a UI definition
 :: NodePath :== [Int]
 
-//Basic building blocks for creating more complex layouts
-layoutChild :: NodePath (Layout s) -> (Layout s) 
+//Basic DSL for creating more complex layouts
+layoutChild :: NodePath Layout-> Layout
 
-insertChild :: NodePath UIDef -> Layout JSONNode
-removeChild :: NodePath -> Layout JSONNode
+insertChild :: NodePath UIDef -> Layout
+removeChild :: NodePath -> Layout
 
-moveChildren :: NodePath (UIDef -> Bool) NodePath -> Layout JSONNode
+moveChildren :: NodePath (UIDef -> Bool) NodePath -> Layout
 
-layoutChildrenOf :: NodePath (Layout JSONNode) -> Layout JSONNode
+layoutChildrenOf :: NodePath Layout -> Layout
 
-changeContainerType :: (UIDef -> UIDef) -> Layout JSONNode 
+changeContainerType :: (UIDef -> UIDef) -> Layout
+wrapInContainer :: (UIDef -> UIDef) -> Layout
 
-sequenceLayouts :: [Layout JSONNode] -> Layout JSONNode
-conditionalLayout :: (UIDef -> Bool) (Layout JSONNode) -> Layout JSONNode
-selectLayout :: [(UIDef -> Bool,Layout JSONNode)] -> Layout JSONNode
+sequenceLayouts :: [Layout] -> Layout
+conditionalLayout :: (UIDef -> Bool) Layout -> Layout
+selectLayout :: [(UIDef -> Bool,Layout)] -> Layout
 
 //Generation of prompts
 class descr d
@@ -55,9 +57,6 @@ instance descr (!String, !String)			//Title attribute + instruction
 autoLayoutBlocks        :: [UIBlock] [UIAction] -> UIBlock
 
 :: SetValueAttribute a = SetValueAttribute !String (a -> String)
-
-//Alternative plain final layout
-plainLayoutFinal       :: Layout ()
 
 //Placement tuning types
 :: ToWindow     = ToWindow UIWindowType UIVAlign UIHAlign
@@ -96,10 +95,6 @@ arrangeVertical         ::                      UIBlocksCombinator
 :: ArrangeHorizontal = ArrangeHorizontal
 instance tune ArrangeHorizontal
 arrangeHorizontal       ::                      UIBlocksCombinator
-
-:: ArrangeWithTabs = ArrangeWithTabs
-instance tune ArrangeWithTabs
-arrangeWithTabs         ::                      UIBlocksCombinator
 
 :: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool
 instance tune ArrangeWithSideBar

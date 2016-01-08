@@ -22,7 +22,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 //Provide generic instances for all UI definitions
-derive class iTask UIDef, UIWindow, UIBlock, UIAction, UIEditor, UIControl, UITab
+derive class iTask UIDef, UIWindow, UIBlock, UIAction, UIEditor, UIControl
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
 derive class iTask UIWindowOpts, UIItemsOpts, UIContainerOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
@@ -54,6 +54,8 @@ instance Functor UIViewOpts
 	| UIAction 			!UIAction
 	//Final container
 	| UIPanel 			!UISizeOpts !UIContainerOpts !UIPanelOpts ![UIDef]
+	| UITabSet			!UISizeOpts !UITabSetOpts ![UIDef]
+	| UITab                         !UIContainerOpts !UITabOpts ![UIDef]
 	| UIWindow 			!UIWindow
 	//Constructors for z-axis stacking
 	| UILayers 			![UIDef]
@@ -61,7 +63,6 @@ instance Functor UIViewOpts
 	| UICompoundContent ![UIDef]
     | UIForm    		![UIDef]
 	| UIFormItem		!UIDef !UIDef !UIDef //Label, widget, feedback (usually an icon)
-    //| UIBlock   !UIBlock    //An abstract container. It is still undecided if the content will be put in a panel, a window, a tab or something else
     | UIBlock   		!UISizeOpts !UIContainerOpts ![UIDef] //An abstract container. It is still undecided if the content will be put in a panel, a window, a tab or something else
 	| UIControl !UIControl 	//A Single control
 	//OBSOLETE
@@ -119,8 +120,6 @@ instance Functor UIViewOpts
     | ModalDialog           //Fixed position modal dialog
     | NotificationBubble    //Fixed position info
 
-// A tab that goes into a tab set.
-:: UITab = UITab !UIItemsOpts !UITabOpts
 
 :: UIControl
 	// Components for viewing data:
@@ -163,7 +162,6 @@ instance Functor UIViewOpts
 	// Container components for composition:
 	| UIContainer		!UISizeOpts     !UIItemsOpts 				                    // - Container (lightweight wrapper to compose components)
 	| UIFieldSet		!UISizeOpts     !UIItemsOpts !UIFieldSetOpts				    // - Fieldset (wrapper with a simple border and title)
-	| UITabSet			!UISizeOpts     !UITabSetOpts
     | UIEmbedding       !UISizeOpts     !UIEmbeddingOpts                                // - Embedding of a related task gui (like an iframe for tasks)
 
 //Most components can be resized in two dimensions
@@ -350,9 +348,9 @@ instance Functor UIViewOpts
 	}
 
 :: UITabSetOpts =
-	{ items		:: ![UITab]
-	, activeTab	:: !Maybe Int
+	{ activeTab	:: Int
 	}
+
 :: UIEmbeddingOpts =
     { instanceNo  :: !Int
     , instanceKey :: !String
@@ -361,8 +359,6 @@ instance Functor UIViewOpts
 :: UITabOpts =
 	{ title			:: !String
 	, iconCls		:: !Maybe String
-	, menu			:: !Maybe [UIControl]
-	, hotkeys		:: !Maybe [UIKeyAction]
 	, focusTaskId	:: !Maybe String
 	, closeTaskId	:: !Maybe String
 	}
@@ -419,10 +415,14 @@ defaultFSizeOpts	    :: UIFSizeOpts
 defaultItemsOpts 		:: [UIControl] -> UIItemsOpts
 defaultContainerOpts    :: UIContainerOpts
 defaultPanelOpts        :: UIPanelOpts
+defaultTabSetOpts       :: UITabSetOpts
+defaultTabOpts          :: UITabOpts
 
 defaultContainer		:: ![UIControl]	-> UIControl
 defaultFieldSet         :: !(Maybe String) ![UIControl]	-> UIControl
 defaultPanel			:: ![UIDef]	-> UIDef
+defaultTabSet			:: ![UIDef]	-> UIDef
+defaultTab              :: ![UIDef] -> UIDef
 defaultWindow			:: ![UIControl]	-> UIWindow
 stringDisplay			:: !String		-> UIControl
 
@@ -461,6 +461,5 @@ instance encodeUI (Maybe a) | encodeUI a
 instance encodeUI [a] | encodeUI a
 instance encodeUI UIDef
 instance encodeUI UIControl
-instance encodeUI UITab
 instance encodeUI UIWindow
 

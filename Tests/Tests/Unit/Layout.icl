@@ -5,7 +5,7 @@ import Tests.Unit.FrameworkStubs
 import iTasks.UI.Editor, iTasks.UI.Diff
 import iTasks._Framework.Generic.Interaction
 
-import iTasks.UI.Editor, iTasks.UI.Diff, iTasks.UI.Layout
+import iTasks.UI.Editor, iTasks.UI.Diff, iTasks.UI.Layout, iTasks.UI.Layout.Auto
 import iTasks._Framework.Generic.Interaction
 import iTasks._Framework.IWorld
 import qualified Data.Map as DM
@@ -34,7 +34,7 @@ derive class iTask TestRecInner, TestRecOuter
 testAutoInteractionLayoutInitial = assertEqual "Test if the auto interaction layout correctly turns an editor into a form" exp sut
 where
 	exp = ReplaceUI (UICompoundContent [stdPrompt,expIntForm])
-	sut = fst (autoLayoutInteract ((ReplaceUI (UICompoundContent [stdPrompt,stdIntEditor])),()))
+	sut = fst (autoLayoutInteract ((ReplaceUI (UICompoundContent [stdPrompt,stdIntEditor])),JSONNull))
 	
 	stdPrompt = UIEmpty //STUB Don't care what the prompt is!
 	stdIntEditor = UIEditor {UIEditor|optional=False,attributes='DM'.fromList

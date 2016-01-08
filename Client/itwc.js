@@ -1614,12 +1614,15 @@ itwc.component.itwc_tabset = itwc.extend(itwc.Container,{
         label = document.createElement('a');
         label.innerHTML = '<span>'+itemCmp.definition.title+'</span>';
         label.href = '#';
-        if(itemCmp.definition.focusTaskId) {
-            label.addEventListener('click',function(e) {
-                me.sendFocusEvent(itemCmp.definition.focusTaskId);
-                e.preventDefault();
-            },me);
-        }
+
+		label.addEventListener('click',function(e) {
+			me.setActiveTab(itemIdx);
+        	if(itemCmp.definition.focusTaskId) {
+           		me.sendFocusEvent(itemCmp.definition.focusTaskId);
+			}
+            e.preventDefault();
+		},me);
+
         if(itemCmp.definition.iconCls) {
             icon = document.createElement('div');
             icon.classList.add('tabicon');
@@ -1687,9 +1690,6 @@ itwc.component.itwc_tabitem = itwc.extend(itwc.Panel,{
         el.classList.add('tabitem');
         if(itemIdx === me.parentCmp.activeTab) {
             el.classList.add('selected');
-        }
-        if(me.definition.menu) {
-            me.setMenu(me.definition.menu);
         }
     },
     initSize: function() {

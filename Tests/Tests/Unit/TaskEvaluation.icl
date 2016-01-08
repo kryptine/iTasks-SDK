@@ -72,7 +72,7 @@ where
 	exp = [ReplaceUI expMinimalEditorUI]
 
 	expMinimalEditorUI
-		= UICompoundContent [expPromptUI "Minimal String editor",editor]
+		= UIInteract [expPromptUI "Minimal String editor",editor]
 	where
 		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
 		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
@@ -85,13 +85,13 @@ where
 
 	//Because we can't test if correct Sapl code is generated here, we need to use a custom comparison
 	//function that first replaces all Sapl fields with the marker "IGNORE" before comparing to the expected value
-	compare [ReplaceUI (UICompoundContent [p,UIEditor a (UIEditlet s o)])] exp 
+	compare [ReplaceUI (UIInteract [p,UIEditor a (UIEditlet s o)])] exp 
 		# o = {UIEditletOpts|o & script="IGNORE",initClient="IGNORE",initDiff="IGNORE",appDiff="IGNORE"}
-		= [ReplaceUI (UICompoundContent [p,UIEditor a (UIEditlet s o)])] === exp
+		= [ReplaceUI (UIInteract [p,UIEditor a (UIEditlet s o)])] === exp
 	compare _ _ = False
 
 	expMinimalEditletUI
-		= UICompoundContent [expPromptUI "Minimal String editlet",editor]
+		= UIInteract [expPromptUI "Minimal String editlet",editor]
 	where
 		editor = UIEditor {UIEditor|attributes='DM'.newMap,optional=False} (UIEditlet sizeOpts editletOpts)
 		sizeOpts = {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
@@ -107,7 +107,7 @@ where
 //The step is a compound editor with the "sub" UI as first element, and the actions as remaining elements	
 expMinStepInitialUI = UIStep [expEditorUI, expActionOk]
 where
-	expEditorUI = UICompoundContent [expPromptUI "Minimal Step combinator",editor]
+	expEditorUI = UIInteract [expPromptUI "Minimal Step combinator",editor]
 	where
 		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
 		editorAttr = 'DM'.fromList [("hint-type","info"),("hint","Please enter a single line of text (this value is required)")]
@@ -125,7 +125,7 @@ where
 						  ] //No actions
 
 expMinimalEditorUI taskNum prompt value
-	= UICompoundContent [expPromptUI prompt,editor]
+	= UIInteract [expPromptUI prompt,editor]
 where
 	editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditString defaultHSizeOpts editorOpts)
 	editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
@@ -159,7 +159,7 @@ where
 	parts = UICompoundContent [expEditorUI]
 
 	expEditorUI
-		= UICompoundContent [expPromptUI "INITIAL: 0",editor]
+		= UIInteract [expPromptUI "INITIAL: 0",editor]
 	where
 		editor = UIEditor {UIEditor|attributes=editorAttr,optional=False} (UIEditInt defaultHSizeOpts editorOpts)
 		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a whole number")]

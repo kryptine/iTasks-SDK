@@ -63,14 +63,14 @@ testsuite name description tests
 testInteractive :: InteractiveTest -> Task TestResult
 testInteractive {name,instructions,expectation,taskUnderTest}
 	= 	viewInformation () [] (H1Tag [] [Text name]) 
-	||-	((viewInformation (Title "Instructions") [] instructions <<@ ForceLayout)
-		  -&&- (viewInformation (Title "Expected result") [] expectation <<@ ForceLayout ) <<@ ArrangeHorizontal )
+	||-	((viewInformation (Title "Instructions") [] instructions)
+		  -&&- (viewInformation (Title "Expected result") [] expectation) <<@ ArrangeHorizontal )
 	||- taskUnderTest
 	||- enterInformation (Title "Result") []
 
 testFullSuite :: TestSuite -> Task [TestResult]
 testFullSuite suite=:{TestSuite|tests=tests}
-	= allTasks [(testInteractive t <<@ ForceLayout) <<@ Title t.InteractiveTest.name \\ InteractiveTest t <- tests] <<@ ArrangeWithTabs
+	= allTasks [(testInteractive t) <<@ Title t.InteractiveTest.name \\ InteractiveTest t <- tests] <<@ ArrangeWithTabs
 
 //UTILITY TASKS
 testEditors :: String -> Task a | iTask a
@@ -91,7 +91,7 @@ runTests suites =
 where
 	testFullSuite :: TestSuite -> Task SuiteResult
 	testFullSuite suite=:{TestSuite|tests,name}
-		= allTasks 		[(testInteractive t <<@ ForceLayout) <<@ Title t.InteractiveTest.name \\ InteractiveTest t <- tests] <<@ ArrangeWithTabs
+		= allTasks 		[testInteractive t <<@ Title t.InteractiveTest.name \\ InteractiveTest t <- tests] <<@ ArrangeWithTabs
 		@ \results -> {SuiteResult|suiteName=name,testResults = zip ([t.InteractiveTest.name \\ InteractiveTest t <- tests],results) }
 
 runUnitTests :: [TestSuite] *World -> *(!TestReport,!*World)
