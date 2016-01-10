@@ -48,7 +48,7 @@ where
 finalizeForm :: Layout
 finalizeForm
 	= sequenceLayouts [layoutChildrenOf [] layoutRow
-					  ,changeContainerType (\(UIForm items) -> defaultPanel items)
+					  ,changeContainerType (\(UIForm items) -> defaultContainer items)
 					  ]
 where
 	//Case when 
@@ -63,8 +63,7 @@ where
 							,removeChild [0]
 							]
 
-	row items = setDirection Horizontal (defaultPanel items)
-	//= setMargins 5 5 5 5 (setSize FlexSize WrapSize (/*setDirection Horizontal*/ (defaultPanel items)))
+	row items = (setMargins 5 5 5 5 o setDirection Horizontal o setSize FlexSize WrapSize) (defaultContainer items)
 
 finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
@@ -100,9 +99,9 @@ where
 	layout (ReplaceUI editor,s) = (ReplaceUI (UIForm (items editor)),s)
 	where	
 		items (UIEditor {UIEditor|optional,attributes} control)
-			# label = maybe UIEmpty UIControl (labelControl optional attributes)
-			# info = maybe UIEmpty UIControl (infoControl attributes)
-			= [UIFormItem label (UIControl control) info]
+			# label = fromMaybe UIEmpty (labelControl optional attributes)
+			# info = fromMaybe UIEmpty (infoControl attributes)
+			= [UIFormItem label control info]
 		items UIEmpty //Placeholders for constructor changes
 			= [UIFormItem UIEmpty UIEmpty UIEmpty] 
 		items (UICompoundEditor _ parts) = flatten (map items parts)
@@ -148,7 +147,7 @@ where
 		//Transform all items to standard containers
 		# (rows,itemLabels) = unzip (mapLst (makeRow (labelInItems items)) items)
 		# copts 	= {UIContainerOpts|defaultContainerOpts & direction=Vertical}
-		= (ReplaceUI (UIBlock defaultSizeOpts copts (map UIControl rows)),JSONArray itemLabels)
+		= (ReplaceUI (UIBlock defaultSizeOpts copts rows),JSONArray itemLabels)
 
 	layout (ReplaceUI def,_) = (ReplaceUI def,JSONNull) //Do nothing if it isn't a form
 
@@ -164,16 +163,17 @@ where
 	labelInItems _ = True
 	
 	makeRow labelsUsed isLast (UIFormItem labelDef itemDef iconDef) 
-		= (setMargins 5 5 (if isLast 5 0) 5 (setSize FlexSize WrapSize (setDirection Horizontal (defaultContainer ctrls))),JSONBool noLabel)
+		= (defaultContainer ctrls,JSONBool noLabel)
+		//= (setMargins 5 5 (if isLast 5 0) 5 (setSize FlexSize WrapSize (setDirection Horizontal (defaultContainer ctrls))),JSONBool noLabel)
 	where
 		ctrls = labelCtrl ++ itemCtrl ++ iconCtrl 
 
 		noLabel = isEmpty labelCtrl
 		labelCtrl = fromControl labelDef
-		itemCtrl = if (labelsUsed && noLabel) (map (setLeftMargin LABEL_WIDTH) (fromControl itemDef)) (fromControl itemDef)
+		itemCtrl = if (labelsUsed && noLabel) (map id /*(setLeftMargin LABEL_WIDTH)*/ (fromControl itemDef)) (fromControl itemDef)
 		iconCtrl = fromControl iconDef
 
-		fromControl (UIControl c) 	= [c]
+		fromControl (UIControl c) 	= [UIControl c]
 		//fromControl (UIEmpty c) 	= [c]
 		fromControl _ 			 	= []
 
@@ -208,19 +208,19 @@ mapLst f [x] = [f True x]
 mapLst f [x:xs] = [f False x: mapLst f xs]
 
 buttonBar :: UIDef 
-buttonBar = (/* wrapHeight o */ setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight o setBaseCls "buttonbar") (defaultPanel [])
+buttonBar = (wrapHeight o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight o setBaseCls "buttonbar") (defaultPanel [])
 
-labelControl :: Bool UIAttributes -> Maybe UIControl
+labelControl :: Bool UIAttributes -> Maybe UIDef
 labelControl optional attributes 
-	= fmap (\l -> setWidth (ExactSize LABEL_WIDTH) (stringDisplay (formatLabel optional l))) ('DM'.get LABEL_ATTRIBUTE attributes)
+	= fmap (\l -> setWidth (ExactSize LABEL_WIDTH) (UIControl (stringDisplay (formatLabel optional l)))) ('DM'.get LABEL_ATTRIBUTE attributes)
 
-infoControl :: UIAttributes -> Maybe UIControl
+infoControl :: UIAttributes -> Maybe UIDef
 infoControl attributes
 	= case ('DM'.get HINT_TYPE_ATTRIBUTE attributes,'DM'.get HINT_ATTRIBUTE attributes) of
 		(Just type, Just hint) 	= Just (icon type hint)
 		_ 						= Nothing
 where
-	icon type tooltip = setLeftMargin 5 (UIIcon defaultFSizeOpts {UIIconOpts|iconCls = "icon-" +++ type, tooltip = Just tooltip})
+	icon type tooltip = setLeftMargin 5 (UIControl (UIIcon defaultFSizeOpts {UIIconOpts|iconCls = "icon-" +++ type, tooltip = Just tooltip}))
 
 formatLabel :: Bool String -> String
 formatLabel optional label

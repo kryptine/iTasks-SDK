@@ -53,8 +53,8 @@ instance descr (!String, !String)			//Title attribute + instruction
 // OBSOLETE
 // OBSOLETE
 
-:: UIBlocksCombinator   :== [UIBlock] [UIAction] -> UIBlock
-autoLayoutBlocks        :: [UIBlock] [UIAction] -> UIBlock
+//:: UIBlocksCombinator   :== [UIBlock] [UIAction] -> UIBlock
+//autoLayoutBlocks        :: [UIBlock] [UIAction] -> UIBlock
 
 :: SetValueAttribute a = SetValueAttribute !String (a -> String)
 
@@ -70,72 +70,68 @@ InModalDialog           :== ToWindow ModalDialog AlignMiddle AlignCenter
 :: InContainer      = InContainer       //Indicate that a task should be wrapped in a panel
 :: FullScreen       = FullScreen        //Indicate that the full screen space should be used during final layout
 
-instance tune ToWindow
-instance tune InPanel
-instance tune InContainer
+//instance tune ToWindow
+//instance tune InPanel
+//instance tune InContainer
 instance tune FullScreen
 
 //Attribute tuning types
 instance tune Title
-instance tune Label
-instance tune Icon
-instance tune Attribute
+//instance tune Label
+//instance tune Icon
+//instance tune Attribute
 
 :: NoUserInterface  = NoUserInterface   //Don't create a user interface for this task
 instance tune NoUserInterface
 
-:: ForceLayout = ForceLayout            //Force layout ofo accumulated user interface parts so far
-instance tune ForceLayout
+//:: ForceLayout = ForceLayout            //Force layout ofo accumulated user interface parts so far
+//instance tune ForceLayout
 
 //Alternative block combinators and their layout tuning types
-:: ArrangeVertical = ArrangeVertical
-instance tune ArrangeVertical
-arrangeVertical         ::                      UIBlocksCombinator
+//:: ArrangeVertical = ArrangeVertical
+//instance tune ArrangeVertical
+//arrangeVertical         ::                      UIBlocksCombinator
 
-:: ArrangeHorizontal = ArrangeHorizontal
-instance tune ArrangeHorizontal
-arrangeHorizontal       ::                      UIBlocksCombinator
+//:: ArrangeHorizontal = ArrangeHorizontal
+//instance tune ArrangeHorizontal
+//arrangeHorizontal       ::                      UIBlocksCombinator
 
-:: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool
-instance tune ArrangeWithSideBar
+//:: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool
+//instance tune ArrangeWithSideBar
 /*
 * @param Index of the task in the set that should be put in the sidebar
 * @param Location of the sidebar
 * @param Initial size of the sidebar
 * @param Enable resize?
 */
-arrangeWithSideBar      :: !Int !UISide !Int !Bool -> UIBlocksCombinator
+//arrangeWithSideBar      :: !Int !UISide !Int !Bool -> UIBlocksCombinator
 
 /*
 * @param Direction to split the available space in
 * @param Enable resize?
 */
-:: ArrangeSplit = ArrangeSplit !UIDirection !Bool
-instance tune ArrangeSplit
-arrangeSplit            :: !UIDirection !Bool -> UIBlocksCombinator
+//:: ArrangeSplit = ArrangeSplit !UIDirection !Bool
+//instance tune ArrangeSplit
+//arrangeSplit            :: !UIDirection !Bool -> UIBlocksCombinator
 
-:: ArrangeCustom = ArrangeCustom UIBlocksCombinator
-instance tune ArrangeCustom
+//:: ArrangeCustom = ArrangeCustom UIBlocksCombinator
+//instance tune ArrangeCustom
 
-blockToControl      :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-blockToContainer    :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-blockToPanel        :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+//blockToControl      :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+//blockToContainer    :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
+//blockToPanel        :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
 
 //Combinators on interface definitions
-hjoin :: ![UIControl] -> UIControl
-vjoin :: ![UIControl] -> UIControl
+hjoin :: ![UIDef] -> UIDef
+vjoin :: ![UIDef] -> UIDef
 
 //Operations on containers
 addItemToUI		:: (Maybe Int) UIControl UIControl -> UIControl
 getItemsOfUI	:: UIControl -> [UIControl]
 setItemsOfUI	:: [UIControl] UIControl -> UIControl
 
-//Coercion between different types of containers
-toPanel			:: !UIControl -> UIControl
-toContainer		:: !UIControl -> UIControl
-
 //Predefined panels
-buttonPanel		:: ![UIControl]	-> UIControl	//Container for a set of horizontally layed out buttons
+//buttonPanel		:: ![UIControl]	-> UIControl	//Container for a set of horizontally layed out buttons
 
 mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
 
@@ -148,5 +144,5 @@ tweakUI			:: (UIControl -> UIControl) UIDef -> UIDef
 tweakAttr		:: (UIAttributes -> UIAttributes) UIDef -> UIDef 
 tweakControls	:: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDef -> UIDef
 
-decorateControls    :: [(UIControl,UIAttributes)] -> [UIControl]
-decorateControl     :: Bool (!UIControl,!UIAttributes) -> UIControl
+//decorateControls    :: [(UIControl,UIAttributes)] -> [UIControl]
+//decorateControl     :: Bool (!UIControl,!UIAttributes) -> UIControl

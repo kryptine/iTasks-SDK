@@ -235,6 +235,7 @@ getChildren (UICompoundContent children) = children
 getChildren (UIInteract children) = children
 getChildren (UIStep children) = children
 getChildren (UIParallel children) = children
+getChildren (UIContainer _ _ children) = children
 getChildren (UIPanel _ _ _ children) = children
 getChildren (UITabSet _ _ children) = children
 getChildren (UITab _ _ children) = children
@@ -246,6 +247,7 @@ setChildren children (UIInteract _) = UIInteract children
 setChildren children (UIForm _) = UIForm children
 setChildren children (UIStep _) = UIStep children
 setChildren children (UIParallel _) = UIParallel children
+setChildren children (UIContainer sOpts cOpts _) = UIContainer sOpts cOpts children
 setChildren children (UIPanel sOpts cOpts pOpts _) = UIPanel sOpts cOpts pOpts children
 setChildren children (UITabSet sOpts tOpts _) = UITabSet sOpts tOpts children
 setChildren children (UITab cOpts tOpts _) = UITab cOpts tOpts children
@@ -423,7 +425,7 @@ mapLst :: (Bool a -> b) [a] -> [b]
 mapLst f [] = []
 mapLst f [x] = [f True x]
 mapLst f [x:xs] = [f False x: mapLst f xs]
-
+/*
 //Add labels and icons to a set of controls if they have any of those attributes set
 decorateControls :: [(UIControl,UIAttributes)] -> [UIControl]
 decorateControls  controls = mapLst decorateControl controls
@@ -431,7 +433,8 @@ where
 	mapLst f [] = []
 	mapLst f [x] = [f True x]
 	mapLst f [x:xs] = [f False x: mapLst f xs]
-
+*/
+/*
 decorateControl :: Bool (!UIControl,!UIAttributes) -> UIControl
 decorateControl last (control,attributes)
 	# mbLabel 		= 'DM'.get LABEL_ATTRIBUTE attributes
@@ -480,57 +483,59 @@ where
 	noMarginControl	(UIGrid _ _ _)			= True
 	noMarginControl	(UITree _ _ _)			= True
 	noMarginControl _						= False
-
+*/
+/*
 autoLayoutBlocks :: [UIBlock] [UIAction] -> UIBlock
 autoLayoutBlocks blocks actions = arrangeVertical blocks actions
+*/
 
 instance tune ToWindow
 where
-	tune (ToWindow windowType vpos hpos) t = tune (ApplyLayout layout) t
+	tune (ToWindow windowType vpos hpos) t = t//tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui,()) = (ReplaceUI (uiDefToWindow windowType vpos hpos ui),())
+		//layout (ReplaceUI ui,()) = (ReplaceUI (uiDefToWindow windowType vpos hpos ui),())
 		layout (change,s) = (change,s)
 
 instance tune InPanel
 where
-	tune InPanel t = tune (ApplyLayout layout) t
+	tune InPanel t = t//tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute CONTAINER_ATTRIBUTE "panel" (forceLayout ui)),())
+		//layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute CONTAINER_ATTRIBUTE "panel" ui),())
 		layout (change,s) = (change,s)
 
 instance tune InContainer
 where
-	tune InContainer t = tune (ApplyLayout layout ) t
+	tune InContainer t = t //tune (ApplyLayout layout ) t
 	where
-		layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute CONTAINER_ATTRIBUTE "container" (forceLayout ui)),())
+	//	layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute CONTAINER_ATTRIBUTE "container" ui),())
 		layout (change,s) = (change,s)
 
 instance tune FullScreen
 where 
-	tune FullScreen t = tune (ApplyLayout layout) t
+	tune FullScreen t = t //tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute SCREEN_ATTRIBUTE "full" (forceLayout ui)),())
+	//	layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute SCREEN_ATTRIBUTE "full" ui),())
 		layout (change,s) = (change,s)
 
 instance tune Title
 where
-	tune (Title title) t = tune (ApplyLayout layout) t
+	tune (Title title) t = t //tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute TITLE_ATTRIBUTE title (forceLayout ui)),())
+		//layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute TITLE_ATTRIBUTE title ui),())
 		layout (change,s) = (change,s)
 	
 instance tune Icon
 where
-	tune (Icon icon) t = tune (ApplyLayout layout) t
+	tune (Icon icon) t = t //tune (ApplyLayout layout) t
 	where
-		layout ((ReplaceUI ui),()) = (ReplaceUI (uiDefSetAttribute ICON_ATTRIBUTE icon (forceLayout ui)),())
+		//layout ((ReplaceUI ui),()) = (ReplaceUI (uiDefSetAttribute ICON_ATTRIBUTE icon ui),())
 		layout (change,s) = (change,s)
 
 instance tune Attribute
 where
-	tune (Attribute k v) t = tune (ApplyLayout layout) t
+	tune (Attribute k v) t = t// tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute k v (forceLayout ui)),())
+//		layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute k v ui),())
 		layout (change,s) = (change,s)
 
 instance tune Label
@@ -547,24 +552,20 @@ where
     where
 	    eval` event repOpts state iworld = eval event {repOpts & noUI = True} state iworld
 
-instance tune ForceLayout
-where
-    tune ForceLayout t = tune (ApplyLayout layout ) t
-	where
-		layout (ReplaceUI ui,()) = (ReplaceUI (forceLayout ui),())
-		layout (change,s) = (change,s)
-
+/*
 forceLayout :: UIDef -> UIDef
 //forceLayout (UIForm form)              = UIBlock (autoLayoutForm form)
 //forceLayout (UIBlocks blocks actions)  = UIBlock (autoLayoutBlocks blocks actions)
 forceLayout def                        = def
-
+*/
+/*
 arrangeBlocks :: ([UIBlock] [UIAction] -> UIBlock) UIDef -> UIDef
 //arrangeBlocks f (UIForm form) 				= UIBlock (f [autoLayoutForm form] [])
 //arrangeBlocks f (UIBlock block)           	= UIBlock (f [block] [])
 //arrangeBlocks f (UIBlocks blocks actions) 	= UIBlock (f blocks actions)
 arrangeBlocks f def                         = def
-
+*/
+/*
 instance tune ArrangeVertical
 where
     tune ArrangeVertical t = tune (ApplyLayout layout) t
@@ -574,7 +575,9 @@ where
 
 arrangeVertical :: UIBlocksCombinator
 arrangeVertical = arrangeStacked Vertical
+*/
 
+/*
 instance tune ArrangeHorizontal
 where
     tune ArrangeHorizontal t = tune (ApplyLayout layout) t
@@ -584,7 +587,9 @@ where
 
 arrangeHorizontal :: UIBlocksCombinator
 arrangeHorizontal = arrangeStacked Horizontal
+*/
 
+/*
 arrangeStacked :: UIDirection [UIBlock] [UIAction] -> UIBlock
 arrangeStacked direction blocks actions
     = foldl append {UIBlock|attributes='DM'.newMap,content={UIItemsOpts|defaultItemsOpts [] & direction=direction},hotkeys=[],size=defaultSizeOpts} blocks
@@ -595,6 +600,7 @@ where
                        , hotkeys = ui1.UIBlock.hotkeys ++ hotkeys
                        , attributes = mergeAttributes ui1.UIBlock.attributes attributes
                        }
+*/
 
 /*
 arrangeWithTabs :: UIBlocksCombinator
@@ -621,13 +627,15 @@ where
 			(Just _,Nothing)	= True
 			_					= False
 */
+/*
 instance tune ArrangeWithSideBar
 where
     tune (ArrangeWithSideBar index side size resize) t = tune (ApplyLayout layout) t
 	where
 		layout (ReplaceUI ui,()) = (ReplaceUI (arrangeBlocks (arrangeWithSideBar index side size resize) ui),())
 		layout (change,s) = (change,s)
-
+*/
+/*
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> UIBlocksCombinator
 arrangeWithSideBar index side size resize = arrange
 where
@@ -649,14 +657,16 @@ where
                   ,hotkeys = restHK ++ sideHK
                   ,size = defaultSizeOpts
                   }
-
+*/
+/*
 instance tune ArrangeSplit
 where
     tune (ArrangeSplit direction resize) t = tune (ApplyLayout layout) t
 	where
 		layout (ReplaceUI ui,()) = (ReplaceUI (arrangeBlocks (arrangeSplit direction resize) ui),())
 		layout (change,s) = (change,s)
-
+*/
+/*
 arrangeSplit :: !UIDirection !Bool -> UIBlocksCombinator
 arrangeSplit direction resize = arrange
 where
@@ -671,21 +681,24 @@ where
                   ,hotkeys = flatten bhotkeys
                   ,size = defaultSizeOpts
                   }
-
+*/
+/*
 instance tune ArrangeCustom
 where
     tune (ArrangeCustom f) t = tune (ApplyLayout layout) t
 	where
 		layout (ReplaceUI ui,()) = (ReplaceUI (arrangeBlocks f ui),())
 		layout (change,s) = (change,s)
-
+*/
+/*
 blockToControl :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
 blockToControl ui=:{UIBlock|attributes}
     = case ('DM'.get CONTAINER_ATTRIBUTE attributes) of
 		(Just "panel")		= blockToPanel ui
 		(Just "container")	= blockToContainer ui
         _                   = if (isNothing ('DM'.get TITLE_ATTRIBUTE attributes)) (blockToContainer ui) (blockToPanel ui)
-
+*/
+/*
 blockToContainer :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
 blockToContainer {UIBlock|content=content=:{UIItemsOpts|items,direction},attributes,size}
 	# actions = []
@@ -695,7 +708,8 @@ blockToContainer {UIBlock|content=content=:{UIItemsOpts|items,direction},attribu
     = (UIContainer sizeOpts {UIItemsOpts|content & items=items,direction=direction},attributes,actions,hotkeys)
 where
 	sizeOpts		= {UISizeOpts|size & width = Just FlexSize}
-
+*/
+/*
 blockToPanel :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
 blockToPanel {UIBlock|content=content=:{UIItemsOpts|items,direction},attributes,size}
 	# actions = []
@@ -709,7 +723,7 @@ where
 	title		= 'DM'.get TITLE_ATTRIBUTE attributes	
 	iconCls		= fmap (\icon -> "icon-" +++ icon) ('DM'.get ICON_ATTRIBUTE attributes)
     attributes` = ('DM'.del TITLE_ATTRIBUTE o 'DM'.del ICON_ATTRIBUTE) attributes
-
+*/
 /*
 blockToTab :: UIBlock -> UITab
 blockToTab {UIBlock|content=content=:{UIItemsOpts|items,direction},attributes,size}
@@ -731,19 +745,8 @@ where
 	title       = fromMaybe "Untitled" ('DM'.get TITLE_ATTRIBUTE attributes)
     iconCls     = fmap (\i -> "icon-" +++ i) ('DM'.get ICON_ATTRIBUTE attributes)
 */
-uiDefToWindow :: UIWindowType UIVAlign UIHAlign UIDef -> UIDef
-uiDefToWindow windowType vpos hpos (UILayers [main:layers])
-	= case uiDefToWindow windowType vpos hpos main of
-		(UILayers mainlayers) 	= UILayers (mainlayers++layers)
-		main 					= UILayers [main:layers]
-//uiDefToWindow windowType vpos hpos (UIForm form)
-//	= UILayers [UIEmpty, UIWindow (blockToWindow windowType vpos hpos (autoLayoutForm form))]
-//uiDefToWindow windowType vpos hpos (UIBlock block)
- //   = UILayers [UIEmpty, UIWindow (blockToWindow windowType vpos hpos block)]
-uiDefToWindow windowType vpos hpos (UIBlocks blocks actions)
-    = UILayers [UIEmpty, UIWindow (blockToWindow windowType vpos hpos (autoLayoutBlocks blocks actions))]
-uiDefToWindow windowType vpos hpos def = def
 
+/*
 blockToWindow :: UIWindowType UIVAlign UIHAlign UIBlock -> UIWindow
 blockToWindow windowType vpos hpos {UIBlock|content=content=:{UIItemsOpts|items,direction},attributes,size}
 	# actions = []
@@ -758,22 +761,23 @@ blockToWindow windowType vpos hpos {UIBlock|content=content=:{UIItemsOpts|items,
 where
 	sizeOpts	= {UISizeOpts|size & width = Just (fromMaybe WrapSize size.UISizeOpts.width), height = Just (fromMaybe WrapSize size.UISizeOpts.height)}
 	windowOpts hotkeys menus close
-        = {UIWindowOpts|windowType = windowType, title = title, menu = if (isEmpty menus) Nothing (Just menus), closeTaskId = close, focusTaskId = Nothing
-                      ,hotkeys = if (isEmpty hotkeys) Nothing (Just hotkeys), vpos = Just vpos, hpos = Just hpos, iconCls = iconCls}
+        = {UIWindowOpts|windowType = windowType, title = title, closeTaskId = close, focusTaskId = Nothing
+                      ,vpos = Just vpos, hpos = Just hpos, iconCls = iconCls}
 	
     title		= 'DM'.get TITLE_ATTRIBUTE attributes	
     iconCls		= fmap (\icon -> "icon-" +++ icon) ('DM'.get ICON_ATTRIBUTE attributes)
-
+*/
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
-createPrompt :: String -> UIControl
-createPrompt hint = UIContainer sizeOpts (itemsOpts hint)
+createPrompt :: String -> UIDef
+createPrompt hint = UIContainer sizeOpts containerOpts [UIControl (stringDisplay hint)]
 where
 	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 5, bottom = 10, left = 5}
 			   , width = Just FlexSize, minWidth = Just WrapBound, height = Just WrapSize}
-    itemsOpts hint = {UIItemsOpts|defaultItemsOpts [stringDisplay hint] & baseCls=Just "itwc-prompt"}
+    containerOpts = {UIContainerOpts|defaultContainerOpts & baseCls=Just "itwc-prompt"}
 
 //Adds a button panel to a set of controls
 //(not the prettiest code)
+/*
 addButtonPanel :: UIAttributes UIDirection [UIControl] [UIControl] -> (![UIControl],!UIDirection)
 addButtonPanel attr direction [] items = (items,direction)
 addButtonPanel attr direction buttons items
@@ -788,24 +792,21 @@ addButtonPanel attr direction buttons items
 		(Just "top",Horizontal)		= ([fillWidth (buttonPanel buttons),setDirection Horizontal (defaultContainer items)],Vertical)
 		(Just "bottom",Vertical)	= (items ++ [fillWidth (buttonPanel buttons)],Vertical)
 		(Just "bottom",Horizontal)	= ([setDirection Horizontal (defaultContainer items),fillWidth (buttonPanel buttons)],Vertical)
-
+*/
 addTriggersToUIDef :: [(Trigger,String,String)] UIDef -> UIDef
 //addTriggersToUIDef triggers (UIForm stack=:{UIForm|controls})
 //    = UIForm {UIForm|stack & controls = [(addTriggersToControl triggers c,m)\\ (c,m) <- controls]}
 //addTriggersToUIDef triggers (UIBlock subui)
     //= UIBlock (addTriggersToBlock triggers subui)
-addTriggersToUIDef triggers (UIBlocks blocks actions)
-    = UIBlocks (map (addTriggersToBlock triggers) blocks) []
+//addTriggersToUIDef triggers (UIBlocks blocks actions)
+ //   = UIBlocks (map (addTriggersToBlock triggers) blocks) []
 addTriggersToUIDef triggers def = def
 
-addTriggersToBlock :: [(Trigger,String,String)] UIBlock -> UIBlock
-addTriggersToBlock triggers ui=:{UIBlock|content=content=:{UIItemsOpts|items}}
-    = {UIBlock|ui & content = {UIItemsOpts|content & items = map (addTriggersToControl triggers) items}}
 
 addTriggersToControl :: [(Trigger,String,String)] UIControl -> UIControl
 //Recursive cases
-addTriggersToControl triggers (UIContainer sOpts iOpts=:{UIItemsOpts|items})
-    = UIContainer sOpts {UIItemsOpts|iOpts & items = map (addTriggersToControl triggers) items}
+//addTriggersToControl triggers (UIContainer sOpts iOpts=:{UIItemsOpts|items})
+ //   = UIContainer sOpts {UIItemsOpts|iOpts & items = map (addTriggersToControl triggers) items}
 //addTriggersToControl triggers (UIPanel sOpts iOpts=:{UIItemsOpts|items} opts)
     //= UIPanel sOpts {UIItemsOpts|iOpts & items = map (addTriggersToControl triggers) items} opts
 //addTriggersToControl triggers (UITabSet sOpts tOpts=:{UITabSetOpts|items})
@@ -814,40 +815,21 @@ addTriggersToControl triggers (UIContainer sOpts iOpts=:{UIItemsOpts|items})
 addTriggersToControl triggers control = foldr addTriggerToControl control triggers
 
 addTriggerToControl :: (Trigger,String,String) UIControl -> UIControl
-addTriggerToControl (DoubleClick,taskId,actionId) (UIGrid sOpts cOpts opts) = UIGrid sOpts cOpts {UIGridOpts|opts & doubleClickAction = Just (taskId,actionId)}
-addTriggerToControl (DoubleClick,taskId,actionId) (UITree sOpts cOpts opts) = UITree sOpts cOpts {UITreeOpts|opts & doubleClickAction = Just (taskId,actionId)}
+//addTriggerToControl (DoubleClick,taskId,actionId) (UIGrid sOpts cOpts opts) = UIGrid sOpts cOpts {UIGridOpts|opts & doubleClickAction = Just (taskId,actionId)}
+//addTriggerToControl (DoubleClick,taskId,actionId) (UITree sOpts cOpts opts) = UITree sOpts cOpts {UITreeOpts|opts & doubleClickAction = Just (taskId,actionId)}
 addTriggerToControl t c = c
 
-//Container coercion
-toPanel	:: !UIControl -> UIControl
-//Panels are left untouched
-//toPanel ctrl=:(UIPanel _ _ _)		= ctrl
-//Containers are coerced to panels
-//toPanel ctrl=:(UIContainer sOpts iOpts)
-	//= UIPanel sOpts iOpts {UIPanelOpts|title=Nothing,frame=False,hotkeys=Nothing,iconCls=Nothing}
-//Uncoercable items are wrapped in a panel instead
-toPanel ctrl = defaultContainer [ctrl]
-
-toContainer :: !UIControl -> UIControl
-//Containers are left untouched
-toContainer ctrl=:(UIContainer _ _) = ctrl
-//Panels can be coerced to containers
-//toContainer ctrl=:(UIPanel sOpts iOpts _)
-	//= UIContainer sOpts iOpts
-//Uncoercable items are wrapped in a container instead
-toContainer ctrl = defaultContainer [ctrl]
-	
 //GUI combinators						
-hjoin :: ![UIControl] -> UIControl
-hjoin items = UIContainer defaultSizeOpts {UIItemsOpts|defaultItemsOpts items & direction = Horizontal, halign = AlignLeft, valign = AlignMiddle}
+hjoin :: ![UIDef] -> UIDef
+hjoin items = UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Horizontal, halign = AlignLeft, valign = AlignMiddle} items 
 
-vjoin :: ![UIControl] -> UIControl
-vjoin items = UIContainer defaultSizeOpts {UIItemsOpts|defaultItemsOpts items & direction = Vertical, halign = AlignLeft, valign = AlignTop}
+vjoin :: ![UIDef] -> UIDef
+vjoin items = UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Vertical, halign = AlignLeft, valign = AlignTop} items
 						
 //Container operations
 addItemToUI :: (Maybe Int) UIControl UIControl -> UIControl
 addItemToUI mbIndex item ctrl = case ctrl of
-	UIContainer sOpts iOpts=:{UIItemsOpts|items}    = UIContainer sOpts {UIItemsOpts|iOpts & items = add mbIndex item items}
+//	UIContainer sOpts iOpts=:{UIItemsOpts|items}    = UIContainer sOpts {UIItemsOpts|iOpts & items = add mbIndex item items}
 //	UIPanel sOpts iOpts=:{UIItemsOpts|items} opts	= UIPanel sOpts {UIItemsOpts|iOpts & items = add mbIndex item items} opts
 	_												= ctrl
 where
@@ -855,19 +837,19 @@ where
 	add (Just pos) item items	= take pos items ++ [item] ++ drop pos items
 	
 getItemsOfUI :: UIControl -> [UIControl]
-getItemsOfUI (UIContainer _ {UIItemsOpts|items})	= items
+//getItemsOfUI (UIContainer _ {UIItemsOpts|items})	= items
 //getItemsOfUI (UIPanel _ {UIItemsOpts|items} _)		= items
 getItemsOfUI ctrl									= [ctrl]
 	
 setItemsOfUI :: [UIControl] UIControl -> UIControl
-setItemsOfUI items (UIContainer sOpts iOpts)	    = UIContainer sOpts {UIItemsOpts|iOpts & items = items}
+//setItemsOfUI items (UIContainer sOpts iOpts)	    = UIContainer sOpts {UIItemsOpts|iOpts & items = items}
 //setItemsOfUI items (UIPanel sOpts iOpts opts)		= UIPanel sOpts {UIItemsOpts|iOpts & items = items} opts
 setItemsOfUI items ctrl								= ctrl
 
 //Container for a set of horizontally layed out buttons
-buttonPanel	:: ![UIControl] -> UIControl	
-buttonPanel buttons
-	= (wrapHeight o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight) (setBaseCls "buttonbar" (defaultContainer buttons))
+//buttonPanel	:: ![UIControl] -> UIControl	
+//buttonPanel buttons
+//	= (wrapHeight o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight) (setBaseCls "buttonbar" (defaultContainer buttons))
 
 actionsToButtons :: ![UIAction] -> (![UIControl],![UIKeyAction],![UIAction])
 actionsToButtons [] = ([],[],[])
@@ -1000,10 +982,12 @@ hasContainerContainerAttr attributes = maybe False ((==) "container") ('DM'.get 
 hasContainerAttr :: UIAttributes -> Bool
 hasContainerAttr attributes = isJust ('DM'.get CONTAINER_ATTRIBUTE attributes) 
 
+/*
 singleControl :: UIDef -> Bool
 singleControl  def = case uiDefControls def of
 	[_]	= True
 	_	= False
+*/
 
 mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
 mergeAttributes attr1 attr2

@@ -15,12 +15,9 @@
 , .itwc-raw-parallel
 , .itwc-raw-interact
 , .itwc-raw-step
-, .itwc-raw-window
-, .itwc-raw-layers
 , .itwc-raw-form
 , .itwc-raw-form-item
-, .itwc-raw-block
-, .itwc-raw-blocks {
+, .itwc-raw-block {
   border: dashed 2px #ccc;
   padding: 5px 5px 5px 10px; }
 

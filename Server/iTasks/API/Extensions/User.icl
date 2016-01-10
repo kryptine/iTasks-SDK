@@ -75,10 +75,10 @@ where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
 			# val = checkMask mask val
-			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val}), vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIControl (UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val})), vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(Username v) -> v) val)
-			= (UIEditor {UIEditor|optional=False,attributes=stdAttributes typeDesc optional mask} (UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}) ,vst)
+			= (UIEditor {UIEditor|optional=False,attributes=stdAttributes typeDesc optional mask} (UIControl (UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value})) ,vst)
 	genDiff dp (Username old) om (Username new) nm vst=:{VSt|optional,disabled}
 		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
@@ -116,10 +116,10 @@ where
 
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
-			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"}), vst)
+			= (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (UIControl (UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"})), vst)
 		| otherwise	
 			# value = checkMaskValue mask ((\(Password v) -> v) val)
-			= (UIEditor {UIEditor|optional=False,attributes=stdAttributes typeDesc optional mask} (UIEditPassword defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value}) ,vst)
+			= (UIEditor {UIEditor|optional=False,attributes=stdAttributes typeDesc optional mask} (UIControl (UIEditPassword defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value})) ,vst)
 	genDiff dp (Password old) om (Password new) nm vst=:{VSt|optional,disabled}
 		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 

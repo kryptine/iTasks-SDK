@@ -22,11 +22,11 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 //Provide generic instances for all UI definitions
-derive class iTask UIDef, UIWindow, UIBlock, UIAction, UIEditor, UIControl
+derive class iTask UIDef, UIAction, UIEditor, UIControl
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
-derive class iTask UIWindowOpts, UIItemsOpts, UIContainerOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
+derive class iTask UIWindowOpts, UIContainerOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
-derive class iTask UIPanelOpts, UITabSetOpts, UIFieldSetOpts, UIEditletOpts, UITaskletOpts, UIIconOpts, UILabelOpts
+derive class iTask UIPanelOpts, UITabSetOpts, UIEditletOpts, UITaskletOpts, UIIconOpts, UILabelOpts
 derive class iTask UIHSizeOpts, UIFSizeOpts, UIButtonOpts, UIMenuButtonOpts, UITreeNode, UIMenuItem
 
 instance Functor UIViewOpts
@@ -41,85 +41,30 @@ instance Functor UIViewOpts
 *
 * The UIDef type has contstructors for the various types of partial UI definitions.
 */
+:: UI = UINode UIAttributes [UI]
 
 :: UIDef
     = UIEmpty
 	//Constructors for editors
-	| UIEditor 			!UIEditor !UIControl 
+	| UIEditor 			!UIEditor !UIDef
 	| UICompoundEditor 	!UIEditor ![UIDef]
-	//Intermediate containers for combinators
+	| UIAction 			!UIAction
+	//Intermediate containers
+    | UIForm    		![UIDef]
+	| UIFormItem		!UIDef !UIDef !UIDef //Label, widget, feedback (usually an icon)
 	| UIInteract        ![UIDef]
 	| UIStep            ![UIDef]
 	| UIParallel        ![UIDef]
-	| UIAction 			!UIAction
-	//Final container
+    | UIBlock   		!UISizeOpts !UIContainerOpts ![UIDef] 
+	//Final containers
+    | UIContainer       !UISizeOpts !UIContainerOpts ![UIDef] 
 	| UIPanel 			!UISizeOpts !UIContainerOpts !UIPanelOpts ![UIDef]
 	| UITabSet			!UISizeOpts !UITabSetOpts ![UIDef]
 	| UITab                         !UIContainerOpts !UITabOpts ![UIDef]
-	| UIWindow 			!UIWindow
-	//Constructors for z-axis stacking
-	| UILayers 			![UIDef]
-	//Contructors for intermediate structures
+	| UIWindow 			!UISizeOpts !UIContainerOpts !UIWindowOpts ![UIDef]
+	//Constructors for intermediate structures
 	| UICompoundContent ![UIDef]
-    | UIForm    		![UIDef]
-	| UIFormItem		!UIDef !UIDef !UIDef //Label, widget, feedback (usually an icon)
-    | UIBlock   		!UISizeOpts !UIContainerOpts ![UIDef] //An abstract container. It is still undecided if the content will be put in a panel, a window, a tab or something else
-	| UIControl !UIControl 	//A Single control
-	//OBSOLETE
-    | UIBlocks  ![UIBlock] ![UIAction]  //A set of aggregated blocks that have not yet been arranged
-
-::UIEditor = 
-	{ optional		:: Bool
-	, attributes	:: UIAttributes
-	}
-:: UIBlock =
-	{ attributes	:: UIAttributes
-	, content       :: UIItemsOpts
-    , size          :: UISizeOpts
-	, hotkeys		:: [UIKeyAction]
-	}
-
-:: UIAttributes 		:== Map String String
-:: UIActions			:== [UIAction]
-
-:: UIAction	=
-	{ taskId	:: !String
-	, action	:: !Action
-	, enabled	:: !Bool
-	}
-
-// Basic panels (containers with decoration like a title header, icon and frame)
-:: UIPanelOpts =
-	{ title			:: !Maybe String
-	, frame			:: !Bool
-	, hotkeys		:: !Maybe [UIKeyAction]
-	, iconCls		:: !Maybe String
-	}
-
-// Floating window
-:: UIWindow =
-	{ sizeOpts 		:: !UISizeOpts
-	, itemsOpts 	:: !UIItemsOpts
-	, windowOpts	:: !UIWindowOpts
-	}
-	
-:: UIWindowOpts =
-	{ windowType    :: !UIWindowType
-    , title			:: !Maybe String
-	, iconCls		:: !Maybe String
-	, menu			:: !Maybe [UIControl]
-	, hotkeys		:: !Maybe [UIKeyAction]
-    , vpos          :: !Maybe UIVAlign
-    , hpos          :: !Maybe UIHAlign
-	, focusTaskId	:: !Maybe String
-	, closeTaskId	:: !Maybe String
-	}
-
-:: UIWindowType
-    = FloatingWindow        //Normal movable window
-    | ModalDialog           //Fixed position modal dialog
-    | NotificationBubble    //Fixed position info
-
+	| UIControl 		!UIControl 	//A Single control
 
 :: UIControl
 	// Components for viewing data:
@@ -160,9 +105,46 @@ instance Functor UIViewOpts
 	| UITasklet			!UISizeOpts     !UITaskletOpts								    // - Tasklet (custom clientside interaction)
 	| UIEditlet			!UISizeOpts	    !UIEditletOpts								    // - Editlet (custom clientside editor)
 	// Container components for composition:
-	| UIContainer		!UISizeOpts     !UIItemsOpts 				                    // - Container (lightweight wrapper to compose components)
-	| UIFieldSet		!UISizeOpts     !UIItemsOpts !UIFieldSetOpts				    // - Fieldset (wrapper with a simple border and title)
     | UIEmbedding       !UISizeOpts     !UIEmbeddingOpts                                // - Embedding of a related task gui (like an iframe for tasks)
+
+
+:: UIEditor = 
+	{ optional		:: Bool
+	, attributes	:: UIAttributes
+	}
+
+:: UIAttributes 		:== Map String String
+:: UIActions			:== [UIAction]
+
+:: UIAction	=
+	{ taskId	:: !String
+	, action	:: !Action
+	, enabled	:: !Bool
+	}
+
+// Basic panels (containers with decoration like a title header, icon and frame)
+:: UIPanelOpts =
+	{ title			:: !Maybe String
+	, frame			:: !Bool
+	, hotkeys		:: !Maybe [UIKeyAction]
+	, iconCls		:: !Maybe String
+	}
+
+// Floating window
+:: UIWindowOpts =
+	{ windowType    :: !UIWindowType
+    , title			:: !Maybe String
+	, iconCls		:: !Maybe String
+    , vpos          :: !Maybe UIVAlign
+    , hpos          :: !Maybe UIHAlign
+	, focusTaskId	:: !Maybe String
+	, closeTaskId	:: !Maybe String
+	}
+
+:: UIWindowType
+    = FloatingWindow        //Normal movable window
+    | ModalDialog           //Fixed position modal dialog
+    | NotificationBubble    //Fixed position info
 
 //Most components can be resized in two dimensions
 :: UISizeOpts =
@@ -195,16 +177,6 @@ instance Functor UIViewOpts
 	= ExactBound !Int
 	| WrapBound
 	
-:: UIItemsOpts =
-	{ items		:: ![UIControl]
-	, direction	:: !UIDirection
-	, halign	:: !UIHAlign
-	, valign	:: !UIVAlign
-	, padding	:: !Maybe UISideSizes
-	, baseCls	:: !Maybe String
-	, bodyCls	:: !Maybe String
-	}
-
 :: UIContainerOpts =
 	{ direction	:: !UIDirection
 	, halign	:: !UIHAlign
@@ -343,18 +315,14 @@ instance Functor UIViewOpts
 	, appDiff		:: !String
 	}
 
-:: UIFieldSetOpts =
-	{ title			:: !Maybe String
-	}
-
-:: UITabSetOpts =
-	{ activeTab	:: Int
-	}
-
 :: UIEmbeddingOpts =
     { instanceNo  :: !Int
     , instanceKey :: !String
     }
+
+:: UITabSetOpts =
+	{ activeTab	:: Int
+	}
 
 :: UITabOpts =
 	{ title			:: !String
@@ -364,85 +332,58 @@ instance Functor UIViewOpts
 	}
 
 //Modifier functions
-setSize         :: !UISize !UISize          !UIControl -> UIControl
-setWidth		:: !UISize					!UIControl -> UIControl
-setHeight		:: !UISize					!UIControl -> UIControl
-setMinSize		:: !UIBound !UIBound	    !UIControl -> UIControl
-setMinWidth		:: !UIBound				    !UIControl -> UIControl
-setMinHeight	:: !UIBound                 !UIControl -> UIControl
-setMaxSize		:: !UIBound !UIBound	    !UIControl -> UIControl
-setMaxWidth		:: !UIBound				    !UIControl -> UIControl
-setMaxHeight	:: !UIBound                 !UIControl -> UIControl
-fill			:: 							!UIControl -> UIControl
-fillHeight		:: 							!UIControl -> UIControl
-fillWidth		:: 							!UIControl -> UIControl
-fixedHeight		:: !Int 					!UIControl -> UIControl
-fixedWidth		:: !Int 					!UIControl -> UIControl
-wrapHeight		::							!UIControl -> UIControl
-wrapWidth		:: 							!UIControl -> UIControl
-setMargins		:: !Int !Int !Int !Int		!UIControl -> UIControl
-setTopMargin	:: !Int 					!UIControl -> UIControl
-setRightMargin	:: !Int 					!UIControl -> UIControl
-setBottomMargin	:: !Int 					!UIControl -> UIControl
-setLeftMargin	:: !Int 					!UIControl -> UIControl
-class setPadding a :: !Int !Int !Int !Int !a -> a
-instance setPadding UIDef
-instance setPadding UIControl
-setTitle 		:: !String 					!UIControl -> UIControl
-setFramed		:: !Bool					!UIControl -> UIControl
-setIconCls		:: !String					!UIControl -> UIControl
-
-class setBaseCls a :: !String !a -> a
-instance setBaseCls UIDef
-instance setBaseCls UIControl
-class setDirection a :: !UIDirection !a -> a
-instance setDirection UIDef
-instance setDirection UIControl
-class setHalign a :: !UIHAlign !a -> a
-instance setHalign UIDef
-instance setHalign UIControl
-
-setValign		:: !UIVAlign				!UIControl -> UIControl
+setSize         :: !UISize !UISize          !UIDef -> UIDef
+setWidth		:: !UISize					!UIDef -> UIDef
+setHeight		:: !UISize					!UIDef -> UIDef
+setMinSize		:: !UIBound !UIBound	    !UIDef -> UIDef
+setMinWidth		:: !UIBound				    !UIDef -> UIDef
+setMinHeight	:: !UIBound                 !UIDef -> UIDef
+setMaxSize		:: !UIBound !UIBound	    !UIDef -> UIDef
+setMaxWidth		:: !UIBound				    !UIDef -> UIDef
+setMaxHeight	:: !UIBound                 !UIDef -> UIDef
+fill			:: 							!UIDef -> UIDef
+fillHeight		:: 							!UIDef -> UIDef
+fillWidth		:: 							!UIDef -> UIDef
+fixedHeight		:: !Int 					!UIDef -> UIDef
+fixedWidth		:: !Int 					!UIDef -> UIDef
+wrapHeight		::							!UIDef -> UIDef
+wrapWidth		:: 							!UIDef -> UIDef
+setMargins		:: !Int !Int !Int !Int		!UIDef -> UIDef
+setTopMargin	:: !Int 					!UIDef -> UIDef
+setRightMargin	:: !Int 					!UIDef -> UIDef
+setBottomMargin	:: !Int 					!UIDef -> UIDef
+setLeftMargin	:: !Int 					!UIDef -> UIDef
+setPadding 		:: !Int !Int !Int !Int      !UIDef -> UIDef
+setTitle 		:: !String 					!UIDef -> UIDef
+setFramed		:: !Bool					!UIDef -> UIDef
+setIconCls		:: !String					!UIDef -> UIDef
+setBaseCls      :: !String                  !UIDef -> UIDef
+setDirection    :: !UIDirection             !UIDef -> UIDef
+setHalign       :: !UIHAlign                !UIDef -> UIDef
+setValign		:: !UIVAlign				!UIDef -> UIDef
 
 //Access functions
-getMargins      ::                          !UIControl -> (Maybe UISideSizes)
+getMargins      ::                          !UIDef -> (Maybe UISideSizes)
 
-//Utility functions
+//Constructing default values
 defaultSizeOpts		    :: UISizeOpts
 defaultHSizeOpts        :: UIHSizeOpts
 defaultFSizeOpts	    :: UIFSizeOpts
 
-defaultItemsOpts 		:: [UIControl] -> UIItemsOpts
 defaultContainerOpts    :: UIContainerOpts
 defaultPanelOpts        :: UIPanelOpts
 defaultTabSetOpts       :: UITabSetOpts
 defaultTabOpts          :: UITabOpts
+defaultWindowOpts       :: UIWindowOpts
 
-defaultContainer		:: ![UIControl]	-> UIControl
-defaultFieldSet         :: !(Maybe String) ![UIControl]	-> UIControl
+defaultContainer        :: ![UIDef] -> UIDef
 defaultPanel			:: ![UIDef]	-> UIDef
 defaultTabSet			:: ![UIDef]	-> UIDef
 defaultTab              :: ![UIDef] -> UIDef
-defaultWindow			:: ![UIControl]	-> UIWindow
-stringDisplay			:: !String		-> UIControl
+defaultWindow			:: ![UIDef]	-> UIDef
 
-//Success guaranteed access to the possible parts of a ui definition
-uiDefAttributes			:: UIDef -> UIAttributes
-uiDefControls			:: UIDef -> [UIControl]
-uiDefAnnotatedControls	:: UIDef -> [(UIControl,UIAttributes)]
-uiDefDirection			:: UIDef -> UIDirection
-uiDefWindows			:: UIDef -> [UIWindow]
-
-uiDefSetAttribute		:: String String UIDef -> UIDef
-uiDefSetDirection		:: UIDirection UIDef -> UIDef
-uiDefSetHalign		    :: UIHAlign	UIDef -> UIDef
-uiDefSetValign		    :: UIVAlign	UIDef -> UIDef
-uiDefSetPadding         :: Int Int Int Int UIDef -> UIDef
-uiDefSetMargins         :: Int Int Int Int UIDef -> UIDef
-uiDefSetBaseCls         :: String UIDef -> UIDef
-uiDefSetHeight		    :: UISize UIDef -> UIDef
-uiDefSetWidth           :: UISize UIDef -> UIDef
-uiDefSetSize            :: UISize UISize UIDef -> UIDef
+//Util
+stringDisplay			:: !String  -> UIControl
 
 //Encoding of UI to the format sent to the client framework
 class encodeUI a :: a -> JSONNode
@@ -461,5 +402,3 @@ instance encodeUI (Maybe a) | encodeUI a
 instance encodeUI [a] | encodeUI a
 instance encodeUI UIDef
 instance encodeUI UIControl
-instance encodeUI UIWindow
-

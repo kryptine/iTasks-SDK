@@ -64,7 +64,7 @@ testInteractive :: InteractiveTest -> Task TestResult
 testInteractive {name,instructions,expectation,taskUnderTest}
 	= 	viewInformation () [] (H1Tag [] [Text name]) 
 	||-	((viewInformation (Title "Instructions") [] instructions)
-		  -&&- (viewInformation (Title "Expected result") [] expectation) <<@ ArrangeHorizontal )
+		  -&&- (viewInformation (Title "Expected result") [] expectation) /* <<@ ArrangeHorizontal*/ )
 	||- taskUnderTest
 	||- enterInformation (Title "Result") []
 

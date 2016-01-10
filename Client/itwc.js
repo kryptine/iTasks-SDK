@@ -523,12 +523,6 @@ itwc.component.itwc_raw_action = itwc.extend(itwc.Component,{
 		this.domEl.classList.add('itwc-action-disabled');
 	}
 });
-itwc.component.itwc_raw_window = itwc.extend(itwc.RawContainer,{
-	cssClass: 'itwc-raw-window'
-});
-itwc.component.itwc_raw_layers = itwc.extend(itwc.RawContainer,{
-	cssClass: 'itwc-raw-layers'
-});
 itwc.component.itwc_raw_form = itwc.extend(itwc.RawContainer,{
 	cssClass: 'itwc-raw-form'
 });
@@ -538,9 +532,6 @@ itwc.component.itwc_raw_form_item = itwc.extend(itwc.RawContainer,{
 });
 itwc.component.itwc_raw_block = itwc.extend(itwc.RawContainer,{
 	cssClass: 'itwc-raw-block'
-});
-itwc.component.itwc_raw_blocks = itwc.extend(itwc.RawContainer,{
-	cssClass: 'itwc-raw-blocks'
 });
 
 //#### CORE UI COMPONENT DEFINITIONS ####//

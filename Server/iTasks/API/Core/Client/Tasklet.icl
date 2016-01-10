@@ -183,8 +183,8 @@ where
 					, controllerFunc = mb_cf_js})
 
 	tHTMLToTasklet {TaskletHTML|width,height,html} taskId state_js script_js events_js intfcs_js rf_js 
-		= toDef (setSize width height
-				(UITasklet defaultSizeOpts
+		= setSize width height
+				(toDef (UITasklet defaultSizeOpts
 					 {UITaskletOpts
 					 | taskId   	  = toString taskId
 					 , html     	  = Just (toString html)

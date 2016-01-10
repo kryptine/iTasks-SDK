@@ -59,7 +59,7 @@ tonicStaticBrowser rs
                                                        , bpr_taskName   = tt.tf_name
                                                        } tm tt sett.StaticDisplaySettings.unfold_depth sett.StaticDisplaySettings.display_compact @! ()))
                    (getTonicFunc tm tn)
-         )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
+         )) /*<<@ ArrangeWithSideBar 0 LeftSide 200 True */
          )) <<@ FullScreen))) @! ()
   where
   selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromComboBox id)]
@@ -165,19 +165,21 @@ tonicDynamicBrowser rs
                          , (Embedded, \_ -> filterQuery)
                          , (Embedded, \_ -> activeUsers)
                          , (Embedded, \_ -> taskViewer)
-                         ] [] <<@ ArrangeCustom layout <<@ FullScreen
+                         ] [] /*<<@ ArrangeCustom layout*/ <<@ FullScreen
                )) @! ()
   where
+/*
   layout [mainTask, settingsTask, filterTask, usersTask : _] actions
     = arrangeWithSideBar 0 RightSide 250 True [supportArea, mainTask] actions
     where
     supportArea = arrangeWithSideBar 0 TopSide 200 False [settingsTask, filterTask, usersTask] []
+*/
 
   filterQuery = updateSharedInformation (Title "Filter query") [] queryShare @! ()
 
   taskViewer = whileUnchanged dynamicDisplaySettings (
             \{show_task_value} -> if show_task_value
-                                    (whileUnchanged selectedDetail viewDetail <<@ InWindow)
+                                    (whileUnchanged selectedDetail viewDetail /*<<@ InWindow*/)
                                     (viewInformation () [] ())
                ) @! ()
     where
@@ -246,13 +248,13 @@ tonicDynamicBrowser rs
 
 tonicDynamicBrowser` :: [TaskAppRenderer] (Shared NavStack) -> Task ()
 tonicDynamicBrowser` rs navstack =
-  ((activeBlueprintInstances -&&- blueprintViewer) <<@ ArrangeVertical) @! ()
+  ((activeBlueprintInstances -&&- blueprintViewer) /* <<@ ArrangeVertical */) @! ()
   where
   activeBlueprintInstances = editSharedChoiceWithSharedAs
                                (Title "Active blueprint instances")
                                [ChooseWith (ChooseFromGrid customView)]
                                (mapRead (\(trt, q) -> filterActiveTasks q (flattenRTMap trt)) (tonicSharedRT |+| queryShare))
-                               setTaskId selectedBlueprint <<@ ArrangeWithSideBar 0 TopSide 175 True
+                               setTaskId selectedBlueprint //<<@ ArrangeWithSideBar 0 TopSide 175 True
     where
     setTaskId x = { click_origin_mbbpident  = Nothing
                   , click_origin_mbnodeId   = Nothing

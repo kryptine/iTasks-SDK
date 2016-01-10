@@ -128,12 +128,13 @@ workflowDashboard
 		[ (Embedded, startWork)
 		, (Embedded, controlDashboard)
 		, (Embedded, manageWork)
-		] [] <<@ ArrangeCustom layout <<@ FullScreen
+		] [] /*<<@ ArrangeCustom layout*/ <<@ FullScreen
 	>>* [OnValue (ifValue (\results -> isValue (snd (results !! 1))) (\_ -> return ()))]
 where
 	isValue (Value _ _) = True
 	isValue _			= False
 
+/*
     layout [startWork,dashBoard,manageWork:activeWork] actions
         = arrangeWithSideBar 0 LeftSide 260 True [startWork,mainArea] actions
     where
@@ -141,8 +142,9 @@ where
         workArea = arrangeWithSideBar 0 TopSide 200 True [manageWork,tabsArea] []
         //tabsArea = arrangeWithTabs activeWork []
         tabsArea = arrangeVertical activeWork []
+	*/
 
-    layout blocks actions = autoLayoutBlocks blocks actions
+    //layout blocks actions = autoLayoutBlocks blocks actions
 
 controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
 controlDashboard list
@@ -158,7 +160,7 @@ where
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
 startWork list
-	= (chooseWorkflow >&> viewAndStart) <<@ (ArrangeWithSideBar 1 BottomSide 200 True)
+	= (chooseWorkflow >&> viewAndStart) //<<@ (ArrangeWithSideBar 1 BottomSide 200 True)
 where
 	viewAndStart sel = forever (
 			viewWorkflowDetails sel
