@@ -22,7 +22,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 //Provide generic instances for all UI definitions
-derive class iTask UIDef, UIAction, UIEditor, UIControl
+derive class iTask UI, UINodeType, UIAction, UIEditor, UIControl
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
 derive class iTask UIWindowOpts, UIContainerOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
@@ -41,9 +41,12 @@ instance Functor UIViewOpts
 *
 * The UIDef type has contstructors for the various types of partial UI definitions.
 */
-:: UI = UINode UIAttributes [UI]
+:: UIDef :== UI
 
-:: UIDef
+//:: UI = UI UINodeType UIAttributes [UI]
+:: UI = UI UINodeType
+
+:: UINodeType
     = UIEmpty
 	//Constructors for editors
 	| UIEditor 			!UIEditor !UIDef
@@ -383,7 +386,7 @@ defaultTab              :: ![UIDef] -> UIDef
 defaultWindow			:: ![UIDef]	-> UIDef
 
 //Util
-stringDisplay			:: !String  -> UIControl
+stringDisplay			:: !String  -> UIDef
 
 //Encoding of UI to the format sent to the client framework
 class encodeUI a :: a -> JSONNode

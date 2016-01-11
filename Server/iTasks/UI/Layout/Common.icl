@@ -11,12 +11,12 @@ where
 
 	toTabset = sequenceLayouts
 				[layoutChildrenOf [] toTab
-				,changeContainerType (\(UICompoundContent items) -> defaultTabSet items)
+				,changeContainerType (\(UI (UICompoundContent items)) -> defaultTabSet items)
 				]
 
 	toTab = wrapInContainer (\def -> defaultTab [def])
 
-isParallel d = d =:(UIParallel _)
+isParallel d = d =:(UI (UIParallel _))
 
 
 instance tune ArrangeWithTabs

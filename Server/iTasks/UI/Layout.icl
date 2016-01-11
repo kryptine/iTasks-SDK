@@ -16,15 +16,15 @@ LABEL_WIDTH :== 100
 
 instance descr ()
 where
-	toPrompt _ = UIEmpty
+	toPrompt _ = UI (UIEmpty)
 
 instance descr String
 where
-	toPrompt hint = UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (createPrompt hint)
+	toPrompt hint = UI (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (createPrompt hint))
 	
 instance descr (!String,!String)
 where
-	toPrompt (title,hint) = UIEditor {UIEditor|optional=False,attributes='DM'.fromList [(TITLE_ATTRIBUTE,title)]} (createPrompt hint)
+	toPrompt (title,hint) = UI (UIEditor {UIEditor|optional=False,attributes='DM'.fromList [(TITLE_ATTRIBUTE,title)]} (createPrompt hint))
 
 //Building blocks for layout
 
@@ -231,26 +231,26 @@ where
 
 //UTIL
 getChildren :: UIDef -> [UIDef]
-getChildren (UICompoundContent children) = children
-getChildren (UIInteract children) = children
-getChildren (UIStep children) = children
-getChildren (UIParallel children) = children
-getChildren (UIContainer _ _ children) = children
-getChildren (UIPanel _ _ _ children) = children
-getChildren (UITabSet _ _ children) = children
-getChildren (UITab _ _ children) = children
-getChildren (UIForm children) = children
+getChildren (UI (UICompoundContent children)) = children
+getChildren (UI (UIInteract children)) = children
+getChildren (UI (UIStep children)) = children
+getChildren (UI (UIParallel children)) = children
+getChildren (UI (UIContainer _ _ children)) = children
+getChildren (UI (UIPanel _ _ _ children)) = children
+getChildren (UI (UITabSet _ _ children)) = children
+getChildren (UI (UITab _ _ children)) = children
+getChildren (UI (UIForm children)) = children
 
 setChildren :: [UIDef] UIDef -> UIDef
-setChildren children (UICompoundContent _) = UICompoundContent children
-setChildren children (UIInteract _) = UIInteract children
-setChildren children (UIForm _) = UIForm children
-setChildren children (UIStep _) = UIStep children
-setChildren children (UIParallel _) = UIParallel children
-setChildren children (UIContainer sOpts cOpts _) = UIContainer sOpts cOpts children
-setChildren children (UIPanel sOpts cOpts pOpts _) = UIPanel sOpts cOpts pOpts children
-setChildren children (UITabSet sOpts tOpts _) = UITabSet sOpts tOpts children
-setChildren children (UITab cOpts tOpts _) = UITab cOpts tOpts children
+setChildren children (UI (UICompoundContent _)) = UI (UICompoundContent children)
+setChildren children (UI (UIInteract _)) = UI (UIInteract children)
+setChildren children (UI (UIForm _)) = UI (UIForm children)
+setChildren children (UI (UIStep _)) = UI (UIStep children)
+setChildren children (UI (UIParallel _)) = UI (UIParallel children)
+setChildren children (UI (UIContainer sOpts cOpts _)) = UI (UIContainer sOpts cOpts children)
+setChildren children (UI (UIPanel sOpts cOpts pOpts _)) = UI (UIPanel sOpts cOpts pOpts children)
+setChildren children (UI (UITabSet sOpts tOpts _)) = UI (UITabSet sOpts tOpts children)
+setChildren children (UI (UITab cOpts tOpts _)) = UI (UITab cOpts tOpts children)
 setChildren _ def = def
 
 accChildDef :: NodePath (UIDef -> (a,UIDef)) UIDef -> (Maybe a, UIDef)
@@ -769,7 +769,7 @@ where
 */
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
 createPrompt :: String -> UIDef
-createPrompt hint = UIContainer sizeOpts containerOpts [UIControl (stringDisplay hint)]
+createPrompt hint = UI (UIContainer sizeOpts containerOpts [stringDisplay hint])
 where
 	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 5, bottom = 10, left = 5}
 			   , width = Just FlexSize, minWidth = Just WrapBound, height = Just WrapSize}
@@ -821,10 +821,10 @@ addTriggerToControl t c = c
 
 //GUI combinators						
 hjoin :: ![UIDef] -> UIDef
-hjoin items = UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Horizontal, halign = AlignLeft, valign = AlignMiddle} items 
+hjoin items = UI (UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Horizontal, halign = AlignLeft, valign = AlignMiddle} items)
 
 vjoin :: ![UIDef] -> UIDef
-vjoin items = UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Vertical, halign = AlignLeft, valign = AlignTop} items
+vjoin items = UI (UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Vertical, halign = AlignLeft, valign = AlignTop} items)
 						
 //Container operations
 addItemToUI :: (Maybe Int) UIControl UIControl -> UIControl
@@ -1001,8 +1001,8 @@ tweakUI :: (UIControl -> UIControl) UIDef -> UIDef
 //	= UIForm {UIForm|stack & controls = [(f c,a) \\ (c,a) <- controls]}
 //tweakUI f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
 	//= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map f items}}
-tweakUI f (UIControl control)
-    = UIControl (f control)
+tweakUI f (UI (UIControl control))
+    = UI (UIControl (f control))
 tweakUI f def = def
 
 tweakAttr :: (UIAttributes -> UIAttributes) UIDef -> UIDef
@@ -1017,9 +1017,9 @@ tweakControls :: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDe
 //	= UIForm {UIForm|stack & controls = f controls}
 //tweakControls f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
 	//= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map fst (f [(c,'DM'.newMap) \\ c <- items])}}
-tweakControls f (UIControl control)
+tweakControls f (UI (UIControl control))
 	= case f [(control,'DM'.newMap)] of
-		[(control,_):_] = UIControl control
-		_ 				= UIControl control
+		[(control,_):_] = UI (UIControl control)
+		_ 				= UI (UIControl control)
 tweakControls f def	= def
 

@@ -10,7 +10,7 @@ from StdFile			                import class FileSystem
 from System.Time				        import :: Timestamp
 from Text.JSON				            import :: JSONNode
 from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
-from iTasks.UI.Definition				import :: UIDef, :: UIControl, :: UIEditletOpts
+from iTasks.UI.Definition				import :: UI, :: UINodeType, :: UIDef, :: UIControl, :: UIEditletOpts
 from iTasks._Framework.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
 from iTasks._Framework.Task             import :: TaskValue, :: ConnectionTask, :: BackgroundTask, :: Event
 from iTasks._Framework.SDS import :: SDSNotifyRequest, :: BasicShareId

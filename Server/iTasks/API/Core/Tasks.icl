@@ -127,7 +127,7 @@ visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworl
 		ResetEvent		//(re)generate the initial UI
 			# (editUI,vst)	= editor.Editor.genUI [] nv nm vst
 			# promptUI  	= toPrompt desc
-			# change 		= ReplaceUI (UIInteract [promptUI,editUI])
+			# change 		= ReplaceUI (UI (UIInteract [promptUI,editUI]))
 			= (change,vst)
 		_				//compare old and new value to determine changes
 			# (editChange,vst)  = editor.Editor.genDiff [] v m nv nm vst
@@ -164,7 +164,7 @@ where
             _                       = ioStates
         = (DestroyedResult,{iworld & ioStates = ioStates})
 
-    rep port = ReplaceUI (UIControl (stringDisplay ("Listening for connections on port "<+++ port)))
+    rep port = ReplaceUI (stringDisplay ("Listening for connections on port "<+++ port))
 
 tcpconnect :: !String !Int !(RWShared () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w
 tcpconnect host port sds handlers = Task eval

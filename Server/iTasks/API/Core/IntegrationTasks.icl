@@ -74,7 +74,7 @@ where
     makeRep taskId evalOpts status iworld
 		# (content,iworld)	= makeView opts status taskId iworld
 		# prompt			= toPrompt desc
-		# change 			= ReplaceUI (UICompoundEditor {UIEditor|optional=False,attributes='Data.Map'.newMap} [prompt,content])
+		# change 			= ReplaceUI (UI (UICompoundEditor {UIEditor|optional=False,attributes='Data.Map'.newMap} [prompt,content]))
 		# change 			= if evalOpts.autoLayout (fst (autoLayoutInteract (change,JSONNull))) change
 		= (change, iworld)
 						

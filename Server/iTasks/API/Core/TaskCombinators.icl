@@ -144,7 +144,7 @@ where
 		# change = case (event,change) of
 			//On reset generate a new step UI
 			(ResetEvent,ReplaceUI ui)  
-				= ReplaceUI (UIStep [ui:map UIAction (contActions taskId val conts)])
+				= ReplaceUI (UI (UIStep [ui:map (\x -> (UI (UIAction x))) (contActions taskId val conts)]))
 			//Otherwise create a compound change definition
 			_ 	
 				= ChangeUI [] [ChangeChild 0 change:actionChanges]
@@ -515,9 +515,9 @@ genParallelRep :: !TaskEvalOpts !Event [UIAction] [String] [TaskResult a] Int ->
 genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
 	# change = case event of
 		ResetEvent
-			= ReplaceUI (UIParallel [UICompoundContent [def \\ ValueResult _ _ (ReplaceUI def) _ <- results]
-					 				 ,UICompoundContent (map UIAction actions)
-									 ])
+			= ReplaceUI (UI (UIParallel [UI (UICompoundContent [def \\ ValueResult _ _ (ReplaceUI def) _ <- results])
+					 				 ,UI (UICompoundContent (map (\x -> UI (UIAction x)) actions))
+									 ]))
 		_ 
 			= ChangeUI [] [ChangeChild 0 (ChangeUI [] (itemChanges 0 prevNumBranches results))
 						   		   ,ChangeChild 1 (ChangeUI [] actionChanges)
@@ -732,12 +732,11 @@ where
     release taskId meta = meta
 
     embedTaskDef instanceNo instanceKey
-		= UIControl (UIEmbedding embedSize {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey})
+		= UI (UIControl (UIEmbedding embedSize {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey}))
 
     embedSize = {UISizeOpts|defaultSizeOpts & width= Just FlexSize, height=Just FlexSize}
 
-	inUseDef
-		= UIControl (stringDisplay "This task is already in use")
+	inUseDef = stringDisplay "This task is already in use"
 
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 withShared initial stask = Task eval
