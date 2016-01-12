@@ -10,7 +10,7 @@ import qualified Data.Map as DM
 emptyEditor :: Editor a
 emptyEditor = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI _ _ _ vst			    = (UI UIEmpty,vst)
+	genUI _ _ _ vst			    = (UI UIEmpty [],vst)
 	genDiff _ _ _ _ _ vst 		= (NoChange,vst)
 	appDiff _ _ val mask ust 	= (val,mask,ust)
 
@@ -53,10 +53,10 @@ where
 		= case editletLinker initDiff (initClient currVal createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld of
 			(Ok (jsScript, jsID, jsIC, jsAD),iworld)
 				# opts = editletOpts jsScript jsID jsIC jsAD uiDef
-				= (UI (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (ui uiDef opts)), {VSt|vst & iworld = iworld})
+				= (UI (UIEditor {UIEditor|optional=False,attributes='DM'.newMap}) [ui uiDef opts], {VSt|vst & iworld = iworld})
 			(Error e,iworld) //TODO: Propagate the error to the interact task that creates the editor
 				# opts = editletOpts "" "" "" "" uiDef
-				= (UI (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (ui uiDef opts)), {VSt|vst & iworld = iworld})
+				= (UI (UIEditor {UIEditor|optional=False,attributes='DM'.newMap}) [ui uiDef opts], {VSt|vst & iworld = iworld})
 	where
 		initDiff = genDiffSrv gDefault{|*|} currVal
 		htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
@@ -72,7 +72,7 @@ where
 			  , appDiff 	= jsAD
 			  }
 
-		ui uiDef opts = setSize uiDef.ComponentHTML.width uiDef.ComponentHTML.height (UI (UIControl (UIEditlet defaultSizeOpts opts)))
+		ui uiDef opts = setSize uiDef.ComponentHTML.width uiDef.ComponentHTML.height (UI (UIControl (UIEditlet defaultSizeOpts opts)) [])
 		toJSONA a = case JSONEncode{|*|} False a of
 			[json:_]	= json
 			_			= JSONNull

@@ -6,7 +6,7 @@ definition module iTasks.API.Core.Tasks
 import iTasks._Framework.Generic
 import iTasks._Framework.SDS
 from iTasks._Framework.Task			import :: Task, :: Event, :: ConnectionHandlers, :: TaskEvalOpts, :: TaskTime
-from iTasks.UI.Definition 		import :: UI, :: UINodeType, :: UIDef
+from iTasks.UI.Definition 		import :: UI, :: UINodeType
 from iTasks.UI.Diff 			import :: UIChangeDef
 from iTasks.UI.Layout	    	import class descr
 from Data.Error					import ::MaybeError(..)

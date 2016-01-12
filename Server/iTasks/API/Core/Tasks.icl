@@ -127,7 +127,7 @@ visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworl
 		ResetEvent		//(re)generate the initial UI
 			# (editUI,vst)	= editor.Editor.genUI [] nv nm vst
 			# promptUI  	= toPrompt desc
-			# change 		= ReplaceUI (UI (UIInteract [promptUI,editUI]))
+			# change 		= ReplaceUI (UI UIInteract [promptUI,editUI])
 			= (change,vst)
 		_				//compare old and new value to determine changes
 			# (editChange,vst)  = editor.Editor.genDiff [] v m nv nm vst

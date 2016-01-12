@@ -39,34 +39,33 @@ instance Functor UIViewOpts
 * the raw UI material provided by basic tasks is grouped by layout policies to reach
 * a final UI definition consisting of a set of controls and a window title for the top-level application window.
 *
-* The UIDef type has contstructors for the various types of partial UI definitions.
+* The UI type has contstructors for the various types of partial UI definitions.
 */
-:: UIDef :== UI
 
 //:: UI = UI UINodeType UIAttributes [UI]
-:: UI = UI UINodeType
+:: UI = UI UINodeType [UI]
 
 :: UINodeType
     = UIEmpty
 	//Constructors for editors
-	| UIEditor 			!UIEditor !UIDef
-	| UICompoundEditor 	!UIEditor ![UIDef]
+	| UIEditor 			!UIEditor
+	| UICompoundEditor 	!UIEditor
 	| UIAction 			!UIAction
 	//Intermediate containers
-    | UIForm    		![UIDef]
-	| UIFormItem		!UIDef !UIDef !UIDef //Label, widget, feedback (usually an icon)
-	| UIInteract        ![UIDef]
-	| UIStep            ![UIDef]
-	| UIParallel        ![UIDef]
-    | UIBlock   		!UISizeOpts !UIContainerOpts ![UIDef] 
+    | UIForm
+	| UIFormItem
+	| UIInteract
+	| UIStep
+	| UIParallel
+	| UICompoundContent
+    | UIBlock   		!UISizeOpts !UIContainerOpts
 	//Final containers
-    | UIContainer       !UISizeOpts !UIContainerOpts ![UIDef] 
-	| UIPanel 			!UISizeOpts !UIContainerOpts !UIPanelOpts ![UIDef]
-	| UITabSet			!UISizeOpts !UITabSetOpts ![UIDef]
-	| UITab                         !UIContainerOpts !UITabOpts ![UIDef]
-	| UIWindow 			!UISizeOpts !UIContainerOpts !UIWindowOpts ![UIDef]
-	//Constructors for intermediate structures
-	| UICompoundContent ![UIDef]
+    | UIContainer       !UISizeOpts !UIContainerOpts
+	| UIPanel 			!UISizeOpts !UIContainerOpts !UIPanelOpts
+	| UITabSet			!UISizeOpts !UITabSetOpts
+	| UITab                         !UIContainerOpts !UITabOpts
+	| UIWindow 			!UISizeOpts !UIContainerOpts !UIWindowOpts
+	//Constructors for single controls
 	| UIControl 		!UIControl 	//A Single control
 
 :: UIControl
@@ -335,38 +334,38 @@ instance Functor UIViewOpts
 	}
 
 //Modifier functions
-setSize         :: !UISize !UISize          !UIDef -> UIDef
-setWidth		:: !UISize					!UIDef -> UIDef
-setHeight		:: !UISize					!UIDef -> UIDef
-setMinSize		:: !UIBound !UIBound	    !UIDef -> UIDef
-setMinWidth		:: !UIBound				    !UIDef -> UIDef
-setMinHeight	:: !UIBound                 !UIDef -> UIDef
-setMaxSize		:: !UIBound !UIBound	    !UIDef -> UIDef
-setMaxWidth		:: !UIBound				    !UIDef -> UIDef
-setMaxHeight	:: !UIBound                 !UIDef -> UIDef
-fill			:: 							!UIDef -> UIDef
-fillHeight		:: 							!UIDef -> UIDef
-fillWidth		:: 							!UIDef -> UIDef
-fixedHeight		:: !Int 					!UIDef -> UIDef
-fixedWidth		:: !Int 					!UIDef -> UIDef
-wrapHeight		::							!UIDef -> UIDef
-wrapWidth		:: 							!UIDef -> UIDef
-setMargins		:: !Int !Int !Int !Int		!UIDef -> UIDef
-setTopMargin	:: !Int 					!UIDef -> UIDef
-setRightMargin	:: !Int 					!UIDef -> UIDef
-setBottomMargin	:: !Int 					!UIDef -> UIDef
-setLeftMargin	:: !Int 					!UIDef -> UIDef
-setPadding 		:: !Int !Int !Int !Int      !UIDef -> UIDef
-setTitle 		:: !String 					!UIDef -> UIDef
-setFramed		:: !Bool					!UIDef -> UIDef
-setIconCls		:: !String					!UIDef -> UIDef
-setBaseCls      :: !String                  !UIDef -> UIDef
-setDirection    :: !UIDirection             !UIDef -> UIDef
-setHalign       :: !UIHAlign                !UIDef -> UIDef
-setValign		:: !UIVAlign				!UIDef -> UIDef
+setSize         :: !UISize !UISize          !UI -> UI
+setWidth		:: !UISize					!UI -> UI
+setHeight		:: !UISize					!UI -> UI
+setMinSize		:: !UIBound !UIBound	    !UI -> UI
+setMinWidth		:: !UIBound				    !UI -> UI
+setMinHeight	:: !UIBound                 !UI -> UI
+setMaxSize		:: !UIBound !UIBound	    !UI -> UI
+setMaxWidth		:: !UIBound				    !UI -> UI
+setMaxHeight	:: !UIBound                 !UI -> UI
+fill			:: 							!UI -> UI
+fillHeight		:: 							!UI -> UI
+fillWidth		:: 							!UI -> UI
+fixedHeight		:: !Int 					!UI -> UI
+fixedWidth		:: !Int 					!UI -> UI
+wrapHeight		::							!UI -> UI
+wrapWidth		:: 							!UI -> UI
+setMargins		:: !Int !Int !Int !Int		!UI -> UI
+setTopMargin	:: !Int 					!UI -> UI
+setRightMargin	:: !Int 					!UI -> UI
+setBottomMargin	:: !Int 					!UI -> UI
+setLeftMargin	:: !Int 					!UI -> UI
+setPadding 		:: !Int !Int !Int !Int      !UI -> UI
+setTitle 		:: !String 					!UI -> UI
+setFramed		:: !Bool					!UI -> UI
+setIconCls		:: !String					!UI -> UI
+setBaseCls      :: !String                  !UI -> UI
+setDirection    :: !UIDirection             !UI -> UI
+setHalign       :: !UIHAlign                !UI -> UI
+setValign		:: !UIVAlign				!UI -> UI
 
 //Access functions
-getMargins      ::                          !UIDef -> (Maybe UISideSizes)
+getMargins      ::                          !UI -> (Maybe UISideSizes)
 
 //Constructing default values
 defaultSizeOpts		    :: UISizeOpts
@@ -379,14 +378,14 @@ defaultTabSetOpts       :: UITabSetOpts
 defaultTabOpts          :: UITabOpts
 defaultWindowOpts       :: UIWindowOpts
 
-defaultContainer        :: ![UIDef] -> UIDef
-defaultPanel			:: ![UIDef]	-> UIDef
-defaultTabSet			:: ![UIDef]	-> UIDef
-defaultTab              :: ![UIDef] -> UIDef
-defaultWindow			:: ![UIDef]	-> UIDef
+defaultContainer        :: ![UI] -> UI
+defaultPanel			:: ![UI] -> UI
+defaultTabSet			:: ![UI] -> UI
+defaultTab              :: ![UI] -> UI
+defaultWindow			:: ![UI] -> UI
 
 //Util
-stringDisplay			:: !String  -> UIDef
+stringDisplay			:: !String  -> UI
 
 //Encoding of UI to the format sent to the client framework
 class encodeUI a :: a -> JSONNode
@@ -403,5 +402,5 @@ instance encodeUI ProgressAmount
 instance encodeUI JSONNode
 instance encodeUI (Maybe a) | encodeUI a
 instance encodeUI [a] | encodeUI a
-instance encodeUI UIDef
+instance encodeUI UI
 instance encodeUI UIControl

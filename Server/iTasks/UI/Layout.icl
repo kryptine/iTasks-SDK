@@ -16,15 +16,15 @@ LABEL_WIDTH :== 100
 
 instance descr ()
 where
-	toPrompt _ = UI (UIEmpty)
+	toPrompt _ = UI (UIEmpty) []
 
 instance descr String
 where
-	toPrompt hint = UI (UIEditor {UIEditor|optional=False,attributes='DM'.newMap} (createPrompt hint))
+	toPrompt hint = UI (UIEditor {UIEditor|optional=False,attributes='DM'.newMap}) [createPrompt hint]
 	
 instance descr (!String,!String)
 where
-	toPrompt (title,hint) = UI (UIEditor {UIEditor|optional=False,attributes='DM'.fromList [(TITLE_ATTRIBUTE,title)]} (createPrompt hint))
+	toPrompt (title,hint) = UI (UIEditor {UIEditor|optional=False,attributes='DM'.fromList [(TITLE_ATTRIBUTE,title)]}) [createPrompt hint]
 
 //Building blocks for layout
 
@@ -58,7 +58,7 @@ where
 
 	layout (change,s) = (change,s) //Catchall
 
-insertChild :: NodePath UIDef -> Layout
+insertChild :: NodePath UI-> Layout
 insertChild [] def = id
 insertChild path def = layoutChild (init path) (insertChild` (last path) def)
 where
@@ -86,7 +86,7 @@ where
 									= [updChildChangeIndex (\n -> n - 1) c:remove idx cs]
 
 //FIXME: Currently this only works when changes are moved to an empty container, needs to be generalized
-moveChildren :: NodePath (UIDef -> Bool) NodePath -> Layout
+moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
 moveChildren src pred dst = layout
 where
 	layout (ReplaceUI def,_)
@@ -161,13 +161,13 @@ where
 	
 	layout (change,s) = (change,s)
 
-changeContainerType :: (UIDef -> UIDef) -> Layout
+changeContainerType :: (UI -> UI) -> Layout
 changeContainerType f = layout
 where
 	layout (ReplaceUI def,_) = (ReplaceUI (f def),JSONNull) 
 	layout (change,s) = (change,s) //Other changes than replacing are not affected
 
-wrapInContainer :: (UIDef -> UIDef) -> Layout
+wrapInContainer :: (UI -> UI) -> Layout
 wrapInContainer f = layout
 where
 	layout (ReplaceUI def,_) = (ReplaceUI (f def),JSONNull)
@@ -192,7 +192,7 @@ where
 		# (change,ss) = applyAll ls ss change
 		= (change,[s:ss])
 
-conditionalLayout :: (UIDef -> Bool) Layout -> Layout
+conditionalLayout :: (UI -> Bool) Layout -> Layout
 conditionalLayout pred condLayout = layout
 where
 	layout (change=:(ReplaceUI def),_)
@@ -209,7 +209,7 @@ where
 	layout (change,s) = (change,s)
 
 //Select the first matching layout
-selectLayout :: [(UIDef -> Bool,Layout)] -> Layout
+selectLayout :: [(UI -> Bool,Layout)] -> Layout
 selectLayout layouts = layout
 where
 	layout (change=:(ReplaceUI def),_) = case selectLayout def 0 layouts of
@@ -230,30 +230,13 @@ where
 					= selectLayout def (i + 1) ls
 
 //UTIL
-getChildren :: UIDef -> [UIDef]
-getChildren (UI (UICompoundContent children)) = children
-getChildren (UI (UIInteract children)) = children
-getChildren (UI (UIStep children)) = children
-getChildren (UI (UIParallel children)) = children
-getChildren (UI (UIContainer _ _ children)) = children
-getChildren (UI (UIPanel _ _ _ children)) = children
-getChildren (UI (UITabSet _ _ children)) = children
-getChildren (UI (UITab _ _ children)) = children
-getChildren (UI (UIForm children)) = children
+getChildren :: UI -> [UI]
+getChildren (UI type children) = children
 
-setChildren :: [UIDef] UIDef -> UIDef
-setChildren children (UI (UICompoundContent _)) = UI (UICompoundContent children)
-setChildren children (UI (UIInteract _)) = UI (UIInteract children)
-setChildren children (UI (UIForm _)) = UI (UIForm children)
-setChildren children (UI (UIStep _)) = UI (UIStep children)
-setChildren children (UI (UIParallel _)) = UI (UIParallel children)
-setChildren children (UI (UIContainer sOpts cOpts _)) = UI (UIContainer sOpts cOpts children)
-setChildren children (UI (UIPanel sOpts cOpts pOpts _)) = UI (UIPanel sOpts cOpts pOpts children)
-setChildren children (UI (UITabSet sOpts tOpts _)) = UI (UITabSet sOpts tOpts children)
-setChildren children (UI (UITab cOpts tOpts _)) = UI (UITab cOpts tOpts children)
-setChildren _ def = def
+setChildren :: [UI] UI -> UI
+setChildren children (UI type _) = UI type children
 
-accChildDef :: NodePath (UIDef -> (a,UIDef)) UIDef -> (Maybe a, UIDef)
+accChildDef :: NodePath (UI -> (a,UI)) UI -> (Maybe a, UI)
 accChildDef [] f def = appFst Just (f def)
 accChildDef [s:ss] f def
 	# children = getChildren def
@@ -768,8 +751,8 @@ where
     iconCls		= fmap (\icon -> "icon-" +++ icon) ('DM'.get ICON_ATTRIBUTE attributes)
 */
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
-createPrompt :: String -> UIDef
-createPrompt hint = UI (UIContainer sizeOpts containerOpts [stringDisplay hint])
+createPrompt :: String -> UI
+createPrompt hint = UI (UIContainer sizeOpts containerOpts) [stringDisplay hint]
 where
 	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 5, bottom = 10, left = 5}
 			   , width = Just FlexSize, minWidth = Just WrapBound, height = Just WrapSize}
@@ -793,7 +776,7 @@ addButtonPanel attr direction buttons items
 		(Just "bottom",Vertical)	= (items ++ [fillWidth (buttonPanel buttons)],Vertical)
 		(Just "bottom",Horizontal)	= ([setDirection Horizontal (defaultContainer items),fillWidth (buttonPanel buttons)],Vertical)
 */
-addTriggersToUIDef :: [(Trigger,String,String)] UIDef -> UIDef
+addTriggersToUIDef :: [(Trigger,String,String)] UI -> UI
 //addTriggersToUIDef triggers (UIForm stack=:{UIForm|controls})
 //    = UIForm {UIForm|stack & controls = [(addTriggersToControl triggers c,m)\\ (c,m) <- controls]}
 //addTriggersToUIDef triggers (UIBlock subui)
@@ -820,11 +803,11 @@ addTriggerToControl :: (Trigger,String,String) UIControl -> UIControl
 addTriggerToControl t c = c
 
 //GUI combinators						
-hjoin :: ![UIDef] -> UIDef
-hjoin items = UI (UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Horizontal, halign = AlignLeft, valign = AlignMiddle} items)
+hjoin :: ![UI] -> UI
+hjoin items = UI (UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Horizontal, halign = AlignLeft, valign = AlignMiddle}) items
 
-vjoin :: ![UIDef] -> UIDef
-vjoin items = UI (UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Vertical, halign = AlignLeft, valign = AlignTop} items)
+vjoin :: ![UI] -> UI
+vjoin items = UI (UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Vertical, halign = AlignLeft, valign = AlignTop}) items
 						
 //Container operations
 addItemToUI :: (Maybe Int) UIControl UIControl -> UIControl
@@ -996,30 +979,30 @@ where
     setIfNotSet attr (k,v)
         = maybe ('DM'.put k v attr) (const attr) ('DM'.get k attr)
 
-tweakUI :: (UIControl -> UIControl) UIDef -> UIDef
+tweakUI :: (UIControl -> UIControl) UI -> UI
 //tweakUI f (UIForm stack=:{UIForm|controls})
 //	= UIForm {UIForm|stack & controls = [(f c,a) \\ (c,a) <- controls]}
 //tweakUI f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
 	//= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map f items}}
-tweakUI f (UI (UIControl control))
-    = UI (UIControl (f control))
+tweakUI f (UI (UIControl control) items)
+    = UI (UIControl (f control)) items
 tweakUI f def = def
 
-tweakAttr :: (UIAttributes -> UIAttributes) UIDef -> UIDef
+tweakAttr :: (UIAttributes -> UIAttributes) UI -> UI
 //tweakAttr f (UIForm stack=:{UIForm|attributes})
 //	= UIForm {UIForm|stack & attributes = f attributes}
 //tweakAttr f (UIBlock sub=:{UIBlock|attributes})
 //	= UIBlock {UIBlock|sub & attributes = f attributes}
 tweakAttr f def = def
 
-tweakControls :: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDef -> UIDef
+tweakControls :: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UI -> UI
 //tweakControls f (UIForm stack=:{UIForm|controls})
 //	= UIForm {UIForm|stack & controls = f controls}
 //tweakControls f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
 	//= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map fst (f [(c,'DM'.newMap) \\ c <- items])}}
-tweakControls f (UI (UIControl control))
+tweakControls f (UI (UIControl control) items)
 	= case f [(control,'DM'.newMap)] of
-		[(control,_):_] = UI (UIControl control)
-		_ 				= UI (UIControl control)
+		[(control,_):_] = UI (UIControl control) items
+		_ 				= UI (UIControl control) items
 tweakControls f def	= def
 

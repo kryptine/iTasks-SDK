@@ -25,24 +25,24 @@ from Data.Maybe import :: Maybe
 //Basic DSL for creating more complex layouts
 layoutChild :: NodePath Layout-> Layout
 
-insertChild :: NodePath UIDef -> Layout
+insertChild :: NodePath UI -> Layout
 removeChild :: NodePath -> Layout
 
-moveChildren :: NodePath (UIDef -> Bool) NodePath -> Layout
+moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
 
 layoutChildrenOf :: NodePath Layout -> Layout
 
-changeContainerType :: (UIDef -> UIDef) -> Layout
-wrapInContainer :: (UIDef -> UIDef) -> Layout
+changeContainerType :: (UI -> UI) -> Layout
+wrapInContainer :: (UI -> UI) -> Layout
 
 sequenceLayouts :: [Layout] -> Layout
-conditionalLayout :: (UIDef -> Bool) Layout -> Layout
-selectLayout :: [(UIDef -> Bool,Layout)] -> Layout
+conditionalLayout :: (UI -> Bool) Layout -> Layout
+selectLayout :: [(UI -> Bool, Layout)] -> Layout
 
 //Generation of prompts
 class descr d
 where
-	toPrompt		:: !d -> UIDef
+	toPrompt		:: !d -> UI
 
 instance descr ()                           //No prompt
 instance descr String						//Simple instruction
@@ -52,9 +52,6 @@ instance descr (!String, !String)			//Title attribute + instruction
 // OBSOLETE
 // OBSOLETE
 // OBSOLETE
-
-//:: UIBlocksCombinator   :== [UIBlock] [UIAction] -> UIBlock
-//autoLayoutBlocks        :: [UIBlock] [UIAction] -> UIBlock
 
 :: SetValueAttribute a = SetValueAttribute !String (a -> String)
 
@@ -122,8 +119,8 @@ instance tune NoUserInterface
 //blockToPanel        :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
 
 //Combinators on interface definitions
-hjoin :: ![UIDef] -> UIDef
-vjoin :: ![UIDef] -> UIDef
+hjoin :: ![UI] -> UI
+vjoin :: ![UI] -> UI
 
 //Operations on containers
 addItemToUI		:: (Maybe Int) UIControl UIControl -> UIControl
@@ -140,9 +137,9 @@ actionsToButtons			:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
 actionsToMenus				:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
 actionsToCloseId			:: ![UIAction]	-> (!Maybe String,![UIAction])
 
-tweakUI			:: (UIControl -> UIControl) UIDef -> UIDef
-tweakAttr		:: (UIAttributes -> UIAttributes) UIDef -> UIDef 
-tweakControls	:: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDef -> UIDef
+tweakUI			:: (UIControl -> UIControl) UI -> UI
+tweakAttr		:: (UIAttributes -> UIAttributes) UI -> UI
+tweakControls	:: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UI -> UI
 
 //decorateControls    :: [(UIControl,UIAttributes)] -> [UIControl]
 //decorateControl     :: Bool (!UIControl,!UIAttributes) -> UIControl
