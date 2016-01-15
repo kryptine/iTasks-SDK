@@ -28,6 +28,18 @@ derive class iTask UIHSizeOpts, UIFSizeOpts, UIButtonOpts, UIMenuButtonOpts, UIT
 instance Functor UIViewOpts
 where fmap f opts=:{UIViewOpts|value} = {UIViewOpts|opts & value = fmap f value}
 
+ui :: UINodeType -> UI
+ui type = UI type 'DM'.newMap []
+
+uic :: UINodeType [UI] -> UI
+uic type items = UI type 'DM'.newMap items
+
+uia :: UINodeType UIAttributes -> UI
+uia type attr = UI type attr []
+
+uiac :: UINodeType UIAttributes [UI] -> UI
+uiac type attr items = UI type attr items
+
 setSize :: !UISize !UISize !UI -> UI
 setSize width height def
     | hasSizeOpts def = setSizeOpts (\opts -> {UISizeOpts| opts & width = Just width, height = Just height}) def
@@ -129,52 +141,52 @@ setLeftMargin :: !Int !UI -> UI
 setLeftMargin left def = setMargin (\m -> {m & left = left}) def
 
 setPadding :: !Int !Int !Int !Int !UI -> UI
-setPadding top right bottom left (UI (UIContainer sOpts cOpts) items)
-	= UI (UIContainer sOpts {UIContainerOpts|cOpts & padding = Just {top=top,right=right,bottom=bottom,left=left}}) items
-setPadding top right bottom left (UI (UIPanel sOpts cOpts pOpts) items)
-	= UI (UIPanel sOpts {UIContainerOpts|cOpts & padding = Just {top=top,right=right,bottom=bottom,left=left}} pOpts) items
+setPadding top right bottom left (UI (UIContainer sOpts cOpts) attr items)
+	= UI (UIContainer sOpts {UIContainerOpts|cOpts & padding = Just {top=top,right=right,bottom=bottom,left=left}}) attr items
+setPadding top right bottom left (UI (UIPanel sOpts cOpts pOpts) attr items)
+	= UI (UIPanel sOpts {UIContainerOpts|cOpts & padding = Just {top=top,right=right,bottom=bottom,left=left}} pOpts) attr items
 setPadding top right bottom left def = def
 
 setTitle :: !String !UI -> UI
-setTitle title (UI (UIPanel sOpts cOpts opts) items) = UI (UIPanel sOpts cOpts {UIPanelOpts|opts & title = Just (escapeStr title)}) items
-setTitle title (UI (UITab cOpts opts) items) = UI (UITab cOpts {UITabOpts|opts & title = escapeStr title}) items
-setTitle title def = def
+setTitle title (UI (UIPanel sOpts cOpts opts) attr items) = UI (UIPanel sOpts cOpts {UIPanelOpts|opts & title = Just (escapeStr title)}) attr items
+setTitle title (UI (UITab cOpts opts) attr items) = UI (UITab cOpts {UITabOpts|opts & title = escapeStr title}) attr items
+setTitle title (UI type attr items) = UI type ('DM'.put "title" title attr) items
 
 setFramed :: !Bool !UI -> UI
-setFramed frame (UI (UIPanel sOpts cOpts opts) items) = UI (UIPanel sOpts cOpts {UIPanelOpts|opts & frame = frame}) items
+setFramed frame (UI (UIPanel sOpts cOpts opts) attr items) = UI (UIPanel sOpts cOpts {UIPanelOpts|opts & frame = frame}) attr items
 setFramed frame def = def
 
 setIconCls :: !String !UI -> UI
-setIconCls iconCls (UI (UIControl (UIActionButton sOpts aOpts opts)) items)
-	= UI (UIControl (UIActionButton sOpts aOpts {UIButtonOpts|opts & iconCls = Just iconCls})) items
-setIconCls iconCls (UI (UIControl (UIMenuButton sOpts opts)) items)
-	= UI (UIControl (UIMenuButton sOpts {UIMenuButtonOpts|opts & iconCls = Just iconCls})) items
-setIconCls iconCls (UI (UIControl (UIIcon sOpts opts)) items)
-	= UI (UIControl (UIIcon sOpts {UIIconOpts|opts & iconCls = iconCls})) items
-setIconCls iconCls (UI (UIPanel sOpts cOpts pOpts) items)
-	= UI (UIPanel sOpts cOpts {UIPanelOpts|pOpts & iconCls = Just iconCls}) items
+setIconCls iconCls (UI (UIControl (UIActionButton sOpts aOpts opts)) attr items)
+	= UI (UIControl (UIActionButton sOpts aOpts {UIButtonOpts|opts & iconCls = Just iconCls})) attr items
+setIconCls iconCls (UI (UIControl (UIMenuButton sOpts opts)) attr items)
+	= UI (UIControl (UIMenuButton sOpts {UIMenuButtonOpts|opts & iconCls = Just iconCls})) attr items
+setIconCls iconCls (UI (UIControl (UIIcon sOpts opts)) attr items)
+	= UI (UIControl (UIIcon sOpts {UIIconOpts|opts & iconCls = iconCls})) attr items
+setIconCls iconCls (UI (UIPanel sOpts cOpts pOpts) attr items)
+	= UI (UIPanel sOpts cOpts {UIPanelOpts|pOpts & iconCls = Just iconCls}) attr items
 setIconCls iconCls def = def
 
 setBaseCls :: !String !UI -> UI
-setBaseCls baseCls (UI (UIContainer sOpts cOpts) items)
-	= UI (UIContainer sOpts {UIContainerOpts|cOpts & baseCls = Just baseCls}) items
-setBaseCls baseCls (UI (UIPanel sOpts cOpts pOpts) items)
-	= UI (UIPanel sOpts {UIContainerOpts|cOpts & baseCls = Just baseCls} pOpts) items
+setBaseCls baseCls (UI (UIContainer sOpts cOpts) attr items)
+	= UI (UIContainer sOpts {UIContainerOpts|cOpts & baseCls = Just baseCls}) attr items
+setBaseCls baseCls (UI (UIPanel sOpts cOpts pOpts) attr items)
+	= UI (UIPanel sOpts {UIContainerOpts|cOpts & baseCls = Just baseCls} pOpts) attr items
 setBaseCls baseCls def = def
 
 setDirection :: !UIDirection !UI -> UI
-setDirection dir (UI (UIContainer sOpts cOpts) items)   = UI (UIContainer sOpts {UIContainerOpts|cOpts & direction = dir}) items
-setDirection dir (UI (UIPanel sOpts cOpts pOpts) items) = UI (UIPanel sOpts {UIContainerOpts|cOpts & direction = dir} pOpts) items
+setDirection dir (UI (UIContainer sOpts cOpts) attr items)   = UI (UIContainer sOpts {UIContainerOpts|cOpts & direction = dir}) attr items
+setDirection dir (UI (UIPanel sOpts cOpts pOpts) attr items) = UI (UIPanel sOpts {UIContainerOpts|cOpts & direction = dir} pOpts) attr items
 setDirection dir def = def
 
 setHalign :: !UIHAlign !UI -> UI
-setHalign align (UI (UIContainer sOpts cOpts) items)   = UI (UIContainer sOpts {UIContainerOpts|cOpts & halign = align}) items
-setHalign align (UI (UIPanel sOpts cOpts pOpts) items) = UI (UIPanel sOpts {UIContainerOpts|cOpts & halign = align} pOpts) items
+setHalign align (UI (UIContainer sOpts cOpts) attr items)   = UI (UIContainer sOpts {UIContainerOpts|cOpts & halign = align}) attr items
+setHalign align (UI (UIPanel sOpts cOpts pOpts) attr items) = UI (UIPanel sOpts {UIContainerOpts|cOpts & halign = align} pOpts) attr items
 setHalign align def = def
 
 setValign :: !UIVAlign !UI -> UI
-setValign align (UI (UIContainer sOpts cOpts) items)   = UI (UIContainer sOpts {UIContainerOpts|cOpts & valign = align}) items
-setValign align (UI (UIPanel sOpts cOpts opts) items)  = UI (UIPanel sOpts {cOpts & valign = align} opts) items
+setValign align (UI (UIContainer sOpts cOpts) attr items)   = UI (UIContainer sOpts {UIContainerOpts|cOpts & valign = align}) attr items
+setValign align (UI (UIPanel sOpts cOpts opts) attr items)  = UI (UIPanel sOpts {cOpts & valign = align} opts) attr items
 setValign align def = def
 
 defaultSizeOpts :: UISizeOpts
@@ -189,157 +201,157 @@ defaultFSizeOpts = {UIFSizeOpts|margins = Nothing}
 defaultContainerOpts :: UIContainerOpts
 defaultContainerOpts = {UIContainerOpts|direction = Vertical, halign = AlignLeft, valign = AlignTop, padding = Nothing, baseCls=Nothing,bodyCls=Nothing}
 
-defaultContainer :: ![UI] -> UI
-defaultContainer items = UI (UIContainer defaultSizeOpts defaultContainerOpts) items
+defaultContainer :: UINodeType
+defaultContainer = UIContainer defaultSizeOpts defaultContainerOpts
 
-defaultPanel :: ![UI] -> UI
-defaultPanel items = UI (UIPanel defaultSizeOpts defaultContainerOpts defaultPanelOpts) items
+defaultPanel :: UINodeType
+defaultPanel = UIPanel defaultSizeOpts defaultContainerOpts defaultPanelOpts
 
 defaultPanelOpts :: UIPanelOpts
 defaultPanelOpts = {UIPanelOpts|title=Nothing,iconCls=Nothing,frame=False,hotkeys=Nothing}
 
-defaultTabSet :: ![UI] -> UI
-defaultTabSet items = UI (UITabSet defaultSizeOpts defaultTabSetOpts) items
+defaultTabSet :: UINodeType 
+defaultTabSet = UITabSet defaultSizeOpts defaultTabSetOpts
 
 defaultTabSetOpts :: UITabSetOpts
 defaultTabSetOpts = {UITabSetOpts|activeTab = 0}
 
-defaultTab :: ![UI] -> UI
-defaultTab items = UI (UITab defaultContainerOpts defaultTabOpts) items
+defaultTab :: UINodeType
+defaultTab = UITab defaultContainerOpts defaultTabOpts
 
 defaultTabOpts :: UITabOpts
 defaultTabOpts = {UITabOpts|title="Untitled",iconCls=Nothing,focusTaskId=Nothing,closeTaskId=Nothing}
 
-defaultWindow :: ![UI] -> UI
-defaultWindow items = UI (UIWindow defaultSizeOpts defaultContainerOpts defaultWindowOpts) items
+defaultWindow :: UINodeType
+defaultWindow = UIWindow defaultSizeOpts defaultContainerOpts defaultWindowOpts
 
 defaultWindowOpts :: UIWindowOpts
 defaultWindowOpts = {UIWindowOpts|windowType=FloatingWindow,title=Nothing,iconCls=Nothing,vpos=Nothing,hpos=Nothing,closeTaskId=Nothing,focusTaskId=Nothing}
 
 stringDisplay :: !String -> UI
-stringDisplay value = UI (UIControl (UIViewString defaultSizeOpts {UIViewOpts|value = Just (escapeStr value)})) []
+stringDisplay value = ui (UIControl (UIViewString defaultSizeOpts {UIViewOpts|value = Just (escapeStr value)}))
 
 hasFSizeOpts :: !UI -> Bool
-hasFSizeOpts (UI (UIControl (UIViewCheckbox sOpts vOpts)) items) = True
-hasFSizeOpts (UI (UIControl (UIEditCheckbox sOpts eOpts)) items) = True
-hasFSizeOpts (UI (UIControl (UIIcon sOpts opts)) items)          = True
-hasFSizeOpts _                                                   = False
+hasFSizeOpts (UI (UIControl (UIViewCheckbox sOpts vOpts)) attr items) = True
+hasFSizeOpts (UI (UIControl (UIEditCheckbox sOpts eOpts)) attr items) = True
+hasFSizeOpts (UI (UIControl (UIIcon sOpts opts)) attr items)          = True
+hasFSizeOpts _                                                        = False
 
 getFSizeOpts :: (UIFSizeOpts -> a) UI -> a
-getFSizeOpts f (UI (UIControl (UIViewCheckbox sOpts vOpts)) items) = f sOpts
-getFSizeOpts f (UI (UIControl (UIEditCheckbox sOpts eOpts)) items) = f sOpts
-getFSizeOpts f (UI (UIControl (UIIcon sOpts opts)) items)          = f sOpts
+getFSizeOpts f (UI (UIControl (UIViewCheckbox sOpts vOpts)) attr items) = f sOpts
+getFSizeOpts f (UI (UIControl (UIEditCheckbox sOpts eOpts)) attr items) = f sOpts
+getFSizeOpts f (UI (UIControl (UIIcon sOpts opts)) attr items)          = f sOpts
 
 setFSizeOpts :: (UIFSizeOpts -> UIFSizeOpts) UI -> UI
-setFSizeOpts f (UI (UIControl (UIViewCheckbox sOpts vOpts)) items) = UI (UIControl (UIViewCheckbox (f sOpts) vOpts)) items
-setFSizeOpts f (UI (UIControl (UIEditCheckbox sOpts eOpts)) items) = UI (UIControl (UIEditCheckbox (f sOpts) eOpts)) items
-setFSizeOpts f (UI (UIControl (UIIcon sOpts opts)) items)          = UI (UIControl (UIIcon (f sOpts) opts)) items
+setFSizeOpts f (UI (UIControl (UIViewCheckbox sOpts vOpts)) attr items) = UI (UIControl (UIViewCheckbox (f sOpts) vOpts)) attr items
+setFSizeOpts f (UI (UIControl (UIEditCheckbox sOpts eOpts)) attr items) = UI (UIControl (UIEditCheckbox (f sOpts) eOpts)) attr items
+setFSizeOpts f (UI (UIControl (UIIcon sOpts opts)) attr items)          = UI (UIControl (UIIcon (f sOpts) opts)) attr items
 setFSizeOpts f def = def
 
 hasSizeOpts :: !UI -> Bool
-hasSizeOpts (UI (UIControl (UIViewString sOpts vOpts)) items) = True
-hasSizeOpts (UI (UIControl (UIViewHtml sOpts vOpts)) items) = True
-hasSizeOpts (UI (UIControl (UIEditNote sOpts eOpts)) items) = True
-hasSizeOpts (UI (UIControl (UIEditButton sOpts eOpts opts)) items)	= True
-hasSizeOpts (UI (UIControl (UIListChoice sOpts cOpts)) items) = True
-hasSizeOpts (UI (UIControl (UIRadioGroup sOpts cOpts)) items) = True
-hasSizeOpts (UI (UIControl (UICheckboxGroup sOpts cOpts)) items) = True
-hasSizeOpts (UI (UIControl (UIGrid sOpts cOpts opts)) items) = True
-hasSizeOpts (UI (UIControl (UITree sOpts cOpts opts)) items) = True
-hasSizeOpts (UI (UIControl (UIActionButton sOpts aOpts opts)) items) = True
-hasSizeOpts (UI (UIControl (UIMenuButton sOpts opts)) items) = True
-hasSizeOpts (UI (UIControl (UITasklet sOpts opts)) items) = True
-hasSizeOpts (UI (UIControl (UIEditlet sOpts opts)) items) = True
-hasSizeOpts (UI (UIContainer sOpts cOpts) items) = True
-hasSizeOpts (UI (UIPanel sOpts cOpts pOpts) items) = True
-hasSizeOpts (UI (UITabSet sOpts opts) items) = True
+hasSizeOpts (UI (UIControl (UIViewString sOpts vOpts)) attr items) = True
+hasSizeOpts (UI (UIControl (UIViewHtml sOpts vOpts)) attr items) = True
+hasSizeOpts (UI (UIControl (UIEditNote sOpts eOpts)) attr items) = True
+hasSizeOpts (UI (UIControl (UIEditButton sOpts eOpts opts)) attr items)	= True
+hasSizeOpts (UI (UIControl (UIListChoice sOpts cOpts)) attr items) = True
+hasSizeOpts (UI (UIControl (UIRadioGroup sOpts cOpts)) attr items) = True
+hasSizeOpts (UI (UIControl (UICheckboxGroup sOpts cOpts)) attr items) = True
+hasSizeOpts (UI (UIControl (UIGrid sOpts cOpts opts)) attr items) = True
+hasSizeOpts (UI (UIControl (UITree sOpts cOpts opts)) attr items) = True
+hasSizeOpts (UI (UIControl (UIActionButton sOpts aOpts opts)) attr items) = True
+hasSizeOpts (UI (UIControl (UIMenuButton sOpts opts)) attr items) = True
+hasSizeOpts (UI (UIControl (UITasklet sOpts opts)) attr items) = True
+hasSizeOpts (UI (UIControl (UIEditlet sOpts opts)) attr items) = True
+hasSizeOpts (UI (UIContainer sOpts cOpts) attr items) = True
+hasSizeOpts (UI (UIPanel sOpts cOpts pOpts) attr items) = True
+hasSizeOpts (UI (UITabSet sOpts opts) attr items) = True
 hasSizeOpts _ = False
 
 getSizeOpts :: (UISizeOpts -> a) UI -> a
-getSizeOpts f (UI (UIControl (UIViewString	sOpts vOpts)) items)      = f sOpts
-getSizeOpts f (UI (UIControl (UIViewHtml sOpts vOpts)) items)          = f sOpts
-getSizeOpts f (UI (UIControl (UIEditNote sOpts eOpts)) items)          = f sOpts
-getSizeOpts f (UI (UIControl (UIEditButton sOpts eOpts opts)) items)   = f sOpts
-getSizeOpts f (UI (UIControl (UIListChoice sOpts cOpts)) items)        = f sOpts
-getSizeOpts f (UI (UIControl (UIRadioGroup sOpts cOpts)) items)        = f sOpts
-getSizeOpts f (UI (UIControl (UICheckboxGroup sOpts cOpts)) items)     = f sOpts
-getSizeOpts f (UI (UIControl (UIGrid sOpts cOpts opts)) items)         = f sOpts
-getSizeOpts f (UI (UIControl (UITree sOpts cOpts opts)) items)         = f sOpts
-getSizeOpts f (UI (UIControl (UIActionButton sOpts aOpts opts)) items) = f sOpts
-getSizeOpts f (UI (UIControl (UIMenuButton sOpts opts)) items)	       = f sOpts
-getSizeOpts f (UI (UIControl (UITasklet sOpts opts)) items)            = f sOpts
-getSizeOpts f (UI (UIControl (UIEditlet sOpts opts)) items)            = f sOpts
-getSizeOpts f (UI (UIContainer sOpts iOpts) items)                     = f sOpts
-getSizeOpts f (UI (UIPanel sOpts iOpts pOpts) items)	               = f sOpts
-getSizeOpts f (UI (UITabSet sOpts opts) items)                         = f sOpts
+getSizeOpts f (UI (UIControl (UIViewString	sOpts vOpts)) attr items)       = f sOpts
+getSizeOpts f (UI (UIControl (UIViewHtml sOpts vOpts)) attr items)          = f sOpts
+getSizeOpts f (UI (UIControl (UIEditNote sOpts eOpts)) attr items)          = f sOpts
+getSizeOpts f (UI (UIControl (UIEditButton sOpts eOpts opts)) attr items)   = f sOpts
+getSizeOpts f (UI (UIControl (UIListChoice sOpts cOpts)) attr items)        = f sOpts
+getSizeOpts f (UI (UIControl (UIRadioGroup sOpts cOpts)) attr items)        = f sOpts
+getSizeOpts f (UI (UIControl (UICheckboxGroup sOpts cOpts)) attr items)     = f sOpts
+getSizeOpts f (UI (UIControl (UIGrid sOpts cOpts opts)) attr items)         = f sOpts
+getSizeOpts f (UI (UIControl (UITree sOpts cOpts opts)) attr items)         = f sOpts
+getSizeOpts f (UI (UIControl (UIActionButton sOpts aOpts opts)) attr items) = f sOpts
+getSizeOpts f (UI (UIControl (UIMenuButton sOpts opts)) attr items)         = f sOpts
+getSizeOpts f (UI (UIControl (UITasklet sOpts opts)) attr items)            = f sOpts
+getSizeOpts f (UI (UIControl (UIEditlet sOpts opts)) attr items)            = f sOpts
+getSizeOpts f (UI (UIContainer sOpts iOpts) attr items)                     = f sOpts
+getSizeOpts f (UI (UIPanel sOpts iOpts pOpts) attr items)                   = f sOpts
+getSizeOpts f (UI (UITabSet sOpts opts) attr items)                         = f sOpts
 
 setSizeOpts :: (UISizeOpts -> UISizeOpts) UI -> UI
-setSizeOpts f (UI (UIControl (UIViewString	sOpts vOpts)) items)       = UI (UIControl (UIViewString (f sOpts) vOpts)) items
-setSizeOpts f (UI (UIControl (UIViewHtml sOpts vOpts)) items)          = UI (UIControl (UIViewHtml (f sOpts) vOpts)) items
-setSizeOpts f (UI (UIControl (UIEditNote sOpts eOpts)) items)          = UI (UIControl (UIEditNote (f sOpts) eOpts)) items
-setSizeOpts f (UI (UIControl (UIEditButton sOpts eOpts opts)) items)   = UI (UIControl (UIEditButton (f sOpts) eOpts opts)) items
-setSizeOpts f (UI (UIControl (UIListChoice sOpts cOpts)) items)        = UI (UIControl (UIListChoice (f sOpts) cOpts)) items
-setSizeOpts f (UI (UIControl (UIRadioGroup sOpts cOpts)) items)        = UI (UIControl (UIRadioGroup (f sOpts) cOpts)) items
-setSizeOpts f (UI (UIControl (UICheckboxGroup sOpts cOpts)) items)     = UI (UIControl (UICheckboxGroup (f sOpts) cOpts)) items
-setSizeOpts f (UI (UIControl (UIGrid sOpts cOpts opts)) items)         = UI (UIControl (UIGrid (f sOpts) cOpts opts)) items
-setSizeOpts f (UI (UIControl (UITree sOpts cOpts opts)) items)         = UI (UIControl (UITree (f sOpts) cOpts opts)) items
-setSizeOpts f (UI (UIControl (UIActionButton sOpts aOpts opts)) items) = UI (UIControl (UIActionButton (f sOpts) aOpts opts)) items
-setSizeOpts f (UI (UIControl (UIMenuButton sOpts opts)) items)         = UI (UIControl (UIMenuButton (f sOpts) opts)) items
-setSizeOpts f (UI (UIControl (UITasklet sOpts opts)) items)            = UI (UIControl (UITasklet (f sOpts) opts)) items
-setSizeOpts f (UI (UIControl (UIEditlet sOpts opts)) items)            = UI (UIControl (UIEditlet (f sOpts) opts)) items
-setSizeOpts f (UI (UIContainer sOpts cOpts) items)                     = UI (UIContainer (f sOpts) cOpts) items
-setSizeOpts f (UI (UIPanel sOpts cOpts pOpts) items)                   = UI (UIPanel (f sOpts) cOpts pOpts) items
-setSizeOpts f (UI (UITabSet sOpts opts) items)                         = UI (UITabSet (f sOpts) opts) items
-setSizeOpts f def                                                      = def
+setSizeOpts f (UI (UIControl (UIViewString	sOpts vOpts)) attr items)       = UI (UIControl (UIViewString (f sOpts) vOpts)) attr items
+setSizeOpts f (UI (UIControl (UIViewHtml sOpts vOpts)) attr items)          = UI (UIControl (UIViewHtml (f sOpts) vOpts)) attr items
+setSizeOpts f (UI (UIControl (UIEditNote sOpts eOpts)) attr items)          = UI (UIControl (UIEditNote (f sOpts) eOpts)) attr items
+setSizeOpts f (UI (UIControl (UIEditButton sOpts eOpts opts)) attr items)   = UI (UIControl (UIEditButton (f sOpts) eOpts opts)) attr items
+setSizeOpts f (UI (UIControl (UIListChoice sOpts cOpts)) attr items)        = UI (UIControl (UIListChoice (f sOpts) cOpts)) attr items
+setSizeOpts f (UI (UIControl (UIRadioGroup sOpts cOpts)) attr items)        = UI (UIControl (UIRadioGroup (f sOpts) cOpts)) attr items
+setSizeOpts f (UI (UIControl (UICheckboxGroup sOpts cOpts)) attr items)     = UI (UIControl (UICheckboxGroup (f sOpts) cOpts)) attr items
+setSizeOpts f (UI (UIControl (UIGrid sOpts cOpts opts)) attr items)         = UI (UIControl (UIGrid (f sOpts) cOpts opts)) attr items
+setSizeOpts f (UI (UIControl (UITree sOpts cOpts opts)) attr items)         = UI (UIControl (UITree (f sOpts) cOpts opts)) attr items
+setSizeOpts f (UI (UIControl (UIActionButton sOpts aOpts opts)) attr items) = UI (UIControl (UIActionButton (f sOpts) aOpts opts)) attr items
+setSizeOpts f (UI (UIControl (UIMenuButton sOpts opts)) attr items)         = UI (UIControl (UIMenuButton (f sOpts) opts)) attr items
+setSizeOpts f (UI (UIControl (UITasklet sOpts opts)) attr items)            = UI (UIControl (UITasklet (f sOpts) opts)) attr items
+setSizeOpts f (UI (UIControl (UIEditlet sOpts opts)) attr items)            = UI (UIControl (UIEditlet (f sOpts) opts)) attr items
+setSizeOpts f (UI (UIContainer sOpts cOpts) attr items)                     = UI (UIContainer (f sOpts) cOpts) attr items
+setSizeOpts f (UI (UIPanel sOpts cOpts pOpts) attr items)                   = UI (UIPanel (f sOpts) cOpts pOpts) attr items
+setSizeOpts f (UI (UITabSet sOpts opts) attr items)                         = UI (UITabSet (f sOpts) opts) attr items
+setSizeOpts f def                                                           = def
 
 hasHSizeOpts :: !UI -> Bool
-hasHSizeOpts (UI (UIControl (UIViewDocument sOpts vOpts)) items)      = True
-hasHSizeOpts (UI (UIControl (UIViewSlider sOpts vOpts opts)) items)   = True
-hasHSizeOpts (UI (UIControl (UIViewProgress sOpts vOpts opts)) items) = True
-hasHSizeOpts (UI (UIControl (UIEditString sOpts eOpts)) items)        = True
-hasHSizeOpts (UI (UIControl (UIEditPassword sOpts eOpts)) items)      = True
-hasHSizeOpts (UI (UIControl (UIEditInt sOpts eOpts)) items)           = True
-hasHSizeOpts (UI (UIControl (UIEditDecimal sOpts eOpts)) items)       = True
-hasHSizeOpts (UI (UIControl (UIEditSlider sOpts eOpts opts)) items)   = True
-hasHSizeOpts (UI (UIControl (UIEditDate sOpts eOpts)) items)          = True
-hasHSizeOpts (UI (UIControl (UIEditTime sOpts eOpts)) items)          = True
-hasHSizeOpts (UI (UIControl (UIEditDateTime sOpts eOpts)) items)      = True
-hasHSizeOpts (UI (UIControl (UIEditDocument sOpts eOpts)) items)      = True
-hasHSizeOpts (UI (UIControl (UIDropdown sOpts cOpts)) items)          = True
-hasHSizeOpts (UI (UIControl (UILabel sOpts opts)) items)              = True
-hasHSizeOpts _                                                        = False
+hasHSizeOpts (UI (UIControl (UIViewDocument sOpts vOpts)) attr items)      = True
+hasHSizeOpts (UI (UIControl (UIViewSlider sOpts vOpts opts)) attr items)   = True
+hasHSizeOpts (UI (UIControl (UIViewProgress sOpts vOpts opts)) attr items) = True
+hasHSizeOpts (UI (UIControl (UIEditString sOpts eOpts)) attr items)        = True
+hasHSizeOpts (UI (UIControl (UIEditPassword sOpts eOpts)) attr items)      = True
+hasHSizeOpts (UI (UIControl (UIEditInt sOpts eOpts)) attr items)           = True
+hasHSizeOpts (UI (UIControl (UIEditDecimal sOpts eOpts)) attr items)       = True
+hasHSizeOpts (UI (UIControl (UIEditSlider sOpts eOpts opts)) attr items)   = True
+hasHSizeOpts (UI (UIControl (UIEditDate sOpts eOpts)) attr items)          = True
+hasHSizeOpts (UI (UIControl (UIEditTime sOpts eOpts)) attr items)          = True
+hasHSizeOpts (UI (UIControl (UIEditDateTime sOpts eOpts)) attr items)      = True
+hasHSizeOpts (UI (UIControl (UIEditDocument sOpts eOpts)) attr items)      = True
+hasHSizeOpts (UI (UIControl (UIDropdown sOpts cOpts)) attr items)          = True
+hasHSizeOpts (UI (UIControl (UILabel sOpts opts)) attr items)              = True
+hasHSizeOpts _                                                             = False
 
 getHSizeOpts :: (UIHSizeOpts -> a) UI -> a
-getHSizeOpts f (UI (UIControl (UIViewDocument sOpts vOpts)) items)      = f sOpts
-getHSizeOpts f (UI (UIControl (UIViewSlider sOpts vOpts opts)) items)   = f sOpts
-getHSizeOpts f (UI (UIControl (UIViewProgress sOpts vOpts opts)) items) = f sOpts
-getHSizeOpts f (UI (UIControl (UIEditString	sOpts eOpts)) items)        = f sOpts
-getHSizeOpts f (UI (UIControl (UIEditPassword sOpts eOpts)) items)      = f sOpts
-getHSizeOpts f (UI (UIControl (UIEditInt sOpts eOpts)) items)           = f sOpts
-getHSizeOpts f (UI (UIControl (UIEditDecimal sOpts eOpts)) items)       = f sOpts
-getHSizeOpts f (UI (UIControl (UIEditSlider sOpts eOpts opts)) items)   = f sOpts
-getHSizeOpts f (UI (UIControl (UIEditDate sOpts eOpts)) items)          = f sOpts
-getHSizeOpts f (UI (UIControl (UIEditTime sOpts eOpts)) items)          = f sOpts
-getHSizeOpts f (UI (UIControl (UIEditDateTime sOpts eOpts)) items)      = f sOpts
-getHSizeOpts f (UI (UIControl (UIEditDocument sOpts eOpts)) items)      = f sOpts
-getHSizeOpts f (UI (UIControl (UIDropdown sOpts cOpts)) items)          = f sOpts
-getHSizeOpts f (UI (UIControl (UILabel sOpts opts)) items)              = f sOpts
+getHSizeOpts f (UI (UIControl (UIViewDocument sOpts vOpts)) attr items)      = f sOpts
+getHSizeOpts f (UI (UIControl (UIViewSlider sOpts vOpts opts)) attr items)   = f sOpts
+getHSizeOpts f (UI (UIControl (UIViewProgress sOpts vOpts opts)) attr items) = f sOpts
+getHSizeOpts f (UI (UIControl (UIEditString	sOpts eOpts)) attr items)        = f sOpts
+getHSizeOpts f (UI (UIControl (UIEditPassword sOpts eOpts)) attr items)      = f sOpts
+getHSizeOpts f (UI (UIControl (UIEditInt sOpts eOpts)) attr items)           = f sOpts
+getHSizeOpts f (UI (UIControl (UIEditDecimal sOpts eOpts)) attr items)       = f sOpts
+getHSizeOpts f (UI (UIControl (UIEditSlider sOpts eOpts opts)) attr items)   = f sOpts
+getHSizeOpts f (UI (UIControl (UIEditDate sOpts eOpts)) attr items)          = f sOpts
+getHSizeOpts f (UI (UIControl (UIEditTime sOpts eOpts)) attr items)          = f sOpts
+getHSizeOpts f (UI (UIControl (UIEditDateTime sOpts eOpts)) attr items)      = f sOpts
+getHSizeOpts f (UI (UIControl (UIEditDocument sOpts eOpts)) attr items)      = f sOpts
+getHSizeOpts f (UI (UIControl (UIDropdown sOpts cOpts)) attr items)          = f sOpts
+getHSizeOpts f (UI (UIControl (UILabel sOpts opts)) attr items)              = f sOpts
 
 setHSizeOpts :: (UIHSizeOpts -> UIHSizeOpts) UI -> UI
-setHSizeOpts f (UI (UIControl (UIViewDocument sOpts vOpts)) items)      = UI (UIControl (UIViewDocument (f sOpts) vOpts)) items
-setHSizeOpts f (UI (UIControl (UIViewSlider sOpts vOpts opts)) items)   = UI (UIControl (UIViewSlider (f sOpts) vOpts opts)) items
-setHSizeOpts f (UI (UIControl (UIViewProgress sOpts vOpts opts)) items) = UI (UIControl (UIViewProgress (f sOpts) vOpts opts)) items
-setHSizeOpts f (UI (UIControl (UIEditString sOpts eOpts)) items)        = UI (UIControl (UIEditString (f sOpts) eOpts)) items
-setHSizeOpts f (UI (UIControl (UIEditPassword sOpts eOpts)) items)      = UI (UIControl (UIEditPassword (f sOpts) eOpts)) items
-setHSizeOpts f (UI (UIControl (UIEditInt sOpts eOpts)) items)           = UI (UIControl (UIEditInt (f sOpts) eOpts)) items
-setHSizeOpts f (UI (UIControl (UIEditDecimal sOpts eOpts)) items)       = UI (UIControl (UIEditDecimal (f sOpts) eOpts)) items
-setHSizeOpts f (UI (UIControl (UIEditSlider sOpts eOpts opts)) items)   = UI (UIControl (UIEditSlider (f sOpts) eOpts opts)) items
-setHSizeOpts f (UI (UIControl (UIEditDate sOpts eOpts)) items)          = UI (UIControl (UIEditDate (f sOpts) eOpts)) items
-setHSizeOpts f (UI (UIControl (UIEditTime sOpts eOpts)) items)          = UI (UIControl (UIEditTime (f sOpts) eOpts)) items
-setHSizeOpts f (UI (UIControl (UIEditDateTime sOpts eOpts)) items)      = UI (UIControl (UIEditDateTime (f sOpts) eOpts)) items
-setHSizeOpts f (UI (UIControl (UIEditDocument sOpts eOpts)) items)      = UI (UIControl (UIEditDocument (f sOpts) eOpts)) items
-setHSizeOpts f (UI (UIControl (UIDropdown sOpts cOpts)) items)          = UI (UIControl (UIDropdown (f sOpts) cOpts)) items
-setHSizeOpts f (UI (UIControl (UILabel sOpts opts)) items)              = UI (UIControl (UILabel (f sOpts) opts)) items
+setHSizeOpts f (UI (UIControl (UIViewDocument sOpts vOpts)) attr items)      = UI (UIControl (UIViewDocument (f sOpts) vOpts)) attr items
+setHSizeOpts f (UI (UIControl (UIViewSlider sOpts vOpts opts)) attr items)   = UI (UIControl (UIViewSlider (f sOpts) vOpts opts)) attr items
+setHSizeOpts f (UI (UIControl (UIViewProgress sOpts vOpts opts)) attr items) = UI (UIControl (UIViewProgress (f sOpts) vOpts opts)) attr items
+setHSizeOpts f (UI (UIControl (UIEditString sOpts eOpts)) attr items)        = UI (UIControl (UIEditString (f sOpts) eOpts)) attr items
+setHSizeOpts f (UI (UIControl (UIEditPassword sOpts eOpts)) attr items)      = UI (UIControl (UIEditPassword (f sOpts) eOpts)) attr items
+setHSizeOpts f (UI (UIControl (UIEditInt sOpts eOpts)) attr items)           = UI (UIControl (UIEditInt (f sOpts) eOpts)) attr items
+setHSizeOpts f (UI (UIControl (UIEditDecimal sOpts eOpts)) attr items)       = UI (UIControl (UIEditDecimal (f sOpts) eOpts)) attr items
+setHSizeOpts f (UI (UIControl (UIEditSlider sOpts eOpts opts)) attr items)   = UI (UIControl (UIEditSlider (f sOpts) eOpts opts)) attr items
+setHSizeOpts f (UI (UIControl (UIEditDate sOpts eOpts)) attr items)          = UI (UIControl (UIEditDate (f sOpts) eOpts)) attr items
+setHSizeOpts f (UI (UIControl (UIEditTime sOpts eOpts)) attr items)          = UI (UIControl (UIEditTime (f sOpts) eOpts)) attr items
+setHSizeOpts f (UI (UIControl (UIEditDateTime sOpts eOpts)) attr items)      = UI (UIControl (UIEditDateTime (f sOpts) eOpts)) attr items
+setHSizeOpts f (UI (UIControl (UIEditDocument sOpts eOpts)) attr items)      = UI (UIControl (UIEditDocument (f sOpts) eOpts)) attr items
+setHSizeOpts f (UI (UIControl (UIDropdown sOpts cOpts)) attr items)          = UI (UIControl (UIDropdown (f sOpts) cOpts)) attr items
+setHSizeOpts f (UI (UIControl (UILabel sOpts opts)) attr items)              = UI (UIControl (UILabel (f sOpts) opts)) attr items
 
 getMargins :: !UI -> (Maybe UISideSizes)
 getMargins def
@@ -380,25 +392,25 @@ where
 
 instance encodeUI UI
 where
-	encodeUI (UI UIEmpty _) 				    = component "itwc_raw_empty" []
-	encodeUI (UI (UIEditor _) [control]) 		= encodeUI control
-	encodeUI (UI (UICompoundEditor opts) defs)	= component "itwc_raw_compoundeditor"  [encodeUI opts, JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UICompoundContent defs)		= component "itwc_raw_compoundcontent" [JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIParallel defs) 				= component "itwc_raw_parallel" [JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIInteract defs) 				= component "itwc_raw_interact" [JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIStep defs) 					= component "itwc_raw_step" [JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI (UIAction action) _) 				= component "itwc_raw_action" [encodeUI action]
-	encodeUI (UI (UIContainer sopts iopts) defs) = component "itwc_container" [encodeUI sopts, encodeUI iopts,JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI (UIPanel sopts iopts opts) defs) = component "itwc_panel" [encodeUI sopts, encodeUI iopts, encodeUI opts
+	encodeUI (UI UIEmpty _ _)                           = component "itwc_raw_empty" []
+	encodeUI (UI (UIEditor _) attr [control])           = encodeUI control
+	encodeUI (UI (UIEditor opts) attr defs)     		= component "itwc_raw_compoundeditor" [encodeUI opts, JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI UICompoundContent attr defs)           = component "itwc_raw_compoundcontent" [JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI UIParallel attr defs)                  = component "itwc_raw_parallel" [JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI UIInteract attr defs)                  = component "itwc_raw_interact" [JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI UIStep attr defs)                      = component "itwc_raw_step" [JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI (UIAction action) _ _)                 = component "itwc_raw_action" [encodeUI action]
+	encodeUI (UI (UIContainer sopts iopts) attr defs)   = component "itwc_container" [encodeUI sopts, encodeUI iopts,JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI (UIPanel sopts iopts opts) attr defs)  = component "itwc_panel" [encodeUI sopts, encodeUI iopts, encodeUI opts
 																		,JSONObject [("items",JSONArray (map encodeUI defs))]]
 
-	encodeUI (UI (UITabSet sopts opts) defs)	    = component "itwc_tabset" [encodeUI sopts, encodeUI opts,JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI (UITab copts opts) defs) 	 	= component "itwc_tabitem" [encodeUI copts, encodeUI opts,JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI (UIWindow sopts copts opts) defs) = component "itwc_window" [encodeUI sopts, encodeUI copts, encodeUI opts,JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIForm defs)					= component "itwc_raw_form" [JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIFormItem [label,def,info]) 	= component "itwc_raw_form_item" [JSONObject [("items",JSONArray[encodeUI label,encodeUI def,encodeUI info])]]
-	encodeUI (UI (UIControl control) _)			= encodeUI control
-	encodeUI (UI (UIBlock sopts copts) defs)    = component "itwc_raw_block" [encodeUI sopts, encodeUI copts,JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI (UITabSet sopts opts) attr defs)	    = component "itwc_tabset" [encodeUI sopts, encodeUI opts,JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI (UITab copts opts) attr defs)          = component "itwc_tabitem" [encodeUI copts, encodeUI opts,JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI (UIWindow sopts copts opts) attr defs) = component "itwc_window" [encodeUI sopts, encodeUI copts, encodeUI opts,JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI UIForm attr defs)                      = component "itwc_raw_form" [JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI UIFormItem attr [label,def,info])      = component "itwc_raw_form_item" [JSONObject [("items",JSONArray[encodeUI label,encodeUI def,encodeUI info])]]
+	encodeUI (UI (UIControl control) _ _)               = encodeUI control
+	encodeUI (UI (UIBlock sopts copts) attr defs)       = component "itwc_raw_block" [encodeUI sopts, encodeUI copts,JSONObject [("items",JSONArray (map encodeUI defs))]]
 
 instance encodeUI UIControl
 where
@@ -447,9 +459,8 @@ where
                                      	] | snd field =!= JSONNull]
 instance encodeUI UIEditor
 where
-	encodeUI {UIEditor|optional,attributes}
+	encodeUI {UIEditor|optional}
 		= JSONObject [("optional",encodeUI optional)
-					 ,("attributes",JSONObject [(k,JSONString v) \\ (k,v) <- 'DM'.toList attributes])
 					 ]
 
 instance encodeUI UIAction

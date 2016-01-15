@@ -42,14 +42,12 @@ instance Functor UIViewOpts
 * The UI type has contstructors for the various types of partial UI definitions.
 */
 
-//:: UI = UI UINodeType UIAttributes [UI]
-:: UI = UI UINodeType [UI]
+:: UI = UI UINodeType UIAttributes [UI]
 
 :: UINodeType
     = UIEmpty
 	//Constructors for editors
 	| UIEditor 			!UIEditor
-	| UICompoundEditor 	!UIEditor
 	| UIAction 			!UIAction
 	//Intermediate containers
     | UIForm
@@ -109,14 +107,11 @@ instance Functor UIViewOpts
 	// Container components for composition:
     | UIEmbedding       !UISizeOpts     !UIEmbeddingOpts                                // - Embedding of a related task gui (like an iframe for tasks)
 
+:: UIAttributes 		:== Map String String
 
 :: UIEditor = 
 	{ optional		:: Bool
-	, attributes	:: UIAttributes
 	}
-
-:: UIAttributes 		:== Map String String
-:: UIActions			:== [UIAction]
 
 :: UIAction	=
 	{ taskId	:: !String
@@ -332,6 +327,11 @@ instance Functor UIViewOpts
 	, focusTaskId	:: !Maybe String
 	, closeTaskId	:: !Maybe String
 	}
+//Construction functions
+ui   :: UINodeType -> UI
+uic  :: UINodeType [UI] -> UI
+uia  :: UINodeType UIAttributes -> UI
+uiac :: UINodeType UIAttributes [UI] -> UI
 
 //Modifier functions
 setSize         :: !UISize !UISize          !UI -> UI
@@ -378,11 +378,11 @@ defaultTabSetOpts       :: UITabSetOpts
 defaultTabOpts          :: UITabOpts
 defaultWindowOpts       :: UIWindowOpts
 
-defaultContainer        :: ![UI] -> UI
-defaultPanel			:: ![UI] -> UI
-defaultTabSet			:: ![UI] -> UI
-defaultTab              :: ![UI] -> UI
-defaultWindow			:: ![UI] -> UI
+defaultContainer        :: UINodeType
+defaultPanel			:: UINodeType
+defaultTabSet			:: UINodeType
+defaultTab              :: UINodeType 
+defaultWindow			:: UINodeType
 
 //Util
 stringDisplay			:: !String  -> UI

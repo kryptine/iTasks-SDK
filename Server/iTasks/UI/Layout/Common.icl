@@ -2,6 +2,7 @@ implementation module iTasks.UI.Layout.Common
 
 import iTasks.UI.Layout
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
+import qualified Data.Map as DM
 from StdFunc import id
 
 arrangeWithTabs :: Layout
@@ -11,13 +12,17 @@ where
 
 	toTabset = sequenceLayouts
 				[layoutChildrenOf [] toTab
-				,changeContainerType (\(UI UICompoundContent items) -> defaultTabSet items)
+				,changeContainerType (\(UI _ attr items) ->UI defaultTabSet attr items)
 				]
 
-	toTab = wrapInContainer (\def -> defaultTab [def])
+	toTab = sequenceLayouts
+				[wrap defaultTab
+				,changeContainerType setTitleFromAttr
+				]
 
-isParallel d = d =:(UI UIParallel _)
+	setTitleFromAttr ui=:(UI _ _ [UI _ attr _]) = maybe ui (\title -> setTitle title ui) ('DM'.get "title" attr)
 
+isParallel d = d =:(UI UIParallel _ _)
 
 instance tune ArrangeWithTabs
 where tune ArrangeWithTabs t = tune (ApplyLayout arrangeWithTabs) t

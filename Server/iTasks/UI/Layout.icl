@@ -16,15 +16,15 @@ LABEL_WIDTH :== 100
 
 instance descr ()
 where
-	toPrompt _ = UI (UIEmpty) []
+	toPrompt _ = ui (UIEmpty)
 
 instance descr String
 where
-	toPrompt hint = UI (UIEditor {UIEditor|optional=False,attributes='DM'.newMap}) [createPrompt hint]
+	toPrompt hint = uic (UIEditor {UIEditor|optional=False}) [createPrompt hint]
 	
 instance descr (!String,!String)
 where
-	toPrompt (title,hint) = UI (UIEditor {UIEditor|optional=False,attributes='DM'.fromList [(TITLE_ATTRIBUTE,title)]}) [createPrompt hint]
+	toPrompt (title,hint) = uiac (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(TITLE_ATTRIBUTE,title)]) [createPrompt hint]
 
 //Building blocks for layout
 
@@ -167,10 +167,10 @@ where
 	layout (ReplaceUI def,_) = (ReplaceUI (f def),JSONNull) 
 	layout (change,s) = (change,s) //Other changes than replacing are not affected
 
-wrapInContainer :: (UI -> UI) -> Layout
-wrapInContainer f = layout
+wrap :: UINodeType -> Layout
+wrap type = layout
 where
-	layout (ReplaceUI def,_) = (ReplaceUI (f def),JSONNull)
+	layout (ReplaceUI def,_) = (ReplaceUI (uic type [def]),JSONNull)
 	layout (change,s) = (ChangeUI [] [ChangeChild 0 change],s)
 
 sequenceLayouts :: [Layout] -> Layout
@@ -231,10 +231,10 @@ where
 
 //UTIL
 getChildren :: UI -> [UI]
-getChildren (UI type children) = children
+getChildren (UI type attr children) = children
 
 setChildren :: [UI] UI -> UI
-setChildren children (UI type _) = UI type children
+setChildren children (UI type attr _) = UI type attr children
 
 accChildDef :: NodePath (UI -> (a,UI)) UI -> (Maybe a, UI)
 accChildDef [] f def = appFst Just (f def)
@@ -502,10 +502,7 @@ where
 
 instance tune Title
 where
-	tune (Title title) t = t //tune (ApplyLayout layout) t
-	where
-		//layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute TITLE_ATTRIBUTE title ui),())
-		layout (change,s) = (change,s)
+	tune (Title title) t = tune (ApplyLayout (changeContainerType (setTitle title)) ) t
 	
 instance tune Icon
 where
@@ -752,7 +749,7 @@ where
 */
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
 createPrompt :: String -> UI
-createPrompt hint = UI (UIContainer sizeOpts containerOpts) [stringDisplay hint]
+createPrompt hint = uic (UIContainer sizeOpts containerOpts) [stringDisplay hint]
 where
 	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 5, bottom = 10, left = 5}
 			   , width = Just FlexSize, minWidth = Just WrapBound, height = Just WrapSize}
@@ -804,10 +801,10 @@ addTriggerToControl t c = c
 
 //GUI combinators						
 hjoin :: ![UI] -> UI
-hjoin items = UI (UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Horizontal, halign = AlignLeft, valign = AlignMiddle}) items
+hjoin items = uic (UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Horizontal, halign = AlignLeft, valign = AlignMiddle}) items
 
 vjoin :: ![UI] -> UI
-vjoin items = UI (UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Vertical, halign = AlignLeft, valign = AlignTop}) items
+vjoin items = uic (UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Vertical, halign = AlignLeft, valign = AlignTop}) items
 						
 //Container operations
 addItemToUI :: (Maybe Int) UIControl UIControl -> UIControl
@@ -984,8 +981,8 @@ tweakUI :: (UIControl -> UIControl) UI -> UI
 //	= UIForm {UIForm|stack & controls = [(f c,a) \\ (c,a) <- controls]}
 //tweakUI f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
 	//= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map f items}}
-tweakUI f (UI (UIControl control) items)
-    = UI (UIControl (f control)) items
+tweakUI f (UI (UIControl control) attr items)
+    = UI (UIControl (f control)) attr items
 tweakUI f def = def
 
 tweakAttr :: (UIAttributes -> UIAttributes) UI -> UI
@@ -1000,9 +997,9 @@ tweakControls :: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UI -
 //	= UIForm {UIForm|stack & controls = f controls}
 //tweakControls f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
 	//= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map fst (f [(c,'DM'.newMap) \\ c <- items])}}
-tweakControls f (UI (UIControl control) items)
+tweakControls f (UI (UIControl control) attr items)
 	= case f [(control,'DM'.newMap)] of
-		[(control,_):_] = UI (UIControl control) items
-		_ 				= UI (UIControl control) items
+		[(control,_):_] = UI (UIControl control) attr items
+		_ 				= UI (UIControl control) attr items
 tweakControls f def	= def
 

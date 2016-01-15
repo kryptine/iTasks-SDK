@@ -33,7 +33,8 @@ moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
 layoutChildrenOf :: NodePath Layout -> Layout
 
 changeContainerType :: (UI -> UI) -> Layout
-wrapInContainer :: (UI -> UI) -> Layout
+
+wrap :: UINodeType -> Layout
 
 sequenceLayouts :: [Layout] -> Layout
 conditionalLayout :: (UI -> Bool) Layout -> Layout

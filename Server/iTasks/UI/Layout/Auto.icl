@@ -22,7 +22,7 @@ autoLayoutAttach :: Layout
 autoLayoutAttach = id
 
 autoLayoutSession :: Layout
-autoLayoutSession = finalizeUI
+autoLayoutSession = sequenceLayouts [finalizeUI,changeContainerType (setSize WrapSize WrapSize o setTopMargin 50 o setMinWidth (ExactBound 600))]
 
 //The finalize layouts remove all intermediate 
 finalizeUI :: Layout
@@ -33,37 +33,37 @@ finalizeUI = selectLayout
 	,(onlyFinalizeChildren,layoutChildrenOf [] finalizeUI)
 	]
 
-onlyFinalizeChildren (UI (UITabSet _ _ ) _) = True
-onlyFinalizeChildren (UI (UITab _ _ ) _)    = True
-onlyFinalizeChildren _                      = False
+onlyFinalizeChildren (UI (UITabSet _ _ ) _ _) = True
+onlyFinalizeChildren (UI (UITab _ _ ) _ _)    = True
+onlyFinalizeChildren _                        = False
 
 finalizeInteract :: Layout
 finalizeInteract = conditionalLayout isInteract layout
 where
 	layout = sequenceLayouts 
 		[layoutChild [1] finalizeForm
-		,changeContainerType (\(UI UIInteract items) -> defaultPanel items)
+		,changeContainerType (\(UI UIInteract attr items) -> UI defaultPanel attr items)
 		] 
 
 finalizeForm :: Layout
 finalizeForm
 	= sequenceLayouts [layoutChildrenOf [] layoutRow
-					  ,changeContainerType (\(UI UIForm items) -> defaultContainer items)
+					  ,changeContainerType (\(UI UIForm attr items) -> UI defaultContainer attr items)
 					  ]
 where
 	//Case when 
 	layoutRow = selectLayout [(hasLabel,toRowWithLabel),(const True,toRowWithoutLabel)]
 	
-	hasLabel (UI UIFormItem [UI UIEmpty _,_,_]) = False
+	hasLabel (UI UIFormItem _ [UI UIEmpty _ _,_,_]) = False
 	hasLabel _ = True
 
-	toRowWithLabel = changeContainerType (\(UI UIFormItem [label,item,icon]) -> row [label,item,icon])
+	toRowWithLabel = changeContainerType (\(UI UIFormItem _ [label,item,icon]) -> row [label,item,icon])
 	toRowWithoutLabel = sequenceLayouts 
-							[changeContainerType (\(UI UIFormItem [label,item,icon]) -> row [label,item,icon])
+							[changeContainerType (\(UI UIFormItem _ [label,item,icon]) -> row [label,item,icon])
 							,removeChild [0]
 							]
 
-	row items = (setMargins 5 5 5 5 o setDirection Horizontal o setSize FlexSize WrapSize) (defaultContainer items)
+	row items = (setMargins 5 5 5 5 o setDirection Horizontal o setSize FlexSize WrapSize) (uic defaultContainer items)
 
 finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
@@ -73,7 +73,7 @@ where
         ,insertChild [1] buttonBar 				//Create a buttonbar
 	    ,moveChildren [] isAction [1]   		//Move all actions to the buttonbar
 	    ,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
-        ,changeContainerType (\(UI UIStep items) -> defaultPanel items) //Change to a standard container
+        ,changeContainerType (\(UI UIStep attr items) -> UI defaultPanel attr items) //Change to a standard container
         ]
 
 finalizeParallel :: Layout
@@ -82,29 +82,29 @@ where
 	layout = sequenceLayouts
 		[layoutChildrenOf [0] finalizeUI
 		,layoutChildrenOf [1] finalizeUI
-		,changeContainerType (\(UI UIParallel items) -> defaultPanel items)
+		,changeContainerType (\(UI UIParallel attr items) -> UI defaultPanel attr items)
 		]
 
 //Util predicates
-isInteract = \n -> n =:(UI UIInteract _)
-isStep = \n -> n =:(UI UIStep _)
-isParallel = \n -> n =:(UI UIParallel _)
-isAction = \n -> n =:(UI (UIAction _) _)
+isInteract = \n -> n =:(UI UIInteract _ _)
+isStep = \n -> n =:(UI UIStep _ _)
+isParallel = \n -> n =:(UI UIParallel _ _)
+isAction = \n -> n =:(UI (UIAction _) _ _)
 
 //Flatten an editor into a form
 editorToForm :: Layout
 editorToForm = layout
 where
 	//Flatten the editor to a list of form items
-	layout (ReplaceUI editor,s) = (ReplaceUI (UI UIForm (items editor)),s)
+	layout (ReplaceUI editor,s) = (ReplaceUI (uic UIForm (items editor)),s)
 	where	
-		items (UI (UIEditor {UIEditor|optional,attributes}) [control])
-			# label = fromMaybe (UI UIEmpty []) (labelControl optional attributes)
-			# info = fromMaybe (UI UIEmpty []) (infoControl attributes)
-			= [UI UIFormItem [label,control,info]]
-		items (UI UIEmpty _) //Placeholders for constructor changes
-			= [UI UIFormItem [UI UIEmpty [],UI UIEmpty [],UI UIEmpty []]] 
-		items (UI (UICompoundEditor _) parts) = flatten (map items parts)
+		items (UI (UIEditor {UIEditor|optional}) attr [control])
+			# label = fromMaybe (ui UIEmpty) (labelControl optional attr)
+			# info = fromMaybe (ui UIEmpty) (infoControl attr)
+			= [uic UIFormItem [label,control,info]]
+		items (UI UIEmpty _ _) //Placeholders for constructor changes
+			= [uic UIFormItem [ui UIEmpty,ui UIEmpty, ui UIEmpty ]] 
+		items (UI (UIEditor _) _ parts) = flatten (map items parts)
 		items _ = []
 
 	//Remap the changes to the flattened list of form items
@@ -141,9 +141,9 @@ where
 actionToButton :: Layout
 actionToButton = layout 
 where
-	layout (ReplaceUI (UI (UIAction {UIAction|taskId,action=action=:(Action actionId _),enabled}) _),_)
-		= (ReplaceUI (UI (UIControl (UIActionButton defaultSizeOpts {UIActionOpts|taskId = toString taskId,actionId=actionId}
-				{UIButtonOpts|text = Just (actionName action), iconCls = (actionIcon action), disabled = not enabled})) []),JSONNull)
+	layout (ReplaceUI (UI (UIAction {UIAction|taskId,action=action=:(Action actionId _),enabled}) _ _ ),_)
+		= (ReplaceUI (ui (UIControl (UIActionButton defaultSizeOpts {UIActionOpts|taskId = toString taskId,actionId=actionId}
+				{UIButtonOpts|text = Just (actionName action), iconCls = (actionIcon action), disabled = not enabled}))),JSONNull)
 	
 	layout (ChangeUI local [],s) = (ChangeUI (map remap local) [],s)
 	layout (change,s) = (change,s)
@@ -157,7 +157,7 @@ mapLst f [x] = [f True x]
 mapLst f [x:xs] = [f False x: mapLst f xs]
 
 buttonBar :: UI
-buttonBar = (wrapHeight o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight o setBaseCls "buttonbar") (defaultPanel [])
+buttonBar = (wrapHeight o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight o setBaseCls "buttonbar") (uic defaultPanel [])
 
 labelControl :: Bool UIAttributes -> Maybe UI
 labelControl optional attributes 
@@ -169,7 +169,7 @@ infoControl attributes
 		(Just type, Just hint) 	= Just (icon type hint)
 		_ 						= Nothing
 where
-	icon type tooltip = setLeftMargin 5 (UI (UIControl (UIIcon defaultFSizeOpts {UIIconOpts|iconCls = "icon-" +++ type, tooltip = Just tooltip})) [])
+	icon type tooltip = setLeftMargin 5 (ui (UIControl (UIIcon defaultFSizeOpts {UIIconOpts|iconCls = "icon-" +++ type, tooltip = Just tooltip})))
 
 formatLabel :: Bool String -> String
 formatLabel optional label

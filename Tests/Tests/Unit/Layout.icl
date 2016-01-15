@@ -33,19 +33,19 @@ derive class iTask TestRecInner, TestRecOuter
 
 testAutoInteractionLayoutInitial = assertEqual "Test if the auto interaction layout correctly turns an editor into a form" exp sut
 where
-	exp = ReplaceUI (UI UICompoundContent [stdPrompt,expIntForm])
-	sut = fst (autoLayoutInteract ((ReplaceUI (UI UICompoundContent [stdPrompt,stdIntEditor])),JSONNull))
+	exp = ReplaceUI (uic UICompoundContent [stdPrompt,expIntForm])
+	sut = fst (autoLayoutInteract ((ReplaceUI (uic UICompoundContent [stdPrompt,stdIntEditor])),JSONNull))
 	
-	stdPrompt = UI UIEmpty [] //STUB Don't care what the prompt is!
-	stdIntEditor = UI (UIEditor {UIEditor|optional=False,attributes='DM'.fromList
-		[("hint-type","info"),("hint","Please enter a whole number (this value is required)")]})
+	stdPrompt = ui UIEmpty //STUB Don't care what the prompt is!
+	stdIntEditor = uiac (UIEditor {UIEditor|optional=False})
+		('DM'.fromList [("hint-type","info"),("hint","Please enter a whole number (this value is required)")])
 			[intControl]
 
-	expIntForm = UI UIForm [UI UIFormItem [UI UIEmpty [],intControl,expIcon]]
-	expIcon = UI (UIControl (UIIcon {UIFSizeOpts|margins=Just{top=0,right=0,bottom=0,left=5}} {UIIconOpts|iconCls="icon-info",tooltip = Just "Please enter a whole number (this value is required)"})) []
+	expIntForm = uic UIForm [uic UIFormItem [ui UIEmpty,intControl,expIcon]]
+	expIcon = ui (UIControl (UIIcon {UIFSizeOpts|margins=Just{top=0,right=0,bottom=0,left=5}} {UIIconOpts|iconCls="icon-info",tooltip = Just "Please enter a whole number (this value is required)"}))
 
-	intControl = UI (UIControl (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
-                   {UIEditOpts|taskId="STUB", editorId="v", value = Nothing})) []
+	intControl = ui (UIControl (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+                   {UIEditOpts|taskId="STUB", editorId="v", value = Nothing}))
 
 testAutoInteractionLayoutEditorValueChange = skip "Test if the auto interaction layout correctly maps changes in the editor to the form item"
 
