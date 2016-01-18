@@ -54,29 +54,29 @@ where
 testIntUntouched = testGenUI "Untouched Int" 
 	(uiac (UIEditor {UIEditor|optional=False})
 		('DM'.fromList[("hint-type","info"),("hint","Please enter a whole number (this value is required)")])
-		[ui (UIControl (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
-				   {UIEditOpts|taskId="STUB", editorId="v", value = Nothing}))])
+		[ui (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+				   {UIEditOpts|taskId="STUB", editorId="v", value = Nothing})])
 	42 Untouched
 
 testIntTouched = testGenUI "Touched Int"
 	(uiac (UIEditor {UIEditor|optional=False})
 		('DM'.fromList[("hint-type","valid"),("hint","You have correctly entered a whole number")])
-		[ui (UIControl (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
-				   {UIEditOpts|taskId="STUB", editorId="v", value = Just (JSONInt 42)})) ])
+		[ui (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+				   {UIEditOpts|taskId="STUB", editorId="v", value = Just (JSONInt 42)}) ])
 	42 Touched
 
 testIntBlanked = testGenUI "Blanked Int"
 	(uiac (UIEditor {UIEditor|optional=False})
 		('DM'.fromList[("hint-type","invalid"),("hint","You need to enter a whole number (this value is required)")])
-		[ui (UIControl (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
-				   {UIEditOpts|taskId="STUB", editorId="v", value = Nothing}))])
+		[ui (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+				   {UIEditOpts|taskId="STUB", editorId="v", value = Nothing})])
 	42 Blanked
 
 testRealTouched = testGenUI "Touched Real"
 	(uiac (UIEditor {UIEditor|optional=False})
 		('DM'.fromList[("hint-type","valid"),("hint","You have correctly entered a decimal number")])
-		[ui (UIControl (UIEditDecimal {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
-				       {UIEditOpts|taskId="STUB", editorId="v", value = Just (JSONReal 3.14)}))])
+		[ui (UIEditDecimal {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+				       {UIEditOpts|taskId="STUB", editorId="v", value = Just (JSONReal 3.14)})])
 	3.14 Touched
 
 testConsFieldsTouched = testGenUI "Touched cons fields"
@@ -87,14 +87,14 @@ where
 	fieldExp editorId val = 
 		(uiac (UIEditor {UIEditor|optional=False})
 			('DM'.fromList[("hint-type","valid"),("hint","You have correctly entered a whole number")])
-			[ui (UIControl (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
-					   {UIEditOpts|taskId="STUB", editorId=editorId, value = Just (JSONInt val)}))])
+			[ui (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+					   {UIEditOpts|taskId="STUB", editorId=editorId, value = Just (JSONInt val)})])
 
 testMultipleConsesTouched = testGenUI "Touched constructor selection"
 	(uiac (UIEditor {UIEditor|optional=False})
 		('DM'.fromList[("hint-type","valid"),("hint","You have correctly selected an option")])
-		[ui (UIControl (UIDropdown  {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
-					   {UIChoiceOpts|taskId="STUB", editorId="v", value = [0], options = ["ConsA","ConsB"]}))])
+		[ui (UIDropdown  {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+					   {UIChoiceOpts|taskId="STUB", editorId="v", value = [0], options = ["ConsA","ConsB"]})])
 	ConsA Touched
 
 testConsesWithFieldTouched = testGenUI "Touched constructor with field"
@@ -103,8 +103,8 @@ testConsesWithFieldTouched = testGenUI "Touched constructor with field"
 where
 	consExp = (uiac (UIEditor {UIEditor|optional=False})
 		('DM'.fromList[("hint-type","valid"),("hint","You have correctly selected an option")])
-		[ui (UIControl (UIDropdown  {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
-					   {UIChoiceOpts|taskId="STUB", editorId="v", value = [0], options = ["ConsWithFieldA","ConsWithFieldB"]})) ])
+		[ui (UIDropdown  {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+					   {UIChoiceOpts|taskId="STUB", editorId="v", value = [0], options = ["ConsWithFieldA","ConsWithFieldB"]})])
 
 	fieldsExp = ui UIEmpty//Placeholder
 
@@ -116,25 +116,25 @@ where
 	intField =
 		(uiac (UIEditor {UIEditor|optional=False})
 			('DM'.fromList[("hint-type","valid"),("hint","You have correctly entered a whole number"),("label","a")])
-			[ui (UIControl (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
-				   {UIEditOpts|taskId="STUB", editorId="v0", value = Just (JSONInt 42)}))])
+			[ui (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+				   {UIEditOpts|taskId="STUB", editorId="v0", value = Just (JSONInt 42)})])
 
 	stringField =
 		(uiac (UIEditor {UIEditor|optional=False})
 			('DM'.fromList[("hint-type","valid"),("hint","You have correctly entered a single line of text"),("label","b")])
-			[ui (UIControl (UIEditString {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
-					{UIEditOpts|taskId="STUB", editorId="v1", value = Just (JSONString "Foo")}))])
+			[ui (UIEditString {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+					{UIEditOpts|taskId="STUB", editorId="v1", value = Just (JSONString "Foo")})])
 	boolField =
 		(uiac (UIEditor {UIEditor|optional=False})
 			('DM'.fromList[("label","c")])
-		    [ui (UIControl (UIEditCheckbox {UIFSizeOpts|margins=Nothing}
-				        {UIEditOpts|taskId="STUB", editorId="v2", value = Just (JSONBool True)}))])
+		    [ui (UIEditCheckbox {UIFSizeOpts|margins=Nothing}
+				        {UIEditOpts|taskId="STUB", editorId="v2", value = Just (JSONBool True)})])
 
 testMaybeIntUntouched = testGenUI "Untouched optional Int"
 		(uiac (UIEditor {UIEditor|optional=True})
 			('DM'.fromList[("hint-type","info"),("hint","Please enter a whole number")])
-			[ui (UIControl (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
-				   {UIEditOpts|taskId="STUB", editorId="v", value = Nothing}))])
+			[ui (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+				   {UIEditOpts|taskId="STUB", editorId="v", value = Nothing})])
 		test Untouched
 where
 	test :: Maybe Int
@@ -246,8 +246,8 @@ where
 	expField =
 		(uiac (UIEditor {UIEditor|optional=False})
 			('DM'.fromList[("hint-type","valid"),("hint","You have correctly entered a single line of text")])
-			[ui (UIControl (UIEditString {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
-					   {UIEditOpts|taskId="STUB", editorId="v0", value = Just (JSONString "Foo")}))])
+			[ui (UIEditString {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
+					   {UIEditOpts|taskId="STUB", editorId="v0", value = Just (JSONString "Foo")})])
 	
 testMaybeIntChangeToJust :: Test
 testMaybeIntChangeToJust

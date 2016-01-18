@@ -64,7 +64,7 @@ where
 		                 ,margins=Just {UISideSizes|top=5,right=5,bottom=10,left=5}}
 	promptItemsOpts = {UIContainerOpts|direction=Vertical,halign=AlignLeft,valign=AlignTop
 							  ,padding=Nothing,baseCls=Just "itwc-prompt",bodyCls=Nothing}
-	promptItems = [ui (UIControl (UIViewString defaultSizeOpts {UIViewOpts|value=Just msg}))]
+	promptItems = [ui (UIViewString defaultSizeOpts {UIViewOpts|value=Just msg})]
 
 testInitialEditorUI = testTaskOutput "Initial UI of minimal editor task" minimalEditor events exp (===)
 where
@@ -74,7 +74,7 @@ where
 	expMinimalEditorUI
 		= uic UIInteract [expPromptUI "Minimal String editor",editor]
 	where
-		editor = uiac (UIEditor {UIEditor|optional=False}) editorAttr [ui (UIControl (UIEditString defaultHSizeOpts editorOpts)) ]
+		editor = uiac (UIEditor {UIEditor|optional=False}) editorAttr [ui (UIEditString defaultHSizeOpts editorOpts)]
 		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
 		editorOpts = {UIEditOpts|value=Just (JSONString "Hello World"),taskId="1-0",editorId="v"}
 
@@ -85,15 +85,15 @@ where
 
 	//Because we can't test if correct Sapl code is generated here, we need to use a custom comparison
 	//function that first replaces all Sapl fields with the marker "IGNORE" before comparing to the expected value
-	compare [ReplaceUI (UI UIInteract attr [p,UI (UIEditor a) attr2 [UI (UIControl (UIEditlet s o)) attr3 c]])] exp 
+	compare [ReplaceUI (UI UIInteract attr [p,UI (UIEditor a) attr2 [UI (UIEditlet s o) attr3 c]])] exp 
 		# o = {UIEditletOpts|o & script="IGNORE",initClient="IGNORE",initDiff="IGNORE",appDiff="IGNORE"}
-		= [ReplaceUI (UI UIInteract attr [p,UI (UIEditor a) attr2 [UI (UIControl (UIEditlet s o)) attr3 c]])] === exp
+		= [ReplaceUI (UI UIInteract attr [p,UI (UIEditor a) attr2 [UI (UIEditlet s o) attr3 c]])] === exp
 	compare _ _ = False
 
 	expMinimalEditletUI
 		= uic UIInteract [expPromptUI "Minimal String editlet",editor]
 	where
-		editor = uic (UIEditor {UIEditor|optional=False}) [ui (UIControl (UIEditlet sizeOpts editletOpts))]
+		editor = uic (UIEditor {UIEditor|optional=False}) [ui (UIEditlet sizeOpts editletOpts)]
 		sizeOpts = {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
 		editletOpts = {UIEditletOpts|taskId="1-0",editorId="v",value=(JSONString "Hello World"),html=html
 						,script="IGNORE",initClient="IGNORE",initDiff="IGNORE",appDiff="IGNORE"}
@@ -109,7 +109,7 @@ expMinStepInitialUI = uic UIStep [expEditorUI, expActionOk]
 where
 	expEditorUI = uic UIInteract [expPromptUI "Minimal Step combinator",editor]
 	where
-		editor = uiac (UIEditor {UIEditor|optional=False}) editorAttr [ui (UIControl (UIEditString defaultHSizeOpts editorOpts)) ]
+		editor = uiac (UIEditor {UIEditor|optional=False}) editorAttr [ui (UIEditString defaultHSizeOpts editorOpts)]
 		editorAttr = 'DM'.fromList [("hint-type","info"),("hint","Please enter a single line of text (this value is required)")]
 		editorOpts = {UIEditOpts|value=Nothing,taskId="1-1",editorId="v"}
 
@@ -127,7 +127,7 @@ where
 expMinimalEditorUI taskNum prompt value
 	= uic UIInteract [expPromptUI prompt,editor]
 where
-	editor = uiac (UIEditor {UIEditor|optional=False}) editorAttr [ui (UIControl (UIEditString defaultHSizeOpts editorOpts))]
+	editor = uiac (UIEditor {UIEditor|optional=False}) editorAttr [ui (UIEditString defaultHSizeOpts editorOpts)]
 	editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
 	editorOpts = {UIEditOpts|value=Just (JSONString value),taskId="1-"<+++taskNum,editorId="v"}
 
@@ -161,7 +161,7 @@ where
 	expEditorUI
 		= uic UIInteract [expPromptUI "INITIAL: 0",editor]
 	where
-		editor = uiac (UIEditor {UIEditor|optional=False}) editorAttr [ui (UIControl (UIEditInt defaultHSizeOpts editorOpts))]
+		editor = uiac (UIEditor {UIEditor|optional=False}) editorAttr [ui (UIEditInt defaultHSizeOpts editorOpts)]
 		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a whole number")]
 		editorOpts = {UIEditOpts|value=Just (JSONInt 0),taskId="1-1",editorId="v"}
 
