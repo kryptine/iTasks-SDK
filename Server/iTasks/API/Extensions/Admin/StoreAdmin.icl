@@ -23,6 +23,6 @@ where
 deleteStore :: (String,String) -> Task ()
 deleteStore (namespace,storename) = mkInstantTask eval
 where
-    eval _ iworld
-        = (Ok (), 'iTasks._Framework.Store'.deleteValue namespace storename iworld)
-
+    eval _ iworld = case 'iTasks._Framework.Store'.deleteValue namespace storename iworld of
+		(Ok (),iworld) = (Ok (),iworld)
+		(Error msg,iworld) = (Error (exception msg),iworld)
