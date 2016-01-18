@@ -58,3 +58,5 @@ where
 	where
 		filter = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
 
+minimalForever :: Task String
+minimalForever = forever (viewInformation () [] "Forever..." >>= return)

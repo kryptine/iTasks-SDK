@@ -62,10 +62,13 @@ where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (val,iworld)	= 'SDS'.readRegister taskId shared iworld
 		# res = case val of
-			Ok val		= ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange (TCInit taskId ts)
+			Ok val		= ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) (TCInit taskId ts)
 			Error e		= ExceptionResult e
 		= (res,iworld)
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
+
+	rep ResetEvent  = ReplaceUI (ui UIEmpty) 
+	rep _ 			= NoChange
 
 interact :: !d !(ReadOnlyShared r)
 				(r -> (l,Masked v))

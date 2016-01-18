@@ -10,6 +10,7 @@ arrangeWithTabs :: Layout
 
 //Changing container types
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
+toEmpty :: Layout
 
 //Convenient annotatation types
 :: ArrangeWithTabs = ArrangeWithTabs
@@ -31,3 +32,5 @@ InNotificationBubble    :== ToWindow NotificationBubble AlignTop AlignRight
 InModalDialog           :== ToWindow ModalDialog AlignMiddle AlignCenter
 instance tune ToWindow
 
+:: NoUserInterface  = NoUserInterface   //Replace the UI by an empty UI
+instance tune NoUserInterface

@@ -398,11 +398,11 @@ where
 
 //Evaluate an embedded parallel task
 evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTaskState|taskId,detached=False,createdAt,lastFocus,value,change}:todo] iworld=:{current={taskTime}}
-    //Lookup task evaluation function
+    //Lookup task evaluation function and task evaluation state
     # (mbTask,iworld)   = read (sdsFocus taskId taskInstanceEmbeddedTask) iworld
     | mbTask =:(Error _) = (Error (fromError mbTask),iworld)
     # (Task evala)      = fromOk mbTask
-    # tree              = fromMaybe (TCInit taskId taskTime) ('DM'.get taskId taskTrees)
+    # (tree,newBranch)    = maybe (TCInit taskId taskTime,True) (\tree -> (tree,False)) ('DM'.get taskId taskTrees)
     //Evaluate or destroy branch
     | change === Just RemoveParallelTask
         # (result,iworld) = evala (RefreshEvent "Destroying parallel branch") {mkEvalOpts & noUI = True} (TCDestroy tree) iworld
@@ -412,7 +412,8 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
         # evalOpts        = {evalOpts & tonicOpts = {evalOpts.tonicOpts & captureParallel = evalOpts.tonicOpts.inParallel == Just listId
                                                                         , inParallel      = Just listId}}
 
-        # (result,iworld) = evala event (setParallel listId (extendCallTrace taskId evalOpts)) tree iworld
+		//Evaluate new branches with a reset event
+        # (result,iworld) = evala (if newBranch ResetEvent event) (setParallel listId (extendCallTrace taskId evalOpts)) tree iworld
         # iworld          = if (evalOpts.tonicOpts.captureParallel && evalOpts.tonicOpts.currBlueprintExprId <> [] && evalOpts.tonicOpts.currBlueprintTaskId <> TaskId 0 0)
                               (storeTaskOutputViewer result evalOpts.tonicOpts.currBlueprintExprId evalOpts.tonicOpts.currBlueprintTaskId taskId iworld)
                               iworld
@@ -529,7 +530,8 @@ where
 		| i < numExisting	= [ChangeChild i change:itemChanges (i + 1) numExisting rs] 	//Update an existing branch
 		| otherwise			= case change of
 			(ReplaceUI def)	= [InsertChild i def:itemChanges (i + 1) (numExisting + 1) rs] 	//Add a new branch
-			_ 				= itemChanges (i + 1) (numExisting + 1) rs 						//Skip if we don't get a blank UI
+			_               = itemChanges (i + 1) (numExisting + 1) rs 						//Skip if we don't get a blank UI
+	
 	itemChanges i numExisting [DestroyedResult:rs]
 		| i < numExisting 	= [RemoveChild i:itemChanges i (numExisting - 1) rs]
 		| otherwise 		= itemChanges i numExisting rs //No need to destroy a branch that was not yet in the UI

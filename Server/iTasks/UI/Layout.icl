@@ -518,25 +518,6 @@ where
 		layout (ReplaceUI (UI type attr items),()) = (ReplaceUI (UI type ('DM'.put LABEL_ATTRIBUTE label attr) items),())
 		layout (change,s) = (change,s)
 
-instance tune NoUserInterface
-where
-    tune NoUserInterface (Task eval) = Task eval`
-    where
-	    eval` event repOpts state iworld = eval event {repOpts & noUI = True} state iworld
-
-/*
-forceLayout :: UIDef -> UIDef
-//forceLayout (UIForm form)              = UIBlock (autoLayoutForm form)
-//forceLayout (UIBlocks blocks actions)  = UIBlock (autoLayoutBlocks blocks actions)
-forceLayout def                        = def
-*/
-/*
-arrangeBlocks :: ([UIBlock] [UIAction] -> UIBlock) UIDef -> UIDef
-//arrangeBlocks f (UIForm form) 				= UIBlock (f [autoLayoutForm form] [])
-//arrangeBlocks f (UIBlock block)           	= UIBlock (f [block] [])
-//arrangeBlocks f (UIBlocks blocks actions) 	= UIBlock (f blocks actions)
-arrangeBlocks f def                         = def
-*/
 /*
 instance tune ArrangeVertical
 where

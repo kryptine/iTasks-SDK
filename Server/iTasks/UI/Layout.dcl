@@ -70,8 +70,6 @@ instance tune Title
 //instance tune Icon
 //instance tune Attribute
 
-:: NoUserInterface  = NoUserInterface   //Don't create a user interface for this task
-instance tune NoUserInterface
 
 //:: ForceLayout = ForceLayout            //Force layout ofo accumulated user interface parts so far
 //instance tune ForceLayout

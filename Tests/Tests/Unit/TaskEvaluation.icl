@@ -13,7 +13,7 @@ import qualified Data.Queue as DQ
 import qualified Data.Map as DM
 from Data.Queue import :: Queue(..)
 
-from Tests.Common.MinimalTasks import minimalEditor, minimalEditlet, minimalStep, minimalParallel, minimalParallelOperations
+import Tests.Common.MinimalTasks
 
 derive gText ServerInfo, SystemPaths, Queue
 derive gEq Queue
@@ -31,8 +31,10 @@ testTaskEvaluation = testsuite "Task evaluation" "Tests to verify properties of 
 	,testStepEnableAction
 	,testStepApplyAction
 	//Dynamic parallel
-	,testParallelAppend
+/*	,testParallelAppend
 	,testParallelRemove
+*/
+	,testForeverLoop
 	]
 
 testInitIWorld = assertWorld "Init IWorld" id sut
@@ -182,6 +184,20 @@ where
 	itemChanges = ChangeUI [] [RemoveChild 0] 
 	//When there are no more elements, the pop action should be disabled
 	actionChanges = ChangeUI [] [ChangeChild 0 NoChange, ChangeChild 1 (ChangeUI [("disable",[])] [])] 
+
+testForeverLoop = testTaskOutput "Test a 'forever' loop construct (a more complex version of a dynamic parallel)" minimalForever events exp (===)
+where
+	events = [ResetEvent, ActionEvent (TaskId 1 1) "Continue"]
+	exp = [ReplaceUI (uic UIParallel [uic UICompoundContent [expStep "1-1",expRestarter],uic UICompoundContent []]) //Initial UI
+		  //Remove UI of first loop cycle, and UI for next cycle: Remove two original tasks, create two new ones
+		  ,ChangeUI [] [ChangeChild 0 (ChangeUI [] [RemoveChild 0,RemoveChild 0,InsertChild 0 (expStep "1-14"),InsertChild 1 expRestarter])
+					   ,ChangeChild 1 (ChangeUI [] [])
+                       ]
+          ]
+
+	expRestarter = uic UIStep [ui UIEmpty]
+	expStep taskId = uic UIStep [expEditor,ui (UIAction {UIAction|action=ActionContinue, taskId=taskId,enabled=True})]
+	expEditor = uic UIInteract [ui UIEmpty, uic (UIEditor {UIEditor|optional=False}) [ui (UIViewString defaultSizeOpts {UIViewOpts|value=Just "Forever..."})]]
 
 testTaskOutput :: String (Task a) [Event] [UIChangeDef] ([UIChangeDef] [UIChangeDef] -> Bool) -> Test | iTask a
 testTaskOutput name task events exp comparison = utest name test
