@@ -124,9 +124,9 @@ hjoin :: ![UI] -> UI
 vjoin :: ![UI] -> UI
 
 //Operations on containers
-addItemToUI		:: (Maybe Int) UIControl UIControl -> UIControl
-getItemsOfUI	:: UIControl -> [UIControl]
-setItemsOfUI	:: [UIControl] UIControl -> UIControl
+//addItemToUI		:: (Maybe Int) UIControl UIControl -> UIControl
+//getItemsOfUI	:: UIControl -> [UIControl]
+//setItemsOfUI	:: [UIControl] UIControl -> UIControl
 
 //Predefined panels
 //buttonPanel		:: ![UIControl]	-> UIControl	//Container for a set of horizontally layed out buttons
@@ -134,13 +134,13 @@ setItemsOfUI	:: [UIControl] UIControl -> UIControl
 mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
 
 //Predefined action placement
-actionsToButtons			:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
-actionsToMenus				:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
+//actionsToButtons			:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
+//actionsToMenus				:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
 actionsToCloseId			:: ![UIAction]	-> (!Maybe String,![UIAction])
 
-tweakUI			:: (UIControl -> UIControl) UI -> UI
+//tweakUI			:: (UIControl -> UIControl) UI -> UI
 tweakAttr		:: (UIAttributes -> UIAttributes) UI -> UI
-tweakControls	:: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UI -> UI
+//tweakControls	:: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UI -> UI
 
 //decorateControls    :: [(UIControl,UIAttributes)] -> [UIControl]
 //decorateControl     :: Bool (!UIControl,!UIAttributes) -> UIControl

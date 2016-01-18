@@ -48,7 +48,7 @@ createTaskletEventHandler :: (TaskletEventHandlerFunc a) !TaskId -> JSFun b
 :: Tasklet st val = 
 	{ genUI				:: !(TaskId (Maybe st) *IWorld -> *(!TaskletGUI st, !st, !*IWorld))
 	, resultFunc		:: !(st -> TaskValue val)
-	, tweakUI 			:: !(UIControl -> UIControl)
+	, tweakUI 			:: !(UI -> UI)
 	}
 
 mkTask :: (Tasklet st res) -> Task res | iTask res

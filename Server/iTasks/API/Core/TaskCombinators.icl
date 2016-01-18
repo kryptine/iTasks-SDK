@@ -732,7 +732,7 @@ where
     release taskId meta = meta
 
     embedTaskDef instanceNo instanceKey
-		= ui (UIControl (UIEmbedding embedSize {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey}))
+		= ui (UIEmbedding embedSize {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey})
 
     embedSize = {UISizeOpts|defaultSizeOpts & width= Just FlexSize, height=Just FlexSize}
 

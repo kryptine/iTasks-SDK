@@ -198,9 +198,9 @@ where
 
 taskInfo ts = {TaskEvalInfo|lastEvent = ts, removedTasks=[], refreshSensitive = True}
 
-appTweak tasklet taskTuiRep = tweakUI tasklet.tweakUI taskTuiRep
+appTweak tasklet taskTuiRep = taskTuiRep //tweakUI tasklet.tweakUI taskTuiRep
 
-toDef c = ui (UIControl c)
+toDef c = ui c
 
 /* Controller wrapper to be easier to write controller function:
  * 1. taskId is parsed

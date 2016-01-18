@@ -508,23 +508,22 @@ instance tune Icon
 where
 	tune (Icon icon) t = t //tune (ApplyLayout layout) t
 	where
-		//layout ((ReplaceUI ui),()) = (ReplaceUI (uiDefSetAttribute ICON_ATTRIBUTE icon ui),())
+		layout (ReplaceUI (UI type attr items),()) = (ReplaceUI (UI type ('DM'.put ICON_ATTRIBUTE icon attr) items),())
 		layout (change,s) = (change,s)
 
 instance tune Attribute
 where
-	tune (Attribute k v) t = t// tune (ApplyLayout layout) t
+	tune (Attribute k v) t = tune (ApplyLayout layout) t
 	where
-//		layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute k v ui),())
+		layout (ReplaceUI (UI type attr items),()) = (ReplaceUI (UI type ('DM'.put k v attr) items),())
 		layout (change,s) = (change,s)
 
 instance tune Label
 where
 	tune (Label label) t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI ui,()) = (ReplaceUI ((tweakControls (map (\(c,a) -> (c,'DM'.put LABEL_ATTRIBUTE label a)))) ui),())
+		layout (ReplaceUI (UI type attr items),()) = (ReplaceUI (UI type ('DM'.put LABEL_ATTRIBUTE label attr) items),())
 		layout (change,s) = (change,s)
-
 
 instance tune NoUserInterface
 where
@@ -773,17 +772,17 @@ addButtonPanel attr direction buttons items
 		(Just "bottom",Vertical)	= (items ++ [fillWidth (buttonPanel buttons)],Vertical)
 		(Just "bottom",Horizontal)	= ([setDirection Horizontal (defaultContainer items),fillWidth (buttonPanel buttons)],Vertical)
 */
-addTriggersToUIDef :: [(Trigger,String,String)] UI -> UI
+//addTriggersToUIDef :: [(Trigger,String,String)] UI -> UI
 //addTriggersToUIDef triggers (UIForm stack=:{UIForm|controls})
 //    = UIForm {UIForm|stack & controls = [(addTriggersToControl triggers c,m)\\ (c,m) <- controls]}
 //addTriggersToUIDef triggers (UIBlock subui)
     //= UIBlock (addTriggersToBlock triggers subui)
 //addTriggersToUIDef triggers (UIBlocks blocks actions)
  //   = UIBlocks (map (addTriggersToBlock triggers) blocks) []
-addTriggersToUIDef triggers def = def
+//addTriggersToUIDef triggers def = def
 
 
-addTriggersToControl :: [(Trigger,String,String)] UIControl -> UIControl
+//addTriggersToControl :: [(Trigger,String,String)] UIControl -> UIControl
 //Recursive cases
 //addTriggersToControl triggers (UIContainer sOpts iOpts=:{UIItemsOpts|items})
  //   = UIContainer sOpts {UIItemsOpts|iOpts & items = map (addTriggersToControl triggers) items}
@@ -792,12 +791,12 @@ addTriggersToControl :: [(Trigger,String,String)] UIControl -> UIControl
 //addTriggersToControl triggers (UITabSet sOpts tOpts=:{UITabSetOpts|items})
     //= UITabSet sOpts {UITabSetOpts|tOpts & items = map (addTriggersToTab triggers) items}
 //Single controls
-addTriggersToControl triggers control = foldr addTriggerToControl control triggers
+//addTriggersToControl triggers control = foldr addTriggerToControl control triggers
 
-addTriggerToControl :: (Trigger,String,String) UIControl -> UIControl
+//addTriggerToControl :: (Trigger,String,String) UIControl -> UIControl
 //addTriggerToControl (DoubleClick,taskId,actionId) (UIGrid sOpts cOpts opts) = UIGrid sOpts cOpts {UIGridOpts|opts & doubleClickAction = Just (taskId,actionId)}
 //addTriggerToControl (DoubleClick,taskId,actionId) (UITree sOpts cOpts opts) = UITree sOpts cOpts {UITreeOpts|opts & doubleClickAction = Just (taskId,actionId)}
-addTriggerToControl t c = c
+//addTriggerToControl t c = c
 
 //GUI combinators						
 hjoin :: ![UI] -> UI
@@ -807,6 +806,7 @@ vjoin :: ![UI] -> UI
 vjoin items = uic (UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Vertical, halign = AlignLeft, valign = AlignTop}) items
 						
 //Container operations
+/*
 addItemToUI :: (Maybe Int) UIControl UIControl -> UIControl
 addItemToUI mbIndex item ctrl = case ctrl of
 //	UIContainer sOpts iOpts=:{UIItemsOpts|items}    = UIContainer sOpts {UIItemsOpts|iOpts & items = add mbIndex item items}
@@ -815,22 +815,25 @@ addItemToUI mbIndex item ctrl = case ctrl of
 where
 	add Nothing item items		= items ++ [item]
 	add (Just pos) item items	= take pos items ++ [item] ++ drop pos items
-	
-getItemsOfUI :: UIControl -> [UIControl]
+*/	
+
+
+//getItemsOfUI :: UIControl -> [UIControl]
 //getItemsOfUI (UIContainer _ {UIItemsOpts|items})	= items
 //getItemsOfUI (UIPanel _ {UIItemsOpts|items} _)		= items
-getItemsOfUI ctrl									= [ctrl]
+//getItemsOfUI ctrl									= [ctrl]
 	
-setItemsOfUI :: [UIControl] UIControl -> UIControl
+//setItemsOfUI :: [UIControl] UIControl -> UIControl
 //setItemsOfUI items (UIContainer sOpts iOpts)	    = UIContainer sOpts {UIItemsOpts|iOpts & items = items}
 //setItemsOfUI items (UIPanel sOpts iOpts opts)		= UIPanel sOpts {UIItemsOpts|iOpts & items = items} opts
-setItemsOfUI items ctrl								= ctrl
+//setItemsOfUI items ctrl								= ctrl
 
 //Container for a set of horizontally layed out buttons
 //buttonPanel	:: ![UIControl] -> UIControl	
 //buttonPanel buttons
 //	= (wrapHeight o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight) (setBaseCls "buttonbar" (defaultContainer buttons))
 
+/*
 actionsToButtons :: ![UIAction] -> (![UIControl],![UIKeyAction],![UIAction])
 actionsToButtons [] = ([],[],[])
 actionsToButtons [a=:{taskId,action=action=:(Action name _),enabled}:as]
@@ -848,7 +851,8 @@ where
 	mkButton taskId action=:(Action actionId _) enabled
 		= UIActionButton defaultSizeOpts {UIActionOpts|taskId = toString taskId,actionId=actionId}
 			{UIButtonOpts|text = Just (actionName action), iconCls = (actionIcon action), disabled = not enabled}
-			
+*/			
+/*
 actionsToMenus :: ![UIAction] -> (![UIControl],![UIKeyAction],![UIAction])
 actionsToMenus actions
 	# (menus,hotkeys,actions) = makeMenus [] [] actions
@@ -925,7 +929,7 @@ where
 		
 	menuOrder (UIMenuButton _ {UIMenuButtonOpts|text=Just m1}) (UIMenuButton _ {UIMenuButtonOpts|text=Just m2}) = m1 < m2
 	menuOrder m1 m2 = False
-
+*/
 //Extract triggers from a list of actions
 extractTriggers :: ![UIAction] -> ([(Trigger,String,String)], [UIAction])
 extractTriggers [] = ([],[])
@@ -976,14 +980,14 @@ where
     setIfNotSet attr (k,v)
         = maybe ('DM'.put k v attr) (const attr) ('DM'.get k attr)
 
-tweakUI :: (UIControl -> UIControl) UI -> UI
+//tweakUI :: (UIControl -> UIControl) UI -> UI
 //tweakUI f (UIForm stack=:{UIForm|controls})
 //	= UIForm {UIForm|stack & controls = [(f c,a) \\ (c,a) <- controls]}
 //tweakUI f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
 	//= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map f items}}
-tweakUI f (UI (UIControl control) attr items)
-    = UI (UIControl (f control)) attr items
-tweakUI f def = def
+//tweakUI f (UI (UIControl control) attr items)
+//    = UI (UIControl (f control)) attr items
+//tweakUI f def = def
 
 tweakAttr :: (UIAttributes -> UIAttributes) UI -> UI
 //tweakAttr f (UIForm stack=:{UIForm|attributes})
@@ -992,14 +996,14 @@ tweakAttr :: (UIAttributes -> UIAttributes) UI -> UI
 //	= UIBlock {UIBlock|sub & attributes = f attributes}
 tweakAttr f def = def
 
-tweakControls :: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UI -> UI
+//tweakControls :: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UI -> UI
 //tweakControls f (UIForm stack=:{UIForm|controls})
 //	= UIForm {UIForm|stack & controls = f controls}
 //tweakControls f (UIBlock sub=:{UIBlock|content=content=:{UIItemsOpts|items}})
 	//= UIBlock {UIBlock|sub & content = {UIItemsOpts|content & items = map fst (f [(c,'DM'.newMap) \\ c <- items])}}
-tweakControls f (UI (UIControl control) attr items)
-	= case f [(control,'DM'.newMap)] of
-		[(control,_):_] = UI (UIControl control) attr items
-		_ 				= UI (UIControl control) attr items
-tweakControls f def	= def
+//tweakControls f (UI (UIControl control) attr items)
+//	= case f [(control,'DM'.newMap)] of
+//		[(control,_):_] = UI (UIControl control) attr items
+//		_ 				= UI (UIControl control) attr items
+//tweakControls f def	= def
 

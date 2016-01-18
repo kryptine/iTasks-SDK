@@ -4,7 +4,7 @@ definition module iTasks.UI.Editor
 * the interact core task uses these editors to generate and update the user interface
 */
 
-from iTasks.UI.Definition import :: UIControl, :: UIAttributes
+from iTasks.UI.Definition import :: UIAttributes
 from iTasks.UI.Diff import :: UIChangeDef
 
 import iTasks.UI.Component

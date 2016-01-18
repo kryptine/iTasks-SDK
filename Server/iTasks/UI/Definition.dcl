@@ -22,7 +22,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 //Provide generic instances for all UI definitions
-derive class iTask UI, UINodeType, UIAction, UIEditor, UIControl
+derive class iTask UI, UINodeType, UIAction, UIEditor
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UIWindowType
 derive class iTask UIWindowOpts, UIContainerOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
@@ -63,17 +63,14 @@ instance Functor UIViewOpts
 	| UITabSet			!UISizeOpts !UITabSetOpts
 	| UITab                         !UIContainerOpts !UITabOpts
 	| UIWindow 			!UISizeOpts !UIContainerOpts !UIWindowOpts
-	//Constructors for single controls
-	| UIControl 		!UIControl 	//A Single control
-
-:: UIControl
 	// Components for viewing data:
-	= UIViewString		!UISizeOpts	    !(UIViewOpts String)							// - String (non-wrapping single line text with automatic escaping)
+	| UIViewString		!UISizeOpts	    !(UIViewOpts String)							// - String (non-wrapping single line text with automatic escaping)
 	| UIViewHtml		!UISizeOpts	    !(UIViewOpts HtmlTag)							// - Html (formatted multi line text)
 	| UIViewDocument	!UIHSizeOpts	!(UIViewOpts Document)							// - Document (info + download link)
 	| UIViewCheckbox	!UIFSizeOpts	!(UIViewOpts Bool)								// - Checkbox (non-editable tick-mark)
-	| UIViewSlider		!UIHSizeOpts	!(UIViewOpts Int)	!UISliderOpts				// - Slider (non-editable slider)
+	| UIViewSlider		!UIHSizeOpts	!(UIViewOpts Int)  !UISliderOpts				// - Slider (non-editable slider)
 	| UIViewProgress	!UIHSizeOpts	!(UIViewOpts ProgressAmount) !UIProgressOpts	// - Progress (non editable progress bar)
+	| UIIcon			!UIFSizeOpts	!UIIconOpts									    // - Icon (information icon with tooltip text)
 	// Components for editing data:
 	| UIEditString		!UIHSizeOpts	!UIEditOpts                                     // - String (single line text field)
 	| UIEditNote		!UISizeOpts	    !UIEditOpts                                     // - Note (multi-line text field)
@@ -99,12 +96,11 @@ instance Functor UIViewOpts
 	| UIMenuButton		!UISizeOpts	    !UIMenuButtonOpts							    // - Menu Button (clicks open a menu)
 	// Misc auxiliary components:
 	| UILabel			!UIHSizeOpts	!UILabelOpts								    // - Label (non-wrapping text label, clicks focus next component)
-	| UIIcon			!UIFSizeOpts	!UIIconOpts									    // - Icon (information icon with tooltip text)
     | UISplitter
 	// Tasklet stuff
 	| UITasklet			!UISizeOpts     !UITaskletOpts								    // - Tasklet (custom clientside interaction)
 	| UIEditlet			!UISizeOpts	    !UIEditletOpts								    // - Editlet (custom clientside editor)
-	// Container components for composition:
+	// Viewport for other task instances
     | UIEmbedding       !UISizeOpts     !UIEmbeddingOpts                                // - Embedding of a related task gui (like an iframe for tasks)
 
 :: UIAttributes 		:== Map String String
@@ -403,4 +399,3 @@ instance encodeUI JSONNode
 instance encodeUI (Maybe a) | encodeUI a
 instance encodeUI [a] | encodeUI a
 instance encodeUI UI
-instance encodeUI UIControl
