@@ -147,7 +147,7 @@ where
 		updateChildren [] states = ([],states)
 		updateChildren [ChangeChild i change:cs] states
 			# (cs,states) = updateChildren cs states
-			# state = states !! i
+			# state = if (i < length states) (states !! i) JSONNull
 			# (change,state) = childLayout (change,state)
 			= ([ChangeChild i change:cs],updateAt i state states)
 		updateChildren [c:cs] states
@@ -471,13 +471,6 @@ where
 autoLayoutBlocks :: [UIBlock] [UIAction] -> UIBlock
 autoLayoutBlocks blocks actions = arrangeVertical blocks actions
 */
-
-instance tune ToWindow
-where
-	tune (ToWindow windowType vpos hpos) t = t//tune (ApplyLayout layout) t
-	where
-		//layout (ReplaceUI ui,()) = (ReplaceUI (uiDefToWindow windowType vpos hpos ui),())
-		layout (change,s) = (change,s)
 
 instance tune InPanel
 where

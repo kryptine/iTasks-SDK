@@ -58,6 +58,12 @@ startEngine :: a !*World -> *World | Publishable a
 */
 publish :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
 
+/**
+* This function publishes a task with autolayouting turned off 
+* to enable testing and debugging without layout processing
+*/
+publishRaw :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
+
 class Publishable a
 where
 	publishAll :: !a -> [PublishedTask]
@@ -66,16 +72,6 @@ instance Publishable (Task a) | iTask a
 instance Publishable (HTTPRequest -> Task a) | iTask a
 instance Publishable [PublishedTask]
 
-/**
-* This function publishes a task with autolayouting turned off 
-* to enable testing and debugging without layout processing
-*/
-publishRaw :: (Task a) -> PublishedTask | iTask a
-
-/**
-* Applies the standard layout for top-level session tasks
-*/
-withFinalSessionLayout :: (Task a) -> Task a | iTask a
 
 determineAppName :: !*World -> (!String,!*World)
 

@@ -56,19 +56,10 @@ instance descr (!String, !String)			//Title attribute + instruction
 
 :: SetValueAttribute a = SetValueAttribute !String (a -> String)
 
-//Placement tuning types
-:: ToWindow     = ToWindow UIWindowType UIVAlign UIHAlign
-
-InWindow                :== InFloatingWindow  //Indicate that a task should be put in a window
-InFloatingWindow        :== ToWindow FloatingWindow AlignMiddle AlignCenter
-InNotificationBubble    :== ToWindow NotificationBubble AlignTop AlignRight
-InModalDialog           :== ToWindow ModalDialog AlignMiddle AlignCenter
-
 :: InPanel          = InPanel           //Indicate that a task should be wrapped in a panel
 :: InContainer      = InContainer       //Indicate that a task should be wrapped in a panel
 :: FullScreen       = FullScreen        //Indicate that the full screen space should be used during final layout
 
-//instance tune ToWindow
 //instance tune InPanel
 //instance tune InContainer
 instance tune FullScreen
@@ -96,6 +87,7 @@ instance tune NoUserInterface
 
 //:: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool
 //instance tune ArrangeWithSideBar
+
 /*
 * @param Index of the task in the set that should be put in the sidebar
 * @param Location of the sidebar

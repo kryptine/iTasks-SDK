@@ -24,8 +24,30 @@ where
 
 isParallel d = d =:(UI UIParallel _ _)
 
+toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
+toWindow windowType vpos hpos = changeContainerType mkWindow
+where
+	mkWindow (UI _ attr items) = UI (UIWindow sOpts cOpts {wOpts & windowType = windowType, vpos = Just vpos, hpos = Just hpos}) attr items
+	(UIWindow sOpts cOpts wOpts) = defaultWindow
+
+instance tune ToWindow
+where
+	tune (ToWindow windowType vpos hpos) t = tune (ApplyLayout (toWindow windowType vpos hpos)) t
+
 instance tune ArrangeWithTabs
 where tune ArrangeWithTabs t = tune (ApplyLayout arrangeWithTabs) t
+
+instance tune ArrangeWithSideBar
+where
+    tune (ArrangeWithSideBar index side size resize) t = t
+
+instance tune ArrangeVertical
+where
+    tune ArrangeVertical t =  t
+
+instance tune ArrangeHorizontal
+where
+    tune ArrangeHorizontal t =  t
 
 /*
 arrangeWithTabs :: UIBlocksCombinator

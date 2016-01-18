@@ -206,27 +206,28 @@ where
 	lostFun _ _ s env = (Nothing,env)
 
 publish :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
-publish url format task = {url = url, task = TaskWrapper task, defaultFormat = format}
+publish url format task = {url = url, task = TaskWrapper (withFinalSessionLayout task), defaultFormat = format}
+
+publishRaw :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
+publishRaw url format task = {url = url, task = TaskWrapper (withoutLayout task), defaultFormat = format}
+
+withFinalSessionLayout :: (HTTPRequest -> Task a) -> (HTTPRequest -> Task a) | iTask a
+withFinalSessionLayout taskf = \req -> tune (ApplyLayout autoLayoutSession) (taskf req)
+
+withoutLayout :: (HTTPRequest -> Task a) -> (HTTPRequest -> Task a) | iTask a
+withoutLayout taskf = \req -> tune WithoutAutoLayout (taskf req)
 
 instance Publishable (Task a) | iTask a
 where
-	publishAll task = [publish "/" (WebApp []) (\_ -> (withFinalSessionLayout task))]
+	publishAll task = [publish "/" (WebApp []) (const task)]
 
 instance Publishable (HTTPRequest -> Task a) | iTask a
 where
-	publishAll task = [publish "/" (WebApp []) task`]
-	where
-		task` req = withFinalSessionLayout (task req)
+	publishAll task = [publish "/" (WebApp []) task]
 	
 instance Publishable [PublishedTask]
 where
 	publishAll list = list
-
-withFinalSessionLayout :: (Task a) -> Task a | iTask a
-withFinalSessionLayout task = tune (ApplyLayout autoLayoutSession) task
-
-publishRaw :: (Task a) -> PublishedTask | iTask a
-publishRaw task = publish "/" (WebApp []) (const (tune WithoutAutoLayout task))
 
 // Determines the server executables name
 determineAppName :: !*World -> (!String,!*World)
