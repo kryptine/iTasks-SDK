@@ -8,9 +8,9 @@ import iTasks
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Types
 
-imageView   ::           !(s *TagSource -> Image s) !(Conflict s -> Maybe s)              -> ViewOption s | iTask s
+imageView   :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v)              -> ViewOption s | iTask s & iTask v
 
-imageUpdate :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v) !(s v -> s`) -> UpdateOption s s` |  iTask v
+imageUpdate :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v) !(s v -> s`) -> UpdateOption s s` | iTask v
 
 :: SVGSrvSt s =
   { svgSrvSt :: !s

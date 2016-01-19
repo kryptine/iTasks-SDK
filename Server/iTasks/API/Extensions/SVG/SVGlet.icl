@@ -268,9 +268,9 @@ handleNClick mkEventHandler resolve state2image sttf local cid args clval=:{svgC
   = (clval, cdiff, world)
 handleNClick mkEventHandler resolve state2image sttf local _ args clval world = (clval, NoDiff, world)
 
-imageView :: !(s *TagSource -> Image s) !(Conflict s -> Maybe s)
-          -> ViewOption s | iTask s
-imageView toImage resolve = ViewWith (\s -> svgRenderer resolve s toImage)
+imageView :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v)
+          -> ViewOption s | iTask s & iTask v
+imageView toViewState toImage resolve = ViewWith (\s -> svgRenderer resolve (toViewState s) toImage)
 
 imageUpdate :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v)
                !(s v -> s`)
