@@ -6,7 +6,15 @@ definition module iTasks.UI.Layout.Common
 */
 import iTasks.UI.Layout
 
+/**
+* Create a tabset with all child items as separate tabs
+*/
 arrangeWithTabs :: Layout
+
+/**
+* Extract one child item and put it in a separate panel at the side of the screen
+*/
+arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 
 //Changing container types
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout

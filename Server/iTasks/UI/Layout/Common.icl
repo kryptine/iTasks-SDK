@@ -1,8 +1,10 @@
 implementation module iTasks.UI.Layout.Common
 
 import iTasks.UI.Layout
+import iTasks.UI.Definition
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 import qualified Data.Map as DM
+import StdBool
 from StdFunc import id, const
 
 arrangeWithTabs :: Layout
@@ -24,6 +26,40 @@ where
 
 isParallel d = d =:(UI UIParallel _ _)
 
+arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
+arrangeWithSideBar index side size resize = sequenceLayouts 
+	[wrap defaultContainer //Push the current container down a level
+	,changeContainerType (\(UI _ attr items) -> UI defaultPanel attr items) //Turn into a panel
+	,moveChild [0,index] [if (side === TopSide || side === LeftSide) 0 1]
+	//Size the new container 
+	]
+	//Eerst een wrap in een container
+	//Dan afhankelijk van de side een move van het gekozen element naar index 0 of 1 in de nieuwe container
+	//De twee subcontainers sizen
+/*
+arrangeWithSideBar :: !Int !UISide !Int !Bool -> UIBlocksCombinator
+arrangeWithSideBar index side size resize = arrange
+where
+    arrange [] actions = autoLayoutBlocks [] actions
+    arrange blocks actions
+        | index >= length blocks = autoLayoutBlocks blocks actions
+        # sidePart = blocks !! index
+        # restPart = case removeAt index blocks of
+            [ui] = ui
+            uis  = autoLayoutBlocks uis []
+        # (sideC,sideAt,sideAc,sideHK) = blockToControl sidePart
+        # (restC,restAt,restAc,restHK) = blockToControl restPart
+        # sideC = if (side === TopSide|| side === BottomSide) (setSize FlexSize (ExactSize size) sideC) (setSize (ExactSize size) FlexSize sideC)
+        # restC = fill restC
+        = {UIBlock|attributes=mergeAttributes restAt sideAt
+                  ,content= {UIItemsOpts|defaultItemsOpts (if (side===TopSide || side === LeftSide) (if resize [sideC,UISplitter,restC] [sideC,restC]) (if resize [restC,UISplitter,sideC] [restC,sideC]))
+                            &direction = if (side===TopSide || side === BottomSide) Vertical Horizontal
+                            }
+                  ,hotkeys = restHK ++ sideHK
+                  ,size = defaultSizeOpts
+                  }
+*/
+
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
 toWindow windowType vpos hpos = changeContainerType mkWindow
 where
@@ -42,7 +78,7 @@ where tune ArrangeWithTabs t = tune (ApplyLayout arrangeWithTabs) t
 
 instance tune ArrangeWithSideBar
 where
-    tune (ArrangeWithSideBar index side size resize) t = t
+    tune (ArrangeWithSideBar index side size resize) t = tune (ApplyLayout (arrangeWithSideBar index side size resize)) t
 
 instance tune ArrangeVertical
 where

@@ -28,6 +28,7 @@ layoutChild :: NodePath Layout-> Layout
 insertChild :: NodePath UI -> Layout
 removeChild :: NodePath -> Layout
 
+moveChild :: NodePath NodePath -> Layout
 moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
 
 layoutChildrenOf :: NodePath Layout -> Layout

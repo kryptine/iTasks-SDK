@@ -10,8 +10,6 @@ from StdFunc import o, const, id, flip
 
 from iTasks._Framework.TaskState import :: TIMeta(..)
 
-derive gEq UISide
-
 LABEL_WIDTH :== 100
 
 instance descr ()
@@ -28,6 +26,7 @@ where
 
 //Building blocks for layout
 
+//TODO: When applying a layout to a child, the layout should also be applied if a UI is being inserted at that path
 layoutChild :: NodePath Layout -> Layout
 layoutChild [] childLayout = childLayout
 layoutChild [i] childLayout = layoutChild` i childLayout
@@ -84,6 +83,10 @@ where
 		| childChangeIndex c < idx 	= [c:remove idx cs]
 		| childChangeIndex c == idx = remove idx cs
 									= [updChildChangeIndex (\n -> n - 1) c:remove idx cs]
+
+moveChild :: NodePath NodePath -> Layout 
+moveChild src dst = id
+//TODO
 
 //FIXME: Currently this only works when changes are moved to an empty container, needs to be generalized
 moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
@@ -555,39 +558,7 @@ where
                        }
 */
 
-/*
-arrangeWithTabs :: UIBlocksCombinator
-arrangeWithTabs = arrange
-where
-    arrange blocks actions
-        # parts         = [(blockToTab ui,attributes) \\ ui=:{UIBlock|attributes} <- blocks]
-        # tabs          = map fst parts
-        # activeTab     = activeIndex parts
-        # controls      = [UITabSet defaultSizeOpts {UITabSetOpts|items=tabs,activeTab=activeTab}]
-        = {UIBlock|attributes='DM'.newMap,content={UIItemsOpts|defaultItemsOpts controls & direction=Vertical}
-          ,hotkeys=[],size=defaultSizeOpts}
 
-    activeIndex parts = find 0 Nothing parts
-    where
-		find i best                 [] = fmap fst best
-        find i Nothing              [(_,acur):ds] = find (i+1) (Just (i,acur)) ds
-        find i (Just (ibest,abest)) [(_,acur):ds]
-            | later acur abest  = find (i+1) (Just (i,acur)) ds
-                                = find (i+1) (Just (ibest,abest)) ds
-
-		later a b = case ('DM'.get LAST_FOCUS_ATTRIBUTE a,'DM'.get LAST_FOCUS_ATTRIBUTE b) of
-            (Just fa,Just fb)   = toInt fa > toInt fb
-			(Just _,Nothing)	= True
-			_					= False
-*/
-/*
-instance tune ArrangeWithSideBar
-where
-    tune (ArrangeWithSideBar index side size resize) t = tune (ApplyLayout layout) t
-	where
-		layout (ReplaceUI ui,()) = (ReplaceUI (arrangeBlocks (arrangeWithSideBar index side size resize) ui),())
-		layout (change,s) = (change,s)
-*/
 /*
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> UIBlocksCombinator
 arrangeWithSideBar index side size resize = arrange

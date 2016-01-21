@@ -22,7 +22,10 @@ autoLayoutAttach :: Layout
 autoLayoutAttach = id
 
 autoLayoutSession :: Layout
-autoLayoutSession = sequenceLayouts [finalizeUI,changeContainerType (setSize WrapSize WrapSize o setTopMargin 50 o setMinWidth (ExactBound 600))]
+autoLayoutSession = sequenceLayouts 
+    [finalizeUI
+    ,changeContainerType (setFramed True o setSize WrapSize WrapSize o setMargins 50 0 20 0 o setMinWidth (ExactBound 600))
+    ]
 
 //The finalize layouts remove all intermediate 
 finalizeUI :: Layout
