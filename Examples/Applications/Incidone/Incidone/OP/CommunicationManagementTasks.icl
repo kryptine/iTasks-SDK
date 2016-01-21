@@ -40,7 +40,7 @@ answerPhoneCall communicationNo
           manageVoiceCallContent PhoneCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide 300 True) 
                                                             <<@ ArrangeWithSideBar 0 TopSide 60 False
                                                             <<@ Title ("Answer phone call")
-                                                            <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600))
+                                                            /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600)) */ //FIXME
     @!  communicationNo
 
 //Make an outgoing phone call
@@ -53,7 +53,7 @@ initiatePhoneCall communicationNo
           manageVoiceCallContent PhoneCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide 300 True)
                                                             <<@ ArrangeWithSideBar 0 TopSide 60 False
                                                             <<@ Title ("Make phone call")
-                                                            <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600))
+                                                            /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600)) */ //FIXME
     @!  communicationNo
 
 //Answer an incoming radio call
@@ -66,7 +66,7 @@ answerRadioCall communicationNo
           manageVoiceCallContent RadioCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide 300 True)
                                                             <<@ ArrangeWithSideBar 0 TopSide 60 False
                                                             <<@ Title ("Answer radio call")
-                                                            <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600))
+                                                            /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600)) */ //FIXME
     @!  communicationNo
 
 //Initiate an outgoing radio call
@@ -79,7 +79,7 @@ initiateRadioCall communicationNo
           manageVoiceCallContent RadioCall communicationNo) <<@ ArrangeWithSideBar 0 LeftSide 300 True)
                                                             <<@ ArrangeWithSideBar 0 TopSide 60 False
                                                             <<@ Title "Initiate radio call"
-                                                            <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600))
+                                                            /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600)) */ //FIXME
     @!  communicationNo
 
 //Compose an outgoing e-mail message
@@ -92,7 +92,7 @@ composeEmailMessage communicationNo
           relateMessageToIncidents communicationNo) <<@ ArrangeWithTabs)
                                                     <<@ ArrangeWithSideBar 0 TopSide 60 False
                                                     <<@ Title "Compose E-mail"
-                                                    <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600))
+                                                    /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600) ) */ //FIXME
     @! communicationNo
 where
     message = sdsFocus communicationNo emailMessageByNo
@@ -107,7 +107,7 @@ composeP2000Message communicationNo
           relateMessageToIncidents communicationNo) <<@ ArrangeWithTabs)
                                                     <<@ ArrangeWithSideBar 0 TopSide 60 False
                                                     <<@ Title "Compose P2000 message"
-                                                    <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600))
+                                                    /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600)) */ //FIXME
     @! communicationNo
 where
     message = sdsFocus communicationNo p2000MessageByNo
@@ -120,7 +120,7 @@ composeAndSendMessage communicationNo share sendTask = forever
     )
 where
     composeMessage
-        =   updateSharedInformation (Title "Message") [] share <<@ FillNotes
+        =   updateSharedInformation (Title "Message") [] share // <<@ FillNotes //FIXME
         >>* [OnAction ActionSend (hasValue (\_ -> sendTask communicationNo))]
 
     viewMessage
@@ -163,12 +163,12 @@ updatePhoneCallMeta communicationNo
     = ((Label "External number" @>> updateSharedInformation () [] (sdsFocus communicationNo phoneCallExternalNo))
         -&&-
        (Label "Time" @>> updateSharedInformation () [] (sdsFocus communicationNo communicationTime))
-      <<@ ForceLayout)
+      )
       -&&-
       ((Label "Status" @>> editSharedChoice () [] [Pending,Ringing,Connected,Missed,Answered] (sdsFocus communicationNo communicationStatus))
         -&&-
        (Label "Handled by" @>> editSharedChoiceWithSharedAs () [] watchOfficers contactIdentity (sdsFocus communicationNo communicationHandledBy))
-      <<@ ForceLayout) <<@ ArrangeSplit Horizontal False
+      ) <<@ ArrangeSplit Horizontal False
     @ \(_,(status,_)) -> status
 
 updateRadioCallMeta :: CommunicationNo -> Task CommunicationStatus
@@ -176,23 +176,22 @@ updateRadioCallMeta communicationNo
     = ((Label "Channel" @>> updateSharedInformation () [] (sdsFocus communicationNo radioCallChannel))
        -&&-
        (Label "Time" @>> updateSharedInformation () [] (sdsFocus communicationNo communicationTime))
- <<@ ForceLayout)
+       )
       -&&-
       ((Label "Status" @>> editSharedChoice () [] [Missed,Answered] (sdsFocus communicationNo communicationStatus))
         -&&-
        (Label "Handled by" @>> editSharedChoiceWithSharedAs () [] watchOfficers contactIdentity (sdsFocus communicationNo communicationHandledBy))
-      <<@ ForceLayout) <<@ ArrangeSplit Horizontal False
+      ) <<@ ArrangeSplit Horizontal False
     @ \(_,(status,_)) -> status
 
 updateMessageMeta :: CommunicationNo -> Task CommunicationStatus
 updateMessageMeta communicationNo
-    = ((Label "Time" @>> updateSharedInformation () [] (sdsFocus communicationNo communicationTime))
-      <<@ ForceLayout)
+    = ((Label "Time" @>> updateSharedInformation () [] (sdsFocus communicationNo communicationTime)))
       -&&-
       ((Label "Status" @>> editSharedChoice () [] [Pending,Sent] (sdsFocus communicationNo communicationStatus))
         -&&-
        (Label "Handled by" @>> editSharedChoiceWithSharedAs () [] watchOfficers contactIdentity (sdsFocus communicationNo communicationHandledBy))
-      <<@ ForceLayout) <<@ ArrangeSplit Horizontal False
+      ) <<@ ArrangeSplit Horizontal False
     @ \(_,(status,_)) -> status
 
 phoneCallExternalNo = mapReadWrite (toExternalNo,fromExternalNo) phoneCallByNo
@@ -293,7 +292,7 @@ manageVoiceCallContent type communicationNo
     = updateCallNotes -|| relateMessageToIncidents communicationNo <<@ ArrangeWithTabs
 where
     updateCallNotes
-        =   updateSharedInformation (Title "Notes") [] (callNotes type) <<@ FillNotes
+        =   updateSharedInformation (Title "Notes") [] (callNotes type) //<<@ FillNotes //FIXME
         @! ()
 
     callNotes PhoneCall = sdsFocus communicationNo (mapReadWrite (toPrj,fromPrj) phoneCallByNo)

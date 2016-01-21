@@ -16,17 +16,16 @@ derive JSONDecode ContactPosition
 
 gEditor{|ContactPosition|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI path val mask ver meta vst=:{VSt|taskId,disabled}
+	genUI path val mask vst=:{VSt|taskId,optional,disabled}
     	| disabled
-        	= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just (toSingleLineText val)},'DM'.newMap)], vst)
+        	= (uic (UIEditor {UIEditor|optional=optional}) [ui (UIViewString defaultSizeOpts {UIViewOpts|value = Just (toSingleLineText val)})], vst)
     	# value = case val of
         	PositionDescription s _ = JSONString s
         	PositionLatLng l        = JSONString (formatLatLng l)
-    	# control = UIEditString defaultHSizeOpts {UIEditOpts| taskId = taskId,editorId = editorId path, value = Just value}
-    	# attributes = 'DM'.newMap
-    	= (NormalEditor [(control,editorAttributes (val,mask,ver) meta)],vst)
+    	# control = ui (UIEditString defaultHSizeOpts {UIEditOpts|taskId = taskId,editorId = editorId path, value = Just value})
+    	= (uiac (UIEditor {UIEditor|optional=optional}) (stdAttributes "position" optional mask) [control], vst)
 
-	genDiff dp old new vst
+	genDiff dp old om new nm vst
 		= (if (old === new) NoChange (ChangeUI [("setValue",[toJSON new])] []),vst)
 
 	appDiff [] JSONNull val _ ust = (PositionDescription "" Nothing,Blanked,ust)

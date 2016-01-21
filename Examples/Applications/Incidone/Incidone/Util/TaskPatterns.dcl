@@ -4,10 +4,11 @@ import iTasks
 import Incidone.OP.Concepts, Incidone.Util.Workspace
 import qualified Data.Map
 
-NoAnnotation	:== AfterLayout (tweakControls (map (\(c,_) -> (c,'Data.Map'.newMap))))
-FillNotes       :== AfterLayout (tweakControls fillNotes)
+//FIXME
+//NoAnnotation	:== AfterLayout (tweakControls (map (\(c,_) -> (c,'Data.Map'.newMap))))
+//FillNotes       :== AfterLayout (tweakControls fillNotes)
 
-fillNotes   :: [(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]
+//fillNotes   :: [(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]
 
 createNewIncident			:: Task (Maybe IncidentNo)
 createNewContact			:: Task (Maybe ContactNo)

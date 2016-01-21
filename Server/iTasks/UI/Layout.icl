@@ -502,7 +502,7 @@ where
 	
 instance tune Icon
 where
-	tune (Icon icon) t = t //tune (ApplyLayout layout) t
+	tune (Icon icon) t = tune (ApplyLayout layout) t
 	where
 		layout (ReplaceUI (UI type attr items),()) = (ReplaceUI (UI type ('DM'.put ICON_ATTRIBUTE icon attr) items),())
 		layout (change,s) = (change,s)

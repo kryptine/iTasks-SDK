@@ -144,6 +144,11 @@ updateInformationWithShared d [UpdateWith tof fromf:_] shared m
 		(\r -> let v = tof (r,m) in (m,(v,Touched)))
 		(\l r (v,msk) rCh vCh vOk -> let nl = if vOk (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,(v,Touched))))
 		Nothing
+updateInformationWithShared d [UpdateUsing tof fromf editor:_] shared m
+	= interact d (toReadOnly shared)
+		(\r -> let v = tof (r,m) in (m,(v,Touched)))
+		(\l r (v,msk) rCh vCh vOk -> let nl = if vOk (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,(v,Touched))))
+		(Just editor)
 updateInformationWithShared d _ shared m
 	= interact d (toReadOnly shared)
 		(\r -> let v = (Display r,m) in (m,(v,CompoundMask [Touched,Untouched])))

@@ -59,6 +59,24 @@ where
                   ,size = defaultSizeOpts
                   }
 */
+arrangeSplit :: !UIDirection !Bool -> Layout
+arrangeSplit direction resize = id
+/*
+arrangeSplit :: !UIDirection !Bool -> UIBlocksCombinator
+arrangeSplit direction resize = arrange
+where
+    arrange [] actions = autoLayoutBlocks [] actions
+    arrange blocks actions
+        # (bcontrols,_,bactions,bhotkeys) = unzip4 (map blockToPanel blocks)
+        # controls = map fill bcontrols
+        # controls = if resize (intersperse UISplitter controls) controls
+        = {UIBlock|attributes='DM'.newMap
+                  ,content = {UIItemsOpts|defaultItemsOpts controls & direction = direction}
+                  //,actions = actions ++ flatten bactions
+                  ,hotkeys = flatten bhotkeys
+                  ,size = defaultSizeOpts
+                  }
+*/
 
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
 toWindow windowType vpos hpos = changeContainerType mkWindow
@@ -79,6 +97,10 @@ where tune ArrangeWithTabs t = tune (ApplyLayout arrangeWithTabs) t
 instance tune ArrangeWithSideBar
 where
     tune (ArrangeWithSideBar index side size resize) t = tune (ApplyLayout (arrangeWithSideBar index side size resize)) t
+
+instance tune ArrangeSplit
+where
+    tune (ArrangeSplit direction resize) t = tune (ApplyLayout (arrangeSplit direction resize)) t
 
 instance tune ArrangeVertical
 where

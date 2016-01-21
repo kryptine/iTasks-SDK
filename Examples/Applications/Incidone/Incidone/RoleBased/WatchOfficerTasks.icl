@@ -57,10 +57,10 @@ browseIncidents ws
 where
 	selectIncident
 		= ( (enterChoiceWithSharedAs (Title "Open incidents")
-			    [] openIncidentsDetails (\{IncidentDetails|incidentNo} -> incidentNo) <<@ ForceLayout <<@ AfterLayout (tweakUI fill))
+			    [] openIncidentsDetails (\{IncidentDetails|incidentNo} -> incidentNo) /* <<@ AfterLayout (tweakUI fill) */) //FIXME
             -||-
             (enterChoiceWithSharedAs (Title "Recent incidents")
-                [] recentIncidentsDetails (\{IncidentDetails|incidentNo} -> incidentNo) <<@ ForceLayout <<@ AfterLayout (tweakUI fill))
+                [] recentIncidentsDetails (\{IncidentDetails|incidentNo} -> incidentNo) /* <<@ AfterLayout (tweakUI fill) */) //FIXME
          ) <<@ ArrangeWithTabs
 
 browseContacts :: Workspace -> Task ()
@@ -103,13 +103,13 @@ browseActions ws
 	@!  ()
 where
 	selectAndWorkOnActions
-     = feedForward (chooseActionItem (Title "Overview") True True actionStatuses <<@ ForceLayout <<@ AfterLayout (tweakUI fill))
+     = feedForward (chooseActionItem (Title "Overview") True True actionStatuses /* <<@ AfterLayout (tweakUI fill) */) //FIXME
         (\s -> whileUnchanged s
             (\t -> case t of
               Just taskId    = workOnActionItem taskId
               Nothing        = viewInformation () [] ()
             )
-        ) <<@ (ArrangeWithSideBar 0 LeftSide 250 True) <<@ (Icon "actions") <<@(Title "Actions")
+        ) <<@ (ArrangeWithSideBar 0 LeftSide 250 True) <<@ (Icon "actions") <<@ (Title "Actions")
 
 
 

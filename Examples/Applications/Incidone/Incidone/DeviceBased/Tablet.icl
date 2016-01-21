@@ -6,11 +6,11 @@ import Incidone.Util.TaskPatterns
 
 selectVideoWallContent :: Task ()
 selectVideoWallContent
-    = (header ||- selectContent) <<@ (ArrangeWithSideBar 0 TopSide 30 False) <<@ FullScreen <<@ AfterLayout plainLayoutFinal
+    = (header ||- selectContent) <<@ (ArrangeWithSideBar 0 TopSide 30 False) <<@ FullScreen
     @! ()
 where
     header
-        = viewInformation () [] ("REMOTE CONTROL") <<@ ForceLayout <<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header"))
+        = viewInformation () [] ("REMOTE CONTROL") //<<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header")) //FIXME
 
     mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |+| contactsProvidingHelpGeo)
     selectContent
@@ -30,7 +30,7 @@ where
             >>- \(baseLayers,perspective) ->
                 withShared perspective
                 \p -> updateSharedInformation (Title title) [UpdateWith (toMap baseLayers) fromMap] (p >+| mapContacts)
-            <<@ AfterLayout (tweakUI fill)
+            //<<@ AfterLayout (tweakUI fill) //FIXME
             @   WallOverview
         where
             toMap baseLayers (perspective,contacts)
@@ -43,7 +43,7 @@ where
             =   enterChoiceWithSharedAs (Title title) [ChooseWith (ChooseFromList bigLabel)] allContactsShort (\{ContactShort|contactNo} -> WallContactSummary (Just contactNo))
         configure "Clock"
             =   viewInformation (Title title) [] "No configuration is needed for the clock."
-            <<@ AfterLayout (tweakUI fill)
+            //<<@ AfterLayout (tweakUI fill) //FIXME
             @!  WallClock
         configure "Countdown"
             =   get currentDateTime

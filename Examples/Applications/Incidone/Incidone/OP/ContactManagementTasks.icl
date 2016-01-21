@@ -31,15 +31,12 @@ where
 	selectContactFromLists sel
 		= anyTask [(editSharedChoiceWithSharedAs (Title "Involved in open incidents")
 						[ChooseWith (ChooseFromTree groupByIncident)] contactsOfOpenIncidentsShort (Left o fromOpenOption)) sel
-						<<@ ForceLayout
 				  ,(editSharedChoiceWithSharedAs (Title "Available for help")
 						[ChooseWith (ChooseFromTree groupByGroup)] contactsProvidingHelpShort (Left o contactIdentity)) sel
-						<<@ ForceLayout
                   ,(editSharedChoiceWithSharedAs (Title "All contacts")
                         [ChooseWith (ChooseFromTree groupByGroup)] allContactsShort (Left o contactIdentity)) sel
 				  ,(editSharedChoiceWithSharedAs (Title "AIS")
 						[ChooseWith (ChooseFromTree ungrouped)] (mapRead (sortBy (\x y -> contactTitle x < contactTitle y) o map aisToContact) allAISContacts) (Right o contactIdentity)) sel
-						<<@ ForceLayout
 				  ] <<@ (ArrangeSplit Horizontal True)
 
     fromOpenOption {ContactShortWithIncidents|contactNo} = contactNo
@@ -71,7 +68,7 @@ manageContactInformation ws contactNo
 			,manageContactCommunication contactNo
 			,manageContactIncidents ws contactNo
             ,manageContactActions False contactNo
-            ,manageContactCrew` contactNo <<@ ForceLayout <<@ Title "Crew"
+            ,manageContactCrew` contactNo <<@ Title "Crew"
             ] <<@ ArrangeWithTabs) @! ()
 where
     viewTitle contactNo	= viewSharedTitle (mapRead contactTitle (sdsFocus contactNo contactByNo))
@@ -157,9 +154,9 @@ where
 
 manageContactCommunication :: ContactNo -> Task ()
 manageContactCommunication contactNo
-    = ((manageContactCommunicationMeans True contactNo <<@ AfterLayout (tweakUI fill))
+    = ((manageContactCommunicationMeans True contactNo) // <<@ AfterLayout (tweakUI fill)) //FIXME
        -&&-
-       (viewContactCommunications contactNo <<@ ForceLayout <<@ AfterLayout (tweakUI fill))
+       (viewContactCommunications contactNo) //<<@ AfterLayout (tweakUI fill)) //FIXME
       ) <<@ ArrangeWithSideBar 0 LeftSide 200 True <<@ Title "Communication" <<@ Icon "communication"
     @! ()
 where
@@ -224,10 +221,10 @@ where
 
     title = (Title (if compact "Actions" "Overview"))
     selectActions
-        = chooseActionItem title False False (sdsFocus contactNo actionStatusesByContact) <<@ ForceLayout <<@ AfterLayout (tweakUI fill)
+        = chooseActionItem title False False (sdsFocus contactNo actionStatusesByContact) // <<@ AfterLayout (tweakUI fill) //FIXME
 
     selectAndWorkOnActions
-        = ((chooseActionItem title False True (sdsFocus contactNo actionStatusesByContact) <<@ ForceLayout <<@ AfterLayout (tweakUI fill))
+        = ( chooseActionItem title False True (sdsFocus contactNo actionStatusesByContact) // <<@ AfterLayout (tweakUI fill)) //FIXME
             >&> \s -> whileUnchanged s
                 (\t -> case t of
                 Just taskId    = workOnActionItem taskId @! taskId
@@ -536,7 +533,7 @@ viewContactsOnMap sharedContacts sel
        \localState ->
             updateSharedInformation "Show AIS contacts:" [UpdateWith fst (\(_,y) x -> (x,y))] localState
             ||-
-            (updateSharedInformation () [UpdateWith (toPrj baseLayers) fromPrj] (mapState localState sharedContacts sel) <<@ AfterLayout (tweakUI fill))
+            (updateSharedInformation () [UpdateWith (toPrj baseLayers) fromPrj] (mapState localState sharedContacts sel)) //<<@ AfterLayout (tweakUI fill)) //FIXME
             >^* [OnAction (Action "/Share map to wall" [ActionIcon "share-to-wall"]) (hasValue sharePerspective)
                 ]
         @? selection

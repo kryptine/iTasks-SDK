@@ -79,11 +79,11 @@ whileAuthenticated user tasks
     =  (controlDash -|| workOnTasks)  <<@ (ArrangeWithSideBar 0 TopSide 30 False) <<@ FullScreen <<@ (Title "Incidone")
 where
 	controlDash = (
-		    (viewInformation () [] ("Welcome " +++ toString user) <<@ ForceLayout)
+		    viewInformation () [] ("Welcome " +++ toString user) 
              -&&-
-            (viewNotifications <<@ ForceLayout) <<@ ArrangeHorizontal <<@ (Attribute "buttonPosition" "right")
+            viewNotifications <<@ ArrangeHorizontal /* <<@ (Attribute "buttonPosition" "right") */
         >>* [OnAction (Action "Log out" [ActionIcon "logout"]) (always (return ()))]
-        ) <<@ (AfterLayout (uiDefSetPadding 0 0 0 250 o uiDefSetBaseCls "summary-bar"))
+        ) /* <<@ (AfterLayout (uiDefSetPadding 0 0 0 250 o uiDefSetBaseCls "summary-bar") ) */ //FIXME
 
 	workOnTasks = doIndependent tasks <<@ ArrangeWithTabs
 

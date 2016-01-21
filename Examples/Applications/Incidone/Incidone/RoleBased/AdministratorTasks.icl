@@ -34,7 +34,7 @@ configureDatabase :: Task ()
 configureDatabase
     =   viewDatabaseConfigStatus
     >^* [OnAction (Action "Configure database" []) (always (doOrCancel setupDatabase <<@ InWindow))
-        ,OnAction (Action "Manage database" []) (ifValue hasAccess (\_ -> doOrClose manageDatabase <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600)) <<@ InWindow))
+        ,OnAction (Action "Manage database" []) (ifValue hasAccess (\_ -> doOrClose manageDatabase /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600))*/ <<@ InWindow))
         ]
     @! ()
 where
@@ -194,7 +194,7 @@ where
 
 configureIntegration :: Task ()
 configureIntegration
-    = anyTask [configureAISIntegration,configureAsteriskIntegration,configureEmailIntegration] <<@ ForceLayout <<@ Title "Integration"
+    = anyTask [configureAISIntegration,configureAsteriskIntegration,configureEmailIntegration] <<@ Title "Integration"
     @! ()
 where
     configureAISIntegration
@@ -220,7 +220,7 @@ configureMaps
 where
     previewMapLayers :: Task ContactMapPerspective
     previewMapLayers = withShared defaultValue
-        \perspective -> updateSharedInformation (Title "Preview") [UpdateWith toPrj fromPrj] (perspective >+| standardMapLayers) <<@ AfterLayout (tweakUI fill)
+        \perspective -> updateSharedInformation (Title "Preview") [UpdateWith toPrj fromPrj] (perspective >+| standardMapLayers) /* <<@ AfterLayout (tweakUI fill) */ //FIXME
     where
         toPrj (perspective,layers) = toLeafletMap {ContactMap|defaultValue & perspective=perspective,layers=layers}
         fromPrj _ {LeafletMap|perspective} = fromLeafletPerspective perspective

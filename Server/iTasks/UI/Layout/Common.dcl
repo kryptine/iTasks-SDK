@@ -16,9 +16,15 @@ arrangeWithTabs :: Layout
 */
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 
+/**
+* Divide the available screen space
+*/
+arrangeSplit :: !UIDirection !Bool -> Layout
+
 //Changing container types
+
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
-toEmpty :: Layout
+toEmpty  ::                                   Layout
 
 //Convenient annotatation types
 :: ArrangeWithTabs = ArrangeWithTabs
@@ -32,6 +38,9 @@ instance tune ArrangeHorizontal
 
 :: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool
 instance tune ArrangeWithSideBar
+
+:: ArrangeSplit = ArrangeSplit !UIDirection !Bool
+instance tune ArrangeSplit
 
 :: ToWindow = ToWindow UIWindowType UIVAlign UIHAlign
 InWindow                :== InFloatingWindow

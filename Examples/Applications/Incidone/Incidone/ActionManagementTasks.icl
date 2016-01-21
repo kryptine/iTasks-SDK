@@ -227,12 +227,7 @@ gEq{|ActionTasks|} x y = True
 
 gDefault{|ActionTasks|} = ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
 gText{|ActionTasks|} _ _ = ["Action item task definition"]
-gEditor{|ActionTasks|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
-where
-	genUI _ _ _ _ _ vst = (HiddenEditor,vst)
-	genDiff _ _ _ vst = (NoChange,vst)
-	appDiff _ _ val mask ust = (val,mask,ust)
-
+gEditor{|ActionTasks|} = emptyEditor 
 gEditMeta{|ActionTasks|} _ = [{label=Nothing,hint=Nothing,unit=Nothing}]
 gVerify{|ActionTasks|} _ val = alwaysValid val
 
@@ -502,7 +497,7 @@ chooseActionItem d groupByIncident useMyActionsFolder list
     = whileUnchanged (currentUserContactNo |+| openIncidentsShort)//Done this way, because I don't know how to combine the shares in a tree
         \(me,incidents) ->
             editChoiceWithSharedAs d
-                [ChooseWith (ChooseFromTree (groupActions groupByIncident useMyActionsFolder me incidents))] list fst3 Nothing <<@ NoAnnotation
+                [ChooseWith (ChooseFromTree (groupActions groupByIncident useMyActionsFolder me incidents))] list fst3 Nothing //<<@ NoAnnotation //FIXME
 
 groupActions :: Bool Bool ContactNo [IncidentShort] [(Int,(InstanceNo,InstanceNo,ActionStatus))] [ChoiceTreeValue] -> [ChoiceTree String]
 groupActions groupByIncident useMyActionsFolder me incidents items expanded
@@ -601,7 +596,7 @@ where
 
 editActionItem :: InstanceNo -> Task (Maybe ActionStatus)
 editActionItem instanceNo
-    = (edit updateActionStatus status <<@ AfterLayout (uiDefSetWidth (ExactSize 800)) <<@ InWindow)
+    = (edit updateActionStatus status /* <<@ AfterLayout (uiDefSetWidth (ExactSize 800)) */ <<@ InWindow) //FIXME
        >>- \mbUpdated -> case mbUpdated of
             (Just updated)  = logActionUpdated updated @! mbUpdated
             Nothing         = return mbUpdated
@@ -612,14 +607,14 @@ deleteActionItem :: InstanceNo -> Task (Maybe ActionStatus)
 deleteActionItem instanceNo
     = ( viewSharedInformation ("Delete","Are you sure you want to remove this action?") [ViewWith view] status
     >>? \stat -> removeTask (TaskId instanceNo 0) topLevelTasks @! stat
-        ) <<@ ForceLayout <<@ InWindow
+        ) <<@ InWindow
 where
     status = sdsFocus instanceNo actionStatusByNo
     view {ActionStatus|title} = title
 
 manageActionStatus :: InstanceNo -> Task ActionStatus
 manageActionStatus instanceNo
-    =   viewSharedInformation () [ViewWith view] status <<@ ForceLayout
+    =   viewSharedInformation () [ViewWith view] status
     >^* [OnAction (Action "Mark active" [ActionIcon "action-active"]) (ifValue (ifProgress ActionActive) (\_ -> setProgress ActionActive status))
         ,OnAction (Action "Mark completed" [ActionIcon "action-completed"]) (ifValue (ifProgress ActionCompleted) (\_ -> setProgress ActionCompleted status))
         ,OnAction (Action "Mark failed" [ActionIcon "action-failed"]) (ifValue (ifProgress ActionFailed) (\_ -> setProgress ActionFailed status))
@@ -728,7 +723,7 @@ where
 //Define a subaction to be added to the plan
 addSubAction :: [ContactNo] [IncidentNo] (SharedTaskList a) -> Task (Maybe TaskId) | iTask a
 addSubAction initContacts initIncidents list
-    = addPredefinedAction initContacts initIncidents list <<@ (Title "Add action...") <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 500)) <<@ InWindow
+    = addPredefinedAction initContacts initIncidents list <<@ (Title "Add action...") /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 500))*/ <<@ InWindow //FIXME
 
 addPredefinedAction initContacts initIncidents list
     =   (enterChoiceWithShared (Title "Choose action") [ChooseWith (ChooseFromTree groupCatalog)] actionCatalog
@@ -736,10 +731,10 @@ addPredefinedAction initContacts initIncidents list
 where
     configureAction selSds = whileUnchanged selSds configTask
     where
-        configTask Nothing  = (viewInformation (Title "Configure") [] "Select an action first..." @? const NoValue) <<@ AfterLayout (uiDefSetHeight FlexSize)
+        configTask Nothing  = (viewInformation (Title "Configure") [] "Select an action first..." @? const NoValue) /* <<@ AfterLayout (uiDefSetHeight FlexSize) */
                             >>? return
         configTask (Just item=:{CatalogAction|identity,tasks=ActionTasks configer task})
-            = configer initContacts initIncidents <<@ Title "Configure" <<@ AfterLayout (uiDefSetHeight FlexSize)
+            = configer initContacts initIncidents <<@ Title "Configure" /* <<@ AfterLayout (uiDefSetHeight FlexSize) */
             >>? \(config,initStatus) -> addAction identity initStatus list (\l -> task config l)
 
 addAction :: String ActionStatus (SharedTaskList a) ((Shared ActionStatus) -> Task ()) -> Task TaskId | iTask a

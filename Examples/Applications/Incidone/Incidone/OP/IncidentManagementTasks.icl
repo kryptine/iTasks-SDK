@@ -99,13 +99,13 @@ manageIncidentActions incidentNo
 	@!  ()
 where
     selectAndWorkOnPlannedActions
-        = (feedForward (chooseActionItem (Title "Overview") False True (sdsFocus incidentNo actionStatusesByIncident) <<@ ForceLayout <<@ AfterLayout (tweakUI fill))
+        = (feedForward (chooseActionItem (Title "Overview") False True (sdsFocus incidentNo actionStatusesByIncident) /* <<@ AfterLayout (tweakUI fill) */) 
         (\s -> whileUnchanged s
             (\t -> case t of
               Just taskId    = workOnActionItem taskId
               Nothing        = viewInformation () [] ()
             )
-        )) <<@ (ArrangeWithSideBar 0 LeftSide 250 True) <<@ (Icon "actions") <<@ (Title "Incident Actions")
+        )) <<@ (ArrangeWithSideBar 0 LeftSide 250 True) <<@ (Icon "actions") <<@ (Title "Incident Actions") //FIXME
 
 manageIncidentWeather :: IncidentNo -> Task ()
 manageIncidentWeather incidentNo

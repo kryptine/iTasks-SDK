@@ -6,11 +6,14 @@ import Text, Data.Functor, Data.Either
 import qualified Data.Map as DM
 import StdMisc
 
+//FIXME
+/*
 fillNotes :: [(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]
 fillNotes cs = map fillNote cs
 where
     fillNote (c=:(UIEditNote _ _),a) = (fillHeight c,'DM'.newMap)
     fillNote x = x
+*/
 
 /**
 * Create a new incident containing no information at all.
@@ -98,8 +101,11 @@ doOrCancel task = (chooseAction [(ActionCancel,Nothing)] -||- (task @ Just)) >>-
 
 withHeader :: (Task a) (Task b) -> Task b | iTask a	& iTask b
 withHeader headerTask bodyTask
-	= ((headerTask <<@ ForceLayout) ||- (bodyTask <<@ ForceLayout)) <<@ AfterLayout arrange
+	= (headerTask ||- bodyTask ) //<<@ AfterLayout arrange
+//FIXME
+/*
 where
+
     arrange ui=:{UIDef|content=UIBlocks [header,body] actions,windows}
         # (hcontrol,_,_,_) = blockToControl header
         # (UIContainer sOpts iOpts=:{UIItemsOpts|items},_,_,_) = blockToContainer body
@@ -115,6 +121,7 @@ where
             ,size = defaultSizeOpts
             },windows = windows}
     arrange ui = ui
+*/
 
 viewNoSelection :: Task ()
 viewNoSelection = viewTitle "Select..." @! ()
@@ -128,7 +135,7 @@ viewNoSelection = viewTitle "Select..." @! ()
 
 oneOrAnother :: !d (String,Task a) (String,Task b) -> Task (Either a b) | descr d & iTask a & iTask b
 oneOrAnother desc (labela,taska) (labelb,taskb)
-    =   updateChoice desc [ChooseWith (ChooseFromRadioButtons ((!!) [labela,labelb]))]  [0,1] 0 <<@ AfterLayout (uiDefSetHeight WrapSize)
+    =   updateChoice desc [ChooseWith (ChooseFromRadioButtons ((!!) [labela,labelb]))]  [0,1] 0 /* <<@ AfterLayout (uiDefSetHeight WrapSize) */ //FIXME
     >&> \s -> whileUnchanged s (
         \choice -> case choice of
             Nothing = (viewInformation () [] "You have to make a choice" @? const NoValue)

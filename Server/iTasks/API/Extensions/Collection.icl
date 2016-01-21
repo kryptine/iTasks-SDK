@@ -30,7 +30,6 @@ manageCollectionWith makeSelection useSelection selectionActions identify itemSh
 		( \mbSel -> 
 			forever (
 				whileUnchanged mbSel (\sel -> useSelection collection itemShare sel @ const sel @? onlyJust >>* selectionActions)
-                <<@ ForceLayout
 			)
 		)
 where

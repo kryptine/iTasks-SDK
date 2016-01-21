@@ -61,15 +61,15 @@ instance descr (!String, !String)			//Title attribute + instruction
 :: InContainer      = InContainer       //Indicate that a task should be wrapped in a panel
 :: FullScreen       = FullScreen        //Indicate that the full screen space should be used during final layout
 
-//instance tune InPanel
-//instance tune InContainer
+instance tune InPanel
+instance tune InContainer
 instance tune FullScreen
 
 //Attribute tuning types
 instance tune Title
-//instance tune Label
-//instance tune Icon
-//instance tune Attribute
+instance tune Label
+instance tune Icon
+instance tune Attribute
 
 
 //:: ForceLayout = ForceLayout            //Force layout ofo accumulated user interface parts so far
@@ -99,9 +99,6 @@ instance tune Title
 * @param Direction to split the available space in
 * @param Enable resize?
 */
-//:: ArrangeSplit = ArrangeSplit !UIDirection !Bool
-//instance tune ArrangeSplit
-//arrangeSplit            :: !UIDirection !Bool -> UIBlocksCombinator
 
 //:: ArrangeCustom = ArrangeCustom UIBlocksCombinator
 //instance tune ArrangeCustom
