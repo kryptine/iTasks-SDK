@@ -20,6 +20,13 @@ from Data.IntMap.Strict import :: IntMap, instance Functor IntMap
 import qualified Data.IntMap.Strict as DIS
 import Data.Matrix
 
+derive class iTask Image, Span, LookupSpan, FontDef, ImageTransform, ImageAttr
+derive class iTask ImageContent, BasicImage, CompositeImage, LineImage, Markers
+derive class iTask LineContent, Compose, XAlign, YAlign, OnMouseOutAttr, OnMouseMoveAttr
+derive class iTask OpacityAttr, FillAttr, XRadiusAttr, YRadiusAttr, StrokeWidthAttr, StrokeAttr
+derive class iTask Slash, DraggableAttr, OnMouseOverAttr, OnMouseUpAttr, DashAttr
+derive class iTask OnMouseDownAttr, OnClickAttr, Angle
+
 :: *GenSVGStVal s =
   { uniqueIdCounter :: !Int
   , genStates       :: !*SpanEnvs
@@ -248,7 +255,7 @@ mkNClickCB elemID mkEventHandler sttf local cid args clval world
 
 handleNClick :: !(Int s -> s) !Bool !String !{JSObj JSEvent} !(SVGClSt s)
                 !*JSWorld
-             -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) 
+            -> *(!SVGClSt s, !ComponentDiff (SVGDiff s) (SVGClSt s), !*JSWorld) 
 handleNClick sttf local _ args clval=:{svgClSt = Just svgClSt, svgNumClicks} world
   #! st` = sttf svgNumClicks svgClSt
   = ( {clval & svgNumClicks = 0}
@@ -256,10 +263,8 @@ handleNClick sttf local _ args clval=:{svgClSt = Just svgClSt, svgNumClicks} wor
     , world)
 handleNClick sttf local _ args clval world = (clval, NoDiff, world)
 
-imageView :: !(s *TagSource -> Image s) !(Conflict s -> Maybe s) 
-          -> ViewOption s | iTask s
-imageView toImage resolve = ViewUsing id (fromSVGLet {toImage=toImage,resolve=resolve})
-
+imageView :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v) -> ViewOption s | iTask s & iTask v
+imageView toViewState toImage resolve = ViewUsing toViewState (fromSVGLet {toImage=toImage,resolve=resolve})
 
 imageUpdate :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v)
                !(s v -> s`)
