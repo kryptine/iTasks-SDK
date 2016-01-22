@@ -46,22 +46,22 @@ where
 	fromItem Nothing l 		= Just l
 	fromItem (Just c`) l	= Just [if (identify c === i) c` c \\ c <- l]
 
-selectItem :: !d (Shared [c]) (c -> i) -> Task i | descr d & iTask c & iTask i
+selectItem :: !d (Shared [c]) (c -> i) -> Task i | toPrompt d & iTask c & iTask i
 selectItem desc collection identify
 	=	enterChoiceWithSharedAs desc [] collection identify
 
-viewItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (Maybe i) -> Task (Maybe i) | descr d & iTask c & iTask i
+viewItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (Maybe i) -> Task (Maybe i) | toPrompt d & iTask c & iTask i
 viewItem desc collection itemShare Nothing	= viewInformation desc [] "Make a selection first..." @ const Nothing
 viewItem desc collection itemShare (Just i)	= viewSharedInformation desc [] (itemShare collection i) @ const (Just i)
 
-addItem :: !d (Shared [c]) (c -> i) -> Task (Maybe i) | descr d & iTask i & iTask c
+addItem :: !d (Shared [c]) (c -> i) -> Task (Maybe i) | toPrompt d & iTask i & iTask c
 addItem desc collection identify
 	=	enterInformation desc []
 	>>*	[OnAction ActionCancel (always (return Nothing))
 		,OnAction ActionOk (hasValue (\item -> upd (\l -> l ++ [item]) collection >>| return (Just (identify item))))
 		]
 
-editItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (c -> i) i -> Task (Maybe i) | descr d & iTask c & iTask i
+editItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (c -> i) i -> Task (Maybe i) | toPrompt d & iTask c & iTask i
 editItem desc collection itemShare identify i
 	=	get (itemShare collection i)
 	>>= \mbItem -> case mbItem of
@@ -74,7 +74,7 @@ editItem desc collection itemShare identify i
 												 ))
 							]
 
-deleteItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (c -> i) i -> Task (Maybe i) | descr d & iTask c & iTask i
+deleteItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (c -> i) i -> Task (Maybe i) | toPrompt d & iTask c & iTask i
 deleteItem desc collection itemShare identify i
 	=	viewSharedInformation desc [] (itemShare collection i)
 	>>*	[OnAction ActionNo (always (return Nothing))

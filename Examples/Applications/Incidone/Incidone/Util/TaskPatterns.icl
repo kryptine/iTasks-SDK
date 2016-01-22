@@ -42,7 +42,7 @@ where
     writel = SDSWriteConst (\_ w -> Ok (Just w))
     writer = SDSWriteConst (\_ _ -> Ok Nothing)
 
-viewDetails	:: !d (ReadOnlyShared (Maybe i)) (RWShared i c c) (c -> v) -> Task (Maybe v) | descr d & iTask i & iTask v
+viewDetails	:: !d (ReadOnlyShared (Maybe i)) (RWShared i c c) (c -> v) -> Task (Maybe v) | toPrompt d & iTask i & iTask v
 viewDetails desc sel target prj = viewSharedInformation desc [] (mapRead (fmap prj) targetShare)
 where
     targetShare = sdsSequence "viewDetailsSeq" (\_ i -> i) snd writel writer sel valueShare
@@ -78,7 +78,7 @@ viewAndEdit view edit
     = forever (view >>* [OnAction (Action "Edit" [ActionIcon "edit"]) (always edit)])
 
 //Move to common tasks
-viewOrEdit :: d (Shared a) (a a -> Task ()) -> Task () | descr d & iTask a
+viewOrEdit :: d (Shared a) (a a -> Task ()) -> Task () | toPrompt d & iTask a
 viewOrEdit prompt s log
 	= forever (view >>* [OnAction (Action "/Edit" [ActionIcon "edit"]) (hasValue edit)]) @! ()
 where
@@ -133,7 +133,7 @@ viewNoSelection = viewTitle "Select..." @! ()
 							,OnValue  					    (ifStable (\a -> taskbf a @ Just))
 							]
 
-oneOrAnother :: !d (String,Task a) (String,Task b) -> Task (Either a b) | descr d & iTask a & iTask b
+oneOrAnother :: !d (String,Task a) (String,Task b) -> Task (Either a b) | toPrompt d & iTask a & iTask b
 oneOrAnother desc (labela,taska) (labelb,taskb)
     =   updateChoice desc [ChooseWith (ChooseFromRadioButtons ((!!) [labela,labelb]))]  [0,1] 0 /* <<@ AfterLayout (uiDefSetHeight WrapSize) */ //FIXME
     >&> \s -> whileUnchanged s (
@@ -171,7 +171,7 @@ where
 
     removeWhenStable t l = t >>* [OnValue (ifStable (\v -> get (taskListSelfId l) >>- \id -> removeTask id l @! v))]
 
-manageBackgroundTask :: !d !String !String (Task a) -> Task () | descr d & iTask a
+manageBackgroundTask :: !d !String !String (Task a) -> Task () | toPrompt d & iTask a
 manageBackgroundTask d identity title task
     =   viewSharedInformation d [ViewWith (view title)] taskPid
     >^* [OnAction (Action "Start" []) (ifValue isNothing startTask)

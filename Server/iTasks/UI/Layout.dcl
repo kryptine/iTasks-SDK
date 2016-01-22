@@ -12,8 +12,8 @@ from Data.Maybe import :: Maybe
 
 // When a layout changes the stucture of the UI, changes to the UI have to be
 // changed too to route the changes to the correct place in the structure
+:: Layout      :== LayoutFun JSONNode
 :: LayoutFun s :== (UIChangeDef,s) -> (UIChangeDef,s)
-:: Layout :== LayoutFun JSONNode
 
 // These types are used to specify when to apply layouts
 :: ApplyLayout	= E.s: ApplyLayout (LayoutFun s) & iTask s
@@ -40,15 +40,6 @@ wrap :: UINodeType -> Layout
 sequenceLayouts :: [Layout] -> Layout
 conditionalLayout :: (UI -> Bool) Layout -> Layout
 selectLayout :: [(UI -> Bool, Layout)] -> Layout
-
-//Generation of prompts
-class descr d
-where
-	toPrompt		:: !d -> UI
-
-instance descr ()                           //No prompt
-instance descr String						//Simple instruction
-instance descr (!String, !String)			//Title attribute + instruction
 
 // OBSOLETE
 // OBSOLETE
@@ -111,14 +102,6 @@ instance tune Attribute
 hjoin :: ![UI] -> UI
 vjoin :: ![UI] -> UI
 
-//Operations on containers
-//addItemToUI		:: (Maybe Int) UIControl UIControl -> UIControl
-//getItemsOfUI	:: UIControl -> [UIControl]
-//setItemsOfUI	:: [UIControl] UIControl -> UIControl
-
-//Predefined panels
-//buttonPanel		:: ![UIControl]	-> UIControl	//Container for a set of horizontally layed out buttons
-
 mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
 
 //Predefined action placement
@@ -129,6 +112,3 @@ actionsToCloseId			:: ![UIAction]	-> (!Maybe String,![UIAction])
 //tweakUI			:: (UIControl -> UIControl) UI -> UI
 tweakAttr		:: (UIAttributes -> UIAttributes) UI -> UI
 //tweakControls	:: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UI -> UI
-
-//decorateControls    :: [(UIControl,UIAttributes)] -> [UIControl]
-//decorateControl     :: Bool (!UIControl,!UIAttributes) -> UIControl

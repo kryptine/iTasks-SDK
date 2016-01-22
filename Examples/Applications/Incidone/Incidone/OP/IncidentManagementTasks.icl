@@ -161,7 +161,7 @@ viewIncidentDetails incidentNo
 where
     incident = sdsFocus incidentNo incidentByNo
 
-updateSharedIncidentRefList :: d Bool (RWShared () [IncidentNo] [IncidentNo]) -> Task [IncidentNo] | descr d
+updateSharedIncidentRefList :: d Bool (RWShared () [IncidentNo] [IncidentNo]) -> Task [IncidentNo] | toPrompt d
 updateSharedIncidentRefList d compact refs
     =   manageCurrentItems
     >^* [OnAction (Action "Add" []) (always (addItem <<@ InWindow))]

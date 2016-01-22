@@ -6,10 +6,12 @@ definition module iTasks
 import	iTasks._Framework.Engine				// iTasks engine
     // iTasks API
     ,   iTasks.API
+
 	
 	//	Miscellaneous machinery
 	,	Text.JSON							// JSON is used for serializing/deserializing strings
 	,	iTasks._Framework.Generic			// Generic foundation modules
+	,   iTasks.UI.Prompt 					// Standard for creating prompts
 	
 	//	API extensions for user  & workflow management
 	,	iTasks.API.Extensions.Admin.UserAdmin

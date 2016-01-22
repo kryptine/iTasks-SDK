@@ -17,7 +17,7 @@ indexedStore        :: String v -> RWShared k v v | Eq k & Ord k & iTask k & iTa
 sdsDeref            :: (RWShared p [a] [a]) (a -> Int) (RWShared [Int] [b] x) ([a] [b] -> [c]) -> (RWShared p [c] [a])
 
 // Information management
-viewDetails	        :: !d (ReadOnlyShared (Maybe i)) (RWShared i c c) (c -> v) -> Task (Maybe v) | descr d & iTask i & iTask v
+viewDetails	        :: !d (ReadOnlyShared (Maybe i)) (RWShared i c c) (c -> v) -> Task (Maybe v) | toPrompt d & iTask i & iTask v
 
 optionalNewOrOpen   :: (String,Task ()) (String,i -> Task ()) Workspace (ReadOnlyShared (Maybe i)) -> Task () | iTask i
 
@@ -26,7 +26,7 @@ doAddRemoveOpen		:: (Task a) (r -> Task b) (r -> Task c) Workspace (ReadWriteSha
 // Utility
 
 viewAndEdit :: (Task a) (Task b) -> Task b | iTask a & iTask b
-viewOrEdit :: d (Shared a) (a a -> Task ()) -> Task () | descr d & iTask a
+viewOrEdit :: d (Shared a) (a a -> Task ()) -> Task () | toPrompt d & iTask a
 
 doOrClose		:: (Task a)						-> Task (Maybe a) | iTask a
 doOrCancel		:: (Task a)						-> Task (Maybe a) | iTask a
@@ -37,7 +37,7 @@ withHeader :: (Task a) (Task b) -> Task b | iTask a	& iTask b
 viewNoSelection :: Task ()
 
 //Task where a user has to explicitly choose between two tasks
-oneOrAnother :: !d (String,Task a) (String,Task b) -> Task (Either a b) | descr d & iTask a & iTask b
+oneOrAnother :: !d (String,Task a) (String,Task b) -> Task (Either a b) | toPrompt d & iTask a & iTask b
 
 //Allows you to enter a list with a task for each item and also enforce a minimum number of items
 enterMultiple :: !String !Int (Task a) -> Task [a] | iTask a
@@ -50,7 +50,7 @@ manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (Shared [Int]) -> Tas
 
 
 //Start/stop a background task
-manageBackgroundTask :: !d !String !String (Task a) -> Task () | descr d & iTask a
+manageBackgroundTask :: !d !String !String (Task a) -> Task () | toPrompt d & iTask a
 
 //Reading network streams
 syncNetworkChannel      :: String Int String (String -> m) (m -> String) (Shared ([m],Bool,[m],Bool)) -> Task () | iTask m

@@ -1531,37 +1531,37 @@ where
 	toString (IconView)	= "view"
 	toString (IconEdit) = "edit"
 	
-instance descr (!Icon,!String,!String)
+instance toPrompt (!Icon,!String,!String)
 where
 	toPrompt (icon,title,hint) = uiac (UIEditor {UIEditor|optional=False})
 									('DM'.fromList [(ICON_ATTRIBUTE,toString icon),(TITLE_ATTRIBUTE,title)])
 									[stringDisplay hint]
 
-instance descr Title
+instance toPrompt Title
 where
 	toPrompt (Title title) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(TITLE_ATTRIBUTE,title)])
 	
-instance descr Label
+instance toPrompt Label
 where
 	toPrompt (Label label) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(LABEL_ATTRIBUTE,label)])
 
-instance descr Hint
+instance toPrompt Hint
 where
 	toPrompt (Hint hint) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(HINT_ATTRIBUTE,hint)])
 	
-instance descr Icon
+instance toPrompt Icon
 where
 	toPrompt icon = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(ICON_ATTRIBUTE,toString icon)])
 
-instance descr Attribute
+instance toPrompt Attribute
 where
 	toPrompt (Attribute k v) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(k,v)])
 	
-instance descr Att
+instance toPrompt Att
 where
 	toPrompt (Att a) = toPrompt a
 	
-instance descr [d] | descr d
+instance toPrompt [d] | toPrompt d
 where
 	toPrompt list = ui UIEmpty //foldl mergeAttributes 'DM'.newMap (map toPrompt list)
 

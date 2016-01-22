@@ -27,7 +27,7 @@ viewContactCommunicationMeans   :: ContactNo    -> Task [CommunicationMean]
 updateContactPosition           :: ContactNo -> Task (Maybe (Maybe ContactPosition))
 updateContactStatus             :: ContactNo -> Task (Maybe (Maybe ContactStatus))
 
-updateSharedContactRefList      :: d (RWShared () [ContactNo] [ContactNo]) -> Task [ContactNo] | descr d
+updateSharedContactRefList      :: d (RWShared () [ContactNo] [ContactNo]) -> Task [ContactNo] | toPrompt d
 selectKnownOrDefineNewContact   :: Task (Either ContactNo NewContact)
 createContactIfNew              :: (Either ContactNo NewContact) -> Task ContactNo
 

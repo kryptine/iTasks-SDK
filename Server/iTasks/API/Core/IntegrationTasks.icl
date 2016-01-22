@@ -36,7 +36,7 @@ where
 			(Ok a,world)	= (Ok a, {IWorld|iworld & world = world})
 			(Error e,world)	= (Error (dynamic e,toString e), {IWorld|iworld & world = world})
 
-callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | descr d
+callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | toPrompt d
 callProcess desc opts cmd args dir = Task eval
 where
     //Start the process

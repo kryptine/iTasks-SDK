@@ -46,7 +46,7 @@ from Data.Functor import class Functor
 * 
 * @gin-icon page_white
 */
-enterInformation :: !d ![EnterOption m] -> Task m | descr d & iTask m
+enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
 
 /**
 * Ask the user to update predefined information. 
@@ -61,7 +61,7 @@ enterInformation :: !d ![EnterOption m] -> Task m | descr d & iTask m
 * 
 * @gin-icon page_edit
 */
-updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m 
+updateInformation :: !d ![UpdateOption m m] m -> Task m | toPrompt d & iTask m 
 
 /**
 * Show information to the user. 
@@ -77,7 +77,7 @@ updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
 * 
 * @gin-icon information
 */
-viewInformation :: !d ![ViewOption m] !m -> Task m | descr d & iTask m
+viewInformation :: !d ![ViewOption m] !m -> Task m | toPrompt d & iTask m
 
 /**
 * Ask the user to update predefined local and shared information.
@@ -94,7 +94,7 @@ viewInformation :: !d ![ViewOption m] !m -> Task m | descr d & iTask m
 * 
 * @gin-icon page_edit
 */
-updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
+updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | toPrompt d & iTask r & iTask w
 
 /**
 * Show a shared value[].
@@ -108,14 +108,14 @@ updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task
 * 
 * @gin-icon monitor
 */
-viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | descr d & iTask r
+viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r
 
 /*** Special tasks for a mix of manipulating shared and local information ***/
 
 /**
 * Update a local value, making use of shared information.
 */
-updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | descr d & iTask r & iTask m
+updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | toPrompt d & iTask r & iTask m
 
 /*** Special tasks for choices ***/
 
@@ -123,29 +123,29 @@ updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w)
 * Select one item from a list of options.
 */
 
-editChoice :: !d ![ChoiceOption a] ![a] (Maybe a) -> Task a | descr d & iTask a
-editChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Maybe a) -> Task a | descr d & iTask o & iTask a
+editChoice :: !d ![ChoiceOption a] ![a] (Maybe a) -> Task a | toPrompt d & iTask a
+editChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask a
 
-enterChoice :: !d ![ChoiceOption a] ![a] -> Task a | descr d & iTask a
-enterChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) -> Task a | descr d & iTask o & iTask a
+enterChoice :: !d ![ChoiceOption a] ![a] -> Task a | toPrompt d & iTask a
+enterChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) -> Task a | toPrompt d & iTask o & iTask a
 
-updateChoice :: !d ![ChoiceOption a] ![a] a -> Task a | descr d & iTask a
-updateChoiceAs :: !d ![ChoiceOption o] ![o] !(o -> a) a -> Task a | descr d & iTask o & iTask a
+updateChoice :: !d ![ChoiceOption a] ![a] a -> Task a | toPrompt d & iTask a
+updateChoiceAs :: !d ![ChoiceOption o] ![o] !(o -> a) a -> Task a | toPrompt d & iTask o & iTask a
 
-editChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Maybe a) -> Task a | descr d & iTask a & iTask w
-editChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Maybe a) -> Task a | descr d & iTask o & iTask w & iTask a
+editChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Maybe a) -> Task a | toPrompt d & iTask a & iTask w
+editChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask w & iTask a
 
-enterChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) -> Task a | descr d & iTask a & iTask w
-enterChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) -> Task a | descr d & iTask o & iTask w & iTask a
+enterChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) -> Task a | toPrompt d & iTask a & iTask w
+enterChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) -> Task a | toPrompt d & iTask o & iTask w & iTask a
 
-updateChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) a -> Task a | descr d & iTask a & iTask w
-updateChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) a -> Task a | descr d & iTask o & iTask w & iTask a
+updateChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) a -> Task a | toPrompt d & iTask a & iTask w
+updateChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) a -> Task a | toPrompt d & iTask o & iTask w & iTask a
 
-editSharedChoice :: !d ![ChoiceOption a] ![a] (Shared (Maybe a)) -> Task a | descr d & iTask a
-editSharedChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Shared (Maybe a)) -> Task a | descr d & iTask o & iTask a
+editSharedChoice :: !d ![ChoiceOption a] ![a] (Shared (Maybe a)) -> Task a | toPrompt d & iTask a
+editSharedChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Shared (Maybe a)) -> Task a | toPrompt d & iTask o & iTask a
 
-editSharedChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Shared (Maybe a)) -> Task a | descr d & iTask a & iTask w
-editSharedChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Shared (Maybe a)) -> Task a | descr d & iTask o & iTask w & iTask a
+editSharedChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Shared (Maybe a)) -> Task a | toPrompt d & iTask a & iTask w
+editSharedChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Shared (Maybe a)) -> Task a | toPrompt d & iTask o & iTask w & iTask a
 
 /**
 * Ask the user to select a number of items from a list of options
@@ -161,7 +161,7 @@ editSharedChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o
 * 
 * @gin-icon choice
 */
-enterMultipleChoice :: !d ![MultiChoiceOption o] ![o] -> Task [o] | descr d & iTask o
+enterMultipleChoice :: !d ![MultiChoiceOption o] ![o] -> Task [o] | toPrompt d & iTask o
 
 /**
 * Ask the user to select a number of items from a list of options with already a number of options pre-selected.
@@ -180,7 +180,7 @@ enterMultipleChoice :: !d ![MultiChoiceOption o] ![o] -> Task [o] | descr d & iT
 * 
 * @gin-icon choice
 */
-updateMultipleChoice :: !d ![MultiChoiceOption o] ![o] [o] -> Task [o] | descr d & iTask o
+updateMultipleChoice :: !d ![MultiChoiceOption o] ![o] [o] -> Task [o] | toPrompt d & iTask o
 
 /**
 * Ask the user to select a number of items from a list of shared options.
@@ -196,7 +196,7 @@ updateMultipleChoice :: !d ![MultiChoiceOption o] ![o] [o] -> Task [o] | descr d
 * 
 * @gin-icon choice
 */
-enterSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared [o] w) -> Task [o] | descr d & iTask o & iTask w
+enterSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared [o] w) -> Task [o] | toPrompt d & iTask o & iTask w
 
 /**
 * Ask the user to select one item from a list of shared options with already a number of options pre-selected.
@@ -215,7 +215,7 @@ enterSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared [o] w) 
 * 
 * @gin-icon choice
 */
-updateSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared [o] w) [o] -> Task [o] | descr d & iTask o & iTask w
+updateSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared [o] w) [o] -> Task [o] | toPrompt d & iTask o & iTask w
 
 /**
 * Wait for a share to match a certain predicate
@@ -226,7 +226,7 @@ updateSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared [o] w)
 *
 * @return					The value of the shared when the predicate becomes true
 */
-wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | descr d & iTask r
+wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r
 
 /*** Special wait tasks ***/
 /**

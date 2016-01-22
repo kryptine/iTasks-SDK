@@ -407,7 +407,7 @@ updateContactStatus contactNo
     >>| logContactStatusUpdated contactNo status newStatus
     @!  newStatus
 
-updateSharedContactRefList :: d (RWShared () [ContactNo] [ContactNo]) -> Task [ContactNo] | descr d
+updateSharedContactRefList :: d (RWShared () [ContactNo] [ContactNo]) -> Task [ContactNo] | toPrompt d
 updateSharedContactRefList d refs
     =   manageCurrentItems
     >^* [OnAction (Action "Add" []) (always (addItem <<@ InWindow))]

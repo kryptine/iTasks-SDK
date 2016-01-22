@@ -8,7 +8,7 @@ import iTasks._Framework.SDS
 from iTasks._Framework.Task			import :: Task, :: Event, :: ConnectionHandlers, :: TaskEvalOpts, :: TaskTime
 from iTasks.UI.Definition 		import :: UI, :: UINodeType
 from iTasks.UI.Diff 			import :: UIChangeDef
-from iTasks.UI.Layout	    	import class descr
+from iTasks.UI.Prompt 			import class toPrompt
 from Data.Error					import ::MaybeError(..)
 from System.OSError				import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
 
@@ -105,7 +105,7 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 interact :: !d !(ReadOnlyShared r)
 				(r -> (l,Masked v))
 				(l r (Masked v) Bool Bool Bool -> (l,(Masked v)))
-				(Maybe (Editor v)) -> Task l | descr d & iTask l & iTask r & iTask v
+				(Maybe (Editor v)) -> Task l | toPrompt d & iTask l & iTask r & iTask v
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed
 * @param Hostname
@@ -180,6 +180,6 @@ shutDown :: Task ()
 
 //INTERNAL FUNCTIONS EXPORTED FOR USE IN OPTIMIZED VERSIONS OF interact,
 matchAndApplyEvent_ :: Event TaskId TaskEvalOpts (Maybe (Editor v)) TaskTime (Masked v) TaskTime d *IWorld
-	-> *(!Masked v,!TaskTime,!*IWorld) | iTask v & descr d
+	-> *(!Masked v,!TaskTime,!*IWorld) | iTask v & toPrompt d
 visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld
-	-> *(!UIChangeDef,!Bool,!*IWorld) | iTask v & descr d
+	-> *(!UIChangeDef,!Bool,!*IWorld) | iTask v & toPrompt  d

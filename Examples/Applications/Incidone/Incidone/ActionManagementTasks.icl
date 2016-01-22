@@ -492,7 +492,7 @@ findReferencedContacts :: ContactReference -> Task [ContactShort]
 findReferencedContacts (ContactByName ref) = get (sdsFocus {ContactFilter|filterByName=Just ref} filteredContactsShort)
 findReferencedContacts (ContactInGroup ref) = get (sdsFocus ref contactsWithGroupShort)
 
-chooseActionItem :: d Bool Bool (ROShared () [(InstanceNo,InstanceNo,ActionStatus)]) -> Task InstanceNo | descr d
+chooseActionItem :: d Bool Bool (ROShared () [(InstanceNo,InstanceNo,ActionStatus)]) -> Task InstanceNo | toPrompt d
 chooseActionItem d groupByIncident useMyActionsFolder list
     = whileUnchanged (currentUserContactNo |+| openIncidentsShort)//Done this way, because I don't know how to combine the shares in a tree
         \(me,incidents) ->

@@ -16,7 +16,7 @@ from iTasks.API.Core.Tasks import matchAndApplyEvent_ , visualizeView_
 
 interactExposed :: !d !(ReadOnlyShared r) (r -> (l,(v,EditMask))) (l r (v,EditMask) Bool Bool Bool -> (l,(v,EditMask)))
 						(Maybe (Editor v))
-                        -> Task (l,v) | descr d & iTask l & iTask r & iTask v
+                        -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v
 interactExposed desc shared initFun refreshFun mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
@@ -50,7 +50,7 @@ where
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 interactLocalExposed :: !d (l,(v,EditMask)) (l (v,EditMask) Bool -> (l,(v,EditMask))) (Maybe (Editor v))
-                        -> Task (l,v) | descr d & iTask l & iTask v
+                        -> Task (l,v) | toPrompt d & iTask l & iTask v
 interactLocalExposed desc initVal refreshFun mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
@@ -75,7 +75,7 @@ where
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 interactViewOnly :: !d !(ReadOnlyShared r) (r -> (v,EditMask)) (r (v,EditMask) Bool Bool Bool -> (v,EditMask)) (Maybe (Editor v))
-                        -> Task v | descr d & iTask r & iTask v
+                        -> Task v | toPrompt d & iTask r & iTask v
 interactViewOnly desc shared initFun refreshFun mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
@@ -109,7 +109,7 @@ where
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 interactLocalViewOnly :: !d (v,EditMask) ((v,EditMask) Bool -> (v,EditMask)) (Maybe (Editor v))
-                        -> Task v | descr d & iTask v
+                        -> Task v | toPrompt d & iTask v
 interactLocalViewOnly desc initVal refreshFun mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
@@ -133,7 +133,7 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-interactSharedInformation :: !d !(ReadOnlyShared r) (r -> v) (Maybe (Editor v)) -> Task r | descr d & iTask r & iTask v
+interactSharedInformation :: !d !(ReadOnlyShared r) (r -> v) (Maybe (Editor v)) -> Task r | toPrompt d & iTask r & iTask v
 interactSharedInformation desc shared toView mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
@@ -169,7 +169,7 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-interactNullEnter :: !d !v (v->l) (Maybe (Editor v)) -> Task l | descr d & iTask v & iTask l
+interactNullEnter :: !d !v (v->l) (Maybe (Editor v)) -> Task l | toPrompt d & iTask v & iTask l
 interactNullEnter desc initFun fromf mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
@@ -197,7 +197,7 @@ where
 
 	refreshFun l (v,m) valid = if valid (fromf v,(v,m)) (l,(v,m))
 
-interactNullUpdate :: !d !(l -> v) (l v -> l) (Maybe (Editor v)) l -> Task l | descr d & iTask l & iTask v
+interactNullUpdate :: !d !(l -> v) (l v -> l) (Maybe (Editor v)) l -> Task l | toPrompt d & iTask l & iTask v
 interactNullUpdate desc tof fromf mbEditor m = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
@@ -231,7 +231,7 @@ where
 			= (l,(nv,Touched))	
 		= (l,(v,m))
 
-interactNullView :: !d (l->v) (Maybe (Editor v)) l -> Task l | descr d & iTask l & iTask v
+interactNullView :: !d (l->v) (Maybe (Editor v)) l -> Task l | toPrompt d & iTask l & iTask v
 interactNullView desc tof mbEditor m = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld

@@ -194,7 +194,7 @@ configurableListItem        :: String ItemMeta (Task c) (c -> ActionPlan)       
 * @param Group by incidents
 * @param Use 'my actions' group for current user
 */
-chooseActionItem         :: d Bool Bool (ROShared () [(InstanceNo,InstanceNo,ActionStatus)])  -> Task InstanceNo | descr d
+chooseActionItem         :: d Bool Bool (ROShared () [(InstanceNo,InstanceNo,ActionStatus)])  -> Task InstanceNo | toPrompt d
 workOnActionItem         :: InstanceNo                                              -> Task ()
 editActionItem           :: InstanceNo                                              -> Task (Maybe ActionStatus)
 deleteActionItem         :: InstanceNo                                              -> Task (Maybe ActionStatus)

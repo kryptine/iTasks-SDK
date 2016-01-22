@@ -10,22 +10,6 @@ from StdFunc import o, const, id, flip
 
 from iTasks._Framework.TaskState import :: TIMeta(..)
 
-LABEL_WIDTH :== 100
-
-instance descr ()
-where
-	toPrompt _ = ui (UIEmpty)
-
-instance descr String
-where
-	toPrompt hint = uic (UIEditor {UIEditor|optional=False}) [createPrompt hint]
-	
-instance descr (!String,!String)
-where
-	toPrompt (title,hint) = uiac (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(TITLE_ATTRIBUTE,title)]) [createPrompt hint]
-
-//Building blocks for layout
-
 //TODO: When applying a layout to a child, the layout should also be applied if a UI is being inserted at that path
 layoutChild :: NodePath Layout -> Layout
 layoutChild [] childLayout = childLayout
@@ -691,13 +675,6 @@ where
     title		= 'DM'.get TITLE_ATTRIBUTE attributes	
     iconCls		= fmap (\icon -> "icon-" +++ icon) ('DM'.get ICON_ATTRIBUTE attributes)
 */
-//Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
-createPrompt :: String -> UI
-createPrompt hint = uic (UIContainer sizeOpts containerOpts) [stringDisplay hint]
-where
-	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 5, bottom = 10, left = 5}
-			   , width = Just FlexSize, minWidth = Just WrapBound, height = Just WrapSize}
-    containerOpts = {UIContainerOpts|defaultContainerOpts & baseCls=Just "itwc-prompt"}
 
 //Adds a button panel to a set of controls
 //(not the prettiest code)

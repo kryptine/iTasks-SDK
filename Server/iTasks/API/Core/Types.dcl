@@ -38,7 +38,8 @@ from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat
 from iTasks._Framework.Generic.Defaults		import generic gDefault
 from iTasks._Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 from iTasks.UI.JS.Interface	import :: JSWorld, :: JSVal
-from iTasks.UI.Layout import class descr
+from iTasks.UI.Prompt import class toPrompt
+
 import iTasks._Framework.Serialization
 
 class TFunctor f where
@@ -684,7 +685,7 @@ LAST_FOCUS_ATTRIBUTE    :== "lastfocus" //Last focus, also used for ordering
 //Preferred container attribute for abstract containers. Does not have to be honoured by layouts
 CONTAINER_ATTRIBUTE		:==	"container"	//Container preference for layout functions. Possible preferences: "container", "panel", or "window"
 
-:: Att				= E.a: Att !a & descr a
+:: Att				= E.a: Att !a & toPrompt a
 
 :: Title			= Title !String
 :: Label            = Label !String
@@ -695,16 +696,16 @@ CONTAINER_ATTRIBUTE		:==	"container"	//Container preference for layout functions
 					| IconEdit
 
 
-instance descr (!Icon, !String, !String)	//Icon attribute, title attribute, and instruction
-//instance descr (!Icon, !Title)			//Icon attribute, title attribute 
-instance descr Title
-instance descr Label
-instance descr Hint
-instance descr Icon
-instance descr Attribute
+instance toPrompt (!Icon, !String, !String)	//Icon attribute, title attribute, and instruction
+//instance toPrompt (!Icon, !Title)			//Icon attribute, title attribute 
+instance toPrompt Title
+instance toPrompt Label
+instance toPrompt Hint
+instance toPrompt Icon
+instance toPrompt Attribute
 
-instance descr Att
-instance descr [d] | descr d
+instance toPrompt Att
+instance toPrompt [d] | toPrompt d
 
 derive JSONEncode		Icon
 derive JSONDecode		Icon

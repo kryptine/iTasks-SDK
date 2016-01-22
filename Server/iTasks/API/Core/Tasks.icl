@@ -73,7 +73,7 @@ where
 interact :: !d !(ReadOnlyShared r)
 				(r -> (l,Masked v))
 				(l r (Masked v) Bool Bool Bool -> (l,(Masked v)))
-				(Maybe (Editor v)) -> Task l | descr d & iTask l & iTask r & iTask v
+				(Maybe (Editor v)) -> Task l | toPrompt d & iTask l & iTask r & iTask v
 interact desc shared initFun refreshFun mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
@@ -106,7 +106,7 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-matchAndApplyEvent_ :: Event TaskId TaskEvalOpts (Maybe (Editor v)) TaskTime (Masked v) TaskTime d *IWorld -> *(!Masked v,!TaskTime,!*IWorld) | iTask v & descr d
+matchAndApplyEvent_ :: Event TaskId TaskEvalOpts (Maybe (Editor v)) TaskTime (Masked v) TaskTime d *IWorld -> *(!Masked v,!TaskTime,!*IWorld) | iTask v & toPrompt d
 matchAndApplyEvent_ (EditEvent taskId name value) matchId evalOpts mbEditor taskTime (v,m) ts desc iworld
 	| taskId == matchId
 		# ((nv,nm),iworld) = updateValueAndMask_ taskId (s2dp name) mbEditor value (v,m) iworld
@@ -121,7 +121,7 @@ updateValueAndMask_ taskId path mbEditor diff (v,m) iworld
     # (nv,nm,ust=:{USt|iworld}) = editor.Editor.appDiff path diff v m {USt|taskId=toString taskId,iworld=iworld}
     = ((nv,nm),iworld)
 
-visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld -> *(!UIChangeDef,!Bool,!*IWorld) | iTask v & descr d
+visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld -> *(!UIChangeDef,!Bool,!*IWorld) | iTask v & toPrompt d
 visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworld
 	# editor 	= fromMaybe gEditor{|*|} mbEditor
 	# ver 		= verifyMaskedValue (nv,nm)

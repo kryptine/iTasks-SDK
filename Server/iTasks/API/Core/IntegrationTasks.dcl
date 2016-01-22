@@ -10,9 +10,9 @@ from Internet.HTTP import :: HTTPMethod, :: HTTPResponse
 from Text.URI import :: URI
 
 import iTasks._Framework.Generic
-from iTasks._Framework.Task              import :: Task
+from iTasks._Framework.Task             import :: Task
 from iTasks.API.Core.Types              import :: Note, :: EmailAddress, :: ProcessStatus, :: Document
-from iTasks.UI.Layout 					import class descr
+from iTasks.UI.Prompt                   import class toPrompt
 from iTasks.API.Common.InteractionTasks import :: ViewOption //TODO: We shouldn't import from Common in Core
 
 /**
@@ -35,7 +35,7 @@ worldIO :: (*World -> *(!MaybeError e a,!*World)) -> Task a | iTask a & TC e & t
 * @gin-title Start executable
 * @gin-icon executable
 */
-callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | descr d
+callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | toPrompt d
 
 /**
 * Calls an external executable. This call blocks task computation, only use when process is known to terminate fast.
