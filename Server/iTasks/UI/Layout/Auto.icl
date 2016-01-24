@@ -1,6 +1,9 @@
 implementation module iTasks.UI.Layout.Auto
 
 import iTasks.UI.Layout
+import iTasks.UI.Definition
+import iTasks.UI.Diff
+import iTasks.API.Core.Types
 import Text.JSON
 
 from StdFunc import id, o, const
@@ -10,7 +13,7 @@ import qualified Data.Map as DM
 LABEL_WIDTH :== 100
 
 autoLayoutInteract :: Layout
-autoLayoutInteract = layoutChild [1] editorToForm //Remap changes in the editor, ignore changes to the prompt, it should be constant
+autoLayoutInteract = layoutSubAt [1] editorToForm //Remap changes in the editor, ignore changes to the prompt, it should be constant
 
 autoLayoutStep :: Layout
 autoLayoutStep = id
@@ -24,7 +27,7 @@ autoLayoutAttach = id
 autoLayoutSession :: Layout
 autoLayoutSession = sequenceLayouts 
     [finalizeUI
-    ,changeContainerType (setFramed True o setSize WrapSize WrapSize o setMargins 50 0 20 0 o setMinWidth (ExactBound 600))
+    ,changeNodeType (setFramed True o setSize WrapSize WrapSize o setMargins 50 0 20 0 o setMinWidth (ExactBound 600))
     ]
 
 //The finalize layouts remove all intermediate 
@@ -44,14 +47,14 @@ finalizeInteract :: Layout
 finalizeInteract = conditionalLayout isInteract layout
 where
 	layout = sequenceLayouts 
-		[layoutChild [1] finalizeForm
-		,changeContainerType (\(UI UIInteract attr items) -> UI defaultPanel attr items)
+		[layoutSubAt [1] finalizeForm
+		,changeNodeType (\(UI UIInteract attr items) -> UI defaultPanel attr items)
 		] 
 
 finalizeForm :: Layout
 finalizeForm
 	= sequenceLayouts [layoutChildrenOf [] layoutRow
-					  ,changeContainerType (\(UI UIForm attr items) -> UI defaultContainer attr items)
+					  ,changeNodeType (\(UI UIForm attr items) -> UI defaultContainer attr items)
 					  ]
 where
 	//Case when 
@@ -60,10 +63,10 @@ where
 	hasLabel (UI UIFormItem _ [UI UIEmpty _ _,_,_]) = False
 	hasLabel _ = True
 
-	toRowWithLabel = changeContainerType (\(UI UIFormItem _ [label,item,icon]) -> row [label,item,icon])
+	toRowWithLabel = changeNodeType (\(UI UIFormItem _ [label,item,icon]) -> row [label,item,icon])
 	toRowWithoutLabel = sequenceLayouts 
-							[changeContainerType (\(UI UIFormItem _ [label,item,icon]) -> row [label,item,icon])
-							,removeChild [0]
+							[changeNodeType (\(UI UIFormItem _ [label,item,icon]) -> row [label,item,icon])
+							,removeSubAt [0]
 							]
 
 	row items = (setMargins 5 5 5 5 o setDirection Horizontal o setSize FlexSize WrapSize) (uic defaultContainer items)
@@ -72,11 +75,11 @@ finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
 where
 	layout = sequenceLayouts
-        [layoutChild [0] finalizeUI 			//Recursively finalize
-        ,insertChild [1] buttonBar 				//Create a buttonbar
+        [layoutSubAt [0] finalizeUI 			//Recursively finalize
+        ,insertSubAt [1] buttonBar 				//Create a buttonbar
 	    ,moveChildren [] isAction [1]   		//Move all actions to the buttonbar
 	    ,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
-        ,changeContainerType (\(UI UIStep attr items) -> UI defaultPanel attr items) //Change to a standard container
+        ,changeNodeType (\(UI UIStep attr items) -> UI defaultPanel attr items) //Change to a standard container
         ]
 
 finalizeParallel :: Layout
@@ -85,7 +88,7 @@ where
 	layout = sequenceLayouts
 		[layoutChildrenOf [0] finalizeUI
 		,layoutChildrenOf [1] finalizeUI
-		,changeContainerType (\(UI UIParallel attr items) -> UI defaultPanel attr items)
+		,changeNodeType (\(UI UIParallel attr items) -> UI defaultPanel attr items)
 		]
 
 //Util predicates

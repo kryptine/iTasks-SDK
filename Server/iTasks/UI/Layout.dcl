@@ -1,114 +1,68 @@
 definition module iTasks.UI.Layout
+/**
+* This module provides a simple DSL for creating layouts.
+* Layouts are stateful transformations on a stream of UIChange events.
+* They rearrange UI's when they are initially created and modify incremental
+* updates that are later applied accordingly.
+*/
 
-import iTasks.UI.Layout.Common
-
-import iTasks.API.Core.Types
 from iTasks.API.Core.TaskCombinators import class tune
-
-import iTasks.UI.Definition
-import iTasks.UI.Diff
+from iTasks.UI.Definition import :: UI, :: UINodeType, :: UIAttributes
+from iTasks.UI.Diff import :: UIChangeDef
 
 from Data.Maybe import :: Maybe
+from Data.Map import :: Map
+from Text.JSON import :: JSONNode
 
 // When a layout changes the stucture of the UI, changes to the UI have to be
 // changed too to route the changes to the correct place in the structure
 :: Layout      :== LayoutFun JSONNode
 :: LayoutFun s :== (UIChangeDef,s) -> (UIChangeDef,s)
 
-// These types are used to specify when to apply layouts
-:: ApplyLayout	= E.s: ApplyLayout (LayoutFun s) & iTask s
-:: AutoLayout = WithAutoLayout | WithoutAutoLayout
+// These types are used to control when to apply layout in a task composition
+:: ApplyLayout	= ApplyLayout Layout
+:: AutoLayout   = WithAutoLayout | WithoutAutoLayout
 
-//Addresing nodes in a UI definition
+instance tune	ApplyLayout //Apply a modification after a layout has been run
+instance tune	AutoLayout  //Enable/disable automatic layouting for a task
+
+// In specifications of layouts, sub-parts of UI's are commonly addressed as 
+// a path of child selections in the UI tree.
 :: NodePath :== [Int]
 
 //Basic DSL for creating more complex layouts
-layoutChild :: NodePath Layout-> Layout
 
-insertChild :: NodePath UI -> Layout
-removeChild :: NodePath -> Layout
+changeNodeType :: (UI -> UI) -> Layout
+changeNodeAttributes :: (UIAttributes -> UIAttributes) -> Layout
 
-moveChild :: NodePath NodePath -> Layout
+
+//Changing tree depth
+
+/**
+* Create a new UI node which has the original UI as its only child.
+*/
+wrap   :: UINodeType -> Layout
+/**
+* Replace the UI by its first child. 
+*/
+unwrap ::               Layout
+
+//Operations on single specific sub-UI's indicated by a path
+insertSubAt :: NodePath UI       -> Layout
+removeSubAt :: NodePath          -> Layout
+layoutSubAt :: NodePath Layout   -> Layout
+moveSubAt   :: NodePath NodePath -> Layout
+
+//Group operations on selections of sub-UI's
+removeSubsMatching :: NodePath (UI -> Bool) Int          -> Layout
+layoutSubsMatching :: NodePath (UI -> Bool) Int Layout   -> Layout
+moveSubsMatching   :: NodePath (UI -> Bool) Int NodePath -> Layout
+
 moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
-
 layoutChildrenOf :: NodePath Layout -> Layout
 
-changeContainerType :: (UI -> UI) -> Layout
+//Composition of layouts
+sequenceLayouts   :: [Layout]               -> Layout
+conditionalLayout :: (UI -> Bool) Layout    -> Layout
+selectLayout      :: [(UI -> Bool, Layout)] -> Layout
 
-wrap :: UINodeType -> Layout
-
-sequenceLayouts :: [Layout] -> Layout
-conditionalLayout :: (UI -> Bool) Layout -> Layout
-selectLayout :: [(UI -> Bool, Layout)] -> Layout
-
-// OBSOLETE
-// OBSOLETE
-// OBSOLETE
-// OBSOLETE
-
-:: SetValueAttribute a = SetValueAttribute !String (a -> String)
-
-:: InPanel          = InPanel           //Indicate that a task should be wrapped in a panel
-:: InContainer      = InContainer       //Indicate that a task should be wrapped in a panel
-:: FullScreen       = FullScreen        //Indicate that the full screen space should be used during final layout
-
-instance tune InPanel
-instance tune InContainer
-instance tune FullScreen
-
-//Attribute tuning types
-instance tune Title
-instance tune Label
-instance tune Icon
-instance tune Attribute
-
-
-//:: ForceLayout = ForceLayout            //Force layout ofo accumulated user interface parts so far
-//instance tune ForceLayout
-
-//Alternative block combinators and their layout tuning types
-//:: ArrangeVertical = ArrangeVertical
-//instance tune ArrangeVertical
-//arrangeVertical         ::                      UIBlocksCombinator
-
-//:: ArrangeHorizontal = ArrangeHorizontal
-//instance tune ArrangeHorizontal
-//arrangeHorizontal       ::                      UIBlocksCombinator
-
-//:: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool
-//instance tune ArrangeWithSideBar
-
-/*
-* @param Index of the task in the set that should be put in the sidebar
-* @param Location of the sidebar
-* @param Initial size of the sidebar
-* @param Enable resize?
-*/
-//arrangeWithSideBar      :: !Int !UISide !Int !Bool -> UIBlocksCombinator
-
-/*
-* @param Direction to split the available space in
-* @param Enable resize?
-*/
-
-//:: ArrangeCustom = ArrangeCustom UIBlocksCombinator
-//instance tune ArrangeCustom
-
-//blockToControl      :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-//blockToContainer    :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-//blockToPanel        :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-
-//Combinators on interface definitions
-hjoin :: ![UI] -> UI
-vjoin :: ![UI] -> UI
-
-mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
-
-//Predefined action placement
-//actionsToButtons			:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
-//actionsToMenus				:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
-actionsToCloseId			:: ![UIAction]	-> (!Maybe String,![UIAction])
-
-//tweakUI			:: (UIControl -> UIControl) UI -> UI
-tweakAttr		:: (UIAttributes -> UIAttributes) UI -> UI
-//tweakControls	:: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UI -> UI

@@ -6,7 +6,7 @@ import Incidone.Util.TaskPatterns
 
 selectVideoWallContent :: Task ()
 selectVideoWallContent
-    = (header ||- selectContent) <<@ (ArrangeWithSideBar 0 TopSide 30 False) <<@ FullScreen
+    = (header ||- selectContent) <<@ (ArrangeWithSideBar 0 TopSide 30 False) 
     @! ()
 where
     header

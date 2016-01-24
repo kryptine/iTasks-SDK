@@ -26,8 +26,8 @@ tonic :: Task ()
 tonic = tonicDashboard []
 
 tonicDashboard :: [TaskAppRenderer] -> Task ()
-tonicDashboard rs = ((tonicStaticBrowser rs <<@ FullScreen <<@ Title "Static Blueprints")
-               -||- (tonicDynamicBrowser rs <<@ FullScreen <<@ Title "Dynamic Blueprints")) <<@ ArrangeWithTabs <<@ FullScreen
+tonicDashboard rs = ((tonicStaticBrowser rs <<@ Title "Static Blueprints")
+               -||- (tonicDynamicBrowser rs <<@ Title "Dynamic Blueprints")) <<@ ArrangeWithTabs
 
 tonicStaticWorkflow :: [TaskAppRenderer] -> Workflow
 tonicStaticWorkflow rs = workflow "Tonic Static Browser" "Tonic Static Browser" (tonicStaticBrowser rs)
@@ -59,8 +59,8 @@ tonicStaticBrowser rs
                                                        , bpr_taskName   = tt.tf_name
                                                        } tm tt sett.StaticDisplaySettings.unfold_depth sett.StaticDisplaySettings.display_compact @! ()))
                    (getTonicFunc tm tn)
-         )) /*<<@ ArrangeWithSideBar 0 LeftSide 200 True */
-         )) <<@ FullScreen))) @! ()
+         )) <<@ ArrangeWithSideBar 0 LeftSide 200 True 
+         )) ))) @! ()
   where
   selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromComboBox id)]
   selectTask tm     = enterChoice "Select task" [ChooseWith (ChooseFromComboBox id)] (getTasks tm)
@@ -165,7 +165,7 @@ tonicDynamicBrowser rs
                          , (Embedded, \_ -> filterQuery)
                          , (Embedded, \_ -> activeUsers)
                          , (Embedded, \_ -> taskViewer)
-                         ] [] /*<<@ ArrangeCustom layout*/ <<@ FullScreen
+                         ] [] /*<<@ ArrangeCustom layout*/ 
                )) @! ()
   where
 /*

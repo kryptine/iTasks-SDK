@@ -76,7 +76,7 @@ where
 
 whileAuthenticated :: User [Workspace -> Task ()] -> Task ()
 whileAuthenticated user tasks
-    =  (controlDash -|| workOnTasks)  <<@ (ArrangeWithSideBar 0 TopSide 30 False) <<@ FullScreen <<@ (Title "Incidone")
+    =  (controlDash -|| workOnTasks)  <<@ (ArrangeWithSideBar 0 TopSide 30 False) <<@ (Title "Incidone")
 where
 	controlDash = (
 		    viewInformation () [] ("Welcome " +++ toString user) 

@@ -11,7 +11,7 @@ wallContent = sharedStore "WallContent" (WallOverview defaultValue)
 
 viewVideoWallContent :: Task WallContent
 viewVideoWallContent
-    = (header ||- content) <<@ (ArrangeWithSideBar 0 TopSide 30 False) <<@ FullScreen //<<@ AfterLayout plainLayoutFinal //FIXME
+    = (header ||- content) <<@ (ArrangeWithSideBar 0 TopSide 30 False) //<<@ AfterLayout plainLayoutFinal //FIXME
 where
     header
         = viewSharedInformation () [ViewWith view] (currentTime |+| currentUTCTime)  //<<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header")) //FIXME

@@ -17,7 +17,6 @@ import iTasks._Framework.IWorld
 import System.Time, System.File, System.FilePath
 import iTasks._Framework.SDS
 from iTasks.UI.Definition import :: UI(..), :: UIDirection(..), :: UIAction, stringDisplay
-from iTasks.UI.Layout import mergeAttributes, setMargins
 from iTasks.API.Core.Tasks import treturn
 from iTasks.API.Common.TaskCombinators import tbind, @
 

@@ -2,6 +2,7 @@ implementation module iTasks.UI.Layout.Common
 
 import iTasks.UI.Layout
 import iTasks.UI.Definition
+import iTasks.UI.Diff
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 import qualified Data.Map as DM
 import StdBool
@@ -10,16 +11,16 @@ from StdFunc import id, const
 arrangeWithTabs :: Layout
 arrangeWithTabs = conditionalLayout isParallel layout
 where
-	layout = layoutChild [0] toTabset
+	layout = layoutSubAt [0] toTabset
 
 	toTabset = sequenceLayouts
 				[layoutChildrenOf [] toTab
-				,changeContainerType (\(UI _ attr items) ->UI defaultTabSet attr items)
+				,changeNodeType (\(UI _ attr items) ->UI defaultTabSet attr items)
 				]
 
 	toTab = sequenceLayouts
 				[wrap defaultTab
-				,changeContainerType setTitleFromAttr
+				,changeNodeType setTitleFromAttr
 				]
 
 	setTitleFromAttr ui=:(UI _ _ [UI _ attr _]) = maybe ui (\title -> setTitle title ui) ('DM'.get "title" attr)
@@ -29,8 +30,8 @@ isParallel d = d =:(UI UIParallel _ _)
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 arrangeWithSideBar index side size resize = sequenceLayouts 
 	[wrap defaultContainer //Push the current container down a level
-	,changeContainerType (\(UI _ attr items) -> UI defaultPanel attr items) //Turn into a panel
-	,moveChild [0,index] [if (side === TopSide || side === LeftSide) 0 1]
+	,changeNodeType (\(UI _ attr items) -> UI defaultPanel attr items) //Turn into a panel
+	,moveSubAt [0,index] [if (side === TopSide || side === LeftSide) 0 1]
 	//Size the new container 
 	]
 	//Eerst een wrap in een container
@@ -78,18 +79,26 @@ where
                   }
 */
 
+arrangeVertical :: Layout
+arrangeVertical = id
+
+arrangeHorizontal :: Layout
+arrangeHorizontal = id
+
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
-toWindow windowType vpos hpos = changeContainerType mkWindow
+toWindow windowType vpos hpos = changeNodeType mkWindow
 where
 	mkWindow (UI _ attr items) = UI (UIWindow sOpts cOpts {wOpts & windowType = windowType, vpos = Just vpos, hpos = Just hpos}) attr items
 	(UIWindow sOpts cOpts wOpts) = defaultWindow
 
 toEmpty :: Layout
-toEmpty = changeContainerType (const (ui UIEmpty))
+toEmpty = changeNodeType (const (ui UIEmpty))
 
-instance tune ToWindow
-where
-	tune (ToWindow windowType vpos hpos) t = tune (ApplyLayout (toWindow windowType vpos hpos)) t
+toContainer :: Layout
+toContainer = changeNodeType (const (ui defaultContainer))
+
+toPanel :: Layout
+toPanel = changeNodeType (const (ui defaultPanel))
 
 instance tune ArrangeWithTabs
 where tune ArrangeWithTabs t = tune (ApplyLayout arrangeWithTabs) t
@@ -104,14 +113,52 @@ where
 
 instance tune ArrangeVertical
 where
-    tune ArrangeVertical t =  t
+    tune ArrangeVertical t = tune (ApplyLayout arrangeVertical)  t
 
 instance tune ArrangeHorizontal
 where
-    tune ArrangeHorizontal t =  t
+    tune ArrangeHorizontal t = tune (ApplyLayout arrangeHorizontal) t
+
+instance tune ToWindow
+where
+	tune (ToWindow windowType vpos hpos) t = tune (ApplyLayout (toWindow windowType vpos hpos)) t
+
+instance tune InPanel
+where
+	tune InPanel t =  tune (ApplyLayout toPanel) t
+
+instance tune InContainer
+where
+	tune InContainer t = tune (ApplyLayout toContainer) t
 
 instance tune NoUserInterface
 where
     tune NoUserInterface (Task eval) = Task eval`
     where
 	    eval` event repOpts state iworld = eval event {repOpts & noUI = True} state iworld
+
+instance tune Title
+where
+	tune (Title title) t = tune (ApplyLayout (changeNodeType (setTitle title)) ) t
+	
+instance tune Icon
+where
+	tune (Icon icon) t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.put ICON_ATTRIBUTE icon attr) items),s)
+		layout (change,s) = (change,s)
+
+instance tune Attribute
+where
+	tune (Attribute k v) t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.put k v attr) items),s)
+		layout (change,s) = (change,s)
+
+instance tune Label
+where
+	tune (Label label) t = tune (ApplyLayout layout) t
+	where
+		layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.put LABEL_ATTRIBUTE label attr) items),s)
+		layout (change,s) = (change,s)
+

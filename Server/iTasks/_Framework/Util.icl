@@ -4,6 +4,8 @@ import StdBool, StdChar, StdList, StdFile, StdMisc, StdArray, StdString, StdTupl
 import Data.Maybe, Data.Tuple, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Void, Data.Error, GenEq
 from iTasks._Framework.IWorld 		import :: IWorld{current}, :: TaskEvalState
 from iTasks.API.Core.Types	        import :: Date{..}, :: Time{..}, :: DateTime(..)
+import qualified Data.Map as DM
+from Data.Map import :: Map
 
 mb2list	:: !(Maybe [a]) -> [a]
 mb2list	Nothing = []
@@ -66,6 +68,9 @@ where
 	undot [] ["":ds]			= undot [""] ds //Only allowed at the beginning
 	undot acc ["":ds]			= undot acc ds
 	undot acc [d:ds] 			= undot [d:acc] ds
+
+mergeMaps :: (Map k v) (Map k v) -> Map k v | < k
+mergeMaps m1 m2 = foldl (\m (k,v)  -> 'DM'.put k v m) m1 ('DM'.toList m2)
 
 kvGet :: k ![(k,v)]		-> Maybe v	| Eq k // Linear search
 kvGet m []				= Nothing

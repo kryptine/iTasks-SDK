@@ -8,13 +8,50 @@ import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 from Data.Map as DM import qualified put, get, del, newMap, toList, fromList
 from StdFunc import o, const, id, flip
 
-from iTasks._Framework.TaskState import :: TIMeta(..)
+from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
+
+instance tune ApplyLayout
+where
+	tune (ApplyLayout f) task=:(Task eval) = Task eval`
+	where
+		eval` event evalOpts tt=:(TCInit _ _) iworld
+			= eval` event evalOpts (TCLayout (toJSON (defaultState f)) tt) iworld
+
+		eval` event evalOpts (TCLayout s tt) iworld = case eval event evalOpts tt iworld of
+	        (ValueResult value info change tt,iworld) 
+				# s = fromMaybe defaultValue (fromJSON s)	
+				# (change,s) = f (change,s)
+				# s = toJSON s
+				= (ValueResult value info change (TCLayout s tt), iworld)
+            (res,iworld) = (res,iworld)
+		
+		eval` event evalOpts state iworld = eval event evalOpts state iworld //Catchall
+		
+		defaultState :: (LayoutFun s) -> s | iTask s
+		defaultState f = defaultValue
+
+instance tune AutoLayout
+where
+	tune WithAutoLayout (Task eval) = Task (\event evalOpts state iworld = eval event {evalOpts & autoLayout = True} state iworld)
+	tune WithoutAutoLayout (Task eval) = Task (\event evalOpts state iworld = eval event {evalOpts & autoLayout = False} state iworld)
+
+changeNodeType :: (UI -> UI) -> Layout
+changeNodeType f = layout
+where
+	layout (ReplaceUI def,_) = (ReplaceUI (f def),JSONNull) 
+	layout (change,s) = (change,s) //Other changes than replacing are not affected
+
+changeNodeAttributes :: (UIAttributes -> UIAttributes) -> Layout
+changeNodeAttributes f = layout
+where
+	layout (ReplaceUI (UI type attr items),_) = (ReplaceUI (UI type (f attr) items),JSONNull)
+	layout (change,s) = (change,s)
 
 //TODO: When applying a layout to a child, the layout should also be applied if a UI is being inserted at that path
-layoutChild :: NodePath Layout -> Layout
-layoutChild [] childLayout = childLayout
-layoutChild [i] childLayout = layoutChild` i childLayout
-layoutChild [i:is] childLayout = layoutChild` i (layoutChild is childLayout)
+layoutSubAt :: NodePath Layout -> Layout
+layoutSubAt [] childLayout = childLayout
+layoutSubAt [i] childLayout = layoutChild` i childLayout
+layoutSubAt [i:is] childLayout = layoutChild` i (layoutSubAt is childLayout)
 
 layoutChild` :: Int Layout -> Layout 
 layoutChild` index childLayout = layout
@@ -41,9 +78,9 @@ where
 
 	layout (change,s) = (change,s) //Catchall
 
-insertChild :: NodePath UI-> Layout
-insertChild [] def = id
-insertChild path def = layoutChild (init path) (insertChild` (last path) def)
+insertSubAt :: NodePath UI-> Layout
+insertSubAt [] def = id
+insertSubAt path def = layoutSubAt (init path) (insertChild` (last path) def)
 where
 	insertChild` idx def (ReplaceUI container,s) =  (ReplaceUI (setChildren (insertAt idx def (getChildren container)) container),s)
 	insertChild` idx _ (ChangeUI local childChanges,s) = (ChangeUI local (insert idx childChanges),s)
@@ -54,9 +91,9 @@ where
 		| childChangeIndex c < idx  = [c:insert idx cs]
 									= [ChangeChild idx (ChangeUI [] []): map (updChildChangeIndex (\n -> n + 1)) [c:cs]]
 
-removeChild :: NodePath -> Layout
-removeChild [] = id
-removeChild path = layoutChild (init path) (removeChild` (last path))
+removeSubAt :: NodePath -> Layout
+removeSubAt [] = id
+removeSubAt path = layoutSubAt (init path) (removeChild` (last path))
 where
 	removeChild` idx (ReplaceUI container,s) = (ReplaceUI (setChildren (removeAt idx (getChildren container)) container),s)
 	removeChild` idx (ChangeUI local childChanges,s) = (ChangeUI local (remove idx childChanges),s)
@@ -68,9 +105,18 @@ where
 		| childChangeIndex c == idx = remove idx cs
 									= [updChildChangeIndex (\n -> n - 1) c:remove idx cs]
 
-moveChild :: NodePath NodePath -> Layout 
-moveChild src dst = id
+moveSubAt :: NodePath NodePath -> Layout 
+moveSubAt src dst = id
 //TODO
+
+removeSubsMatching :: NodePath (UI -> Bool) Int -> Layout
+removeSubsMatching src pred maxDepth = id //TODO
+
+layoutSubsMatching :: NodePath (UI -> Bool) Int Layout -> Layout
+layoutSubsMatching src pred maxDepth subLayout = id //TODO
+
+moveSubsMatching :: NodePath (UI -> Bool) Int NodePath -> Layout
+moveSubsMatching src pred maxDepth dst = id //TODO
 
 //FIXME: Currently this only works when changes are moved to an empty container, needs to be generalized
 moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
@@ -148,17 +194,14 @@ where
 	
 	layout (change,s) = (change,s)
 
-changeContainerType :: (UI -> UI) -> Layout
-changeContainerType f = layout
-where
-	layout (ReplaceUI def,_) = (ReplaceUI (f def),JSONNull) 
-	layout (change,s) = (change,s) //Other changes than replacing are not affected
-
 wrap :: UINodeType -> Layout
 wrap type = layout
 where
 	layout (ReplaceUI def,_) = (ReplaceUI (uic type [def]),JSONNull)
 	layout (change,s) = (ChangeUI [] [ChangeChild 0 change],s)
+
+unwrap :: Layout
+unwrap = id //TODO
 
 sequenceLayouts :: [Layout] -> Layout
 sequenceLayouts layouts = layout
@@ -180,20 +223,7 @@ where
 		= (change,[s:ss])
 
 conditionalLayout :: (UI -> Bool) Layout -> Layout
-conditionalLayout pred condLayout = layout
-where
-	layout (change=:(ReplaceUI def),_)
-		| pred def
-			# (change,s) = condLayout (change,JSONNull)
-			= (change,JSONArray [s])
-		| otherwise
-			= (change,JSONNull)
-
-	layout (change,JSONArray [s]) 
-		# (change,s) = condLayout (change,s)
-		= (change,JSONArray [s])
-
-	layout (change,s) = (change,s)
+conditionalLayout pred condLayout = selectLayout [(pred,condLayout)]
 
 //Select the first matching layout
 selectLayout :: [(UI -> Bool,Layout)] -> Layout
@@ -225,11 +255,10 @@ setChildren children (UI type attr _) = UI type attr children
 
 accChildDef :: NodePath (UI -> (a,UI)) UI -> (Maybe a, UI)
 accChildDef [] f def = appFst Just (f def)
-accChildDef [s:ss] f def
-	# children = getChildren def
-	| s < length children
-		# (res,selChild) = accChildDef ss f (children !! s)
-		= (res,setChildren (updateAt s selChild children) def)
+accChildDef [s:ss] f def=:(UI type attr items)
+	| s < length items
+		# (res,sel) = accChildDef ss f (items !! s)
+		= (res,UI type attr (updateAt s sel items))
 	| otherwise =  (Nothing,def)
 
 accChildChange :: NodePath (UIChangeDef -> (a,UIChangeDef)) UIChangeDef -> (Maybe a, UIChangeDef)
@@ -459,75 +488,6 @@ autoLayoutBlocks :: [UIBlock] [UIAction] -> UIBlock
 autoLayoutBlocks blocks actions = arrangeVertical blocks actions
 */
 
-instance tune InPanel
-where
-	tune InPanel t = t//tune (ApplyLayout layout) t
-	where
-		//layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute CONTAINER_ATTRIBUTE "panel" ui),())
-		layout (change,s) = (change,s)
-
-instance tune InContainer
-where
-	tune InContainer t = t //tune (ApplyLayout layout ) t
-	where
-	//	layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute CONTAINER_ATTRIBUTE "container" ui),())
-		layout (change,s) = (change,s)
-
-instance tune FullScreen
-where 
-	tune FullScreen t = t //tune (ApplyLayout layout) t
-	where
-	//	layout (ReplaceUI ui,()) = (ReplaceUI (uiDefSetAttribute SCREEN_ATTRIBUTE "full" ui),())
-		layout (change,s) = (change,s)
-
-instance tune Title
-where
-	tune (Title title) t = tune (ApplyLayout (changeContainerType (setTitle title)) ) t
-	
-instance tune Icon
-where
-	tune (Icon icon) t = tune (ApplyLayout layout) t
-	where
-		layout (ReplaceUI (UI type attr items),()) = (ReplaceUI (UI type ('DM'.put ICON_ATTRIBUTE icon attr) items),())
-		layout (change,s) = (change,s)
-
-instance tune Attribute
-where
-	tune (Attribute k v) t = tune (ApplyLayout layout) t
-	where
-		layout (ReplaceUI (UI type attr items),()) = (ReplaceUI (UI type ('DM'.put k v attr) items),())
-		layout (change,s) = (change,s)
-
-instance tune Label
-where
-	tune (Label label) t = tune (ApplyLayout layout) t
-	where
-		layout (ReplaceUI (UI type attr items),()) = (ReplaceUI (UI type ('DM'.put LABEL_ATTRIBUTE label attr) items),())
-		layout (change,s) = (change,s)
-
-/*
-instance tune ArrangeVertical
-where
-    tune ArrangeVertical t = tune (ApplyLayout layout) t
-	where
- 		layout (ReplaceUI ui,()) = (ReplaceUI (arrangeBlocks arrangeVertical ui),())
-		layout (change,s) = (change,s)
-
-arrangeVertical :: UIBlocksCombinator
-arrangeVertical = arrangeStacked Vertical
-*/
-
-/*
-instance tune ArrangeHorizontal
-where
-    tune ArrangeHorizontal t = tune (ApplyLayout layout) t
-	where
-		layout (ReplaceUI ui,()) = (ReplaceUI (arrangeBlocks arrangeHorizontal ui),())
-		layout (change,s) = (change,s)
-
-arrangeHorizontal :: UIBlocksCombinator
-arrangeHorizontal = arrangeStacked Horizontal
-*/
 
 /*
 arrangeStacked :: UIDirection [UIBlock] [UIAction] -> UIBlock

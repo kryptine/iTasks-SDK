@@ -4,6 +4,7 @@ from StdClass import class Eq
 from Data.Error import :: MaybeErrorString, :: MaybeError
 
 import iTasks.API.Core.Types
+from Data.Map import :: Map
 
 mb2list				:: !(Maybe [a]) -> [a]
 list2mb				:: ![a] -> (Maybe [a])
@@ -23,6 +24,9 @@ datetimeToTimestamp 	:: !DateTime -> Timestamp
 
 //Path conversion
 toCanonicalPath			:: !FilePath !*World -> (!FilePath,!*World)
+
+//Merging Maps
+mergeMaps :: (Map k v) (Map k v) -> Map k v | < k
 
 //Simple key value functions when fullblown maps are overkill
 kvGet		:: k	![(k,v)]	-> Maybe v	| Eq k

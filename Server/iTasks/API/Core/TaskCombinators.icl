@@ -811,31 +811,6 @@ where
 class tune b :: !b !(Task a) -> Task a
 class tunev b a | iTask a :: !(b a) !(Task a) -> Task a
 
-instance tune ApplyLayout
-where
-	tune (ApplyLayout f) task=:(Task eval) = Task eval`
-	where
-		eval` event evalOpts tt=:(TCInit _ _) iworld
-			= eval` event evalOpts (TCLayout (toJSON (defaultState f)) tt) iworld
-
-		eval` event evalOpts (TCLayout s tt) iworld = case eval event evalOpts tt iworld of
-	        (ValueResult value info change tt,iworld) 
-				# s = fromMaybe defaultValue (fromJSON s)	
-				# (change,s) = f (change,s)
-				# s = toJSON s
-				= (ValueResult value info change (TCLayout s tt), iworld)
-            (res,iworld) = (res,iworld)
-		
-		eval` event evalOpts state iworld = eval event evalOpts state iworld //Catchall
-		
-		defaultState :: (LayoutFun s) -> s | iTask s
-		defaultState f = defaultValue
-
-instance tune AutoLayout
-where
-	tune WithAutoLayout (Task eval) = Task (\event evalOpts state iworld = eval event {evalOpts & autoLayout = True} state iworld)
-	tune WithoutAutoLayout (Task eval) = Task (\event evalOpts state iworld = eval event {evalOpts & autoLayout = False} state iworld)
-
 instance tune LazyRefresh
 where
 	tune _ (Task eval) = Task eval`

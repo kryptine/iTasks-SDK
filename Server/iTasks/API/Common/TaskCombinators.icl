@@ -13,6 +13,7 @@ import qualified Data.Map as DM
 
 import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators, iTasks.API.Common.InteractionTasks, iTasks.UI.Layout, iTasks.UI.Prompt
 import iTasks.API.Common.SDSCombinators
+import iTasks.UI.Layout.Common
 
 (>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | iTask a & iTask b
 (>>*) task steps = step task (const Nothing) steps

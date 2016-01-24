@@ -12,7 +12,8 @@ import iTasks._Framework.IWorld, iTasks._Framework.WebService, iTasks._Framework
 import iTasks.API.Common.SDSCombinators
 import qualified iTasks._Framework.SDS as SDS
 import iTasks.UI.Layout, iTasks.UI.Layout.Auto
-from iTasks.API.Core.TaskCombinators import class tune(..), instance tune ApplyLayout, instance tune AutoLayout
+from iTasks.API.Core.TaskCombinators import class tune(..)
+from iTasks.UI.Layout import instance tune ApplyLayout, instance tune AutoLayout
 
 SESSION_TIMEOUT :== fromString "0000-00-00 00:10:00"
 MAX_EVENTS 		:== 5
