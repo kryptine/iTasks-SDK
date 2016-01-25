@@ -731,6 +731,7 @@ gatherFonts img = imageCata gatherFontsAllAlgs img
     , basicImageEmptyImageAlg   = 'DM'.newMap
     , basicImageCircleImageAlg  = 'DM'.newMap
     , basicImageRectImageAlg    = 'DM'.newMap
+    , basicImageRawImageAlg     = const 'DM'.newMap
     , basicImageEllipseImageAlg = 'DM'.newMap
     }
     where
@@ -946,6 +947,7 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
     , basicImageTextImageAlg    = mkTextImage
     , basicImageCircleImageAlg  = mkCircleImage
     , basicImageRectImageAlg    = mkRectImage
+    , basicImageRawImageAlg     = mkRawImage
     , basicImageEllipseImageAlg = mkEllipseImage
     }
     where
@@ -954,6 +956,9 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
 
     mkRectImage :: !ImageSpan ![ImageTransform] !*DesugarAndTagStVal -> *(!DesugarAndTagSyn s, !*DesugarAndTagStVal) | iTask s
     mkRectImage imSp imTrs st = mkSpan RectImage imSp imTrs st
+
+    mkRawImage :: !String !ImageSpan ![ImageTransform] !*DesugarAndTagStVal -> *(!DesugarAndTagSyn s, !*DesugarAndTagStVal) | iTask s
+    mkRawImage svgStr imSp imTrs st = mkSpan (RawImage svgStr) imSp imTrs st
 
     mkTextImage :: !FontDef !String !ImageSpan ![ImageTransform] !*DesugarAndTagStVal -> *(!DesugarAndTagSyn s, !*DesugarAndTagStVal) | iTask s
     mkTextImage fd str imSp imTrs st = mkSpan (TextImage fd str) imSp imTrs st
@@ -1777,6 +1782,7 @@ genSVG img st = imageCata genSVGAllAlgs img st
     , basicImageTextImageAlg     = mkTextImage
     , basicImageCircleImageAlg   = mkCircleImage
     , basicImageRectImageAlg     = mkRectImage
+    , basicImageRawImageAlg      = mkRawImage
     , basicImageEllipseImageAlg  = mkEllipseImage
     }
     where
@@ -1821,6 +1827,13 @@ genSVG img st = imageCata genSVGAllAlgs img st
       #! hattrs = mkWH imSp
       #! hattrs = if interactive [IdAttr (mkUniqId editletId uniqId) : hattrs] hattrs
       = (({ mkGenSVGSyn & genSVGSyn_svgElts = [RectElt hattrs (mkAttrs imAts imTrs)] }, False), st)
+
+    mkRawImage :: !String Int Bool ImageSpanReal [Maybe SVGAttr]
+                  [([SVGTransform], ImageTransform)]
+                  !*(GenSVGStVal s)
+               -> *(!(!GenSVGSyn s, !Bool), !*GenSVGStVal s) | iTask s
+    mkRawImage svgStr uniqId interactive imSp imAts imTrs st
+      = (({ mkGenSVGSyn & genSVGSyn_svgElts = [RawElt svgStr] }, False), st)
 
     mkCircleImage :: !Int !Bool !ImageSpanReal ![Maybe SVGAttr]
                      ![(![SVGTransform], !ImageTransform)]
@@ -2343,6 +2356,7 @@ evalLookupSpans (RowYSpan t rowIdx)     st
   , basicImageTextImageAlg    :: !FontDef String -> baIm
   , basicImageCircleImageAlg  :: !                  baIm
   , basicImageRectImageAlg    :: !                  baIm
+  , basicImageRawImageAlg     :: !String         -> baIm
   , basicImageEllipseImageAlg :: !                  baIm
   }
 
@@ -2436,6 +2450,7 @@ basicImageCata basicImageAlgs EmptyImage         = basicImageAlgs.basicImageEmpt
 basicImageCata basicImageAlgs (TextImage fd str) = basicImageAlgs.basicImageTextImageAlg fd str
 basicImageCata basicImageAlgs CircleImage        = basicImageAlgs.basicImageCircleImageAlg
 basicImageCata basicImageAlgs RectImage          = basicImageAlgs.basicImageRectImageAlg
+basicImageCata basicImageAlgs (RawImage str)     = basicImageAlgs.basicImageRawImageAlg str
 basicImageCata basicImageAlgs EllipseImage       = basicImageAlgs.basicImageEllipseImageAlg
 
 lineImageCata :: !(Algebras m imCo imAt imTr im baIm imSp coIm im co ma liIm liCo) !(LineImage m) -> liIm
