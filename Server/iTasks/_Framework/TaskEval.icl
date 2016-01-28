@@ -22,9 +22,18 @@ getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
     = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
 
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
-queueEvent instanceNo event iworld
-	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue (instanceNo,event) q)) taskEvents iworld
-	= iworld
+//Special case for refresh events, queue only if the instance has no events in the queue yet
+queueEvent instanceNo event=:(RefreshEvent r) iworld 
+    # (_,iworld) = 'SDS'.modify (queueIfNotScheduled instanceNo event) taskEvents iworld
+    = iworld
+where
+    queueIfNotScheduled instanceNo event q=:('DQ'.Queue front back)
+        | isMember instanceNo (map fst (front ++ back)) = ((),q)
+                                                        = ((),'DQ'.enqueue (instanceNo,event) q)
+//Standard case...
+queueEvent instanceNo event iworld 
+    # (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue (instanceNo,event) q)) taskEvents iworld
+    = iworld
 
 dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
 dequeueEvent iworld
