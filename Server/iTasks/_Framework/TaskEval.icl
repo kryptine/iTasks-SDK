@@ -10,6 +10,7 @@ import iTasks._Framework.SDSService
 
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from Data.Map as DM				        import qualified newMap, fromList, toList, get, put, del 
+from Data.Queue import :: Queue (..)
 from Data.Queue as DQ					import qualified newQueue, enqueue, dequeue, empty
 from iTasks._Framework.SDS as SDS       import qualified read, write, modify
 from iTasks.API.Common.SDSCombinators   import sdsFocus, >+|, mapReadWrite, mapReadWriteError
@@ -27,7 +28,7 @@ queueEvent instanceNo event=:(RefreshEvent r) iworld
     # (_,iworld) = 'SDS'.modify (queueIfNotScheduled instanceNo event) taskEvents iworld
     = iworld
 where
-    queueIfNotScheduled instanceNo event q=:('DQ'.Queue front back)
+    queueIfNotScheduled instanceNo event q=:(Queue front back)
         | isMember instanceNo (map fst (front ++ back)) = ((),q)
                                                         = ((),'DQ'.enqueue (instanceNo,event) q)
 //Standard case...
