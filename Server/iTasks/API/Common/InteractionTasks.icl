@@ -443,30 +443,35 @@ where
 viewSharedTitle :: !(ReadWriteShared r w) -> Task r | iTask r
 viewSharedTitle s = whileUnchanged s viewTitle
 
-crud :: !d !((f r) -> [r]) !(r (f r) -> f` w) !(r (f r) -> f` w)
-        (RWShared () (f r) (f` w))
-     -> Task r | descr d & iTask r & iTask (f r) & iTask w & iTask (f` w)
-crud descr toList putItem delItem sh = goCRUD
+crudWith :: !d ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r r]
+            !((f r) -> [r]) !(r (f r) -> f` w) !(r (f r) -> f` w)
+            (RWShared () (f r) (f` w))
+         -> Task r | descr d & iTask r & iTask (f r) & iTask w & iTask (f` w)
+crudWith descr choiceOpts enterOpts viewOpts updateOpts toList putItem delItem sh = goCRUD
   where
   goCRUD
-    =   enterChoiceWithShared descr [] (mapRead toList sh)
+    =   enterChoiceWithShared descr choiceOpts (mapRead toList sh)
     >>* [ OnAction (Action "New" [])    (always   newItem)
         , OnAction (Action "View" [])   (hasValue viewItem)
         , OnAction (Action "Edit" [])   (hasValue editItem)
         , OnAction (Action "Delete" []) (hasValue deleteItem)
         ]
   newItem
-    =            enterInformation (Title "New item") []
+    =            enterInformation (Title "New item") enterOpts
     >>= \item -> upd (putItem item) sh
     >>|          goCRUD
   viewItem x
-    =            viewInformation (Title "View item") [] x
+    =            viewInformation (Title "View item") viewOpts x
     >>|          goCRUD
   editItem x
-    =            updateInformation (Title "Edit item") [] x
+    =            updateInformation (Title "Edit item") updateOpts x
     >>= \item -> upd (putItem item) sh
     >>|          goCRUD
   deleteItem x
     =            upd (delItem x) sh
     >>|          goCRUD
 
+crud :: !d !((f r) -> [r]) !(r (f r) -> f` w) !(r (f r) -> f` w)
+        (RWShared () (f r) (f` w))
+     -> Task r | descr d & iTask r & iTask (f r) & iTask w & iTask (f` w)
+crud descr toList putItem delItem sh = crudWith descr [] [] [] [] toList putItem delItem sh
