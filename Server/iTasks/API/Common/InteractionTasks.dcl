@@ -296,6 +296,6 @@ viewSharedTitle :: !(ReadWriteShared r w) -> Task r | iTask r
 /**
 * Basic Create, Read, Update, Delete (CRUD) editor for a shared collection
 */
-crud :: !d !((f r) -> [r]) !(r (f r) -> f w) !(r (f r) -> f w)
-        (RWShared () (f r) (f w))
-     -> Task r | descr d & iTask r & iTask (f r) & iTask w & iTask (f w)
+crud :: !d !((f r) -> [r]) !(r (f r) -> f` w) !(r (f r) -> f` w)
+        (RWShared () (f r) (f` w))
+     -> Task r | descr d & iTask r & iTask (f r) & iTask w & iTask (f` w)
