@@ -94,6 +94,16 @@ gText{|(,,,,,)|} fa fb fc fd fe ff AsRow        (Just (a,b,c,d,e,f))  = [concat 
 gText{|(,,,,,)|} fa fb fc fd fe ff AsSingleLine (Just (a,b,c,d,e,f))  = [concat (fa AsSingleLine (Just a)),", ",concat (fb AsSingleLine (Just b)),", ",concat (fc AsSingleLine (Just c)),", ",concat (fd AsSingleLine (Just d)),", ",concat (fe AsSingleLine (Just e)),", ",concat (ff AsSingleLine (Just f))]
 gText{|(,,,,,)|} fa fb fc fd fe ff mode         (Just (a,b,c,d,e,f))  = fa mode (Just a) ++ fb mode (Just b) ++ fc mode (Just c) ++ fd mode (Just d) ++ fe mode (Just e) ++ ff mode (Just f)
 
+gText{|(,,,,,,)|} fa fb fc fd fe ff fg AsHeader     _                       = ["","","","","","",""]
+gText{|(,,,,,,)|} fa fb fc fd fe ff fg AsRow        (Just (a,b,c,d,e,f,g))  = [concat (fa AsSingleLine (Just a)),concat (fb AsSingleLine (Just b)),concat (fc AsSingleLine (Just c)),concat (fd AsSingleLine (Just d)),concat (fe AsSingleLine (Just e)),concat (ff AsSingleLine (Just f)),concat (fg AsSingleLine (Just g))]
+gText{|(,,,,,,)|} fa fb fc fd fe ff fg AsSingleLine (Just (a,b,c,d,e,f,g))  = [concat (fa AsSingleLine (Just a)),", ",concat (fb AsSingleLine (Just b)),", ",concat (fc AsSingleLine (Just c)),", ",concat (fd AsSingleLine (Just d)),", ",concat (fe AsSingleLine (Just e)),", ",concat (ff AsSingleLine (Just f)),", ",concat (fg AsSingleLine (Just g))]
+gText{|(,,,,,,)|} fa fb fc fd fe ff fg mode         (Just (a,b,c,d,e,f,g))  = fa mode (Just a) ++ fb mode (Just b) ++ fc mode (Just c) ++ fd mode (Just d) ++ fe mode (Just e) ++ ff mode (Just f) ++ fg mode (Just g)
+
+gText{|(,,,,,,,)|} fa fb fc fd fe ff fg fh AsHeader     _                         = ["","","","","","","",""]
+gText{|(,,,,,,,)|} fa fb fc fd fe ff fg fh AsRow        (Just (a,b,c,d,e,f,g,h))  = [concat (fa AsSingleLine (Just a)),concat (fb AsSingleLine (Just b)),concat (fc AsSingleLine (Just c)),concat (fd AsSingleLine (Just d)),concat (fe AsSingleLine (Just e)),concat (ff AsSingleLine (Just f)),concat (fg AsSingleLine (Just g)),concat (fh AsSingleLine (Just h))]
+gText{|(,,,,,,,)|} fa fb fc fd fe ff fg fh AsSingleLine (Just (a,b,c,d,e,f,g,h))  = [concat (fa AsSingleLine (Just a)),", ",concat (fb AsSingleLine (Just b)),", ",concat (fc AsSingleLine (Just c)),", ",concat (fd AsSingleLine (Just d)),", ",concat (fe AsSingleLine (Just e)),", ",concat (ff AsSingleLine (Just f)),", ",concat (fg AsSingleLine (Just g)),", ",concat (fh AsSingleLine (Just h))]
+gText{|(,,,,,,,)|} fa fb fc fd fe ff fg fh mode         (Just (a,b,c,d,e,f,g,h))  = fa mode (Just a) ++ fb mode (Just b) ++ fc mode (Just c) ++ fd mode (Just d) ++ fe mode (Just e) ++ ff mode (Just f) ++ fg mode (Just g) ++ fh mode (Just h)
+
 derive gText Either, MaybeError, Timestamp, Map
 
 (+++>) infixr 5	:: !a !String -> String | gText{|*|} a

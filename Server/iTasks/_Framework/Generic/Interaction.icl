@@ -255,7 +255,7 @@ gEditor{|HtmlTag|}	dp (val,mask,ver) meta vst
 	= (NormalEditor [(UIViewHtml defaultSizeOpts {UIViewOpts|value = Just val},'DM'.newMap)], vst)
 gEditor{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ vst = (HiddenEditor,vst)
 
-derive gEditor JSONNode, Either, MaybeError, (,,), (,,,), (,,,,), (,,,,,), Timestamp, Map //TODO Make specializations for (,,) and (,,,)
+derive gEditor JSONNode, Either, MaybeError, (,,), (,,,), (,,,,), (,,,,,), (,,,,,,), (,,,,,,,), Timestamp, Map //TODO Make specializations for (,,) and (,,,)
 
 generic gEditMeta a :: a -> [EditMeta]
 
@@ -285,6 +285,8 @@ gEditMeta{|(,,)|} fa fb fc _             = fa undef ++ fb undef ++ fc undef
 gEditMeta{|(,,,)|} fa fb fc fd _         = fa undef ++ fb undef ++ fc undef ++ fd undef
 gEditMeta{|(,,,,)|} fa fb fc fd fe _     = fa undef ++ fb undef ++ fc undef ++ fd undef ++ fe undef
 gEditMeta{|(,,,,,)|} fa fb fc fd fe ff _ = fa undef ++ fb undef ++ fc undef ++ fd undef ++ fe undef ++ ff undef
+gEditMeta{|(,,,,,,)|} fa fb fc fd fe ff fg _  = fa undef ++ fb undef ++ fc undef ++ fd undef ++ fe undef ++ ff undef ++ fg undef
+gEditMeta{|(,,,,,,,)|} fa fb fc fd fe ff fg fh _ = fa undef ++ fb undef ++ fc undef ++ fd undef ++ fe undef ++ ff undef ++ fg undef ++ fh undef
 
 gEditMeta{|RWShared|} _ _ _ _ = [{label=Nothing,hint=Nothing,unit=Nothing}]
 
@@ -343,7 +345,7 @@ gVerify{|JSONNode|} _ mv = alwaysValid mv
 gVerify{|()|} _ mv      = alwaysValid mv
 gVerify{|RWShared|} _ _ _ _ mv = alwaysValid mv
 
-derive gVerify (,), (,,), (,,,), (,,,,), (,,,,,), Void, Either, MaybeError, Timestamp, Map
+derive gVerify (,), (,,), (,,,), (,,,,), (,,,,,), (,,,,,,), (,,,,,,,), Void, Either, MaybeError, Timestamp, Map
 
 //Generic updater
 generic gUpdate a | gDefault a, JSONEncode a, JSONDecode a :: !DataPath !JSONNode !(MaskedValue a) !*USt -> (!MaskedValue a,!*USt)
@@ -532,7 +534,7 @@ gUpdate{|HtmlTag|} target upd val ust = (val,ust)
 gUpdate{|()|} target upd val ust = (val,ust)
 gUpdate{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ val ust = (val,ust)
 
-derive gUpdate Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), JSONNode, Void, Timestamp, Map
+derive gUpdate Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), (,,,,,,), (,,,,,,,), JSONNode, Void, Timestamp, Map
 
 checkMask :: !InteractionMask a -> Maybe a
 checkMask mask val
