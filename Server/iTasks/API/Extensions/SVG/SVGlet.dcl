@@ -8,24 +8,19 @@ import iTasks
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Types
 
-imageView   :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v)              -> ViewOption s | iTask s & iTask v
+imageUpdate :: !(s -> v) !(s v *TagSource -> Image v) !(s v -> s)
+               !(Conflict s -> Maybe s)
+               !(s s -> s`)
+            -> UpdateOption s s` | iTask s & iTask v
 
-imageUpdate :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v) !(s v -> s`) -> UpdateOption s s` | iTask v
-
-:: SVGSrvSt s =
-  { svgSrvSt :: !s
-  }
-:: SVGClSt s
+:: SVGClSt s v
 :: SVGDiff s
-
-svgRenderer :: !(Conflict s -> Maybe s) !s !(s *TagSource -> Image s)
-            -> Editlet (SVGSrvSt s) (SVGDiff s) (SVGClSt s) | iTask s
 
 :: ActionState a s = { state   :: s
                      , action  :: Maybe a
                      }
 
-derive class iTask ActionState, SVGClSt, SVGSrvSt, SVGDiff
+derive class iTask ActionState, SVGClSt, SVGDiff
 
 doAction :: !(a (ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe b
 
