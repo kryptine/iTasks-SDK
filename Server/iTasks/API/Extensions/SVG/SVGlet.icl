@@ -52,12 +52,12 @@ derive class iTask OnMouseDownAttr, OnClickAttr, Angle
 mainSvgId :: !ComponentId -> ComponentId
 mainSvgId cid = cid +++ "-svg"
 
-mkMouseDragDown :: !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s)
+mkMouseDragDown :: !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !(s -> v)
                    !ComponentId ((Maybe (Set ImageTag)) Real Real v -> v)
                    !String !(JSObj o) String {JSObj JSEvent} !(SVGClSt s v)
                    !*JSWorld
                 -> *(!SVGClSt s v, !ComponentDiff (SVGDiff s) (SVGClSt s v), !*JSWorld) | iTask s & iTask v
-mkMouseDragDown resolve state2image updSrv cid sttf elemId _ _ evts=:{[0] = evt} clval world
+mkMouseDragDown resolve state2image updSrv initClSt cid sttf elemId _ _ evts=:{[0] = evt} clval world
   #! (svgContainer, world)  = .? (getElementById (mainSvgId cid)) world
   #! (svgRoot, world)       = .? (svgContainer .# "firstChild") world
   #! (targetElement, world) = (svgRoot .# "getElementById" .$ elemId) world
@@ -78,11 +78,10 @@ mkMouseDragDown resolve state2image updSrv cid sttf elemId _ _ evts=:{[0] = evt}
   = ({clval & svgDropCallback = Just sttf, svgMousePos = MouseDown
             , svgDragTarget = Just targetElement, svgGrabPointX = clval.svgTrueCoordsX - e, svgGrabPointY = clval.svgTrueCoordsY - f}, NoDiff, world)
 
-mkMouseDragMove :: !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s)
-                   !ComponentId !(JSObj o) String {JSObj JSEvent} !(SVGClSt s v)
+mkMouseDragMove :: !ComponentId (JSObj o) String !{JSObj JSEvent} !(SVGClSt s v)
                    !*JSWorld
                 -> *(!SVGClSt s v, !ComponentDiff (SVGDiff s) (SVGClSt s v), !*JSWorld) | iTask s & iTask v
-mkMouseDragMove _ _ _ cid _ _ evts=:{[0] = evt} clval=:{svgMousePos = MouseDown, svgDragTarget = Just dragTarget} world
+mkMouseDragMove cid _ _ evts=:{[0] = evt} clval=:{svgMousePos = MouseDown, svgDragTarget = Just dragTarget} world
   // Append the dragTarget to the root of the SVG element for two reasons:
   //   1. To allow it to be dragged over all other elements
   //   2. To not be bothered by the offsets of one or more groups it might initially be in
@@ -96,7 +95,7 @@ mkMouseDragMove _ _ _ cid _ _ evts=:{[0] = evt} clval=:{svgMousePos = MouseDown,
   #! (_, world) = (dragTarget `setAttribute` ("transform", "translate(" +++ toString newX +++ "," +++ toString newY +++ ")")) world
   = ({clval & svgTrueCoordsX = newTrueCoordsX
             , svgTrueCoordsY = newTrueCoordsY}, NoDiff, world)
-mkMouseDragMove _ _ _ cid   _   _ evts=:{[0] = evt} clval world
+mkMouseDragMove cid _ _ evts=:{[0] = evt} clval world
   #! (newTrueCoordsX, newTrueCoordsY, world) = getNewTrueCoords cid evt world
   = ({clval & svgTrueCoordsX = newTrueCoordsX
             , svgTrueCoordsY = newTrueCoordsY}, NoDiff, world)
@@ -119,24 +118,24 @@ getNewTrueCoords cid evt world
   #! newTrueCoordsY        = (clientY - translationY) / newScale
   = (newTrueCoordsX, newTrueCoordsY, world)
 
-mkMouseDragUp :: !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s)
+mkMouseDragUp :: !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !(s -> v)
                  !ComponentId !(JSObj o) !(Map String (Set ImageTag)) String
                  {JSObj JSEvent} !(SVGClSt s v) !*JSWorld
               -> *(!SVGClSt s v, !ComponentDiff (SVGDiff s) (SVGClSt s v), !*JSWorld) | iTask s & iTask v
-mkMouseDragUp resolve state2image updSrv cid _ idMap _ evts=:{[0] = evt} clval=:{svgClSt, svgClSrvSt, svgDragTarget = Just dragTarget} world
+mkMouseDragUp resolve state2image updSrv initClSt cid _ idMap _ evts=:{[0] = evt} clval=:{svgClSt, svgClSrvSt, svgDragTarget = Just dragTarget} world
   #! (_, world)         = (dragTarget .# "setAttributeNS" .$ (jsNull, "pointer-events", "none")) world
   #! (evtTarget, world) = .? (evt .# "target") world
   #! (parentId, world)  = firstIdentifiableParentId evtTarget world
-  #! diff               = case clval.svgDropCallback of
+  #! (diff, srvSt`)     = case clval.svgDropCallback of
                             Just sttf
                               #! xdiff  = clval.svgTrueCoordsX - clval.svgGrabPointX
                               #! ydiff  = clval.svgTrueCoordsY - clval.svgGrabPointY
                               #! clSt`  = sttf ('DM'.get parentId idMap) xdiff ydiff svgClSt
                               #! srvSt` = updSrv svgClSrvSt clSt`
-                              = Diff (SetState srvSt`) (doResolve resolve)
-                            _ = NoDiff
-  = ({clval & svgMousePos = MouseUp, svgDragTarget = Nothing}, diff, world)
-mkMouseDragUp _ _ _ _ _ _ _ _ clval=:{svgDragTarget = Nothing} world
+                              = (Diff (SetState srvSt`) (doResolve resolve), srvSt`)
+                            _ = (NoDiff, svgClSrvSt)
+  = ({clval & svgClSrvSt = srvSt`, svgMousePos = MouseUp, svgDragTarget = Nothing}, diff, world)
+mkMouseDragUp _ _ _ _ _ _ _ _ _ clval=:{svgDragTarget = Nothing} world
   = ({clval & svgMousePos = MouseUp}, NoDiff, world)
 
 firstIdentifiableParentId :: !(JSObj a) *JSWorld -> *(String, *JSWorld)
@@ -152,127 +151,126 @@ firstIdentifiableParentId elem world
   | otherwise = (idval, world)
 
 registerDraggables :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s v)) ComponentId -> JSFun f)
-                      !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s)
+                      !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !(s -> v)
                       !ComponentId !(JSObj svg) !(Map String (ImageAttr v))
                       !(Map String (Set ImageTag)) !*JSWorld
                     -> *JSWorld | iTask s & iTask v
-registerDraggables mkEventHandler resolve state2Image updSrv cid svg draggables idMap world
+registerDraggables mkEventHandler resolve state2Image updSrv initClSt cid svg draggables idMap world
   #! (svgContainer, world) = .? (getElementById (mainSvgId cid)) world
   #! (svgRoot, world)      = .? (svgContainer .# "firstChild") world
   #! idMap                 = 'DM'.foldrWithKey (\k v m -> 'DM'.put (replaceSubString editletId cid k) v m) 'DM'.newMap idMap
-  #! cbUp                  = mkEventHandler (mkMouseDragUp   resolve state2Image updSrv cid svgRoot idMap) cid
-  #! cbMove                = mkEventHandler (mkMouseDragMove resolve state2Image updSrv cid svgRoot) cid
+  #! cbUp                  = mkEventHandler (mkMouseDragUp   resolve state2Image updSrv initClSt cid svgRoot idMap) cid
+  #! cbMove                = mkEventHandler (mkMouseDragMove cid svgRoot) cid
   #! (_, world)            = (svgRoot `addEventListener` ("mouseup",   cbUp,   True)) world
   #! (_, world)            = (svgRoot `addEventListener` ("mousemove", cbMove, True)) world
-  = 'DM'.foldrWithKey (registerDraggable mkEventHandler resolve state2Image updSrv cid svg) world draggables
+  = 'DM'.foldrWithKey (registerDraggable mkEventHandler resolve state2Image updSrv initClSt cid svg) world draggables
   where
   registerDraggable :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s v)) ComponentId -> JSFun f)
-                       !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s)
+                       !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !(s -> v)
                        !ComponentId !(JSObj svg) !String !(ImageAttr v)
                        !*JSWorld
                      -> *JSWorld | iTask s & iTask v
-  registerDraggable _ resolve state2image updSrv cid svg _ (ImageDraggableAttr {draggable = Nothing}) world = world
-  registerDraggable mkEventHandler resolve state2image updSrv cid svg elemId (ImageDraggableAttr {draggable = Just sttf}) world
+  registerDraggable _ resolve state2image updSrv initClSt cid svg _ (ImageDraggableAttr {draggable = Nothing}) world = world
+  registerDraggable mkEventHandler resolve state2image updSrv initClSt cid svg elemId (ImageDraggableAttr {draggable = Just sttf}) world
     #! elemId        = replaceSubString editletId cid elemId
     #! (elem, world) = (svg .# "getElementById" .$ elemId) world
-    #! cbDown        = mkEventHandler (mkMouseDragDown resolve state2image updSrv cid sttf elemId elem) cid
+    #! cbDown        = mkEventHandler (mkMouseDragDown resolve state2image updSrv initClSt cid sttf elemId elem) cid
     #! (_, world)    = (elem `addEventListener` ("mousedown", cbDown, True)) world
     = world
 
 registerSVGEvents :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s v)) ComponentId -> JSFun f)
-                     !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s)
+                     !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !(s -> v)
                      !ComponentId !(JSObj svg) !(Map String (ImageAttr v))
                      !*JSWorld
                    -> *JSWorld | iTask s & iTask v
-registerSVGEvents mkEventHandler resolve state2Image updSrv cid svg onclicks world
-  = 'DM'.foldrWithKey (registerEvent mkEventHandler resolve state2Image updSrv cid svg) world onclicks
+registerSVGEvents mkEventHandler resolve state2Image updSrv initClSt cid svg onclicks world
+  = 'DM'.foldrWithKey (registerEvent mkEventHandler resolve state2Image updSrv initClSt cid svg) world onclicks
   where
   registerEvent :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s v)) ComponentId -> JSFun f)
-                   !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s)
+                   !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !(s -> v)
                    !ComponentId !(JSObj svg) !ComponentId !(ImageAttr v) !*JSWorld
                  -> *JSWorld | iTask s & iTask v
-  registerEvent mkEventHandler resolve state2image updSrv cid svg elemId (ImageOnClickAttr     {local, onclick})     world = registerNClick   mkEventHandler resolve state2image updSrv cid svg elemId             onclick     local world
-  registerEvent mkEventHandler resolve state2image updSrv cid svg elemId (ImageOnMouseDownAttr {local, onmousedown}) world = actuallyRegister mkEventHandler resolve state2image updSrv cid svg elemId "mousedown" onmousedown local world
-  registerEvent mkEventHandler resolve state2image updSrv cid svg elemId (ImageOnMouseUpAttr   {local, onmouseup})   world = actuallyRegister mkEventHandler resolve state2image updSrv cid svg elemId "mouseup"   onmouseup   local world
-  registerEvent mkEventHandler resolve state2image updSrv cid svg elemId (ImageOnMouseOverAttr {local, onmouseover}) world = actuallyRegister mkEventHandler resolve state2image updSrv cid svg elemId "mouseover" onmouseover local world
-  registerEvent mkEventHandler resolve state2image updSrv cid svg elemId (ImageOnMouseMoveAttr {local, onmousemove}) world = actuallyRegister mkEventHandler resolve state2image updSrv cid svg elemId "mousemove" onmousemove local world
-  registerEvent mkEventHandler resolve state2image updSrv cid svg elemId (ImageOnMouseOutAttr  {local, onmouseout})  world = actuallyRegister mkEventHandler resolve state2image updSrv cid svg elemId "mouseout"  onmouseout  local world
+  registerEvent mkEventHandler resolve state2image updSrv initClSt cid svg elemId (ImageOnClickAttr     {local, onclick})     world = registerNClick   mkEventHandler resolve state2image updSrv initClSt cid svg elemId             onclick     local world
+  registerEvent mkEventHandler resolve state2image updSrv initClSt cid svg elemId (ImageOnMouseDownAttr {local, onmousedown}) world = actuallyRegister mkEventHandler resolve state2image updSrv initClSt cid svg elemId "mousedown" onmousedown local world
+  registerEvent mkEventHandler resolve state2image updSrv initClSt cid svg elemId (ImageOnMouseUpAttr   {local, onmouseup})   world = actuallyRegister mkEventHandler resolve state2image updSrv initClSt cid svg elemId "mouseup"   onmouseup   local world
+  registerEvent mkEventHandler resolve state2image updSrv initClSt cid svg elemId (ImageOnMouseOverAttr {local, onmouseover}) world = actuallyRegister mkEventHandler resolve state2image updSrv initClSt cid svg elemId "mouseover" onmouseover local world
+  registerEvent mkEventHandler resolve state2image updSrv initClSt cid svg elemId (ImageOnMouseMoveAttr {local, onmousemove}) world = actuallyRegister mkEventHandler resolve state2image updSrv initClSt cid svg elemId "mousemove" onmousemove local world
+  registerEvent mkEventHandler resolve state2image updSrv initClSt cid svg elemId (ImageOnMouseOutAttr  {local, onmouseout})  world = actuallyRegister mkEventHandler resolve state2image updSrv initClSt cid svg elemId "mouseout"  onmouseout  local world
 
 actuallyRegister :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s v)) ComponentId -> JSFun f)
-                    !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s)
+                    !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !(s -> v)
                     !ComponentId !(JSObj svg) !String !String !(v -> v) !Bool
                     *JSWorld
                  -> *JSWorld | iTask s & iTask v
-actuallyRegister mkEventHandler resolve state2image updSrv cid svg elemId evt sttf local world
+actuallyRegister mkEventHandler resolve state2image updSrv initClSt cid svg elemId evt sttf local world
   #! elemId        = replaceSubString editletId cid elemId
   #! (elem, world) = (svg .# "getElementById" .$ elemId) world
-  #! cb            = mkEventHandler (mkCB mkEventHandler resolve state2image updSrv cid sttf local) cid
+  #! cb            = mkEventHandler (mkCB mkEventHandler resolve state2image updSrv initClSt cid sttf local) cid
   #! (_, world)    = (elem `addEventListener` (evt, cb, True)) world
   = world
 
 mkCB :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s v)) ComponentId -> JSFun f)
-        !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !ComponentId
+        !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !(s -> v) !ComponentId
         !(v -> v) !Bool String {JSObj JSEvent} !(SVGClSt s v) !*JSWorld
      -> *(!SVGClSt s v, !ComponentDiff (SVGDiff s) (SVGClSt s v), !*JSWorld) | iTask s & iTask v
-mkCB mkEventHandler resolve state2image updSrv cid sttf local _ _ clval=:{svgClSt, svgClSrvSt} world
-  #! diff = SetState (updSrv svgClSrvSt (sttf svgClSt))
+mkCB mkEventHandler resolve state2image updSrv initClSt cid sttf local _ _ clval=:{svgClSt, svgClSrvSt} world
+  #! svgClSt`       = sttf svgClSt
+  #! srvSt`         = updSrv svgClSrvSt svgClSt`
+  #! diff           = SetState srvSt`
+  #! clval          = {clval & svgClSt = svgClSt`, svgClSrvSt = srvSt`}
   #! (clval, world) = if local
-                        (appClientDiff resolve state2image updSrv mkEventHandler cid diff clval world)
+                        (appClientDiff resolve state2image updSrv initClSt mkEventHandler cid diff clval world)
                         (clval, world)
   = ( clval
     , if local NoDiff (Diff diff (doResolve resolve))
     , world)
-mkCB _ _ _ _ _ _ _ _ _ clval world
-  = (clval, NoDiff, world)
 
 doResolve :: !(Conflict s -> Maybe s) !Conflict !(SVGClSt s v) !*JSWorld
           -> *(!SVGClSt s v, !ComponentDiff (SVGDiff s) (SVGClSt s v), !*JSWorld) | iTask s & iTask v
-doResolve resolve c s=:{svgClSt, svgClSrvSt} w
+doResolve resolve c s=:{svgClSrvSt} w
   = case resolve c svgClSrvSt of
       Just s` -> (s, Diff (SetState s`) (doResolve resolve), w)
       _       -> (s, NoDiff, w)
 doResolve _ _ s w = (s, NoDiff, w)
 
 registerNClick :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s v)) ComponentId -> JSFun f)
-                  !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s)
+                  !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !(s -> v)
                   !ComponentId !(JSObj svg) !String !(Int v -> v) !Bool
                   *JSWorld
                -> *JSWorld | iTask s & iTask v
-registerNClick mkEventHandler resolve state2image updSrv cid svg elemId sttf local world
+registerNClick mkEventHandler resolve state2image updSrv initClSt cid svg elemId sttf local world
   #! elemId        = replaceSubString editletId cid elemId
   #! (elem, world) = (svg .# "getElementById" .$ elemId) world
-  #! cb            = mkEventHandler (mkNClickCB elemId mkEventHandler resolve state2image updSrv sttf local) cid
+  #! cb            = mkEventHandler (mkNClickCB elemId mkEventHandler resolve state2image updSrv initClSt sttf local) cid
   #! (_, world)    = (elem `addEventListener` ("click", cb, False)) world
   = world
 
 mkNClickCB :: !String !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s v)) ComponentId -> JSFun f)
-              !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !(Int v -> v)
+              !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !(s -> v) !(Int v -> v)
               !Bool !String !{JSObj JSEvent} !(SVGClSt s v) !*JSWorld
            -> *(!SVGClSt s v, !ComponentDiff (SVGDiff s) (SVGClSt s v), !*JSWorld) | iTask s & iTask v
-mkNClickCB elemID mkEventHandler resolve state2image updSrv sttf local cid args clval=:{svgClSt, svgClSrvSt, svgClickTimeout} world
-  #! world = if (size args > 0) (snd ((args.[0] .# "stopPropagation" .$ ()) world)) world
-  #! world = case svgClickTimeout of
-               Just to -> snd (("clearTimeout" .$ to) world)
-               _       -> world
-  #! cb = mkEventHandler (handleNClick mkEventHandler resolve state2image updSrv sttf local) cid
+mkNClickCB elemID mkEventHandler resolve state2image updSrv initClSt sttf local cid args clval=:{svgClickTimeout} world
+  #! world            = if (size args > 0) (snd ((args.[0] .# "stopPropagation" .$ ()) world)) world
+  #! world            = case svgClickTimeout of
+                          Just to -> snd (("clearTimeout" .$ to) world)
+                          _       -> world
+  #! cb               = mkEventHandler (handleNClick mkEventHandler resolve state2image updSrv initClSt sttf local) cid
   #! (timeOut, world) = ("setTimeout" .$ (cb, 225)) world
   = ({clval & svgClickTimeout = Just timeOut, svgNumClicks = clval.svgNumClicks + 1}, NoDiff, world)
-mkNClickCB _ _ _ _ _ _ _ _ _ clval world
-  = (clval, NoDiff, world)
 
 handleNClick :: !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s v)) ComponentId -> JSFun f)
-                !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s)
+                !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !(s -> v)
                 !(Int v -> v) !Bool !String !{JSObj JSEvent} !(SVGClSt s v)
                 !*JSWorld
              -> *(!SVGClSt s v, !ComponentDiff (SVGDiff s) (SVGClSt s v), !*JSWorld) | iTask s & iTask v
-handleNClick mkEventHandler resolve state2image updSrv sttf local cid args clval=:{svgClSt, svgClSrvSt, svgNumClicks} world
+handleNClick mkEventHandler resolve state2image updSrv initClSt sttf local cid args clval=:{svgClSt, svgClSrvSt, svgNumClicks} world
   #! svgClSt`       = sttf svgNumClicks svgClSt
-  #! clval          = {clval & svgNumClicks = 0}
-  #! diff           = SetState (updSrv svgClSrvSt svgClSt`)
+  #! srvSt`         = updSrv svgClSrvSt svgClSt`
+  #! clval          = {clval & svgClSt = svgClSt`, svgClSrvSt = srvSt`, svgNumClicks = 0}
+  #! diff           = SetState srvSt`
   #! cdiff          = if local NoDiff (Diff diff (\_ s w -> (s, NoDiff, w)))
-  #! (clval, world) = appClientDiff resolve state2image updSrv mkEventHandler cid diff clval world
+  #! (clval, world) = appClientDiff resolve state2image updSrv initClSt mkEventHandler cid diff clval world
   = (clval, cdiff, world)
-handleNClick _ _ _ _ _ _ _ _ clval world = (clval, NoDiff, world)
 
 imageUpdate :: !(s -> v) !(s v *TagSource -> Image v) !(s v -> s) !(Conflict s -> Maybe s)
                !(s s -> s`)
@@ -331,7 +329,7 @@ svgRenderer resolve origState initClSt state2Image updSrv
     , defValSrv  = origState
     , genUI      = genUI
     , initClient = initClient resolve state2Image updSrv origState initClSt
-    , appDiffClt = appClientDiff resolve state2Image updSrv
+    , appDiffClt = appClientDiff resolve state2Image updSrv initClSt
     , genDiffSrv = genServerDiff
     , appDiffSrv = appServerDiff
     }
@@ -348,7 +346,7 @@ svgRenderer resolve origState initClSt state2Image updSrv
   initClient :: !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !s !(s -> v)
                 !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s v)) ComponentId -> JSFun f) !ComponentId !*JSWorld
              -> *(!SVGClSt s v, !*JSWorld) | iTask s & iTask v
-  initClient resolve state2Image updSrv origState initClSt mkEventHandler cid world = appClientDiff resolve state2Image updSrv mkEventHandler cid (SetState origState) (defaultClSt origState (initClSt origState)) world
+  initClient resolve state2Image updSrv origState initClSt mkEventHandler cid world = appClientDiff resolve state2Image updSrv initClSt mkEventHandler cid (SetState origState) (defaultClSt origState (initClSt origState)) world
 
   genServerDiff :: !s !s -> Maybe (SVGDiff s) | iTask s
   genServerDiff oldSrvSt newSrvSt
@@ -370,12 +368,14 @@ imageFromState img env
                                    , desugarAndTagSpanEnvs = spanEnvs}
   = (img, st.desugarAndTagSpanEnvs)
 
-appClientDiff :: !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s)
+appClientDiff :: !(Conflict s -> Maybe s) !(s v *TagSource -> Image v) !(s v -> s) !(s -> v)
                  !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s v)) ComponentId -> JSFun f)
                  !ComponentId !(SVGDiff s) !(SVGClSt s v) !*JSWorld
               -> *(!SVGClSt s v, !*JSWorld) | iTask s & iTask v
-appClientDiff resolve state2Image updSrv mkEventHandler cid (SetState s) clst world
-  #! image                = state2Image s clst.svgClSt [(ImageTagUser no cid,ImageTagUser no cid) \\ no <- [0..]]
+appClientDiff resolve state2Image updSrv initClSt mkEventHandler cid (SetState s) clst world
+  #! svgClSt`             = initClSt s
+  #! clst                 = {clst & svgClSt = svgClSt`, svgClSrvSt = s}
+  #! image                = state2Image s svgClSt` [(ImageTagUser no cid, ImageTagUser no cid) \\ no <- [0..]]
   #! fontMap              = gatherFonts image
   #! (realFontMap, world) = if ('DM'.null fontMap) ('DM'.newMap, world) (calcTextLengths fontMap world)
   #! (img, spanEnvs)      = imageFromState image realFontMap
@@ -395,8 +395,8 @@ appClientDiff resolve state2Image updSrv mkEventHandler cid (SetState s) clst wo
   #! (_, world)           = if (jsIsNull currSVG)
                               ((svgDiv `appendChild` newSVG) world)
                               ((svgDiv .# "replaceChild" .$ (newSVG, currSVG)) world)
-  #! world                = registerSVGEvents mkEventHandler resolve state2Image updSrv cid newSVG syn.genSVGSyn_events world
-  #! world                = registerDraggables mkEventHandler resolve state2Image updSrv cid newSVG syn.genSVGSyn_draggable syn.genSVGSyn_idMap world
+  #! world                = registerSVGEvents mkEventHandler resolve state2Image updSrv initClSt cid newSVG syn.genSVGSyn_events world
+  #! world                = registerDraggables mkEventHandler resolve state2Image updSrv initClSt cid newSVG syn.genSVGSyn_draggable syn.genSVGSyn_idMap world
   = (clst, world)
 
 (`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
@@ -2056,68 +2056,12 @@ dualTransformTranslate x y x` y` = TransformAttr [TranslateTransform (toString (
 
 
 addAttr :: !SVGAttr ![SVGAttr] -> [SVGAttr]
-//addAttr (AlignmentBaselineAttr   !String
-//addAttr (BaseProfileAttr         !String
-//addAttr (ContentScriptTypeAttr   !String
-//addAttr (ClipPathAttr            !String
-//addAttr (CxAttr                  !SVGCoordinate
-//addAttr (CyAttr                  !SVGCoordinate
-//addAttr (DominantBaselineAttr    !String
-//addAttr (ExternalResourcesRequiredAttr !Bool
-//addAttr (FillAttr                !SVGPaint
-//addAttr (FillOpacityAttr         !SVGFillOpacity
-//addAttr (FillRuleAttr            !SVGFillRule
-//addAttr (FontFamilyAttr          !String
-//addAttr (FontSizeAttr            !String
-//addAttr (FontStyleAttr           !String
-//addAttr (FontStretchAttr         !String
-//addAttr (FontVariantAttr         !String
-//addAttr (FontWeightAttr          !String
-//addAttr (LengthAdjustAttr        !SVGLengthAdjust
-//addAttr (MarkerStartAttr         !String
-//addAttr (MarkerMidAttr           !String
-//addAttr (MarkerEndAttr           !String
-//addAttr (MarkerHeightAttr        !SVGLength
-//addAttr (MarkerWidthAttr         !SVGLength
-//addAttr (MaskAttr                !String
-//addAttr (OffsetAttr              !String
-//addAttr (OrientAttr              !String
-//addAttr (PointsAttr              ![(String, String)]
-//addAttr (PreserveAspectRatioAttr !(Maybe SVGDefer) !(Maybe SVGAlign) !(Maybe SVGMeetOrSlice)
-//addAttr (RAttr                   !SVGLength
-//addAttr (RefXAttr                !SVGLength
-//addAttr (RefYAttr                !SVGLength
-//addAttr (RxAttr                  !SVGLength
-//addAttr (RyAttr                  !SVGLength
-//addAttr (StopColorAttr           !String
-//addAttr (StopOpacityAttr         !String
-//addAttr (StrokeAttr              !SVGPaint
-//addAttr (StrokeDashArrayAttr     !SVGStrokeDashArray
-//addAttr (StrokeDashOffsetAttr    !SVGStrokeDashOffset
-//addAttr (StrokeLineCapAttr       !SVGLineCap
-//addAttr (StrokeLineJoinAttr      !SVGLineJoin
-//addAttr (StrokeMiterLimitAttr    !SVGStrokeMiterLimit
-//addAttr (StrokeOpacityAttr       !String
-//addAttr (StrokeWidthAttr         !SVGStrokeWidth
-//addAttr (TextAnchorAttr          !String
-//addAttr (TextLengthAttr          !SVGLength
-//addAttr (TextRenderingAttr       !String
 addAttr (TransformAttr tfs) attrs = addTransforms tfs attrs []
   where
   addTransforms :: ![SVGTransform] ![SVGAttr] ![SVGAttr] -> [SVGAttr]
   addTransforms tfs []                            acc = reverseTR acc ++ [TransformAttr tfs]
   addTransforms tfs [TransformAttr tfs` : attrs`] acc = reverseTR acc ++ [TransformAttr (tfs ++ tfs`) : attrs`]
   addTransforms tfs [attr:attrs]                  acc = addTransforms tfs attrs [attr:acc]
-//addAttr (VersionAttr             !String
-//addAttr (ViewBoxAttr             !SVGNumber !SVGNumber !SVGNumber !SVGNumber
-//addAttr (XAttr                   !SVGCoordinate
-//addAttr (X1Attr                  !SVGLength
-//addAttr (X2Attr                  !SVGLength
-//addAttr (XLinkHRefAttr           !String
-//addAttr (YAttr                   !SVGCoordinate
-//addAttr (Y1Attr                  !SVGLength
-//addAttr (Y2Attr                  !SVGLength
-//addAttr (ZoomAndPanAttr          !SVGZoomAndPan
 addAttr attr attrs = [attr:attrs]
 
 addAttrs :: ![SVGAttr] ![SVGAttr] -> [SVGAttr]
