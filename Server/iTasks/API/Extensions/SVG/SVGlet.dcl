@@ -8,7 +8,7 @@ import iTasks
 import iTasks.API.Core.Client.Editlet
 import iTasks.API.Core.Types
 
-imageUpdate :: !(s -> v) !(s v *TagSource -> Image v) !(s v -> s)
+imageUpdate :: !(s -> v) !(s v *TagSource -> Image v) !(s v -> s) !(s v -> v)
                !(Conflict s -> Maybe s)
                !(s s -> s`)
             -> UpdateOption s s` | iTask s & iTask v
