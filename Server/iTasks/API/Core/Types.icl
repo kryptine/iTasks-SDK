@@ -7,7 +7,7 @@ from Data.Map import :: Map, :: Size
 from Data.List import instance Functor []
 import qualified Data.List as DL
 import qualified Data.Map as DM
-import iTasks.UI.Definition, iTasks.UI.Diff, iTasks.UI.Editor
+import iTasks.UI.Definition, iTasks.UI.Editor
 import iTasks._Framework.Generic.Interaction
 import iTasks._Framework.Generic.Visualization
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.Util

@@ -2,7 +2,7 @@ definition module iTasks._Framework.Generic.Interaction
 
 from StdGeneric import :: UNIT,::EITHER,::PAIR,::OBJECT,::CONS,::RECORD,::FIELD,::ConsPos, generic bimap, :: Bimap
 from iTasks._Framework.IWorld import :: IWorld
-from iTasks.UI.Diff import :: UIAttributes, :: UILocalChange
+from iTasks.UI.Definition import :: UIAttributes, :: UILocalChange
 from iTasks.API.Core.Types import :: TaskId, :: DataPath, :: Verification, :: VerifiedValue, :: EditableList
 
 from iTasks._Framework.Generic.Visualization import generic gText, :: TextFormat
@@ -31,7 +31,7 @@ derive gEditor
 	RECORD of {grd_arity} with ex _ _ _ _,
 	FIELD of {gfd_name} with ex _ _ _ _
 
-derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (->), Dynamic
+derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (,,,,,), (->), Dynamic
 derive gEditor Maybe, Either, MaybeError, Map, JSONNode, HtmlTag, Timestamp
 derive gEditor EditableList
 derive gEditor RWShared
@@ -52,7 +52,7 @@ derive gEditMeta
 	RECORD with fx,
 	FIELD of {gfd_name} with fx
 	
-derive gEditMeta Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (->), Dynamic
+derive gEditMeta Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (,,,,,), (->), Dynamic
 derive gEditMeta Maybe, Either, MaybeError,  Map, JSONNode, HtmlTag, Timestamp
 derive gEditMeta EditableList
 derive gEditMeta RWShared
@@ -61,7 +61,7 @@ derive gEditMeta RWShared
 generic gVerify a :: !VerifyOptions (Masked a) -> Verification
 
 derive gVerify UNIT, PAIR, EITHER, OBJECT, CONS of {gcd_arity}, RECORD of {grd_arity}, FIELD
-derive gVerify Int, Real, Char, Bool, String, [], (), (,), (,,),(,,,), (,,,,),(->), Dynamic
+derive gVerify Int, Real, Char, Bool, String, [], (), (,), (,,),(,,,), (,,,,), (,,,,,), (->), Dynamic
 derive gVerify Maybe, Either, MaybeError,  Map, JSONNode, HtmlTag, Timestamp
 derive gVerify EditableList
 derive gVerify RWShared

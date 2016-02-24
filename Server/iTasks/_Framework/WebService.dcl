@@ -9,7 +9,7 @@ from iTasks._Framework.IWorld		import :: IWorld
 from iTasks._Framework.Task 	    import :: Task, :: ConnectionTask
 from iTasks._Framework.TaskState 	import :: TIUIState
 from iTasks._Framework.SDS 			import :: RWShared
-from iTasks.UI.Diff 				import :: UIChangeDef
+from iTasks.UI.Definition           import :: UIChange
 from iTasks.API.Core.Types	        import :: InstanceNo
 from Data.Queue 					import :: Queue
 
@@ -24,7 +24,7 @@ httpServer :: !Int !Int ![(!String -> Bool
 
 webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
                  (!(String -> Bool)
-                 ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
-                 ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
-                 ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
+                 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+                 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+                 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
                  ) | iTask a

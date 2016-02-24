@@ -2,7 +2,6 @@ implementation module iTasks.UI.Layout.Auto
 
 import iTasks.UI.Layout
 import iTasks.UI.Definition
-import iTasks.UI.Diff
 import iTasks.API.Core.Types
 import Text.JSON
 
@@ -28,7 +27,11 @@ autoLayoutSession :: Layout
 autoLayoutSession = sequenceLayouts 
     [finalizeUI
     ,changeNodeType (setFramed True o setSize WrapSize WrapSize o setMargins 50 0 20 0 o setMinWidth (ExactBound 600))
+	,removeSubsMatching [] isEmpty
     ]
+where
+	isEmpty (UI UIEmpty _ _) = True
+	isEmpty _ = False
 
 //The finalize layouts remove all intermediate 
 finalizeUI :: Layout
@@ -47,14 +50,14 @@ finalizeInteract :: Layout
 finalizeInteract = conditionalLayout isInteract layout
 where
 	layout = sequenceLayouts 
-		[layoutSubAt [1] finalizeForm
-		,changeNodeType (\(UI UIInteract attr items) -> UI defaultPanel attr items)
+		[//layoutSubAt [1] finalizeForm
+		//,changeNodeType (\(UI UIInteract attr items) -> UI defaultPanel attr items)
 		] 
 
 finalizeForm :: Layout
 finalizeForm
-	= sequenceLayouts [layoutChildrenOf [] layoutRow
-					  ,changeNodeType (\(UI UIForm attr items) -> UI defaultContainer attr items)
+	= sequenceLayouts [//layoutChildrenOf [] layoutRow
+					  //,changeNodeType (\(UI UIForm attr items) -> UI defaultContainer attr items)
 					  ]
 where
 	//Case when 
@@ -75,11 +78,11 @@ finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
 where
 	layout = sequenceLayouts
-        [layoutSubAt [0] finalizeUI 			//Recursively finalize
-        ,insertSubAt [1] buttonBar 				//Create a buttonbar
-	    ,moveChildren [] isAction [1]   		//Move all actions to the buttonbar
-	    ,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
-        ,changeNodeType (\(UI UIStep attr items) -> UI defaultPanel attr items) //Change to a standard container
+        [//layoutSubAt [0] finalizeUI 			//Recursively finalize
+        //,insertSubAt [1] buttonBar 				//Create a buttonbar
+	   // ,moveChildren [] isAction [1,0]   		//Move all actions to the buttonbar
+	    //,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
+        //,changeNodeType (\(UI UIStep attr items) -> UI defaultPanel attr items) //Change to a standard container
         ]
 
 finalizeParallel :: Layout
@@ -119,13 +122,13 @@ where
 		//Leaf
 		flattenChanges n NoChange = (n + 1, [])
 		//Leaf (Change the middle element of the form)
-		flattenChanges n c=:(ReplaceUI _) = (n + 1, [ChangeChild n (ChangeUI [] [ChangeChild 1 c])])
+		flattenChanges n c=:(ReplaceUI _) = (n + 1, [(n,ChangeChild (ChangeUI [] [(1,ChangeChild c)]))])
 		//Leaf (Update the middle element and check for attribute changes
-		flattenChanges n c=:(ChangeUI local []) = (n + 1,[ChangeChild n (ChangeUI [] (iconChanges ++ [ChangeChild 1 c]))])
+		flattenChanges n c=:(ChangeUI local []) = (n + 1,[(n,ChangeChild (ChangeUI [] (iconChanges ++ [(1,ChangeChild c)])))])
 		where
 			iconChanges = case changeType ++ changeTooltip of
 				[] = []
-				changes = [ChangeChild 2 (ChangeUI changes [])]
+				changes = [(2,ChangeChild (ChangeUI changes []))]
 
 			changeType = case [t \\ ("setAttribute",[JSONString HINT_TYPE_ATTRIBUTE,JSONString t]) <- local] of
 				[type] 	= [("setIconCls",[JSONString ("icon-" +++ type)])]
@@ -139,7 +142,7 @@ where
 		flattenChanges n (ChangeUI _ children) = flattenChildren n children
 		where	
 			flattenChildren n [] = (n,[])
-			flattenChildren n [ChangeChild _ c:cs]
+			flattenChildren n [(_,ChangeChild c):cs]
 				# (n, childChanges) = flattenChanges n c
 				# (n, remainderChanges) = flattenChildren n cs
 				= (n, childChanges ++ remainderChanges)

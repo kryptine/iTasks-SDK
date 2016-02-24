@@ -10,7 +10,7 @@ from StdGeneric import :: UNIT,::EITHER,::PAIR,::OBJECT,::CONS,::RECORD,::FIELD
 generic gDefault a :: a
 
 derive	gDefault UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
-derive	gDefault Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (->), Dynamic
+derive	gDefault Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (,,,,,), (->), Dynamic
 derive	gDefault Maybe, Either, MaybeError, Void, Map, JSONNode, HtmlTag, Timestamp
 
 from Text.JSON import :: JSONNode

@@ -1,6 +1,6 @@
 implementation module iTasks.API.Core.Client.Tasklet
 
-import iTasks, iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks.UI.Diff
+import iTasks, iTasks._Framework.Task, iTasks._Framework.TaskState
 import StdFile, StdMisc
 import System.Time, System.File, System.FilePath
 import iTasks._Framework.Client.LinkerSupport
@@ -208,7 +208,7 @@ toDef c = ui c
  */
 controllerWrapper cf strTaskID st eventNo mbEventName mbEventHandler iworld
 	# (mbTUI, st, iworld) = cf (fromString strTaskID) st eventNo mbEventName mbEventHandler iworld
-	= (fmap (toString o encodeUIChangeDefs) mbTUI, st, iworld)
+	= (fmap (toString o encodeUIChanges) mbTUI, st, iworld)
 
 // it uses the 2. layer (handleJSEvent), because it's created on the server
 eventHandlerWrapper taskId (TaskletEvent id event f) 

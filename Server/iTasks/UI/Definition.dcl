@@ -34,6 +34,19 @@ instance Functor UIViewOpts
 //- Multi select in grids
 //- Multi select in trees
 
+//Representation of a collection of changes that need to be applied to an existing UI
+:: UIChange
+	= NoChange									//No changes are needed
+	| ReplaceUI !UI //Replace the entire UI with a new version
+	| ChangeUI [UILocalChange] [(!Int,!UIChildChange)]	//Change the current UI and/or its children
+
+:: UILocalChange 	:== (!String,![JSONNode]) 	  //A change method+arguments to call to effect the local change
+:: UIChildChange 	= ChangeChild !UIChange  //Select a sub-component and apply the change definition there
+					| RemoveChild  			  //Remove the child at the given index (next children 'move down')
+					| InsertChild !UI        //Insert a new child at the given index (next children 'move up')
+
+derive class iTask UIChange, UIChildChange
+
 /**
 * Rendering a user interface for a composition of is a staged process in which
 * the raw UI material provided by basic tasks is grouped by layout policies to reach
@@ -399,3 +412,19 @@ instance encodeUI JSONNode
 instance encodeUI (Maybe a) | encodeUI a
 instance encodeUI [a] | encodeUI a
 instance encodeUI UI
+
+//Remove all paths that lead to a NoChange node
+compactChangeDef :: UIChange -> UIChange
+
+//Makes sure that all children ranging 0 to max(index) are in the list
+completeChildChanges :: [(Int,UIChildChange)] -> [(Int,UIChildChange)]
+
+//Reassigns indices from 0 upwarths to the changes in the list
+reindexChildChanges :: [(Int,UIChildChange)] -> [(Int,UIChildChange)]
+//Remove all childchanges that do nothing
+compactChildChanges :: [(Int,UIChildChange)] -> [(Int,UIChildChange)]
+
+//Serialize change definitions such that they can be sent to a client
+encodeUIChange :: !UIChange -> JSONNode
+encodeUIChanges :: ![UIChange] -> JSONNode
+

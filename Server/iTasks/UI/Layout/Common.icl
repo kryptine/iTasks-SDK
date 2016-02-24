@@ -2,7 +2,6 @@ implementation module iTasks.UI.Layout.Common
 
 import iTasks.UI.Layout
 import iTasks.UI.Definition
-import iTasks.UI.Diff
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 import qualified Data.Map as DM
 import StdBool

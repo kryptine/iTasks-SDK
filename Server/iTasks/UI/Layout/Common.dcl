@@ -5,7 +5,7 @@ definition module iTasks.UI.Layout.Common
 * to optimize the user experience for specific tasks
 */
 import iTasks.UI.Layout
-from iTasks.UI.Definition import :: UISide, :: UIDirection, :: UIWindowType(..), :: UIHAlign(..), :: UIVAlign(..)
+from iTasks.UI.Definition import :: UISide(..), :: UIDirection(..), :: UIWindowType(..), :: UIHAlign(..), :: UIVAlign(..)
 from iTasks.API.Core.Types import :: Title, :: Label, :: Icon, :: Attribute
 
 /**

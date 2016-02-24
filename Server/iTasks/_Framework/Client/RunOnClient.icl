@@ -6,7 +6,7 @@ import iTasks._Framework.TaskStore
 import iTasks._Framework.TaskEval
 import iTasks._Framework.IWorld
 import iTasks.API.Core.Client.Tasklet
-import iTasks.UI.Diff
+import iTasks.UI.Definition
 import qualified iTasks._Framework.SDS as SDS
 
 from Data.Map import qualified newMap, toList, fromList, get
@@ -111,7 +111,7 @@ getUIUpdates iworld
 		(_,iworld)
 			= (Nothing, iworld)
 where
-	getUpdates (instanceNo,upds) = (instanceNo, [toString (encodeUIChangeDefs (toList upds))])
+	getUpdates (instanceNo,upds) = (instanceNo, [toString (encodeUIChanges (toList upds))])
 	toList q = case 'DQ'.dequeue q of //TODO SHOULD BE IN Data.Queue
 		(Nothing,q) 	= []
 		(Just x,q) 		= [x:toList q]

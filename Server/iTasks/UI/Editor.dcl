@@ -4,8 +4,7 @@ definition module iTasks.UI.Editor
 * the interact core task uses these editors to generate and update the user interface
 */
 
-from iTasks.UI.Definition import :: UIAttributes
-from iTasks.UI.Diff import :: UIChangeDef
+from iTasks.UI.Definition import :: UIAttributes, :: UIChange
 
 import iTasks.UI.Component
 import iTasks.UI.JS.Interface
@@ -22,7 +21,7 @@ from Text.JSON import :: JSONNode
 */
 :: Editor a = 
 	{ genUI  	:: DataPath a EditMask *VSt -> *(!UI,!*VSt)
-	, genDiff 	:: DataPath a EditMask a EditMask *VSt -> *(!UIChangeDef,!*VSt)
+	, genDiff 	:: DataPath a EditMask a EditMask *VSt -> *(!UIChange, !*VSt)
 	, appDiff 	:: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
 	}
 

@@ -11,7 +11,7 @@ import qualified iTasks._Framework.SDS as SDS
 
 import System.Time, Text, Text.JSON, Internet.HTTP, Data.Error
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskEval, iTasks._Framework.TaskStore
-import iTasks.UI.Diff, iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.Engine, iTasks._Framework.IWorld
+import iTasks.UI.Definition, iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.Engine, iTasks._Framework.IWorld
 import iTasks.API.Core.SDSs, iTasks.API.Common.SDSCombinators
 import iTasks.API.Core.Types
 import Crypto.Hash.SHA1, Text.Encodings.Base64
@@ -40,16 +40,16 @@ DEFAULT_THEME :== "gray"
 
 :: WSCRsp
     = AckStartSession !InstanceNo
-    | TaskUpdates !InstanceNo ![UIChangeDef]
+    | TaskUpdates !InstanceNo ![UIChange]
 
 //TODO: The upload and download mechanism used here is inherently insecure!!!
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
 // unauthorized downloading of documents and DDOS uploading.
 webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
 						 (!(String -> Bool)
-                         ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
-						 ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
-						 ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
+                         ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+						 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+						 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 						 ) | iTask a
 webService url task defaultFormat = (matchFun url,reqFun` url task defaultFormat,dataFun,disconnectFun)
 where
@@ -169,7 +169,7 @@ where
 	disconnectFun _ _ (EventSourceConnection instances) iworld    = (Nothing, updateInstanceDisconnect instances iworld)
 	disconnectFun _ _ _ iworld                                    = (Nothing, iworld)
 
-	dequeueOutput :: ![InstanceNo] !(Map InstanceNo (Queue UIChangeDef)) -> (![(!InstanceNo,![UIChangeDef])],!Map InstanceNo (Queue UIChangeDef))
+	dequeueOutput :: ![InstanceNo] !(Map InstanceNo (Queue UIChange)) -> (![(!InstanceNo,![UIChange])],!Map InstanceNo (Queue UIChange))
 	dequeueOutput [] states = ([],states)
 	dequeueOutput [i:is] states
 		# (output,states) = dequeueOutput is states
@@ -191,7 +191,7 @@ where
 	
 	formatMessageEvents messages = concat (map format messages)
     where
-        format (instanceNo,updates) = "data: {\"instance\":" +++toString instanceNo+++",\"updates\":" +++ toString (encodeUIChangeDefs updates) +++ "}\n\n"
+        format (instanceNo,updates) = "data: {\"instance\":" +++toString instanceNo+++",\"updates\":" +++ toString (encodeUIChanges updates) +++ "}\n\n"
 
 	itwcStartResponse path instanceNo instanceKey theme appName customCSS = {okResponse & rsp_data = toString itwcStartPage}
 	where

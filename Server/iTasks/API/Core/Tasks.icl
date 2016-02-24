@@ -121,7 +121,7 @@ updateValueAndMask_ taskId path mbEditor diff (v,m) iworld
     # (nv,nm,ust=:{USt|iworld}) = editor.Editor.appDiff path diff v m {USt|taskId=toString taskId,iworld=iworld}
     = ((nv,nm),iworld)
 
-visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld -> *(!UIChangeDef,!Bool,!*IWorld) | iTask v & toPrompt d
+visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld -> *(!UIChange,!Bool,!*IWorld) | iTask v & toPrompt d
 visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworld
 	# editor 	= fromMaybe gEditor{|*|} mbEditor
 	# ver 		= verifyMaskedValue (nv,nm)
@@ -135,7 +135,7 @@ visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworl
 		_				//compare old and new value to determine changes
 			# (editChange,vst)  = editor.Editor.genDiff [] v m nv nm vst
 			# promptChange 		= NoChange
-			# change 			= ChangeUI [] [ChangeChild 0 promptChange, ChangeChild 1 editChange]
+			# change 			= ChangeUI [] [(0,ChangeChild promptChange), (1,ChangeChild editChange)]
 			= (change,vst)
 	# change		= if evalOpts.autoLayout (fst (autoLayoutInteract (change,JSONNull))) change
 	= (change,isValid ver,iworld)

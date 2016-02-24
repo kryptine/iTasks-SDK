@@ -2,10 +2,10 @@ definition module iTasks._Framework.TaskState
 
 import iTasks.API.Core.Types
 
-from iTasks._Framework.Task	import :: TaskTime, :: TaskResult, :: TaskRep, :: TonicOpts
+from iTasks._Framework.Task	import :: TaskTime, :: TaskResult, :: TonicOpts
 from iTasks._Framework.Task	import :: TaskException
 from Data.Queue import :: Queue
-from iTasks.UI.Diff import :: UIChangeDef
+from iTasks.UI.Definition import :: UIChange
 
 derive JSONEncode TIMeta, TIReduct, TaskTree
 derive JSONDecode TIMeta, TIReduct, TaskTree
@@ -44,7 +44,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 // UI State
 :: TIUIState
 	= UIDisabled 									//The UI is disabled (e.g. when nobody is viewing the task)
-	| UIEnabled !Int !TaskRep  						//The UI is enabled, a version number and the previous task rep are stored for comparision
+	| UIEnabled !Int !UIChange  					//The UI is enabled, a version number and the previous task rep are stored for comparision //FIXME
 	| UIException !String 							//An unhandled exception occurred and the UI should only show the error message
 
 :: TaskTree

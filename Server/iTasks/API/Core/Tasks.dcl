@@ -6,8 +6,7 @@ definition module iTasks.API.Core.Tasks
 import iTasks._Framework.Generic
 import iTasks._Framework.SDS
 from iTasks._Framework.Task			import :: Task, :: Event, :: ConnectionHandlers, :: TaskEvalOpts, :: TaskTime
-from iTasks.UI.Definition 		import :: UI, :: UINodeType
-from iTasks.UI.Diff 			import :: UIChangeDef
+from iTasks.UI.Definition 		import :: UI, :: UINodeType, :: UIChange
 from iTasks.UI.Prompt 			import class toPrompt
 from Data.Error					import ::MaybeError(..)
 from System.OSError				import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
@@ -182,4 +181,4 @@ shutDown :: Task ()
 matchAndApplyEvent_ :: Event TaskId TaskEvalOpts (Maybe (Editor v)) TaskTime (Masked v) TaskTime d *IWorld
 	-> *(!Masked v,!TaskTime,!*IWorld) | iTask v & toPrompt d
 visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld
-	-> *(!UIChangeDef,!Bool,!*IWorld) | iTask v & toPrompt  d
+	-> *(!UIChange,!Bool,!*IWorld) | iTask v & toPrompt  d

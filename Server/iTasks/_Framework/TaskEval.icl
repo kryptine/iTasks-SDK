@@ -5,7 +5,7 @@ import Data.Error, Data.Func, Data.Tuple, Data.Either, Data.Functor, Data.List, 
 import iTasks._Framework.IWorld, iTasks._Framework.Task, iTasks._Framework.TaskState
 import iTasks._Framework.TaskStore, iTasks._Framework.Util, iTasks._Framework.Generic
 import iTasks.API.Core.Types
-import iTasks.UI.Diff, iTasks.UI.Layout
+import iTasks.UI.Layout
 import iTasks._Framework.SDSService
 
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
@@ -22,7 +22,7 @@ getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
     = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
 
 processEvents :: !Int *IWorld -> *IWorld
-processEvents max iworld  
+processEvents max iworld
 	| max <= 0 = iworld
 	| otherwise
 		= case dequeueEvent iworld of 

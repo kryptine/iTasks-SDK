@@ -24,6 +24,7 @@ gDefault{|(,)|} fa fb						= (fa,fb)
 gDefault{|(,,)|} fa fb fc					= (fa,fb,fc)
 gDefault{|(,,,)|} fa fb fc fd				= (fa,fb,fc,fd)
 gDefault{|(,,,,)|} fa fb fc fd fe			= (fa,fb,fc,fd,fe)
+gDefault{|(,,,,,)|} fa fb fc fd fe ff		= (fa,fb,fc,fd,fe,ff)
 gDefault{|(->)|} fa fb	    				= const fb
 gDefault{|Dynamic|}		    				= dynamic 42
 gDefault{|Maybe|} fa	    				= Nothing

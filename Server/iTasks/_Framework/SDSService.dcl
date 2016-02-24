@@ -6,7 +6,7 @@ from iTasks._Framework.Engine	    import :: ConnectionType
 from iTasks._Framework.SDS			import :: RWShared
 from iTasks._Framework.Task			import :: Task, :: InstanceNo
 from iTasks._Framework.TaskState	import :: TIUIState
-from iTasks.UI.Diff 				import :: UIChangeDef
+from iTasks.UI.Definition           import :: UIChange
 from Data.Queue						import :: Queue
 
 import iTasks._Framework.Generic
@@ -15,9 +15,9 @@ import Data.Maybe, Data.Void, Data.Error, Text.JSON
 
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
-                 ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
-				 ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
-				 ,!(HTTPRequest (Map InstanceNo (Queue UIChangeDef)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChangeDef)), !*IWorld))
+                 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 				 )
 
 readRemoteSDS  ::           !JSONNode !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)

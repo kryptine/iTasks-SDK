@@ -8,7 +8,7 @@ import iTasks._Framework.Generic
 from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
 
 from iTasks._Framework.TaskState			import :: TaskTree
-from iTasks.UI.Diff     import :: UIChangeDef
+from iTasks.UI.Definition import :: UIChange
 from Data.Map			import :: Map
 from Data.CircularStack import :: CircularStack
 
@@ -30,7 +30,7 @@ derive gEq				Task
 			| RefreshEvent	!String 					//Nop event, just recalcalutate the entire task instance (the string is the reason for the refresh)
             | ResetEvent                                //Nop event, recalculate the entire task and reset output stream
 
-:: TaskResult a		= ValueResult !(TaskValue a) !TaskEvalInfo !TaskRep !TaskTree						//If all goes well, a task computes its current value, an observable representation and a new task state
+:: TaskResult a		= ValueResult !(TaskValue a) !TaskEvalInfo !UIChange !TaskTree //If all goes well, a task computes its current value, an observable representation and a new task state
 					| ExceptionResult !TaskException													//If something went wrong, a task produces an exception value
 					| DestroyedResult																	//If a task finalizes and cleaned up it gives this result
 :: TaskException    :== (!Dynamic,!String) //The dynamic contains the actual exception which can be matched, the string is an error message
@@ -63,7 +63,6 @@ defaultTonicOpts :: TonicOpts
 	, refreshSensitive	:: !Bool		        //Can refresh events change the value or ui of this task (e.g. because shared data is read)
 	}
 	
-:: TaskRep :== UIChangeDef
 
 //Low-level tasks that handle network connections
 :: ConnectionTask = ConnectionTask !(ConnectionHandlersIWorld Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)

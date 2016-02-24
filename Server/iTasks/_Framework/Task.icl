@@ -9,7 +9,6 @@ import iTasks._Framework.IWorld, iTasks.UI.Definition, iTasks._Framework.Util
 import iTasks.API.Core.Types
 import iTasks._Framework.Generic
 import iTasks.UI.Editor, iTasks._Framework.Generic.Interaction
-import iTasks.UI.Diff
 
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
 from iTasks.API.Common.SDSCombinators	import toDynamic 

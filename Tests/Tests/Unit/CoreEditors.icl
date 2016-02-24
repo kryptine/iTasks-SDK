@@ -2,7 +2,7 @@ implementation module Tests.Unit.CoreEditors
 import TestFramework
 import Tests.Unit.FrameworkStubs
 
-import iTasks.UI.Editor, iTasks.UI.Diff, iTasks.UI.Layout
+import iTasks.UI.Editor, iTasks.UI.Layout
 import iTasks._Framework.Generic.Interaction
 import iTasks._Framework.IWorld
 import qualified Data.Map as DM
@@ -179,7 +179,7 @@ testGenericEditorDiffs = testsuite "Generic diffs" "Tests for the generic diffs"
 
 //General pattern for diff tests
 
-testGenDiff :: String UIChangeDef (Masked a) (Masked a) -> Test | iTask a
+testGenDiff :: String UIChange (Masked a) (Masked a) -> Test | iTask a
 testGenDiff name exp (x,mx) (y,my) = assertEqualWorld name exp sut
 where
 	sut world 
@@ -207,17 +207,17 @@ testDifferentInt2
 testDiffConsFields1 :: Test
 testDiffConsFields1 
 	= testGenDiff "Diff constructor fields 1" 
-		(ChangeUI [] [ChangeChild 3 (ChangeUI [("setEditorValue",[JSONInt 44])] [])])
+		(ChangeUI [] [(3,ChangeChild (ChangeUI [("setEditorValue",[JSONInt 44])] []))])
 		(TestConsFields 1 2 3 4 5 6,Touched)
 		(TestConsFields 1 2 3 44 5 6,Touched)
 
 testDiffConsFields2 :: Test
 testDiffConsFields2 
 	= testGenDiff "Diff constructor fields 2" 
-		(ChangeUI [] [ChangeChild 3 (ChangeUI [("setEditorValue",[JSONInt 44])
+		(ChangeUI [] [(3,ChangeChild (ChangeUI [("setEditorValue",[JSONInt 44])
 											  ,("setAttribute",[JSONString HINT_ATTRIBUTE,JSONString "You have correctly entered a whole number"])
 											  ,("setAttribute",[JSONString HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_VALID])
-											  ] [])])
+											  ] []))])
 
 		(TestConsFields 1 2 3 4 5 6, Untouched)
 		(TestConsFields 1 2 3 44 5 6, CompoundMask [Untouched,Untouched,Untouched,Touched,Untouched,Untouched])
@@ -225,7 +225,7 @@ testDiffConsFields2
 testDiffRecordFields :: Test
 testDiffRecordFields 
 	= testGenDiff "Diff record fields"
-		(ChangeUI [] [ChangeChild 0 (ChangeUI [("setEditorValue",[JSONInt 23])] []),ChangeChild 1 (ChangeUI [("setEditorValue",[JSONString "bar"])] [])])
+		(ChangeUI [] [(0, ChangeChild (ChangeUI [("setEditorValue",[JSONInt 23])] [])),(1,ChangeChild (ChangeUI [("setEditorValue",[JSONString "bar"])] []))])
 		({TestRecordFields|a=42,b="foo",c=True},Touched)
 		({TestRecordFields|a=23,b="bar",c=True},Touched)
 
@@ -239,7 +239,7 @@ testDiffConsChange
 testDiffConsWithFieldChange :: Test
 testDiffConsWithFieldChange 
 	= testGenDiff "Changing a constructor with a data field"
-		(ChangeUI [] [ChangeChild 0 (ChangeUI [("setValue",[JSONInt 1,JSONBool True])] []), ChangeChild 1 (ReplaceUI expField)])
+		(ChangeUI [] [(0,ChangeChild (ChangeUI [("setValue",[JSONInt 1,JSONBool True])] [])), (1,ChangeChild (ReplaceUI expField))])
 		(ConsWithFieldA,Touched)
 		(ConsWithFieldB "Foo",Touched)
 where

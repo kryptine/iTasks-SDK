@@ -1,35 +1,42 @@
 implementation module iTasks.UI.Layout
 
-import StdTuple, StdList, StdBool, StdOrdList, StdArray
-import Data.Maybe, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
-import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition, iTasks.UI.Diff
+import StdTuple, StdList, StdBool, StdInt, StdOrdList, StdArray
+import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
+import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 
-from Data.Map as DM import qualified put, get, del, newMap, toList, fromList
-from StdFunc import o, const, id, flip
+from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter
 
+from StdFunc import o, const, id, flip
 from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
+
+//This type records where parts were removed from a ui tree
+//Left -> the entire branch was removed
+//Right -> somewhere in the branch something was removed 
+:: NodeMoves = NM [(Int, Either () NodeMoves)] 
+
+//This type records the states of layouts applied somewhere in a ui tree
+:: NodeLayouts = NL [(Int,Either JSONNode NodeLayouts)]
+
+derive JSONEncode NodeMoves, NodeLayouts
+derive JSONDecode NodeMoves, NodeLayouts
 
 instance tune ApplyLayout
 where
 	tune (ApplyLayout f) task=:(Task eval) = Task eval`
 	where
 		eval` event evalOpts tt=:(TCInit _ _) iworld
-			= eval` event evalOpts (TCLayout (toJSON (defaultState f)) tt) iworld
+			= eval` event evalOpts (TCLayout JSONNull tt) iworld
 
 		eval` event evalOpts (TCLayout s tt) iworld = case eval event evalOpts tt iworld of
 	        (ValueResult value info change tt,iworld) 
-				# s = fromMaybe defaultValue (fromJSON s)	
+				# s = fromMaybe JSONNull (fromJSON s)	
 				# (change,s) = f (change,s)
-				# s = toJSON s
 				= (ValueResult value info change (TCLayout s tt), iworld)
             (res,iworld) = (res,iworld)
 		
 		eval` event evalOpts state iworld = eval event evalOpts state iworld //Catchall
 		
-		defaultState :: (LayoutFun s) -> s | iTask s
-		defaultState f = defaultValue
-
 instance tune AutoLayout
 where
 	tune WithAutoLayout (Task eval) = Task (\event evalOpts state iworld = eval event {evalOpts & autoLayout = True} state iworld)
@@ -47,11 +54,36 @@ where
 	layout (ReplaceUI (UI type attr items),_) = (ReplaceUI (UI type (f attr) items),JSONNull)
 	layout (change,s) = (change,s)
 
-//TODO: When applying a layout to a child, the layout should also be applied if a UI is being inserted at that path
-layoutSubAt :: NodePath Layout -> Layout
-layoutSubAt [] childLayout = childLayout
-layoutSubAt [i] childLayout = layoutChild` i childLayout
-layoutSubAt [i:is] childLayout = layoutChild` i (layoutSubAt is childLayout)
+wrap :: UINodeType -> Layout
+wrap type = layout
+where
+	layout (ReplaceUI def,_) = (ReplaceUI (uic type [def]),JSONNull)
+	layout (NoChange,def) = (NoChange,def)
+	layout (change,s) = (ChangeUI [] [(0,ChangeChild change)],s)
+
+unwrap :: Layout
+unwrap = layout
+where
+	layout (ReplaceUI def,_) = case def of
+		(UI _ _ [child:_])  = (ReplaceUI child,JSONNull)
+		_ 					= (ReplaceUI (ui UIEmpty),JSONNull)
+
+	layout (ChangeUI _ childChanges,s) = case [change \\ (0,ChangeChild change) <- childChanges] of
+		[change] = (change,s)
+		_        = (NoChange,s)
+
+insertSubAt :: NodePath UI-> Layout
+insertSubAt [] def = id
+insertSubAt path def = layoutSubAt (init path) (insertChild` (last path) def)
+where
+	insertChild` idx def (ReplaceUI container,s) =  (ReplaceUI (setChildren (insertAt idx def (getChildren container)) container),s)
+	insertChild` idx _ (ChangeUI local childChanges,s) = (ChangeUI local (insert idx childChanges),s)
+	insertChild` idx _ (change,s) = (change,s)
+
+	insert idx [] = []
+	insert idx [c:cs]
+		| fst c < idx  = [c:insert idx cs]
+                       = [(idx,ChangeChild (ChangeUI [] [])): [(n+1,x) \\(n,x) <-[c:cs]]]
 
 layoutChild` :: Int Layout -> Layout 
 layoutChild` index childLayout = layout
@@ -69,139 +101,209 @@ where
 		= (ChangeUI local childChanges,s)
 	where
 		updateChildren [] s = ([],s)
-		updateChildren [ChangeChild i c:cs] s | i == index
+		updateChildren [(i,ChangeChild c):cs] s | i == index
 			# (c,s) = childLayout (c,s)
-			= ([ChangeChild i c:cs],s)
+			= ([(i,ChangeChild c):cs],s)
 		updateChildren [c:cs] s
 			# (cs,s) = updateChildren cs s
 			= ([c:cs],s)
 
 	layout (change,s) = (change,s) //Catchall
 
-insertSubAt :: NodePath UI-> Layout
-insertSubAt [] def = id
-insertSubAt path def = layoutSubAt (init path) (insertChild` (last path) def)
+moveSubAt :: NodePath NodePath -> Layout 
+moveSubAt src dst = moveSubs_ pred (Just dst)
 where
-	insertChild` idx def (ReplaceUI container,s) =  (ReplaceUI (setChildren (insertAt idx def (getChildren container)) container),s)
-	insertChild` idx _ (ChangeUI local childChanges,s) = (ChangeUI local (insert idx childChanges),s)
-	insertChild` idx _ (change,s) = (change,s)
-
-	insert idx [] = []
-	insert idx [c:cs]
-		| childChangeIndex c < idx  = [c:insert idx cs]
-									= [ChangeChild idx (ChangeUI [] []): map (updChildChangeIndex (\n -> n + 1)) [c:cs]]
+	pred path _ = path == src
 
 removeSubAt :: NodePath -> Layout
-removeSubAt [] = id
-removeSubAt path = layoutSubAt (init path) (removeChild` (last path))
+removeSubAt src = moveSubs_ pred Nothing
 where
-	removeChild` idx (ReplaceUI container,s) = (ReplaceUI (setChildren (removeAt idx (getChildren container)) container),s)
-	removeChild` idx (ChangeUI local childChanges,s) = (ChangeUI local (remove idx childChanges),s)
-	removeChild` idx (change,s) = (change,s)
+	pred path _ = path == src
 
-	remove idx [] = []
-	remove idx [c:cs] 
-		| childChangeIndex c < idx 	= [c:remove idx cs]
-		| childChangeIndex c == idx = remove idx cs
-									= [updChildChangeIndex (\n -> n - 1) c:remove idx cs]
+layoutSubAt :: NodePath Layout -> Layout
+layoutSubAt [] childLayout = childLayout
+layoutSubAt [i] childLayout = layoutChild` i childLayout
+layoutSubAt [i:is] childLayout = layoutChild` i (layoutSubAt is childLayout)
 
-moveSubAt :: NodePath NodePath -> Layout 
-moveSubAt src dst = id
-//TODO
+removeSubsMatching :: NodePath (UI -> Bool) -> Layout
+removeSubsMatching src pred = moveSubs_ pred` Nothing
+where
+	pred` path ui = isSubPathOf_ path src && pred ui
 
-removeSubsMatching :: NodePath (UI -> Bool) Int -> Layout
-removeSubsMatching src pred maxDepth = id //TODO
+moveSubsMatching :: NodePath (UI -> Bool) NodePath -> Layout
+moveSubsMatching src pred dst = moveSubs_ pred` (Just dst)
+where
+	pred` path ui = isSubPathOf_ path src && pred ui
 
-layoutSubsMatching :: NodePath (UI -> Bool) Int Layout -> Layout
-layoutSubsMatching src pred maxDepth subLayout = id //TODO
+layoutSubsMatching :: NodePath (UI -> Bool) Layout -> Layout
+layoutSubsMatching src pred layout = layoutSubs_ pred` layout
+where
+	pred` path ui = isSubPathOf_ path src && pred ui
 
-moveSubsMatching :: NodePath (UI -> Bool) Int NodePath -> Layout
-moveSubsMatching src pred maxDepth dst = id //TODO
+moveSubs_ :: (NodePath UI -> Bool) (Maybe NodePath) -> Layout
+moveSubs_ pred mbDst = layout
+where
+	layout (change,s)
+		# moves = if (change=:(ReplaceUI _)) (NM []) (fromMaybe (NM []) (fromJSON s)) //On a replace, we reset the state
+		# startIdx = maybe 0 last mbDst
+		//Remove based on the predicate
+		# (endIdx,change,moves,inserts) = removeAndAdjust_ [] pred startIdx change moves
+		//If there is a destination path, adjust the change for these moves
+		= case mbDst of
+			Just dst = (insertAndAdjust_ (init dst) startIdx (endIdx - startIdx) inserts change, toJSON moves)
+			Nothing  = (change, toJSON moves)
 
-//FIXME: Currently this only works when changes are moved to an empty container, needs to be generalized
+layoutSubs_ :: (NodePath UI -> Bool) Layout -> Layout
+layoutSubs_ pred layout = id //TODO
+
+//Test if a path extends another path
+isSubPathOf_ :: NodePath NodePath -> Bool
+isSubPathOf_ p [] = True  //Everything is a sub path of the root path
+isSubPathOf_ [] p = False //If the path we are checking against is longer, it can't be a sub path
+isSubPathOf_ [p1:ps1] [p2:ps2] //Check if prefix is the same
+	| p1 == p2  = isSubPathOf_ ps1 ps2	
+				= False
+
+removeAndAdjust_ :: NodePath (NodePath UI -> Bool) Int UIChange NodeMoves -> (!Int,!UIChange,!NodeMoves,![(Int,UIChildChange)])
+removeAndAdjust_ path pred targetIdx NoChange moves //Only adjust the targetIdx by counting the moved nodes
+	= (targetIdx + countMoves_ moves True, NoChange, moves, [])
+removeAndAdjust_ path pred targetIdx (ReplaceUI ui) moves //If the node is replaced, adjust the new ui and determine changes to the previously moved nodes
+	//Remove all previously moved nodes
+	# removals = repeatn (countMoves_ moves True) (targetIdx,RemoveChild)
+	//Determine new moves in the replacement ui
+	= case collectNodes_ path pred targetIdx ui of
+		//If the predicate matches the root node don't change anything.
+		//It is impossible to create an adjusted ReplaceUI instruction if the root node is removed
+		(_,Nothing,_,_)                      = (targetIdx, ReplaceUI ui, moves, [])
+		(targetIdx, Just ui, moves, inserts) = (targetIdx, ReplaceUI ui, moves, removals ++  inserts )
+//For ChangeUI instructions we need to adjust the changes to the child branches
+removeAndAdjust_ path pred targetIdx (ChangeUI localChanges childChanges) (NM moves) 
+	//Adjust all child changes adjust
+	//Make sure all moves and child changes are sorted appropriately
+	# childChanges = sortBy (\x y -> fst x < fst y) childChanges
+	# moves = sortBy (\x y -> fst x < fst y) moves
+	# (targetIdx,childChanges, moves,inserts) = adjustChildChanges targetIdx 0 childChanges moves
+	= (targetIdx,ChangeUI localChanges childChanges,NM moves,inserts)
+where
+	//Go through all child changes
+	//FIXME: Also keep track of number of removed before the current child, this needs to be adjusted for
+	adjustChildChanges tidx numRem [] moves = (tidx,[],moves,[])
+	adjustChildChanges tidx numRem [c=:(idx,_):cs] moves
+		# (tidx,numRem,movesBefore,movesAfter) = seekTargetIndex idx tidx numRem moves
+		# (tidx,mbC,movesAfter,cInserts) = adjustChildChange tidx numRem c movesAfter
+		# (tidx,cs,movesAfter,csInserts) = adjustChildChanges tidx numRem cs movesAfter
+		= (tidx,maybe cs (\c -> [c:cs]) mbC,movesBefore ++ movesAfter, cInserts ++ csInserts)
+
+	//When there are branches with moves before the branch we are looking at we 'seek' the target index forward
+	//Basically we increment the target index for all the removed nodes in the branches for which we don't have changes
+	seekTargetIndex idx tidx numRem moves 
+		# (before,after) = splitWith (\(i,_) -> i < idx) moves
+		= (tidx + countMoves_ (NM before) True, numRem + countMoves_ (NM before) False, before, after)
+
+	//Adjust an individual child change
+	//Known precondition: moves only holds moves with an index >= the index of the change
+	adjustChildChange targetIdx numRem (idx,ChangeChild change) moves = case selectMove idx moves of
+		(Just (Left _),moves) //Redirect the change
+			= (targetIdx + 1, Nothing, moves,[(targetIdx,ChangeChild change)])
+		(Just (Right subMoves), moves) //Recursively adjust the move itself
+			# (targetIdx,change,subMoves,subInserts) = removeAndAdjust_ (path ++ [idx]) pred targetIdx change subMoves
+			= (targetIdx, Just (idx - numRem, ChangeChild change), [(idx,Right subMoves):moves], subInserts)
+		(_,moves) //Nothing to do
+			= (targetIdx,Just (idx - numRem,ChangeChild change), moves,[])
+
+	adjustChildChange targetIdx numRem (idx,RemoveChild) moves = case selectMove idx moves of
+		(Just (Left _),moves) //Already removed, generate remove instructions for the insert location
+			= (targetIdx, Nothing, [(i - 1, m) \\ (i,m) <- moves], [(targetIdx,RemoveChild)])
+		(Just (Right subMoves),moves)
+			= (targetIdx,Just (idx - numRem, RemoveChild), [(i - 1, m) \\ (i,m) <- moves], repeatn (countMoves_ subMoves True) (targetIdx,RemoveChild))
+		(_,moves) //Only adjust the indices of moves
+			= (targetIdx,Just (idx - numRem, RemoveChild), [(i - 1, m) \\ (i,m) <- moves], [])
+
+	adjustChildChange targetIdx numRem (idx, InsertChild ui) moves
+		# (targetIdx,mbUI,subMoves,inserts) = collectNodes_ (path ++ [idx]) pred targetIdx ui
+		# moves = [(i + 1, m) \\ (i,m) <- moves]	
+		# change = fmap (\ui -> (idx - numRem,InsertChild ui)) mbUI
+		| mbUI =:(Nothing) //The inserted UI matched, record the move 
+			= (targetIdx, change, [(idx,Left ()):moves], inserts)
+		| subMoves =:(NM []) //Nothing matched, no need to record anything
+			= (targetIdx, change, moves, inserts)
+		| otherwise	 //One ore more sub nodes matched, we need to record the moves for this branch
+			= (targetIdx, change, [(idx,Right subMoves):moves], inserts)
+
+	selectMove idx moves = case splitWith (((==) idx) o fst) moves of
+        ([(_,m):_],moves) = (Just m,moves)
+        _                 = (Nothing,moves)
+
+insertAndAdjust_ :: NodePath Int Int [(Int,UIChildChange)] UIChange -> UIChange
+insertAndAdjust_ path=:[] startIdx numInserts insertChanges change = case change of //Add the inserts here
+	NoChange
+		= ChangeUI [] insertChanges
+	ChangeUI localChanges childChanges
+		= ChangeUI localChanges
+			([(i,c) \\ (i,c) <- childChanges | i < startIdx] //Child changes before the insert index unaffected
+             ++ insertChanges
+             ++ [(i + numInserts,c) \\ (i,c) <- childChanges | i >= startIdx]) //Child changes after are adjusted
+	ReplaceUI ui
+		= ReplaceUI (insertNodes_ path insertChanges ui)
+insertAndAdjust_ path=:[s:ss] startIdx numInserts insertChanges change = case change of //Find the container
+	NoChange
+        = (ChangeUI [] [(s,ChangeChild (insertAndAdjust_ ss startIdx numInserts insertChanges NoChange))])
+	ChangeUI localChanges childChanges
+        = (ChangeUI localChanges (adjustChildChanges s childChanges))
+	ReplaceUI ui
+        = ReplaceUI (insertNodes_ path insertChanges ui)
+where
+	adjustChildChanges idx [] = []
+	adjustChildChanges idx [(i,ChangeChild change):cs]
+		| i == idx  = [(i,ChangeChild (insertAndAdjust_ ss startIdx numInserts insertChanges change)):cs] //Adjust an existing branch
+		| i < idx 	= [(i,ChangeChild change):adjustChildChanges idx cs] //Scan forward
+					= [(idx,ChangeChild (insertAndAdjust_ ss startIdx numInserts insertChanges NoChange)),(i,ChangeChild change):cs] //Add a branch
+	adjustChildChanges idx [c:cs] = [c:adjustChildChanges idx cs] //TODO: Figure out if we can properly handle structure changes on the path
+	
+countMoves_ :: NodeMoves Bool -> Int
+countMoves_ (NM moves) recursive = foldr (\(_,m) n -> n + either (const 1) (\r -> if recursive (countMoves_ r recursive) 0) m) 0 moves
+
+//Collect parts of a UI and record their positions
+collectNodes_ :: NodePath (NodePath UI -> Bool) Int UI -> (Int, Maybe UI, NodeMoves, [(Int,UIChildChange)])
+collectNodes_ path pred idx ui=:(UI type attr items)
+	| pred path ui	= (idx + 1, Nothing, NM [], [(idx,InsertChild ui)])
+	| otherwise 
+		# (idx, items, moves, inserts) = collectInItems idx 0 items
+		= (idx, Just (UI type attr items), NM moves, inserts)
+where
+	collectInItems idx i [] = (idx,[],[],[])
+	collectInItems idx i [item:items]
+		# (idx, mbItem, itemMoves, itemInserts) = collectNodes_ (path ++ [i]) pred idx item
+		# (idx, items, moves, inserts)          = collectInItems idx (i + 1) items
+		= case mbItem of 
+			Nothing   //The item itself was collected
+				= (idx, items, [(i,Left ()):moves], itemInserts ++ inserts)
+			Just item //Maybe modified
+				| itemMoves =:(NM []) //If there are no moves in the branch, we don't need to add it
+					= (idx, [item:items], moves, itemInserts ++ inserts)
+				| otherwise	
+					= (idx, [item:items], [(i,Right itemMoves):moves], itemInserts ++ inserts)
+
+insertNodes_ :: NodePath [(Int,UIChildChange)] UI -> UI
+insertNodes_ [] changes (UI type attr items) = UI type attr (foldl apply items changes)
+where
+	apply items (i,RemoveChild) = removeAt i items
+	apply items (i,InsertChild ui) = insertAt i ui items
+	apply items change = items
+
+insertNodes_ [s:ss] changes (UI type attr items)
+	| s < length items  = UI type attr (updateAt s (insertNodes_ ss changes (items !! s)) items)
+	| otherwise 		= UI type attr items
+
 moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
-moveChildren src pred dst = layout
+moveChildren container pred dst = moveSubs_ pred` (Just dst)
 where
-	layout (ReplaceUI def,_)
-		= case accChildDef src (collect pred) def of
-			(Just (nodes,indices),def)  = (ReplaceUI (snd (accChildDef dst (append nodes) def)), JSONArray (map JSONInt indices))
-			(Nothing,def) 				= (ReplaceUI def,JSONNull)
-	where
-		collect pred def
-			# children = getChildren def	
-			# (nodes,indices,children) = collect` 0 children
-			= ((nodes,indices),setChildren children def)
-		where
-			collect` i [] = ([],[],[])
-			collect` i [n:ns]
-				# (nodes,indices,ns) = collect` (i + 1) ns
-				| pred n
-					= ([n:nodes],[i:indices],ns)
-				| otherwise
-					= (nodes,indices,[n:ns])
-
-		append nodes def = ((),setChildren (getChildren def ++ nodes) def)
-
-	layout (change, s=:(JSONArray indices)) 
-		= case accChildChange src (collect [i \\ JSONInt i <- indices]) change of
-			(Nothing,change)		= (change,s)
-			(Just changes, change) 	= (snd (accChildChange dst (append changes) change),s)
-	where
-		collect indices (ChangeUI local children) 
-			# (move,keep) = splitWith (\c -> isMember (childChangeIndex c) indices) (completeChildChanges children)
-			= (move,ChangeUI local (compactChildChanges (reindexChildChanges keep)))
-		collect indices change = ([],change)
-
-		append changes (ChangeUI local []) = ((),ChangeUI local (reindexChildChanges changes))
-		append changes change = ((),change)
-
-	layout (change,s) = (change,s)
+	pred` path ui = isSubPathOf_ path container && length path == length container + 1 && pred ui
 
 layoutChildrenOf :: NodePath Layout -> Layout
-layoutChildrenOf path childLayout = layout
+layoutChildrenOf container layout = layoutSubs_ pred layout
 where
-	layout (ReplaceUI def,_) = case accChildDef path update def of
-			(Just states,def)  = (ReplaceUI def, JSONArray states)
-			(Nothing,def) = (ReplaceUI def, JSONNull)
-	where
-		update def
-			# (changes,states) = unzip [childLayout (ReplaceUI c,JSONNull) \\ c <- getChildren def]
-			= (states, setChildren [c \\ ReplaceUI c <- changes] def)
-
-	layout (change,JSONArray states) = case accChildChange path (update states) change of
-		(Just states,change) = (change,JSONArray states)
-		(Nothing,change) 	= (change,JSONArray states)
-	where
-		update states (ChangeUI local children)
-			# (children,states) = updateChildren children states	
-			= (states,ChangeUI local children)
-		update states change = (states,change)
-	
-		updateChildren [] states = ([],states)
-		updateChildren [ChangeChild i change:cs] states
-			# (cs,states) = updateChildren cs states
-			# state = if (i < length states) (states !! i) JSONNull
-			# (change,state) = childLayout (change,state)
-			= ([ChangeChild i change:cs],updateAt i state states)
-		updateChildren [c:cs] states
-			# (cs,states) = updateChildren cs states
-			= ([c:cs],states) 
-		
-		layoutChild (ChangeChild i c,s)
-			# (c,s) = childLayout (c,s)		
-			= (ChangeChild i c,s)
-		layoutChild (c,s) = (c,s)
-	
-	layout (change,s) = (change,s)
-
-wrap :: UINodeType -> Layout
-wrap type = layout
-where
-	layout (ReplaceUI def,_) = (ReplaceUI (uic type [def]),JSONNull)
-	layout (change,s) = (ChangeUI [] [ChangeChild 0 change],s)
-
-unwrap :: Layout
-unwrap = id //TODO
+	pred path ui = isSubPathOf_ path container && length path == length container + 1
 
 sequenceLayouts :: [Layout] -> Layout
 sequenceLayouts layouts = layout
@@ -221,9 +323,6 @@ where
 		# (change,s) = l (change,s) 
 		# (change,ss) = applyAll ls ss change
 		= (change,[s:ss])
-
-conditionalLayout :: (UI -> Bool) Layout -> Layout
-conditionalLayout pred condLayout = selectLayout [(pred,condLayout)]
 
 //Select the first matching layout
 selectLayout :: [(UI -> Bool,Layout)] -> Layout
@@ -246,6 +345,9 @@ where
 		| pred def 	= Just (i,layout)
 					= selectLayout def (i + 1) ls
 
+conditionalLayout :: (UI -> Bool) Layout -> Layout
+conditionalLayout pred condLayout = selectLayout [(pred,condLayout)]
+
 //UTIL
 getChildren :: UI -> [UI]
 getChildren (UI type attr children) = children
@@ -261,16 +363,16 @@ accChildDef [s:ss] f def=:(UI type attr items)
 		= (res,UI type attr (updateAt s sel items))
 	| otherwise =  (Nothing,def)
 
-accChildChange :: NodePath (UIChangeDef -> (a,UIChangeDef)) UIChangeDef -> (Maybe a, UIChangeDef)
+accChildChange :: NodePath (UIChange -> (a,UIChange)) UIChange -> (Maybe a, UIChange)
 accChildChange [] f change = appFst Just (f change)
 accChildChange [s:ss] f (ChangeUI local children)
 	# (res,children) = accInChildren children
 	= (res,ChangeUI local children)
 where
 	accInChildren [] = (Nothing,[])
-	accInChildren [ChangeChild i c:cs] | i == s
+	accInChildren [(i,ChangeChild c):cs] | i == s
 		# (res,c) = accChildChange ss f c
-		= (res,[ChangeChild i c:cs])
+		= (res,[(i,ChangeChild c):cs])
 	accInChildren [c:cs] 
 		# (res,cs) = accInChildren cs
 		= (res,[c:cs])

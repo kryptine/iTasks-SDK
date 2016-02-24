@@ -1,6 +1,6 @@
 implementation module iTasks.UI.Definition
 
-import Text.JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text
+import Text.JSON, StdList, StdOrdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text
 from Data.Map import :: Map, :: Size
 from Data.Functor import class Functor(..)
 import qualified Data.Map as DM
@@ -409,6 +409,7 @@ where
 	encodeUI (UI (UIWindow sopts copts opts) attr defs) = component "itwc_window" [encodeUI sopts, encodeUI copts, encodeUI opts,JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UI UIForm attr defs)                      = component "itwc_raw_form" [JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UI UIFormItem attr [label,def,info])      = component "itwc_raw_form_item" [JSONObject [("items",JSONArray[encodeUI label,encodeUI def,encodeUI info])]]
+	encodeUI (UI UIFormItem attr defs)                  = component "itwc_raw_form_item" [JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UI (UIBlock sopts copts) attr defs)       = component "itwc_raw_block" [encodeUI sopts, encodeUI copts,JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UI (UIViewString sopts vopts)	_ _)		= component "itwc_view_string" [encodeUI sopts,encodeUI vopts]
 	encodeUI (UI (UIViewHtml sopts vopts) _ _ )			= component "itwc_view_html" [encodeUI sopts, encodeUI vopts]
@@ -607,3 +608,59 @@ component :: String [JSONNode] -> JSONNode
 component xtype opts = JSONObject [("xtype",JSONString xtype):optsfields]
 where
 	optsfields = flatten [fields \\ JSONObject fields <- opts]
+
+
+derive class iTask UIChange, UIChildChange
+
+//Remove unnessecary directives
+compactChangeDef :: UIChange -> UIChange
+compactChangeDef (ChangeUI localChanges children)
+	= case ChangeUI localChanges [child \\ child=:(_,ChangeChild change) <- map compactChildDef children | not (change =: NoChange)] of
+		ChangeUI [] [] 	= NoChange
+		def 			= def
+where
+	compactChildDef (idx,ChangeChild change) = (idx,ChangeChild change)
+	compactChildDef def = def
+
+compactChangeDef def = def
+
+completeChildChanges :: [(Int,UIChildChange)] -> [(Int,UIChildChange)]
+completeChildChanges children = complete 0 (sortBy indexCmp children)
+where
+	complete i [] = []
+	complete i [c:cs]
+		| i < fst c = [(i,ChangeChild NoChange):complete (i + 1) cs]
+					= [c:complete (fst c + 1) cs]
+	indexCmp x y = fst x < fst y
+
+reindexChildChanges :: [(Int,UIChildChange)] -> [(Int,UIChildChange)]
+reindexChildChanges children = [(i,c) \\ (_,c) <- children & i <- [0..]]
+
+compactChildChanges :: [(Int,UIChildChange)] -> [(Int,UIChildChange)]
+compactChildChanges children = [c \\ c <- children | not (noChangeChild c)]
+where
+	noChangeChild (_,ChangeChild NoChange) = True
+	noChangeChild _ = False
+
+encodeUIChanges:: ![UIChange] -> JSONNode
+encodeUIChanges defs = JSONArray (map encodeUIChange defs)
+
+encodeUIChange :: !UIChange -> JSONNode
+encodeUIChange NoChange = JSONNull
+encodeUIChange (ReplaceUI def)
+	= JSONObject
+		[("type",JSONString "replace")
+		,("definition",encodeUI def)
+		]
+encodeUIChange (ChangeUI operations children)
+	= JSONObject
+		[("type",JSONString "change")
+		,("operations", JSONArray [JSONObject [("method",JSONString method),("arguments",JSONArray arguments)] 
+											\\ (method,arguments) <- operations])
+		,("children",JSONArray (map encodeChildChange children))
+		]
+where
+	encodeChildChange (i,ChangeChild child) = JSONArray [JSONInt i,JSONString "change",encodeUIChange child]
+	encodeChildChange (i,RemoveChild) 		= JSONArray [JSONInt i,JSONString "remove"]
+	encodeChildChange (i,InsertChild child) = JSONArray [JSONInt i,JSONString "insert",encodeUI child]
+

@@ -6,7 +6,7 @@ from iTasks._Framework.IWorld import createIWorld, destroyIWorld, initJSCompiler
 from iTasks._Framework.TaskStore import createTaskInstance, taskInstanceUIChanges
 from iTasks._Framework.TaskEval import evalTaskInstance
 from iTasks._Framework.Store import flushShareCache
-import iTasks.UI.Definition, iTasks.UI.Diff
+import iTasks.UI.Definition
 import qualified iTasks._Framework.SDS as SDS
 import Text
 import System.Directory
@@ -142,14 +142,14 @@ where
 minimalStepInputEvent = EditEvent (TaskId 1 1) "v" (JSONString "foo")
 minimalStepInputResponse =ChangeUI [] [changeInteract,changeAction]
 where
-	changeInteract = ChangeChild 0 (ChangeUI [] [changePrompt,changeEditor] )
-	changePrompt = ChangeChild 0 NoChange
-	changeEditor = ChangeChild 1 (ChangeUI [("setEditorValue",[JSONString "foo"])
+	changeInteract = (0,ChangeChild (ChangeUI [] [changePrompt,changeEditor] ))
+	changePrompt = (0,ChangeChild NoChange)
+	changeEditor = (1,ChangeChild (ChangeUI [("setEditorValue",[JSONString "foo"])
 										   ,("setAttribute",[JSONString HINT_ATTRIBUTE,JSONString "You have correctly entered a single line of text"])
 										   ,("setAttribute",[JSONString HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_VALID])
-											] [])
+											] []))
 
-	changeAction = ChangeChild 1 (ChangeUI [("enable",[])] []) //Enable the first action
+	changeAction = (1,ChangeChild (ChangeUI [("enable",[])] [])) //Enable the first action
 
 testStepApplyAction = testTaskOutput "Test replacement of UI after step" minimalStep events exp (===)
 where
@@ -180,19 +180,19 @@ where
 testParallelRemove = testTaskOutput "Test dynamically removing a task from a parallel" minimalParallelOperations events exp (===)
 where
 	events = [ResetEvent, ActionEvent (TaskId 1 0) "Pop"]
-	exp = [ReplaceUI expMinParOperationsInitialUI, ChangeUI [] [ChangeChild 0 itemChanges, ChangeChild 1 actionChanges]]
+	exp = [ReplaceUI expMinParOperationsInitialUI, ChangeUI [] [(0,ChangeChild itemChanges), (1,ChangeChild actionChanges)]]
 
-	itemChanges = ChangeUI [] [RemoveChild 0] 
+	itemChanges = ChangeUI [] [(0,RemoveChild)] 
 	//When there are no more elements, the pop action should be disabled
-	actionChanges = ChangeUI [] [ChangeChild 0 NoChange, ChangeChild 1 (ChangeUI [("disable",[])] [])] 
+	actionChanges = ChangeUI [] [(0,ChangeChild NoChange),(1,ChangeChild (ChangeUI [("disable",[])] []))] 
 
 testForeverLoop = testTaskOutput "Test a 'forever' loop construct (a more complex version of a dynamic parallel)" minimalForever events exp (===)
 where
 	events = [ResetEvent, ActionEvent (TaskId 1 1) "Continue"]
 	exp = [ReplaceUI (uic UIParallel [uic UICompoundContent [expStep "1-1",expRestarter],uic UICompoundContent []]) //Initial UI
 		  //Remove UI of first loop cycle, and UI for next cycle: Remove two original tasks, create two new ones
-		  ,ChangeUI [] [ChangeChild 0 (ChangeUI [] [RemoveChild 0,RemoveChild 0,InsertChild 0 (expStep "1-14"),InsertChild 1 expRestarter])
-					   ,ChangeChild 1 (ChangeUI [] [])
+		  ,ChangeUI [] [(0,ChangeChild (ChangeUI [] [(0,RemoveChild),(0,RemoveChild),(0,InsertChild (expStep "1-14")),(1,InsertChild expRestarter)]))
+					   ,(1,ChangeChild (ChangeUI [] []))
                        ]
           ]
 
@@ -200,7 +200,7 @@ where
 	expStep taskId = uic UIStep [expEditor,ui (UIAction {UIAction|action=ActionContinue, taskId=taskId,enabled=True})]
 	expEditor = uic UIInteract [ui UIEmpty, uic (UIEditor {UIEditor|optional=False}) [ui (UIViewString defaultSizeOpts {UIViewOpts|value=Just "Forever..."})]]
 
-testTaskOutput :: String (Task a) [Event] [UIChangeDef] ([UIChangeDef] [UIChangeDef] -> Bool) -> Test | iTask a
+testTaskOutput :: String (Task a) [Event] [UIChange] ([UIChange] [UIChange] -> Bool) -> Test | iTask a
 testTaskOutput name task events exp comparison = utest name test
 where
 	test world 

@@ -5,7 +5,7 @@ import iTasks._Framework.Task, iTasks._Framework.SDS
 import iTasks._Framework.TaskState
 import iTasks.UI.JS.Interface
 import iTasks.UI.Component
-from iTasks.UI.Diff import :: UIChangeDef
+from iTasks.UI.Definition import :: UIChange
 
 :: JSONString :== String
 
@@ -38,7 +38,7 @@ createTaskletEventHandler :: (TaskletEventHandlerFunc a) !TaskId -> JSFun b
 * @param eventName
 * @param eventValue
 */
-:: ControllerFunc st :== TaskId st (Maybe Int) (Maybe String) (Maybe JSONString) *IWorld -> *(Maybe [UIChangeDef], st, *IWorld)
+:: ControllerFunc st :== TaskId st (Maybe Int) (Maybe String) (Maybe JSONString) *IWorld -> *(Maybe [UIChange], st, *IWorld)
 
 :: TaskletTUI st = 
 	{ instanceNo 		:: !InstanceNo, 

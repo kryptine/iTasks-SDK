@@ -11,7 +11,7 @@ import iTasks.UI.Definition
 import iTasks._Framework.Util
 import iTasks.API.Core.Types
 import iTasks.UI.Layout
-import iTasks.UI.Editor, iTasks.UI.Diff
+import iTasks.UI.Editor, iTasks.UI.Definition
 
 generic gEditor a | gText a, gDefault a, JSONEncode a, JSONDecode a :: Editor a
 derive bimap Editor,(,,),(,,,)
@@ -115,7 +115,7 @@ where
 				| allConsesArityZero gtd_conses
 					= (consChange,{vst & selectedConsIndex = curSelectedConsIndex})
 				| otherwise
-					= (ChangeUI [] [ChangeChild 0 consChange,ChangeChild 1 diff],{vst & selectedConsIndex = curSelectedConsIndex})
+					= (ChangeUI [] [(0,ChangeChild consChange),(1,ChangeChild diff)],{vst & selectedConsIndex = curSelectedConsIndex})
 			| otherwise
 				= (diff,{vst & selectedConsIndex = curSelectedConsIndex})
 		| otherwise
@@ -219,7 +219,7 @@ where
 			_							= (Untouched,Untouched)
 		# (diffx,vst) 	= ex.Editor.genDiff dpx oldx oxmask newx nxmask vst
 		# (diffy,vst) 	= ey.Editor.genDiff dpx oldy oymask newy nymask vst
-		= (ChangeUI [] [ChangeChild 0 diffx,ChangeChild 1 diffy],vst)
+		= (ChangeUI [] [(0,ChangeChild diffx),(1,ChangeChild diffy)],vst)
 
 	appDiff [0:ds] e (PAIR x y) xmask ust
 		# (x,xmask,ust) = ex.Editor.appDiff ds e x xmask ust
@@ -291,11 +291,11 @@ where
 flattenPairDiff s 0 d = d 
 flattenPairDiff s 1 d = d
 //For two and three fields, set the correct child index values 
-flattenPairDiff s 2 (ChangeUI _ [ChangeChild _ l,ChangeChild _ r]) = ChangeUI [] [ChangeChild s l,ChangeChild (s + 1) r]
-flattenPairDiff s 3 (ChangeUI _ [ChangeChild _ l,ChangeChild _ (ChangeUI _ [ChangeChild _ m,ChangeChild _ r])])
-	= ChangeUI [] [ChangeChild s l, ChangeChild (s + 1) m, ChangeChild (s + 2) r]
+flattenPairDiff s 2 (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)]) = ChangeUI [] [(s,ChangeChild l),(s+1,ChangeChild r)]
+flattenPairDiff s 3 (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild (ChangeUI _ [(_,ChangeChild m),(_,ChangeChild r)]))])
+	= ChangeUI [] [(s,ChangeChild l), (s+1,ChangeChild m), (s+2,ChangeChild r)]
 //For more fields we aggregate both sides
-flattenPairDiff s n (ChangeUI _ [ChangeChild _ l, ChangeChild _ r]) 
+flattenPairDiff s n (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)]) 
 	# (ChangeUI _ l) = flattenPairDiff s half l
 	# (ChangeUI _ r) = flattenPairDiff (s + half) (n - half) r 
 	= ChangeUI [] (l ++ r)
@@ -474,7 +474,7 @@ where
 
 gEditor{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = emptyEditor
 
-derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), Timestamp, Map
+derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), Timestamp, Map
 
 generic gEditMeta a :: a -> [EditMeta]
 
@@ -503,6 +503,7 @@ gEditMeta{|(,)|} fa fb _             = fa undef ++ fb undef
 gEditMeta{|(,,)|} fa fb fc _         = fa undef ++ fb undef ++ fc undef
 gEditMeta{|(,,,)|} fa fb fc fd _     = fa undef ++ fb undef ++ fc undef ++ fd undef
 gEditMeta{|(,,,,)|} fa fb fc fd fe _ = fa undef ++ fb undef ++ fc undef ++ fd undef ++ fe undef
+gEditMeta{|(,,,,,)|} fa fb fc fd fe ff _ = fa undef ++ fb undef ++ fc undef ++ fd undef ++ fe undef ++ ff undef
 gEditMeta{|RWShared|} _ _ _ _ = [{label=Nothing,hint=Nothing,unit=Nothing}]
 
 derive gEditMeta Either, MaybeError, Map, JSONNode, Timestamp, EditableListAdd
@@ -560,7 +561,7 @@ gVerify{|JSONNode|} _ mv = alwaysValid mv
 gVerify{|()|} _ mv      = alwaysValid mv
 gVerify{|RWShared|} _ _ _ _ mv = alwaysValid mv
 
-derive gVerify (,), (,,), (,,,), (,,,,), Either, MaybeError, Timestamp, Map
+derive gVerify (,), (,,), (,,,), (,,,,), (,,,,,), Either, MaybeError, Timestamp, Map
 
 updConsPath i n
  	| i >= n	

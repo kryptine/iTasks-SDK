@@ -5,7 +5,7 @@ from StdFunc import const, id, o
 import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath, Data.Functor
 
 import iTasks._Framework.IWorld, iTasks._Framework.TaskState, iTasks._Framework.Task, iTasks._Framework.Store
-import iTasks._Framework.TaskEval, iTasks._Framework.Util, iTasks.UI.Definition, iTasks.UI.Diff
+import iTasks._Framework.TaskEval, iTasks._Framework.Util, iTasks.UI.Definition
 import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
 
 import qualified iTasks._Framework.SDS as SDS
@@ -54,10 +54,10 @@ taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") (ca
 taskInstanceShares :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
 taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
 
-allUIChanges :: RWShared () (Map InstanceNo (Queue UIChangeDef)) (Map InstanceNo (Queue UIChangeDef)) 
+allUIChanges :: RWShared () (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange)) 
 allUIChanges = sdsFocus "allUIChanges" (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
 
-taskInstanceUIChanges :: RWShared InstanceNo (Queue UIChangeDef) (Queue UIChangeDef) 
+taskInstanceUIChanges :: RWShared InstanceNo (Queue UIChange) (Queue UIChange) 
 taskInstanceUIChanges = sdsLens "taskInstanceUIChanges" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) allUIChanges
 where
 	read instanceNo uis = case 'DM'.get instanceNo uis of
@@ -422,7 +422,16 @@ where
     write2 p w = Ok Nothing //TODO: Write attributes of detached instances
 
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
-queueEvent instanceNo event iworld
+//Special case for refresh events, queue only if the instance has no events in the queue yet
+queueEvent instanceNo event=:(RefreshEvent r) iworld 
+	# (_,iworld) = 'SDS'.modify (queueIfNotScheduled instanceNo event) taskEvents iworld
+	= iworld
+where
+	queueIfNotScheduled instanceNo event q=:('DQ'.Queue front back)
+		| isMember instanceNo (map fst (front ++ back)) = ((),q)
+														= ((),'DQ'.enqueue (instanceNo,event) q)
+//Standard case...
+queueEvent instanceNo event iworld 
 	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue (instanceNo,event) q)) taskEvents iworld
 	= iworld
 
@@ -439,12 +448,12 @@ dequeueEvent iworld
 		(Ok mbEvent,iworld) 	= (mbEvent,iworld)
 		(Error (_,e),iworld) 	= (Nothing,iworld) //TODO handle errors
 
-queueUIChange :: !InstanceNo !UIChangeDef !*IWorld -> *IWorld
+queueUIChange :: !InstanceNo !UIChange !*IWorld -> *IWorld
 queueUIChange instanceNo change iworld
 	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue change q)) (sdsFocus instanceNo taskInstanceUIChanges) iworld
 	= iworld
 
-queueUIChanges :: !InstanceNo ![UIChangeDef] !*IWorld -> *IWorld
+queueUIChanges :: !InstanceNo ![UIChange] !*IWorld -> *IWorld
 queueUIChanges instanceNo changes iworld
 	# (_,iworld) = 'SDS'.modify (\q -> ((),enqueueAll changes q)) (sdsFocus instanceNo taskInstanceUIChanges) iworld
 	= iworld

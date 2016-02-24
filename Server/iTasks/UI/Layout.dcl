@@ -7,8 +7,7 @@ definition module iTasks.UI.Layout
 */
 
 from iTasks.API.Core.TaskCombinators import class tune
-from iTasks.UI.Definition import :: UI, :: UINodeType, :: UIAttributes
-from iTasks.UI.Diff import :: UIChangeDef
+from iTasks.UI.Definition import :: UI, :: UINodeType, :: UIAttributes, :: UIChange
 
 from Data.Maybe import :: Maybe
 from Data.Map import :: Map
@@ -17,7 +16,7 @@ from Text.JSON import :: JSONNode
 // When a layout changes the stucture of the UI, changes to the UI have to be
 // changed too to route the changes to the correct place in the structure
 :: Layout      :== LayoutFun JSONNode
-:: LayoutFun s :== (UIChangeDef,s) -> (UIChangeDef,s)
+:: LayoutFun s :== (UIChange,s) -> (UIChange,s)
 
 // These types are used to control when to apply layout in a task composition
 :: ApplyLayout	= ApplyLayout Layout
@@ -35,7 +34,6 @@ instance tune	AutoLayout  //Enable/disable automatic layouting for a task
 changeNodeType :: (UI -> UI) -> Layout
 changeNodeAttributes :: (UIAttributes -> UIAttributes) -> Layout
 
-
 //Changing tree depth
 
 /**
@@ -50,19 +48,19 @@ unwrap ::               Layout
 //Operations on single specific sub-UI's indicated by a path
 insertSubAt :: NodePath UI       -> Layout
 removeSubAt :: NodePath          -> Layout
-layoutSubAt :: NodePath Layout   -> Layout
 moveSubAt   :: NodePath NodePath -> Layout
+layoutSubAt :: NodePath Layout   -> Layout
 
 //Group operations on selections of sub-UI's
-removeSubsMatching :: NodePath (UI -> Bool) Int          -> Layout
-layoutSubsMatching :: NodePath (UI -> Bool) Int Layout   -> Layout
-moveSubsMatching   :: NodePath (UI -> Bool) Int NodePath -> Layout
+removeSubsMatching :: NodePath (UI -> Bool)          -> Layout
+moveSubsMatching   :: NodePath (UI -> Bool) NodePath -> Layout
+layoutSubsMatching :: NodePath (UI -> Bool) Layout   -> Layout
 
 moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
 layoutChildrenOf :: NodePath Layout -> Layout
 
 //Composition of layouts
 sequenceLayouts   :: [Layout]               -> Layout
-conditionalLayout :: (UI -> Bool) Layout    -> Layout
 selectLayout      :: [(UI -> Bool, Layout)] -> Layout
+conditionalLayout :: (UI -> Bool) Layout    -> Layout
 

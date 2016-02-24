@@ -5,7 +5,7 @@ definition module iTasks._Framework.TaskStore
 * Session instances: temporary tasks for each interactive session between a user and the server. 
 * Workflow instances: persistent long-running tasks that may be shared between users and exist between sessions.
 */
-import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks.UI.Definition, iTasks.UI.Diff, iTasks._Framework.SDS
+import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks.UI.Definition, iTasks._Framework.SDS
 import iTasks.API.Core.Types
 
 from Data.Maybe     import :: Maybe
@@ -81,8 +81,8 @@ parallelTaskList                    :: RWShared (!TaskId,!TaskId,!TaskListFilter
 //When task instances are evaluated, their output consists of instructions to modify the user interface
 //of that instance to reflect the instance's new state
 
-allUIChanges			:: RWShared () (Map InstanceNo (Queue UIChangeDef)) (Map InstanceNo (Queue UIChangeDef)) 
-taskInstanceUIChanges	:: RWShared InstanceNo (Queue UIChangeDef) (Queue UIChangeDef) 
+allUIChanges			:: RWShared () (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange)) 
+taskInstanceUIChanges	:: RWShared InstanceNo (Queue UIChange) (Queue UIChange) 
 
 //=== Access functions: ===
 
@@ -143,11 +143,11 @@ dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
 /**
 * Queue task output
 */
-queueUIChange :: !InstanceNo !UIChangeDef !*IWorld -> *IWorld
+queueUIChange :: !InstanceNo !UIChange !*IWorld -> *IWorld
 /**
 * Convenience function that queues multiple changes at once
 */
-queueUIChanges :: !InstanceNo ![UIChangeDef] !*IWorld -> *IWorld
+queueUIChanges :: !InstanceNo ![UIChange] !*IWorld -> *IWorld
 
 //Documents
 createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)

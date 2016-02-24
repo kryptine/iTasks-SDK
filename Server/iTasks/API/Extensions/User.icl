@@ -2,7 +2,7 @@ implementation module iTasks.API.Extensions.User
 import iTasks
 import Text
 import qualified Data.Map as DM
-import iTasks.UI.Editor, iTasks.UI.Diff
+import iTasks.UI.Editor
 
 gText{|User|} _ val = [maybe "" toString val]
 
