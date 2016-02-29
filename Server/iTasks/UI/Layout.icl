@@ -16,10 +16,10 @@ from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: Defer
 :: NodeMoves = NM [(Int, Either () NodeMoves)] 
 
 //This type records the states of layouts applied somewhere in a ui tree
-:: NodeLayouts = NL [(Int,Either JSONNode NodeLayouts)]
+:: NodeLayoutStates = NL [(Int,Either JSONNode NodeLayoutStates)]
 
-derive JSONEncode NodeMoves, NodeLayouts
-derive JSONDecode NodeMoves, NodeLayouts
+derive JSONEncode NodeMoves, NodeLayoutStates
+derive JSONDecode NodeMoves, NodeLayoutStates
 
 instance tune ApplyLayout
 where
@@ -140,6 +140,14 @@ layoutSubsMatching src pred layout = layoutSubs_ pred` layout
 where
 	pred` path ui = isSubPathOf_ path src && pred ui
 
+//Test if a path extends another path
+isSubPathOf_ :: NodePath NodePath -> Bool
+isSubPathOf_ p [] = True  //Everything is a sub path of the root path
+isSubPathOf_ [] p = False //If the path we are checking against is longer, it can't be a sub path
+isSubPathOf_ [p1:ps1] [p2:ps2] //Check if prefix is the same
+	| p1 == p2  = isSubPathOf_ ps1 ps2	
+				= False
+
 moveSubs_ :: (NodePath UI -> Bool) (Maybe NodePath) -> Layout
 moveSubs_ pred mbDst = layout
 where
@@ -152,17 +160,6 @@ where
 		= case mbDst of
 			Just dst = (insertAndAdjust_ (init dst) startIdx (endIdx - startIdx) inserts change, toJSON moves)
 			Nothing  = (change, toJSON moves)
-
-layoutSubs_ :: (NodePath UI -> Bool) Layout -> Layout
-layoutSubs_ pred layout = id //TODO
-
-//Test if a path extends another path
-isSubPathOf_ :: NodePath NodePath -> Bool
-isSubPathOf_ p [] = True  //Everything is a sub path of the root path
-isSubPathOf_ [] p = False //If the path we are checking against is longer, it can't be a sub path
-isSubPathOf_ [p1:ps1] [p2:ps2] //Check if prefix is the same
-	| p1 == p2  = isSubPathOf_ ps1 ps2	
-				= False
 
 removeAndAdjust_ :: NodePath (NodePath UI -> Bool) Int UIChange NodeMoves -> (!Int,!UIChange,!NodeMoves,![(Int,UIChildChange)])
 removeAndAdjust_ path pred targetIdx NoChange moves //Only adjust the targetIdx by counting the moved nodes
@@ -186,7 +183,6 @@ removeAndAdjust_ path pred targetIdx (ChangeUI localChanges childChanges) (NM mo
 	= (targetIdx,ChangeUI localChanges childChanges,NM moves,inserts)
 where
 	//Go through all child changes
-	//FIXME: Also keep track of number of removed before the current child, this needs to be adjusted for
 	adjustChildChanges tidx numRem [] moves = (tidx,[],moves,[])
 	adjustChildChanges tidx numRem [c=:(idx,_):cs] moves
 		# (tidx,numRem,movesBefore,movesAfter) = seekTargetIndex idx tidx numRem moves
@@ -295,6 +291,68 @@ insertNodes_ [s:ss] changes (UI type attr items)
 	| s < length items  = UI type attr (updateAt s (insertNodes_ ss changes (items !! s)) items)
 	| otherwise 		= UI type attr items
 
+layoutSubs_ :: (NodePath UI -> Bool) Layout -> Layout
+layoutSubs_ pred layout = layout`
+where
+	layout` (change,s)
+		# states = if (change=:(ReplaceUI _)) (NL []) (fromMaybe (NL []) (fromJSON s)) //On a replace, we reset the state
+		# (change,Right states) = layoutChange_ [] pred layout change states //layoutChange_ guarantees a Right when called with an empty path
+		= (change,toJSON states)
+
+layoutChange_ :: NodePath (NodePath UI -> Bool) Layout UIChange NodeLayoutStates -> (UIChange,Either JSONNode NodeLayoutStates)
+layoutChange_ path pred layout (ReplaceUI ui) states
+	# (ui,eitherState) = layoutUI_ path pred layout ui
+	= (ReplaceUI ui,eitherState)
+layoutChange_ path pred layout (ChangeUI localChanges childChanges) (NL states)
+	# (childChanges,states) = layoutChildChanges_ [] pred layout childChanges states
+	= (ChangeUI localChanges childChanges, Right (NL states))
+layoutChange_ path pred layout change states
+	= (change,Right states)
+
+layoutUI_ :: NodePath (NodePath UI -> Bool) Layout UI -> (UI,Either JSONNode NodeLayoutStates)
+layoutUI_ path pred layout ui=:(UI type attr items)
+	| pred path ui && not (path =:[])
+		= case layout (ReplaceUI ui,JSONNull) of
+			(ReplaceUI ui,state) = (ui,Left state)
+			_                    = (ui,Right (NL [])) //Consider it a non-match if the layout function behaves flakey
+	| otherwise
+		# (items,states) = unzip [let (ui`,s) = layoutUI_ (path ++ [i]) pred layout ui in (ui`,(i,s)) \\ ui <- items & i <- [0..]]
+		# states = filter (\(_,s) -> not (s =:(Right (NL [])))) states //Filter unnecessary state
+		= (UI type attr items ,Right (NL states))
+
+layoutChildChanges_ :: NodePath (NodePath UI -> Bool) Layout [(Int,UIChildChange)] [(Int,Either JSONNode NodeLayoutStates)]
+                    -> (![(Int,UIChildChange)],![(Int,Either JSONNode NodeLayoutStates)])
+layoutChildChanges_ path pred layout [] states = ([],states)
+layoutChildChanges_ path pred layout [c=:(idx,_):cs] states
+	# (statesBefore,statesAfter) = seek idx states
+	# (c,statesAfter) = layoutChildChange_ path pred layout c statesAfter
+	# (cs,statesAfter) = layoutChildChanges_ path pred layout cs statesAfter
+	= ([c:cs],statesBefore ++ statesAfter)
+where
+	seek idx states = ([c \\ c <- states | fst c < idx], [c \\ c <- states | fst c >= idx])
+
+	//Check if there is existing state for the change, in that case a layout was applied and we need
+	//to pass the change and the state to that layout, otherwise we need to recursively adjust the change
+	layoutChildChange_ path pred layout (i,ChangeChild change) states = case selectState i states of
+		(Just (Left state),states) //Reapply the layout with the stored state
+			# (change,state) = layout (change,state)
+			= ((i,ChangeChild change),[(i,Left state):states])
+		(Just (Right childStates),states) //Recursively adjust the change
+			# (change,eitherStates) = layoutChange_ (path ++ [i]) pred layout change childStates
+			= ((i,ChangeChild change),[(i,eitherStates):states])
+		(Nothing,states) //Nothing to do
+			= ((i,ChangeChild change),states) 
+	layoutChildChange_ path pred layout (i,InsertChild ui) states
+		# (ui,eitherState) = layoutUI_ (path ++ [i]) pred layout ui
+		= ((i,InsertChild ui),[(i,eitherState):[(i + 1,s) \\ (i,s) <- states]]) //Aslo adjust the indices of the other states
+	layoutChildChange_ path pred layout (idx,RemoveChild) states
+		= ((idx,RemoveChild),[(i - 1, s) \\ (i,s) <- states | i <> idx]) //Remove the current state from the states and adjust the indices accordingly
+
+	selectState idx states = case splitWith (((==) idx) o fst) states of
+        ([(_,s):_],states) = (Just s,states)
+        _                  = (Nothing,states)
+
+//Common patterns
 moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
 moveChildren container pred dst = moveSubs_ pred` (Just dst)
 where
@@ -354,30 +412,6 @@ getChildren (UI type attr children) = children
 
 setChildren :: [UI] UI -> UI
 setChildren children (UI type attr _) = UI type attr children
-
-accChildDef :: NodePath (UI -> (a,UI)) UI -> (Maybe a, UI)
-accChildDef [] f def = appFst Just (f def)
-accChildDef [s:ss] f def=:(UI type attr items)
-	| s < length items
-		# (res,sel) = accChildDef ss f (items !! s)
-		= (res,UI type attr (updateAt s sel items))
-	| otherwise =  (Nothing,def)
-
-accChildChange :: NodePath (UIChange -> (a,UIChange)) UIChange -> (Maybe a, UIChange)
-accChildChange [] f change = appFst Just (f change)
-accChildChange [s:ss] f (ChangeUI local children)
-	# (res,children) = accInChildren children
-	= (res,ChangeUI local children)
-where
-	accInChildren [] = (Nothing,[])
-	accInChildren [(i,ChangeChild c):cs] | i == s
-		# (res,c) = accChildChange ss f c
-		= (res,[(i,ChangeChild c):cs])
-	accInChildren [c:cs] 
-		# (res,cs) = accInChildren cs
-		= (res,[c:cs])
-
-accChildChange _ f change = (Nothing,change)
 
 // ######################### OBSOLETE ##################################
 // ######################### OBSOLETE ##################################

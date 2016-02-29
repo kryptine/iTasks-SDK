@@ -50,14 +50,14 @@ finalizeInteract :: Layout
 finalizeInteract = conditionalLayout isInteract layout
 where
 	layout = sequenceLayouts 
-		[//layoutSubAt [1] finalizeForm
-		//,changeNodeType (\(UI UIInteract attr items) -> UI defaultPanel attr items)
+		[layoutSubAt [1] finalizeForm
+		,changeNodeType (\(UI UIInteract attr items) -> UI defaultPanel attr items)
 		] 
 
 finalizeForm :: Layout
 finalizeForm
-	= sequenceLayouts [//layoutChildrenOf [] layoutRow
-					  //,changeNodeType (\(UI UIForm attr items) -> UI defaultContainer attr items)
+	= sequenceLayouts [layoutChildrenOf [] layoutRow
+					  ,changeNodeType (\(UI UIForm attr items) -> UI defaultContainer attr items)
 					  ]
 where
 	//Case when 
@@ -78,11 +78,11 @@ finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
 where
 	layout = sequenceLayouts
-        [//layoutSubAt [0] finalizeUI 			//Recursively finalize
-        //,insertSubAt [1] buttonBar 				//Create a buttonbar
-	   // ,moveChildren [] isAction [1,0]   		//Move all actions to the buttonbar
-	    //,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
-        //,changeNodeType (\(UI UIStep attr items) -> UI defaultPanel attr items) //Change to a standard container
+        [layoutSubAt [0] finalizeUI 			//Recursively finalize
+        ,insertSubAt [1] buttonBar 				//Create a buttonbar
+	    ,moveChildren [] isAction [1,0]   		//Move all actions to the buttonbar
+	    ,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
+        ,changeNodeType (\(UI UIStep attr items) -> UI defaultPanel attr items) //Change to a standard container
         ]
 
 finalizeParallel :: Layout
