@@ -190,6 +190,7 @@ where
 	| desc_type == 'n' = (ListS [],next_pos)// empty list 
 	| desc_type == 't' // tuple
 	                    = makeTuple (arity ds.[dnr-1].[1]) next_pos
+    | otherwise = abort ("Unknown desc_type: " +++ {desc_type})
 
 	getEarlierElem pos newpos    // backward ref
 	# dnr               = sifs (pos) str   // descriptor is in word before
@@ -371,10 +372,17 @@ makeRecordType ltypes  = mrt [ltype\\ ltype <- ltypes| ltype <> ',']
 where
  mrt ['(':ltypes] = [first : mrt (tl rs)]
  where (first,rs) = dostartpars ['(':ltypes]
+ mrt ['{':ltypes] = [first : mrt (tl rs)]
+ where (first,rs) = dostartpars ['{':ltypes]
  mrt [')':ltypes] = mrt ltypes
+ mrt ['}':ltypes] = mrt ltypes 
  mrt [_  :ltypes] = [[0] : mrt ltypes]
  mrt []           = []
  dostartpars ['(':ltypes]  
+ # f = gettuplength 1 0 ltypes
+ # (fs,rs) = dostartpars ltypes
+ = ([f:fs],rs)
+ dostartpars ['{':ltypes]  
  # f = gettuplength 1 0 ltypes
  # (fs,rs) = dostartpars ltypes
  = ([f:fs],rs)
