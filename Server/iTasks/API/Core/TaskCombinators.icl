@@ -6,7 +6,7 @@ import Internet.HTTP, GenEq, System.Time, Text, Data.Func, Data.Tuple, Data.List
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskStore, iTasks._Framework.TaskEval
 import iTasks._Framework.Util, iTasks._Framework.Store
 import iTasks._Framework.Generic, iTasks.UI.Definition
-import iTasks.API.Core.Types, iTasks.UI.Layout, iTasks.UI.Layout.Auto
+import iTasks.API.Core.Types, iTasks.UI.Layout
 import iTasks._Framework.IWorld
 import iTasks._Framework.Tonic.Shares
 import iTasks._Framework.Client.Override
@@ -141,14 +141,13 @@ where
 		(OnAllExceptions taskbf)	= callWithDeferredJSON taskbf d_json_a
 	
 	doStepLayout taskId evalOpts event actions prevEnabled change val
-		# change = case (event,change) of
+		= case (event,change) of
 			//On reset generate a new step UI
 			(ResetEvent,ReplaceUI rui)  
 				= ReplaceUI (uic UIStep [rui:map (\x -> (ui (UIAction x))) (contActions taskId val conts)])
 			//Otherwise create a compound change definition
 			_ 	
 				= ChangeUI [] [(0,ChangeChild change):actionChanges]
-		= if evalOpts.autoLayout (fst (autoLayoutStep (change,JSONNull))) change
 	where
 		actionChanges = [(i,ChangeChild (switch enabled name)) \\ {UIAction|action=(Action name _),enabled} <- actions & i <- [1..]]
 		where
@@ -514,7 +513,7 @@ genParallelValue results = Value [(lastEvent,val) \\ ValueResult val {TaskEvalIn
 
 genParallelRep :: !TaskEvalOpts !Event [UIAction] [String] [TaskResult a] Int -> UIChange
 genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
-	# change = case event of
+	= case event of
 		ResetEvent
 			= ReplaceUI (uic UIParallel [uic UICompoundContent [def \\ ValueResult _ _ (ReplaceUI def) _ <- results]
 					 				    ,uic UICompoundContent (map (\x -> ui (UIAction x)) actions)
@@ -523,7 +522,6 @@ genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
 			= ChangeUI [] [(0,ChangeChild (ChangeUI [] (itemChanges 0 prevNumBranches results)))
                           ,(1,ChangeChild (ChangeUI [] actionChanges))
                           ]
-	= if evalOpts.autoLayout (fst (autoLayoutParallel (change,JSONNull))) change
 where
 	itemChanges i numExisting [] = []
 	itemChanges i numExisting [ValueResult _ _ change _:rs]
@@ -707,12 +705,10 @@ where
 				    = (ValueResult (Value ASExcepted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange tree, iworld)
 				| attachedId == taskId
 					# rep 		= ReplaceUI (embedTaskDef instanceNo instanceKey)
-                    # rep       = if evalOpts.autoLayout (fst (autoLayoutAttach (rep,JSONNull))) rep
                     # stable    = value === Stable
 					= (ValueResult (Value (ASAttached stable) stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
 				| otherwise
 					# rep 		= ReplaceUI inUseDef
-                    # rep       = if evalOpts.autoLayout (fst (autoLayoutAttach (rep,JSONNull))) rep
 					= (ValueResult (Value (ASInUse attachedId) False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} rep tree, iworld)		
 			_
 				= (ValueResult (Value ASDeleted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange tree, iworld)

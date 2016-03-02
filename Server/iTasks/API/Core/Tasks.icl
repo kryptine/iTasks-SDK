@@ -5,7 +5,7 @@ import System.Time, Data.Error, System.OSError, Data.Tuple, Text, Text.JSON
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.TaskServer
 import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction, iTasks._Framework.Task, iTasks._Framework.TaskState
 import iTasks._Framework.TaskEval, iTasks._Framework.TaskStore, iTasks.UI.Definition, iTasks._Framework.IWorld
-import iTasks.UI.Layout, iTasks.UI.Layout.Auto, iTasks.UI.Editor
+import iTasks.UI.Layout, iTasks.UI.Editor
 import iTasks.API.Core.SDSs, iTasks.API.Common.SDSCombinators
 
 from iTasks._Framework.SDS as SDS import qualified read, readRegister, write

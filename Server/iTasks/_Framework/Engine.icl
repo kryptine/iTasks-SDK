@@ -11,7 +11,7 @@ import iTasks._Framework.Util, iTasks._Framework.HtmlUtil
 import iTasks._Framework.IWorld, iTasks._Framework.WebService, iTasks._Framework.SDSService
 import iTasks.API.Common.SDSCombinators
 import qualified iTasks._Framework.SDS as SDS
-import iTasks.UI.Layout, iTasks.UI.Layout.Auto
+import iTasks.UI.Layout, iTasks.UI.Layout.Default
 from iTasks.API.Core.TaskCombinators import class tune(..)
 from iTasks.UI.Layout import instance tune ApplyLayout, instance tune AutoLayout
 
@@ -213,7 +213,7 @@ publishRaw :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iT
 publishRaw url format task = {url = url, task = TaskWrapper (withoutLayout task), defaultFormat = format}
 
 withFinalSessionLayout :: (HTTPRequest -> Task a) -> (HTTPRequest -> Task a) | iTask a
-withFinalSessionLayout taskf = \req -> tune (ApplyLayout autoLayoutSession) (taskf req)
+withFinalSessionLayout taskf = \req -> tune (ApplyLayout defaultSessionLayout) (taskf req)
 
 withoutLayout :: (HTTPRequest -> Task a) -> (HTTPRequest -> Task a) | iTask a
 withoutLayout taskf = \req -> tune WithoutAutoLayout (taskf req)

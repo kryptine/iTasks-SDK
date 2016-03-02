@@ -1,4 +1,4 @@
-implementation module iTasks.UI.Layout.Auto
+implementation module iTasks.UI.Layout.Default
 
 import iTasks.UI.Layout
 import iTasks.UI.Definition
@@ -11,20 +11,8 @@ import qualified Data.Map as DM
 
 LABEL_WIDTH :== 100
 
-autoLayoutInteract :: Layout
-autoLayoutInteract = id
-
-autoLayoutStep :: Layout
-autoLayoutStep = id
-
-autoLayoutParallel :: Layout
-autoLayoutParallel = id
-
-autoLayoutAttach :: Layout
-autoLayoutAttach = id
-
-autoLayoutSession :: Layout
-autoLayoutSession = sequenceLayouts 
+defaultSessionLayout :: Layout
+defaultSessionLayout = sequenceLayouts 
     [layoutSubsMatching [] isInteract (layoutSubAt [1] editorToForm) //All interacts: Remap changes in the editor, ignore changes to the prompt, it should be constant
 	,finalizeUI
     ,changeNodeType (setFramed True o setSize WrapSize WrapSize o setMargins 50 0 20 0 o setMinWidth (ExactBound 600))
