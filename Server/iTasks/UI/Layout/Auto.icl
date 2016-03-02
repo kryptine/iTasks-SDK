@@ -12,7 +12,7 @@ import qualified Data.Map as DM
 LABEL_WIDTH :== 100
 
 autoLayoutInteract :: Layout
-autoLayoutInteract = layoutSubAt [1] editorToForm //Remap changes in the editor, ignore changes to the prompt, it should be constant
+autoLayoutInteract = id
 
 autoLayoutStep :: Layout
 autoLayoutStep = id
@@ -25,13 +25,17 @@ autoLayoutAttach = id
 
 autoLayoutSession :: Layout
 autoLayoutSession = sequenceLayouts 
-    [finalizeUI
+    [layoutSubsMatching [] isInteract (layoutSubAt [1] editorToForm) //All interacts: Remap changes in the editor, ignore changes to the prompt, it should be constant
+	,finalizeUI
     ,changeNodeType (setFramed True o setSize WrapSize WrapSize o setMargins 50 0 20 0 o setMinWidth (ExactBound 600))
 	,removeSubsMatching [] isEmpty
     ]
 where
 	isEmpty (UI UIEmpty _ _) = True
 	isEmpty _ = False
+
+	isInteract (UI UIInteract _ _) = True
+	isInteract _ = False
 
 //The finalize layouts remove all intermediate 
 finalizeUI :: Layout
@@ -80,9 +84,9 @@ where
 	layout = sequenceLayouts
         [layoutSubAt [0] finalizeUI 			//Recursively finalize
         ,insertSubAt [1] buttonBar 				//Create a buttonbar
-	    ,moveChildren [] isAction [1,0]   		//Move all actions to the buttonbar
-	    ,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
-        ,changeNodeType (\(UI UIStep attr items) -> UI defaultPanel attr items) //Change to a standard container
+	    //,moveChildren [] isAction [1,0]   		//Move all actions to the buttonbar
+//	    ,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
+        //,changeNodeType (\(UI UIStep attr items) -> UI defaultPanel attr items) //Change to a standard container
         ]
 
 finalizeParallel :: Layout

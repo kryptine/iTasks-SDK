@@ -128,12 +128,13 @@ workflowDashboard
 		[ (Embedded, startWork)
 		, (Embedded, controlDashboard)
 		, (Embedded, manageWork)
-		] [] /*<<@ ArrangeCustom layout*/
+		] [] <<@ ApplyLayout layout
 	>>* [OnValue (ifValue (\results -> isValue (snd (results !! 1))) (\_ -> return ()))]
 where
 	isValue (Value _ _) = True
 	isValue _			= False
 
+	layout = arrangeWithSideBar 0 LeftSide 260 True
 /*
     layout [startWork,dashBoard,manageWork:activeWork] actions
         = arrangeWithSideBar 0 LeftSide 260 True [startWork,mainArea] actions

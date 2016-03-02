@@ -74,41 +74,17 @@ where
 
 insertSubAt :: NodePath UI-> Layout
 insertSubAt [] def = id
-insertSubAt path def = layoutSubAt (init path) (insertChild` (last path) def)
+insertSubAt path def = layoutSubAt (init path) (insertSub (last path) def)
 where
-	insertChild` idx def (ReplaceUI container,s) =  (ReplaceUI (setChildren (insertAt idx def (getChildren container)) container),s)
-	insertChild` idx _ (ChangeUI local childChanges,s) = (ChangeUI local (insert idx childChanges),s)
-	insertChild` idx _ (change,s) = (change,s)
-
-	insert idx [] = []
-	insert idx [c:cs]
-		| fst c < idx  = [c:insert idx cs]
-                       = [(idx,ChangeChild (ChangeUI [] [])): [(n+1,x) \\(n,x) <-[c:cs]]]
-
-layoutChild` :: Int Layout -> Layout 
-layoutChild` index childLayout = layout
-where
-	layout (ReplaceUI def ,s)
-		# children = getChildren def
-		| index < length children
-			# (ReplaceUI selChild,s) = childLayout (ReplaceUI (children !! index),s)
-			= (ReplaceUI (setChildren (updateAt index selChild children) def),s) 
-		| otherwise
-			= (ReplaceUI def, s)
-
-	layout (ChangeUI local childChanges,s)
-		# (childChanges,s) = updateChildren childChanges s
-		= (ChangeUI local childChanges,s)
+	insertSub idx def (ReplaceUI container,s) =  (ReplaceUI (setChildren (insertAt idx def (getChildren container)) container),s)
+	insertSub idx _ (ChangeUI local childChanges,s) = (ChangeUI local (insert idx childChanges),s)
 	where
-		updateChildren [] s = ([],s)
-		updateChildren [(i,ChangeChild c):cs] s | i == index
-			# (c,s) = childLayout (c,s)
-			= ([(i,ChangeChild c):cs],s)
-		updateChildren [c:cs] s
-			# (cs,s) = updateChildren cs s
-			= ([c:cs],s)
+		insert idx [] = []
+		insert idx [c:cs]
+			| fst c < idx  = [c:insert idx cs]
+                       		= [(idx,ChangeChild (ChangeUI [] [])): [(n+1,x) \\(n,x) <-[c:cs]]]
 
-	layout (change,s) = (change,s) //Catchall
+	insertSub _ _ (change,s) = (change,s)
 
 moveSubAt :: NodePath NodePath -> Layout 
 moveSubAt src dst = moveSubs_ pred (Just dst)
@@ -121,9 +97,9 @@ where
 	pred path _ = path == src
 
 layoutSubAt :: NodePath Layout -> Layout
-layoutSubAt [] childLayout = childLayout
-layoutSubAt [i] childLayout = layoutChild` i childLayout
-layoutSubAt [i:is] childLayout = layoutChild` i (layoutSubAt is childLayout)
+layoutSubAt target layout = layoutSubs_ pred layout
+where
+	pred path _ = path == target
 
 removeSubsMatching :: NodePath (UI -> Bool) -> Layout
 removeSubsMatching src pred = moveSubs_ pred` Nothing
@@ -295,9 +271,14 @@ layoutSubs_ :: (NodePath UI -> Bool) Layout -> Layout
 layoutSubs_ pred layout = layout`
 where
 	layout` (change,s)
-		# states = if (change=:(ReplaceUI _)) (NL []) (fromMaybe (NL []) (fromJSON s)) //On a replace, we reset the state
-		# (change,Right states) = layoutChange_ [] pred layout change states //layoutChange_ guarantees a Right when called with an empty path
-		= (change,toJSON states)
+		| change=:(ReplaceUI _)
+			# (change,eitherState) = layoutChange_ [] pred layout change (NL [])
+			= (change,toJSON eitherState)
+		| otherwise
+			# (change,eitherState) = case fromMaybe (Right (NL [])) (fromJSON s) of
+				(Left state) = appSnd Left (layout (change,state))
+				(Right states) = layoutChange_ [] pred layout change states
+			= (change,toJSON eitherState)
 
 layoutChange_ :: NodePath (NodePath UI -> Bool) Layout UIChange NodeLayoutStates -> (UIChange,Either JSONNode NodeLayoutStates)
 layoutChange_ path pred layout (ReplaceUI ui) states
@@ -311,7 +292,7 @@ layoutChange_ path pred layout change states
 
 layoutUI_ :: NodePath (NodePath UI -> Bool) Layout UI -> (UI,Either JSONNode NodeLayoutStates)
 layoutUI_ path pred layout ui=:(UI type attr items)
-	| pred path ui && not (path =:[])
+	| pred path ui
 		= case layout (ReplaceUI ui,JSONNull) of
 			(ReplaceUI ui,state) = (ui,Left state)
 			_                    = (ui,Right (NL [])) //Consider it a non-match if the layout function behaves flakey
