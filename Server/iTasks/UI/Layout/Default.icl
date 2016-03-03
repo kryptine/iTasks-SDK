@@ -72,9 +72,9 @@ where
 	layout = sequenceLayouts
         [layoutSubAt [0] finalizeUI 			//Recursively finalize
         ,insertSubAt [1] buttonBar 				//Create a buttonbar
-	    //,moveChildren [] isAction [1,0]   		//Move all actions to the buttonbar
-//	    ,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
-        //,changeNodeType (\(UI UIStep attr items) -> UI defaultPanel attr items) //Change to a standard container
+	    ,moveChildren [] isAction [1,0]   		//Move all actions to the buttonbar
+	    ,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
+        ,changeNodeType (\(UI UIStep attr items) -> UI defaultPanel attr items) //Change to a standard container
         ]
 
 finalizeParallel :: Layout

@@ -176,7 +176,7 @@ where
 	//Known precondition: moves only holds moves with an index >= the index of the change
 	adjustChildChange targetIdx numRem (idx,ChangeChild change) moves = case selectMove idx moves of
 		(Just (Left _),moves) //Redirect the change
-			= (targetIdx + 1, Nothing, moves,[(targetIdx,ChangeChild change)])
+			= (targetIdx + 1, Nothing, [(idx,Left ()):moves],[(targetIdx,ChangeChild change)])
 		(Just (Right subMoves), moves) //Recursively adjust the move itself
 			# (targetIdx,change,subMoves,subInserts) = removeAndAdjust_ (path ++ [idx]) pred targetIdx change subMoves
 			= (targetIdx, Just (idx - numRem, ChangeChild change), [(idx,Right subMoves):moves], subInserts)
