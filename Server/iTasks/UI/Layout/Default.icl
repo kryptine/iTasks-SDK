@@ -81,8 +81,7 @@ finalizeParallel :: Layout
 finalizeParallel = conditionalLayout isParallel layout
 where
 	layout = sequenceLayouts
-		[layoutChildrenOf [0] finalizeUI
-		,layoutChildrenOf [1] finalizeUI
+		[layoutChildrenOf [] finalizeUI
 		,changeNodeType (\(UI UIParallel attr items) -> UI defaultPanel attr items)
 		]
 

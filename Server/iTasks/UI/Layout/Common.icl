@@ -8,10 +8,8 @@ import StdBool
 from StdFunc import id, const
 
 arrangeWithTabs :: Layout
-arrangeWithTabs = conditionalLayout isParallel layout
+arrangeWithTabs = conditionalLayout isParallel toTabset
 where
-	layout = layoutSubAt [0] toTabset
-
 	toTabset = sequenceLayouts
 				[layoutChildrenOf [] toTab
 				,changeNodeType (\(UI _ attr items) ->UI defaultTabSet attr items)
@@ -29,10 +27,15 @@ isParallel d = d =:(UI UIParallel _ _)
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 arrangeWithSideBar index side size resize = sequenceLayouts 
 	[wrap defaultContainer //Push the current container down a level
-	,changeNodeType (\(UI _ attr items) -> UI defaultPanel attr items) //Turn into a panel
-	,moveSubAt [0,index] [if (side === TopSide || side === LeftSide) 0 1]
+	,changeNodeType (\(UI _ attr items) -> setDirection Horizontal (UI defaultPanel attr items)) //Turn into a panel
+	,insertSubAt [sidePanelIndex] (ui defaultPanel) //Make sure we have a target for the move
+	,moveSubAt [mainPanelIndex,index] [sidePanelIndex,0]
+	,layoutSubAt [sidePanelIndex] unwrap //Remove the temporary wrapping panel
 	//Size the new container 
 	]
+where
+	sidePanelIndex = if (side === TopSide || side === LeftSide) 0 1
+	mainPanelIndex = if (sidePanelIndex === 0) 1 0
 	//Eerst een wrap in een container
 	//Dan afhankelijk van de side een move van het gekozen element naar index 0 of 1 in de nieuwe container
 	//De twee subcontainers sizen

@@ -515,26 +515,43 @@ genParallelRep :: !TaskEvalOpts !Event [UIAction] [String] [TaskResult a] Int ->
 genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
 	= case event of
 		ResetEvent
+			= ReplaceUI (uic UIParallel ([def \\ ValueResult _ _ (ReplaceUI def) _ <- results] ++ (map (\x -> ui (UIAction x)) actions)))
+		_ 
+			# (idx,iChanges) = itemChanges 0 prevNumBranches results
+			# aChanges       = actionChanges idx
+			= ChangeUI [] (iChanges ++ aChanges)
+		/*
+		ResetEvent
 			= ReplaceUI (uic UIParallel [uic UICompoundContent [def \\ ValueResult _ _ (ReplaceUI def) _ <- results]
 					 				    ,uic UICompoundContent (map (\x -> ui (UIAction x)) actions)
 									    ])
 		_ 
-			= ChangeUI [] [(0,ChangeChild (ChangeUI [] (itemChanges 0 prevNumBranches results)))
-                          ,(1,ChangeChild (ChangeUI [] actionChanges))
+			# (n,changes) = itemChanges 0 prevNumBranches results
+			= ChangeUI [] [(0,ChangeChild (ChangeUI [] changes))
+                          ,(1,ChangeChild (ChangeUI [] (actionChanges 0)))
                           ]
+		*/
 where
-	itemChanges i numExisting [] = []
+	itemChanges i numExisting [] = (i,[])
 	itemChanges i numExisting [ValueResult _ _ change _:rs]
-		| i < numExisting	= [(i,ChangeChild change):itemChanges (i + 1) numExisting rs] 	//Update an existing branch
+		| i < numExisting
+			# (i`,changes) = itemChanges (i + 1) numExisting rs
+			= (i`,[(i,ChangeChild change):changes]) 	//Update an existing branch
 		| otherwise			= case change of
-			(ReplaceUI def)	= [(i,InsertChild def):itemChanges (i + 1) (numExisting + 1) rs] 	//Add a new branch
-			_               = itemChanges (i + 1) (numExisting + 1) rs 						//Skip if we don't get a blank UI
+			(ReplaceUI def)
+				# (i`,changes) = itemChanges (i + 1) (numExisting + 1) rs
+				= (i`,[(i,InsertChild def):changes]) 	//Add a new branch
+			_
+				= itemChanges (i + 1) (numExisting + 1) rs //Skip if we don't get a blank UI
 	
 	itemChanges i numExisting [DestroyedResult:rs]
-		| i < numExisting 	= [(i,RemoveChild):itemChanges i (numExisting - 1) rs]
-		| otherwise 		= itemChanges i numExisting rs //No need to destroy a branch that was not yet in the UI
+		| i < numExisting
+			# (i`,changes) = itemChanges i (numExisting - 1) rs
+			= (i`,[(i,RemoveChild):changes])
+		| otherwise
+			= itemChanges i numExisting rs //No need to destroy a branch that was not yet in the UI
 
-	actionChanges = [(i,ChangeChild (switch enabled name)) \\ {UIAction|action=(Action name _),enabled} <- actions & i <- [0..]]
+	actionChanges startIdx = [(i,ChangeChild (switch enabled name)) \\ {UIAction|action=(Action name _),enabled} <- actions & i <- [startIdx..]]
 	where
 		switch True name = if (isMember name prevEnabledActions) NoChange (ChangeUI [("enable",[])] [])
 		switch False name = if (isMember name prevEnabledActions) (ChangeUI [("disable",[])] []) NoChange
