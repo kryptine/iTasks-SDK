@@ -653,135 +653,68 @@ applyTransforms ts (xsp, ysp)
     = strictTRMap (scaleTF (px 1.0) (px ysp`)) coords
   f _ coords = coords
 
+
 gatherFonts :: !(Image s) -> Map FontDef (Set String)
-gatherFonts img = imageCata gatherFontsAllAlgs img
+gatherFonts {content, mask, attribs, transform}
+  = gatherFontsUnions [ gatherFontsImageContent content
+                      , gatherFontsMask mask
+                      , gatherFontsAttribs attribs
+                      , gatherFontsTransforms transform
+                      ]
   where
-  gatherFontsAllAlgs :: Algebras s (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
-  gatherFontsAllAlgs =
-    { imageAlgs          = gatherFontsImageAlgs
-    , imageContentAlgs   = gatherFontsImageContentAlgs
-    , imageAttrAlgs      = gatherFontsImageAttrAlgs
-    , imageTransformAlgs = gatherFontsImageTransformAlgs
-    , imageSpanAlgs      = gatherFontsImageSpanAlgs
-    , basicImageAlgs     = gatherFontsBasicImageAlgs
-    , lineImageAlgs      = gatherFontsLineImageAlgs
-    , markersAlgs        = gatherFontsMarkersAlgs
-    , lineContentAlgs    = gatherFontsLineContentAlgs
-    , compositeImageAlgs = gatherFontsCompositeImageAlgs
-    , composeAlgs        = gatherFontsComposeAlgs
-    }
-  gatherFontsImageAlgs :: ImageAlg (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
-  gatherFontsImageAlgs =
-    { imageAlg = mkImage
-    }
+  gatherFontsImageContent :: !(ImageContent m) -> Map FontDef (Set String)
+  gatherFontsImageContent (Basic _ (l, r)) = gatherFontsUnions [gatherFontsSpan l, gatherFontsSpan r]
+  gatherFontsImageContent (Line {lineSpan = (l, r), lineContent, markers}) = gatherFontsUnions [gatherFontsSpan l, gatherFontsSpan r, gatherFontsMarkers markers, gatherFontsLineContent lineContent]
     where
-    mkImage :: !(Map FontDef (Set String)) !(Maybe (Map FontDef (Set String))) ![Map FontDef (Set String)] ![Map FontDef (Set String)] a b c d c -> Map FontDef (Set String)
-    mkImage imCo mask imAts imTrs _ _ _ _ _ = gatherFontsUnions [imCo : maybeToList mask ++ imAts ++ imTrs]
-  gatherFontsImageContentAlgs :: ImageContentAlg (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
-  gatherFontsImageContentAlgs =
-    { imageContentBasicAlg     = binUnion
-    , imageContentLineAlg      = id
-    , imageContentCompositeAlg = id
-    }
-  gatherFontsImageAttrAlgs :: ImageAttrAlg s (Map FontDef (Set String))
-  gatherFontsImageAttrAlgs =
-    { imageAttrImageStrokeAttrAlg   = const 'DM'.newMap
-    , imageAttrStrokeWidthAttrAlg   = \{strokewidth} -> gatherFontsSpan strokewidth
-    , imageAttrXRadiusAttrAlg       = \{xradius} -> gatherFontsSpan xradius
-    , imageAttrYRadiusAttrAlg       = \{yradius} -> gatherFontsSpan yradius
-    , imageAttrStrokeOpacityAttrAlg = const 'DM'.newMap
-    , imageAttrFillAttrAlg          = const 'DM'.newMap
-    , imageAttrFillOpacityAttrAlg   = const 'DM'.newMap
-    , imageAttrOnClickAttrAlg       = const 'DM'.newMap
-    , imageAttrOnMouseDownAttrAlg   = const 'DM'.newMap
-    , imageAttrOnMouseUpAttrAlg     = const 'DM'.newMap
-    , imageAttrOnMouseOverAttrAlg   = const 'DM'.newMap
-    , imageAttrOnMouseMoveAttrAlg   = const 'DM'.newMap
-    , imageAttrOnMouseOutAttrAlg    = const 'DM'.newMap
-    , imageAttrDraggableAttrAlg     = const 'DM'.newMap
-    , imageAttrDashAttrAlg          = const 'DM'.newMap
-    }
-  gatherFontsImageTransformAlgs :: ImageTransformAlg (Map FontDef (Set String))
-  gatherFontsImageTransformAlgs =
-    { imageTransformRotateImageAlg = const 'DM'.newMap
-    , imageTransformSkewXImageAlg  = const 'DM'.newMap
-    , imageTransformSkewYImageAlg  = const 'DM'.newMap
-    , imageTransformFitImageAlg    = \x y -> binUnion (gatherFontsSpan x) (gatherFontsSpan y)
-    , imageTransformFitXImageAlg   = gatherFontsSpan
-    , imageTransformFitYImageAlg   = gatherFontsSpan
-    , imageTransformScaleImageAlg  = \x y -> 'DM'.newMap
-    , imageTransformScaleXImageAlg = const 'DM'.newMap
-    , imageTransformScaleYImageAlg = const 'DM'.newMap
-    , imageTransformFlipXImageAlg  = 'DM'.newMap
-    , imageTransformFlipYImageAlg  = 'DM'.newMap
-    }
-  gatherFontsImageSpanAlgs :: ImageSpanAlg (Map FontDef (Set String))
-  gatherFontsImageSpanAlgs =
-    { imageSpanAlg = \x y -> binUnion (gatherFontsSpan x) (gatherFontsSpan y)
-    }
-  gatherFontsBasicImageAlgs :: BasicImageAlg (Map FontDef (Set String))
-  gatherFontsBasicImageAlgs =
-    { basicImageTextImageAlg    = mkTextXSpan
-    , basicImageEmptyImageAlg   = 'DM'.newMap
-    , basicImageCircleImageAlg  = 'DM'.newMap
-    , basicImageRectImageAlg    = 'DM'.newMap
-    , basicImageRawImageAlg     = const 'DM'.newMap
-    , basicImageEllipseImageAlg = 'DM'.newMap
-    }
+    gatherFontsMarkers :: !(Maybe (Markers m)) -> Map FontDef (Set String)
+    gatherFontsMarkers (Just {markerStart, markerMid, markerEnd}) = gatherFontsUnions (strictTRMapRev gatherFonts (maybeToList markerStart ++ maybeToList markerMid ++ maybeToList markerEnd))
+    gatherFontsMarkers _ = 'DM'.newMap
+    gatherFontsLineContent :: !LineContent -> Map FontDef (Set String)
+    gatherFontsLineContent (PolygonImage ios)  = gatherFontsUnions (gatherFontsPairs ios)
+    gatherFontsLineContent (PolylineImage ios) = gatherFontsUnions (gatherFontsPairs ios)
+    gatherFontsLineContent _                   = 'DM'.newMap
+  gatherFontsImageContent (Composite {host, compose}) = gatherFontsUnions [gatherFontsCompose compose : strictTRMapRev gatherFonts (maybeToList host)]
     where
-    mkTextXSpan :: !FontDef !String -> Map FontDef (Set String)
-    mkTextXSpan fd str = 'DM'.put fd ('DS'.singleton str) 'DM'.newMap
-  gatherFontsLineImageAlgs :: LineImageAlg (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
-  gatherFontsLineImageAlgs =
-    { lineImageLineImageAlg = mkLineImage
-    }
+    gatherFontsCompose :: !(Compose m) -> Map FontDef (Set String)
+    gatherFontsCompose (AsGrid    _ offss _ imgss) = gatherFontsUnions (strictTRMapRev gatherFonts (flattenTR imgss) ++ (gatherFontsPairs (flattenTR offss)))
+    gatherFontsCompose (AsCollage   offs    imgs)  = gatherFontsUnions (strictTRMapRev gatherFonts imgs ++ gatherFontsPairs offs)
+    gatherFontsCompose (AsOverlay   offs  _ imgs)  = gatherFontsUnions (strictTRMapRev gatherFonts imgs ++ gatherFontsPairs offs)
+  gatherFontsMask :: !(Maybe (Image m)) -> Map FontDef (Set String)
+  gatherFontsMask (Just img) = gatherFonts img
+  gatherFontsMask _          = 'DM'.newMap
+  gatherFontsAttribs :: !(Set (ImageAttr m )) -> Map FontDef (Set String)
+  gatherFontsAttribs attribs = gatherFontsUnions (strictTRMapRev gatherFontsAttrib ('DS'.toList attribs))
     where
-    mkLineImage :: !(Map FontDef (Set String)) !(Maybe (Map FontDef (Set String))) !(Map FontDef (Set String)) -> Map FontDef (Set String)
-    mkLineImage sp ms liCo = gatherFontsUnions [liCo:sp:maybeToList ms]
-  gatherFontsMarkersAlgs :: MarkersAlg (Map FontDef (Set String)) (Map FontDef (Set String))
-  gatherFontsMarkersAlgs =
-    { markersMarkersAlg = mkMarkers
-    }
+    gatherFontsAttrib :: !(ImageAttr m) -> Map FontDef (Set String)
+    gatherFontsAttrib (ImageStrokeWidthAttr {strokewidth}) = gatherFontsSpan strokewidth
+    gatherFontsAttrib (ImageXRadiusAttr     {xradius})     = gatherFontsSpan xradius
+    gatherFontsAttrib (ImageYRadiusAttr     {yradius})     = gatherFontsSpan yradius
+    gatherFontsAttrib _                                    = 'DM'.newMap
+  gatherFontsTransforms :: ![ImageTransform] -> Map FontDef (Set String)
+  gatherFontsTransforms transforms = gatherFontsUnions (strictTRMapRev gatherFontsTransform transforms)
     where
-    mkMarkers :: !(Maybe (Map FontDef (Set String))) !(Maybe (Map FontDef (Set String))) !(Maybe (Map FontDef (Set String))) -> Map FontDef (Set String)
-    mkMarkers m1 m2 m3 = gatherFontsUnions (concatMap maybeToList [m1, m2, m3])
-  gatherFontsLineContentAlgs :: LineContentAlg (Map FontDef (Set String))
-  gatherFontsLineContentAlgs =
-    { lineContentSimpleLineImageAlg = const 'DM'.newMap
-    , lineContentPolygonImageAlg    = gatherFontsUnions o (strictFoldl (\acc (x, y) -> [gatherFontsSpan x : gatherFontsSpan y : acc]) [])
-    , lineContentPolylineImageAlg   = gatherFontsUnions o (strictFoldl (\acc (x, y) -> [gatherFontsSpan x : gatherFontsSpan y : acc]) [])
-    }
-  gatherFontsCompositeImageAlgs :: CompositeImageAlg (Map FontDef (Set String)) (Map FontDef (Set String)) (Map FontDef (Set String))
-  gatherFontsCompositeImageAlgs =
-    { compositeImageAlg = mkCompositeImage
-    }
-    where
-    mkCompositeImage :: !(Maybe (Map FontDef (Set String))) !(Map FontDef (Set String)) -> Map FontDef (Set String)
-    mkCompositeImage host compose = gatherFontsUnions [compose : maybeToList host]
-  gatherFontsComposeAlgs :: ComposeAlg (Map FontDef (Set String)) (Map FontDef (Set String))
-  gatherFontsComposeAlgs =
-    { composeAsGridAlg    = \_ offss _ imgss -> gatherFontsUnions (flattenTR imgss ++ (strictFoldl (\acc (x, y) -> [gatherFontsSpan x : gatherFontsSpan y : acc]) [] (flattenTR offss)))
-    , composeAsCollageAlg = \  offs    imgs  -> gatherFontsUnions (imgs ++ strictFoldl (\acc (x, y) -> [gatherFontsSpan x : gatherFontsSpan y : acc]) [] offs)
-    , composeAsOverlayAlg = \  offs  _ imgs  -> gatherFontsUnions (imgs ++ strictFoldl (\acc (x, y) -> [gatherFontsSpan x : gatherFontsSpan y : acc]) [] offs)
-    }
+    gatherFontsTransform :: !ImageTransform -> Map FontDef (Set String)
+    gatherFontsTransform (FitImage l r) = gatherFontsUnions [gatherFontsSpan l, gatherFontsSpan r]
+    gatherFontsTransform (FitXImage l)  = gatherFontsSpan l
+    gatherFontsTransform (FitYImage l)  = gatherFontsSpan l
+    gatherFontsTransform _              = 'DM'.newMap
+
+gatherFontsPairs :: ![(!Span, !Span)] -> [Map FontDef (Set String)]
+gatherFontsPairs pairs = strictFoldl f [] pairs
+  where
+  f :: ![Map FontDef (Set String)] !(!Span, !Span) -> [Map FontDef (Set String)]
+  f acc (x, y) = [gatherFontsSpan x : gatherFontsSpan y : acc]
 
 gatherFontsSpan :: !Span -> Map FontDef (Set String)
-gatherFontsSpan (PxSpan r)      = 'DM'.newMap
-gatherFontsSpan (AddSpan l r)   = binUnion (gatherFontsSpan l) (gatherFontsSpan r)
-gatherFontsSpan (SubSpan l r)   = binUnion (gatherFontsSpan l) (gatherFontsSpan r)
-gatherFontsSpan (MulSpan l r)   = binUnion (gatherFontsSpan l) (gatherFontsSpan r)
-gatherFontsSpan (DivSpan l r)   = binUnion (gatherFontsSpan l) (gatherFontsSpan r)
-gatherFontsSpan (AbsSpan x)     = gatherFontsSpan x
-gatherFontsSpan (MinSpan xs)    = gatherFontsUnions (map gatherFontsSpan xs)
-gatherFontsSpan (MaxSpan xs)    = gatherFontsUnions (map gatherFontsSpan xs)
-gatherFontsSpan (LookupSpan lu) = gatherFontsLookupSpan lu
-
-gatherFontsLookupSpan :: !LookupSpan -> Map FontDef (Set String)
-gatherFontsLookupSpan (TextXSpan fd str) = 'DM'.singleton fd ('DS'.singleton str)
-gatherFontsLookupSpan _                  = 'DM'.newMap
-
-binUnion :: !(Map FontDef (Set String)) !(Map FontDef (Set String)) -> Map FontDef (Set String)
-binUnion x y = gatherFontsUnions [x, y]
+gatherFontsSpan (AddSpan l r)                   = gatherFontsUnions [gatherFontsSpan l, gatherFontsSpan r]
+gatherFontsSpan (SubSpan l r)                   = gatherFontsUnions [gatherFontsSpan l, gatherFontsSpan r]
+gatherFontsSpan (MulSpan l r)                   = gatherFontsUnions [gatherFontsSpan l, gatherFontsSpan r]
+gatherFontsSpan (DivSpan l r)                   = gatherFontsUnions [gatherFontsSpan l, gatherFontsSpan r]
+gatherFontsSpan (AbsSpan x)                     = gatherFontsSpan x
+gatherFontsSpan (MinSpan xs)                    = gatherFontsUnions (strictTRMapRev gatherFontsSpan xs)
+gatherFontsSpan (MaxSpan xs)                    = gatherFontsUnions (strictTRMapRev gatherFontsSpan xs)
+gatherFontsSpan (LookupSpan (TextXSpan fd str)) = 'DM'.singleton fd ('DS'.singleton str)
+gatherFontsSpan _                               = 'DM'.newMap
 
 const2 :: !a b c -> a
 const2 x _ _ = x
@@ -1052,7 +985,7 @@ desugarAndTag img st = imageCata desugarAndTagAllAlgs img st
       #! ((compose, composeSpan), st) = compose host imTrs imTas st
       #! (host, span)  = case host of
                           Just hostImg
-                             -> (Just hostImg, hostImg.totalSpanPostTrans)
+                             -> (host, hostImg.totalSpanPostTrans)
                           _  -> (Nothing, composeSpan)
       #! (span`, corr) = applyTransforms imTrs span
       = ({ desugarAndTagSyn_ImageContent        = Composite { CompositeImage
