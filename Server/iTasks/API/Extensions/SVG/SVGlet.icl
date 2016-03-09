@@ -1079,22 +1079,29 @@ genSVGMaybeImage (Just img) st
   = (Just syn, st)
 genSVGMaybeImage _ st = (Nothing, st)
 
+splitAttribs :: ![(!Maybe SVGAttr, !Map String (ImageAttr s), !Map String (ImageAttr s))]
+             -> (![Maybe SVGAttr], ![Map String (ImageAttr s)], ![Map String (ImageAttr s)])
+splitAttribs [] = ([], [], [])
+splitAttribs [(x, y, z) : rest]
+  #! (xs, ys, zs) = splitAttribs rest
+  = ([x:xs], [y:ys], [z:zs])
+
 genSVG :: !(Image s) !*(GenSVGStVal s) -> *(!GenSVGSyn s, !*GenSVGStVal s) | iTask s
 genSVG {content, mask, attribs, transform, tags, uniqId, totalSpanPreTrans = (txsp, tysp), totalSpanPostTrans = (txsp`, tysp`)} st
-  #! (attribs, st) = strictTRMapSt (genSVGImageAttr uniqId) ('DS'.toList attribs) st
-  #! (txsp, st)    = evalSpan txsp st
-  #! (tysp, st)    = evalSpan tysp st
-  #! (txsp`, st)   = evalSpan txsp` st
-  #! (tysp`, st)   = evalSpan tysp` st
-  #! (maskId, st)  = imageMaskId st
-  #! imAts`        = strictTRMap (\(x, _, _) -> x) attribs
-  #! interactive   = strictFoldl (\acc (_, m1, m2) -> acc || not ('DM'.null m1) || not ('DM'.null m2)) False attribs
-  #! (syn, st)     = genSVGImageContent content interactive (txsp, tysp) (maybe imAts` (const [Just (MaskAttr (mkUrl maskId)) : imAts`]) mask) transform tags uniqId st
-  #! (mask, st)    = genSVGMaybeImage mask st
+  #! (attribs, st)         = strictTRMapSt (genSVGImageAttr uniqId) ('DS'.toList attribs) st
+  #! (txsp, st)            = evalSpan txsp st
+  #! (tysp, st)            = evalSpan tysp st
+  #! (txsp`, st)           = evalSpan txsp` st
+  #! (tysp`, st)           = evalSpan tysp` st
+  #! (maskId, st)          = imageMaskId st
+  #! (imAts`, evts, drags) = splitAttribs attribs
+  #! interactive           = strictFoldl (\acc (_, m1, m2) -> acc || not ('DM'.null m1) || not ('DM'.null m2)) False attribs
+  #! (syn, st)             = genSVGImageContent content interactive (txsp, tysp) (maybe imAts` (const [Just (MaskAttr (mkUrl maskId)) : imAts`]) mask) transform tags uniqId st
+  #! (mask, st)            = genSVGMaybeImage mask st
   = ({ genSVGSyn_svgElts       = mkElt maskId mask syn
      , genSVGSyn_imageSpanReal = (txsp`, tysp`)
-     , genSVGSyn_events        = 'DM'.unions [syn.genSVGSyn_events : strictTRMap (\(_, x, _) -> x) attribs]
-     , genSVGSyn_draggable     = 'DM'.unions [syn.genSVGSyn_draggable : strictTRMap (\(_, _, x) -> x) attribs]
+     , genSVGSyn_events        = 'DM'.unions [syn.genSVGSyn_events : evts]
+     , genSVGSyn_draggable     = 'DM'.unions [syn.genSVGSyn_draggable : drags]
      , genSVGSyn_idMap         = 'DM'.put (mkUniqId editletId uniqId) tags syn.genSVGSyn_idMap
      }, st)
   where
