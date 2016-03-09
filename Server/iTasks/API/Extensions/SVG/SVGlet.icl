@@ -478,7 +478,6 @@ instance nextNo DesugarAndTagStVal where
   , desugarAndTagSyn_TotalSpan_PreTrans  :: !ImageSpan
   , desugarAndTagSyn_TotalSpan_PostTrans :: !ImageSpan
   , desugarAndTagSyn_OffsetCorrection    :: !ImageOffset
-  , desugarAndTagSyn_IsBasic             :: !Bool
   }
 
 cacheImageSpanPostTrans :: !Int !(Set ImageTag) !ImageSpan !*DesugarAndTagStVal -> *DesugarAndTagStVal
@@ -700,7 +699,7 @@ desugarAndTag {content, mask, attribs, transform, tags} st
        , desugarAndTagSyn_TotalSpan_PreTrans  = imSp
        , desugarAndTagSyn_TotalSpan_PostTrans = imSp`
        , desugarAndTagSyn_OffsetCorrection    = imOff
-       , desugarAndTagSyn_IsBasic             = True }, st)
+       }, st)
   desugarAndTagImageContent (Line {lineSpan, lineContent, markers}) transform tags st
     #! (markers, st)  = desugarAndTagMarkers markers st
     #! (imSp`, imOff) = applyTransforms transform lineSpan
@@ -711,7 +710,7 @@ desugarAndTag {content, mask, attribs, transform, tags} st
        , desugarAndTagSyn_TotalSpan_PreTrans  = lineSpan
        , desugarAndTagSyn_TotalSpan_PostTrans = imSp`
        , desugarAndTagSyn_OffsetCorrection    = imOff
-       , desugarAndTagSyn_IsBasic             = False }, st)
+       }, st)
     where
     desugarAndTagMarkers :: !(Maybe (Markers s)) !*DesugarAndTagStVal
                          -> *(!(Maybe (Markers s)), !*DesugarAndTagStVal) | iTask s
@@ -736,7 +735,7 @@ desugarAndTag {content, mask, attribs, transform, tags} st
        , desugarAndTagSyn_TotalSpan_PreTrans  = span
        , desugarAndTagSyn_TotalSpan_PostTrans = span`
        , desugarAndTagSyn_OffsetCorrection    = corr
-       , desugarAndTagSyn_IsBasic             = False }, st)
+       }, st)
     where
     desugarAndTagCompose :: !(Compose s) !(Maybe (Image s)) ![ImageTransform] !(Set ImageTag) !*DesugarAndTagStVal
                          -> *(!(!Compose s, !ImageSpan), !*DesugarAndTagStVal) | iTask s
