@@ -933,7 +933,7 @@ fixLookupSpans (TextXSpan fd str) st
                          Just sw -> sw
                          _       -> 0.0
             _       -> 0.0
-  = (PxSpan sw, {st & fixSpansDidChange = False})
+  = (PxSpan sw, {st & fixSpansDidChange = True})
 fixLookupSpans osp=:(ImageXSpan t) st
   #! ses                      = st.fixSpansSpanEnvs
   #! spanEnvImageTagPostTrans = ses.spanEnvImageTagPostTrans
@@ -947,8 +947,8 @@ fixLookupSpans osp=:(ImageXSpan t) st
               = (xsp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
             Just _
               = (LookupSpan osp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-            _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-      _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+            _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
+      _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
 fixLookupSpans osp=:(ImageYSpan t) st
   #! ses                      = st.fixSpansSpanEnvs
   #! spanEnvImageTagPostTrans = ses.spanEnvImageTagPostTrans
@@ -962,8 +962,8 @@ fixLookupSpans osp=:(ImageYSpan t) st
               = (ysp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
             Just _
               = (LookupSpan osp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-            _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-      _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+            _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
+      _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
 fixLookupSpans osp=:(ColumnXSpan t n) st
   #! ses            = st.fixSpansSpanEnvs
   #! spanEnvGridTag = ses.spanEnvGridTag
@@ -977,8 +977,8 @@ fixLookupSpans osp=:(ColumnXSpan t n) st
               = case 'DIS'.get n xs of
                   Just xsn=:(PxSpan _) -> (xsn, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
                   _                    -> (LookupSpan osp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-            _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-      _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+            _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
+      _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
 fixLookupSpans osp=:(RowYSpan t n) st
   #! ses            = st.fixSpansSpanEnvs
   #! spanEnvGridTag = ses.spanEnvGridTag
@@ -992,8 +992,8 @@ fixLookupSpans osp=:(RowYSpan t n) st
               = case 'DIS'.get n xs of
                   Just xsn=:(PxSpan _) -> (xsn, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
                   _                    -> (LookupSpan osp, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-            _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
-      _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = False})
+            _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
+      _ = (PxSpan 0.0, {st & fixSpansSpanEnvs = ses, fixSpansDidChange = True})
 
 numTag (ImageTagUser n _) = n
 numTag (ImageTagSystem n) = n + 8096
@@ -1084,7 +1084,7 @@ splitAttribs [] = ([], [], [])
 splitAttribs [(x, y, z) : rest]
   #! (xs, ys, zs) = splitAttribs rest
   = ([x:xs], [y:ys], [z:zs])
-
+import StdDebug
 genSVG :: !(Image s) !*(GenSVGStVal s) -> *(!GenSVGSyn s, !*GenSVGStVal s) | iTask s
 genSVG {content, mask, attribs, transform, tags, uniqId, totalSpanPreTrans = (txsp, tysp), totalSpanPostTrans = (txsp`, tysp`)} st
   #! (attribs, st)         = strictTRMapSt (genSVGImageAttr uniqId) ('DS'.toList attribs) st
