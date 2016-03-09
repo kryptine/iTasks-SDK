@@ -1084,10 +1084,10 @@ splitAttribs [] = ([], [], [])
 splitAttribs [(x, y, z) : rest]
   #! (xs, ys, zs) = splitAttribs rest
   = ([x:xs], [y:ys], [z:zs])
-import StdDebug
+
 genSVG :: !(Image s) !*(GenSVGStVal s) -> *(!GenSVGSyn s, !*GenSVGStVal s) | iTask s
 genSVG {content, mask, attribs, transform, tags, uniqId, totalSpanPreTrans = (txsp, tysp), totalSpanPostTrans = (txsp`, tysp`)} st
-  #! (attribs, st)         = strictTRMapSt (genSVGImageAttr uniqId) ('DS'.toList attribs) st
+  #! (attribs, st)         = strictTRMapSt genSVGImageAttr ('DS'.toList attribs) st
   #! (txsp, st)            = evalSpan txsp st
   #! (tysp, st)            = evalSpan tysp st
   #! (txsp`, st)           = evalSpan txsp` st
@@ -1104,45 +1104,45 @@ genSVG {content, mask, attribs, transform, tags, uniqId, totalSpanPreTrans = (tx
      , genSVGSyn_idMap         = 'DM'.put (mkUniqId editletId uniqId) tags syn.genSVGSyn_idMap
      }, st)
   where
-  genSVGImageAttr :: !Int !(ImageAttr s) !*(GenSVGStVal s)
+  genSVGImageAttr :: !(ImageAttr s) !*(GenSVGStVal s)
                   -> *(!(!Maybe SVGAttr, !Map String (ImageAttr s), !Map String (ImageAttr s)), !*(GenSVGStVal s)) | iTask s
-  genSVGImageAttr _ (ImageStrokeAttr { stroke }) st
+  genSVGImageAttr (ImageStrokeAttr { stroke }) st
     = ((Just (StrokeAttr (PaintColor stroke Nothing)), 'DM'.newMap, 'DM'.newMap), st)
-  genSVGImageAttr _ (ImageStrokeWidthAttr { strokewidth }) st
+  genSVGImageAttr (ImageStrokeWidthAttr { strokewidth }) st
     #! (w, st) = evalSpan strokewidth st
     = ((Just (StrokeWidthAttr (StrokeWidthLength (toString w, PX))), 'DM'.newMap, 'DM'.newMap), st)
-  genSVGImageAttr _ (ImageXRadiusAttr { xradius }) st
+  genSVGImageAttr (ImageXRadiusAttr { xradius }) st
     #! (r, st) = evalSpan xradius st
     = ((Just (RxAttr (toString r, PX)), 'DM'.newMap, 'DM'.newMap), st)
-  genSVGImageAttr _ (ImageYRadiusAttr { yradius }) st
+  genSVGImageAttr (ImageYRadiusAttr { yradius }) st
     #! (r, st) = evalSpan yradius st
     = ((Just (RyAttr (toString r, PX)), 'DM'.newMap, 'DM'.newMap), st)
-  genSVGImageAttr _ (ImageStrokeOpacityAttr { opacity }) st
+  genSVGImageAttr (ImageStrokeOpacityAttr { opacity }) st
     = ((Just (StrokeOpacityAttr (toString opacity)), 'DM'.newMap, 'DM'.newMap), st)
-  genSVGImageAttr _ (ImageFillOpacityAttr { opacity }) st
+  genSVGImageAttr (ImageFillOpacityAttr { opacity }) st
     = ((Just (FillOpacityAttr (FillOpacity (toString opacity))), 'DM'.newMap, 'DM'.newMap), st)
-  genSVGImageAttr _ (ImageFillAttr { fill }) st
+  genSVGImageAttr (ImageFillAttr { fill }) st
     = ((Just (FillAttr (PaintColor fill Nothing)), 'DM'.newMap, 'DM'.newMap), st)
-  genSVGImageAttr _ (ImageDashAttr { dash }) st
+  genSVGImageAttr (ImageDashAttr { dash }) st
     = ((Just (StrokeDashArrayAttr (DashArray (strictTRMap toString dash))), 'DM'.newMap, 'DM'.newMap), st)
-  genSVGImageAttr uniqId attr=:(ImageOnClickAttr _) st
+  genSVGImageAttr attr=:(ImageOnClickAttr _) st
     = mkEvent mkOnClickId uniqId attr st
-  genSVGImageAttr uniqId attr=:(ImageOnMouseDownAttr _) st
+  genSVGImageAttr attr=:(ImageOnMouseDownAttr _) st
     = mkEvent mkOnMouseDownId uniqId attr st
-  genSVGImageAttr uniqId attr=:(ImageOnMouseUpAttr _) st
+  genSVGImageAttr attr=:(ImageOnMouseUpAttr _) st
     = mkEvent mkOnMouseUpId uniqId attr st
-  genSVGImageAttr uniqId attr=:(ImageOnMouseOverAttr _) st
+  genSVGImageAttr attr=:(ImageOnMouseOverAttr _) st
     = mkEvent mkOnMouseOverId uniqId attr st
-  genSVGImageAttr uniqId attr=:(ImageOnMouseMoveAttr _) st
+  genSVGImageAttr attr=:(ImageOnMouseMoveAttr _) st
     = mkEvent mkOnMouseMoveId uniqId attr st
-  genSVGImageAttr uniqId attr=:(ImageOnMouseOutAttr _) st
+  genSVGImageAttr attr=:(ImageOnMouseOutAttr _) st
     = mkEvent mkOnMouseOutId uniqId attr st
-  genSVGImageAttr uniqId (ImageDraggableAttr { draggable = Nothing }) st
+  genSVGImageAttr (ImageDraggableAttr { draggable = Nothing }) st
     = ((Nothing, 'DM'.newMap, 'DM'.newMap), st)
-  genSVGImageAttr uniqId attr=:(ImageDraggableAttr _) st
+  genSVGImageAttr attr=:(ImageDraggableAttr _) st
     #! ocId = mkUniqId editletId uniqId
     = ((Nothing, 'DM'.newMap, 'DM'.singleton ocId attr), st)
-  genSVGImageAttr _ _ st
+  genSVGImageAttr _ st
     = ((Nothing, 'DM'.newMap, 'DM'.newMap), st)
 
   mkEvent :: !(String Int -> String) !Int !(ImageAttr s) !*(GenSVGStVal s)
