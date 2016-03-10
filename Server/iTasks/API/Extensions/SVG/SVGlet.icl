@@ -670,6 +670,11 @@ desugarAndTagMaybeImage (Just img) st
   = (Just img, st)
 desugarAndTagMaybeImage n st = (n, st)
 
+mkTotalSpanPostTrans :: !(Image s) -> (!Span, !Span)
+mkTotalSpanPostTrans {uniqId}
+  #! newTag = ImageTagSystem uniqId
+  = (LookupSpan (ImageXSpan newTag), LookupSpan (ImageYSpan newTag)) 
+
 desugarAndTag :: !(Image s) !*DesugarAndTagStVal -> *(!Image s, !*DesugarAndTagStVal) | iTask s
 desugarAndTag {content, mask, attribs, transform, tags} st
   #! (mask, st)      = desugarAndTagMaybeImage mask st
@@ -686,7 +691,6 @@ desugarAndTag {content, mask, attribs, transform, tags} st
                        , tags                = tags
                        , uniqId              = no
                        , totalSpanPreTrans   = syn.desugarAndTagSyn_TotalSpan_PreTrans  // TODO Get rid of these fields in favor of cached spans
-                       , totalSpanPostTrans  = (LookupSpan (ImageXSpan newTag), LookupSpan (ImageYSpan newTag)) // TODO Get rid of these fields in favor of cached spans
                        , transformCorrection = syn.desugarAndTagSyn_OffsetCorrection    // TODO Get rid of these fields in favor of cached spans
                        }
   = (img, st)
@@ -725,7 +729,7 @@ desugarAndTag {content, mask, attribs, transform, tags} st
     #! ((compose, composeSpan), st) = desugarAndTagCompose compose host transform tags st
     #! (host, span)                 = case host of
                                        Just hostImg
-                                          -> (host, hostImg.totalSpanPostTrans)
+                                          -> (host, mkTotalSpanPostTrans hostImg)
                                        _  -> (Nothing, composeSpan)
     #! (span`, corr)                = applyTransforms transform span
     = ({ desugarAndTagSyn_ImageContent        = Composite { CompositeImage
@@ -748,8 +752,8 @@ desugarAndTag {content, mask, attribs, transform, tags} st
       #! gridSpan    = maybe ( strictFoldl (\acc n -> LookupSpan (ColumnXSpan sysTags n) + acc) (px 0.0) colIndices
                              , strictFoldl (\acc n -> LookupSpan (RowYSpan sysTags n)    + acc) (px 0.0) rowIndices
                              )
-                             (\x -> x.totalSpanPostTrans) host
-      #! spanss      = strictTRMap (strictTRMap (\x -> x.totalSpanPostTrans)) imgss
+                             mkTotalSpanPostTrans host
+      #! spanss      = strictTRMap (strictTRMap mkTotalSpanPostTrans) imgss
       #! st          = cacheGridSpans tag ('DS'.insert sysTags tags)
                                       (strictTRMap (maxSpan o strictTRMap fst) (transpose spanss))
                                       (strictTRMap (maxSpan o strictTRMap snd) spanss) st
@@ -770,24 +774,24 @@ desugarAndTag {content, mask, attribs, transform, tags} st
             , yoff + cellYSpan)
         mkCols :: !Span !Span !(![(!Span, !Span)], !Span) !(!(!XAlign, !YAlign), !Image s, !Span, !(!Span, !Span))
                -> (![(!Span, !Span)], !Span)
-        mkCols cellYSpan yoff (acc, xoff) (align, img=:{totalSpanPostTrans, transformCorrection = (tfXCorr, tfYCorr)}, cellXSpan, (manXOff, manYOff))
-          #! (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan totalSpanPostTrans align
+        mkCols cellYSpan yoff (acc, xoff) (align, img=:{transformCorrection = (tfXCorr, tfYCorr)}, cellXSpan, (manXOff, manYOff))
+          #! (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan (mkTotalSpanPostTrans img) align
           = ([( xoff + alignXOff + manXOff + tfXCorr
               , yoff + alignYOff + manYOff + tfYCorr) : acc], xoff + cellXSpan)
     desugarAndTagCompose (AsCollage offsets imgs) host transform tags st
       #! (imgs, st)    = strictTRMapSt desugarAndTag imgs st
       = (( AsCollage offsets imgs
-         , maybe (calculateComposedSpan (strictTRMap (\x -> x.totalSpanPostTrans) imgs) offsets) (\x -> x.totalSpanPostTrans) host), st)
+         , maybe (calculateComposedSpan (strictTRMap mkTotalSpanPostTrans imgs) offsets) mkTotalSpanPostTrans host), st)
     desugarAndTagCompose (AsOverlay offsets ias imgs) host transform tags st
       #! (imgs, st)     = strictTRMapSt desugarAndTag imgs st
-      #! spans          = strictTRMap (\x -> x.totalSpanPostTrans) imgs
+      #! spans          = strictTRMap mkTotalSpanPostTrans imgs
       #! (  maxXSpan
           , maxYSpan)   = maybe (maxSpan (strictTRMap fst spans), maxSpan (strictTRMap snd spans))
                                 (\x -> x.totalSpanPreTrans) host
       #! alignOffsets   = strictTRZipWith (calcAlignOffset maxXSpan maxYSpan) spans ias
       #! placingOffsets = strictTRZipWith3 addOffset alignOffsets offsets imgs
       = ( ( AsCollage placingOffsets imgs
-          , maybe (calculateComposedSpan spans placingOffsets) (\x -> x.totalSpanPostTrans) host)
+          , maybe (calculateComposedSpan spans placingOffsets) mkTotalSpanPostTrans host)
         , st)
       where
       addOffset :: !(!Span, !Span) !(!Span, !Span) !(Image s) -> (!Span, !Span) | iTask s
@@ -1086,12 +1090,13 @@ splitAttribs [(x, y, z) : rest]
   = ([x:xs], [y:ys], [z:zs])
 
 genSVG :: !(Image s) !*(GenSVGStVal s) -> *(!GenSVGSyn s, !*GenSVGStVal s) | iTask s
-genSVG {content, mask, attribs, transform, tags, uniqId, totalSpanPreTrans = (txsp, tysp), totalSpanPostTrans = (txsp`, tysp`)} st
+genSVG {content, mask, attribs, transform, tags, uniqId, totalSpanPreTrans = (txsp, tysp)} st
   #! (attribs, st)         = strictTRMapSt genSVGImageAttr ('DS'.toList attribs) st
   #! (txsp, st)            = evalSpan txsp st
   #! (tysp, st)            = evalSpan tysp st
-  #! (txsp`, st)           = evalSpan txsp` st
-  #! (tysp`, st)           = evalSpan tysp` st
+  #! currTag               = ImageTagSystem uniqId
+  #! (txsp`, st)           = evalSpan (LookupSpan (ImageXSpan currTag)) st
+  #! (tysp`, st)           = evalSpan (LookupSpan (ImageYSpan currTag)) st
   #! (maskId, st)          = imageMaskId st
   #! (imAts`, evts, drags) = splitAttribs attribs
   #! interactive           = strictFoldl (\acc (_, m1, m2) -> acc || not ('DM'.null m1) || not ('DM'.null m2)) False attribs
