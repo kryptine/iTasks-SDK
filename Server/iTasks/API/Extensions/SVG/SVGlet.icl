@@ -1307,13 +1307,20 @@ genSVG {content, mask, attribs, transform, tags, uniqId, totalSpanPreTrans = (tx
     genSVGCompose :: !(Compose s) !(Maybe (GenSVGSyn s)) !ImageSpanReal ![Maybe SVGAttr] ![ImageTransform] !(Set ImageTag) !*(GenSVGStVal s)
                   -> (!GenSVGSyn s, !*GenSVGStVal s) | iTask s
     genSVGCompose (AsCollage offsets imgs) host totalSpanPreTrans attribs transform tags st
-      #! (offsets, st) = evalListOfSpanPair offsets st
-      #! (imgsSps, st) = strictTRMapSt genSVG imgs st
-      = ({ genSVGSyn_svgElts       = flattenTR (strictTRZipWith mkTranslateGroup offsets (strictTRMap (\x -> x.genSVGSyn_svgElts) imgsSps))
-         , genSVGSyn_events        = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_events) imgsSps)
-         , genSVGSyn_draggable     = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_draggable) imgsSps)
-         , genSVGSyn_idMap         = 'DM'.unions (strictTRMap (\x -> x.genSVGSyn_idMap) imgsSps)
+      #! (offsets, st)    = evalListOfSpanPair offsets st
+      #! (imgsSps, st)    = strictTRMapSt genSVG imgs st
+      #! (ss, es, ds, is) = splitSyn imgsSps
+      = ({ genSVGSyn_svgElts       = flattenTR (strictTRZipWith mkTranslateGroup offsets ss)
+         , genSVGSyn_events        = es
+         , genSVGSyn_draggable     = ds
+         , genSVGSyn_idMap         = is
          , genSVGSyn_imageSpanReal = totalSpanPreTrans }, st) // Setting genSVGSyn_imageSpanReal is required here. It needs to be totalSpanPreTrans, because transforms will be calculated just after this.
+      where
+      splitSyn :: ![GenSVGSyn s] -> (![[SVGElt]], !Map String (ImageAttr s), !Map String (ImageAttr s), !Map String (Set ImageTag))
+      splitSyn [] = ([], 'DM'.newMap, 'DM'.newMap, 'DM'.newMap)
+      splitSyn [syn : rest]
+        #! (ss, es, ds, is) = splitSyn rest
+        = ([syn.genSVGSyn_svgElts : ss], 'DM'.union syn.genSVGSyn_events es, 'DM'.union syn.genSVGSyn_draggable ds, 'DM'.union syn.genSVGSyn_idMap is)
     // These aren't used. They're translated to collages in fixSpans. We
     // provide them here only because we must if we don't want the evaluation
     // to crash.
