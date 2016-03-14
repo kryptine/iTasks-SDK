@@ -100,8 +100,8 @@ beforeStep layout = conditionalLayout (\n -> n =:(UI UIStep _ _)) layout //TODO:
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
 toWindow windowType vpos hpos = changeNodeType mkWindow
 where
-	mkWindow (UI _ attr items) = UI (UIWindow sOpts cOpts {wOpts & windowType = windowType, vpos = Just vpos, hpos = Just hpos}) attr items
-	(UIWindow sOpts cOpts wOpts) = defaultWindow
+	mkWindow (UI _ attr items) = UI (UIWindow {wOpts & windowType = windowType, vpos = Just vpos, hpos = Just hpos}) attr items
+	(UIWindow wOpts) = defaultWindow
 
 toEmpty :: Layout
 toEmpty = changeNodeType (const (ui UIEmpty))

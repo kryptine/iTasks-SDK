@@ -154,7 +154,7 @@ actionToButton :: Layout
 actionToButton = layout 
 where
 	layout (ReplaceUI (UI (UIAction {UIAction|taskId,action=action=:(Action actionId _),enabled}) _ _ ),_)
-		= (ReplaceUI (ui (UIActionButton defaultSizeOpts {UIActionOpts|taskId = toString taskId,actionId=actionId}
+		= (ReplaceUI (ui (UIActionButton {UIActionOpts|taskId = toString taskId,actionId=actionId}
 				{UIButtonOpts|text = Just (actionName action), iconCls = (actionIcon action), disabled = not enabled})),JSONNull)
 	
 	layout (ChangeUI local [],s) = (ChangeUI (map remap local) [],s)
@@ -181,7 +181,7 @@ infoControl attributes
 		(Just (JSONString type), Just (JSONString hint)) 	= Just (icon type hint)
 		_ 						= Nothing
 where
-	icon type tooltip = setLeftMargin 5 (ui (UIIcon defaultFSizeOpts {UIIconOpts|iconCls = "icon-" +++ type, tooltip = Just tooltip}))
+	icon type tooltip = setLeftMargin 5 (ui (UIIcon {UIIconOpts|iconCls = "icon-" +++ type, tooltip = Just tooltip}))
 
 formatLabel :: Bool String -> String
 formatLabel optional label

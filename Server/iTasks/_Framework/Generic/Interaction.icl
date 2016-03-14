@@ -31,7 +31,7 @@ where
 			= (viz,vst)
 	where
 		checkbox checked = uic (UIEditor {UIEditor|optional=True})
-			[ui (UIEditCheckbox defaultFSizeOpts {UIEditOpts|taskId = taskId, editorId = editorId dp, value = Just (JSONBool checked)})]
+			[ui (UIEditCheckbox {UIEditOpts|taskId = taskId, editorId = editorId dp, value = Just (JSONBool checked)})]
 
 	genDiff dp (RECORD old) om (RECORD new) nm vst 
 		# (diff,vst) = ex.Editor.genDiff (pairPath grd_arity dp) old (toPairMask grd_arity om) new (toPairMask grd_arity nm) vst
@@ -96,7 +96,7 @@ where
 		consDropdown choice = uiac (UIEditor 
 			{UIEditor|optional=False})
 				(attributes mask)
-				[ui (UIDropdown defaultHSizeOpts
+				[ui (UIDropdown 
 								{UIChoiceOpts
 								| taskId = taskId
 								, editorId = editorId dp
@@ -306,20 +306,20 @@ isOptional (UI (UIEditor {UIEditor|optional}) _ _) 		 = optional
 isOptional _ 										       = False
 
 gEditor{|Int|} = primitiveTypeEditor (Just "whole number")
-					(\viewOpts -> ui (UIViewString defaultSizeOpts (fmap toString viewOpts)))
-					(\editOpts -> ui (UIEditInt defaultHSizeOpts editOpts))
+					(\viewOpts -> ui (UIViewString (fmap toString viewOpts)))
+					(\editOpts -> ui (UIEditInt editOpts))
 gEditor{|Real|} = primitiveTypeEditor (Just "decimal number")
-					(\viewOpts -> ui (UIViewString defaultSizeOpts (fmap toString viewOpts)))
-					(\editOpts -> ui (UIEditDecimal defaultHSizeOpts editOpts))
+					(\viewOpts -> ui (UIViewString (fmap toString viewOpts)))
+					(\editOpts -> ui (UIEditDecimal editOpts))
 gEditor{|Char|} = primitiveTypeEditor (Just "single character")
-					(\viewOpts -> ui (UIViewString defaultSizeOpts (fmap toString viewOpts)))
-					(\editOpts -> ui (UIEditString defaultHSizeOpts editOpts))
+					(\viewOpts -> ui (UIViewString (fmap toString viewOpts)))
+					(\editOpts -> ui (UIEditString editOpts))
 gEditor{|String|} = primitiveTypeEditor (Just "single line of text")
-					(\viewOpts -> ui (UIViewString defaultSizeOpts (fmap toString viewOpts)))
-					(\editOpts -> ui (UIEditString defaultHSizeOpts editOpts))
+					(\viewOpts -> ui (UIViewString (fmap toString viewOpts)))
+					(\editOpts -> ui (UIEditString editOpts))
 gEditor{|Bool|} = primitiveTypeEditor Nothing 
-					(\viewOpts -> ui (UIViewCheckbox defaultFSizeOpts viewOpts))
-					(\editOpts -> ui (UIEditCheckbox defaultFSizeOpts editOpts))
+					(\viewOpts -> ui (UIViewCheckbox viewOpts))
+					(\editOpts -> ui (UIEditCheckbox editOpts))
 
 primitiveTypeEditor mbTypeDesc mkViewControl mkEditControl = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where 
@@ -387,16 +387,16 @@ where
 			//# controls	= map (setWidth FlexSize) (decorateControls (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = editorControls item, size = defaultSizeOpts}))
 			# controls = []
 			# buttons	= (if reorder
-							  [ui (UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0})
-							  ,ui (UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1})
+							  [ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0})
+							  ,ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1})
 							  ] []) ++
 							  (if remove
-							  [ui (UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False})
+							  [ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False})
 							  ] [])
 			= setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (uic defaultContainer (if disabled controls (controls ++ buttons)))))
 		addItemControl numItems
-			# counter   = if count [ui (UIViewString {UISizeOpts|defaultSizeOpts & width=Just FlexSize} {UIViewOpts|value= Just (numItemsText numItems)})] []
-			# button	= if enableAdd [ui (UIEditButton defaultSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "add")} {UIButtonOpts|text=Nothing,iconCls=Just "icon-add",disabled=False})] []
+			# counter   = if count [setWidth FlexSize (ui (UIViewString {UIViewOpts|value= Just (numItemsText numItems)}))] []
+			# button	= if enableAdd [ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "add")} {UIButtonOpts|text=Nothing,iconCls=Just "icon-add",disabled=False})] []
 			= (setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (uic defaultContainer (counter ++ button)))))
 			
 		listContainer controls
@@ -466,7 +466,7 @@ gEditor{|Dynamic|} = emptyEditor
 gEditor{|HtmlTag|}	= {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
 	genUI dp val mask vst
-		= (uic (UIEditor {UIEditor|optional=False}) [ui (UIViewHtml defaultSizeOpts {UIViewOpts|value = Just val})], vst)
+		= (uic (UIEditor {UIEditor|optional=False}) [ui (UIViewHtml {UIViewOpts|value = Just val})], vst)
 
 	genDiff dp ov om nv nm vst = (NoChange,vst)
 

@@ -72,7 +72,7 @@ where
 			  , appDiff 	= jsAD
 			  }
 
-		eui uiDef opts = setSize uiDef.ComponentHTML.width uiDef.ComponentHTML.height (ui (UIEditlet defaultSizeOpts opts))
+		eui uiDef opts = setSize uiDef.ComponentHTML.width uiDef.ComponentHTML.height (ui (UIEditlet opts))
 		toJSONA a = case JSONEncode{|*|} False a of
 			[json:_]	= json
 			_			= JSONNull

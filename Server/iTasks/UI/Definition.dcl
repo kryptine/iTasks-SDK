@@ -24,10 +24,10 @@ from GenEq import generic gEq
 //Provide generic instances for all UI definitions
 derive class iTask UI, UINodeType, UIAction, UIEditor
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
-derive class iTask UIWindowOpts, UIContainerOpts, UISizeOpts, UIEditOpts, UIViewOpts, UIActionOpts
+derive class iTask UIWindowOpts, UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
 derive class iTask UIPanelOpts, UITabSetOpts, UIEditletOpts, UITaskletOpts, UIIconOpts, UILabelOpts
-derive class iTask UIHSizeOpts, UIFSizeOpts, UIButtonOpts, UIMenuButtonOpts, UITreeNode, UIMenuItem
+derive class iTask UIButtonOpts, UIMenuButtonOpts, UITreeNode, UIMenuItem
 
 instance Functor UIViewOpts
 //TODO:
@@ -69,52 +69,52 @@ derive class iTask UIChange, UIChildChange
 	| UIStep
 	| UIParallel
 	| UICompoundContent
-    | UIBlock   		!UISizeOpts !UIContainerOpts
+    | UIBlock   					//TODO: Remove
 	//Final containers
-    | UIContainer       !UISizeOpts !UIContainerOpts
-	| UIPanel 			!UISizeOpts !UIContainerOpts !UIPanelOpts
-	| UITabSet			!UISizeOpts !UITabSetOpts
-	| UITab                         !UIContainerOpts !UITabOpts
-	| UIWindow 			!UISizeOpts !UIContainerOpts !UIWindowOpts
+    | UIContainer      				
+	| UIPanel 						!UIPanelOpts
+	| UITabSet						!UITabSetOpts
+	| UITab                         !UITabOpts
+	| UIWindow 						!UIWindowOpts
 	// Components for viewing data:
-	| UIViewString		!UISizeOpts	    !(UIViewOpts String)							// - String (non-wrapping single line text with automatic escaping)
-	| UIViewHtml		!UISizeOpts	    !(UIViewOpts HtmlTag)							// - Html (formatted multi line text)
-	| UIViewDocument	!UIHSizeOpts	!(UIViewOpts Document)							// - Document (info + download link)
-	| UIViewCheckbox	!UIFSizeOpts	!(UIViewOpts Bool)								// - Checkbox (non-editable tick-mark)
-	| UIViewSlider		!UIHSizeOpts	!(UIViewOpts Int)  !UISliderOpts				// - Slider (non-editable slider)
-	| UIViewProgress	!UIHSizeOpts	!(UIViewOpts ProgressAmount) !UIProgressOpts	// - Progress (non editable progress bar)
-	| UIIcon			!UIFSizeOpts	!UIIconOpts									    // - Icon (information icon with tooltip text)
+	| UIViewString					!(UIViewOpts String)							// - String (non-wrapping single line text with automatic escaping)
+	| UIViewHtml					!(UIViewOpts HtmlTag)							// - Html (formatted multi line text)
+	| UIViewDocument				!(UIViewOpts Document)							// - Document (info + download link)
+	| UIViewCheckbox				!(UIViewOpts Bool)								// - Checkbox (non-editable tick-mark)
+	| UIViewSlider					!(UIViewOpts Int)  !UISliderOpts				// - Slider (non-editable slider)
+	| UIViewProgress				!(UIViewOpts ProgressAmount) !UIProgressOpts	// - Progress (non editable progress bar)
+	| UIIcon						!UIIconOpts									    // - Icon (information icon with tooltip text)
 	// Components for editing data:
-	| UIEditString		!UIHSizeOpts	!UIEditOpts                                     // - String (single line text field)
-	| UIEditNote		!UISizeOpts	    !UIEditOpts                                     // - Note (multi-line text field)
-	| UIEditPassword    !UIHSizeOpts    !UIEditOpts                                     // - Password (single line text field that hides the text)
-	| UIEditInt         !UIHSizeOpts    !UIEditOpts                                     // - Int (integer number field)
-	| UIEditDecimal		!UIHSizeOpts	!UIEditOpts                                     // - Decimal (decimal number field)
-	| UIEditCheckbox	!UIFSizeOpts    !UIEditOpts                                     // - Checkbox (editable checkbox)
-	| UIEditSlider		!UIHSizeOpts	!UIEditOpts  !UISliderOpts				        // - Slider (editable slider)
-	| UIEditDate		!UIHSizeOpts	!UIEditOpts 							        // - Date (date picker)
-	| UIEditTime		!UIHSizeOpts	!UIEditOpts 							        // - Time (time picker)
-	| UIEditDateTime	!UIHSizeOpts	!UIEditOpts 							        // - DateTime (date + time picker)
-	| UIEditDocument	!UIHSizeOpts    !UIEditOpts 						            // - Document (info + upload possibility)
-	| UIEditButton		!UISizeOpts     !UIEditOpts  !UIButtonOpts		                // - Button that sends edit events on click
+	| UIEditString					!UIEditOpts                                     // - String (single line text field)
+	| UIEditNote					!UIEditOpts                                     // - Note (multi-line text field)
+	| UIEditPassword    			!UIEditOpts                                     // - Password (single line text field that hides the text)
+	| UIEditInt         			!UIEditOpts                                     // - Int (integer number field)
+	| UIEditDecimal					!UIEditOpts                                     // - Decimal (decimal number field)
+	| UIEditCheckbox				!UIEditOpts                                     // - Checkbox (editable checkbox)
+	| UIEditSlider					!UIEditOpts  !UISliderOpts				        // - Slider (editable slider)
+	| UIEditDate					!UIEditOpts 							        // - Date (date picker)
+	| UIEditTime					!UIEditOpts 							        // - Time (time picker)
+	| UIEditDateTime				!UIEditOpts 							        // - DateTime (date + time picker)
+	| UIEditDocument				!UIEditOpts 						            // - Document (info + upload possibility)
+	| UIEditButton					!UIEditOpts  !UIButtonOpts		                // - Button that sends edit events on click
 	// Components for indicating choices:
-	| UIDropdown		!UIHSizeOpts	!(UIChoiceOpts String)						    // - Dropdown (choice from a list of alternatives)
-	| UIGrid			!UISizeOpts	    !(UIChoiceOpts [String]) !UIGridOpts		    // - Grid (selecting an item in a table)
-	| UITree			!UISizeOpts	    !(UIChoiceOpts UITreeNode) !UITreeOpts		    // - Tree (selecting a node in a tree structure)
-	| UIListChoice		!UISizeOpts     !(UIChoiceOpts String)						    // - A mutually exclusive set of radio buttons 
-	| UIRadioGroup		!UISizeOpts     !(UIChoiceOpts String)						    // - A mutually exclusive set of radio buttons 
-	| UICheckboxGroup	!UISizeOpts     !(UIChoiceOpts String)						    // - A group of checkboxes that indicate a multiple selection
+	| UIDropdown					!(UIChoiceOpts String)						    // - Dropdown (choice from a list of alternatives)
+	| UIGrid						!(UIChoiceOpts [String]) !UIGridOpts		    // - Grid (selecting an item in a table)
+	| UITree						!(UIChoiceOpts UITreeNode) !UITreeOpts		    // - Tree (selecting a node in a tree structure)
+	| UIListChoice					!(UIChoiceOpts String)						    // - A mutually exclusive set of radio buttons 
+	| UIRadioGroup					!(UIChoiceOpts String)						    // - A mutually exclusive set of radio buttons 
+	| UICheckboxGroup				!(UIChoiceOpts String)						    // - A group of checkboxes that indicate a multiple selection
 	// Components for triggering actions:
-	| UIActionButton	!UISizeOpts	    !UIActionOpts !UIButtonOpts					    // - Action Button (clicks trigger action events)
-	| UIMenuButton		!UISizeOpts	    !UIMenuButtonOpts							    // - Menu Button (clicks open a menu)
+	| UIActionButton				!UIActionOpts !UIButtonOpts					    // - Action Button (clicks trigger action events)
+	| UIMenuButton					!UIMenuButtonOpts							    // - Menu Button (clicks open a menu)
 	// Misc auxiliary components:
-	| UILabel			!UIHSizeOpts	!UILabelOpts								    // - Label (non-wrapping text label, clicks focus next component)
+	| UILabel						!UILabelOpts								    // - Label (non-wrapping text label, clicks focus next component)
     | UISplitter
 	// Tasklet stuff
-	| UITasklet			!UISizeOpts     !UITaskletOpts								    // - Tasklet (custom clientside interaction)
-	| UIEditlet			!UISizeOpts	    !UIEditletOpts								    // - Editlet (custom clientside editor)
+	| UITasklet						!UITaskletOpts								    // - Tasklet (custom clientside interaction)
+	| UIEditlet						!UIEditletOpts								    // - Editlet (custom clientside editor)
 	// Viewport for other task instances
-    | UIEmbedding       !UISizeOpts     !UIEmbeddingOpts                                // - Embedding of a related task gui (like an iframe for tasks)
+    | UIEmbedding       			!UIEmbeddingOpts                                // - Embedding of a related task gui (like an iframe for tasks)
 
 :: UIAttributes 		:== Map String JSONNode
 
@@ -153,27 +153,6 @@ derive class iTask UIChange, UIChildChange
     | NotificationBubble    //Fixed position info
 
 //Most components can be resized in two dimensions
-:: UISizeOpts =
-	{ width		:: !Maybe UISize
-	, minWidth	:: !Maybe UIBound
-    , maxWidth  :: !Maybe UIBound
-	, height	:: !Maybe UISize
-	, minHeight	:: !Maybe UIBound
-	, maxHeight	:: !Maybe UIBound
-	, margins	:: !Maybe UISideSizes
-	}
-//Some components can only be resized in the horizontal dimension
-:: UIHSizeOpts =
-	{ width		:: !Maybe UISize
-	, minWidth	:: !Maybe UIBound
-    , maxWidth  :: !Maybe UIBound
-	, margins	:: !Maybe UISideSizes
-	}
-//Some components can not be sized. You can only set margins
-:: UIFSizeOpts = //F stands for Fixed)
-    { margins   :: !Maybe UISideSizes
-    }
-
 :: UISize
 	= ExactSize !Int
 	| WrapSize
@@ -183,15 +162,6 @@ derive class iTask UIChange, UIChildChange
 	= ExactBound !Int
 	| WrapBound
 	
-:: UIContainerOpts =
-	{ direction	:: !UIDirection
-	, halign	:: !UIHAlign
-	, valign	:: !UIVAlign
-	, padding	:: !Maybe UISideSizes
-	, baseCls	:: !Maybe String
-	, bodyCls	:: !Maybe String
-	}
-
 :: UIHAlign
 	= AlignLeft
 	| AlignCenter
@@ -365,6 +335,10 @@ setRightMargin	:: !Int 					!UI -> UI
 setBottomMargin	:: !Int 					!UI -> UI
 setLeftMargin	:: !Int 					!UI -> UI
 setPadding 		:: !Int !Int !Int !Int      !UI -> UI
+setTopPadding   :: !Int                     !UI -> UI
+setRightPadding :: !Int                     !UI -> UI
+setBottomPadding:: !Int                     !UI -> UI
+setLeftPadding  :: !Int                     !UI -> UI
 setTitle 		:: !String 					!UI -> UI
 setFramed		:: !Bool					!UI -> UI
 setIconCls		:: !String					!UI -> UI
@@ -373,15 +347,7 @@ setDirection    :: !UIDirection             !UI -> UI
 setHalign       :: !UIHAlign                !UI -> UI
 setValign		:: !UIVAlign				!UI -> UI
 
-//Access functions
-getMargins      ::                          !UI -> (Maybe UISideSizes)
-
 //Constructing default values
-defaultSizeOpts		    :: UISizeOpts
-defaultHSizeOpts        :: UIHSizeOpts
-defaultFSizeOpts	    :: UIFSizeOpts
-
-defaultContainerOpts    :: UIContainerOpts
 defaultPanelOpts        :: UIPanelOpts
 defaultTabSetOpts       :: UITabSetOpts
 defaultTabOpts          :: UITabOpts

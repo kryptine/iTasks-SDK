@@ -754,9 +754,7 @@ where
     release taskId meta = meta
 
     embedTaskDef instanceNo instanceKey
-		= ui (UIEmbedding embedSize {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey})
-
-    embedSize = {UISizeOpts|defaultSizeOpts & width= Just FlexSize, height=Just FlexSize}
+		= (setWidth FlexSize o setHeight FlexSize) (ui (UIEmbedding {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey}))
 
 	inUseDef = stringDisplay "This task is already in use"
 

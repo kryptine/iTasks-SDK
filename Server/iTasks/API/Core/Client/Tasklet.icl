@@ -154,7 +154,7 @@ genRep tasklet taskId taskRepOpts mbState iworld
 						     Nothing
 						     iworld			
 			
-				# tui = toDef (UITasklet defaultSizeOpts 
+				# tui = toDef (UITasklet
 				 			{UITaskletOpts 
 				 			| taskId   		 = toString taskId
 							, html     		 = Nothing
@@ -170,7 +170,7 @@ genRep tasklet taskId taskRepOpts mbState iworld
 				= (rep, state, iworld)
 where
 	tTUIToTasklet taskId state_js script_js mb_ino rf_js mb_cf_js
-		 = toDef (UITasklet defaultSizeOpts 
+		 = toDef (UITasklet 
 		 			{UITaskletOpts 
 		 			| taskId   		 = toString taskId
 					, html     		 = Nothing
@@ -184,7 +184,7 @@ where
 
 	tHTMLToTasklet {TaskletHTML|width,height,html} taskId state_js script_js events_js intfcs_js rf_js 
 		= setSize width height
-				(toDef (UITasklet defaultSizeOpts
+				(toDef (UITasklet
 					 {UITaskletOpts
 					 | taskId   	  = toString taskId
 					 , html     	  = Just (toString html)

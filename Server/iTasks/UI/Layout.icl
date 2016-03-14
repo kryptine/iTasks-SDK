@@ -847,10 +847,12 @@ addButtonPanel attr direction buttons items
 
 //GUI combinators						
 hjoin :: ![UI] -> UI
-hjoin items = uic (UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Horizontal, halign = AlignLeft, valign = AlignMiddle}) items
+hjoin items = (setDirection Horizontal o setHalign AlignLeft o setValign AlignMiddle)
+	          (uic UIContainer items)
 
 vjoin :: ![UI] -> UI
-vjoin items = uic (UIContainer defaultSizeOpts {UIContainerOpts|defaultContainerOpts & direction = Vertical, halign = AlignLeft, valign = AlignTop}) items
+vjoin items = (setDirection Vertical o setHalign AlignLeft o setValign AlignTop)
+              (uic UIContainer items)
 						
 //Container operations
 /*
