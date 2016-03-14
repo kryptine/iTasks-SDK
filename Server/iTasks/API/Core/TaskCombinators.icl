@@ -551,6 +551,13 @@ where
 		| otherwise
 			= itemChanges i numExisting rs //No need to destroy a branch that was not yet in the UI
 
+	itemChanges i numExisting [ExceptionResult e:rs]
+		| i < numExisting
+			# (i`,changes) = itemChanges i (numExisting - 1) rs
+			= (i`,[(i,RemoveChild):changes])
+		| otherwise
+			= itemChanges i numExisting rs
+
 	actionChanges startIdx = [(i,ChangeChild (switch enabled name)) \\ {UIAction|action=(Action name _),enabled} <- actions & i <- [startIdx..]]
 	where
 		switch True name = if (isMember name prevEnabledActions) NoChange (ChangeUI [("enable",[])] [])
