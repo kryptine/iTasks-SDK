@@ -1,11 +1,11 @@
 implementation module iTasks.UI.Layout.Common
 
-import iTasks.UI.Layout
+import iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks.UI.Definition
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 import qualified Data.Map as DM
 import StdBool
-from StdFunc import id, const
+from StdFunc import id, const, o
 
 arrangeWithTabs :: Layout
 arrangeWithTabs = conditionalLayout isParallel toTabset
@@ -16,7 +16,7 @@ where
 				]
 
 	toTab = sequenceLayouts
-				[wrap defaultTab
+				[wrapUI defaultTab
 				,changeNodeType setTitleFromAttr
 				]
 
@@ -26,11 +26,11 @@ isParallel d = d =:(UI UIParallel _ _)
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 arrangeWithSideBar index side size resize = sequenceLayouts 
-	[wrap defaultContainer //Push the current container down a level
+	[wrapUI defaultContainer //Push the current container down a level
 	,changeNodeType (\(UI _ attr items) -> setDirection Horizontal (UI defaultPanel attr items)) //Turn into a panel
 	,insertSubAt [sidePanelIndex] (ui defaultPanel) //Make sure we have a target for the move
 	,moveSubAt [mainPanelIndex,index] [sidePanelIndex,0]
-	,layoutSubAt [sidePanelIndex] unwrap //Remove the temporary wrapping panel
+	,layoutSubAt [sidePanelIndex] unwrapUI //Remove the temporary wrapping panel
 	//Size the new container 
 	]
 where
@@ -86,6 +86,16 @@ arrangeVertical = id
 
 arrangeHorizontal :: Layout
 arrangeHorizontal = id
+
+frameCompact :: Layout
+frameCompact = sequenceLayouts
+	[changeNodeType (setFramed True o setSize WrapSize WrapSize o setMargins 50 0 20 0 o setMinWidth (ExactBound 600))
+	,wrapUI defaultContainer
+	,changeNodeType (setHalign AlignCenter)
+	]
+
+beforeStep :: Layout -> Layout
+beforeStep layout = conditionalLayout (\n -> n =:(UI UIStep _ _)) layout //TODO: Explicitly detect if we are before or after a step
 
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
 toWindow windowType vpos hpos = changeNodeType mkWindow

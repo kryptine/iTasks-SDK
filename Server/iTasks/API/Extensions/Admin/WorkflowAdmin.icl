@@ -5,7 +5,7 @@ import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
 import iTasks._Framework.SDS, iTasks._Framework.Generic.Interaction, iTasks.API.Core.Types
 from StdFunc import seq
 import qualified Data.Map as DM
-import iTasks.UI.Editor
+import iTasks.UI.Editor, iTasks.UI.Layout.Default, iTasks.UI.Layout.Common
 
 // SPECIALIZATIONS
 derive class iTask Workflow
@@ -83,14 +83,14 @@ installInitialWorkflows iflows
 loginAndManageWorkList :: !String ![Workflow] -> Task ()
 loginAndManageWorkList welcome workflows 
 	= forever 
-		(		(	viewTitle welcome
+		((		(	viewTitle welcome
 					||-
 	 				enterInformation "Enter your credentials and login or press continue to remain anonymous" []
-	 			)
+	 			) 
 		>>* 	[OnAction (Action "Login" [ActionIcon "login",ActionKey (unmodified KEY_ENTER)]) (hasValue (browseAuthenticated workflows))
 				,OnAction (Action "Continue" []) (always (browseAnonymous workflows))
-		]
-		)
+		] 
+		) <<@ ApplyLayout (beforeStep frameCompact)) //Compact layout before login, full screen afterwards
 where
 	browseAuthenticated workflows {Credentials|username,password}
 		= authenticateUser username password
@@ -134,7 +134,11 @@ where
 	isValue (Value _ _) = True
 	isValue _			= False
 
-	layout = arrangeWithSideBar 0 LeftSide 260 True
+	layout = sequenceLayouts
+		[arrangeWithSideBar 0 LeftSide 260 True
+		,layoutSubAt [0] finalizeUI
+		,layoutSubAt [1] finalizeUI
+		]
 /*
     layout [startWork,dashBoard,manageWork:activeWork] actions
         = arrangeWithSideBar 0 LeftSide 260 True [startWork,mainArea] actions

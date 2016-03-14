@@ -41,6 +41,18 @@ arrangeVertical :: Layout
 */
 arrangeHorizontal :: Layout
 
+/**
+* Turn the UI into a wrapping framed container inside a general container
+* 
+* Use this is if you don't want to use the entire viewport
+*/
+frameCompact :: Layout
+
+/**
+* Apply a layout only before a step has been made
+*/
+beforeStep :: Layout -> Layout
+
 //Convenient annotatation types
 :: ArrangeWithTabs = ArrangeWithTabs
 instance tune ArrangeWithTabs

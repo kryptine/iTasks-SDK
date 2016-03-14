@@ -13,38 +13,35 @@ LABEL_WIDTH :== 100
 
 defaultSessionLayout :: Layout
 defaultSessionLayout = sequenceLayouts 
-    [layoutSubsMatching [] isInteract (layoutSubAt [1] editorToForm) //All interacts: Remap changes in the editor, ignore changes to the prompt, it should be constant
-	,finalizeUI
-    ,changeNodeType (setFramed True o setSize WrapSize WrapSize o setMargins 50 0 20 0 o setMinWidth (ExactBound 600))
-	,removeSubsMatching [] isEmpty
+    [layoutSubsMatching [] isIntermediate finalizeUI 	//Finalize all remaining intermediate layouts
+	,removeSubsMatching [] isEmpty 						//Remove temporary placeholders
+    ,changeNodeType (setSize FlexSize FlexSize) 		//Make sure we use the full viewport
     ]
-where
-	isEmpty (UI UIEmpty _ _) = True
-	isEmpty _ = False
-
-	isInteract (UI UIInteract _ _) = True
-	isInteract _ = False
 
 //The finalize layouts remove all intermediate 
 finalizeUI :: Layout
 finalizeUI = selectLayout
-	[(isInteract,finalizeInteract)
+	[(isInteract,finalizeInteract) 	
 	,(isStep,finalizeStep)
 	,(isParallel,finalizeParallel)
-	,(onlyFinalizeChildren,layoutChildrenOf [] finalizeUI)
+	//Always recursively finalize the children
+	,(const True,layoutChildrenOf [] finalizeUI)
 	]
-
-onlyFinalizeChildren (UI (UITabSet _ _ ) _ _) = True
-onlyFinalizeChildren (UI (UITab _ _ ) _ _)    = True
-onlyFinalizeChildren _                        = False
 
 finalizeInteract :: Layout
 finalizeInteract = conditionalLayout isInteract layout
 where
 	layout = sequenceLayouts 
-		[layoutSubAt [1] finalizeForm
+		[layoutSubAt [1] editorToForm 
+    	,layoutSubAt [1] finalizeForm 
+		,removeEmptyPrompt
 		,changeNodeType (\(UI UIInteract attr items) -> UI defaultPanel attr items)
 		] 
+
+	removeEmptyPrompt = conditionalLayout emptyPrompt (removeSubAt [0])
+	where
+		emptyPrompt (UI _ _ [UI _ _ []:_]) = True
+		emptyPrompt _ = False
 
 finalizeForm :: Layout
 finalizeForm
@@ -70,12 +67,21 @@ finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
 where
 	layout = sequenceLayouts
-        [layoutSubAt [0] finalizeUI 			//Recursively finalize
-        ,insertSubAt [1] buttonBar 				//Create a buttonbar
+        [layoutSubAt [0] finalizeUI
+		//Only create a layout with a separate buttonbar if there are actions
+		,selectLayout
+			[(hasActions,moveActions)
+			,(const True,unwrapUI)
+			]
+        ]
+
+	hasActions (UI _ _ items) = length items > 1
+	moveActions = sequenceLayouts
+        [insertSubAt [1] buttonBar 				//Create a buttonbar
 	    ,moveChildren [] isAction [1,0]   		//Move all actions to the buttonbar
 	    ,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
         ,changeNodeType (\(UI UIStep attr items) -> UI defaultPanel attr items) //Change to a standard container
-        ]
+		]
 
 finalizeParallel :: Layout
 finalizeParallel = conditionalLayout isParallel layout
@@ -90,6 +96,12 @@ isInteract = \n -> n =:(UI UIInteract _ _)
 isStep = \n -> n =:(UI UIStep _ _)
 isParallel = \n -> n =:(UI UIParallel _ _)
 isAction = \n -> n =:(UI (UIAction _) _ _)
+isEmpty = \n -> n =:(UI UIEmpty _ _)
+
+isIntermediate (UI UIInteract _ _) = True
+isIntermediate (UI UIStep _ _) = True
+isIntermediate (UI UIParallel _ _) = True
+isIntermediate _ = False
 
 //Flatten an editor into a form
 editorToForm :: Layout

@@ -18,8 +18,11 @@ from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: Defer
 //This type records the states of layouts applied somewhere in a ui tree
 :: NodeLayoutStates = NL [(Int,Either JSONNode NodeLayoutStates)]
 
-derive JSONEncode NodeMoves, NodeLayoutStates
-derive JSONDecode NodeMoves, NodeLayoutStates
+//This type represents the structure of a ui tree, which needs to be remembered when flattening a tree
+:: NodeSpine = NS [NodeSpine]
+
+derive JSONEncode NodeMoves, NodeLayoutStates, NodeSpine
+derive JSONDecode NodeMoves, NodeLayoutStates, NodeSpine
 
 instance tune ApplyLayout
 where
@@ -54,15 +57,15 @@ where
 	layout (ReplaceUI (UI type attr items),_) = (ReplaceUI (UI type (f attr) items),JSONNull)
 	layout (change,s) = (change,s)
 
-wrap :: UINodeType -> Layout
-wrap type = layout
+wrapUI :: UINodeType -> Layout
+wrapUI type = layout
 where
 	layout (ReplaceUI def,_) = (ReplaceUI (uic type [def]),JSONNull)
 	layout (NoChange,def) = (NoChange,def)
 	layout (change,s) = (ChangeUI [] [(0,ChangeChild change)],s)
 
-unwrap :: Layout
-unwrap = layout
+unwrapUI :: Layout
+unwrapUI = layout
 where
 	layout (ReplaceUI def,_) = case def of
 		(UI _ _ [child:_])  = (ReplaceUI child,JSONNull)
@@ -71,6 +74,19 @@ where
 	layout (ChangeUI _ childChanges,s) = case [change \\ (0,ChangeChild change) <- childChanges] of
 		[change] = (change,s)
 		_        = (NoChange,s)
+
+flattenUI :: Layout
+flattenUI = layout
+where
+	layout (ReplaceUI def,_)
+		# (def,spine) = flattenWithSpine def
+		= (ReplaceUI def, toJSON spine)
+	layout (change,s) = (change,s) //TODO
+
+	flattenWithSpine  ui=:(UI type attr items) 
+		# (items,spines) = unzip (map flattenWithSpine items)
+		# items = flatten [[UI type attr []:children] \\ UI type attr children <- items]
+		= (UI type attr items,NS spines)
 
 insertSubAt :: NodePath UI-> Layout
 insertSubAt [] def = id
@@ -137,7 +153,6 @@ where
 			Just dst = (insertAndAdjust_ (init dst) startIdx (endIdx - startIdx) inserts change, toJSON moves)
 			Nothing  = (change, toJSON moves)
 
-import StdDebug
 removeAndAdjust_ :: NodePath (NodePath UI -> Bool) Int UIChange NodeMoves -> (!Int,!UIChange,!NodeMoves,![(Int,UIChildChange)])
 removeAndAdjust_ path pred targetIdx NoChange moves //Only adjust the targetIdx by counting the moved nodes
 	= (targetIdx + countMoves_ moves True, NoChange, moves, [])

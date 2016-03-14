@@ -39,11 +39,16 @@ changeNodeAttributes :: (UIAttributes -> UIAttributes) -> Layout
 /**
 * Create a new UI node which has the original UI as its only child.
 */
-wrap   :: UINodeType -> Layout
+wrapUI :: UINodeType -> Layout
 /**
 * Replace the UI by its first child. 
 */
-unwrap ::               Layout
+unwrapUI :: Layout
+
+/**
+* Flatten the tree of children in pre-order
+*/
+flattenUI :: Layout
 
 //Operations on single specific sub-UI's indicated by a path
 insertSubAt :: NodePath UI       -> Layout
