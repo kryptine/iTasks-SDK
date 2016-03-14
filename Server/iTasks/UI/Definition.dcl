@@ -116,7 +116,7 @@ derive class iTask UIChange, UIChildChange
 	// Viewport for other task instances
     | UIEmbedding       !UISizeOpts     !UIEmbeddingOpts                                // - Embedding of a related task gui (like an iframe for tasks)
 
-:: UIAttributes 		:== Map String String
+:: UIAttributes 		:== Map String JSONNode
 
 :: UIEditor = 
 	{ optional		:: Bool

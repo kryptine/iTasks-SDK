@@ -150,7 +150,7 @@ setPadding top right bottom left def = def
 setTitle :: !String !UI -> UI
 setTitle title (UI (UIPanel sOpts cOpts opts) attr items) = UI (UIPanel sOpts cOpts {UIPanelOpts|opts & title = Just (escapeStr title)}) attr items
 setTitle title (UI (UITab cOpts opts) attr items) = UI (UITab cOpts {UITabOpts|opts & title = escapeStr title}) attr items
-setTitle title (UI type attr items) = UI type ('DM'.put "title" title attr) items
+setTitle title (UI type attr items) = UI type ('DM'.put "title" (JSONString title) attr) items
 
 setFramed :: !Bool !UI -> UI
 setFramed frame (UI (UIPanel sOpts cOpts opts) attr items) = UI (UIPanel sOpts cOpts {UIPanelOpts|opts & frame = frame}) attr items

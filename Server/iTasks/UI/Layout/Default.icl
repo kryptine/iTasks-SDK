@@ -173,12 +173,12 @@ buttonBar = (wrapHeight o setPadding 2 2 2 0 o setDirection Horizontal o setHali
 
 labelControl :: Bool UIAttributes -> Maybe UI
 labelControl optional attributes 
-	= fmap (\l -> setWidth (ExactSize LABEL_WIDTH) (stringDisplay (formatLabel optional l))) ('DM'.get LABEL_ATTRIBUTE attributes)
+	= fmap (\(JSONString l) -> setWidth (ExactSize LABEL_WIDTH) (stringDisplay (formatLabel optional l))) ('DM'.get LABEL_ATTRIBUTE attributes)
 
 infoControl :: UIAttributes -> Maybe UI
 infoControl attributes
 	= case ('DM'.get HINT_TYPE_ATTRIBUTE attributes,'DM'.get HINT_ATTRIBUTE attributes) of
-		(Just type, Just hint) 	= Just (icon type hint)
+		(Just (JSONString type), Just (JSONString hint)) 	= Just (icon type hint)
 		_ 						= Nothing
 where
 	icon type tooltip = setLeftMargin 5 (ui (UIIcon defaultFSizeOpts {UIIconOpts|iconCls = "icon-" +++ type, tooltip = Just tooltip}))

@@ -103,8 +103,8 @@ where
 								, value = choice
 								, options = [gdc.gcd_name \\ gdc <- gtd_conses]})]
 		attributes mask
-			| isTouched mask	= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,HINT_TYPE_VALID),(HINT_ATTRIBUTE, "You have correctly selected an option")]
-								= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,HINT_TYPE_INFO),(HINT_ATTRIBUTE, "Select an option")]
+			| isTouched mask	= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_VALID),(HINT_ATTRIBUTE, JSONString "You have correctly selected an option")]
+								= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INFO),(HINT_ATTRIBUTE, JSONString "Select an option")]
 
 	genDiff dp (OBJECT old) om (OBJECT new) nm vst=:{VSt|disabled,selectedConsIndex=curSelectedConsIndex}
 		| gtd_num_conses > 1 && not disabled
@@ -600,26 +600,26 @@ checkMaskValue _ _                       = Nothing
 stdAttributes :: String Bool EditMask -> UIAttributes
 stdAttributes typename optional mask
 	| not (isTouched mask)
-		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,HINT_TYPE_INFO),(HINT_ATTRIBUTE,"Please enter a " +++ typename +++ if optional "" " (this value is required)")]
+		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INFO),(HINT_ATTRIBUTE,JSONString ("Please enter a " +++ typename +++ if optional "" " (this value is required)"))]
 	| mask =:(CompoundMask _) 
 		= 'DM'.newMap
 	| otherwise
 		# (hintType,hint) = case mask of
         	Touched					= (HINT_TYPE_VALID, "You have correctly entered a " +++ typename) 
-        	(TouchedWithState _)	= (HINT_TYPE_VALID, "You have correctly entered a " +++ typename) 
-        	(TouchedUnparsed _)		= (HINT_TYPE_INVALID, "This value not in the required format of a " +++ typename)
+        	(TouchedWithState _)	= (HINT_TYPE_VALID, "You have correctly entered a " +++ typename)
+        	(TouchedUnparsed _)		= (HINT_TYPE_INVALID,"This value not in the required format of a " +++ typename)
         	Blanked					= if optional 
 											(HINT_TYPE_INFO, "Please enter a " +++ typename)
 											(HINT_TYPE_INVALID, "You need to enter a "+++ typename +++ " (this value is required)")
-		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,hintType),(HINT_ATTRIBUTE,hint)]
+		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString hintType),(HINT_ATTRIBUTE,JSONString hint)]
 
 stdAttributeChanges :: String Bool EditMask EditMask -> [UILocalChange]
 stdAttributeChanges typename optional om nm 
 	| om === nm = [] //Nothing to change
-	| otherwise = [("setAttribute",[JSONString k,JSONString v]) \\ (k,v) <- 'DM'.toList (stdAttributes typename optional nm)]
+	| otherwise = [("setAttribute",[JSONString k,v]) \\ (k,v) <- 'DM'.toList (stdAttributes typename optional nm)]
 
 addLabel :: !String !UIAttributes -> UIAttributes
-addLabel label attr = putCond LABEL_ATTRIBUTE label attr
+addLabel label attr = putCond LABEL_ATTRIBUTE (JSONString label) attr
 where
     putCond k v m = maybe ('DM'.put k v m) (const m) ('DM'.get k m)
 

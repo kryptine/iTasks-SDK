@@ -3,6 +3,7 @@ implementation module iTasks.UI.Prompt
 import StdOverloaded, StdString
 import qualified Data.Map as DM
 import Data.Maybe
+import Text.JSON
 
 import iTasks.UI.Definition
 from iTasks.API.Core.Types import TITLE_ATTRIBUTE
@@ -14,7 +15,7 @@ instance toPrompt String
 where toPrompt hint = uic (UIEditor {UIEditor|optional=False}) [createPrompt hint]
 	
 instance toPrompt (!String,!String)
-where toPrompt (title,hint) = uiac (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(TITLE_ATTRIBUTE,title)]) [createPrompt hint]
+where toPrompt (title,hint) = uiac (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(TITLE_ATTRIBUTE,JSONString title)]) [createPrompt hint]
 
 createPrompt :: String -> UI
 createPrompt hint = uic (UIContainer sizeOpts containerOpts) [stringDisplay hint]

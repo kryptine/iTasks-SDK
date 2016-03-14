@@ -1002,13 +1002,13 @@ actionToHotkey {taskId,action=Action actionId options,enabled=True}
 actionToHotkey _ = Nothing
 
 hasWindowContainerAttr :: UIAttributes -> Bool
-hasWindowContainerAttr attributes = maybe False ((==) "window") ('DM'.get CONTAINER_ATTRIBUTE attributes)
+hasWindowContainerAttr attributes = maybe False ((===) (JSONString "window")) ('DM'.get CONTAINER_ATTRIBUTE attributes)
 
 hasPanelContainerAttr :: UIAttributes -> Bool
-hasPanelContainerAttr attributes = maybe False ((==) "panel") ('DM'.get CONTAINER_ATTRIBUTE attributes)
+hasPanelContainerAttr attributes = maybe False ((===) (JSONString "panel")) ('DM'.get CONTAINER_ATTRIBUTE attributes)
 
 hasContainerContainerAttr :: UIAttributes -> Bool
-hasContainerContainerAttr attributes = maybe False ((==) "container") ('DM'.get CONTAINER_ATTRIBUTE attributes)
+hasContainerContainerAttr attributes = maybe False ((===) (JSONString "container")) ('DM'.get CONTAINER_ATTRIBUTE attributes)
 
 hasContainerAttr :: UIAttributes -> Bool
 hasContainerAttr attributes = isJust ('DM'.get CONTAINER_ATTRIBUTE attributes) 

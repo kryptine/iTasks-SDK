@@ -232,11 +232,11 @@ where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
 			# val = checkMask mask val
-			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE "&euro;" 'DM'.newMap)
+			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE (JSONString "&euro;") 'DM'.newMap)
 				[ui (UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(EUR v) -> toString v) val})],vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(EUR v) -> toReal v / 100.0) val)
-			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE "&euro;" (stdAttributes typeDesc optional mask))
+			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE (JSONString "&euro;") (stdAttributes typeDesc optional mask))
 				[ui (UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value})],vst)
 	genDiff dp (EUR old) om (EUR new) nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
@@ -284,11 +284,11 @@ where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
 			# val = checkMask mask val
-			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE "$" 'DM'.newMap)
+			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE (JSONString "$") 'DM'.newMap)
 				[ui (UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val})] ,vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(USD v) -> toReal v / 100.0) val)
-			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE "$" (stdAttributes typeDesc optional mask))
+			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE (JSONString "$") (stdAttributes typeDesc optional mask))
 				[ui (UIEditDecimal defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value})],vst)
 
 	genDiff dp (USD old) om (USD new) nm vst=:{VSt|optional,disabled}
@@ -1533,28 +1533,28 @@ where
 instance toPrompt (!Icon,!String,!String)
 where
 	toPrompt (icon,title,hint) = uiac (UIEditor {UIEditor|optional=False})
-									('DM'.fromList [(ICON_ATTRIBUTE,toString icon),(TITLE_ATTRIBUTE,title)])
+									('DM'.fromList [(ICON_ATTRIBUTE,JSONString (toString icon)),(TITLE_ATTRIBUTE,JSONString title)])
 									[stringDisplay hint]
 
 instance toPrompt Title
 where
-	toPrompt (Title title) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(TITLE_ATTRIBUTE,title)])
+	toPrompt (Title title) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(TITLE_ATTRIBUTE,JSONString title)])
 	
 instance toPrompt Label
 where
-	toPrompt (Label label) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(LABEL_ATTRIBUTE,label)])
+	toPrompt (Label label) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)])
 
 instance toPrompt Hint
 where
-	toPrompt (Hint hint) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(HINT_ATTRIBUTE,hint)])
+	toPrompt (Hint hint) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(HINT_ATTRIBUTE,JSONString hint)])
 	
 instance toPrompt Icon
 where
-	toPrompt icon = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(ICON_ATTRIBUTE,toString icon)])
+	toPrompt icon = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(ICON_ATTRIBUTE,JSONString (toString icon))])
 
 instance toPrompt Attribute
 where
-	toPrompt (Attribute k v) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(k,v)])
+	toPrompt (Attribute k v) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(k,JSONString v)])
 	
 instance toPrompt Att
 where

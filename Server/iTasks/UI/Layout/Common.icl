@@ -20,7 +20,7 @@ where
 				,changeNodeType setTitleFromAttr
 				]
 
-	setTitleFromAttr ui=:(UI _ _ [UI _ attr _]) = maybe ui (\title -> setTitle title ui) ('DM'.get "title" attr)
+	setTitleFromAttr ui=:(UI _ _ [UI _ attr _]) = maybe ui (\(JSONString title) -> setTitle title ui) ('DM'.get "title" attr)
 
 isParallel d = d =:(UI UIParallel _ _)
 
@@ -157,20 +157,20 @@ instance tune Icon
 where
 	tune (Icon icon) t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.put ICON_ATTRIBUTE icon attr) items),s)
+		layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.put ICON_ATTRIBUTE (JSONString icon) attr) items),s)
 		layout (change,s) = (change,s)
 
 instance tune Attribute
 where
 	tune (Attribute k v) t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.put k v attr) items),s)
+		layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.put k (JSONString v) attr) items),s)
 		layout (change,s) = (change,s)
 
 instance tune Label
 where
 	tune (Label label) t = tune (ApplyLayout layout) t
 	where
-		layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.put LABEL_ATTRIBUTE label attr) items),s)
+		layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.put LABEL_ATTRIBUTE (JSONString label) attr) items),s)
 		layout (change,s) = (change,s)
 
