@@ -779,7 +779,7 @@ desugarAndTag {content, mask, attribs, transform, tags} st
           = ([( xoff + alignXOff + manXOff + tfXCorr
               , yoff + alignYOff + manYOff + tfYCorr) : acc], xoff + cellXSpan)
     desugarAndTagCompose (AsCollage offsets imgs) host transform tags st
-      #! (imgs, st)    = strictTRMapSt desugarAndTag imgs st
+      #! (imgs, st) = strictTRMapSt desugarAndTag imgs st
       = (( AsCollage offsets imgs
          , maybe (calculateComposedSpan (strictTRMap mkTotalSpanPostTrans imgs) offsets) mkTotalSpanPostTrans host), st)
     desugarAndTagCompose (AsOverlay offsets ias imgs) host transform tags st

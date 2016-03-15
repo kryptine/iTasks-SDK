@@ -65,6 +65,10 @@ instance TonicTopLevelBlueprint Task where
 instance TonicBlueprintPart Task where
   tonicWrapApp mn fn nid cases t = tonicWrapApp` mn fn nid cases t
 
+instance TonicTopLevelBlueprint Maybe where
+  tonicWrapBody _ _ _ _ t = t
+  tonicWrapArg _ _ _ = return ()
+
 instance TonicBlueprintPart Maybe where
   tonicWrapApp _ _ _ _ mb = mb
 

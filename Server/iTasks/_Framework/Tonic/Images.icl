@@ -104,9 +104,9 @@ instance == TStatus where
   (==) TNotActive TNotActive = True
   (==) _          _          = False
 
-mkStaticImage :: ![TaskAppRenderer] !BlueprintIdent !Bool !ModelTy !ModelTy *TagSource
+mkStaticImage :: ![TaskAppRenderer] !BlueprintIdent !Bool !ModelTy *TagSource
               -> Image ModelTy
-mkStaticImage rs bpident compact _ {ActionState | state = tis} tsrc
+mkStaticImage rs bpident compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
   #! inh              = { InhMkImg
                         | inh_bpinst             = Nothing
@@ -139,9 +139,9 @@ mkStaticImage rs bpident compact _ {ActionState | state = tis} tsrc
 mkInstanceImage :: ![TaskAppRenderer] !BlueprintInstance
                    !(Map ExprId TStability) !(Map ExprId [UIAction])
                    !(Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int)))
-                   !Bool !ModelTy !ModelTy *TagSource
+                   !Bool !ModelTy *TagSource
                 -> Image ModelTy
-mkInstanceImage rs bpi outputs stepActions selDetail compact _ {ActionState | state = tis} tsrc
+mkInstanceImage rs bpi outputs stepActions selDetail compact {ActionState | state = tis} tsrc
   #! tt               = tis.tis_task
   #! inh              = { InhMkImg
                         | inh_bpinst             = Just bpi

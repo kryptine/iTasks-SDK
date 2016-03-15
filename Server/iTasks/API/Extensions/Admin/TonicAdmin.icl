@@ -136,7 +136,7 @@ showBlueprintInstance rs bpi selDetail enabledSteps compact depth
                                                                          ('DM'.put eid v m)
                                                                          m) 'DM'.newMap outputs
                    in updateInformation ()
-                        [imageUpdate id (mkInstanceImage rs bpi outputs` enabledSteps selDetail compact) (const id) (const id) (\_ _ -> Nothing) (const id)]
+                        [imageUpdate id (\_ -> mkInstanceImage rs bpi outputs` enabledSteps selDetail compact) (const id) (const id) (\_ _ -> Nothing) (const id)]
                         { ActionState
                         | state  = { tis_task    = bpi.bpi_blueprint
                                    , tis_depth   = depth
@@ -147,7 +147,7 @@ showStaticBlueprint :: ![TaskAppRenderer] !BlueprintIdent !TonicFunc !Bool !Scal
                     -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showStaticBlueprint rs bpref task compact depth
   = updateInformation ()
-      [imageUpdate id (mkStaticImage rs bpref compact) (const id) (const id) (\_ _ -> Nothing) (const id)]
+      [imageUpdate id (\_ -> mkStaticImage rs bpref compact) (const id) (const id) (\_ _ -> Nothing) (const id)]
       { ActionState
       | state  = { tis_task    = task
                  , tis_depth   = depth

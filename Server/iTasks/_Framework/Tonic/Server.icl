@@ -35,7 +35,7 @@ viewTonic = whileUnchanged tonicServerShare (updateBP Nothing o reverse)
 viewInstance :: !BlueprintInstance -> Task ()
 viewInstance bpi=:{bpi_blueprint, bpi_bpref = {bpr_moduleName, bpr_taskName}}
   = updateInformation ()
-      [imageUpdate id (mkInstanceImage [] bpi 'DM'.newMap 'DM'.newMap Nothing False) (const id) (const id) (\_ _ -> Nothing) (const id)]
+      [imageUpdate id (\_ -> mkInstanceImage [] bpi 'DM'.newMap 'DM'.newMap Nothing False) (const id) (const id) (\_ _ -> Nothing) (const id)]
       { ActionState
       | state  = { tis_task    = bpi.bpi_blueprint
                  , tis_depth   = { Scale | min = 0, cur = 0, max = 0}
