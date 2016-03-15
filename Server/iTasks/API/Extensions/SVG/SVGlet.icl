@@ -399,7 +399,6 @@ appClientDiff resolve state2Image updSrv updClient mkEventHandler cid (SetState 
   #! world                = registerDraggables mkEventHandler resolve state2Image updSrv updClient cid newSVG syn.genSVGSyn_draggable syn.genSVGSyn_idMap world
   = (clst, world)
 
-(`getElementsByClassName`) obj args :== obj .# "getElementsByClassName" .$ args
 (`addEventListener`)       obj args :== obj .# "addEventListener"       .$ args
 (`setAttribute`)           obj args :== obj .# "setAttribute"           .$ args
 (`setAttributeNS`)         obj args :== obj .# "setAttributeNS"         .$ args
@@ -407,10 +406,8 @@ appClientDiff resolve state2Image updSrv updClient mkEventHandler cid (SetState 
 (`appendChild`)            obj args :== obj .# "appendChild"            .$ args
 (`removeChild`)            obj args :== obj .# "removeChild"            .$ args
 (`getComputedTextLength`)  obj args :== obj .# "getComputedTextLength"  .$ args
-(`getAttribute`)           obj args :== obj .# "getAttribute"           .$ args
 (`createSVGPoint`)         obj args :== obj .# "createSVGPoint"         .$ args
 (`getScreenCTM`)           obj args :== obj .# "getScreenCTM"           .$ args
-(`getCTM`)                 obj args :== obj .# "getCTM"                 .$ args
 (`inverse`)                obj args :== obj .# "inverse"                .$ args
 (`matrixTransform`)        obj args :== obj .# "matrixTransform"        .$ args
 
@@ -658,9 +655,6 @@ gatherFontsSpan (MaxSpan xs)                    = gatherFontsUnions (strictTRMap
 gatherFontsSpan (LookupSpan (TextXSpan fd str)) = 'DM'.singleton fd ('DS'.singleton str)
 gatherFontsSpan _                               = 'DM'.newMap
 
-const2 :: !a b c -> a
-const2 x _ _ = x
-
 gatherFontsUnions :: ![Map FontDef (Set String)] -> Map FontDef (Set String)
 gatherFontsUnions m = 'DM'.unionsWith 'DS'.union m
 
@@ -726,7 +720,7 @@ desugarAndTag {content, mask, attribs, transform, tags} st
     desugarAndTagMarkers n st = (n, st)
   desugarAndTagImageContent (Composite {host, compose}) transform tags st
     #! (host, st)                   = desugarAndTagMaybeImage host st
-    #! ((compose, composeSpan), st) = desugarAndTagCompose compose host transform tags st
+    #! ((compose, composeSpan), st) = desugarAndTagCompose compose host tags st
     #! (host, span)                 = case host of
                                        Just hostImg
                                           -> (host, mkTotalSpanPostTrans hostImg)
@@ -741,9 +735,9 @@ desugarAndTag {content, mask, attribs, transform, tags} st
        , desugarAndTagSyn_OffsetCorrection    = corr
        }, st)
     where
-    desugarAndTagCompose :: !(Compose s) !(Maybe (Image s)) ![ImageTransform] !(Set ImageTag) !*DesugarAndTagStVal
+    desugarAndTagCompose :: !(Compose s) !(Maybe (Image s)) !(Set ImageTag) !*DesugarAndTagStVal
                          -> *(!(!Compose s, !ImageSpan), !*DesugarAndTagStVal) | iTask s
-    desugarAndTagCompose (AsGrid (numcols, numrows) offsetss iass imgss) host transform tags st
+    desugarAndTagCompose (AsGrid (numcols, numrows) offsetss iass imgss) host tags st
       #! (imgss, st) = strictTRMapSt (strictTRMapSt desugarAndTag) imgss st
       #! (tag, st)   = nextNo st
       #! sysTags     = ImageTagSystem tag
@@ -778,11 +772,11 @@ desugarAndTag {content, mask, attribs, transform, tags} st
           #! (alignXOff, alignYOff) = calcAlignOffset cellXSpan cellYSpan (mkTotalSpanPostTrans img) align
           = ([( xoff + alignXOff + manXOff + tfXCorr
               , yoff + alignYOff + manYOff + tfYCorr) : acc], xoff + cellXSpan)
-    desugarAndTagCompose (AsCollage offsets imgs) host transform tags st
+    desugarAndTagCompose (AsCollage offsets imgs) host tags st
       #! (imgs, st) = strictTRMapSt desugarAndTag imgs st
       = (( AsCollage offsets imgs
          , maybe (calculateComposedSpan (strictTRMap mkTotalSpanPostTrans imgs) offsets) mkTotalSpanPostTrans host), st)
-    desugarAndTagCompose (AsOverlay offsets ias imgs) host transform tags st
+    desugarAndTagCompose (AsOverlay offsets ias imgs) host tags st
       #! (imgs, st)     = strictTRMapSt desugarAndTag imgs st
       #! spans          = strictTRMap mkTotalSpanPostTrans imgs
       #! (  maxXSpan
@@ -1397,11 +1391,6 @@ genSVG {content, mask, attribs, transform, tags, uniqId, totalSpanPreTrans = (tx
     #! ysp = if isText ((~ ysp) * 0.7) ysp
     = ([TranslateTransform "0" (toString ysp), ScaleTransform "1" "-1"], st)
 
-stTrace :: !a !*(!cl, !*JSWorld) -> *(cl, *JSWorld)
-stTrace x (clval, world)
-  #! world = jsTrace x world
-  = (clval, world)
-
 instance + (Real, Real) where
   (+) (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 
@@ -1441,27 +1430,6 @@ addAttr (TransformAttr tfs) attrs = addTransforms tfs attrs []
   addTransforms tfs [attr:attrs]                  acc = addTransforms tfs attrs [attr:acc]
 addAttr attr attrs = [attr:attrs]
 
-addAttrs :: ![SVGAttr] ![SVGAttr] -> [SVGAttr]
-addAttrs newAttrs oldAttrs = strictFoldr addAttr oldAttrs newAttrs
-
-evalOffsets :: ![(!State .st a, !State .st a)] !.st -> *(![(!a, !a)], !.st)
-evalOffsets offsets st = strictTRMapSt f offsets st
-  where
-  f :: !(!.a -> (!b, !.c), !.c -> *(!d, !.e)) !.a -> (!(!b, !d), !.e)
-  f (sp1, sp2) st
-    #! (sp1, st) = sp1 st
-    #! (sp2, st) = sp2 st
-    = ((sp1, sp2), st)
-
-evalMaybe :: !(Maybe (State .s a)) !.s -> *(!Maybe a, !.s)
-evalMaybe (Just x) st
-  #! (x, st) = x st
-  = (Just x, st)
-evalMaybe _ st = (Nothing, st)
-
-ret :: !a !.s -> (!a, !.s)
-ret x st = (x, st)
-
 mkAttrs :: ![Maybe SVGAttr] ![SVGTransform] -> [SVGAttr]
 mkAttrs imAts [] = getSvgAttrs imAts
 mkAttrs imAts xs = addAttr (TransformAttr xs) (getSvgAttrs imAts)
@@ -1499,9 +1467,9 @@ evalListOfSpanPair xs st = mapSt evalSpanPair xs st
 
 evalSpanPair :: !(!Span, !Span) !*(GenSVGStVal s) -> *(!(!Real, !Real), !*(GenSVGStVal s)) | iTask s
 evalSpanPair (xsp, ysp) st
-    #! (xsp, st) = evalSpan xsp st
-    #! (ysp, st) = evalSpan ysp st
-    = ((xsp, ysp), st)
+  #! (xsp, st) = evalSpan xsp st
+  #! (ysp, st) = evalSpan ysp st
+  = ((xsp, ysp), st)
 
 evalSpan :: !Span !*(GenSVGStVal s) -> *(!Real, !*GenSVGStVal s) | iTask s
 evalSpan (PxSpan r)    st = (r, st)
