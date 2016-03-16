@@ -40,7 +40,7 @@ playbackTonic = get tonicServerShare >>= \messages -> playbackTonic` (length mes
                     # currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
                     # inst & bpi_previouslyActive = 'DM'.union ('DM'.fromList currActive) inst.bpi_previouslyActive
                     # inst & bpi_activeNodes      = case currActive of
-                                                      [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (tid + 1), msg.nodeId)) inst.bpi_activeNodes
+                                                      [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (length prevMsgs), msg.nodeId)) inst.bpi_activeNodes
                     = viewInstance inst
                   _ = viewInformation () [] "No blueprint found!" @! ()
 
