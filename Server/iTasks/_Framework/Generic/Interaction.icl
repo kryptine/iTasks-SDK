@@ -393,14 +393,14 @@ where
 							  (if remove
 							  [ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False})
 							  ] [])
-			= setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (uic defaultContainer (if disabled controls (controls ++ buttons)))))
+			= setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (uic UIContainer (if disabled controls (controls ++ buttons)))))
 		addItemControl numItems
 			# counter   = if count [setWidth FlexSize (ui (UIViewString {UIViewOpts|value= Just (numItemsText numItems)}))] []
 			# button	= if enableAdd [ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "add")} {UIButtonOpts|text=Nothing,iconCls=Just "icon-add",disabled=False})] []
-			= (setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (uic defaultContainer (counter ++ button)))))
+			= (setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (uic UIContainer (counter ++ button)))))
 			
 		listContainer controls
-			= setHeight WrapSize (uic defaultContainer controls)
+			= setHeight WrapSize (uic UIContainer controls)
 			
 		numItemsText 1 = "1 item"
 		numItemsText n = toString n +++ " items"

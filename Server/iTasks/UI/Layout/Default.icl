@@ -35,7 +35,7 @@ where
 		[layoutSubAt [1] editorToForm 
     	,layoutSubAt [1] finalizeForm 
 		,removeEmptyPrompt
-		,changeNodeType (\(UI UIInteract attr items) -> UI defaultPanel attr items)
+		,changeNodeType (\(UI UIInteract attr items) -> UI UIPanel attr items)
 		] 
 
 	removeEmptyPrompt = conditionalLayout emptyPrompt (removeSubAt [0])
@@ -46,7 +46,7 @@ where
 finalizeForm :: Layout
 finalizeForm
 	= sequenceLayouts [layoutChildrenOf [] layoutRow
-					  ,changeNodeType (\(UI UIForm attr items) -> UI defaultContainer attr items)
+					  ,changeNodeType (\(UI UIForm attr items) -> UI UIContainer attr items)
 					  ]
 where
 	//Case when 
@@ -61,7 +61,7 @@ where
 							,removeSubAt [0]
 							]
 
-	row items = (setMargins 5 5 5 5 o setDirection Horizontal o setSize FlexSize WrapSize) (uic defaultContainer items)
+	row items = (setMargins 5 5 5 5 o setDirection Horizontal o setSize FlexSize WrapSize) (uic UIContainer items)
 
 finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
@@ -80,7 +80,7 @@ where
         [insertSubAt [1] buttonBar 				//Create a buttonbar
 	    ,moveChildren [] isAction [1,0]   		//Move all actions to the buttonbar
 	    ,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
-        ,changeNodeType (\(UI UIStep attr items) -> UI defaultPanel attr items) //Change to a standard container
+        ,changeNodeType (\(UI UIStep attr items) -> UI UIPanel attr items) //Change to a standard container
 		]
 
 finalizeParallel :: Layout
@@ -88,7 +88,7 @@ finalizeParallel = conditionalLayout isParallel layout
 where
 	layout = sequenceLayouts
 		[layoutChildrenOf [] finalizeUI
-		,changeNodeType (\(UI UIParallel attr items) -> UI defaultPanel attr items)
+		,changeNodeType (\(UI UIParallel attr items) -> UI UIPanel attr items)
 		]
 
 //Util predicates
@@ -169,7 +169,7 @@ mapLst f [x] = [f True x]
 mapLst f [x:xs] = [f False x: mapLst f xs]
 
 buttonBar :: UI
-buttonBar = (wrapHeight o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight o setBaseCls "buttonbar") (uic defaultPanel [])
+buttonBar = (wrapHeight o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight o setBaseCls "buttonbar") (uic UIPanel [])
 
 labelControl :: Bool UIAttributes -> Maybe UI
 labelControl optional attributes 
@@ -181,7 +181,7 @@ infoControl attributes
 		(Just (JSONString type), Just (JSONString hint)) 	= Just (icon type hint)
 		_ 						= Nothing
 where
-	icon type tooltip = setLeftMargin 5 (ui (UIIcon {UIIconOpts|iconCls = "icon-" +++ type, tooltip = Just tooltip}))
+	icon type tooltip = (setLeftMargin 5 o setTooltip tooltip o setIconCls ("icon-"+++type)) (ui UIIcon)
 
 formatLabel :: Bool String -> String
 formatLabel optional label

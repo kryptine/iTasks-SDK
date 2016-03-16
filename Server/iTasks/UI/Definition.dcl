@@ -24,9 +24,9 @@ from GenEq import generic gEq
 //Provide generic instances for all UI definitions
 derive class iTask UI, UINodeType, UIAction, UIEditor
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
-derive class iTask UIWindowOpts, UIEditOpts, UIViewOpts, UIActionOpts
-derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
-derive class iTask UIPanelOpts, UITabSetOpts, UIEditletOpts, UITaskletOpts, UIIconOpts, UILabelOpts
+derive class iTask UIEditOpts, UIViewOpts, UIActionOpts
+derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIEmbeddingOpts
+derive class iTask UIEditletOpts, UITaskletOpts
 derive class iTask UIButtonOpts, UIMenuButtonOpts, UITreeNode, UIMenuItem
 
 instance Functor UIViewOpts
@@ -69,21 +69,20 @@ derive class iTask UIChange, UIChildChange
 	| UIStep
 	| UIParallel
 	| UICompoundContent
-    | UIBlock   					//TODO: Remove
 	//Final containers
     | UIContainer      				
-	| UIPanel 						!UIPanelOpts
-	| UITabSet						!UITabSetOpts
-	| UITab                         !UITabOpts
-	| UIWindow 						!UIWindowOpts
+	| UIPanel 						
+	| UITabSet
+	| UITab
+	| UIWindow
 	// Components for viewing data:
 	| UIViewString					!(UIViewOpts String)							// - String (non-wrapping single line text with automatic escaping)
 	| UIViewHtml					!(UIViewOpts HtmlTag)							// - Html (formatted multi line text)
 	| UIViewDocument				!(UIViewOpts Document)							// - Document (info + download link)
 	| UIViewCheckbox				!(UIViewOpts Bool)								// - Checkbox (non-editable tick-mark)
-	| UIViewSlider					!(UIViewOpts Int)  !UISliderOpts				// - Slider (non-editable slider)
-	| UIViewProgress				!(UIViewOpts ProgressAmount) !UIProgressOpts	// - Progress (non editable progress bar)
-	| UIIcon						!UIIconOpts									    // - Icon (information icon with tooltip text)
+	| UIViewSlider																	// - Slider (non-editable slider)
+	| UIViewProgress				!(UIViewOpts ProgressAmount)	                // - Progress (non editable progress bar)
+	| UIIcon															    		// - Icon (information icon with tooltip text)
 	// Components for editing data:
 	| UIEditString					!UIEditOpts                                     // - String (single line text field)
 	| UIEditNote					!UIEditOpts                                     // - Note (multi-line text field)
@@ -91,12 +90,12 @@ derive class iTask UIChange, UIChildChange
 	| UIEditInt         			!UIEditOpts                                     // - Int (integer number field)
 	| UIEditDecimal					!UIEditOpts                                     // - Decimal (decimal number field)
 	| UIEditCheckbox				!UIEditOpts                                     // - Checkbox (editable checkbox)
-	| UIEditSlider					!UIEditOpts  !UISliderOpts				        // - Slider (editable slider)
+	| UIEditSlider					!UIEditOpts  						            // - Slider (editable slider)
 	| UIEditDate					!UIEditOpts 							        // - Date (date picker)
 	| UIEditTime					!UIEditOpts 							        // - Time (time picker)
 	| UIEditDateTime				!UIEditOpts 							        // - DateTime (date + time picker)
 	| UIEditDocument				!UIEditOpts 						            // - Document (info + upload possibility)
-	| UIEditButton					!UIEditOpts  !UIButtonOpts		                // - Button that sends edit events on click
+	| UIEditButton					!UIEditOpts !UIButtonOpts		                // - Button that sends edit events on click
 	// Components for indicating choices:
 	| UIDropdown					!(UIChoiceOpts String)						    // - Dropdown (choice from a list of alternatives)
 	| UIGrid						!(UIChoiceOpts [String]) !UIGridOpts		    // - Grid (selecting an item in a table)
@@ -108,7 +107,7 @@ derive class iTask UIChange, UIChildChange
 	| UIActionButton				!UIActionOpts !UIButtonOpts					    // - Action Button (clicks trigger action events)
 	| UIMenuButton					!UIMenuButtonOpts							    // - Menu Button (clicks open a menu)
 	// Misc auxiliary components:
-	| UILabel						!UILabelOpts								    // - Label (non-wrapping text label, clicks focus next component)
+	| UILabel						                                                // - Label (non-wrapping text label, clicks focus next component)
     | UISplitter
 	// Tasklet stuff
 	| UITasklet						!UITaskletOpts								    // - Tasklet (custom clientside interaction)
@@ -128,25 +127,7 @@ derive class iTask UIChange, UIChildChange
 	, enabled	:: !Bool
 	}
 
-// Basic panels (containers with decoration like a title header, icon and frame)
-:: UIPanelOpts =
-	{ title			:: !Maybe String
-	, frame			:: !Bool
-	, hotkeys		:: !Maybe [UIKeyAction]
-	, iconCls		:: !Maybe String
-	}
-
 // Floating window
-:: UIWindowOpts =
-	{ windowType    :: !UIWindowType
-    , title			:: !Maybe String
-	, iconCls		:: !Maybe String
-    , vpos          :: !Maybe UIVAlign
-    , hpos          :: !Maybe UIHAlign
-	, focusTaskId	:: !Maybe String
-	, closeTaskId	:: !Maybe String
-	}
-
 :: UIWindowType
     = FloatingWindow        //Normal movable window
     | ModalDialog           //Fixed position modal dialog
@@ -204,8 +185,6 @@ derive class iTask UIChange, UIChildChange
 	, actionId		:: !String
 	}
 
-:: UIKeyAction :== (!Hotkey,!UIActionOpts)
-
 :: UIChoiceOpts a =
 	{ taskId		:: !String
 	, editorId		:: !String
@@ -213,16 +192,6 @@ derive class iTask UIChange, UIChildChange
 	, options		:: ![a]
 	}
 		
-:: UISliderOpts =
-	{ minValue		:: !Int
-	, maxValue		:: !Int
-    , value         :: !Int
-	}
-	
-:: UIProgressOpts = 
-	{ text			:: !String
-	}
-
 :: UIGridOpts =
 	{ columns			:: ![String]
 	, doubleClickAction	:: !Maybe (String,String)
@@ -258,15 +227,6 @@ derive class iTask UIChange, UIChildChange
 	= UIActionMenuItem	!UIActionOpts	!UIButtonOpts		// - Action Menu Item (clicks trigger action events)
 	| UISubMenuItem						!UIMenuButtonOpts	// - Sub Menu Item (clicks open a submenu)
 		
-:: UILabelOpts =
-	{ text			:: !String
-	}
-	
-:: UIIconOpts =
-	{ iconCls		:: !String
-	, tooltip		:: !Maybe String
-	}
-
 :: UITaskletOpts =
 	{ taskId		 :: !String
 	, html 			 :: !Maybe String
@@ -296,16 +256,6 @@ derive class iTask UIChange, UIChildChange
     , instanceKey :: !String
     }
 
-:: UITabSetOpts =
-	{ activeTab	:: Int
-	}
-
-:: UITabOpts =
-	{ title			:: !String
-	, iconCls		:: !Maybe String
-	, focusTaskId	:: !Maybe String
-	, closeTaskId	:: !Maybe String
-	}
 //Construction functions
 ui   :: UINodeType -> UI
 uic  :: UINodeType [UI] -> UI
@@ -343,24 +293,23 @@ setTitle 		:: !String 					!UI -> UI
 setFramed		:: !Bool					!UI -> UI
 setIconCls		:: !String					!UI -> UI
 setBaseCls      :: !String                  !UI -> UI
+setTooltip      :: !String                  !UI -> UI
 setDirection    :: !UIDirection             !UI -> UI
 setHalign       :: !UIHAlign                !UI -> UI
 setValign		:: !UIVAlign				!UI -> UI
-
-//Constructing default values
-defaultPanelOpts        :: UIPanelOpts
-defaultTabSetOpts       :: UITabSetOpts
-defaultTabOpts          :: UITabOpts
-defaultWindowOpts       :: UIWindowOpts
-
-defaultContainer        :: UINodeType
-defaultPanel			:: UINodeType
-defaultTabSet			:: UINodeType
-defaultTab              :: UINodeType 
-defaultWindow			:: UINodeType
+setHpos 		:: !UIHAlign                !UI -> UI
+setVpos 		:: !UIVAlign                !UI -> UI
+setWindowType   :: !UIWindowType            !UI -> UI
+setFocusTaskId  :: !String                  !UI -> UI
+setCloseTaskId  :: !String                  !UI -> UI
+setActiveTab 	:: !Int 					!UI -> UI
+setValue 		:: !JSONNode                !UI -> UI
+setMinValue     :: !Int                     !UI -> UI
+setMaxValue     :: !Int                     !UI -> UI
+setText         :: !String                  !UI -> UI
 
 //Util
-stringDisplay			:: !String  -> UI
+stringDisplay   :: !String  -> UI
 
 //Encoding of UI to the format sent to the client framework
 class encodeUI a :: a -> JSONNode

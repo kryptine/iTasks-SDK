@@ -994,14 +994,16 @@ where
 actionsToCloseId :: ![UIAction] -> (!Maybe String, ![UIAction])
 actionsToCloseId [] = (Nothing,[])
 actionsToCloseId [{taskId,action=ActionClose,enabled}:as] = (if enabled (Just taskId) Nothing,as)
-actionsToCloseId [a:as] = let (mbtask,as`) = actionsToCloseId as in (mbtask,[a:as`])
 
+actionsToCloseId [a:as] = let (mbtask,as`) = actionsToCloseId as in (mbtask,[a:as`])
+/*
 actionToHotkey :: UIAction -> Maybe UIKeyAction
 actionToHotkey {taskId,action=Action actionId options,enabled=True}
 	= case [key \\ ActionKey key <- options] of
 		[key:_] = Just (key,{taskId=taskId,actionId=actionId})
 		_		= Nothing
 actionToHotkey _ = Nothing
+*/
 
 hasWindowContainerAttr :: UIAttributes -> Bool
 hasWindowContainerAttr attributes = maybe False ((===) (JSONString "window")) ('DM'.get CONTAINER_ATTRIBUTE attributes)

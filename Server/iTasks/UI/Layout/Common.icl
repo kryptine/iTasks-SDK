@@ -12,11 +12,11 @@ arrangeWithTabs = conditionalLayout isParallel toTabset
 where
 	toTabset = sequenceLayouts
 				[layoutChildrenOf [] toTab
-				,changeNodeType (\(UI _ attr items) ->UI defaultTabSet attr items)
+				,changeNodeType (\(UI _ attr items) ->UI UITabSet attr items)
 				]
 
 	toTab = sequenceLayouts
-				[wrapUI defaultTab
+				[wrapUI UITab 
 				,changeNodeType setTitleFromAttr
 				]
 
@@ -26,9 +26,9 @@ isParallel d = d =:(UI UIParallel _ _)
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 arrangeWithSideBar index side size resize = sequenceLayouts 
-	[wrapUI defaultContainer //Push the current container down a level
-	,changeNodeType (\(UI _ attr items) -> setDirection Horizontal (UI defaultPanel attr items)) //Turn into a panel
-	,insertSubAt [sidePanelIndex] (ui defaultPanel) //Make sure we have a target for the move
+	[wrapUI UIContainer //Push the current container down a level
+	,changeNodeType (\(UI _ attr items) -> setDirection Horizontal (UI UIPanel attr items)) //Turn into a panel
+	,insertSubAt [sidePanelIndex] (ui UIPanel) //Make sure we have a target for the move
 	,moveSubAt [mainPanelIndex,index] [sidePanelIndex,0]
 	,layoutSubAt [sidePanelIndex] unwrapUI //Remove the temporary wrapping panel
 	//Size the new container 
@@ -90,7 +90,7 @@ arrangeHorizontal = id
 frameCompact :: Layout
 frameCompact = sequenceLayouts
 	[changeNodeType (setFramed True o setSize WrapSize WrapSize o setMargins 50 0 20 0 o setMinWidth (ExactBound 600))
-	,wrapUI defaultContainer
+	,wrapUI UIContainer
 	,changeNodeType (setHalign AlignCenter)
 	]
 
@@ -100,17 +100,17 @@ beforeStep layout = conditionalLayout (\n -> n =:(UI UIStep _ _)) layout //TODO:
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
 toWindow windowType vpos hpos = changeNodeType mkWindow
 where
-	mkWindow (UI _ attr items) = UI (UIWindow {wOpts & windowType = windowType, vpos = Just vpos, hpos = Just hpos}) attr items
-	(UIWindow wOpts) = defaultWindow
+	mkWindow (UI _ attr items) = 
+		(setWindowType windowType o setVpos vpos o setHpos hpos) (UI UIWindow attr items)
 
 toEmpty :: Layout
 toEmpty = changeNodeType (const (ui UIEmpty))
 
 toContainer :: Layout
-toContainer = changeNodeType (const (ui defaultContainer))
+toContainer = changeNodeType (const (ui UIContainer))
 
 toPanel :: Layout
-toPanel = changeNodeType (const (ui defaultPanel))
+toPanel = changeNodeType (const (ui UIPanel))
 
 instance tune ArrangeWithTabs
 where tune ArrangeWithTabs t = tune (ApplyLayout arrangeWithTabs) t

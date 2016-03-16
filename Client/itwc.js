@@ -530,9 +530,6 @@ itwc.component.itwc_raw_form_item = itwc.extend(itwc.RawContainer,{
 	cssClass: 'itwc-raw-form-item',
     defaultDirection: 'horizontal'
 });
-itwc.component.itwc_raw_block = itwc.extend(itwc.RawContainer,{
-	cssClass: 'itwc-raw-block'
-});
 
 //#### CORE UI COMPONENT DEFINITIONS ####//
 

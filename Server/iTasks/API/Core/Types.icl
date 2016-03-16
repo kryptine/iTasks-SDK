@@ -670,15 +670,17 @@ gText{|Scale|}	_ _                  = [""]
 gEditor{|Scale|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
-		# sliderOpts	= {UISliderOpts|minValue=val.Scale.min, maxValue=val.Scale.max, value = val.cur}
+		# sliderOpts	= setMinValue val.Scale.min o setMaxValue val.Scale.max
 		| disabled
 			# val = checkMask mask val							
 			# viewOpts = {UIViewOpts|value = fmap curVal val}  
-			= (uic (UIEditor {UIEditor|optional=optional}) [ui (UIViewSlider viewOpts sliderOpts)],vst)
+			# slider = sliderOpts (ui UIViewSlider)
+			# slider = maybe slider (\v -> setValue (JSONInt (curVal v)) slider) val
+			= (uic (UIEditor {UIEditor|optional=optional}) [slider],vst)
 		| otherwise
 			# value = checkMaskValue mask (curVal val)
 			# editOpts = {UIEditOpts|taskId = taskId, editorId = editorId dp, value = value}
-			= (uic (UIEditor {UIEditor|optional=optional}) [ui (UIEditSlider editOpts sliderOpts)], vst)
+			= (uic (UIEditor {UIEditor|optional=optional}) [sliderOpts (ui (UIEditSlider editOpts))], vst)
 	where
 		curVal {Scale|cur} = cur
 	
@@ -698,7 +700,7 @@ gText{|Progress|}	_ val  = [maybe "" (\{Progress|description} -> description) va
 gEditor{|Progress|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId}
-		= (uic (UIEditor {UIEditor|optional=False}) [ui (UIViewProgress {UIViewOpts|value=Just (value val)} {UIProgressOpts|text = text val})], vst)
+		= (uic (UIEditor {UIEditor|optional=False}) [setText (text val) (ui (UIViewProgress {UIViewOpts|value=Just (value val)}))], vst)
 	where
 		text {Progress|description}	= description
 		
@@ -1575,7 +1577,7 @@ derive gVerify			Icon
 
 gEditor{|Icon|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI _ (Icon icon) mask vst = (uic (UIEditor {UIEditor|optional=False}) [ui (UIIcon {UIIconOpts|iconCls="icon-"+++icon,tooltip=Nothing})], vst)
+	genUI _ (Icon icon) mask vst = (uic (UIEditor {UIEditor|optional=False}) [setIconCls ("icon-"+++icon) (ui UIIcon)], vst)
 	genDiff _ (Icon old) om (Icon new) nm vst
 		= (if (old === new) NoChange (ChangeUI [("setIconCls",[encodeUI ("icon-"+++new)])] []),vst)
 

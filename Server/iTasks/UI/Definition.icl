@@ -20,9 +20,9 @@ import Text.HTML
 
 derive class iTask UI, UINodeType, UIAction, UIEditor
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
-derive class iTask UIWindowOpts, UIEditOpts, UIViewOpts, UIActionOpts
-derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIProgressOpts, UISliderOpts, UIEmbeddingOpts, UITabOpts
-derive class iTask UIPanelOpts, UITabSetOpts, UIEditletOpts, UITaskletOpts, UIIconOpts, UILabelOpts
+derive class iTask UIEditOpts, UIViewOpts, UIActionOpts
+derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIEmbeddingOpts 
+derive class iTask UIEditletOpts, UITaskletOpts 
 derive class iTask UIButtonOpts, UIMenuButtonOpts, UITreeNode, UIMenuItem
 
 instance Functor UIViewOpts
@@ -151,14 +151,16 @@ setTitle :: !String !UI -> UI
 setTitle title (UI type attr items) = UI type ('DM'.put "title" (JSONString title) attr) items
 
 setFramed :: !Bool !UI -> UI
-setFramed frame (UI (UIPanel opts) attr items) = UI (UIPanel {UIPanelOpts|opts & frame = frame}) attr items
-setFramed frame def = def
+setFramed frame (UI type attr items) = UI type ('DM'.put "frame" (JSONBool frame) attr) items
 
 setIconCls :: !String !UI -> UI
 setIconCls iconCls (UI type attr items) = UI type ('DM'.put "iconCls" (encodeUI iconCls) attr) items
 
 setBaseCls :: !String !UI -> UI
 setBaseCls baseCls (UI type attr items) = UI type ('DM'.put "baseCls" (encodeUI baseCls) attr) items
+
+setTooltip :: !String !UI -> UI
+setTooltip tooltip (UI type attr items) = UI type ('DM'.put "tooltip" (JSONString tooltip) attr) items
 
 setDirection :: !UIDirection !UI -> UI
 setDirection direction (UI type attr items) = UI type ('DM'.put "direction" (encodeUI direction) attr) items
@@ -169,32 +171,35 @@ setHalign align (UI type attr items) = UI type ('DM'.put "halign" (encodeUI alig
 setValign :: !UIVAlign !UI -> UI
 setValign align (UI type attr items) = UI type ('DM'.put "valign" (encodeUI align) attr) items
 
-defaultContainer :: UINodeType
-defaultContainer = UIContainer
+setHpos :: !UIHAlign !UI -> UI
+setHpos pos (UI type attr items) = UI type ('DM'.put "hpos" (encodeUI pos) attr) items
 
-defaultPanel :: UINodeType
-defaultPanel = UIPanel defaultPanelOpts
+setVpos :: !UIVAlign !UI -> UI
+setVpos pos (UI type attr items) = UI type ('DM'.put "vpos" (encodeUI pos) attr) items
 
-defaultPanelOpts :: UIPanelOpts
-defaultPanelOpts = {UIPanelOpts|title=Nothing,iconCls=Nothing,frame=False,hotkeys=Nothing}
+setWindowType :: !UIWindowType !UI -> UI
+setWindowType windowType (UI type attr items) = UI type ('DM'.put "windowType" (encodeUI windowType) attr) items
 
-defaultTabSet :: UINodeType 
-defaultTabSet = UITabSet defaultTabSetOpts
+setFocusTaskId ::!String !UI -> UI
+setFocusTaskId taskId (UI type attr items) = UI type ('DM'.put "focusTaskId" (JSONString taskId) attr) items
 
-defaultTabSetOpts :: UITabSetOpts
-defaultTabSetOpts = {UITabSetOpts|activeTab = 0}
+setCloseTaskId :: !String !UI -> UI
+setCloseTaskId taskId (UI type attr items) = UI type ('DM'.put "closeTaskId" (JSONString taskId) attr) items
 
-defaultTab :: UINodeType
-defaultTab = UITab defaultTabOpts
+setActiveTab :: !Int !UI -> UI
+setActiveTab activeTab (UI type attr items) = UI type ('DM'.put "activeTab" (JSONInt activeTab) attr) items
 
-defaultTabOpts :: UITabOpts
-defaultTabOpts = {UITabOpts|title="Untitled",iconCls=Nothing,focusTaskId=Nothing,closeTaskId=Nothing}
+setValue :: !JSONNode !UI -> UI
+setValue value (UI type attr items) = UI type ('DM'.put "value" value attr) items
 
-defaultWindow :: UINodeType
-defaultWindow = UIWindow defaultWindowOpts
+setMinValue :: !Int !UI -> UI
+setMinValue minValue (UI type attr items) = UI type ('DM'.put "minValue" (JSONInt minValue) attr) items
 
-defaultWindowOpts :: UIWindowOpts
-defaultWindowOpts = {UIWindowOpts|windowType=FloatingWindow,title=Nothing,iconCls=Nothing,vpos=Nothing,hpos=Nothing,closeTaskId=Nothing,focusTaskId=Nothing}
+setMaxValue :: !Int !UI -> UI
+setMaxValue maxValue (UI type attr items) = UI type ('DM'.put "maxValue" (JSONInt maxValue) attr) items
+
+setText :: !String !UI -> UI
+setText text (UI type attr items) = UI type ('DM'.put "text" (JSONString text) attr) items
 
 stringDisplay :: !String -> UI
 stringDisplay value = ui (UIViewString {UIViewOpts|value = Just (escapeStr value)})
@@ -239,31 +244,29 @@ where
 	encodeUI (UI UIInteract attr defs)                     = component "itwc_raw_interact" [encodeAttr attr,JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UI UIStep attr defs)                         = component "itwc_raw_step" [encodeAttr attr,JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UI (UIAction action) attr _)                 = component "itwc_raw_action" [encodeAttr attr,encodeUI action]
-	encodeUI (UI (UIContainer) attr defs)                  = component "itwc_container" [encodeAttr attr,JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI (UIPanel opts) attr defs)                 = component "itwc_panel" [encodeAttr attr, encodeUI opts
-																		,JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI UIContainer attr defs)                    = component "itwc_container" [encodeAttr attr,JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI UIPanel attr defs)                        = component "itwc_panel" [encodeAttr attr,JSONObject [("items",JSONArray (map encodeUI defs))]]
 
-	encodeUI (UI (UITabSet opts) attr defs)	               = component "itwc_tabset" [encodeAttr attr,encodeUI opts,JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI (UITab opts) attr defs)                   = component "itwc_tabitem" [encodeAttr attr, encodeUI opts,JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI (UIWindow opts) attr defs)                = component "itwc_window" [encodeAttr attr, encodeUI opts,JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI UITabSet attr defs)	                   = component "itwc_tabset" [encodeAttr attr,JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI UITab attr defs)                          = component "itwc_tabitem" [encodeAttr attr, JSONObject [("items",JSONArray (map encodeUI defs))]]
+	encodeUI (UI UIWindow attr defs)                       = component "itwc_window" [encodeAttr attr, JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UI UIForm attr defs)                         = component "itwc_raw_form" [encodeAttr attr,JSONObject [("items",JSONArray (map encodeUI defs))]]
 	encodeUI (UI UIFormItem attr [label,def,info])         = component "itwc_raw_form_item" [encodeAttr attr,JSONObject [("items",JSONArray[encodeUI label,encodeUI def,encodeUI info])]]
 	encodeUI (UI UIFormItem attr defs)                     = component "itwc_raw_form_item" [encodeAttr attr,JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIBlock attr defs)                        = component "itwc_raw_block" [encodeAttr attr, JSONObject [("items",JSONArray (map encodeUI defs))]]
-	encodeUI (UI (UIViewString vopts)	attr _)        = component "itwc_view_string" [encodeAttr attr, encodeUI vopts]
+	encodeUI (UI (UIViewString vopts)	attr _)      = component "itwc_view_string" [encodeAttr attr, encodeUI vopts]
 	encodeUI (UI (UIViewHtml vopts) attr _ )         = component "itwc_view_html" [encodeAttr attr, encodeUI vopts]
 	encodeUI (UI (UIViewDocument vopts) attr _)      = component "itwc_view_document" [encodeAttr attr, encodeUI vopts]
-	encodeUI (UI (UIViewCheckbox vopts) attr _)            = component "itwc_view_checkbox" [encodeAttr attr, encodeUI vopts]
-	encodeUI (UI (UIViewSlider vopts opts) attr _)   = component "itwc_view_slider" [encodeAttr attr, encodeUI vopts, encodeUI opts]
-	encodeUI (UI (UIViewProgress vopts opts) attr _) = component "itwc_view_progress" [encodeAttr attr, encodeUI vopts, encodeUI opts]
-	encodeUI (UI (UIIcon opts) attr _)                     = component "itwc_view_icon" [encodeAttr attr, encodeUI opts]
+	encodeUI (UI (UIViewCheckbox vopts) attr _)      = component "itwc_view_checkbox" [encodeAttr attr, encodeUI vopts]
+	encodeUI (UI UIViewSlider attr _)                = component "itwc_view_slider" [encodeAttr attr]
+	encodeUI (UI (UIViewProgress vopts) attr _)      = component "itwc_view_progress" [encodeAttr attr, encodeUI vopts]
+	encodeUI (UI UIIcon attr _)                      = component "itwc_view_icon" [encodeAttr attr]
 	encodeUI (UI (UIEditString eopts) attr _)        = component "itwc_edit_string" [encodeAttr attr,  encodeUI eopts]
 	encodeUI (UI (UIEditNote eopts) attr _)          = component "itwc_edit_note" [encodeAttr attr, encodeUI eopts]
 	encodeUI (UI (UIEditPassword eopts) attr _)      = component "itwc_edit_password" [encodeAttr attr, encodeUI eopts]
 	encodeUI (UI (UIEditInt eopts) attr _)           = component "itwc_edit_int" [encodeAttr attr,  encodeUI  eopts]
 	encodeUI (UI (UIEditDecimal eopts) attr _)       = component "itwc_edit_decimal" [encodeAttr attr, encodeUI eopts]
-	encodeUI (UI (UIEditCheckbox eopts) attr _)            = component "itwc_edit_checkbox" [encodeAttr attr, encodeUI eopts]
-	encodeUI (UI (UIEditSlider eopts opts) attr _)   = component "itwc_edit_slider" [encodeAttr attr, encodeUI eopts, encodeUI opts]
+	encodeUI (UI (UIEditCheckbox eopts) attr _)      = component "itwc_edit_checkbox" [encodeAttr attr, encodeUI eopts]
+	encodeUI (UI (UIEditSlider eopts) attr _)        = component "itwc_edit_slider" [encodeAttr attr, encodeUI eopts]
 	encodeUI (UI (UIEditDate eopts) attr _)          = component "itwc_edit_date" [encodeAttr attr, encodeUI eopts]
 	encodeUI (UI (UIEditTime eopts) attr _)          = component "itwc_edit_time" [encodeAttr attr, encodeUI eopts]
 	encodeUI (UI (UIEditDateTime eopts) attr _)      = component "itwc_edit_datetime" [encodeAttr attr, encodeUI eopts]
@@ -271,14 +274,14 @@ where
 	encodeUI (UI (UIEditButton eopts opts) attr _)   = component "itwc_editbutton" [encodeAttr attr, encodeUI eopts, encodeUI opts]
 	encodeUI (UI (UIDropdown copts) attr _)          = component "itwc_choice_dropdown" [encodeAttr attr, encodeUI copts]
 	encodeUI (UI (UIListChoice copts) attr _)        = component "itwc_choice_list" [encodeAttr attr, encodeUI copts]
-	encodeUI (UI (UIRadioGroup copts)	attr _)        = component "itwc_choice_radiogroup" [encodeAttr attr, encodeUI copts]
+	encodeUI (UI (UIRadioGroup copts)	attr _)      = component "itwc_choice_radiogroup" [encodeAttr attr, encodeUI copts]
 	encodeUI (UI (UICheckboxGroup copts) attr _)     = component "itwc_choice_checkboxgroup" [encodeAttr attr, encodeUI copts]
 	encodeUI (UI (UIGrid copts opts) attr _)         = component "itwc_choice_grid" [encodeAttr attr, encodeUI copts, encodeUI opts]
 	encodeUI (UI (UITree copts opts) attr _)         = component "itwc_choice_tree" [encodeAttr attr, encodeUI copts, encodeUI opts]
 	encodeUI (UI (UIActionButton aopts opts) attr _) = component "itwc_actionbutton" [encodeAttr attr, encodeUI aopts, encodeUI opts]
     encodeUI (UI (UIMenuButton opts) attr _)         = component "itwc_menubutton" [encodeAttr attr, encodeUI opts]
-	encodeUI (UI (UILabel opts) attr _)              = component "itwc_label" [encodeAttr attr, encodeUI opts]
-	encodeUI (UI (UISplitter) attr _)                      = component "itwc_splitter" [encodeAttr attr]
+	encodeUI (UI UILabel attr _)                     = component "itwc_label" [encodeAttr attr]
+	encodeUI (UI (UISplitter) attr _)                = component "itwc_splitter" [encodeAttr attr]
 	encodeUI (UI (UITasklet opts) attr _)            = component "itwc_tasklet" [encodeAttr attr, encodeUI opts]
 	encodeUI (UI (UIEditlet opts)	attr _)            = component "itwc_edit_editlet" [encodeAttr attr, encodeUI opts]
 	encodeUI (UI (UIEmbedding opts) attr _)          = component "itwc_embedding" [encodeAttr attr, encodeUI opts]
@@ -324,12 +327,6 @@ instance encodeUI UIEditOpts
 where
 	encodeUI {UIEditOpts|taskId,editorId,value}
 		= JSONObject ([("taskId",JSONString taskId),("editorId",JSONString editorId)] ++ maybe [] (\v -> [("value",v)]) value)
-
-instance encodeUI UITabSetOpts
-where
-	encodeUI {UITabSetOpts|activeTab}
-		= JSONObject [("activeTab",JSONInt activeTab)]
-
 
 instance encodeUI UISideSizes 
 where
@@ -388,13 +385,8 @@ instance encodeUI UIButtonOpts where encodeUI opts = toJSON opts
 instance encodeUI UIActionOpts where encodeUI opts = toJSON opts
 instance encodeUI UIEmbeddingOpts where encodeUI opts = toJSON opts
 instance encodeUI UITaskletOpts where encodeUI opts = toJSON opts
-instance encodeUI UIPanelOpts where encodeUI opts = toJSON opts
-instance encodeUI UILabelOpts where encodeUI opts = toJSON opts
 instance encodeUI UITreeOpts where encodeUI opts = toJSON opts
 instance encodeUI UIGridOpts where encodeUI opts = toJSON opts
-instance encodeUI UISliderOpts where encodeUI opts = toJSON opts
-instance encodeUI UIIconOpts where encodeUI opts = toJSON opts
-instance encodeUI UIProgressOpts where encodeUI opts = toJSON opts
 
 instance encodeUI (UIChoiceOpts a) | JSONEncode{|*|} a 
 where
@@ -403,26 +395,6 @@ where
 instance encodeUI UIEditletOpts
 where
 	encodeUI opts = let (JSONObject fields) = toJSON opts in JSONObject [field \\ field <- fields | fst field <> "value"]
-
-instance encodeUI UIWindowOpts
-where
-	encodeUI {UIWindowOpts|windowType,title,iconCls,vpos,hpos,focusTaskId,closeTaskId}
-    	= JSONObject [field \\ field <- [("windowType",encodeUI windowType)
-                                     	,("title",encodeUI title)
-                                     	,("iconCls",encodeUI iconCls)
-                                     	,("vpos",encodeUI vpos)
-                                     	,("hpos",encodeUI hpos)
-                                     	,("focusTaskId",encodeUI focusTaskId)
-                                     	,("closeTaskId",encodeUI closeTaskId)
-                                     	] | snd field =!= JSONNull]
-instance encodeUI UITabOpts
-where
-	encodeUI {UITabOpts|title,iconCls,focusTaskId,closeTaskId}
-    	= JSONObject [field \\ field <- [("title",encodeUI title)
-                                     	,("iconCls",encodeUI iconCls)
-                                     	,("focusTaskId",encodeUI focusTaskId)
-                                     	,("closeTaskId",encodeUI closeTaskId)
-                                     	] | snd field =!= JSONNull]
 
 component :: String [JSONNode] -> JSONNode
 component xtype opts = JSONObject [("xtype",JSONString xtype):optsfields]
