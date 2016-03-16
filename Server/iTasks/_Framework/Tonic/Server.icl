@@ -13,6 +13,37 @@ import iTasks.API.Extensions.SVG.SVGlet
 
 derive class iTask TonicMessage, ServerState
 
+playbackTonic :: Task ()
+playbackTonic = get tonicServerShare >>= \messages -> playbackTonic` (length messages - 1)
+  where
+  playbackTonic` curIdx
+    =                get tonicServerShare
+    >>= \messages -> let numMsgs = length messages
+                         lastIdx = numMsgs - 1 in
+                     if (curIdx >= 0 && curIdx < numMsgs)
+                       (let notFirst = curIdx < numMsgs - 1
+                            notLast  = curIdx > 0 in
+                        (   viewMessage (messages !! curIdx) (drop curIdx messages)
+                        >>* [ OnAction (Action "First" [])    (ifCond notFirst (playbackTonic` lastIdx))
+                            , OnAction (Action "Previous" []) (ifCond notFirst (playbackTonic` (curIdx + 1)))
+                            , OnAction (Action "Next" [])     (ifCond notLast  (playbackTonic` (curIdx - 1)))
+                            , OnAction (Action "Last" [])     (ifCond notLast  (playbackTonic` 0))
+                            ]))
+                       (   viewInformation () [] "No recordings yet"
+                       >>* [OnAction (Action "Try again" []) (always (playbackTonic` lastIdx))])
+  viewMessage msg prevMsgs
+    =           getModule msg.bpModuleName
+    >>= \mod -> case getTonicFunc mod msg.bpFunctionName of
+                  Just func
+                    # inst                        = mkInstance msg.nodeId func
+                    # inst & bpi_previouslyActive = 'DM'.fromList [(msg.nodeId, TaskId 1 i) \\ msg <- prevMsgs & i <- reverse [0..length prevMsgs]]
+                    # currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
+                    # inst & bpi_previouslyActive = 'DM'.union ('DM'.fromList currActive) inst.bpi_previouslyActive
+                    # inst & bpi_activeNodes      = case currActive of
+                                                      [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (tid + 1), msg.nodeId)) inst.bpi_activeNodes
+                    = viewInstance inst
+                  _ = viewInformation () [] "No blueprint found!" @! ()
+
 viewTonic :: Task ()
 viewTonic = whileUnchanged tonicServerShare (updateBP Nothing o reverse)
   where

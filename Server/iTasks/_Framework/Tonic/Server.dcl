@@ -23,6 +23,8 @@ import iTasks._Framework.Tonic.AbsSyn
 
 derive class iTask TonicMessage, ServerState
 
+playbackTonic :: Task ()
+
 viewTonic :: Task ()
 
 acceptAndViewTonicTraces :: Task [TonicMessage]
