@@ -26,19 +26,22 @@ derive JSONDecode NodeMoves, NodeLayoutStates, NodeSpine
 
 instance tune ApplyLayout
 where
-	tune (ApplyLayout f) task=:(Task eval) = Task eval`
+	tune (ApplyLayout f) task=:(Task evala) = Task eval
 	where
-		eval` event evalOpts tt=:(TCInit _ _) iworld
-			= eval` event evalOpts (TCLayout JSONNull tt) iworld
+		eval event evalOpts (TCDestroy (TCLayout s tt)) iworld //Cleanup duty simply passed to inner task
+			= evala event evalOpts (TCDestroy tt) iworld
 
-		eval` event evalOpts (TCLayout s tt) iworld = case eval event evalOpts tt iworld of
+		eval event evalOpts tt=:(TCInit _ _) iworld
+			= eval event evalOpts (TCLayout JSONNull tt) iworld
+
+		eval event evalOpts (TCLayout s tt) iworld = case evala event evalOpts tt iworld of
 	        (ValueResult value info change tt,iworld) 
 				# s = fromMaybe JSONNull (fromJSON s)	
 				# (change,s) = f (change,s)
 				= (ValueResult value info change (TCLayout s tt), iworld)
             (res,iworld) = (res,iworld)
 		
-		eval` event evalOpts state iworld = eval event evalOpts state iworld //Catchall
+		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
 		
 instance tune AutoLayout
 where
