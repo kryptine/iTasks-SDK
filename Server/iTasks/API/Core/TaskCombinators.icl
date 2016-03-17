@@ -717,23 +717,26 @@ where
 			Error e
 				= (ExceptionResult e,iworld)
 		
-	eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{server={buildID},current={taskInstance}}
+	eval event evalOpts tree=:(TCBasic taskId ts state _) iworld=:{server={buildID},current={taskInstance}}
 		//Load instance
         # (constants,iworld)    = read (sdsFocus instanceNo taskInstanceConstants) iworld
 		# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
 		= case (constants,progress) of
 			(Ok {InstanceConstants|instanceKey,build},Ok progress=:{InstanceProgress|attachedTo=[attachedId],value})
-                | build <> buildID //Check version
-				    = (ValueResult (Value ASIncompatible True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange tree, iworld)
-                | value === Exception
-				    = (ValueResult (Value ASExcepted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange tree, iworld)
-				| attachedId == taskId
-					# rep 		= ReplaceUI (embedTaskDef instanceNo instanceKey)
-                    # stable    = value === Stable
-					= (ValueResult (Value (ASAttached stable) stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
-				| otherwise
-					# rep 		= ReplaceUI inUseDef
-					= (ValueResult (Value (ASInUse attachedId) False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} rep tree, iworld)		
+				# (curValue,stable)
+					 = if (build <> buildID) (ASIncompatible,True)
+						(if (value === Exception) (ASExcepted,True) 
+							(if(attachedId == taskId)
+								(let stable = (value === Stable) in (ASAttached stable,stable))
+								(ASInUse attachedId,False)
+							)
+						)
+				# prevValue = fromJSON state
+				//Only replace the UI if the value is different
+				# rep = if (Just curValue === prevValue) NoChange
+							(if (curValue =:(ASInUse _)) (ReplaceUI inUseDef) (ReplaceUI (embedTaskDef instanceNo instanceKey)))
+				# tree = TCBasic taskId ts (toJSON curValue) False 	
+				= (ValueResult (Value curValue stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} rep tree,iworld)
 			_
 				= (ValueResult (Value ASDeleted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange tree, iworld)
 
