@@ -72,6 +72,13 @@ instance TonicTopLevelBlueprint Maybe where
 instance TonicBlueprintPart Maybe where
   tonicWrapApp _ _ _ _ mb = mb
 
+instance TonicTopLevelBlueprint (Either e) where
+  tonicWrapBody _ _ _ _ t = t
+  tonicWrapArg _ _ _ = return ()
+
+instance TonicBlueprintPart (Either e) where
+  tonicWrapApp _ _ _ _ mb = mb
+
 :: TonicIOState =
   { currIndent :: Int
   , moduleName :: String

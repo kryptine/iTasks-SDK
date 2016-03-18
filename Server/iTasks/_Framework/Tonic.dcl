@@ -36,6 +36,9 @@ instance TonicBlueprintPart Task
 instance TonicTopLevelBlueprint Maybe
 instance TonicBlueprintPart Maybe
 
+instance TonicTopLevelBlueprint (Either e)
+instance TonicBlueprintPart (Either e)
+
 instance TonicTopLevelBlueprint IO
 instance TonicBlueprintPart IO
 

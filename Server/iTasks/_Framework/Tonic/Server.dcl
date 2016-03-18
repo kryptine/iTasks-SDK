@@ -27,4 +27,4 @@ playbackTonic :: Task ()
 
 viewTonic :: Task ()
 
-acceptAndViewTonicTraces :: Task [TonicMessage]
+acceptAndViewTonicTraces :: Task (Bool, [TonicMessage])

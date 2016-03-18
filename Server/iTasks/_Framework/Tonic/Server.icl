@@ -14,23 +14,26 @@ import iTasks.API.Extensions.SVG.SVGlet
 derive class iTask TonicMessage, ServerState
 
 playbackTonic :: Task ()
-playbackTonic = get tonicServerShare >>= \messages -> playbackTonic` (length messages - 1)
+playbackTonic = get tonicServerShare >>= \(_, messages) -> playbackTonic` (length messages - 1)
   where
   playbackTonic` curIdx
-    =                get tonicServerShare
-    >>= \messages -> let numMsgs = length messages
-                         lastIdx = numMsgs - 1 in
-                     if (curIdx >= 0 && curIdx < numMsgs)
-                       (let notFirst = curIdx < numMsgs - 1
-                            notLast  = curIdx > 0 in
-                        (   viewMessage (messages !! curIdx) (drop curIdx messages)
-                        >>* [ OnAction (Action "First" [])    (ifCond notFirst (playbackTonic` lastIdx))
-                            , OnAction (Action "Previous" []) (ifCond notFirst (playbackTonic` (curIdx + 1)))
-                            , OnAction (Action "Next" [])     (ifCond notLast  (playbackTonic` (curIdx - 1)))
-                            , OnAction (Action "Last" [])     (ifCond notLast  (playbackTonic` 0))
-                            ]))
-                       (   viewInformation () [] "No recordings yet"
-                       >>* [OnAction (Action "Try again" []) (always (playbackTonic` lastIdx))])
+    =                             get tonicServerShare
+    >>= \(recording, messages) -> let numMsgs = length messages
+                                      lastIdx = numMsgs - 1 in
+                                  if (curIdx >= 0 && curIdx < numMsgs)
+                                    (let notFirst = curIdx < numMsgs - 1
+                                         notLast  = curIdx > 0 in
+                                     (   viewMessage (messages !! curIdx) (drop curIdx messages)
+                                     >>* [ OnAction (Action "Start recording" []) (ifCond (not recording) (toggleRecording >>| playbackTonic` curIdx))
+                                         , OnAction (Action "Stop recording" [])  (ifCond recording       (toggleRecording >>| playbackTonic` curIdx))
+                                         , OnAction (Action "First" [])    (ifCond notFirst (playbackTonic` lastIdx))
+                                         , OnAction (Action "Previous" []) (ifCond notFirst (playbackTonic` (curIdx + 1)))
+                                         , OnAction (Action "Next" [])     (ifCond notLast  (playbackTonic` (curIdx - 1)))
+                                         , OnAction (Action "Last" [])     (ifCond notLast  (playbackTonic` 0))
+                                         ]))
+                                    (   viewInformation () [] "No recordings yet"
+                                    >>* [OnAction (Action "Try again" []) (always playbackTonic)])
+  toggleRecording = upd (\(b, msgs) -> (not b, msgs)) tonicServerShare
   viewMessage msg prevMsgs
     =           getModule msg.bpModuleName
     >>= \mod -> case getTonicFunc mod msg.bpFunctionName of
@@ -45,8 +48,9 @@ playbackTonic = get tonicServerShare >>= \messages -> playbackTonic` (length mes
                   _ = viewInformation () [] "No blueprint found!" @! ()
 
 viewTonic :: Task ()
-viewTonic = whileUnchanged tonicServerShare (updateBP Nothing o reverse)
+viewTonic = whileUnchanged tonicServerShare (updateBP Nothing o reverse o snd)
   where
+  updateBP :: (Maybe BlueprintInstance) [TonicMessage] -> Task ()
   updateBP Nothing    [] = viewInformation () [] "Waiting for blueprint" @! ()
   updateBP (Just bpi) [] = viewInstance bpi
   updateBP Nothing [msg:msgs]
@@ -95,16 +99,16 @@ mkInstance nid tf =
                            , bpr_taskName   = tf.tf_name }
   }
 
-tonicServerShare :: Shared [TonicMessage]
-tonicServerShare = sharedStore "tonicServerShare" []
+tonicServerShare :: Shared (Bool, [TonicMessage])
+tonicServerShare = sharedStore "tonicServerShare" (False, [])
 
-acceptAndViewTonicTraces :: Task [TonicMessage]
+acceptAndViewTonicTraces :: Task (Bool, [TonicMessage])
 acceptAndViewTonicTraces
   = acceptTonicTraces tonicServerShare
       ||-
     viewSharedInformation "Logged traces" [] tonicServerShare
 
-acceptTonicTraces :: !(RWShared () [TonicMessage] [TonicMessage]) -> Task [ServerState]
+acceptTonicTraces :: !(Shared (Bool, [TonicMessage])) -> Task [ServerState]
 acceptTonicTraces tonicShare
   = tcplisten 9000 True tonicShare { ConnectionHandlers
                                    | onConnect      = onConnect
@@ -112,7 +116,8 @@ acceptTonicTraces tonicShare
                                    , onDisconnect   = onDisconnect
                                    }
   where
-  onConnect :: String [TonicMessage] -> (MaybeErrorString ServerState, Maybe [TonicMessage], [String], Bool)
+  onConnect :: String (Bool, [TonicMessage])
+            -> (MaybeErrorString ServerState, Maybe (Bool, [TonicMessage]), [String], Bool)
   onConnect host olderMessages
     = ( Ok { oldData = ""
            , clientIp = host}
@@ -120,13 +125,18 @@ acceptTonicTraces tonicShare
       , ["Welcome!"]
       , False)
 
-  whileConnected :: (Maybe String) ServerState [TonicMessage] -> (MaybeErrorString ServerState, Maybe [TonicMessage], [String], Bool)
-  whileConnected (Just newData) st=:{oldData} olderMessages
+  whileConnected :: (Maybe String) ServerState (Bool, [TonicMessage])
+                 -> (MaybeErrorString ServerState, Maybe (Bool, [TonicMessage]), [String], Bool)
+  whileConnected (Just newData) st=:{oldData} (recording, olderMessages)
     # collectedData        = oldData +++ 'T'.trim newData
     # (messages, leftover) = partitionMessages ('T'.split "TONIC_EOL" collectedData)
-    # mbTMsgs              = Just ([msg \\ Just msg <- map (fromJSON o fromString) messages] ++ olderMessages)
-    = (Ok {st & oldData = leftover}, mbTMsgs, [], False)
+    # newMsgs              = if recording [msg \\ Just msg <- map strToMessage messages] []
+    # tmsgs                = newMsgs ++ olderMessages
+    = (Ok {st & oldData = leftover}, Just (recording, tmsgs), [], False)
     where
+    strToMessage :: !String -> Maybe TonicMessage
+    strToMessage str = fromJSON (fromString str)
+
     partitionMessages :: [String] -> ([String], String)
     partitionMessages []  = ([], "")
     partitionMessages [x] = ([], x)
@@ -137,7 +147,8 @@ acceptTonicTraces tonicShare
   whileConnected Nothing st olderMessages
     = (Ok st, Nothing, [], False)
 
-  onDisconnect :: ServerState [TonicMessage] -> (MaybeErrorString ServerState, Maybe [TonicMessage])
+  onDisconnect :: ServerState (Bool, [TonicMessage])
+               -> (MaybeErrorString ServerState, Maybe (Bool, [TonicMessage]))
   onDisconnect st lines
     = (Ok st, Just lines)
 
