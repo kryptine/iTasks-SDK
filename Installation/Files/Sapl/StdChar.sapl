@@ -1,7 +1,7 @@
-StdChar.digitToInt !c_0 = subI (toInt_char c_0) 48
+StdChar.digitToInt !c_0 = subI (C2I c_0) 48
 <{StdChar.<_19}> :== ltC
-StdChar.toUpper !c_0 = if (StdChar.isLower c_0) (toChar (addI (toIntC c_0) (subI (toIntC 'A') (toIntC 'a')))) c_0
-StdChar.toLower !c_0 = if (StdChar.isUpper c_0) (toChar (subI (toIntC c_0) (subI (toIntC 'A') (toIntC 'a')))) c_0
+StdChar.toUpper !c_0 = if (StdChar.isLower c_0) (I2C (addI (C2I c_0) (subI (C2I 'A') (C2I 'a')))) c_0
+StdChar.toLower !c_0 = if (StdChar.isUpper c_0) (I2C (subI (C2I c_0) (subI (C2I 'A') (C2I 'a')))) c_0
 StdChar.isUpper !c_0 = and (geC c_0 'A') (geC 'Z' c_0)
 StdChar.isLower !c_0 = and (geC c_0 'a') (geC 'z' c_0)
 StdChar.isAlpha !c_0 = or (StdChar.isLower c_0) (StdChar.isUpper c_0)
@@ -14,13 +14,13 @@ StdChar.isSpace !c_0 = select c_0 (' ' -> true) ('\t' -> true) ('\n' -> true) ('
 StdChar.isControl !c_0 = if (ltC c_0 ' ') true (eqC c_0 '\xB1')
 StdChar.isPrint !c_0 = if (geC c_0 ' ') (not (ltC '~' c_0)) false
 StdChar.isAscii !c_0 = gtC 128 c_0
-<{StdChar.+_14}> !a !b = toChar (addI (toIntC a) (toIntC b))
-<{StdChar.-_15}> !a !b = toChar (subI (toIntC a) (toIntC b))
+<{StdChar.+_14}> !a !b = I2C (addI (C2I a) (C2I b))
+<{StdChar.-_15}> !a !b = I2C (subI (C2I a) (C2I b))
 StdChar.zero_16 :== '\x00'
 StdChar.one_17 :== '\x01'
 StdChar.toChar_20 !a = a
-StdChar.toChar_21 :== toChar 
-StdChar.fromChar_22 :== toIntC
+StdChar.toChar_21 :== I2C 
+StdChar.fromChar_22 :== C2I
 StdChar.fromChar_23 !a_0 = a_0
 
 
