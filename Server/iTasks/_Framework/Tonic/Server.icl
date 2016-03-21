@@ -12,6 +12,7 @@ import iTasks.API.Extensions.Admin.TonicAdmin
 import iTasks.API.Extensions.SVG.SVGlet
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
+import iTasks._Framework.Tonic.Images
 
 derive class iTask TonicMessage, ServerState
 
