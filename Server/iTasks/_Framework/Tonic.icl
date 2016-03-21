@@ -80,29 +80,10 @@ instance TonicTopLevelBlueprint (Either e) where
 instance TonicBlueprintPart (Either e) where
   tonicWrapApp mn fn nid _ mb = tonicIOBlueprintPart mn fn nid mb
 
-:: TonicIOState =
-  { currIndent :: Int
-  , moduleName :: String
-  , funcName   :: String
-  }
-
-derive class iTask TonicIOState
-
-TonicIOFile = "TonicIOFile"
-
-indent :: !Int -> String
-indent n = repeatStr "  " n
-
-underline :: !Int -> String
-underline n = repeatStr "-" n
-
-repeatStr :: !String !Int -> String
-repeatStr str n = foldr (+++) "" (repeatn n str)
-import StdDebug
 tcpsend :: TonicMessage *World -> *World
 tcpsend msg world
   = case tcpsend` "localhost" 9000 [toString (toJSON msg) +++ "TONIC_EOL"] world of
-      (Ok _, world) -> world
+      (Ok _, world)  -> world
       (Error str, _) -> abort str
 
 tcpsend` :: String Int [String] *World -> *(MaybeError String (), *World)
@@ -132,41 +113,90 @@ instance TonicTopLevelBlueprint IO where
 instance TonicBlueprintPart IO where
   tonicWrapApp mn fn nid _ mb = tonicIOBlueprintPart mn fn nid mb
 
+TonicBookkeepingFile =: "TonicBookkeepingFile"
+
+:: TonicBookkeeping =
+  { nextComputationRootId      :: Int
+  , computations               :: IntMap TonicComputation
+  , currentlyActiveComputation :: Int
+  }
+
+:: TonicComputation =
+  { computationId :: Int
+  , moduleName    :: String
+  , funcName      :: String
+  }
+
+derive class iTask TonicBookkeeping, TonicComputation
+
+openBookkeeping :: *World -> *(TonicBookkeeping, *World)
+openBookkeeping world
+  # (ok, file, world) = fopen TonicBookkeepingFile FReadText world
+  | ok
+    # (str, file) = freads file 16777216
+    # (_, world)  = fclose file world
+    = case fromJSON (fromString str) of
+        Just bk = (bk, world)
+        _       = (newbk, world)
+  | otherwise = (newbk, world)
+  where
+  newbk = { TonicBookkeeping
+          | nextComputationRootId      = 1
+          , computations               = 'DIS'.newMap
+          , currentlyActiveComputation = 0
+          }
+
+writeBookkeeping :: TonicBookkeeping *World -> *World
+writeBookkeeping bk world
+  # (ok, file, world) = fopen TonicBookkeepingFile FWriteText world
+  | ok
+    # file       = fwrites (toString (toJSON bk)) file
+    # (_, world) = fclose file world
+    = world
+  | otherwise = world
+
 tonicIOTopLevel :: String String (m a) -> m a | TMonad m & iTask a
 tonicIOTopLevel mn tn t
   | isLambda tn = t
-  | unsafeWriteTonicState { currIndent = 0, moduleName = mn, funcName = tn } = t
+  | unsafePerformIOTrue createTopLevel = t
   where
-  unsafeWriteTonicState :: TonicIOState -> Bool
-  unsafeWriteTonicState st = unsafePerformIOTrue (writeFileM` TonicIOFile (toString (toJSON st)))
-  writeFileM` name txt world
-    # (ok, file, world) = fopen name FWriteText world
-    # file              = fwrites txt file
-    # (ok, world)       = fclose file world
+  createTopLevel :: *World -> *((), *World)
+  createTopLevel world
+    # (bk, world)                     = openBookkeeping world
+    # bk & currentlyActiveComputation = bk.nextComputationRootId
+    # bk & computations               = 'DIS'.put bk.nextComputationRootId (mkComputation bk.nextComputationRootId) bk.computations
+    # bk & nextComputationRootId      = bk.nextComputationRootId + 1
+    # world                           = writeBookkeeping bk world
     = ((), world)
+    where
+    mkComputation :: Int -> TonicComputation
+    mkComputation n = { TonicComputation
+                      | computationId = n
+                      , moduleName    = mn
+                      , funcName      = tn
+                      }
 
 tonicIOBlueprintPart :: String String ExprId (m a) -> m a | TMonad m & iTask a
 tonicIOBlueprintPart mn fn nid mb
   | isLambda fn = mb
   | unsafePerformIOTrue persistTonicState = mb
   where
+  persistTonicState :: *World -> *((), *World)
   persistTonicState world
-    # (ok, file, world) = fopen TonicIOFile FReadText world
-    # (str, file)       = freads file 16777216
-    # (ok, world)       = fclose file world
-    = case fromJSON (fromString str) of
-        Just { TonicIOState | moduleName, funcName }
-          # msg = { TonicMessage
-                  | computationId  = []
-                  , nodeId         = nid
-                  , bpModuleName   = moduleName
-                  , bpFunctionName = funcName
-                  , appModuleName  = mn
-                  , appFunName     = fn
-                  }
-          # world = tcpsend msg world
-          = ((), world)
-        _ = ((), world)
+    # (bk, world) = openBookkeeping world
+    # world       = case 'DIS'.get bk.currentlyActiveComputation bk.computations of
+                      Just comp
+                        # msg = { TonicMessage
+                                | computationId  = [bk.currentlyActiveComputation]
+                                , nodeId         = nid
+                                , bpModuleName   = comp.TonicComputation.moduleName
+                                , bpFunctionName = comp.TonicComputation.funcName
+                                , appModuleName  = mn
+                                , appFunName     = fn
+                                }
+                        = tcpsend msg world
+                      _ = world
+    = ((), world)
 
 instance TApplicative IO where
   return x   = IO (\s -> (x, s))
