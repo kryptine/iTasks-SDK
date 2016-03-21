@@ -3,8 +3,8 @@ definition module iTasks._Framework.Tonic.Types
 import StdString
 import StdOverloaded
 from Data.IntMap.Strict import :: IntMap
-import iTasks._Framework.Tonic.AbsSyn
-import iTasks._Framework.Tonic.Images
+from iTasks._Framework.Tonic.AbsSyn import :: TonicModule, :: TAssoc, :: TLit, :: TExpr, :: FuncName, :: TPriority, :: ModuleName, :: TonicFunc
+from iTasks._Framework.Tonic.Images import :: ClickMeta
 import iTasks._Framework.Generic
 import iTasks.API.Extensions.User
 from iTasks.API.Core.Types import :: DateTime

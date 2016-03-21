@@ -10,6 +10,7 @@ from Data.IntMap.Strict import :: IntMap
 import iTasks._Framework.Tonic.Blueprints
 import iTasks.API.Extensions.Admin.TonicAdmin
 import iTasks.API.Extensions.SVG.SVGlet
+import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
 
 derive class iTask TonicMessage, ServerState

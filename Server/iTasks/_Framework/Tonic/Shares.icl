@@ -2,6 +2,7 @@ implementation module iTasks._Framework.Tonic.Shares
 
 import qualified Data.Map as DM
 import qualified iTasks._Framework.SDS as DSDS
+import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
 import StdMisc
 

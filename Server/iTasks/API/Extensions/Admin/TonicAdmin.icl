@@ -8,6 +8,7 @@ import iTasks._Framework.Tonic.Shares
 import iTasks._Framework.Tonic.Types
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Pretty
+import iTasks._Framework.Tonic.Images
 from StdFunc import seq
 import qualified Data.Map as DM
 from Data.Map import instance Functor (Map a)

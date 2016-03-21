@@ -3,7 +3,8 @@ definition module iTasks._Framework.Tonic.Shares
 import iTasks.API.Core.Types
 import iTasks.API.Core.SDSs
 from iTasks.UI.Definition import :: UIAction
-from iTasks._Framework.Tonic.Types import :: ModuleName, :: FuncName, :: ClickMeta, :: ExprId, :: TStability, :: TonicRTMap, :: BlueprintInstance, :: StaticDisplaySettings, :: BlueprintQuery, :: DynamicDisplaySettings, :: VarName, :: TaskResult
+from iTasks._Framework.Tonic.AbsSyn import :: VarName
+from iTasks._Framework.Tonic.Types import :: ModuleName, :: FuncName, :: ClickMeta, :: ExprId, :: TStability, :: TonicRTMap, :: BlueprintInstance, :: StaticDisplaySettings, :: BlueprintQuery, :: DynamicDisplaySettings, :: TaskResult
 
 selectedBlueprint :: RWShared () (Maybe ClickMeta) (Maybe ClickMeta)
 
