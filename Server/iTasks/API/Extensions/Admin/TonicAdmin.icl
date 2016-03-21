@@ -5,6 +5,9 @@ import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
 import iTasks._Framework.SDS, iTasks._Framework.Generic.Interaction, iTasks.API.Core.Types
 import iTasks._Framework.Tonic.Blueprints
 import iTasks._Framework.Tonic.Shares
+import iTasks._Framework.Tonic.Types
+import iTasks._Framework.Tonic.AbsSyn
+import iTasks._Framework.Tonic.Pretty
 from StdFunc import seq
 import qualified Data.Map as DM
 from Data.Map import instance Functor (Map a)
@@ -14,7 +17,6 @@ import Data.List
 import iTasks.API.Extensions.SVG.SVGlet
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
-import iTasks._Framework.Tonic.Pretty
 import Data.Maybe
 import qualified Control.Applicative as CA
 from Control.Applicative import class Applicative, instance Applicative Maybe

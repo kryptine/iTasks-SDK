@@ -1,7 +1,7 @@
 definition module iTasks._Framework.Tonic.Server
 
 import iTasks
-import iTasks._Framework.Tonic.AbsSyn
+from iTasks._Framework.Tonic.AbsSyn import :: ModuleName
 
 :: ComputationId :== [Int]
 :: NodeId        :== [Int]

@@ -1,7 +1,9 @@
 definition module iTasks._Framework.Tonic.Shares
 
+import iTasks.API.Core.Types
 import iTasks.API.Core.SDSs
-import iTasks._Framework.Tonic.Types
+from iTasks.UI.Definition import :: UIAction
+from iTasks._Framework.Tonic.Types import :: ModuleName, :: FuncName, :: ClickMeta, :: ExprId, :: TStability, :: TonicRTMap, :: BlueprintInstance, :: StaticDisplaySettings, :: BlueprintQuery, :: DynamicDisplaySettings, :: VarName, :: TaskResult
 
 selectedBlueprint :: RWShared () (Maybe ClickMeta) (Maybe ClickMeta)
 

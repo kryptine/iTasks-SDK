@@ -1,6 +1,11 @@
 definition module iTasks._Framework.Tonic.Blueprints
 
-import iTasks._Framework.Tonic.Types
+from iTasks._Framework.Task import :: Task
+from iTasks._Framework.IWorld import :: IWorld
+from iTasks._Framework.Tonic.Types import :: AllBlueprints, :: TonicModule, :: TonicFunc, :: ModuleName, :: FuncName
+from Data.Error import :: MaybeError
+from Data.Map import :: Map
+from Data.Maybe import :: Maybe
 
 getTonicFunc :: !TonicModule !String -> Maybe TonicFunc
 
