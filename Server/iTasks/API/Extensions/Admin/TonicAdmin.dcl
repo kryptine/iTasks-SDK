@@ -11,6 +11,8 @@ tonic :: Task ()
 
 tonicStaticBrowser    :: [TaskAppRenderer] -> Task ()
 
+tonicBrowseWithModule :: AllBlueprints [TaskAppRenderer] (Shared NavStack) TonicModule -> Task ()
+
 tonicStaticWorkflow   :: [TaskAppRenderer] -> Workflow
 
 tonicDynamicBrowser   :: [TaskAppRenderer] -> Task ()

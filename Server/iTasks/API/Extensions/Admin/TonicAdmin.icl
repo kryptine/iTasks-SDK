@@ -49,26 +49,34 @@ tonicStaticBrowser rs
   >>- \allbps   -> (selectModule
                >&> withSelection noModuleSelection (
       \mn       -> getModule mn
-  >>- \tm       -> (selectTask tm
-               >&> withSelection noTaskSelection (
-      \tn       -> maybe (return ()) (
-      \tt       ->   whileUnchanged staticDisplaySettings (
-      \sett     ->   (if (sett.StaticDisplaySettings.show_comments && tt.tf_comments <> "")
-                        (viewInformation "Task comments" [] tt.tf_comments @! ())
-                        (return ()))
-                     -&&-
-                     viewStaticTask allbps rs navstack { BlueprintIdent
-                                                       | bpr_moduleName = tm.tm_name
-                                                       , bpr_taskName   = tt.tf_name
-                                                       } tm tt sett.StaticDisplaySettings.unfold_depth sett.StaticDisplaySettings.display_compact @! ()))
-                   (getTonicFunc tm tn)
+  >>- \tm       -> tonicBrowseWithModule allbps rs navstack tm
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
-         )) <<@ FullScreen))) @! ()
+         )) <<@ FullScreen) @! ()
   where
   selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromComboBox id)]
-  selectTask tm     = enterChoice "Select task" [ChooseWith (ChooseFromComboBox id)] (getTasks tm)
   noModuleSelection = viewInformation () [] "Select module..."
-  noTaskSelection   = viewInformation () [] "Select task..."
+
+tonicBrowseWithModule :: AllBlueprints [TaskAppRenderer] (Shared NavStack) TonicModule -> Task ()
+tonicBrowseWithModule allbps rs navstack tm
+  =           (selectTask tm
+           >&> withSelection noTaskSelection (
+  \tn       -> maybe (return ()) (
+  \tt       ->   whileUnchanged staticDisplaySettings (
+  \sett     ->   (if (sett.StaticDisplaySettings.show_comments && tt.tf_comments <> "")
+                    (viewInformation "Task comments" [] tt.tf_comments @! ())
+                    (return ()))
+                 -&&-
+                 viewStaticTask allbps rs navstack { BlueprintIdent
+                                                   | bpr_moduleName = tm.tm_name
+                                                   , bpr_taskName   = tt.tf_name
+                                                   } tm tt sett.StaticDisplaySettings.unfold_depth sett.StaticDisplaySettings.display_compact @! ()))
+               (getTonicFunc tm tn)
+     )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
+        <<@ FullScreen @! ()
+  where
+  selectTask tm   = enterChoice "Select task" [ChooseWith (ChooseFromComboBox id)] (getTasks tm)
+  noTaskSelection = viewInformation () [] "Select task..."
+
 
 viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !BlueprintIdent !TonicModule !TonicFunc !Scale !Bool -> Task ()
 viewStaticTask allbps rs navstack bpref tm tt depth compact
