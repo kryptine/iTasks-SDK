@@ -53,6 +53,7 @@ from TCPEvent import instance accSChannel TCP_SChannel_, class accSChannel
 import System.IO
 from Text.Parsers.Parsers import :: Parser
 import qualified Text.Parsers.Parsers as PS
+import StdFile
 
 //-----------------------------------------------------------------------------
 // INSTANCES
@@ -66,18 +67,18 @@ instance TonicBlueprintPart Task where
   tonicWrapApp mn fn nid cases t = tonicWrapApp` mn fn nid cases t
 
 instance TonicTopLevelBlueprint Maybe where
-  tonicWrapBody _ _ _ _ t = t
+  tonicWrapBody mn tn args _ t = tonicIOTopLevel mn tn t
   tonicWrapArg _ _ _ = return ()
 
 instance TonicBlueprintPart Maybe where
-  tonicWrapApp _ _ _ _ mb = mb
+  tonicWrapApp mn fn nid _ mb = tonicIOBlueprintPart mn fn nid mb
 
 instance TonicTopLevelBlueprint (Either e) where
-  tonicWrapBody _ _ _ _ t = t
+  tonicWrapBody mn tn args _ t = tonicIOTopLevel mn tn t
   tonicWrapArg _ _ _ = return ()
 
 instance TonicBlueprintPart (Either e) where
-  tonicWrapApp _ _ _ _ mb = mb
+  tonicWrapApp mn fn nid _ mb = tonicIOBlueprintPart mn fn nid mb
 
 :: TonicIOState =
   { currIndent :: Int
@@ -88,16 +89,6 @@ instance TonicBlueprintPart (Either e) where
 derive class iTask TonicIOState
 
 TonicIOFile = "TonicIOFile"
-
-readTonicState :: IO TonicIOState
-readTonicState
-  =             readFileM TonicIOFile
-  >>= \tfile -> case fromJSON (fromString tfile) of
-                  Just ts -> return ts
-                  _       -> return { TonicIOState | currIndent = 0, moduleName = "", funcName = "" }
-
-writeTonicState :: TonicIOState -> IO ()
-writeTonicState st = writeFileM TonicIOFile (toString (toJSON st))
 
 indent :: !Int -> String
 indent n = repeatStr "  " n
@@ -134,34 +125,48 @@ tcpsend` host port out world
   where
   mkError = Error ("Failed to connect to host " +++ host)
 
-
 instance TonicTopLevelBlueprint IO where
-  tonicWrapBody mn tn args _ t
-    | isLambda tn = t
-    | otherwise
-        =   writeTonicState { currIndent = 0, moduleName = mn, funcName = tn }
-        >>| t
+  tonicWrapBody mn tn args _ t = tonicIOTopLevel mn tn t
   tonicWrapArg _ _ _ = return ()
 
 instance TonicBlueprintPart IO where
-  tonicWrapApp mn fn nid _ mb
-    | isLambda fn = mb
-    | otherwise
-        =          readTonicState
-        >>= \ts -> withWorld (doSend ts)
-        >>|        mb
-    where
-    doSend { TonicIOState | moduleName, funcName } world
-      # msg = { TonicMessage
-              | computationId  = []
-              , nodeId         = nid
-              , bpModuleName   = moduleName
-              , bpFunctionName = funcName
-              , appModuleName  = mn
-              , appFunName     = fn
-              }
-      # world = tcpsend msg world
-      = ((), world)
+  tonicWrapApp mn fn nid _ mb = tonicIOBlueprintPart mn fn nid mb
+
+tonicIOTopLevel :: String String (m a) -> m a | TMonad m & iTask a
+tonicIOTopLevel mn tn t
+  | isLambda tn = t
+  | unsafeWriteTonicState { currIndent = 0, moduleName = mn, funcName = tn } = t
+  where
+  unsafeWriteTonicState :: TonicIOState -> Bool
+  unsafeWriteTonicState st = unsafePerformIOTrue (writeFileM` TonicIOFile (toString (toJSON st)))
+  writeFileM` name txt world
+    # (ok, file, world) = fopen name FWriteText world
+    # file              = fwrites txt file
+    # (ok, world)       = fclose file world
+    = ((), world)
+
+tonicIOBlueprintPart :: String String ExprId (m a) -> m a | TMonad m & iTask a
+tonicIOBlueprintPart mn fn nid mb
+  | isLambda fn = mb
+  | unsafePerformIOTrue persistTonicState = mb
+  where
+  persistTonicState world
+    # (ok, file, world) = fopen TonicIOFile FReadText world
+    # (str, file)       = freads file 16777216
+    # (ok, world)       = fclose file world
+    = case fromJSON (fromString str) of
+        Just { TonicIOState | moduleName, funcName }
+          # msg = { TonicMessage
+                  | computationId  = []
+                  , nodeId         = nid
+                  , bpModuleName   = moduleName
+                  , bpFunctionName = funcName
+                  , appModuleName  = mn
+                  , appFunName     = fn
+                  }
+          # world = tcpsend msg world
+          = ((), world)
+        _ = ((), world)
 
 instance TApplicative IO where
   return x   = IO (\s -> (x, s))

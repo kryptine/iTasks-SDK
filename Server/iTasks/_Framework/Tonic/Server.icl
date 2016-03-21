@@ -103,7 +103,7 @@ mkInstance nid tf =
   }
 
 tonicServerShare :: Shared (Bool, [TonicMessage])
-tonicServerShare = sharedStore "tonicServerShare" (False, [])
+tonicServerShare = sharedStore "tonicServerShare" (True, [])
 
 acceptAndViewTonicTraces :: Task (Bool, [TonicMessage])
 acceptAndViewTonicTraces
