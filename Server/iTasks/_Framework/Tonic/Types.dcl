@@ -74,6 +74,20 @@ from iTasks.API.Core.Types import :: DateTime
 
 derive class iTask TStability, BlueprintIdent, BlueprintInstance
 
+:: TonicBookkeeping =
+  { computations    :: Map [Int] TonicComputation
+  , bkComputationId :: [Int]
+  }
+
+:: TonicComputation =
+  { computationId :: [Int]
+  , moduleName    :: String
+  , funcName      :: String
+  }
+
+derive class iTask TonicBookkeeping, TonicComputation
+
+
 derive gEditor
   TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
 

@@ -2,6 +2,7 @@ definition module iTasks._Framework.Tonic.Server
 
 import iTasks
 from iTasks._Framework.Tonic.AbsSyn import :: ModuleName
+from iTasks._Framework.Tonic.Types import :: TonicBookkeeping
 
 :: ComputationId :== [Int]
 :: NodeId        :== [Int]
