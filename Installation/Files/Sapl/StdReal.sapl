@@ -9,7 +9,7 @@
 StdReal.one_6 :== 1.0
 <{StdReal.^_7}> :== powR
 <{StdReal.abs_8}> :== absR
-<{StdReal.sign_9}> !x_0 = if (eqR x_0 0.0) 0 (if (gtR 0.0 x_0) -1 1)
+<{StdReal.sign_9}> !x_0 = case (eqR x_0 0.0) (True -> 0) (False -> case (gtR 0.0 x_0) (True -> -1) (False -> 1))
 <{StdReal.~_10}> :== negR
 <{StdReal.==_11}> :== eqR
 <{StdReal.<_12}> :== ltR

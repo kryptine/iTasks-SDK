@@ -1,7 +1,7 @@
 StdChar.digitToInt !c_0 = subI (C2I c_0) 48
 <{StdChar.<_19}> :== ltC
-StdChar.toUpper !c_0 = if (StdChar.isLower c_0) (I2C (addI (C2I c_0) (subI (C2I 'A') (C2I 'a')))) c_0
-StdChar.toLower !c_0 = if (StdChar.isUpper c_0) (I2C (subI (C2I c_0) (subI (C2I 'A') (C2I 'a')))) c_0
+StdChar.toUpper !c_0 = case (StdChar.isLower c_0) (True -> I2C (addI (C2I c_0) (subI (C2I 'A') (C2I 'a')))) (False -> c_0)
+StdChar.toLower !c_0 = case (StdChar.isUpper c_0) (True -> I2C (subI (C2I c_0) (subI (C2I 'A') (C2I 'a')))) (False -> c_0)
 StdChar.isUpper !c_0 = and (geC c_0 'A') (geC 'Z' c_0)
 StdChar.isLower !c_0 = and (geC c_0 'a') (geC 'z' c_0)
 StdChar.isAlpha !c_0 = or (StdChar.isLower c_0) (StdChar.isUpper c_0)
@@ -10,9 +10,9 @@ StdChar.isDigit !c_0 = and (geC c_0 '0') (geC '9' c_0)
 StdChar.isOctDigit !c_0 = and (geC c_0 '0') (geC '7' c_0)
 StdChar.isHexDigit !c_0 = or (StdChar.isDigit c_0) (or (and (geC c_0 'A') (geC 'F' c_0)) (and (geC c_0 'a') (geC 'f' c_0)))
 <{StdChar.==_18}> :== eqC
-StdChar.isSpace !c_0 = select c_0 (' ' -> true) ('\t' -> true) ('\n' -> true) ('\r' -> true) ('\f' -> true) ('\r' -> true) (_ -> false)
-StdChar.isControl !c_0 = if (ltC c_0 ' ') true (eqC c_0 '\xB1')
-StdChar.isPrint !c_0 = if (geC c_0 ' ') (not (ltC '~' c_0)) false
+StdChar.isSpace !c_0 = case c_0 (' ' -> true) ('\t' -> true) ('\n' -> true) ('\r' -> true) ('\f' -> true) ('\r' -> true) (_ -> false)
+StdChar.isControl !c_0 = case (ltC c_0 ' ') (True -> true) (False -> eqC c_0 '\xB1')
+StdChar.isPrint !c_0 = case (geC c_0 ' ') (True -> not (ltC '~' c_0)) (False -> false)
 StdChar.isAscii !c_0 = gtC 128 c_0
 <{StdChar.+_14}> !a !b = I2C (addI (C2I a) (C2I b))
 <{StdChar.-_15}> !a !b = I2C (subI (C2I a) (C2I b))
