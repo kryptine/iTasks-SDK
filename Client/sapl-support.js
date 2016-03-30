@@ -305,6 +305,10 @@ var Sapl = new function () {
 	this.apply = function(f, args){
 		return Sapl.feval([f,args]);
 	}
+
+	this.select = function(expr, idx){
+		return Sapl.feval(Sapl.feval(expr)[idx]);
+	}
 	
 	// hyper(strict) eval
 	this.heval = function (expr) {
