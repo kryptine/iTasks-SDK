@@ -14,7 +14,7 @@ import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
 import iTasks._Framework.Tonic.Images
 
-derive class iTask TonicMessage, ServerState
+derive class iTask ServerState
 
 playbackTonic :: Task ()
 playbackTonic = get tonicServerShare >>= \(_, messages) -> playbackTonic` (length messages - 1)
@@ -35,18 +35,21 @@ playbackTonic = get tonicServerShare >>= \(_, messages) -> playbackTonic` (lengt
                                          , OnAction (Action "Last" [])     (ifCond notLast  (playbackTonic` 0))
                                          ]))
                                     (   viewInformation () [] "No recordings yet"
-                                    >>* [OnAction (Action "Try again" []) (always playbackTonic)])
+                                    >>* [ OnAction (Action "Start recording" []) (ifCond (not recording) (toggleRecording >>| playbackTonic` curIdx))
+                                        , OnAction (Action "Stop recording" [])  (ifCond recording       (toggleRecording >>| playbackTonic` curIdx))
+                                        , OnAction (Action "Try again" []) (always playbackTonic)
+                                        ])
   toggleRecording = upd (\(b, msgs) -> (not b, msgs)) tonicServerShare
-  viewMessage msg prevMsgs
-    =           getModule msg.bpModuleName
-    >>= \mod -> case getTonicFunc mod msg.bpFunctionName of
+  viewMessage (TMApply msg) prevMsgs
+    =           getModule msg.tma_bpModuleName
+    >>= \mod -> case getTonicFunc mod msg.tma_bpFunctionName of
                   Just func
-                    # inst                        = mkInstance msg.nodeId func
-                    # inst & bpi_previouslyActive = 'DM'.fromList [(msg.nodeId, TaskId 1 i) \\ msg <- prevMsgs & i <- reverse [0..length prevMsgs]]
+                    # inst                        = mkInstance msg.tma_nodeId func
+                    # inst & bpi_previouslyActive = 'DM'.fromList [(msg.tma_nodeId, TaskId 1 i) \\ TMApply msg <- prevMsgs & i <- reverse [0..length prevMsgs]]
                     # currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
                     # inst & bpi_previouslyActive = 'DM'.union ('DM'.fromList currActive) inst.bpi_previouslyActive
                     # inst & bpi_activeNodes      = case currActive of
-                                                      [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (length prevMsgs), msg.nodeId)) inst.bpi_activeNodes
+                                                      [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (length prevMsgs), msg.tma_nodeId)) inst.bpi_activeNodes
                     = viewInstance inst
                   _ = viewInformation () [] "No blueprint found!" @! ()
 
@@ -56,18 +59,18 @@ viewTonic = whileUnchanged tonicServerShare (updateBP Nothing o reverse o snd)
   updateBP :: (Maybe BlueprintInstance) [TonicMessage] -> Task ()
   updateBP Nothing    [] = viewInformation () [] "Waiting for blueprint" @! ()
   updateBP (Just bpi) [] = viewInstance bpi
-  updateBP Nothing [msg:msgs]
-    =           getModule msg.bpModuleName
-    >>= \mod -> case getTonicFunc mod msg.bpFunctionName of
+  updateBP Nothing [TMApply msg : msgs]
+    =           getModule msg.tma_bpModuleName
+    >>= \mod -> case getTonicFunc mod msg.tma_bpFunctionName of
                   Just func
-                    # inst = mkInstance msg.nodeId func
+                    # inst = mkInstance msg.tma_nodeId func
                     = updateBP (Just inst) msgs
                   _ = viewInformation () [] "Waiting for blueprint" @! ()
-  updateBP (Just inst) [msg:msgs]
+  updateBP (Just inst) [TMApply msg : msgs]
     # currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
     # inst & bpi_previouslyActive = 'DM'.union ('DM'.fromList currActive) inst.bpi_previouslyActive
     # inst & bpi_activeNodes      = case currActive of
-                                      [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (tid + 1), msg.nodeId)) inst.bpi_activeNodes
+                                      [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (tid + 1), msg.tma_nodeId)) inst.bpi_activeNodes
     = updateBP (Just inst) msgs
 
 viewInstance :: !BlueprintInstance -> Task ()

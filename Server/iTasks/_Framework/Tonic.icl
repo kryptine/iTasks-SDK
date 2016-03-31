@@ -81,8 +81,8 @@ instance TonicBlueprintPart (Either e) where
   tonicWrapApp mn fn nid _ mb = tonicIOBlueprintPart mn fn nid mb
 
 import StdDebug
-tcpsend :: TonicBookkeeping TonicMessage *World -> *World
-tcpsend bk msg world // TODO Also send bookkeeping. Maybe even send it instead of TonicMessages?
+tcpsend :: TonicMessage *World -> *World
+tcpsend msg world
   = case tcpsend` "localhost" 9000 [toString (toJSON msg) +++ "TONIC_EOL"] world of
       (Ok _, world) = world
       (Error str, world)
@@ -117,6 +117,19 @@ instance TonicBlueprintPart IO where
 
 TonicBookkeepingFile =: "TonicBookkeepingFile"
 
+:: TonicBookkeeping =
+  { computations    :: Map [Int] TonicComputation
+  , bkComputationId :: [Int]
+  }
+
+:: TonicComputation =
+  { computationId :: [Int]
+  , moduleName    :: String
+  , funcName      :: String
+  }
+
+derive class iTask TonicBookkeeping, TonicComputation
+
 openBookkeeping :: *World -> *(TonicBookkeeping, *World)
 openBookkeeping world
   # (ok, file, world) = fopen TonicBookkeepingFile FReadText world
@@ -142,7 +155,7 @@ writeBookkeeping bk world
     = world
   | otherwise = world
 
-tonicIOTopLevel :: String String (m a) -> m a | TMonad m & iTask a
+tonicIOTopLevel :: ModuleName FuncName (m a) -> m a | TMonad m & iTask a
 tonicIOTopLevel mn tn t
   | isLambda tn = t
   | unsafePerformIOTrue createTopLevel = t
@@ -150,8 +163,14 @@ tonicIOTopLevel mn tn t
   createTopLevel :: *World -> *((), *World)
   createTopLevel world
     # (bk, world)       = openBookkeeping world
-    # bk & computations = 'DM'.put bk.bkComputationId (mkComputation bk.bkComputationId) bk.computations
+    # bk & computations = 'DM'.put bk.TonicBookkeeping.bkComputationId (mkComputation bk.TonicBookkeeping.bkComputationId) bk.computations
     # world             = writeBookkeeping bk world
+    # msg               = { TMNewTopLevel
+                          | tmn_computationId  = bk.TonicBookkeeping.bkComputationId
+                          , tmn_bpModuleName   = mn
+                          , tmn_bpFunctionName = tn
+                          }
+    # world             = tcpsend (TMNewTopLevel msg) world
     = ((), world)
     where
     mkComputation :: [Int] -> TonicComputation
@@ -161,7 +180,7 @@ tonicIOTopLevel mn tn t
                       , funcName      = tn
                       }
 
-tonicIOBlueprintPart :: String String ExprId (m a) -> m a | TMonad m & iTask a
+tonicIOBlueprintPart :: ModuleName FuncName ExprId (m a) -> m a | TMonad m & iTask a
 tonicIOBlueprintPart mn fn nid mb
   | isLambda  fn = mb
   | isBind mn fn = mb
@@ -179,15 +198,15 @@ tonicIOBlueprintPart mn fn nid mb
     # world                = writeBookkeeping bk world
     # world                = case 'DM'.get bk.TonicBookkeeping.bkComputationId bk.TonicBookkeeping.computations of
                                Just comp
-                                 # msg = { TonicMessage
-                                         | computationId  = bk.TonicBookkeeping.bkComputationId
-                                         , nodeId         = nid
-                                         , bpModuleName   = comp.TonicComputation.moduleName
-                                         , bpFunctionName = comp.TonicComputation.funcName
-                                         , appModuleName  = mn
-                                         , appFunName     = fn
+                                 # msg = { TMApply
+                                         | tma_computationId  = bk.TonicBookkeeping.bkComputationId
+                                         , tma_nodeId         = nid
+                                         , tma_bpModuleName   = comp.TonicComputation.moduleName
+                                         , tma_bpFunctionName = comp.TonicComputation.funcName
+                                         , tma_appModuleName  = mn
+                                         , tma_appFunName     = fn
                                          }
-                                 = tcpsend bk msg world
+                                 = tcpsend (TMApply msg) world
                                _ = world
     = ((), world)
   persistTonicState2 :: *World -> *((), *World)

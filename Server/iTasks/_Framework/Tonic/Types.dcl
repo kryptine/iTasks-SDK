@@ -74,19 +74,30 @@ from iTasks.API.Core.Types import :: DateTime
 
 derive class iTask TStability, BlueprintIdent, BlueprintInstance
 
-:: TonicBookkeeping =
-  { computations    :: Map [Int] TonicComputation
-  , bkComputationId :: [Int]
+:: ComputationId :== [Int]
+:: NodeId        :== [Int]
+:: FunctionName  :== String
+
+:: TonicMessage
+  = TMNewTopLevel TMNewTopLevel
+  | TMApply TMApply
+
+:: TMNewTopLevel =
+  { tmn_computationId  :: ComputationId // Abstraction from TaskId
+  , tmn_bpModuleName   :: ModuleName
+  , tmn_bpFunctionName :: FunctionName
   }
 
-:: TonicComputation =
-  { computationId :: [Int]
-  , moduleName    :: String
-  , funcName      :: String
+:: TMApply =
+  { tma_computationId  :: ComputationId // Abstraction from TaskId
+  , tma_nodeId         :: NodeId
+  , tma_bpModuleName   :: ModuleName
+  , tma_bpFunctionName :: FunctionName
+  , tma_appModuleName  :: ModuleName
+  , tma_appFunName     :: FunctionName
   }
 
-derive class iTask TonicBookkeeping, TonicComputation
-
+derive class iTask TonicMessage, TMNewTopLevel, TMApply
 
 derive gEditor
   TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
