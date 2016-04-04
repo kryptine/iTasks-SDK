@@ -136,16 +136,17 @@ where
 
 	layout = sequenceLayouts
 		[arrangeWithSideBar 0 LeftSide 260 True
-		,layoutSubAt [0] finalizeUI
-		,layoutSubAt [1] finalizeUI
+		,layoutSubAt [1,0] layoutToolbar
+		,changeNodeType (setSize FlexSize FlexSize)
 		]
+
+	layoutToolbar = changeNodeType (\(UI _ attr items) -> UI UIPanel attr items)
 /*
     layout [startWork,dashBoard,manageWork:activeWork] actions
         = arrangeWithSideBar 0 LeftSide 260 True [startWork,mainArea] actions
     where
         mainArea = arrangeWithSideBar 0 TopSide 30 False [dashBoard,workArea] []
         workArea = arrangeWithSideBar 0 TopSide 200 True [manageWork,tabsArea] []
-        //tabsArea = arrangeWithTabs activeWork []
         tabsArea = arrangeVertical activeWork []
 	*/
 

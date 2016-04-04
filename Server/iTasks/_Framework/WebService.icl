@@ -42,6 +42,7 @@ DEFAULT_THEME :== "gray"
     = AckStartSession !InstanceNo
     | TaskUpdates !InstanceNo ![UIChange]
 
+
 //TODO: The upload and download mechanism used here is inherently insecure!!!
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
 // unauthorized downloading of documents and DDOS uploading.
@@ -58,6 +59,8 @@ where
     where
         isTaskUrl "" = True
         isTaskUrl s = case dropWhile ((==)"") (split "/" s) of  // Ignore slashes at the beginning of the path
+            ["new"]             = True                          // Creation of new instances 
+            ["gui-events"]      = True                          // Events for multiple instances
             ["gui-stream"]      = True                          // Updates stream for multiple instances
             [instanceNo,_]      = toInt instanceNo > 0          // {instanceNo}/{instanceKey}
             [instanceNo,_,_]    = toInt instanceNo > 0          // {instanceNo}/{instanceKey}/{view}
@@ -96,23 +99,33 @@ where
         | urlSpec == ""
             = case defaultFormat of
 			    (WebApp	opts)
-                    = case createTaskInstance (task req) iworld of
-                        (Error (_,err), iworld)
-				            = (errorResponse err, Nothing, Nothing, iworld)
-                        (Ok (instanceNo,instanceKey),iworld)
-							# iworld = queueEvent instanceNo ResetEvent iworld
-				            = (itwcStartResponse url instanceNo instanceKey (theme opts) serverName customCSS, Nothing, Nothing, iworld)
+					= (itwcStartResponse url (theme opts) serverName customCSS, Nothing, Nothing, iworld)
 			    _
 				    = (jsonResponse (JSONString "Unknown service format"), Nothing, Nothing, iworld)
         | otherwise
             = case dropWhile ((==)"") (split "/" urlSpec) of
+				["new"]
+					//Create new instances
+                    = case createTaskInstance (task req) iworld of
+						(Error (_,err), iworld)
+				            = (errorResponse err, Nothing, Nothing, iworld)
+                        (Ok (instanceNo,instanceKey),iworld)
+							# json = JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]
+                    		= (jsonResponse json, Nothing, Nothing, iworld)
+                ["gui-events"]
+                    //Load task instance and edit / evaluate
+                    # instanceNo         = toInt instanceNoParam
+                    # iworld             = updateInstanceLastIO [instanceNo] iworld
+					# iworld 			 = queueEvent instanceNo event iworld
+					# json				 = JSONObject [("instance",JSONInt instanceNo)]
+                    = (jsonResponse json, Nothing, Nothing, iworld)
                 ["gui-stream"]
                     //Stream messages for multiple instances
                     # iworld            = updateInstanceConnect req.client_name instances iworld
 					# (messages,output) = dequeueOutput instances output //TODO: Check keys
                     = (eventsResponse messages, Just (EventSourceConnection instances), Just output, iworld)
                 [instanceNo,instanceKey]
-                    = (itwcStartResponse url instanceNo instanceKey (theme []) serverName customCSS, Nothing, Nothing, iworld)
+                    = (itwcStartResponse url (theme []) serverName customCSS, Nothing, Nothing, iworld)
                 [instanceNo,instanceKey,"gui"]
                     //Load task instance and edit / evaluate
                     # instanceNo         = toInt instanceNo
@@ -138,6 +151,7 @@ where
 		    actionEventParam	= paramValue "actionEvent" req
 		    focusEventParam		= paramValue "focusEvent" req
             resetEventParam     = paramValue "resetEvent" req
+			instanceNoParam 	= paramValue "instanceNo" req
 
             instances = filter (\i. i > 0) (map toInt (split "," (paramValue "instances" req)))
 
@@ -160,8 +174,8 @@ where
         = (maybe [] (\d -> [d]) mbData,False,(WebSocketConnection instances),Nothing,iworld) //TEMPORARY ECHO WEBSOCKET
 	dataFun req output _ (EventSourceConnection instances) iworld
 		# (messages,output) = dequeueOutput instances output
-		= case filter (not o isEmpty o snd) messages of //Ignore empty updates
-			[]	= ([],False,(EventSourceConnection instances),Nothing,iworld)
+		= case messages of //Ignore empty updates
+			[] = ([],False,(EventSourceConnection instances),Nothing,iworld)
             messages	
                 # iworld = updateInstanceLastIO instances iworld
                 = ([formatMessageEvents messages],False,(EventSourceConnection instances),Just output, iworld)
@@ -169,14 +183,13 @@ where
 	disconnectFun _ _ (EventSourceConnection instances) iworld    = (Nothing, updateInstanceDisconnect instances iworld)
 	disconnectFun _ _ _ iworld                                    = (Nothing, iworld)
 
-	dequeueOutput :: ![InstanceNo] !(Map InstanceNo (Queue UIChange)) -> (![(!InstanceNo,![UIChange])],!Map InstanceNo (Queue UIChange))
+	dequeueOutput :: ![InstanceNo] !(Map InstanceNo (Queue UIChange)) -> (![(!InstanceNo,!UIChange)],!Map InstanceNo (Queue UIChange))
 	dequeueOutput [] states = ([],states)
 	dequeueOutput [i:is] states
 		# (output,states) = dequeueOutput is states
 		= case 'DM'.get i states of
-			Just out
-				= ([(i,toList out):output],'DM'.put i 'DQ'.newQueue states)
-			_ 		= (output,states)
+			Just out 	= ([(i,c) \\ c <- toList out] ++ output,'DM'.put i 'DQ'.newQueue states)
+			Nothing  	= (output,states)
 	where
 		toList q = case 'DQ'.dequeue q of
 			(Nothing,q) 	= []
@@ -191,9 +204,9 @@ where
 	
 	formatMessageEvents messages = concat (map format messages)
     where
-        format (instanceNo,updates) = "data: {\"instance\":" +++toString instanceNo+++",\"updates\":" +++ toString (encodeUIChanges updates) +++ "}\n\n"
+        format (instanceNo,change) = "data: {\"instance\":" +++toString instanceNo+++",\"change\":" +++ toString (encodeUIChange change) +++ "}\n\n"
 
-	itwcStartResponse path instanceNo instanceKey theme appName customCSS = {okResponse & rsp_data = toString itwcStartPage}
+	itwcStartResponse path theme appName customCSS = {okResponse & rsp_data = toString itwcStartPage}
 	where
 		itwcStartPage = HtmlTag [] [head,body]
 		head = HeadTag [] [MetaTag [CharsetAttr "UTF-8"] []
@@ -204,24 +217,32 @@ where
 		body = BodyTag [] []
 
         startUrlScript = ScriptTag [TypeAttr "text/javascript"]
-            [RawText "window.itwc = {};"
-            ,RawText ("itwc.START_INSTANCE_NO = "+++toString instanceNo+++";")
-            ,RawText ("itwc.START_INSTANCE_KEY = \""+++instanceKey+++"\";")
+			[RawText "window.onload = function() { itasks.viewport({taskUrl: 'http://localhost:8080'}, document.body); };"
             ]
 		styles = [LinkTag [RelAttr "stylesheet", HrefAttr file, TypeAttr "text/css"] [] \\ file <- stylefiles]
 		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
 		
 		stylefiles =
-            ["itwc-theme-"+++theme+++"/itwc-theme.css"
+            ["itasks-theme-"+++theme+++"/itasks-theme.css"
 			: if customCSS [appName +++ ".css"] []]
 
-        scriptfiles =
+        scriptfiles = saplScripts ++ itaskScripts
+        saplScripts =
             ["/utils.js","/itask.js"
 			,"/builtin.js","/dynamic.js"
 			,"/sapl-rt.js","/sapl-support.js"
 			,"/db.js", "/debug.js","/interface.js"
-            ,"/itwc.js"
-            ]
+			]
+		itaskScripts = 
+			["/itasks-core.js"
+			,"/itasks-components-raw.js"
+			,"/itasks-components-container.js"
+			,"/itasks-components-form.js"
+			,"/itasks-components-display.js"
+			,"/itasks-components-selection.js"
+			,"/itasks-components-action.js"
+			,"/itasks-components-misc.js"
+			]
 
 	createDocumentsFromUploads [] iworld = ([],iworld)
 	createDocumentsFromUploads [(n,u):us] iworld

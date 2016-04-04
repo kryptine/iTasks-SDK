@@ -66,14 +66,14 @@ where
 finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
 where
-	layout = sequenceLayouts
-        [layoutSubAt [0] finalizeUI
-		//Only create a layout with a separate buttonbar if there are actions
-		,selectLayout
-			[(hasActions,moveActions)
-			,(const True,unwrapUI)
-			]
-        ]
+	layout = selectLayout
+		[(isEmpty,changeNodeType (\(UI _ attr items) -> UI UIEmpty attr items))
+		,(hasActions,sequenceLayouts[layoutSubAt [0] finalizeUI,moveActions])
+		,(const True,sequenceLayouts[unwrapUI,finalizeUI])
+		]
+
+	isEmpty (UI _ _ [] ) = True
+	isEmpty _            = False
 
 	hasActions (UI _ _ items) = length items > 1
 	moveActions = sequenceLayouts
@@ -88,9 +88,15 @@ finalizeParallel = conditionalLayout isParallel layout
 where
 	layout = sequenceLayouts
 		[layoutChildrenOf [] finalizeUI
-		,changeNodeType (\(UI UIParallel attr items) -> UI UIPanel attr items)
+		,selectLayout
+			[(isSingle, unwrapUI)
+			,(const True,changeNodeType (\(UI UIParallel attr items) -> UI UIContainer attr items))
+			]
 		]
 
+	isSingle (UI _ _ [_]) = True
+	isSingle _ = False
+	
 //Util predicates
 isInteract = \n -> n =:(UI UIInteract _ _)
 isStep = \n -> n =:(UI UIStep _ _)
@@ -134,11 +140,11 @@ where
 				changes = [(2,ChangeChild (ChangeUI changes []))]
 
 			changeType = case [t \\ ("setAttribute",[JSONString HINT_TYPE_ATTRIBUTE,JSONString t]) <- local] of
-				[type] 	= [("setIconCls",[JSONString ("icon-" +++ type)])]
+				[type] 	= [("setAttribute",[JSONString "iconCls",JSONString ("icon-" +++ type)])]
 				_ 		= []
 
 			changeTooltip= case [h \\ ("setAttribute",[JSONString HINT_ATTRIBUTE,JSONString h]) <- local] of
-				[hint] 	= [("setTooltip",[JSONString hint])]
+				[hint] 	= [("setAttribute",[JSONString "tooltip", JSONString hint])]
 				_ 		= []
 			
 		//Container (search recursively for more form items)
@@ -154,14 +160,15 @@ actionToButton :: Layout
 actionToButton = layout 
 where
 	layout (ReplaceUI (UI (UIAction {UIAction|taskId,action=action=:(Action actionId _),enabled}) _ _ ),_)
-		= (ReplaceUI (ui (UIActionButton {UIActionOpts|taskId = toString taskId,actionId=actionId}
-				{UIButtonOpts|text = Just (actionName action), iconCls = (actionIcon action), disabled = not enabled})),JSONNull)
+		# buttonOpts = setText (actionName action) o setEnabled enabled
+		# buttonOpts = maybe buttonOpts (\iconCls -> setIconCls iconCls o buttonOpts) (actionIcon action)
+		= (ReplaceUI (buttonOpts (ui (UIActionButton {UIActionOpts|taskId = toString taskId,actionId=actionId}))),JSONNull)
 	
 	layout (ChangeUI local [],s) = (ChangeUI (map remap local) [],s)
 	layout (change,s) = (change,s)
 
-	remap ("enable",[])  = ("setDisabled",[JSONBool False])
-	remap ("disable",[]) = ("setDisabled",[JSONBool True])
+	remap ("enable",[])  = ("setAttribute",[JSONString "enabled", JSONBool True])
+	remap ("disable",[]) = ("setAttribute",[JSONString "enabled", JSONBool False])
 	remap (op,args)      = (op,args)
 
 mapLst f [] = []

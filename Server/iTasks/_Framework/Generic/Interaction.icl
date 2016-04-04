@@ -306,16 +306,16 @@ isOptional (UI (UIEditor {UIEditor|optional}) _ _) 		 = optional
 isOptional _ 										       = False
 
 gEditor{|Int|} = primitiveTypeEditor (Just "whole number")
-					(\viewOpts -> ui (UIViewString (fmap toString viewOpts)))
+					(\{UIViewOpts|value} -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
 					(\editOpts -> ui (UIEditInt editOpts))
 gEditor{|Real|} = primitiveTypeEditor (Just "decimal number")
-					(\viewOpts -> ui (UIViewString (fmap toString viewOpts)))
+					(\{UIViewOpts|value} -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
 					(\editOpts -> ui (UIEditDecimal editOpts))
 gEditor{|Char|} = primitiveTypeEditor (Just "single character")
-					(\viewOpts -> ui (UIViewString (fmap toString viewOpts)))
+					(\{UIViewOpts|value} -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
 					(\editOpts -> ui (UIEditString editOpts))
 gEditor{|String|} = primitiveTypeEditor (Just "single line of text")
-					(\viewOpts -> ui (UIViewString (fmap toString viewOpts)))
+					(\{UIViewOpts|value} -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
 					(\editOpts -> ui (UIEditString editOpts))
 gEditor{|Bool|} = primitiveTypeEditor Nothing 
 					(\viewOpts -> ui (UIViewCheckbox viewOpts))
@@ -337,7 +337,7 @@ where
 	where
 		vEq = ov === nv
 		mEq = om === nm
-		valueChange = if vEq [] [(if disabled "setValue" "setEditorValue",[encodeUI nv])]
+		valueChange = if vEq [] [("setAttribute",[JSONString "value",encodeUI nv])]
 		attrChanges = maybe [] (\typeDesc ->stdAttributeChanges typeDesc optional om nm) mbTypeDesc
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
@@ -387,16 +387,16 @@ where
 			//# controls	= map (setWidth FlexSize) (decorateControls (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = editorControls item, size = defaultSizeOpts}))
 			# controls = []
 			# buttons	= (if reorder
-							  [ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0})
-							  ,ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1})
+							  [(setIconCls "icon-up" o setEnabled (idx <> 0)) (ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))}))
+							  ,(setIconCls "icon-down" o setEnabled (idx <> numItems - 1)) (ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))}))
 							  ] []) ++
 							  (if remove
-							  [ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False})
+							  [setIconCls "icon-remove" (ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("rem_" +++ toString idx))}))
 							  ] [])
 			= setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (uic UIContainer (if disabled controls (controls ++ buttons)))))
 		addItemControl numItems
-			# counter   = if count [setWidth FlexSize (ui (UIViewString {UIViewOpts|value= Just (numItemsText numItems)}))] []
-			# button	= if enableAdd [ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "add")} {UIButtonOpts|text=Nothing,iconCls=Just "icon-add",disabled=False})] []
+			# counter   = if count [(setWidth FlexSize o setValue (JSONString (numItemsText numItems))) (ui UIViewString)] []
+			# button	= if enableAdd [setIconCls "icon-add" (ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "add")} ))] []
 			= (setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (uic UIContainer (counter ++ button)))))
 			
 		listContainer controls

@@ -1,0 +1,324 @@
+.#{$prefix}prompt {
+	border: #999 solid;
+	border-width: 0 0 1px 0;
+	min-height: fit-content;
+}
+
+.#{$prefix}header {
+    font-weight: bold;
+    font-size: 11px;
+    height: 25px;
+    align-self: stretch;
+    -webkit-align-self: stretch;
+
+    a.close {
+        float: right;
+        color: $panel-header-text-color;
+        display: inline-block;
+        position: relative;
+        margin: 4px 4px 0 0;
+        top: 0px;
+        font-weight: bold;
+        font-size: 8px;
+        line-height: 8px;
+        background: $panel-header-base-color + #222;
+        border: 1px solid $panel-header-text-color;
+        border-radius: 2px;
+        padding: 0 4px 2px 4px;
+        text-decoration: none;
+    }
+    span {
+        float: left;
+        margin: 4px 0 0 4px;
+    }
+}
+.#{$prefix}inner {
+    flex: 1;
+    -webkit-flex: 1;
+}
+
+/* Panels */
+.#{$prefix}panel {
+    color: $canvas-text-color;
+    background-color: $canvas-base-color;
+    border: 1px solid $panel-border-color;
+    display: flex;
+    display: -webkit-flex;
+
+    > .#{$prefix}header {
+        color: $panel-header-text-color;
+        background-color: $panel-header-base-color;
+        background: -moz-linear-gradient(top, ($panel-header-base-color + #222) 0%, $panel-header-base-color 100%);
+        background: -webkit-linear-gradient(top, ($panel-header-base-color + #222) 0%, $panel-header-base-color 100%);
+    }
+    > .#{$prefix}inner {
+        overflow: auto;
+    }
+}
+.#{$prefix}framed {
+    border-radius: 5px;
+}
+/* Tabs */
+.#{$prefix}tabset {
+    display: flex;
+    display: -webkit-flex;
+    align-items: stretch;
+    -webkit-align-items: stretch;
+    flex-direction: column;
+    -webkit-flex-direction: column;
+}
+.#{$prefix}tabbar {
+    text-align: left;
+    list-style: none;
+    margin: 0;
+    padding: 0 10px;
+    line-height: 24px;
+    position: relative;
+    min-height: 24px;
+
+    background: -moz-linear-gradient(top, $panel-header-base-color + #323232, $panel-header-base-color);
+    background: -webkit-linear-gradient(top, $panel-header-base-color + #323232, $panel-header-base-color);
+    overflow: hidden;
+}
+.#{$prefix}tabbar:after {
+    position: absolute;
+    content: "";
+    width: 100%;
+    bottom: 0;
+    left: 0;
+    border-bottom: 1px solid $tab-border-color;
+    z-index: 1;
+}
+.#{$prefix}tabbar:before {
+    z-index: 1;
+}
+.#{$prefix}tabbar li {
+    margin: 0;
+    padding: 0 10px;
+    border: 1px solid $tab-border-color;
+    background: $tab-base-color - #131313;
+    display: inline-block;
+    position: relative;
+    z-index: 0;
+
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+.#{$prefix}tabbar li a {
+    color: $tab-text-color;
+    text-decoration: none;
+}
+.#{$prefix}tabbar li:before,
+.#{$prefix}tabbar li:after {
+    position: absolute;
+    bottom: -1px;
+    width: 5px;
+    height: 5px;
+    content: " ";
+    border: 1px solid $tab-border-color;
+}
+.#{$prefix}tabbar li:before {
+    left: -6px;
+    border-bottom-right-radius: 5px;
+    border-width: 0 1px 1px 0;
+    box-shadow: 2px 2px 0 ($tab-base-color - #131313);
+}
+.#{$prefix}tabbar li:after {
+    right: -6px;
+    border-bottom-left-radius: 5px;
+    border-width: 0 0 1px 1px;
+    box-shadow: -2px 2px 0 ($tab-base-color - #131313);
+}
+.#{$prefix}tabbar li.#{$prefix}selected {
+    background: $tab-base-color;
+    color: $tab-text-color;
+    z-index: 2;
+    border-bottom-color: $tab-base-color;
+}
+.#{$prefix}tabbar li.#{$prefix}selected:before {
+    box-shadow: 2px 2px 0 $tab-base-color;
+}
+.#{$prefix}tabbar li.#{$prefix}selected:after {
+    box-shadow: -2px 2px 0 $tab-base-color;
+}
+.#{$prefix}tabbar li a.#{$prefix}tabclose {
+    color: #aaa;
+    display: inline-block;
+    position: relative;
+    top: -5px;
+    left: 7px;
+    font-weight: bold;
+    font-size: 8px;
+    line-height: 8px;
+    background: #eee;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    padding: 0 2px;
+}
+.#{$prefix}tabicon {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    margin: 0 3px 0 0;
+    position: relative;
+    top: 3px;
+}
+.#{$prefix}tabitems {
+   z-index: 2;
+   border: 1px solid $tab-border-color;
+   border-top-width: 0;
+   background-color: $canvas-base-color;
+   flex: 1;
+}
+.#{$prefix}tabitem {
+   display: none;
+}
+.#{$prefix}tabitem.#{$prefix}selected {
+   display: flex;
+   display: -webkit-flex;
+}
+
+/* Windows */
+.#{$prefix}floating-window, .#{$prefix}notification-bubble {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    z-index: 100;
+    display: flex;
+    display: -webkit-flex;
+    > .#{$prefix}inner {
+        overflow: auto;
+    }
+}
+.#{$prefix}floating-window {
+    color: $canvas-text-color;
+    background-color: $canvas-base-color;
+    border: 1px solid $window-border-color;
+    border-radius: 5px;
+    box-shadow: 0 5px 5px rgba(0,0,0,0.5);
+
+    > .#{$prefix}header {
+        color: $window-header-text-color;
+        background-color: $window-header-base-color;
+        background: -moz-linear-gradient(top, ($window-header-base-color + #222) 0%, $window-header-base-color 100%);
+        background: -webkit-linear-gradient(top, ($window-header-base-color + #222) 0%, $window-header-base-color 100%);
+    }
+}
+.#{$prefix}notification-bubble {
+    background-color: $canvas-base-color;
+    border: 3px solid $window-header-base-color;
+    border-radius: 10px;
+    opacity: 0.9;
+    > .#{$prefix}header {
+        color: $window-header-text-color;
+        background-color: $window-header-base-color;
+    }
+}
+/* Toolbars, button bars & menu's */
+.#{$prefix}toolbar {
+    display: flex;
+    display: -webkit-flex;
+    flex-direction: row;
+    -webkit-flex-direction: row;
+    justify-content: flex-start;
+    -webkit-justify-content: flex-start;
+    align-items: center;
+    -webkit-align-items: center;
+    margin: 0;
+    padding: 2px 5px;
+    background: $canvas-base-color;
+    background: -moz-linear-gradient(center top, $canvas-base-color + #0a0a0a, $canvas-base-color - #0a0907);
+    background: -webkit-linear-gradient(center top, $canvas-base-color + #0a0a0a, $canvas-base-color - #0a0907);
+
+    > .#{$prefix}menu-item > a {
+        background-image: url('img/menu-down.png');
+        background-repeat: no-repeat;
+        background-position: 95% center;
+    }
+}
+.#{$prefix}buttonbar {
+    background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color - #222);
+}
+@if $touchscreen {
+    .#{$prefix}buttonbar {
+        background: $panel-header-base-color;
+    }
+}
+
+.#{$prefix}menu-item {
+    display: block;
+    position: relative;
+    border: 1px solid transparent;
+    margin: 1px 0;
+
+    &:hover {
+        > .menu {
+            display: block;
+        }
+    }
+    a {
+        font-size: 8pt;
+        background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color);
+        background: -webkit-linear-gradient(top, $button-base-color + #101010, $button-base-color);
+        background-repeat: none;
+        border: 1px solid ($button-base-color - #333);
+        border-radius: 3px;
+        text-decoration: none;
+        float: left;
+        color: #000;
+
+        padding: 4px 20px 4px 10px;
+    }
+}
+.#{$prefix}submenu-item {
+    float: left;
+    position: relative;
+
+    &:hover {
+        > a {
+            background: #ddd;
+        }
+        > .menu {
+            display: block;
+        }
+    }
+}
+.#{$prefix}menu {
+    z-index: 10;
+    top: 23px;
+    margin: 0;
+    padding: 0;
+    display: none;
+    position: absolute;
+    background: #eee;
+    box-shadow: 0 5px 5px rgba(0,0,0,0.5);
+    border: 1px solid ($button-base-color - #333);
+
+    a {
+        border: none;
+        border-radius: 0;
+        min-width: 100px;
+        padding: 5px;
+        height: 10px;
+        height: auto;
+        line-height: 1;
+        display: block;
+        float: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .#{$prefix}menu {
+        top: 0;
+        left: 99%;
+        margin: 2px 0 0 -2px;
+    }
+    .#{$prefix}submenu-item {
+        float: none;
+        margin: 0;
+        padding: 0;
+        display: block;
+        border-top: 1px solid #efefef;
+        border-bottom: 1px solid #ddd;
+    }
+}

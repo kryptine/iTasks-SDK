@@ -75,12 +75,13 @@ where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
 			# val = checkMask mask val
-			= (uic (UIEditor {UIEditor|optional=False}) [ui (UIViewString {UIViewOpts|value = fmap (\(Username v) -> v) val})], vst)
+			# setVal = maybe id (\(Username v) -> setValue (JSONString v)) val
+			= (uic (UIEditor {UIEditor|optional=False}) [setVal (ui UIViewString)], vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(Username v) -> v) val)
 			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask) [ui (UIEditString {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value})] ,vst)
 	genDiff dp (Username old) om (Username new) nm vst=:{VSt|optional,disabled}
-		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (if (old === new) NoChange (ChangeUI [("setAttribute",[JSONString "value",encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -116,12 +117,12 @@ where
 
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
-			= (uic (UIEditor {UIEditor|optional=False}) [ui (UIViewString {UIViewOpts|value = Just "********"})], vst)
+			= (uic (UIEditor {UIEditor|optional=False}) [setValue (JSONString "********") (ui UIViewString)], vst)
 		| otherwise	
 			# value = checkMaskValue mask ((\(Password v) -> v) val)
 			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask) [ui (UIEditPassword {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value})] ,vst)
 	genDiff dp (Password old) om (Password new) nm vst=:{VSt|optional,disabled}
-		= (if (old === new) NoChange (ChangeUI [(if disabled "setValue" "setEditorValue",[encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (if (old === new) NoChange (ChangeUI [("setAttribute",[JSONString "value",encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 

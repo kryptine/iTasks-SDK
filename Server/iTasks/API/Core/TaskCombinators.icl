@@ -719,8 +719,9 @@ where
 		
 	eval event evalOpts tree=:(TCBasic taskId ts state _) iworld=:{server={buildID},current={taskInstance}}
 		//Load instance
-        # (constants,iworld)    = read (sdsFocus instanceNo taskInstanceConstants) iworld
-		# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
+        # (constants,iworld)    = read (sdsFocus instanceNo taskInstanceConstants) iworld 
+		//# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
+		# (progress,iworld)	    = read (sdsFocus instanceNo taskInstanceProgress) iworld //TODO: Create a better focus parameter to enable readRegister without entering an infinite loop
 		= case (constants,progress) of
 			(Ok {InstanceConstants|instanceKey,build},Ok progress=:{InstanceProgress|attachedTo=[attachedId],value})
 				# (curValue,stable)
@@ -757,7 +758,7 @@ where
     release taskId meta = meta
 
     embedTaskDef instanceNo instanceKey
-		= (setWidth FlexSize o setHeight FlexSize) (ui (UIEmbedding {UIEmbeddingOpts|instanceNo=instanceNo,instanceKey=instanceKey}))
+		= (setWidth FlexSize o setHeight (ExactSize 300) o setInstanceNo instanceNo o setInstanceKey instanceKey) (ui UIEmbedding)
 
 	inUseDef = stringDisplay "This task is already in use"
 

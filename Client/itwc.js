@@ -51,7 +51,6 @@ itwc.Component.prototype = {
         me.parentCmp = parentCmp || null;
         me.items = [];
         me.processDefinition(definition);
-        me.hotkeyListener = null;
     },
     processDefinition: function(definition) {
         var me = this;
@@ -261,24 +260,6 @@ itwc.Component.prototype = {
        }
        return -1;
     },
-    setHotkeys: function(hotkeys) {
-        var me = this;
-
-        me.hotkeys = hotkeys;
-
-        if(me.hotkeys.length === 0 && me.hotkeyListener) {
-            me.domEl.removeEventListener('keyup',me.hotkeyListener);
-            me.hotkeyListener = null;
-        } else {
-            me.hotkeyListener = me.domEl.addEventListener('keyup',function(e) {
-                me.hotkeys.forEach(function(hotkey) {
-                    if(e.keyCode === hotkey[0].key) {
-                        me.sendActionEvent(hotkey[1].taskId,hotkey[1].actionId);
-                    }
-                });
-            });
-        }
-    },
     setTaskId: function(taskId) {
         this.definition.taskId = taskId;
     },
@@ -432,6 +413,12 @@ itwc.Panel = itwc.extend(itwc.Container,{
         }
     }
 });
+
+//Main viewport
+itwc.Viewport = itwc.extend(itwc.Container,{
+
+});
+
 itwc.Layer = itwc.extend(itwc.Panel,{
     maximize: false,
     modal: false,
@@ -1401,8 +1388,8 @@ itwc.ButtonComponent = itwc.extend(itwc.Component,{
             me.icon.classList.add(me.definition.iconCls);
             el.appendChild(me.icon);
         }
-        me.disabled = me.definition.disabled || false;
-        if(me.disabled) {
+        me.enabled = me.definition.enabled;
+        if(!me.enabled) {
             el.classList.add('button-disabled');
         }
         if(me.definition.text) {
@@ -1419,11 +1406,11 @@ itwc.ButtonComponent = itwc.extend(itwc.Component,{
             return false;
         });
     },
-    setDisabled: function(disabled) {
+    setEnabled: function(enabled) {
         var me = this,
             el = me.domEl;
-        me.disabled = disabled;
-        el.classList[disabled ? 'add':'remove']('button-disabled');
+        me.enabled = enabled;
+        el.classList[enabled ? 'remove':'add']('button-disabled');
     },
     setTaskId: function(taskId) {
         this.definition.taskId = taskId;
@@ -1782,11 +1769,13 @@ itwc.component.itwc_splitter = itwc.extend(itwc.Component, {
 });
 
 itwc.component.itwc_embedding = itwc.extend(itwc.Panel, {
+
     initDOMEl: function() {
         var me = this;
 
         me.windows = [];
         me.domEl.classList.add('panel');
+		
         me.initPanel();
 
         itwc.controller.instanceProxies[me.definition.instanceNo] = itwc.controller.remoteProxy;
@@ -1973,7 +1962,8 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 
 		// save state return by appDiff
 		me.value = ys[2];				
-    },
+    }
+/*
 	jsFromSaplJSONNode: function (sapl) {
 		switch(sapl[0]) {
 			case 0:	return null;
@@ -2005,105 +1995,7 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
 		fields[sapl[2]] = this.jsFromSaplJSONNode(sapl[3]);
 		return fields;
 	}
-});
-
-itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
-    initDOMEl: function() {
-        var me = this,
-            el = me.domEl, tmp, proxy;
-
-        me.windows = [];
-
-		if(me.definition.html) {
-			el.innerHTML = me.definition.html;
-        }
-        // Prepare javascript
-        if(me.definition.script != null && me.definition.script != "" && !sapldebug) {
-            evalScript(me.definition.script);
-			delete me.definition.script;
-			_dynamic_hijack();			
-		}
-		
-		// Prepare state
-		eval("var tmp = eval(" + me.definition.st + ");");
-		me.definition.st = Sapl.feval(tmp);
-		itwc.controller.tasklets[me.definition.taskId] = me;
-		
-		if(me.definition.resultFunc != null){
-			eval("tmp = " + me.definition.resultFunc + ";");
-			me.definition.resultFunc = tmp;
-			me.definition.lastResult = Sapl.toJS(Sapl.feval([me.definition.resultFunc,[me.definition.st]]));
-		}
-		
-		if(me.definition.controllerFunc != null){
-		
-			// Prepare IWorld
-			if(!_iworld){
-				var url = "//" + document.location.host;
-				_iworld = Sapl.fapp(__iTasks_Framework_Client_RunOnClient_createClientIWorld, [url, me.definition.instanceNo]);
-			}				
-		
-			console.time('controllerWrapper timer: eval');
-				
-			eval("tmp = " + me.definition.controllerFunc + ";");
-			me.definition.controllerFunc = tmp;
-
-            //Create task instance proxy
-            proxy = new itwc.taskletInstanceProxy();
-            proxy.init(itwc.controller);
-            proxy.setRootNode(me);
-
-            itwc.controller.instanceProxies[me.definition.instanceNo] = proxy;
-						
-			var ret = Sapl.fapp(me.definition.controllerFunc, [me.definition.taskId, me.definition.st, __Data_Maybe_Nothing, __Data_Maybe_Nothing, __Data_Maybe_Nothing, _iworld]);
-			me.definition.st = Sapl.feval(ret[3]);
-			_iworld = Sapl.feval(ret[4]);
-			
-			var ui = Sapl.toJS(Sapl.feval(ret[2]));
-			
-			console.timeEnd('controllerWrapper timer: eval');
-			
-			console.time('controllerWrapper timer: apply UI');
-			itwc.controller.updateUI({instance: me.definition.instanceNo, updates: JSON.parse(ui)}, me);
-			console.timeEnd('controllerWrapper timer: apply UI');
-
-			// Start background process on _iworld
-			if(!_itask_background_interval){
-				window.setInterval(__itask_background_process,200);
-			}
-		}
-	},
-    afterAdd: function() {
-		var me = this;
-		
-		// Attach event handlers
-		if(me.definition.events){
-			for (var i=0; i<me.definition.events.length; ++i){
-				var elname = me.definition.events[i][0];
-				var eventName = me.definition.events[i][1];
-				var expr = me.definition.events[i][2];
-							
-				if(elname == "tasklet"){
-					if(eventName == "init"){
-						(me.eventHandler(expr))(me);
-					}
-				}else{
-					var el = document.getElementById(elname);
-					el.addEventListener(eventName, me.eventHandler(expr));
-				}
-			}
-		}
-	},
-	// Creating a closure
-	eventHandler: function(expr){
-		
-		var h = function(event){
-			eval("var tmp = " + expr + ";");
-			Sapl.fapp(tmp,[arguments]);
-		};
-
-		return h;
-	}
+*/
 });
 
 //#### CENTRAL CONTROLLER ####//
@@ -2112,7 +2004,6 @@ itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
 //web service that processes events for a task intstance
 itwc.taskInstanceProxy = function() {
     var me = this;
-
     me.rootNode = null;
 };
 itwc.taskInstanceProxy.prototype = {
@@ -2211,8 +2102,8 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
             console.log("Server error",msg.error);
         }
         //Update user interface
-        if(msg.updates) {
-            me.controller.updateUI({instance: msg.instance,updates: msg.updates},me.instances[msg.instance].rootNode);
+        if(msg.change) {
+            me.controller.updateUI(msg,me.instances[msg.instance].rootNode);
         }
         //Schedule automatic refresh when an expiration time is set
         //and we do not have a push event source
@@ -2225,6 +2116,7 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         me.flushTaskEvents();
     },
     startUIEventSource: function() {
+
         var me = this;
         me.updateSource = new EventSource('gui-stream?instances='+Object.keys(me.instances).join(','));
         me.updateSource.onerror = me.onPushError.bind(me);
@@ -2259,6 +2151,7 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
             msg = JSON.parse(e.data);			
 
         me.controller.updateUI(msg, me.instances[msg.instance].rootNode);
+		
         me.flushingTaskEvents = false;
         me.flushTaskEvents();
     },
@@ -2283,88 +2176,7 @@ itwc.remoteInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
         me.queueTaskEvent(instanceNo,{focusEvent: JSON.stringify(taskId)});
     }
 });
-itwc.taskletInstanceProxy = itwc.extend(itwc.taskInstanceProxy,{
 
-    init: function(controller) {
-        var me = this;
-        me.controller = controller;
-    },
-    setRootNode: function(rootNode) {
-        this.rootNode = rootNode;
-    },
-    sendResetEvent: function(instanceNo) {
-        this.processEvent(instanceNo.toString(), "reset");
-    },
-	sendEditEvent: function(taskId, editorId, value) {
-        this.processEvent(taskId, "edit", editorId, value);
-    },
-	sendActionEvent: function(taskId, actionId) {
-        this.processEvent(taskId, "commit", actionId);
-    },
-    sendFocusEvent: function(taskId) {
-        this.processEvent(taskId, "focus");
-    },
-    processEvent: function(taskId,eventType,eventName,eventValue) {
-	
-	    console.time('controllerWrapper: eval');
-        var me = this,
-            instanceNo = taskId.split("-")[0],
-    	    taskletId = instanceNo + "-0",
-    	    state = me.rootNode.definition.st;
-            controllerFunc = me.rootNode.definition.controllerFunc
-
-	    var tmp = [controllerFunc,[]];
-	    tmp[1].push(taskId);
-	    tmp[1].push(state);
-		tmp[1].push([0, 'Nothing']); //Event no
-
-	    if(eventType == "edit" || eventType == "commit"){
-		    tmp[1].push([1, 'Just', eventName])
-	    }else{
-		    tmp[1].push([0, 'Nothing']);
-	    }
-	    if(eventType == "edit"){
-		    // convert eventValue to JSON to mediate type information to the controller (e.g. Int?)
-		    tmp[1].push([1, 'Just', JSON.stringify(eventValue)])
-	    } else {
-		    tmp[1].push([0, 'Nothing']);
-	    }	
-	    tmp[1].push(_iworld);
-	
-    	// result is a tuple of mbUI and state
-    	var ys = Sapl.feval(tmp);
-	    _iworld = Sapl.feval(ys[4]);	
-	    state = Sapl.heval(ys[3]);
-	
-	    me.rootNode.definition.st = state;	// save it
-	
-	    // toJS to make the result hyperstrict
-        var newres = Sapl.toJS(Sapl.fapp(me.rootNode.definition.resultFunc,[state]));	
-	
-        var mbUI = Sapl.feval(ys[2]);
-		
-	    // If mbUI is Nothing, the task is finished
-	    if(mbUI[0] == 0) {
-		    itwc.controller.sendEditEvent(me.rootNode.definition.taskId, "finalize", newres);
-	    } else {		
-		    var upd = Sapl.feval(mbUI[2]);
-		
-            console.timeEnd('controllerWrapper: eval');
-				
-            console.time('controllerWrapper: apply UI update');
-            itwc.controller.updateUI({instance: instanceNo, updates:JSON.parse(upd)}, me.rootNode);
-            console.timeEnd('controllerWrapper: apply UI update');
-		
-            __itask_background_process();
-		
-            // Send result to the client if it is changed only
-            if(!geq(me.rootNode.definition.lastResult, newres)){
-    			me.rootNode.definition.lastResult = newres;
-    			//itwc.controller.sendEditEvent(taskletId, "result", newres);
-    		}		
-	    }
-    }
-});
 itwc.controller = function() {
     var me = this;
 
@@ -2391,17 +2203,27 @@ itwc.controller.prototype = {
     //Global set of layers
     layers: [],
 
-	//Global registration of tasklets & editlets
+	//Global registration of editlets
     editlets: {},
-	tasklets: {},
 
     //The set of task instance proxies which handle events & UI updates
     instanceProxies: {},
 
+	createInstance: function(callback) {
+		var me = this, xhr;
+
+		//Send request
+		xhr = new XMLHttpRequest();
+		xhr.open('GET','./new', true);
+		xhr.onload = function(e) {
+			var msg = JSON.parse(e.target.responseText);
+			callback.bind(me)(msg['instanceNo'],msg['instanceKey']);
+		};
+		xhr.send();
+	},
     sendEditEvent: function(taskId, editorId, value, replace) {
         var me = this,
             instanceNo = taskId.split("-")[0];
-		
         if(me.instanceProxies[instanceNo]) {
             return me.instanceProxies[instanceNo].sendEditEvent(taskId,editorId,value,replace);
         }
@@ -2425,12 +2247,10 @@ itwc.controller.prototype = {
     updateUI: function(update,root) {
         var me = this,
             instance = update.instance,
-            updates = update.updates,
+			change = update.change,
             cmp;
 
-        updates.forEach(function(change) {
-			me.applyChange(root.items[0],root,0,change);
-        });
+		me.applyChange(root.items[0],root,0,change);
     },
 	applyChange: function(cmp,parentCmp,indexInParent,change) {
 		var me = this;
@@ -2493,6 +2313,7 @@ itwc.controller.prototype = {
         return cmp;
     },
     insertComponent: function(parentCmp,insertIdx,insertDef) {
+	
         var me = this, newCmp, prevIdx,
 				isLast = (insertIdx == parentCmp.items.length);
         //Create component
@@ -2676,21 +2497,24 @@ itwc.controller.prototype = {
         me.remoteProxy = new itwc.remoteInstanceProxy();
         me.remoteProxy.init(me);
 
-        //Create the viewport layer
-        me.layers[0] = new itwc.component.itwc_viewport();
-        me.layers[0].init({instanceNo: itwc.START_INSTANCE_NO, instanceKey: itwc.START_INSTANCE_KEY, halign: 'center', valign: 'top'});
-        me.layers[0].render(0,true);
+		//Create a session instance
+		me.createInstance(function (instanceNo,instanceKey) {
 
-		//Set this controller on the viewport
-		me.layers[0].controller = this;
-		
-		//Set initial UI
-		me.insertComponent(me.layers[0],0,{xtype:'itwc_view_string',value: 'Loading...'});
+	       //Create the viewport layer
+			me.layers[0] = new itwc.component.itwc_viewport();
+			me.layers[0].init({instanceNo: instanceNo, instanceKey: instanceKey, halign: 'center', valign: 'top'});
+			me.layers[0].render(0,true);
 
-        document.body.appendChild(me.layers[0].domEl);
+			//Set this controller on the viewport
+			me.layers[0].controller = this;
+	
+			//Set initial UI
+			me.insertComponent(me.layers[0],0,{xtype:'itwc_view_string',value: 'Loading...'});
+        	document.body.appendChild(me.layers[0].domEl);
 
-        //Send empty event to synchronize the start instance
-        me.remoteProxy.sendResetEvent(itwc.START_INSTANCE_NO);
+        	//Send empty event to synchronize the start instance
+        	me.remoteProxy.sendResetEvent(instanceNo);
+		});
 
         //Listen for changes in the viewport size
         window.addEventListener('resize',me.onWindowResize.bind(me));

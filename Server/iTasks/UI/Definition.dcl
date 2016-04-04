@@ -25,9 +25,9 @@ from GenEq import generic gEq
 derive class iTask UI, UINodeType, UIAction, UIEditor
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
 derive class iTask UIEditOpts, UIViewOpts, UIActionOpts
-derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts, UIEmbeddingOpts
+derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts
 derive class iTask UIEditletOpts, UITaskletOpts
-derive class iTask UIButtonOpts, UIMenuButtonOpts, UITreeNode, UIMenuItem
+derive class iTask UIMenuButtonOpts, UITreeNode
 
 instance Functor UIViewOpts
 //TODO:
@@ -76,7 +76,7 @@ derive class iTask UIChange, UIChildChange
 	| UITab
 	| UIWindow
 	// Components for viewing data:
-	| UIViewString					!(UIViewOpts String)							// - String (non-wrapping single line text with automatic escaping)
+	| UIViewString					                     							// - String (non-wrapping single line text with automatic escaping)
 	| UIViewHtml					!(UIViewOpts HtmlTag)							// - Html (formatted multi line text)
 	| UIViewDocument				!(UIViewOpts Document)							// - Document (info + download link)
 	| UIViewCheckbox				!(UIViewOpts Bool)								// - Checkbox (non-editable tick-mark)
@@ -95,7 +95,7 @@ derive class iTask UIChange, UIChildChange
 	| UIEditTime					!UIEditOpts 							        // - Time (time picker)
 	| UIEditDateTime				!UIEditOpts 							        // - DateTime (date + time picker)
 	| UIEditDocument				!UIEditOpts 						            // - Document (info + upload possibility)
-	| UIEditButton					!UIEditOpts !UIButtonOpts		                // - Button that sends edit events on click
+	| UIEditButton					!UIEditOpts 		                            // - Button that sends edit events on click
 	// Components for indicating choices:
 	| UIDropdown					!(UIChoiceOpts String)						    // - Dropdown (choice from a list of alternatives)
 	| UIGrid						!(UIChoiceOpts [String]) !UIGridOpts		    // - Grid (selecting an item in a table)
@@ -104,16 +104,16 @@ derive class iTask UIChange, UIChildChange
 	| UIRadioGroup					!(UIChoiceOpts String)						    // - A mutually exclusive set of radio buttons 
 	| UICheckboxGroup				!(UIChoiceOpts String)						    // - A group of checkboxes that indicate a multiple selection
 	// Components for triggering actions:
-	| UIActionButton				!UIActionOpts !UIButtonOpts					    // - Action Button (clicks trigger action events)
+	| UIActionButton				!UIActionOpts					                // - Action Button (clicks trigger action events)
 	| UIMenuButton					!UIMenuButtonOpts							    // - Menu Button (clicks open a menu)
 	// Misc auxiliary components:
 	| UILabel						                                                // - Label (non-wrapping text label, clicks focus next component)
     | UISplitter
 	// Tasklet stuff
 	| UITasklet						!UITaskletOpts								    // - Tasklet (custom clientside interaction)
-	| UIEditlet						!UIEditletOpts								    // - Editlet (custom clientside editor)
+	| UIEditlet														    			// - Editlet (custom clientside editor)
 	// Viewport for other task instances
-    | UIEmbedding       			!UIEmbeddingOpts                                // - Embedding of a related task gui (like an iframe for tasks)
+    | UIEmbedding       			                                                // - Embedding of a related task gui (like an iframe for tasks)
 
 :: UIAttributes 		:== Map String JSONNode
 
@@ -210,11 +210,13 @@ derive class iTask UIChange, UIChildChange
 	, value		:: !Int
 	}
 
+/*
 :: UIButtonOpts =
 	{ text		:: !Maybe String
 	, iconCls	:: !Maybe String
 	, disabled	:: !Bool
 	}
+*/
 
 :: UIMenuButtonOpts =
 	{ text		:: !Maybe String
@@ -224,7 +226,7 @@ derive class iTask UIChange, UIChildChange
 	}
 
 :: UIMenuItem
-	= UIActionMenuItem	!UIActionOpts	!UIButtonOpts		// - Action Menu Item (clicks trigger action events)
+	= UIActionMenuItem	!UIActionOpts						// - Action Menu Item (clicks trigger action events)
 	| UISubMenuItem						!UIMenuButtonOpts	// - Sub Menu Item (clicks open a submenu)
 		
 :: UITaskletOpts =
@@ -243,18 +245,12 @@ derive class iTask UIChange, UIChildChange
 :: UIEditletOpts =
 	{ taskId		:: !String
 	, editorId		:: !String
-	, value			:: !JSONNode
 	, html			:: !String
 	, script		:: !String
 	, initClient	:: !String	
 	, initDiff		:: !String
 	, appDiff		:: !String
 	}
-
-:: UIEmbeddingOpts =
-    { instanceNo  :: !Int
-    , instanceKey :: !String
-    }
 
 //Construction functions
 ui   :: UINodeType -> UI
@@ -307,6 +303,9 @@ setValue 		:: !JSONNode                !UI -> UI
 setMinValue     :: !Int                     !UI -> UI
 setMaxValue     :: !Int                     !UI -> UI
 setText         :: !String                  !UI -> UI
+setEnabled      :: !Bool                    !UI -> UI
+setInstanceNo   :: !Int                     !UI -> UI
+setInstanceKey  :: !String                  !UI -> UI
 
 //Util
 stringDisplay   :: !String  -> UI

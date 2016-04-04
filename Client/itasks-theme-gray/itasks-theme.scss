@@ -1,0 +1,128 @@
+/*
+ SASS-Themable stylesheet for iTasks javascript UI library
+ You can customize this to easily create branded iTask applications.
+*/
+@import "options.scss";
+@import "colors.scss";
+
+*.#{$prefix}viewport {
+
+	margin: 0;
+    overflow: auto;
+    font-family: tahoma, arial, verdana, sans-serif;
+	text-align: left;
+	font-weight: normal;
+
+	@import "icons.scss";
+	@import "tooltip.scss";
+
+	div, input, td, th, select {
+
+		@if $touchscreen {
+			font-size: 16pt;
+		}
+		@else {
+			font-size: 9pt;
+	    }
+	}
+}
+div.#{$prefix}loader {
+	font-size: 16pt;
+	font-style: italic;
+	text-align: center;
+}
+.#{$prefix}vcontainer, .#{$prefix}hcontainer {
+    display: flex;
+    display: -webkit-flex;
+    align-items: flex-start;
+    -webkit-align-items: flex-start;
+}
+.#{$prefix}vcontainer {
+    flex-direction: column;
+    -webkit-flex-direction: column;
+}
+.#{$prefix}hcontainer {
+    flex-direction: row;
+    -webkit-flex-direction: row;
+    flex-shrink: 0;
+    -webkit-flex-shrink: 0;
+}
+.#{$prefix}wrapping-horizontal {
+	flex-shrink: 0;
+	min-width: fit-content;
+	* {
+		min-width: fit-content;
+	}
+}
+.#{$prefix}wrapping-vertical {
+	flex-shrink: 0;
+	min-height: fit-content;
+	* {
+		min-height: fit-content;
+	}
+}
+/* Additional components */
+@import "itasks-components-raw.scss";
+@import "itasks-components-container.scss";
+@import "itasks-components-form.scss";
+@import "itasks-components-display.scss";
+@import "itasks-components-selection.scss";
+@import "itasks-components-action.scss";
+@import "itasks-components-misc.scss";
+
+.#{$prefix}button {
+    @if $touchscreen {
+        font-size: 24px;
+        padding: 10px;
+        font-weight: bold;
+    }
+    @else {
+        font-size: 8pt;
+        padding: 3px;
+    }
+    background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color);
+    background: -webkit-linear-gradient(top, $button-base-color + #101010, $button-base-color);
+    background-repeat: none;
+    border: 1px solid ($button-base-color - #333);
+    border-radius: 3px;
+
+    display: flex;
+    display: -webkit-flex;
+    flex-direction: row;
+    -webkit-flex-direction: row;
+    align-items: center;
+    -webkit-align-items: center;
+    text-decoration: none;
+    color: $button-text-color;
+    flex-shrink: 0;
+
+    &:hover {
+        border-color: $button-base-color - #333;
+    }
+}
+.#{$prefix}button-label {
+    margin: 0 4px;
+    @if not $touchscreen {
+        height: 16px;
+    }
+}
+.#{$prefix}button-icon {
+    width: 16px;
+    height: 16px;
+}
+.#{$prefix}button-disabled {
+    color: $button-text-color + #aaa;
+    background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color - #222);
+    background: -webkit-linear-gradient(top, $button-base-color + #101010, $button-base-color - #222);
+}
+.#{$prefix}button-disabled:hover {
+    border-color: $button-base-color - #333;
+}
+.#{$prefix}button-disabled .#{$prefix}button-icon {
+    opacity: 0.5;
+}
+
+.#{$prefix}icon {
+    width: 16px;
+    height: 16px;
+}

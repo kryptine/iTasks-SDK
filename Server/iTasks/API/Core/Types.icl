@@ -232,8 +232,9 @@ where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
 			# val = checkMask mask val
+			# setVal = maybe id (\(EUR v) -> setValue (JSONString (toString v))) val
 			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE (JSONString "&euro;") 'DM'.newMap)
-				[ui (UIViewString {UIViewOpts|value = fmap (\(EUR v) -> toString v) val})],vst)
+				[setVal (ui UIViewString)],vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(EUR v) -> toReal v / 100.0) val)
 			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE (JSONString "&euro;") (stdAttributes typeDesc optional mask))
@@ -284,8 +285,9 @@ where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
 			# val = checkMask mask val
+			# setVal = maybe id (\v -> setValue (JSONString (toString v))) val
 			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE (JSONString "$") 'DM'.newMap)
-				[ui (UIViewString {UIViewOpts|value = fmap toString val})] ,vst)
+				[setVal (ui UIViewString)] ,vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(USD v) -> toReal v / 100.0) val)
 			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE (JSONString "$") (stdAttributes typeDesc optional mask))
@@ -350,7 +352,8 @@ where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
 			# val = checkMask mask val
-			= (uic (UIEditor {UIEditor|optional=False}) [ui (UIViewString {UIViewOpts|value = fmap toString val})], vst)
+			# setVal = maybe id (\v -> setValue (JSONString (toString v))) val
+			= (uic (UIEditor {UIEditor|optional=False}) [setVal (ui UIViewString)], vst)
 		| otherwise
 			# value	= checkMaskValue mask val
 			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask) [ui (UIEditDate {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value})], vst)
@@ -439,7 +442,8 @@ where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
 			# val = checkMask mask val
-			= (uic (UIEditor {UIEditor|optional=False}) [ui (UIViewString {UIViewOpts|value = fmap toString val})],vst)
+			# setVal = maybe id (\v -> setValue (JSONString (toString v))) val
+			= (uic (UIEditor {UIEditor|optional=False}) [setVal (ui UIViewString)],vst)
 		| otherwise
 			# value = checkMaskValue mask val
 			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask) [ui (UIEditTime {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value})], vst)
@@ -527,7 +531,8 @@ where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
 			# val = checkMask mask val
-			= (uic (UIEditor {UIEditor|optional=False}) [ui (UIViewString {UIViewOpts|value=fmap toString val})], vst)
+			# setVal = maybe id (\v -> setValue (JSONString (toString v))) val
+			= (uic (UIEditor {UIEditor|optional=False}) [setVal (ui UIViewString)], vst)
 		| otherwise
 			# value = checkMaskValue mask val
 			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask) [ui (UIEditDateTime {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value})], vst)
@@ -754,9 +759,10 @@ gText{|FormButton|}	_ val = [maybe "" (\v -> v.FormButton.label) val]
 gEditor{|FormButton|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
-		# text = Just val.FormButton.label
-		# iconCls = Just val.FormButton.icon
-		= (uic (UIEditor {UIEditor|optional=False}) [ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "pressed")} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False})], vst)
+		# text = val.FormButton.label
+		# iconCls = val.FormButton.icon
+		# buttonOpts = setText text o setIconCls iconCls o setEnabled True
+		= (uic (UIEditor {UIEditor|optional=False}) [buttonOpts (ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "pressed")}))], vst)
 
 	genDiff dp {FormButton|state=old} om {FormButton|state=new} nm vst
 		= (if (old === new) NoChange (ChangeUI [("setEditorValue",[toJSON new])] []),vst)
@@ -852,12 +858,12 @@ gEditor{|ComboChoice|} fx gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
-			= (uic (UIEditor {UIEditor|optional=False}) [ui (UIViewString {UIViewOpts|value = vvalue val})], vst)
+			= (uic (UIEditor {UIEditor|optional=False}) [(vvalue val) (ui UIViewString)], vst)
 		| otherwise
 			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes "choice" optional mask) [ui (UIDropdown {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val})], vst)
 
-	vvalue (ComboChoice options (Just sel))	= Just (hd (gx AsSingleLine (Just (options !! sel))))
-	vvalue _								= Nothing
+	vvalue (ComboChoice options (Just sel))	= setValue (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
+	vvalue _								= id 
 	evalue (ComboChoice _ mbSel)			= maybe [] (\s->[s]) mbSel
 
 	options (ComboChoice options _)			= [concat (gx AsSingleLine (Just v)) \\ v <- options]
@@ -888,12 +894,12 @@ gEditor{|RadioChoice|} _ gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
-			= (uic (UIEditor {UIEditor|optional=optional}) [ui (UIViewString {UIViewOpts|value = vvalue val})],vst)
+			= (uic (UIEditor {UIEditor|optional=optional}) [(vvalue val) (ui UIViewString)],vst)
 		| otherwise
 			= (uiac (UIEditor {UIEditor|optional=optional}) (stdAttributes "choice" optional mask) [ui (UIRadioGroup {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val})],vst)
 
-	vvalue (RadioChoice options (Just sel))	= Just (hd (gx AsSingleLine (Just (options !! sel))))
-	vvalue _								= Nothing
+	vvalue (RadioChoice options (Just sel))	= setValue (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
+	vvalue _								= id
 	evalue (RadioChoice _ mbSel)			= maybe [] (\i -> [i]) mbSel
 	
 	options (RadioChoice options _)			= [concat (gx AsSingleLine (Just v)) \\ v <- options]
@@ -923,12 +929,12 @@ gEditor{|ListChoice|} _ gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=g
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
 		| disabled
-			= (uic (UIEditor {UIEditor|optional=False}) [ui (UIViewString {UIViewOpts|value = vvalue val})], vst)
+			= (uic (UIEditor {UIEditor|optional=False}) [(vvalue val) (ui UIViewString)], vst)
 		| otherwise
 			= (uic (UIEditor {UIEditor|optional=False}) [ui (UIListChoice {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val})],vst)
 
-	vvalue (ListChoice options (Just sel))	= Just (hd (gx AsSingleLine (Just (options !! sel))))
-	vvalue _								= Nothing
+	vvalue (ListChoice options (Just sel))	= setValue (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
+	vvalue _								= id
 	evalue (ListChoice _ mbSel)			= maybe [] (\i -> [i]) mbSel
 	
 	options (ListChoice options _)			= [concat (gx AsSingleLine (Just v)) \\ v <- options]
@@ -1122,11 +1128,11 @@ gEditor{|CheckMultiChoice|} _ gx _ _ _ _ _ _ _ _ = {Editor|genUI=genUI,appDiff=a
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
-			= (uic (UIEditor {UIEditor|optional=optional}) [ui (UIViewString {UIViewOpts|value = Just (vvalue val)})],vst)
+			= (uic (UIEditor {UIEditor|optional=optional}) [(vvalue val) (ui UIViewString)],vst)
 		| otherwise
 			= (uiac (UIEditor {UIEditor|optional=optional}) (stdAttributes "choice" optional mask) [ui (UICheckboxGroup {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val})],vst)
 
-	vvalue (CheckMultiChoice options sel)	= join "," ([hd (gx AsSingleLine (Just (fst (options !! i )))) \\ i <- sel])
+	vvalue (CheckMultiChoice options sel)	= setValue (JSONString (join "," ([hd (gx AsSingleLine (Just (fst (options !! i )))) \\ i <- sel])))
 	evalue (CheckMultiChoice _ sel)			= sel
 	options (CheckMultiChoice options _)	= [concat (gx AsSingleLine (Just v)) \\ (v,_) <- options]
 

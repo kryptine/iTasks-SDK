@@ -30,12 +30,15 @@ arrangeWithSideBar index side size resize = sequenceLayouts
 	,changeNodeType (\(UI _ attr items) -> setDirection Horizontal (UI UIPanel attr items)) //Turn into a panel
 	,insertSubAt [sidePanelIndex] (ui UIPanel) //Make sure we have a target for the move
 	,moveSubAt [mainPanelIndex,index] [sidePanelIndex,0]
+	,layoutSubAt [sidePanelIndex,0] (changeNodeType (setSize sidePanelWidth sidePanelHeight))
 	,layoutSubAt [sidePanelIndex] unwrapUI //Remove the temporary wrapping panel
 	//Size the new container 
 	]
 where
 	sidePanelIndex = if (side === TopSide || side === LeftSide) 0 1
 	mainPanelIndex = if (sidePanelIndex === 0) 1 0
+
+	(sidePanelWidth,sidePanelHeight) = if (side === TopSide|| side === BottomSide) (FlexSize,ExactSize size) (ExactSize size,FlexSize)
 	//Eerst een wrap in een container
 	//Dan afhankelijk van de side een move van het gekozen element naar index 0 of 1 in de nieuwe container
 	//De twee subcontainers sizen

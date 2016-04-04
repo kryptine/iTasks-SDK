@@ -1,0 +1,19 @@
+.#{$prefix}vsplitter, .#{$prefix}hsplitter {
+	background-color: $panel-header-base-color + #222;
+	flex-shrink: 0;
+	-webkit-flex-shrink: 0;
+	align-self: stretch;
+	-webkit-align-self: stretch;
+
+	&:hover {
+		background-color: $panel-header-base-color;
+	}
+}
+.#{$prefix}vsplitter {
+	height: 5px;
+	cursor: row-resize;
+}
+.#{$prefix}hsplitter {
+	width: 5px;
+	cursor: col-resize;
+}

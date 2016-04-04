@@ -1,0 +1,10 @@
+.#{$prefix}choice-radiogroup, .#{$prefix}choice-checkboxgroup {
+    margin: 0;
+    padding: 0;
+}
+.#{$prefix}choice-radiogroup li, .#{$prefix}choice-checkboxgroup li {
+    list-style: none;
+}
+.#{$prefix}choice-radiogroup label, .#{$prefix}choice-checkboxgroup label {
+	margin-left: 5px;
+}

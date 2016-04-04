@@ -52,27 +52,24 @@ where
   		# iworld                = {iworld & world = world} 
 		= case editletLinker initDiff (initClient currVal createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld of
 			(Ok (jsScript, jsID, jsIC, jsAD),iworld)
-				# opts = editletOpts jsScript jsID jsIC jsAD uiDef
-				= (uic (UIEditor {UIEditor|optional=False}) [eui uiDef opts], {VSt|vst & iworld = iworld})
+				# attr = editletAttr jsScript jsID jsIC jsAD uiDef
+				= (uic (UIEditor {UIEditor|optional=False}) [eui uiDef attr], {VSt|vst & iworld = iworld})
 			(Error e,iworld) //TODO: Propagate the error to the interact task that creates the editor
-				# opts = editletOpts "" "" "" "" uiDef
-				= (uic (UIEditor {UIEditor|optional=False}) [eui uiDef opts], {VSt|vst & iworld = iworld})
+				= (uic (UIEditor {UIEditor|optional=False}) [eui uiDef 'DM'.newMap], {VSt|vst & iworld = iworld})
 	where
 		initDiff = genDiffSrv gDefault{|*|} currVal
 		htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
-		editletOpts jsScript jsID jsIC jsAD uiDef
-			= { UIEditletOpts
-			  | taskId 	    = taskId
-			  , editorId	= editorId dp
-			  , value		= toJSONA currVal
-			  , html 		= toString uiDef.ComponentHTML.html
-			  , script	    = jsScript
-			  , initClient  = jsIC
-			  , initDiff	= jsID
-			  , appDiff 	= jsAD
-			  }
+		editletAttr jsScript jsID jsIC jsAD uiDef
+			= 'DM'.fromList [("taskId",JSONString taskId)
+							,("editorId",JSONString (editorId dp))
+							,("html",JSONString (toString uiDef.ComponentHTML.html))
+							,("script",JSONString jsScript)
+							,("initClient",JSONString jsIC)
+							,("initDiff",JSONString jsID)
+							,("appDiff",JSONString jsAD)
+							]
 
-		eui uiDef opts = setSize uiDef.ComponentHTML.width uiDef.ComponentHTML.height (ui (UIEditlet opts))
+		eui uiDef attr = setSize uiDef.ComponentHTML.width uiDef.ComponentHTML.height (uiac UIEditlet attr [])
 		toJSONA a = case JSONEncode{|*|} False a of
 			[json:_]	= json
 			_			= JSONNull
@@ -84,7 +81,8 @@ where
 				# (res,iworld)  = diffLinker currentDiff Nothing iworld
 				= case res of
 					Ok (jsScript,jsCDiff,_)
-						= (ChangeUI [("applyDiff",[JSONInt 0,JSONString jsCDiff,JSONString jsScript])] [],{VSt|vst & iworld=iworld})
+						= (ChangeUI [("setAttribute",[JSONString "diff", JSONArray [JSONInt 0,JSONString jsCDiff,JSONString jsScript]])] [],{VSt|vst & iworld=iworld})
+						//= (ChangeUI [("applyDiff",[JSONInt 0,JSONString jsCDiff,JSONString jsScript])] [],{VSt|vst & iworld=iworld})
 					Error e
 						//TODO Propagate error up
 						= (NoChange,{VSt|vst & iworld=iworld})
