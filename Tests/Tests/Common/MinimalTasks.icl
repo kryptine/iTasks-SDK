@@ -10,13 +10,14 @@ minimalEditlet :: Task String
 minimalEditlet = updateInformation "Minimal String editlet" [UpdateUsing id const (fromEditlet editlet)] "Hello World"
 where
 	//Simple button
-	editlet = { genUI      = \cid val w -> ({ComponentHTML|width=WrapSize,height=WrapSize,html=html cid},w)
+	editlet = { genUI      = genUI
 			  , initClient = initClient
 			  , appDiffClt = \_ cid n _ w -> (n,w)
 			  , genDiffSrv = \o n -> if (o == n) Nothing (Just n) 
               , appDiffSrv = \n _ -> n
 			  }
 
+	genUI cid val world = (setSize WrapSize WrapSize (ui (UIViewHtml {UIViewOpts|value = Just (html cid)})), world)
 	html cid = ButtonTag [IdAttr (cid +++ "-button")] [Text "Click me"]
 
 	//Register eventhandler for clicking the button

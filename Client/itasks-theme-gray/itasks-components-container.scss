@@ -231,7 +231,7 @@
     background: -webkit-linear-gradient(center top, $canvas-base-color + #0a0a0a, $canvas-base-color - #0a0907);
 
     > .#{$prefix}menu-item > a {
-        background-image: url('img/menu-down.png');
+        background-image: url('icons/menu-down.png');
         background-repeat: no-repeat;
         background-position: 95% center;
     }

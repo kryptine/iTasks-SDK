@@ -73,11 +73,17 @@ isTouched	:: !EditMask -> Bool
 
 :: EditletEventHandlerFunc d a :== ComponentEventHandlerFunc d a
 :: EditletEvent d a            :== ComponentEvent d a
-:: EditletHTML                 :== ComponentHTML
+
+:: ComponentId :== String
+:: ComponentEventName :== String
+:: ComponentEvent d a = ComponentEvent !ComponentId !ComponentEventName (ComponentEventHandlerFunc d a)
+:: ComponentEventHandlerFunc d a
+	:== ComponentId {JSObj JSEvent} a *JSWorld -> *(!a, !ComponentDiff d a, !*JSWorld)
+
 
 :: Editlet sv d cl
   =
-  { genUI      :: ComponentId sv *World -> *(EditletHTML, *World)
+  { genUI      :: ComponentId sv *World -> *(UI, *World)
   , initClient :: sv ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId *JSWorld -> *(cl, *JSWorld)
   , appDiffClt :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
   , genDiffSrv :: sv sv -> Maybe d

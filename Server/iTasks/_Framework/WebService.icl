@@ -214,7 +214,7 @@ where
                           ,MetaTag [NameAttr "mobile-web-app-capable",ContentAttr "yes"] []
                           ,MetaTag [NameAttr "apple-mobile-web-app-capable",ContentAttr "yes"] []
                           ,TitleTag [] [Text appName], startUrlScript : styles ++ scripts]
-		body = BodyTag [] []
+		body = BodyTag [StyleAttr "width: 100%; height: 100%"] []
 
         startUrlScript = ScriptTag [TypeAttr "text/javascript"]
 			[RawText "window.onload = function() { itasks.viewport({taskUrl: 'http://localhost:8080'}, document.body); };"

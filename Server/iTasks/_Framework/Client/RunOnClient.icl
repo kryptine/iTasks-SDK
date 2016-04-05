@@ -5,7 +5,6 @@ import iTasks
 import iTasks._Framework.TaskStore
 import iTasks._Framework.TaskEval
 import iTasks._Framework.IWorld
-import iTasks.API.Core.Client.Tasklet
 import iTasks.UI.Definition
 import qualified iTasks._Framework.SDS as SDS
 
@@ -26,8 +25,8 @@ import StdDebug
 			}
 
 runOnClient :: !(Task m) -> Task m | iTask m
-runOnClient task
-
+runOnClient task = task
+/*
 	# roc_tasklet =
 		{ Tasklet 
 		| genUI				= roc_generator task
@@ -36,11 +35,12 @@ runOnClient task
 		}
  
 	= mkTask roc_tasklet
-
+*/
 gen_res {TaskState|value=Nothing} = NoValue
 gen_res {TaskState|value=Just NoValue} = NoValue
 gen_res {TaskState|value=Just (Value json stability)} = Value (fromJust (fromJSON json)) stability
 
+/*
 roc_generator :: !(Task m) !TaskId (Maybe (TaskState m)) !*IWorld -> *(!TaskletGUI (TaskState m), !TaskState m, !*IWorld) | iTask m
 roc_generator task (TaskId instanceNo _) _ iworld=:{current={sessionInstance=Just currentInstance}}
     # currentSession = "SESSIONID-" +++ toString currentInstance
@@ -52,7 +52,7 @@ roc_generator task (TaskId instanceNo _) _ iworld=:{current={sessionInstance=Jus
 				, task		 = task
 				, value 	 = Nothing}
 	= (gui, state, iworld)
-
+*/
 // Init
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Nothing} Nothing Nothing Nothing iworld
 	# (mbTaskId, iworld) = createClientTaskInstance task sessionId instanceNo iworld

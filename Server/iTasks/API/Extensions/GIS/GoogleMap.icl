@@ -58,20 +58,16 @@ derive class iTask GoogleMapClient, GoogleMapState, JSGM
 googleMapEditlet :: GoogleMap -> Editlet GoogleMap [GoogleMapDiff] GoogleMapClient
 googleMapEditlet g 
     = { Editlet
-      | genUI       = uiDef 
+      | genUI       = genUI
       , initClient  = onInit
       , appDiffClt  = appDiffClt
       , genDiffSrv  = genDiff 
       , appDiffSrv  = appDiff
       }
 where
-	uiDef cid val world
-		= ({ ComponentHTML |
-		    html 			= DivTag [IdAttr (mapdomid cid), StyleAttr "width:100%; height:100%"] []
-		  , width 			= ExactSize 600
-		  , height			= ExactSize 300
-		  },world)
-		
+	genUI cid val world
+		= (setSize (ExactSize 600) (ExactSize 300) (ui (UIViewHtml {UIViewOpts|value=Just (DivTag [IdAttr (mapdomid cid),StyleAttr "width:100%; height:100%"] [])})), world)
+	
 	mapdomid cid    = "map_place_holder_" +++ cid
     mapcanvasid cid = "map_canvas_" +++ cid
 

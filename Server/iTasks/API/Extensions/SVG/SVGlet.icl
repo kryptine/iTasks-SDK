@@ -325,14 +325,9 @@ svgRenderer resolve state2Image
     , appDiffSrv = appServerDiff
     }
   where
-  genUI = \cid _ world ->
-    ({ ComponentHTML
-     | width  = FlexSize
-     , height = FlexSize
-     , html   = DivTag [IdAttr (mainSvgId cid), StyleAttr "overflow: auto;"] []
-     }
-     , world
-    )
+  genUI cid _ world 
+	= ( setSize FlexSize FlexSize (ui (UIViewHtml {UIViewOpts|value=Just (DivTag [IdAttr (mainSvgId cid), StyleAttr "overflow: auto;"] [])}))
+	  , world)
 
   initClient :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) s
                 !((EditletEventHandlerFunc (SVGDiff s) (SVGClSt s)) ComponentId -> JSFun f) !String !*JSWorld

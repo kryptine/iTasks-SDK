@@ -52,27 +52,24 @@ where
   		# iworld                = {iworld & world = world} 
 		= case editletLinker initDiff (initClient currVal createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld of
 			(Ok (jsScript, jsID, jsIC, jsAD),iworld)
-				# attr = editletAttr jsScript jsID jsIC jsAD uiDef
+				# attr = editletAttr jsScript jsID jsIC jsAD
 				= (uic (UIEditor {UIEditor|optional=False}) [eui uiDef attr], {VSt|vst & iworld = iworld})
 			(Error e,iworld) //TODO: Propagate the error to the interact task that creates the editor
 				= (uic (UIEditor {UIEditor|optional=False}) [eui uiDef 'DM'.newMap], {VSt|vst & iworld = iworld})
 	where
 		initDiff = genDiffSrv gDefault{|*|} currVal
 		htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
-		editletAttr jsScript jsID jsIC jsAD uiDef
+		editletAttr jsScript jsID jsIC jsAD
 			= 'DM'.fromList [("taskId",JSONString taskId)
 							,("editorId",JSONString (editorId dp))
-							,("html",JSONString (toString uiDef.ComponentHTML.html))
 							,("script",JSONString jsScript)
 							,("initClient",JSONString jsIC)
 							,("initDiff",JSONString jsID)
 							,("appDiff",JSONString jsAD)
 							]
 
-		eui uiDef attr = setSize uiDef.ComponentHTML.width uiDef.ComponentHTML.height (uiac UIEditlet attr [])
-		toJSONA a = case JSONEncode{|*|} False a of
-			[json:_]	= json
-			_			= JSONNull
+		eui (UI type attr items) editletAttr = UI type (addAll editletAttr attr) items
+		addAll a1 a2 = foldl (\a (k,v) -> 'DM'.put k v a) a2 ('DM'.toList a1)
 
 	genDiff` dp ov om nv nm vst=:{VSt|iworld} //TODO: -> Properly track version numbers
 		= case (genDiffSrv ov nv) of

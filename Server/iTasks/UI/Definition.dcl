@@ -26,7 +26,6 @@ derive class iTask UI, UINodeType, UIAction, UIEditor
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
 derive class iTask UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts
-derive class iTask UIEditletOpts, UITaskletOpts
 derive class iTask UIMenuButtonOpts, UITreeNode
 
 instance Functor UIViewOpts
@@ -36,7 +35,7 @@ instance Functor UIViewOpts
 
 //Representation of a collection of changes that need to be applied to an existing UI
 :: UIChange
-	= NoChange									//No changes are needed
+	= NoChange		//No changes are needed
 	| ReplaceUI !UI //Replace the entire UI with a new version
 	| ChangeUI [UILocalChange] [(!Int,!UIChildChange)]	//Change the current UI and/or its children
 
@@ -109,9 +108,6 @@ derive class iTask UIChange, UIChildChange
 	// Misc auxiliary components:
 	| UILabel						                                                // - Label (non-wrapping text label, clicks focus next component)
     | UISplitter
-	// Tasklet stuff
-	| UITasklet						!UITaskletOpts								    // - Tasklet (custom clientside interaction)
-	| UIEditlet														    			// - Editlet (custom clientside editor)
 	// Viewport for other task instances
     | UIEmbedding       			                                                // - Embedding of a related task gui (like an iframe for tasks)
 
@@ -229,29 +225,6 @@ derive class iTask UIChange, UIChildChange
 	= UIActionMenuItem	!UIActionOpts						// - Action Menu Item (clicks trigger action events)
 	| UISubMenuItem						!UIMenuButtonOpts	// - Sub Menu Item (clicks open a submenu)
 		
-:: UITaskletOpts =
-	{ taskId		 :: !String
-	, html 			 :: !Maybe String
-	, st			 :: !Maybe String
-	, script		 :: !Maybe String
-	, events		 :: !Maybe [(!String,!String,!String)]	// HTML id, event name, handler function
-	, interfaceFuncs :: !Maybe [(!String,!String)] 			// function name, function
-	, resultFunc     :: !Maybe String
-	// They are a pair: the controller hijacks all the events sent to the given instance
-	, instanceNo	 :: !Maybe String
-	, controllerFunc :: !Maybe String
-	}
-
-:: UIEditletOpts =
-	{ taskId		:: !String
-	, editorId		:: !String
-	, html			:: !String
-	, script		:: !String
-	, initClient	:: !String	
-	, initDiff		:: !String
-	, appDiff		:: !String
-	}
-
 //Construction functions
 ui   :: UINodeType -> UI
 uic  :: UINodeType [UI] -> UI

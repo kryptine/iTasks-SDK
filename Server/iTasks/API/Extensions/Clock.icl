@@ -27,12 +27,8 @@ analogClockEditlet
       }
 where
 	genUI cid val world
-		  =({ ComponentHTML
-            | html 			= svgClock cid
-		  	, width 		= ExactSize 100
-		  	, height 		= ExactSize 100
-		  	},world)
-	
+		= (setSize (ExactSize 100) (ExactSize 100) (ui (UIViewHtml {UIViewOpts|value=Just (svgClock cid)})), world)
+
     svgClock cid = SvgTag [StyleAttr "flex: 1; align-self: stretch;"] [ViewBoxAttr "0" "0" "100" "100"]
                           (face ++
                           [hand (cid+++"-hour-hand") 30 "#999"

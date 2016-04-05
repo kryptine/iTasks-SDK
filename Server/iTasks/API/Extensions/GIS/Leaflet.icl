@@ -130,12 +130,8 @@ leafletEditlet map
     , appDiffSrv = appDiff
     }
 where
-    genUI cid val world
-          = ({ ComponentHTML 
-            | html          = DivTag [IdAttr (mapdivid cid)] []
-            , width         = ExactSize 600
-            , height        = ExactSize 300
-            },world)
+	genUI cid val world
+		= (setSize (ExactSize 600) (ExactSize 300) (ui (UIViewHtml {UIViewOpts|value=Just (DivTag [IdAttr (mapdivid cid)] [])})), world)
 
 	mapdivid cid = "map_div_" +++ cid
 

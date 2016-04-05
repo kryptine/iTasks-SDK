@@ -22,7 +22,6 @@ derive class iTask UI, UINodeType, UIAction, UIEditor
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
 derive class iTask UIEditOpts, UIViewOpts, UIActionOpts
 derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts
-derive class iTask UIEditletOpts, UITaskletOpts 
 derive class iTask UIMenuButtonOpts, UITreeNode, UIMenuItem
 
 instance Functor UIViewOpts
@@ -302,9 +301,7 @@ where
     encodeUI (UI (UIMenuButton opts) attr _)         = component "itwc_menubutton" [encodeAttr attr, encodeUI opts] //TODO: Should be a regular actionbutton
 
 	//MISC
-	encodeUI (UI (UISplitter) attr _)                = component "itwc_splitter" [encodeAttr attr]
-	encodeUI (UI (UITasklet opts) attr _)            = component "itwc_tasklet" [encodeAttr attr, encodeUI opts] //OBSOLETE
-	encodeUI (UI UIEditlet attr _)                   = component "itwc_edit_editlet" [encodeAttr attr]
+	encodeUI (UI UISplitter attr _)                  = component "itwc_splitter" [encodeAttr attr]
 	encodeUI (UI UIEmbedding attr _)                 = component "Viewport" [encodeAttr attr]
 
 encodeAttr attr	= JSONObject [(k,encode k v) \\ (k,v) <- 'DM'.toList attr]
@@ -402,17 +399,12 @@ where
 	encodeUI (UISubMenuItem opts) 		= component "itwc_submenuitem" [encodeUI opts]
 
 instance encodeUI UIActionOpts where encodeUI opts = toJSON opts
-instance encodeUI UITaskletOpts where encodeUI opts = toJSON opts
 instance encodeUI UITreeOpts where encodeUI opts = toJSON opts
 instance encodeUI UIGridOpts where encodeUI opts = toJSON opts
 
 instance encodeUI (UIChoiceOpts a) | JSONEncode{|*|} a 
 where
 	 encodeUI opts = toJSON opts
-
-instance encodeUI UIEditletOpts
-where
-	encodeUI opts = toJSON opts
 
 component :: String [JSONNode] -> JSONNode
 component xtype opts = JSONObject [("xtype",JSONString xtype):optsfields]
