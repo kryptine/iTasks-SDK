@@ -3,9 +3,6 @@ definition module iTasks.API.Core.Types
 * This module provides types for all the globally shared concepts
 * of the iTasks framework.
 */
-//import GenEq
-//import Data.Maybe, Text.JSON,  Data.Either, System.FilePath, Text.HTML, Data.Error, System.File, System.OS
-
 import iTasks._Framework.Store
 
 // TODO: Remove these big-bang imports

@@ -24,11 +24,9 @@ from GenEq import generic gEq
 //Provide generic instances for all UI definitions
 derive class iTask UI, UINodeType, UIAction, UIEditor
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
-derive class iTask UIEditOpts, UIViewOpts, UIActionOpts
-derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts
-derive class iTask UIMenuButtonOpts, UITreeNode
+derive class iTask UIChoiceOpts
+derive class iTask UITreeNode
 
-instance Functor UIViewOpts
 //TODO:
 //- Multi select in grids
 //- Multi select in trees
@@ -57,6 +55,7 @@ derive class iTask UIChange, UIChildChange
 :: UI = UI UINodeType UIAttributes [UI]
 
 :: UINodeType
+	// --- Intermediate nodes: ---
     = UIEmpty
 	//Constructors for editors
 	| UIEditor 			!UIEditor
@@ -68,48 +67,49 @@ derive class iTask UIChange, UIChildChange
 	| UIStep
 	| UIParallel
 	| UICompoundContent
-	//Final containers
+	// --- Client components: ---
+	// Containers
     | UIContainer      				
 	| UIPanel 						
 	| UITabSet
 	| UITab
 	| UIWindow
+	| UIMenu
 	// Components for viewing data:
 	| UIViewString					                     							// - String (non-wrapping single line text with automatic escaping)
-	| UIViewHtml					!(UIViewOpts HtmlTag)							// - Html (formatted multi line text)
-	| UIViewDocument				!(UIViewOpts Document)							// - Document (info + download link)
-	| UIViewCheckbox				!(UIViewOpts Bool)								// - Checkbox (non-editable tick-mark)
+	| UIViewHtml                                                                    // - Html (formatted multi line text)
+	| UIViewDocument                                                                // - Document (info + download link)
+	| UIViewCheckbox                                                                // - Checkbox (non-editable tick-mark)
 	| UIViewSlider																	// - Slider (non-editable slider)
-	| UIViewProgress				!(UIViewOpts ProgressAmount)	                // - Progress (non editable progress bar)
+	| UIViewProgress					                							// - Progress (non editable progress bar)
 	| UIIcon															    		// - Icon (information icon with tooltip text)
 	// Components for editing data:
-	| UIEditString					!UIEditOpts                                     // - String (single line text field)
-	| UIEditNote					!UIEditOpts                                     // - Note (multi-line text field)
-	| UIEditPassword    			!UIEditOpts                                     // - Password (single line text field that hides the text)
-	| UIEditInt         			!UIEditOpts                                     // - Int (integer number field)
-	| UIEditDecimal					!UIEditOpts                                     // - Decimal (decimal number field)
-	| UIEditCheckbox				!UIEditOpts                                     // - Checkbox (editable checkbox)
-	| UIEditSlider					!UIEditOpts  						            // - Slider (editable slider)
-	| UIEditDate					!UIEditOpts 							        // - Date (date picker)
-	| UIEditTime					!UIEditOpts 							        // - Time (time picker)
-	| UIEditDateTime				!UIEditOpts 							        // - DateTime (date + time picker)
-	| UIEditDocument				!UIEditOpts 						            // - Document (info + upload possibility)
-	| UIEditButton					!UIEditOpts 		                            // - Button that sends edit events on click
+	| UIEditString                                                                  // - String (single line text field)
+	| UIEditNote                                                                    // - Note (multi-line text field)
+	| UIEditPassword                                                                // - Password (single line text field that hides the text)
+	| UIEditInt                                                                     // - Int (integer number field)
+	| UIEditDecimal	                                                                // - Decimal (decimal number field)
+	| UIEditCheckbox                                                                // - Checkbox (editable checkbox)
+	| UIEditSlider                                                                  // - Slider (editable slider)
+	| UIEditDate                                                                    // - Date (date picker)
+	| UIEditTime                                                                    // - Time (time picker)
+	| UIEditDateTime                                                                // - DateTime (date + time picker)
+	| UIEditDocument                                                                // - Document (info + upload possibility)
+	| UIEditButton                                                                  // - Button that sends edit events on click
 	// Components for indicating choices:
 	| UIDropdown					!(UIChoiceOpts String)						    // - Dropdown (choice from a list of alternatives)
-	| UIGrid						!(UIChoiceOpts [String]) !UIGridOpts		    // - Grid (selecting an item in a table)
-	| UITree						!(UIChoiceOpts UITreeNode) !UITreeOpts		    // - Tree (selecting a node in a tree structure)
+	| UIGrid						!(UIChoiceOpts [String])                        // - Grid (selecting an item in a table)
+	| UITree						!(UIChoiceOpts UITreeNode)		                // - Tree (selecting a node in a tree structure)
 	| UIListChoice					!(UIChoiceOpts String)						    // - A mutually exclusive set of radio buttons 
 	| UIRadioGroup					!(UIChoiceOpts String)						    // - A mutually exclusive set of radio buttons 
 	| UICheckboxGroup				!(UIChoiceOpts String)						    // - A group of checkboxes that indicate a multiple selection
 	// Components for triggering actions:
-	| UIActionButton				!UIActionOpts					                // - Action Button (clicks trigger action events)
-	| UIMenuButton					!UIMenuButtonOpts							    // - Menu Button (clicks open a menu)
+	| UIActionButton                                                                // - Action Button (clicks trigger action events)
 	// Misc auxiliary components:
 	| UILabel						                                                // - Label (non-wrapping text label, clicks focus next component)
     | UISplitter
 	// Viewport for other task instances
-    | UIEmbedding       			                                                // - Embedding of a related task gui (like an iframe for tasks)
+    | UIViewport       			                                                	// - Viewport for embedding a related task gui (like an iframe for tasks)
 
 :: UIAttributes 		:== Map String JSONNode
 
@@ -166,21 +166,6 @@ derive class iTask UIChange, UIChildChange
 	, left		:: !Int
 	}	
 
-:: UIViewOpts a =
-	{ value			:: !Maybe a
-	}
-	
-:: UIEditOpts =
-	{ taskId		:: !String
-	, editorId		:: !String
-	, value			:: !Maybe JSONNode
-	}
-
-:: UIActionOpts =
-	{ taskId		:: !String
-	, actionId		:: !String
-	}
-
 :: UIChoiceOpts a =
 	{ taskId		:: !String
 	, editorId		:: !String
@@ -188,15 +173,6 @@ derive class iTask UIChange, UIChildChange
 	, options		:: ![a]
 	}
 		
-:: UIGridOpts =
-	{ columns			:: ![String]
-	, doubleClickAction	:: !Maybe (String,String)
-	}
-
-:: UITreeOpts =
-	{ doubleClickAction	:: !Maybe (String,String)
-	}
-
 :: UITreeNode =
 	{ text		:: !String
     , iconCls   :: !Maybe String
@@ -206,25 +182,6 @@ derive class iTask UIChange, UIChildChange
 	, value		:: !Int
 	}
 
-/*
-:: UIButtonOpts =
-	{ text		:: !Maybe String
-	, iconCls	:: !Maybe String
-	, disabled	:: !Bool
-	}
-*/
-
-:: UIMenuButtonOpts =
-	{ text		:: !Maybe String
-	, iconCls	:: !Maybe String
-	, disabled	:: !Bool
-	, menu		:: ![UIMenuItem]
-	}
-
-:: UIMenuItem
-	= UIActionMenuItem	!UIActionOpts						// - Action Menu Item (clicks trigger action events)
-	| UISubMenuItem						!UIMenuButtonOpts	// - Sub Menu Item (clicks open a submenu)
-		
 //Construction functions
 ui   :: UINodeType -> UI
 uic  :: UINodeType [UI] -> UI
@@ -232,53 +189,57 @@ uia  :: UINodeType UIAttributes -> UI
 uiac :: UINodeType UIAttributes [UI] -> UI
 
 //Modifier functions
-setSize         :: !UISize !UISize          !UI -> UI
-setWidth		:: !UISize					!UI -> UI
-setHeight		:: !UISize					!UI -> UI
-setMinSize		:: !UIBound !UIBound	    !UI -> UI
-setMinWidth		:: !UIBound				    !UI -> UI
-setMinHeight	:: !UIBound                 !UI -> UI
-setMaxSize		:: !UIBound !UIBound	    !UI -> UI
-setMaxWidth		:: !UIBound				    !UI -> UI
-setMaxHeight	:: !UIBound                 !UI -> UI
-fill			:: 							!UI -> UI
-fillHeight		:: 							!UI -> UI
-fillWidth		:: 							!UI -> UI
-fixedHeight		:: !Int 					!UI -> UI
-fixedWidth		:: !Int 					!UI -> UI
-wrapHeight		::							!UI -> UI
-wrapWidth		:: 							!UI -> UI
-setMargins		:: !Int !Int !Int !Int		!UI -> UI
-setTopMargin	:: !Int 					!UI -> UI
-setRightMargin	:: !Int 					!UI -> UI
-setBottomMargin	:: !Int 					!UI -> UI
-setLeftMargin	:: !Int 					!UI -> UI
-setPadding 		:: !Int !Int !Int !Int      !UI -> UI
-setTopPadding   :: !Int                     !UI -> UI
-setRightPadding :: !Int                     !UI -> UI
-setBottomPadding:: !Int                     !UI -> UI
-setLeftPadding  :: !Int                     !UI -> UI
-setTitle 		:: !String 					!UI -> UI
-setFramed		:: !Bool					!UI -> UI
-setIconCls		:: !String					!UI -> UI
-setBaseCls      :: !String                  !UI -> UI
-setTooltip      :: !String                  !UI -> UI
-setDirection    :: !UIDirection             !UI -> UI
-setHalign       :: !UIHAlign                !UI -> UI
-setValign		:: !UIVAlign				!UI -> UI
-setHpos 		:: !UIHAlign                !UI -> UI
-setVpos 		:: !UIVAlign                !UI -> UI
-setWindowType   :: !UIWindowType            !UI -> UI
-setFocusTaskId  :: !String                  !UI -> UI
-setCloseTaskId  :: !String                  !UI -> UI
-setActiveTab 	:: !Int 					!UI -> UI
-setValue 		:: !JSONNode                !UI -> UI
-setMinValue     :: !Int                     !UI -> UI
-setMaxValue     :: !Int                     !UI -> UI
-setText         :: !String                  !UI -> UI
-setEnabled      :: !Bool                    !UI -> UI
-setInstanceNo   :: !Int                     !UI -> UI
-setInstanceKey  :: !String                  !UI -> UI
+setSize         :: !UISize !UISize                   !UI -> UI
+setWidth		:: !UISize					         !UI -> UI
+setHeight		:: !UISize					         !UI -> UI
+setMinSize		:: !UIBound !UIBound	             !UI -> UI
+setMinWidth		:: !UIBound				             !UI -> UI
+setMinHeight	:: !UIBound                          !UI -> UI
+setMaxSize		:: !UIBound !UIBound	             !UI -> UI
+setMaxWidth		:: !UIBound				             !UI -> UI
+setMaxHeight	:: !UIBound                          !UI -> UI
+fill			:: 							         !UI -> UI
+fillHeight		:: 							         !UI -> UI
+fillWidth		:: 							         !UI -> UI
+fixedHeight		:: !Int 					         !UI -> UI
+fixedWidth		:: !Int 					         !UI -> UI
+wrapHeight		::							         !UI -> UI
+wrapWidth		:: 							         !UI -> UI
+setMargins		:: !Int !Int !Int !Int		         !UI -> UI
+setTopMargin	:: !Int 					         !UI -> UI
+setRightMargin	:: !Int 					         !UI -> UI
+setBottomMargin	:: !Int 					         !UI -> UI
+setLeftMargin	:: !Int 					         !UI -> UI
+setPadding 		:: !Int !Int !Int !Int               !UI -> UI
+setTopPadding   :: !Int                              !UI -> UI
+setRightPadding :: !Int                              !UI -> UI
+setBottomPadding:: !Int                              !UI -> UI
+setLeftPadding  :: !Int                              !UI -> UI
+setTitle 		:: !String 					         !UI -> UI
+setFramed		:: !Bool					         !UI -> UI
+setIconCls		:: !String					         !UI -> UI
+setBaseCls      :: !String                           !UI -> UI
+setTooltip      :: !String                           !UI -> UI
+setDirection    :: !UIDirection                      !UI -> UI
+setHalign       :: !UIHAlign                         !UI -> UI
+setValign		:: !UIVAlign				         !UI -> UI
+setHpos 		:: !UIHAlign                         !UI -> UI
+setVpos 		:: !UIVAlign                         !UI -> UI
+setWindowType   :: !UIWindowType                     !UI -> UI
+setFocusTaskId  :: !String                           !UI -> UI
+setCloseTaskId  :: !String                           !UI -> UI
+setActiveTab 	:: !Int 					         !UI -> UI
+setValue 		:: !JSONNode                         !UI -> UI
+setMinValue     :: !Int                              !UI -> UI
+setMaxValue     :: !Int                              !UI -> UI
+setText         :: !String                           !UI -> UI
+setEnabled      :: !Bool                             !UI -> UI
+setInstanceNo   :: !Int                              !UI -> UI
+setInstanceKey  :: !String                           !UI -> UI
+setEditOpts     :: !String !String !(Maybe JSONNode) !UI -> UI
+setActionOpts   :: !String !String                   !UI -> UI
+setColumns      :: ![String]                         !UI -> UI
+setDoubleClickAction :: !String !String              !UI -> UI
 
 //Util
 stringDisplay   :: !String  -> UI

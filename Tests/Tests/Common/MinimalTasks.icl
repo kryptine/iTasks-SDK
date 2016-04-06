@@ -1,7 +1,8 @@
 implementation module Tests.Common.MinimalTasks
 import TestFramework
-import iTasks.UI.Editor
+import iTasks.UI.Definition, iTasks.UI.Editor
 import Data.Tuple
+import qualified Data.Map as DM
 
 minimalEditor :: Task String
 minimalEditor = updateInformation "Minimal String editor" [] "Hello World"
@@ -17,7 +18,7 @@ where
               , appDiffSrv = \n _ -> n
 			  }
 
-	genUI cid val world = (setSize WrapSize WrapSize (ui (UIViewHtml {UIViewOpts|value = Just (html cid)})), world)
+	genUI cid val world = (setSize WrapSize WrapSize (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (html cid)))])), world)
 	html cid = ButtonTag [IdAttr (cid +++ "-button")] [Text "Click me"]
 
 	//Register eventhandler for clicking the button

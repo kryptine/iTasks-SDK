@@ -31,7 +31,7 @@ where
 			= (viz,vst)
 	where
 		checkbox checked = uic (UIEditor {UIEditor|optional=True})
-			[ui (UIEditCheckbox {UIEditOpts|taskId = taskId, editorId = editorId dp, value = Just (JSONBool checked)})]
+			[setEditOpts taskId (editorId dp) (Just (JSONBool checked)) (ui UIEditCheckbox)]
 
 	genDiff dp (RECORD old) om (RECORD new) nm vst 
 		# (diff,vst) = ex.Editor.genDiff (pairPath grd_arity dp) old (toPairMask grd_arity om) new (toPairMask grd_arity nm) vst
@@ -306,31 +306,31 @@ isOptional (UI (UIEditor {UIEditor|optional}) _ _) 		 = optional
 isOptional _ 										       = False
 
 gEditor{|Int|} = primitiveTypeEditor (Just "whole number")
-					(\{UIViewOpts|value} -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
-					(\editOpts -> ui (UIEditInt editOpts))
+					(\value -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
+					(\taskId editorId value -> setEditOpts taskId editorId value (ui UIEditInt))
 gEditor{|Real|} = primitiveTypeEditor (Just "decimal number")
-					(\{UIViewOpts|value} -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
-					(\editOpts -> ui (UIEditDecimal editOpts))
+					(\value -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
+					(\taskId editorId value -> setEditOpts taskId editorId value (ui UIEditDecimal))
 gEditor{|Char|} = primitiveTypeEditor (Just "single character")
-					(\{UIViewOpts|value} -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
-					(\editOpts -> ui (UIEditString editOpts))
+					(\value -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
+					(\taskId editorId value -> setEditOpts taskId editorId value (ui UIEditString))
 gEditor{|String|} = primitiveTypeEditor (Just "single line of text")
-					(\{UIViewOpts|value} -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
-					(\editOpts -> ui (UIEditString editOpts))
+					(\value -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
+					(\taskId editorId value -> setEditOpts taskId editorId value (ui UIEditString))
 gEditor{|Bool|} = primitiveTypeEditor Nothing 
-					(\viewOpts -> ui (UIViewCheckbox viewOpts))
-					(\editOpts -> ui (UIEditCheckbox editOpts))
+					(\value -> (maybe id (\v -> setValue (JSONBool v)) value) (ui UIViewCheckbox))
+					(\taskId editorId value -> setEditOpts taskId editorId value (ui UIEditCheckbox))
 
 primitiveTypeEditor mbTypeDesc mkViewControl mkEditControl = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where 
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
 			= (uic (UIEditor {UIEditor|optional=optional})
-				[mkViewControl {UIViewOpts|value = checkMask mask val}],vst)
+				[mkViewControl (checkMask mask val)],vst)
 		| otherwise
         	= (uiac (UIEditor {UIEditor|optional=optional})
 				(maybe 'DM'.newMap (\typeDesc -> stdAttributes typeDesc optional mask) mbTypeDesc)
-				[mkEditControl {UIEditOpts|taskId=taskId, editorId=editorId dp,value = checkMaskValue mask val}], vst)
+				[mkEditControl taskId (editorId dp) (checkMaskValue mask val)], vst)
 
 	genDiff dp ov om nv nm vst=:{VSt|optional,disabled}
 		= (if (vEq && mEq) NoChange (ChangeUI (valueChange ++ attrChanges) []),vst)
@@ -387,16 +387,16 @@ where
 			//# controls	= map (setWidth FlexSize) (decorateControls (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = editorControls item, size = defaultSizeOpts}))
 			# controls = []
 			# buttons	= (if reorder
-							  [(setIconCls "icon-up" o setEnabled (idx <> 0)) (ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mup_" +++ toString idx))}))
-							  ,(setIconCls "icon-down" o setEnabled (idx <> numItems - 1)) (ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("mdn_" +++ toString idx))}))
+							  [(setIconCls "icon-up" o setEnabled (idx <> 0)) (setEditOpts taskId (editorId dp) (Just (JSONString ("mup_" +++ toString idx))) (ui UIEditButton))
+							  ,(setIconCls "icon-down" o setEnabled (idx <> numItems - 1)) (setEditOpts taskId (editorId dp) (Just (JSONString ("mdn_" +++ toString idx))) (ui UIEditButton))
 							  ] []) ++
 							  (if remove
-							  [setIconCls "icon-remove" (ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString ("rem_" +++ toString idx))}))
+							  [setIconCls "icon-remove" (setEditOpts taskId (editorId dp) (Just (JSONString ("rem_" +++ toString idx))) (ui UIEditButton))
 							  ] [])
 			= setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (uic UIContainer (if disabled controls (controls ++ buttons)))))
 		addItemControl numItems
 			# counter   = if count [(setWidth FlexSize o setValue (JSONString (numItemsText numItems))) (ui UIViewString)] []
-			# button	= if enableAdd [setIconCls "icon-add" (ui (UIEditButton {UIEditOpts|taskId=taskId,editorId=editorId dp,value=Just (JSONString "add")} ))] []
+			# button	= if enableAdd [setIconCls "icon-add" (setEditOpts taskId (editorId dp) (Just (JSONString "add")) (ui UIEditButton))] []
 			= (setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (uic UIContainer (counter ++ button)))))
 			
 		listContainer controls
@@ -466,7 +466,7 @@ gEditor{|Dynamic|} = emptyEditor
 gEditor{|HtmlTag|}	= {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
 	genUI dp val mask vst
-		= (uic (UIEditor {UIEditor|optional=False}) [ui (UIViewHtml {UIViewOpts|value = Just val})], vst)
+		= (uic (UIEditor {UIEditor|optional=False}) [uia UIViewHtml ('DM'.fromList [("value",JSONString (toString val))] )], vst)
 
 	genDiff dp ov om nv nm vst = (NoChange,vst)
 

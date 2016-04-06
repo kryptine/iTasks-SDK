@@ -758,7 +758,7 @@ where
     release taskId meta = meta
 
     embedTaskDef instanceNo instanceKey
-		= (setWidth FlexSize o setHeight (ExactSize 300) o setInstanceNo instanceNo o setInstanceKey instanceKey) (ui UIEmbedding)
+		= (setWidth FlexSize o setHeight (ExactSize 300) o setInstanceNo instanceNo o setInstanceKey instanceKey) (ui UIViewport)
 
 	inUseDef = stringDisplay "This task is already in use"
 

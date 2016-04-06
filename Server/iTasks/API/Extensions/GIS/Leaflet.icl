@@ -1,8 +1,9 @@
 implementation module iTasks.API.Extensions.GIS.Leaflet
 
 import iTasks
-import iTasks.UI.JS.Map, iTasks.UI.Editor
+import iTasks.UI.Definition, iTasks.UI.JS.Map, iTasks.UI.Editor
 import StdMisc, Data.Tuple
+import qualified Data.Map as DM
 
 from StdArray import class Array(uselect), instance Array {} a
 //TODOS:
@@ -131,7 +132,7 @@ leafletEditlet map
     }
 where
 	genUI cid val world
-		= (setSize (ExactSize 600) (ExactSize 300) (ui (UIViewHtml {UIViewOpts|value=Just (DivTag [IdAttr (mapdivid cid)] [])})), world)
+		= (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (DivTag [IdAttr (mapdivid cid)] [])))])), world)
 
 	mapdivid cid = "map_div_" +++ cid
 

@@ -4,7 +4,7 @@ import qualified Data.Map as DM
 import Graphics.Scalable
 import Graphics.Scalable.Internal
 import iTasks
-import iTasks.UI.Editor
+import iTasks.UI.Definition, iTasks.UI.Editor
 from StdOrdList import minList, maxList
 import StdOverloaded
 import StdArray
@@ -326,7 +326,7 @@ svgRenderer resolve state2Image
     }
   where
   genUI cid _ world 
-	= ( setSize FlexSize FlexSize (ui (UIViewHtml {UIViewOpts|value=Just (DivTag [IdAttr (mainSvgId cid), StyleAttr "overflow: auto;"] [])}))
+	= ( setSize FlexSize FlexSize (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (DivTag [IdAttr (mainSvgId cid), StyleAttr "overflow: auto;"] [])))]))
 	  , world)
 
   initClient :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) s

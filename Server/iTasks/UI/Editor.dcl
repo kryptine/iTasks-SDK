@@ -6,7 +6,6 @@ definition module iTasks.UI.Editor
 
 from iTasks.UI.Definition import :: UIAttributes, :: UIChange
 
-import iTasks.UI.Component
 import iTasks.UI.JS.Interface
 
 from iTasks._Framework.IWorld import :: IWorld
@@ -77,8 +76,13 @@ isTouched	:: !EditMask -> Bool
 :: ComponentId :== String
 :: ComponentEventName :== String
 :: ComponentEvent d a = ComponentEvent !ComponentId !ComponentEventName (ComponentEventHandlerFunc d a)
+
 :: ComponentEventHandlerFunc d a
 	:== ComponentId {JSObj JSEvent} a *JSWorld -> *(!a, !ComponentDiff d a, !*JSWorld)
+
+:: Conflict :== Bool
+:: ComponentDiff diff state = NoDiff | Diff diff 
+                   (Conflict state *JSWorld -> *(state, ComponentDiff diff state, *JSWorld))
 
 
 :: Editlet sv d cl
@@ -86,6 +90,7 @@ isTouched	:: !EditMask -> Bool
   { genUI      :: ComponentId sv *World -> *(UI, *World)
   , initClient :: sv ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId *JSWorld -> *(cl, *JSWorld)
   , appDiffClt :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
+
   , genDiffSrv :: sv sv -> Maybe d
   , appDiffSrv :: d  sv -> sv
   }

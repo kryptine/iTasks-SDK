@@ -1,12 +1,12 @@
 implementation module iTasks.API.Extensions.GIS.GoogleMap
 
 import iTasks
-import iTasks.UI.JS.Interface, iTasks.UI.Editor
+import iTasks.UI.Definition, iTasks.UI.JS.Interface, iTasks.UI.Editor
 import iTasks.UI.JS.Map
 
 import Data.Functor, Text, StdMisc
 
-from Data.Map import newMap
+import qualified Data.Map as DM
 from StdArray import class Array(uselect), instance Array {} a
 
 :: JSGM = JSGM
@@ -66,7 +66,7 @@ googleMapEditlet g
       }
 where
 	genUI cid val world
-		= (setSize (ExactSize 600) (ExactSize 300) (ui (UIViewHtml {UIViewOpts|value=Just (DivTag [IdAttr (mapdomid cid),StyleAttr "width:100%; height:100%"] [])})), world)
+		= (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (DivTag [IdAttr (mapdomid cid),StyleAttr "width:100%; height:100%"] [])))])), world)
 	
 	mapdomid cid    = "map_place_holder_" +++ cid
     mapcanvasid cid = "map_canvas_" +++ cid

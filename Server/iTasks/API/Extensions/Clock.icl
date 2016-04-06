@@ -3,7 +3,8 @@ implementation module iTasks.API.Extensions.Clock
 * This module provides a type for visualizing time as an an analog clock
 */
 import iTasks
-import iTasks.UI.Editor
+import iTasks.UI.Definition, iTasks.UI.Editor
+import qualified Data.Map as DM
 
 derive JSONEncode AnalogClock
 derive JSONDecode AnalogClock
@@ -27,7 +28,7 @@ analogClockEditlet
       }
 where
 	genUI cid val world
-		= (setSize (ExactSize 100) (ExactSize 100) (ui (UIViewHtml {UIViewOpts|value=Just (svgClock cid)})), world)
+		= (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (svgClock cid)))])), world)
 
     svgClock cid = SvgTag [StyleAttr "flex: 1; align-self: stretch;"] [ViewBoxAttr "0" "0" "100" "100"]
                           (face ++

@@ -3,8 +3,7 @@ implementation module iTasks.UI.Editor
 import StdMisc
 import iTasks._Framework.Client.LinkerSupport, Data.Maybe, Data.Functor
 import iTasks._Framework.IWorld
-from iTasks.UI.Definition import :: UIChange(..), :: UILocalChange(..), :: UIChildChange(..)
-from iTasks.UI.Editor import :: Editor(..), :: USt(..) 
+import iTasks.UI.Definition
 import qualified Data.Map as DM
 
 emptyEditor :: Editor a
@@ -50,7 +49,8 @@ where
 	genUI` dp currVal mask vst=:{VSt|taskId,iworld=iworld=:{IWorld|world}}
 		# (uiDef, world)        = genUI htmlId currVal world
   		# iworld                = {iworld & world = world} 
-		= case editletLinker initDiff (initClient currVal createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld of
+		= case editletLinker initDiff testFun (appDiffClt createEditletEventHandler) iworld of
+		//= case editletLinker initDiff (initClient currVal createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld of
 			(Ok (jsScript, jsID, jsIC, jsAD),iworld)
 				# attr = editletAttr jsScript jsID jsIC jsAD
 				= (uic (UIEditor {UIEditor|optional=False}) [eui uiDef attr], {VSt|vst & iworld = iworld})
@@ -70,6 +70,10 @@ where
 
 		eui (UI type attr items) editletAttr = UI type (addAll editletAttr attr) items
 		addAll a1 a2 = foldl (\a (k,v) -> 'DM'.put k v a) a2 ('DM'.toList a1)
+	
+		testFun :: JSArg *JSWorld -> *JSWorld
+		testFun this w 
+			= jsTrace this w
 
 	genDiff` dp ov om nv nm vst=:{VSt|iworld} //TODO: -> Properly track version numbers
 		= case (genDiffSrv ov nv) of

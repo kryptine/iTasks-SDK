@@ -5,7 +5,7 @@ import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
 import iTasks._Framework.SDS, iTasks._Framework.Generic.Interaction, iTasks.API.Core.Types
 from StdFunc import seq
 import qualified Data.Map as DM
-import iTasks.UI.Editor, iTasks.UI.Layout.Default, iTasks.UI.Layout.Common
+import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Layout.Default, iTasks.UI.Layout.Common
 
 // SPECIALIZATIONS
 derive class iTask Workflow

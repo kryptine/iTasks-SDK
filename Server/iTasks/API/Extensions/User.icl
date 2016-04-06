@@ -2,7 +2,7 @@ implementation module iTasks.API.Extensions.User
 import iTasks
 import Text
 import qualified Data.Map as DM
-import iTasks.UI.Editor
+import iTasks.UI.Definition, iTasks.UI.Editor
 
 gText{|User|} _ val = [maybe "" toString val]
 
@@ -79,7 +79,7 @@ where
 			= (uic (UIEditor {UIEditor|optional=False}) [setVal (ui UIViewString)], vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(Username v) -> v) val)
-			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask) [ui (UIEditString {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value})] ,vst)
+			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask) [setEditOpts taskId (editorId dp) value (ui UIEditString)] ,vst)
 	genDiff dp (Username old) om (Username new) nm vst=:{VSt|optional,disabled}
 		= (if (old === new) NoChange (ChangeUI [("setAttribute",[JSONString "value",encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
@@ -120,7 +120,7 @@ where
 			= (uic (UIEditor {UIEditor|optional=False}) [setValue (JSONString "********") (ui UIViewString)], vst)
 		| otherwise	
 			# value = checkMaskValue mask ((\(Password v) -> v) val)
-			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask) [ui (UIEditPassword {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value})] ,vst)
+			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask) [setEditOpts taskId (editorId dp) value (ui UIEditPassword)] ,vst)
 	genDiff dp (Password old) om (Password new) nm vst=:{VSt|optional,disabled}
 		= (if (old === new) NoChange (ChangeUI [("setAttribute",[JSONString "value",encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 

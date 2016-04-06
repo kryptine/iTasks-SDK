@@ -162,7 +162,7 @@ where
 	layout (ReplaceUI (UI (UIAction {UIAction|taskId,action=action=:(Action actionId _),enabled}) _ _ ),_)
 		# buttonOpts = setText (actionName action) o setEnabled enabled
 		# buttonOpts = maybe buttonOpts (\iconCls -> setIconCls iconCls o buttonOpts) (actionIcon action)
-		= (ReplaceUI (buttonOpts (ui (UIActionButton {UIActionOpts|taskId = toString taskId,actionId=actionId}))),JSONNull)
+		= (ReplaceUI (buttonOpts (setActionOpts (toString taskId) actionId (ui UIActionButton))),JSONNull)
 	
 	layout (ChangeUI local [],s) = (ChangeUI (map remap local) [],s)
 	layout (change,s) = (change,s)

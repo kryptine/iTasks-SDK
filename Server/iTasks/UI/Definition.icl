@@ -20,12 +20,8 @@ import Text.HTML
 
 derive class iTask UI, UINodeType, UIAction, UIEditor
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
-derive class iTask UIEditOpts, UIViewOpts, UIActionOpts
-derive class iTask UIChoiceOpts, UIGridOpts, UITreeOpts
-derive class iTask UIMenuButtonOpts, UITreeNode, UIMenuItem
-
-instance Functor UIViewOpts
-where fmap f opts=:{UIViewOpts|value} = {UIViewOpts|opts & value = fmap f value}
+derive class iTask UIChoiceOpts
+derive class iTask UITreeNode 
 
 //SHOULD BE IN Text.JSON
 jsonObjectPut :: String JSONNode JSONNode -> JSONNode
@@ -209,6 +205,29 @@ setInstanceNo instanceNo (UI type attr items) = UI type ('DM'.put "instanceNo" (
 setInstanceKey :: !String !UI -> UI
 setInstanceKey instanceKey (UI type attr items) = UI type ('DM'.put "instanceKey" (JSONString instanceKey) attr) items
 
+setEditOpts :: !String !String !(Maybe JSONNode) !UI -> UI
+setEditOpts taskId editId mbValue (UI type attr items) 
+	# attr = 'DM'.put "taskId" (JSONString taskId) attr
+	# attr = 'DM'.put "editId" (JSONString editId) attr
+	# attr = (maybe id (\value -> 'DM'.put "value" value) mbValue) attr
+	= UI type attr items
+
+setActionOpts :: !String !String !UI -> UI
+setActionOpts taskId actionId (UI type attr items)
+	# attr = 'DM'.put "taskId" (JSONString taskId) attr
+	# attr = 'DM'.put "actionId" (JSONString actionId) attr
+	= UI type attr items
+
+setColumns :: ![String] !UI -> UI
+setColumns columns (UI type attr items)
+	# attr = 'DM'.put "columns" (JSONArray (map JSONString columns)) attr
+	= UI type attr items
+
+setDoubleClickAction :: !String !String !UI -> UI
+setDoubleClickAction taskId actionId (UI type attr items) 
+	# attr = 'DM'.put "doubleClickAction" (JSONArray [JSONString taskId,JSONString actionId]) attr
+	= UI type attr items
+
 stringDisplay :: !String -> UI
 stringDisplay value = setValue (JSONString (escapeStr value)) (ui UIViewString)
 
@@ -263,46 +282,46 @@ where
 	encodeUI (UI UITabSet attr defs)	                   = component "itwc_tabset" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
 	encodeUI (UI UITab attr defs)                          = component "itwc_tabitem" [encodeAttr attr, JSONObject [("children",JSONArray (map encodeUI defs))]]
 	encodeUI (UI UIWindow attr defs)                       = component "itwc_window" [encodeAttr attr, JSONObject [("children",JSONArray (map encodeUI defs))]]
+	encodeUI (UI UIMenu attr defs)                         = component "itwc_menu" [encodeAttr attr, JSONObject [("children",JSONArray (map encodeUI defs))]]
 
 	//FORM
 	encodeUI (UI UILabel attr _)                     = component "itwc_label" [encodeAttr attr]
 	encodeUI (UI UIIcon attr _)                      = component "itwc_view_icon" [encodeAttr attr]
-	encodeUI (UI (UIEditString eopts) attr _)        = component "itwc_edit_string" [encodeAttr attr,  encodeUI eopts]
-	encodeUI (UI (UIEditNote eopts) attr _)          = component "itwc_edit_note" [encodeAttr attr, encodeUI eopts]
-	encodeUI (UI (UIEditPassword eopts) attr _)      = component "itwc_edit_password" [encodeAttr attr, encodeUI eopts]
-	encodeUI (UI (UIEditInt eopts) attr _)           = component "itwc_edit_int" [encodeAttr attr,  encodeUI  eopts]
-	encodeUI (UI (UIEditDecimal eopts) attr _)       = component "itwc_edit_decimal" [encodeAttr attr, encodeUI eopts]
-	encodeUI (UI (UIEditCheckbox eopts) attr _)      = component "itwc_edit_checkbox" [encodeAttr attr, encodeUI eopts]
-	encodeUI (UI (UIEditSlider eopts) attr _)        = component "itwc_edit_slider" [encodeAttr attr, encodeUI eopts]
-	encodeUI (UI (UIEditDate eopts) attr _)          = component "itwc_edit_date" [encodeAttr attr, encodeUI eopts]
-	encodeUI (UI (UIEditTime eopts) attr _)          = component "itwc_edit_time" [encodeAttr attr, encodeUI eopts]
-	encodeUI (UI (UIEditDateTime eopts) attr _)      = component "itwc_edit_datetime" [encodeAttr attr, encodeUI eopts]
-	encodeUI (UI (UIEditDocument eopts) attr _)      = component "itwc_edit_document" [encodeAttr attr, encodeUI eopts]
-	encodeUI (UI (UIEditButton eopts) attr _)        = component "itwc_editbutton" [encodeAttr attr, encodeUI eopts]
+	encodeUI (UI UIEditString attr _)                = component "itwc_edit_string" [encodeAttr attr]
+	encodeUI (UI UIEditNote attr _)                  = component "itwc_edit_note" [encodeAttr attr]
+	encodeUI (UI UIEditPassword attr _)              = component "itwc_edit_password" [encodeAttr attr]
+	encodeUI (UI UIEditInt attr _)                   = component "itwc_edit_int" [encodeAttr attr]
+	encodeUI (UI UIEditDecimal attr _)               = component "itwc_edit_decimal" [encodeAttr attr]
+	encodeUI (UI UIEditCheckbox attr _)              = component "itwc_edit_checkbox" [encodeAttr attr]
+	encodeUI (UI UIEditSlider attr _)                = component "itwc_edit_slider" [encodeAttr attr]
+	encodeUI (UI UIEditDate attr _)                  = component "itwc_edit_date" [encodeAttr attr]
+	encodeUI (UI UIEditTime attr _)                  = component "itwc_edit_time" [encodeAttr attr]
+	encodeUI (UI UIEditDateTime attr _)              = component "itwc_edit_datetime" [encodeAttr attr]
+	encodeUI (UI UIEditDocument attr _)              = component "itwc_edit_document" [encodeAttr attr]
+	encodeUI (UI UIEditButton attr _)                = component "itwc_editbutton" [encodeAttr attr]
 	encodeUI (UI (UIDropdown copts) attr _)          = component "itwc_choice_dropdown" [encodeAttr attr, encodeUI copts]
 	encodeUI (UI (UIRadioGroup copts)	attr _)      = component "itwc_choice_radiogroup" [encodeAttr attr, encodeUI copts]
 	encodeUI (UI (UICheckboxGroup copts) attr _)     = component "itwc_choice_checkboxgroup" [encodeAttr attr, encodeUI copts]
 
 	//DISPLAY	
 	encodeUI (UI UIViewString attr _)                = component "itwc_view_string" [encodeAttr attr]
-	encodeUI (UI (UIViewHtml vopts) attr _ )         = component "itwc_view_html" [encodeAttr attr, encodeUI vopts]
-	encodeUI (UI (UIViewDocument vopts) attr _)      = component "itwc_view_document" [encodeAttr attr, encodeUI vopts]
-	encodeUI (UI (UIViewCheckbox vopts) attr _)      = component "itwc_view_checkbox" [encodeAttr attr, encodeUI vopts]
+	encodeUI (UI UIViewHtml attr _ )                 = component "itwc_view_html" [encodeAttr attr]
+	encodeUI (UI UIViewDocument attr _)              = component "itwc_view_document" [encodeAttr attr]
+	encodeUI (UI UIViewCheckbox attr _)              = component "itwc_view_checkbox" [encodeAttr attr]
 	encodeUI (UI UIViewSlider attr _)                = component "itwc_view_slider" [encodeAttr attr]
-	encodeUI (UI (UIViewProgress vopts) attr _)      = component "itwc_view_progress" [encodeAttr attr, encodeUI vopts]
+	encodeUI (UI UIViewProgress attr _)              = component "itwc_view_progress" [encodeAttr attr]
 
 	//SELECTION
-	encodeUI (UI (UIGrid copts opts) attr _)         = component "itwc_choice_grid" [encodeAttr attr, encodeUI copts, encodeUI opts]
-	encodeUI (UI (UITree copts opts) attr _)         = component "itwc_choice_tree" [encodeAttr attr, encodeUI copts, encodeUI opts]
+	encodeUI (UI (UIGrid copts) attr _)              = component "itwc_choice_grid" [encodeAttr attr, encodeUI copts]
+	encodeUI (UI (UITree copts) attr _)              = component "itwc_choice_tree" [encodeAttr attr, encodeUI copts]
 	encodeUI (UI (UIListChoice copts) attr _)        = component "itwc_choice_list" [encodeAttr attr, encodeUI copts]
 
 	//ACTION
-	encodeUI (UI (UIActionButton aopts) attr _)      = component "itwc_actionbutton" [encodeAttr attr, encodeUI aopts]
-    encodeUI (UI (UIMenuButton opts) attr _)         = component "itwc_menubutton" [encodeAttr attr, encodeUI opts] //TODO: Should be a regular actionbutton
+	encodeUI (UI UIActionButton attr _)              = component "itwc_actionbutton" [encodeAttr attr]
 
 	//MISC
 	encodeUI (UI UISplitter attr _)                  = component "itwc_splitter" [encodeAttr attr]
-	encodeUI (UI UIEmbedding attr _)                 = component "Viewport" [encodeAttr attr]
+	encodeUI (UI UIViewport attr _)                  = component "Viewport" [encodeAttr attr]
 
 encodeAttr attr	= JSONObject [(k,encode k v) \\ (k,v) <- 'DM'.toList attr]
 where
@@ -335,15 +354,6 @@ where
 instance encodeUI Action
 where
 	encodeUI (Action name _) = JSONString name
-
-instance encodeUI (UIViewOpts a) | encodeUI a
-where
-	encodeUI {UIViewOpts|value} = JSONObject [("value",encodeUI value)]
-
-instance encodeUI UIEditOpts
-where
-	encodeUI {UIEditOpts|taskId,editorId,value}
-		= JSONObject ([("taskId",JSONString taskId),("editorId",JSONString editorId)] ++ maybe [] (\v -> [("value",v)]) value)
 
 instance encodeUI UISideSizes 
 where
@@ -383,24 +393,6 @@ where
 	encodeUI FloatingWindow 	= JSONString "floating"
 	encodeUI ModalDialog 		= JSONString "modal"
 	encodeUI NotificationBubble = JSONString "bubble"
-
-instance encodeUI UIMenuButtonOpts 
-where
-	encodeUI {UIMenuButtonOpts|text,iconCls,disabled,menu}
-		= JSONObject (text` ++ [("disabled",JSONBool disabled),("menu",menu`)] ++ iconCls`)
-	where
-		text`		= maybe [] (\s -> [("text",JSONString s)]) text
-		iconCls`	= maybe [] (\s -> [("iconCls",JSONString s)]) iconCls
-		menu`       = JSONArray (map encodeUI menu)
-
-instance encodeUI UIMenuItem
-where
-	encodeUI (UIActionMenuItem aopts )	= component "itwc_actionmenuitem" [encodeUI aopts]
-	encodeUI (UISubMenuItem opts) 		= component "itwc_submenuitem" [encodeUI opts]
-
-instance encodeUI UIActionOpts where encodeUI opts = toJSON opts
-instance encodeUI UITreeOpts where encodeUI opts = toJSON opts
-instance encodeUI UIGridOpts where encodeUI opts = toJSON opts
 
 instance encodeUI (UIChoiceOpts a) | JSONEncode{|*|} a 
 where

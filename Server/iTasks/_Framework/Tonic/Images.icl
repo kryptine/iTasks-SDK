@@ -19,6 +19,7 @@ import iTasks._Framework.Generic
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
 import iTasks._Framework.Tonic.Pretty
+import iTasks.UI.Definition
 import iTasks.API.Core.Types
 import iTasks.API.Extensions.SVG.SVGlet
 import Text
