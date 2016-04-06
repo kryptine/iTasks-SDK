@@ -4,15 +4,6 @@ import iTasks
 from iTasks._Framework.Tonic.AbsSyn import :: ModuleName
 from iTasks._Framework.Tonic.Types import :: TonicMessage
 
-:: ServerState =
-  { oldData  :: String
-  , clientIp :: String
-  }
+standAloneTonicViewer :: Task ()
 
-derive class iTask ServerState
-
-playbackTonic :: Task ()
-
-viewTonic :: Task ()
-
-acceptAndViewTonicTraces :: Task (Bool, [TonicMessage])
+acceptAndViewTonicTraces :: Task (Bool, [(TonicMessage, Bool)])
