@@ -96,12 +96,7 @@ where
 		consDropdown choice = uiac (UIEditor 
 			{UIEditor|optional=False})
 				(attributes mask)
-				[ui (UIDropdown 
-								{UIChoiceOpts
-								| taskId = taskId
-								, editorId = editorId dp
-								, value = choice
-								, options = [gdc.gcd_name \\ gdc <- gtd_conses]})]
+				[setChoiceOpts taskId (editorId dp) choice [JSONString gdc.gcd_name \\ gdc <- gtd_conses] (ui UIDropdown)]
 		attributes mask
 			| isTouched mask	= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_VALID),(HINT_ATTRIBUTE, JSONString "You have correctly selected an option")]
 								= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INFO),(HINT_ATTRIBUTE, JSONString "Select an option")]

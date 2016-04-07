@@ -805,13 +805,12 @@ gText{|Table|}	_ _	= ["<Table>"]
 gEditor{|Table|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
-		= (uic (UIEditor {UIEditor|optional=False}) [setColumns (columns val) (ui (UIGrid 
-        	{UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val}
-        	))] ,vst)
+		= (uic (UIEditor {UIEditor|optional=False}) [(setChoiceOpts taskId (editorId dp) (value val) (options val) o setColumns (columns val)) (ui UIGrid) 
+        	] ,vst)
 	where
 		value (Table _ _ mbSel)	= maybe [] (\s->[s]) mbSel
 		columns (Table headers _ _)	= headers
-		options (Table _ cells _)	= map (map toString) cells
+		options (Table _ cells _)	= map (toJSON o (map toString)) cells
 
 	genDiff dp old om new nm vst 
 		| old === new 
@@ -867,13 +866,14 @@ where
 		| disabled
 			= (uic (UIEditor {UIEditor|optional=False}) [(vvalue val) (ui UIViewString)], vst)
 		| otherwise
-			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes "choice" optional mask) [ui (UIDropdown {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val})], vst)
+			# choiceOpts = setChoiceOpts taskId (editorId dp) (evalue val) (options val)
+			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes "choice" optional mask) [choiceOpts (ui UIDropdown)], vst)
 
 	vvalue (ComboChoice options (Just sel))	= setValue (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
 	vvalue _								= id 
 	evalue (ComboChoice _ mbSel)			= maybe [] (\s->[s]) mbSel
 
-	options (ComboChoice options _)			= [concat (gx AsSingleLine (Just v)) \\ v <- options]
+	options (ComboChoice options _)			= [JSONString (concat (gx AsSingleLine (Just v))) \\ v <- options]
 
 	genDiff dp old om new nm vst
 		| options old === options new && evalue old === evalue new
@@ -903,13 +903,14 @@ where
 		| disabled
 			= (uic (UIEditor {UIEditor|optional=optional}) [(vvalue val) (ui UIViewString)],vst)
 		| otherwise
-			= (uiac (UIEditor {UIEditor|optional=optional}) (stdAttributes "choice" optional mask) [ui (UIRadioGroup {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val})],vst)
+			# choiceOpts = setChoiceOpts taskId (editorId dp) (evalue val) (options val)
+			= (uiac (UIEditor {UIEditor|optional=optional}) (stdAttributes "choice" optional mask) [choiceOpts (ui UIRadioGroup)],vst)
 
 	vvalue (RadioChoice options (Just sel))	= setValue (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
 	vvalue _								= id
 	evalue (RadioChoice _ mbSel)			= maybe [] (\i -> [i]) mbSel
 	
-	options (RadioChoice options _)			= [concat (gx AsSingleLine (Just v)) \\ v <- options]
+	options (RadioChoice options _)			= [JSONString (concat (gx AsSingleLine (Just v))) \\ v <- options]
 
 	genDiff dp old om new nm vst
 		| options old === options new && evalue old === evalue new
@@ -938,13 +939,14 @@ where
 		| disabled
 			= (uic (UIEditor {UIEditor|optional=False}) [(vvalue val) (ui UIViewString)], vst)
 		| otherwise
-			= (uic (UIEditor {UIEditor|optional=False}) [ui (UIListChoice {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val})],vst)
+			# choiceOpts = setChoiceOpts taskId (editorId dp) (evalue val) (options val)
+			= (uic (UIEditor {UIEditor|optional=False}) [choiceOpts (ui UIListChoice)],vst)
 
 	vvalue (ListChoice options (Just sel))	= setValue (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
 	vvalue _								= id
 	evalue (ListChoice _ mbSel)			= maybe [] (\i -> [i]) mbSel
 	
-	options (ListChoice options _)			= [concat (gx AsSingleLine (Just v)) \\ v <- options]
+	options (ListChoice options _)			= [JSONString (concat (gx AsSingleLine (Just v))) \\ v <- options]
 
 	genDiff dp old om new nm vst
 		| options old === options new && evalue old === evalue new
@@ -971,12 +973,12 @@ gText{|TreeChoice|} fv _ _ = [""]
 gEditor{|TreeChoice|} _ gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
-		# viz		= (UITree {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options gx val mask})
-		= (uic (UIEditor {UIEditor|optional=False}) [ui viz],vst)
+		# viz		= setChoiceOpts taskId (editorId dp) (value val) (options gx val mask) (ui UITree)
+		= (uic (UIEditor {UIEditor|optional=False}) [viz],vst)
 
 	value  (TreeChoice _ mbSel) 	= maybe [] (\s->[s]) mbSel
 	
-	options vizLabel (TreeChoice nodes _) msk = fst (mkTree vizLabel nodes 0)
+	options vizLabel (TreeChoice nodes _) msk = map toJSON (fst (mkTree vizLabel nodes 0))
 	where
 		mkTree vizLabel [] idx = ([],idx)
 		mkTree vizLabel [{ChoiceTree|label,icon,type}:r] idx
@@ -1022,12 +1024,11 @@ gText{|GridChoice|} fv _ _ = [""]
 gEditor{|GridChoice|} _ gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
-		= (uic (UIEditor {UIEditor|optional=False}) [setColumns columns (ui (UIGrid 
-			{UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=value val,options = options val}
-			))],vst)
+		= (uic (UIEditor {UIEditor|optional=False}) [(setChoiceOpts taskId (editorId dp) (value val) (options val) o setColumns columns) (ui UIGrid)
+			],vst)
 
 	value (GridChoice options mbSel)	= maybe [] (\s->[s]) mbSel
-	options (GridChoice options _)		= [gx AsRow (Just opt) \\ opt <- options]
+	options (GridChoice options _)		= [toJSON (gx AsRow (Just opt)) \\ opt <- options]
    	columns = gx AsHeader Nothing
 
 	genDiff dp old om new nm vst
@@ -1137,11 +1138,12 @@ where
 		| disabled
 			= (uic (UIEditor {UIEditor|optional=optional}) [(vvalue val) (ui UIViewString)],vst)
 		| otherwise
-			= (uiac (UIEditor {UIEditor|optional=optional}) (stdAttributes "choice" optional mask) [ui (UICheckboxGroup {UIChoiceOpts|taskId=taskId,editorId=editorId dp,value=evalue val,options=options val})],vst)
+			# choiceOpts = setChoiceOpts taskId (editorId dp) (evalue val) (options val)
+			= (uiac (UIEditor {UIEditor|optional=optional}) (stdAttributes "choice" optional mask) [choiceOpts (ui UICheckboxGroup)],vst)
 
 	vvalue (CheckMultiChoice options sel)	= setValue (JSONString (join "," ([hd (gx AsSingleLine (Just (fst (options !! i )))) \\ i <- sel])))
 	evalue (CheckMultiChoice _ sel)			= sel
-	options (CheckMultiChoice options _)	= [concat (gx AsSingleLine (Just v)) \\ (v,_) <- options]
+	options (CheckMultiChoice options _)	= [JSONString (concat (gx AsSingleLine (Just v))) \\ (v,_) <- options]
 
 	genDiff dp old om new nm vst
 		| options old === options new && evalue old === evalue new

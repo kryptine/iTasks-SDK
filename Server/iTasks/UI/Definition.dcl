@@ -24,7 +24,6 @@ from GenEq import generic gEq
 //Provide generic instances for all UI definitions
 derive class iTask UI, UINodeType, UIAction, UIEditor
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
-derive class iTask UIChoiceOpts
 derive class iTask UITreeNode
 
 //TODO:
@@ -97,12 +96,12 @@ derive class iTask UIChange, UIChildChange
 	| UIEditDocument                                                                // - Document (info + upload possibility)
 	| UIEditButton                                                                  // - Button that sends edit events on click
 	// Components for indicating choices:
-	| UIDropdown					!(UIChoiceOpts String)						    // - Dropdown (choice from a list of alternatives)
-	| UIGrid						!(UIChoiceOpts [String])                        // - Grid (selecting an item in a table)
-	| UITree						!(UIChoiceOpts UITreeNode)		                // - Tree (selecting a node in a tree structure)
-	| UIListChoice					!(UIChoiceOpts String)						    // - A mutually exclusive set of radio buttons 
-	| UIRadioGroup					!(UIChoiceOpts String)						    // - A mutually exclusive set of radio buttons 
-	| UICheckboxGroup				!(UIChoiceOpts String)						    // - A group of checkboxes that indicate a multiple selection
+	| UIDropdown                                                                    // - Dropdown (choice from a list of alternatives)
+	| UIGrid                                                                        // - Grid (selecting an item in a table)
+	| UITree                                                                        // - Tree (selecting a node in a tree structure)
+	| UIListChoice                                                                  // - A mutually exclusive set of radio buttons 
+	| UIRadioGroup                                                                  // - A mutually exclusive set of radio buttons 
+	| UICheckboxGroup                                                               // - A group of checkboxes that indicate a multiple selection
 	// Components for triggering actions:
 	| UIActionButton                                                                // - Action Button (clicks trigger action events)
 	// Misc auxiliary components:
@@ -166,13 +165,6 @@ derive class iTask UIChange, UIChildChange
 	, left		:: !Int
 	}	
 
-:: UIChoiceOpts a =
-	{ taskId		:: !String
-	, editorId		:: !String
-	, value			:: ![Int]
-	, options		:: ![a]
-	}
-		
 :: UITreeNode =
 	{ text		:: !String
     , iconCls   :: !Maybe String
@@ -189,58 +181,59 @@ uia  :: UINodeType UIAttributes -> UI
 uiac :: UINodeType UIAttributes [UI] -> UI
 
 //Modifier functions
-setSize         :: !UISize !UISize                   !UI -> UI
-setWidth		:: !UISize					         !UI -> UI
-setHeight		:: !UISize					         !UI -> UI
-setMinSize		:: !UIBound !UIBound	             !UI -> UI
-setMinWidth		:: !UIBound				             !UI -> UI
-setMinHeight	:: !UIBound                          !UI -> UI
-setMaxSize		:: !UIBound !UIBound	             !UI -> UI
-setMaxWidth		:: !UIBound				             !UI -> UI
-setMaxHeight	:: !UIBound                          !UI -> UI
-fill			:: 							         !UI -> UI
-fillHeight		:: 							         !UI -> UI
-fillWidth		:: 							         !UI -> UI
-fixedHeight		:: !Int 					         !UI -> UI
-fixedWidth		:: !Int 					         !UI -> UI
-wrapHeight		::							         !UI -> UI
-wrapWidth		:: 							         !UI -> UI
-setMargins		:: !Int !Int !Int !Int		         !UI -> UI
-setTopMargin	:: !Int 					         !UI -> UI
-setRightMargin	:: !Int 					         !UI -> UI
-setBottomMargin	:: !Int 					         !UI -> UI
-setLeftMargin	:: !Int 					         !UI -> UI
-setPadding 		:: !Int !Int !Int !Int               !UI -> UI
-setTopPadding   :: !Int                              !UI -> UI
-setRightPadding :: !Int                              !UI -> UI
-setBottomPadding:: !Int                              !UI -> UI
-setLeftPadding  :: !Int                              !UI -> UI
-setTitle 		:: !String 					         !UI -> UI
-setFramed		:: !Bool					         !UI -> UI
-setIconCls		:: !String					         !UI -> UI
-setBaseCls      :: !String                           !UI -> UI
-setTooltip      :: !String                           !UI -> UI
-setDirection    :: !UIDirection                      !UI -> UI
-setHalign       :: !UIHAlign                         !UI -> UI
-setValign		:: !UIVAlign				         !UI -> UI
-setHpos 		:: !UIHAlign                         !UI -> UI
-setVpos 		:: !UIVAlign                         !UI -> UI
-setWindowType   :: !UIWindowType                     !UI -> UI
-setFocusTaskId  :: !String                           !UI -> UI
-setCloseTaskId  :: !String                           !UI -> UI
-setActiveTab 	:: !Int 					         !UI -> UI
-setValue 		:: !JSONNode                         !UI -> UI
-setMinValue     :: !Int                              !UI -> UI
-setMaxValue     :: !Int                              !UI -> UI
-setText         :: !String                           !UI -> UI
-setEnabled      :: !Bool                             !UI -> UI
-setInstanceNo   :: !Int                              !UI -> UI
-setInstanceKey  :: !String                           !UI -> UI
-setEditOpts     :: !String !String !(Maybe JSONNode) !UI -> UI
-setActionOpts   :: !String !String                   !UI -> UI
-setColumns      :: ![String]                         !UI -> UI
-setDoubleClickAction :: !String !String              !UI -> UI
-
+setSize         :: !UISize !UISize                    !UI -> UI
+setWidth		:: !UISize					          !UI -> UI
+setHeight		:: !UISize					          !UI -> UI
+setMinSize		:: !UIBound !UIBound	              !UI -> UI
+setMinWidth		:: !UIBound				              !UI -> UI
+setMinHeight	:: !UIBound                           !UI -> UI
+setMaxSize		:: !UIBound !UIBound	              !UI -> UI
+setMaxWidth		:: !UIBound				              !UI -> UI
+setMaxHeight	:: !UIBound                           !UI -> UI
+fill			:: 							          !UI -> UI
+fillHeight		:: 							          !UI -> UI
+fillWidth		:: 							          !UI -> UI
+fixedHeight		:: !Int 					          !UI -> UI
+fixedWidth		:: !Int 					          !UI -> UI
+wrapHeight		::							          !UI -> UI
+wrapWidth		:: 							          !UI -> UI
+setMargins		:: !Int !Int !Int !Int		          !UI -> UI
+setTopMargin	:: !Int 					          !UI -> UI
+setRightMargin	:: !Int 					          !UI -> UI
+setBottomMargin	:: !Int 					          !UI -> UI
+setLeftMargin	:: !Int 					          !UI -> UI
+setPadding 		:: !Int !Int !Int !Int                !UI -> UI
+setTopPadding   :: !Int                               !UI -> UI
+setRightPadding :: !Int                               !UI -> UI
+setBottomPadding:: !Int                               !UI -> UI
+setLeftPadding  :: !Int                               !UI -> UI
+setTitle 		:: !String 					          !UI -> UI
+setFramed		:: !Bool					          !UI -> UI
+setIconCls		:: !String					          !UI -> UI
+setBaseCls      :: !String                            !UI -> UI
+setTooltip      :: !String                            !UI -> UI
+setDirection    :: !UIDirection                       !UI -> UI
+setHalign       :: !UIHAlign                          !UI -> UI
+setValign		:: !UIVAlign				          !UI -> UI
+setHpos 		:: !UIHAlign                          !UI -> UI
+setVpos 		:: !UIVAlign                          !UI -> UI
+setWindowType   :: !UIWindowType                      !UI -> UI
+setFocusTaskId  :: !String                            !UI -> UI
+setCloseTaskId  :: !String                            !UI -> UI
+setActiveTab 	:: !Int 					          !UI -> UI
+setValue 		:: !JSONNode                          !UI -> UI
+setMinValue     :: !Int                               !UI -> UI
+setMaxValue     :: !Int                               !UI -> UI
+setText         :: !String                            !UI -> UI
+setEnabled      :: !Bool                              !UI -> UI
+setInstanceNo   :: !Int                               !UI -> UI
+setInstanceKey  :: !String                            !UI -> UI
+setEditOpts     :: !String !String !(Maybe JSONNode)  !UI -> UI
+setActionOpts   :: !String !String                    !UI -> UI
+setChoiceOpts   :: !String !String ![Int] ![JSONNode] !UI -> UI
+setColumns      :: ![String]                          !UI -> UI
+setDoubleClickAction :: !String !String               !UI -> UI
+	
 //Util
 stringDisplay   :: !String  -> UI
 

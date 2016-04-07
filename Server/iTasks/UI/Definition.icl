@@ -20,7 +20,6 @@ import Text.HTML
 
 derive class iTask UI, UINodeType, UIAction, UIEditor
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
-derive class iTask UIChoiceOpts
 derive class iTask UITreeNode 
 
 //SHOULD BE IN Text.JSON
@@ -206,9 +205,9 @@ setInstanceKey :: !String !UI -> UI
 setInstanceKey instanceKey (UI type attr items) = UI type ('DM'.put "instanceKey" (JSONString instanceKey) attr) items
 
 setEditOpts :: !String !String !(Maybe JSONNode) !UI -> UI
-setEditOpts taskId editId mbValue (UI type attr items) 
+setEditOpts taskId editorId mbValue (UI type attr items) 
 	# attr = 'DM'.put "taskId" (JSONString taskId) attr
-	# attr = 'DM'.put "editId" (JSONString editId) attr
+	# attr = 'DM'.put "editorId" (JSONString editorId) attr
 	# attr = (maybe id (\value -> 'DM'.put "value" value) mbValue) attr
 	= UI type attr items
 
@@ -216,6 +215,14 @@ setActionOpts :: !String !String !UI -> UI
 setActionOpts taskId actionId (UI type attr items)
 	# attr = 'DM'.put "taskId" (JSONString taskId) attr
 	# attr = 'DM'.put "actionId" (JSONString actionId) attr
+	= UI type attr items
+
+setChoiceOpts :: !String !String ![Int] ![JSONNode] !UI -> UI
+setChoiceOpts taskId editorId value options (UI type attr items)
+	# attr = 'DM'.put "taskId" (JSONString taskId) attr
+	# attr = 'DM'.put "editorId" (JSONString editorId) attr
+	# attr = 'DM'.put "value" (JSONArray (map JSONInt value)) attr
+	# attr = 'DM'.put "options" (JSONArray options) attr
 	= UI type attr items
 
 setColumns :: ![String] !UI -> UI
@@ -299,9 +306,9 @@ where
 	encodeUI (UI UIEditDateTime attr _)              = component "itwc_edit_datetime" [encodeAttr attr]
 	encodeUI (UI UIEditDocument attr _)              = component "itwc_edit_document" [encodeAttr attr]
 	encodeUI (UI UIEditButton attr _)                = component "itwc_editbutton" [encodeAttr attr]
-	encodeUI (UI (UIDropdown copts) attr _)          = component "itwc_choice_dropdown" [encodeAttr attr, encodeUI copts]
-	encodeUI (UI (UIRadioGroup copts)	attr _)      = component "itwc_choice_radiogroup" [encodeAttr attr, encodeUI copts]
-	encodeUI (UI (UICheckboxGroup copts) attr _)     = component "itwc_choice_checkboxgroup" [encodeAttr attr, encodeUI copts]
+	encodeUI (UI UIDropdown attr _)                  = component "itwc_choice_dropdown" [encodeAttr attr]
+	encodeUI (UI UIRadioGroup attr _)                = component "itwc_choice_radiogroup" [encodeAttr attr]
+	encodeUI (UI UICheckboxGroup attr _)             = component "itwc_choice_checkboxgroup" [encodeAttr attr]
 
 	//DISPLAY	
 	encodeUI (UI UIViewString attr _)                = component "itwc_view_string" [encodeAttr attr]
@@ -312,9 +319,9 @@ where
 	encodeUI (UI UIViewProgress attr _)              = component "itwc_view_progress" [encodeAttr attr]
 
 	//SELECTION
-	encodeUI (UI (UIGrid copts) attr _)              = component "itwc_choice_grid" [encodeAttr attr, encodeUI copts]
-	encodeUI (UI (UITree copts) attr _)              = component "itwc_choice_tree" [encodeAttr attr, encodeUI copts]
-	encodeUI (UI (UIListChoice copts) attr _)        = component "itwc_choice_list" [encodeAttr attr, encodeUI copts]
+	encodeUI (UI UIGrid attr _)                      = component "itwc_choice_grid" [encodeAttr attr]
+	encodeUI (UI UITree attr _)                      = component "itwc_choice_tree" [encodeAttr attr]
+	encodeUI (UI UIListChoice attr _)                = component "itwc_choice_list" [encodeAttr attr]
 
 	//ACTION
 	encodeUI (UI UIActionButton attr _)              = component "itwc_actionbutton" [encodeAttr attr]
@@ -393,10 +400,6 @@ where
 	encodeUI FloatingWindow 	= JSONString "floating"
 	encodeUI ModalDialog 		= JSONString "modal"
 	encodeUI NotificationBubble = JSONString "bubble"
-
-instance encodeUI (UIChoiceOpts a) | JSONEncode{|*|} a 
-where
-	 encodeUI opts = toJSON opts
 
 component :: String [JSONNode] -> JSONNode
 component xtype opts = JSONObject [("xtype",JSONString xtype):optsfields]
