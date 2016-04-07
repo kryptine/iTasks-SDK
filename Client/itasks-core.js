@@ -24,23 +24,26 @@ itasks.Component = {
 
 	init: function() {
 		var me = this;
+		me.initSaplCustomization();
 		me.initComponent();
-		me.initSaplMethods();
 		me.initChildren();
 		me.renderComponent();
 
 		me.initialized = true;
 		return me;
 	},
-	initComponent: function() {}, //Abstract method: every component implements this differently
-	
-	initSaplMethods: function() { //Check if some of the component's methods are custom defined using sapl/js
-		var me = this;
-		if(me.script != null && me.script != "") {
-			me.script = me.evalJs(me.script);
-            //_dynamic_hijack();
+	initSaplCustomization: function() { //When necessary, apply customizatons for Check if some of the component's methods are custom defined using sapl/js
+		var me = this, fun, evalfun;
+		//Initialize linked sapl functions 
+		if(me.saplDeps != null && me.saplDeps != '') {
+			me.saplDeps = me.evalJs(me.saplDeps);
         }
+		//Decode and evaluate the sapl initialization function
+		if(me.saplInit !=null && me.saplInit!= '') {
+			Sapl.feval([me.evalJsVal(me.saplInit),[___wrapJS(me),"JSWorld"]]);
+		}
 	},
+	initComponent: function() {}, //Abstract method: every component implements this differently
 	initChildren: function() {
 		var me = this;
 		me.children.forEach(function(spec,i) {

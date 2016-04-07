@@ -27,8 +27,9 @@ function __iTasks_UI_JS_Interface_jsDocument() {
 
 //jsThis :: !*JSWorld -> (!JSVal a,!*JSWorld)
 function __iTasks_UI_JS_Interface_jsThis(world) {
+	var me = this;
 	world = Sapl.feval(world);
-	return ___Tuple2(___wrapJS(this), world);
+	return ___Tuple2(___wrapJS(me), world);
 }
 
 //jsEmptyObject :: !*JSWorld -> (!JSVal a, !*JSWorld)
@@ -272,26 +273,6 @@ function __iTasks_UI_JS_Interface_jsUnsafeArrCoerce(expr){
 
 
 
-
-
-// createTaskletEventHandler :: (HtmlEventHandlerFunc a e) !TaskId -> (JSVal b) 
-function __iTasks_API_Core_Client_Tasklet_createTaskletEventHandler(expr, taskId){
-	expr = Sapl.feval(expr);
-	taskId = Sapl.feval(taskId);
-	
-    // Creating a closure of 2. layer
-    var eventHandler = function(expr, taskId){
-		
-		var h = function(event){
-
-			return __iTasks__Framework_Client_Tasklet_handleJSEvent(expr, taskId, arguments);
-		};
-		
-		return h;
-    }
-	
-	return ___wrapJS(eventHandler(expr, taskId));
-}
 
 // createEditletEventHandler :: (EditletEventHandlerFunc a st) !ComponentId -> (JSVal (JSFunction b)) 
 function __iTasks_UI_Editor_createEditletEventHandler(expr, componentId){
