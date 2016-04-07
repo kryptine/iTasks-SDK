@@ -43,13 +43,13 @@ where
 createEditletEventHandler :: (EditletEventHandlerFunc d a) !ComponentId -> JSFun b
 createEditletEventHandler handler id = undef
 
-fromEditlet :: (Editlet a d cl) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONDecode{|*|} d
-fromEditlet editlet=:{Editlet| genUI, initClient, appDiffClt, genDiffSrv, appDiffSrv} = {Editor|genUI=genUI`,genDiff=genDiff`,appDiff=appDiff`}
+fromEditlet :: (Editlet a d cl) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONEncode{|*|} d & JSONDecode{|*|} d
+fromEditlet editlet=:{Editlet| genUI, saplInit, initClient, appDiffClt, genDiffSrv, appDiffSrv} = {Editor|genUI=genUI`,genDiff=genDiff`,appDiff=appDiff`}
 where
 	genUI` dp currVal mask vst=:{VSt|taskId,iworld=iworld=:{IWorld|world}}
 		# (uiDef, world)        = genUI htmlId currVal world
   		# iworld                = {iworld & world = world} 
-		= case editletLinker initDiff testFun (appDiffClt createEditletEventHandler) iworld of
+		= case editletLinker initDiff saplInit (appDiffClt createEditletEventHandler) iworld of
 		//= case editletLinker initDiff (initClient currVal createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld of
 			(Ok (jsScript, jsID, jsIC, jsAD),iworld)
 				# attr = editletAttr jsScript jsID jsIC jsAD
@@ -62,18 +62,14 @@ where
 		editletAttr jsScript jsID jsIC jsAD
 			= 'DM'.fromList [("taskId",JSONString taskId)
 							,("editorId",JSONString (editorId dp))
-							,("script",JSONString jsScript)
-							,("initClient",JSONString jsIC)
+							,("saplDeps",JSONString jsScript)
+							,("saplInit",JSONString jsIC)
 							,("initDiff",JSONString jsID)
 							,("appDiff",JSONString jsAD)
 							]
 
 		eui (UI type attr items) editletAttr = UI type (addAll editletAttr attr) items
 		addAll a1 a2 = foldl (\a (k,v) -> 'DM'.put k v a) a2 ('DM'.toList a1)
-	
-		testFun :: JSArg *JSWorld -> *JSWorld
-		testFun this w 
-			= jsTrace this w
 
 	genDiff` dp ov om nv nm vst=:{VSt|iworld} //TODO: -> Properly track version numbers
 		= case (genDiffSrv ov nv) of
@@ -82,7 +78,8 @@ where
 				# (res,iworld)  = diffLinker currentDiff Nothing iworld
 				= case res of
 					Ok (jsScript,jsCDiff,_)
-						= (ChangeUI [("setAttribute",[JSONString "diff", JSONArray [JSONInt 0,JSONString jsCDiff,JSONString jsScript]])] [],{VSt|vst & iworld=iworld})
+						= (ChangeUI [("setAttribute",[JSONString "diff", toJSON (fromJust currentDiff)])] [],{VSt|vst & iworld=iworld})
+						//= (ChangeUI [("setAttribute",[JSONString "diff", JSONArray [JSONInt 0,JSONString jsCDiff,JSONString jsScript]])] [],{VSt|vst & iworld=iworld})
 						//= (ChangeUI [("applyDiff",[JSONInt 0,JSONString jsCDiff,JSONString jsScript])] [],{VSt|vst & iworld=iworld})
 					Error e
 						//TODO Propagate error up

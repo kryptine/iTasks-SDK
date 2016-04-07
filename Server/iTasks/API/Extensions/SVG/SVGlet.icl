@@ -319,6 +319,7 @@ fromSVGLet {toImage,resolve} = fromEditlet (svgRenderer resolve toImage)
 svgRenderer :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) -> Editlet s (SVGDiff s) (SVGClSt s) | gEq{|*|} s & gDefault{|*|} s
 svgRenderer resolve state2Image 
   = { genUI      = genUI
+	, saplInit   = (\me w -> jsTrace "svgRenderer" w)
     , initClient = initClient resolve state2Image
     , appDiffClt = appClientDiff resolve state2Image
     , genDiffSrv = genServerDiff

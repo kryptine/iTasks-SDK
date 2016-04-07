@@ -125,7 +125,7 @@ findObject			:: !String !*JSWorld -> *(!JSVal a, !*JSWorld)
 //Load external JS by its URL. A continuation can be given,
 //which is called when script is actually loaded
 addJSFromUrl		:: !String !(Maybe (JSFun f)) !*JSWorld -> *JSWorld
-//Loaf external CSS stylesheet by its URL
+//Load external CSS stylesheet by its URL
 addCSSFromUrl       :: !String !*JSWorld -> *JSWorld
 
 jsTrace :: !a !*JSWorld -> *JSWorld

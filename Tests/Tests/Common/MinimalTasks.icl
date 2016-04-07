@@ -12,6 +12,7 @@ minimalEditlet = updateInformation "Minimal String editlet" [UpdateUsing id cons
 where
 	//Simple button
 	editlet = { genUI      = genUI
+			  , saplInit   = \m w -> w
 			  , initClient = initClient
 			  , appDiffClt = \_ cid n _ w -> (n,w)
 			  , genDiffSrv = \o n -> if (o == n) Nothing (Just n) 

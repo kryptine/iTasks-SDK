@@ -88,6 +88,8 @@ isTouched	:: !EditMask -> Bool
 :: Editlet sv d cl
   =
   { genUI      :: ComponentId sv *World -> *(UI, *World)
+  , saplInit   :: (JSObj ()) *JSWorld -> *JSWorld
+
   , initClient :: sv ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId *JSWorld -> *(cl, *JSWorld)
   , appDiffClt :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
 
@@ -95,5 +97,5 @@ isTouched	:: !EditMask -> Bool
   , appDiffSrv :: d  sv -> sv
   }
 
-fromEditlet :: (Editlet a d cl) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONDecode{|*|} d
+fromEditlet :: (Editlet a d cl) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONEncode{|*|} d & JSONDecode{|*|} d
 

@@ -59,6 +59,7 @@ googleMapEditlet :: GoogleMap -> Editlet GoogleMap [GoogleMapDiff] GoogleMapClie
 googleMapEditlet g 
     = { Editlet
       | genUI       = genUI
+      , saplInit   = (\me w -> jsTrace "googleMapEditlet" w)
       , initClient  = onInit
       , appDiffClt  = appDiffClt
       , genDiffSrv  = genDiff 

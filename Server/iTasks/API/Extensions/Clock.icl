@@ -21,6 +21,7 @@ analogClockEditlet :: Editlet AnalogClock [(Int,Int)] ()
 analogClockEditlet
     = {Editlet
       |genUI        = genUI
+      ,saplInit   = saplInit 
       ,initClient = \_ _ _ world -> ((), world)
       ,appDiffClt   = appDiffClt
       ,genDiffSrv   = genTimeDiff
@@ -29,6 +30,16 @@ analogClockEditlet
 where
 	genUI cid val world
 		= (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (svgClock cid)))])), world)
+
+	saplInit me world
+		//Register listener for ui diffs from the server
+		# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) world
+		# world = jsSetObjectAttr "onAttributeChange" jsOnAttributeChange me world
+		= jsTrace "clock" world
+
+	onAttributeChange me args world
+		# attr = args !! 0
+		= (jsNull,jsTrace attr world)
 
     svgClock cid = SvgTag [StyleAttr "flex: 1; align-self: stretch;"] [ViewBoxAttr "0" "0" "100" "100"]
                           (face ++
@@ -44,6 +55,7 @@ where
         = RectElt [WidthAttr (toString len +++"px"),HeightAttr "2px",IdAttr id,StyleAttr ("fill: "+++color)]
                   [XAttr ("50",PX),YAttr ("50",PX)]
     
+
     appDiffClt mkEventHandler cid [] () world = ((),world)
     appDiffClt mkEventHandler cid [(0,s):upd] () world = appDiffClt mkEventHandler cid upd () (updateHand (cid+++"-sec-hand", 6 * s) world)
     appDiffClt mkEventHandler cid [(1,m):upd] () world = appDiffClt mkEventHandler cid upd () (updateHand (cid+++"-min-hand", 6 * m) world)

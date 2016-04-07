@@ -231,7 +231,7 @@ where
             ["/utils.js","/itask.js"
 			,"/builtin.js","/dynamic.js"
 			,"/sapl-rt.js","/sapl-support.js"
-			,"/db.js", "/debug.js","/interface.js"
+			,"/db.js", "/debug.js","/itasks-js-interface.js"
 			]
 		itaskScripts = 
 			["/itasks-core.js"

@@ -125,6 +125,7 @@ leafletEditlet :: LeafletMap -> Editlet LeafletMap [LeafletDiff] (LeafletMap, Ma
 leafletEditlet map
   = { Editlet
     | genUI     =  genUI 
+    , saplInit   = (\me w -> jsTrace "leafletEditlet" w)
     , initClient = onInit
     , appDiffClt = appDiffClt
     , genDiffSrv = genDiff
