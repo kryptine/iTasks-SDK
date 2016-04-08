@@ -17,11 +17,11 @@ allTonicInstances :: RWShared TaskId [((ModuleName, FuncName), BlueprintInstance
 
 tonicInstances :: RWShared (TaskId, ModuleName, FuncName) (Maybe BlueprintInstance) BlueprintInstance
 
-tonicEnabledSteps :: RWShared () (Map TaskId (Map ExprId [UIAction])) (Map TaskId (Map ExprId [UIAction]))
+tonicEnabledSteps :: RWShared () (Map TaskId (Map ExprId [UI])) (Map TaskId (Map ExprId [UI]))
 
-tonicActionsForTaskID :: RWShared TaskId (Map ExprId [UIAction]) (Map ExprId [UIAction])
+tonicActionsForTaskID :: RWShared TaskId (Map ExprId [UI]) (Map ExprId [UI])
 
-tonicActionsForTaskIDAndExpr :: RWShared (TaskId, ExprId) [UIAction] [UIAction]
+tonicActionsForTaskIDAndExpr :: RWShared (TaskId, ExprId) [UI] [UI]
 
 staticDisplaySettings :: RWShared () StaticDisplaySettings StaticDisplaySettings
 

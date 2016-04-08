@@ -10,13 +10,13 @@ from iTasks.API.Core.Types import TITLE_ATTRIBUTE
 from StdFunc import o
 
 instance toPrompt ()
-where toPrompt _ = ui (UIEmpty)
+where toPrompt _ = ui UIEmpty
 
 instance toPrompt String
-where toPrompt hint = uic (UIEditor {UIEditor|optional=False}) [createPrompt hint]
+where toPrompt hint = createPrompt hint
 	
 instance toPrompt (!String,!String)
-where toPrompt (title,hint) = uiac (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(TITLE_ATTRIBUTE,JSONString title)]) [createPrompt hint]
+where toPrompt (title,hint) = setTitle title (createPrompt hint)
 
 createPrompt :: String -> UI
 createPrompt hint = style (uic UIContainer [stringDisplay hint])

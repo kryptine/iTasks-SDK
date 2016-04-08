@@ -86,7 +86,7 @@ ArialItalic10px :== { fontfamily  = "Arial"
   , inh_in_let             :: !Bool
   , inh_outputs            :: !Map ExprId TStability
   , inh_selDetail          :: !Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int))
-  , inh_stepActions        :: !Map ExprId [UIAction]
+  , inh_stepActions        :: !Map ExprId [UI]
   , inh_prev_statstab      :: !(!TStatus, !TStability)
   , inh_augments           :: ![Image ModelTy]
   }
@@ -138,7 +138,7 @@ mkStaticImage rs bpident compact {ActionState | state = tis} tsrc
 
 
 mkInstanceImage :: ![TaskAppRenderer] !BlueprintInstance
-                   !(Map ExprId TStability) !(Map ExprId [UIAction])
+                   !(Map ExprId TStability) !(Map ExprId [UI])
                    !(Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int)))
                    !Bool !ModelTy *TagSource
                 -> Image ModelTy
@@ -918,11 +918,15 @@ tSafeExpr2List (TFApp _ "_Cons" [hd : tl : _] _) = [hd : tUnsafeExpr2List tl]
 tSafeExpr2List (TFApp _ "_Nil"  _             _) = []
 tSafeExpr2List e                                 = [e]
 
-tStepCont :: ![UIAction] !InhMkImg !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
+tStepCont :: ![UI] !InhMkImg !TExpr !*TagSource -> *(!SynMkImg, !*TagSource)
 tStepCont actions inh (TFApp _ "OnAction" [TFApp _ "Action" [actionLit : _] _ : cont : _ ] _) tsrc
   = mkStepCont inh (Just (ppTExpr actionLit, strictFoldr f False actions)) cont tsrc
   where
-  f {UIAction | action = Action an _, enabled} acc = (replaceSubString "\"" "" an == replaceSubString "\"" "" (ppTExpr actionLit) && enabled) || acc
+  f ui acc = (replaceSubString "\"" "" (an ui) == replaceSubString "\"" "" (ppTExpr actionLit) && enabled ui) || acc
+  where
+	an (UI _ attr _) = maybe "" (\(JSONString s) -> s) ('DM'.get "actionId" attr)
+	enabled (UI _ attr _) = maybe False (\(JSONBool b) -> b) ('DM'.get "enabled" attr)
+
   f _ acc = acc
 tStepCont _ inh (TFApp _ "OnValue"  [cont : _ ] _) tsrc
   = mkStepCont inh Nothing cont tsrc

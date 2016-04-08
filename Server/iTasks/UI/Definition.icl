@@ -18,7 +18,7 @@ from GenEq import generic gEq
 
 import Text.HTML
 
-derive class iTask UI, UINodeType, UIAction, UIEditor
+derive class iTask UI, UINodeType
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
 derive class iTask UITreeNode 
 
@@ -48,6 +48,9 @@ uia type attr = UI type attr []
 
 uiac :: UINodeType UIAttributes [UI] -> UI
 uiac type attr items = UI type attr items
+
+setOptional :: !Bool !UI -> UI
+setOptional optional (UI type attr items) = UI type ('DM'.put "optional" (JSONBool optional) attr) items
 
 setSize :: !UISize !UISize !UI -> UI
 setSize width heigth ui = (setWidth width o setHeight heigth) ui
@@ -211,12 +214,6 @@ setEditOpts taskId editorId mbValue (UI type attr items)
 	# attr = (maybe id (\value -> 'DM'.put "value" value) mbValue) attr
 	= UI type attr items
 
-setActionOpts :: !String !String !UI -> UI
-setActionOpts taskId actionId (UI type attr items)
-	# attr = 'DM'.put "taskId" (JSONString taskId) attr
-	# attr = 'DM'.put "actionId" (JSONString actionId) attr
-	= UI type attr items
-
 setChoiceOpts :: !String !String ![Int] ![JSONNode] !UI -> UI
 setChoiceOpts taskId editorId value options (UI type attr items)
 	# attr = 'DM'.put "taskId" (JSONString taskId) attr
@@ -234,6 +231,19 @@ setDoubleClickAction :: !String !String !UI -> UI
 setDoubleClickAction taskId actionId (UI type attr items) 
 	# attr = 'DM'.put "doubleClickAction" (JSONArray [JSONString taskId,JSONString actionId]) attr
 	= UI type attr items
+
+setActionId :: !String !UI -> UI
+setActionId actionId (UI type attr items)
+	# attr = 'DM'.put "actionId" (JSONString actionId) attr
+	= UI type attr items
+
+setTaskId :: !String !UI -> UI
+setTaskId taskId (UI type attr items)
+	# attr = 'DM'.put "taskId" (JSONString taskId) attr
+	= UI type attr items
+
+isOptional :: !UI -> Bool
+isOptional (UI _ attr _) = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attr)
 
 stringDisplay :: !String -> UI
 stringDisplay value = setValue (JSONString (escapeStr value)) (ui UIViewString)
@@ -272,13 +282,11 @@ instance encodeUI UI
 where
 	//RAW EDITORS
 	encodeUI (UI UIEmpty attr _)                           = component "itwc_raw_empty" [encodeAttr attr]
-	encodeUI (UI (UIEditor _) attr [control])              = encodeUI control
-	encodeUI (UI (UIEditor opts) attr defs)     		   = component "itwc_raw_compoundeditor" [encodeAttr attr,encodeUI opts, JSONObject [("children",JSONArray (map encodeUI defs))]]
 	encodeUI (UI UICompoundContent attr defs)              = component "itwc_raw_compoundcontent" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
 	encodeUI (UI UIParallel attr defs)                     = component "itwc_raw_parallel" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
 	encodeUI (UI UIInteract attr defs)                     = component "itwc_raw_interact" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
 	encodeUI (UI UIStep attr defs)                         = component "itwc_raw_step" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
-	encodeUI (UI (UIAction action) attr _)                 = component "itwc_raw_action" [encodeAttr attr,encodeUI action]
+	encodeUI (UI UIAction attr _)                          = component "itwc_raw_action" [encodeAttr attr]
 	encodeUI (UI UIForm attr defs)                         = component "itwc_raw_form" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
 	encodeUI (UI UIFormItem attr defs)                     = component "itwc_raw_form_item" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
 
@@ -343,24 +351,6 @@ where
 		right  = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "right" sides)
 		bottom = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "bottom" sides)
 		left   = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "left" sides)
-
-instance encodeUI UIEditor
-where
-	encodeUI {UIEditor|optional}
-		= JSONObject [("optional",encodeUI optional)
-					 ]
-
-instance encodeUI UIAction
-where
-	encodeUI {UIAction|taskId,action,enabled}
-		= JSONObject [("taskId",encodeUI taskId)
-					 ,("action",encodeUI action)
-					 ,("enabled",encodeUI enabled)
-					 ]
-
-instance encodeUI Action
-where
-	encodeUI (Action name _) = JSONString name
 
 instance encodeUI UISideSizes 
 where

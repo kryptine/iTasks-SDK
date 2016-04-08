@@ -33,7 +33,7 @@ finalizeInteract = conditionalLayout isInteract layout
 where
 	layout = sequenceLayouts 
 		[layoutSubAt [1] editorToForm 
-    	,layoutSubAt [1] finalizeForm 
+    	//,layoutSubAt [1] finalizeForm 
 		,removeEmptyPrompt
 		,changeNodeType (\(UI UIInteract attr items) -> UI UIPanel attr items)
 		] 
@@ -101,7 +101,7 @@ where
 isInteract = \n -> n =:(UI UIInteract _ _)
 isStep = \n -> n =:(UI UIStep _ _)
 isParallel = \n -> n =:(UI UIParallel _ _)
-isAction = \n -> n =:(UI (UIAction _) _ _)
+isAction = \n -> n =:(UI UIAction _ _)
 isEmpty = \n -> n =:(UI UIEmpty _ _)
 
 isIntermediate (UI UIInteract _ _) = True
@@ -116,13 +116,12 @@ where
 	//Flatten the editor to a list of form items
 	layout (ReplaceUI editor,s) = (ReplaceUI (uic UIForm (items editor)),s)
 	where	
-		items (UI (UIEditor {UIEditor|optional}) attr [control])
-			# label = fromMaybe (ui UIEmpty) (labelControl optional attr)
+		items control=:(UI _ attr _)
+			# label = fromMaybe (ui UIEmpty) (labelControl attr)
 			# info = fromMaybe (ui UIEmpty) (infoControl attr)
 			= [uic UIFormItem [label,control,info]]
 		items (UI UIEmpty _ _) //Placeholders for constructor changes
 			= [uic UIFormItem [ui UIEmpty,ui UIEmpty, ui UIEmpty ]] 
-		items (UI (UIEditor _) _ parts) = flatten (map items parts)
 		items _ = []
 
 	//Remap the changes to the flattened list of form items
@@ -159,10 +158,9 @@ where
 actionToButton :: Layout
 actionToButton = layout 
 where
-	layout (ReplaceUI (UI (UIAction {UIAction|taskId,action=action=:(Action actionId _),enabled}) _ _ ),_)
-		# buttonOpts = setText (actionName action) o setEnabled enabled
-		# buttonOpts = maybe buttonOpts (\iconCls -> setIconCls iconCls o buttonOpts) (actionIcon action)
-		= (ReplaceUI (buttonOpts (setActionOpts (toString taskId) actionId (ui UIActionButton))),JSONNull)
+	layout (ReplaceUI (UI UIAction attr _),_)
+		# buttonOpts = maybe id (\(JSONString a) -> setText a) ('DM'.get "actionId" attr)
+		= (ReplaceUI (buttonOpts (uia UIActionButton attr)),JSONNull)
 	
 	layout (ChangeUI local [],s) = (ChangeUI (map remap local) [],s)
 	layout (change,s) = (change,s)
@@ -178,8 +176,9 @@ mapLst f [x:xs] = [f False x: mapLst f xs]
 buttonBar :: UI
 buttonBar = (wrapHeight o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight o setBaseCls "buttonbar") (uic UIPanel [])
 
-labelControl :: Bool UIAttributes -> Maybe UI
-labelControl optional attributes 
+labelControl :: UIAttributes -> Maybe UI
+labelControl attributes 
+	# optional = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attributes)
 	= fmap (\(JSONString l) -> setWidth (ExactSize LABEL_WIDTH) (stringDisplay (formatLabel optional l))) ('DM'.get LABEL_ATTRIBUTE attributes)
 
 infoControl :: UIAttributes -> Maybe UI

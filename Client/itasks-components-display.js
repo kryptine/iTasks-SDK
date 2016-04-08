@@ -4,6 +4,11 @@ itasks.itwc_view_string = {
 	},
 	setValue: function(html) {
 		this.domEl.innerHTML = html;	
+	},
+	onAttributeChange:function(name,value) {
+		switch(name) {
+			case 'value': this.domEl.innerHTML = value; break;
+		}
 	}
 };
 itasks.itwc_view_html = {
@@ -12,6 +17,11 @@ itasks.itwc_view_html = {
 	},
 	setValue: function(html) {
 		this.domEl.innerHTML = html;	
+	},
+	onAttributeChange:function(name,value) {
+		switch(name) {
+			case 'value': this.domEl.innerHTML = value; break;
+		}
 	}
 };
 itasks.itwc_view_document = {

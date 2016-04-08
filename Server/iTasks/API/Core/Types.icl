@@ -16,7 +16,7 @@ import iTasks._Framework.IWorld
 
 import System.Time, System.File, System.FilePath
 import iTasks._Framework.SDS
-from iTasks.UI.Definition import :: UI(..), :: UIDirection(..), :: UIAction, stringDisplay
+from iTasks.UI.Definition import :: UI(..), :: UIDirection(..), stringDisplay
 from iTasks.API.Core.Tasks import treturn
 from iTasks.API.Common.TaskCombinators import tbind, @
 
@@ -120,12 +120,10 @@ where
 	typeDesc = "uniform resource locator (URL)"
 	genUI dp val=:(URL url) mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
-			= (uic (UIEditor {UIEditor|optional=optional})
-				[uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (ATag [HrefAttr url] [Text url])))])], vst)
+			= (setOptional optional (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (ATag [HrefAttr url] [Text url])))])), vst)
 		| otherwise
 			# value = checkMaskValue mask url
-			= (uiac (UIEditor {UIEditor|optional=optional}) (stdAttributes typeDesc optional mask)
-				[setEditOpts taskId (editorId dp) value (ui UIEditString)],vst)
+			= ((setOptional optional o setEditOpts taskId (editorId dp) value) (uia UIEditString (stdAttributes typeDesc optional mask)),vst)
 	genDiff dp (URL old) om (URL new) nm vst=:{VSt|optional}
 		= (if (old === new) NoChange (ChangeUI [("setValue",[toJSON new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
@@ -163,15 +161,12 @@ where
 		| disabled
 			# val = checkMask mask val
 			# attr = maybe 'DM'.newMap (\note -> 'DM'.fromList [("value",JSONString (toString (noteToHtml note)))]) val
-			= (uic (UIEditor {UIEditor|optional=optional})
-				[setMargins 5 5 5 5 (uia UIViewHtml attr)],vst)
+			= ((setOptional optional o setMargins 5 5 5 5) (uia UIViewHtml attr),vst)
 		| otherwise	
 			# value = checkMaskValue mask ((\(Note v)  -> v) val)
-			= (uiac (UIEditor {UIEditor|optional=optional}) (stdAttributes typeDesc optional mask)
-				[style (setEditOpts taskId (editorId dp) value (ui UIEditNote))],vst)
+			= ((style o setEditOpts taskId (editorId dp) value o setOptional optional) (uia UIEditNote (stdAttributes typeDesc optional mask)),vst)
 	where	
 		style = setHeight FlexSize o setMinHeight WrapBound
-
 	
 	// THIS IS A HACK!
 	// The encoding of a Text constructor should escape newlines and convert them to <br> tags. Unfortunately it doesn't
@@ -235,12 +230,11 @@ where
 		| disabled	
 			# val = checkMask mask val
 			# setVal = maybe id (\(EUR v) -> setValue (JSONString (toString v))) val
-			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE (JSONString "&euro;") 'DM'.newMap)
-				[setVal (ui UIViewString)],vst)
+			= (setVal (uia UIViewString ('DM'.put PREFIX_ATTRIBUTE (JSONString "&euro;") 'DM'.newMap)),vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(EUR v) -> toReal v / 100.0) val)
-			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE (JSONString "&euro;") (stdAttributes typeDesc optional mask))
-				[setEditOpts taskId (editorId dp) value (ui UIEditDecimal)],vst)
+			# attr = ('DM'.put PREFIX_ATTRIBUTE (JSONString "&euro;") (stdAttributes typeDesc optional mask))
+			= (setEditOpts taskId (editorId dp) value (uia UIEditDecimal attr),vst)
 	genDiff dp (EUR old) om (EUR new) nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval]):stdAttributeChanges typeDesc optional om nm] []),vst)
@@ -288,12 +282,11 @@ where
 		| disabled	
 			# val = checkMask mask val
 			# setVal = maybe id (\v -> setValue (JSONString (toString v))) val
-			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE (JSONString "$") 'DM'.newMap)
-				[setVal (ui UIViewString)] ,vst)
+			= (setVal (uia UIViewString ('DM'.put PREFIX_ATTRIBUTE (JSONString "$") 'DM'.newMap)) ,vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(USD v) -> toReal v / 100.0) val)
-			= (uiac (UIEditor {UIEditor|optional=False}) ('DM'.put PREFIX_ATTRIBUTE (JSONString "$") (stdAttributes typeDesc optional mask))
-				[setEditOpts taskId (editorId dp) value (ui UIEditDecimal)],vst)
+			# attr =('DM'.put PREFIX_ATTRIBUTE (JSONString "$") (stdAttributes typeDesc optional mask))
+			= (setEditOpts taskId (editorId dp) value (uia UIEditDecimal attr),vst)
 
 	genDiff dp (USD old) om (USD new) nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
@@ -355,11 +348,11 @@ where
 		| disabled
 			# val = checkMask mask val
 			# setVal = maybe id (\v -> setValue (JSONString (toString v))) val
-			= (uic (UIEditor {UIEditor|optional=False}) [setVal (ui UIViewString)], vst)
+			= (setVal (ui UIViewString), vst)
 		| otherwise
 			# value	= checkMaskValue mask val
 			# editOpts = setEditOpts taskId (editorId dp) value
-			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask) [editOpts (ui UIEditDate)], vst)
+			= (editOpts (uia UIEditDate (stdAttributes typeDesc optional mask)), vst)
 
 	genDiff dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
@@ -446,11 +439,11 @@ where
 		| disabled
 			# val = checkMask mask val
 			# setVal = maybe id (\v -> setValue (JSONString (toString v))) val
-			= (uic (UIEditor {UIEditor|optional=False}) [setVal (ui UIViewString)],vst)
+			= (setVal (ui UIViewString),vst)
 		| otherwise
 			# value = checkMaskValue mask val
 			# editOpts = setEditOpts taskId (editorId dp) value
-			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask) [editOpts (ui UIEditTime)], vst)
+			= (editOpts (uia UIEditTime (stdAttributes typeDesc optional mask)), vst)
 
 	genDiff dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
@@ -536,11 +529,11 @@ where
 		| disabled
 			# val = checkMask mask val
 			# setVal = maybe id (\v -> setValue (JSONString (toString v))) val
-			= (uic (UIEditor {UIEditor|optional=False}) [setVal (ui UIViewString)], vst)
+			= (setVal (ui UIViewString), vst)
 		| otherwise
 			# value = checkMaskValue mask val
 			# editOpts = setEditOpts taskId (editorId dp) value
-			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask) [editOpts (ui UIEditDateTime)], vst)
+			= (editOpts (uia UIEditDateTime (stdAttributes typeDesc optional mask)), vst)
 	genDiff dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (toJSON new)
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval]):stdAttributeChanges typeDesc optional om nm] []),vst)
@@ -607,12 +600,11 @@ where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
 			# value = checkMask mask val
-			= (uic (UIEditor {UIEditor|optional=False}) [(maybe id (\v -> setValue (toJSON v)) value) (ui UIViewDocument)], vst)
+			= ((maybe id (\v -> setValue (toJSON v)) value) (ui UIViewDocument), vst)
 		| otherwise
 			# value = checkMaskValue mask val
 			# editOpts = setEditOpts taskId (editorId dp) value
-			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask)
-				[editOpts (ui UIEditDocument)],vst)
+			= (editOpts (uia UIEditDocument (stdAttributes typeDesc optional mask)),vst)
 	genDiff dp old om new nm vst=:{VSt|optional}
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
@@ -686,11 +678,11 @@ where
 			# val = checkMask mask val							
 			# slider = sliderOpts (ui UIViewSlider)
 			# slider = maybe slider (\v -> setValue (JSONInt (curVal v)) slider) val
-			= (uic (UIEditor {UIEditor|optional=optional}) [slider],vst)
+			= (setOptional optional slider,vst)
 		| otherwise
 			# value = checkMaskValue mask (curVal val)
 			# editOpts = setEditOpts taskId (editorId dp) value 
-			= (uic (UIEditor {UIEditor|optional=optional}) [(sliderOpts o editOpts) (ui UIEditSlider)], vst)
+			= ((setOptional optional o sliderOpts o editOpts) (ui UIEditSlider), vst)
 	where
 		curVal {Scale|cur} = cur
 	
@@ -710,7 +702,7 @@ gText{|Progress|}	_ val  = [maybe "" (\{Progress|description} -> description) va
 gEditor{|Progress|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId}
-		= (uic (UIEditor {UIEditor|optional=False}) [(setText (text val) o (setValue (toJSON (value val)))) (ui UIViewProgress)], vst)
+		= ((setText (text val) o (setValue (toJSON (value val)))) (ui UIViewProgress), vst)
 	where
 		text {Progress|description}	= description
 		
@@ -747,7 +739,7 @@ gEditor{|HtmlInclude|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp (HtmlInclude path) mask vst
 		# attr = 'DM'.fromList [("value",JSONString (toString (IframeTag [SrcAttr path] [])))]
-		= (uic (UIEditor {UIEditor|optional=False}) [uia UIViewHtml attr],vst)
+		= (uia UIViewHtml attr,vst)
 
 	genDiff dp (HtmlInclude old) om (HtmlInclude new) nm vst
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI new])] []),vst)
@@ -769,7 +761,7 @@ where
 		# iconCls = val.FormButton.icon
 		# buttonOpts = setText text o setIconCls iconCls o setEnabled True
 		# editOpts = setEditOpts taskId (editorId dp) (Just (JSONString "pressed"))
-		= (uic (UIEditor {UIEditor|optional=False}) [(editOpts o buttonOpts)(ui UIEditButton)], vst)
+		= ((editOpts o buttonOpts)(ui UIEditButton), vst)
 
 	genDiff dp {FormButton|state=old} om {FormButton|state=new} nm vst
 		= (if (old === new) NoChange (ChangeUI [("setEditorValue",[toJSON new])] []),vst)
@@ -805,8 +797,7 @@ gText{|Table|}	_ _	= ["<Table>"]
 gEditor{|Table|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
-		= (uic (UIEditor {UIEditor|optional=False}) [(setChoiceOpts taskId (editorId dp) (value val) (options val) o setColumns (columns val)) (ui UIGrid) 
-        	] ,vst)
+		= ((setChoiceOpts taskId (editorId dp) (value val) (options val) o setColumns (columns val)) (ui UIGrid),vst)
 	where
 		value (Table _ _ mbSel)	= maybe [] (\s->[s]) mbSel
 		columns (Table headers _ _)	= headers
@@ -864,10 +855,10 @@ gEditor{|ComboChoice|} fx gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
-			= (uic (UIEditor {UIEditor|optional=False}) [(vvalue val) (ui UIViewString)], vst)
+			= ((vvalue val) (ui UIViewString), vst)
 		| otherwise
 			# choiceOpts = setChoiceOpts taskId (editorId dp) (evalue val) (options val)
-			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes "choice" optional mask) [choiceOpts (ui UIDropdown)], vst)
+			= (choiceOpts (uia UIDropdown (stdAttributes "choice" optional mask)), vst)
 
 	vvalue (ComboChoice options (Just sel))	= setValue (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
 	vvalue _								= id 
@@ -901,10 +892,10 @@ gEditor{|RadioChoice|} _ gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
-			= (uic (UIEditor {UIEditor|optional=optional}) [(vvalue val) (ui UIViewString)],vst)
+			= ((setOptional optional o vvalue val) (ui UIViewString),vst)
 		| otherwise
 			# choiceOpts = setChoiceOpts taskId (editorId dp) (evalue val) (options val)
-			= (uiac (UIEditor {UIEditor|optional=optional}) (stdAttributes "choice" optional mask) [choiceOpts (ui UIRadioGroup)],vst)
+			= ((setOptional optional o choiceOpts) (uia UIRadioGroup (stdAttributes "choice" optional mask)),vst)
 
 	vvalue (RadioChoice options (Just sel))	= setValue (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
 	vvalue _								= id
@@ -937,10 +928,10 @@ gEditor{|ListChoice|} _ gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=g
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
 		| disabled
-			= (uic (UIEditor {UIEditor|optional=False}) [(vvalue val) (ui UIViewString)], vst)
+			= ((vvalue val) (ui UIViewString), vst)
 		| otherwise
 			# choiceOpts = setChoiceOpts taskId (editorId dp) (evalue val) (options val)
-			= (uic (UIEditor {UIEditor|optional=False}) [choiceOpts (ui UIListChoice)],vst)
+			= (choiceOpts (ui UIListChoice),vst)
 
 	vvalue (ListChoice options (Just sel))	= setValue (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
 	vvalue _								= id
@@ -974,7 +965,7 @@ gEditor{|TreeChoice|} _ gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=g
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
 		# viz		= setChoiceOpts taskId (editorId dp) (value val) (options gx val mask) (ui UITree)
-		= (uic (UIEditor {UIEditor|optional=False}) [viz],vst)
+		= (viz,vst)
 
 	value  (TreeChoice _ mbSel) 	= maybe [] (\s->[s]) mbSel
 	
@@ -1024,8 +1015,7 @@ gText{|GridChoice|} fv _ _ = [""]
 gEditor{|GridChoice|} _ gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
-		= (uic (UIEditor {UIEditor|optional=False}) [(setChoiceOpts taskId (editorId dp) (value val) (options val) o setColumns columns) (ui UIGrid)
-			],vst)
+		= ((setChoiceOpts taskId (editorId dp) (value val) (options val) o setColumns columns) (ui UIGrid),vst)
 
 	value (GridChoice options mbSel)	= maybe [] (\s->[s]) mbSel
 	options (GridChoice options _)		= [toJSON (gx AsRow (Just opt)) \\ opt <- options]
@@ -1136,10 +1126,10 @@ gEditor{|CheckMultiChoice|} _ gx _ _ _ _ _ _ _ _ = {Editor|genUI=genUI,appDiff=a
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
-			= (uic (UIEditor {UIEditor|optional=optional}) [(vvalue val) (ui UIViewString)],vst)
+			= ((setOptional optional o vvalue val) (ui UIViewString),vst)
 		| otherwise
 			# choiceOpts = setChoiceOpts taskId (editorId dp) (evalue val) (options val)
-			= (uiac (UIEditor {UIEditor|optional=optional}) (stdAttributes "choice" optional mask) [choiceOpts (ui UICheckboxGroup)],vst)
+			= ((setOptional optional o choiceOpts) (uia UICheckboxGroup (stdAttributes "choice" optional mask)),vst)
 
 	vvalue (CheckMultiChoice options sel)	= setValue (JSONString (join "," ([hd (gx AsSingleLine (Just (fst (options !! i )))) \\ i <- sel])))
 	evalue (CheckMultiChoice _ sel)			= sel
@@ -1403,7 +1393,7 @@ gText{|Row|} gVizx mode Nothing = gVizx mode Nothing
 gEditor{|Row|} ex _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff} 
 where
 	genUI dp (Row val) mask vst
- 		= appFst (applyToControls (setDirection Horizontal)) (ex.Editor.genUI dp val mask vst)
+ 		= appFst (setDirection Horizontal) (ex.Editor.genUI dp val mask vst)
 	genDiff dp (Row old) om (Row new) nm vst
 		= ex.Editor.genDiff dp old om new nm vst
 	appDiff dp e val mask ust = wrapperUpdate ex.Editor.appDiff (\(Row x) -> x) Row dp e val mask ust
@@ -1416,17 +1406,13 @@ gText{|Col|} gVizx mode Nothing = gVizx mode Nothing
 gEditor{|Col|} ex _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
 	genUI dp (Col val) mask vst
- 		= appFst (applyToControls (setDirection Vertical)) (ex.Editor.genUI dp val mask vst)
+ 		= appFst (setDirection Vertical) (ex.Editor.genUI dp val mask vst)
 	genDiff dp (Col old) om (Col new) nm vst
 		= ex.Editor.genDiff dp old om new nm vst
 	appDiff dp e val mask ust = wrapperUpdate ex.Editor.appDiff (\(Col x) -> x) Col dp e val mask ust
 	
 gVerify{|Col|} gVerx options (Col x,mask) = gVerx options (x,mask)
 	
-//Utility for gEditor
-applyToControls f (UI (UIEditor edit) attr control) = UI (UIEditor edit) attr (map f control)
-applyToControls f def = def
-
 wrapperUpdate fx get set target upd val mask ust
 	# (w,mask,ust) = fx target upd (get val) mask ust
 	= (set w,mask,ust)
@@ -1549,29 +1535,30 @@ where
 	
 instance toPrompt (!Icon,!String,!String)
 where
-	toPrompt (icon,title,hint) = uiac (UIEditor {UIEditor|optional=False})
-									('DM'.fromList [(ICON_ATTRIBUTE,JSONString (toString icon)),(TITLE_ATTRIBUTE,JSONString title)])
-									[stringDisplay hint]
-
+	toPrompt (icon,title,hint) 
+		# (UI type attr items) = stringDisplay hint
+		# attr = 'DM'.put ICON_ATTRIBUTE (JSONString (toString icon)) attr
+		# attr = 'DM'.put TITLE_ATTRIBUTE (JSONString title) attr
+		= UI type attr items
 instance toPrompt Title
 where
-	toPrompt (Title title) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(TITLE_ATTRIBUTE,JSONString title)])
+	toPrompt (Title title) = uia UIEmpty ('DM'.fromList [(TITLE_ATTRIBUTE,JSONString title)])
 	
 instance toPrompt Label
 where
-	toPrompt (Label label) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)])
+	toPrompt (Label label) = uia UIEmpty ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)])
 
 instance toPrompt Hint
 where
-	toPrompt (Hint hint) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(HINT_ATTRIBUTE,JSONString hint)])
+	toPrompt (Hint hint) = uia UIEmpty ('DM'.fromList [(HINT_ATTRIBUTE,JSONString hint)])
 	
 instance toPrompt Icon
 where
-	toPrompt icon = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(ICON_ATTRIBUTE,JSONString (toString icon))])
+	toPrompt icon = uia UIEmpty ('DM'.fromList [(ICON_ATTRIBUTE,JSONString (toString icon))])
 
 instance toPrompt Attribute
 where
-	toPrompt (Attribute k v) = uia (UIEditor {UIEditor|optional=False}) ('DM'.fromList [(k,JSONString v)])
+	toPrompt (Attribute k v) = uia UIEmpty ('DM'.fromList [(k,JSONString v)])
 	
 instance toPrompt Att
 where
@@ -1592,7 +1579,7 @@ derive gVerify			Icon
 
 gEditor{|Icon|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI _ (Icon icon) mask vst = (uic (UIEditor {UIEditor|optional=False}) [setIconCls ("icon-"+++icon) (ui UIIcon)], vst)
+	genUI _ (Icon icon) mask vst = (setIconCls ("icon-"+++icon) (ui UIIcon), vst)
 	genDiff _ (Icon old) om (Icon new) nm vst
 		= (if (old === new) NoChange (ChangeUI [("setIconCls",[encodeUI ("icon-"+++new)])] []),vst)
 

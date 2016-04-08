@@ -4,12 +4,6 @@ itasks.itwc_raw_empty = {
 		this.domEl.innerHTML = '(empty)';
 	}
 };
-itasks.itwc_raw_editor = {
-	cssCls: 'raw-editor'
-};
-itasks.itwc_raw_compoundeditor = {
-	cssCls: 'raw-compound-editor'
-};
 itasks.itwc_raw_compoundcontent = {
 	cssCls: 'raw-compound-content'
 };
@@ -30,11 +24,11 @@ itasks.itwc_raw_action = {
 	initDOMEl: function() {
 		var me = this, el = me.domEl;
 
-		el.innerHTML = me.action;
+		el.innerHTML = me.actionId;
 		el.href = '#';
 		el.classList.add(this.cssPrefix + (me.enabled ? 'raw-action-enabled' : 'raw-action-disabled'));
 		el.addEventListener('click',function(e) {
-			me.doActionEvent(me.taskId,me.action);
+			me.doActionEvent(me.taskId,me.actionId);
 			e.preventDefault();
 		});
     },

@@ -128,7 +128,7 @@ viewStaticTask allbps rs navstack bpref tm tt depth compact
 
 showBlueprintInstance :: ![TaskAppRenderer] !BlueprintInstance
                          !(Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int)))
-                         !(Map ExprId [UIAction]) !Bool !Scale
+                         !(Map ExprId [UI]) !Bool !Scale
                       -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showBlueprintInstance rs bpi selDetail enabledSteps compact depth
   =               get (mapRead (fmap (\(_, _, _, x) -> x)) storedOutputEditors)

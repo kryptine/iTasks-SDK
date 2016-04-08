@@ -75,11 +75,10 @@ where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
 			# val = checkMask mask val
-			# setVal = maybe id (\(Username v) -> setValue (JSONString v)) val
-			= (uic (UIEditor {UIEditor|optional=False}) [setVal (ui UIViewString)], vst)
+			= (maybe id (\(Username v) -> setValue (JSONString v)) val (ui UIViewString), vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(Username v) -> v) val)
-			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask) [setEditOpts taskId (editorId dp) value (ui UIEditString)] ,vst)
+			= (setEditOpts taskId (editorId dp) value (uia UIEditString (stdAttributes typeDesc optional mask)), vst)
 	genDiff dp (Username old) om (Username new) nm vst=:{VSt|optional,disabled}
 		= (if (old === new) NoChange (ChangeUI [("setAttribute",[JSONString "value",encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
@@ -117,10 +116,10 @@ where
 
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
-			= (uic (UIEditor {UIEditor|optional=False}) [setValue (JSONString "********") (ui UIViewString)], vst)
+			= (setValue (JSONString "********") (ui UIViewString), vst)
 		| otherwise	
 			# value = checkMaskValue mask ((\(Password v) -> v) val)
-			= (uiac (UIEditor {UIEditor|optional=False}) (stdAttributes typeDesc optional mask) [setEditOpts taskId (editorId dp) value (ui UIEditPassword)] ,vst)
+			= (setEditOpts taskId (editorId dp) value (uia UIEditPassword (stdAttributes typeDesc optional mask)), vst)
 	genDiff dp (Password old) om (Password new) nm vst=:{VSt|optional,disabled}
 		= (if (old === new) NoChange (ChangeUI [("setAttribute",[JSONString "value",encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 

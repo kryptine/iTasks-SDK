@@ -53,9 +53,9 @@ where
 		//= case editletLinker initDiff (initClient currVal createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld of
 			(Ok (jsScript, jsID, jsIC, jsAD),iworld)
 				# attr = editletAttr jsScript jsID jsIC jsAD
-				= (uic (UIEditor {UIEditor|optional=False}) [eui uiDef attr], {VSt|vst & iworld = iworld})
+				= (eui uiDef attr, {VSt|vst & iworld = iworld})
 			(Error e,iworld) //TODO: Propagate the error to the interact task that creates the editor
-				= (uic (UIEditor {UIEditor|optional=False}) [eui uiDef 'DM'.newMap], {VSt|vst & iworld = iworld})
+				= (eui uiDef 'DM'.newMap, {VSt|vst & iworld = iworld})
 	where
 		initDiff = genDiffSrv gDefault{|*|} currVal
 		htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp

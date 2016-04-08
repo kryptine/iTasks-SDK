@@ -142,9 +142,7 @@ div.itasks-loader {
 
 /* Additional components */
 /* Styles for unlayouted content */
-.itasks-raw-editor
-, .itasks-raw-compound-editor
-, .itasks-raw-compound-content
+.itasks-raw-compound-content
 , .itasks-raw-parallel
 , .itasks-raw-interact
 , .itasks-raw-step

@@ -81,7 +81,7 @@ where
 					# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
                     # value = maybe NoValue (\v -> Value v False) (lhsValFun (case val of Value v _ = Just v; _ = Nothing))
 					# actions = contActions taskId val conts
-					# curEnabledActions = [name \\{UIAction|action=(Action name _),enabled} <- actions | enabled]
+					# curEnabledActions = [actionId action \\ action <- actions | isEnabled action]
 					= Left (ValueResult value info (doStepLayout taskId evalOpts event actions prevEnabledActions rep val)
 								(TCStep taskId info.TaskEvalInfo.lastEvent (Left (ntreea,curEnabledActions))))
 				Just rewrite	= Right (rewrite,Just ntreea, info.TaskEvalInfo.lastEvent,info.TaskEvalInfo.removedTasks)
@@ -144,12 +144,12 @@ where
 		= case (event,change) of
 			//On reset generate a new step UI
 			(ResetEvent,ReplaceUI rui)  
-				= ReplaceUI (uic UIStep [rui:map (\x -> (ui (UIAction x))) (contActions taskId val conts)])
+				= ReplaceUI (uic UIStep [rui:contActions taskId val conts])
 			//Otherwise create a compound change definition
 			_ 	
 				= ChangeUI [] [(0,ChangeChild change):actionChanges]
 	where
-		actionChanges = [(i,ChangeChild (switch enabled name)) \\ {UIAction|action=(Action name _),enabled} <- actions & i <- [1..]]
+		actionChanges = [(i,ChangeChild (switch (isEnabled ui) (actionId ui))) \\ ui <- actions & i <- [1..]]
 		where
 			switch True name = if (isMember name prevEnabled) NoChange (ChangeUI [("enable",[])] [])
 			switch False name = if (isMember name prevEnabled) (ChangeUI [("disable",[])] []) NoChange
@@ -172,14 +172,24 @@ where
             Just a ->  Just (f_tva_tb a)
             Nothing -> Nothing
 
+isEnabled (UI _ attr _) = maybe False (\(JSONBool b) -> b) ('DM'.get "enabled" attr)
+actionId (UI _ attr _) = maybe "" (\(JSONString s) -> s) ('DM'.get "actionId" attr)
+
 matchAction :: TaskId Event -> Maybe String
 matchAction taskId (ActionEvent matchId action)
     | matchId == taskId     = Just action
                             = Nothing
 matchAction taskId _        = Nothing
 
-contActions :: TaskId (TaskValue a) [TaskCont a b]-> [UIAction]
-contActions taskId val conts = [{UIAction|taskId=toString taskId,action=action,enabled=isJust (taskbf val)}\\ OnAction action taskbf <- conts]
+contActions :: TaskId (TaskValue a) [TaskCont a b]-> [UI]
+contActions taskId val conts = [actionUI (isJust (taskbf val)) action\\ OnAction action taskbf <- conts]
+where
+	actionUI enabled action=:(Action actionId _)
+		= (setEnabled enabled
+          o setTaskId (toString taskId) 
+          o setActionId actionId
+          o (maybe id setIconCls (actionIcon action))
+          ) (ui UIAction) 
 
 searchContValue :: (TaskValue a) (Maybe String) [TaskCont a b] -> Maybe (!Int, !b, !DeferredJSON) | TC a & JSONEncode{|*|} a
 searchContValue val mbAction conts = search val mbAction 0 Nothing conts
@@ -258,7 +268,7 @@ where
 				# actions 	= contActions taskId value conts
                 # rep       = genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
                 # taskTrees = [(fromOk (taskIdFromTaskTree tree),tree) \\ ValueResult _ _ _ tree <- results | isOk (taskIdFromTaskTree tree)]
-				# curEnabledActions = [name \\{UIAction|action=(Action name _),enabled} <- actions | enabled]
+                # curEnabledActions = [actionId action \\ action <- actions | isEnabled action]
                 = (ValueResult value evalInfo rep (TCParallel taskId ts taskTrees curEnabledActions),iworld)
     //Cleanup
     eval event evalOpts (TCDestroy (TCParallel taskId ts taskTrees _)) iworld=:{current}
@@ -511,11 +521,11 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
 genParallelValue :: [TaskResult a] -> TaskValue [(!TaskTime,!TaskValue a)]
 genParallelValue results = Value [(lastEvent,val) \\ ValueResult val {TaskEvalInfo|lastEvent} _ _ <- results] False
 
-genParallelRep :: !TaskEvalOpts !Event [UIAction] [String] [TaskResult a] Int -> UIChange
+genParallelRep :: !TaskEvalOpts !Event [UI] [String] [TaskResult a] Int -> UIChange
 genParallelRep evalOpts event actions prevEnabledActions results prevNumBranches
 	= case event of
 		ResetEvent
-			= ReplaceUI (uic UIParallel ([def \\ ValueResult _ _ (ReplaceUI def) _ <- results] ++ (map (\x -> ui (UIAction x)) actions)))
+			= ReplaceUI (uic UIParallel ([def \\ ValueResult _ _ (ReplaceUI def) _ <- results] ++ actions))
 		_ 
 			# (idx,iChanges) = itemChanges 0 prevNumBranches results
 			# aChanges       = actionChanges idx
@@ -558,7 +568,7 @@ where
 		| otherwise
 			= itemChanges i numExisting rs
 
-	actionChanges startIdx = [(i,ChangeChild (switch enabled name)) \\ {UIAction|action=(Action name _),enabled} <- actions & i <- [startIdx..]]
+	actionChanges startIdx = [(i,ChangeChild (switch (isEnabled ui) (actionId ui))) \\ ui <- actions & i <- [startIdx..]]
 	where
 		switch True name = if (isMember name prevEnabledActions) NoChange (ChangeUI [("enable",[])] [])
 		switch False name = if (isMember name prevEnabledActions) (ChangeUI [("disable",[])] []) NoChange

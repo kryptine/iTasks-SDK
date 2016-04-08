@@ -26,12 +26,11 @@ where
 		# viz = flattenPairUI grd_arity viz
 		//When optional we add a checkbox show the checkbox
 		| optional && not disabled
-			= (uic (UIEditor {UIEditor|optional=True}) [checkbox (isTouched mask),viz], vst)
+			= (setOptional True (uic UICompoundContent [checkbox (isTouched mask),viz]), vst)
 		| otherwise 
 			= (viz,vst)
 	where
-		checkbox checked = uic (UIEditor {UIEditor|optional=True})
-			[setEditOpts taskId (editorId dp) (Just (JSONBool checked)) (ui UIEditCheckbox)]
+		checkbox checked = setEditOpts taskId (editorId dp) (Just (JSONBool checked)) (ui UIEditCheckbox)
 
 	genDiff dp (RECORD old) om (RECORD new) nm vst 
 		# (diff,vst) = ex.Editor.genDiff (pairPath grd_arity dp) old (toPairMask grd_arity om) new (toPairMask grd_arity nm) vst
@@ -54,13 +53,8 @@ where
 gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
 	genUI dp (FIELD x) mask vst=:{VSt|disabled}
-		# (viz,vst)		= ex.Editor.genUI dp x mask vst
-		= case viz of
-			//Add the field name as a label
-			UI (UIEditor edit) attr ctrl
-				= (UI (UIEditor edit) (addLabel gfd_name attr) ctrl,vst)
-			def
-				= (def,vst)
+		# (UI type attr items,vst)		= ex.Editor.genUI dp x mask vst
+		= (UI type (addLabel gfd_name attr) items,vst) //Add the field name as a label
 
 	genDiff dp (FIELD old) om (FIELD new) nm vst = ex.Editor.genDiff dp old om new nm vst
 
@@ -83,20 +77,17 @@ where
 		| allConsesArityZero gtd_conses //If all constructors have arity 0, we only need the constructor dropwdown
 			= (consDropdown choice, {vst & selectedConsIndex = curSelectedConsIndex})
 		| otherwise
-			= (uic (UIEditor {UIEditor|optional=False}) [consDropdown choice,items]
+			= (uic UICompoundContent [consDropdown choice,items]
 			, {vst & selectedConsIndex = curSelectedConsIndex})
 	//ADT with one constructor or static render: 'DM'.put content into container, if empty show cons name
 	| otherwise
 		# (viz,vst) = ex.Editor.genUI dp x mask vst
 		# viz = case viz of
-			(UI UIEmpty _ _) = uic (UIEditor {UIEditor|optional=False}) [stringDisplay (if (isTouched mask) (gtd_conses !! vst.selectedConsIndex).gcd_name "")]
+			(UI UIEmpty _ _) = stringDisplay (if (isTouched mask) (gtd_conses !! vst.selectedConsIndex).gcd_name "")
 			_			= viz
 		= (viz,{vst & selectedConsIndex = curSelectedConsIndex})
 	where
-		consDropdown choice = uiac (UIEditor 
-			{UIEditor|optional=False})
-				(attributes mask)
-				[setChoiceOpts taskId (editorId dp) choice [JSONString gdc.gcd_name \\ gdc <- gtd_conses] (ui UIDropdown)]
+		consDropdown choice = setChoiceOpts taskId (editorId dp) choice [JSONString gdc.gcd_name \\ gdc <- gtd_conses] (uia UIDropdown (attributes mask))
 		attributes mask
 			| isTouched mask	= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_VALID),(HINT_ATTRIBUTE, JSONString "You have correctly selected an option")]
 								= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INFO),(HINT_ATTRIBUTE, JSONString "Select an option")]
@@ -202,7 +193,8 @@ where
 		# (dpx,dpy)		= pairPathSplit dp
 		# (vizx, vst)	= ex.Editor.genUI dpx x xmask vst
 		# (vizy, vst)	= ey.Editor.genUI dpy y ymask vst
-		= (uic (UIEditor {UIEditor|optional=isOptional vizx && isOptional vizy}) [vizx,vizy],vst)
+		# optional 		= isOptional vizx && isOptional vizy
+		= (setOptional optional (uic UICompoundContent [vizx,vizy]),vst)
 
 	genDiff dp (PAIR oldx oldy) om (PAIR newx newy) nm vst
 		# (dpx,dpy)		= pairPathSplit dp
@@ -231,10 +223,7 @@ where
 		# (viz,vst) = case val of
 			(Just x)	= ex.Editor.genUI dp x mask {VSt|vst & optional = True}
 			_			= ex.Editor.genUI dp dx Untouched {VSt|vst & optional = True}
-		= (toOptional viz, {VSt|vst & optional = optional})
-	where
-		toOptional	(UI (UIEditor e) attr c)          = UI (UIEditor {UIEditor|e & optional = True}) attr c
-		toOptional	viz                               = viz
+		= (setOptional True viz, {VSt|vst & optional = optional})
 
 	genDiff dp Nothing om Nothing nm vst = (NoChange,vst)
 	genDiff dp Nothing om (Just new) nm vst=:{VSt|optional}
@@ -274,11 +263,11 @@ where
 flattenPairUI 0 d = d
 flattenPairUI 1 d = d
 flattenPairUI 2 d = d
-flattenPairUI 3 (UI (UIEditor e) a [l, UI (UIEditor _) _ [m,r]]) = UI (UIEditor e) a [l,m,r]
-flattenPairUI n (UI (UIEditor e) a [l,r])
-	# (UI (UIEditor _) _ l) = flattenPairUI half l
-	# (UI (UIEditor _) _ r) = flattenPairUI (n - half) r
-	= UI (UIEditor e) a (l ++ r)
+flattenPairUI 3 (UI t a [l, UI _ _ [m,r]]) = UI t a [l,m,r]
+flattenPairUI n (UI t a [l,r])
+	# (UI _ _ l) = flattenPairUI half l
+	# (UI _ _ r) = flattenPairUI (n - half) r
+	= UI t a (l ++ r)
 where
 	half = n / 2
 
@@ -297,35 +286,30 @@ flattenPairDiff s n (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)])
 where
 	half = n / 2
 
-isOptional (UI (UIEditor {UIEditor|optional}) _ _) 		 = optional
-isOptional _ 										       = False
-
 gEditor{|Int|} = primitiveTypeEditor (Just "whole number")
 					(\value -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
-					(\taskId editorId value -> setEditOpts taskId editorId value (ui UIEditInt))
+					(\attr taskId editorId value -> setEditOpts taskId editorId value (uia UIEditInt attr))
 gEditor{|Real|} = primitiveTypeEditor (Just "decimal number")
 					(\value -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
-					(\taskId editorId value -> setEditOpts taskId editorId value (ui UIEditDecimal))
+					(\attr taskId editorId value -> setEditOpts taskId editorId value (uia UIEditDecimal attr))
 gEditor{|Char|} = primitiveTypeEditor (Just "single character")
 					(\value -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
-					(\taskId editorId value -> setEditOpts taskId editorId value (ui UIEditString))
+					(\attr taskId editorId value -> setEditOpts taskId editorId value (uia UIEditString attr))
 gEditor{|String|} = primitiveTypeEditor (Just "single line of text")
 					(\value -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
-					(\taskId editorId value -> setEditOpts taskId editorId value (ui UIEditString))
+					(\attr taskId editorId value -> setEditOpts taskId editorId value (uia UIEditString attr))
 gEditor{|Bool|} = primitiveTypeEditor Nothing 
 					(\value -> (maybe id (\v -> setValue (JSONBool v)) value) (ui UIViewCheckbox))
-					(\taskId editorId value -> setEditOpts taskId editorId value (ui UIEditCheckbox))
+					(\attr taskId editorId value -> setEditOpts taskId editorId value (uia UIEditCheckbox attr))
 
 primitiveTypeEditor mbTypeDesc mkViewControl mkEditControl = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where 
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
-			= (uic (UIEditor {UIEditor|optional=optional})
-				[mkViewControl (checkMask mask val)],vst)
+			= (setOptional optional (mkViewControl (checkMask mask val)),vst)
 		| otherwise
-        	= (uiac (UIEditor {UIEditor|optional=optional})
-				(maybe 'DM'.newMap (\typeDesc -> stdAttributes typeDesc optional mask) mbTypeDesc)
-				[mkEditControl taskId (editorId dp) (checkMaskValue mask val)], vst)
+			# attr = maybe 'DM'.newMap (\typeDesc -> stdAttributes typeDesc optional mask) mbTypeDesc
+        	= (setOptional optional (mkEditControl attr taskId (editorId dp) (checkMaskValue mask val)), vst)
 
 	genDiff dp ov om nv nm vst=:{VSt|optional,disabled}
 		= (if (vEq && mEq) NoChange (ChangeUI (valueChange ++ attrChanges) []),vst)
@@ -360,7 +344,7 @@ listEditor ex dx getItems getAdd getRemove getReorder getCount setItems
 where
 	genUI dp el mask vst=:{VSt|taskId,disabled}
 		# (controls,vst) = listControls dp items (subMasks (length items) mask) vst
-		= (uic (UIEditor {UIEditor|optional=False}) [listContainer controls], vst)
+		= (listContainer controls, vst)
 	where
 		items = getItems el
 		add = getAdd el
@@ -460,8 +444,7 @@ gEditor{|Dynamic|} = emptyEditor
 
 gEditor{|HtmlTag|}	= {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
-	genUI dp val mask vst
-		= (uic (UIEditor {UIEditor|optional=False}) [uia UIViewHtml ('DM'.fromList [("value",JSONString (toString val))] )], vst)
+	genUI dp val mask vst = (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString val))]), vst)
 
 	genDiff dp ov om nv nm vst = (NoChange,vst)
 

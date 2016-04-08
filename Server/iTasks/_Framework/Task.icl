@@ -54,7 +54,7 @@ gVerify{|Task|} _ _ mv = alwaysValid mv
 gText{|Task|} _ _ _ = ["<Task>"]
 gEditor{|Task|} _ _ _ _ _ = {Editor|genUI=genUI,genDiff,appDiff=appDiff}
 where
-	genUI _ _ _ vst = (uic (UIEditor {UIEditor|optional=False}) [stringDisplay "<Task>"], vst)
+	genUI _ _ _ vst = (stringDisplay "<Task>", vst)
 	genDiff dp ov om nv nm vst = (NoChange,vst)
 	appDiff dp e val mask ust = basicUpdate (\() t -> Just t) dp e val mask ust
 

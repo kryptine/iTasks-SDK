@@ -74,7 +74,7 @@ where
     makeRep taskId evalOpts status iworld
 		# (content,iworld)	= makeView opts status taskId iworld
 		# prompt			= toPrompt desc
-		# change 			= ReplaceUI (uic (UIEditor {UIEditor|optional=False}) [prompt,content])
+		# change 			= ReplaceUI (uic UIContainer [prompt,content])
 		= (change, iworld)
 						
 	makeView [ViewWith viewFun] status taskId iworld

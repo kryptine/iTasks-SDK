@@ -22,7 +22,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 //Provide generic instances for all UI definitions
-derive class iTask UI, UINodeType, UIAction, UIEditor
+derive class iTask UI, UINodeType
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
 derive class iTask UITreeNode
 
@@ -57,8 +57,7 @@ derive class iTask UIChange, UIChildChange
 	// --- Intermediate nodes: ---
     = UIEmpty
 	//Constructors for editors
-	| UIEditor 			!UIEditor
-	| UIAction 			!UIAction
+	| UIAction 
 	//Intermediate containers
     | UIForm
 	| UIFormItem
@@ -111,16 +110,6 @@ derive class iTask UIChange, UIChildChange
     | UIViewport       			                                                	// - Viewport for embedding a related task gui (like an iframe for tasks)
 
 :: UIAttributes 		:== Map String JSONNode
-
-:: UIEditor = 
-	{ optional		:: Bool
-	}
-
-:: UIAction	=
-	{ taskId	:: !String
-	, action	:: !Action
-	, enabled	:: !Bool
-	}
 
 // Floating window
 :: UIWindowType
@@ -181,6 +170,7 @@ uia  :: UINodeType UIAttributes -> UI
 uiac :: UINodeType UIAttributes [UI] -> UI
 
 //Modifier functions
+setOptional     :: !Bool                              !UI -> UI
 setSize         :: !UISize !UISize                    !UI -> UI
 setWidth		:: !UISize					          !UI -> UI
 setHeight		:: !UISize					          !UI -> UI
@@ -229,11 +219,13 @@ setEnabled      :: !Bool                              !UI -> UI
 setInstanceNo   :: !Int                               !UI -> UI
 setInstanceKey  :: !String                            !UI -> UI
 setEditOpts     :: !String !String !(Maybe JSONNode)  !UI -> UI
-setActionOpts   :: !String !String                    !UI -> UI
 setChoiceOpts   :: !String !String ![Int] ![JSONNode] !UI -> UI
 setColumns      :: ![String]                          !UI -> UI
 setDoubleClickAction :: !String !String               !UI -> UI
-	
+setActionId     :: !String                            !UI -> UI
+setTaskId       :: !String                            !UI -> UI
+
+isOptional :: !UI -> Bool	
 //Util
 stringDisplay   :: !String  -> UI
 

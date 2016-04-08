@@ -48,7 +48,6 @@ itasks.itwc_edit_string = {
 		});
 	},
 	onAttributeChange: function(name,value) {
-		console.log("STRING UPDATE",name,value);
 	}
 };
 itasks.itwc_edit_note = {

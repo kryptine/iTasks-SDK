@@ -983,6 +983,7 @@ where
 	menuOrder m1 m2 = False
 */
 //Extract triggers from a list of actions
+/*
 extractTriggers :: ![UIAction] -> ([(Trigger,String,String)], [UIAction])
 extractTriggers [] = ([],[])
 extractTriggers [a=:{taskId,action=(Action name options)}:as]
@@ -993,12 +994,14 @@ extractTriggers [a=:{taskId,action=(Action name options)}:as]
 where
     isTrigger (ActionTrigger _) = True
     isTrigger _                 = False
-
+*/
+/*
 actionsToCloseId :: ![UIAction] -> (!Maybe String, ![UIAction])
 actionsToCloseId [] = (Nothing,[])
 actionsToCloseId [{taskId,action=ActionClose,enabled}:as] = (if enabled (Just taskId) Nothing,as)
 
 actionsToCloseId [a:as] = let (mbtask,as`) = actionsToCloseId as in (mbtask,[a:as`])
+*/
 /*
 actionToHotkey :: UIAction -> Maybe UIKeyAction
 actionToHotkey {taskId,action=Action actionId options,enabled=True}
