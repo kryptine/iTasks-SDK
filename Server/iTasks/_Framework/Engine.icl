@@ -46,10 +46,18 @@ from Sapl.Linker.LazyLinker import generateLoaderState, :: LoaderStateExt
 from Sapl.Linker.SaplLinkerShared import :: SkipSet
 from Sapl.Target.Flavour import :: Flavour, toFlavour
 
+show :: ![String] !*World -> *World
+show lines world
+	# (console,world)	= stdio world
+	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
+	# (_,world)			= fclose console world
+	= world
+
 startEngine :: a !*World -> *World | Publishable a
 startEngine publishable world
 	# (opts,world)			= getCommandLine world
 	# (app,world)			= determineAppName world
+	# (appPath,world)		= determineAppPath world	
 	# (mbSDKPath,world)		= determineSDKPath SEARCH_PATHS world
 	// Show server name
 	# world					= show (infoline app) world
@@ -66,20 +74,18 @@ startEngine publishable world
 	| help					= show instructions world
 	//Check sdkpath
 	# mbSDKPath				= maybe mbSDKPath Just sdkOpt //Commandline SDK option overrides found paths
-	//Normal execution
-	# world					= show (running port) world
-	# iworld				= initIWorld mbSDKPath webDirPaths storeOpt saplOpt world
-    //Reset connectedTo for all task instances
-    # iworld                = clearConnections iworld
-	// mark all instance as outdated initially
-    # iworld                = queueAllPersistent iworld
-    //Start task server
-	# iworld				= serve port (httpServer port keepalive (engine publishable) taskInstanceUIs) [BackgroundTask removeOutdatedSessions,BackgroundTask updateClocks, BackgroundTask (processEvents MAX_EVENTS)] timeout iworld
-	= finalizeIWorld iworld
+	# options				=
+		{ appName			= app
+		, appPath			= appPath
+		, sdkPath 			= mbSDKPath
+		, serverPort		= port
+		, keepalive 		= keepalive
+		, webDirPaths 		= webDirPaths
+		, storeOpt			= storeOpt
+		, saplOpt 			= saplOpt
+		}
+	= startEngineWithOptions publishable options world
 where
-	infoline :: !String -> [String]
-	infoline app	= ["*** " +++ app +++ " HTTP server ***",""]
-	
 	instructions :: [String]
 	instructions =
 		["Available commandline options:"
@@ -93,16 +99,9 @@ where
 		,""
 		]
 
-	running :: !Int -> [String]
-	running port = ["Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
-	
-	show :: ![String] !*World -> *World
-	show lines world
-		# (console,world)	= stdio world
-		# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
-		# (_,world)			= fclose console world
-		= world
-		
+	infoline :: !String -> [String]
+	infoline app	= ["*** " +++ app +++ " HTTP server ***",""]
+
 	boolOpt :: !String ![String] -> Bool
 	boolOpt key opts = isMember key opts
 	
@@ -121,7 +120,23 @@ where
 	stringOpt key [n,v:r]
 		| n == key	= Just v
 					= stringOpt key [v:r]
-					
+
+startEngineWithOptions :: a ServerOptions !*World -> *World | Publishable a
+startEngineWithOptions publishable options world
+	# port					= options.serverPort
+	# world					= show (running port) world
+	# iworld				= initIWorld options world
+    //Reset connectedTo for all task instances
+    # iworld                = clearConnections iworld
+	// mark all instance as outdated initially
+    # iworld                = queueAllPersistent iworld
+    //Start task server
+	# iworld				= serve port (httpServer port options.keepalive (engine publishable) taskInstanceUIs) [BackgroundTask removeOutdatedSessions,BackgroundTask updateClocks, BackgroundTask (processEvents MAX_EVENTS)] timeout iworld
+	= finalizeIWorld iworld
+where
+	running :: !Int -> [String]
+	running port = ["Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
+						
 	timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
 	timeout iworld = case 'SDS'.read taskEvents iworld of //Check if there are events in the queue
 		(Ok (Queue [] []),iworld)   = (Just 100,iworld) //Empty queue, don't waste CPU, but refresh
@@ -176,29 +191,29 @@ where
 	
 	defaultHandlers = [sdsService, simpleHTTPResponse (const True, handleStaticResourceRequest)]
 
-initIWorld :: !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
-initIWorld mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
-	# (appName,world) 			= determineAppName world
-	# (appPath,world)			= determineAppPath world
+initIWorld :: ServerOptions !*World -> *IWorld
+initIWorld options world
+	# appName 					= options.appName
+	# appPath 					= options.appPath
 	# appDir					= takeDirectory appPath
-	# dataDir					= case mbStorePath of
+	# dataDir					= case options.storeOpt of
 		Just path 				= path	
 		Nothing 				= appDir </> appName +++ "-data"
-	# (webdirPaths,world) 	 	= case mbWebdirPaths of
+	# (webdirPaths,world) 	 	= case options.webDirPaths of
 		Just paths 				= (paths,world)
 		Nothing 
 			# appWebDirs = [appDir </> "WebPublic"]
-			= case mbSDKPath of 
+			= case options.sdkPath of 
 				Just sdkDir	//Scan extensions for public web files
 					# (libWebDirs,world) = determineWebPublicDirs (sdkDir </>"Server"</>"iTasks"</>"API"</>"Extensions") world
 					= ([sdkDir</>"Client"] ++ appWebDirs ++ libWebDirs,world)	
 				Nothing
 					= (appWebDirs,world)
     # (customCSS,world)    = checkCustomCSS appName webdirPaths world 
-	# saplPath = case mbSaplPath of
+	# saplPath = case options.saplOpt of
 		Just path 	= path
 		Nothing 	= appDir</>"sapl"
-	# flavourPath = case mbSDKPath of
+	# flavourPath = case options.sdkPath of
 		Just sdkPath 	= sdkPath </> "Dependencies" </> "clean-sapl" </> "src" </>"clean.f"
 		Nothing 		= saplPath </> "clean.f"
 	# (res,world)				= getFileInfo appPath world
