@@ -93,8 +93,11 @@ jsAbort             :: a -> b
 toJSVal 			:: !a -> JSVal b
 toJSArg 			:: !a -> JSArg
 toJSArgs 			:: ![a] -> [JSArg]
+fromJSArgUnsafe     :: !JSArg -> Dynamic
+fromJSArg 			:: !JSArg !*JSWorld -> *(!Dynamic, !*JSWorld)
 fromJSValUnsafe		:: !(JSVal a) -> Dynamic
 fromJSVal 			:: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
+
 
 newJSArray          :: !*JSWorld                          -> *(!JSArr a, !*JSWorld)
 
@@ -107,13 +110,6 @@ toJSArray           :: ![a]                       !*JSWorld -> *(!JSArr a, !*JSW
 fromJSArray         :: !(JSArr a) !((JSVal b) -> c) !*JSWorld -> *(![c], !*JSWorld)
 
 jsIsUndefined 		:: !(JSVal a) -> Bool
-
-/*
-getElementById 		:: !DomElementId !*JSWorld -> *(!JSObj a, !*JSWorld)
-getDomElement		:: !DomElementId					!*JSWorld -> *(!JSObj a, !*JSWorld)
-getDomAttr			:: !DomElementId !String			!*JSWorld -> *(!JSVal a, !*JSWorld)
-setDomAttr			:: !DomElementId !String !(JSVal a)	!*JSWorld -> *JSWorld
-*/
 
 //Call a method on a javascript object. Object can be (JSVal null)
 callObjectMethod	:: !String ![JSArg] !(JSObj o) !*JSWorld -> *(!JSVal c, !*JSWorld)
@@ -134,6 +130,12 @@ jsValToString :: !(JSVal a) -> String
 jsValToReal   :: !(JSVal a) -> Real
 jsValToInt    :: !(JSVal a) -> Int
 jsValToBool   :: !(JSVal a) -> Bool
+
+
+jsArgToString :: !JSArg -> String
+jsArgToReal   :: !JSArg -> Real
+jsArgToInt    :: !JSArg -> Int
+jsArgToBool   :: !JSArg -> Bool
 
 withDef     :: !((JSVal a) -> b) !b !(JSVal a) -> b
 

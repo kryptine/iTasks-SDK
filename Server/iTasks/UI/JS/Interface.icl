@@ -165,6 +165,12 @@ toJSArg val = undef
 toJSArgs :: ![a] -> [JSArg]
 toJSArgs xs = map toJSArg xs
 
+fromJSArgUnsafe :: !JSArg -> Dynamic
+fromJSArgUnsafe ptr = undef
+
+fromJSArg :: !JSArg !*JSWorld -> *(!Dynamic, !*JSWorld)
+fromJSArg ptr world = undef
+
 fromJSValUnsafe :: !(JSVal a) -> Dynamic
 fromJSValUnsafe ptr = undef
 
@@ -206,26 +212,6 @@ fromJSArray arr f world
 
 jsIsUndefined :: !(JSVal a) -> Bool
 jsIsUndefined obj = jsTypeof obj == "undefined"
-
-/*	
-getElementById :: !DomElementId !*JSWorld -> *(!JSObj a, !*JSWorld)
-getElementById elemId world
-	= callObjectMethod "getElementById" [toJSArg elemId] jsDocument world
-
-getDomElement :: !DomElementId !*JSWorld -> *(!JSObj a, !*JSWorld)
-getDomElement elemId world
-	= callObjectMethod "getElementById" [toJSArg elemId] jsDocument world
-
-getDomAttr :: !DomElementId !String !*JSWorld -> *(!JSVal a, !*JSWorld)
-getDomAttr elemId attr world
-	# (elem, world)	= getDomElement elemId world
-	= jsGetObjectAttr attr elem world
-	
-setDomAttr :: !DomElementId !String !(JSVal a) !*JSWorld -> *JSWorld
-setDomAttr elemId attr value world
-	# (elem, world)	= getDomElement elemId world
-	= jsSetObjectAttr attr value elem world
-*/
 
 findObject :: !String !*JSWorld -> *(!JSVal a, !*JSWorld)
 findObject query world
@@ -359,6 +345,30 @@ jsValToInt ptr = case fromJSValUnsafe ptr of
 
 jsValToBool :: !(JSVal a) -> Bool
 jsValToBool ptr = case fromJSValUnsafe ptr of
+					(val :: Bool)	= val
+								   	= abort "Bool was expected but something else came"
+
+jsArgToString :: !JSArg -> String
+jsArgToString ptr = case fromJSArgUnsafe ptr of
+					(val :: String) = val
+					(val :: Real)   = toString val
+					(val :: Int)    = toString val
+					val				= jsAbort val
+jsArgToReal :: !JSArg -> Real
+jsArgToReal ptr = case fromJSArgUnsafe ptr of
+					(val :: Real)   = val
+					(val :: String)	= toReal val
+					(val :: Int)    = toReal val
+									= abort "Real was expected but something else came"
+jsArgToInt :: !JSArg -> Int
+jsArgToInt ptr = case fromJSArgUnsafe ptr of
+					(val :: Int)	= val
+					(val :: String)	= toInt val
+					(val :: Real)	= toInt val
+								   	= abort "Int was expected but something else came"
+
+jsArgToBool :: !JSArg -> Bool
+jsArgToBool ptr = case fromJSArgUnsafe ptr of
 					(val :: Bool)	= val
 								   	= abort "Bool was expected but something else came"
 

@@ -239,7 +239,15 @@ function __iTasks_UI_JS_Interface_toJSArg(val){
 		return __iTasks_UI_JS_Interface_toJSVal(val);
 	}
 }		
-	
+// fromJSArgUnsafe :: !(JSArg a) -> Dynamic
+function __iTasks_UI_JS_Interface_fromJSArgUnsafe(ptr){
+	return toDynamic(___unwrapJS(Sapl.feval(ptr)));
+}
+// fromJSArg :: !JSArg !*JSWorld -> *(!Dynamic, !*JSWorld)
+function __iTasks_UI_JS_Interface_fromJSArg(ptr, world){
+	world = Sapl.feval(world);
+	return (toDynamic(___unwrapJS(Sapl.feval(ptr))), world);
+}
 // fromJSValUnsafe :: !(JSVal a) -> Dynamic
 function __iTasks_UI_JS_Interface_fromJSValUnsafe(ptr){
 	return toDynamic(___unwrapJS(Sapl.feval(ptr)));
