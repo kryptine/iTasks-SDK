@@ -10,7 +10,6 @@ import GenEq
 class iTask a
 	//Interaction
 	| gEditor{|*|}
-	, gEditMeta{|*|}
 	, gVerify{|*|}
 	//Visualization
 	, gText{|*|}

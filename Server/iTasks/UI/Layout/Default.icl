@@ -33,7 +33,7 @@ finalizeInteract = conditionalLayout isInteract layout
 where
 	layout = sequenceLayouts 
 		[layoutSubAt [1] editorToForm 
-    	//,layoutSubAt [1] finalizeForm 
+    	,layoutSubAt [1] finalizeForm 
 		,removeEmptyPrompt
 		,changeNodeType (\(UI UIInteract attr items) -> UI UIPanel attr items)
 		] 
@@ -50,18 +50,10 @@ finalizeForm
 					  ]
 where
 	//Case when 
-	layoutRow = selectLayout [(hasLabel,toRowWithLabel),(const True,toRowWithoutLabel)]
-	
-	hasLabel (UI UIFormItem _ [UI UIEmpty _ _,_,_]) = False
-	hasLabel _ = True
-
-	toRowWithLabel = changeNodeType (\(UI UIFormItem _ [label,item,icon]) -> row [label,item,icon])
-	toRowWithoutLabel = sequenceLayouts 
-							[changeNodeType (\(UI UIFormItem _ [label,item,icon]) -> row [label,item,icon])
-							,removeSubAt [0]
-							]
-
-	row items = (setMargins 5 5 5 5 o setDirection Horizontal o setSize FlexSize WrapSize) (uic UIContainer items)
+	layoutRow = changeNodeType toRow
+	where
+		toRow (UI UIFormItem attr items) = (setMargins 5 5 5 5 o setDirection Horizontal o setSize FlexSize WrapSize) (uiac UIContainer attr items)
+		toRow ui = ui
 
 finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
@@ -104,56 +96,44 @@ isParallel = \n -> n =:(UI UIParallel _ _)
 isAction = \n -> n =:(UI UIAction _ _)
 isEmpty = \n -> n =:(UI UIEmpty _ _)
 
-isIntermediate (UI UIInteract _ _) = True
-isIntermediate (UI UIStep _ _) = True
-isIntermediate (UI UIParallel _ _) = True
-isIntermediate _ = False
+isIntermediate (UI type _ _) = isMember type [UIInteract,UIStep,UIParallel]
+
+isFormComponent (UI type _ _) = isMember type 
+	[UIEditString,UIEditNote,UIEditPassword,UIEditInt,UIEditDecimal
+	,UIEditCheckbox,UIEditSlider,UIEditDate,UIEditTime,UIEditDateTime
+	,UIEditDocument,UIEditButton,UIDropdown,UIRadioGroup,UICheckboxGroup]
+instance == UINodeType where (==) x y = x === y
 
 //Flatten an editor into a form
 editorToForm :: Layout
-editorToForm = layout
+editorToForm = sequenceLayouts [layoutSubsMatching [] isFormComponent toFormItem, wrapUI UIForm]
+
+toFormItem :: Layout
+toFormItem = layout
 where
-	//Flatten the editor to a list of form items
-	layout (ReplaceUI editor,s) = (ReplaceUI (uic UIForm (items editor)),s)
-	where	
-		items control=:(UI _ attr _)
-			# label = fromMaybe (ui UIEmpty) (labelControl attr)
-			# info = fromMaybe (ui UIEmpty) (infoControl attr)
-			= [uic UIFormItem [label,control,info]]
-		items (UI UIEmpty _ _) //Placeholders for constructor changes
-			= [uic UIFormItem [ui UIEmpty,ui UIEmpty, ui UIEmpty ]] 
-		items _ = []
+	layout (ReplaceUI (control=:(UI _ attr _)),s) 
+		# label = fromMaybe (ui UIEmpty) (labelControl attr)
+		# info = fromMaybe (ui UIEmpty) (infoControl attr)
+		= (ReplaceUI (uic UIFormItem [label,control,info]),s)
 
-	//Remap the changes to the flattened list of form items
-	layout (change,s) = (ChangeUI [] (snd (flattenChanges 0 change)),s)
+	layout (c=:(ChangeUI localChanges childChanges),s) 
+		//Check if the tooltip or icon needs to be updated
+		# iconChanges = []
+		= (ChangeUI [] (iconChanges ++ [(1,ChangeChild c)]),s)
 	where
-		//Leaf
-		flattenChanges n NoChange = (n + 1, [])
-		//Leaf (Change the middle element of the form)
-		flattenChanges n c=:(ReplaceUI _) = (n + 1, [(n,ChangeChild (ChangeUI [] [(1,ChangeChild c)]))])
-		//Leaf (Update the middle element and check for attribute changes
-		flattenChanges n c=:(ChangeUI local []) = (n + 1,[(n,ChangeChild (ChangeUI [] (iconChanges ++ [(1,ChangeChild c)])))])
-		where
-			iconChanges = case changeType ++ changeTooltip of
-				[] = []
-				changes = [(2,ChangeChild (ChangeUI changes []))]
+		iconChanges = case changeType ++ changeTooltip of
+			[] = []
+			changes = [(2,ChangeChild (ChangeUI changes []))]
 
-			changeType = case [t \\ ("setAttribute",[JSONString HINT_TYPE_ATTRIBUTE,JSONString t]) <- local] of
-				[type] 	= [("setAttribute",[JSONString "iconCls",JSONString ("icon-" +++ type)])]
-				_ 		= []
+		changeType = case [t \\ ("setAttribute",[JSONString HINT_TYPE_ATTRIBUTE,JSONString t]) <- localChanges] of
+			[type] 	= [("setAttribute",[JSONString "iconCls",JSONString ("icon-" +++ type)])]
+			_ 		= []
 
-			changeTooltip= case [h \\ ("setAttribute",[JSONString HINT_ATTRIBUTE,JSONString h]) <- local] of
-				[hint] 	= [("setAttribute",[JSONString "tooltip", JSONString hint])]
-				_ 		= []
-			
-		//Container (search recursively for more form items)
-		flattenChanges n (ChangeUI _ children) = flattenChildren n children
-		where	
-			flattenChildren n [] = (n,[])
-			flattenChildren n [(_,ChangeChild c):cs]
-				# (n, childChanges) = flattenChanges n c
-				# (n, remainderChanges) = flattenChildren n cs
-				= (n, childChanges ++ remainderChanges)
+		changeTooltip= case [h \\ ("setAttribute",[JSONString HINT_ATTRIBUTE,JSONString h]) <- localChanges] of
+			[hint] 	= [("setAttribute",[JSONString "tooltip", JSONString hint])]
+			_ 		= []
+	
+	layout (c,s) = (c,s)
 
 actionToButton :: Layout
 actionToButton = layout 
@@ -168,6 +148,7 @@ where
 	remap ("enable",[])  = ("setAttribute",[JSONString "enabled", JSONBool True])
 	remap ("disable",[]) = ("setAttribute",[JSONString "enabled", JSONBool False])
 	remap (op,args)      = (op,args)
+
 
 mapLst f [] = []
 mapLst f [x] = [f True x]

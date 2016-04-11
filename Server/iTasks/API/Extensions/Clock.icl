@@ -8,7 +8,6 @@ import qualified Data.Map as DM
 
 derive JSONEncode AnalogClock
 derive JSONDecode AnalogClock
-derive gEditMeta AnalogClock
 derive gVerify AnalogClock
 derive gEq AnalogClock
 derive gDefault AnalogClock
@@ -35,11 +34,32 @@ where
 		//Register listener for ui diffs from the server
 		# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) world
 		# world = jsSetObjectAttr "onAttributeChange" jsOnAttributeChange me world
-		= jsTrace "clock" world
+		= world
 
 	onAttributeChange me args world
-		# attr = args !! 0
-		= (jsNull,jsTrace attr world)
+		| jsArgToString (args !! 0) == "diff"
+			# changes = toJSVal (args !! 1)
+			//ONLY FIRST CHANGE FOR NOW
+			# (change,world) = jsGetObjectEl 0 changes world
+			# (field,world) = jsGetObjectEl 0 change world
+			# (value,world) = jsGetObjectEl 1 change world
+			//Update the hand
+			# (taskId,world) = jsGetObjectAttr "taskId" me world 
+			# (editorId,world) = jsGetObjectAttr "editorId" me world 
+			# cid = "editlet-" +++ (jsValToString taskId) +++ "-" +++ (jsValToString editorId)
+			# field = jsValToInt field
+			# world = updateHand (handId cid field, degrees field (jsValToInt value)) world
+			= (jsNull,world)
+		| otherwise
+			= (jsNull,jsTrace "Unknown attribute change" world)
+
+	handId cid 0 = cid+++"-sec-hand"
+	handId cid 1 = cid+++"-min-hand"
+	handId cid 2 = cid+++"-hour-hand"
+
+	degrees 0 v = 6 * v
+	degrees 1 v = 6 * v
+	degrees 2 v = 30 * v
 
     svgClock cid = SvgTag [StyleAttr "flex: 1; align-self: stretch;"] [ViewBoxAttr "0" "0" "100" "100"]
                           (face ++
@@ -64,7 +84,7 @@ where
     updateHand (id,degrees) world
         # (hand,world) = .? (getElementById id) world
         # (_,world)    = callObjectMethod "setAttribute" [toJSArg "transform",toJSArg ("rotate("+++toString (degrees - 90)+++" 50 50)")] hand world
-        = world
+        = jsTrace hand world
 
 genTimeDiff :: AnalogClock AnalogClock -> Maybe [(Int,Int)]
 genTimeDiff (AnalogClock t1) (AnalogClock t2) = case (  (if (t1.Time.sec == t2.Time.sec) [] [(0,t2.Time.sec)])

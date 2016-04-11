@@ -77,9 +77,6 @@ derive class iTask TStability, BlueprintIdent, BlueprintInstance
 derive gEditor
   TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
 
-derive gEditMeta
-  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
-
 derive gDefault
   TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
 

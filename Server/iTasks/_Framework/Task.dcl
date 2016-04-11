@@ -18,7 +18,6 @@ derive gDefault			Task
 derive gVerify			Task
 derive gText	        Task
 derive gEditor			Task
-derive gEditMeta		Task
 derive gEq				Task
 
 // Tasks

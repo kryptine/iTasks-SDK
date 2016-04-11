@@ -303,9 +303,6 @@ tonicWrapTaskBody` mn tn args cases t=:(Task eval)
   eval` _ event evalOpts taskTree=:TCNop iworld
     = eval event (resetInhOpts (setBlueprintInfo evalOpts)) taskTree iworld
 
-  eval` _ event evalOpts taskTree=:TCTasklet iworld
-    = eval event (resetInhOpts (setBlueprintInfo evalOpts)) taskTree iworld
-
   eval` _ event evalOpts taskTree iworld
     # evalOpts     = case taskIdFromTaskTree taskTree of
                        Ok tid -> setBPTaskId tid evalOpts
@@ -542,9 +539,6 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
     = eval event evalOpts taskTree iworld
 
   eval` event evalOpts taskTree=:(TCDestroy _) iworld
-    = eval event evalOpts taskTree iworld
-
-  eval` event evalOpts taskTree=:TCTasklet iworld
     = eval event evalOpts taskTree iworld
 
   eval` event evalOpts taskTree iworld

@@ -16,7 +16,7 @@ from Data.Map import :: Map
 from System.Time import :: Timestamp
 from iTasks._Framework.SDS import :: RWShared
 
-from iTasks.UI.Editor import :: Editor, :: VSt(..), :: EditMask, :: Masked, :: EditMeta, :: USt
+from iTasks.UI.Editor import :: Editor, :: VSt(..), :: EditMask, :: Masked, :: USt
 /**
 * Main eneric editor function
 */
@@ -37,25 +37,6 @@ derive gEditor EditableList
 derive gEditor RWShared
 
 derive bimap Editor
-
-/**
-* Type-dependent meta data useful for generating editors
-*/
-generic gEditMeta a :: a -> [EditMeta]
-
-derive gEditMeta
-	UNIT,
-	EITHER with fx fy,
-	PAIR with fx fy,
-	OBJECT with fx,
-	CONS with fx,
-	RECORD with fx,
-	FIELD of {gfd_name} with fx
-	
-derive gEditMeta Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (,,,,,), (->), Dynamic
-derive gEditMeta Maybe, Either, MaybeError,  Map, JSONNode, HtmlTag, Timestamp
-derive gEditMeta EditableList
-derive gEditMeta RWShared
 
 //Check a value to see if it is ok
 generic gVerify a :: !VerifyOptions (Masked a) -> Verification

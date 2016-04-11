@@ -65,7 +65,6 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	| TCLayout					!JSONNode !TaskTree
 	| TCNop			
 	| TCDestroy					!TaskTree	//Marks a task state as garbage that must be destroyed (TODO: replace by explicit event
-	| TCTasklet								//TODO: Remove
 
 taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
 

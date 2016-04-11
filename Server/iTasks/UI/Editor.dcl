@@ -54,12 +54,6 @@ isTouched	:: !EditMask -> Bool
 	, iworld			:: !*IWorld												// The iworld, used for example if external tools are needed to create editors
 	}
 
-:: EditMeta
-	= { label	:: Maybe String
-	  , hint	:: Maybe String
-      , unit    :: Maybe (Either String String)
-	  }
-
 :: *USt =
     { taskId            :: !String
     , iworld            :: !*IWorld

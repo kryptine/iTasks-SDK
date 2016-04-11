@@ -454,38 +454,6 @@ gEditor{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = emptyEditor
 
 derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), Timestamp, Map
 
-generic gEditMeta a :: a -> [EditMeta]
-
-gEditMeta{|UNIT|} _			= [{label=Nothing,hint=Nothing,unit=Nothing}]
-gEditMeta{|PAIR|} fx fy _	= fx undef ++ fy undef
-gEditMeta{|EITHER|} fx fy _	= fx undef //Only consider first constructor
-gEditMeta{|OBJECT|} fx _	= fx undef
-gEditMeta{|CONS|} fx _		= [{label=Nothing,hint=Nothing,unit=Nothing}]
-gEditMeta{|RECORD|} fx _ 	= fx undef
-gEditMeta{|FIELD of {gfd_name}|} fx _
-							= [{EditMeta|m & label = Just (fromMaybe gfd_name label)} \\ m=:{EditMeta|label} <- fx undef]
-gEditMeta{|Int|}	_		= [{label=Nothing,hint=Just "You may enter a whole number",unit=Nothing}]
-gEditMeta{|Real|} _			= [{label=Nothing,hint=Just "You may enter a decimal number",unit=Nothing}]
-gEditMeta{|Char|} _			= [{label=Nothing,hint=Just "You may enter a single character",unit=Nothing}]
-gEditMeta{|String|} _		= [{label=Nothing,hint=Just "You may enter a single line of text",unit=Nothing}]
-gEditMeta{|Bool|} _ 		= [{label=Nothing,hint=Nothing,unit=Nothing}]
-gEditMeta{|Dynamic|}	_	= [{label=Nothing,hint=Just "",unit=Nothing}]
-gEditMeta{|HtmlTag|}	_	= [{label=Nothing,hint=Nothing,unit=Nothing}]
-gEditMeta{|(->)|} _ _ _		= [{label=Nothing,hint=Nothing,unit=Nothing}]
-gEditMeta{|Maybe|} fx _		= fx undef
-gEditMeta{|[]|} fx _		        = fx undef
-gEditMeta{|EditableList|} fx _      = fx undef
-
-gEditMeta{|()|} _                    = []
-gEditMeta{|(,)|} fa fb _             = fa undef ++ fb undef
-gEditMeta{|(,,)|} fa fb fc _         = fa undef ++ fb undef ++ fc undef
-gEditMeta{|(,,,)|} fa fb fc fd _     = fa undef ++ fb undef ++ fc undef ++ fd undef
-gEditMeta{|(,,,,)|} fa fb fc fd fe _ = fa undef ++ fb undef ++ fc undef ++ fd undef ++ fe undef
-gEditMeta{|(,,,,,)|} fa fb fc fd fe ff _ = fa undef ++ fb undef ++ fc undef ++ fd undef ++ fe undef ++ ff undef
-gEditMeta{|RWShared|} _ _ _ _ = [{label=Nothing,hint=Nothing,unit=Nothing}]
-
-derive gEditMeta Either, MaybeError, Map, JSONNode, Timestamp, EditableListAdd
-
 //Generic Verify
 generic gVerify a :: !VerifyOptions (Masked a) -> Verification
 

@@ -18,7 +18,7 @@ from System.FilePath import :: FilePath
 from iTasks._Framework.SDS import :: Shared, :: ReadWriteShared, :: RWShared
 from iTasks._Framework.IWorld import :: IWorld
 from iTasks._Framework.Generic				import class iTask
-from iTasks._Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, :: VSt, ::USt, :: EditMeta, :: VerifyOptions, :: DataPath, :: VerifiedValue, :: Verification 
+from iTasks._Framework.Generic.Interaction	import generic gEditor, generic gVerify, :: VSt, ::USt, :: VerifyOptions, :: DataPath, :: VerifiedValue, :: Verification 
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks._Framework.Generic.Defaults		import generic gDefault

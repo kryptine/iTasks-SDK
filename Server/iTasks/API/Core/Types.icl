@@ -83,7 +83,6 @@ derive gDefault			EmailAddress
 derive gEq				EmailAddress
 derive gText	        EmailAddress
 derive gEditor			EmailAddress
-derive gEditMeta		EmailAddress
 derive gVerify			EmailAddress
 
 instance toString EmailAddress
@@ -101,7 +100,6 @@ derive gDefault			PhoneNumber
 derive gEq				PhoneNumber
 derive gText	        PhoneNumber
 derive gEditor			PhoneNumber
-derive gEditMeta		PhoneNumber
 derive gVerify			PhoneNumber
 
 instance toString PhoneNumber
@@ -130,8 +128,6 @@ where
 	appDiff dp e val mask ust = basicUpdate (\json url -> Just (maybe url (\s -> URL s) (fromJSON json))) dp e val mask ust
 
 gVerify{|URL|} mv options = simpleVerify mv options
-
-gEditMeta{|URL|} _ = [{label=Nothing,hint=Just "Enter a uniform resource locator (URL)",unit=Nothing}]
 
 derive JSONEncode		URL
 derive JSONDecode		URL
@@ -181,7 +177,6 @@ where
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
 gVerify{|Note|} mv options = simpleVerify mv options
-gEditMeta{|Note|} _ = [{label=Nothing,hint=Just "You may enter multiple lines of text",unit=Nothing}]
 
 
 derive gDefault			Note
@@ -208,7 +203,6 @@ JSONDecode{|CleanCode|} _ c = (Nothing,c)
 gText{|CleanCode|}		_ val		= [maybe "" toString val]
 
 gVerify{|CleanCode|} mv options = simpleVerify mv options
-gEditMeta{|CleanCode|} _ = [{label=Nothing,hint=Just "Enter a piece of Clean code",unit=Nothing}]
 
 derive gEditor  CleanCode
 derive gDefault	CleanCode
@@ -242,7 +236,6 @@ where
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
 gVerify{|EUR|} mv options = simpleVerify mv options
-gEditMeta{|EUR|} _ = [{label=Nothing,hint=Just "Enter an amount in EUR",unit=Just (Left "&euro;")}]
 
 instance toString EUR
 where
@@ -295,7 +288,6 @@ where
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
 gVerify{|USD|} mv options = simpleVerify mv options
-gEditMeta{|USD|} _ = [{label=Nothing,hint=Just "Enter an amount in USD",unit=Just (Left "$")}]
 
 instance toString USD
 where
@@ -362,7 +354,6 @@ where
 
 gDefault{|Date|} = {Date|day = 1, mon = 1, year = 1970}
 gVerify{|Date|} mv options = simpleVerify mv options
-gEditMeta{|Date|} _ = [{label=Nothing,hint=Just "Enter a date (yyyy-mm-dd)",unit=Nothing}]
 
 derive gEq			Date
 
@@ -452,7 +443,6 @@ where
 	appDiff dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
 
 gVerify{|Time|} mv options = simpleVerify mv options
-gEditMeta{|Time|} _ = [{label=Nothing,hint=Just "Enter a time (hh:mm:ss)",unit=Nothing}]
 
 derive gDefault		Time
 derive gEq			Time
@@ -541,7 +531,6 @@ where
 	appDiff dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
 
 gVerify{|DateTime|} mv options = simpleVerify mv options
-gEditMeta{|DateTime|} _ = [{label=Nothing,hint=Just "Enter a date and time (yyyy-mm-dd hh:mm:ss)",unit=Nothing}]
 
 instance toString DateTime
 where
@@ -613,7 +602,6 @@ where
 		Just doc	= (doc,Touched,ust) //Update
 	
 gVerify{|Document|} mv options = simpleVerify mv options
-gEditMeta{|Document|} _ = [{label=Nothing,hint=Just "Upload a document",unit=Nothing}]
 
 derive JSONEncode		Document
 derive JSONDecode		Document
@@ -694,7 +682,6 @@ where
 gVerify{|Scale|} _ mv = alwaysValid mv
 
 gDefault{|Scale|} = {Scale|min=1,cur=3,max=5}
-gEditMeta{|Scale|} _	= [{label=Nothing,hint=Just "You can change the value by sliding the scale",unit=Nothing}]
 
 //* Progress bars
 gText{|Progress|}	_ val  = [maybe "" (\{Progress|description} -> description) val]
@@ -718,7 +705,6 @@ where
 	appDiff dp e val mask ust = (val,mask,ust)
 
 gVerify{|Progress|} _ mv = alwaysValid mv
-gEditMeta{|Progress|} _		= [{label=Nothing,hint=Nothing,unit=Nothing}]
 
 derive gDefault			Progress
 
@@ -728,7 +714,6 @@ gText{|ProgressAmount|} _ _		                    = [""]
 
 derive gDefault			ProgressAmount
 derive gEditor 			ProgressAmount
-derive gEditMeta		ProgressAmount
 derive gVerify			ProgressAmount
 
 //* Inclusion of external html files
@@ -749,7 +734,6 @@ where
 gVerify{|HtmlInclude|} _ mv = alwaysValid mv
 
 derive gDefault HtmlInclude
-derive gEditMeta HtmlInclude
 
 //* Form buttons
 gText{|FormButton|}	_ val = [maybe "" (\v -> v.FormButton.label) val]
@@ -772,8 +756,6 @@ gVerify{|FormButton|} _ mv = alwaysValid mv
 
 gDefault{|FormButton|} = {FormButton | label = "Form Button", icon="", state = NotPressed}
 
-derive gEditMeta FormButton
-
 instance toString FormButton
 where
 	toString button = toString (pressed button)
@@ -788,7 +770,6 @@ gText{|ButtonState|}	_ _                 = [""]
 
 derive gDefault		ButtonState
 derive gEditor		ButtonState
-derive gEditMeta	ButtonState
 derive gVerify		ButtonState
 
 //* Table consisting of headers, the displayed data cells & possibly a selection
@@ -814,8 +795,6 @@ where
 gVerify{|Table|} _ mv = alwaysValid mv
 gDefault{|Table|} = Table [] [] Nothing
 
-derive gEditMeta Table
-
 toTable	:: ![a] -> Table | gText{|*|} a
 toTable a = Table (headers a Nothing) (map row a) Nothing
 where
@@ -828,7 +807,6 @@ where
 derive gDefault			ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gText	        ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gEditor	        ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gEditMeta		ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gVerify			ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 		
 instance Functor ChoiceTree
@@ -1288,7 +1266,6 @@ treeToList [{ChoiceTree|label,type=ExpandedNode children}:r] = [Just label:treeT
 derive JSONEncode		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
 derive JSONDecode		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
 derive gEq				ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
-derive gEditMeta		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
 
 //* Visualization wrappers
 gText{|VisualizationHint|} fx mode (Just val) = case val of
@@ -1426,7 +1403,6 @@ derive JSONEncode		Hidden, Display, Editable, VisualizationHint, Row, Col, Edita
 derive JSONDecode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
 derive gDefault			Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
 derive gEq				Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive gEditMeta		Hidden, Display, Editable, VisualizationHint, Row, Col
 derive gText            EditableList, EditableListAdd
 
 //* Framework types
@@ -1522,7 +1498,6 @@ derive gDefault			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, T
 derive gEq				TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
 derive gText	        TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
 derive gEditor			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
-derive gEditMeta		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
 derive gVerify			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
 
 derive class iTask TaskId, Config, ProcessStatus
@@ -1574,7 +1549,6 @@ derive JSONDecode		Icon
 derive gDefault			Icon
 derive gEq				Icon
 derive gText	        Icon
-derive gEditMeta		Icon
 derive gVerify			Icon
 
 gEditor{|Icon|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
@@ -1604,7 +1578,6 @@ gEq{|(->)|} _ _ fa fb		= copy_to_string fa == copy_to_string fb // HACK: Compare
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 
 gDefault{|{}|} _ = undef
-gEditMeta{|{}|} _ _ = undef
 gEditor{|{}|} _ _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
 where
 	genUI _ _ _ vst = (ui UIEmpty,vst)
@@ -1618,12 +1591,10 @@ derive JSONEncode SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity,
 derive JSONDecode SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gEq        SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gDefault   SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
-derive gEditMeta  SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gEditor    SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gText      SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gVerify    SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gDefault   HtmlAttr
-derive gEditMeta  HtmlAttr
 derive gEditor    HtmlAttr
 derive gText      HtmlAttr
 derive gVerify    HtmlAttr

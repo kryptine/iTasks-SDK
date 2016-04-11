@@ -12,7 +12,6 @@ derive gDefault			User, UserConstraint
 derive gEq				User, UserConstraint
 derive gText	        UserConstraint
 derive gEditor			User, UserConstraint
-derive gEditMeta		User, UserConstraint
 derive gVerify			User, UserConstraint
 
 instance toString User
@@ -85,7 +84,6 @@ where
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
 gVerify{|Username|} mv options = simpleVerify mv options
-gEditMeta{|Username|} _ = [{label=Nothing,hint=Just "Enter a username",unit=Nothing}]
 
 derive gDefault			Username
 derive gEq				Username
@@ -126,7 +124,6 @@ where
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
 
 gVerify{|Password|} mv options = simpleVerify mv options
-gEditMeta{|Password|} _ = [{label=Nothing,hint=Just "Enter a password",unit=Nothing}]
 
 derive gDefault			Password
 derive gEq				Password

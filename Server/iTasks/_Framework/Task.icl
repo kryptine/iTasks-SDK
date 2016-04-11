@@ -58,7 +58,6 @@ where
 	genDiff dp ov om nv nm vst = (NoChange,vst)
 	appDiff dp e val mask ust = basicUpdate (\() t -> Just t) dp e val mask ust
 
-gEditMeta{|Task|} _ _ 		= [{label=Just "Task",hint=Nothing,unit=Nothing}]
 gEq{|Task|} _ _ _			= True // tasks are always equal??
 
 gDefault{|Task|} gDefx = Task (\_ -> abort error)

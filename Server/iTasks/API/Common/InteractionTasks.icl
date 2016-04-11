@@ -281,9 +281,9 @@ where
         []   = ChooseFromComboBox f
         [""] = ChooseFromComboBox f
         _    = ChooseFromGrid f
-    where
-        headers :: [a] a -> [String] | gEditMeta{|*|} a
-        headers _ a = [fromMaybe "" label \\{EditMeta|label} <- gEditMeta{|*|} a]
+
+headers :: [a] a -> [String] | JSONEncode{|*|} a
+headers _ a = case toJSON a of (JSONObject fields) = map fst fields ; _ = []
 
 //When we don't have an (o -> a) transformation and no view transformation, we don't need to keep
 //the choice options in the interact's state (which saves space and time)
@@ -294,9 +294,6 @@ where
         []   = DCCombo (ComboChoice container Nothing)
         [""] = DCCombo (ComboChoice container Nothing)
         _    = DCGrid  (GridChoice container Nothing)
-    where
-        headers :: [a] a -> [String] | gEditMeta{|*|} a
-        headers _ a = [fromMaybe "" label \\{EditMeta|label} <- gEditMeta{|*|} a]
 
 updateChoiceView :: (ChoiceType o v) [o] (o -> a) (Maybe a) [a] (DynamicChoice v,EditMask) -> (DynamicChoice v,EditMask) | iTask o & iTask v & iTask a
 //updateChoiceView type container target mbSel targets (view,mask)

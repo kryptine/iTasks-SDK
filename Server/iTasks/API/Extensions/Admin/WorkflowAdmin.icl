@@ -12,7 +12,6 @@ derive class iTask Workflow
 
 gText{|WorkflowTaskContainer|} _ _			            = []
 gEditor{|WorkflowTaskContainer|} 						= emptyEditor
-gEditMeta{|WorkflowTaskContainer|} _ 				    = [{label=Just "Workflow task container",hint=Nothing,unit=Nothing}]
 gVerify{|WorkflowTaskContainer|} _ mv 				    = alwaysValid mv
 JSONEncode{|WorkflowTaskContainer|} _ c				    = [dynamicJSONEncode c]
 JSONDecode{|WorkflowTaskContainer|} _ [c:r]			    = (dynamicJSONDecode c,r)
