@@ -617,6 +617,12 @@ mkClickMeta inh mbnid modName taskName mborig mbtarget =
                              }
   }
 
+ppCompId xs = "[" +++ ppCompId` xs +++ "]"
+  where
+  ppCompId` []  = ""
+  ppCompId` [x] = toString x
+  ppCompId` [x:xs] = toString x +++ ", " +++ ppCompId` xs
+
 tTaskDef :: !(InhMkImg i) !String !String !TExpr ![(!TExpr, !TExpr)] ![TExpr] !(Image ModelTy) !*TagSource
          -> *(!Image ModelTy, !*TagSource) | BlueprintLike i
 tTaskDef inh moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTag) : (argsTag, uArgsTag) : (bdytag, uBodyTag) : tsrc]
@@ -626,7 +632,7 @@ tTaskDef inh moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTa
                                     _       -> empty zero zero
                       _        -> empty zero zero
   #! taskIdStr    = case inh.inh_bpinst of
-                      Just bpi -> " (" +++ toString (getComputationId bpi) +++ ")"
+                      Just bpi -> " " +++ ppCompId (getComputationId bpi)
                       _        -> ""
   #! taskNameImg  = beside (repeat AtMiddleY) [] [ text ArialRegular10px (moduleName +++ ".")
                                                  , text ArialBold10px (taskName +++ " :: " +++ ppTExpr resultTy)
