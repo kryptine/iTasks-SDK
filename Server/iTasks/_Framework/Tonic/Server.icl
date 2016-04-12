@@ -21,13 +21,16 @@ import iTasks._Framework.Tonic.Images
   }
 
 :: ViewerSettings =
-  { autoPlay :: Bool
+  { autoPlay          :: Bool
+  , selectedBlueprint :: Maybe TMNewTopLevel
   }
 
 derive class iTask ServerState, ViewerSettings
 
 shViewerSettings :: Shared ViewerSettings
-shViewerSettings = sharedStore "shViewerSettings" { autoPlay = True }
+shViewerSettings = sharedStore "shViewerSettings" { autoPlay = True
+                                                  , selectedBlueprint = Nothing
+                                                  }
 
 foldT_ :: (a -> Task ()) [a] -> Task ()
 foldT_ f []       = return ()
@@ -35,17 +38,8 @@ foldT_ f [x : xs] = f x >>| foldT_ f xs
 
 :: TonicGenRTMap :== Map ComputationId [((ModuleName, FuncName), GenBlueprintInstance)]
 
-:: GenBlueprintInstance =
-  { gbpi_computationId    :: !ComputationId
-  , gbpi_activeNode       :: !(ComputationId, ExprId)
-  , gbpi_previouslyActive :: !Map ExprId ComputationId
-  , gbpi_parentId         :: !ComputationId
-  , gbpi_blueprint        :: !TonicFunc
-  , gbpi_case_branches    :: !Map ExprId Int
-  , gbpi_bpref            :: !BlueprintIdent
-  }
-
-derive class iTask GenBlueprintInstance
+shGenRTMap :: RWShared () TonicGenRTMap TonicGenRTMap
+shGenRTMap = sharedStore "shGenRTMap" 'DM'.newMap
 
 newRTMapFromMessages :: [(TonicMessage, Bool)] -> Task TonicGenRTMap
 newRTMapFromMessages xs = updRTMapFromMessages xs 'DM'.newMap
@@ -85,11 +79,11 @@ processMessage (TMNewTopLevel tmn) rtMap
     # comps = comps ++ [((tmn.tmn_bpModuleName, tmn.tmn_bpFunctionName), bpinst)]
     = 'DM'.put tmn.tmn_computationId comps rtMap
 processMessage (TMApply tma) rtMap
-    # mParentBP = readRTMap (mkParentId tma.tma_computationId) tma.tma_bpModuleName tma.tma_bpFunctionName rtMap
-    = case mParentBP of
-        Just parentBPInst
-          = return (updateRTMap tma parentBPInst rtMap)
-        _ = return rtMap
+  # mParentBP = readRTMap (mkParentId tma.tma_computationId) tma.tma_bpModuleName tma.tma_bpFunctionName rtMap
+  = case mParentBP of
+      Just parentBPInst
+        = return (updateRTMap tma parentBPInst rtMap)
+      _ = return rtMap
   where
   readRTMap :: ComputationId ModuleName FuncName TonicGenRTMap -> Maybe GenBlueprintInstance
   readRTMap bpId mn tn rtMap
@@ -109,21 +103,37 @@ processMessage (TMApply tma) rtMap
           = 'DM'.put tma.tma_computationId [(x, newParent) : xs] rtMap
         _ = rtMap
 
-undef = undef
+showGenBlueprintInstance :: ![TaskAppRenderer] !GenBlueprintInstance
+                            !(Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int)))
+                            !Bool !Scale
+                         -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
+showGenBlueprintInstance rs bpi selDetail compact depth
+  = updateInformation ()
+      [imageUpdate id (\_ -> mkGenInstanceImage rs bpi selDetail compact) (const id) (const id) (\_ _ -> Nothing) (const id)]
+      { ActionState
+      | state  = { tis_task    = bpi.gbpi_blueprint
+                 , tis_depth   = depth
+                 , tis_compact = compact }
+      , action = Nothing}
+
 standAloneTonicViewer :: Task ()
 standAloneTonicViewer
   = allTasks [ updateSharedInformation "Viewer settings" [] shViewerSettings @! ()
+             , let f (TMNewTopLevel tl) = [tl]
+                   f _                  = []
+               in forever (enterChoiceWithShared "Select blueprint" [] (mapRead (\(_, xs) -> 'DL'.concatMap (f o fst) xs) tonicServerShare) >>= \c -> upd (\x -> {x & selectedBlueprint = Just c}) shViewerSettings) @! ()
              , startViewer -1 @! ()
              ] @! ()
   where
   startViewer idx = get (tonicServerShare |+| shViewerSettings) >>= runViewer idx
   runViewer :: Int ((Bool, [(TonicMessage, Bool)]), ViewerSettings) -> Task ()
-  runViewer curIdx ((_, messages), {autoPlay = True})
-    # newMessages = takeWhile (not o snd) messages
-    =   foldT_ processMessages newMessages
-    >>| toggleMessages (length newMessages)
-    >>| waitForTimer {Time | hour = 0, min = 0, sec = 1}
-    >>| startViewer curIdx
+  runViewer curIdx ((_, messages), {autoPlay = True, selectedBlueprint = Just tmn})
+    =                newRTMapFromMessages messages
+    >>~ \newRTMap -> case 'DM'.get tmn.tmn_computationId newRTMap of
+                       Just [(_, selBPI) : _]
+                         =   showGenBlueprintInstance [] selBPI Nothing False { Scale | min = 0, cur = 0, max = 0} // TODO Enable controls
+                         >>| startViewer curIdx
+                       _ = startViewer curIdx
     where
     // TODO FIXME: Don't do the reverses; it's expensive. Do it the smart way
     toggleMessages n = upd (\(b, msgs) -> (b, reverse (f n (reverse msgs)))) tonicServerShare
@@ -216,7 +226,7 @@ standAloneTonicViewer
 viewInstance :: !BlueprintInstance -> Task ()
 viewInstance bpi=:{bpi_blueprint, bpi_bpref = {bpr_moduleName, bpr_taskName}}
   = updateInformation ()
-      [imageUpdate id (\_ -> mkInstanceImage [] bpi 'DM'.newMap 'DM'.newMap Nothing False) (const id) (const id) (\_ _ -> Nothing) (const id)]
+      [imageUpdate id (\_ -> mkTaskInstanceImage [] bpi 'DM'.newMap 'DM'.newMap Nothing False) (const id) (const id) (\_ _ -> Nothing) (const id)]
       { ActionState
       | state  = { tis_task    = bpi.bpi_blueprint
                  , tis_depth   = { Scale | min = 0, cur = 0, max = 0}

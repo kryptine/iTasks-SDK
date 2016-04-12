@@ -4,11 +4,10 @@ import StdString
 import StdOverloaded
 from Data.IntMap.Strict import :: IntMap
 from iTasks._Framework.Tonic.AbsSyn import :: TonicModule, :: TAssoc, :: TLit, :: TExpr, :: FuncName, :: TPriority, :: ModuleName, :: TonicFunc
-from iTasks._Framework.Tonic.Images import :: ClickMeta
 import iTasks._Framework.Generic
 import iTasks.API.Extensions.User
-from iTasks.API.Core.Types import :: DateTime
-
+from iTasks.API.Core.Types import :: DateTime, :: Scale
+from iTasks.API.Extensions.User import :: User
 
 :: ListId :== TaskId
 
@@ -98,7 +97,56 @@ derive class iTask TStability, BlueprintIdent, BlueprintInstance
   , tma_appFunName     :: FunctionName
   }
 
-derive class iTask TonicMessage, TMNewTopLevel, TMApply
+:: GenBlueprintInstance =
+  { gbpi_computationId    :: !ComputationId
+  , gbpi_activeNode       :: !(ComputationId, ExprId)
+  , gbpi_previouslyActive :: !Map ExprId ComputationId
+  , gbpi_parentId         :: !ComputationId
+  , gbpi_blueprint        :: !TonicFunc
+  , gbpi_case_branches    :: !Map ExprId Int
+  , gbpi_bpref            :: !BlueprintIdent
+  }
+
+class BlueprintLike a where
+  getComputationId    :: a -> ComputationId
+  getIdent            :: a -> BlueprintIdent
+  getBranches         :: a -> Map ExprId Int
+  getActiveCompIds    :: a -> [ComputationId]
+  getActiveCompId     :: ExprId a -> Maybe ComputationId
+  getPreviouslyActive :: a -> Map ExprId ComputationId
+  getCurrentUser      :: a -> Maybe String
+
+instance BlueprintLike BlueprintInstance
+
+toComp :: !TaskId -> ComputationId
+comp2TaskId :: !ComputationId -> TaskId
+
+instance BlueprintLike GenBlueprintInstance
+
+:: TClickAction = TNavAction | TDetailAction | TSelectArg Int
+
+:: TonicImageState
+  = { tis_task    :: TonicFunc
+    , tis_depth   :: Scale
+    , tis_compact :: Bool
+    }
+
+:: ClickMeta =
+  { click_origin_mbbpident :: !Maybe BlueprintRef
+  , click_origin_mbnodeId  :: !Maybe ExprId
+  , click_target_bpident   :: !BlueprintRef
+  }
+
+:: BlueprintRef =
+  { bpident_moduleName :: !ModuleName
+  , bpident_compName   :: !FuncName
+  , bpident_compId     :: !Maybe ComputationId
+  }
+
+derive class iTask TonicImageState, TClickAction, ClickMeta, BlueprintRef
+
+
+derive class iTask GenBlueprintInstance, TonicMessage, TMNewTopLevel, TMApply
 
 derive gEditor
   TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
