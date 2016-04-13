@@ -5,6 +5,10 @@ import iTasks.API.Core.SDSs, iTasks.API.Core.SDSCombinators
 import iTasks.API.Core.Types
 from StdFunc import o, const, flip, id
 from iTasks._Framework.Task import exception
+import qualified Data.Map as DM
+import qualified Data.IntMap.Strict as DIS
+from Data.IntMap.Strict import :: IntMap
+from Data.Map import :: Map
 
 sdsFocus :: !p !(RWShared p r w) -> (RWShared p` r w) | iTask p
 sdsFocus p sds = sdsTranslate ("("+++ toString (toJSON p)+++")/") (const p) sds
@@ -150,4 +154,48 @@ where
         [p:_]   = Ok p
         _       = Error (exception "taskListItemProgress: item not found")
 
+mapMaybeLens :: !String !(RWShared () (Map a b) (Map a b)) -> RWShared a (Maybe b) b | < a & == a
+mapMaybeLens name origShare = sdsLens name (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) origShare
+  where
+  read :: !a !(Map a b) -> MaybeError TaskException (Maybe b) | < a & == a
+  read idx m = Ok ('DM'.get idx m)
 
+  write :: !a !(Map a b) !b -> MaybeError TaskException (Maybe (Map a b)) | < a & == a
+  write idx oldmap newval = Ok (Just ('DM'.put idx newval oldmap))
+
+  notify :: !a !(Map a b) !b -> SDSNotifyPred a | < a & == a
+  notify idx oldmap newval = \idx` -> idx == idx`
+
+mapLens :: !String !(RWShared () (Map a b) (Map a b)) !(Maybe b) -> RWShared a b b | < a & == a
+mapLens name origShare mdef = sdsLens name (const ()) (SDSRead (read mdef)) (SDSWrite write) (SDSNotify notify) origShare
+  where
+  read :: !(Maybe b) !a !(Map a b) -> MaybeError TaskException b | < a & == a
+  read mdef idx m
+    = case 'DM'.get idx m of
+        Just x -> Ok x
+        _      -> case mdef of
+                    Just def -> Ok def
+                    _        -> Error (exception (name +++ " (mapLens): Index not found"))
+
+  write :: !a !(Map a b) !b -> MaybeError TaskException (Maybe (Map a b)) | < a & == a
+  write idx oldmap newval = Ok (Just ('DM'.put idx newval oldmap))
+
+  notify :: !a !(Map a b) !b -> SDSNotifyPred a | < a & == a
+  notify idx oldmap newval = \idx` -> idx == idx`
+
+intMapLens :: !String !(RWShared () (IntMap a) (IntMap a)) !(Maybe a) -> RWShared Int a a
+intMapLens name origShare mdef = sdsLens name (const ()) (SDSRead (read mdef)) (SDSWrite write) (SDSNotify notify) origShare
+  where
+  read :: !(Maybe a) !Int !(IntMap a) -> MaybeError TaskException a
+  read mdef idx intmap
+    = case 'DIS'.get idx intmap of
+        Just x -> Ok x
+        _      -> case mdef of
+                    Just def -> Ok def
+                    _        -> Error (exception (name +++ " (intMapLens): Index " +++ toString idx +++ " not found"))
+
+  write :: !Int !(IntMap a) !a -> MaybeError TaskException (Maybe (IntMap a))
+  write idx oldmap newval = Ok (Just ('DIS'.put idx newval oldmap))
+
+  notify :: !Int !(IntMap a) !a -> SDSNotifyPred Int
+  notify idx oldmap newval = \idx` -> idx == idx`
