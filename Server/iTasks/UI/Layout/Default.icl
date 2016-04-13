@@ -45,7 +45,7 @@ where
 
 finalizeForm :: Layout
 finalizeForm
-	= sequenceLayouts [layoutChildrenOf [] layoutRow
+	= sequenceLayouts [layoutSubsMatching [] isFormItem layoutRow
 					  ,changeNodeType (\(UI UIForm attr items) -> UI UIContainer attr items)
 					  ]
 where
@@ -95,6 +95,7 @@ isStep = \n -> n =:(UI UIStep _ _)
 isParallel = \n -> n =:(UI UIParallel _ _)
 isAction = \n -> n =:(UI UIAction _ _)
 isEmpty = \n -> n =:(UI UIEmpty _ _)
+isFormItem = \n -> n =:(UI UIFormItem _ _)
 
 isIntermediate (UI type _ _) = isMember type [UIInteract,UIStep,UIParallel]
 
@@ -118,7 +119,6 @@ where
 
 	layout (c=:(ChangeUI localChanges childChanges),s) 
 		//Check if the tooltip or icon needs to be updated
-		# iconChanges = []
 		= (ChangeUI [] (iconChanges ++ [(1,ChangeChild c)]),s)
 	where
 		iconChanges = case changeType ++ changeTooltip of

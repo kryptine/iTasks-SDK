@@ -98,8 +98,7 @@ fromJSArg 			:: !JSArg !*JSWorld -> *(!Dynamic, !*JSWorld)
 fromJSValUnsafe		:: !(JSVal a) -> Dynamic
 fromJSVal 			:: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
 
-
-newJSArray          :: !*JSWorld                          -> *(!JSArr a, !*JSWorld)
+newJSArray          :: !*JSWorld -> *(!JSArr a, !*JSWorld)
 
 //USEFUL DERIVED UTIL FUNCTIONS
 

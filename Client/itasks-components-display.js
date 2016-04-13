@@ -1,6 +1,6 @@
 itasks.itwc_view_string = {
 	initDOMEl: function() {
-		this.domEl.innerHTML = this.value;
+		this.domEl.innerHTML = this.value || '';
 	},
 	setValue: function(html) {
 		this.domEl.innerHTML = html;	
@@ -13,7 +13,7 @@ itasks.itwc_view_string = {
 };
 itasks.itwc_view_html = {
 	initDOMEl: function() {
-		this.domEl.innerHTML = this.value;
+		this.domEl.innerHTML = this.value || '';
 	},
 	setValue: function(html) {
 		this.domEl.innerHTML = html;	
