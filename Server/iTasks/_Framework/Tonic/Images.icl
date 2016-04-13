@@ -562,7 +562,7 @@ renderParallelContainer inh eid moduleName taskName descr syn_branches uContextT
                            (Just x, _) -> Just x
                            (_, Just x) -> Just x
                            _           -> Nothing
-  #! taskIdStr         = maybe "" (\x -> " (" +++ toString x +++ ")") mComputationId
+  #! taskIdStr         = maybe "" (\x -> " (" +++ ppCompId x +++ ")") mComputationId
   #! displayName       = descr +++ taskIdStr
   #! (taskApp, tsrc)   = tParApp inh.inh_compact eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName displayName syn_branches tsrc
   #! clickMeta         = mkClickMeta inh (Just eid) moduleName taskName (fmap getComputationId inh.inh_bpinst) mbNavTo
@@ -750,7 +750,7 @@ renderTaskApp inh eid moduleName taskName taskArgs displayName tsrc
                             (Just x, _) -> Just x
                             (_, Just x) -> Just x
                             _           -> Nothing
-  #! augments           = maybe inh.inh_augments (\x -> [text ArialBold10px ("(" +++ toString x +++ ")") : inh.inh_augments]) mComputationId
+  #! augments           = maybe inh.inh_augments (\x -> [text ArialBold10px ("(" +++ ppCompId x +++ ")") : inh.inh_augments]) mComputationId
   #! (renderOpts, tsrc) = strictTRMapSt (\ta -> ta isDynamic inh.inh_in_branch inh.inh_compact isActive wasActive inh.inh_inaccessible inh.inh_future_unreachable eid inh.inh_bpref.bpr_moduleName inh.inh_bpref.bpr_taskName moduleName displayName taskArgs` augments) inh.inh_task_apps tsrc
   #! (taskApp, tsrc)    = case renderOpts of
                             [Just x:_] -> (x, tsrc)

@@ -192,14 +192,15 @@ tonicIOBlueprintPart mn fn nid mb
   persistTonicState1 :: *World -> *((), *World)
   persistTonicState1 world
     # (bk, world)          = openBookkeeping world
-    # bk & bkComputationId = case bk.TonicBookkeeping.bkComputationId of
+    # curId                = bk.TonicBookkeeping.bkComputationId
+    # bk & bkComputationId = case curId of
                                [x : xs] -> [x + 1 : x : xs]
                                xs       -> xs
     # world                = writeBookkeeping bk world
-    # world                = case 'DM'.get bk.TonicBookkeeping.bkComputationId bk.TonicBookkeeping.computations of
+    # world                = case 'DM'.get curId bk.TonicBookkeeping.computations of
                                Just comp
                                  # msg = { TMApply
-                                         | tma_computationId  = bk.TonicBookkeeping.bkComputationId
+                                         | tma_computationId  = curId
                                          , tma_nodeId         = nid
                                          , tma_bpModuleName   = comp.TonicComputation.moduleName
                                          , tma_bpFunctionName = comp.TonicComputation.funcName

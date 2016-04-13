@@ -4,6 +4,7 @@ import iTasks
 from iTasks._Framework.Tonic.AbsSyn import :: ModuleName
 from iTasks._Framework.Tonic.Types import :: TonicMessage
 
-standAloneTonicViewer :: Task ()
+liveStandAloneViewer :: Task ()
+archivedStandAloneViewer :: Task ()
 
-acceptAndViewTonicTraces :: Task (Bool, [(TonicMessage, Bool)])
+acceptAndViewTonicTraces :: Task ()

@@ -15,20 +15,15 @@ import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
 import iTasks._Framework.Tonic.Images
 
-:: ServerState =
-  { oldData  :: String
-  , clientIp :: String
-  }
-
 :: ViewerSettings =
-  { autoPlay          :: Bool
+  { recording         :: Bool
   , selectedBlueprint :: Maybe TMNewTopLevel
   }
 
-derive class iTask ServerState, ViewerSettings
+derive class iTask ViewerSettings
 
 shViewerSettings :: Shared ViewerSettings
-shViewerSettings = sharedStore "shViewerSettings" { autoPlay = True
+shViewerSettings = sharedStore "shViewerSettings" { recording = True
                                                   , selectedBlueprint = Nothing
                                                   }
 
@@ -36,17 +31,21 @@ foldT_ :: (a -> Task ()) [a] -> Task ()
 foldT_ f []       = return ()
 foldT_ f [x : xs] = f x >>| foldT_ f xs
 
-:: TonicGenRTMap :== Map ComputationId [((ModuleName, FuncName), GenBlueprintInstance)]
+liveRunStateShare :: RWShared () TonicGenRTMap TonicGenRTMap
+liveRunStateShare = sharedStore "liveRunStateShare" 'DM'.newMap
 
-shGenRTMap :: RWShared () TonicGenRTMap TonicGenRTMap
-shGenRTMap = sharedStore "shGenRTMap" 'DM'.newMap
+recordingsShare :: Shared (Map DateTime [TonicMessage])
+recordingsShare = sharedStore "recordingsShare" 'DM'.newMap
 
-newRTMapFromMessages :: [(TonicMessage, Bool)] -> Task TonicGenRTMap
+recordingForDateTimeShare :: ROShared DateTime [TonicMessage]
+recordingForDateTimeShare = toReadOnly (mapLens "recordingForDateTimeShare" recordingsShare (Just []))
+
+newRTMapFromMessages :: [TonicMessage] -> Task TonicGenRTMap
 newRTMapFromMessages xs = updRTMapFromMessages xs 'DM'.newMap
 
-updRTMapFromMessages :: [(TonicMessage, Bool)] TonicGenRTMap -> Task TonicGenRTMap
-updRTMapFromMessages []              rtMap = return rtMap
-updRTMapFromMessages [(msg, _) : xs] rtMap = processMessage msg rtMap >>= updRTMapFromMessages xs
+updRTMapFromMessages :: [TonicMessage] TonicGenRTMap -> Task TonicGenRTMap
+updRTMapFromMessages []         rtMap = return rtMap
+updRTMapFromMessages [msg : xs] rtMap = processMessage msg rtMap >>= updRTMapFromMessages xs
 
 // Partial function :(
 mkParentId :: ComputationId -> ComputationId
@@ -114,114 +113,120 @@ showGenBlueprintInstance rs bpi selDetail compact depth
       | state  = { tis_task    = bpi.gbpi_blueprint
                  , tis_depth   = depth
                  , tis_compact = compact }
-      , action = Nothing}
+      , action = Nothing
+      }
 
-standAloneTonicViewer :: Task ()
-standAloneTonicViewer
+archivedStandAloneViewer :: Task ()
+archivedStandAloneViewer
+  = archivedStandAloneViewer` -1
+  where
+  archivedStandAloneViewer` curIdx
+    =            enterChoiceWithShared "Select recording" [] (mapRead 'DM'.keys recordingsShare)
+    >&>          withSelection noSel1
+    (\dt ->      get (sdsFocus dt recordingForDateTimeShare)
+    >>~ \recs -> showRecs curIdx recs)
+  showRecs curIdx recs
+    # (msgs, curIdx) = chopMessages curIdx recs
+    # numMsgs        = length msgs
+    # lastIdx        = numMsgs - 1
+    # notFirst       = curIdx < numMsgs - 1
+    # notLast        = curIdx > 0
+    =                newRTMapFromMessages msgs
+    >>~ \newRTMap -> archivedStandAloneViewer`` curIdx newRTMap
+    >>* [ OnAction (Action "First" [])    (ifCond notFirst (showRecs lastIdx msgs))
+        , OnAction (Action "Previous" []) (ifCond notFirst (showRecs (curIdx + 1) msgs))
+        , OnAction (Action "Next" [])     (ifCond notLast  (showRecs (curIdx - 1) msgs))
+        , OnAction (Action "Last" [])     (ifCond notLast  (showRecs 0 msgs))
+        ]
+  archivedStandAloneViewer`` curIdx newRTMap
+    =   enterChoice "Select blueprint" [] ('DM'.toList newRTMap)
+    >&> withSelection noSel2 viewBP
+  noSel1 = viewInformation "Notice" [] "No recording selected"
+  noSel2 = viewInformation "Notice" [] "No blueprint"
+  viewBP :: (ComputationId, [((ModuleName, FuncName), GenBlueprintInstance)]) -> Task ()
+  viewBP (cid, [_, (_, gbpi) : _]) = showGenBlueprintInstance [] gbpi Nothing False { Scale | min = 0, cur = 0, max = 0} @! () // TODO Enable controls
+  viewBP _                         = viewInformation "Notice" [] "Failed to render blueprint" @! ()
+  chopMessages :: !Int [TonicMessage] -> ([TonicMessage], Int)
+  chopMessages curIdx msgs
+    # curIdx = if (curIdx < 0) (length msgs - 1) curIdx
+    = (take (curIdx + 1) msgs, curIdx)
+
+:: TonicGenRTMap :== Map ComputationId [((ModuleName, FuncName), GenBlueprintInstance)]
+
+saSelectedBlueprint :: Shared (Maybe (ComputationId, BlueprintIdent))
+saSelectedBlueprint = sharedStore "saSelectedBlueprint" Nothing
+
+liveStandAloneViewer :: Task ()
+liveStandAloneViewer
   = allTasks [ updateSharedInformation "Viewer settings" [] shViewerSettings @! ()
-             , let f (TMNewTopLevel tl) = [tl]
-                   f _                  = []
-               in forever (enterChoiceWithShared "Select blueprint" [] (mapRead (\(_, xs) -> 'DL'.concatMap (f o fst) xs) tonicServerShare) >>= \c -> upd (\x -> {x & selectedBlueprint = Just c}) shViewerSettings) @! ()
-             , startViewer -1 @! ()
+             , startViewer @! ()
              ] @! ()
   where
-  startViewer idx = get (tonicServerShare |+| shViewerSettings) >>= runViewer idx
-  runViewer :: Int ((Bool, [(TonicMessage, Bool)]), ViewerSettings) -> Task ()
-  runViewer curIdx ((_, messages), {autoPlay = True, selectedBlueprint = Just tmn})
-    =                newRTMapFromMessages messages
+  startViewer
+    =   enterChoiceWithShared "Select blueprint" [] (mapRead (\ts -> 'DL'.concatMap f ts.ts_allMsgs) tonicServerShare)
+    >&> withSelection noSel (
+    (\bp -> whileUnchanged (tonicServerShare |+| shViewerSettings)
+    (\x=:(tms, _) -> (runViewer x -|| forever (viewInformation () [] () >>* [ startAction tms
+                                                                            , pauseAction tms
+                                                                            , continueAction tms
+                                                                            , stopAction tms
+                                                                            ])))))
+    where
+    startAction :: TMessageStore -> TaskCont a (Task ())
+    startAction {ts_recording} = OnAction (Action "Start new recording" []) (ifCond (not ts_recording) startTask)
+      where
+      startTask
+        =   upd (\ts -> {ts & ts_recording = True, ts_recordingBuffer = []}) tonicServerShare @! ()
+    pauseAction :: TMessageStore -> TaskCont a (Task ())
+    pauseAction {ts_recording} = OnAction (Action "Pause recording" []) (ifCond ts_recording stopTask)
+      where
+      stopTask
+        =   upd (\ts -> {ts & ts_recording = False}) tonicServerShare @! ()
+    continueAction :: TMessageStore -> TaskCont a (Task ())
+    continueAction {ts_recording} = OnAction (Action "Continue recording" []) (ifCond (not ts_recording) stopTask)
+      where
+      stopTask
+        =   upd (\ts -> {ts & ts_recording = True}) tonicServerShare @! ()
+    stopAction :: TMessageStore -> TaskCont a (Task ())
+    stopAction {ts_recording} = OnAction (Action "Pause and save recording" []) (ifCond ts_recording stopTask)
+      where
+      stopTask
+        =           get tonicServerShare
+        >>- \ts  -> get currentDateTime
+        >>- \cdt -> upd ('DM'.put cdt ts.ts_recordingBuffer) recordingsShare
+        >>- \_   -> upd (\ts -> {ts & ts_recording = False}) tonicServerShare @! ()
+    refreshAction :: TaskCont a (Task ())
+    refreshAction = OnAction (Action "Refresh" []) (always startViewer)
+
+    noSel :: Task ()
+    noSel = viewInformation "Notice" [] "No blueprint selected" @! ()
+    f (TMNewTopLevel tl) = [tl]
+    f _                  = []
+  runViewer :: (TMessageStore, ViewerSettings) -> Task ()
+  runViewer ({ts_allMsgs}, {selectedBlueprint = Just tmn})
+    =                newRTMapFromMessages ts_allMsgs
     >>~ \newRTMap -> case 'DM'.get tmn.tmn_computationId newRTMap of
                        Just [(_, selBPI) : _]
-                         =   showGenBlueprintInstance [] selBPI Nothing False { Scale | min = 0, cur = 0, max = 0} // TODO Enable controls
-                         >>| startViewer curIdx
-                       _ = startViewer curIdx
-    where
-    // TODO FIXME: Don't do the reverses; it's expensive. Do it the smart way
-    toggleMessages n = upd (\(b, msgs) -> (b, reverse (f n (reverse msgs)))) tonicServerShare
-      where
-      f _ [] = []
-      f n [mp=:(msg, True) : msgs] = [mp : f n msgs]
-      f n [mp=:(msg, _) : msgs]
-        | n < 1     = [mp : msgs]
-        | otherwise = [(msg, True) : f (n - 1) msgs]
-    processMessages :: (TonicMessage, Bool) -> Task ()
-    processMessages (TMNewTopLevel msg, _)
-      = viewInformation () [] "Not implemented!" @! ()
-    processMessages (TMApply msg, _)
-      =           getModule msg.tma_bpModuleName
-      >>= \mod -> case getTonicFunc mod msg.tma_bpFunctionName of
-                    Just func
-                      # prevMsgs = [] // TODO FIXME
-                      # numPrev                     = length prevMsgs
-                      # inst                        = mkInstance msg.tma_nodeId func
-                      # inst & bpi_previouslyActive = 'DM'.fromList [(msg.tma_nodeId, TaskId 1 i) \\ (TMApply msg, _) <- prevMsgs & i <- reverse [0..numPrev]]
-                      # currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
-                      # inst & bpi_previouslyActive = 'DM'.union ('DM'.fromList currActive) inst.bpi_previouslyActive
-                      # inst & bpi_activeNodes      = case currActive of
-                                                        [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino numPrev, msg.tma_nodeId)) inst.bpi_activeNodes
-                      = return ()
-                    _ = return ()
+                         = showGenBlueprintInstance [] selBPI Nothing False { Scale | min = 0, cur = 0, max = 0} @! () // TODO Enable controls
+                       _ = startViewer
+  runViewer x = viewInformation "Notice" [] "No blueprint selected" >>| runViewer x
 
-  runViewer curIdx st=:((recording, messages), _)
-    # curIdx  = if (curIdx < 0) (length messages - 1) curIdx
-    # numMsgs = length messages
-    # lastIdx = numMsgs - 1
-    | curIdx >= 0 && curIdx < numMsgs
-      # notFirst = curIdx < numMsgs - 1
-      # notLast  = curIdx > 0
-      =   viewMessage (messages !! curIdx) (drop curIdx messages)
-      >>* [ OnAction (Action "Start recording" []) (ifCond (not recording) (toggleRecording >>| runViewer curIdx st))
-          , OnAction (Action "Stop recording" [])  (ifCond recording       (toggleRecording >>| runViewer curIdx st))
-          , OnAction (Action "First" [])           (ifCond notFirst        (runViewer lastIdx st))
-          , OnAction (Action "Previous" [])        (ifCond notFirst        (runViewer (curIdx + 1) st))
-          , OnAction (Action "Next" [])            (ifCond notLast         (runViewer (curIdx - 1) st))
-          , OnAction (Action "Last" [])            (ifCond notLast         (runViewer 0 st))
-          , OnAction (Action "Refresh" [])         (always                 (startViewer curIdx))
-          ]
-    | otherwise
-      =   viewInformation () [] "No recordings yet"
-      >>* [ OnAction (Action "Start recording" []) (ifCond (not recording) (toggleRecording >>| runViewer curIdx st))
-          , OnAction (Action "Stop recording" [])  (ifCond recording       (toggleRecording >>| runViewer curIdx st))
-          , OnAction (Action "Refresh" [])         (always                 (startViewer curIdx))
-          ]
-
-    where
-    toggleRecording = upd (\(b, msgs) -> (not b, msgs)) tonicServerShare
-  viewMessage :: (TonicMessage, Bool) [(TonicMessage, Bool)] -> Task ()
-  viewMessage (TMNewTopLevel msg, _) prevMsgs
-    = viewInformation () [] "Not implemented!" @! ()
-  viewMessage (TMApply msg, _) prevMsgs
-    =           getModule msg.tma_bpModuleName
-    >>= \mod -> case getTonicFunc mod msg.tma_bpFunctionName of
-                  Just func
-                    # numPrev                     = length prevMsgs
-                    # inst                        = mkInstance msg.tma_nodeId func
-                    # inst & bpi_previouslyActive = 'DM'.fromList [(msg.tma_nodeId, TaskId 1 i) \\ (TMApply msg, _) <- prevMsgs & i <- reverse [0..numPrev]]
-                    # currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
-                    # inst & bpi_previouslyActive = 'DM'.union ('DM'.fromList currActive) inst.bpi_previouslyActive
-                    # inst & bpi_activeNodes      = case currActive of
-                                                      [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino numPrev, msg.tma_nodeId)) inst.bpi_activeNodes
-                    = viewInstance inst
-                  _ = viewInformation () [] "No blueprint found!" @! ()
-
-//viewTonic :: Task ()
-//viewTonic = whileUnchanged tonicServerShare (updateBP Nothing o reverse o snd)
-  //where
-  //updateBP :: (Maybe BlueprintInstance) [TonicMessage] -> Task ()
-  //updateBP Nothing    [] = viewInformation () [] "Waiting for blueprint" @! ()
-  //updateBP (Just bpi) [] = viewInstance bpi
-  //updateBP Nothing [TMApply msg : msgs]
-    //=           getModule msg.tma_bpModuleName
-    //>>= \mod -> case getTonicFunc mod msg.tma_bpFunctionName of
-                  //Just func
-                    //# inst = mkInstance msg.tma_nodeId func
-                    //= updateBP (Just inst) msgs
-                  //_ = viewInformation () [] "Waiting for blueprint" @! ()
-  //updateBP (Just inst) [TMApply msg : msgs]
-    //# currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
-    //# inst & bpi_previouslyActive = 'DM'.union ('DM'.fromList currActive) inst.bpi_previouslyActive
-    //# inst & bpi_activeNodes      = case currActive of
-                                      //[(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino (tid + 1), msg.tma_nodeId)) inst.bpi_activeNodes
-    //= updateBP (Just inst) msgs
+viewMessage :: TonicMessage [TonicMessage] -> Task ()
+viewMessage (TMNewTopLevel msg) prevMsgs
+  = viewInformation () [] "Not implemented!" @! ()
+viewMessage (TMApply msg) prevMsgs
+  =           getModule msg.tma_bpModuleName
+  >>= \mod -> case getTonicFunc mod msg.tma_bpFunctionName of
+                Just func
+                  # numPrev                     = length prevMsgs
+                  # inst                        = mkInstance msg.tma_nodeId func
+                  # inst & bpi_previouslyActive = 'DM'.fromList [(msg.tma_nodeId, TaskId 1 i) \\ TMApply msg <- prevMsgs & i <- reverse [0..numPrev]]
+                  # currActive                  = [(eid, tid) \\ (_, m) <- 'DM'.toList inst.bpi_activeNodes, (_, (tid, eid)) <- 'DIS'.toList m]
+                  # inst & bpi_previouslyActive = 'DM'.union ('DM'.fromList currActive) inst.bpi_previouslyActive
+                  # inst & bpi_activeNodes      = case currActive of
+                                                    [(_, TaskId ino tid) : _] -> 'DM'.put (TaskId 1 0) ('DIS'.singleton 0 (TaskId ino numPrev, msg.tma_nodeId)) inst.bpi_activeNodes
+                  = viewInstance inst
+                _ = viewInformation () [] "No blueprint found!" @! ()
 
 viewInstance :: !BlueprintInstance -> Task ()
 viewInstance bpi=:{bpi_blueprint, bpi_bpref = {bpr_moduleName, bpr_taskName}}
@@ -258,16 +263,36 @@ mkInstance nid tf =
 messageArchive :: Shared [TonicMessage]
 messageArchive = sharedStore "messageArchive" []
 
-tonicServerShare :: Shared (Bool, [(TonicMessage, Bool)])
-tonicServerShare = sharedStore "tonicServerShare" (True, [])
 
-acceptAndViewTonicTraces :: Task (Bool, [(TonicMessage, Bool)])
+:: TMessageStore =
+  { ts_recording       :: !Bool
+  , ts_allMsgs         :: ![TonicMessage]
+  , ts_recordingBuffer :: ![TonicMessage]
+  }
+
+derive class iTask TMessageStore
+
+tonicServerShare :: Shared TMessageStore
+tonicServerShare = sharedStore "tonicServerShare" { TMessageStore
+                                                  | ts_recording       = True
+                                                  , ts_allMsgs         = []
+                                                  , ts_recordingBuffer = []
+                                                  }
+
+:: ServerState =
+  { oldData  :: String
+  , clientIp :: String
+  }
+
+derive class iTask ServerState
+
+acceptAndViewTonicTraces :: Task ()
 acceptAndViewTonicTraces
   = acceptTonicTraces tonicServerShare
       ||-
-    viewSharedInformation "Logged traces" [] tonicServerShare
+    viewSharedInformation "Logged traces" [] tonicServerShare @! ()
 
-acceptTonicTraces :: !(Shared (Bool, [(TonicMessage, Bool)])) -> Task [ServerState]
+acceptTonicTraces :: !(Shared TMessageStore) -> Task [ServerState]
 acceptTonicTraces tonicShare
   = tcplisten 9000 True tonicShare { ConnectionHandlers
                                    | onConnect      = onConnect
@@ -275,8 +300,8 @@ acceptTonicTraces tonicShare
                                    , onDisconnect   = onDisconnect
                                    }
   where
-  onConnect :: String (Bool, [(TonicMessage, Bool)])
-            -> (MaybeErrorString ServerState, Maybe (Bool, [(TonicMessage, Bool)]), [String], Bool)
+  onConnect :: String TMessageStore
+            -> (MaybeErrorString ServerState, Maybe TMessageStore, [String], Bool)
   onConnect host olderMessages
     = ( Ok { oldData = ""
            , clientIp = host}
@@ -284,14 +309,17 @@ acceptTonicTraces tonicShare
       , ["Welcome!"]
       , False)
 
-  whileConnected :: (Maybe String) ServerState (Bool, [(TonicMessage, Bool)])
-                 -> (MaybeErrorString ServerState, Maybe (Bool, [(TonicMessage, Bool)]), [String], Bool)
-  whileConnected (Just newData) st=:{oldData} (recording, olderMessages)
-    # collectedData        = oldData +++ 'T'.trim newData
-    # (messages, leftover) = partitionMessages ('T'.split "TONIC_EOL" collectedData)
-    # newMsgs              = if recording [(msg, False) \\ Just msg <- map strToMessage messages] []
-    # tmsgs                = newMsgs ++ olderMessages
-    = (Ok {st & oldData = leftover}, Just (recording, tmsgs), [], False)
+  whileConnected :: (Maybe String) ServerState TMessageStore
+                 -> (MaybeErrorString ServerState, Maybe TMessageStore, [String], Bool)
+  whileConnected (Just newData) st=:{oldData} tstate
+    # collectedData       = oldData +++ 'T'.trim newData
+    # (strmsgs, leftover) = partitionMessages ('T'.split "TONIC_EOL" collectedData)
+    # tmsgs               = [msg \\ Just msg <- map strToMessage strmsgs]
+    # tstate & ts_allMsgs = tmsgs ++ tstate.ts_allMsgs
+    # tstate              = if tstate.ts_recording
+                              {tstate & ts_recordingBuffer = tmsgs ++ tstate.ts_recordingBuffer}
+                              tstate
+    = (Ok {st & oldData = leftover}, Just tstate, [], False)
     where
     strToMessage :: !String -> Maybe TonicMessage
     strToMessage str = fromJSON (fromString str)
@@ -306,8 +334,8 @@ acceptTonicTraces tonicShare
   whileConnected Nothing st olderMessages
     = (Ok st, Nothing, [], False)
 
-  onDisconnect :: ServerState (Bool, [(TonicMessage, Bool)])
-               -> (MaybeErrorString ServerState, Maybe (Bool, [(TonicMessage, Bool)]))
+  onDisconnect :: ServerState TMessageStore
+               -> (MaybeErrorString ServerState, Maybe TMessageStore)
   onDisconnect st lines
     = (Ok st, Just lines)
 
