@@ -280,80 +280,72 @@ where
 
 instance encodeUI UI
 where
-	//RAW EDITORS
-	encodeUI (UI UIEmpty attr _)                           = component "itwc_raw_empty" [encodeAttr attr]
-	encodeUI (UI UICompoundContent attr defs)              = component "itwc_raw_compoundcontent" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIParallel attr defs)                     = component "itwc_raw_parallel" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIInteract attr defs)                     = component "itwc_raw_interact" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIStep attr defs)                         = component "itwc_raw_step" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIAction attr _)                          = component "itwc_raw_action" [encodeAttr attr]
-	encodeUI (UI UIForm attr defs)                         = component "itwc_raw_form" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIFormItem attr defs)                     = component "itwc_raw_form_item" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
-
-	//CONTAINERS
-	encodeUI (UI UIComponent attr defs)                    = component "itwc_component" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIContainer attr defs)                    = component "itwc_container" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIPanel attr defs)                        = component "itwc_panel" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
-
-	encodeUI (UI UITabSet attr defs)	                   = component "itwc_tabset" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UITab attr defs)                          = component "itwc_tabitem" [encodeAttr attr, JSONObject [("children",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIWindow attr defs)                       = component "itwc_window" [encodeAttr attr, JSONObject [("children",JSONArray (map encodeUI defs))]]
-	encodeUI (UI UIMenu attr defs)                         = component "itwc_menu" [encodeAttr attr, JSONObject [("children",JSONArray (map encodeUI defs))]]
-
-	//FORM
-	encodeUI (UI UILabel attr _)                     = component "itwc_label" [encodeAttr attr]
-	encodeUI (UI UIIcon attr _)                      = component "itwc_view_icon" [encodeAttr attr]
-	encodeUI (UI UIEditString attr _)                = component "itwc_edit_string" [encodeAttr attr]
-	encodeUI (UI UIEditNote attr _)                  = component "itwc_edit_note" [encodeAttr attr]
-	encodeUI (UI UIEditPassword attr _)              = component "itwc_edit_password" [encodeAttr attr]
-	encodeUI (UI UIEditInt attr _)                   = component "itwc_edit_int" [encodeAttr attr]
-	encodeUI (UI UIEditDecimal attr _)               = component "itwc_edit_decimal" [encodeAttr attr]
-	encodeUI (UI UIEditCheckbox attr _)              = component "itwc_edit_checkbox" [encodeAttr attr]
-	encodeUI (UI UIEditSlider attr _)                = component "itwc_edit_slider" [encodeAttr attr]
-	encodeUI (UI UIEditDate attr _)                  = component "itwc_edit_date" [encodeAttr attr]
-	encodeUI (UI UIEditTime attr _)                  = component "itwc_edit_time" [encodeAttr attr]
-	encodeUI (UI UIEditDateTime attr _)              = component "itwc_edit_datetime" [encodeAttr attr]
-	encodeUI (UI UIEditDocument attr _)              = component "itwc_edit_document" [encodeAttr attr]
-	encodeUI (UI UIEditButton attr _)                = component "itwc_editbutton" [encodeAttr attr]
-	encodeUI (UI UIDropdown attr _)                  = component "itwc_choice_dropdown" [encodeAttr attr]
-	encodeUI (UI UIRadioGroup attr _)                = component "itwc_choice_radiogroup" [encodeAttr attr]
-	encodeUI (UI UICheckboxGroup attr _)             = component "itwc_choice_checkboxgroup" [encodeAttr attr]
-
-	//DISPLAY	
-	encodeUI (UI UIViewString attr _)                = component "itwc_view_string" [encodeAttr attr]
-	encodeUI (UI UIViewHtml attr _ )                 = component "itwc_view_html" [encodeAttr attr]
-	encodeUI (UI UIViewDocument attr _)              = component "itwc_view_document" [encodeAttr attr]
-	encodeUI (UI UIViewCheckbox attr _)              = component "itwc_view_checkbox" [encodeAttr attr]
-	encodeUI (UI UIViewSlider attr _)                = component "itwc_view_slider" [encodeAttr attr]
-	encodeUI (UI UIViewProgress attr _)              = component "itwc_view_progress" [encodeAttr attr]
-
-	//SELECTION
-	encodeUI (UI UIGrid attr _)                      = component "itwc_choice_grid" [encodeAttr attr]
-	encodeUI (UI UITree attr _)                      = component "itwc_choice_tree" [encodeAttr attr]
-	encodeUI (UI UIListChoice attr _)                = component "itwc_choice_list" [encodeAttr attr]
-
-	//ACTION
-	encodeUI (UI UIActionButton attr _)              = component "itwc_actionbutton" [encodeAttr attr]
-
-	//MISC
-	encodeUI (UI UISplitter attr _)                  = component "itwc_splitter" [encodeAttr attr]
-	encodeUI (UI UIViewport attr _)                  = component "Viewport" [encodeAttr attr]
-
-//instance toString UINodeType
-
-encodeAttr attr	= JSONObject [(k,encode k v) \\ (k,v) <- 'DM'.toList attr]
-where
-	//Special cases...
-	encode "margins" margins = encodeSides margins
-	encode "padding" padding = encodeSides padding
-	encode k v = v 
-
-	encodeSides sides = (JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left))
+	encodeUI (UI type attr items) = JSONObject (typeField ++ attrFields ++ childrenField)
 	where
-		top    = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "top" sides)
-		right  = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "right" sides)
-		bottom = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "bottom" sides)
-		left   = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "left" sides)
+		typeField      = [("xtype",JSONString (toString type))]
+		attrFields     = [(k,encodeAttr k v) \\ (k,v) <- 'DM'.toList attr]
+		childrenField = case items of
+			[]    = []
+			_     = [("children",JSONArray (map encodeUI items))]
+
+		//Special cases...
+		encodeAttr "margins" margins = encodeSides margins
+		encodeAttr "padding" padding = encodeSides padding
+		encodeAttr k v = v 
+
+		encodeSides sides = (JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left))
+		where
+			top    = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "top" sides)
+			right  = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "right" sides)
+			bottom = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "bottom" sides)
+			left   = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "left" sides)
+
+instance toString UINodeType
+where
+	toString UIEmpty           = "itwc_raw_empty"
+	toString UIAction          = "itwc_raw_action"
+    toString UIForm            = "itwc_raw_form" 
+	toString UIFormItem        = "itwc_raw_form_item"
+	toString UIInteract        = "itwc_raw_interact"
+	toString UIStep            = "itwc_raw_step"
+	toString UIParallel        = "itwc_raw_parallel"
+	toString UICompoundContent = "itwc_raw_compoundcontent"
+	toString UIComponent       = "Component" 
+    toString UIContainer       = "itwc_container"
+	toString UIPanel           = "itwc_panel"
+	toString UITabSet          = "itwc_tabset"
+	toString UITab             = "itwc_tabitem"
+	toString UIWindow          = "itwc_window"
+	toString UIMenu            = "itwc_menu"
+	toString UIViewString      = "itwc_view_string"
+	toString UIViewHtml        = "itwc_view_html"
+	toString UIViewDocument    = "itwc_view_document"
+	toString UIViewCheckbox    = "itwc_view_checkbox"
+	toString UIViewSlider      = "itwc_view_slider"
+	toString UIViewProgress    = "itwc_view_progress"
+	toString UIIcon            = "itwc_view_icon"
+	toString UIEditString      = "itwc_edit_string"
+	toString UIEditNote        = "itwc_edit_note"
+	toString UIEditPassword    = "itwc_edit_password"
+	toString UIEditInt         = "itwc_edit_int"
+	toString UIEditDecimal     = "itwc_edit_decimal"
+	toString UIEditCheckbox    = "itwc_edit_checkbox"
+	toString UIEditSlider      = "itwc_edit_slider"
+	toString UIEditDate        = "itwc_edit_date"
+	toString UIEditTime        = "itwc_edit_time"
+	toString UIEditDateTime    = "itwc_edit_datetime"
+	toString UIEditDocument    = "itwc_edit_document"
+	toString UIEditButton      = "itwc_editbutton"
+	toString UIDropdown        = "itwc_choice_dropdown"
+	toString UIGrid            = "itwc_choice_grid"
+	toString UITree            = "itwc_choice_tree"
+	toString UIListChoice      = "itwc_choice_list"
+	toString UIRadioGroup      = "itwc_choice_radiogroup"
+	toString UICheckboxGroup   = "itwc_choice_checkboxgroup"
+	toString UIActionButton    = "itwc_actionbutton"
+	toString UILabel           = "itwc_label"
+    toString UISplitter        = "itwc_splitter"
+    toString UIViewport        = "Viewport"
 
 instance encodeUI UISideSizes 
 where
