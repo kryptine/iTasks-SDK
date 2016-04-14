@@ -1,6 +1,6 @@
 implementation module Incidone.RoleBased.WatchOfficerTasks
 
-import iTasks, iTasks.API.Extensions.Collection, Data.Tuple, Data.Either, Data.Functor, Text
+import iTasks, Data.Tuple, Data.Either, Data.Functor, Text
 import qualified Data.Map
 
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.Conversions

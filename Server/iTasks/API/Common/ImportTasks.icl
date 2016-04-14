@@ -49,11 +49,16 @@ where
 
 importJSONDocument  :: !Document -> Task a | iTask a
 importJSONDocument {Document|documentId} = mkInstantTask eval
-where
-	eval taskId iworld
-		# (filename,iworld) = documentLocation documentId iworld
-        = readJSON taskId filename fromJSON iworld
-	
+  where
+  eval taskId iworld
+    # (filename, iworld) = documentLocation documentId iworld
+    # (mbstr, iworld)    = loadDocumentContent documentId iworld
+    = case mbstr of
+        Just str -> case fromJSON (fromString str) of
+                      Just a -> (Ok a, iworld)
+                      _      -> (parseException filename, iworld)
+        _ -> (openException filename, iworld)
+
 importJSONFileWith :: !(JSONNode -> Maybe a) !FilePath -> Task a | iTask a
 importJSONFileWith parsefun filename = mkInstantTask eval
 where
@@ -82,8 +87,10 @@ readJSON taskId filename parsefun iworld=:{IWorld|current={taskTime},world}
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{IWorld|iworld & world = world})
 	= case (parsefun (fromString content)) of
-		Just a 	= (Ok a, {IWorld|iworld & world = world})
-		Nothing	= (parseException filename, {IWorld|iworld & world = world})
+		Just a
+          = (Ok a, {IWorld|iworld & world = world})
+		Nothing
+          = (parseException filename, {IWorld|iworld & world = world})
 		
 readDocument taskId filename iworld=:{IWorld|current={taskTime},world}
 	# (ok,file,world)	= fopen filename FReadData world

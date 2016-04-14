@@ -10,6 +10,7 @@ import iTasks._Framework.SDSService
 
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from Data.Map as DM				        import qualified newMap, fromList, toList, get, put, del 
+from Data.Queue import :: Queue (..)
 from Data.Queue as DQ					import qualified newQueue, enqueue, dequeue, empty
 from iTasks._Framework.SDS as SDS       import qualified read, write, modify
 from iTasks.API.Common.SDSCombinators   import sdsFocus, >+|, mapReadWrite, mapReadWriteError

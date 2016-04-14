@@ -7,7 +7,7 @@ from Data.Maybe import :: Maybe
 from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
 
 from iTasks._Framework.Tonic.AbsSyn import :: TonicFunc, :: ExprId, :: FuncName, :: ModuleName, :: TExpr
-from iTasks._Framework.Tonic.Types import :: TStability, :: BlueprintIdent, :: BlueprintInstance
+from iTasks._Framework.Tonic.Types import :: TStability, :: BlueprintIdent, :: BlueprintInstance, :: GenBlueprintInstance, :: ComputationId, :: TClickAction, :: ClickMeta, :: TonicImageState
 import iTasks._Framework.Generic
 from iTasks.UI.Definition import :: UI
 
@@ -15,28 +15,6 @@ from iTasks.API.Core.Types import :: Scale, :: TaskId
 from iTasks.API.Extensions.SVG.SVGlet import :: ActionState
 
 :: ModelTy :== ActionState (TClickAction, ClickMeta) TonicImageState
-
-:: TClickAction = TNavAction | TDetailAction | TSelectArg Int
-
-:: TonicImageState
-  = { tis_task    :: TonicFunc
-    , tis_depth   :: Scale
-    , tis_compact :: Bool
-    }
-
-:: ClickMeta =
-  { click_origin_mbbpident :: !Maybe BlueprintRef
-  , click_origin_mbnodeId  :: !Maybe ExprId
-  , click_target_bpident   :: !BlueprintRef
-  }
-
-:: BlueprintRef =
-  { bpident_moduleName :: !ModuleName
-  , bpident_taskName   :: !FuncName
-  , bpident_taskId     :: !Maybe TaskId
-  }
-
-derive class iTask TonicImageState, TClickAction, ClickMeta, BlueprintRef
 
 :: TaskAppRenderer :== Bool Bool Bool Bool Bool Bool Bool ExprId ModuleName FuncName
                        ModuleName FuncName [Image ModelTy] [Image ModelTy] *TagSource
@@ -46,11 +24,17 @@ mkStaticImage   :: ![TaskAppRenderer] !BlueprintIdent !Bool !ModelTy *TagSource
                 -> Image ModelTy
 
 
-mkInstanceImage :: ![TaskAppRenderer] !BlueprintInstance
-                   !(Map ExprId TStability) !(Map ExprId [UI])
-                   !(Maybe (Either ClickMeta (!ModuleName, !FuncName, !TaskId, !Int)))
-                   !Bool !ModelTy *TagSource
-                -> Image ModelTy
+
+mkTaskInstanceImage :: ![TaskAppRenderer] !BlueprintInstance
+                       !(Map ExprId TStability) !(Map ExprId [UI])
+                       !(Maybe (Either ClickMeta (!ModuleName, !FuncName, !ComputationId, !Int)))
+                       !Bool !ModelTy *TagSource
+                    -> Image ModelTy
+
+mkGenInstanceImage :: ![TaskAppRenderer] !GenBlueprintInstance
+                      !(Maybe (Either ClickMeta (!ModuleName, !FuncName, !ComputationId, !Int)))
+                      !Bool !ModelTy *TagSource
+                   -> Image ModelTy
 
 tDefaultMApp :: !Bool !Bool !Bool !Bool !Bool !Bool !Bool !ExprId !ModuleName !FuncName
                 !ModuleName !FuncName ![TExpr] ![Image ModelTy] ![Image ModelTy] !*TagSource

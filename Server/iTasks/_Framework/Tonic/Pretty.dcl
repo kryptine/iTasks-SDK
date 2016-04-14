@@ -1,6 +1,6 @@
 definition module iTasks._Framework.Tonic.Pretty
 
-import iTasks._Framework.Tonic.AbsSyn
+from iTasks._Framework.Tonic.AbsSyn import :: TExpr
 
 ppTExpr :: !TExpr -> String
 

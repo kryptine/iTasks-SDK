@@ -1,11 +1,14 @@
 definition module iTasks._Framework.Tonic.Shares
 
+import iTasks.API.Core.Types
 import iTasks.API.Core.SDSs
-import iTasks._Framework.Tonic.Types
+from iTasks.UI.Definition import :: UI
+from iTasks._Framework.Tonic.AbsSyn import :: VarName
+from iTasks._Framework.Tonic.Types import :: ModuleName, :: FuncName, :: ClickMeta, :: ExprId, :: TStability, :: TonicRTMap, :: BlueprintInstance, :: StaticDisplaySettings, :: BlueprintQuery, :: DynamicDisplaySettings, :: TaskResult, :: ComputationId
 
 selectedBlueprint :: RWShared () (Maybe ClickMeta) (Maybe ClickMeta)
 
-selectedDetail :: RWShared () (Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int))) (Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int)))
+selectedDetail :: RWShared () (Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int))) (Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int)))
 
 storedOutputEditors :: RWShared () (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)) (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability))
 

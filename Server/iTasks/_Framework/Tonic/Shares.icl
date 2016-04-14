@@ -2,6 +2,7 @@ implementation module iTasks._Framework.Tonic.Shares
 
 import qualified Data.Map as DM
 import qualified iTasks._Framework.SDS as DSDS
+import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
 import StdMisc
 
@@ -16,7 +17,7 @@ sdsUnsafeRead focus iworld
 selectedBlueprint :: RWShared () (Maybe ClickMeta) (Maybe ClickMeta)
 selectedBlueprint = sdsFocus "selectedBlueprint" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
 
-selectedDetail :: RWShared () (Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int))) (Maybe (Either ClickMeta (ModuleName, FuncName, TaskId, Int)))
+selectedDetail :: RWShared () (Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int))) (Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int)))
 selectedDetail = sdsFocus "selectedDetail" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
 
 storedOutputEditors :: RWShared () (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)) (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability))

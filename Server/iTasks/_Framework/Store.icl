@@ -228,24 +228,33 @@ readFromDisk namespace key iworld=:{server={paths={dataDirectory}},world}
 	# filename			= addExtension (dataDirectory </> "stores" </> namespace </> safeName key) "txt"
 	# (ok,file,world)	= fopen filename FReadData world
 	| ok
-	    # (content,file)	= freadfile file
-		# (ok,world)		= fclose file world
-        | ok
-            # buildId = subString 0 15 content
-            # content = dropChars 15 content
-		    = (Ok (buildId,content), {iworld & world = world})
-        | otherwise
+		# (maybe_build_id_and_content,file) = read_file file
+		# (ok,world) = fclose file world
+		| ok
+			= (maybe_build_id_and_content,{iworld & world = world})
             = (Error StoreReadDataError,{iworld & world = world})
     | otherwise
         = (Error StoreReadMissingError, {iworld & world = world})
 where
-	freadfile file = rec file ""
-	where
-		rec :: *File String -> (String, *File) //TODO: READ MORE EFFICIENT!
-		rec file acc
-			# (string, file) = freads file 102400
-			| string == "" = (acc, file)
-			| otherwise    = rec file (acc +++ string)
+	read_file :: !*File -> (!MaybeError StoreReadError (BuildID,String), !*File)	
+	read_file file
+		# (buildId,file) = freads file 15
+		| size buildId<15
+			= (Ok (buildId,""),file)
+		# (ok,file) = fseek file 0 FSeekEnd
+		| not ok
+			= (Error StoreReadDataError,file)
+		# (file_size,file) = fposition file
+		| file_size<15
+			= (Error StoreReadDataError,file)
+		# (ok,file) = fseek file 15 FSeekSet
+		| not ok
+			= (Error StoreReadDataError,file)
+		# content_size = file_size - 15;
+		# (content,file) = freads file content_size;
+		| size content<>content_size
+			= (Error StoreReadDataError,file)
+            = (Ok (buildId,content),file)
 
 deleteValue :: !StoreNamespace !StoreName !*IWorld -> *(MaybeErrorString (),*IWorld)
 deleteValue namespace delKey iworld=:{onClient=True}

@@ -15,7 +15,7 @@ import Graphics.Scalable, StdReal
 import iTasks.API.Extensions.SVG.SVGlet
 testSVGEditlet = itest "SVG editlet rendering" "Look at the image presented" "You should see the dutch flag" tut
 where
-	tut = viewInformation "SVG image" [imageView id (\_ _ -> nederland) (\_ _ -> Nothing)] ()
+	tut = updateInformation "SVG image" [UpdateUsing id (const id) (fromSVGLet {SVGLet|toImage= \_ _ -> nederland, resolve = \_ _ -> Nothing})] ()
 
 	nederland :: Image m
 	nederland = banden (H *. 3 /. 2,H) [toSVGColor {r=174,g=28,b=40},toSVGColor "white",toSVGColor {r=33,g=70,b=139}]

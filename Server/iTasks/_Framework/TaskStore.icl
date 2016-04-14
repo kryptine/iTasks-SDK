@@ -44,7 +44,8 @@ taskEvents = sdsFocus "events" (cachedJSONFileStore NS_TASK_INSTANCES False Fals
 
 //Instance evaluation state
 taskInstanceReduct :: RWShared InstanceNo TIReduct TIReduct
-taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") (cachedJSONFileStore NS_TASK_INSTANCES True False False Nothing)
+taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") (memoryStore NS_TASK_INSTANCES Nothing)
+//taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") (cachedJSONFileStore NS_TASK_INSTANCES True False False Nothing)
 
 //Last computed value for task instance
 taskInstanceValue :: RWShared InstanceNo TIValue TIValue
@@ -55,7 +56,7 @@ taskInstanceShares :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSON
 taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
 
 allUIChanges :: RWShared () (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange)) 
-allUIChanges = sdsFocus "allUIChanges" (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
+allUIChanges = sdsFocus "allUIChanges" (memoryStore NS_TASK_INSTANCES (Just 'DM'.newMap))
 
 taskInstanceUIChanges :: RWShared InstanceNo (Queue UIChange) (Queue UIChange) 
 taskInstanceUIChanges = sdsLens "taskInstanceUIChanges" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) allUIChanges

@@ -18,9 +18,9 @@ fromSVGLet :: (SVGLet s) -> Editor s | gEq{|*|} s & gDefault{|*|} s & JSONEncode
 
 //SHOULD BE DEPRECATED...
 
-imageView   :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v)              -> ViewOption s | iTask s & iTask v
-
-imageUpdate :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v) !(s v -> s`) -> UpdateOption s s` | iTask v
+imageUpdate :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v)
+               !(s v -> s`)
+            -> UpdateOption s s` | iTask v
 
 :: ActionState a s = { state   :: s
                      , action  :: Maybe a

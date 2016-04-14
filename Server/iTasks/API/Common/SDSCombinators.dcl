@@ -12,6 +12,8 @@ from Data.Maybe import :: Maybe
 from Data.Either import :: Either
 from Data.Error import :: MaybeError, :: MaybeErrorString
 from Data.Map import :: Map
+from Data.IntMap.Strict import :: IntMap
+from StdOverloaded import class <
 
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 
@@ -116,4 +118,17 @@ taskListItemValue :: !(SharedTaskList a) -> ROShared (Either Int TaskId) (TaskVa
 */
 taskListItemProgress :: !(SharedTaskList a) -> ROShared (Either Int TaskId) InstanceProgress
 
+/**
+ * Convenience lens for lookups in Maps. Returns Nothing on a missing key.
+ */
+mapMaybeLens :: !String !(RWShared () (Map a b) (Map a b)) -> RWShared a (Maybe b) b | < a & == a
 
+/**
+ * Convenience lens for lookups in Maps. Can use a default value on a missing key, gives an error if no default is supplied.
+ */
+mapLens :: !String !(RWShared () (Map a b) (Map a b)) !(Maybe b) -> RWShared a b b | < a & == a
+
+/**
+ * Convenience lens for lookups in IntMaps. Can use a default value on a missing key, gives an error if no default is supplied.
+ */
+intMapLens :: !String !(RWShared () (IntMap a) (IntMap a)) !(Maybe a) -> RWShared Int a a

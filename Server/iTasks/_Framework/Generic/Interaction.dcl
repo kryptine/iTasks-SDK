@@ -37,7 +37,6 @@ derive gEditor EditableList
 derive gEditor RWShared
 
 derive bimap Editor
-
 //Check a value to see if it is ok
 generic gVerify a :: !VerifyOptions (Masked a) -> Verification
 

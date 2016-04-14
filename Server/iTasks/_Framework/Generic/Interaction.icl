@@ -507,7 +507,7 @@ gVerify{|JSONNode|} _ mv = alwaysValid mv
 gVerify{|()|} _ mv      = alwaysValid mv
 gVerify{|RWShared|} _ _ _ _ mv = alwaysValid mv
 
-derive gVerify (,), (,,), (,,,), (,,,,), (,,,,,), Either, MaybeError, Timestamp, Map
+derive gVerify (,), (,,), (,,,), (,,,,), (,,,,,), (,,,,,,), (,,,,,,,), Void, Either, MaybeError, Timestamp, Map
 
 updConsPath i n
  	| i >= n	
