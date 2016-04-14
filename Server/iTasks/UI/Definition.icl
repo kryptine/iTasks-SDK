@@ -291,6 +291,7 @@ where
 	encodeUI (UI UIFormItem attr defs)                     = component "itwc_raw_form_item" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
 
 	//CONTAINERS
+	encodeUI (UI UIComponent attr defs)                    = component "itwc_component" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
 	encodeUI (UI UIContainer attr defs)                    = component "itwc_container" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
 	encodeUI (UI UIPanel attr defs)                        = component "itwc_panel" [encodeAttr attr,JSONObject [("children",JSONArray (map encodeUI defs))]]
 
@@ -337,6 +338,8 @@ where
 	//MISC
 	encodeUI (UI UISplitter attr _)                  = component "itwc_splitter" [encodeAttr attr]
 	encodeUI (UI UIViewport attr _)                  = component "Viewport" [encodeAttr attr]
+
+//instance toString UINodeType
 
 encodeAttr attr	= JSONObject [(k,encode k v) \\ (k,v) <- 'DM'.toList attr]
 where

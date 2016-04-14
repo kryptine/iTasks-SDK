@@ -19,7 +19,7 @@ where
               , appDiffSrv = \n _ -> n
 			  }
 
-	genUI cid val world = (setSize WrapSize WrapSize (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (html cid)))])), world)
+	genUI val world = (setSize WrapSize WrapSize (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (html "DEPRECATED")))])), world)
 	html cid = ButtonTag [IdAttr (cid +++ "-button")] [Text "Click me"]
 
 	//Register eventhandler for clicking the button

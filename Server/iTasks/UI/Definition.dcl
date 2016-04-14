@@ -66,6 +66,7 @@ derive class iTask UIChange, UIChildChange
 	| UIParallel
 	| UICompoundContent
 	// --- Client components: ---
+	| UIComponent
 	// Containers
     | UIContainer      				
 	| UIPanel 						

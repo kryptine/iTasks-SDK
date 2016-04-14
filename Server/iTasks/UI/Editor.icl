@@ -47,7 +47,7 @@ fromEditlet :: (Editlet a d cl) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|
 fromEditlet editlet=:{Editlet| genUI, saplInit, initClient, appDiffClt, genDiffSrv, appDiffSrv} = {Editor|genUI=genUI`,genDiff=genDiff`,appDiff=appDiff`}
 where
 	genUI` dp currVal mask vst=:{VSt|taskId,iworld=iworld=:{IWorld|world}}
-		# (uiDef, world)        = genUI htmlId currVal world
+		# (uiDef, world)        = genUI currVal world
   		# iworld                = {iworld & world = world} 
 		= case editletLinker initDiff saplInit (appDiffClt createEditletEventHandler) iworld of
 		//= case editletLinker initDiff (initClient currVal createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld of
@@ -58,7 +58,6 @@ where
 				= (eui uiDef 'DM'.newMap, {VSt|vst & iworld = iworld})
 	where
 		initDiff = genDiffSrv gDefault{|*|} currVal
-		htmlId = "editlet-" +++ taskId +++ "-" +++ editorId dp
 		editletAttr jsScript jsID jsIC jsAD
 			= 'DM'.fromList [("taskId",JSONString taskId)
 							,("editorId",JSONString (editorId dp))

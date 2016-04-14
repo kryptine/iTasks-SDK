@@ -121,19 +121,115 @@ appDiff _ m                             = m
 openStreetMapTiles :: LeafletLayer
 openStreetMapTiles = TileLayer "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 	
-leafletEditlet :: LeafletMap -> Editlet LeafletMap [LeafletDiff] (LeafletMap, Maybe LeafletClientState)
-leafletEditlet map
+leafletEditlet :: Editlet LeafletMap [LeafletDiff] (LeafletMap, Maybe LeafletClientState)
+leafletEditlet 
   = { Editlet
     | genUI     =  genUI 
-    , saplInit   = (\me w -> jsTrace "leafletEditlet" w)
+    , saplInit   = saplInit 
     , initClient = onInit
     , appDiffClt = appDiffClt
     , genDiffSrv = genDiff
     , appDiffSrv = appDiff
     }
 where
-	genUI cid val world
-		= (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (DivTag [IdAttr (mapdivid cid)] [])))])), world)
+	genUI val world
+		= (setSize (ExactSize 500) (ExactSize 150) (ui UIViewHtml), world)
+		//= (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (DivTag [IdAttr (mapdivid cid)] [])))])), world)
+	saplInit me world
+		# (jsInitDOM,world) = jsWrapFun (initDOM me) world
+		//Check if the leaflet library is loaded and either load it, 
+		//and delay dom initialization or set the initDOM method to continue
+		//as soon as the component's DOM element is available
+        # (l, world) = findObject "L" world
+        | jsIsUndefined l
+            # world = addCSSFromUrl LEAFLET_CSS world
+            # world = addJSFromUrl LEAFLET_JS (Just jsInitDOM) world
+			= world
+		| otherwise
+			# world = (me .# "initDOMEl" .= jsInitDOM) world
+			= world
+
+	initDOM me args world
+		# map=:{LeafletMap|perspective,icons,layers} = {gDefault{|*|} & layers =[openStreetMapTiles]} //Initial default map
+        # (l,world)         = findObject "L" world
+		# (domEl,world) 	= .? (me .# "domEl") world
+		//Create the map
+		# (mapObj,world)    = (l .# "map" .$ (domEl,MAP_OPTIONS)) world
+		# world 			= (me .# "map" .= mapObj) world
+		//Set perspective
+        # (center,world)    = toJSArray [perspective.center.lat,perspective.center.lng] world
+        # (_,world)         = (mapObj .# "setView" .$ (center, perspective.LeafletPerspective.zoom)) world
+        //Update map bounds
+        # (bounds,world)      = getMapBounds mapObj world
+        # map = {LeafletMap|map & perspective ={LeafletPerspective|perspective & bounds = bounds}}
+		//Create cursor
+        # (mapCursor,world) = case perspective.cursor of
+            Nothing     = (Nothing,world)
+            Just {LeafletLatLng|lat,lng}
+                # (mapCursor,world)   = (l .# "circleMarker" .$ ([lat,lng],CURSOR_OPTIONS)) world
+                # (_,world)           = (mapCursor .# "addTo" .$ mapObj) world
+                = (Just mapCursor,world)
+        //Add icons
+        # (mapIcons,world)  = newJSArray world
+        # world             = foldl (\w icon -> addIcon icon l mapIcons w) world icons
+		# world 			= (me .# "icons" .= mapIcons) world
+        //Add initial layers
+        # (mapLayers,world)   = newJSArray world
+        //# (mapObjects,world)  = jsNewMap world
+        # (_,world)           = foldl (\w layer -> addLayer layer l mapObj mapLayers mapIcons w) (0,world) layers
+		= (jsNull,world)
+
+	//createIcon :: !LeafletIcon !(JSObj JSLM) !(JSArr (JSObject b)) !*JSWorld -> *JSWorld
+    addIcon {LeafletIcon|iconUrl,iconSize=(w,h)} l icons world
+        # (icon,world)    = (l .# "icon" .$ (toJSArg {IconOptions|iconUrl=iconUrl,iconSize=[w,h]})) world
+        # (_,world)       = jsArrayPush icon icons world
+        = world
+
+    addLayer (TileLayer url) l mapObj mapLayers mapIcons (i,world)
+        # (layer,world)       = (l .# "tileLayer" .$ url) world
+        # (_,world)           = jsArrayPush layer mapLayers world
+        # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
+        = (i + 1,world)
+
+/*
+    onLibLoaded mkHandler cid _ (map=:{LeafletMap|perspective,icons,layers},_) env
+        # (l,env)           = findObject "L" env
+        //Create map
+        # env               = syncMapDivSize cid env
+        # (mapObj,env)      = (l .# "map" .$ (mapdivid cid,MAP_OPTIONS)) env
+        //Set perspective
+        # (center,env)      = toJSArray [perspective.center.lat,perspective.center.lng] env
+        # (_,env)           = (mapObj .# "setView" .$ (center, perspective.LeafletPerspective.zoom)) env
+        //Update map bounds
+        # (bounds,env)      = getMapBounds mapObj env
+        # map = {LeafletMap|map & perspective ={LeafletPerspective|perspective & bounds = bounds}}
+        //Create cursor
+        # (mapCursor,env) = case perspective.cursor of
+            Nothing     = (Nothing,env)
+            Just {LeafletLatLng|lat,lng}
+                # (mapCursor,env)   = (l .# "circleMarker" .$ ([lat,lng],CURSOR_OPTIONS)) env
+                # (_,env)           = (mapCursor .# "addTo" .$ mapObj) env
+                = (Just mapCursor,env)
+        //Add icons
+        # (mapIcons,env)    = newJSArray env
+        # env               = foldl (\w icon -> createIcon icon l mapIcons w) env icons
+        //Add initial layers
+        # (mapLayers,env)   = newJSArray env
+        # (mapObjects,env)  = jsNewMap env
+        # (_,env)           = foldl (\w layer -> createLayer mkHandler layer l mapObj mapLayers mapObjects mapIcons cid w) (0,env) layers
+        //Add map event handlers
+        # (_,env)           = (mapObj .# "addEventListener" .$ ("dragend",mkHandler onMapMove cid)) env
+        # (_,env)           = (mapObj .# "addEventListener" .$ ("zoomend",mkHandler onZoomChange cid)) env
+        # (_,env)           = (mapObj .# "addEventListener" .$ ("click",mkHandler onMapClick cid)) env
+        //Add editlet event handler
+        # (editlets,env)    = findObject "itwc.controller.editlets" env
+        # (cmp,env)         = .? (editlets .# cid) env
+        # env               = (cmp .# "afterShow" .= (toJSVal (mkHandler onAfterShow cid))) env
+        # env               = (cmp .# "afterResize" .= (toJSVal (mkHandler onAfterShow cid))) env
+        = ((map,Just {mapObj=mapObj,mapIcons=mapIcons,mapLayers=mapLayers,mapObjects,mapCursor=mapCursor}),Diff [LDSetBounds bounds] ignoreConflict,env)
+*/
+
+
 
 	mapdivid cid = "map_div_" +++ cid
 
@@ -415,7 +511,7 @@ where
 
     ignoreConflict conflict state env = (state, NoDiff, env)
 
-gEditor{|LeafletMap|} = fromEditlet (leafletEditlet defaultValue)
+gEditor{|LeafletMap|} = fromEditlet leafletEditlet
 gVerify{|LeafletMap|} _ vst = alwaysValid vst
 
 gDefault{|LeafletPerspective|}

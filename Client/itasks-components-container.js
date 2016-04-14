@@ -97,6 +97,7 @@ itasks.itwc_tabset = {
         if(me.children[me.activeTab]) {
             me.children[me.activeTab].domEl.classList.remove(me.cssPrefix + 'selected');
             me.tabBar.children[me.activeTab].classList.remove(me.cssPrefix + 'selected');
+			me.children[me.activeTab].onHide();
         }
 		
         me.activeTab = idx || 0;
@@ -104,8 +105,8 @@ itasks.itwc_tabset = {
         if(me.children[me.activeTab]) {
             me.children[me.activeTab].domEl.classList.add(me.cssPrefix + 'selected');
             me.tabBar.children[me.activeTab].classList.add(me.cssPrefix + 'selected');
+			me.children[me.activeTab].onShow();
         }
-
 	}
 }
 itasks.itwc_tabitem = {

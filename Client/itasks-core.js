@@ -309,6 +309,12 @@ itasks.Component = {
 			}
 		});
 	},
+	onShow: function() {
+		this.children.forEach(function(child) { child.onShow(); });
+	},
+	onHide: function() {
+		this.children.forEach(function(child) { child.onHide(); });
+	},
 	/* Utility methods */
 	evalJs: function(js) {
 		var h = document.getElementsByTagName("head")[0],
@@ -330,7 +336,6 @@ itasks.Component = {
  		eval("out = " + js + ";");
         return out;
 	}
-
 };
 itasks.Loader = {
 	cssCls: 'loader',

@@ -326,7 +326,8 @@ svgRenderer resolve state2Image
     , appDiffSrv = appServerDiff
     }
   where
-  genUI cid _ world 
+  genUI val world 
+	# cid = "DEPRECATED CID"
 	= ( setSize FlexSize FlexSize (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (DivTag [IdAttr (mainSvgId cid), StyleAttr "overflow: auto;"] [])))]))
 	  , world)
 

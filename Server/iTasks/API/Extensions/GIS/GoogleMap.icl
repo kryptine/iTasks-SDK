@@ -9,6 +9,8 @@ import Data.Functor, Text, StdMisc
 import qualified Data.Map as DM
 from StdArray import class Array(uselect), instance Array {} a
 
+GOOGLEMAP_JS = "http://maps.googleapis.com/maps/api/js?callback=googleMapsLoaded"
+
 :: JSGM = JSGM
 
 :: GoogleMapDiff
@@ -55,46 +57,137 @@ from StdArray import class Array(uselect), instance Array {} a
 
 derive class iTask GoogleMapClient, GoogleMapState, JSGM
 
-googleMapEditlet :: GoogleMap -> Editlet GoogleMap [GoogleMapDiff] GoogleMapClient
-googleMapEditlet g 
+googleMapEditlet :: Editlet GoogleMap [GoogleMapDiff] GoogleMapClient
+googleMapEditlet
     = { Editlet
       | genUI       = genUI
-      , saplInit   = (\me w -> jsTrace "googleMapEditlet" w)
-      , initClient  = onInit
+      , saplInit    = saplInit
+      , initClient  = \_ _ _ world -> (undef,world) //onInit
       , appDiffClt  = appDiffClt
       , genDiffSrv  = genDiff 
       , appDiffSrv  = appDiff
       }
 where
-	genUI cid val world
-		= (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (DivTag [IdAttr (mapdomid cid),StyleAttr "width:100%; height:100%"] [])))])), world)
+	genUI val world
+		= ((setValue (toJSON val) o setSize (ExactSize 500) (ExactSize 200)) (ui UIComponent),world)
+
+	saplInit me world
+		# (jsInitDOM, world)   = jsWrapFun (initDOM me) world
+		# (gmaps_loaded,world) = findObject "googlemaps_loaded" world
+		| jsIsUndefined gmaps_loaded
+			//Check if another editlet has already loaded the javascript
+			# (gmaps_callbacks,world) = findObject "googlemaps_callbacks" world
+			| jsIsUndefined gmaps_callbacks
+				//Create array of callback functions
+				# (gmaps_callbacks,world)      = newJSArray world
+				# (_,world)                    = jsArrayPush jsInitDOM gmaps_callbacks world
+				# world                        = (jsWindow .# "googlemaps_callbacks" .= gmaps_callbacks) world
+				//Prepare callback functions
+				# (jsGoogleMapsCallback,world) = jsWrapFun googleMapsLoaded world
+				# world                        = (jsWindow .# "googleMapsLoaded" .= jsGoogleMapsCallback) world
+				//Load Google Maps library
+				# world                        = addJSFromUrl GOOGLEMAP_JS Nothing world
+				= world
+			| otherwise
+				//Just add a callback to the existing set of callbacks
+				# (_,world) = jsArrayPush jsInitDOM gmaps_callbacks world
+				= world
+		| otherwise
+			# world = (me .# "initDOMEl" .= jsInitDOM) world
+			= world
+
+	googleMapsLoaded args world
+		# world = (jsWindow .# "googlemaps_loaded" .= (toJSVal True)) world
+		# (callbacks,world)  = .? (jsWindow .# "googlemaps_callbacks") world
+		# (callbacks, world) = fromJSArray callbacks id world
+		//Call all the callbacks in the array
+		# world = foldl (\w cb -> snd (jsApply cb jsWindow [] w)) world callbacks 
+		= (jsNull, world)
+
+	initDOM me args world
+		//Create the parameter object
+		# (options,world)    = jsEmptyObject world
+		# (mapType,world)    = .? (me .# "value.perspective.type" .# 0) world
+		# (mapTypeId,world)  = .? (jsWindow .# "google.maps.MapTypeId" .# (jsValToString mapType)) world
+		# world              = (options .# "mapTypeId" .= mapTypeId) world
+		# (lat,world)        = .? (me .# "value.perspective.center.lat") world
+		# (lng,world)        = .? (me .# "value.perspective.center.lng") world
+	    # (center, world)    = jsNewObject "google.maps.LatLng" [toJSArg lat,toJSArg lng] world
+		# world              = (options .# "center" .= center) world
+		# world              = copy (me .# "value.perspective.zoom") (options .# "zoom") world
+		# world              = copy (me .# "value.settings.mapTypeControl") (options .# "mapTypeControl") world
+		# world              = copy (me .# "value.settings.panControl") (options .# "panControl") world
+		# world              = copy (me .# "value.settings.zoomControl") (options .# "zoomControl") world
+		# world              = copy (me .# "value.settings.streetViewControl") (options .# "streetViewControl") world
+		# world              = copy (me .# "value.settings.scaleControl") (options .# "scaleControl") world
+		# world              = copy (me .# "value.settings.scrollwheel") (options .# "scrollwheel") world
+		# world              = copy (me .# "value.settings.draggable") (options .# "draggable") world
+		//Create the map object
+		# (domEl,world)       = .? (me .# "domEl") world
+	    # (mapobj, world)     = jsNewObject "google.maps.Map" [toJSArg domEl,toJSArg options] world
+		# world               = (me .# "map" .= mapobj) world
+		//Attach event handlers
+		# (jsOnShow,world)    = jsWrapFun (onShow me) world
+		# world               = (me .# "onShow" .= jsOnShow) world
+		# (jsOnDragEnd,world) = jsWrapFun (onDragEnd me) world
+		# (_, world)          = (jsWindow .# "google.maps.event.addListener" .$ (mapobj, "dragend", jsOnDragEnd)) world
+		# (jsOnMapTypeChanged,world) = jsWrapFun (onMapTypeChanged me) world
+		# (_, world)          = (jsWindow .# "google.maps.event.addListener" .$ (mapobj, "maptypeid_changed", jsOnMapTypeChanged)) world
+		# (jsOnZoomChanged,world) = jsWrapFun (onZoomChanged me) world
+		# (_, world)          = (jsWindow .# "google.maps.event.addListener" .$ (mapobj, "zoom_changed", jsOnZoomChanged)) world
+		# (jsOnMapClick,world) = jsWrapFun (onMapClick me) world
+		# (_, world)          = (jsWindow .# "google.maps.event.addListener" .$ (mapobj, "click", jsOnMapClick)) world
+		//Create initial markers
+		= (jsNull,world)
+
+	copy src tgt world //Util
+		# (tmp,world) = .? src world
+		= (tgt .= tmp) world
 	
+	onShow me args world
+	    //Trigger a resize event for the map
+		# (map,world) = .? (me .# "map") world
+        # (_, world)  = (jsWindow .# "google.maps.event.trigger" .$ (map, "resize")) world
+		//Correct center
+		# (lat,world)        = .? (me .# "value.perspective.center.lat") world
+		# (lng,world)        = .? (me .# "value.perspective.center.lng") world
+	    # (center, world)    = jsNewObject "google.maps.LatLng" [toJSArg lat,toJSArg lng] world
+        # (_, world)         = (map .# "setCenter" .$ center) world
+		= (jsNull,world)
+
+	onDragEnd me args world
+		= (jsNull,jsTrace "onDragEnd" world)
+
+	onMapTypeChanged me args world
+		= (jsNull,jsTrace "onMapTypeChange" world)
+
+	onZoomChanged me args world
+		= (jsNull,jsTrace "onZoomChange" world)
+
+	onMapClick me args world
+		# (latlng, world)       = .? (toJSVal (args !! 0) .# "latLng") world
+		# ((lat, lng), world)   = getPos latlng world
+		# (marker,world) 		= jsEmptyObject world
+		# (latlng, world) 		= jsEmptyObject world
+		# world 				= (latlng .# "lat" .= lat) world
+		# world 				= (latlng .# "lng" .= lng) world
+		# world 				= (marker .# "latlng" .= latlng) world
+		# (_,world) 			= addMarker me marker world
+		= (jsNull,jsTrace latlng world)
+
+	addMarker me marker world
+		# (options, world)   = jsEmptyObject world
+		# world              = copy (me .# "map") (options .# "map") world
+		# (lat,world)        = .? (marker .# "latlng.lat") world
+		# (lng,world)        = .? (marker .# "latlng.lng") world
+	    # (position, world)  = jsNewObject "google.maps.LatLng" [toJSArg lat,toJSArg lng] world
+		# world              = (options .# "position" .= position) world
+		# (marker, world)    = jsNewObject "google.maps.Marker" [toJSArg options] world
+		= (marker,jsTrace marker world)
+
+	//==================== DEPRECATED =====================================================//
 	mapdomid cid    = "map_place_holder_" +++ cid
     mapcanvasid cid = "map_canvas_" +++ cid
-
-	onInit initVal mkEventHandler cid world 
-		# clval = {val = initVal, mbSt = Nothing, libsAdded = False}
-        # (gmaps_loaded,world)    = findObject "googlemaps_loaded" world
-        | jsIsUndefined gmaps_loaded
-            //Check if another editlet has already loaded the javascript
-            # (gmaps_callbacks,world) = findObject "googlemaps_callbacks" world
-            | jsIsUndefined gmaps_callbacks
-                //Setup first callback and load google maps
-                # (gmaps_callbacks,world) = jsEmptyObject world
-                # world = jsSetObjectAttr cid (mkEventHandler (initEditlet mkEventHandler) cid) gmaps_callbacks world
-                # world = jsSetObjectAttr "googlemaps_callbacks" gmaps_callbacks jsWindow world
-                # (cb,world)
-                        = jsWrapFun onScriptLoad world
-                # world = jsSetObjectAttr "googlemaps_callback" cb jsWindow world
-                # world = addJSFromUrl "http://maps.googleapis.com/maps/api/js?sensor=false&callback=googlemaps_callback" Nothing world
-		        = (clval, world)
-            | otherwise
-                //Just add a callback to the existing set of callbacks
-                # world = jsSetObjectAttr cid (mkEventHandler (initEditlet mkEventHandler) cid) gmaps_callbacks world
-		        = (clval, world)
-        | otherwise
-            # (clval, _, world) = initEditlet mkEventHandler cid undef clval world
-            = (clval, world)
 
     initEditlet mkEventHandler cid _ clval=:{val} world
 	    # world = (getElementById (mapdomid cid).# "innerHTML" .= ("<div id=\""+++mapcanvasid cid +++"\" style=\"width: 100%; height: 100%;\"/>")) world
@@ -130,7 +223,7 @@ where
         = ({clval & mbSt = Just {mapobj = mapobj, nextMarkerId = 1, markerMap = markerMap}},NoDiff,world)
 	where
 		onChange t              = mkEventHandler (onUpdatePerspective t) cid
-		onClick                 = mkEventHandler (addMarker mkEventHandler) cid
+		onClick                 = mkEventHandler (addMarker` mkEventHandler) cid
         onAfterComponentLayout  = mkEventHandler resizeMap cid
         afterShow               = mkEventHandler resizeMap cid
 		putOnMarker mapobj markerMap world markrec = createMarker mkEventHandler cid mapobj markerMap markrec world
@@ -185,7 +278,7 @@ where
         # world = jsTrace e world
         = (clval, NoDiff, world) //Catchall
 			
-	addMarker mkEventHandler cid {[0]=event} clval=:{val={markers}, mbSt=Just st=:{mapobj,nextMarkerId,markerMap}} world 
+	addMarker` mkEventHandler cid {[0]=event} clval=:{val={markers}, mbSt=Just st=:{mapobj,nextMarkerId,markerMap}} world 
 		# (latlng, world)     = jsGetObjectAttr "latLng" event world
 		# ((lat, lng), world) = getPos latlng world
 		# markrec 	= createMarkerRecord markerId lat lng Nothing
@@ -357,7 +450,7 @@ where
 gText{|GoogleMapPosition|} _ (Just {GoogleMapPosition|lat,lng}) = [toString lat + " " + toString lng]
 gText{|GoogleMapPosition|} _ _ = [""]
 
-gEditor{|GoogleMap|} = fromEditlet (googleMapEditlet defaultValue)
+gEditor{|GoogleMap|} = fromEditlet googleMapEditlet
 gVerify{|GoogleMap|} _ mv = alwaysValid mv
 
 gDefault{|GoogleMapPerspective|} =

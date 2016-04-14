@@ -27,7 +27,7 @@ analogClockEditlet
       ,appDiffSrv   = appTimeDiff
       }
 where
-	genUI _ (AnalogClock {Time|hour,min,sec}) world
+	genUI (AnalogClock {Time|hour,min,sec}) world
 		= (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (svgClock hour min sec)))])), world)
 	where
 		svgClock hour min sec 

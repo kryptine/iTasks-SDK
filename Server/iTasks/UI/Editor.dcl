@@ -81,7 +81,7 @@ isTouched	:: !EditMask -> Bool
 
 :: Editlet sv d cl
   =
-  { genUI      :: ComponentId sv *World -> *(UI, *World)
+  { genUI      :: sv *World -> *(UI, *World)
   , saplInit   :: (JSObj ()) *JSWorld -> *JSWorld
 
   , initClient :: sv ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId *JSWorld -> *(cl, *JSWorld)
