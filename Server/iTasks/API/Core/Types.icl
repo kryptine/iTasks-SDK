@@ -644,15 +644,13 @@ instance toString OSException
 where
 	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
 	
-instance toString WorkOnException
+instance toString AttachException
 where
-	toString WorkOnNotFound				= "Error working on process: cannot find process"
-	toString WorkOnEvalError			= "Error working on process: evaluation error"
-	toString WorkOnDependencyCycle		= "Error working on process: cycle in dependencies detected"
+	toString InstanceNotFound	= "Cannot find task instance to attach"
+	toString InstanceEvalError	= "Error in attached task instance "
 
-derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
+derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, AttachException
 derive class iTask	FileError
-
 
 //* A sliding scale
 gText{|Scale|}	_ (Just {Scale|cur}) = [toString cur]

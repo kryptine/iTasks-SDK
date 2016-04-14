@@ -167,10 +167,10 @@ derive gVerify			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date
 :: SharedException		= SharedException !String
 :: RPCException			= RPCException !String
 :: OSException			= OSException !OSError
-:: WorkOnException		= WorkOnNotFound | WorkOnEvalError | WorkOnDependencyCycle //FIXME: Rename to attachment exceptions
+:: AttachException		= InstanceNotFound | InstanceEvalError 
 
-derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
-instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
+derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, AttachException
+instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, AttachException
 
 //****************************************************************************//
 // Low level data types that can be used to construct more fine grained user
