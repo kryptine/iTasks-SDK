@@ -7,7 +7,7 @@ StdString.fromString_4 a_0 = a_0
 StdString.toString_5 n_0 :== I2S
 StdString.toString_6 a_0 :== C2S
 StdString.toString_7 a_0 :== R2S
-StdString.toString_8 a_0 = if a_0 "True" "False"
+StdString.toString_8 a_0 = case a_0 (True -> "True") (False -> "False")
 StdString.toString_9 a_0 = a_0
 
 
