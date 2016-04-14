@@ -66,15 +66,12 @@ where
         (_,attachment=:[TaskId sessionNo _:_])    = (Just sessionNo,attachment)
 	//Update current process id & eval stack in iworld
 	# taskId					= TaskId instanceNo 0
-	//# eventRoute				= determineEventRoute event lists
-    # eventRoute                = 'DM'.newMap //TODO: Check if eventroute is still necessary
 	# iworld					= {iworld & current =
                                         { taskInstance = instanceNo
                                         , sessionInstance = currentSession
                                         , attachmentChain = currentAttachment
 										, taskTime = oldReduct.TIReduct.nextTaskTime
                                         , nextTaskNo = oldReduct.TIReduct.nextTaskNo
-										, eventRoute = eventRoute
 										}}
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & tonicOpts = tonicRedOpts} tree iworld
@@ -140,44 +137,6 @@ where
 		= iworld
 
     mbResetUIState _ _ iworld = iworld
-/*
-//The event route determines for every parallel which branch the event is in
-determineEventRoute :: Event (Map TaskId [ParallelTaskState]) -> Map TaskId Int
-determineEventRoute (ResetEvent) _			    = 'DM'.newMap
-determineEventRoute (RefreshEvent _) _			= 'DM'.newMap
-determineEventRoute (EditEvent _ id _ _) lists	= determineEventRoute` id ('DM'.toList lists)
-determineEventRoute (ActionEvent _ id _) lists	= determineEventRoute` id ('DM'.toList lists)
-determineEventRoute (FocusEvent _ id) lists		= determineEventRoute` id ('DM'.toList lists)
-
-//TODO: Optimize this search function
-determineEventRoute` :: TaskId [(TaskId,[ParallelTaskState])] -> Map TaskId Int 
-determineEventRoute` eventId lists = 'DM'.fromList (search eventId)
-where
-	search searchId = case searchInLists searchId lists of	
-		Just (parId, index)	= [(parId,index):search parId]
-		Nothing				= []
-
-	searchInLists searchId [] = Nothing
-	searchInLists searchId [(parId,entries):xs] = case [i \\ e <- entries & i <- [0..] | inEntry searchId e] of
-		[index] = Just (parId,index)
-		_		= searchInLists searchId xs
-
-	inEntry searchId {ParallelTaskState|lastEval=ValueResult _ _ _ tree} = inTree searchId tree
-	inEntry _ _ = False
-
-	inTree searchId (TCInit taskId _) = searchId == taskId
-	inTree searchId (TCBasic taskId _ _ _) = searchId == taskId
-	inTree searchId (TCInteract taskId _ _ _ _ _) = searchId == taskId
-	inTree searchId (TCInteract1 taskId _ _ _) = searchId == taskId
-	inTree searchId (TCInteract2 taskId _ _ _ _) = searchId == taskId
-	inTree searchId (TCProject taskId _ tree) = searchId == taskId || inTree searchId tree
-	inTree searchId (TCStep taskId _ (Left tree)) = searchId == taskId || inTree searchId tree
-	inTree searchId (TCStep taskId _ (Right (_,_,tree))) = searchId == taskId || inTree searchId tree
-	inTree searchId (TCParallel taskId _ trees) = searchId == taskId || any (map (inTree searchId o fst) trees)
-	inTree searchId (TCShared taskId _ tree) = searchId == taskId || inTree searchId tree
-	inTree searchId (TCStable taskId _ _) = searchId == taskId
-	inTree searchId _ = False
-*/
 
 updateInstanceLastIO ::![InstanceNo] !*IWorld -> *IWorld
 updateInstanceLastIO [] iworld = iworld

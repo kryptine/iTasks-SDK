@@ -144,7 +144,6 @@ createClientIWorld serverURL currentInstance
 		    ,sessionInstance	= Just currentInstance
 		    ,attachmentChain    = []
 		    ,nextTaskNo			= 6666
-		    ,eventRoute			= 'Data.Map'.newMap
           }
           ,sdsNotifyRequests    = []
           ,memoryShares         = 'Data.Map'.newMap

@@ -113,7 +113,6 @@ createIWorld appName mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
         ,sessionInstance        = Nothing
         ,attachmentChain        = []
 	    ,nextTaskNo			    = 0
-        ,eventRoute			    = 'DM'.newMap
         }
       ,sdsNotifyRequests    = []
       ,memoryShares         = 'DM'.newMap

@@ -87,7 +87,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     , sessionInstance        :: !Maybe InstanceNo                   // If we are evaluating a task in response to an event from a session
     , attachmentChain        :: ![TaskId]                           // The current way the evaluated task instance is attached to other instances
     , nextTaskNo			 :: !TaskNo								// The next task number to assign
-    , eventRoute			 :: !Map TaskId Int						// Index of parallel branches the event is targeted at
     }
 
 :: *IOTasks =
