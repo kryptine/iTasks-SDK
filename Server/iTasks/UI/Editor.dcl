@@ -20,7 +20,7 @@ from Text.JSON import :: JSONNode
 */
 :: Editor a = 
 	{ genUI  	:: DataPath a EditMask *VSt -> *(!UI,!*VSt)
-	, genDiff 	:: DataPath a EditMask a EditMask *VSt -> *(!UIChange, !*VSt)
+	, updUI 	:: DataPath a EditMask a EditMask *VSt -> *(!UIChange, !*VSt)
 	, appDiff 	:: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
 	}
 
@@ -79,17 +79,13 @@ isTouched	:: !EditMask -> Bool
                    (Conflict state *JSWorld -> *(state, ComponentDiff diff state, *JSWorld))
 
 
-:: Editlet sv d cl
+:: Editlet a d cl
   =
-  { genUI      :: sv *World -> *(UI, *World)
-  , saplInit   :: (JSObj ()) *JSWorld -> *JSWorld
+  { genUI      :: DataPath a EditMask *VSt -> *(!UI, !*VSt)
+  , initUI     :: (JSObj ()) *JSWorld -> *JSWorld
 
-  , initClient :: sv ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId *JSWorld -> *(cl, *JSWorld)
-  , appDiffClt :: ((EditletEventHandlerFunc d cl) ComponentId -> JSFun ()) ComponentId d cl *JSWorld -> *(cl, *JSWorld)
-
-  , genDiffSrv :: sv sv -> Maybe d
-  , appDiffSrv :: d  sv -> sv
+  , genDiffSrv :: a a -> Maybe d
+  , appDiffSrv :: d a -> a
   }
 
 fromEditlet :: (Editlet a d cl) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONEncode{|*|} d & JSONDecode{|*|} d
-

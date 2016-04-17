@@ -113,7 +113,7 @@ where
 //* URL
 gText{|URL|}	_ val	= [maybe "" toString val]
 
-gEditor{|URL|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|URL|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	typeDesc = "uniform resource locator (URL)"
 	genUI dp val=:(URL url) mask vst=:{VSt|taskId,optional,disabled}
@@ -122,7 +122,7 @@ where
 		| otherwise
 			# value = checkMaskValue mask url
 			= ((setOptional optional o setEditOpts taskId (editorId dp) value) (uia UIEditString (stdAttributes typeDesc optional mask)),vst)
-	genDiff dp (URL old) om (URL new) nm vst=:{VSt|optional}
+	updUI dp (URL old) om (URL new) nm vst=:{VSt|optional}
 		= (if (old === new) NoChange (ChangeUI [("setValue",[toJSON new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json url -> Just (maybe url (\s -> URL s) (fromJSON json))) dp e val mask ust
@@ -150,7 +150,7 @@ JSONDecode{|Note|} _ c = (Nothing,c)
 
 gText{|Note|}	_ val	    = [maybe "" toString val]
 
-gEditor{|Note|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|Note|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	typeDesc = "note"
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
@@ -171,7 +171,7 @@ where
 			[line]	= Text line
 			lines	= SpanTag [] ('DL'.intersperse (BrTag []) (map Text lines))
 
-	genDiff dp old om new nm vst=:{VSt|optional}
+	updUI dp old om new nm vst=:{VSt|optional}
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI (noteToHtml new)]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
@@ -216,7 +216,7 @@ where
 
 gText{|EUR|} _ val = [maybe "" toString val]
 
-gEditor{|EUR|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|EUR|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	typeDesc ="amount in EUR"
 
@@ -229,7 +229,7 @@ where
 			# value = checkMaskValue mask ((\(EUR v) -> toReal v / 100.0) val)
 			# attr = ('DM'.put PREFIX_ATTRIBUTE (JSONString "&euro;") (stdAttributes typeDesc optional mask))
 			= (setEditOpts taskId (editorId dp) value (uia UIEditDecimal attr),vst)
-	genDiff dp (EUR old) om (EUR new) nm vst=:{VSt|optional,disabled}
+	updUI dp (EUR old) om (EUR new) nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
@@ -267,7 +267,7 @@ where
 
 gText{|USD|} _ val = [maybe "" toString val]
 
-gEditor{|USD|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|USD|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	typeDesc = "amount in USD"
 
@@ -281,7 +281,7 @@ where
 			# attr =('DM'.put PREFIX_ATTRIBUTE (JSONString "$") (stdAttributes typeDesc optional mask))
 			= (setEditOpts taskId (editorId dp) value (uia UIEditDecimal attr),vst)
 
-	genDiff dp (USD old) om (USD new) nm vst=:{VSt|optional,disabled}
+	updUI dp (USD old) om (USD new) nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
@@ -332,7 +332,7 @@ isDateFormat s = size s == 10 && foldl (\ok i -> ok && (if (i == 4 || i == 7) (s
 
 gText{|Date|} _ val = [maybe "" toString val]
 
-gEditor{|Date|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|Date|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	typeDesc = "date (yyyy-mm-dd)"
 
@@ -346,7 +346,7 @@ where
 			# editOpts = setEditOpts taskId (editorId dp) value
 			= (editOpts (uia UIEditDate (stdAttributes typeDesc optional mask)), vst)
 
-	genDiff dp old om new nm vst=:{VSt|optional,disabled}
+	updUI dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
@@ -422,7 +422,7 @@ isTimeFormat s = size s == 8 && foldl (\ok i -> ok && (if (i == 2 || i == 5) (s.
 
 gText{|Time|} _ val = [maybe "" toString val]
 
-gEditor{|Time|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|Time|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	typeDesc = "time (hh:mm:ss)"
 
@@ -436,7 +436,7 @@ where
 			# editOpts = setEditOpts taskId (editorId dp) value
 			= (editOpts (uia UIEditTime (stdAttributes typeDesc optional mask)), vst)
 
-	genDiff dp old om new nm vst=:{VSt|optional,disabled}
+	updUI dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval]):stdAttributeChanges typeDesc optional om nm] []), vst)
 
@@ -511,7 +511,7 @@ gText{|DateTime|} AsHeader _ = [""]
 gText{|DateTime|} _ (Just (DateTime date time))
 	= [toSingleLineText date +++" "+++ toSingleLineText time]
 
-gEditor{|DateTime|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|DateTime|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where 
 	typeDesc = "Date/time (yyyy-mm-dd hh:mm:ss)"
 
@@ -524,7 +524,7 @@ where
 			# value = checkMaskValue mask val
 			# editOpts = setEditOpts taskId (editorId dp) value
 			= (editOpts (uia UIEditDateTime (stdAttributes typeDesc optional mask)), vst)
-	genDiff dp old om new nm vst=:{VSt|optional,disabled}
+	updUI dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (toJSON new)
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
@@ -582,7 +582,7 @@ gText{|Document|} _ (Just val)
 	| otherwise							= [val.Document.name]
 gText{|Document|} _ Nothing             = [""]
 
-gEditor {|Document|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor {|Document|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	typeDesc = "document"
 
@@ -594,7 +594,7 @@ where
 			# value = checkMaskValue mask val
 			# editOpts = setEditOpts taskId (editorId dp) value
 			= (editOpts (uia UIEditDocument (stdAttributes typeDesc optional mask)),vst)
-	genDiff dp old om new nm vst=:{VSt|optional}
+	updUI dp old om new nm vst=:{VSt|optional}
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	appDiff dp e val mask ust = case fromJSON e of 
@@ -656,7 +656,7 @@ derive class iTask	FileError
 gText{|Scale|}	_ (Just {Scale|cur}) = [toString cur]
 gText{|Scale|}	_ _                  = [""]
 
-gEditor{|Scale|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|Scale|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		# sliderOpts	= setMinValue val.Scale.min o setMaxValue val.Scale.max
@@ -672,7 +672,7 @@ where
 	where
 		curVal {Scale|cur} = cur
 	
-	genDiff dp {Scale|cur=old} om {Scale|cur=new} nm vst
+	updUI dp {Scale|cur=old} om {Scale|cur=new} nm vst
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI new])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdate (\json i -> Just (maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json))) dp e val mask ust
@@ -684,7 +684,7 @@ gDefault{|Scale|} = {Scale|min=1,cur=3,max=5}
 //* Progress bars
 gText{|Progress|}	_ val  = [maybe "" (\{Progress|description} -> description) val]
 
-gEditor{|Progress|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|Progress|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId}
 		= ((setText (text val) o (setValue (toJSON (value val)))) (ui UIViewProgress), vst)
@@ -697,7 +697,7 @@ where
 					 	= ProgressRatio ratio
 	value {Progress|progress} = progress
 
-	genDiff dp old om new nm vst
+	updUI dp old om new nm vst
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI (value new)])] []),vst)
 
 	appDiff dp e val mask ust = (val,mask,ust)
@@ -718,13 +718,13 @@ derive gVerify			ProgressAmount
 gText{|HtmlInclude|}	_ (Just (HtmlInclude location))	= ["<External html: " + location + ">"]
 gText{|HtmlInclude|}	_ _	                            = [""]
 
-gEditor{|HtmlInclude|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff} 
+gEditor{|HtmlInclude|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff} 
 where
 	genUI dp (HtmlInclude path) mask vst
 		# attr = 'DM'.fromList [("value",JSONString (toString (IframeTag [SrcAttr path] [])))]
 		= (uia UIViewHtml attr,vst)
 
-	genDiff dp (HtmlInclude old) om (HtmlInclude new) nm vst
+	updUI dp (HtmlInclude old) om (HtmlInclude new) nm vst
 		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI new])] []),vst)
 
 	appDiff dp e val mask ust = (val,mask,ust)
@@ -736,7 +736,7 @@ derive gDefault HtmlInclude
 //* Form buttons
 gText{|FormButton|}	_ val = [maybe "" (\v -> v.FormButton.label) val]
 
-gEditor{|FormButton|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|FormButton|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
 		# text = val.FormButton.label
@@ -745,7 +745,7 @@ where
 		# editOpts = setEditOpts taskId (editorId dp) (Just (JSONString "pressed"))
 		= ((editOpts o buttonOpts)(ui UIEditButton), vst)
 
-	genDiff dp {FormButton|state=old} om {FormButton|state=new} nm vst
+	updUI dp {FormButton|state=old} om {FormButton|state=new} nm vst
 		= (if (old === new) NoChange (ChangeUI [("setEditorValue",[toJSON new])] []),vst)
 
 	appDiff dp e val mask ust = basicUpdate (\st b -> Just {FormButton|b & state = st}) dp e val mask ust
@@ -773,7 +773,7 @@ derive gVerify		ButtonState
 //* Table consisting of headers, the displayed data cells & possibly a selection
 gText{|Table|}	_ _	= ["<Table>"]
 
-gEditor{|Table|} = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|Table|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
 		= ((setChoiceOpts taskId (editorId dp) (value val) (options val) o setColumns (columns val)) (ui UIGrid),vst)
@@ -782,7 +782,7 @@ where
 		columns (Table headers _ _)	= headers
 		options (Table _ cells _)	= map (toJSON o (map toString)) cells
 
-	genDiff dp old om new nm vst 
+	updUI dp old om new nm vst 
 		| old === new 
 			= (NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
@@ -827,7 +827,7 @@ gDefault{|ComboChoice|} _ = ComboChoice [] Nothing
 gText{|ComboChoice|} fv mode (Just val) = fromMaybe ["No item selected"] (fmap (\v -> fv mode (Just v)) (getSelectionView val))
 gText{|ComboChoice|} fv mode _          = [""]
 
-gEditor{|ComboChoice|} fx gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|ComboChoice|} fx gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
@@ -842,7 +842,7 @@ where
 
 	options (ComboChoice options _)			= [JSONString (concat (gx AsSingleLine (Just v))) \\ v <- options]
 
-	genDiff dp old om new nm vst
+	updUI dp old om new nm vst
 		| options old === options new && evalue old === evalue new
 			= (NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
@@ -864,7 +864,7 @@ gDefault{|RadioChoice|} _ = RadioChoice [] Nothing
 gText{|RadioChoice|} fv mode (Just val) = fromMaybe ["No item selected"] (fmap (\v -> fv mode (Just v)) (getSelectionView val))
 gText{|RadioChoice|} fv _ _ = [""]
 
-gEditor{|RadioChoice|} _ gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|RadioChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
@@ -879,7 +879,7 @@ where
 	
 	options (RadioChoice options _)			= [JSONString (concat (gx AsSingleLine (Just v))) \\ v <- options]
 
-	genDiff dp old om new nm vst
+	updUI dp old om new nm vst
 		| options old === options new && evalue old === evalue new
 			= (NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
@@ -900,7 +900,7 @@ gDefault{|ListChoice|} _ = ListChoice [] Nothing
 gText{|ListChoice|} fv mode (Just val) = fromMaybe ["No item selected"] (fmap (\v -> fv mode (Just v)) (getSelectionView val))
 gText{|ListChoice|} fv _ _ = [""]
 
-gEditor{|ListChoice|} _ gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|ListChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
 		| disabled
@@ -915,7 +915,7 @@ where
 	
 	options (ListChoice options _)			= [JSONString (concat (gx AsSingleLine (Just v))) \\ v <- options]
 
-	genDiff dp old om new nm vst
+	updUI dp old om new nm vst
 		| options old === options new && evalue old === evalue new
 			= (NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
@@ -937,7 +937,7 @@ gDefault{|TreeChoice|} _ = TreeChoice [] Nothing
 gText{|TreeChoice|} fv mode (Just val) = fromMaybe ["No item selected"] (fmap (\v -> fv mode (Just v)) (getSelectionView val))
 gText{|TreeChoice|} fv _ _ = [""]
 
-gEditor{|TreeChoice|} _ gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|TreeChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
 		# viz		= setChoiceOpts taskId (editorId dp) (value val) (options gx val mask) (ui UITree)
@@ -963,7 +963,7 @@ where
 
 	options _ _ _ = []
 
-	genDiff dp old om new nm vst
+	updUI dp old om new nm vst
 		| options gx old Untouched === options gx new Untouched && value old === value new
 			= (NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
@@ -988,7 +988,7 @@ gDefault{|GridChoice|} _ = GridChoice [] Nothing
 gText{|GridChoice|} fv mode (Just val) = fromMaybe ["No item selected"] (fmap (\v -> fv mode (Just v)) (getSelectionView val))	
 gText{|GridChoice|} fv _ _ = [""]
 
-gEditor{|GridChoice|} _ gx _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|GridChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
 		= ((setChoiceOpts taskId (editorId dp) (value val) (options val) o setColumns columns) (ui UIGrid),vst)
@@ -997,7 +997,7 @@ where
 	options (GridChoice options _)		= [toJSON (gx AsRow (Just opt)) \\ opt <- options]
    	columns = gx AsHeader Nothing
 
-	genDiff dp old om new nm vst
+	updUI dp old om new nm vst
 		| options old === options new && value old === value new
 			= (NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
@@ -1023,7 +1023,7 @@ gText{|DynamicChoice|}		fv mode (Just (DCGrid val))	    = gText{|*->*|} fv mode 
 gText{|DynamicChoice|}		fv mode (Just (DCTree val))	    = gText{|*->*|} fv mode (Just val)
 gText{|DynamicChoice|}		fv _ _	        = [""]
 
-gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp (DCCombo val) mask vst = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genUI dp val mask vst
 	genUI dp (DCRadio val) mask vst = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genUI dp val mask vst
@@ -1031,17 +1031,17 @@ where
 	genUI dp (DCTree val) mask vst = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genUI dp val mask vst
 	genUI dp (DCGrid val) mask vst = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genUI dp val mask vst
 
-	genDiff dp (DCCombo old) om (DCCombo new) nm vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genDiff dp old om new nm vst
-	genDiff dp (DCRadio old) om (DCRadio new) nm vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genDiff dp old om new nm vst
-	genDiff dp (DCList old) om (DCList new) nm vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genDiff dp old om new nm vst
-	genDiff dp (DCTree old) om (DCTree new) nm vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genDiff dp old om new nm vst
-	genDiff dp (DCGrid old) om (DCGrid new) nm vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genDiff dp old om new nm vst
-	genDiff dp old om new nm vst
+	updUI dp (DCCombo old) om (DCCombo new) nm vst
+		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.updUI dp old om new nm vst
+	updUI dp (DCRadio old) om (DCRadio new) nm vst
+		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.updUI dp old om new nm vst
+	updUI dp (DCList old) om (DCList new) nm vst
+		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.updUI dp old om new nm vst
+	updUI dp (DCTree old) om (DCTree new) nm vst
+		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.updUI dp old om new nm vst
+	updUI dp (DCGrid old) om (DCGrid new) nm vst
+		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.updUI dp old om new nm vst
+	updUI dp old om new nm vst
 		# (nviz,vst) = genUI dp new nm vst
 		= (ReplaceUI nviz,vst)
 
@@ -1098,7 +1098,7 @@ gDefault{|CheckMultiChoice|} _ _ = CheckMultiChoice [] []
 gText{|CheckMultiChoice|} fv _ _ (Just val) = gText{|* -> *|} fv AsSingleLine (Just (getSelectionViews val))
 gText{|CheckMultiChoice|} fv _ _ _ = [""]
 
-gEditor{|CheckMultiChoice|} _ gx _ _ _ _ _ _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|CheckMultiChoice|} _ gx _ _ _ _ _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
@@ -1111,7 +1111,7 @@ where
 	evalue (CheckMultiChoice _ sel)			= sel
 	options (CheckMultiChoice options _)	= [JSONString (concat (gx AsSingleLine (Just v))) \\ (v,_) <- options]
 
-	genDiff dp old om new nm vst
+	updUI dp old om new nm vst
 		| options old === options new && evalue old === evalue new
 			= (NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
@@ -1272,17 +1272,17 @@ gText{|VisualizationHint|} fx mode (Just val) = case val of
 	VHEditable x	= gText{|* -> *|} fx mode (Just (Editable x))
 gText{|VisualizationHint|} fx _ _ = [""]
 
-gEditor{|VisualizationHint|} fx gx dx jex jdx = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
+gEditor{|VisualizationHint|} fx gx dx jex jdx = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp val mask vst = case val of
 		VHHidden x		= (gEditor{|* -> *|} fx gx dx jex jdx).Editor.genUI dp (Hidden x) mask vst
 		VHDisplay x		= (gEditor{|* -> *|} fx gx dx jex jdx).Editor.genUI dp (Display x) mask vst
 		VHEditable x	= (gEditor{|* -> *|} fx gx dx jex jdx).Editor.genUI dp (Editable x) mask vst
 
-	genDiff dp (VHEditable old) om (VHEditable new) nm vst = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.genDiff dp (Editable old) om (Editable new) nm vst
-	genDiff dp (VHDisplay old) om (VHDisplay new) nm vst   = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.genDiff dp (Display old) om (Display new) nm vst
-	genDiff dp (VHHidden old) om (VHHidden new) nm vst     = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.genDiff dp (Hidden old) om (Hidden new) nm vst
-	genDiff _ _ _ _ _ vst = (NoChange,vst)
+	updUI dp (VHEditable old) om (VHEditable new) nm vst = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.updUI dp (Editable old) om (Editable new) nm vst
+	updUI dp (VHDisplay old) om (VHDisplay new) nm vst   = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.updUI dp (Display old) om (Display new) nm vst
+	updUI dp (VHHidden old) om (VHHidden new) nm vst     = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.updUI dp (Hidden old) om (Hidden new) nm vst
+	updUI _ _ _ _ _ vst = (NoChange,vst)
 
 	appDiff dp e val=:(VHEditable s) mask ust = wrapperUpdate fx.Editor.appDiff fromVisualizationHint VHEditable dp e val mask ust
 	appDiff dp e val=:(VHDisplay s) mask ust = wrapperUpdate fx.Editor.appDiff fromVisualizationHint VHDisplay dp e val mask ust
@@ -1303,10 +1303,10 @@ toVisualizationHint a = (VHEditable a)
 
 gText{|Hidden|} _ _ _ = []
 
-gEditor{|Hidden|} fx _ _ _ _ = {Editor|genUI=genUI,appDiff=appDiff,genDiff=genDiff}
+gEditor{|Hidden|} fx _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp val mask vst = (ui UIEmpty,vst)
-	genDiff dp old om new nm vst = (NoChange,vst)
+	updUI dp old om new nm vst = (NoChange,vst)
 	appDiff dp e val mask ust = (val,mask,ust)
 
 gVerify{|Hidden|} fx options (Hidden v,mask) = fx options (v,mask)
@@ -1320,14 +1320,14 @@ toHidden x = (Hidden x)
 gText{|Display|} fx mode (Just (Display val))	= fx mode (Just val)
 gText{|Display|} fx mode Nothing               = fx mode Nothing
 
-gEditor{|Display|} ex j _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
+gEditor{|Display|} ex j _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp (Display val) mask vst=:{VSt|disabled}
 		# (def,vst) = ex.Editor.genUI dp val mask {VSt|vst & disabled = True}
 		= (def,{VSt|vst & disabled = disabled})
 
-	genDiff dp (Display old) om (Display new) nm vst=:{VSt|disabled}
-		# (change,vst) = ex.Editor.genDiff dp old om new nm {VSt|vst & disabled = True}
+	updUI dp (Display old) om (Display new) nm vst=:{VSt|disabled}
+		# (change,vst) = ex.Editor.updUI dp old om new nm {VSt|vst & disabled = True}
 		= (change,{VSt|vst & disabled = disabled})
 
 	appDiff dp e val mask ust = wrapperUpdate ex.Editor.appDiff fromDisplay Display dp e val mask ust
@@ -1343,14 +1343,14 @@ toDisplay a = (Display a)
 gText{|Editable|} fx mode (Just (Editable val))    = fx mode (Just val)
 gText{|Editable|} fx mode Nothing                  = fx mode Nothing
 
-gEditor{|Editable|} ex _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
+gEditor{|Editable|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp val mask vst=:{VSt|disabled}
 		# (def,vst) = ex.Editor.genUI dp (fromEditable val) mask {VSt | vst & disabled = False}
 		= (def,{VSt | vst & disabled = disabled})
 
-	genDiff dp (Editable old) om (Editable new) nm vst
-		= ex.Editor.genDiff dp old om new nm vst
+	updUI dp (Editable old) om (Editable new) nm vst
+		= ex.Editor.updUI dp old om new nm vst
 
 	appDiff dp e val mask ust = wrapperUpdate ex.Editor.appDiff fromEditable Editable dp e val mask ust
 
@@ -1365,12 +1365,12 @@ toEditable a = (Editable a)
 gText{|Row|} gVizx mode (Just (Row val)) = gVizx mode (Just val)
 gText{|Row|} gVizx mode Nothing = gVizx mode Nothing
 
-gEditor{|Row|} ex _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff} 
+gEditor{|Row|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff} 
 where
 	genUI dp (Row val) mask vst
  		= appFst (setDirection Horizontal) (ex.Editor.genUI dp val mask vst)
-	genDiff dp (Row old) om (Row new) nm vst
-		= ex.Editor.genDiff dp old om new nm vst
+	updUI dp (Row old) om (Row new) nm vst
+		= ex.Editor.updUI dp old om new nm vst
 	appDiff dp e val mask ust = wrapperUpdate ex.Editor.appDiff (\(Row x) -> x) Row dp e val mask ust
 
 gVerify{|Row|} gVerx options (Row x,mask) = gVerx options (x,mask)
@@ -1378,12 +1378,12 @@ gVerify{|Row|} gVerx options (Row x,mask) = gVerx options (x,mask)
 gText{|Col|} gVizx mode (Just (Col val)) = gVizx mode (Just val)
 gText{|Col|} gVizx mode Nothing = gVizx mode Nothing
 
-gEditor{|Col|} ex _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
+gEditor{|Col|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI dp (Col val) mask vst
  		= appFst (setDirection Vertical) (ex.Editor.genUI dp val mask vst)
-	genDiff dp (Col old) om (Col new) nm vst
-		= ex.Editor.genDiff dp old om new nm vst
+	updUI dp (Col old) om (Col new) nm vst
+		= ex.Editor.updUI dp old om new nm vst
 	appDiff dp e val mask ust = wrapperUpdate ex.Editor.appDiff (\(Col x) -> x) Col dp e val mask ust
 	
 gVerify{|Col|} gVerx options (Col x,mask) = gVerx options (x,mask)
@@ -1549,10 +1549,10 @@ derive gEq				Icon
 derive gText	        Icon
 derive gVerify			Icon
 
-gEditor{|Icon|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
+gEditor{|Icon|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI _ (Icon icon) mask vst = (setIconCls ("icon-"+++icon) (ui UIIcon), vst)
-	genDiff _ (Icon old) om (Icon new) nm vst
+	updUI _ (Icon old) om (Icon new) nm vst
 		= (if (old === new) NoChange (ChangeUI [("setIconCls",[encodeUI ("icon-"+++new)])] []),vst)
 
 	appDiff dp e val mask ust = (val,mask,ust)
@@ -1576,10 +1576,10 @@ gEq{|(->)|} _ _ fa fb		= copy_to_string fa == copy_to_string fb // HACK: Compare
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 
 gDefault{|{}|} _ = undef
-gEditor{|{}|} _ _ _ _ _ = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
+gEditor{|{}|} _ _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI _ _ _ vst = (ui UIEmpty,vst)
-	genDiff _ _ _ _ _ vst = (NoChange,vst)
+	updUI _ _ _ _ _ vst = (NoChange,vst)
 	appDiff _ _ val mask ust = (val,mask,ust)
 
 gText{|{}|} _ _ _ = undef

@@ -124,18 +124,16 @@ openStreetMapTiles = TileLayer "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.pn
 leafletEditlet :: Editlet LeafletMap [LeafletDiff] (LeafletMap, Maybe LeafletClientState)
 leafletEditlet 
   = { Editlet
-    | genUI     =  genUI 
-    , saplInit   = saplInit 
-    , initClient = onInit
-    , appDiffClt = appDiffClt
+    | genUI     = genUI 
+    , initUI    = initUI
     , genDiffSrv = genDiff
     , appDiffSrv = appDiff
     }
 where
-	genUI val world
+	genUI dp val mask world
 		= (setSize (ExactSize 500) (ExactSize 150) (ui UIViewHtml), world)
 		//= (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (DivTag [IdAttr (mapdivid cid)] [])))])), world)
-	saplInit me world
+	initUI me world
 		# (jsInitDOM,world) = jsWrapFun (initDOM me) world
 		//Check if the leaflet library is loaded and either load it, 
 		//and delay dom initialization or set the initDOM method to continue

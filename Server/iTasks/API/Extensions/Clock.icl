@@ -20,14 +20,12 @@ analogClockEditlet :: Editlet AnalogClock [(Int,Int)] ()
 analogClockEditlet
     = {Editlet
       |genUI        = genUI
-      ,saplInit     = saplInit 
-      ,initClient   = \_ _ _ world -> ((), world)
-      ,appDiffClt   = \_ _ _ _ world -> ((),world)
+      ,initUI       = initUI
       ,genDiffSrv   = genTimeDiff
       ,appDiffSrv   = appTimeDiff
       }
 where
-	genUI (AnalogClock {Time|hour,min,sec}) world
+	genUI dp (AnalogClock {Time|hour,min,sec}) mask world
 		= (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (svgClock hour min sec)))])), world)
 	where
 		svgClock hour min sec 
@@ -46,7 +44,7 @@ where
         = RectElt [WidthAttr (toString len +++"px"),HeightAttr "2px",StyleAttr ("fill: "+++color)]
                   [XAttr ("50",PX),YAttr ("50",PX),TransformAttr [RotateTransform (toString (angle - 90)) (Just ("50","50"))]]
 
-	saplInit me world
+	initUI me world
 		//Register listener for ui diffs from the server
 		# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) world
 		# world = (me .# "onAttributeChange" .= jsOnAttributeChange) world

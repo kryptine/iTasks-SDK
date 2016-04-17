@@ -67,7 +67,7 @@ JSONEncode{|Username|} _ (Username u) = [JSONString u]
 JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
 JSONDecode{|Username|} _ c = (Nothing,c)
 
-gEditor{|Username|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
+gEditor{|Username|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	typeDesc = "username"
 
@@ -78,7 +78,7 @@ where
 		| otherwise
 			# value = checkMaskValue mask ((\(Username v) -> v) val)
 			= (setEditOpts taskId (editorId dp) value (uia UIEditString (stdAttributes typeDesc optional mask)), vst)
-	genDiff dp (Username old) om (Username new) nm vst=:{VSt|optional,disabled}
+	updUI dp (Username old) om (Username new) nm vst=:{VSt|optional,disabled}
 		= (if (old === new) NoChange (ChangeUI [("setAttribute",[JSONString "value",encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
@@ -108,7 +108,7 @@ JSONDecode{|Password|} _ c = (Nothing,c)
 gText{|Password|} AsHeader _ = [""]
 gText{|Password|} _ _        = ["********"]
 
-gEditor{|Password|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
+gEditor{|Password|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	typeDesc = "password"
 
@@ -118,7 +118,7 @@ where
 		| otherwise	
 			# value = checkMaskValue mask ((\(Password v) -> v) val)
 			= (setEditOpts taskId (editorId dp) value (uia UIEditPassword (stdAttributes typeDesc optional mask)), vst)
-	genDiff dp (Password old) om (Password new) nm vst=:{VSt|optional,disabled}
+	updUI dp (Password old) om (Password new) nm vst=:{VSt|optional,disabled}
 		= (if (old === new) NoChange (ChangeUI [("setAttribute",[JSONString "value",encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust

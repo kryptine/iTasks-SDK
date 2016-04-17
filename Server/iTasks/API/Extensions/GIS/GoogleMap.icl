@@ -61,17 +61,15 @@ googleMapEditlet :: Editlet GoogleMap [GoogleMapDiff] GoogleMapClient
 googleMapEditlet
     = { Editlet
       | genUI       = genUI
-      , saplInit    = saplInit
-      , initClient  = \_ _ _ world -> (undef,world) //onInit
-      , appDiffClt  = appDiffClt
+      , initUI      = initUI 
       , genDiffSrv  = genDiff 
       , appDiffSrv  = appDiff
       }
 where
-	genUI val world
+	genUI dp val mask world
 		= ((setValue (toJSON val) o setSize (ExactSize 500) (ExactSize 200)) (ui UIComponent),world)
 
-	saplInit me world
+	initUI me world
 		# (jsInitDOM, world)   = jsWrapFun (initDOM me) world
 		# (gmaps_loaded,world) = findObject "googlemaps_loaded" world
 		| jsIsUndefined gmaps_loaded

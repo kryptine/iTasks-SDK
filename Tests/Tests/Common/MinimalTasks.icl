@@ -12,22 +12,14 @@ minimalEditlet = updateInformation "Minimal String editlet" [UpdateUsing id cons
 where
 	//Simple button
 	editlet = { genUI      = genUI
-			  , saplInit   = \m w -> w
-			  , initClient = initClient
-			  , appDiffClt = \_ cid n _ w -> (n,w)
+			  , initUI     = \m w -> w
 			  , genDiffSrv = \o n -> if (o == n) Nothing (Just n) 
               , appDiffSrv = \n _ -> n
 			  }
 
-	genUI val world = (setSize WrapSize WrapSize (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (html "DEPRECATED")))])), world)
+	genUI dp val mask world = (setSize WrapSize WrapSize (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (html "DEPRECATED")))])), world)
 	html cid = ButtonTag [IdAttr (cid +++ "-button")] [Text "Click me"]
 
-	//Register eventhandler for clicking the button
-	initClient sv mkHandler cid world
-		# (button, world) 	= .? (getElementById (cid +++ "-button")) world
-		# world 			= jsSetObjectAttr "onclick" (toJSVal (mkHandler onClick cid)) button world
-		= (sv,world)
-	
  	onClick cid event cv world
 		= (cv,Diff "Click" rollback,world)
 

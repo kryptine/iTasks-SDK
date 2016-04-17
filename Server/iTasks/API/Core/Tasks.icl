@@ -133,7 +133,7 @@ visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworl
 			# change 		= ReplaceUI (uic UIInteract [promptUI,editUI])
 			= (change,vst)
 		_				//compare old and new value to determine changes
-			# (editChange,vst)  = editor.Editor.genDiff [] v m nv nm vst
+			# (editChange,vst)  = editor.Editor.updUI [] v m nv nm vst
 			# promptChange 		= NoChange
 			# change 			= ChangeUI [] [(0,ChangeChild promptChange), (1,ChangeChild editChange)]
 			= (change,vst)

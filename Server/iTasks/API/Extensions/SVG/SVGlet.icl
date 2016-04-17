@@ -326,14 +326,12 @@ fromSVGLet {toImage,resolve} = fromEditlet (svgRenderer resolve toImage)
 svgRenderer :: !(Conflict s -> Maybe s) !(s *TagSource -> Image s) -> Editlet s (SVGDiff s) (SVGClSt s s) | gEq{|*|} s & gDefault{|*|} s
 svgRenderer resolve state2Image 
   = { genUI      = genUI
-	, saplInit   = (\me w -> jsTrace "svgRenderer" w)
-    , initClient = \_ _ _ w -> (undef,w) //initClient resolve state2Image
-    , appDiffClt = \_ _ _ c w -> (c,w) //appClientDiff resolve state2Image
+	, initUI     = (\me w -> jsTrace "svgRenderer" w)
     , genDiffSrv = genServerDiff
     , appDiffSrv = appServerDiff
     }
   where
-  genUI val world 
+  genUI dp val mask world 
 	# cid = "DEPRECATED CID"
 	= ( setSize FlexSize FlexSize (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (DivTag [IdAttr (mainSvgId cid), StyleAttr "overflow: auto;"] [])))]))
 	  , world)
