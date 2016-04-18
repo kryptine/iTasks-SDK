@@ -48,22 +48,17 @@ fromEditlet editlet=:{Editlet| genUI, initUI, genDiffSrv, appDiffSrv} = {Editor|
 where
 	genUI` dp currVal mask vst=:{VSt|taskId}
 		# (uiDef,vst=:{VSt|iworld}) = genUI dp currVal mask vst
-		= case editletLinker initDiff initUI initUI iworld of
-		//= case editletLinker initDiff (initClient currVal createEditletEventHandler) (appDiffClt createEditletEventHandler) iworld of
-			(Ok (jsScript, jsID, jsIC, jsAD),iworld)
-				# attr = editletAttr jsScript jsID jsIC jsAD
+		= case editletLinker initUI iworld of
+			(Ok (saplDeps, saplInit),iworld)
+				# attr = 'DM'.fromList [("taskId",JSONString taskId)
+                                       ,("editorId",JSONString (editorId dp))
+                                       ,("saplDeps",JSONString saplDeps)
+                                       ,("saplInit",JSONString saplInit)
+                                       ]
 				= (eui uiDef attr, {VSt|vst & iworld = iworld})
 			(Error e,iworld) //TODO: Propagate the error to the interact task that creates the editor
 				= (eui uiDef 'DM'.newMap, {VSt|vst & iworld = iworld})
 	where
-		initDiff = genDiffSrv gDefault{|*|} currVal
-		editletAttr jsScript jsID jsIC jsAD
-			= 'DM'.fromList [("taskId",JSONString taskId)
-							,("editorId",JSONString (editorId dp))
-							,("saplDeps",JSONString jsScript)
-							,("saplInit",JSONString jsIC)
-							]
-
 		eui (UI type attr items) editletAttr = UI type (addAll editletAttr attr) items
 		addAll a1 a2 = foldl (\a (k,v) -> 'DM'.put k v a) a2 ('DM'.toList a1)
 
