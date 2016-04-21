@@ -177,6 +177,12 @@ fromJSValUnsafe ptr = undef
 fromJSVal :: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
 fromJSVal ptr world = undef
 
+jsPutCleanVal :: !String !a !(JSVal o) !*JSWorld -> *JSWorld
+jsPutCleanVal key val obj world = undef
+
+jsGetCleanVal :: !String !(JSVal o) !*JSWorld -> *(!a,!*JSWorld)
+jsGetCleanVal key obj world = undef
+
 //UTIL
 
 jsArrayPush :: !(JSVal a) !(JSArr a) !*JSWorld -> *(!JSArr a, !*JSWorld)

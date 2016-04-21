@@ -2,35 +2,19 @@ definition module iTasks.API.Extensions.SVG.SVGlet
 
 import Graphics.Scalable
 import Graphics.Scalable.Internal
-from Text.JSON import generic JSONEncode, generic JSONDecode
-from GenEq import generic gEq
 import iTasks
 import iTasks.UI.Editor
 import iTasks.API.Core.Types
 
 //An SVGLet let's you specify an editor as an interactive SVG image
-:: SVGLet s =
-	{ toImage :: s *TagSource -> Image s
-	, resolve ::   Conflict s -> Maybe s
+:: SVGLet m v =
+	{ initView    :: m -> v                     //Initialize a 'view' value that holds temporary data while editing
+    , renderImage :: m v *TagSource -> Image v  //Render an interactive image that 
+	, updView     :: m v -> v                   //When the model is externally updated, the view needs to be updated too
+	, updModel    :: m v -> m                   //When the view is updated (using the image), the change needs to be merged back into the view
 	}
 
-fromSVGLet :: (SVGLet s) -> Editor s | gEq{|*|} s & gDefault{|*|} s & JSONEncode{|*|} s & JSONDecode{|*|} s
-
-//SHOULD BE DEPRECATED...
-
-imageUpdate :: !(s -> v) !(v *TagSource -> Image v) !(Conflict v -> Maybe v)
-               !(s v -> s`)
-            -> UpdateOption s s` | iTask v
-
-:: ActionState a s = { state   :: s
-                     , action  :: Maybe a
-                     }
-
-derive class iTask ActionState
-
-doAction :: !(a (ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe b
-
-ifAction :: !(a -> Bool) !(a s -> s) !(a (ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe b
+fromSVGLet :: (SVGLet s v) -> Editor s | iTask s
 
 derive class iTask Image, Span, LookupSpan, FontDef, ImageTransform, ImageAttr
 derive class iTask ImageContent, BasicImage, CompositeImage, LineImage, Markers

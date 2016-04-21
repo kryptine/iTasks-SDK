@@ -67,7 +67,8 @@ where
 			Nothing 			= (NoChange,{VSt|vst & iworld=iworld})
 			currentDiff 		= (ChangeUI [("setAttribute",[JSONString "diff", toJSON (fromJust currentDiff)])] [],{VSt|vst & iworld=iworld})
 
-	appDiff` [] (JSONArray [JSONInt ver, JSONInt diffId, jsonDiff]) ov om ust
+	appDiff` [] jsonDiff ov om ust
+	//appDiff` [] (JSONArray [JSONInt ver, JSONInt diffId, jsonDiff]) ov om ust
 		= case fromJSON jsonDiff of
 			Just diff
 				# (nv,nm) = (appDiffSrv diff ov,Touched)
@@ -75,4 +76,4 @@ where
 			Nothing
 				= (ov,om,ust)
 
-	appDiff` dp _ val mask ust = (val,mask,ust)
+	appDiff` dp _ val mask ust =(val,mask,ust)

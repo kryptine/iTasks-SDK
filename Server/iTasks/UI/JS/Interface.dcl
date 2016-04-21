@@ -100,6 +100,10 @@ fromJSVal 			:: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
 
 newJSArray          :: !*JSWorld -> *(!JSArr a, !*JSWorld)
 
+//Storing arbitrary Clean values in as properties on a Javascript object
+jsPutCleanVal       :: !String !a !(JSVal o) !*JSWorld -> *JSWorld
+jsGetCleanVal       :: !String    !(JSVal o) !*JSWorld -> *(!a,!*JSWorld)
+
 //USEFUL DERIVED UTIL FUNCTIONS
 
 jsArrayPush         :: !(JSVal a) !(JSArr a)      !*JSWorld -> *(!JSArr a, !*JSWorld)
@@ -129,7 +133,6 @@ jsValToString :: !(JSVal a) -> String
 jsValToReal   :: !(JSVal a) -> Real
 jsValToInt    :: !(JSVal a) -> Int
 jsValToBool   :: !(JSVal a) -> Bool
-
 
 jsArgToString :: !JSArg -> String
 jsArgToReal   :: !JSArg -> Real

@@ -279,13 +279,20 @@ function __iTasks_UI_JS_Interface_jsUnsafeArrCoerce(expr){
   return Sapl.feval(expr);
 }
 
-
-
-
-// createEditletEventHandler :: (EditletEventHandlerFunc a st) !ComponentId -> (JSVal (JSFunction b)) 
-function __iTasks_UI_Editor_createEditletEventHandler(expr, componentId){
-	
-	var comp = itwc.controller.editlets[Sapl.feval(componentId)];
-	return ___wrapJS(comp.eventHandler(true,expr));
+// jsPutCleanVal :: !String !a !(JSVal o) !*JSWorld -> *JSWorld
+function __iTasks_UI_JS_Interface_jsPutCleanVal(key,val,obj,world){
+	key   = Sapl.feval(key);
+	val   = Sapl.feval(val);
+    obj   = ___unwrapJS(Sapl.feval(obj));
+	world = Sapl.feval(world);
+	obj[key] = val;
+	return world;
 }
 
+// jsGetCleanVal :: !String !(JSVal o) !*JSWorld -> *(!a,!*JSWorld)
+function __iTasks_UI_JS_Interface_jsGetCleanVal(key,obj,world) {
+	key   = Sapl.feval(key);
+    obj   = ___unwrapJS(Sapl.feval(obj));
+	world = Sapl.feval(world);
+    return ___Tuple2(obj[key], world);
+}

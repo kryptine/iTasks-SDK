@@ -24,6 +24,8 @@ import iTasks.API.Extensions.SVG.SVGlet
 import Text
 import StdMisc
 
+derive class iTask ActionState
+
 TonicBlue     =: toSVGColor "#00bfff" // "DeepSkyBlue"
 TonicDarkBlue =: toSVGColor "#000080" // "navy"
 TonicGreen    =: toSVGColor "#32cd32" // "LimeGreen"
@@ -95,6 +97,19 @@ ArialItalic10px :== { fontfamily  = "Arial"
   }
 
 :: TStatus = TAllDone | TIsActive | TNotActive
+
+
+doAction :: !(a (ActionState a s) -> b) !(TaskValue (ActionState a s))
+         -> Maybe b
+doAction astos stotaskb = ifAction (const True) (const id) astos stotaskb
+
+ifAction :: !(a -> Bool) !(a s -> s) !(a (ActionState a s) -> b)
+            !(TaskValue (ActionState a s))
+         -> Maybe b
+ifAction pred astos stotaskb (Value {ActionState|state=s,action=Just a} _)
+  | pred a    = Just (stotaskb a {ActionState|state = astos a s, action = Nothing})
+  | otherwise = Nothing
+ifAction _ _ _ _ = Nothing
 
 instance == TStatus where
   (==) TAllDone   TAllDone   = True
