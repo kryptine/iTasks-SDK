@@ -57,7 +57,7 @@ GOOGLEMAP_JS = "http://maps.googleapis.com/maps/api/js?callback=googleMapsLoaded
 
 derive class iTask GoogleMapClient, GoogleMapState, JSGM
 
-googleMapEditlet :: Editlet GoogleMap [GoogleMapDiff] GoogleMapClient
+googleMapEditlet :: Editlet GoogleMap [GoogleMapDiff]
 googleMapEditlet
     = { Editlet
       | genUI       = genUI

@@ -16,7 +16,7 @@ derive gText AnalogClock
 gEditor{|AnalogClock|} = fromEditlet analogClockEditlet
 
 //SVG Based analog clock editlet
-analogClockEditlet :: Editlet AnalogClock [(Int,Int)] ()
+analogClockEditlet :: Editlet AnalogClock [(Int,Int)]
 analogClockEditlet
     = {Editlet
       |genUI        = genUI

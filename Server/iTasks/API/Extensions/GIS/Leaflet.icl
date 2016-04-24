@@ -121,7 +121,7 @@ appDiff _ m                             = m
 openStreetMapTiles :: LeafletLayer
 openStreetMapTiles = TileLayer "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 	
-leafletEditlet :: Editlet LeafletMap [LeafletDiff] (LeafletMap, Maybe LeafletClientState)
+leafletEditlet :: Editlet LeafletMap [LeafletDiff]
 leafletEditlet 
   = { Editlet
     | genUI     = genUI 

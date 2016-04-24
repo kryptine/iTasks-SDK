@@ -79,7 +79,7 @@ isTouched	:: !EditMask -> Bool
                    (Conflict state *JSWorld -> *(state, ComponentDiff diff state, *JSWorld))
 
 
-:: Editlet a d cl
+:: Editlet a d
   =
   { genUI      :: DataPath a EditMask *VSt -> *(!UI, !*VSt)
   , initUI     :: (JSObj ()) *JSWorld -> *JSWorld
@@ -88,4 +88,4 @@ isTouched	:: !EditMask -> Bool
   , appDiffSrv :: d a -> a
   }
 
-fromEditlet :: (Editlet a d cl) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONEncode{|*|} d & JSONDecode{|*|} d
+fromEditlet :: (Editlet a d) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONEncode{|*|} d & JSONDecode{|*|} d

@@ -67,7 +67,7 @@ derive class iTask Set, DropTarget, MousePos, ImageTag
 fromSVGLet :: (SVGLet s v) -> Editor s | iTask s 
 fromSVGLet svglet = fromEditlet (svgRenderer svglet)
 
-svgRenderer :: (SVGLet s v) -> Editlet s s () | iTask s
+svgRenderer :: (SVGLet s v) -> Editlet s s | iTask s
 svgRenderer svglet=:{initView,renderImage,updView,updModel}
   = { genUI      = genUI
 	, initUI     = initUI

@@ -40,10 +40,7 @@ where
 		middle = n / 2
 		(left,right) = splitAt middle masks
 
-createEditletEventHandler :: (EditletEventHandlerFunc d a) !ComponentId -> JSFun b
-createEditletEventHandler handler id = undef
-
-fromEditlet :: (Editlet a d cl) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONEncode{|*|} d & JSONDecode{|*|} d
+fromEditlet :: (Editlet a d) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONEncode{|*|} d & JSONDecode{|*|} d
 fromEditlet editlet=:{Editlet| genUI, initUI, genDiffSrv, appDiffSrv} = {Editor|genUI=genUI`,updUI=updUI, appDiff=appDiff`}
 where
 	genUI` dp currVal mask vst=:{VSt|taskId}
