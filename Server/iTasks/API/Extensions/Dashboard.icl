@@ -10,16 +10,16 @@ derive gEq ControlLight
 derive gDefault ControlLight
 derive gText ControlLight
 
-gEditor{|ControlLight|} = fromEditlet (controlLightEditlet defaultValue)
+gEditor{|ControlLight|} = fromEditlet controlLightEditlet
 
 //SVG Based fake control light
-controlLightEditlet :: ControlLight -> Editlet ControlLight String
-controlLightEditlet t
+controlLightEditlet :: Editlet ControlLight
+controlLightEditlet
     = {Editlet
       |genUI  = genUI
       ,initUI = initUI
       ,updUI  = \_ a _ b _ vst -> (if (a===b) NoChange (ChangeUI [SetAttribute "value" (JSONString (color b))] []),vst)
-      ,onEdit = \_ a -> a
+      ,onEdit = \_ _ a m ust -> (a,m,ust)
       }
 where
 	genUI dp val mask world

@@ -16,7 +16,7 @@ derive gText AnalogClock
 gEditor{|AnalogClock|} = fromEditlet analogClockEditlet
 
 //SVG Based analog clock editlet
-analogClockEditlet :: Editlet AnalogClock [(Int,Int)]
+analogClockEditlet :: Editlet AnalogClock
 analogClockEditlet
     = {Editlet
       |genUI    = genUI
@@ -75,9 +75,13 @@ updUI _ (AnalogClock t1) _ (AnalogClock t2) _ vst = case (  (if (t1.Time.sec == 
 						 ++ (if (t1.Time.hour == t2.Time.hour) [] [(2,t2.Time.hour)])
 						 ) of [] = (NoChange,vst) ; delta = (ChangeUI [SetAttribute "diff" (toJSON delta)] [],vst)
 
-onEdit :: [(Int,Int)] AnalogClock -> AnalogClock
-onEdit [] t = t
-onEdit [(0,s):d] (AnalogClock t) = onEdit d (AnalogClock {Time|t & sec = s})
-onEdit [(1,m):d] (AnalogClock t) = onEdit d (AnalogClock {Time|t & min = m})
-onEdit [(2,h):d] (AnalogClock t) = onEdit d (AnalogClock {Time|t & hour = h})
-
+onEdit :: DataPath JSONNode AnalogClock EditMask *USt -> *(!AnalogClock,!EditMask,!*USt)
+onEdit [] diff t m ust = case fromJSON diff of
+	Just diffs = (app diffs t,Touched,ust)
+	Nothing = (t,m,ust)
+where
+	app [] t = t
+	app [(0,s):d] (AnalogClock t) = app d (AnalogClock {Time|t & sec = s})
+	app [(1,m):d] (AnalogClock t) = app d (AnalogClock {Time|t & min = m})
+	app [(2,h):d] (AnalogClock t) = app d (AnalogClock {Time|t & hour = h})
+onEdit _ _ t m ust = (t,m,ust)

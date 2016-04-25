@@ -67,7 +67,7 @@ derive class iTask Set, DropTarget, MousePos, ImageTag
 fromSVGLet :: (SVGLet s v) -> Editor s | iTask s 
 fromSVGLet svglet = fromEditlet (svgRenderer svglet)
 
-svgRenderer :: (SVGLet s v) -> Editlet s s | iTask s
+svgRenderer :: (SVGLet s v) -> Editlet s | iTask s
 svgRenderer svglet=:{initView,renderImage,updView,updModel}
   = { genUI   = genUI
 	, initUI  = initUI
@@ -108,7 +108,7 @@ svgRenderer svglet=:{initView,renderImage,updView,updModel}
 			= (jsNull,jsTrace "Unknown attribute change" world)
 
   	updUI _ ov om nv nm vst = (if (ov === nv) NoChange (ChangeUI [SetAttribute "stateChange" (toJSON nv)] []),vst)
-  	onEdit st _ = st
+  	onEdit _ _ st m ust = (st,m,ust)
 
 onNewState :: !(JSVal a) !(SVGLet s v) !s !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 onNewState me svglet=:{initView,renderImage} s world

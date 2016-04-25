@@ -47,11 +47,11 @@ toPairMask	:: !Int !EditMask -> EditMask
 isTouched	:: !EditMask -> Bool
 
 :: *VSt =
-	{ selectedConsIndex	:: !Int													// Index of the selected constructor in an Object
-	, optional			:: !Bool												// Create optional form fields
-	, disabled			:: !Bool												// If true the editor is not editable
-	, taskId			:: !String												// The id of the task the visualisation belongs to
-	, iworld			:: !*IWorld												// The iworld, used for example if external tools are needed to create editors
+	{ selectedConsIndex	:: !Int              // Index of the selected constructor in an Object
+	, optional			:: !Bool             // Create optional form fields
+	, disabled			:: !Bool             // If true the editor is not editable
+	, taskId			:: !String           // The id of the task the visualisation belongs to
+	, iworld			:: !*IWorld	         // The iworld, used for example if external tools are needed to create editors
 	}
 
 :: *USt =
@@ -60,27 +60,15 @@ isTouched	:: !EditMask -> Bool
     }
 
 //****************************************************************************//
-// Wrapper types for defining custom editor components that can process events
+// Alternative wrapper type for defining custom editor components that can process events
 // that are defined server-side but run client-side
 //****************************************************************************//
-:: ComponentId :== String
-:: ComponentEventName :== String
-:: ComponentEvent d a = ComponentEvent !ComponentId !ComponentEventName (ComponentEventHandlerFunc d a)
-
-:: ComponentEventHandlerFunc d a
-	:== ComponentId {JSObj JSEvent} a *JSWorld -> *(!a, !ComponentDiff d a, !*JSWorld)
-
-:: Conflict :== Bool
-:: ComponentDiff diff state = NoDiff | Diff diff 
-                   (Conflict state *JSWorld -> *(state, ComponentDiff diff state, *JSWorld))
-
-:: Editlet a d
+:: Editlet a
   =
   { genUI   :: DataPath a EditMask *VSt -> *(!UI, !*VSt)
   , initUI  :: (JSObj ()) *JSWorld -> *JSWorld
   , updUI   :: DataPath a EditMask a EditMask *VSt -> *(!UIChange, !*VSt)
- //, onEdit :: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
-  , onEdit  :: d a -> a
+  , onEdit  :: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
   }
 
-fromEditlet :: (Editlet a d) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONEncode{|*|} d & JSONDecode{|*|} d
+fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a

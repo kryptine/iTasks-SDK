@@ -40,8 +40,8 @@ where
 		middle = n / 2
 		(left,right) = splitAt middle masks
 
-fromEditlet :: (Editlet a d) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONEncode{|*|} d & JSONDecode{|*|} d
-fromEditlet editlet=:{Editlet| genUI, initUI, updUI, onEdit} = {Editor|genUI=genUI`,updUI=updUI,onEdit=onEdit`}
+fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a
+fromEditlet editlet=:{Editlet| genUI, initUI, updUI, onEdit} = {Editor|genUI=genUI`,updUI=updUI,onEdit=onEdit}
 where
 	genUI` dp currVal mask vst=:{VSt|taskId}
 		# (uiDef,vst=:{VSt|iworld}) = genUI dp currVal mask vst
@@ -59,13 +59,3 @@ where
 		eui (UI type attr items) editletAttr = UI type (addAll editletAttr attr) items
 		addAll a1 a2 = foldl (\a (k,v) -> 'DM'.put k v a) a2 ('DM'.toList a1)
 
-	onEdit` [] jsonDiff ov om ust
-	//appDiff` [] (JSONArray [JSONInt ver, JSONInt diffId, jsonDiff]) ov om ust
-		= case fromJSON jsonDiff of
-			Just diff
-				# (nv,nm) = (onEdit diff ov,Touched)
-				= (nv,nm,ust)
-			Nothing
-				= (ov,om,ust)
-
-	onEdit` dp _ val mask ust =(val,mask,ust)

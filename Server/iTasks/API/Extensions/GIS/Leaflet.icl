@@ -98,30 +98,34 @@ where
         | o1 === o2     = diffObjects l (inc i) os1 os2
                         = [LDUpdateObject l i o2:diffObjects l (inc i) os1 os2]
 
-onEdit :: [LeafletDiff] LeafletMap -> LeafletMap
-onEdit [] m                            = m
-onEdit [LDSetZoom zoom:ds] m           = onEdit ds {m & perspective = {m.perspective & zoom = zoom}}
-onEdit [LDSetCenter center:ds] m       = onEdit ds {m & perspective = {m.perspective & center = center}}
-onEdit [LDSetCursor cursor:ds] m       = onEdit ds {m & perspective = {m.perspective & cursor = cursor}}
-onEdit [LDSetBounds bounds:ds] m       = onEdit ds {m & perspective = {m.perspective & bounds = bounds}}
-onEdit [LDAddIcons icons:ds] m         = onEdit ds {m & icons = m.icons ++ icons}
-onEdit [LDRemoveIcons n:ds] m          = onEdit ds {m & icons = take n m.icons}
-onEdit [LDUpdateIcon i icon:ds] m      = onEdit ds {m & icons = updateAt i icon m.icons}
-onEdit [LDAddLayers layers:ds] m       = onEdit ds {m & layers = m.layers ++ layers}
-onEdit [LDRemoveLayers n:ds] m         = onEdit ds {m & layers = take n m.layers}
-onEdit [LDUpdateLayer i layer:ds] m    = onEdit ds {m & layers = updateAt i layer m.layers}
-onEdit [LDAddObjects l objects:ds] m   = let (ObjectLayer o) = m.layers !! l in
-    onEdit ds {m & layers = updateAt l (ObjectLayer (o++objects)) m.layers}
-onEdit [LDRemoveObjects l n:ds] m      = let (ObjectLayer o) = m.layers !! l in
-    onEdit ds {m & layers = updateAt l (ObjectLayer (take n o)) m.layers}
-onEdit [LDUpdateObject l i object:ds] m     = let (ObjectLayer o) = m.layers !! l in
-    onEdit ds {m & layers = updateAt l (ObjectLayer (updateAt i object o)) m.layers}
-onEdit _ m                             = m
+onEdit :: DataPath JSONNode LeafletMap EditMask !*USt -> *(!LeafletMap,!EditMask,!*USt)
+onEdit [] diff m msk ust = case fromJSON diff of
+	Just diffs = (app diffs m,msk,ust)
+	Nothing = (m,msk,ust)
+where
+	app [] m = m
+	app [LDSetZoom zoom:ds] m           = app ds {m & perspective = {m.perspective & zoom = zoom}}
+	app [LDSetCenter center:ds] m       = app ds {m & perspective = {m.perspective & center = center}}
+	app [LDSetCursor cursor:ds] m       = app ds {m & perspective = {m.perspective & cursor = cursor}}
+	app [LDSetBounds bounds:ds] m       = app ds {m & perspective = {m.perspective & bounds = bounds}}
+	app [LDAddIcons icons:ds] m         = app ds {m & icons = m.icons ++ icons}
+	app [LDRemoveIcons n:ds] m          = app ds {m & icons = take n m.icons}
+	app [LDUpdateIcon i icon:ds] m      = app ds {m & icons = updateAt i icon m.icons}
+	app [LDAddLayers layers:ds] m       = app ds {m & layers = m.layers ++ layers}
+	app [LDRemoveLayers n:ds] m         = app ds {m & layers = take n m.layers}
+	app [LDUpdateLayer i layer:ds] m    = app ds {m & layers = updateAt i layer m.layers}
+	app [LDAddObjects l objects:ds] m   = let (ObjectLayer o) = m.layers !! l in
+		app ds {m & layers = updateAt l (ObjectLayer (o++objects)) m.layers}
+	app [LDRemoveObjects l n:ds] m     = let (ObjectLayer o) = m.layers !! l in
+    	app ds {m & layers = updateAt l (ObjectLayer (take n o)) m.layers}
+	app [LDUpdateObject l i object:ds] m = let (ObjectLayer o) = m.layers !! l in
+    	app ds {m & layers = updateAt l (ObjectLayer (updateAt i object o)) m.layers}
+onEdit _ _ m msk ust                             = (m,msk,ust)
 
 openStreetMapTiles :: LeafletLayer
 openStreetMapTiles = TileLayer "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 	
-leafletEditlet :: Editlet LeafletMap [LeafletDiff]
+leafletEditlet :: Editlet LeafletMap
 leafletEditlet 
   = { Editlet
     | genUI   = genUI 
@@ -230,7 +234,7 @@ where
 
 
 	mapdivid cid = "map_div_" +++ cid
-
+/*
 	onInit _ mkHandler cid env
 		# map = gDefault{|*|}
         # (l, env) = findObject "L" env
@@ -241,6 +245,7 @@ where
         | otherwise
             # (clval, _, env) = onLibLoaded mkHandler cid (abort "Not implemented") (map,Nothing) env
             = (clval, env)
+*/
 
     onUpdate mkHandler cid [] (map,st) env
         = ((map,st),env)
@@ -322,6 +327,7 @@ where
 		= onUpdate mkHandler cid updates (map,Just st) env
     onUpdate mkHandler cid updates (map,st) env
         = ((map,st),env)
+/*
     onLibLoaded mkHandler cid _ (map=:{LeafletMap|perspective,icons,layers},_) env
         # (l,env)           = findObject "L" env
         //Create map
@@ -357,7 +363,7 @@ where
         # env               = (cmp .# "afterShow" .= (toJSVal (mkHandler onAfterShow cid))) env
         # env               = (cmp .# "afterResize" .= (toJSVal (mkHandler onAfterShow cid))) env
         = ((map,Just {mapObj=mapObj,mapIcons=mapIcons,mapLayers=mapLayers,mapObjects,mapCursor=mapCursor}),Diff [LDSetBounds bounds] ignoreConflict,env)
-
+*/
 	createIcon :: !LeafletIcon !(JSObj JSLM) !(JSArr (JSObject b)) !*JSWorld -> *JSWorld
     createIcon {LeafletIcon|iconUrl,iconSize=(w,h)} l mapIcons env
         # (icon,env)    = (l .# "icon" .$ (toJSArg {IconOptions|iconUrl=iconUrl,iconSize=[w,h]})) env
@@ -398,7 +404,7 @@ where
 
         # (marker,env)      = (l .# "marker" .$ args) env
         # env               = (objRefs .# i .= marker) env
-        # (_,env)           = (marker .# "addEventListener" .$ ("click",mkHandler (onMarkerClick markerId) cid)) env
+        //# (_,env)           = (marker .# "addEventListener" .$ ("click",mkHandler (onMarkerClick markerId) cid)) env
         # (_,env)           = (marker .# "addTo" .$ (toJSArg layer)) env
         = (i + 1,env)
     createObject mkHandler (Polyline {LeafletPolyline|polylineId,points,strokeWidth,strokeColor}) l layer objRefs mapIcons cid (i,env)
@@ -420,7 +426,7 @@ where
         # env               = (objRefs .# i .= polygon) env
         # (_,env)           = (polygon .# "addTo" .$ (toJSArg layer)) env
         = (i + 1,env)
-
+/*
     onMapMove cid {[0]=event} (map=:{LeafletMap|perspective},mbSt) env
         # (mapobj,env)      = .? (event .# "target") env
         # (latlng,env)      = (mapobj .# "getCenter" .$ ()) env
@@ -462,7 +468,7 @@ where
         = ((map,Just st),Diff [LDSetBounds bounds] ignoreConflict,env)
     onAfterShow cid event st env
         = (st,NoDiff,env)
-
+*/
 	getPos obj env
 		# (lat,env)     = .? (obj .# "lat") env
 		# (lng,env)     = .? (obj .# "lng") env
@@ -504,7 +510,7 @@ where
         # env = (el .# "style.height" .= (toString h +++"px")) env
         = env
 
-    ignoreConflict conflict state env = (state, NoDiff, env)
+    //ignoreConflict conflict state env = (state, NoDiff, env)
 
 gEditor{|LeafletMap|} = fromEditlet leafletEditlet
 gVerify{|LeafletMap|} _ vst = alwaysValid vst

@@ -14,16 +14,15 @@ where
 	editlet = { genUI  = genUI
 			  , initUI = \m w -> w
 			  , updUI  = \_ o _ n _ vst -> (if (o == n) NoChange (ChangeUI [SetAttribute "value" (toJSON n)] []),vst)
-              , onEdit = \n _ -> n
+              , onEdit = \_ _ n msk ust -> (n,msk,ust)
 			  }
 
 	genUI dp val mask world = (setSize WrapSize WrapSize (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (html "DEPRECATED")))])), world)
 	html cid = ButtonTag [IdAttr (cid +++ "-button")] [Text "Click me"]
 
- 	onClick cid event cv world
-		= (cv,Diff "Click" rollback,world)
+ 	//onClick cid event cv world = (cv,Diff "Click" rollback,world)
 
-	rollback _ cv world = (cv,NoDiff,world)
+	//rollback _ cv world = (cv,NoDiff,world)
 
 minimalStep :: Task String
 minimalStep = enterInformation "Minimal Step combinator" []
