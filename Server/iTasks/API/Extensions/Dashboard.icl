@@ -1,10 +1,10 @@
 implementation module iTasks.API.Extensions.Dashboard
 import iTasks
-import iTasks.UI.Editor, iTasks.UI.JS.Interface
+import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.UI.JS.Interface
+import qualified Data.Map as DM
 
 derive JSONEncode ControlLight
 derive JSONDecode ControlLight
-derive gEditMeta ControlLight
 derive gVerify ControlLight
 derive gEq ControlLight
 derive gDefault ControlLight
@@ -13,42 +13,48 @@ derive gText ControlLight
 gEditor{|ControlLight|} = fromEditlet (controlLightEditlet defaultValue)
 
 //SVG Based fake control light
-controlLightEditlet :: ControlLight -> Editlet ControlLight ControlLight ()
+controlLightEditlet :: ControlLight -> Editlet ControlLight String
 controlLightEditlet t
     = {Editlet
-      |initClient = \_ _ _ w -> ((),w)
-      ,genUI = genUI
-      ,appDiffClt = updateUI
-      ,genDiffSrv = \a b -> if (a===b) Nothing (Just b)
-      ,appDiffSrv = \a _ -> a
+      |genUI = genUI
+      ,initUI = initUI
+      ,genDiffSrv = \a b -> if (a===b) Nothing (Just (color b))
+      ,appDiffSrv = \_ a -> a
       }
 where
-	genUI cid val world
-		  =({ ComponentHTML
-            | html 			= svgLight cid
-		  	, width 		= ExactSize 20
-		  	, height 		= ExactSize 20
-		  	},world)
+	genUI dp val mask world
+		= (setSize (ExactSize 20) (ExactSize 20) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (svgLight (color val))))])), world)
 
-	updateUI mkHandler cid val () world
-        # (light,world) = .? (getElementById (lightId cid)) world
-        # (_,world)     = callObjectMethod "setAttribute" [toJSArg "fill",toJSArg (color val)] light world
-		= ((),world)
+    initUI me world 
+		# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) world
+		# world = (me .# "onAttributeChange" .= jsOnAttributeChange) world
+		= world
+
+	onAttributeChange me args world
+		| jsArgToString (args !! 0) == "diff"
+			# (color, world) = fromJSArray (toJSVal (args !! 1)) id world
+			# (svgEl,world)    = .? (me .# "domEl" .# "children" .# 0) world
+			# (lightEl,world)  = .? (svgEl .# "children" .# 1) world
+			# (_,world)        = (lightEl .# "setAttribute" .$ ("fill",color)) world //Just update the color
+			= (jsNull,world)
+		| otherwise
+			= (jsNull,jsTrace "Unknown attribute change" world)
 
     color LightOnGreen  = "green"
     color LightOnRed    = "red"
     color LightOnOrange = "orange"
     color _             = "#333"
 
-    lightId cid = cid +++ "-light"
-    svgLight cid = SvgTag [StyleAttr "flex: 1; align-self: stretch;"] [ViewBoxAttr "0" "0" "100" "100"]
-                          [defs cid,light cid,glass cid,flare cid]
+    svgLight val = SvgTag [StyleAttr "flex: 1; align-self: stretch;"] [ViewBoxAttr "0" "0" "100" "100"]
+                          [defs,light val,glass,flare]
 
-    defs cid     = DefsElt [] [] [glassgr cid,flaregr cid]
-    glassgr cid  = RadialGradientElt [IdAttr (cid +++ "-glass-gradient")] [] [StopElt [] [OffsetAttr "0%",StopColorAttr "white"],StopElt [] [OffsetAttr "100%",StopColorAttr "white",StopOpacityAttr "0"]]
-    flaregr cid  = LinearGradientElt [IdAttr (cid +++ "-flare-gradient")] [X1Attr ("0",PX),X2Attr ("0",PX),Y1Attr ("0",PX),Y2Attr ("1",PX)] [StopElt [] [OffsetAttr "0%",StopColorAttr "white"],StopElt [] [OffsetAttr "90%",StopColorAttr "white",StopOpacityAttr "0"]]
-    light cid = CircleElt [IdAttr (lightId cid)] [CxAttr ("50",PX),CyAttr ("50",PX),RAttr ("45",PX)]
-    glass cid = CircleElt [StyleAttr "stroke: #000;stroke-width: 8px"] [FillAttr (PaintFuncIRI (IRI ("#"+++cid+++"-glass-gradient")) Nothing),CxAttr ("50",PX),CyAttr ("50",PX),RAttr ("45",PX)]
-    flare cid = EllipseElt [] [FillAttr (PaintFuncIRI (IRI ("#"+++cid+++ "-flare-gradient")) Nothing),CxAttr ("50",PX),CyAttr ("45",PX),RxAttr ("35",PX),RyAttr ("30",PX)]
+    defs  = DefsElt [] [] [glassgr,flaregr]
+    where
+    	glassgr = RadialGradientElt [IdAttr "glass-gradient"] []
+				   [StopElt [] [OffsetAttr "0%",StopColorAttr "white"],StopElt [] [OffsetAttr "100%",StopColorAttr "white",StopOpacityAttr "0"]]
+    	flaregr = LinearGradientElt [IdAttr "flare-gradient"] [X1Attr ("0",PX),X2Attr ("0",PX),Y1Attr ("0",PX),Y2Attr ("1",PX)] 
+                   [StopElt [] [OffsetAttr "0%",StopColorAttr "white"],StopElt [] [OffsetAttr "90%",StopColorAttr "white",StopOpacityAttr "0"]]
 
-
+    light val = CircleElt [] [CxAttr ("50",PX),CyAttr ("50",PX),RAttr ("45",PX),FillAttr (PaintColor (SVGColorText val) Nothing)]
+    glass = CircleElt [StyleAttr "stroke: #000;stroke-width: 8px"] [FillAttr (PaintFuncIRI (IRI ("#glass-gradient")) Nothing),CxAttr ("50",PX),CyAttr ("50",PX),RAttr ("45",PX)]
+    flare = EllipseElt [] [FillAttr (PaintFuncIRI (IRI ("#flare-gradient")) Nothing),CxAttr ("50",PX),CyAttr ("45",PX),RxAttr ("35",PX),RyAttr ("30",PX)]

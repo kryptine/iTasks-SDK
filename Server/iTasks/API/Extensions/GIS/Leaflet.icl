@@ -239,7 +239,7 @@ where
             # env = addJSFromUrl LEAFLET_JS (Just (mkHandler (onLibLoaded mkHandler) cid)) env
             = ((map,Nothing), env)
         | otherwise
-            # (clval, _, env) = onLibLoaded mkHandler cid undef (map,Nothing) env
+            # (clval, _, env) = onLibLoaded mkHandler cid (abort "Not implemented") (map,Nothing) env
             = (clval, env)
 
 	appDiffClt mkHandler cid updates (map,st) env

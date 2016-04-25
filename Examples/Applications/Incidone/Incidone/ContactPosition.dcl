@@ -81,7 +81,6 @@ derive JSONEncode ContactPosition, ContactMapPerspective
 derive JSONDecode ContactPosition, ContactMapPerspective
 
 derive gEditor ContactPosition, ContactMapPerspective
-derive gEditMeta ContactPosition, ContactMapPerspective
 derive gVerify ContactPosition, ContactMapPerspective
 
 derive gText ContactPosition, ContactMapPerspective

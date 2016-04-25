@@ -5,15 +5,21 @@ import iTasks, TestFramework
 testEditlets :: TestSuite
 testEditlets = testsuite "Editlets" "These tests check if the advanced clientside editors (editlets) work correctly"
 	[testEditlet
+	,testDashEditlet
     ,testSVGEditlet
     ,testSVGEditletClick
     ,testLeafletMap
     ,testGoogleMap]
 
 import iTasks.API.Extensions.Clock
-testEditlet = itest "Simple editlet" "Look at the image below" "You should see a changing interactive clock" tut
+testEditlet = itest "Simple clock editlet" "Look at the image below" "You should see a changing interactive clock" tut
 where
 	tut = viewSharedInformation "Clock" [ViewWith (\t -> AnalogClock t)] currentTime
+
+import iTasks.API.Extensions.Dashboard
+testDashEditlet = itest "Another simple editlet" "Look at the image below" "You should see a status LED" tut
+where
+	tut = viewInformation "LED" [] LightOnRed
 
 import Graphics.Scalable, StdReal
 import iTasks.API.Extensions.SVG.SVGlet

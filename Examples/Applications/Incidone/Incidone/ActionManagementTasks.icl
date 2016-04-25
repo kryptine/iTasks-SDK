@@ -1,7 +1,7 @@
 implementation module Incidone.ActionManagementTasks
 
 import iTasks
-import iTasks.UI.Editor, iTasks.UI.Diff
+import iTasks.UI.Editor
 import Incidone.Util.TaskPatterns
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.Conversions
 import Incidone.OP.IncidentManagementTasks, Incidone.OP.ContactManagementTasks, Incidone.OP.CommunicationManagementTasks
@@ -213,7 +213,6 @@ derive JSONDecode CatalogAction
 derive gDefault CatalogAction
 derive gText CatalogAction
 derive gEditor CatalogAction
-derive gEditMeta CatalogAction
 derive gVerify CatalogAction
 
 gEq{|CatalogAction|} x y = x.CatalogAction.identity == y.CatalogAction.identity //NECESSARY
@@ -228,7 +227,6 @@ gEq{|ActionTasks|} x y = True
 gDefault{|ActionTasks|} = ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
 gText{|ActionTasks|} _ _ = ["Action item task definition"]
 gEditor{|ActionTasks|} = emptyEditor 
-gEditMeta{|ActionTasks|} _ = [{label=Nothing,hint=Nothing,unit=Nothing}]
 gVerify{|ActionTasks|} _ val = alwaysValid val
 
 instance toString ActionProgress

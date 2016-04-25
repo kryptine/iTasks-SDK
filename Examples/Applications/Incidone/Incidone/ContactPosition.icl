@@ -1,5 +1,5 @@
 implementation module Incidone.ContactPosition
-import iTasks, iTasks.UI.Editor, iTasks.UI.Diff
+import iTasks, iTasks.UI.Editor, iTasks.UI.Definition
 import qualified Data.Map as DM
 import Data.Functor, Text
 import qualified Text.Parsers.ParsersKernel as PK
@@ -14,18 +14,19 @@ import Incidone.Util.TaskPatterns
 derive JSONEncode ContactPosition
 derive JSONDecode ContactPosition
 
-gEditor{|ContactPosition|} = {Editor|genUI=genUI,genDiff=genDiff,appDiff=appDiff}
+gEditor{|ContactPosition|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
 where
 	genUI path val mask vst=:{VSt|taskId,optional,disabled}
     	| disabled
-        	= (uic (UIEditor {UIEditor|optional=optional}) [ui (UIViewString defaultSizeOpts {UIViewOpts|value = Just (toSingleLineText val)})], vst)
+        	= ((setOptional optional o setValue (toJSON (toSingleLineText val))) (ui UIViewString), vst)
     	# value = case val of
         	PositionDescription s _ = JSONString s
         	PositionLatLng l        = JSONString (formatLatLng l)
-    	# control = ui (UIEditString defaultHSizeOpts {UIEditOpts|taskId = taskId,editorId = editorId path, value = Just value})
-    	= (uiac (UIEditor {UIEditor|optional=optional}) (stdAttributes "position" optional mask) [control], vst)
+		# attr = stdAttributes "position" optional mask
+    	# control = (setOptional optional o setEditOpts taskId (editorId path) (Just (toJSON value))) (uia UIEditString attr)
+    	= (control, vst)
 
-	genDiff dp old om new nm vst
+	updUI dp old om new nm vst
 		= (if (old === new) NoChange (ChangeUI [("setValue",[toJSON new])] []),vst)
 
 	appDiff [] JSONNull val _ ust = (PositionDescription "" Nothing,Blanked,ust)
@@ -35,11 +36,6 @@ where
 gVerify{|ContactPosition|} {VerifyOptions|optional=False} (_,Blanked)   = MissingValue
 gVerify{|ContactPosition|} _ (PositionDescription _ Nothing,mask)       = WarningValue "This position can not be plotted on a map"
 gVerify{|ContactPosition|} _ _                                          = CorrectValue Nothing
-
-gEditMeta{|ContactPosition|} _ = [{label=Nothing
-                                  ,hint=Just "Specify a position. If you specify degrees in the format '[degrees]N|S [degrees]E|W' the position can be plotted on maps"
-                                  ,unit=Nothing
-                                  }]
 
 gText{|ContactPosition|} _ val = [maybe "" printPosition val]
 
@@ -108,7 +104,6 @@ derive class iTask ContactMap, ContactMapLayer, ContactMapLayerDefinition, Conta
 derive JSONEncode ContactMapPerspective
 derive JSONDecode ContactMapPerspective
 derive gEditor ContactMapPerspective
-derive gEditMeta ContactMapPerspective
 derive gVerify ContactMapPerspective
 derive gText ContactMapPerspective
 

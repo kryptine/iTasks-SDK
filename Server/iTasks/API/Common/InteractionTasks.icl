@@ -277,7 +277,7 @@ where
     mkDynChoice (ChooseFromTree view) container         = DCTree    (TreeChoice  (view [(i,o) \\ i <- [0..] & o <- container] []) Nothing)
     mkDynChoice (ChooseFromGrid view) container         = DCGrid    (GridChoice [view o \\ o <- container] Nothing)
 
-    autoChoiceType f l = case headers l undef of
+    autoChoiceType f l = case headers l defaultValue of
         []   = ChooseFromComboBox f
         [""] = ChooseFromComboBox f
         _    = ChooseFromGrid f
@@ -290,7 +290,7 @@ headers _ a = case toJSON a of (JSONObject fields) = map fst fields ; _ = []
 initSimpleChoiceView :: [o] (Maybe o) -> (DynamicChoice o, EditMask) | iTask o
 initSimpleChoiceView container mbSel = updateChoiceSelection mbSel container (mkDynChoice container,Untouched)
 where
-    mkDynChoice l = case headers l undef of
+    mkDynChoice l = case headers l defaultValue of
         []   = DCCombo (ComboChoice container Nothing)
         [""] = DCCombo (ComboChoice container Nothing)
         _    = DCGrid  (GridChoice container Nothing)

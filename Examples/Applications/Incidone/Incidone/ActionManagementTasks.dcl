@@ -143,7 +143,6 @@ derive gEq              CatalogAction
 derive gDefault         CatalogAction
 derive gText            CatalogAction
 derive gEditor          CatalogAction
-derive gEditMeta        CatalogAction
 derive gVerify          CatalogAction
 
 toInstantAction             :: c ActionProgress [ContactNo] [IncidentNo] (ActionDefinition c) -> CatalogAction | iTask c
