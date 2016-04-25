@@ -78,8 +78,7 @@ isTouched	:: !EditMask -> Bool
   =
   { genUI   :: DataPath a EditMask *VSt -> *(!UI, !*VSt)
   , initUI  :: (JSObj ()) *JSWorld -> *JSWorld
-  //, updUI  :: DataPath a EditMask a EditMask *VSt -> *(!UIChange, !*VSt)
-  , updUI   :: DataPath a EditMask a EditMask *VSt -> *(!Maybe d, !*VSt)
+  , updUI   :: DataPath a EditMask a EditMask *VSt -> *(!UIChange, !*VSt)
  //, onEdit :: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
   , onEdit  :: d a -> a
   }

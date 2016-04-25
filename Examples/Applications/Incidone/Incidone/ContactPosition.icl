@@ -27,7 +27,7 @@ where
     	= (control, vst)
 
 	updUI dp old om new nm vst
-		= (if (old === new) NoChange (ChangeUI [("setValue",[toJSON new])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new)] []),vst)
 
 	onEdit [] JSONNull val _ ust = (PositionDescription "" Nothing,Blanked,ust)
 	onEdit [] (JSONString nval) _ _ ust = (parsePosition nval, Touched, ust)

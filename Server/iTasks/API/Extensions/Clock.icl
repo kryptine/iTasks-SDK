@@ -73,7 +73,7 @@ where
 updUI _ (AnalogClock t1) _ (AnalogClock t2) _ vst = case (  (if (t1.Time.sec == t2.Time.sec) [] [(0,t2.Time.sec)])
 						 ++ (if (t1.Time.min == t2.Time.min) [] [(1,t2.Time.min)])
 						 ++ (if (t1.Time.hour == t2.Time.hour) [] [(2,t2.Time.hour)])
-						 ) of [] = (Nothing,vst) ; delta = (Just delta,vst)
+						 ) of [] = (NoChange,vst) ; delta = (ChangeUI [SetAttribute "diff" (toJSON delta)] [],vst)
 
 onEdit :: [(Int,Int)] AnalogClock -> AnalogClock
 onEdit [] t = t

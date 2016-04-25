@@ -99,7 +99,7 @@ svgRenderer svglet=:{initView,renderImage,updView,updModel}
 			Just s 	= (jsNull,onNewState me svglet s world)
 
 	onAttributeChange me args world
-		| jsArgToString (args !! 0) == "diff"
+		| jsArgToString (args !! 0) == "stateChange"
 			# (json,world)  = jsValToJSONNode (toJSVal (args !! 1)) world
 			= case fromJSON json of
 				Nothing = (jsNull,world)
@@ -107,7 +107,7 @@ svgRenderer svglet=:{initView,renderImage,updView,updModel}
 		| otherwise
 			= (jsNull,jsTrace "Unknown attribute change" world)
 
-  	updUI _ ov om nv nm vst = (if (ov === nv) Nothing (Just nv),vst)
+  	updUI _ ov om nv nm vst = (if (ov === nv) NoChange (ChangeUI [SetAttribute "stateChange" (toJSON nv)] []),vst)
   	onEdit st _ = st
 
 onNewState :: !(JSVal a) !(SVGLet s v) !s !*JSWorld -> *JSWorld | JSONEncode{|*|} s

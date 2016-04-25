@@ -393,10 +393,10 @@ where
 
     ignoreConflict conflict state env = (state, NoDiff, env)
 
-    updUI :: DataPath GoogleMap EditMask GoogleMap EditMask *VSt -> *(!Maybe [GoogleMapDiff],!*VSt)
+    updUI :: DataPath GoogleMap EditMask GoogleMap EditMask *VSt -> *(!UIChange,!*VSt)
 	updUI _ g1 _ g2 _ vst = case settingsDiff ++ perspectiveDiff ++ remMarkersDiff ++ addMarkersDiff ++ updMarkersDiff of
-        []      = (Nothing,vst)
-        diffs   = (Just diffs,vst)
+        []      = (NoChange,vst)
+        diffs   = (ChangeUI [SetAttribute "diff" (toJSON diffs)] [],vst)
     where
         settingsDiff    = if (g1.GoogleMap.settings === g2.GoogleMap.settings) [] [SetSettings g2.GoogleMap.settings]
         perspectiveDiff = if (g1.GoogleMap.perspective === g2.GoogleMap.perspective) [] [SetPerspective g2.GoogleMap.perspective]

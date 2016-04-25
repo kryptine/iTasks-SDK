@@ -13,7 +13,7 @@ where
 	//Simple button
 	editlet = { genUI  = genUI
 			  , initUI = \m w -> w
-			  , updUI  = \_ o _ n _ vst -> (if (o == n) Nothing (Just n),vst)
+			  , updUI  = \_ o _ n _ vst -> (if (o == n) NoChange (ChangeUI [SetAttribute "value" (toJSON n)] []),vst)
               , onEdit = \n _ -> n
 			  }
 
