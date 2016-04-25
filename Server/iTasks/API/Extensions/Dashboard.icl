@@ -16,10 +16,10 @@ gEditor{|ControlLight|} = fromEditlet (controlLightEditlet defaultValue)
 controlLightEditlet :: ControlLight -> Editlet ControlLight String
 controlLightEditlet t
     = {Editlet
-      |genUI = genUI
+      |genUI  = genUI
       ,initUI = initUI
-      ,genDiffSrv = \a b -> if (a===b) Nothing (Just (color b))
-      ,appDiffSrv = \_ a -> a
+      ,updUI  = \_ a b -> if (a===b) Nothing (Just (color b))
+      ,onEdit = \_ a -> a
       }
 where
 	genUI dp val mask world

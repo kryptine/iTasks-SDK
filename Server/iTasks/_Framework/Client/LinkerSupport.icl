@@ -11,8 +11,7 @@ from Data.Map import :: Map, newMap, get, put, toList, toAscList, foldrWithKey
 from Data.Set import :: Set, newSet
 
 from iTasks.UI.JS.Interface import :: JSWorld, :: JSEvent, :: JSObj, :: JSObject
-from iTasks.UI.Editor import :: ComponentEventHandlerFunc, :: ComponentEvent, :: ComponentDiff
-from iTasks.UI.Editor import :: EditletEventHandlerFunc, :: EditletEvent, :: ComponentId
+from iTasks.UI.Editor import :: ComponentEventHandlerFunc, :: ComponentEvent, :: ComponentDiff, :: ComponentId
 
 from iTasks._Framework.Client.RunOnClient import createClientIWorld, getUIUpdates
 from iTasks._Framework.Engine import background

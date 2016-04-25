@@ -60,10 +60,10 @@ derive class iTask GoogleMapClient, GoogleMapState, JSGM
 googleMapEditlet :: Editlet GoogleMap [GoogleMapDiff]
 googleMapEditlet
     = { Editlet
-      | genUI       = genUI
-      , initUI      = initUI 
-      , genDiffSrv  = genDiff 
-      , appDiffSrv  = appDiff
+      | genUI  = genUI
+      , initUI = initUI 
+      , updUI  = updUI
+      , onEdit = onEdit
       }
 where
 	genUI dp val mask world
@@ -226,8 +226,8 @@ where
         afterShow               = mkEventHandler resizeMap cid
 		putOnMarker mapobj markerMap world markrec = createMarker mkEventHandler cid mapobj markerMap markrec world
 
-	appDiffClt mkEventHandler cid diffs clval world
-		= updateUI mkEventHandler cid diffs {clval & val = appDiff diffs clval.val} world
+	//appDiffClt mkEventHandler cid diffs clval world
+	//	= updateUI mkEventHandler cid diffs {clval & val = appDiff diffs clval.val} world
 
 	updateUI mkEventHandler cid [SetPerspective {GoogleMapPerspective|type,center,zoom}:updates] clval=:{mbSt=Just {mapobj}} world //Update the map perspective
         //Update type
@@ -393,8 +393,8 @@ where
 
     ignoreConflict conflict state env = (state, NoDiff, env)
 
-    genDiff :: GoogleMap GoogleMap -> Maybe [GoogleMapDiff]
-	genDiff g1 g2 = case settingsDiff ++ perspectiveDiff ++ remMarkersDiff ++ addMarkersDiff ++ updMarkersDiff of
+    updUI :: DataPath GoogleMap GoogleMap -> Maybe [GoogleMapDiff]
+	updUI _ g1 g2 = case settingsDiff ++ perspectiveDiff ++ remMarkersDiff ++ addMarkersDiff ++ updMarkersDiff of
         []      = Nothing
         diffs   = Just diffs
     where
@@ -415,11 +415,8 @@ where
         oldMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g1.GoogleMap.markers]
         newMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g2.GoogleMap.markers]
 
-    appDiffClient :: [GoogleMapDiff] GoogleMapClient -> GoogleMapClient
-	appDiffClient d clval = {clval & val = appDiff d clval.val}
-
-    appDiff :: [GoogleMapDiff] GoogleMap -> GoogleMap
-	appDiff d g =  foldl app g d
+    onEdit :: [GoogleMapDiff] GoogleMap -> GoogleMap
+	onEdit d g =  foldl app g d
     where
         app g (SetSettings settings)        = {GoogleMap|g & settings = settings}
         app g (SetPerspective perspective)  = {GoogleMap|g & perspective = perspective}

@@ -41,7 +41,7 @@ where
 		(left,right) = splitAt middle masks
 
 fromEditlet :: (Editlet a d) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONEncode{|*|} d & JSONDecode{|*|} d
-fromEditlet editlet=:{Editlet| genUI, initUI, genDiffSrv, appDiffSrv} = {Editor|genUI=genUI`,updUI=updUI, onEdit=onEdit`}
+fromEditlet editlet=:{Editlet| genUI, initUI, updUI, onEdit} = {Editor|genUI=genUI`,updUI=updUI`,onEdit=onEdit`}
 where
 	genUI` dp currVal mask vst=:{VSt|taskId}
 		# (uiDef,vst=:{VSt|iworld}) = genUI dp currVal mask vst
@@ -59,8 +59,8 @@ where
 		eui (UI type attr items) editletAttr = UI type (addAll editletAttr attr) items
 		addAll a1 a2 = foldl (\a (k,v) -> 'DM'.put k v a) a2 ('DM'.toList a1)
 
-	updUI dp ov om nv nm vst=:{VSt|iworld} //TODO: -> Properly track version numbers
-		= case (genDiffSrv ov nv) of
+	updUI` dp ov om nv nm vst=:{VSt|iworld} //TODO: -> Properly track version numbers
+		= case (updUI dp ov nv) of
 			Nothing 			= (NoChange,{VSt|vst & iworld=iworld})
 			currentDiff 		= (ChangeUI [("setAttribute",[JSONString "diff", toJSON (fromJust currentDiff)])] [],{VSt|vst & iworld=iworld})
 
@@ -68,7 +68,7 @@ where
 	//appDiff` [] (JSONArray [JSONInt ver, JSONInt diffId, jsonDiff]) ov om ust
 		= case fromJSON jsonDiff of
 			Just diff
-				# (nv,nm) = (appDiffSrv diff ov,Touched)
+				# (nv,nm) = (onEdit diff ov,Touched)
 				= (nv,nm,ust)
 			Nothing
 				= (ov,om,ust)

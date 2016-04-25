@@ -63,10 +63,6 @@ isTouched	:: !EditMask -> Bool
 // Wrapper types for defining custom editor components that can process events
 // that are defined server-side but run client-side
 //****************************************************************************//
-
-:: EditletEventHandlerFunc d a :== ComponentEventHandlerFunc d a
-:: EditletEvent d a            :== ComponentEvent d a
-
 :: ComponentId :== String
 :: ComponentEventName :== String
 :: ComponentEvent d a = ComponentEvent !ComponentId !ComponentEventName (ComponentEventHandlerFunc d a)
@@ -78,14 +74,14 @@ isTouched	:: !EditMask -> Bool
 :: ComponentDiff diff state = NoDiff | Diff diff 
                    (Conflict state *JSWorld -> *(state, ComponentDiff diff state, *JSWorld))
 
-
 :: Editlet a d
   =
-  { genUI      :: DataPath a EditMask *VSt -> *(!UI, !*VSt)
-  , initUI     :: (JSObj ()) *JSWorld -> *JSWorld
-
-  , genDiffSrv :: a a -> Maybe d
-  , appDiffSrv :: d a -> a
+  { genUI   :: DataPath a EditMask *VSt -> *(!UI, !*VSt)
+  , initUI  :: (JSObj ()) *JSWorld -> *JSWorld
+  //, updUI  :: DataPath a EditMask a EditMask *VSt -> *(!UIChange, !*VSt)
+  , updUI   :: DataPath a a -> Maybe d
+ //, onEdit :: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
+  , onEdit  :: d a -> a
   }
 
 fromEditlet :: (Editlet a d) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONEncode{|*|} d & JSONDecode{|*|} d

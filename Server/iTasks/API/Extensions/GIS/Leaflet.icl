@@ -59,8 +59,8 @@ MAP_OPTIONS     :== {attributionControl = False, zoomControl = True}
     | LDUpdateObject    !Int !Int !LeafletObject
     | LDRemoveObjects   !Int !Int
 
-genDiff :: LeafletMap LeafletMap -> Maybe [LeafletDiff]
-genDiff m1 m2 = case diffs of [] = Nothing ; _ = Just diffs
+updUI :: DataPath LeafletMap LeafletMap -> Maybe [LeafletDiff]
+updUI _ m1 m2 = case diffs of [] = Nothing ; _ = Just diffs
 where
     diffs
         =   diffPerspectives m1.perspective m2.perspective
@@ -98,25 +98,25 @@ where
         | o1 === o2     = diffObjects l (inc i) os1 os2
                         = [LDUpdateObject l i o2:diffObjects l (inc i) os1 os2]
 
-appDiff :: [LeafletDiff] LeafletMap -> LeafletMap
-appDiff [] m                            = m
-appDiff [LDSetZoom zoom:ds] m           = appDiff ds {m & perspective = {m.perspective & zoom = zoom}}
-appDiff [LDSetCenter center:ds] m       = appDiff ds {m & perspective = {m.perspective & center = center}}
-appDiff [LDSetCursor cursor:ds] m       = appDiff ds {m & perspective = {m.perspective & cursor = cursor}}
-appDiff [LDSetBounds bounds:ds] m       = appDiff ds {m & perspective = {m.perspective & bounds = bounds}}
-appDiff [LDAddIcons icons:ds] m         = appDiff ds {m & icons = m.icons ++ icons}
-appDiff [LDRemoveIcons n:ds] m          = appDiff ds {m & icons = take n m.icons}
-appDiff [LDUpdateIcon i icon:ds] m      = appDiff ds {m & icons = updateAt i icon m.icons}
-appDiff [LDAddLayers layers:ds] m       = appDiff ds {m & layers = m.layers ++ layers}
-appDiff [LDRemoveLayers n:ds] m         = appDiff ds {m & layers = take n m.layers}
-appDiff [LDUpdateLayer i layer:ds] m    = appDiff ds {m & layers = updateAt i layer m.layers}
-appDiff [LDAddObjects l objects:ds] m   = let (ObjectLayer o) = m.layers !! l in
-    appDiff ds {m & layers = updateAt l (ObjectLayer (o++objects)) m.layers}
-appDiff [LDRemoveObjects l n:ds] m      = let (ObjectLayer o) = m.layers !! l in
-    appDiff ds {m & layers = updateAt l (ObjectLayer (take n o)) m.layers}
-appDiff [LDUpdateObject l i object:ds] m     = let (ObjectLayer o) = m.layers !! l in
-    appDiff ds {m & layers = updateAt l (ObjectLayer (updateAt i object o)) m.layers}
-appDiff _ m                             = m
+onEdit :: [LeafletDiff] LeafletMap -> LeafletMap
+onEdit [] m                            = m
+onEdit [LDSetZoom zoom:ds] m           = onEdit ds {m & perspective = {m.perspective & zoom = zoom}}
+onEdit [LDSetCenter center:ds] m       = onEdit ds {m & perspective = {m.perspective & center = center}}
+onEdit [LDSetCursor cursor:ds] m       = onEdit ds {m & perspective = {m.perspective & cursor = cursor}}
+onEdit [LDSetBounds bounds:ds] m       = onEdit ds {m & perspective = {m.perspective & bounds = bounds}}
+onEdit [LDAddIcons icons:ds] m         = onEdit ds {m & icons = m.icons ++ icons}
+onEdit [LDRemoveIcons n:ds] m          = onEdit ds {m & icons = take n m.icons}
+onEdit [LDUpdateIcon i icon:ds] m      = onEdit ds {m & icons = updateAt i icon m.icons}
+onEdit [LDAddLayers layers:ds] m       = onEdit ds {m & layers = m.layers ++ layers}
+onEdit [LDRemoveLayers n:ds] m         = onEdit ds {m & layers = take n m.layers}
+onEdit [LDUpdateLayer i layer:ds] m    = onEdit ds {m & layers = updateAt i layer m.layers}
+onEdit [LDAddObjects l objects:ds] m   = let (ObjectLayer o) = m.layers !! l in
+    onEdit ds {m & layers = updateAt l (ObjectLayer (o++objects)) m.layers}
+onEdit [LDRemoveObjects l n:ds] m      = let (ObjectLayer o) = m.layers !! l in
+    onEdit ds {m & layers = updateAt l (ObjectLayer (take n o)) m.layers}
+onEdit [LDUpdateObject l i object:ds] m     = let (ObjectLayer o) = m.layers !! l in
+    onEdit ds {m & layers = updateAt l (ObjectLayer (updateAt i object o)) m.layers}
+onEdit _ m                             = m
 
 openStreetMapTiles :: LeafletLayer
 openStreetMapTiles = TileLayer "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -124,10 +124,10 @@ openStreetMapTiles = TileLayer "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.pn
 leafletEditlet :: Editlet LeafletMap [LeafletDiff]
 leafletEditlet 
   = { Editlet
-    | genUI     = genUI 
-    , initUI    = initUI
-    , genDiffSrv = genDiff
-    , appDiffSrv = appDiff
+    | genUI   = genUI 
+    , initUI  = initUI
+    , updUI   = updUI
+    , onEdit  = onEdit
     }
 where
 	genUI dp val mask world
@@ -242,9 +242,6 @@ where
             # (clval, _, env) = onLibLoaded mkHandler cid (abort "Not implemented") (map,Nothing) env
             = (clval, env)
 
-	appDiffClt mkHandler cid updates (map,st) env
-		//Apply diff on local map and then update UI
-		= onUpdate mkHandler cid updates (appDiff updates map, st) env
     onUpdate mkHandler cid [] (map,st) env
         = ((map,st),env)
     onUpdate mkHandler cid [LDSetZoom zoom:diffs] (map,Just st=:{mapObj}) env
@@ -450,7 +447,7 @@ where
 
     onMarkerClick markerId cid event (map=:{LeafletMap|layers},st) env
         # layers = [selectMarker l \\ l <- layers]
-		# diff = maybe NoDiff (\d -> Diff d ignoreConflict) (genDiff map ({map & layers = layers}))
+		# diff = maybe NoDiff (\d -> Diff d ignoreConflict) (updUI map ({map & layers = layers}))
         = (({map & layers = layers},st),diff,env)
     where
         selectMarker (ObjectLayer objects)

@@ -11,10 +11,10 @@ minimalEditlet :: Task String
 minimalEditlet = updateInformation "Minimal String editlet" [UpdateUsing id const (fromEditlet editlet)] "Hello World"
 where
 	//Simple button
-	editlet = { genUI      = genUI
-			  , initUI     = \m w -> w
-			  , genDiffSrv = \o n -> if (o == n) Nothing (Just n) 
-              , appDiffSrv = \n _ -> n
+	editlet = { genUI  = genUI
+			  , initUI = \m w -> w
+			  , updUI  = \_ o n -> if (o == n) Nothing (Just n) 
+              , onEdit = \n _ -> n
 			  }
 
 	genUI dp val mask world = (setSize WrapSize WrapSize (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (html "DEPRECATED")))])), world)

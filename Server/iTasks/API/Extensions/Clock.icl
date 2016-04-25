@@ -19,10 +19,10 @@ gEditor{|AnalogClock|} = fromEditlet analogClockEditlet
 analogClockEditlet :: Editlet AnalogClock [(Int,Int)]
 analogClockEditlet
     = {Editlet
-      |genUI        = genUI
-      ,initUI       = initUI
-      ,genDiffSrv   = genTimeDiff
-      ,appDiffSrv   = appTimeDiff
+      |genUI    = genUI
+      ,initUI   = initUI
+      ,updUI    = updUI
+      ,onEdit   = onEdit 
       }
 where
 	genUI dp (AnalogClock {Time|hour,min,sec}) mask world
@@ -70,15 +70,15 @@ where
 	degrees 1 v = 6 * v
 	degrees 2 v = 30 * v
 
-genTimeDiff :: AnalogClock AnalogClock -> Maybe [(Int,Int)]
-genTimeDiff (AnalogClock t1) (AnalogClock t2) = case (  (if (t1.Time.sec == t2.Time.sec) [] [(0,t2.Time.sec)])
+updUI :: DataPath AnalogClock AnalogClock -> Maybe [(Int,Int)]
+updUI _ (AnalogClock t1) (AnalogClock t2) = case (  (if (t1.Time.sec == t2.Time.sec) [] [(0,t2.Time.sec)])
 						 ++ (if (t1.Time.min == t2.Time.min) [] [(1,t2.Time.min)])
 						 ++ (if (t1.Time.hour == t2.Time.hour) [] [(2,t2.Time.hour)])
 						 ) of [] = Nothing ; delta = Just delta
 
-appTimeDiff :: [(Int,Int)] AnalogClock -> AnalogClock
-appTimeDiff [] t = t
-appTimeDiff [(0,s):d] (AnalogClock t) = appTimeDiff d (AnalogClock {Time|t & sec = s})
-appTimeDiff [(1,m):d] (AnalogClock t) = appTimeDiff d (AnalogClock {Time|t & min = m})
-appTimeDiff [(2,h):d] (AnalogClock t) = appTimeDiff d (AnalogClock {Time|t & hour = h})
+onEdit :: [(Int,Int)] AnalogClock -> AnalogClock
+onEdit [] t = t
+onEdit [(0,s):d] (AnalogClock t) = onEdit d (AnalogClock {Time|t & sec = s})
+onEdit [(1,m):d] (AnalogClock t) = onEdit d (AnalogClock {Time|t & min = m})
+onEdit [(2,h):d] (AnalogClock t) = onEdit d (AnalogClock {Time|t & hour = h})
 

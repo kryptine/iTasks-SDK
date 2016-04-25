@@ -69,10 +69,10 @@ fromSVGLet svglet = fromEditlet (svgRenderer svglet)
 
 svgRenderer :: (SVGLet s v) -> Editlet s s | iTask s
 svgRenderer svglet=:{initView,renderImage,updView,updModel}
-  = { genUI      = genUI
-	, initUI     = initUI
-    , genDiffSrv = genServerDiff
-    , appDiffSrv = appServerDiff
+  = { genUI   = genUI
+	, initUI  = initUI
+    , updUI   = updUI
+    , onEdit  = onEdit
     }
   where
 	genUI dp val mask world = (setSize FlexSize FlexSize (setValue (toJSON val) (ui UIComponent)), world)
@@ -107,11 +107,8 @@ svgRenderer svglet=:{initView,renderImage,updView,updModel}
 		| otherwise
 			= (jsNull,jsTrace "Unknown attribute change" world)
 
-  	genServerDiff :: !s !s -> Maybe s | gEq{|*|} s
-  	genServerDiff old new = if (old === new) Nothing (Just new)
-
-  	appServerDiff :: s s -> s
-  	appServerDiff st _ = st
+  	updUI _ old new = if (old === new) Nothing (Just new)
+  	onEdit st _ = st
 
 onNewState :: !(JSVal a) !(SVGLet s v) !s !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 onNewState me svglet=:{initView,renderImage} s world
@@ -265,7 +262,6 @@ doMouseDragDown :: !(JSVal a) !(SVGLet s v) !String !(JSObj svg) ((Maybe (Set Im
                    -> *(!JSVal (), !*JSWorld) 
 doMouseDragDown me svglet cid svgRoot sttf elemId elem args world
   #! (ds,world)             = jsGetCleanVal "dragState" me world
-  #! evt                    = toJSVal (args !! 0)
   #! (targetElement, world) = (svgRoot .# "getElementById" .$ elemId) world
   #! (_, world)             = (targetElement .# "setAttributeNS" .$ (jsNull, "pointer-events", "none")) world
   #! (boundingRect, world)  = (targetElement .# "getBoundingClientRect" .$ ()) world
