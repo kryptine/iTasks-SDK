@@ -59,8 +59,8 @@ MAP_OPTIONS     :== {attributionControl = False, zoomControl = True}
     | LDUpdateObject    !Int !Int !LeafletObject
     | LDRemoveObjects   !Int !Int
 
-updUI :: DataPath LeafletMap LeafletMap -> Maybe [LeafletDiff]
-updUI _ m1 m2 = case diffs of [] = Nothing ; _ = Just diffs
+updUI :: DataPath LeafletMap EditMask LeafletMap EditMask *VSt -> *(!Maybe [LeafletDiff],!*VSt)
+updUI _ m1 _ m2 _ vst = case diffs of [] = (Nothing,vst) ; _ = (Just diffs,vst)
 where
     diffs
         =   diffPerspectives m1.perspective m2.perspective

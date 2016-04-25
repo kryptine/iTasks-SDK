@@ -18,7 +18,7 @@ controlLightEditlet t
     = {Editlet
       |genUI  = genUI
       ,initUI = initUI
-      ,updUI  = \_ a b -> if (a===b) Nothing (Just (color b))
+      ,updUI  = \_ a _ b _ vst -> (if (a===b) Nothing (Just (color b)),vst)
       ,onEdit = \_ a -> a
       }
 where

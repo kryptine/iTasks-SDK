@@ -70,11 +70,10 @@ where
 	degrees 1 v = 6 * v
 	degrees 2 v = 30 * v
 
-updUI :: DataPath AnalogClock AnalogClock -> Maybe [(Int,Int)]
-updUI _ (AnalogClock t1) (AnalogClock t2) = case (  (if (t1.Time.sec == t2.Time.sec) [] [(0,t2.Time.sec)])
+updUI _ (AnalogClock t1) _ (AnalogClock t2) _ vst = case (  (if (t1.Time.sec == t2.Time.sec) [] [(0,t2.Time.sec)])
 						 ++ (if (t1.Time.min == t2.Time.min) [] [(1,t2.Time.min)])
 						 ++ (if (t1.Time.hour == t2.Time.hour) [] [(2,t2.Time.hour)])
-						 ) of [] = Nothing ; delta = Just delta
+						 ) of [] = (Nothing,vst) ; delta = (Just delta,vst)
 
 onEdit :: [(Int,Int)] AnalogClock -> AnalogClock
 onEdit [] t = t

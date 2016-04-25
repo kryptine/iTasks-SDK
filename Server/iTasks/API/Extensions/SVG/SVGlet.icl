@@ -107,7 +107,7 @@ svgRenderer svglet=:{initView,renderImage,updView,updModel}
 		| otherwise
 			= (jsNull,jsTrace "Unknown attribute change" world)
 
-  	updUI _ old new = if (old === new) Nothing (Just new)
+  	updUI _ ov om nv nm vst = (if (ov === nv) Nothing (Just nv),vst)
   	onEdit st _ = st
 
 onNewState :: !(JSVal a) !(SVGLet s v) !s !*JSWorld -> *JSWorld | JSONEncode{|*|} s

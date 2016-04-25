@@ -59,10 +59,10 @@ where
 		eui (UI type attr items) editletAttr = UI type (addAll editletAttr attr) items
 		addAll a1 a2 = foldl (\a (k,v) -> 'DM'.put k v a) a2 ('DM'.toList a1)
 
-	updUI` dp ov om nv nm vst=:{VSt|iworld} //TODO: -> Properly track version numbers
-		= case (updUI dp ov nv) of
-			Nothing 			= (NoChange,{VSt|vst & iworld=iworld})
-			currentDiff 		= (ChangeUI [("setAttribute",[JSONString "diff", toJSON (fromJust currentDiff)])] [],{VSt|vst & iworld=iworld})
+	updUI` dp ov om nv nm vst //TODO: -> Properly track version numbers
+		= case (updUI dp ov om nv nm vst) of
+			(Nothing,vst)     = (NoChange,vst)
+			(currentDiff,vst) = (ChangeUI [("setAttribute",[JSONString "diff", toJSON (fromJust currentDiff)])] [],vst)
 
 	onEdit` [] jsonDiff ov om ust
 	//appDiff` [] (JSONArray [JSONInt ver, JSONInt diffId, jsonDiff]) ov om ust

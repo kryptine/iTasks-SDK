@@ -13,7 +13,7 @@ where
 	//Simple button
 	editlet = { genUI  = genUI
 			  , initUI = \m w -> w
-			  , updUI  = \_ o n -> if (o == n) Nothing (Just n) 
+			  , updUI  = \_ o _ n _ vst -> (if (o == n) Nothing (Just n),vst)
               , onEdit = \n _ -> n
 			  }
 

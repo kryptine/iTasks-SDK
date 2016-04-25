@@ -29,8 +29,8 @@ from Text.JSON import :: JSONNode
 */
 emptyEditor :: Editor a
 
-/** Edit masks contain information about a value as it is being edited
-*   in an interactive task.
+/** Edit masks contain information about a value as it is being edited in an interactive task.
+*   During editing, values can be in an inconsistent, or even untypable state
 */  
 :: EditMask
 	= Untouched								//The value has not been touched by the user
@@ -79,7 +79,7 @@ isTouched	:: !EditMask -> Bool
   { genUI   :: DataPath a EditMask *VSt -> *(!UI, !*VSt)
   , initUI  :: (JSObj ()) *JSWorld -> *JSWorld
   //, updUI  :: DataPath a EditMask a EditMask *VSt -> *(!UIChange, !*VSt)
-  , updUI   :: DataPath a a -> Maybe d
+  , updUI   :: DataPath a EditMask a EditMask *VSt -> *(!Maybe d, !*VSt)
  //, onEdit :: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
   , onEdit  :: d a -> a
   }
