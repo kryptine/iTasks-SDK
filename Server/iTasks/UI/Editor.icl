@@ -62,7 +62,7 @@ where
 	updUI` dp ov om nv nm vst //TODO: -> Properly track version numbers
 		= case (updUI dp ov om nv nm vst) of
 			(Nothing,vst)     = (NoChange,vst)
-			(currentDiff,vst) = (ChangeUI [("setAttribute",[JSONString "diff", toJSON (fromJust currentDiff)])] [],vst)
+			(currentDiff,vst) = (ChangeUI [SetAttribute "diff" (toJSON (fromJust currentDiff))] [],vst)
 
 	onEdit` [] jsonDiff ov om ust
 	//appDiff` [] (JSONArray [JSONInt ver, JSONInt diffId, jsonDiff]) ov om ust

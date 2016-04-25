@@ -123,7 +123,7 @@ where
 			# value = checkMaskValue mask url
 			= ((setOptional optional o setEditOpts taskId (editorId dp) value) (uia UIEditString (stdAttributes typeDesc optional mask)),vst)
 	updUI dp (URL old) om (URL new) nm vst=:{VSt|optional}
-		= (if (old === new) NoChange (ChangeUI [("setValue",[toJSON new]):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	onEdit dp e val mask ust = basicUpdate (\json url -> Just (maybe url (\s -> URL s) (fromJSON json))) dp e val mask ust
 
@@ -172,7 +172,7 @@ where
 			lines	= SpanTag [] ('DL'.intersperse (BrTag []) (map Text lines))
 
 	updUI dp old om new nm vst=:{VSt|optional}
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI (noteToHtml new)]):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI (noteToHtml new)):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -231,7 +231,7 @@ where
 			= (setEditOpts taskId (editorId dp) value (uia UIEditDecimal attr),vst)
 	updUI dp (EUR old) om (EUR new) nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval]):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -283,7 +283,7 @@ where
 
 	updUI dp (USD old) om (USD new) nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval]):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -348,7 +348,7 @@ where
 
 	updUI dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval]):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	onEdit dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
 
@@ -438,7 +438,7 @@ where
 
 	updUI dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval]):stdAttributeChanges typeDesc optional om nm] []), vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "value " (encodeUI nval):stdAttributeChanges typeDesc optional om nm] []), vst)
 
 	onEdit dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
 
@@ -526,7 +526,7 @@ where
 			= (editOpts (uia UIEditDateTime (stdAttributes typeDesc optional mask)), vst)
 	updUI dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (toJSON new)
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI nval]):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	onEdit dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
 
@@ -595,7 +595,7 @@ where
 			# editOpts = setEditOpts taskId (editorId dp) value
 			= (editOpts (uia UIEditDocument (stdAttributes typeDesc optional mask)),vst)
 	updUI dp old om new nm vst=:{VSt|optional}
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	onEdit dp e val mask ust = case fromJSON e of 
 		Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},Blanked,ust)// Reset
@@ -673,7 +673,7 @@ where
 		curVal {Scale|cur} = cur
 	
 	updUI dp {Scale|cur=old} om {Scale|cur=new} nm vst
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI new])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "setValue" (encodeUI new)] []),vst)
 
 	onEdit dp e val mask ust = basicUpdate (\json i -> Just (maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json))) dp e val mask ust
 
@@ -698,7 +698,7 @@ where
 	value {Progress|progress} = progress
 
 	updUI dp old om new nm vst
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI (value new)])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI (value new))] []),vst)
 
 	onEdit dp e val mask ust = (val,mask,ust)
 
@@ -725,7 +725,7 @@ where
 		= (uia UIViewHtml attr,vst)
 
 	updUI dp (HtmlInclude old) om (HtmlInclude new) nm vst
-		= (if (old === new) NoChange (ChangeUI [("setValue",[encodeUI new])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new)] []),vst)
 
 	onEdit dp e val mask ust = (val,mask,ust)
 
@@ -746,7 +746,7 @@ where
 		= ((editOpts o buttonOpts)(ui UIEditButton), vst)
 
 	updUI dp {FormButton|state=old} om {FormButton|state=new} nm vst
-		= (if (old === new) NoChange (ChangeUI [("setEditorValue",[toJSON new])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new)] []),vst)
 
 	onEdit dp e val mask ust = basicUpdate (\st b -> Just {FormButton|b & state = st}) dp e val mask ust
 
@@ -1553,7 +1553,7 @@ gEditor{|Icon|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI _ (Icon icon) mask vst = (setIconCls ("icon-"+++icon) (ui UIIcon), vst)
 	updUI _ (Icon old) om (Icon new) nm vst
-		= (if (old === new) NoChange (ChangeUI [("setIconCls",[encodeUI ("icon-"+++new)])] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "iconCls" (encodeUI ("icon-"+++new))] []),vst)
 
 	onEdit dp e val mask ust = (val,mask,ust)
 

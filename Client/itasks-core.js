@@ -260,7 +260,7 @@ itasks.Component = {
 					me.onReplaceUI(change.definition);
 					break;
 				case 'change':
-					me.onChangeUI(change.operations,change.children);
+					me.onChangeUI(change.attributes,change.children);
 					break;
 			}
 		}
@@ -276,17 +276,13 @@ itasks.Component = {
 			}
 		}
 	},
-	onChangeUI: function(operations,childChanges) {
+	onChangeUI: function(attributeChanges,childChanges) {
 		var me = this, idx;
 
 		//Handle attribute changes
-		if(operations instanceof Array) {
-			operations.forEach(function(op) {
-            	if(op.method && me[op.method] && op.arguments && op.arguments instanceof Array) {
-					me[op.method].apply(me,op.arguments);
-				} else {
-					console.log("UNKNOWN OP",op);
-				}
+		if(attributeChanges instanceof Array) {
+			attributeChanges.forEach(function(change) {
+				me.setAttribute(change.name,change.value);
 			});
 		}
 		//Handle child changes

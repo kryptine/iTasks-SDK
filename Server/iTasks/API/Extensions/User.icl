@@ -79,7 +79,7 @@ where
 			# value = checkMaskValue mask ((\(Username v) -> v) val)
 			= (setEditOpts taskId (editorId dp) value (uia UIEditString (stdAttributes typeDesc optional mask)), vst)
 	updUI dp (Username old) om (Username new) nm vst=:{VSt|optional,disabled}
-		= (if (old === new) NoChange (ChangeUI [("setAttribute",[JSONString "value",encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -119,7 +119,7 @@ where
 			# value = checkMaskValue mask ((\(Password v) -> v) val)
 			= (setEditOpts taskId (editorId dp) value (uia UIEditPassword (stdAttributes typeDesc optional mask)), vst)
 	updUI dp (Password old) om (Password new) nm vst=:{VSt|optional,disabled}
-		= (if (old === new) NoChange (ChangeUI [("setAttribute",[JSONString "value",encodeUI new]):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] []),vst)
 
 	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
 

@@ -97,7 +97,7 @@ where
 			# (diff,vst=:{VSt|selectedConsIndex}) = ex.Editor.updUI dp old om new nm {vst & selectedConsIndex = 0}
 			| selectedConsIndex < 0 //A cons was changed
 				# selectedCons = ~selectedConsIndex - 1
-				# consChange = ChangeUI [("setValue",[toJSON selectedCons,JSONBool True])] []
+				# consChange = ChangeUI [SetAttribute "value" (JSONArray [toJSON selectedCons,JSONBool True])] []
 				| allConsesArityZero gtd_conses
 					= (consChange,{vst & selectedConsIndex = curSelectedConsIndex})
 				| otherwise
@@ -316,7 +316,7 @@ where
 	where
 		vEq = ov === nv
 		mEq = om === nm
-		valueChange = if vEq [] [("setAttribute",[JSONString "value",encodeUI nv])]
+		valueChange = if vEq [] [SetAttribute "value" (encodeUI nv)]
 		attrChanges = maybe [] (\typeDesc ->stdAttributeChanges typeDesc optional om nm) mbTypeDesc
 
 	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
@@ -559,10 +559,10 @@ stdAttributes typename optional mask
 											(HINT_TYPE_INVALID, "You need to enter a "+++ typename +++ " (this value is required)")
 		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString hintType),(HINT_ATTRIBUTE,JSONString hint)]
 
-stdAttributeChanges :: String Bool EditMask EditMask -> [UILocalChange]
+stdAttributeChanges :: String Bool EditMask EditMask -> [UIAttributeChange]
 stdAttributeChanges typename optional om nm 
 	| om === nm = [] //Nothing to change
-	| otherwise = [("setAttribute",[JSONString k,v]) \\ (k,v) <- 'DM'.toList (stdAttributes typename optional nm)]
+	| otherwise = [SetAttribute k v \\ (k,v) <- 'DM'.toList (stdAttributes typename optional nm)]
 
 addLabel :: !String !UIAttributes -> UIAttributes
 addLabel label attr = putCond LABEL_ATTRIBUTE (JSONString label) attr

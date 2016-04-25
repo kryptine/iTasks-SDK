@@ -125,12 +125,12 @@ where
 			[] = []
 			changes = [(2,ChangeChild (ChangeUI changes []))]
 
-		changeType = case [t \\ ("setAttribute",[JSONString HINT_TYPE_ATTRIBUTE,JSONString t]) <- localChanges] of
-			[type] 	= [("setAttribute",[JSONString "iconCls",JSONString ("icon-" +++ type)])]
+		changeType = case [t \\ SetAttribute HINT_TYPE_ATTRIBUTE (JSONString t) <- localChanges] of
+			[type] 	= [SetAttribute "iconCls" (JSONString ("icon-" +++ type))]
 			_ 		= []
 
-		changeTooltip= case [h \\ ("setAttribute",[JSONString HINT_ATTRIBUTE,JSONString h]) <- localChanges] of
-			[hint] 	= [("setAttribute",[JSONString "tooltip", JSONString hint])]
+		changeTooltip= case [h \\ SetAttribute HINT_ATTRIBUTE (JSONString h) <- localChanges] of
+			[hint] 	= [SetAttribute "tooltip" (JSONString hint)]
 			_ 		= []
 	
 	layout (c,s) = (c,s)
@@ -142,13 +142,7 @@ where
 		# buttonOpts = maybe id (\(JSONString a) -> setText a) ('DM'.get "actionId" attr)
 		= (ReplaceUI (buttonOpts (uia UIActionButton attr)),JSONNull)
 	
-	layout (ChangeUI local [],s) = (ChangeUI (map remap local) [],s)
 	layout (change,s) = (change,s)
-
-	remap ("enable",[])  = ("setAttribute",[JSONString "enabled", JSONBool True])
-	remap ("disable",[]) = ("setAttribute",[JSONString "enabled", JSONBool False])
-	remap (op,args)      = (op,args)
-
 
 mapLst f [] = []
 mapLst f [x] = [f True x]

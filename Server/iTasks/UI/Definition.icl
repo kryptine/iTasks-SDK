@@ -392,7 +392,7 @@ where
 	optsfields = flatten [fields \\ JSONObject fields <- opts]
 
 
-derive class iTask UIChange, UIChildChange
+derive class iTask UIChange, UIAttributeChange, UIChildChange
 
 //Remove unnessecary directives
 compactChangeDef :: UIChange -> UIChange
@@ -434,11 +434,10 @@ encodeUIChange (ReplaceUI def)
 		[("type",JSONString "replace")
 		,("definition",encodeUI def)
 		]
-encodeUIChange (ChangeUI operations children)
+encodeUIChange (ChangeUI attributes children)
 	= JSONObject
 		[("type",JSONString "change")
-		,("operations", JSONArray [JSONObject [("method",JSONString method),("arguments",JSONArray arguments)] 
-											\\ (method,arguments) <- operations])
+		,("attributes", JSONArray [JSONObject [("name",JSONString name),("value",value)] \\ SetAttribute name value <- attributes])
 		,("children",JSONArray (map encodeChildChange children))
 		]
 where

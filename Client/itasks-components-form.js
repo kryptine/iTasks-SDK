@@ -384,7 +384,10 @@ itasks.itwc_choice_radiogroup = {
 
             el.appendChild(liEl);
         });
-    }
+    },
+    onAttributeChange: function(name,value) {
+		console.log(name,value);
+	}
 };
 
 itasks.itwc_choice_checkboxgroup = {

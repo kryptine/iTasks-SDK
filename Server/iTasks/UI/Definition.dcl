@@ -32,16 +32,16 @@ derive class iTask UITreeNode
 
 //Representation of a collection of changes that need to be applied to an existing UI
 :: UIChange
-	= NoChange		//No changes are needed
-	| ReplaceUI !UI //Replace the entire UI with a new version
-	| ChangeUI [UILocalChange] [(!Int,!UIChildChange)]	//Change the current UI and/or its children
+	= NoChange		                                       //No changes are needed
+	| ReplaceUI !UI                                        //Replace the entire UI with a new version
+	| ChangeUI [UIAttributeChange] [(!Int,!UIChildChange)] //Change the current UI and/or its children
 
-:: UILocalChange 	:== (!String,![JSONNode]) 	  //A change method+arguments to call to effect the local change
-:: UIChildChange 	= ChangeChild !UIChange  //Select a sub-component and apply the change definition there
-					| RemoveChild  			  //Remove the child at the given index (next children 'move down')
-					| InsertChild !UI        //Insert a new child at the given index (next children 'move up')
+:: UIAttributeChange = SetAttribute !String !JSONNode  //A change to a user interface attribute
+:: UIChildChange 	 = ChangeChild !UIChange           //Select a sub-component and apply the change definition there
+					 | RemoveChild                     //Remove the child at the given index (next children 'move down')
+					 | InsertChild !UI                 //Insert a new child at the given index (next children 'move up')
 
-derive class iTask UIChange, UIChildChange
+derive class iTask UIChange, UIAttributeChange, UIChildChange
 
 /**
 * Rendering a user interface for a composition of is a staged process in which
