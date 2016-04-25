@@ -51,10 +51,10 @@ where
 
 doAuthenticated :: (User -> Task a) -> Task a | iTask a
 doAuthenticated task
-	=	enterCredentials
+	= (	enterCredentials
 	>>* [OnAction (Action "Login" [ActionIcon "login",ActionKey {key=KEY_ENTER,ctrl=False,shift=False,alt=False}])
 			(hasValue (\cred -> verifyCredentials cred >>- executeTask task))
-		]
+		] ) <<@ ApplyLayout (beforeStep frameCompact) //Compact layout before login, full screen afterwards
 where
 	enterCredentials :: Task Credentials
 	enterCredentials

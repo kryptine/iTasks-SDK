@@ -52,12 +52,7 @@ JSONDecode{|Task|} _ _ c = (Nothing,c)
 gVerify{|Task|} _ _ mv = alwaysValid mv
 
 gText{|Task|} _ _ _ = ["<Task>"]
-gEditor{|Task|} _ _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
-where
-	genUI _ _ _ vst = (stringDisplay "<Task>", vst)
-	updUI dp ov om nv nm vst = (NoChange,vst)
-	appDiff dp e val mask ust = basicUpdate (\() t -> Just t) dp e val mask ust
-
+gEditor{|Task|} _ _ _ _ _ = emptyEditor
 gEq{|Task|} _ _ _			= True // tasks are always equal??
 
 gDefault{|Task|} gDefx = Task (\_ -> abort error)

@@ -19,9 +19,9 @@ from Text.JSON import :: JSONNode
 *	Standard editor
 */
 :: Editor a = 
-	{ genUI  	:: DataPath a EditMask *VSt -> *(!UI,!*VSt)
-	, updUI 	:: DataPath a EditMask a EditMask *VSt -> *(!UIChange, !*VSt)
-	, appDiff 	:: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
+	{ genUI  :: DataPath a EditMask *VSt -> *(!UI,!*VSt)
+	, updUI  :: DataPath a EditMask a EditMask *VSt -> *(!UIChange, !*VSt)
+	, onEdit :: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
 	}
 
 /**

@@ -14,7 +14,7 @@ import Incidone.Util.TaskPatterns
 derive JSONEncode ContactPosition
 derive JSONDecode ContactPosition
 
-gEditor{|ContactPosition|} = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
+gEditor{|ContactPosition|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI path val mask vst=:{VSt|taskId,optional,disabled}
     	| disabled
@@ -29,9 +29,9 @@ where
 	updUI dp old om new nm vst
 		= (if (old === new) NoChange (ChangeUI [("setValue",[toJSON new])] []),vst)
 
-	appDiff [] JSONNull val _ ust = (PositionDescription "" Nothing,Blanked,ust)
-	appDiff [] (JSONString nval) _ _ ust = (parsePosition nval, Touched, ust)
-	appDiff dp e val mask ust = (val,mask,ust)
+	onEdit [] JSONNull val _ ust = (PositionDescription "" Nothing,Blanked,ust)
+	onEdit [] (JSONString nval) _ _ ust = (parsePosition nval, Touched, ust)
+	onEdit dp e val mask ust = (val,mask,ust)
 
 gVerify{|ContactPosition|} {VerifyOptions|optional=False} (_,Blanked)   = MissingValue
 gVerify{|ContactPosition|} _ (PositionDescription _ Nothing,mask)       = WarningValue "This position can not be plotted on a map"

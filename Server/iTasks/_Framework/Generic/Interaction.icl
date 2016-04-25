@@ -19,7 +19,7 @@ derive gEq EditMask
 
 gEditor{|UNIT|} = emptyEditor
 
-gEditor{|RECORD of {grd_arity}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
+gEditor{|RECORD of {grd_arity}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp (RECORD x) mask vst=:{VSt|optional,disabled,taskId}
 		# (viz,vst) = ex.Editor.genUI (pairPath grd_arity dp) x (toPairMask grd_arity mask) {VSt|vst & optional = False}
@@ -36,21 +36,21 @@ where
 		# (diff,vst) = ex.Editor.updUI (pairPath grd_arity dp) old (toPairMask grd_arity om) new (toPairMask grd_arity nm) vst
 		= (flattenPairDiff 0 grd_arity diff,vst)
 
-	appDiff [] e (RECORD record) mask ust //Enabling or disabling of a record
+	onEdit [] e (RECORD record) mask ust //Enabling or disabling of a record
     	# mask = case e of
         	JSONBool False  = Blanked
         	_               = Touched
     	= (RECORD record,mask,ust)
 
-	appDiff [d:ds] e (RECORD record) mask ust
+	onEdit [d:ds] e (RECORD record) mask ust
 		| d >= grd_arity
 			= (RECORD record,mask,ust)
 		# childMasks = subMasks grd_arity mask
-		# (record,targetMask,ust) = ex.Editor.appDiff (updPairPath d grd_arity ++ ds) e record (childMasks !! d) ust
+		# (record,targetMask,ust) = ex.Editor.onEdit (updPairPath d grd_arity ++ ds) e record (childMasks !! d) ust
 		= (RECORD record,CompoundMask (updateAt d targetMask childMasks),ust)
-	appDiff _ _ val mask ust = (val,mask,ust)
+	onEdit _ _ val mask ust = (val,mask,ust)
 
-gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
+gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp (FIELD x) mask vst=:{VSt|disabled}
 		# (UI type attr items,vst)		= ex.Editor.genUI dp x mask vst
@@ -58,11 +58,11 @@ where
 
 	updUI dp (FIELD old) om (FIELD new) nm vst = ex.Editor.updUI dp old om new nm vst
 
-	appDiff dp e (FIELD field) mask ust
-		# (field,mask,ust) = ex.Editor.appDiff dp e field mask ust
+	onEdit dp e (FIELD field) mask ust
+		# (field,mask,ust) = ex.Editor.onEdit dp e field mask ust
 		= (FIELD field,mask,ust)
 
-gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
+gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp (OBJECT x) mask vst=:{selectedConsIndex = curSelectedConsIndex,disabled,taskId}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
@@ -107,17 +107,17 @@ where
 		| otherwise
 			= ex.Editor.updUI dp old om new nm vst
 
-	appDiff [] e (OBJECT val) mask ust //Update is a constructor switch
+	onEdit [] e (OBJECT val) mask ust //Update is a constructor switch
 		# consIdx = case e of
 			JSONInt i	= i
 			_			= 0
 		# mask	        = case e of
 			JSONNull	= Blanked	//Reset
 			_			= CompoundMask (repeatn (gtd_conses !! consIdx).gcd_arity Untouched)
-    	# (val,_,ust)	= ex.Editor.appDiff (updConsPath (if (consIdx < gtd_num_conses) consIdx 0) gtd_num_conses) e val mask ust
+    	# (val,_,ust)	= ex.Editor.onEdit (updConsPath (if (consIdx < gtd_num_conses) consIdx 0) gtd_num_conses) e val mask ust
 		= (OBJECT val, mask, ust)
-	appDiff dp e (OBJECT val) mask ust //Update is targeted somewhere in a substructure of this value
-		# (val,mask,ust) = ex.Editor.appDiff dp e val mask ust
+	onEdit dp e (OBJECT val) mask ust //Update is targeted somewhere in a substructure of this value
+		# (val,mask,ust) = ex.Editor.onEdit dp e val mask ust
 		= (OBJECT val,mask,ust)
 
 	allConsesArityZero [] = True
@@ -125,7 +125,7 @@ where
 		| gcd_arity > 0 = False
 						= allConsesArityZero cs
 
-gEditor{|EITHER|} ex _ dx _ _ ey _ dy _ _  = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
+gEditor{|EITHER|} ex _ dx _ _ ey _ dy _ _  = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp (LEFT x) mask vst = ex.Editor.genUI dp x mask vst
 	genUI dp (RIGHT y) mask vst =  ey.Editor.genUI dp y mask vst	
@@ -143,27 +143,27 @@ where
 		# (viz,vst=:{selectedConsIndex}) = ex.Editor.genUI dp new nm vst
 		= (ReplaceUI viz, {vst & selectedConsIndex = -1 - selectedConsIndex})
 
-	appDiff [d:ds] e either mask ust
+	onEdit [d:ds] e either mask ust
 		| d == -1 = case ds of
         	[] = (LEFT dx, Untouched, ust)
 			_ 
-				# (x,mask,ust) = ex.Editor.appDiff ds e dx Untouched ust
+				# (x,mask,ust) = ex.Editor.onEdit ds e dx Untouched ust
 				= (LEFT x, mask, ust)
 		| d == -2 = case ds of
 			[] = (RIGHT dy, Untouched, ust)
 			_ 
-				# (y,mask,ust) = ey.Editor.appDiff ds e dy Untouched ust
+				# (y,mask,ust) = ey.Editor.onEdit ds e dy Untouched ust
 				= (RIGHT y, mask, ust)
 		| otherwise
 			= case either of
 				(LEFT x)
-					# (x,mask,ust) = ex.Editor.appDiff [d:ds] e x mask ust
+					# (x,mask,ust) = ex.Editor.onEdit [d:ds] e x mask ust
 					= (LEFT x, mask, ust)
 				(RIGHT y)
-					# (y,mask,ust) = ey.Editor.appDiff [d:ds] e y mask ust
+					# (y,mask,ust) = ey.Editor.onEdit [d:ds] e y mask ust
 					= (RIGHT y, mask, ust)
 
-gEditor{|CONS of {gcd_index,gcd_arity}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
+gEditor{|CONS of {gcd_index,gcd_arity}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp (CONS x) mask vst=:{VSt|taskId,optional,disabled}
 		# (viz,vst)	= ex.Editor.genUI (pairPath gcd_arity dp) x (toPairMask gcd_arity mask) vst
@@ -176,15 +176,15 @@ where
 		//the PAIR's into a single ChangeUI constructor
 		= (flattenPairDiff 0 gcd_arity diff,vst)
 																				
-	appDiff [d:ds] e (CONS val) mask ust
+	onEdit [d:ds] e (CONS val) mask ust
 		| d >= gcd_arity
 			= (CONS val,mask,ust)	
 		# childMasks = subMasks gcd_arity mask
-		# (val,targetMask,ust) = ex.Editor.appDiff (updPairPath d gcd_arity ++ ds) e val (childMasks !! d) ust
+		# (val,targetMask,ust) = ex.Editor.onEdit (updPairPath d gcd_arity ++ ds) e val (childMasks !! d) ust
 		= (CONS val,CompoundMask (updateAt d targetMask childMasks),ust)
-	appDiff _ _ val mask ust = (val,mask,ust)
+	onEdit _ _ val mask ust = (val,mask,ust)
 
-gEditor{|PAIR|} ex _ _ _ _ ey _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
+gEditor{|PAIR|} ex _ _ _ _ ey _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp (PAIR x y) mask vst
 		# (xmask,ymask) = case mask of
@@ -208,16 +208,16 @@ where
 		# (diffy,vst) 	= ey.Editor.updUI dpx oldy oymask newy nymask vst
 		= (ChangeUI [] [(0,ChangeChild diffx),(1,ChangeChild diffy)],vst)
 
-	appDiff [0:ds] e (PAIR x y) xmask ust
-		# (x,xmask,ust) = ex.Editor.appDiff ds e x xmask ust
+	onEdit [0:ds] e (PAIR x y) xmask ust
+		# (x,xmask,ust) = ex.Editor.onEdit ds e x xmask ust
 		= (PAIR x y,xmask,ust)
-	appDiff [1:ds] e (PAIR x y) ymask ust
-		# (y,ymask,ust) = ey.Editor.appDiff ds e y ymask ust
+	onEdit [1:ds] e (PAIR x y) ymask ust
+		# (y,ymask,ust) = ey.Editor.onEdit ds e y ymask ust
 		= (PAIR x y,ymask,ust)
-	appDiff _ _ val mask ust = (val,mask,ust)
+	onEdit _ _ val mask ust = (val,mask,ust)
 
 //The maybe editor makes it content optional
-gEditor{|Maybe|} ex _ dx _ _ = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
+gEditor{|Maybe|} ex _ dx _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp val mask vst=:{VSt|optional,disabled}
 		# (viz,vst) = case val of
@@ -236,12 +236,12 @@ where
 		# (diff,vst) = ex.Editor.updUI dp old om new nm {VSt|vst & optional = True}
 		= (diff,{VSt|vst & optional = optional})
 
-	appDiff dp e val mask ust
+	onEdit dp e val mask ust
 		| isEmpty dp && (e === JSONNull || e === JSONBool False)
 			= (Nothing, Blanked,ust) //Reset
 		| otherwise
 			# (x,xmask) = maybe (dx,Untouched) (\x -> (x,mask)) val
-			# (x,xmask,ust) = ex.Editor.appDiff dp e x xmask ust
+			# (x,xmask,ust) = ex.Editor.onEdit dp e x xmask ust
 			= (Just x,xmask,ust)
 
 //Encode the full range of fields in the datapath, such that it can be decomposed in PAIRs by the pairSplit
@@ -302,7 +302,7 @@ gEditor{|Bool|} = primitiveTypeEditor Nothing
 					(\value -> (maybe id (\v -> setValue (JSONBool v)) value) (ui UIViewCheckbox))
 					(\attr taskId editorId value -> setEditOpts taskId editorId value (uia UIEditCheckbox attr))
 
-primitiveTypeEditor mbTypeDesc mkViewControl mkEditControl = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
+primitiveTypeEditor mbTypeDesc mkViewControl mkEditControl = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where 
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
@@ -319,7 +319,7 @@ where
 		valueChange = if vEq [] [("setAttribute",[JSONString "value",encodeUI nv])]
 		attrChanges = maybe [] (\typeDesc ->stdAttributeChanges typeDesc optional om nm) mbTypeDesc
 
-	appDiff dp e val mask ust = basicUpdateSimple dp e val mask ust
+	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
 
 gEditor{|EditableList|} ex _ dx _ _
 	= listEditor ex dx
@@ -340,7 +340,7 @@ gEditor{|[]|} ex _ dx _ _
 		(\x _ -> x)
 
 listEditor ex dx getItems getAdd getRemove getReorder getCount setItems
-	= {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
+	= {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp el mask vst=:{VSt|taskId,disabled}
 		# (controls,vst) = listControls dp items (subMasks (length items) mask) vst
@@ -388,14 +388,14 @@ where
 		# (viz,vst) = genUI dp nv nm vst
 		= (ReplaceUI viz,vst)
 
-	appDiff dp e el listMask ust
+	onEdit dp e el listMask ust
 		# (items,childMasks)
 			= case ((not (isEmpty dp)) && (hd dp >= (length items))) of
 				True
 					= (items++[dx], subMasks (length items) listMask ++ [Untouched])
 				False
 					= (items, subMasks (length items) listMask)
-		# (items,childMasks,ust) = updateElements ex.Editor.appDiff dp e items childMasks ust
+		# (items,childMasks,ust) = updateElements ex.Editor.onEdit dp e items childMasks ust
 		| isEmpty dp
 			//Process the reordering commands
 			# split = split "_" (fromMaybe "" (fromJSON e))
@@ -442,13 +442,13 @@ gEditor{|()|} = emptyEditor
 gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ = emptyEditor
 gEditor{|Dynamic|} = emptyEditor
 
-gEditor{|HtmlTag|}	= {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
+gEditor{|HtmlTag|}	= {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp val mask vst = (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString val))]), vst)
 
 	updUI dp ov om nv nm vst = (NoChange,vst)
 
-	appDiff _ _ val mask ust = (val,mask,ust)
+	onEdit _ _ val mask ust = (val,mask,ust)
 
 gEditor{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = emptyEditor
 

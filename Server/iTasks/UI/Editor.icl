@@ -7,11 +7,11 @@ import iTasks.UI.Definition
 import qualified Data.Map as DM
 
 emptyEditor :: Editor a
-emptyEditor = {Editor|genUI=genUI,updUI=updUI,appDiff=appDiff}
+emptyEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI _ _ _ vst			    = (ui UIEmpty,vst)
 	updUI _ _ _ _ _ vst 		= (NoChange,vst)
-	appDiff _ _ val mask ust 	= (val,mask,ust)
+	onEdit _ _ val mask ust 	= (val,mask,ust)
 
 subMasks :: !Int EditMask -> [EditMask]
 subMasks n (CompoundMask ms) = ms
@@ -41,7 +41,7 @@ where
 		(left,right) = splitAt middle masks
 
 fromEditlet :: (Editlet a d) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a & JSONEncode{|*|} d & JSONDecode{|*|} d
-fromEditlet editlet=:{Editlet| genUI, initUI, genDiffSrv, appDiffSrv} = {Editor|genUI=genUI`,updUI=updUI, appDiff=appDiff`}
+fromEditlet editlet=:{Editlet| genUI, initUI, genDiffSrv, appDiffSrv} = {Editor|genUI=genUI`,updUI=updUI, onEdit=onEdit`}
 where
 	genUI` dp currVal mask vst=:{VSt|taskId}
 		# (uiDef,vst=:{VSt|iworld}) = genUI dp currVal mask vst
@@ -64,7 +64,7 @@ where
 			Nothing 			= (NoChange,{VSt|vst & iworld=iworld})
 			currentDiff 		= (ChangeUI [("setAttribute",[JSONString "diff", toJSON (fromJust currentDiff)])] [],{VSt|vst & iworld=iworld})
 
-	appDiff` [] jsonDiff ov om ust
+	onEdit` [] jsonDiff ov om ust
 	//appDiff` [] (JSONArray [JSONInt ver, JSONInt diffId, jsonDiff]) ov om ust
 		= case fromJSON jsonDiff of
 			Just diff
@@ -73,4 +73,4 @@ where
 			Nothing
 				= (ov,om,ust)
 
-	appDiff` dp _ val mask ust =(val,mask,ust)
+	onEdit` dp _ val mask ust =(val,mask,ust)
