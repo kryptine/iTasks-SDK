@@ -253,24 +253,22 @@ httpServer :: !Int !Int ![(!String -> Bool
 httpServer port keepAliveTime requestProcessHandlers sds
  = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, whileConnected=whileConnected, onDisconnect=onDisconnect} sds
 where
-    onConnect host r iworld=:{IWorld|world}
-        # (ts,world) = time world
-        = (Ok (NTIdle host ts),Nothing,[],False,{IWorld|iworld & world = world})
+    onConnect host r iworld=:{IWorld|world,clocks}
+        = (Ok (NTIdle host clocks.timestamp),Nothing,[],False,{IWorld|iworld & world = world})
 
 	whileConnected mbData connState=:(NTProcessingRequest request localState) r env
 		//Select handler based on request path
 		= case selectHandler request requestProcessHandlers of
 			Just (_,_,_,handler,_)
-				# (mbData,done,localState,mbW,env=:{IWorld|world}) = handler request r mbData localState env
+				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = handler request r mbData localState env
 				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
-					# (now,world)       = time world
-					= (Ok (NTIdle request.client_name now), mbW, mbData, False,{IWorld|env & world = world})
+					= (Ok (NTIdle request.client_name clocks.timestamp), mbW, mbData, False,{IWorld|env & world = world})
 				| otherwise
 					= (Ok (NTProcessingRequest request localState), mbW, mbData,done,{IWorld|env & world = world})
 			Nothing
 				= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, env)
 
-	whileConnected (Just data) connState r env  //(connState is either Idle or ReadingRequest)
+	whileConnected (Just data) connState r iworld=:{IWorld|clocks}//(connState is either Idle or ReadingRequest)
 		# rstate = case connState of
 			(NTIdle client_name _)
 				//Add new data to the request
@@ -285,14 +283,14 @@ where
 				= {HttpReqState|request=newHTTPRequest,method_done=False,headers_done=False,data_done=False,error=True}
 		| rstate.HttpReqState.error
 			//Sent bad request response and disconnect
-			= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, env)
+			= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, iworld)
 		| not rstate.HttpReqState.headers_done
 			//Without headers we can't select our handler functions yet
-			= (Ok (NTReadingRequest rstate), Nothing, [], False, env)
+			= (Ok (NTReadingRequest rstate), Nothing, [], False, iworld)
 		//Determine the handler
 		= case selectHandler rstate.HttpReqState.request requestProcessHandlers of
 			Nothing
-				= (Ok connState, Nothing, ["HTTP/1.1 404 Not Found\r\n\r\n"], True, env)
+				= (Ok connState, Nothing, ["HTTP/1.1 404 Not Found\r\n\r\n"], True, iworld)
 			Just (_,completeRequest,newReqHandler,procReqHandler,_)
 				//Process a completed request, or as soon as the headers are done if the handler indicates so
 				| rstate.HttpReqState.data_done || (not completeRequest)
@@ -300,7 +298,7 @@ where
 					//Determine if a  persistent connection was requested
 					# keepalive	= isKeepAlive request
 					// Create a response
-					# (response,mbLocalState,mbW,env)	= newReqHandler request r env
+					# (response,mbLocalState,mbW,iworld)	= newReqHandler request r iworld 
 					//Add keep alive header if necessary
 					# response	= if keepalive {HTTPResponse|response & rsp_headers = [("Connection","Keep-Alive"):response.HTTPResponse.rsp_headers]} response
 					// Encode the response to the HTTP protocol format
@@ -308,23 +306,20 @@ where
 						Nothing	
 							# reply		= encodeResponse True response
 							| keepalive
-                                # env=:{IWorld|world} = env
-								# (now,world)       = time world
-								= (Ok (NTIdle rstate.HttpReqState.request.client_name now), mbW, [reply], False, {IWorld|env & world=world})
+								= (Ok (NTIdle rstate.HttpReqState.request.client_name clocks.timestamp), mbW, [reply], False, iworld)
 							| otherwise
-								= (Ok connState, mbW, [reply], True, env)
+								= (Ok connState, mbW, [reply], True, iworld)
 						Just localState	
-							= (Ok (NTProcessingRequest request localState), mbW, [(encodeResponse False response)], False, env)
+							= (Ok (NTProcessingRequest request localState), mbW, [(encodeResponse False response)], False, iworld)
 				| otherwise
-					= (Ok (NTReadingRequest rstate), Nothing, [], False, env)		
+					= (Ok (NTReadingRequest rstate), Nothing, [], False, iworld)		
 
 	//Close idle connections if the keepalive time has passed
-	whileConnected Nothing connState=:(NTIdle ip (Timestamp t)) r iworld=:{IWorld|world}
-		# (Timestamp now,world)	= time world//TODO: Do we really need to do this for every connection all the time?
-		= (Ok connState, Nothing, [], now >= t + keepAliveTime, {IWorld|iworld & world = world})
+	whileConnected Nothing connState=:(NTIdle ip (Timestamp t)) r iworld=:{IWorld|clocks={timestamp=Timestamp now}}
+		= (Ok connState, Nothing, [], now >= t + keepAliveTime, iworld)
 
 	//Do nothing if no data arrives for now
-	whileConnected Nothing connState r env = (Ok connState,Nothing,[],False,env)
+	whileConnected Nothing connState r iworld = (Ok connState,Nothing,[],False,iworld)
 
 	//If we were processing a request and were interupted we need to
 	//select the appropriate handler to wrap up

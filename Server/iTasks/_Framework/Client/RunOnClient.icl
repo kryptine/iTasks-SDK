@@ -119,7 +119,7 @@ where
 createClientIWorld :: !String !InstanceNo -> *IWorld
 createClientIWorld serverURL currentInstance
         # world = newWorld
-        # (Timestamp seed,world) = time world
+        # (timestamp=:(Timestamp seed),world) = time world
 		= {IWorld
 		  |server =
             {serverName = "application"
@@ -133,7 +133,8 @@ createClientIWorld serverURL currentInstance
             ,customCSS  = False }
 		  ,config				= {sessionTime = 3600, smtpServer = locundef "smtpServer"}
           ,clocks =
-            { localDate =   {Date|day = 1, mon = 1, year = 1977}
+            { timestamp =   timestamp
+			, localDate =   {Date|day = 1, mon = 1, year = 1977}
             , localTime =   {Time|hour = 0, min = 0, sec = 0}
             , utcDate =     {Date|day = 1, mon = 1, year = 1977}
             , utcTime =     {Time|hour = 0, min = 0, sec = 0}

@@ -65,7 +65,8 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     }
 
 :: SystemClocks =
-    { localDate             :: !Date
+    { timestamp 			:: !Timestamp
+	, localDate             :: !Date
     , localTime             :: !Time
     , utcDate               :: !Date
     , utcTime               :: !Time

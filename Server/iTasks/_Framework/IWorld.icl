@@ -83,7 +83,7 @@ createIWorld appName mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 	# (_,world)					= ensureDir "tmp" tmpDir world
 	# storeDir					= dataDir </> "stores"
 	# (exists,world)			= ensureDir "stores" storeDir world
-	# (Timestamp seed, world)	= time world
+	# (timestamp=:(Timestamp seed), world)	= time world
 	= {IWorld
 	  |server =
         {serverName = appName
@@ -101,7 +101,8 @@ createIWorld appName mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 	  ,config				= initialConfig
       ,clocks =
         {SystemClocks
-        |localDate=localDate
+		|timestamp=timestamp
+        ,localDate=localDate
         ,localTime=localTime
         ,utcDate=utcDate
         ,utcTime=utcTime
@@ -243,9 +244,17 @@ where
     read _ iworld=:{IWorld|clocks={utcTime}} = (Ok utcTime,iworld)
     write _ utcTime iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & utcTime=utcTime}})
 
+iworldTimestamp :: Shared Timestamp
+iworldTimestamp = createReadWriteSDS "IWorld" "timestamp" read write
+where
+    read _ iworld=:{IWorld|clocks={timestamp}} = (Ok timestamp,iworld)
+    write _ timestamp iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & timestamp=timestamp}})
+
+
 updateClocks :: !*IWorld -> *IWorld
 updateClocks iworld=:{IWorld|clocks,world}
     //Determine current date and time
+	# (timestamp,world) 						= time world
 	# (DateTime localDate localTime,world)		= currentLocalDateTimeWorld world
 	# (DateTime utcDate utcTime,world)			= currentUTCDateTimeWorld world
     # iworld = {iworld & world = world}
@@ -254,6 +263,7 @@ updateClocks iworld=:{IWorld|clocks,world}
     # iworld = if (localTime == clocks.localTime) iworld (snd (write localTime iworldLocalTime iworld))
     # iworld = if (utcDate == clocks.utcDate) iworld (snd (write utcDate iworldUTCDate iworld))
     # iworld = if (utcTime == clocks.utcTime) iworld (snd (write utcTime iworldUTCTime iworld))
+    # iworld = if (timestamp == clocks.timestamp) iworld (snd (write timestamp iworldTimestamp iworld))
     = iworld
 
 //Wrapper instance for file access
