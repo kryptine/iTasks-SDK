@@ -384,6 +384,24 @@ where
         ([(_,s):_],states) = (Just s,states)
         _                  = (Nothing,states)
 
+copyAttributes :: NodePath NodePath -> Layout
+copyAttributes src dst = layout //TODO: Also handle attribute updates in the src location, and partial replacements along the path
+where
+	layout (ReplaceUI ui,s) = case  selectAttr src ui of 
+		Just attr = (ReplaceUI (addAttr attr dst ui),s)
+		Nothing   = (ReplaceUI ui,s)
+	layout (change,s) = (change,s)
+
+	selectAttr [] (UI type attr items) = Just attr
+	selectAttr [s:ss] (UI type attr items) 
+		| s < length items  = selectAttr ss (items !! s)
+							= Nothing
+
+	addAttr extra [] (UI type attr items) = UI type (foldl (\m (k,v) -> 'DM'.put k v m) attr ('DM'.toList extra)) items
+	addAttr extra [s:ss] (UI type attr items) 
+		| s < length items = UI type attr (updateAt s (addAttr extra ss (items !! s)) items) 
+						   = UI type attr items
+
 //Common patterns
 moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
 moveChildren container pred dst = moveSubs_ pred` (Just dst)
@@ -437,6 +455,7 @@ where
 
 conditionalLayout :: (UI -> Bool) Layout -> Layout
 conditionalLayout pred condLayout = selectLayout [(pred,condLayout)]
+
 
 //UTIL
 getChildren :: UI -> [UI]

@@ -64,6 +64,8 @@ layoutSubsMatching :: NodePath (UI -> Bool) Layout   -> Layout
 moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
 layoutChildrenOf :: NodePath Layout -> Layout
 
+copyAttributes :: NodePath NodePath -> Layout
+
 //Composition of layouts
 sequenceLayouts   :: [Layout]               -> Layout
 selectLayout      :: [(UI -> Bool, Layout)] -> Layout

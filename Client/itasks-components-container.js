@@ -10,6 +10,17 @@ itasks.itwc_panel = {
 	cssCls: 'panel',
 	initDOMEl: function() {
 		var me = this;
+		//Create header
+		if(me.title) {
+			me.headerEl = document.createElement('div');
+			me.headerEl.classList.add(me.cssPrefix + 'header');
+			me.headerEl.innerHTML = '<span>' + me.title + '</span>';
+			me.domEl.appendChild(me.headerEl);
+		}
+		//Create separate container div
+		me.containerEl = document.createElement('div');
+		me.domEl.appendChild(me.containerEl);
+
 		if(me.frame) {
 			me.domEl.classList.add(me.cssPrefix + 'framed');
 		}

@@ -34,6 +34,7 @@ where
 	layout = sequenceLayouts 
 		[layoutSubAt [1] editorToForm 
     	,layoutSubAt [1] finalizeForm 
+		,copyAttributes [0] []
 		,removeEmptyPrompt
 		,changeNodeType (\(UI UIInteract attr items) -> UI UIPanel attr items)
 		] 

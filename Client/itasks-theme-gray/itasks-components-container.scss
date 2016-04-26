@@ -44,6 +44,8 @@
     border: 1px solid $panel-border-color;
     display: flex;
     display: -webkit-flex;
+    flex-direction: column;
+    -webkit-flex-direction: column;
 
     > .#{$prefix}header {
         color: $panel-header-text-color;

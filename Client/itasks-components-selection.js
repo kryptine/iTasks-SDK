@@ -50,19 +50,21 @@ itasks.itwc_choice_grid = {
         }
         el.appendChild(bodyEl);
     },
-    setValue: function(value) {
+	onAttributeChange: function(name,value) {
         var me = this,
             bodyEl = me.bodyEl;
+		if(name == 'value') {
 
-        //Remove old selection
-        me.value.forEach(function(selectedIdx) {
-                bodyEl.childNodes[selectedIdx].classList.remove(me.cssPrefix + 'selected');
-        });
-        //Indicate new selection
-        me.value = value;
-        me.value.forEach(function(selectedIdx) {
-                bodyEl.childNodes[selectedIdx].classList.add(me.cssPrefix + 'selected');
-        });
+        	//Remove old selection
+        	me.value.forEach(function(selectedIdx) {
+            	    bodyEl.childNodes[selectedIdx].classList.remove(me.cssPrefix + 'selected');
+        	});
+        	//Indicate new selection
+        	me.value = value;
+        	me.value.forEach(function(selectedIdx) {
+            	    bodyEl.childNodes[selectedIdx].classList.add(me.cssPrefix + 'selected');
+        	});
+		}
     }
 };
 

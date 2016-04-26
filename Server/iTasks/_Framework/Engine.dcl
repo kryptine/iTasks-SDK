@@ -12,7 +12,7 @@ import iTasks._Framework.Task
 
 from Internet.HTTP			import :: HTTPRequest
 
-//* Configuarion defaults
+//* Configuration defaults
 DEFAULT_PORT			:== IF_POSIX_OR_WINDOWS 8080 80
 DEFAULT_KEEPALIVE_TIME	:== 300 // 5 minutes
 DEFAULT_THEME           :== "gray"

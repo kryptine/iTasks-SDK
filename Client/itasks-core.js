@@ -241,7 +241,7 @@ itasks.Component = {
 	removeChild: function(idx = 0) {
 		var me = this;
 		if(me.initialized) {
-			me.domEl.removeChild(me.domEl.childNodes[idx]);
+			me.containerEl.removeChild(me.containerEl.childNodes[idx]);
 		}
 		me.children.splice(idx,1);	
 	},

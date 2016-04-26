@@ -229,7 +229,9 @@ div.itasks-loader {
   background-color: #eee;
   border: 1px solid #ccc;
   display: flex;
-  display: -webkit-flex; }
+  display: -webkit-flex;
+  flex-direction: column;
+  -webkit-flex-direction: column; }
   .itasks-panel > .itasks-header {
     color: #000;
     background-color: #ccc;
