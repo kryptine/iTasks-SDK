@@ -32,10 +32,10 @@ import Incidone.DeviceBased.VideoWall
 import Incidone.DeviceBased.Tablet
 
 Start :: *World -> *World
-Start world = startEngine [publish "/" (WebApp [])                   (\_ -> ccPerson)
-						  ,publish "/wall" (WebApp [])               (\_ -> viewVideoWallContent)
-						  ,publish "/wall-control" (WebApp [])       (\_ -> selectVideoWallContent)
-                          ,publish "/exercise-control" (WebApp [])   (\_ -> controlExercise)
+Start world = startEngine [publish "/"                 (\_ -> ccPerson)
+						  ,publish "/wall"             (\_ -> viewVideoWallContent)
+						  ,publish "/wall-control"     (\_ -> selectVideoWallContent)
+                          ,publish "/exercise-control" (\_ -> controlExercise)
 						  ] world
 where
 	//Main task for command center operators

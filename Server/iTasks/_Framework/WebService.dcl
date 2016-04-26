@@ -4,7 +4,7 @@ definition module iTasks._Framework.WebService
 * It also provides access to upload/download of blob content.
 */
 from Internet.HTTP					import :: HTTPRequest, :: HTTPResponse
-from iTasks._Framework.Engine		import :: ServiceFormat, :: ConnectionType
+from iTasks._Framework.Engine		import :: ConnectionType
 from iTasks._Framework.IWorld		import :: IWorld
 from iTasks._Framework.Task 	    import :: Task, :: ConnectionTask
 from iTasks._Framework.TaskState 	import :: TIUIState
@@ -22,9 +22,12 @@ httpServer :: !Int !Int ![(!String -> Bool
 				,!(HTTPRequest r ConnectionType *IWorld -> (!Maybe w, !*IWorld))
 				)] (RWShared () r w) -> ConnectionTask | TC r & TC w
 
-webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
+
+:: ChangeQueues :== Map InstanceNo (Queue UIChange)
+
+webService :: !String !(HTTPRequest -> Task a) ->
                  (!(String -> Bool)
-                 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-                 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-                 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+                 ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues ConnectionType *IWorld -> (!Maybe ChangeQueues, !*IWorld))
                  ) | iTask a

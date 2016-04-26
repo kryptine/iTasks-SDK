@@ -87,8 +87,8 @@ basicAPIExamples =
 
 Start :: *World -> *World
 Start world 
-	= startEngine 	[	publish "/" (WebApp []) (\_-> loginAndManageWorkList "iTasks Example Collection" basicAPIExamples)
-					,	publish "/persons" (WebApp []) (const enterPersons)
+	= startEngine 	[	publish "/" (\_ -> loginAndManageWorkList "iTasks Example Collection" basicAPIExamples)
+					,	publish "/persons" (const enterPersons)
 					] world
 		
 		

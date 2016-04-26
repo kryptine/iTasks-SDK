@@ -23,22 +23,10 @@ RELATIVE_LOCATIONS		:== [".": take 5 (iterate ((</>) "..") "..")]
 :: PublishedTask =
 	{ url			:: String
 	, task			:: TaskWrapper
-	, defaultFormat	:: ServiceFormat
 	}
 	
 :: TaskWrapper = E.a: TaskWrapper (HTTPRequest -> Task a) & iTask a
 	
-//* The format in which a task is presented.
-:: ServiceFormat
-	= WebApp [WebAppOption]
-	| JSONGui
-	| JSONGuiEventStream
-	| JSONService
-	| JSONPlain
-
-:: WebAppOption
-    = Theme String
-
 //Connection types used by the engine
 :: ConnectionType
     = EventSourceConnection [InstanceNo]    //Server -> Client updates push
@@ -56,13 +44,13 @@ startEngine :: a !*World -> *World | Publishable a
 /**
 * Wraps a task together with a url to make it publishable by the engine
 */
-publish :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
+publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
 
 /**
 * This function publishes a task with autolayouting turned off 
 * to enable testing and debugging without layout processing
 */
-publishRaw :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
+publishRaw :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
 
 class Publishable a
 where
@@ -71,7 +59,6 @@ where
 instance Publishable (Task a) | iTask a
 instance Publishable (HTTPRequest -> Task a) | iTask a
 instance Publishable [PublishedTask]
-
 
 determineAppName :: !*World -> (!String,!*World)
 

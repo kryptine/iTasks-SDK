@@ -161,8 +161,8 @@ engine publishable
 	= taskHandlers (publishAll publishable) ++ defaultHandlers
 where
 	taskHandlers published
-		= [let (matchF,reqF,dataF,disconnectF) = webService url task defaultFormat in (matchF,True,reqF,dataF,disconnectF)
-		  \\ {url,task=TaskWrapper task,defaultFormat} <- published]	
+		= [let (matchF,reqF,dataF,disconnectF) = webService url task in (matchF,True,reqF,dataF,disconnectF)
+		  \\ {url,task=TaskWrapper task} <- published]	
 	
 	defaultHandlers = [sdsService, simpleHTTPResponse (const True, handleStaticResourceRequest)]
 
@@ -206,11 +206,11 @@ where
 	dataFun _ _ _ s env = ([],True,s,Nothing,env)
 	lostFun _ _ s env = (Nothing,env)
 
-publish :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
-publish url format task = {url = url, task = TaskWrapper (withFinalSessionLayout task), defaultFormat = format}
+publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
+publish url task = {url = url, task = TaskWrapper (withFinalSessionLayout task)}
 
-publishRaw :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
-publishRaw url format task = {url = url, task = TaskWrapper (withoutLayout task), defaultFormat = format}
+publishRaw :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
+publishRaw url task = {url = url, task = TaskWrapper (withoutLayout task)}
 
 withFinalSessionLayout :: (HTTPRequest -> Task a) -> (HTTPRequest -> Task a) | iTask a
 withFinalSessionLayout taskf = \req -> tune (ApplyLayout defaultSessionLayout) (taskf req)
@@ -220,11 +220,11 @@ withoutLayout taskf = \req -> tune WithoutAutoLayout (taskf req)
 
 instance Publishable (Task a) | iTask a
 where
-	publishAll task = [publish "/" (WebApp []) (const task)]
+	publishAll task = [publish "/" (const task)]
 
 instance Publishable (HTTPRequest -> Task a) | iTask a
 where
-	publishAll task = [publish "/" (WebApp []) task]
+	publishAll task = [publish "/" task]
 	
 instance Publishable [PublishedTask]
 where

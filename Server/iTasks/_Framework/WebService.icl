@@ -18,8 +18,6 @@ import Crypto.Hash.SHA1, Text.Encodings.Base64
 
 from iTasks._Framework.HttpUtil import http_addRequestData, http_parseArguments
 
-DEFAULT_THEME :== "gray"
-
 :: NetTaskState
     = NTIdle String Timestamp
     | NTReadingRequest HttpReqState
@@ -42,17 +40,18 @@ DEFAULT_THEME :== "gray"
     = AckStartSession !InstanceNo
     | TaskUpdates !InstanceNo ![UIChange]
 
-
 //TODO: The upload and download mechanism used here is inherently insecure!!!
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
 // unauthorized downloading of documents and DDOS uploading.
-webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
-						 (!(String -> Bool)
-                         ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-						 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-						 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-						 ) | iTask a
-webService url task defaultFormat = (matchFun url,reqFun` url task defaultFormat,dataFun,disconnectFun)
+:: ChangeQueues :== Map InstanceNo (Queue UIChange)
+
+webService :: !String !(HTTPRequest -> Task a) ->
+                 (!(String -> Bool)
+                 ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues ConnectionType *IWorld -> (!Maybe ChangeQueues, !*IWorld))
+                 ) | iTask a
+webService url task = (matchFun url,reqFun` url task,dataFun,disconnectFun)
 where
     matchFun :: String String -> Bool
     matchFun matchUrl reqUrl = startsWith matchUrl reqUrl && isTaskUrl (reqUrl % (size matchUrl,size reqUrl))
@@ -66,11 +65,11 @@ where
             [instanceNo,_,_]    = toInt instanceNo > 0          // {instanceNo}/{instanceKey}/{view}
             _                   = False
 
-	reqFun` url task defaultFormat req output iworld=:{server}
+	reqFun` url task req output iworld=:{server}
 		# server_url = "//" +++ req.server_name +++ ":" +++ toString req.server_port
-		= reqFun url task defaultFormat req output {IWorld|iworld & server = {server & serverURL = server_url}}
+		= reqFun url task req output {IWorld|iworld & server = {server & serverURL = server_url}}
 
-	reqFun url task defaultFormat req output iworld=:{IWorld|server={serverName,customCSS},config}
+	reqFun url task req output iworld=:{IWorld|server={serverName,customCSS},config}
 		//Check for uploads
 		| hasParam "upload" req
 			# uploads = 'DM'.toList req.arg_uploads
@@ -97,11 +96,7 @@ where
                         ,("Sec-WebSocket-Accept",secWebSocketAccept),("Sec-WebSocket-Protocol","itwc")]
             = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = headers, rsp_data = ""}, Just (WebSocketConnection []),Nothing,iworld)
         | urlSpec == ""
-            = case defaultFormat of
-			    (WebApp	opts)
-					= (itwcStartResponse url (theme opts) serverName customCSS, Nothing, Nothing, iworld)
-			    _
-				    = (jsonResponse (JSONString "Unknown service format"), Nothing, Nothing, iworld)
+			= (itwcStartResponse url serverName customCSS, Nothing, Nothing, iworld)
         | otherwise
             = case dropWhile ((==)"") (split "/" urlSpec) of
 				["new"]
@@ -125,7 +120,7 @@ where
 					# (messages,output) = dequeueOutput instances output //TODO: Check keys
                     = (eventsResponse messages, Just (EventSourceConnection instances), Just output, iworld)
                 [instanceNo,instanceKey]
-                    = (itwcStartResponse url (theme []) serverName customCSS, Nothing, Nothing, iworld)
+                    = (itwcStartResponse url serverName customCSS, Nothing, Nothing, iworld)
                 [instanceNo,instanceKey,"gui"]
                     //Load task instance and edit / evaluate
                     # instanceNo         = toInt instanceNo
@@ -155,10 +150,7 @@ where
 
             instances = filter (\i. i > 0) (map toInt (split "," (paramValue "instances" req)))
 
-            theme [Theme name:_] = name
-            theme _              = DEFAULT_THEME
-
-		    event = case (fromJSON (fromString editEventParam)) of
+            event = case (fromJSON (fromString editEventParam)) of
 			    Just (taskId,name,value)	= EditEvent (fromString taskId) name value
 			    _	= case (fromJSON (fromString actionEventParam)) of
 				    Just (taskId,actionId)	= ActionEvent (fromString taskId) actionId
@@ -206,7 +198,7 @@ where
     where
         format (instanceNo,change) = "data: {\"instance\":" +++toString instanceNo+++",\"change\":" +++ toString (encodeUIChange change) +++ "}\n\n"
 
-	itwcStartResponse path theme appName customCSS = {okResponse & rsp_data = toString itwcStartPage}
+	itwcStartResponse path appName customCSS = {okResponse & rsp_data = toString itwcStartPage}
 	where
 		itwcStartPage = HtmlTag [] [head,body]
 		head = HeadTag [] [MetaTag [CharsetAttr "UTF-8"] []
@@ -223,7 +215,7 @@ where
 		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
 		
 		stylefiles =
-            ["itasks-theme-"+++theme+++"/itasks-theme.css"
+            ["itasks-theme-gray/itasks-theme.css"
 			: if customCSS [appName +++ ".css"] []]
 
         scriptfiles = saplScripts ++ itaskScripts
