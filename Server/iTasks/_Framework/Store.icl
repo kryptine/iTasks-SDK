@@ -188,14 +188,14 @@ writeToDisk namespace key content iworld=:{server={buildID,paths={dataDirectory}
 	# (exists,world)	= fileExists location world
 	# world				= if exists world
 							( case createDirectory location world of
-								(Ok Void, world) = world
+								(Ok _, world) = world
 								(Error e, world) = abort ("Cannot create store: " +++ location +++ ": " +++ snd e)
 							)
 	//Check if the namespace exists and create it otherwise
 	# (exists,world)	= fileExists (location </> namespace) world
 	# world				= if exists world
 							( case createDirectory (location </> namespace) world of
-								(Ok Void, world) = world
+								(Ok _, world) = world
 								(Error e, world) = abort ("Cannot create namespace " +++ namespace +++ ": " +++ snd e)
 							)
 	//Write the value
