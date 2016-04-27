@@ -61,13 +61,13 @@ where
 		= (res,world)
 
 //Prompt UI is the same for many tasks
-expPromptUI msg = uic (UIEditor {UIEditor|optional=False}) [uic (UIContainer promptSizeOpts promptItemsOpts) promptItems]
-where
-	promptSizeOpts = {UISizeOpts|width=Just FlexSize,minWidth=Just WrapBound,maxWidth=Nothing,height=Just WrapSize,minHeight=Nothing,maxHeight=Nothing
-		                 ,margins=Just {UISideSizes|top=5,right=5,bottom=10,left=5}}
-	promptItemsOpts = {UIContainerOpts|direction=Vertical,halign=AlignLeft,valign=AlignTop
-							  ,padding=Nothing,baseCls=Just "itwc-prompt",bodyCls=Nothing}
-	promptItems = [ui (UIViewString defaultSizeOpts {UIViewOpts|value=Just msg})]
+expPromptUI msg 
+	= uia UIViewString 
+		('DM'.fromList [("optional",JSONBool False),("margins",JSONString "5 5 10 5")
+						,("width",JSONString "flex"),("minWidth",JSONString "wrap"),("height",JSONString "wrap")
+						,("direction",JSONString "vertical")
+						,("halign",JSONString "left"),("valign",JSONString "top"),("baseCls",JSONString "itwc-prompt")
+						,("value",JSONString "msg")])
 
 testInitialEditorUI = testTaskOutput "Initial UI of minimal editor task" minimalEditor events exp (===)
 where
@@ -77,9 +77,11 @@ where
 	expMinimalEditorUI
 		= uic UIInteract [expPromptUI "Minimal String editor",editor]
 	where
-		editor = uiac (UIEditor {UIEditor|optional=False}) editorAttr [ui (UIEditString defaultHSizeOpts editorOpts)]
-		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
-		editorOpts = {UIEditOpts|value=Just (JSONString "Hello World"),taskId="1-0",editorId="v"}
+		editor = uia UIEditString ('DM'.fromList [("optional",JSONBool False),("hint-type",JSONString "valid")
+								,("hint",JSONString "You have correctly entered a single line of text")
+								,("taskId",JSONString "1-0"),("editorId",JSONString "v")
+								,("value",JSONString "Hello World")
+								])
 
 testInitialEditletUI = testTaskOutput "Initial UI of minimal editlet task" minimalEditlet events exp compare
 where
@@ -88,19 +90,18 @@ where
 
 	//Because we can't test if correct Sapl code is generated here, we need to use a custom comparison
 	//function that first replaces all Sapl fields with the marker "IGNORE" before comparing to the expected value
-	compare [ReplaceUI (UI UIInteract attr [p,UI (UIEditor a) attr2 [UI (UIEditlet s o) attr3 c]])] exp 
-		# o = {UIEditletOpts|o & script="IGNORE",initClient="IGNORE",initDiff="IGNORE",appDiff="IGNORE"}
-		= [ReplaceUI (UI UIInteract attr [p,UI (UIEditor a) attr2 [UI (UIEditlet s o) attr3 c]])] === exp
+	compare [ReplaceUI (UI UIInteract attr [p,UI UIViewHtml attr2 i])] exp 
+		# attr2 = 'DM'.put "saplInit" (JSONString "IGNORE") attr2
+		= [ReplaceUI (UI UIInteract attr [p,UI UIViewHtml attr2 i])] === exp
 	compare _ _ = False
 
 	expMinimalEditletUI
 		= uic UIInteract [expPromptUI "Minimal String editlet",editor]
 	where
-		editor = uic (UIEditor {UIEditor|optional=False}) [ui (UIEditlet sizeOpts editletOpts)]
-		sizeOpts = {UISizeOpts|defaultSizeOpts & width = Just WrapSize, height = Just WrapSize}
-		editletOpts = {UIEditletOpts|taskId="1-0",editorId="v",value=(JSONString "Hello World"),html=html
-						,script="IGNORE",initClient="IGNORE",initDiff="IGNORE",appDiff="IGNORE"}
-		html="<button id=\"editlet-1-0-v-button\">Click me</button>"
+		editor = uia UIViewHtml ('DM'.fromList [("optional",JSONBool False):sizeOpts++editletOpts]) 
+		sizeOpts = [("width",JSONString "wrap"),("height",JSONString "wrap")]
+		editletOpts = [("taskId",JSONString "1-0"),("editorId",JSONString "v"),("value",JSONString "Hello World")
+						,("saplDeps",JSONString ""),("saplInit",JSONString "IGNORE")] 
 
 testInitialStepUI = testTaskOutput "Initial UI of minimal step task" minimalStep events exp (===)
 where
@@ -112,11 +113,11 @@ expMinStepInitialUI = uic UIStep [expEditorUI, expActionOk]
 where
 	expEditorUI = uic UIInteract [expPromptUI "Minimal Step combinator",editor]
 	where
-		editor = uiac (UIEditor {UIEditor|optional=False}) editorAttr [ui (UIEditString defaultHSizeOpts editorOpts)]
-		editorAttr = 'DM'.fromList [("hint-type","info"),("hint","Please enter a single line of text (this value is required)")]
-		editorOpts = {UIEditOpts|value=Nothing,taskId="1-1",editorId="v"}
+		editor = uia UIEditString ('DM'.fromList [("optional",JSONBool False) : editorAttr ++ editorOpts])
+		editorAttr = [("hint-type",JSONString "info"),("hint",JSONString "Please enter a single line of text (this value is required)")]
+		editorOpts = [("taskId",JSONString "1-1"),("editorId",JSONString "v")]
 
-	expActionOk = ui (UIAction {UIAction|action=ActionOk,taskId="1-0",enabled=False})
+	expActionOk = uia UIAction ('DM'.fromList [("actionId",JSONString "ActionOk"),("taskId",JSONString "1-0"),("enabled",JSONBool False)])
 
 testInitialParallelUI = testTaskOutput "Initial UI of minimal parallel task" minimalParallel events exp (===)
 where
@@ -130,9 +131,9 @@ where
 expMinimalEditorUI taskNum prompt value
 	= uic UIInteract [expPromptUI prompt,editor]
 where
-	editor = uiac (UIEditor {UIEditor|optional=False}) editorAttr [ui (UIEditString defaultHSizeOpts editorOpts)]
-	editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a single line of text")]
-	editorOpts = {UIEditOpts|value=Just (JSONString value),taskId="1-"<+++taskNum,editorId="v"}
+	editor = uia UIEditString ('DM'.fromList [("optional",JSONBool False) : editorAttr ++ editorOpts])
+	editorAttr = [("hint-type",JSONString "valid"),("hint",JSONString "You have correctly entered a single line of text")]
+	editorOpts = [("value",JSONString value),("taskId",JSONString ("1-"<+++taskNum)),("editorId",JSONString "v")]
 
 testStepEnableAction = testTaskOutput "Test enabling of an action of a step" minimalStep events exp (===)
 where
@@ -144,12 +145,12 @@ minimalStepInputResponse =ChangeUI [] [changeInteract,changeAction]
 where
 	changeInteract = (0,ChangeChild (ChangeUI [] [changePrompt,changeEditor] ))
 	changePrompt = (0,ChangeChild NoChange)
-	changeEditor = (1,ChangeChild (ChangeUI [("setEditorValue",[JSONString "foo"])
-										   ,("setAttribute",[JSONString HINT_ATTRIBUTE,JSONString "You have correctly entered a single line of text"])
-										   ,("setAttribute",[JSONString HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_VALID])
+	changeEditor = (1,ChangeChild (ChangeUI [SetAttribute "value" (JSONString "foo")
+										   ,SetAttribute HINT_ATTRIBUTE (JSONString "You have correctly entered a single line of text")
+										   ,SetAttribute HINT_TYPE_ATTRIBUTE (JSONString HINT_TYPE_VALID)
 											] []))
 
-	changeAction = (1,ChangeChild (ChangeUI [("enable",[])] [])) //Enable the first action
+	changeAction = (1,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool True)] [])) //Enable the first action
 
 testStepApplyAction = testTaskOutput "Test replacement of UI after step" minimalStep events exp (===)
 where
@@ -164,13 +165,13 @@ where
 	expEditorUI
 		= uic UIInteract [expPromptUI "INITIAL: 0",editor]
 	where
-		editor = uiac (UIEditor {UIEditor|optional=False}) editorAttr [ui (UIEditInt defaultHSizeOpts editorOpts)]
-		editorAttr = 'DM'.fromList [("hint-type","valid"),("hint","You have correctly entered a whole number")]
-		editorOpts = {UIEditOpts|value=Just (JSONInt 0),taskId="1-1",editorId="v"}
+		editor = uia UIEditInt ('DM'.fromList [("optional",JSONBool False): editorAttr ++ editorOpts])
+		editorAttr = [("hint-type",JSONString "valid"),("hint",JSONString "You have correctly entered a whole number")]
+		editorOpts = [("value",JSONInt 0),("taskId",JSONString "1-1"),("editorId",JSONString "v")]
 
 	actions = uic UICompoundContent [expActionPush,expActionPop]
-	expActionPush = ui (UIAction {UIAction|action=Action "Push" [],taskId="1-0",enabled=True}) 
-	expActionPop = ui (UIAction {UIAction|action=Action "Pop" [],taskId="1-0",enabled=True})
+	expActionPush = uia UIAction ('DM'.fromList [("actionId",JSONString "Push"),("taskId",JSONString "1-0"),("enabled",JSONBool True)]) 
+	expActionPop = uia UIAction ('DM'.fromList [("actionId",JSONString "Pop"),("taskId",JSONString "1-0"),("enabled",JSONBool True)])
 
 testParallelAppend = testTaskOutput "Test dynamically adding a task to a parallel" minimalParallelOperations events exp (===)
 where
@@ -184,7 +185,7 @@ where
 
 	itemChanges = ChangeUI [] [(0,RemoveChild)] 
 	//When there are no more elements, the pop action should be disabled
-	actionChanges = ChangeUI [] [(0,ChangeChild NoChange),(1,ChangeChild (ChangeUI [("disable",[])] []))] 
+	actionChanges = ChangeUI [] [(0,ChangeChild NoChange),(1,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool False)] []))] 
 
 testForeverLoop = testTaskOutput "Test a 'forever' loop construct (a more complex version of a dynamic parallel)" minimalForever events exp (===)
 where
@@ -197,8 +198,9 @@ where
           ]
 
 	expRestarter = uic UIStep [ui UIEmpty]
-	expStep taskId = uic UIStep [expEditor,ui (UIAction {UIAction|action=ActionContinue, taskId=taskId,enabled=True})]
-	expEditor = uic UIInteract [ui UIEmpty, uic (UIEditor {UIEditor|optional=False}) [ui (UIViewString defaultSizeOpts {UIViewOpts|value=Just "Forever..."})]]
+	expStep taskId = uic UIStep [expEditor,uia UIAction ('DM'.fromList [("actionId",JSONString "ActionContinue"),("taskId",JSONString taskId)
+																			,("enabled",JSONBool True)])]
+	expEditor = uic UIInteract [ui UIEmpty, uia UIViewString ('DM'.fromList [("optional",JSONBool False),("value",JSONString "Forever...")])]
 
 testTaskOutput :: String (Task a) [Event] [UIChange] ([UIChange] [UIChange] -> Bool) -> Test | iTask a
 testTaskOutput name task events exp comparison = utest name test

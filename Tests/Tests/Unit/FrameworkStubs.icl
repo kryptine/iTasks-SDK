@@ -12,9 +12,8 @@ toStubIWorld world
         	,paths = {appDirectory = "./STUB/",dataDirectory = "./STUB/",publicWebDirectories = []
 		     	,saplDirectory = "./STUB/", saplFlavourFile = "./STUB/flavour.f"},customCSS  = False}
   ,config = {sessionTime = 3600, smtpServer = "localhost"}
-  ,clocks = {SystemClocks |localDate=defaultValue,localTime=defaultValue,utcDate=defaultValue,utcTime=defaultValue}
-  ,current ={TaskEvalState|taskTime= 0,taskInstance= 0,sessionInstance = Nothing,attachmentChain = []
-            ,nextTaskNo = 0,eventRoute	= 'DM'.newMap}
+  ,clocks = {SystemClocks |timestamp = Timestamp 0,localDate=defaultValue,localTime=defaultValue,utcDate=defaultValue,utcTime=defaultValue}
+  ,current ={TaskEvalState|taskTime= 0,taskInstance= 0,sessionInstance = Nothing,attachmentChain = [] ,nextTaskNo = 0}
   ,sdsNotifyRequests = [], memoryShares = 'DM'.newMap, cachedShares = 'DM'.newMap, exposedShares = 'DM'.newMap
   ,jsCompilerState = Nothing ,shutdown = False,ioTasks = {done = [], todo = []},ioStates = 'DM'.newMap
   ,world = world

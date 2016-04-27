@@ -91,15 +91,18 @@ where
 	sut = fst (finalizeInteract ((ReplaceUI (uic UICompoundContent [stdPrompt,stdIntEditor])),JSONNull))
 	
 	stdPrompt = ui UIEmpty //STUB Don't care what the prompt is!
-	stdIntEditor = uiac (UIEditor {UIEditor|optional=False})
-		('DM'.fromList [("hint-type","info"),("hint","Please enter a whole number (this value is required)")])
-			[intControl]
+	stdIntEditor = uia UIEditInt
+		('DM'.fromList [("optional",JSONBool False),("hint-type",JSONString "info"),("hint",JSONString"Please enter a whole number (this value is required)")
+						,("taskId",JSONString "STUB"),("editorId",JSONString "v")])
+			
 
 	expIntForm = uic UIForm [uic UIFormItem [ui UIEmpty,intControl,expIcon]]
-	expIcon = ui (UIIcon {UIFSizeOpts|margins=Just{top=0,right=0,bottom=0,left=5}} {UIIconOpts|iconCls="icon-info",tooltip = Just "Please enter a whole number (this value is required)"})
+	expIcon = uia UIIcon ('DM'.fromList [("margins",JSONString "0 0 0 5"),("iconCls",JSONString "icon-info")
+										,("tooltip",JSONString "Please enter a whole number (this value is required)")])
 
-	intControl = ui (UIEditInt {UIHSizeOpts|width=Nothing,minWidth=Nothing,maxWidth=Nothing,margins=Nothing}
-                   {UIEditOpts|taskId="STUB", editorId="v", value = Nothing})
+	intControl = uia UIEditInt 
+		('DM'.fromList [("optional",JSONBool False),("hint-type",JSONString "info"),("hint",JSONString"Please enter a whole number (this value is required)")
+						,("taskId",JSONString "STUB"),("editorId",JSONString "v")])
 
 testAutoInteractionLayoutEditorValueChange = skip "Test if the auto interaction layout correctly maps changes in the editor to the form item"
 
@@ -111,9 +114,7 @@ where
 
 	sut world 
 		# vst = toStubVSt (toStubIWorld world)
-		# (res,vst) = gEditor{|*|}.genDiff [] { a = {c="foo",d="foo"}, b = { c = "bar", d = "baz"}} Untouched {a={c="foo",d="foo"}, b = { c = "bar", d = "bax"}} Untouched vst
+		# (res,vst) = gEditor{|*|}.Editor.updUI [] { a = {c="foo",d="foo"}, b = { c = "bar", d = "baz"}} Untouched {a={c="foo",d="foo"}, b = { c = "bar", d = "bax"}} Untouched vst
 		# world = fromStubIWorld (fromStubVSt vst)
-		//Apply the autoAccuInteract layout to the diff
-		# res = autoLayoutInteract res
 		= (res,world)
 
