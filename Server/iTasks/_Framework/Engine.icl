@@ -5,7 +5,7 @@ from StdFunc import o, seqList, ::St, const
 from Data.Map import :: Map
 from Data.Queue import :: Queue(..)
 import qualified Data.Map as DM
-import Data.List, Data.Error, Data.Func, Data.Tuple, Math.Random, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
+import Data.List, Data.Error, Data.Func, Data.Tuple, Math.Random, Text 
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil
 import iTasks._Framework.IWorld, iTasks._Framework.WebService, iTasks._Framework.SDSService
@@ -160,49 +160,8 @@ engine :: publish -> [(!String -> Bool
 engine publishable
 	= taskHandlers (publishAll publishable) ++ defaultHandlers
 where
-	taskHandlers published
-		= [let (matchF,reqF,dataF,disconnectF) = webService url task in (matchF,True,reqF,dataF,disconnectF)
-		  \\ {url,task=TaskWrapper task} <- published]	
-	
-	defaultHandlers = [sdsService, simpleHTTPResponse (const True, handleStaticResourceRequest)]
-
-// Request handler which serves static resources from the application directory,
-// or a system wide default directory if it is not found locally.
-// This request handler is used for serving system wide javascript, css, images, etc...
-
-handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
-handleStaticResourceRequest req iworld=:{IWorld|server={paths={publicWebDirectories}}}
-    = serveStaticResource req publicWebDirectories iworld
-where
-    serveStaticResource req [] iworld
-	    = (notFoundResponse req,iworld)
-    serveStaticResource req [d:ds] iworld=:{IWorld|world}
-	    # filename		= d +++ filePath req.HTTPRequest.req_path
-	    # type			= mimeType filename
-	    # (mbContent, world)	= readFile filename world
-	    | isOk mbContent		= ({ okResponse &
-	    							 rsp_headers = [("Content-Type", type),
-												    ("Content-Length", toString (size (fromOk mbContent)))]
-							   	   , rsp_data = fromOk mbContent}, {IWorld|iworld & world = world})
-
-	//Translate a URL path to a filesystem path
-	filePath path	= ((replaceSubString "/" {pathSeparator}) o (replaceSubString ".." "")) path
-	mimeType path	= extensionToMimeType (takeExtension path)
-
-simpleHTTPResponse ::
-	(!(String -> Bool),HTTPRequest *IWorld -> (!HTTPResponse,*IWorld))
-	->
-	(!(String -> Bool),!Bool,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
-							,!(HTTPRequest r (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
-							,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld)))
-simpleHTTPResponse (pred,responseFun) = (pred,True,initFun,dataFun,lostFun)
-where
-	initFun req _ env
-		# (rsp,env) = responseFun req env
-		= (rsp,Nothing,Nothing,env)
-		
-	dataFun _ _ _ s env = ([],True,s,Nothing,env)
-	lostFun _ _ s env = (Nothing,env)
+	taskHandlers published = [taskWebService url task \\ {url,task=TaskWrapper task} <- published]	
+	defaultHandlers        = [sdsService,staticResourceService]
 
 publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
 publish url task = {url = url, task = TaskWrapper (withFinalSessionLayout task)}

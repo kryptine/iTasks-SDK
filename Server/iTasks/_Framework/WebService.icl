@@ -1,7 +1,7 @@
 implementation module iTasks._Framework.WebService
 
-import StdList, StdBool, StdTuple, StdArray
-from StdFunc import o
+import StdList, StdBool, StdTuple, StdArray, StdFile
+from StdFunc import o, const
 import Data.Maybe, Data.Functor
 from Data.Map import :: Map, :: Size
 import qualified Data.List as DL
@@ -10,11 +10,12 @@ import qualified Data.Queue as DQ
 import qualified iTasks._Framework.SDS as SDS
 
 import System.Time, Text, Text.JSON, Internet.HTTP, Data.Error
+import System.File, System.FilePath, System.Directory
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskEval, iTasks._Framework.TaskStore
 import iTasks.UI.Definition, iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.Engine, iTasks._Framework.IWorld
 import iTasks.API.Core.SDSs, iTasks.API.Common.SDSCombinators
 import iTasks.API.Core.Types
-import Crypto.Hash.SHA1, Text.Encodings.Base64
+import Crypto.Hash.SHA1, Text.Encodings.Base64, Text.Encodings.MIME
 
 from iTasks._Framework.HttpUtil import http_addRequestData, http_parseArguments
 
@@ -45,13 +46,14 @@ from iTasks._Framework.HttpUtil import http_addRequestData, http_parseArguments
 // unauthorized downloading of documents and DDOS uploading.
 :: ChangeQueues :== Map InstanceNo (Queue UIChange)
 
-webService :: !String !(HTTPRequest -> Task a) ->
+taskWebService :: !String !(HTTPRequest -> Task a) ->
                  (!(String -> Bool)
+                 ,!Bool
                  ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe ChangeQueues, !*IWorld))
                  ,!(HTTPRequest ChangeQueues (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe ChangeQueues, !*IWorld))
                  ,!(HTTPRequest ChangeQueues ConnectionType *IWorld -> (!Maybe ChangeQueues, !*IWorld))
                  ) | iTask a
-webService url task = (matchFun url,reqFun` url task,dataFun,disconnectFun)
+taskWebService url task = (matchFun url,True,reqFun` url task,dataFun,disconnectFun)
 where
     matchFun :: String String -> Bool
     matchFun matchUrl reqUrl = startsWith matchUrl reqUrl && isTaskUrl (reqUrl % (size matchUrl,size reqUrl))
@@ -349,3 +351,40 @@ where
     where		
     	addDefault headers hdr val = if (('DL'.lookup hdr headers) =: Nothing) [(hdr,val):headers] headers
 
+// Request handler which serves static resources from the application directory,
+// or a system wide default directory if it is not found locally.
+// This request handler is used for serving system wide javascript, css, images, etc...
+staticResourceService ::(!(String -> Bool),!Bool,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
+                        ,!(HTTPRequest r (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
+                        ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld)))
+staticResourceService = (const True,True,initFun,dataFun,lostFun)
+where
+	initFun req _ env
+		# (rsp,env) = handleStaticResourceRequest req env
+		= (rsp,Nothing,Nothing,env)
+		
+	dataFun _ _ _ s env = ([],True,s,Nothing,env)
+	lostFun _ _ s env = (Nothing,env)
+
+	handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
+	handleStaticResourceRequest req iworld=:{IWorld|server={paths={publicWebDirectories}}}
+    	= serveStaticResource req publicWebDirectories iworld
+	where
+    	serveStaticResource req [] iworld
+	    	= (notFoundResponse req,iworld)
+    	serveStaticResource req [d:ds] iworld=:{IWorld|world}
+			# filename		   = d +++ filePath req.HTTPRequest.req_path
+			# type			   = mimeType filename
+			# (exists, world)  = fileExists filename world
+			| not exists
+               = serveStaticResource req ds {IWorld|iworld & world = world}
+			# (mbContent, world)	= readFile filename world
+			= case mbContent of
+				(Ok content) = ({ okResponse
+	    						& rsp_headers = [("Content-Type", type),("Content-Length", toString (size content))]
+                                , rsp_data = content}, {IWorld|iworld & world = world})
+                (Error e)    = (errorResponse (toString e +++ " ("+++ filename +++")"), {IWorld|iworld & world = world})
+
+		//Translate a URL path to a filesystem path
+		filePath path	= ((replaceSubString "/" {pathSeparator}) o (replaceSubString ".." "")) path
+		mimeType path	= extensionToMimeType (takeExtension path)

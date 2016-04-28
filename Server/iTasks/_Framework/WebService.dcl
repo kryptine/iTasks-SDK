@@ -25,9 +25,18 @@ httpServer :: !Int !Int ![(!String -> Bool
 
 :: ChangeQueues :== Map InstanceNo (Queue UIChange)
 
-webService :: !String !(HTTPRequest -> Task a) ->
+taskWebService :: !String !(HTTPRequest -> Task a) ->
                  (!(String -> Bool)
+				 ,!Bool
                  ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe ChangeQueues, !*IWorld))
                  ,!(HTTPRequest ChangeQueues (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe ChangeQueues, !*IWorld))
                  ,!(HTTPRequest ChangeQueues ConnectionType *IWorld -> (!Maybe ChangeQueues, !*IWorld))
                  ) | iTask a
+
+staticResourceService :: 
+                 (!(String -> Bool)
+				 ,!Bool
+                 ,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
+				 ,!(HTTPRequest r (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
+				 ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld))
+                 )
