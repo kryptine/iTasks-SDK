@@ -346,6 +346,10 @@ itasks.Viewport = {
 	initComponent:function() {
 		var me = this;	
 
+		//Use the page url as default taskUrl
+		if(!me.taskUrl) {	
+			me.taskUrl = window.location;
+		}
 		//Create a temporary root element
 		me.insertChild(0,{xtype:'Loader', parentCmp: me});
 

@@ -209,7 +209,7 @@ where
 		body = BodyTag [StyleAttr "width: 100%; height: 100%"] []
 
         startUrlScript = ScriptTag [TypeAttr "text/javascript"]
-			[RawText "window.onload = function() { itasks.viewport({taskUrl: 'http://localhost:8080'}, document.body); };"
+			[RawText "window.onload = function() { itasks.viewport({}, document.body); };"
             ]
 		styles = [LinkTag [RelAttr "stylesheet", HrefAttr file, TypeAttr "text/css"] [] \\ file <- stylefiles]
 		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
