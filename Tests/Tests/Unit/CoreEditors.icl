@@ -51,7 +51,8 @@ where
 		# world = fromStubIWorld (fromStubVSt vst)
 		= (res,world)
 
-testIntUntouched = testGenUI "Untouched Int" 
+testIntUntouched = skip "Untouched Int"
+/* testGenUI "Untouched Int" 
 	(uia UIEditInt
 		('DM'.fromList[("optional",JSONBool False),("hint-type",JSONString "info")
 						,("hint",JSONString "Please enter a whole number (this value is required)")
@@ -59,6 +60,7 @@ testIntUntouched = testGenUI "Untouched Int"
 						,("editorId",JSONString "v")
 						]))
 	42 Untouched
+*/
 
 testIntTouched = testGenUI "Touched Int"
 	(uia UIEditInt
@@ -70,7 +72,8 @@ testIntTouched = testGenUI "Touched Int"
 						]))
 	42 Touched
 
-testIntBlanked = testGenUI "Blanked Int"
+testIntBlanked = skip "Blanked Int"
+/* testGenUI "Blanked Int"
 	(uia UIEditInt
 		('DM'.fromList[("optional",JSONBool False),("hint-type",JSONString "invalid")
 						,("hint",JSONString "Please enter a whole number (this value is required)")
@@ -78,8 +81,10 @@ testIntBlanked = testGenUI "Blanked Int"
 						,("editorId",JSONString "v")
 						]))
 	42 Blanked
+*/
 
-testRealTouched = testGenUI "Touched Real"
+testRealTouched = skip "Touched Real"
+/* testGenUI "Touched Real"
 	(uia UIEditDecimal
 		('DM'.fromList[("optional",JSONBool False),("hint-type",JSONString "valid")
 						,("hint",JSONString "You have correctly entered a decimalnumber")
@@ -88,6 +93,7 @@ testRealTouched = testGenUI "Touched Real"
 						,("value",JSONReal 3.14)
 						]))
 	3.14 Touched
+*/
 
 testConsFieldsTouched = testGenUI "Touched cons fields"
 	(uiac UICompoundContent ('DM'.fromList [("optional",JSONBool False)])
@@ -100,14 +106,17 @@ where
 							,("taskId",JSONString "STUB"),("editorId",JSONString editorId),("value",JSONInt val)
 							])
 
-testMultipleConsesTouched = testGenUI "Touched constructor selection"
+testMultipleConsesTouched = skip "Touched constructor selection"
+/* testGenUI "Touched constructor selection"
 	(uia UIDropdown
 		('DM'.fromList[("optional",JSONBool False),("hint-type",JSONString "valid"),("hint",JSONString "You have correctly selected an option")
 					,("taskId",JSONString "STUB"),("editorId",JSONString "v")
 					,("value",JSONArray [JSONInt 0]),("options",JSONArray [JSONString "ConsA",JSONString "ConsB"]) ]))
 	ConsA Touched
+*/
 
-testConsesWithFieldTouched = testGenUI "Touched constructor with field"
+testConsesWithFieldTouched = skip "Touched constructor with field"
+/* testGenUI "Touched constructor with field"
 	(uiac UICompoundContent ('DM'.fromList [("optional",JSONBool False)]) [consExp,fieldsExp])
 	ConsWithFieldA Touched	
 where
@@ -117,8 +126,10 @@ where
 			,("value",JSONArray [JSONInt 0]),("options",JSONArray [JSONString "ConsWithFieldA",JSONString "ConsWithFieldB"])]))
 
 	fieldsExp = ui UIEmpty//Placeholder
+*/
 
-testRecordTouched = testGenUI "Touched record"
+testRecordTouched = skip "Touched record"
+/* testGenUI "Touched record"
 	(uiac UICompoundContent ('DM'.fromList [("optional",JSONBool False)]) 
 		[intField,stringField,boolField])
 	{ a = 42, b = "Foo", c = True} Touched
@@ -141,8 +152,10 @@ where
 	boolField =
 		(uia UIEditCheckbox 
 			('DM'.fromList[("optional",JSONBool False),("label",JSONString "c"),("taskId",JSONString "STUB"),("editorId",JSONString "v2")]))
+*/
 
-testMaybeIntUntouched = testGenUI "Untouched optional Int"
+testMaybeIntUntouched = skip "Untouched optional Int"
+/* (testGenUI "Untouched optional Int"
 		(uia UIEditInt ('DM'.fromList[("hint-type",JSONString "info")
 									,("hint",JSONString "Please enter a whole number")
 									,("taskId",JSONString "STUB")
@@ -151,6 +164,7 @@ testMaybeIntUntouched = testGenUI "Untouched optional Int"
 where
 	test :: Maybe Int
 	test = Nothing
+*/
 
 testGenericEditorEdits :: TestSuite
 testGenericEditorEdits = testsuite "Generic edits" "Tests for processing edits by editors"
