@@ -197,7 +197,7 @@ tonicIOBlueprintPart mn fn nid mb
                                [x : xs] -> [x + 1 : x : xs]
                                xs       -> xs
     # world                = writeBookkeeping bk world
-    # world                = case 'DM'.get curId bk.TonicBookkeeping.computations of
+    # world                = case 'DM'.get (tl curId) bk.TonicBookkeeping.computations of
                                Just comp
                                  # msg = { TMApply
                                          | tma_computationId  = curId
