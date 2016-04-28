@@ -271,7 +271,7 @@ insertAndAdjust_ path=:[s:ss] startIdx numInserts insertChanges change = case ch
 	ReplaceUI ui
         = ReplaceUI (insertNodes_ path insertChanges ui)
 where
-	adjustChildChanges idx [] = []
+	adjustChildChanges idx [] = [(idx,ChangeChild (insertAndAdjust_ ss startIdx numInserts insertChanges NoChange))]
 	adjustChildChanges idx [(i,ChangeChild change):cs]
 		| i == idx  = [(i,ChangeChild (insertAndAdjust_ ss startIdx numInserts insertChanges change)):cs] //Adjust an existing branch
 		| i < idx 	= [(i,ChangeChild change):adjustChildChanges idx cs] //Scan forward
