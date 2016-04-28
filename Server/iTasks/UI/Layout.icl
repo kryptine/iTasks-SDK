@@ -43,11 +43,6 @@ where
 		
 		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
 		
-instance tune AutoLayout
-where
-	tune WithAutoLayout (Task eval) = Task (\event evalOpts state iworld = eval event {evalOpts & autoLayout = True} state iworld)
-	tune WithoutAutoLayout (Task eval) = Task (\event evalOpts state iworld = eval event {evalOpts & autoLayout = False} state iworld)
-
 changeNodeType :: (UI -> UI) -> Layout
 changeNodeType f = layout
 where

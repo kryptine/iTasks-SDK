@@ -4,7 +4,6 @@ definition module iTasks.API.Core.TaskCombinators
 * with which additional combinators can be defined.
 */
 from System.Time    import :: Timestamp
-from iTasks.UI.Layout import :: ApplyLayout, :: AutoLayout
 import iTasks._Framework.Task, iTasks._Framework.SDS, iTasks._Framework.Generic
 
 derive class iTask ParallelTaskType, AttachmentStatus

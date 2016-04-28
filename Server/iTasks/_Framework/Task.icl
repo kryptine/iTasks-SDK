@@ -18,8 +18,7 @@ import qualified Data.CircularStack as DCS
 mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =
   { TaskEvalOpts
-  | autoLayout  = True
-  , noUI        = False
+  | noUI        = False
   , tonicOpts   = defaultTonicOpts
   }
 

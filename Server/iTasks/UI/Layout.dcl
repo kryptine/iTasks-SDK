@@ -20,10 +20,8 @@ from Text.JSON import :: JSONNode
 
 // These types are used to control when to apply layout in a task composition
 :: ApplyLayout	= ApplyLayout Layout
-:: AutoLayout   = WithAutoLayout | WithoutAutoLayout
 
 instance tune	ApplyLayout //Apply a modification after a layout has been run
-instance tune	AutoLayout  //Enable/disable automatic layouting for a task
 
 // In specifications of layouts, sub-parts of UI's are commonly addressed as 
 // a path of child selections in the UI tree.

@@ -13,7 +13,7 @@ import iTasks.API.Common.SDSCombinators
 import qualified iTasks._Framework.SDS as SDS
 import iTasks.UI.Layout, iTasks.UI.Layout.Default
 from iTasks.API.Core.TaskCombinators import class tune(..)
-from iTasks.UI.Layout import instance tune ApplyLayout, instance tune AutoLayout
+from iTasks.UI.Layout import instance tune ApplyLayout
 
 SESSION_TIMEOUT :== fromString "0000-00-00 00:10:00"
 MAX_EVENTS 		:== 5
@@ -184,8 +184,6 @@ where
 	    							 rsp_headers = [("Content-Type", type),
 												    ("Content-Length", toString (size (fromOk mbContent)))]
 							   	   , rsp_data = fromOk mbContent}, {IWorld|iworld & world = world})
-        | otherwise
-            = serveStaticResource req ds {IWorld|iworld & world = world}
 
 	//Translate a URL path to a filesystem path
 	filePath path	= ((replaceSubString "/" {pathSeparator}) o (replaceSubString ".." "")) path
@@ -209,14 +207,11 @@ where
 publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
 publish url task = {url = url, task = TaskWrapper (withFinalSessionLayout task)}
 
-publishRaw :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
-publishRaw url task = {url = url, task = TaskWrapper (withoutLayout task)}
-
 withFinalSessionLayout :: (HTTPRequest -> Task a) -> (HTTPRequest -> Task a) | iTask a
 withFinalSessionLayout taskf = \req -> tune (ApplyLayout defaultSessionLayout) (taskf req)
 
-withoutLayout :: (HTTPRequest -> Task a) -> (HTTPRequest -> Task a) | iTask a
-withoutLayout taskf = \req -> tune WithoutAutoLayout (taskf req)
+publishWithoutLayout :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
+publishWithoutLayout url task = {url = url, task = TaskWrapper task}
 
 instance Publishable (Task a) | iTask a
 where

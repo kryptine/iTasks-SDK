@@ -50,7 +50,7 @@ publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
 * This function publishes a task with autolayouting turned off 
 * to enable testing and debugging without layout processing
 */
-publishRaw :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
+publishWithoutLayout :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
 
 class Publishable a
 where

@@ -36,8 +36,7 @@ derive gEq				Task
 
 //Additional options to pass down the tree when evaluating a task
 :: TaskEvalOpts	=
-	{ autoLayout 		:: Bool
-    , noUI              :: Bool
+	{ noUI              :: Bool
     , tonicOpts         :: TonicOpts
 	}
 
