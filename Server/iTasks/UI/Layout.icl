@@ -175,82 +175,88 @@ where
 	//Go through all child changes
 	adjustChildChanges tidx numRem [] moves = (tidx,[],moves,[])
 	adjustChildChanges tidx numRem [c=:(idx,_):cs] moves
-		# (tidx,numRem,movesBefore,movesAfter) = seekTargetIndex idx tidx numRem moves
-		# (tidx,mbC,movesAfter,cInserts) = adjustChildChange tidx numRem c movesAfter
-		# (tidx,cs,movesAfter,csInserts) = adjustChildChanges tidx numRem cs movesAfter
-		= (tidx,maybe cs (\c -> [c:cs]) mbC,movesBefore ++ movesAfter, cInserts ++ csInserts)
+		# (tidx,numRem,movesBefore,mbMove,movesAfter)   = seekTargetIndex idx tidx numRem moves
+		# (tidx,mbC,mbMove,movesAfter,cInserts)  		= adjustChildChange tidx numRem c mbMove movesAfter
+		//If the move is still 'active', adjust the offset for later changes
+		# numRem                                        = numRem + maybe 0 (\m -> if ((snd m) =: Left _) 1 0) mbMove 
+		# (tidx,cs,movesAfter,csInserts)                = adjustChildChanges tidx numRem cs movesAfter
+		= (tidx,maybe cs (\c -> [c:cs]) mbC,movesBefore ++ maybeToList mbMove ++ movesAfter, cInserts ++ csInserts)
 
 	//When there are branches with moves before the branch we are looking at we 'seek' the target index forward
 	//Basically we increment the target index for all the removed nodes in the branches for which we don't have changes
 	seekTargetIndex idx tidx numRem moves 
-		# (before,after) = splitWith (\(i,_) -> i < idx) moves
-		= (tidx + countMoves_ (NM before) True, numRem + countMoves_ (NM before) False, before, after)
+		# (before,equal,after) = split idx moves
+		= (tidx + countMoves_ (NM before) True, numRem + countMoves_ (NM before) False, before, listToMaybe equal, after)
+	where
+		split idx [] = ([],[],[])
+		split idx [(i,m):ms]
+			| i < idx  = ([(i,m):before],equal,after)
+			| i == idx = (before,[(i,m):equal],after)
+			           = (before,equal,[(i,m):after])
+		where
+			(before,equal,after) = split idx ms
 
 	//Adjust an individual child change
 	//Known precondition: moves only holds moves with an index >= the index of the change
 
-	//Replacments
-	adjustChildChange targetIdx numRem (idx,ChangeChild change=:(ReplaceUI ui)) moves = case selectMove idx moves of
-		(Just (Left _),moves)
+	//Replacements
+	adjustChildChange targetIdx numRem (idx,ChangeChild change=:(ReplaceUI ui)) mbMove movesAfter = case mbMove of
+		(Just (_,Left _))
 			| pred (path ++ [idx]) ui //The replacement still matches, just replace in the target locatation
-				= (targetIdx + 1, Nothing, [(idx,Left ()):moves],[(targetIdx,ChangeChild change)])
+				= (targetIdx + 1, Nothing, Just (idx,Left ()), movesAfter,[(targetIdx,ChangeChild change)])
 			| otherwise //The removed node should no longer be removed -> change the replacement to an insert instruction
 				# inserts = [(targetIdx,RemoveChild)]
 				# (targetIdx,mbUI,subMoves,subInserts) = collectNodes_ (path ++ [idx]) pred targetIdx ui
 				| subMoves =:(NM []) //Nothing matched, no need to record anything
-					= (targetIdx, Just (idx - numRem,InsertChild ui), moves, inserts)
+					= (targetIdx, Just (idx - numRem,InsertChild ui), Nothing, movesAfter, inserts)
 				| otherwise
-					= (targetIdx, Just (idx - numRem,InsertChild (fromJust mbUI)), [(idx,Right subMoves):moves], inserts ++ subInserts)
-		(Just (Right subMoves),moves)
+					= (targetIdx, Just (idx - numRem,InsertChild (fromJust mbUI)), Just (idx,Right subMoves), movesAfter, inserts ++ subInserts)
+		(Just (_,Right subMoves))
 			# inserts = repeatn (countMoves_ subMoves True) (targetIdx,RemoveChild) //Remove instructions for the replaced nodes
 			# (targetIdx,mbUI,subMoves,subInserts) = collectNodes_ (path ++ [idx]) pred targetIdx ui
 			| mbUI =:(Nothing) //The replacement UI matched, record the move 
-				= (targetIdx, Just (idx - numRem, RemoveChild), [(idx,Left ()):moves], inserts ++ subInserts)
+				= (targetIdx, Just (idx - numRem, RemoveChild), Just (idx,Left ()), movesAfter, inserts ++ subInserts)
 			| subMoves =:(NM []) //Nothing matched, no need to record anything
-				= (targetIdx, Just (idx - numRem, ChangeChild (ReplaceUI ui)), moves, inserts)
+				= (targetIdx, Just (idx - numRem, ChangeChild (ReplaceUI ui)), Nothing, movesAfter, inserts)
 			| otherwise	 //One or more sub nodes matched, we need to record the moves for this branch
-				= (targetIdx, Just (idx - numRem, ChangeChild (ReplaceUI (fromJust mbUI))), [(idx,Right subMoves):moves], inserts ++ subInserts)
-		(_,moves) //Previously the child did not match
+				= (targetIdx, Just (idx - numRem, ChangeChild (ReplaceUI (fromJust mbUI))), Just (idx,Right subMoves), movesAfter, inserts ++ subInserts)
+		_ //Previously the child did not match
 			# (targetIdx,mbUI,subMoves,subInserts) = collectNodes_ (path ++ [idx]) pred targetIdx ui
 			| mbUI =:(Nothing) //The inserted UI matched, record the move and remove the child
-				= (targetIdx, Just (idx - numRem, RemoveChild), [(idx,Left ()):moves], subInserts)
+				= (targetIdx, Just (idx - numRem, RemoveChild), Just (idx,Left ()), movesAfter, subInserts)
 			| subMoves =:(NM []) //Nothing matched, no need to record anything
-				= (targetIdx, Just (idx - numRem, ChangeChild (ReplaceUI ui)), moves, [])
+				= (targetIdx, Just (idx - numRem, ChangeChild (ReplaceUI ui)), Nothing, movesAfter, [])
 			| otherwise	 //One or more sub nodes matched, we need to record the moves for this branch
-				= (targetIdx, Just (idx - numRem, ChangeChild (ReplaceUI (fromJust mbUI))), [(idx,Right subMoves):moves], subInserts)
+				= (targetIdx, Just (idx - numRem, ChangeChild (ReplaceUI (fromJust mbUI))), Just (idx,Right subMoves), movesAfter, subInserts)
 
 	//Other changes
-	adjustChildChange targetIdx numRem (idx,ChangeChild change) moves = case selectMove idx moves of
-		(Just (Left _),moves) //Redirect the change
-			= (targetIdx + 1, Nothing, [(idx,Left ()):moves],[(targetIdx,ChangeChild change)])
-		(Just (Right subMoves), moves) //Recursively adjust the move itself
+	adjustChildChange targetIdx numRem (idx,ChangeChild change) mbMove movesAfter = case mbMove of
+		(Just (_,Left _)) //Redirect the change
+			= (targetIdx + 1, Nothing, Just (idx,Left ()), movesAfter, [(targetIdx,ChangeChild change)])
+		(Just (_,Right subMoves)) //Recursively adjust the move itself
 			# (targetIdx,change,subMoves,subInserts) = removeAndAdjust_ (path ++ [idx]) pred targetIdx change subMoves
-			= (targetIdx, Just (idx - numRem, ChangeChild change), [(idx,Right subMoves):moves], subInserts)
-		(_,moves) //Nothing to do
-			= (targetIdx,Just (idx - numRem,ChangeChild change), moves,[])
+			= (targetIdx, Just (idx - numRem, ChangeChild change), Just (idx,Right subMoves), movesAfter, subInserts)
+		_ //Nothing to do
+			= (targetIdx,Just (idx - numRem,ChangeChild change), Nothing, movesAfter, [])
 
-	adjustChildChange targetIdx numRem (idx,RemoveChild) moves = case selectMove idx moves of
-		(Just (Left _),moves) //Already removed, generate remove instructions for the insert location
-			= (targetIdx, Nothing, [(i - 1, m) \\ (i,m) <- moves], [(targetIdx,RemoveChild)])
-		(Just (Right subMoves),moves)
-			= (targetIdx,Just (idx - numRem, RemoveChild), [(i - 1, m) \\ (i,m) <- moves], repeatn (countMoves_ subMoves True) (targetIdx,RemoveChild))
-		(_,moves) //Only adjust the indices of moves
-			= (targetIdx,Just (idx - numRem, RemoveChild), [(i - 1, m) \\ (i,m) <- moves], [])
+	adjustChildChange targetIdx numRem (idx,RemoveChild) mbMove movesAfter = case mbMove of
+		(Just (_,Left _)) //Already removed, generate remove instructions for the insert location
+			= (targetIdx, Nothing, Nothing, [(i - 1, m) \\ (i,m) <- movesAfter], [(targetIdx,RemoveChild)])
+		(Just (_,Right subMoves))
+			= (targetIdx,Just (idx - numRem, RemoveChild), Nothing, [(i - 1, m) \\ (i,m) <- movesAfter], repeatn (countMoves_ subMoves True) (targetIdx,RemoveChild))
+		_ //Only adjust the indices of moves
+			= (targetIdx,Just (idx - numRem, RemoveChild), Nothing, [(i - 1, m) \\ (i,m) <- movesAfter], [])
 
-	adjustChildChange targetIdx numRem (idx, InsertChild ui) moves
+	adjustChildChange targetIdx numRem (idx, InsertChild ui) mbMove movesAfter
 		# (targetIdx,mbUI,subMoves,subInserts) = collectNodes_ (path ++ [idx]) pred targetIdx ui
-		# moves = [(i + 1, m) \\ (i,m) <- moves]	
+		# movesAfter = [(i + 1, m) \\ (i,m) <- maybeToList mbMove ++ movesAfter]
 		# change = fmap (\ui -> (idx - numRem,InsertChild ui)) mbUI
 		| mbUI =:(Nothing) //The inserted UI matched, record the move 
-			= (targetIdx, change, [(idx,Left ()):moves], subInserts)
+			= (targetIdx, change, Just (idx,Left ()), movesAfter, subInserts)
 		| subMoves =:(NM []) //Nothing matched, no need to record anything
-			= (targetIdx, change, moves, subInserts)
+			= (targetIdx, change, Nothing, movesAfter, subInserts)
 		| otherwise	 //One ore more sub nodes matched, we need to record the moves for this branch
-			= (targetIdx, change, [(idx,Right subMoves):moves], subInserts)
-
-	selectMove idx moves = case splitWith (((==) idx) o fst) moves of
-        ([(_,m):_],moves) = (Just m,moves)
-        _                 = (Nothing,moves)
+			= (targetIdx, change, Just (idx,Right subMoves), movesAfter, subInserts)
 
 insertAndAdjust_ :: NodePath Int Int [(Int,UIChildChange)] UIChange -> UIChange
 insertAndAdjust_ path=:[] startIdx numInserts insertChanges change = case change of //Add the inserts here
