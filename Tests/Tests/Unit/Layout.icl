@@ -21,6 +21,8 @@ testLayout = testsuite "Layout" "Tests for the layout functions"
 	,testMoveSubAt
 	,testRemoveSubsMatchingOnReplace
 	,testRemoveSubsMatchingOnChildChange
+	,testRemoveSubsMatchingOnReplaceAfterRemove 
+	,testRemoveSubsMatchingOnReplaceMultipleAfterRemove
 	,testLayoutSubsMatching
 	,testMoveSubsMatchingInitial
 	,testMoveSubsMatchingNewRoutes
@@ -44,31 +46,96 @@ testRemoveSubAt = skip "Remove a sub-UI from a specific path"
 testLayoutSubAt = skip "Applying another layout at a specific path (by setting attribute)"
 testMoveSubAt = skip "Moving a node from one place to another"
 
-testRemoveSubsMatchingOnReplace = skip "Removing everything that matches, when replacing a UI"
-/*assertEqual "Removing everything that matches, when replacing a UI" exp sut
+testRemoveSubsMatchingOnReplace = assertEqual "Removing everything that matches, when replacing a UI" exp sut
 where
-	exp = (ReplaceUI expUI,expState)
-	expUI = uic UIInteract [ui UIForm]
-	expState = JSONArray [JSONString "NR",JSONArray [],JSONArray [JSONArray 
-							[JSONInt 0,JSONArray [JSONString "NR",JSONArray [JSONArray [JSONInt 0,JSONArray[JSONString "Nothing"]]],JSONArray []]]]]
-	sut = (removeSubsMatching [] isEmptyNode) (ReplaceUI initUI,JSONNull)
-	initUI = uic UIInteract [uic UIForm [ui UIEmpty]]
-*/
+	sutLayout = removeSubsMatching [] isEmpty 
+	sut
+		//Initial, followed by an event in the new structure
+		# (c,s) = sutLayout (ReplaceUI initUI,initState)
+		= c
+	exp = ReplaceUI expUI
 
-isEmptyNode (UI UIEmpty _ _) = True
-isEmptyNode _ = False
+	//Initial UI	
+	initUI = uic UIPanel [ui UIContainer, ui UIEmpty, uic UIContainer [ui UIEmpty, ui UIViewString ], ui UIAction]
+	initState = JSONNull
+	//Expected final UI
+	expUI = uic UIPanel [ui UIContainer, uic UIContainer [ui UIViewString] ,ui UIAction]
 
-testRemoveSubsMatchingOnChildChange = skip "Removing everything that matches, when changing a child"
-/* assertEqual "Removing everything that matches, when changing a child" exp sut
+	isEmpty (UI type _ _) = type =: UIEmpty
+
+testRemoveSubsMatchingOnChildChange = assertEqual "Removing everything that matches, when changing a child" exp sut
 where
-	exp = (ChangeUI [] [(0,ChangeChild (ChangeUI [] []))],expState) //The change is removed because it applies to a removed branch
-	expState = sutState //No change in the state, because we are not adding or removing anything
+	sutLayout = removeSubsMatching [] isEmpty
+	sut
+		//Initial, followed by an event in the new structure
+		# (_,s) = sutLayout (initChange,initState)
+		# (c,s) = sutLayout (changeToReRoute,s)
+		= c
+	exp = expChange
 
-	sut = (removeSubsMatching [] isEmptyNode)  (ChangeUI [] [(0,ChangeChild (ChangeUI [] [(0,ChangeChild NoChange)]))],sutState)
-	//Initial state: A UI in which the node at 0/0 was removed
-	sutState = JSONArray [JSONString "NR",JSONArray [],JSONArray [JSONArray 
-							[JSONInt 0,JSONArray [JSONString "NR",JSONArray [JSONArray [JSONInt 0,JSONArray[JSONString "Nothing"]]],JSONArray []]]]]
-*/
+	//Initial UI	
+	initChange = ReplaceUI (uic UIPanel [ui UIContainer, ui UIEmpty, uic UIContainer [ui UIEmpty, ui UIViewString ], ui UIAction])
+	initState = JSONNull
+	changeToReRoute = ChangeUI [] [(2,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
+
+	//Expected reroute change 
+
+	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
+
+	isEmpty (UI type _ _) = type =: UIEmpty
+
+testRemoveSubsMatchingOnReplaceAfterRemove = assertEqual "Removing everything that matches, then replacing a part" exp sut
+where
+	sutLayout = removeSubsMatching [] isEmpty
+	sut
+		//Initial, followed by an event in the new structure
+		# (c,s) = sutLayout (initChange,initState)
+		# (c,s) = sutLayout (changeToReRoute,s)
+		= c
+	exp = expChange
+
+	//Initial UI	
+	initChange = ReplaceUI (uic UIPanel [ui UIContainer, uic UIContainer [ui UIEmpty, ui UIViewString], ui UIAction])
+	initState = JSONNull
+	changeToReRoute = ChangeUI [] [(1,ChangeChild (ReplaceUI (ui UIPanel)))]
+
+	//Expected reroute change 
+	expChange = ChangeUI [] [(1,ChangeChild (ReplaceUI (ui UIPanel)))]
+
+	isEmpty (UI type _ _) = type =: UIEmpty
+
+testRemoveSubsMatchingOnReplaceMultipleAfterRemove = assertEqual "Removing everything that matches, then replacing multiple parts" exp sut
+where
+	sutLayout = removeSubsMatching [] isEmpty
+	sut
+		//Initial, followed by an event in the new structure
+		# (c,s) = sutLayout (initChange,initState)
+		# (c,s) = sutLayout (changeToReRoute,s)
+		= c
+	exp = expChange
+
+	//Initial UI	
+//	initChange = ReplaceUI (uic UIPanel [ui UIEmpty, ui UIContainer, uic UIContainer [ui UIEmpty, ui UIViewString], ui UIEmpty, ui UIAction])
+	initChange = ReplaceUI (uic UIStep [uic UIParallel [uic UIParallel [uic UIStep [uic UIInteract [ui UIEmpty, ui UIGrid],ui UIAction, ui UIAction], uic UIStep [ui UIEmpty]]]])
+
+	initState = JSONNull
+	changeToReRoute = ChangeUI [] [(0,ChangeChild (ChangeUI [] 
+									[(0,ChangeChild (ChangeUI []
+										[(0,ChangeChild (ChangeUI []
+											[(0,ChangeChild (ChangeUI []
+												[(1, ChangeChild (ReplaceUI (ui UIViewString)))])) ]))]))]))]
+
+	//Expected reroute change 
+//	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,ChangeChild (ReplaceUI (ui UIEditString)))])),(2,ChangeChild (ReplaceUI (ui UIActionButton)))]
+	expChange = ChangeUI [] [(0,ChangeChild (ChangeUI [] 
+									[(0,ChangeChild (ChangeUI []
+										[(0,ChangeChild (ChangeUI []
+											[(0,ChangeChild (ChangeUI []
+												[(0, ChangeChild (ReplaceUI (ui UIViewString)))])) ]))]))]))]
+
+	isEmpty (UI type _ _) = type =: UIEmpty
+
+
 testLayoutSubsMatching = skip "Applying another layout to all matching nodes"
 
 testMoveSubsMatchingInitial = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
@@ -101,10 +168,12 @@ where
 	//Initial UI	
 	initChange = ReplaceUI (uic UIStep [ui UIContainer, ui UIAction, ui UIAction])
 	initState = JSONNull
-	changeToReRoute = ChangeUI [] [(2,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []) )]
+	changeToReRoute = ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))
+								  ,(2,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "baz")] []))]
 
 	//Expected reroute change 
-	expChange = ChangeUI [] [(0,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))] 
+	expChange = ChangeUI [] [(0,ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))
+														 ,(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "baz")] [])) ]))] 
 
 	isAction (UI type _ _) = type =: UIAction
 

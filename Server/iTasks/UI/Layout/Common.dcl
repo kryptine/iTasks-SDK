@@ -92,6 +92,8 @@ instance tune InContainer
 :: NoUserInterface  = NoUserInterface   //Replace the UI by an empty UI
 instance tune NoUserInterface
 
+actionToButton :: Layout
+
 //Setting attributes 
 instance tune Title
 instance tune Label

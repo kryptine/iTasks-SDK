@@ -27,7 +27,7 @@ isParallel d = d =:(UI UIParallel _ _)
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 arrangeWithSideBar index side size resize = sequenceLayouts 
 	[wrapUI UIContainer //Push the current container down a level
-	,changeNodeType (\(UI _ attr items) -> setDirection Horizontal (UI UIPanel attr items)) //Turn into a panel
+	,changeNodeType (\(UI _ attr items) -> setDirection direction (UI UIPanel attr items)) //Turn into a panel
 	,insertSubAt [sidePanelIndex] (ui UIPanel) //Make sure we have a target for the move
 	,moveSubAt [mainPanelIndex,index] [sidePanelIndex,0]
 	,layoutSubAt [sidePanelIndex,0] (changeNodeType (setSize sidePanelWidth sidePanelHeight))
@@ -37,8 +37,9 @@ arrangeWithSideBar index side size resize = sequenceLayouts
 where
 	sidePanelIndex = if (side === TopSide || side === LeftSide) 0 1
 	mainPanelIndex = if (sidePanelIndex === 0) 1 0
+	direction = if (side === TopSide|| side === BottomSide) Vertical Horizontal
 
-	(sidePanelWidth,sidePanelHeight) = if (side === TopSide|| side === BottomSide) (FlexSize,ExactSize size) (ExactSize size,FlexSize)
+	(sidePanelWidth,sidePanelHeight) = if (direction === Vertical) (FlexSize,ExactSize size) (ExactSize size,FlexSize)
 	//Eerst een wrap in een container
 	//Dan afhankelijk van de side een move van het gekozen element naar index 0 of 1 in de nieuwe container
 	//De twee subcontainers sizen
@@ -114,6 +115,15 @@ toContainer = changeNodeType (const (ui UIContainer))
 
 toPanel :: Layout
 toPanel = changeNodeType (const (ui UIPanel))
+
+actionToButton :: Layout
+actionToButton = layout 
+where
+	layout (ReplaceUI (UI UIAction attr _),_)
+		# buttonOpts = maybe id (\(JSONString a) -> setText a) ('DM'.get "actionId" attr)
+		= (ReplaceUI (buttonOpts (uia UIActionButton attr)),JSONNull)
+	
+	layout (change,s) = (change,s)
 
 instance tune ArrangeWithTabs
 where tune ArrangeWithTabs t = tune (ApplyLayout arrangeWithTabs) t

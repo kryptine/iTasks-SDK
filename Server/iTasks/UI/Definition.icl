@@ -317,6 +317,7 @@ where
 	toString UITab             = "itwc_tabitem"
 	toString UIWindow          = "itwc_window"
 	toString UIMenu            = "itwc_menu"
+	toString UIDebug           = "itwc_debug"
 	toString UIViewString      = "itwc_view_string"
 	toString UIViewHtml        = "itwc_view_html"
 	toString UIViewDocument    = "itwc_view_document"

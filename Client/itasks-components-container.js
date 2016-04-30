@@ -19,6 +19,7 @@ itasks.itwc_panel = {
 		}
 		//Create separate container div
 		me.containerEl = document.createElement('div');
+		me.containerEl.classList.add(me.cssPrefix + 'inner');
 		me.domEl.appendChild(me.containerEl);
 
 		if(me.frame) {
@@ -216,4 +217,6 @@ itasks.itwc_window = {
         window.removeEventListener('mouseup', me.onStopDrag_);
     }
 };
-
+itasks.itwc_debug= {
+	cssCls: 'debug'
+};

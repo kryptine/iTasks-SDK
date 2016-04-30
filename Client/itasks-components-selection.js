@@ -53,8 +53,8 @@ itasks.itwc_choice_grid = {
 	onAttributeChange: function(name,value) {
         var me = this,
             bodyEl = me.bodyEl;
-		if(name == 'value') {
 
+		if(name == 'value') {
         	//Remove old selection
         	me.value.forEach(function(selectedIdx) {
             	    bodyEl.childNodes[selectedIdx].classList.remove(me.cssPrefix + 'selected');

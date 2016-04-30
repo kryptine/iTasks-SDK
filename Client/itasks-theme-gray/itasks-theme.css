@@ -237,8 +237,6 @@ div.itasks-loader {
     background-color: #ccc;
     background: -moz-linear-gradient(top, #eeeeee 0%, #ccc 100%);
     background: -webkit-linear-gradient(top, #eeeeee 0%, #ccc 100%); }
-  .itasks-panel > .itasks-inner {
-    overflow: auto; }
 
 .itasks-framed {
   border-radius: 5px; }
@@ -476,6 +474,9 @@ div.itasks-loader {
     display: block;
     border-top: 1px solid #efefef;
     border-bottom: 1px solid #ddd; }
+
+.itasks-debug {
+  border: 3px solid red; }
 
 .itasks-icon {
   width: 16px;

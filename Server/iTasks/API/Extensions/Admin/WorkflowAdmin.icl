@@ -101,7 +101,6 @@ where
 		= manageWorklist workflows
 		
 		
-
 // Application specific types
 :: ClientPart
 	= Logout								//Produced by the control task
@@ -125,7 +124,7 @@ workflowDashboard :: Task ()
 workflowDashboard
 	=  parallel
 		[ (Embedded, startWork)
-		, (Embedded, controlDashboard)
+		, (Embedded, manageSession)
 		, (Embedded, manageWork)
 		] [] <<@ ApplyLayout layout
 	>>* [OnValue (ifValue (\results -> isValue (snd (results !! 1))) (\_ -> return ()))]
@@ -134,38 +133,44 @@ where
 	isValue _			= False
 
 	layout = sequenceLayouts
-		[arrangeWithSideBar 0 LeftSide 260 True
-		,layoutSubAt [1,0] layoutToolbar
+		[layoutSubAt [0] layoutStartWork
+		,arrangeWithSideBar 0 LeftSide 260 True
+		,layoutSubAt [1] layoutRightSide
 		,changeNodeType (setSize FlexSize FlexSize)
 		]
+	layoutRightSide = sequenceLayouts
+		[//insertSubAt [0] (ui UIDebug)
+		//,moveSubAt [1] [0,0]
+		//,moveSubAt [1] [0,0]
+		//,layoutSubAt [0] layoutToolbar
+		//,layoutSubAt [1] layoutManageWork
+		]
 
-	layoutToolbar = changeNodeType (\(UI _ attr items) -> UI UIPanel attr items)
-/*
-    layout [startWork,dashBoard,manageWork:activeWork] actions
-        = arrangeWithSideBar 0 LeftSide 260 True [startWork,mainArea] actions
-    where
-        mainArea = arrangeWithSideBar 0 TopSide 30 False [dashBoard,workArea] []
-        workArea = arrangeWithSideBar 0 TopSide 200 True [manageWork,tabsArea] []
-        tabsArea = arrangeVertical activeWork []
-	*/
+	layoutToolbar = sequenceLayouts 
+		[unwrapUI
+		,layoutChildrenOf [] actionToButton
+		,changeNodeType (\(UI _ attr items) -> UI UIPanel attr items)
+		,changeNodeType (setHeight WrapSize)
+		,changeNodeType (setDirection Horizontal)
+		]
 
-    //layout blocks actions = autoLayoutBlocks blocks actions
+	layoutStartWork = arrangeWithSideBar 1 BottomSide  200 True
+	
+	//layoutManageWork = arrangeWithSideBar 0 TopSide 200 True
 
-controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
-controlDashboard list
-	=	(viewSharedInformation attr [ViewWith view] currentUser	
-			>>* [OnAction (Action "Shutdown" [ActionIcon "close"])	(always (shutDown @ (const Nothing)))
+manageSession :: !(SharedTaskList ClientPart) -> Task ClientPart
+manageSession list
+	=	(viewSharedInformation () [ViewWith view] currentUser	
+			>>* [OnAction (Action "Shutdown" [ActionIcon "close"])	(always (shutDown @! Nothing))
 				,OnAction (Action "Log out" [ActionIcon "logout"])	(always (return (Just Logout)))
 				]															
 		) <! isJust	
 	@	fromJust	
 where
 	view user	= "Welcome " +++ toString user		
-	attr		= Attribute "buttonPosition" "right"
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
-startWork list
-	= (chooseWorkflow >&> viewAndStart) //<<@ (ArrangeWithSideBar 1 BottomSide 200 True)
+startWork list = chooseWorkflow >&> viewAndStart
 where
 	viewAndStart sel = forever (
 			viewWorkflowDetails sel
@@ -190,8 +195,6 @@ where
                 = [{ChoiceTree|label=nodeP,icon=Nothing,value=GroupNode wfpath, type= ifExpandedGroup wfpath expanded (insertWorkflow` wfpath pathR [])}]
 		    insertWorkflow` wfpath path [node:nodesR] = [node:insertWorkflow` wfpath path nodesR]
 
-	noAnnotation (c,_) = (c,'DM'.newMap)
-	
 viewWorkflowDetails :: !(ReadOnlyShared (Maybe Workflow)) -> Task Workflow
 viewWorkflowDetails sel
 	= viewSharedInformation [Att (Title "Task description"), Att IconView] [ViewWith view] sel
@@ -226,7 +229,7 @@ manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart
 manageWork taskList = forever
 	(	enterChoiceWithSharedAs () [ChooseWith (ChooseFromGrid snd)] processes fst
 	>>* [OnAction (Action "Open" [ActionTrigger DoubleClick]) (hasValue (\taskId -> openTask taskList taskId @ const OpenProcess))
-		,OnAction (Action "Delete" []) (hasValue (\taskId-> removeTask taskId topLevelTasks @ const OpenProcess))]
+		,OnAction (Action "Delete" []) (hasValue (\taskId -> removeTask taskId topLevelTasks @ const OpenProcess))]
 	)
 where
 	// list of active processes for current user without current one (to avoid work on dependency cycles)

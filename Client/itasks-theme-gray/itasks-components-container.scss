@@ -53,9 +53,6 @@
         background: -moz-linear-gradient(top, ($panel-header-base-color + #222) 0%, $panel-header-base-color 100%);
         background: -webkit-linear-gradient(top, ($panel-header-base-color + #222) 0%, $panel-header-base-color 100%);
     }
-    > .#{$prefix}inner {
-        overflow: auto;
-    }
 }
 .#{$prefix}framed {
     border-radius: 5px;
@@ -323,4 +320,7 @@
         border-top: 1px solid #efefef;
         border-bottom: 1px solid #ddd;
     }
+}
+.#{$prefix}debug {
+	border: 3px solid red;
 }

@@ -1,6 +1,7 @@
 implementation module iTasks.UI.Layout.Default
 
 import iTasks.UI.Layout
+import iTasks.UI.Layout.Common
 import iTasks.UI.Definition
 import iTasks.API.Core.Types
 import Text.JSON
@@ -15,7 +16,7 @@ defaultSessionLayout :: Layout
 defaultSessionLayout = sequenceLayouts 
     [layoutSubsMatching [] isIntermediate finalizeUI 	//Finalize all remaining intermediate layouts
 	,removeSubsMatching [] isEmpty 						//Remove temporary placeholders
-    ,changeNodeType (setSize FlexSize FlexSize) 		//Make sure we use the full viewport
+	,changeNodeType (setSize FlexSize FlexSize) 		//Make sure we use the full viewport
     ]
 
 //The finalize layouts remove all intermediate 
@@ -135,19 +136,6 @@ where
 			_ 		= []
 	
 	layout (c,s) = (c,s)
-
-actionToButton :: Layout
-actionToButton = layout 
-where
-	layout (ReplaceUI (UI UIAction attr _),_)
-		# buttonOpts = maybe id (\(JSONString a) -> setText a) ('DM'.get "actionId" attr)
-		= (ReplaceUI (buttonOpts (uia UIActionButton attr)),JSONNull)
-	
-	layout (change,s) = (change,s)
-
-mapLst f [] = []
-mapLst f [x] = [f True x]
-mapLst f [x:xs] = [f False x: mapLst f xs]
 
 buttonBar :: UI
 buttonBar = (wrapHeight o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight o setBaseCls "buttonbar") (uic UIPanel [])
