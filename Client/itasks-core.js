@@ -237,14 +237,20 @@ itasks.Component = {
 				me.containerEl.insertBefore(child.domEl,me.containerEl.childNodes[idx]);
 			}
 		} 
+		me.onChildInsert(idx);
 	},
+	onChildInsert: function(idx) {},
 	removeChild: function(idx = 0) {
 		var me = this;
+
+		me.onChildRemove(idx);
+
 		if(me.initialized) {
 			me.containerEl.removeChild(me.containerEl.childNodes[idx]);
 		}
 		me.children.splice(idx,1);	
 	},
+	onChildRemove: function(idx) {},
 	setAttribute: function(name,value) {
 		var me = this;
 	

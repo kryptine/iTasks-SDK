@@ -82,10 +82,13 @@ finalizeParallel = conditionalLayout isParallel layout
 where
 	layout = sequenceLayouts
 		[layoutChildrenOf [] finalizeUI
+		,changeNodeType (\(UI UIParallel attr items) -> UI UIContainer attr items)
+/*
 		,selectLayout
 			[(isSingle, unwrapUI)
 			,(const True,changeNodeType (\(UI UIParallel attr items) -> UI UIContainer attr items))
 			]
+*/
 		]
 
 	isSingle (UI _ _ [_]) = True

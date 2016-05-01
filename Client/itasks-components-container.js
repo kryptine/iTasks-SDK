@@ -65,7 +65,7 @@ itasks.itwc_tabset = {
 
 		tab = document.createElement('li');
         label = document.createElement('a');
-		label.innerHTML = '<span>'+cmp.title+'</span>';
+		label.innerHTML = '<span>'+ (cmp.title || '-')+'</span>';
 		label.href = '#';
 
 		label.addEventListener('click',function(e) {
@@ -119,6 +119,31 @@ itasks.itwc_tabset = {
             me.tabBar.children[me.activeTab].classList.add(me.cssPrefix + 'selected');
 			me.children[me.activeTab].onShow();
         }
+	},
+	onChildInsert: function(idx) {
+		var me = this;
+
+		if(me.initialized) {
+			var tabEl = me.createTabEl(me.children[idx]);
+			if(idx >= me.tabBar.children.length) {
+				me.tabBar.appendChild(tabEl);
+			} else {
+				me.tabBar.insertBefore(tabEl,me.tabBar.children[idx]);
+			}
+
+			if(me.children.length == 1) { //Automatically select the first tab
+				me.setActiveTab(idx);
+			}
+		}
+	},
+	onChildRemove: function(idx) {
+		var me = this;
+		if(me.initialized) {
+			if((idx == me.activeTab) && (me.children.length > 1)) { //Unless we remove the last tab, select another tab
+				me.setActiveTab( (idx == 0) ? 1 : (idx - 1));
+			}
+			me.tabBar.removeChild(me.tabBar.children[idx]);
+		}
 	}
 }
 itasks.itwc_tabitem = {

@@ -133,28 +133,28 @@ where
 	isValue _			= False
 
 	layout = sequenceLayouts
-		[layoutSubAt [0] layoutStartWork
-		,arrangeWithSideBar 0 LeftSide 260 True
-		,layoutSubAt [1] layoutRightSide
+		[ arrangeWithSideBar 0 LeftSide 260 True
+		, layoutSubAt [0] layoutStartWork
+		, layoutSubAt [1] (sequenceLayouts
+			[layoutSubAt [0] (wrapUI UIContainer) //Put manageSession and manageWork together in a container
+			,layoutSubAt [0,0] layoutManageSession
+			,moveSubAt [1] [0,1]
+			,arrangeWithSideBar 0 TopSide 300 True
+			,layoutSubAt [1] arrangeWithTabs
+			])
+		//,layoutSubAt [1] layoutRightSide
 		,changeNodeType (setSize FlexSize FlexSize)
 		]
-	layoutRightSide = sequenceLayouts
-		[//insertSubAt [0] (ui UIDebug)
-		//,moveSubAt [1] [0,0]
-		//,moveSubAt [1] [0,0]
-		//,layoutSubAt [0] layoutToolbar
-		//,layoutSubAt [1] layoutManageWork
-		]
 
-	layoutToolbar = sequenceLayouts 
+	layoutStartWork = arrangeWithSideBar 1 BottomSide  200 True
+	layoutManageSession = sequenceLayouts 
 		[unwrapUI
 		,layoutChildrenOf [] actionToButton
 		,changeNodeType (\(UI _ attr items) -> UI UIPanel attr items)
 		,changeNodeType (setHeight WrapSize)
 		,changeNodeType (setDirection Horizontal)
+		,changeNodeType (setPadding 2 10 2 10)
 		]
-
-	layoutStartWork = arrangeWithSideBar 1 BottomSide  200 True
 	
 	//layoutManageWork = arrangeWithSideBar 0 TopSide 200 True
 

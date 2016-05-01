@@ -26,13 +26,13 @@ isParallel d = d =:(UI UIParallel _ _)
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 arrangeWithSideBar index side size resize = sequenceLayouts 
-	[wrapUI UIContainer //Push the current container down a level
+	[wrapUI UIContainer 	//Push the current container down a level
+	,copyAttributes [0] [] 	//Keep the attributes from the original UI
 	,changeNodeType (\(UI _ attr items) -> setDirection direction (UI UIPanel attr items)) //Turn into a panel
-	,insertSubAt [sidePanelIndex] (ui UIPanel) //Make sure we have a target for the move
+	,insertSubAt [sidePanelIndex] (ui UICompoundContent) //Make sure we have a target for the move
 	,moveSubAt [mainPanelIndex,index] [sidePanelIndex,0]
-	,layoutSubAt [sidePanelIndex,0] (changeNodeType (setSize sidePanelWidth sidePanelHeight))
 	,layoutSubAt [sidePanelIndex] unwrapUI //Remove the temporary wrapping panel
-	//Size the new container 
+	,layoutSubAt [sidePanelIndex] (changeNodeType (setSize sidePanelWidth sidePanelHeight))
 	]
 where
 	sidePanelIndex = if (side === TopSide || side === LeftSide) 0 1
@@ -40,32 +40,7 @@ where
 	direction = if (side === TopSide|| side === BottomSide) Vertical Horizontal
 
 	(sidePanelWidth,sidePanelHeight) = if (direction === Vertical) (FlexSize,ExactSize size) (ExactSize size,FlexSize)
-	//Eerst een wrap in een container
-	//Dan afhankelijk van de side een move van het gekozen element naar index 0 of 1 in de nieuwe container
-	//De twee subcontainers sizen
-/*
-arrangeWithSideBar :: !Int !UISide !Int !Bool -> UIBlocksCombinator
-arrangeWithSideBar index side size resize = arrange
-where
-    arrange [] actions = autoLayoutBlocks [] actions
-    arrange blocks actions
-        | index >= length blocks = autoLayoutBlocks blocks actions
-        # sidePart = blocks !! index
-        # restPart = case removeAt index blocks of
-            [ui] = ui
-            uis  = autoLayoutBlocks uis []
-        # (sideC,sideAt,sideAc,sideHK) = blockToControl sidePart
-        # (restC,restAt,restAc,restHK) = blockToControl restPart
-        # sideC = if (side === TopSide|| side === BottomSide) (setSize FlexSize (ExactSize size) sideC) (setSize (ExactSize size) FlexSize sideC)
-        # restC = fill restC
-        = {UIBlock|attributes=mergeAttributes restAt sideAt
-                  ,content= {UIItemsOpts|defaultItemsOpts (if (side===TopSide || side === LeftSide) (if resize [sideC,UISplitter,restC] [sideC,restC]) (if resize [restC,UISplitter,sideC] [restC,sideC]))
-                            &direction = if (side===TopSide || side === BottomSide) Vertical Horizontal
-                            }
-                  ,hotkeys = restHK ++ sideHK
-                  ,size = defaultSizeOpts
-                  }
-*/
+
 arrangeSplit :: !UIDirection !Bool -> Layout
 arrangeSplit direction resize = id
 /*
