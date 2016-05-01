@@ -363,9 +363,6 @@ itasks.Viewport = {
 		me.service = itasks.Service.getInstance();
 		me.service.register(me);
 	},
-	getTaskURL: function() {
-		return this.taskUrl;
-	},
 	getParentViewport: function() {
 		var me = this, parentVp = me.parentCmp;
 		while(parentVp) {
@@ -403,40 +400,41 @@ itasks.Service = {
 	instances: {},
 	register: function(viewport) {
 		var me = this,
-			taskUrl, parentViewport, instance, connection;
+			taskUrl, parentViewport, taskInstance, connection;
 
-		if(taskUrl = viewport.getTaskURL()) {
-			//If the viewport has a taskUrl, create a separate connection and create a task instance
-
+		if(taskInstance = viewport.instanceNo) {
+			//Connect to an existing task instance
+			me.registerInstance_(viewport);	
+			
+		} else if(taskUrl = viewport.taskUrl) {
+			//Create a new task instance
 			me.createTaskInstance_(taskUrl, function(instanceNo,instanceKey) {
 			
 				//Store the instanceNo and key on the viewport
 				viewport.instanceNo = instanceNo;
 				viewport.instanceKey = instanceKey;
-	
-				//Create the connection
-				connection = Object.assign(Object.create(itasks.Connection),{taskUrl:taskUrl});
-				connection.addTaskInstance(instanceNo, viewport.onInstanceUIChange.bind(viewport)); 
 
-				connection.connect();
-				connection.sendEvent(instanceNo,{instanceNo: instanceNo, resetEvent: instanceNo});
-	
-				//Register the instance
-				me.instances[instanceNo] = {connection: connection, viewport: viewport}
+				me.registerInstance_(viewport);	
 			});
-		} else if(parentViewport = viewport.getParentViewport()) {
-			//If the viewport is embedded in another viewport, reuse its connection
-			if(me.instances[parentViewport.instanceNo]) {
-				connection = me.instances[parentViewport.instanceNo].connection;
-				connection.addTaskInstance(viewport.instanceNo,viewport.onInstanceUIChange.bind(viewport));
-
-				//Register the instance
-				me.instances[viewport.instanceNo] = {connection: connection, viewport: viewport}
-			}
-		} else if(false) {//If the viewport is bound to a task instance, create a connection and reuse
-		} else {
 		}
-		//Keep track of the viewport
+	},
+	registerInstance_: function(viewport) {
+		var me = this, parentViewport, connection, instanceNo = viewport.instanceNo;
+		
+		//If the viewport is embedded in another viewport, reuse its connection
+		if(parentViewport = viewport.getParentViewport()) {
+			connection = me.instances[parentViewport.instanceNo].connection;
+			connection.addTaskInstance(instanceNo, viewport.onInstanceUIChange.bind(viewport));
+		} else {
+			//Create the connection
+			connection = Object.assign(Object.create(itasks.Connection),{taskUrl:viewport.taskUrl});
+			connection.addTaskInstance(instanceNo, viewport.onInstanceUIChange.bind(viewport)); 
+			connection.connect();
+		}	
+		//Send reset event...
+		connection.sendEvent(instanceNo,{instanceNo: instanceNo, resetEvent: instanceNo});
+		//Register the instance
+		me.instances[instanceNo] = {connection: connection, viewport: viewport}
 	},
 	doEditEvent: function(taskId, editorId, value) {
 		var me = this,

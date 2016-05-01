@@ -139,7 +139,7 @@ where
 			[layoutSubAt [0] (wrapUI UIContainer) //Put manageSession and manageWork together in a container
 			,layoutSubAt [0,0] layoutManageSession
 			,moveSubAt [1] [0,1]
-			,arrangeWithSideBar 0 TopSide 300 True
+			,arrangeWithSideBar 0 TopSide 200 True
 			,layoutSubAt [1] arrangeWithTabs
 			])
 		//,layoutSubAt [1] layoutRightSide
@@ -257,7 +257,7 @@ openTask taskList taskId
 
 workOnTask :: !TaskId -> Task ClientPart
 workOnTask taskId
-    =   workOn taskId
+    =   workOn taskId <<@ ApplyLayout (changeNodeType (setHeight FlexSize))
     >>* [OnValue    (ifValue ((===) ASExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this task" >>| return OpenProcess))
         ,OnValue    (ifValue ((===) ASIncompatible) (\_ -> dealWithIncompatibleTask))
         ,OnAction ActionClose   (always (return OpenProcess))

@@ -13,7 +13,7 @@ import qualified Data.Map as DM
 
 import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators, iTasks.API.Common.InteractionTasks, iTasks.UI.Layout, iTasks.UI.Prompt
 import iTasks.API.Common.SDSCombinators
-import iTasks.UI.Layout.Common
+import iTasks.UI.Layout.Common, iTasks.UI.Layout.Default
 
 (>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | iTask a & iTask b
 (>>*) task steps = step task (const Nothing) steps
@@ -237,7 +237,7 @@ withSelection :: (Task c) (a -> Task b) (ReadOnlyShared (Maybe a)) -> Task b | i
 withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
 
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
-appendTopLevelTask attr evalDirect task = appendTask (Detached attr evalDirect) (\_ -> task @ const ()) topLevelTasks
+appendTopLevelTask attr evalDirect task = appendTask (Detached attr evalDirect) (\_ -> task <<@ ApplyLayout defaultSessionLayout @! ()) topLevelTasks
 
 valToMaybe :: (TaskValue a) -> Maybe a
 valToMaybe (Value v _)  = Just v
