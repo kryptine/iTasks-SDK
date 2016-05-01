@@ -75,7 +75,7 @@ svgRenderer svglet=:{initView,renderImage,updView,updModel}
     , onEdit  = onEdit
     }
   where
-	genUI dp val mask world = (setSize FlexSize FlexSize (setValue (toJSON val) (ui UIComponent)), world)
+	genUI dp val mask world = (Ok (setSize FlexSize FlexSize (setValue (toJSON val) (ui UIComponent))), world)
 
 	initUI me world
 		//Set attributes
@@ -107,7 +107,7 @@ svgRenderer svglet=:{initView,renderImage,updView,updModel}
 		| otherwise
 			= (jsNull,jsTrace "Unknown attribute change" world)
 
-  	updUI _ ov om nv nm vst = (if (ov === nv) NoChange (ChangeUI [SetAttribute "stateChange" (toJSON nv)] []),vst)
+  	updUI _ ov om nv nm vst = (Ok (if (ov === nv) NoChange (ChangeUI [SetAttribute "stateChange" (toJSON nv)] [])),vst)
   	onEdit _ _ st m ust = (st,m,ust)
 
 onNewState :: !(JSVal a) !(SVGLet s v) !s !*JSWorld -> *JSWorld | JSONEncode{|*|} s

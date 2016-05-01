@@ -67,7 +67,7 @@ googleMapEditlet
       }
 where
 	genUI dp val mask world
-		= ((setValue (toJSON val) o setSize (ExactSize 500) (ExactSize 200)) (ui UIComponent),world)
+		= (Ok ((setValue (toJSON val) o setSize (ExactSize 500) (ExactSize 200)) (ui UIComponent)),world)
 
 	initUI me world
 		# (jsInitDOM, world)   = jsWrapFun (initDOM me) world
@@ -401,12 +401,10 @@ where
             # (_,world) = jsApply cb jsWindow [] world
             = world
 
-    //ignoreConflict conflict state env = (state, NoDiff, env)
-
-    updUI :: DataPath GoogleMap EditMask GoogleMap EditMask *VSt -> *(!UIChange,!*VSt)
+    updUI :: DataPath GoogleMap EditMask GoogleMap EditMask *VSt -> *(!MaybeErrorString UIChange,!*VSt)
 	updUI _ g1 _ g2 _ vst = case settingsDiff ++ perspectiveDiff ++ remMarkersDiff ++ addMarkersDiff ++ updMarkersDiff of
-        []      = (NoChange,vst)
-        diffs   = (ChangeUI [SetAttribute "diff" (toJSON diffs)] [],vst)
+        []      = (Ok NoChange,vst)
+        diffs   = (Ok (ChangeUI [SetAttribute "diff" (toJSON diffs)] []),vst)
     where
         settingsDiff    = if (g1.GoogleMap.settings === g2.GoogleMap.settings) [] [SetSettings g2.GoogleMap.settings]
         perspectiveDiff = if (g1.GoogleMap.perspective === g2.GoogleMap.perspective) [] [SetPerspective g2.GoogleMap.perspective]

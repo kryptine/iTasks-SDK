@@ -43,7 +43,7 @@ testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the core g
 	]
 
 testGenUI :: String UI a EditMask -> Test | iTask a
-testGenUI name exp x mask = assertEqualWorld name exp sut
+testGenUI name exp x mask = assertEqualWorld name (Ok exp) sut
 where
 	sut world 
 		# vst = toStubVSt (toStubIWorld world)
@@ -206,13 +206,13 @@ testGenericEditorDiffs = testsuite "Generic diffs" "Tests for the generic diffs"
 //General pattern for diff tests
 
 testGenDiff :: String UIChange (Masked a) (Masked a) -> Test | iTask a
-testGenDiff name exp (x,mx) (y,my) = assertEqualWorld name exp sut
+testGenDiff name exp (x,mx) (y,my) = assertEqualWorld name (Ok exp) sut
 where
 	sut world 
 		# vst = toStubVSt (toStubIWorld world)
 		# (res,vst) = gEditor{|*|}.Editor.updUI [] x mx y my vst
 		# world = fromStubIWorld (fromStubVSt vst)
-		= (compactChangeDef res,world)
+		= (fmap compactChangeDef res,world)
 
 //Integers
 testSameInt :: Test

@@ -42,10 +42,12 @@ where
 		# vValid				= isValid (verifyMaskedValue (nv,nm))
 		# (nl,(nv,nm)) 			= if (rChanged || vChanged) (refreshFun l nr (nv,nm) rChanged vChanged vValid) (l,(nv,nm))
 		//Update visualization v
-		# (change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
-		# value 				= if valid (Value (nl,nv) False) NoValue
-		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info change (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nm), iworld)
+		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+			(Ok change,valid,iworld) 
+				# value 				= if valid (Value (nl,nv) False) NoValue
+				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
+				= (ValueResult value info change (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nm), iworld)
+			(Error e,_,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -67,10 +69,12 @@ where
 		# vValid				= isValid (verifyMaskedValue (nv,nm))
 		# (nl,(nv,nm)) 			= if vChanged (refreshFun l (nv,nm) vValid) (l,(nv,nm))
 		//Update visualization v
-		# (change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
-		# value 				= if valid (Value (nl,nv) False) NoValue
-		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info change (TCInteractLocal taskId nts (toJSON nl) (toJSON nv) nm), iworld)
+		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+			(Ok change,valid,iworld)
+				# value 				= if valid (Value (nl,nv) False) NoValue
+				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
+				= (ValueResult value info change (TCInteractLocal taskId nts (toJSON nl) (toJSON nv) nm), iworld)
+			(Error e,_,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -101,10 +105,12 @@ where
 		# vValid				= isValid (verifyMaskedValue (nv,nm))
 		# (nv,nm) 				= if (rChanged || vChanged) (refreshFun nr (nv,nm) rChanged vChanged vValid) (nv,nm)
 		//Update visualization v
-		# (change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
-		# value 				= if valid (Value nv False) NoValue
-		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info change (TCInteractViewOnly taskId nts (toJSON nr) (toJSON nv) nm), iworld)
+		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+			(Ok change,valid,iworld)
+				# value 				= if valid (Value nv False) NoValue
+				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
+				= (ValueResult value info change (TCInteractViewOnly taskId nts (toJSON nr) (toJSON nv) nm), iworld)
+			(Error e,_,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -126,10 +132,12 @@ where
 		# vValid				= isValid (verifyMaskedValue (nv,nm))
 		# (nv,nm) 				= if vChanged (refreshFun (nv,nm) vValid) (nv,nm)
 		//Update visualization v
-		# (change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
-		# value 				= if valid (Value nv False) NoValue
-		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info change (TCInteractLocalViewOnly taskId nts (toJSON nv) nm), iworld)
+		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+		 	(Ok change,valid,iworld) 
+				# value 				= if valid (Value nv False) NoValue
+				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
+				= (ValueResult value info change (TCInteractLocalViewOnly taskId nts (toJSON nv) nm), iworld)
+			(Error e,_,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -162,10 +170,12 @@ where
 		# vValid				= isValid (verifyMaskedValue (nv,nm))
 		# (nl,(nv,nm)) 			= if rChanged (nr,(toView nr,Touched)) (l,(nv,nm))
 		//Update visualization v
-		# (change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
-		# value 				= if valid (Value nl False) NoValue
-		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info change (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nm), iworld)
+		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+			(Ok change,valid,iworld)
+				# value 				= if valid (Value nl False) NoValue
+				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
+				= (ValueResult value info change (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nm), iworld)
+			(Error e,_,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -188,10 +198,12 @@ where
 		# vValid				= isValid (verifyMaskedValue (nv,nm))
 		# (nl,(nv,nm)) 			= if vChanged (refreshFun l (nv,nm) vValid) (l,(nv,nm))
 		//Update visualization v
-		# (change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
-		# value 				= if valid (Value nl False) NoValue
-		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info change (TCInteract1 taskId nts (toJSON nv) nm), iworld)
+		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+			(Ok change,valid,iworld)
+				# value 				= if valid (Value nl False) NoValue
+				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
+				= (ValueResult value info change (TCInteract1 taskId nts (toJSON nv) nm), iworld)
+			(Error e,_,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -217,10 +229,12 @@ where
 		# vValid				= isValid (verifyMaskedValue (nv,nm))
 		# (nl,(nv,nm)) 			= if vChanged (refreshFun l (nv,nm) vValid) (l,(nv,nm))
 		//Update visualization v
-		# (change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
-		# value 				= if valid (Value nl False) NoValue
-		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info change (TCInteract1 taskId nts (toJSON nl) nm), iworld)
+		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+			(Ok change,valid,iworld)
+				# value 				= if valid (Value nl False) NoValue
+				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
+				= (ValueResult value info change (TCInteract1 taskId nts (toJSON nl) nm), iworld)
+			(Error e,_,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -248,9 +262,11 @@ where
 		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
 		# nl = l
 		//Update visualization v
-		# (change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
-		# value 				= if valid (Value nl False) NoValue
-		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info change (TCInteract1 taskId nts (toJSON nl) nm), iworld)
+		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+			(Ok change,valid,iworld)
+				# value 				= if valid (Value nl False) NoValue
+				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
+				= (ValueResult value info change (TCInteract1 taskId nts (toJSON nl) nm), iworld)
+			(Error e,_,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)

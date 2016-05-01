@@ -51,9 +51,11 @@ where
 	eval event evalOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{IWorld|world,current={TaskEvalState|taskInstance}}
 		| stable
             # status        = fromJust (fromJSON encv)
-            # (rep,iworld)  = makeRep taskId evalOpts status iworld
-            # iworld = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
-			= (ValueResult (Value status True) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
+			= case makeRep taskId evalOpts status iworld of
+            	(Ok rep,iworld)
+            		# iworld = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
+					= (ValueResult (Value status True) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
+				(Error e,iworld) = (ExceptionResult (exception e),iworld)
 		| otherwise
             //Check status
             # handle = fromJust (fromJSON encv)
@@ -64,18 +66,22 @@ where
                     # (status,stable,state) = case mbExitCode of
                         Just c  = (CompletedProcess c,True, TCBasic taskId lastEvent (toJSON (CompletedProcess c)) False)
                         Nothing = (RunningProcess cmd,False, state)
-                    # (rep,iworld)  = makeRep taskId evalOpts status {IWorld|iworld & world = world}
-                    # iworld = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
-                    = (ValueResult (Value status stable) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
+                    = case makeRep taskId evalOpts status {IWorld|iworld & world = world} of
+                    	(Ok rep,iworld)
+                    		# iworld = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
+                    		= (ValueResult (Value status stable) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
+						(Error e,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event repAs (TCDestroy _) iworld
 		= (DestroyedResult,iworld)
 
     makeRep taskId evalOpts status iworld
-		# (content,iworld)	= makeView opts status taskId iworld
-		# prompt			= toPrompt desc
-		# change 			= ReplaceUI (uic UIContainer [prompt,content])
-		= (change, iworld)
+		= case makeView opts status taskId iworld of
+			(Ok content,iworld)
+				# prompt			= toPrompt desc
+				# change 			= ReplaceUI (uic UIContainer [prompt,content])
+				= (Ok change, iworld)
+			(Error e,iworld) = (Error e,iworld)
 						
 	makeView [ViewWith viewFun] status taskId iworld
 		= makeEditor (Display (viewFun status),Touched) taskId iworld

@@ -9,8 +9,8 @@ import qualified Data.Map as DM
 emptyEditor :: Editor a
 emptyEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI _ _ _ vst			    = (ui UIEmpty,vst)
-	updUI _ _ _ _ _ vst 		= (NoChange,vst)
+	genUI _ _ _ vst			    = (Ok (ui UIEmpty),vst)
+	updUI _ _ _ _ _ vst 		= (Ok NoChange,vst)
 	onEdit _ _ val mask ust 	= (val,mask,ust)
 
 subMasks :: !Int EditMask -> [EditMask]
@@ -44,17 +44,18 @@ fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a
 fromEditlet editlet=:{Editlet| genUI, initUI, updUI, onEdit} = {Editor|genUI=genUI`,updUI=updUI,onEdit=onEdit}
 where
 	genUI` dp currVal mask vst=:{VSt|taskId}
-		# (uiDef,vst=:{VSt|iworld}) = genUI dp currVal mask vst
-		= case editletLinker initUI iworld of
-			(Ok (saplDeps, saplInit),iworld)
-				# attr = 'DM'.fromList [("taskId",JSONString taskId)
-                                       ,("editorId",JSONString (editorId dp))
-                                       ,("saplDeps",JSONString saplDeps)
-                                       ,("saplInit",JSONString saplInit)
-                                       ]
-				= (eui uiDef attr, {VSt|vst & iworld = iworld})
-			(Error e,iworld) //TODO: Propagate the error to the interact task that creates the editor
-				= (eui uiDef 'DM'.newMap, {VSt|vst & iworld = iworld})
+		= case genUI dp currVal mask vst of
+			(Ok uiDef,vst=:{VSt|iworld}) = case editletLinker initUI iworld of
+				(Ok (saplDeps, saplInit),iworld)
+					# attr = 'DM'.fromList [("taskId",JSONString taskId)
+                   		                    ,("editorId",JSONString (editorId dp))
+                   		                    ,("saplDeps",JSONString saplDeps)
+                       		                ,("saplInit",JSONString saplInit)
+                           		            ]
+					= (Ok (eui uiDef attr), {VSt|vst & iworld = iworld})
+				(Error e,iworld)
+					= (Error e, {VSt|vst & iworld = iworld})
+			(Error e,vst) = (Error e,vst)
 	where
 		eui (UI type attr items) editletAttr = UI type (addAll editletAttr attr) items
 		addAll a1 a2 = foldl (\a (k,v) -> 'DM'.put k v a) a2 ('DM'.toList a1)

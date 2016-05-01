@@ -59,8 +59,8 @@ MAP_OPTIONS     :== {attributionControl = False, zoomControl = True}
     | LDUpdateObject    !Int !Int !LeafletObject
     | LDRemoveObjects   !Int !Int
 
-updUI :: DataPath LeafletMap EditMask LeafletMap EditMask *VSt -> *(!UIChange,!*VSt)
-updUI _ m1 _ m2 _ vst = case diffs of [] = (NoChange,vst) ; _ = (ChangeUI [SetAttribute "diff" (toJSON diffs)] [],vst)
+updUI :: DataPath LeafletMap EditMask LeafletMap EditMask *VSt -> *(!MaybeErrorString UIChange,!*VSt)
+updUI _ m1 _ m2 _ vst = case diffs of [] = (Ok NoChange,vst) ; _ = (Ok (ChangeUI [SetAttribute "diff" (toJSON diffs)] []),vst)
 where
     diffs
         =   diffPerspectives m1.perspective m2.perspective
@@ -135,7 +135,7 @@ leafletEditlet
     }
 where
 	genUI dp val mask world
-		= (setSize (ExactSize 500) (ExactSize 150) (ui UIViewHtml), world)
+		= (Ok (setSize (ExactSize 500) (ExactSize 150) (ui UIViewHtml)), world)
 		//= (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (DivTag [IdAttr (mapdivid cid)] [])))])), world)
 	initUI me world
 		# (jsInitDOM,world) = jsWrapFun (initDOM me) world

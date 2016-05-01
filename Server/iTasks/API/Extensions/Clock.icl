@@ -26,7 +26,7 @@ analogClockEditlet
       }
 where
 	genUI dp (AnalogClock {Time|hour,min,sec}) mask world
-		= (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (svgClock hour min sec)))])), world)
+		= (Ok (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (svgClock hour min sec)))]))), world)
 	where
 		svgClock hour min sec 
 			= SvgTag [StyleAttr "flex: 1; align-self: stretch;"] [ViewBoxAttr "0" "0" "100" "100"]
@@ -73,7 +73,7 @@ where
 updUI _ (AnalogClock t1) _ (AnalogClock t2) _ vst = case (  (if (t1.Time.sec == t2.Time.sec) [] [(0,t2.Time.sec)])
 						 ++ (if (t1.Time.min == t2.Time.min) [] [(1,t2.Time.min)])
 						 ++ (if (t1.Time.hour == t2.Time.hour) [] [(2,t2.Time.hour)])
-						 ) of [] = (NoChange,vst) ; delta = (ChangeUI [SetAttribute "diff" (toJSON delta)] [],vst)
+						 ) of [] = (Ok NoChange,vst) ; delta = (Ok (ChangeUI [SetAttribute "diff" (toJSON delta)] []),vst)
 
 onEdit :: DataPath JSONNode AnalogClock EditMask *USt -> *(!AnalogClock,!EditMask,!*USt)
 onEdit [] diff t m ust = case fromJSON diff of

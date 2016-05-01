@@ -118,12 +118,12 @@ where
 	typeDesc = "uniform resource locator (URL)"
 	genUI dp val=:(URL url) mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
-			= (setOptional optional (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (ATag [HrefAttr url] [Text url])))])), vst)
+			= (Ok (setOptional optional (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (ATag [HrefAttr url] [Text url])))]))), vst)
 		| otherwise
 			# value = checkMaskValue mask url
-			= ((setOptional optional o setEditOpts taskId (editorId dp) value) (uia UIEditString (stdAttributes typeDesc optional mask)),vst)
+			= (Ok ((setOptional optional o setEditOpts taskId (editorId dp) value) (uia UIEditString (stdAttributes typeDesc optional mask))),vst)
 	updUI dp (URL old) om (URL new) nm vst=:{VSt|optional}
-		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
 	onEdit dp e val mask ust = basicUpdate (\json url -> Just (maybe url (\s -> URL s) (fromJSON json))) dp e val mask ust
 
@@ -157,10 +157,10 @@ where
 		| disabled
 			# val = checkMask mask val
 			# attr = maybe 'DM'.newMap (\note -> 'DM'.fromList [("value",JSONString (toString (noteToHtml note)))]) val
-			= ((setOptional optional o setMargins 5 5 5 5) (uia UIViewHtml attr),vst)
+			= (Ok ((setOptional optional o setMargins 5 5 5 5) (uia UIViewHtml attr)),vst)
 		| otherwise	
 			# value = checkMaskValue mask ((\(Note v)  -> v) val)
-			= ((style o setEditOpts taskId (editorId dp) value o setOptional optional) (uia UIEditNote (stdAttributes typeDesc optional mask)),vst)
+			= (Ok ((style o setEditOpts taskId (editorId dp) value o setOptional optional) (uia UIEditNote (stdAttributes typeDesc optional mask))),vst)
 	where	
 		style = setHeight FlexSize o setMinHeight WrapBound
 	
@@ -172,7 +172,7 @@ where
 			lines	= SpanTag [] ('DL'.intersperse (BrTag []) (map Text lines))
 
 	updUI dp old om new nm vst=:{VSt|optional}
-		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI (noteToHtml new)):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI (noteToHtml new)):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
 	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -224,14 +224,14 @@ where
 		| disabled	
 			# val = checkMask mask val
 			# setVal = maybe id (\(EUR v) -> setValue (JSONString (toString v))) val
-			= (setVal (uia UIViewString ('DM'.put PREFIX_ATTRIBUTE (JSONString "&euro;") 'DM'.newMap)),vst)
+			= (Ok (setVal (uia UIViewString ('DM'.put PREFIX_ATTRIBUTE (JSONString "&euro;") 'DM'.newMap))),vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(EUR v) -> toReal v / 100.0) val)
 			# attr = ('DM'.put PREFIX_ATTRIBUTE (JSONString "&euro;") (stdAttributes typeDesc optional mask))
-			= (setEditOpts taskId (editorId dp) value (uia UIEditDecimal attr),vst)
+			= (Ok (setEditOpts taskId (editorId dp) value (uia UIEditDecimal attr)),vst)
 	updUI dp (EUR old) om (EUR new) nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
-		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
 	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -275,15 +275,15 @@ where
 		| disabled	
 			# val = checkMask mask val
 			# setVal = maybe id (\v -> setValue (JSONString (toString v))) val
-			= (setVal (uia UIViewString ('DM'.put PREFIX_ATTRIBUTE (JSONString "$") 'DM'.newMap)) ,vst)
+			= (Ok (setVal (uia UIViewString ('DM'.put PREFIX_ATTRIBUTE (JSONString "$") 'DM'.newMap))),vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(USD v) -> toReal v / 100.0) val)
 			# attr =('DM'.put PREFIX_ATTRIBUTE (JSONString "$") (stdAttributes typeDesc optional mask))
-			= (setEditOpts taskId (editorId dp) value (uia UIEditDecimal attr),vst)
+			= (Ok (setEditOpts taskId (editorId dp) value (uia UIEditDecimal attr)),vst)
 
 	updUI dp (USD old) om (USD new) nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
-		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
 	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
 
@@ -340,15 +340,15 @@ where
 		| disabled
 			# val = checkMask mask val
 			# setVal = maybe id (\v -> setValue (JSONString (toString v))) val
-			= (setVal (ui UIViewString), vst)
+			= (Ok (setVal (ui UIViewString)), vst)
 		| otherwise
 			# value	= checkMaskValue mask val
 			# editOpts = setEditOpts taskId (editorId dp) value
-			= (editOpts (uia UIEditDate (stdAttributes typeDesc optional mask)), vst)
+			= (Ok (editOpts (uia UIEditDate (stdAttributes typeDesc optional mask))), vst)
 
 	updUI dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
-		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
 	onEdit dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
 
@@ -430,15 +430,15 @@ where
 		| disabled
 			# val = checkMask mask val
 			# setVal = maybe id (\v -> setValue (JSONString (toString v))) val
-			= (setVal (ui UIViewString),vst)
+			= (Ok (setVal (ui UIViewString)),vst)
 		| otherwise
 			# value = checkMaskValue mask val
 			# editOpts = setEditOpts taskId (editorId dp) value
-			= (editOpts (uia UIEditTime (stdAttributes typeDesc optional mask)), vst)
+			= (Ok (editOpts (uia UIEditTime (stdAttributes typeDesc optional mask))), vst)
 
 	updUI dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
-		= (if (old === new) NoChange (ChangeUI [SetAttribute "value " (encodeUI nval):stdAttributeChanges typeDesc optional om nm] []), vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value " (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])), vst)
 
 	onEdit dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
 
@@ -519,14 +519,14 @@ where
 		| disabled
 			# val = checkMask mask val
 			# setVal = maybe id (\v -> setValue (JSONString (toString v))) val
-			= (setVal (ui UIViewString), vst)
+			= (Ok (setVal (ui UIViewString)), vst)
 		| otherwise
 			# value = checkMaskValue mask val
 			# editOpts = setEditOpts taskId (editorId dp) value
-			= (editOpts (uia UIEditDateTime (stdAttributes typeDesc optional mask)), vst)
+			= (Ok (editOpts (uia UIEditDateTime (stdAttributes typeDesc optional mask))), vst)
 	updUI dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (toJSON new)
-		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
 	onEdit dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
 
@@ -589,13 +589,13 @@ where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
 			# value = checkMask mask val
-			= ((maybe id (\v -> setValue (toJSON v)) value) (ui UIViewDocument), vst)
+			= (Ok ((maybe id (\v -> setValue (toJSON v)) value) (ui UIViewDocument)), vst)
 		| otherwise
 			# value = checkMaskValue mask val
 			# editOpts = setEditOpts taskId (editorId dp) value
-			= (editOpts (uia UIEditDocument (stdAttributes typeDesc optional mask)),vst)
+			= (Ok (editOpts (uia UIEditDocument (stdAttributes typeDesc optional mask))),vst)
 	updUI dp old om new nm vst=:{VSt|optional}
-		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] []),vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
 	onEdit dp e val mask ust = case fromJSON e of 
 		Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},Blanked,ust)// Reset
@@ -664,16 +664,16 @@ where
 			# val = checkMask mask val							
 			# slider = sliderOpts (ui UIViewSlider)
 			# slider = maybe slider (\v -> setValue (JSONInt (curVal v)) slider) val
-			= (setOptional optional slider,vst)
+			= (Ok (setOptional optional slider),vst)
 		| otherwise
 			# value = checkMaskValue mask (curVal val)
 			# editOpts = setEditOpts taskId (editorId dp) value 
-			= ((setOptional optional o sliderOpts o editOpts) (ui UIEditSlider), vst)
+			= (Ok ((setOptional optional o sliderOpts o editOpts) (ui UIEditSlider)), vst)
 	where
 		curVal {Scale|cur} = cur
 	
 	updUI dp {Scale|cur=old} om {Scale|cur=new} nm vst
-		= (if (old === new) NoChange (ChangeUI [SetAttribute "setValue" (encodeUI new)] []),vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "setValue" (encodeUI new)] [])),vst)
 
 	onEdit dp e val mask ust = basicUpdate (\json i -> Just (maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json))) dp e val mask ust
 
@@ -687,7 +687,7 @@ gText{|Progress|}	_ val  = [maybe "" (\{Progress|description} -> description) va
 gEditor{|Progress|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp val mask vst=:{VSt|taskId}
-		= ((setText (text val) o (setValue (toJSON (value val)))) (ui UIViewProgress), vst)
+		= (Ok ((setText (text val) o (setValue (toJSON (value val)))) (ui UIViewProgress)), vst)
 	where
 		text {Progress|description}	= description
 		
@@ -698,7 +698,7 @@ where
 	value {Progress|progress} = progress
 
 	updUI dp old om new nm vst
-		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI (value new))] []),vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI (value new))] [])),vst)
 
 	onEdit dp e val mask ust = (val,mask,ust)
 
@@ -722,10 +722,10 @@ gEditor{|HtmlInclude|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp (HtmlInclude path) mask vst
 		# attr = 'DM'.fromList [("value",JSONString (toString (IframeTag [SrcAttr path] [])))]
-		= (uia UIViewHtml attr,vst)
+		= (Ok (uia UIViewHtml attr),vst)
 
 	updUI dp (HtmlInclude old) om (HtmlInclude new) nm vst
-		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new)] []),vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new)] [])),vst)
 
 	onEdit dp e val mask ust = (val,mask,ust)
 
@@ -743,10 +743,10 @@ where
 		# iconCls = val.FormButton.icon
 		# buttonOpts = setText text o setIconCls iconCls o setEnabled True
 		# editOpts = setEditOpts taskId (editorId dp) (Just (JSONString "pressed"))
-		= ((editOpts o buttonOpts)(ui UIEditButton), vst)
+		= (Ok ((editOpts o buttonOpts)(ui UIEditButton)), vst)
 
 	updUI dp {FormButton|state=old} om {FormButton|state=new} nm vst
-		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new)] []),vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new)] [])),vst)
 
 	onEdit dp e val mask ust = basicUpdate (\st b -> Just {FormButton|b & state = st}) dp e val mask ust
 
@@ -776,7 +776,7 @@ gText{|Table|}	_ _	= ["<Table>"]
 gEditor{|Table|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
-		= ((setChoiceOpts taskId (editorId dp) (value val) (options val) o setColumns (columns val)) (ui UIGrid),vst)
+		= (Ok ((setChoiceOpts taskId (editorId dp) (value val) (options val) o setColumns (columns val)) (ui UIGrid)),vst)
 	where
 		value (Table _ _ mbSel)	= maybe [] (\s->[s]) mbSel
 		columns (Table headers _ _)	= headers
@@ -784,9 +784,9 @@ where
 
 	updUI dp old om new nm vst 
 		| old === new 
-			= (NoChange,vst)
+			= (Ok NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
-		= (ReplaceUI nviz,vst)
+		= (fmap ReplaceUI nviz,vst)
 
 	onEdit dp e val mask ust = basicUpdate (\json (Table headers cells _) -> case fromJSON json of Just i = Just (Table headers cells (Just i)); _ = Just (Table headers cells Nothing)) dp e val mask ust
 
@@ -831,10 +831,10 @@ gEditor{|ComboChoice|} fx gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEd
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
-			= ((vvalue val) (ui UIViewString), vst)
+			= (Ok ((vvalue val) (ui UIViewString)), vst)
 		| otherwise
 			# choiceOpts = setChoiceOpts taskId (editorId dp) (evalue val) (options val)
-			= (choiceOpts (uia UIDropdown (stdAttributes "choice" optional mask)), vst)
+			= (Ok (choiceOpts (uia UIDropdown (stdAttributes "choice" optional mask))), vst)
 
 	vvalue (ComboChoice options (Just sel))	= setValue (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
 	vvalue _								= id 
@@ -844,9 +844,9 @@ where
 
 	updUI dp old om new nm vst
 		| options old === options new && evalue old === evalue new
-			= (NoChange,vst)
+			= (Ok NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
-		= (ReplaceUI nviz,vst)
+		= (fmap ReplaceUI nviz,vst)
 
 	onEdit dp e val mask ust = updateChoice (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) dp e val mask ust
 
@@ -868,10 +868,10 @@ gEditor{|RadioChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdi
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
-			= ((setOptional optional o vvalue val) (ui UIViewString),vst)
+			= (Ok ((setOptional optional o vvalue val) (ui UIViewString)),vst)
 		| otherwise
 			# choiceOpts = setChoiceOpts taskId (editorId dp) (evalue val) (options val)
-			= ((setOptional optional o choiceOpts) (uia UIRadioGroup (stdAttributes "choice" optional mask)),vst)
+			= (Ok ((setOptional optional o choiceOpts) (uia UIRadioGroup (stdAttributes "choice" optional mask))),vst)
 
 	vvalue (RadioChoice options (Just sel))	= setValue (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
 	vvalue _								= id
@@ -881,9 +881,9 @@ where
 
 	updUI dp old om new nm vst
 		| options old === options new && evalue old === evalue new
-			= (NoChange,vst)
+			= (Ok NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
-		= (ReplaceUI nviz,vst)
+		= (fmap ReplaceUI nviz,vst)
 
 	onEdit dp e val mask ust = updateChoice (\idx (RadioChoice options _) -> RadioChoice options (Just idx)) dp e val mask ust
 
@@ -904,10 +904,10 @@ gEditor{|ListChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
 		| disabled
-			= ((vvalue val) (ui UIViewString), vst)
+			= (Ok ((vvalue val) (ui UIViewString)), vst)
 		| otherwise
 			# choiceOpts = setChoiceOpts taskId (editorId dp) (evalue val) (options val)
-			= (choiceOpts (ui UIListChoice),vst)
+			= (Ok (choiceOpts (ui UIListChoice)),vst)
 
 	vvalue (ListChoice options (Just sel))	= setValue (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
 	vvalue _								= id
@@ -917,9 +917,9 @@ where
 
 	updUI dp old om new nm vst
 		| options old === options new && evalue old === evalue new
-			= (NoChange,vst)
+			= (Ok NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
-		= (ReplaceUI nviz,vst)
+		= (fmap ReplaceUI nviz,vst)
 
 	onEdit dp e val mask ust = updateChoice (\idx (ListChoice options _) -> ListChoice options (Just idx)) dp e val mask ust
 
@@ -941,7 +941,7 @@ gEditor{|TreeChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
 		# viz		= setChoiceOpts taskId (editorId dp) (value val) (options gx val mask) (ui UITree)
-		= (viz,vst)
+		= (Ok viz,vst)
 
 	value  (TreeChoice _ mbSel) 	= maybe [] (\s->[s]) mbSel
 	
@@ -965,9 +965,9 @@ where
 
 	updUI dp old om new nm vst
 		| options gx old Untouched === options gx new Untouched && value old === value new
-			= (NoChange,vst)
+			= (Ok NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
-		= (ReplaceUI nviz,vst)
+		= (fmap ReplaceUI nviz,vst)
 
 	onEdit dp e (TreeChoice tree sel) mask ust = case fromJSON e of
 		Just ("sel",idx,val)	= (TreeChoice tree (if val (Just idx) Nothing), touch mask, ust)
@@ -991,7 +991,7 @@ gText{|GridChoice|} fv _ _ = [""]
 gEditor{|GridChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
-		= ((setChoiceOpts taskId (editorId dp) (value val) (options val) o setColumns columns) (ui UIGrid),vst)
+		= (Ok ((setChoiceOpts taskId (editorId dp) (value val) (options val) o setColumns columns) (ui UIGrid)),vst)
 
 	value (GridChoice options mbSel)	= maybe [] (\s->[s]) mbSel
 	options (GridChoice options _)		= [toJSON (gx AsRow (Just opt)) \\ opt <- options]
@@ -999,9 +999,9 @@ where
 
 	updUI dp old om new nm vst
 		| options old === options new && value old === value new
-			= (NoChange,vst)
+			= (Ok NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
-		= (ReplaceUI nviz,vst)
+		= (fmap ReplaceUI nviz,vst)
 
  	onEdit dp e val mask ust = updateChoice (\idxs (GridChoice options _) -> GridChoice options (case idxs of [idx:_] = (Just idx); _ = Nothing)) dp e val mask ust
 
@@ -1043,7 +1043,7 @@ where
 		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.updUI dp old om new nm vst
 	updUI dp old om new nm vst
 		# (nviz,vst) = genUI dp new nm vst
-		= (ReplaceUI nviz,vst)
+		= (fmap ReplaceUI nviz,vst)
 
 	onEdit dp e (DCCombo val) mask ust 
 		# (val,mask,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
@@ -1102,10 +1102,10 @@ gEditor{|CheckMultiChoice|} _ gx _ _ _ _ _ _ _ _ = {Editor|genUI=genUI,updUI=upd
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
-			= ((setOptional optional o vvalue val) (ui UIViewString),vst)
+			= (Ok ((setOptional optional o vvalue val) (ui UIViewString)),vst)
 		| otherwise
 			# choiceOpts = setChoiceOpts taskId (editorId dp) (evalue val) (options val)
-			= ((setOptional optional o choiceOpts) (uia UICheckboxGroup (stdAttributes "choice" optional mask)),vst)
+			= (Ok ((setOptional optional o choiceOpts) (uia UICheckboxGroup (stdAttributes "choice" optional mask))),vst)
 
 	vvalue (CheckMultiChoice options sel)	= setValue (JSONString (join "," ([hd (gx AsSingleLine (Just (fst (options !! i )))) \\ i <- sel])))
 	evalue (CheckMultiChoice _ sel)			= sel
@@ -1113,9 +1113,9 @@ where
 
 	updUI dp old om new nm vst
 		| options old === options new && evalue old === evalue new
-			= (NoChange,vst)
+			= (Ok NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
-		= (ReplaceUI nviz,vst)
+		= (fmap ReplaceUI nviz,vst)
 
 	onEdit dp e val mask ust = basicUpdate (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = Just (CheckMultiChoice opts (updateSel i v sel)); _ = (Just (CheckMultiChoice opts sel))) dp e val mask ust
 	where
@@ -1282,7 +1282,7 @@ where
 	updUI dp (VHEditable old) om (VHEditable new) nm vst = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.updUI dp (Editable old) om (Editable new) nm vst
 	updUI dp (VHDisplay old) om (VHDisplay new) nm vst   = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.updUI dp (Display old) om (Display new) nm vst
 	updUI dp (VHHidden old) om (VHHidden new) nm vst     = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.updUI dp (Hidden old) om (Hidden new) nm vst
-	updUI _ _ _ _ _ vst = (NoChange,vst)
+	updUI _ _ _ _ _ vst = (Ok NoChange,vst)
 
 	onEdit dp e val=:(VHEditable s) mask ust = wrapperUpdate fx.Editor.onEdit fromVisualizationHint VHEditable dp e val mask ust
 	onEdit dp e val=:(VHDisplay s) mask ust = wrapperUpdate fx.Editor.onEdit fromVisualizationHint VHDisplay dp e val mask ust
@@ -1305,8 +1305,8 @@ gText{|Hidden|} _ _ _ = []
 
 gEditor{|Hidden|} fx _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val mask vst = (ui UIEmpty,vst)
-	updUI dp old om new nm vst = (NoChange,vst)
+	genUI dp val mask vst = (Ok (ui UIEmpty),vst)
+	updUI dp old om new nm vst = (Ok NoChange,vst)
 	onEdit dp e val mask ust = (val,mask,ust)
 
 gVerify{|Hidden|} fx options (Hidden v,mask) = fx options (v,mask)
@@ -1368,7 +1368,7 @@ gText{|Row|} gVizx mode Nothing = gVizx mode Nothing
 gEditor{|Row|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit} 
 where
 	genUI dp (Row val) mask vst
- 		= appFst (setDirection Horizontal) (ex.Editor.genUI dp val mask vst)
+ 		= appFst (fmap (setDirection Horizontal)) (ex.Editor.genUI dp val mask vst)
 	updUI dp (Row old) om (Row new) nm vst
 		= ex.Editor.updUI dp old om new nm vst
 	onEdit dp e val mask ust = wrapperUpdate ex.Editor.onEdit (\(Row x) -> x) Row dp e val mask ust
@@ -1381,7 +1381,7 @@ gText{|Col|} gVizx mode Nothing = gVizx mode Nothing
 gEditor{|Col|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp (Col val) mask vst
- 		= appFst (setDirection Vertical) (ex.Editor.genUI dp val mask vst)
+ 		= appFst (fmap (setDirection Vertical)) (ex.Editor.genUI dp val mask vst)
 	updUI dp (Col old) om (Col new) nm vst
 		= ex.Editor.updUI dp old om new nm vst
 	onEdit dp e val mask ust = wrapperUpdate ex.Editor.onEdit (\(Col x) -> x) Col dp e val mask ust
@@ -1551,9 +1551,9 @@ derive gVerify			Icon
 
 gEditor{|Icon|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI _ (Icon icon) mask vst = (setIconCls ("icon-"+++icon) (ui UIIcon), vst)
+	genUI _ (Icon icon) mask vst = (Ok (setIconCls ("icon-"+++icon) (ui UIIcon)), vst)
 	updUI _ (Icon old) om (Icon new) nm vst
-		= (if (old === new) NoChange (ChangeUI [SetAttribute "iconCls" (encodeUI ("icon-"+++new))] []),vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "iconCls" (encodeUI ("icon-"+++new))] [])),vst)
 
 	onEdit dp e val mask ust = (val,mask,ust)
 
@@ -1578,8 +1578,8 @@ gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 gDefault{|{}|} _ = undef
 gEditor{|{}|} _ _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI _ _ _ vst = (ui UIEmpty,vst)
-	updUI _ _ _ _ _ vst = (NoChange,vst)
+	genUI _ _ _ vst = (Ok (ui UIEmpty),vst)
+	updUI _ _ _ _ _ vst = (Ok NoChange,vst)
 	onEdit _ _ val mask ust = (val,mask,ust)
 
 gText{|{}|} _ _ _ = undef

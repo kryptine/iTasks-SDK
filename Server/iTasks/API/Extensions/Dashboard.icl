@@ -18,12 +18,12 @@ controlLightEditlet
     = {Editlet
       |genUI  = genUI
       ,initUI = initUI
-      ,updUI  = \_ a _ b _ vst -> (if (a===b) NoChange (ChangeUI [SetAttribute "value" (JSONString (color b))] []),vst)
+      ,updUI  = \_ a _ b _ vst -> (Ok (if (a===b) NoChange (ChangeUI [SetAttribute "value" (JSONString (color b))] [])),vst)
       ,onEdit = \_ _ a m ust -> (a,m,ust)
       }
 where
 	genUI dp val mask world
-		= (setSize (ExactSize 20) (ExactSize 20) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (svgLight (color val))))])), world)
+		= (Ok (setSize (ExactSize 20) (ExactSize 20) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (svgLight (color val))))]))), world)
 
     initUI me world 
 		# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) world

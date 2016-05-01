@@ -99,10 +99,12 @@ where
 		# vValid				= isValid (verifyMaskedValue (nv,nm))
 		# (nl,(nv,nm)) 			= if (rChanged || vChanged) (refreshFun l nr (nv,nm) rChanged vChanged vValid) (l,(nv,nm))
 		//Update visualization v
-		# (change,valid,iworld) = visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld
-		# value 				= if valid (Value nl False) NoValue
-		# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-		= (ValueResult value info change (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nm), iworld)
+		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+			(Ok change,valid,iworld)
+				# value 				= if valid (Value nl False) NoValue
+				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
+				= (ValueResult value info change (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nm), iworld)
+			(Error e,valid,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -121,22 +123,23 @@ updateValueAndMask_ taskId path mbEditor diff (v,m) iworld
     # (nv,nm,ust=:{USt|iworld}) = editor.Editor.onEdit path diff v m {USt|taskId=toString taskId,iworld=iworld}
     = ((nv,nm),iworld)
 
-visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld -> *(!UIChange,!Bool,!*IWorld) | iTask v & toPrompt d
+visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld -> *(!MaybeErrorString UIChange,!Bool,!*IWorld) | iTask v & toPrompt d
 visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworld
 	# editor 	= fromMaybe gEditor{|*|} mbEditor
 	# ver 		= verifyMaskedValue (nv,nm)
 	# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
 	# (change,vst=:{VSt|iworld}) = case event of
 		ResetEvent		//(re)generate the initial UI
-			# (editUI,vst)	= editor.Editor.genUI [] nv nm vst
-			# promptUI  	= toPrompt desc
-			# change 		= ReplaceUI (uic UIInteract [promptUI,editUI])
-			= (change,vst)
+			= case editor.Editor.genUI [] nv nm vst of
+				(Ok editUI,vst)
+					# promptUI  	= toPrompt desc
+					# change 		= ReplaceUI (uic UIInteract [promptUI,editUI])
+					= (Ok change,vst)
 		_				//compare old and new value to determine changes
-			# (editChange,vst)  = editor.Editor.updUI [] v m nv nm vst
-			# promptChange 		= NoChange
-			# change 			= ChangeUI [] [(0,ChangeChild promptChange), (1,ChangeChild editChange)]
-			= (change,vst)
+			= case editor.Editor.updUI [] v m nv nm vst of
+				(Ok editChange,vst)
+					= (Ok (ChangeUI [] [(0,ChangeChild NoChange), (1,ChangeChild editChange)]) ,vst)
+				(Error e,vst) = (Error e,vst)
 	= (change,isValid ver,iworld)
 
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w

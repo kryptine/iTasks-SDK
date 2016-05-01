@@ -13,14 +13,15 @@ from iTasks.API.Core.Types import :: DataPath, :: Verification, :: VerifiedValue
 from Data.Maybe import :: Maybe
 from Data.Either import :: Either
 from Data.Map import :: Map
+from Data.Error import :: MaybeErrorString
 from Text.JSON import :: JSONNode
 
 /*
 *	Standard editor
 */
 :: Editor a = 
-	{ genUI  :: DataPath a EditMask *VSt -> *(!UI,!*VSt)
-	, updUI  :: DataPath a EditMask a EditMask *VSt -> *(!UIChange, !*VSt)
+	{ genUI  :: DataPath a EditMask *VSt -> *(!MaybeErrorString UI,!*VSt)
+	, updUI  :: DataPath a EditMask a EditMask *VSt -> *(!MaybeErrorString UIChange, !*VSt)
 	, onEdit :: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
 	}
 
@@ -65,9 +66,9 @@ isTouched	:: !EditMask -> Bool
 //****************************************************************************//
 :: Editlet a
   =
-  { genUI   :: DataPath a EditMask *VSt -> *(!UI, !*VSt)
+  { genUI   :: DataPath a EditMask *VSt -> *(!MaybeErrorString UI, !*VSt)
   , initUI  :: (JSObj ()) *JSWorld -> *JSWorld
-  , updUI   :: DataPath a EditMask a EditMask *VSt -> *(!UIChange, !*VSt)
+  , updUI   :: DataPath a EditMask a EditMask *VSt -> *(!MaybeErrorString UIChange, !*VSt)
   , onEdit  :: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
   }
 
