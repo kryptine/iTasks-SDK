@@ -18,7 +18,6 @@ from iTasks.API.Core.Types import class TMonad, class TApplicative, class TFunct
 from Data.Functor import class Functor
 
 from System.IO import :: IO
-from Text.Parsers.Parsers import :: Parser
 
 // For all of these classes goes that the iTask context restriction shouldn't
 // be there. Ideally, we would have something like associated type families
@@ -45,13 +44,6 @@ instance TonicBlueprintPart IO
 instance TApplicative IO
 instance TFunctor IO
 instance TMonad IO
-
-instance TonicTopLevelBlueprint (Parser s t)
-instance TonicBlueprintPart (Parser s t)
-
-instance TFunctor (Parser s t)
-instance TApplicative (Parser s t)
-instance TMonad (Parser s t)
 
 tonicExtWrapArg       :: !VarName !Int !a -> m () | iTask a & TonicTopLevelBlueprint m
 
