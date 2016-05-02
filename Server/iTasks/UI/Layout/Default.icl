@@ -37,7 +37,7 @@ where
     	,layoutSubAt [1] finalizeForm 
 		,copyAttributes [0] []
 		,removeEmptyPrompt
-		,changeNodeType (\(UI UIInteract attr items) -> UI UIPanel attr items)
+		,changeNodeType (\(UI UIInteract attr items) -> UI UIContainer attr items)
 		] 
 
 	removeEmptyPrompt = conditionalLayout emptyPrompt (removeSubAt [0])
@@ -83,12 +83,6 @@ where
 	layout = sequenceLayouts
 		[layoutChildrenOf [] finalizeUI
 		,changeNodeType (\(UI UIParallel attr items) -> UI UIContainer attr items)
-/*
-		,selectLayout
-			[(isSingle, unwrapUI)
-			,(const True,changeNodeType (\(UI UIParallel attr items) -> UI UIContainer attr items))
-			]
-*/
 		]
 
 	isSingle (UI _ _ [_]) = True

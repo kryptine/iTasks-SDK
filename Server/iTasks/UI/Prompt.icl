@@ -21,4 +21,4 @@ where toPrompt (title,hint) = setTitle title (createPrompt hint)
 createPrompt :: String -> UI
 createPrompt hint = style (uic UIContainer [stringDisplay hint])
 where
-	style = setMargins 5 5 10 5 o setWidth FlexSize o setMinWidth WrapBound o setHeight WrapSize o setBaseCls "itwc-prompt"
+	style = setMargins 5 5 10 5 o setWidth FlexSize o setMinWidth WrapBound o setHeight WrapSize o setBaseCls "itasks-prompt"
