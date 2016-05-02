@@ -1,6 +1,3 @@
-If you have downloaded the iTasks nightly build (recommended), you are almost
-all set to start building iTasks applications.
-
 Follow these steps to get a working system:
 
  1. Install clean. Download the Clean nightly distribution for your Mac, unzip

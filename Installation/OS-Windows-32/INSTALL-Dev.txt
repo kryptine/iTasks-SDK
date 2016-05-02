@@ -1,8 +1,0 @@
-=== Setup ===
-
-= Building examples =
-The most up-to-date example suite to run at the moment is the examples collection for the CEFP Summerschool.
-- Open the "iTasks-SDK/Examples/BasicAPIExamples.prj" Clean project. ("File" -> "Open...")
-- You build the project by choosing ("Project" -> "Update and Run") from the menu.
-- A BasicAPIExamples.exe server is started automatically which you can access at "http://localhost/"
-- Further instructions for setting up are given by the server 

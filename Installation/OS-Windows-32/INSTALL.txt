@@ -1,34 +1,8 @@
 === Setup ===
 
-= First install the Clean 2.4 32-bit distribution on your machine (download it from the Clean site: http://wiki.clean.cs.ru.nl/Download_Clean). 
-There are versions for the PC, Mac, and Linux.
-
-= Preparation of the Clean IDE for iTasks =
-- Make sure that this SDK is placed in the folder of the Clean 2.4 32-bit distribution (the one that contains "CleanIDE.exe")
-  and is called "iTasks-SDK".
-- You need to use the "iTasks-SDK/Installation/<OS version>/CleanIDE.exe", which must be in the same folder as the regular CleanIDE.exe. 
-  If you want to use both, rename "iTasks-SDK/Binaries/<Windows version>/CleanIDE.exe" and move it in the same folder as CleanIDE.exe.
-- Start the CleanIDE
-- Import the "iTasks" environment by choosing "Environment" -> "Import..." from the menu
-  and selecting the "iTasks-SDK/Installation/<OS version>/iTasks.env" environment file.
-- Set your default heap size for projects to 128M by choosing "Project" -> "Project defaults..." from the menu
-- Copy the folder "iTasks-SDK/Installation/Files/Sapl" into "Libraries/StdEnv/".
-  The compilation process creates a directory called "sapl" which contains all the necessary SAPL files;
-  this directory will be used by the client side execution infrastucture of the iTask toolkit.
-- Copy the file "iTasks-SDK/Installation/Files/_system.abc" into "Libraries/StdEnv/Clean System Files/". This is adds the
-  predefined type () which is used for tasks without a result.
-
 = Building examples =
 The most up-to-date example suite to run at the moment is the examples collection for the CEFP Summerschool.
-- Open the "iTasks-SDK/Documentation/Examples/BasicAPIExamples.prj" Clean project. ("File" -> "Open...")
+- Open the "iTasks-SDK/Examples/BasicAPIExamples.prj" Clean project. ("File" -> "Open...")
 - You build the project by choosing ("Project" -> "Update and Run") from the menu.
 - A BasicAPIExamples.exe server is started automatically which you can access at "http://localhost/"
-- Further instructions for setting up are given by the server
-
-= SDK Path =
-The iTask system has to find the path to the SDK. There are three ways to make sure it can find it:
-
-1. Make sure your executable is executed in a sub-directory of the Clean installation (not more than 5 levels deeper than the Clean root), e.g. by creating your project in such location.
-2. Set the environment variable CLEAN_HOME to the root directory of your Clean installation.
-3. Install Clean in "C:\Clean 2.4".
-
+- Further instructions for setting up are given by the server 

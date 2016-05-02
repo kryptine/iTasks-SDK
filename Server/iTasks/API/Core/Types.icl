@@ -3,7 +3,7 @@ from StdFunc import until, const, id
 import StdInt, StdBool, StdClass, StdArray, StdEnum, StdTuple, StdMisc, StdList, StdOrdList
 import GenLexOrd
 import Data.Either, Data.Functor, Text.JSON, Text.HTML, Text, Text.Encodings.Base64, Data.Tuple, dynamic_string, System.File
-from Data.Map import :: Map, :: Size
+from Data.Map import :: Map (..)
 from Data.List import instance Functor []
 import qualified Data.List as DL
 import qualified Data.Map as DM

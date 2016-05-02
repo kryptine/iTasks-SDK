@@ -51,8 +51,6 @@ from TCPChannelClass import :: DuplexChannel {..}, instance ChannelEnv World, cl
 from TCPChannels import instance Send TCP_SChannel_, class Send, instance closeRChannel	TCP_RChannel_, class closeRChannel
 from TCPEvent import instance accSChannel TCP_SChannel_, class accSChannel
 import System.IO
-from Text.Parsers.Parsers import :: Parser
-import qualified Text.Parsers.Parsers as PS
 import StdFile
 
 //-----------------------------------------------------------------------------
@@ -197,7 +195,7 @@ tonicIOBlueprintPart mn fn nid mb
                                [x : xs] -> [x + 1 : x : xs]
                                xs       -> xs
     # world                = writeBookkeeping bk world
-    # world                = case 'DM'.get curId bk.TonicBookkeeping.computations of
+    # world                = case 'DM'.get (tl curId) bk.TonicBookkeeping.computations of
                                Just comp
                                  # msg = { TMApply
                                          | tma_computationId  = curId
@@ -243,24 +241,6 @@ ppnid nid = "[" +++ ppnid` nid +++ "]"
   ppnid` [x:xs] = toString x +++ ", " +++ ppnid` xs
 
 liftA2 f a b = (tmap f a) <#> b
-
-instance TonicTopLevelBlueprint (Parser s t) where
-  tonicWrapBody _ _ _ _ t = t
-  tonicWrapArg _ _ _ = return ()
-
-instance TonicBlueprintPart (Parser s t) where
-  tonicWrapApp mn tn nid _ mb = mb
-
-instance TFunctor (Parser s t) where
-  tmap f a = f 'PS'. @> a
-
-instance TApplicative (Parser s t) where
-  return a      = 'PS'.yield a
-  (<#>) fab fa  = fab 'PS'. <++> fa
-
-instance TMonad (Parser s t) where
-  (>>=) ma a2mb  = ma 'PS'. <&> a2mb
-  (>>|) l r = l >>= \_ -> r
 
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
                    DynamicView, BlueprintQuery, UIAction, CircularStack

@@ -1,7 +1,7 @@
 implementation module iTasks.UI.Definition
 
 import Text.JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text
-from Data.Map import :: Map, :: Size
+from Data.Map import :: Map (..)
 import qualified Data.Map as DM
 import qualified Data.List as DL
 from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action, :: Hotkey

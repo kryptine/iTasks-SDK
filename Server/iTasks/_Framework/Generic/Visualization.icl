@@ -2,7 +2,7 @@ implementation module iTasks._Framework.Generic.Visualization
 
 import StdGeneric, StdList, StdMisc
 import Data.Maybe, Data.Either, Data.Void, Data.Functor
-from Data.Map import :: Map, :: Size
+from Data.Map import :: Map (..)
 import qualified Data.Map as DM
 import qualified Data.List as DL
 import Text, Text.JSON, Text.HTML
