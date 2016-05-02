@@ -112,13 +112,13 @@ where
                 ["gui-events"]
                     //Load task instance and edit / evaluate
                     # instanceNo         = toInt instanceNoParam
-                    # iworld             = updateInstanceLastIO [instanceNo] iworld
+                    # (_,iworld)         = updateInstanceLastIO [instanceNo] iworld
 					# iworld 			 = queueEvent instanceNo event iworld
 					# json				 = JSONObject [("instance",JSONInt instanceNo)]
                     = (jsonResponse json, Nothing, Nothing, iworld)
                 ["gui-stream"]
                     //Stream messages for multiple instances
-                    # iworld            = updateInstanceConnect req.client_name instances iworld
+                    # (_,iworld)        = updateInstanceConnect req.client_name instances iworld
 					# (messages,output) = dequeueOutput instances output //TODO: Check keys
                     = (eventsResponse messages, Just (EventSourceConnection instances), Just output, iworld)
                 [instanceNo,instanceKey]
@@ -126,14 +126,14 @@ where
                 [instanceNo,instanceKey,"gui"]
                     //Load task instance and edit / evaluate
                     # instanceNo         = toInt instanceNo
-                    # iworld             = updateInstanceLastIO [instanceNo] iworld
+                    # (_,iworld)         = updateInstanceLastIO [instanceNo] iworld
 					# iworld 			 = queueEvent instanceNo event iworld
 					# json				 = JSONObject [("instance",JSONInt instanceNo)]
                     = (jsonResponse json, Nothing, Nothing, iworld)
                 //Stream messages for a specific instance
                 [instanceNo,instanceKey,"gui-stream"]
                     # instances         = [toInt instanceNo]
-                    # iworld            = updateInstanceConnect req.client_name instances iworld
+                    # (_,iworld)        = updateInstanceConnect req.client_name instances iworld
 					# (messages,output) = dequeueOutput instances output
                     = (eventsResponse messages, Just (EventSourceConnection instances), Nothing, iworld)
                 _
@@ -171,10 +171,10 @@ where
 		= case messages of //Ignore empty updates
 			[] = ([],False,(EventSourceConnection instances),Nothing,iworld)
             messages	
-                # iworld = updateInstanceLastIO instances iworld
+                # (_,iworld) = updateInstanceLastIO instances iworld
                 = ([formatMessageEvents messages],False,(EventSourceConnection instances),Just output, iworld)
 
-	disconnectFun _ _ (EventSourceConnection instances) iworld    = (Nothing, updateInstanceDisconnect instances iworld)
+	disconnectFun _ _ (EventSourceConnection instances) iworld    = (Nothing, snd (updateInstanceDisconnect instances iworld))
 	disconnectFun _ _ _ iworld                                    = (Nothing, iworld)
 
 	dequeueOutput :: ![InstanceNo] !(Map InstanceNo (Queue UIChange)) -> (![(!InstanceNo,!UIChange)],!Map InstanceNo (Queue UIChange))

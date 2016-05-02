@@ -21,7 +21,7 @@ getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 * Dequeues events from the event queue and evaluates the tasks instances
 * @param Maximum amount of events to process at once
 */
-processEvents :: !Int *IWorld -> *IWorld
+processEvents :: !Int *IWorld -> *(!MaybeError TaskException (), !*IWorld)
 
 /**
 * Evaluate a task instance
@@ -36,9 +36,9 @@ processEvents :: !Int *IWorld -> *IWorld
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue JSONNode),!*IWorld)
 
 //Update the I/O information for task instances
-updateInstanceLastIO        ::          ![InstanceNo]       !*IWorld -> *IWorld
-updateInstanceConnect       :: !String  ![InstanceNo]       !*IWorld -> *IWorld
-updateInstanceDisconnect    ::          ![InstanceNo]       !*IWorld -> *IWorld
+updateInstanceLastIO        ::          ![InstanceNo]       !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceConnect       :: !String  ![InstanceNo]       !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceDisconnect    ::          ![InstanceNo]       !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 
 //Shares providing access to the evaluation information (constants from an evaluation point of view)
 currentInstanceShare        :: ReadOnlyShared InstanceNo

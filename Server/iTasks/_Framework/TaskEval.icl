@@ -22,18 +22,18 @@ getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
     = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
 
-processEvents :: !Int *IWorld -> *IWorld
+processEvents :: !Int *IWorld -> *(!MaybeError TaskException (), !*IWorld)
 processEvents max iworld
-	| max <= 0 = iworld
+	| max <= 0 = (Ok (), iworld)
 	| otherwise
 		= case dequeueEvent iworld of 
-			(Nothing,iworld) = iworld 
+			(Nothing,iworld) = (Ok (),iworld)
 			(Just (instanceNo,event),iworld)
 				= case evalTaskInstance instanceNo event iworld of 
 					(Ok taskValue,iworld)
 						= processEvents (max - 1) iworld
 					(Error msg,iworld)
-						= processEvents (max - 1) iworld //TODO: Do something useful with this error
+						= (Error (exception msg), iworld)
 
 //Evaluate a single task instance
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue JSONNode),!*IWorld)
@@ -83,7 +83,9 @@ where
     // Check if instance was deleted by trying to reread the instance constants share
 	# (deleted,iworld) = appFst isError ('SDS'.read (sdsFocus instanceNo taskInstanceConstants) iworld)
     // Write the updated progress
-    # (mbErr,iworld)            = 'SDS'.modify (\p -> ((),updateProgress (DateTime localDate localTime) newResult p)) (sdsFocus instanceNo taskInstanceProgress) iworld
+	# (mbErr,iworld) = if (updateProgress (DateTime localDate localTime) newResult oldProgress === oldProgress)
+		(Ok (),iworld)	//Only update progress when something changed
+   		('SDS'.modify (\p -> ((),updateProgress (DateTime localDate localTime) newResult p)) (sdsFocus instanceNo taskInstanceProgress) iworld)
     = case mbErr of
         Error (e,msg)          = (Error msg,iworld)
         Ok _
@@ -138,23 +140,26 @@ where
 
     mbResetUIState _ _ iworld = iworld
 
-updateInstanceLastIO ::![InstanceNo] !*IWorld -> *IWorld
-updateInstanceLastIO [] iworld = iworld
+updateInstanceLastIO ::![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceLastIO [] iworld = (Ok (),iworld)
 updateInstanceLastIO [instanceNo:instanceNos] iworld=:{IWorld|clocks={localDate,localTime}}
-    # (_,iworld) = 'SDS'.modify (\p -> ((),{InstanceProgress|p & lastIO =Just (DateTime localDate localTime)})) (sdsFocus instanceNo taskInstanceProgress) iworld
-    = updateInstanceLastIO instanceNos iworld
+    = case 'SDS'.modify (\io -> ((),fmap (appSnd (const (DateTime localDate localTime))) io)) (sdsFocus instanceNo taskInstanceIO) iworld of
+    	(Ok (),iworld) = updateInstanceLastIO instanceNos iworld
+		(Error e,iworld) = (Error e,iworld)
 
-updateInstanceConnect :: !String ![InstanceNo] !*IWorld -> *IWorld //TODO Check error
-updateInstanceConnect client [] iworld = iworld
+updateInstanceConnect :: !String ![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceConnect client [] iworld = (Ok (),iworld)
 updateInstanceConnect client [instanceNo:instanceNos] iworld=:{IWorld|clocks={localDate,localTime}}
-    # (_,iworld) = 'SDS'.modify (\p -> ((),{InstanceProgress|p & connectedTo = Just client, lastIO = Just (DateTime localDate localTime)})) (sdsFocus instanceNo taskInstanceProgress) iworld
-    = updateInstanceConnect client instanceNos iworld
+    = case 'SDS'.write (Just (client,DateTime localDate localTime)) (sdsFocus instanceNo taskInstanceIO) iworld of
+		(Ok (),iworld) = updateInstanceConnect client instanceNos iworld
+		(Error e,iworld) = (Error e,iworld)
 
-updateInstanceDisconnect :: ![InstanceNo] !*IWorld -> *IWorld //TODO Check error
-updateInstanceDisconnect [] iworld = iworld
+updateInstanceDisconnect :: ![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceDisconnect [] iworld = (Ok (),iworld)
 updateInstanceDisconnect [instanceNo:instanceNos] iworld=:{IWorld|clocks={localDate,localTime}}
-    # (_,iworld) = 'SDS'.modify (\p -> ((),{InstanceProgress|p & connectedTo = Nothing, lastIO = Just (DateTime localDate localTime)})) (sdsFocus instanceNo taskInstanceProgress) iworld
-    = updateInstanceDisconnect instanceNos iworld
+    = case 'SDS'.modify (\io -> ((),fmap (appSnd (const (DateTime localDate localTime))) io)) (sdsFocus instanceNo taskInstanceIO) iworld of
+		(Ok (),iworld) = updateInstanceDisconnect instanceNos iworld
+		(Error e,iworld) = (Error e,iworld)
 
 currentInstanceShare :: ReadOnlyShared InstanceNo
 currentInstanceShare = createReadOnlySDS (\() iworld=:{current={TaskEvalState|taskInstance}} -> (taskInstance,iworld))

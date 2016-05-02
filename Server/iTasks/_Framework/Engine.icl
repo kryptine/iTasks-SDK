@@ -57,8 +57,6 @@ startEngine publishable world
 	# (res,iworld) 			= initJSCompilerState iworld
 	| res =:(Error _)
 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-    //Reset connectedTo for all task instances
-    # iworld                = clearConnections iworld
 	// mark all instance as outdated initially
     # iworld                = queueAllPersistent iworld
     //Run task server
@@ -118,14 +116,6 @@ where
 		(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
 		(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
 
-    //Read the content of the master instance index on disk to the "ti" field in the iworld
-    clearConnections :: !*IWorld -> *IWorld
-    clearConnections iworld = snd (modify clear (sdsFocus filter filteredInstanceIndex) iworld)
-    where
-        //When the server starts we make sure all have a blank connectedTo field
-        filter = {InstanceFilter|defaultValue & includeProgress = True}
-        clear index = ((),[(n,c,Just {InstanceProgress|p & connectedTo = Nothing},a) \\(n,c,Just p,a) <-index])
-
 queueAllPersistent :: !*IWorld -> *IWorld
 queueAllPersistent iworld
     # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just False} filteredInstanceIndex) iworld
@@ -133,22 +123,52 @@ queueAllPersistent iworld
         Ok index    = queueRefresh [(instanceNo,"Persistent first refresh") \\ (instanceNo,_,_,_)<- index]  iworld
         _           = iworld
 
-removeOutdatedSessions :: !*IWorld -> *IWorld
+updateClocks :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateClocks iworld=:{IWorld|clocks,world}
+    //Determine current date and time
+	# (timestamp,world) 						= time world
+	# (DateTime localDate localTime,world)		= currentLocalDateTimeWorld world
+	# (DateTime utcDate utcTime,world)			= currentUTCDateTimeWorld world
+    # iworld = {iworld & world = world}
+    //Write SDS's if necessary
+    # (mbe,iworld) = if (localDate == clocks.localDate) (Ok (),iworld) (write localDate iworldLocalDate iworld)
+	| mbe =:(Error _) = (mbe,iworld)
+    # (mbe,iworld) = if (localTime == clocks.localTime) (Ok (),iworld) (write localTime iworldLocalTime iworld)
+	| mbe =:(Error _) = (mbe,iworld)
+    # (mbe,iworld) = if (utcDate == clocks.utcDate) (Ok (),iworld) (write utcDate iworldUTCDate iworld)
+	| mbe =:(Error _) = (mbe,iworld)
+    # (mbe,iworld) = if (utcTime == clocks.utcTime) (Ok (),iworld) (write utcTime iworldUTCTime iworld)
+	| mbe =:(Error _) = (mbe,iworld)
+    # (mbe,iworld) = if (timestamp == clocks.timestamp) (Ok (),iworld) (write timestamp iworldTimestamp iworld)
+	| mbe =:(Error _) = (mbe,iworld)
+    = (Ok (),iworld)
+
+removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 removeOutdatedSessions iworld
-    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True,includeProgress=True} filteredInstanceIndex) iworld
+    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) iworld
     = case mbIndex of
-        Ok index    = foldr removeIfOutdated iworld index
-        _           = iworld
+        Ok index    = (Ok (), foldr removeIfOutdated iworld index)
+        Error e     = (Error e, iworld)
 where
-    removeIfOutdated (instanceNo,_,Just {InstanceProgress|connectedTo,lastIO},_) iworld=:{clocks={localDate,localTime}}
-        | connectedTo=:Nothing && maybe True (\t -> ((DateTime localDate localTime) - t) > SESSION_TIMEOUT) lastIO
-            = deleteTaskInstance instanceNo iworld
-        | otherwise
-            = iworld
+    removeIfOutdated (instanceNo,_,_,_) iworld=:{clocks={localDate,localTime}}
+		//Get lastIO time
+		= case read (sdsFocus instanceNo taskInstanceIO) iworld of
+			(Ok (Just (client,time)),iworld) //No IO for too long, clean up
+				| ((DateTime localDate localTime) - time) > SESSION_TIMEOUT
+					# iworld = deleteTaskInstance instanceNo iworld
+					# (_,iworld) = 'SDS'.write Nothing (sdsFocus instanceNo taskInstanceIO) iworld
+					= iworld
+				| otherwise
+					= iworld
+			(Ok Nothing,iworld) = iworld
+			(Error e,iworld) = iworld
 
 //HACK FOR RUNNING BACKGROUND TASKS ON A CLIENT
 background :: !*IWorld -> *IWorld
-background iworld = (processEvents MAX_EVENTS o removeOutdatedSessions) iworld
+background iworld
+	# iworld = snd (processEvents MAX_EVENTS iworld)
+	# iworld = snd (removeOutdatedSessions iworld)
+	= iworld
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: publish -> [(!String -> Bool

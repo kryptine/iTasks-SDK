@@ -81,7 +81,7 @@ defaultTonicOpts :: TonicOpts
     }
 
 //Background computation tasks
-:: BackgroundTask = BackgroundTask !(*IWorld -> *IWorld)
+:: BackgroundTask = BackgroundTask !(*IWorld -> *(!MaybeError TaskException (), !*IWorld))
 
 /**
 * 'downgrades' an event to a refresh, but keeps the client given event number

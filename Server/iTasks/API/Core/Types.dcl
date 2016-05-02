@@ -425,9 +425,7 @@ instance <			TaskId
 	{ value             :: !ValueStatus             //* Status of the task value
     , attachedTo        :: ![TaskId] 				//* Chain of tasks through which this instance was attached
 	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
-	, lastEvent		    :: !Maybe DateTime			//* When was the latest event on this task	
-    , connectedTo       :: !Maybe String            //* Is there an active client connection for this task
-    , lastIO            :: !Maybe DateTime          //* When was the last input received or output sent to a client
+	, lastEvent		    :: !Maybe DateTime			//* When was the latest event on this task (excluding Refresh events)
 	}
 
 :: ValueStatus
@@ -484,8 +482,6 @@ instance <			TaskId
 	, value             :: !ValueStatus         //* Status of the task value
 	, firstEvent		:: !Maybe DateTime		//* When was the first work done on this task
 	, lastEvent		    :: !Maybe DateTime		//* When was the last event on this task	
-    , connectedTo       :: !Maybe String        //* Is there an active client connection for this task
-    , lastIO            :: !Maybe DateTime      //* When was the last input received or output sent to a client
 	}
 
 derive class iTask TaskListFilter

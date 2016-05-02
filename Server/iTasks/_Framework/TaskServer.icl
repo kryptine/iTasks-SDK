@@ -264,7 +264,9 @@ process i chList iworld=:{ioTasks={done,todo=[ConnectionInstance opts {rChannel,
             = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
            
 process i chList iworld=:{ioTasks={done,todo=[BackgroundInstance bt=:(BackgroundTask eval):todo]}}
-    # iworld=:{ioTasks={done,todo}} = eval {iworld & ioTasks = {done=done,todo=todo}}
+    # (mbe,iworld=:{ioTasks={done,todo}}) = eval {iworld & ioTasks = {done=done,todo=todo}}
+	//TODO Report the error
+	//| mbe =: (Error _) = abort (snd (fromError mbe))
     = process (i+1) chList {iworld & ioTasks={done=[BackgroundInstance bt:done],todo=todo}}
 process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
     = process (i+1) chList {iworld & ioTasks={done=[t:done],todo=todo}}

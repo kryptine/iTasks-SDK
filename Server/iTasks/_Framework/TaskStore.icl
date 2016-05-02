@@ -37,6 +37,16 @@ taskInstanceIndex = sdsFocus "instances" (cachedJSONFileStore NS_TASK_INSTANCES 
 nextInstanceNo :: RWShared () Int Int
 nextInstanceNo = sdsFocus "increment" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just 1))
 
+taskInstanceIO :: RWShared InstanceNo (Maybe (!String,!DateTime)) (Maybe (!String,!DateTime))
+taskInstanceIO = sdsLens "taskInstanceIO" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) allInstanceIO
+where
+	read instanceNo m = Ok ('DM'.get instanceNo m)
+	write instanceNo m (Just io) = Ok (Just ('DM'.put instanceNo io m))
+	write instanceNo m Nothing = Ok (Just ('DM'.del instanceNo m))
+	notify instanceNo _ 	= (==) instanceNo
+
+	allInstanceIO :: RWShared () (Map InstanceNo (!String,!DateTime)) (Map InstanceNo (!String,DateTime)) 
+	allInstanceIO = sdsFocus "io" (memoryStore NS_TASK_INSTANCES (Just 'DM'.newMap))
 
 //Event queues of task instances
 taskEvents :: RWShared () (Queue (InstanceNo,Event)) (Queue (InstanceNo,Event))
@@ -95,7 +105,7 @@ newDocumentId iworld=:{IWorld|random}
 createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
 createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
     //Create the initial instance data in the store
-    # progress  = {InstanceProgress|value=None,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Nothing}
+    # progress  = {InstanceProgress|value=None,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants = {InstanceConstants|instanceKey="client",session=True,listId=TaskId 0 0,build=buildID,issuedAt=DateTime localDate localTime}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
@@ -107,7 +117,7 @@ createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={loc
     # (mbInstanceNo,iworld) = newInstanceNo iworld
     # instanceNo            = fromOk mbInstanceNo
     # (instanceKey,iworld)  = newInstanceKey iworld
-    # progress              = {InstanceProgress|value=None,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Just (DateTime localDate localTime)}
+    # progress              = {InstanceProgress|value=None,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants             = {InstanceConstants|instanceKey=instanceKey,session=True,listId=TaskId 0 0,build=buildID,issuedAt=DateTime localDate localTime}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
@@ -121,7 +131,7 @@ createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={loc
 createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
 createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
     # (instanceKey,iworld) = newInstanceKey iworld
-    # progress             = {InstanceProgress|value=None,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing,connectedTo=Nothing,lastIO=Nothing}
+    # progress             = {InstanceProgress|value=None,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants            = {InstanceConstants|instanceKey=instanceKey,session=False,listId=listId,build=buildID,issuedAt=DateTime localDate localTime}
     =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld

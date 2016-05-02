@@ -50,6 +50,8 @@ taskInstanceAttributes  :: RWShared InstanceNo TaskAttributes TaskAttributes
 
 topLevelTaskList        :: RWShared TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
 
+taskInstanceIO 			:: RWShared InstanceNo (Maybe (!String,!DateTime)) (Maybe (!String,!DateTime))
+
 //=== Task instance input: ===
 
 //When events are placed in this queue, the engine will re-evaluate the corresponding task instances.
@@ -59,6 +61,7 @@ taskEvents              :: RWShared () (Queue (InstanceNo,Event)) (Queue (Instan
 taskInstanceReduct		:: RWShared InstanceNo TIReduct TIReduct
 taskInstanceValue       :: RWShared InstanceNo TIValue TIValue
 taskInstanceShares      :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
+
 
 //Filtered views on evaluation state of instances:
 

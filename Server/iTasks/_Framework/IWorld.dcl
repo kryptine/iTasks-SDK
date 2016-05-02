@@ -157,12 +157,10 @@ initJSCompilerState :: *IWorld -> *(!MaybeErrorString (), !*IWorld)
 destroyIWorld :: !*IWorld -> *World
 
 //Internally used clock shares
+iworldTimestamp :: Shared Timestamp
 iworldLocalDate :: Shared Date
 iworldLocalTime :: Shared Time
 iworldUTCDate   :: Shared Date
 iworldUTCTime   :: Shared Time
-
-//Update the clock shares
-updateClocks    :: !*IWorld -> *IWorld
 
 instance FileSystem IWorld

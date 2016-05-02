@@ -70,9 +70,9 @@ toTaskListItem (instanceNo,Just {InstanceConstants|listId},Just progress, Just a
 	= {TaskListItem|taskId = TaskId instanceNo 0, listId = listId, detached = True, self = False, value = NoValue, progress = Just progress, attributes = attributes}
 
 taskInstanceFromInstanceData :: InstanceData -> TaskInstance
-taskInstanceFromInstanceData (instanceNo,Just {InstanceConstants|instanceKey,session,listId,build,issuedAt},Just progress=:{InstanceProgress|value,firstEvent,lastEvent,connectedTo,lastIO},Just attributes)
+taskInstanceFromInstanceData (instanceNo,Just {InstanceConstants|instanceKey,session,listId,build,issuedAt},Just progress=:{InstanceProgress|value,firstEvent,lastEvent},Just attributes)
     = {TaskInstance|instanceNo = instanceNo, instanceKey = instanceKey, session = session, listId = listId, build = build
-      ,attributes = attributes, value = value, issuedAt = issuedAt, firstEvent = firstEvent, lastEvent = lastEvent, connectedTo = connectedTo,lastIO = lastIO}
+      ,attributes = attributes, value = value, issuedAt = issuedAt, firstEvent = firstEvent, lastEvent = lastEvent}
 
 currentTaskInstanceNo :: ROShared () InstanceNo
 currentTaskInstanceNo = createReadOnlySDS (\() iworld=:{current={taskInstance}} -> (taskInstance,iworld))
