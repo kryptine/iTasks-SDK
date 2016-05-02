@@ -124,12 +124,12 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                     # (ConnectionTask handlers sds) = lopts.ListenerInstanceOpts.connectionTask
                     # (mbr,iworld) = 'SDS'.read sds {iworld & ioTasks={done=done,todo=todo},world=world}
                     | mbr =:(Error _)
-                        # iworld=:{ioTasks={done,todo},world} = queueRefresh [(instanceNo,"IO Exception for instance "<+++instanceNo)] iworld
+                        # iworld=:{ioTasks={done,todo},world} = if (instanceNo > 0) (queueRefresh [(instanceNo,"IO Exception for instance "<+++instanceNo)] iworld) iworld
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (snd (fromError mbr))) ioStates
  	                    # world = closeRChannel listener world
                         = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
                     # (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (toString ip) (fromOk mbr) iworld
-                    # iworld = queueRefresh [(instanceNo,"New TCP connection for instance "<+++instanceNo)] iworld
+                    # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo,"New TCP connection for instance "<+++instanceNo)] iworld) iworld
                     # iworld=:{ioTasks={done,todo},world}  = writeShareIfNeeded sds mbw iworld
                     | mbConState =:(Error _)
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (fromError mbConState)) ioStates
@@ -201,7 +201,7 @@ process i chList iworld=:{ioTasks={done,todo=[ConnectionInstance opts {rChannel,
             | mbSelect =:(Just SR_Disconnected) || mbSelect=:(Just SR_EOM)
                 //Call disconnect function
                 # (conState,mbw,iworld) = handlers.ConnectionHandlersIWorld.onDisconnect conState (fromOk mbr) {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world}
-                # iworld = queueRefresh [(instanceNo,"TCP connection disconnected for "<+++instanceNo)] iworld
+                # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo,"TCP connection disconnected for "<+++instanceNo)] iworld) iworld
                 # iworld=:{world,ioStates} = writeShareIfNeeded sds mbw iworld
                 # ioStates = case conState of
                     Ok state
@@ -222,8 +222,8 @@ process i chList iworld=:{ioTasks={done,todo=[ConnectionInstance opts {rChannel,
             # (mbConState,mbw,out,close,iworld)
                 = handlers.ConnectionHandlersIWorld.whileConnected data conState (fromOk mbr) {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world} 
             //Queue refresh when there was new data or when the connection was closed
-            # iworld = if (isNothing data) iworld (queueRefresh [(instanceNo, "New TCP data for "<+++instanceNo)] iworld)
-            # iworld = if close (queueRefresh [(instanceNo, "TCP connection closed for "<+++instanceNo)] iworld) iworld
+            # iworld = if (isJust data && instanceNo > 0) (queueRefresh [(instanceNo, "New TCP data for "<+++instanceNo)] iworld) iworld 
+            # iworld = if (close && instanceNo > 0) (queueRefresh [(instanceNo, "TCP connection closed for "<+++instanceNo)] iworld) iworld
             //Write share
             # iworld=:{ioTasks={todo,done},ioStates,world} = writeShareIfNeeded sds mbw iworld
             | mbConState =:(Error _)
@@ -265,8 +265,7 @@ process i chList iworld=:{ioTasks={done,todo=[ConnectionInstance opts {rChannel,
            
 process i chList iworld=:{ioTasks={done,todo=[BackgroundInstance bt=:(BackgroundTask eval):todo]}}
     # (mbe,iworld=:{ioTasks={done,todo}}) = eval {iworld & ioTasks = {done=done,todo=todo}}
-	//TODO Report the error
-	//| mbe =: (Error _) = abort (snd (fromError mbe))
+	| mbe =: (Error _) = abort (snd (fromError mbe)) //TODO Handle the error without an abort
     = process (i+1) chList {iworld & ioTasks={done=[BackgroundInstance bt:done],todo=todo}}
 process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
     = process (i+1) chList {iworld & ioTasks={done=[t:done],todo=todo}}
