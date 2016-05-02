@@ -3,7 +3,7 @@ implementation module iTasks._Framework.WebService
 import StdList, StdBool, StdTuple, StdArray
 from StdFunc import o
 import Data.Maybe, Data.Functor
-from Data.Map import :: Map, :: Size
+from Data.Map import :: Map (..)
 import qualified Data.List as DL
 import qualified Data.Map as DM
 import qualified Data.Queue as DQ
