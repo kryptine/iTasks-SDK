@@ -635,7 +635,8 @@ where
         # listId = fromOk mbListId
         //If we are removing from the top-level task list, just remove the instance
         | listId == TaskId 0 0
-            # iworld = deleteTaskInstance instanceNo iworld
+            # (mbe,iworld) = deleteTaskInstance instanceNo iworld
+			| mbe =: (Error _) = (ExceptionResult (fromError mbe),iworld)
             = (ValueResult (Value () True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
         //Mark the task as removed, and update the indices of the tasks afterwards
         # taskListFilter        = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
@@ -643,7 +644,8 @@ where
         | mbError =:(Error _)   = (ExceptionResult (fromError mbError),iworld)
         //If it is a detached task, remove the detached instance, if it is embedded, pass notify the currently evaluating parallel
         | taskNo == 0 //(if the taskNo equals zero the instance is embedded)
-            # iworld = deleteTaskInstance instanceNo iworld
+            # (mbe,iworld) = deleteTaskInstance instanceNo iworld
+			| mbe =: (Error _) = (ExceptionResult (fromError mbe),iworld)
             = (ValueResult (Value () True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange (TCStable taskId ts (DeferredJSONNode JSONNull)), iworld)
         | otherwise
             //Pass removal information up
@@ -730,8 +732,7 @@ where
 	eval event evalOpts tree=:(TCBasic taskId ts state _) iworld=:{server={buildID},current={taskInstance}}
 		//Load instance
         # (constants,iworld)    = read (sdsFocus instanceNo taskInstanceConstants) iworld 
-		//# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
-		# (progress,iworld)	    = read (sdsFocus instanceNo taskInstanceProgress) iworld //TODO: Create a better focus parameter to enable readRegister without entering an infinite loop
+		# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
 		= case (constants,progress) of
 			(Ok {InstanceConstants|instanceKey,build},Ok progress=:{InstanceProgress|attachedTo=[attachedId],value})
 				# (curValue,stable)

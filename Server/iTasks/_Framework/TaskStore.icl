@@ -15,7 +15,7 @@ import iTasks._Framework.Client.Override
 
 import qualified Data.Map as DM
 import qualified Data.Queue as DQ
-from Data.Queue import :: Queue
+from Data.Queue import :: Queue(..)
 
 //Derives required for storage of UI definitions
 derive JSONEncode TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
@@ -168,15 +168,22 @@ replaceTaskInstance instanceNo task iworld=:{server={buildID},current={taskTime}
                  in  'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=buildID},progress,attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> (Ok (), iworld)
 
-deleteTaskInstance	:: !InstanceNo !*IWorld -> *IWorld //TODO: Propagate error
+deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 deleteTaskInstance instanceNo iworld
     //Delete all states
-    # (_,iworld)  	= deleteValue NS_TASK_INSTANCES (instanceNo +++> "-reduct") iworld
-    # (_,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-value") iworld
-    # (_,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-shares") iworld
-    # (_,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-tasklists") iworld
-    # (_,iworld)    = 'SDS'.modify (\is -> ((),[i \\ i=:(no,_,_,_) <- is | no <> instanceNo])) (sdsFocus defaultValue filteredInstanceIndex) iworld
-    = iworld
+    # (mbe,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-reduct") iworld
+	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
+    # (mbe,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-value") iworld
+	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
+    # (mbe,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-shares") iworld
+	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
+    # (mbe,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-tasklists") iworld
+	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
+    # (mbe,iworld)    = 'SDS'.modify (\is -> ((),[i \\ i=:(no,_,_,_) <- is | no <> instanceNo])) (sdsFocus defaultValue filteredInstanceIndex) iworld
+	| mbe =: (Error _) = (mbe,iworld)
+    # (mbe,iworld)    = 'SDS'.modify (\(Queue f r) -> ((),Queue [e \\ e=:(no,_) <- f | no <> instanceNo] [e \\ e=:(no,_) <- r | no <> instanceNo])) taskEvents iworld
+	| mbe =: (Error _) = (mbe,iworld)
+    = (Ok (),iworld)
 
 //Filtered interface to the instance index. This interface should always be used to access instance data
 filteredInstanceIndex :: RWShared InstanceFilter [InstanceData] [InstanceData]

@@ -155,7 +155,7 @@ where
 		= case read (sdsFocus instanceNo taskInstanceIO) iworld of
 			(Ok (Just (client,time)),iworld) //No IO for too long, clean up
 				| ((DateTime localDate localTime) - time) > SESSION_TIMEOUT
-					# iworld = deleteTaskInstance instanceNo iworld
+					# (_,iworld) = deleteTaskInstance instanceNo iworld
 					# (_,iworld) = 'SDS'.write Nothing (sdsFocus instanceNo taskInstanceIO) iworld
 					= iworld
 				| otherwise

@@ -122,7 +122,7 @@ createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAtt
 */
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
 
-deleteTaskInstance		:: !InstanceNo !*IWorld -> *IWorld
+deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 
 /**
 * Queue an event for a task instance

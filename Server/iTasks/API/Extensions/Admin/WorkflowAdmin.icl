@@ -260,6 +260,8 @@ workOnTask taskId
     =   workOn taskId <<@ ApplyLayout (changeNodeType (setHeight FlexSize))
     >>* [OnValue    (ifValue ((===) ASExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this task" >>| return OpenProcess))
         ,OnValue    (ifValue ((===) ASIncompatible) (\_ -> dealWithIncompatibleTask))
+        ,OnValue    (ifValue ((===) ASDeleted) (\_ -> return OpenProcess))
+        ,OnValue    (ifValue ((===) (ASAttached True)) (\_ -> return OpenProcess)) //If the task is stable, there is no need to work on it anymore
         ,OnAction ActionClose   (always (return OpenProcess))
         ]
 where
