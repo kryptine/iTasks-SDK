@@ -74,7 +74,7 @@ manageWorklist iflows
 installInitialWorkflows ::[Workflow] -> Task ()
 installInitialWorkflows [] = return ()
 installInitialWorkflows iflows
-	=   try (get workflows) (\StoreReadBuildVersionError -> return [])
+	=   try (get workflows) (\(StoreReadBuildVersionError _) -> return [])
 	>>= \flows -> case flows of
 		[]	= set iflows workflows @! ()
 		_	= return ()
