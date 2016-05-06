@@ -74,6 +74,7 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	| UITab
 	| UIWindow
 	| UIMenu
+	| UIButtonBar
 	| UIDebug
 	// Components for viewing data:
 	| UIViewString					                     							// - String (non-wrapping single line text with automatic escaping)

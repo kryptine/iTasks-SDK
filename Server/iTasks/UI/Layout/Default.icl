@@ -135,7 +135,7 @@ where
 	layout (c,s) = (c,s)
 
 buttonBar :: UI
-buttonBar = (wrapHeight o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight o setBaseCls "buttonbar") (uic UIPanel [])
+buttonBar = uic UIButtonBar []
 
 labelControl :: UIAttributes -> Maybe UI
 labelControl attributes 

@@ -26,7 +26,7 @@ itasks.itwc_panel = {
 			me.domEl.classList.add(me.cssPrefix + 'framed');
 		}
 		if(me.baseCls) {
-			me.domEl.classList.add(me.cssPrefix + me.baseCls);
+			me.domEl.classList.add(me.baseCls);
 		}
 	}
 };
@@ -245,3 +245,11 @@ itasks.itwc_window = {
 itasks.itwc_debug= {
 	cssCls: 'debug'
 };
+itasks.itwc_buttonbar  = {
+	cssCls: 'buttonbar',
+	height: 'wrap',
+	direction: 'horizontal',
+	halign: 'right',
+	padding: '2 2 2 0'
+};
+
