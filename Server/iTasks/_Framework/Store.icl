@@ -27,10 +27,10 @@ from GenEq import generic gEq
 
 instance toString StoreReadError
 where
-    toString StoreReadMissingError         = "Stored data not in store"
-    toString StoreReadDataError            = "Failed to read store data"
-    toString StoreReadTypeError            = "Stored data is of incorrect type"
-    toString StoreReadBuildVersionError    = "Stored data contains functions from an older executable that can no longer be evaluated"
+    toString (StoreReadMissingError name)      = "Stored data not in store: " +++ name
+    toString (StoreReadDataError name)         = "Failed to read store data: " +++ name
+    toString (StoreReadTypeError name)         = "Stored data is of incorrect type: " +++ name
+    toString (StoreReadBuildVersionError name) = "Stored data contains functions from an older executable that can no longer be evaluated: " +++ name
 
 derive class iTask StoreReadError
 
@@ -41,10 +41,12 @@ where
     read key iworld=:{IWorld|memoryShares}
         = case 'DM'.get (namespace,key) memoryShares of
             (Just (val :: a^))  = (Ok val,iworld)
-            (Just _)            = (Error (exception StoreReadTypeError), iworld)
+            (Just _)            = (Error (exception (StoreReadTypeError storeDesc)), iworld)
             _                   = case defaultV of
-                Nothing     = (Error (exception StoreReadMissingError), iworld)
+                Nothing     = (Error (exception (StoreReadMissingError storeDesc)), iworld)
                 Just val    = (Ok val, {IWorld|iworld & memoryShares = 'DM'.put (namespace,key) (dynamic val :: a^) memoryShares})
+	where
+		storeDesc = namespace +++ "/" +++ key
 	write key val iworld=:{IWorld|memoryShares}
         = (Ok ((==) key),{IWorld|iworld & memoryShares = 'DM'.put (namespace,key) (dynamic val :: a^) memoryShares})
 
@@ -55,12 +57,12 @@ where
 	read key iworld=:{IWorld|onClient,server={buildID}}
         | onClient //Special case for tasks running on a client
             # (mbVal,iworld) = jsLoadValue namespace key iworld
-	        = (maybe (Error (exception StoreReadMissingError)) Ok mbVal, iworld)
+	        = (maybe (Error (exception (StoreReadMissingError storeDesc))) Ok mbVal, iworld)
 	    # (mbItem,iworld) = readFromDisk namespace key iworld
 	    = case (mbItem,defaultV) of
  		    (Ok item,_)
                 = (Ok item,iworld)
-            (Error StoreReadMissingError,Just def)
+            (Error (StoreReadMissingError desc),Just def)
                 # (mbErr,iworld) = writeToDisk namespace key def iworld
 				| mbErr =: (Error _)
 					= (Error (exception (fromError mbErr)),iworld)
@@ -75,6 +77,8 @@ where
                 = (Error (exception e), iworld)
 		    (Error e,_)
                 = (Error (exception e),iworld)
+	where
+		storeDesc = namespace +++ "/" +++ key
 
 	write key value iworld=:{IWorld|onClient}
         | onClient //Special case for tasks running on a client
@@ -102,11 +106,14 @@ where
     read key ((buildWhenStored,enc),buildNow)
         # json = fromString enc
         | checkBuild && (buildWhenStored <> buildNow && not (functionFree json))
-            = Error (exception StoreReadBuildVersionError)
+            = Error (exception (StoreReadBuildVersionError storeDesc))
         | otherwise
             = case fromJSON json of
                 Just v  = Ok v
-                Nothing = Error (exception StoreReadTypeError)
+                Nothing = Error (exception (StoreReadTypeError storeDesc))
+	where
+		storeDesc = namespace +++ "/" +++ key
+
     write key w = Ok (Just (toString (toJSON w),Void))
     notify key w = const True
 
@@ -117,11 +124,11 @@ where
 	read key iworld=:{IWorld|onClient,server={buildID},cachedShares}
         | onClient //Special case for tasks running on a client
             # (mbVal,iworld) = jsLoadValue namespace key iworld
-	        = (maybe (Error (exception StoreReadMissingError)) Ok mbVal, iworld)
+	        = (maybe (Error (exception (StoreReadMissingError storeDesc))) Ok mbVal, iworld)
         //Try cache first
         # mbResult = case 'DM'.get (namespace,key) cachedShares of
             (Just (val :: a^,_,_))  = Just (Ok val)
-            (Just _)                = Just (Error (exception StoreReadTypeError))
+            (Just _)                = Just (Error (exception (StoreReadTypeError storeDesc)))
             Nothing                 = Nothing
         | mbResult =:(Just _)
             = (fromJust mbResult,iworld)
@@ -131,15 +138,15 @@ where
  		    (Ok (buildIDWhenStored,encoded),_)
                 # json = fromString encoded
                 | checkBuild && (buildIDWhenStored <> buildID && not (functionFree json))
-                    = (Error (exception StoreReadBuildVersionError),iworld)
+                    = (Error (exception (StoreReadBuildVersionError storeDesc)),iworld)
                 | otherwise
                     = case fromJSON json of
                         Just value
                             //Keep in cache
                             # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic value,keepBetweenEvals,Nothing) cachedShares}
                             = (Ok value,iworld)
-                        Nothing = (Error (exception StoreReadTypeError),iworld)
-            (Error StoreReadMissingError,Just def)
+                        Nothing = (Error (exception (StoreReadTypeError storeDesc)),iworld)
+            (Error (StoreReadMissingError _),Just def)
                 # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic def, keepBetweenEvals,Just (DeferredJSON def)) cachedShares}
                 = (Ok def,iworld)
             (Error e,Just def) | resetOnError
@@ -150,6 +157,8 @@ where
                 = (Error (exception e), iworld)
 		    (Error e,_)
                 = (Error (exception e),iworld)
+	where
+		storeDesc = namespace +++ "/" +++ key
 
 	write key value iworld=:{IWorld|onClient,cachedShares}
         | onClient //Special case for tasks running on a client
@@ -158,6 +167,7 @@ where
             //Write to cache
             # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic value, keepBetweenEvals,Just (DeferredJSON value)) cachedShares}
 	        = (Ok ((==) key),iworld)
+
 
 flushShareCache :: *IWorld -> *IWorld //TODO: Propagate error up
 flushShareCache iworld=:{IWorld|onClient,cachedShares}
@@ -185,7 +195,7 @@ blobStoreWrite namespace key blob iworld
 blobStoreRead :: !StoreNamespace !StoreName !*IWorld -> (!MaybeError StoreReadError {#Char}, !*IWorld)
 blobStoreRead namespace key iworld=:{onClient=True}
 	# (mbBlob,iworld) =jsLoadValue namespace key iworld
-    = (maybe (Error StoreReadMissingError) Ok mbBlob, iworld)
+    = (maybe (Error (StoreReadMissingError (namespace +++ "/" +++ key))) Ok mbBlob, iworld)
 blobStoreRead namespace key iworld
     = case readFromDisk namespace key iworld of
         (Ok (_,content),iworld) = (Ok content,iworld)
@@ -228,33 +238,35 @@ readFromDisk namespace key iworld=:{server={paths={dataDirectory}},world}
 	# filename			= addExtension (dataDirectory </> "stores" </> namespace </> safeName key) "txt"
 	# (ok,file,world)	= fopen filename FReadData world
 	| ok
-		# (maybe_build_id_and_content,file) = read_file file
+		# (maybe_build_id_and_content,file) = read_file storeDesc file
 		# (ok,world) = fclose file world
 		| ok
 			= (maybe_build_id_and_content,{iworld & world = world})
-            = (Error StoreReadDataError,{iworld & world = world})
+            = (Error (StoreReadDataError storeDesc),{iworld & world = world})
     | otherwise
-        = (Error StoreReadMissingError, {iworld & world = world})
+        = (Error (StoreReadMissingError storeDesc), {iworld & world = world})
 where
-	read_file :: !*File -> (!MaybeError StoreReadError (BuildID,String), !*File)	
-	read_file file
+	read_file :: !String !*File -> (!MaybeError StoreReadError (BuildID,String), !*File)	
+	read_file desc file
 		# (buildId,file) = freads file 15
 		| size buildId<15
 			= (Ok (buildId,""),file)
 		# (ok,file) = fseek file 0 FSeekEnd
 		| not ok
-			= (Error StoreReadDataError,file)
+			= (Error (StoreReadDataError desc),file)
 		# (file_size,file) = fposition file
 		| file_size<15
-			= (Error StoreReadDataError,file)
+			= (Error (StoreReadDataError desc),file)
 		# (ok,file) = fseek file 15 FSeekSet
 		| not ok
-			= (Error StoreReadDataError,file)
+			= (Error (StoreReadDataError desc),file)
 		# content_size = file_size - 15;
 		# (content,file) = freads file content_size;
 		| size content<>content_size
-			= (Error StoreReadDataError,file)
+			= (Error (StoreReadDataError desc),file)
             = (Ok (buildId,content),file)
+
+	storeDesc = namespace +++ "/" +++ key
 
 deleteValue :: !StoreNamespace !StoreName !*IWorld -> *(MaybeErrorString (),*IWorld)
 deleteValue namespace delKey iworld=:{onClient=True}

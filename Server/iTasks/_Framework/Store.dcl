@@ -36,10 +36,10 @@ NS_APPLICATION_SHARES	:== "application-data"
 NS_JAVASCRIPT_CACHE     :== "js-cache"
 
 :: StoreReadError
-    = StoreReadMissingError         //When there is no file on disk for this
-    | StoreReadDataError            //When there is a problem reading data from disk
-    | StoreReadTypeError            //When the data cannot be decoded based on the type
-    | StoreReadBuildVersionError    //When there is a stored value but it has the wrong build version
+    = StoreReadMissingError !StoreName      //When there is no file on disk for this
+    | StoreReadDataError !StoreName         //When there is a problem reading data from disk
+    | StoreReadTypeError !StoreName         //When the data cannot be decoded based on the type
+    | StoreReadBuildVersionError !StoreName //When there is a stored value but it has the wrong build version
 
 instance toString StoreReadError
 derive class iTask StoreReadError
