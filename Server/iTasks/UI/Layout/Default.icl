@@ -62,32 +62,37 @@ finalizeStep = conditionalLayout isStep layout
 where
 	layout = selectLayout
 		[(isEmpty,changeNodeType (\(UI _ attr items) -> UI UIEmpty attr items))
-		,(hasActions,sequenceLayouts[layoutSubAt [0] finalizeUI,moveActions])
+		,(hasActions,sequenceLayouts[layoutSubAt [0] finalizeUI, actionsToButtonBar,changeNodeType (\(UI UIStep attr items) -> UI UIPanel attr items)])
 		,(const True,sequenceLayouts[unwrapUI,finalizeUI])
 		]
 
 	isEmpty (UI _ _ [] ) = True
 	isEmpty _            = False
 
-	hasActions (UI _ _ items) = length items > 1
-	moveActions = sequenceLayouts
-        [insertSubAt [1] buttonBar 				//Create a buttonbar
-	    ,moveChildren [] isAction [1,0]   		//Move all actions to the buttonbar
-	    ,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
-        ,changeNodeType (\(UI UIStep attr items) -> UI UIPanel attr items) //Change to a standard container
-		]
-
 finalizeParallel :: Layout
-finalizeParallel = conditionalLayout isParallel layout
+finalizeParallel = selectLayout [(\ui -> isParallel ui && hasActions ui,layoutWithActions), (isParallel,layoutWithoutActions)]
 where
-	layout = sequenceLayouts
+	layoutWithoutActions = sequenceLayouts
 		[layoutChildrenOf [] finalizeUI
 		,changeNodeType (\(UI UIParallel attr items) -> UI UIContainer attr items)
+		]
+	layoutWithActions = sequenceLayouts
+		[actionsToButtonBar
+		,layoutChildrenOf [] finalizeUI
+		,changeNodeType (\(UI UIParallel attr items) -> UI UIPanel attr items)
 		]
 
 	isSingle (UI _ _ [_]) = True
 	isSingle _ = False
+
+hasActions (UI _ _ items) = any isAction items
 	
+actionsToButtonBar= sequenceLayouts
+	[insertSubAt [1] buttonBar 				//Create a buttonbar
+	,moveChildren [] isAction [1,0]   		//Move all actions to the buttonbar
+	,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
+	]
+
 //Util predicates
 isInteract = \n -> n =:(UI UIInteract _ _)
 isStep = \n -> n =:(UI UIStep _ _)
