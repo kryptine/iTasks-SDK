@@ -18,16 +18,16 @@ gEditor{|ContactPosition|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI path val mask vst=:{VSt|taskId,optional,disabled}
     	| disabled
-        	= ((setOptional optional o setValue (toJSON (toSingleLineText val))) (ui UIViewString), vst)
+        	= (Ok ((setOptional optional o setValue (toJSON (toSingleLineText val))) (ui UIViewString)), vst)
     	# value = case val of
         	PositionDescription s _ = JSONString s
         	PositionLatLng l        = JSONString (formatLatLng l)
 		# attr = stdAttributes "position" optional mask
     	# control = (setOptional optional o setEditOpts taskId (editorId path) (Just (toJSON value))) (uia UIEditString attr)
-    	= (control, vst)
+    	= (Ok control, vst)
 
 	updUI dp old om new nm vst
-		= (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new)] []),vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new)] [])),vst)
 
 	onEdit [] JSONNull val _ ust = (PositionDescription "" Nothing,Blanked,ust)
 	onEdit [] (JSONString nval) _ _ ust = (parsePosition nval, Touched, ust)

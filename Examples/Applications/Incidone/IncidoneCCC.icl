@@ -5,6 +5,7 @@ module IncidoneCCC
 * procedure documentation and observation of, and interviews with, Coast guard officers.
 */
 import iTasks, StdMisc, System.Time, Text, Data.Tuple
+import iTasks.UI.Layout, iTasks.UI.Definition
 
 //General configuration
 import Incidone.Configuration
@@ -31,6 +32,7 @@ import Incidone.Simulation.TrainingTasks
 import Incidone.DeviceBased.VideoWall
 import Incidone.DeviceBased.Tablet
 
+
 Start :: *World -> *World
 Start world = startEngine [publish "/"                 (\_ -> ccPerson)
 						  ,publish "/wall"             (\_ -> viewVideoWallContent)
@@ -54,7 +56,7 @@ doAuthenticated task
 	= (	enterCredentials
 	>>* [OnAction (Action "Login" [ActionIcon "login",ActionKey {key=KEY_ENTER,ctrl=False,shift=False,alt=False}])
 			(hasValue (\cred -> verifyCredentials cred >>- executeTask task))
-		] ) <<@ ApplyLayout (beforeStep frameCompact) //Compact layout before login, full screen afterwards
+		] ) <<@ Title "Login" <<@ ApplyLayout (beforeStep frameCompact) //Compact layout before login, full screen afterwards
 where
 	enterCredentials :: Task Credentials
 	enterCredentials
@@ -76,14 +78,24 @@ where
 
 whileAuthenticated :: User [Workspace -> Task ()] -> Task ()
 whileAuthenticated user tasks
-    =  (controlDash -|| workOnTasks)  <<@ (ArrangeWithSideBar 0 TopSide 30 False) <<@ (Title "Incidone")
+    =  (controlDash -|| workOnTasks) <<@ (ArrangeWithSideBar 0 TopSide 30 False)
 where
 	controlDash = (
 		    viewInformation () [] ("Welcome " +++ toString user) 
              -&&-
-            viewNotifications <<@ ArrangeHorizontal /* <<@ (Attribute "buttonPosition" "right") */
+            viewNotifications
         >>* [OnAction (Action "Log out" [ActionIcon "logout"]) (always (return ()))]
-        ) /* <<@ (AfterLayout (uiDefSetPadding 0 0 0 250 o uiDefSetBaseCls "summary-bar") ) */ //FIXME
+        )  <<@ ApplyLayout layoutControlDash
 
 	workOnTasks = doIndependent tasks <<@ ArrangeWithTabs
 
+	layoutControlDash = sequenceLayouts
+		[moveSubAt [0,0] [1]
+		,moveSubAt [0,0] [2]
+		,removeSubAt [0]
+		,layoutChildrenOf [] actionToButton
+        ,changeNodeType (setDirection Horizontal)
+        ,changeNodeType (setPadding 2 2 2 250)
+        ,changeNodeType (setBaseCls "summary-bar")
+        ,changeNodeType (\(UI _ attr items) -> UI UIPanel attr items)
+        ]

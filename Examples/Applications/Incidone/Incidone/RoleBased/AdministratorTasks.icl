@@ -21,11 +21,11 @@ import iTasks.API.Extensions.Dashboard
 derive class iTask DatabaseProblem
 
 configureIncidone :: [Workspace -> Task ()]
-configureIncidone = map const [configureDatabase
+configureIncidone = map const [configureDatabase		<<@ (Title "Database")
                               ,manageUsers              <<@ (Title "Users")
                               ,manageDemoData
                               ,configureIntegration
-                              ,manageUserActionCatalog
+                              ,manageUserActionCatalog  <<@ (Title "Action catalog")
                               ,configureMaps            <<@ (Title "Maps")
                               ,configureWebLinks        <<@ (Title "Web integration")
 //                              ,(manageServer @! ())     <<@ (Title "Processes")
