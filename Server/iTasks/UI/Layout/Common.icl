@@ -10,19 +10,9 @@ from StdFunc import id, const, o
 arrangeWithTabs :: Layout
 arrangeWithTabs = conditionalLayout isParallel toTabset
 where
-	toTabset = sequenceLayouts
-				[layoutChildrenOf [] toTab
-				,changeNodeType (\(UI _ attr items) ->UI UITabSet attr items)
-				]
+	toTabset = changeNodeType (\(UI _ attr items) ->UI UITabSet attr items)
 
-	toTab = sequenceLayouts
-				[wrapUI UITab 
-				,changeNodeType setTitleFromAttr
-				]
-
-	setTitleFromAttr ui=:(UI _ _ [UI _ attr _]) = maybe ui (\(JSONString title) -> setTitle title ui) ('DM'.get "title" attr)
-
-isParallel d = d =:(UI UIParallel _ _)
+	isParallel d = d =:(UI UIParallel _ _)
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 arrangeWithSideBar index side size resize = sequenceLayouts 

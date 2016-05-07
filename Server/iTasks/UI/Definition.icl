@@ -314,7 +314,6 @@ where
     toString UIContainer       = "itwc_container"
 	toString UIPanel           = "itwc_panel"
 	toString UITabSet          = "itwc_tabset"
-	toString UITab             = "itwc_tabitem"
 	toString UIWindow          = "itwc_window"
 	toString UIMenu            = "itwc_menu"
 	toString UIButtonBar       = "itwc_buttonbar"

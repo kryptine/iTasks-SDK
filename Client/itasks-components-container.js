@@ -120,11 +120,25 @@ itasks.itwc_tabset = {
 			me.children[me.activeTab].onShow();
         }
 	},
-	onChildInsert: function(idx) {
+	beforeChildInsert: function(idx,spec) {
 		var me = this;
 
+		//Overwrite size to always be flex items
+		spec.width = 'flex';
+		spec.height = 'flex';
+	},
+	afterChildInsert: function(idx) {
+		var me = this,
+			child = me.children[idx];
+
+		//Add tab style
+		child.domEl.classList.add(me.cssPrefix + 'tabitem');
+		if(child.selected) {
+			child.domEl.classList.add(me.cssPrefix + 'selected');
+		}
+
 		if(me.initialized) {
-			var tabEl = me.createTabEl(me.children[idx]);
+			var tabEl = me.createTabEl(child);
 			if(idx >= me.tabBar.children.length) {
 				me.tabBar.appendChild(tabEl);
 			} else {
@@ -134,27 +148,16 @@ itasks.itwc_tabset = {
 			if(me.children.length == 1) { //Automatically select the first tab
 				me.setActiveTab(idx);
 			}
+
 		}
 	},
-	onChildRemove: function(idx) {
+	beforeChildRemove: function(idx) {
 		var me = this;
 		if(me.initialized) {
 			if((idx == me.activeTab) && (me.children.length > 1)) { //Unless we remove the last tab, select another tab
 				me.setActiveTab( (idx == 0) ? 1 : (idx - 1));
 			}
 			me.tabBar.removeChild(me.tabBar.children[idx]);
-		}
-	}
-}
-itasks.itwc_tabitem = {
-
-	cssCls: 'tabitem',
-	width: 'flex',
-	height: 'flex',
-	initDOMEl: function() {
-		var me = this;
-		if(me.selected) {
-			me.domEl.classList.add(me.cssPrefix + 'selected');
 		}
 	}
 }

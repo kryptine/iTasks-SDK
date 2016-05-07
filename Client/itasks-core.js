@@ -47,8 +47,10 @@ itasks.Component = {
 	initChildren: function() {
 		var me = this;
 		me.children.forEach(function(spec,i) {
+			me.beforeChildInsert(i,spec);
 			me.children[i] = me.createChild(spec);
 			me.children[i].init();
+			me.afterChildInsert(i);
 		});
 	},
 	renderComponent: function() {
@@ -221,6 +223,8 @@ itasks.Component = {
 			child = null,
 			isLast = (idx == me.children.length);
 		
+		me.beforeChildInsert(idx,spec);
+
 		//Create the child object
 		child = me.initialized ? me.createChild(spec) : spec ;
 
@@ -237,20 +241,21 @@ itasks.Component = {
 				me.containerEl.insertBefore(child.domEl,me.containerEl.childNodes[idx]);
 			}
 		} 
-		me.onChildInsert(idx);
+		me.afterChildInsert(idx);
 	},
-	onChildInsert: function(idx) {},
+	beforeChildInsert: function(idx,spec) {},
+	afterChildInsert: function(idx) {},
 	removeChild: function(idx = 0) {
 		var me = this;
 
-		me.onChildRemove(idx);
+		me.beforeChildRemove(idx);
 
 		if(me.initialized) {
 			me.containerEl.removeChild(me.containerEl.childNodes[idx]);
 		}
 		me.children.splice(idx,1);	
 	},
-	onChildRemove: function(idx) {},
+	beforeChildRemove: function(idx) {},
 	setAttribute: function(name,value) {
 		var me = this;
 	
