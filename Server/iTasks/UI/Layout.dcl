@@ -29,47 +29,41 @@ instance tune	ApplyLayout //Apply a modification after a layout has been run
 
 //Basic DSL for creating more complex layouts
 
+// == Changing node types ===
 setNodeType :: UINodeType -> Layout
 
-changeNodeType :: (UI -> UI) -> Layout
+// == Changing attributes ===
+setAttributes :: UIAttributes -> Layout
+copyAttributes :: NodePath NodePath -> Layout
 
-changeNodeAttributes :: (UIAttributes -> UIAttributes) -> Layout
+// === Changing the structure of the tree ===
 
-//Changing tree depth
-
-/**
-* Create a new UI node which has the original UI as its only child.
-*/
+//* Create a new UI node which has the original UI as its only child.
 wrapUI :: UINodeType -> Layout
-/**
-* Replace the UI by its first child. 
-*/
+
+//* Replace the UI by its first child. 
 unwrapUI :: Layout
 
-/**
-* Flatten the tree of children in pre-order
-*/
+//* Flatten the tree of children in pre-order
 flattenUI :: Layout
 
 //Operations on single specific sub-UI's indicated by a path
 insertSubAt :: NodePath UI       -> Layout
 removeSubAt :: NodePath          -> Layout
 moveSubAt   :: NodePath NodePath -> Layout
-layoutSubAt :: NodePath Layout   -> Layout
 
 //Group operations on selections of sub-UI's
 removeSubsMatching :: NodePath (UI -> Bool)          -> Layout
 moveSubsMatching   :: NodePath (UI -> Bool) NodePath -> Layout
-layoutSubsMatching :: NodePath (UI -> Bool) Layout   -> Layout
 
 moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
-layoutChildrenOf :: NodePath Layout -> Layout
-
-setAttributes :: UIAttributes -> Layout
-copyAttributes :: NodePath NodePath -> Layout
 
 //Composition of layouts
 sequenceLayouts   :: [Layout]               -> Layout
 selectLayout      :: [(UI -> Bool, Layout)] -> Layout
 conditionalLayout :: (UI -> Bool) Layout    -> Layout
+
+layoutSubAt        :: NodePath Layout   -> Layout
+layoutSubsMatching :: NodePath (UI -> Bool) Layout   -> Layout
+layoutChildrenOf   :: NodePath Layout -> Layout
 

@@ -42,7 +42,6 @@ where
             (res,iworld) = (res,iworld)
 		
 		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
-		
 
 setNodeType :: UINodeType -> Layout
 setNodeType type = layout
@@ -50,17 +49,33 @@ where
 	layout (ReplaceUI (UI _ attr items),s) = (ReplaceUI (UI type attr items),s)
 	layout (change,s) = (change,s)
 
-changeNodeType :: (UI -> UI) -> Layout
-changeNodeType f = layout
+setAttributes :: UIAttributes -> Layout
+setAttributes extraAttr = layout 
 where
-	layout (ReplaceUI def,_) = (ReplaceUI (f def),JSONNull) 
-	layout (change,s) = (change,s) //Other changes than replacing are not affected
-
-changeNodeAttributes :: (UIAttributes -> UIAttributes) -> Layout
-changeNodeAttributes f = layout
-where
-	layout (ReplaceUI (UI type attr items),_) = (ReplaceUI (UI type (f attr) items),JSONNull)
+	layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.union extraAttr attr) items),s)
+	layout (ChangeUI attrChanges itemChanges,s)
+		//Filter out updates for the attributes that we are setting here
+		# attrChanges = filter (\(SetAttribute k v) -> not (isMember k ('DM'.keys extraAttr))) attrChanges
+		= (ChangeUI attrChanges itemChanges,s)
 	layout (change,s) = (change,s)
+
+copyAttributes :: NodePath NodePath -> Layout
+copyAttributes src dst = layout //TODO: Also handle attribute updates in the src location, and partial replacements along the path
+where
+	layout (ReplaceUI ui,s) = case  selectAttr src ui of 
+		Just attr = (ReplaceUI (addAttr attr dst ui),s)
+		Nothing   = (ReplaceUI ui,s)
+	layout (change,s) = (change,s)
+
+	selectAttr [] (UI type attr items) = Just attr
+	selectAttr [s:ss] (UI type attr items) 
+		| s < length items  = selectAttr ss (items !! s)
+							= Nothing
+
+	addAttr extra [] (UI type attr items) = UI type (foldl (\m (k,v) -> 'DM'.put k v m) attr ('DM'.toList extra)) items
+	addAttr extra [s:ss] (UI type attr items) 
+		| s < length items = UI type attr (updateAt s (addAttr extra ss (items !! s)) items) 
+						   = UI type attr items
 
 wrapUI :: UINodeType -> Layout
 wrapUI type = layout
@@ -97,13 +112,13 @@ insertSubAt :: NodePath UI-> Layout
 insertSubAt [] def = id
 insertSubAt path def = layoutSubAt (init path) (insertSub (last path) def)
 where
-	insertSub idx def (ReplaceUI container,s) =  (ReplaceUI (setChildren (insertAt idx def (getChildren container)) container),s)
-	insertSub idx _ (ChangeUI local childChanges,s) = (ChangeUI local (insert idx childChanges),s)
+	insertSub idx def (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type attr (insertAt idx def items)),s)
+	insertSub idx _ (ChangeUI attrChanges childChanges,s) = (ChangeUI attrChanges (insert idx childChanges),s)
 	where
 		insert idx [] = []
 		insert idx [c:cs]
 			| fst c < idx  = [c:insert idx cs]
-                       		= [(idx,ChangeChild (ChangeUI [] [])): [(n+1,x) \\(n,x) <-[c:cs]]]
+                       	   = [(idx,ChangeChild (ChangeUI [] [])): [(n+1,x) \\(n,x) <-[c:cs]]]
 
 	insertSub _ _ (change,s) = (change,s)
 
@@ -392,34 +407,6 @@ where
         ([(_,s):_],states) = (Just s,states)
         _                  = (Nothing,states)
 
-
-setAttributes :: UIAttributes -> Layout
-setAttributes extraAttr = layout 
-where
-	layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.union extraAttr attr) items),s)
-	layout (ChangeUI attrChanges itemChanges,s)
-		//Filter out updates for the attributes that we are setting here
-		# attrChanges = filter (\(SetAttribute k v) -> not (isMember k ('DM'.keys extraAttr))) attrChanges
-		= (ChangeUI attrChanges itemChanges,s)
-	layout (change,s) = (change,s)
-
-copyAttributes :: NodePath NodePath -> Layout
-copyAttributes src dst = layout //TODO: Also handle attribute updates in the src location, and partial replacements along the path
-where
-	layout (ReplaceUI ui,s) = case  selectAttr src ui of 
-		Just attr = (ReplaceUI (addAttr attr dst ui),s)
-		Nothing   = (ReplaceUI ui,s)
-	layout (change,s) = (change,s)
-
-	selectAttr [] (UI type attr items) = Just attr
-	selectAttr [s:ss] (UI type attr items) 
-		| s < length items  = selectAttr ss (items !! s)
-							= Nothing
-
-	addAttr extra [] (UI type attr items) = UI type (foldl (\m (k,v) -> 'DM'.put k v m) attr ('DM'.toList extra)) items
-	addAttr extra [s:ss] (UI type attr items) 
-		| s < length items = UI type attr (updateAt s (addAttr extra ss (items !! s)) items) 
-						   = UI type attr items
 
 //Common patterns
 moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
