@@ -185,11 +185,8 @@ contActions :: TaskId (TaskValue a) [TaskCont a b]-> [UI]
 contActions taskId val conts = [actionUI (isJust (taskbf val)) action\\ OnAction action taskbf <- conts]
 where
 	actionUI enabled action=:(Action actionId _)
-		= (setEnabled enabled
-          o setTaskId (toString taskId) 
-          o setActionId actionId
-          o (maybe id setIconCls (actionIcon action))
-          ) (ui UIAction) 
+		= uia UIAction ('DM'.unions [enabledAttr enabled, taskIdAttr (toString taskId), actionIdAttr actionId
+                                    ,maybe 'DM'.newMap (\icon -> iconClsAttr icon) (actionIcon action)])
 
 searchContValue :: (TaskValue a) (Maybe String) [TaskCont a b] -> Maybe (!Int, !b, !DeferredJSON) | TC a & JSONEncode{|*|} a
 searchContValue val mbAction conts = search val mbAction 0 Nothing conts
@@ -769,7 +766,7 @@ where
     release taskId meta = meta
 
     embedTaskDef instanceNo instanceKey
-		= (setWidth FlexSize o setHeight (ExactSize 300) o setInstanceNo instanceNo o setInstanceKey instanceKey) (ui UIViewport)
+		= uia UIViewport ('DM'.unions [sizeAttr FlexSize (ExactSize 300), instanceNoAttr instanceNo, instanceKeyAttr instanceKey])
 
 	inUseDef = stringDisplay "This task is already in use"
 

@@ -171,64 +171,58 @@ uic  :: UINodeType [UI] -> UI
 uia  :: UINodeType UIAttributes -> UI
 uiac :: UINodeType UIAttributes [UI] -> UI
 
-//Modifier functions
-setOptional     :: !Bool                              !UI -> UI
-setSize         :: !UISize !UISize                    !UI -> UI
-setWidth		:: !UISize					          !UI -> UI
-setHeight		:: !UISize					          !UI -> UI
-setMinSize		:: !UIBound !UIBound	              !UI -> UI
-setMinWidth		:: !UIBound				              !UI -> UI
-setMinHeight	:: !UIBound                           !UI -> UI
-setMaxSize		:: !UIBound !UIBound	              !UI -> UI
-setMaxWidth		:: !UIBound				              !UI -> UI
-setMaxHeight	:: !UIBound                           !UI -> UI
-fill			:: 							          !UI -> UI
-fillHeight		:: 							          !UI -> UI
-fillWidth		:: 							          !UI -> UI
-fixedHeight		:: !Int 					          !UI -> UI
-fixedWidth		:: !Int 					          !UI -> UI
-wrapHeight		::							          !UI -> UI
-wrapWidth		:: 							          !UI -> UI
-setMargins		:: !Int !Int !Int !Int		          !UI -> UI
-setTopMargin	:: !Int 					          !UI -> UI
-setRightMargin	:: !Int 					          !UI -> UI
-setBottomMargin	:: !Int 					          !UI -> UI
-setLeftMargin	:: !Int 					          !UI -> UI
-setPadding 		:: !Int !Int !Int !Int                !UI -> UI
-setTopPadding   :: !Int                               !UI -> UI
-setRightPadding :: !Int                               !UI -> UI
-setBottomPadding:: !Int                               !UI -> UI
-setLeftPadding  :: !Int                               !UI -> UI
-setTitle 		:: !String 					          !UI -> UI
-setFramed		:: !Bool					          !UI -> UI
-setIconCls		:: !String					          !UI -> UI
-setBaseCls      :: !String                            !UI -> UI
-setTooltip      :: !String                            !UI -> UI
-setDirection    :: !UIDirection                       !UI -> UI
-setHalign       :: !UIHAlign                          !UI -> UI
-setValign		:: !UIVAlign				          !UI -> UI
-setHpos 		:: !UIHAlign                          !UI -> UI
-setVpos 		:: !UIVAlign                          !UI -> UI
-setWindowType   :: !UIWindowType                      !UI -> UI
-setFocusTaskId  :: !String                            !UI -> UI
-setCloseTaskId  :: !String                            !UI -> UI
-setActiveTab 	:: !Int 					          !UI -> UI
-setValue 		:: !JSONNode                          !UI -> UI
-setMinValue     :: !Int                               !UI -> UI
-setMaxValue     :: !Int                               !UI -> UI
-setText         :: !String                            !UI -> UI
-setEnabled      :: !Bool                              !UI -> UI
-setInstanceNo   :: !Int                               !UI -> UI
-setInstanceKey  :: !String                            !UI -> UI
-setEditOpts     :: !String !String !(Maybe JSONNode)  !UI -> UI
-setChoiceOpts   :: !String !String ![Int] ![JSONNode] !UI -> UI
-setColumns      :: ![String]                          !UI -> UI
-setDoubleClickAction :: !String !String               !UI -> UI
-setActionId     :: !String                            !UI -> UI
-setTaskId       :: !String                            !UI -> UI
+//Predefined attribute defintions
+optionalAttr 	  :: !Bool                                -> UIAttributes
+sizeAttr          :: !UISize !UISize                      -> UIAttributes
+widthAttr         :: !UISize                              -> UIAttributes
+heightAttr        :: !UISize                              -> UIAttributes
+minSizeAttr       :: !UIBound !UIBound                    -> UIAttributes
+minWidthAttr      :: !UIBound                             -> UIAttributes
+minHeightAttr     :: !UIBound                             -> UIAttributes
+maxSizeAttr       :: !UIBound !UIBound                    -> UIAttributes
+maxWidthAttr      :: !UIBound                             -> UIAttributes
+maxHeightAttr     :: !UIBound                             -> UIAttributes
+marginsAttr       :: !Int !Int !Int !Int                  -> UIAttributes
+topMarginAttr     :: !Int                                 -> UIAttributes
+rightMarginAttr   :: !Int                                 -> UIAttributes
+bottomMarginAttr  :: !Int                                 -> UIAttributes
+leftMarginAttr    :: !Int                                 -> UIAttributes
+paddingAttr       :: !Int !Int !Int !Int                  -> UIAttributes
+topPaddingAttr    :: !Int                                 -> UIAttributes
+rightPaddingAttr  :: !Int                                 -> UIAttributes
+bottomPaddingAttr :: !Int                                 -> UIAttributes
+leftPaddingAttr   :: !Int                                 -> UIAttributes
+titleAttr         :: !String                              -> UIAttributes
+frameAttr         :: !Bool                                -> UIAttributes
+iconClsAttr       :: !String                              -> UIAttributes
+baseClsAttr       :: !String                              -> UIAttributes
+tooltipAttr       :: !String                              -> UIAttributes
+directionAttr     :: !UIDirection                         -> UIAttributes
+halignAttr        :: !UIHAlign                            -> UIAttributes
+valignAttr        :: !UIVAlign                            -> UIAttributes
+hposAttr          :: !UIHAlign                            -> UIAttributes
+vposAttr          :: !UIVAlign                            -> UIAttributes
+windowTypeAttr    :: !UIWindowType                        -> UIAttributes
+focusTaskIdAttr   :: !String                              -> UIAttributes
+closeTaskIdAttr   :: !String                              -> UIAttributes
+activeTabAttr     :: !Int                                 -> UIAttributes
+valueAttr         :: !JSONNode                            -> UIAttributes
+minValueAttr      :: !Int                                 -> UIAttributes
+maxValueAttr      :: !Int                                 -> UIAttributes
+textAttr          :: !String                              -> UIAttributes
+enabledAttr       :: !Bool                                -> UIAttributes
+instanceNoAttr    :: !Int                                 -> UIAttributes
+instanceKeyAttr   :: !String                              -> UIAttributes
+columnsAttr       :: ![String]                            -> UIAttributes
+doubleClickAttr   :: !String !String                      -> UIAttributes
+actionIdAttr      :: !String                              -> UIAttributes
+taskIdAttr        :: !String                              -> UIAttributes
 
-isOptional :: !UI -> Bool	
+editAttrs         :: !String !String !(Maybe JSONNode)    -> UIAttributes
+choiceAttrs       :: !String !String ![Int] ![JSONNode]   -> UIAttributes
+
 //Util
+isOptional :: !UI -> Bool	
 stringDisplay   :: !String  -> UI
 
 //Encoding of UI to the format sent to the client framework

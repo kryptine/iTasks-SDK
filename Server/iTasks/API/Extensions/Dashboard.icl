@@ -23,7 +23,8 @@ controlLightEditlet
       }
 where
 	genUI dp val mask world
-		= (Ok (setSize (ExactSize 20) (ExactSize 20) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (svgLight (color val))))]))), world)
+		# attr = 'DM'.unions [sizeAttr (ExactSize 20) (ExactSize 20),valueAttr (JSONString (toString (svgLight (color val))))]
+		= (Ok (uia UIViewHtml attr), world)
 
     initUI me world 
 		# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) world

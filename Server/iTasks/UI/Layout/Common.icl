@@ -8,21 +8,20 @@ import StdBool
 from StdFunc import id, const, o
 
 arrangeWithTabs :: Layout
-arrangeWithTabs = conditionalLayout isParallel toTabset
+arrangeWithTabs = conditionalLayout isParallel (setNodeType UITabSet)
 where
-	toTabset = changeNodeType (\(UI _ attr items) ->UI UITabSet attr items)
-
 	isParallel d = d =:(UI UIParallel _ _)
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 arrangeWithSideBar index side size resize = sequenceLayouts 
 	[wrapUI UIContainer 	//Push the current container down a level
 	,copyAttributes [0] [] 	//Keep the attributes from the original UI
-	,changeNodeType (\(UI _ attr items) -> setDirection direction (UI UIPanel attr items)) //Turn into a panel
+	,setNodeType UIPanel 
+	,setAttributes (directionAttr direction)
 	,insertSubAt [sidePanelIndex] (ui UICompoundContent) //Make sure we have a target for the move
 	,moveSubAt [mainPanelIndex,index] [sidePanelIndex,0]
 	,layoutSubAt [sidePanelIndex] unwrapUI //Remove the temporary wrapping panel
-	,layoutSubAt [sidePanelIndex] (changeNodeType (setSize sidePanelWidth sidePanelHeight))
+	,layoutSubAt [sidePanelIndex] (setAttributes (sizeAttr sidePanelWidth sidePanelHeight))
 	]
 where
 	sidePanelIndex = if (side === TopSide || side === LeftSide) 0 1
@@ -58,35 +57,37 @@ arrangeHorizontal = id
 
 frameCompact :: Layout
 frameCompact = sequenceLayouts
-	[changeNodeType (setFramed True o setSize WrapSize WrapSize o setMargins 50 0 20 0 o setMinWidth (ExactBound 600))
+	[setAttributes ('DM'.unions [frameAttr True,sizeAttr WrapSize WrapSize,marginsAttr 50 0 20 0,minWidthAttr (ExactBound 600)])
 	,wrapUI UIContainer
-	,changeNodeType (setHalign AlignCenter)
+	,setAttributes (halignAttr AlignCenter)
 	]
 
 beforeStep :: Layout -> Layout
 beforeStep layout = conditionalLayout (\n -> n =:(UI UIStep _ _)) layout //TODO: Explicitly detect if we are before or after a step
 
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
-toWindow windowType vpos hpos = changeNodeType mkWindow
-where
-	mkWindow (UI _ attr items) = 
-		(setWindowType windowType o setVpos vpos o setHpos hpos) (UI UIWindow attr items)
+toWindow windowType vpos hpos = sequenceLayouts 
+	[setNodeType UIWindow
+	,setAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
+	]
 
 toEmpty :: Layout
-toEmpty = changeNodeType (const (ui UIEmpty))
+toEmpty = setNodeType UIEmpty
 
 toContainer :: Layout
-toContainer = changeNodeType (const (ui UIContainer))
+toContainer = setNodeType UIContainer 
 
 toPanel :: Layout
-toPanel = changeNodeType (const (ui UIPanel))
+toPanel = setNodeType UIPanel
 
 actionToButton :: Layout
 actionToButton = layout 
 where
 	layout (ReplaceUI (UI UIAction attr _),_)
-		# buttonOpts = maybe id (\(JSONString a) -> setText a) ('DM'.get "actionId" attr)
-		= (ReplaceUI (buttonOpts (uia UIActionButton attr)),JSONNull)
+		= case ('DM'.get "actionId" attr) of
+			Just (JSONString a)
+				= (ReplaceUI (uia UIActionButton ('DM'.union (textAttr a) attr)),JSONNull)
+			_ 	= (ReplaceUI (uia UIActionButton attr),JSONNull)
 	
 	layout (change,s) = (change,s)
 
@@ -129,26 +130,16 @@ where
 
 instance tune Title
 where
-	tune (Title title) t = tune (ApplyLayout (changeNodeType (setTitle title)) ) t
+	tune (Title title) t = tune (ApplyLayout (setAttributes (titleAttr title)) ) t
 	
 instance tune Icon
 where
-	tune (Icon icon) t = tune (ApplyLayout layout) t
-	where
-		layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.put ICON_ATTRIBUTE (JSONString icon) attr) items),s)
-		layout (change,s) = (change,s)
+	tune (Icon icon) t = tune (ApplyLayout (setAttributes ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]))) t
 
 instance tune Attribute
 where
-	tune (Attribute k v) t = tune (ApplyLayout layout) t
-	where
-		layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.put k (JSONString v) attr) items),s)
-		layout (change,s) = (change,s)
+	tune (Attribute k v) t = tune (ApplyLayout (setAttributes ('DM'.fromList [(k,JSONString v)]))) t
 
 instance tune Label
 where
-	tune (Label label) t = tune (ApplyLayout layout) t
-	where
-		layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.put LABEL_ATTRIBUTE (JSONString label) attr) items),s)
-		layout (change,s) = (change,s)
-
+	tune (Label label) t = tune (ApplyLayout (setAttributes ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]))) t

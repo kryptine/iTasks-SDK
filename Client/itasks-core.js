@@ -142,7 +142,10 @@ itasks.Component = {
 			lastIdx = me.parentCmp.children.length - 1;
 
         //Set margins as specified
-		el.style.margin = margins.map(function(s) { return s + 'px'}).join(' ');
+		if(me.marginTop) { el.style.marginTop = me.marginTop + 'px' ; }
+		if(me.marginRight) { el.style.marginRight = me.marginRight + 'px' ; }
+		if(me.marginBottom) { el.style.marginBottom = me.marginBottom + 'px' ; }
+		if(me.marginLeft) { el.style.marginLeft = me.marginLeft + 'px' ; }
 
 		//Set margins to auto based on alignment of parent
         if(parentDirection == 'vertical') {
@@ -186,9 +189,11 @@ itasks.Component = {
 
         el.classList.add(me.cssPrefix + (horizontal ? 'hcontainer' : 'vcontainer'));
 
-		if(me.padding) {
-            el.style.padding = me.padding.split(' ').map(function(s) { return s + 'px'}).join(' ');
-        }
+		//Set padding
+		if(me.paddingTop) { el.style.paddingTop = me.paddingTop + 'px' ; }
+		if(me.paddingRight) { el.style.paddingRight = me.paddingRight + 'px' ; }
+		if(me.paddingBottom) { el.style.paddingBottom = me.paddingBottom + 'px' ; }
+		if(me.paddingLeft) { el.style.paddingLeft = me.paddingLeft + 'px' ; }
 	},
 	doEditEvent: function (taskId, editorId, value) {
 		if(this.parentCmp) {

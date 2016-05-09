@@ -67,7 +67,8 @@ googleMapEditlet
       }
 where
 	genUI dp val mask world
-		= (Ok ((setValue (toJSON val) o setSize (ExactSize 500) (ExactSize 200)) (ui UIComponent)),world)
+		# attr = 'DM'.unions [sizeAttr (ExactSize 500) (ExactSize 200), valueAttr (toJSON val)]
+		= (Ok (uia UIComponent attr),world)
 
 	initUI me world
 		# (jsInitDOM, world)   = jsWrapFun (initDOM me) world

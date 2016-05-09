@@ -5,7 +5,7 @@ import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.F
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 
-from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter
+from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys
 
 from StdFunc import o, const, id, flip
 from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
@@ -43,6 +43,13 @@ where
 		
 		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
 		
+
+setNodeType :: UINodeType -> Layout
+setNodeType type = layout
+where
+	layout (ReplaceUI (UI _ attr items),s) = (ReplaceUI (UI type attr items),s)
+	layout (change,s) = (change,s)
+
 changeNodeType :: (UI -> UI) -> Layout
 changeNodeType f = layout
 where
@@ -384,6 +391,17 @@ where
 	selectState idx states = case splitWith (((==) idx) o fst) states of
         ([(_,s):_],states) = (Just s,states)
         _                  = (Nothing,states)
+
+
+setAttributes :: UIAttributes -> Layout
+setAttributes extraAttr = layout 
+where
+	layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.union extraAttr attr) items),s)
+	layout (ChangeUI attrChanges itemChanges,s)
+		//Filter out updates for the attributes that we are setting here
+		# attrChanges = filter (\(SetAttribute k v) -> not (isMember k ('DM'.keys extraAttr))) attrChanges
+		= (ChangeUI attrChanges itemChanges,s)
+	layout (change,s) = (change,s)
 
 copyAttributes :: NodePath NodePath -> Layout
 copyAttributes src dst = layout //TODO: Also handle attribute updates in the src location, and partial replacements along the path
@@ -868,15 +886,6 @@ addButtonPanel attr direction buttons items
 //addTriggerToControl (DoubleClick,taskId,actionId) (UITree sOpts cOpts opts) = UITree sOpts cOpts {UITreeOpts|opts & doubleClickAction = Just (taskId,actionId)}
 //addTriggerToControl t c = c
 
-//GUI combinators						
-hjoin :: ![UI] -> UI
-hjoin items = (setDirection Horizontal o setHalign AlignLeft o setValign AlignMiddle)
-	          (uic UIContainer items)
-
-vjoin :: ![UI] -> UI
-vjoin items = (setDirection Vertical o setHalign AlignLeft o setValign AlignTop)
-              (uic UIContainer items)
-						
 //Container operations
 /*
 addItemToUI :: (Maybe Int) UIControl UIControl -> UIControl

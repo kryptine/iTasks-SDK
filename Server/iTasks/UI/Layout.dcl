@@ -29,7 +29,10 @@ instance tune	ApplyLayout //Apply a modification after a layout has been run
 
 //Basic DSL for creating more complex layouts
 
+setNodeType :: UINodeType -> Layout
+
 changeNodeType :: (UI -> UI) -> Layout
+
 changeNodeAttributes :: (UIAttributes -> UIAttributes) -> Layout
 
 //Changing tree depth
@@ -62,6 +65,7 @@ layoutSubsMatching :: NodePath (UI -> Bool) Layout   -> Layout
 moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
 layoutChildrenOf :: NodePath Layout -> Layout
 
+setAttributes :: UIAttributes -> Layout
 copyAttributes :: NodePath NodePath -> Layout
 
 //Composition of layouts

@@ -27,12 +27,13 @@ where
 				# viz = flattenPairUI grd_arity viz
 				//When optional we add a checkbox show the checkbox
 				| optional && not disabled
-					= (Ok (setOptional True (uic UICompoundContent [checkbox (isTouched mask),viz])), vst)
+					# attr = optionalAttr True
+					= (Ok (uiac UICompoundContent attr [checkbox (isTouched mask),viz]), vst)
 				| otherwise 
 					= (Ok viz,vst)
 			(Error e,vst) = (Error e,vst)
 	where
-		checkbox checked = setEditOpts taskId (editorId dp) (Just (JSONBool checked)) (ui UIEditCheckbox)
+		checkbox checked = uia UIEditCheckbox (editAttrs taskId (editorId dp) (Just (JSONBool checked)))
 
 	updUI dp (RECORD old) om (RECORD new) nm vst 
 		# (diff,vst) = ex.Editor.updUI (pairPath grd_arity dp) old (toPairMask grd_arity om) new (toPairMask grd_arity nm) vst
@@ -94,7 +95,10 @@ where
 				= (Ok viz, {vst & selectedConsIndex = curSelectedConsIndex})
 			(Error e, vst) = (Error e,vst)
 	where
-		consDropdown choice = setChoiceOpts taskId (editorId dp) choice [JSONString gdc.gcd_name \\ gdc <- gtd_conses] (uia UIDropdown (attributes mask))
+		consDropdown choice 
+			# options = [JSONString gdc.gcd_name \\ gdc <- gtd_conses]
+			# attr    = 'DM'.unions [choiceAttrs taskId (editorId dp) choice options,attributes mask]
+			= uia UIDropdown attr
 		attributes mask
 			| isTouched mask	= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_VALID),(HINT_ATTRIBUTE, JSONString "You have correctly selected an option")]
 								= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INFO),(HINT_ATTRIBUTE, JSONString "Select an option")]
@@ -208,7 +212,8 @@ where
 			= (vizy,vst)
 		# (vizx,vizy)   = (fromOk vizx,fromOk vizy)
 		# optional 		= isOptional vizx && isOptional vizy
-		= (Ok (setOptional optional (uic UICompoundContent [vizx,vizy])),vst)
+		# attr 			= optionalAttr optional
+		= (Ok (uiac UICompoundContent attr [vizx,vizy]),vst)
 
 	updUI dp (PAIR oldx oldy) om (PAIR newx newy) nm vst
 		# (dpx,dpy)		= pairPathSplit dp
@@ -240,7 +245,8 @@ where
 		# (viz,vst) = case val of
 			(Just x)	= ex.Editor.genUI dp x mask {VSt|vst & optional = True}
 			_			= ex.Editor.genUI dp dx Untouched {VSt|vst & optional = True}
-		= (fmap (setOptional True) viz, {VSt|vst & optional = optional})
+		# viz = fmap (\(UI type attr items) -> UI type ('DM'.union (optionalAttr True) attr) items) viz
+		= (viz, {VSt|vst & optional = optional})
 
 	updUI dp Nothing om Nothing nm vst = (Ok NoChange,vst)
 	updUI dp Nothing om (Just new) nm vst=:{VSt|optional}
@@ -303,30 +309,28 @@ flattenPairDiff s n (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)])
 where
 	half = n / 2
 
-gEditor{|Int|} = primitiveTypeEditor (Just "whole number")
-					(\value -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
-					(\attr taskId editorId value -> setEditOpts taskId editorId value (uia UIEditInt attr))
-gEditor{|Real|} = primitiveTypeEditor (Just "decimal number")
-					(\value -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
-					(\attr taskId editorId value -> setEditOpts taskId editorId value (uia UIEditDecimal attr))
-gEditor{|Char|} = primitiveTypeEditor (Just "single character")
-					(\value -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
-					(\attr taskId editorId value -> setEditOpts taskId editorId value (uia UIEditString attr))
-gEditor{|String|} = primitiveTypeEditor (Just "single line of text")
-					(\value -> (maybe id (\v -> setValue (JSONString (toString v))) value) (ui UIViewString))
-					(\attr taskId editorId value -> setEditOpts taskId editorId value (uia UIEditString attr))
-gEditor{|Bool|} = primitiveTypeEditor Nothing 
-					(\value -> (maybe id (\v -> setValue (JSONBool v)) value) (ui UIViewCheckbox))
-					(\attr taskId editorId value -> setEditOpts taskId editorId value (uia UIEditCheckbox attr))
+gEditor{|Int|} = primitiveTypeEditor (Just "whole number") UIViewString UIEditInt
+					(\value -> JSONString (toString value))
+gEditor{|Real|} = primitiveTypeEditor (Just "decimal number") UIViewString UIEditDecimal
+					(\value -> JSONString (toString value))
+gEditor{|Char|} = primitiveTypeEditor (Just "single character") UIViewString UIEditString
+					(\value -> JSONString (toString value))
+gEditor{|String|} = primitiveTypeEditor (Just "single line of text") UIViewString UIEditString
+					(\value -> JSONString (toString value))
+gEditor{|Bool|} = primitiveTypeEditor Nothing UIViewCheckbox UIEditCheckbox
+					(\value -> JSONBool value)
 
-primitiveTypeEditor mbTypeDesc mkViewControl mkEditControl = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+primitiveTypeEditor mbTypeDesc viewType editType mkViewValue = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where 
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled	
-			= (Ok (setOptional optional (mkViewControl (checkMask mask val))),vst)
+			# attr = 'DM'.unions [optionalAttr optional, maybe 'DM'.newMap (valueAttr o mkViewValue) (checkMask mask val)]
+			= (Ok (uia viewType attr),vst)
 		| otherwise
-			# attr = maybe 'DM'.newMap (\typeDesc -> stdAttributes typeDesc optional mask) mbTypeDesc
-        	= (Ok (setOptional optional (mkEditControl attr taskId (editorId dp) (checkMaskValue mask val))), vst)
+			# value = (checkMaskValue mask val)
+			# editAttr = maybe 'DM'.newMap (\typeDesc -> stdAttributes typeDesc optional mask) mbTypeDesc
+			# attr = 'DM'.unions [optionalAttr optional,editAttrs taskId (editorId dp) (checkMaskValue mask val)]
+			= (Ok (uia editType attr),vst)
 
 	updUI dp ov om nv nm vst=:{VSt|optional,disabled}
 		= (Ok (if (vEq && mEq) NoChange (ChangeUI (valueChange ++ attrChanges) [])),vst)
@@ -386,20 +390,23 @@ where
 			//# controls	= map (setWidth FlexSize) (decorateControls (layout.layoutSubEditor {UIForm| attributes = 'DM'.newMap, controls = editorControls item, size = defaultSizeOpts}))
 			# controls = []
 			# buttons	= (if reorder
-							  [(setIconCls "icon-up" o setEnabled (idx <> 0)) (setEditOpts taskId (editorId dp) (Just (JSONString ("mup_" +++ toString idx))) (ui UIEditButton))
-							  ,(setIconCls "icon-down" o setEnabled (idx <> numItems - 1)) (setEditOpts taskId (editorId dp) (Just (JSONString ("mdn_" +++ toString idx))) (ui UIEditButton))
+							  [uia UIEditButton ('DM'.unions [iconClsAttr "icon-up", enabledAttr (idx <> 0), editAttrs taskId (editorId dp) (Just (JSONString ("mup_" +++ toString idx)))])
+							  ,uia UIEditButton ('DM'.unions [iconClsAttr "icon-down", enabledAttr (idx <> numItems - 1), editAttrs taskId (editorId dp) (Just (JSONString ("mdn_" +++ toString idx)))])
 							  ] []) ++
 							  (if remove
-							  [setIconCls "icon-remove" (setEditOpts taskId (editorId dp) (Just (JSONString ("rem_" +++ toString idx))) (ui UIEditButton))
+							  [uia UIEditButton ('DM'.unions [iconClsAttr "icon-remove",editAttrs taskId (editorId dp) (Just (JSONString ("rem_" +++ toString idx)))])
 							  ] [])
-			= setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (uic UIContainer (if disabled controls (controls ++ buttons)))))
+
+			# attr = 'DM'.unions [halignAttr AlignRight,heightAttr WrapSize,directionAttr Horizontal]
+			= uiac UIContainer attr (if disabled controls (controls ++ buttons))
 		addItemControl numItems
-			# counter   = if count [(setWidth FlexSize o setValue (JSONString (numItemsText numItems))) (ui UIViewString)] []
-			# button	= if enableAdd [setIconCls "icon-add" (setEditOpts taskId (editorId dp) (Just (JSONString "add")) (ui UIEditButton))] []
-			= (setHalign AlignRight (setHeight WrapSize (setDirection Horizontal (uic UIContainer (counter ++ button)))))
+			# counter   = if count [uia UIViewString ('DM'.unions [widthAttr FlexSize, valueAttr (JSONString (numItemsText numItems))])] []
+			# button	= if enableAdd [uia UIEditButton ('DM'.unions [iconClsAttr "icon-add",editAttrs taskId (editorId dp) (Just (JSONString "add"))])] []
+			# attr      = 'DM'.unions [halignAttr AlignRight,heightAttr WrapSize,directionAttr Horizontal]
+			= uiac UIContainer attr (counter ++ button)
 			
 		listContainer controls
-			= setHeight WrapSize (uic UIContainer controls)
+			= uiac UIContainer (heightAttr WrapSize) controls
 			
 		numItemsText 1 = "1 item"
 		numItemsText n = toString n +++ " items"

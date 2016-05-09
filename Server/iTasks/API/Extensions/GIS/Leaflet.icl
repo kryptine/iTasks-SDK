@@ -135,8 +135,9 @@ leafletEditlet
     }
 where
 	genUI dp val mask world
-		= (Ok (setSize (ExactSize 500) (ExactSize 150) (ui UIViewHtml)), world)
-		//= (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (DivTag [IdAttr (mapdivid cid)] [])))])), world)
+		# attr = sizeAttr (ExactSize 500) (ExactSize 150)
+		= (Ok (uia UIViewHtml attr), world)
+
 	initUI me world
 		# (jsInitDOM,world) = jsWrapFun (initDOM me) world
 		//Check if the leaflet library is loaded and either load it, 

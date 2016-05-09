@@ -16,9 +16,10 @@ instance toPrompt String
 where toPrompt hint = createPrompt hint
 	
 instance toPrompt (!String,!String)
-where toPrompt (title,hint) = setTitle title (createPrompt hint)
+where toPrompt (title,hint) = let (UI type attr items) = createPrompt hint in
+		(UI type ('DM'.union (titleAttr title) attr) items)
 
 createPrompt :: String -> UI
-createPrompt hint = style (uic UIContainer [stringDisplay hint])
+createPrompt hint = (uiac UIContainer attr [stringDisplay hint])
 where
-	style = setMargins 5 5 10 5 o setWidth FlexSize o setMinWidth WrapBound o setHeight WrapSize o setBaseCls "itasks-prompt"
+	attr = 'DM'.unions [marginsAttr 5 5 10 5, widthAttr FlexSize, minWidthAttr WrapBound, heightAttr WrapSize, baseClsAttr "itasks-prompt"]

@@ -75,7 +75,9 @@ svgRenderer svglet=:{initView,renderImage,updView,updModel}
     , onEdit  = onEdit
     }
   where
-	genUI dp val mask world = (Ok (setSize FlexSize FlexSize (setValue (toJSON val) (ui UIComponent))), world)
+	genUI dp val mask world
+		# attr = 'DM'.unions [sizeAttr FlexSize FlexSize, valueAttr (toJSON val)]
+		= (Ok (uia UIComponent attr), world)
 
 	initUI me world
 		//Set attributes

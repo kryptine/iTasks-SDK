@@ -142,18 +142,15 @@ where
 			,arrangeWithSideBar 0 TopSide 200 True
 			,layoutSubAt [1] arrangeWithTabs
 			])
-		//,layoutSubAt [1] layoutRightSide
-		,changeNodeType (setSize FlexSize FlexSize)
+		, setAttributes (sizeAttr FlexSize FlexSize)
 		]
 
 	layoutStartWork = arrangeWithSideBar 1 BottomSide  200 True
 	layoutManageSession = sequenceLayouts 
 		[unwrapUI
 		,layoutChildrenOf [] actionToButton
-		,changeNodeType (\(UI _ attr items) -> UI UIPanel attr items)
-		,changeNodeType (setHeight WrapSize)
-		,changeNodeType (setDirection Horizontal)
-		,changeNodeType (setPadding 2 10 2 10)
+		,setNodeType UIPanel
+		,setAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 10 2 10])
 		]
 	
 	//layoutManageWork = arrangeWithSideBar 0 TopSide 200 True
@@ -257,7 +254,7 @@ openTask taskList taskId
 
 workOnTask :: !TaskId -> Task ClientPart
 workOnTask taskId
-    =   workOn taskId <<@ ApplyLayout (changeNodeType (setHeight FlexSize))
+    =   workOn taskId <<@ ApplyLayout (setAttributes (heightAttr FlexSize))
     >>* [OnValue    (ifValue ((===) ASExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this task" >>| return OpenProcess))
         ,OnValue    (ifValue ((===) ASIncompatible) (\_ -> dealWithIncompatibleTask))
         ,OnValue    (ifValue ((===) ASDeleted) (\_ -> return OpenProcess))

@@ -6,6 +6,7 @@ module IncidoneCCC
 */
 import iTasks, StdMisc, System.Time, Text, Data.Tuple
 import iTasks.UI.Layout, iTasks.UI.Definition
+import qualified Data.Map as DM
 
 //General configuration
 import Incidone.Configuration
@@ -94,8 +95,6 @@ where
 		,moveSubAt [0,0] [2]
 		,removeSubAt [0]
 		,layoutChildrenOf [] actionToButton
-        ,changeNodeType (setDirection Horizontal)
-        ,changeNodeType (setPadding 2 2 2 250)
-        ,changeNodeType (setBaseCls "summary-bar")
-        ,changeNodeType (\(UI _ attr items) -> UI UIPanel attr items)
+		,setAttributes ('DM'.unions [directionAttr Horizontal,paddingAttr 2 2 2 250, baseClsAttr "summary-bar"])
+		,setNodeType UIPanel
         ]

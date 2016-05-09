@@ -26,7 +26,8 @@ analogClockEditlet
       }
 where
 	genUI dp (AnalogClock {Time|hour,min,sec}) mask world
-		= (Ok (setSize (ExactSize 100) (ExactSize 100) (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (svgClock hour min sec)))]))), world)
+		# attr = 'DM'.unions [sizeAttr (ExactSize 100) (ExactSize 100),valueAttr (JSONString (toString (svgClock hour min sec)))]
+		= (Ok (uia UIViewHtml attr), world)
 	where
 		svgClock hour min sec 
 			= SvgTag [StyleAttr "flex: 1; align-self: stretch;"] [ViewBoxAttr "0" "0" "100" "100"]

@@ -14,9 +14,9 @@ LABEL_WIDTH :== 100
 
 defaultSessionLayout :: Layout
 defaultSessionLayout = sequenceLayouts 
-    [layoutSubsMatching [] isIntermediate finalizeUI 	//Finalize all remaining intermediate layouts
-	,removeSubsMatching [] isEmpty 						//Remove temporary placeholders
-	,changeNodeType (setSize FlexSize FlexSize) 		//Make sure we use the full viewport
+    [layoutSubsMatching [] isIntermediate finalizeUI //Finalize all remaining intermediate layouts
+	,removeSubsMatching [] isEmpty                   //Remove temporary placeholders
+	,setAttributes (sizeAttr FlexSize FlexSize)      //Make sure we use the full viewport
     ]
 
 //The finalize layouts remove all intermediate 
@@ -37,7 +37,7 @@ where
     	,layoutSubAt [1] finalizeForm 
 		,copyAttributes [0] []
 		,removeEmptyPrompt
-		,changeNodeType (\(UI UIInteract attr items) -> UI UIContainer attr items)
+		,setNodeType UIContainer
 		] 
 
 	removeEmptyPrompt = conditionalLayout emptyPrompt (removeSubAt [0])
@@ -48,21 +48,21 @@ where
 finalizeForm :: Layout
 finalizeForm
 	= sequenceLayouts [layoutSubsMatching [] isFormItem layoutRow
-					  ,changeNodeType (\(UI UIForm attr items) -> UI UIContainer attr items)
+					  ,setNodeType UIContainer
 					  ]
 where
 	//Case when 
-	layoutRow = changeNodeType toRow
-	where
-		toRow (UI UIFormItem attr items) = (setMargins 5 5 5 5 o setDirection Horizontal o setSize FlexSize WrapSize) (uiac UIContainer attr items)
-		toRow ui = ui
+	layoutRow = sequenceLayouts
+		[setAttributes ('DM'.unions [marginsAttr 5 5 5 5,directionAttr Horizontal, sizeAttr FlexSize WrapSize])
+		,setNodeType UIContainer
+		]
 
 finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
 where
 	layout = selectLayout
-		[(isEmpty,changeNodeType (\(UI _ attr items) -> UI UIEmpty attr items))
-		,(hasActions,sequenceLayouts[layoutSubAt [0] finalizeUI, actionsToButtonBar,changeNodeType (\(UI UIStep attr items) -> UI UIPanel attr items)])
+		[(isEmpty,setNodeType UIEmpty)
+		,(hasActions,sequenceLayouts[layoutSubAt [0] finalizeUI, actionsToButtonBar,setNodeType UIPanel])
 		,(const True,sequenceLayouts[unwrapUI,finalizeUI])
 		]
 
@@ -74,12 +74,12 @@ finalizeParallel = selectLayout [(\ui -> isParallel ui && hasActions ui,layoutWi
 where
 	layoutWithoutActions = sequenceLayouts
 		[layoutChildrenOf [] finalizeUI
-		,changeNodeType (\(UI UIParallel attr items) -> UI UIContainer attr items)
+		,setNodeType UIContainer
 		]
 	layoutWithActions = sequenceLayouts
 		[actionsToButtonBar
 		,layoutChildrenOf [] finalizeUI
-		,changeNodeType (\(UI UIParallel attr items) -> UI UIPanel attr items)
+		,setNodeType UIPanel
 		]
 
 	isSingle (UI _ _ [_]) = True
@@ -144,8 +144,13 @@ buttonBar = uic UIButtonBar []
 
 labelControl :: UIAttributes -> Maybe UI
 labelControl attributes 
-	# optional = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attributes)
-	= fmap (\(JSONString l) -> setWidth (ExactSize LABEL_WIDTH) (stringDisplay (formatLabel optional l))) ('DM'.get LABEL_ATTRIBUTE attributes)
+	= case 'DM'.get LABEL_ATTRIBUTE attributes of
+		Just (JSONString label)
+			# optional = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attributes)
+			# (UI type attr items) = stringDisplay (formatLabel optional label)
+			# attr = 'DM'.union (widthAttr (ExactSize LABEL_WIDTH)) attr
+			= Just (UI type attr items)
+		_   = Nothing
 
 infoControl :: UIAttributes -> Maybe UI
 infoControl attributes
@@ -153,7 +158,7 @@ infoControl attributes
 		(Just (JSONString type), Just (JSONString hint)) 	= Just (icon type hint)
 		_ 						= Nothing
 where
-	icon type tooltip = (setLeftMargin 5 o setTooltip tooltip o setIconCls ("icon-"+++type)) (ui UIIcon)
+	icon type tooltip = uia UIIcon ('DM'.unions [leftMarginAttr 5,tooltipAttr tooltip,iconClsAttr ("icon-"+++type)])
 
 formatLabel :: Bool String -> String
 formatLabel optional label

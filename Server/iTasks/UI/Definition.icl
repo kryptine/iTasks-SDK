@@ -49,204 +49,154 @@ uia type attr = UI type attr []
 uiac :: UINodeType UIAttributes [UI] -> UI
 uiac type attr items = UI type attr items
 
-setOptional :: !Bool !UI -> UI
-setOptional optional (UI type attr items) = UI type ('DM'.put "optional" (JSONBool optional) attr) items
+optionalAttr :: !Bool -> UIAttributes
+optionalAttr optional = 'DM'.fromList [("optional",JSONBool optional)]
 
-setSize :: !UISize !UISize !UI -> UI
-setSize width heigth ui = (setWidth width o setHeight heigth) ui
+sizeAttr :: !UISize !UISize -> UIAttributes
+sizeAttr width height = 'DM'.fromList [("width",encodeUI width),("height",encodeUI height)]
 
-setWidth :: !UISize !UI -> UI
-setWidth width (UI type attr items) = UI type ('DM'.put "width" (encodeUI width) attr) items
+widthAttr :: !UISize -> UIAttributes
+widthAttr width = 'DM'.fromList [("width",encodeUI width)]
 
-setHeight :: !UISize !UI -> UI
-setHeight height (UI type attr items) = UI type ('DM'.put "height" (encodeUI height) attr) items
+heightAttr :: !UISize -> UIAttributes
+heightAttr height = 'DM'.fromList [("height",encodeUI height)]
 
-setMinSize :: !UIBound !UIBound !UI -> UI
-setMinSize minWidth minHeight ui = (setMinWidth minWidth o setMinHeight minHeight) ui
+minSizeAttr :: !UIBound !UIBound -> UIAttributes
+minSizeAttr minWidth minHeight = 'DM'.fromList [("minWidth",encodeUI minWidth),("minHeight",encodeUI minHeight)]
 
-setMinWidth :: !UIBound !UI -> UI
-setMinWidth minWidth (UI type attr items) = UI type ('DM'.put "minWidth" (encodeUI minWidth) attr) items
+minWidthAttr :: !UIBound -> UIAttributes
+minWidthAttr minWidth = 'DM'.fromList [("minWidth",encodeUI minWidth)]
 
-setMinHeight :: !UIBound !UI -> UI
-setMinHeight minHeight (UI type attr items) = UI type ('DM'.put "minHeight" (encodeUI minHeight) attr) items
+minHeightAttr :: !UIBound -> UIAttributes
+minHeightAttr minHeight = 'DM'.fromList [("minHeight",encodeUI minHeight)]
 
-setMaxSize :: !UIBound !UIBound !UI -> UI
-setMaxSize maxWidth maxHeight ui = (setMaxWidth maxWidth o setMaxHeight maxHeight) ui
+maxSizeAttr :: !UIBound !UIBound -> UIAttributes
+maxSizeAttr maxWidth maxHeight = 'DM'.fromList [("maxWidth",encodeUI maxWidth),("maxHeight",encodeUI maxHeight)]
 
-setMaxWidth :: !UIBound !UI -> UI
-setMaxWidth maxWidth (UI type attr items) = UI type ('DM'.put "maxWidth" (encodeUI maxWidth) attr) items
+maxWidthAttr :: !UIBound -> UIAttributes
+maxWidthAttr maxWidth = 'DM'.fromList [("maxWidth",encodeUI maxWidth)]
 
-setMaxHeight :: !UIBound !UI -> UI
-setMaxHeight maxHeight (UI type attr items) = UI type ('DM'.put "maxHeight" (encodeUI maxHeight) attr) items
+maxHeightAttr :: !UIBound -> UIAttributes
+maxHeightAttr maxHeight = 'DM'.fromList [("maxHeight",encodeUI maxHeight)]
 
-fill :: !UI -> UI
-fill def = setSize FlexSize FlexSize def
+marginsAttr :: !Int !Int !Int !Int -> UIAttributes
+marginsAttr top right bottom left = 'DM'.fromList [("marginTop",JSONInt top),("marginRight",JSONInt right),("marginBottom",JSONInt bottom),("marginLeft",JSONInt left)]
 
-fillHeight :: !UI -> UI
-fillHeight def = setHeight FlexSize def
+topMarginAttr :: !Int -> UIAttributes
+topMarginAttr top = 'DM'.fromList [("topMargin",JSONInt top)]
 
-fillWidth :: !UI -> UI
-fillWidth def = setWidth FlexSize def
+rightMarginAttr :: !Int -> UIAttributes
+rightMarginAttr right = 'DM'.fromList [("rightMargin",JSONInt right)]
 
-fixedHeight	:: !Int !UI -> UI
-fixedHeight size def = setHeight (ExactSize size) def
+bottomMarginAttr :: !Int -> UIAttributes
+bottomMarginAttr bottom = 'DM'.fromList [("bottomMargin",JSONInt bottom)]
 
-fixedWidth :: !Int !UI -> UI
-fixedWidth size def = setWidth (ExactSize size) def
+leftMarginAttr :: !Int -> UIAttributes
+leftMarginAttr left = 'DM'.fromList [("leftMargin",JSONInt left)]
 
-wrapHeight :: !UI -> UI
-wrapHeight def = setHeight WrapSize def
+paddingAttr :: !Int !Int !Int !Int -> UIAttributes
+paddingAttr top right bottom left = 'DM'.fromList [("paddingTop",JSONInt top),("paddingRight",JSONInt right),("paddingBottom",JSONInt bottom),("paddingLeft",JSONInt left)]
 
-wrapWidth :: !UI -> UI
-wrapWidth def = setWidth WrapSize def
+topPaddingAttr :: !Int -> UIAttributes
+topPaddingAttr top = 'DM'.fromList [("topPadding",JSONInt top)]
 
-setMargins :: !Int !Int !Int !Int !UI -> UI
-setMargins top right bottom left (UI type attr items) = UI type ('DM'.put "margins" margins attr) items
-where
-	margins = JSONObject [("top",JSONInt top),("right",JSONInt right),("bottom",JSONInt bottom),("left",JSONInt left)]
+rightPaddingAttr :: !Int -> UIAttributes
+rightPaddingAttr right = 'DM'.fromList [("rightPadding",JSONInt right)]
 
-setMargin :: !String !Int !UI -> UI
-setMargin margin value (UI type attr items) = UI type ('DM'.put "margins" margins attr) items
-where
-	margins = jsonObjectPut margin (JSONInt value) (fromMaybe (JSONObject []) ('DM'.get "margins" attr))
+bottomPaddingAttr :: !Int -> UIAttributes
+bottomPaddingAttr bottom = 'DM'.fromList [("bottomPadding",JSONInt bottom)]
 
-setTopMargin :: !Int !UI -> UI
-setTopMargin top ui = setMargin "top" top ui
+leftPaddingAttr :: !Int -> UIAttributes
+leftPaddingAttr left = 'DM'.fromList [("leftPadding",JSONInt left)]
 
-setRightMargin	:: !Int !UI -> UI
-setRightMargin right ui = setMargin "right" right ui
+titleAttr :: !String -> UIAttributes
+titleAttr title = 'DM'.fromList [("title",JSONString title)]
 
-setBottomMargin	:: !Int !UI -> UI
-setBottomMargin bottom ui = setMargin "bottom" bottom ui
+frameAttr :: !Bool -> UIAttributes
+frameAttr frame = 'DM'.fromList [("frame",JSONBool frame)]
 
-setLeftMargin :: !Int !UI -> UI
-setLeftMargin left ui = setMargin "left" left ui
+iconClsAttr :: !String -> UIAttributes
+iconClsAttr iconCls = 'DM'.fromList [("iconCls",JSONString iconCls)]
 
-setPadding :: !Int !Int !Int !Int !UI -> UI
-setPadding top right bottom left (UI type attr items) = UI type ('DM'.put "padding" padding attr) items
-where
-	padding = JSONObject [("top",JSONInt top),("right",JSONInt right),("bottom",JSONInt bottom),("left",JSONInt left)]
+baseClsAttr :: !String -> UIAttributes
+baseClsAttr baseCls = 'DM'.fromList [("baseCls",JSONString baseCls)]
 
-setPaddingSide :: !String !Int !UI -> UI
-setPaddingSide side value (UI type attr items) = UI type ('DM'.put "padding" padding attr) items
-where
-	padding = jsonObjectPut side (JSONInt value) (fromMaybe (JSONObject []) ('DM'.get "padding" attr))
+tooltipAttr :: !String -> UIAttributes
+tooltipAttr tooltip = 'DM'.fromList [("tooltip",JSONString tooltip)]
 
-setTopPadding :: !Int !UI -> UI
-setTopPadding top ui = setPaddingSide "top" top ui
+directionAttr :: !UIDirection -> UIAttributes
+directionAttr direction = 'DM'.fromList [("direction",encodeUI direction)]
 
-setRightPadding :: !Int !UI -> UI
-setRightPadding right ui = setPaddingSide "right" right ui
+halignAttr :: !UIHAlign -> UIAttributes
+halignAttr align = 'DM'.fromList [("halign",encodeUI align)]
 
-setBottomPadding :: !Int !UI -> UI
-setBottomPadding bottom ui = setPaddingSide "bottom" bottom ui
+valignAttr :: !UIVAlign -> UIAttributes
+valignAttr align = 'DM'.fromList [("valign",encodeUI align)]
 
-setLeftPadding :: !Int !UI -> UI
-setLeftPadding left ui = setPaddingSide "left" left ui
+hposAttr :: !UIHAlign -> UIAttributes
+hposAttr pos = 'DM'.fromList [("hpos",encodeUI pos)]
 
-setTitle :: !String !UI -> UI
-setTitle title (UI type attr items) = UI type ('DM'.put "title" (JSONString title) attr) items
+vposAttr :: !UIVAlign -> UIAttributes
+vposAttr pos = 'DM'.fromList [("vpos",encodeUI pos)]
 
-setFramed :: !Bool !UI -> UI
-setFramed frame (UI type attr items) = UI type ('DM'.put "frame" (JSONBool frame) attr) items
+windowTypeAttr :: !UIWindowType -> UIAttributes
+windowTypeAttr windowType = 'DM'.fromList [("windowType",encodeUI windowType)]
 
-setIconCls :: !String !UI -> UI
-setIconCls iconCls (UI type attr items) = UI type ('DM'.put "iconCls" (encodeUI iconCls) attr) items
+focusTaskIdAttr :: !String -> UIAttributes
+focusTaskIdAttr taskId = 'DM'.fromList [("focusTaskId",JSONString taskId)]
 
-setBaseCls :: !String !UI -> UI
-setBaseCls baseCls (UI type attr items) = UI type ('DM'.put "baseCls" (encodeUI baseCls) attr) items
+closeTaskIdAttr :: !String -> UIAttributes
+closeTaskIdAttr taskId = 'DM'.fromList [("closeTaskId",JSONString taskId)]
 
-setTooltip :: !String !UI -> UI
-setTooltip tooltip (UI type attr items) = UI type ('DM'.put "tooltip" (JSONString tooltip) attr) items
+activeTabAttr :: !Int -> UIAttributes
+activeTabAttr activeTab = 'DM'.fromList [("activeTab",JSONInt activeTab)]
 
-setDirection :: !UIDirection !UI -> UI
-setDirection direction (UI type attr items) = UI type ('DM'.put "direction" (encodeUI direction) attr) items
+valueAttr :: !JSONNode -> UIAttributes
+valueAttr value = 'DM'.fromList [("value",value)]
 
-setHalign :: !UIHAlign !UI -> UI
-setHalign align (UI type attr items) = UI type ('DM'.put "halign" (encodeUI align) attr) items
+minValueAttr :: !Int -> UIAttributes
+minValueAttr minValue = 'DM'.fromList [("minValue",JSONInt minValue)]
 
-setValign :: !UIVAlign !UI -> UI
-setValign align (UI type attr items) = UI type ('DM'.put "valign" (encodeUI align) attr) items
+maxValueAttr :: !Int -> UIAttributes
+maxValueAttr maxValue = 'DM'.fromList [("maxValue",JSONInt maxValue)]
 
-setHpos :: !UIHAlign !UI -> UI
-setHpos pos (UI type attr items) = UI type ('DM'.put "hpos" (encodeUI pos) attr) items
+textAttr :: !String -> UIAttributes
+textAttr text = 'DM'.fromList [("text",JSONString text)]
 
-setVpos :: !UIVAlign !UI -> UI
-setVpos pos (UI type attr items) = UI type ('DM'.put "vpos" (encodeUI pos) attr) items
+enabledAttr :: !Bool -> UIAttributes
+enabledAttr enabled = 'DM'.fromList [("enabled",JSONBool enabled)]
 
-setWindowType :: !UIWindowType !UI -> UI
-setWindowType windowType (UI type attr items) = UI type ('DM'.put "windowType" (encodeUI windowType) attr) items
+instanceNoAttr :: !Int -> UIAttributes
+instanceNoAttr instanceNo = 'DM'.fromList [("instanceNo",JSONInt instanceNo)]
 
-setFocusTaskId ::!String !UI -> UI
-setFocusTaskId taskId (UI type attr items) = UI type ('DM'.put "focusTaskId" (JSONString taskId) attr) items
+instanceKeyAttr :: !String -> UIAttributes
+instanceKeyAttr instanceKey = 'DM'.fromList [("instanceKey",JSONString instanceKey)]
 
-setCloseTaskId :: !String !UI -> UI
-setCloseTaskId taskId (UI type attr items) = UI type ('DM'.put "closeTaskId" (JSONString taskId) attr) items
+columnsAttr :: ![String] -> UIAttributes
+columnsAttr columns = 'DM'.fromList [("columns",JSONArray (map JSONString columns))]
 
-setActiveTab :: !Int !UI -> UI
-setActiveTab activeTab (UI type attr items) = UI type ('DM'.put "activeTab" (JSONInt activeTab) attr) items
+doubleClickAttr :: !String !String -> UIAttributes
+doubleClickAttr taskId actionId = 'DM'.fromList [("doubleClickAction",JSONArray [JSONString taskId,JSONString actionId])]
 
-setValue :: !JSONNode !UI -> UI
-setValue value (UI type attr items) = UI type ('DM'.put "value" value attr) items
+actionIdAttr :: !String -> UIAttributes
+actionIdAttr actionId = 'DM'.fromList [("actionId",JSONString actionId)]
 
-setMinValue :: !Int !UI -> UI
-setMinValue minValue (UI type attr items) = UI type ('DM'.put "minValue" (JSONInt minValue) attr) items
+taskIdAttr :: !String -> UIAttributes
+taskIdAttr taskId = 'DM'.fromList [("taskId",JSONString taskId)]
 
-setMaxValue :: !Int !UI -> UI
-setMaxValue maxValue (UI type attr items) = UI type ('DM'.put "maxValue" (JSONInt maxValue) attr) items
+editAttrs :: !String !String !(Maybe JSONNode) -> UIAttributes
+editAttrs taskId editorId mbValue 
+	= 'DM'.fromList [("taskId",JSONString taskId),("editorId",JSONString editorId):maybe [] (\value -> [("value",value)]) mbValue]
 
-setText :: !String !UI -> UI
-setText text (UI type attr items) = UI type ('DM'.put "text" (JSONString text) attr) items
-
-setEnabled :: !Bool !UI -> UI
-setEnabled enabled (UI type attr items) = UI type ('DM'.put "enabled" (JSONBool enabled) attr) items
-
-setInstanceNo :: !Int !UI -> UI
-setInstanceNo instanceNo (UI type attr items) = UI type ('DM'.put "instanceNo" (JSONInt instanceNo) attr) items
-
-setInstanceKey :: !String !UI -> UI
-setInstanceKey instanceKey (UI type attr items) = UI type ('DM'.put "instanceKey" (JSONString instanceKey) attr) items
-
-setEditOpts :: !String !String !(Maybe JSONNode) !UI -> UI
-setEditOpts taskId editorId mbValue (UI type attr items) 
-	# attr = 'DM'.put "taskId" (JSONString taskId) attr
-	# attr = 'DM'.put "editorId" (JSONString editorId) attr
-	# attr = (maybe id (\value -> 'DM'.put "value" value) mbValue) attr
-	= UI type attr items
-
-setChoiceOpts :: !String !String ![Int] ![JSONNode] !UI -> UI
-setChoiceOpts taskId editorId value options (UI type attr items)
-	# attr = 'DM'.put "taskId" (JSONString taskId) attr
-	# attr = 'DM'.put "editorId" (JSONString editorId) attr
-	# attr = 'DM'.put "value" (JSONArray (map JSONInt value)) attr
-	# attr = 'DM'.put "options" (JSONArray options) attr
-	= UI type attr items
-
-setColumns :: ![String] !UI -> UI
-setColumns columns (UI type attr items)
-	# attr = 'DM'.put "columns" (JSONArray (map JSONString columns)) attr
-	= UI type attr items
-
-setDoubleClickAction :: !String !String !UI -> UI
-setDoubleClickAction taskId actionId (UI type attr items) 
-	# attr = 'DM'.put "doubleClickAction" (JSONArray [JSONString taskId,JSONString actionId]) attr
-	= UI type attr items
-
-setActionId :: !String !UI -> UI
-setActionId actionId (UI type attr items)
-	# attr = 'DM'.put "actionId" (JSONString actionId) attr
-	= UI type attr items
-
-setTaskId :: !String !UI -> UI
-setTaskId taskId (UI type attr items)
-	# attr = 'DM'.put "taskId" (JSONString taskId) attr
-	= UI type attr items
+choiceAttrs :: !String !String ![Int] ![JSONNode] -> UIAttributes
+choiceAttrs taskId editorId value options
+	= 'DM'.fromList [("taskId",JSONString taskId),("editorId",JSONString editorId),("value",JSONArray (map JSONInt value)),("options",JSONArray options)]
 
 isOptional :: !UI -> Bool
 isOptional (UI _ attr _) = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attr)
 
 stringDisplay :: !String -> UI
-stringDisplay value = setValue (JSONString (escapeStr value)) (ui UIViewString)
+stringDisplay value = uia UIViewString (valueAttr (JSONString (escapeStr value)))
 
 //Encoding of UI definitions to the JSON format expected by the client
 class encodeUI a :: a -> JSONNode
@@ -282,23 +232,11 @@ instance encodeUI UI
 where
 	encodeUI (UI type attr items) = JSONObject (typeField ++ attrFields ++ childrenField)
 	where
-		typeField      = [("xtype",JSONString (toString type))]
-		attrFields     = [(k,encodeAttr k v) \\ (k,v) <- 'DM'.toList attr]
+		typeField     = [("xtype",JSONString (toString type))]
+		attrFields    = 'DM'.toList attr
 		childrenField = case items of
 			[]    = []
 			_     = [("children",JSONArray (map encodeUI items))]
-
-		//Special cases...
-		encodeAttr "margins" margins = encodeSides margins
-		encodeAttr "padding" padding = encodeSides padding
-		encodeAttr k v = v 
-
-		encodeSides sides = (JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left))
-		where
-			top    = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "top" sides)
-			right  = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "right" sides)
-			bottom = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "bottom" sides)
-			left   = maybe 0 (\(JSONInt x) -> x) (jsonObjectGet "left" sides)
 
 instance toString UINodeType
 where
