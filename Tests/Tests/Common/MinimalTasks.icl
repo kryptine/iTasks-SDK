@@ -17,7 +17,8 @@ where
               , onEdit = \_ _ n msk ust -> (n,msk,ust)
 			  }
 
-	genUI dp val mask world = (Ok (setSize WrapSize WrapSize (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString (html "DEPRECATED")))]))), world)
+	genUI dp val mask world
+		= (Ok (uia UIViewHtml ('DM'.unions [sizeAttr WrapSize WrapSize, valueAttr (JSONString (toString (html "DEPRECATED")))])), world)
 	html cid = ButtonTag [IdAttr (cid +++ "-button")] [Text "Click me"]
 
  	//onClick cid event cv world = (cv,Diff "Click" rollback,world)
