@@ -1,7 +1,1 @@
-Dependencies/graph_copy/**/*.o
-Dependencies/graph_copy/**/*.a
-Dependencies/graph_copy/**/*.s
-Dependencies/graph_copy/**/*.abc
-Dependencies/graph_copy/**/*.sapl
-Dependencies/graph_copy/**/*.tcl
 **/Clean System Files

@@ -195,7 +195,7 @@ editletLinker initDiff initClientFunc appDiffFunc
 	//# world = debugToFile "debug_dv.sapl" sapl_DV world
 	//# world = debugToFile "debug_ad.sapl" sapl_AD world
 	//# world = debugToFile "debug.sapl"    sapl_lib world
-	//# world = debugToFile "debug.js"      (toString js_lib) world
+    # world = debugToFile "debug.js"      (toString js_lib) world
 
 	= (toString js_lib, js_ID, js_IC, js_AD, 
 			{iworld & world=world, jsCompilerState = (loaderstate, ftmap, flavour, mbparserstate, put currentInstance skipset skipmap)})
