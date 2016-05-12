@@ -1,1 +1,9 @@
 **/Clean System Files
+Examples/**/*-data
+Examples/**/sapl
+Examples/**/*.prj
+Examples/**/*.exe
+Tests/**/*-data
+Tests/**/sapl
+Tests/**/*.prj
+Tests/**/*.exe
