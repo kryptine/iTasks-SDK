@@ -3,7 +3,7 @@ implementation module iTasks._Framework.Generic.Interaction
 from Data.Map import :: Map
 import qualified Data.Map as DM
 from StdFunc import const
-import StdList, StdBool, StdTuple, StdMisc
+import StdList, StdBool, StdTuple, StdMisc, StdArray
 import Data.Maybe, Data.Either, Data.Error, Data.Generic, Data.Functor, Data.Tuple
 import Text, Text.JSON
 import iTasks._Framework.IWorld
@@ -12,6 +12,7 @@ import iTasks._Framework.Util
 import iTasks.API.Core.Types
 import iTasks.UI.Layout
 import iTasks.UI.Editor, iTasks.UI.Definition
+import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
 
 generic gEditor a | gText a, gDefault a, JSONEncode a, JSONDecode a :: Editor a
 derive bimap Editor,(,,),(,,,)
@@ -309,17 +310,13 @@ flattenPairDiff s n (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)])
 where
 	half = n / 2
 
-gEditor{|Int|} = primitiveTypeEditor (Just "whole number") UIViewString UIEditInt
-					(\value -> JSONString (toString value))
-gEditor{|Real|} = primitiveTypeEditor (Just "decimal number") UIViewString UIEditDecimal
-					(\value -> JSONString (toString value))
-gEditor{|Char|} = primitiveTypeEditor (Just "single character") UIViewString UIEditString
-					(\value -> JSONString (toString value))
-gEditor{|String|} = primitiveTypeEditor (Just "single line of text") UIViewString UIEditString
-					(\value -> JSONString (toString value))
-gEditor{|Bool|} = primitiveTypeEditor Nothing UIViewCheckbox UIEditCheckbox
-					(\value -> JSONBool value)
+gEditor{|Int|}    = whenDisabled (liftEditor toInt toString textView) (withHintAttributes "whole number" integerField)
+gEditor{|Real|}   = whenDisabled (liftEditor toReal toString textView) (withHintAttributes "decimal number" decimalField)
+gEditor{|Char|}   = liftEditor (\c -> c.[0]) toString (whenDisabled textView (withHintAttributes "single character" textField))
+gEditor{|String|} = whenDisabled textView (withHintAttributes "single line of text" textField)
+gEditor{|Bool|}   = checkBox
 
+/*
 primitiveTypeEditor mbTypeDesc viewType editType mkViewValue = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where 
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
@@ -341,7 +338,7 @@ where
 		attrChanges = maybe [] (\typeDesc ->stdAttributeChanges typeDesc optional om nm) mbTypeDesc
 
 	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
-
+*/
 gEditor{|EditableList|} ex _ dx _ _
 	= listEditor ex dx
 		(\{EditableList|items} -> items)
