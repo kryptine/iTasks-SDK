@@ -69,7 +69,8 @@ derive bimap FIELD
 derive bimap (->)
 derive bimap Bimap
 
-// HACK: dictionary for all generics.
+// HACK: dictionaries for all generics.
 // It works since all generic classes have only one method and do not inherit 
 // from other classes
 :: GenericDict a = { generic_dict :: !a }
+:: GenericDict0 a = { generic_dict0 :: a }
