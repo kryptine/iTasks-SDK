@@ -120,8 +120,8 @@ where
             attachment      = attachment
 		# progress = {InstanceProgress|progress
 					 &firstEvent = Just (fromMaybe now progress.InstanceProgress.firstEvent)
-					 ,lastEvent = Nothing
-					 } //EXPERIMENT
+					 ,lastEvent = Just now
+					 }
 		= case result of
 			(ExceptionResult _)				    = {InstanceProgress|progress & value = Exception}
 			(ValueResult (Value _ stable) _  _ _)	
