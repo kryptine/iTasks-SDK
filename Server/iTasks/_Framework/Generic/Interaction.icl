@@ -225,7 +225,7 @@ where
 			_							= (Untouched,Untouched)
 		# (diffx,vst) 	= ex.Editor.updUI dpx oldx oxmask newx nxmask vst
 		| diffx =: (Error _) = (diffx,vst)
-		# (diffy,vst) 	= ey.Editor.updUI dpx oldy oymask newy nymask vst
+		# (diffy,vst) 	= ey.Editor.updUI dpy oldy oymask newy nymask vst
 		| diffy =: (Error _) = (diffy,vst)
 		# (diffx,diffy)   = (fromOk diffx,fromOk diffy)
 		= (Ok (ChangeUI [] [(0,ChangeChild diffx),(1,ChangeChild diffy)]),vst)
