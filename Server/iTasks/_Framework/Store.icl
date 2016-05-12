@@ -208,7 +208,7 @@ writeToDisk namespace key content iworld=:{server={buildID,paths={dataDirectory}
 	# (exists,world)	= fileExists location world
 	# (res,world)		= if exists (Ok (),world)
 							( case createDirectory location world of
-								(Ok Void, world) = (Ok (),world)
+								(Ok (), world) = (Ok (),world)
 								(Error e, world) = (Error ("Cannot create store: " +++ location +++ ": " +++ snd e), world)
 							)
 	| res =: (Error _)
@@ -217,7 +217,7 @@ writeToDisk namespace key content iworld=:{server={buildID,paths={dataDirectory}
 	# (exists,world)	= fileExists (location </> namespace) world
 	# (res,world)		= if exists (Ok (),world)
 							( case createDirectory (location </> namespace) world of
-								(Ok Void, world) = (Ok (), world)
+								(Ok (), world) = (Ok (), world)
 								(Error e, world) = (Error ("Cannot create namespace " +++ namespace +++ ": " +++ snd e), world)
 							)
 	| res =: (Error _)
