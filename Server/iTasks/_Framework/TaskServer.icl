@@ -2,7 +2,7 @@ implementation module iTasks._Framework.TaskServer
 
 import StdFile, StdBool, StdInt, StdClass, StdList, StdMisc, StdArray, StdTuple, StdOrdList
 import Data.Maybe, Data.Functor, Data.Error, System.Time, Text
-from Data.Map import :: Map, :: Size
+from Data.Map import :: Map (..)
 import qualified Data.List as DL
 import qualified Data.Map as DM
 import qualified iTasks._Framework.SDS as SDS

@@ -153,7 +153,7 @@ where
 		# (taskIda,iworld=:{world})	= getNextTaskId iworld
 		# (mbErr,world)		= createDirectory tmpDir world
 		= case mbErr of
-			Ok Void
+			Ok _
 				= eval event evalOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & world = world}
 			Error e=:(ecode,emsg)
 				= (ExceptionResult (dynamic e,emsg), {iworld & world = world})

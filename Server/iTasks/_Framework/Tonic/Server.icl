@@ -117,9 +117,12 @@ showGenBlueprintInstance rs bpi selDetail compact depth
       , action = Nothing
       }
 
+// TODO FIXME:
+// - Indices might be calculated incorrectly
+// - Flatten the list of instances
 archivedStandAloneViewer :: Task ()
 archivedStandAloneViewer
-  = archivedStandAloneViewer` -1
+  = archivedStandAloneViewer` 0
   where
   archivedStandAloneViewer` curIdx
     =            enterChoiceWithShared "Select recording" [] (mapRead 'DM'.keys recordingsShare)
@@ -127,30 +130,30 @@ archivedStandAloneViewer
     (\dt ->      get (sdsFocus dt recordingForDateTimeShare)
     >>~ \recs -> showRecs curIdx recs)
   showRecs curIdx recs
-    # (msgs, curIdx) = chopMessages curIdx recs
-    # numMsgs        = length msgs
-    # lastIdx        = numMsgs - 1
-    # notFirst       = curIdx < numMsgs - 1
-    # notLast        = curIdx > 0
-    =                newRTMapFromMessages msgs
+    # numMsgs  = length recs
+    # lastIdx  = numMsgs - 1
+    # notFirst = curIdx > 0
+    # notLast  = curIdx < numMsgs - 1
+    =                newRTMapFromMessages (take (curIdx + 1) recs)
     >>~ \newRTMap -> archivedStandAloneViewer`` curIdx newRTMap
-    >>* [ OnAction (Action "First" [])    (ifCond notFirst (showRecs lastIdx msgs))
-        , OnAction (Action "Previous" []) (ifCond notFirst (showRecs (curIdx + 1) msgs))
-        , OnAction (Action "Next" [])     (ifCond notLast  (showRecs (curIdx - 1) msgs))
-        , OnAction (Action "Last" [])     (ifCond notLast  (showRecs 0 msgs))
+    >>* [ OnAction (Action "First" [])    (ifCond notFirst (showRecs 0 recs))
+        , OnAction (Action "Previous" []) (ifCond notFirst (showRecs (curIdx - 1) recs))
+        , OnAction (Action "Next" [])     (ifCond notLast  (showRecs (curIdx + 1) recs))
+        , OnAction (Action "Last" [])     (ifCond notLast  (showRecs lastIdx recs))
         ]
   archivedStandAloneViewer`` curIdx newRTMap
-    =   enterChoice "Select blueprint" [] ('DM'.toList newRTMap)
+    =   enterChoice "Select blueprint" [ChooseWith (ChooseFromGrid (\(x, y, z, _) -> (x, y, z)))] (flattenRTMap newRTMap)
     >&> withSelection noSel2 viewBP
   noSel1 = viewInformation "Notice" [] "No recording selected"
   noSel2 = viewInformation "Notice" [] "No blueprint"
-  viewBP :: (ComputationId, [((ModuleName, FuncName), GenBlueprintInstance)]) -> Task ()
-  viewBP (cid, [_, (_, gbpi) : _]) = showGenBlueprintInstance [] gbpi Nothing False { Scale | min = 0, cur = 0, max = 0} @! () // TODO Enable controls
-  viewBP _                         = viewInformation "Notice" [] "Failed to render blueprint" @! ()
-  chopMessages :: !Int [TonicMessage] -> ([TonicMessage], Int)
-  chopMessages curIdx msgs
-    # curIdx = if (curIdx < 0) (length msgs - 1) curIdx
-    = (take (curIdx + 1) msgs, curIdx)
+  viewBP :: (ComputationId, ModuleName, FuncName, GenBlueprintInstance) -> Task ()
+  viewBP (cid, _, _, gbpi) = showGenBlueprintInstance [] gbpi Nothing False { Scale | min = 0, cur = 0, max = 0} @! () // TODO Enable controls
+
+flattenRTMap :: TonicGenRTMap -> [(ComputationId, ModuleName, FuncName, GenBlueprintInstance)]
+flattenRTMap m = flatten (flattenRTMap` ('DM'.toList m))
+  where
+  flattenRTMap` [] = []
+  flattenRTMap` [(cid, ys) : xs] = [map (\((mn, fn), gbpi) -> (cid, mn, fn, gbpi)) ys : flattenRTMap` xs]
 
 :: TonicGenRTMap :== Map ComputationId [((ModuleName, FuncName), GenBlueprintInstance)]
 

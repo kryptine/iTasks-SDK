@@ -1,7 +1,7 @@
 implementation module iTasks.UI.Definition
 
 import Text.JSON, StdList, StdOrdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text
-from Data.Map import :: Map, :: Size
+from Data.Map import :: Map (..), :: Size
 from Data.Functor import class Functor(..)
 import qualified Data.Map as DM
 import qualified Data.List as DL
