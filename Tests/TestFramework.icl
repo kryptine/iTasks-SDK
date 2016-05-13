@@ -1,6 +1,6 @@
 implementation module TestFramework
 import iTasks, StdFile
-import iTasks.UI.Editor, iTasks.UI.Definition
+import iTasks.UI.Editor, iTasks.UI.Editor.Common, iTasks.UI.Definition
 
 // TEST FRAMEWORK
 derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult
@@ -61,9 +61,9 @@ testsuite name description tests
 //RUNNING TESTS
 testInteractive :: InteractiveTest -> Task TestResult
 testInteractive {name,instructions,expectation,taskUnderTest}
-	= 	viewInformation () [] (H1Tag [] [Text name]) 
+	= 	(viewInformation () [] (H1Tag [] [Text name]) <<@ ApplyLayout (setAttributes (heightAttr WrapSize)))
 	||-	((viewInformation (Title "Instructions") [] instructions)
-		  -&&- (viewInformation (Title "Expected result") [] expectation) /* <<@ ArrangeHorizontal*/ )
+		  -&&- (viewInformation (Title "Expected result") [] expectation) <<@ ApplyLayout (setAttributes (directionAttr Horizontal)))
 	||- taskUnderTest
 	||- enterInformation (Title "Result") []
 

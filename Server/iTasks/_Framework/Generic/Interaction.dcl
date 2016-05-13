@@ -33,7 +33,6 @@ derive gEditor
 
 derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (,,,,,), (->), Dynamic
 derive gEditor Maybe, Either, MaybeError, Map, JSONNode, HtmlTag, Timestamp
-derive gEditor EditableList
 derive gEditor RWShared
 
 derive bimap Editor

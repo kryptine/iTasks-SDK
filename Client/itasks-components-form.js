@@ -7,6 +7,7 @@ itasks.itwc_label = {
     }
 };
 itasks.itwc_view_icon = {
+
 	width: 'wrap',
 	height: 'wrap',
 	initDOMEl: function() {
@@ -122,7 +123,15 @@ itasks.NumberField = {
             }
         }
         return false;
-    }
+    },
+	onAttributeChange: function(name,value) {
+		var me = this;
+		if(name == 'value') {
+			if(me.domEl !== document.activeElement) { //Don't update the focused element...
+				me.domEl.value = (value === null) ? '' : value;
+			}
+		}
+	}
 };
 
 itasks.itwc_edit_int = Object.assign(itasks.NumberField,{
@@ -307,15 +316,42 @@ itasks.itwc_edit_document = {
         me.showValue();
     }
 };
+
 itasks.itwc_editbutton = {
-	domTag: 'button',
-    onClick: function (e) {
-        var me = this;
-        me.doEditEvent(me.taskId,me.editorId,me.value,false);
-    },
-    setEditorValue: function(value) {
-        var me = this;
-        me.value = value || '';
+	domTag: 'a',
+	cssCls: 'button',
+	container: false,
+	height: 'wrap',
+	width: 'wrap',
+	enabled: true,
+
+	initDOMEl: function() {
+		var me = this,
+			el = me.domEl;
+
+		el.href = '#';
+		if(me.iconCls) {
+			me.icon = document.createElement('div');
+			me.icon.classList.add(me.cssPrefix + 'button-icon');
+			me.icon.classList.add(me.iconCls);
+			el.appendChild(me.icon);
+		}
+		if(!me.enabled) {
+			el.classList.add(me.cssPrefix + 'button-disabled');
+		}
+		if(me.text) {
+			me.label = document.createElement('div');
+			me.label.innerHTML = me.text;
+			me.label.classList.add(me.cssPrefix + 'button-label');
+			el.appendChild(me.label);
+		}
+        el.addEventListener('click',function(e) {
+            if(me.enabled) {
+				me.doEditEvent(me.taskId,me.editorId,me.value);
+            }
+			e.preventDefault();
+			return false;
+		});
     }
 };
 

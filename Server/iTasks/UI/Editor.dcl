@@ -25,11 +25,6 @@ from Text.JSON import :: JSONNode
 	, onEdit :: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
 	}
 
-/**
-* Editor that does nothing
-*/
-emptyEditor :: Editor a
-
 /** Edit masks contain information about a value as it is being edited in an interactive task.
 *   During editing, values can be in an inconsistent, or even untypable state
 */  

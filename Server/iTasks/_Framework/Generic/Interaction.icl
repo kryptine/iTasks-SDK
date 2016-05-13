@@ -12,7 +12,7 @@ import iTasks._Framework.Util
 import iTasks.API.Core.Types
 import iTasks.UI.Layout
 import iTasks.UI.Editor, iTasks.UI.Definition
-import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Editor.Combinators
 
 generic gEditor a | gText a, gDefault a, JSONEncode a, JSONDecode a :: Editor a
 derive bimap Editor,(,,),(,,,)
@@ -316,47 +316,9 @@ gEditor{|Char|}   = liftEditor (\c -> c.[0]) toString (whenDisabled textView (wi
 gEditor{|String|} = whenDisabled textView (withHintAttributes "single line of text" textField)
 gEditor{|Bool|}   = checkBox
 
+gEditor{|[]|} ex _ dx _ _ = listEditor (Just (const dx)) True True (Just (\l -> toString (length l) +++ " items")) ex
+
 /*
-primitiveTypeEditor mbTypeDesc viewType editType mkViewValue = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
-where 
-	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
-		| disabled	
-			# attr = 'DM'.unions [optionalAttr optional, maybe 'DM'.newMap (valueAttr o mkViewValue) (checkMask mask val)]
-			= (Ok (uia viewType attr),vst)
-		| otherwise
-			# value = (checkMaskValue mask val)
-			# editAttr = maybe 'DM'.newMap (\typeDesc -> stdAttributes typeDesc optional mask) mbTypeDesc
-			# attr = 'DM'.unions [optionalAttr optional,editAttrs taskId (editorId dp) (checkMaskValue mask val)]
-			= (Ok (uia editType attr),vst)
-
-	updUI dp ov om nv nm vst=:{VSt|optional,disabled}
-		= (Ok (if (vEq && mEq) NoChange (ChangeUI (valueChange ++ attrChanges) [])),vst)
-	where
-		vEq = ov === nv
-		mEq = om === nm
-		valueChange = if vEq [] [SetAttribute "value" (encodeUI nv)]
-		attrChanges = maybe [] (\typeDesc ->stdAttributeChanges typeDesc optional om nm) mbTypeDesc
-
-	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
-*/
-gEditor{|EditableList|} ex _ dx _ _
-	= listEditor ex dx
-		(\{EditableList|items} -> items)
-		(\{EditableList|add} -> add)
-		(\{EditableList|remove} -> remove)
-		(\{EditableList|reorder} -> reorder)
-		(\{EditableList|count} -> count)
-		(\items el -> {EditableList|el & items = items})
-
-gEditor{|[]|} ex _ dx _ _
-	= listEditor ex dx
-		(\x -> x)
-		(const ELAddBlank)
-		(const True)
-		(const True)
-		(const True)
-		(\x _ -> x)
-
 listEditor ex dx getItems getAdd getRemove getReorder getCount setItems
 	= {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
@@ -459,7 +421,7 @@ where
 			# f = list !! (index-1)
 			# l = list !! (index)
 			= updateAt (index-1) l (updateAt index f list)
-
+*/
 gEditor{|()|} = emptyEditor
 gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ = emptyEditor
 gEditor{|Dynamic|} = emptyEditor
@@ -591,6 +553,7 @@ addLabel label attr = putCond LABEL_ATTRIBUTE (JSONString label) attr
 where
     putCond k v m = maybe ('DM'.put k v m) (const m) ('DM'.get k m)
 
+/*
 childVisualizations :: !(DataPath a EditMask -> .(*VSt -> *(!MaybeErrorString UI,*VSt))) !DataPath ![a] ![EditMask] !*VSt -> *(!MaybeErrorString [UI],!*VSt)
 childVisualizations fx dp children masks vst = childVisualizations` 0 children masks [] vst
 where
@@ -600,6 +563,7 @@ where
 		= case fx (dp ++ [i]) child mask vst of
 			(Ok childV,vst) = childVisualizations` (i + 1) children masks [childV:acc] vst
 			(Error e,vst) = (Error e,vst)
+*/
 
 verifyValue :: !a -> Verification | gVerify{|*|} a
 verifyValue val = verifyMaskedValue (val,Touched)

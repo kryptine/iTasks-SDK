@@ -1,4 +1,5 @@
 itasks.itwc_view_string = {
+	container: false,
 	initDOMEl: function() {
 		this.domEl.innerHTML = this.value || '';
 	},
