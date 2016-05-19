@@ -395,8 +395,10 @@ appClientDiff resolve state2Image updSrv updClient mkEventHandler cid (SetState 
   #! (_, world)           = if (jsIsNull currSVG)
                               ((svgDiv `appendChild` newSVG) world)
                               ((svgDiv .# "replaceChild" .$ (newSVG, currSVG)) world)
-  #! world                = registerSVGEvents mkEventHandler resolve state2Image updSrv updClient cid newSVG syn.genSVGSyn_events world
-  #! world                = registerDraggables mkEventHandler resolve state2Image updSrv updClient cid newSVG syn.genSVGSyn_draggable syn.genSVGSyn_idMap world
+  #! world                = if ('DM'.null syn.genSVGSyn_events) world
+                               (registerSVGEvents mkEventHandler resolve state2Image updSrv updClient cid newSVG syn.genSVGSyn_events world)
+  #! world                = if ('DM'.null syn.genSVGSyn_draggable) world
+                               (registerDraggables mkEventHandler resolve state2Image updSrv updClient cid newSVG syn.genSVGSyn_draggable syn.genSVGSyn_idMap world)
   = (clst, world)
 
 (`addEventListener`)       obj args :== obj .# "addEventListener"       .$ args
