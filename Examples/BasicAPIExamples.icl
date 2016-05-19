@@ -164,13 +164,13 @@ browseGoogleMap = enterInformation ("Browse Map","Move around on the map. Your p
 derive class iTask MyPerson, MyGender
 
 enterPerson :: Task MyPerson 
-enterPerson = enterInformation "Enter your personal information" [EnterWith (\(n, g) -> {MyPerson | name=n, gender=g, dateOfBirth=Nothing})]
+enterPerson = enterInformation "Enter your personal information" [] 
 
 enterPersons :: Task [MyPerson]
 enterPersons = enterInformation "Enter personal information of multiple people" []
 
 viewPerson :: Task MyPerson
-viewPerson = viewInformation "View a person" [ViewWith (\{MyPerson | name,gender} -> (name,gender))] {name = "Peter Achten", gender = Male,dateOfBirth = Nothing}
+viewPerson = viewInformation "View a person" [] {name = "Peter Achten", gender = Male,dateOfBirth = Nothing}
 
 
 //* Interaction with shared data

@@ -2,11 +2,11 @@ implementation module Incidone.ContactPosition
 import iTasks, iTasks.UI.Editor, iTasks.UI.Definition
 import qualified Data.Map as DM
 import Data.Functor, Text
-import qualified Text.Parsers.ParsersKernel as PK
-import qualified Text.Parsers.ParsersDerived as PD
+import qualified Text.Parsers.ZParsers.ParsersKernel as PK
+import qualified Text.Parsers.ZParsers.ParsersDerived as PD
 import qualified Control.Applicative as CA
 from Control.Applicative import class Alternative, class Applicative
-from Text.Parsers.ParsersKernel import :: Parser, instance Alternative Parser, instance Applicative Parser, instance Functor Parser
+from Text.Parsers.ZParsers.ParsersKernel import :: Parser, instance Alternative Parser, instance Applicative Parser, instance Functor Parser
 
 import Incidone.OP.Concepts
 import Incidone.Util.TaskPatterns
