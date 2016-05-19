@@ -1236,7 +1236,7 @@ genSVG {content, mask, attribs, transform, tags, uniqId, totalSpanPreTrans = (tx
     genSVGLineContent sp=:(xspan, yspan) markers transform (PolygonImage points) st
       #! (offsets, st) = evalListOfSpanPair points st
       = mkLine PolygonElt [PointsAttr (strictTRMap (\(x, y) -> (toString (to2dec x), toString (to2dec y))) offsets) : mkAttrs attribs transform] sp markers st
-    mkPolylineImage sp=:(xspan, yspan) markers transform (PolylineImage points) st
+    genSVGLineContent sp=:(xspan, yspan) markers transform (PolylineImage points) st
       #! (offsets, st) = evalListOfSpanPair points st
       = mkLine PolylineElt [PointsAttr (strictTRMap (\(x, y) -> (toString (to2dec x), toString (to2dec y))) offsets) : mkAttrs attribs transform] sp markers st
 
