@@ -6,7 +6,6 @@ import Data.Maybe
 import Text.JSON
 
 import iTasks.UI.Definition
-from iTasks.API.Core.Types import TITLE_ATTRIBUTE
 from StdFunc import o
 
 instance toPrompt ()

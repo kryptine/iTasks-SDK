@@ -165,6 +165,20 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	, value		:: !Int
 	}
 
+//Predefined attribute names
+TITLE_ATTRIBUTE			:== "title"
+HINT_ATTRIBUTE			:== "hint"
+HINT_TYPE_ATTRIBUTE		:== "hint-type"
+HINT_TYPE_INFO 			:== "info"
+HINT_TYPE_VALID 		:== "valid"
+HINT_TYPE_WARNING 		:== "warning"
+HINT_TYPE_INVALID 		:== "invalid"
+LABEL_ATTRIBUTE			:== "label"
+PREFIX_ATTRIBUTE		:== "prefix"
+POSTFIX_ATTRIBUTE		:== "postfix"
+ICON_ATTRIBUTE			:== "icon"
+
+
 //Construction functions
 ui   :: UINodeType -> UI
 uic  :: UINodeType [UI] -> UI
