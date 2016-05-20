@@ -15,9 +15,10 @@ from iTasks._Framework.IWorld		import :: IWorld {onClient,server,memoryShares,ca
 from iTasks._Framework.Task		    import exception
 from iTasks._Framework.TaskState		import :: DeferredJSON(..)
 from iTasks._Framework.Generic				import class iTask
-from iTasks._Framework.Generic.Interaction	import generic gEditor, generic gVerify, :: VSt, ::USt, :: VerifyOptions, :: DataPath, :: VerifiedValue, :: Verification 
+from iTasks._Framework.Generic.Interaction	import generic gVerify, :: VSt, ::USt, :: VerifyOptions, :: DataPath, :: VerifiedValue, :: Verification 
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks._Framework.Generic.Defaults		import generic gDefault
+from iTasks.UI.Editor.Generic import generic gEditor
 from iTasks.API.Core.Types	        import :: DateTime, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
 from iTasks.API.Core.SDSCombinators import sdsLens
 from iTasks.API.Common.SDSCombinators import >+<, sdsFocus

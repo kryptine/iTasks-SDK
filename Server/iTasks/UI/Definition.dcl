@@ -13,11 +13,12 @@ from Data.Map			import :: Map
 from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: Hotkey
 
 from iTasks._Framework.Generic import class iTask(..)
-from iTasks._Framework.Generic.Interaction import generic gEditor, generic gVerify
+from iTasks._Framework.Generic.Interaction import generic gVerify
 from iTasks._Framework.Generic.Interaction import :: VerifyOptions, :: DataPath, :: VerifiedValue, :: Verification 
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
 from iTasks._Framework.Generic.Defaults			import generic gDefault
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
+from iTasks.UI.Editor.Generic import generic gEditor
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
