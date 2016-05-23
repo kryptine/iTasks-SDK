@@ -8,7 +8,6 @@ import qualified Data.Map as DM, Data.Tuple
 
 derive JSONEncode AnalogClock
 derive JSONDecode AnalogClock
-derive gVerify AnalogClock
 derive gEq AnalogClock
 derive gDefault AnalogClock
 derive gText AnalogClock

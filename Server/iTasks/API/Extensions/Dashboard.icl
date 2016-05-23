@@ -5,7 +5,6 @@ import qualified Data.Map as DM
 
 derive JSONEncode ControlLight
 derive JSONDecode ControlLight
-derive gVerify ControlLight
 derive gEq ControlLight
 derive gDefault ControlLight
 derive gText ControlLight

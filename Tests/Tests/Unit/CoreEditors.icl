@@ -3,12 +3,10 @@ import TestFramework
 import Tests.Unit.FrameworkStubs
 
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Layout
-import iTasks._Framework.Generic.Interaction
 import iTasks._Framework.IWorld
 import qualified Data.Map as DM
 import StdMisc
 
-derive gEq EditMask, FieldMask
 derive gText EditMask, FieldMask
 
 //COMPLEX TYPES FOR TESTING
@@ -70,7 +68,7 @@ testIntTouched = testGenUI "Touched Int"
 						,("editorId",JSONString "v")
 						,("value",JSONInt 42)
 						]))
-	42 Touched
+	42 (InitMask True)
 
 testIntBlanked = skip "Blanked Int"
 /* testGenUI "Blanked Int"
@@ -98,7 +96,7 @@ testRealTouched = skip "Touched Real"
 testConsFieldsTouched = testGenUI "Touched cons fields"
 	(uiac UICompoundContent ('DM'.fromList [("optional",JSONBool False)])
 		[fieldExp "v0" 1, fieldExp "v1" 2, fieldExp "v2" 3, fieldExp "v3" 4,fieldExp "v4" 5,fieldExp "v5" 6])
-	(TestConsFields 1 2 3 4 5 6) Touched
+	(TestConsFields 1 2 3 4 5 6) (InitMask True)
 where
 	fieldExp editorId val = 
 		uia UIEditInt
@@ -216,10 +214,10 @@ where
 
 //Integers
 testSameInt :: Test
-testSameInt = testGenDiff "Same Int" NoChange (42,Touched) (42,Touched)
+testSameInt = testGenDiff "Same Int" NoChange (42,InitMask True) (42,InitMask True)
 
 testDifferentInt1 :: Test
-testDifferentInt1 = testGenDiff "Different Int 1" (ChangeUI [SetAttribute "value" (JSONInt 23)] []) (42,Touched) (23,Touched)
+testDifferentInt1 = testGenDiff "Different Int 1" (ChangeUI [SetAttribute "value" (JSONInt 23)] []) (42,InitMask True) (23,InitMask True)
 
 testDifferentInt2 :: Test
 testDifferentInt2
@@ -228,14 +226,14 @@ testDifferentInt2
 				  ,SetAttribute HINT_ATTRIBUTE (JSONString "You need to enter a whole number (this value is required)")
 				  ,SetAttribute HINT_TYPE_ATTRIBUTE (JSONString HINT_TYPE_INVALID)
 				  ] [])
-			(42,Touched) (3,Blanked)
+			(42,InitMask True) (3,FieldMask {touched=True,valid=True,state=JSONNull})
 
 testDiffConsFields1 :: Test
 testDiffConsFields1 
 	= testGenDiff "Diff constructor fields 1" 
 		(ChangeUI [] [(3,ChangeChild (ChangeUI [SetAttribute "value" (JSONInt 44)] []))])
-		(TestConsFields 1 2 3 4 5 6,Touched)
-		(TestConsFields 1 2 3 44 5 6,Touched)
+		(TestConsFields 1 2 3 4 5 6,InitMask True)
+		(TestConsFields 1 2 3 44 5 6,InitMask True)
 
 testDiffConsFields2 :: Test
 testDiffConsFields2 
@@ -245,29 +243,29 @@ testDiffConsFields2
 											  ,SetAttribute HINT_TYPE_ATTRIBUTE (JSONString HINT_TYPE_VALID)
 											  ] []))])
 
-		(TestConsFields 1 2 3 4 5 6, Untouched)
-		(TestConsFields 1 2 3 44 5 6, CompoundMask [Untouched,Untouched,Untouched,Touched,Untouched,Untouched])
+		(TestConsFields 1 2 3 4 5 6, InitMask False)
+		(TestConsFields 1 2 3 44 5 6, CompoundMask [InitMask False,InitMask False,InitMask False,InitMask True,InitMask False,InitMask False])
 
 testDiffRecordFields :: Test
 testDiffRecordFields 
 	= testGenDiff "Diff record fields"
 		(ChangeUI [] [(0, ChangeChild (ChangeUI [SetAttribute "value" (JSONInt 23)] [])),(1,ChangeChild (ChangeUI [SetAttribute "value" (JSONString "bar")] []))])
-		({TestRecordFields|a=42,b="foo",c=True},Touched)
-		({TestRecordFields|a=23,b="bar",c=True},Touched)
+		({TestRecordFields|a=42,b="foo",c=True},InitMask True)
+		({TestRecordFields|a=23,b="bar",c=True},InitMask True)
 
 testDiffConsChange :: Test
 testDiffConsChange 
 	= testGenDiff "Changing a single constructor"
 		(ChangeUI [SetAttribute "value" (JSONArray [JSONInt 1,JSONBool True])] [])
-		(ConsA,Touched)
-		(ConsB,Touched)
+		(ConsA,InitMask True)
+		(ConsB,InitMask True)
 
 testDiffConsWithFieldChange :: Test
 testDiffConsWithFieldChange 
 	= testGenDiff "Changing a constructor with a data field"
 		(ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "value" (JSONArray [JSONInt 1,JSONBool True])] [])), (1,ChangeChild (ReplaceUI expField))])
-		(ConsWithFieldA,Touched)
-		(ConsWithFieldB "Foo",Touched)
+		(ConsWithFieldA,InitMask True)
+		(ConsWithFieldB "Foo",InitMask True)
 where
 	expField = uia UIEditString
 		('DM'.fromList[("optional",JSONBool False)
@@ -285,8 +283,8 @@ testMaybeIntChangeToJust
 				  ,SetAttribute HINT_ATTRIBUTE (JSONString "You have correctly entered a whole number")
 				  ,SetAttribute HINT_TYPE_ATTRIBUTE (JSONString HINT_TYPE_VALID)
 				  ] [])
-		(Nothing,Touched)
-		(Just 42,Touched)
+		(Nothing,InitMask True)
+		(Just 42,InitMask True)
 
 testMaybeIntChangeToNothing :: Test
 testMaybeIntChangeToNothing = skip "Switch Maybe Int Just to Nothing"

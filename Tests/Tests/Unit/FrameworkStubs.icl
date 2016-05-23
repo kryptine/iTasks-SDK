@@ -29,7 +29,7 @@ fromStubVSt :: *VSt -> *IWorld
 fromStubVSt vst=:{VSt|iworld} = iworld
 
 toStubUSt :: *IWorld -> *USt
-toStubUSt iworld = {USt|taskId="STUB",iworld=iworld}
+toStubUSt iworld = {USt|taskId="STUB",optional=False,iworld=iworld}
 
 fromStubUSt :: *USt -> *IWorld
 fromStubUSt ust=:{USt|iworld} = iworld

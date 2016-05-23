@@ -2,7 +2,7 @@ implementation module iTasks._Framework.Tonic.Blueprints
 
 import iTasks
 import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
-import iTasks._Framework.SDS, iTasks._Framework.Generic.Interaction, iTasks.API.Core.Types
+import iTasks._Framework.SDS, iTasks.API.Core.Types
 import iTasks._Framework.Tonic.Blueprints
 import iTasks._Framework.Engine
 import iTasks._Framework.SDS

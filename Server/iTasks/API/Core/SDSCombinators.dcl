@@ -2,9 +2,7 @@ definition module iTasks.API.Core.SDSCombinators
 
 from iTasks._Framework.SDS import :: RWShared, :: ROShared, :: SDSNotifyPred, :: SDSLens, :: SDSLensRead, :: SDSLensWrite, :: SDSLensNotify, :: SDSSelect, :: SDSParallel, ::SDSSequence, :: WriteShare
 from iTasks._Framework.Task import :: TaskException
-from iTasks._Framework.Generic import class iTask, generic gEditor, generic gVerify, generic gEq, generic gDefault, generic gText
-from iTasks._Framework.Generic import :: VSt, :: VerifiedValue, :: DataPath, :: Verification
-from iTasks._Framework.Generic import :: USt, :: VerifyOptions, :: TextFormat
+from iTasks._Framework.Generic import class iTask, generic gEditor, generic gEq, generic gDefault, generic gText, :: TextFormat
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from Data.Void import :: Void

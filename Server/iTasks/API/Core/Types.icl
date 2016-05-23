@@ -8,7 +8,6 @@ from Data.List import instance Functor []
 import qualified Data.List as DL
 import qualified Data.Map as DM
 import iTasks.UI.Definition, iTasks.UI.Editor
-import iTasks._Framework.Generic.Interaction
 import iTasks._Framework.Generic.Visualization
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.Util
 import iTasks._Framework.Serialization
@@ -83,7 +82,6 @@ derive gDefault			EmailAddress
 derive gEq				EmailAddress
 derive gText	        EmailAddress
 derive gEditor			EmailAddress
-derive gVerify			EmailAddress
 
 instance toString EmailAddress
 where
@@ -100,7 +98,6 @@ derive gDefault			PhoneNumber
 derive gEq				PhoneNumber
 derive gText	        PhoneNumber
 derive gEditor			PhoneNumber
-derive gVerify			PhoneNumber
 
 instance toString PhoneNumber
 where
@@ -127,9 +124,7 @@ where
 	updUI dp (URL old) om (URL new) nm vst=:{VSt|optional}
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
-	onEdit dp e val mask ust = basicUpdate (\json url -> Just (maybe url (\s -> URL s) (fromJSON json))) dp e val mask ust
-
-gVerify{|URL|} mv options = simpleVerify mv options
+	onEdit dp e val mask ust = basicEdit (\json url -> Just (maybe url (\s -> URL s) (fromJSON json))) dp e val mask ust
 
 derive JSONEncode		URL
 derive JSONDecode		URL
@@ -178,10 +173,7 @@ where
 	updUI dp old om new nm vst=:{VSt|optional}
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI (noteToHtml new)):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
-	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
-
-gVerify{|Note|} mv options = simpleVerify mv options
-
+	onEdit dp e val mask ust = basicEdit (\e _ -> fromJSON e) dp e val mask ust
 
 derive gDefault			Note
 derive gEq				Note
@@ -205,8 +197,6 @@ JSONDecode{|CleanCode|} _ [JSONString txt:c] = (Just (CleanCode txt),c)
 JSONDecode{|CleanCode|} _ c = (Nothing,c)
 
 gText{|CleanCode|}		_ val		= [maybe "" toString val]
-
-gVerify{|CleanCode|} mv options = simpleVerify mv options
 
 derive gEditor  CleanCode
 derive gDefault	CleanCode
@@ -242,9 +232,7 @@ where
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
-	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
-
-gVerify{|EUR|} mv options = simpleVerify mv options
+	onEdit = basicEdit (\e _ -> fromJSON e)
 
 instance toString EUR
 where
@@ -299,9 +287,7 @@ where
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
-	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
-
-gVerify{|USD|} mv options = simpleVerify mv options
+	onEdit = basicEdit (\e _ -> fromJSON e)
 
 instance toString USD
 where
@@ -364,10 +350,9 @@ where
 		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
-	onEdit dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
+	onEdit = basicEdit (\json old -> fromJSON json)
 
 gDefault{|Date|} = {Date|day = 1, mon = 1, year = 1970}
-gVerify{|Date|} mv options = simpleVerify mv options
 
 derive gEq			Date
 
@@ -454,9 +439,7 @@ where
 		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value " (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])), vst)
 
-	onEdit dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
-
-gVerify{|Time|} mv options = simpleVerify mv options
+	onEdit = basicEdit (\json old -> fromJSON json)
 
 derive gDefault		Time
 derive gEq			Time
@@ -543,9 +526,7 @@ where
 		# nval = if disabled (encodeUI (toString new)) (toJSON new)
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
-	onEdit dp e val mask ust = basicUpdate (\json old -> fromJSON json) dp e val mask ust
-
-gVerify{|DateTime|} mv options = simpleVerify mv options
+	onEdit = basicEdit (\json old -> fromJSON json)
 
 instance toString DateTime
 where
@@ -619,8 +600,6 @@ where
                       ,ust)// Reset
 		Just doc	= (doc,FieldMask {touched=True,valid=True,state=e},ust) //Update
 	
-gVerify{|Document|} mv options = simpleVerify mv options
-
 derive JSONEncode		Document
 derive JSONDecode		Document
 derive gDefault			Document
@@ -693,9 +672,7 @@ where
 	updUI dp {Scale|cur=old} om {Scale|cur=new} nm vst
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "setValue" (encodeUI new)] [])),vst)
 
-	onEdit dp e val mask ust = basicUpdate (\json i -> Just (maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json))) dp e val mask ust
-
-gVerify{|Scale|} _ mv = alwaysValid mv
+	onEdit = basicEdit (\json i -> Just (maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json)))
 
 gDefault{|Scale|} = {Scale|min=1,cur=3,max=5}
 
@@ -721,7 +698,6 @@ where
 
 	onEdit dp e val mask ust = (val,mask,ust)
 
-gVerify{|Progress|} _ mv = alwaysValid mv
 
 derive gDefault			Progress
 
@@ -731,7 +707,6 @@ gText{|ProgressAmount|} _ _		                    = [""]
 
 derive gDefault			ProgressAmount
 derive gEditor 			ProgressAmount
-derive gVerify			ProgressAmount
 
 //* Inclusion of external html files
 gText{|HtmlInclude|}	_ (Just (HtmlInclude location))	= ["<External html: " + location + ">"]
@@ -747,8 +722,6 @@ where
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new)] [])),vst)
 
 	onEdit dp e val mask ust = (val,mask,ust)
-
-gVerify{|HtmlInclude|} _ mv = alwaysValid mv
 
 derive gDefault HtmlInclude
 
@@ -766,9 +739,7 @@ where
 	updUI dp {FormButton|state=old} om {FormButton|state=new} nm vst
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new)] [])),vst)
 
-	onEdit dp e val mask ust = basicUpdate (\st b -> Just {FormButton|b & state = st}) dp e val mask ust
-
-gVerify{|FormButton|} _ mv = alwaysValid mv
+	onEdit = basicEdit (\st b -> Just {FormButton|b & state = st})
 
 gDefault{|FormButton|} = {FormButton | label = "Form Button", icon="", state = NotPressed}
 
@@ -786,7 +757,6 @@ gText{|ButtonState|}	_ _                 = [""]
 
 derive gDefault		ButtonState
 derive gEditor		ButtonState
-derive gVerify		ButtonState
 
 //* Table consisting of headers, the displayed data cells & possibly a selection
 gText{|Table|}	_ _	= ["<Table>"]
@@ -807,9 +777,8 @@ where
 		# (nviz,vst) = genUI dp new nm vst
 		= (fmap ReplaceUI nviz,vst)
 
-	onEdit dp e val mask ust = basicUpdate (\json (Table headers cells _) -> case fromJSON json of Just i = Just (Table headers cells (Just i)); _ = Just (Table headers cells Nothing)) dp e val mask ust
+	onEdit = basicEdit (\json (Table headers cells _) -> case fromJSON json of Just i = Just (Table headers cells (Just i)); _ = Just (Table headers cells Nothing))
 
-gVerify{|Table|} _ mv = alwaysValid mv
 gDefault{|Table|} = Table [] [] Nothing
 
 toTable	:: ![a] -> Table | gText{|*|} a
@@ -824,7 +793,6 @@ where
 derive gDefault			ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gText	        ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gEditor	        ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gVerify			ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 		
 instance Functor ChoiceTree
 where
@@ -867,9 +835,7 @@ where
 		# (nviz,vst) = genUI dp new nm vst
 		= (fmap ReplaceUI nviz,vst)
 
-	onEdit dp e val mask ust = updateChoice (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) dp e val mask ust
-
-gVerify{|ComboChoice|} _ mv options = customVerify (\(ComboChoice _ s) -> isJust s) (const "You must choose one item") mv options
+	onEdit = choiceEdit (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) 
 
 instance Choice ComboChoice
 where
@@ -906,9 +872,7 @@ where
 		# (nviz,vst) = genUI dp new nm vst
 		= (fmap ReplaceUI nviz,vst)
 
-	onEdit dp e val mask ust = updateChoice (\idx (RadioChoice options _) -> RadioChoice options (Just idx)) dp e val mask ust
-
-gVerify{|RadioChoice|} _ mv options = simpleVerify mv options
+	onEdit = choiceEdit (\idx (RadioChoice options _) -> RadioChoice options (Just idx))
 
 instance Choice RadioChoice
 where
@@ -942,9 +906,7 @@ where
 		# (nviz,vst) = genUI dp new nm vst
 		= (fmap ReplaceUI nviz,vst)
 
-	onEdit dp e val mask ust = updateChoice (\idx (ListChoice options _) -> ListChoice options (Just idx)) dp e val mask ust
-
-gVerify{|ListChoice|} _ mv options = simpleVerify mv options
+	onEdit = choiceEdit (\idx (ListChoice options _) -> ListChoice options (Just idx))
 
 instance Choice ListChoice
 where
@@ -995,8 +957,6 @@ where
 		Just ("exp",idx,val)	= (TreeChoice (setTreeExpanded idx val tree) sel,touch mask, ust)
 		_						= ((TreeChoice tree sel), mask, ust)
 
-gVerify{|TreeChoice|} _ mv options = simpleVerify mv options
-
 instance Choice TreeChoice
 where
 	getSelectionView (TreeChoice options mbSel)		= getTreeOption options mbSel
@@ -1025,9 +985,7 @@ where
 		# (nviz,vst) = genUI dp new nm vst
 		= (fmap ReplaceUI nviz,vst)
 
- 	onEdit dp e val mask ust = updateChoice (\idxs (GridChoice options _) -> GridChoice options (case idxs of [idx:_] = (Just idx); _ = Nothing)) dp e val mask ust
-
-gVerify{|GridChoice|} _ _ mv = alwaysValid mv
+ 	onEdit = choiceEdit (\idxs (GridChoice options _) -> GridChoice options (case idxs of [idx:_] = (Just idx); _ = Nothing))
 
 instance Choice GridChoice
 where
@@ -1083,12 +1041,6 @@ where
 		# (val,mask,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
 		= (DCGrid val,mask,ust)
 
-gVerify{|DynamicChoice|} fx options (DCCombo v,mask) = gVerify{|*->*|} fx options (v,mask)
-gVerify{|DynamicChoice|} fx options (DCRadio v,mask) = gVerify{|*->*|} fx options (v,mask)
-gVerify{|DynamicChoice|} fx options (DCList v,mask) = gVerify{|*->*|} fx options (v,mask)
-gVerify{|DynamicChoice|} fx options (DCTree v,mask) = gVerify{|*->*|} fx options (v,mask)
-gVerify{|DynamicChoice|} fx options (DCGrid v,mask) = gVerify{|*->*|} fx options (v,mask)
-	
 instance Choice DynamicChoice
 where
 	getSelectionView (DCCombo choice)		    = getSelectionView choice
@@ -1140,13 +1092,11 @@ where
 		# (nviz,vst) = genUI dp new nm vst
 		= (fmap ReplaceUI nviz,vst)
 
-	onEdit dp e val mask ust = basicUpdate (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = Just (CheckMultiChoice opts (updateSel i v sel)); _ = (Just (CheckMultiChoice opts sel))) dp e val mask ust
+	onEdit = basicEdit (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = Just (CheckMultiChoice opts (updateSel i v sel)); _ = (Just (CheckMultiChoice opts sel)))
 	where
 		updateSel i True sel	= removeDup [i:sel]
 		updateSel i False sel 	= removeMember i sel
 
-gVerify{|CheckMultiChoice|} _ _	vm options = simpleVerify vm options
-	
 instance MultiChoice CheckMultiChoice
 where
 	selectOptions newSels (CheckMultiChoice options _)			= CheckMultiChoice options (setListOptions id options newSels)
@@ -1181,8 +1131,7 @@ where
                 # (mbIdx,ts) = expand idx ts
                 = (mbIdx,[t:ts])
 
-updateChoice select target upd val mask ust
-    = basicUpdate (\json choice -> Just (maybe choice (\i -> select i choice) (fromJSON json))) target upd val mask ust
+choiceEdit select = basicEdit (\json choice -> Just (maybe choice (\i -> select i choice) (fromJSON json)))
 
 setListOption :: !(o -> s) ![(v,o)] !s -> (Maybe Int) | gEq{|*|} s
 setListOption targetFun options newSel
@@ -1308,11 +1257,6 @@ where
 	onEdit dp e val=:(VHDisplay s) mask ust = wrapperUpdate fx.Editor.onEdit fromVisualizationHint VHDisplay dp e val mask ust
 	onEdit dp e val=:(VHHidden s) mask ust = wrapperUpdate fx.Editor.onEdit fromVisualizationHint VHHidden dp e val mask ust
 
-gVerify{|VisualizationHint|} fx options (v,mask) = case v of
-	(VHEditable v) = verifyEditable fx options (v,mask)
-	(VHDisplay v) = verifyDisplay fx options (v,mask)
-	(VHHidden v) = fx options (v,mask)
-	
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
 fromVisualizationHint (VHEditable a) = a
 fromVisualizationHint (VHDisplay a) = a
@@ -1328,8 +1272,6 @@ where
 	genUI dp val mask vst = (Ok (ui UIEmpty),vst)
 	updUI dp old om new nm vst = (Ok NoChange,vst)
 	onEdit dp e val mask ust = (val,mask,ust)
-
-gVerify{|Hidden|} fx options (Hidden v,mask) = fx options (v,mask)
 
 fromHidden :: !(Hidden .a) -> .a
 fromHidden (Hidden x) = x
@@ -1352,8 +1294,6 @@ where
 
 	onEdit dp e val mask ust = wrapperUpdate ex.Editor.onEdit fromDisplay Display dp e val mask ust
 
-gVerify{|Display|} fx options (Display d,mask) = verifyDisplay fx options (d,mask)
-
 fromDisplay :: !(Display .a) -> .a
 fromDisplay (Display a) = a
 
@@ -1374,8 +1314,6 @@ where
 
 	onEdit dp e val mask ust = wrapperUpdate ex.Editor.onEdit fromEditable Editable dp e val mask ust
 
-gVerify{|Editable|} fx options (Editable e,mask) = verifyEditable fx options (e,mask)
-	
 fromEditable :: !(Editable .a) -> .a
 fromEditable (Editable a) = a
 
@@ -1396,8 +1334,6 @@ where
 		= ex.Editor.updUI dp old om new nm vst
 	onEdit dp e val mask ust = wrapperUpdate ex.Editor.onEdit (\(Row x) -> x) Row dp e val mask ust
 
-gVerify{|Row|} gVerx options (Row x,mask) = gVerx options (x,mask)
-	
 gText{|Col|} gVizx mode (Just (Col val)) = gVizx mode (Just val)
 gText{|Col|} gVizx mode Nothing = gVizx mode Nothing
 
@@ -1411,16 +1347,9 @@ where
 		= ex.Editor.updUI dp old om new nm vst
 	onEdit dp e val mask ust = wrapperUpdate ex.Editor.onEdit (\(Col x) -> x) Col dp e val mask ust
 	
-gVerify{|Col|} gVerx options (Col x,mask) = gVerx options (x,mask)
-	
 wrapperUpdate fx get set target upd val mask ust
 	# (w,mask,ust) = fx target upd (get val) mask ust
 	= (set w,mask,ust)
-
-//Utility for gVerify	
-verifyEditable fx options mv = fx {VerifyOptions|options & disabled = False} mv
-verifyDisplay fx options mv = alwaysValid mv
-
 
 derive JSONEncode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
 derive JSONDecode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
@@ -1521,7 +1450,6 @@ derive gDefault			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, T
 derive gEq				TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
 derive gText	        TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
 derive gEditor			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
-derive gVerify			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
 
 derive class iTask TaskId, Config, ProcessStatus
 	
@@ -1572,7 +1500,6 @@ derive JSONDecode		Icon
 derive gDefault			Icon
 derive gEq				Icon
 derive gText	        Icon
-derive gVerify			Icon
 
 gEditor{|Icon|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
@@ -1608,7 +1535,6 @@ where
 	onEdit _ _ val mask ust = (val,mask,ust)
 
 gText{|{}|} _ _ _ = undef
-gVerify{|{}|} _ _ _ = undef
 
 derive JSONEncode SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive JSONDecode SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
@@ -1616,8 +1542,6 @@ derive gEq        SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity,
 derive gDefault   SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gEditor    SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gText      SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
-derive gVerify    SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gDefault   HtmlAttr
 derive gEditor    HtmlAttr
 derive gText      HtmlAttr
-derive gVerify    HtmlAttr

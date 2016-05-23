@@ -31,7 +31,6 @@ from iTasks.UI.Editor 			import :: EditMask, :: Masked
 from iTasks.UI.Editor.Generic   import generic gEditor, :: VSt
 from iTasks._Framework.Task				import :: Task, :: TaskId
 from iTasks._Framework.Generic				import class iTask
-from iTasks._Framework.Generic.Interaction	import generic gVerify, ::USt, :: VerifyOptions
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks._Framework.Generic.Defaults		import generic gDefault
 from iTasks._Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
@@ -158,7 +157,6 @@ derive gEq				EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, T
 
 derive gText	        EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
 derive gEditor 			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
-derive gVerify			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
 
 //* Common exceptions used by API tasks
 
@@ -246,7 +244,6 @@ derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, Butt
 derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gText	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 derive gEditor	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gVerify			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 
 //* Represents the choice of one element from a list represented as combo box
 :: ComboChoice v = ComboChoice ![v] !(Maybe Int)
@@ -284,8 +281,6 @@ derive gText	        ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoic
 derive gText	        CheckMultiChoice
 derive gEditor	        ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive gEditor	        CheckMultiChoice
-derive gVerify			ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive gVerify			CheckMultiChoice
 
 /**
 * Interface for types representing choices of one element out of a set of options.
@@ -375,8 +370,6 @@ derive gDefault			Hidden, Display, Editable, VisualizationHint, Row, Col, Editab
 derive gEq				Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
 derive gText	        Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
 derive gEditor			Hidden, Display, Editable, VisualizationHint, Row, Col
-derive gVerify			Hidden, Display, Editable, VisualizationHint, Row, Col
-
 
 //****************************************************************************//
 // Framework types.
@@ -632,7 +625,6 @@ derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, Valu
 
 derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
 derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
-derive gVerify			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
 
 derive class iTask		TaskId, Config, ProcessStatus
 
@@ -691,9 +683,6 @@ derive gDefault			Icon
 derive gEq				Icon
 derive gText	        Icon
 derive gEditor          Icon	
-derive gVerify			Icon
-
-
 
 //Task evaluation tuning directives, for increasing performance
 :: LazyRefresh = LazyRefresh //If you tune a task in a parallel set with this directive, it not be evaluated unless its focused
@@ -708,7 +697,6 @@ derive gEq				(), HtmlTag, HtmlAttr, Either, MaybeError, Timestamp, JSONNode, (-
 derive gDefault   HtmlAttr
 derive gEditor    HtmlAttr
 derive gText      HtmlAttr
-derive gVerify    HtmlAttr
 
 derive JSONEncode		RWShared
 derive JSONDecode		RWShared
@@ -721,9 +709,7 @@ derive gEq        SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity,
 derive gDefault   SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gEditor    SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gText      SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
-derive gVerify    SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 
 derive gDefault   {}
 derive gEditor    {}
 derive gText      {}
-derive gVerify    {}

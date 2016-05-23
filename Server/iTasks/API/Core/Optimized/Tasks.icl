@@ -3,7 +3,7 @@ implementation module iTasks.API.Core.Optimized.Tasks
 import StdList, StdBool, StdInt, StdTuple,StdMisc
 import System.Time, Data.Error, System.OSError, Data.Tuple, Data.List, Text.JSON
 import qualified StdList
-import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction, iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskEval
+import iTasks._Framework.Generic, iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskEval
 import iTasks._Framework.TaskStore, iTasks.UI.Definition
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil
 import iTasks._Framework.IWorld
@@ -39,7 +39,7 @@ where
 		//Apply refresh function if r or v changed
 		# rChanged				= nr =!= r
 		# vChanged				= nts =!= ts
-		# vValid				= isValid (verifyMaskedValue (nv,nm))
+		# vValid				= not (containsInvalidFields nm)
 		# (nl,(nv,nm)) 			= if (rChanged || vChanged) (refreshFun l nr (nv,nm) rChanged vChanged vValid) (l,(nv,nm))
 		//Update visualization v
 		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
@@ -66,7 +66,7 @@ where
 		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
-		# vValid				= isValid (verifyMaskedValue (nv,nm))
+		# vValid				= not (containsInvalidFields nm)
 		# (nl,(nv,nm)) 			= if vChanged (refreshFun l (nv,nm) vValid) (l,(nv,nm))
 		//Update visualization v
 		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
@@ -102,7 +102,7 @@ where
 		//Apply refresh function if r or v changed
 		# rChanged				= nr =!= r
 		# vChanged				= nts =!= ts
-		# vValid				= isValid (verifyMaskedValue (nv,nm))
+		# vValid				= not (containsInvalidFields nm)
 		# (nv,nm) 				= if (rChanged || vChanged) (refreshFun nr (nv,nm) rChanged vChanged vValid) (nv,nm)
 		//Update visualization v
 		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
@@ -129,7 +129,7 @@ where
 		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
-		# vValid				= isValid (verifyMaskedValue (nv,nm))
+		# vValid				= not (containsInvalidFields nm)
 		# (nv,nm) 				= if vChanged (refreshFun (nv,nm) vValid) (nv,nm)
 		//Update visualization v
 		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
@@ -167,7 +167,7 @@ where
 		//Apply refresh function if r or v changed
 		# rChanged				= nr =!= r
 		# vChanged				= nts =!= ts
-		# vValid				= isValid (verifyMaskedValue (nv,nm))
+		# vValid				= not (containsInvalidFields nm)
 		# (nl,(nv,nm)) 			= if rChanged (nr,(toView nr,InitMask True)) (l,(nv,nm))
 		//Update visualization v
 		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
@@ -195,7 +195,7 @@ where
 		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
-		# vValid				= isValid (verifyMaskedValue (nv,nm))
+		# vValid				= not (containsInvalidFields nm)
 		# (nl,(nv,nm)) 			= if vChanged (refreshFun l (nv,nm) vValid) (l,(nv,nm))
 		//Update visualization v
 		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
@@ -226,7 +226,7 @@ where
 		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
-		# vValid				= isValid (verifyMaskedValue (nv,nm))
+		# vValid				= not (containsInvalidFields nm)
 		# (nl,(nv,nm)) 			= if vChanged (refreshFun l (nv,nm) vValid) (l,(nv,nm))
 		//Update visualization v
 		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of

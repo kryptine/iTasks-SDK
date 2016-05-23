@@ -3,7 +3,6 @@ import TestFramework
 import Tests.Unit.FrameworkStubs
 
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Layout, iTasks.UI.Layout.Default
-import iTasks._Framework.Generic.Interaction
 import iTasks._Framework.IWorld
 import qualified Data.Map as DM
 import StdMisc
@@ -225,7 +224,7 @@ where
 
 	sut world 
 		# vst = toStubVSt (toStubIWorld world)
-		# (res,vst) = gEditor{|*|}.Editor.updUI [] { a = {c="foo",d="foo"}, b = { c = "bar", d = "baz"}} Untouched {a={c="foo",d="foo"}, b = { c = "bar", d = "bax"}} Untouched vst
+		# (res,vst) = gEditor{|*|}.Editor.updUI [] { a = {c="foo",d="foo"}, b = { c = "bar", d = "baz"}} (InitMask False) {a={c="foo",d="foo"}, b = { c = "bar", d = "bax"}} (InitMask False) vst
 		# world = fromStubIWorld (fromStubVSt vst)
 		= (res,world)
 

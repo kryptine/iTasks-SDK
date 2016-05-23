@@ -7,7 +7,6 @@ derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult
 
 gText{|UnitTest|} _ _			            = []
 gEditor{|UnitTest|} = emptyEditor 
-gVerify{|UnitTest|} _ mv 	   = alwaysValid mv
 JSONEncode{|UnitTest|} _ c	   = [dynamicJSONEncode c]
 JSONDecode{|UnitTest|} _ [c:r] = (dynamicJSONDecode c,r)
 JSONDecode{|UnitTest|} _ r	   = (Nothing,r)

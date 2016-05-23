@@ -2,7 +2,7 @@ implementation module iTasks.API.Extensions.Admin.WorkflowAdmin
 
 import iTasks
 import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
-import iTasks._Framework.SDS, iTasks._Framework.Generic.Interaction, iTasks.API.Core.Types
+import iTasks._Framework.SDS, iTasks.API.Core.Types
 from StdFunc import seq
 import qualified Data.Map as DM
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Common, iTasks.UI.Layout.Default, iTasks.UI.Layout.Common
@@ -12,7 +12,6 @@ derive class iTask Workflow
 
 gText{|WorkflowTaskContainer|} _ _			            = []
 gEditor{|WorkflowTaskContainer|} 						= emptyEditor
-gVerify{|WorkflowTaskContainer|} _ mv 				    = alwaysValid mv
 JSONEncode{|WorkflowTaskContainer|} _ c				    = [dynamicJSONEncode c]
 JSONDecode{|WorkflowTaskContainer|} _ [c:r]			    = (dynamicJSONDecode c,r)
 JSONDecode{|WorkflowTaskContainer|} _ r				    = (Nothing,r)

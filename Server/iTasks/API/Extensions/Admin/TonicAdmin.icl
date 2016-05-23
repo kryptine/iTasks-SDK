@@ -2,7 +2,7 @@ implementation module iTasks.API.Extensions.Admin.TonicAdmin
 
 import iTasks
 import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
-import iTasks._Framework.SDS, iTasks._Framework.Generic.Interaction, iTasks.API.Core.Types
+import iTasks._Framework.SDS, iTasks.API.Core.Types
 import iTasks._Framework.Tonic.Blueprints
 import iTasks._Framework.Tonic.Shares
 import iTasks._Framework.Tonic.Types

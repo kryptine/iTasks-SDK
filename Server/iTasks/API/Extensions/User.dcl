@@ -59,7 +59,6 @@ derive gEq				User, UserConstraint, Username, Password
 
 derive gText	        User, UserConstraint, Username, Password
 derive gEditor 			User, UserConstraint, Username, Password
-derive gVerify			User, UserConstraint, Username, Password
 
 derive class iTask	Credentials
 

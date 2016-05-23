@@ -458,7 +458,6 @@ gText{|GoogleMapPosition|} _ (Just {GoogleMapPosition|lat,lng}) = [toString lat 
 gText{|GoogleMapPosition|} _ _ = [""]
 
 gEditor{|GoogleMap|} = fromEditlet googleMapEditlet
-gVerify{|GoogleMap|} _ mv = alwaysValid mv
 
 gDefault{|GoogleMapPerspective|} =
 	{ GoogleMapPerspective
@@ -483,5 +482,4 @@ derive gDefault			GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapType, 
 derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
 derive gText	        GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
 derive gEditor                     GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
-derive gVerify			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType, GoogleMapIcon, GoogleMapComplexIcon,GoogleMapDiff
 

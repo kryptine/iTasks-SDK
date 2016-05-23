@@ -20,7 +20,6 @@ derive class iTask Workflow
 		
 derive gText	        WorkflowTaskContainer
 derive gEditor			WorkflowTaskContainer
-derive gVerify			WorkflowTaskContainer
 derive JSONEncode		WorkflowTaskContainer
 derive JSONDecode		WorkflowTaskContainer
 derive gDefault			WorkflowTaskContainer

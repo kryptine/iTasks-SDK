@@ -3,7 +3,7 @@ implementation module iTasks.API.Core.Tasks
 import StdList, StdBool, StdInt, StdTuple, StdMisc, StdDebug
 import System.Time, Data.Error, System.OSError, Data.Tuple, Text, Text.JSON
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.TaskServer
-import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction, iTasks._Framework.Task, iTasks._Framework.TaskState
+import iTasks._Framework.Generic, iTasks._Framework.Task, iTasks._Framework.TaskState
 import iTasks._Framework.TaskEval, iTasks._Framework.TaskStore, iTasks.UI.Definition, iTasks._Framework.IWorld
 import iTasks.UI.Layout, iTasks.UI.Editor
 import iTasks.API.Core.SDSs, iTasks.API.Common.SDSCombinators
@@ -96,7 +96,7 @@ where
 		//Apply refresh function if r or v changed
 		# rChanged				= nr =!= r
 		# vChanged				= nts =!= ts
-		# vValid				= isValid (verifyMaskedValue (nv,nm))
+		# vValid				= not (containsInvalidFields nm)
 		# (nl,(nv,nm)) 			= if (rChanged || vChanged) (refreshFun l nr (nv,nm) rChanged vChanged vValid) (l,(nv,nm))
 		//Update visualization v
 		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
@@ -126,7 +126,7 @@ updateValueAndMask_ taskId path mbEditor diff (v,m) iworld
 visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld -> *(!MaybeErrorString UIChange,!Bool,!*IWorld) | iTask v & toPrompt d
 visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworld
 	# editor 	= fromMaybe gEditor{|*|} mbEditor
-	# ver 		= verifyMaskedValue (nv,nm)
+	# valid     = not (containsInvalidFields nm)
 	# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
 	# (change,vst=:{VSt|iworld}) = case event of
 		ResetEvent		//(re)generate the initial UI
@@ -140,7 +140,7 @@ visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworl
 				(Ok editChange,vst)
 					= (Ok (ChangeUI [] [(0,ChangeChild NoChange), (1,ChangeChild editChange)]) ,vst)
 				(Error e,vst) = (Error e,vst)
-	= (change,isValid ver,iworld)
+	= (change,valid,iworld)
 
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w
 tcplisten port removeClosed sds handlers = Task eval

@@ -8,8 +8,6 @@ import qualified Data.List as DL
 from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action(..), ::ActionName, :: ActionOption, :: Hotkey
 
 from iTasks._Framework.Generic import class iTask(..)
-from iTasks._Framework.Generic.Interaction import generic gVerify
-from iTasks._Framework.Generic.Interaction import :: VerifyOptions, :: DataPath, :: VerifiedValue, :: Verification
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
 from iTasks._Framework.Generic.Defaults			import generic gDefault
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked

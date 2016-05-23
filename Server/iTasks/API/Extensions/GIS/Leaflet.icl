@@ -514,7 +514,6 @@ where
     //ignoreConflict conflict state env = (state, NoDiff, env)
 
 gEditor{|LeafletMap|} = fromEditlet leafletEditlet
-gVerify{|LeafletMap|} _ vst = alwaysValid vst
 
 gDefault{|LeafletPerspective|}
     = {LeafletPerspective|center = {LeafletLatLng|lat = 51.82, lng = 5.86}, zoom = 7, cursor = Nothing, bounds = Nothing}
@@ -530,4 +529,3 @@ derive gDefault         LeafletMap,                     LeafletIcon, LeafletLatL
 derive gEq              LeafletMap, LeafletPerspective, LeafletIcon,                LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletDiff, LeafletClientState, JSLM
 derive gText            LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletDiff, LeafletClientState, JSLM
 derive gEditor                      LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletDiff, LeafletClientState, JSLM
-derive gVerify	                    LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletDiff, LeafletClientState, JSLM

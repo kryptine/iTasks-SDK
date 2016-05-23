@@ -40,7 +40,6 @@ derive JSONEncode UnitTest
 derive JSONDecode UnitTest
 derive gEq UnitTest
 derive gEditor UnitTest
-derive gVerify UnitTest
 derive gText UnitTest
 derive gDefault UnitTest
 

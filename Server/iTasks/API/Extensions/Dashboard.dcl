@@ -24,7 +24,6 @@ import iTasks
 derive JSONEncode       ControlLight
 derive JSONDecode       ControlLight
 derive gEditor          ControlLight
-derive gVerify          ControlLight
 derive gText 			ControlLight
 derive gDefault 		ControlLight
 derive gEq              ControlLight

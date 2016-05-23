@@ -4,7 +4,7 @@ definition module iTasks.UI.Editor
 * the interact core task uses these editors to generate and update the user interface
 */
 
-from iTasks.UI.Definition import :: UIAttributes, :: UIChange
+from iTasks.UI.Definition import :: UIAttributes, :: UIChange, :: UIAttributeChange
 
 import iTasks.UI.JS.Interface
 
@@ -59,7 +59,8 @@ checkMaskValue      :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
 stdAttributes 		:: String Bool EditMask -> UIAttributes
 stdAttributeChanges :: String Bool EditMask EditMask -> [UIAttributeChange]
 
-
+basicEdit :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*USt -> *(!a, !EditMask, !*USt) | JSONDecode{|*|} upd
+basicEditSimple :: !DataPath !JSONNode !a !EditMask !*USt -> *(!a,!EditMask,!*USt) | JSONDecode{|*|} a
 
 :: *VSt =
 	{ selectedConsIndex	:: !Int              // Index of the selected constructor in an Object

@@ -8,7 +8,7 @@ import Text.HTML, Internet.HTTP, Data.Error, Text.JSON
 import iTasks._Framework.IWorld, iTasks.UI.Definition, iTasks._Framework.Util
 import iTasks.API.Core.Types
 import iTasks._Framework.Generic
-import iTasks.UI.Editor, iTasks.UI.Editor.Common, iTasks._Framework.Generic.Interaction
+import iTasks.UI.Editor, iTasks.UI.Editor.Common
 
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
 from iTasks.API.Common.SDSCombinators	import toDynamic 
@@ -47,8 +47,6 @@ make_dynamic v = dynamic v
 JSONEncode{|Task|} _ _ tt = [dynamicJSONEncode tt]		
 JSONDecode{|Task|} _ _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Task|} _ _ c = (Nothing,c)
-
-gVerify{|Task|} _ _ mv = alwaysValid mv
 
 gText{|Task|} _ _ _ = ["<Task>"]
 gEditor{|Task|} _ _ _ _ _ = emptyEditor

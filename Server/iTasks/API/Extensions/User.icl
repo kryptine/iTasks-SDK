@@ -12,7 +12,6 @@ derive gDefault			User, UserConstraint
 derive gEq				User, UserConstraint
 derive gText	        UserConstraint
 derive gEditor			User, UserConstraint
-derive gVerify			User, UserConstraint
 
 instance toString User
 where
@@ -83,9 +82,7 @@ where
 	updUI dp (Username old) om (Username new) nm vst=:{VSt|optional,disabled}
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
-	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
-
-gVerify{|Username|} mv options = simpleVerify mv options
+	onEdit dp e val mask ust = basicEdit (\e _ -> fromJSON e) dp e val mask ust
 
 derive gDefault			Username
 derive gEq				Username
@@ -125,9 +122,7 @@ where
 	updUI dp (Password old) om (Password new) nm vst=:{VSt|optional,disabled}
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
-	onEdit dp e val mask ust = basicUpdateSimple dp e val mask ust
-
-gVerify{|Password|} mv options = simpleVerify mv options
+	onEdit dp e val mask ust = basicEdit (\e _ -> fromJSON e) dp e val mask ust
 
 derive gDefault			Password
 derive gEq				Password
