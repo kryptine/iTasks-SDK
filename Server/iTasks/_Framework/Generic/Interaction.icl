@@ -14,7 +14,7 @@ import iTasks.UI.Layout
 import iTasks.UI.Editor, iTasks.UI.Definition
 import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Editor.Combinators
 
-derive gEq EditMask
+derive gEq EditMask, FieldMask
 
 //Generic Verify
 generic gVerify a :: !VerifyOptions (Masked a) -> Verification

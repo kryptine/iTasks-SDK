@@ -501,8 +501,8 @@ subVerifications :: !Int Verification -> [Verification]
 toPairVerification :: !Int !Verification -> Verification
 fromPairVerification :: !Int !Verification -> Verification
 
-derive JSONEncode EditMask, Verification
-derive JSONDecode EditMask, Verification
+derive JSONEncode Verification
+derive JSONDecode Verification
 
 //* Datapaths identify sub structures in a composite structure
 :: DataPath :== [Int]

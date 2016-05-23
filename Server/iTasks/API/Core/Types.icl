@@ -1485,8 +1485,8 @@ where
 	where
 		middle = n / 2
 		
-derive JSONEncode EditMask, Verification
-derive JSONDecode EditMask, Verification
+derive JSONEncode Verification
+derive JSONDecode Verification
 
 //Utility functions
 editorId :: !DataPath -> String

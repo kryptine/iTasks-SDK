@@ -6,6 +6,9 @@ import iTasks._Framework.IWorld
 import iTasks.UI.Definition
 import qualified Data.Map as DM
 
+derive JSONEncode EditMask, FieldMask
+derive JSONDecode EditMask, FieldMask
+
 emptyEditor :: Editor a
 emptyEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where

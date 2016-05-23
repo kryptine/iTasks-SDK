@@ -8,8 +8,8 @@ import iTasks._Framework.IWorld
 import qualified Data.Map as DM
 import StdMisc
 
-derive gEq EditMask
-derive gText EditMask
+derive gEq EditMask, FieldMask
+derive gText EditMask, FieldMask
 
 //COMPLEX TYPES FOR TESTING
 

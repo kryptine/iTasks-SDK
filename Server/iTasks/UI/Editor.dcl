@@ -34,9 +34,20 @@ from Text.JSON import :: JSONNode
     | TouchedUnparsed !JSONNode              //The user has edited the value to something that cannot be parsed to a valid value
 	| TouchedWithState !JSONNode			//Some components need to keep local state that can't be encoded in the value
 	| Blanked								//The value was previously touched, but has been made blank again
+	| FieldMask !FieldMask
 	| CompoundMask ![EditMask]	    		//The value is a compound structure of which some parts are, and some aren't touched
 
+:: FieldMask = 
+	{ touched :: !Bool
+	, version :: !Int
+	, valid   :: !Bool
+	, state   :: !JSONNode
+	}
+
 :: Masked a :== (a,EditMask)
+
+derive JSONEncode EditMask, FieldMask
+derive JSONDecode EditMask, FieldMask
 
 subMasks	:: !Int EditMask -> [EditMask]
 toPairMask	:: !Int !EditMask -> EditMask

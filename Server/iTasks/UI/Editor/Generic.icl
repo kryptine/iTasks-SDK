@@ -11,7 +11,7 @@ import StdArray
 
 generic gEditor a | gText a, gDefault a, JSONEncode a, JSONDecode a :: Editor a
 derive bimap Editor,(,,),(,,,)
-derive gEq EditMask
+derive gEq EditMask, FieldMask
 
 gEditor{|UNIT|} = emptyEditor
 
