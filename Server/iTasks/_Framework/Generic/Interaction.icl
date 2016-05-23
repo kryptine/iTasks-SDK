@@ -14,8 +14,6 @@ import iTasks.UI.Layout
 import iTasks.UI.Editor, iTasks.UI.Definition
 import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Editor.Combinators
 
-derive gEq EditMask, FieldMask
-
 //Generic Verify
 generic gVerify a :: !VerifyOptions (Masked a) -> Verification
 
@@ -34,7 +32,7 @@ gVerify{|RECORD of {grd_arity}|} fx options (RECORD x, mask)
 gVerify{|FIELD|} fx options (FIELD x,mask) = fx options (x,mask)
 	
 gVerify{|OBJECT|} fx options=:{VerifyOptions|optional} (OBJECT x,mask) = case mask of
-    Blanked     = if optional MissingValue (CorrectValue Nothing)
+ //   Blanked     = if optional MissingValue (CorrectValue Nothing)
     _           = fx options (x,mask)
 	
 gVerify{|CONS of {gcd_arity}|} fx options (CONS x,mask)
@@ -91,60 +89,14 @@ updPairPath i n
 	| otherwise
 		= [1: updPairPath (i - (n/2)) (n - (n/2))]
 
-checkMask :: !EditMask a -> Maybe a
-checkMask mask val
-    | isTouched mask    = Just val
-                        = Nothing
-
-checkMaskValue :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
-checkMaskValue Touched val               = Just (toJSON val)
-checkMaskValue (TouchedWithState s) val  = Just (toJSON val)
-checkMaskValue (TouchedUnparsed r) _  	 = Just r
-checkMaskValue _ _                       = Nothing
-
-/**
-* Set basic hint and error information based on the verification
-*/
-stdAttributes :: String Bool EditMask -> UIAttributes
-stdAttributes typename optional mask
-	| not (isTouched mask)
-		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INFO),(HINT_ATTRIBUTE,JSONString ("Please enter a " +++ typename +++ if optional "" " (this value is required)"))]
-	| mask =:(CompoundMask _) 
-		= 'DM'.newMap
-	| otherwise
-		# (hintType,hint) = case mask of
-        	Touched					= (HINT_TYPE_VALID, "You have correctly entered a " +++ typename) 
-        	(TouchedWithState _)	= (HINT_TYPE_VALID, "You have correctly entered a " +++ typename)
-        	(TouchedUnparsed _)		= (HINT_TYPE_INVALID,"This value not in the required format of a " +++ typename)
-        	Blanked					= if optional 
-											(HINT_TYPE_INFO, "Please enter a " +++ typename)
-											(HINT_TYPE_INVALID, "You need to enter a "+++ typename +++ " (this value is required)")
-		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString hintType),(HINT_ATTRIBUTE,JSONString hint)]
-
-stdAttributeChanges :: String Bool EditMask EditMask -> [UIAttributeChange]
-stdAttributeChanges typename optional om nm 
-	| om === nm = [] //Nothing to change
-	| otherwise = [SetAttribute k v \\ (k,v) <- 'DM'.toList (stdAttributes typename optional nm)]
 
 addLabel :: !String !UIAttributes -> UIAttributes
 addLabel label attr = putCond LABEL_ATTRIBUTE (JSONString label) attr
 where
     putCond k v m = maybe ('DM'.put k v m) (const m) ('DM'.get k m)
 
-/*
-childVisualizations :: !(DataPath a EditMask -> .(*VSt -> *(!MaybeErrorString UI,*VSt))) !DataPath ![a] ![EditMask] !*VSt -> *(!MaybeErrorString [UI],!*VSt)
-childVisualizations fx dp children masks vst = childVisualizations` 0 children masks [] vst
-where
-	childVisualizations` i [] [] acc vst
-		= (Ok (reverse acc),vst)
-	childVisualizations` i [child:children] [mask:masks] acc vst
-		= case fx (dp ++ [i]) child mask vst of
-			(Ok childV,vst) = childVisualizations` (i + 1) children masks [childV:acc] vst
-			(Error e,vst) = (Error e,vst)
-*/
-
 verifyValue :: !a -> Verification | gVerify{|*|} a
-verifyValue val = verifyMaskedValue (val,Touched)
+verifyValue val = verifyMaskedValue (val,CompoundMask [])
 	
 verifyMaskedValue :: !(Masked a) -> Verification | gVerify{|*|} a
 verifyMaskedValue mv = gVerify{|*|} {VerifyOptions|optional = False, disabled = False} mv 
@@ -164,23 +116,23 @@ simpleVerify options mv = customVerify (const True) (const undef) options mv
 customVerify :: !(a -> Bool) !(a -> String) !VerifyOptions (Masked a) -> Verification
 customVerify pred mkErrMsg options=:{VerifyOptions|optional,disabled} (val,mask)
 	= case mask of
-		Untouched				= if optional (CorrectValue Nothing) MissingValue
-		Touched					= validateValue val
-		TouchedWithState s		= validateValue val		
-		TouchedUnparsed r		= UnparsableValue
-		Blanked					= if optional (CorrectValue Nothing) MissingValue
-		CompoundMask _		    = validateValue val
+		//Untouched				= if optional (CorrectValue Nothing) MissingValue
+		//Touched					= validateValue val
+		_		    = validateValue val
 where
 	validateValue val
 		| pred val	= CorrectValue Nothing
 		| otherwise	= IncorrectValue(mkErrMsg val)
 
 basicUpdate :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*USt -> *(!a, !EditMask, !*USt) | JSONDecode{|*|} upd
-basicUpdate toV [] upd v vmask ust
-        # mbV   = maybe Nothing (\u -> toV u v) (fromJSON upd)
-        # v     = fromMaybe v mbV
-        # vmask = if (upd === JSONNull) Blanked (if (isNothing mbV) (TouchedUnparsed upd) Touched)
-        = (v,vmask,ust)
+basicUpdate toV [] upd v vmask ust=:{USt|optional}
+	= case upd of
+		JSONNull = (v,FieldMask {touched=True,valid=optional,state=JSONNull},ust)
+		json = case fromJSON upd of
+			Nothing  = (v,FieldMask {touched=True,valid=False,state=upd},ust)
+			(Just e) = case toV e v of
+				Nothing = (v,FieldMask {touched=True,valid=False,state=upd},ust)
+				Just val = (val,FieldMask {touched=True,valid=True,state=upd},ust)
 basicUpdate toV _ upd v vmask ust
 		= (v,vmask,ust)
 

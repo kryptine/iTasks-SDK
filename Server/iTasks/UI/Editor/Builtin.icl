@@ -3,8 +3,6 @@ implementation module iTasks.UI.Editor.Builtin
 import iTasks.UI.Definition, iTasks.UI.Editor
 import qualified Data.Map as DM
 
-import StdMisc
-
 textField :: Editor String
 textField = simpleComponent UIEditString
 
@@ -30,9 +28,10 @@ where
 		| checkMaskValue om ov === checkMaskValue nm nv = (Ok NoChange,vst)
 		| otherwise =  (Ok (ChangeUI [SetAttribute "value" (toJSON nv)] []),vst)
 
-	onEdit dp e val mask ust
+	onEdit dp e val mask ust=:{USt|optional}
 		= case e of
-			JSONNull = (val,Blanked,ust)
+			JSONNull = (val,FieldMask {touched=True,valid=optional,state=JSONNull},ust)
 			json = case fromJSON e of
-				Nothing  = (val,TouchedUnparsed e,ust)
-				Just val = (val,Touched,ust)
+				Nothing  = (val,FieldMask {touched=True,valid=False,state=e},ust)
+				Just val = (val,FieldMask {touched=True,valid=True,state=e},ust)
+

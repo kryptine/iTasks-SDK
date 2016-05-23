@@ -84,9 +84,9 @@ where
 			(Error e,iworld) = (Error e,iworld)
 						
 	makeView [ViewWith viewFun] status taskId iworld
-		= makeEditor (Display (viewFun status),Touched) taskId iworld
+		= makeEditor (Display (viewFun status),InitMask True) taskId iworld
 	makeView _ status taskId iworld
-		= makeEditor (Display (defaultViewFun status),Touched) taskId iworld
+		= makeEditor (Display (defaultViewFun status),InitMask True) taskId iworld
 
 	makeEditor value=:(v,vmask) taskId iworld
 		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}

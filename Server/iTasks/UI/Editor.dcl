@@ -29,17 +29,13 @@ from Text.JSON import :: JSONNode
 *   During editing, values can be in an inconsistent, or even untypable state
 */  
 :: EditMask
-	= Untouched								//The value has not been touched by the user
-	| Touched								//The value has been touched by the user, now it makes sense to check the input
-    | TouchedUnparsed !JSONNode              //The user has edited the value to something that cannot be parsed to a valid value
-	| TouchedWithState !JSONNode			//Some components need to keep local state that can't be encoded in the value
-	| Blanked								//The value was previously touched, but has been made blank again
-	| FieldMask !FieldMask
-	| CompoundMask ![EditMask]	    		//The value is a compound structure of which some parts are, and some aren't touched
+	= InitMask !Bool          
+	| FieldMask !FieldMask 		
+	| CompoundMask ![EditMask]
 
 :: FieldMask = 
 	{ touched :: !Bool
-	, version :: !Int
+	//, version :: !Int
 	, valid   :: !Bool
 	, state   :: !JSONNode
 	}
@@ -48,10 +44,22 @@ from Text.JSON import :: JSONNode
 
 derive JSONEncode EditMask, FieldMask
 derive JSONDecode EditMask, FieldMask
+derive gEq        EditMask, FieldMask
 
 subMasks	:: !Int EditMask -> [EditMask]
 toPairMask	:: !Int !EditMask -> EditMask
 isTouched	:: !EditMask -> Bool
+
+containsInvalidFields :: !EditMask -> Bool
+
+//Utility functions making specializations of gEditor
+checkMask			:: !EditMask a -> Maybe a
+checkMaskValue      :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
+
+stdAttributes 		:: String Bool EditMask -> UIAttributes
+stdAttributeChanges :: String Bool EditMask EditMask -> [UIAttributeChange]
+
+
 
 :: *VSt =
 	{ selectedConsIndex	:: !Int              // Index of the selected constructor in an Object
@@ -62,7 +70,8 @@ isTouched	:: !EditMask -> Bool
 	}
 
 :: *USt =
-    { taskId            :: !String
+    { optional          :: !Bool
+    , taskId            :: !String
     , iworld            :: !*IWorld
     }
 

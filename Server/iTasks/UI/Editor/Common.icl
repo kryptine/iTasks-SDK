@@ -59,7 +59,7 @@ where
 				"mdn" = if reorder (swap items (index+1),swap childMasks (index+1)) (items,childMasks)
 				"rem" = if remove  (removeAt index items,removeAt index childMasks)	(items,childMasks)
 				"add" = case add of
-					(Just f) = (insertAt (length items) (f items) items, insertAt (length items) Touched childMasks)
+					(Just f) = (insertAt (length items) (f items) items, insertAt (length items) (InitMask True) childMasks)
 					_        = (items,childMasks)
 				_	
 					= (items,childMasks)

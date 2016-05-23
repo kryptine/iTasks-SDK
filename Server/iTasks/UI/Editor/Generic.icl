@@ -11,7 +11,6 @@ import StdArray
 
 generic gEditor a | gText a, gDefault a, JSONEncode a, JSONDecode a :: Editor a
 derive bimap Editor,(,,),(,,,)
-derive gEq EditMask, FieldMask
 
 gEditor{|UNIT|} = emptyEditor
 
@@ -37,8 +36,8 @@ where
 
 	onEdit [] e (RECORD record) mask ust //Enabling or disabling of a record
     	# mask = case e of
-        	JSONBool False  = Blanked
-        	_               = Touched
+        	JSONBool False  = InitMask False
+        	_               = mask
     	= (RECORD record,mask,ust)
 
 	onEdit [d:ds] e (RECORD record) mask ust
@@ -73,8 +72,7 @@ where
 		= case ex.Editor.genUI dp x mask {VSt|vst & optional=False} of
 			(Ok items, vst=:{selectedConsIndex}) 
         		# choice = case mask of
-            		Untouched   = []
-            		Blanked     = []
+					(FieldMask {FieldMask|state=JSONNull}) = []
             		_           = [selectedConsIndex]
 				| allConsesArityZero gtd_conses //If all constructors have arity 0, we only need the constructor dropwdown
 					= (Ok (consDropdown choice), {vst & selectedConsIndex = curSelectedConsIndex})
@@ -121,8 +119,8 @@ where
 			JSONInt i	= i
 			_			= 0
 		# mask	        = case e of
-			JSONNull	= Blanked	//Reset
-			_			= CompoundMask (repeatn (gtd_conses !! consIdx).gcd_arity Untouched)
+			JSONNull	= InitMask False //Reset
+			_			= CompoundMask (repeatn (gtd_conses !! consIdx).gcd_arity (InitMask False))
     	# (val,_,ust)	= ex.Editor.onEdit (updConsPath (if (consIdx < gtd_num_conses) consIdx 0) gtd_num_conses) e val mask ust
 		= (OBJECT val, mask, ust)
 	onEdit dp e (OBJECT val) mask ust //Update is targeted somewhere in a substructure of this value
@@ -154,14 +152,14 @@ where
 
 	onEdit [d:ds] e either mask ust
 		| d == -1 = case ds of
-        	[] = (LEFT dx, Untouched, ust)
+        	[] = (LEFT dx, InitMask False, ust)
 			_ 
-				# (x,mask,ust) = ex.Editor.onEdit ds e dx Untouched ust
+				# (x,mask,ust) = ex.Editor.onEdit ds e dx (InitMask False) ust
 				= (LEFT x, mask, ust)
 		| d == -2 = case ds of
-			[] = (RIGHT dy, Untouched, ust)
+			[] = (RIGHT dy, InitMask False, ust)
 			_ 
-				# (y,mask,ust) = ey.Editor.onEdit ds e dy Untouched ust
+				# (y,mask,ust) = ey.Editor.onEdit ds e dy (InitMask False) ust
 				= (RIGHT y, mask, ust)
 		| otherwise
 			= case either of
@@ -198,7 +196,7 @@ where
 	genUI dp (PAIR x y) mask vst
 		# (xmask,ymask) = case mask of
 			CompoundMask [xmask,ymask] 	= (xmask,ymask)
-			_							= (Untouched,Untouched)
+			_							= (InitMask False,InitMask False)
 		# (dpx,dpy)		= pairPathSplit dp
 		# (vizx, vst)	= ex.Editor.genUI dpx x xmask vst
 		| vizx =: (Error _)
@@ -215,10 +213,10 @@ where
 		# (dpx,dpy)		= pairPathSplit dp
 		# (oxmask,oymask) = case om of
 			CompoundMask [xmask,ymask] 	= (xmask,ymask)
-			_							= (Untouched,Untouched)
+			_							= (InitMask False,InitMask False)
 		# (nxmask,nymask) = case nm of
 			CompoundMask [xmask,ymask] 	= (xmask,ymask)
-			_							= (Untouched,Untouched)
+			_							= (InitMask False,InitMask False)
 		# (diffx,vst) 	= ex.Editor.updUI dpx oldx oxmask newx nxmask vst
 		| diffx =: (Error _) = (diffx,vst)
 		# (diffy,vst) 	= ey.Editor.updUI dpy oldy oymask newy nymask vst
@@ -240,28 +238,31 @@ where
 	genUI dp val mask vst=:{VSt|optional,disabled}
 		# (viz,vst) = case val of
 			(Just x)	= ex.Editor.genUI dp x mask {VSt|vst & optional = True}
-			_			= ex.Editor.genUI dp dx Untouched {VSt|vst & optional = True}
+			_			= ex.Editor.genUI dp dx (InitMask False) {VSt|vst & optional = True}
 		# viz = fmap (\(UI type attr items) -> UI type ('DM'.union (optionalAttr True) attr) items) viz
 		= (viz, {VSt|vst & optional = optional})
 
 	updUI dp Nothing om Nothing nm vst = (Ok NoChange,vst)
 	updUI dp Nothing om (Just new) nm vst=:{VSt|optional}
-		# (diff,vst) = ex.Editor.updUI dp dx Untouched new nm {VSt|vst & optional = True}
+		# (diff,vst) = ex.Editor.updUI dp dx (InitMask False) new nm {VSt|vst & optional = True}
 		= (diff,{VSt|vst & optional = optional})
 	updUI dp (Just old) om Nothing nm vst=:{VSt|optional}
-		# (diff,vst) = ex.Editor.updUI dp old om dx Untouched {VSt|vst & optional = True}
+		# (diff,vst) = ex.Editor.updUI dp old om dx (InitMask False) {VSt|vst & optional = True}
 		= (diff,{VSt|vst & optional = optional})
 	updUI dp (Just old) om (Just new) nm vst=:{VSt|optional}
 		# (diff,vst) = ex.Editor.updUI dp old om new nm {VSt|vst & optional = True}
 		= (diff,{VSt|vst & optional = optional})
 
-	onEdit dp e val mask ust
+	onEdit dp e val mask ust=:{USt|optional}
 		| isEmpty dp && (e === JSONNull || e === JSONBool False)
-			= (Nothing, Blanked,ust) //Reset
+			# mask = case mask of
+				(FieldMask fmask) = FieldMask {FieldMask|fmask & state = JSONNull}
+				(CompoundMask m) = CompoundMask []
+			= (Nothing, mask,ust) //Reset
 		| otherwise
-			# (x,xmask) = maybe (dx,Untouched) (\x -> (x,mask)) val
-			# (x,xmask,ust) = ex.Editor.onEdit dp e x xmask ust
-			= (Just x,xmask,ust)
+			# (x,xmask) = maybe (dx,CompoundMask []) (\x -> (x,mask)) val
+			# (x,xmask,ust) = ex.Editor.onEdit dp e x xmask {USt|ust & optional = True}
+			= (Just x,xmask,{USt|ust & optional = optional})
 
 //Encode the full range of fields in the datapath, such that it can be decomposed in PAIRs by the pairSplit
 pairPath 0 dp = dp

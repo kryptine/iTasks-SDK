@@ -33,13 +33,6 @@ derive gVerify RWShared
 	, disabled		:: !Bool
 	}
 
-//Utility functions making specializations of gEditor
-checkMask			:: !EditMask a -> Maybe a
-checkMaskValue      :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
-
-stdAttributes 		:: String Bool EditMask -> UIAttributes
-stdAttributeChanges :: String Bool EditMask EditMask -> [UIAttributeChange]
-
 /**
 * Verify a value.
 */

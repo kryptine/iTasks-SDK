@@ -78,7 +78,7 @@ updUI _ (AnalogClock t1) _ (AnalogClock t2) _ vst = case (  (if (t1.Time.sec == 
 
 onEdit :: DataPath JSONNode AnalogClock EditMask *USt -> *(!AnalogClock,!EditMask,!*USt)
 onEdit [] diff t m ust = case fromJSON diff of
-	Just diffs = (app diffs t,Touched,ust)
+	Just diffs = (app diffs t,FieldMask {touched=True,valid=True,state=JSONNull},ust)
 	Nothing = (t,m,ust)
 where
 	app [] t = t

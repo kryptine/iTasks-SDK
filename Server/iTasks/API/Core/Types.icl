@@ -613,9 +613,11 @@ where
 	updUI dp old om new nm vst=:{VSt|optional}
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
-	onEdit dp e val mask ust = case fromJSON e of 
-		Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},Blanked,ust)// Reset
-		Just doc	= (doc,Touched,ust) //Update
+	onEdit dp e val mask ust=:{USt|optional} = case fromJSON e of 
+		Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0}
+                      ,FieldMask {touched=True,valid=optional,state=JSONNull}
+                      ,ust)// Reset
+		Just doc	= (doc,FieldMask {touched=True,valid=True,state=e},ust) //Update
 	
 gVerify{|Document|} mv options = simpleVerify mv options
 
@@ -959,12 +961,12 @@ gText{|TreeChoice|} fv _ _ = [""]
 gEditor{|TreeChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
-		# attr = choiceAttrs taskId (editorId dp) (value val) (options gx val mask)
+		# attr = choiceAttrs taskId (editorId dp) (value val) (options gx val)
 		= (Ok (uia UITree attr),vst)
 
 	value  (TreeChoice _ mbSel) 	= maybe [] (\s->[s]) mbSel
 	
-	options vizLabel (TreeChoice nodes _) msk = map toJSON (fst (mkTree vizLabel nodes 0))
+	options vizLabel (TreeChoice nodes _) = map toJSON (fst (mkTree vizLabel nodes 0))
 	where
 		mkTree vizLabel [] idx = ([],idx)
 		mkTree vizLabel [{ChoiceTree|label,icon,type}:r] idx
@@ -980,10 +982,10 @@ where
 			= ([{UITreeNode|text=concat (vizLabel AsSingleLine (Just label)),iconCls=fmap (\i ->"icon-"+++i) icon,value=idx,leaf=isNothing children
 				,expanded = expanded, children=children}:rtree],idx`)
 
-	options _ _ _ = []
+	options _ _ = []
 
 	updUI dp old om new nm vst
-		| options gx old Untouched === options gx new Untouched && value old === value new
+		| options gx old === options gx new && value old === value new
 			= (Ok NoChange,vst)
 		# (nviz,vst) = genUI dp new nm vst
 		= (fmap ReplaceUI nviz,vst)
@@ -1151,11 +1153,8 @@ where
 	getSelections (CheckMultiChoice options sels)				= fmap snd (getListOptions options sels)
 	getSelectionViews (CheckMultiChoice options sels)			= fmap fst (getListOptions options sels)
 
-// Utility functions for Choice and MultiChoice instances
-touch (TouchedUnparsed r)	= TouchedUnparsed r
-touch (TouchedWithState s)	= TouchedWithState s
-touch (CompoundMask c)	    = CompoundMask c
-touch _						= Touched
+touch (FieldMask fmask) = FieldMask {FieldMask|fmask & touched =True}
+touch mask = mask
 
 setTreeExpanded :: Int Bool [ChoiceTree a] -> [ChoiceTree a]
 setTreeExpanded idx expanded tree = snd (expand idx tree)

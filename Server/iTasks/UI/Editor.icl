@@ -8,6 +8,7 @@ import qualified Data.Map as DM
 
 derive JSONEncode EditMask, FieldMask
 derive JSONDecode EditMask, FieldMask
+derive gEq        EditMask, FieldMask
 
 emptyEditor :: Editor a
 emptyEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
@@ -21,17 +22,14 @@ subMasks n (CompoundMask ms) = ms
 subMasks n m = repeatn n m
 
 isTouched :: !EditMask -> Bool
-isTouched Touched = True
-isTouched (TouchedUnparsed _)	= True
-isTouched (TouchedWithState _)	= True
-isTouched Blanked	 			= True
-isTouched (CompoundMask ms) 	= isTouched` ms
-where
-	isTouched` [] = False
-	isTouched` [m:ms]
-		| isTouched m 	= True
-		| otherwise 	= isTouched` ms
-isTouched _						= False
+isTouched (InitMask update) = update
+isTouched (FieldMask {FieldMask|touched}) = touched
+isTouched (CompoundMask ms) = or (map isTouched ms) 
+
+containsInvalidFields :: !EditMask -> Bool
+containsInvalidFields (InitMask _) = False
+containsInvalidFields (FieldMask {FieldMask|valid}) = not valid
+containsInvalidFields (CompoundMask ms) = or (map containsInvalidFields ms)
 
 toPairMask :: !Int !EditMask -> EditMask
 toPairMask len mask = split len (subMasks len mask)
@@ -42,6 +40,43 @@ where
 	where
 		middle = n / 2
 		(left,right) = splitAt middle masks
+
+checkMask :: !EditMask a -> Maybe a
+checkMask mask val
+    | isTouched mask    = Just val
+                        = Nothing
+
+checkMaskValue :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
+checkMaskValue (FieldMask {FieldMask|touched,state}) _ = if touched (Just state) Nothing
+checkMaskValue _ _                       = Nothing
+
+/**
+* Set basic hint and error information based on the verification
+*/
+stdAttributes :: String Bool EditMask -> UIAttributes
+stdAttributes typename optional (CompoundMask _) = 'DM'.newMap
+stdAttributes typename optional mask
+	# (touched,valid,state) = case mask of
+		(FieldMask {FieldMask|touched,valid,state}) = (touched,valid,state)
+		(InitMask update) = (update,update,JSONNull)
+	| not touched || (state =:JSONNull && optional)
+		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INFO)
+                        ,(HINT_ATTRIBUTE,JSONString ("Please enter a " +++ typename +++ if optional "" " (this value is required)"))]
+	| valid
+		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_VALID)
+						,(HINT_ATTRIBUTE,JSONString ("You have correctly entered a " +++ typename))]
+	| state =: JSONNull
+		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INVALID)
+						,(HINT_ATTRIBUTE,JSONString ("You need to enter a "+++ typename +++ " (this value is required)"))]
+	| otherwise
+		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INVALID)
+						,(HINT_ATTRIBUTE,JSONString ("This value not in the required format of a " +++ typename))]
+
+stdAttributeChanges :: String Bool EditMask EditMask -> [UIAttributeChange]
+stdAttributeChanges typename optional om nm 
+	| om === nm = [] //Nothing to change
+	| otherwise = [SetAttribute k v \\ (k,v) <- 'DM'.toList (stdAttributes typename optional nm)]
+
 
 fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a
 fromEditlet editlet=:{Editlet| genUI, initUI, updUI, onEdit} = {Editor|genUI=genUI`,updUI=updUI,onEdit=onEdit}
