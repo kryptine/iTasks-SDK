@@ -71,7 +71,8 @@ currentUser 			:: RWShared () User User
 taskInstanceUser 		:: RWShared InstanceNo User User
 
 //* Selected task instances
-processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
+processesForUser :: User -> ReadOnlyShared [TaskListItem Void]
+processesForCurrentUser :: ReadOnlyShared [TaskListItem Void]
 
 /*
 * Copies authentication attributes of current task 
@@ -116,6 +117,7 @@ assign :: !TaskAttributes !(Task a) -> Task a | iTask a
 */
 (@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
 
+workerAttributes :: worker [(String, String)] -> TaskAttributes | toUserConstraint worker
 
 appendTopLevelTaskFor 	  :: !worker         		 !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 appendTopLevelTaskPrioFor :: !worker !String !String !Bool !(Task a) -> Task TaskId | iTask a & toUserConstraint worker

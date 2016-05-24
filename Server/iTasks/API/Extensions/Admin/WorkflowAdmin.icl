@@ -216,7 +216,7 @@ unwrapWorkflowTask (ParamWorkflowTask tf) = (enterInformation "Enter parameters"
 
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
-	(	enterChoiceWithSharedAs Void [ChooseWith (ChooseFromGrid snd)] processes fst
+	(	enterChoiceWithSharedAs () [ChooseWith (ChooseFromGrid snd)] processes fst
 	>>* [OnAction (Action "Open" [ActionTrigger DoubleClick]) (hasValue (\taskId -> openTask taskList taskId @ const OpenProcess))
 		,OnAction (Action "Delete" []) (hasValue (\taskId-> removeTask taskId topLevelTasks @ const OpenProcess))]
 	)
@@ -277,11 +277,12 @@ where
         lookup [wf=:{Workflow|path}:wfs] cid = if (path == cid) (Just wf) (lookup wfs cid)
         lookup [] _ = Nothing
 
+appendOnce :: TaskId (Task a) (SharedTaskList a) -> Task () | iTask a
 appendOnce identity task slist
     =   get (taskListMeta slist)
     >>- \items -> if (checkItems name items)
-        (return Void)
-	    (appendTask (NamedEmbedded name) (removeWhenStable task) slist @! Void)
+        (return ())
+	    (appendTask (NamedEmbedded name) (removeWhenStable task) slist @! ())
 where
     name = toString identity
     checkItems name [] = False
@@ -289,6 +290,7 @@ where
         | maybe False ((==) name) ('DM'.get "name" attributes)  = True //Item with name exists!
                                                                 = checkItems name is
 
+removeWhenStable :: (Task a) (SharedTaskList a) -> Task a | iTask a
 removeWhenStable task slist
     =   task
     >>* [OnValue (ifStable (\_ -> get (taskListSelfId slist) >>- \selfId -> removeTask selfId slist))]
