@@ -40,12 +40,12 @@ testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the core g
 	,testMaybeIntUntouched
 	]
 
-testGenUI :: String UI a EditMask -> Test | iTask a
-testGenUI name exp x mask = assertEqualWorld name (Ok exp) sut
+testGenUI :: String (UI,EditMask) a Bool -> Test | iTask a
+testGenUI name exp x upd = assertEqualWorld name (Ok exp) sut
 where
 	sut world 
 		# vst = toStubVSt (toStubIWorld world)
-		# (res,vst) = gEditor{|*|}.Editor.genUI [] x mask vst
+		# (res,vst) = gEditor{|*|}.Editor.genUI [] x upd vst
 		# world = fromStubIWorld (fromStubVSt vst)
 		= (res,world)
 
@@ -67,8 +67,8 @@ testIntTouched = testGenUI "Touched Int"
 						,("taskId",JSONString "STUB")
 						,("editorId",JSONString "v")
 						,("value",JSONInt 42)
-						]))
-	42 (InitMask True)
+						]),newFieldMask)
+	42 True 
 
 testIntBlanked = skip "Blanked Int"
 /* testGenUI "Blanked Int"
@@ -95,8 +95,8 @@ testRealTouched = skip "Touched Real"
 
 testConsFieldsTouched = testGenUI "Touched cons fields"
 	(uiac UICompoundContent ('DM'.fromList [("optional",JSONBool False)])
-		[fieldExp "v0" 1, fieldExp "v1" 2, fieldExp "v2" 3, fieldExp "v3" 4,fieldExp "v4" 5,fieldExp "v5" 6])
-	(TestConsFields 1 2 3 4 5 6) (InitMask True)
+		[fieldExp "v0" 1, fieldExp "v1" 2, fieldExp "v2" 3, fieldExp "v3" 4,fieldExp "v4" 5,fieldExp "v5" 6],CompoundMask [])
+	(TestConsFields 1 2 3 4 5 6) True 
 where
 	fieldExp editorId val = 
 		uia UIEditInt
@@ -173,9 +173,9 @@ testGenEdit :: String (Masked a) (Masked a) DataPath JSONNode -> Test | iTask a
 testGenEdit name exp (ov,om) dp edit = assertEqualWorld name exp sut
 where
 	sut world 
-		# ust = toStubUSt (toStubIWorld world)
-		# (nv,nm,ust) = gEditor{|*|}.Editor.onEdit dp edit ov om ust
-		# world = fromStubIWorld (fromStubUSt ust)
+		# vst = toStubVSt (toStubIWorld world)
+		# (nv,nm,vst) = gEditor{|*|}.Editor.onEdit dp edit ov om vst
+		# world = fromStubIWorld (fromStubVSt vst)
 		= ((nv,nm),world)
 
 testEditConsChange = skip "Change constructor" 
@@ -214,10 +214,10 @@ where
 
 //Integers
 testSameInt :: Test
-testSameInt = testGenDiff "Same Int" NoChange (42,InitMask True) (42,InitMask True)
+testSameInt = testGenDiff "Same Int" NoChange (42,newFieldMask) (42,newFieldMask)
 
 testDifferentInt1 :: Test
-testDifferentInt1 = testGenDiff "Different Int 1" (ChangeUI [SetAttribute "value" (JSONInt 23)] []) (42,InitMask True) (23,InitMask True)
+testDifferentInt1 = testGenDiff "Different Int 1" (ChangeUI [SetAttribute "value" (JSONInt 23)] []) (42,newFieldMask) (23,newFieldMask)
 
 testDifferentInt2 :: Test
 testDifferentInt2
@@ -226,14 +226,14 @@ testDifferentInt2
 				  ,SetAttribute HINT_ATTRIBUTE (JSONString "You need to enter a whole number (this value is required)")
 				  ,SetAttribute HINT_TYPE_ATTRIBUTE (JSONString HINT_TYPE_INVALID)
 				  ] [])
-			(42,InitMask True) (3,FieldMask {touched=True,valid=True,state=JSONNull})
+			(42,newFieldMask) (3,newFieldMask)
 
 testDiffConsFields1 :: Test
 testDiffConsFields1 
 	= testGenDiff "Diff constructor fields 1" 
 		(ChangeUI [] [(3,ChangeChild (ChangeUI [SetAttribute "value" (JSONInt 44)] []))])
-		(TestConsFields 1 2 3 4 5 6,InitMask True)
-		(TestConsFields 1 2 3 44 5 6,InitMask True)
+		(TestConsFields 1 2 3 4 5 6,newFieldMask)
+		(TestConsFields 1 2 3 44 5 6,newFieldMask)
 
 testDiffConsFields2 :: Test
 testDiffConsFields2 
@@ -243,29 +243,29 @@ testDiffConsFields2
 											  ,SetAttribute HINT_TYPE_ATTRIBUTE (JSONString HINT_TYPE_VALID)
 											  ] []))])
 
-		(TestConsFields 1 2 3 4 5 6, InitMask False)
-		(TestConsFields 1 2 3 44 5 6, CompoundMask [InitMask False,InitMask False,InitMask False,InitMask True,InitMask False,InitMask False])
+		(TestConsFields 1 2 3 4 5 6, newFieldMask)
+		(TestConsFields 1 2 3 44 5 6, CompoundMask [newFieldMask,newFieldMask,newFieldMask,newFieldMask,newFieldMask,newFieldMask])
 
 testDiffRecordFields :: Test
 testDiffRecordFields 
 	= testGenDiff "Diff record fields"
 		(ChangeUI [] [(0, ChangeChild (ChangeUI [SetAttribute "value" (JSONInt 23)] [])),(1,ChangeChild (ChangeUI [SetAttribute "value" (JSONString "bar")] []))])
-		({TestRecordFields|a=42,b="foo",c=True},InitMask True)
-		({TestRecordFields|a=23,b="bar",c=True},InitMask True)
+		({TestRecordFields|a=42,b="foo",c=True},newFieldMask)
+		({TestRecordFields|a=23,b="bar",c=True},newFieldMask)
 
 testDiffConsChange :: Test
 testDiffConsChange 
 	= testGenDiff "Changing a single constructor"
 		(ChangeUI [SetAttribute "value" (JSONArray [JSONInt 1,JSONBool True])] [])
-		(ConsA,InitMask True)
-		(ConsB,InitMask True)
+		(ConsA,newFieldMask)
+		(ConsB,newFieldMask)
 
 testDiffConsWithFieldChange :: Test
 testDiffConsWithFieldChange 
 	= testGenDiff "Changing a constructor with a data field"
 		(ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "value" (JSONArray [JSONInt 1,JSONBool True])] [])), (1,ChangeChild (ReplaceUI expField))])
-		(ConsWithFieldA,InitMask True)
-		(ConsWithFieldB "Foo",InitMask True)
+		(ConsWithFieldA,newFieldMask)
+		(ConsWithFieldB "Foo",newFieldMask)
 where
 	expField = uia UIEditString
 		('DM'.fromList[("optional",JSONBool False)
@@ -283,8 +283,8 @@ testMaybeIntChangeToJust
 				  ,SetAttribute HINT_ATTRIBUTE (JSONString "You have correctly entered a whole number")
 				  ,SetAttribute HINT_TYPE_ATTRIBUTE (JSONString HINT_TYPE_VALID)
 				  ] [])
-		(Nothing,InitMask True)
-		(Just 42,InitMask True)
+		(Nothing,newFieldMask)
+		(Just 42,newFieldMask)
 
 testMaybeIntChangeToNothing :: Test
 testMaybeIntChangeToNothing = skip "Switch Maybe Int Just to Nothing"

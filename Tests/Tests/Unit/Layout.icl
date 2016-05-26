@@ -224,7 +224,7 @@ where
 
 	sut world 
 		# vst = toStubVSt (toStubIWorld world)
-		# (res,vst) = gEditor{|*|}.Editor.updUI [] { a = {c="foo",d="foo"}, b = { c = "bar", d = "baz"}} (InitMask False) {a={c="foo",d="foo"}, b = { c = "bar", d = "bax"}} (InitMask False) vst
+		# (res,vst) = gEditor{|*|}.Editor.updUI [] { a = {c="foo",d="foo"}, b = { c = "bar", d = "baz"}} newFieldMask {a={c="foo",d="foo"}, b = { c = "bar", d = "bax"}} newFieldMask vst
 		# world = fromStubIWorld (fromStubVSt vst)
 		= (res,world)
 
