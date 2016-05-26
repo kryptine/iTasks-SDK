@@ -1,27 +1,27 @@
 implementation module iTasks.UI.Editor.Builtin
 
 import iTasks.UI.Definition, iTasks.UI.Editor
-import Data.Error, Text.JSON
-import GenEq
+import StdFunc, GenEq
+import Data.Error, Text.JSON, Text.HTML
 import qualified Data.Map as DM
 
 textField :: Editor String
-textField = simpleComponent UIEditString
+textField = simpleComponent toJSON UIEditString
 
 integerField :: Editor Int
-integerField = simpleComponent UIEditInt
+integerField = simpleComponent toJSON UIEditInt
 
 decimalField :: Editor Real
-decimalField = simpleComponent UIEditDecimal
+decimalField = simpleComponent toJSON UIEditDecimal
 
 passwordField :: Editor String
-passwordField = simpleComponent UIEditPassword
+passwordField = simpleComponent toJSON UIEditPassword
 
 textArea :: Editor String
-textArea = simpleComponent UIEditNote
+textArea = simpleComponent toJSON UIEditNote
 
 checkBox :: Editor Bool
-checkBox = simpleComponent UIEditCheckbox
+checkBox = simpleComponent toJSON UIEditCheckbox
 
 slider :: Editor Int
 slider = integerField
@@ -33,24 +33,26 @@ progressBar  :: Editor Int
 progressBar = integerField
 
 textView :: Editor String
-textView = simpleComponent UIViewString
+textView = simpleComponent toJSON UIViewString
 
 htmlView :: Editor HtmlTag
-htmlView = simpleComponent UIViewHtml
+htmlView = simpleComponent (JSONString o toString) UIViewHtml
 
 icon :: Editor String
-icon = textField
+icon = simpleComponent toJSON UIIcon
 
 //Simple components for which simply knowing the UI type is sufficient
-simpleComponent type = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+simpleComponent toValue type = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where 
 	genUI dp val upd vst=:{VSt|taskId,optional}
 		# mask = newFieldMask
-		= (Ok (uia type ( 'DM'.unions [optionalAttr optional,editAttrs taskId (editorId dp) (checkMaskValue mask val)]),mask),vst)
+		# val = if upd (toValue val) JSONNull
+		# attr = 'DM'.unions [optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr val]
+		= (Ok (uia type attr,mask),vst)
 
 	updUI dp ov om nv nm vst=:{VSt|optional,disabled}
 		| checkMaskValue om ov === checkMaskValue nm nv = (Ok NoChange,vst)
-		| otherwise =  (Ok (ChangeUI [SetAttribute "value" (toJSON nv)] []),vst)
+		| otherwise =  (Ok (ChangeUI [SetAttribute "value" (toValue nv)] []),vst)
 
 	onEdit dp e val mask vst=:{VSt|optional}
 		= case e of

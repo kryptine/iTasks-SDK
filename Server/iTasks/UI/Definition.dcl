@@ -229,6 +229,7 @@ instanceKeyAttr   :: !String                              -> UIAttributes
 columnsAttr       :: ![String]                            -> UIAttributes
 doubleClickAttr   :: !String !String                      -> UIAttributes
 actionIdAttr      :: !String                              -> UIAttributes
+editorIdAttr      :: !String                              -> UIAttributes
 taskIdAttr        :: !String                              -> UIAttributes
 
 editAttrs         :: !String !String !(Maybe JSONNode)    -> UIAttributes
