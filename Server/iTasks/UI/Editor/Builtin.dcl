@@ -4,6 +4,7 @@ definition module iTasks.UI.Editor.Builtin
 * in the client-side UI framework.
 */
 import iTasks.UI.Editor
+from Text.HTML import :: HtmlTag
 
 textField     :: Editor String
 integerField  :: Editor Int

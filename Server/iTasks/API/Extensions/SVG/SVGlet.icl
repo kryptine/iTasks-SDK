@@ -5,6 +5,7 @@ import Graphics.Scalable
 import Graphics.Scalable.Internal
 import iTasks
 import iTasks.UI.Definition, iTasks.UI.Editor
+import iTasks.UI.JS.Interface
 from StdOrdList import minList, maxList
 import StdOverloaded
 import StdArray

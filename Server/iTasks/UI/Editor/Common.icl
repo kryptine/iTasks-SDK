@@ -1,7 +1,8 @@
 implementation module iTasks.UI.Editor.Common
 
+import StdBool
 import iTasks.UI.Definition, iTasks.UI.Editor
-import Data.Tuple, Text
+import Data.Tuple, Data.Error, Text, Text.JSON
 import qualified Data.Map as DM
 
 emptyEditor :: Editor a

@@ -1,6 +1,8 @@
 implementation module iTasks.UI.Editor.Builtin
 
 import iTasks.UI.Definition, iTasks.UI.Editor
+import Data.Error, Text.JSON
+import GenEq
 import qualified Data.Map as DM
 
 textField :: Editor String

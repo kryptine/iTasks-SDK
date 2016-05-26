@@ -4,17 +4,17 @@ definition module iTasks.UI.Editor
 * the interact core task uses these editors to generate and update the user interface
 */
 
-from iTasks.UI.Definition import :: UIAttributes, :: UIChange, :: UIAttributeChange
-
-import iTasks.UI.JS.Interface
+from iTasks.UI.Definition import :: UI, :: UIAttributes, :: UIChange, :: UIAttributeChange
+from iTasks.UI.JS.Interface import :: JSWorld, :: JSObj, :: JSVal, :: JSObject
 
 from iTasks._Framework.IWorld import :: IWorld
-from iTasks.API.Core.Types import :: DataPath, :: Verification, :: VerifiedValue
+from iTasks._Framework.Generic.Defaults import generic gDefault
 from Data.Maybe import :: Maybe
 from Data.Either import :: Either
 from Data.Map import :: Map
-from Data.Error import :: MaybeErrorString
-from Text.JSON import :: JSONNode
+from Data.Error import :: MaybeError, :: MaybeErrorString
+from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
+from GenEq import generic gEq
 
 /*
 *	Standard editor
@@ -24,6 +24,9 @@ from Text.JSON import :: JSONNode
 	, updUI  :: DataPath a EditMask a EditMask *VSt -> *(!MaybeErrorString UIChange, !*VSt)
 	, onEdit :: DataPath JSONNode a EditMask *VSt -> *(!a, !EditMask, !*VSt)
 	}
+
+//* Datapaths identify sub structures in a composite structure
+:: DataPath :== [Int]
 
 /** Edit masks contain information about a value as it is being edited in an interactive task.
 *   During editing, values can be in an inconsistent, or even untypable state
@@ -55,6 +58,10 @@ derive gEq        EditMask, FieldMask
 
 newFieldMask :: EditMask
 newCompoundMask :: EditMask
+
+//Generate the editorId string for a given datapath
+editorId 				:: !DataPath 		-> String
+s2dp					:: !String			-> DataPath
 
 subMasks	:: !Int EditMask -> [EditMask]
 toPairMask	:: !Int !EditMask -> EditMask

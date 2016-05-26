@@ -1,6 +1,7 @@
 implementation module iTasks.UI.Editor.Combinators
 
 import iTasks.UI.Editor, iTasks.UI.Definition
+import Data.Error, Text.JSON
 import qualified Data.Map as DM
 
 withHintAttributes :: String (Editor a) -> Editor a

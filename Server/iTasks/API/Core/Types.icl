@@ -1,5 +1,5 @@
 implementation module iTasks.API.Core.Types
-from StdFunc import until, const, id
+from StdFunc import until, const, id, o
 import StdInt, StdBool, StdClass, StdArray, StdEnum, StdTuple, StdMisc, StdList, StdOrdList
 import GenLexOrd
 import Data.Either, Data.Functor, Text.JSON, Text.HTML, Text, Text.Encodings.Base64, Data.Tuple, dynamic_string, System.File
@@ -8,6 +8,7 @@ from Data.List import instance Functor []
 import qualified Data.List as DL
 import qualified Data.Map as DM
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import iTasks.UI.Prompt
 import iTasks._Framework.Generic.Visualization
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.Util
 import iTasks._Framework.Serialization
@@ -1287,45 +1288,6 @@ where
 	(<) (TaskId a0 b0) (TaskId a1 b1) = if (a0 == a1) (b0 < b1) (a0 < a1)
 
 derive class iTask TaskListFilter
-
-subVerifications :: !Int Verification -> [Verification]
-subVerifications n (CompoundVerification vs) = vs
-subVerifications n v = repeatn n v
-
-toPairVerification :: !Int !Verification -> Verification
-toPairVerification 0 ver = ver
-toPairVerification 1 ver = ver
-toPairVerification len ver = split len (subVerifications len ver)
-where
-	split 1 [ver] 	= ver
-	split 2 vers 	= CompoundVerification vers
-	split n vers	= CompoundVerification [split middle left,split (n - middle) right]
-	where
-		middle = n / 2
-		(left,right) = splitAt middle vers
-
-fromPairVerification :: !Int !Verification -> Verification
-fromPairVerification 0 ver = ver
-fromPairVerification 1 ver = ver
-fromPairVerification len ver = CompoundVerification (join len ver)
-where	
-	join 1 ver = [ver]
-	join 2 (CompoundVerification vers)			= vers
-	join n (CompoundVerification [left,right])	= join middle left ++ join (n - middle) right
-	where
-		middle = n / 2
-		
-derive JSONEncode Verification
-derive JSONDecode Verification
-
-//Utility functions
-editorId :: !DataPath -> String
-editorId dp = "v" + join "-" (map toString dp)
-
-s2dp :: !String -> DataPath
-s2dp str 
-	| textSize str < 2	= []
-						= map toInt (split "-" (subString 1 (textSize str) str))
 
 instance == Action
 where

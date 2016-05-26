@@ -361,6 +361,7 @@ toHidden				:: !.a -> Hidden .a
     , reorder   :: !Bool
     , count     :: !Bool
     }
+
 :: EditableListAdd a
     = ELNoAdd | ELAddBlank | ELAddValue ([a] -> a)
 
@@ -479,30 +480,6 @@ instance <			TaskId
 	}
 
 derive class iTask TaskListFilter
-
-:: Verification
-    = CorrectValue !(Maybe String)
-    | WarningValue !String
-    | IncorrectValue !String
-    | UnparsableValue
-    | MissingValue
-    | CompoundVerification [Verification]
-
-:: VerifiedValue a :== (a,EditMask,Verification)
-
-subVerifications :: !Int Verification -> [Verification]
-toPairVerification :: !Int !Verification -> Verification
-fromPairVerification :: !Int !Verification -> Verification
-
-derive JSONEncode Verification
-derive JSONDecode Verification
-
-//* Datapaths identify sub structures in a composite structure
-:: DataPath :== [Int]
-
-//Generate the editorId string for a given datapath
-editorId 				:: !DataPath 		-> String
-s2dp					:: !String			-> DataPath
 
 //* Framework configuration
 :: Config =

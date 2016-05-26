@@ -1,6 +1,10 @@
 implementation module Tests.Unit.FrameworkStubs
 import iTasks._Framework.IWorld
+import iTasks._Framework.Generic
+import iTasks.API.Core.Types
 import iTasks.UI.Editor
+import System.Time
+import Data.Maybe
 import StdMisc
 import qualified Data.Map as DM
 

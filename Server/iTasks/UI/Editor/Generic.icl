@@ -5,9 +5,12 @@ import iTasks.UI.Editor
 import iTasks.UI.Editor.Builtin
 import iTasks.UI.Editor.Combinators
 import iTasks.UI.Editor.Common
+import iTasks._Framework.SDS
 
 import qualified Data.Map as DM
-import StdArray
+import StdArray, StdBool, StdFunc
+import Text.JSON
+import System.Time
 
 generic gEditor a | gText a, gDefault a, JSONEncode a, JSONDecode a :: Editor a
 derive bimap Editor,(,,),(,,,)

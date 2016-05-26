@@ -3,6 +3,12 @@ definition module iTasks.UI.Editor.Generic
 * This module provides a generic function to create editors for arbitrary types
 */
 import iTasks.UI.Editor
+import StdGeneric
+from Text.HTML import :: HtmlTag
+from Data.Error import :: MaybeError
+from System.Time import :: Timestamp
+from iTasks._Framework.SDS import :: RWShared
+from iTasks._Framework.Generic.Visualization import generic gText, :: TextFormat
 
 /**
 * Main eneric editor function

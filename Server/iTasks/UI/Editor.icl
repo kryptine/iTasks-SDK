@@ -1,10 +1,12 @@
 implementation module iTasks.UI.Editor
 
-import StdMisc
+import StdBool, StdMisc
 import iTasks._Framework.Client.LinkerSupport, Data.Maybe, Data.Functor
 import iTasks._Framework.IWorld
 import iTasks.UI.Definition
 import qualified Data.Map as DM
+import Text, Text.JSON
+import GenEq
 
 derive JSONEncode EditMask, FieldMask
 derive JSONDecode EditMask, FieldMask
@@ -22,6 +24,14 @@ newFieldMask = FieldMask {FieldMask|touched=False,valid=True,state=JSONNull}
 
 newCompoundMask :: EditMask
 newCompoundMask = CompoundMask []
+
+editorId :: !DataPath -> String
+editorId dp = "v" + join "-" (map toString dp)
+
+s2dp :: !String -> DataPath
+s2dp str 
+	| textSize str < 2	= []
+						= map toInt (split "-" (subString 1 (textSize str) str))
 
 subMasks :: !Int EditMask -> [EditMask]
 subMasks n (CompoundMask ms) = ms

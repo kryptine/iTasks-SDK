@@ -12,7 +12,7 @@ import iTasks.API.Core.Tasks, iTasks.API.Core.Optimized.Tasks, iTasks.API.Core.T
 import iTasks.API.Common.TaskCombinators, iTasks.API.Core.SDSs
 import iTasks.API.Common.SDSCombinators
 import iTasks._Framework.Tonic
-import iTasks.UI.Layout, iTasks.UI.Editor
+import iTasks.UI.Layout, iTasks.UI.Editor, iTasks.UI.Prompt
 
 /*
 editInformation :: !d ![UpdateOption m m] (Maybe m) -> Task m | toPrompt d & iTask m
