@@ -81,8 +81,8 @@ stdAttributeChanges typename optional om nm
 	| om === nm = [] //Nothing to change
 	| otherwise = [SetAttribute k v \\ (k,v) <- 'DM'.toList (stdAttributes typename optional nm)]
 
-basicEdit :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*USt -> *(!a, !EditMask, !*USt) | JSONDecode{|*|} upd
-basicEdit toV [] upd v vmask ust=:{USt|optional}
+basicEdit :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*VSt -> *(!a, !EditMask, !*VSt) | JSONDecode{|*|} upd
+basicEdit toV [] upd v vmask ust=:{VSt|optional}
 	= case upd of
 		JSONNull = (v,FieldMask {touched=True,valid=optional,state=JSONNull},ust)
 		json = case fromJSON upd of
@@ -92,7 +92,7 @@ basicEdit toV [] upd v vmask ust=:{USt|optional}
 				Just val = (val,FieldMask {touched=True,valid=True,state=upd},ust)
 basicEdit toV _ upd v vmask ust = (v,vmask,ust)
 
-basicEditSimple :: !DataPath !JSONNode !a !EditMask !*USt -> *(!a,!EditMask,!*USt) | JSONDecode{|*|} a
+basicEditSimple :: !DataPath !JSONNode !a !EditMask !*VSt -> *(!a,!EditMask,!*VSt) | JSONDecode{|*|} a
 basicEditSimple target upd val mask iworld = basicEdit (\json _ -> fromJSON json) target upd val mask iworld
 
 fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a

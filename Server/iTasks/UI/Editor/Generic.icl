@@ -256,16 +256,16 @@ where
 		# (diff,vst) = ex.Editor.updUI dp old om new nm {VSt|vst & optional = True}
 		= (diff,{VSt|vst & optional = optional})
 
-	onEdit dp e val mask ust=:{USt|optional}
+	onEdit dp e val mask vst=:{VSt|optional}
 		| isEmpty dp && (e === JSONNull || e === JSONBool False)
 			# mask = case mask of
 				(FieldMask fmask) = FieldMask {FieldMask|fmask & state = JSONNull}
 				(CompoundMask m) = CompoundMask []
-			= (Nothing, mask,ust) //Reset
+			= (Nothing, mask,vst) //Reset
 		| otherwise
 			# (x,xmask) = maybe (dx,CompoundMask []) (\x -> (x,mask)) val
-			# (x,xmask,ust) = ex.Editor.onEdit dp e x xmask {USt|ust & optional = True}
-			= (Just x,xmask,{USt|ust & optional = optional})
+			# (x,xmask,vst) = ex.Editor.onEdit dp e x xmask {VSt|vst & optional = True}
+			= (Just x,xmask,{VSt|vst & optional = optional})
 
 //Encode the full range of fields in the datapath, such that it can be decomposed in PAIRs by the pairSplit
 pairPath 0 dp = dp
@@ -322,15 +322,7 @@ gEditor{|[]|} ex _ dx _ _ = listEditor (Just (const dx)) True True (Just (\l -> 
 gEditor{|()|} = emptyEditor
 gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ = emptyEditor
 gEditor{|Dynamic|} = emptyEditor
-
-gEditor{|HtmlTag|}	= {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
-where
-	genUI dp val update vst = (Ok (uia UIViewHtml ('DM'.fromList [("value",JSONString (toString val))]),newFieldMask), vst)
-
-	updUI dp ov om nv nm vst = (Ok NoChange,vst)
-
-	onEdit _ _ val mask ust = (val,mask,ust)
-
+gEditor{|HtmlTag|} = htmlView
 gEditor{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = emptyEditor
 
 derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), Timestamp, Map

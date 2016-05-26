@@ -50,10 +50,10 @@ where
 		| checkMaskValue om ov === checkMaskValue nm nv = (Ok NoChange,vst)
 		| otherwise =  (Ok (ChangeUI [SetAttribute "value" (toJSON nv)] []),vst)
 
-	onEdit dp e val mask ust=:{USt|optional}
+	onEdit dp e val mask vst=:{VSt|optional}
 		= case e of
-			JSONNull = (val,FieldMask {touched=True,valid=optional,state=JSONNull},ust)
+			JSONNull = (val,FieldMask {touched=True,valid=optional,state=JSONNull},vst)
 			json = case fromJSON e of
-				Nothing  = (val,FieldMask {touched=True,valid=False,state=e},ust)
-				Just val = (val,FieldMask {touched=True,valid=True,state=e},ust)
+				Nothing  = (val,FieldMask {touched=True,valid=False,state=e},vst)
+				Just val = (val,FieldMask {touched=True,valid=True,state=e},vst)
 

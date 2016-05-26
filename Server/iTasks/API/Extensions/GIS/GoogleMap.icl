@@ -423,7 +423,7 @@ where
         oldMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g1.GoogleMap.markers]
         newMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g2.GoogleMap.markers]
 
-    onEdit :: DataPath JSONNode GoogleMap EditMask *USt -> *(!GoogleMap,!EditMask,!*USt)
+    onEdit :: DataPath JSONNode GoogleMap EditMask *VSt -> *(!GoogleMap,!EditMask,!*VSt)
 	onEdit [] d g msk ust = case fromJSON d of
 		Just diffs = (foldl app g diffs,msk,ust)
 		Nothing    = (g,msk,ust)

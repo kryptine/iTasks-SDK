@@ -22,7 +22,7 @@ from Text.JSON import :: JSONNode
 :: Editor a = 
 	{ genUI  :: DataPath a Bool *VSt -> *(!MaybeErrorString (!UI, !EditMask),!*VSt)
 	, updUI  :: DataPath a EditMask a EditMask *VSt -> *(!MaybeErrorString UIChange, !*VSt)
-	, onEdit :: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
+	, onEdit :: DataPath JSONNode a EditMask *VSt -> *(!a, !EditMask, !*VSt)
 	}
 
 /** Edit masks contain information about a value as it is being edited in an interactive task.
@@ -40,6 +40,14 @@ from Text.JSON import :: JSONNode
 	}
 
 :: Masked a :== (a,EditMask)
+
+:: *VSt =
+	{ selectedConsIndex	:: !Int              // Index of the selected constructor in an Object
+	, optional			:: !Bool             // Create optional form fields
+	, disabled			:: !Bool             // If true the editor is not editable
+	, taskId			:: !String           // The id of the task the visualisation belongs to
+	, iworld			:: !*IWorld	         // The iworld, used for example if external tools are needed to create editors
+	}
 
 derive JSONEncode EditMask, FieldMask
 derive JSONDecode EditMask, FieldMask
@@ -61,22 +69,8 @@ checkMaskValue      :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
 stdAttributes 		:: String Bool EditMask -> UIAttributes
 stdAttributeChanges :: String Bool EditMask EditMask -> [UIAttributeChange]
 
-basicEdit :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*USt -> *(!a, !EditMask, !*USt) | JSONDecode{|*|} upd
-basicEditSimple :: !DataPath !JSONNode !a !EditMask !*USt -> *(!a,!EditMask,!*USt) | JSONDecode{|*|} a
-
-:: *VSt =
-	{ selectedConsIndex	:: !Int              // Index of the selected constructor in an Object
-	, optional			:: !Bool             // Create optional form fields
-	, disabled			:: !Bool             // If true the editor is not editable
-	, taskId			:: !String           // The id of the task the visualisation belongs to
-	, iworld			:: !*IWorld	         // The iworld, used for example if external tools are needed to create editors
-	}
-
-:: *USt =
-    { optional          :: !Bool
-    , taskId            :: !String
-    , iworld            :: !*IWorld
-    }
+basicEdit :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*VSt -> *(!a, !EditMask, !*VSt) | JSONDecode{|*|} upd
+basicEditSimple :: !DataPath !JSONNode !a !EditMask !*VSt -> *(!a,!EditMask,!*VSt) | JSONDecode{|*|} a
 
 //****************************************************************************//
 // Alternative wrapper type for defining custom editor components that can process events
@@ -87,7 +81,7 @@ basicEditSimple :: !DataPath !JSONNode !a !EditMask !*USt -> *(!a,!EditMask,!*US
   { genUI   :: DataPath a Bool *VSt -> *(!MaybeErrorString (!UI,!EditMask), !*VSt)
   , initUI  :: (JSObj ()) *JSWorld -> *JSWorld
   , updUI   :: DataPath a EditMask a EditMask *VSt -> *(!MaybeErrorString UIChange, !*VSt)
-  , onEdit  :: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
+  , onEdit  :: DataPath JSONNode a EditMask *VSt -> *(!a, !EditMask, !*VSt)
   }
 
 fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a

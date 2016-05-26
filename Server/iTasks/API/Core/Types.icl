@@ -482,7 +482,7 @@ where
 	updUI dp old om new nm vst=:{VSt|optional}
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
-	onEdit dp e val mask ust=:{USt|optional} = case fromJSON e of 
+	onEdit dp e val mask ust=:{VSt|optional} = case fromJSON e of 
 		Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0}
                       ,FieldMask {touched=True,valid=optional,state=JSONNull}
                       ,ust)// Reset

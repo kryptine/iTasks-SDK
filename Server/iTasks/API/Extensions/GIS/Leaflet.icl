@@ -98,10 +98,10 @@ where
         | o1 === o2     = diffObjects l (inc i) os1 os2
                         = [LDUpdateObject l i o2:diffObjects l (inc i) os1 os2]
 
-onEdit :: DataPath JSONNode LeafletMap EditMask !*USt -> *(!LeafletMap,!EditMask,!*USt)
-onEdit [] diff m msk ust = case fromJSON diff of
-	Just diffs = (app diffs m,msk,ust)
-	Nothing = (m,msk,ust)
+onEdit :: DataPath JSONNode LeafletMap EditMask !*VSt -> *(!LeafletMap,!EditMask,!*VSt)
+onEdit [] diff m msk vst = case fromJSON diff of
+	Just diffs = (app diffs m,msk,vst)
+	Nothing = (m,msk,vst)
 where
 	app [] m = m
 	app [LDSetZoom zoom:ds] m           = app ds {m & perspective = {m.perspective & zoom = zoom}}
