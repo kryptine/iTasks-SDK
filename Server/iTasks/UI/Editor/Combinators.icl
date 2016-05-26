@@ -37,12 +37,31 @@ where
 	onEdit dp e val mask ust
 		= enabledEditor.Editor.onEdit dp e val mask ust
 
-liftEditor :: (a -> b) (b -> a) (Editor a) -> (Editor b)
+liftEditor :: (b -> a) (a -> b) (Editor a) -> Editor b
 liftEditor tof fromf editor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val mask vst = editor.Editor.genUI dp (fromf val) mask vst
-	updUI dp ov om nv nm vst = editor.Editor.updUI dp (fromf ov) om (fromf nv) nm vst
-	onEdit dp e val mask ust = case editor.Editor.onEdit dp e (fromf val) mask ust of
-		(val,mask,ust) = (tof val,mask,ust)
+	genUI dp val upd vst = editor.Editor.genUI dp (tof val) upd vst
+	updUI dp ov om nv nm vst = editor.Editor.updUI dp (tof ov) om (tof nv) nm vst
+	onEdit dp e val mask ust
+		# (val,mask,ust) = editor.Editor.onEdit dp e (tof val) mask ust 
+		= (fromf val,mask,ust)
 
-	
+liftEditorAsymmetric :: (b -> a) (a -> MaybeErrorString b) (Editor a) -> Editor b
+liftEditorAsymmetric tof fromf editor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+where
+	genUI dp val upd vst = editor.Editor.genUI dp (tof val) upd vst
+	updUI dp ov om nv nm vst = editor.Editor.updUI dp (tof ov) om (tof nv) nm vst
+
+	onEdit dp e old mask ust
+		# (val,mask,ust) = editor.Editor.onEdit dp e (tof old) mask ust 
+		= case fromf val of
+			(Ok new)  = (new,mask,ust)
+			(Error e) = (old,mask,ust)
+
+constEditor :: a (Editor a) -> (Editor a)
+constEditor val editor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+where
+	genUI dp _ upd vst = editor.Editor.genUI dp val upd vst
+	updUI dp _ _ _ _ vst = (Ok NoChange,vst)
+	onEdit dp _ val mask ust = (val,mask,ust)
+

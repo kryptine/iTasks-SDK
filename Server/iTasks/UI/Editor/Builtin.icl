@@ -12,11 +12,32 @@ integerField = simpleComponent UIEditInt
 decimalField :: Editor Real
 decimalField = simpleComponent UIEditDecimal
 
+passwordField :: Editor String
+passwordField = simpleComponent UIEditPassword
+
+textArea :: Editor String
+textArea = simpleComponent UIEditNote
+
 checkBox :: Editor Bool
 checkBox = simpleComponent UIEditCheckbox
 
+slider :: Editor Int
+slider = integerField
+
+dropdownBox :: Editor String
+dropdownBox = textField
+
+progressBar  :: Editor Int
+progressBar = integerField
+
 textView :: Editor String
 textView = simpleComponent UIViewString
+
+htmlView :: Editor HtmlTag
+htmlView = simpleComponent UIViewHtml
+
+icon :: Editor String
+icon = textField
 
 //Simple components for which simply knowing the UI type is sufficient
 simpleComponent type = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}

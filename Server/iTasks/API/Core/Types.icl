@@ -7,7 +7,7 @@ from Data.Map import :: Map (..)
 from Data.List import instance Functor []
 import qualified Data.List as DL
 import qualified Data.Map as DM
-import iTasks.UI.Definition, iTasks.UI.Editor
+import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
 import iTasks._Framework.Generic.Visualization
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.Util
 import iTasks._Framework.Serialization
@@ -110,22 +110,9 @@ where
 //* URL
 gText{|URL|}	_ val	= [maybe "" toString val]
 
-gEditor{|URL|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
-where
-	typeDesc = "uniform resource locator (URL)"
-	genUI dp val=:(URL url) update vst=:{VSt|taskId,optional,disabled}
-		| disabled
-			# attr = 'DM'.unions [optionalAttr optional, valueAttr (JSONString (toString (ATag [HrefAttr url] [Text url])))]
-			= (Ok (uia UIViewHtml attr,FieldMask {touched=False,valid=True,state=JSONNull}), vst)
-		| otherwise
-			# mask = FieldMask {touched=False,valid=optional,state=JSONNull}
-			# value = if update (Just (JSONString url)) Nothing
-			# attr = 'DM'.unions [optionalAttr optional, editAttrs taskId (editorId dp) value, stdAttributes typeDesc optional mask]
-			= (Ok (uia UIEditString attr, mask),vst)
-	updUI dp (URL old) om (URL new) nm vst=:{VSt|optional}
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new):stdAttributeChanges typeDesc optional om nm] [])),vst)
-
-	onEdit dp e val mask ust = basicEdit (\json url -> Just (maybe url (\s -> URL s) (fromJSON json))) dp e val mask ust
+gEditor{|URL|} = whenDisabled
+		(liftEditor (\(URL s) -> ATag [HrefAttr s] [Text s]) (\_ -> URL "") htmlView)
+		(liftEditor (\(URL s) -> s) (\s -> URL s) (withHintAttributes "uniform resource locator (URL)" textField))
 
 derive JSONEncode		URL
 derive JSONDecode		URL
@@ -148,34 +135,16 @@ JSONDecode{|Note|} _ c = (Nothing,c)
 
 gText{|Note|}	_ val	    = [maybe "" toString val]
 
-gEditor{|Note|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|Note|} = whenDisabled
+		(liftEditor noteToHtml (\_ -> Note "") htmlView)
+		(liftEditor (\(Note s) -> s) (\s -> Note s) (withHintAttributes "note" textArea))
 where
-	typeDesc = "note"
-	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
-		# mask = newFieldMask
-		| disabled
-			# val = checkMask mask val
-			# valAttr = maybe 'DM'.newMap (\note -> valueAttr (JSONString (toString (noteToHtml note)))) val
-			# attr = 'DM'.unions [optionalAttr optional,marginsAttr 5 5 5 5, valAttr]
-			= (Ok (uia UIViewHtml attr,mask),vst)
-		| otherwise	
-			# value = checkMaskValue mask ((\(Note v)  -> v) val)
-			# attr = 'DM'.unions [style, editAttrs taskId (editorId dp) value, optionalAttr optional, stdAttributes typeDesc optional mask]
-			= (Ok (uia UIEditNote attr,mask),vst)
-	where	
-		style = 'DM'.unions [heightAttr FlexSize, minHeightAttr WrapBound]
-	
 	// THIS IS A HACK!
 	// The encoding of a Text constructor should escape newlines and convert them to <br> tags. Unfortunately it doesn't
 	noteToHtml (Note s)	//TODO: Fix this in the toString of the Text constructor of HtmlTag type
 		= case split "\n" s of
 			[line]	= Text line
 			lines	= SpanTag [] ('DL'.intersperse (BrTag []) (map Text lines))
-
-	updUI dp old om new nm vst=:{VSt|optional}
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI (noteToHtml new)):stdAttributeChanges typeDesc optional om nm] [])),vst)
-
-	onEdit dp e val mask ust = basicEdit (\e _ -> fromJSON e) dp e val mask ust
 
 derive gDefault			Note
 derive gEq				Note
@@ -212,30 +181,9 @@ where
 
 gText{|EUR|} _ val = [maybe "" toString val]
 
-gEditor{|EUR|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
-where
-	typeDesc ="amount in EUR"
-
-	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
-		# mask = newFieldMask
-		| disabled	
-			# val = checkMask mask val
-			# attr = 'DM'.unions [maybe 'DM'.newMap (\(EUR v) -> valueAttr (JSONString (toString v))) val
-                                 ,'DM'.fromList [(PREFIX_ATTRIBUTE,JSONString "&euro;")]
-                                 ]
-			= (Ok (uia UIViewString attr,mask),vst)
-		| otherwise
-			# value = checkMaskValue mask ((\(EUR v) -> toReal v / 100.0) val)
-			# attr = 'DM'.unions ['DM'.fromList [(PREFIX_ATTRIBUTE,JSONString "&euro;")]
-                                 ,stdAttributes typeDesc optional mask
-                                 ,editAttrs taskId (editorId dp) value 
-                                 ]
-			= (Ok (uia UIEditDecimal attr,mask),vst)
-	updUI dp (EUR old) om (EUR new) nm vst=:{VSt|optional,disabled}
-		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])),vst)
-
-	onEdit = basicEdit (\e _ -> fromJSON e)
+gEditor{|EUR|} = whenDisabled
+		(liftEditor toString (\_ -> EUR 0) textView)
+		(liftEditor (\(EUR v) -> toReal v / 100.0) (\v -> EUR (toInt (100.0 * v))) (withHintAttributes "amount in EUR" decimalField))
 
 instance toString EUR
 where
@@ -267,31 +215,9 @@ where
 
 gText{|USD|} _ val = [maybe "" toString val]
 
-gEditor{|USD|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
-where
-	typeDesc = "amount in USD"
-
-	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
-		# mask = newFieldMask
-		| disabled	
-			# val = checkMask mask val
-			# attr = 'DM'.unions [maybe 'DM'.newMap (\(USD v) -> valueAttr (JSONString (toString v))) val
-                                 ,'DM'.fromList [(PREFIX_ATTRIBUTE,JSONString "$")]
-                                 ]
-			= (Ok (uia UIViewString attr,mask),vst)
-		| otherwise
-			# value = checkMaskValue mask ((\(USD v) -> toReal v / 100.0) val)
-			# attr = 'DM'.unions ['DM'.fromList [(PREFIX_ATTRIBUTE,JSONString "$")]
-                                 ,stdAttributes typeDesc optional mask
-                                 ,editAttrs taskId (editorId dp) value 
-                                 ]
-			= (Ok (uia UIEditDecimal attr,mask),vst)
-
-	updUI dp (USD old) om (USD new) nm vst=:{VSt|optional,disabled}
-		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])),vst)
-
-	onEdit = basicEdit (\e _ -> fromJSON e)
+gEditor{|USD|} = whenDisabled
+		(liftEditor toString (\_ -> USD 0) textView)
+		(liftEditor (\(USD v) -> toReal v / 100.0) (\v -> USD (toInt (100.0 * v))) (withHintAttributes "amount in USD" decimalField))
 
 instance toString USD
 where
@@ -336,26 +262,11 @@ isDateFormat s = size s == 10 && foldl (\ok i -> ok && (if (i == 4 || i == 7) (s
 
 gText{|Date|} _ val = [maybe "" toString val]
 
-gEditor{|Date|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|Date|} = whenDisabled
+		(liftEditor toString fromString textView)
+		(liftEditorAsymmetric toString parseDate (withHintAttributes "date (yyyy-mm-dd)" textField))
 where
-	typeDesc = "date (yyyy-mm-dd)"
-
-	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
-		# mask = newFieldMask
-		| disabled
-			# val = checkMask mask val
-			# attr = maybe 'DM'.newMap (\v -> valueAttr (JSONString (toString v))) val
-			= (Ok (uia UIViewString attr,mask), vst)
-		| otherwise
-			# value	= checkMaskValue mask val
-			# attr = 'DM'.unions [editAttrs taskId (editorId dp) value, stdAttributes typeDesc optional mask]
-			= (Ok (uia UIEditDate attr,mask), vst)
-
-	updUI dp old om new nm vst=:{VSt|optional,disabled}
-		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])),vst)
-
-	onEdit = basicEdit (\json old -> fromJSON json)
+	parseDate s = if (isDateFormat s) (Ok (fromString s)) (Error "you need to enter a date in the format yyyy-mm-dd")
 
 gDefault{|Date|} = {Date|day = 1, mon = 1, year = 1970}
 
@@ -426,26 +337,11 @@ isTimeFormat s = size s == 8 && foldl (\ok i -> ok && (if (i == 2 || i == 5) (s.
 
 gText{|Time|} _ val = [maybe "" toString val]
 
-gEditor{|Time|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|Time|} = whenDisabled
+		(liftEditor toString fromString textView)
+		(liftEditorAsymmetric toString parseTime (withHintAttributes "time (hh:mm:ss)" textField))
 where
-	typeDesc = "time (hh:mm:ss)"
-
-	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
-		# mask = newFieldMask
-		| disabled
-			# val = checkMask mask val
-			# attr = maybe 'DM'.newMap (\v -> valueAttr (JSONString (toString v))) val
-			= (Ok (uia UIViewString attr,mask), vst)
-		| otherwise
-			# value = checkMaskValue mask val
-			# attr = 'DM'.unions [editAttrs taskId (editorId dp) value, stdAttributes typeDesc optional mask]
-			= (Ok (uia UIEditTime attr,mask), vst)
-
-	updUI dp old om new nm vst=:{VSt|optional,disabled}
-		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value " (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])), vst)
-
-	onEdit = basicEdit (\json old -> fromJSON json)
+	parseTime s = if (isTimeFormat s) (Ok (fromString s)) (Error "you need to enter a time in the format hh:mm:ss")
 
 derive gDefault		Time
 derive gEq			Time
@@ -514,26 +410,11 @@ gText{|DateTime|} AsHeader _ = [""]
 gText{|DateTime|} _ (Just (DateTime date time))
 	= [toSingleLineText date +++" "+++ toSingleLineText time]
 
-gEditor{|DateTime|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
-where 
-	typeDesc = "Date/time (yyyy-mm-dd hh:mm:ss)"
-
-	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
-		# mask = newFieldMask
-		| disabled
-			# val = checkMask mask val
-			# attr = maybe 'DM'.newMap (\v -> valueAttr (JSONString (toString v))) val
-			= (Ok (uia UIViewString attr,mask), vst)
-		| otherwise
-			# value = checkMaskValue mask val
-			# attr = 'DM'.unions [editAttrs taskId (editorId dp) value, stdAttributes typeDesc optional mask]
-			= (Ok (uia UIEditDateTime attr,mask), vst)
-
-	updUI dp old om new nm vst=:{VSt|optional,disabled}
-		# nval = if disabled (encodeUI (toString new)) (toJSON new)
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])),vst)
-
-	onEdit = basicEdit (\json old -> fromJSON json)
+gEditor{|DateTime|} = whenDisabled
+		(liftEditor toString fromString textView)
+		(liftEditorAsymmetric toString parseDateTime (withHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" textField))
+where
+	parseDateTime s = if True (Ok (fromString s)) (Error "you need to enter a date/time in the format yyyy-mm-dd hh:mm:ss")
 
 instance toString DateTime
 where
@@ -544,7 +425,6 @@ where
 	fromString s	= DateTime
 						{Date|day = toInt (s %(8,9)), mon = toInt (s %(5,6)), year = toInt (s %(0,3))}
 						{Time|hour = toInt (s %(11,12)), min = toInt (s %(14,15)), sec = toInt (s %(17,18)) }
-
 instance + DateTime
 where
 	(+) (DateTime dx tx) (DateTime dy ty)

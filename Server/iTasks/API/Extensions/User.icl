@@ -66,7 +66,7 @@ JSONEncode{|Username|} _ (Username u) = [JSONString u]
 JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
 JSONDecode{|Username|} _ c = (Nothing,c)
 
-gEditor{|Username|} = liftEditor (\s -> (Username s)) (\(Username u) -> u) (whenDisabled textView (withHintAttributes "username" textField))
+gEditor{|Username|} = liftEditor (\(Username u) -> u) (\s -> (Username s)) (whenDisabled textView (withHintAttributes "username" textField))
 
 derive gDefault			Username
 derive gEq				Username
@@ -91,23 +91,8 @@ JSONDecode{|Password|} _ c = (Nothing,c)
 gText{|Password|} AsHeader _ = [""]
 gText{|Password|} _ _        = ["********"]
 
-gEditor{|Password|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
-where
-	typeDesc = "password"
-
-	genUI dp val upd vst=:{VSt|taskId,optional,disabled}
-		# mask = newFieldMask
-		| disabled	
-			# attr = valueAttr (JSONString "********") 
-			= (Ok (uia UIViewString attr,mask), vst)
-		| otherwise	
-			# value = checkMaskValue mask ((\(Password v) -> v) val)
-			# attr = 'DM'.unions [editAttrs taskId (editorId dp) value,stdAttributes typeDesc optional mask]
-			= (Ok (uia UIEditPassword attr,mask), vst)
-	updUI dp (Password old) om (Password new) nm vst=:{VSt|optional,disabled}
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] [])),vst)
-
-	onEdit dp e val mask ust = basicEdit (\e _ -> fromJSON e) dp e val mask ust
+gEditor{|Password|} = liftEditor (\(Password p) -> p) (\s -> (Password s)) 
+						(whenDisabled (constEditor "********" textView) (withHintAttributes "password" passwordField))
 
 derive gDefault			Password
 derive gEq				Password

@@ -5,10 +5,17 @@ definition module iTasks.UI.Editor.Builtin
 */
 import iTasks.UI.Editor
 
-textField :: Editor String
-integerField :: Editor Int
-decimalField :: Editor Real
+textField     :: Editor String
+integerField  :: Editor Int
+decimalField  :: Editor Real
+passwordField :: Editor String
 
-checkBox  :: Editor Bool
+checkBox     :: Editor Bool
+textArea     :: Editor String
+slider       :: Editor Int
+dropdownBox  :: Editor String
+progressBar  :: Editor Int
 
 textView :: Editor String
+htmlView :: Editor HtmlTag
+icon     :: Editor String

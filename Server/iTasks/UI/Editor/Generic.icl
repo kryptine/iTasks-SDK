@@ -311,9 +311,9 @@ flattenPairDiff s n (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)])
 where
 	half = n / 2
 
-gEditor{|Int|}    = whenDisabled (liftEditor toInt toString textView) (withHintAttributes "whole number" integerField)
-gEditor{|Real|}   = whenDisabled (liftEditor toReal toString textView) (withHintAttributes "decimal number" decimalField)
-gEditor{|Char|}   = liftEditor (\c -> c.[0]) toString (whenDisabled textView (withHintAttributes "single character" textField))
+gEditor{|Int|}    = whenDisabled (liftEditor toString toInt textView) (withHintAttributes "whole number" integerField)
+gEditor{|Real|}   = whenDisabled (liftEditor toString toReal textView) (withHintAttributes "decimal number" decimalField)
+gEditor{|Char|}   = liftEditor toString (\c -> c.[0]) (whenDisabled textView (withHintAttributes "single character" textField))
 gEditor{|String|} = whenDisabled textView (withHintAttributes "single line of text" textField)
 gEditor{|Bool|}   = checkBox
 
