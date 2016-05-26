@@ -42,12 +42,12 @@ enterInformation d _ = enterInformation d [EnterWith id]
 updateInformation :: !d ![UpdateOption m m] m -> Task m | toPrompt d & iTask m
 updateInformation d [UpdateWith tof fromf:_] m
 	= interact d null
-		(\r -> let v = tof m in (m,(v,InitMask True)))
+		(\r -> let v = tof m in (m,(v,newFieldMask)))
 		(\l r (v,m) rCh vCh vOk -> if vOk (let nl = fromf l v in (let nv = tof nl in (nl,(nv,m)))) (l,(v,m)))
 		Nothing
 updateInformation d [UpdateUsing tof fromf editor:_] m
 	= interact d null
-		(\r -> let v = tof m in (m,(v,InitMask True)))
+		(\r -> let v = tof m in (m,(v,newFieldMask)))
 		(\l r (v,m) rCh vCh vOk -> if vOk (let nl = fromf l v in (let nv = tof nl in (nl,(nv,m)))) (l,(v,m)))
 		(Just editor)
 //TODO: THIS OPTIMIZATION IS WRONG!
@@ -69,10 +69,10 @@ viewInformation d _ m = viewInformation d [ViewWith id] m
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | toPrompt d & iTask r & iTask w
 updateSharedInformation d [UpdateWith tof fromf:_] shared
 	= interact d (toReadOnly shared)
-				(\r -> let v = tof r in (fromf r v,(v,InitMask True)))
+				(\r -> let v = tof r in (fromf r v,(v,newFieldMask)))
 				(\l r (v,m) rCh vCh vOk -> if vOk
 					(if rCh //If the share changed, refresh the view
-						(let nv = tof r in (fromf r nv,(nv,InitMask True)))
+						(let nv = tof r in (fromf r nv,(nv,newFieldMask)))
 						(fromf r v,(v,m))
 					)
 					(l,(v,m))
@@ -81,10 +81,10 @@ updateSharedInformation d [UpdateWith tof fromf:_] shared
 				@> (mapval,shared)
 updateSharedInformation d [UpdateUsing tof fromf editor:_] shared
 	= interact d (toReadOnly shared)
-				(\r -> let v = tof r in (fromf r v,(v,InitMask True)))
+				(\r -> let v = tof r in (fromf r v,(v,newFieldMask)))
 				(\l r (v,m) rCh vCh vOk -> if vOk
 					(if rCh //If the share changed, refresh the view
-						(let nv = tof r in (fromf r nv,(nv,InitMask True)))
+						(let nv = tof r in (fromf r nv,(nv,newFieldMask)))
 						(fromf r v,(v,m))
 					)
 					(l,(v,m))
@@ -93,14 +93,14 @@ updateSharedInformation d [UpdateUsing tof fromf editor:_] shared
 				@> (mapval,shared)
 updateSharedInformation d [UpdateWithShared tof fromf conflictf:_] shared
 	= interact d (toReadOnly shared)
-				(\r -> let v = tof r in (fromf r v,(v,InitMask True)))
+				(\r -> let v = tof r in (fromf r v,(v,newFieldMask)))
 				(\l r (v,m) rCh vCh vOk -> if vOk
 					(if rCh 
                         (if vCh
                             //Both the share changed and the view changed -> resolve conflict
-                            (let nv = conflictf v (tof r) in (fromf r nv,(nv,InitMask True)))
+                            (let nv = conflictf v (tof r) in (fromf r nv,(nv,newFieldMask)))
                             //Only the share changed, refresh the view
-						    (let nv = tof r in (fromf r nv,(nv,InitMask True)))
+						    (let nv = tof r in (fromf r nv,(nv,newFieldMask)))
                         )             
 						(fromf r v,(v,m))
 					)
@@ -114,14 +114,14 @@ updateSharedInformation d _ shared
 	= case dynamic id :: A.a: (a -> a) of
 		(rtow :: (r^ -> w^))
 			= interact d (toReadOnly shared)
-				(\r -> let v = rtow r in (rtow r,(v,InitMask True)))
-				(\l r (v,m) rCh vCh vOk -> if vOk (if (rtow r =!= l) (let nv = rtow r in (nv,(nv,InitMask True))) (v,(v,m))) (l,(v,m)))
+				(\r -> let v = rtow r in (rtow r,(v,newFieldMask)))
+				(\l r (v,m) rCh vCh vOk -> if vOk (if (rtow r =!= l) (let nv = rtow r in (nv,(nv,newFieldMask))) (v,(v,m))) (l,(v,m)))
 				Nothing
 				@> (mapval,shared)
 		_
 			= interact d (toReadOnly shared)
-				(\r -> let v = (Display r,defaultValue) in (defaultValue,(v,CompoundMask [InitMask True,InitMask False])))
-				(\l r ((_,v),(CompoundMask [_,m])) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,(nv,CompoundMask [InitMask True,m]))))
+				(\r -> let v = (Display r,defaultValue) in (defaultValue,(v,CompoundMask [newFieldMask,newFieldMask])))
+				(\l r ((_,v),(CompoundMask [_,m])) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,(nv,CompoundMask [newFieldMask,m]))))
 				Nothing
 				@> (mapval,shared)	
 
@@ -141,18 +141,18 @@ viewSharedInformation d _ shared = viewSharedInformation d [ViewWith id] shared
 updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | toPrompt d & iTask r & iTask m
 updateInformationWithShared d [UpdateWith tof fromf:_] shared m
 	= interact d (toReadOnly shared)
-		(\r -> let v = tof (r,m) in (m,(v,InitMask True)))
-		(\l r (v,msk) rCh vCh vOk -> let nl = if vOk (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,(v,InitMask True))))
+		(\r -> let v = tof (r,m) in (m,(v,newFieldMask)))
+		(\l r (v,msk) rCh vCh vOk -> let nl = if vOk (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,(v,newFieldMask))))
 		Nothing
 updateInformationWithShared d [UpdateUsing tof fromf editor:_] shared m
 	= interact d (toReadOnly shared)
-		(\r -> let v = tof (r,m) in (m,(v,InitMask True)))
-		(\l r (v,msk) rCh vCh vOk -> let nl = if vOk (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,(v,InitMask True))))
+		(\r -> let v = tof (r,m) in (m,(v,newFieldMask)))
+		(\l r (v,msk) rCh vCh vOk -> let nl = if vOk (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,(v,newFieldMask))))
 		(Just editor)
 updateInformationWithShared d _ shared m
 	= interact d (toReadOnly shared)
-		(\r -> let v = (Display r,m) in (m,(v,CompoundMask [InitMask True,InitMask False])))
-		(\l r ((_,v),(CompoundMask [_,msk])) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,(nv,CompoundMask [InitMask True,msk]))))
+		(\r -> let v = (Display r,m) in (m,(v,CompoundMask [newFieldMask,newFieldMask])))
+		(\l r ((_,v),(CompoundMask [_,msk])) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,(nv,CompoundMask [newFieldMask,msk]))))
 		Nothing
 
 //Core choice tasks
@@ -268,7 +268,7 @@ where
 
 initChoiceView :: (ChoiceType o v) [o] (o -> a) (Maybe a) -> (DynamicChoice v,EditMask) | iTask o & iTask v & iTask a
 initChoiceView type container target mbSel
-    = updateChoiceSelection mbSel (map target container) (mkDynChoice type container,InitMask False)
+    = updateChoiceSelection mbSel (map target container) (mkDynChoice type container,newFieldMask)
 where
     mkDynChoice (AutoChoice view) container             = mkDynChoice (autoChoiceType view container) container
     mkDynChoice (ChooseFromComboBox view) container     = DCCombo   (ComboChoice [view o \\ o <- container] Nothing)
@@ -288,7 +288,7 @@ headers _ a = case toJSON a of (JSONObject fields) = map fst fields ; _ = []
 //When we don't have an (o -> a) transformation and no view transformation, we don't need to keep
 //the choice options in the interact's state (which saves space and time)
 initSimpleChoiceView :: [o] (Maybe o) -> (DynamicChoice o, EditMask) | iTask o
-initSimpleChoiceView container mbSel = updateChoiceSelection mbSel container (mkDynChoice container,InitMask False)
+initSimpleChoiceView container mbSel = updateChoiceSelection mbSel container (mkDynChoice container,newFieldMask)
 where
     mkDynChoice l = case headers l defaultValue of
         []   = DCCombo (ComboChoice container Nothing)
@@ -320,11 +320,11 @@ updateSimpleChoiceView container mbSel (view,mask)
     = initSimpleChoiceView container mbSel
 
 updateChoiceSelection :: (Maybe a) [a] (DynamicChoice v, EditMask) -> (DynamicChoice v, EditMask) | iTask v & iTask a
-updateChoiceSelection Nothing    targets (dynChoice,_) = (setSelectionIndex Nothing dynChoice, InitMask False)
-updateChoiceSelection (Just sel) targets (dynChoice,_) = (setSelectionIndex (findIndex ((===) sel) targets) dynChoice, InitMask True)
+updateChoiceSelection Nothing    targets (dynChoice,_) = (setSelectionIndex Nothing dynChoice, newFieldMask)
+updateChoiceSelection (Just sel) targets (dynChoice,_) = (setSelectionIndex (findIndex ((===) sel) targets) dynChoice, newFieldMask)
 
 updateSimpleChoiceSelection :: (Maybe o) (DynamicChoice o, EditMask) -> (DynamicChoice o, EditMask) | iTask o
-updateSimpleChoiceSelection mbSel (dynChoice,_) = (setSelectionView mbSel dynChoice, InitMask (isJust mbSel))
+updateSimpleChoiceSelection mbSel (dynChoice,_) = (setSelectionView mbSel dynChoice, newFieldMask)
 
 choiceRes :: (TaskValue ([a],DynamicChoice v)) -> TaskValue a
 choiceRes (Value (targets,view) _) = case selectionFromChoiceView targets view of

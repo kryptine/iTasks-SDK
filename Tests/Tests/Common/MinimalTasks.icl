@@ -18,7 +18,7 @@ where
 			  }
 
 	genUI dp val mask world
-		= (Ok (uia UIViewHtml ('DM'.unions [sizeAttr WrapSize WrapSize, valueAttr (JSONString (toString (html "DEPRECATED")))])), world)
+		= (Ok (uia UIViewHtml ('DM'.unions [sizeAttr WrapSize WrapSize, valueAttr (JSONString (toString (html "DEPRECATED")))]),newFieldMask), world)
 	html cid = ButtonTag [IdAttr (cid +++ "-button")] [Text "Click me"]
 
  	//onClick cid event cv world = (cv,Diff "Click" rollback,world)

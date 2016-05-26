@@ -20,7 +20,6 @@ GOOGLEMAP_JS = "http://maps.googleapis.com/maps/api/js?callback=googleMapsLoaded
     | UpdateMarkers [GoogleMapMarker]
     | RemoveMarkers [String]
 
-
 //--------------------------------------------------------------------------------------------------
 
 :: GoogleMapState = {mapobj       :: JSObj JSGM
@@ -66,9 +65,9 @@ googleMapEditlet
       , onEdit = onEdit
       }
 where
-	genUI dp val mask world
+	genUI dp val upd world
 		# attr = 'DM'.unions [sizeAttr (ExactSize 500) (ExactSize 200), valueAttr (toJSON val)]
-		= (Ok (uia UIComponent attr),world)
+		= (Ok (uia UIComponent attr,newFieldMask),world)
 
 	initUI me world
 		# (jsInitDOM, world)   = jsWrapFun (initDOM me) world

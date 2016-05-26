@@ -6,12 +6,12 @@ import qualified Data.Map as DM
 withHintAttributes :: String (Editor a) -> Editor a
 withHintAttributes typeDesc editor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val mask vst=:{VSt|taskId,optional}
-		= case editor.Editor.genUI dp val mask vst of
-			(Ok (UI type attr items),vst) 
+	genUI dp val upd vst=:{VSt|taskId,optional}
+		= case editor.Editor.genUI dp val upd vst of
+			(Ok (UI type attr items,mask),vst) 
 				//Add hint attributes
 				# attr = 'DM'.union (stdAttributes typeDesc optional mask) attr
-				= (Ok (UI type attr items),vst) 
+				= (Ok (UI type attr items,mask),vst) 
 			(e,vst) = (e,vst)
 	updUI dp ov om nv nm vst=:{VSt|optional,disabled}
 		= case stdAttributeChanges typeDesc optional om nm of

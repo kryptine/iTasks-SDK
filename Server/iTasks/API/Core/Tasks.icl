@@ -130,8 +130,8 @@ visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworl
 	# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
 	# (change,vst=:{VSt|iworld}) = case event of
 		ResetEvent		//(re)generate the initial UI
-			= case editor.Editor.genUI [] nv nm vst of
-				(Ok editUI,vst)
+			= case editor.Editor.genUI [] nv True vst of
+				(Ok (editUI,nm),vst)
 					# promptUI  	= toPrompt desc
 					# change 		= ReplaceUI (uic UIInteract [promptUI,editUI])
 					= (Ok change,vst)

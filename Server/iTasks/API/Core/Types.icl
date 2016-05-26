@@ -113,14 +113,15 @@ gText{|URL|}	_ val	= [maybe "" toString val]
 gEditor{|URL|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	typeDesc = "uniform resource locator (URL)"
-	genUI dp val=:(URL url) mask vst=:{VSt|taskId,optional,disabled}
+	genUI dp val=:(URL url) update vst=:{VSt|taskId,optional,disabled}
 		| disabled
 			# attr = 'DM'.unions [optionalAttr optional, valueAttr (JSONString (toString (ATag [HrefAttr url] [Text url])))]
-			= (Ok (uia UIViewHtml attr), vst)
+			= (Ok (uia UIViewHtml attr,FieldMask {touched=False,valid=True,state=JSONNull}), vst)
 		| otherwise
-			# value = checkMaskValue mask url
+			# mask = FieldMask {touched=False,valid=optional,state=JSONNull}
+			# value = if update (Just (JSONString url)) Nothing
 			# attr = 'DM'.unions [optionalAttr optional, editAttrs taskId (editorId dp) value, stdAttributes typeDesc optional mask]
-			= (Ok (uia UIEditString attr),vst)
+			= (Ok (uia UIEditString attr, mask),vst)
 	updUI dp (URL old) om (URL new) nm vst=:{VSt|optional}
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
@@ -151,15 +152,16 @@ gEditor{|Note|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	typeDesc = "note"
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
+		# mask = newFieldMask
 		| disabled
 			# val = checkMask mask val
 			# valAttr = maybe 'DM'.newMap (\note -> valueAttr (JSONString (toString (noteToHtml note)))) val
 			# attr = 'DM'.unions [optionalAttr optional,marginsAttr 5 5 5 5, valAttr]
-			= (Ok (uia UIViewHtml attr),vst)
+			= (Ok (uia UIViewHtml attr,mask),vst)
 		| otherwise	
 			# value = checkMaskValue mask ((\(Note v)  -> v) val)
 			# attr = 'DM'.unions [style, editAttrs taskId (editorId dp) value, optionalAttr optional, stdAttributes typeDesc optional mask]
-			= (Ok (uia UIEditNote attr),vst)
+			= (Ok (uia UIEditNote attr,mask),vst)
 	where	
 		style = 'DM'.unions [heightAttr FlexSize, minHeightAttr WrapBound]
 	
@@ -215,19 +217,20 @@ where
 	typeDesc ="amount in EUR"
 
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
+		# mask = newFieldMask
 		| disabled	
 			# val = checkMask mask val
 			# attr = 'DM'.unions [maybe 'DM'.newMap (\(EUR v) -> valueAttr (JSONString (toString v))) val
                                  ,'DM'.fromList [(PREFIX_ATTRIBUTE,JSONString "&euro;")]
                                  ]
-			= (Ok (uia UIViewString attr),vst)
+			= (Ok (uia UIViewString attr,mask),vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(EUR v) -> toReal v / 100.0) val)
 			# attr = 'DM'.unions ['DM'.fromList [(PREFIX_ATTRIBUTE,JSONString "&euro;")]
                                  ,stdAttributes typeDesc optional mask
                                  ,editAttrs taskId (editorId dp) value 
                                  ]
-			= (Ok (uia UIEditDecimal attr),vst)
+			= (Ok (uia UIEditDecimal attr,mask),vst)
 	updUI dp (EUR old) om (EUR new) nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI nval):stdAttributeChanges typeDesc optional om nm] [])),vst)
@@ -269,19 +272,20 @@ where
 	typeDesc = "amount in USD"
 
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
+		# mask = newFieldMask
 		| disabled	
 			# val = checkMask mask val
 			# attr = 'DM'.unions [maybe 'DM'.newMap (\(USD v) -> valueAttr (JSONString (toString v))) val
                                  ,'DM'.fromList [(PREFIX_ATTRIBUTE,JSONString "$")]
                                  ]
-			= (Ok (uia UIViewString attr),vst)
+			= (Ok (uia UIViewString attr,mask),vst)
 		| otherwise
 			# value = checkMaskValue mask ((\(USD v) -> toReal v / 100.0) val)
 			# attr = 'DM'.unions ['DM'.fromList [(PREFIX_ATTRIBUTE,JSONString "$")]
                                  ,stdAttributes typeDesc optional mask
                                  ,editAttrs taskId (editorId dp) value 
                                  ]
-			= (Ok (uia UIEditDecimal attr),vst)
+			= (Ok (uia UIEditDecimal attr,mask),vst)
 
 	updUI dp (USD old) om (USD new) nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI (toReal new / 100.0))
@@ -337,14 +341,15 @@ where
 	typeDesc = "date (yyyy-mm-dd)"
 
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
+		# mask = newFieldMask
 		| disabled
 			# val = checkMask mask val
 			# attr = maybe 'DM'.newMap (\v -> valueAttr (JSONString (toString v))) val
-			= (Ok (uia UIViewString attr), vst)
+			= (Ok (uia UIViewString attr,mask), vst)
 		| otherwise
 			# value	= checkMaskValue mask val
 			# attr = 'DM'.unions [editAttrs taskId (editorId dp) value, stdAttributes typeDesc optional mask]
-			= (Ok (uia UIEditDate attr), vst)
+			= (Ok (uia UIEditDate attr,mask), vst)
 
 	updUI dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
@@ -426,14 +431,15 @@ where
 	typeDesc = "time (hh:mm:ss)"
 
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
+		# mask = newFieldMask
 		| disabled
 			# val = checkMask mask val
 			# attr = maybe 'DM'.newMap (\v -> valueAttr (JSONString (toString v))) val
-			= (Ok (uia UIViewString attr), vst)
+			= (Ok (uia UIViewString attr,mask), vst)
 		| otherwise
 			# value = checkMaskValue mask val
 			# attr = 'DM'.unions [editAttrs taskId (editorId dp) value, stdAttributes typeDesc optional mask]
-			= (Ok (uia UIEditTime attr), vst)
+			= (Ok (uia UIEditTime attr,mask), vst)
 
 	updUI dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (encodeUI new)
@@ -513,14 +519,15 @@ where
 	typeDesc = "Date/time (yyyy-mm-dd hh:mm:ss)"
 
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
+		# mask = newFieldMask
 		| disabled
 			# val = checkMask mask val
 			# attr = maybe 'DM'.newMap (\v -> valueAttr (JSONString (toString v))) val
-			= (Ok (uia UIViewString attr), vst)
+			= (Ok (uia UIViewString attr,mask), vst)
 		| otherwise
 			# value = checkMaskValue mask val
 			# attr = 'DM'.unions [editAttrs taskId (editorId dp) value, stdAttributes typeDesc optional mask]
-			= (Ok (uia UIEditDateTime attr), vst)
+			= (Ok (uia UIEditDateTime attr,mask), vst)
 
 	updUI dp old om new nm vst=:{VSt|optional,disabled}
 		# nval = if disabled (encodeUI (toString new)) (toJSON new)
@@ -582,15 +589,16 @@ gEditor {|Document|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	typeDesc = "document"
 
-	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
+	genUI dp val update vst=:{VSt|taskId,optional,disabled}
+		# mask = newFieldMask
 		| disabled
 			# value = checkMask mask val
 			# attr = maybe 'DM'.newMap (\v -> valueAttr (toJSON v)) value
-			= (Ok (uia UIViewDocument attr), vst)
+			= (Ok (uia UIViewDocument attr,mask), vst)
 		| otherwise
 			# value = checkMaskValue mask val
 			# attr = 'DM'.unions [editAttrs taskId (editorId dp) value,stdAttributes typeDesc optional mask]
-			= (Ok (uia UIEditDocument attr),vst)
+			= (Ok (uia UIEditDocument attr,mask),vst)
 	updUI dp old om new nm vst=:{VSt|optional}
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
@@ -655,17 +663,18 @@ gText{|Scale|}	_ _                  = [""]
 
 gEditor{|Scale|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
+	genUI dp val upd vst=:{VSt|taskId,optional,disabled}
 		# sliderAttr = 'DM'.unions [minValueAttr val.Scale.min, maxValueAttr val.Scale.max]
+		# mask = newFieldMask
 		| disabled
 			# val = checkMask mask val							
 			# valAttr = maybe 'DM'.newMap (\v -> valueAttr (JSONInt (curVal v))) val
 			# attr = 'DM'.unions [sliderAttr,valAttr,optionalAttr optional]
-			= (Ok (uia UIViewSlider attr),vst)
+			= (Ok (uia UIViewSlider attr,mask),vst)
 		| otherwise
 			# editAttr = editAttrs taskId (editorId dp) (checkMaskValue mask (curVal val))
 			# attr = 'DM'.unions [sliderAttr,editAttr,optionalAttr optional]
-			= (Ok (uia UIEditSlider attr), vst)
+			= (Ok (uia UIEditSlider attr,mask), vst)
 	where
 		curVal {Scale|cur} = cur
 	
@@ -683,7 +692,7 @@ gEditor{|Progress|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp val mask vst=:{VSt|taskId}
 		# attr = 'DM'.unions [textAttr (text val),valueAttr (toJSON (value val))]
-		= (Ok (uia UIViewProgress attr), vst)
+		= (Ok (uia UIViewProgress attr,newFieldMask), vst)
 	where
 		text {Progress|description}	= description
 		
@@ -714,9 +723,9 @@ gText{|HtmlInclude|}	_ _	                            = [""]
 
 gEditor{|HtmlInclude|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit} 
 where
-	genUI dp (HtmlInclude path) mask vst
+	genUI dp (HtmlInclude path) update vst
 		# attr = 'DM'.fromList [("value",JSONString (toString (IframeTag [SrcAttr path] [])))]
-		= (Ok (uia UIViewHtml attr),vst)
+		= (Ok (uia UIViewHtml attr,newFieldMask),vst)
 
 	updUI dp (HtmlInclude old) om (HtmlInclude new) nm vst
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new)] [])),vst)
@@ -730,11 +739,11 @@ gText{|FormButton|}	_ val = [maybe "" (\v -> v.FormButton.label) val]
 
 gEditor{|FormButton|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val mask vst=:{VSt|taskId,disabled}
+	genUI dp val update vst=:{VSt|taskId,disabled}
 		# text = val.FormButton.label
 		# iconCls = val.FormButton.icon
 		# attr = 'DM'.unions [textAttr text,iconClsAttr iconCls,enabledAttr True,editAttrs taskId (editorId dp) (Just (JSONString "pressed"))]
-		= (Ok (uia UIEditButton attr), vst)
+		= (Ok (uia UIEditButton attr,newFieldMask), vst)
 
 	updUI dp {FormButton|state=old} om {FormButton|state=new} nm vst
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new)] [])),vst)
@@ -765,7 +774,7 @@ gEditor{|Table|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
 		# attr = 'DM'.unions [choiceAttrs taskId (editorId dp) (value val) (options val),columnsAttr (columns val)]
-		= (Ok (uia UIGrid attr),vst)
+		= (Ok (uia UIGrid attr,newFieldMask),vst)
 	where
 		value (Table _ _ mbSel)	= maybe [] (\s->[s]) mbSel
 		columns (Table headers _ _)	= headers
@@ -774,8 +783,9 @@ where
 	updUI dp old om new nm vst 
 		| old === new 
 			= (Ok NoChange,vst)
-		# (nviz,vst) = genUI dp new nm vst
-		= (fmap ReplaceUI nviz,vst)
+		= case genUI dp new True vst of
+			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
+			(Error e,vst) = (Error e,vst)
 
 	onEdit = basicEdit (\json (Table headers cells _) -> case fromJSON json of Just i = Just (Table headers cells (Just i)); _ = Just (Table headers cells Nothing))
 
@@ -818,10 +828,11 @@ gEditor{|ComboChoice|} fx gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEd
 where
 	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
 		| disabled
-			= (Ok (uia UIViewString (vvalue val)), vst)
+			= (Ok (uia UIViewString (vvalue val),newFieldMask), vst)
 		| otherwise
+			# mask = newFieldMask
 			# attr = 'DM'.unions [choiceAttrs taskId (editorId dp) (evalue val) (options val),stdAttributes "choice" optional mask]
-			= (Ok (uia UIDropdown attr), vst)
+			= (Ok (uia UIDropdown attr,mask), vst)
 
 	vvalue (ComboChoice options (Just sel))	= valueAttr (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
 	vvalue _								= 'DM'.newMap
@@ -832,8 +843,9 @@ where
 	updUI dp old om new nm vst
 		| options old === options new && evalue old === evalue new
 			= (Ok NoChange,vst)
-		# (nviz,vst) = genUI dp new nm vst
-		= (fmap ReplaceUI nviz,vst)
+		= case genUI dp new True vst of
+			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
+			(Error e,vst) = (Error e,vst)
 
 	onEdit = choiceEdit (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) 
 
@@ -851,13 +863,14 @@ gText{|RadioChoice|} fv _ _ = [""]
 
 gEditor{|RadioChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
+	genUI dp val update vst=:{VSt|taskId,optional,disabled}
 		| disabled
 			# attr = 'DM'.unions [optionalAttr optional,vvalue val]
-			= (Ok (uia UIViewString attr),vst)
+			= (Ok (uia UIViewString attr,newFieldMask),vst)
 		| otherwise
+			# mask = newFieldMask
 			# attr = 'DM'.unions [optionalAttr optional,choiceAttrs taskId (editorId dp) (evalue val) (options val), stdAttributes "choice" optional mask]
-			= (Ok (uia UIRadioGroup attr),vst)
+			= (Ok (uia UIRadioGroup attr,mask),vst)
 
 	vvalue (RadioChoice options (Just sel))	= valueAttr (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
 	vvalue _								= 'DM'.newMap
@@ -869,8 +882,9 @@ where
 	updUI dp old om new nm vst
 		| options old === options new && evalue old === evalue new
 			= (Ok NoChange,vst)
-		# (nviz,vst) = genUI dp new nm vst
-		= (fmap ReplaceUI nviz,vst)
+		= case genUI dp new True vst of
+			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
+			(Error e,vst) = (Error e,vst)
 
 	onEdit = choiceEdit (\idx (RadioChoice options _) -> RadioChoice options (Just idx))
 
@@ -889,10 +903,10 @@ gEditor{|ListChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
 		| disabled
-			= (Ok (uia UIViewString (vvalue val)), vst)
+			= (Ok (uia UIViewString (vvalue val),newFieldMask), vst)
 		| otherwise
 			# attr = choiceAttrs  taskId (editorId dp) (evalue val) (options val)
-			= (Ok (uia UIListChoice attr),vst)
+			= (Ok (uia UIListChoice attr,newFieldMask),vst)
 
 	vvalue (ListChoice options (Just sel))	= valueAttr (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
 	vvalue _								= 'DM'.newMap
@@ -903,8 +917,9 @@ where
 	updUI dp old om new nm vst
 		| options old === options new && evalue old === evalue new
 			= (Ok NoChange,vst)
-		# (nviz,vst) = genUI dp new nm vst
-		= (fmap ReplaceUI nviz,vst)
+		= case genUI dp new True vst of
+			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
+			(Error e,vst) = (Error e,vst)
 
 	onEdit = choiceEdit (\idx (ListChoice options _) -> ListChoice options (Just idx))
 
@@ -924,7 +939,7 @@ gEditor{|TreeChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
 		# attr = choiceAttrs taskId (editorId dp) (value val) (options gx val)
-		= (Ok (uia UITree attr),vst)
+		= (Ok (uia UITree attr,newFieldMask),vst)
 
 	value  (TreeChoice _ mbSel) 	= maybe [] (\s->[s]) mbSel
 	
@@ -949,8 +964,9 @@ where
 	updUI dp old om new nm vst
 		| options gx old === options gx new && value old === value new
 			= (Ok NoChange,vst)
-		# (nviz,vst) = genUI dp new nm vst
-		= (fmap ReplaceUI nviz,vst)
+		= case genUI dp new True vst of
+			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
+			(Error e,vst) = (Error e,vst)
 
 	onEdit dp e (TreeChoice tree sel) mask ust = case fromJSON e of
 		Just ("sel",idx,val)	= (TreeChoice tree (if val (Just idx) Nothing), touch mask, ust)
@@ -973,7 +989,7 @@ gEditor{|GridChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit
 where
 	genUI dp val mask vst=:{VSt|taskId,disabled}
 		# attr = 'DM'.unions [choiceAttrs taskId (editorId dp) (value val) (options val),columnsAttr columns]
-		= (Ok (uia UIGrid attr),vst)
+		= (Ok (uia UIGrid attr,newFieldMask),vst)
 
 	value (GridChoice options mbSel)	= maybe [] (\s->[s]) mbSel
 	options (GridChoice options _)		= [toJSON (gx AsRow (Just opt)) \\ opt <- options]
@@ -982,8 +998,9 @@ where
 	updUI dp old om new nm vst
 		| options old === options new && value old === value new
 			= (Ok NoChange,vst)
-		# (nviz,vst) = genUI dp new nm vst
-		= (fmap ReplaceUI nviz,vst)
+		= case genUI dp new True vst of
+			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
+			(Error e,vst) = (Error e,vst)
 
  	onEdit = choiceEdit (\idxs (GridChoice options _) -> GridChoice options (case idxs of [idx:_] = (Just idx); _ = Nothing))
 
@@ -1021,10 +1038,9 @@ where
 		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.updUI dp old om new nm vst
 	updUI dp (DCGrid old) om (DCGrid new) nm vst
 		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.updUI dp old om new nm vst
-	updUI dp old om new nm vst
-		# (nviz,vst) = genUI dp new nm vst
-		= (fmap ReplaceUI nviz,vst)
-
+	updUI dp old om new nm vst = case genUI dp new True vst of
+		(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
+		(Error e,vst) = (Error e,vst)
 	onEdit dp e (DCCombo val) mask ust 
 		# (val,mask,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
 		= (DCCombo val,mask,ust)
@@ -1074,13 +1090,14 @@ gText{|CheckMultiChoice|} fv _ _ _ = [""]
 
 gEditor{|CheckMultiChoice|} _ gx _ _ _ _ _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
+	genUI dp val ipd vst=:{VSt|taskId,optional,disabled}
 		| disabled
 			# attr = 'DM'.unions [optionalAttr optional,vvalue val]
-			= (Ok (uia UIViewString attr),vst)
+			= (Ok (uia UIViewString attr,newFieldMask),vst)
 		| otherwise
+			# mask = newFieldMask
 			# attr = 'DM'.unions [optionalAttr optional,choiceAttrs taskId (editorId dp) (evalue val) (options val),stdAttributes "choice" optional mask]
-			= (Ok (uia UICheckboxGroup attr),vst)
+			= (Ok (uia UICheckboxGroup attr,mask),vst)
 
 	vvalue (CheckMultiChoice options sel)	= valueAttr (JSONString (join "," ([hd (gx AsSingleLine (Just (fst (options !! i )))) \\ i <- sel])))
 	evalue (CheckMultiChoice _ sel)			= sel
@@ -1089,8 +1106,9 @@ where
 	updUI dp old om new nm vst
 		| options old === options new && evalue old === evalue new
 			= (Ok NoChange,vst)
-		# (nviz,vst) = genUI dp new nm vst
-		= (fmap ReplaceUI nviz,vst)
+		= case genUI dp new True vst of
+			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
+			(Error e,vst) = (Error e,vst)
 
 	onEdit = basicEdit (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = Just (CheckMultiChoice opts (updateSel i v sel)); _ = (Just (CheckMultiChoice opts sel)))
 	where
@@ -1269,7 +1287,7 @@ gText{|Hidden|} _ _ _ = []
 
 gEditor{|Hidden|} fx _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val mask vst = (Ok (ui UIEmpty),vst)
+	genUI dp val upd vst = (Ok (ui UIEmpty,CompoundMask []),vst)
 	updUI dp old om new nm vst = (Ok NoChange,vst)
 	onEdit dp e val mask ust = (val,mask,ust)
 
@@ -1325,8 +1343,10 @@ gText{|Row|} gVizx mode Nothing = gVizx mode Nothing
 
 gEditor{|Row|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit} 
 where
-	genUI dp (Row val) mask vst
- 		= appFst (fmap setHorizontal) (ex.Editor.genUI dp val mask vst)
+	genUI dp (Row val) update vst
+		= case ex.Editor.genUI dp val update vst of
+			(Ok (ui,mask),vst) = (Ok (setHorizontal ui,mask),vst)
+			(Error e,vst)      = (Error e,vst)
 	where	
 		setHorizontal (UI type attr items) = UI type ('DM'.union (directionAttr Horizontal) attr) items
 
@@ -1339,8 +1359,10 @@ gText{|Col|} gVizx mode Nothing = gVizx mode Nothing
 
 gEditor{|Col|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (Col val) mask vst
- 		= appFst (fmap setVertical) (ex.Editor.genUI dp val mask vst)
+	genUI dp (Col val) update vst
+		= case ex.Editor.genUI dp val update vst of
+			(Ok (ui,mask),vst) = (Ok (setVertical ui,mask),vst)
+			(Error e,vst)      = (Error e,vst)
 	where	
 		setVertical (UI type attr items) = UI type ('DM'.union (directionAttr Horizontal) attr) items
 	updUI dp (Col old) om (Col new) nm vst
@@ -1503,7 +1525,7 @@ derive gText	        Icon
 
 gEditor{|Icon|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI _ (Icon icon) mask vst = (Ok (uia UIIcon (iconClsAttr ("icon-"+++icon))), vst)
+	genUI _ (Icon icon) mask vst = (Ok (uia UIIcon (iconClsAttr ("icon-"+++icon)),newFieldMask), vst)
 	updUI _ (Icon old) om (Icon new) nm vst
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "iconCls" (encodeUI ("icon-"+++new))] [])),vst)
 
@@ -1530,7 +1552,7 @@ gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 gDefault{|{}|} _ = undef
 gEditor{|{}|} _ _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI _ _ _ vst = (Ok (ui UIEmpty),vst)
+	genUI _ _ _ vst = (Ok (ui UIEmpty,newCompoundMask),vst)
 	updUI _ _ _ _ _ vst = (Ok NoChange,vst)
 	onEdit _ _ val mask ust = (val,mask,ust)
 

@@ -20,7 +20,7 @@ from Text.JSON import :: JSONNode
 *	Standard editor
 */
 :: Editor a = 
-	{ genUI  :: DataPath a EditMask *VSt -> *(!MaybeErrorString UI,!*VSt)
+	{ genUI  :: DataPath a Bool *VSt -> *(!MaybeErrorString (!UI, !EditMask),!*VSt)
 	, updUI  :: DataPath a EditMask a EditMask *VSt -> *(!MaybeErrorString UIChange, !*VSt)
 	, onEdit :: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)
 	}
@@ -29,8 +29,7 @@ from Text.JSON import :: JSONNode
 *   During editing, values can be in an inconsistent, or even untypable state
 */  
 :: EditMask
-	= InitMask !Bool          
-	| FieldMask !FieldMask 		
+	= FieldMask !FieldMask 		
 	| CompoundMask ![EditMask]
 
 :: FieldMask = 
@@ -45,6 +44,9 @@ from Text.JSON import :: JSONNode
 derive JSONEncode EditMask, FieldMask
 derive JSONDecode EditMask, FieldMask
 derive gEq        EditMask, FieldMask
+
+newFieldMask :: EditMask
+newCompoundMask :: EditMask
 
 subMasks	:: !Int EditMask -> [EditMask]
 toPairMask	:: !Int !EditMask -> EditMask
@@ -82,7 +84,7 @@ basicEditSimple :: !DataPath !JSONNode !a !EditMask !*USt -> *(!a,!EditMask,!*US
 //****************************************************************************//
 :: Editlet a
   =
-  { genUI   :: DataPath a EditMask *VSt -> *(!MaybeErrorString UI, !*VSt)
+  { genUI   :: DataPath a Bool *VSt -> *(!MaybeErrorString (!UI,!EditMask), !*VSt)
   , initUI  :: (JSObj ()) *JSWorld -> *JSWorld
   , updUI   :: DataPath a EditMask a EditMask *VSt -> *(!MaybeErrorString UIChange, !*VSt)
   , onEdit  :: DataPath JSONNode a EditMask *USt -> *(!a, !EditMask, !*USt)

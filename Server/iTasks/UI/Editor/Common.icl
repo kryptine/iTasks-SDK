@@ -7,26 +7,26 @@ import qualified Data.Map as DM
 emptyEditor :: Editor a
 emptyEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI _ _ _ vst			    = (Ok (ui UIEmpty),vst)
+	genUI _ _ _ vst			    = (Ok (ui UIEmpty,newFieldMask),vst)
 	updUI _ _ _ _ _ vst 		= (Ok NoChange,vst)
 	onEdit _ _ val mask ust 	= (val,mask,ust)
 
 listEditor :: (Maybe ([a] -> a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a]
 listEditor add remove reorder count itemEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val mask vst=:{VSt|taskId} = case genChildUIs dp 0 val (subMasks (length val) mask) [] vst of
-		(Ok items,vst)
+	genUI dp val upd vst=:{VSt|taskId} = case genChildUIs dp 0 val [] vst of
+		(Ok (items,masks),vst)
 			//Add list structure editing buttons
 			# items = [listItemControl (length val) idx dx \\ dx <- items & idx <- [0..]]
 			//Add the add button
 			# items = if (add =: Just _) (items ++ [addItemControl val]) items
-			= (Ok (uic UIContainer items), vst)
+			= (Ok (uic UIContainer items,CompoundMask masks), vst)
 		(Error e,vst)  = (Error e,vst)
 	where			
-		genChildUIs dp _ [] [] us vst = (Ok (reverse us), vst)
-		genChildUIs dp i [c:cs] [m:ms] us vst = case itemEditor.Editor.genUI (dp++[i]) c m vst of
-			(Ok u,vst)    = genChildUIs dp (i+1) cs ms [u:us] vst
-			(Error e,vst) = (Error e,vst)
+		genChildUIs dp _ [] us vst = (Ok (unzip (reverse us)), vst)
+		genChildUIs dp i [c:cs] us vst = case itemEditor.Editor.genUI (dp++[i]) c upd vst of
+			(Ok (u,m),vst) = genChildUIs dp (i+1) cs [(u,m):us] vst
+			(Error e,vst)  = (Error e,vst)
 
 		addItemControl val
 			# counter  	= maybe [] (\f -> [uia UIViewString ('DM'.unions [widthAttr FlexSize, valueAttr (JSONString (f val))])]) count
@@ -45,7 +45,9 @@ where
 			# attr = 'DM'.unions [halignAttr AlignRight,heightAttr WrapSize,directionAttr Horizontal]
 			= uiac UIContainer attr (if (reorder || remove) ([item] ++ buttons) [item])
 			
-	updUI dp ov om nv nm vst = appFst (fmap ReplaceUI) (genUI dp nv nm vst)
+	updUI dp ov om nv nm vst = case genUI dp nv True vst of
+		(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
+		(Error e,vst) = (Error e,vst)
 
 	onEdit dp e items listMask ust
 		# childMasks = subMasks (length items) listMask
@@ -59,7 +61,7 @@ where
 				"mdn" = if reorder (swap items (index+1),swap childMasks (index+1)) (items,childMasks)
 				"rem" = if remove  (removeAt index items,removeAt index childMasks)	(items,childMasks)
 				"add" = case add of
-					(Just f) = (insertAt (length items) (f items) items, insertAt (length items) (InitMask True) childMasks)
+					(Just f) = (insertAt (length items) (f items) items, insertAt (length items) (newFieldMask) childMasks)
 					_        = (items,childMasks)
 				_	
 					= (items,childMasks)

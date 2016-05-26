@@ -150,7 +150,7 @@ where
 			Error e		= (ExceptionResult e,iworld)
 			Ok r
 				# v = toView r
-				# (l,v,mask) = (r,v,InitMask True)
+				# (l,v,mask) = (r,v,newFieldMask)
 				= eval event evalOpts (TCInteract2 taskId ts (toJSON l) (toJSON r) mask) iworld
 
 	eval event evalOpts (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr m) iworld=:{current={taskTime}}
@@ -168,7 +168,7 @@ where
 		# rChanged				= nr =!= r
 		# vChanged				= nts =!= ts
 		# vValid				= not (containsInvalidFields nm)
-		# (nl,(nv,nm)) 			= if rChanged (nr,(toView nr,InitMask True)) (l,(nv,nm))
+		# (nl,(nv,nm)) 			= if rChanged (nr,(toView nr,nm)) (l,(nv,nm))
 		//Update visualization v
 		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
 			(Ok change,valid,iworld)
@@ -184,8 +184,7 @@ interactNullEnter desc initFun fromf mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# v = initFun
-		# mask = InitMask False
-		= eval event evalOpts (TCInteract1 taskId ts (toJSON v) mask) iworld
+		= eval event evalOpts (TCInteract1 taskId ts (toJSON v) newFieldMask) iworld
 
 	eval event evalOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encv m) iworld=:{current={taskTime}}
 		//Decode stored values
@@ -215,7 +214,7 @@ where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# v = tof m
 		  l = m
-		  mask = InitMask True
+		  mask = newFieldMask 
 		= eval event evalOpts (TCInteract1 taskId ts (toJSON l) mask) iworld
 
 	eval event evalOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encl m) iworld=:{current={taskTime}}
@@ -242,7 +241,7 @@ where
 		| ok 
 			# nl = fromf l v
 			# nv = tof nl
-			= (l,(nv,InitMask True))	
+			= (l,(nv,newFieldMask))	
 		= (l,(v,m))
 
 interactNullView :: !d (l->v) (Maybe (Editor v)) l -> Task l | toPrompt d & iTask l & iTask v
@@ -251,7 +250,7 @@ where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# l = m
 		  v = Display (tof l)
-		  mask = InitMask True
+		  mask = newFieldMask
 		= eval event evalOpts (TCInteract1 taskId ts (toJSON l) mask) iworld
 
 	eval event evalOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encl m) iworld=:{current={taskTime}}

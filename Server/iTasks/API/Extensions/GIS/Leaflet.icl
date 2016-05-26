@@ -136,7 +136,7 @@ leafletEditlet
 where
 	genUI dp val mask world
 		# attr = sizeAttr (ExactSize 500) (ExactSize 150)
-		= (Ok (uia UIViewHtml attr), world)
+		= (Ok (uia UIViewHtml attr,newFieldMask), world)
 
 	initUI me world
 		# (jsInitDOM,world) = jsWrapFun (initDOM me) world

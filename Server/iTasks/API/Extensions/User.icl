@@ -2,7 +2,7 @@ implementation module iTasks.API.Extensions.User
 import iTasks
 import Text
 import qualified Data.Map as DM
-import iTasks.UI.Definition, iTasks.UI.Editor
+import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
 
 gText{|User|} _ val = [maybe "" toString val]
 
@@ -66,23 +66,7 @@ JSONEncode{|Username|} _ (Username u) = [JSONString u]
 JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
 JSONDecode{|Username|} _ c = (Nothing,c)
 
-gEditor{|Username|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
-where
-	typeDesc = "username"
-
-	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
-		| disabled	
-			# val = checkMask mask val
-			# attr = maybe 'DM'.newMap (\(Username v) -> valueAttr (JSONString v)) val
-			= (Ok (uia UIViewString attr), vst)
-		| otherwise
-			# value = checkMaskValue mask ((\(Username v) -> v) val)
-			# attr = 'DM'.unions [editAttrs taskId (editorId dp) value,stdAttributes typeDesc optional mask]
-			= (Ok (uia UIEditString attr), vst)
-	updUI dp (Username old) om (Username new) nm vst=:{VSt|optional,disabled}
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] [])),vst)
-
-	onEdit dp e val mask ust = basicEdit (\e _ -> fromJSON e) dp e val mask ust
+gEditor{|Username|} = liftEditor (\s -> (Username s)) (\(Username u) -> u) (whenDisabled textView (withHintAttributes "username" textField))
 
 derive gDefault			Username
 derive gEq				Username
@@ -111,14 +95,15 @@ gEditor{|Password|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	typeDesc = "password"
 
-	genUI dp val mask vst=:{VSt|taskId,optional,disabled}
+	genUI dp val upd vst=:{VSt|taskId,optional,disabled}
+		# mask = newFieldMask
 		| disabled	
 			# attr = valueAttr (JSONString "********") 
-			= (Ok (uia UIViewString attr), vst)
+			= (Ok (uia UIViewString attr,mask), vst)
 		| otherwise	
 			# value = checkMaskValue mask ((\(Password v) -> v) val)
 			# attr = 'DM'.unions [editAttrs taskId (editorId dp) value,stdAttributes typeDesc optional mask]
-			= (Ok (uia UIEditPassword attr), vst)
+			= (Ok (uia UIEditPassword attr,mask), vst)
 	updUI dp (Password old) om (Password new) nm vst=:{VSt|optional,disabled}
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] [])),vst)
 

@@ -77,20 +77,20 @@ where
 
     makeRep taskId evalOpts status iworld
 		= case makeView opts status taskId iworld of
-			(Ok content,iworld)
+			(Ok (content,mask),iworld)
 				# prompt			= toPrompt desc
 				# change 			= ReplaceUI (uic UIContainer [prompt,content])
 				= (Ok change, iworld)
 			(Error e,iworld) = (Error e,iworld)
 						
 	makeView [ViewWith viewFun] status taskId iworld
-		= makeEditor (Display (viewFun status),InitMask True) taskId iworld
+		= makeEditor (Display (viewFun status),newFieldMask) taskId iworld
 	makeView _ status taskId iworld
-		= makeEditor (Display (defaultViewFun status),InitMask True) taskId iworld
+		= makeEditor (Display (defaultViewFun status),newFieldMask) taskId iworld
 
 	makeEditor value=:(v,vmask) taskId iworld
 		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
-		# (editUI,vst=:{VSt|iworld}) = gEditor{|*|}.Editor.genUI [] v vmask vst
+		# (editUI,vst=:{VSt|iworld}) = gEditor{|*|}.Editor.genUI [] v True vst
 		= (editUI,iworld)
 
 	//By default show a progress bar 

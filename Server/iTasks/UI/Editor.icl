@@ -13,21 +13,25 @@ derive gEq        EditMask, FieldMask
 emptyEditor :: Editor a
 emptyEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI _ _ _ vst			    = (Ok (ui UIEmpty),vst)
+	genUI _ _ _ vst			    = (Ok (ui UIEmpty,newFieldMask),vst)
 	updUI _ _ _ _ _ vst 		= (Ok NoChange,vst)
 	onEdit _ _ val mask ust 	= (val,mask,ust)
+
+newFieldMask :: EditMask
+newFieldMask = FieldMask {FieldMask|touched=False,valid=True,state=JSONNull}
+
+newCompoundMask :: EditMask
+newCompoundMask = CompoundMask []
 
 subMasks :: !Int EditMask -> [EditMask]
 subMasks n (CompoundMask ms) = ms
 subMasks n m = repeatn n m
 
 isTouched :: !EditMask -> Bool
-isTouched (InitMask update) = update
 isTouched (FieldMask {FieldMask|touched}) = touched
 isTouched (CompoundMask ms) = or (map isTouched ms) 
 
 containsInvalidFields :: !EditMask -> Bool
-containsInvalidFields (InitMask _) = False
 containsInvalidFields (FieldMask {FieldMask|valid}) = not valid
 containsInvalidFields (CompoundMask ms) = or (map containsInvalidFields ms)
 
@@ -58,7 +62,7 @@ stdAttributes typename optional (CompoundMask _) = 'DM'.newMap
 stdAttributes typename optional mask
 	# (touched,valid,state) = case mask of
 		(FieldMask {FieldMask|touched,valid,state}) = (touched,valid,state)
-		(InitMask update) = (update,update,JSONNull)
+		mask = (isTouched mask,True,JSONNull)
 	| not touched || (state =:JSONNull && optional)
 		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INFO)
                         ,(HINT_ATTRIBUTE,JSONString ("Please enter a " +++ typename +++ if optional "" " (this value is required)"))]
@@ -92,22 +96,19 @@ basicEditSimple :: !DataPath !JSONNode !a !EditMask !*USt -> *(!a,!EditMask,!*US
 basicEditSimple target upd val mask iworld = basicEdit (\json _ -> fromJSON json) target upd val mask iworld
 
 fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a
-fromEditlet editlet=:{Editlet| genUI, initUI, updUI, onEdit} = {Editor|genUI=genUI`,updUI=updUI,onEdit=onEdit}
+fromEditlet editlet=:{Editlet|genUI,initUI,updUI,onEdit} = {Editor|genUI=genUI`,updUI=updUI,onEdit=onEdit}
 where
-	genUI` dp currVal mask vst=:{VSt|taskId}
-		= case genUI dp currVal mask vst of
-			(Ok uiDef,vst=:{VSt|iworld}) = case editletLinker initUI iworld of
+	genUI` dp val upd vst=:{VSt|taskId}
+		= case genUI dp val upd vst of
+			(Ok (UI type attr items,mask),vst=:{VSt|iworld}) = case editletLinker initUI iworld of
 				(Ok (saplDeps, saplInit),iworld)
-					# attr = 'DM'.fromList [("taskId",JSONString taskId)
+					# editletAttr = 'DM'.fromList [("taskId",JSONString taskId)
                    		                    ,("editorId",JSONString (editorId dp))
                    		                    ,("saplDeps",JSONString saplDeps)
                        		                ,("saplInit",JSONString saplInit)
                            		            ]
-					= (Ok (eui uiDef attr), {VSt|vst & iworld = iworld})
+					= (Ok (UI type ('DM'.union editletAttr attr) items,mask), {VSt|vst & iworld = iworld})
 				(Error e,iworld)
 					= (Error e, {VSt|vst & iworld = iworld})
 			(Error e,vst) = (Error e,vst)
-	where
-		eui (UI type attr items) editletAttr = UI type (addAll editletAttr attr) items
-		addAll a1 a2 = foldl (\a (k,v) -> 'DM'.put k v a) a2 ('DM'.toList a1)
 

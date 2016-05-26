@@ -21,9 +21,9 @@ controlLightEditlet
       ,onEdit = \_ _ a m ust -> (a,m,ust)
       }
 where
-	genUI dp val mask world
+	genUI dp val upd world
 		# attr = 'DM'.unions [sizeAttr (ExactSize 20) (ExactSize 20),valueAttr (JSONString (toString (svgLight (color val))))]
-		= (Ok (uia UIViewHtml attr), world)
+		= (Ok (uia UIViewHtml attr,newFieldMask), world)
 
     initUI me world 
 		# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) world
