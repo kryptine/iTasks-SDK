@@ -14,10 +14,10 @@ from iTasks.API.Core.SDSs		    import topLevelTasks
 import qualified Data.Map as DM
 from iTasks.API.Core.Tasks import matchAndApplyEvent_ , visualizeView_ 
 
-interactExposed :: !d !(ReadOnlyShared r) (r -> (l,(v,EditMask))) (l r (v,EditMask) Bool Bool Bool -> (l,(v,EditMask)))
+interactExposed :: !p !EditMode !(ReadOnlyShared r) (r -> (l,(v,EditMask))) (l r (v,EditMask) Bool Bool Bool -> (l,(v,EditMask)))
 						(Maybe (Editor v))
-                        -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v
-interactExposed desc shared initFun refreshFun mbEditor = Task eval
+                        -> Task (l,v) | toPrompt p & iTask l & iTask r & iTask v
+interactExposed prompt mode shared initFun refreshFun mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
@@ -31,7 +31,7 @@ where
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -42,7 +42,7 @@ where
 		# vValid				= not (containsInvalidFields nm)
 		# (nl,(nv,nm)) 			= if (rChanged || vChanged) (refreshFun l nr (nv,nm) rChanged vChanged vValid) (l,(nv,nm))
 		//Update visualization v
-		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+		= case visualizeView_ taskId evalOpts mode mbEditor event (v,m) (nv,nm) prompt iworld of
 			(Ok change,valid,iworld) 
 				# value 				= if valid (Value (nl,nv) False) NoValue
 				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
@@ -51,9 +51,9 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-interactLocalExposed :: !d (l,(v,EditMask)) (l (v,EditMask) Bool -> (l,(v,EditMask))) (Maybe (Editor v))
-                        -> Task (l,v) | toPrompt d & iTask l & iTask v
-interactLocalExposed desc initVal refreshFun mbEditor = Task eval
+interactLocalExposed :: !p !EditMode (l,(v,EditMask)) (l (v,EditMask) Bool -> (l,(v,EditMask))) (Maybe (Editor v))
+                        -> Task (l,v) | toPrompt p & iTask l & iTask v
+interactLocalExposed prompt mode initVal refreshFun mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (l,(v,mask))	= initVal
@@ -63,13 +63,13 @@ where
 		//Decode stored values
 		# (l,v)					= (fromJust (fromJSON encl), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
 		# vValid				= not (containsInvalidFields nm)
 		# (nl,(nv,nm)) 			= if vChanged (refreshFun l (nv,nm) vValid) (l,(nv,nm))
 		//Update visualization v
-		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+		= case visualizeView_ taskId evalOpts mode mbEditor event (v,m) (nv,nm) prompt iworld of
 			(Ok change,valid,iworld)
 				# value 				= if valid (Value (nl,nv) False) NoValue
 				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
@@ -78,9 +78,9 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-interactViewOnly :: !d !(ReadOnlyShared r) (r -> (v,EditMask)) (r (v,EditMask) Bool Bool Bool -> (v,EditMask)) (Maybe (Editor v))
-                        -> Task v | toPrompt d & iTask r & iTask v
-interactViewOnly desc shared initFun refreshFun mbEditor = Task eval
+interactViewOnly :: !p !EditMode (ReadOnlyShared r) (r -> (v,EditMask)) (r (v,EditMask) Bool Bool Bool -> (v,EditMask)) (Maybe (Editor v))
+                        -> Task v | toPrompt p & iTask r & iTask v
+interactViewOnly prompt mode shared initFun refreshFun mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
@@ -94,7 +94,7 @@ where
 		//Decode stored values
 		# (r,v)					= (fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -105,7 +105,7 @@ where
 		# vValid				= not (containsInvalidFields nm)
 		# (nv,nm) 				= if (rChanged || vChanged) (refreshFun nr (nv,nm) rChanged vChanged vValid) (nv,nm)
 		//Update visualization v
-		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+		= case visualizeView_ taskId evalOpts mode mbEditor event (v,m) (nv,nm) prompt iworld of
 			(Ok change,valid,iworld)
 				# value 				= if valid (Value nv False) NoValue
 				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
@@ -114,9 +114,9 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-interactLocalViewOnly :: !d (v,EditMask) ((v,EditMask) Bool -> (v,EditMask)) (Maybe (Editor v))
-                        -> Task v | toPrompt d & iTask v
-interactLocalViewOnly desc initVal refreshFun mbEditor = Task eval
+interactLocalViewOnly :: !p !EditMode !(v,EditMask) ((v,EditMask) Bool -> (v,EditMask)) (Maybe (Editor v))
+                        -> Task v | toPrompt p & iTask v
+interactLocalViewOnly prompt mode initVal refreshFun mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (v,mask)	= initVal
@@ -126,13 +126,13 @@ where
 		//Decode stored values
 		# v						= fromJust (fromJSON encv)
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
 		# vValid				= not (containsInvalidFields nm)
 		# (nv,nm) 				= if vChanged (refreshFun (nv,nm) vValid) (nv,nm)
 		//Update visualization v
-		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+		= case visualizeView_ taskId evalOpts mode mbEditor event (v,m) (nv,nm) prompt iworld of
 		 	(Ok change,valid,iworld) 
 				# value 				= if valid (Value nv False) NoValue
 				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
@@ -141,8 +141,8 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-interactSharedInformation :: !d !(ReadOnlyShared r) (r -> v) (Maybe (Editor v)) -> Task r | toPrompt d & iTask r & iTask v
-interactSharedInformation desc shared toView mbEditor = Task eval
+interactSharedInformation :: !p !EditMode !(ReadOnlyShared r) (r -> v) (Maybe (Editor v)) -> Task r | toPrompt p & iTask r & iTask v
+interactSharedInformation prompt mode shared toView mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
@@ -159,7 +159,7 @@ where
 		  r = fromJust (fromJSON encr)
 		  v = toView r
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -170,7 +170,7 @@ where
 		# vValid				= not (containsInvalidFields nm)
 		# (nl,(nv,nm)) 			= if rChanged (nr,(toView nr,nm)) (l,(nv,nm))
 		//Update visualization v
-		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+		= case visualizeView_ taskId evalOpts mode mbEditor event (v,m) (nv,nm) prompt iworld of
 			(Ok change,valid,iworld)
 				# value 				= if valid (Value nl False) NoValue
 				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
@@ -179,8 +179,8 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-interactNullEnter :: !d !v (v->l) (Maybe (Editor v)) -> Task l | toPrompt d & iTask v & iTask l
-interactNullEnter desc initFun fromf mbEditor = Task eval
+interactNullEnter :: !p !v (v->l) (Maybe (Editor v)) -> Task l | toPrompt p & iTask v & iTask l
+interactNullEnter prompt initFun fromf mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# v = initFun
@@ -191,13 +191,13 @@ where
 		# v = fromJust (fromJSON encv)
 		  l = fromf v
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
 		# vValid				= not (containsInvalidFields nm)
 		# (nl,(nv,nm)) 			= if vChanged (refreshFun l (nv,nm) vValid) (l,(nv,nm))
 		//Update visualization v
-		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+		= case visualizeView_ taskId evalOpts Enter mbEditor event (v,m) (nv,nm) prompt iworld of
 			(Ok change,valid,iworld)
 				# value 				= if valid (Value nl False) NoValue
 				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
@@ -208,8 +208,8 @@ where
 
 	refreshFun l (v,m) valid = if valid (fromf v,(v,m)) (l,(v,m))
 
-interactNullUpdate :: !d !(l -> v) (l v -> l) (Maybe (Editor v)) l -> Task l | toPrompt d & iTask l & iTask v
-interactNullUpdate desc tof fromf mbEditor m = Task eval
+interactNullUpdate :: !p !(l -> v) (l v -> l) (Maybe (Editor v)) l -> Task l | toPrompt p & iTask l & iTask v
+interactNullUpdate prompt tof fromf mbEditor m = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# v = tof m
@@ -222,13 +222,13 @@ where
 		# l	= fromJust (fromJSON encl)
 		  v = tof l
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
 		# vValid				= not (containsInvalidFields nm)
 		# (nl,(nv,nm)) 			= if vChanged (refreshFun l (nv,nm) vValid) (l,(nv,nm))
 		//Update visualization v
-		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+		= case visualizeView_ taskId evalOpts Update mbEditor event (v,m) (nv,nm) prompt iworld of
 			(Ok change,valid,iworld)
 				# value 				= if valid (Value nl False) NoValue
 				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
@@ -244,8 +244,8 @@ where
 			= (l,(nv,newFieldMask))	
 		= (l,(v,m))
 
-interactNullView :: !d (l->v) (Maybe (Editor v)) l -> Task l | toPrompt d & iTask l & iTask v
-interactNullView desc tof mbEditor m = Task eval
+interactNullView :: !p (l->v) (Maybe (Editor v)) l -> Task l | toPrompt p & iTask l & iTask v
+interactNullView prompt tof mbEditor m = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# l = m
@@ -258,10 +258,10 @@ where
 		# l	= fromJust (fromJSON encl)
 		  v = tof l
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
 		# nl = l
 		//Update visualization v
-		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+		= case visualizeView_ taskId evalOpts View mbEditor event (v,m) (nv,nm) prompt iworld of
 			(Ok change,valid,iworld)
 				# value 				= if valid (Value nl False) NoValue
 				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}

@@ -70,11 +70,11 @@ where
 	rep ResetEvent  = ReplaceUI (ui UIEmpty) 
 	rep _ 			= NoChange
 
-interact :: !d !(ReadOnlyShared r)
+interact :: !p !EditMode !(ReadOnlyShared r)
 				(r -> (l,Masked v))
 				(l r (Masked v) Bool Bool Bool -> (l,(Masked v)))
-				(Maybe (Editor v)) -> Task l | toPrompt d & iTask l & iTask r & iTask v
-interact desc shared initFun refreshFun mbEditor = Task eval
+				(Maybe (Editor v)) -> Task l | toPrompt p & iTask l & iTask r & iTask v
+interact prompt mode shared initFun refreshFun mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
@@ -88,7 +88,7 @@ where
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts desc iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -99,7 +99,7 @@ where
 		# vValid				= not (containsInvalidFields nm)
 		# (nl,(nv,nm)) 			= if (rChanged || vChanged) (refreshFun l nr (nv,nm) rChanged vChanged vValid) (l,(nv,nm))
 		//Update visualization v
-		= case visualizeView_ taskId evalOpts mbEditor event (v,m) (nv,nm) desc iworld of
+		= case visualizeView_ taskId evalOpts mode mbEditor event (v,m) (nv,nm) prompt iworld of
 			(Ok change,valid,iworld)
 				# value 				= if valid (Value nl False) NoValue
 				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
@@ -109,12 +109,12 @@ where
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 matchAndApplyEvent_ :: Event TaskId TaskEvalOpts (Maybe (Editor v)) TaskTime (Masked v) TaskTime d *IWorld -> *(!Masked v,!TaskTime,!*IWorld) | iTask v & toPrompt d
-matchAndApplyEvent_ (EditEvent taskId name value) matchId evalOpts mbEditor taskTime (v,m) ts desc iworld
+matchAndApplyEvent_ (EditEvent taskId name value) matchId evalOpts mbEditor taskTime (v,m) ts prompt iworld
 	| taskId == matchId
 		# ((nv,nm),iworld) = updateValueAndMask_ taskId (s2dp name) mbEditor value (v,m) iworld
 		= ((nv,nm),taskTime,iworld)
 	| otherwise	= ((v,m),ts,iworld)
-matchAndApplyEvent_ _ matchId evalOpts mbEditor taskTime (v,m) ts desc iworld
+matchAndApplyEvent_ _ matchId evalOpts mbEditor taskTime (v,m) ts prompt iworld
 	= ((v,m),ts,iworld)
 
 updateValueAndMask_ :: TaskId DataPath (Maybe (Editor v)) JSONNode (Masked v) *IWorld -> *(!Masked v,*IWorld) | iTask v
@@ -123,16 +123,16 @@ updateValueAndMask_ taskId path mbEditor diff (v,m) iworld
     # (nv,nm,vst=:{VSt|iworld}) = editor.Editor.onEdit path diff v m {VSt|selectedConsIndex= -1, taskId=toString taskId, mode = Enter, optional=False,disabled=False,iworld=iworld}
     = ((nv,nm),iworld)
 
-visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld -> *(!MaybeErrorString UIChange,!Bool,!*IWorld) | iTask v & toPrompt d
-visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworld
+visualizeView_ :: TaskId TaskEvalOpts EditMode (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld -> *(!MaybeErrorString UIChange,!Bool,!*IWorld) | iTask v & toPrompt d
+visualizeView_ taskId evalOpts mode mbEditor event old=:(v,m) new=:(nv,nm) prompt iworld
 	# editor 	= fromMaybe gEditor{|*|} mbEditor
 	# valid     = not (containsInvalidFields nm)
-	# vst = {VSt| selectedConsIndex = -1, mode = Enter, optional = False, disabled = False,  taskId = toString taskId, iworld = iworld}
+	# vst = {VSt| selectedConsIndex = -1, mode = mode, optional = False, disabled = False,  taskId = toString taskId, iworld = iworld}
 	# (change,vst=:{VSt|iworld}) = case event of
 		ResetEvent		//(re)generate the initial UI
 			= case editor.Editor.genUI [] nv vst of
 				(Ok (editUI,nm),vst)
-					# promptUI  	= toPrompt desc
+					# promptUI  	= toPrompt prompt
 					# change 		= ReplaceUI (uic UIInteract [promptUI,editUI])
 					= (Ok change,vst)
 		_				//compare old and new value to determine changes

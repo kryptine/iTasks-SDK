@@ -92,6 +92,7 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 * An interaction tasks works on a local state and has read-only access to shared data.
 *
 * @param Description: A description of the task to display to the user
+* @param Edit mode: The type of interaction: viewing, entering or updating information
 * @param ReadOnlyShared: A reference to shared data the task has access to
 * @param Initialization function: Computes the initial local state and view
 * @param Refresh function: Recomputes the local state and view when either the view is edited or the shared data changes.
@@ -101,7 +102,7 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 *
 * @gin False
 */
-interact :: !d !(ReadOnlyShared r)
+interact :: !d !EditMode !(ReadOnlyShared r)
 				(r -> (l,Masked v))
 				(l r (Masked v) Bool Bool Bool -> (l,(Masked v)))
 				(Maybe (Editor v)) -> Task l | toPrompt d & iTask l & iTask r & iTask v
@@ -180,5 +181,5 @@ shutDown :: Task ()
 //INTERNAL FUNCTIONS EXPORTED FOR USE IN OPTIMIZED VERSIONS OF interact,
 matchAndApplyEvent_ :: Event TaskId TaskEvalOpts (Maybe (Editor v)) TaskTime (Masked v) TaskTime d *IWorld
 	-> *(!Masked v,!TaskTime,!*IWorld) | iTask v & toPrompt d
-visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld
+visualizeView_ :: TaskId TaskEvalOpts EditMode (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld
 	-> *(!MaybeErrorString UIChange,!Bool,!*IWorld) | iTask v & toPrompt  d
