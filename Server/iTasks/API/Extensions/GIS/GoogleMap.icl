@@ -65,7 +65,7 @@ googleMapEditlet
       , onEdit = onEdit
       }
 where
-	genUI dp val upd world
+	genUI dp val world
 		# attr = 'DM'.unions [sizeAttr (ExactSize 500) (ExactSize 200), valueAttr (toJSON val)]
 		= (Ok (uia UIComponent attr,newFieldMask),world)
 

@@ -7,8 +7,8 @@ import qualified Data.Map as DM
 withHintAttributes :: String (Editor a) -> Editor a
 withHintAttributes typeDesc editor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val upd vst=:{VSt|taskId,optional}
-		= case editor.Editor.genUI dp val upd vst of
+	genUI dp val vst=:{VSt|taskId,optional}
+		= case editor.Editor.genUI dp val vst of
 			(Ok (UI type attr items,mask),vst) 
 				//Add hint attributes
 				# attr = 'DM'.union (stdAttributes typeDesc optional mask) attr
@@ -27,9 +27,9 @@ where
 whenDisabled :: (Editor a) (Editor a) -> Editor a
 whenDisabled disabledEditor enabledEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val mask vst=:{VSt|taskId,disabled}
-		| disabled = disabledEditor.Editor.genUI dp val mask vst
-                   = enabledEditor.Editor.genUI dp val mask vst
+	genUI dp val vst=:{VSt|taskId,disabled}
+		| disabled = disabledEditor.Editor.genUI dp val vst
+                   = enabledEditor.Editor.genUI dp val vst
 
 	updUI dp ov om nv nm vst=:{VSt|optional,disabled}
 		| disabled = disabledEditor.Editor.updUI dp ov om nv nm vst
@@ -41,7 +41,7 @@ where
 liftEditor :: (b -> a) (a -> b) (Editor a) -> Editor b
 liftEditor tof fromf editor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val upd vst = editor.Editor.genUI dp (tof val) upd vst
+	genUI dp val vst = editor.Editor.genUI dp (tof val) vst
 	updUI dp ov om nv nm vst = editor.Editor.updUI dp (tof ov) om (tof nv) nm vst
 	onEdit dp e val mask ust
 		# (val,mask,ust) = editor.Editor.onEdit dp e (tof val) mask ust 
@@ -50,7 +50,7 @@ where
 liftEditorAsymmetric :: (b -> a) (a -> MaybeErrorString b) (Editor a) -> Editor b
 liftEditorAsymmetric tof fromf editor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val upd vst = editor.Editor.genUI dp (tof val) upd vst
+	genUI dp val vst = editor.Editor.genUI dp (tof val) vst
 	updUI dp ov om nv nm vst = editor.Editor.updUI dp (tof ov) om (tof nv) nm vst
 
 	onEdit dp e old mask ust
@@ -62,7 +62,7 @@ where
 constEditor :: a (Editor a) -> (Editor a)
 constEditor val editor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp _ upd vst = editor.Editor.genUI dp val upd vst
+	genUI dp _ vst = editor.Editor.genUI dp val vst
 	updUI dp _ _ _ _ vst = (Ok NoChange,vst)
 	onEdit dp _ val mask ust = (val,mask,ust)
 

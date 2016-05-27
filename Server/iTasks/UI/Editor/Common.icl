@@ -8,14 +8,14 @@ import qualified Data.Map as DM
 emptyEditor :: Editor a
 emptyEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI _ _ _ vst			    = (Ok (ui UIEmpty,newFieldMask),vst)
+	genUI _ _ vst			    = (Ok (ui UIEmpty,newFieldMask),vst)
 	updUI _ _ _ _ _ vst 		= (Ok NoChange,vst)
 	onEdit _ _ val mask ust 	= (val,mask,ust)
 
 listEditor :: (Maybe ([a] -> a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a]
 listEditor add remove reorder count itemEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val upd vst=:{VSt|taskId} = case genChildUIs dp 0 val [] vst of
+	genUI dp val vst=:{VSt|taskId} = case genChildUIs dp 0 val [] vst of
 		(Ok (items,masks),vst)
 			//Add list structure editing buttons
 			# items = [listItemControl (length val) idx dx \\ dx <- items & idx <- [0..]]
@@ -25,7 +25,7 @@ where
 		(Error e,vst)  = (Error e,vst)
 	where			
 		genChildUIs dp _ [] us vst = (Ok (unzip (reverse us)), vst)
-		genChildUIs dp i [c:cs] us vst = case itemEditor.Editor.genUI (dp++[i]) c upd vst of
+		genChildUIs dp i [c:cs] us vst = case itemEditor.Editor.genUI (dp++[i]) c vst of
 			(Ok (u,m),vst) = genChildUIs dp (i+1) cs [(u,m):us] vst
 			(Error e,vst)  = (Error e,vst)
 
@@ -46,7 +46,7 @@ where
 			# attr = 'DM'.unions [halignAttr AlignRight,heightAttr WrapSize,directionAttr Horizontal]
 			= uiac UIContainer attr (if (reorder || remove) ([item] ++ buttons) [item])
 			
-	updUI dp ov om nv nm vst = case genUI dp nv True vst of
+	updUI dp ov om nv nm vst = case genUI dp nv vst of
 		(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
 		(Error e,vst) = (Error e,vst)
 

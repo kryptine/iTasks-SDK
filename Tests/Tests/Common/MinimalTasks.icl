@@ -17,7 +17,7 @@ where
               , onEdit = \_ _ n msk ust -> (n,msk,ust)
 			  }
 
-	genUI dp val mask world
+	genUI dp val world
 		= (Ok (uia UIViewHtml ('DM'.unions [sizeAttr WrapSize WrapSize, valueAttr (JSONString (toString (html "DEPRECATED")))]),newFieldMask), world)
 	html cid = ButtonTag [IdAttr (cid +++ "-button")] [Text "Click me"]
 

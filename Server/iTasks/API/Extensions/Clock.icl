@@ -25,7 +25,7 @@ analogClockEditlet
       ,onEdit   = onEdit 
       }
 where
-	genUI dp (AnalogClock {Time|hour,min,sec}) mask world
+	genUI dp (AnalogClock {Time|hour,min,sec}) world
 		# attr = 'DM'.unions [sizeAttr (ExactSize 100) (ExactSize 100),valueAttr (JSONString (toString (svgClock hour min sec)))]
 		= (Ok (uia UIViewHtml attr,newFieldMask), world)
 	where

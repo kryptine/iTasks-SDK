@@ -134,7 +134,7 @@ leafletEditlet
     , onEdit  = onEdit
     }
 where
-	genUI dp val mask world
+	genUI dp val world
 		# attr = sizeAttr (ExactSize 500) (ExactSize 150)
 		= (Ok (uia UIViewHtml attr,newFieldMask), world)
 

@@ -19,8 +19,8 @@ gEditor{|UNIT|} = emptyEditor
 
 gEditor{|RECORD of {grd_arity}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (RECORD x) upd vst=:{VSt|optional,disabled,taskId}
-		= case ex.Editor.genUI (pairPath grd_arity dp) x upd {VSt|vst & optional = False} of
+	genUI dp (RECORD x) vst=:{VSt|optional,disabled,taskId}
+		= case ex.Editor.genUI (pairPath grd_arity dp) x {VSt|vst & optional = False} of
 			(Ok (viz,mask),vst) 
 				# viz = flattenPairUI grd_arity viz
 				# mask = flattenPairMask grd_arity mask
@@ -54,8 +54,8 @@ where
 
 gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (FIELD x) upd vst=:{VSt|disabled}
-		= case ex.Editor.genUI dp x upd vst of
+	genUI dp (FIELD x) vst=:{VSt|disabled}
+		= case ex.Editor.genUI dp x vst of
 			(Ok (UI type attr items,mask),vst)
 				= (Ok (UI type (addLabel gfd_name attr) items,mask),vst) //Add the field name as a label
 			(Error e,vst) = (Error e,vst)
@@ -68,12 +68,12 @@ where
 
 gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (OBJECT x) upd vst=:{selectedConsIndex = curSelectedConsIndex,disabled,taskId}
+	genUI dp (OBJECT x) vst=:{selectedConsIndex = curSelectedConsIndex,disabled,taskId}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
 	| gtd_num_conses > 1 && not disabled
-		= case ex.Editor.genUI dp x upd {VSt|vst & optional=False} of
+		= case ex.Editor.genUI dp x {VSt|vst & optional=False} of
 			(Ok (items,mask), vst=:{selectedConsIndex}) 
         		# choice = case mask of
 					(FieldMask {FieldMask|state=JSONNull}) = []
@@ -86,7 +86,7 @@ where
 			(Error e,vst) = (Error e,vst)
 	//ADT with one constructor or static render: 'DM'.put content into container, if empty show cons name
 	| otherwise
-		= case ex.Editor.genUI dp x upd vst of
+		= case ex.Editor.genUI dp x vst of
 			(Ok (UI UIEmpty _ _,mask),vst)
 				= (Ok (stringDisplay (if (isTouched mask) (gtd_conses !! vst.selectedConsIndex).gcd_name ""),mask),{vst & selectedConsIndex = curSelectedConsIndex})
 			(Ok viz, vst)
@@ -138,8 +138,8 @@ where
 
 gEditor{|EITHER|} ex _ dx _ _ ey _ dy _ _  = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (LEFT x) mask vst = ex.Editor.genUI dp x mask vst
-	genUI dp (RIGHT y) mask vst =  ey.Editor.genUI dp y mask vst	
+	genUI dp (LEFT x) vst = ex.Editor.genUI dp x vst
+	genUI dp (RIGHT y) vst =  ey.Editor.genUI dp y vst	
 
 	updUI dp (LEFT old) om (LEFT new) nm vst = ex.Editor.updUI dp old om new nm vst
 	updUI dp (RIGHT old) om (RIGHT new) nm vst = ey.Editor.updUI dp old om new nm vst
@@ -147,12 +147,12 @@ where
 	//A different constructor is selected -> generate a new UI
 	//We use a negative selConsIndex to encode that the constructor was changed
 	updUI dp (LEFT old) om (RIGHT new) nm vst 
-		= case ey.Editor.genUI dp new False vst of
+		= case ey.Editor.genUI dp new vst of
 			(Ok (ui,mask),vst=:{selectedConsIndex}) = (Ok (ReplaceUI ui), {vst & selectedConsIndex = -1 - selectedConsIndex})
 			(Error e,vst=:{selectedConsIndex}) = (Error e,{vst & selectedConsIndex = -1 - selectedConsIndex})
 
 	updUI dp (RIGHT old) om (LEFT new) nm vst 
-		= case ex.Editor.genUI dp new False vst of
+		= case ex.Editor.genUI dp new vst of
 			(Ok (ui,mask),vst=:{selectedConsIndex}) = (Ok (ReplaceUI ui), {vst & selectedConsIndex = -1 - selectedConsIndex})
 			(Error e,vst=:{selectedConsIndex}) = (Error e,{vst & selectedConsIndex = -1 - selectedConsIndex})
 
@@ -178,8 +178,8 @@ where
 
 gEditor{|CONS of {gcd_index,gcd_arity}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (CONS x) upd vst=:{VSt|taskId,optional,disabled}
-		= case ex.Editor.genUI (pairPath gcd_arity dp) x upd vst of
+	genUI dp (CONS x) vst=:{VSt|taskId,optional,disabled}
+		= case ex.Editor.genUI (pairPath gcd_arity dp) x vst of
 			(Ok (ui,mask),vst) = (Ok (flattenPairUI gcd_arity ui,flattenPairMask gcd_arity mask), {VSt| vst & selectedConsIndex = gcd_index})
 			(Error e,vst) = (Error e,{VSt| vst & selectedConsIndex = gcd_index})
 
@@ -200,12 +200,12 @@ where
 
 gEditor{|PAIR|} ex _ _ _ _ ey _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (PAIR x y) update vst
+	genUI dp (PAIR x y) vst
 		# (dpx,dpy)		= pairPathSplit dp
-		# (vizx, vst)	= ex.Editor.genUI dpx x update vst
+		# (vizx, vst)	= ex.Editor.genUI dpx x vst
 		| vizx =: (Error _)
 			= (vizx,vst)
-		# (vizy, vst)	= ey.Editor.genUI dpy y update vst
+		# (vizy, vst)	= ey.Editor.genUI dpy y vst
 		| vizy =: (Error _)
 			= (vizy,vst)
 		# ((vizx,maskx),(vizy,masky)) = (fromOk vizx,fromOk vizy)
@@ -237,13 +237,12 @@ where
 	onEdit _ _ val mask ust = (val,mask,ust)
 
 //The maybe editor makes it content optional
-import StdMisc
 gEditor{|Maybe|} ex _ dx _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val upd vst=:{VSt|optional,disabled}
+	genUI dp val vst=:{VSt|optional,disabled}
 		# (viz,vst) = case val of
-			(Just x)	= ex.Editor.genUI dp x upd {VSt|vst & optional = True}
-			_			= ex.Editor.genUI dp dx False {VSt|vst & optional = True}
+			(Just x)	= ex.Editor.genUI dp x {VSt|vst & optional = True}
+			_			= ex.Editor.genUI dp dx {VSt|vst & optional = True}
 		= case viz of
 			(Ok (UI type attr items, mask)) = (Ok (UI type ('DM'.union (optionalAttr True) attr) items,mask), {VSt|vst & optional = optional})
 			(Error e) = (Error e, {VSt|vst & optional = optional})

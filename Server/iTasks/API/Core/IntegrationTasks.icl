@@ -89,8 +89,8 @@ where
 		= makeEditor (Display (defaultViewFun status),newFieldMask) taskId iworld
 
 	makeEditor value=:(v,vmask) taskId iworld
-		# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
-		# (editUI,vst=:{VSt|iworld}) = gEditor{|*|}.Editor.genUI [] v True vst
+		# vst = {VSt| selectedConsIndex = -1, mode = View, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
+		# (editUI,vst=:{VSt|iworld}) = gEditor{|*|}.Editor.genUI [] v vst
 		= (editUI,iworld)
 
 	//By default show a progress bar 

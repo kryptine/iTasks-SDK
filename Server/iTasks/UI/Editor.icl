@@ -15,7 +15,7 @@ derive gEq        EditMask, FieldMask
 emptyEditor :: Editor a
 emptyEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI _ _ _ vst			    = (Ok (ui UIEmpty,newFieldMask),vst)
+	genUI _ _ vst			    = (Ok (ui UIEmpty,newFieldMask),vst)
 	updUI _ _ _ _ _ vst 		= (Ok NoChange,vst)
 	onEdit _ _ val mask ust 	= (val,mask,ust)
 
@@ -108,8 +108,8 @@ basicEditSimple target upd val mask iworld = basicEdit (\json _ -> fromJSON json
 fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a
 fromEditlet editlet=:{Editlet|genUI,initUI,updUI,onEdit} = {Editor|genUI=genUI`,updUI=updUI,onEdit=onEdit}
 where
-	genUI` dp val upd vst=:{VSt|taskId}
-		= case genUI dp val upd vst of
+	genUI` dp val vst=:{VSt|taskId}
+		= case genUI dp val vst of
 			(Ok (UI type attr items,mask),vst=:{VSt|iworld}) = case editletLinker initUI iworld of
 				(Ok (saplDeps, saplInit),iworld)
 					# editletAttr = 'DM'.fromList [("taskId",JSONString taskId)

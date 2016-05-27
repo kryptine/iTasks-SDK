@@ -44,9 +44,9 @@ icon = simpleComponent toJSON UIIcon
 //Simple components for which simply knowing the UI type is sufficient
 simpleComponent toValue type = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where 
-	genUI dp val upd vst=:{VSt|taskId,optional}
+	genUI dp val vst=:{VSt|taskId,mode,optional}
 		# mask = newFieldMask
-		# val = if upd (toValue val) JSONNull
+		# val = if (mode =: Enter) JSONNull (toValue val) 
 		# attr = 'DM'.unions [optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr val]
 		= (Ok (uia type attr,mask),vst)
 

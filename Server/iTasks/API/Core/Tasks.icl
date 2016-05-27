@@ -120,17 +120,17 @@ matchAndApplyEvent_ _ matchId evalOpts mbEditor taskTime (v,m) ts desc iworld
 updateValueAndMask_ :: TaskId DataPath (Maybe (Editor v)) JSONNode (Masked v) *IWorld -> *(!Masked v,*IWorld) | iTask v
 updateValueAndMask_ taskId path mbEditor diff (v,m) iworld
 	# editor = fromMaybe gEditor{|*|} mbEditor
-    # (nv,nm,vst=:{VSt|iworld}) = editor.Editor.onEdit path diff v m {VSt|selectedConsIndex= -1, taskId=toString taskId,optional=False,disabled=False,iworld=iworld}
+    # (nv,nm,vst=:{VSt|iworld}) = editor.Editor.onEdit path diff v m {VSt|selectedConsIndex= -1, taskId=toString taskId, mode = Enter, optional=False,disabled=False,iworld=iworld}
     = ((nv,nm),iworld)
 
 visualizeView_ :: TaskId TaskEvalOpts (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld -> *(!MaybeErrorString UIChange,!Bool,!*IWorld) | iTask v & toPrompt d
 visualizeView_ taskId evalOpts mbEditor event old=:(v,m) new=:(nv,nm) desc iworld
 	# editor 	= fromMaybe gEditor{|*|} mbEditor
 	# valid     = not (containsInvalidFields nm)
-	# vst = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
+	# vst = {VSt| selectedConsIndex = -1, mode = Enter, optional = False, disabled = False,  taskId = toString taskId, iworld = iworld}
 	# (change,vst=:{VSt|iworld}) = case event of
 		ResetEvent		//(re)generate the initial UI
-			= case editor.Editor.genUI [] nv True vst of
+			= case editor.Editor.genUI [] nv vst of
 				(Ok (editUI,nm),vst)
 					# promptUI  	= toPrompt desc
 					# change 		= ReplaceUI (uic UIInteract [promptUI,editUI])

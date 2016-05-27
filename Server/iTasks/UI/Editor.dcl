@@ -17,16 +17,18 @@ from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from GenEq import generic gEq
 
 /*
-*	Standard editor
+*	Definition of an editor editor
 */
 :: Editor a = 
-	{ genUI  :: DataPath a Bool *VSt -> *(!MaybeErrorString (!UI, !EditMask),!*VSt)
+	{ genUI  :: DataPath a *VSt                     -> *(!MaybeErrorString (!UI, !EditMask),!*VSt)
 	, updUI  :: DataPath a EditMask a EditMask *VSt -> *(!MaybeErrorString UIChange, !*VSt)
-	, onEdit :: DataPath JSONNode a EditMask *VSt -> *(!a, !EditMask, !*VSt)
+	, onEdit :: DataPath JSONNode a EditMask *VSt   -> *(!a, !EditMask, !*VSt)
 	}
 
 //* Datapaths identify sub structures in a composite structure
 :: DataPath :== [Int]
+
+:: EditMode = Enter | Update | View
 
 /** Edit masks contain information about a value as it is being edited in an interactive task.
 *   During editing, values can be in an inconsistent, or even untypable state
@@ -45,7 +47,8 @@ from GenEq import generic gEq
 :: Masked a :== (a,EditMask)
 
 :: *VSt =
-	{ selectedConsIndex	:: !Int              // Index of the selected constructor in an Object
+	{ selectedConsIndex	:: !Int              // Index of the selected constructor in an OBJECT
+	, mode              :: !EditMode         // If we are entering, updating or viewing the data
 	, optional			:: !Bool             // Create optional form fields
 	, disabled			:: !Bool             // If true the editor is not editable
 	, taskId			:: !String           // The id of the task the visualisation belongs to
@@ -85,7 +88,7 @@ basicEditSimple :: !DataPath !JSONNode !a !EditMask !*VSt -> *(!a,!EditMask,!*VS
 //****************************************************************************//
 :: Editlet a
   =
-  { genUI   :: DataPath a Bool *VSt -> *(!MaybeErrorString (!UI,!EditMask), !*VSt)
+  { genUI   :: DataPath a *VSt -> *(!MaybeErrorString (!UI,!EditMask), !*VSt)
   , initUI  :: (JSObj ()) *JSWorld -> *JSWorld
   , updUI   :: DataPath a EditMask a EditMask *VSt -> *(!MaybeErrorString UIChange, !*VSt)
   , onEdit  :: DataPath JSONNode a EditMask *VSt -> *(!a, !EditMask, !*VSt)
