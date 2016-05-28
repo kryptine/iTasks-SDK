@@ -44,8 +44,8 @@ where
 	genUI dp val vst = editor.Editor.genUI dp (tof val) vst
 	updUI dp ov om nv nm vst = editor.Editor.updUI dp (tof ov) om (tof nv) nm vst
 	onEdit dp e val mask ust
-		# (val,mask,ust) = editor.Editor.onEdit dp e (tof val) mask ust 
-		= (fromf val,mask,ust)
+		# (mask,val,ust) = editor.Editor.onEdit dp e (tof val) mask ust 
+		= (mask,fromf val,ust)
 
 liftEditorAsymmetric :: (b -> a) (a -> MaybeErrorString b) (Editor a) -> Editor b
 liftEditorAsymmetric tof fromf editor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
@@ -54,15 +54,15 @@ where
 	updUI dp ov om nv nm vst = editor.Editor.updUI dp (tof ov) om (tof nv) nm vst
 
 	onEdit dp e old mask ust
-		# (val,mask,ust) = editor.Editor.onEdit dp e (tof old) mask ust 
+		# (mask,val,ust) = editor.Editor.onEdit dp e (tof old) mask ust 
 		= case fromf val of
-			(Ok new)  = (new,mask,ust)
-			(Error e) = (old,mask,ust)
+			(Ok new)  = (mask,new,ust)
+			(Error e) = (mask,old,ust)
 
 constEditor :: a (Editor a) -> (Editor a)
 constEditor val editor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp _ vst = editor.Editor.genUI dp val vst
 	updUI dp _ _ _ _ vst = (Ok NoChange,vst)
-	onEdit dp _ val mask ust = (val,mask,ust)
+	onEdit dp _ val mask ust = (Ok mask,val,ust)
 

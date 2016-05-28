@@ -12,13 +12,6 @@ derive JSONEncode EditMask, FieldMask
 derive JSONDecode EditMask, FieldMask
 derive gEq        EditMask, FieldMask
 
-emptyEditor :: Editor a
-emptyEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
-where
-	genUI _ _ vst			    = (Ok (ui UIEmpty,newFieldMask),vst)
-	updUI _ _ _ _ _ vst 		= (Ok NoChange,vst)
-	onEdit _ _ val mask ust 	= (val,mask,ust)
-
 newFieldMask :: EditMask
 newFieldMask = FieldMask {FieldMask|touched=False,valid=True,state=JSONNull}
 
@@ -91,18 +84,18 @@ stdAttributeChanges typename optional om nm
 	| om === nm = [] //Nothing to change
 	| otherwise = [SetAttribute k v \\ (k,v) <- 'DM'.toList (stdAttributes typename optional nm)]
 
-basicEdit :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*VSt -> *(!a, !EditMask, !*VSt) | JSONDecode{|*|} upd
+basicEdit :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString EditMask, !a, !*VSt) | JSONDecode{|*|} upd
 basicEdit toV [] upd v vmask ust=:{VSt|optional}
 	= case upd of
-		JSONNull = (v,FieldMask {touched=True,valid=optional,state=JSONNull},ust)
+		JSONNull = (Ok (FieldMask {touched=True,valid=optional,state=JSONNull}),v,ust)
 		json = case fromJSON upd of
-			Nothing  = (v,FieldMask {touched=True,valid=False,state=upd},ust)
+			Nothing  = (Ok (FieldMask {touched=True,valid=False,state=upd}),v,ust)
 			(Just e) = case toV e v of
-				Nothing = (v,FieldMask {touched=True,valid=False,state=upd},ust)
-				Just val = (val,FieldMask {touched=True,valid=True,state=upd},ust)
-basicEdit toV _ upd v vmask ust = (v,vmask,ust)
+				Nothing = (Ok (FieldMask {touched=True,valid=False,state=upd}),v,ust)
+				Just val = (Ok (FieldMask {touched=True,valid=True,state=upd}),val,ust)
+basicEdit toV _ upd v vmask ust = (Ok vmask,v,ust)
 
-basicEditSimple :: !DataPath !JSONNode !a !EditMask !*VSt -> *(!a,!EditMask,!*VSt) | JSONDecode{|*|} a
+basicEditSimple :: !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString EditMask,!a,!*VSt) | JSONDecode{|*|} a
 basicEditSimple target upd val mask iworld = basicEdit (\json _ -> fromJSON json) target upd val mask iworld
 
 fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a

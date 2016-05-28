@@ -18,7 +18,7 @@ controlLightEditlet
       |genUI  = genUI
       ,initUI = initUI
       ,updUI  = \_ a _ b _ vst -> (Ok (if (a===b) NoChange (ChangeUI [SetAttribute "value" (JSONString (color b))] [])),vst)
-      ,onEdit = \_ _ a m ust -> (a,m,ust)
+      ,onEdit = \_ _ a m ust -> (Ok m,a,ust)
       }
 where
 	genUI dp val world

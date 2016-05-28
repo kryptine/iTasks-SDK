@@ -98,10 +98,9 @@ where
         | o1 === o2     = diffObjects l (inc i) os1 os2
                         = [LDUpdateObject l i o2:diffObjects l (inc i) os1 os2]
 
-onEdit :: DataPath JSONNode LeafletMap EditMask !*VSt -> *(!LeafletMap,!EditMask,!*VSt)
 onEdit [] diff m msk vst = case fromJSON diff of
-	Just diffs = (app diffs m,msk,vst)
-	Nothing = (m,msk,vst)
+	Just diffs = (Ok msk,app diffs m,vst)
+	Nothing = (Ok msk,m,vst)
 where
 	app [] m = m
 	app [LDSetZoom zoom:ds] m           = app ds {m & perspective = {m.perspective & zoom = zoom}}
@@ -120,7 +119,7 @@ where
     	app ds {m & layers = updateAt l (ObjectLayer (take n o)) m.layers}
 	app [LDUpdateObject l i object:ds] m = let (ObjectLayer o) = m.layers !! l in
     	app ds {m & layers = updateAt l (ObjectLayer (updateAt i object o)) m.layers}
-onEdit _ _ m msk ust                             = (m,msk,ust)
+onEdit _ _ m msk ust                             = (Ok msk,m,ust)
 
 openStreetMapTiles :: LeafletLayer
 openStreetMapTiles = TileLayer "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

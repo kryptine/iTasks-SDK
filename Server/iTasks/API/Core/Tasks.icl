@@ -120,8 +120,10 @@ matchAndApplyEvent_ _ matchId evalOpts mbEditor taskTime (v,m) ts prompt iworld
 updateValueAndMask_ :: TaskId DataPath (Maybe (Editor v)) JSONNode (Masked v) *IWorld -> *(!Masked v,*IWorld) | iTask v
 updateValueAndMask_ taskId path mbEditor diff (v,m) iworld
 	# editor = fromMaybe gEditor{|*|} mbEditor
-    # (nv,nm,vst=:{VSt|iworld}) = editor.Editor.onEdit path diff v m {VSt|selectedConsIndex= -1, taskId=toString taskId, mode = Enter, optional=False,disabled=False,iworld=iworld}
-    = ((nv,nm),iworld)
+    # (nm,nv,vst=:{VSt|iworld}) = editor.Editor.onEdit path diff v m {VSt|selectedConsIndex= -1, taskId=toString taskId, mode = Enter, optional=False,disabled=False,iworld=iworld}
+	= case nm of
+		Ok m 	= ((nv,m),iworld)
+		_ 		= ((v,m),iworld)
 
 visualizeView_ :: TaskId TaskEvalOpts EditMode (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld -> *(!MaybeErrorString UIChange,!Bool,!*IWorld) | iTask v & toPrompt d
 visualizeView_ taskId evalOpts mode mbEditor event old=:(v,m) new=:(nv,nm) prompt iworld

@@ -423,10 +423,9 @@ where
         oldMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g1.GoogleMap.markers]
         newMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g2.GoogleMap.markers]
 
-    onEdit :: DataPath JSONNode GoogleMap EditMask *VSt -> *(!GoogleMap,!EditMask,!*VSt)
 	onEdit [] d g msk ust = case fromJSON d of
-		Just diffs = (foldl app g diffs,msk,ust)
-		Nothing    = (g,msk,ust)
+		Just diffs = (Ok msk,foldl app g diffs,ust)
+		Nothing    = (Ok msk,g,ust)
     where
         app g (SetSettings settings)        = {GoogleMap|g & settings = settings}
         app g (SetPerspective perspective)  = {GoogleMap|g & perspective = perspective}
@@ -436,7 +435,7 @@ where
             upd markers updated = [if (m.GoogleMapMarker.markerId == updated.GoogleMapMarker.markerId) updated m \\ m <- markers]
         app g (RemoveMarkers m)             = {GoogleMap|g & markers = [marker \\ marker <- g.GoogleMap.markers | not (isMember marker.GoogleMapMarker.markerId m)]}
         app g _ = g
-	onEdit _ d g msk ust = (g,msk,ust)
+	onEdit _ d g msk ust = (Ok msk,g,ust)
 
 //--------------------------------------------------------------------------------------------------
 instance toString GoogleMapType

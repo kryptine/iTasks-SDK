@@ -76,13 +76,12 @@ updUI _ (AnalogClock t1) _ (AnalogClock t2) _ vst = case (  (if (t1.Time.sec == 
 						 ++ (if (t1.Time.hour == t2.Time.hour) [] [(2,t2.Time.hour)])
 						 ) of [] = (Ok NoChange,vst) ; delta = (Ok (ChangeUI [SetAttribute "diff" (toJSON delta)] []),vst)
 
-onEdit :: DataPath JSONNode AnalogClock EditMask *VSt -> *(!AnalogClock,!EditMask,!*VSt)
 onEdit [] diff t m ust = case fromJSON diff of
-	Just diffs = (app diffs t,FieldMask {touched=True,valid=True,state=JSONNull},ust)
-	Nothing = (t,m,ust)
+	Just diffs = (Ok (FieldMask {touched=True,valid=True,state=JSONNull}),app diffs t,ust)
+	Nothing = (Ok m,t,ust)
 where
 	app [] t = t
 	app [(0,s):d] (AnalogClock t) = app d (AnalogClock {Time|t & sec = s})
 	app [(1,m):d] (AnalogClock t) = app d (AnalogClock {Time|t & min = m})
 	app [(2,h):d] (AnalogClock t) = app d (AnalogClock {Time|t & hour = h})
-onEdit _ _ t m ust = (t,m,ust)
+onEdit _ _ t m ust = (Ok m,t,ust)

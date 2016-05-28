@@ -14,7 +14,7 @@ where
 	editlet = { genUI  = genUI
 			  , initUI = \m w -> w
 			  , updUI  = \_ o _ n _ vst -> (Ok (if (o == n) NoChange (ChangeUI [SetAttribute "value" (toJSON n)] [])),vst)
-              , onEdit = \_ _ n msk ust -> (n,msk,ust)
+              , onEdit = \_ _ n msk ust -> (Ok msk,n,ust)
 			  }
 
 	genUI dp val world

@@ -484,10 +484,9 @@ where
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
 	onEdit dp e val mask ust=:{VSt|optional} = case fromJSON e of 
-		Nothing		= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0}
-                      ,FieldMask {touched=True,valid=optional,state=JSONNull}
+		Nothing		= (Ok (FieldMask {touched=True,valid=optional,state=JSONNull}),{Document|documentId = "", contentUrl = "", name="", mime="", size = 0}
                       ,ust)// Reset
-		Just doc	= (doc,FieldMask {touched=True,valid=True,state=e},ust) //Update
+		Just doc	= (Ok (FieldMask {touched=True,valid=True,state=e}),doc,ust) //Update
 	
 derive JSONEncode		Document
 derive JSONDecode		Document
@@ -586,7 +585,7 @@ where
 	updUI dp old om new nm vst
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI (value new))] [])),vst)
 
-	onEdit dp e val mask ust = (val,mask,ust)
+	onEdit dp e val mask ust = (Ok mask,val,ust)
 
 
 derive gDefault			Progress
@@ -611,7 +610,7 @@ where
 	updUI dp (HtmlInclude old) om (HtmlInclude new) nm vst
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new)] [])),vst)
 
-	onEdit dp e val mask ust = (val,mask,ust)
+	onEdit dp e val mask ust = (Ok mask,val,ust)
 
 derive gDefault HtmlInclude
 
@@ -850,9 +849,9 @@ where
 			(Error e,vst) = (Error e,vst)
 
 	onEdit dp e (TreeChoice tree sel) mask ust = case fromJSON e of
-		Just ("sel",idx,val)	= (TreeChoice tree (if val (Just idx) Nothing), touch mask, ust)
-		Just ("exp",idx,val)	= (TreeChoice (setTreeExpanded idx val tree) sel,touch mask, ust)
-		_						= ((TreeChoice tree sel), mask, ust)
+		Just ("sel",idx,val)	= (Ok (touch mask),TreeChoice tree (if val (Just idx) Nothing), ust)
+		Just ("exp",idx,val)	= (Ok (touch mask),TreeChoice (setTreeExpanded idx val tree) sel, ust)
+		_						= (Ok mask,TreeChoice tree sel, ust)
 
 instance Choice TreeChoice
 where
@@ -923,20 +922,20 @@ where
 		(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
 		(Error e,vst) = (Error e,vst)
 	onEdit dp e (DCCombo val) mask ust 
-		# (val,mask,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
-		= (DCCombo val,mask,ust)
+		# (mbmask,val,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
+		= (mbmask,DCCombo val,ust)
 	onEdit dp e (DCRadio val) mask ust 
-		# (val,mask,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
-		= (DCRadio val,mask,ust)
+		# (mbmask,val,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
+		= (mbmask,DCRadio val,ust)
 	onEdit dp e (DCList val) mask ust 
-		# (val,mask,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
-		= (DCList val,mask,ust)
+		# (mbmask,val,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
+		= (mbmask,DCList val,ust)
 	onEdit dp e (DCTree val) mask ust 
-		# (val,mask,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
-		= (DCTree val,mask,ust)
+		# (mbmask,val,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
+		= (mbmask,DCTree val,ust)
 	onEdit dp e (DCGrid val) mask ust 
-		# (val,mask,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
-		= (DCGrid val,mask,ust)
+		# (mbmask,val,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
+		= (mbmask,DCGrid val,ust)
 
 instance Choice DynamicChoice
 where
@@ -1246,9 +1245,9 @@ where
 		= ex.Editor.updUI dp old om new nm vst
 	onEdit dp e val mask ust = wrapperUpdate ex.Editor.onEdit (\(Col x) -> x) Col dp e val mask ust
 	
-wrapperUpdate fx get set target upd val mask ust
-	# (w,mask,ust) = fx target upd (get val) mask ust
-	= (set w,mask,ust)
+wrapperUpdate fx get set target upd val mask vst
+	# (mbmask,w,vst) = fx target upd (get val) mask vst
+	= (mbmask,set w,vst)
 
 derive JSONEncode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
 derive JSONDecode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
@@ -1367,7 +1366,7 @@ where
 	updUI _ (Icon old) om (Icon new) nm vst
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "iconCls" (encodeUI ("icon-"+++new))] [])),vst)
 
-	onEdit dp e val mask ust = (val,mask,ust)
+	onEdit dp e val mask ust = (Ok mask,val,ust)
 
 // Generic instances for common library types
 derive JSONEncode		Either, MaybeError, HtmlTag, HtmlAttr
@@ -1392,7 +1391,7 @@ gEditor{|{}|} _ _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI _ _ vst = (Ok (ui UIEmpty,newCompoundMask),vst)
 	updUI _ _ _ _ _ vst = (Ok NoChange,vst)
-	onEdit _ _ val mask ust = (val,mask,ust)
+	onEdit _ _ val mask ust = (Ok mask,val,ust)
 
 gText{|{}|} _ _ _ = undef
 

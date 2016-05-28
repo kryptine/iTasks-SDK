@@ -56,8 +56,8 @@ where
 
 	onEdit dp e val mask vst=:{VSt|optional}
 		= case e of
-			JSONNull = (val,FieldMask {touched=True,valid=optional,state=JSONNull},vst)
+			JSONNull = (Ok (FieldMask {touched=True,valid=optional,state=JSONNull}),val,vst)
 			json = case fromJSON e of
-				Nothing  = (val,FieldMask {touched=True,valid=False,state=e},vst)
-				Just val = (val,FieldMask {touched=True,valid=True,state=e},vst)
+				Nothing  = (Ok (FieldMask {touched=True,valid=False,state=e}),val,vst)
+				Just val = (Ok (FieldMask {touched=True,valid=True,state=e}),val,vst)
 
