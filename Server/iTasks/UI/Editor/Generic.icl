@@ -296,7 +296,16 @@ flattenPairUI n (UI t a [l,r])
 where
 	half = n / 2
 
-flattenPairMask n m = m //TODO
+flattenPairMask 0 m = m
+flattenPairMask 1 m = m
+flattenPairMask 2 m = m
+flattenPairMask 3 (CompoundMask [l,CompoundMask [m,r]]) = CompoundMask [l,m,r]
+flattenPairMask n (CompoundMask [l,r])
+	# (CompoundMask l) = flattenPairMask half l
+	# (CompoundMask r) = flattenPairMask (n - half) r
+	= CompoundMask (l ++ r)
+where
+	half = n / 2
 
 //No pairs are introduced for 0 or 1 fields
 flattenPairDiff s 0 d = d 
