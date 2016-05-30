@@ -234,6 +234,7 @@ doubleClickAttr   :: !String !String                      -> UIAttributes
 actionIdAttr      :: !String                              -> UIAttributes
 editorIdAttr      :: !String                              -> UIAttributes
 taskIdAttr        :: !String                              -> UIAttributes
+labelAttr         :: !String                              -> UIAttributes
 
 editAttrs         :: !String !String !(Maybe JSONNode)    -> UIAttributes
 choiceAttrs       :: !String !String ![Int] ![JSONNode]   -> UIAttributes

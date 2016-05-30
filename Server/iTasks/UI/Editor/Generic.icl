@@ -22,9 +22,10 @@ where
 	genUI dp (RECORD x) vst=:{VSt|taskId,mode,optional}
 		= case ex.Editor.genUI (pairPath grd_arity dp) x {VSt|vst & optional = False} of
 			(Ok (viz,mask),vst) 
-				# viz = flattenPairUI grd_arity viz
+				# viz  = flattenPairUI grd_arity viz
 				# mask = flattenPairMask grd_arity mask
-				//When optional we add a checkbox show the checkbox
+
+				//When optional we add a checkbox
 				| optional && (mode =: Enter || mode =: Update)
 					# attr = optionalAttr True
 					= (Ok (uiac UIRecord attr [checkbox (isTouched mask),viz],mask), vst)
@@ -54,11 +55,10 @@ where
 
 gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (FIELD x) vst
-		= case ex.Editor.genUI dp x vst of
-			(Ok (UI type attr items,mask),vst)
-				= (Ok (UI type (addLabel gfd_name attr) items,mask),vst) //Add the field name as a label
-			(Error e,vst) = (Error e,vst)
+	genUI dp (FIELD x) vst = case ex.Editor.genUI dp x vst of
+		(Ok (UI type attr items, mask),vst)
+			= (Ok (UI type ('DM'.union attr (labelAttr gfd_name)) items, mask),vst) //Add the field name as a label
+		(Error e,vst) = (Error e,vst)
 
 	updUI dp (FIELD old) om (FIELD new) nm vst = ex.Editor.updUI dp old om new nm vst
 
@@ -203,15 +203,11 @@ where
 	genUI dp (PAIR x y) vst
 		# (dpx,dpy)		= pairPathSplit dp
 		# (vizx, vst)	= ex.Editor.genUI dpx x vst
-		| vizx =: (Error _)
-			= (vizx,vst)
+		| vizx =: (Error _) = (vizx,vst)
 		# (vizy, vst)	= ey.Editor.genUI dpy y vst
-		| vizy =: (Error _)
-			= (vizy,vst)
+		| vizy =: (Error _) = (vizy,vst)
 		# ((vizx,maskx),(vizy,masky)) = (fromOk vizx,fromOk vizy)
-		# optional 		= isOptional vizx && isOptional vizy
-		# attr 			= optionalAttr optional
-		= (Ok (uiac UIPair attr [vizx,vizy],CompoundMask [maskx,masky]),vst)
+		= (Ok (uic UIPair [vizx,vizy],CompoundMask [maskx,masky]),vst)
 
 	updUI dp (PAIR oldx oldy) om (PAIR newx newy) nm vst
 		# (dpx,dpy)		= pairPathSplit dp
@@ -358,10 +354,5 @@ updPairPath i n
 		= [0: updPairPath i (n /2)]
 	| otherwise
 		= [1: updPairPath (i - (n/2)) (n - (n/2))]
-
-addLabel :: !String !UIAttributes -> UIAttributes
-addLabel label attr = putCond LABEL_ATTRIBUTE (JSONString label) attr
-where
-    putCond k v m = maybe ('DM'.put k v m) (const m) ('DM'.get k m)
 
 
