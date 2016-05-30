@@ -5,7 +5,6 @@ import StdStrictLists
 import graph_to_string_and_descriptors
 
 
-import StdDebug
 //import sapldebug
 // Conversion of dynamic graph string to sapl code
 // JMJ 2007
