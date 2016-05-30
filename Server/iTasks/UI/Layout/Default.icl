@@ -104,9 +104,8 @@ isFormItem = \n -> n =:(UI UIFormItem _ _)
 isIntermediate (UI type _ _) = isMember type [UIInteract,UIStep,UIParallel]
 
 isFormComponent (UI type _ _) = isMember type 
-	[UIEditString,UIEditNote,UIEditPassword,UIEditInt,UIEditDecimal
-	,UIEditCheckbox,UIEditSlider,UIEditDate,UIEditTime,UIEditDateTime
-	,UIEditDocument,UIDropdown,UIRadioGroup,UICheckboxGroup]
+	[UITextField,UITextArea,UIPasswordField,UIIntegerField,UIDecimalField
+	,UICheckbox,UIEditSlider,UIEditDocument,UIDropdown,UIRadioGroup,UICheckboxGroup]
 instance == UINodeType where (==) x y = x === y
 
 //Flatten an editor into a form

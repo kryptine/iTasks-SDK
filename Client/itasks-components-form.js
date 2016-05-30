@@ -36,7 +36,7 @@ itasks.itwc_view_icon = {
 		}
 	}
 };
-itasks.itwc_edit_string = {
+itasks.TextField = {
 	domTag: 'input',
 	initDOMEl: function() {
 		var me = this,
@@ -57,7 +57,7 @@ itasks.itwc_edit_string = {
 		}
 	}
 };
-itasks.itwc_edit_note = {
+itasks.TextArea = {
     domTag: 'textarea',
     initDOMEl: function() {
         var me = this,
@@ -69,7 +69,7 @@ itasks.itwc_edit_note = {
         });
     }
 };
-itasks.itwc_edit_password = {
+itasks.PasswordField = {
 	domTag: 'input',
 	initDOMEl: function() {
 		var me = this,
@@ -134,14 +134,14 @@ itasks.NumberField = {
 	}
 };
 
-itasks.itwc_edit_int = Object.assign(itasks.NumberField,{
+itasks.IntegerField = Object.assign(itasks.NumberField,{
     allowDecimal: false
 });
-itasks.itwc_edit_decimal = Object.assign(itasks.NumberField,{
+itasks.DecimalField = Object.assign(itasks.NumberField,{
     allowDecimal: true
 });
 
-itasks.itwc_edit_checkbox = {
+itasks.Checkbox = {
 	domTag: 'input',
     defaultWidth: 'wrap',
     initDOMEl: function() {
@@ -179,46 +179,6 @@ itasks.itwc_edit_slider = {
     }
 };
 
-itasks.itwc_edit_date = {
-	domTag: 'input',
-    width: 'wrap',
-    initDOMEl: function() {
-        var me = this,
-            el = this.domEl;
-        el.type = 'text';
-        el.value = me.value ? me.value : '';
-        el.addEventListener('keyup',function(e) {
-            me.doEditEvent(me.taskId,me.editorId,e.target.value === "" ? null : e.target.value,true);
-        });
-    }
-};
-itasks.itwc_edit_time = {
-	domTag: 'input',
-    width: 'wrap',
-    initDOMEl: function() {
-        var me = this,
-            el = this.domEl;
-        el.type = 'text';
-        el.value = me.value ? me.value : '';
-        el.addEventListener('keyup',function(e) {
-            me.doEditEvent(me.taskId,me.editorId,e.target.value === "" ? null : e.target.value,true);
-        });
-    }
-};
-
-itasks.itwc_edit_datetime = {
-	domTag: 'input',
-    width: 'wrap',
-    initDOMEl: function() {
-        var me = this,
-            el = this.domEl;
-        el.type = 'text';
-        el.value = me.value ? me.value : '';
-        el.addEventListener('keyup',function(e) {
-            me.doEditEvent(me.taskId,me.editorId,e.target.value === "" ? null : e.target.value,true);
-        });
-    }
-};
 itasks.itwc_edit_document = {
 	cssCls: 'edit-document',
     initDOMEl: function() {

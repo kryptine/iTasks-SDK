@@ -33,7 +33,7 @@ where
 					= (Ok (viz,mask),vst)
 			(Error e,vst) = (Error e,vst)
 	where
-		checkbox checked = uia UIEditCheckbox (editAttrs taskId (editorId dp) (Just (JSONBool checked)))
+		checkbox checked = uia UICheckbox (editAttrs taskId (editorId dp) (Just (JSONBool checked)))
 
 	updUI dp (RECORD old) om (RECORD new) nm vst 
 		# (diff,vst) = ex.Editor.updUI (pairPath grd_arity dp) old (toPairMask grd_arity om) new (toPairMask grd_arity nm) vst

@@ -6,22 +6,22 @@ import Data.Error, Text.JSON, Text.HTML
 import qualified Data.Map as DM
 
 textField :: Editor String
-textField = simpleComponent toJSON UIEditString
+textField = simpleComponent toJSON UITextField
 
 integerField :: Editor Int
-integerField = simpleComponent toJSON UIEditInt
+integerField = simpleComponent toJSON UIIntegerField
 
 decimalField :: Editor Real
-decimalField = simpleComponent toJSON UIEditDecimal
+decimalField = simpleComponent toJSON UIDecimalField
 
 passwordField :: Editor String
-passwordField = simpleComponent toJSON UIEditPassword
+passwordField = simpleComponent toJSON UIPasswordField
 
 textArea :: Editor String
-textArea = simpleComponent toJSON UIEditNote
+textArea = simpleComponent toJSON UITextArea
 
 checkBox :: Editor Bool
-checkBox = simpleComponent toJSON UIEditCheckbox
+checkBox = simpleComponent toJSON UICheckbox
 
 slider :: Editor Int
 slider = integerField

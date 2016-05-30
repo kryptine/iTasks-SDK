@@ -39,22 +39,6 @@ itasks.itwc_view_document = {
         }
     }
 };
-itasks.itwc_view_checkbox = {
-	domTag: 'input',
-	initDOMEl: function() {
-		var me = this,
-			el = this.domEl;
-
-		el.type = 'checkbox';
-		el.checked = me.value;
-		el.disabled = true;
-	},
-	onAttributeChange(name,value) {
-		switch(name) { 
-			case 'value': this.domEl.checked = value; break;
-		}
-	}
-};
 itasks.itwc_view_slider = {
     domTag: 'input',
     initDOMEl: function() {
