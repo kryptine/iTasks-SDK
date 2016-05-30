@@ -89,7 +89,7 @@ where
 		= makeEditor (Display (defaultViewFun status),newFieldMask) taskId iworld
 
 	makeEditor value=:(v,vmask) taskId iworld
-		# vst = {VSt| selectedConsIndex = -1, mode = View, optional = False, disabled = False, taskId = toString taskId, iworld = iworld}
+		# vst = {VSt| taskId = toString taskId, mode = View, optional = False, selectedConsIndex = -1, iworld = iworld}
 		# (editUI,vst=:{VSt|iworld}) = gEditor{|*|}.Editor.genUI [] v vst
 		= (editUI,iworld)
 

@@ -88,7 +88,7 @@ where
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mode mbEditor taskTime (v,m) ts prompt iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -108,19 +108,19 @@ where
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-matchAndApplyEvent_ :: Event TaskId TaskEvalOpts (Maybe (Editor v)) TaskTime (Masked v) TaskTime d *IWorld -> *(!Masked v,!TaskTime,!*IWorld) | iTask v & toPrompt d
-matchAndApplyEvent_ (EditEvent taskId name value) matchId evalOpts mbEditor taskTime (v,m) ts prompt iworld
+matchAndApplyEvent_ :: Event TaskId TaskEvalOpts EditMode (Maybe (Editor v)) TaskTime (Masked v) TaskTime d *IWorld -> *(!Masked v,!TaskTime,!*IWorld) | iTask v & toPrompt d
+matchAndApplyEvent_ (EditEvent taskId name value) matchId evalOpts mode mbEditor taskTime (v,m) ts prompt iworld
 	| taskId == matchId
-		# ((nv,nm),iworld) = updateValueAndMask_ taskId (s2dp name) mbEditor value (v,m) iworld
+		# ((nv,nm),iworld) = updateValueAndMask_ taskId mode (s2dp name) mbEditor value (v,m) iworld
 		= ((nv,nm),taskTime,iworld)
 	| otherwise	= ((v,m),ts,iworld)
-matchAndApplyEvent_ _ matchId evalOpts mbEditor taskTime (v,m) ts prompt iworld
+matchAndApplyEvent_ _ matchId evalOpts mode mbEditor taskTime (v,m) ts prompt iworld
 	= ((v,m),ts,iworld)
 
-updateValueAndMask_ :: TaskId DataPath (Maybe (Editor v)) JSONNode (Masked v) *IWorld -> *(!Masked v,*IWorld) | iTask v
-updateValueAndMask_ taskId path mbEditor diff (v,m) iworld
+updateValueAndMask_ :: TaskId EditMode DataPath (Maybe (Editor v)) JSONNode (Masked v) *IWorld -> *(!Masked v,*IWorld) | iTask v
+updateValueAndMask_ taskId mode path mbEditor diff (v,m) iworld
 	# editor = fromMaybe gEditor{|*|} mbEditor
-    # (nm,nv,vst=:{VSt|iworld}) = editor.Editor.onEdit path diff v m {VSt|selectedConsIndex= -1, taskId=toString taskId, mode = Enter, optional=False,disabled=False,iworld=iworld}
+    # (nm,nv,vst=:{VSt|iworld}) = editor.Editor.onEdit path diff v m {VSt|mode = mode, taskId=toString taskId, optional=False, selectedConsIndex= -1, iworld=iworld}
 	= case nm of
 		Ok m 	= ((nv,m),iworld)
 		_ 		= ((v,m),iworld)
@@ -129,7 +129,7 @@ visualizeView_ :: TaskId TaskEvalOpts EditMode (Maybe (Editor v)) Event (Masked 
 visualizeView_ taskId evalOpts mode mbEditor event old=:(v,m) new=:(nv,nm) prompt iworld
 	# editor 	= fromMaybe gEditor{|*|} mbEditor
 	# valid     = not (containsInvalidFields nm)
-	# vst = {VSt| selectedConsIndex = -1, mode = mode, optional = False, disabled = False,  taskId = toString taskId, iworld = iworld}
+	# vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
 	# (change,vst=:{VSt|iworld}) = case event of
 		ResetEvent		//(re)generate the initial UI
 			= case editor.Editor.genUI [] nv vst of

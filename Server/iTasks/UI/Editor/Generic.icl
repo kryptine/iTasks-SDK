@@ -19,13 +19,13 @@ gEditor{|UNIT|} = emptyEditor
 
 gEditor{|RECORD of {grd_arity}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (RECORD x) vst=:{VSt|optional,disabled,taskId}
+	genUI dp (RECORD x) vst=:{VSt|taskId,mode,optional}
 		= case ex.Editor.genUI (pairPath grd_arity dp) x {VSt|vst & optional = False} of
 			(Ok (viz,mask),vst) 
 				# viz = flattenPairUI grd_arity viz
 				# mask = flattenPairMask grd_arity mask
 				//When optional we add a checkbox show the checkbox
-				| optional && not disabled
+				| optional && (mode =: Enter || mode =: Update)
 					# attr = optionalAttr True
 					= (Ok (uiac UIRecord attr [checkbox (isTouched mask),viz],mask), vst)
 				| otherwise 
@@ -54,7 +54,7 @@ where
 
 gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (FIELD x) vst=:{VSt|disabled}
+	genUI dp (FIELD x) vst
 		= case ex.Editor.genUI dp x vst of
 			(Ok (UI type attr items,mask),vst)
 				= (Ok (UI type (addLabel gfd_name attr) items,mask),vst) //Add the field name as a label
@@ -68,11 +68,11 @@ where
 
 gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (OBJECT x) vst=:{selectedConsIndex = curSelectedConsIndex,disabled,taskId}
+	genUI dp (OBJECT x) vst=:{VSt|taskId,mode,selectedConsIndex = curSelectedConsIndex}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
-	| gtd_num_conses > 1 && not disabled
+	| gtd_num_conses > 1 && (mode =: Enter || mode =: Update)
 		= case ex.Editor.genUI dp x {VSt|vst & optional=False} of
 			(Ok (items,mask), vst=:{selectedConsIndex}) 
         		# choice = case mask of
@@ -101,8 +101,8 @@ where
 			| isTouched mask	= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_VALID),(HINT_ATTRIBUTE, JSONString "You have correctly selected an option")]
 								= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INFO),(HINT_ATTRIBUTE, JSONString "Select an option")]
 
-	updUI dp (OBJECT old) om (OBJECT new) nm vst=:{VSt|disabled,selectedConsIndex=curSelectedConsIndex}
-		| gtd_num_conses > 1 && not disabled
+	updUI dp (OBJECT old) om (OBJECT new) nm vst=:{VSt|mode,selectedConsIndex=curSelectedConsIndex}
+		| gtd_num_conses > 1 && (mode =:Enter || mode =: Update)
 			= case ex.Editor.updUI dp old om new nm {vst & selectedConsIndex = 0} of
 				(Ok diff,vst=:{VSt|selectedConsIndex}) 
 					| selectedConsIndex < 0 //A cons was changed
@@ -178,7 +178,7 @@ where
 
 gEditor{|CONS of {gcd_index,gcd_arity}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (CONS x) vst=:{VSt|taskId,optional,disabled}
+	genUI dp (CONS x) vst
 		= case ex.Editor.genUI (pairPath gcd_arity dp) x vst of
 			(Ok (ui,mask),vst) = (Ok (flattenPairUI gcd_arity ui,flattenPairMask gcd_arity mask), {VSt| vst & selectedConsIndex = gcd_index})
 			(Error e,vst) = (Error e,{VSt| vst & selectedConsIndex = gcd_index})
@@ -239,7 +239,7 @@ where
 //The maybe editor makes it content optional
 gEditor{|Maybe|} ex _ dx _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val vst=:{VSt|optional,disabled}
+	genUI dp val vst=:{VSt|optional}
 		# (viz,vst) = case val of
 			(Just x)	= ex.Editor.genUI dp x {VSt|vst & optional = True}
 			_			= ex.Editor.genUI dp dx {VSt|vst & optional = True}

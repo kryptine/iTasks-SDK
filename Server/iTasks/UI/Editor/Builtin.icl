@@ -50,7 +50,7 @@ where
 		# attr = 'DM'.unions [optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr val]
 		= (Ok (uia type attr,mask),vst)
 
-	updUI dp ov om nv nm vst=:{VSt|optional,disabled}
+	updUI dp ov om nv nm vst=:{VSt|mode,optional}
 		| checkMaskValue om ov === checkMaskValue nm nv = (Ok NoChange,vst)
 		| otherwise =  (Ok (ChangeUI [SetAttribute "value" (toValue nv)] []),vst)
 

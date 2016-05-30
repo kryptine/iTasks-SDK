@@ -31,7 +31,7 @@ where
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mode mbEditor taskTime (v,m) ts prompt iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -63,7 +63,7 @@ where
 		//Decode stored values
 		# (l,v)					= (fromJust (fromJSON encl), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mode mbEditor taskTime (v,m) ts prompt iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
 		# vValid				= not (containsInvalidFields nm)
@@ -94,7 +94,7 @@ where
 		//Decode stored values
 		# (r,v)					= (fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mode mbEditor taskTime (v,m) ts prompt iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -126,7 +126,7 @@ where
 		//Decode stored values
 		# v						= fromJust (fromJSON encv)
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mode mbEditor taskTime (v,m) ts prompt iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
 		# vValid				= not (containsInvalidFields nm)
@@ -159,7 +159,7 @@ where
 		  r = fromJust (fromJSON encr)
 		  v = toView r
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mode mbEditor taskTime (v,m) ts prompt iworld
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
 		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
@@ -191,7 +191,7 @@ where
 		# v = fromJust (fromJSON encv)
 		  l = fromf v
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts Enter mbEditor taskTime (v,m) ts prompt iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
 		# vValid				= not (containsInvalidFields nm)
@@ -222,7 +222,7 @@ where
 		# l	= fromJust (fromJSON encl)
 		  v = tof l
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts Update mbEditor taskTime (v,m) ts prompt iworld
 		//Apply refresh function if r or v changed
 		# vChanged				= nts =!= ts
 		# vValid				= not (containsInvalidFields nm)
@@ -258,7 +258,7 @@ where
 		# l	= fromJust (fromJSON encl)
 		  v = tof l
 		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mbEditor taskTime (v,m) ts prompt iworld
+		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts View mbEditor taskTime (v,m) ts prompt iworld
 		# nl = l
 		//Update visualization v
 		= case visualizeView_ taskId evalOpts View mbEditor event (v,m) (nv,nm) prompt iworld of

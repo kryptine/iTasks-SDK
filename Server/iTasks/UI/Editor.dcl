@@ -47,11 +47,10 @@ from GenEq import generic gEq
 :: Masked a :== (a,EditMask)
 
 :: *VSt =
-	{ selectedConsIndex	:: !Int              // Index of the selected constructor in an OBJECT
+	{ taskId			:: !String           // The id of the task the visualisation belongs to
 	, mode              :: !EditMode         // If we are entering, updating or viewing the data
 	, optional			:: !Bool             // Create optional form fields
-	, disabled			:: !Bool             // If true the editor is not editable
-	, taskId			:: !String           // The id of the task the visualisation belongs to
+	, selectedConsIndex	:: !Int              // Index of the selected constructor in an OBJECT
 	, iworld			:: !*IWorld	         // The iworld, used for example if external tools are needed to create editors
 	}
 

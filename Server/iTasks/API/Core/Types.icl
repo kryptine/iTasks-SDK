@@ -470,9 +470,9 @@ gEditor {|Document|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	typeDesc = "document"
 
-	genUI dp val vst=:{VSt|taskId,optional,disabled}
+	genUI dp val vst=:{VSt|taskId,optional,mode}
 		# mask = newFieldMask
-		| disabled
+		| mode =: View
 			# value = checkMask mask val
 			# attr = maybe 'DM'.newMap (\v -> valueAttr (toJSON v)) value
 			= (Ok (uia UIViewDocument attr,mask), vst)
@@ -543,10 +543,10 @@ gText{|Scale|}	_ _                  = [""]
 
 gEditor{|Scale|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val vst=:{VSt|taskId,optional,disabled}
+	genUI dp val vst=:{VSt|taskId,mode,optional}
 		# sliderAttr = 'DM'.unions [minValueAttr val.Scale.min, maxValueAttr val.Scale.max]
 		# mask = newFieldMask
-		| disabled
+		| mode =: View
 			# val = checkMask mask val							
 			# valAttr = maybe 'DM'.newMap (\v -> valueAttr (JSONInt (curVal v))) val
 			# attr = 'DM'.unions [sliderAttr,valAttr,optionalAttr optional]
@@ -619,7 +619,7 @@ gText{|FormButton|}	_ val = [maybe "" (\v -> v.FormButton.label) val]
 
 gEditor{|FormButton|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val vst=:{VSt|taskId,disabled}
+	genUI dp val vst=:{VSt|taskId,mode}
 		# text = val.FormButton.label
 		# iconCls = val.FormButton.icon
 		# attr = 'DM'.unions [textAttr text,iconClsAttr iconCls,enabledAttr True,editAttrs taskId (editorId dp) (Just (JSONString "pressed"))]
@@ -652,7 +652,7 @@ gText{|Table|}	_ _	= ["<Table>"]
 
 gEditor{|Table|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val vst=:{VSt|taskId,disabled}
+	genUI dp val vst=:{VSt|taskId}
 		# attr = 'DM'.unions [choiceAttrs taskId (editorId dp) (value val) (options val),columnsAttr (columns val)]
 		= (Ok (uia UIGrid attr,newFieldMask),vst)
 	where
@@ -706,8 +706,8 @@ gText{|ComboChoice|} fv mode _          = [""]
 
 gEditor{|ComboChoice|} fx gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val vst=:{VSt|taskId,optional,disabled}
-		| disabled
+	genUI dp val vst=:{VSt|taskId,mode,optional}
+		| mode =: View
 			= (Ok (uia UIViewString (vvalue val),newFieldMask), vst)
 		| otherwise
 			# mask = newFieldMask
@@ -743,8 +743,8 @@ gText{|RadioChoice|} fv _ _ = [""]
 
 gEditor{|RadioChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val vst=:{VSt|taskId,optional,disabled}
-		| disabled
+	genUI dp val vst=:{VSt|taskId,mode,optional}
+		| mode =: View
 			# attr = 'DM'.unions [optionalAttr optional,vvalue val]
 			= (Ok (uia UIViewString attr,newFieldMask),vst)
 		| otherwise
@@ -781,8 +781,8 @@ gText{|ListChoice|} fv _ _ = [""]
 
 gEditor{|ListChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val vst=:{VSt|taskId,disabled}
-		| disabled
+	genUI dp val vst=:{VSt|taskId,mode}
+		| mode =: View
 			= (Ok (uia UIViewString (vvalue val),newFieldMask), vst)
 		| otherwise
 			# attr = choiceAttrs  taskId (editorId dp) (evalue val) (options val)
@@ -817,7 +817,7 @@ gText{|TreeChoice|} fv _ _ = [""]
 
 gEditor{|TreeChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val vst=:{VSt|taskId,disabled}
+	genUI dp val vst=:{VSt|taskId}
 		# attr = choiceAttrs taskId (editorId dp) (value val) (options gx val)
 		= (Ok (uia UITree attr,newFieldMask),vst)
 
@@ -867,7 +867,7 @@ gText{|GridChoice|} fv _ _ = [""]
 
 gEditor{|GridChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val vst=:{VSt|taskId,disabled}
+	genUI dp val vst=:{VSt|taskId}
 		# attr = 'DM'.unions [choiceAttrs taskId (editorId dp) (value val) (options val),columnsAttr columns]
 		= (Ok (uia UIGrid attr,newFieldMask),vst)
 
@@ -970,8 +970,8 @@ gText{|CheckMultiChoice|} fv _ _ _ = [""]
 
 gEditor{|CheckMultiChoice|} _ gx _ _ _ _ _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val vst=:{VSt|taskId,optional,disabled}
-		| disabled
+	genUI dp val vst=:{VSt|taskId,mode,optional}
+		| mode =: View
 			# attr = 'DM'.unions [optionalAttr optional,vvalue val]
 			= (Ok (uia UIViewString attr,newFieldMask),vst)
 		| otherwise
@@ -1178,13 +1178,13 @@ gText{|Display|} fx mode Nothing               = fx mode Nothing
 
 gEditor{|Display|} ex j _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (Display val) vst=:{VSt|disabled}
-		# (def,vst) = ex.Editor.genUI dp val {VSt|vst & disabled = True}
-		= (def,{VSt|vst & disabled = disabled})
+	genUI dp (Display val) vst=:{VSt|mode}
+		# (def,vst) = ex.Editor.genUI dp val {VSt|vst & mode = View}
+		= (def,{VSt|vst & mode = mode})
 
-	updUI dp (Display old) om (Display new) nm vst=:{VSt|disabled}
-		# (change,vst) = ex.Editor.updUI dp old om new nm {VSt|vst & disabled = True}
-		= (change,{VSt|vst & disabled = disabled})
+	updUI dp (Display old) om (Display new) nm vst=:{VSt|mode}
+		# (change,vst) = ex.Editor.updUI dp old om new nm {VSt|vst & mode = View}
+		= (change,{VSt|vst & mode = mode})
 
 	onEdit dp e val mask ust = wrapperUpdate ex.Editor.onEdit fromDisplay Display dp e val mask ust
 
@@ -1199,9 +1199,9 @@ gText{|Editable|} fx mode Nothing                  = fx mode Nothing
 
 gEditor{|Editable|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val vst=:{VSt|disabled}
-		# (def,vst) = ex.Editor.genUI dp (fromEditable val) {VSt | vst & disabled = False}
-		= (def,{VSt | vst & disabled = disabled})
+	genUI dp val vst=:{VSt|mode}
+		# (def,vst) = ex.Editor.genUI dp (fromEditable val) {VSt | vst & mode = Update}
+		= (def,{VSt | vst & mode = mode})
 
 	updUI dp (Editable old) om (Editable new) nm vst
 		= ex.Editor.updUI dp old om new nm vst

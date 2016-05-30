@@ -14,7 +14,7 @@ where
 				# attr = 'DM'.union (stdAttributes typeDesc optional mask) attr
 				= (Ok (UI type attr items,mask),vst) 
 			(e,vst) = (e,vst)
-	updUI dp ov om nv nm vst=:{VSt|optional,disabled}
+	updUI dp ov om nv nm vst=:{VSt|optional}
 		= case stdAttributeChanges typeDesc optional om nm of
 			[] = editor.Editor.updUI dp ov om nv nm vst //Nothing to add
 			hintChanges = case editor.Editor.updUI dp ov om nv nm vst of
@@ -27,13 +27,13 @@ where
 whenDisabled :: (Editor a) (Editor a) -> Editor a
 whenDisabled disabledEditor enabledEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val vst=:{VSt|taskId,disabled}
-		| disabled = disabledEditor.Editor.genUI dp val vst
-                   = enabledEditor.Editor.genUI dp val vst
+	genUI dp val vst=:{VSt|mode}
+		| mode =: View = disabledEditor.Editor.genUI dp val vst
+                       = enabledEditor.Editor.genUI dp val vst
 
-	updUI dp ov om nv nm vst=:{VSt|optional,disabled}
-		| disabled = disabledEditor.Editor.updUI dp ov om nv nm vst
-		           = enabledEditor.Editor.updUI dp ov om nv nm vst
+	updUI dp ov om nv nm vst=:{VSt|mode}
+		| mode =: View = disabledEditor.Editor.updUI dp ov om nv nm vst
+		               = enabledEditor.Editor.updUI dp ov om nv nm vst
 	
 	onEdit dp e val mask ust
 		= enabledEditor.Editor.onEdit dp e val mask ust
