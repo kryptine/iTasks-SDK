@@ -7,3 +7,4 @@ Tests/**/*-data
 Tests/**/sapl
 Tests/**/*.prj
 Tests/**/*.exe
+Client/**/*.scssc
