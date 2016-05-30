@@ -2,10 +2,9 @@ implementation module graph_to_sapl_string
 
 import StdEnv
 import StdStrictLists
-import graph_to_string_with_descriptors
+import graph_to_string_and_descriptors
 
 
-import StdDebug
 //import sapldebug
 // Conversion of dynamic graph string to sapl code
 // JMJ 2007
@@ -222,41 +221,26 @@ where
 	
     makeBoxedArray :: !Int !Int -> (DynamicSapl, Int)
 	makeBoxedArray size pos 
-	    # (elems,pos) = (readMany size pos [])
+	    # (elems,pos) = readMany size pos []
 	    = (ArrayS size elems,pos)
 	
     makeTuple :: !Int !Int -> (DynamicSapl, Int)
 	makeTuple size pos 
-	    # (elems,pos) = (readMany size pos [])
+	    # (elems,pos) = readMany size pos []
 	    = (TupleS size elems,pos)
 	
     makeRecord :: !Int -> (DynamicSapl, Int)
 	makeRecord pos
 	    # dnr         = sifs pos str
 	    # desc        = ds.[dnr-1]
-	    # (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc)
-	                  = makeRecordTypeDesc desc
+	    # (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc,unboxed_record_descriptor_numbers)
+	                  = makeRecordTypeDesc desc md
 	    # (ubels,pos) = readUDMany ubtypes nrub (pos+IF_INT_64_OR_32 8 4) []
 	    # (bels,pos)  = readMany nrpointer pos []
 	    # mergedelems = merge_elems alltypes ubels bels
-	    # typedelems  = setTypes modname name (makeRecordType typedesc) mergedelems
+        # typedelems  = setRecordElementTypes (makeRecordType typedesc) unboxed_record_descriptor_numbers mergedelems ds md
 	    | desc.[5] == 'd' = (CstrS modname name tsize typedelems, pos)
         | otherwise       = (RecS modname name tsize typedelems, pos)
-
-    makeRecordTypeDesc :: !String -> (String, String, Int, Int, Int, [Char], [Char], [Char])
-    makeRecordTypeDesc desc    
- 	    # tsize       = arity desc.[1]
-	    # nrpointer   = arity desc.[2]
-	    # nrub        = tsize - nrpointer
-	    # modnr       = selectmodnr 3 desc
-	    # start_types = if (desc.[5] == 'd') 6 (if (desc.[5] == 'l' && desc.[6] == 'R') 7 5)
-	    # modname     = md.[modnr-1]
-	    # typedesc    = takeWhile (\a -> a <> '\0') [c\\ c <-: desc%(start_types,size str-1)]
-	    # alltypes    = [t\\ t <- typedesc| (t <> '(') && (t <> ')') && (t <> ',')]
-	    # ubtypes     = [c\\ c <- alltypes| c <> 'a']
-	    # name        = getName (start_types+length typedesc+1) desc 
-        | start_types <> 7 = (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc)   // normal record
-        | otherwise        = (name,modname,tsize-1,nrpointer-1,nrub,droplast alltypes,ubtypes,droplast typedesc)   // list: drop last of pointer part (= pointer to tail)
 
     merge_elems :: [Char] [DynamicSapl] [DynamicSapl] -> [DynamicSapl]
 	merge_elems [] _ _                  = [] 
@@ -303,25 +287,25 @@ where
 	   | type=='r'
 		 # elem = makeRealType (pos+IF_INT_64_OR_32 8 4) 
 		 = readUBListElems type (pos+IF_INT_64_OR_32 16 12) (elems++[elem]) 
-		 # elem = makeType type (pos+IF_INT_64_OR_32 8 4) 
-		 = readUBListElems type (pos+IF_INT_64_OR_32 16 8) (elems++[elem]) 
-	   = (elems,pos+IF_INT_64_OR_32 8 4)
+	   # elem = makeType type (pos+IF_INT_64_OR_32 8 4) 
+	   = readUBListElems type (pos+IF_INT_64_OR_32 16 8) (elems++[elem]) 
+	= (elems,pos+IF_INT_64_OR_32 8 4)
 
 	makeUnBoxedArrayOfRecords size pos 
 	  # dnr         = sifs pos str 
 	  # desc        = ds.[dnr-1]
-	  # typedes     = makeRecordTypeDesc desc
+	  # typedes     = makeRecordTypeDesc desc md
 	  # (elems,pos) = readUBArrayRecordElems size (pos+IF_INT_64_OR_32 8 4) typedes []
 	  = (ArrayS size elems,pos)
 
 	makeUnBoxedListOfRecords pos 
 	  # dnr         = sifs pos str 
 	  # desc        = ds.[dnr-1]
-	  # typedes     = makeRecordTypeDesc desc
+	  # typedes     = makeRecordTypeDesc desc md
 	  # (elems,pos) = readUBListRecordElems pos typedes []
 	  = (ListS elems,pos)
 
-	readUBListRecordElems pos (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc)  elems
+	readUBListRecordElems pos (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc,unboxed_record_descriptor_numbers)  elems
 	  # dnr       = sifs pos str 
 	  | dnr < 0   = (elems,pos+IF_INT_64_OR_32 8 4) // always nil
 	  # desc_type = ds.[dnr-1].[0]
@@ -329,20 +313,20 @@ where
 	    # (ubels,pos) = readUDMany ubtypes nrub (pos+IF_INT_64_OR_32 8 4) []
 	    # (bels,pos)  = readMany nrpointer pos []
 	    # mergedelems = merge_elems alltypes ubels bels
-	    # typedelems  = setTypes modname name (makeRecordType typedesc) mergedelems
+	    # typedelems  = setRecordElementTypes (makeRecordType typedesc) unboxed_record_descriptor_numbers mergedelems ds md
 	    # elem        = RecS modname name tsize typedelems
-	    = readUBListRecordElems pos (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc) (elems++[elem]) 
+	    = readUBListRecordElems pos (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc,unboxed_record_descriptor_numbers) (elems++[elem]) 
 	  = (elems,pos+IF_INT_64_OR_32 8 4)
 	
-	readUBArrayRecordElems 0 pos (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc)  elems
+	readUBArrayRecordElems 0 pos (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc,unboxed_record_descriptor_numbers)  elems
 	  = (elems,pos)
-	readUBArrayRecordElems size pos (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc)  elems
+	readUBArrayRecordElems size pos (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc,unboxed_record_descriptor_numbers)  elems
 	  # (ubels,pos) = readUDMany ubtypes nrub pos []
 	  # (bels,pos)  = readMany nrpointer pos []
 	  # mergedelems = merge_elems alltypes ubels bels
-	  # typedelems  = setTypes modname name (makeRecordType typedesc) mergedelems
+	  # typedelems  = setRecordElementTypes (makeRecordType typedesc) unboxed_record_descriptor_numbers mergedelems ds md
 	  # elem = RecS modname  name tsize typedelems
-	  = readUBArrayRecordElems (size-1) pos (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc) (elems++[elem]) 
+	  = readUBArrayRecordElems (size-1) pos (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc,unboxed_record_descriptor_numbers) (elems++[elem]) 
 	
 
 	makeType 'i' pos  = IntS (sifs pos str)
@@ -351,49 +335,67 @@ where
 
 	makeRealType pos  = RealS (srfs pos str)
 
-
-//Start = testmrt "(1(2))34"
-//testmrt str 
-//# rt    = [toString c\\ c <-: str]
-//# elems = [S c\\ c <- rt| c <> "(" && c <> ")" && c <> ","]
-//= setTypes rt elems
-
-// Setting the tuples and records correct in a record is quit compilcated
+// Setting the tuples and records correct in a record is quit complicated
 // Records can have type descriptors of the form a(a,a)a
 // makeRecordType transforms this into: [[0],[2],[0],[0]]
 // The 2 at the second position indicated that a tuple of size 2 starts at this position
 // ((a),a)a is transformed in: [[2,1],[0],[0]] (nested tuple or records)
-// setTypes applies this to the sequential list of elements
-setTypes :: !String !String ![[Int]] [DynamicSapl] -> [DynamicSapl]
-setTypes modname name rtypes elems = setType rtypes elems
-  where
-  setType [[ ]:ts] [elem:elems] = [elem : setType ts elems]
-  setType [[0]:ts] [elem:elems] = [elem : setType ts elems]
-  setType [[1]:ts] [elem:elems] = [TupleS 1 [elem] : setType ts elems]
-  setType [[a:as]:ts] elems     = [TupleS (length rs) rs:setType (drop (a-1) ts) (drop a elems)] 
-    where rs = setType [as:take (a-1) ts] (take a elems)
-  setType [] [] = []
+// For records -size is used instead of size
+// setRecordElementTypes applies this to the sequential list of elements
 
-makeRecordType :: ![Char] -> [[Int]]
-makeRecordType ltypes = makeRecordType` [ltype\\ ltype <- ltypes| ltype <> ','] 
-  where
-  makeRecordType` ['(':ltypes] = [first : makeRecordType` (tl rs)]
-    where (first, rs) = doStartParse ['(':ltypes]
-  makeRecordType` ['{':ltypes] = [first : makeRecordType` (tl rs)]
-    where (first, rs) = doStartParse ['{':ltypes]
-  makeRecordType` [')':ltypes] = makeRecordType` ltypes
-  makeRecordType` ['}':ltypes] = makeRecordType` ltypes 
-  makeRecordType` [_  :ltypes] = [[0] : makeRecordType` ltypes]
-  makeRecordType` []           = []
-  doStartParse ['(':ltypes]  
-    # f       = getTupLength 1 0 ltypes
-    # (fs,rs) = doStartParse ltypes
-    = ([f:fs],rs)
-  doStartParse ['{':ltypes]  
-    # f       = getRecLength 1 0 ltypes
-    # (fs,rs) = doStartParse ltypes
-    = ([f:fs],rs)
-  doStartParse rs = ([],rs)
+setRecordElementTypes rtypes unboxed_record_descriptor_numbers elems ds md
+	= mt rtypes elems unboxed_record_descriptor_numbers ds md
+where
+	mt [[ ]:ts] [elem:elems] unboxed_record_descriptor_numbers ds md
+		= [elem : mt ts elems unboxed_record_descriptor_numbers ds md]
+	mt [[0]:ts] [elem:elems] unboxed_record_descriptor_numbers ds md
+		= [elem : mt ts elems unboxed_record_descriptor_numbers ds md]
+	mt [[1]:ts] [elem:elems] unboxed_record_descriptor_numbers ds md
+		= [TupleS 1 [elem] : mt ts elems unboxed_record_descriptor_numbers ds md]
+	mt [[a:as]:ts] elems unboxed_record_descriptor_numbers ds md
+		| a>=0
+			# rs = mt [as:take (a-1) ts] (take a elems) unboxed_record_descriptor_numbers ds md
+			= [TupleS (length rs) rs : mt (drop (a-1) ts) (drop a elems) unboxed_record_descriptor_numbers ds md]
+		    # a = ~a
+			  [unboxed_record_descriptor_number:unboxed_record_descriptor_numbers] = unboxed_record_descriptor_numbers
+		      record_desc = ds.[unboxed_record_descriptor_number]
+			  (name,modname,tsize) = getRecordNameAndSize record_desc md
+			  rs = mt [as:take (a-1) ts] (take a elems) unboxed_record_descriptor_numbers ds md
+		    = [RecS modname name tsize rs : mt (drop (a-1) ts) (drop a elems) unboxed_record_descriptor_numbers ds md]
+	mt [] [] unboxed_record_descriptor_numbers ds md
+		= []
+
+makeRecordType ltypes
+	= mrt ltypes 
+where
+	mrt types=:[t:ltypes]
+		| t=='(' || t=='{'
+			# (first,[_:rs]) = dostartpars types
+			= [first : mrt rs]
+		| t==')' || t=='}'
+			= mrt ltypes
+			= [[0] : mrt ltypes]
+	mrt [] = []
+
+	dostartpars [t:ltypes]
+		| t=='('
+			# f = get_tuple_or_record_length 1 0 ltypes
+			# (fs,rs) = dostartpars ltypes
+			= ([f:fs],rs)
+		| t=='{'
+			# f = get_tuple_or_record_length 1 0 ltypes
+			# (fs,rs) = dostartpars ltypes
+			= ([~f:fs],rs)
+	dostartpars rs = ([],rs)
+
+get_tuple_or_record_length n length [r:rs]
+	| r==')' || r=='}'
+		| n==1
+			= length
+			= get_tuple_or_record_length (n-1) length rs
+	| r=='(' || r=='{'
+		= get_tuple_or_record_length (n+1) length rs
+		= get_tuple_or_record_length n (length+1) rs
 
 getTupLength :: !Int !Int ![Char] -> Int
 getTupLength n length xs = getXLength ')' '(' n length xs
@@ -458,3 +460,60 @@ printintarray ia = "[" +++ printlist [toString a\\ a <-: ia]
 printlist [] = "]"
 printlist [a] =  a +++ "]"
 printlist [a:as] =  a +++ ", " +++ printlist as
+
+skip_to_null_char :: !Int !{#Char} -> Int
+skip_to_null_char i s
+	| s.[i]<>'\0'
+		= skip_to_null_char (i+1) s;
+		= i;
+
+decode_unboxed_record_descriptor_numbers i unboxed_record_descriptor_numbers desc
+	| i==size desc
+		= unboxed_record_descriptor_numbers
+		# (i,unboxed_record_descriptor_number) = decode_unboxed_record_descriptor_number i desc
+		= decode_unboxed_record_descriptor_numbers i [unboxed_record_descriptor_number:unboxed_record_descriptor_numbers] desc
+where
+	decode_unboxed_record_descriptor_number i desc
+		# n=toInt desc.[i];
+		| n<0x80
+			= (i+1,n)
+			= decode_unboxed_record_descriptor_number (i+1) ((n-0x80)<<7) desc
+		where
+			decode_unboxed_record_descriptor_number i dn_shl_7 desc
+				# n=toInt desc.[i];
+				| n<0x80
+					= (i+1,dn_shl_7+n)
+					= decode_unboxed_record_descriptor_number (i+1) ((dn_shl_7+(n-0x80))<<7) desc
+
+getRecordNameAndSize desc md
+	# tsize = arity desc.[1]
+	  modnr = selectmodnr 3 desc
+      modname = md.[modnr-1]
+	  start_types = if (desc.[5] == 'd') 6 (if (desc.[5] == 'l' && desc.[6] == 'R') 7 5)
+	  end_type_desc_index = skip_to_null_char start_types desc
+	  end_name_index = skip_to_null_char (end_type_desc_index+1) desc
+      name = desc % (end_type_desc_index+1,end_name_index-1)
+	| start_types <> 7
+		= (name,modname,tsize)   // normal record
+		= (name,modname,tsize-1) // list: drop last of pointer part (= pointer to tail)
+
+makeRecordTypeDesc desc md
+    # tsize       = arity desc.[1]
+	  nrpointer   = arity desc.[2]
+	  nrub        = tsize - nrpointer
+	  modnr       = selectmodnr 3 desc
+	  modname     = md.[modnr-1]
+	  start_types = if (desc.[5] == 'd') 6 (if (desc.[5] == 'l' && desc.[6] == 'R') 7 5)
+	  end_type_desc_index = skip_to_null_char start_types desc
+	  typedesc    = [t \\ i<-[start_types..end_type_desc_index-1],
+							let t=desc.[i]
+							| t<>',']
+	  alltypes    = [t \\ t <- typedesc | t <> '(' && t <> ')' && t <> '{' && t <> '}']
+	  ubtypes     = [c \\ c <- alltypes | c <> 'a']
+	  end_name_index = skip_to_null_char (end_type_desc_index+1) desc
+	  name = desc % (end_type_desc_index+1,end_name_index-1)
+	  unboxed_record_descriptor_numbers = decode_unboxed_record_descriptor_numbers (end_name_index+1) [] desc
+	| start_types <> 7
+		= (name,modname,tsize,nrpointer,nrub,alltypes,ubtypes,typedesc,unboxed_record_descriptor_numbers) // normal record
+		= (name,modname,tsize-1,nrpointer-1,nrub,droplast alltypes,ubtypes,droplast typedesc,unboxed_record_descriptor_numbers) // list: drop last of pointer part (= pointer to tail)
+
