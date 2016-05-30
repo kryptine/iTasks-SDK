@@ -27,7 +27,7 @@ where
 				//When optional we add a checkbox show the checkbox
 				| optional && not disabled
 					# attr = optionalAttr True
-					= (Ok (uiac UICompoundContent attr [checkbox (isTouched mask),viz],mask), vst)
+					= (Ok (uiac UIRecord attr [checkbox (isTouched mask),viz],mask), vst)
 				| otherwise 
 					= (Ok (viz,mask),vst)
 			(Error e,vst) = (Error e,vst)
@@ -81,7 +81,7 @@ where
 				| allConsesArityZero gtd_conses //If all constructors have arity 0, we only need the constructor dropwdown
 					= (Ok (consDropdown choice mask,mask), {vst & selectedConsIndex = curSelectedConsIndex})
 				| otherwise
-					= (Ok (uic UICompoundContent [consDropdown choice mask,items],CompoundMask [mask])
+					= (Ok (uic UIVarCons [consDropdown choice mask,items],CompoundMask [mask])
 						, {vst & selectedConsIndex = curSelectedConsIndex})
 			(Error e,vst) = (Error e,vst)
 	//ADT with one constructor or static render: 'DM'.put content into container, if empty show cons name
@@ -211,7 +211,7 @@ where
 		# ((vizx,maskx),(vizy,masky)) = (fromOk vizx,fromOk vizy)
 		# optional 		= isOptional vizx && isOptional vizy
 		# attr 			= optionalAttr optional
-		= (Ok (uiac UICompoundContent attr [vizx,vizy],CompoundMask [maskx,masky]),vst)
+		= (Ok (uiac UIPair attr [vizx,vizy],CompoundMask [maskx,masky]),vst)
 
 	updUI dp (PAIR oldx oldy) om (PAIR newx newy) nm vst
 		# (dpx,dpy)		= pairPathSplit dp

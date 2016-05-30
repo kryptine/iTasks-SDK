@@ -4,17 +4,23 @@ itasks.itwc_raw_empty = {
 		this.domEl.innerHTML = '(empty)';
 	}
 };
-itasks.itwc_raw_compoundcontent = {
-	cssCls: 'raw-compound-content'
+itasks.itwc_raw_record = {
+	cssCls: 'raw-record'
 };
-itasks.itwc_raw_parallel = {
-	cssCls: 'raw-parallel',	
+itasks.itwc_raw_cons = {
+	cssCls: 'raw-cons'
+};
+itasks.itwc_raw_var_cons = {
+	cssCls: 'raw-var-cons'
+};
+itasks.itwc_raw_interact = {
+	cssCls: 'raw-interact'
 };
 itasks.itwc_raw_step = {
 	cssCls: 'raw-step',	
 };
-itasks.itwc_raw_interact = {
-	cssCls: 'raw-interact'
+itasks.itwc_raw_parallel = {
+	cssCls: 'raw-parallel',	
 };
 
 itasks.itwc_raw_action = {

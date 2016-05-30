@@ -142,10 +142,12 @@ div.itasks-loader {
 
 /* Additional components */
 /* Styles for unlayouted content */
-.itasks-raw-compound-content
-, .itasks-raw-parallel
+.itasks-raw-record
+, .itasks-raw-cons
+, .itasks-raw-var-cons
 , .itasks-raw-interact
 , .itasks-raw-step
+, .itasks-raw-parallel
 , .itasks-raw-form
 , .itasks-raw-form-item {
   border: dashed 2px #ccc;
@@ -158,6 +160,18 @@ div.itasks-loader {
 .itasks-raw-form-item {
   border: dashed 2px #f33;
   border-radius: 5px; }
+
+.itasks-raw-record {
+  border: solid 2px #f33;
+  background: #fee; }
+
+.itasks-raw-cons {
+  border: solid 2px #ff3;
+  background: #ffe; }
+
+.itasks-raw-var-cons {
+  border: solid 2px #ff3;
+  background: #ffe; }
 
 .itasks-raw-interact {
   border: solid 2px #f3f;

@@ -1,8 +1,10 @@
 /* Styles for unlayouted content */
-.#{$prefix}raw-compound-content
-	, .#{$prefix}raw-parallel
+.#{$prefix}raw-record
+	, .#{$prefix}raw-cons
+	, .#{$prefix}raw-var-cons
 	, .#{$prefix}raw-interact
 	, .#{$prefix}raw-step
+	, .#{$prefix}raw-parallel
 	, .#{$prefix}raw-form
 	, .#{$prefix}raw-form-item
 {
@@ -16,6 +18,18 @@
 .#{$prefix}raw-form-item {
 	border: dashed 2px #f33;
 	border-radius: 5px;
+}
+.#{$prefix}raw-record {
+	border: solid 2px #f33;
+	background: #fee;
+}
+.#{$prefix}raw-cons {
+	border: solid 2px #ff3;
+	background: #ffe;
+}
+.#{$prefix}raw-var-cons {
+	border: solid 2px #ff3;
+	background: #ffe;
 }
 .#{$prefix}raw-interact {
 	border: solid 2px #f3f;

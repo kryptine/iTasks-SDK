@@ -18,7 +18,7 @@ arrangeWithSideBar index side size resize = sequenceLayouts
 	,copyAttributes [0] [] 	//Keep the attributes from the original UI
 	,setNodeType UIPanel 
 	,setAttributes (directionAttr direction)
-	,insertSubAt [sidePanelIndex] (ui UICompoundContent) //Make sure we have a target for the move
+	,insertSubAt [sidePanelIndex] (ui UIComponent) //Make sure we have a target for the move
 	,moveSubAt [mainPanelIndex,index] [sidePanelIndex,0]
 	,layoutSubAt [sidePanelIndex] unwrapUI //Remove the temporary wrapping panel
 	,layoutSubAt [sidePanelIndex] (setAttributes (sizeAttr sidePanelWidth sidePanelHeight))

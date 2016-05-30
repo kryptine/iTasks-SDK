@@ -58,12 +58,15 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	//Constructors for editors
 	| UIAction 
 	//Intermediate containers
-    | UIForm
-	| UIFormItem
+	| UIPair
+	| UIRecord
+	| UICons
+	| UIVarCons
 	| UIInteract
 	| UIStep
 	| UIParallel
-	| UICompoundContent
+    | UIForm
+	| UIFormItem
 	// --- Client components: ---
 	| UIComponent
 	// Containers
