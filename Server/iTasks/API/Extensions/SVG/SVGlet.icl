@@ -20,13 +20,14 @@ import Text
 from Data.IntMap.Strict import :: IntMap, instance Functor IntMap
 import qualified Data.IntMap.Strict as DIS
 import Data.Matrix
+import iTasks.API.Extensions.Platform
 
 derive class iTask Image, Span, LookupSpan, FontDef, ImageTransform, ImageAttr
 derive class iTask ImageContent, BasicImage, CompositeImage, LineImage, Markers
 derive class iTask LineContent, Compose, XAlign, YAlign, OnMouseOutAttr, OnMouseMoveAttr
 derive class iTask OpacityAttr, FillAttr, XRadiusAttr, YRadiusAttr, StrokeWidthAttr, StrokeAttr
 derive class iTask Slash, DraggableAttr, OnMouseOverAttr, OnMouseUpAttr, DashAttr
-derive class iTask OnMouseDownAttr, OnClickAttr, Angle
+derive class iTask OnMouseDownAttr, OnClickAttr
 
 :: *GenSVGStVal s =
   { uniqueIdCounter :: !Int
