@@ -20,18 +20,28 @@ gEditor{|UNIT|} = emptyEditor
 gEditor{|RECORD of {grd_arity}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp (RECORD x) vst=:{VSt|taskId,mode,optional}
-		= case ex.Editor.genUI (pairPath grd_arity dp) x {VSt|vst & optional = False} of
-			(Ok (viz,mask),vst) 
-				# viz  = flattenPairUI grd_arity viz
-				# mask = flattenPairMask grd_arity mask
-
-				//When optional we add a checkbox
-				| optional && (mode =: Enter || mode =: Update)
-					# attr = optionalAttr True
-					= (Ok (uiac UIRecord attr [checkbox (isTouched mask),viz],mask), vst)
-				| otherwise 
-					= (Ok (viz,mask),vst)
-			(Error e,vst) = (Error e,vst)
+		= case mode of
+			Enter 
+				| optional //Just show the checkbox, to enable the remaining fields
+					= (Ok (UI UIRecord 'DM'.newMap [checkbox False], CompoundMask [newFieldMask]), vst)
+				| otherwise
+					= case ex.Editor.genUI (pairPath grd_arity dp) x vst of
+						(Ok viz,vst) = (Ok (flattenUIPairs UIRecord grd_arity viz),vst)
+						(Error e,vst) = (Error e,vst)
+			Update
+				= case ex.Editor.genUI (pairPath grd_arity dp) x {VSt|vst & optional = False} of
+					(Ok viz,vst) 
+						# (UI type attr items, CompoundMask masks) = flattenUIPairs UIRecord grd_arity viz 
+						//When optional we add a checkbox
+						| optional
+							= (Ok (UI type attr [checkbox True:items],CompoundMask [newFieldMask:masks]), vst)
+						| otherwise 
+							= (Ok (UI type attr items,CompoundMask masks),vst)
+					(Error e,vst) = (Error e,vst)
+			View 
+				= case ex.Editor.genUI (pairPath grd_arity dp) x vst of
+					(Ok viz,vst)  = (Ok (flattenUIPairs UIRecord grd_arity viz),vst)
+					(Error e,vst) = (Error e,vst)
 	where
 		checkbox checked = uia UICheckbox (editAttrs taskId (editorId dp) (Just (JSONBool checked)))
 
@@ -55,10 +65,9 @@ where
 
 gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (FIELD x) vst = case ex.Editor.genUI dp x vst of
-		(Ok (UI type attr items, mask),vst)
-			= (Ok (UI type ('DM'.union attr (labelAttr gfd_name)) items, mask),vst) //Add the field name as a label
-		(Error e,vst) = (Error e,vst)
+	genUI dp (FIELD x) vst = case ex.Editor.genUI dp x vst of //Only the field name as a label
+		(Ok (UI type attr items, mask),vst) = (Ok (UI type ('DM'.union attr (labelAttr gfd_name)) items, mask),vst) 
+		(Error e,vst)                       = (Error e,vst)
 
 	updUI dp (FIELD old) om (FIELD new) nm vst = ex.Editor.updUI dp old om new nm vst
 
@@ -178,10 +187,9 @@ where
 
 gEditor{|CONS of {gcd_index,gcd_arity}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (CONS x) vst
-		= case ex.Editor.genUI (pairPath gcd_arity dp) x vst of
-			(Ok (ui,mask),vst) = (Ok (flattenPairUI gcd_arity ui,flattenPairMask gcd_arity mask), {VSt| vst & selectedConsIndex = gcd_index})
-			(Error e,vst) = (Error e,{VSt| vst & selectedConsIndex = gcd_index})
+	genUI dp (CONS x) vst = case ex.Editor.genUI (pairPath gcd_arity dp) x vst of
+		(Ok viz,vst)  = (Ok (flattenUIPairs UICons gcd_arity viz), {VSt| vst & selectedConsIndex = gcd_index})
+		(Error e,vst) = (Error e,{VSt| vst & selectedConsIndex = gcd_index})
 
 	updUI dp (CONS old) om (CONS new) nm vst 
 		//Diff all fields of the constructor
@@ -235,13 +243,12 @@ where
 //The maybe editor makes it content optional
 gEditor{|Maybe|} ex _ dx _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp val vst=:{VSt|optional}
-		# (viz,vst) = case val of
-			(Just x)	= ex.Editor.genUI dp x {VSt|vst & optional = True}
-			_			= ex.Editor.genUI dp dx {VSt|vst & optional = True}
-		= case viz of
-			(Ok (UI type attr items, mask)) = (Ok (UI type ('DM'.union (optionalAttr True) attr) items,mask), {VSt|vst & optional = optional})
-			(Error e) = (Error e, {VSt|vst & optional = optional})
+	genUI dp val vst=:{VSt|mode,optional}
+		| mode =: View && val =: Nothing // Viewing Nothing is always the empty UI
+			= (Ok (ui UIEmpty,newFieldMask),vst)
+		= case ex.Editor.genUI dp (fromMaybe dx val) {VSt|vst & optional = True} of
+			(Ok (UI type attr items, mask),vst) = (Ok (UI type ('DM'.union (optionalAttr True) attr) items,mask), {VSt|vst & optional = optional})
+			(Error e,vst) = (Error e, {VSt|vst & optional = optional})
 
 	updUI dp Nothing om Nothing nm vst = (Ok NoChange,vst)
 	updUI dp Nothing om (Just new) nm vst=:{VSt|optional}
@@ -281,27 +288,15 @@ where
 //When UIs, or UI differences are aggregated in PAIR's they form a binary tree 
 //These functions flatten this tree back to a single CompoundEditor or ChangeUI definition
 
-flattenPairUI 0 d = d
-flattenPairUI 1 d = d
-flattenPairUI 2 d = d
-flattenPairUI 3 (UI t a [l, UI _ _ [m,r]]) = UI t a [l,m,r]
-flattenPairUI n (UI t a [l,r])
-	# (UI _ _ l) = flattenPairUI half l
-	# (UI _ _ r) = flattenPairUI (n - half) r
-	= UI t a (l ++ r)
-where
-	half = n / 2
-
-flattenPairMask 0 m = m
-flattenPairMask 1 m = m
-flattenPairMask 2 m = m
-flattenPairMask 3 (CompoundMask [l,CompoundMask [m,r]]) = CompoundMask [l,m,r]
-flattenPairMask n (CompoundMask [l,r])
-	# (CompoundMask l) = flattenPairMask half l
-	# (CompoundMask r) = flattenPairMask (n - half) r
-	= CompoundMask (l ++ r)
-where
-	half = n / 2
+flattenUIPairs type 0 (ui,mask) = (UI type 'DM'.newMap [],CompoundMask [])
+flattenUIPairs type 1 (ui,mask) = (UI type 'DM'.newMap [ui],CompoundMask [mask])
+flattenUIPairs type 2 (UI UIPair _ [ul,ur], CompoundMask [ml,mr]) = (UI type 'DM'.newMap [ul,ur],CompoundMask [ml,mr])
+flattenUIPairs type 3 (UI UIPair _ [ul,UI UIPair _ [um,ur]], CompoundMask [ml,CompoundMask [mm,mr]]) = (UI type 'DM'.newMap [ul,um,ur],CompoundMask [ml,mm,mr])
+flattenUIPairs type n (UI UIPair _ [ul,ur], CompoundMask [ml,mr])
+	# half = n / 2
+	  (UI _ _ ul,CompoundMask ml) = flattenUIPairs type half (ul,ml)
+	  (UI _ _ ur,CompoundMask mr) = flattenUIPairs type (n - half) (ur,mr)
+	= (UI type 'DM'.newMap (ul ++ ur),CompoundMask (ml ++ mr))
 
 //No pairs are introduced for 0 or 1 fields
 flattenPairDiff s 0 d = d 
