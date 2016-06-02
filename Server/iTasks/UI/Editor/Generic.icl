@@ -65,7 +65,7 @@ where
 
 gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (FIELD x) vst = case ex.Editor.genUI dp x vst of //Only the field name as a label
+	genUI dp (FIELD x) vst = case ex.Editor.genUI dp x vst of //Just add the field name as a label
 		(Ok (UI type attr items, mask),vst) = (Ok (UI type ('DM'.union attr (labelAttr gfd_name)) items, mask),vst) 
 		(Error e,vst)                       = (Error e,vst)
 
@@ -77,38 +77,37 @@ where
 
 gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
-	genUI dp (OBJECT x) vst=:{VSt|taskId,mode,selectedConsIndex = curSelectedConsIndex}
-	//For objects we only peek at the verify mask, but don't take it out of the state yet.
-	//The masks are removed from the states when processing the CONS.
-	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
-	| gtd_num_conses > 1 && (mode =: Enter || mode =: Update)
-		= case ex.Editor.genUI dp x {VSt|vst & optional=False} of
-			(Ok (items,mask), vst=:{selectedConsIndex}) 
-        		# choice = case mask of
-					(FieldMask {FieldMask|state=JSONNull}) = []
-            		_          = [selectedConsIndex]
-				| allConsesArityZero gtd_conses //If all constructors have arity 0, we only need the constructor dropwdown
-					= (Ok (consDropdown choice mask,mask), {vst & selectedConsIndex = curSelectedConsIndex})
+	genUI dp (OBJECT x) vst=:{VSt|taskId,mode,selectedConsIndex}
+		= case mode of
+			Enter
+				//If there is only one constructor, just generate the UI for that constructor
+				| gtd_num_conses == 1
+					# (viz,vst) = ex.Editor.genUI dp x vst
+					= (viz,{vst & selectedConsIndex = selectedConsIndex})
 				| otherwise
-					= (Ok (uic UIVarCons [consDropdown choice mask,items],CompoundMask [mask])
-						, {vst & selectedConsIndex = curSelectedConsIndex})
-			(Error e,vst) = (Error e,vst)
-	//ADT with one constructor or static render: 'DM'.put content into container, if empty show cons name
-	| otherwise
-		= case ex.Editor.genUI dp x vst of
-			(Ok (UI UIEmpty _ _,mask),vst)
-				= (Ok (stringDisplay (if (isTouched mask) (gtd_conses !! vst.selectedConsIndex).gcd_name ""),mask),{vst & selectedConsIndex = curSelectedConsIndex})
-			(Ok viz, vst)
-				= (Ok viz, {vst & selectedConsIndex = curSelectedConsIndex})
-			(Error e, vst) = (Error e,vst)
-	where
-		consDropdown choice mask
-			# options = [JSONString gdc.gcd_name \\ gdc <- gtd_conses]
-			# attr    = 'DM'.unions [choiceAttrs taskId (editorId dp) choice options,attributes mask]
-			= uia UIDropdown attr
-		attributes mask
-			| isTouched mask	= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_VALID),(HINT_ATTRIBUTE, JSONString "You have correctly selected an option")]
-								= 'DM'.fromList[(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INFO),(HINT_ATTRIBUTE, JSONString "Select an option")]
+					//Initially only generate a UI to choose a constructor
+					# consChooseUI = uia UIDropdown (choiceAttrs taskId (editorId dp) [] [JSONString gdc.gcd_name \\ gdc <- gtd_conses])
+					= (Ok (UI UIVarCons 'DM'.newMap [consChooseUI],CompoundMask [newFieldMask]),{vst & selectedConsIndex = selectedConsIndex})
+			Update
+				| gtd_num_conses == 1
+					# (viz,vst) = ex.Editor.genUI dp x vst
+					= (viz,{vst & selectedConsIndex = selectedConsIndex})
+				| otherwise
+					= case ex.Editor.genUI dp x vst of
+						(Ok (UI UICons attr items, CompoundMask masks),vst)
+							# consChooseUI = uia UIDropdown (choiceAttrs taskId (editorId dp) [vst.selectedConsIndex] [JSONString gdc.gcd_name \\ gdc <- gtd_conses])
+							= (Ok (UI UIVarCons attr [consChooseUI:items],CompoundMask [newFieldMask:masks]),{vst & selectedConsIndex = selectedConsIndex})
+						(Error e,vst) = (Error e,vst)
+			View
+				//If there is only one constructor we don't need to show the constructor name
+				= case ex.Editor.genUI dp x vst of
+					(Ok (UI UICons attr items, CompoundMask masks),vst)
+						| gtd_num_conses == 1
+							= (Ok (UI UICons attr items, CompoundMask masks),{vst & selectedConsIndex = selectedConsIndex})
+						| otherwise
+							# consNameUI = uia UIViewString (valueAttr (JSONString (gtd_conses !! vst.selectedConsIndex).gcd_name))
+							= (Ok (UI UIVarCons attr [consNameUI:items],CompoundMask [newFieldMask:masks]),{vst & selectedConsIndex = selectedConsIndex})
+					(Error e,vst) = (Error e,vst)
 
 	updUI dp (OBJECT old) om (OBJECT new) nm vst=:{VSt|mode,selectedConsIndex=curSelectedConsIndex}
 		| gtd_num_conses > 1 && (mode =:Enter || mode =: Update)
@@ -287,7 +286,6 @@ where
 
 //When UIs, or UI differences are aggregated in PAIR's they form a binary tree 
 //These functions flatten this tree back to a single CompoundEditor or ChangeUI definition
-
 flattenUIPairs type 0 (ui,mask) = (UI type 'DM'.newMap [],CompoundMask [])
 flattenUIPairs type 1 (ui,mask) = (UI type 'DM'.newMap [ui],CompoundMask [mask])
 flattenUIPairs type 2 (UI UIPair _ [ul,ur], CompoundMask [ml,mr]) = (UI type 'DM'.newMap [ul,ur],CompoundMask [ml,mr])
@@ -349,5 +347,4 @@ updPairPath i n
 		= [0: updPairPath i (n /2)]
 	| otherwise
 		= [1: updPairPath (i - (n/2)) (n - (n/2))]
-
 
