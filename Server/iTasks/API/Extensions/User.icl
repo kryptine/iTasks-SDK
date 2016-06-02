@@ -142,20 +142,23 @@ userToAttr _ attr _
 	# attr = 'DM'.del "auth-title" attr
 	= Ok (Just attr)
 
+processesForUser :: User -> ReadOnlyShared [TaskListItem ()]
+processesForUser user = mapRead (filter (forWorker user)) currentProcesses
+
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem ()]
 processesForCurrentUser = mapRead readPrj (currentProcesses >+| currentUser)
 where
 	readPrj (items,user)	= filter (forWorker user) items
 
-    forWorker user {TaskListItem|attributes} = case 'DM'.get "user" attributes of
-        Just uid1 = case user of
-            (AuthenticatedUser uid2 _ _)    = uid1 == uid2
+forWorker user {TaskListItem|attributes} = case 'DM'.get "user" attributes of
+    Just uid1 = case user of
+        (AuthenticatedUser uid2 _ _)    = uid1 == uid2
+        _                               = False
+    Nothing = case 'DM'.get "role" attributes of
+        Just role = case user of
+            (AuthenticatedUser _ roles _)   = isMember role roles
             _                               = False
-        Nothing = case 'DM'.get "role" attributes of
-            Just role = case user of
-                (AuthenticatedUser _ roles _)   = isMember role roles
-                _                               = False
-            Nothing = True
+        Nothing = True
 
 workOn :: !TaskId -> Task AttachmentStatus
 workOn taskId=:(TaskId no _) 

@@ -286,6 +286,7 @@ where
         lookup [wf=:{Workflow|path}:wfs] cid = if (path == cid) (Just wf) (lookup wfs cid)
         lookup [] _ = Nothing
 
+appendOnce :: TaskId (Task a) (SharedTaskList a) -> Task () | iTask a
 appendOnce identity task slist
     =   get (taskListMeta slist)
     >>- \items -> if (checkItems name items)
@@ -298,6 +299,7 @@ where
         | maybe False ((==) name) ('DM'.get "name" attributes)  = True //Item with name exists!
                                                                 = checkItems name is
 
+removeWhenStable :: (Task a) (SharedTaskList a) -> Task a | iTask a
 removeWhenStable task slist
     =   task
     >>* [OnValue (ifStable (\_ -> get (taskListSelfId slist) >>- \selfId -> removeTask selfId slist))]

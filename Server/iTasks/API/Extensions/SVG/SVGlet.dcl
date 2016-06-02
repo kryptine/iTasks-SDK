@@ -5,6 +5,8 @@ import Graphics.Scalable.Internal
 import iTasks
 import iTasks.UI.Editor
 import iTasks.API.Core.Types
+import iTasks.API.Extensions.Platform
+
 
 //An SVGLet let's you specify an editor as an interactive SVG image
 :: SVGLet m v =
@@ -21,4 +23,4 @@ derive class iTask ImageContent, BasicImage, CompositeImage, LineImage, Markers
 derive class iTask LineContent, Compose, XAlign, YAlign, OnMouseOutAttr, OnMouseMoveAttr
 derive class iTask OpacityAttr, FillAttr, XRadiusAttr, YRadiusAttr, StrokeWidthAttr, StrokeAttr
 derive class iTask Slash, DraggableAttr, OnMouseOverAttr, OnMouseUpAttr, DashAttr
-derive class iTask OnMouseDownAttr, OnClickAttr, Angle
+derive class iTask OnMouseDownAttr, OnClickAttr
