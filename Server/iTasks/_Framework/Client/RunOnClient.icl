@@ -71,7 +71,7 @@ controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} 
 	= case mbResult of
 		Ok (_,value)
 					= (Nothing, {TaskState | st & value = Just value}, iworld)
-		Error msg	= abort msg
+		Error msg	= abort ("controllerFunc: " +++ msg)
 // Focus
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} Nothing Nothing Nothing iworld
 	# iworld = trace_n "c_focus" iworld
@@ -79,7 +79,7 @@ controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Just t} 
 	= case mbResult of
 		Ok (_,value)
 					= (Nothing, {TaskState | st & value = Just value}, iworld)
-		Error msg	= abort msg
+		Error msg	= abort ("controllerFunc: " +++ msg)
 */
 // Edit
 controllerFunc taskId st=:{TaskState | sessionId, instanceNo} Nothing (Just name) (Just jsonval) iworld
@@ -87,14 +87,14 @@ controllerFunc taskId st=:{TaskState | sessionId, instanceNo} Nothing (Just name
 	= case mbResult of
 		Ok value
 					= (Nothing, {TaskState | st & value = Just value}, iworld)
-		Error msg	= abort msg
+		Error msg	= abort ("controllerFunc: " +++ msg)
 // Action
 controllerFunc taskId st=:{TaskState | sessionId, instanceNo} Nothing (Just name) Nothing iworld
 	# (mbResult,iworld)	= evalTaskInstance instanceNo (ActionEvent taskId name) iworld
 	= case mbResult of
 		Ok value
 					= (Nothing, {TaskState | st & value = Just value}, iworld)
-		Error msg	= abort msg
+		Error msg	= abort ("controllerFunc: " +++ msg)
 
 newWorld :: *World
 newWorld = undef
