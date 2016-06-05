@@ -10,7 +10,7 @@ emptyEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI _ _ vst			    = (Ok (ui UIEmpty,newFieldMask),vst)
 	updUI _ _ _ _ _ vst 		= (Ok NoChange,vst)
-	onEdit _ _ val mask ust 	= (Ok mask,val,ust)
+	onEdit _ _ val mask ust 	= (Ok (NoChange,mask),val,ust)
 
 listEditor :: (Maybe ([a] -> a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a]
 listEditor add remove reorder count itemEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
@@ -66,15 +66,15 @@ where
 					_        = (items,childMasks)
 				_	
 					= (items,childMasks)
-			= (Ok (CompoundMask childMasks),items,ust)
+			= (Ok (NoChange,CompoundMask childMasks),items,ust)
 		| otherwise
-			= (Ok (CompoundMask childMasks),items,ust)
+			= (Ok (NoChange,CompoundMask childMasks),items,ust)
 	where
 		updateItems [i:dp] e items masks ust
 			| i >= (length items) = (items,masks,ust)
 			# (nm,nx,ust)	= itemEditor.Editor.onEdit dp e (items !! i) (masks !! i) ust
 			= case nm of
-				Ok m = (updateAt i nx items, updateAt i m masks,ust)
+				Ok (_,m) = (updateAt i nx items, updateAt i m masks,ust)
 				_    = (items,masks,ust)
 		updateItems dp e items masks ust
 			= (items,masks,ust)

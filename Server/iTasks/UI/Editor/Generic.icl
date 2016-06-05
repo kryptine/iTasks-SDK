@@ -53,15 +53,15 @@ where
     	# mask = case e of
         	JSONBool False  = CompoundMask [] 
         	_               = mask
-    	= (Ok mask,RECORD record,ust)
+    	= (Ok (NoChange,mask),RECORD record,ust)
 
 	onEdit [d:ds] e (RECORD record) mask ust
 		| d >= grd_arity
-			= (Ok mask,RECORD record,ust)
+			= (Ok (NoChange,mask),RECORD record,ust)
 		# childMasks = subMasks grd_arity mask
-		# (Ok targetMask,record,ust) = ex.Editor.onEdit (updPairPath d grd_arity ++ ds) e record (childMasks !! d) ust
-		= (Ok (CompoundMask (updateAt d targetMask childMasks)),RECORD record,ust)
-	onEdit _ _ val mask ust = (Ok mask,val,ust)
+		# (Ok (targetChange,targetMask),record,ust) = ex.Editor.onEdit (updPairPath d grd_arity ++ ds) e record (childMasks !! d) ust
+		= (Ok (targetChange,(CompoundMask (updateAt d targetMask childMasks))),RECORD record,ust)
+	onEdit _ _ val mask ust = (Ok (NoChange,mask),val,ust)
 
 gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
@@ -134,10 +134,10 @@ where
 			JSONNull	= newCompoundMask //Reset
 			_			= CompoundMask (repeatn (gtd_conses !! consIdx).gcd_arity newFieldMask)
     	# (_,val,ust)	= ex.Editor.onEdit (updConsPath (if (consIdx < gtd_num_conses) consIdx 0) gtd_num_conses) e val mask ust
-		= (Ok mask,OBJECT val, ust)
+		= (Ok (NoChange,mask),OBJECT val, ust)
 	onEdit dp e (OBJECT val) mask ust //Update is targeted somewhere in a substructure of this value
-		# (Ok mask,val,ust) = ex.Editor.onEdit dp e val mask ust
-		= (Ok mask,OBJECT val,ust)
+		# (Ok (change,mask),val,ust) = ex.Editor.onEdit dp e val mask ust
+		= (Ok (change,mask),OBJECT val,ust)
 
 	allConsesArityZero [] = True
 	allConsesArityZero [{gcd_arity}:cs]
@@ -166,12 +166,12 @@ where
 
 	onEdit [d:ds] e either mask ust
 		| d == -1 = case ds of
-        	[] = (Ok newFieldMask,LEFT dx,ust)
+        	[] = (Ok (NoChange,newFieldMask),LEFT dx,ust)
 			_ 
 				# (mask,x,ust) = ex.Editor.onEdit ds e dx newFieldMask ust
 				= (mask,LEFT x,ust)
 		| d == -2 = case ds of
-			[] = (Ok newFieldMask,RIGHT dy,ust)
+			[] = (Ok (NoChange,newFieldMask),RIGHT dy,ust)
 			_ 
 				# (mask,y,ust) = ey.Editor.onEdit ds e dy newFieldMask ust
 				= (mask,RIGHT y,ust)
@@ -199,11 +199,11 @@ where
 																				
 	onEdit [d:ds] e (CONS val) mask ust
 		| d >= gcd_arity
-			= (Ok mask,CONS val,ust)	
+			= (Ok (NoChange,mask),CONS val,ust)	
 		# childMasks = subMasks gcd_arity mask
-		# (Ok targetMask,val,ust) = ex.Editor.onEdit (updPairPath d gcd_arity ++ ds) e val (childMasks !! d) ust
-		= (Ok (CompoundMask (updateAt d targetMask childMasks)),CONS val,ust)
-	onEdit _ _ val mask ust = (Ok mask,val,ust)
+		# (Ok (targetChange,targetMask),val,ust) = ex.Editor.onEdit (updPairPath d gcd_arity ++ ds) e val (childMasks !! d) ust
+		= (Ok (targetChange,CompoundMask (updateAt d targetMask childMasks)),CONS val,ust)
+	onEdit _ _ val mask ust = (Ok (NoChange,mask),val,ust)
 
 gEditor{|PAIR|} ex _ _ _ _ ey _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
@@ -237,7 +237,7 @@ where
 	onEdit [1:ds] e (PAIR x y) ymask ust
 		# (ymask,y,ust) = ey.Editor.onEdit ds e y ymask ust
 		= (ymask,PAIR x y,ust)
-	onEdit _ _ val mask ust = (Ok mask,val,ust)
+	onEdit _ _ val mask ust = (Ok (NoChange,mask),val,ust)
 
 //The maybe editor makes it content optional
 gEditor{|Maybe|} ex _ dx _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
@@ -265,7 +265,7 @@ where
 			# mask = case mask of
 				(FieldMask fmask) = FieldMask {FieldMask|fmask & state = JSONNull}
 				(CompoundMask m) = CompoundMask []
-			= (Ok mask,Nothing,vst) //Reset
+			= (Ok (NoChange,mask),Nothing,vst) //Reset
 		| otherwise
 			# (x,xmask) = maybe (dx,CompoundMask []) (\x -> (x,mask)) val
 			# (xmask,x,vst) = ex.Editor.onEdit dp e x xmask {VSt|vst & optional = True}

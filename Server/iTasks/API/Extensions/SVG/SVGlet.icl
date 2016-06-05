@@ -112,7 +112,7 @@ svgRenderer svglet=:{initView,renderImage,updView,updModel}
 			= (jsNull,jsTrace "Unknown attribute change" world)
 
   	updUI _ ov om nv nm vst = (Ok (if (ov === nv) NoChange (ChangeUI [SetAttribute "stateChange" (toJSON nv)] [])),vst)
-  	onEdit _ _ st m ust = (Ok m,st,ust)
+  	onEdit _ _ st m ust = (Ok (NoChange,m),st,ust)
 
 onNewState :: !(JSVal a) !(SVGLet s v) !s !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 onNewState me svglet=:{initView,renderImage} s world

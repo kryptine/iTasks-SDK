@@ -122,8 +122,8 @@ updateValueAndMask_ taskId mode path mbEditor diff (v,m) iworld
 	# editor = fromMaybe gEditor{|*|} mbEditor
     # (nm,nv,vst=:{VSt|iworld}) = editor.Editor.onEdit path diff v m {VSt|mode = mode, taskId=toString taskId, optional=False, selectedConsIndex= -1, iworld=iworld}
 	= case nm of
-		Ok m 	= ((nv,m),iworld)
-		_ 		= ((v,m),iworld)
+		Ok (_,m) 	= ((nv,m),iworld)
+		_ 			= ((v,m),iworld)
 
 visualizeView_ :: TaskId TaskEvalOpts EditMode (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld -> *(!MaybeErrorString UIChange,!Bool,!*IWorld) | iTask v & toPrompt d
 visualizeView_ taskId evalOpts mode mbEditor event old=:(v,m) new=:(nv,nm) prompt iworld

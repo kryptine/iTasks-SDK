@@ -20,9 +20,9 @@ from GenEq import generic gEq
 *	Definition of an editor editor
 */
 :: Editor a = 
-	{ genUI  :: DataPath a *VSt                     -> *(!MaybeErrorString (!UI, !EditMask), !*VSt) //Generating the initial UI
-	, updUI  :: DataPath a EditMask a EditMask *VSt -> *(!MaybeErrorString UIChange, !*VSt)
-	, onEdit :: DataPath JSONNode a EditMask *VSt   -> *(!MaybeErrorString EditMask, !a, !*VSt)   //React to edit events
+	{ genUI  :: DataPath a *VSt                     -> *(!MaybeErrorString (!UI, !EditMask), !*VSt)           //Generating the initial UI
+	, onEdit :: DataPath JSONNode a EditMask *VSt   -> *(!MaybeErrorString (!UIChange, !EditMask), !a, !*VSt) //React to edit events
+	, updUI  :: DataPath a EditMask a EditMask *VSt -> *(!MaybeErrorString UIChange, !*VSt) 		          //React to a new model value 
 	}
 
 //* Datapaths identify sub structures in a composite structure
@@ -78,8 +78,8 @@ checkMaskValue      :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
 stdAttributes 		:: String Bool EditMask -> UIAttributes
 stdAttributeChanges :: String Bool EditMask EditMask -> [UIAttributeChange]
 
-basicEdit :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString EditMask, !a, !*VSt) | JSONDecode{|*|} upd
-basicEditSimple :: !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString EditMask,!a,!*VSt) | JSONDecode{|*|} a
+basicEdit :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString (!UIChange,!EditMask), !a, !*VSt) | JSONDecode{|*|} upd
+basicEditSimple :: !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString (!UIChange,!EditMask),!a,!*VSt) | JSONDecode{|*|} a
 
 //****************************************************************************//
 // Alternative wrapper type for defining custom editor components that can process events
@@ -89,8 +89,8 @@ basicEditSimple :: !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString
   =
   { genUI   :: DataPath a *VSt -> *(!MaybeErrorString (!UI,!EditMask), !*VSt)
   , initUI  :: (JSObj ()) *JSWorld -> *JSWorld
+  , onEdit  :: DataPath JSONNode a EditMask *VSt -> *(!MaybeErrorString (!UIChange,!EditMask), !a, !*VSt)   //React to edit events
   , updUI   :: DataPath a EditMask a EditMask *VSt -> *(!MaybeErrorString UIChange, !*VSt)
-  , onEdit  :: DataPath JSONNode a EditMask *VSt -> *(!MaybeErrorString EditMask, !a, !*VSt)   //React to edit events
   }
 
 fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a

@@ -84,18 +84,18 @@ stdAttributeChanges typename optional om nm
 	| om === nm = [] //Nothing to change
 	| otherwise = [SetAttribute k v \\ (k,v) <- 'DM'.toList (stdAttributes typename optional nm)]
 
-basicEdit :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString EditMask, !a, !*VSt) | JSONDecode{|*|} upd
+basicEdit :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString (!UIChange,!EditMask), !a, !*VSt) | JSONDecode{|*|} upd
 basicEdit toV [] upd v vmask ust=:{VSt|optional}
 	= case upd of
-		JSONNull = (Ok (FieldMask {touched=True,valid=optional,state=JSONNull}),v,ust)
+		JSONNull = (Ok (NoChange,FieldMask {touched=True,valid=optional,state=JSONNull}),v,ust)
 		json = case fromJSON upd of
-			Nothing  = (Ok (FieldMask {touched=True,valid=False,state=upd}),v,ust)
+			Nothing  = (Ok (NoChange,FieldMask {touched=True,valid=False,state=upd}),v,ust)
 			(Just e) = case toV e v of
-				Nothing = (Ok (FieldMask {touched=True,valid=False,state=upd}),v,ust)
-				Just val = (Ok (FieldMask {touched=True,valid=True,state=upd}),val,ust)
-basicEdit toV _ upd v vmask ust = (Ok vmask,v,ust)
+				Nothing = (Ok (NoChange,FieldMask {touched=True,valid=False,state=upd}),v,ust)
+				Just val = (Ok (NoChange,FieldMask {touched=True,valid=True,state=upd}),val,ust)
+basicEdit toV _ upd v vmask ust = (Ok (NoChange,vmask),v,ust)
 
-basicEditSimple :: !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString EditMask,!a,!*VSt) | JSONDecode{|*|} a
+basicEditSimple :: !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString (!UIChange,!EditMask),!a,!*VSt) | JSONDecode{|*|} a
 basicEditSimple target upd val mask iworld = basicEdit (\json _ -> fromJSON json) target upd val mask iworld
 
 fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a

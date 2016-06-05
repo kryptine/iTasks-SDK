@@ -77,11 +77,11 @@ updUI _ (AnalogClock t1) _ (AnalogClock t2) _ vst = case (  (if (t1.Time.sec == 
 						 ) of [] = (Ok NoChange,vst) ; delta = (Ok (ChangeUI [SetAttribute "diff" (toJSON delta)] []),vst)
 
 onEdit [] diff t m ust = case fromJSON diff of
-	Just diffs = (Ok (FieldMask {touched=True,valid=True,state=JSONNull}),app diffs t,ust)
-	Nothing = (Ok m,t,ust)
+	Just diffs = (Ok (NoChange,FieldMask {touched=True,valid=True,state=JSONNull}),app diffs t,ust)
+	Nothing = (Ok (NoChange,m),t,ust)
 where
 	app [] t = t
 	app [(0,s):d] (AnalogClock t) = app d (AnalogClock {Time|t & sec = s})
 	app [(1,m):d] (AnalogClock t) = app d (AnalogClock {Time|t & min = m})
 	app [(2,h):d] (AnalogClock t) = app d (AnalogClock {Time|t & hour = h})
-onEdit _ _ t m ust = (Ok m,t,ust)
+onEdit _ _ t m ust = (Ok (NoChange,m),t,ust)

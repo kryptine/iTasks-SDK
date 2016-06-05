@@ -64,5 +64,5 @@ constEditor val editor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI dp _ vst = editor.Editor.genUI dp val vst
 	updUI dp _ _ _ _ vst = (Ok NoChange,vst)
-	onEdit dp _ val mask ust = (Ok mask,val,ust)
+	onEdit dp _ val mask ust = (Ok (NoChange,mask),val,ust)
 

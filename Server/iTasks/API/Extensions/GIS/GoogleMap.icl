@@ -424,8 +424,8 @@ where
         newMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g2.GoogleMap.markers]
 
 	onEdit [] d g msk ust = case fromJSON d of
-		Just diffs = (Ok msk,foldl app g diffs,ust)
-		Nothing    = (Ok msk,g,ust)
+		Just diffs = (Ok (NoChange,msk),foldl app g diffs,ust)
+		Nothing    = (Ok (NoChange,msk),g,ust)
     where
         app g (SetSettings settings)        = {GoogleMap|g & settings = settings}
         app g (SetPerspective perspective)  = {GoogleMap|g & perspective = perspective}
@@ -435,7 +435,7 @@ where
             upd markers updated = [if (m.GoogleMapMarker.markerId == updated.GoogleMapMarker.markerId) updated m \\ m <- markers]
         app g (RemoveMarkers m)             = {GoogleMap|g & markers = [marker \\ marker <- g.GoogleMap.markers | not (isMember marker.GoogleMapMarker.markerId m)]}
         app g _ = g
-	onEdit _ d g msk ust = (Ok msk,g,ust)
+	onEdit _ d g msk ust = (Ok (NoChange,msk),g,ust)
 
 //--------------------------------------------------------------------------------------------------
 instance toString GoogleMapType

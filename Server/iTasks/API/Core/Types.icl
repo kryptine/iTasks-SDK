@@ -484,9 +484,9 @@ where
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
 	onEdit dp e val mask ust=:{VSt|optional} = case fromJSON e of 
-		Nothing		= (Ok (FieldMask {touched=True,valid=optional,state=JSONNull}),{Document|documentId = "", contentUrl = "", name="", mime="", size = 0}
+		Nothing		= (Ok (NoChange,FieldMask {touched=True,valid=optional,state=JSONNull}),{Document|documentId = "", contentUrl = "", name="", mime="", size = 0}
                       ,ust)// Reset
-		Just doc	= (Ok (FieldMask {touched=True,valid=True,state=e}),doc,ust) //Update
+		Just doc	= (Ok (NoChange,FieldMask {touched=True,valid=True,state=e}),doc,ust) //Update
 	
 derive JSONEncode		Document
 derive JSONDecode		Document
@@ -585,7 +585,7 @@ where
 	updUI dp old om new nm vst
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI (value new))] [])),vst)
 
-	onEdit dp e val mask ust = (Ok mask,val,ust)
+	onEdit dp e val mask ust = (Ok (NoChange,mask),val,ust)
 
 
 derive gDefault			Progress
@@ -610,7 +610,7 @@ where
 	updUI dp (HtmlInclude old) om (HtmlInclude new) nm vst
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new)] [])),vst)
 
-	onEdit dp e val mask ust = (Ok mask,val,ust)
+	onEdit dp e val mask ust = (Ok (NoChange,mask),val,ust)
 
 derive gDefault HtmlInclude
 
@@ -849,9 +849,9 @@ where
 			(Error e,vst) = (Error e,vst)
 
 	onEdit dp e (TreeChoice tree sel) mask ust = case fromJSON e of
-		Just ("sel",idx,val)	= (Ok (touch mask),TreeChoice tree (if val (Just idx) Nothing), ust)
-		Just ("exp",idx,val)	= (Ok (touch mask),TreeChoice (setTreeExpanded idx val tree) sel, ust)
-		_						= (Ok mask,TreeChoice tree sel, ust)
+		Just ("sel",idx,val)	= (Ok (NoChange, touch mask),TreeChoice tree (if val (Just idx) Nothing), ust)
+		Just ("exp",idx,val)	= (Ok (NoChange, touch mask),TreeChoice (setTreeExpanded idx val tree) sel, ust)
+		_						= (Ok (NoChange,mask),TreeChoice tree sel, ust)
 
 instance Choice TreeChoice
 where
@@ -1351,8 +1351,7 @@ where
 	
 instance toPrompt [d] | toPrompt d
 where
-	toPrompt list = ui UIEmpty //foldl mergeAttributes 'DM'.newMap (map toPrompt list)
-
+	toPrompt list = ui UIEmpty
 
 derive JSONEncode		Icon
 derive JSONDecode		Icon
@@ -1363,10 +1362,9 @@ derive gText	        Icon
 gEditor{|Icon|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
 where
 	genUI _ (Icon icon) vst = (Ok (uia UIIcon (iconClsAttr ("icon-"+++icon)),newFieldMask), vst)
+	onEdit dp e val mask ust = (Ok (NoChange,mask),val,ust)
 	updUI _ (Icon old) om (Icon new) nm vst
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "iconCls" (encodeUI ("icon-"+++new))] [])),vst)
-
-	onEdit dp e val mask ust = (Ok mask,val,ust)
 
 // Generic instances for common library types
 derive JSONEncode		Either, MaybeError, HtmlTag, HtmlAttr
@@ -1387,12 +1385,7 @@ gEq{|(->)|} _ _ fa fb		= copy_to_string fa == copy_to_string fb // HACK: Compare
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 
 gDefault{|{}|} _ = undef
-gEditor{|{}|} _ _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
-where
-	genUI _ _ vst = (Ok (ui UIEmpty,newCompoundMask),vst)
-	updUI _ _ _ _ _ vst = (Ok NoChange,vst)
-	onEdit _ _ val mask ust = (Ok mask,val,ust)
-
+gEditor{|{}|} _ _ _ _ _ = emptyEditor
 gText{|{}|} _ _ _ = undef
 
 derive JSONEncode SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
