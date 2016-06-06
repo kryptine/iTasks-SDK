@@ -73,8 +73,8 @@ svgRenderer :: (SVGLet s v) -> Editlet s | iTask s
 svgRenderer svglet=:{initView,renderImage,updView,updModel}
   = { genUI   = genUI
 	, initUI  = initUI
-    , updUI   = updUI
     , onEdit  = onEdit
+    , onRefresh = onRefresh
     }
   where
 	genUI dp val world
@@ -111,7 +111,9 @@ svgRenderer svglet=:{initView,renderImage,updView,updModel}
 		| otherwise
 			= (jsNull,jsTrace "Unknown attribute change" world)
 
-  	updUI _ ov om nv nm vst = (Ok (if (ov === nv) NoChange (ChangeUI [SetAttribute "stateChange" (toJSON nv)] [])),vst)
+  	onRefresh _ new old mask vst 
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "stateChange" (toJSON new)] []),mask),new,vst)
+
   	onEdit _ _ st m ust = (Ok (NoChange,m),st,ust)
 
 onNewState :: !(JSVal a) !(SVGLet s v) !s !*JSWorld -> *JSWorld | JSONEncode{|*|} s

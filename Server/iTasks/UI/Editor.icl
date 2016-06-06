@@ -99,7 +99,7 @@ basicEditSimple :: !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString
 basicEditSimple target upd val mask iworld = basicEdit (\json _ -> fromJSON json) target upd val mask iworld
 
 fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a
-fromEditlet editlet=:{Editlet|genUI,initUI,updUI,onEdit} = {Editor|genUI=genUI`,updUI=updUI,onEdit=onEdit}
+fromEditlet editlet=:{Editlet|genUI,initUI,onEdit,onRefresh} = {Editor|genUI=genUI`,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI` dp val vst=:{VSt|taskId}
 		= case genUI dp val vst of

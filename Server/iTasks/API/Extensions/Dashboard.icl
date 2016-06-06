@@ -17,8 +17,8 @@ controlLightEditlet
     = {Editlet
       |genUI  = genUI
       ,initUI = initUI
-      ,updUI  = \_ a _ b _ vst -> (Ok (if (a===b) NoChange (ChangeUI [SetAttribute "value" (JSONString (color b))] [])),vst)
       ,onEdit = \_ _ a m ust -> (Ok (NoChange,m),a,ust)
+      ,onRefresh = \_ b a m vst -> (Ok (if (a===b) NoChange (ChangeUI [SetAttribute "value" (JSONString (color b))] []),m),b,vst)
       }
 where
 	genUI dp val world

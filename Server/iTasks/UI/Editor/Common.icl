@@ -6,14 +6,14 @@ import Data.Tuple, Data.Error, Text, Text.JSON
 import qualified Data.Map as DM
 
 emptyEditor :: Editor a
-emptyEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+emptyEditor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI _ _ vst			    = (Ok (ui UIEmpty,newFieldMask),vst)
-	updUI _ _ _ _ _ vst 		= (Ok NoChange,vst)
-	onEdit _ _ val mask ust 	= (Ok (NoChange,mask),val,ust)
+	onEdit _ _ val mask vst 	= (Ok (NoChange,mask),val,vst)
+	onRefresh _ _ val mask vst  = (Ok (NoChange,mask),val,vst)
 
 listEditor :: (Maybe ([a] -> a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a]
-listEditor add remove reorder count itemEditor = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+listEditor add remove reorder count itemEditor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId} = case genChildUIs dp 0 val [] vst of
 		(Ok (items,masks),vst)
@@ -46,10 +46,6 @@ where
 			# attr = 'DM'.unions [halignAttr AlignRight,heightAttr WrapSize,directionAttr Horizontal]
 			= uiac UIContainer attr (if (reorder || remove) ([item] ++ buttons) [item])
 			
-	updUI dp ov om nv nm vst = case genUI dp nv vst of
-		(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
-		(Error e,vst) = (Error e,vst)
-
 	onEdit dp e items listMask ust
 		# childMasks = subMasks (length items) listMask
 		# (items,childMasks,ust) = updateItems dp e items childMasks ust
@@ -87,4 +83,9 @@ where
 				# f = list !! (index-1)
 				# l = list !! (index)
 				= updateAt (index-1) l (updateAt index f list)
+
+	onRefresh dp new old mask vst = case genUI dp new vst of
+		(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
+		(Error e,vst) = (Error e,old,vst)
+
 

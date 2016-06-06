@@ -20,9 +20,9 @@ from GenEq import generic gEq
 *	Definition of an editor editor
 */
 :: Editor a = 
-	{ genUI  :: DataPath a *VSt                     -> *(!MaybeErrorString (!UI, !EditMask), !*VSt)           //Generating the initial UI
-	, onEdit :: DataPath JSONNode a EditMask *VSt   -> *(!MaybeErrorString (!UIChange, !EditMask), !a, !*VSt) //React to edit events
-	, updUI  :: DataPath a EditMask a EditMask *VSt -> *(!MaybeErrorString UIChange, !*VSt) 		          //React to a new model value 
+	{ genUI     :: DataPath a *VSt                     -> *(!MaybeErrorString (!UI, !EditMask), !*VSt)           //Generating the initial UI
+	, onEdit    :: DataPath JSONNode a EditMask *VSt   -> *(!MaybeErrorString (!UIChange, !EditMask), !a, !*VSt) //React to edit events
+	, onRefresh :: DataPath a        a EditMask *VSt   -> *(!MaybeErrorString (!UIChange, !EditMask), !a, !*VSt) //React to a new model value 
 	}
 
 //* Datapaths identify sub structures in a composite structure
@@ -87,10 +87,10 @@ basicEditSimple :: !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString
 //****************************************************************************//
 :: Editlet a
   =
-  { genUI   :: DataPath a *VSt -> *(!MaybeErrorString (!UI,!EditMask), !*VSt)
-  , initUI  :: (JSObj ()) *JSWorld -> *JSWorld
-  , onEdit  :: DataPath JSONNode a EditMask *VSt -> *(!MaybeErrorString (!UIChange,!EditMask), !a, !*VSt)   //React to edit events
-  , updUI   :: DataPath a EditMask a EditMask *VSt -> *(!MaybeErrorString UIChange, !*VSt)
+  { genUI     :: DataPath a *VSt -> *(!MaybeErrorString (!UI,!EditMask), !*VSt)
+  , initUI    :: (JSObj ()) *JSWorld -> *JSWorld
+  , onEdit    :: DataPath JSONNode a EditMask *VSt -> *(!MaybeErrorString (!UIChange,!EditMask), !a, !*VSt)   //React to edit events
+  , onRefresh :: DataPath a        a EditMask *VSt   -> *(!MaybeErrorString (!UIChange, !EditMask), !a, !*VSt) //React to a new model value 
   }
 
 fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a

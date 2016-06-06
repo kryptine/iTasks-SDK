@@ -21,8 +21,8 @@ analogClockEditlet
     = {Editlet
       |genUI    = genUI
       ,initUI   = initUI
-      ,updUI    = updUI
       ,onEdit   = onEdit 
+      ,onRefresh = onRefresh
       }
 where
 	genUI dp (AnalogClock {Time|hour,min,sec}) world
@@ -71,10 +71,10 @@ where
 	degrees 1 v = 6 * v
 	degrees 2 v = 30 * v
 
-updUI _ (AnalogClock t1) _ (AnalogClock t2) _ vst = case (  (if (t1.Time.sec == t2.Time.sec) [] [(0,t2.Time.sec)])
+onRefresh _ new=:(AnalogClock t2) (AnalogClock t1) mask vst = case (  (if (t1.Time.sec == t2.Time.sec) [] [(0,t2.Time.sec)])
 						 ++ (if (t1.Time.min == t2.Time.min) [] [(1,t2.Time.min)])
 						 ++ (if (t1.Time.hour == t2.Time.hour) [] [(2,t2.Time.hour)])
-						 ) of [] = (Ok NoChange,vst) ; delta = (Ok (ChangeUI [SetAttribute "diff" (toJSON delta)] []),vst)
+						 ) of [] = (Ok (NoChange,mask),new,vst) ; delta = (Ok (ChangeUI [SetAttribute "diff" (toJSON delta)] [],mask),new,vst)
 
 onEdit [] diff t m ust = case fromJSON diff of
 	Just diffs = (Ok (NoChange,FieldMask {touched=True,valid=True,state=JSONNull}),app diffs t,ust)

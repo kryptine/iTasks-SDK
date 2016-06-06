@@ -61,8 +61,8 @@ googleMapEditlet
     = { Editlet
       | genUI  = genUI
       , initUI = initUI 
-      , updUI  = updUI
       , onEdit = onEdit
+      , onRefresh = onRefresh
       }
 where
 	genUI dp val world
@@ -401,10 +401,9 @@ where
             # (_,world) = jsApply cb jsWindow [] world
             = world
 
-    updUI :: DataPath GoogleMap EditMask GoogleMap EditMask *VSt -> *(!MaybeErrorString UIChange,!*VSt)
-	updUI _ g1 _ g2 _ vst = case settingsDiff ++ perspectiveDiff ++ remMarkersDiff ++ addMarkersDiff ++ updMarkersDiff of
-        []      = (Ok NoChange,vst)
-        diffs   = (Ok (ChangeUI [SetAttribute "diff" (toJSON diffs)] []),vst)
+	onRefresh _ g2 g1 mask vst = case settingsDiff ++ perspectiveDiff ++ remMarkersDiff ++ addMarkersDiff ++ updMarkersDiff of
+        []      = (Ok (NoChange,mask),g2,vst)
+        diffs   = (Ok (ChangeUI [SetAttribute "diff" (toJSON diffs)] [],mask),g2,vst)
     where
         settingsDiff    = if (g1.GoogleMap.settings === g2.GoogleMap.settings) [] [SetSettings g2.GoogleMap.settings]
         perspectiveDiff = if (g1.GoogleMap.perspective === g2.GoogleMap.perspective) [] [SetPerspective g2.GoogleMap.perspective]

@@ -138,10 +138,10 @@ visualizeView_ taskId evalOpts mode mbEditor event old=:(v,m) new=:(nv,nm) promp
 					# change 		= ReplaceUI (uic UIInteract [promptUI,editUI])
 					= (Ok change,vst)
 		_				//compare old and new value to determine changes
-			= case editor.Editor.updUI [] v m nv nm vst of
-				(Ok editChange,vst)
+			= case editor.Editor.onRefresh [] nv v m vst of
+				(Ok (editChange,_),_,vst)
 					= (Ok (ChangeUI [] [(0,ChangeChild NoChange), (1,ChangeChild editChange)]) ,vst)
-				(Error e,vst) = (Error e,vst)
+				(Error e,_,vst) = (Error e,vst)
 	= (change,valid,iworld)
 
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w

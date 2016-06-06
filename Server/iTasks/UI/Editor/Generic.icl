@@ -17,7 +17,7 @@ derive bimap Editor,(,),(,,),(,,,), MaybeError
 
 gEditor{|UNIT|} = emptyEditor
 
-gEditor{|RECORD of {grd_arity}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|RECORD of {grd_arity}|} ex _ _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (RECORD x) vst=:{VSt|taskId,mode,optional}
 		= case mode of
@@ -45,10 +45,6 @@ where
 	where
 		checkbox checked = uia UICheckbox (editAttrs taskId (editorId dp) (Just (JSONBool checked)))
 
-	updUI dp (RECORD old) om (RECORD new) nm vst 
-		# (diff,vst) = ex.Editor.updUI (pairPath grd_arity dp) old (toPairMask grd_arity om) new (toPairMask grd_arity nm) vst
-		= (fmap (flattenPairDiff 0 grd_arity) diff,vst)
-
 	onEdit [] e (RECORD record) mask ust //Enabling or disabling of a record
     	# mask = case e of
         	JSONBool False  = CompoundMask [] 
@@ -63,19 +59,25 @@ where
 		= (Ok (targetChange,(CompoundMask (updateAt d targetMask childMasks))),RECORD record,ust)
 	onEdit _ _ val mask ust = (Ok (NoChange,mask),val,ust)
 
-gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+	onRefresh dp (RECORD new) (RECORD old) mask vst 
+		# (change,val,vst) = ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask grd_arity mask) vst
+		= (fmap (flattenPairDiff 0 grd_arity) change,RECORD val,vst)
+
+gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (FIELD x) vst = case ex.Editor.genUI dp x vst of //Just add the field name as a label
 		(Ok (UI type attr items, mask),vst) = (Ok (UI type ('DM'.union attr (labelAttr gfd_name)) items, mask),vst) 
 		(Error e,vst)                       = (Error e,vst)
 
-	updUI dp (FIELD old) om (FIELD new) nm vst = ex.Editor.updUI dp old om new nm vst
-
 	onEdit dp e (FIELD field) mask vst
 		# (mbmask,field,vst) = ex.Editor.onEdit dp e field mask vst
 		= (mbmask,FIELD field,vst)
 
-gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+	onRefresh dp (FIELD new) (FIELD old) mask vst
+		# (change,val,vst) = ex.Editor.onRefresh dp new old mask vst
+		= (change,FIELD val,vst)
+
+gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (OBJECT x) vst=:{VSt|taskId,mode,selectedConsIndex}
 		= case mode of
@@ -109,23 +111,6 @@ where
 							= (Ok (UI UIVarCons attr [consNameUI:items],CompoundMask [newFieldMask:masks]),{vst & selectedConsIndex = selectedConsIndex})
 					(Error e,vst) = (Error e,vst)
 
-	updUI dp (OBJECT old) om (OBJECT new) nm vst=:{VSt|mode,selectedConsIndex=curSelectedConsIndex}
-		| gtd_num_conses > 1 && (mode =:Enter || mode =: Update)
-			= case ex.Editor.updUI dp old om new nm {vst & selectedConsIndex = 0} of
-				(Ok diff,vst=:{VSt|selectedConsIndex}) 
-					| selectedConsIndex < 0 //A cons was changed
-						# selectedCons = ~selectedConsIndex - 1
-						# consChange = ChangeUI [SetAttribute "value" (JSONArray [toJSON selectedCons,JSONBool True])] []
-						| allConsesArityZero gtd_conses
-							= (Ok consChange,{vst & selectedConsIndex = curSelectedConsIndex})
-						| otherwise
-							= (Ok (ChangeUI [] [(0,ChangeChild consChange),(1,ChangeChild diff)]),{vst & selectedConsIndex = curSelectedConsIndex})
-					| otherwise
-						= (Ok diff,{vst & selectedConsIndex = curSelectedConsIndex})
-				(Error e,vst) = (Error e,vst)
-		| otherwise
-			= ex.Editor.updUI dp old om new nm vst
-
 	onEdit [] e (OBJECT val) mask ust //Update is a constructor switch
 		# consIdx = case e of
 			JSONInt i	= i
@@ -139,30 +124,33 @@ where
 		# (Ok (change,mask),val,ust) = ex.Editor.onEdit dp e val mask ust
 		= (Ok (change,mask),OBJECT val,ust)
 
+	onRefresh dp (OBJECT new) (OBJECT old) mask vst=:{VSt|mode,selectedConsIndex=curSelectedConsIndex}
+		| gtd_num_conses > 1 && (mode =:Enter || mode =: Update)
+			= case ex.Editor.onRefresh dp new old mask {vst & selectedConsIndex = 0} of
+				(Ok (change,mask),val,vst=:{VSt|selectedConsIndex}) 
+					| selectedConsIndex < 0 //A cons was changed
+						# selectedCons = ~selectedConsIndex - 1
+						# consChange = ChangeUI [SetAttribute "value" (JSONArray [toJSON selectedCons,JSONBool True])] []
+						| allConsesArityZero gtd_conses
+							= (Ok (consChange,mask),OBJECT val,{vst & selectedConsIndex = curSelectedConsIndex})
+						| otherwise
+							= (Ok (ChangeUI [] [(0,ChangeChild consChange),(1,ChangeChild change)],mask),OBJECT val,{vst & selectedConsIndex = curSelectedConsIndex})
+					| otherwise
+						= (Ok (change,mask),OBJECT val,{vst & selectedConsIndex = curSelectedConsIndex})
+				(Error e,val,vst) = (Error e,OBJECT val,vst)
+		| otherwise
+			# (change,val,vst) = ex.Editor.onRefresh dp new old mask vst
+			= (change,OBJECT val,vst)
+
 	allConsesArityZero [] = True
 	allConsesArityZero [{gcd_arity}:cs]
 		| gcd_arity > 0 = False
 						= allConsesArityZero cs
 
-gEditor{|EITHER|} ex _ dx _ _ ey _ dy _ _  = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|EITHER|} ex _ dx _ _ ey _ dy _ _  = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (LEFT x) vst = ex.Editor.genUI dp x vst
 	genUI dp (RIGHT y) vst =  ey.Editor.genUI dp y vst	
-
-	updUI dp (LEFT old) om (LEFT new) nm vst = ex.Editor.updUI dp old om new nm vst
-	updUI dp (RIGHT old) om (RIGHT new) nm vst = ey.Editor.updUI dp old om new nm vst
-
-	//A different constructor is selected -> generate a new UI
-	//We use a negative selConsIndex to encode that the constructor was changed
-	updUI dp (LEFT old) om (RIGHT new) nm vst 
-		= case ey.Editor.genUI dp new vst of
-			(Ok (ui,mask),vst=:{selectedConsIndex}) = (Ok (ReplaceUI ui), {vst & selectedConsIndex = -1 - selectedConsIndex})
-			(Error e,vst=:{selectedConsIndex}) = (Error e,{vst & selectedConsIndex = -1 - selectedConsIndex})
-
-	updUI dp (RIGHT old) om (LEFT new) nm vst 
-		= case ex.Editor.genUI dp new vst of
-			(Ok (ui,mask),vst=:{selectedConsIndex}) = (Ok (ReplaceUI ui), {vst & selectedConsIndex = -1 - selectedConsIndex})
-			(Error e,vst=:{selectedConsIndex}) = (Error e,{vst & selectedConsIndex = -1 - selectedConsIndex})
 
 	onEdit [d:ds] e either mask ust
 		| d == -1 = case ds of
@@ -184,19 +172,32 @@ where
 					# (mask,y,ust) = ey.Editor.onEdit [d:ds] e y mask ust
 					= (mask,RIGHT y,ust)
 
-gEditor{|CONS of {gcd_index,gcd_arity}|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+	onRefresh dp (LEFT new) (LEFT old) mask vst 
+		# (change,val,vst) = ex.Editor.onRefresh dp new old mask vst
+		= (change,LEFT val,vst)
+	onRefresh dp (RIGHT new) (RIGHT old) mask vst
+		# (change,val,vst) = ey.Editor.onRefresh dp new old mask vst
+		= (change,RIGHT val,vst)
+
+	//A different constructor is selected -> generate a new UI
+	//We use a negative selConsIndex to encode that the constructor was changed
+	onRefresh dp (RIGHT new) (LEFT old) mask vst 
+		= case ey.Editor.genUI dp new vst of
+			(Ok (ui,mask),vst=:{selectedConsIndex}) = (Ok (ReplaceUI ui,mask),RIGHT new,{vst & selectedConsIndex = -1 - selectedConsIndex})
+			(Error e,vst=:{selectedConsIndex}) = (Error e,LEFT old,{vst & selectedConsIndex = -1 - selectedConsIndex})
+
+	onRefresh dp (LEFT new) (RIGHT old) mask vst 
+		= case ex.Editor.genUI dp new vst of
+			(Ok (ui,mask),vst=:{selectedConsIndex}) = (Ok (ReplaceUI ui,mask),LEFT new,{vst & selectedConsIndex = -1 - selectedConsIndex})
+			(Error e,vst=:{selectedConsIndex}) = (Error e,RIGHT old,{vst & selectedConsIndex = -1 - selectedConsIndex})
+
+gEditor{|CONS of {gcd_index,gcd_arity}|} ex _ _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (CONS x) vst = case ex.Editor.genUI (pairPath gcd_arity dp) x vst of
 		(Ok viz,vst)  = (Ok (flattenUIPairs UICons gcd_arity viz), {VSt| vst & selectedConsIndex = gcd_index})
 		(Error e,vst) = (Error e,{VSt| vst & selectedConsIndex = gcd_index})
 
-	updUI dp (CONS old) om (CONS new) nm vst 
-		//Diff all fields of the constructor
-		# (diff,vst) = ex.Editor.updUI (pairPath gcd_arity dp) old (toPairMask gcd_arity om) new (toPairMask gcd_arity nm) vst 	
-		//Flatten the binary tree of ChangeUI constructors created from
-		//the PAIR's into a single ChangeUI constructor
-		= (fmap (flattenPairDiff 0 gcd_arity) diff,vst)
-																				
+																			
 	onEdit [d:ds] e (CONS val) mask ust
 		| d >= gcd_arity
 			= (Ok (NoChange,mask),CONS val,ust)	
@@ -205,7 +206,14 @@ where
 		= (Ok (targetChange,CompoundMask (updateAt d targetMask childMasks)),CONS val,ust)
 	onEdit _ _ val mask ust = (Ok (NoChange,mask),val,ust)
 
-gEditor{|PAIR|} ex _ _ _ _ ey _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+	onRefresh dp (CONS new) (CONS old) mask vst 
+		//Diff all fields of the constructor
+		# (change,val,vst) = ex.Editor.onRefresh (pairPath gcd_arity dp) new old (toPairMask gcd_arity mask) vst 	
+		//Flatten the binary tree of ChangeUI constructors created from
+		//the PAIR's into a single ChangeUI constructor
+		= (fmap (flattenPairDiff 0 gcd_arity) change,CONS val,vst)
+	
+gEditor{|PAIR|} ex _ _ _ _ ey _ _ _ _ = {Editor|genUI=genUI,onRefresh=onRefresh,onEdit=onEdit}
 where
 	genUI dp (PAIR x y) vst
 		# (dpx,dpy)		= pairPathSplit dp
@@ -216,21 +224,6 @@ where
 		# ((vizx,maskx),(vizy,masky)) = (fromOk vizx,fromOk vizy)
 		= (Ok (uic UIPair [vizx,vizy],CompoundMask [maskx,masky]),vst)
 
-	updUI dp (PAIR oldx oldy) om (PAIR newx newy) nm vst
-		# (dpx,dpy)		= pairPathSplit dp
-		# (oxmask,oymask) = case om of
-			CompoundMask [xmask,ymask] 	= (xmask,ymask)
-			_							= (newFieldMask,newFieldMask)
-		# (nxmask,nymask) = case nm of
-			CompoundMask [xmask,ymask] 	= (xmask,ymask)
-			_							= (newFieldMask,newFieldMask)
-		# (diffx,vst) 	= ex.Editor.updUI dpx oldx oxmask newx nxmask vst
-		| diffx =: (Error _) = (diffx,vst)
-		# (diffy,vst) 	= ey.Editor.updUI dpy oldy oymask newy nymask vst
-		| diffy =: (Error _) = (diffy,vst)
-		# (diffx,diffy)   = (fromOk diffx,fromOk diffy)
-		= (Ok (ChangeUI [] [(0,ChangeChild diffx),(1,ChangeChild diffy)]),vst)
-
 	onEdit [0:ds] e (PAIR x y) xmask ust
 		# (xmask,x,ust) = ex.Editor.onEdit ds e x xmask ust
 		= (xmask,PAIR x y,ust)
@@ -239,8 +232,20 @@ where
 		= (ymask,PAIR x y,ust)
 	onEdit _ _ val mask ust = (Ok (NoChange,mask),val,ust)
 
+	onRefresh dp (PAIR newx newy) (PAIR oldx oldy) mask vst
+		# (dpx,dpy)		= pairPathSplit dp
+		# (maskx,masky) = case mask of
+			CompoundMask [maskx,masky] 	= (maskx,masky)
+			_							= (newFieldMask,newFieldMask)
+		# (changex,newx,vst) 	= ex.Editor.onRefresh dpx newx oldx maskx vst
+		| changex=: (Error _) = (changex,PAIR oldx oldy,vst)
+		# (changey,newy,vst) 	= ey.Editor.onRefresh dpy newy oldy masky vst
+		| changey =: (Error _) = (changey,PAIR oldx oldy,vst)
+		# ((changex,maskx),(changey,masky)) = (fromOk changex,fromOk changey)
+		= (Ok (ChangeUI [] [(0,ChangeChild changex),(1,ChangeChild changey)],CompoundMask [maskx,masky]),PAIR newx newy, vst)
+
 //The maybe editor makes it content optional
-gEditor{|Maybe|} ex _ dx _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|Maybe|} ex _ dx _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|mode,optional}
 		| mode =: View && val =: Nothing // Viewing Nothing is always the empty UI
@@ -248,17 +253,6 @@ where
 		= case ex.Editor.genUI dp (fromMaybe dx val) {VSt|vst & optional = True} of
 			(Ok (UI type attr items, mask),vst) = (Ok (UI type ('DM'.union (optionalAttr True) attr) items,mask), {VSt|vst & optional = optional})
 			(Error e,vst) = (Error e, {VSt|vst & optional = optional})
-
-	updUI dp Nothing om Nothing nm vst = (Ok NoChange,vst)
-	updUI dp Nothing om (Just new) nm vst=:{VSt|optional}
-		# (diff,vst) = ex.Editor.updUI dp dx newFieldMask new nm {VSt|vst & optional = True}
-		= (diff,{VSt|vst & optional = optional})
-	updUI dp (Just old) om Nothing nm vst=:{VSt|optional}
-		# (diff,vst) = ex.Editor.updUI dp old om dx newFieldMask {VSt|vst & optional = True}
-		= (diff,{VSt|vst & optional = optional})
-	updUI dp (Just old) om (Just new) nm vst=:{VSt|optional}
-		# (diff,vst) = ex.Editor.updUI dp old om new nm {VSt|vst & optional = True}
-		= (diff,{VSt|vst & optional = optional})
 
 	onEdit dp e val mask vst=:{VSt|optional}
 		| isEmpty dp && (e === JSONNull || e === JSONBool False)
@@ -270,6 +264,17 @@ where
 			# (x,xmask) = maybe (dx,CompoundMask []) (\x -> (x,mask)) val
 			# (xmask,x,vst) = ex.Editor.onEdit dp e x xmask {VSt|vst & optional = True}
 			= (xmask,Just x,{VSt|vst & optional = optional})
+
+	onRefresh dp Nothing Nothing mask vst = (Ok (NoChange,mask),Nothing,vst)
+	onRefresh dp (Just new) Nothing mask vst=:{VSt|optional}
+		# (change,val,vst) = ex.Editor.onRefresh dp new dx newFieldMask {VSt|vst & optional = True}
+		= (change,Just val,{VSt|vst & optional = optional})
+	onRefresh dp Nothing (Just old) mask vst=:{VSt|optional}
+		# (change,val,vst) = ex.Editor.onRefresh dp dx old mask {VSt|vst & optional = True}
+		= (change,Nothing,{VSt|vst & optional = optional})
+	onRefresh dp (Just new) (Just old) mask vst=:{VSt|optional}
+		# (change,val,vst) = ex.Editor.onRefresh dp new old mask {VSt|vst & optional = True}
+		= (change,Just val,{VSt|vst & optional = optional})
 
 //Encode the full range of fields in the datapath, such that it can be decomposed in PAIRs by the pairSplit
 pairPath 0 dp = dp
@@ -297,17 +302,18 @@ flattenUIPairs type n (UI UIPair _ [ul,ur], CompoundMask [ml,mr])
 	= (UI type 'DM'.newMap (ul ++ ur),CompoundMask (ml ++ mr))
 
 //No pairs are introduced for 0 or 1 fields
-flattenPairDiff s 0 d = d 
-flattenPairDiff s 1 d = d
+flattenPairDiff s 0 (change,mask) = (change,mask)
+flattenPairDiff s 1 (change,mask) = (change,mask)
 //For two and three fields, set the correct child index values 
-flattenPairDiff s 2 (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)]) = ChangeUI [] [(s,ChangeChild l),(s+1,ChangeChild r)]
-flattenPairDiff s 3 (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild (ChangeUI _ [(_,ChangeChild m),(_,ChangeChild r)]))])
-	= ChangeUI [] [(s,ChangeChild l), (s+1,ChangeChild m), (s+2,ChangeChild r)]
+flattenPairDiff s 2 (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)],CompoundMask [ml,mr]) 
+	= (ChangeUI [] [(s,ChangeChild l),(s+1,ChangeChild r)],CompoundMask [ml,mr])
+flattenPairDiff s 3 (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild (ChangeUI _ [(_,ChangeChild m),(_,ChangeChild r)]))],CompoundMask [ml,CompoundMask [mm,mr]])
+	= (ChangeUI [] [(s,ChangeChild l), (s+1,ChangeChild m), (s+2,ChangeChild r)],CompoundMask [ml,mm,mr])
 //For more fields we aggregate both sides
-flattenPairDiff s n (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)]) 
-	# (ChangeUI _ l) = flattenPairDiff s half l
-	# (ChangeUI _ r) = flattenPairDiff (s + half) (n - half) r 
-	= ChangeUI [] (l ++ r)
+flattenPairDiff s n (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)],CompoundMask [ml,mr]) 
+	# (ChangeUI _ l,CompoundMask ml) = flattenPairDiff s half (l,ml)
+	# (ChangeUI _ r,CompoundMask mr) = flattenPairDiff (s + half) (n - half) (r,mr)
+	= (ChangeUI [] (l ++ r),CompoundMask (ml ++ mr))
 where
 	half = n / 2
 

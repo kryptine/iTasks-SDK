@@ -466,7 +466,7 @@ gText{|Document|} _ (Just val)
 	| otherwise							= [val.Document.name]
 gText{|Document|} _ Nothing             = [""]
 
-gEditor {|Document|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor {|Document|} = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	typeDesc = "document"
 
@@ -480,13 +480,14 @@ where
 			# value = checkMaskValue mask val
 			# attr = 'DM'.unions [editAttrs taskId (editorId dp) value,stdAttributes typeDesc optional mask]
 			= (Ok (uia UIEditDocument attr,mask),vst)
-	updUI dp old om new nm vst=:{VSt|optional}
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional om nm] [])),vst)
 
 	onEdit dp e val mask ust=:{VSt|optional} = case fromJSON e of 
 		Nothing		= (Ok (NoChange,FieldMask {touched=True,valid=optional,state=JSONNull}),{Document|documentId = "", contentUrl = "", name="", mime="", size = 0}
                       ,ust)// Reset
 		Just doc	= (Ok (NoChange,FieldMask {touched=True,valid=True,state=e}),doc,ust) //Update
+
+	onRefresh dp new old mask vst=:{VSt|optional}
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional mask mask] []),mask),new,vst)
 	
 derive JSONEncode		Document
 derive JSONDecode		Document
@@ -541,7 +542,7 @@ derive class iTask	FileError
 gText{|Scale|}	_ (Just {Scale|cur}) = [toString cur]
 gText{|Scale|}	_ _                  = [""]
 
-gEditor{|Scale|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|Scale|} = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId,mode,optional}
 		# sliderAttr = 'DM'.unions [minValueAttr val.Scale.min, maxValueAttr val.Scale.max]
@@ -558,17 +559,17 @@ where
 	where
 		curVal {Scale|cur} = cur
 	
-	updUI dp {Scale|cur=old} om {Scale|cur=new} nm vst
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "setValue" (encodeUI new)] [])),vst)
-
 	onEdit = basicEdit (\json i -> Just (maybe i (\cur -> {Scale|i & cur = cur}) (fromJSON json)))
+
+	onRefresh dp val=:{Scale|cur=new} {Scale|cur=old} mask vst
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "setValue" (encodeUI new)] []),mask),val,vst)
 
 gDefault{|Scale|} = {Scale|min=1,cur=3,max=5}
 
 //* Progress bars
 gText{|Progress|}	_ val  = [maybe "" (\{Progress|description} -> description) val]
 
-gEditor{|Progress|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|Progress|} = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId}
 		# attr = 'DM'.unions [textAttr (text val),valueAttr (toJSON (value val))]
@@ -582,11 +583,10 @@ where
 					 	= ProgressRatio ratio
 	value {Progress|progress} = progress
 
-	updUI dp old om new nm vst
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI (value new))] [])),vst)
-
 	onEdit dp e val mask ust = (Ok (NoChange,mask),val,ust)
 
+	onRefresh dp new old mask vst
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI (value new))] []),mask),new,vst)
 
 derive gDefault			Progress
 
@@ -601,23 +601,23 @@ derive gEditor 			ProgressAmount
 gText{|HtmlInclude|}	_ (Just (HtmlInclude location))	= ["<External html: " + location + ">"]
 gText{|HtmlInclude|}	_ _	                            = [""]
 
-gEditor{|HtmlInclude|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit} 
+gEditor{|HtmlInclude|} = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh} 
 where
 	genUI dp (HtmlInclude path) vst
 		# attr = 'DM'.fromList [("value",JSONString (toString (IframeTag [SrcAttr path] [])))]
 		= (Ok (uia UIViewHtml attr,newFieldMask),vst)
 
-	updUI dp (HtmlInclude old) om (HtmlInclude new) nm vst
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new)] [])),vst)
-
 	onEdit dp e val mask ust = (Ok (NoChange,mask),val,ust)
+
+	onRefresh dp val=:(HtmlInclude new) (HtmlInclude old) mask vst
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new)] []),mask),val,vst)
 
 derive gDefault HtmlInclude
 
 //* Form buttons
 gText{|FormButton|}	_ val = [maybe "" (\v -> v.FormButton.label) val]
 
-gEditor{|FormButton|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|FormButton|} = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId,mode}
 		# text = val.FormButton.label
@@ -625,10 +625,10 @@ where
 		# attr = 'DM'.unions [textAttr text,iconClsAttr iconCls,enabledAttr True,editAttrs taskId (editorId dp) (Just (JSONString "pressed"))]
 		= (Ok (uia UIEditButton attr,newFieldMask), vst)
 
-	updUI dp {FormButton|state=old} om {FormButton|state=new} nm vst
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new)] [])),vst)
-
 	onEdit = basicEdit (\st b -> Just {FormButton|b & state = st})
+
+	onRefresh dp val=:{FormButton|state=new} {FormButton|state=old} mask vst
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new)] []),mask),val,vst)
 
 gDefault{|FormButton|} = {FormButton | label = "Form Button", icon="", state = NotPressed}
 
@@ -650,7 +650,7 @@ derive gEditor		ButtonState
 //* Table consisting of headers, the displayed data cells & possibly a selection
 gText{|Table|}	_ _	= ["<Table>"]
 
-gEditor{|Table|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|Table|} = {Editor|genUI=genUI,onEdit=onEdit,onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId}
 		# attr = 'DM'.unions [choiceAttrs taskId (editorId dp) (value val) (options val),columnsAttr (columns val)]
@@ -660,14 +660,13 @@ where
 		columns (Table headers _ _)	= headers
 		options (Table _ cells _)	= map (toJSON o (map toString)) cells
 
-	updUI dp old om new nm vst 
-		| old === new 
-			= (Ok NoChange,vst)
-		= case genUI dp new vst of
-			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
-			(Error e,vst) = (Error e,vst)
-
 	onEdit = basicEdit (\json (Table headers cells _) -> case fromJSON json of Just i = Just (Table headers cells (Just i)); _ = Just (Table headers cells Nothing))
+	onRefresh dp new old mask vst 
+		| old === new 
+			= (Ok (NoChange,mask),new,vst)
+		= case genUI dp new vst of
+			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
+			(Error e,vst) = (Error e,old,vst)
 
 gDefault{|Table|} = Table [] [] Nothing
 
@@ -704,7 +703,7 @@ gDefault{|ComboChoice|} _ = ComboChoice [] Nothing
 gText{|ComboChoice|} fv mode (Just val) = fromMaybe ["No item selected"] (fmap (\v -> fv mode (Just v)) (getSelectionView val))
 gText{|ComboChoice|} fv mode _          = [""]
 
-gEditor{|ComboChoice|} fx gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|ComboChoice|} fx gx _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId,mode,optional}
 		| mode =: View
@@ -720,14 +719,14 @@ where
 
 	options (ComboChoice options _)			= [JSONString (concat (gx AsSingleLine (Just v))) \\ v <- options]
 
-	updUI dp old om new nm vst
-		| options old === options new && evalue old === evalue new
-			= (Ok NoChange,vst)
-		= case genUI dp new vst of
-			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
-			(Error e,vst) = (Error e,vst)
-
 	onEdit = choiceEdit (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) 
+
+	onRefresh dp new old mask vst
+		| options old === options new && evalue old === evalue new
+			= (Ok (NoChange,mask),new,vst)
+		= case genUI dp new vst of
+			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
+			(Error e,vst) = (Error e,old,vst)
 
 instance Choice ComboChoice
 where
@@ -741,7 +740,7 @@ gDefault{|RadioChoice|} _ = RadioChoice [] Nothing
 gText{|RadioChoice|} fv mode (Just val) = fromMaybe ["No item selected"] (fmap (\v -> fv mode (Just v)) (getSelectionView val))
 gText{|RadioChoice|} fv _ _ = [""]
 
-gEditor{|RadioChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|RadioChoice|} _ gx _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId,mode,optional}
 		| mode =: View
@@ -759,14 +758,14 @@ where
 	
 	options (RadioChoice options _)			= [JSONString (concat (gx AsSingleLine (Just v))) \\ v <- options]
 
-	updUI dp old om new nm vst
-		| options old === options new && evalue old === evalue new
-			= (Ok NoChange,vst)
-		= case genUI dp new vst of
-			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
-			(Error e,vst) = (Error e,vst)
-
 	onEdit = choiceEdit (\idx (RadioChoice options _) -> RadioChoice options (Just idx))
+
+	onRefresh dp new old mask vst
+		| options old === options new && evalue old === evalue new
+			= (Ok (NoChange,mask),new,vst)
+		= case genUI dp new vst of
+			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
+			(Error e,vst) = (Error e,old,vst)
 
 instance Choice RadioChoice
 where
@@ -779,7 +778,7 @@ gDefault{|ListChoice|} _ = ListChoice [] Nothing
 gText{|ListChoice|} fv mode (Just val) = fromMaybe ["No item selected"] (fmap (\v -> fv mode (Just v)) (getSelectionView val))
 gText{|ListChoice|} fv _ _ = [""]
 
-gEditor{|ListChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|ListChoice|} _ gx _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId,mode}
 		| mode =: View
@@ -794,14 +793,14 @@ where
 	
 	options (ListChoice options _)			= [JSONString (concat (gx AsSingleLine (Just v))) \\ v <- options]
 
-	updUI dp old om new nm vst
-		| options old === options new && evalue old === evalue new
-			= (Ok NoChange,vst)
-		= case genUI dp new vst of
-			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
-			(Error e,vst) = (Error e,vst)
-
 	onEdit = choiceEdit (\idx (ListChoice options _) -> ListChoice options (Just idx))
+
+	onRefresh dp new old mask vst
+		| options old === options new && evalue old === evalue new
+			= (Ok (NoChange,mask),new,vst)
+		= case genUI dp new vst of
+			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
+			(Error e,vst) = (Error e,old,vst)
 
 instance Choice ListChoice
 where
@@ -815,7 +814,7 @@ gDefault{|TreeChoice|} _ = TreeChoice [] Nothing
 gText{|TreeChoice|} fv mode (Just val) = fromMaybe ["No item selected"] (fmap (\v -> fv mode (Just v)) (getSelectionView val))
 gText{|TreeChoice|} fv _ _ = [""]
 
-gEditor{|TreeChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|TreeChoice|} _ gx _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId}
 		# attr = choiceAttrs taskId (editorId dp) (value val) (options gx val)
@@ -841,17 +840,17 @@ where
 
 	options _ _ = []
 
-	updUI dp old om new nm vst
-		| options gx old === options gx new && value old === value new
-			= (Ok NoChange,vst)
-		= case genUI dp new vst of
-			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
-			(Error e,vst) = (Error e,vst)
-
 	onEdit dp e (TreeChoice tree sel) mask ust = case fromJSON e of
 		Just ("sel",idx,val)	= (Ok (NoChange, touch mask),TreeChoice tree (if val (Just idx) Nothing), ust)
 		Just ("exp",idx,val)	= (Ok (NoChange, touch mask),TreeChoice (setTreeExpanded idx val tree) sel, ust)
 		_						= (Ok (NoChange,mask),TreeChoice tree sel, ust)
+
+	onRefresh dp new old mask vst
+		| options gx old === options gx new && value old === value new
+			= (Ok (NoChange,mask),new,vst)
+		= case genUI dp new vst of
+			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
+			(Error e,vst) = (Error e,old,vst)
 
 instance Choice TreeChoice
 where
@@ -865,7 +864,7 @@ gDefault{|GridChoice|} _ = GridChoice [] Nothing
 gText{|GridChoice|} fv mode (Just val) = fromMaybe ["No item selected"] (fmap (\v -> fv mode (Just v)) (getSelectionView val))	
 gText{|GridChoice|} fv _ _ = [""]
 
-gEditor{|GridChoice|} _ gx _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|GridChoice|} _ gx _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId}
 		# attr = 'DM'.unions [choiceAttrs taskId (editorId dp) (value val) (options val),columnsAttr columns]
@@ -875,14 +874,14 @@ where
 	options (GridChoice options _)		= [toJSON (gx AsRow (Just opt)) \\ opt <- options]
    	columns = gx AsHeader Nothing
 
-	updUI dp old om new nm vst
-		| options old === options new && value old === value new
-			= (Ok NoChange,vst)
-		= case genUI dp new vst of
-			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
-			(Error e,vst) = (Error e,vst)
-
  	onEdit = choiceEdit (\idxs (GridChoice options _) -> GridChoice options (case idxs of [idx:_] = (Just idx); _ = Nothing))
+
+	onRefresh dp new old mask vst
+		| options old === options new && value old === value new
+			= (Ok (NoChange,mask),new,vst)
+		= case genUI dp new vst of
+			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
+			(Error e,vst) = (Error e,old,vst)
 
 instance Choice GridChoice
 where
@@ -900,7 +899,7 @@ gText{|DynamicChoice|}		fv mode (Just (DCGrid val))	    = gText{|*->*|} fv mode 
 gText{|DynamicChoice|}		fv mode (Just (DCTree val))	    = gText{|*->*|} fv mode (Just val)
 gText{|DynamicChoice|}		fv _ _	        = [""]
 
-gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (DCCombo val) vst = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genUI dp val vst
 	genUI dp (DCRadio val) vst = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genUI dp val vst
@@ -908,19 +907,6 @@ where
 	genUI dp (DCTree val) vst = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genUI dp val vst
 	genUI dp (DCGrid val) vst = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genUI dp val vst
 
-	updUI dp (DCCombo old) om (DCCombo new) nm vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.updUI dp old om new nm vst
-	updUI dp (DCRadio old) om (DCRadio new) nm vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.updUI dp old om new nm vst
-	updUI dp (DCList old) om (DCList new) nm vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.updUI dp old om new nm vst
-	updUI dp (DCTree old) om (DCTree new) nm vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.updUI dp old om new nm vst
-	updUI dp (DCGrid old) om (DCGrid new) nm vst
-		= (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.updUI dp old om new nm vst
-	updUI dp old om new nm vst = case genUI dp new vst of
-		(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
-		(Error e,vst) = (Error e,vst)
 	onEdit dp e (DCCombo val) mask ust 
 		# (mbmask,val,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
 		= (mbmask,DCCombo val,ust)
@@ -936,6 +922,25 @@ where
 	onEdit dp e (DCGrid val) mask ust 
 		# (mbmask,val,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
 		= (mbmask,DCGrid val,ust)
+
+	onRefresh dp (DCCombo new) (DCCombo old) mask vst
+		# (change,val,vst) = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onRefresh dp new old mask vst
+		= (change,DCCombo val,vst)
+	onRefresh dp (DCRadio new) (DCRadio old) mask vst
+		# (change,val,vst) = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onRefresh dp new old mask vst
+		= (change,DCRadio val,vst)
+	onRefresh dp (DCList new) (DCList old) mask vst
+		# (change,val,vst) = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onRefresh dp new old mask vst
+		= (change,DCList val,vst)
+	onRefresh dp (DCTree new) (DCTree old) mask vst
+		# (change,val,vst) = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onRefresh dp new old mask vst
+		= (change,DCTree val,vst)
+	onRefresh dp (DCGrid new) (DCGrid old) mask vst
+		# (change,val,vst) = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onRefresh dp new old mask vst
+		= (change,DCGrid val,vst)
+	onRefresh dp new old mask vst = case genUI dp new vst of
+		(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
+		(Error e,vst) = (Error e,old,vst)
 
 instance Choice DynamicChoice
 where
@@ -968,7 +973,7 @@ gDefault{|CheckMultiChoice|} _ _ = CheckMultiChoice [] []
 gText{|CheckMultiChoice|} fv _ _ (Just val) = gText{|* -> *|} fv AsSingleLine (Just (getSelectionViews val))
 gText{|CheckMultiChoice|} fv _ _ _ = [""]
 
-gEditor{|CheckMultiChoice|} _ gx _ _ _ _ _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|CheckMultiChoice|} _ gx _ _ _ _ _ _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId,mode,optional}
 		| mode =: View
@@ -983,17 +988,17 @@ where
 	evalue (CheckMultiChoice _ sel)			= sel
 	options (CheckMultiChoice options _)	= [JSONString (concat (gx AsSingleLine (Just v))) \\ (v,_) <- options]
 
-	updUI dp old om new nm vst
-		| options old === options new && evalue old === evalue new
-			= (Ok NoChange,vst)
-		= case genUI dp new vst of
-			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui),vst)
-			(Error e,vst) = (Error e,vst)
-
 	onEdit = basicEdit (\json (CheckMultiChoice opts sel) -> case fromJSON json of Just (i,v) = Just (CheckMultiChoice opts (updateSel i v sel)); _ = (Just (CheckMultiChoice opts sel)))
 	where
 		updateSel i True sel	= removeDup [i:sel]
 		updateSel i False sel 	= removeMember i sel
+
+	onRefresh dp new old mask vst
+		| options old === options new && evalue old === evalue new
+			= (Ok (NoChange,mask),new,vst)
+		= case genUI dp new vst of
+			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
+			(Error e,vst) = (Error e,old,vst)
 
 instance MultiChoice CheckMultiChoice
 where
@@ -1139,21 +1144,28 @@ gText{|VisualizationHint|} fx mode (Just val) = case val of
 	VHEditable x	= gText{|* -> *|} fx mode (Just (Editable x))
 gText{|VisualizationHint|} fx _ _ = [""]
 
-gEditor{|VisualizationHint|} fx gx dx jex jdx = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|VisualizationHint|} fx gx dx jex jdx = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst = case val of
 		VHHidden x		= (gEditor{|* -> *|} fx gx dx jex jdx).Editor.genUI dp (Hidden x) vst
 		VHDisplay x		= (gEditor{|* -> *|} fx gx dx jex jdx).Editor.genUI dp (Display x) vst
 		VHEditable x	= (gEditor{|* -> *|} fx gx dx jex jdx).Editor.genUI dp (Editable x) vst
 
-	updUI dp (VHEditable old) om (VHEditable new) nm vst = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.updUI dp (Editable old) om (Editable new) nm vst
-	updUI dp (VHDisplay old) om (VHDisplay new) nm vst   = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.updUI dp (Display old) om (Display new) nm vst
-	updUI dp (VHHidden old) om (VHHidden new) nm vst     = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.updUI dp (Hidden old) om (Hidden new) nm vst
-	updUI _ _ _ _ _ vst = (Ok NoChange,vst)
 
 	onEdit dp e val=:(VHEditable s) mask ust = wrapperUpdate fx.Editor.onEdit fromVisualizationHint VHEditable dp e val mask ust
 	onEdit dp e val=:(VHDisplay s) mask ust = wrapperUpdate fx.Editor.onEdit fromVisualizationHint VHDisplay dp e val mask ust
 	onEdit dp e val=:(VHHidden s) mask ust = wrapperUpdate fx.Editor.onEdit fromVisualizationHint VHHidden dp e val mask ust
+
+	onRefresh dp (VHEditable new) (VHEditable old) mask vst
+		# (change,Editable val,vst) = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.onRefresh dp (Editable new) (Editable old) mask vst 
+		= (change,VHEditable val,vst)
+	onRefresh dp (VHDisplay new) (VHDisplay old) mask vst   
+		# (change,Display val,vst) = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.onRefresh dp (Display new) (Display old) mask vst 
+		= (change,VHDisplay val,vst)
+	onRefresh dp (VHHidden new) (VHHidden old) mask vst     
+		# (change,Hidden val,vst) = (gEditor{|* -> *|} fx gx dx jex jdx).Editor.onRefresh dp (Hidden new) (Hidden old) mask vst 
+		= (change,VHHidden val,vst)
+	onRefresh _ _ val mask vst = (Ok (NoChange,mask),val,vst)
 
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
 fromVisualizationHint (VHEditable a) = a
@@ -1176,17 +1188,18 @@ toHidden x = (Hidden x)
 gText{|Display|} fx mode (Just (Display val))	= fx mode (Just val)
 gText{|Display|} fx mode Nothing               = fx mode Nothing
 
-gEditor{|Display|} ex j _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|Display|} ex j _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (Display val) vst=:{VSt|mode}
 		# (def,vst) = ex.Editor.genUI dp val {VSt|vst & mode = View}
 		= (def,{VSt|vst & mode = mode})
 
-	updUI dp (Display old) om (Display new) nm vst=:{VSt|mode}
-		# (change,vst) = ex.Editor.updUI dp old om new nm {VSt|vst & mode = View}
-		= (change,{VSt|vst & mode = mode})
-
 	onEdit dp e val mask ust = wrapperUpdate ex.Editor.onEdit fromDisplay Display dp e val mask ust
+
+	onRefresh dp (Display new) (Display old) mask vst=:{VSt|mode}
+		# (change,val,vst) = ex.Editor.onRefresh dp new old mask {VSt|vst & mode = View}
+		= (change,Display val,{VSt|vst & mode = mode})
+
 
 fromDisplay :: !(Display .a) -> .a
 fromDisplay (Display a) = a
@@ -1197,14 +1210,15 @@ toDisplay a = (Display a)
 gText{|Editable|} fx mode (Just (Editable val))    = fx mode (Just val)
 gText{|Editable|} fx mode Nothing                  = fx mode Nothing
 
-gEditor{|Editable|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|Editable|} ex _ _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh}
 where
 	genUI dp val vst=:{VSt|mode}
 		# (def,vst) = ex.Editor.genUI dp (fromEditable val) {VSt | vst & mode = Update}
 		= (def,{VSt | vst & mode = mode})
 
-	updUI dp (Editable old) om (Editable new) nm vst
-		= ex.Editor.updUI dp old om new nm vst
+	onRefresh dp (Editable new) (Editable old) mask vst
+		# (change,val,vst) = ex.Editor.onRefresh dp new old mask vst
+		= (change,Editable val,vst)
 
 	onEdit dp e val mask ust = wrapperUpdate ex.Editor.onEdit fromEditable Editable dp e val mask ust
 
@@ -1217,7 +1231,7 @@ toEditable a = (Editable a)
 gText{|Row|} gVizx mode (Just (Row val)) = gVizx mode (Just val)
 gText{|Row|} gVizx mode Nothing = gVizx mode Nothing
 
-gEditor{|Row|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit} 
+gEditor{|Row|} ex _ _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh} 
 where
 	genUI dp (Row val) vst
 		= case ex.Editor.genUI dp val vst of
@@ -1226,14 +1240,17 @@ where
 	where	
 		setHorizontal (UI type attr items) = UI type ('DM'.union (directionAttr Horizontal) attr) items
 
-	updUI dp (Row old) om (Row new) nm vst
-		= ex.Editor.updUI dp old om new nm vst
 	onEdit dp e val mask ust = wrapperUpdate ex.Editor.onEdit (\(Row x) -> x) Row dp e val mask ust
+
+	onRefresh dp (Row new) (Row old) mask vst
+		= case ex.Editor.onRefresh dp new old mask vst of
+			(Ok change,val,vst) = (Ok change, Row val,vst)
+			(Error e,val,vst)   = (Error e,Row val,vst)
 
 gText{|Col|} gVizx mode (Just (Col val)) = gVizx mode (Just val)
 gText{|Col|} gVizx mode Nothing = gVizx mode Nothing
 
-gEditor{|Col|} ex _ _ _ _ = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|Col|} ex _ _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (Col val) vst
 		= case ex.Editor.genUI dp val vst of
@@ -1241,9 +1258,13 @@ where
 			(Error e,vst)      = (Error e,vst)
 	where	
 		setVertical (UI type attr items) = UI type ('DM'.union (directionAttr Horizontal) attr) items
-	updUI dp (Col old) om (Col new) nm vst
-		= ex.Editor.updUI dp old om new nm vst
+
 	onEdit dp e val mask ust = wrapperUpdate ex.Editor.onEdit (\(Col x) -> x) Col dp e val mask ust
+
+	onRefresh dp (Col new) (Col old) mask vst
+		= case ex.Editor.onRefresh dp new old mask vst of
+			(Ok change,val,vst) = (Ok change, Col val,vst)
+			(Error e,val,vst)   = (Error e,Col val,vst)
 	
 wrapperUpdate fx get set target upd val mask vst
 	# (mbmask,w,vst) = fx target upd (get val) mask vst
@@ -1359,12 +1380,12 @@ derive gDefault			Icon
 derive gEq				Icon
 derive gText	        Icon
 
-gEditor{|Icon|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
+gEditor{|Icon|} = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI _ (Icon icon) vst = (Ok (uia UIIcon (iconClsAttr ("icon-"+++icon)),newFieldMask), vst)
 	onEdit dp e val mask ust = (Ok (NoChange,mask),val,ust)
-	updUI _ (Icon old) om (Icon new) nm vst
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "iconCls" (encodeUI ("icon-"+++new))] [])),vst)
+	onRefresh _ (Icon new) (Icon old) mask vst
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "iconCls" (encodeUI ("icon-"+++new))] []),mask),Icon new, vst)
 
 // Generic instances for common library types
 derive JSONEncode		Either, MaybeError, HtmlTag, HtmlAttr

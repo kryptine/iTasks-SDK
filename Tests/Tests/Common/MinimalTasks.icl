@@ -13,8 +13,8 @@ where
 	//Simple button
 	editlet = { genUI  = genUI
 			  , initUI = \m w -> w
-			  , updUI  = \_ o _ n _ vst -> (Ok (if (o == n) NoChange (ChangeUI [SetAttribute "value" (toJSON n)] [])),vst)
               , onEdit = \_ _ n msk ust -> (Ok (NoChange,msk),n,ust)
+			  , onRefresh = \_ n o m vst -> (Ok (if (o == n) NoChange (ChangeUI [SetAttribute "value" (toJSON n)] []),m),n,vst)
 			  }
 
 	genUI dp val world
