@@ -17,7 +17,7 @@ from iTasks.API.Core.Tasks import matchAndApplyEvent_ , visualizeView_
 interactExposed :: !p !EditMode !(ReadOnlyShared r) (r -> (l,(v,EditMask))) (l r (v,EditMask) Bool Bool Bool -> (l,(v,EditMask)))
 						(Maybe (Editor v))
                         -> Task (l,v) | toPrompt p & iTask l & iTask r & iTask v
-interactExposed prompt mode shared initFun refreshFun mbEditor = Task eval
+interactExposed prompt mode shared initFun refreshFun mbEditor = undef /* Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
@@ -50,10 +50,11 @@ where
 			(Error e,_,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
+*/
 
 interactLocalExposed :: !p !EditMode (l,(v,EditMask)) (l (v,EditMask) Bool -> (l,(v,EditMask))) (Maybe (Editor v))
                         -> Task (l,v) | toPrompt p & iTask l & iTask v
-interactLocalExposed prompt mode initVal refreshFun mbEditor = Task eval
+interactLocalExposed prompt mode initVal refreshFun mbEditor = undef /* Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (l,(v,mask))	= initVal
@@ -77,10 +78,10 @@ where
 			(Error e,_,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
-
+*/
 interactViewOnly :: !p !EditMode (ReadOnlyShared r) (r -> (v,EditMask)) (r (v,EditMask) Bool Bool Bool -> (v,EditMask)) (Maybe (Editor v))
                         -> Task v | toPrompt p & iTask r & iTask v
-interactViewOnly prompt mode shared initFun refreshFun mbEditor = Task eval
+interactViewOnly prompt mode shared initFun refreshFun mbEditor = undef /* Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
@@ -113,10 +114,10 @@ where
 			(Error e,_,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
-
+*/
 interactLocalViewOnly :: !p !EditMode !(v,EditMask) ((v,EditMask) Bool -> (v,EditMask)) (Maybe (Editor v))
                         -> Task v | toPrompt p & iTask v
-interactLocalViewOnly prompt mode initVal refreshFun mbEditor = Task eval
+interactLocalViewOnly prompt mode initVal refreshFun mbEditor = undef /* Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (v,mask)	= initVal
@@ -140,9 +141,10 @@ where
 			(Error e,_,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
+*/
 
 interactSharedInformation :: !p !EditMode !(ReadOnlyShared r) (r -> v) (Maybe (Editor v)) -> Task r | toPrompt p & iTask r & iTask v
-interactSharedInformation prompt mode shared toView mbEditor = Task eval
+interactSharedInformation prompt mode shared toView mbEditor = undef /* Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
@@ -178,9 +180,10 @@ where
 			(Error e,_,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
+*/
 
 interactNullEnter :: !p !v (v->l) (Maybe (Editor v)) -> Task l | toPrompt p & iTask v & iTask l
-interactNullEnter prompt initFun fromf mbEditor = Task eval
+interactNullEnter prompt initFun fromf mbEditor = undef /* Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# v = initFun
@@ -207,9 +210,9 @@ where
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refreshFun l (v,m) valid = if valid (fromf v,(v,m)) (l,(v,m))
-
+*/
 interactNullUpdate :: !p !(l -> v) (l v -> l) (Maybe (Editor v)) l -> Task l | toPrompt p & iTask l & iTask v
-interactNullUpdate prompt tof fromf mbEditor m = Task eval
+interactNullUpdate prompt tof fromf mbEditor m = undef /* Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# v = tof m
@@ -243,9 +246,9 @@ where
 			# nv = tof nl
 			= (l,(nv,newFieldMask))	
 		= (l,(v,m))
-
+*/
 interactNullView :: !p (l->v) (Maybe (Editor v)) l -> Task l | toPrompt p & iTask l & iTask v
-interactNullView prompt tof mbEditor m = Task eval
+interactNullView prompt tof mbEditor m = undef /* Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# l = m
@@ -269,3 +272,4 @@ where
 			(Error e,_,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
+*/

@@ -71,8 +71,8 @@ where
 	rep _ 			= NoChange
 
 interact :: !p !EditMode !(ReadOnlyShared r)
-				(r -> (l,Masked v))
-				(l r (Masked v) Bool Bool Bool -> (l,(Masked v)))
+				(r -> (l,v))
+				(l r v Bool Bool Bool -> (l,v))
 				(Maybe (Editor v)) -> Task l | toPrompt p & iTask l & iTask r & iTask v
 interact prompt mode shared initFun refreshFun mbEditor = Task eval
 where
@@ -81,49 +81,62 @@ where
 		= case mbr of
 			Error e		= (ExceptionResult e, iworld)
 			Ok r
-				# (l,(v,mask))	= initFun r
-				= eval event evalOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
+				# (l,v)	= initFun r
+				= eval event evalOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) newFieldMask) iworld
 				
 	eval event evalOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv m) iworld=:{current={taskTime}}
 		//Decode stored values
-		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
-		//Determine next v by applying edit event if applicable	
-		# ((nv,nm),nts,iworld)  = matchAndApplyEvent_ event taskId evalOpts mode mbEditor taskTime (v,m) ts prompt iworld
-		//Load next r from shared value
-		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
-		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
-		# nr					= fromOk mbr
+		//# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
+		# (l,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encv))
+		//Apply event (if there is one for this interact)	
+		= case matchAndApplyEvent_ event taskId mode mbEditor taskTime v m ts prompt iworld of
+			(Error e,iworld) = (ExceptionResult (exception e),iworld)
+			(Ok (v,ce,m,ts),iworld) 
+				//Read the shared source and refresh the editor
+				# (mbr,iworld) 		= 'SDS'.readRegister taskId shared iworld
+				| isError mbr		= (ExceptionResult (fromError mbr),iworld)
+				# r					= fromOk mbr
+				//Solve overloading for now... FIXME
+				# (l,v) = refreshFun l r v True True True
+				//Refresh the editor with a view based on the share editor
+				= case refreshView_ taskId mode mbEditor taskTime (snd (initFun r)) v m ts iworld of
+					(Ok (v,cr,m,ts),iworld)
+						//Merge the UI changes : TODO
+						# change = ce
+						//Construct the result
+						# valid 				= not (containsInvalidFields m)
+						# value 				= if valid (Value l False) NoValue
+						# info 					= {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
+						= (ValueResult value info change (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) m), iworld)
 		//Apply refresh function if r or v changed
+		/*
 		# rChanged				= nr =!= r
 		# vChanged				= nts =!= ts
 		# vValid				= not (containsInvalidFields nm)
 		# (nl,(nv,nm)) 			= if (rChanged || vChanged) (refreshFun l nr (nv,nm) rChanged vChanged vValid) (l,(nv,nm))
-		//Update visualization v
-		= case visualizeView_ taskId evalOpts mode mbEditor event (v,m) (nv,nm) prompt iworld of
-			(Ok change,valid,iworld)
-				# value 				= if valid (Value nl False) NoValue
-				# info 					= {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True}
-				= (ValueResult value info change (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nm), iworld)
-			(Error e,valid,iworld) = (ExceptionResult (exception e),iworld)
-
+*/
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-matchAndApplyEvent_ :: Event TaskId TaskEvalOpts EditMode (Maybe (Editor v)) TaskTime (Masked v) TaskTime d *IWorld -> *(!Masked v,!TaskTime,!*IWorld) | iTask v & toPrompt d
-matchAndApplyEvent_ (EditEvent taskId name value) matchId evalOpts mode mbEditor taskTime (v,m) ts prompt iworld
-	| taskId == matchId
-		# ((nv,nm),iworld) = updateValueAndMask_ taskId mode (s2dp name) mbEditor value (v,m) iworld
-		= ((nv,nm),taskTime,iworld)
-	| otherwise	= ((v,m),ts,iworld)
-matchAndApplyEvent_ _ matchId evalOpts mode mbEditor taskTime (v,m) ts prompt iworld
-	= ((v,m),ts,iworld)
-
-updateValueAndMask_ :: TaskId EditMode DataPath (Maybe (Editor v)) JSONNode (Masked v) *IWorld -> *(!Masked v,*IWorld) | iTask v
-updateValueAndMask_ taskId mode path mbEditor diff (v,m) iworld
+matchAndApplyEvent_ :: Event TaskId EditMode (Maybe (Editor v)) TaskTime v EditMask TaskTime d *IWorld -> *(!MaybeErrorString (!v,!UIChange,!EditMask,!TaskTime),!*IWorld) | iTask v & toPrompt d
+matchAndApplyEvent_ ResetEvent taskId mode mbEditor taskTime v mask ts prompt iworld
 	# editor = fromMaybe gEditor{|*|} mbEditor
-    # (nm,nv,vst=:{VSt|iworld}) = editor.Editor.onEdit path diff v m {VSt|mode = mode, taskId=toString taskId, optional=False, selectedConsIndex= -1, iworld=iworld}
-	= case nm of
-		Ok (_,m) 	= ((nv,m),iworld)
-		_ 			= ((v,m),iworld)
+	# vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
+	= case editor.Editor.genUI [] v vst of
+		(Ok (ui,mask),{VSt|iworld}) = (Ok (v,ReplaceUI (uic UIInteract [toPrompt prompt,ui]),mask,taskTime),iworld)
+		(Error e,{VSt|iworld})      = (Error e,iworld)
+matchAndApplyEvent_ (EditEvent eTaskId name edit) taskId mode mbEditor taskTime v mask ts prompt iworld
+	| eTaskId == taskId 
+		# editor = fromMaybe gEditor{|*|} mbEditor
+		= case editor.Editor.onEdit (s2dp name) edit v mask {VSt|mode = mode, taskId=toString taskId, optional=False, selectedConsIndex= -1, iworld=iworld} of
+			(Ok (change,mask),v,{VSt|iworld}) = (Ok (v,ChangeUI [] [(1,ChangeChild change)],mask,taskTime),iworld)
+			(Error e,_,{VSt|iworld}) = (Error e,iworld)
+	| otherwise	= (Ok (v,NoChange,mask,ts),iworld)
+matchAndApplyEvent_ _ _ _ _ _ v mask ts _ iworld
+	= (Ok (v,NoChange,mask,ts),iworld)
+
+refreshView_ :: TaskId EditMode (Maybe (Editor v)) TaskTime v v EditMask TaskTime *IWorld -> *(!MaybeErrorString (!v,UIChange,!EditMask,TaskTime),!*IWorld)
+refreshView_ taskId mode mbEditor taskTime vn vo mask ts iworld
+	= (Ok (vo,NoChange,mask,ts),iworld)
 
 visualizeView_ :: TaskId TaskEvalOpts EditMode (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld -> *(!MaybeErrorString UIChange,!Bool,!*IWorld) | iTask v & toPrompt d
 visualizeView_ taskId evalOpts mode mbEditor event old=:(v,m) new=:(nv,nm) prompt iworld

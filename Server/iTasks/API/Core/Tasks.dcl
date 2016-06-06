@@ -103,8 +103,8 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 * @gin False
 */
 interact :: !d !EditMode !(ReadOnlyShared r)
-				(r -> (l,Masked v))
-				(l r (Masked v) Bool Bool Bool -> (l,(Masked v)))
+				(r -> (l,v))
+				(l r v Bool Bool Bool -> (l,v))
 				(Maybe (Editor v)) -> Task l | toPrompt d & iTask l & iTask r & iTask v
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed
@@ -179,7 +179,6 @@ traceValue :: a -> Task a | iTask a
 shutDown :: Task ()
 
 //INTERNAL FUNCTIONS EXPORTED FOR USE IN OPTIMIZED VERSIONS OF interact,
-matchAndApplyEvent_ :: Event TaskId TaskEvalOpts EditMode (Maybe (Editor v)) TaskTime (Masked v) TaskTime d *IWorld
-	-> *(!Masked v,!TaskTime,!*IWorld) | iTask v & toPrompt d
+matchAndApplyEvent_ :: Event TaskId EditMode (Maybe (Editor v)) TaskTime v EditMask TaskTime d *IWorld -> *(!MaybeErrorString (!v,!UIChange,!EditMask,!TaskTime),!*IWorld) | iTask v & toPrompt d
 visualizeView_ :: TaskId TaskEvalOpts EditMode (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld
 	-> *(!MaybeErrorString UIChange,!Bool,!*IWorld) | iTask v & toPrompt  d

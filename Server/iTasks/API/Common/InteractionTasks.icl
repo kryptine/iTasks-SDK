@@ -42,13 +42,13 @@ enterInformation d _ = enterInformation d [EnterWith id]
 updateInformation :: !d ![UpdateOption m m] m -> Task m | toPrompt d & iTask m
 updateInformation d [UpdateWith tof fromf:_] m
 	= interact d Update null
-		(\r -> let v = tof m in (m,(v,newFieldMask)))
-		(\l r (v,m) rCh vCh vOk -> if vOk (let nl = fromf l v in (let nv = tof nl in (nl,(nv,m)))) (l,(v,m)))
+		(\r -> let v = tof m in (m,v))
+		(\l r v rCh vCh vOk -> if vOk (let nl = fromf l v in (let nv = tof nl in (nl,nv))) (l,v))
 		Nothing
 updateInformation d [UpdateUsing tof fromf editor:_] m
 	= interact d Update null
-		(\r -> let v = tof m in (m,(v,newFieldMask)))
-		(\l r (v,m) rCh vCh vOk -> if vOk (let nl = fromf l v in (let nv = tof nl in (nl,(nv,m)))) (l,(v,m)))
+		(\r -> let v = tof m in (m,v))
+		(\l r v rCh vCh vOk -> if vOk (let nl = fromf l v in (let nv = tof nl in (nl,nv))) (l,v))
 		(Just editor)
 //TODO: THIS OPTIMIZATION IS WRONG!
 //	= interactNullUpdate d tof fromf m
@@ -69,42 +69,42 @@ viewInformation d _ m = viewInformation d [ViewWith id] m
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | toPrompt d & iTask r & iTask w
 updateSharedInformation d [UpdateWith tof fromf:_] shared
 	= interact d Update (toReadOnly shared)
-				(\r -> let v = tof r in (fromf r v,(v,newFieldMask)))
-				(\l r (v,m) rCh vCh vOk -> if vOk
+				(\r -> let v = tof r in (fromf r v,v))
+				(\l r v rCh vCh vOk -> if vOk
 					(if rCh //If the share changed, refresh the view
-						(let nv = tof r in (fromf r nv,(nv,newFieldMask)))
-						(fromf r v,(v,m))
+						(let nv = tof r in (fromf r nv,nv))
+						(fromf r v,v)
 					)
-					(l,(v,m))
+					(l,v)
 				)
 				Nothing
 				@> (mapval,shared)
 updateSharedInformation d [UpdateUsing tof fromf editor:_] shared
 	= interact d Update (toReadOnly shared)
-				(\r -> let v = tof r in (fromf r v,(v,newFieldMask)))
-				(\l r (v,m) rCh vCh vOk -> if vOk
+				(\r -> let v = tof r in (fromf r v,v))
+				(\l r v rCh vCh vOk -> if vOk
 					(if rCh //If the share changed, refresh the view
-						(let nv = tof r in (fromf r nv,(nv,newFieldMask)))
-						(fromf r v,(v,m))
+						(let nv = tof r in (fromf r nv,nv))
+						(fromf r v,v)
 					)
-					(l,(v,m))
+					(l,v)
 				)
 				(Just editor)
 				@> (mapval,shared)
 updateSharedInformation d [UpdateWithShared tof fromf conflictf:_] shared
 	= interact d Update (toReadOnly shared)
-				(\r -> let v = tof r in (fromf r v,(v,newFieldMask)))
-				(\l r (v,m) rCh vCh vOk -> if vOk
+				(\r -> let v = tof r in (fromf r v,v))
+				(\l r v rCh vCh vOk -> if vOk
 					(if rCh 
                         (if vCh
                             //Both the share changed and the view changed -> resolve conflict
-                            (let nv = conflictf v (tof r) in (fromf r nv,(nv,newFieldMask)))
+                            (let nv = conflictf v (tof r) in (fromf r nv,nv))
                             //Only the share changed, refresh the view
-						    (let nv = tof r in (fromf r nv,(nv,newFieldMask)))
+						    (let nv = tof r in (fromf r nv,nv))
                         )             
-						(fromf r v,(v,m))
+						(fromf r v,v)
 					)
-					(l,(v,m))
+					(l,v)
 				)
 				Nothing
 				@> (mapval,shared)
@@ -114,14 +114,14 @@ updateSharedInformation d _ shared
 	= case dynamic id :: A.a: (a -> a) of
 		(rtow :: (r^ -> w^))
 			= interact d Update (toReadOnly shared)
-				(\r -> let v = rtow r in (rtow r,(v,newFieldMask)))
-				(\l r (v,m) rCh vCh vOk -> if vOk (if (rtow r =!= l) (let nv = rtow r in (nv,(nv,newFieldMask))) (v,(v,m))) (l,(v,m)))
+				(\r -> let v = rtow r in (rtow r,v))
+				(\l r v rCh vCh vOk -> if vOk (if (rtow r =!= l) (let nv = rtow r in (nv,nv)) (v,v)) (l,v))
 				Nothing
 				@> (mapval,shared)
 		_
 			= interact d Update (toReadOnly shared)
-				(\r -> let v = (Display r,defaultValue) in (defaultValue,(v,CompoundMask [newFieldMask,newFieldMask])))
-				(\l r ((_,v),(CompoundMask [_,m])) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,(nv,CompoundMask [newFieldMask,m]))))
+				(\r -> let v = (Display r,defaultValue) in (defaultValue,v))
+				(\l r (_,v) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,nv)))
 				Nothing
 				@> (mapval,shared)	
 
@@ -141,18 +141,18 @@ viewSharedInformation d _ shared = viewSharedInformation d [ViewWith id] shared
 updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | toPrompt d & iTask r & iTask m
 updateInformationWithShared d [UpdateWith tof fromf:_] shared m
 	= interact d Update (toReadOnly shared)
-		(\r -> let v = tof (r,m) in (m,(v,newFieldMask)))
-		(\l r (v,msk) rCh vCh vOk -> let nl = if vOk (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,(v,newFieldMask))))
+		(\r -> let v = tof (r,m) in (m,v))
+		(\l r v rCh vCh vOk -> let nl = if vOk (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,v)))
 		Nothing
 updateInformationWithShared d [UpdateUsing tof fromf editor:_] shared m
 	= interact d Update (toReadOnly shared)
-		(\r -> let v = tof (r,m) in (m,(v,newFieldMask)))
-		(\l r (v,msk) rCh vCh vOk -> let nl = if vOk (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,(v,newFieldMask))))
+		(\r -> let v = tof (r,m) in (m,v))
+		(\l r v rCh vCh vOk -> let nl = if vOk (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,v)))
 		(Just editor)
 updateInformationWithShared d _ shared m
 	= interact d Update (toReadOnly shared)
-		(\r -> let v = (Display r,m) in (m,(v,CompoundMask [newFieldMask,newFieldMask])))
-		(\l r ((_,v),(CompoundMask [_,msk])) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,(nv,CompoundMask [newFieldMask,msk]))))
+		(\r -> let v = (Display r,m) in (m,v))
+		(\l r (_,v) rCh vCh vOk -> let nl = if vOk v l in (let nv = (Display r,nl) in (nl,nv)))
 		Nothing
 
 //Core choice tasks
