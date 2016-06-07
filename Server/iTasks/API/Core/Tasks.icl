@@ -70,10 +70,10 @@ where
 	rep ResetEvent  = ReplaceUI (ui UIEmpty) 
 	rep _ 			= NoChange
 
-interact :: !p !EditMode !(ReadOnlyShared r)
+interact :: !p !EditMode !(RWShared () r w)
 				(r -> (l,v))
 				(l r v Bool Bool Bool -> (l,v))
-				(Maybe (Editor v)) -> Task l | toPrompt p & iTask l & iTask r & iTask v
+				(Maybe (Editor v)) -> Task (l,v) | toPrompt p & iTask l & iTask r & iTask v
 interact prompt mode shared initFun refreshFun mbEditor = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
@@ -105,7 +105,7 @@ where
 						# change = ce
 						//Construct the result
 						# valid 				= not (containsInvalidFields m)
-						# value 				= if valid (Value l False) NoValue
+						# value 				= if valid (Value (l,v) False) NoValue
 						# info 					= {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
 						= (ValueResult value info change (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) m), iworld)
 		//Apply refresh function if r or v changed
