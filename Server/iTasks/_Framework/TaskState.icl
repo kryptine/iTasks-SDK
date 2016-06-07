@@ -28,12 +28,7 @@ JSONDecode{|DeferredJSON|} _ l
 taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
 taskIdFromTaskTree (TCInit                  taskId _)         = Ok taskId
 taskIdFromTaskTree (TCBasic                 taskId _ _ _)     = Ok taskId
-taskIdFromTaskTree (TCInteract              taskId _ _ _ _ _) = Ok taskId
-taskIdFromTaskTree (TCInteractLocal         taskId _ _ _ _)   = Ok taskId
-taskIdFromTaskTree (TCInteractViewOnly      taskId _ _ _ _)   = Ok taskId
-taskIdFromTaskTree (TCInteractLocalViewOnly taskId _ _ _)     = Ok taskId
-taskIdFromTaskTree (TCInteract1             taskId _ _ _)     = Ok taskId
-taskIdFromTaskTree (TCInteract2             taskId _ _ _ _)   = Ok taskId
+taskIdFromTaskTree (TCInteract              taskId _ _ _ _)   = Ok taskId
 taskIdFromTaskTree (TCProject               taskId _ _)       = Ok taskId
 taskIdFromTaskTree (TCStep                  taskId _ _)       = Ok taskId
 taskIdFromTaskTree (TCParallel              taskId _ _ _)     = Ok taskId

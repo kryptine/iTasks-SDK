@@ -72,7 +72,7 @@ where
 
 interact :: !p !EditMode !(RWShared () r w)
 				(r -> (l,v))
-				(l r v Bool Bool Bool -> (l,v))
+				(l r v -> (l,v))
 				(Maybe (Editor v)) -> Task (l,v) | toPrompt p & iTask l & iTask r & iTask v
 interact prompt mode shared initFun refreshFun mbEditor = Task eval
 where
@@ -82,11 +82,10 @@ where
 			Error e		= (ExceptionResult e, iworld)
 			Ok r
 				# (l,v)	= initFun r
-				= eval event evalOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) newFieldMask) iworld
+				= eval event evalOpts (TCInteract taskId ts (toJSON l) (toJSON v) newFieldMask) iworld
 				
-	eval event evalOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv m) iworld=:{current={taskTime}}
+	eval event evalOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encv m) iworld=:{current={taskTime}}
 		//Decode stored values
-		//# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		# (l,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encv))
 		//Apply event (if there is one for this interact)	
 		= case matchAndApplyEvent_ event taskId mode mbEditor taskTime v m ts prompt iworld of
@@ -96,8 +95,8 @@ where
 				# (mbr,iworld) 		= 'SDS'.readRegister taskId shared iworld
 				| isError mbr		= (ExceptionResult (fromError mbr),iworld)
 				# r					= fromOk mbr
-				//Solve overloading for now... FIXME
-				# (l,v) = refreshFun l r v True True True
+				//Refresh the editor model 
+				# (l,v) = refreshFun l r v
 				//Refresh the editor with a view based on the share editor
 				= case refreshView_ taskId mode mbEditor taskTime (snd (initFun r)) v m ts iworld of
 					(Ok (v,cr,m,ts),iworld)
@@ -107,14 +106,8 @@ where
 						# valid 				= not (containsInvalidFields m)
 						# value 				= if valid (Value (l,v) False) NoValue
 						# info 					= {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
-						= (ValueResult value info change (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) m), iworld)
-		//Apply refresh function if r or v changed
-		/*
-		# rChanged				= nr =!= r
-		# vChanged				= nts =!= ts
-		# vValid				= not (containsInvalidFields nm)
-		# (nl,(nv,nm)) 			= if (rChanged || vChanged) (refreshFun l nr (nv,nm) rChanged vChanged vValid) (l,(nv,nm))
-*/
+						= (ValueResult value info change (TCInteract taskId ts (toJSON l) (toJSON v) m), iworld)
+
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 matchAndApplyEvent_ :: Event TaskId EditMode (Maybe (Editor v)) TaskTime v EditMask TaskTime d *IWorld -> *(!MaybeErrorString (!v,!UIChange,!EditMask,!TaskTime),!*IWorld) | iTask v & toPrompt d
