@@ -76,7 +76,7 @@ onRefresh _ new=:(AnalogClock t2) (AnalogClock t1) mask vst = case (  (if (t1.Ti
 						 ++ (if (t1.Time.hour == t2.Time.hour) [] [(2,t2.Time.hour)])
 						 ) of [] = (Ok (NoChange,mask),new,vst) ; delta = (Ok (ChangeUI [SetAttribute "diff" (toJSON delta)] [],mask),new,vst)
 
-onEdit [] diff t m ust = case fromJSON diff of
+onEdit dp ([],diff) t m ust = case fromJSON diff of
 	Just diffs = (Ok (NoChange,FieldMask {touched=True,valid=True,state=JSONNull}),app diffs t,ust)
 	Nothing = (Ok (NoChange,m),t,ust)
 where

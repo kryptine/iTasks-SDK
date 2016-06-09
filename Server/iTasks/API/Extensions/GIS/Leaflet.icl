@@ -97,7 +97,7 @@ where
         | o1 === o2     = diffObjects l (inc i) os1 os2
                         = [LDUpdateObject l i o2:diffObjects l (inc i) os1 os2]
 
-onEdit [] diff m msk vst = case fromJSON diff of
+onEdit dp ([],diff) m msk vst = case fromJSON diff of
 	Just diffs = (Ok (NoChange,msk),app diffs m,vst)
 	Nothing = (Ok (NoChange,msk),m,vst)
 where

@@ -45,18 +45,20 @@ where
 	where
 		checkbox checked = uia UICheckbox (editAttrs taskId (editorId dp) (Just (JSONBool checked)))
 
-	onEdit [] e (RECORD record) mask ust //Enabling or disabling of a record
+	onEdit dp ([],e) (RECORD record) mask ust //Enabling or disabling of a record
     	# mask = case e of
         	JSONBool False  = CompoundMask [] 
         	_               = mask
     	= (Ok (NoChange,mask),RECORD record,ust)
 
-	onEdit [d:ds] e (RECORD record) mask ust
+	onEdit dp ([d:ds],e) (RECORD record) mask ust
 		| d >= grd_arity
 			= (Ok (NoChange,mask),RECORD record,ust)
 		# childMasks = subMasks grd_arity mask
-		# (Ok (targetChange,targetMask),record,ust) = ex.Editor.onEdit (pairSelectPath d grd_arity ++ ds) e record (childMasks !! d) ust
-		= (Ok (targetChange,(CompoundMask (updateAt d targetMask childMasks))),RECORD record,ust)
+		= case ex.Editor.onEdit dp (pairSelectPath d grd_arity ++ ds,e) record (childMasks !! d) ust of
+			(Ok (targetChange,targetMask),record,ust) 
+				= (Ok (targetChange,(CompoundMask (updateAt d targetMask childMasks))),RECORD record,ust)
+			(Error e,record,ust) = (Error e,RECORD record, ust)
 	onEdit _ _ val mask ust = (Ok (NoChange,mask),val,ust)
 
 	onRefresh dp (RECORD new) (RECORD old) mask vst 
@@ -69,8 +71,8 @@ where
 		(Ok (UI type attr items, mask),vst) = (Ok (UI type ('DM'.union attr (labelAttr gfd_name)) items, mask),vst) 
 		(Error e,vst)                       = (Error e,vst)
 
-	onEdit dp e (FIELD field) mask vst
-		# (mbmask,field,vst) = ex.Editor.onEdit dp e field mask vst
+	onEdit dp (tp,e) (FIELD field) mask vst
+		# (mbmask,field,vst) = ex.Editor.onEdit dp (tp,e) field mask vst
 		= (mbmask,FIELD field,vst)
 
 	onRefresh dp (FIELD new) (FIELD old) mask vst
@@ -113,7 +115,7 @@ where
 							= (Ok (UI UIVarCons attr [consNameUI:items],CompoundMask [newFieldMask:masks]),{vst & selectedConsIndex = selectedConsIndex})
 					(Error e,vst) = (Error e,vst)
 
-	onEdit [] JSONNull (OBJECT val) (CompoundMask [FieldMask {FieldMask|touched,valid,state}:masks]) vst=:{VSt|optional} //Update is a constructor reset
+	onEdit dp ([],JSONNull) (OBJECT val) (CompoundMask [FieldMask {FieldMask|touched,valid,state}:masks]) vst=:{VSt|optional} //Update is a constructor reset
 		//If necessary remove the fields of the previously selected constructor
 		# change = case state of
 			(JSONInt prevConsIdx) = ChangeUI [] (repeatn (gtd_conses !! prevConsIdx).gcd_arity (1,RemoveChild))
@@ -121,13 +123,13 @@ where
 		# consChooseMask = FieldMask {touched=True,valid=optional,state=JSONNull}
 		= (Ok (change,CompoundMask [consChooseMask:masks]),OBJECT val, vst)
 
-	onEdit [] (JSONInt consIdx) (OBJECT val) (CompoundMask [FieldMask {FieldMask|touched,valid,state}:masks]) vst=:{VSt|mode} //Update is a constructor switch
+	onEdit dp ([],JSONInt consIdx) (OBJECT val) (CompoundMask [FieldMask {FieldMask|touched,valid,state}:masks]) vst=:{VSt|mode} //Update is a constructor switch
 		| consIdx < 0 || consIdx >= gtd_num_conses
 			= (Error "Constructor selection out of bounds",OBJECT val,vst)
 		//Create a default value for the selected constructor
-    	# (_,val,vst)	= ex.Editor.onEdit (consCreatePath consIdx gtd_num_conses) JSONNull val (CompoundMask []) vst //UGLY TRICK
+    	# (_,val,vst)	= ex.Editor.onEdit dp (consCreatePath consIdx gtd_num_conses,JSONNull) val (CompoundMask []) vst //UGLY TRICK
 		//Create an UI for the new constructor 
-		= case ex.Editor.genUI [] val {vst & mode = Enter} of //HOW WILL I KNOW THE CORRECT DATAPATH?!
+		= case ex.Editor.genUI dp val {vst & mode = Enter} of
 			(Ok (UI UICons attr items, CompoundMask masks),vst)
 				//Construct a UI change that does the following: 
 				//1: If necessary remove the fields of the previously selected constructor
@@ -142,19 +144,19 @@ where
 				= (Ok (change,CompoundMask [consChooseMask:masks]), OBJECT val, {vst & mode = mode})
 			(Error e,vst) = (Error e, OBJECT val, {vst & mode = mode})
 
-	onEdit [] _ (OBJECT val) mask vst
+	onEdit dp ([],_) (OBJECT val) mask vst
 		= (Error "Unknown constructor select event",OBJECT val,vst)
 
-	onEdit dp e (OBJECT val) mask vst  //Update is targeted somewhere in a substructure of this value
+	onEdit dp (tp,e) (OBJECT val) mask vst  //Update is targeted somewhere in a substructure of this value
 		| gtd_num_conses == 1
 			//Just call onEdit for the inner value
-			= case ex.Editor.onEdit dp e val mask vst of
+			= case ex.Editor.onEdit dp (tp,e) val mask vst of
 				(Ok (change,mask),val,vst) = (Ok (change,mask),OBJECT val,vst)
 				(Error e,val,vst) = (Error e, OBJECT val, vst)
 		| otherwise
 			//Adjust for the added constructor switch UI
 			# (CompoundMask [consChooseMask:masks]) = mask
-			= case ex.Editor.onEdit dp e val (CompoundMask masks) vst of
+			= case ex.Editor.onEdit dp (tp,e) val (CompoundMask masks) vst of
 				(Ok (change,CompoundMask masks),val,vst)
 					# change = case change of
 						(ChangeUI attrChanges itemChanges) = ChangeUI attrChanges [(i + 1,c) \\ (i,c) <- itemChanges]
@@ -233,11 +235,11 @@ where
 		(Ok viz,vst)  = (Ok (flattenUIPairs UICons gcd_arity viz), {VSt| vst & selectedConsIndex = gcd_index})
 		(Error e,vst) = (Error e,{VSt| vst & selectedConsIndex = gcd_index})
 
-	onEdit [d:ds] e (CONS val) (CompoundMask masks) vst
+	onEdit dp ([d:ds],e) (CONS val) (CompoundMask masks) vst
 		| d >= gcd_arity
 			= (Error "Edit aimed at non-existent constructor field",CONS val,vst)
 		//Update the targeted field in the constructor
-		= case ex.Editor.onEdit (pairSelectPath d gcd_arity ++ ds) e val (masks !! d) vst of	
+		= case ex.Editor.onEdit dp (pairSelectPath d gcd_arity ++ ds,e) val (masks !! d) vst of	
 			(Ok (change,mask),val,vst)
 				//Extend the change
 				# change = case change of
@@ -266,11 +268,11 @@ where
 		# ((vizx,maskx),(vizy,masky)) = (fromOk vizx,fromOk vizy)
 		= (Ok (uic UIPair [vizx,vizy],CompoundMask [maskx,masky]),vst)
 
-	onEdit [0:ds] e (PAIR x y) xmask ust
-		# (xmask,x,ust) = ex.Editor.onEdit ds e x xmask ust
+	onEdit dp ([0:ds],e) (PAIR x y) xmask ust
+		# (xmask,x,ust) = ex.Editor.onEdit dp (ds,e) x xmask ust
 		= (xmask,PAIR x y,ust)
-	onEdit [1:ds] e (PAIR x y) ymask ust
-		# (ymask,y,ust) = ey.Editor.onEdit ds e y ymask ust
+	onEdit dp ([1:ds],e) (PAIR x y) ymask ust
+		# (ymask,y,ust) = ey.Editor.onEdit dp (ds,e) y ymask ust
 		= (ymask,PAIR x y,ust)
 	onEdit _ _ val mask ust = (Ok (NoChange,mask),val,ust)
 
@@ -296,15 +298,15 @@ where
 			(Ok (UI type attr items, mask),vst) = (Ok (UI type ('DM'.union (optionalAttr True) attr) items,mask), {VSt|vst & optional = optional})
 			(Error e,vst) = (Error e, {VSt|vst & optional = optional})
 
-	onEdit dp e val mask vst=:{VSt|optional}
-		| isEmpty dp && (e === JSONNull || e === JSONBool False)
+	onEdit dp (tp,e) val mask vst=:{VSt|optional}
+		| isEmpty tp && (e === JSONNull || e === JSONBool False)
 			# mask = case mask of
 				(FieldMask fmask) = FieldMask {FieldMask|fmask & state = JSONNull}
 				(CompoundMask m) = CompoundMask []
 			= (Ok (NoChange,mask),Nothing,vst) //Reset
 		| otherwise
 			# (x,xmask) = maybe (dx,CompoundMask []) (\x -> (x,mask)) val
-			# (xmask,x,vst) = ex.Editor.onEdit dp e x xmask {VSt|vst & optional = True}
+			# (xmask,x,vst) = ex.Editor.onEdit dp (tp,e) x xmask {VSt|vst & optional = True}
 			= (xmask,Just x,{VSt|vst & optional = optional})
 
 	onRefresh dp Nothing Nothing mask vst = (Ok (NoChange,mask),Nothing,vst)

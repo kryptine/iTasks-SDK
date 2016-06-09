@@ -119,7 +119,7 @@ matchAndApplyEvent_ ResetEvent taskId mode mbEditor taskTime v mask ts prompt iw
 matchAndApplyEvent_ (EditEvent eTaskId name edit) taskId mode mbEditor taskTime v mask ts prompt iworld
 	| eTaskId == taskId 
 		# editor = fromMaybe gEditor{|*|} mbEditor
-		= case editor.Editor.onEdit (s2dp name) edit v mask {VSt|mode = mode, taskId=toString taskId, optional=False, selectedConsIndex= -1, iworld=iworld} of
+		= case editor.Editor.onEdit [] (s2dp name,edit) v mask {VSt|mode = mode, taskId=toString taskId, optional=False, selectedConsIndex= -1, iworld=iworld} of
 			(Ok (change,mask),v,{VSt|iworld}) = (Ok (v,ChangeUI [] [(1,ChangeChild change)],mask,taskTime),iworld)
 			(Error e,_,{VSt|iworld}) = (Error e,iworld)
 	| otherwise	= (Ok (v,NoChange,mask,ts),iworld)

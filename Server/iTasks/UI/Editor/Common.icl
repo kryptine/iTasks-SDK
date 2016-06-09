@@ -46,10 +46,10 @@ where
 			# attr = 'DM'.unions [halignAttr AlignRight,heightAttr WrapSize,directionAttr Horizontal]
 			= uiac UIContainer attr (if (reorder || remove) ([item] ++ buttons) [item])
 			
-	onEdit dp e items listMask ust
+	onEdit dp (tp,e) items listMask ust
 		# childMasks = subMasks (length items) listMask
 		# (items,childMasks,ust) = updateItems dp e items childMasks ust
-		| isEmpty dp
+		| isEmpty tp
 			//Process the reordering commands
 			# split = split "_" (fromMaybe "" (fromJSON e))
 			# index = toInt (last split)
@@ -66,13 +66,13 @@ where
 		| otherwise
 			= (Ok (NoChange,CompoundMask childMasks),items,ust)
 	where
-		updateItems [i:dp] e items masks ust
+		updateItems [i:tp] e items masks ust
 			| i >= (length items) = (items,masks,ust)
-			# (nm,nx,ust)	= itemEditor.Editor.onEdit dp e (items !! i) (masks !! i) ust
+			# (nm,nx,ust)	= itemEditor.Editor.onEdit dp (tp,e) (items !! i) (masks !! i) ust
 			= case nm of
 				Ok (_,m) = (updateAt i nx items, updateAt i m masks,ust)
 				_    = (items,masks,ust)
-		updateItems dp e items masks ust
+		updateItems tp e items masks ust
 			= (items,masks,ust)
 
 		swap []	  _		= []

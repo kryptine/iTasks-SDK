@@ -51,7 +51,7 @@ where
 		# attr = 'DM'.unions [optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr val]
 		= (Ok (uia type attr,mask),vst)
 
-	onEdit dp e val mask vst=:{VSt|optional}
+	onEdit dp (tp,e) val mask vst=:{VSt|optional}
 		= case e of
 			JSONNull = (Ok (ChangeUI [SetAttribute "value" JSONNull] [],FieldMask {touched=True,valid=optional,state=JSONNull}),val,vst)
 			json = case fromJSON e of

@@ -422,7 +422,7 @@ where
         oldMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g1.GoogleMap.markers]
         newMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g2.GoogleMap.markers]
 
-	onEdit [] d g msk ust = case fromJSON d of
+	onEdit dp ([],d) g msk ust = case fromJSON d of
 		Just diffs = (Ok (NoChange,msk),foldl app g diffs,ust)
 		Nothing    = (Ok (NoChange,msk),g,ust)
     where

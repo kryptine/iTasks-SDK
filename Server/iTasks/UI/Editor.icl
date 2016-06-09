@@ -84,19 +84,19 @@ stdAttributeChanges typename optional om nm
 	| om === nm = [] //Nothing to change
 	| otherwise = [SetAttribute k v \\ (k,v) <- 'DM'.toList (stdAttributes typename optional nm)]
 
-basicEdit :: !(upd a -> Maybe a) !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString (!UIChange,!EditMask), !a, !*VSt) | JSONDecode{|*|} upd
-basicEdit toV [] upd v vmask ust=:{VSt|optional}
-	= case upd of
-		JSONNull = (Ok (NoChange,FieldMask {touched=True,valid=optional,state=JSONNull}),v,ust)
-		json = case fromJSON upd of
-			Nothing  = (Ok (NoChange,FieldMask {touched=True,valid=False,state=upd}),v,ust)
-			(Just e) = case toV e v of
-				Nothing = (Ok (NoChange,FieldMask {touched=True,valid=False,state=upd}),v,ust)
-				Just val = (Ok (NoChange,FieldMask {touched=True,valid=True,state=upd}),val,ust)
-basicEdit toV _ upd v vmask ust = (Ok (NoChange,vmask),v,ust)
+basicEdit :: !(upd a -> Maybe a) !DataPath !(!DataPath,!JSONNode) !a !EditMask !*VSt -> *(!MaybeErrorString (!UIChange,!EditMask), !a, !*VSt) | JSONDecode{|*|} upd
+basicEdit toV dp ([],e) v vmask vst=:{VSt|optional}
+	= case e of
+		JSONNull = (Ok (NoChange,FieldMask {touched=True,valid=optional,state=JSONNull}),v,vst)
+		json = case fromJSON json of
+			Nothing  = (Ok (NoChange,FieldMask {touched=True,valid=False,state=e}),v,vst)
+			(Just event) = case toV event v of
+				Nothing = (Ok (NoChange,FieldMask {touched=True,valid=False,state=e}),v,vst)
+				Just val = (Ok (NoChange,FieldMask {touched=True,valid=True,state=e}),val,vst)
+basicEdit toV _ upd v vmask vst = (Ok (NoChange,vmask),v,vst)
 
-basicEditSimple :: !DataPath !JSONNode !a !EditMask !*VSt -> *(!MaybeErrorString (!UIChange,!EditMask),!a,!*VSt) | JSONDecode{|*|} a
-basicEditSimple target upd val mask iworld = basicEdit (\json _ -> fromJSON json) target upd val mask iworld
+basicEditSimple :: !DataPath !(!DataPath,!JSONNode) !a !EditMask !*VSt -> *(!MaybeErrorString (!UIChange,!EditMask),!a,!*VSt) | JSONDecode{|*|} a
+basicEditSimple dp (tp,e) val mask iworld = basicEdit (\json _ -> fromJSON json) dp (tp,e) val mask iworld
 
 fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a
 fromEditlet editlet=:{Editlet|genUI,initUI,onEdit,onRefresh} = {Editor|genUI=genUI`,onEdit=onEdit,onRefresh=onRefresh}

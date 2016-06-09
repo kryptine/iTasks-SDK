@@ -481,10 +481,10 @@ where
 			# attr = 'DM'.unions [editAttrs taskId (editorId dp) value,stdAttributes typeDesc optional mask]
 			= (Ok (uia UIEditDocument attr,mask),vst)
 
-	onEdit dp e val mask ust=:{VSt|optional} = case fromJSON e of 
+	onEdit dp (tp,e) val mask vst=:{VSt|optional} = case fromJSON e of 
 		Nothing		= (Ok (NoChange,FieldMask {touched=True,valid=optional,state=JSONNull}),{Document|documentId = "", contentUrl = "", name="", mime="", size = 0}
-                      ,ust)// Reset
-		Just doc	= (Ok (NoChange,FieldMask {touched=True,valid=True,state=e}),doc,ust) //Update
+                      ,vst)// Reset
+		Just doc	= (Ok (NoChange,FieldMask {touched=True,valid=True,state=e}),doc,vst) //Update
 
 	onRefresh dp new old mask vst=:{VSt|optional}
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new):stdAttributeChanges typeDesc optional mask mask] []),mask),new,vst)
@@ -840,7 +840,7 @@ where
 
 	options _ _ = []
 
-	onEdit dp e (TreeChoice tree sel) mask ust = case fromJSON e of
+	onEdit dp (tp,e) (TreeChoice tree sel) mask ust = case fromJSON e of
 		Just ("sel",idx,val)	= (Ok (NoChange, touch mask),TreeChoice tree (if val (Just idx) Nothing), ust)
 		Just ("exp",idx,val)	= (Ok (NoChange, touch mask),TreeChoice (setTreeExpanded idx val tree) sel, ust)
 		_						= (Ok (NoChange,mask),TreeChoice tree sel, ust)
