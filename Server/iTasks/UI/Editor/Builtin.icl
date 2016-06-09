@@ -56,7 +56,7 @@ where
 			JSONNull = (Ok (ChangeUI [SetAttribute "value" JSONNull] [],FieldMask {touched=True,valid=optional,state=JSONNull}),val,vst)
 			json = case fromJSON e of
 				Nothing  = (Ok (NoChange,FieldMask {touched=True,valid=False,state=e}),val,vst)
-				Just val = (Ok (ChangeUI [SetAttribute "value" (toValue val)] [],FieldMask {touched=True,valid=True,state=e}),val,vst)
+				Just val = (Ok (ChangeUI [SetAttribute "value" (toValue val)] [],FieldMask {touched=True,valid=True,state=toValue val}),val,vst)
 
 	onRefresh dp new old mask vst=:{VSt|mode,optional}
 		| old === new = (Ok (NoChange,mask),new,vst)

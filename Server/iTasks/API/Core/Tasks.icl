@@ -100,12 +100,11 @@ where
 				//Refresh the editor with a view based on the share editor
 				= case refreshView_ taskId mode mbEditor taskTime (snd (initFun r)) v m ts iworld of
 					(Ok (v,cr,m,ts),iworld)
-						//Merge the UI changes : TODO
-						# change = ce
 						//Construct the result
-						# valid 				= not (containsInvalidFields m)
-						# value 				= if valid (Value (l,v) False) NoValue
-						# info 					= {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
+						# change    = mergeUIChanges ce cr
+						# valid     = not (containsInvalidFields m)
+						# value     = if valid (Value (l,v) False) NoValue
+						# info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
 						= (ValueResult value info change (TCInteract taskId ts (toJSON l) (toJSON v) m), iworld)
 
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)

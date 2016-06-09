@@ -15,15 +15,18 @@ where
 				= (Ok (UI type attr items,mask),vst) 
 			(e,vst) = (e,vst)
 
-	onEdit dp e val mask ust = editor.Editor.onEdit dp e val mask ust
+	onEdit dp e oval omask vst=:{VSt|optional}
+		= addHintAttrChanges omask (editor.Editor.onEdit dp e oval omask vst)
+	onRefresh dp e oval omask vst=:{VSt|optional}
+		= addHintAttrChanges omask (editor.Editor.onRefresh dp e oval omask vst)
 
-	onRefresh dp new old mask vst=:{VSt|optional}
-		= case stdAttributeChanges typeDesc optional mask mask of
-			[] = editor.Editor.onRefresh dp new old mask vst //Nothing to add
-			hintChanges = case editor.Editor.onRefresh dp new old mask vst of
-				(Ok (NoChange,mask),new,vst) = (Ok (ChangeUI hintChanges [],mask),new,vst)
-				(Ok (ChangeUI attrChanges itemChanges,mask),new,vst) = (Ok (ChangeUI (attrChanges ++ hintChanges) itemChanges,mask),new,vst)
-				(e,val,vst) = (e,val,vst)
+	addHintAttrChanges omask (Ok (change,nmask),nval,vst=:{VSt|optional})
+		# attrChange = case stdAttributeChanges typeDesc optional omask nmask of
+			[] = NoChange
+			cs = ChangeUI cs []
+		# change = mergeUIChanges change attrChange
+		= (Ok (change,nmask),nval,vst)
+	addHintAttrChanges omask (e,val,vst) = (e,val,vst)
 
 whenDisabled :: (Editor a) (Editor a) -> Editor a
 whenDisabled disabledEditor enabledEditor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}

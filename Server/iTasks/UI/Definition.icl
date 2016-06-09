@@ -329,25 +329,44 @@ where
 	encodeUI ModalDialog 		= JSONString "modal"
 	encodeUI NotificationBubble = JSONString "bubble"
 
-component :: String [JSONNode] -> JSONNode
-component xtype opts = JSONObject [("xtype",JSONString xtype):optsfields]
-where
-	optsfields = flatten [fields \\ JSONObject fields <- opts]
-
-
 derive class iTask UIChange, UIAttributeChange, UIChildChange
 
+mergeUIChanges :: UIChange UIChange -> UIChange
+mergeUIChanges c1 NoChange = c1 
+mergeUIChanges NoChange c2 = c2 
+mergeUIChanges _ (ReplaceUI ui2) = ReplaceUI ui2 //Any previous change is void when it is followed by a replace
+mergeUIChanges (ReplaceUI ui1) (ChangeUI ca2 ci2) = ReplaceUI (applyUIChange (ChangeUI ca2 ci2) ui1)
+mergeUIChanges (ChangeUI ca1 ci1) (ChangeUI ca2 ci2) = ChangeUI (ca1 ++ ca2) (ci1 ++ ci2)
+
+applyUIChange :: !UIChange !UI -> UI
+applyUIChange NoChange ui = ui 
+applyUIChange (ReplaceUI ui) _ = ui
+applyUIChange (ChangeUI ca ci) (UI type attr items)
+	//Change the attributes
+	# attr = foldl appAttributeChange attr ca
+	//Adjust the children
+	# items = foldl appChildChange items ci
+	= UI type attr items
+where
+	appAttributeChange attr (SetAttribute n v) = 'DM'.put n v attr
+
+	appChildChange items (i,RemoveChild) = removeAt i items
+	appChildChange items (i,InsertChild ui) = insertAt i ui items
+	appChildChange items (i,ChangeChild change) = updateAt i (applyUIChange change (items !! i)) items
+
 //Remove unnessecary directives
-compactChangeDef :: UIChange -> UIChange
-compactChangeDef (ChangeUI localChanges children)
+compactUIChange :: UIChange -> UIChange
+compactUIChange (ChangeUI localChanges children)
 	= case ChangeUI localChanges [child \\ child=:(_,ChangeChild change) <- map compactChildDef children | not (change =: NoChange)] of
 		ChangeUI [] [] 	= NoChange
-		def 			= def
+		change = change
 where
 	compactChildDef (idx,ChangeChild change) = (idx,ChangeChild change)
 	compactChildDef def = def
 
-compactChangeDef def = def
+compactUIChange def = def
+
+
 
 completeChildChanges :: [(Int,UIChildChange)] -> [(Int,UIChildChange)]
 completeChildChanges children = complete 0 (sortBy indexCmp children)

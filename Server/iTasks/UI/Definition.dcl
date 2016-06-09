@@ -256,8 +256,14 @@ instance encodeUI (Maybe a) | encodeUI a
 instance encodeUI [a] | encodeUI a
 instance encodeUI UI
 
+//Combine two changes that would have to be applied one after the other into a single change
+mergeUIChanges :: UIChange UIChange -> UIChange
+
+//Apply a change to a ui
+applyUIChange :: !UIChange !UI -> UI
+
 //Remove all paths that lead to a NoChange node
-compactChangeDef :: UIChange -> UIChange
+compactUIChange :: UIChange -> UIChange
 
 //Makes sure that all children ranging 0 to max(index) are in the list
 completeChildChanges :: [(Int,UIChildChange)] -> [(Int,UIChildChange)]
