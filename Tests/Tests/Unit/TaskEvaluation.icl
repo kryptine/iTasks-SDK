@@ -119,7 +119,7 @@ expMinStepInitialUI = uic UIStep [expEditorUI, expActionOk]
 where
 	expEditorUI = uic UIInteract [expPromptUI "Minimal Step combinator",editor]
 	where
-		editor = uia UIEditString ('DM'.fromList [("optional",JSONBool False) : editorAttr ++ editorOpts])
+		editor = uia UITextField ('DM'.fromList [("optional",JSONBool False) : editorAttr ++ editorOpts])
 		editorAttr = [("hint-type",JSONString "info"),("hint",JSONString "Please enter a single line of text (this value is required)")]
 		editorOpts = [("taskId",JSONString "1-1"),("editorId",JSONString "v")]
 
@@ -138,7 +138,7 @@ where
 expMinimalEditorUI taskNum prompt value
 	= uic UIInteract [expPromptUI prompt,editor]
 where
-	editor = uia UIEditString ('DM'.fromList [("optional",JSONBool False) : editorAttr ++ editorOpts])
+	editor = uia UITextField ('DM'.fromList [("optional",JSONBool False) : editorAttr ++ editorOpts])
 	editorAttr = [("hint-type",JSONString "valid"),("hint",JSONString "You have correctly entered a single line of text")]
 	editorOpts = [("value",JSONString value),("taskId",JSONString ("1-"<+++taskNum)),("editorId",JSONString "v")]
 
@@ -169,18 +169,15 @@ where
 */
 
 expMinParOperationsInitialUI
-	= uic UIParallel [parts,actions]
+	= uic UIParallel [expEditorUI,expActionPush,expActionPop]
 where
-	parts = uic UICompoundContent [expEditorUI]
-
 	expEditorUI
 		= uic UIInteract [expPromptUI "INITIAL: 0",editor]
 	where
-		editor = uia UIEditInt ('DM'.fromList [("optional",JSONBool False): editorAttr ++ editorOpts])
+		editor = uia UIIntegerField ('DM'.fromList [("optional",JSONBool False): editorAttr ++ editorOpts])
 		editorAttr = [("hint-type",JSONString "valid"),("hint",JSONString "You have correctly entered a whole number")]
 		editorOpts = [("value",JSONInt 0),("taskId",JSONString "1-1"),("editorId",JSONString "v")]
 
-	actions = uic UICompoundContent [expActionPush,expActionPop]
 	expActionPush = uia UIAction ('DM'.fromList [("actionId",JSONString "Push"),("taskId",JSONString "1-0"),("enabled",JSONBool True)]) 
 	expActionPop = uia UIAction ('DM'.fromList [("actionId",JSONString "Pop"),("taskId",JSONString "1-0"),("enabled",JSONBool True)])
 

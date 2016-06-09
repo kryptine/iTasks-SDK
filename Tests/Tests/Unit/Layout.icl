@@ -220,6 +220,7 @@ testFlatteningOfNestedRecords = skip "Auto interact layout should flatten a nest
 	//= assertEqualWorld "Auto interact layout should flatten a nested-record structure" exp sut
 where
 	//We expect a change to the control with index 3, because the autoAccuInteract flattens the form
+	/*
 	exp = ChangeUI [] [(3, ChangeChild (ChangeUI [("setEditorValue", [JSONString "bax"])] []))] 
 
 	sut world 
@@ -227,4 +228,5 @@ where
 		# (res,vst) = gEditor{|*|}.Editor.updUI [] { a = {c="foo",d="foo"}, b = { c = "bar", d = "baz"}} newFieldMask {a={c="foo",d="foo"}, b = { c = "bar", d = "bax"}} newFieldMask vst
 		# world = fromStubIWorld (fromStubVSt vst)
 		= (res,world)
+	*/
 

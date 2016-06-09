@@ -27,7 +27,7 @@ fromStubIWorld :: *IWorld -> *World
 fromStubIWorld iworld=:{IWorld|world} = world
 
 toStubVSt :: *IWorld -> *VSt
-toStubVSt iworld = {VSt| selectedConsIndex = -1, optional = False, disabled = False, taskId = "STUB", iworld = iworld}
+toStubVSt iworld = {VSt| selectedConsIndex = -1, taskId = "STUB", mode = Enter, optional = False, iworld = iworld}
 
 fromStubVSt :: *VSt -> *IWorld
 fromStubVSt vst=:{VSt|iworld} = iworld
