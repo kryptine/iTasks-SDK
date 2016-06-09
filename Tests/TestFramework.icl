@@ -84,8 +84,8 @@ testEditors typeName
 
 runTests :: [TestSuite] -> Task TestReport
 runTests suites =
-		enterChoice ("Suite selection","Which tests do you want to run?") [ChooseWith (ChooseFromRadioButtons (\{TestSuite|name} -> name))] suites
-	>>= testFullSuite @ \r -> [r]
+		(enterChoice ("Suite selection","Which tests do you want to run?") [ChooseWith (ChooseFromRadioButtons (\{TestSuite|name} -> name))] suites
+	>>= testFullSuite @ \r -> [r]) <<@ ApplyLayout (beforeStep frameCompact)
 where
 	testFullSuite :: TestSuite -> Task SuiteResult
 	testFullSuite suite=:{TestSuite|tests,name}
