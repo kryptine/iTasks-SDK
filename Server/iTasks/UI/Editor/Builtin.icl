@@ -45,8 +45,9 @@ icon = simpleComponent toJSON UIIcon
 simpleComponent toValue type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where 
 	genUI dp val vst=:{VSt|taskId,mode,optional}
-		# mask = newFieldMask
 		# val = if (mode =: Enter) JSONNull (toValue val) 
+		# valid = if (mode =: Enter) optional True //When entering data a value is initially only valid if it is optional
+		# mask = FieldMask {touched = False, valid = valid, state = val}
 		# attr = 'DM'.unions [optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr val]
 		= (Ok (uia type attr,mask),vst)
 

@@ -31,13 +31,12 @@ testGenericEditorGenUI :: TestSuite
 testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the core generic UI generation"
 	[testIntEnter
 	,testIntUpdate
-	,testIntBlanked
-	,testRealTouched
-	,testConsFieldsTouched 
+	,testRealUpdate
+	,testConsFieldsUpdate
 	,testMultipleConsesTouched
 	,testConsesWithFieldTouched
 	,testRecordTouched 
-	,testMaybeIntUntouched
+	,testMaybeIntEnter
 	]
 
 testGenUI :: String (UI,EditMask) a EditMode-> Test | iTask a
@@ -49,14 +48,15 @@ where
 		# world = fromStubIWorld (fromStubVSt vst)
 		= (res,world)
 
-testIntEnter = testGenUI "Untouched Int" 
+testIntEnter = testGenUI "Enter Int" 
 	(uia UIIntegerField
 		('DM'.fromList[("optional",JSONBool False),("hint-type",JSONString "info")
 						,("hint",JSONString "Please enter a whole number (this value is required)")
 						,("taskId",JSONString "STUB")
 						,("editorId",JSONString "v")
+						,("value",JSONNull)
 						]),FieldMask {touched=False,valid=False,state=JSONNull})
-	42 Enter
+	0 Enter
 
 testIntUpdate = testGenUI "Update Int"
 	(uia UIIntegerField
@@ -65,33 +65,20 @@ testIntUpdate = testGenUI "Update Int"
 						,("taskId",JSONString "STUB")
 						,("editorId",JSONString "v")
 						,("value",JSONInt 42)
-						]),FieldMask {touched=False,valid=True,state=JSONNull})
+						]),FieldMask {touched=False,valid=True,state=JSONInt 42})
 	42 Update
 
-testIntBlanked = skip "Blanked Int"
-/* testGenUI "Blanked Int"
-	(uia UIEditInt
-		('DM'.fromList[("optional",JSONBool False),("hint-type",JSONString "invalid")
-						,("hint",JSONString "Please enter a whole number (this value is required)")
-						,("taskId",JSONString "STUB")
-						,("editorId",JSONString "v")
-						]))
-	42 Blanked
-*/
-
-testRealTouched = skip "Touched Real"
-/* testGenUI "Touched Real"
-	(uia UIEditDecimal
+testRealUpdate = testGenUI "Update Real"
+	(uia UIDecimalField
 		('DM'.fromList[("optional",JSONBool False),("hint-type",JSONString "valid")
-						,("hint",JSONString "You have correctly entered a decimalnumber")
+						,("hint",JSONString "You have correctly entered a decimal number")
 						,("taskId",JSONString "STUB")
 						,("editorId",JSONString "v")
 						,("value",JSONReal 3.14)
-						]))
-	3.14 Touched
-*/
+						]),FieldMask {touched=False,valid=True,state=JSONReal 3.14})
+	3.14 Update
 
-testConsFieldsTouched = testGenUI "Touched cons fields"
+testConsFieldsUpdate = testGenUI "Touched cons fields"
 	(uiac UICons ('DM'.fromList [("optional",JSONBool False)])
 		[fieldExp "v0" 1, fieldExp "v1" 2, fieldExp "v2" 3, fieldExp "v3" 4,fieldExp "v4" 5,fieldExp "v5" 6],CompoundMask [])
 	(TestConsFields 1 2 3 4 5 6) Update
@@ -150,17 +137,17 @@ where
 			('DM'.fromList[("optional",JSONBool False),("label",JSONString "c"),("taskId",JSONString "STUB"),("editorId",JSONString "v2")]))
 */
 
-testMaybeIntUntouched = skip "Untouched optional Int"
-/* (testGenUI "Untouched optional Int"
-		(uia UIEditInt ('DM'.fromList[("hint-type",JSONString "info")
-									,("hint",JSONString "Please enter a whole number")
-									,("taskId",JSONString "STUB")
-									,("editorId",JSONString "v")]))
-		test Untouched
+testMaybeIntEnter = testGenUI "Enter optional Int"
+   (uia UIIntegerField ('DM'.fromList[("optional",JSONBool True)
+                                     ,("hint-type",JSONString "info")
+                                     ,("hint",JSONString "Please enter a whole number")
+                                     ,("taskId",JSONString "STUB")
+                                     ,("editorId",JSONString "v")
+                                     ,("value",JSONNull)]), FieldMask {touched=False,valid=True,state=JSONNull})
+		test Enter
 where
 	test :: Maybe Int
 	test = Nothing
-*/
 
 testGenericEditorEdits :: TestSuite
 testGenericEditorEdits = testsuite "Generic edits" "Tests for processing edits by editors"

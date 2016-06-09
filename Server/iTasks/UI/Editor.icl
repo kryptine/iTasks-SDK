@@ -66,15 +66,15 @@ stdAttributes typename optional mask
 	# (touched,valid,state) = case mask of
 		(FieldMask {FieldMask|touched,valid,state}) = (touched,valid,state)
 		mask = (isTouched mask,True,JSONNull)
-	| not touched || (state =:JSONNull && optional)
+	| state =:JSONNull && not touched
 		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INFO)
                         ,(HINT_ATTRIBUTE,JSONString ("Please enter a " +++ typename +++ if optional "" " (this value is required)"))]
+	| state =: JSONNull 
+		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INVALID)
+						,(HINT_ATTRIBUTE,JSONString ("You need to enter a "+++ typename +++ " (this value is required)"))]
 	| valid
 		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_VALID)
 						,(HINT_ATTRIBUTE,JSONString ("You have correctly entered a " +++ typename))]
-	| state =: JSONNull
-		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INVALID)
-						,(HINT_ATTRIBUTE,JSONString ("You need to enter a "+++ typename +++ " (this value is required)"))]
 	| otherwise
 		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INVALID)
 						,(HINT_ATTRIBUTE,JSONString ("This value not in the required format of a " +++ typename))]
