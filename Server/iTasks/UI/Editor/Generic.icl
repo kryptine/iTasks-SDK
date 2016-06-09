@@ -55,7 +55,7 @@ where
 		| d >= grd_arity
 			= (Ok (NoChange,mask),RECORD record,ust)
 		# childMasks = subMasks grd_arity mask
-		# (Ok (targetChange,targetMask),record,ust) = ex.Editor.onEdit (updPairPath d grd_arity ++ ds) e record (childMasks !! d) ust
+		# (Ok (targetChange,targetMask),record,ust) = ex.Editor.onEdit (pairSelectPath d grd_arity ++ ds) e record (childMasks !! d) ust
 		= (Ok (targetChange,(CompoundMask (updateAt d targetMask childMasks))),RECORD record,ust)
 	onEdit _ _ val mask ust = (Ok (NoChange,mask),val,ust)
 
@@ -79,7 +79,7 @@ where
 
 gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
-	genUI dp (OBJECT x) vst=:{VSt|taskId,mode,selectedConsIndex}
+	genUI dp (OBJECT x) vst=:{VSt|taskId,mode,optional,selectedConsIndex}
 		= case mode of
 			Enter
 				//If there is only one constructor, just generate the UI for that constructor
@@ -89,7 +89,8 @@ where
 				| otherwise
 					//Initially only generate a UI to choose a constructor
 					# consChooseUI = uia UIDropdown (choiceAttrs taskId (editorId dp) [] [JSONString gdc.gcd_name \\ gdc <- gtd_conses])
-					= (Ok (UI UIVarCons 'DM'.newMap [consChooseUI],CompoundMask [newFieldMask]),{vst & selectedConsIndex = selectedConsIndex})
+					# consChooseMask = FieldMask {touched=False,valid=optional,state=JSONNull}
+					= (Ok (UI UIVarCons 'DM'.newMap [consChooseUI],CompoundMask [consChooseMask]),{vst & selectedConsIndex = selectedConsIndex})
 			Update
 				| gtd_num_conses == 1
 					# (viz,vst) = ex.Editor.genUI dp x vst
@@ -98,7 +99,8 @@ where
 					= case ex.Editor.genUI dp x vst of
 						(Ok (UI UICons attr items, CompoundMask masks),vst)
 							# consChooseUI = uia UIDropdown (choiceAttrs taskId (editorId dp) [vst.selectedConsIndex] [JSONString gdc.gcd_name \\ gdc <- gtd_conses])
-							= (Ok (UI UIVarCons attr [consChooseUI:items],CompoundMask [newFieldMask:masks]),{vst & selectedConsIndex = selectedConsIndex})
+							# consChooseMask = FieldMask {touched=False,valid=True,state=JSONInt vst.selectedConsIndex}
+							= (Ok (UI UIVarCons attr [consChooseUI:items],CompoundMask [consChooseMask:masks]),{vst & selectedConsIndex = selectedConsIndex})
 						(Error e,vst) = (Error e,vst)
 			View
 				//If there is only one constructor we don't need to show the constructor name
@@ -111,19 +113,55 @@ where
 							= (Ok (UI UIVarCons attr [consNameUI:items],CompoundMask [newFieldMask:masks]),{vst & selectedConsIndex = selectedConsIndex})
 					(Error e,vst) = (Error e,vst)
 
-	onEdit [] e (OBJECT val) mask ust //Update is a constructor switch
-		# consIdx = case e of
-			JSONInt i	= i
-			_			= 0
-		# mask	        = case e of
-			JSONNull	= newCompoundMask //Reset
-			_			= CompoundMask (repeatn (gtd_conses !! consIdx).gcd_arity newFieldMask)
-    	# (_,val,ust)	= ex.Editor.onEdit (updConsPath (if (consIdx < gtd_num_conses) consIdx 0) gtd_num_conses) e val mask ust
-		= (Ok (NoChange,mask),OBJECT val, ust)
-	onEdit dp e (OBJECT val) mask ust //Update is targeted somewhere in a substructure of this value
-		# (Ok (change,mask),val,ust) = ex.Editor.onEdit dp e val mask ust
-		= (Ok (change,mask),OBJECT val,ust)
+	onEdit [] JSONNull (OBJECT val) (CompoundMask [FieldMask {FieldMask|touched,valid,state}:masks]) vst=:{VSt|optional} //Update is a constructor reset
+		//If necessary remove the fields of the previously selected constructor
+		# change = case state of
+			(JSONInt prevConsIdx) = ChangeUI [] (repeatn (gtd_conses !! prevConsIdx).gcd_arity (1,RemoveChild))
+			_                     = NoChange	
+		# consChooseMask = FieldMask {touched=True,valid=optional,state=JSONNull}
+		= (Ok (change,CompoundMask [consChooseMask:masks]),OBJECT val, vst)
 
+	onEdit [] (JSONInt consIdx) (OBJECT val) (CompoundMask [FieldMask {FieldMask|touched,valid,state}:masks]) vst=:{VSt|mode} //Update is a constructor switch
+		| consIdx < 0 || consIdx >= gtd_num_conses
+			= (Error "Constructor selection out of bounds",OBJECT val,vst)
+		//Create a default value for the selected constructor
+    	# (_,val,vst)	= ex.Editor.onEdit (consCreatePath consIdx gtd_num_conses) JSONNull val (CompoundMask []) vst //UGLY TRICK
+		//Create an UI for the new constructor 
+		= case ex.Editor.genUI [] val {vst & mode = Enter} of //HOW WILL I KNOW THE CORRECT DATAPATH?!
+			(Ok (UI UICons attr items, CompoundMask masks),vst)
+				//Construct a UI change that does the following: 
+				//1: If necessary remove the fields of the previously selected constructor
+				# removals = case state of
+					(JSONInt prevConsIdx) = repeatn (gtd_conses !! prevConsIdx).gcd_arity (1,RemoveChild)
+					_                 = []
+				//2: Inserts the fields of the newly created ui
+				# inserts = [(i,InsertChild ui) \\ ui <- items & i <- [1..]]
+				# change = ChangeUI [] (removals ++ inserts)
+				//Create a new mask for the constructor selection
+				# consChooseMask = FieldMask {touched=True,valid=True,state=JSONInt consIdx}
+				= (Ok (change,CompoundMask [consChooseMask:masks]), OBJECT val, {vst & mode = mode})
+			(Error e,vst) = (Error e, OBJECT val, {vst & mode = mode})
+
+	onEdit [] _ (OBJECT val) mask vst
+		= (Error "Unknown constructor select event",OBJECT val,vst)
+
+	onEdit dp e (OBJECT val) mask vst  //Update is targeted somewhere in a substructure of this value
+		| gtd_num_conses == 1
+			//Just call onEdit for the inner value
+			= case ex.Editor.onEdit dp e val mask vst of
+				(Ok (change,mask),val,vst) = (Ok (change,mask),OBJECT val,vst)
+				(Error e,val,vst) = (Error e, OBJECT val, vst)
+		| otherwise
+			//Adjust for the added constructor switch UI
+			# (CompoundMask [consChooseMask:masks]) = mask
+			= case ex.Editor.onEdit dp e val (CompoundMask masks) vst of
+				(Ok (change,CompoundMask masks),val,vst)
+					# change = case change of
+						(ChangeUI attrChanges itemChanges) = ChangeUI attrChanges [(i + 1,c) \\ (i,c) <- itemChanges]
+						_                                  = change
+					= (Ok (change,CompoundMask [consChooseMask:masks]),OBJECT val,vst)
+				(Error e,val,vst) = (Error e, OBJECT val, vst)
+	
 	onRefresh dp (OBJECT new) (OBJECT old) mask vst=:{VSt|mode,selectedConsIndex=curSelectedConsIndex}
 		| gtd_num_conses > 1 && (mode =:Enter || mode =: Update)
 			= case ex.Editor.onRefresh dp new old mask {vst & selectedConsIndex = 0} of
@@ -150,27 +188,25 @@ where
 gEditor{|EITHER|} ex _ dx _ _ ey _ dy _ _  = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (LEFT x) vst = ex.Editor.genUI dp x vst
-	genUI dp (RIGHT y) vst =  ey.Editor.genUI dp y vst	
+	genUI dp (RIGHT y) vst = ey.Editor.genUI dp y vst	
 
-	onEdit [d:ds] e either mask ust
-		| d == -1 = case ds of
-        	[] = (Ok (NoChange,newFieldMask),LEFT dx,ust)
-			_ 
-				# (mask,x,ust) = ex.Editor.onEdit ds e dx newFieldMask ust
-				= (mask,LEFT x,ust)
-		| d == -2 = case ds of
-			[] = (Ok (NoChange,newFieldMask),RIGHT dy,ust)
-			_ 
-				# (mask,y,ust) = ey.Editor.onEdit ds e dy newFieldMask ust
-				= (mask,RIGHT y,ust)
-		| otherwise
-			= case either of
-				(LEFT x)
-					# (mask,x,ust) = ex.Editor.onEdit [d:ds] e x mask ust
-					= (mask,LEFT x,ust)
-				(RIGHT y)
-					# (mask,y,ust) = ey.Editor.onEdit [d:ds] e y mask ust
-					= (mask,RIGHT y,ust)
+	//Special case to create a LEFT, after a constructor switch
+	onEdit [-1] e _ mask vst = (Ok (NoChange,mask),LEFT dx,vst)
+	onEdit [-1:ds] e _ mask vst
+		# (mask,x,vst) = ex.Editor.onEdit ds e dx mask vst
+		= (mask,LEFT x,vst)
+	//Special cases to create a RIGHT, after a constructor switch
+	onEdit [-2] e _ mask vst = (Ok (NoChange,mask),RIGHT dy,vst)
+	onEdit [-2:ds] e _ mask vst 
+		# (mask,y,vst) = ey.Editor.onEdit ds e dy mask vst
+		= (mask,RIGHT y,vst)
+	//Just pass the edit event through 
+	onEdit dp e (LEFT x) mask vst
+		# (mask,x,vst) = ex.Editor.onEdit dp e x mask vst
+		= (mask,LEFT x,vst)
+	onEdit dp e (RIGHT y) mask vst
+		# (mask,y,vst) = ey.Editor.onEdit dp e y mask vst
+		= (mask,RIGHT y,vst)
 
 	onRefresh dp (LEFT new) (LEFT old) mask vst 
 		# (change,val,vst) = ex.Editor.onRefresh dp new old mask vst
@@ -197,14 +233,20 @@ where
 		(Ok viz,vst)  = (Ok (flattenUIPairs UICons gcd_arity viz), {VSt| vst & selectedConsIndex = gcd_index})
 		(Error e,vst) = (Error e,{VSt| vst & selectedConsIndex = gcd_index})
 
-																			
-	onEdit [d:ds] e (CONS val) mask ust
+	onEdit [d:ds] e (CONS val) (CompoundMask masks) vst
 		| d >= gcd_arity
-			= (Ok (NoChange,mask),CONS val,ust)	
-		# childMasks = subMasks gcd_arity mask
-		# (Ok (targetChange,targetMask),val,ust) = ex.Editor.onEdit (updPairPath d gcd_arity ++ ds) e val (childMasks !! d) ust
-		= (Ok (targetChange,CompoundMask (updateAt d targetMask childMasks)),CONS val,ust)
-	onEdit _ _ val mask ust = (Ok (NoChange,mask),val,ust)
+			= (Error "Edit aimed at non-existent constructor field",CONS val,vst)
+		//Update the targeted field in the constructor
+		= case ex.Editor.onEdit (pairSelectPath d gcd_arity ++ ds) e val (masks !! d) vst of	
+			(Ok (change,mask),val,vst)
+				//Extend the change
+				# change = case change of
+					NoChange = NoChange
+					_ 		 = ChangeUI [] [(d,ChangeChild change)]
+				//Update the mask
+				# mask = CompoundMask (updateAt d mask masks)
+				= (Ok (change,mask),CONS val,vst)
+			(Error e,val,vst) = (Error e,CONS val,vst)
 
 	onRefresh dp (CONS new) (CONS old) mask vst 
 		//Diff all fields of the constructor
@@ -289,6 +331,20 @@ where
 	range = end - begin + 1
 	middle = begin + range / 2
 
+//Make a special datapath that encodes the desired nesting of EITHER's to create a constructor
+consCreatePath i n
+ 	| i >= n     = []
+	| n == 1     = []
+	| i < (n /2) = [ -1: consCreatePath i (n/2) ]
+	| otherwise  = [ -2: consCreatePath (i - (n/2)) (n - (n/2)) ]
+
+//Create a path that encodes a sequence of choices (0 for the first, 1 for the second) between the elements of nested PAIR's
+pairSelectPath i n
+	| i >= n     = []
+	| n == 1     = []
+	| i < (n /2) = [0: pairSelectPath i (n /2)]
+	| otherwise  = [1: pairSelectPath (i - (n/2)) (n - (n/2))]
+
 //When UIs, or UI differences are aggregated in PAIR's they form a binary tree 
 //These functions flatten this tree back to a single CompoundEditor or ChangeUI definition
 flattenUIPairs type 0 (ui,mask) = (UI type 'DM'.newMap [],CompoundMask [])
@@ -332,25 +388,4 @@ gEditor{|HtmlTag|} = htmlView
 gEditor{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = emptyEditor
 
 derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), Timestamp, Map
-
-updConsPath i n
- 	| i >= n	
-		= []
-	| n == 1
-		= []
-	| i < (n/2)
-		= [ -1: updConsPath i (n/2) ]
-	| otherwise
-		= [ -2: updConsPath (i - (n/2)) (n - (n/2)) ]
-
-
-updPairPath i n
-	| i >= n
-		= []
-	| n == 1
-		= []
-	| i < (n /2)
-		= [0: updPairPath i (n /2)]
-	| otherwise
-		= [1: updPairPath (i - (n/2)) (n - (n/2))]
 
