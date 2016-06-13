@@ -55,7 +55,7 @@ where
 		| d >= grd_arity
 			= (Ok (NoChange,mask),RECORD record,ust)
 		# childMasks = subMasks grd_arity mask
-		= case ex.Editor.onEdit dp (pairSelectPath d grd_arity ++ ds,e) record (childMasks !! d) ust of
+		= case ex.Editor.onEdit (pairPath grd_arity dp) (pairSelectPath d grd_arity ++ ds,e) record (childMasks !! d) ust of
 			(Ok (targetChange,targetMask),record,ust) 
 				= (Ok (targetChange,(CompoundMask (updateAt d targetMask childMasks))),RECORD record,ust)
 			(Error e,record,ust) = (Error e,RECORD record, ust)
@@ -193,21 +193,21 @@ where
 	genUI dp (RIGHT y) vst = ey.Editor.genUI dp y vst	
 
 	//Special case to create a LEFT, after a constructor switch
-	onEdit [-1] e _ mask vst = (Ok (NoChange,mask),LEFT dx,vst)
-	onEdit [-1:ds] e _ mask vst
-		# (mask,x,vst) = ex.Editor.onEdit ds e dx mask vst
+	onEdit dp ([-1],e) _ mask vst = (Ok (NoChange,mask),LEFT dx,vst)
+	onEdit dp ([-1:ds],e) _ mask vst
+		# (mask,x,vst) = ex.Editor.onEdit dp (ds,e) dx mask vst
 		= (mask,LEFT x,vst)
 	//Special cases to create a RIGHT, after a constructor switch
-	onEdit [-2] e _ mask vst = (Ok (NoChange,mask),RIGHT dy,vst)
-	onEdit [-2:ds] e _ mask vst 
-		# (mask,y,vst) = ey.Editor.onEdit ds e dy mask vst
+	onEdit dp ([-2],e) _ mask vst = (Ok (NoChange,mask),RIGHT dy,vst)
+	onEdit dp ([-2:ds],e) _ mask vst 
+		# (mask,y,vst) = ey.Editor.onEdit dp (ds,e) dy mask vst
 		= (mask,RIGHT y,vst)
 	//Just pass the edit event through 
-	onEdit dp e (LEFT x) mask vst
-		# (mask,x,vst) = ex.Editor.onEdit dp e x mask vst
+	onEdit dp (tp,e) (LEFT x) mask vst
+		# (mask,x,vst) = ex.Editor.onEdit dp (tp,e) x mask vst
 		= (mask,LEFT x,vst)
-	onEdit dp e (RIGHT y) mask vst
-		# (mask,y,vst) = ey.Editor.onEdit dp e y mask vst
+	onEdit dp (tp,e) (RIGHT y) mask vst
+		# (mask,y,vst) = ey.Editor.onEdit dp (tp,e) y mask vst
 		= (mask,RIGHT y,vst)
 
 	onRefresh dp (LEFT new) (LEFT old) mask vst 
@@ -239,7 +239,7 @@ where
 		| d >= gcd_arity
 			= (Error "Edit aimed at non-existent constructor field",CONS val,vst)
 		//Update the targeted field in the constructor
-		= case ex.Editor.onEdit dp (pairSelectPath d gcd_arity ++ ds,e) val (masks !! d) vst of	
+		= case ex.Editor.onEdit (pairPath gcd_arity dp) (pairSelectPath d gcd_arity ++ ds,e) val (masks !! d) vst of	
 			(Ok (change,mask),val,vst)
 				//Extend the change
 				# change = case change of
@@ -269,10 +269,12 @@ where
 		= (Ok (uic UIPair [vizx,vizy],CompoundMask [maskx,masky]),vst)
 
 	onEdit dp ([0:ds],e) (PAIR x y) xmask ust
-		# (xmask,x,ust) = ex.Editor.onEdit dp (ds,e) x xmask ust
+		# (dpx,_)		= pairPathSplit dp
+		# (xmask,x,ust) = ex.Editor.onEdit dpx (ds,e) x xmask ust
 		= (xmask,PAIR x y,ust)
 	onEdit dp ([1:ds],e) (PAIR x y) ymask ust
-		# (ymask,y,ust) = ey.Editor.onEdit dp (ds,e) y ymask ust
+		# (_,dpy)		= pairPathSplit dp
+		# (ymask,y,ust) = ey.Editor.onEdit dpy (ds,e) y ymask ust
 		= (ymask,PAIR x y,ust)
 	onEdit _ _ val mask ust = (Ok (NoChange,mask),val,ust)
 

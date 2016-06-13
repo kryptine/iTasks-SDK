@@ -33,7 +33,7 @@ testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the core g
 	,testIntUpdate
 	,testRealUpdate
 	,testConsFieldsUpdate
-	,testMultipleConsesTouched
+	,testMultipleConsesUpdate
 	,testConsesWithFieldTouched
 	,testRecordTouched 
 	,testMaybeIntEnter
@@ -78,9 +78,9 @@ testRealUpdate = testGenUI "Update Real"
 						]),FieldMask {touched=False,valid=True,state=JSONReal 3.14})
 	3.14 Update
 
-testConsFieldsUpdate = testGenUI "Touched cons fields"
-	(uiac UICons ('DM'.fromList [("optional",JSONBool False)])
-		[fieldExp "v0" 1, fieldExp "v1" 2, fieldExp "v2" 3, fieldExp "v3" 4,fieldExp "v4" 5,fieldExp "v5" 6],CompoundMask [])
+testConsFieldsUpdate = testGenUI "Update constructor fields"
+	(uic UICons [fieldExp "v0" 1, fieldExp "v1" 2, fieldExp "v2" 3, fieldExp "v3" 4,fieldExp "v4" 5,fieldExp "v5" 6]
+		,CompoundMask [maskExp n \\ n <- [1..6]])
 	(TestConsFields 1 2 3 4 5 6) Update
 where
 	fieldExp editorId val = 
@@ -88,8 +88,9 @@ where
 			('DM'.fromList[("optional",JSONBool False),("hint-type",JSONString "valid"),("hint",JSONString "You have correctly entered a whole number")
 							,("taskId",JSONString "STUB"),("editorId",JSONString editorId),("value",JSONInt val)
 							])
+	maskExp n = FieldMask {touched = False, valid = True, state = JSONInt n}
 
-testMultipleConsesTouched = skip "Touched constructor selection"
+testMultipleConsesUpdate = skip "Touched constructor selection"
 /* testGenUI "Touched constructor selection"
 	(uia UIDropdown
 		('DM'.fromList[("optional",JSONBool False),("hint-type",JSONString "valid"),("hint",JSONString "You have correctly selected an option")
@@ -154,12 +155,12 @@ testGenericEditorEdits = testsuite "Generic edits" "Tests for processing edits b
 	[testEditConsChange
 	]
 
-testGenEdit :: String (a,EditMask,UIChange) (a,EditMask) DataPath JSONNode -> Test | iTask a
-testGenEdit name exp (ov,om) dp edit = assertEqualWorld name (Ok exp) sut
+testGenEdit :: String (a,EditMask,UIChange) (a,EditMask) (DataPath,JSONNode) -> Test | iTask a
+testGenEdit name exp (ov,om) (tp,edit) = assertEqualWorld name (Ok exp) sut
 where
 	sut world 
 		# vst = toStubVSt (toStubIWorld world)
-		# (res,nv,vst) = gEditor{|*|}.Editor.onEdit dp edit ov om vst
+		# (res,nv,vst) = gEditor{|*|}.Editor.onEdit [] (tp,edit) ov om vst
 		# world = fromStubIWorld (fromStubVSt vst)
 		= (fmap (\(nc,nm) -> (nv,nm,nc)) res,world)
 
@@ -196,7 +197,7 @@ where
 		# (res,val,vst) = gEditor{|*|}.Editor.onRefresh [] n o m vst
 		# world = fromStubIWorld (fromStubVSt vst)
 		= case res of
-			(Ok (change,mask))  = (Ok (compactChangeDef change),world)
+			(Ok (change,mask))  = (Ok (compactUIChange change),world)
 			(Error e) 			= (Error e, world)
 
 //Integers
