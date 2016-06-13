@@ -6,7 +6,7 @@ testCoreEditors :: TestSuite
 testCoreEditors = testsuite "Core editors" "These tests check if editors for the core data types work"
 	[testString,testChar,testInt,testReal,testBool
 	,testADTSingleConsOne,testADTSingleConsMulti,testADTMultiCons
-	,testSingleRecord,testNestedRecord,testIntList
+	,testSingleRecord,testNestedRecord,testOptionalRecord,testIntList
 	]
 
 testString = itest "String" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
@@ -88,6 +88,14 @@ testNestedRecord = itest "Nested Record" "Check the behavior of the editors"
 where
 	tut :: Task NestedRecord
 	tut = testEditors "NestedRecord"
+
+testOptionalRecord = itest "Optional Record" "Check the behavior of the editors"
+	("You should see an editor for a record with two fields, an Int and a String field.\n"
+	+++ "The record should start with a checkbox that allows you to enable the record") tut
+where
+	tut :: Task (Maybe TwoFieldRecord)
+	tut = testEditors "Optional record"
+
 
 testIntList = itest "Standard Int list" "Check the behavior of the editors"
 	"You should see an editor for a list of integers" tut

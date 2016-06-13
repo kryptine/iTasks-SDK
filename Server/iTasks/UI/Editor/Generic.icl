@@ -45,21 +45,43 @@ where
 	where
 		checkbox checked = uia UICheckbox (editAttrs taskId (editorId dp) (Just (JSONBool checked)))
 
-	onEdit dp ([],e) (RECORD record) mask ust //Enabling or disabling of a record
-    	# mask = case e of
-        	JSONBool False  = CompoundMask [] 
-        	_               = mask
-    	= (Ok (NoChange,mask),RECORD record,ust)
-
-	onEdit dp ([d:ds],e) (RECORD record) mask ust
+	onEdit dp ([],JSONBool True) (RECORD val) (CompoundMask [enableMask:masks]) vst=:{VSt|mode,optional} //Enabling an optional record
+		| not optional
+			= (Error "Enabling non-optional record",RECORD val,vst)
+		//Create and add the fields
+		= case ex.Editor.genUI (pairPath grd_arity dp) val {vst & mode = Enter} of
+			(Ok viz,vst)
+				# (UI type attr items, CompoundMask masks) = flattenUIPairs UIRecord grd_arity viz 
+				# change = ChangeUI [] [(i,InsertChild ui) \\ ui <- items & i <- [1..]]
+				# enableMask = FieldMask {touched=True,valid=True,state=JSONBool True}
+				= (Ok (change,CompoundMask [enableMask:masks]), RECORD val, {vst & mode = mode})
+			(Error e,vst) = (Error e, RECORD val, {vst & mode = mode})
+	onEdit dp ([],JSONBool False) (RECORD val) (CompoundMask [enableMask:masks]) vst=:{VSt|optional} //Disabling an optional record
+		| not optional
+			= (Error "Disabling non-optional record",RECORD val,vst)
+		//Remove all fields except the enable/disable checkbox
+		# change = ChangeUI [] (repeatn grd_arity (1,RemoveChild))
+		# enableMask = FieldMask {touched=True,valid=True,state=JSONBool False}
+		= (Ok (change,CompoundMask [enableMask:masks]), RECORD val, vst)
+	onEdit dp ([],_) (RECORD val) mask vst
+		= (Error "Unknown edit event for record",RECORD val,vst)
+	
+	onEdit dp ([d:ds],e) (RECORD val) (CompoundMask masks) vst=:{VSt|optional}
 		| d >= grd_arity
-			= (Ok (NoChange,mask),RECORD record,ust)
-		# childMasks = subMasks grd_arity mask
-		= case ex.Editor.onEdit (pairPath grd_arity dp) (pairSelectPath d grd_arity ++ ds,e) record (childMasks !! d) ust of
-			(Ok (targetChange,targetMask),record,ust) 
-				= (Ok (targetChange,(CompoundMask (updateAt d targetMask childMasks))),RECORD record,ust)
-			(Error e,record,ust) = (Error e,RECORD record, ust)
-	onEdit _ _ val mask ust = (Ok (NoChange,mask),val,ust)
+			= (Error "Edit aimed at non-existent record field",RECORD val,vst)
+		//When optional we need to adjust for the added checkbox, so we need to offset the record field index with one
+		//In the generated UI and mask (but not in the paths when targeting the edit!!).
+		# idx = if optional (d + 1) d
+		= case ex.Editor.onEdit (pairPath grd_arity dp) (pairSelectPath d grd_arity ++ ds,e) val (masks !! idx) vst of
+			(Ok (change,mask),val,vst)
+				//Extend the change
+				# change = case change of NoChange = NoChange; _ = ChangeUI [] [(idx,ChangeChild change)]
+				//Update the mask
+				# mask = CompoundMask (updateAt idx mask masks)
+				= (Ok (change,mask),RECORD val,vst)
+			(Error e,val ,vst) = (Error e, RECORD val, vst)
+				
+	onEdit _ _ val mask vst = (Ok (NoChange,mask),val,vst)
 
 	onRefresh dp (RECORD new) (RECORD old) mask vst 
 		# (change,val,vst) = ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask grd_arity mask) vst
@@ -127,7 +149,9 @@ where
 		| consIdx < 0 || consIdx >= gtd_num_conses
 			= (Error "Constructor selection out of bounds",OBJECT val,vst)
 		//Create a default value for the selected constructor
-    	# (_,val,vst)	= ex.Editor.onEdit dp (consCreatePath consIdx gtd_num_conses,JSONNull) val (CompoundMask []) vst //UGLY TRICK
+		//This is a rather ugly trick: We create a special target path that consists only of negative values that is
+		//decoded by the the onEdit instance of EITHER to create a value that consists of the correct nesting of LEFT's and RIGHT's
+    	# (_,val,vst)	= ex.Editor.onEdit dp (consCreatePath consIdx gtd_num_conses,JSONNull) val (CompoundMask []) vst 
 		//Create an UI for the new constructor 
 		= case ex.Editor.genUI dp val {vst & mode = Enter} of
 			(Ok (UI UICons attr items, CompoundMask masks),vst)
@@ -242,9 +266,7 @@ where
 		= case ex.Editor.onEdit (pairPath gcd_arity dp) (pairSelectPath d gcd_arity ++ ds,e) val (masks !! d) vst of	
 			(Ok (change,mask),val,vst)
 				//Extend the change
-				# change = case change of
-					NoChange = NoChange
-					_ 		 = ChangeUI [] [(d,ChangeChild change)]
+				# change = case change of NoChange = NoChange; _ = ChangeUI [] [(d,ChangeChild change)]
 				//Update the mask
 				# mask = CompoundMask (updateAt d mask masks)
 				= (Ok (change,mask),CONS val,vst)
@@ -301,15 +323,13 @@ where
 			(Error e,vst) = (Error e, {VSt|vst & optional = optional})
 
 	onEdit dp (tp,e) val mask vst=:{VSt|optional}
-		| isEmpty tp && (e === JSONNull || e === JSONBool False)
-			# mask = case mask of
-				(FieldMask fmask) = FieldMask {FieldMask|fmask & state = JSONNull}
-				(CompoundMask m) = CompoundMask []
-			= (Ok (NoChange,mask),Nothing,vst) //Reset
-		| otherwise
-			# (x,xmask) = maybe (dx,CompoundMask []) (\x -> (x,mask)) val
-			# (xmask,x,vst) = ex.Editor.onEdit dp (tp,e) x xmask {VSt|vst & optional = True}
-			= (xmask,Just x,{VSt|vst & optional = optional})
+		= case ex.Editor.onEdit dp (tp,e) (fromMaybe dx val) mask {VSt|vst & optional = True} of
+			(Ok (change, mask),val,vst)
+				| isEmpty tp && (e === JSONNull || e === JSONBool False)
+					= (Ok (change, mask),Nothing, {VSt|vst & optional = optional}) //The event was a direct reset (switch to nothing)
+				| otherwise
+					= (Ok (change, mask),Just val, {VSt|vst & optional = optional}) //The event edited the value in the maybe
+			(Error e,val,vst) = (Error e,Nothing,{VSt|vst & optional = optional})
 
 	onRefresh dp Nothing Nothing mask vst = (Ok (NoChange,mask),Nothing,vst)
 	onRefresh dp (Just new) Nothing mask vst=:{VSt|optional}
