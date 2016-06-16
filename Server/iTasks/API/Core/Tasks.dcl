@@ -178,7 +178,3 @@ traceValue :: a -> Task a | iTask a
 */
 shutDown :: Task ()
 
-//INTERNAL FUNCTIONS EXPORTED FOR USE IN OPTIMIZED VERSIONS OF interact,
-matchAndApplyEvent_ :: Event TaskId EditMode (Maybe (Editor v)) TaskTime v EditMask TaskTime d *IWorld -> *(!MaybeErrorString (!v,!UIChange,!EditMask,!TaskTime),!*IWorld) | iTask v & toPrompt d
-visualizeView_ :: TaskId TaskEvalOpts EditMode (Maybe (Editor v)) Event (Masked v) (Masked v) d *IWorld
-	-> *(!MaybeErrorString UIChange,!Bool,!*IWorld) | iTask v & toPrompt  d
