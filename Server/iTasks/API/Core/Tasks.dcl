@@ -102,9 +102,9 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 *
 * @gin False
 */
-interact :: !d !EditMode !(RWShared () r w)
-				(r -> (l,v))
-				(l r v -> (l,v))
+interact :: !d !EditMode !(RWShared () r w) l v
+				(v l v -> (l, v, Maybe (r -> w))) 	//On edit
+				(r l v -> (l, v, Maybe (r -> w)))  	//On refresh
 				(Maybe (Editor v)) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed

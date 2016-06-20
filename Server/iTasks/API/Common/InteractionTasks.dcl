@@ -94,7 +94,7 @@ viewInformation :: !d ![ViewOption m] !m -> Task m | toPrompt d & iTask m
 * 
 * @gin-icon page_edit
 */
-updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | toPrompt d & iTask r & iTask w
+updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r & iTask w
 
 /**
 * Show a shared value[].
