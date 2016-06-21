@@ -247,8 +247,6 @@ instance toString UINodeType
 where
 	toString UIEmpty           = "itwc_raw_empty"
 	toString UIAction          = "itwc_raw_action"
-    toString UIForm            = "itwc_raw_form" 
-	toString UIFormItem        = "itwc_raw_form_item"
 	toString UIPair            = "itwc_raw_pair"
 	toString UIRecord          = "itwc_raw_record"
 	toString UICons            = "itwc_raw_cons"

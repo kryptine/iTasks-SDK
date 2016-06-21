@@ -33,8 +33,7 @@ finalizeInteract :: Layout
 finalizeInteract = conditionalLayout isInteract layout
 where
 	layout = sequenceLayouts 
-		[layoutSubAt [1] editorToForm 
-    	,layoutSubAt [1] finalizeForm 
+		[layoutSubAt [1] finalizeEditor
 		,copyAttributes [0] []
 		,removeEmptyPrompt
 		,setNodeType UIContainer
@@ -45,17 +44,26 @@ where
 		emptyPrompt (UI _ _ [UI _ _ []:_]) = True
 		emptyPrompt _ = False
 
-finalizeForm :: Layout
-finalizeForm
-	= sequenceLayouts [layoutSubsMatching [] isFormItem layoutRow
-					  ,setNodeType UIContainer
-					  ]
-where
-	//Case when 
-	layoutRow = sequenceLayouts
-		[setAttributes ('DM'.unions [marginsAttr 5 5 5 5,directionAttr Horizontal, sizeAttr FlexSize WrapSize])
-		,setNodeType UIContainer
-		]
+finalizeEditor :: Layout
+finalizeEditor = selectLayout
+	[(isRecord,finalizeRecord)
+	,(isCons,finalizeCons)
+	,(isFormComponent,toFormItem)
+	,(const True, layoutChildrenOf [] finalizeEditor)
+	]
+
+finalizeRecord :: Layout
+finalizeRecord = sequenceLayouts
+	[layoutChildrenOf [] finalizeEditor 
+	,setNodeType UIContainer
+	]
+
+finalizeCons :: Layout
+finalizeCons = sequenceLayouts
+	[layoutChildrenOf [] finalizeEditor 
+	,setAttributes (directionAttr Horizontal)
+	,setNodeType UIContainer
+	]
 
 finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
@@ -99,7 +107,8 @@ isStep = \n -> n =:(UI UIStep _ _)
 isParallel = \n -> n =:(UI UIParallel _ _)
 isAction = \n -> n =:(UI UIAction _ _)
 isEmpty = \n -> n =:(UI UIEmpty _ _)
-isFormItem = \n -> n =:(UI UIFormItem _ _)
+isRecord = \n -> n =:(UI UIRecord _ _)
+isCons (UI type _ _) = isMember type [UICons,UIVarCons]
 
 isIntermediate (UI type _ _) = isMember type [UIInteract,UIStep,UIParallel]
 
@@ -109,16 +118,14 @@ isFormComponent (UI type _ _) = isMember type
 instance == UINodeType where (==) x y = x === y
 
 //Flatten an editor into a form
-editorToForm :: Layout
-editorToForm = sequenceLayouts [layoutSubsMatching [] isFormComponent toFormItem, wrapUI UIForm]
-
 toFormItem :: Layout
 toFormItem = layout
 where
 	layout (ReplaceUI (control=:(UI _ attr _)),s) 
 		# label = fromMaybe (ui UIEmpty) (labelControl attr)
 		# info = fromMaybe (ui UIEmpty) (infoControl attr)
-		= (ReplaceUI (uic UIFormItem [label,control,info]),s)
+		# attr = 'DM'.unions [marginsAttr 5 5 5 5,directionAttr Horizontal, sizeAttr FlexSize WrapSize]
+		= (ReplaceUI (uiac UIContainer attr [label,control,info]),s)
 
 	layout (c=:(ChangeUI localChanges childChanges),s) 
 		//Check if the tooltip or icon needs to be updated
@@ -137,7 +144,7 @@ where
 			_ 		= []
 	
 	layout (c,s) = (c,s)
-
+	
 buttonBar :: UI
 buttonBar = uic UIButtonBar []
 

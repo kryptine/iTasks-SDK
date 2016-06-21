@@ -65,8 +65,6 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	| UIInteract
 	| UIStep
 	| UIParallel
-    | UIForm
-	| UIFormItem
 	// --- Client components: ---
 	| UIComponent
 	// Containers
