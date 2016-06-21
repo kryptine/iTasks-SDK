@@ -246,7 +246,7 @@ derive gText	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, B
 derive gEditor	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 
 //* Represents the choice of one element from a list represented as combo box
-:: ComboChoice v = ComboChoice ![v] !(Maybe Int)
+:: DropdownChoice v = DropdownChoice ![v] !(Maybe Int)
 
 //* Represents the choice of one element from a list represented as radio buttons
 :: RadioChoice v = RadioChoice ![v] !(Maybe Int)
@@ -263,23 +263,23 @@ derive gEditor	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton,
 
 //* Represents the choice of one element from a set with a dynamic representation
 :: DynamicChoice v
-	= DCCombo (ComboChoice v)
-	| DCRadio (RadioChoice v)
-	| DCList  (ListChoice v)
-	| DCTree  (TreeChoice v)
-	| DCGrid  (GridChoice v)
+	= DCDropdown (DropdownChoice v)
+	| DCRadio    (RadioChoice v)
+	| DCList     (ListChoice v)
+	| DCTree     (TreeChoice v)
+	| DCGrid     (GridChoice v)
 
-derive JSONEncode		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
+derive JSONEncode		DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive JSONEncode		CheckMultiChoice
-derive JSONDecode		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
+derive JSONDecode		DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive JSONDecode		CheckMultiChoice
-derive gDefault			ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
+derive gDefault			DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive gDefault			CheckMultiChoice
-derive gEq				ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
+derive gEq				DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive gEq				CheckMultiChoice
-derive gText	        ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
+derive gText	        DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive gText	        CheckMultiChoice
-derive gEditor	        ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
+derive gEditor	        DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
 derive gEditor	        CheckMultiChoice
 
 /**
@@ -298,7 +298,7 @@ where
     // Sets the index of the selection
     setSelectionIndex       :: !(Maybe Int) !(t v)          -> t v
 
-instance Choice ComboChoice,RadioChoice,ListChoice,TreeChoice,GridChoice,DynamicChoice
+instance Choice DropdownChoice,RadioChoice,ListChoice,TreeChoice,GridChoice,DynamicChoice
 
 //* Represents the choice of a number of items from a list
 :: CheckMultiChoice v o = CheckMultiChoice ![(!v,!o)] ![Int]

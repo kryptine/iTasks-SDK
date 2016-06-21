@@ -22,7 +22,7 @@ from Data.Functor import class Functor
 
 :: ChoiceOption o       = E.v: ChooseWith (ChoiceType o v)      & iTask v
 :: ChoiceType o v	    = AutoChoice (o -> v)
-						| ChooseFromComboBox (o -> v)
+						| ChooseFromDropdown (o -> v)
 						| ChooseFromRadioButtons (o -> v)
 						| ChooseFromList (o -> v)
 						| ChooseFromGrid (o -> v)

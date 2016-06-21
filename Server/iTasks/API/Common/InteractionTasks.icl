@@ -151,15 +151,15 @@ initChoiceView type container target mbSel
     = updateChoiceSelection mbSel (map target container) (mkDynChoice type container)
 where
     mkDynChoice (AutoChoice view) container             = mkDynChoice (autoChoiceType view container) container
-    mkDynChoice (ChooseFromComboBox view) container     = DCCombo   (ComboChoice [view o \\ o <- container] Nothing)
+    mkDynChoice (ChooseFromDropdown view) container     = DCDropdown (DropdownChoice [view o \\ o <- container] Nothing)
     mkDynChoice (ChooseFromRadioButtons view) container = DCRadio   (RadioChoice [view o \\ o <- container] Nothing)
     mkDynChoice (ChooseFromList view) container         = DCList    (ListChoice  [view o \\ o <- container] Nothing)
     mkDynChoice (ChooseFromTree view) container         = DCTree    (TreeChoice  (view [(i,o) \\ i <- [0..] & o <- container] []) Nothing)
     mkDynChoice (ChooseFromGrid view) container         = DCGrid    (GridChoice [view o \\ o <- container] Nothing)
 
     autoChoiceType f l = case headers l defaultValue of
-        []   = ChooseFromComboBox f
-        [""] = ChooseFromComboBox f
+        []   = ChooseFromDropdown f
+        [""] = ChooseFromDropdown f
         _    = ChooseFromGrid f
 
 headers :: [a] a -> [String] | JSONEncode{|*|} a
@@ -171,8 +171,8 @@ initSimpleChoiceView :: [o] (Maybe o) -> (DynamicChoice o) | iTask o
 initSimpleChoiceView container mbSel = updateChoiceSelection mbSel container (mkDynChoice container)
 where
     mkDynChoice l = case headers l defaultValue of
-        []   = DCCombo (ComboChoice container Nothing)
-        [""] = DCCombo (ComboChoice container Nothing)
+        []   = DCDropdown (DropdownChoice container Nothing)
+        [""] = DCDropdown (DropdownChoice container Nothing)
         _    = DCGrid  (GridChoice container Nothing)
 
 updateChoiceView :: (ChoiceType o v) [o] (o -> a) (Maybe a) [a] (DynamicChoice v) -> (DynamicChoice v) | iTask o & iTask v & iTask a
@@ -182,10 +182,10 @@ updateChoiceView :: (ChoiceType o v) [o] (o -> a) (Maybe a) [a] (DynamicChoice v
 updateChoiceView type container target mbSel targets view
     = updateChoiceSelection mbSel (map target container) (updDynChoice type targets view)
 where
-    updDynChoice (AutoChoice view) _ (DCCombo _)    = DCCombo (ComboChoice [view o \\ o <- container] Nothing)
+    updDynChoice (AutoChoice view) _ (DCDropdown _)    = DCDropdown (DropdownChoice [view o \\ o <- container] Nothing)
     updDynChoice (AutoChoice view) _ (DCGrid _)     = DCGrid  (GridChoice [view o \\ o <- container] Nothing)
 
-    updDynChoice (ChooseFromComboBox view) _ _      = DCCombo (ComboChoice [view o \\ o <- container] Nothing)
+    updDynChoice (ChooseFromDropdown view) _ _      = DCDropdown (DropdownChoice [view o \\ o <- container] Nothing)
     updDynChoice (ChooseFromRadioButtons view) _ _  = DCRadio (RadioChoice [view o \\ o <- container] Nothing)
     updDynChoice (ChooseFromTree view) targets (DCTree (TreeChoice tree _))
         = DCTree  (TreeChoice  (view [(i,o) \\ i <- [0..] & o <- container] (expanded tree targets container)) Nothing)

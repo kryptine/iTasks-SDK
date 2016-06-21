@@ -53,7 +53,7 @@ tonicStaticBrowser rs
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
          )) ) @! ()
   where
-  selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromComboBox id)]
+  selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromDropdown id)]
   noModuleSelection = viewInformation () [] "Select module..."
 
 tonicBrowseWithModule :: AllBlueprints [TaskAppRenderer] (Shared NavStack) TonicModule -> Task ()
@@ -74,7 +74,7 @@ tonicBrowseWithModule allbps rs navstack tm
      )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
         @! ()
   where
-  selectTask tm   = enterChoice "Select task" [ChooseWith (ChooseFromComboBox id)] (getTasks tm)
+  selectTask tm   = enterChoice "Select task" [ChooseWith (ChooseFromDropdown id)] (getTasks tm)
   noTaskSelection = viewInformation () [] "Select task..."
 
 

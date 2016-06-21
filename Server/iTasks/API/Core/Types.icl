@@ -699,11 +699,11 @@ derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, But
 derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
 
 //* Choices
-gDefault{|ComboChoice|} _ = ComboChoice [] Nothing
-gText{|ComboChoice|} fv mode (Just val) = fromMaybe ["No item selected"] (fmap (\v -> fv mode (Just v)) (getSelectionView val))
-gText{|ComboChoice|} fv mode _          = [""]
+gDefault{|DropdownChoice|} _ = DropdownChoice [] Nothing
+gText{|DropdownChoice|} fv mode (Just val) = fromMaybe ["No item selected"] (fmap (\v -> fv mode (Just v)) (getSelectionView val))
+gText{|DropdownChoice|} fv mode _          = [""]
 
-gEditor{|ComboChoice|} fx gx _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+gEditor{|DropdownChoice|} fx gx _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId,mode,optional}
 		| mode =: View
@@ -713,13 +713,13 @@ where
 			# attr = 'DM'.unions [choiceAttrs taskId (editorId dp) (evalue val) (options val),stdAttributes "choice" optional mask]
 			= (Ok (uia UIDropdown attr,mask), vst)
 
-	vvalue (ComboChoice options (Just sel))	= valueAttr (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
+	vvalue (DropdownChoice options (Just sel))	= valueAttr (JSONString (hd (gx AsSingleLine (Just (options !! sel)))))
 	vvalue _								= 'DM'.newMap
-	evalue (ComboChoice _ mbSel)			= maybe [] (\s->[s]) mbSel
+	evalue (DropdownChoice _ mbSel)			= maybe [] (\s->[s]) mbSel
 
-	options (ComboChoice options _)			= [JSONString (concat (gx AsSingleLine (Just v))) \\ v <- options]
+	options (DropdownChoice options _)			= [JSONString (concat (gx AsSingleLine (Just v))) \\ v <- options]
 
-	onEdit = choiceEdit (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) 
+	onEdit = choiceEdit (\idx (DropdownChoice options _) -> DropdownChoice options (Just idx)) 
 
 	onRefresh dp new old mask vst
 		| options old === options new && evalue old === evalue new
@@ -728,12 +728,12 @@ where
 			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
 			(Error e,vst) = (Error e,old,vst)
 
-instance Choice ComboChoice
+instance Choice DropdownChoice
 where
-	getSelectionView (ComboChoice options mbSel)				= getListOption options mbSel
-	setSelectionView mbSel (ComboChoice options _)				= ComboChoice options (maybe Nothing (getListIndex options) mbSel)
-    getSelectionIndex (ComboChoice _ mbSel)                     = mbSel
-    setSelectionIndex mbSel (ComboChoice options _)             = ComboChoice options mbSel
+	getSelectionView (DropdownChoice options mbSel)	   = getListOption options mbSel
+	setSelectionView mbSel (DropdownChoice options _)  = DropdownChoice options (maybe Nothing (getListIndex options) mbSel)
+    getSelectionIndex (DropdownChoice _ mbSel)         = mbSel
+    setSelectionIndex mbSel (DropdownChoice options _) = DropdownChoice options mbSel
 
 
 gDefault{|RadioChoice|} _ = RadioChoice [] Nothing
@@ -894,22 +894,22 @@ gDefault{|DynamicChoice|} fx = DCRadio (gDefault{|*->*|} fx )
 
 gText{|DynamicChoice|}		fv mode (Just (DCRadio val))	= gText{|*->*|} fv mode (Just val)
 gText{|DynamicChoice|}		fv mode (Just (DCList val))	    = gText{|*->*|} fv mode (Just val)
-gText{|DynamicChoice|}		fv mode (Just (DCCombo val))	= gText{|*->*|} fv mode (Just val)
+gText{|DynamicChoice|}		fv mode (Just (DCDropdown val))	= gText{|*->*|} fv mode (Just val)
 gText{|DynamicChoice|}		fv mode (Just (DCGrid val))	    = gText{|*->*|} fv mode (Just val)
 gText{|DynamicChoice|}		fv mode (Just (DCTree val))	    = gText{|*->*|} fv mode (Just val)
 gText{|DynamicChoice|}		fv _ _	        = [""]
 
 gEditor{|DynamicChoice|} f1 f2 f3 f4 f5 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
-	genUI dp (DCCombo val) vst = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genUI dp val vst
+	genUI dp (DCDropdown val) vst = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genUI dp val vst
 	genUI dp (DCRadio val) vst = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genUI dp val vst
 	genUI dp (DCList val) vst = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genUI dp val vst
 	genUI dp (DCTree val) vst = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genUI dp val vst
 	genUI dp (DCGrid val) vst = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.genUI dp val vst
 
-	onEdit dp e (DCCombo val) mask ust 
+	onEdit dp e (DCDropdown val) mask ust 
 		# (mbmask,val,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
-		= (mbmask,DCCombo val,ust)
+		= (mbmask,DCDropdown val,ust)
 	onEdit dp e (DCRadio val) mask ust 
 		# (mbmask,val,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
 		= (mbmask,DCRadio val,ust)
@@ -923,9 +923,9 @@ where
 		# (mbmask,val,ust) = ((gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onEdit dp e val mask ust) 
 		= (mbmask,DCGrid val,ust)
 
-	onRefresh dp (DCCombo new) (DCCombo old) mask vst
+	onRefresh dp (DCDropdown new) (DCDropdown old) mask vst
 		# (change,val,vst) = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onRefresh dp new old mask vst
-		= (change,DCCombo val,vst)
+		= (change,DCDropdown val,vst)
 	onRefresh dp (DCRadio new) (DCRadio old) mask vst
 		# (change,val,vst) = (gEditor{|*->*|} f1 f2 f3 f4 f5).Editor.onRefresh dp new old mask vst
 		= (change,DCRadio val,vst)
@@ -944,25 +944,25 @@ where
 
 instance Choice DynamicChoice
 where
-	getSelectionView (DCCombo choice)		    = getSelectionView choice
+	getSelectionView (DCDropdown choice)		= getSelectionView choice
 	getSelectionView (DCRadio choice)		    = getSelectionView choice
 	getSelectionView (DCList choice)		    = getSelectionView choice
 	getSelectionView (DCTree choice)		    = getSelectionView choice
 	getSelectionView (DCGrid choice)		    = getSelectionView choice
 
-	setSelectionView mbSel (DCCombo choice)		= DCCombo (setSelectionView mbSel choice)
+	setSelectionView mbSel (DCDropdown choice)	= DCDropdown (setSelectionView mbSel choice)
 	setSelectionView mbSel (DCRadio choice)		= DCRadio (setSelectionView mbSel choice)
 	setSelectionView mbSel (DCList choice)		= DCList (setSelectionView mbSel choice)
 	setSelectionView mbSel (DCTree choice)		= DCTree (setSelectionView mbSel choice)
 	setSelectionView mbSel (DCGrid choice)		= DCGrid (setSelectionView mbSel choice)
 
-    getSelectionIndex (DCCombo choice)          = getSelectionIndex choice
+    getSelectionIndex (DCDropdown choice)       = getSelectionIndex choice
     getSelectionIndex (DCRadio choice)          = getSelectionIndex choice
     getSelectionIndex (DCList choice)           = getSelectionIndex choice
     getSelectionIndex (DCTree choice)           = getSelectionIndex choice
     getSelectionIndex (DCGrid choice)           = getSelectionIndex choice
 
-    setSelectionIndex mbSel (DCCombo choice)    = DCCombo (setSelectionIndex mbSel choice)
+    setSelectionIndex mbSel (DCDropdown choice) = DCDropdown (setSelectionIndex mbSel choice)
     setSelectionIndex mbSel (DCRadio choice)    = DCRadio (setSelectionIndex mbSel choice)
     setSelectionIndex mbSel (DCList choice)     = DCList (setSelectionIndex mbSel choice)
     setSelectionIndex mbSel (DCTree choice)     = DCTree (setSelectionIndex mbSel choice)
@@ -1133,9 +1133,9 @@ treeToList [{ChoiceTree|label,type=LeafNode}:r] = [Just label:treeToList r]
 treeToList [{ChoiceTree|label,type=CollapsedNode children}:r] = [Just label:treeToList children ++ treeToList r]
 treeToList [{ChoiceTree|label,type=ExpandedNode children}:r] = [Just label:treeToList children ++ treeToList r]
 
-derive JSONEncode		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
-derive JSONDecode		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
-derive gEq				ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
+derive JSONEncode		DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
+derive JSONDecode		DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
+derive gEq				DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice
 
 //* Visualization wrappers
 gText{|VisualizationHint|} fx mode (Just val) = case val of
