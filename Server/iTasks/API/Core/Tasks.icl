@@ -8,7 +8,7 @@ import iTasks._Framework.TaskEval, iTasks._Framework.TaskStore, iTasks.UI.Defini
 import iTasks.UI.Layout, iTasks.UI.Editor, iTasks.UI.Prompt
 import iTasks.API.Core.SDSs, iTasks.API.Common.SDSCombinators
 
-from iTasks._Framework.SDS as SDS import qualified read, readRegister, write
+from iTasks._Framework.SDS as SDS import qualified read, readRegister, write, modify
 from StdFunc					import o, id
 from Data.Map as DM				import qualified newMap, get, put, del, toList, fromList
 from TCPChannels                import lookupIPAddress, class ChannelEnv, instance ChannelEnv World, connectTCP_MT
@@ -71,11 +71,12 @@ where
 	rep _ 			= NoChange
 
 
-interact :: !d !EditMode !(RWShared () r w) l v
+interact :: !d !EditMode !(RWShared () r w)
+				(r -> (l, v))                       //On init
 				(v l v -> (l, v, Maybe (r -> w))) 	//On edit
 				(r l v -> (l, v, Maybe (r -> w)))  	//On refresh
 				(Maybe (Editor v)) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v
-interact prompt mode shared l v editFun refreshFun mbEditor = Task eval
+interact prompt mode shared initFun editFun refreshFun mbEditor = Task eval
 where
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -85,7 +86,7 @@ where
 			(TCInit taskId ts)
 				= case 'SDS'.readRegister taskId shared iworld of
 					(Ok r,iworld)
-						# (l,v,f) = refreshFun r l v
+						# (l,v) = initFun r
 						= (Ok (taskId,ts,l,v,newFieldMask),iworld)
 					(Error e,iworld)  = (Error e,iworld)
 			(TCInteract taskId ts encl encv m)
@@ -96,8 +97,8 @@ where
 		| mbd =:(Error _) = (ExceptionResult (fromError mbd), iworld)
 		# (taskId,ts,l,v,m) = fromOk mbd
 		//Apply event (if there is one for this interact)	
-		= case matchAndApplyEvent_ event taskId mode mbEditor taskTime editFun l v m ts prompt iworld of
-			(Error e,iworld) = (ExceptionResult (exception e),iworld)
+		= case matchAndApplyEvent_ event taskId mode mbEditor taskTime shared editFun l v m ts prompt iworld of
+			(Error e,iworld) = (ExceptionResult e,iworld)
 			(Ok (l,v,ce,m,ts),iworld) 
 				//Refresh the editor with a view based on the share editor
 				= case refreshView_ taskId mode mbEditor shared refreshFun l v m iworld of
@@ -111,21 +112,26 @@ where
 						= (ValueResult value info change (TCInteract taskId ts (toJSON l) (toJSON v) m), iworld)
 
 
-matchAndApplyEvent_ event taskId mode mbEditor taskTime editFun l ov m ts prompt iworld
+matchAndApplyEvent_ event taskId mode mbEditor taskTime shared editFun l ov m ts prompt iworld
 	# editor = fromMaybe gEditor{|*|} mbEditor
 	# vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
 	= case event of
 		ResetEvent
 			= case editor.Editor.genUI [] ov vst of
 				(Ok (ui,m),{VSt|iworld}) = (Ok (l,ov,ReplaceUI (uic UIInteract [toPrompt prompt,ui]),m,taskTime),iworld)
-				(Error e,{VSt|iworld})   = (Error e,iworld)
+				(Error e,{VSt|iworld})   = (Error (exception e),iworld)
 		(EditEvent eTaskId name edit) | eTaskId == taskId 
 			= case editor.Editor.onEdit [] (s2dp name,edit) ov m vst of
 				(Ok (change,m),v,{VSt|iworld}) 
-					# (l,v,f) = editFun v l ov
+					# (l,v,mbf) = editFun v l ov
 					# change = case change of NoChange = NoChange; _ = ChangeUI [] [(1,ChangeChild change)]
-					= (Ok (l,v,change,m,taskTime),iworld)
-				(Error e,_,{VSt|iworld}) = (Error e,iworld)
+					= case mbf of
+						Just f = case 'SDS'.modify (\r -> ((),f r)) shared iworld of
+							(Ok (),iworld) = (Ok (l,v,change,m,taskTime),iworld)
+							(Error e,iworld) = (Error e,iworld)
+						Nothing
+							= (Ok (l,v,change,m,taskTime),iworld)
+				(Error e,_,{VSt|iworld}) = (Error (exception e),iworld)
 		_   = (Ok (l,ov,NoChange,m,ts),iworld)
 
 refreshView_ taskId mode mbEditor shared refreshFun l ov m iworld
@@ -133,13 +139,19 @@ refreshView_ taskId mode mbEditor shared refreshFun l ov m iworld
 	= case 'SDS'.readRegister taskId shared iworld of
 		(Error e,iworld) = (Error e,iworld)
 		(Ok r,iworld)
-			# (l,v,f) = refreshFun r l ov
+			# (l,v,mbf) = refreshFun r l ov
 			# editor = fromMaybe gEditor{|*|} mbEditor
 			# vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
 			= case editor.Editor.onRefresh [] v ov m vst of
 				(Ok (change,_),_,vst=:{VSt|iworld})
 					# change = case change of NoChange = NoChange; _ = ChangeUI [] [(1,ChangeChild change)]
-					= (Ok (l,v,change,m), iworld)
+					//Update the share if necessary
+					= case mbf of
+						Just f = case 'SDS'.modify (\r -> ((),f r)) shared iworld of
+							(Ok (),iworld) = (Ok (l,v,change,m), iworld)
+							(Error e,iworld) = (Error e,iworld)
+						Nothing
+							= (Ok (l,v,change,m), iworld)
 				(Error e,_,vst=:{VSt|iworld}) = (Error (exception e),iworld)
 
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w

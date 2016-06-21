@@ -102,7 +102,8 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 *
 * @gin False
 */
-interact :: !d !EditMode !(RWShared () r w) l v
+interact :: !d !EditMode !(RWShared () r w)
+				(r -> (l, v))                       //On init
 				(v l v -> (l, v, Maybe (r -> w))) 	//On edit
 				(r l v -> (l, v, Maybe (r -> w)))  	//On refresh
 				(Maybe (Editor v)) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v
