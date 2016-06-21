@@ -108,7 +108,7 @@ tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 *
 * @gin False
 */
-(@>) infixl 1 :: !(Task a) !((TaskValue a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
+//(@>) infixl 1 :: !(Task a) !((TaskValue a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
 /**
 * Infix shorthands for the (overloaded) tune combinator.
 */

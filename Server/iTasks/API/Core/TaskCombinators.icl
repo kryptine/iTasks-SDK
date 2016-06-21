@@ -30,40 +30,6 @@ where
 		(ExceptionResult e, iworld)				    = (ExceptionResult e, iworld)
 		(DestroyedResult, iworld)					= (DestroyedResult, iworld)
 
-project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) !(Task a) -> Task a | iTask a
-project projection share (Task evala) = Task eval
-where
-	eval event evalOpts (TCDestroy (TCProject taskId encprev treea)) iworld	//Cleanup duty simply passed to inner task
-		= evala event evalOpts (TCDestroy treea) iworld
-
-	eval event evalOpts state iworld
-		# (taskId,prev,statea) = case state of
-			(TCInit taskId _)					= (taskId,NoValue,state)
-			(TCProject taskId encprev statea)	= (taskId,fromJust (fromJSON encprev),statea)
-			
-		# (resa, iworld) 	= evala event evalOpts statea iworld
-		= case resa of
-			ValueResult val ts rep ncxta
-				# result = ValueResult val ts rep (TCProject taskId (toJSON val) ncxta)
-				| val =!= prev
-					= projectOnShare val result iworld
-				| otherwise
-					= (result,iworld)
-			ExceptionResult e
-				= (ExceptionResult e,iworld)
-	
-	projectOnShare val result iworld=:{current={TaskEvalState|taskInstance}}
-		# (er, iworld) = read share iworld
-   		= case er of
-			Ok r = case projection val r of
-				Just w
-					# (ew, iworld) = write w share iworld
-					= case ew of
-						Ok _	= (result, iworld)
-						Error e	= (ExceptionResult e, iworld)
-				Nothing = (result, iworld)
-			Error e = (ExceptionResult e, iworld)
-
 step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTask a & iTask b
 step (Task evala) lhsValFun conts = Task eval
 where

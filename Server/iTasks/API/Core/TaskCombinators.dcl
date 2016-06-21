@@ -20,18 +20,6 @@ derive class iTask ParallelTaskType, AttachmentStatus
 transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTask b 
 
 /**
-* Projects the result of a task in a share when its result changes.
-* The resulting task is still considered a single step in the workflow.
-*
-* @param The projection function
-* @param The share onto which the result should be projected
-* @param The task that provides the result
-
-* @return The modified task
-*/
-project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) !(Task a) -> Task a | iTask a
-
-/**
 * The generic sequential combinator.
 * It does a task followed by one out of a given list of continuations.
 * Once the transition to the continuation has been made it cannot be reversed.

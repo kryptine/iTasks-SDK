@@ -42,9 +42,6 @@ tbind taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasVal
 (@!) infixl 1 :: !(Task a) !b -> Task b | iTask a & iTask b
 (@!) task b = transform (fmap (const b)) task
 
-(@>) infixl 1 :: !(Task a) !((TaskValue a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
-(@>) task (f,share) = project f share task
-
 (<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
 (<<@) t a = tune a t
 
