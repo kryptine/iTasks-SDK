@@ -1,6 +1,6 @@
 implementation module iTasks.API.Core.Tasks
 
-import StdList, StdBool, StdInt, StdTuple, StdMisc, StdDebug
+import StdList, StdBool, StdInt, StdTuple, StdDebug
 import System.Time, Data.Error, System.OSError, Data.Tuple, Text, Text.JSON
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.TaskServer
 import iTasks._Framework.Generic, iTasks._Framework.Task, iTasks._Framework.TaskState
@@ -77,6 +77,8 @@ interact :: !d !EditMode !(RWShared () r w) l v
 				(Maybe (Editor v)) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v
 interact prompt mode shared l v editFun refreshFun mbEditor = Task eval
 where
+	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
+
 	eval event evalOpts tree iworld=:{current={taskTime}}
 		//Decode or initialize state
 		# (mbd,iworld) = case tree of
@@ -108,7 +110,6 @@ where
 						# info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
 						= (ValueResult value info change (TCInteract taskId ts (toJSON l) (toJSON v) m), iworld)
 
-	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 matchAndApplyEvent_ event taskId mode mbEditor taskTime editFun l ov m ts prompt iworld
 	# editor = fromMaybe gEditor{|*|} mbEditor
@@ -121,7 +122,7 @@ matchAndApplyEvent_ event taskId mode mbEditor taskTime editFun l ov m ts prompt
 		(EditEvent eTaskId name edit) | eTaskId == taskId 
 			= case editor.Editor.onEdit [] (s2dp name,edit) ov m vst of
 				(Ok (change,m),v,{VSt|iworld}) 
-					# (l,v,f) = editFun ov l v
+					# (l,v,f) = editFun v l ov
 					# change = case change of NoChange = NoChange; _ = ChangeUI [] [(1,ChangeChild change)]
 					= (Ok (l,v,change,m,taskTime),iworld)
 				(Error e,_,{VSt|iworld}) = (Error e,iworld)
