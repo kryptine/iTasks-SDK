@@ -47,6 +47,7 @@ itasks.PasswordField = {
 itasks.NumberField = {
 	domTag: 'input',
     allowDecimal: false,
+	width: 150,
     initDOMEl: function() {
         var me = this,
             el = this.domEl;
