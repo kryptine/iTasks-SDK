@@ -145,7 +145,6 @@ where
 		    uploadParam			= paramValue "upload" req
 
 		    editEventParam		= paramValue "editEvent" req
-		    actionEventParam	= paramValue "actionEvent" req
 		    focusEventParam		= paramValue "focusEvent" req
             resetEventParam     = paramValue "resetEvent" req
 			instanceNoParam 	= paramValue "instanceNo" req
@@ -229,12 +228,10 @@ where
 		itaskScripts = 
 			["/itasks-core.js"
 			,"/itasks-components-raw.js"
-			,"/itasks-components-container.js"
 			,"/itasks-components-form.js"
 			,"/itasks-components-display.js"
 			,"/itasks-components-selection.js"
-			,"/itasks-components-action.js"
-			,"/itasks-components-misc.js"
+			,"/itasks-components-container.js"
 			]
 
 	createDocumentsFromUploads [] iworld = ([],iworld)
