@@ -1,41 +1,3 @@
-itasks.itwc_label = {
-    domTag: 'label',
-    initDOMEl: function() {
-        var me = this,
-            el = me.domEl;
-        el.innerHTML = me.text;
-    }
-};
-itasks.itwc_view_icon = {
-
-	width: 'wrap',
-	height: 'wrap',
-	initDOMEl: function() {
-		var me = this,
-			el = me.domEl;
-		el.classList.add(me.cssPrefix + 'icon');
-		el.classList.add(me.iconCls);
-		me.currentIcon = me.iconCls;
-
-		if(me.tooltip) {
-			el.setAttribute('tooltip',me.tooltip);
-		}
-    },
-	onAttributeChange: function(name,value) {
-		var me = this,
-			el = me.domEl;
-		switch(name) {
-			case 'iconCls':
-				el.classList.remove(me.currentIcon);
-				me.currentIcon = value;
-				el.classList.add(me.currentIcon);
-				break;
-			case 'tooltip':
-				el.setAttribute('tooltip',value);
-				break;
-		}
-	}
-};
 itasks.TextField = {
 	domTag: 'input',
 	initDOMEl: function() {
@@ -133,53 +95,13 @@ itasks.NumberField = {
 		}
 	}
 };
-
 itasks.IntegerField = Object.assign(itasks.NumberField,{
     allowDecimal: false
 });
 itasks.DecimalField = Object.assign(itasks.NumberField,{
     allowDecimal: true
 });
-
-itasks.Checkbox = {
-	domTag: 'input',
-    defaultWidth: 'wrap',
-    initDOMEl: function() {
-        var me = this,
-            el = this.domEl;
-        el.type = 'checkbox';
-        el.checked = me.value;
-
-        el.addEventListener('click',function(e) {
-			var value = e.target.checked;
-            me.doEditEvent(me.taskId,me.editorId,value);
-        });
-    },
-	onAttributeChange: function(name,value) {
-		var me = this;
-		if(name == 'value') {
-        	me.domEl.checked = value;
-		}
-	}
-};
-
-itasks.itwc_edit_slider = {
-	domTag: 'input',
-    initDOMEl: function() {
-        var me = this,
-            el = this.domEl;
-        el.type = 'range';
-        el.min = me.minValue;
-        el.max = me.maxValue;
-        el.value = me.value;
-
-        el.addEventListener('change',function(e) {
-            me.doEditEvent(me.taskId,me.editorId, (e.target.value | 0),true);
-        });
-    }
-};
-
-itasks.itwc_edit_document = {
+itasks.DocumentField = {
 	cssCls: 'edit-document',
     initDOMEl: function() {
 
@@ -276,8 +198,43 @@ itasks.itwc_edit_document = {
         me.showValue();
     }
 };
+itasks.Checkbox = {
+	domTag: 'input',
+    defaultWidth: 'wrap',
+    initDOMEl: function() {
+        var me = this,
+            el = this.domEl;
+        el.type = 'checkbox';
+        el.checked = me.value;
 
-itasks.itwc_editbutton = {
+        el.addEventListener('click',function(e) {
+			var value = e.target.checked;
+            me.doEditEvent(me.taskId,me.editorId,value);
+        });
+    },
+	onAttributeChange: function(name,value) {
+		var me = this;
+		if(name == 'value') {
+        	me.domEl.checked = value;
+		}
+	}
+};
+itasks.Slider = {
+	domTag: 'input',
+    initDOMEl: function() {
+        var me = this,
+            el = this.domEl;
+        el.type = 'range';
+        el.min = me.minValue | 0;
+        el.max = me.maxValue | 10;
+        el.value = me.value;
+
+        el.addEventListener('change',function(e) {
+            me.doEditEvent(me.taskId,me.editorId, (e.target.value | 0),true);
+        });
+    }
+};
+itasks.Button = {
 	domTag: 'a',
 	cssCls: 'button',
 	container: false,
@@ -314,119 +271,42 @@ itasks.itwc_editbutton = {
 		});
     }
 };
-
-itasks.itwc_choice_dropdown = {
-    domTag: 'select',
-    width: 'wrap',
+itasks.Label = {
+    domTag: 'label',
     initDOMEl: function() {
         var me = this,
-            el = me.domEl,
-            value = me.value[0],
-            option;
-
-        option = document.createElement('option');
-        option.innerHTML = "Select...";
-        option.value = -1;
-        el.appendChild(option);
-
-        me.options.forEach(function(label,index) {
-            option = document.createElement('option');
-            option.value = index;
-            option.innerHTML = label;
-            if(index === value) {
-                option.selected = true;
-            }
-            el.appendChild(option);
-        },me);
-
-        el.addEventListener('change',function(e) {
-            var value = e.target.value | 0;
-            me.doEditEvent(me.taskId,me.editorId,value == -1 ? null : value,false);
-        });
-    },
-    setValue: function(selection) {
-        var me = this,
-            value;
-        if(selection.length == 0) {
-            value = -1;
-        } else {
-            value = selection[0];
-        }
-        me.domEl.value = value;
+            el = me.domEl;
+        el.innerHTML = me.text;
     }
 };
+itasks.Icon = {
 
-itasks.itwc_choice_radiogroup = {
-	domTag: 'ul',
-	cssCls: 'choice-radiogroup',
-	container: false,
+	width: 'wrap',
+	height: 'wrap',
 	initDOMEl: function() {
 		var me = this,
-			el = me.domEl,
-			inputName = "choice-" + me.taskId + "-" + me.editorId,
-			value = me.value.length ? me.value[0] : null;
+			el = me.domEl;
+		el.classList.add(me.cssPrefix + 'icon');
+		el.classList.add(me.iconCls);
+		me.currentIcon = me.iconCls;
 
-		me.options.forEach(function(option,idx) {
-			var liEl,inputEl,labelEl;
-			liEl = document.createElement('li');
-			inputEl = document.createElement('input');
-			inputEl.type = 'radio';
-			inputEl.value = idx;
-			inputEl.name = inputName;
-			inputEl.id = inputName + "-option-" + idx;
-			if(idx === value) {
-				inputEl.checked = true;
-            }
-            inputEl.addEventListener('click',function(e) {
-				me.doEditEvent(me.taskId,me.editorId,idx);
-            });
-			liEl.appendChild(inputEl);
-
-			labelEl = document.createElement('label');
-			labelEl.setAttribute('for',inputName + "-option-" + idx);
-			labelEl.innerHTML = option;
-			liEl.appendChild(labelEl);
-
-            el.appendChild(liEl);
-        });
+		if(me.tooltip) {
+			el.setAttribute('tooltip',me.tooltip);
+		}
     },
-    onAttributeChange: function(name,value) {
-		console.log(name,value);
+	onAttributeChange: function(name,value) {
+		var me = this,
+			el = me.domEl;
+		switch(name) {
+			case 'iconCls':
+				el.classList.remove(me.currentIcon);
+				me.currentIcon = value;
+				el.classList.add(me.currentIcon);
+				break;
+			case 'tooltip':
+				el.setAttribute('tooltip',value);
+				break;
+		}
 	}
 };
-
-itasks.itwc_choice_checkboxgroup = {
-    domTag: 'ul',
-	cssCls: 'choice-checkboxgroup',
-    initDOMEl: function() {
-        var me = this,
-            el = me.domEl,
-            inputName = "choice-" + me.taskId + "-" + me.editorId,
-            value = me.value || [];
-
-        me.options.forEach(function(option,idx) {
-            var liEl,inputEl,labelEl;
-            liEl = document.createElement('li');
-            inputEl = document.createElement('input');
-            inputEl.type = 'checkbox';
-            inputEl.value = idx;
-            inputEl.id = inputName + "-option-" + idx;
-            if(value.indexOf(idx) !== -1) {
-                inputEl.checked = true;
-            }
-            inputEl.addEventListener('click',function(e) {
-                me.doEditEvent(me.taskId,me.editorId,[idx,e.target.checked]);
-            });
-            liEl.appendChild(inputEl);
-
-            labelEl = document.createElement('label');
-            labelEl.setAttribute('for',inputName + "-option-" + idx);
-            labelEl.innerHTML = option;
-            liEl.appendChild(labelEl);
-
-            el.appendChild(liEl);
-        });
-    }
-};
-
 

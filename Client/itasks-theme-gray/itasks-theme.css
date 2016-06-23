@@ -424,7 +424,7 @@ div.itasks-loader {
     background-repeat: no-repeat;
     background-position: 95% center; }
 
-.itasks-buttonbar {
+.itasks-buttonbar, .itasks-toolbar {
   background: -moz-linear-gradient(top, #fefefe, #cccccc); }
 
 .itasks-menu-item {
@@ -495,6 +495,45 @@ div.itasks-loader {
 .itasks-icon {
   width: 16px;
   height: 16px; }
+
+.itasks-button {
+  font-size: 8pt;
+  padding: 3px;
+  background: -moz-linear-gradient(top, #fefefe, #eee);
+  background: -webkit-linear-gradient(top, #fefefe, #eee);
+  background-repeat: none;
+  border: 1px solid #bbbbbb;
+  border-radius: 3px;
+  display: flex;
+  display: -webkit-flex;
+  flex-direction: row;
+  -webkit-flex-direction: row;
+  align-items: center;
+  -webkit-align-items: center;
+  text-decoration: none;
+  color: #000;
+  flex-shrink: 0; }
+  .itasks-button:hover {
+    border-color: #bbbbbb; }
+
+.itasks-button-label {
+  margin: 0 4px;
+  height: 16px; }
+
+.itasks-button-icon {
+  width: 16px;
+  height: 16px; }
+
+.itasks-button-disabled {
+  color: #aaaaaa;
+  background: -moz-linear-gradient(top, #fefefe, #cccccc);
+  background: -webkit-linear-gradient(top, #fefefe, #cccccc); }
+
+.itasks-button-disabled:hover {
+  border-color: #bbbbbb; }
+
+.itasks-button-disabled .itasks-button-icon {
+  opacity: 0.5; }
 
 .itasks-choice-radiogroup, .itasks-choice-checkboxgroup {
   margin: 0;
@@ -652,59 +691,3 @@ div.itasks-loader {
 .itasks-choice-list-option.itasks-selected {
   background-color: #333;
   color: #fff; }
-
-.itasks-button {
-  font-size: 8pt;
-  padding: 3px;
-  background: -moz-linear-gradient(top, #fefefe, #eee);
-  background: -webkit-linear-gradient(top, #fefefe, #eee);
-  background-repeat: none;
-  border: 1px solid #bbbbbb;
-  border-radius: 3px;
-  display: flex;
-  display: -webkit-flex;
-  flex-direction: row;
-  -webkit-flex-direction: row;
-  align-items: center;
-  -webkit-align-items: center;
-  text-decoration: none;
-  color: #000;
-  flex-shrink: 0; }
-  .itasks-button:hover {
-    border-color: #bbbbbb; }
-
-.itasks-button-label {
-  margin: 0 4px;
-  height: 16px; }
-
-.itasks-button-icon {
-  width: 16px;
-  height: 16px; }
-
-.itasks-button-disabled {
-  color: #aaaaaa;
-  background: -moz-linear-gradient(top, #fefefe, #cccccc);
-  background: -webkit-linear-gradient(top, #fefefe, #cccccc); }
-
-.itasks-button-disabled:hover {
-  border-color: #bbbbbb; }
-
-.itasks-button-disabled .itasks-button-icon {
-  opacity: 0.5; }
-
-.itasks-vsplitter, .itasks-hsplitter {
-  background-color: #eeeeee;
-  flex-shrink: 0;
-  -webkit-flex-shrink: 0;
-  align-self: stretch;
-  -webkit-align-self: stretch; }
-  .itasks-vsplitter:hover, .itasks-hsplitter:hover {
-    background-color: #ccc; }
-
-.itasks-vsplitter {
-  height: 5px;
-  cursor: row-resize; }
-
-.itasks-hsplitter {
-  width: 5px;
-  cursor: col-resize; }

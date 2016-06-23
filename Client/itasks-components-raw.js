@@ -1,29 +1,28 @@
-itasks.itwc_raw_empty = {
+itasks.RawEmpty = {
 	cssCls: 'raw-empty',
 	initDOMEl: function() {
 		this.domEl.innerHTML = '(empty)';
 	}
 };
-itasks.itwc_raw_record = {
+itasks.RawRecord = {
 	cssCls: 'raw-record'
 };
-itasks.itwc_raw_cons = {
+itasks.RawCons = {
 	cssCls: 'raw-cons'
 };
-itasks.itwc_raw_var_cons = {
+itasks.RawVarCons = {
 	cssCls: 'raw-var-cons'
 };
-itasks.itwc_raw_interact = {
+itasks.RawInteract = {
 	cssCls: 'raw-interact'
 };
-itasks.itwc_raw_step = {
+itasks.RawStep = {
 	cssCls: 'raw-step',	
 };
-itasks.itwc_raw_parallel = {
+itasks.RawParallel = {
 	cssCls: 'raw-parallel',	
 };
-
-itasks.itwc_raw_action = {
+itasks.RawAction = {
 	cssCls: 'raw-action',	
 	domTag: 'a',
 	width: 'wrap',
@@ -53,10 +52,4 @@ itasks.itwc_raw_action = {
 				break;
 		}
 	}
-};
-itasks.itwc_raw_form = {
-	cssCls: 'raw-form',	
-};
-itasks.itwc_raw_form_item = {
-	cssCls: 'raw-form-item',	
 };

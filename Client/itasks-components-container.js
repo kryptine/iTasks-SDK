@@ -1,4 +1,4 @@
-itasks.itwc_container = {
+itasks.Container = {
 	cssCls: 'container',
 	initDOMEl: function() {
 		if(this.baseCls) {
@@ -6,7 +6,7 @@ itasks.itwc_container = {
 		}
 	}
 };
-itasks.itwc_panel = {
+itasks.Panel = {
 	cssCls: 'panel',
 	initDOMEl: function() {
 		var me = this;
@@ -30,7 +30,7 @@ itasks.itwc_panel = {
 		}
 	}
 };
-itasks.itwc_tabset = {
+itasks.TabSet = {
 	cssCls: 'tabset',
     activeTab: 0,
 	height: 'flex',
@@ -162,7 +162,7 @@ itasks.itwc_tabset = {
 	}
 }
 
-itasks.itwc_window = {
+itasks.Window = {
     margins: '10 10 10 10',
 	movable: false,
 	modal: false,
@@ -245,14 +245,23 @@ itasks.itwc_window = {
         window.removeEventListener('mouseup', me.onStopDrag_);
     }
 };
-itasks.itwc_debug= {
-	cssCls: 'debug'
+itasks.ToolBar  = {
+	cssCls: 'toolbar',
+	height: 'wrap',
+	width: 'flex',
+	direction: 'horizontal',
+	halign: 'left',
+	padding: '2 2 2 2'
 };
-itasks.itwc_buttonbar  = {
+
+itasks.ButtonBar  = {
 	cssCls: 'buttonbar',
 	height: 'wrap',
+	width: 'flex',
 	direction: 'horizontal',
 	halign: 'right',
 	padding: '2 2 2 0'
 };
-
+itasks.Debug = {
+	cssCls: 'debug'
+};

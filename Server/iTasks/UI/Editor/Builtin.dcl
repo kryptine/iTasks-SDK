@@ -5,25 +5,39 @@ definition module iTasks.UI.Editor.Builtin
 */
 import iTasks.UI.Editor
 from Text.HTML import :: HtmlTag
+from iTasks.API.Core.Types import :: Document
+
+// ## Form components ##
+// UITextField, UITextArea, UIPasswordField, UIIntegerField, UIDecimalField, UIDocumentField
+// UICheckbox, UISlider, UIButton, UILabel, UIIcon
 
 textField     :: Editor String
+textArea      :: Editor String
+passwordField :: Editor String
 integerField  :: Editor Int
 decimalField  :: Editor Real
-passwordField :: Editor String
-
+documentField :: Editor Document
 checkBox      :: Editor Bool
-textArea      :: Editor String
 slider        :: Editor Int
+label         :: Editor String
+icon          :: Editor String
+
+// ## Display components ##
+// UITextView, UIHtmlView, UIProgressBar
+textView      :: Editor String
+htmlView      :: Editor HtmlTag
 progressBar   :: Editor Int
+
+// ## Selection components ## 
 
 dropdownBox   :: Editor ([String],Maybe Int)
 radioGroup    :: Editor ([String],Maybe Int)
 
-choiceList    ::             Editor ([String], Maybe Int)
+choiceList    :: Editor ([String], Maybe Int)
 
 :: ChoiceGrid =
 	{ header  :: [String]
-	, rows    :: [[String]]
+	, rows    :: [[HtmlTag]]
 	}
 
 choiceGrid    :: Editor (ChoiceGrid, Maybe Int)
@@ -38,6 +52,3 @@ choiceGrid    :: Editor (ChoiceGrid, Maybe Int)
 
 choiceTree    :: Editor ([ChoiceNode], Maybe Int)
 
-textView :: Editor String
-htmlView :: Editor HtmlTag
-icon     :: Editor String

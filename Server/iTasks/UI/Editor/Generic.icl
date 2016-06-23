@@ -133,7 +133,7 @@ where
 						| gtd_num_conses == 1
 							= (Ok (UI UICons attr items, CompoundMask masks),{vst & selectedConsIndex = selectedConsIndex})
 						| otherwise
-							# consNameUI = uia UIViewString (valueAttr (JSONString (gtd_conses !! vst.selectedConsIndex).gcd_name))
+							# consNameUI = uia UITextView (valueAttr (JSONString (gtd_conses !! vst.selectedConsIndex).gcd_name))
 							= (Ok (UI UIVarCons attr [consNameUI:items],CompoundMask [newFieldMask:masks]),{vst & selectedConsIndex = selectedConsIndex})
 					(Error e,vst) = (Error e,vst)
 

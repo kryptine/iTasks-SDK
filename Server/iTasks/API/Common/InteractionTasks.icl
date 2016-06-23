@@ -132,7 +132,7 @@ where
 	//Create columns and rows in the same function to
 	//make sure overloading can be solved
 	gridModel :: [a] -> ChoiceGrid | iTask a
-	gridModel vals = {ChoiceGrid|header=gText{|*|} AsHeader (fix vals),rows = [gText{|*|} AsRow (Just v) \\ v <- vals]}
+	gridModel vals = {ChoiceGrid|header=gText{|*|} AsHeader (fix vals),rows = [map Text (gText{|*|} AsRow (Just v)) \\ v <- vals]}
 	where
 		fix :: [a] -> Maybe a
 		fix _ = Nothing

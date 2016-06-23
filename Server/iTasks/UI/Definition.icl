@@ -201,7 +201,7 @@ isOptional :: !UI -> Bool
 isOptional (UI _ attr _) = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attr)
 
 stringDisplay :: !String -> UI
-stringDisplay value = uia UIViewString (valueAttr (JSONString (escapeStr value)))
+stringDisplay value = uia UITextView (valueAttr (JSONString (escapeStr value)))
 
 //Encoding of UI definitions to the JSON format expected by the client
 class encodeUI a :: a -> JSONNode
@@ -245,48 +245,52 @@ where
 
 instance toString UINodeType
 where
-	toString UIEmpty           = "itwc_raw_empty"
-	toString UIAction          = "itwc_raw_action"
-	toString UIPair            = "itwc_raw_pair"
-	toString UIRecord          = "itwc_raw_record"
-	toString UICons            = "itwc_raw_cons"
-	toString UIVarCons         = "itwc_raw_var_cons"
-	toString UIInteract        = "itwc_raw_interact"
-	toString UIStep            = "itwc_raw_step"
-	toString UIParallel        = "itwc_raw_parallel"
+	toString UIEmpty           = "RawEmpty"
+	toString UIAction          = "RawAction"
+	toString UIPair            = "RawPair"
+	toString UIRecord          = "RawRecord"
+	toString UICons            = "RawCons"
+	toString UIVarCons         = "RawVarCons"
+	toString UIInteract        = "RawInteract"
+	toString UIStep            = "RawStep"
+	toString UIParallel        = "RawParallel"
+
 	toString UIComponent       = "Component" 
-    toString UIContainer       = "itwc_container"
-	toString UIPanel           = "itwc_panel"
-	toString UITabSet          = "itwc_tabset"
-	toString UIWindow          = "itwc_window"
-	toString UIMenu            = "itwc_menu"
-	toString UIButtonBar       = "itwc_buttonbar"
-	toString UIDebug           = "itwc_debug"
-	toString UIViewString      = "itwc_view_string"
-	toString UIViewHtml        = "itwc_view_html"
-	toString UIViewDocument    = "itwc_view_document"
-	toString UIViewSlider      = "itwc_view_slider"
-	toString UIViewProgress    = "itwc_view_progress"
-	toString UIIcon            = "itwc_view_icon"
+    toString UIViewport        = "Viewport"
+
 	toString UITextField       = "TextField"
 	toString UITextArea        = "TextArea"
 	toString UIPasswordField   = "PasswordField"
 	toString UIIntegerField    = "IntegerField"
 	toString UIDecimalField    = "DecimalField"
+	toString UIDocumentField   = "DocumentField"
 	toString UICheckbox        = "Checkbox"
-	toString UIEditSlider      = "itwc_edit_slider"
-	toString UIEditDocument    = "itwc_edit_document"
-	toString UIEditButton      = "itwc_editbutton"
-	toString UIDropdown        = "itwc_choice_dropdown"
-	toString UIGrid            = "itwc_choice_grid"
-	toString UITree            = "itwc_choice_tree"
-	toString UIListChoice      = "itwc_choice_list"
-	toString UIRadioGroup      = "itwc_choice_radiogroup"
-	toString UICheckboxGroup   = "itwc_choice_checkboxgroup"
+	toString UISlider          = "Slider"
+	toString UIButton          = "Button"
+	toString UILabel           = "Label"
+	toString UIIcon            = "Icon"
+
+	toString UITextView        = "TextView"
+	toString UIHtmlView        = "HtmlView"
+	toString UIProgressBar     = "ProgressBar"
+
+	toString UIDropdown        = "Dropdown"
+	toString UIRadioGroup      = "RadioGroup"
+	toString UICheckboxGroup   = "CheckboxGroup"
+	toString UIChoiceList      = "ChoiceList"
+	toString UIGrid            = "Grid"
+	toString UITree            = "Tree"
+
+    toString UIContainer       = "Container"
+	toString UIPanel           = "Panel"
+	toString UITabSet          = "TabSet"
+	toString UIWindow          = "Window"
+	toString UIMenu            = "Menu"
+	toString UIToolBar         = "ToolBar"
+	toString UIButtonBar       = "ButtonBar"
+	toString UIDebug           = "Debug"
+
 	toString UIActionButton    = "itwc_actionbutton"
-	toString UILabel           = "itwc_label"
-    toString UISplitter        = "itwc_splitter"
-    toString UIViewport        = "Viewport"
 
 instance encodeUI UISideSizes 
 where

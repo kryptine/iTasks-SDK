@@ -53,15 +53,12 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 *
 * The UI type has contstructors for the various types of partial UI definitions.
 */
-
 :: UI = UI UINodeType UIAttributes [UI]
 
 :: UINodeType
-	// --- Intermediate nodes: ---
+	// --- Intermediate nodes: (implemented in itasks-components-raw.js) ---
     = UIEmpty
-	//Constructors for editors
 	| UIAction 
-	//Intermediate containers
 	| UIPair
 	| UIRecord
 	| UICons
@@ -70,46 +67,43 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	| UIStep
 	| UIParallel
 	// --- Client components: ---
-	| UIComponent
-	// Containers
-    | UIContainer      				
-	| UIPanel 						
-	| UITabSet
-	| UIWindow
-	| UIMenu
-	| UIButtonBar
-	| UIDebug
-	// Components for viewing data:
-	| UIViewString					                     							// - String (non-wrapping single line text with automatic escaping)
-	| UIViewHtml                                                                    // - Html (formatted multi line text)
-	| UIViewDocument                                                                // - Document (info + download link)
-	| UIViewSlider																	// - Slider (non-editable slider)
-	| UIViewProgress					                							// - Progress (non editable progress bar)
-	| UIIcon															    		// - Icon (information icon with tooltip text)
-	// Components for editing data:
+	// Core framework components (implemented in itasks-core.js)
+	| UIComponent                                                                   // - Component (the client-side base class)
+    | UIViewport       			                                                	// - Viewport for embedding another task instance's UI (like an iframe for tasks)
+	// Form components (implemented in itasks-components-form.js):
 	| UITextField                                                                   // - Textfield (single line text field)
 	| UITextArea                                                                    // - Textarea (multi-line text field)
 	| UIPasswordField                                                               // - Password (single line text field that hides the text)
 	| UIIntegerField                                                                // - Integerfield (integer number field)
 	| UIDecimalField	                                                            // - Decimalfield (decimal number field)
+	| UIDocumentField                                                               // - Document (info + upload possibility)
 	| UICheckbox                                                                    // - Checkbox (editable checkbox)
-	| UIEditSlider                                                                  // - Slider (editable slider)
-	| UIEditDocument                                                                // - Document (info + upload possibility)
-	| UIEditButton                                                                  // - Button that sends edit events on click
-	// Components for indicating choices:
+	| UISlider                                                                      // - Slider (editable slider)
+	| UIButton                                                                      // - Button that sends edit events on click
+	| UILabel						                                                // - Label (non-wrapping text label, clicks focus next component)
+	| UIIcon															    		// - Icon (information icon with tooltip text)
+	// Display components (implemented in itasks-components-display.js)
+	| UITextView					                     							// - String (non-wrapping single line text with automatic escaping)
+	| UIHtmlView                                                                    // - Html (formatted multi line text)
+	| UIProgressBar                                                                 // - Progress (non editable progress bar)
+	// Selection components (implemented in itasks-components-selection.js)
 	| UIDropdown                                                                    // - Dropdown (choice from a list of alternatives)
-	| UIGrid                                                                        // - Grid (selecting an item in a table)
-	| UITree                                                                        // - Tree (selecting a node in a tree structure)
-	| UIListChoice                                                                  // - A mutually exclusive set of radio buttons 
 	| UIRadioGroup                                                                  // - A mutually exclusive set of radio buttons 
 	| UICheckboxGroup                                                               // - A group of checkboxes that indicate a multiple selection
+	| UIChoiceList                                                                  // - A mutually exclusive set of radio buttons 
+	| UIGrid                                                                        // - Grid (selecting an item in a table)
+	| UITree                                                                        // - Tree (selecting a node in a tree structure)
+	// Containers (implemented in itasks-components-container.js)
+    | UIContainer      				
+	| UIPanel 						
+	| UITabSet
+	| UIWindow
+	| UIMenu
+	| UIToolBar
+	| UIButtonBar
+	| UIDebug
 	// Components for triggering actions:
 	| UIActionButton                                                                // - Action Button (clicks trigger action events)
-	// Misc auxiliary components:
-	| UILabel						                                                // - Label (non-wrapping text label, clicks focus next component)
-    | UISplitter
-	// Viewport for other task instances
-    | UIViewport       			                                                	// - Viewport for embedding a related task gui (like an iframe for tasks)
 
 :: UIAttributes 		:== Map String JSONNode
 

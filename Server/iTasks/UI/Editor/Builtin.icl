@@ -14,6 +14,9 @@ integerField = fieldComponent toJSON UIIntegerField
 decimalField :: Editor Real
 decimalField = fieldComponent toJSON UIDecimalField
 
+documentField :: Editor Document
+documentField = fieldComponent toJSON UIDocumentField
+
 passwordField :: Editor String
 passwordField = fieldComponent toJSON UIPasswordField
 
@@ -23,6 +26,12 @@ textArea = fieldComponent toJSON UITextArea
 checkBox :: Editor Bool
 checkBox = fieldComponent toJSON UICheckbox
 
+slider :: Editor Int
+slider = fieldComponent toJSON UISlider
+
+label :: Editor String
+label = fieldComponent toJSON UILabel
+
 dropdownBox :: Editor ([String], Maybe Int)
 dropdownBox = choiceComponent (const 'DM'.newMap) id JSONString (\i o -> i >= 0 && i < length o) UIDropdown
 
@@ -30,12 +39,12 @@ radioGroup :: Editor ([String],Maybe Int)
 radioGroup = choiceComponent (const 'DM'.newMap) id JSONString (\i o -> i >= 0 && i < length o) UIRadioGroup
 
 choiceList :: Editor ([String],Maybe Int)
-choiceList = choiceComponent (const 'DM'.newMap) id JSONString (\i o -> i >= 0 && i < length o) UIListChoice
+choiceList = choiceComponent (const 'DM'.newMap) id JSONString (\i o -> i >= 0 && i < length o) UIChoiceList
 
 choiceGrid :: Editor (ChoiceGrid, Maybe Int)
 choiceGrid = choiceComponent (\{ChoiceGrid|header} -> columnsAttr header) (\{ChoiceGrid|rows} -> rows) toOption (\i o -> i >= 0 && i < length o) UIGrid
 where
-	toOption opt = JSONArray (map JSONString opt)
+	toOption opt = JSONArray (map (JSONString o toString) opt)
 
 choiceTree :: Editor ([ChoiceNode], Maybe Int)
 choiceTree = choiceComponent (const 'DM'.newMap) id toOption checkBounds UITree
@@ -55,17 +64,15 @@ where
 		| idx == id = True
 		| otherwise = or (map (checkNode idx) children)
 
-slider :: Editor Int
-slider = integerField
 
 progressBar  :: Editor Int
 progressBar = integerField
 
 textView :: Editor String
-textView = fieldComponent toJSON UIViewString
+textView = fieldComponent toJSON UITextView
 
 htmlView :: Editor HtmlTag
-htmlView = fieldComponent (JSONString o toString) UIViewHtml
+htmlView = fieldComponent (JSONString o toString) UIHtmlView
 
 icon :: Editor String
 icon = fieldComponent toJSON UIIcon

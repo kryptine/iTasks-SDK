@@ -114,7 +114,7 @@ isIntermediate (UI type _ _) = isMember type [UIInteract,UIStep,UIParallel]
 
 isFormComponent (UI type _ _) = isMember type 
 	[UITextField,UITextArea,UIPasswordField,UIIntegerField,UIDecimalField
-	,UICheckbox,UIEditSlider,UIEditDocument,UIDropdown,UIRadioGroup,UICheckboxGroup]
+	,UICheckbox,UISlider,UIDocumentField,UIDropdown,UIRadioGroup,UICheckboxGroup]
 instance == UINodeType where (==) x y = x === y
 
 //Flatten an editor into a form

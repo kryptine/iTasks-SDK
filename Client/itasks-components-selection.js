@@ -1,4 +1,118 @@
-itasks.itwc_choice_grid = {
+itasks.Dropdown = {
+    domTag: 'select',
+    width: 'wrap',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            value = me.value[0],
+            option;
+
+        option = document.createElement('option');
+        option.innerHTML = "Select...";
+        option.value = -1;
+        el.appendChild(option);
+
+        me.options.forEach(function(label,index) {
+            option = document.createElement('option');
+            option.value = index;
+            option.innerHTML = label;
+            if(index === value) {
+                option.selected = true;
+            }
+            el.appendChild(option);
+        },me);
+
+        el.addEventListener('change',function(e) {
+            var value = e.target.value | 0;
+            me.doEditEvent(me.taskId,me.editorId,value == -1 ? null : value,false);
+        });
+    },
+    setValue: function(selection) {
+        var me = this,
+            value;
+        if(selection.length == 0) {
+            value = -1;
+        } else {
+            value = selection[0];
+        }
+        me.domEl.value = value;
+    }
+};
+
+itasks.RadioGroup = {
+	domTag: 'ul',
+	cssCls: 'choice-radiogroup',
+	container: false,
+	initDOMEl: function() {
+		var me = this,
+			el = me.domEl,
+			inputName = "choice-" + me.taskId + "-" + me.editorId,
+			value = me.value.length ? me.value[0] : null;
+
+		me.options.forEach(function(option,idx) {
+			var liEl,inputEl,labelEl;
+			liEl = document.createElement('li');
+			inputEl = document.createElement('input');
+			inputEl.type = 'radio';
+			inputEl.value = idx;
+			inputEl.name = inputName;
+			inputEl.id = inputName + "-option-" + idx;
+			if(idx === value) {
+				inputEl.checked = true;
+            }
+            inputEl.addEventListener('click',function(e) {
+				me.doEditEvent(me.taskId,me.editorId,idx);
+            });
+			liEl.appendChild(inputEl);
+
+			labelEl = document.createElement('label');
+			labelEl.setAttribute('for',inputName + "-option-" + idx);
+			labelEl.innerHTML = option;
+			liEl.appendChild(labelEl);
+
+            el.appendChild(liEl);
+        });
+    },
+    onAttributeChange: function(name,value) {
+		console.log(name,value);
+	}
+};
+
+itasks.CheckboxGroup = {
+    domTag: 'ul',
+	cssCls: 'choice-checkboxgroup',
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            inputName = "choice-" + me.taskId + "-" + me.editorId,
+            value = me.value || [];
+
+        me.options.forEach(function(option,idx) {
+            var liEl,inputEl,labelEl;
+            liEl = document.createElement('li');
+            inputEl = document.createElement('input');
+            inputEl.type = 'checkbox';
+            inputEl.value = idx;
+            inputEl.id = inputName + "-option-" + idx;
+            if(value.indexOf(idx) !== -1) {
+                inputEl.checked = true;
+            }
+            inputEl.addEventListener('click',function(e) {
+                me.doEditEvent(me.taskId,me.editorId,[idx,e.target.checked]);
+            });
+            liEl.appendChild(inputEl);
+
+            labelEl = document.createElement('label');
+            labelEl.setAttribute('for',inputName + "-option-" + idx);
+            labelEl.innerHTML = option;
+            liEl.appendChild(labelEl);
+
+            el.appendChild(liEl);
+        });
+    }
+};
+
+itasks.Grid = {
 	cssCls: 'choicegrid',
 	width: 'flex',
 	container: false,	
@@ -75,7 +189,7 @@ itasks.itwc_choice_grid = {
 	}
 };
 
-itasks.itwc_choice_tree = {
+itasks.Tree = {
     height: 'flex',
     initDOMEl: function() {
         var me = this,
@@ -168,7 +282,7 @@ itasks.itwc_choice_tree = {
         });
     }
 };
-itasks.itwc_choice_list = {
+itasks.ChoiceList = {
 	cssCls: 'choice-list',
     initDOMEl: function() {
         var me = this,
@@ -204,5 +318,4 @@ itasks.itwc_choice_list = {
 			}
 	}
 };
-
 

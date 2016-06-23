@@ -235,7 +235,7 @@
         background-position: 95% center;
     }
 }
-.#{$prefix}buttonbar {
+.#{$prefix}buttonbar, .#{$prefix}toolbar {
     background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color - #222);
 }
 @if $touchscreen {
