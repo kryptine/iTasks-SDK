@@ -92,7 +92,7 @@ testEditors :: String -> Task a | iTask a
 *
 * @param the list of test suites to choose from
 */
-runTests :: [TestSuite] -> Task TestReport
+runTests :: [TestSuite] -> Task ()
 
 /**
 * Run all unit tests from the test suites

@@ -15,6 +15,7 @@ gDefault{|UnitTest|}		   = {UnitTest|name="Default unit test",test=pass}
 where
 	pass :: *World -> *(TestResult,*World)
 	pass w = (Passed,w)
+
 //DEFINING TESTS
 
 itest :: String String String (Task a) -> Test | iTask a
@@ -82,15 +83,14 @@ testEditors typeName
 				  )
 		 )
 
-runTests :: [TestSuite] -> Task TestReport
-runTests suites =
-		(enterChoice ("Suite selection","Which tests do you want to run?") [ChooseWith (ChooseFromRadioButtons (\{TestSuite|name} -> name))] suites
-	>>= testFullSuite @ \r -> [r]) <<@ ApplyLayout (beforeStep frameCompact)
+runTests :: [TestSuite] -> Task ()
+runTests suites
+	=	(enterChoice (Title "Select test") [ChooseWith (ChooseFromList (\(s,t) -> s +++ ": " +++ t.InteractiveTest.name))] tests @ snd
+	>&> withSelection (viewInformation () [] "Select a test") testInteractive
+	) <<@ ArrangeWithSideBar 0 LeftSide 250 True
+	@! ()
 where
-	testFullSuite :: TestSuite -> Task SuiteResult
-	testFullSuite suite=:{TestSuite|tests,name}
-		= allTasks 		[testInteractive t <<@ Title t.InteractiveTest.name \\ InteractiveTest t <- tests] <<@ ArrangeWithTabs
-		@ \results -> {SuiteResult|suiteName=name,testResults = zip ([t.InteractiveTest.name \\ InteractiveTest t <- tests],results) }
+	tests = flatten [[(s.TestSuite.name,t) \\ InteractiveTest t <- s.TestSuite.tests] \\ s <- suites]
 
 runUnitTests :: [TestSuite] *World -> *(!TestReport,!*World)
 runUnitTests suites world = foldr runSuite ([],world) suites
