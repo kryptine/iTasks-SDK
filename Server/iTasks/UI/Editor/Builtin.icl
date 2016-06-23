@@ -32,22 +32,28 @@ slider = fieldComponent toJSON UISlider
 label :: Editor String
 label = fieldComponent toJSON UILabel
 
-dropdownBox :: Editor ([String], Maybe Int)
-dropdownBox = choiceComponent (const 'DM'.newMap) id JSONString (\i o -> i >= 0 && i < length o) UIDropdown
+icon :: Editor String
+icon = fieldComponent toJSON UIIcon
 
-radioGroup :: Editor ([String],Maybe Int)
-radioGroup = choiceComponent (const 'DM'.newMap) id JSONString (\i o -> i >= 0 && i < length o) UIRadioGroup
+dropdown :: Editor ([String], [Int])
+dropdown = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UIDropdown
 
-choiceList :: Editor ([String],Maybe Int)
-choiceList = choiceComponent (const 'DM'.newMap) id JSONString (\i o -> i >= 0 && i < length o) UIChoiceList
+radioGroup :: Editor ([String],[Int])
+radioGroup = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UIRadioGroup
 
-choiceGrid :: Editor (ChoiceGrid, Maybe Int)
-choiceGrid = choiceComponent (\{ChoiceGrid|header} -> columnsAttr header) (\{ChoiceGrid|rows} -> rows) toOption (\i o -> i >= 0 && i < length o) UIGrid
+checkboxGroup :: Editor ([String],[Int])
+checkboxGroup = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UICheckboxGroup
+
+choiceList :: Editor ([String],[Int])
+choiceList = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UIChoiceList
+
+grid :: Editor (ChoiceGrid, [Int])
+grid = choiceComponent (\{ChoiceGrid|header} -> columnsAttr header) (\{ChoiceGrid|rows} -> rows) toOption (\o i -> i >= 0 && i < length o) UIGrid
 where
 	toOption opt = JSONArray (map (JSONString o toString) opt)
 
-choiceTree :: Editor ([ChoiceNode], Maybe Int)
-choiceTree = choiceComponent (const 'DM'.newMap) id toOption checkBounds UITree
+tree :: Editor ([ChoiceNode], [Int])
+tree = choiceComponent (const 'DM'.newMap) id toOption checkBounds UITree
 where
 	toOption {ChoiceNode|id,label,icon,expanded,children}
 		= JSONObject [("text",JSONString label)
@@ -58,7 +64,7 @@ where
 					 ,("children",JSONArray (map toOption children))
 					]
 
-	checkBounds idx options
+	checkBounds options idx 
 		= or (map (checkNode idx) options)
 	checkNode idx {ChoiceNode|id,children}
 		| idx == id = True
@@ -74,8 +80,6 @@ textView = fieldComponent toJSON UITextView
 htmlView :: Editor HtmlTag
 htmlView = fieldComponent (JSONString o toString) UIHtmlView
 
-icon :: Editor String
-icon = fieldComponent toJSON UIIcon
 
 //Field like components for which simply knowing the UI type is sufficient
 fieldComponent toValue type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
@@ -104,22 +108,23 @@ where
 	genUI dp (val,sel) vst=:{VSt|taskId,mode,optional}
 		# valid = if (mode =: Enter) optional True //When entering data a value is initially only valid if it is optional
 		# mask = FieldMask {touched = False, valid = valid, state = JSONNull}
-		# attr = 'DM'.unions [attr val,choiceAttrs taskId (editorId dp) (maybeToList sel) (map toOption (getOptions val))]
+		# attr = 'DM'.unions [attr val,choiceAttrs taskId (editorId dp) sel (map toOption (getOptions val))]
 		= (Ok (uia type attr,mask), vst)
 
 	onEdit dp (tp,e) (val,sel) mask vst=:{VSt|optional}
 		# options = getOptions val
 		= case e of
 			JSONNull
-				= (Ok (NoChange,FieldMask {touched=True,valid=optional,state=JSONNull}),(val,Nothing),vst)
-			(JSONArray [JSONInt idx])
-				| checkBounds idx options
-					= (Ok (NoChange,FieldMask {touched=True,valid=True,state=JSONInt idx}),(val,Just idx),vst)
+				= (Ok (NoChange,FieldMask {touched=True,valid=optional,state=JSONNull}),(val,[]),vst)
+			(JSONArray indices)
+				# selection = [i \\ JSONInt i <- indices]
+				| all (checkBounds options) selection
+					= (Ok (NoChange,FieldMask {touched=True,valid=True,state=JSONArray indices}),(val,selection),vst)
 				| otherwise
-					= (Error ("Choice event out of bounds: " +++ toString idx),(val,sel),vst)
+					= (Error ("Choice event out of bounds: " +++ toString (JSONArray indices)),(val,sel),vst)
 			(JSONInt idx)
-				| checkBounds idx options
-					= (Ok (NoChange,FieldMask {touched=True,valid=True,state=JSONInt idx}),(val,Just idx),vst)
+				| checkBounds options idx
+					= (Ok (NoChange,FieldMask {touched=True,valid=True,state=JSONInt idx}),(val,[idx]),vst)
 				| otherwise
 					= (Error ("Choice event out of bounds: " +++ toString idx),(val,sel),vst)
 			_ 

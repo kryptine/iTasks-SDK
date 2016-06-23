@@ -611,32 +611,11 @@ derive gEditor		ButtonState
 
 //* Table consisting of headers, the displayed data cells & possibly a selection
 gText{|Table|}	_ _	= ["<Table>"]
-
-gEditor{|Table|} = liftEditor toGrid fromGrid choiceGrid
+gEditor{|Table|} = liftEditor toGrid fromGrid grid
 where
-	toGrid (Table header rows mbSel) = ({ChoiceGrid|header=header,rows=rows},mbSel)
-	fromGrid ({ChoiceGrid|header,rows},mbSel) = Table header rows mbSel
+	toGrid (Table header rows mbSel) = ({ChoiceGrid|header=header,rows=rows},maybeToList mbSel)
+	fromGrid ({ChoiceGrid|header,rows},sel) = Table header rows (listToMaybe sel)
 
-/*
-{Editor|genUI=genUI,onEdit=onEdit,onRefresh}
-where
-	genUI dp val vst=:{VSt|taskId}
-		# attr = 'DM'.unions [choiceAttrs taskId (editorId dp) (value val) (options val),columnsAttr (columns val)]
-		= (Ok (uia UIGrid attr,newFieldMask),vst)
-	where
-		value (Table _ _ mbSel)	= maybe [] (\s->[s]) mbSel
-		columns (Table headers _ _)	= headers
-		options (Table _ cells _)	= map (toJSON o (map toString)) cells
-
-	onEdit = basicEdit (\json (Table headers cells _) -> case fromJSON json of Just i = Just (Table headers cells (Just i)); _ = Just (Table headers cells Nothing))
-	onRefresh dp new old mask vst 
-		| old === new 
-			= (Ok (NoChange,mask),new,vst)
-		= case genUI dp new vst of
-			(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
-			(Error e,vst) = (Error e,old,vst)
-
-*/
 gDefault{|Table|} = Table [] [] Nothing
 
 toTable	:: ![a] -> Table | gText{|*|} a

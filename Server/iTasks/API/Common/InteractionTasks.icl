@@ -87,8 +87,8 @@ updateInformationWithShared d _ shared m
 
 //Core choice tasks
 editChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask a //EXPERIMENT
-editChoiceAs d [ChooseWith (AutoChoice f):_] container target mbSel = editChoiceAsSingle d f dropdownBox container target mbSel
-editChoiceAs d [ChooseWith (ChooseFromDropdown f):_] container target mbSel = editChoiceAsSingle d f dropdownBox container target mbSel
+editChoiceAs d [ChooseWith (AutoChoice f):_] container target mbSel = editChoiceAsSingle d f dropdown container target mbSel
+editChoiceAs d [ChooseWith (ChooseFromDropdown f):_] container target mbSel = editChoiceAsSingle d f dropdown container target mbSel
 editChoiceAs d [ChooseWith (ChooseFromRadioButtons f):_] container target mbSel = editChoiceAsSingle d f radioGroup container target mbSel
 editChoiceAs d [ChooseWith (ChooseFromList f):_] container target mbSel = editChoiceAsSingle d f choiceList container target mbSel
 editChoiceAs d [ChooseWith (ChooseFromGrid f):_] container target mbSel = editChoiceAsGrid d f (const container) null target mbSel
@@ -104,10 +104,10 @@ editChoiceAsSingle d f editor container target mbSel
 		(\_ l v -> (l,v,Nothing))
 		(Just editor) @? result
 where
-	findIdx Nothing options = Nothing
-	findIdx (Just val) options = listToMaybe [i \\ o <- options & i <- [0..] | o === val]
+	findIdx Nothing options = []
+	findIdx (Just val) options = [i \\ o <- options & i <- [0..] | o === val]
 
-	result (Value (options,(labels,Just idx)) _)
+	result (Value (options,(labels,[idx])) _)
 		| idx < length options = Value (options !! idx) False
 								= NoValue
 	result _ = NoValue
@@ -119,12 +119,12 @@ editChoiceAsGrid d f containerf share target mbSel
 		(\v l _ -> (l,v,Nothing)) //Maybe map selection to share
 
 		(\r l v -> (l,v,Nothing))
-		(Just choiceGrid) @? result
+		(Just grid) @? result
 where
-	findIdx Nothing options = Nothing
-	findIdx (Just val) options = listToMaybe [i \\ o <- options & i <- [0..] | o === val]
+	findIdx Nothing options = []
+	findIdx (Just val) options = [i \\ o <- options & i <- [0..] | o === val]
 
-	result (Value (options,(labels,Just idx)) _)
+	result (Value (options,(labels,[idx])) _)
 		| idx < length options = Value (options !! idx) False
 		| otherwise            = NoValue
 	result _                   = NoValue
@@ -140,17 +140,17 @@ where
 derive class iTask ChoiceNode
 editChoiceAsTree d f container target mbSel
 	# options        = map target container
-	# tree           = treeModel f container
+	# model          = treeModel f container
 	# selIdx         = findIdx mbSel options
-	= interact d (if (isNothing mbSel) Enter Update) null (const (options,(tree,selIdx)))
+	= interact d (if (isNothing mbSel) Enter Update) null (const (options,(model,selIdx)))
 		(\v l _ -> (l,v,Nothing))
 		(\_ l v -> (l,v,Nothing))
-		(Just choiceTree) @? result
+		(Just tree) @? result
 where
-	findIdx Nothing options = Nothing
-	findIdx (Just val) options = listToMaybe [i \\ o <- options & i <- [0..] | o === val]
+	findIdx Nothing options = []
+	findIdx (Just val) options = [i \\ o <- options & i <- [0..] | o === val]
 
-	result (Value (options,(labels,Just idx)) _)
+	result (Value (options,(labels,[idx])) _)
 		| idx < length options = Value (options !! idx) False
 		| otherwise            = NoValue
 	result _ = NoValue

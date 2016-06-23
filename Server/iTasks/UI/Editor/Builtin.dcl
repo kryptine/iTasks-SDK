@@ -29,18 +29,18 @@ htmlView      :: Editor HtmlTag
 progressBar   :: Editor Int
 
 // ## Selection components ## 
-
-dropdownBox   :: Editor ([String],Maybe Int)
-radioGroup    :: Editor ([String],Maybe Int)
-
-choiceList    :: Editor ([String], Maybe Int)
+// UIDropdown, UIRadioGroup, UICheckboxGroup, UIChoiceList, UIGrid, UITree
+dropdown      :: Editor ([String], [Int])
+radioGroup    :: Editor ([String], [Int])
+checkboxGroup :: Editor ([String], [Int])
+choiceList    :: Editor ([String], [Int])
+grid          :: Editor (ChoiceGrid, [Int])
+tree          :: Editor ([ChoiceNode], [Int])
 
 :: ChoiceGrid =
 	{ header  :: [String]
 	, rows    :: [[HtmlTag]]
 	}
-
-choiceGrid    :: Editor (ChoiceGrid, Maybe Int)
 
 :: ChoiceNode =
 	{ id       :: Int
@@ -49,6 +49,3 @@ choiceGrid    :: Editor (ChoiceGrid, Maybe Int)
 	, expanded :: Bool
 	, children :: [ChoiceNode]
 	}
-
-choiceTree    :: Editor ([ChoiceNode], Maybe Int)
-
