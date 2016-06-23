@@ -86,8 +86,8 @@ where
 	layout (ReplaceUI (UI UIAction attr _),_)
 		= case ('DM'.get "actionId" attr) of
 			Just (JSONString a)
-				= (ReplaceUI (uia UIActionButton ('DM'.union (textAttr a) attr)),JSONNull)
-			_ 	= (ReplaceUI (uia UIActionButton attr),JSONNull)
+				= (ReplaceUI (uia UIButton ('DM'.unions [attr,valueAttr (JSONString a),textAttr a])),JSONNull)
+			_ 	= (ReplaceUI (uia UIButton attr),JSONNull)
 	
 	layout (change,s) = (change,s)
 

@@ -153,12 +153,11 @@ where
             instances = filter (\i. i > 0) (map toInt (split "," (paramValue "instances" req)))
 
             event = case (fromJSON (fromString editEventParam)) of
-			    Just (taskId,name,value)	= EditEvent (fromString taskId) name value
-			    _	= case (fromJSON (fromString actionEventParam)) of
-				    Just (taskId,actionId)	= ActionEvent (fromString taskId) actionId
-				    _	= case (fromJSON (fromString focusEventParam)) of
-					    Just taskId			= FocusEvent (fromString taskId)
-					    _   = if (resetEventParam == "") (RefreshEvent "Browser refresh") ResetEvent
+				Just (taskId,JSONNull,JSONString actionId) = ActionEvent (fromString taskId) actionId
+			    Just (taskId,JSONString name,value)	= EditEvent (fromString taskId) name value
+				_	= case (fromJSON (fromString focusEventParam)) of
+					Just taskId			= FocusEvent (fromString taskId)
+					_   = if (resetEventParam == "") (RefreshEvent "Browser refresh") ResetEvent
 
         webSocketHandShake key = base64Encode digest
         where

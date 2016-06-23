@@ -102,8 +102,6 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	| UIToolBar
 	| UIButtonBar
 	| UIDebug
-	// Components for triggering actions:
-	| UIActionButton                                                                // - Action Button (clicks trigger action events)
 
 :: UIAttributes 		:== Map String JSONNode
 

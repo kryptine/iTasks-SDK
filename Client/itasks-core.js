@@ -200,11 +200,6 @@ itasks.Component = {
 			this.parentCmp.doEditEvent(taskId, editorId, value);
 		}
 	},
-	doActionEvent: function(taskId, actionId) {
-		if(this.parentCmp) {
-			this.parentCmp.doActionEvent(taskId, actionId);
-		}
-	},
 	findChild: function(obj) {
 		var me = this, num = me.children.length, i;
 
@@ -364,8 +359,12 @@ itasks.Viewport = {
 
 		//Use the page url as default taskUrl
 		if(!me.taskUrl) {	
-			me.taskUrl = window.location;
+			me.taskUrl = '' + window.location;
+		} 
+		if(!me.taskUrl.endsWith('/')) {
+			me.taskUrl += '/';
 		}
+			
 		//Create a temporary root element
 		me.insertChild(0,{xtype:'Loader', parentCmp: me});
 
@@ -386,10 +385,6 @@ itasks.Viewport = {
 	doEditEvent: function (taskId, editorId, value) {
 		var me = this;
 		me.service.doEditEvent(taskId, editorId, value);
-	},
-	doActionEvent: function(taskId, actionId) {
-		var me = this;
-		me.service.doActionEvent(taskId, actionId);
 	},
 	onInstanceUIChange: function(change) {
 		this.children[0].onUIChange(change);
@@ -453,20 +448,13 @@ itasks.Service = {
 		me.instances[instanceNo].connection.sendEvent(instanceNo,
 			{instanceNo:instanceNo, editEvent: JSON.stringify([taskId,editorId,value])});
 	},
-	doActionEvent: function(taskId, actionId) {
-		var me = this,
-			instanceNo = taskId.split("-")[0];
-	
-		me.instances[instanceNo].connection.sendEvent(instanceNo,
-			{instanceNo:instanceNo, actionEvent: JSON.stringify([taskId,actionId])});
-	},
 	unregister: function(viewport) {
 	},
 	createTaskInstance_: function(taskUrl, callback) {
 		var me = this, xhr;
 		//Send request
 		xhr = new XMLHttpRequest();
-		xhr.open('GET', taskUrl + '/new', true);
+		xhr.open('GET', taskUrl + 'new', true);
 		xhr.onload = function(e) {
 			var msg = JSON.parse(e.target.responseText);
 			callback.bind(me)(msg['instanceNo'],msg['instanceKey']);
@@ -492,7 +480,7 @@ itasks.Connection = {
 		if(me.eventSource !== null) {
 			return;
 		}
-		me.eventSource = new EventSource(me.taskUrl + '/gui-stream?instances='+Object.keys(me.taskInstances).join(','));
+		me.eventSource = new EventSource(me.taskUrl + 'gui-stream?instances='+Object.keys(me.taskInstances).join(','));
         me.eventSource.onerror = me.onError_.bind(me);
         me.eventSource.addEventListener('reset', me.onReset_.bind(me), false);
         me.eventSource.addEventListener('message', me.onMessage_.bind(me), false);
@@ -518,7 +506,7 @@ itasks.Connection = {
 		var me = this, xhr;
 
 		xhr = new XMLHttpRequest();
-		xhr.open('POST', me.taskUrl + '/gui-events', true);
+		xhr.open('POST', me.taskUrl + 'gui-events', true);
 		xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
 		xhr.send(me.urlEncode_(event));
 	},

@@ -269,7 +269,21 @@ itasks.Button = {
 			e.preventDefault();
 			return false;
 		});
-    }
+    },
+	onAttributeChange: function(name,value) {
+		var me = this;
+		switch(name) {
+			case 'enabled':
+				me.enabled = value;
+				if(value) {
+					me.domEl.classList.remove(me.cssPrefix + 'button-disabled');
+				} else {
+					me.domEl.classList.add(me.cssPrefix + 'button-disabled');
+				}
+				break;
+		}
+	}
+
 };
 itasks.Label = {
     domTag: 'label',

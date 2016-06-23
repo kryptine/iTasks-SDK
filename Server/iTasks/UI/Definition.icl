@@ -290,8 +290,6 @@ where
 	toString UIButtonBar       = "ButtonBar"
 	toString UIDebug           = "Debug"
 
-	toString UIActionButton    = "itwc_actionbutton"
-
 instance encodeUI UISideSizes 
 where
 	encodeUI {top,right,bottom,left}

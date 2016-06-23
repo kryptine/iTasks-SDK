@@ -33,7 +33,7 @@ itasks.RawAction = {
 		el.href = '#';
 		el.classList.add(this.cssPrefix + (me.enabled ? 'raw-action-enabled' : 'raw-action-disabled'));
 		el.addEventListener('click',function(e) {
-			me.doActionEvent(me.taskId,me.actionId);
+			me.doEditEvent(me.taskId,null,me.actionId);
 			e.preventDefault();
 		});
     },

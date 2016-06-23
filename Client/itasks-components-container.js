@@ -91,7 +91,7 @@ itasks.TabSet = {
             closeLink.href = '#';
             closeLink.classList.add(me.cssPrefix + 'tabclose');
             closeLink.addEventListener('click',function(e) {
-                me.doActionEvent(cmp.closeTaskId,'Close');
+                me.doEditEvent(cmp.closeTaskId,null,'Close');
                 e.preventDefault();
             },me);
 

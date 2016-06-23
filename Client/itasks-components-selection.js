@@ -240,7 +240,7 @@ itasks.Tree = {
         if(me.doubleClickAction) {
             label.addEventListener('dblclick',function(e) {
                 me.doEditEvent(me.taskId,me.editorId,["sel",option.value,true]);
-                me.doActionEvent(me.doubleClickAction[0],me.doubleClickAction[1]);
+                me.doEditEvent(me.doubleClickAction[0],null,me.doubleClickAction[1]);
 
                 e.stopPropagation();
                 e.preventDefault();
