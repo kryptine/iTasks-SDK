@@ -12,7 +12,7 @@ import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators
 import iTasks.API.Common.TaskCombinators, iTasks.API.Core.SDSs
 import iTasks.API.Common.SDSCombinators
 import iTasks._Framework.Tonic
-import iTasks.UI.Layout, iTasks.UI.Editor, iTasks.UI.Prompt
+import iTasks.UI.Layout, iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Builtin
 
 enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
 enterInformation d [EnterWith fromf:_]
@@ -86,13 +86,97 @@ updateInformationWithShared d _ shared m
     = updateInformation d [] m
 
 //Core choice tasks
-editChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask a
-editChoiceAs d [ChooseWith type:_] container target mbSel
-	= interact d (if (isNothing mbSel) Enter Update) null (const (map target container,initChoiceView type container target mbSel))
+editChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask a //EXPERIMENT
+editChoiceAs d [ChooseWith (AutoChoice f):_] container target mbSel = editChoiceAsSingle d f dropdownBox container target mbSel
+editChoiceAs d [ChooseWith (ChooseFromDropdown f):_] container target mbSel = editChoiceAsSingle d f dropdownBox container target mbSel
+editChoiceAs d [ChooseWith (ChooseFromRadioButtons f):_] container target mbSel = editChoiceAsSingle d f radioGroup container target mbSel
+editChoiceAs d [ChooseWith (ChooseFromList f):_] container target mbSel = editChoiceAsSingle d f choiceList container target mbSel
+editChoiceAs d [ChooseWith (ChooseFromGrid f):_] container target mbSel = editChoiceAsGrid d f (const container) null target mbSel
+editChoiceAs d [ChooseWith (ChooseFromTree f):_] container target mbSel = editChoiceAsTree d f container target mbSel
+editChoiceAs d _ container target mbSel = editChoiceAs d [ChooseWith (AutoChoice id)] container target mbSel
+
+editChoiceAsSingle d f editor container target mbSel
+	# options = map target container
+	# labels = [toSingleLineText (f o) \\ o <- container]
+	# selIdx = findIdx mbSel options
+	= interact d (if (isNothing mbSel) Enter Update) null (const (options,(labels,selIdx)))
 		(\v l _ -> (l,v,Nothing))
 		(\_ l v -> (l,v,Nothing))
+		(Just editor) @? result
+where
+	findIdx Nothing options = Nothing
+	findIdx (Just val) options = listToMaybe [i \\ o <- options & i <- [0..] | o === val]
+
+	result (Value (options,(labels,Just idx)) _)
+		| idx < length options = Value (options !! idx) False
+								= NoValue
+	result _ = NoValue
+
+derive class iTask ChoiceGrid
+editChoiceAsGrid d f containerf share target mbSel
+	= interact d (if (isNothing mbSel) Enter Update) share
+		(\r -> let options = map target (containerf r) in (options, (gridModel (map f (containerf r)), findIdx mbSel options)))
+		(\v l _ -> (l,v,Nothing)) //Maybe map selection to share
+
+		(\r l v -> (l,v,Nothing))
+		(Just choiceGrid) @? result
+where
+	findIdx Nothing options = Nothing
+	findIdx (Just val) options = listToMaybe [i \\ o <- options & i <- [0..] | o === val]
+
+	result (Value (options,(labels,Just idx)) _)
+		| idx < length options = Value (options !! idx) False
+		| otherwise            = NoValue
+	result _                   = NoValue
+
+	//Create columns and rows in the same function to
+	//make sure overloading can be solved
+	gridModel :: [a] -> ChoiceGrid | iTask a
+	gridModel vals = {ChoiceGrid|header=gText{|*|} AsHeader (fix vals),rows = [gText{|*|} AsRow (Just v) \\ v <- vals]}
+	where
+		fix :: [a] -> Maybe a
+		fix _ = Nothing
+
+derive class iTask ChoiceNode
+editChoiceAsTree d f container target mbSel
+	# options        = map target container
+	# tree           = treeModel f container
+	# selIdx         = findIdx mbSel options
+	= interact d (if (isNothing mbSel) Enter Update) null (const (options,(tree,selIdx)))
+		(\v l _ -> (l,v,Nothing))
+		(\_ l v -> (l,v,Nothing))
+		(Just choiceTree) @? result
+where
+	findIdx Nothing options = Nothing
+	findIdx (Just val) options = listToMaybe [i \\ o <- options & i <- [0..] | o === val]
+
+	result (Value (options,(labels,Just idx)) _)
+		| idx < length options = Value (options !! idx) False
+		| otherwise            = NoValue
+	result _ = NoValue
+
+	treeModel :: ([(Int,a)] [ChoiceTreeValue] -> [ChoiceTree v]) [a] -> [ChoiceNode] | iTask v
+	treeModel f container = map convert ( f [(i,o) \\ i <- [0..] & o <- container] [])
+	where
+		convert {ChoiceTree|label,icon,value,type}
+			# id = case value of 
+				(ChoiceNode i) = i
+				(GroupNode s) = -1 //Incorrect, but needs to be fixed in the API. group nodes like this don't make sense anymore
+			# label = toSingleLineText label
+			# (expanded,children) = case type of
+				LeafNode = (False,[])
+				(CollapsedNode nodes) = (False,map convert nodes)
+				(ExpandedNode nodes) = (True, map convert nodes)
+			= {ChoiceNode| id = id, label = label, icon = icon, expanded = expanded, children = children}
+
+editChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask w & iTask a
+//editChoiceWithSharedAs d [ChooseWith (ChooseFromGrid f)] sharedContainer target mbSel = editChoiceAsGrid d f id sharedContainer target mbSel //EXPERIMENT
+editChoiceWithSharedAs d [ChooseWith type:_] sharedContainer target mbSel
+    = interact d Update sharedContainer (\r -> (map target r, initChoiceView type r target mbSel))
+		(\v l _ -> (l,v,Nothing))
+		(\r l v -> (map target r,updateChoiceView type r target (selectionFromChoiceView l v) l v,Nothing))	
 		Nothing @? choiceRes
-editChoiceAs d _ container target mbSel = editChoiceAs d [ChooseWith (AutoChoice id)] container target mbSel
+editChoiceWithSharedAs d _ container target mbSel = editChoiceWithSharedAs d [ChooseWith (AutoChoice id)] container target mbSel
 
 editChoiceSimple :: !d ![o] (Maybe o) -> Task o | toPrompt d & iTask o
 editChoiceSimple d container mbSel
@@ -100,14 +184,6 @@ editChoiceSimple d container mbSel
 		(\v l _ -> (l,v,Nothing))
 		(\_ l v -> (l,v,Nothing))
 		Nothing @ snd @? simpleChoiceRes
-
-editChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask w & iTask a
-editChoiceWithSharedAs d [ChooseWith type:_] sharedContainer target mbSel
-    = interact d Update sharedContainer (\r -> (map target r, initChoiceView type r target mbSel))
-		(\v l _ -> (l,v,Nothing))
-		(\r l v -> (map target r,updateChoiceView type r target (selectionFromChoiceView l v) l v,Nothing))	
-		Nothing @? choiceRes
-editChoiceWithSharedAs d _ container target mbSel = editChoiceWithSharedAs d [ChooseWith (AutoChoice id)] container target mbSel
 
 editChoiceWithSharedSimple :: !d !(ReadWriteShared [o] w) (Maybe o) -> Task o | toPrompt d & iTask o & iTask w
 editChoiceWithSharedSimple d sharedContainer mbSel
@@ -216,16 +292,6 @@ simpleChoiceRes (Value view _) = case getSelectionView view of
     Just x          = Value x False
     _               = NoValue
 simpleChoiceRes _   = NoValue
-
-mapSharedSel :: (TaskValue ([a],DynamicChoice v)) (Maybe a) -> (Maybe (Maybe a)) | gEq{|*|} a
-mapSharedSel (Value (targets,view) _) (Just ov) = maybe Nothing (\idx -> let nv = targets !! idx in if (nv =!= ov)  (Just (Just nv)) Nothing) (getSelectionIndex view)
-mapSharedSel (Value (targets,view) _) _         = fmap (\idx -> Just (targets !! idx)) (getSelectionIndex view)
-mapSharedSel _ _                                = Nothing
-
-mapSimpleSharedSel :: (TaskValue (DynamicChoice a)) (Maybe a) -> (Maybe (Maybe a)) | gEq{|*|} a
-mapSimpleSharedSel (Value view _) (Just ov)     = maybe Nothing (\nv -> if (nv =!= ov) (Just (Just nv)) Nothing) (getSelectionView view)
-mapSimpleSharedSel (Value view _) _             = fmap Just (getSelectionView view)
-mapSimpleSharedSel _ _                          = Nothing
 
 selectionFromChoiceView :: [a] (DynamicChoice v) -> (Maybe a)
 selectionFromChoiceView targets dynChoice = fmap (\idx -> targets !! idx) (getSelectionIndex dynChoice)

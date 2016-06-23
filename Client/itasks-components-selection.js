@@ -24,10 +24,12 @@ itasks.itwc_choice_grid = {
         me.options.forEach(function(option,rowIdx) {
             rowEl = document.createElement('div');
             rowEl.addEventListener('click',function(e) {
+				me.setValue([rowIdx]);
                 me.doEditEvent(me.taskId,me.editorId,[rowIdx]);
             },me);
             if(me.doubleClickAction) {
                 rowEl.addEventListener('dblclick',function(e) {
+					me.setValue([rowIdx]);
                     me.doEditEvent(me.taskId,me.editorId,[rowIdx]);
                     me.sendActionEvent(me.doubleClickAction[0],me.doubleClickAction[1]);
 
@@ -51,21 +53,26 @@ itasks.itwc_choice_grid = {
         el.appendChild(bodyEl);
     },
 	onAttributeChange: function(name,value) {
+        var me = this;
+
+		if(name == 'value') {
+			me.setValue(value);
+		}
+    },
+	setValue: function (value) {
         var me = this,
             bodyEl = me.bodyEl;
 
-		if(name == 'value') {
-        	//Remove old selection
-        	me.value.forEach(function(selectedIdx) {
-            	    bodyEl.childNodes[selectedIdx].classList.remove(me.cssPrefix + 'selected');
-        	});
-        	//Indicate new selection
-        	me.value = value;
-        	me.value.forEach(function(selectedIdx) {
-            	    bodyEl.childNodes[selectedIdx].classList.add(me.cssPrefix + 'selected');
-        	});
-		}
-    }
+		//Remove old selection
+		me.value.forEach(function(selectedIdx) {
+        	bodyEl.childNodes[selectedIdx].classList.remove(me.cssPrefix + 'selected');
+		});
+		//Indicate new selection
+		me.value = value;
+		me.value.forEach(function(selectedIdx) {
+			bodyEl.childNodes[selectedIdx].classList.add(me.cssPrefix + 'selected');
+		});
+	}
 };
 
 itasks.itwc_choice_tree = {
@@ -176,13 +183,26 @@ itasks.itwc_choice_list = {
                 optionEl.classList.add(me.cssPrefix + 'selected');
             }
             optionEl.addEventListener('click',function(e) {
+				me.showSelection(idx);
                 me.doEditEvent(me.taskId,me.editorId,idx);
             });
             optionEl.innerHTML = option;
 
             el.appendChild(optionEl);
         });
-    }
+    },
+	showSelection: function(idx) {
+		var me = this,
+			el = me.domEl,
+			num = el.children.length, i;
+			for(i = 0; i < num; i++) {
+				if(i == idx) {
+                	el.children[i].classList.add(me.cssPrefix + 'selected');
+				} else {
+                	el.children[i].classList.remove(me.cssPrefix + 'selected');
+				}
+			}
+	}
 };
 
 

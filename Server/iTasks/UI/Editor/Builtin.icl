@@ -1,48 +1,77 @@
 implementation module iTasks.UI.Editor.Builtin
 
 import iTasks.UI.Definition, iTasks.UI.Editor
-import StdFunc, GenEq
+import StdFunc, StdBool, GenEq
 import Data.Error, Text.JSON, Text.HTML
 import qualified Data.Map as DM
 
 textField :: Editor String
-textField = simpleComponent toJSON UITextField
+textField = fieldComponent toJSON UITextField
 
 integerField :: Editor Int
-integerField = simpleComponent toJSON UIIntegerField
+integerField = fieldComponent toJSON UIIntegerField
 
 decimalField :: Editor Real
-decimalField = simpleComponent toJSON UIDecimalField
+decimalField = fieldComponent toJSON UIDecimalField
 
 passwordField :: Editor String
-passwordField = simpleComponent toJSON UIPasswordField
+passwordField = fieldComponent toJSON UIPasswordField
 
 textArea :: Editor String
-textArea = simpleComponent toJSON UITextArea
+textArea = fieldComponent toJSON UITextArea
 
 checkBox :: Editor Bool
-checkBox = simpleComponent toJSON UICheckbox
+checkBox = fieldComponent toJSON UICheckbox
+
+dropdownBox :: Editor ([String], Maybe Int)
+dropdownBox = choiceComponent (const 'DM'.newMap) id JSONString (\i o -> i >= 0 && i < length o) UIDropdown
+
+radioGroup :: Editor ([String],Maybe Int)
+radioGroup = choiceComponent (const 'DM'.newMap) id JSONString (\i o -> i >= 0 && i < length o) UIRadioGroup
+
+choiceList :: Editor ([String],Maybe Int)
+choiceList = choiceComponent (const 'DM'.newMap) id JSONString (\i o -> i >= 0 && i < length o) UIListChoice
+
+choiceGrid :: Editor (ChoiceGrid, Maybe Int)
+choiceGrid = choiceComponent (\{ChoiceGrid|header} -> columnsAttr header) (\{ChoiceGrid|rows} -> rows) toOption (\i o -> i >= 0 && i < length o) UIGrid
+where
+	toOption opt = JSONArray (map JSONString opt)
+
+choiceTree :: Editor ([ChoiceNode], Maybe Int)
+choiceTree = choiceComponent (const 'DM'.newMap) id toOption checkBounds UITree
+where
+	toOption {ChoiceNode|id,label,icon,expanded,children}
+		= JSONObject [("text",JSONString label)
+					 ,("iconCls",maybe JSONNull (\i -> JSONString ("icon-"+++i)) icon)
+					 ,("value",JSONInt id)
+					 ,("expanded",JSONBool expanded)
+					 ,("leaf",JSONBool (isEmpty children))
+					 ,("children",JSONArray (map toOption children))
+					]
+
+	checkBounds idx options
+		= or (map (checkNode idx) options)
+	checkNode idx {ChoiceNode|id,children}
+		| idx == id = True
+		| otherwise = or (map (checkNode idx) children)
 
 slider :: Editor Int
 slider = integerField
-
-dropdownBox :: Editor String
-dropdownBox = textField
 
 progressBar  :: Editor Int
 progressBar = integerField
 
 textView :: Editor String
-textView = simpleComponent toJSON UIViewString
+textView = fieldComponent toJSON UIViewString
 
 htmlView :: Editor HtmlTag
-htmlView = simpleComponent (JSONString o toString) UIViewHtml
+htmlView = fieldComponent (JSONString o toString) UIViewHtml
 
 icon :: Editor String
-icon = simpleComponent toJSON UIIcon
+icon = fieldComponent toJSON UIIcon
 
-//Simple components for which simply knowing the UI type is sufficient
-simpleComponent toValue type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+//Field like components for which simply knowing the UI type is sufficient
+fieldComponent toValue type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where 
 	genUI dp val vst=:{VSt|taskId,mode,optional}
 		# val = if (mode =: Enter) JSONNull (toValue val) 
@@ -62,3 +91,32 @@ where
 		| old === new = (Ok (NoChange,mask),new,vst)
 		| otherwise   = (Ok (ChangeUI [SetAttribute "value" (toValue new)] [],mask),new,vst)
 
+//Choice components that have a set of options
+choiceComponent attr getOptions toOption checkBounds type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+where
+	genUI dp (val,sel) vst=:{VSt|taskId,mode,optional}
+		# valid = if (mode =: Enter) optional True //When entering data a value is initially only valid if it is optional
+		# mask = FieldMask {touched = False, valid = valid, state = JSONNull}
+		# attr = 'DM'.unions [attr val,choiceAttrs taskId (editorId dp) (maybeToList sel) (map toOption (getOptions val))]
+		= (Ok (uia type attr,mask), vst)
+
+	onEdit dp (tp,e) (val,sel) mask vst=:{VSt|optional}
+		# options = getOptions val
+		= case e of
+			JSONNull
+				= (Ok (NoChange,FieldMask {touched=True,valid=optional,state=JSONNull}),(val,Nothing),vst)
+			(JSONArray [JSONInt idx])
+				| checkBounds idx options
+					= (Ok (NoChange,FieldMask {touched=True,valid=True,state=JSONInt idx}),(val,Just idx),vst)
+				| otherwise
+					= (Error ("Choice event out of bounds: " +++ toString idx),(val,sel),vst)
+			(JSONInt idx)
+				| checkBounds idx options
+					= (Ok (NoChange,FieldMask {touched=True,valid=True,state=JSONInt idx}),(val,Just idx),vst)
+				| otherwise
+					= (Error ("Choice event out of bounds: " +++ toString idx),(val,sel),vst)
+			_ 
+				= (Error ("Invalid choice event: " +++ toString e), (val,sel),vst)
+
+	onRefresh dp new old mask vst
+		= (Ok (NoChange,mask),new,vst)

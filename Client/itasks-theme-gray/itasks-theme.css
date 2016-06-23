@@ -557,8 +557,8 @@ div.itasks-loader {
   background-color: #eee; }
 
 .itasks-choicegrid-body > div.itasks-selected {
-  background-color: #eee;
-  color: #000;
+  background-color: #333;
+  color: #fff;
   border: 1px dotted #333; }
 
 .itasks-choicegrid-body > div > div {
@@ -631,7 +631,7 @@ div.itasks-loader {
 
 .itasks-choice-list {
   margin: 0;
-  border: 1px solid #eee;
+  border: 1px solid #333;
   display: flex;
   display: -webkit-flex;
   overflow: auto;
@@ -641,7 +641,7 @@ div.itasks-loader {
   -webkit-align-items: stretch; }
 
 .itasks-choice-list-option {
-  border: solid #eee;
+  border: solid #333;
   border-width: 0 0 1px 0;
   padding: 5px 10px;
   flex-shrink: 0;
@@ -650,8 +650,8 @@ div.itasks-loader {
     border-width: 0; }
 
 .itasks-choice-list-option.itasks-selected {
-  background-color: #eee;
-  color: #000; }
+  background-color: #333;
+  color: #fff; }
 
 .itasks-button {
   font-size: 8pt;

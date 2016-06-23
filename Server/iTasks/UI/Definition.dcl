@@ -1,8 +1,12 @@
 definition module iTasks.UI.Definition
 /**
 * This module provides an abstract representation of user interfaces.
+*
+* It is the interface between UI's as specified by tasks and the Web-based UI framework that
+* renders the task UI's in a web browser.
+* 
 * This representation seeks a middle ground between being fine grained enough
-* to describe rich user interfaces and being leaving rendering details to the client framework.
+* to describe rich user interfaces and being abstract enough to leave rendering details to the client framework.
 */
 from Text.JSON import :: JSONNode
 from Data.Maybe import :: Maybe
