@@ -30,11 +30,10 @@ from iTasks.UI.Editor.Builtin import :: ChoiceNode, :: ChoiceGrid
      					| SelectInTree       (c -> [ChoiceNode]) (c [Int] -> [s])
 	
 //Choosing from lists
-:: ChoiceOption o       = E.v: ChooseWith (ChoiceType o v)      & iTask v
-:: ChoiceType o v	    = ChooseFromDropdown (o -> v)
-						| ChooseFromCheckGroup (o -> v)
-						| ChooseFromList (o -> v)
-						| ChooseFromGrid (o -> v)
+:: ChoiceOption o	    = E.v: ChooseFromDropdown (o -> v)   & iTask v
+						| E.v: ChooseFromCheckGroup (o -> v) & iTask v
+						| E.v: ChooseFromList (o -> v)       & iTask v
+						| E.v: ChooseFromGrid (o -> v)       & iTask v
 
 /*** General input/update/output tasks ***/
 

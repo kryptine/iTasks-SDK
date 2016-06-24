@@ -249,11 +249,11 @@ editSharedMultipleChoiceWithSharedAs d vopts sharedContainer target sharedSel
 
 //Helper functions for the edit*Choice* tasks
 selectOption target opts = case opts of
-	[ChooseWith (ChooseFromDropdown f):_]     = SelectInDropdown (toLabels f) (findSelection target)
-	[ChooseWith (ChooseFromCheckGroup f):_]   = SelectInCheckGroup (toLabels f) (findSelection target)
-	[ChooseWith (ChooseFromList f):_]         = SelectInList (toLabels f) (findSelection target)
-	[ChooseWith (ChooseFromGrid f):_]         = SelectInGrid (toGrid f) (findSelection target)
-	_                                         = SelectInDropdown (toLabels id) (findSelection target) 
+	[(ChooseFromDropdown f):_]     = SelectInDropdown (toLabels f) (findSelection target)
+	[(ChooseFromCheckGroup f):_]   = SelectInCheckGroup (toLabels f) (findSelection target)
+	[(ChooseFromList f):_]         = SelectInList (toLabels f) (findSelection target)
+	[(ChooseFromGrid f):_]         = SelectInGrid (toGrid f) (findSelection target)
+	_                              = SelectInDropdown (toLabels id) (findSelection target) 
 
 toLabels f options = map (toSingleLineText o f) options
 toGrid f options = {ChoiceGrid|header=gText{|*|} AsHeader (fixtype vals),rows = [map Text (gText{|*|} AsRow (Just v)) \\ v <- vals]}

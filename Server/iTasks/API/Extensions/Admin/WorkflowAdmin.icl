@@ -230,7 +230,7 @@ unwrapWorkflowTask (ParamWorkflowTask tf) = (enterInformation "Enter parameters"
 
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
-	(	enterChoiceWithSharedAs () [ChooseWith (ChooseFromGrid snd)] processes fst
+	(	enterChoiceWithSharedAs () [ChooseFromGrid snd] processes fst
 	>>* [OnAction (Action "Open" [ActionTrigger DoubleClick]) (hasValue (\taskId -> openTask taskList taskId @ const OpenProcess))
 		,OnAction (Action "Delete" []) (hasValue (\taskId -> removeTask taskId topLevelTasks @ const OpenProcess))]
 	)

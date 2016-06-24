@@ -268,7 +268,7 @@ editPersonList = editSharedList personStore
 
 editSharedList :: (Shared [a]) -> Task () | iTask a
 editSharedList store
-	=			enterChoiceWithShared "Choose an item to edit" [ChooseWith (ChooseFromGrid snd)] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
+	=			enterChoiceWithShared "Choose an item to edit" [ChooseFromGrid snd] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
 		>>*		[ OnAction (Action "Append" [])   (hasValue (showAndDo append))
 				, OnAction (Action "Delete" [])   (hasValue (showAndDo delete))
 				, OnAction (Action "Edit" [])     (hasValue (showAndDo edit))
@@ -391,7 +391,7 @@ getCoins :: EUR (String,EUR) -> Task (String,EUR)
 getCoins paid (product,toPay) 
 	= 				viewInformation "Coffee Machine" [ViewWith view1] toPay
 					||-		
-					enterChoice  ("Insert coins","Please insert a coin...") [ChooseWith (ChooseFromCheckGroup id)] coins
+					enterChoice  ("Insert coins","Please insert a coin...") [ChooseFromCheckGroup id] coins
 			>>*		[ OnAction ActionCancel 		(always (stop ("Cancelled",paid)))
 					, OnAction (Action "Insert" []) (hasValue handleMoney)
 					]

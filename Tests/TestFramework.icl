@@ -85,7 +85,7 @@ testEditors typeName
 
 runTests :: [TestSuite] -> Task ()
 runTests suites =
-    (   editSelection (Title "Select test") (SelectInTree toTree selectTest) suites [] @? tvHd
+    (   editSelection (Title "Select test") False (SelectInTree toTree selectTest) suites [] @? tvHd
 	>&> withSelection (viewInformation () [] "Select a test") testInteractive
     ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
 where

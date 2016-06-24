@@ -142,7 +142,7 @@ archivedStandAloneViewer
         , OnAction (Action "Last" [])     (ifCond notLast  (showRecs lastIdx recs))
         ]
   archivedStandAloneViewer`` curIdx newRTMap
-    =   enterChoice "Select blueprint" [ChooseWith (ChooseFromGrid (\(x, y, z, _) -> (x, y, z)))] (flattenRTMap newRTMap)
+    =   enterChoice "Select blueprint" [ChooseFromGrid (\(x, y, z, _) -> (x, y, z))] (flattenRTMap newRTMap)
     >&> withSelection noSel2 viewBP
   noSel1 = viewInformation "Notice" [] "No recording selected"
   noSel2 = viewInformation "Notice" [] "No blueprint"

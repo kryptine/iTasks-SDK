@@ -53,7 +53,7 @@ tonicStaticBrowser rs
          )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
          )) ) @! ()
   where
-  selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseWith (ChooseFromDropdown id)]
+  selectModule      = getTonicModules >>- enterChoice "Select a module" [ChooseFromDropdown id]
   noModuleSelection = viewInformation () [] "Select module..."
 
 tonicBrowseWithModule :: AllBlueprints [TaskAppRenderer] (Shared NavStack) TonicModule -> Task ()
@@ -74,7 +74,7 @@ tonicBrowseWithModule allbps rs navstack tm
      )) <<@ ArrangeWithSideBar 0 LeftSide 200 True
         @! ()
   where
-  selectTask tm   = enterChoice "Select task" [ChooseWith (ChooseFromDropdown id)] (getTasks tm)
+  selectTask tm   = enterChoice "Select task" [ChooseFromDropdown id] (getTasks tm)
   noTaskSelection = viewInformation () [] "Select task..."
 
 
@@ -263,9 +263,9 @@ tonicDynamicBrowser` rs navstack =
   where
   activeBlueprintInstances = editSharedChoiceWithSharedAs
                                (Title "Active blueprint instances")
-                               [ChooseWith (ChooseFromGrid customView)]
+                               [ChooseFromGrid customView]
                                (mapRead (\(trt, q) -> filterActiveTasks q (flattenRTMap trt)) (tonicSharedRT |+| queryShare))
-                               setTaskId selectedBlueprint //<<@ ArrangeWithSideBar 0 TopSide 175 True
+                               setTaskId selectedBlueprint <<@ ArrangeWithSideBar 0 TopSide 175 True
     where
     setTaskId x = { click_origin_mbbpident  = Nothing
                   , click_origin_mbnodeId   = Nothing
