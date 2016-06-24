@@ -3,6 +3,7 @@ definition module iTasks.API.Common.InteractionTasks
 import iTasks.API.Core.Tasks
 from iTasks.API.Core.Types import :: ChoiceTree, :: ChoiceTreeValue, :: Date, :: Time, :: DateTime, :: Action
 from Data.Functor import class Functor
+from iTasks.UI.Editor.Builtin import :: ChoiceNode, :: ChoiceGrid
 
 //TODO: Introduce custom editor versions for all option types
 
@@ -11,23 +12,30 @@ from Data.Functor import class Functor
 						| E.v: ViewUsing 	(a -> v) (Editor v) & iTask v //Use a custom editor to view the data
 
 :: EnterOption a		= E.v: EnterWith	(v -> a)			& iTask v
-:: UpdateOption a b		= E.v: UpdateWith	      (a -> v) (a v -> b)	          & iTask v
+:: UpdateOption a b		= E.v: UpdateWith	(a -> v) (a v -> b)	& iTask v
                         //When using an update option for a task that uses a shared data source
                         //you can use UpdateWithShared instead of UpdateWith which allows you
                         //to specify how the view must be updated when both the share changed and
                         //the user changed the view simultaneously. This conflict resolution function
                         //is applied before the new 'b' is generated from the view ('v') value
-                        | E.v: UpdateWithShared   (a -> v) (a v -> b) (v v -> v)  & iTask v 
-						| E.v: UpdateUsing (a -> v) (a v -> b) (Editor v) 		  & iTask v
+                        | E.v: UpdateWithShared (a -> v) (a v -> b) (v v -> v)  & iTask v 
+						| E.v: UpdateUsing      (a -> v) (a v -> b) (Editor v)  & iTask v
 
+//Selection in arbitrary containers (explicit identification is needed)
+:: SelectOption c s     = SelectInDropdown   (c -> [String])     (c [Int] -> [s])
+     					| SelectInRadioGroup (c -> [String])     (c [Int] -> [s])
+     					| SelectInList       (c -> [String])     (c [Int] -> [s])
+     					| SelectInGrid       (c -> ChoiceGrid)   (c [Int] -> [s])
+     					| SelectInTree       (c -> [ChoiceNode]) (c [Int] -> [s])
+	
+//Choosing from lists
 :: ChoiceOption o       = E.v: ChooseWith (ChoiceType o v)      & iTask v
-:: ChoiceType o v	    = AutoChoice (o -> v)
-						| ChooseFromDropdown (o -> v)
+:: ChoiceType o v	    = ChooseFromDropdown (o -> v)
 						| ChooseFromRadioButtons (o -> v)
 						| ChooseFromList (o -> v)
 						| ChooseFromGrid (o -> v)
-						| ChooseFromTree ([(Int,o)] [ChoiceTreeValue] -> [ChoiceTree v])
-					
+
+				
 :: MultiChoiceOption a	= E.v: ChooseMultipleWith	MultiChoiceType	    (a -> v) & iTask v
 :: MultiChoiceType		= AutoMultiChoice
 						| ChooseFromCheckBoxes
@@ -38,13 +46,9 @@ from Data.Functor import class Functor
 * Ask the user to enter information.
 *
 * @param Description:		A description of the task to display to the user
-*							@default ""
 * @param Views:				Views
-*							@default [] @gin-visible False
 *
 * @return					Value entered by the user
-* 
-* @gin-icon page_white
 */
 enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
 
@@ -52,14 +56,10 @@ enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
 * Ask the user to update predefined information. 
 *
 * @param Description:		A description of the task to display to the user
-*							@default ""
 * @param Views:				Interaction views; if no view is defined a default view with the id lens is used
-*							@default [] @gin-visible False
 * @param Data model:		The data updated by the user
 *
 * @return					Value updated by the user
-* 
-* @gin-icon page_edit
 */
 updateInformation :: !d ![UpdateOption m m] m -> Task m | toPrompt d & iTask m 
 
@@ -67,15 +67,10 @@ updateInformation :: !d ![UpdateOption m m] m -> Task m | toPrompt d & iTask m
 * Show information to the user. 
 *
 * @param Description:		A description of the task to display to the user
-*                           @default ""
 * @param Views:				Interaction views; only get parts of Views are used, Putbacks are ignored; if no get is defined the id get is used
-*                           @default [] @gin-visible False
 * @param Data model:		The data shown to the user
-*							@default ""							
 *
 * @return					Value shown to the user, the value is not modified
-* 
-* @gin-icon information
 */
 viewInformation :: !d ![ViewOption m] !m -> Task m | toPrompt d & iTask m
 
@@ -83,30 +78,22 @@ viewInformation :: !d ![ViewOption m] !m -> Task m | toPrompt d & iTask m
 * Ask the user to update predefined local and shared information.
 *
 * @param Description:		A description of the task to display to the user
-*                           @default ""
 * @param Views:				Interaction views; if no view is defined & w = r a default view with the id lens is used, if r <> w the value of the shared state (r) is shown to the user; the default for the local data is always the id lens
-*                           @default [] @gin-visible False
 * @param Shared:			Reference to the shared state to update
 * @param Local:				The local data updated by the user
-*
+
 * @return 					Current value of the shared thats being modified and local modified copy
-* @throws					SharedException
-* 
-* @gin-icon page_edit
 */
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r & iTask w
 
 /**
-* Show a shared value[].
+* Show a shared value.
 *
 * @param Description:		A description of the task to display to the user
 * @param Options:			Views options
 * @param Shared:			Reference to the shared state to monitor
 *
 * @return					Last value of the monitored state
-* @throws					SharedException
-* 
-* @gin-icon monitor
 */
 viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r
 
@@ -117,12 +104,25 @@ viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | t
 */
 updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | toPrompt d & iTask r & iTask m
 
-/*** Special tasks for choices ***/
-
 /**
-* Select one item from a list of options.
+* General selection with explicit identification in arbitrary containers
 */
 
+//Options: local, selection: local
+editSelection :: !d !(SelectOption c a) c [Int] -> Task [a] | toPrompt d & iTask a
+
+//Options: shared, selection: local
+editSelectionWithShared :: !d !(SelectOption c a) (ReadWriteShared c w) (c -> [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
+
+//Options: local, selection: shared
+editSharedSelection :: !d !(SelectOption c a) c (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
+
+//Options: shared, selection: shared
+editSharedSelectionWithShared :: !d !(SelectOption c a) (ReadWriteShared c w) (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
+
+/**
+* More specific selection from lists
+*/
 editChoice :: !d ![ChoiceOption a] ![a] (Maybe a) -> Task a | toPrompt d & iTask a
 editChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask a
 
@@ -147,74 +147,9 @@ editSharedChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Shared (Maybe a)) -> T
 editSharedChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Shared (Maybe a)) -> Task a | toPrompt d & iTask a & iTask w
 editSharedChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Shared (Maybe a)) -> Task a | toPrompt d & iTask o & iTask w & iTask a
 
-/**
-* Ask the user to select a number of items from a list of options
-*
-* @param Description:		A description of the task to display to the user
-*                           @default ""
-* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
-*                           @default [] @gin-visible False
-* @param Choice options:	A list of options the user can choose from
-*                           @default []
-* 
-* @return					The options chosen by the user
-* 
-* @gin-icon choice
-*/
 enterMultipleChoice :: !d ![MultiChoiceOption o] ![o] -> Task [o] | toPrompt d & iTask o
-
-/**
-* Ask the user to select a number of items from a list of options with already a number of options pre-selected.
-*
-*
-* @param Description:		A description of the task to display to the user
-*                           @default ""
-* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
-*                           @default [] @gin-visible False
-* @param Choice options:	A list of options the user can choose from
-*                           @default []
-* @param Selection:			The pre-selected items; items which are not member of the option list are ignored
-*                           @default []
-*
-* @return 					The options chosen by the user
-* 
-* @gin-icon choice
-*/
 updateMultipleChoice :: !d ![MultiChoiceOption o] ![o] [o] -> Task [o] | toPrompt d & iTask o
-
-/**
-* Ask the user to select a number of items from a list of shared options.
-*
-* @param Description:		A description of the task to display to the user
-*                           @default ""
-* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
-*                           @default []
-* @param Shared:			Reference to the shared state including the options the user can choose from
-*
-* @return 					The options chosen by the user
-* @throws					SharedException
-* 
-* @gin-icon choice
-*/
 enterSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared [o] w) -> Task [o] | toPrompt d & iTask o & iTask w
-
-/**
-* Ask the user to select one item from a list of shared options with already a number of options pre-selected.
-*
-* @param Description:		A description of the task to display to the user
-*                           @default ""
-* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
-*                           @default []
-* @param Shared:			Reference to the shared state including the options the user can choose from
-*                           @default []
-* @param Selection:			The pre-selected items; items which are not member of the option list are ignored
-*                           @default []
-*
-* @return 					The options chosen by the user
-* @throws					SharedException
-* 
-* @gin-icon choice
-*/
 updateSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared [o] w) [o] -> Task [o] | toPrompt d & iTask o & iTask w
 
 /**
@@ -233,33 +168,25 @@ wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r
 * Creates a task which blocks a workflow until a specified time.
 *
 * @param Time: The specified time at which the task should complete
-*			   @default {hour = 0, min = 0, sec = 0}
 *
 * @return The time to wait for
 * 
-* @gin-icon clock_go
 */
 waitForTime		:: !Time			-> Task Time
 /**
 * Creates a task which blocks a workflow until a specified date.
 *
 * @param Date: The specified date at which the task should complete
-*			   @default {day = 1, month = 1, year = 2011}
 *
 * @return The date to wait for
-* 
-* @gin-icon date_go
 */
 waitForDate		:: !Date			-> Task Date
 /**
 * Creates a task which blocks a workflow until a specified date and time.
 *
 * @param DateTime: The specified date and time at which the task should complete
-*			       @default DateTime {day = 1, month = 1, year = 2011} {hour = 0, min = 0, sec = 0}
 *
 * @return The date and time to wait for
-* 
-* @gin-icon date_go
 */
 waitForDateTime :: !DateTime 		-> Task DateTime
 /**
@@ -267,11 +194,9 @@ waitForDateTime :: !DateTime 		-> Task DateTime
 * since the creation of the task.
 *
 * @param Time: The time to wait before the task should complete
-*			   @default {hour = 0, min = 0, sec = 0}
 *
 * @return The time the timer went off
 * 
-* @gin-icon clock_go
 */
 waitForTimer	:: !Time			-> Task Time
 
@@ -283,8 +208,6 @@ waitForTimer	:: !Time			-> Task Time
 * @param Action list:	A list of actions the user can choose from. Each actions yields the given result if it's chosen. 
 *
 * @return 				Value associated with chosen action
-* 
-* @gin False
 */
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 

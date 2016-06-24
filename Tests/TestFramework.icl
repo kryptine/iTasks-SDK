@@ -1,6 +1,6 @@
 implementation module TestFramework
 import iTasks, StdFile
-import iTasks.UI.Editor, iTasks.UI.Editor.Common, iTasks.UI.Definition
+import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
 
 // TEST FRAMEWORK
 derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult
@@ -84,13 +84,24 @@ testEditors typeName
 		 )
 
 runTests :: [TestSuite] -> Task ()
-runTests suites
-	=	(enterChoice (Title "Select test") [ChooseWith (ChooseFromList (\(s,t) -> s +++ ": " +++ t.InteractiveTest.name))] tests @ snd
+runTests suites =
+    (   editSelection (Title "Select test") (SelectInTree toTree selectTest) suites [] @? tvHd
 	>&> withSelection (viewInformation () [] "Select a test") testInteractive
-	) <<@ ArrangeWithSideBar 0 LeftSide 250 True
-	@! ()
+    ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
 where
-	tests = flatten [[(s.TestSuite.name,t) \\ InteractiveTest t <- s.TestSuite.tests] \\ s <- suites]
+	toTree suites = reverse (snd (foldl addSuite (0,[]) suites))
+	addSuite (i,t) {TestSuite|name,tests}
+		# (i,children) = foldl addTest (i,[]) tests
+		= (i, [{ChoiceNode|id = -1, label=name, expanded=False, icon=Nothing, children=reverse children}:t])
+
+	addTest (i,t) (InteractiveTest {InteractiveTest|name})
+		= (i + 1, [{ChoiceNode|id = i, label=name, expanded=False, icon=Nothing, children=[]}:t])
+	addTest (i,t) _ = (i,t)
+
+	selectTest suites [idx] 
+		| idx >= 0  = [(flatten [[t \\ InteractiveTest t <- s.TestSuite.tests] \\ s <- suites]) !! idx]
+		| otherwise = []
+	selectTest _ _ = []
 
 runUnitTests :: [TestSuite] *World -> *(!TestReport,!*World)
 runUnitTests suites world = foldr runSuite ([],world) suites

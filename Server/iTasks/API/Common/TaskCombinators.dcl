@@ -100,16 +100,6 @@ tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 */
 (@!) infixl 1 :: !(Task a) !b -> Task b | iTask a & iTask b
 /**
-* Infix shorthand for project combinator
-* 
-* @param Task: The task of which the result should be projected
-* @param The projection function and share
-* @return The tasks result
-*
-* @gin False
-*/
-//(@>) infixl 1 :: !(Task a) !((TaskValue a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
-/**
 * Infix shorthands for the (overloaded) tune combinator.
 */
 (<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
@@ -338,7 +328,6 @@ withSelection :: (Task c) (a -> Task b) (ReadOnlyShared (Maybe a)) -> Task b | i
 */
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 
-
 //Utility functions for defining task steps
 always 		:: b					    (TaskValue a) -> Maybe b
 never 		:: b 					    (TaskValue a) -> Maybe b
@@ -357,3 +346,12 @@ withValue    :: (a -> Maybe b) (TaskValue a) -> Maybe b
 withStable   :: (a -> Maybe b) (TaskValue a) -> Maybe b
 
 withUnstable :: (a -> Maybe b) (TaskValue a) -> Maybe b
+
+//Utility functions for transforming task values
+tvHd         :: (TaskValue [a]) -> TaskValue a
+tvFst 		 :: (TaskValue (a,b)) -> TaskValue a
+tvSnd        :: (TaskValue (a,b)) -> TaskValue b
+tvFromMaybe  :: (TaskValue (Maybe a)) -> TaskValue a
+tvToMaybe    :: (TaskValue a) -> TaskValue (Maybe a)
+
+

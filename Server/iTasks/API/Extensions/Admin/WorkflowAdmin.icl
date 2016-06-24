@@ -5,7 +5,7 @@ import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
 import iTasks._Framework.SDS, iTasks.API.Core.Types
 from StdFunc import seq
 import qualified Data.Map as DM
-import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Common, iTasks.UI.Layout.Default, iTasks.UI.Layout.Common
+import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Layout.Default, iTasks.UI.Layout.Common
 
 // SPECIALIZATIONS
 derive class iTask Workflow
@@ -176,20 +176,27 @@ where
 
 chooseWorkflow :: Task Workflow
 chooseWorkflow
-	=	enterChoiceWithShared [Att (Title "Tasks"), Att IconEdit] [ChooseWith (ChooseFromTree group)] allowedWorkflows
+	=  editSelectionWithShared [Att (Title "Tasks"), Att IconEdit] (SelectInTree toTree fromTree) allowedWorkflows (const []) @? tvHd
 where
-    group workflows expanded = (seq (map insertWorkflow workflows) [])
-    where
-	    insertWorkflow (i,wf=:{Workflow|path}) nodeList = insertWorkflow` path (split "/" path) nodeList
+	toTree workflows = seq (map add (zip ([0..],workflows))) []
+	where
+	    add (i,wf=:{Workflow|path}) nodeList = add` path (split "/" path) nodeList
         where
-    	    insertWorkflow` wfpath [] nodeList = nodeList
-		    insertWorkflow` wfpath [title] nodeList = nodeList ++ [{ChoiceTree|label=workflowTitle wf,icon=Nothing,value=ChoiceNode i,type=LeafNode}]
-		    insertWorkflow` wfpath path=:[nodeP:pathR] [node=:{ChoiceTree|label=nodeL}:nodesR]
-		    	| nodeP == nodeL	= [{ChoiceTree|node & type = ifExpandedChoice i expanded (insertWorkflow` wfpath pathR (choiceTreeChildren node))}:nodesR]
-		    	| otherwise			= [node:insertWorkflow` wfpath path nodesR]
-		    insertWorkflow` wfpath path=:[nodeP:pathR] []
-                = [{ChoiceTree|label=nodeP,icon=Nothing,value=GroupNode wfpath, type= ifExpandedGroup wfpath expanded (insertWorkflow` wfpath pathR [])}]
-		    insertWorkflow` wfpath path [node:nodesR] = [node:insertWorkflow` wfpath path nodesR]
+    	    add` wfpath [] nodeList = nodeList
+		    add` wfpath [title] nodeList = nodeList ++ [{ChoiceNode|id=i,label=workflowTitle wf,icon=Nothing,children=[],expanded=False}]
+		    add` wfpath path=:[nodeP:pathR] [node=:{ChoiceNode|label=nodeL}:nodesR]
+		    	| nodeP == nodeL	= [{ChoiceNode|node & children = add` wfpath pathR node.ChoiceNode.children,expanded=False}:nodesR]
+		    	| otherwise			= [node:add` wfpath path nodesR]
+		    add` wfpath path=:[nodeP:pathR] []
+                = [{ChoiceNode|id = -1, label=nodeP, icon=Nothing, children=add` wfpath pathR [],expanded=False}]
+		    add` wfpath path [node:nodesR] = [node:add` wfpath path nodesR]
+
+ 	fromTree workflows [idx]
+      | idx >= 0 && idx < length workflows = [workflows !! idx]
+											 = []
+	fromTree _ _                             = []
+	result (Value [x] s) = Value x s
+	result _ = NoValue
 
 viewWorkflowDetails :: !(ReadOnlyShared (Maybe Workflow)) -> Task Workflow
 viewWorkflowDetails sel

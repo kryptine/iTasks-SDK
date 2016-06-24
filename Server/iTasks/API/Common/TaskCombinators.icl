@@ -283,3 +283,22 @@ withStable _    _               = Nothing
 withUnstable :: (a -> Maybe b) (TaskValue a) -> Maybe b
 withUnstable a2mb (Value tv False) = a2mb tv
 withUnstable _    _                = Nothing
+
+tvHd :: (TaskValue [a]) -> TaskValue a
+tvHd (Value [x] s) = Value x s
+tvHd _             = NoValue
+
+tvFst :: (TaskValue (a,b)) -> TaskValue a
+tvFst tv = fmap fst tv
+
+tvSnd :: (TaskValue (a,b)) -> TaskValue b
+tvSnd tv = fmap snd tv
+
+tvFromMaybe :: (TaskValue (Maybe a)) -> TaskValue a
+tvFromMaybe (Value (Just a) s) = Value a s
+tvFromMaybe _                  = NoValue
+
+tvToMaybe :: (TaskValue a) -> TaskValue (Maybe a)
+tvToMaybe (Value a s) = Value (Just a) s
+tvToMaybe NoValue     = Value Nothing False
+

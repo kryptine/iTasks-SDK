@@ -115,6 +115,7 @@ itasks.CheckboxGroup = {
 itasks.Grid = {
 	cssCls: 'choicegrid',
 	width: 'flex',
+	height: 'flex',
 	container: false,	
 
     initDOMEl: function() {
