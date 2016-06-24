@@ -13,9 +13,9 @@ import iTasks._Framework.Client.Override
 
 import qualified Data.Map as DM
 from StdFunc					        import id, const, o, seq
-from iTasks						        import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
-from iTasks._Framework.TaskStore         import localShare, parallelTaskList, topLevelTaskList
-from iTasks._Framework.SDS               import write, read, readRegister
+from iTasks._Framework.Serialization	import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
+from iTasks._Framework.TaskStore        import localShare, parallelTaskList, topLevelTaskList
+from iTasks._Framework.SDS              import write, read, readRegister
 import iTasks.API.Core.Types
 from iTasks.API.Common.SDSCombinators   import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle
 

@@ -9,8 +9,6 @@ from Data.Map import :: Map
 mb2list				:: !(Maybe [a]) -> [a]
 list2mb				:: ![a] -> (Maybe [a])
 
-voidNothing 		:: Maybe Void
-
 instance toString (Maybe a) | toString a
 
 decFormat			:: !Int -> String

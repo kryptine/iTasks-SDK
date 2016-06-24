@@ -4,6 +4,7 @@ import qualified Data.Map as DM
 import qualified iTasks._Framework.SDS as DSDS
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
+import iTasks._Framework.Store
 import StdMisc
 
 NS_TONIC_INSTANCES :== "tonic-instances"

@@ -5,6 +5,7 @@ import iTasks.UI.Layout.Common
 import iTasks.UI.Definition
 import iTasks.API.Core.Types
 import Text.JSON
+import GenEq
 
 from StdFunc import id, o, const
 import StdList, StdBool, StdArray, StdTuple, Data.Tuple, Data.Functor

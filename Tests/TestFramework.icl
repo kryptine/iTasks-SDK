@@ -1,6 +1,8 @@
 implementation module TestFramework
 import iTasks, StdFile
 import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
+import iTasks._Framework.Serialization
+import Text.HTML
 
 // TEST FRAMEWORK
 derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult

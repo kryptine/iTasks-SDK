@@ -3,6 +3,7 @@ import TestFramework
 import iTasks.UI.Definition, iTasks.UI.Editor
 import Data.Tuple
 import qualified Data.Map as DM
+import Text.HTML
 
 minimalEditor :: Task String
 minimalEditor = updateInformation "Minimal String editor" [] "Hello World"

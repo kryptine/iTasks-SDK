@@ -7,7 +7,7 @@ import iTasks.API.Extensions.Admin.WorkflowAdmin
 import iTasks.API.Extensions.Admin.TonicAdmin
 import iTasks._Framework.Tonic
 import iTasks.API.Extensions.GIS.GoogleMap
-import Text, StdArray
+import Text, Text.HTML, StdArray
 //import ligrettoTOP
 //import iTaskGraphics, editletGraphics, edgehog
 import qualified Data.Map as DM

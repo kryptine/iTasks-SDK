@@ -13,6 +13,7 @@ import iTasks.API.Common.TaskCombinators, iTasks.API.Core.SDSs
 import iTasks.API.Common.SDSCombinators
 import iTasks._Framework.Tonic
 import iTasks.UI.Layout, iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Builtin
+import Text.HTML
 
 derive class iTask ChoiceGrid, ChoiceNode
 

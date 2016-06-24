@@ -1,7 +1,7 @@
 implementation module iTasks._Framework.Util
 
 import StdBool, StdChar, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList
-import Data.Maybe, Data.Tuple, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Void, Data.Error, GenEq
+import Data.Maybe, Data.Tuple, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Error, GenEq
 from iTasks._Framework.IWorld 		import :: IWorld{current}, :: TaskEvalState
 from iTasks.API.Core.Types	        import :: Date{..}, :: Time{..}, :: DateTime(..)
 import qualified Data.Map as DM
@@ -14,9 +14,6 @@ mb2list (Just a) = a
 list2mb	:: ![a] -> (Maybe [a])
 list2mb [] = Nothing
 list2mb a = (Just a)
-
-voidNothing :: Maybe Void
-voidNothing = Nothing
 
 decFormat :: !Int -> String
 decFormat x = toString (x / 100) +++ "." +++ lpad (toString (x rem 100)) 2 '0'

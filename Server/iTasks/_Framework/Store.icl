@@ -17,11 +17,11 @@ from iTasks._Framework.TaskState		import :: DeferredJSON(..)
 from iTasks._Framework.Generic				import class iTask
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks._Framework.Generic.Defaults		import generic gDefault
+from iTasks._Framework.Serialization import serialize, deserialize, functionFree
 from iTasks.UI.Editor.Generic import generic gEditor
 from iTasks.API.Core.Types	        import :: DateTime, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime, :: SessionId
 from iTasks.API.Core.SDSCombinators import sdsLens
 from iTasks.API.Common.SDSCombinators import >+<, sdsFocus
-from iTasks							import serialize, deserialize, functionFree
 from System.Time 					import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from GenEq import generic gEq
 

@@ -8,11 +8,12 @@ import Text.HTML, Internet.HTTP, Data.Error, Text.JSON
 import iTasks._Framework.IWorld, iTasks.UI.Definition, iTasks._Framework.Util
 import iTasks.API.Core.Types
 import iTasks._Framework.Generic
+
 import iTasks.UI.Editor, iTasks.UI.Editor.Common
 
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
 from iTasks.API.Common.SDSCombinators	import toDynamic 
-from iTasks								import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
+from iTasks._Framework.Serialization    import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 import qualified Data.CircularStack as DCS
 
 mkEvalOpts :: TaskEvalOpts

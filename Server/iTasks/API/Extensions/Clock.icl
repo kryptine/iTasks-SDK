@@ -6,6 +6,7 @@ import iTasks
 import iTasks.UI.Definition, iTasks.UI.Editor
 import iTasks.UI.JS.Interface
 import qualified Data.Map as DM, Data.Tuple
+import Text.HTML
 
 derive JSONEncode AnalogClock
 derive JSONDecode AnalogClock

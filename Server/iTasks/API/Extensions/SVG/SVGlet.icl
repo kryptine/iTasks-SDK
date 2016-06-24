@@ -6,6 +6,7 @@ import Graphics.Scalable.Internal
 import iTasks
 import iTasks.UI.Definition, iTasks.UI.Editor
 import iTasks.UI.JS.Interface
+import iTasks._Framework.Serialization
 from StdOrdList import minList, maxList
 import StdOverloaded
 import StdArray
@@ -21,6 +22,7 @@ from Data.IntMap.Strict import :: IntMap, instance Functor IntMap
 import qualified Data.IntMap.Strict as DIS
 import Data.Matrix
 import iTasks.API.Extensions.Platform
+import Text.HTML
 
 derive class iTask Image, Span, LookupSpan, FontDef, ImageTransform, ImageAttr
 derive class iTask ImageContent, BasicImage, CompositeImage, LineImage, Markers

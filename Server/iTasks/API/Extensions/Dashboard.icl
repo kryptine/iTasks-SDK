@@ -2,6 +2,7 @@ implementation module iTasks.API.Extensions.Dashboard
 import iTasks
 import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.UI.JS.Interface
 import qualified Data.Map as DM
+import Text.HTML
 
 derive JSONEncode ControlLight
 derive JSONDecode ControlLight

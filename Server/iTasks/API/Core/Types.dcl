@@ -3,11 +3,6 @@ definition module iTasks.API.Core.Types
 * This module provides types for all the globally shared concepts
 * of the iTasks framework.
 */
-import iTasks._Framework.Store
-
-// TODO: Remove these big-bang imports
-import Text.HTML, GenEq
-
 from Data.Maybe import :: Maybe
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from Data.Either import :: Either
@@ -27,7 +22,7 @@ from Text.HTML 				import class html
 from System.Time				import :: Timestamp
 from iTasks._Framework.IWorld			import :: IWorld
 from iTasks.UI.Definition		import :: UI, :: UINodeType, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
-from iTasks.UI.Editor 			import :: EditMask, :: Masked
+from iTasks.UI.Editor 			import :: Editor, :: EditMask, :: Masked
 from iTasks.UI.Editor.Generic   import generic gEditor, :: VSt
 from iTasks._Framework.Task				import :: Task, :: TaskId
 from iTasks._Framework.Generic				import class iTask
@@ -37,7 +32,9 @@ from iTasks._Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWSh
 from iTasks.UI.JS.Interface	import :: JSWorld, :: JSVal
 from iTasks.UI.Prompt import class toPrompt
 
-import iTasks._Framework.Serialization
+from Text.HTML import :: SVGElt, :: SVGAttr, :: SVGAlign, :: SVGColor, :: SVGDefer, :: SVGFillOpacity, :: SVGFuncIRI, :: SVGLengthAdjust
+from Text.HTML import :: SVGLengthUnit, :: SVGLineCap, :: SVGFillRule, :: SVGLineJoin, :: SVGMeetOrSlice, :: SVGStrokeMiterLimit, :: SVGPaint
+from Text.HTML import :: SVGStrokeDashArray, :: SVGStrokeDashOffset, :: SVGStrokeWidth, :: SVGTransform, :: SVGZoomAndPan
 
 class TFunctor f where
     tmap :: (a -> b) (f a) -> f b | iTask a & iTask b

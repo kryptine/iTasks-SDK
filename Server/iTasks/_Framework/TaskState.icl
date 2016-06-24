@@ -3,9 +3,9 @@ implementation module iTasks._Framework.TaskState
 import Text.JSON
 import iTasks.UI.Definition
 
-from iTasks					import JSONEncode, JSONDecode
 from iTasks._Framework.Task	import :: Event, :: TaskTime, :: TaskResult(..), :: TaskException(..), :: TaskEvalInfo(..), exception, :: TonicOpts(..)
 from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
+import iTasks._Framework.Serialization
 import Data.CircularStack
 import iTasks.API.Core.Types
 import Data.Error

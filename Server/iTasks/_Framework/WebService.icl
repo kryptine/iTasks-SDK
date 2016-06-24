@@ -16,6 +16,7 @@ import iTasks.UI.Definition, iTasks._Framework.Util, iTasks._Framework.HtmlUtil,
 import iTasks.API.Core.SDSs, iTasks.API.Common.SDSCombinators
 import iTasks.API.Core.Types
 import Crypto.Hash.SHA1, Text.Encodings.Base64, Text.Encodings.MIME
+import Text.HTML
 
 from iTasks._Framework.HttpUtil import http_addRequestData, http_parseArguments
 
