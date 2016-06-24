@@ -211,113 +211,12 @@ instance toString FormButton
 
 toTable	:: ![a] -> Table | gText{|*|} a
 
-//* More elaborate tree type for grouping elements hierarchically from a choice
-:: ChoiceTree v =
-    { label     :: v
-    , icon      :: Maybe String
-    , value     :: ChoiceTreeValue
-    , type      :: ChoiceTreeType v
-    }
-//There are two types of nodes in a choice tree
-//Some nodes represent an element of the list of choices (ChoiceNode) and you
-//indicate which element by its index in the list of options.
-//Other nodes are only used for grouping the available options (GroupNode) and don't indicate
-//a choice. For these nodes a unique name must be supplied to make it possible to
-//track if the node is collapsed or expanded
-:: ChoiceTreeValue
-    = ChoiceNode !Int
-    | GroupNode !String
-
-:: ChoiceTreeType v = LeafNode | CollapsedNode [ChoiceTree v] | ExpandedNode [ChoiceTree v]
-
-choiceTreeChildren :: (ChoiceTree v) -> [ChoiceTree v]
-ifExpandedGroup :: String [ChoiceTreeValue] [ChoiceTree v] -> ChoiceTreeType v
-ifExpandedChoice :: Int [ChoiceTreeValue] [ChoiceTree v] -> ChoiceTreeType v
-
-instance == ChoiceTreeValue
-
-instance Functor ChoiceTree
-
-derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gText	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gEditor	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-
-//* Represents the choice of one element from a list represented as combo box
-:: DropdownChoice v = DropdownChoice ![v] !(Maybe Int)
-
-//* Represents the choice of one element from a list represented as radio buttons
-:: RadioChoice v = RadioChoice ![v] !(Maybe Int)
-
-//* Represents the choice of one element from a list represented as a list of html buttons
-:: ListChoice v = ListChoice ![v] !(Maybe Int)
-
-//* Bundles a tree with options with a selection
-:: TreeChoice v = TreeChoice ![ChoiceTree v] !(Maybe Int)
-
-//* Represents the choice of one element from a list represented as grid
-//* (typically v is a record which's labels are used as headers)
-:: GridChoice v = GridChoice ![v] !(Maybe Int)
-
-//* Represents the choice of one element from a set with a dynamic representation
-:: DynamicChoice v
-	= DCDropdown (DropdownChoice v)
-	| DCRadio    (RadioChoice v)
-	| DCList     (ListChoice v)
-	| DCTree     (TreeChoice v)
-	| DCGrid     (GridChoice v)
-
-derive JSONEncode		DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive JSONEncode		CheckMultiChoice
-derive JSONDecode		DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive JSONDecode		CheckMultiChoice
-derive gDefault			DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive gDefault			CheckMultiChoice
-derive gEq				DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive gEq				CheckMultiChoice
-derive gText	        DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive gText	        CheckMultiChoice
-derive gEditor	        DropdownChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive gEditor	        CheckMultiChoice
-
-/**
-* Interface for types representing choices of one element out of a set of options.
-* There are different kinds of containers for such options (e.g. lists, trees, ...).
-* Each option consists of an actual value (o) & a view value shown to the user (v).
-*/
-class Choice t
-where
-	// Gets the current selection's view if present
-	getSelectionView		:: !(t v)						-> Maybe v
-    // Sets the selection based on the view value
-    setSelectionView        :: !(Maybe v) !(t v)            -> t v | gEq {|*|} v
-    // Gets the index of the selection
-    getSelectionIndex       :: !(t v)                       -> Maybe Int
-    // Sets the index of the selection
-    setSelectionIndex       :: !(Maybe Int) !(t v)          -> t v
-
-instance Choice DropdownChoice,RadioChoice,ListChoice,TreeChoice,GridChoice,DynamicChoice
-
-//* Represents the choice of a number of items from a list
-:: CheckMultiChoice v o = CheckMultiChoice ![(!v,!o)] ![Int]
-
-/**
-* Interface for types representing choices a number of elements out of a set of options.
-* There are different kinds of containers for such options (e.g. lists, trees, ...).
-* Each option consists of an actual value (o) & a view value shown to the user (v).
-*/
-class MultiChoice choiceType
-where
-	// Selects the given options, selections not present in list of options are ignored
-	selectOptions			:: ![o] !(choiceType v o)					-> choiceType v o | gEq{|*|} o
-	// Gets the current selections
-	getSelections			:: !(choiceType v o)						-> [o]
-	// Gets the current selection's views
-	getSelectionViews		:: !(choiceType v o)						-> [v]
-
-instance MultiChoice CheckMultiChoice
+derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
+derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
+derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
+derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
+derive gText	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
+derive gEditor	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
 
 //****************************************************************************//
 // Wrapper types for guiding the generic visualization process.

@@ -391,7 +391,7 @@ getCoins :: EUR (String,EUR) -> Task (String,EUR)
 getCoins paid (product,toPay) 
 	= 				viewInformation "Coffee Machine" [ViewWith view1] toPay
 					||-		
-					enterChoice  ("Insert coins","Please insert a coin...") [ChooseWith (ChooseFromRadioButtons id)] coins
+					enterChoice  ("Insert coins","Please insert a coin...") [ChooseWith (ChooseFromCheckGroup id)] coins
 			>>*		[ OnAction ActionCancel 		(always (stop ("Cancelled",paid)))
 					, OnAction (Action "Insert" []) (hasValue handleMoney)
 					]
@@ -549,7 +549,7 @@ where
 
 testMeeting :: Task DateTime
 testMeeting
-	=	enterSharedMultipleChoice ("Choose users","Select the users with whom you want to plan a meeting...") [] users
+	=	enterMultipleChoiceWithShared ("Choose users","Select the users with whom you want to plan a meeting...") [] users
 	>>=	planMeeting
 	
 planMeeting :: [User] -> Task DateTime

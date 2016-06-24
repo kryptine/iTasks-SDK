@@ -35,25 +35,22 @@ label = fieldComponent toJSON UILabel
 icon :: Editor String
 icon = fieldComponent toJSON UIIcon
 
-dropdown :: Editor ([String], [Int])
-dropdown = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UIDropdown
+dropdown :: Bool -> Editor ([String], [Int])
+dropdown multi = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UIDropdown multi
 
-radioGroup :: Editor ([String],[Int])
-radioGroup = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UIRadioGroup
+checkGroup :: Bool -> Editor ([String],[Int])
+checkGroup multi = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UIRadioGroup multi
 
-checkboxGroup :: Editor ([String],[Int])
-checkboxGroup = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UICheckboxGroup
+choiceList :: Bool -> Editor ([String],[Int])
+choiceList multi = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UIChoiceList multi
 
-choiceList :: Editor ([String],[Int])
-choiceList = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UIChoiceList
-
-grid :: Editor (ChoiceGrid, [Int])
-grid = choiceComponent (\{ChoiceGrid|header} -> columnsAttr header) (\{ChoiceGrid|rows} -> rows) toOption (\o i -> i >= 0 && i < length o) UIGrid
+grid :: Bool -> Editor (ChoiceGrid, [Int])
+grid multi = choiceComponent (\{ChoiceGrid|header} -> columnsAttr header) (\{ChoiceGrid|rows} -> rows) toOption (\o i -> i >= 0 && i < length o) UIGrid multi
 where
 	toOption opt = JSONArray (map (JSONString o toString) opt)
 
-tree :: Editor ([ChoiceNode], [Int])
-tree = choiceComponent (const 'DM'.newMap) id toOption checkBounds UITree
+tree :: Bool -> Editor ([ChoiceNode], [Int])
+tree multi = choiceComponent (const 'DM'.newMap) id toOption checkBounds UITree multi
 where
 	toOption {ChoiceNode|id,label,icon,expanded,children}
 		= JSONObject [("text",JSONString label)
@@ -70,7 +67,6 @@ where
 		| idx == id = True
 		| otherwise = or (map (checkNode idx) children)
 
-
 progressBar  :: Editor Int
 progressBar = integerField
 
@@ -79,7 +75,6 @@ textView = fieldComponent toJSON UITextView
 
 htmlView :: Editor HtmlTag
 htmlView = fieldComponent (JSONString o toString) UIHtmlView
-
 
 //Field like components for which simply knowing the UI type is sufficient
 fieldComponent toValue type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
@@ -103,12 +98,12 @@ where
 		| otherwise   = (Ok (ChangeUI [SetAttribute "value" (toValue new)] [],mask),new,vst)
 
 //Choice components that have a set of options
-choiceComponent attr getOptions toOption checkBounds type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+choiceComponent attr getOptions toOption checkBounds type multi = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (val,sel) vst=:{VSt|taskId,mode,optional}
 		# valid = if (mode =: Enter) optional True //When entering data a value is initially only valid if it is optional
 		# mask = FieldMask {touched = False, valid = valid, state = JSONNull}
-		# attr = 'DM'.unions [attr val,choiceAttrs taskId (editorId dp) sel (map toOption (getOptions val))]
+		# attr = 'DM'.unions [attr val,choiceAttrs taskId (editorId dp) sel (map toOption (getOptions val)),multipleAttr multi]
 		= (Ok (uia type attr,mask), vst)
 
 	onEdit dp (tp,e) (val,sel) mask vst=:{VSt|optional}

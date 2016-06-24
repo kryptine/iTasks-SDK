@@ -29,10 +29,6 @@ derive class iTask UI, UINodeType
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
 derive class iTask UITreeNode
 
-//TODO:
-//- Multi select in grids
-//- Multi select in trees
-
 //Representation of a collection of changes that need to be applied to an existing UI
 :: UIChange
 	= NoChange		                                       //No changes are needed
@@ -217,6 +213,7 @@ minValueAttr      :: !Int                                 -> UIAttributes
 maxValueAttr      :: !Int                                 -> UIAttributes
 textAttr          :: !String                              -> UIAttributes
 enabledAttr       :: !Bool                                -> UIAttributes
+multipleAttr      :: !Bool                                -> UIAttributes
 instanceNoAttr    :: !Int                                 -> UIAttributes
 instanceKeyAttr   :: !String                              -> UIAttributes
 columnsAttr       :: ![String]                            -> UIAttributes

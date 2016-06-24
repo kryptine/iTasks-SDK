@@ -176,7 +176,7 @@ where
 
 chooseWorkflow :: Task Workflow
 chooseWorkflow
-	=  editSelectionWithShared [Att (Title "Tasks"), Att IconEdit] (SelectInTree toTree fromTree) allowedWorkflows (const []) @? tvHd
+	=  editSelectionWithShared [Att (Title "Tasks"), Att IconEdit] False (SelectInTree toTree fromTree) allowedWorkflows (const []) @? tvHd
 where
 	toTree workflows = seq (map add (zip ([0..],workflows))) []
 	where

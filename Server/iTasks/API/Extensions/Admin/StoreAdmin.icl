@@ -16,8 +16,6 @@ selectStore
             Nothing = enterChoice (Title "Stores") [/*ChooseWith (ChooseFromTree group)*/] []
             Just ns = enterChoiceWithShared (Title "Stores") [/*ChooseWith (ChooseFromTree group)*/] (sdsFocus ns storeNames) @ (\s -> (ns,s))
     ) <<@ (ArrangeWithSideBar 0 TopSide 55 False)
-where
-    group xs _ = [{ChoiceTree|label=x,icon=Nothing,value=ChoiceNode i,type=LeafNode} \\ (i,x) <- xs]
 
 //Low-level access
 deleteStore :: (String,String) -> Task ()

@@ -1,7 +1,7 @@
 definition module iTasks.API.Common.InteractionTasks
 
 import iTasks.API.Core.Tasks
-from iTasks.API.Core.Types import :: ChoiceTree, :: ChoiceTreeValue, :: Date, :: Time, :: DateTime, :: Action
+from iTasks.API.Core.Types import :: Date, :: Time, :: DateTime, :: Action
 from Data.Functor import class Functor
 from iTasks.UI.Editor.Builtin import :: ChoiceNode, :: ChoiceGrid
 
@@ -12,18 +12,19 @@ from iTasks.UI.Editor.Builtin import :: ChoiceNode, :: ChoiceGrid
 						| E.v: ViewUsing 	(a -> v) (Editor v) & iTask v //Use a custom editor to view the data
 
 :: EnterOption a		= E.v: EnterWith	(v -> a)			& iTask v
+
 :: UpdateOption a b		= E.v: UpdateWith	(a -> v) (a v -> b)	& iTask v
+						| E.v: UpdateUsing      (a -> v) (a v -> b) (Editor v)  & iTask v
                         //When using an update option for a task that uses a shared data source
                         //you can use UpdateWithShared instead of UpdateWith which allows you
                         //to specify how the view must be updated when both the share changed and
                         //the user changed the view simultaneously. This conflict resolution function
                         //is applied before the new 'b' is generated from the view ('v') value
                         | E.v: UpdateWithShared (a -> v) (a v -> b) (v v -> v)  & iTask v 
-						| E.v: UpdateUsing      (a -> v) (a v -> b) (Editor v)  & iTask v
 
 //Selection in arbitrary containers (explicit identification is needed)
 :: SelectOption c s     = SelectInDropdown   (c -> [String])     (c [Int] -> [s])
-     					| SelectInRadioGroup (c -> [String])     (c [Int] -> [s])
+     					| SelectInCheckGroup (c -> [String])     (c [Int] -> [s])
      					| SelectInList       (c -> [String])     (c [Int] -> [s])
      					| SelectInGrid       (c -> ChoiceGrid)   (c [Int] -> [s])
      					| SelectInTree       (c -> [ChoiceNode]) (c [Int] -> [s])
@@ -31,14 +32,9 @@ from iTasks.UI.Editor.Builtin import :: ChoiceNode, :: ChoiceGrid
 //Choosing from lists
 :: ChoiceOption o       = E.v: ChooseWith (ChoiceType o v)      & iTask v
 :: ChoiceType o v	    = ChooseFromDropdown (o -> v)
-						| ChooseFromRadioButtons (o -> v)
+						| ChooseFromCheckGroup (o -> v)
 						| ChooseFromList (o -> v)
 						| ChooseFromGrid (o -> v)
-
-				
-:: MultiChoiceOption a	= E.v: ChooseMultipleWith	MultiChoiceType	    (a -> v) & iTask v
-:: MultiChoiceType		= AutoMultiChoice
-						| ChooseFromCheckBoxes
 
 /*** General input/update/output tasks ***/
 
@@ -109,48 +105,59 @@ updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w)
 */
 
 //Options: local, selection: local
-editSelection :: !d !(SelectOption c a) c [Int] -> Task [a] | toPrompt d & iTask a
+editSelection :: !d !Bool !(SelectOption c a) c [Int] -> Task [a] | toPrompt d & iTask a
 
 //Options: shared, selection: local
-editSelectionWithShared :: !d !(SelectOption c a) (ReadWriteShared c w) (c -> [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
+editSelectionWithShared :: !d !Bool !(SelectOption c a) (ReadWriteShared c w) (c -> [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
 
 //Options: local, selection: shared
-editSharedSelection :: !d !(SelectOption c a) c (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
+editSharedSelection :: !d !Bool !(SelectOption c a) c (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
 
 //Options: shared, selection: shared
-editSharedSelectionWithShared :: !d !(SelectOption c a) (ReadWriteShared c w) (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
+editSharedSelectionWithShared :: !d !Bool !(SelectOption c a) (ReadWriteShared c w) (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
 
 /**
 * More specific selection from lists
 */
-editChoice :: !d ![ChoiceOption a] ![a] (Maybe a) -> Task a | toPrompt d & iTask a
-editChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask a
+editChoice                           :: !d ![ChoiceOption a] ![a] (Maybe a) -> Task a | toPrompt d & iTask a
+editChoiceAs                         :: !d ![ChoiceOption o] ![o] !(o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask a
+editMultipleChoice                   :: !d ![ChoiceOption a] ![a] [a] -> Task [a] | toPrompt d & iTask a
+editMultipleChoiceAs                 :: !d ![ChoiceOption o] ![o] !(o -> a) [a] -> Task [a] | toPrompt d & iTask o & iTask a
 
-enterChoice :: !d ![ChoiceOption a] ![a] -> Task a | toPrompt d & iTask a
-enterChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) -> Task a | toPrompt d & iTask o & iTask a
+enterChoice                          :: !d ![ChoiceOption a] ![a] -> Task a | toPrompt d & iTask a
+enterChoiceAs                        :: !d ![ChoiceOption o] ![o] !(o -> a) -> Task a | toPrompt d & iTask o & iTask a
+enterMultipleChoice                  :: !d ![ChoiceOption a] ![a] -> Task [a] | toPrompt d & iTask a
+enterMultipleChoiceAs                :: !d ![ChoiceOption o] ![o] !(o -> a) -> Task [a] | toPrompt d & iTask o & iTask a
 
-updateChoice :: !d ![ChoiceOption a] ![a] a -> Task a | toPrompt d & iTask a
-updateChoiceAs :: !d ![ChoiceOption o] ![o] !(o -> a) a -> Task a | toPrompt d & iTask o & iTask a
+updateChoice                         :: !d ![ChoiceOption a] ![a] a -> Task a | toPrompt d & iTask a
+updateChoiceAs                       :: !d ![ChoiceOption o] ![o] !(o -> a) a -> Task a | toPrompt d & iTask o & iTask a
+updateMultipleChoice                 :: !d ![ChoiceOption a] ![a] [a] -> Task [a] | toPrompt d & iTask a
+updateMultipleChoiceAs               :: !d ![ChoiceOption o] ![o] !(o -> a) [a] -> Task [a] | toPrompt d & iTask o & iTask a
 
-editChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Maybe a) -> Task a | toPrompt d & iTask a & iTask w
-editChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask w & iTask a
+editChoiceWithShared                 :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Maybe a) -> Task a | toPrompt d & iTask a & iTask w
+editChoiceWithSharedAs               :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask w & iTask a
+editMultipleChoiceWithShared         :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) [a] -> Task [a] | toPrompt d & iTask a & iTask w
+editMultipleChoiceWithSharedAs       :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) [a] -> Task [a] | toPrompt d & iTask o & iTask w & iTask a
 
-enterChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) -> Task a | toPrompt d & iTask a & iTask w
-enterChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) -> Task a | toPrompt d & iTask o & iTask w & iTask a
+enterChoiceWithShared                :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) -> Task a | toPrompt d & iTask a & iTask w
+enterChoiceWithSharedAs              :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) -> Task a | toPrompt d & iTask o & iTask w & iTask a
+enterMultipleChoiceWithShared        :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) -> Task [a] | toPrompt d & iTask a & iTask w
+enterMultipleChoiceWithSharedAs      :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) -> Task [a] | toPrompt d & iTask o & iTask w & iTask a
 
-updateChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) a -> Task a | toPrompt d & iTask a & iTask w
-updateChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) a -> Task a | toPrompt d & iTask o & iTask w & iTask a
+updateChoiceWithShared               :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) a -> Task a | toPrompt d & iTask a & iTask w
+updateChoiceWithSharedAs             :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) a -> Task a | toPrompt d & iTask o & iTask w & iTask a
+updateMultipleChoiceWithShared       :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) [a] -> Task [a] | toPrompt d & iTask a & iTask w
+updateMultipleChoiceWithSharedAs     :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) [a] -> Task [a] | toPrompt d & iTask o & iTask w & iTask a
 
-editSharedChoice :: !d ![ChoiceOption a] ![a] (Shared (Maybe a)) -> Task a | toPrompt d & iTask a
-editSharedChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Shared (Maybe a)) -> Task a | toPrompt d & iTask o & iTask a
+editSharedChoice                     :: !d ![ChoiceOption a] ![a] (Shared (Maybe a)) -> Task a | toPrompt d & iTask a
+editSharedChoiceAs                   :: !d [ChoiceOption o] ![o] !(o -> a) (Shared (Maybe a)) -> Task a | toPrompt d & iTask o & iTask a
+editSharedMultipleChoice             :: !d ![ChoiceOption a] ![a] (Shared [a]) -> Task [a] | toPrompt d & iTask a
+editSharedMultipleChoiceAs           :: !d [ChoiceOption o] ![o] !(o -> a) (Shared [a]) -> Task [a] | toPrompt d & iTask o & iTask a
 
-editSharedChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Shared (Maybe a)) -> Task a | toPrompt d & iTask a & iTask w
-editSharedChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Shared (Maybe a)) -> Task a | toPrompt d & iTask o & iTask w & iTask a
-
-enterMultipleChoice :: !d ![MultiChoiceOption o] ![o] -> Task [o] | toPrompt d & iTask o
-updateMultipleChoice :: !d ![MultiChoiceOption o] ![o] [o] -> Task [o] | toPrompt d & iTask o
-enterSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared [o] w) -> Task [o] | toPrompt d & iTask o & iTask w
-updateSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared [o] w) [o] -> Task [o] | toPrompt d & iTask o & iTask w
+editSharedChoiceWithShared           :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Shared (Maybe a)) -> Task a | toPrompt d & iTask a & iTask w
+editSharedChoiceWithSharedAs         :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Shared (Maybe a)) -> Task a | toPrompt d & iTask o & iTask w & iTask a
+editSharedMultipleChoiceWithShared   :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Shared [a]) -> Task [a] | toPrompt d & iTask a & iTask w
+editSharedMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Shared [a]) -> Task [a] | toPrompt d & iTask o & iTask w & iTask a
 
 /**
 * Wait for a share to match a certain predicate

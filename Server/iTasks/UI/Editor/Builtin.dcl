@@ -30,12 +30,11 @@ progressBar   :: Editor Int
 
 // ## Selection components ## 
 // UIDropdown, UIRadioGroup, UICheckboxGroup, UIChoiceList, UIGrid, UITree
-dropdown      :: Editor ([String], [Int])
-radioGroup    :: Editor ([String], [Int])
-checkboxGroup :: Editor ([String], [Int])
-choiceList    :: Editor ([String], [Int])
-grid          :: Editor (ChoiceGrid, [Int])
-tree          :: Editor ([ChoiceNode], [Int])
+dropdown      :: Bool -> Editor ([String], [Int])
+checkGroup    :: Bool -> Editor ([String], [Int])
+choiceList    :: Bool -> Editor ([String], [Int])
+grid          :: Bool -> Editor (ChoiceGrid, [Int])
+tree          :: Bool -> Editor ([ChoiceNode], [Int])
 
 :: ChoiceGrid =
 	{ header  :: [String]

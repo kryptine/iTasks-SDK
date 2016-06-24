@@ -87,13 +87,12 @@ updateInformationWithShared d [UpdateUsing tof fromf editor:_] shared m
 updateInformationWithShared d _ shared m
     = updateInformation d [] m
 
-
-editSelection :: !d !(SelectOption c a) c [Int] -> Task [a] | toPrompt d & iTask a
-editSelection d (SelectInDropdown toView fromView) container sel = editSelection` d dropdown toView fromView container sel
-editSelection d (SelectInRadioGroup toView fromView) container sel = editSelection` d radioGroup toView fromView container sel
-editSelection d (SelectInList toView fromView) container sel = editSelection` d choiceList toView fromView container sel
-editSelection d (SelectInGrid toView fromView) container sel = editSelection` d grid toView fromView container sel
-editSelection d (SelectInTree toView fromView) container sel = editSelection` d tree toView fromView container sel
+editSelection :: !d !Bool !(SelectOption c a) c [Int] -> Task [a] | toPrompt d & iTask a
+editSelection d multi (SelectInDropdown toView fromView) container sel = editSelection` d (dropdown multi) toView fromView container sel
+editSelection d multi (SelectInCheckGroup toView fromView) container sel = editSelection` d (checkGroup multi) toView fromView container sel
+editSelection d multi (SelectInList toView fromView) container sel = editSelection` d (choiceList multi) toView fromView container sel
+editSelection d multi (SelectInGrid toView fromView) container sel = editSelection` d (grid multi) toView fromView container sel
+editSelection d multi (SelectInTree toView fromView) container sel = editSelection` d (tree multi) toView fromView container sel
 editSelection` d editor toView fromView container sel
 	= interact d (if (isEmpty sel) Enter Update) null
 		(\r     -> ((),(toView container,sel)))
@@ -101,12 +100,12 @@ editSelection` d editor toView fromView container sel
 		(\_ l v -> (l,v,Nothing))
 		(Just editor) @ (\(_,(_,sel)) -> fromView container sel)
 
-editSelectionWithShared :: !d !(SelectOption c a) (ReadWriteShared c w) (c -> [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
-editSelectionWithShared d (SelectInDropdown toView fromView) sharedContainer initSel = editSelectionWithShared` d dropdown toView fromView sharedContainer initSel
-editSelectionWithShared d (SelectInRadioGroup toView fromView) sharedContainer initSel = editSelectionWithShared` d radioGroup toView fromView sharedContainer initSel
-editSelectionWithShared d (SelectInList toView fromView) sharedContainer initSel = editSelectionWithShared` d choiceList toView fromView sharedContainer initSel
-editSelectionWithShared d (SelectInGrid toView fromView) sharedContainer initSel = editSelectionWithShared` d grid toView fromView sharedContainer initSel
-editSelectionWithShared d (SelectInTree toView fromView) sharedContainer initSel = editSelectionWithShared` d tree toView fromView sharedContainer initSel
+editSelectionWithShared :: !d !Bool !(SelectOption c a) (ReadWriteShared c w) (c -> [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
+editSelectionWithShared d multi (SelectInDropdown toView fromView) sharedContainer initSel = editSelectionWithShared` d (dropdown multi) toView fromView sharedContainer initSel
+editSelectionWithShared d multi (SelectInCheckGroup toView fromView) sharedContainer initSel = editSelectionWithShared` d (checkGroup multi) toView fromView sharedContainer initSel
+editSelectionWithShared d multi (SelectInList toView fromView) sharedContainer initSel = editSelectionWithShared` d (choiceList multi) toView fromView sharedContainer initSel
+editSelectionWithShared d multi (SelectInGrid toView fromView) sharedContainer initSel = editSelectionWithShared` d (grid multi) toView fromView sharedContainer initSel
+editSelectionWithShared d multi (SelectInTree toView fromView) sharedContainer initSel = editSelectionWithShared` d (tree multi) toView fromView sharedContainer initSel
 editSelectionWithShared` d editor toView fromView sharedContainer initSel
 	= interact d Update sharedContainer 
 		(\r     -> (r,(toView r, initSel r)))
@@ -114,12 +113,12 @@ editSelectionWithShared` d editor toView fromView sharedContainer initSel
 		(\r l (v,sel) -> (r,(v,sel),Nothing))
 		(Just editor) @ (\(container,(_,sel)) -> fromView container sel)
 
-editSharedSelection :: !d !(SelectOption c a) c (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
-editSharedSelection d (SelectInDropdown toView fromView) container sharedSel = editSharedSelection` d dropdown toView fromView container sharedSel
-editSharedSelection d (SelectInRadioGroup toView fromView) container sharedSel = editSharedSelection` d radioGroup toView fromView container sharedSel
-editSharedSelection d (SelectInList toView fromView) container sharedSel = editSharedSelection` d choiceList toView fromView container sharedSel
-editSharedSelection d (SelectInGrid toView fromView) container sharedSel = editSharedSelection` d grid toView fromView container sharedSel
-editSharedSelection d (SelectInTree toView fromView) container sharedSel = editSharedSelection` d tree toView fromView container sharedSel
+editSharedSelection :: !d !Bool !(SelectOption c a) c (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
+editSharedSelection d multi (SelectInDropdown toView fromView) container sharedSel = editSharedSelection` d (dropdown multi) toView fromView container sharedSel
+editSharedSelection d multi (SelectInCheckGroup toView fromView) container sharedSel = editSharedSelection` d (checkGroup multi) toView fromView container sharedSel
+editSharedSelection d multi (SelectInList toView fromView) container sharedSel = editSharedSelection` d (choiceList multi) toView fromView container sharedSel
+editSharedSelection d multi (SelectInGrid toView fromView) container sharedSel = editSharedSelection` d (grid multi) toView fromView container sharedSel
+editSharedSelection d multi (SelectInTree toView fromView) container sharedSel = editSharedSelection` d (tree multi) toView fromView container sharedSel
 editSharedSelection` d editor toView fromView container sharedSel 
 	= interact d Update sharedSel
 		(\r           -> ((),(toView container,r)))
@@ -127,17 +126,17 @@ editSharedSelection` d editor toView fromView container sharedSel
 		(\r l (vt,vs) -> (l,(vt,r),Nothing))
 		(Just editor) @ (\(_,(_,sel)) -> fromView container sel)
 
-editSharedSelectionWithShared :: !d !(SelectOption c a) (ReadWriteShared c w) (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
-editSharedSelectionWithShared d (SelectInDropdown toView fromView) sharedContainer sharedSel 
-	= editSharedSelectionWithShared` d dropdown toView fromView sharedContainer sharedSel
-editSharedSelectionWithShared d (SelectInRadioGroup toView fromView) sharedContainer sharedSel 
-	= editSharedSelectionWithShared` d radioGroup toView fromView sharedContainer sharedSel
-editSharedSelectionWithShared d (SelectInList toView fromView) sharedContainer sharedSel 
-	= editSharedSelectionWithShared` d choiceList toView fromView sharedContainer sharedSel
-editSharedSelectionWithShared d (SelectInGrid toView fromView) sharedContainer sharedSel 
-	= editSharedSelectionWithShared` d grid toView fromView sharedContainer sharedSel
-editSharedSelectionWithShared d (SelectInTree toView fromView) sharedContainer sharedSel 
-	= editSharedSelectionWithShared` d tree toView fromView sharedContainer sharedSel
+editSharedSelectionWithShared :: !d !Bool !(SelectOption c a) (ReadWriteShared c w) (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
+editSharedSelectionWithShared d multi (SelectInDropdown toView fromView) sharedContainer sharedSel 
+	= editSharedSelectionWithShared` d (dropdown multi) toView fromView sharedContainer sharedSel
+editSharedSelectionWithShared d multi (SelectInCheckGroup toView fromView) sharedContainer sharedSel 
+	= editSharedSelectionWithShared` d (checkGroup multi) toView fromView sharedContainer sharedSel
+editSharedSelectionWithShared d multi (SelectInList toView fromView) sharedContainer sharedSel 
+	= editSharedSelectionWithShared` d (choiceList multi) toView fromView sharedContainer sharedSel
+editSharedSelectionWithShared d multi (SelectInGrid toView fromView) sharedContainer sharedSel 
+	= editSharedSelectionWithShared` d (grid multi) toView fromView sharedContainer sharedSel
+editSharedSelectionWithShared d multi (SelectInTree toView fromView) sharedContainer sharedSel 
+	= editSharedSelectionWithShared` d (tree multi) toView fromView sharedContainer sharedSel
 editSharedSelectionWithShared` d editor toView fromView sharedContainer sharedSel 
 	= interact d Update (sharedContainer |+< sharedSel)
 		(\(rc,rs)           -> (rc,(toView rc,rs)))
@@ -146,79 +145,29 @@ editSharedSelectionWithShared` d editor toView fromView sharedContainer sharedSe
 		(Just editor) @ (\(container,(_,sel)) -> fromView container sel)
 
 //Core choice tasks
-
-editChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask a
-editChoiceAs d vopts container target mbSel = editSelection d (selectOption target vopts) container (findIdx target mbSel container) @? tvHd
-
-editChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask w & iTask a
-editChoiceWithSharedAs d vopts sharedContainer target mbSel 
-	= editSelectionWithShared d (selectOption target vopts) sharedContainer (findIdx target mbSel) @? tvHd
-
-editChoiceSimple :: !d ![o] (Maybe o) -> Task o | toPrompt d & iTask o
-editChoiceSimple d container mbSel = editSelection d (selectOption id []) container (findIdx id mbSel container) @? tvHd
-
-editChoiceWithSharedSimple :: !d !(ReadWriteShared [o] w) (Maybe o) -> Task o | toPrompt d & iTask o & iTask w
-editChoiceWithSharedSimple d sharedContainer mbSel
-	= editSelectionWithShared d (selectOption id []) sharedContainer (findIdx id mbSel) @? tvHd
-
-editSharedChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Shared (Maybe a)) -> Task a | toPrompt d & iTask o & iTask a
-editSharedChoiceAs d vopts container target sharedSel 
-	= editSharedSelection d (selectOption target vopts) container (findIdxShare target container sharedSel) @? tvHd
-
-editSharedChoiceSimple :: !d ![o] (Shared (Maybe o)) -> Task o | toPrompt d & iTask o
-editSharedChoiceSimple d container sharedSel
-	= editSharedSelection d (selectOption id []) container (findIdxShare id container sharedSel) @? tvHd
-
-editSharedChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Shared (Maybe a)) -> Task a | toPrompt d & iTask o & iTask w & iTask a
-editSharedChoiceWithSharedAs d vopts sharedContainer target sharedSel
-	= editSharedSelectionWithShared d (selectOption target vopts) sharedContainer (findIdxShareWithShared target (sharedContainer |+< sharedSel)) @? tvHd
-
-editSharedChoiceWithSharedSimple :: !d !(ReadWriteShared [o] w) (Shared (Maybe o)) -> Task o | toPrompt d & iTask o & iTask w
-editSharedChoiceWithSharedSimple d sharedContainer sharedSel
-	= editSharedSelectionWithShared d (selectOption id []) sharedContainer (findIdxShareWithShared id (sharedContainer |+< sharedSel)) @? tvHd
-
-//Helper functions for the edit*Choice* tasks
-selectOption target opts = case opts of
-	[ChooseWith (ChooseFromDropdown f):_]     = SelectInDropdown (toLabels f) (findSelection target)
-	[ChooseWith (ChooseFromRadioButtons f):_] = SelectInRadioGroup (toLabels f) (findSelection target)
-	[ChooseWith (ChooseFromList f):_]         = SelectInList (toLabels f) (findSelection target)
-	[ChooseWith (ChooseFromGrid f):_]         = SelectInGrid (toGrid f) (findSelection target)
-	_                                         = SelectInDropdown (toLabels id) (findSelection target) 
-where
-	toLabels f options = map (toSingleLineText o f) options
-	toGrid f options = {ChoiceGrid|header=gText{|*|} AsHeader (fix vals),rows = [map Text (gText{|*|} AsRow (Just v)) \\ v <- vals]}
-	where
-		vals = map f options
-
-		fix :: [a] -> Maybe a
-		fix _ = Nothing
-
-findSelection target options [idx] = [target (options !! idx)]
-findSelection target options _     = []
-
-findIdx target Nothing options = []
-findIdx target (Just val) options = [i \\ o <- options & i <- [0..] | target o === val]
-
-findIdxShare target options sds = mapReadWrite (tof,fromf) sds
-where
-	tof mbv = findIdx target mbv options
-	fromf w _ = Just (listToMaybe (findSelection target options w))
-
-findIdxShareWithShared target sds = mapReadWrite (tof,fromf) sds
-where
-	tof (options,mbv) = findIdx target mbv options
-	fromf w (options,_) = Just (listToMaybe (findSelection target options w))
-
-//More convenient versions 
 editChoice :: !d ![ChoiceOption a] ![a] (Maybe a) -> Task a | toPrompt d & iTask a
-editChoice d [] container mbSel = editChoiceSimple d container mbSel
 editChoice d options container mbSel = editChoiceAs d options container id mbSel
+
+editChoiceAs :: !d ![ChoiceOption o] ![o] !(o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask a
+editChoiceAs d vopts container target mbSel = editSelection d False (selectOption target vopts) container (findIndex target mbSel container) @? tvHd
+
+editMultipleChoice :: !d ![ChoiceOption a] ![a] [a] -> Task [a] | toPrompt d & iTask a
+editMultipleChoice d options container mbSel = editMultipleChoiceAs d options container id mbSel
+
+editMultipleChoiceAs :: !d ![ChoiceOption o] ![o] !(o -> a) [a] -> Task [a] | toPrompt d & iTask o & iTask a
+editMultipleChoiceAs d vopts container target sel = editSelection d True (selectOption target vopts) container (findIndices target sel container)
 
 enterChoice :: !d ![ChoiceOption a] ![a] -> Task a | toPrompt d & iTask a
 enterChoice d options container = editChoice d options container Nothing
 
-enterChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) -> Task a | toPrompt d & iTask o & iTask a
+enterChoiceAs :: !d ![ChoiceOption o] ![o] !(o -> a) -> Task a | toPrompt d & iTask o & iTask a
 enterChoiceAs d options container targetFun = editChoiceAs d options container targetFun Nothing
+
+enterMultipleChoice :: !d ![ChoiceOption a] ![a] -> Task [a] | toPrompt d & iTask a
+enterMultipleChoice d options container = editMultipleChoice d options container []
+
+enterMultipleChoiceAs :: !d ![ChoiceOption o] ![o] !(o -> a) -> Task [a] | toPrompt d & iTask o & iTask a
+enterMultipleChoiceAs d options container targetFun = editMultipleChoiceAs d options container targetFun []
 
 updateChoice :: !d ![ChoiceOption a] ![a] a -> Task a | toPrompt d & iTask a
 updateChoice d options container sel = editChoice d options container (Just sel)
@@ -226,9 +175,25 @@ updateChoice d options container sel = editChoice d options container (Just sel)
 updateChoiceAs :: !d ![ChoiceOption o] ![o] !(o -> a) a -> Task a | toPrompt d & iTask o & iTask a
 updateChoiceAs d options container targetFun sel = editChoiceAs d options container targetFun (Just sel)
 
+updateMultipleChoice   :: !d ![ChoiceOption a] ![a] [a] -> Task [a] | toPrompt d & iTask a
+updateMultipleChoice d options container sel = editMultipleChoice d options container sel
+
+updateMultipleChoiceAs :: !d ![ChoiceOption o] ![o] !(o -> a) [a] -> Task [a] | toPrompt d & iTask o & iTask a
+updateMultipleChoiceAs d options container targetFun sel = editMultipleChoiceAs d options container targetFun sel
+
 editChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Maybe a) -> Task a | toPrompt d & iTask a & iTask w
-editChoiceWithShared d [] container mbSel = editChoiceWithSharedSimple d container mbSel
 editChoiceWithShared d options container mbSel = editChoiceWithSharedAs d options container id mbSel
+
+editChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Maybe a) -> Task a | toPrompt d & iTask o & iTask w & iTask a
+editChoiceWithSharedAs d vopts sharedContainer target mbSel 
+	= editSelectionWithShared d False (selectOption target vopts) sharedContainer (findIndex target mbSel) @? tvHd
+
+editMultipleChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) [a] -> Task [a] | toPrompt d & iTask a & iTask w
+editMultipleChoiceWithShared d options container sel = editMultipleChoiceWithSharedAs d options container id sel
+
+editMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) [a] -> Task [a] | toPrompt d & iTask o & iTask w & iTask a
+editMultipleChoiceWithSharedAs d vopts sharedContainer target sel
+	= editSelectionWithShared d True (selectOption target vopts) sharedContainer (findIndices target sel)
 
 enterChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) -> Task a | toPrompt d & iTask a & iTask w
 enterChoiceWithShared d options container = editChoiceWithShared d options container Nothing
@@ -236,35 +201,94 @@ enterChoiceWithShared d options container = editChoiceWithShared d options conta
 enterChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) -> Task a | toPrompt d & iTask o & iTask w & iTask a
 enterChoiceWithSharedAs d options container targetFun = editChoiceWithSharedAs d options container targetFun Nothing
 
+enterMultipleChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) -> Task [a] | toPrompt d & iTask a & iTask w
+enterMultipleChoiceWithShared d options container = editMultipleChoiceWithShared d options container []
+
+enterMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) -> Task [a] | toPrompt d & iTask o & iTask w & iTask a
+enterMultipleChoiceWithSharedAs d options container targetFun = editMultipleChoiceWithSharedAs d options container targetFun []
+
 updateChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) a -> Task a | toPrompt d & iTask a & iTask w
 updateChoiceWithShared d options container sel = editChoiceWithShared d options container (Just sel)
 
 updateChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) a -> Task a | toPrompt d & iTask o & iTask w & iTask a
 updateChoiceWithSharedAs d options container targetFun sel = editChoiceWithSharedAs d options container targetFun (Just sel)
 
+updateMultipleChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) [a] -> Task [a] | toPrompt d & iTask a & iTask w
+updateMultipleChoiceWithShared d options container sel = editMultipleChoiceWithShared d options container sel
+
+updateMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) [a] -> Task [a] | toPrompt d & iTask o & iTask w & iTask a
+updateMultipleChoiceWithSharedAs d options container targetFun sel = editMultipleChoiceWithSharedAs d options container targetFun sel
+
 editSharedChoice :: !d ![ChoiceOption a] ![a] (Shared (Maybe a)) -> Task a | toPrompt d & iTask a
-editSharedChoice d [] container sharedSel = editSharedChoiceSimple d container sharedSel
 editSharedChoice d options container sharedSel = editSharedChoiceAs d options container id sharedSel
 
+editSharedChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Shared (Maybe a)) -> Task a | toPrompt d & iTask o & iTask a
+editSharedChoiceAs d vopts container target sharedSel 
+	= editSharedSelection d False (selectOption target vopts) container (findIndexShare target container sharedSel) @? tvHd
+
+editSharedMultipleChoice :: !d ![ChoiceOption a] ![a] (Shared [a]) -> Task [a] | toPrompt d & iTask a
+editSharedMultipleChoice d options container sharedSel = editSharedMultipleChoiceAs d options container id sharedSel
+
+editSharedMultipleChoiceAs :: !d [ChoiceOption o] ![o] !(o -> a) (Shared [a]) -> Task [a] | toPrompt d & iTask o & iTask a
+editSharedMultipleChoiceAs d vopts container target sharedSel 
+	= editSharedSelection d True (selectOption target vopts) container (findIndicesShare target container sharedSel)
+
 editSharedChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Shared (Maybe a)) -> Task a | toPrompt d & iTask a & iTask w
-editSharedChoiceWithShared d [] sharedContainer sharedSel = editSharedChoiceWithSharedSimple d sharedContainer sharedSel
 editSharedChoiceWithShared d options sharedContainer sharedSel = editSharedChoiceWithSharedAs d options sharedContainer id sharedSel
 
-enterMultipleChoice :: !d ![MultiChoiceOption o] ![o] -> Task [o] | toPrompt d & iTask o
-enterMultipleChoice d options container
-	= updateInformation d (multiChoiceToUpdate options) (container,[]) @ snd
+editSharedChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Shared (Maybe a)) -> Task a | toPrompt d & iTask o & iTask w & iTask a
+editSharedChoiceWithSharedAs d vopts sharedContainer target sharedSel
+	= editSharedSelectionWithShared d False (selectOption target vopts) sharedContainer (findIndexShareWithShared target (sharedContainer |+< sharedSel)) @? tvHd
 
-updateMultipleChoice :: !d ![MultiChoiceOption o] ![o] [o] -> Task [o] | toPrompt d & iTask o
-updateMultipleChoice d options container sel
-	= updateInformation d (multiChoiceToUpdate options) (container,sel) @ snd
+editSharedMultipleChoiceWithShared :: !d ![ChoiceOption a] !(ReadWriteShared [a] w) (Shared [a]) -> Task [a] | toPrompt d & iTask a & iTask w
+editSharedMultipleChoiceWithShared d options sharedContainer sharedSel = editSharedMultipleChoiceWithSharedAs d options sharedContainer id sharedSel
 
-enterSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared [o] w) -> Task [o] | toPrompt d & iTask o & iTask w
-enterSharedMultipleChoice d options shared
-	= updateInformationWithShared d (sharedMultiChoiceToUpdate options) shared []
+editSharedMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [o] w) (o -> a) (Shared [a]) -> Task [a] | toPrompt d & iTask o & iTask w & iTask a
+editSharedMultipleChoiceWithSharedAs d vopts sharedContainer target sharedSel
+	= editSharedSelectionWithShared d True (selectOption target vopts) sharedContainer (findIndicesShareWithShared target (sharedContainer |+< sharedSel))
 
-updateSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared [o] w) [o] -> Task [o] | toPrompt d & iTask o & iTask w
-updateSharedMultipleChoice d options shared sel 
-	= updateInformationWithShared d (sharedMultiChoiceToUpdate options) shared sel
+//Helper functions for the edit*Choice* tasks
+selectOption target opts = case opts of
+	[ChooseWith (ChooseFromDropdown f):_]     = SelectInDropdown (toLabels f) (findSelection target)
+	[ChooseWith (ChooseFromCheckGroup f):_]   = SelectInCheckGroup (toLabels f) (findSelection target)
+	[ChooseWith (ChooseFromList f):_]         = SelectInList (toLabels f) (findSelection target)
+	[ChooseWith (ChooseFromGrid f):_]         = SelectInGrid (toGrid f) (findSelection target)
+	_                                         = SelectInDropdown (toLabels id) (findSelection target) 
+
+toLabels f options = map (toSingleLineText o f) options
+toGrid f options = {ChoiceGrid|header=gText{|*|} AsHeader (fixtype vals),rows = [map Text (gText{|*|} AsRow (Just v)) \\ v <- vals]}
+where
+	vals = map f options
+
+	fixtype :: [a] -> Maybe a
+	fixtype _ = Nothing
+
+findSelection target options idxs = [target (options !! idx) \\ idx <- idxs]
+
+findIndex target Nothing options = []
+findIndex target (Just val) options = [i \\ o <- options & i <- [0..] | target o === val]
+
+findIndices target vals options = [i \\ o <- options & i <- [0..] | isMemberGen (target o) vals]
+
+findIndexShare target options sds = mapReadWrite (tof,fromf) sds
+where
+	tof mbv = findIndex target mbv options
+	fromf w _ = Just (listToMaybe (findSelection target options w))
+
+findIndicesShare target options sds = mapReadWrite (tof,fromf) sds
+where
+	tof v = findIndices target v options
+	fromf w _ = Just (findSelection target options w)
+
+findIndexShareWithShared target sds = mapReadWrite (tof,fromf) sds
+where
+	tof (options,mbv) = findIndex target mbv options
+	fromf w (options,_) = Just (listToMaybe (findSelection target options w))
+
+findIndicesShareWithShared target sds = mapReadWrite (tof,fromf) sds
+where
+	tof (options,mbv) = findIndices target mbv options
+	fromf w (options,_) = Just (findSelection target options w)
 
 wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r
 wait desc pred shared
@@ -290,23 +314,6 @@ chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions
 	=	viewInformation () [] ()
 	>>* [OnAction action (always (return val)) \\ (action,val) <- actions]
-
-multiChoiceToUpdate :: [MultiChoiceOption o] -> [UpdateOption ([o], [o]) ([o],[o])] | iTask o
-multiChoiceToUpdate [ChooseMultipleWith type view:_] = [UpdateWith (toView type) fromView]
-where
-	toView type (options,sel)	= selectOptions sel (initChoice type options)
-
-	initChoice AutoMultiChoice options      = initChoice ChooseFromCheckBoxes options
-	initChoice ChooseFromCheckBoxes options = CheckMultiChoice [(view o,o) \\ o <- options] []
-	
-	fromView (options,_) choice = (options,getSelections choice)
-	
-multiChoiceToUpdate _ = multiChoiceToUpdate [ChooseMultipleWith AutoMultiChoice id]
-
-sharedMultiChoiceToUpdate :: [MultiChoiceOption o] -> [UpdateOption ([o], [o]) [o]] | iTask o
-sharedMultiChoiceToUpdate options = case multiChoiceToUpdate options of
-	[UpdateWith fromf tof]	= [UpdateWith fromf (\m v -> snd (tof m v))]
-	_						= []
 
 viewTitle :: !a -> Task a | iTask a
 viewTitle a = viewInformation (Title title) [ViewWith view] a

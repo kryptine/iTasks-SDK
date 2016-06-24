@@ -165,6 +165,9 @@ textAttr text = 'DM'.fromList [("text",JSONString text)]
 enabledAttr :: !Bool -> UIAttributes
 enabledAttr enabled = 'DM'.fromList [("enabled",JSONBool enabled)]
 
+multipleAttr :: !Bool -> UIAttributes
+multipleAttr multiple = 'DM'.fromList [("multiple",JSONBool multiple)]
+
 instanceNoAttr :: !Int -> UIAttributes
 instanceNoAttr instanceNo = 'DM'.fromList [("instanceNo",JSONInt instanceNo)]
 
