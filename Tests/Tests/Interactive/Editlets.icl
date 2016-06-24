@@ -14,7 +14,7 @@ testEditlets = testsuite "Editlets" "These tests check if the advanced clientsid
 import iTasks.API.Extensions.Clock
 testEditlet = itest "Simple clock editlet" "Look at the image below" "You should see a changing interactive clock" tut
 where
-	tut = viewSharedInformation "Clock" [ViewWith (\t -> AnalogClock t)] currentTime
+	tut = viewSharedInformation "Clock" [ViewAs (\t -> AnalogClock t)] currentTime
 
 import iTasks.API.Extensions.Dashboard
 testDashEditlet = itest "Another simple editlet" "Look at the image below" "You should see a status LED" tut

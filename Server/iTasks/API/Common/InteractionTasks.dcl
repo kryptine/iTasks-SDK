@@ -5,22 +5,22 @@ from iTasks.API.Core.Types import :: Date, :: Time, :: DateTime, :: Action
 from Data.Functor import class Functor
 from iTasks.UI.Editor.Builtin import :: ChoiceNode, :: ChoiceGrid
 
-//TODO: Introduce custom editor versions for all option types
+/*** General input/update/output tasks ***/
 
-//Option types for customizing interaction
-:: ViewOption a 		= E.v: ViewWith 	(a -> v)			& iTask v
-						| E.v: ViewUsing 	(a -> v) (Editor v) & iTask v //Use a custom editor to view the data
+:: ViewOption a 		= E.v: ViewAs 	    (a -> v)                       & iTask v
+						| E.v: ViewUsing 	(a -> v) (Editor v)            & iTask v //Use a custom editor to view the data
 
-:: EnterOption a		= E.v: EnterWith	(v -> a)			& iTask v
+:: EnterOption a		= E.v: EnterAs      (v -> a)                       & iTask v
+						| E.v: EnterUsing 	(v -> a) (Editor v)            & iTask v //Use a custom editor to enter the data
 
-:: UpdateOption a b		= E.v: UpdateWith	(a -> v) (a v -> b)	& iTask v
-						| E.v: UpdateUsing      (a -> v) (a v -> b) (Editor v)  & iTask v
+:: UpdateOption a b		= E.v: UpdateAs     (a -> v) (a v -> b)	           & iTask v
+						| E.v: UpdateUsing  (a -> v) (a v -> b) (Editor v) & iTask v //Use a custom editor to enter the data
                         //When using an update option for a task that uses a shared data source
                         //you can use UpdateWithShared instead of UpdateWith which allows you
                         //to specify how the view must be updated when both the share changed and
                         //the user changed the view simultaneously. This conflict resolution function
                         //is applied before the new 'b' is generated from the view ('v') value
-                        | E.v: UpdateWithShared (a -> v) (a v -> b) (v v -> v)  & iTask v 
+                        | E.v: UpdateSharedAs (a -> v) (a v -> b) (v v -> v)  & iTask v 
 
 //Selection in arbitrary containers (explicit identification is needed)
 :: SelectOption c s     = SelectInDropdown   (c -> [String])     (c [Int] -> [s])

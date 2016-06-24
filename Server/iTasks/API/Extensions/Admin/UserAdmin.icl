@@ -108,7 +108,7 @@ updateUserFlow userId
 			>>*	[ OnAction ActionCancel (always (return account))
 				, OnAction ActionOk (hasValue (\newAccount ->
 												set (Just newAccount) (userAccount userId)
-											>>=	viewInformation "User updated" [ViewWith (\(Just {UserAccount|title}) -> "Successfully updated " +++ fromMaybe "Untitled" title)]
+											>>=	viewInformation "User updated" [ViewAs (\(Just {UserAccount|title}) -> "Successfully updated " +++ fromMaybe "Untitled" title)]
 											>>| return newAccount
 											))
 				])
@@ -123,7 +123,7 @@ deleteUserFlow userId
 			=	viewInformation "Delete user" [] ("Are you sure you want to delete " +++ accountTitle account +++ "? This cannot be undone.")
 			>>*	[ OnAction ActionNo	(always (return account))
 				, OnAction ActionYes (always (deleteUser userId
-									>>|	viewInformation "User deleted" [ViewWith (\account -> "Successfully deleted " +++ accountTitle account +++ ".")] account
+									>>|	viewInformation "User deleted" [ViewAs (\account -> "Successfully deleted " +++ accountTitle account +++ ".")] account
 									>>| return account
 									))
 				]

@@ -156,7 +156,7 @@ where
 
 manageSession :: !(SharedTaskList ClientPart) -> Task ClientPart
 manageSession list
-	=	(viewSharedInformation () [ViewWith view] currentUser	
+	=	(viewSharedInformation () [ViewAs view] currentUser	
 			>>* [OnAction (Action "Shutdown" [ActionIcon "close"])	(always (shutDown @! Nothing))
 				,OnAction (Action "Log out" [ActionIcon "logout"])	(always (return (Just Logout)))
 				]															
@@ -200,7 +200,7 @@ where
 
 viewWorkflowDetails :: !(ReadOnlyShared (Maybe Workflow)) -> Task Workflow
 viewWorkflowDetails sel
-	= viewSharedInformation [Att (Title "Task description"), Att IconView] [ViewWith view] sel
+	= viewSharedInformation [Att (Title "Task description"), Att IconView] [ViewAs view] sel
 	@? onlyJust
 where
 	view = fmap (\wf -> Note wf.Workflow.description)

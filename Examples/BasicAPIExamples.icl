@@ -180,7 +180,7 @@ viewCurDateTime = viewSharedInformation "The current date and time is:" [] curre
 
 import iTasks.API.Extensions.Clock
 viewTime :: Task Time
-viewTime = viewSharedInformation "The current time is:" [ViewWith AnalogClock] currentTime
+viewTime = viewSharedInformation "The current time is:" [ViewAs AnalogClock] currentTime
 
 personStore :: Shared [MyPerson]
 personStore = sharedStore "Persons" []
@@ -219,8 +219,8 @@ where
 	lineE state
 		=	updateSharedInformation ("Lines","Edit lines") [listEditor] state
 
-	noteEditor = UpdateWith (\txt -> Note txt) (\_ (Note txt) -> txt)
-	listEditor = UpdateWith (split "\n") (\_ l -> join "\n" l)
+	noteEditor = UpdateAs (\txt -> Note txt) (\_ (Note txt) -> txt)
+	listEditor = UpdateAs (split "\n") (\_ l -> join "\n" l)
 
 browseAndViewGoogleMap :: Task GoogleMap
 browseAndViewGoogleMap = withShared defaultValue (\smap -> updateSharedInformation "Browse Map" [] smap 
@@ -371,8 +371,8 @@ derive class iTask MySum
 calculateSum2 :: Task Int
 calculateSum2
   = 				updateInformation ("Sum of 2 numbers, with view","") 
-  						[UpdateWith (\(i,j) -> {firstNumber = i, secondNumber = j, sum = Display (i+j)}) 
-  						            (\_ res -> (res.firstNumber,res.secondNumber))] (0,0)
+  						[UpdateAs (\(i,j) -> {firstNumber = i, secondNumber = j, sum = Display (i+j)}) 
+  						          (\_ res -> (res.firstNumber,res.secondNumber))] (0,0)
   	>>= \(i,j) -> 	return (i+j)
 
 //
@@ -389,7 +389,7 @@ coffeemachine
 
 getCoins :: EUR (String,EUR) -> Task (String,EUR)
 getCoins paid (product,toPay) 
-	= 				viewInformation "Coffee Machine" [ViewWith view1] toPay
+	= 				viewInformation "Coffee Machine" [ViewAs view1] toPay
 					||-		
 					enterChoice  ("Insert coins","Please insert a coin...") [ChooseFromCheckGroup id] coins
 			>>*		[ OnAction ActionCancel 		(always (stop ("Cancelled",paid)))
@@ -402,7 +402,7 @@ where
 	| toPay > coin	= getCoins (paid+coin) (product, toPay-coin)
 	| otherwise		= stop (product,coin-toPay)
 	
-	stop (product, money) = viewInformation "Coffee Machine" [ViewWith view2] (product,money)
+	stop (product, money) = viewInformation "Coffee Machine" [ViewAs view2] (product,money)
 
 	view1 toPay 		   = [(DivTag [] [Text ("Chosen product: " <+++ product), BrTag [], Text ("To pay: " <+++ toPay)])]
 	view2 (product,money)  = [(DivTag [] [Text ("Chosen product: " <+++ product), BrTag [], Text ("Money returned: " <+++ money)])]
@@ -417,7 +417,7 @@ calculator :: Task Int
 calculator = calc initSt
 where
 	calc st
-	= 		viewInformation "Calculator" [ViewWith Display] st
+	= 		viewInformation "Calculator" [ViewAs Display] st
 		>>* [ OnAction (Action "7" []) (always (updateDigit 7 st)) 
 			, OnAction (Action "8" []) (always (updateDigit 8 st))
 			, OnAction (Action "9" []) (always (updateDigit 9 st))
@@ -476,7 +476,7 @@ editWithStatistics
 											
 editFile :: String (Shared String) (SharedTaskList ()) -> Task ()
 editFile fileName sharedFile _
- =						updateSharedInformation ("edit " +++ fileName) [UpdateWith toV fromV] sharedFile
+ =						updateSharedInformation ("edit " +++ fileName) [UpdateAs toV fromV] sharedFile
  	@!					()
 where
 	toV text 			= Note text
@@ -489,7 +489,7 @@ where
  				>>*		[ OnAction (Action "/File/Show Statistics" []) (always showStat)
  						]
 	showStat :: Task ()
-	showStat =			viewSharedInformation "Statistics:" [ViewWith stat] sharedFile
+	showStat =			viewSharedInformation "Statistics:" [ViewAs stat] sharedFile
  				>>*		[ OnAction (Action "/File/Hide Statistics" []) (always noStat)
  						]
 
@@ -537,7 +537,7 @@ where
 			(you @: chat me (toView o switch) (\a v -> switch (fromView a v)) notes)
 
 	chat who toView fromView notes
-		= 			updateSharedInformation ("Chat with " <+++ who) [UpdateWith toView fromView] notes
+		= 			updateSharedInformation ("Chat with " <+++ who) [UpdateAs toView fromView] notes
 			>>*		[OnAction (Action "Stop" []) (always (return ()))]
 
 	toView   (me,you) 							= (Display you, Note me)
@@ -657,9 +657,9 @@ where
 
 tictactoe_for_1 :: !Bool !(Shared TicTacToe) -> Task User
 tictactoe_for_1 my_turn sharedGameSt
-	= (viewSharedInformation "Board:" [ViewWith (\gameSt -> viewBoard (42,42) gameSt)] sharedGameSt) ||- play
+	= (viewSharedInformation "Board:" [ViewAs (\gameSt -> viewBoard (42,42) gameSt)] sharedGameSt) ||- play
 where
-	play= (updateSharedInformation "Play:" [UpdateWith Hidden (\gameSt _ -> gameSt)] sharedGameSt)
+	play= (updateSharedInformation "Play:" [UpdateAs Hidden (\gameSt _ -> gameSt)] sharedGameSt)
 	      >>* [ OnValue (ifValue game_over declare_winner)
               , OnValue (ifValue on_turn   make_a_move)
               ]

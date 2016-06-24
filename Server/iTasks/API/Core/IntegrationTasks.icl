@@ -83,7 +83,7 @@ where
 				= (Ok change, iworld)
 			(Error e,iworld) = (Error e,iworld)
 						
-	makeView [ViewWith viewFun] status taskId iworld
+	makeView [ViewAs viewFun] status taskId iworld
 		= makeEditor (Display (viewFun status),newFieldMask) taskId iworld
 	makeView _ status taskId iworld
 		= makeEditor (Display (defaultViewFun status),newFieldMask) taskId iworld

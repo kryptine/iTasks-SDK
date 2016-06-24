@@ -17,28 +17,30 @@ import iTasks.UI.Layout, iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Bu
 derive class iTask ChoiceGrid, ChoiceNode
 
 enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
-enterInformation d [EnterWith fromf:_]
+enterInformation d [EnterAs fromf:_]
 	= interact d Enter null (const ((),defaultValue)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) Nothing @ (\((),v) -> fromf v) 
-enterInformation d _ = enterInformation d [EnterWith id]
+enterInformation d [EnterUsing fromf editor:_]
+	= interact d Enter null (const ((),defaultValue)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) (Just editor) @ (\((),v) -> fromf v) 
+enterInformation d _ = enterInformation d [EnterAs id]
 
 updateInformation :: !d ![UpdateOption m m] m -> Task m | toPrompt d & iTask m
-updateInformation d [UpdateWith tof fromf:_] m
+updateInformation d [UpdateAs tof fromf:_] m
 	= interact d Update null (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing))
 		Nothing @ (\((),v) -> fromf m v)
 updateInformation d [UpdateUsing tof fromf editor:_] m
 	= interact d Update null (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing))
 		(Just editor) @ (\((),v) -> fromf m v)
-updateInformation d _ m = updateInformation d [UpdateWith (\l -> l) (\_ v -> v)] m
+updateInformation d _ m = updateInformation d [UpdateAs (\l -> l) (\_ v -> v)] m
 
 viewInformation :: !d ![ViewOption m] !m -> Task m | toPrompt d & iTask m
-viewInformation d [ViewWith tof:_] m 
+viewInformation d [ViewAs tof:_] m 
 	= interact d View null (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) Nothing @! m
 viewInformation d [ViewUsing tof editor:_] m
 	= interact d View null (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) (Just editor) @! m
-viewInformation d _ m = viewInformation d [ViewWith id] m
+viewInformation d _ m = viewInformation d [ViewAs id] m
 
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r & iTask w
-updateSharedInformation d [UpdateWith tof fromf:_] shared
+updateSharedInformation d [UpdateAs tof fromf:_] shared
 	= interact d Update shared (\r -> (r, tof r))
 				(\v l _ -> (l,v,Just (\r -> fromf r v)))
 				(\r _ v -> (r,tof r,Nothing))
@@ -50,7 +52,7 @@ updateSharedInformation d [UpdateUsing tof fromf editor:_] shared
 				(\r _ v -> (r,tof r,Nothing))
 				(Just editor) @ fst
 
-updateSharedInformation d [UpdateWithShared tof fromf conflictf:_] shared
+updateSharedInformation d [UpdateSharedAs tof fromf conflictf:_] shared
 	= interact d Update shared (\r -> (r,tof r))
 				(\v l _ -> (l,v,Just (\r -> fromf r v)))
 				(\r _ v -> (r,conflictf (tof r) v, Nothing))
@@ -60,21 +62,24 @@ updateSharedInformation d _ shared
 	//Use dynamics to test if r == w, if so we can use an update view	
 	//If different types are used we just display the read type r 
 	= case dynamic id :: A.a: (a -> a) of
-		(rtow :: r^ -> w^)
-			= updateSharedInformation d [UpdateWith rtow (\_ v -> v)] shared 
-		_
-			= viewSharedInformation d [] shared
+		(rtow :: r^ -> w^) = updateSharedInformation d [UpdateAs rtow (flip const)] shared 
+		_                  = viewSharedInformation d [] shared
 
 viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r
-viewSharedInformation d [ViewWith tof:_] shared
+viewSharedInformation d [ViewAs tof:_] shared
 	= interact d View shared (\r -> (r,tof r))
 				(\v l _ -> (l,v,Nothing))
 				(\r _ v -> (r,tof r,Nothing)) 
 				Nothing @ fst
-viewSharedInformation d _ shared = viewSharedInformation d [ViewWith id] shared
+viewSharedInformation d [ViewUsing tof editor:_] shared
+	= interact d View shared (\r -> (r,tof r))
+				(\v l _ -> (l,v,Nothing))
+				(\r _ v -> (r,tof r,Nothing)) 
+				(Just editor) @ fst
+viewSharedInformation d _ shared = viewSharedInformation d [ViewAs id] shared
 
 updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | toPrompt d & iTask r & iTask m
-updateInformationWithShared d [UpdateWith tof fromf:_] shared m
+updateInformationWithShared d [UpdateAs tof fromf:_] shared m
 	= interact d Update shared (\r -> ((r,m),tof (r,m)))
 				(\v (r,m) _ -> let nm = fromf (r,m) v in ((r,nm),v,Nothing))
 				(\r (_,m) v -> ((r,m),tof (r,m),Nothing))
@@ -292,7 +297,7 @@ where
 
 wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r
 wait desc pred shared
-	=	viewSharedInformation desc [ViewWith (const "Waiting for information update")] shared
+	=	viewSharedInformation desc [ViewAs (const "Waiting for information update")] shared
 	>>* [OnValue (ifValue pred return)]
 	
 waitForTime :: !Time -> Task Time
@@ -316,7 +321,7 @@ chooseAction actions
 	>>* [OnAction action (always (return val)) \\ (action,val) <- actions]
 
 viewTitle :: !a -> Task a | iTask a
-viewTitle a = viewInformation (Title title) [ViewWith view] a
+viewTitle a = viewInformation (Title title) [ViewAs view] a
 where
 	title = toSingleLineText a
 	view a	= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text title]]
