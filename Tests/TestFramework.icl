@@ -74,8 +74,12 @@ testFullSuite suite=:{TestSuite|tests=tests}
 	= allTasks [(testInteractive t) <<@ Title t.InteractiveTest.name \\ InteractiveTest t <- tests] <<@ ArrangeWithTabs
 
 //UTILITY TASKS
-testEditors :: String -> Task a | iTask a
-testEditors typeName
+testEditor :: (Editor a) a EditMode -> Task a | iTask a
+testEditor editor model mode
+	= interact "Editor test" mode null (const ((),model)) (\v l _ -> (l,v,Nothing)) (\_ l v -> (l,v,Nothing)) (Just editor) @ snd
+
+testCommonInteractions :: String -> Task a | iTask a
+testCommonInteractions typeName
 	= 	 enterInformation ("Enter","Enter information of type " +++ typeName) []
 	-||- updateInformation ("Update","Update default value of type " +++ typeName) [] defaultValue
 	-||- (withShared defaultValue

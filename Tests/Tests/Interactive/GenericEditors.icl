@@ -1,9 +1,9 @@
-implementation module Tests.Interactive.CoreEditors
+implementation module Tests.Interactive.GenericEditors
 
 import iTasks, TestFramework
 
-testCoreEditors :: TestSuite
-testCoreEditors = testsuite "Core editors" "These tests check if editors for the core data types work"
+testGenericEditors :: TestSuite
+testGenericEditors = testsuite "Generic editors" "These tests check if generic editors for standard types work"
 	[testString,testChar,testInt,testReal,testBool
 	,testADTSingleConsOne,testADTSingleConsMulti,testADTMultiCons
 	,testSingleRecord,testNestedRecord,testOptionalRecord,testIntList
@@ -12,27 +12,27 @@ testCoreEditors = testsuite "Core editors" "These tests check if editors for the
 testString = itest "String" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
 where
 	tut :: Task String
-	tut = testEditors "String"
+	tut = testCommonInteractions "String"
 
 testChar = itest "Char" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
 where
 	tut :: Task Char
-	tut = testEditors "Char"
+	tut = testCommonInteractions "Char"
 
 testInt = itest "Int" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
 where
 	tut :: Task Int
-	tut = testEditors "Int"
+	tut = testCommonInteractions "Int"
 
 testReal = itest "Real" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
 where
 	tut :: Task Real
-	tut = testEditors "Real"
+	tut = testCommonInteractions "Real"
 
 testBool = itest "Bool" "Check if the editors behave 'normally'" "You should be able to edit in all editors" tut
 where
 	tut :: Task Bool
-	tut = testEditors "Bool"
+	tut = testCommonInteractions "Bool"
 
 :: ADTSingleCons = ADTSingleCons Int
 derive class iTask ADTSingleCons
@@ -40,7 +40,7 @@ derive class iTask ADTSingleCons
 testADTSingleConsOne = itest "Single Constructor" "Check the behavior of the editors" "The editors should behave as a normal Int editor" tut
 where
 	tut :: Task ADTSingleCons
-	tut = testEditors "ADTSingleCons"
+	tut = testCommonInteractions "ADTSingleCons"
 
 :: ADTSingleConsMulti = ADTSingleConsMulti Int String
 derive class iTask ADTSingleConsMulti
@@ -48,7 +48,7 @@ derive class iTask ADTSingleConsMulti
 testADTSingleConsMulti = itest "Single Constructor Multi" "Check the behavior of the editors" "You should have an Int editor and a String editor" tut
 where
 	tut :: Task ADTSingleConsMulti
-	tut = testEditors "ADTSingleConsMulti"
+	tut = testCommonInteractions "ADTSingleConsMulti"
 
 :: ADTMultiCons
 	= ADTMultiConsNone
@@ -63,7 +63,7 @@ testADTMultiCons = itest "Multiple Constructor" "Check the behavior of the edito
 	) tut
 where
 	tut :: Task ADTMultiCons
-	tut = testEditors "ADTMultiCons"
+	tut = testCommonInteractions "ADTMultiCons"
 
 :: TwoFieldRecord =
 	{ first 	:: Int
@@ -74,7 +74,7 @@ derive class iTask TwoFieldRecord
 testSingleRecord = itest "Record" "Check the behavior of the editors" "You should see editors for a record with an Int and a String field" tut
 where
 	tut :: Task TwoFieldRecord
-	tut = testEditors "TwoFieldRecord"
+	tut = testCommonInteractions "TwoFieldRecord"
 
 :: NestedRecord =
 	{ firstTwo 	:: TwoFieldRecord
@@ -87,20 +87,19 @@ testNestedRecord = itest "Nested Record" "Check the behavior of the editors"
 	+++ "And as second field a Bool") tut
 where
 	tut :: Task NestedRecord
-	tut = testEditors "NestedRecord"
+	tut = testCommonInteractions "NestedRecord"
 
 testOptionalRecord = itest "Optional Record" "Check the behavior of the editors"
 	("You should see an editor for a record with two fields, an Int and a String field.\n"
 	+++ "The record should start with a checkbox that allows you to enable the record") tut
 where
 	tut :: Task (Maybe TwoFieldRecord)
-	tut = testEditors "Optional record"
+	tut = testCommonInteractions "Optional record"
 
 
 testIntList = itest "Standard Int list" "Check the behavior of the editors"
 	"You should see an editor for a list of integers" tut
 where
 	tut :: Task [Int]
-	tut = testEditors "Int list"
-
+	tut = testCommonInteractions "Int list"
 

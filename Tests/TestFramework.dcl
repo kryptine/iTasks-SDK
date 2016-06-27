@@ -81,11 +81,20 @@ skip :: String -> Test
 testsuite :: String String [Test] -> TestSuite
 
 /**
+* Test a specific editor
+*
+* @param The editor to test
+* @param The model value that the editor edits
+* @param Edit mode to test (View,Enter,Update)
+*/
+testEditor :: (Editor a) a EditMode -> Task a | iTask a
+
+/**
 * A generic test rig for testing the different editor variants for a type
 *
 * @param The name of the type to test (e.g. "Int" or "MyADT"
 */
-testEditors :: String -> Task a | iTask a
+testCommonInteractions :: String -> Task a | iTask a
 
 /**
 * Choose a suite test suite and run all tests

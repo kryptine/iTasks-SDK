@@ -4,13 +4,14 @@ module InteractiveTests
 * be checked interactively by a human tester.
 */
 import iTasks, TestFramework
-import Tests.Interactive.CoreEditors
+import Tests.Interactive.BuiltinEditors
+import Tests.Interactive.GenericEditors
 import Tests.Interactive.Layout
 import Tests.Interactive.Editlets
 
 import Tests.Common.MinimalTasks
 
-suites = [testCoreEditors,testLayout,testEditlets]
+suites = [testBuiltinEditors,testGenericEditors,testLayout,testEditlets]
 
 Start w = startEngine [publish "/" (\_ -> runTests suites)
 					  ,publishWithoutLayout "/minimal-suites"  (\_ -> runTests suites)
