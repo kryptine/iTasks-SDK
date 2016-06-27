@@ -71,6 +71,7 @@ toReadOnly sds = sdsProject (SDSLensRead Ok) SDSNoWrite sds
 toDynamic :: !(RWShared p r w) -> (RWShared p Dynamic Dynamic) | iTask p & TC r & TC w //FIXME: Use 1 lens directly
 toDynamic sds = mapRead (\r -> (dynamic r :: r^)) (mapWrite (\(w :: w^) _ -> Just w) sds) 
 
+// START DEPRECATED
 (>+<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) (wx,wy) | iTask p
 (>+<) sds1 sds2 = sdsParallel ">+<" (\p -> (p,p)) id (SDSWriteConst write1) (SDSWriteConst write2) sds1 sds2
 where
@@ -85,6 +86,19 @@ where
 
 (|+|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) () | iTask p
 (|+|) srcX srcY = toReadOnly (srcX >+< srcY)
+// END DEPRECATED
+
+(>*<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) (wx,wy)     | iTask p
+(>*<) l r = l >+< r
+
+(>*|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wx          | iTask p
+(>*|) l r = l >+| r
+
+(|*<) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) wy          | iTask p
+(|*<) l r = l |+< r
+
+(|*|) infixl 6 :: !(RWShared p rx wx) !(RWShared p ry wy) -> RWShared p (rx,ry) ()          | iTask p
+(|*|) l r = l |+| r
 
 symmetricLens :: !(a b -> b) !(b a -> a) !(RWShared p a a) !(RWShared p b b) -> (!RWShared p a a, !RWShared p b b) | iTask p
 symmetricLens putr putl sharedA sharedB = (newSharedA,newSharedB)
