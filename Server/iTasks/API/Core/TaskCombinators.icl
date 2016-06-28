@@ -64,7 +64,7 @@ where
 				Nothing = (result, iworld)
 			Error e = (ExceptionResult e, iworld)
 
-step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTask a & iTask b
+step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC a & JSONDecode{|*|} a & JSONEncode{|*|} a
 step (Task evala) lhsValFun conts = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld

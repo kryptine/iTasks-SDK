@@ -47,7 +47,7 @@ project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) !(Task a) -> Task 
 *
 *	@return The combined task
 */
-step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTask a & iTask b
+step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC a & JSONDecode{|*|} a & JSONEncode{|*|} a
 
 :: TaskCont a b
     =       OnValue             ((TaskValue a)  -> Maybe b)
