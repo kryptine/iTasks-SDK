@@ -15,7 +15,7 @@ from Data.Map import :: Map
 from Data.Set import :: Set
 from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
 from iTasks.API.Core.Types import class TMonad, class TApplicative, class TFunctor
-from Data.Functor import class Functor (..), <$>, <$, $>
+import Data.Functor
 
 from System.IO import :: IO
 

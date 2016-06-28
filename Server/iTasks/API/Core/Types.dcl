@@ -17,7 +17,7 @@ from Data.Void import :: Void
 from Data.Either import :: Either
 from System.FilePath import :: FilePath
 from Text.HTML import :: HtmlTag, :: HtmlAttr
-from Data.Functor import class Functor (..), <$>, <$, $>
+import Data.Functor
 from Data.Error import :: MaybeError
 from System.File import :: FileError
 from System.OSError import :: OSError, :: OSErrorMessage, :: OSErrorCode
