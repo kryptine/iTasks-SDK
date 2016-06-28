@@ -22,7 +22,7 @@ from iTasks.API.Common.SDSCombinators   import sdsFocus, sdsSplit, sdsTranslate,
 derive class iTask ParallelTaskType, AttachmentStatus
 derive gEq ParallelTaskChange
 
-transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTask b 
+transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b
 transform f (Task evala) = Task eval
 where
 	eval event evalOpts tree iworld = case evala event evalOpts tree iworld of

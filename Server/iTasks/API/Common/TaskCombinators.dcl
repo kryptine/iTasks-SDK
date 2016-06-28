@@ -79,7 +79,7 @@ tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 *
 * @gin False
 */
-(@?) infixl 1 :: !(Task a) !((TaskValue a) -> TaskValue b) -> Task b | iTask a & iTask b
+(@?) infixl 1 :: !(Task a) !((TaskValue a) -> TaskValue b) -> Task b
 /**
 * Infix shorthand for transform combinator which only deals which transforms valid results
 * 
@@ -89,7 +89,7 @@ tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 *
 * @gin False
 */
-(@) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
+(@) infixl 1 :: !(Task a) !(a -> b) -> Task b
 /**
 * Infix shorthand for transform combinator which maps results to a constant value
 * Stability of the task is propagated from the original value
@@ -98,7 +98,7 @@ tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 * @param The constant task value
 * @return The transformed task
 */
-(@!) infixl 1 :: !(Task a) !b -> Task b | iTask a & iTask b
+(@!) infixl 1 :: !(Task a) !b -> Task b
 /**
 * Infix shorthand for project combinator
 * 

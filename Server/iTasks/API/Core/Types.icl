@@ -1259,6 +1259,10 @@ where
 	fmap f (NoValue)		= NoValue
 	fmap f (Value v s)		= Value (f v) s
 
+instance Functor Task
+where
+	fmap f t = t @ f
+
 //Task id
 
 instance toString TaskId

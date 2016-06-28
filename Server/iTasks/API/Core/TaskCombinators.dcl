@@ -18,7 +18,7 @@ derive class iTask ParallelTaskType, AttachmentStatus
 *
 * @return The transformed task
 */
-transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTask b 
+transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b
 
 /**
 * Projects the result of a task in a share when its result changes.

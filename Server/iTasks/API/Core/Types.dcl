@@ -404,6 +404,7 @@ StableValue   a :== Value a True
 UnstableValue a :== Value a False
 
 instance Functor TaskValue
+instance Functor Task
 			
 :: TaskTime			:== Int
 
