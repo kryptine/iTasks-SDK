@@ -1,5 +1,6 @@
 implementation module TestFramework
 import iTasks, StdFile
+import iTasks.API.Extensions.Image
 import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
 import iTasks._Framework.Serialization
 import Text.HTML
@@ -92,10 +93,10 @@ testCommonInteractions typeName
 		 )
 
 runTests :: [TestSuite] -> Task ()
-runTests suites =
-    (   editSelection (Title "Select test") False (SelectInTree toTree selectTest) suites [] @? tvHd
+runTests suites = application (WebImage "/testbench.png")
+    ((   editSelection (Title "Select test") False (SelectInTree toTree selectTest) suites [] @? tvHd
 	>&> withSelection (viewInformation () [] "Select a test") testInteractive
-    ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
+    ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ())
 where
 	toTree suites = reverse (snd (foldl addSuite (0,[]) suites))
 	addSuite (i,t) {TestSuite|name,tests}
@@ -110,6 +111,9 @@ where
 		| idx >= 0  = [(flatten [[t \\ InteractiveTest t <- s.TestSuite.tests] \\ s <- suites]) !! idx]
 		| otherwise = []
 	selectTest _ _ = []
+
+	application header mainTask
+		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False
 
 runUnitTests :: [TestSuite] *World -> *(!TestReport,!*World)
 runUnitTests suites world = foldr runSuite ([],world) suites
