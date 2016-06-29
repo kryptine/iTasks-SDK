@@ -27,17 +27,22 @@ itasks.HtmlView = {
 };
 itasks.ProgressBar = {
     domTag: 'progress',
+	width: 'flex',
     initDOMEl: function() {
         var me = this,
             el = this.domEl;
 
         el.innerHTML = me.text;
+		el.min = 0;
         el.max = 100;
         if(typeof me.value == 'number') {
-            el.value = me.value * 100;
+            el.value = me.value;
         }
     },
-    setValue: function(value) {
-        this.domEl.value = value * 100;
-    }
+	onAttributeChange:function(name,value) {
+		switch(name) {
+			case 'value': this.domEl.value = value; break;
+			case 'text': this.domEl.innerHTML = value; break;
+		}
+	}
 };

@@ -521,7 +521,7 @@ derive class iTask	FileError
 gText{|Scale|}	_ (Just {Scale|cur}) = [toString cur]
 gText{|Scale|}	_ _                  = [""]
 
-gEditor{|Scale|} = liftEditor toSlider fromSlider slider
+gEditor{|Scale|} = liftEditor toSlider fromSlider (slider 1 5)
 where
 	toSlider {Scale|cur} = cur
 	fromSlider cur = {Scale|min=1,cur=cur,max=5}

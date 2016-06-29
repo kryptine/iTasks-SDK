@@ -10,7 +10,7 @@ testBuiltinEditors :: TestSuite
 testBuiltinEditors = testsuite "Builtin editors" "These tests check if the builtin editors work"
 	[testTextField,testTextArea,testPasswordField
 	,testIntegerField,testDecimalField,testDocumentField
-	,testCheckbox,testSlider,testLabel,testIcon
+	,testCheckbox,testSlider,testButton,testLabel,testIcon
 	,testTextView,testHtmlView,testProgressBar
 	,testDropdown,testCheckGroup,testChoiceList,testGrid,testTree
 	]
@@ -53,7 +53,12 @@ where
 testSlider = itest "Slider" "Check if the slider is ok" "You should be able to edit" tut
 where
 	tut :: Task Int
-	tut = testEditor slider 3 Update
+	tut = testEditor (slider 1 5) 3 Update
+
+testButton = itest "Button" "Check if the button is ok" "You should be able to edit" tut
+where
+	tut :: Task Bool
+	tut = testEditor (button "Click") False Update
 
 testLabel = itest "Label" "Check if the label looks ok" "You cannot edit a label" tut
 where
@@ -62,8 +67,8 @@ where
 
 testIcon = itest "Icon" "Check if the icon looks ok" "You cannot edit an icon" tut
 where
-	tut :: Task String
-	tut = testEditor icon "warning" Update
+	tut :: Task (String,Maybe String)
+	tut = testEditor icon ("icon-valid",Just "Icon with a tooltip!") Update
 
 testTextView = itest "Text view" "Check if text looks ok" "You cannot edit a text view" tut
 where
@@ -77,8 +82,8 @@ where
 
 testProgressBar = itest "Progress bar" "Check if hte progress bar looks ok" "You cannot edit the progress" tut
 where
-	tut :: Task Int
-	tut = testEditor progressBar 90 Update
+	tut :: Task (Maybe Int,Maybe String)
+	tut = testEditor progressBar (Just 90,Just "Almost done") Update
 
 testDropdown = itest "Dropdown" "Check if the dropdown works" "You should be able to edit" tut
 where

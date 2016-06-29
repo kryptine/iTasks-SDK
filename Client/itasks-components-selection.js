@@ -235,11 +235,13 @@ itasks.Tree = {
         }
         label.innerHTML = option.text;
         label.addEventListener('click',function(e) {
+				me.setValue([option.value]);
                 me.doEditEvent(me.taskId,me.editorId,["sel",option.value,true]);
         },me);
 
         if(me.doubleClickAction) {
             label.addEventListener('dblclick',function(e) {
+				me.setValue([option.value]);
                 me.doEditEvent(me.taskId,me.editorId,["sel",option.value,true]);
                 me.doEditEvent(me.doubleClickAction[0],null,me.doubleClickAction[1]);
 
@@ -274,6 +276,7 @@ itasks.Tree = {
     },
     setValue: function(value) {
         var me = this;
+
         me.selection.forEach(function(idx) {
             me.nodes[idx].classList.remove(me.cssPrefix + 'selected');
         });

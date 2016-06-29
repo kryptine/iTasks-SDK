@@ -6,34 +6,37 @@ import Data.Error, Text.JSON, Text.HTML
 import qualified Data.Map as DM
 
 textField :: Editor String
-textField = fieldComponent toJSON UITextField
+textField = fieldComponent [] toJSON UITextField
 
 integerField :: Editor Int
-integerField = fieldComponent toJSON UIIntegerField
+integerField = fieldComponent [] toJSON UIIntegerField
 
 decimalField :: Editor Real
-decimalField = fieldComponent toJSON UIDecimalField
+decimalField = fieldComponent [] toJSON UIDecimalField
 
 documentField :: Editor Document
-documentField = fieldComponent toJSON UIDocumentField
+documentField = fieldComponent [] toJSON UIDocumentField
 
 passwordField :: Editor String
-passwordField = fieldComponent toJSON UIPasswordField
+passwordField = fieldComponent [] toJSON UIPasswordField
 
 textArea :: Editor String
-textArea = fieldComponent toJSON UITextArea
+textArea = fieldComponent [] toJSON UITextArea
 
 checkBox :: Editor Bool
-checkBox = fieldComponent toJSON UICheckbox
+checkBox = fieldComponent [] toJSON UICheckbox
 
-slider :: Editor Int
-slider = fieldComponent toJSON UISlider
+slider :: Int Int -> Editor Int
+slider min max = fieldComponent [("min",JSONInt min),("max",JSONInt max)] toJSON UISlider
 
 label :: Editor String
-label = fieldComponent toJSON UILabel
+label = viewComponent (\text -> [("text",JSONString text)]) UILabel
 
-icon :: Editor String
-icon = fieldComponent toJSON UIIcon
+button :: String -> Editor Bool
+button text = fieldComponent [("text",JSONString text)] toJSON UIButton
+
+icon :: Editor (String,Maybe String)
+icon = viewComponent (\(text,tooltip) -> [("iconCls",JSONString text),("tooltip",maybe JSONNull JSONString tooltip)]) UIIcon
 
 dropdown :: Bool -> Editor ([String], [Int])
 dropdown multi = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UIDropdown multi
@@ -67,23 +70,23 @@ where
 		| idx == id = True
 		| otherwise = or (map (checkNode idx) children)
 
-progressBar  :: Editor Int
-progressBar = integerField
+progressBar :: Editor (Maybe Int, Maybe String)
+progressBar = viewComponent (\(amount,text) -> [("value",maybe JSONNull JSONInt amount),("text",maybe JSONNull JSONString text)]) UIProgressBar
 
 textView :: Editor String
-textView = fieldComponent toJSON UITextView
+textView = viewComponent (\text -> [("value",JSONString text)]) UITextView
 
 htmlView :: Editor HtmlTag
-htmlView = fieldComponent (JSONString o toString) UIHtmlView
+htmlView = viewComponent (\html -> [("value",JSONString (toString html))]) UIHtmlView
 
 //Field like components for which simply knowing the UI type is sufficient
-fieldComponent toValue type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+fieldComponent attr toValue type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where 
 	genUI dp val vst=:{VSt|taskId,mode,optional}
 		# val = if (mode =: Enter) JSONNull (toValue val) 
 		# valid = if (mode =: Enter) optional True //When entering data a value is initially only valid if it is optional
 		# mask = FieldMask {touched = False, valid = valid, state = val}
-		# attr = 'DM'.unions [optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr val]
+		# attr = 'DM'.unions ['DM'.fromList attr,optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr val]
 		= (Ok (uia type attr,mask),vst)
 
 	onEdit dp (tp,e) val mask vst=:{VSt|optional}
@@ -96,6 +99,20 @@ where
 	onRefresh dp new old mask vst=:{VSt|mode,optional}
 		| old === new = (Ok (NoChange,mask),new,vst)
 		| otherwise   = (Ok (ChangeUI [SetAttribute "value" (toValue new)] [],mask),new,vst)
+
+//Components which cannot be edited 
+viewComponent toAttributes type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+where
+	genUI dp val vst
+		= (Ok (uia type ('DM'.fromList (toAttributes val)), FieldMask {touched = False, valid = True, state = JSONNull}),vst)
+
+	onEdit dp (tp,e) val mask vst
+		= (Error "Edit event for view component",val,vst)
+
+	onRefresh dp new old mask vst
+		= case [SetAttribute nk nv \\ ((ok,ov),(nk,nv)) <- zip (toAttributes old,toAttributes new) | ok == nk && ov =!= nv] of
+			[] 		= (Ok (NoChange,mask),new,vst)
+			changes = (Ok (ChangeUI changes [],mask),new,vst)
 
 //Choice components that have a set of options
 choiceComponent attr getOptions toOption checkBounds type multi = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}

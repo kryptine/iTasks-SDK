@@ -76,7 +76,9 @@ testFullSuite suite=:{TestSuite|tests=tests}
 //UTILITY TASKS
 testEditor :: (Editor a) a EditMode -> Task a | iTask a
 testEditor editor model mode
-	= interact "Editor test" mode null (const ((),model)) (\v l _ -> (l,v,Nothing)) (\_ l v -> (l,v,Nothing)) (Just editor) @ snd
+	=   (interact "Editor test" mode null (const ((),model)) (\v l _ -> (l,v,Nothing)) (\_ l v -> (l,v,Nothing)) (Just editor) @ snd
+	>&> viewSharedInformation "Editor value" [ViewAs (toString o toJSON)] @? tvFromMaybe
+	) <<@ ApplyLayout (setAttributes (directionAttr Horizontal))
 
 testCommonInteractions :: String -> Task a | iTask a
 testCommonInteractions typeName

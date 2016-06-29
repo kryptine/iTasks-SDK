@@ -4,6 +4,7 @@ definition module iTasks.UI.Editor.Builtin
 * in the client-side UI framework.
 */
 import iTasks.UI.Editor
+from Data.Maybe import :: Maybe
 from Text.HTML import :: HtmlTag
 from iTasks.API.Core.Types import :: Document
 
@@ -18,15 +19,16 @@ integerField  :: Editor Int
 decimalField  :: Editor Real
 documentField :: Editor Document
 checkBox      :: Editor Bool
-slider        :: Editor Int
+slider        :: Int Int -> Editor Int //Min, max
+button        :: String -> Editor Bool
 label         :: Editor String
-icon          :: Editor String
+icon          :: Editor (String,Maybe String)
 
 // ## Display components ##
 // UITextView, UIHtmlView, UIProgressBar
 textView      :: Editor String
 htmlView      :: Editor HtmlTag
-progressBar   :: Editor Int
+progressBar   :: Editor (Maybe Int,Maybe String) //Percentage, description
 
 // ## Selection components ## 
 // UIDropdown, UIRadioGroup, UICheckboxGroup, UIChoiceList, UIGrid, UITree

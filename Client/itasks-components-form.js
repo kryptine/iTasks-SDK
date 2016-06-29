@@ -226,14 +226,20 @@ itasks.Slider = {
         var me = this,
             el = this.domEl;
         el.type = 'range';
-        el.min = me.minValue | 0;
-        el.max = me.maxValue | 10;
+        el.min = me.min;
+        el.max = me.max;
         el.value = me.value;
 
         el.addEventListener('change',function(e) {
             me.doEditEvent(me.taskId,me.editorId, (e.target.value | 0),true);
         });
-    }
+    },
+	onAttributeChange: function(name,value) {
+		var me = this;
+		if(name == 'value') {
+        	me.domEl.value = value;
+		}
+	}
 };
 itasks.Button = {
 	domTag: 'a',
@@ -264,6 +270,9 @@ itasks.Button = {
 			el.appendChild(me.label);
 		}
         el.addEventListener('click',function(e) {
+			if(typeof(me.value) == 'boolean') { //Toggle edit buttons
+				me.value = !me.value;
+			}
             if(me.enabled) {
 				me.doEditEvent(me.taskId,me.editorId,me.value);
             }
