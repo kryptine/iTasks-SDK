@@ -38,16 +38,6 @@ containsInvalidFields :: !EditMask -> Bool
 containsInvalidFields (FieldMask {FieldMask|valid}) = not valid
 containsInvalidFields (CompoundMask ms) = or (map containsInvalidFields ms)
 
-toPairMask :: !Int !EditMask -> EditMask
-toPairMask len mask = split len (subMasks len mask)
-where
-	split 1 [mask] = mask
-	split 2 masks 	= CompoundMask masks
-	split n masks	= CompoundMask [split middle left,split (n - middle) right]
-	where
-		middle = n / 2
-		(left,right) = splitAt middle masks
-
 checkMask :: !EditMask a -> Maybe a
 checkMask mask val
     | isTouched mask    = Just val

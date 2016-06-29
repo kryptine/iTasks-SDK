@@ -66,7 +66,6 @@ editorId 				:: !DataPath 		-> String
 s2dp					:: !String			-> DataPath
 
 subMasks	:: !Int EditMask -> [EditMask]
-toPairMask	:: !Int !EditMask -> EditMask
 isTouched	:: !EditMask -> Bool
 
 containsInvalidFields :: !EditMask -> Bool

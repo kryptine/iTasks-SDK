@@ -84,7 +84,7 @@ where
 	onEdit _ _ val mask vst = (Ok (NoChange,mask),val,vst)
 
 	onRefresh dp (RECORD new) (RECORD old) mask vst 
-		# (change,val,vst) = ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask grd_arity mask) vst
+		# (change,val,vst) = ex.Editor.onRefresh (pairPath grd_arity dp) new old mask vst
 		= (fmap (flattenPairDiff 0 grd_arity) change,RECORD val,vst)
 
 gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
@@ -274,7 +274,7 @@ where
 
 	onRefresh dp (CONS new) (CONS old) mask vst 
 		//Diff all fields of the constructor
-		# (change,val,vst) = ex.Editor.onRefresh (pairPath gcd_arity dp) new old (toPairMask gcd_arity mask) vst 	
+		# (change,val,vst) = ex.Editor.onRefresh (pairPath gcd_arity dp) new old mask vst 	
 		//Flatten the binary tree of ChangeUI constructors created from
 		//the PAIR's into a single ChangeUI constructor
 		= (fmap (flattenPairDiff 0 gcd_arity) change,CONS val,vst)
