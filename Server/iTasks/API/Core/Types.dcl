@@ -8,7 +8,7 @@ from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from Data.Either import :: Either
 from System.FilePath import :: FilePath
 from Text.HTML import :: HtmlTag, :: HtmlAttr
-from Data.Functor import class Functor
+import Data.Functor
 from Data.Error import :: MaybeError
 from System.File import :: FileError
 from System.OSError import :: OSError, :: OSErrorMessage, :: OSErrorCode
@@ -283,6 +283,7 @@ StableValue   a :== Value a True
 UnstableValue a :== Value a False
 
 instance Functor TaskValue
+instance Functor Task
 			
 :: TaskTime			:== Int
 

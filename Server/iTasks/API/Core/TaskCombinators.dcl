@@ -17,7 +17,7 @@ derive class iTask ParallelTaskType, AttachmentStatus
 *
 * @return The transformed task
 */
-transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTask b 
+transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b
 
 /**
 * The generic sequential combinator.
@@ -34,7 +34,7 @@ transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTas
 *
 *	@return The combined task
 */
-step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTask a & iTask b
+step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC a & JSONDecode{|*|} a & JSONEncode{|*|} a
 
 :: TaskCont a b
     =       OnValue             ((TaskValue a)  -> Maybe b)
@@ -70,7 +70,7 @@ appendTask  :: !ParallelTaskType !(ParallelTask a)	!(SharedTaskList a) -> Task T
 /**
 * Removes (and stops) a task from a task list
 */
-removeTask  :: !TaskId								!(SharedTaskList a)	-> Task () | iTask a
+removeTask  :: !TaskId								!(SharedTaskList a)	-> Task ()
 /**
 * Replaces a task in a list and resets its execution state.
 * All meta-data is kept

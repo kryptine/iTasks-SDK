@@ -22,7 +22,7 @@ from iTasks.API.Common.SDSCombinators   import sdsFocus, sdsSplit, sdsTranslate,
 derive class iTask ParallelTaskType, AttachmentStatus
 derive gEq ParallelTaskChange
 
-transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTask b 
+transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b
 transform f (Task evala) = Task eval
 where
 	eval event evalOpts tree iworld = case evala event evalOpts tree iworld of
@@ -30,7 +30,7 @@ where
 		(ExceptionResult e, iworld)				    = (ExceptionResult e, iworld)
 		(DestroyedResult, iworld)					= (DestroyedResult, iworld)
 
-step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | iTask a & iTask b
+step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC a & JSONDecode{|*|} a & JSONEncode{|*|} a
 step (Task evala) lhsValFun conts = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld
@@ -546,7 +546,7 @@ where
         = {TaskEvalInfo|lastEvent=lastEvent,removedTasks=removedTasks,refreshSensitive=refreshSensitive}
     addResult _ i = i
 
-readListId :: (SharedTaskList a) *IWorld -> (MaybeError TaskException TaskId,*IWorld) | iTask a
+readListId :: (SharedTaskList a) *IWorld -> (MaybeError TaskException TaskId,*IWorld)
 readListId slist iworld = case read (sdsFocus taskListFilter slist) iworld of
 	(Ok (listId,_),iworld)	= (Ok listId, iworld)
 	(Error e, iworld)	    = (Error e, iworld)
@@ -589,10 +589,10 @@ where
 /**
 * Removes (and stops) a task from a task list
 */
-removeTask :: !TaskId !(SharedTaskList a) -> Task () | iTask a
+removeTask :: !TaskId !(SharedTaskList a) -> Task ()
 removeTask removeId=:(TaskId instanceNo taskNo) slist = Task eval
 where
-	eval _ evalOpts (TCInit taskId ts) iworld
+    eval _ evalOpts (TCInit taskId ts) iworld
         # (mbListId,iworld) = readListId slist iworld
         | mbListId =:(Error _) = (ExceptionResult (fromError mbListId),iworld)
         # listId = fromOk mbListId

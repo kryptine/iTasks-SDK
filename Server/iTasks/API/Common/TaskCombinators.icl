@@ -33,13 +33,13 @@ tbind taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasVal
 (>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
 (>>^) taska taskb = taska >>= \x -> taskb >>| return x
 
-(@?) infixl 1 :: !(Task a) !((TaskValue a) -> TaskValue b) -> Task b | iTask a & iTask b
+(@?) infixl 1 :: !(Task a) !((TaskValue a) -> TaskValue b) -> Task b
 (@?) task f = transform f task
 
-(@) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
+(@) infixl 1 :: !(Task a) !(a -> b) -> Task b
 (@) task f = transform (fmap f) task
 
-(@!) infixl 1 :: !(Task a) !b -> Task b | iTask a & iTask b
+(@!) infixl 1 :: !(Task a) !b -> Task b
 (@!) task b = transform (fmap (const b)) task
 
 (<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
