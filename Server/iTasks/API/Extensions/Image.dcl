@@ -1,6 +1,6 @@
 definition module iTasks.API.Extensions.Image
 /**
-* This module provides support for displaying (interactive images)
+* This module provides support for displaying (interactive) images
 */
 import iTasks
 
