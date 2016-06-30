@@ -93,7 +93,7 @@ testCommonInteractions typeName
 		 )
 
 runTests :: [TestSuite] -> Task ()
-runTests suites = application (WebImage "/testbench.png")
+runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
     ((   editSelection (Title "Select test") False (SelectInTree toTree selectTest) suites [] @? tvHd
 	>&> withSelection (viewInformation () [] "Select a test") testInteractive
     ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ())

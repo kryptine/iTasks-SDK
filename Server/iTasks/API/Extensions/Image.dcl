@@ -4,8 +4,13 @@ definition module iTasks.API.Extensions.Image
 */
 import iTasks
 
-// Simple web images with just an URL
-:: WebImage = WebImage !String
+// Simple web images 
+:: WebImage = 
+	{ src :: String
+    , alt :: String
+    , width :: Int
+    , height :: Int
+    }
 
 derive gText	        WebImage
 derive gEditor			WebImage
