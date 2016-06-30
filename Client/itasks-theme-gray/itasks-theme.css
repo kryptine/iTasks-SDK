@@ -112,6 +112,20 @@ div.itasks-loader {
   font-style: italic;
   text-align: center; }
 
+div.itasks-loader-spinner {
+  width: 40px;
+  height: 40px;
+  border: 10px solid;
+  border-radius: 100%;
+  border-color: #ccc #ccc #ccc #333;
+  margin: auto auto;
+  animation: itasks-rotation 0.8s infinite linear; }
+
+@keyframes itasks-rotation {
+  from {
+    transform: rotate(0deg); }
+  to {
+    transform: rotate(359deg); } }
 .itasks-vcontainer, .itasks-hcontainer {
   display: flex;
   display: -webkit-flex;

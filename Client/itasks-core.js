@@ -346,9 +346,11 @@ itasks.Component = {
 };
 itasks.Loader = {
 	cssCls: 'loader',
-
 	initDOMEl: function() {
-		this.domEl.innerHTML = "Loading...";
+		var me = this,
+			l = document.createElement('div');
+			l.classList.add(me.cssPrefix + 'loader-spinner');
+		me.domEl.appendChild(l);
 	}
 };
 itasks.Viewport = {
