@@ -418,7 +418,7 @@ ifFun val f def world
 jsIsArray :: !(JSVal a) !*JSWorld -> *(!Bool, !*JSWorld)
 jsIsArray x world
   #! (arr, world) = findObject "Array" world
-  #! (jb, world)  = callObjectMethod "isArray" [] arr world
+  #! (jb, world)  = callObjectMethod "isArray" [toJSArg x] arr world
   = (jsValToBool jb, world)
 
 jsIsNull :: !(JSVal a) -> Bool
