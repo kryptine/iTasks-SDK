@@ -1016,9 +1016,12 @@ itwc.component.itwc_edit_editlet = itwc.extend(itwc.Component,{
         el.innerHTML = me.definition.html;
 
         //Prepare javascript
-        if(me.definition.script != null && me.definition.script != "" && !sapldebug) {
-            evalScript(me.definition.script);
-			delete me.definition.script;
+        if(me.definition.script != null && me.definition.script != "") {
+			if(!sapldebug)
+			{
+				evalScript(me.definition.script);
+				delete me.definition.script;
+			}
 			_dynamic_hijack();					
         }
         if(me.definition.appDiff != null) {
@@ -1225,12 +1228,14 @@ itwc.component.itwc_tasklet = itwc.extend(itwc.Container,{
 			el.innerHTML = me.definition.html;
         }
         // Prepare javascript
-        if(me.definition.script != null && me.definition.script != "" && !sapldebug) {
-            evalScript(me.definition.script);
-			delete me.definition.script;
-			_dynamic_hijack();			
+        if(me.definition.script != null && me.definition.script != "") {
+			if(!sapldebug)
+			{
+				evalScript(me.definition.script);
+				delete me.definition.script;
+			}
+			_dynamic_hijack();					
 		}
-		
 		// Prepare state
 		eval("var tmp = eval(" + me.definition.st + ");");
 		me.definition.st = Sapl.feval(tmp);
