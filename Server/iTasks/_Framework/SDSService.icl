@@ -18,7 +18,7 @@ from StdFunc import o
 import StdString, StdList
 from Data.Map import qualified get, fromList
 from Data.Map import fromList
-import Data.Maybe, Data.Void, Data.Error
+import Data.Maybe, Data.Error
 import Text.URI
 import StdMisc, graph_to_sapl_string
 import Data.Queue
@@ -107,7 +107,7 @@ where
 						   uriPort		= u.uriPort,
 						   uriPath		= "/sds" +++ u.uriPath}
 							
-writeRemoteSDS :: !JSONNode !JSONNode !String !*IWorld -> *(!MaybeErrorString Void, !*IWorld)
+writeRemoteSDS :: !JSONNode !JSONNode !String !*IWorld -> *(!MaybeErrorString (), !*IWorld)
 writeRemoteSDS p val url iworld
 	= case convertURL url (Just p) of
 		(Ok uri) 	= load uri val iworld
@@ -116,7 +116,7 @@ where
 	load uri val iworld
 		# (response, iworld) = httpRequest HTTP_PUT uri (Just (toString val)) iworld
 		= if (isOkResponse response)
-					(Ok Void, iworld)
+					(Ok (), iworld)
 					(Error ("Request failed: "+++response.HTTPResponse.rsp_reason), iworld)
 
 remoteJSONShared :: !String -> JSONShared
@@ -134,7 +134,7 @@ where
             (Error msg, iworld) = (Error (exception msg), iworld)
 	rwrite jsonp jsonw iworld
 		= case writeRemoteSDS jsonp jsonw url iworld of
-			(Ok Void, iworld) = (Ok (const False), iworld)
+			(Ok (), iworld) = (Ok (const False), iworld)
 			(Error msg, iworld) = (Error (exception msg), iworld)
 
 openRemoteSDS :: !String !((Maybe (RWShared p r w)) -> Task a) -> Task a | iTask a & JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w & TC p & TC r & TC w

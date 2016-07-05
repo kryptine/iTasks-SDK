@@ -1,7 +1,6 @@
 definition module iTasks._Framework.IWorld
 
 from System.FilePath		import :: FilePath
-from Data.Void				import :: Void
 from Data.Map				import :: Map
 from Data.Maybe				import :: Maybe
 from Data.Error 			import :: MaybeError(..), :: MaybeErrorString(..)

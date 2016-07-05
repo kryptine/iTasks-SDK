@@ -11,7 +11,7 @@ from Data.Queue						import :: Queue
 
 import iTasks._Framework.Generic
 
-import Data.Maybe, Data.Void, Data.Error, Text.JSON
+import Data.Maybe, Data.Error, Text.JSON
 
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
@@ -21,6 +21,6 @@ sdsService ::   (!(String -> Bool)
 				 )
 
 readRemoteSDS  ::           !JSONNode !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
-writeRemoteSDS :: !JSONNode !JSONNode !String !*IWorld -> *(!MaybeErrorString Void,     !*IWorld)
+writeRemoteSDS :: !JSONNode !JSONNode !String !*IWorld -> *(!MaybeErrorString (),     !*IWorld)
 
 openRemoteSDS :: !String !((Maybe (RWShared p r w)) -> Task a) -> Task a | iTask a & JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w & TC p & TC r & TC w

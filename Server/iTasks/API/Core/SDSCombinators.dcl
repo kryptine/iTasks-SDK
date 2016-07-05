@@ -5,7 +5,6 @@ from iTasks._Framework.Task import :: TaskException
 from iTasks._Framework.Generic import class iTask, generic gEditor, generic gEq, generic gDefault, generic gText, :: TextFormat
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
-from Data.Void import :: Void
 from Data.Maybe import :: Maybe
 from Data.Either import :: Either
 from Data.Error import :: MaybeError, :: MaybeErrorString

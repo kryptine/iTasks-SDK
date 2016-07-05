@@ -1,7 +1,7 @@
 implementation module iTasks._Framework.Generic.Defaults
 
 import StdGeneric, StdFunc
-import Data.Maybe, Data.Either, Data.Error, Data.Void, Data.Map, Text.HTML, Text.JSON, System.Time
+import Data.Maybe, Data.Either, Data.Error, Data.Map, Text.HTML, Text.JSON, System.Time
 
 generic gDefault a :: a
 
@@ -35,7 +35,7 @@ gDefault{|HtmlTag|}		    				    = Html ""
 gDefault{|Map|} fa fb                           = newMap
 
 //SCARY BUG: When 'Map' is derived programs segfault when used in 'update' task on a shared source
-derive gDefault Either, MaybeError, Void, /*Map,*/ JSONNode, Timestamp
+derive gDefault Either, MaybeError, /*Map,*/ JSONNode, Timestamp
 
 defaultValue :: a | gDefault{|*|} a
 defaultValue = gDefault{|*|}

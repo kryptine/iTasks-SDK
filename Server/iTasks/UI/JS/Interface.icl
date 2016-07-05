@@ -3,7 +3,7 @@ implementation module iTasks.UI.JS.Interface
 import iTasks
 
 import StdGeneric, StdString, StdMisc, StdBool, StdEnum, StdTuple, StdList
-import Data.Void, Data.Maybe, Text
+import Data.Maybe, Text
 
 import Control.Applicative
 import qualified Control.Monad as M
@@ -251,9 +251,6 @@ instance ToArgs String where
   toArgs s = [toJSArg s]
 
 instance ToArgs () where
-  toArgs _ = []
-
-instance ToArgs Void where
   toArgs _ = []
 
 instance ToArgs (JSVal a) where

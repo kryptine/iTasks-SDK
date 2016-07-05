@@ -11,7 +11,6 @@ definition module iTasks._Framework.Store
 */
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.Maybe import :: Maybe
-from Data.Void import :: Void
 from Data.Error import :: MaybeError, :: MaybeErrorString
 from System.Time import :: Timestamp
 from System.FilePath import :: FilePath

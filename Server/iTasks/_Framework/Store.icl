@@ -1,7 +1,6 @@
 implementation module iTasks._Framework.Store
 
 import StdEnv
-import Data.Void
 from Data.Map import :: Map
 import qualified Data.Map as DM
 import Data.Maybe, Data.Functor, Data.Error
@@ -90,7 +89,7 @@ where
 	        = (Ok ((==) key),iworld)
 
 //Utility SDS which provides the current build such that higher level stores can check against it
-buildID :: RWShared p BuildID Void
+buildID :: RWShared p BuildID ()
 buildID = createReadWriteSDS "system" "buildID" read write
 where
     read _ iworld=:{server={buildID}} = (Ok buildID,iworld)
@@ -114,7 +113,7 @@ where
 	where
 		storeDesc = namespace +++ "/" +++ key
 
-    write key w = Ok (Just (toString (toJSON w),Void))
+    write key w = Ok (Just (toString (toJSON w), ()))
     notify key w = const True
 
 cachedJSONFileStore :: !StoreNamespace !Bool !Bool !Bool !(Maybe a) -> RWShared StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
