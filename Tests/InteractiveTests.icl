@@ -6,6 +6,7 @@ module InteractiveTests
 import iTasks, TestFramework
 import Tests.Interactive.BuiltinEditors
 import Tests.Interactive.GenericEditors
+import Tests.Interactive.BuiltinContainers
 import Tests.Interactive.Layout
 import Tests.Interactive.Editlets
 
@@ -21,6 +22,7 @@ import Tests.Common.MinimalTasks
 suites = [//Interactive tests
 		  testBuiltinEditors
 		 ,testGenericEditors
+		 ,testBuiltinContainers
  		 ,testLayoutI
 		 ,testEditletsI
 		 //Unit tests

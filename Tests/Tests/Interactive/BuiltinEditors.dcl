@@ -1,6 +1,6 @@
 definition module Tests.Interactive.BuiltinEditors
 /**
-* Tests for the generic editors of standard datatypes
+* Tests for the builtin editors of standard datatypes
 */
 import iTasks, TestFramework
 
