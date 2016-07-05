@@ -2,8 +2,8 @@ implementation module Tests.Interactive.Editlets
 
 import iTasks, TestFramework
 
-testEditlets :: TestSuite
-testEditlets = testsuite "Editlets" "These tests check if the advanced clientside editors (editlets) work correctly"
+testEditletsI :: TestSuite
+testEditletsI = testsuite "Editlets" "These tests check if the advanced clientside editors (editlets) work correctly"
 	[testEditlet
 	,testDashEditlet
     ,testSVGEditlet

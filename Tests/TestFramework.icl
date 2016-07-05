@@ -20,7 +20,6 @@ where
 	pass w = (Passed,w)
 
 //DEFINING TESTS
-
 itest :: String String String (Task a) -> Test | iTask a
 itest name instructions expectation tut
   = InteractiveTest {name=name,instructions = Note instructions, expectation = Note expectation, taskUnderTest = tut @! ()}
@@ -94,14 +93,20 @@ testCommonInteractions typeName
 
 runTests :: [TestSuite] -> Task ()
 runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
-    ((   editSelection (Title "Select test") False (SelectInTree toTree selectTest) suites [] @? tvHd
-	>&> withSelection (viewInformation () [] "Select a test") testInteractive
-    ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ())
+    ( allTasks [runInteractiveTests <<@ Title "Interactive Tests"
+			   ,runUnitTests        <<@ Title "Unit Tests"
+			   ] <<@ ArrangeWithTabs
+    ) @! ()
 where
+	runInteractiveTests
+		= ( editSelection (Title "Select test") False (SelectInTree toTree selectTest) suites [] @? tvHd
+		>&> withSelection (viewInformation () [] "Select a test") testInteractive ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
+
 	toTree suites = reverse (snd (foldl addSuite (0,[]) suites))
 	addSuite (i,t) {TestSuite|name,tests}
+		| isEmpty [t \\ InteractiveTest t <- tests]  = (i,t) //There are no interactive tests in the suite
 		# (i,children) = foldl addTest (i,[]) tests
-		= (i, [{ChoiceNode|id = -1, label=name, expanded=False, icon=Nothing, children=reverse children}:t])
+		= (i, [{ChoiceNode|id = -1 * i, label=name, expanded=False, icon=Nothing, children=reverse children}:t])
 
 	addTest (i,t) (InteractiveTest {InteractiveTest|name})
 		= (i + 1, [{ChoiceNode|id = i, label=name, expanded=False, icon=Nothing, children=[]}:t])
@@ -112,11 +117,31 @@ where
 		| otherwise = []
 	selectTest _ _ = []
 
+	runUnitTests
+		= 	accWorld (runUnitTestsWorld suites)
+		>>- viewInformation () [ViewUsing toHtml htmlView]
+		@! ()
+
+	toHtml results
+		= DivTag [] [suiteHtml res \\ res <- results | not (isEmpty res.testResults)]
+	where
+		suiteHtml {suiteName,testResults}
+			=  DivTag [] [H2Tag [] [Text suiteName]
+						 ,TableTag [StyleAttr "width: 100%"] [headerRow:map resultRow testResults]
+						 ]
+
+		headerRow = TrTag [] [ThTag [] [Text "Test"],ThTag [] [Text "Result"],ThTag [] [Text "Details"]]
+
+		resultRow (test,Passed) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: green"] [Text "Passed"]],TdTag [] []]
+		resultRow (test,Skipped) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: orange"] [Text "Skipped"]],TdTag [] []]
+		resultRow (test,Failed Nothing) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] []]
+		resultRow (test,Failed (Just (Note details))) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [TextareaTag [] [Text details]]]
+
 	application header mainTask
 		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False
 
-runUnitTests :: [TestSuite] *World -> *(!TestReport,!*World)
-runUnitTests suites world = foldr runSuite ([],world) suites
+runUnitTestsWorld :: [TestSuite] *World -> *(!TestReport,!*World)
+runUnitTestsWorld suites world = foldr runSuite ([],world) suites
 where
 	runSuite {TestSuite|name,tests} (report,world)
 		# (testResults,world) = foldr runTest ([],world) [t \\ UnitTest t <- tests]
@@ -160,7 +185,7 @@ where
 
 runUnitTestsJSON :: [TestSuite] *World -> *World
 runUnitTestsJSON suites world
-	# (result,world) 	= runUnitTests suites world
+	# (result,world) 	= runUnitTestsWorld suites world
 	# (console,world)	= stdio world
 	# console 			= fwrites (toString (toJSON result)) console
 	# (_,world)			= fclose console world

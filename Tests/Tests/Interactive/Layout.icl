@@ -1,8 +1,8 @@
 implementation module Tests.Interactive.Layout
 import TestFramework
 
-testLayout :: TestSuite
-testLayout = testsuite "Layout" "Test for layout functions" 
+testLayoutI :: TestSuite
+testLayoutI = testsuite "Layout" "Test for layout functions" 
 	[testWindow,testForeverLoop]
 
 testWindow = itest "Window test" "Press the button" "A window should open" sut

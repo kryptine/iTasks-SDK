@@ -97,22 +97,19 @@ testEditor :: (Editor a) a EditMode -> Task a | iTask a
 testCommonInteractions :: String -> Task a | iTask a
 
 /**
-* Choose a suite test suite and run all tests
+* Run all tests interactively and run all tests
 *
 * @param the list of test suites to choose from
 */
 runTests :: [TestSuite] -> Task ()
 
 /**
-* Run all unit tests from the test suites
-*/
-runUnitTests :: [TestSuite] *World -> *(!TestReport,!*World)
-
-/**
 * Runs the unit tests from the test suites and shows test
 * results on stdout
 */
 runUnitTestsCLI :: [TestSuite] *World -> *World
-
+/**
+* Run all unit tests from the test suites and dump
+*/
 runUnitTestsJSON :: [TestSuite] *World -> *World
 

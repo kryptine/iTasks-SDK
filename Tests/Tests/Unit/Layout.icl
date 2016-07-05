@@ -55,10 +55,10 @@ where
 	exp = ReplaceUI expUI
 
 	//Initial UI	
-	initUI = uic UIPanel [ui UIContainer, ui UIEmpty, uic UIContainer [ui UIEmpty, ui UIViewString ], ui UIAction]
+	initUI = uic UIPanel [ui UIContainer, ui UIEmpty, uic UIContainer [ui UIEmpty, ui UITextView], ui UIAction]
 	initState = JSONNull
 	//Expected final UI
-	expUI = uic UIPanel [ui UIContainer, uic UIContainer [ui UIViewString] ,ui UIAction]
+	expUI = uic UIPanel [ui UIContainer, uic UIContainer [ui UITextView] ,ui UIAction]
 
 	isEmpty (UI type _ _) = type =: UIEmpty
 
@@ -73,7 +73,7 @@ where
 	exp = expChange
 
 	//Initial UI	
-	initChange = ReplaceUI (uic UIPanel [ui UIContainer, ui UIEmpty, uic UIContainer [ui UIEmpty, ui UIViewString ], ui UIAction])
+	initChange = ReplaceUI (uic UIPanel [ui UIContainer, ui UIEmpty, uic UIContainer [ui UIEmpty, ui UITextView ], ui UIAction])
 	initState = JSONNull
 	changeToReRoute = ChangeUI [] [(2,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
@@ -94,7 +94,7 @@ where
 	exp = expChange
 
 	//Initial UI	
-	initChange = ReplaceUI (uic UIPanel [ui UIContainer, uic UIContainer [ui UIEmpty, ui UIViewString], ui UIAction])
+	initChange = ReplaceUI (uic UIPanel [ui UIContainer, uic UIContainer [ui UIEmpty, ui UITextView], ui UIAction])
 	initState = JSONNull
 	changeToReRoute = ChangeUI [] [(1,ChangeChild (ReplaceUI (ui UIPanel)))]
 
@@ -122,7 +122,7 @@ where
 									[(0,ChangeChild (ChangeUI []
 										[(0,ChangeChild (ChangeUI []
 											[(0,ChangeChild (ChangeUI []
-												[(1, ChangeChild (ReplaceUI (ui UIViewString)))])) ]))]))]))]
+												[(1, ChangeChild (ReplaceUI (ui UITextView)))])) ]))]))]))]
 
 	//Expected reroute change 
 //	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,ChangeChild (ReplaceUI (ui UIEditString)))])),(2,ChangeChild (ReplaceUI (ui UIActionButton)))]
@@ -130,7 +130,7 @@ where
 									[(0,ChangeChild (ChangeUI []
 										[(0,ChangeChild (ChangeUI []
 											[(0,ChangeChild (ChangeUI []
-												[(0, ChangeChild (ReplaceUI (ui UIViewString)))])) ]))]))]))]
+												[(0, ChangeChild (ReplaceUI (ui UITextView)))])) ]))]))]))]
 
 	isEmpty (UI type _ _) = type =: UIEmpty
 

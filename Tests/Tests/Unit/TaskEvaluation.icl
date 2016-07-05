@@ -5,7 +5,7 @@ import TestFramework
 from iTasks._Framework.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{server}, :: ServerInfo(..), :: SystemPaths(..)
 from iTasks._Framework.TaskStore import createTaskInstance, taskInstanceUIChanges
 from iTasks._Framework.TaskEval import evalTaskInstance
-from iTasks._Framework.Store import flushShareCache
+from iTasks._Framework.Store import flushShareCache, emptyStore
 import iTasks.UI.Definition
 import qualified iTasks._Framework.SDS as SDS
 import Text
@@ -62,7 +62,7 @@ where
 
 //Prompt UI is the same for many tasks
 expPromptUI msg 
-	= uia UIViewString 
+	= uia UITextView
 		('DM'.fromList [("optional",JSONBool False),("margins",JSONString "5 5 10 5")
 						,("width",JSONString "flex"),("minWidth",JSONString "wrap"),("height",JSONString "wrap")
 						,("direction",JSONString "vertical")

@@ -9,9 +9,29 @@ import Tests.Interactive.GenericEditors
 import Tests.Interactive.Layout
 import Tests.Interactive.Editlets
 
+import Tests.Unit.CoreEditors
+import Tests.Unit.Layout
+import Tests.Unit.Editlets
+import Tests.Unit.Misc
+import Tests.Unit.TaskEvaluation
+
+
 import Tests.Common.MinimalTasks
 
-suites = [testBuiltinEditors,testGenericEditors,testLayout,testEditlets]
+suites = [//Interactive tests
+		  testBuiltinEditors
+		 ,testGenericEditors
+ 		 ,testLayoutI
+		 ,testEditletsI
+		 //Unit tests
+		 ,testGenericEditorGenUI
+		 ,testGenericEditorEdits
+		 ,testGenericEditorDiffs
+		 ,testLayout
+		 ,testEditlets
+		 ,testMisc
+		 ,testTaskEvaluation
+		 ]
 
 Start w = startEngine [publish "/" (\_ -> runTests suites)
 					  ,publishWithoutLayout "/minimal-suites"  (\_ -> runTests suites)
