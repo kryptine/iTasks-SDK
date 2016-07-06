@@ -1,7 +1,7 @@
 implementation module iTasks._Framework.Generic.Visualization
 
 import StdGeneric, StdList, StdMisc, StdArray
-import Data.Maybe, Data.Either, Data.Void, Data.Functor
+import Data.Maybe, Data.Either, Data.Functor
 from Data.Map import :: Map (..)
 import qualified Data.Map as DM
 import qualified Data.List as DL
@@ -58,7 +58,6 @@ gText{|[]|} fx mode Nothing                 = [""]
 gText{|Maybe|} fx mode (Just val)			= fromMaybe ["-"] (fmap (\v -> fx mode (Just v)) val)
 gText{|Maybe|} fx mode Nothing              = fx AsHeader Nothing
 
-gText{|Void|} _ _					= []
 gText{|Dynamic|} _ _				= []
 gText{|(->)|} _ _ _ _				= []
 gText{|JSONNode|} _ val			    = [maybe "" toString val]

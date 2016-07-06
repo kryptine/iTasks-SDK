@@ -1,6 +1,6 @@
 definition module iTasks.UI.JS.Interface
 
-import StdString, StdGeneric, Data.Void, Data.Maybe
+import StdString, StdGeneric, Data.Maybe
 import iTasks
 
 from Control.Applicative import class Applicative
@@ -153,8 +153,6 @@ instance ToArgs Real
 instance ToArgs Char
 
 instance ToArgs String
-
-instance ToArgs Void
 
 instance ToArgs ()
 

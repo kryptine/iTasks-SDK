@@ -1,7 +1,7 @@
 definition module iTasks._Framework.Client.LinkerSupport
 
 import StdString
-import Data.Maybe, Data.Void
+import Data.Maybe
 import iTasks._Framework.IWorld
 import iTasks.UI.Editor
 
