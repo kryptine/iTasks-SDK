@@ -201,7 +201,7 @@ itasks.DocumentField = {
 };
 itasks.Checkbox = {
 	domTag: 'input',
-    defaultWidth: 'wrap',
+    width: 'wrap',
     initDOMEl: function() {
         var me = this,
             el = this.domEl;

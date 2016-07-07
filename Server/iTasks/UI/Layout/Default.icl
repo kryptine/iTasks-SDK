@@ -49,6 +49,7 @@ finalizeEditor :: Layout
 finalizeEditor = selectLayout
 	[(isRecord,finalizeRecord)
 	,(isCons,finalizeCons)
+	,(isVarCons,finalizeVarCons)
 	,(isFormComponent,toFormItem)
 	,(const True, layoutChildrenOf [] finalizeEditor)
 	]
@@ -62,6 +63,13 @@ finalizeRecord = sequenceLayouts
 finalizeCons :: Layout
 finalizeCons = sequenceLayouts
 	[layoutChildrenOf [] finalizeEditor 
+	,setAttributes (directionAttr Horizontal)
+	,setNodeType UIContainer
+	]
+finalizeVarCons :: Layout
+finalizeVarCons = sequenceLayouts
+	[layoutChildrenOf [] finalizeEditor 
+	,layoutSubAt [0] (setAttributes (widthAttr WrapSize)) //Make the constructor selection wrapping
 	,setAttributes (directionAttr Horizontal)
 	,setNodeType UIContainer
 	]
@@ -97,9 +105,9 @@ where
 hasActions (UI _ _ items) = any isAction items
 	
 actionsToButtonBar= sequenceLayouts
-	[insertSubAt [1] buttonBar 				//Create a buttonbar
-	,moveChildren [] isAction [1,0]   		//Move all actions to the buttonbar
-	,layoutChildrenOf [1] actionToButton	//Transform actions to buttons 
+	[insertSubAt [1] (ui UIButtonBar) 	 //Create a buttonbar
+	,moveChildren [] isAction [1,0]   	 //Move all actions to the buttonbar
+	,layoutChildrenOf [1] actionToButton //Transform actions to buttons 
 	]
 
 //Util predicates
@@ -109,7 +117,8 @@ isParallel = \n -> n =:(UI UIParallel _ _)
 isAction = \n -> n =:(UI UIAction _ _)
 isEmpty = \n -> n =:(UI UIEmpty _ _)
 isRecord = \n -> n =:(UI UIRecord _ _)
-isCons (UI type _ _) = isMember type [UICons,UIVarCons]
+isCons = \n -> n =:(UI UICons _ _)
+isVarCons = \n -> n =:(UI UIVarCons _ _)
 
 isIntermediate (UI type _ _) = isMember type [UIInteract,UIStep,UIParallel]
 
@@ -125,7 +134,7 @@ where
 	layout (ReplaceUI (control=:(UI _ attr _)),s) 
 		# label = fromMaybe (ui UIEmpty) (labelControl attr)
 		# info = fromMaybe (ui UIEmpty) (infoControl attr)
-		# attr = 'DM'.unions [marginsAttr 5 5 5 5,directionAttr Horizontal, sizeAttr FlexSize WrapSize]
+		# attr = 'DM'.unions [marginsAttr 2 4 2 4, directionAttr Horizontal, sizeAttr FlexSize WrapSize]
 		= (ReplaceUI (uiac UIContainer attr [label,control,info]),s)
 
 	layout (c=:(ChangeUI localChanges childChanges),s) 
@@ -146,16 +155,13 @@ where
 	
 	layout (c,s) = (c,s)
 	
-buttonBar :: UI
-buttonBar = uic UIButtonBar []
-
 labelControl :: UIAttributes -> Maybe UI
 labelControl attributes 
 	= case 'DM'.get LABEL_ATTRIBUTE attributes of
 		Just (JSONString label)
 			# optional = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attributes)
 			# (UI type attr items) = stringDisplay (formatLabel optional label)
-			# attr = 'DM'.union (widthAttr (ExactSize LABEL_WIDTH)) attr
+			# attr = 'DM'.unions [widthAttr (ExactSize LABEL_WIDTH),leftMarginAttr 4, attr]
 			= Just (UI type attr items)
 		_   = Nothing
 
