@@ -42,7 +42,6 @@ itasks.Dropdown = {
 itasks.RadioGroup = {
 	domTag: 'ul',
 	cssCls: 'choice-radiogroup',
-	container: false,
 	initDOMEl: function() {
 		var me = this,
 			el = me.domEl,
@@ -116,7 +115,6 @@ itasks.Grid = {
 	cssCls: 'choicegrid',
 	width: 'flex',
 	height: 'flex',
-	container: false,	
 
     initDOMEl: function() {
         var me = this,

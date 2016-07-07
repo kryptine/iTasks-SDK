@@ -34,7 +34,8 @@ setNodeType :: UINodeType -> Layout
 
 // == Changing attributes ===
 setAttributes :: UIAttributes -> Layout
-copyAttributes :: NodePath NodePath -> Layout
+copyAttributes :: [String] NodePath NodePath -> Layout
+copyAllAttributes :: NodePath NodePath -> Layout
 
 // === Changing the structure of the tree ===
 

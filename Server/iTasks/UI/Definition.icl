@@ -82,31 +82,31 @@ marginsAttr :: !Int !Int !Int !Int -> UIAttributes
 marginsAttr top right bottom left = 'DM'.fromList [("marginTop",JSONInt top),("marginRight",JSONInt right),("marginBottom",JSONInt bottom),("marginLeft",JSONInt left)]
 
 topMarginAttr :: !Int -> UIAttributes
-topMarginAttr top = 'DM'.fromList [("topMargin",JSONInt top)]
+topMarginAttr top = 'DM'.fromList [("marginTop",JSONInt top)]
 
 rightMarginAttr :: !Int -> UIAttributes
-rightMarginAttr right = 'DM'.fromList [("rightMargin",JSONInt right)]
+rightMarginAttr right = 'DM'.fromList [("marginRight",JSONInt right)]
 
 bottomMarginAttr :: !Int -> UIAttributes
-bottomMarginAttr bottom = 'DM'.fromList [("bottomMargin",JSONInt bottom)]
+bottomMarginAttr bottom = 'DM'.fromList [("marginBottom",JSONInt bottom)]
 
 leftMarginAttr :: !Int -> UIAttributes
-leftMarginAttr left = 'DM'.fromList [("leftMargin",JSONInt left)]
+leftMarginAttr left = 'DM'.fromList [("marginLeft",JSONInt left)]
 
 paddingAttr :: !Int !Int !Int !Int -> UIAttributes
 paddingAttr top right bottom left = 'DM'.fromList [("paddingTop",JSONInt top),("paddingRight",JSONInt right),("paddingBottom",JSONInt bottom),("paddingLeft",JSONInt left)]
 
 topPaddingAttr :: !Int -> UIAttributes
-topPaddingAttr top = 'DM'.fromList [("topPadding",JSONInt top)]
+topPaddingAttr top = 'DM'.fromList [("paddingTop",JSONInt top)]
 
 rightPaddingAttr :: !Int -> UIAttributes
-rightPaddingAttr right = 'DM'.fromList [("rightPadding",JSONInt right)]
+rightPaddingAttr right = 'DM'.fromList [("paddingRight",JSONInt right)]
 
 bottomPaddingAttr :: !Int -> UIAttributes
-bottomPaddingAttr bottom = 'DM'.fromList [("bottomPadding",JSONInt bottom)]
+bottomPaddingAttr bottom = 'DM'.fromList [("paddingBottom",JSONInt bottom)]
 
 leftPaddingAttr :: !Int -> UIAttributes
-leftPaddingAttr left = 'DM'.fromList [("leftPadding",JSONInt left)]
+leftPaddingAttr left = 'DM'.fromList [("paddingLeft",JSONInt left)]
 
 titleAttr :: !String -> UIAttributes
 titleAttr title = 'DM'.fromList [("title",JSONString title)]

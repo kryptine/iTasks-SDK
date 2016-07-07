@@ -35,7 +35,7 @@ finalizeInteract = conditionalLayout isInteract layout
 where
 	layout = sequenceLayouts 
 		[layoutSubAt [1] finalizeEditor
-		,copyAttributes [0] []
+		,copyAttributes ["title"] [0] []
 		,removeEmptyPrompt
 		,setNodeType UIPanel
 		] 
@@ -161,7 +161,7 @@ labelControl attributes
 		Just (JSONString label)
 			# optional = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attributes)
 			# (UI type attr items) = stringDisplay (formatLabel optional label)
-			# attr = 'DM'.unions [widthAttr (ExactSize LABEL_WIDTH),leftMarginAttr 4, attr]
+			# attr = 'DM'.unions [widthAttr (ExactSize LABEL_WIDTH), attr]
 			= Just (UI type attr items)
 		_   = Nothing
 

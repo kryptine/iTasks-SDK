@@ -59,10 +59,18 @@ where
 		= (ChangeUI attrChanges itemChanges,s)
 	layout (change,s) = (change,s)
 
-copyAttributes :: NodePath NodePath -> Layout
-copyAttributes src dst = layout //TODO: Also handle attribute updates in the src location, and partial replacements along the path
+
+
+copyAttributes :: [String] NodePath NodePath -> Layout
+copyAttributes selection src dst = copyAttributes` (Just selection) src dst
+
+copyAllAttributes :: NodePath NodePath -> Layout
+copyAllAttributes src dst = copyAttributes` Nothing src dst
+
+copyAttributes` :: (Maybe [String]) NodePath NodePath -> Layout
+copyAttributes` selection src dst = layout //TODO: Also handle attribute updates in the src location, and partial replacements along the path
 where
-	layout (ReplaceUI ui,s) = case  selectAttr src ui of 
+	layout (ReplaceUI ui,s) = case selectAttr src ui of 
 		Just attr = (ReplaceUI (addAttr attr dst ui),s)
 		Nothing   = (ReplaceUI ui,s)
 	layout (change,s) = (change,s)
@@ -72,10 +80,13 @@ where
 		| s < length items  = selectAttr ss (items !! s)
 							= Nothing
 
-	addAttr extra [] (UI type attr items) = UI type (foldl (\m (k,v) -> 'DM'.put k v m) attr ('DM'.toList extra)) items
+	addAttr extra [] (UI type attr items)
+		= UI type (foldl (\m (k,v) -> 'DM'.put k v m) attr [(k,v) \\ (k,v) <- 'DM'.toList extra | condition k]) items
 	addAttr extra [s:ss] (UI type attr items) 
 		| s < length items = UI type attr (updateAt s (addAttr extra ss (items !! s)) items) 
 						   = UI type attr items
+
+	condition = maybe (const True) (flip isMember) selection
 
 wrapUI :: UINodeType -> Layout
 wrapUI type = layout

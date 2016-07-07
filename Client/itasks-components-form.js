@@ -21,6 +21,7 @@ itasks.TextField = {
 };
 itasks.TextArea = {
     domTag: 'textarea',
+	height: 150,
     initDOMEl: function() {
         var me = this,
             el = this.domEl;
@@ -244,7 +245,6 @@ itasks.Slider = {
 itasks.Button = {
 	domTag: 'a',
 	cssCls: 'button',
-	container: false,
 	height: 'wrap',
 	width: 'wrap',
 	enabled: true,

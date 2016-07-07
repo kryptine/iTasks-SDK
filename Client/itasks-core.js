@@ -72,10 +72,8 @@ itasks.Component = {
 		me.initDOMElSize();
 		//Set margins and alignment
 		me.initDOMElMargins();
+		me.initContainerEl();
 
-		if(me.container) {
-			me.initContainerEl();
-		}
 		//Add the the child renderings 
 		me.children.forEach(function(child) {
 			me.containerEl.appendChild(child.domEl);
@@ -129,8 +127,7 @@ itasks.Component = {
 		var me = this,
 			el = me.domEl,
             width = me.width,
-            height = me.height,
-			margins = (me.margins && me.margins.split(' ')) || ['0','0','0','0'];
+            height = me.height;
 
 		if(!me.parentCmp) { //Do not set margins on the root component, let the embedding page handle that
 			return;
@@ -144,7 +141,7 @@ itasks.Component = {
 			isLast = (curIdx == lastIdx);
 
         //Set left and right margins as specified
-		if(me.marginLeft) { el.style.marginLeft = me.marginLeft + 'px' ; }
+		if(me.marginLeft) { el.style.marginLeft = me.marginLeft + 'px'; }
 		if(me.marginRight) { el.style.marginRight = me.marginRight + 'px' ; }
 	
 		//Because vertical borders 'collapse' into each other, we never set the
@@ -155,9 +152,6 @@ itasks.Component = {
 			//and its bottom margin is added to the next elements top-margin 
 			el.style.marginTop = ((me.marginTop || 0) + (me.parentCmp.children[curIdx - 1].marginBottom || 0)) + 'px';
 		}
-
-		//if(me.marginTop) { el.style.marginTop = me.marginTop + 'px' ; }
-		//if(me.marginBottom) { el.style.marginBottom = me.marginBottom + 'px' ; }
 
 		//Set margins to auto based on alignment of parent
         if(parentDirection == 'vertical') {

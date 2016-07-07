@@ -1,5 +1,9 @@
 itasks.TextView = {
-	container: false,
+	paddingTop: 5,
+	paddingRight: 5,
+	paddingBottom: 5,
+	paddingLeft: 5,
+
 	initDOMEl: function() {
 		this.domEl.innerHTML = this.value || '';
 	},
@@ -13,6 +17,12 @@ itasks.TextView = {
 	}
 };
 itasks.HtmlView = {
+	//Default padding
+	paddingTop: 5,
+	paddingRight: 5,
+	paddingBottom: 5,
+	paddingLeft: 5,
+
 	initDOMEl: function() {
 		this.domEl.innerHTML = this.value || '';
 	},
@@ -28,6 +38,7 @@ itasks.HtmlView = {
 itasks.ProgressBar = {
     domTag: 'progress',
 	width: 'flex',
+	height: 'wrap',
     initDOMEl: function() {
         var me = this,
             el = this.domEl;
