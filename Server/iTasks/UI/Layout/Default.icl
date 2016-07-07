@@ -58,6 +58,7 @@ finalizeRecord :: Layout
 finalizeRecord = sequenceLayouts
 	[layoutChildrenOf [] finalizeEditor 
 	,setNodeType UIContainer
+	,setAttributes (heightAttr WrapSize)
 	]
 
 finalizeCons :: Layout
@@ -124,7 +125,9 @@ isIntermediate (UI type _ _) = isMember type [UIInteract,UIStep,UIParallel]
 
 isFormComponent (UI type _ _) = isMember type 
 	[UITextField,UITextArea,UIPasswordField,UIIntegerField,UIDecimalField
-	,UICheckbox,UISlider,UIDocumentField,UIDropdown,UIRadioGroup,UICheckboxGroup]
+	,UICheckbox,UISlider,UIDocumentField,UIDropdown,UIRadioGroup,UICheckboxGroup
+	,UITextView,UIHtmlView
+	]
 instance == UINodeType where (==) x y = x === y
 
 //Flatten an editor into a form
