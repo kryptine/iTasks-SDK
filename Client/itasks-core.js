@@ -139,13 +139,25 @@ itasks.Component = {
             parentVAlign = (me.parentCmp && me.parentCmp.valign) || 'top',
             parentHAlign = (me.parentCmp && me.parentCmp.halign) || 'left',
 			curIdx = me.parentCmp.findChild(me),
-			lastIdx = me.parentCmp.children.length - 1;
+			lastIdx = me.parentCmp.children.length - 1,
+			isFirst = (curIdx == 0),
+			isLast = (curIdx == lastIdx);
 
-        //Set margins as specified
-		if(me.marginTop) { el.style.marginTop = me.marginTop + 'px' ; }
-		if(me.marginRight) { el.style.marginRight = me.marginRight + 'px' ; }
-		if(me.marginBottom) { el.style.marginBottom = me.marginBottom + 'px' ; }
+        //Set left and right margins as specified
 		if(me.marginLeft) { el.style.marginLeft = me.marginLeft + 'px' ; }
+		if(me.marginRight) { el.style.marginRight = me.marginRight + 'px' ; }
+	
+		//Because vertical borders 'collapse' into each other, we never set the
+		//bottom-margin, but set top-margin's that also include the bottom margin of
+		//the previous element
+		if(!isFirst) {
+			//The first element never sets a top-margin. Its top-margin is added to the parent's padding
+			//and its bottom margin is added to the next elements top-margin 
+			el.style.marginTop = ((me.marginTop || 0) + (me.parentCmp.children[curIdx - 1].marginBottom || 0)) + 'px';
+		}
+
+		//if(me.marginTop) { el.style.marginTop = me.marginTop + 'px' ; }
+		//if(me.marginBottom) { el.style.marginBottom = me.marginBottom + 'px' ; }
 
 		//Set margins to auto based on alignment of parent
         if(parentDirection == 'vertical') {
@@ -185,15 +197,23 @@ itasks.Component = {
 	initContainerEl: function() {
 		var me = this,
             el = me.containerEl,
-            horizontal = (me.direction && (me.direction === 'horizontal')) || false;
+            horizontal = (me.direction && (me.direction === 'horizontal')) || false,
+			paddingTop, paddingBottom;
 
         el.classList.add(me.cssPrefix + (horizontal ? 'hcontainer' : 'vcontainer'));
 
 		//Set padding
-		if(me.paddingTop) { el.style.paddingTop = me.paddingTop + 'px' ; }
 		if(me.paddingRight) { el.style.paddingRight = me.paddingRight + 'px' ; }
-		if(me.paddingBottom) { el.style.paddingBottom = me.paddingBottom + 'px' ; }
 		if(me.paddingLeft) { el.style.paddingLeft = me.paddingLeft + 'px' ; }
+
+		paddingTop = me.paddingTop || 0;			
+		paddingBottom = me.paddingBottom || 0;
+		if(me.children.length > 0) {
+			paddingTop += (me.children[0].marginBottom || 0);
+			paddingBottom += (me.children[me.children.length - 1].marginTop || 0);
+		}
+		el.style.paddingTop = paddingTop + 'px';
+		el.style.paddingBottom = paddingBottom + 'px';
 	},
 	doEditEvent: function (taskId, editorId, value) {
 		if(this.parentCmp) {
