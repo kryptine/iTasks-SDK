@@ -9,7 +9,6 @@
     font-size: 11px;
     height: 25px;
     align-self: stretch;
-    -webkit-align-self: stretch;
 
     a.close {
         float: right;
@@ -34,7 +33,6 @@
 }
 .#{$prefix}inner {
     flex: 1;
-    -webkit-flex: 1;
 }
 
 /* Panels */
@@ -43,9 +41,7 @@
     background-color: $canvas-base-color;
     border: 1px solid $panel-border-color;
     display: flex;
-    display: -webkit-flex;
     flex-direction: column;
-    -webkit-flex-direction: column;
 
     > .#{$prefix}header {
         color: $panel-header-text-color;
@@ -60,11 +56,8 @@
 /* Tabs */
 .#{$prefix}tabset {
     display: flex;
-    display: -webkit-flex;
     align-items: stretch;
-    -webkit-align-items: stretch;
     flex-direction: column;
-    -webkit-flex-direction: column;
 }
 .#{$prefix}tabbar {
     text-align: left;
@@ -174,7 +167,6 @@
 }
 .#{$prefix}tabitem.#{$prefix}selected {
    display: flex;
-   display: -webkit-flex;
 }
 
 /* Windows */
@@ -184,7 +176,6 @@
     left: 0px;
     z-index: 100;
     display: flex;
-    display: -webkit-flex;
     > .#{$prefix}inner {
         overflow: auto;
     }
@@ -216,13 +207,9 @@
 /* Toolbars, button bars & menu's */
 .#{$prefix}toolbar {
     display: flex;
-    display: -webkit-flex;
     flex-direction: row;
-    -webkit-flex-direction: row;
     justify-content: flex-start;
-    -webkit-justify-content: flex-start;
     align-items: center;
-    -webkit-align-items: center;
     margin: 0;
     padding: 2px 5px;
     background: $canvas-base-color;

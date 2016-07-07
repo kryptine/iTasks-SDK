@@ -105,6 +105,7 @@
     -moz-transform: translateX(-8px);
     transform: translateX(-8px); }
   *.itasks-viewport div, *.itasks-viewport input, *.itasks-viewport td, *.itasks-viewport th, *.itasks-viewport select {
+    min-height: fit-content;
     font-size: 9pt; }
 
 div.itasks-loader {
@@ -128,19 +129,14 @@ div.itasks-loader-spinner {
     transform: rotate(359deg); } }
 .itasks-vcontainer, .itasks-hcontainer {
   display: flex;
-  display: -webkit-flex;
-  align-items: flex-start;
-  -webkit-align-items: flex-start; }
+  align-items: flex-start; }
 
 .itasks-vcontainer {
-  flex-direction: column;
-  -webkit-flex-direction: column; }
+  flex-direction: column; }
 
 .itasks-hcontainer {
   flex-direction: row;
-  -webkit-flex-direction: row;
-  flex-shrink: 0;
-  -webkit-flex-shrink: 0; }
+  flex-shrink: 0; }
 
 .itasks-wrapping-horizontal {
   flex-shrink: 0;
@@ -226,8 +222,7 @@ div.itasks-loader-spinner {
   font-weight: bold;
   font-size: 11px;
   height: 25px;
-  align-self: stretch;
-  -webkit-align-self: stretch; }
+  align-self: stretch; }
   .itasks-header a.close {
     float: right;
     color: #000;
@@ -248,8 +243,7 @@ div.itasks-loader-spinner {
     margin: 4px 0 0 4px; }
 
 .itasks-inner {
-  flex: 1;
-  -webkit-flex: 1; }
+  flex: 1; }
 
 /* Panels */
 .itasks-panel {
@@ -257,9 +251,7 @@ div.itasks-loader-spinner {
   background-color: #eee;
   border: 1px solid #ccc;
   display: flex;
-  display: -webkit-flex;
-  flex-direction: column;
-  -webkit-flex-direction: column; }
+  flex-direction: column; }
   .itasks-panel > .itasks-header {
     color: #000;
     background-color: #ccc;
@@ -272,11 +264,8 @@ div.itasks-loader-spinner {
 /* Tabs */
 .itasks-tabset {
   display: flex;
-  display: -webkit-flex;
   align-items: stretch;
-  -webkit-align-items: stretch;
-  flex-direction: column;
-  -webkit-flex-direction: column; }
+  flex-direction: column; }
 
 .itasks-tabbar {
   text-align: left;
@@ -383,8 +372,7 @@ div.itasks-loader-spinner {
   display: none; }
 
 .itasks-tabitem.itasks-selected {
-  display: flex;
-  display: -webkit-flex; }
+  display: flex; }
 
 /* Windows */
 .itasks-floating-window, .itasks-notification-bubble {
@@ -392,8 +380,7 @@ div.itasks-loader-spinner {
   top: 0px;
   left: 0px;
   z-index: 100;
-  display: flex;
-  display: -webkit-flex; }
+  display: flex; }
   .itasks-floating-window > .itasks-inner, .itasks-notification-bubble > .itasks-inner {
     overflow: auto; }
 
@@ -421,13 +408,9 @@ div.itasks-loader-spinner {
 /* Toolbars, button bars & menu's */
 .itasks-toolbar {
   display: flex;
-  display: -webkit-flex;
   flex-direction: row;
-  -webkit-flex-direction: row;
   justify-content: flex-start;
-  -webkit-justify-content: flex-start;
   align-items: center;
-  -webkit-align-items: center;
   margin: 0;
   padding: 2px 5px;
   background: #eee;
@@ -521,9 +504,7 @@ div.itasks-loader-spinner {
   display: flex;
   display: -webkit-flex;
   flex-direction: row;
-  -webkit-flex-direction: row;
   align-items: center;
-  -webkit-align-items: center;
   text-decoration: none;
   color: #000;
   flex-shrink: 0; }

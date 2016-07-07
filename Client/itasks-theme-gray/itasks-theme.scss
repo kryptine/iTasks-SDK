@@ -5,6 +5,7 @@
 @import "options.scss";
 @import "colors.scss";
 
+
 *.#{$prefix}viewport {
 
 	margin: 0;
@@ -17,6 +18,7 @@
 	@import "tooltip.scss";
 
 	div, input, td, th, select {
+		min-height: fit-content;
 
 		@if $touchscreen {
 			font-size: 16pt;
@@ -47,19 +49,14 @@ div.#{$prefix}loader-spinner {
 
 .#{$prefix}vcontainer, .#{$prefix}hcontainer {
     display: flex;
-    display: -webkit-flex;
     align-items: flex-start;
-    -webkit-align-items: flex-start;
 }
 .#{$prefix}vcontainer {
     flex-direction: column;
-    -webkit-flex-direction: column;
 }
 .#{$prefix}hcontainer {
     flex-direction: row;
-    -webkit-flex-direction: row;
     flex-shrink: 0;
-    -webkit-flex-shrink: 0;
 }
 .#{$prefix}wrapping-horizontal {
 	flex-shrink: 0;
