@@ -9,9 +9,10 @@ itasks.Container = {
 itasks.Panel = {
 	cssCls: 'panel',
 	initDOMEl: function() {
-		var me = this;
+		var me = this,
+			isTab = (me.parentCmp && me.parentCmp.xtype == 'TabSet');
 		//Create header
-		if(me.title) {
+		if(me.title && !isTab) {
 			me.headerEl = document.createElement('div');
 			me.headerEl.classList.add(me.cssPrefix + 'header');
 			me.headerEl.innerHTML = '<span>' + me.title + '</span>';

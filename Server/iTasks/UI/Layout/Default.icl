@@ -37,7 +37,7 @@ where
 		[layoutSubAt [1] finalizeEditor
 		,copyAttributes [0] []
 		,removeEmptyPrompt
-		,setNodeType UIContainer
+		,setNodeType UIPanel
 		] 
 
 	removeEmptyPrompt = conditionalLayout emptyPrompt (removeSubAt [0])

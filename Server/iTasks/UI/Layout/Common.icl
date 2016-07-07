@@ -14,9 +14,8 @@ where
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 arrangeWithSideBar index side size resize = sequenceLayouts 
-	[wrapUI UIContainer 	//Push the current container down a level
+	[wrapUI UIPanel 	//Push the current container down a level
 	,copyAttributes [0] [] 	//Keep the attributes from the original UI
-	,setNodeType UIPanel 
 	,setAttributes (directionAttr direction)
 	,insertSubAt [sidePanelIndex] (ui UIComponent) //Make sure we have a target for the move
 	,moveSubAt [mainPanelIndex,index] [sidePanelIndex,0]
