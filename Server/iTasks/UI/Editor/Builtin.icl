@@ -5,55 +5,66 @@ import StdFunc, StdBool, GenEq
 import Data.Error, Text.JSON, Text.HTML
 import qualified Data.Map as DM
 
-textField :: Editor String
-textField = fieldComponent [] toJSON UITextField
+textField :: UIAttributes -> Editor String
+textField attr = fieldComponent attr toJSON UITextField
 
-integerField :: Editor Int
-integerField = fieldComponent [] toJSON UIIntegerField
+textArea :: UIAttributes -> Editor String
+textArea attr = fieldComponent attr toJSON UITextArea
 
-decimalField :: Editor Real
-decimalField = fieldComponent [] toJSON UIDecimalField
+passwordField :: UIAttributes -> Editor String
+passwordField attr = fieldComponent attr toJSON UIPasswordField
 
-documentField :: Editor Document
-documentField = fieldComponent [] toJSON UIDocumentField
+integerField :: UIAttributes -> Editor Int
+integerField attr = fieldComponent attr toJSON UIIntegerField
 
-passwordField :: Editor String
-passwordField = fieldComponent [] toJSON UIPasswordField
+decimalField :: UIAttributes -> Editor Real
+decimalField attr = fieldComponent attr toJSON UIDecimalField
 
-textArea :: Editor String
-textArea = fieldComponent [] toJSON UITextArea
+documentField :: UIAttributes -> Editor Document
+documentField attr = fieldComponent attr toJSON UIDocumentField
 
-checkBox :: Editor Bool
-checkBox = fieldComponent [] toJSON UICheckbox
+checkBox :: UIAttributes -> Editor Bool
+checkBox attr = fieldComponent attr toJSON UICheckbox
 
-slider :: Int Int -> Editor Int
-slider min max = fieldComponent [("min",JSONInt min),("max",JSONInt max)] toJSON UISlider
+slider :: UIAttributes -> Editor Int
+slider attr = fieldComponent attr toJSON UISlider
 
-label :: Editor String
-label = viewComponent (\text -> [("text",JSONString text)]) UILabel
+button :: UIAttributes -> Editor Bool
+button attr = fieldComponent attr toJSON UIButton
 
-button :: String -> Editor Bool
-button text = fieldComponent [("text",JSONString text)] toJSON UIButton
+label :: UIAttributes -> Editor String
+label attr = viewComponent (\text ->  'DM'.union attr (textAttr text)) UILabel
 
-icon :: Editor (String,Maybe String)
-icon = viewComponent (\(text,tooltip) -> [("iconCls",JSONString text),("tooltip",maybe JSONNull JSONString tooltip)]) UIIcon
+icon :: UIAttributes -> Editor (String,Maybe String)
+icon attr = viewComponent (\(iconCls,tooltip) -> 'DM'.unions [iconClsAttr iconCls,maybe 'DM'.newMap tooltipAttr tooltip,attr]) UIIcon
 
-dropdown :: Bool -> Editor ([String], [Int])
-dropdown multi = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UIDropdown multi
+textView :: UIAttributes -> Editor String
+textView attr = viewComponent (\text -> 'DM'.fromList [("value",JSONString text)]) UITextView
 
-checkGroup :: Bool -> Editor ([String],[Int])
-checkGroup multi = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UIRadioGroup multi
+htmlView :: UIAttributes -> Editor HtmlTag
+htmlView attr = viewComponent (\html -> 'DM'.union (valueAttr (JSONString (toString html))) attr) UIHtmlView
 
-choiceList :: Bool -> Editor ([String],[Int])
-choiceList multi = choiceComponent (const 'DM'.newMap) id JSONString (\o i -> i >= 0 && i < length o) UIChoiceList multi
+progressBar :: UIAttributes -> Editor (Maybe Int, Maybe String)
+progressBar attr = viewComponent combine UIProgressBar
+where
+	combine (amount,text) = 'DM'.unions ((maybe [] (\t -> [textAttr t]) text) ++ (maybe [] (\v -> [valueAttr (JSONInt v)]) amount) ++ [attr])
+						
+dropdown :: UIAttributes -> Editor ([String], [Int])
+dropdown attr = choiceComponent (const attr) id JSONString (\o i -> i >= 0 && i < length o) UIDropdown
 
-grid :: Bool -> Editor (ChoiceGrid, [Int])
-grid multi = choiceComponent (\{ChoiceGrid|header} -> columnsAttr header) (\{ChoiceGrid|rows} -> rows) toOption (\o i -> i >= 0 && i < length o) UIGrid multi
+checkGroup :: UIAttributes -> Editor ([String],[Int])
+checkGroup attr = choiceComponent (const attr) id JSONString (\o i -> i >= 0 && i < length o) UIRadioGroup
+
+choiceList :: UIAttributes -> Editor ([String],[Int])
+choiceList attr = choiceComponent (const attr) id JSONString (\o i -> i >= 0 && i < length o) UIChoiceList
+
+grid :: UIAttributes -> Editor (ChoiceGrid, [Int])
+grid attr = choiceComponent (\{ChoiceGrid|header} -> 'DM'.union attr (columnsAttr header)) (\{ChoiceGrid|rows} -> rows) toOption (\o i -> i >= 0 && i < length o) UIGrid
 where
 	toOption opt = JSONArray (map (JSONString o toString) opt)
 
-tree :: Bool -> Editor ([ChoiceNode], [Int])
-tree multi = choiceComponent (const 'DM'.newMap) id toOption checkBounds UITree multi
+tree :: UIAttributes -> Editor ([ChoiceNode], [Int])
+tree attr = choiceComponent (const attr) id toOption checkBounds UITree
 where
 	toOption {ChoiceNode|id,label,icon,expanded,children}
 		= JSONObject [("text",JSONString label)
@@ -70,15 +81,6 @@ where
 		| idx == id = True
 		| otherwise = or (map (checkNode idx) children)
 
-progressBar :: Editor (Maybe Int, Maybe String)
-progressBar = viewComponent (\(amount,text) -> [("value",maybe JSONNull JSONInt amount),("text",maybe JSONNull JSONString text)]) UIProgressBar
-
-textView :: Editor String
-textView = viewComponent (\text -> [("value",JSONString text)]) UITextView
-
-htmlView :: Editor HtmlTag
-htmlView = viewComponent (\html -> [("value",JSONString (toString html))]) UIHtmlView
-
 //Field like components for which simply knowing the UI type is sufficient
 fieldComponent attr toValue type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where 
@@ -86,7 +88,7 @@ where
 		# val = if (mode =: Enter) JSONNull (toValue val) 
 		# valid = if (mode =: Enter) optional True //When entering data a value is initially only valid if it is optional
 		# mask = FieldMask {touched = False, valid = valid, state = val}
-		# attr = 'DM'.unions ['DM'.fromList attr,optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr val]
+		# attr = 'DM'.unions [attr,optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr val]
 		= (Ok (uia type attr,mask),vst)
 
 	onEdit dp (tp,e) val mask vst=:{VSt|optional}
@@ -104,23 +106,23 @@ where
 viewComponent toAttributes type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst
-		= (Ok (uia type ('DM'.fromList (toAttributes val)), FieldMask {touched = False, valid = True, state = JSONNull}),vst)
+		= (Ok (uia type (toAttributes val), FieldMask {touched = False, valid = True, state = JSONNull}),vst)
 
 	onEdit dp (tp,e) val mask vst
 		= (Error "Edit event for view component",val,vst)
 
 	onRefresh dp new old mask vst
-		= case [SetAttribute nk nv \\ ((ok,ov),(nk,nv)) <- zip (toAttributes old,toAttributes new) | ok == nk && ov =!= nv] of
+		= case [SetAttribute nk nv \\ ((ok,ov),(nk,nv)) <- zip ('DM'.toList (toAttributes old),'DM'.toList (toAttributes new)) | ok == nk && ov =!= nv] of
 			[] 		= (Ok (NoChange,mask),new,vst)
 			changes = (Ok (ChangeUI changes [],mask),new,vst)
 
 //Choice components that have a set of options
-choiceComponent attr getOptions toOption checkBounds type multi = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+choiceComponent attr getOptions toOption checkBounds type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (val,sel) vst=:{VSt|taskId,mode,optional}
 		# valid = if (mode =: Enter) optional True //When entering data a value is initially only valid if it is optional
 		# mask = FieldMask {touched = False, valid = valid, state = JSONNull}
-		# attr = 'DM'.unions [attr val,choiceAttrs taskId (editorId dp) sel (map toOption (getOptions val)),multipleAttr multi]
+		# attr = 'DM'.unions [attr val,choiceAttrs taskId (editorId dp) sel (map toOption (getOptions val))]
 		= (Ok (uia type attr,mask), vst)
 
 	onEdit dp (tp,e) (val,sel) mask vst=:{VSt|optional}

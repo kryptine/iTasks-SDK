@@ -66,7 +66,7 @@ JSONEncode{|Username|} _ (Username u) = [JSONString u]
 JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
 JSONDecode{|Username|} _ c = (Nothing,c)
 
-gEditor{|Username|} = liftEditor (\(Username u) -> u) (\s -> (Username s)) (whenDisabled textView (withHintAttributes "username" textField))
+gEditor{|Username|} = liftEditor (\(Username u) -> u) (\s -> (Username s)) (whenDisabled (textView 'DM'.newMap) (withHintAttributes "username" (textField 'DM'.newMap)))
 
 derive gDefault			Username
 derive gEq				Username
@@ -92,7 +92,7 @@ gText{|Password|} AsHeader _ = [""]
 gText{|Password|} _ _        = ["********"]
 
 gEditor{|Password|} = liftEditor (\(Password p) -> p) (\s -> (Password s)) 
-						(whenDisabled (constEditor "********" textView) (withHintAttributes "password" passwordField))
+						(whenDisabled (constEditor "********" (textView 'DM'.newMap)) (withHintAttributes "password" (passwordField 'DM'.newMap)))
 
 derive gDefault			Password
 derive gEq				Password

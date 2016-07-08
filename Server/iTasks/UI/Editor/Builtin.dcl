@@ -7,36 +7,37 @@ import iTasks.UI.Editor
 from Data.Maybe import :: Maybe
 from Text.HTML import :: HtmlTag
 from iTasks.API.Core.Types import :: Document
+from iTasks.UI.Definition import :: UIAttributes
 
 // ## Form components ##
 // UITextField, UITextArea, UIPasswordField, UIIntegerField, UIDecimalField, UIDocumentField
 // UICheckbox, UISlider, UIButton, UILabel, UIIcon
 
-textField     :: Editor String
-textArea      :: Editor String
-passwordField :: Editor String
-integerField  :: Editor Int
-decimalField  :: Editor Real
-documentField :: Editor Document
-checkBox      :: Editor Bool
-slider        :: Int Int -> Editor Int //Min, max
-button        :: String -> Editor Bool
-label         :: Editor String
-icon          :: Editor (String,Maybe String)
+textField     :: UIAttributes -> Editor String
+textArea      :: UIAttributes -> Editor String
+passwordField :: UIAttributes -> Editor String
+integerField  :: UIAttributes -> Editor Int
+decimalField  :: UIAttributes -> Editor Real
+documentField :: UIAttributes -> Editor Document
+checkBox      :: UIAttributes -> Editor Bool
+slider        :: UIAttributes -> Editor Int
+button        :: UIAttributes -> Editor Bool
+label         :: UIAttributes -> Editor String
+icon          :: UIAttributes -> Editor (String,Maybe String)
 
 // ## Display components ##
 // UITextView, UIHtmlView, UIProgressBar
-textView      :: Editor String
-htmlView      :: Editor HtmlTag
-progressBar   :: Editor (Maybe Int,Maybe String) //Percentage, description
+textView      :: UIAttributes -> Editor String
+htmlView      :: UIAttributes -> Editor HtmlTag
+progressBar   :: UIAttributes -> Editor (Maybe Int,Maybe String) //Percentage, description
 
 // ## Selection components ## 
 // UIDropdown, UIRadioGroup, UICheckboxGroup, UIChoiceList, UIGrid, UITree
-dropdown      :: Bool -> Editor ([String], [Int])
-checkGroup    :: Bool -> Editor ([String], [Int])
-choiceList    :: Bool -> Editor ([String], [Int])
-grid          :: Bool -> Editor (ChoiceGrid, [Int])
-tree          :: Bool -> Editor ([ChoiceNode], [Int])
+dropdown      :: UIAttributes -> Editor ([String], [Int])
+checkGroup    :: UIAttributes -> Editor ([String], [Int])
+choiceList    :: UIAttributes -> Editor ([String], [Int])
+grid          :: UIAttributes -> Editor (ChoiceGrid, [Int])
+tree          :: UIAttributes -> Editor ([ChoiceNode], [Int])
 
 :: ChoiceGrid =
 	{ header  :: [String]

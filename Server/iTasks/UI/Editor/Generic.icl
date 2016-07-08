@@ -397,18 +397,18 @@ flattenPairDiff s n (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)],CompoundMa
 where
 	half = n / 2
 
-gEditor{|Int|}    = whenDisabled (liftEditor toString toInt textView) (withHintAttributes "whole number" integerField)
-gEditor{|Real|}   = whenDisabled (liftEditor toString toReal textView) (withHintAttributes "decimal number" decimalField)
-gEditor{|Char|}   = liftEditor toString (\c -> c.[0]) (whenDisabled textView (withHintAttributes "single character" textField))
-gEditor{|String|} = whenDisabled textView (withHintAttributes "single line of text" textField)
-gEditor{|Bool|}   = checkBox
+gEditor{|Int|}    = whenDisabled (liftEditor toString toInt (textView 'DM'.newMap)) (withHintAttributes "whole number" (integerField 'DM'.newMap))
+gEditor{|Real|}   = whenDisabled (liftEditor toString toReal (textView 'DM'.newMap)) (withHintAttributes "decimal number" (decimalField 'DM'.newMap))
+gEditor{|Char|}   = liftEditor toString (\c -> c.[0]) (whenDisabled (textView 'DM'.newMap) (withHintAttributes "single character" (textField 'DM'.newMap)))
+gEditor{|String|} = whenDisabled (textView 'DM'.newMap) (withHintAttributes "single line of text" (textField 'DM'.newMap))
+gEditor{|Bool|}   = checkBox 'DM'.newMap
 
 gEditor{|[]|} ex _ dx _ _ = listEditor (Just (const dx)) True True (Just (\l -> toString (length l) +++ " items")) ex
 
 gEditor{|()|} = emptyEditor
 gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ = emptyEditor
 gEditor{|Dynamic|} = emptyEditor
-gEditor{|HtmlTag|} = htmlView
+gEditor{|HtmlTag|} = htmlView 'DM'.newMap
 gEditor{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = emptyEditor
 
 derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), Timestamp, Map

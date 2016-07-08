@@ -112,8 +112,8 @@ where
 gText{|URL|}	_ val	= [maybe "" toString val]
 
 gEditor{|URL|} = whenDisabled
-		(liftEditor (\(URL s) -> ATag [HrefAttr s] [Text s]) (\_ -> URL "") htmlView)
-		(liftEditor (\(URL s) -> s) (\s -> URL s) (withHintAttributes "uniform resource locator (URL)" textField))
+		(liftEditor (\(URL s) -> ATag [HrefAttr s] [Text s]) (\_ -> URL "") (htmlView 'DM'.newMap))
+		(liftEditor (\(URL s) -> s) (\s -> URL s) (withHintAttributes "uniform resource locator (URL)" (textField 'DM'.newMap)))
 
 derive JSONEncode		URL
 derive JSONDecode		URL
@@ -137,8 +137,8 @@ JSONDecode{|Note|} _ c = (Nothing,c)
 gText{|Note|}	_ val	    = [maybe "" toString val]
 
 gEditor{|Note|} = whenDisabled
-		(liftEditor noteToHtml (\_ -> Note "") htmlView)
-		(liftEditor (\(Note s) -> s) (\s -> Note s) (withHintAttributes "note" textArea))
+		(liftEditor noteToHtml (\_ -> Note "") (htmlView 'DM'.newMap))
+		(liftEditor (\(Note s) -> s) (\s -> Note s) (withHintAttributes "note" (textArea 'DM'.newMap)))
 where
 	// THIS IS A HACK!
 	// The encoding of a Text constructor should escape newlines and convert them to <br> tags. Unfortunately it doesn't
@@ -183,8 +183,8 @@ where
 gText{|EUR|} _ val = [maybe "" toString val]
 
 gEditor{|EUR|} = whenDisabled
-		(liftEditor toString (\_ -> EUR 0) textView)
-		(liftEditor (\(EUR v) -> toReal v / 100.0) (\v -> EUR (toInt (100.0 * v))) (withHintAttributes "amount in EUR" decimalField))
+		(liftEditor toString (\_ -> EUR 0) (textView 'DM'.newMap))
+		(liftEditor (\(EUR v) -> toReal v / 100.0) (\v -> EUR (toInt (100.0 * v))) (withHintAttributes "amount in EUR" (decimalField 'DM'.newMap)))
 
 instance toString EUR
 where
@@ -217,8 +217,8 @@ where
 gText{|USD|} _ val = [maybe "" toString val]
 
 gEditor{|USD|} = whenDisabled
-		(liftEditor toString (\_ -> USD 0) textView)
-		(liftEditor (\(USD v) -> toReal v / 100.0) (\v -> USD (toInt (100.0 * v))) (withHintAttributes "amount in USD" decimalField))
+		(liftEditor toString (\_ -> USD 0) (textView 'DM'.newMap))
+		(liftEditor (\(USD v) -> toReal v / 100.0) (\v -> USD (toInt (100.0 * v))) (withHintAttributes "amount in USD" (decimalField 'DM'.newMap)))
 
 instance toString USD
 where
@@ -264,8 +264,8 @@ isDateFormat s = size s == 10 && foldl (\ok i -> ok && (if (i == 4 || i == 7) (s
 gText{|Date|} _ val = [maybe "" toString val]
 
 gEditor{|Date|} = whenDisabled
-		(liftEditor toString fromString textView)
-		(liftEditorAsymmetric toString parseDate (withHintAttributes "date (yyyy-mm-dd)" textField))
+		(liftEditor toString fromString (textView 'DM'.newMap))
+		(liftEditorAsymmetric toString parseDate (withHintAttributes "date (yyyy-mm-dd)" (textField 'DM'.newMap)))
 where
 	parseDate s = if (isDateFormat s) (Ok (fromString s)) (Error "you need to enter a date in the format yyyy-mm-dd")
 
@@ -339,8 +339,8 @@ isTimeFormat s = size s == 8 && foldl (\ok i -> ok && (if (i == 2 || i == 5) (s.
 gText{|Time|} _ val = [maybe "" toString val]
 
 gEditor{|Time|} = whenDisabled
-		(liftEditor toString fromString textView)
-		(liftEditorAsymmetric toString parseTime (withHintAttributes "time (hh:mm:ss)" textField))
+		(liftEditor toString fromString (textView 'DM'.newMap))
+		(liftEditorAsymmetric toString parseTime (withHintAttributes "time (hh:mm:ss)" (textField 'DM'.newMap)))
 where
 	parseTime s = if (isTimeFormat s) (Ok (fromString s)) (Error "you need to enter a time in the format hh:mm:ss")
 
@@ -412,8 +412,8 @@ gText{|DateTime|} _ (Just (DateTime date time))
 	= [toSingleLineText date +++" "+++ toSingleLineText time]
 
 gEditor{|DateTime|} = whenDisabled
-		(liftEditor toString fromString textView)
-		(liftEditorAsymmetric toString parseDateTime (withHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" textField))
+		(liftEditor toString fromString (textView 'DM'.newMap))
+		(liftEditorAsymmetric toString parseDateTime (withHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" (textField 'DM'.newMap)))
 where
 	parseDateTime s = if True (Ok (fromString s)) (Error "you need to enter a date/time in the format yyyy-mm-dd hh:mm:ss")
 
@@ -466,7 +466,7 @@ gText{|Document|} _ (Just val)
 	| otherwise							= [val.Document.name]
 gText{|Document|} _ Nothing             = [""]
 
-gEditor {|Document|} = documentField 
+gEditor {|Document|} = documentField 'DM'.newMap
 
 derive JSONEncode		Document
 derive JSONDecode		Document
@@ -521,7 +521,7 @@ derive class iTask	FileError
 gText{|Scale|}	_ (Just {Scale|cur}) = [toString cur]
 gText{|Scale|}	_ _                  = [""]
 
-gEditor{|Scale|} = liftEditor toSlider fromSlider (slider 1 5)
+gEditor{|Scale|} = liftEditor toSlider fromSlider (slider ('DM'.fromList [("min",JSONInt 1),("max",JSONInt 5)]))
 where
 	toSlider {Scale|cur} = cur
 	fromSlider cur = {Scale|min=1,cur=cur,max=5}
@@ -611,7 +611,7 @@ derive gEditor		ButtonState
 
 //* Table consisting of headers, the displayed data cells & possibly a selection
 gText{|Table|}	_ _	= ["<Table>"]
-gEditor{|Table|} = liftEditor toGrid fromGrid (grid False)
+gEditor{|Table|} = liftEditor toGrid fromGrid (grid (multipleAttr False))
 where
 	toGrid (Table header rows mbSel) = ({ChoiceGrid|header=header,rows=rows},maybeToList mbSel)
 	fromGrid ({ChoiceGrid|header,rows},sel) = Table header rows (listToMaybe sel)

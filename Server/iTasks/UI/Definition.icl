@@ -153,11 +153,11 @@ activeTabAttr activeTab = 'DM'.fromList [("activeTab",JSONInt activeTab)]
 valueAttr :: !JSONNode -> UIAttributes
 valueAttr value = 'DM'.fromList [("value",value)]
 
-minValueAttr :: !Int -> UIAttributes
-minValueAttr minValue = 'DM'.fromList [("minValue",JSONInt minValue)]
+minAttr :: !Int -> UIAttributes
+minAttr min = 'DM'.fromList [("min",JSONInt min)]
 
-maxValueAttr :: !Int -> UIAttributes
-maxValueAttr maxValue = 'DM'.fromList [("maxValue",JSONInt maxValue)]
+maxAttr :: !Int -> UIAttributes
+maxAttr max = 'DM'.fromList [("max",JSONInt max)]
 
 textAttr :: !String -> UIAttributes
 textAttr text = 'DM'.fromList [("text",JSONString text)]

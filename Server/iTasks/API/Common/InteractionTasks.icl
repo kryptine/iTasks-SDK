@@ -12,7 +12,7 @@ import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators
 import iTasks.API.Common.TaskCombinators, iTasks.API.Core.SDSs
 import iTasks.API.Common.SDSCombinators
 import iTasks._Framework.Tonic
-import iTasks.UI.Layout, iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Builtin
+import iTasks.UI.Layout, iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Builtin
 import Text.HTML
 
 derive class iTask ChoiceGrid, ChoiceNode
@@ -94,11 +94,11 @@ updateInformationWithShared d _ shared m
     = updateInformation d [] m
 
 editSelection :: !d !Bool !(SelectOption c a) c [Int] -> Task [a] | toPrompt d & iTask a
-editSelection d multi (SelectInDropdown toView fromView) container sel = editSelection` d (dropdown multi) toView fromView container sel
-editSelection d multi (SelectInCheckGroup toView fromView) container sel = editSelection` d (checkGroup multi) toView fromView container sel
-editSelection d multi (SelectInList toView fromView) container sel = editSelection` d (choiceList multi) toView fromView container sel
-editSelection d multi (SelectInGrid toView fromView) container sel = editSelection` d (grid multi) toView fromView container sel
-editSelection d multi (SelectInTree toView fromView) container sel = editSelection` d (tree multi) toView fromView container sel
+editSelection d multi (SelectInDropdown toView fromView) container sel = editSelection` d (dropdown (multipleAttr multi)) toView fromView container sel
+editSelection d multi (SelectInCheckGroup toView fromView) container sel = editSelection` d (checkGroup (multipleAttr multi)) toView fromView container sel
+editSelection d multi (SelectInList toView fromView) container sel = editSelection` d (choiceList (multipleAttr multi)) toView fromView container sel
+editSelection d multi (SelectInGrid toView fromView) container sel = editSelection` d (grid (multipleAttr multi)) toView fromView container sel
+editSelection d multi (SelectInTree toView fromView) container sel = editSelection` d (tree (multipleAttr multi)) toView fromView container sel
 editSelection` d editor toView fromView container sel
 	= interact d (if (isEmpty sel) Enter Update) null
 		(\r     -> ((),(toView container,sel)))
@@ -107,11 +107,11 @@ editSelection` d editor toView fromView container sel
 		(Just editor) @ (\(_,(_,sel)) -> fromView container sel)
 
 editSelectionWithShared :: !d !Bool !(SelectOption c a) (ReadWriteShared c w) (c -> [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
-editSelectionWithShared d multi (SelectInDropdown toView fromView) sharedContainer initSel = editSelectionWithShared` d (dropdown multi) toView fromView sharedContainer initSel
-editSelectionWithShared d multi (SelectInCheckGroup toView fromView) sharedContainer initSel = editSelectionWithShared` d (checkGroup multi) toView fromView sharedContainer initSel
-editSelectionWithShared d multi (SelectInList toView fromView) sharedContainer initSel = editSelectionWithShared` d (choiceList multi) toView fromView sharedContainer initSel
-editSelectionWithShared d multi (SelectInGrid toView fromView) sharedContainer initSel = editSelectionWithShared` d (grid multi) toView fromView sharedContainer initSel
-editSelectionWithShared d multi (SelectInTree toView fromView) sharedContainer initSel = editSelectionWithShared` d (tree multi) toView fromView sharedContainer initSel
+editSelectionWithShared d multi (SelectInDropdown toView fromView) sharedContainer initSel = editSelectionWithShared` d (dropdown (multipleAttr multi)) toView fromView sharedContainer initSel
+editSelectionWithShared d multi (SelectInCheckGroup toView fromView) sharedContainer initSel = editSelectionWithShared` d (checkGroup (multipleAttr multi)) toView fromView sharedContainer initSel
+editSelectionWithShared d multi (SelectInList toView fromView) sharedContainer initSel = editSelectionWithShared` d (choiceList (multipleAttr multi)) toView fromView sharedContainer initSel
+editSelectionWithShared d multi (SelectInGrid toView fromView) sharedContainer initSel = editSelectionWithShared` d (grid (multipleAttr multi)) toView fromView sharedContainer initSel
+editSelectionWithShared d multi (SelectInTree toView fromView) sharedContainer initSel = editSelectionWithShared` d (tree (multipleAttr multi)) toView fromView sharedContainer initSel
 editSelectionWithShared` d editor toView fromView sharedContainer initSel
 	= interact d Update sharedContainer 
 		(\r     -> (r,(toView r, initSel r)))
@@ -120,11 +120,11 @@ editSelectionWithShared` d editor toView fromView sharedContainer initSel
 		(Just editor) @ (\(container,(_,sel)) -> fromView container sel)
 
 editSharedSelection :: !d !Bool !(SelectOption c a) c (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
-editSharedSelection d multi (SelectInDropdown toView fromView) container sharedSel = editSharedSelection` d (dropdown multi) toView fromView container sharedSel
-editSharedSelection d multi (SelectInCheckGroup toView fromView) container sharedSel = editSharedSelection` d (checkGroup multi) toView fromView container sharedSel
-editSharedSelection d multi (SelectInList toView fromView) container sharedSel = editSharedSelection` d (choiceList multi) toView fromView container sharedSel
-editSharedSelection d multi (SelectInGrid toView fromView) container sharedSel = editSharedSelection` d (grid multi) toView fromView container sharedSel
-editSharedSelection d multi (SelectInTree toView fromView) container sharedSel = editSharedSelection` d (tree multi) toView fromView container sharedSel
+editSharedSelection d multi (SelectInDropdown toView fromView) container sharedSel = editSharedSelection` d (dropdown (multipleAttr multi)) toView fromView container sharedSel
+editSharedSelection d multi (SelectInCheckGroup toView fromView) container sharedSel = editSharedSelection` d (checkGroup (multipleAttr multi)) toView fromView container sharedSel
+editSharedSelection d multi (SelectInList toView fromView) container sharedSel = editSharedSelection` d (choiceList (multipleAttr multi)) toView fromView container sharedSel
+editSharedSelection d multi (SelectInGrid toView fromView) container sharedSel = editSharedSelection` d (grid (multipleAttr multi)) toView fromView container sharedSel
+editSharedSelection d multi (SelectInTree toView fromView) container sharedSel = editSharedSelection` d (tree (multipleAttr multi)) toView fromView container sharedSel
 editSharedSelection` d editor toView fromView container sharedSel 
 	= interact d Update sharedSel
 		(\r           -> ((),(toView container,r)))
@@ -134,15 +134,15 @@ editSharedSelection` d editor toView fromView container sharedSel
 
 editSharedSelectionWithShared :: !d !Bool !(SelectOption c a) (ReadWriteShared c w) (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
 editSharedSelectionWithShared d multi (SelectInDropdown toView fromView) sharedContainer sharedSel 
-	= editSharedSelectionWithShared` d (dropdown multi) toView fromView sharedContainer sharedSel
+	= editSharedSelectionWithShared` d (dropdown (multipleAttr multi)) toView fromView sharedContainer sharedSel
 editSharedSelectionWithShared d multi (SelectInCheckGroup toView fromView) sharedContainer sharedSel 
-	= editSharedSelectionWithShared` d (checkGroup multi) toView fromView sharedContainer sharedSel
+	= editSharedSelectionWithShared` d (checkGroup (multipleAttr multi)) toView fromView sharedContainer sharedSel
 editSharedSelectionWithShared d multi (SelectInList toView fromView) sharedContainer sharedSel 
-	= editSharedSelectionWithShared` d (choiceList multi) toView fromView sharedContainer sharedSel
+	= editSharedSelectionWithShared` d (choiceList (multipleAttr multi)) toView fromView sharedContainer sharedSel
 editSharedSelectionWithShared d multi (SelectInGrid toView fromView) sharedContainer sharedSel 
-	= editSharedSelectionWithShared` d (grid multi) toView fromView sharedContainer sharedSel
+	= editSharedSelectionWithShared` d (grid (multipleAttr multi)) toView fromView sharedContainer sharedSel
 editSharedSelectionWithShared d multi (SelectInTree toView fromView) sharedContainer sharedSel 
-	= editSharedSelectionWithShared` d (tree multi) toView fromView sharedContainer sharedSel
+	= editSharedSelectionWithShared` d (tree (multipleAttr multi)) toView fromView sharedContainer sharedSel
 editSharedSelectionWithShared` d editor toView fromView sharedContainer sharedSel 
 	= interact d Update (sharedContainer |+< sharedSel)
 		(\(rc,rs)           -> (rc,(toView rc,rs)))

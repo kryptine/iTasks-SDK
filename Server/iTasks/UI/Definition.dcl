@@ -209,8 +209,8 @@ focusTaskIdAttr   :: !String                              -> UIAttributes
 closeTaskIdAttr   :: !String                              -> UIAttributes
 activeTabAttr     :: !Int                                 -> UIAttributes
 valueAttr         :: !JSONNode                            -> UIAttributes
-minValueAttr      :: !Int                                 -> UIAttributes
-maxValueAttr      :: !Int                                 -> UIAttributes
+minAttr           :: !Int                                 -> UIAttributes
+maxAttr           :: !Int                                 -> UIAttributes
 textAttr          :: !String                              -> UIAttributes
 enabledAttr       :: !Bool                                -> UIAttributes
 multipleAttr      :: !Bool                                -> UIAttributes

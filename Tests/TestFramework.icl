@@ -4,6 +4,7 @@ import iTasks.API.Extensions.Image
 import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
 import iTasks._Framework.Serialization
 import Text.HTML
+import qualified Data.Map as DM
 
 // TEST FRAMEWORK
 derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult
@@ -119,7 +120,7 @@ where
 
 	runUnitTests
 		= 	accWorld (runUnitTestsWorld suites)
-		>>- viewInformation () [ViewUsing toHtml htmlView]
+		>>- viewInformation () [ViewUsing toHtml (htmlView 'DM'.newMap)]
 		@! ()
 
 	toHtml results
