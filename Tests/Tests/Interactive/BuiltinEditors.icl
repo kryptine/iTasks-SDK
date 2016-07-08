@@ -43,7 +43,7 @@ where
 
 testDocumentField = itest "Document field" "Check if the decimal field is ok" "You should be able to edit" tut
 where
-	tut :: Task Document
+	tut :: Task (!String,!String,!String,!String,!Int)
 	tut = testEditor (documentField 'DM'.newMap) defaultValue Enter
 
 testCheckbox = itest "Checkbox" "Check if the checkbox is ok" "You should be able to edit" tut

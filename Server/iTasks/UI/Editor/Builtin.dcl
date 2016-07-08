@@ -3,11 +3,12 @@ definition module iTasks.UI.Editor.Builtin
 * This module provides a set of editors that are standard available
 * in the client-side UI framework.
 */
-import iTasks.UI.Editor
-from Data.Maybe import :: Maybe
-from Text.HTML import :: HtmlTag
-from iTasks.API.Core.Types import :: Document
+from iTasks.UI.Editor import :: Editor
 from iTasks.UI.Definition import :: UIAttributes
+from Data.Maybe import :: Maybe
+from Data.Map import :: Map
+from Text.HTML import :: HtmlTag
+from Text.JSON import :: JSONNode
 
 // ## Form components ##
 // UITextField, UITextArea, UIPasswordField, UIIntegerField, UIDecimalField, UIDocumentField
@@ -18,12 +19,12 @@ textArea      :: UIAttributes -> Editor String
 passwordField :: UIAttributes -> Editor String
 integerField  :: UIAttributes -> Editor Int
 decimalField  :: UIAttributes -> Editor Real
-documentField :: UIAttributes -> Editor Document
+documentField :: UIAttributes -> Editor (!String,!String,!String,!String,!Int)
 checkBox      :: UIAttributes -> Editor Bool
 slider        :: UIAttributes -> Editor Int
 button        :: UIAttributes -> Editor Bool
 label         :: UIAttributes -> Editor String
-icon          :: UIAttributes -> Editor (String,Maybe String)
+icon          :: UIAttributes -> Editor (!String,!Maybe String)
 
 // ## Display components ##
 // UITextView, UIHtmlView, UIProgressBar
@@ -39,6 +40,7 @@ choiceList    :: UIAttributes -> Editor ([String], [Int])
 grid          :: UIAttributes -> Editor (ChoiceGrid, [Int])
 tree          :: UIAttributes -> Editor ([ChoiceNode], [Int])
 
+//Convenient types for describing the values of grids and trees
 :: ChoiceGrid =
 	{ header  :: [String]
 	, rows    :: [[HtmlTag]]

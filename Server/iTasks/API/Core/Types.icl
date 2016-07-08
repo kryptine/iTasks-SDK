@@ -162,24 +162,8 @@ instance == Note
 where
 	(==) (Note x) (Note y) = x == y
 	
-//* Source code
-JSONEncode{|CleanCode|} _ (CleanCode txt) = [JSONString txt]
-
-JSONDecode{|CleanCode|} _ [JSONString txt:c] = (Just (CleanCode txt),c)
-JSONDecode{|CleanCode|} _ c = (Nothing,c)
-
-gText{|CleanCode|}		_ val		= [maybe "" toString val]
-
-derive gEditor  CleanCode
-derive gDefault	CleanCode
-derive gEq		CleanCode
-
-instance toString CleanCode
-where
-	toString (CleanCode s) = s
 
 //* Money (ISO4217 currency codes are used)
-
 gText{|EUR|} _ val = [maybe "" toString val]
 
 gEditor{|EUR|} = whenDisabled
@@ -466,7 +450,10 @@ gText{|Document|} _ (Just val)
 	| otherwise							= [val.Document.name]
 gText{|Document|} _ Nothing             = [""]
 
-gEditor {|Document|} = documentField 'DM'.newMap
+gEditor {|Document|} = liftEditor toView fromView (documentField 'DM'.newMap)
+where
+	toView {Document|documentId,contentUrl,name,mime,size} = (documentId,contentUrl,name,mime,size)
+	fromView (documentId,contentUrl,name,mime,size) = {Document|documentId=documentId,contentUrl=contentUrl,name=name,mime=mime,size=size}
 
 derive JSONEncode		Document
 derive JSONDecode		Document
@@ -531,24 +518,15 @@ gDefault{|Scale|} = {Scale|min=1,cur=3,max=5}
 //* Progress bars
 gText{|Progress|}	_ val  = [maybe "" (\{Progress|description} -> description) val]
 
-gEditor{|Progress|} = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+gEditor{|Progress|} = liftEditor toView fromView (progressBar 'DM'.newMap)
 where
-	genUI dp val vst=:{VSt|taskId}
-		# attr = 'DM'.unions [textAttr (text val),valueAttr (toJSON (value val))]
-		= (Ok (uia UIProgressBar attr,newFieldMask), vst)
+	toView {Progress|progress,description} = (value,Just description)
 	where
-		text {Progress|description}	= description
-		
-	value {Progress|progress=ProgressRatio ratio} 
-		| ratio < 0.0	= ProgressRatio 0.0
-		| ratio > 1.0	= ProgressRatio 1.0
-					 	= ProgressRatio ratio
-	value {Progress|progress} = progress
+		value = case progress of
+			ProgressUndetermined = Nothing
+			(ProgressRatio r) = Just (entier (100.0 * r))
 
-	onEdit dp e val mask ust = (Ok (NoChange,mask),val,ust)
-
-	onRefresh dp new old mask vst
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI (value new))] []),mask),new,vst)
+	fromView _ = defaultValue
 
 derive gDefault			Progress
 
@@ -563,16 +541,10 @@ derive gEditor 			ProgressAmount
 gText{|HtmlInclude|}	_ (Just (HtmlInclude location))	= ["<External html: " + location + ">"]
 gText{|HtmlInclude|}	_ _	                            = [""]
 
-gEditor{|HtmlInclude|} = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh} 
+gEditor{|HtmlInclude|} = liftEditor toView fromView (htmlView 'DM'.newMap)
 where
-	genUI dp (HtmlInclude path) vst
-		# attr = 'DM'.fromList [("value",JSONString (toString (IframeTag [SrcAttr path] [])))]
-		= (Ok (uia UIHtmlView attr,newFieldMask),vst)
-
-	onEdit dp e val mask ust = (Ok (NoChange,mask),val,ust)
-
-	onRefresh dp val=:(HtmlInclude new) (HtmlInclude old) mask vst
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (encodeUI new)] []),mask),val,vst)
+	toView (HtmlInclude src) = IframeTag [SrcAttr src] []
+	fromView _ 				 = defaultValue
 
 derive gDefault HtmlInclude
 
@@ -903,12 +875,10 @@ derive gDefault			Icon
 derive gEq				Icon
 derive gText	        Icon
 
-gEditor{|Icon|} = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+gEditor{|Icon|} = liftEditor toView fromView (icon 'DM'.newMap)
 where
-	genUI _ (Icon icon) vst = (Ok (uia UIIcon (iconClsAttr ("icon-"+++icon)),newFieldMask), vst)
-	onEdit dp e val mask ust = (Ok (NoChange,mask),val,ust)
-	onRefresh _ (Icon new) (Icon old) mask vst
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "iconCls" (encodeUI ("icon-"+++new))] []),mask),Icon new, vst)
+	toView (Icon name) = ("icon-"+++name,Nothing)
+	fromView _ = defaultValue
 
 // Generic instances for common library types
 derive JSONEncode		Either, MaybeError, HtmlTag, HtmlAttr
