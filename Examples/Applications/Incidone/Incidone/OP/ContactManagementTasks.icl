@@ -8,7 +8,7 @@ import Incidone.DeviceBased.VideoWall
 
 import Incidone.Extensions.CrewLists //For demo
 import qualified Data.Map as DM
-import Text
+import Text, Text.HTML
 
 CONVERT_BIN :== "/opt/local/bin/convert"
 //CONVERT_BIN :== "/usr/bin/convert"
@@ -29,33 +29,42 @@ where
 
 	selectContactFromLists :: (Shared (Maybe (Either ContactNo MMSI))) -> Task (Either ContactNo MMSI)
 	selectContactFromLists sel
-		= anyTask [(editSharedChoiceWithSharedAs (Title "Involved in open incidents")
-						[ChooseWith (ChooseFromTree groupByIncident)] contactsOfOpenIncidentsShort (Left o fromOpenOption)) sel
-				  ,(editSharedChoiceWithSharedAs (Title "Available for help")
-						[ChooseWith (ChooseFromTree groupByGroup)] contactsProvidingHelpShort (Left o contactIdentity)) sel
-                  ,(editSharedChoiceWithSharedAs (Title "All contacts")
-                        [ChooseWith (ChooseFromTree groupByGroup)] allContactsShort (Left o contactIdentity)) sel
-				  ,(editSharedChoiceWithSharedAs (Title "AIS")
-						[ChooseWith (ChooseFromTree ungrouped)] (mapRead (sortBy (\x y -> contactTitle x < contactTitle y) o map aisToContact) allAISContacts) (Right o contactIdentity)) sel
-				  ] <<@ (ArrangeSplit Horizontal True)
+		= enterInformation "FIXME" []
+/*
+		= anyTask [(editSharedSelectionWithShared (Title "Involved in open incidents")
+						[SelectInTree groupByIncident] contactsOfOpenIncidentsShort (Left o fromOpenOption)) sel
+				  ,(editSharedSelectionWithShared (Title "Available for help")
+						[SelectInTree groupByGroup] contactsProvidingHelpShort (Left o contactIdentity)) sel
+                  ,(editSharedSelectionWithShared (Title "All contacts")
+                        [SelectInTree groupByGroup] allContactsShort (Left o contactIdentity)) sel
+				  ,(editSharedSelectionWithShared (Title "AIS")
+						[SelectInTree ungrouped] (mapRead (sortBy (\x y -> contactTitle x < contactTitle y) o map aisToContact) allAISContacts) (Right o contactIdentity)) sel
+				  ] @? tvHd //<<@ (ArrangeSplit Horizontal True)
 
+*/
     fromOpenOption {ContactShortWithIncidents|contactNo} = contactNo
 
 	//Organize contacts into a tree
 	groupByIncident contacts expanded
+		= []
+/*
         = [{ChoiceTree|label=label c,icon=Just (contactIcon {Contact|defaultValue&type=c.ContactShortWithIncidents.type}),value=ChoiceNode i,type=LeafNode} \\ (i,c) <- contacts]
     where
         label {ContactShortWithIncidents|name,incidents}
             = fromMaybe "-" name +++ " (" +++ join "," [fromMaybe "-" title\\{IncidentShort|title}<-incidents] +++ ")"
+*/
 
-    ungrouped contacts expanded = [{ChoiceTree|label=contactTitle c,icon=Just (contactIcon c),value=ChoiceNode i,type=LeafNode} \\ (i,c) <- contacts]
+    ungrouped contacts expanded = [] //[{ChoiceTree|label=contactTitle c,icon=Just (contactIcon c),value=ChoiceNode i,type=LeafNode} \\ (i,c) <- contacts]
 
     groupByGroup contacts expanded
+		= []
+	/*
         = [{ChoiceTree|label=group,icon=Nothing,value=GroupNode group,type=ifExpandedGroup group expanded items} \\(group,items) <- 'DM'.toList (foldl group 'DM'.newMap contacts)]
     where
         group groups (i,c=:{ContactShort|group})
             # g = fromMaybe "Uncategorized" group
             = 'DM'.put g  (fromMaybe [] ('DM'.get g groups) ++ [{ChoiceTree|label=contactTitle c,icon=Just (contactIcon c),value=ChoiceNode i, type=LeafNode}]) groups
+*/
 
 manageContactInformation :: Workspace ContactNo -> Task ()
 manageContactInformation ws contactNo
@@ -134,7 +143,7 @@ where
 
 manageContactPhotos :: ContactNo -> Task ()
 manageContactPhotos contactNo
-    =   (enterChoiceWithShared () [ChooseWith (ChooseFromList toPrj)] (sdsFocus contactNo contactPhotos)
+    =   (enterChoiceWithShared () [ChooseFromList toPrj] (sdsFocus contactNo contactPhotos)
     >^* [OnAction (Action "/Add photo" [ActionIcon "add"]) (always (addPhoto <<@ InWindow))
         ,OnAction (Action "/Delete photo" [ActionIcon "delete"]) (hasValue (\p -> delPhoto p <<@ InWindow))
         ])
@@ -149,7 +158,7 @@ where
         >>? addContactPhoto contactNo
 
     delPhoto photo
-        =   viewInformation ("Delete photo","Do you want to delete this photo?") [ViewWith (\{original} ->original.Document.name)] photo
+        =   viewInformation ("Delete photo","Do you want to delete this photo?") [ViewAs (\{original} ->original.Document.name)] photo
         >>? removeContactPhoto contactNo
 
 manageContactCommunication :: ContactNo -> Task ()
@@ -165,18 +174,20 @@ where
 
 manageContactCommunicationMeans :: Bool ContactNo -> Task CommunicationMean
 manageContactCommunicationMeans compact contactNo = forever (
-        enterChoiceWithShared (Title "Communication means") [ChooseWith (ChooseFromTree group)] (sdsFocus contactNo contactCommunicationMeans)
+		enterInformation "FIXME" []
+
+//        editSelectionWithShared (Title "Communication means") [SelectInTree group] (sdsFocus contactNo contactCommunicationMeans) @? tvHd
     >^* [OnAction ActionAdd  (always (addMean contactNo <<@ InWindow @! ()))
         ,OnAction ActionEdit (hasValue (\{CommunicationMean|id} -> editMean id <<@ InWindow @! ()))
         ,OnAction ActionRemove (hasValue (\{CommunicationMean|id} -> removeMean id))
-        ]
+        ] 
     )
 where
     ActionAdd = Action (if compact "Add" "/Add") [ActionIcon "add"]
     ActionEdit = Action (if compact "Edit" "/Edit") [ActionIcon "edit"]
     ActionRemove = Action (if compact "Remove" "/Remove") [ActionIcon "remove"]
 
-    group means expanded = [{ChoiceTree|label=label m,icon=Just (icon m.CommunicationMean.type),value=ChoiceNode i,type=LeafNode} \\ (i,m) <- means]
+    group means expanded = [] /*[{ChoiceTree|label=label m,icon=Just (icon m.CommunicationMean.type),value=ChoiceNode i,type=LeafNode} \\ (i,m) <- means]
     where
         label {CommunicationMean|type=CMPhone,phoneNo} = fromMaybe "-" phoneNo
         label {CommunicationMean|type=CMVHF,callSign,mmsi} = fromMaybe "-" callSign +++ " / " +++ maybe "-" toString mmsi
@@ -187,9 +198,10 @@ where
         icon CMVHF = "vhf-call"
         icon CMEmail = "e-mail-message"
         icon CMP2000 = "p2000-message"
+*/
 
     addMean contactNo
-        =   enterInformation (Title "Add communication mean") [EnterWith toNewCommunicationMean]
+        =   enterInformation (Title "Add communication mean") [EnterAs toNewCommunicationMean]
         >>? createCommunicationMean contactNo
 
     editMean id
@@ -274,7 +286,7 @@ where
     access = sdsFocus contactNo contactAccess
 
     viewContactAccess contactNo
-        = viewSharedInformation () [ViewWith view] access
+        = viewSharedInformation () [ViewAs view] access
     where
         view {ContactAccess|account=Nothing} = "This contact can not log in to Incidone"
         view {ContactAccess|account=Just {Credentials|username=Username uname}}
@@ -285,7 +297,7 @@ where
         >>- \original ->
             ( (Label "Account" @>> updateInformation () [] original.ContactAccess.account)
               -&&-
-              (Label "Access level" @>> updateChoice () [ChooseWith (ChooseFromRadioButtons viewLevel)] [PartnerAccess,WOAccess] (fromMaybe PartnerAccess original.ContactAccess.access))
+              (Label "Access level" @>> updateChoice () [ChooseFromCheckGroup viewLevel] [PartnerAccess,WOAccess] (fromMaybe PartnerAccess original.ContactAccess.access))
             )
         >>? \(updatedAccount,updatedAccess) ->
             set {ContactAccess|account=updatedAccount,access=Just updatedAccess} access
@@ -302,13 +314,13 @@ viewContactDetails contactNo
       -&&-
       viewContactCommunicationMeans contactNo
       -&&-
-      viewSharedInformation "Actions:" [ViewWith viewActions] (sdsFocus contactNo actionStatusesByContact)
+      viewSharedInformation "Actions:" [ViewAs viewActions] (sdsFocus contactNo actionStatusesByContact)
 	) @! ()
 where
 	contact = sdsFocus contactNo contactByNo
 
 	viewPhoto contact
-		= viewSharedInformation () [ViewWith contactThumbHtml] contact
+		= viewSharedInformation () [ViewAs contactThumbHtml] contact
 
     viewActions items = case [title \\ (_,_,{ActionStatus|title}) <- items] of
         []      = ["There are no actions for this contact"]
@@ -316,7 +328,7 @@ where
 
 viewContactCommunicationMeans :: ContactNo -> Task [CommunicationMean]
 viewContactCommunicationMeans contactNo
-    = viewSharedInformation "Communication means:" [ViewWith viewComms] (sdsFocus contactNo contactCommunicationMeans)
+    = viewSharedInformation "Communication means:" [ViewAs viewComms] (sdsFocus contactNo contactCommunicationMeans)
 where
     viewComms items = TableTag [] (map viewComm items)
     where
@@ -332,14 +344,14 @@ where
 viewAISContactDetails :: MMSI -> Task ()
 viewAISContactDetails mmsi
     = withHeader (viewTitle (toString mmsi))
-        (viewSharedInformation () [ViewWith (fmap aisToDetails)] (sdsFocus mmsi AISContactByMMSI)
+        (viewSharedInformation () [ViewAs (fmap aisToDetails)] (sdsFocus mmsi AISContactByMMSI)
          -&&-
          viewVesselWebLinks mmsi
         ) @! ()
 
 viewContactHeader :: ContactNo -> Task ()
 viewContactHeader contactNo
-    = viewSharedInformation () [ViewWith toView] (sdsFocus contactNo contactByNo) @! ()
+    = viewSharedInformation () [ViewAs toView] (sdsFocus contactNo contactByNo) @! ()
 where
     toView c=:{Contact|photos,name}
         = DivTag [] [ImgTag [StyleAttr "float: left; margin-right: 5px":attributes]
@@ -353,7 +365,7 @@ viewVesselWebLinks mmsi
     =   get webLinksConfig
     >>- \webLinks -> if (isEmpty webLinks.vesselLinks)
         (return ())
-        (viewInformation "Find on the web" [ViewWith toLinks] webLinks.vesselLinks @! ())
+        (viewInformation "Find on the web" [ViewAs toLinks] webLinks.vesselLinks @! ())
 where
     toLinks links
         = UlTag [] [LiTag [] [ATag [TargetAttr "_blank", HrefAttr (replaceSubString "{mmsi}" (toString mmsi) url)] [Text title]]\\{WebLink|title,url=URL url} <- links]
@@ -364,11 +376,11 @@ updateContactPosition contactNo
     >>- \({Contact|name,type,position},baseLayers) ->
         withShared (position,initPerspective position)
         \tmpInfo ->
-        (updateSharedInformation ("Position update","Update position of contact "<+++ name) [UpdateWith fst (\(_,y) x -> (x,y))] tmpInfo
+        (updateSharedInformation ("Position update","Update position of contact "<+++ name) [UpdateAs fst (\(_,y) x -> (x,y))] tmpInfo
          -||-
-         updateSharedInformation () [UpdateWith (toMap baseLayers) (fromMap baseLayers)] tmpInfo
+         updateSharedInformation () [UpdateAs (toMap baseLayers) (fromMap baseLayers)] tmpInfo
          -||-
-         viewSharedInformation "Search the web" [ViewWith (toSearchURLs o fst)] tmpInfo
+         viewSharedInformation "Search the web" [ViewAs (toSearchURLs o fst)] tmpInfo
         ) @ fst
     >>? \newPosition ->
         upd (\c -> {Contact|c&position=newPosition}) (sdsFocus contactNo contactByNo)
@@ -413,11 +425,11 @@ updateSharedContactRefList d refs
     >^* [OnAction (Action "Add" []) (always (addItem <<@ InWindow))]
 where
     manageCurrentItems
-        = updateSharedInformation d [UpdateWith toPrj fromPrj] items
+        = updateSharedInformation d [UpdateAs toPrj fromPrj] items @ map contactIdentity
     where
         items = sdsDeref refs id contactsByNosShort (\_ cs -> cs)
-        toPrj l = {EditableList|items = [(Hidden (contactIdentity c),Display (contactTitle c))\\c <-l],add=ELNoAdd,remove=True,reorder=True,count=False}
-        fromPrj _ {EditableList|items} = [c \\ (Hidden c,_) <- items]
+        toPrj l = [(Hidden (contactIdentity c),Display (contactTitle c)) \\ c <-l]
+        fromPrj _ items = [c \\ (Hidden c,_) <- items]
 
     addItem
         =   selectKnownOrDefineNewContact
@@ -430,7 +442,7 @@ selectKnownOrDefineNewContact
         ("Add new contact",enterNewContact)
 where
     chooseKnownContact
-        = enterChoiceWithSharedAs () [ChooseWith (ChooseFromComboBox id)] allContactsShort contactIdentity
+        = enterChoiceWithSharedAs () [ChooseFromDropdown id] allContactsShort contactIdentity
     enterNewContact
         = enterInformation () []
 
@@ -531,9 +543,9 @@ viewContactsOnMap sharedContacts sel
    >>- \(baseLayers,perspective) ->
        withShared (False,perspective)
        \localState ->
-            updateSharedInformation "Show AIS contacts:" [UpdateWith fst (\(_,y) x -> (x,y))] localState
+            updateSharedInformation "Show AIS contacts:" [UpdateAs fst (\(_,y) x -> (x,y))] localState
             ||-
-            (updateSharedInformation () [UpdateWith (toPrj baseLayers) fromPrj] (mapState localState sharedContacts sel)) //<<@ AfterLayout (tweakUI fill)) //FIXME
+            (updateSharedInformation () [UpdateAs (toPrj baseLayers) fromPrj] (mapState localState sharedContacts sel)) @ (\(a,b,c) -> (b,c))
             >^* [OnAction (Action "/Share map to wall" [ActionIcon "share-to-wall"]) (hasValue sharePerspective)
                 ]
         @? selection

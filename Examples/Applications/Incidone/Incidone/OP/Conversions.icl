@@ -1,7 +1,7 @@
 implementation module Incidone.OP.Conversions
 
 import Incidone.OP.Concepts
-import Text
+import Text, Text.HTML
 
 class contactTitle a :: a -> String
 instance contactTitle Contact

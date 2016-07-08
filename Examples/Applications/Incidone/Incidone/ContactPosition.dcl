@@ -79,10 +79,7 @@ standardMapLayers           :: Shared [ContactMapLayer]
 
 derive JSONEncode ContactPosition, ContactMapPerspective
 derive JSONDecode ContactPosition, ContactMapPerspective
-
 derive gEditor ContactPosition, ContactMapPerspective
-derive gVerify ContactPosition, ContactMapPerspective
-
 derive gText ContactPosition, ContactMapPerspective
 
 derive gDefault ContactPosition, ContactMapPerspective

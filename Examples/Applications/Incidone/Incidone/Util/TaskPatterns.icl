@@ -1,6 +1,7 @@
 implementation module Incidone.Util.TaskPatterns
 
 import iTasks, iTasks.API.Extensions.Dashboard
+import iTasks.UI.Definition
 import Incidone.OP.IncidentManagementTasks, Incidone.OP.ContactManagementTasks
 import Text, Data.Functor, Data.Either
 import qualified Data.Map as DM
@@ -135,7 +136,7 @@ viewNoSelection = viewTitle "Select..." @! ()
 
 oneOrAnother :: !d (String,Task a) (String,Task b) -> Task (Either a b) | toPrompt d & iTask a & iTask b
 oneOrAnother desc (labela,taska) (labelb,taskb)
-    =   updateChoice desc [ChooseWith (ChooseFromRadioButtons ((!!) [labela,labelb]))]  [0,1] 0 /* <<@ AfterLayout (uiDefSetHeight WrapSize) */ //FIXME
+    =   updateChoice desc [ChooseFromCheckGroup ((!!) [labela,labelb])]  [0,1] 0  <<@ ApplyLayout (setAttributes (heightAttr WrapSize))
     >&> \s -> whileUnchanged s (
         \choice -> case choice of
             Nothing = (viewInformation () [] "You have to make a choice" @? const NoValue)
@@ -173,7 +174,7 @@ where
 
 manageBackgroundTask :: !d !String !String (Task a) -> Task () | toPrompt d & iTask a
 manageBackgroundTask d identity title task
-    =   viewSharedInformation d [ViewWith (view title)] taskPid
+    =   viewSharedInformation d [ViewAs (view title)] taskPid
     >^* [OnAction (Action "Start" []) (ifValue isNothing startTask)
         ,OnAction (Action "Stop" []) (ifValue isJust stopTask)
         ]

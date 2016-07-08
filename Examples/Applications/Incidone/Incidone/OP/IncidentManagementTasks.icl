@@ -10,6 +10,7 @@ import Incidone.DeviceBased.VideoWall
 import Incidone.ActionManagementTasks
 import Data.List
 import qualified Data.Map as DM
+import Text.HTML
 
 openIncidentInWorkspace :: Workspace IncidentNo -> Task ()
 openIncidentInWorkspace ws incidentNo
@@ -66,14 +67,14 @@ where
                         ,(OnAction (Action "/Update status"  [ActionIcon "edit"]) (ifValue (\c -> c=:(Left _)) (\(Left c) -> updateContactStatus c <<@ InWindow @! ())))
                         ,(OnAction (Action "/Open contact"   [ActionIcon "open"]) (ifValue (\c -> c=:(Left _)) (\(Left c) -> openContactInWorkspace ws c)))
                         ]
-    chooseFromList sel = editSharedChoiceWithSharedAs () [ChooseWith (ChooseFromList listView)] contacts (Left o contactIdentity) sel
+    chooseFromList sel = editSharedChoiceWithSharedAs () [ChooseFromList listView] contacts (Left o contactIdentity) sel
     chooseFromMap sel = viewContactsOnMap (sdsFocus incidentNo contactsByIncidentGeo) sel
 
     listView c=:{Contact|name,type,status,photos}
         = ">" <+++ type <+++ ": " <+++ name <+++ " (" <+++ status <+++ ")"
 
     add	= oneOrAnother (Title "Add contact..")
-            ("Known contact",enterChoiceWithSharedAs () [ChooseWith (ChooseFromComboBox id)] allContactsShort contactNo)
+            ("Known contact",enterChoiceWithSharedAs () [ChooseFromDropdown id] allContactsShort contactNo)
             ("Add new contact",enterInformation () [])
 		>>? \contact ->
             createContactIfNew contact
@@ -127,7 +128,7 @@ manageIncidentLog incidentNo
     @! ()
 where
     viewIncidentLog :: IncidentNo -> Task [LogEntry]
-    viewIncidentLog incident = viewSharedInformation () [ViewWith toView] (sdsFocus incidentNo incidentLog)
+    viewIncidentLog incident = viewSharedInformation () [ViewAs toView] (sdsFocus incidentNo incidentLog)
     where
         toView log = DivTag [ClassAttr "incident-log"] (flatten [[vizDate date:map vizEntry entries] \\ (date,entries) <- groupByDate log])
 
@@ -167,11 +168,11 @@ updateSharedIncidentRefList d compact refs
     >^* [OnAction (Action "Add" []) (always (addItem <<@ InWindow))]
 where
     manageCurrentItems
-        = updateSharedInformation d [UpdateWith toPrj fromPrj] items
+        = updateSharedInformation d [UpdateAs toPrj fromPrj] items @ map incidentIdentity
     where
         items = sdsDeref refs id incidentsByNosShort (\_ is -> is)
-        toPrj l = {EditableList|items = [(Hidden (incidentIdentity i),Display (incidentTitle i))\\i <-l],add=ELNoAdd,remove=True,reorder=True,count=False}
-        fromPrj _ {EditableList|items} = [i \\ (Hidden i,_) <- items]
+        toPrj l = [(Hidden (incidentIdentity i),Display (incidentTitle i)) \\i <-l]
+        fromPrj _ items = [i \\ (Hidden i,_) <- items]
 
     addItem
         =   selectKnownOrDefineNewIncident
@@ -184,7 +185,7 @@ selectKnownOrDefineNewIncident
         ("Add new incident",enterNewIncident)
 where
     chooseKnownIncident
-        = enterChoiceWithSharedAs () [ChooseWith (ChooseFromComboBox id)] openIncidentsShort incidentIdentity
+        = enterChoiceWithSharedAs () [ChooseFromDropdown id] openIncidentsShort incidentIdentity
     enterNewIncident
         = enterInformation () []
 

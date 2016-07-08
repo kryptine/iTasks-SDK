@@ -12,6 +12,7 @@ import Incidone.ActionManagementTasks
 import Incidone.Util.TaskPatterns
 import iTasks.API.Extensions.Admin.ServerAdmin
 import iTasks.API.Extensions.Dashboard
+import Text.HTML
 
 :: DatabaseProblem
     = NoDatabaseAccess
@@ -45,7 +46,7 @@ where
         =   whileUnchanged databaseConfig
         \config ->
             checkDatabaseConfig config
-        >>- viewInformation (Title "Database configuration") [ViewWith databaseStatusView]
+        >>- viewInformation (Title "Database configuration") [ViewAs databaseStatusView]
 
     databaseStatusView (Ok InternalSQLiteDB)            = Row (LightOnGreen, "Incidone is correctly configured to use an internal SQLite database.")
     databaseStatusView (Ok (ExternalMySQLDB _))         = Row (LightOnGreen, "Incidone is correctly configured to use an external MySQL database.")
@@ -72,7 +73,7 @@ where
                         ]
 
                 Error e
-                    =   viewInformation ("Warning","The new configuration appears to have a problem") [ViewWith databaseStatusView] (Error e)
+                    =   viewInformation ("Warning","The new configuration appears to have a problem") [ViewAs databaseStatusView] (Error e)
                     >>* [OnAction (Action "Set anyway" []) (always (set config databaseConfig @! ()))
                         ,OnAction (Action "Change and try again" []) (always (editDatabaseConfig newConfig))
                         ]
@@ -94,7 +95,7 @@ where
     manageDatabase
         =   get databaseDef
         >>- \db ->
-          (  (enterChoiceWithShared (Title "Tables") [ChooseWith (ChooseFromTree group)] (sdsFocus db sqlTables)
+          (  (enterChoiceWithShared (Title "Tables") [/*ChooseFromTree group */] (sdsFocus db sqlTables)
               >^* [OnAction ActionDelete (hasValue (\table -> deleteTable db table <<@ InWindow @! ()))
                   ,OnAction (Action "Empty database" []) (always (emptyDatabase db <<@ InWindow @! ()))
                   ,OnAction (Action "Load Incidone tables" []) (always (createIncidoneTables db <<@ InWindow ))
@@ -107,7 +108,7 @@ where
             ) (\e -> viewInformation () [] e @! ())
         ) <<@ (ArrangeWithSideBar 0 LeftSide 300 True)
     where
-        group items _ = [{ChoiceTree|defaultValue & label=o,value=ChoiceNode i}\\(i,o) <- items]
+        //group items _ = [{ChoiceTree|defaultValue & label=o,value=ChoiceNode i}\\(i,o) <- items]
 
         deleteTable db table
             =   viewInformation "Are your sure you want to delete this table?" [] table
@@ -138,7 +139,7 @@ manageUsers = forever (catchAll (
       ) (\e -> viewInformation "Error" [] e >>| return ()))
 where
     manageExistingUsers
-        =   (enterChoiceWithSharedAs () [ChooseWith (ChooseFromGrid id)] allContactsShort contactIdentity 
+        =   (enterChoiceWithSharedAs () [ChooseFromGrid id] allContactsShort contactIdentity 
         >&> withSelection viewNoSelection manageContactAccess
         )<<@ ArrangeWithSideBar 0 LeftSide 200 True
 
@@ -220,7 +221,7 @@ configureMaps
 where
     previewMapLayers :: Task ContactMapPerspective
     previewMapLayers = withShared defaultValue
-        \perspective -> updateSharedInformation (Title "Preview") [UpdateWith toPrj fromPrj] (perspective >+| standardMapLayers) /* <<@ AfterLayout (tweakUI fill) */ //FIXME
+        \perspective -> updateSharedInformation (Title "Preview") [UpdateAs toPrj fromPrj] (perspective >+| standardMapLayers) @ fst /* <<@ AfterLayout (tweakUI fill) */ //FIXME
     where
         toPrj (perspective,layers) = toLeafletMap {ContactMap|defaultValue & perspective=perspective,layers=layers}
         fromPrj _ {LeafletMap|perspective} = fromLeafletPerspective perspective

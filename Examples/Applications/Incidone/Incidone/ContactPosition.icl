@@ -1,5 +1,5 @@
 implementation module Incidone.ContactPosition
-import iTasks, iTasks.UI.Editor, iTasks.UI.Definition
+import iTasks, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators, iTasks.UI.Definition
 import qualified Data.Map as DM
 import Data.Functor, Text
 import qualified Text.Parsers.ZParsers.ParsersKernel as PK
@@ -14,30 +14,7 @@ import Incidone.Util.TaskPatterns
 derive JSONEncode ContactPosition
 derive JSONDecode ContactPosition
 
-gEditor{|ContactPosition|} = {Editor|genUI=genUI,updUI=updUI,onEdit=onEdit}
-where
-	genUI path val mask vst=:{VSt|taskId,optional,disabled}
-    	| disabled
-			# attr = 'DM'.unions [optionalAttr optional,valueAttr (toJSON (toSingleLineText val))]
-        	= (Ok (uia UIViewString attr), vst)
-    	# value = case val of
-        	PositionDescription s _ = JSONString s
-        	PositionLatLng l        = JSONString (formatLatLng l)
-		# attr = 'DM'.unions [optionalAttr optional, stdAttributes "position" optional mask
-							 ,editAttrs taskId (editorId path) (Just (toJSON value))]
-    	= (Ok (uia UIEditString attr), vst)
-
-	updUI dp old om new nm vst
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new)] [])),vst)
-
-	onEdit [] JSONNull val _ ust = (PositionDescription "" Nothing,Blanked,ust)
-	onEdit [] (JSONString nval) _ _ ust = (parsePosition nval, Touched, ust)
-	onEdit dp e val mask ust = (val,mask,ust)
-
-gVerify{|ContactPosition|} {VerifyOptions|optional=False} (_,Blanked)   = MissingValue
-gVerify{|ContactPosition|} _ (PositionDescription _ Nothing,mask)       = WarningValue "This position can not be plotted on a map"
-gVerify{|ContactPosition|} _ _                                          = CorrectValue Nothing
-
+gEditor{|ContactPosition|} = liftEditor printPosition parsePosition (textField 'DM'.newMap)
 gText{|ContactPosition|} _ val = [maybe "" printPosition val]
 
 derive gDefault ContactPosition
@@ -105,7 +82,6 @@ derive class iTask ContactMap, ContactMapLayer, ContactMapLayerDefinition, Conta
 derive JSONEncode ContactMapPerspective
 derive JSONDecode ContactMapPerspective
 derive gEditor ContactMapPerspective
-derive gVerify ContactMapPerspective
 derive gText ContactMapPerspective
 
 gEq{|ContactMapPerspective|} {ContactMapPerspective|center=(xla,xlo),zoom=xz,bounds=xb} {ContactMapPerspective|center=(yla,ylo),zoom=yz,bounds=yb}

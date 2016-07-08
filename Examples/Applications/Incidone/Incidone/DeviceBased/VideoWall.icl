@@ -2,7 +2,7 @@ implementation module Incidone.DeviceBased.VideoWall
 import iTasks
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.ActionManagementTasks
 import Incidone.Util.TaskPatterns
-import Text, Data.List, iTasks._Framework.HtmlUtil
+import Text, Text.HTML, Data.List, iTasks._Framework.HtmlUtil
 
 derive class iTask WallContent
 
@@ -14,14 +14,14 @@ viewVideoWallContent
     = (header ||- content) <<@ (ArrangeWithSideBar 0 TopSide 30 False) //<<@ AfterLayout plainLayoutFinal //FIXME
 where
     header
-        = viewSharedInformation () [ViewWith view] (currentTime |+| currentUTCTime)  //<<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header")) //FIXME
+        = viewSharedInformation () [ViewAs view] (currentTime |+| currentUTCTime)  //<<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header")) //FIXME
     where
         view (local,utc) = "LOCAL: " + lpad (toString local.Time.hour) 2 '0' + ":" + lpad (toString local.Time.min) 2 '0' + " "
                          + "UTC: " + lpad (toString utc.Time.hour) 2 '0' + ":" + lpad (toString utc.Time.min) 2 '0'
     content
         = whileUnchanged wallContent \content -> case content of
-        WallClock                               = (viewSharedInformation (Title "Local Time") [ViewWith formatTime] currentTime @! content)
-        WallCountDown until                     = (viewSharedInformation (Title "Countdown") [ViewWith (\t -> formatDateTime (until - t))] currentDateTime @! content)
+        WallClock                               = (viewSharedInformation (Title "Local Time") [ViewAs formatTime] currentTime @! content)
+        WallCountDown until                     = (viewSharedInformation (Title "Countdown") [ViewAs (\t -> formatDateTime (until - t))] currentDateTime @! content)
         WallOverview perspective                = viewWallOverview perspective @! content
         WallContactSummary (Just contactNo)     = viewWallContactSummary contactNo @! content
         WallIncidentSummary (Just incidentNo)   = viewWallIncidentSummary incidentNo @! content
@@ -33,11 +33,11 @@ formatDateTime time = DivTag [StyleAttr "font-size: 80pt; text-align: center; pa
 mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |+| contactsProvidingHelpGeo)
 
 viewWallOverview perspective
-    = ((viewSharedInformation (Title "Open Incidents") [ViewWith formatIncidents] openIncidentsDetails)
+    = ((viewSharedInformation (Title "Open Incidents") [ViewAs formatIncidents] openIncidentsDetails)
         -&&-
        (get standardMapLayers
         >>- \baseLayers ->
-        viewSharedInformation () [ViewWith (toMap perspective baseLayers)] mapContacts /* <<@ AfterLayout (tweakUI (setMargins 0 0 0 0 o fill))*/ ) //FIXME
+        viewSharedInformation () [ViewAs (toMap perspective baseLayers)] mapContacts /* <<@ AfterLayout (tweakUI (setMargins 0 0 0 0 o fill))*/ ) //FIXME
       ) <<@ ArrangeWithSideBar 0 LeftSide 300 False
 where
     toMap perspective baseLayers contacts
@@ -64,7 +64,7 @@ where
     viewDetails
         = (viewPhoto -&&- viewTypeDetails) <<@ (Title "Details")
     viewPhoto
-		= viewSharedInformation () [ViewWith formatPhoto] contact
+		= viewSharedInformation () [ViewAs formatPhoto] contact
     where
 	    formatPhoto {Contact|photos,type,notes}
             = ImgTag [ClassAttr "wall-contact-details",WidthAttr "200",HeightAttr "200",SrcAttr (photoSrc photos)]
@@ -79,9 +79,9 @@ where
             _           = viewInformation () [] ()
 
     viewPosition
-        = ((viewSharedInformation (Title "Position") [ViewWith formatPosition] contact /* <<@ AfterLayout (uiDefSetBaseCls "wall-contact-position") */) //FIXME
+        = ((viewSharedInformation (Title "Position") [ViewAs formatPosition] contact /* <<@ AfterLayout (uiDefSetBaseCls "wall-contact-position") */) //FIXME
            -&&-
-           (viewSharedInformation (Title "Map") [ViewWith contactMap] contact /*<<@ AfterLayout (tweakUI (setMargins 0 0 0 0 o fill)) */) //FIXME
+           (viewSharedInformation (Title "Map") [ViewAs contactMap] contact /*<<@ AfterLayout (tweakUI (setMargins 0 0 0 0 o fill)) */) //FIXME
           )
     where
         formatPosition {Contact|position=Just pos}  = toSingleLineText pos
@@ -98,7 +98,7 @@ where
         markers c _         = []
 
     viewCommunication
-        = viewSharedInformation (Title "Last communication") [ViewWith (formatComms o take 5)] (sdsFocus contactNo contactCommunications)
+        = viewSharedInformation (Title "Last communication") [ViewAs (formatComms o take 5)] (sdsFocus contactNo contactCommunications)
     where
         formatComms items
             = DivTag []
@@ -117,7 +117,7 @@ where
     viewIncidentTitle
         = viewSharedInformation () [] (sdsFocus incidentNo incidentTitleByNo) //<<@ AfterLayout (uiDefSetBaseCls "wall-contact-title") //FIXME
     viewIncidentContacts
-        = viewSharedInformation (Title "Involved Contacts") [ViewWith toView] (sdsFocus incidentNo contactsByIncident)
+        = viewSharedInformation (Title "Involved Contacts") [ViewAs toView] (sdsFocus incidentNo contactsByIncident)
     where
         toView contacts = DivTag [ClassAttr "wall-incident-contacts"] (map formatContact contacts)
 
@@ -131,14 +131,14 @@ where
 	    photoSrc _							= "/no-photo.jpg"
 
     viewIncidentActions
-        = viewSharedInformation (Title "Open Actions") [ViewWith toView]  (sdsFocus incidentNo actionStatusesByIncident) /* <<@ AfterLayout (tweakUI fill) */ //FIXME
+        = viewSharedInformation (Title "Open Actions") [ViewAs toView]  (sdsFocus incidentNo actionStatusesByIncident) /* <<@ AfterLayout (tweakUI fill) */ //FIXME
     where
         toView actions = DivTag [] [vizAction a \\ (_,_,a) <- actions]
         vizAction {ActionStatus|title}
             = DivTag [ClassAttr "wall-action"] [H2Tag [ClassAttr "wall-action-title"] [Text title]]
 
     viewIncidentLog
-        = viewSharedInformation (Title "Last Log Messages") [ViewWith (toView o take 5)] (sdsFocus incidentNo incidentLog)
+        = viewSharedInformation (Title "Last Log Messages") [ViewAs (toView o take 5)] (sdsFocus incidentNo incidentLog)
     where
         toView log = DivTag [] (flatten [[vizDate date:map vizEntry entries] \\ (date,entries) <- groupByDate log])
 

@@ -255,12 +255,12 @@ determineContact mbPrevious
        <<@ ArrangeVertical
 where
     createNewContact filter
-        =   enterInformation (Title "Contact") [] @> (mapToFilter,filter)
+        =   enterInformation (Title "Contact") [] // @> (mapToFilter,filter)
         >>* [OnAction ActionCreate (hasValue (createContact))]
     selectExistingContact filter
         =   whileUnchanged filter
             \curFilter ->
-            enterChoiceWithSharedAs (Title "Select contact") [ChooseWith (ChooseFromList contactTitle)] (sdsFocus curFilter filteredContactsShort) contactIdentity
+            enterChoiceWithSharedAs (Title "Select contact") [ChooseFromList contactTitle] (sdsFocus curFilter filteredContactsShort) contactIdentity
         >>* [OnValue (hasValue return)
             :maybe [] (\contactNo -> [OnAction ActionCancel (always (return contactNo))]) mbPrevious]
 

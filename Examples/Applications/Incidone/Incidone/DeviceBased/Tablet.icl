@@ -3,6 +3,7 @@ import iTasks
 import Incidone.OP.Concepts, Incidone.OP.SDSs
 import Incidone.DeviceBased.VideoWall
 import Incidone.Util.TaskPatterns
+import Text.HTML
 
 selectVideoWallContent :: Task ()
 selectVideoWallContent
@@ -16,7 +17,7 @@ where
     selectContent
         = (switchContent >&> withSelection viewNoSelection configureContent) <<@ (ArrangeWithSideBar 0 LeftSide 300 False)
 
-    switchContent = enterChoice (Title "Choose Content") [ChooseWith (ChooseFromList bigLabel)] contentOptions
+    switchContent = enterChoice (Title "Choose Content") [ChooseFromList bigLabel] contentOptions
     contentOptions
         = ["Overview","Incident","Contact","Clock","Countdown"]
 
@@ -29,7 +30,7 @@ where
             = get (standardMapLayers |+| standardPerspective)
             >>- \(baseLayers,perspective) ->
                 withShared perspective
-                \p -> updateSharedInformation (Title title) [UpdateWith (toMap baseLayers) fromMap] (p >+| mapContacts)
+                \p -> updateSharedInformation (Title title) [UpdateAs (toMap baseLayers) fromMap] (p >+| mapContacts) @ fst
             //<<@ AfterLayout (tweakUI fill) //FIXME
             @   WallOverview
         where
@@ -38,9 +39,9 @@ where
             fromMap _ {LeafletMap|perspective}
                 = fromLeafletPerspective perspective
         configure "Incident"
-            =   enterChoiceWithSharedAs (Title title) [ChooseWith (ChooseFromList bigLabel)] allIncidentsShort (\{IncidentShort|incidentNo} -> WallIncidentSummary (Just incidentNo))
+            =   enterChoiceWithSharedAs (Title title) [ChooseFromList bigLabel] allIncidentsShort (\{IncidentShort|incidentNo} -> WallIncidentSummary (Just incidentNo))
         configure "Contact"
-            =   enterChoiceWithSharedAs (Title title) [ChooseWith (ChooseFromList bigLabel)] allContactsShort (\{ContactShort|contactNo} -> WallContactSummary (Just contactNo))
+            =   enterChoiceWithSharedAs (Title title) [ChooseFromList bigLabel] allContactsShort (\{ContactShort|contactNo} -> WallContactSummary (Just contactNo))
         configure "Clock"
             =   viewInformation (Title title) [] "No configuration is needed for the clock."
             //<<@ AfterLayout (tweakUI fill) //FIXME

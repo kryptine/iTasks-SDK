@@ -1,13 +1,14 @@
 implementation module Incidone.ActionManagementTasks
 
 import iTasks
-import iTasks.UI.Editor
+import iTasks.UI.Editor, iTasks.UI.Editor.Common
+import iTasks._Framework.Serialization
 import Incidone.Util.TaskPatterns
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.Conversions
 import Incidone.OP.IncidentManagementTasks, Incidone.OP.ContactManagementTasks, Incidone.OP.CommunicationManagementTasks
 
 import qualified Data.Map as DM
-import  Data.Tuple, Data.Functor, Data.List, Text
+import  Data.Tuple, Data.Functor, Data.List, Text, Text.HTML
 
 //Extensions
 import Incidone.Extensions.CrewLists
@@ -130,7 +131,7 @@ toContactAction :: (Maybe String) (ActionDefinition ContactNo) -> CatalogAction
 toContactAction mbGroup item=:{ActionDefinition|meta={ItemMeta|title,description}} = toConfigurableAction configer item
 where
     configer initContacts initIncidents
-        = enterChoiceWithSharedAs ("Select contact...","Select a contact to plan the action for") [ChooseWith (ChooseFromComboBox contactTitle)] (contactOptions mbGroup)
+        = enterChoiceWithSharedAs ("Select contact...","Select a contact to plan the action for") [ChooseFromDropdown contactTitle] (contactOptions mbGroup)
                 (\{ContactShort|contactNo}->contactNo)
              @  \contactNo ->
                 (contactNo,{ActionStatus|title=title,description=description,progress=ActionActive,contacts=[contactNo:initContacts],incidents=initIncidents})
@@ -140,7 +141,7 @@ toIncidentAction item=:{ActionDefinition|meta={ItemMeta|title,description}}
     = toConfigurableAction configer item
 where
     configer initContacts initIncidents
-        = enterChoiceWithSharedAs ("Select incident...","Select an incident to plan the action for") [ChooseWith (ChooseFromComboBox incidentTitle)]
+        = enterChoiceWithSharedAs ("Select incident...","Select an incident to plan the action for") [ChooseFromDropdown incidentTitle]
             openIncidentsShort (\{IncidentShort|incidentNo}->incidentNo)
         @ \incidentNo ->
             (incidentNo,{ActionStatus|title=title,description=description,progress=ActionActive,contacts=initContacts,incidents=[incidentNo:initIncidents]})
@@ -150,9 +151,9 @@ toContactForIncidentAction mbGroup item=:{ActionDefinition|meta={ItemMeta|title,
     = toConfigurableAction configer item
 where
     configer initContacts initIncidents
-        = (enterChoiceWithSharedAs "Select an incident to plan the action for" [ChooseWith (ChooseFromComboBox incidentTitle)] openIncidentsShort incidentIdentity
+        = (enterChoiceWithSharedAs "Select an incident to plan the action for" [ChooseFromDropdown incidentTitle] openIncidentsShort incidentIdentity
           -&&-
-          enterChoiceWithSharedAs "Select a contact to plan the action for" [ChooseWith (ChooseFromComboBox contactTitle)] (contactOptions mbGroup) contactIdentity
+          enterChoiceWithSharedAs "Select a contact to plan the action for" [ChooseFromDropdown contactTitle] (contactOptions mbGroup) contactIdentity
           )  <<@ (Title "Select contact and incident...")
         @ \config=:(incidentNo,contactNo) ->
             (config,{ActionStatus|title=title,description=description,progress=ActionActive,contacts=[contactNo:initContacts],incidents=[incidentNo:initIncidents]})
@@ -213,7 +214,6 @@ derive JSONDecode CatalogAction
 derive gDefault CatalogAction
 derive gText CatalogAction
 derive gEditor CatalogAction
-derive gVerify CatalogAction
 
 gEq{|CatalogAction|} x y = x.CatalogAction.identity == y.CatalogAction.identity //NECESSARY
 
@@ -227,7 +227,6 @@ gEq{|ActionTasks|} x y = True
 gDefault{|ActionTasks|} = ActionTasks (\_ _ -> return ((),defaultValue)) (\_ _ -> return ())
 gText{|ActionTasks|} _ _ = ["Action item task definition"]
 gEditor{|ActionTasks|} = emptyEditor 
-gVerify{|ActionTasks|} _ val = alwaysValid val
 
 instance toString ActionProgress
 where
@@ -266,7 +265,7 @@ userActionCatalog = sharedStore "UserActionCatalog" []
 //Todo items
 todoItemTask :: () (Shared ActionStatus) -> Task ()
 todoItemTask _ status
-    = viewSharedInformation () [ViewWith (\{ActionStatus|description} -> description)] status @! ()
+    = viewSharedInformation () [ViewAs (\{ActionStatus|description} -> description)] status @! ()
 
 configureTodoItemTask :: [ContactNo] [IncidentNo] -> Task ((),ActionStatus)
 configureTodoItemTask initContacts initIncidents = enterActionStatus initContacts initIncidents @ \s -> ((),s)
@@ -429,7 +428,7 @@ configureUserCommunicationItemTask type _ _ initContacts initIncidents
 communicationItemTask :: (ContactNo,Maybe P2000Message) (Shared ActionStatus) -> Task ()
 communicationItemTask (contactNo,mbP2000Template) status
     //View action description
-    =    viewSharedInformation () [ViewWith (\{ActionStatus|description} -> description)] status 
+    =    viewSharedInformation () [ViewAs (\{ActionStatus|description} -> description)] status 
     -&&- ((
     //View contact communication means
         (viewContactCommunicationMeans contactNo
@@ -443,10 +442,10 @@ where
     attemptCommunication contactNo
         = withShared []
           \attempts ->
-            (viewSharedInformation () [ViewWith (\{ActionStatus|description} -> description)] status
+            (viewSharedInformation () [ViewAs (\{ActionStatus|description} -> description)] status
             -&&-
             //View communications tried to complete this action
-            (enterChoiceWithShared "Attempts:" [ChooseWith (ChooseFromGrid viewAttempt)] attempts
+            (enterChoiceWithShared "Attempts:" [ChooseFromGrid viewAttempt] attempts
             >^* [OnAction (Action "Make Phone Call" []) (always (addPhoneCall status attempts))
                 ,OnAction (Action "Send P2000 Message" []) (always (addP2000Message status attempts))
                 ]
@@ -494,9 +493,10 @@ chooseActionItem :: d Bool Bool (ROShared () [(InstanceNo,InstanceNo,ActionStatu
 chooseActionItem d groupByIncident useMyActionsFolder list
     = whileUnchanged (currentUserContactNo |+| openIncidentsShort)//Done this way, because I don't know how to combine the shares in a tree
         \(me,incidents) ->
-            editChoiceWithSharedAs d
-                [ChooseWith (ChooseFromTree (groupActions groupByIncident useMyActionsFolder me incidents))] list fst3 Nothing //<<@ NoAnnotation //FIXME
-
+			enterInformation "FIXME" []
+            //editChoiceWithSharedAs d
+             //   [ChooseFromTree (groupActions groupByIncident useMyActionsFolder me incidents)] list fst3 Nothing //<<@ NoAnnotation //FIXME
+/*
 groupActions :: Bool Bool ContactNo [IncidentShort] [(Int,(InstanceNo,InstanceNo,ActionStatus))] [ChoiceTreeValue] -> [ChoiceTree String]
 groupActions groupByIncident useMyActionsFolder me incidents items expanded
     | groupByIncident
@@ -560,7 +560,7 @@ where
 
         node i no {ActionStatus|title,progress}
             = {ChoiceTree|label=(no,title),icon = Just ("action-"+++toString progress), value = ChoiceNode i, type = LeafNode}
-
+*/
 workOnActionItem :: InstanceNo -> Task ()
 workOnActionItem instanceNo
     = withHeader
@@ -603,7 +603,7 @@ where
 
 deleteActionItem :: InstanceNo -> Task (Maybe ActionStatus)
 deleteActionItem instanceNo
-    = ( viewSharedInformation ("Delete","Are you sure you want to remove this action?") [ViewWith view] status
+    = ( viewSharedInformation ("Delete","Are you sure you want to remove this action?") [ViewAs view] status
     >>? \stat -> removeTask (TaskId instanceNo 0) topLevelTasks @! stat
         ) <<@ InWindow
 where
@@ -612,7 +612,7 @@ where
 
 manageActionStatus :: InstanceNo -> Task ActionStatus
 manageActionStatus instanceNo
-    =   viewSharedInformation () [ViewWith view] status
+    =   viewSharedInformation () [ViewAs view] status
     >^* [OnAction (Action "Mark active" [ActionIcon "action-active"]) (ifValue (ifProgress ActionActive) (\_ -> setProgress ActionActive status))
         ,OnAction (Action "Mark completed" [ActionIcon "action-completed"]) (ifValue (ifProgress ActionCompleted) (\_ -> setProgress ActionCompleted status))
         ,OnAction (Action "Mark failed" [ActionIcon "action-failed"]) (ifValue (ifProgress ActionFailed) (\_ -> setProgress ActionFailed status))
@@ -665,7 +665,7 @@ updateActionStatus current = withShared current
         -|| updateSharedIncidentRefList "Incidents:" True (incidents updating)
         ) <<@ (Title "Update action")
 where
-    updateMeta status = updateSharedInformation () [UpdateWith toPrj fromPrj] status
+    updateMeta status = updateSharedInformation () [UpdateAs toPrj fromPrj] status
     where
         toPrj {ActionStatus|title,description} = {ItemMeta|title=title,description=description}
         fromPrj status {ItemMeta|title,description} = {ActionStatus|status & title=title,description=description}
@@ -682,7 +682,7 @@ manageSubActions plan status list
 
 manageCurrentSubActionItems :: (Shared ActionStatus) (SharedTaskList ()) -> Task ()
 manageCurrentSubActionItems status list
-    =   enterChoiceWithShared (Title "Current Actions") [ChooseWith (ChooseFromGrid (format o thd3))] (subTaskItems list)
+    =   enterChoiceWithShared (Title "Current Actions") [ChooseFromGrid (format o thd3)] (subTaskItems list)
     >^* [OnAction (Action "Add action" [ActionIcon "add"]) (always (get status >>- \{ActionStatus|contacts,incidents} -> addSubAction contacts incidents list))]
     @!  ()
 where
@@ -698,12 +698,14 @@ addSuggestedSubActionItems :: ActionPlan (Shared ActionStatus) (SharedTaskList (
 addSuggestedSubActionItems plan status list
     =   plan.suggestedActions
     >&> \suggestions ->
-        enterChoiceWithShared (Title "Suggested actions") [ChooseWith (ChooseFromTree group)] (mapRead (fromMaybe []) suggestions)
+        enterChoiceWithShared (Title "Suggested actions") [/*ChooseFromTree group*/] (mapRead (fromMaybe []) suggestions)
         >^* [OnAction (Action "Add" [ActionIcon "add",ActionTrigger DoubleClick]) (hasValue (\i -> get status >>- \{ActionStatus|contacts,incidents} -> addSubActionItem contacts incidents i list))]
         @!  ()
+/*
 where
     group items expanded
         = [{ChoiceTree|label=v.CatalogAction.meta.ItemMeta.title,icon=Just "action-completed",value=ChoiceNode i,type=LeafNode}\\ (i,v) <- items]
+
 
 groupCatalog items expanded = foldl insertAction [] items
 where
@@ -717,6 +719,7 @@ where
         insert ipath path=:[nodeP:pathR] []
             = [{ChoiceTree|label=nodeP,icon=Nothing,value=GroupNode ipath, type= ifExpandedGroup ipath expanded (insert ipath pathR [])}]
         insert ipath path [node:nodesR] = [node:insert ipath path nodesR]
+*/
 
 //Define a subaction to be added to the plan
 addSubAction :: [ContactNo] [IncidentNo] (SharedTaskList a) -> Task (Maybe TaskId) | iTask a
@@ -724,7 +727,7 @@ addSubAction initContacts initIncidents list
     = addPredefinedAction initContacts initIncidents list <<@ (Title "Add action...") /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 500))*/ <<@ InWindow //FIXME
 
 addPredefinedAction initContacts initIncidents list
-    =   (enterChoiceWithShared (Title "Choose action") [ChooseWith (ChooseFromTree groupCatalog)] actionCatalog
+    =   (enterChoiceWithShared (Title "Choose action") [/*ChooseFromTree groupCatalog*/] actionCatalog
     >&> \mbSel -> configureAction mbSel) <<@ (ArrangeWithSideBar 0 LeftSide 300 True)
 where
     configureAction selSds = whileUnchanged selSds configTask

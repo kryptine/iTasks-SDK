@@ -4,7 +4,7 @@ module IncidoneCCC
 * to support SAR operations of the Netherlands Coast guard. It is loosely based on their
 * procedure documentation and observation of, and interviews with, Coast guard officers.
 */
-import iTasks, StdMisc, System.Time, Text, Data.Tuple
+import iTasks, StdMisc, System.Time, Text, Text.HTML, Data.Tuple
 import iTasks.UI.Layout, iTasks.UI.Definition
 import qualified Data.Map as DM
 
