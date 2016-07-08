@@ -165,6 +165,8 @@ itasks.Grid = {
         }
         el.appendChild(bodyEl);
     },
+	initContainerEl: function() {
+	},
 	onAttributeChange: function(name,value) {
         var me = this;
 

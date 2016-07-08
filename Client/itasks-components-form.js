@@ -280,6 +280,8 @@ itasks.Button = {
 			return false;
 		});
     },
+	initContainerEl: function() { //Make sure no padding is set on buttons
+	},
 	onAttributeChange: function(name,value) {
 		var me = this;
 		switch(name) {
