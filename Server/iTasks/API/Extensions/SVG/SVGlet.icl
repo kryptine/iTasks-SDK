@@ -116,7 +116,10 @@ svgRenderer svglet=:{initView,renderImage,updView,updModel}
   	onRefresh _ new old mask vst 
 		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "stateChange" (toJSON new)] []),mask),new,vst)
 
-  	onEdit _ _ st m ust = (Ok (NoChange,m),st,ust)
+  	onEdit _ (_,json) st m ust 
+		= case fromJSON json of 	
+			Just nst = (Ok (NoChange,m),nst,ust)
+			Nothing  = (Ok (NoChange,m),st,ust)
 
 onNewState :: !(JSVal a) !(SVGLet s v) !s !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 onNewState me svglet=:{initView,renderImage} s world
