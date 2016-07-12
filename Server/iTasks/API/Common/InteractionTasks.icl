@@ -15,7 +15,7 @@ import iTasks._Framework.Tonic
 import iTasks.UI.Layout, iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Builtin
 import Text.HTML
 
-derive class iTask ChoiceGrid, ChoiceNode
+derive class iTask ChoiceText, ChoiceGrid, ChoiceRow, ChoiceNode
 
 enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
 enterInformation d [EnterAs fromf:_]
@@ -255,14 +255,14 @@ editSharedMultipleChoiceWithSharedAs d vopts sharedContainer target sharedSel
 
 //Helper functions for the edit*Choice* tasks
 selectOption target opts = case opts of
-	[(ChooseFromDropdown f):_]     = SelectInDropdown (toLabels f) (findSelection target)
-	[(ChooseFromCheckGroup f):_]   = SelectInCheckGroup (toLabels f) (findSelection target)
-	[(ChooseFromList f):_]         = SelectInList (toLabels f) (findSelection target)
+	[(ChooseFromDropdown f):_]     = SelectInDropdown (toTexts f) (findSelection target)
+	[(ChooseFromCheckGroup f):_]   = SelectInCheckGroup (toTexts f) (findSelection target)
+	[(ChooseFromList f):_]         = SelectInList (toTexts f) (findSelection target)
 	[(ChooseFromGrid f):_]         = SelectInGrid (toGrid f) (findSelection target)
-	_                              = SelectInDropdown (toLabels id) (findSelection target) 
+	_                              = SelectInDropdown (toTexts id) (findSelection target) 
 
-toLabels f options = map (toSingleLineText o f) options
-toGrid f options = {ChoiceGrid|header=gText{|*|} AsHeader (fixtype vals),rows = [map Text (gText{|*|} AsRow (Just v)) \\ v <- vals]}
+toTexts f options = [{ChoiceText|id=i,text=toSingleLineText (f o)} \\ o <- options & i <- [0..]]
+toGrid f options = {ChoiceGrid|header=gText{|*|} AsHeader (fixtype vals),rows = [{ChoiceRow|id=i,cells=map Text (gText{|*|} AsRow (Just v))} \\ v <- vals & i <- [0..]]}
 where
 	vals = map f options
 

@@ -4,9 +4,7 @@ import iTasks.API.Core.Tasks
 
 from iTasks.API.Core.Types import :: Date, :: Time, :: DateTime, :: Action
 from Data.Functor import class Functor
-from iTasks.UI.Editor.Builtin import :: ChoiceNode, :: ChoiceGrid
-//from iTasks.API.Core.Types import :: ChoiceTree, :: ChoiceTreeValue, :: Date, :: Time, :: DateTime, :: Action
-//import Data.Functor
+from iTasks.UI.Editor.Builtin import :: ChoiceText, :: ChoiceGrid, :: ChoiceNode 
 
 /*** General input/update/output tasks ***/
 
@@ -26,9 +24,9 @@ from iTasks.UI.Editor.Builtin import :: ChoiceNode, :: ChoiceGrid
                         | E.v: UpdateSharedAs (a -> v) (a v -> b) (v v -> v)  & iTask v 
 
 //Selection in arbitrary containers (explicit identification is needed)
-:: SelectOption c s     = SelectInDropdown   (c -> [String])     (c [Int] -> [s])
-     					| SelectInCheckGroup (c -> [String])     (c [Int] -> [s])
-     					| SelectInList       (c -> [String])     (c [Int] -> [s])
+:: SelectOption c s     = SelectInDropdown   (c -> [ChoiceText]) (c [Int] -> [s])
+     					| SelectInCheckGroup (c -> [ChoiceText]) (c [Int] -> [s])
+     					| SelectInList       (c -> [ChoiceText]) (c [Int] -> [s])
      					| SelectInGrid       (c -> ChoiceGrid)   (c [Int] -> [s])
      					| SelectInTree       (c -> [ChoiceNode]) (c [Int] -> [s])
 	

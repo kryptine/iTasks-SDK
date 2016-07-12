@@ -112,7 +112,8 @@ where
 					= (viz,{vst & selectedConsIndex = selectedConsIndex})
 				| otherwise
 					//Initially only generate a UI to choose a constructor
-					# consChooseUI = uia UIDropdown (choiceAttrs taskId (editorId dp) [] [JSONString gdc.gcd_name \\ gdc <- gtd_conses])
+					# consOptions = [JSONObject [("id",JSONInt i),("text",JSONString gdc.gcd_name)] \\ gdc <- gtd_conses & i <- [0..]]
+					# consChooseUI = uia UIDropdown (choiceAttrs taskId (editorId dp) [] consOptions)
 					# consChooseMask = FieldMask {touched=False,valid=optional,state=JSONNull}
 					= (Ok (UI UIVarCons 'DM'.newMap [consChooseUI],CompoundMask [consChooseMask]),{vst & selectedConsIndex = selectedConsIndex})
 			Update
@@ -122,7 +123,8 @@ where
 				| otherwise
 					= case ex.Editor.genUI dp x vst of
 						(Ok (UI UICons attr items, CompoundMask masks),vst)
-							# consChooseUI = uia UIDropdown (choiceAttrs taskId (editorId dp) [vst.selectedConsIndex] [JSONString gdc.gcd_name \\ gdc <- gtd_conses])
+							# consOptions = [JSONObject [("id",JSONInt i),("text",JSONString gdc.gcd_name)] \\ gdc <- gtd_conses & i <- [0..]]
+							# consChooseUI = uia UIDropdown (choiceAttrs taskId (editorId dp) [vst.selectedConsIndex] consOptions)
 							# consChooseMask = FieldMask {touched=False,valid=True,state=JSONInt vst.selectedConsIndex}
 							= (Ok (UI UIVarCons attr [consChooseUI:items],CompoundMask [consChooseMask:masks]),{vst & selectedConsIndex = selectedConsIndex})
 						(Error e,vst) = (Error e,vst)
@@ -145,7 +147,7 @@ where
 		# consChooseMask = FieldMask {touched=True,valid=optional,state=JSONNull}
 		= (Ok (change,CompoundMask [consChooseMask:masks]),OBJECT val, vst)
 
-	onEdit dp ([],JSONInt consIdx) (OBJECT val) (CompoundMask [FieldMask {FieldMask|touched,valid,state}:masks]) vst=:{VSt|mode} //Update is a constructor switch
+	onEdit dp ([],JSONArray [JSONInt consIdx]) (OBJECT val) (CompoundMask [FieldMask {FieldMask|touched,valid,state}:masks]) vst=:{VSt|mode} //Update is a constructor switch
 		| consIdx < 0 || consIdx >= gtd_num_conses
 			= (Error "Constructor selection out of bounds",OBJECT val,vst)
 		//Create a default value for the selected constructor

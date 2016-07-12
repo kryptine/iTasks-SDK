@@ -34,16 +34,24 @@ progressBar   :: UIAttributes -> Editor (Maybe Int,Maybe String) //Percentage, d
 
 // ## Selection components ## 
 // UIDropdown, UIRadioGroup, UICheckboxGroup, UIChoiceList, UIGrid, UITree
-dropdown      :: UIAttributes -> Editor ([String], [Int])
-checkGroup    :: UIAttributes -> Editor ([String], [Int])
-choiceList    :: UIAttributes -> Editor ([String], [Int])
+dropdown      :: UIAttributes -> Editor ([ChoiceText], [Int])
+checkGroup    :: UIAttributes -> Editor ([ChoiceText], [Int])
+choiceList    :: UIAttributes -> Editor ([ChoiceText], [Int])
 grid          :: UIAttributes -> Editor (ChoiceGrid, [Int])
 tree          :: UIAttributes -> Editor ([ChoiceNode], [Int])
 
 //Convenient types for describing the values of grids and trees
+:: ChoiceText =
+	{ id     :: Int
+	, text   :: String
+    }
 :: ChoiceGrid =
 	{ header  :: [String]
-	, rows    :: [[HtmlTag]]
+	, rows    :: [ChoiceRow]
+	}
+:: ChoiceRow =
+	{ id      :: Int
+	, cells   :: [HtmlTag]
 	}
 
 :: ChoiceNode =

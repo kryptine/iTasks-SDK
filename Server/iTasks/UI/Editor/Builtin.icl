@@ -49,19 +49,23 @@ progressBar attr = viewComponent combine UIProgressBar
 where
 	combine (amount,text) = 'DM'.unions ((maybe [] (\t -> [textAttr t]) text) ++ (maybe [] (\v -> [valueAttr (JSONInt v)]) amount) ++ [attr])
 						
-dropdown :: UIAttributes -> Editor ([String], [Int])
-dropdown attr = choiceComponent (const attr) id JSONString (\o i -> i >= 0 && i < length o) UIDropdown
+dropdown :: UIAttributes -> Editor ([ChoiceText], [Int])
+dropdown attr = choiceComponent (const attr) id toOptionText checkBoundsText UIDropdown
 
-checkGroup :: UIAttributes -> Editor ([String],[Int])
-checkGroup attr = choiceComponent (const attr) id JSONString (\o i -> i >= 0 && i < length o) UICheckGroup
+checkGroup    :: UIAttributes -> Editor ([ChoiceText], [Int])
+checkGroup attr = choiceComponent (const attr) id toOptionText checkBoundsText UICheckGroup
 
-choiceList :: UIAttributes -> Editor ([String],[Int])
-choiceList attr = choiceComponent (const attr) id JSONString (\o i -> i >= 0 && i < length o) UIChoiceList
+choiceList :: UIAttributes -> Editor ([ChoiceText], [Int])
+choiceList attr = choiceComponent (const attr) id toOptionText checkBoundsText UIChoiceList
+
+toOptionText {ChoiceText|id,text}= JSONObject [("id",JSONInt id),("text",JSONString text)]
+checkBoundsText options idx = or [id == idx \\ {ChoiceText|id} <- options]
 
 grid :: UIAttributes -> Editor (ChoiceGrid, [Int])
-grid attr = choiceComponent (\{ChoiceGrid|header} -> 'DM'.union attr (columnsAttr header)) (\{ChoiceGrid|rows} -> rows) toOption (\o i -> i >= 0 && i < length o) UIGrid
+grid attr = choiceComponent (\{ChoiceGrid|header} -> 'DM'.union attr (columnsAttr header)) (\{ChoiceGrid|rows} -> rows) toOption checkBounds UIGrid
 where
-	toOption opt = JSONArray (map (JSONString o toString) opt)
+	toOption {ChoiceRow|id,cells}= JSONObject [("id",JSONInt id),("cells",JSONArray (map (JSONString o toString) cells))]
+	checkBounds options idx = or [id == idx \\ {ChoiceRow|id} <- options]
 
 tree :: UIAttributes -> Editor ([ChoiceNode], [Int])
 tree attr = choiceComponent (const attr) id toOption checkBounds UITree
@@ -69,9 +73,8 @@ where
 	toOption {ChoiceNode|id,label,icon,expanded,children}
 		= JSONObject [("text",JSONString label)
 					 ,("iconCls",maybe JSONNull (\i -> JSONString ("icon-"+++i)) icon)
-					 ,("value",JSONInt id)
+					 ,("id",JSONInt id)
 					 ,("expanded",JSONBool expanded)
-					 ,("leaf",JSONBool (isEmpty children))
 					 ,("children",JSONArray (map toOption children))
 					]
 
@@ -130,17 +133,12 @@ where
 		= case e of
 			JSONNull
 				= (Ok (NoChange,FieldMask {touched=True,valid=optional,state=JSONNull}),(val,[]),vst)
-			(JSONArray indices)
-				# selection = [i \\ JSONInt i <- indices]
+			(JSONArray ids)
+				# selection = [i \\ JSONInt i <- ids]
 				| all (checkBounds options) selection
-					= (Ok (NoChange,FieldMask {touched=True,valid=True,state=JSONArray indices}),(val,selection),vst)
+					= (Ok (NoChange,FieldMask {touched=True,valid=True,state=JSONArray ids}),(val,selection),vst)
 				| otherwise
-					= (Error ("Choice event out of bounds: " +++ toString (JSONArray indices)),(val,sel),vst)
-			(JSONInt idx)
-				| checkBounds options idx
-					= (Ok (NoChange,FieldMask {touched=True,valid=True,state=JSONInt idx}),(val,[idx]),vst)
-				| otherwise
-					= (Error ("Choice event out of bounds: " +++ toString idx),(val,sel),vst)
+					= (Error ("Choice event out of bounds: " +++ toString (JSONArray ids)),(val,sel),vst)
 			_ 
 				= (Error ("Invalid choice event: " +++ toString e), (val,sel),vst)
 

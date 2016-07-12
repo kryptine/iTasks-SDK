@@ -585,8 +585,8 @@ derive gEditor		ButtonState
 gText{|Table|}	_ _	= ["<Table>"]
 gEditor{|Table|} = liftEditor toGrid fromGrid (grid (multipleAttr False))
 where
-	toGrid (Table header rows mbSel) = ({ChoiceGrid|header=header,rows=rows},maybeToList mbSel)
-	fromGrid ({ChoiceGrid|header,rows},sel) = Table header rows (listToMaybe sel)
+	toGrid (Table header rows mbSel) = ({ChoiceGrid|header=header,rows=[{ChoiceRow|id=i,cells=cells} \\ cells <- rows & i <- [0..]]},maybeToList mbSel)
+	fromGrid ({ChoiceGrid|header,rows},sel) = Table header [cells \\ {ChoiceRow|cells} <- rows] (listToMaybe sel)
 
 gDefault{|Table|} = Table [] [] Nothing
 

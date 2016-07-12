@@ -5,7 +5,7 @@ import iTasks.UI.Editor.Builtin, iTasks.UI.Definition
 import qualified Data.Map as DM
 import Text.HTML
 
-derive class iTask ChoiceGrid, ChoiceNode
+derive class iTask ChoiceText, ChoiceGrid, ChoiceRow, ChoiceNode
 
 testBuiltinEditors :: TestSuite
 testBuiltinEditors = testsuite "Builtin editors" "These tests check if the builtin editors work"
@@ -89,23 +89,25 @@ where
 
 testDropdown = itest "Dropdown" "Check if the dropdown works" "You should be able to edit" tut
 where
-	tut :: Task ([String],[Int])
-	tut = testEditor (dropdown (multipleAttr False)) (["A","B","C"],[]) Update
+	tut :: Task ([ChoiceText],[Int])
+	tut = testEditor (dropdown (multipleAttr False)) ([{ChoiceText|id=0,text="A"},{ChoiceText|id=1,text="B"},{ChoiceText|id=2,text="C"}],[]) Update
 
 testCheckGroup = itest "Check group" "Check if the checkgroup works" "You should be able to edit" tut
 where
-	tut :: Task ([String],[Int])
-	tut = testEditor (checkGroup (multipleAttr False)) (["A","B","C"],[]) Update
+	tut :: Task ([ChoiceText],[Int])
+	tut = testEditor (checkGroup (multipleAttr False)) ([{ChoiceText|id=0,text="A"},{ChoiceText|id=1,text="B"},{ChoiceText|id=2,text="C"}],[]) Update
 
 testChoiceList = itest "Choice list" "Check if the choice list works" "You should be able to edit" tut
 where
-	tut :: Task ([String],[Int])
-	tut = testEditor (choiceList (multipleAttr False)) (["A","B","C"],[]) Update
+	tut :: Task ([ChoiceText],[Int])
+	tut = testEditor (choiceList (multipleAttr False)) ([{ChoiceText|id=0,text="A"},{ChoiceText|id=1,text="B"},{ChoiceText|id=2,text="C"}],[]) Update
 
 testGrid = itest "Grid" "Check if the grid works" "You should be able to edit" tut
 where
 	tut :: Task (ChoiceGrid,[Int])
-	tut = testEditor (grid (multipleAttr False)) ({ChoiceGrid|header=["Key","Value"],rows=[[Text "A",Text "1"],[Text "B",Text "2"],[Text "C",Text "3"]]},[]) Update
+	tut = testEditor (grid (multipleAttr False)) ({ChoiceGrid|header=["Key","Value"],rows=rows},[]) Update
+
+	rows = [{ChoiceRow|id=1,cells=[Text "A",Text "1"]},{ChoiceRow|id=2,cells=[Text "B",Text "2"]},{ChoiceRow|id=3,cells=[Text "C",Text "3"]}]
 
 testTree = itest "Tree" "Check if the tree works" "You should be able to edit" tut
 where
@@ -118,18 +120,20 @@ where
 
 testCheckGroupMulti = itest "Check group (multiple)" "Check if the checkgroup works" "You should be able to select multiple" tut
 where
-	tut :: Task ([String],[Int])
-	tut = testEditor (checkGroup (multipleAttr True)) (["A","B","C"],[]) Update
+	tut :: Task ([ChoiceText],[Int])
+	tut = testEditor (checkGroup (multipleAttr True)) ([{ChoiceText|id=0,text="A"},{ChoiceText|id=1,text="B"},{ChoiceText|id=2,text="C"}],[]) Update
 
 testChoiceListMulti = itest "Choice list (multiple)" "Check if the choice list works" "You should be able to select multiple" tut
 where
-	tut :: Task ([String],[Int])
-	tut = testEditor (choiceList (multipleAttr True)) (["A","B","C"],[]) Update
+	tut :: Task ([ChoiceText],[Int])
+	tut = testEditor (choiceList (multipleAttr True)) ([{ChoiceText|id=0,text="A"},{ChoiceText|id=1,text="B"},{ChoiceText|id=2,text="C"}],[]) Update
 
 testGridMulti = itest "Grid (multiple)" "Check if the grid works" "You should be able to select multiple" tut
 where
 	tut :: Task (ChoiceGrid,[Int])
-	tut = testEditor (grid (multipleAttr True)) ({ChoiceGrid|header=["Key","Value"],rows=[[Text "A",Text "1"],[Text "B",Text "2"],[Text "C",Text "3"]]},[]) Update
+	tut = testEditor (grid (multipleAttr True)) ({ChoiceGrid|header=["Key","Value"],rows=rows},[]) Update
+
+	rows = [{ChoiceRow|id=1,cells=[Text "A",Text "1"]},{ChoiceRow|id=2,cells=[Text "B",Text "2"]},{ChoiceRow|id=3,cells=[Text "C",Text "3"]}]
 
 testTreeMulti = itest "Tree (multiple)" "Check if the tree works" "You should be able to select multiple" tut
 where
