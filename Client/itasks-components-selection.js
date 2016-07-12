@@ -39,7 +39,35 @@ itasks.Dropdown = {
     }
 };
 
-itasks.CheckGroup = {
+itasks.ListSelect = { //Mixin for selections in lists based on index
+	select: function (selection, toggle = false) {
+        var me = this,
+			options = me.optionsEl.children,
+			numOptions = options.length,
+			oldSelection = me.value.slice(0),
+			i;
+
+		if(toggle) {
+ 			//Unselect items in the toggle set
+			me.value = me.value.filter(function(x) {return !selection.includes(x)});
+			//Add the items from the selection that were not already selected
+			me.value = me.value.concat(selection.filter(function(x) {return !oldSelection.includes(x)}));
+		} else {
+			me.value = selection;
+		}
+		//Update DOM
+		for(i = 0; i < numOptions; i++) {
+			me.selectInDOM(options[i],me.value.includes(i));
+		}
+	},
+    onAttributeChange: function(name,value) {
+		if(name == 'value') {
+			me.select(value,false);
+		}
+	}
+};
+
+itasks.CheckGroup = Object.assign({
 	domTag: 'ul',
 	cssCls: 'checkgroup',
 	multiple: false,
@@ -73,35 +101,46 @@ itasks.CheckGroup = {
 
             el.appendChild(liEl);
         });
+		me.optionsEl = me.domEl;
     },
-	select: function (selection, toggle = false) {
-        var me = this,
-			options = me.domEl.children,
-			numOptions = options.length,
-			oldSelection = me.value.slice(0),
-			i;
-
-		if(toggle) {
- 			//Unselect items in the toggle set
-			me.value = me.value.filter(function(x) {return !selection.includes(x)});
-			//Add the items from the selection that were not already selected
-			me.value = me.value.concat(selection.filter(function(x) {return !oldSelection.includes(x)}));
-		} else {
-			me.value = selection;
-		}
-		//Update DOM
-		for(i = 0; i < numOptions; i++) {
-			options[i].children[0].checked = me.value.includes(i);
-		}
-	},
-    onAttributeChange: function(name,value) {
-		if(name == 'value') {
-			me.select(value,false);
-		}
+	selectInDOM: function(el,selected) {
+		el.children[0].checked = selected;
 	}
-};
+},itasks.ListSelect);
 
-itasks.Grid = {
+itasks.ChoiceList = Object.assign({
+	cssCls: 'choice-list',
+	multiple: false,
+    initDOMEl: function() {
+        var me = this,
+            el = me.domEl,
+            value = me.value.length ? me.value[0] : null;
+
+        me.options.forEach(function(option,idx) {
+            var optionEl;
+            optionEl = document.createElement('div');
+            optionEl.classList.add(me.cssPrefix + 'choice-list-option');
+            if(idx === value) {
+                optionEl.classList.add(me.cssPrefix + 'selected');
+            }
+            optionEl.addEventListener('click',function(e) {
+				me.select([idx], me.multiple && (e.metaKey || e.ctrlKey));
+                me.doEditEvent(me.taskId,me.editorId,me.value);
+				e.preventDefault();
+            });
+            optionEl.innerHTML = option;
+
+            el.appendChild(optionEl);
+        });
+		me.optionsEl = me.domEl;
+    },
+	selectInDOM(el,selected) {
+		el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
+	}
+
+},itasks.ListSelect);
+
+itasks.Grid = Object.assign({
 	cssCls: 'choicegrid',
 	width: 'flex',
 	height: 'flex',
@@ -148,6 +187,7 @@ itasks.Grid = {
             });
             bodyEl.appendChild(rowEl);
         });
+
         //Indicate selection
         if(me.value.length) {
             me.value.forEach(function(selectedIdx) {
@@ -155,38 +195,13 @@ itasks.Grid = {
             });
         }
         el.appendChild(bodyEl);
+		me.optionsEl = me.bodyEl;
     },
 	initContainerEl: function() {},
-	select: function (selection, toggle = false) {
-        var me = this,
-			options = me.bodyEl.children,
-			numOptions = options.length,
-			oldSelection = me.value.slice(0),
-			i;
-
-		if(toggle) {
- 			//Unselect items in the toggle set
-			me.value = me.value.filter(function(x) {return !selection.includes(x)});
-			//Add the items from the selection that were not already selected
-			me.value = me.value.concat(selection.filter(function(x) {return !oldSelection.includes(x)}));
-		} else {
-			me.value = selection;
-		}
-		//Update DOM
-		for(i = 0; i < numOptions; i++) {
-			if(me.value.includes(i)) {
-				options[i].classList.add(me.cssPrefix + 'selected');
-			} else {
-				options[i].classList.remove(me.cssPrefix + 'selected');
-			}
-		}
-	},
-    onAttributeChange: function(name,value) {
-		if(name == 'value') {
-			me.select(value,false);
-		}
+	selectInDOM(el,selected) {
+		el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
 	}
-};
+},itasks.ListSelect);
 
 itasks.Tree = {
     height: 'flex',
@@ -283,60 +298,5 @@ itasks.Tree = {
             me.nodes[idx].classList.add(me.cssPrefix + 'selected');
         });
     }
-};
-itasks.ChoiceList = {
-	cssCls: 'choice-list',
-	multiple: false,
-    initDOMEl: function() {
-        var me = this,
-            el = me.domEl,
-            value = me.value.length ? me.value[0] : null;
-
-        me.options.forEach(function(option,idx) {
-            var optionEl;
-            optionEl = document.createElement('div');
-            optionEl.classList.add(me.cssPrefix + 'choice-list-option');
-            if(idx === value) {
-                optionEl.classList.add(me.cssPrefix + 'selected');
-            }
-            optionEl.addEventListener('click',function(e) {
-				me.select([idx], me.multiple && (e.metaKey || e.ctrlKey));
-                me.doEditEvent(me.taskId,me.editorId,me.value);
-				e.preventDefault();
-            });
-            optionEl.innerHTML = option;
-
-            el.appendChild(optionEl);
-        });
-    },
-	select: function (selection, toggle = false) {
-        var me = this,
-			options = me.domEl.children,
-			numOptions = options.length,
-			oldSelection = me.value.slice(0),
-			i;
-
-		if(toggle) {
- 			//Unselect items in the toggle set
-			me.value = me.value.filter(function(x) {return !selection.includes(x)});
-			//Add the items from the selection that were not already selected
-			me.value = me.value.concat(selection.filter(function(x) {return !oldSelection.includes(x)}));
-		} else {
-			me.value = selection;
-		}
-		//Update DOM
-		for(i = 0; i < numOptions; i++) {
-			if(me.value.includes(i)) {
-				options[i].classList.add(me.cssPrefix + 'selected');
-			} else {
-				options[i].classList.remove(me.cssPrefix + 'selected');
-			}
-		}
-	},
-    onAttributeChange: function(name,value) {
-		if(name == 'value') {
-			me.select(value,false);
-		}
-	}
 };
 
