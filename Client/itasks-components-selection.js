@@ -105,6 +105,7 @@ itasks.Grid = {
 	cssCls: 'choicegrid',
 	width: 'flex',
 	height: 'flex',
+	multiple: false,
 
     initDOMEl: function() {
         var me = this,
@@ -127,13 +128,13 @@ itasks.Grid = {
         me.options.forEach(function(option,rowIdx) {
             rowEl = document.createElement('div');
             rowEl.addEventListener('click',function(e) {
-				me.setValue([rowIdx]);
-                me.doEditEvent(me.taskId,me.editorId,[rowIdx]);
+				me.select([rowIdx], me.multiple && (e.metaKey || e.ctrlKey));
+                me.doEditEvent(me.taskId,me.editorId,me.value);
             },me);
             if(me.doubleClickAction) {
                 rowEl.addEventListener('dblclick',function(e) {
-					me.setValue([rowIdx]);
-                    me.doEditEvent(me.taskId,me.editorId,[rowIdx]);
+					me.select([rowIdx]);
+                    me.doEditEvent(me.taskId,me.editorId,me.value);
                     me.sendActionEvent(me.doubleClickAction[0],me.doubleClickAction[1]);
 
                     e.stopPropagation();
@@ -155,28 +156,35 @@ itasks.Grid = {
         }
         el.appendChild(bodyEl);
     },
-	initContainerEl: function() {
-	},
-	onAttributeChange: function(name,value) {
-        var me = this;
-
-		if(name == 'value') {
-			me.setValue(value);
-		}
-    },
-	setValue: function (value) {
+	initContainerEl: function() {},
+	select: function (selection, toggle = false) {
         var me = this,
-            bodyEl = me.bodyEl;
+			options = me.bodyEl.children,
+			numOptions = options.length,
+			oldSelection = me.value.slice(0),
+			i;
 
-		//Remove old selection
-		me.value.forEach(function(selectedIdx) {
-        	bodyEl.childNodes[selectedIdx].classList.remove(me.cssPrefix + 'selected');
-		});
-		//Indicate new selection
-		me.value = value;
-		me.value.forEach(function(selectedIdx) {
-			bodyEl.childNodes[selectedIdx].classList.add(me.cssPrefix + 'selected');
-		});
+		if(toggle) {
+ 			//Unselect items in the toggle set
+			me.value = me.value.filter(function(x) {return !selection.includes(x)});
+			//Add the items from the selection that were not already selected
+			me.value = me.value.concat(selection.filter(function(x) {return !oldSelection.includes(x)}));
+		} else {
+			me.value = selection;
+		}
+		//Update DOM
+		for(i = 0; i < numOptions; i++) {
+			if(me.value.includes(i)) {
+				options[i].classList.add(me.cssPrefix + 'selected');
+			} else {
+				options[i].classList.remove(me.cssPrefix + 'selected');
+			}
+		}
+	},
+    onAttributeChange: function(name,value) {
+		if(name == 'value') {
+			me.select(value,false);
+		}
 	}
 };
 
@@ -278,6 +286,7 @@ itasks.Tree = {
 };
 itasks.ChoiceList = {
 	cssCls: 'choice-list',
+	multiple: false,
     initDOMEl: function() {
         var me = this,
             el = me.domEl,
@@ -291,25 +300,43 @@ itasks.ChoiceList = {
                 optionEl.classList.add(me.cssPrefix + 'selected');
             }
             optionEl.addEventListener('click',function(e) {
-				me.showSelection(idx);
-                me.doEditEvent(me.taskId,me.editorId,idx);
+				me.select([idx], me.multiple && (e.metaKey || e.ctrlKey));
+                me.doEditEvent(me.taskId,me.editorId,me.value);
+				e.preventDefault();
             });
             optionEl.innerHTML = option;
 
             el.appendChild(optionEl);
         });
     },
-	showSelection: function(idx) {
-		var me = this,
-			el = me.domEl,
-			num = el.children.length, i;
-			for(i = 0; i < num; i++) {
-				if(i == idx) {
-                	el.children[i].classList.add(me.cssPrefix + 'selected');
-				} else {
-                	el.children[i].classList.remove(me.cssPrefix + 'selected');
-				}
+	select: function (selection, toggle = false) {
+        var me = this,
+			options = me.domEl.children,
+			numOptions = options.length,
+			oldSelection = me.value.slice(0),
+			i;
+
+		if(toggle) {
+ 			//Unselect items in the toggle set
+			me.value = me.value.filter(function(x) {return !selection.includes(x)});
+			//Add the items from the selection that were not already selected
+			me.value = me.value.concat(selection.filter(function(x) {return !oldSelection.includes(x)}));
+		} else {
+			me.value = selection;
+		}
+		//Update DOM
+		for(i = 0; i < numOptions; i++) {
+			if(me.value.includes(i)) {
+				options[i].classList.add(me.cssPrefix + 'selected');
+			} else {
+				options[i].classList.remove(me.cssPrefix + 'selected');
 			}
+		}
+	},
+    onAttributeChange: function(name,value) {
+		if(name == 'value') {
+			me.select(value,false);
+		}
 	}
 };
 
