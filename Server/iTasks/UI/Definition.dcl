@@ -84,8 +84,7 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	| UIProgressBar                                                                 // - Progress (non editable progress bar)
 	// Selection components (implemented in itasks-components-selection.js)
 	| UIDropdown                                                                    // - Dropdown (choice from a list of alternatives)
-	| UIRadioGroup                                                                  // - A mutually exclusive set of radio buttons 
-	| UICheckboxGroup                                                               // - A group of checkboxes that indicate a multiple selection
+	| UICheckGroup                                                                  // - A group of radio buttons or checkboxes (depends on multiple attribute)
 	| UIChoiceList                                                                  // - A mutually exclusive set of radio buttons 
 	| UIGrid                                                                        // - Grid (selecting an item in a table)
 	| UITree                                                                        // - Tree (selecting a node in a tree structure)

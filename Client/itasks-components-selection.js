@@ -39,9 +39,10 @@ itasks.Dropdown = {
     }
 };
 
-itasks.RadioGroup = {
+itasks.CheckGroup = {
 	domTag: 'ul',
-	cssCls: 'choice-radiogroup',
+	cssCls: 'checkgroup',
+	multiple: false,
 	initDOMEl: function() {
 		var me = this,
 			el = me.domEl,
@@ -52,7 +53,7 @@ itasks.RadioGroup = {
 			var liEl,inputEl,labelEl;
 			liEl = document.createElement('li');
 			inputEl = document.createElement('input');
-			inputEl.type = 'radio';
+			inputEl.type = me.multiple ? 'checkbox' : 'radio';
 			inputEl.value = idx;
 			inputEl.name = inputName;
 			inputEl.id = inputName + "-option-" + idx;
@@ -60,7 +61,8 @@ itasks.RadioGroup = {
 				inputEl.checked = true;
             }
             inputEl.addEventListener('click',function(e) {
-				me.doEditEvent(me.taskId,me.editorId,idx);
+				me.select([idx],me.multiple);
+				me.doEditEvent(me.taskId,me.editorId,me.value);
             });
 			liEl.appendChild(inputEl);
 
@@ -72,43 +74,31 @@ itasks.RadioGroup = {
             el.appendChild(liEl);
         });
     },
-    onAttributeChange: function(name,value) {
-		console.log(name,value);
-	}
-};
-
-itasks.CheckboxGroup = {
-    domTag: 'ul',
-	cssCls: 'choice-checkboxgroup',
-    initDOMEl: function() {
+	select: function (selection, toggle = false) {
         var me = this,
-            el = me.domEl,
-            inputName = "choice-" + me.taskId + "-" + me.editorId,
-            value = me.value || [];
+			options = me.domEl.children,
+			numOptions = options.length,
+			oldSelection = me.value.slice(0),
+			i;
 
-        me.options.forEach(function(option,idx) {
-            var liEl,inputEl,labelEl;
-            liEl = document.createElement('li');
-            inputEl = document.createElement('input');
-            inputEl.type = 'checkbox';
-            inputEl.value = idx;
-            inputEl.id = inputName + "-option-" + idx;
-            if(value.indexOf(idx) !== -1) {
-                inputEl.checked = true;
-            }
-            inputEl.addEventListener('click',function(e) {
-                me.doEditEvent(me.taskId,me.editorId,[idx,e.target.checked]);
-            });
-            liEl.appendChild(inputEl);
-
-            labelEl = document.createElement('label');
-            labelEl.setAttribute('for',inputName + "-option-" + idx);
-            labelEl.innerHTML = option;
-            liEl.appendChild(labelEl);
-
-            el.appendChild(liEl);
-        });
-    }
+		if(toggle) {
+ 			//Unselect items in the toggle set
+			me.value = me.value.filter(function(x) {return !selection.includes(x)});
+			//Add the items from the selection that were not already selected
+			me.value = me.value.concat(selection.filter(function(x) {return !oldSelection.includes(x)}));
+		} else {
+			me.value = selection;
+		}
+		//Update DOM
+		for(i = 0; i < numOptions; i++) {
+			options[i].children[0].checked = me.value.includes(i);
+		}
+	},
+    onAttributeChange: function(name,value) {
+		if(name == 'value') {
+			me.select(value,false);
+		}
+	}
 };
 
 itasks.Grid = {

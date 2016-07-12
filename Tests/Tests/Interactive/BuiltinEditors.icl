@@ -14,6 +14,7 @@ testBuiltinEditors = testsuite "Builtin editors" "These tests check if the built
 	,testCheckbox,testSlider,testButton,testLabel,testIcon
 	,testTextView,testHtmlView,testProgressBar
 	,testDropdown,testCheckGroup,testChoiceList,testGrid,testTree
+	,testCheckGroupMulti,testChoiceListMulti,testGridMulti,testTreeMulti
 	]
 
 testTextField = itest "Text field" "Check if the textfield is ok" "You should be able to edit" tut
@@ -110,6 +111,30 @@ testTree = itest "Tree" "Check if the tree works" "You should be able to edit" t
 where
 	tut :: Task ([ChoiceNode],[Int])
 	tut = testEditor (tree (multipleAttr False))
+		([{ChoiceNode|id=1,label="A",icon=Nothing,expanded=False,children=[]}
+        ,{ChoiceNode|id=2,label="B",icon=Nothing,expanded=False,children=[]}
+        ,{ChoiceNode|id=3,label="C",icon=Nothing,expanded=False,children=[]}
+        ],[]) Update
+
+testCheckGroupMulti = itest "Check group (multiple)" "Check if the checkgroup works" "You should be able to select multiple" tut
+where
+	tut :: Task ([String],[Int])
+	tut = testEditor (checkGroup (multipleAttr True)) (["A","B","C"],[]) Update
+
+testChoiceListMulti = itest "Choice list (multiple)" "Check if the choice list works" "You should be able to select multiple" tut
+where
+	tut :: Task ([String],[Int])
+	tut = testEditor (choiceList (multipleAttr True)) (["A","B","C"],[]) Update
+
+testGridMulti = itest "Grid (multiple)" "Check if the grid works" "You should be able to select multiple" tut
+where
+	tut :: Task (ChoiceGrid,[Int])
+	tut = testEditor (grid (multipleAttr True)) ({ChoiceGrid|header=["Key","Value"],rows=[[Text "A",Text "1"],[Text "B",Text "2"],[Text "C",Text "3"]]},[]) Update
+
+testTreeMulti = itest "Tree (multiple)" "Check if the tree works" "You should be able to select multiple" tut
+where
+	tut :: Task ([ChoiceNode],[Int])
+	tut = testEditor (tree (multipleAttr True))
 		([{ChoiceNode|id=1,label="A",icon=Nothing,expanded=False,children=[]}
         ,{ChoiceNode|id=2,label="B",icon=Nothing,expanded=False,children=[]}
         ,{ChoiceNode|id=3,label="C",icon=Nothing,expanded=False,children=[]}

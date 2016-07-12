@@ -53,7 +53,7 @@ dropdown :: UIAttributes -> Editor ([String], [Int])
 dropdown attr = choiceComponent (const attr) id JSONString (\o i -> i >= 0 && i < length o) UIDropdown
 
 checkGroup :: UIAttributes -> Editor ([String],[Int])
-checkGroup attr = choiceComponent (const attr) id JSONString (\o i -> i >= 0 && i < length o) UIRadioGroup
+checkGroup attr = choiceComponent (const attr) id JSONString (\o i -> i >= 0 && i < length o) UICheckGroup
 
 choiceList :: UIAttributes -> Editor ([String],[Int])
 choiceList attr = choiceComponent (const attr) id JSONString (\o i -> i >= 0 && i < length o) UIChoiceList

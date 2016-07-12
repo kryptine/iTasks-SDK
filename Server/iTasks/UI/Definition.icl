@@ -278,8 +278,7 @@ where
 	toString UIProgressBar     = "ProgressBar"
 
 	toString UIDropdown        = "Dropdown"
-	toString UIRadioGroup      = "RadioGroup"
-	toString UICheckboxGroup   = "CheckboxGroup"
+	toString UICheckGroup      = "CheckGroup"
 	toString UIChoiceList      = "ChoiceList"
 	toString UIGrid            = "Grid"
 	toString UITree            = "Tree"

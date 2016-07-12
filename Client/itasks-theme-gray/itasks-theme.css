@@ -530,14 +530,14 @@ div.itasks-loader-spinner {
 .itasks-button-disabled .itasks-button-icon {
   opacity: 0.5; }
 
-.itasks-choice-radiogroup, .itasks-choice-checkboxgroup {
+.itasks-checkgroup {
   margin: 0;
   padding: 0; }
 
-.itasks-choice-radiogroup li, .itasks-choice-checkboxgroup li {
+.itasks-checkgroup li {
   list-style: none; }
 
-.itasks-choice-radiogroup label, .itasks-choice-checkboxgroup label {
+.itasks-checkgroup label {
   margin-left: 5px; }
 
 .itasks-choicegrid {

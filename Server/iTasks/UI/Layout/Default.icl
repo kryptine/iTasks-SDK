@@ -125,7 +125,7 @@ isIntermediate (UI type _ _) = isMember type [UIInteract,UIStep,UIParallel]
 
 isFormComponent (UI type _ _) = isMember type 
 	[UITextField,UITextArea,UIPasswordField,UIIntegerField,UIDecimalField
-	,UICheckbox,UISlider,UIDocumentField,UIDropdown,UIRadioGroup,UICheckboxGroup
+	,UICheckbox,UISlider,UIDocumentField,UIDropdown,UICheckGroup
 	,UITextView,UIHtmlView
 	]
 instance == UINodeType where (==) x y = x === y
