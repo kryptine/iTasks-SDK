@@ -49,10 +49,10 @@ where
 */
 
 arrangeVertical :: Layout
-arrangeVertical = id
+arrangeVertical = setAttributes (directionAttr Vertical)
 
 arrangeHorizontal :: Layout
-arrangeHorizontal = id
+arrangeHorizontal = setAttributes (directionAttr Horizontal)
 
 frameCompact :: Layout
 frameCompact = sequenceLayouts
