@@ -1,4 +1,4 @@
-definition module iTasks.API.Extensions.SVG.SVGlet
+definition module iTasks.API.Extensions.SVG.SVGEditor
 
 import Graphics.Scalable
 import Graphics.Scalable.Internal
@@ -8,15 +8,15 @@ import iTasks.API.Core.Types
 import iTasks.API.Extensions.Platform
 
 
-//An SVGLet let's you specify an editor as an interactive SVG image
-:: SVGLet m v =
+//An SVGEditor let's you specify an editor as an interactive SVG image
+:: SVGEditor m v =
 	{ initView    :: m -> v                     //Initialize a 'view' value that holds temporary data while editing
-    , renderImage :: m v *TagSource -> Image v  //Render an interactive image that 
+  , renderImage :: m v *TagSource -> Image v  //Render an interactive image that 
 	, updView     :: m v -> v                   //When the model is externally updated, the view needs to be updated too
 	, updModel    :: m v -> m                   //When the view is updated (using the image), the change needs to be merged back into the view
 	}
 
-fromSVGLet :: (SVGLet s v) -> Editor s | iTask s
+fromSVGEditor :: (SVGEditor s v) -> Editor s | iTask s
 
 derive class iTask Image, Span, LookupSpan, FontDef, ImageTransform, ImageAttr
 derive class iTask ImageContent, BasicImage, CompositeImage, LineImage, Markers

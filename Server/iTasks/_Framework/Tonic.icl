@@ -24,7 +24,7 @@ import iTasks.API.Common.TaskCombinators
 import iTasks.API.Common.ImportTasks
 import iTasks.API.Common.InteractionTasks
 import iTasks.API.Extensions.Admin.UserAdmin
-import iTasks.API.Extensions.SVG.SVGlet
+import iTasks.API.Extensions.SVG.SVGEditor
 import iTasks.API.Extensions.Admin.WorkflowAdmin
 import System.File
 from StdFunc import o

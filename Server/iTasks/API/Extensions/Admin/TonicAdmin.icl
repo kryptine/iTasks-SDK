@@ -15,7 +15,7 @@ from Data.Map import instance Functor (Map a)
 from Control.Monad import `b`, class Monad, instance Monad Maybe
 import qualified iTasks._Framework.SDS as DSDS
 import Data.List
-import iTasks.API.Extensions.SVG.SVGlet
+import iTasks.API.Extensions.SVG.SVGEditor
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Data.Maybe

@@ -10,7 +10,7 @@ import qualified Data.List as DL
 from Data.IntMap.Strict import :: IntMap
 import iTasks._Framework.Tonic.Blueprints
 import iTasks.API.Extensions.Admin.TonicAdmin
-import iTasks.API.Extensions.SVG.SVGlet
+import iTasks.API.Extensions.SVG.SVGEditor
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
 import iTasks._Framework.Tonic.Images
