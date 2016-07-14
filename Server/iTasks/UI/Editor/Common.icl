@@ -48,14 +48,22 @@ where
 			
 	//Structural edits on the list
 	onEdit dp ([],JSONString e) items (CompoundMask masks) vst
-		# split = split "_" e
-		# index = toInt (last split)
-		# (items,masks) = case hd split of	
-			"mup" = if reorder (swap items index,swap masks index) (items,masks)
-			"mdn" = if reorder (swap items (index+1),swap masks (index+1)) (items,masks)
-			"rem" = if remove  (removeAt index items,removeAt index masks)(items,masks)
-			"add" = maybe (items,masks) (\f -> (insertAt (length items) (f items) items, insertAt (length items) newFieldMask masks)) add
-			_     = (items,masks)
+		# [op,index:_] = split "_" e
+		# index = toInt index 
+		| op == "mup" && reorder
+			= (Ok (NoChange,CompoundMask (swap masks index)), (swap items index), vst)
+		| op == "mdn" && reorder
+			= (Ok (NoChange,CompoundMask (swap masks (index + 1))), (swap items (index + 1)), vst)
+		| op == "rem" && remove
+			= (Ok (NoChange,CompoundMask (removeAt index masks)), (removeAt index items), vst)
+		| op == "add" && add =: (Just _)
+			# f = fromJust add
+			# nx = f items
+			# ni = length items
+			= case itemEditor.Editor.genUI (dp++[ni]) nx vst of
+				(Error e,vst) = (Error e,items,vst)
+				(Ok (ui,nm),vst)
+					= (Ok (NoChange,CompoundMask (masks ++ [nm])),items ++ [nx],vst)
 		= (Ok (NoChange,CompoundMask masks),items,vst)
 	where
 		swap []	  _		= []
