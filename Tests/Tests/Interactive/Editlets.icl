@@ -22,11 +22,11 @@ where
 	tut = viewInformation "LED" [] LightOnRed
 
 import Graphics.Scalable, StdReal
-import iTasks.API.Extensions.SVG.SVGlet
+import iTasks.API.Extensions.SVG.SVGEditor
 testSVGEditlet = itest "SVG editlet rendering" "Look at the image presented" "You should see the dutch flag" tut
 where
-	tut = updateInformation "SVG image" [UpdateUsing id (const id) (fromSVGLet svglet)] 42
-	svglet = {SVGLet|initView=const (),renderImage = \_ _ _ -> nederland, updView = \m v -> v, updModel = \m v -> m}
+	tut = updateInformation "SVG image" [UpdateUsing id (const id) (fromSVGEditor svgeditor)] 42
+	svgeditor = {SVGEditor|initView=const (),renderImage = \_ _ _ -> nederland, updView = \m v -> v, updModel = \m v -> m}
 
 	nederland :: Image m
 	nederland = banden (H *. 3 /. 2,H) [toSVGColor {r=174,g=28,b=40},toSVGColor "white",toSVGColor {r=33,g=70,b=139}]
@@ -39,9 +39,9 @@ where
 import Graphics.Scalable.Internal
 testSVGEditletClick = itest "SVG editlet clicks" "Click on the image a couple of times" "The text should update to reflect the number of clicks" tut
 where
-	tut = updateInformation "SVG Clicks" [UpdateUsing (\m -> m) (\m v -> v) (fromSVGLet svglet)] "No clicks"
+	tut = updateInformation "SVG Clicks" [UpdateUsing (\m -> m) (\m v -> v) (fromSVGEditor svgeditor)] "No clicks"
 		>&> \s -> viewSharedInformation "DEBUG" [] s
-	svglet = {SVGLet|initView=id,renderImage = renderImage, updView = \m v -> m, updModel = \m v -> v}
+	svgeditor = {SVGEditor|initView=id,renderImage = renderImage, updView = \m v -> m, updModel = \m v -> v}
 
 	renderImage :: String String *TagSource -> Image String
 	renderImage str _ _
