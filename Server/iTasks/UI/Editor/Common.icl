@@ -15,12 +15,12 @@ where
 listEditor :: (Maybe ([a] -> a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a]
 listEditor add remove reorder count itemEditor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
-	genUI dp val vst=:{VSt|taskId} = case genChildUIs dp 0 val [] vst of
+	genUI dp val vst=:{VSt|taskId,mode} = case genChildUIs dp 0 val [] vst of
 		(Ok (items,masks),vst)
 			//Add list structure editing buttons
-			# items = [listItemControl (length val) idx dx \\ dx <- items & idx <- [0..]]
+			# items = if (not (mode =: View) && (remove || reorder)) [listItemUI (length val) idx dx \\ dx <- items & idx <- [0..]] items
 			//Add the add button
-			# items = if (add =: Just _) (items ++ [addItemControl val]) items
+			# items = if (not (mode =: View) && add =: Just _) (items ++ [addItemControl val]) items
 			= (Ok (uic UIContainer items,CompoundMask masks), vst)
 		(Error e,vst)  = (Error e,vst)
 	where			
@@ -35,7 +35,7 @@ where
 			# attr      = 'DM'.unions [halignAttr AlignRight,heightAttr WrapSize,directionAttr Horizontal]
 			= uiac UIContainer attr (counter ++ button)
 
-		listItemControl numItems idx item
+		listItemUI numItems idx item
 			# buttons	= (if reorder
 							  [uia UIButton ('DM'.unions [iconClsAttr "icon-up", enabledAttr (idx <> 0), editAttrs taskId (editorId dp) (Just (JSONString ("mup_" +++ toString idx)))])
 							  ,uia UIButton ('DM'.unions [iconClsAttr "icon-down", enabledAttr (idx <> numItems - 1), editAttrs taskId (editorId dp) (Just (JSONString ("mdn_" +++ toString idx)))])
@@ -46,35 +46,18 @@ where
 			# attr = 'DM'.unions [halignAttr AlignRight,heightAttr WrapSize,directionAttr Horizontal]
 			= uiac UIContainer attr (if (reorder || remove) ([item] ++ buttons) [item])
 			
-	onEdit dp (tp,e) items listMask ust
-		# childMasks = subMasks (length items) listMask
-		# (items,childMasks,ust) = updateItems dp e items childMasks ust
-		| isEmpty tp
-			//Process the reordering commands
-			# split = split "_" (fromMaybe "" (fromJSON e))
-			# index = toInt (last split)
-			# (items,childMasks) = case hd split of	
-				"mup" = if reorder (swap items index,swap childMasks index) (items,childMasks)
-				"mdn" = if reorder (swap items (index+1),swap childMasks (index+1)) (items,childMasks)
-				"rem" = if remove  (removeAt index items,removeAt index childMasks)	(items,childMasks)
-				"add" = case add of
-					(Just f) = (insertAt (length items) (f items) items, insertAt (length items) (newFieldMask) childMasks)
-					_        = (items,childMasks)
-				_	
-					= (items,childMasks)
-			= (Ok (NoChange,CompoundMask childMasks),items,ust)
-		| otherwise
-			= (Ok (NoChange,CompoundMask childMasks),items,ust)
+	//Structural edits on the list
+	onEdit dp ([],JSONString e) items (CompoundMask masks) vst
+		# split = split "_" e
+		# index = toInt (last split)
+		# (items,masks) = case hd split of	
+			"mup" = if reorder (swap items index,swap masks index) (items,masks)
+			"mdn" = if reorder (swap items (index+1),swap masks (index+1)) (items,masks)
+			"rem" = if remove  (removeAt index items,removeAt index masks)(items,masks)
+			"add" = maybe (items,masks) (\f -> (insertAt (length items) (f items) items, insertAt (length items) newFieldMask masks)) add
+			_     = (items,masks)
+		= (Ok (NoChange,CompoundMask masks),items,vst)
 	where
-		updateItems [i:tp] e items masks ust
-			| i >= (length items) = (items,masks,ust)
-			# (nm,nx,ust)	= itemEditor.Editor.onEdit dp (tp,e) (items !! i) (masks !! i) ust
-			= case nm of
-				Ok (_,m) = (updateAt i nx items, updateAt i m masks,ust)
-				_    = (items,masks,ust)
-		updateItems tp e items masks ust
-			= (items,masks,ust)
-
 		swap []	  _		= []
 		swap list index
 			| index == 0 			= list //prevent move first element up
@@ -84,6 +67,20 @@ where
 				# l = list !! (index)
 				= updateAt (index-1) l (updateAt index f list)
 
+	//Edits inside the list
+	onEdit dp ([i:tp],e) items (CompoundMask masks) vst
+		| i < 0 || i >= length items 	= (Error "List edit out of bounds",items,vst)
+		| otherwise
+			= case itemEditor.Editor.onEdit (dp ++ [i]) (tp,e) (items !! i) (masks !! i) vst of
+				(Error e,nx,vst) 
+					= (Error e, items,vst)
+				(Ok (change,nm),nx,vst)
+					= (Ok (childChange i change,CompoundMask (updateAt i nm masks)), (updateAt i nx items),vst)
+	where
+		childChange i NoChange = NoChange
+		childChange i change = ChangeUI [] [(i,ChangeChild change)]
+
+	//Very crude full replacement
 	onRefresh dp new old mask vst = case genUI dp new vst of
 		(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
 		(Error e,vst) = (Error e,old,vst)
