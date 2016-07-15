@@ -66,6 +66,7 @@ finalizeCons = sequenceLayouts
 	[layoutChildrenOf [] finalizeEditor 
 	,setAttributes (directionAttr Horizontal)
 	,setNodeType UIContainer
+	,toFormItem
 	]
 finalizeVarCons :: Layout
 finalizeVarCons = sequenceLayouts
@@ -73,6 +74,7 @@ finalizeVarCons = sequenceLayouts
 	,layoutSubAt [0] (setAttributes (widthAttr WrapSize)) //Make the constructor selection wrapping
 	,setAttributes (directionAttr Horizontal)
 	,setNodeType UIContainer
+	,toFormItem
 	]
 
 finalizeStep :: Layout
@@ -123,11 +125,11 @@ isVarCons = \n -> n =:(UI UIVarCons _ _)
 
 isIntermediate (UI type _ _) = isMember type [UIInteract,UIStep,UIParallel]
 
-isFormComponent (UI type _ _) = isMember type 
+isFormComponent (UI type attr _) = isMember type 
 	[UITextField,UITextArea,UIPasswordField,UIIntegerField,UIDecimalField
 	,UICheckbox,UISlider,UIDocumentField,UIDropdown,UICheckGroup
 	,UITextView,UIHtmlView
-	]
+	] || isJust ('DM'.get LABEL_ATTRIBUTE attr)
 instance == UINodeType where (==) x y = x === y
 
 //Flatten an editor into a form
