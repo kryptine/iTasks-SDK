@@ -123,7 +123,7 @@ svgRenderer svglet=:{initView,renderImage,updView,updModel}
 
 onNewState :: !(JSVal a) !(SVGEditor s v) !s !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 onNewState me svglet=:{initView,renderImage} s world
-	#! cid                  = "FIXME: SOME UNIQUE STRING"
+	#! cid                  = "FIXME_SOME_UNIQUE_STRING"
 	#! v                    = initView s
 	#! world 				= jsPutCleanVal "view" v me world  //Store the view value on the component
 	#! world 				= jsPutCleanVal "model" s me world  //Store the model value on the component
