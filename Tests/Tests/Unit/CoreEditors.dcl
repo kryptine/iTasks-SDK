@@ -4,4 +4,5 @@ import TestFramework
 
 testGenericEditorGenUI :: TestSuite
 testGenericEditorEdits :: TestSuite
-testGenericEditorDiffs :: TestSuite 
+testGenericEditorRefreshes :: TestSuite 
+testGenericHelperFunctions :: TestSuite

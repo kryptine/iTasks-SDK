@@ -28,7 +28,8 @@ suites = [//Interactive tests
 		 //Unit tests
 		 ,testGenericEditorGenUI
 		 ,testGenericEditorEdits
-		 ,testGenericEditorDiffs
+		 ,testGenericEditorRefreshes
+		 ,testGenericHelperFunctions
 		 ,testLayout
 		 ,testEditlets
 		 ,testMisc

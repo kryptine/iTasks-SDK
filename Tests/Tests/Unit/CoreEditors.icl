@@ -153,6 +153,8 @@ where
 testGenericEditorEdits :: TestSuite
 testGenericEditorEdits = testsuite "Generic edits" "Tests for processing edits by editors"
 	[testEditConsChange
+	,testEditListElement
+	,testAddListElement
 	]
 
 testGenEdit :: String (a,EditMask,UIChange) (a,EditMask) (DataPath,JSONNode) -> Test | iTask a
@@ -173,8 +175,35 @@ testEditConsChange = skip "Change constructor"
 	(JSONInt 1)
 */
 
-testGenericEditorDiffs :: TestSuite
-testGenericEditorDiffs = testsuite "Generic diffs" "Tests for the generic diffs"
+testEditListElement = testGenEdit "List element edit" 
+	([42],CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 42}]
+		,ChangeUI [] [(0, ChangeChild (ChangeUI [SetAttribute "value" (JSONInt 42), SetAttribute "hint" (JSONString "You have correctly entered a whole number"), SetAttribute "hint-type" (JSONString "valid")] []))])
+	([0],CompoundMask [FieldMask {touched=True,valid=True,state=JSONNull}])
+	([0],JSONInt 42)
+
+testAddListElement = testGenEdit "List element add"
+	([42,0],CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 42},FieldMask {touched=False,valid=False,state=JSONNull}]
+		,ChangeUI [] [(1,InsertChild elui)
+
+					 ,(2,ChangeChild (ChangeUI [] [(0, ChangeChild (ChangeUI [SetAttribute "value" (JSONString "2 items")] []))]))
+					 ])
+	([42],CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 42}])
+	([],JSONString "add")
+where
+	elui = uiac UIContainer ('DM'.fromList [("direction",JSONString "horizontal"),("halign",JSONString "right"),("height",JSONString "wrap")]) [inui:buis]
+	inui = uia UIIntegerField ('DM'.fromList[("optional",JSONBool False)
+                                     ,("hint-type",JSONString "info")
+                                     ,("hint",JSONString "Please enter a whole number (this value is required)")
+                                     ,("taskId",JSONString "STUB")
+                                     ,("editorId",JSONString "v1")
+                                     ,("value",JSONNull)])
+	buis = [uia UIButton ('DM'.fromList [("iconCls",JSONString "icon-up"),("value",JSONString "mup_1"),("enabled",JSONBool True),("taskId",JSONString "STUB"),("editorId",JSONString "v")])
+	       ,uia UIButton ('DM'.fromList [("iconCls",JSONString "icon-down"),("value",JSONString "mdn_1"),("enabled",JSONBool False),("taskId",JSONString "STUB"),("editorId",JSONString "v")])
+	       ,uia UIButton ('DM'.fromList [("iconCls",JSONString "icon-remove"),("value",JSONString "rem_1"),("taskId",JSONString "STUB"),("editorId",JSONString "v")])
+	       ]
+
+testGenericEditorRefreshes :: TestSuite
+testGenericEditorRefreshes = testsuite "Generic diffs" "Tests for the generic diffs"
 	[testSameInt
 	,testDifferentInt1
 	,testDifferentInt2
@@ -281,4 +310,10 @@ testMaybeIntChangeToNothing = skip "Switch Maybe Int Just to Nothing"
 		(Just 42)
 		Nothing
 */
+
+testGenericHelperFunctions :: TestSuite
+testGenericHelperFunctions = testsuite "Generic helper functions" "Tests for the helper functions used by the generic editors"
+	[
+	]
+
 
