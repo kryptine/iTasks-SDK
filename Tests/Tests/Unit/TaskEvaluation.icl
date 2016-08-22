@@ -6,6 +6,7 @@ from iTasks._Framework.IWorld import createIWorld, destroyIWorld, initJSCompiler
 from iTasks._Framework.TaskStore import createTaskInstance, taskInstanceUIChanges
 from iTasks._Framework.TaskEval import evalTaskInstance
 from iTasks._Framework.Store import flushShareCache, emptyStore
+import iTasks._Framework.Serialization
 import iTasks.UI.Definition
 import qualified iTasks._Framework.SDS as SDS
 import Text

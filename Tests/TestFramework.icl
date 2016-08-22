@@ -28,29 +28,29 @@ itest name instructions expectation tut
 utest :: String (*World -> *(TestResult,*World)) -> Test
 utest name test = UnitTest {UnitTest|name=name,test=test}
 
-assert :: String (a -> Bool) a -> Test | gText{|*|} a
+assert :: String (a -> Bool) a -> Test | JSONEncode{|*|} a
 assert name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
-	test w = (if (exp sut) Passed (Failed (Just (Note ("Actual: " <+++ sut)))),w)
+	test w = (if (exp sut) Passed (Failed (Just (Note ("Actual: " <+++ (toJSON sut))))),w)
 
-assertEqual :: String a a -> Test | gEq{|*|} a & gText{|*|} a 
+assertEqual :: String a a -> Test | gEq{|*|} a & JSONEncode{|*|} a 
 assertEqual name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
-	test w = (if (exp === sut) Passed (Failed (Just (Note ("Expected: " <+++ exp <+++ "\nActual:   " <+++ sut)))),w)
+	test w = (if (exp === sut) Passed (Failed (Just (Note ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON sut))))),w)
 
-assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | gText{|*|} a
+assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | JSONEncode{|*|} a
 assertWorld name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
 	test w 
 		# (res,w) = sut w
-		= (if (exp res) Passed (Failed (Just (Note ("Actual: " <+++ res)))),w)
+		= (if (exp res) Passed (Failed (Just (Note ("Actual: " <+++ (toJSON res))))),w)
 
-assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & gText{|*|} a
+assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & JSONEncode{|*|} a
 assertEqualWorld name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
 	test w
 		# (res,w) = sut w
-		= (if (exp === res) Passed (Failed (Just (Note ("Expected: " <+++ exp <+++ "\nActual:   " <+++ res)))),w)
+		= (if (exp === res) Passed (Failed (Just (Note ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON res))))),w)
 
 skip :: String -> Test
 skip name = UnitTest {UnitTest|name=name,test=test}
@@ -69,10 +69,6 @@ testInteractive {name,instructions,expectation,taskUnderTest}
 		  -&&- (viewInformation (Title "Expected result") [] expectation) <<@ ApplyLayout (setAttributes (directionAttr Horizontal)))
 	||- taskUnderTest
 	||- enterInformation (Title "Result") []
-
-testFullSuite :: TestSuite -> Task [TestResult]
-testFullSuite suite=:{TestSuite|tests=tests}
-	= allTasks [(testInteractive t) <<@ Title t.InteractiveTest.name \\ InteractiveTest t <- tests] <<@ ArrangeWithTabs
 
 //UTILITY TASKS
 testEditor :: (Editor a) a EditMode -> Task a | iTask a

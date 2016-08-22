@@ -61,13 +61,13 @@ itest :: String String String (Task a) -> Test | iTask a
 */
 utest :: String (*World -> *(TestResult,*World)) -> Test
 
-assert :: String (a -> Bool) a -> Test | gText{|*|} a
+assert :: String (a -> Bool) a -> Test | JSONEncode{|*|} a
 
-assertEqual :: String a a -> Test | gEq{|*|} a & gText{|*|} a
+assertEqual :: String a a -> Test | gEq{|*|} a & JSONEncode{|*|} a
 
-assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | gText{|*|} a
+assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | JSONEncode{|*|} a
 
-assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & gText{|*|} a
+assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & JSONEncode{|*|} a
 
 skip :: String -> Test
 
