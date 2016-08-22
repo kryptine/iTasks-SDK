@@ -18,7 +18,7 @@ where
 	genUI dp val vst=:{VSt|taskId,mode} = case genChildUIs dp 0 val [] vst of
 		(Ok (items,masks),vst)
 			//Add list structure editing buttons
-			# items = if (not (mode =: View) && (remove || reorder)) [listItemUI (length val) idx dx \\ dx <- items & idx <- [0..]] items
+			# items = if (not (mode =: View) && (remove || reorder)) [listItemUI taskId dp (length val) idx dx \\ dx <- items & idx <- [0..]] items
 			//Add the add button
 			# items = if (not (mode =: View) && add =: Just _) (items ++ [addItemControl val]) items
 			= (Ok (uic UIContainer items,CompoundMask masks), vst)
@@ -35,27 +35,27 @@ where
 			# attr      = 'DM'.unions [halignAttr AlignRight,heightAttr WrapSize,directionAttr Horizontal]
 			= uiac UIContainer attr (counter ++ button)
 
-		listItemUI numItems idx item
-			# buttons	= (if reorder
-							  [uia UIButton ('DM'.unions [iconClsAttr "icon-up", enabledAttr (idx <> 0), editAttrs taskId (editorId dp) (Just (JSONString ("mup_" +++ toString idx)))])
+	listItemUI taskId dp numItems idx item
+		# buttons	= (if reorder
+			[uia UIButton ('DM'.unions [iconClsAttr "icon-up", enabledAttr (idx <> 0), editAttrs taskId (editorId dp) (Just (JSONString ("mup_" +++ toString idx)))])
 							  ,uia UIButton ('DM'.unions [iconClsAttr "icon-down", enabledAttr (idx <> numItems - 1), editAttrs taskId (editorId dp) (Just (JSONString ("mdn_" +++ toString idx)))])
 							  ] []) ++
 							  (if remove
 							  [uia UIButton ('DM'.unions [iconClsAttr "icon-remove",editAttrs taskId (editorId dp) (Just (JSONString ("rem_" +++ toString idx)))])
 							  ] [])
-			# attr = 'DM'.unions [halignAttr AlignRight,heightAttr WrapSize,directionAttr Horizontal]
-			= uiac UIContainer attr (if (reorder || remove) ([item] ++ buttons) [item])
+		# attr = 'DM'.unions [halignAttr AlignRight,heightAttr WrapSize,directionAttr Horizontal]
+		= uiac UIContainer attr (if (reorder || remove) ([item] ++ buttons) [item])
 			
 	//Structural edits on the list
-	onEdit dp ([],JSONString e) items (CompoundMask masks) vst
+	onEdit dp ([],JSONString e) items (CompoundMask masks) vst=:{VSt|taskId}
 		# [op,index:_] = split "_" e
 		# index = toInt index 
 		| op == "mup" && reorder
-			= (Ok (NoChange,CompoundMask (swap masks index)), (swap items index), vst)
+			= (Ok (NoChange,CompoundMask (swap masks index)), (swap items index), vst) //TODO: ChangeUI instruction
 		| op == "mdn" && reorder
-			= (Ok (NoChange,CompoundMask (swap masks (index + 1))), (swap items (index + 1)), vst)
+			= (Ok (NoChange,CompoundMask (swap masks (index + 1))), (swap items (index + 1)), vst) //TODO: ChangeUI instruction
 		| op == "rem" && remove
-			= (Ok (NoChange,CompoundMask (removeAt index masks)), (removeAt index items), vst)
+			= (Ok (NoChange,CompoundMask (removeAt index masks)), (removeAt index items), vst) //TODO: ChangeUI instruction
 		| op == "add" && add =: (Just _)
 			# f = fromJust add
 			# nx = f items
@@ -63,7 +63,12 @@ where
 			= case itemEditor.Editor.genUI (dp++[ni]) nx vst of
 				(Error e,vst) = (Error e,items,vst)
 				(Ok (ui,nm),vst)
-					= (Ok (NoChange,CompoundMask (masks ++ [nm])),items ++ [nx],vst)
+					# nitems = items ++ [nx]
+					# nmasks = masks ++ [nm]
+					# insert = [(ni,InsertChild (listItemUI taskId dp (ni + 1) ni ui))]
+					# counter = maybe [] (\f -> [(ni + 1, ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "value" (JSONString (f nitems))] []))]))]) count
+					# change = ChangeUI [] (insert ++ counter)
+					= (Ok (change,CompoundMask nmasks),nitems,vst)
 		= (Ok (NoChange,CompoundMask masks),items,vst)
 	where
 		swap []	  _		= []
@@ -86,11 +91,12 @@ where
 					= (Ok (childChange i change,CompoundMask (updateAt i nm masks)), (updateAt i nx items),vst)
 	where
 		childChange i NoChange = NoChange
-		childChange i change = ChangeUI [] [(i,ChangeChild change)]
+		childChange i change = ChangeUI [] [(i,ChangeChild (ChangeUI [] [(0,ChangeChild change)]))]
 
 	//Very crude full replacement
-	onRefresh dp new old mask vst = case genUI dp new vst of
+	onRefresh dp new old mask vst = (Ok (NoChange,mask),old,vst) //TODO: Determine small UI change
+/*
+	onRefresh dp new old mask vst = case genUI dp new {vst & mode = Update} of
 		(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
 		(Error e,vst) = (Error e,old,vst)
-
-
+*/
