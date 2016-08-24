@@ -408,4 +408,5 @@ where
 	encodeChildChange (i,ChangeChild child) = JSONArray [JSONInt i,JSONString "change",encodeUIChange child]
 	encodeChildChange (i,RemoveChild) 		= JSONArray [JSONInt i,JSONString "remove"]
 	encodeChildChange (i,InsertChild child) = JSONArray [JSONInt i,JSONString "insert",encodeUI child]
+	encodeChildChange (i,MoveChild ni)      = JSONArray [JSONInt i,JSONString "move",JSONInt ni]
 

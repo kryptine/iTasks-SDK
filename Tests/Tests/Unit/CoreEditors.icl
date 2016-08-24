@@ -7,7 +7,7 @@ import iTasks._Framework.IWorld
 import qualified Data.Map as DM
 import StdMisc
 
-derive gText EditMask, FieldMask
+derive gText EditMask, FieldMask, CompoundMask
 
 //COMPLEX TYPES FOR TESTING
 
@@ -80,7 +80,7 @@ testRealUpdate = testGenUI "Update Real"
 
 testConsFieldsUpdate = testGenUI "Update constructor fields"
 	(uic UICons [fieldExp "v0" 1, fieldExp "v1" 2, fieldExp "v2" 3, fieldExp "v3" 4,fieldExp "v4" 5,fieldExp "v5" 6]
-		,CompoundMask [maskExp n \\ n <- [1..6]])
+		,CompoundMask {fields=[maskExp n \\ n <- [1..6]],state=JSONNull})
 	(TestConsFields 1 2 3 4 5 6) Update
 where
 	fieldExp editorId val = 
@@ -155,6 +155,9 @@ testGenericEditorEdits = testsuite "Generic edits" "Tests for processing edits b
 	[testEditConsChange
 	,testEditListElement
 	,testAddListElement
+	,testMoveListElementUp
+	,testMoveListElementDown
+	,testRemoveListElement
 	]
 
 testGenEdit :: String (a,EditMask,UIChange) (a,EditMask) (DataPath,JSONNode) -> Test | iTask a
@@ -176,18 +179,18 @@ testEditConsChange = skip "Change constructor"
 */
 
 testEditListElement = testGenEdit "List element edit" 
-	([42],CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 42}]
+	([42],CompoundMask {fields=[FieldMask {touched=True,valid=True,state=JSONInt 42}],state=JSONNull}
 		,ChangeUI [] [(0, ChangeChild (ChangeUI [SetAttribute "value" (JSONInt 42), SetAttribute "hint" (JSONString "You have correctly entered a whole number"), SetAttribute "hint-type" (JSONString "valid")] []))])
-	([0],CompoundMask [FieldMask {touched=True,valid=True,state=JSONNull}])
+	([0],CompoundMask {fields=[FieldMask {touched=True,valid=True,state=JSONNull}],state=JSONNull})
 	([0],JSONInt 42)
 
 testAddListElement = testGenEdit "List element add"
-	([42,0],CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 42},FieldMask {touched=False,valid=False,state=JSONNull}]
+	([42,0],CompoundMask {fields=[FieldMask {touched=True,valid=True,state=JSONInt 42},FieldMask {touched=False,valid=False,state=JSONNull}],state=JSONNull}
 		,ChangeUI [] [(1,InsertChild elui)
 
 					 ,(2,ChangeChild (ChangeUI [] [(0, ChangeChild (ChangeUI [SetAttribute "value" (JSONString "2 items")] []))]))
 					 ])
-	([42],CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 42}])
+	([42],CompoundMask {fields=[FieldMask {touched=True,valid=True,state=JSONInt 42}],state=JSONNull})
 	([],JSONString "add")
 where
 	elui = uiac UIContainer ('DM'.fromList [("direction",JSONString "horizontal"),("halign",JSONString "right"),("height",JSONString "wrap")]) [inui:buis]
@@ -202,8 +205,23 @@ where
 	       ,uia UIButton ('DM'.fromList [("iconCls",JSONString "icon-remove"),("value",JSONString "rem_1"),("taskId",JSONString "STUB"),("editorId",JSONString "v")])
 	       ]
 
+testMoveListElementUp = testGenEdit "Move list element up"
+	([2,1,3],CompoundMask {fields=[FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 3}],state=JSONNull},ChangeUI [] [(1,MoveChild 0)])
+	([1,2,3], CompoundMask {fields=[FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 3}],state=JSONNull})
+	([],JSONString "mup_1")
+
+testMoveListElementDown = testGenEdit "Move list element down"
+	([1,3,2],CompoundMask {fields=[FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 3},FieldMask {touched=True,valid=True,state=JSONInt 2}],state=JSONNull},ChangeUI [] [(1,MoveChild 2)])
+	([1,2,3], CompoundMask {fields=[FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 3}],state=JSONNull})
+	([],JSONString "mdn_1")
+
+testRemoveListElement = testGenEdit "Remove list element"
+	([1,2],CompoundMask {fields=[FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2}],state=JSONNull},ChangeUI [] [(2,RemoveChild)])
+	([1,2,3], CompoundMask {fields=[FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 3}],state=JSONNull})
+	([],JSONString "rem_2")
+
 testGenericEditorRefreshes :: TestSuite
-testGenericEditorRefreshes = testsuite "Generic diffs" "Tests for the generic diffs"
+testGenericEditorRefreshes = testsuite "Generic refresh" "Tests for the generic refresh functions"
 	[testSameInt
 	,testDifferentInt1
 	,testDifferentInt2
@@ -262,7 +280,7 @@ testDiffConsFields2
 											  ] []))])
 		(TestConsFields 1 2 3 44 5 6)
 		(TestConsFields 1 2 3 4 5 6) 
-		(CompoundMask [newFieldMask,newFieldMask,newFieldMask,newFieldMask,newFieldMask,newFieldMask])
+		(CompoundMask {fields=[newFieldMask,newFieldMask,newFieldMask,newFieldMask,newFieldMask,newFieldMask],state=JSONNull})
 
 testDiffRecordFields :: Test
 testDiffRecordFields 

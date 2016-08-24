@@ -269,6 +269,18 @@ itasks.Component = {
 		}
 		me.children.splice(idx,1);	
 	},
+	moveChild: function(sidx,didx) {
+		var me = this, child;
+		if(me.initialized) {
+			if(didx == (me.containerEl.children.length - 1)) {
+				me.containerEl.appendChild(me.containerEl.children[sidx]);
+			} else {
+				me.containerEl.insertBefore(me.containerEl.children[sidx],me.containerEl.children[(didx > sidx) ? (didx + 1) : didx]);
+			}
+		}
+		child = me.children.splice(sidx,1)[0]; //Remove followed by insert...
+		me.children.splice((didx > sidx) ? (didx - 1) : didx, 0, child);
+	},
 	beforeChildRemove: function(idx) {},
 	setAttribute: function(name,value) {
 		var me = this;
@@ -327,6 +339,8 @@ itasks.Component = {
 				case 'remove':
 					me.removeChild(idx);
 					break;
+				case 'move':
+					me.moveChild(idx,change[2]);
 			}
 		});
 	},

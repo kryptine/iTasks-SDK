@@ -59,8 +59,6 @@ where
 		= (ChangeUI attrChanges itemChanges,s)
 	layout (change,s) = (change,s)
 
-
-
 copyAttributes :: [String] NodePath NodePath -> Layout
 copyAttributes selection src dst = copyAttributes` (Just selection) src dst
 
@@ -230,7 +228,7 @@ where
 			(before,equal,after) = split idx ms
 
 	//Adjust an individual child change
-	//Known precondition: moves only holds moves with an index >= the index of the change
+	//Known precondition: only holds for moves with an index >= the index of the change
 
 	//Replacements
 	adjustChildChange targetIdx numRem (idx,ChangeChild change=:(ReplaceUI ui)) mbMove movesAfter = case mbMove of
@@ -290,6 +288,9 @@ where
 			= (targetIdx, change, Nothing, movesAfter, subInserts)
 		| otherwise	 //One ore more sub nodes matched, we need to record the moves for this branch
 			= (targetIdx, change, Just (idx,Right subMoves), movesAfter, subInserts)
+
+	adjustChildChange targetIdx numRem (idx, MoveChild nidx) mbMove movesAfter //TODO
+		= (targetIdx,Just (idx,MoveChild nidx),Nothing,movesAfter, [])
 
 insertAndAdjust_ :: NodePath Int Int [(Int,UIChildChange)] UIChange -> UIChange
 insertAndAdjust_ path=:[] startIdx numInserts insertChanges change = case change of //Add the inserts here
@@ -410,9 +411,11 @@ where
 			= ((i,ChangeChild change),states) 
 	layoutChildChange_ path pred layout (i,InsertChild ui) states
 		# (ui,eitherState) = layoutUI_ (path ++ [i]) pred layout ui
-		= ((i,InsertChild ui),[(i,eitherState):[(i + 1,s) \\ (i,s) <- states]]) //Aslo adjust the indices of the other states
+		= ((i,InsertChild ui),[(i,eitherState):[(i + 1,s) \\ (i,s) <- states]]) //Also adjust the indices of the other states
 	layoutChildChange_ path pred layout (idx,RemoveChild) states
 		= ((idx,RemoveChild),[(i - 1, s) \\ (i,s) <- states | i <> idx]) //Remove the current state from the states and adjust the indices accordingly
+	layoutChildChange_ path pred layout (idx,MoveChild nidx) states //Adjust the indices TODO
+		= ((idx,MoveChild nidx),states)
 
 	selectState idx states = case splitWith (((==) idx) o fst) states of
         ([(_,s):_],states) = (Just s,states)

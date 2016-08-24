@@ -39,6 +39,7 @@ derive class iTask UITreeNode
 :: UIChildChange 	 = ChangeChild !UIChange           //Select a sub-component and apply the change definition there
 					 | RemoveChild                     //Remove the child at the given index (next children 'move down')
 					 | InsertChild !UI                 //Insert a new child at the given index (next children 'move up')
+                     | MoveChild !Int                  //Move an existing child a given index to a new index
 
 derive class iTask UIChange, UIAttributeChange, UIChildChange
 
