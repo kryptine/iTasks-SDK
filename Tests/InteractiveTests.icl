@@ -7,6 +7,7 @@ import iTasks, TestFramework
 import Tests.Interactive.BuiltinEditors
 import Tests.Interactive.GenericEditors
 import Tests.Interactive.BuiltinContainers
+import Tests.Interactive.CustomEditors
 import Tests.Interactive.Layout
 import Tests.Interactive.Editlets
 
@@ -23,6 +24,7 @@ suites = [//Interactive tests
 		  testBuiltinEditors
 		 ,testGenericEditors
 		 ,testBuiltinContainers
+		 ,testCustomEditors
  		 ,testLayoutI
 		 ,testEditletsI
 		 //Unit tests
