@@ -192,6 +192,9 @@ editorIdAttr taskId = 'DM'.fromList [("editorId",JSONString taskId)]
 labelAttr :: !String -> UIAttributes
 labelAttr taskId = 'DM'.fromList [(LABEL_ATTRIBUTE,JSONString taskId)]
 
+styleAttr :: !String -> UIAttributes
+styleAttr style = 'DM'.fromList [("style",JSONString style)]
+
 editAttrs :: !String !String !(Maybe JSONNode) -> UIAttributes
 editAttrs taskId editorId mbValue 
 	= 'DM'.fromList [("taskId",JSONString taskId),("editorId",JSONString editorId):maybe [] (\value -> [("value",value)]) mbValue]
