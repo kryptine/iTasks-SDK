@@ -273,6 +273,7 @@ itasks.Component = {
 	},
 	moveChild: function(sidx,didx) {
 		var me = this, child;
+
 		if(me.initialized) {
 			if(didx == (me.containerEl.children.length - 1)) {
 				me.containerEl.appendChild(me.containerEl.children[sidx]);
@@ -280,8 +281,9 @@ itasks.Component = {
 				me.containerEl.insertBefore(me.containerEl.children[sidx],me.containerEl.children[(didx > sidx) ? (didx + 1) : didx]);
 			}
 		}
+
 		child = me.children.splice(sidx,1)[0]; //Remove followed by insert...
-		me.children.splice((didx > sidx) ? (didx - 1) : didx, 0, child);
+		me.children.splice(didx, 0, child);
 	},
 	beforeChildRemove: function(idx) {},
 	setAttribute: function(name,value) {
@@ -326,7 +328,7 @@ itasks.Component = {
 		}
 		//Handle child changes
 		childChanges.forEach(function(change) {
-			idx = change[0];
+			var idx = change[0];
 			switch(change[1]) {
 				case 'change':
 					if(idx >= 0 && idx < me.children.length) {
@@ -343,6 +345,7 @@ itasks.Component = {
 					break;
 				case 'move':
 					me.moveChild(idx,change[2]);
+					break;
 			}
 		});
 	},
