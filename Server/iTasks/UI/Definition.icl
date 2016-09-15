@@ -192,6 +192,9 @@ editorIdAttr taskId = 'DM'.fromList [("editorId",JSONString taskId)]
 labelAttr :: !String -> UIAttributes
 labelAttr taskId = 'DM'.fromList [(LABEL_ATTRIBUTE,JSONString taskId)]
 
+styleAttr :: !String -> UIAttributes
+styleAttr style = 'DM'.fromList [("style",JSONString style)]
+
 editAttrs :: !String !String !(Maybe JSONNode) -> UIAttributes
 editAttrs taskId editorId mbValue 
 	= 'DM'.fromList [("taskId",JSONString taskId),("editorId",JSONString editorId):maybe [] (\value -> [("value",value)]) mbValue]
@@ -408,4 +411,5 @@ where
 	encodeChildChange (i,ChangeChild child) = JSONArray [JSONInt i,JSONString "change",encodeUIChange child]
 	encodeChildChange (i,RemoveChild) 		= JSONArray [JSONInt i,JSONString "remove"]
 	encodeChildChange (i,InsertChild child) = JSONArray [JSONInt i,JSONString "insert",encodeUI child]
+	encodeChildChange (i,MoveChild ni)      = JSONArray [JSONInt i,JSONString "move",JSONInt ni]
 

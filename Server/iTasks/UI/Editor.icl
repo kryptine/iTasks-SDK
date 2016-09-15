@@ -8,15 +8,15 @@ import qualified Data.Map as DM
 import Text, Text.JSON
 import GenEq
 
-derive JSONEncode EditMask, FieldMask
-derive JSONDecode EditMask, FieldMask
-derive gEq        EditMask, FieldMask
+derive JSONEncode EditMask, FieldMask, CompoundMask
+derive JSONDecode EditMask, FieldMask, CompoundMask
+derive gEq        EditMask, FieldMask, CompoundMask
 
 newFieldMask :: EditMask
 newFieldMask = FieldMask {FieldMask|touched=False,valid=True,state=JSONNull}
 
 newCompoundMask :: EditMask
-newCompoundMask = CompoundMask []
+newCompoundMask = CompoundMask {CompoundMask|fields=[],state=JSONNull}
 
 editorId :: !DataPath -> String
 editorId dp = "v" + join "-" (map toString dp)
@@ -27,16 +27,16 @@ s2dp str
 						= map toInt (split "-" (subString 1 (textSize str) str))
 
 subMasks :: !Int EditMask -> [EditMask]
-subMasks n (CompoundMask ms) = ms
+subMasks n (CompoundMask {CompoundMask|fields}) = fields
 subMasks n m = repeatn n m
 
 isTouched :: !EditMask -> Bool
 isTouched (FieldMask {FieldMask|touched}) = touched
-isTouched (CompoundMask ms) = or (map isTouched ms) 
+isTouched (CompoundMask {CompoundMask|fields}) = or (map isTouched fields) 
 
 containsInvalidFields :: !EditMask -> Bool
 containsInvalidFields (FieldMask {FieldMask|valid}) = not valid
-containsInvalidFields (CompoundMask ms) = or (map containsInvalidFields ms)
+containsInvalidFields (CompoundMask {CompoundMask|fields}) = or (map containsInvalidFields fields)
 
 checkMask :: !EditMask a -> Maybe a
 checkMask mask val

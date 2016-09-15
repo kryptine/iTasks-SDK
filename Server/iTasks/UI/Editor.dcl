@@ -35,12 +35,16 @@ from GenEq import generic gEq
 */  
 :: EditMask
 	= FieldMask !FieldMask 		
-	| CompoundMask ![EditMask]
+	| CompoundMask !CompoundMask
 
 :: FieldMask = 
 	{ touched :: !Bool
 	//, version :: !Int
 	, valid   :: !Bool
+	, state   :: !JSONNode //Usually contains the (serialized) value
+	}
+:: CompoundMask =
+	{ fields  :: ![EditMask]
 	, state   :: !JSONNode
 	}
 
