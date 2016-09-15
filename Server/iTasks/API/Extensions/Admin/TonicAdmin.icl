@@ -147,23 +147,37 @@ showBlueprintInstance rs bpi selDetail enabledSteps compact depth
                                                                          ('DM'.put eid v m)
                                                                          m) 'DM'.newMap outputs
                    in updateInformation ()
-                        [/*imageUpdate id (\_ -> mkTaskInstanceImage rs bpi outputs` enabledSteps selDetail compact) (const id) (const id) (\_ _ -> Nothing) (const id)*/]
+                        [UpdateUsing id (const id) (editor outputs`)]
                         { ActionState
                         | state  = { tis_task    = bpi.bpi_blueprint
                                    , tis_depth   = depth
                                    , tis_compact = compact }
-                        , action = Nothing}  
+                        , action = Nothing}
+  where
+  editor outputs` = fromSVGEditor
+    { initView    = id
+    , renderImage = \_ -> mkTaskInstanceImage rs bpi outputs` enabledSteps selDetail compact
+    , updView     = \_ x -> x
+    , updModel    = \x _ -> x
+    }
 
 showStaticBlueprint :: ![TaskAppRenderer] !BlueprintIdent !TonicFunc !Bool !Scale
                     -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showStaticBlueprint rs bpref task compact depth
   = updateInformation ()
-      [/*imageUpdate id (\_ -> mkStaticImage rs bpref compact) (const id) (const id) (\_ _ -> Nothing) (const id)*/]
+      [UpdateUsing id (const id) editor]
       { ActionState
       | state  = { tis_task    = task
                  , tis_depth   = depth
                  , tis_compact = compact }
       , action = Nothing}
+  where
+  editor = fromSVGEditor
+    { initView    = id
+    , renderImage = \_ -> mkStaticImage rs bpref compact
+    , updView     = \_ x -> x
+    , updModel    = \x _ -> x
+    }
 
 enterQuery :: Task (Maybe BlueprintQuery)
 enterQuery = enterInformation "Enter filter query" []
