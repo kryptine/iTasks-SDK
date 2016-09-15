@@ -361,17 +361,17 @@ where
 
 //Remove unnessecary directives
 compactUIChange :: UIChange -> UIChange
-compactUIChange (ChangeUI localChanges children)
-	= case ChangeUI localChanges [child \\ child=:(_,ChangeChild change) <- map compactChildDef children | not (change =: NoChange)] of
-		ChangeUI [] [] 	= NoChange
-		change = change
+compactUIChange (ChangeUI local children) = case (local,compactChildren children) of
+	([],[]) = NoChange
+	(local,children) = ChangeUI local children
 where
-	compactChildDef (idx,ChangeChild change) = (idx,ChangeChild change)
-	compactChildDef def = def
+	compactChildren [] = [] 
+	compactChildren [(idx,ChangeChild change):cs] = case (compactUIChange change) of
+		NoChange = compactChildren cs
+		change   = [(idx,ChangeChild change):compactChildren cs]
 
-compactUIChange def = def
-
-
+	compactChildren [c:cs] = [c:compactChildren cs]
+compactUIChange change = change
 
 completeChildChanges :: [(Int,UIChildChange)] -> [(Int,UIChildChange)]
 completeChildChanges children = complete 0 (sortBy indexCmp children)

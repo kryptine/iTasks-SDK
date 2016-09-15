@@ -106,9 +106,13 @@ where
                     	(ValueResult value _ change _)	
 							| deleted
 								= (Ok value,iworld)
-							# iworld = queueUIChange instanceNo change iworld
-                        	# iworld = flushShareCache iworld
-							= (Ok value, iworld)
+							//Only queue UI changes if something interesting is changed
+							= case compactUIChange change of
+								NoChange = (Ok value,iworld)
+								change
+									# iworld = queueUIChange instanceNo change iworld
+                        			# iworld = flushShareCache iworld
+									= (Ok value, iworld)
                     	(ExceptionResult (e,msg))
 							= (Error msg, iworld)
 
