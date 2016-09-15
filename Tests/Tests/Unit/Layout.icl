@@ -7,6 +7,7 @@ import iTasks._Framework.IWorld
 import qualified Data.Map as DM
 import StdMisc
 
+derive JSONEncode NodeMove
 
 testLayout :: TestSuite
 testLayout = testsuite "Layout" "Tests for the layout functions"
@@ -24,7 +25,9 @@ testLayout = testsuite "Layout" "Tests for the layout functions"
 	,testRemoveSubsMatchingOnReplaceMultipleAfterRemove
 	,testLayoutSubsMatching
 	,testMoveSubsMatchingInitial
+	,testMoveSubsMatchingInitial2
 	,testMoveSubsMatchingNewRoutes
+	,testMoveSubsMatchingNewRoutes2
 	,testSequenceLayouts
 	,testSelectLayout
 	//Common patterns
@@ -140,17 +143,32 @@ testLayoutSubsMatching = skip "Applying another layout to all matching nodes"
 testMoveSubsMatchingInitial = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
 where
 	sutLayout = (moveChildren [] isAction [0,0]) 
-	sut
-		//Initial, followed by an event in the new structure
-		# (c,s) = sutLayout (ReplaceUI initUI,initState)
-		= c
-	exp = ReplaceUI expUI
+	sut = sutLayout (ReplaceUI initUI,initState)
+
+	exp = (ReplaceUI expUI,expState)
 
 	//Initial UI	
 	initUI = uic UIStep [ui UIContainer, ui UIAction, ui UIAction]
 	initState = JSONNull
 	//Expected final UI
 	expUI = uic UIStep [uic UIContainer [ui UIAction, ui UIAction]]
+	expState = toJSON [(1,BranchMoved),(2,BranchMoved)]
+
+	isAction (UI type _ _) = type =: UIAction
+
+testMoveSubsMatchingInitial2 = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
+where
+	sutLayout = (moveSubsMatching [0] isAction [1,0]) 
+	sut = sutLayout (ReplaceUI initUI,initState)
+
+	exp = (ReplaceUI expUI,expState)
+
+	//Initial UI	
+	initUI = uic UIPanel [uic UIContainer [ui UIAction, ui UIEmpty, ui UIAction], ui UIContainer]
+	initState = JSONNull
+	//Expected final UI
+	expUI = uic UIPanel [uic UIContainer [ui UIEmpty], uic UIContainer [ui UIAction, ui UIAction]]
+	expState = toJSON [(0,ChildBranchesMoved [(0,BranchMoved),(2,BranchMoved)])]
 
 	isAction (UI type _ _) = type =: UIAction
 
@@ -173,6 +191,30 @@ where
 	//Expected reroute change 
 	expChange = ChangeUI [] [(0,ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))
 														 ,(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "baz")] [])) ]))] 
+
+	isAction (UI type _ _) = type =: UIAction
+
+testMoveSubsMatchingNewRoutes2 = assertEqual "Moving nodes matching a predicate -> check if changes are moved too" exp sut
+where
+	sutLayout = (moveSubsMatching [0] isAction [1,0]) 
+	sut
+		//Initial, followed by an event in the new structure
+		# (_,s) = sutLayout (ReplaceUI initUI,initState)
+		# (c,s) = sutLayout (changeToReRoute,s)
+		= (c,s)
+
+	exp = (expChange,expState)
+
+	//Initial UI	
+	initUI = uic UIPanel [uic UIContainer [ui UIAction, ui UIEmpty, ui UIAction], ui UIContainer]
+	initState = JSONNull
+
+	changeToReRoute = ChangeUI [] [(0,ChangeChild (ChangeUI [] [(2,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
+
+	//Expected reroute change 
+	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
+
+	expState = toJSON [(0,ChildBranchesMoved [(0,BranchMoved),(2,BranchMoved)])]
 
 	isAction (UI type _ _) = type =: UIAction
 
