@@ -16,13 +16,16 @@ from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: Defer
             | ChildBranchesMoved NodeMoves
 
 //This type records the states of layouts applied somewhere in a ui tree
-:: NodeLayoutStates = NL [(Int,Either JSONNode NodeLayoutStates)]
-
+:: NodeLayoutStates :== [(Int,NodeLayoutState)]
+:: NodeLayoutState
+	= BranchLayout JSONNode
+	| ChildBranchLayout NodeLayoutStates
+			
 //This type represents the structure of a ui tree, which needs to be remembered when flattening a tree
 :: NodeSpine = NS [NodeSpine]
 
-derive JSONEncode NodeMove, NodeLayoutStates, NodeSpine
-derive JSONDecode NodeMove, NodeLayoutStates, NodeSpine
+derive JSONEncode NodeMove, NodeLayoutState, NodeSpine
+derive JSONDecode NodeMove, NodeLayoutState, NodeSpine
 
 instance tune ApplyLayout
 where
@@ -410,37 +413,37 @@ layoutSubs_ pred layout = layout`
 where
 	layout` (change,s)
 		| change=:(ReplaceUI _)
-			# (change,eitherState) = layoutChange_ [] pred layout change (NL [])
+			# (change,eitherState) = layoutChange_ [] pred layout change []
 			= (change,toJSON eitherState)
 		| otherwise
-			# (change,eitherState) = case fromMaybe (Right (NL [])) (fromJSON s) of
-				(Left state) = appSnd Left (layout (change,state))
-				(Right states) = layoutChange_ [] pred layout change states
+			# (change,eitherState) = case fromMaybe (ChildBranchLayout []) (fromJSON s) of
+				(BranchLayout state) = appSnd BranchLayout (layout (change,state))
+				(ChildBranchLayout states) = layoutChange_ [] pred layout change states
 			= (change,toJSON eitherState)
 
-layoutChange_ :: NodePath (NodePath UI -> Bool) Layout UIChange NodeLayoutStates -> (UIChange,Either JSONNode NodeLayoutStates)
+layoutChange_ :: NodePath (NodePath UI -> Bool) Layout UIChange NodeLayoutStates -> (UIChange,NodeLayoutState)
 layoutChange_ path pred layout (ReplaceUI ui) states
 	# (ui,eitherState) = layoutUI_ path pred layout ui
 	= (ReplaceUI ui,eitherState)
-layoutChange_ path pred layout (ChangeUI localChanges childChanges) (NL states)
+layoutChange_ path pred layout (ChangeUI localChanges childChanges) states
 	# (childChanges,states) = layoutChildChanges_ [] pred layout childChanges states
-	= (ChangeUI localChanges childChanges, Right (NL states))
+	= (ChangeUI localChanges childChanges, ChildBranchLayout states)
 layoutChange_ path pred layout change states
-	= (change,Right states)
+	= (change,ChildBranchLayout states)
 
-layoutUI_ :: NodePath (NodePath UI -> Bool) Layout UI -> (UI,Either JSONNode NodeLayoutStates)
+layoutUI_ :: NodePath (NodePath UI -> Bool) Layout UI -> (UI,NodeLayoutState)
 layoutUI_ path pred layout ui=:(UI type attr items)
 	| pred path ui
 		= case layout (ReplaceUI ui,JSONNull) of
-			(ReplaceUI ui,state) = (ui,Left state)
-			_                    = (ui,Right (NL [])) //Consider it a non-match if the layout function behaves flakey
+			(ReplaceUI ui,state) = (ui,BranchLayout state)
+			_                    = (ui,ChildBranchLayout []) //Consider it a non-match if the layout function behaves flakey
 	| otherwise
 		# (items,states) = unzip [let (ui`,s) = layoutUI_ (path ++ [i]) pred layout ui in (ui`,(i,s)) \\ ui <- items & i <- [0..]]
-		# states = filter (\(_,s) -> not (s =:(Right (NL [])))) states //Filter unnecessary state
-		= (UI type attr items ,Right (NL states))
+		# states = filter (\(_,s) -> not (s =:(ChildBranchLayout []))) states //Filter unnecessary state
+		= (UI type attr items, ChildBranchLayout states)
 
-layoutChildChanges_ :: NodePath (NodePath UI -> Bool) Layout [(Int,UIChildChange)] [(Int,Either JSONNode NodeLayoutStates)]
-                    -> (![(Int,UIChildChange)],![(Int,Either JSONNode NodeLayoutStates)])
+layoutChildChanges_ :: NodePath (NodePath UI -> Bool) Layout [(Int,UIChildChange)] NodeLayoutStates
+                    -> (![(Int,UIChildChange)],!NodeLayoutStates)
 layoutChildChanges_ path pred layout [] states = ([],states)
 layoutChildChanges_ path pred layout [c=:(idx,_):cs] states
 	# (statesBefore,statesAfter) = seek idx states
@@ -453,10 +456,10 @@ where
 	//Check if there is existing state for the change, in that case a layout was applied and we need
 	//to pass the change and the state to that layout, otherwise we need to recursively adjust the change
 	layoutChildChange_ path pred layout (i,ChangeChild change) states = case selectState i states of
-		(Just (Left state),states) //Reapply the layout with the stored state
+		(Just (BranchLayout state),states) //Reapply the layout with the stored state
 			# (change,state) = layout (change,state)
-			= ((i,ChangeChild change),[(i,Left state):states])
-		(Just (Right childStates),states) //Recursively adjust the change
+			= ((i,ChangeChild change),[(i,BranchLayout state):states])
+		(Just (ChildBranchLayout childStates),states) //Recursively adjust the change
 			# (change,eitherStates) = layoutChange_ (path ++ [i]) pred layout change childStates
 			= ((i,ChangeChild change),[(i,eitherStates):states])
 		(Nothing,states) //Nothing to do
