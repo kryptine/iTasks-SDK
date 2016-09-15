@@ -1,6 +1,6 @@
 implementation module iTasks.UI.Layout
 
-import StdTuple, StdList, StdBool, StdInt, StdOrdList, StdArray
+import StdTuple, StdList, StdBool, StdInt, StdOrdList, StdArray, StdMisc
 import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
@@ -11,8 +11,6 @@ from StdFunc import o, const, id, flip
 from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
 
 //This type records where parts were removed from a ui tree
-//Left -> the entire branch was removed
-//Right -> somewhere in the branch something was removed 
 :: NodeMoves :== [(Int,NodeMove)] 
 :: NodeMove = BranchMoved
             | ChildBranchesMoved NodeMoves
@@ -250,6 +248,18 @@ where
 		# (moves, cs, inserts) = adjustChildChanges tidx moves cs
 		= (moves, change ++ cs, subInserts ++ inserts)
 	//- Move
+	adjustChildChanges tidx moves [(idx,MoveChild dst):cs] 
+		| countMoves_ moves False > 0 = abort "Cannot adjust move instructions at a level where previous layout rules have matched" 
+		//Apply the rearrangement to the move information 
+		# srcMove = findMove idx moves //Select moved branch
+		# moves = [(if (i > idx) (i - 1) i, m) \\ (i,m) <- moves | i <> idx] //Everything moves down when we remove the branch
+		# moves = [(if (i >= dst) (i + 1) i, m) \\ (i,m) <- moves] //Move everything after the destination move up to make 'space' for the move
+		# moves = maybe [] (\m -> [(dst,m)]) srcMove ++ moves //Move to destination
+		//Pass on the change
+		# change = [(idx,MoveChild dst)]
+		# subInserts = []
+		# (moves, cs, inserts) = adjustChildChanges tidx moves cs
+		= (moves, change ++ cs, subInserts ++ inserts)
 	//- Replace
 	adjustChildChanges tidx moves [(idx,ChangeChild change=:(ReplaceUI ui)):cs] 
 		# (change,moves,subInserts) = case findMove idx moves of
