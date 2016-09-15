@@ -445,32 +445,33 @@ layoutUI_ path pred layout ui=:(UI type attr items)
 layoutChildChanges_ :: NodePath (NodePath UI -> Bool) Layout [(Int,UIChildChange)] NodeLayoutStates
                     -> (![(Int,UIChildChange)],!NodeLayoutStates)
 layoutChildChanges_ path pred layout [] states = ([],states)
-layoutChildChanges_ path pred layout [c=:(idx,_):cs] states
-	# (statesBefore,statesAfter) = seek idx states
-	# (c,statesAfter) = layoutChildChange_ path pred layout c statesAfter
-	# (cs,statesAfter) = layoutChildChanges_ path pred layout cs statesAfter
-	= ([c:cs],statesBefore ++ statesAfter)
+layoutChildChanges_ path pred layout [c:cs] states
+	# (c,states) = layoutChildChange_ path pred layout c states
+	# (cs,states) = layoutChildChanges_ path pred layout cs states
+	= ([c:cs],states)
 where
-	seek idx states = ([c \\ c <- states | fst c < idx], [c \\ c <- states | fst c >= idx])
-
 	//Check if there is existing state for the change, in that case a layout was applied and we need
 	//to pass the change and the state to that layout, otherwise we need to recursively adjust the change
-	layoutChildChange_ path pred layout (i,ChangeChild change) states = case selectState i states of
+	layoutChildChange_ path pred layout (idx,ChangeChild change) states = case selectState idx states of
 		(Just (BranchLayout state),states) //Reapply the layout with the stored state
 			# (change,state) = layout (change,state)
-			= ((i,ChangeChild change),[(i,BranchLayout state):states])
+			= ((idx,ChangeChild change),[(idx,BranchLayout state):states])
 		(Just (ChildBranchLayout childStates),states) //Recursively adjust the change
-			# (change,eitherStates) = layoutChange_ (path ++ [i]) pred layout change childStates
-			= ((i,ChangeChild change),[(i,eitherStates):states])
+			# (change,state) = layoutChange_ (path ++ [idx]) pred layout change childStates
+			= ((idx,ChangeChild change),[(idx,state):states])
 		(Nothing,states) //Nothing to do
-			= ((i,ChangeChild change),states) 
-	layoutChildChange_ path pred layout (i,InsertChild ui) states
-		# (ui,eitherState) = layoutUI_ (path ++ [i]) pred layout ui
-		= ((i,InsertChild ui),[(i,eitherState):[(i + 1,s) \\ (i,s) <- states]]) //Also adjust the indices of the other states
+			= ((idx,ChangeChild change),states) 
+	layoutChildChange_ path pred layout (idx,InsertChild ui) states
+		# (ui,eitherState) = layoutUI_ (path ++ [idx]) pred layout ui
+		= ((idx,InsertChild ui),[(idx,eitherState):[(if (i > idx) (i + 1) i,s)  \\ (i,s) <- states]]) //Also adjust the indices of the other states
 	layoutChildChange_ path pred layout (idx,RemoveChild) states
-		= ((idx,RemoveChild),[(i - 1, s) \\ (i,s) <- states | i <> idx]) //Remove the current state from the states and adjust the indices accordingly
-	layoutChildChange_ path pred layout (idx,MoveChild nidx) states //Adjust the indices TODO
-		= ((idx,MoveChild nidx),states)
+		= ((idx,RemoveChild),[(if (i > idx) (i - 1) i, s) \\ (i,s) <- states]) //Remove the current state from the states and adjust the indices accordingly
+	layoutChildChange_ path pred layout (idx,MoveChild dst) states //Move the states 
+		# (srcState,states) = selectState idx states
+		# states = [(if (i > idx) (i - 1) i, s) \\ (i,s) <- states] //Everything moves down when we remove the branch
+		# states = [(if (i >= dst) (i + 1) i, s) \\ (i,s) <- states] //Move everything after the destination move up to make 'space' for the move
+		# states = maybe [] (\s -> [(dst,s)]) srcState ++ states //Move to destination
+		= ((idx,MoveChild dst),states)
 
 	selectState idx states = case splitWith (((==) idx) o fst) states of
         ([(_,s):_],states) = (Just s,states)
