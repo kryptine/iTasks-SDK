@@ -142,19 +142,19 @@ testLayoutSubsMatching = skip "Applying another layout to all matching nodes"
 
 testMoveSubsMatchingInitial = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
 where
-	sutLayout = (moveChildren [] isAction [0,0]) 
+	sutLayout = (moveChildren [] isTarget [0,0]) 
 	sut = sutLayout (ReplaceUI initUI,initState)
 
 	exp = (ReplaceUI expUI,expState)
 
 	//Initial UI	
-	initUI = uic UIStep [ui UIContainer, ui UIAction, ui UIAction]
+	initUI = uic UIStep [ui UIContainer, ui UIAction, ui UIEmpty]
 	initState = JSONNull
 	//Expected final UI
-	expUI = uic UIStep [uic UIContainer [ui UIAction, ui UIAction]]
+	expUI = uic UIStep [uic UIContainer [ui UIAction, ui UIEmpty]]
 	expState = toJSON [(1,BranchMoved),(2,BranchMoved)]
 
-	isAction (UI type _ _) = type =: UIAction
+	isTarget (UI type _ _) = (type =: UIAction) || (type =: UIEmpty)
 
 testMoveSubsMatchingInitial2 = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
 where
@@ -212,7 +212,7 @@ where
 	changeToReRoute = ChangeUI [] [(0,ChangeChild (ChangeUI [] [(2,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
 	//Expected reroute change 
-	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
+	expChange = ChangeUI [] [(0,ChangeChild (ChangeUI [] [])),(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
 	expState = toJSON [(0,ChildBranchesMoved [(0,BranchMoved),(2,BranchMoved)])]
 
