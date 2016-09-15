@@ -68,3 +68,14 @@ layoutSubAt        :: NodePath Layout   -> Layout
 layoutSubsMatching :: NodePath (UI -> Bool) Layout   -> Layout
 layoutChildrenOf   :: NodePath Layout -> Layout
 
+//TYPES EXPORTED FOR TESTING
+:: NodeMoves :== [(Int,NodeMove)] 
+:: NodeMove = BranchMoved
+            | ChildBranchesMoved NodeMoves
+
+//This type records the states of layouts applied somewhere in a ui tree
+:: NodeLayoutStates :== [(Int,NodeLayoutState)]
+:: NodeLayoutState
+	= BranchLayout JSONNode
+	| ChildBranchLayout NodeLayoutStates
+	

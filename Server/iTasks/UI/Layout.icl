@@ -197,21 +197,21 @@ where
 removeAndAdjust_ :: NodePath (NodePath UI -> Bool) Int UIChange NodeMoves -> (!UIChange,!NodeMoves,![(Int,UIChildChange)])
 //Basic NoChange case: if there is no change we don't need to transform anything
 //            We do need to count how many nodes were removed to keep track of the targetIndex in other branches
-removeAndAdjust_ path pred targetIdx NoChange moves //Only adjust the targetIdx by counting the moved nodes
+removeAndAdjust_ path pred tidx NoChange moves //Only adjust the targetIdx by counting the moved nodes
 	= (NoChange, moves, [])
 //Replacement case: this part of the UI is replaced. We need to remove the nodes we previously moved and find which ones to move in the new UI
-removeAndAdjust_ path pred targetIdx (ReplaceUI ui) moves //If the node is replaced, adjust the new ui and determine changes to the previously moved nodes
+removeAndAdjust_ path pred tidx (ReplaceUI ui) moves //If the node is replaced, adjust the new ui and determine changes to the previously moved nodes
 	//Remove all previously moved nodes
-	# removals = repeatn (countMoves_ moves True) (targetIdx,RemoveChild)
+	# removals = repeatn (countMoves_ moves True) (tidx,RemoveChild)
 	//Determine new moves in the replacement ui
-	= case collectNodes_ path pred targetIdx ui of
+	= case collectNodes_ path pred tidx ui of
 		//If the predicate matches the root node don't change anything.
 		//It is impossible to create an adjusted ReplaceUI instruction if the root node is removed
 		(Nothing,_,_)             = (ReplaceUI ui, moves, [])
 		(Just ui, moves, inserts) = (ReplaceUI ui, moves, removals ++  inserts )
 //The change case: We need to adjust the changes to the child branches
-removeAndAdjust_ path pred targetIdx (ChangeUI localChanges childChanges) moves 
-	# (moves, childChanges, inserts) = adjustChildChanges targetIdx moves childChanges 
+removeAndAdjust_ path pred tidx (ChangeUI localChanges childChanges) moves 
+	# (moves, childChanges, inserts) = adjustChildChanges tidx moves childChanges 
 	= (ChangeUI localChanges childChanges, moves, inserts)
 where
 	adjustChildChanges tidx moves [] = (moves,[],[])
@@ -286,7 +286,7 @@ where
 				| pred (path ++ [idx]) ui //The replacement still matches, just replace in the target locatation
 					= ([]
                       ,moves
-					  ,[(adjustTargetIndex moves idx tidx,ChangeChild change)])
+					  ,[(adjustTargetIndex moves idx tidx, ChangeChild change)])
 				| otherwise //The Moved node should no longer be moved -> change the replacement to an insert instruction
 					= case collectNodes_ (path ++ [idx]) pred (adjustTargetIndex moves idx tidx) ui of
 						(_,[],_) //Nothing matched, no need to record anything
@@ -328,7 +328,7 @@ where
 			Just BranchMoved
 					= ([]
 					  ,moves
-					  ,[(adjustTargetIndex moves idx tidx,ChangeChild change)])
+					  ,[(adjustTargetIndex moves idx tidx,ChangeChild change)]) 
 			//Recursively adjust the change 
 			Just (ChildBranchesMoved subMoves)
 					# (change,subMoves,subInserts) = removeAndAdjust_ (path ++ [idx]) pred (adjustTargetIndex moves idx tidx) change subMoves
