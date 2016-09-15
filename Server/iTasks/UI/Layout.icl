@@ -197,28 +197,28 @@ where
 removeAndAdjust_ :: NodePath (NodePath UI -> Bool) Int UIChange NodeMoves -> (!UIChange,!NodeMoves,![(Int,UIChildChange)])
 //Basic NoChange case: if there is no change we don't need to transform anything
 //            We do need to count how many nodes were removed to keep track of the targetIndex in other branches
-removeAndAdjust_ path pred targetIdx NoChange moves //Only adjust the targetIdx by counting the moved nodes
+removeAndAdjust_ path pred tidx NoChange moves //Only adjust the targetIdx by counting the moved nodes
 	= (NoChange, moves, [])
 //Replacement case: this part of the UI is replaced. We need to remove the nodes we previously moved and find which ones to move in the new UI
-removeAndAdjust_ path pred targetIdx (ReplaceUI ui) moves //If the node is replaced, adjust the new ui and determine changes to the previously moved nodes
+removeAndAdjust_ path pred tidx (ReplaceUI ui) moves //If the node is replaced, adjust the new ui and determine changes to the previously moved nodes
 	//Remove all previously moved nodes
-	# removals = repeatn (countMoves_ moves True) (targetIdx,RemoveChild)
+	# removals = repeatn (countMoves_ moves True) (tidx,RemoveChild)
 	//Determine new moves in the replacement ui
-	= case collectNodes_ path pred targetIdx ui of
+	= case collectNodes_ path pred tidx ui of
 		//If the predicate matches the root node don't change anything.
 		//It is impossible to create an adjusted ReplaceUI instruction if the root node is removed
-		(Nothing,_,_)             = (ReplaceUI ui, moves, [])
-		(Just ui, moves, inserts) = (ReplaceUI ui, moves, removals ++  inserts )
+		(_,Nothing,_,_)             = (ReplaceUI ui, moves, [])
+		(_,Just ui, moves, inserts) = (ReplaceUI ui, moves, removals ++ inserts)
 //The change case: We need to adjust the changes to the child branches
-removeAndAdjust_ path pred targetIdx (ChangeUI localChanges childChanges) moves 
-	# (moves, childChanges, inserts) = adjustChildChanges targetIdx moves childChanges 
+removeAndAdjust_ path pred tidx (ChangeUI localChanges childChanges) moves 
+	# (moves, childChanges, inserts) = adjustChildChanges tidx moves childChanges 
 	= (ChangeUI localChanges childChanges, moves, inserts)
 where
 	adjustChildChanges tidx moves [] = (moves,[],[])
 	//- Insert 
 	adjustChildChanges tidx moves [(idx,InsertChild ui):cs] 
 		//Determine additional moves in the replacement ui
-		# (mbUI,subMoves,subInserts) = collectNodes_ (path ++ [idx]) pred (adjustTargetIndex moves idx tidx) ui	
+		# (_,mbUI,subMoves,subInserts) = collectNodes_ (path ++ [idx]) pred (adjustTargetIndex moves idx tidx) ui	
 		//Adjust the change
 		# change = case mbUI of 
 			Nothing = [] //The top node of the inserted UI matched, record the move, but don't insert anything
@@ -269,15 +269,15 @@ where
 			//Previously the child did not match
 			Nothing 
 				= case collectNodes_ (path ++ [idx]) pred (adjustTargetIndex moves idx tidx) ui of
-					(Nothing,subMoves,subInserts) //The inserted UI matched, record the move and remove the child
+					(_,Nothing,subMoves,subInserts) //The inserted UI matched, record the move and remove the child
 						= ([(adjustIndex moves idx, RemoveChild)]
                       	  ,[(idx,BranchMoved):moves]
                       	  ,subInserts)
-					(_,[],_) //Nothing matched, no need to record anything
+					(_,_,[],_) //Nothing matched, no need to record anything
 						= ([(adjustIndex moves idx,ChangeChild (ReplaceUI ui))]
 					  	  ,moves
                           ,[])
-					(Just ui,subMoves,subInserts) //One or more sub nodes matched, we need to record the moves for this branch
+					(_,Just ui,subMoves,subInserts) //One or more sub nodes matched, we need to record the moves for this branch
 					    = ([(adjustIndex moves idx, ChangeChild (ReplaceUI ui))]
 					      ,[(idx,ChildBranchesMoved subMoves)]
 					      ,subInserts)
@@ -286,14 +286,14 @@ where
 				| pred (path ++ [idx]) ui //The replacement still matches, just replace in the target locatation
 					= ([]
                       ,moves
-					  ,[(adjustTargetIndex moves idx tidx,ChangeChild change)])
+					  ,[(adjustTargetIndex moves idx tidx, ChangeChild change)])
 				| otherwise //The Moved node should no longer be moved -> change the replacement to an insert instruction
 					= case collectNodes_ (path ++ [idx]) pred (adjustTargetIndex moves idx tidx) ui of
-						(_,[],_) //Nothing matched, no need to record anything
+						(_,_,[],_) //Nothing matched, no need to record anything
 							= ([(adjustIndex moves idx,InsertChild ui)]
 					   	  	  ,[(i,m) \\ (i,m) <- moves | i <> idx]
 					          ,[(adjustTargetIndex moves idx tidx,RemoveChild)])
-						(Just ui,subMoves,subInserts)
+						(_,Just ui,subMoves,subInserts)
 						    = ([(adjustIndex moves idx,InsertChild ui)]
 						      ,[(idx,ChildBranchesMoved subMoves):[(i,m) \\ (i,m) <- moves | i <> idx]]
 						      ,[(adjustTargetIndex moves idx tidx,RemoveChild):subInserts])
@@ -303,15 +303,15 @@ where
 				# inserts = repeatn (countMoves_ subMoves True) (adjustTargetIndex moves idx tidx,RemoveChild) 
 				//Find out what needs to be replaced in the new ui
 				= case collectNodes_ (path ++ [idx]) pred (adjustTargetIndex moves idx tidx) ui of
-					(Nothing,subMoves,subInserts) //The replacement UI matched, record the move
+					(_,Nothing,subMoves,subInserts) //The replacement UI matched, record the move
 						= ([(adjustIndex moves idx, RemoveChild)]
 					      ,[(idx,BranchMoved):[(i,m) \\ (i,m) <- moves | i <> idx]]
 					      ,inserts ++ subInserts)
-					(_,[],_) //Nothing matched, no longer need to record anything
+					(_,_,[],_) //Nothing matched, no longer need to record anything
 						= ([(adjustIndex moves idx, ChangeChild (ReplaceUI ui))]
                           ,[(i,m) \\ (i,m) <- moves | i <> idx]
                           ,inserts)
-					(Just ui,subMoves,subInserts) //One or more sub nodes matched, we need to record the moves for this branch
+					(_,Just ui,subMoves,subInserts) //One or more sub nodes matched, we need to record the moves for this branch
 				        = ([(adjustIndex moves idx, ChangeChild (ReplaceUI ui))]
                           ,[(idx,ChildBranchesMoved subMoves):[(i,m) \\ (i,m) <- moves | i <> idx]]
 					      ,inserts ++ subInserts)
@@ -328,7 +328,7 @@ where
 			Just BranchMoved
 					= ([]
 					  ,moves
-					  ,[(adjustTargetIndex moves idx tidx,ChangeChild change)])
+					  ,[(adjustTargetIndex moves idx tidx,ChangeChild change)]) 
 			//Recursively adjust the change 
 			Just (ChildBranchesMoved subMoves)
 					# (change,subMoves,subInserts) = removeAndAdjust_ (path ++ [idx]) pred (adjustTargetIndex moves idx tidx) change subMoves
@@ -377,25 +377,26 @@ where
 	count (ChildBranchesMoved moves) n = if recursive (n + countMoves_ moves recursive) n
 
 //Collect parts of a UI and record their positions
-collectNodes_ :: NodePath (NodePath UI -> Bool) Int UI -> (Maybe UI, NodeMoves, [(Int,UIChildChange)])
+collectNodes_ :: NodePath (NodePath UI -> Bool) Int UI -> (Int, Maybe UI, NodeMoves, [(Int,UIChildChange)])
 collectNodes_ path pred idx ui=:(UI type attr items)
-	| pred path ui	= (Nothing, [], [(idx,InsertChild ui)])
+	| pred path ui	= (idx + 1, Nothing, [], [(idx,InsertChild ui)])
 	| otherwise 
-		# (items, moves, inserts) = collectInItems idx 0 items
-		= (Just (UI type attr items), moves, inserts)
+		# (idx, items, moves, inserts) = collectInItems idx 0 items
+		= (idx, Just (UI type attr items), moves, inserts)
 where
-	collectInItems idx i [] = ([],[],[])
+	collectInItems idx i [] = (idx,[],[],[])
 	collectInItems idx i [item:items]
-		# (mbItem, itemMoves, itemInserts) = collectNodes_ (path ++ [i]) pred idx item
-		# (items, moves, inserts)          = collectInItems idx (i + 1) items
+		# (idx, mbItem, itemMoves, itemInserts) = collectNodes_ (path ++ [i]) pred idx item
+		# (idx, items, moves, inserts)          = collectInItems idx (i + 1) items
 		= case mbItem of 
 			Nothing   //The item itself was collected
-				= (items, [(i,BranchMoved):moves], itemInserts ++ inserts)
+				= (idx, items, [(i,BranchMoved):moves], itemInserts ++ inserts)
 			Just item //Maybe modified
 				| itemMoves =:[] //If there are no moves in the branch, we don't need to add it
-					= ([item:items], moves, itemInserts ++ inserts)
+					= (idx, [item:items], moves, itemInserts ++ inserts)
 				| otherwise	
-					= ([item:items], [(i,ChildBranchesMoved itemMoves):moves], itemInserts ++ inserts)
+					= (idx, [item:items], [(i,ChildBranchesMoved itemMoves):moves], itemInserts ++ inserts)
+
 
 insertNodes_ :: NodePath [(Int,UIChildChange)] UI -> UI
 insertNodes_ [] changes (UI type attr items) = UI type attr (foldl apply items changes)
