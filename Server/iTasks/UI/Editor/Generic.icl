@@ -335,11 +335,14 @@ where
 
 	onRefresh dp Nothing Nothing mask vst = (Ok (NoChange,mask),Nothing,vst)
 	onRefresh dp (Just new) Nothing mask vst=:{VSt|optional}
-		# (change,val,vst) = ex.Editor.onRefresh dp new dx newFieldMask {VSt|vst & optional = True}
-		= (change,Just val,{VSt|vst & optional = optional})
+		//Genrate a UI and replace
+		= case ex.Editor.genUI dp new {VSt|vst & optional = True} of
+			(Ok (UI type attr items, mask),vst) 
+				= (Ok (ReplaceUI (UI type ('DM'.union (optionalAttr True) attr) items),mask), Just new, {VSt|vst & optional = optional})
+			(Error e,vst) = (Error e, Just new, {VSt|vst & optional = optional})
 	onRefresh dp Nothing (Just old) mask vst=:{VSt|optional}
-		# (change,val,vst) = ex.Editor.onRefresh dp dx old mask {VSt|vst & optional = True}
-		= (change,Nothing,{VSt|vst & optional = optional})
+		//Change to empty ui
+		= (Ok (ReplaceUI (ui UIEmpty),newFieldMask),Nothing,{VSt|vst & optional = optional})
 	onRefresh dp (Just new) (Just old) mask vst=:{VSt|optional}
 		# (change,val,vst) = ex.Editor.onRefresh dp new old mask {VSt|vst & optional = True}
 		= (change,Just val,{VSt|vst & optional = optional})
