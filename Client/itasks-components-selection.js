@@ -27,8 +27,14 @@ itasks.Selector = {
 		el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
 	},
     onAttributeChange: function(name,value) {
-		if(name == 'value') {
+		var me = this;
+		switch(name) {
+			case 'value':
 			me.select(value,false);
+			break;
+			case 'options':
+			me.setOptions(value);
+			break;
 		}
 	}
 };
@@ -68,6 +74,9 @@ itasks.Dropdown = Object.assign({
     },
 	selectInDOM: function(el,selected) {
 		el.selected = selected;
+	},
+	setOptions: function(options) {
+		
 	}
 },itasks.Selector);
 
@@ -107,6 +116,9 @@ itasks.CheckGroup = Object.assign({
         });
 		me.optionsDOM = me.domEl.children;
     },
+	setOptions: function(options) {
+		
+	},
 	selectInDOM: function(el,selected) {
 		el.children[0].checked = selected;
 	}
@@ -136,6 +148,8 @@ itasks.ChoiceList = Object.assign({
         });
 		me.optionsDOM = me.domEl.children;
     },
+	setOptions: function(options) {
+	},
 	selectInDOM(el,selected) {
 		el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
 	}
@@ -165,6 +179,10 @@ itasks.Grid = Object.assign({
         //Create body
         bodyEl = me.bodyEl = document.createElement('div');
         bodyEl.classList.add(me.cssPrefix + 'choicegrid-body');
+
+		//Fill with options
+		me.setOptions(me.options);
+/*
         me.options.forEach(function(option,rowIdx) {
             rowEl = document.createElement('div');
             rowEl.addEventListener('click',function(e) {
@@ -189,7 +207,7 @@ itasks.Grid = Object.assign({
             bodyEl.appendChild(rowEl);
 			option.domEl = rowEl;
         });
-
+*/
         //Indicate initial selection
         if(me.value.length) {
             me.value.forEach(function(selectedIdx) {
@@ -198,6 +216,41 @@ itasks.Grid = Object.assign({
         }
         el.appendChild(bodyEl);
     },
+	setOptions: function(options) {
+		var me = this, bodyEl = me.bodyEl;
+		//Store options
+		me.options = options;
+
+		//Clear
+		while (bodyEl.lastChild) {
+    		bodyEl.removeChild(bodyEl.lastChild);
+		}
+		//Add rows
+        options.forEach(function(option,rowIdx) {
+            rowEl = document.createElement('div');
+            rowEl.addEventListener('click',function(e) {
+				me.select([option.id], me.multiple && (e.metaKey || e.ctrlKey));
+                me.doEditEvent(me.taskId,me.editorId,me.value);
+            },me);
+            if(me.doubleClickAction) {
+                rowEl.addEventListener('dblclick',function(e) {
+					me.select([option.id]);
+                    me.doEditEvent(me.taskId,me.editorId,me.value);
+                    me.sendActionEvent(me.doubleClickAction[0],me.doubleClickAction[1]);
+
+                    e.stopPropagation();
+                    e.preventDefault();
+                },me);
+            }
+            option.cells.forEach(function(cell) {
+                cellEl = document.createElement('div');
+                cellEl.innerHTML = cell;
+                rowEl.appendChild(cellEl);
+            });
+            bodyEl.appendChild(rowEl);
+			option.domEl = rowEl;
+        });
+	},
 	initContainerEl: function() {},
 	selectInDOM(el,selected) {
 		el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
@@ -283,5 +336,8 @@ itasks.Tree = Object.assign({
 
         //Track the option in the dom
 		option.domEl = node;
-    }
+    },
+	setOptions: function(options) {
+		
+	}
 },itasks.Selector);
