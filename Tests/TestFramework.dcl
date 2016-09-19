@@ -89,6 +89,8 @@ testsuite :: String String [Test] -> TestSuite
 */
 testEditor :: (Editor a) a EditMode -> Task a | iTask a
 
+testEditorWithShare :: (Editor a) a EditMode -> Task a | iTask a
+
 /**
 * A generic test rig for testing the different editor variants for a type
 *

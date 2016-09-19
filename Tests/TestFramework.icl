@@ -77,6 +77,16 @@ testEditor editor model mode
 	>&> viewSharedInformation "Editor value" [ViewAs (toString o toJSON)] @? tvFromMaybe
 	) <<@ ApplyLayout (setAttributes (directionAttr Horizontal))
 
+testEditorWithShare :: (Editor a) a EditMode -> Task a | iTask a
+testEditorWithShare editor model mode = (withShared model
+	\smodel ->
+		updateSharedInformation "Edit the shared source" [] smodel 
+		||-
+	    interact "Editor under test" mode smodel (\r -> ((),r))
+												 (\v l _ -> (l,v,Just (\_ -> v)))
+												 (\r l v -> (l,r,Nothing)) (Just editor) @ snd
+	) <<@ ApplyLayout (setAttributes (directionAttr Horizontal))
+
 testCommonInteractions :: String -> Task a | iTask a
 testCommonInteractions typeName
 	= 	 enterInformation ("Enter","Enter information of type " +++ typeName) []

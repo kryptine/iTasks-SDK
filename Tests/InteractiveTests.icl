@@ -22,6 +22,7 @@ import Tests.Common.MinimalTasks
 
 suites = [//Interactive tests
 		  testBuiltinEditors
+         ,testBuiltinEditorsWithShares
 		 ,testGenericEditors
 		 ,testBuiltinContainers
 		 ,testCustomEditors

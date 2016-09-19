@@ -143,3 +143,14 @@ where
         ,{ChoiceNode|id=2,label="B",icon=Nothing,expanded=False,children=[]}
         ,{ChoiceNode|id=3,label="C",icon=Nothing,expanded=False,children=[]}
         ],[]) Update
+
+testBuiltinEditorsWithShares :: TestSuite
+testBuiltinEditorsWithShares = testsuite "Builtin editors with shares" "These tests check if the builtin editors sync with shared data"
+	[testGridShare]
+
+testGridShare = itest "Grid (shared)" "Check if the grid works" "The grid should update if you change the model" tut
+where
+	tut :: Task (ChoiceGrid,[Int])
+	tut = (testEditorWithShare (grid (multipleAttr True)) ({ChoiceGrid|header=["Key","Value"],rows=rows},[]) Update)
+
+	rows = [{ChoiceRow|id=1,cells=[Text "A",Text "1"]},{ChoiceRow|id=2,cells=[Text "B",Text "2"]},{ChoiceRow|id=3,cells=[Text "C",Text "3"]}]
