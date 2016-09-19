@@ -116,7 +116,7 @@ editSelectionWithShared` d editor toView fromView sharedContainer initSel
 	= interact d Update sharedContainer 
 		(\r     -> (r,(toView r, initSel r)))
 		(\v l _ -> (l,v,Nothing))
-		(\r l (v,sel) -> (r,(v,sel),Nothing))
+		(\r l (v,sel) -> (r,(toView r,sel),Nothing))
 		(Just editor) @ (\(container,(_,sel)) -> fromView container sel)
 
 editSharedSelection :: !d !Bool !(SelectOption c a) c (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
