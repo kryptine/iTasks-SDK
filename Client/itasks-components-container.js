@@ -266,3 +266,22 @@ itasks.ButtonBar  = {
 itasks.Debug = {
 	cssCls: 'debug'
 };
+itasks.Menu = {
+	cssCls: 'menu',
+	height: 'wrap',
+    initDOMEl: function() {
+		var me = this;	
+
+		me.labelEl = document.createElement('a');
+		me.labelEl.classList.add(me.cssPrefix + 'menu-label');
+		me.innerLabelEl = document.createElement('span');
+		me.innerLabelEl.innerHTML = me.text;
+		me.labelEl.appendChild(me.innerLabelEl);
+		me.domEl.appendChild(me.labelEl);
+
+		me.containerEl = document.createElement('div');
+		me.containerEl.classList.add(me.cssPrefix + 'menu-content');
+		me.domEl.appendChild(me.containerEl);
+		
+	}
+};
