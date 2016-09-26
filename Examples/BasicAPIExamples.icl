@@ -28,6 +28,9 @@ seqTasks	:== bae +++ "/Sequential task composition/"
 parTasks	:== bae +++ "/Parallel task composition/"
 distrTask	:== bae +++ "/Distributed tasks/"
 svgTasks    :== bae +++ "/SVG experiments/"
+miscTask    :== bae +++ "/Miscellaneous/"
+
+adminTask   :== "Admin/"
 
 basicAPIExamples :: [Workflow]
 basicAPIExamples =
@@ -72,16 +75,16 @@ basicAPIExamples =
 	,workflow (distrTask +++ "Tic-Tac-Toe")                 "Play tic-tac-toe"                  tictactoe
 //	,workflow (distrTask +++ "Ligretto")                    "Play Ligretto"                     play_ligretto
 
-	,workflow "Droste Cacaobus" 							"Start this application as a task" 	(manageWorklist basicAPIExamples)
+	,workflow (miscTask +++ "Droste Cacaobus") 				"Start this application as a task" 	(manageWorklist basicAPIExamples)
 
-	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
-	,workflow "Manage server" 							 	"Manage itask server..." 			manageServer
-	,workflow "Manage store" 							 	"Manage itask store..." 			manageStore
+	,workflow (adminTask +++ "Manage users") 				"Manage system users..." 			manageUsers
+	,workflow (adminTask +++ "Manage server")				"Manage itask server..." 			manageServer
+	,workflow (adminTask +++ "Manage store") 				"Manage itask store..." 			manageStore
 	//,workflow (svgTasks +++ "Graphics tests")               "Graphics tests"                    svg_test
 	//,workflow (svgTasks +++ "Graphics editlet")             "Editlet test with clickable elements" svg_image
 	//,workflow (svgTasks +++ "Edgehog")                      "Experiment with lines"             edgehog
 //	,workflow "Play Ligretto"								"Play Ligretto"						play_ligretto
-    ,workflow "Tonic"								"Tonic dashboard"						(tonicDashboard [])
+    ,workflow (adminTask +++ "Tonic")						"Tonic dashboard"						(tonicDashboard [])
 	]
 
 
