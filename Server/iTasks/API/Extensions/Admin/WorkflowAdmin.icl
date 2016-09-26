@@ -261,13 +261,13 @@ openTask taskList taskId
 
 workOnTask :: !TaskId -> Task ClientPart
 workOnTask taskId
-    =   workOn taskId <<@ ApplyLayout (setAttributes (heightAttr FlexSize))
+    =   (workOn taskId <<@ ApplyLayout (setAttributes (heightAttr FlexSize))
     >>* [OnValue    (ifValue ((===) ASExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this task" >>| return OpenProcess))
         ,OnValue    (ifValue ((===) ASIncompatible) (\_ -> dealWithIncompatibleTask))
         ,OnValue    (ifValue ((===) ASDeleted) (\_ -> return OpenProcess))
         ,OnValue    (ifValue ((===) (ASAttached True)) (\_ -> return OpenProcess)) //If the task is stable, there is no need to work on it anymore
         ,OnAction ActionClose   (always (return OpenProcess))
-        ]
+        ] )<<@ ApplyLayout (copyAttributes ["title"] [0] []) //Use the title from the workOn for the composition
 where
     dealWithIncompatibleTask
         =   viewInformation (Title "Error") [] "This this task is incompatible with the current application version. Restart?"
