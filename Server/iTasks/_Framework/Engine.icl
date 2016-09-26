@@ -57,7 +57,7 @@ startEngine publishable world
 	# (res,iworld) 			= initJSCompilerState iworld
 	| res =:(Error _)
 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-	// mark all instance as outdated initially
+	// All persistent task instances should receive a reset event to continue their work
     # iworld                = queueAllPersistent iworld
     //Run task server
 	# iworld				= serve port (httpServer port keepalive (engine publishable) allUIChanges)
@@ -83,14 +83,7 @@ where
 
 	running :: !Int -> [String]
 	running port = ["Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
-	
-	show :: ![String] !*World -> *World
-	show lines world
-		# (console,world)	= stdio world
-		# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
-		# (_,world)			= fclose console world
-		= world
-		
+
 	boolOpt :: !String ![String] -> Bool
 	boolOpt key opts = isMember key opts
 	

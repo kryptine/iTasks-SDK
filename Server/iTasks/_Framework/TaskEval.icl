@@ -32,8 +32,9 @@ processEvents max iworld
 				= case evalTaskInstance instanceNo event iworld of 
 					(Ok taskValue,iworld)
 						= processEvents (max - 1) iworld
-					(Error msg,iworld)
-						= (Error (exception msg), iworld)
+					(Error msg,iworld=:{IWorld|world})
+						# world = show ["WARNING: "+++ msg] world	
+						= (Ok (),{IWorld|iworld & world = world})
 
 //Evaluate a single task instance
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue JSONNode),!*IWorld)

@@ -1,12 +1,19 @@
 implementation module iTasks._Framework.Util
 
 import StdBool, StdChar, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList
-import Data.Maybe, Data.Tuple, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Error, GenEq
+import Data.Maybe, Data.Tuple, Data.Func, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Error, GenEq
 from iTasks._Framework.IWorld 		import :: IWorld{current}, :: TaskEvalState
 from iTasks.API.Core.Types	        import :: Date{..}, :: Time{..}, :: DateTime(..)
 import qualified Data.Map as DM
 from Data.Map import :: Map
-
+	
+show :: ![String] !*World -> *World
+show lines world
+	# (console,world)	= stdio world
+	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
+	# (_,world)			= fclose console world
+	= world
+	
 mb2list	:: !(Maybe [a]) -> [a]
 mb2list	Nothing = []
 mb2list (Just a) = a
