@@ -163,18 +163,19 @@ background iworld
 	# iworld = snd (removeOutdatedSessions iworld)
 	= iworld
 
-// The iTasks engine consist of a set of HTTP request handlers
+// The iTasks engine consist of a set of HTTP WebService 
 engine :: publish -> [(!String -> Bool
 					  ,!Bool
 					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 					  )] | Publishable publish
-engine publishable
-	= taskHandlers (publishAll publishable) ++ defaultHandlers
+
+engine publishable = [taskWebService url task \\ {PublishedTask|url,task=TaskWrapper task} <- published]
+				  ++ [staticResourceService [url \\ {PublishedTask|url} <- published]]
+				  ++ [sdsService]
 where
-	taskHandlers published = [taskWebService url task \\ {url,task=TaskWrapper task} <- published]	
-	defaultHandlers        = [sdsService,staticResourceService]
+	published = publishAll publishable 
 
 publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
 publish url task = {url = url, task = TaskWrapper (withFinalSessionLayout task)}

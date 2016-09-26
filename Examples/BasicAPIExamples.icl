@@ -7,6 +7,7 @@ import iTasks.API.Extensions.Admin.WorkflowAdmin
 import iTasks.API.Extensions.Admin.TonicAdmin
 import iTasks._Framework.Tonic
 import iTasks.API.Extensions.GIS.GoogleMap
+import iTasks.UI.Definition
 import Text, Text.HTML, StdArray
 //import ligrettoTOP
 //import iTaskGraphics, editletGraphics, edgehog
@@ -90,9 +91,11 @@ basicAPIExamples =
 
 Start :: *World -> *World
 Start world 
-	= startEngine 	[	publish "/" (\_ -> loginAndManageWorkList "iTasks Example Collection" basicAPIExamples)
+	= startEngine 	[	publish "/" (\_ -> loginAndManageWorkList title basicAPIExamples <<@ ApplyLayout (setAttributes (titleAttr title)))
 					,	publish "/persons" (const enterPersons)
 					] world
+where
+	title = "iTasks Example Collection"
 		
 		
 //* utility functions
