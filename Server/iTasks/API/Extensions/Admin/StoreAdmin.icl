@@ -13,8 +13,8 @@ selectStore
     =   (enterChoiceWithShared (Title "Namespace") [] storeNamespaces
     >&> \sNamespace -> whileUnchanged sNamespace
         \mbNamespace -> case mbNamespace of
-            Nothing = enterChoice (Title "Stores") [/*ChooseWith (ChooseFromTree group)*/] []
-            Just ns = enterChoiceWithShared (Title "Stores") [/*ChooseWith (ChooseFromTree group)*/] (sdsFocus ns storeNames) @ (\s -> (ns,s))
+            Nothing = enterChoice (Title "Stores") [ChooseFromGrid id] []
+            Just ns = enterChoiceWithShared (Title "Stores") [ChooseFromGrid id] (sdsFocus ns storeNames) @ (\s -> (ns,s))
     ) <<@ (ArrangeWithSideBar 0 TopSide 55 False)
 
 //Low-level access

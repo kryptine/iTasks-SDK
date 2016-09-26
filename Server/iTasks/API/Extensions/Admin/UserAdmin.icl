@@ -77,7 +77,7 @@ deleteUser userId = upd (filter (\acc -> identifyUserAccount acc <> userId)) use
 
 manageUsers :: Task ()
 manageUsers =
-	(		enterChoiceWithSharedAs ("Users","The following users are available") [] userAccounts identifyUserAccount
+	(		enterChoiceWithSharedAs ("Users","The following users are available") [ChooseFromGrid id] userAccounts identifyUserAccount
 		>>*	[ OnAction		(Action "New" [])									(always (createUserFlow	@ const False))
 			, OnAction 	    (ActionEdit) 						                (hasValue (\u -> updateUserFlow u @ const False))
 			, OnAction      (ActionDelete) 		            					(hasValue (\u -> deleteUserFlow u @ const False))
