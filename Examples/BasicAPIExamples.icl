@@ -634,7 +634,7 @@ text x	= TdTag [AlignAttr "center"] [Text (toString x)]
 
 TileTag :: !(!Int,!Int) !String -> HtmlTag
 TileTag (width,height) tile
-	= ImgTag [SrcAttr ("/"<+++ tile <+++ ".png"),w,h]
+	= ImgTag [SrcAttr ("/"<+++ tile <+++ ".png"), StyleAttr "min-height:0;",w,h]
 where
 	(w,h) = (WidthAttr (toString width),HeightAttr (toString height))
 
