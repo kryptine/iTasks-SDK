@@ -71,5 +71,5 @@ import iTasks.API.Extensions.Editors.Ace
 testAceEditor = itest "Ace editor" "Try to edit some text" "You should see an editor with line numbers" tut
 where
 	tut :: Task String
-	tut = enterInformation "Test Ace editor" [EnterUsing id aceTextArea]
+	tut = testEditor (aceTextArea) "Hello world" Update
 
