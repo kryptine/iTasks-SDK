@@ -100,12 +100,14 @@ unwrapUI :: Layout
 unwrapUI = layout
 where
 	layout (ReplaceUI def,_) = case def of
-		(UI _ _ [child:_])  = (ReplaceUI child,JSONNull)
-		_ 					= (ReplaceUI (ui UIEmpty),JSONNull)
+		(UI _ _ [child:_])  = (ReplaceUI child,JSONBool False)
+		_ 					= (ReplaceUI (ui UIEmpty),JSONBool True) //If there is no inner component, remember we replaced it with empty...
 
-	layout (ChangeUI _ childChanges,s) = case [change \\ (0,ChangeChild change) <- childChanges] of
-		[change] = (change,s)
+	layout (ChangeUI _ childChanges,s=:(JSONBool False)) = case [change \\ (0,ChangeChild change) <- childChanges] of
+		[change] = (change,s) //TODO: Check if there are cases with multiple changes to child 0
 		_        = (NoChange,s)
+
+	layout (change,s) = (NoChange,s) 
 
 flattenUI :: Layout
 flattenUI = layout
