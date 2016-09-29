@@ -282,7 +282,7 @@ where
                 =   viewInformation (Title "Error") [] "Sorry, this task is no longer available in the workflow catalog"
                 >>| return OpenProcess
             Just replacement
-                =   replaceTask taskId (const (unwrapWorkflowTask replacement.Workflow.task)) topLevelTasks
+                =   replaceTask taskId (const ((unwrapWorkflowTask replacement.Workflow.task) <<@ ApplyLayout defaultSessionLayout)) topLevelTasks
                 >>| workOnTask taskId
 
     //Look in the catalog for an entry that has the same path as
