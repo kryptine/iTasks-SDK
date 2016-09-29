@@ -535,8 +535,9 @@ where
 
 	actionChanges startIdx = [(i,ChangeChild (switch (isEnabled ui) (actionId ui))) \\ ui <- actions & i <- [startIdx..]]
 	where
-		switch True name = if (isMember name prevEnabledActions) NoChange (ChangeUI [SetAttribute "enabled" (JSONBool False)] [])
+		switch True name = if (isMember name prevEnabledActions) NoChange (ChangeUI [SetAttribute "enabled" (JSONBool True)] [])
 		switch False name = if (isMember name prevEnabledActions) (ChangeUI [SetAttribute "enabled" (JSONBool False)] []) NoChange
+
 
 genParallelEvalInfo :: [TaskResult a] -> TaskEvalInfo
 genParallelEvalInfo results = foldr addResult {TaskEvalInfo|lastEvent=0,removedTasks=[],refreshSensitive=False} results
