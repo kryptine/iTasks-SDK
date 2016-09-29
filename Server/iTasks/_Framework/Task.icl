@@ -137,8 +137,8 @@ where
 		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) (TCStable taskId ts (DeferredJSON a)), iworld)
 		(Error e, iworld)					    = (ExceptionResult e, iworld)
 
-	evalOnce f _ repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
-		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange state, iworld)
+	evalOnce f event repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
+		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) state, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
 	evalOnce f _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)
