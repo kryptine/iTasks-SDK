@@ -216,7 +216,10 @@ removeAndAdjust_ path pred tidx (ChangeUI localChanges childChanges) moves
 	# (moves, childChanges, inserts) = adjustChildChanges tidx moves childChanges 
 	= (ChangeUI localChanges childChanges, moves, inserts)
 where
-	adjustChildChanges tidx moves [] = (moves,[],[])
+	adjustChildChanges tidx moves [] 
+		//Sort for easier debugging
+		# moves = sortBy (\(i1,m1) (i2,m2) -> i1 < i2) moves
+		= (moves,[],[])
 	//- Insert 
 	adjustChildChanges tidx moves [(idx,InsertChild ui):cs] 
 		//Determine additional moves in the replacement ui
@@ -281,7 +284,7 @@ where
                           ,[])
 					(_,Just ui,subMoves,subInserts) //One or more sub nodes matched, we need to record the moves for this branch
 					    = ([(adjustIndex moves idx, ChangeChild (ReplaceUI ui))]
-					      ,[(idx,ChildBranchesMoved subMoves):moves]
+					      ,[(idx,ChildBranchesMoved subMoves):[(i,m) \\ (i,m) <- moves | i <> idx]]
 					      ,subInserts)
 			//Previously this child node matched the predicate
 			Just BranchMoved 
@@ -292,12 +295,14 @@ where
 				| otherwise //The Moved node should no longer be moved -> change the replacement to an insert instruction
 					= case collectNodes_ (path ++ [idx]) pred (adjustTargetIndex moves idx tidx) ui of
 						(_,_,[],_) //Nothing matched, no need to record anything
+							# moves = [(i,m) \\ (i,m) <- moves | i <> idx]
 							= ([(adjustIndex moves idx,InsertChild ui)]
-					   	  	  ,[(i,m) \\ (i,m) <- moves | i <> idx]
+					   	  	  ,moves 
 					          ,[(adjustTargetIndex moves idx tidx,RemoveChild)])
 						(_,Just ui,subMoves,subInserts)
+							# moves = [(i,m) \\ (i,m) <- moves | i <> idx]
 						    = ([(adjustIndex moves idx,InsertChild ui)]
-						      ,[(idx,ChildBranchesMoved subMoves):[(i,m) \\ (i,m) <- moves | i <> idx]]
+						      ,[(idx,ChildBranchesMoved subMoves):moves]
 						      ,[(adjustTargetIndex moves idx tidx,RemoveChild):subInserts])
 			//Previously children of the child node matched the predicate
 			Just (ChildBranchesMoved subMoves)
