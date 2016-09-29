@@ -18,7 +18,6 @@ import Tests.Unit.Editlets
 import Tests.Unit.Misc
 import Tests.Unit.TaskEvaluation
 
-
 import Tests.Common.MinimalTasks
 
 suites = [//Interactive tests
@@ -45,13 +44,5 @@ Start w = startEngine [publish "/" (\_ -> runTests suites <<@ ApplyLayout (setAt
 					  ,publishWithoutLayout "/minimal-editor"  (\_ -> minimalEditor)
 					  ,publishWithoutLayout "/minimal-editlet" (\_ -> minimalEditlet)
 					  ,publishWithoutLayout "/minimal-step"    (\_ -> minimalStep)
-					  ,publish "/bug" (const bug)
 					  ] w
 
-
-bug :: Task (Maybe String)
-bug = produce >&> consume
-where
-    produce = enterInformation "ENTER" []
-
-    consume sel = forever (viewSharedInformation "VIEW" [] sel >>= return)
