@@ -145,7 +145,7 @@ where
 		resultRow (test,Failed (Just (Note details))) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [TextareaTag [] [Text details]]]
 
 	application header mainTask
-		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False
+		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False <<@ ApplyLayout (setNodeType UIContainer)
 
 runUnitTestsWorld :: [TestSuite] *World -> *(!TestReport,!*World)
 runUnitTestsWorld suites world = foldr runSuite ([],world) suites

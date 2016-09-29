@@ -4,6 +4,7 @@ module InteractiveTests
 * be checked interactively by a human tester.
 */
 import iTasks, TestFramework
+import iTasks.UI.Definition
 import Tests.Interactive.BuiltinEditors
 import Tests.Interactive.GenericEditors
 import Tests.Interactive.BuiltinContainers
@@ -39,7 +40,7 @@ suites = [//Interactive tests
 		 ,testTaskEvaluation
 		 ]
 
-Start w = startEngine [publish "/" (\_ -> runTests suites)
+Start w = startEngine [publish "/" (\_ -> runTests suites <<@ ApplyLayout (setAttributes (titleAttr "iTasks Testbench")))
 					  ,publishWithoutLayout "/minimal-suites"  (\_ -> runTests suites)
 					  ,publishWithoutLayout "/minimal-editor"  (\_ -> minimalEditor)
 					  ,publishWithoutLayout "/minimal-editlet" (\_ -> minimalEditlet)
@@ -54,7 +55,3 @@ where
     produce = enterInformation "ENTER" []
 
     consume sel = forever (viewSharedInformation "VIEW" [] sel >>= return)
-
-
-
-
