@@ -81,13 +81,9 @@ finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
 where
 	layout = selectLayout
-		[(isEmpty,setNodeType UIEmpty)
-		,(hasActions,sequenceLayouts[layoutSubAt [0] finalizeUI, actionsToButtonBar,setNodeType UIPanel])
-		,(const True,sequenceLayouts[unwrapUI,finalizeUI])
+		[(hasActions, sequenceLayouts [layoutSubAt [0] finalizeUI, actionsToButtonBar,setNodeType UIPanel])
+		,(const True, sequenceLayouts [unwrapUI,finalizeUI])
 		]
-
-	isEmpty (UI _ _ [] ) = True
-	isEmpty _            = False
 
 finalizeParallel :: Layout
 finalizeParallel = selectLayout [(\ui -> isParallel ui && hasActions ui,layoutWithActions), (isParallel,layoutWithoutActions)]
