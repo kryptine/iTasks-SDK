@@ -279,7 +279,7 @@ where
                           ,[])
 					(_,Just ui,subMoves,subInserts) //One or more sub nodes matched, we need to record the moves for this branch
 					    = ([(adjustIndex moves idx, ChangeChild (ReplaceUI ui))]
-					      ,[(idx,ChildBranchesMoved subMoves)]
+					      ,[(idx,ChildBranchesMoved subMoves):moves]
 					      ,subInserts)
 			//Previously this child node matched the predicate
 			Just BranchMoved 

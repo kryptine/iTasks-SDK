@@ -23,6 +23,7 @@ testLayout = testsuite "Layout" "Tests for the layout functions"
 	,testRemoveSubsMatchingOnChildChange
 	,testRemoveSubsMatchingOnReplaceAfterRemove 
 	,testRemoveSubsMatchingOnReplaceMultipleAfterRemove
+	,testRemoveSubsMatchingOnRemove
 	,testLayoutSubsMatching
 	,testMoveSubsMatchingInitial
 	,testMoveSubsMatchingInitial2
@@ -136,6 +137,28 @@ where
 												[(0, ChangeChild (ReplaceUI (ui UITextView)))])) ]))]))]))]
 
 	isEmpty (UI type _ _) = type =: UIEmpty
+
+
+testRemoveSubsMatchingOnRemove = assertEqual "Removing everything that matches, then explicitly remove somehting" exp sut
+where
+	sutLayout = removeSubsMatching [] isEmpty
+	sut
+		//Initial, followed by an event in the new structure
+		# (c,s) = sutLayout (initChange,initState)
+		# (c,s) = sutLayout (changeToReRoute,s)
+		= c
+	exp = expChange
+
+	initState = JSONNull
+
+	initChange = ReplaceUI (uic UIPanel [ui UIContainer, ui UIEmpty])
+
+	changeToReRoute = ChangeUI [] [(0,RemoveChild),(0,RemoveChild)]
+	expChange = ChangeUI [] [(0,RemoveChild)]
+
+	isEmpty (UI type _ _) = type =: UIEmpty
+
+
 
 
 testLayoutSubsMatching = skip "Applying another layout to all matching nodes"
