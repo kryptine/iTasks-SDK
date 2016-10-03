@@ -15,7 +15,7 @@ import iTasks.UI.Layout, iTasks.UI.Layout.Default
 from iTasks.API.Core.TaskCombinators import class tune(..)
 from iTasks.UI.Layout import instance tune ApplyLayout
 
-SESSION_TIMEOUT :== fromString "0000-00-00 00:10:00"
+SESSION_TIMEOUT :==  600 //Seconds (10 minutes)
 MAX_EVENTS 		:== 5
 
 import StdInt, StdChar, StdString
@@ -119,9 +119,13 @@ queueAllPersistent iworld
 updateClocks :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateClocks iworld=:{IWorld|clocks,world}
     //Determine current date and time
-	# (timestamp,world) 						= time world
-	# (DateTime localDate localTime,world)		= currentLocalDateTimeWorld world
-	# (DateTime utcDate utcTime,world)			= currentUTCDateTimeWorld world
+	# (timestamp,world) 	= time world
+	# (local,world)	= currentLocalDateTimeWorld world
+	# localDate = toDate local
+	  localTime = toTime local 
+	# (utc,world)	= currentUTCDateTimeWorld world
+	# utcDate = toDate utc
+	  utcTime = toTime utc 
     # iworld = {iworld & world = world}
     //Write SDS's if necessary
     # (mbe,iworld) = if (localDate == clocks.localDate) (Ok (),iworld) (write localDate iworldLocalDate iworld)
@@ -147,7 +151,9 @@ where
 		//Get lastIO time
 		= case read (sdsFocus instanceNo taskInstanceIO) iworld of
 			(Ok (Just (client,time)),iworld) //No IO for too long, clean up
-				| ((DateTime localDate localTime) - time) > SESSION_TIMEOUT
+				# (Timestamp tInstance) = datetimeToTimestamp time
+				  (Timestamp tNow) = datetimeToTimestamp (toDateTime localDate localTime)
+				| (tNow - tInstance) > SESSION_TIMEOUT
 					# (_,iworld) = deleteTaskInstance instanceNo iworld
 					# (_,iworld) = 'SDS'.write Nothing (sdsFocus instanceNo taskInstanceIO) iworld
 					= iworld

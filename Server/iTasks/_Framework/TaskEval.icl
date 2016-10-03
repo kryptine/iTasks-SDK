@@ -84,9 +84,9 @@ where
     // Check if instance was deleted by trying to reread the instance constants share
 	# (deleted,iworld) = appFst isError ('SDS'.read (sdsFocus instanceNo taskInstanceConstants) iworld)
     // Write the updated progress
-	# (mbErr,iworld) = if (updateProgress (DateTime localDate localTime) newResult oldProgress === oldProgress)
+	# (mbErr,iworld) = if (updateProgress (toDateTime localDate localTime) newResult oldProgress === oldProgress)
 		(Ok (),iworld)	//Only update progress when something changed
-   		('SDS'.modify (\p -> ((),updateProgress (DateTime localDate localTime) newResult p)) (sdsFocus instanceNo taskInstanceProgress) iworld)
+   		('SDS'.modify (\p -> ((),updateProgress (toDateTime localDate localTime) newResult p)) (sdsFocus instanceNo taskInstanceProgress) iworld)
     = case mbErr of
         Error (e,msg)          = (Error msg,iworld)
         Ok _
@@ -148,21 +148,21 @@ where
 updateInstanceLastIO ::![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateInstanceLastIO [] iworld = (Ok (),iworld)
 updateInstanceLastIO [instanceNo:instanceNos] iworld=:{IWorld|clocks={localDate,localTime}}
-    = case 'SDS'.modify (\io -> ((),fmap (appSnd (const (DateTime localDate localTime))) io)) (sdsFocus instanceNo taskInstanceIO) iworld of
+    = case 'SDS'.modify (\io -> ((),fmap (appSnd (const (toDateTime localDate localTime))) io)) (sdsFocus instanceNo taskInstanceIO) iworld of
     	(Ok (),iworld) = updateInstanceLastIO instanceNos iworld
 		(Error e,iworld) = (Error e,iworld)
 
 updateInstanceConnect :: !String ![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateInstanceConnect client [] iworld = (Ok (),iworld)
 updateInstanceConnect client [instanceNo:instanceNos] iworld=:{IWorld|clocks={localDate,localTime}}
-    = case 'SDS'.write (Just (client,DateTime localDate localTime)) (sdsFocus instanceNo taskInstanceIO) iworld of
+    = case 'SDS'.write (Just (client,toDateTime localDate localTime)) (sdsFocus instanceNo taskInstanceIO) iworld of
 		(Ok (),iworld) = updateInstanceConnect client instanceNos iworld
 		(Error e,iworld) = (Error e,iworld)
 
 updateInstanceDisconnect :: ![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateInstanceDisconnect [] iworld = (Ok (),iworld)
 updateInstanceDisconnect [instanceNo:instanceNos] iworld=:{IWorld|clocks={localDate,localTime}}
-    = case 'SDS'.modify (\io -> ((),fmap (appSnd (const (DateTime localDate localTime))) io)) (sdsFocus instanceNo taskInstanceIO) iworld of
+    = case 'SDS'.modify (\io -> ((),fmap (appSnd (const (toDateTime localDate localTime))) io)) (sdsFocus instanceNo taskInstanceIO) iworld of
 		(Ok (),iworld) = updateInstanceDisconnect instanceNos iworld
 		(Error e,iworld) = (Error e,iworld)
 

@@ -9,7 +9,7 @@ from Data.Either import :: Either
 from System.FilePath import :: FilePath
 from Text.HTML import :: HtmlTag, :: HtmlAttr
 import Data.Functor
-from Data.Error import :: MaybeError
+from Data.Error import :: MaybeError, :: MaybeErrorString
 from System.File import :: FileError
 from System.OSError import :: OSError, :: OSErrorMessage, :: OSErrorCode
 from StdOverloaded import class +, class -, class <, class zero, class fromString, class toInt
@@ -35,6 +35,8 @@ from iTasks.UI.Prompt import class toPrompt
 from Text.HTML import :: SVGElt, :: SVGAttr, :: SVGAlign, :: SVGColor, :: SVGDefer, :: SVGFillOpacity, :: SVGFuncIRI, :: SVGLengthAdjust
 from Text.HTML import :: SVGLengthUnit, :: SVGLineCap, :: SVGFillRule, :: SVGLineJoin, :: SVGMeetOrSlice, :: SVGStrokeMiterLimit, :: SVGPaint
 from Text.HTML import :: SVGStrokeDashArray, :: SVGStrokeDashOffset, :: SVGStrokeWidth, :: SVGTransform, :: SVGZoomAndPan
+
+//Data.Control instances
 
 class TFunctor f where
     tmap :: (a -> b) (f a) -> f b | iTask a & iTask b
@@ -102,11 +104,11 @@ instance < 			EUR, USD
 instance toInt		EUR, USD
 instance zero		EUR, USD
 
-//* (Local) date and time
+//* local date and time
 :: Date	=
-	{ day	:: !Int // 1..31
-	, mon	:: !Int // 1..12
-	, year	:: !Int
+	{ year	:: !Int
+	, mon	:: !Int
+	, day	:: !Int
 	}
 
 :: Time =
@@ -115,20 +117,33 @@ instance zero		EUR, USD
 	, sec	:: !Int
 	}
 
-:: DateTime = DateTime !Date !Time
+:: DateTime =
+	{ year	:: !Int
+	, mon	:: !Int 
+	, day	:: !Int
+	, hour	:: !Int
+	, min	:: !Int
+	, sec	:: !Int
+	}
 
-//Date addition" righthand argument is treated as interval (days are added first)
-//Time addition: righthand argument is treated as interval (seconds are added first)
-//Time subtraction: righthand argument is treated as interval (seconds are subtracted first)
+//Conversion
+toTime :: DateTime -> Time
+toDate :: DateTime -> Date
+toDateTime :: Date Time -> DateTime
+
+//Printing and parsing
+
 instance toString	Date, Time, DateTime
-instance fromString	Date, Time, DateTime
-instance +			Date, Time, DateTime
-instance -			Date, Time, DateTime
-instance ==			Date, Time, DateTime
-instance <			Date, Time, DateTime
 
-//Format datetime as padded string: YYYYmmddHHMMss
-paddedDateTimeString :: DateTime -> String
+parseDate :: String -> MaybeErrorString Date         //Expected format: "yyyy-mm-dd"
+parseTime :: String -> MaybeErrorString Time         //Expected format: "hh:mm:ss"
+parseDateTime :: String -> MaybeErrorString DateTime //Expected format: "yyyy-mm-dd hh:mm:ss"
+
+instance fromString	Date, Time, DateTime //Assumes parse* succeeds
+
+//Comparison
+instance ==	Date, Time, DateTime
+instance <	Date, Time, DateTime
 
 //* Documents
 :: Document =

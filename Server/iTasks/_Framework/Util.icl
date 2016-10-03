@@ -36,16 +36,15 @@ timestampToGmDateTime timestamp = tmToDateTime (toGmTime timestamp)
 
 tmToDateTime :: !Tm -> DateTime
 tmToDateTime tm
-	# date	= {Date| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year}
-	# time	= {Time|hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
-	= DateTime date time
+	= {DateTime| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year
+	  ,hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
 
 dateToTimestamp :: !Date -> Timestamp
 dateToTimestamp {Date|day,mon,year}
 	= mkTime {Tm|sec = 0, min = 0, hour = 0, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = False}
 
 datetimeToTimestamp :: !DateTime -> Timestamp
-datetimeToTimestamp (DateTime {Date|day,mon,year} {Time|hour,min,sec})
+datetimeToTimestamp {DateTime|day,mon,year,hour,min,sec}
 	= mkTime {Tm|sec = sec, min = min, hour = hour, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = False}
 
 instance toString (Maybe a) | toString a

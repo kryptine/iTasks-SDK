@@ -314,7 +314,7 @@ waitForDateTime datetime =
 	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime >>* [OnValue (ifValue (\now -> datetime < now) return)]
 
 waitForTimer :: !Time -> Task Time
-waitForTimer time = get currentTime >>- \now -> waitForTime (now + time)
+waitForTimer time = get currentTime >>- \now -> waitForTime (now /* + time */) //FIXME
 
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions
