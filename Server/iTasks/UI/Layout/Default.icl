@@ -138,22 +138,18 @@ where
 		# attr = 'DM'.unions [marginsAttr 2 4 2 4, directionAttr Horizontal, sizeAttr FlexSize WrapSize]
 		= (ReplaceUI (uiac UIContainer attr [label,control,info]),s)
 
-	layout (c=:(ChangeUI localChanges childChanges),s) 
+	layout (ChangeUI localChanges childChanges,s) 
 		//Check if the tooltip or icon needs to be updated
-		= (ChangeUI [] (iconChanges ++ [(1,ChangeChild c)]),s)
-	where
-		iconChanges = case changeType ++ changeTooltip of
+		#iconChanges = case [remap t v \\ SetAttribute t (JSONString v) <- localChanges | isMember t [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]] of
 			[] = []
 			changes = [(2,ChangeChild (ChangeUI changes []))]
+		# localChanges = [c \\ c=:(SetAttribute t _) <- localChanges | not (isMember t [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE])]
+		= (ChangeUI [] ([(1,ChangeChild (ChangeUI localChanges childChanges)):iconChanges]),s)
+	where
+		remap HINT_ATTRIBUTE v = SetAttribute "tooltip" (JSONString v)
+		remap HINT_TYPE_ATTRIBUTE v = SetAttribute "iconCls" (JSONString ("icon-" +++ v))
+		remap t v = SetAttribute t (JSONString v)
 
-		changeType = case [t \\ SetAttribute HINT_TYPE_ATTRIBUTE (JSONString t) <- localChanges] of
-			[type] 	= [SetAttribute "iconCls" (JSONString ("icon-" +++ type))]
-			_ 		= []
-
-		changeTooltip= case [h \\ SetAttribute HINT_ATTRIBUTE (JSONString h) <- localChanges] of
-			[hint] 	= [SetAttribute "tooltip" (JSONString hint)]
-			_ 		= []
-	
 	layout (c,s) = (c,s)
 	
 labelControl :: UIAttributes -> Maybe UI

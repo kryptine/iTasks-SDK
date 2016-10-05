@@ -78,9 +78,6 @@ containsInvalidFields :: !EditMask -> Bool
 checkMask			:: !EditMask a -> Maybe a
 checkMaskValue      :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
 
-stdAttributes 		:: String Bool EditMask -> UIAttributes
-stdAttributeChanges :: String Bool EditMask EditMask -> [UIAttributeChange]
-
 basicEdit :: !(upd a -> Maybe a) !DataPath !(!DataPath,!JSONNode) !a !EditMask !*VSt -> *(!MaybeErrorString (!UIChange,!EditMask), !a, !*VSt) | JSONDecode{|*|} upd
 basicEditSimple :: !DataPath !(!DataPath,!JSONNode) !a !EditMask !*VSt -> *(!MaybeErrorString (!UIChange,!EditMask),!a,!*VSt) | JSONDecode{|*|} a
 

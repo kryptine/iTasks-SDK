@@ -1,7 +1,9 @@
 implementation module iTasks.UI.Editor.Combinators
 
+import StdBool
 import iTasks.UI.Editor, iTasks.UI.Definition
 import Data.Error, Text.JSON
+import GenEq
 import qualified Data.Map as DM
 
 withAttributes :: UIAttributes (Editor a) -> Editor a
@@ -35,6 +37,32 @@ where
 		# change = mergeUIChanges change attrChange
 		= (Ok (change,nmask),nval,vst)
 	addHintAttrChanges omask (e,val,vst) = (e,val,vst)
+/**
+* Set basic hint and error information based on the verification
+*/
+stdAttributes :: String Bool EditMask -> UIAttributes
+stdAttributes typename optional (CompoundMask _) = 'DM'.newMap
+stdAttributes typename optional mask
+	# (touched,valid,state) = case mask of
+		(FieldMask {FieldMask|touched,valid,state}) = (touched,valid,state)
+		mask = (isTouched mask,True,JSONNull)
+	| state =:JSONNull && not touched
+		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INFO)
+                        ,(HINT_ATTRIBUTE,JSONString ("Please enter a " +++ typename +++ if optional "" " (this value is required)"))]
+	| state =: JSONNull 
+		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INVALID)
+						,(HINT_ATTRIBUTE,JSONString ("You need to enter a "+++ typename +++ " (this value is required)"))]
+	| valid
+		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_VALID)
+						,(HINT_ATTRIBUTE,JSONString ("You have correctly entered a " +++ typename))]
+	| otherwise
+		= 'DM'.fromList [(HINT_TYPE_ATTRIBUTE,JSONString HINT_TYPE_INVALID)
+						,(HINT_ATTRIBUTE,JSONString ("This value not in the required format of a " +++ typename))]
+
+stdAttributeChanges :: String Bool EditMask EditMask -> [UIAttributeChange]
+stdAttributeChanges typename optional om nm 
+	| om === nm = [] //Nothing to change
+	| otherwise = [SetAttribute k v \\ (k,v) <- 'DM'.toList (stdAttributes typename optional nm)]
 
 withLabel :: String (Editor a) -> Editor a
 withLabel label editor = withAttributes (labelAttr label) editor
@@ -73,7 +101,14 @@ where
 		# (mask,val,vst) = editor.Editor.onEdit dp e (tof old) mask vst 
 		= case fromf val of
 			(Ok new)  = (mask,new,vst)
-			(Error e) = (mask,old,vst)
+			(Error e) = case mask of
+				(Ok (change,FieldMask mask))
+					# attrChange = ChangeUI [SetAttribute HINT_TYPE_ATTRIBUTE (JSONString HINT_TYPE_INVALID)
+											,SetAttribute HINT_ATTRIBUTE (JSONString e)] []
+					# change = mergeUIChanges change attrChange
+					= (Ok (change,FieldMask {FieldMask|mask & valid = False}),old,vst)	
+					
+				_ = (mask,old,vst)
 
 	onRefresh dp new old mask vst 
 		# (change,val,vst) = editor.Editor.onRefresh dp (tof new) (tof old) mask vst
