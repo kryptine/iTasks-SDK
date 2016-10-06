@@ -204,27 +204,17 @@ instance toString	FileException, ParseException, CallException, SharedException,
 //* Inclusion of external html files
 :: HtmlInclude	= HtmlInclude String
 
-//* Form buttons
-:: FormButton 		= 
-	{ label			:: !String
-	, icon			:: !String
-	, state			:: !ButtonState
-	}
-:: ButtonState		= NotPressed | Pressed
-
-instance toString FormButton
-
 //* Table consisting of headers, the displayed data cells & possibly a selection
 :: Table = Table ![String] ![[HtmlTag]] !(Maybe Int)
 
 toTable	:: ![a] -> Table | gText{|*|} a
 
-derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
-derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
-derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
-derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
-derive gText	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
-derive gEditor	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
+derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, Table
+derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, Table
+derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, Table
+derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, Table
+derive gText	        Scale, Progress, ProgressAmount, HtmlInclude, Table
+derive gEditor	        Scale, Progress, ProgressAmount, HtmlInclude, Table
 
 //****************************************************************************//
 // Wrapper types for guiding the generic visualization process.

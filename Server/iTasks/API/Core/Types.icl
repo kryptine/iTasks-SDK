@@ -500,39 +500,6 @@ where
 
 derive gDefault HtmlInclude
 
-//* Form buttons
-gText{|FormButton|}	_ val = [maybe "" (\v -> v.FormButton.label) val]
-
-gEditor{|FormButton|} = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
-where
-	genUI dp val vst=:{VSt|taskId,mode}
-		# text = val.FormButton.label
-		# iconCls = val.FormButton.icon
-		# attr = 'DM'.unions [textAttr text,iconClsAttr iconCls,enabledAttr True,editAttrs taskId (editorId dp) (Just (JSONString "pressed"))]
-		= (Ok (uia UIButton attr,newFieldMask), vst)
-
-	onEdit = basicEdit (\st b -> Just {FormButton|b & state = st})
-
-	onRefresh dp val=:{FormButton|state=new} {FormButton|state=old} mask vst
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new)] []),mask),val,vst)
-
-gDefault{|FormButton|} = {FormButton | label = "Form Button", icon="", state = NotPressed}
-
-instance toString FormButton
-where
-	toString button = toString (pressed button)
-	where
-		pressed {FormButton|state}= case state of
-			Pressed		= True
-			NotPressed	= False
-
-gText{|ButtonState|}	_ (Just NotPressed)	= ["not pressed"]
-gText{|ButtonState|}	_ (Just Pressed)	= ["pressed"]
-gText{|ButtonState|}	_ _                 = [""]
-
-derive gDefault		ButtonState
-derive gEditor		ButtonState
-
 //* Table consisting of headers, the displayed data cells & possibly a selection
 gText{|Table|}	_ _	= ["<Table>"]
 gEditor{|Table|} = liftEditor toGrid fromGrid (grid (multipleAttr False))
@@ -550,9 +517,9 @@ where
 
 	row x =  [Text cell \\ cell <- gText{|*|} AsRow (Just x)]
 	
-derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
-derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
-derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
+derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, Table
+derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, Table
+derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, Table
 
 setListOption :: !(o -> s) ![(v,o)] !s -> (Maybe Int) | gEq{|*|} s
 setListOption targetFun options newSel

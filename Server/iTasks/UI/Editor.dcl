@@ -74,13 +74,6 @@ isTouched	:: !EditMask -> Bool
 
 containsInvalidFields :: !EditMask -> Bool
 
-//Utility functions making specializations of gEditor
-checkMask			:: !EditMask a -> Maybe a
-checkMaskValue      :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
-
-basicEdit :: !(upd a -> Maybe a) !DataPath !(!DataPath,!JSONNode) !a !EditMask !*VSt -> *(!MaybeErrorString (!UIChange,!EditMask), !a, !*VSt) | JSONDecode{|*|} upd
-basicEditSimple :: !DataPath !(!DataPath,!JSONNode) !a !EditMask !*VSt -> *(!MaybeErrorString (!UIChange,!EditMask),!a,!*VSt) | JSONDecode{|*|} a
-
 //****************************************************************************//
 // Alternative wrapper type for defining custom editor components that can process events
 // that are defined server-side but run client-side

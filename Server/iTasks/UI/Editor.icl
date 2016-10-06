@@ -47,21 +47,6 @@ checkMaskValue :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
 checkMaskValue (FieldMask {FieldMask|touched,state}) _ = if touched (Just state) Nothing
 checkMaskValue _ _                       = Nothing
 
-
-basicEdit :: !(upd a -> Maybe a) !DataPath !(!DataPath,!JSONNode) !a !EditMask !*VSt -> *(!MaybeErrorString (!UIChange,!EditMask), !a, !*VSt) | JSONDecode{|*|} upd
-basicEdit toV dp ([],e) v vmask vst=:{VSt|optional}
-	= case e of
-		JSONNull = (Ok (NoChange,FieldMask {touched=True,valid=optional,state=JSONNull}),v,vst)
-		json = case fromJSON json of
-			Nothing  = (Ok (NoChange,FieldMask {touched=True,valid=False,state=e}),v,vst)
-			(Just event) = case toV event v of
-				Nothing = (Ok (NoChange,FieldMask {touched=True,valid=False,state=e}),v,vst)
-				Just val = (Ok (NoChange,FieldMask {touched=True,valid=True,state=e}),val,vst)
-basicEdit toV _ upd v vmask vst = (Ok (NoChange,vmask),v,vst)
-
-basicEditSimple :: !DataPath !(!DataPath,!JSONNode) !a !EditMask !*VSt -> *(!MaybeErrorString (!UIChange,!EditMask),!a,!*VSt) | JSONDecode{|*|} a
-basicEditSimple dp (tp,e) val mask iworld = basicEdit (\json _ -> fromJSON json) dp (tp,e) val mask iworld
-
 fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a
 fromEditlet editlet=:{Editlet|genUI,initUI,onEdit,onRefresh} = {Editor|genUI=genUI`,onEdit=onEdit,onRefresh=onRefresh}
 where
