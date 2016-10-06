@@ -218,7 +218,7 @@ startWorkflow list wf
                                           , ("createdBy",  toString (toUserConstraint user))
                                           , ("createdAt",  toString now)
                                           , ("createdFor", toString (toUserConstraint user))
-                                          , ("priority",   toString 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
+                                          , ("priority",   toString 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task <<@ ApplyLayout defaultSessionLayout)
 	>>= \procId ->
 		openTask list procId
 	@	const wf
@@ -267,7 +267,7 @@ workOnTask taskId
         ,OnValue    (ifValue ((===) ASDeleted) (\_ -> return OpenProcess))
         ,OnValue    (ifValue ((===) (ASAttached True)) (\_ -> return OpenProcess)) //If the task is stable, there is no need to work on it anymore
         ,OnAction ActionClose   (always (return OpenProcess))
-        ] )<<@ ApplyLayout (copyAttributes ["title"] [0] []) //Use the title from the workOn for the composition
+        ] ) <<@ ApplyLayout (copyAttributes ["title"] [0] []) //Use the title from the workOn for the composition
 where
     dealWithIncompatibleTask
         =   viewInformation (Title "Error") [] "This this task is incompatible with the current application version. Restart?"

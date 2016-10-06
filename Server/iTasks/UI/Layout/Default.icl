@@ -15,7 +15,7 @@ LABEL_WIDTH :== 100
 
 defaultSessionLayout :: Layout
 defaultSessionLayout = sequenceLayouts 
-    [layoutSubsMatching [] isIntermediate finalizeUI //Finalize all remaining intermediate layouts
+    [finalizeUI                                      //Finalize all remaining intermediate layouts
 	,removeSubsMatching [] isEmpty                   //Remove temporary placeholders
 	,setAttributes (sizeAttr FlexSize FlexSize)      //Make sure we use the full viewport
     ]
@@ -27,7 +27,7 @@ finalizeUI = selectLayout
 	,(isStep,finalizeStep)
 	,(isParallel,finalizeParallel)
 	//Always recursively finalize the children
-	,(const True,layoutChildrenOf [] finalizeUI)
+	,(const True,layoutSubsMatching [] isIntermediate finalizeUI)
 	]
 
 finalizeInteract :: Layout
@@ -50,27 +50,32 @@ finalizeEditor = selectLayout
 	[(isRecord,finalizeRecord)
 	,(isCons,finalizeCons)
 	,(isVarCons,finalizeVarCons)
-	,(isFormComponent,toFormItem)
-	,(const True, layoutChildrenOf [] finalizeEditor)
+	,(isFormComponent,finalizeFormComponent)
+	,(const True, layoutSubsMatching [] isEditorPart finalizeEditor)
+	]
+
+finalizeFormComponent = sequenceLayouts
+	[layoutSubsMatching [] isEditorIntermediate finalizeEditor
+	,toFormItem
 	]
 
 finalizeRecord :: Layout
 finalizeRecord = sequenceLayouts
-	[layoutChildrenOf [] finalizeEditor 
+	[layoutSubsMatching [] isEditorPart finalizeEditor 
 	,setNodeType UIContainer
 	,setAttributes (heightAttr WrapSize)
 	]
 
 finalizeCons :: Layout
 finalizeCons = sequenceLayouts
-	[layoutChildrenOf [] finalizeEditor 
+	[layoutSubsMatching [] isEditorPart finalizeEditor 
 	,setAttributes (directionAttr Horizontal)
 	,setNodeType UIContainer
 	,toFormItem
 	]
 finalizeVarCons :: Layout
 finalizeVarCons = sequenceLayouts
-	[layoutChildrenOf [] finalizeEditor 
+	[layoutSubsMatching [] isEditorPart finalizeEditor 
 	,layoutSubAt [0] (setAttributes (widthAttr WrapSize)) //Make the constructor selection wrapping
 	,setAttributes (directionAttr Horizontal)
 	,setNodeType UIContainer
@@ -86,15 +91,18 @@ where
 		]
 
 finalizeParallel :: Layout
-finalizeParallel = selectLayout [(\ui -> isParallel ui && hasActions ui,layoutWithActions), (isParallel,layoutWithoutActions)]
+finalizeParallel = selectLayout
+	[(\ui -> isParallel ui && hasActions ui,layoutWithActions)
+	,(isParallel,layoutWithoutActions)
+	]
 where
 	layoutWithoutActions = sequenceLayouts
-		[layoutChildrenOf [] finalizeUI
+		[layoutSubsMatching [] isIntermediate finalizeUI
 		,setNodeType UIContainer
 		]
 	layoutWithActions = sequenceLayouts
 		[actionsToButtonBar
-		,layoutChildrenOf [] finalizeUI
+		,layoutSubsMatching [] isIntermediate finalizeUI
 		,setNodeType UIPanel
 		]
 
@@ -120,12 +128,15 @@ isCons = \n -> n =:(UI UICons _ _)
 isVarCons = \n -> n =:(UI UIVarCons _ _)
 
 isIntermediate (UI type _ _) = isMember type [UIInteract,UIStep,UIParallel]
+isEditorIntermediate (UI type _ _) = isMember type [UIRecord, UICons, UIVarCons] 
+isEditorPart ui = isEditorIntermediate ui || isFormComponent ui
 
 isFormComponent (UI type attr _) = isMember type 
 	[UITextField,UITextArea,UIPasswordField,UIIntegerField,UIDecimalField
 	,UICheckbox,UISlider,UIDocumentField,UIDropdown,UICheckGroup
 	,UITextView,UIHtmlView
-	] || isJust ('DM'.get LABEL_ATTRIBUTE attr)
+	] || isJust ('DM'.get LABEL_ATTRIBUTE attr) //If another type (for example some editlet representation) has a label attribute we also need to process it
+
 instance == UINodeType where (==) x y = x === y
 
 //Flatten an editor into a form

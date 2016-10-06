@@ -168,11 +168,10 @@ where
 
 //Test if a path extends another path
 isSubPathOf_ :: NodePath NodePath -> Bool
-isSubPathOf_ p [] = True  //Everything is a sub path of the root path
-isSubPathOf_ [] p = False //If the path we are checking against is longer, it can't be a sub path
-isSubPathOf_ [p1:ps1] [p2:ps2] //Check if prefix is the same
-	| p1 == p2  = isSubPathOf_ ps1 ps2	
-				= False
+isSubPathOf_ p1 p2 = length p1 > length p2 && isPrefix p1 p2
+where
+	isPrefix p [] = True
+	isPrefix [p1:ps1] [p2:ps2] = if (p1 == p2) (isPrefix ps1 ps2) False
 
 moveSubs_ :: (NodePath UI -> Bool) (Maybe NodePath) -> Layout
 moveSubs_ pred mbDst = layout
