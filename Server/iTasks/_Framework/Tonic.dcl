@@ -9,7 +9,6 @@ from iTasks.API.Core.TaskCombinators import class tune
 from iTasks.API.Core.Tasks import :: Task, :: InstanceNo
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Images
-from iTasks.API.Extensions.Admin.WorkflowAdmin import :: Workflow
 from System.Time import :: Timestamp
 from Data.Map import :: Map
 from Data.Set import :: Set
