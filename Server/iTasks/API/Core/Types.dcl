@@ -395,111 +395,45 @@ derive class iTask TaskListFilter
 
 :: ActionName	:== String	//Locally unique identifier for actions
 :: ActionOption
-	= ActionKey		!Hotkey		//Specifies a hotkey for the action. 
-	| ActionWeight	!Int		//Specifies a weight for specific sorting in menus
+	= ActionWeight	!Int		//Specifies a weight for specific sorting in menus
 	| ActionIcon	!String		//Specifies a symbolic icon name e.g. 'close' or 'ok' (the application styling dereferences this to an image)
 	| ActionTrigger	!Trigger	//Special event that triggers this action (other than clicking the action button/menu item)
 
 actionName		:: !Action -> ActionName
 actionIcon 		:: !Action -> Maybe String
 actionWeight	:: !Action -> Int			//Default weight is 0
-			
-:: Hotkey =	{ key	:: !Key
-			, ctrl	:: !Bool
-			, alt	:: !Bool
-			, shift	:: !Bool
-			}
-
-:: Key :== Int //Key code
 
 :: Trigger	= DoubleClick	//Currently only doubleclick is supported as special trigger
 
 //Common action constants with predefined options
-ActionOk		:== Action "Ok"				[ActionIcon "ok", ActionKey (unmodified KEY_ENTER)]
-ActionCancel	:==	Action "Cancel"			[ActionIcon "cancel", ActionKey (unmodified KEY_ESC)]
+ActionOk		:== Action "Ok"				[ActionIcon "ok" ]
+ActionCancel	:==	Action "Cancel"			[ActionIcon "cancel"]
 ActionYes		:== Action "Yes"			[ActionIcon "yes"]
 ActionNo		:== Action "No"				[ActionIcon "no"]
 ActionNext		:== Action "Next"			[ActionIcon "next"]
 ActionPrevious	:== Action "Previous"		[ActionIcon "previous"]
 ActionFinish	:== Action "Finish"			[ActionIcon "finish"]
 ActionContinue	:==	Action "Continue"		[ActionIcon "continue"]
-//ActionContinue	:==	Action "Continue"		[ActionIcon "continue", ActionKey (unmodified KEY_ENTER)]
-ActionOpen		:== Action "/File/Open"		[ActionIcon "open", ActionKey (ctrl KEY_O)]
-ActionSave		:== Action "/File/Save" 	[ActionIcon "save", ActionKey (ctrl KEY_S)]
+ActionOpen		:== Action "/File/Open"		[ActionIcon "open" ]
+ActionSave		:== Action "/File/Save" 	[ActionIcon "save"]
 ActionSaveAs 	:== Action "/File/Save as"	[ActionIcon "save"]
 ActionQuit		:== Action "/File/Quit"		[ActionIcon "quit"]
 ActionHelp		:==	Action "/Help/Help"		[ActionIcon "help"]
 ActionAbout		:== Action "/Help/About"	[ActionIcon "about"]
-ActionFind		:== Action "/Edit/Find"		[ActionIcon "find", ActionKey (ctrl KEY_F)]
-ActionNew		:== Action "New"			[ActionIcon "new", ActionKey (ctrl KEY_N)]
+ActionFind		:== Action "/Edit/Find"		[ActionIcon "find"]
+ActionNew		:== Action "New"			[ActionIcon "new"]
 ActionEdit		:== Action "Edit"			[ActionIcon "edit"]
-ActionDelete	:== Action "Delete"			[ActionIcon "delete", ActionKey (unmodified KEY_DELETE)]
-ActionRefresh	:== Action "Refresh"		[ActionIcon "refresh", ActionKey (unmodified KEY_F5)]
-ActionClose		:==	Action "Close"			[ActionIcon "close", ActionKey (unmodified KEY_ESC)]
+ActionDelete	:== Action "Delete"			[ActionIcon "delete"]
+ActionRefresh	:== Action "Refresh"		[ActionIcon "refresh"]
+ActionClose		:==	Action "Close"			[ActionIcon "close"]
 	
-//Common key codes
-KEY_ENTER		:== 13
-KEY_ESC			:== 27
-KEY_BACKSPACE	:== 8
-KEY_DELETE		:== 46
-KEY_LEFT		:== 37
-KEY_UP			:== 38
-KEY_RIGHT		:== 39
-KEY_DOWN		:== 40
+derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption,Trigger
+derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption,Trigger
+derive gDefault			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption,Trigger
+derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption,Trigger
 
-KEY_A		:== 65
-KEY_B		:== 66
-KEY_C		:== 67
-KEY_D		:== 68
-KEY_E		:== 69
-KEY_F		:== 70
-KEY_G		:== 71
-KEY_H		:== 72
-KEY_I		:== 73
-KEY_J		:== 74
-KEY_K		:== 75
-KEY_L		:== 76
-KEY_M		:== 77
-KEY_N		:== 78
-KEY_O		:== 79
-KEY_P		:== 80
-KEY_Q		:== 81
-KEY_R		:== 82
-KEY_S		:== 83
-KEY_T		:== 84
-KEY_U		:== 85
-KEY_V		:== 86
-KEY_W		:== 87
-KEY_X		:== 88
-KEY_Y		:== 89
-KEY_Z		:== 90
-
-KEY_F1		:== 112
-KEY_F2		:== 113
-KEY_F3		:== 114
-KEY_F4		:== 115
-KEY_F5		:== 116
-KEY_F6		:== 117
-KEY_F7		:== 118
-KEY_F8		:== 119
-KEY_F9		:== 120
-KEY_F10		:== 121
-KEY_F11		:== 122
-KEY_F12		:== 123
-
-//Common modifiers
-unmodified key	:== {key=key,ctrl=False,alt=False,shift=False}
-ctrl key		:== {key=key,ctrl=True,alt=False,shift=False}
-alt key			:== {key=key,ctrl=False,alt=True,shift=False}
-shift key		:== {key=key,ctrl=False,alt=False,shift=True}
-
-derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
-derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
-derive gDefault			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
-derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
-
-derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
-derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
+derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Trigger
+derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Trigger
 
 derive class iTask		TaskId, Config, ProcessStatus
 

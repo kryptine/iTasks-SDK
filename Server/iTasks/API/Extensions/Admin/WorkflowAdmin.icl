@@ -86,7 +86,7 @@ loginAndManageWorkList welcome workflows
 					||-
 	 				enterInformation "Enter your credentials and login or press continue to remain anonymous" []
 	 			) 
-		>>* 	[OnAction (Action "Login" [ActionIcon "login",ActionKey (unmodified KEY_ENTER)]) (hasValue (browseAuthenticated workflows))
+		>>* 	[OnAction (Action "Login" [ActionIcon "login"]) (hasValue (browseAuthenticated workflows))
 				,OnAction (Action "Continue" []) (always (browseAnonymous workflows))
 		] 
 		) <<@ ApplyLayout (beforeStep frameCompact)) //Compact layout before login, full screen afterwards
@@ -136,6 +136,7 @@ where
 		[ arrangeWithSideBar 0 LeftSide 260 True
 		, layoutSubAt [0] layoutStartWork
 		, layoutSubAt [1] (sequenceLayouts
+
 			[layoutSubAt [0] (wrapUI UIContainer) //Put manageSession and manageWork together in a container
 			,layoutSubAt [0,0] layoutManageSession
 			,moveSubAt [1] [0,1]
@@ -171,7 +172,7 @@ startWork list = chooseWorkflow >&> viewAndStart
 where
 	viewAndStart sel = forever (
 			viewWorkflowDetails sel
-		>>* [OnAction (Action "Start Task" [ActionKey (unmodified KEY_ENTER)]) (hasValue (startWorkflow list))]
+		>>* [OnAction (Action "Start Task" []) (hasValue (startWorkflow list))]
 		@	\wf -> SelWorkflow wf.Workflow.path
 		)
 
