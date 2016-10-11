@@ -36,14 +36,7 @@ from Text.HTML import :: SVGElt, :: SVGAttr, :: SVGAlign, :: SVGColor, :: SVGDef
 from Text.HTML import :: SVGLengthUnit, :: SVGLineCap, :: SVGFillRule, :: SVGLineJoin, :: SVGMeetOrSlice, :: SVGStrokeMiterLimit, :: SVGPaint
 from Text.HTML import :: SVGStrokeDashArray, :: SVGStrokeDashOffset, :: SVGStrokeWidth, :: SVGTransform, :: SVGZoomAndPan
 
-//Data.Control instances
-
-class TFunctor f where
-    tmap :: (a -> b) (f a) -> f b | iTask a & iTask b
-
-(@$) infixl 1 :: (a -> b) (f a) -> f b | iTask a & iTask b & TFunctor f
-
-class TApplicative f | TFunctor f where
+class TApplicative f | Functor f where
     (<#>)  :: (f (a -> b)) (f a) -> f b | iTask a & iTask b
     return :: a -> f a | iTask a
 
@@ -51,19 +44,16 @@ class TMonad m | TApplicative m where
     (>>=) infixl 1 :: (m a) (a -> m b) -> m b | iTask a & iTask b
     (>>|) infixl 1 :: (m a) (     m b) -> m b | iTask a & iTask b
 
-instance TFunctor Task
+instance Functor Task
 instance TApplicative Task
 instance TMonad Task
 
-instance TFunctor Maybe
 instance TApplicative Maybe
 instance TMonad Maybe
 
-instance TFunctor []
 instance TApplicative []
 instance TMonad []
 
-instance TFunctor (Either e)
 instance TApplicative (Either e)
 instance TMonad (Either e)
 
@@ -294,8 +284,7 @@ StableValue   a :== Value a True
 UnstableValue a :== Value a False
 
 instance Functor TaskValue
-instance Functor Task
-			
+
 :: TaskTime			:== Int
 
 :: Stability		:== Bool
