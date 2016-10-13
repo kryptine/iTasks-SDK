@@ -9,6 +9,7 @@ from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, al
 
 from StdFunc import o, const, id, flip
 from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
+import StdDebug
 
 //This type records where parts were removed from a ui tree
 :: NodeMoves :== [(Int,NodeMove)] 
@@ -105,6 +106,7 @@ where
 
 	layout (ChangeUI _ childChanges,s=:(JSONBool False)) = case [change \\ (0,ChangeChild change) <- childChanges] of
 		[change] = (change,s) //TODO: Check if there are cases with multiple changes to child 0
+		[change:x] = trace_n "Warning: unwrapUI: edge case" (NoChange,s) //TODO: Check if there are cases with multiple changes to child 0
 		_        = (NoChange,s)
 
 	layout (change,s) = (NoChange,s) 
@@ -213,8 +215,13 @@ removeAndAdjust_ path pred tidx (ReplaceUI ui) moves //If the node is replaced, 
 //The change case: We need to adjust the changes to the child branches
 removeAndAdjust_ path pred tidx (ChangeUI localChanges childChanges) moves 
 	# (moves, childChanges, inserts) = adjustChildChanges tidx moves childChanges 
-	= (ChangeUI localChanges childChanges, moves, inserts)
+	= (cleanChange (ChangeUI localChanges childChanges), moves, inserts)
 where
+	cleanChange (ChangeUI localChanges childChanges) = case (localChanges,[c \\ c <- childChanges | not (c =:(_,ChangeChild NoChange))]) of
+		([],[]) = NoChange
+		(l,c)   = ChangeUI l c
+	cleanChange change = change
+
 	adjustChildChanges tidx moves [] 
 		//Sort for easier debugging
 		# moves = sortBy (\(i1,m1) (i2,m2) -> i1 < i2) moves
@@ -326,8 +333,13 @@ where
 	//- Other recursive changes
 	adjustChildChanges tidx moves [(idx,ChangeChild change):cs] 
 		# (change,moves,subInserts) = case findMove idx moves of
-			//Nothing to do, only adjust the index
-			Nothing = ([(adjustIndex moves idx,ChangeChild change)]
+			//Nothing moved yet, but the predicate might match on inserts or replace instructions in descendant nodes
+			Nothing
+				# (change,subMoves,subInserts) = removeAndAdjust_ (path ++ [idx]) pred (adjustTargetIndex moves idx tidx) change []
+				# moves = case subMoves of
+					[] = moves
+					_  = [(idx,ChildBranchesMoved subMoves):moves]
+				= ([(adjustIndex moves idx,ChangeChild change)]
 					  ,moves
 					  ,[])
 			//Redirect the change
@@ -374,7 +386,7 @@ where
 		| i == idx  = [(i,ChangeChild (insertAndAdjust_ ss startIdx numInserts insertChanges change)):cs] //Adjust an existing branch
 		| i < idx 	= [(i,ChangeChild change):adjustChildChanges idx cs] //Scan forward
 					= [(idx,ChangeChild (insertAndAdjust_ ss startIdx numInserts insertChanges NoChange)),(i,ChangeChild change):cs] //Add a branch
-	adjustChildChanges idx [c:cs] = [c:adjustChildChanges idx cs] //TODO: Figure out if we can properly handle structure changes on the path
+	adjustChildChanges idx [c:cs] = trace_n "Warning: insertAndAdjust: edge case" [c:adjustChildChanges idx cs] //TODO: Figure out if we can properly handle structure changes on the path
 	
 countMoves_ :: NodeMoves Bool -> Int
 countMoves_  moves recursive = foldr count 0 (map snd moves)
