@@ -20,18 +20,14 @@ from iTasks.UI.Definition import :: UI(..), :: UIDirection(..), stringDisplay
 from iTasks.API.Core.Tasks import treturn
 from iTasks.API.Common.TaskCombinators import tbind, @
 
-instance TFunctor Task where
-  tmap f x = x @ f
+instance Functor Task where
+  fmap f x = x @ f
 instance TApplicative Task where
-  (<#>) tf ta = tf >>= \f -> tmap f ta
+  (<#>) tf ta = tf >>= \f -> fmap f ta
   return x    = treturn x
 instance TMonad Task where
   (>>=) l r = tbind l r
   (>>|) l r = l >>= \_ -> r
-
-instance TFunctor Maybe where
-  tmap f (Just x) = Just (f x)
-  tmap _ _        = Nothing
 
 instance TApplicative Maybe where
   (<#>) (Just f) (Just x) = Just (f x)
@@ -42,8 +38,6 @@ instance TMonad Maybe where
   (>>=) _ _ = Nothing
   (>>|) l r = l >>= \_ -> r
 
-instance TFunctor [] where
-  tmap f xs = map f xs
 instance TApplicative [] where
   (<#>) fs xs = [f x \\ f <- fs, x <- xs]
   return x = [x]
@@ -51,9 +45,6 @@ instance TMonad [] where
   (>>=) xs f = [y \\ x <- xs, y <- f x]
   (>>|) l r = l >>= \_ -> r
 
-instance TFunctor (Either e) where
-  tmap f (Right x) = Right (f x)
-  tmap _ (Left x)  = Left x
 instance TApplicative (Either e) where
   (<#>) (Right f) (Right x) = Right (f x)
   (<#>) (Left e) _ = Left e
@@ -63,9 +54,6 @@ instance TMonad (Either e) where
   (>>=) (Left x) _ = Left x
   (>>=) (Right x) f = f x
   (>>|) l r = l >>= \_ -> r
-
-(@$) infixl 1 :: (a -> b) (f a) -> f b | iTask a & iTask b & TFunctor f
-(@$) f x = tmap f x
 
 JSONEncode{|RWShared|} _ _ _ _ s = []
 JSONDecode{|RWShared|} _ _ _ _ s = (Nothing, s)
@@ -692,10 +680,6 @@ instance Functor TaskValue
 where
 	fmap f (NoValue)		= NoValue
 	fmap f (Value v s)		= Value (f v) s
-
-instance Functor Task
-where
-	fmap f t = t @ f
 
 //Task id
 

@@ -25,7 +25,6 @@ import iTasks.API.Common.ImportTasks
 import iTasks.API.Common.InteractionTasks
 import iTasks.API.Extensions.Admin.UserAdmin
 import iTasks.API.Extensions.SVG.SVGEditor
-import iTasks.API.Extensions.Admin.WorkflowAdmin
 import System.File
 from StdFunc import o
 from System.FilePath import </>
@@ -223,9 +222,6 @@ instance TApplicative IO where
   return x   = IO (\s -> (x, s))
   (<#>) f g  = liftA2 id f g
 
-instance TFunctor IO where
-  tmap f x = x >>= (return o f)
-
 instance TMonad IO where
   (>>=) (IO f) a2mb = IO run
     where
@@ -241,7 +237,7 @@ ppnid nid = "[" +++ ppnid` nid +++ "]"
   ppnid` [x] = toString x
   ppnid` [x:xs] = toString x +++ ", " +++ ppnid` xs
 
-liftA2 f a b = (tmap f a) <#> b
+liftA2 f a b = f <$> a <#> b
 
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
                    DynamicView, BlueprintQuery, CircularStack

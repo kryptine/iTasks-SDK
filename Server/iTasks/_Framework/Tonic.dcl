@@ -9,12 +9,11 @@ from iTasks.API.Core.TaskCombinators import class tune
 from iTasks.API.Core.Tasks import :: Task, :: InstanceNo
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Images
-from iTasks.API.Extensions.Admin.WorkflowAdmin import :: Workflow
 from System.Time import :: Timestamp
 from Data.Map import :: Map
 from Data.Set import :: Set
 from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
-from iTasks.API.Core.Types import class TMonad, class TApplicative, class TFunctor
+from iTasks.API.Core.Types import class TMonad, class TApplicative
 import Data.Functor
 
 from System.IO import :: IO
@@ -42,7 +41,6 @@ instance TonicTopLevelBlueprint IO
 instance TonicBlueprintPart IO
 
 instance TApplicative IO
-instance TFunctor IO
 instance TMonad IO
 
 tonicExtWrapArg       :: !VarName !Int !a -> m () | iTask a & TonicTopLevelBlueprint m
