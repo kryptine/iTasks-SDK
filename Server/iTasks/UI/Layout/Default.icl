@@ -106,10 +106,7 @@ where
 		,setNodeType UIPanel
 		]
 
-	isSingle (UI _ _ [_]) = True
-	isSingle _ = False
-
-hasActions (UI _ _ items) = any isAction items
+hasActions (UI _ _ items) = any isAction items //Dangerous? TODO: check
 	
 actionsToButtonBar= sequenceLayouts
 	[insertSubAt [1] (ui UIButtonBar) 	 //Create a buttonbar
