@@ -3,7 +3,7 @@ import iTasks, StdFile
 import iTasks.API.Extensions.Image
 import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
 import iTasks._Framework.Serialization
-import Text.HTML
+import Text, Text.HTML
 import qualified Data.Map as DM
 
 // TEST FRAMEWORK
@@ -60,6 +60,15 @@ where
 testsuite :: String String [Test] -> TestSuite
 testsuite name description tests
   = {name=name,description=Note description,tests=tests}
+
+filterSuitesByTestName ::String [TestSuite] -> [TestSuite]
+filterSuitesByTestName pattern suites = [{TestSuite|s & tests =filterTestsByName pattern tests} \\ s=:{TestSuite|tests} <- suites]
+
+filterTestsByName :: String [Test] -> [Test]
+filterTestsByName pattern tests = filter match tests
+where
+	match (UnitTest {UnitTest|name}) = indexOf pattern name >= 0
+	match (InteractiveTest {InteractiveTest|name}) = indexOf pattern name >= 0
 
 //RUNNING TESTS
 testInteractive :: InteractiveTest -> Task TestResult

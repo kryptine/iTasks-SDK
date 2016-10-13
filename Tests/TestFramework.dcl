@@ -81,6 +81,13 @@ skip :: String -> Test
 testsuite :: String String [Test] -> TestSuite
 
 /**
+* Filter test suites based on the name of a test
+*/
+
+filterSuitesByTestName ::String [TestSuite] -> [TestSuite]
+filterTestsByName :: String [Test] -> [Test]
+
+/**
 * Test a specific editor
 *
 * @param The editor to test
