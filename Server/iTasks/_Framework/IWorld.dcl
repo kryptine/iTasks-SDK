@@ -92,7 +92,7 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 :: *IOTaskInstance
     = ListenerInstance !ListenerInstanceOpts !*TCP_Listener
     | ConnectionInstance !ConnectionInstanceOpts !*TCP_DuplexChannel
-    | BackgroundInstance !BackgroundTask
+    | BackgroundInstance !BackgroundInstanceOpts !BackgroundTask
 
 :: ListenerInstanceOpts =
     { taskId                :: !TaskId          //Reference to the task that created the listener
@@ -111,6 +111,13 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
     }
 
 :: ConnectionId             :== Int
+
+:: BackgroundInstanceOpts =
+    { bgInstId              :: !BackgroundTaskId
+    }
+
+:: BackgroundTaskId         :== Int
+
 
 :: IOStates :== Map TaskId IOState
 :: IOState
