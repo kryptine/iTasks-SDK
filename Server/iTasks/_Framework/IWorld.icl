@@ -66,9 +66,9 @@ createIWorld appName mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 		Nothing 
 			# appWebDirs = [appDir </> "WebPublic"]
 			= case mbSDKPath of 
-				Just sdkDir	//Scan extensions for public web files
-					# (libWebDirs,world) = determineWebPublicDirs (sdkDir </>"Server"</>"iTasks"</>"API"</>"Extensions") world
-					= (appWebDirs ++ [sdkDir</>"Client"] ++ libWebDirs,world)	
+				Just sdkDir	//Scan libraries for public web files
+					# (libWebDirs,world) = determineWebPublicDirs (sdkDir </>"Server"</>"iTasks") world
+					= (appWebDirs ++ libWebDirs,world)	
 				Nothing
 					= (appWebDirs,world)
     # (customCSS,world)    = checkCustomCSS appName webdirPaths world 
