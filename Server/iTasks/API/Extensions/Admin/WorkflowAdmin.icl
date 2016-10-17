@@ -136,13 +136,11 @@ where
 		[ arrangeWithSideBar 0 LeftSide 260 True
 		, layoutSubAt [0] layoutStartWork
 		, layoutSubAt [1] (sequenceLayouts
-
 			[layoutSubAt [0] (wrapUI UIContainer) //Put manageSession and manageWork together in a container
 			,layoutSubAt [0,0] layoutManageSession
 			,moveSubAt [1] [0,1]
 			,arrangeWithSideBar 0 TopSide 200 True
 			,layoutSubAt [1] arrangeWithTabs
-			,layoutSubAt [1] (defaultSessionLayout)
 			])
 		, setAttributes (sizeAttr FlexSize FlexSize)
 		]

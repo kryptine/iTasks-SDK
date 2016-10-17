@@ -445,7 +445,7 @@ layoutChange_ path pred layout (ReplaceUI ui) states
 	# (ui,eitherState) = layoutUI_ path pred layout ui
 	= (ReplaceUI ui,eitherState)
 layoutChange_ path pred layout (ChangeUI localChanges childChanges) states
-	# (childChanges,states) = layoutChildChanges_ [] pred layout childChanges states
+	# (childChanges,states) = layoutChildChanges_ path pred layout childChanges states
 	= (ChangeUI localChanges childChanges, ChildBranchLayout states)
 layoutChange_ path pred layout change states
 	= (change,ChildBranchLayout states)
@@ -477,9 +477,15 @@ where
 			= ((idx,ChangeChild change),[(idx,BranchLayout state):states])
 		(Just (ChildBranchLayout childStates),states) //Recursively adjust the change
 			# (change,state) = layoutChange_ (path ++ [idx]) pred layout change childStates
-			= ((idx,ChangeChild change),[(idx,state):states])
-		(Nothing,states) //Nothing to do
-			= ((idx,ChangeChild change),states) 
+			= case state of
+				ChildBranchLayout [] = ((idx,ChangeChild change),states) //Don't store empty state
+				_ 					 = ((idx,ChangeChild change),[(idx,state):states])
+		(Nothing,states) //Recursively adjust the change
+			# (change,state) = layoutChange_ (path ++ [idx]) pred layout change []
+			= case state of
+				ChildBranchLayout [] = ((idx,ChangeChild change),states) //Don't store empty state
+				_ 					 = ((idx,ChangeChild change),[(idx,state):states])
+
 	layoutChildChange_ path pred layout (idx,InsertChild ui) states
 		# (ui,eitherState) = layoutUI_ (path ++ [idx]) pred layout ui
 		= ((idx,InsertChild ui),[(idx,eitherState):[(if (i >= idx) (i + 1) i,s)  \\ (i,s) <- states]]) //Also adjust the indices of the other states
