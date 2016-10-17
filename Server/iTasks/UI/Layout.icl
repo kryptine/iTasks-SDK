@@ -551,3 +551,16 @@ where
 conditionalLayout :: (UI -> Bool) Layout -> Layout
 conditionalLayout pred condLayout = selectLayout [(pred,condLayout)]
 
+traceLayout :: String Layout -> Layout
+traceLayout name layout = layout`
+where
+	layout` (change,state)
+		# (change`,state`) = layout (change,state)
+		# msg = join "\n" 
+			["Layout trace ("+++ name +++")"
+			,"ORIGINAL CHANGE:"			
+			,toString (toJSON change)
+			,"REWRITTEN CHANGE:"
+			,toString (toJSON change`)]
+		= trace_n msg (change`,state`)
+

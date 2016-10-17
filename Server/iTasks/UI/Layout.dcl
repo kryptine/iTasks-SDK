@@ -68,6 +68,9 @@ layoutSubAt        :: NodePath Layout   -> Layout
 layoutSubsMatching :: NodePath (UI -> Bool) Layout   -> Layout
 layoutChildrenOf   :: NodePath Layout -> Layout
 
+//Easier debugging
+traceLayout :: String Layout -> Layout
+
 //TYPES EXPORTED FOR TESTING
 :: NodeMoves :== [(Int,NodeMove)] 
 :: NodeMove = BranchMoved
