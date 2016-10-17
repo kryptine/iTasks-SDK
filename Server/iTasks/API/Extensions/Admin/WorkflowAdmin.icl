@@ -142,6 +142,7 @@ where
 			,moveSubAt [1] [0,1]
 			,arrangeWithSideBar 0 TopSide 200 True
 			,layoutSubAt [1] arrangeWithTabs
+			,layoutSubAt [1] (defaultSessionLayout)
 			])
 		, setAttributes (sizeAttr FlexSize FlexSize)
 		]
