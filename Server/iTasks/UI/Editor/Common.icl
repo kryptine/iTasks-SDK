@@ -1,6 +1,7 @@
 implementation module iTasks.UI.Editor.Common
 
 import StdBool, StdEnum, StdOrdList
+import Text.JSON, GenEq
 
 import iTasks.UI.Definition, iTasks.UI.Editor
 import Data.Tuple, Data.Error, Text, Text.JSON
@@ -13,8 +14,11 @@ where
 	onEdit _ _ val mask vst 	= (Ok (NoChange,mask),val,vst)
 	onRefresh _ _ val mask vst  = (Ok (NoChange,mask),val,vst)
 
-listEditor :: (Maybe ([a] -> a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a]
-listEditor add remove reorder count itemEditor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+listEditor :: (Maybe ([a] -> a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a] | JSONEncode{|*|} a
+listEditor add remove reorder count itemEditor = listEditor_ JSONEncode{|*|} add remove reorder count itemEditor
+
+listEditor_ :: (Bool a -> [JSONNode]) (Maybe ([a] -> a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a]
+listEditor_ jsonenc add remove reorder count itemEditor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId,mode} = case genChildUIs dp 0 val [] vst of
 		(Ok (items,masks),vst)
@@ -103,7 +107,7 @@ where
 	onEdit dp ([id:tp],e) items (CompoundMask {fields=masks,state}) vst
 		# ids = fromMaybe [] (fromJSON state)
 		# index = itemIndex id ids
-		| index < 0 || index >= length items = (Error "List edit out of bounds",items,vst)
+		| index < 0 || index >= length items = (Error ("List edit out of bounds (index:" +++ toString index +++", list length: "+++toString (length items)+++")"),items,vst)
 		| otherwise
 			= case itemEditor.Editor.onEdit (dp ++ [id]) (tp,e) (items !! index) (masks !! index) vst of
 				(Error e,nx,vst) 
@@ -115,12 +119,13 @@ where
 		childChange i change = ChangeUI [] [(i,ChangeChild (ChangeUI [] [(0,ChangeChild change)]))]
 
 	//Very crude full replacement
-	onRefresh dp new old mask vst = (Ok (NoChange,mask),old,vst) //TODO: Determine small UI change
-/*
-	onRefresh dp new old mask vst = case genUI dp new {vst & mode = Update} of
-		(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
-		(Error e,vst) = (Error e,old,vst)
-*/
+	onRefresh dp new old mask vst
+		| (JSONEncode{|*->*|} jsonenc) False new === (JSONEncode{|*->*|} jsonenc) False old
+			= (Ok (NoChange,mask),old,vst) //TODO: Determine small UI change
+		| otherwise
+			= case genUI dp new {vst & mode = Update} of
+				(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
+				(Error e,vst) = (Error e,old,vst)
 
 	nextId [] = 0
 	nextId ids = maxList ids + 1

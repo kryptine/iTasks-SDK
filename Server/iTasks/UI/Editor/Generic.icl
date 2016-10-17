@@ -408,7 +408,7 @@ gEditor{|Char|}   = liftEditor toString (\c -> c.[0]) (whenDisabled (textView 'D
 gEditor{|String|} = whenDisabled (textView 'DM'.newMap) (withHintAttributes "single line of text" (textField 'DM'.newMap))
 gEditor{|Bool|}   = checkBox 'DM'.newMap
 
-gEditor{|[]|} ex _ dx _ _ = listEditor (Just (const dx)) True True (Just (\l -> toString (length l) +++ " items")) ex
+gEditor{|[]|} ex _ dx tjx _ = listEditor_ tjx (Just (const dx)) True True (Just (\l -> toString (length l) +++ " items")) ex
 
 gEditor{|()|} = emptyEditor
 gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ = emptyEditor
