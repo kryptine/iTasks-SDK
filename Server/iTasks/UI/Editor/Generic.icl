@@ -139,13 +139,9 @@ where
 							= (Ok (UI UIVarCons attr [consNameUI:items],CompoundMask {fields=[newFieldMask:masks],state=JSONNull}),{vst & selectedConsIndex = selectedConsIndex})
 					(Error e,vst) = (Error e,vst)
 
-	onEdit dp ([],JSONNull) (OBJECT val) (CompoundMask {fields=[FieldMask {FieldMask|touched,valid,state}:masks]}) vst=:{VSt|optional} //Update is a constructor reset
-		//If necessary remove the fields of the previously selected constructor
-		# change = case state of
-			(JSONInt prevConsIdx) = ChangeUI [] (repeatn (gtd_conses !! prevConsIdx).gcd_arity (1,RemoveChild))
-			_                     = NoChange	
-		# consChooseMask = FieldMask {touched=True,valid=optional,state=JSONNull}
-		= (Ok (change,CompoundMask {fields=[consChooseMask:masks],state=JSONNull}),OBJECT val, vst)
+	// An null or an empty array are accepted as a reset events
+	onEdit dp ([],JSONNull) (OBJECT val) mask vst = onConsReset (OBJECT val) mask vst
+	onEdit dp ([],JSONArray []) (OBJECT val) mask vst = onConsReset (OBJECT val) mask vst
 
 	onEdit dp ([],JSONArray [JSONInt consIdx]) (OBJECT val) (CompoundMask {fields=[FieldMask {FieldMask|touched,valid,state}:masks]}) vst=:{VSt|mode} //Update is a constructor switch
 		| consIdx < 0 || consIdx >= gtd_num_conses
@@ -170,8 +166,8 @@ where
 				= (Ok (change,CompoundMask {fields=[consChooseMask:masks],state=JSONNull}), OBJECT val, {vst & mode = mode})
 			(Error e,vst) = (Error e, OBJECT val, {vst & mode = mode})
 
-	onEdit dp ([],_) (OBJECT val) mask vst
-		= (Error "Unknown constructor select event",OBJECT val,vst)
+	onEdit dp ([],e) (OBJECT val) mask vst
+		= (Error ("Unknown constructor select event: '" +++ toString e +++ "'"),OBJECT val,vst)
 
 	onEdit dp (tp,e) (OBJECT val) mask vst  //Update is targeted somewhere in a substructure of this value
 		| gtd_num_conses == 1
@@ -189,7 +185,15 @@ where
 						_                                  = change
 					= (Ok (change,CompoundMask {fields=[consChooseMask:masks],state=JSONNull}),OBJECT val,vst)
 				(Error e,val,vst) = (Error e, OBJECT val, vst)
-	
+
+	onConsReset (OBJECT val) (CompoundMask {fields=[FieldMask {FieldMask|touched,valid,state}:masks]}) vst=:{VSt|optional}
+		//If necessary remove the fields of the previously selected constructor
+		# change = case state of
+			(JSONInt prevConsIdx) = ChangeUI [] (repeatn (gtd_conses !! prevConsIdx).gcd_arity (1,RemoveChild))
+			_                     = NoChange	
+		# consChooseMask = FieldMask {touched=True,valid=optional,state=JSONNull}
+		= (Ok (change,CompoundMask {fields=[consChooseMask:masks],state=JSONNull}),OBJECT val, vst)	
+
 	onRefresh dp (OBJECT new) (OBJECT old) mask vst=:{VSt|mode,selectedConsIndex=curSelectedConsIndex}
 		| gtd_num_conses > 1 && (mode =:Enter || mode =: Update)
 			= case ex.Editor.onRefresh dp new old mask {vst & selectedConsIndex = 0} of
