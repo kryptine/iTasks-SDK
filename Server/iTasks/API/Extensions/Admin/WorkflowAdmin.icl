@@ -151,11 +151,10 @@ where
 	layoutManageSession = sequenceLayouts 
 		[unwrapUI
 		,layoutChildrenOf [] actionToButton
-		,setNodeType UIPanel
-		,setAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 10 2 10])
+		,layoutSubAt [0] (setNodeType UIContainer)
+		,setNodeType UIContainer
+		,setAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
 		]
-	
-	//layoutManageWork = arrangeWithSideBar 0 TopSide 200 True
 
 manageSession :: !(SharedTaskList ClientPart) -> Task ClientPart
 manageSession list
