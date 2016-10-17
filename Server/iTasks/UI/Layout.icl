@@ -484,7 +484,7 @@ where
 		# (ui,eitherState) = layoutUI_ (path ++ [idx]) pred layout ui
 		= ((idx,InsertChild ui),[(idx,eitherState):[(if (i >= idx) (i + 1) i,s)  \\ (i,s) <- states]]) //Also adjust the indices of the other states
 	layoutChildChange_ path pred layout (idx,RemoveChild) states
-		= ((idx,RemoveChild),[(if (i > idx) (i - 1) i, s) \\ (i,s) <- states]) //Remove the current state from the states and adjust the indices accordingly
+		= ((idx,RemoveChild),[(if (i > idx) (i - 1) i, s) \\ (i,s) <- states | i <> idx]) //Remove the current state from the states and adjust the indices accordingly
 	layoutChildChange_ path pred layout (idx,MoveChild dst) states //Move the states 
 		# (srcState,states) = selectState idx states
 		# states = [(if (i > idx) (i - 1) i, s) \\ (i,s) <- states] //Everything moves down when we remove the branch
