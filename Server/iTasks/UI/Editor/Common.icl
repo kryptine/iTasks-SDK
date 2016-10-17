@@ -72,10 +72,12 @@ where
 			    = (Ok (ChangeUI [] changes,CompoundMask {fields=(swap masks (index + 1)),state=toJSON (swap ids (index + 1))}), (swap items (index + 1)), vst)
 		| op == "rem" && remove
 			| index < 0 || index >= num = (Error "List remove out of bounds",items,vst)
+				# nitems = (removeAt index items)
+				# counter = maybe [] (\f -> [(length nitems, ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "value" (JSONString (f nitems))] []))]))]) count
 				# changes =  if (index == 0 && num > 1) [(index + 1, toggle 1 False)] []
 						  ++ if (index == num - 1 && index > 0) [(index - 1, toggle 2 False)] []
-						  ++ [(index,RemoveChild)]
-			= (Ok (ChangeUI [] changes, CompoundMask {fields=removeAt index masks,state=toJSON (removeAt index ids)}), (removeAt index items), vst)
+						  ++ [(index,RemoveChild)] ++ counter
+			= (Ok (ChangeUI [] changes, CompoundMask {fields=removeAt index masks,state=toJSON (removeAt index ids)}), nitems, vst)
 		| op == "add" && add =: (Just _)
 			# f = fromJust add
 			# nx = f items
@@ -134,4 +136,3 @@ where
 	where
 		itemIndex` _ _ [] = -1
 		itemIndex` i id [x:xs] = if (id == x) i (itemIndex` (i + 1) id xs)
-
