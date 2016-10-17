@@ -30,7 +30,15 @@ itasks.TextArea = {
 			var value = e.target.value === "" ? null : e.target.value
 			me.doEditEvent(me.taskId,me.editorId,value);
         });
-    }
+    },
+	onAttributeChange: function(name,value) {
+		var me = this;
+		if(name == 'value') {
+			if(me.domEl !== document.activeElement) { //Don't update the focused element...
+				me.domEl.value = (value === null) ? '' : value;
+			}
+		}
+	}
 };
 itasks.PasswordField = {
 	domTag: 'input',
@@ -43,6 +51,14 @@ itasks.PasswordField = {
             var value = e.target.value === "" ? null : e.target.value
 			me.doEditEvent(me.taskId,me.editorId,value);
 		});
+	}
+	,onAttributeChange: function(name,value) {
+		var me = this;
+		if(name == 'value') {
+			if(me.domEl !== document.activeElement) { //Don't update the focused element...
+				me.domEl.value = (value === null) ? '' : value;
+			}
+		}
 	}
 };
 itasks.NumberField = {
