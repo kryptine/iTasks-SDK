@@ -3,8 +3,8 @@ import iTasks
 
 :: InteractiveTest 
 	= { name :: String
-      , instructions  	:: Note
-      , expectation 	:: Note
+      , instructions  	:: String
+      , expectation 	:: String
 	  , taskUnderTest 	:: Task ()
 	  }
 
@@ -18,13 +18,13 @@ import iTasks
 
 :: TestSuite =
 	{ name :: String
-	, description :: Note
+	, description :: String
 	, tests :: [Test]
 	}
 
 :: TestResult
 	= Passed 
-	| Failed !(Maybe Note) 	//Observed behavior
+	| Failed !(Maybe String) 	//Observed behavior
 	| Skipped 				//The test was skipped
 
 :: SuiteResult =

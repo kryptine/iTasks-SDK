@@ -200,10 +200,10 @@ where
 
 viewWorkflowDetails :: !(ReadOnlyShared (Maybe Workflow)) -> Task Workflow
 viewWorkflowDetails sel
-	= viewSharedInformation [Att (Title "Task description"), Att IconView] [ViewAs view] sel
+	= viewSharedInformation [Att (Title "Task description"), Att IconView] [ViewUsing view (textView 'DM'.newMap)] sel
 	@? onlyJust
 where
-	view = fmap (\wf -> Note wf.Workflow.description)
+	view = maybe "" (\wf -> wf.Workflow.description)
 	
 	onlyJust (Value (Just v) s) = Value v s
 	onlyJust _					= NoValue

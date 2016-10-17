@@ -76,12 +76,6 @@ instance html		PhoneNumber
 instance toString	URL
 instance html		URL
 
-//* Plain text notes 
-:: Note			= Note !String
-instance toString	Note
-instance html		Note
-instance ==			Note
-
 //* Money (ISO4217 currency codes are used)
 :: EUR 			= EUR !Int		//Euros (amount in cents)
 :: USD 			= USD !Int		//Dollars (amount in cents)
@@ -148,13 +142,13 @@ instance <	Date, Time, DateTime
 instance toString	Document
 instance ==			Document
 
-derive JSONEncode		EmailAddress, PhoneNumber, URL, Note, EUR, USD, Date, Time, DateTime, Document 
-derive JSONDecode		EmailAddress, PhoneNumber, URL, Note, EUR, USD, Date, Time, DateTime, Document
-derive gDefault			EmailAddress, PhoneNumber, URL, Note, EUR, USD, Date, Time, DateTime, Document
-derive gEq				EmailAddress, PhoneNumber, URL, Note, EUR, USD, Date, Time, DateTime, Document
+derive JSONEncode		EmailAddress, PhoneNumber, URL, EUR, USD, Date, Time, DateTime, Document 
+derive JSONDecode		EmailAddress, PhoneNumber, URL, EUR, USD, Date, Time, DateTime, Document
+derive gDefault			EmailAddress, PhoneNumber, URL, EUR, USD, Date, Time, DateTime, Document
+derive gEq				EmailAddress, PhoneNumber, URL, EUR, USD, Date, Time, DateTime, Document
 
-derive gText	        EmailAddress, PhoneNumber, URL, Note, EUR, USD, Date, Time, DateTime, Document
-derive gEditor 			EmailAddress, PhoneNumber, URL, Note, EUR, USD, Date, Time, DateTime, Document
+derive gText	        EmailAddress, PhoneNumber, URL, EUR, USD, Date, Time, DateTime, Document
+derive gEditor 			EmailAddress, PhoneNumber, URL, EUR, USD, Date, Time, DateTime, Document
 
 //* Common exceptions used by API tasks
 

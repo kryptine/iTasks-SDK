@@ -116,41 +116,6 @@ instance html URL
 where
 	html (URL url) = ATag [HrefAttr url] [Text url]
 
-//* Note
-JSONEncode{|Note|} _ (Note txt) = [JSONString txt]
-
-JSONDecode{|Note|} _ [JSONString txt:c] = (Just (Note txt),c)
-JSONDecode{|Note|} _ c = (Nothing,c)
-
-gText{|Note|}	_ val	    = [maybe "" toString val]
-
-gEditor{|Note|} = whenDisabled
-		(liftEditor noteToHtml (\_ -> Note "") (htmlView 'DM'.newMap))
-		(liftEditor (\(Note s) -> s) (\s -> Note s) (withHintAttributes "note" (textArea 'DM'.newMap)))
-where
-	// THIS IS A HACK!
-	// The encoding of a Text constructor should escape newlines and convert them to <br> tags. Unfortunately it doesn't
-	noteToHtml (Note s)	//TODO: Fix this in the toString of the Text constructor of HtmlTag type
-		= case split "\n" s of
-			[line]	= Text line
-			lines	= SpanTag [] ('DL'.intersperse (BrTag []) (map Text lines))
-
-derive gDefault			Note
-derive gEq				Note
-
-instance toString Note
-where
-	toString (Note s) = s
-
-instance html Note
-where
-	html (Note msg) = Text msg
-
-instance == Note
-where
-	(==) (Note x) (Note y) = x == y
-	
-
 //* Money (ISO4217 currency codes are used)
 gText{|EUR|} _ val = [maybe "" toString val]
 

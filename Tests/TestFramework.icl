@@ -23,7 +23,7 @@ where
 //DEFINING TESTS
 itest :: String String String (Task a) -> Test | iTask a
 itest name instructions expectation tut
-  = InteractiveTest {name=name,instructions = Note instructions, expectation = Note expectation, taskUnderTest = tut @! ()}
+  = InteractiveTest {name=name,instructions = instructions, expectation = expectation, taskUnderTest = tut @! ()}
 
 utest :: String (*World -> *(TestResult,*World)) -> Test
 utest name test = UnitTest {UnitTest|name=name,test=test}
@@ -31,26 +31,26 @@ utest name test = UnitTest {UnitTest|name=name,test=test}
 assert :: String (a -> Bool) a -> Test | JSONEncode{|*|} a
 assert name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
-	test w = (if (exp sut) Passed (Failed (Just (Note ("Actual: " <+++ (toJSON sut))))),w)
+	test w = (if (exp sut) Passed (Failed (Just ("Actual: " <+++ (toJSON sut)))),w)
 
 assertEqual :: String a a -> Test | gEq{|*|} a & JSONEncode{|*|} a 
 assertEqual name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
-	test w = (if (exp === sut) Passed (Failed (Just (Note ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON sut))))),w)
+	test w = (if (exp === sut) Passed (Failed (Just ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON sut)))),w)
 
 assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | JSONEncode{|*|} a
 assertWorld name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
 	test w 
 		# (res,w) = sut w
-		= (if (exp res) Passed (Failed (Just (Note ("Actual: " <+++ (toJSON res))))),w)
+		= (if (exp res) Passed (Failed (Just ("Actual: " <+++ (toJSON res)))),w)
 
 assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & JSONEncode{|*|} a
 assertEqualWorld name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
 	test w
 		# (res,w) = sut w
-		= (if (exp === res) Passed (Failed (Just (Note ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON res))))),w)
+		= (if (exp === res) Passed (Failed (Just ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON res)))),w)
 
 skip :: String -> Test
 skip name = UnitTest {UnitTest|name=name,test=test}
@@ -59,7 +59,7 @@ where
 
 testsuite :: String String [Test] -> TestSuite
 testsuite name description tests
-  = {name=name,description=Note description,tests=tests}
+  = {name=name,description=description,tests=tests}
 
 filterSuitesByTestName ::String [TestSuite] -> [TestSuite]
 filterSuitesByTestName pattern suites = [{TestSuite|s & tests =filterTestsByName pattern tests} \\ s=:{TestSuite|tests} <- suites]
@@ -151,7 +151,7 @@ where
 		resultRow (test,Passed) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: green"] [Text "Passed"]],TdTag [] []]
 		resultRow (test,Skipped) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: orange"] [Text "Skipped"]],TdTag [] []]
 		resultRow (test,Failed Nothing) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] []]
-		resultRow (test,Failed (Just (Note details))) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [TextareaTag [] [Text details]]]
+		resultRow (test,Failed (Just details)) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [TextareaTag [] [Text details]]]
 
 	application header mainTask
 		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False <<@ ApplyLayout (setNodeType UIContainer)
@@ -187,7 +187,7 @@ where
 			(Failed Nothing,world)
 				# console = fwrites (red "FAILED\n") console
 				= (console,world)
-			(Failed (Just (Note msg)),world)
+			(Failed (Just msg),world)
 				# console = fwrites (red ("FAILED\n" +++msg+++"\n")) console
 				= (console,world)
 			(Skipped,world)

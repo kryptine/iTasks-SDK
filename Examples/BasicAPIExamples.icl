@@ -7,7 +7,7 @@ import iTasks.API.Extensions.Admin.WorkflowAdmin
 import iTasks.API.Extensions.Admin.TonicAdmin
 import iTasks._Framework.Tonic
 import iTasks.API.Extensions.GIS.GoogleMap
-import iTasks.UI.Definition
+import iTasks.UI.Definition, iTasks.UI.Editor.Builtin
 import Text, Text.HTML, StdArray
 //import ligrettoTOP
 //import iTaskGraphics, editletGraphics, edgehog
@@ -197,14 +197,14 @@ editStoredPersons = updateSharedInformation "Update the stored list of persons" 
 viewStoredPersons :: Task [MyPerson] 
 viewStoredPersons = viewSharedInformation "These are the currently stored persons" [] personStore
 
-notes :: Task Note
+notes :: Task String
 notes 
-	= withShared (Note "")
-		(\note -> 	viewSharedInformation "view on note" [] note
+	= withShared ""
+		(\note -> 	viewSharedInformation "view on note" [ViewUsing id (textView 'DM'.newMap)] note
 					-||-
-					updateSharedInformation "edit shared note 1" [] note
+					updateSharedInformation "edit shared note 1" [UpdateUsing id (const id) (textArea 'DM'.newMap)] note
 					-||-
-					updateSharedInformation "edit shared note 2" [] note
+					updateSharedInformation "edit shared note 2" [UpdateUsing id (const id) (textArea 'DM'.newMap)] note
 		)
 
 linesPar :: Task (Maybe String)
@@ -225,7 +225,7 @@ where
 	lineE state
 		=	updateSharedInformation ("Lines","Edit lines") [listEditor] state
 
-	noteEditor = UpdateAs (\txt -> Note txt) (\_ (Note txt) -> txt)
+	noteEditor = UpdateUsing id (const id) (textArea 'DM'.newMap)
 	listEditor = UpdateAs (split "\n") (\_ l -> join "\n" l)
 
 browseAndViewGoogleMap :: Task GoogleMap
@@ -303,7 +303,7 @@ where
 
 :: ToDo =	{ name     :: String
 			, deadline :: Maybe Date
-			, remark   :: Maybe Note
+			, remark   :: Maybe String
 			, done     :: Bool
 			}
 derive class iTask ToDo
@@ -482,11 +482,8 @@ editWithStatistics
 											
 editFile :: String (Shared String) (SharedTaskList ()) -> Task ()
 editFile fileName sharedFile _
- =						updateSharedInformation ("edit " +++ fileName) [UpdateAs toV fromV] sharedFile
+ =						updateSharedInformation ("edit " +++ fileName) [UpdateUsing id (const id) (textArea 'DM'.newMap)] sharedFile
  	@!					()
-where
-	toV text 			= Note text
-	fromV _ (Note text) = text
 
 showStatistics sharedFile _  = noStat <<@ InWindow
 where
@@ -546,8 +543,8 @@ where
 		= 			updateSharedInformation ("Chat with " <+++ who) [UpdateAs toView fromView] notes
 			>>*		[OnAction (Action "Stop" []) (always (return ()))]
 
-	toView   (me,you) 							= (Display you, Note me)
-	fromView _ (Display you, Note me) 	= (me,you) 
+	toView   (me,you) 							= (Display you, me)
+	fromView _ (Display you, me) 	= (me,you) 
 
 	switch (me,you) = (you,me)
 
