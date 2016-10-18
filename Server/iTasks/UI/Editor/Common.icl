@@ -125,7 +125,7 @@ where
 		| (JSONEncode{|*->*|} jsonenc) False new === (JSONEncode{|*->*|} jsonenc) False old
 			= (Ok (NoChange,mask),old,vst) //TODO: Determine small UI change
 		| otherwise
-			= case genUI dp new {vst & mode = Update} of
+			= case genUI dp new vst of
 				(Ok (ui,mask),vst) = (Ok (ReplaceUI ui,mask),new,vst)
 				(Error e,vst) = (Error e,old,vst)
 
