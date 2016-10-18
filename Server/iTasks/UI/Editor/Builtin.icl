@@ -142,5 +142,11 @@ where
 			_ 
 				= (Error ("Invalid choice event: " +++ toString e), (val,sel),vst)
 
-	onRefresh dp new old mask vst
-		= (Ok (NoChange,mask),new,vst)
+	onRefresh dp (new,nsel) (old,osel) mask vst
+		//Check options
+		# oOpts = map toOption (getOptions old)
+		# nOpts = map toOption (getOptions new)
+		# cOptions= if (nOpts =!= oOpts) (ChangeUI [SetAttribute "options" (JSONArray nOpts)] []) NoChange
+		# cSel = if (nsel =!= osel) (ChangeUI [SetAttribute "value" (toJSON nsel)] []) NoChange
+		//Check selection
+		= (Ok (mergeUIChanges cOptions cSel, mask),(new,nsel),vst)

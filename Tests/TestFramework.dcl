@@ -3,8 +3,8 @@ import iTasks
 
 :: InteractiveTest 
 	= { name :: String
-      , instructions  	:: Note
-      , expectation 	:: Note
+      , instructions  	:: String
+      , expectation 	:: String
 	  , taskUnderTest 	:: Task ()
 	  }
 
@@ -18,13 +18,13 @@ import iTasks
 
 :: TestSuite =
 	{ name :: String
-	, description :: Note
+	, description :: String
 	, tests :: [Test]
 	}
 
 :: TestResult
 	= Passed 
-	| Failed !(Maybe Note) 	//Observed behavior
+	| Failed !(Maybe String) 	//Observed behavior
 	| Skipped 				//The test was skipped
 
 :: SuiteResult =
@@ -81,6 +81,13 @@ skip :: String -> Test
 testsuite :: String String [Test] -> TestSuite
 
 /**
+* Filter test suites based on the name of a test
+*/
+
+filterSuitesByTestName ::String [TestSuite] -> [TestSuite]
+filterTestsByName :: String [Test] -> [Test]
+
+/**
 * Test a specific editor
 *
 * @param The editor to test
@@ -88,6 +95,8 @@ testsuite :: String String [Test] -> TestSuite
 * @param Edit mode to test (View,Enter,Update)
 */
 testEditor :: (Editor a) a EditMode -> Task a | iTask a
+
+testEditorWithShare :: (Editor a) a EditMode -> Task a | iTask a
 
 /**
 * A generic test rig for testing the different editor variants for a type

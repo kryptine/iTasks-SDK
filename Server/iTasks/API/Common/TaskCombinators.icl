@@ -6,7 +6,6 @@ import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdCl
 import Text, System.Time, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks._Framework.Util
 from StdFunc			import id, const, o
-from iTasks.API.Core.Types		    import :: Note(..)
 from iTasks.API.Core.SDSs           import randomInt, topLevelTasks, currentDateTime
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON
 import qualified Data.Map as DM

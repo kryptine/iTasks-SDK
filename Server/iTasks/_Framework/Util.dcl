@@ -6,6 +6,8 @@ from Data.Error import :: MaybeErrorString, :: MaybeError
 import iTasks.API.Core.Types
 from Data.Map import :: Map
 
+show                :: ![String] !*World -> *World
+
 mb2list				:: !(Maybe [a]) -> [a]
 list2mb				:: ![a] -> (Maybe [a])
 

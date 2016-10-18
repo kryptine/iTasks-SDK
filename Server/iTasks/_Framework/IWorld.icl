@@ -66,9 +66,9 @@ createIWorld appName mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 		Nothing 
 			# appWebDirs = [appDir </> "WebPublic"]
 			= case mbSDKPath of 
-				Just sdkDir	//Scan extensions for public web files
-					# (libWebDirs,world) = determineWebPublicDirs (sdkDir </>"Server"</>"iTasks"</>"API"</>"Extensions") world
-					= ([sdkDir</>"Client"] ++ appWebDirs ++ libWebDirs,world)	
+				Just sdkDir	//Scan libraries for public web files
+					# (libWebDirs,world) = determineWebPublicDirs (sdkDir </>"Server"</>"iTasks") world
+					= (appWebDirs ++ libWebDirs,world)	
 				Nothing
 					= (appWebDirs,world)
     # (customCSS,world)    = checkCustomCSS appName webdirPaths world 
@@ -76,8 +76,8 @@ createIWorld appName mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 	| isError res				= abort "Cannot get executable info."
 	# tm						= (fromOk res).lastModifiedTime
 	# build						= strfTime "%Y%m%d-%H%M%S" tm
-	# (DateTime localDate localTime,world)	= currentLocalDateTimeWorld world
-	# (DateTime utcDate utcTime,world)	    = currentUTCDateTimeWorld world
+	# (local,world)             = currentLocalDateTimeWorld world
+	# (utc,world)	            = currentUTCDateTimeWorld world
 	# (_,world)					= ensureDir "data" dataDir world
 	# tmpDir					= dataDir </> "tmp"
 	# (_,world)					= ensureDir "tmp" tmpDir world
@@ -102,10 +102,10 @@ createIWorld appName mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
       ,clocks =
         {SystemClocks
 		|timestamp=timestamp
-        ,localDate=localDate
-        ,localTime=localTime
-        ,utcDate=utcDate
-        ,utcTime=utcTime
+        ,localDate=toDate local 
+        ,localTime=toTime local
+        ,utcDate=toDate utc
+        ,utcTime=toTime utc
         }
       ,current =
 	    {TaskEvalState
@@ -249,22 +249,6 @@ iworldTimestamp = createReadWriteSDS "IWorld" "timestamp" read write
 where
     read _ iworld=:{IWorld|clocks={timestamp}} = (Ok timestamp,iworld)
     write _ timestamp iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & timestamp=timestamp}})
-
-
-updateClocks :: !*IWorld -> *IWorld
-updateClocks iworld=:{IWorld|clocks,world}
-    //Determine current date and time
-	# (timestamp,world) 						= time world
-	# (DateTime localDate localTime,world)		= currentLocalDateTimeWorld world
-	# (DateTime utcDate utcTime,world)			= currentUTCDateTimeWorld world
-    # iworld = {iworld & world = world}
-    //Write SDS's if necessary
-    # iworld = if (localDate == clocks.localDate) iworld (snd (write localDate iworldLocalDate iworld))
-    # iworld = if (localTime == clocks.localTime) iworld (snd (write localTime iworldLocalTime iworld))
-    # iworld = if (utcDate == clocks.utcDate) iworld (snd (write utcDate iworldUTCDate iworld))
-    # iworld = if (utcTime == clocks.utcTime) iworld (snd (write utcTime iworldUTCTime iworld))
-    # iworld = if (timestamp == clocks.timestamp) iworld (snd (write timestamp iworldTimestamp iworld))
-    = iworld
 
 //Wrapper instance for file access
 instance FileSystem IWorld

@@ -86,7 +86,7 @@ loginAndManageWorkList welcome workflows
 					||-
 	 				enterInformation "Enter your credentials and login or press continue to remain anonymous" []
 	 			) 
-		>>* 	[OnAction (Action "Login" [ActionIcon "login",ActionKey (unmodified KEY_ENTER)]) (hasValue (browseAuthenticated workflows))
+		>>* 	[OnAction (Action "Login" [ActionIcon "login"]) (hasValue (browseAuthenticated workflows))
 				,OnAction (Action "Continue" []) (always (browseAnonymous workflows))
 		] 
 		) <<@ ApplyLayout (beforeStep frameCompact)) //Compact layout before login, full screen afterwards
@@ -149,11 +149,10 @@ where
 	layoutManageSession = sequenceLayouts 
 		[unwrapUI
 		,layoutChildrenOf [] actionToButton
-		,setNodeType UIPanel
-		,setAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 10 2 10])
+		,layoutSubAt [0] (setNodeType UIContainer)
+		,setNodeType UIContainer
+		,setAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
 		]
-	
-	//layoutManageWork = arrangeWithSideBar 0 TopSide 200 True
 
 manageSession :: !(SharedTaskList ClientPart) -> Task ClientPart
 manageSession list
@@ -171,7 +170,7 @@ startWork list = chooseWorkflow >&> viewAndStart
 where
 	viewAndStart sel = forever (
 			viewWorkflowDetails sel
-		>>* [OnAction (Action "Start Task" [ActionKey (unmodified KEY_ENTER)]) (hasValue (startWorkflow list))]
+		>>* [OnAction (Action "Start Task" []) (hasValue (startWorkflow list))]
 		@	\wf -> SelWorkflow wf.Workflow.path
 		)
 
@@ -201,10 +200,10 @@ where
 
 viewWorkflowDetails :: !(ReadOnlyShared (Maybe Workflow)) -> Task Workflow
 viewWorkflowDetails sel
-	= viewSharedInformation [Att (Title "Task description"), Att IconView] [ViewAs view] sel
+	= viewSharedInformation [Att (Title "Task description"), Att IconView] [ViewUsing view (textView 'DM'.newMap)] sel
 	@? onlyJust
 where
-	view = fmap (\wf -> Note wf.Workflow.description)
+	view = maybe "" (\wf -> wf.Workflow.description)
 	
 	onlyJust (Value (Just v) s) = Value v s
 	onlyJust _					= NoValue
@@ -218,7 +217,7 @@ startWorkflow list wf
                                           , ("createdBy",  toString (toUserConstraint user))
                                           , ("createdAt",  toString now)
                                           , ("createdFor", toString (toUserConstraint user))
-                                          , ("priority",   toString 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
+                                          , ("priority",   toString 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task <<@ ApplyLayout defaultSessionLayout)
 	>>= \procId ->
 		openTask list procId
 	@	const wf
@@ -261,13 +260,13 @@ openTask taskList taskId
 
 workOnTask :: !TaskId -> Task ClientPart
 workOnTask taskId
-    =   workOn taskId <<@ ApplyLayout (setAttributes (heightAttr FlexSize))
+    =   (workOn taskId <<@ ApplyLayout (setAttributes (heightAttr FlexSize))
     >>* [OnValue    (ifValue ((===) ASExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this task" >>| return OpenProcess))
         ,OnValue    (ifValue ((===) ASIncompatible) (\_ -> dealWithIncompatibleTask))
         ,OnValue    (ifValue ((===) ASDeleted) (\_ -> return OpenProcess))
         ,OnValue    (ifValue ((===) (ASAttached True)) (\_ -> return OpenProcess)) //If the task is stable, there is no need to work on it anymore
         ,OnAction ActionClose   (always (return OpenProcess))
-        ]
+        ] ) <<@ ApplyLayout (copyAttributes ["title"] [0] []) //Use the title from the workOn for the composition
 where
     dealWithIncompatibleTask
         =   viewInformation (Title "Error") [] "This this task is incompatible with the current application version. Restart?"
@@ -282,7 +281,7 @@ where
                 =   viewInformation (Title "Error") [] "Sorry, this task is no longer available in the workflow catalog"
                 >>| return OpenProcess
             Just replacement
-                =   replaceTask taskId (const (unwrapWorkflowTask replacement.Workflow.task)) topLevelTasks
+                =   replaceTask taskId (const ((unwrapWorkflowTask replacement.Workflow.task) <<@ ApplyLayout defaultSessionLayout)) topLevelTasks
                 >>| workOnTask taskId
 
     //Look in the catalog for an entry that has the same path as

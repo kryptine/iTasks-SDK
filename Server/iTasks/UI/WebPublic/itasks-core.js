@@ -388,6 +388,7 @@ itasks.Loader = {
 };
 itasks.Viewport = {
 	cssCls: 'viewport',
+	syncTitle: false,
 
 	initComponent:function() {
 		var me = this;	
@@ -422,7 +423,22 @@ itasks.Viewport = {
 		me.service.doEditEvent(taskId, editorId, value);
 	},
 	onInstanceUIChange: function(change) {
-		this.children[0].onUIChange(change);
+		var me = this;
+	
+		me.children[0].onUIChange(change);
+		//Sync title of the top level element
+		if(me.syncTitle) {
+			if(change.type == 'replace' && change.definition.title) {
+				document.title = change.definition.title;
+			}
+			if(change.type == 'change' && change.attributes.length > 0) {
+				change.attributes.forEach(function(change) {
+					if(change.name == 'title') {
+						document.title = change.value;
+					}
+            	});
+			}
+		}
 	}
 };
 
@@ -430,7 +446,6 @@ itasks.Viewport = {
 itasks.viewport = function(spec,domEl) {
 	return Object.assign(Object.create(itasks.Component), itasks.Viewport, spec, {domEl:domEl}).init();
 };
-
 
 //Web service proxy/multiplexer class
 //This is is a singleton because all itask component objects need to share their

@@ -1,7 +1,7 @@
 implementation module Tests.Interactive.BuiltinEditors
 
 import iTasks, TestFramework
-import iTasks.UI.Editor.Builtin, iTasks.UI.Definition
+import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
 import qualified Data.Map as DM
 import Text.HTML
 
@@ -15,6 +15,7 @@ testBuiltinEditors = testsuite "Builtin editors" "These tests check if the built
 	,testTextView,testHtmlView,testProgressBar
 	,testDropdown,testCheckGroup,testChoiceList,testGrid,testTree
 	,testCheckGroupMulti,testChoiceListMulti,testGridMulti,testTreeMulti
+	,testList
 	]
 
 testTextField = itest "Text field" "Check if the textfield is ok" "You should be able to edit" tut
@@ -143,3 +144,21 @@ where
         ,{ChoiceNode|id=2,label="B",icon=Nothing,expanded=False,children=[]}
         ,{ChoiceNode|id=3,label="C",icon=Nothing,expanded=False,children=[]}
         ],[]) Update
+
+testBuiltinEditorsWithShares :: TestSuite
+testBuiltinEditorsWithShares = testsuite "Builtin editors with shares" "These tests check if the builtin editors sync with shared data"
+	[testGridShare]
+
+testGridShare = itest "Grid (shared)" "Check if the grid works" "The grid should update if you change the model" tut
+where
+	tut :: Task (ChoiceGrid,[Int])
+	tut = (testEditorWithShare (grid (multipleAttr True)) ({ChoiceGrid|header=["Key","Value"],rows=rows},[]) Update)
+
+	rows = [{ChoiceRow|id=1,cells=[Text "A",Text "1"]},{ChoiceRow|id=2,cells=[Text "B",Text "2"]},{ChoiceRow|id=3,cells=[Text "C",Text "3"]}]
+
+
+testList = itest "List of strings" "Check if the list editor works" "You should be able to edit a list of strings" tut
+where
+	tut :: Task [String]
+	tut = testEditor (listEditor (Just (const "New item")) True True (Just (\items -> length items +++> " items")) (textField 'DM'.newMap)) [] Update
+

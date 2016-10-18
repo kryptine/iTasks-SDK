@@ -7,7 +7,7 @@ import iTasks._Framework.IWorld
 import qualified Data.Map as DM
 import StdMisc
 
-derive JSONEncode NodeMove
+derive JSONEncode NodeMove, NodeLayoutState
 
 testLayout :: TestSuite
 testLayout = testsuite "Layout" "Tests for the layout functions"
@@ -23,6 +23,7 @@ testLayout = testsuite "Layout" "Tests for the layout functions"
 	,testRemoveSubsMatchingOnChildChange
 	,testRemoveSubsMatchingOnReplaceAfterRemove 
 	,testRemoveSubsMatchingOnReplaceMultipleAfterRemove
+	,testRemoveSubsMatchingOnRemove
 	,testLayoutSubsMatching
 	,testMoveSubsMatchingInitial
 	,testMoveSubsMatchingInitial2
@@ -34,7 +35,13 @@ testLayout = testsuite "Layout" "Tests for the layout functions"
 	,testAutoInteractionLayoutInitial
 	,testAutoInteractionLayoutEditorValueChange
 	,testMoveTaskToWindow
-	,testFlatteningOfNestedRecords]
+	,testFlatteningOfNestedRecords
+	//Complex combination
+	,testCombination1
+	,testCombination2
+	]
+
+
 
 //Tests for the core operations of the layout library
 testChangeNodeType = skip "Changing node type"
@@ -138,6 +145,28 @@ where
 	isEmpty (UI type _ _) = type =: UIEmpty
 
 
+testRemoveSubsMatchingOnRemove = assertEqual "Removing everything that matches, then explicitly remove somehting" exp sut
+where
+	sutLayout = removeSubsMatching [] isEmpty
+	sut
+		//Initial, followed by an event in the new structure
+		# (c,s) = sutLayout (initChange,initState)
+		# (c,s) = sutLayout (changeToReRoute,s)
+		= c
+	exp = expChange
+
+	initState = JSONNull
+
+	initChange = ReplaceUI (uic UIPanel [ui UIContainer, ui UIEmpty])
+
+	changeToReRoute = ChangeUI [] [(0,RemoveChild),(0,RemoveChild)]
+	expChange = ChangeUI [] [(0,RemoveChild)]
+
+	isEmpty (UI type _ _) = type =: UIEmpty
+
+
+
+
 testLayoutSubsMatching = skip "Applying another layout to all matching nodes"
 
 testMoveSubsMatchingInitial = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
@@ -212,7 +241,7 @@ where
 	changeToReRoute = ChangeUI [] [(0,ChangeChild (ChangeUI [] [(2,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
 	//Expected reroute change 
-	expChange = ChangeUI [] [(0,ChangeChild (ChangeUI [] [])),(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
+	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
 	expState = toJSON [(0,ChildBranchesMoved [(0,BranchMoved),(2,BranchMoved)])]
 
@@ -260,7 +289,7 @@ testAutoInteractionLayoutEditorValueChange = skip "Test if the auto interaction 
 
 testFlatteningOfNestedRecords = skip "Auto interact layout should flatten a nested-record structure"
 	//= assertEqualWorld "Auto interact layout should flatten a nested-record structure" exp sut
-where
+//where
 	//We expect a change to the control with index 3, because the autoAccuInteract flattens the form
 	/*
 	exp = ChangeUI [] [(3, ChangeChild (ChangeUI [("setEditorValue", [JSONString "bax"])] []))] 
@@ -272,3 +301,72 @@ where
 		= (res,world)
 	*/
 
+
+testCombination1 = assertEqual "Complex combination layout with insert events" exp sut
+where
+	sutLayout = sequenceLayouts
+        [//First stage 
+		 sequenceLayouts
+        	[arrangeWithSideBar3
+        	,layoutSubAt [1] arrangeWithSideBar3
+        	]
+		//Second stage
+        ,removeSubsMatching [] isInteract 
+        ]
+	where
+		arrangeWithSideBar3 :: Layout
+		arrangeWithSideBar3 = sequenceLayouts
+			[wrapUI UIDebug //Push the current container down a level
+			,insertSubAt [0] (ui UIComponent) //Make sure we have a target for the move
+			,moveSubAt [1,0] [0,0] //Key difference
+			,layoutSubAt [0] unwrapUI //Remove the temporary wrapping panel
+			]
+
+    isInteract (UI type _ _) = type =: UIInteract
+
+	sut
+		//Initial, followed by an event in the new structure
+		# (c1,s1) = sutLayout (ReplaceUI initUI,initState)
+		# (c2,s2) = sutLayout (changeToModify,s1)
+		= c2
+
+	exp = expModifiedChange
+
+	//Initial UI	
+	initUI = uic UIPanel [uic UIContainer [ui UIInteract], uic UIMenu [ui UIInteract]]
+	initState = JSONNull
+
+	//First rendering
+	renderedUI = uic UIDebug [uic UIContainer [], uic UIDebug [uic UIMenu [], uic UIPanel []] ]
+	renderedState = JSONArray [JSONArray [sSideBar,sSub1], sRmInteract]
+	where
+		sSideBar = JSONArray [JSONNull,toJSON (BranchLayout JSONNull),toJSON moves, toJSON (ChildBranchLayout [(0,BranchLayout (JSONBool False))])]
+		where
+			moves = [(1,ChildBranchesMoved [(0,BranchMoved)])]
+
+		sSub1 = toJSON (ChildBranchLayout [(1,BranchLayout sSideBar)])
+
+		sRmInteract = toJSON [(0,ChildBranchesMoved [(0,BranchMoved)]),(1,ChildBranchesMoved [(0,ChildBranchesMoved [(0,BranchMoved)])])]
+
+	//Expected reroute change 
+	changeToModify = ChangeUI [] [(2,InsertChild (uic UIToolBar [ui UIInteract]))]
+	expModifiedChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar []))]))]))]
+
+testCombination2 = assertEqual "Insert after global removal" exp sut
+where
+	sut
+		//Initial, followed by an event in the new structure
+		# (c2,s2) = sutLayout (changeToModify,initState)
+		= c2
+	exp = expModifiedChange
+
+	sutLayout = removeSubsMatching [] isInteract
+	where
+    	isInteract (UI type _ _) = type =: UIInteract
+
+	initState = toJSON [(0,ChildBranchesMoved [(0,BranchMoved)])
+					   ,(1,ChildBranchesMoved [(0,ChildBranchesMoved [(0,BranchMoved)])])]
+
+	//Change after first transform 
+	changeToModify = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar [ui UIInteract]))]))]))]
+	expModifiedChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar []))]))]))]

@@ -245,7 +245,7 @@ viewInstance bpi=:{bpi_blueprint, bpi_bpref = {bpr_moduleName, bpr_taskName}} = 
       @! ()
 */
 
-nulDT = DateTime { Date | day = 0, mon = 0, year = 0 } { Time | hour = 0, min = 0, sec = 0 }
+nulDT = toDateTime { Date | day = 0, mon = 0, year = 0 } { Time | hour = 0, min = 0, sec = 0 }
 
 mkInstance :: NodeId TonicFunc -> BlueprintInstance
 mkInstance nid tf =

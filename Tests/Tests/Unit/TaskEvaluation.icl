@@ -221,7 +221,7 @@ where
 		//Initialize JS compiler support
 		# (res,iworld) = initJSCompilerState iworld
 		| res =:(Error _)
-			= (Failed (Just (Note (fromError res))),destroyIWorld iworld)
+			= (Failed (Just (fromError res)),destroyIWorld iworld)
 		//Empty the store to make sure that we get a reliable task instance no 1
 		# iworld = emptyStore iworld
 		//Create an instance with autolayouting disabled at the top level
@@ -240,15 +240,15 @@ where
 							Ok queue 	
 								# list = toList queue
 								| comparison list exp 	= Passed
-								| otherwise     		= Failed (Just (Note ("Expected: " <+++ exp <+++ "\nActual:   " <+++ list)))
-							(Error (_,e)) = Failed (Just (Note e))
+								| otherwise     		= Failed (Just ("Expected: " <+++ exp <+++ "\nActual:   " <+++ list))
+							(Error (_,e)) = Failed (Just e)
 						= (verdict,world)
 					(Error e)
 						# world = destroyIWorld iworld
-						= (Failed (Just (Note e)),world)
+						= (Failed (Just e),world)
 			(Error (_,e)) 	
 				# world = destroyIWorld iworld
-				= (Failed (Just (Note e)),world)
+				= (Failed (Just e),world)
 
 	applyEvents _ [] iworld = (Ok (),iworld)
 	applyEvents instanceNo [e:es] iworld

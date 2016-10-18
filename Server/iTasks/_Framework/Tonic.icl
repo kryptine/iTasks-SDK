@@ -25,7 +25,6 @@ import iTasks.API.Common.ImportTasks
 import iTasks.API.Common.InteractionTasks
 import iTasks.API.Extensions.Admin.UserAdmin
 import iTasks.API.Extensions.SVG.SVGEditor
-import iTasks.API.Extensions.Admin.WorkflowAdmin
 import System.File
 from StdFunc import o
 from System.FilePath import </>
@@ -223,9 +222,6 @@ instance TApplicative IO where
   return x   = IO (\s -> (x, s))
   (<#>) f g  = liftA2 id f g
 
-instance TFunctor IO where
-  tmap f x = x >>= (return o f)
-
 instance TMonad IO where
   (>>=) (IO f) a2mb = IO run
     where
@@ -241,7 +237,7 @@ ppnid nid = "[" +++ ppnid` nid +++ "]"
   ppnid` [x] = toString x
   ppnid` [x:xs] = toString x +++ ", " +++ ppnid` xs
 
-liftA2 f a b = (tmap f a) <#> b
+liftA2 f a b = f <$> a <#> b
 
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
                    DynamicView, BlueprintQuery, CircularStack
@@ -303,8 +299,8 @@ tonicWrapTaskBody` mn tn args cases t=:(Task eval)
           # (muser, iworld)  = 'DSDS'.read (sdsFocus instanceNo taskInstanceUser) iworld
           # bpinst           = { BlueprintInstance
                                | bpi_taskId           = currTaskId
-                               , bpi_startTime        = DateTime clocks.localDate clocks.localTime
-                               , bpi_lastUpdated      = DateTime clocks.localDate clocks.localTime
+                               , bpi_startTime        = toDateTime clocks.localDate clocks.localTime
+                               , bpi_lastUpdated      = toDateTime clocks.localDate clocks.localTime
                                , bpi_endTime          = Nothing
                                , bpi_activeNodes      = 'DM'.newMap
                                , bpi_previouslyActive = 'DM'.newMap
@@ -336,7 +332,7 @@ tonicWrapTaskBody` mn tn args cases t=:(Task eval)
              # oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems bpi.bpi_activeNodes)])
                                              bpi.bpi_previouslyActive
              # (_, iworld)      = 'DSDS'.write { bpi
-                                               & bpi_endTime          = Just (DateTime clocks.localDate clocks.localTime)
+                                               & bpi_endTime          = Just (toDateTime clocks.localDate clocks.localTime)
                                                , bpi_previouslyActive = oldActive
                                                , bpi_activeNodes      = 'DM'.newMap
                                                } (sdsFocus (currTaskId, mn, tn) tonicInstances) iworld
@@ -377,7 +373,7 @@ markStable currTaskId currBlueprintModuleName currBlueprintFuncName iworld
       Ok (Just bpi)
         # (curr, iworld)   = iworld!current
         # (clocks, iworld) = iworld!clocks
-        # currDateTime     = DateTime clocks.localDate clocks.localTime
+        # currDateTime     = toDateTime clocks.localDate clocks.localTime
         # oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems bpi.bpi_activeNodes)])
                                         bpi.bpi_previouslyActive
         # (_, iworld)      = 'DSDS'.write { bpi

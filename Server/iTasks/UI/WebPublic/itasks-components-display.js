@@ -3,6 +3,7 @@ itasks.TextView = {
 	paddingRight: 5,
 	paddingBottom: 5,
 	paddingLeft: 5,
+	cssCls: 'textview',
 
 	initDOMEl: function() {
 		this.domEl.innerHTML = this.value || '';

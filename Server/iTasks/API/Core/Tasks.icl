@@ -93,7 +93,7 @@ where
 				//Just decode the initially stored values
 				= case (fromJSON encl, fromJSON encv) of
 					(Just l,Just v) = (Ok (taskId,ts,l,v,m),iworld)
-					_				= (Error (exception "Failed to decode stored view in interact"),iworld)
+					_				= (Error (exception ("Failed to decode stored model and view in interact: '" +++ toString encl +++ "', '"+++toString encv+++"'")),iworld)
 		| mbd =:(Error _) = (ExceptionResult (fromError mbd), iworld)
 		# (taskId,ts,l,v,m) = fromOk mbd
 		//Apply event (if there is one for this interact)	

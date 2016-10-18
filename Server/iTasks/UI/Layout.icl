@@ -9,6 +9,7 @@ from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, al
 
 from StdFunc import o, const, id, flip
 from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
+import StdDebug
 
 //This type records where parts were removed from a ui tree
 :: NodeMoves :== [(Int,NodeMove)] 
@@ -100,12 +101,15 @@ unwrapUI :: Layout
 unwrapUI = layout
 where
 	layout (ReplaceUI def,_) = case def of
-		(UI _ _ [child:_])  = (ReplaceUI child,JSONNull)
-		_ 					= (ReplaceUI (ui UIEmpty),JSONNull)
+		(UI _ _ [child:_])  = (ReplaceUI child,JSONBool False)
+		_ 					= (ReplaceUI (ui UIEmpty),JSONBool True) //If there is no inner component, remember we replaced it with empty...
 
-	layout (ChangeUI _ childChanges,s) = case [change \\ (0,ChangeChild change) <- childChanges] of
-		[change] = (change,s)
+	layout (ChangeUI _ childChanges,s=:(JSONBool False)) = case [change \\ (0,ChangeChild change) <- childChanges] of
+		[change] = (change,s) //TODO: Check if there are cases with multiple changes to child 0
+		[change:x] = trace_n "Warning: unwrapUI: edge case" (NoChange,s) //TODO: Check if there are cases with multiple changes to child 0
 		_        = (NoChange,s)
+
+	layout (change,s) = (NoChange,s) 
 
 flattenUI :: Layout
 flattenUI = layout
@@ -166,11 +170,10 @@ where
 
 //Test if a path extends another path
 isSubPathOf_ :: NodePath NodePath -> Bool
-isSubPathOf_ p [] = True  //Everything is a sub path of the root path
-isSubPathOf_ [] p = False //If the path we are checking against is longer, it can't be a sub path
-isSubPathOf_ [p1:ps1] [p2:ps2] //Check if prefix is the same
-	| p1 == p2  = isSubPathOf_ ps1 ps2	
-				= False
+isSubPathOf_ p1 p2 = length p1 > length p2 && isPrefix p1 p2
+where
+	isPrefix p [] = True
+	isPrefix [p1:ps1] [p2:ps2] = if (p1 == p2) (isPrefix ps1 ps2) False
 
 moveSubs_ :: (NodePath UI -> Bool) (Maybe NodePath) -> Layout
 moveSubs_ pred mbDst = layout
@@ -212,9 +215,17 @@ removeAndAdjust_ path pred tidx (ReplaceUI ui) moves //If the node is replaced, 
 //The change case: We need to adjust the changes to the child branches
 removeAndAdjust_ path pred tidx (ChangeUI localChanges childChanges) moves 
 	# (moves, childChanges, inserts) = adjustChildChanges tidx moves childChanges 
-	= (ChangeUI localChanges childChanges, moves, inserts)
+	= (cleanChange (ChangeUI localChanges childChanges), moves, inserts)
 where
-	adjustChildChanges tidx moves [] = (moves,[],[])
+	cleanChange (ChangeUI localChanges childChanges) = case (localChanges,[c \\ c <- childChanges | not (c =:(_,ChangeChild NoChange))]) of
+		([],[]) = NoChange
+		(l,c)   = ChangeUI l c
+	cleanChange change = change
+
+	adjustChildChanges tidx moves [] 
+		//Sort for easier debugging
+		# moves = sortBy (\(i1,m1) (i2,m2) -> i1 < i2) moves
+		= (moves,[],[])
 	//- Insert 
 	adjustChildChanges tidx moves [(idx,InsertChild ui):cs] 
 		//Determine additional moves in the replacement ui
@@ -279,7 +290,7 @@ where
                           ,[])
 					(_,Just ui,subMoves,subInserts) //One or more sub nodes matched, we need to record the moves for this branch
 					    = ([(adjustIndex moves idx, ChangeChild (ReplaceUI ui))]
-					      ,[(idx,ChildBranchesMoved subMoves)]
+					      ,[(idx,ChildBranchesMoved subMoves):[(i,m) \\ (i,m) <- moves | i <> idx]]
 					      ,subInserts)
 			//Previously this child node matched the predicate
 			Just BranchMoved 
@@ -290,12 +301,14 @@ where
 				| otherwise //The Moved node should no longer be moved -> change the replacement to an insert instruction
 					= case collectNodes_ (path ++ [idx]) pred (adjustTargetIndex moves idx tidx) ui of
 						(_,_,[],_) //Nothing matched, no need to record anything
+							# moves = [(i,m) \\ (i,m) <- moves | i <> idx]
 							= ([(adjustIndex moves idx,InsertChild ui)]
-					   	  	  ,[(i,m) \\ (i,m) <- moves | i <> idx]
+					   	  	  ,moves 
 					          ,[(adjustTargetIndex moves idx tidx,RemoveChild)])
 						(_,Just ui,subMoves,subInserts)
+							# moves = [(i,m) \\ (i,m) <- moves | i <> idx]
 						    = ([(adjustIndex moves idx,InsertChild ui)]
-						      ,[(idx,ChildBranchesMoved subMoves):[(i,m) \\ (i,m) <- moves | i <> idx]]
+						      ,[(idx,ChildBranchesMoved subMoves):moves]
 						      ,[(adjustTargetIndex moves idx tidx,RemoveChild):subInserts])
 			//Previously children of the child node matched the predicate
 			Just (ChildBranchesMoved subMoves)
@@ -320,8 +333,13 @@ where
 	//- Other recursive changes
 	adjustChildChanges tidx moves [(idx,ChangeChild change):cs] 
 		# (change,moves,subInserts) = case findMove idx moves of
-			//Nothing to do, only adjust the index
-			Nothing = ([(adjustIndex moves idx,ChangeChild change)]
+			//Nothing moved yet, but the predicate might match on inserts or replace instructions in descendant nodes
+			Nothing
+				# (change,subMoves,subInserts) = removeAndAdjust_ (path ++ [idx]) pred (adjustTargetIndex moves idx tidx) change []
+				# moves = case subMoves of
+					[] = moves
+					_  = [(idx,ChildBranchesMoved subMoves):moves]
+				= ([(adjustIndex moves idx,ChangeChild change)]
 					  ,moves
 					  ,[])
 			//Redirect the change
@@ -368,7 +386,7 @@ where
 		| i == idx  = [(i,ChangeChild (insertAndAdjust_ ss startIdx numInserts insertChanges change)):cs] //Adjust an existing branch
 		| i < idx 	= [(i,ChangeChild change):adjustChildChanges idx cs] //Scan forward
 					= [(idx,ChangeChild (insertAndAdjust_ ss startIdx numInserts insertChanges NoChange)),(i,ChangeChild change):cs] //Add a branch
-	adjustChildChanges idx [c:cs] = [c:adjustChildChanges idx cs] //TODO: Figure out if we can properly handle structure changes on the path
+	adjustChildChanges idx [c:cs] = trace_n "Warning: insertAndAdjust: edge case" [c:adjustChildChanges idx cs] //TODO: Figure out if we can properly handle structure changes on the path
 	
 countMoves_ :: NodeMoves Bool -> Int
 countMoves_  moves recursive = foldr count 0 (map snd moves)
@@ -427,7 +445,7 @@ layoutChange_ path pred layout (ReplaceUI ui) states
 	# (ui,eitherState) = layoutUI_ path pred layout ui
 	= (ReplaceUI ui,eitherState)
 layoutChange_ path pred layout (ChangeUI localChanges childChanges) states
-	# (childChanges,states) = layoutChildChanges_ [] pred layout childChanges states
+	# (childChanges,states) = layoutChildChanges_ path pred layout childChanges states
 	= (ChangeUI localChanges childChanges, ChildBranchLayout states)
 layoutChange_ path pred layout change states
 	= (change,ChildBranchLayout states)
@@ -459,14 +477,20 @@ where
 			= ((idx,ChangeChild change),[(idx,BranchLayout state):states])
 		(Just (ChildBranchLayout childStates),states) //Recursively adjust the change
 			# (change,state) = layoutChange_ (path ++ [idx]) pred layout change childStates
-			= ((idx,ChangeChild change),[(idx,state):states])
-		(Nothing,states) //Nothing to do
-			= ((idx,ChangeChild change),states) 
+			= case state of
+				ChildBranchLayout [] = ((idx,ChangeChild change),states) //Don't store empty state
+				_ 					 = ((idx,ChangeChild change),[(idx,state):states])
+		(Nothing,states) //Recursively adjust the change
+			# (change,state) = layoutChange_ (path ++ [idx]) pred layout change []
+			= case state of
+				ChildBranchLayout [] = ((idx,ChangeChild change),states) //Don't store empty state
+				_ 					 = ((idx,ChangeChild change),[(idx,state):states])
+
 	layoutChildChange_ path pred layout (idx,InsertChild ui) states
 		# (ui,eitherState) = layoutUI_ (path ++ [idx]) pred layout ui
-		= ((idx,InsertChild ui),[(idx,eitherState):[(if (i > idx) (i + 1) i,s)  \\ (i,s) <- states]]) //Also adjust the indices of the other states
+		= ((idx,InsertChild ui),[(idx,eitherState):[(if (i >= idx) (i + 1) i,s)  \\ (i,s) <- states]]) //Also adjust the indices of the other states
 	layoutChildChange_ path pred layout (idx,RemoveChild) states
-		= ((idx,RemoveChild),[(if (i > idx) (i - 1) i, s) \\ (i,s) <- states]) //Remove the current state from the states and adjust the indices accordingly
+		= ((idx,RemoveChild),[(if (i > idx) (i - 1) i, s) \\ (i,s) <- states | i <> idx]) //Remove the current state from the states and adjust the indices accordingly
 	layoutChildChange_ path pred layout (idx,MoveChild dst) states //Move the states 
 		# (srcState,states) = selectState idx states
 		# states = [(if (i > idx) (i - 1) i, s) \\ (i,s) <- states] //Everything moves down when we remove the branch
@@ -532,4 +556,17 @@ where
 
 conditionalLayout :: (UI -> Bool) Layout -> Layout
 conditionalLayout pred condLayout = selectLayout [(pred,condLayout)]
+
+traceLayout :: String Layout -> Layout
+traceLayout name layout = layout`
+where
+	layout` (change,state)
+		# (change`,state`) = layout (change,state)
+		# msg = join "\n" 
+			["Layout trace ("+++ name +++")"
+			,"ORIGINAL CHANGE:"			
+			,toString (toJSON change)
+			,"REWRITTEN CHANGE:"
+			,toString (toJSON change`)]
+		= trace_n msg (change`,state`)
 

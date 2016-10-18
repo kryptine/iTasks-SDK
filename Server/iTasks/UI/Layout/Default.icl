@@ -15,7 +15,7 @@ LABEL_WIDTH :== 100
 
 defaultSessionLayout :: Layout
 defaultSessionLayout = sequenceLayouts 
-    [layoutSubsMatching [] isIntermediate finalizeUI //Finalize all remaining intermediate layouts
+    [finalizeUI                                      //Finalize all remaining intermediate layouts
 	,removeSubsMatching [] isEmpty                   //Remove temporary placeholders
 	,setAttributes (sizeAttr FlexSize FlexSize)      //Make sure we use the full viewport
     ]
@@ -27,7 +27,7 @@ finalizeUI = selectLayout
 	,(isStep,finalizeStep)
 	,(isParallel,finalizeParallel)
 	//Always recursively finalize the children
-	,(const True,layoutChildrenOf [] finalizeUI)
+	,(const True,layoutSubsMatching [] isIntermediate finalizeUI)
 	]
 
 finalizeInteract :: Layout
@@ -50,27 +50,32 @@ finalizeEditor = selectLayout
 	[(isRecord,finalizeRecord)
 	,(isCons,finalizeCons)
 	,(isVarCons,finalizeVarCons)
-	,(isFormComponent,toFormItem)
-	,(const True, layoutChildrenOf [] finalizeEditor)
+	,(isFormComponent,finalizeFormComponent)
+	,(const True, layoutSubsMatching [] isEditorPart finalizeEditor)
+	]
+
+finalizeFormComponent = sequenceLayouts
+	[layoutSubsMatching [] isEditorIntermediate finalizeEditor
+	,toFormItem
 	]
 
 finalizeRecord :: Layout
 finalizeRecord = sequenceLayouts
-	[layoutChildrenOf [] finalizeEditor 
+	[layoutSubsMatching [] isEditorPart finalizeEditor 
 	,setNodeType UIContainer
 	,setAttributes (heightAttr WrapSize)
 	]
 
 finalizeCons :: Layout
 finalizeCons = sequenceLayouts
-	[layoutChildrenOf [] finalizeEditor 
+	[layoutSubsMatching [] isEditorPart finalizeEditor 
 	,setAttributes (directionAttr Horizontal)
 	,setNodeType UIContainer
 	,toFormItem
 	]
 finalizeVarCons :: Layout
 finalizeVarCons = sequenceLayouts
-	[layoutChildrenOf [] finalizeEditor 
+	[layoutSubsMatching [] isEditorPart finalizeEditor 
 	,layoutSubAt [0] (setAttributes (widthAttr WrapSize)) //Make the constructor selection wrapping
 	,setAttributes (directionAttr Horizontal)
 	,setNodeType UIContainer
@@ -81,31 +86,27 @@ finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
 where
 	layout = selectLayout
-		[(isEmpty,setNodeType UIEmpty)
-		,(hasActions,sequenceLayouts[layoutSubAt [0] finalizeUI, actionsToButtonBar,setNodeType UIPanel])
-		,(const True,sequenceLayouts[unwrapUI,finalizeUI])
+		[(hasActions, sequenceLayouts [layoutSubAt [0] finalizeUI, actionsToButtonBar,setNodeType UIPanel])
+		,(const True, sequenceLayouts [unwrapUI,finalizeUI])
 		]
 
-	isEmpty (UI _ _ [] ) = True
-	isEmpty _            = False
-
 finalizeParallel :: Layout
-finalizeParallel = selectLayout [(\ui -> isParallel ui && hasActions ui,layoutWithActions), (isParallel,layoutWithoutActions)]
+finalizeParallel = selectLayout
+	[(\ui -> isParallel ui && hasActions ui,layoutWithActions)
+	,(isParallel,layoutWithoutActions)
+	]
 where
 	layoutWithoutActions = sequenceLayouts
-		[layoutChildrenOf [] finalizeUI
+		[layoutSubsMatching [] isIntermediate finalizeUI
 		,setNodeType UIContainer
 		]
 	layoutWithActions = sequenceLayouts
 		[actionsToButtonBar
-		,layoutChildrenOf [] finalizeUI
+		,layoutSubsMatching [] isIntermediate finalizeUI
 		,setNodeType UIPanel
 		]
 
-	isSingle (UI _ _ [_]) = True
-	isSingle _ = False
-
-hasActions (UI _ _ items) = any isAction items
+hasActions (UI _ _ items) = any isAction items //Dangerous? TODO: check
 	
 actionsToButtonBar= sequenceLayouts
 	[insertSubAt [1] (ui UIButtonBar) 	 //Create a buttonbar
@@ -124,12 +125,15 @@ isCons = \n -> n =:(UI UICons _ _)
 isVarCons = \n -> n =:(UI UIVarCons _ _)
 
 isIntermediate (UI type _ _) = isMember type [UIInteract,UIStep,UIParallel]
+isEditorIntermediate (UI type _ _) = isMember type [UIRecord, UICons, UIVarCons] 
+isEditorPart ui = isEditorIntermediate ui || isFormComponent ui
 
 isFormComponent (UI type attr _) = isMember type 
 	[UITextField,UITextArea,UIPasswordField,UIIntegerField,UIDecimalField
 	,UICheckbox,UISlider,UIDocumentField,UIDropdown,UICheckGroup
 	,UITextView,UIHtmlView
-	] || isJust ('DM'.get LABEL_ATTRIBUTE attr)
+	] || isJust ('DM'.get LABEL_ATTRIBUTE attr) //If another type (for example some editlet representation) has a label attribute we also need to process it
+
 instance == UINodeType where (==) x y = x === y
 
 //Flatten an editor into a form
@@ -142,22 +146,18 @@ where
 		# attr = 'DM'.unions [marginsAttr 2 4 2 4, directionAttr Horizontal, sizeAttr FlexSize WrapSize]
 		= (ReplaceUI (uiac UIContainer attr [label,control,info]),s)
 
-	layout (c=:(ChangeUI localChanges childChanges),s) 
+	layout (ChangeUI localChanges childChanges,s) 
 		//Check if the tooltip or icon needs to be updated
-		= (ChangeUI [] (iconChanges ++ [(1,ChangeChild c)]),s)
-	where
-		iconChanges = case changeType ++ changeTooltip of
+		#iconChanges = case [remap t v \\ SetAttribute t (JSONString v) <- localChanges | isMember t [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]] of
 			[] = []
 			changes = [(2,ChangeChild (ChangeUI changes []))]
+		# localChanges = [c \\ c=:(SetAttribute t _) <- localChanges | not (isMember t [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE])]
+		= (ChangeUI [] ([(1,ChangeChild (ChangeUI localChanges childChanges)):iconChanges]),s)
+	where
+		remap HINT_ATTRIBUTE v = SetAttribute "tooltip" (JSONString v)
+		remap HINT_TYPE_ATTRIBUTE v = SetAttribute "iconCls" (JSONString ("icon-" +++ v))
+		remap t v = SetAttribute t (JSONString v)
 
-		changeType = case [t \\ SetAttribute HINT_TYPE_ATTRIBUTE (JSONString t) <- localChanges] of
-			[type] 	= [SetAttribute "iconCls" (JSONString ("icon-" +++ type))]
-			_ 		= []
-
-		changeTooltip= case [h \\ SetAttribute HINT_ATTRIBUTE (JSONString h) <- localChanges] of
-			[hint] 	= [SetAttribute "tooltip" (JSONString hint)]
-			_ 		= []
-	
 	layout (c,s) = (c,s)
 	
 labelControl :: UIAttributes -> Maybe UI

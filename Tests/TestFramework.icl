@@ -3,7 +3,7 @@ import iTasks, StdFile
 import iTasks.API.Extensions.Image
 import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
 import iTasks._Framework.Serialization
-import Text.HTML
+import Text, Text.HTML
 import qualified Data.Map as DM
 
 // TEST FRAMEWORK
@@ -23,7 +23,7 @@ where
 //DEFINING TESTS
 itest :: String String String (Task a) -> Test | iTask a
 itest name instructions expectation tut
-  = InteractiveTest {name=name,instructions = Note instructions, expectation = Note expectation, taskUnderTest = tut @! ()}
+  = InteractiveTest {name=name,instructions = instructions, expectation = expectation, taskUnderTest = tut @! ()}
 
 utest :: String (*World -> *(TestResult,*World)) -> Test
 utest name test = UnitTest {UnitTest|name=name,test=test}
@@ -31,26 +31,26 @@ utest name test = UnitTest {UnitTest|name=name,test=test}
 assert :: String (a -> Bool) a -> Test | JSONEncode{|*|} a
 assert name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
-	test w = (if (exp sut) Passed (Failed (Just (Note ("Actual: " <+++ (toJSON sut))))),w)
+	test w = (if (exp sut) Passed (Failed (Just ("Actual: " <+++ (toJSON sut)))),w)
 
 assertEqual :: String a a -> Test | gEq{|*|} a & JSONEncode{|*|} a 
 assertEqual name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
-	test w = (if (exp === sut) Passed (Failed (Just (Note ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON sut))))),w)
+	test w = (if (exp === sut) Passed (Failed (Just ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON sut)))),w)
 
 assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | JSONEncode{|*|} a
 assertWorld name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
 	test w 
 		# (res,w) = sut w
-		= (if (exp res) Passed (Failed (Just (Note ("Actual: " <+++ (toJSON res))))),w)
+		= (if (exp res) Passed (Failed (Just ("Actual: " <+++ (toJSON res)))),w)
 
 assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & JSONEncode{|*|} a
 assertEqualWorld name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
 	test w
 		# (res,w) = sut w
-		= (if (exp === res) Passed (Failed (Just (Note ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON res))))),w)
+		= (if (exp === res) Passed (Failed (Just ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON res)))),w)
 
 skip :: String -> Test
 skip name = UnitTest {UnitTest|name=name,test=test}
@@ -59,7 +59,16 @@ where
 
 testsuite :: String String [Test] -> TestSuite
 testsuite name description tests
-  = {name=name,description=Note description,tests=tests}
+  = {name=name,description=description,tests=tests}
+
+filterSuitesByTestName ::String [TestSuite] -> [TestSuite]
+filterSuitesByTestName pattern suites = [{TestSuite|s & tests =filterTestsByName pattern tests} \\ s=:{TestSuite|tests} <- suites]
+
+filterTestsByName :: String [Test] -> [Test]
+filterTestsByName pattern tests = filter match tests
+where
+	match (UnitTest {UnitTest|name}) = indexOf pattern name >= 0
+	match (InteractiveTest {InteractiveTest|name}) = indexOf pattern name >= 0
 
 //RUNNING TESTS
 testInteractive :: InteractiveTest -> Task TestResult
@@ -75,6 +84,16 @@ testEditor :: (Editor a) a EditMode -> Task a | iTask a
 testEditor editor model mode
 	=   (interact "Editor test" mode null (const ((),model)) (\v l _ -> (l,v,Nothing)) (\_ l v -> (l,v,Nothing)) (Just editor) @ snd
 	>&> viewSharedInformation "Editor value" [ViewAs (toString o toJSON)] @? tvFromMaybe
+	) <<@ ApplyLayout (setAttributes (directionAttr Horizontal))
+
+testEditorWithShare :: (Editor a) a EditMode -> Task a | iTask a
+testEditorWithShare editor model mode = (withShared model
+	\smodel ->
+		updateSharedInformation "Edit the shared source" [] smodel 
+		||-
+	    interact "Editor under test" mode smodel (\r -> ((),r))
+												 (\v l _ -> (l,v,Just (\_ -> v)))
+												 (\r l v -> (l,r,Nothing)) (Just editor) @ snd
 	) <<@ ApplyLayout (setAttributes (directionAttr Horizontal))
 
 testCommonInteractions :: String -> Task a | iTask a
@@ -132,10 +151,10 @@ where
 		resultRow (test,Passed) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: green"] [Text "Passed"]],TdTag [] []]
 		resultRow (test,Skipped) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: orange"] [Text "Skipped"]],TdTag [] []]
 		resultRow (test,Failed Nothing) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] []]
-		resultRow (test,Failed (Just (Note details))) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [TextareaTag [] [Text details]]]
+		resultRow (test,Failed (Just details)) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [TextareaTag [] [Text details]]]
 
 	application header mainTask
-		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False
+		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False <<@ ApplyLayout (setNodeType UIContainer)
 
 runUnitTestsWorld :: [TestSuite] *World -> *(!TestReport,!*World)
 runUnitTestsWorld suites world = foldr runSuite ([],world) suites
@@ -168,7 +187,7 @@ where
 			(Failed Nothing,world)
 				# console = fwrites (red "FAILED\n") console
 				= (console,world)
-			(Failed (Just (Note msg)),world)
+			(Failed (Just msg),world)
 				# console = fwrites (red ("FAILED\n" +++msg+++"\n")) console
 				= (console,world)
 			(Skipped,world)

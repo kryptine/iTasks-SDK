@@ -15,7 +15,7 @@ import iTasks.UI.Layout, iTasks.UI.Layout.Default
 from iTasks.API.Core.TaskCombinators import class tune(..)
 from iTasks.UI.Layout import instance tune ApplyLayout
 
-SESSION_TIMEOUT :== fromString "0000-00-00 00:10:00"
+SESSION_TIMEOUT :==  600 //Seconds (10 minutes)
 MAX_EVENTS 		:== 5
 
 import StdInt, StdChar, StdString
@@ -57,7 +57,7 @@ startEngine publishable world
 	# (res,iworld) 			= initJSCompilerState iworld
 	| res =:(Error _)
 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-	// mark all instance as outdated initially
+	// All persistent task instances should receive a reset event to continue their work
     # iworld                = queueAllPersistent iworld
     //Run task server
 	# iworld				= serve port (httpServer port keepalive (engine publishable) allUIChanges)
@@ -83,14 +83,7 @@ where
 
 	running :: !Int -> [String]
 	running port = ["Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
-	
-	show :: ![String] !*World -> *World
-	show lines world
-		# (console,world)	= stdio world
-		# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
-		# (_,world)			= fclose console world
-		= world
-		
+
 	boolOpt :: !String ![String] -> Bool
 	boolOpt key opts = isMember key opts
 	
@@ -126,9 +119,13 @@ queueAllPersistent iworld
 updateClocks :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateClocks iworld=:{IWorld|clocks,world}
     //Determine current date and time
-	# (timestamp,world) 						= time world
-	# (DateTime localDate localTime,world)		= currentLocalDateTimeWorld world
-	# (DateTime utcDate utcTime,world)			= currentUTCDateTimeWorld world
+	# (timestamp,world) 	= time world
+	# (local,world)	= currentLocalDateTimeWorld world
+	# localDate = toDate local
+	  localTime = toTime local 
+	# (utc,world)	= currentUTCDateTimeWorld world
+	# utcDate = toDate utc
+	  utcTime = toTime utc 
     # iworld = {iworld & world = world}
     //Write SDS's if necessary
     # (mbe,iworld) = if (localDate == clocks.localDate) (Ok (),iworld) (write localDate iworldLocalDate iworld)
@@ -154,7 +151,9 @@ where
 		//Get lastIO time
 		= case read (sdsFocus instanceNo taskInstanceIO) iworld of
 			(Ok (Just (client,time)),iworld) //No IO for too long, clean up
-				| ((DateTime localDate localTime) - time) > SESSION_TIMEOUT
+				# (Timestamp tInstance) = datetimeToTimestamp time
+				  (Timestamp tNow) = datetimeToTimestamp (toDateTime localDate localTime)
+				| (tNow - tInstance) > SESSION_TIMEOUT
 					# (_,iworld) = deleteTaskInstance instanceNo iworld
 					# (_,iworld) = 'SDS'.write Nothing (sdsFocus instanceNo taskInstanceIO) iworld
 					= iworld
@@ -170,18 +169,19 @@ background iworld
 	# iworld = snd (removeOutdatedSessions iworld)
 	= iworld
 
-// The iTasks engine consist of a set of HTTP request handlers
+// The iTasks engine consist of a set of HTTP WebService 
 engine :: publish -> [(!String -> Bool
 					  ,!Bool
 					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 					  )] | Publishable publish
-engine publishable
-	= taskHandlers (publishAll publishable) ++ defaultHandlers
+
+engine publishable = [taskWebService url task \\ {PublishedTask|url,task=TaskWrapper task} <- published]
+				  ++ [staticResourceService [url \\ {PublishedTask|url} <- published]]
+				  ++ [sdsService]
 where
-	taskHandlers published = [taskWebService url task \\ {url,task=TaskWrapper task} <- published]	
-	defaultHandlers        = [sdsService,staticResourceService]
+	published = publishAll publishable 
 
 publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
 publish url task = {url = url, task = TaskWrapper (withFinalSessionLayout task)}

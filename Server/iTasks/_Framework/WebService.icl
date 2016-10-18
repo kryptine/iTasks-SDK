@@ -59,7 +59,6 @@ where
     matchFun :: String String -> Bool
     matchFun matchUrl reqUrl = startsWith matchUrl reqUrl && isTaskUrl (reqUrl % (size matchUrl,size reqUrl))
     where
-        isTaskUrl "" = True
         isTaskUrl s = case dropWhile ((==)"") (split "/" s) of  // Ignore slashes at the beginning of the path
             ["new"]             = True                          // Creation of new instances 
             ["gui-events"]      = True                          // Events for multiple instances
@@ -98,8 +97,6 @@ where
             # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
                         ,("Sec-WebSocket-Accept",secWebSocketAccept),("Sec-WebSocket-Protocol","itwc")]
             = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = headers, rsp_data = ""}, Just (WebSocketConnection []),Nothing,iworld)
-        | urlSpec == ""
-			= (itwcStartResponse url serverName customCSS, Nothing, Nothing, iworld)
         | otherwise
             = case dropWhile ((==)"") (split "/" urlSpec) of
 				["new"]
@@ -122,8 +119,6 @@ where
                     # (_,iworld)        = updateInstanceConnect req.client_name instances iworld
 					# (messages,output) = dequeueOutput instances output //TODO: Check keys
                     = (eventsResponse messages, Just (EventSourceConnection instances), Just output, iworld)
-                [instanceNo,instanceKey]
-                    = (itwcStartResponse url serverName customCSS, Nothing, Nothing, iworld)
                 [instanceNo,instanceKey,"gui"]
                     //Load task instance and edit / evaluate
                     # instanceNo         = toInt instanceNo
@@ -198,42 +193,6 @@ where
 	formatMessageEvents messages = concat (map format messages)
     where
         format (instanceNo,change) = "data: {\"instance\":" +++toString instanceNo+++",\"change\":" +++ toString (encodeUIChange change) +++ "}\n\n"
-
-	itwcStartResponse path appName customCSS = {okResponse & rsp_data = toString itwcStartPage}
-	where
-		itwcStartPage = HtmlTag [] [head,body]
-		head = HeadTag [] [MetaTag [CharsetAttr "UTF-8"] []
-                          ,MetaTag [NameAttr "viewport",ContentAttr "width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, minimal-ui"] []
-                          ,MetaTag [NameAttr "mobile-web-app-capable",ContentAttr "yes"] []
-                          ,MetaTag [NameAttr "apple-mobile-web-app-capable",ContentAttr "yes"] []
-                          ,TitleTag [] [Text appName], startUrlScript : styles ++ scripts]
-		body = BodyTag [StyleAttr "width: 100%; height: 100%"] []
-
-        startUrlScript = ScriptTag [TypeAttr "text/javascript"]
-			[RawText "window.onload = function() { itasks.viewport({}, document.body); };"
-            ]
-		styles = [LinkTag [RelAttr "stylesheet", HrefAttr file, TypeAttr "text/css"] [] \\ file <- stylefiles]
-		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
-		
-		stylefiles =
-            ["itasks-theme-gray/itasks-theme.css"
-			: if customCSS [appName +++ ".css"] []]
-
-        scriptfiles = saplScripts ++ itaskScripts
-        saplScripts =
-            ["/utils.js","/itask.js"
-			,"/builtin.js","/dynamic.js"
-			,"/sapl-rt.js","/sapl-support.js"
-			,"/db.js", "/debug.js","/itasks-js-interface.js"
-			]
-		itaskScripts = 
-			["/itasks-core.js"
-			,"/itasks-components-raw.js"
-			,"/itasks-components-form.js"
-			,"/itasks-components-display.js"
-			,"/itasks-components-selection.js"
-			,"/itasks-components-container.js"
-			]
 
 	createDocumentsFromUploads [] iworld = ([],iworld)
 	createDocumentsFromUploads [(n,u):us] iworld
@@ -348,13 +307,14 @@ where
     where		
     	addDefault headers hdr val = if (('DL'.lookup hdr headers) =: Nothing) [(hdr,val):headers] headers
 
+
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
-staticResourceService ::(!(String -> Bool),!Bool,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
+staticResourceService :: [String] -> (!(String -> Bool),!Bool,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
                         ,!(HTTPRequest r (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
                         ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld)))
-staticResourceService = (const True,True,initFun,dataFun,lostFun)
+staticResourceService taskPaths = (const True,True,initFun,dataFun,lostFun)
 where
 	initFun req _ env
 		# (rsp,env) = handleStaticResourceRequest req env
@@ -370,10 +330,12 @@ where
     	serveStaticResource req [] iworld
 	    	= (notFoundResponse req,iworld)
     	serveStaticResource req [d:ds] iworld=:{IWorld|world}
-			# filename		   = d +++ filePath req.HTTPRequest.req_path
+			# filename		   = if (isMember req.HTTPRequest.req_path taskPaths) //Check if one of the published tasks is requested, then serve bootstrap page
+									(d +++ filePath "/index.html")
+									(d +++ filePath req.HTTPRequest.req_path)
 			# type			   = mimeType filename
-			# (exists, world)  = fileExists filename world
-			| not exists
+            # (mbInfo,world) = getFileInfo filename world
+			| case mbInfo of (Ok info) = info.directory ; _ = True
                = serveStaticResource req ds {IWorld|iworld & world = world}
 			# (mbContent, world)	= readFile filename world
 			= case mbContent of

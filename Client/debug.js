@@ -1,1 +1,0 @@
-var sapldebug = 0;

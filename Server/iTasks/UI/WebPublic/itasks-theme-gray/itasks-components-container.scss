@@ -231,83 +231,96 @@
     }
 }
 
-.#{$prefix}menu-item {
+.#{$prefix}menu {
     display: block;
     position: relative;
     border: 1px solid transparent;
     margin: 1px 0;
 
-    &:hover {
-        > .menu {
-            display: block;
-        }
-    }
-    a {
-        font-size: 8pt;
+    a.#{$prefix}menu-label {
+		height: 23px;
         background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color);
         background: -webkit-linear-gradient(top, $button-base-color + #101010, $button-base-color);
         background-repeat: none;
+        background-image: url('icons/menu-down.png');
+        background-repeat: no-repeat;
+        background-position: 95% center;
+
         border: 1px solid ($button-base-color - #333);
         border-radius: 3px;
         text-decoration: none;
         float: left;
         color: #000;
 
-        padding: 4px 20px 4px 10px;
-    }
-}
-.#{$prefix}submenu-item {
-    float: left;
-    position: relative;
-
-    &:hover {
-        > a {
-            background: #ddd;
-        }
-        > .menu {
-            display: block;
-        }
-    }
-}
-.#{$prefix}menu {
-    z-index: 10;
-    top: 23px;
-    margin: 0;
-    padding: 0;
-    display: none;
-    position: absolute;
-    background: #eee;
-    box-shadow: 0 5px 5px rgba(0,0,0,0.5);
-    border: 1px solid ($button-base-color - #333);
-
-    a {
-        border: none;
-        border-radius: 0;
-        min-width: 100px;
-        padding: 5px;
-        height: 10px;
-        height: auto;
-        line-height: 1;
-        display: block;
-        float: none;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+
+		span {
+			position: relative;
+			top: 4px;
+        	margin: 0 20px 0 10px;
+		}
     }
-    .#{$prefix}menu {
-        top: 0;
-        left: 99%;
-        margin: 2px 0 0 -2px;
-    }
-    .#{$prefix}submenu-item {
-        float: none;
-        margin: 0;
-        padding: 0;
-        display: block;
-        border-top: 1px solid #efefef;
-        border-bottom: 1px solid #ddd;
+	.#{$prefix}menu-content {
+	    z-index: 10;
+	    top: 23px;
+	    margin: 0;
+	    padding: 0;
+	    display: none;
+	    position: absolute;
+	    background: #eee;
+	    box-shadow: 0 3px 3px rgba(0,0,0,0.5);
+	    border: 1px solid ($button-base-color - #333);
+		border-radius: 0 3px 3px 3px;
+		min-width: 150px;
+
+		/* Submenu styling */
+	    .#{$prefix}menu-content {
+			top: 0;
+			left: 99%;
+			margin: 2px 0 0 -2px;
+		}
+	    .#{$prefix}menu {
+			width: 100%;
+		}
+	    .#{$prefix}menu-label {
+			
+			width: 100%;
+        	border-radius: 0;
+			border-width: 0 0 1px 0;
+
+        	background-image: url('icons/menu-down.png');
+
+			&:hover {
+				background: #{$select-base-color};
+				color: #{$select-text-color};
+        		border-radius: 0;
+			}
+		}
+		.#{$prefix}button {
+			border-radius: 0;
+			border-width: 0 0 1px 0;
+			&:hover {
+				background: #{$select-base-color};
+				color: #{$select-text-color};
+			}
+		}
+	}
+
+	/* Opening menus */
+    &:hover {
+        > .#{$prefix}menu-content {
+            display: block;
+        }
+        > .#{$prefix}menu-label {
+            display: block;
+        	border-radius: 3px 3px 0 0;
+    		box-shadow: 0 3px 3px rgba(0,0,0,0.5);
+        }
     }
 }
+
 .#{$prefix}debug {
 	border: 3px solid red;
 }

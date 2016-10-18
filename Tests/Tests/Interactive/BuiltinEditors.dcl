@@ -5,3 +5,4 @@ definition module Tests.Interactive.BuiltinEditors
 import iTasks, TestFramework
 
 testBuiltinEditors :: TestSuite
+testBuiltinEditorsWithShares :: TestSuite

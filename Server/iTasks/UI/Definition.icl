@@ -5,7 +5,7 @@ from Data.Map import :: Map (..)
 from Data.Functor import class Functor(..)
 import qualified Data.Map as DM
 import qualified Data.List as DL
-from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action(..), ::ActionName, :: ActionOption, :: Hotkey
+from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action(..), ::ActionName, :: ActionOption
 
 from iTasks._Framework.Generic import class iTask(..)
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
@@ -361,17 +361,17 @@ where
 
 //Remove unnessecary directives
 compactUIChange :: UIChange -> UIChange
-compactUIChange (ChangeUI localChanges children)
-	= case ChangeUI localChanges [child \\ child=:(_,ChangeChild change) <- map compactChildDef children | not (change =: NoChange)] of
-		ChangeUI [] [] 	= NoChange
-		change = change
+compactUIChange (ChangeUI local children) = case (local,compactChildren children) of
+	([],[]) = NoChange
+	(local,children) = ChangeUI local children
 where
-	compactChildDef (idx,ChangeChild change) = (idx,ChangeChild change)
-	compactChildDef def = def
+	compactChildren [] = [] 
+	compactChildren [(idx,ChangeChild change):cs] = case (compactUIChange change) of
+		NoChange = compactChildren cs
+		change   = [(idx,ChangeChild change):compactChildren cs]
 
-compactUIChange def = def
-
-
+	compactChildren [c:cs] = [c:compactChildren cs]
+compactUIChange change = change
 
 completeChildChanges :: [(Int,UIChildChange)] -> [(Int,UIChildChange)]
 completeChildChanges children = complete 0 (sortBy indexCmp children)

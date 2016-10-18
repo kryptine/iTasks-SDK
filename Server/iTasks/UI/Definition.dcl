@@ -14,7 +14,7 @@ from Data.Functor import class Functor
 from iTasks._Framework.Task	import :: TaskId
 from Text.HTML			import :: HtmlTag
 from Data.Map			import :: Map
-from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: Hotkey
+from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action
 
 from iTasks._Framework.Generic import class iTask(..)
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)

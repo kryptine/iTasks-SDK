@@ -27,7 +27,7 @@ null :: WriteOnlyShared a
 null = createReadWriteSDS NS_SYSTEM_DATA "null" (\() env -> (Ok (), env)) (\() _ env -> (Ok (const False), env))
 			
 currentDateTime :: ReadOnlyShared DateTime
-currentDateTime = mapRead (\(d,t) -> DateTime d t) (iworldLocalDate |+| iworldLocalTime)
+currentDateTime = mapRead (\(d,t) -> toDateTime d t) (iworldLocalDate |+| iworldLocalTime)
 
 currentTime :: ReadOnlyShared Time
 currentTime = toReadOnly iworldLocalTime
@@ -36,7 +36,7 @@ currentDate :: ReadOnlyShared Date
 currentDate = toReadOnly iworldLocalDate
 
 currentUTCDateTime :: ReadOnlyShared DateTime
-currentUTCDateTime = mapRead (\(d,t) -> DateTime d t) (iworldUTCDate |+| iworldUTCTime)
+currentUTCDateTime = mapRead (\(d,t) -> toDateTime d t) (iworldUTCDate |+| iworldUTCTime)
 
 currentUTCTime :: ReadOnlyShared Time
 currentUTCTime = toReadOnly iworldUTCTime

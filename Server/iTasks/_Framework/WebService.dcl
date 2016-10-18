@@ -33,7 +33,7 @@ taskWebService :: !String !(HTTPRequest -> Task a) ->
                  ,!(HTTPRequest ChangeQueues ConnectionType *IWorld -> (!Maybe ChangeQueues, !*IWorld))
                  ) | iTask a
 
-staticResourceService :: 
+staticResourceService :: [String] ->
                  (!(String -> Bool)
 				 ,!Bool
                  ,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))

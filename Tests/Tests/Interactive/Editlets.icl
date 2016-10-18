@@ -9,7 +9,8 @@ testEditletsI = testsuite "Editlets" "These tests check if the advanced clientsi
     ,testSVGEditlet
     ,testSVGEditletClick
     ,testLeafletMap
-    ,testGoogleMap]
+    ,testGoogleMap
+	,testAceEditor]
 
 import iTasks.API.Extensions.Clock
 testEditlet = itest "Simple clock editlet" "Look at the image below" "You should see a changing interactive clock" tut
@@ -64,3 +65,11 @@ testGoogleMap = itest "Google Map" "Try to zoom and pan the map" "You should see
 where
 	tut :: Task GoogleMap
 	tut = enterInformation "Test a Google map" []
+
+
+import iTasks.API.Extensions.Editors.Ace
+testAceEditor = itest "Ace editor" "Try to edit some text" "You should see an editor with line numbers" tut
+where
+	tut :: Task String
+	tut = testEditor (aceTextArea) "Hello world" Update
+

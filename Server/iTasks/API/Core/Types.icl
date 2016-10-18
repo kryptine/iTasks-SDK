@@ -20,18 +20,14 @@ from iTasks.UI.Definition import :: UI(..), :: UIDirection(..), stringDisplay
 from iTasks.API.Core.Tasks import treturn
 from iTasks.API.Common.TaskCombinators import tbind, @
 
-instance TFunctor Task where
-  tmap f x = x @ f
+instance Functor Task where
+  fmap f x = x @ f
 instance TApplicative Task where
-  (<#>) tf ta = tf >>= \f -> tmap f ta
+  (<#>) tf ta = tf >>= \f -> fmap f ta
   return x    = treturn x
 instance TMonad Task where
   (>>=) l r = tbind l r
   (>>|) l r = l >>= \_ -> r
-
-instance TFunctor Maybe where
-  tmap f (Just x) = Just (f x)
-  tmap _ _        = Nothing
 
 instance TApplicative Maybe where
   (<#>) (Just f) (Just x) = Just (f x)
@@ -42,8 +38,6 @@ instance TMonad Maybe where
   (>>=) _ _ = Nothing
   (>>|) l r = l >>= \_ -> r
 
-instance TFunctor [] where
-  tmap f xs = map f xs
 instance TApplicative [] where
   (<#>) fs xs = [f x \\ f <- fs, x <- xs]
   return x = [x]
@@ -51,9 +45,6 @@ instance TMonad [] where
   (>>=) xs f = [y \\ x <- xs, y <- f x]
   (>>|) l r = l >>= \_ -> r
 
-instance TFunctor (Either e) where
-  tmap f (Right x) = Right (f x)
-  tmap _ (Left x)  = Left x
 instance TApplicative (Either e) where
   (<#>) (Right f) (Right x) = Right (f x)
   (<#>) (Left e) _ = Left e
@@ -63,9 +54,6 @@ instance TMonad (Either e) where
   (>>=) (Left x) _ = Left x
   (>>=) (Right x) f = f x
   (>>|) l r = l >>= \_ -> r
-
-(@$) infixl 1 :: (a -> b) (f a) -> f b | iTask a & iTask b & TFunctor f
-(@$) f x = tmap f x
 
 JSONEncode{|RWShared|} _ _ _ _ s = []
 JSONDecode{|RWShared|} _ _ _ _ s = (Nothing, s)
@@ -127,41 +115,6 @@ where
 instance html URL
 where
 	html (URL url) = ATag [HrefAttr url] [Text url]
-
-//* Note
-JSONEncode{|Note|} _ (Note txt) = [JSONString txt]
-
-JSONDecode{|Note|} _ [JSONString txt:c] = (Just (Note txt),c)
-JSONDecode{|Note|} _ c = (Nothing,c)
-
-gText{|Note|}	_ val	    = [maybe "" toString val]
-
-gEditor{|Note|} = whenDisabled
-		(liftEditor noteToHtml (\_ -> Note "") (htmlView 'DM'.newMap))
-		(liftEditor (\(Note s) -> s) (\s -> Note s) (withHintAttributes "note" (textArea 'DM'.newMap)))
-where
-	// THIS IS A HACK!
-	// The encoding of a Text constructor should escape newlines and convert them to <br> tags. Unfortunately it doesn't
-	noteToHtml (Note s)	//TODO: Fix this in the toString of the Text constructor of HtmlTag type
-		= case split "\n" s of
-			[line]	= Text line
-			lines	= SpanTag [] ('DL'.intersperse (BrTag []) (map Text lines))
-
-derive gDefault			Note
-derive gEq				Note
-
-instance toString Note
-where
-	toString (Note s) = s
-
-instance html Note
-where
-	html (Note msg) = Text msg
-
-instance == Note
-where
-	(==) (Note x) (Note y) = x == y
-	
 
 //* Money (ISO4217 currency codes are used)
 gText{|EUR|} _ val = [maybe "" toString val]
@@ -238,70 +191,29 @@ derive gDefault			EUR, USD
 derive gEq				EUR, USD
 
 //* (Local) date and time
+toTime :: DateTime -> Time
+toTime {DateTime|hour,min,sec} = {Time|hour=hour,min=min,sec=sec}
 
-JSONEncode{|Date|} _ d		= [JSONString (toString d)]
+toDate :: DateTime -> Date
+toDate {DateTime|year,mon,day} = {Date|year=year,mon=mon,day=day}
 
-JSONDecode{|Date|} _ [JSONString s:c] | isDateFormat s	= (Just (fromString s), c)
-JSONDecode{|Date|} _ c									= (Nothing, c)
-isDateFormat s = size s == 10 && foldl (\ok i -> ok && (if (i == 4 || i == 7) (s.[i] == '-') (isDigit s.[i]))) True [0..9]
-
-gText{|Date|} _ val = [maybe "" toString val]
-
-gEditor{|Date|} = whenDisabled
-		(liftEditor toString fromString (textView 'DM'.newMap))
-		(liftEditorAsymmetric toString parseDate (withHintAttributes "date (yyyy-mm-dd)" (textField 'DM'.newMap)))
-where
-	parseDate s = if (isDateFormat s) (Ok (fromString s)) (Error "you need to enter a date in the format yyyy-mm-dd")
-
-gDefault{|Date|} = {Date|day = 1, mon = 1, year = 1970}
-
-derive gEq			Date
+toDateTime :: Date Time -> DateTime
+toDateTime {Date|year,mon,day} {Time|hour,min,sec} = {DateTime|year=year,mon=mon,day=day,hour=hour,min=min,sec=sec}
 
 instance toString Date
 where
-	toString {Date|year,mon,day}	= lpad (toString year) 4 '0' +++ "-" +++ lpad (toString mon) 2 '0' +++ "-" +++ lpad (toString day) 2 '0'
+	toString {Date|year,mon,day} = lpad (toString year) 4 '0' +++ "-" +++ lpad (toString mon) 2 '0' +++ "-" +++ lpad (toString day) 2 '0'
+
+parseDate :: String -> MaybeErrorString Date //Expected format: "yyyy-mm-dd"
+parseDate s
+	//Check format
+	| size s == 10 && foldl (\ok i -> ok && (if (i == 4 || i == 7) (s.[i] == '-') (isDigit s.[i]))) True [0..9]
+		= Ok {Date|year = toInt (s %(0,3)), mon = toInt (s %(5,6)), day = toInt (s %(8,9))}
+	| otherwise = Error "date needs to be formatted as yyyy-mm-dd"
 
 instance fromString Date
 where
-	fromString s					= {Date|day = toInt (s %(8,9)), mon = toInt (s %(5,6)), year = toInt (s %(0,3))}
-
-instance + Date //Second date is treated as an interval to be added
-where
-	(+) x y = normDays (addYears y.Date.year (normMonths (addMonths y.Date.mon (normDays (addDays y.Date.day x)))))
-		// last normDays to remove 29-2 in non leap year
-	where
-		addDays days date		= {Date|date & day = date.Date.day + days}
-		addMonths months date	= {Date|date & mon = date.Date.mon + months}
-		addYears years date		= {Date|date & year = date.Date.year + years}
-
-		normDays date
-			# monthLength = monthLengthOfDate date
-			| date.Date.day <= monthLength
-				= date
-				= normDays (normMonths {Date|date & mon = date.Date.mon + 1, day = date.Date.day - monthLength})
-
-		normMonths date
-			| date.Date.mon <= 12
-				= date
-				= normMonths {Date|date & year = date.Date.year + 1, mon = date.Date.mon - 12}
-
-		monthLengthOfDate date=:{Date|mon}
-			| mon==2
-				| isLeapYear date.Date.year
-					= 29
-					= 28
-			| mon==4 || mon==6 || mon==9 || mon==11
-				= 30
-				= 31
-
-		isLeapYear year
-			| year rem 4<>0
-				= False
-				= year rem 100 <> 0 || year rem 400 == 0
-
-instance - Date
-where
-	(-) x y = {Date|year = x.Date.year - y.Date.year, mon = x.Date.mon - y.Date.mon, day = x.Date.day - y.Date.day}
+	fromString s = fromOk (parseDate s)
 
 instance == Date
 where
@@ -315,61 +227,34 @@ where
 		| x.Date.year == y.Date.year && x.Date.mon == y.Date.mon && x.Date.day < y.Date.day	= True
 		| otherwise																			= False
 
-JSONEncode{|Time|} _ t					= [JSONString (toString t)]
-JSONDecode{|Time|} _ [JSONString s:c]	| isTimeFormat s	= (Just (fromString s), c)
-JSONDecode{|Time|} _ c									    = (Nothing, c)
-isTimeFormat s = size s == 8 && foldl (\ok i -> ok && (if (i == 2 || i == 5) (s.[i] == ':') (isDigit s.[i]))) True [0..7]
+JSONEncode{|Date|} _ d = [JSONString (toString d)]
+JSONDecode{|Date|} _ [JSONString s:c] = case parseDate s of (Ok d) = (Just d,c) ; _ = (Nothing,c)
+JSONDecode{|Date|} _ c = (Nothing, c)
 
-gText{|Time|} _ val = [maybe "" toString val]
+gText{|Date|} _ val = [maybe "" toString val]
 
-gEditor{|Time|} = whenDisabled
+gEditor{|Date|} = whenDisabled
 		(liftEditor toString fromString (textView 'DM'.newMap))
-		(liftEditorAsymmetric toString parseTime (withHintAttributes "time (hh:mm:ss)" (textField 'DM'.newMap)))
-where
-	parseTime s = if (isTimeFormat s) (Ok (fromString s)) (Error "you need to enter a time in the format hh:mm:ss")
+		(liftEditorAsymmetric toString parseDate (withHintAttributes "date (yyyy-mm-dd)" (textField 'DM'.newMap)))
 
-derive gDefault		Time
-derive gEq			Time
+gDefault{|Date|} = {Date|day = 1, mon = 1, year = 1970}
+derive gEq Date
 
 instance toString Time
 where
-	toString {Time|hour,min,sec}	= lpad (toString hour) 2 '0' +++ ":" +++ lpad (toString min) 2 '0' +++ ":" +++ lpad (toString sec) 2 '0'
+	toString {Time|hour,min,sec} = lpad (toString hour) 2 '0' +++ ":" +++ lpad (toString min) 2 '0' +++ ":" +++ lpad (toString sec) 2 '0'
+
+parseTime :: String -> MaybeErrorString Time // Expected format: "hh:mm:ss"
+parseTime s
+	//Check format
+	| size s == 8 && foldl (\ok i -> ok && (if (i == 2 || i == 5) (s.[i] == ':') (isDigit s.[i]))) True [0..7]
+		= Ok {Time|hour = toInt (s %(0,1)), min = toInt (s %(3,4)), sec = toInt (s %(6,7)) }
+	| otherwise = Error "time needs to be formatted as hh:mm:ss"
 
 instance fromString Time
 where
-	fromString s					= {Time|hour = toInt (s %(0,1)), min = toInt (s %(3,4)), sec = toInt (s %(6,7)) }
+	fromString s = fromOk (parseTime s)
 
-instance + Time // Second time is treated as an interval
-where
-	(+) x y = normHours (addHours y.Time.hour (normMinutes (addMinutes y.Time.min (normSeconds (addSeconds y.Time.sec x)))))
-	where
-		addSeconds s t	= {Time|t & sec = t.Time.sec + s}
-		normSeconds t	= {Time|t & min = t.Time.min + (t.Time.sec / 60), sec = t.Time.sec rem 60}
-		addMinutes m t	= {Time|t & min = t.Time.min + m}
-		normMinutes t	= {Time|t & hour = t.Time.hour + (t.Time.min / 60), min = t.Time.min rem 60}
-		addHours h t	= {Time|t & hour = t.Time.hour + h}
-		normHours t		= {Time|t & hour = t.Time.hour rem 24}
-		
-instance - Time
-where
-	(-) x y = normHours (subHours y.Time.hour (normMinutes (subMinutes y.Time.min (normSeconds (subSeconds y.Time.sec x)))))
-	where
-		subSeconds s t	= {Time|t & sec = t.Time.sec - s}
-		normSeconds t
-			# ns = t.Time.sec rem 60
-			| ns < 0	= {Time|t & min = t.Time.min + (t.Time.sec / 60) - 1, sec = ns + 60}
-						= {Time|t & min = t.Time.min + (t.Time.sec / 60), sec = ns}
-		subMinutes m t	= {Time|t & min = t.Time.min - m}
-		normMinutes t	
-			# nm = t.Time.min rem 60
-			| nm < 0	= {Time|t & hour = t.Time.hour + (t.Time.min / 60) - 1, min = nm + 60}
-						= {Time|t & hour = t.Time.hour + (t.Time.min / 60), min = nm}
-		subHours h t	= {Time|t & hour = t.Time.hour - h}
-		normHours t	
-			# nh = t.Time.hour rem 24
-			| nh < 0	= {Time|t & hour = nh + 24}
-						= {Time|t & hour = nh}
-		
 instance == Time
 where
 	(==) x y = x.Time.hour == y.Time.hour && x.Time.min == y.Time.min && x.Time.sec == y.Time.sec
@@ -382,67 +267,87 @@ where
 		| x.Time.hour == y.Time.hour && x.Time.min == y.Time.min && x.Time.sec < y.Time.sec	= True
 		| otherwise																			= False
 
+JSONEncode{|Time|} _ t = [JSONString (toString t)]
+JSONDecode{|Time|} _ [JSONString s:c] = case parseTime s of (Ok t) = (Just t, c) ; _ = (Nothing,c)
+JSONDecode{|Time|} _ c = (Nothing, c)
+
+gText{|Time|} _ val = [maybe "" toString val]
+
+gEditor{|Time|} = whenDisabled
+		(liftEditor toString fromString (textView 'DM'.newMap))
+		(liftEditorAsymmetric toString parseTime (withHintAttributes "time (hh:mm:ss)" (textField 'DM'.newMap)))
+
+derive gDefault		Time
+derive gEq			Time
+
+instance toString DateTime
+where
+	toString {DateTime|year,mon,day,hour,min,sec} 
+		= toString {Date|year=year,mon=mon,day=day} +++ " " +++ toString {Time|hour=hour,min=min,sec=sec}
+
+parseDateTime :: String -> MaybeErrorString DateTime //Expected format: "yyyy-mm-dd hh:mm:ss"
+parseDateTime s
+	//Check format
+	| size s == 19 && foldl (\ok i -> ok && check i s.[i]) True [0..18]
+		= Ok {DateTime|year = toInt (s %(0,3)), mon = toInt (s %(5,6)), day = toInt (s %(8,9)) 
+					  ,hour = toInt (s %(11,12)), min = toInt (s %(14,15)), sec = toInt (s %(17,18))}
+	| otherwise = Error "date/time needs to be formatted as yyyy-mm-dd hh:mm:ss"
+where
+	check i c 
+		| i == 4 || i == 7 = c == '-'
+		| i == 10 = c == ' '
+		| i == 13 || i == 16 = c == ':'
+		| otherwise = isDigit c
+
+instance fromString DateTime
+where
+	fromString s	= fromOk (parseDateTime s)
+
+instance == DateTime
+where
+	(==) x y = x.DateTime.year == y.DateTime.year && x.DateTime.mon == y.DateTime.mon && x.DateTime.day == y.DateTime.day
+		     && x.DateTime.hour == y.DateTime.hour && x.DateTime.min == y.DateTime.min && x.DateTime.sec == y.DateTime.sec
+	
+instance < DateTime
+where
+	(<) x y 
+		| x.DateTime.year < y.DateTime.year	= True
+		| x.DateTime.year == y.DateTime.year 
+            && x.DateTime.mon < y.DateTime.mon = True
+		| x.DateTime.year == y.DateTime.year 
+			&& x.DateTime.mon == y.DateTime.mon 
+			&& x.DateTime.day < y.DateTime.day = True
+		| x.DateTime.year == y.DateTime.year 
+			&& x.DateTime.mon == y.DateTime.mon 
+			&& x.DateTime.day == y.DateTime.day
+			&& x.DateTime.hour < y.DateTime.hour = True
+		| x.DateTime.year == y.DateTime.year 
+			&& x.DateTime.mon == y.DateTime.mon 
+			&& x.DateTime.day == y.DateTime.day
+			&& x.DateTime.hour ==  y.DateTime.hour
+			&& x.DateTime.min <  y.DateTime.min = True
+		| x.DateTime.year == y.DateTime.year 
+			&& x.DateTime.mon == y.DateTime.mon 
+			&& x.DateTime.day == y.DateTime.day
+			&& x.DateTime.hour ==  y.DateTime.hour
+			&& x.DateTime.min ==  y.DateTime.min
+			&& x.DateTime.sec <  y.DateTime.sec = True
+		| otherwise = False
+
 JSONEncode{|DateTime|} _ dt	= [JSONString (toString dt)]
-
-JSONDecode{|DateTime|} _ [JSONString s:c]	= (Just (fromString s), c)
-JSONDecode{|DateTime|} _ c				= (Nothing, c)
-
-derive gDefault			DateTime
-derive gEq				DateTime
-
+JSONDecode{|DateTime|} _ [JSONString s:c] = case parseDateTime s of (Ok dt) = (Just dt, c) ; _ = (Nothing, c)
+JSONDecode{|DateTime|} _ c = (Nothing, c)
 
 gText{|DateTime|} AsHeader _ = [""]
-gText{|DateTime|} _ (Just (DateTime date time))
-	= [toSingleLineText date +++" "+++ toSingleLineText time]
+gText{|DateTime|} _ (Just ({DateTime|year,mon,day,hour,min,sec}))
+	= [toSingleLineText {Date|year=year,mon=mon,day=day} +++" "+++ toSingleLineText {Time|hour=hour,min=min,sec=sec}]
 
 gEditor{|DateTime|} = whenDisabled
 		(liftEditor toString fromString (textView 'DM'.newMap))
 		(liftEditorAsymmetric toString parseDateTime (withHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" (textField 'DM'.newMap)))
-where
-	parseDateTime s = if True (Ok (fromString s)) (Error "you need to enter a date/time in the format yyyy-mm-dd hh:mm:ss")
 
-instance toString DateTime
-where
-	toString (DateTime d t) = toString d +++ " " +++ toString t
-
-instance fromString DateTime
-where
-	fromString s	= DateTime
-						{Date|day = toInt (s %(8,9)), mon = toInt (s %(5,6)), year = toInt (s %(0,3))}
-						{Time|hour = toInt (s %(11,12)), min = toInt (s %(14,15)), sec = toInt (s %(17,18)) }
-instance + DateTime
-where
-	(+) (DateTime dx tx) (DateTime dy ty)
-			| tn >= tx	= DateTime dn tn
-			| otherwise	= DateTime (dn + {Date|year = 0, mon = 0, day = 1}) tn	//We've passed midnight
-	where
-		dn = dx + dy
-		tn = tx + ty
-		
-instance - DateTime
-where
-	(-) (DateTime dx tx) (DateTime dy ty)
-        | tn <= tx   = DateTime dn tn
-        | otherwise  = DateTime (dn - {Date|year=0,mon=0,day=1}) tn //We've passed midnight
-    where
-        dn = dx - dy
-        tn = tx - ty
-
-instance == DateTime
-where
-	(==) (DateTime dx tx) (DateTime dy ty)	= dx == dy && tx == ty
-
-instance < DateTime
-where
-	(<) (DateTime dx tx) (DateTime dy ty)
-		| dx < dy	= True
-		| dx == dy	= (tx < ty)
-		| otherwise	= False
-		
-paddedDateTimeString :: DateTime -> String
-paddedDateTimeString (DateTime {Date|year,mon,day} {Time|hour,min,sec})
-	=   lpad (toString year) 4 '0' +++ lpad (toString mon) 2 '0' +++ lpad (toString day) 2 '0'
-	+++ lpad (toString hour) 2 '0' +++ lpad (toString min) 2 '0' +++ lpad (toString sec) 2 '0'
+derive gDefault			DateTime
+derive gEq				DateTime
 
 //* Documents
 gText{|Document|} _ (Just val)
@@ -548,39 +453,6 @@ where
 
 derive gDefault HtmlInclude
 
-//* Form buttons
-gText{|FormButton|}	_ val = [maybe "" (\v -> v.FormButton.label) val]
-
-gEditor{|FormButton|} = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
-where
-	genUI dp val vst=:{VSt|taskId,mode}
-		# text = val.FormButton.label
-		# iconCls = val.FormButton.icon
-		# attr = 'DM'.unions [textAttr text,iconClsAttr iconCls,enabledAttr True,editAttrs taskId (editorId dp) (Just (JSONString "pressed"))]
-		= (Ok (uia UIButton attr,newFieldMask), vst)
-
-	onEdit = basicEdit (\st b -> Just {FormButton|b & state = st})
-
-	onRefresh dp val=:{FormButton|state=new} {FormButton|state=old} mask vst
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "value" (toJSON new)] []),mask),val,vst)
-
-gDefault{|FormButton|} = {FormButton | label = "Form Button", icon="", state = NotPressed}
-
-instance toString FormButton
-where
-	toString button = toString (pressed button)
-	where
-		pressed {FormButton|state}= case state of
-			Pressed		= True
-			NotPressed	= False
-
-gText{|ButtonState|}	_ (Just NotPressed)	= ["not pressed"]
-gText{|ButtonState|}	_ (Just Pressed)	= ["pressed"]
-gText{|ButtonState|}	_ _                 = [""]
-
-derive gDefault		ButtonState
-derive gEditor		ButtonState
-
 //* Table consisting of headers, the displayed data cells & possibly a selection
 gText{|Table|}	_ _	= ["<Table>"]
 gEditor{|Table|} = liftEditor toGrid fromGrid (grid (multipleAttr False))
@@ -598,9 +470,9 @@ where
 
 	row x =  [Text cell \\ cell <- gText{|*|} AsRow (Just x)]
 	
-derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
-derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
-derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table
+derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, Table
+derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, Table
+derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, Table
 
 setListOption :: !(o -> s) ![(v,o)] !s -> (Maybe Int) | gEq{|*|} s
 setListOption targetFun options newSel
@@ -774,10 +646,6 @@ where
 	fmap f (NoValue)		= NoValue
 	fmap f (Value v s)		= Value (f v) s
 
-instance Functor Task
-where
-	fmap f t = t @ f
-
 //Task id
 
 instance toString TaskId
@@ -819,12 +687,12 @@ actionWeight (Action _ options) = case [weight \\ ActionWeight weight <- options
 	[weight:_]	= weight
 	_			= 0
 
-derive JSONEncode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
-derive JSONDecode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
-derive gDefault			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
-derive gEq				TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
-derive gText	        TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
-derive gEditor			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Hotkey, Trigger
+derive JSONEncode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Trigger
+derive JSONDecode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Trigger
+derive gDefault			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Trigger
+derive gEq				TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Trigger
+derive gText	        TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Trigger
+derive gEditor			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Trigger
 
 derive class iTask TaskId, Config, ProcessStatus
 	

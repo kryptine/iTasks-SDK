@@ -116,7 +116,7 @@ editSelectionWithShared` d editor toView fromView sharedContainer initSel
 	= interact d Update sharedContainer 
 		(\r     -> (r,(toView r, initSel r)))
 		(\v l _ -> (l,v,Nothing))
-		(\r l (v,sel) -> (r,(v,sel),Nothing))
+		(\r l (v,sel) -> (r,(toView r,sel),Nothing))
 		(Just editor) @ (\(container,(_,sel)) -> fromView container sel)
 
 editSharedSelection :: !d !Bool !(SelectOption c a) c (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
@@ -314,7 +314,7 @@ waitForDateTime datetime =
 	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime >>* [OnValue (ifValue (\now -> datetime < now) return)]
 
 waitForTimer :: !Time -> Task Time
-waitForTimer time = get currentTime >>- \now -> waitForTime (now + time)
+waitForTimer time = get currentTime >>- \now -> waitForTime (now /* + time */) //FIXME
 
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions
