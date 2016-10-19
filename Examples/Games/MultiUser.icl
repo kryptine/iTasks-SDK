@@ -16,7 +16,7 @@ startTask taskList tasks world
 where
 	browseExamples taskList = forever (
 		 	enterInformation "Enter your credentials and login or press continue to remain anonymous" []
-		>>* [OnAction (Action "Login" [ActionIcon "login",ActionKey (unmodified KEY_ENTER)]) (hasValue (browseAuthenticated taskList))
+		>>* [OnAction (Action "Login" [ActionIcon "login"]) (hasValue (browseAuthenticated taskList))
 			] )
 	
 	browseAuthenticated taskList {Credentials|username,password}
