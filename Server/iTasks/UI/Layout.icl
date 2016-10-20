@@ -90,6 +90,18 @@ where
 
 	condition = maybe (const True) (flip isMember) selection
 
+modifyAttribute :: String (JSONNode -> UIAttributes) -> Layout
+modifyAttribute name modifier = layout
+where
+	layout (ReplaceUI (UI type attr items),s)
+		# attr = maybe attr (\val -> 'DM'.union (modifier val) attr) ('DM'.get name attr)
+		= (ReplaceUI (UI type attr items),s)
+
+	layout (ChangeUI attrChanges childChanges,s)
+		# attrChanges = flatten [if (key == name) [SetAttribute k v \\ (k,v) <- 'DM'.toList (modifier value)] [c] \\c=:(SetAttribute key value) <- attrChanges]
+		= (ChangeUI attrChanges childChanges,s)
+	layout (c,s) = (c,s)
+
 wrapUI :: UINodeType -> Layout
 wrapUI type = layout
 where
@@ -167,6 +179,11 @@ layoutSubsMatching :: NodePath (UI -> Bool) Layout -> Layout
 layoutSubsMatching src pred layout = layoutSubs_ pred` layout
 where
 	pred` path ui = isSubPathOf_ path src && pred ui
+
+layoutSubsOfType :: NodePath [UINodeType] Layout -> Layout
+layoutSubsOfType src types layout = layoutSubs_ pred` layout
+where
+	pred` path (UI type _ _) = isSubPathOf_ path src && any ((===) type) types
 
 //Test if a path extends another path
 isSubPathOf_ :: NodePath NodePath -> Bool

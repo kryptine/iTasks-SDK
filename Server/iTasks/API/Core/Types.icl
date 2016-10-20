@@ -671,28 +671,17 @@ derive class iTask TaskListFilter
 instance == Action
 where
 	(==) :: !Action !Action -> Bool
-	(==) (Action name0 _) (Action name1 _) = name0 == name1
-	(==) a b = a === b
+	(==) (Action name0) (Action name1) = name0 == name1
 
-actionName :: !Action -> ActionName
-actionName (Action name _)	= name
+actionName :: !Action -> String
+actionName (Action name) = name
 
-actionIcon :: !Action -> Maybe String
-actionIcon (Action _ options) = case [icon \\ ActionIcon icon <- options] of
-	[icon]	= Just ("icon-" + icon)
-	_		= Nothing
-
-actionWeight :: !Action -> Int
-actionWeight (Action _ options) = case [weight \\ ActionWeight weight <- options] of
-	[weight:_]	= weight
-	_			= 0
-
-derive JSONEncode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Trigger
-derive JSONDecode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Trigger
-derive gDefault			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Trigger
-derive gEq				TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Trigger
-derive gText	        TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Trigger
-derive gEditor			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, ActionOption, Trigger
+derive JSONEncode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
+derive JSONDecode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
+derive gDefault			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
+derive gEq				TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
+derive gText	        TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
+derive gEditor			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
 
 derive class iTask TaskId, Config, ProcessStatus
 	

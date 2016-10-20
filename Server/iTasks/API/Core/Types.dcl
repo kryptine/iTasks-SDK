@@ -374,49 +374,39 @@ derive class iTask TaskListFilter
 	| CompletedProcess !Int
 
 //* Next task actions
-:: Action	= Action !ActionName ![ActionOption]
+:: Action	= Action !String //Locally unique identifier for actions
 
-:: ActionName	:== String	//Locally unique identifier for actions
-:: ActionOption
-	= ActionWeight	!Int		//Specifies a weight for specific sorting in menus
-	| ActionIcon	!String		//Specifies a symbolic icon name e.g. 'close' or 'ok' (the application styling dereferences this to an image)
-	| ActionTrigger	!Trigger	//Special event that triggers this action (other than clicking the action button/menu item)
-
-actionName		:: !Action -> ActionName
-actionIcon 		:: !Action -> Maybe String
-actionWeight	:: !Action -> Int			//Default weight is 0
-
-:: Trigger	= DoubleClick	//Currently only doubleclick is supported as special trigger
+actionName		:: !Action -> String
 
 //Common action constants with predefined options
-ActionOk		:== Action "Ok"				[ActionIcon "ok" ]
-ActionCancel	:==	Action "Cancel"			[ActionIcon "cancel"]
-ActionYes		:== Action "Yes"			[ActionIcon "yes"]
-ActionNo		:== Action "No"				[ActionIcon "no"]
-ActionNext		:== Action "Next"			[ActionIcon "next"]
-ActionPrevious	:== Action "Previous"		[ActionIcon "previous"]
-ActionFinish	:== Action "Finish"			[ActionIcon "finish"]
-ActionContinue	:==	Action "Continue"		[ActionIcon "continue"]
-ActionOpen		:== Action "/File/Open"		[ActionIcon "open" ]
-ActionSave		:== Action "/File/Save" 	[ActionIcon "save"]
-ActionSaveAs 	:== Action "/File/Save as"	[ActionIcon "save"]
-ActionQuit		:== Action "/File/Quit"		[ActionIcon "quit"]
-ActionHelp		:==	Action "/Help/Help"		[ActionIcon "help"]
-ActionAbout		:== Action "/Help/About"	[ActionIcon "about"]
-ActionFind		:== Action "/Edit/Find"		[ActionIcon "find"]
-ActionNew		:== Action "New"			[ActionIcon "new"]
-ActionEdit		:== Action "Edit"			[ActionIcon "edit"]
-ActionDelete	:== Action "Delete"			[ActionIcon "delete"]
-ActionRefresh	:== Action "Refresh"		[ActionIcon "refresh"]
-ActionClose		:==	Action "Close"			[ActionIcon "close"]
+ActionOk		:== Action "Ok"
+ActionCancel	:==	Action "Cancel"
+ActionYes		:== Action "Yes"
+ActionNo		:== Action "No"
+ActionNext		:== Action "Next"
+ActionPrevious	:== Action "Previous"
+ActionFinish	:== Action "Finish"
+ActionContinue	:==	Action "Continue"
+ActionOpen		:== Action "/File/Open"
+ActionSave		:== Action "/File/Save"
+ActionSaveAs 	:== Action "/File/Save as"
+ActionQuit		:== Action "/File/Quit"
+ActionHelp		:==	Action "/Help/Help"
+ActionAbout		:== Action "/Help/About"
+ActionFind		:== Action "/Edit/Find"
+ActionNew		:== Action "New"
+ActionEdit		:== Action "Edit"
+ActionDelete	:== Action "Delete"
+ActionRefresh	:== Action "Refresh"
+ActionClose		:==	Action "Close"
 	
-derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption,Trigger
-derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption,Trigger
-derive gDefault			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption,Trigger
-derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption,Trigger
+derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
+derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
+derive gDefault			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
+derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
 
-derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Trigger
-derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Trigger
+derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
+derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
 
 derive class iTask		TaskId, Config, ProcessStatus
 

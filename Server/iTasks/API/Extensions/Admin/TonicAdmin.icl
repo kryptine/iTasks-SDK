@@ -9,6 +9,7 @@ import iTasks._Framework.Tonic.Types
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Pretty
 import iTasks._Framework.Tonic.Images
+import iTasks.UI.Definition
 from StdFunc import seq
 import qualified Data.Map as DM
 from Data.Map import instance Functor (Map a)
@@ -81,10 +82,10 @@ tonicBrowseWithModule allbps rs navstack tm
 viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !BlueprintIdent !TonicModule !TonicFunc !Scale !Bool -> Task ()
 viewStaticTask allbps rs navstack bpref tm tt depth compact
   =          get navstack
-  >>~ \ns -> showStaticBlueprint rs bpref (expandTask allbps depth.cur tt) compact depth
+  >>~ \ns -> (showStaticBlueprint rs bpref (expandTask allbps depth.cur tt) compact depth
          >>* [ OnValue (doAction (handleClicks tm tt))
-             , OnAction (Action "Back" [ActionIcon "previous"]) (navigateBackwards tm tt ns)
-             ] @! ()
+             , OnAction (Action "Back") (navigateBackwards tm tt ns)
+             ] @! ()) <<@ ApplyLayout (layoutSubsOfType [] [UIAction] (setActionIcon ('DM'.fromList [("Back","Previous")])))
   where
 
   navigateBackwards :: TonicModule TonicFunc NavStack a -> Maybe (Task ())
@@ -308,14 +309,14 @@ tonicDynamicBrowser` rs navstack =
                                                  \shareData ->
                                                     case shareData of
                                                        (Just bpinst, dynSett) ->     viewInstance rs navstack dynSett bpinst selDetail meta
-                                                                                 >>*   [ OnAction (Action "Back"        [ActionIcon "previous"]) (navigateBackwards dynSett selDetail ns)
-                                                                                       //, OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent bpinst dynSett selDetail tid rs mbprnt)
+                                                                                 >>*   [ OnAction (Action "Back") (navigateBackwards dynSett selDetail ns)
+                                                                                       //, OnAction (Action "Parent task")     (\_ -> navToParent bpinst dynSett selDetail tid rs mbprnt)
                                                                                        ]
                                                        _                      -> return ()
                                                )
 
                            _ = viewInformation () [] "Please select a blueprint" @! ()
-      )
+      )<<@ ApplyLayout (layoutSubsOfType [] [UIAction] (setActionIcon ('DM'.fromList [("Back","previous"),("Parent task","open")])))
      where
      //navToParent currinst=:{bpi_bpref = currbpref} dynSett selDetail tid rs (Just inst=:{bpi_bpref = bpref}) // TODO Check
        //=   Just (   upd (\xs -> [mkMeta tid : xs]) navstack

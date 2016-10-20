@@ -219,7 +219,7 @@ where
 
 	noteE state 
 		= 			updateSharedInformation ("Text","Edit text") [noteEditor] state
-			>>*		[ OnAction (Action "Trim" []) (\txt -> Just (upd trim state >>| noteE state))	
+			>>*		[ OnAction (Action "Trim") (\txt -> Just (upd trim state >>| noteE state))	
 					]
 
 	lineE state
@@ -261,9 +261,9 @@ where
 person1by1 :: [MyPerson] -> Task [MyPerson]
 person1by1 persons
 	=       enterInformation "Add a person" [] 	//-|| viewInformation "List so far.." [] persons
-		>>*	[ OnAction  (Action "Add" []) 		(hasValue (\v -> person1by1  [v : persons]))
-		    , OnAction  (Action "Finish" [])    (always (return persons))
-		    , OnAction  ActionCancel 			(always (return []))
+		>>*	[ OnAction  (Action "Add") 		(hasValue (\v -> person1by1  [v : persons]))
+		    , OnAction  (Action "Finish")   (always (return persons))
+		    , OnAction  ActionCancel 		(always (return []))
 	        ]
 
 // BUG? not always all record fields are shown in a choice...
@@ -275,11 +275,11 @@ editPersonList = editSharedList personStore
 editSharedList :: (Shared [a]) -> Task () | iTask a
 editSharedList store
 	=			enterChoiceWithShared "Choose an item to edit" [ChooseFromGrid snd] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
-		>>*		[ OnAction (Action "Append" [])   (hasValue (showAndDo append))
-				, OnAction (Action "Delete" [])   (hasValue (showAndDo delete))
-				, OnAction (Action "Edit" [])     (hasValue (showAndDo edit))
-				, OnAction (Action "Clear" [])    (always (showAndDo append (-1,undef)))
-				, OnAction (Action "Quit" [])     (always (return ()))
+		>>*		[ OnAction (Action "Append")   (hasValue (showAndDo append))
+				, OnAction (Action "Delete")   (hasValue (showAndDo delete))
+				, OnAction (Action "Edit")     (hasValue (showAndDo edit))
+				, OnAction (Action "Clear")    (always (showAndDo append (-1,undef)))
+				, OnAction (Action "Quit")     (always (return ()))
 				]
 where
 	showAndDo fun ip
@@ -287,7 +287,7 @@ where
  		 		||- 
  		 		fun ip
  		 	>>* [ OnValue 					    (hasValue	(\_ -> editSharedList store))
- 		 		, OnAction (Action "Cancel" []) (always	(editSharedList store))
+ 		 		, OnAction (Action "Cancel") (always	(editSharedList store))
  		 		]
 
 	append (i,_)
@@ -337,8 +337,8 @@ where
 			=			updateInformation "Add a tweet" [] message
 						-||
 						viewSharedInformation ("Tweets of " +++ tweeter) [] tweetsStore
-				>>*		[ OnAction (Action "Quit" [])    (always (return ()))
-						, OnAction (Action "Commit" [])  (hasValue commit )
+				>>*		[ OnAction (Action "Quit")    (always (return ()))
+						, OnAction (Action "Commit")  (hasValue commit )
 						]
 
 		commit :: String -> Task ()
@@ -399,7 +399,7 @@ getCoins paid (product,toPay)
 					||-		
 					enterChoice  ("Insert coins","Please insert a coin...") [ChooseFromCheckGroup id] coins
 			>>*		[ OnAction ActionCancel 		(always (stop ("Cancelled",paid)))
-					, OnAction (Action "Insert" []) (hasValue handleMoney)
+					, OnAction (Action "Insert") (hasValue handleMoney)
 					]
 where				
 	coins	= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
@@ -424,20 +424,20 @@ calculator = calc initSt
 where
 	calc st
 	= 		viewInformation "Calculator" [ViewAs Display] st
-		>>* [ OnAction (Action "7" []) (always (updateDigit 7 st)) 
-			, OnAction (Action "8" []) (always (updateDigit 8 st))
-			, OnAction (Action "9" []) (always (updateDigit 9 st))
-			, OnAction (Action "4" []) (always (updateDigit 4 st)) 
-			, OnAction (Action "5" []) (always (updateDigit 5 st))
-			, OnAction (Action "6" []) (always (updateDigit 6 st))
-			, OnAction (Action "1" []) (always (updateDigit 1 st)) 
-			, OnAction (Action "2" []) (always (updateDigit 2 st))
-			, OnAction (Action "3" []) (always (updateDigit 3 st)) 
-			, OnAction (Action "0" []) (always (updateDigit 0 st))
-			, OnAction (Action "+" []) (always (apply (+) st))
-			, OnAction (Action "-" []) (always (apply (-) st))
-			, OnAction (Action "*" []) (always (apply (*) st))
-			, OnAction (Action "/" []) (always (apply (/) st))
+		>>* [ OnAction (Action "7") (always (updateDigit 7 st)) 
+			, OnAction (Action "8") (always (updateDigit 8 st))
+			, OnAction (Action "9") (always (updateDigit 9 st))
+			, OnAction (Action "4") (always (updateDigit 4 st)) 
+			, OnAction (Action "5") (always (updateDigit 5 st))
+			, OnAction (Action "6") (always (updateDigit 6 st))
+			, OnAction (Action "1") (always (updateDigit 1 st)) 
+			, OnAction (Action "2") (always (updateDigit 2 st))
+			, OnAction (Action "3") (always (updateDigit 3 st)) 
+			, OnAction (Action "0") (always (updateDigit 0 st))
+			, OnAction (Action "+") (always (apply (+) st))
+			, OnAction (Action "-") (always (apply (-) st))
+			, OnAction (Action "*") (always (apply (*) st))
+			, OnAction (Action "/") (always (apply (/) st))
 			]
 	where
 		updateDigit n st = calc {st & n = st.n*10 + n}
@@ -489,11 +489,11 @@ showStatistics sharedFile _  = noStat <<@ InWindow
 where
 	noStat :: Task ()
 	noStat	=			viewInformation () [] ()
- 				>>*		[ OnAction (Action "/File/Show Statistics" []) (always showStat)
+ 				>>*		[ OnAction (Action "/File/Show Statistics") (always showStat)
  						]
 	showStat :: Task ()
 	showStat =			viewSharedInformation "Statistics:" [ViewAs stat] sharedFile
- 				>>*		[ OnAction (Action "/File/Hide Statistics" []) (always noStat)
+ 				>>*		[ OnAction (Action "/File/Hide Statistics") (always noStat)
  						]
 
 
@@ -502,14 +502,14 @@ where
 	noReplace :: Replace -> Task ()
 	noReplace cmnd 
 		=		viewInformation () [] () 
- 			>>*	[ OnAction (Action "/File/Replace" []) (always (showReplace cmnd))
+ 			>>*	[ OnAction (Action "/File/Replace") (always (showReplace cmnd))
 				]
 
 	showReplace :: Replace -> Task ()
 	showReplace cmnd
 		=		updateInformation "Replace:" [] cmnd 
- 			>>*	[ OnAction (Action "Replace" []) (hasValue substitute)
- 				, OnAction (Action "Cancel" [])  (always (noReplace cmnd))
+ 			>>*	[ OnAction (Action "Replace") (hasValue substitute)
+ 				, OnAction (Action "Cancel")  (always (noReplace cmnd))
  				]
  			
  	substitute cmnd =	upd (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 
@@ -541,7 +541,7 @@ where
 
 	chat who toView fromView notes
 		= 			updateSharedInformation ("Chat with " <+++ who) [UpdateAs toView fromView] notes
-			>>*		[OnAction (Action "Stop" []) (always (return ()))]
+			>>*		[OnAction (Action "Stop") (always (return ()))]
 
 	toView   (me,you) 							= (Display you, me)
 	fromView _ (Display you, me) 	= (me,you) 
@@ -565,7 +565,7 @@ enterDateTimeOptions = enterInformation "Propose meeting dates and times..." []
 
 askPreferences :: [User] -> TaskCont [DateTime] (Task [(User,[DateTime])])
 askPreferences users
-  = OnAction (Action "Continue" []) (hasValue (ask users))
+  = OnAction (Action "Continue") (hasValue (ask users))
 
 ask :: [User] [DateTime] -> Task [(User,[DateTime])]
 ask users options
@@ -583,17 +583,17 @@ select user options = \_ -> (enterMultipleChoice "Enter preferences" [] options 
  
 tryAgain :: [User] -> TaskCont [(User,[DateTime])] (Task DateTime)
 tryAgain users
-  = OnAction (Action "Try again" []) (always (planMeeting users))
+  = OnAction (Action "Try again") (always (planMeeting users))
  
 decide :: TaskCont [(User,[DateTime])] (Task DateTime)
-decide = OnAction (Action "Make decision" []) (hasValue pick)
+decide = OnAction (Action "Make decision") (hasValue pick)
 
 pick :: [(User,[DateTime])] -> Task DateTime
 pick user_dates
   =   (enterChoice "Choose date" [] (transpose user_dates) @ fst)
       -||-
       (enterInformation "Enter override" [])
-  >>* [OnAction (Action "Continue" []) returnV]
+  >>* [OnAction (Action "Continue") returnV]
 
 transpose :: [(a,[b])] -> [(b,[a])] | Eq b
 transpose a_bs = [(b,[a \\ (a,bs) <- a_bs | isMember b bs]) \\ b <- removeDup (flatten (map snd a_bs))]

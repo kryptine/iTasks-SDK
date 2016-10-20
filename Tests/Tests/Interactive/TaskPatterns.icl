@@ -22,7 +22,7 @@ where
 
 	editInTextArea model
 		= 			updateSharedInformation ("Text","Edit text") [noteEditor] model
-		>^*			[ OnAction (Action "Trim" []) (\txt -> Just (upd trim model))	
+		>^*			[ OnAction (Action "Trim") (\txt -> Just (upd trim model))	
 					]
 
 	editAsListOfLines model
