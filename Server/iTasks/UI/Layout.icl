@@ -5,7 +5,8 @@ import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.F
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 
-from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys
+from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys, singleton
+import StdEnum
 
 from StdFunc import o, const, id, flip
 from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
@@ -46,6 +47,64 @@ where
             (res,iworld) = (res,iworld)
 		
 		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
+
+/*
+
+Function UI -> UI s.t. h o g o f
+Where
+f : UI -> TaskUITree
+g : TaskUITree -> TaskUILayout
+h : TaskUILayout -> UI
+
+f transforms the original UI into a TaskUITree the same way we do now
+g transforms the UILayout into a layout
+h transforms the UILayout into a sparse new UI with some attributes (like direction), including an attribute origin that contains the original NodePath in the original tree
+
+*/
+
+:: TaskUITree
+  = Ed  NodePath
+  | Par NodePath [TaskUITree]
+
+:: TaskUILayout
+  = UIBeside [TaskUILayout]
+  | UIAbove  [TaskUILayout]
+  | UINode   NodePath
+
+uiOf :: TaskUITree -> TaskUILayout
+uiOf (Ed  path  ) = UINode path
+uiOf (Par path _) = UINode path
+
+uiBeside :: [TaskUILayout] -> TaskUILayout
+uiBeside refs = UIBeside refs
+
+uiAbove :: [TaskUILayout] -> TaskUILayout
+uiAbove refs = UIAbove refs
+
+uiToRefs :: UI -> TaskUITree
+uiToRefs ui
+  = case ui of
+      UI UIParallel _ subs = Par [] (recurse [] subs)
+      UI _          _ subs = case recurse [] subs of
+                               [x : _] -> x
+                               _       -> Ed []
+  where
+  uiToRefs` :: NodePath (Int, UI) -> [TaskUITree]
+  uiToRefs` path (i, UI UIParallel _ subs)
+    # curPath = path ++ [i]
+    = [Par curPath (recurse curPath subs)]
+  uiToRefs` path (i, UI x _ _)
+    # curPath = path ++ [i]
+    = [Ed curPath]
+  recurse curPath subs = flatten (map (uiToRefs` curPath) (zip2 [0..] subs))
+
+taskUILayoutToUI :: TaskUILayout -> UI
+taskUILayoutToUI (UIBeside ls)
+  = UI UIParallel ('DM'.singleton "direction" (encodeUI Horizontal)) (map taskUILayoutToUI ls)
+taskUILayoutToUI (UIAbove ls)
+  = UI UIParallel ('DM'.singleton "direction" (encodeUI Vertical)) (map taskUILayoutToUI ls)
+taskUILayoutToUI (UINode path)
+  = UI UIContainer ('DM'.singleton "origin" (toJSON path)) []
 
 setNodeType :: UINodeType -> Layout
 setNodeType type = layout

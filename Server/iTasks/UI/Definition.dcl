@@ -247,6 +247,13 @@ instance encodeUI JSONNode
 instance encodeUI (Maybe a) | encodeUI a
 instance encodeUI [a] | encodeUI a
 instance encodeUI UI
+instance encodeUI UISideSizes
+instance encodeUI UISize
+instance encodeUI UIBound
+instance encodeUI UIVAlign
+instance encodeUI UIHAlign
+instance encodeUI UIDirection
+instance encodeUI UIWindowType
 
 //Combine two changes that would have to be applied one after the other into a single change
 mergeUIChanges :: UIChange UIChange -> UIChange
