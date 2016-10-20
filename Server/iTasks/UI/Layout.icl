@@ -82,12 +82,6 @@ instance Layout TaskUILayout Int Int TaskHost where
   above     _ _ _ ts _ = UIAbove ts
   grid _ _ _ _ _ _ _ _ = UINode []
 
-uiBeside :: [TaskUILayout a] -> TaskUILayout a
-uiBeside refs = UIBeside refs
-
-uiAbove :: [TaskUILayout a] -> TaskUILayout a
-uiAbove refs = UIAbove refs
-
 uiToRefs :: UI -> TaskUITree
 uiToRefs ui
   = case ui of
