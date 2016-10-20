@@ -143,7 +143,7 @@ refreshView_ taskId mode mbEditor shared refreshFun l ov m iworld
 			# editor = fromMaybe gEditor{|*|} mbEditor
 			# vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
 			= case editor.Editor.onRefresh [] v ov m vst of
-				(Ok (change,_),_,vst=:{VSt|iworld})
+				(Ok (change,m),_,vst=:{VSt|iworld})
 					# change = case change of NoChange = NoChange; _ = ChangeUI [] [(1,ChangeChild change)]
 					//Update the share if necessary
 					= case mbf of
