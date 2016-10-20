@@ -105,7 +105,7 @@ processMessage (TMApply tma) rtMap
 import StdMisc
 showGenBlueprintInstance :: ![TaskAppRenderer] !GenBlueprintInstance
                             !(Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int)))
-                            !Bool !Scale
+                            !Bool !Int
                          -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showGenBlueprintInstance rs bpi selDetail compact depth
   = updateInformation ()
@@ -147,7 +147,7 @@ archivedStandAloneViewer
   noSel1 = viewInformation "Notice" [] "No recording selected"
   noSel2 = viewInformation "Notice" [] "No blueprint"
   viewBP :: (ComputationId, ModuleName, FuncName, GenBlueprintInstance) -> Task ()
-  viewBP (cid, _, _, gbpi) = showGenBlueprintInstance [] gbpi Nothing False { Scale | min = 0, cur = 0, max = 0} @! () // TODO Enable controls
+  viewBP (cid, _, _, gbpi) = showGenBlueprintInstance [] gbpi Nothing False 0 @! () // TODO Enable controls
 
 flattenRTMap :: TonicGenRTMap -> [(ComputationId, ModuleName, FuncName, GenBlueprintInstance)]
 flattenRTMap m = flatten (flattenRTMap` ('DM'.toList m))
@@ -211,7 +211,7 @@ liveStandAloneViewer
     =                newRTMapFromMessages ts_allMsgs
     >>~ \newRTMap -> case 'DM'.get tmn.tmn_computationId newRTMap of
                        Just [(_, selBPI) : _]
-                         = showGenBlueprintInstance [] selBPI Nothing False { Scale | min = 0, cur = 0, max = 0} @! () // TODO Enable controls
+                         = showGenBlueprintInstance [] selBPI Nothing False 0 @! () // TODO Enable controls
                        _ = startViewer
   runViewer x = viewInformation "Notice" [] "No blueprint selected" >>| runViewer x
 
@@ -239,7 +239,7 @@ viewInstance bpi=:{bpi_blueprint, bpi_bpref = {bpr_moduleName, bpr_taskName}} = 
       [imageUpdate id (\_ -> mkTaskInstanceImage [] bpi 'DM'.newMap 'DM'.newMap Nothing False) (const id) (const id) (\_ _ -> Nothing) (const id)]
       { ActionState
       | state  = { tis_task    = bpi.bpi_blueprint
-                 , tis_depth   = { Scale | min = 0, cur = 0, max = 0}
+                 , tis_depth   = 0
                  , tis_compact = False }
       , action = Nothing}
       @! ()

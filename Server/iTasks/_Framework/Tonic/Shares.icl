@@ -129,11 +129,7 @@ tonicActionsForTaskIDAndExpr = sdsLens "tonicActionsForTaskIDAndExpr" (const ())
 staticDisplaySettings :: RWShared () StaticDisplaySettings StaticDisplaySettings
 staticDisplaySettings = sdsFocus "staticDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
                                      { StaticDisplaySettings
-                                     | unfold_depth    = { Scale
-                                                         | min = 0
-                                                         , cur = 0
-                                                         , max = 25
-                                                         }
+                                     | unfold_depth    = 0
                                      , display_compact = False
                                      , show_comments   = True
                                      }))
@@ -144,11 +140,7 @@ queryShare = sdsFocus "queryShare" (memoryStore NS_TONIC_INSTANCES (Just Nothing
 dynamicDisplaySettings :: RWShared () DynamicDisplaySettings DynamicDisplaySettings
 dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
                                      { DynamicDisplaySettings
-                                     | unfold_depth    = { Scale
-                                                         | min = 0
-                                                         , cur = 0
-                                                         , max = 5
-                                                         }
+                                     | unfold_depth    = 0
                                      , display_compact = False
                                      , show_finished_blueprints = False
                                      , show_task_value = False

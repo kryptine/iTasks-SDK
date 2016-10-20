@@ -8,6 +8,27 @@ import iTasks._Framework.HtmlUtil
 import qualified Data.Map as DM
 import qualified Data.List as DL
 
+//* URL
+gText{|URL|}	_ val	= [maybe "" toString val]
+
+gEditor{|URL|} = whenDisabled
+		(liftEditor (\(URL s) -> ATag [HrefAttr s] [Text s]) (\_ -> URL "") (htmlView 'DM'.newMap))
+		(liftEditor (\(URL s) -> s) (\s -> URL s) (withHintAttributes "uniform resource locator (URL)" (textField 'DM'.newMap)))
+
+derive JSONEncode		URL
+derive JSONDecode		URL
+derive gDefault			URL
+derive gEq				URL
+
+instance toString URL
+where
+	toString (URL url) = url
+
+instance html URL
+where
+	html (URL url) = ATag [HrefAttr url] [Text url]
+
+
 KEEPALIVE_TIME :== 5
 
 :: HttpConnState

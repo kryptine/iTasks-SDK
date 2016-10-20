@@ -57,15 +57,6 @@ instance TMonad []
 instance TApplicative (Either e)
 instance TMonad (Either e)
 
-//****************************************************************************//
-// Common data types that have specialized user interfaces
-//****************************************************************************//
-
-//* Uniform resource locators
-:: URL			= URL !String
-instance toString	URL
-instance html		URL
-
 //* local date and time
 :: Date	=
 	{ year	:: !Int
@@ -120,12 +111,12 @@ instance <	Date, Time, DateTime
 instance toString	Document
 instance ==			Document
 
-derive JSONEncode		URL, Date, Time, DateTime, Document 
-derive JSONDecode		URL, Date, Time, DateTime, Document
-derive gDefault			URL, Date, Time, DateTime, Document
-derive gEq				URL, Date, Time, DateTime, Document
-derive gText	        URL, Date, Time, DateTime, Document
-derive gEditor 			URL, Date, Time, DateTime, Document
+derive JSONEncode		Date, Time, DateTime, Document 
+derive JSONDecode		Date, Time, DateTime, Document
+derive gDefault			Date, Time, DateTime, Document
+derive gEq				Date, Time, DateTime, Document
+derive gText	        Date, Time, DateTime, Document
+derive gEditor 			Date, Time, DateTime, Document
 
 //* Common exceptions used by API tasks
 
@@ -139,96 +130,6 @@ derive gEditor 			URL, Date, Time, DateTime, Document
 
 derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, AttachException
 instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, AttachException
-
-//****************************************************************************//
-// Low level data types that can be used to construct more fine grained user
-// experiences.
-// These types map to specific user interface components.
-//****************************************************************************//
-
-//* A sliding scale
-:: Scale =
-	{ min	:: Int
-	, cur	:: Int
-	, max	:: Int
-	}
-	
-//* Progress bars
-:: Progress =
-	{ progress		:: !ProgressAmount 	//*Value between 0.0 and 1.0 indicating how much progress has been made
-	, description	:: !String			//*Description of how much progress has been made
-	}
-:: ProgressAmount
-	= ProgressUndetermined	//Value for progress that cannot be estimated
-	| ProgressRatio Real	//Value between 0.0 and 1.0 that defines the ratio of progress
-
-//* Inclusion of external html files
-:: HtmlInclude	= HtmlInclude String
-
-//* Table consisting of headers, the displayed data cells & possibly a selection
-:: Table = Table ![String] ![[HtmlTag]] !(Maybe Int)
-
-toTable	:: ![a] -> Table | gText{|*|} a
-
-derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, Table
-derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, Table
-derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, Table
-derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, Table
-derive gText	        Scale, Progress, ProgressAmount, HtmlInclude, Table
-derive gEditor	        Scale, Progress, ProgressAmount, HtmlInclude, Table
-
-//****************************************************************************//
-// Wrapper types for guiding the generic visualization process.
-// These types can be used as annotations
-//****************************************************************************//
-
-:: VisualizationHint a 	= VHEditable a
-					   	| VHDisplay a
-					   	| VHHidden a
-
-fromVisualizationHint	:: !(VisualizationHint .a) -> .a
-toVisualizationHint		:: !.a -> VisualizationHint .a
-
-//* Value is always rendered within a form as editor field
-:: Editable a 			= Editable a		
-
-fromEditable			:: !(Editable .a) -> .a
-toEditable				:: !.a -> Editable .a
-
-//* Value is always rendered within a form as a static element
-:: Display a 			= Display a			
-
-fromDisplay				:: !(Display .a) -> .a
-toDisplay				:: !.a -> Display .a
-
-//* Value is never rendered
-:: Hidden a 			= Hidden a			
-
-fromHidden				:: !(Hidden .a) -> .a
-toHidden				:: !.a -> Hidden .a
-
-//* Setting layout directions
-:: Row a                = Row a  //Horizontal
-:: Col a                = Col a  //Vertical
-
-//* Editing lists
-:: EditableList a       =
-    { items     :: [a]
-    , add       :: !EditableListAdd a
-    , remove    :: !Bool
-    , reorder   :: !Bool
-    , count     :: !Bool
-    }
-
-:: EditableListAdd a
-    = ELNoAdd | ELAddBlank | ELAddValue ([a] -> a)
-
-derive JSONEncode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive JSONDecode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive gDefault			Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive gEq				Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive gText	        Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive gEditor			Hidden, Display, Editable, VisualizationHint, Row, Col
 
 //****************************************************************************//
 // Framework types.
