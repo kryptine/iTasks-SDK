@@ -106,6 +106,7 @@ itasks.Component = {
         } else {
 			el.style.width = width + 'px';
 			el.style.minWidth = width + 'px';
+			me.containerEl.style.overflowX = 'auto';
         }
 		//Set height
 		if(height === 'flex') {
@@ -123,6 +124,7 @@ itasks.Component = {
 		} else {
 			el.style.height = height + 'px';
 			el.style.minHeight = height + 'px';
+			me.containerEl.style.overflowY = 'auto';
 		}
     },
 	initDOMElMargins: function() {
