@@ -86,10 +86,10 @@ loginAndManageWorkList welcome workflows
 					||-
 	 				enterInformation "Enter your credentials and login or press continue to remain anonymous" []
 	 			) 
-		>>* 	[OnAction (Action "Login" [ActionIcon "login"]) (hasValue (browseAuthenticated workflows))
-				,OnAction (Action "Continue" []) (always (browseAnonymous workflows))
+		>>* 	[OnAction (Action "Login") (hasValue (browseAuthenticated workflows))
+				,OnAction (Action "Continue") (always (browseAnonymous workflows))
 		] 
-		) <<@ ApplyLayout (beforeStep frameCompact)) //Compact layout before login, full screen afterwards
+		) <<@ ApplyLayout (beforeStep layout)) //Compact layout before login, full screen afterwards
 where
 	browseAuthenticated workflows {Credentials|username,password}
 		= authenticateUser username password
@@ -100,6 +100,10 @@ where
 	browseAnonymous workflows
 		= manageWorklist workflows
 		
+	layout = sequenceLayouts
+		[layoutSubsOfType [] [UIAction] (setActionIcon ('DM'.fromList [("Login","login")]))
+		,frameCompact
+		]
 		
 // Application specific types
 :: ClientPart
@@ -155,13 +159,14 @@ where
 		]
 
 manageSession :: !(SharedTaskList ClientPart) -> Task ClientPart
-manageSession list
-	=	(viewSharedInformation () [ViewAs view] currentUser	
-			>>* [OnAction (Action "Shutdown" [ActionIcon "close"])	(always (shutDown @! Nothing))
-				,OnAction (Action "Log out" [ActionIcon "logout"])	(always (return (Just Logout)))
+manageSession list =
+	(	(viewSharedInformation () [ViewAs view] currentUser	
+			>>* [OnAction (Action "Shutdown")	(always (shutDown @! Nothing))
+				,OnAction (Action "Log out")	(always (return (Just Logout)))
 				]															
 		) <! isJust	
 	@	fromJust	
+	) <<@ ApplyLayout (layoutSubsOfType [] [UIAction] (setActionIcon ('DM'.fromList [("Shutdown","close"),("Log out","logout")])))
 where
 	view user	= "Welcome " +++ toString user		
 
@@ -170,7 +175,7 @@ startWork list = chooseWorkflow >&> viewAndStart
 where
 	viewAndStart sel = forever (
 			viewWorkflowDetails sel
-		>>* [OnAction (Action "Start Task" []) (hasValue (startWorkflow list))]
+		>>* [OnAction (Action "Start Task") (hasValue (startWorkflow list))]
 		@	\wf -> SelWorkflow wf.Workflow.path
 		)
 
@@ -231,8 +236,8 @@ unwrapWorkflowTask (ParamWorkflowTask tf) = (enterInformation "Enter parameters"
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
 	(	enterChoiceWithSharedAs () [ChooseFromGrid snd] processes fst
-	>>* [OnAction (Action "Open" [ActionTrigger DoubleClick]) (hasValue (\taskId -> openTask taskList taskId @ const OpenProcess))
-		,OnAction (Action "Delete" []) (hasValue (\taskId -> removeTask taskId topLevelTasks @ const OpenProcess))]
+	>>* [OnAction (Action "Open") (hasValue (\taskId -> openTask taskList taskId @ const OpenProcess))
+		,OnAction (Action "Delete") (hasValue (\taskId -> removeTask taskId topLevelTasks @ const OpenProcess))]
 	)
 where
 	// list of active processes for current user without current one (to avoid work on dependency cycles)

@@ -152,9 +152,8 @@ matchAction taskId _        = Nothing
 contActions :: TaskId (TaskValue a) [TaskCont a b]-> [UI]
 contActions taskId val conts = [actionUI (isJust (taskbf val)) action\\ OnAction action taskbf <- conts]
 where
-	actionUI enabled action=:(Action actionId _)
-		= uia UIAction ('DM'.unions [enabledAttr enabled, taskIdAttr (toString taskId), actionIdAttr actionId
-                                    ,maybe 'DM'.newMap (\icon -> iconClsAttr icon) (actionIcon action)])
+	actionUI enabled action=:(Action actionId)
+		= uia UIAction ('DM'.unions [enabledAttr enabled, taskIdAttr (toString taskId), actionIdAttr actionId])
 
 searchContValue :: (TaskValue a) (Maybe String) [TaskCont a b] -> Maybe (!Int, !b, !DeferredJSON) | TC a & JSONEncode{|*|} a
 searchContValue val mbAction conts = search val mbAction 0 Nothing conts

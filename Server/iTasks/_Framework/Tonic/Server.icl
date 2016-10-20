@@ -136,10 +136,10 @@ archivedStandAloneViewer
     # notLast  = curIdx < numMsgs - 1
     =                newRTMapFromMessages (take (curIdx + 1) recs)
     >>~ \newRTMap -> archivedStandAloneViewer`` curIdx newRTMap
-    >>* [ OnAction (Action "First" [])    (ifCond notFirst (showRecs 0 recs))
-        , OnAction (Action "Previous" []) (ifCond notFirst (showRecs (curIdx - 1) recs))
-        , OnAction (Action "Next" [])     (ifCond notLast  (showRecs (curIdx + 1) recs))
-        , OnAction (Action "Last" [])     (ifCond notLast  (showRecs lastIdx recs))
+    >>* [ OnAction (Action "First")    (ifCond notFirst (showRecs 0 recs))
+        , OnAction (Action "Previous") (ifCond notFirst (showRecs (curIdx - 1) recs))
+        , OnAction (Action "Next")     (ifCond notLast  (showRecs (curIdx + 1) recs))
+        , OnAction (Action "Last")     (ifCond notLast  (showRecs lastIdx recs))
         ]
   archivedStandAloneViewer`` curIdx newRTMap
     =   enterChoice "Select blueprint" [ChooseFromGrid (\(x, y, z, _) -> (x, y, z))] (flattenRTMap newRTMap)
@@ -177,22 +177,22 @@ liveStandAloneViewer
                                                                             ])))))
     where
     startAction :: TMessageStore -> TaskCont a (Task ())
-    startAction {ts_recording} = OnAction (Action "Start new recording" []) (ifCond (not ts_recording) startTask)
+    startAction {ts_recording} = OnAction (Action "Start new recording") (ifCond (not ts_recording) startTask)
       where
       startTask
         =   upd (\ts -> {ts & ts_recording = True, ts_recordingBuffer = []}) tonicServerShare @! ()
     pauseAction :: TMessageStore -> TaskCont a (Task ())
-    pauseAction {ts_recording} = OnAction (Action "Pause recording" []) (ifCond ts_recording stopTask)
+    pauseAction {ts_recording} = OnAction (Action "Pause recording") (ifCond ts_recording stopTask)
       where
       stopTask
         =   upd (\ts -> {ts & ts_recording = False}) tonicServerShare @! ()
     continueAction :: TMessageStore -> TaskCont a (Task ())
-    continueAction {ts_recording} = OnAction (Action "Continue recording" []) (ifCond (not ts_recording) stopTask)
+    continueAction {ts_recording} = OnAction (Action "Continue recording") (ifCond (not ts_recording) stopTask)
       where
       stopTask
         =   upd (\ts -> {ts & ts_recording = True}) tonicServerShare @! ()
     stopAction :: TMessageStore -> TaskCont a (Task ())
-    stopAction {ts_recording} = OnAction (Action "Pause and save recording" []) (ifCond ts_recording stopTask)
+    stopAction {ts_recording} = OnAction (Action "Pause and save recording") (ifCond ts_recording stopTask)
       where
       stopTask
         =           get tonicServerShare
@@ -200,7 +200,7 @@ liveStandAloneViewer
         >>- \cdt -> upd ('DM'.put cdt ts.ts_recordingBuffer) recordingsShare
         >>- \_   -> upd (\ts -> {ts & ts_recording = False}) tonicServerShare @! ()
     refreshAction :: TaskCont a (Task ())
-    refreshAction = OnAction (Action "Refresh" []) (always startViewer)
+    refreshAction = OnAction (Action "Refresh") (always startViewer)
 
     noSel :: Task ()
     noSel = viewInformation "Notice" [] "No blueprint selected" @! ()

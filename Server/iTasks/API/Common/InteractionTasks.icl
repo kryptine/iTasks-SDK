@@ -338,10 +338,10 @@ crudWith descr choiceOpts enterOpts viewOpts updateOpts toList putItem delItem s
   where
   goCRUD
     =   enterChoiceWithShared descr choiceOpts (mapRead toList sh)
-    >>* [ OnAction (Action "New" [])    (always   newItem)
-        , OnAction (Action "View" [])   (hasValue viewItem)
-        , OnAction (Action "Edit" [])   (hasValue editItem)
-        , OnAction (Action "Delete" []) (hasValue deleteItem)
+    >>* [ OnAction (Action "New")    (always   newItem)
+        , OnAction (Action "View")   (hasValue viewItem)
+        , OnAction (Action "Edit")   (hasValue editItem)
+        , OnAction (Action "Delete") (hasValue deleteItem)
         ]
   newItem
     =            enterInformation (Title "New item") enterOpts

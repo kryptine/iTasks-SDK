@@ -94,6 +94,8 @@ instance tune NoUserInterface
 
 actionToButton :: Layout
 
+setActionIcon :: (Map String String) -> Layout
+
 //Setting attributes 
 instance tune Title
 instance tune Label

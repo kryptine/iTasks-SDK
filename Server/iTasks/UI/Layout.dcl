@@ -36,6 +36,7 @@ setNodeType :: UINodeType -> Layout
 setAttributes :: UIAttributes -> Layout
 copyAttributes :: [String] NodePath NodePath -> Layout
 copyAllAttributes :: NodePath NodePath -> Layout
+modifyAttribute :: String (JSONNode -> UIAttributes) -> Layout
 
 // === Changing the structure of the tree ===
 
@@ -65,7 +66,8 @@ selectLayout      :: [(UI -> Bool, Layout)] -> Layout
 conditionalLayout :: (UI -> Bool) Layout    -> Layout
 
 layoutSubAt        :: NodePath Layout   -> Layout
-layoutSubsMatching :: NodePath (UI -> Bool) Layout   -> Layout
+layoutSubsMatching :: NodePath (UI -> Bool) Layout -> Layout
+layoutSubsOfType   :: NodePath [UINodeType] Layout -> Layout
 layoutChildrenOf   :: NodePath Layout -> Layout
 
 //Easier debugging
