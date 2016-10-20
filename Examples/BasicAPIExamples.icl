@@ -5,10 +5,11 @@ import iTasks.API.Extensions.Admin.ServerAdmin
 import iTasks.API.Extensions.Admin.StoreAdmin
 import iTasks.API.Extensions.Admin.WorkflowAdmin
 import iTasks.API.Extensions.Admin.TonicAdmin
-import iTasks._Framework.Tonic
 import iTasks.API.Extensions.GIS.GoogleMap
+import iTasks.API.Extensions.Currency
 import iTasks.UI.Definition, iTasks.UI.Editor.Builtin
 import Text, Text.HTML, StdArray
+import iTasks._Framework.Tonic
 //import ligrettoTOP
 //import iTaskGraphics, editletGraphics, edgehog
 import qualified Data.Map as DM

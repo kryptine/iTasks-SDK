@@ -13,8 +13,6 @@ list2mb				:: ![a] -> (Maybe [a])
 
 instance toString (Maybe a) | toString a
 
-decFormat			:: !Int -> String
-
 currentLocalDateTimeWorld	:: !*World	-> (!DateTime,!*World)
 currentUTCDateTimeWorld	    :: !*World	-> (!DateTime,!*World)
 
