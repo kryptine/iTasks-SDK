@@ -4,7 +4,7 @@ import StdTuple, StdList, StdBool, StdInt, StdOrdList, StdArray, StdMisc
 import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
-
+import Graphics.Layout
 from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys, singleton
 import StdEnum
 
@@ -66,19 +66,26 @@ h transforms the UILayout into a sparse new UI with some attributes (like direct
   = Ed  NodePath
   | Par NodePath [TaskUITree]
 
-:: TaskUILayout
-  = UIBeside [TaskUILayout]
-  | UIAbove  [TaskUILayout]
+:: TaskUILayout a
+  = UIBeside [TaskUILayout a]
+  | UIAbove  [TaskUILayout a]
   | UINode   NodePath
 
-uiOf :: TaskUITree -> TaskUILayout
+uiOf :: TaskUITree -> TaskUILayout a
 uiOf (Ed  path  ) = UINode path
 uiOf (Par path _) = UINode path
 
-uiBeside :: [TaskUILayout] -> TaskUILayout
+instance Layout TaskUILayout Int Int TaskHost where
+  collage        _ _ _ = UINode []
+  overlay      _ _ _ _ = UINode []
+  beside    _ _ _ ts _ = UIBeside ts
+  above     _ _ _ ts _ = UIAbove ts
+  grid _ _ _ _ _ _ _ _ = UINode []
+
+uiBeside :: [TaskUILayout a] -> TaskUILayout a
 uiBeside refs = UIBeside refs
 
-uiAbove :: [TaskUILayout] -> TaskUILayout
+uiAbove :: [TaskUILayout a] -> TaskUILayout a
 uiAbove refs = UIAbove refs
 
 uiToRefs :: UI -> TaskUITree
@@ -98,7 +105,7 @@ uiToRefs ui
     = [Ed curPath]
   recurse curPath subs = flatten (map (uiToRefs` curPath) (zip2 [0..] subs))
 
-taskUILayoutToUI :: TaskUILayout -> UI
+taskUILayoutToUI :: (TaskUILayout a) -> UI
 taskUILayoutToUI (UIBeside ls)
   = UI UIParallel ('DM'.singleton "direction" (encodeUI Horizontal)) (map taskUILayoutToUI ls)
 taskUILayoutToUI (UIAbove ls)

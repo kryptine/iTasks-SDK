@@ -82,4 +82,4 @@ traceLayout :: String Layout -> Layout
 	= BranchLayout JSONNode
 	| ChildBranchLayout NodeLayoutStates
 	
-
+:: TaskHost a = InTaskHost | NoTaskHost
