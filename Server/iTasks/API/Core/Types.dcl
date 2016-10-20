@@ -61,16 +61,6 @@ instance TMonad (Either e)
 // Common data types that have specialized user interfaces
 //****************************************************************************//
 
-//* E-mail addresses
-:: EmailAddress	= EmailAddress !String
-instance toString	EmailAddress
-instance html		EmailAddress
-
-//* Phone number
-:: PhoneNumber = PhoneNumber !String
-instance toString	PhoneNumber
-instance html		PhoneNumber
-
 //* Uniform resource locators
 :: URL			= URL !String
 instance toString	URL
@@ -130,12 +120,12 @@ instance <	Date, Time, DateTime
 instance toString	Document
 instance ==			Document
 
-derive JSONEncode		EmailAddress, PhoneNumber, URL, Date, Time, DateTime, Document 
-derive JSONDecode		EmailAddress, PhoneNumber, URL, Date, Time, DateTime, Document
-derive gDefault			EmailAddress, PhoneNumber, URL, Date, Time, DateTime, Document
-derive gEq				EmailAddress, PhoneNumber, URL, Date, Time, DateTime, Document
-derive gText	        EmailAddress, PhoneNumber, URL, Date, Time, DateTime, Document
-derive gEditor 			EmailAddress, PhoneNumber, URL, Date, Time, DateTime, Document
+derive JSONEncode		URL, Date, Time, DateTime, Document 
+derive JSONDecode		URL, Date, Time, DateTime, Document
+derive gDefault			URL, Date, Time, DateTime, Document
+derive gEq				URL, Date, Time, DateTime, Document
+derive gText	        URL, Date, Time, DateTime, Document
+derive gEditor 			URL, Date, Time, DateTime, Document
 
 //* Common exceptions used by API tasks
 

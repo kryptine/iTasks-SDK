@@ -7,6 +7,7 @@ import iTasks.API.Extensions.Admin.WorkflowAdmin
 import iTasks.API.Extensions.Admin.TonicAdmin
 import iTasks.API.Extensions.GIS.GoogleMap
 import iTasks.API.Extensions.Currency
+import iTasks.API.Extensions.Contact
 import iTasks.UI.Definition, iTasks.UI.Editor.Builtin
 import Text, Text.HTML, StdArray
 import iTasks._Framework.Tonic
