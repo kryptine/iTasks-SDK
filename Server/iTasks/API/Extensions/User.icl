@@ -3,6 +3,7 @@ import iTasks
 import Text
 import qualified Data.Map as DM
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import iTasks.UI.Layout.Default
 
 gText{|User|} _ val = [maybe "" toString val]
 
@@ -187,7 +188,7 @@ workAs asUser task
 */
 assign :: !TaskAttributes !(Task a) -> Task a | iTask a
 assign attr task
-	=	parallel [(Embedded, \s -> processControl s),(Detached attr False, \_ -> task)] []
+	=	parallel [(Embedded, \s -> processControl s),(Detached attr False, const (task <<@ ApplyLayout defaultSessionLayout))] []
 	@?	result
 where
 	processControl tlist
