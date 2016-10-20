@@ -163,8 +163,8 @@ where
 	    = case f val of
 			Just cont	= Just (i, cont, DeferredJSON val)			//Don't look any further, first matching trigger wins
 			Nothing		= search val mbAction (i + 1) mbMatch cs	//Keep search
-    search val mbAction=:(Just actionEvent) i Nothing [OnAction action f:cs]
-	    | actionEvent == actionName action
+    search val mbAction=:(Just actionEvent) i Nothing [OnAction (Action actionName) f:cs]
+	    | actionEvent == actionName
 		    = case f val of
                 Just cont	= search val mbAction (i + 1) (Just (i, cont, DeferredJSON val)) cs 	//We found a potential winner (if no OnValue values are in cs)
                 Nothing		= search val mbAction (i + 1) Nothing cs								//Keep searching

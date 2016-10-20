@@ -254,8 +254,6 @@ derive class iTask TaskListFilter
 //* Next task actions
 :: Action	= Action !String //Locally unique identifier for actions
 
-actionName		:: !Action -> String
-
 //Common action constants with predefined options
 ActionOk		:== Action "Ok"
 ActionCancel	:==	Action "Cancel"

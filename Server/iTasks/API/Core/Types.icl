@@ -316,9 +316,6 @@ where
 	(==) :: !Action !Action -> Bool
 	(==) (Action name0) (Action name1) = name0 == name1
 
-actionName :: !Action -> String
-actionName (Action name) = name
-
 derive JSONEncode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
 derive JSONDecode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
 derive gDefault			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
