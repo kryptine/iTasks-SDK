@@ -18,7 +18,7 @@ import iTasks.API.Extensions.Platform
 
 fromSVGEditor :: (SVGEditor s v) -> Editor s | iTask s
 
-derive class iTask Image, Span, LookupSpan, FontDef, ImageTransform, ImageAttr
+derive class iTask Image, Host, Span, LookupSpan, FontDef, ImageTransform, ImageAttr
 derive class iTask ImageContent, BasicImage, CompositeImage, LineImage, Markers
 derive class iTask LineContent, Compose, XAlign, YAlign, OnMouseOutAttr, OnMouseMoveAttr
 derive class iTask OpacityAttr, FillAttr, XRadiusAttr, YRadiusAttr, StrokeWidthAttr, StrokeAttr
