@@ -6,7 +6,8 @@ definition module iTasks.UI.Layout.Common
 */
 import iTasks.UI.Layout
 from iTasks.UI.Definition import :: UISide(..), :: UIDirection(..), :: UIWindowType(..), :: UIHAlign(..), :: UIVAlign(..)
-from iTasks.API.Core.Types import :: Title, :: Label, :: Icon, :: Attribute
+from iTasks.UI.Prompt import :: Title, :: Label, :: Icon
+from iTasks.API.Core.Types import :: Attribute
 
 /**
 * Create a tabset with all child items as separate tabs

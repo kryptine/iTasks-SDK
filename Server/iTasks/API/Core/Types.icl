@@ -324,58 +324,6 @@ derive gText	        TaskValue, InstanceConstants, InstanceProgress, ValueStatus
 derive gEditor			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
 
 derive class iTask TaskId, Config, ProcessStatus
-	
-instance toString Icon
-where
-	toString (Icon icon) = icon
-	toString (IconView)	= "view"
-	toString (IconEdit) = "edit"
-	
-instance toPrompt (!Icon,!String,!String)
-where
-	toPrompt (icon,title,hint) 
-		# (UI type attr items) = stringDisplay hint
-		# attr = 'DM'.put ICON_ATTRIBUTE (JSONString (toString icon)) attr
-		# attr = 'DM'.put TITLE_ATTRIBUTE (JSONString title) attr
-		= UI type attr items
-instance toPrompt Title
-where
-	toPrompt (Title title) = uia UIEmpty ('DM'.fromList [(TITLE_ATTRIBUTE,JSONString title)])
-	
-instance toPrompt Label
-where
-	toPrompt (Label label) = uia UIEmpty ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)])
-
-instance toPrompt Hint
-where
-	toPrompt (Hint hint) = uia UIEmpty ('DM'.fromList [(HINT_ATTRIBUTE,JSONString hint)])
-	
-instance toPrompt Icon
-where
-	toPrompt icon = uia UIEmpty ('DM'.fromList [(ICON_ATTRIBUTE,JSONString (toString icon))])
-
-instance toPrompt Attribute
-where
-	toPrompt (Attribute k v) = uia UIEmpty ('DM'.fromList [(k,JSONString v)])
-	
-instance toPrompt Att
-where
-	toPrompt (Att a) = toPrompt a
-	
-instance toPrompt [d] | toPrompt d
-where
-	toPrompt list = ui UIEmpty
-
-derive JSONEncode		Icon
-derive JSONDecode		Icon
-derive gDefault			Icon
-derive gEq				Icon
-derive gText	        Icon
-
-gEditor{|Icon|} = liftEditor toView fromView (icon 'DM'.newMap)
-where
-	toView (Icon name) = ("icon-"+++name,Nothing)
-	fromView _ = defaultValue
 
 // Generic instances for common library types
 derive JSONEncode		Either, MaybeError, HtmlTag, HtmlAttr
