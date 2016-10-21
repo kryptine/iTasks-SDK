@@ -24,7 +24,7 @@ import Data.Matrix
 import iTasks.API.Extensions.Platform
 import Text.HTML
 
-derive class iTask Image, Span, LookupSpan, FontDef, ImageTransform, ImageAttr
+derive class iTask Image, Host, Span, LookupSpan, FontDef, ImageTransform, ImageAttr
 derive class iTask ImageContent, BasicImage, CompositeImage, LineImage, Markers
 derive class iTask LineContent, Compose, XAlign, YAlign, OnMouseOutAttr, OnMouseMoveAttr
 derive class iTask OpacityAttr, FillAttr, XRadiusAttr, YRadiusAttr, StrokeWidthAttr, StrokeAttr
@@ -555,6 +555,14 @@ applyTransforms ts (xsp, ysp)
     = strictTRMap (scaleTF (px 1.0) (px ysp`)) coords
   f _ coords = coords
 
+hostToList :: !(Host m) -> [Image m]
+hostToList (Host img) = [img]
+hostToList _          = []
+
+maybeHost :: w:b v:((Image .a) -> w:b) !.(Host .a) -> w:b
+maybeHost x _ NoHost  = x
+maybeHost _ f (Host x) = f x
+
 gatherFonts :: !(Image s) -> Map FontDef (Set String)
 gatherFonts {content, mask, attribs, transform}
   = gatherFontsUnions [ gatherFontsImageContent content
@@ -574,7 +582,7 @@ gatherFonts {content, mask, attribs, transform}
     gatherFontsLineContent (PolygonImage ios)  = gatherFontsUnions (gatherFontsPairs ios)
     gatherFontsLineContent (PolylineImage ios) = gatherFontsUnions (gatherFontsPairs ios)
     gatherFontsLineContent _                   = 'DM'.newMap
-  gatherFontsImageContent (Composite {host, compose}) = gatherFontsUnions [gatherFontsCompose compose : strictTRMapRev gatherFonts (maybeToList host)]
+  gatherFontsImageContent (Composite {host, compose}) = gatherFontsUnions [gatherFontsCompose compose : strictTRMapRev gatherFonts (hostToList host)]
     where
     gatherFontsCompose :: !(Compose m) -> Map FontDef (Set String)
     gatherFontsCompose (AsGrid    _ offss _ imgss) = gatherFontsUnions (strictTRMapRev gatherFonts (flattenTR imgss) ++ (gatherFontsPairs (flattenTR offss)))
@@ -619,6 +627,12 @@ gatherFontsSpan _                               = 'DM'.newMap
 
 gatherFontsUnions :: ![Map FontDef (Set String)] -> Map FontDef (Set String)
 gatherFontsUnions m = 'DM'.unionsWith 'DS'.union m
+
+desugarAndTagHostImage :: !(Host s) !*DesugarAndTagStVal -> (!Host s, !*DesugarAndTagStVal)
+desugarAndTagHostImage (Host img) st
+  #! (img, st) = desugarAndTag img st
+  = (Host img, st)
+desugarAndTagHostImage n st = (n, st)
 
 desugarAndTagMaybeImage :: !(Maybe (Image s)) !*DesugarAndTagStVal -> (!Maybe (Image s), !*DesugarAndTagStVal)
 desugarAndTagMaybeImage (Just img) st
@@ -681,12 +695,12 @@ desugarAndTag {content, mask, attribs, transform, tags} st
       = (Just {markerStart = markerStart, markerMid = markerMid, markerEnd = markerEnd}, st)
     desugarAndTagMarkers n st = (n, st)
   desugarAndTagImageContent (Composite {host, compose}) transform tags st
-    #! (host, st)                   = desugarAndTagMaybeImage host st
+    #! (host, st)                   = desugarAndTagHostImage host st
     #! ((compose, composeSpan), st) = desugarAndTagCompose compose host tags st
     #! (host, span)                 = case host of
-                                       Just hostImg
-                                          -> (host, mkTotalSpanPostTrans hostImg)
-                                       _  -> (Nothing, composeSpan)
+                                        Host hostImg
+                                           -> (host, mkTotalSpanPostTrans hostImg)
+                                        _  -> (NoHost, composeSpan)
     #! (span`, corr)                = applyTransforms transform span
     = ({ desugarAndTagSyn_ImageContent        = Composite { CompositeImage
                                                           | host    = host
@@ -697,7 +711,7 @@ desugarAndTag {content, mask, attribs, transform, tags} st
        , desugarAndTagSyn_OffsetCorrection    = corr
        }, st)
     where
-    desugarAndTagCompose :: !(Compose s) !(Maybe (Image s)) !(Set ImageTag) !*DesugarAndTagStVal
+    desugarAndTagCompose :: !(Compose s) !(Host s) !(Set ImageTag) !*DesugarAndTagStVal
                          -> *(!(!Compose s, !ImageSpan), !*DesugarAndTagStVal)
     desugarAndTagCompose (AsGrid (numcols, numrows) offsetss iass imgss) host tags st
       #! (imgss, st) = strictTRMapSt (strictTRMapSt desugarAndTag) imgss st
@@ -705,10 +719,10 @@ desugarAndTag {content, mask, attribs, transform, tags} st
       #! sysTags     = ImageTagSystem tag
       #! colIndices  = [0 .. numcols - 1]
       #! rowIndices  = [0 .. numrows - 1]
-      #! gridSpan    = maybe ( strictFoldl (\acc n -> LookupSpan (ColumnXSpan sysTags n) + acc) (px 0.0) colIndices
-                             , strictFoldl (\acc n -> LookupSpan (RowYSpan sysTags n)    + acc) (px 0.0) rowIndices
-                             )
-                             mkTotalSpanPostTrans host
+      #! gridSpan    = maybeHost ( strictFoldl (\acc n -> LookupSpan (ColumnXSpan sysTags n) + acc) (px 0.0) colIndices
+                                 , strictFoldl (\acc n -> LookupSpan (RowYSpan sysTags n)    + acc) (px 0.0) rowIndices
+                                 )
+                                 mkTotalSpanPostTrans host
       #! spanss      = strictTRMap (strictTRMap mkTotalSpanPostTrans) imgss
       #! st          = cacheGridSpans tag ('DS'.insert sysTags tags)
                                       (strictTRMap (maxSpan o strictTRMap fst) (transpose spanss))
@@ -719,7 +733,7 @@ desugarAndTag {content, mask, attribs, transform, tags} st
       = (( AsCollage offsets` (flattenTR imgss)
          , gridSpan), st)
       where
-      calculateGridOffsets :: ![Span] ![Span] ![[ImageAlign]] ![[Image s]] ![[(!Span, !Span)]] -> [[(!Span, !Span)]]
+      calculateGridOffsets :: ![Span] ![Span] ![[XYAlign]] ![[Image s]] ![[(!Span, !Span)]] -> [[(!Span, !Span)]]
       calculateGridOffsets cellXSpans cellYSpans alignss imagess offsetss
         = fst (strictFoldl (mkRows cellXSpans) ([], zero) (strictTRZip4 alignss imagess cellYSpans offsetss))
         where
@@ -738,17 +752,17 @@ desugarAndTag {content, mask, attribs, transform, tags} st
     desugarAndTagCompose (AsCollage offsets imgs) host tags st
       #! (imgs, st) = strictTRMapSt desugarAndTag imgs st
       = (( AsCollage offsets imgs
-         , maybe (calculateComposedSpan (strictTRMap mkTotalSpanPostTrans imgs) offsets) mkTotalSpanPostTrans host), st)
+         , maybeHost (calculateComposedSpan (strictTRMap mkTotalSpanPostTrans imgs) offsets) mkTotalSpanPostTrans host), st)
     desugarAndTagCompose (AsOverlay offsets ias imgs) host tags st
       #! (imgs, st)     = strictTRMapSt desugarAndTag imgs st
       #! spans          = strictTRMap mkTotalSpanPostTrans imgs
       #! (  maxXSpan
-          , maxYSpan)   = maybe (maxSpan (strictTRMap fst spans), maxSpan (strictTRMap snd spans))
-                                (\x -> x.totalSpanPreTrans) host
+          , maxYSpan)   = maybeHost (maxSpan (strictTRMap fst spans), maxSpan (strictTRMap snd spans))
+                                    (\x -> x.totalSpanPreTrans) host
       #! alignOffsets   = strictTRZipWith (calcAlignOffset maxXSpan maxYSpan) spans ias
       #! placingOffsets = strictTRZipWith3 addOffset alignOffsets offsets imgs
       = ( ( AsCollage placingOffsets imgs
-          , maybe (calculateComposedSpan spans placingOffsets) mkTotalSpanPostTrans host)
+          , maybeHost (calculateComposedSpan spans placingOffsets) mkTotalSpanPostTrans host)
         , st)
       where
       addOffset :: !(!Span, !Span) !(!Span, !Span) !(Image s) -> (!Span, !Span)
@@ -1033,6 +1047,12 @@ mkElt maskId (Just mask) syn
   = [ DefsElt [] [] [MaskElt [IdAttr maskId] [] mask.genSVGSyn_svgElts]
     : syn.genSVGSyn_svgElts]
 
+genSVGHostImage :: !(Host s) !*(GenSVGStVal s) -> (!Maybe (GenSVGSyn s), !*GenSVGStVal s)
+genSVGHostImage (Host img) st
+  #! (syn, st) = genSVG img st
+  = (Just syn, st)
+genSVGHostImage _ st = (Nothing, st)
+
 genSVGMaybeImage :: !(Maybe (Image s)) !*(GenSVGStVal s) -> (!Maybe (GenSVGSyn s), !*GenSVGStVal s)
 genSVGMaybeImage (Just img) st
   #! (syn, st) = genSVG img st
@@ -1242,7 +1262,7 @@ genSVG {content, mask, attribs, transform, tags, uniqId, totalSpanPreTrans = (tx
     mkLine constr atts spans _ st = ({ mkGenSVGSyn & genSVGSyn_svgElts = [constr [] atts]}, st)
 
   genSVGImageContent (Composite {host, compose}) interactive totalSpanPreTrans attribs transform tags uniqId st
-    #! (host, st)    = genSVGMaybeImage host st
+    #! (host, st)    = genSVGHostImage host st
     #! (compose, st) = genSVGCompose compose host totalSpanPreTrans attribs transform tags st
     #! (cpId, st)    = getCpId st
     #! (elts, spans, onclicks, draggables, idMap)
@@ -1398,7 +1418,7 @@ mkAttrs :: ![Maybe SVGAttr] ![SVGTransform] -> [SVGAttr]
 mkAttrs imAts [] = getSvgAttrs imAts
 mkAttrs imAts xs = addAttr (TransformAttr xs) (getSvgAttrs imAts)
 
-calcAlignOffset :: !Span !Span !(!Span, !Span) !ImageAlign -> (!Span, !Span)
+calcAlignOffset :: !Span !Span !(!Span, !Span) !XYAlign -> (!Span, !Span)
 calcAlignOffset maxxsp maxysp (imXSp, imYSp) (xal, yal) = (mkXAl maxxsp imXSp xal, mkYAl maxysp imYSp yal)
   where
   mkXAl :: !Span !Span !XAlign -> Span
