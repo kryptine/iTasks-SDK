@@ -54,8 +54,13 @@ play_Ligretto
 	>>= \me   -> invite_friends
 	>>= \them -> let us = zip2 (colors (1+length them)) [me : them]
 	              in allTasks (repeatn (length us) (get randomInt))
-	>>= \rs   -> let gameSt = init_gameSt us rs
-	              in withShared gameSt (play_game us)
+	>>= \rs   -> withShared (init_gameSt us (map limitInt rs)) (play_game us)
+
+MAX_JS_INT :== 0x7FFFFFFE
+
+limitInt n
+  | n < MAX_JS_INT = n
+  | otherwise      = MAX_JS_INT
 
 init_gameSt :: [(Color,User)] [Int] -> GameSt
 init_gameSt us rs
