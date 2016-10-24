@@ -32,7 +32,7 @@ where
 	nederland :: Image m
 	nederland = banden (H *. 3 /. 2,H) [toSVGColor {r=174,g=28,b=40},toSVGColor "white",toSVGColor {r=33,g=70,b=139}]
 
-	banden (w,h) kleuren = above [] [] [rect w (h /. (length kleuren)) <@< {fill = kleur} <@< {stroke = toSVGColor "none"} \\ kleur <- kleuren] Nothing
+	banden (w,h) kleuren = above [] [] [] [rect w (h /. (length kleuren)) <@< {fill = kleur} <@< {stroke = toSVGColor "none"} \\ kleur <- kleuren] NoHost
 
 	H = px 32.0				
 	W = H *. 1.5
@@ -48,7 +48,7 @@ where
 	renderImage str _ _
         #! r = rect (px 100.0) (px 100.0)
         #! t = text (normalFontDef "Arial" 10.0) str <@< { fill = toSVGColor "white" }
-        = overlay (repeat (AtMiddleX, AtMiddleY)) [] [t] (Just r) <@< { onclick = \n _ -> case n of
+        = overlay (repeat (AtMiddleX, AtMiddleY)) [] [t] (Host r) <@< { onclick = \n _ -> case n of
                                                                                       1 -> "one click"
                                                                                       2 -> "double click"
                                                                                       n -> toString n +++ " clicks"
