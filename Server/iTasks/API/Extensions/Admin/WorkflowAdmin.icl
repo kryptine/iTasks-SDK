@@ -230,7 +230,7 @@ startWorkflow list wf
                                           , ("createdBy",  toString (toUserConstraint user))
                                           , ("createdAt",  toString now)
                                           , ("createdFor", toString (toUserConstraint user))
-                                          , ("priority",   toString 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task <<@ ApplyLayout defaultSessionLayout)
+                                          , ("priority",   toString 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
 	>>= \procId ->
 		openTask list procId
 	@	const wf
