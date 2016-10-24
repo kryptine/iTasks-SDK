@@ -1,11 +1,3 @@
-/*
- SASS-Themable stylesheet for iTasks javascript UI library
- You can customize this to easily create branded iTask applications.
-*/
-@import "options.scss";
-@import "colors.scss";
-
-
 *.#{$prefix}viewport {
 
 	margin: 0;
@@ -72,9 +64,3 @@ div.#{$prefix}loader-spinner {
 		min-height: fit-content;
 	}
 }
-/* Additional components */
-@import "itasks-components-raw.scss";
-@import "itasks-components-container.scss";
-@import "itasks-components-form.scss";
-@import "itasks-components-display.scss";
-@import "itasks-components-selection.scss";
