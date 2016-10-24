@@ -176,6 +176,8 @@
     left: 0px;
     z-index: 100;
     display: flex;
+    flex-direction: column;
+
     > .#{$prefix}inner {
         overflow: auto;
     }

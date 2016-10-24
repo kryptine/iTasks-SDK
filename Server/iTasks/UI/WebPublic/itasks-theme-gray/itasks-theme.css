@@ -380,7 +380,8 @@ div.itasks-loader-spinner {
   top: 0px;
   left: 0px;
   z-index: 100;
-  display: flex; }
+  display: flex;
+  flex-direction: column; }
   .itasks-floating-window > .itasks-inner, .itasks-notification-bubble > .itasks-inner {
     overflow: auto; }
 

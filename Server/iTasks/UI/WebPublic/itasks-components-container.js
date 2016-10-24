@@ -164,13 +164,16 @@ itasks.TabSet = {
 }
 
 itasks.Window = {
-    margins: '10 10 10 10',
-	movable: false,
+    marginTop: 10, marginRight: 10, marginBottom: 10, marginLeft: 10,
+	movable: true,
 	modal: false,
-	windowType: 'floating',
+	windowType: 'bubble',
+	hpos: 'center',
+	vpos: 'top',
 
     initDOMEl: function() {
-        var me = this;
+        var me = this,left,top;
+
         switch(me.windowType) {
             case 'modal':
                 me.modal = true;
@@ -184,38 +187,42 @@ itasks.Window = {
                 me.domEl.classList.add(me.cssPrefix + 'floating-window');
         }
 /*
-        me.setTitle(me.definition.title);
         me.setCloseTaskId(me.definition.closeTaskId);
 */
-        if(me.movable && me.headerEl) {
-            me.headerEl.addEventListener('mousedown', me.onStartDrag.bind(me));
-            me.headerEl.style.cursor = 'move';
-        }
-    },
-    initSize: function() {
-/*
-        var me = this,
-            el = me.panelEl,
-            width = me.definition.itwcWidth || me.defaultWidth,
-            height = me.definition.itwcHeight || me.defaultHeight;
+		//Create header
+		if(me.title) {
+			me.headerEl = document.createElement('div');
+			me.headerEl.classList.add(me.cssPrefix + 'header');
+			me.headerEl.innerHTML = '<span>' + me.title + '</span>';
+			me.domEl.appendChild(me.headerEl);
 
-        if(width != 'flex' && width != 'wrap') {
-            el.style.width = width + 'px';
-            el.style.minWidth = width + 'px';
-        }
-        if(height != 'flex' && height != 'wrap') {
-            el.style.height = height + 'px';
-            el.style.minHeight = height + 'px';
-        }
-        if(me.modal) {
-            me.domEl.style.width = window.innerWidth + 'px';
-            me.domEl.style.height = window.innerHeight + 'px';
-        }
-*/
-    },
+        	if(me.movable) {
+            	me.headerEl.addEventListener('mousedown', me.onStartDrag.bind(me));
+	            me.headerEl.style.cursor = 'move';
+			}
+		}
+		//Create separate container div
+		me.containerEl = document.createElement('div');
+		me.containerEl.classList.add(me.cssPrefix + 'inner');
+		me.domEl.appendChild(me.containerEl);
+
+		//Position window
+		switch(me.vpos) {
+			case 'top': top = me.marginTop; break;
+			case 'middle': top = (document.body.offsetHeight / 2) - (me.domEl.offsetHeight / 2); break;
+			case 'bottom': top = document.body.offsetHeight - me.domEl.offsetHeight - me.marginBottom; break;
+		}
+		switch(me.hpos) {
+			case 'left': left = me.marginLeft; break;
+			case 'center': left = ((document.body.offsetWidth / 2) - (me.domEl.offsetWidth / 2)); break;
+			case 'right': left = document.body.offsetWidth - me.domEl.offsetWidth - me.marginRight; break;
+		}
+		me.domEl.style.top = top + 'px';
+		me.domEl.style.left = left + 'px';
+	},
+    initSize: function() {},
     onStartDrag: function(e) {
         var me = this;
-
         e.preventDefault();
         me.lastX = e.clientX;
         me.lastY = e.clientY;
@@ -232,8 +239,8 @@ itasks.Window = {
             diffX = newX - me.lastX,
             left, top;
 
-        left = parseInt(document.defaultView.getComputedStyle(me.panelEl,'').getPropertyValue('left'),10);
-        top = parseInt(document.defaultView.getComputedStyle(me.panelEl,'').getPropertyValue('top'),10);
+        left = parseInt(document.defaultView.getComputedStyle(me.domEl,'').getPropertyValue('left'),10);
+        top = parseInt(document.defaultView.getComputedStyle(me.domEl,'').getPropertyValue('top'),10);
         me.domEl.style.left = ((left < 0) ? 0 : (left + diffX)) + 'px';
         me.domEl.style.top = ((top < 0) ? 0 : (top + diffY)) + 'px';
 
