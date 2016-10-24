@@ -59,9 +59,19 @@ where
 	layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.union extraAttr attr) items),s)
 	layout (ChangeUI attrChanges itemChanges,s)
 		//Filter out updates for the attributes that we are setting here
-		# attrChanges = filter (\(SetAttribute k v) -> not (isMember k ('DM'.keys extraAttr))) attrChanges
+		# attrChanges = filter (\(SetAttribute k _) -> not (isMember k ('DM'.keys extraAttr))) attrChanges
 		= (ChangeUI attrChanges itemChanges,s)
 	layout (change,s) = (change,s)
+
+delAttributes :: [String] -> Layout
+delAttributes delAttr = layout
+where
+	layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type (foldr 'DM'.del attr delAttr) items),s)
+	layout (ChangeUI attrChanges itemChanges,s)
+		# attrChanges = filter (\(SetAttribute k _) -> not (isMember k delAttr)) attrChanges
+		= (ChangeUI attrChanges itemChanges,s)
+	layout (change,s) = (change,s)
+	
 
 copyAttributes :: [String] NodePath NodePath -> Layout
 copyAttributes selection src dst = copyAttributes` (Just selection) src dst
