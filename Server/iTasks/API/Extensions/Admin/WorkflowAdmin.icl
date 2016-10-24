@@ -183,18 +183,26 @@ chooseWorkflow :: Task Workflow
 chooseWorkflow
 	=  editSelectionWithShared [Att (Title "Tasks"), Att IconEdit] False (SelectInTree toTree fromTree) allowedWorkflows (const []) @? tvHd
 where
-	toTree workflows = seq (map add (zip ([0..],workflows))) []
+	//We assign unique negative id's to each folder and unique positive id's to each workflow in the list
+	toTree workflows = snd (seq (map add (zip ([0..],workflows))) (-1,[]))
 	where
-	    add (i,wf=:{Workflow|path}) nodeList = add` path (split "/" path) nodeList
+	    add (i,wf=:{Workflow|path}) (folderId,nodeList) = add` path (split "/" path) (folderId,nodeList)
         where
-    	    add` wfpath [] nodeList = nodeList
-		    add` wfpath [title] nodeList = nodeList ++ [{ChoiceNode|id=i,label=workflowTitle wf,icon=Nothing,children=[],expanded=False}]
-		    add` wfpath path=:[nodeP:pathR] [node=:{ChoiceNode|label=nodeL}:nodesR]
-		    	| nodeP == nodeL	= [{ChoiceNode|node & children = add` wfpath pathR node.ChoiceNode.children,expanded=False}:nodesR]
-		    	| otherwise			= [node:add` wfpath path nodesR]
-		    add` wfpath path=:[nodeP:pathR] []
-                = [{ChoiceNode|id = -1, label=nodeP, icon=Nothing, children=add` wfpath pathR [],expanded=False}]
-		    add` wfpath path [node:nodesR] = [node:add` wfpath path nodesR]
+    	    add` wfpath [] (folderId,nodeList) = (folderId,nodeList)
+		    add` wfpath [title] (folderId,nodeList) = (folderId,nodeList ++ [{ChoiceNode|id=i,label=workflowTitle wf,icon=Nothing,children=[],expanded=False}])
+		    add` wfpath path=:[nodeP:pathR] (folderId,[node=:{ChoiceNode|label=nodeL}:nodesR])
+		    	| nodeP == nodeL
+					# (folderId,children) = add` wfpath pathR (folderId,node.ChoiceNode.children)
+					= (folderId,[{ChoiceNode|node & children = children,expanded=False}:nodesR])
+		    	| otherwise
+					# (folderId,rest) = add` wfpath path (folderId,nodesR)
+					= (folderId,[node:rest])
+		    add` wfpath path=:[nodeP:pathR] (folderId,[])
+				# (folderId`,children) = add` wfpath pathR (folderId - 1,[])
+                = (folderId`,[{ChoiceNode|id = folderId, label=nodeP, icon=Nothing, children=children,expanded=False}])
+		    add` wfpath path (folderId,[node:nodesR]) 
+				# (folderId,rest) = add` wfpath path (folderId,nodesR)
+				= (folderId,[node:rest])
 
  	fromTree workflows [idx]
       | idx >= 0 && idx < length workflows = [workflows !! idx]
