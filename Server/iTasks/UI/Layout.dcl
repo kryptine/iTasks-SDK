@@ -34,6 +34,7 @@ setNodeType :: UINodeType -> Layout
 
 // == Changing attributes ===
 setAttributes :: UIAttributes -> Layout
+delAttributes :: [String] -> Layout
 copyAttributes :: [String] NodePath NodePath -> Layout
 copyAllAttributes :: NodePath NodePath -> Layout
 modifyAttribute :: String (JSONNode -> UIAttributes) -> Layout
