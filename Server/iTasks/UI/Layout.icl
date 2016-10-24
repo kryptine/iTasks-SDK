@@ -5,7 +5,7 @@ import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.F
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 
-from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys
+from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys, unions, singleton
 
 from StdFunc import o, const, id, flip
 from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
@@ -145,6 +145,35 @@ where
 		# (items,spines) = unzip (map flattenWithSpine items)
 		# items = flatten [[UI type attr []:children] \\ UI type attr children <- items]
 		= (UI type attr items,NS spines)
+
+reorderUI :: (UI -> UI) -> Layout 
+reorderUI reorder = layout
+where
+	layout (NoChange,s)
+		 = (NoChange,s)
+	layout (ReplaceUI ui,_) 
+		//Determine a skeleton of the reordered ui, and replace references
+		//Replace references to parts of the original ui
+		# (moves,ui) = derefAll ui [] (reorder ui)
+		= (ReplaceUI ui,toJSON moves)
+	//Adjust followup changes to the moved parts
+	layout (c,s) = (adjust (fromMaybe 'DM'.newMap (fromJSON s)) c,s)
+
+	derefAll :: UI NodePath UI -> (Map NodePath NodePath,UI)
+	derefAll origUI curNp (UI type attr items) = case 'DM'.get "include" attr of
+		(Just jsonNp)
+			# refNp = fromMaybe [] (fromJSON jsonNp)
+			= ('DM'.singleton curNp refNp, lookup refNp origUI)
+		Nothing
+			# (paths,items) = unzip [derefAll origUI (curNp ++ [i]) item \\ item <- items & i <- [0..]]
+			= ('DM'.unions paths,UI type attr items)
+
+	lookup :: NodePath UI -> UI //ASSUMES SUCCESS
+	lookup [] ui = ui
+	lookup [p:ps] (UI _ _ items) = lookup ps (items !! p)
+
+	adjust :: (Map NodePath NodePath) UIChange -> UIChange //TODO
+	adjust moves change = change 
 
 insertSubAt :: NodePath UI-> Layout
 insertSubAt [] def = id

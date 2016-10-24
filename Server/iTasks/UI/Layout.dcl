@@ -50,6 +50,9 @@ unwrapUI :: Layout
 //* Flatten the tree of children in pre-order
 flattenUI :: Layout
 
+//* Reorder a static part of a UI
+reorderUI :: (UI -> UI) -> Layout 
+
 //Operations on single specific sub-UI's indicated by a path
 insertSubAt :: NodePath UI       -> Layout
 removeSubAt :: NodePath          -> Layout
@@ -58,8 +61,8 @@ moveSubAt   :: NodePath NodePath -> Layout
 //Group operations on selections of sub-UI's
 removeSubsMatching :: NodePath (UI -> Bool)          -> Layout
 moveSubsMatching   :: NodePath (UI -> Bool) NodePath -> Layout
-
 moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
+
 
 //Composition of layouts
 sequenceLayouts   :: [Layout]               -> Layout
