@@ -52,7 +52,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 	, serverURL		  :: !String				// URL of the server like "//any.com:80"
 	, buildID		  :: !String				// The date/time identifier of the server's build
     , paths           :: !SystemPaths           // Filesystem paths that are used by iTasks
-    , customCSS       :: !Bool                  // Does the application use a custom css stylesheet
     }
 
 :: SystemPaths =

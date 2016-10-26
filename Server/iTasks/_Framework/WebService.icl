@@ -249,7 +249,7 @@ where
 		# server_url = "//" +++ req.server_name +++ ":" +++ toString req.server_port
 		= reqFun url task req output {IWorld|iworld & server = {server & serverURL = server_url}}
 
-	reqFun url task req output iworld=:{IWorld|server={serverName,customCSS},config}
+	reqFun url task req output iworld=:{IWorld|server={serverName},config}
 		//Check for WebSocket upgrade headers
         | ('DM'.get "Upgrade" req.HTTPRequest.req_headers) =:(Just "websocket") && isJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
             # secWebSocketKey       = fromJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
@@ -384,7 +384,7 @@ where
 		["download",_]      = True  // Download of documents
 		_ 					= False
 
-	reqFun req output iworld=:{IWorld|server={serverName,customCSS},config}
+	reqFun req output iworld=:{IWorld|server={serverName},config}
 		= case dropWhile ((==)"") (split "/" req.HTTPRequest.req_path) of
 			["upload"]
 				# uploads = 'DM'.toList req.arg_uploads
