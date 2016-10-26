@@ -26,11 +26,6 @@ RELATIVE_LOCATIONS		:== [".": take 5 (iterate ((</>) "..") "..")]
 	}
 	
 :: TaskWrapper = E.a: TaskWrapper (HTTPRequest -> Task a) & iTask a
-	
-//Connection types used by the engine
-:: ConnectionType
-    = EventSourceConnection [InstanceNo]    //Server -> Client updates push
-    | WebSocketConnection [InstanceNo]      //Server <-> Client events and updates channel
 
 /**
 * Starts the task engine with a list of published task definitions.

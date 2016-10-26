@@ -33,14 +33,89 @@ from iTasks._Framework.HttpUtil import http_addRequestData, http_parseArguments
     , error         :: Bool
     }
 
-// Websocket task access messages
-:: WSCReq
-    = ReqStartSession !InstanceNo
-    | TaskEvent !Event
+//Opcodes used in websocket frames:
+WS_OP_CONTINUE :== 0x00
+WS_OP_TEXT     :== 0x01 
+WS_OP_BINARY   :== 0x02
+WS_OP_CLOSE    :== 0x08
+WS_OP_PING     :== 0x09
+WS_OP_PONG     :== 0x0A
 
-:: WSCRsp
-    = AckStartSession !InstanceNo
-    | TaskUpdates !InstanceNo ![UIChange]
+wsockHandShake :: String -> String
+wsockHandShake key = base64Encode digest
+where
+	(SHA1Digest digest) = sha1StringDigest (key+++"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
+
+wsockAddData :: WebSockState {#Char} -> (!WebSockState,![WebSockEvent])
+wsockAddData state=:{WebSockState|cur_frame,message_data} data
+	# cur_frame = cur_frame +++ data
+	| size cur_frame < 6 = ({state & cur_frame = cur_frame},[]) //No frame header yet
+	//Determine values of flags in the first two header bytes
+	# final = (fromChar cur_frame.[0] bitand 0x80) > 0
+	# opcode = (fromChar cur_frame.[0] bitand 0x0F)
+	# masked = (fromChar cur_frame.[1] bitand 0x80) > 0
+	//Determine payload length (and how many bytes were used to encode it)
+	# (payload_length,ext_payload_length_size) = payloadLen cur_frame
+	//Determine the total expected frame length
+	# frame_length = 2 + ext_payload_length_size + if masked 4 0 + payload_length 
+	//If no full frame is read yet we can stop for now 
+	| size cur_frame < frame_length 
+		= ({state & cur_frame = cur_frame},[])
+	//Extract the payload
+	# (payload,cur_frame) = if masked
+		(let mask = cur_frame % (2 + ext_payload_length_size, 5 + ext_payload_length_size) in
+			(decodePayload mask (cur_frame % (6 + ext_payload_length_size, 6 + ext_payload_length_size + payload_length - 1))
+			,cur_frame % (2 + ext_payload_length_size + payload_length - 1, size cur_frame))
+		)
+		(cur_frame % (2 + ext_payload_length_size, payload_length)
+		,cur_frame % (2 + ext_payload_length_size + payload_length, size cur_frame))
+	# state = {state & cur_frame = cur_frame}
+	//Process frame	
+	| opcode == WS_OP_CLOSE
+		= (state,[WSClose payload])
+	| opcode == WS_OP_PING
+		= (state,[WSPing payload])
+	| opcode == WS_OP_TEXT 
+		| final = ({state & message_data = []},[WSTextMessage payload])
+		| otherwise = ({state & message_text = True, message_data = [payload]},[])
+	| opcode == WS_OP_BINARY
+		| final = ({state & message_data = []},[WSBinMessage payload])
+		| otherwise = ({state & message_text = False, message_data = [payload]},[])
+	| opcode == WS_OP_CONTINUE
+		| final = ({state & message_data = []},[(if state.message_text WSTextMessage WSBinMessage) (concat (reverse [payload:state.message_data]))])
+		| otherwise = ({state & message_data = [payload:state.message_data]},[])
+	| otherwise	
+		= (state,[])
+where
+	payloadLen data
+		# len = fromChar data.[1] bitand 0x7F //First determine if length fits in first 7 available bits
+		| len == 126 //Use byte 2 & 3 as length (16-bit)
+			= ((fromChar data.[2] << 8) + (fromChar data.[3]), 2)
+		| len == 127 //Use byte 2,3,4,5,6,7,8,9 as length (64-bit)
+			= (foldr (+) 0 [fromChar data.[b] << (i * 8) \\ b <- [2..9] & i <- [0..7]], 8)
+		| otherwise = (len,0)
+
+	decodePayload mask encoded =  {decode i c \\ c <-: encoded & i <- [0..]}
+	where
+		decode i c = toChar ((fromChar mask.[i rem 4]) bitxor (fromChar c))
+
+wsockControlFrame :: !Int !String -> String
+wsockControlFrame opcode payload = wsockMsgFrame opcode True payload
+
+wsockCloseMsg :: String -> String
+wsockCloseMsg payload = wsockControlFrame WS_OP_CLOSE payload 
+
+wsockPongMsg :: String -> String
+wsockPongMsg payload = wsockControlFrame WS_OP_PONG payload
+
+wsockMsgFrame :: !Int !Bool !String -> String
+wsockMsgFrame opcode final payload = header +++ payload
+where
+	header = {toChar (opcode bitor (if final 0x80 0x00)),toChar payload_length}
+	payload_length = size payload //TODO: Check for larger messages
+
+wsockTextMsg :: String -> [String]
+wsockTextMsg payload = [wsockMsgFrame WS_OP_TEXT True payload]
 
 //TODO: The upload and download mechanism used here is inherently insecure!!!
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
@@ -63,6 +138,7 @@ where
             ["new"]             = True                          // Creation of new instances 
             ["gui-events"]      = True                          // Events for multiple instances
             ["gui-stream"]      = True                          // Updates stream for multiple instances
+            ["gui-wsock"]       = True                          // Updates stream for multiple instances (websocket)
             [instanceNo,_]      = toInt instanceNo > 0          // {instanceNo}/{instanceKey}
             [instanceNo,_,_]    = toInt instanceNo > 0          // {instanceNo}/{instanceKey}/{view}
             _                   = False
@@ -92,11 +168,13 @@ where
         //Check for WebSocket upgrade headers
         | ('DM'.get "Upgrade" req.HTTPRequest.req_headers) =:(Just "websocket") && isJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
             # secWebSocketKey       = fromJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
-            # secWebSocketAccept    = webSocketHandShake secWebSocketKey
+            # secWebSocketAccept    = wsockHandShake secWebSocketKey
             //Create handshake response
             # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
-                        ,("Sec-WebSocket-Accept",secWebSocketAccept),("Sec-WebSocket-Protocol","itwc")]
-            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = headers, rsp_data = ""}, Just (WebSocketConnection []),Nothing,iworld)
+                        ,("Sec-WebSocket-Accept",secWebSocketAccept),("Sec-WebSocket-Protocol","itasks-ui")]
+			# state = {WebSockState|cur_frame = "",message_text = True, message_data = []}
+            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = headers, rsp_data = ""}
+			  , Just (WebSocketConnection state []),Nothing,iworld)
         | otherwise
             = case dropWhile ((==)"") (split "/" urlSpec) of
 				["new"]
@@ -154,12 +232,20 @@ where
 					Just taskId			= FocusEvent (fromString taskId)
 					_   = if (resetEventParam == "") (RefreshEvent "Browser refresh") ResetEvent
 
-        webSocketHandShake key = base64Encode digest
-        where
-            (SHA1Digest digest) = sha1StringDigest (key+++"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
+    dataFun req output Nothing (WebSocketConnection state instances) iworld //Only react for now...
+		= ([],False,WebSocketConnection  state instances,Nothing,iworld)
+	dataFun req output (Just data) (WebSocketConnection state instances) iworld
+		# (state,result) = wsockAddData state data 
+		= case result of //TODO: Process multiple events
+			[WSClose msg:_]
+				= ([wsockCloseMsg msg],True, WebSocketConnection state instances,Nothing,iworld)
+				//Respond with a close frame and close the connection
+			[WSTextMessage msg:_] 
+				= (wsockTextMsg ("ACKNOWLEDGE: " +++ msg),False,WebSocketConnection state instances,Nothing,iworld)
+			[WSPing msg:_]
+				= ([wsockPongMsg msg],False,WebSocketConnection state instances,Nothing,iworld)
+			_ = ([],False,WebSocketConnection state instances,Nothing,iworld)
 
-    dataFun req output mbData (WebSocketConnection instances) iworld
-        = (maybe [] (\d -> [d]) mbData,False,(WebSocketConnection instances),Nothing,iworld) //TEMPORARY ECHO WEBSOCKET
 	dataFun req output _ (EventSourceConnection instances) iworld
 		# (messages,output) = dequeueOutput instances output
 		= case messages of //Ignore empty updates
@@ -200,7 +286,6 @@ where
 		| isError mbD	= createDocumentsFromUploads us iworld
 		# (ds,iworld)	= createDocumentsFromUploads us iworld
 		= ([fromOk mbD:ds],iworld)
-
 
 httpServer :: !Int !Int ![(!String -> Bool
 				,!Bool

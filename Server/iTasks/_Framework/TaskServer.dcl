@@ -10,7 +10,6 @@ from Data.Error                 import :: MaybeError
 from iTasks.API.Core.Types      import :: TaskId
 from iTasks._Framework.IWorld	import :: IWorld
 from iTasks._Framework.Task     import :: ConnectionTask, :: BackgroundTask, :: TaskException
-from iTasks._Framework.Engine   import :: ConnectionType
 
 //Core task server loop
 serve :: !Int !ConnectionTask ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld

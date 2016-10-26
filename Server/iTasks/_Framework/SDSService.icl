@@ -4,7 +4,7 @@ import iTasks
 
 from Internet.HTTP					import :: HTTPRequest {req_method, req_path, req_data}, :: HTTPResponse(..), :: HTTPMethod(..)
 from iTasks._Framework.IWorld		import :: IWorld {exposedShares}
-from iTasks._Framework.Engine	    import :: ConnectionType
+from iTasks._Framework.WebService   import :: ConnectionType
 from iTasks._Framework.TaskState 	import :: TIUIState
 
 import iTasks._Framework.HtmlUtil, iTasks._Framework.DynamicUtil

@@ -2,7 +2,7 @@ definition module iTasks._Framework.SDSService
 
 from Internet.HTTP					import :: HTTPRequest, :: HTTPResponse
 from iTasks._Framework.IWorld		import :: IWorld
-from iTasks._Framework.Engine	    import :: ConnectionType
+from iTasks._Framework.WebService   import :: ConnectionType
 from iTasks._Framework.SDS			import :: RWShared
 from iTasks._Framework.Task			import :: Task, :: InstanceNo
 from iTasks._Framework.TaskState	import :: TIUIState

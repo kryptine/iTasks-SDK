@@ -4,7 +4,6 @@ definition module iTasks._Framework.WebService
 * It also provides access to upload/download of blob content.
 */
 from Internet.HTTP					import :: HTTPRequest, :: HTTPResponse
-from iTasks._Framework.Engine		import :: ConnectionType
 from iTasks._Framework.IWorld		import :: IWorld
 from iTasks._Framework.Task 	    import :: Task, :: ConnectionTask
 from iTasks._Framework.TaskState 	import :: TIUIState
@@ -14,6 +13,23 @@ from iTasks.API.Core.Types	        import :: InstanceNo
 from Data.Queue 					import :: Queue
 
 import iTasks._Framework.Generic
+
+//Connection types used by the engine
+:: ConnectionType
+    = EventSourceConnection [InstanceNo]            //Server -> Client updates push
+    | WebSocketConnection WebSockState [InstanceNo] //Server <-> Client events and updates channel
+
+:: WebSockState =
+	{ cur_frame    :: !{#Char}   //The fram
+	, message_text :: !Bool     // True -> text message, False -> binary
+	, message_data :: ![String] // Message data from previous frames 
+	}
+
+:: WebSockEvent
+	= WSTextMessage String //A UTF-8 text message was received completely
+	| WSBinMessage String  //A binary message was received completely
+	| WSClose String       //A close frame was received
+	| WSPing String        //A ping frame was received
 
 httpServer :: !Int !Int ![(!String -> Bool
 				,!Bool
