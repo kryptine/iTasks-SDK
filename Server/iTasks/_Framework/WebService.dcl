@@ -49,6 +49,14 @@ taskWebService :: !String !(HTTPRequest -> Task a) ->
                  ,!(HTTPRequest ChangeQueues ConnectionType *IWorld -> (!Maybe ChangeQueues, !*IWorld))
                  ) | iTask a
 
+documentService :: 
+				(!(String -> Bool)
+				,!Bool
+				,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
+                ,!(HTTPRequest r (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
+                ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld))
+				)
+
 staticResourceService :: [String] ->
                  (!(String -> Bool)
 				 ,!Bool
@@ -56,3 +64,4 @@ staticResourceService :: [String] ->
 				 ,!(HTTPRequest r (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
 				 ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld))
                  )
+

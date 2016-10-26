@@ -187,7 +187,7 @@ itasks.DocumentField = {
             me.showUploading(Math.round((e.loaded * 100) / e.total));
         });
         me.xhr.onreadystatechange = me.onUploadStateChange.bind(me);
-        me.xhr.open('POST','?upload',true);
+        me.xhr.open('POST','/upload',true);
         //Add file to upload data
         fd = new FormData();
         fd.append('upload',me.fileEl.files[0]);
@@ -201,7 +201,7 @@ itasks.DocumentField = {
             rsp = JSON.parse(me.xhr.responseText);
 
             //Switch to value state
-            me.sendEditEvent(me.taskId,me.editorId,rsp[0]);
+            me.doEditEvent(me.taskId,me.editorId,rsp[0]);
             me.xhr = null;
             me.value = rsp[0];
             me.showValue();

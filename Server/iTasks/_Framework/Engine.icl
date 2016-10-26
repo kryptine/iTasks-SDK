@@ -178,8 +178,7 @@ engine :: publish -> [(!String -> Bool
 					  )] | Publishable publish
 
 engine publishable = [taskWebService url task \\ {PublishedTask|url,task=TaskWrapper task} <- published]
-				  ++ [staticResourceService [url \\ {PublishedTask|url} <- published]]
-				  ++ [sdsService]
+				  ++ [documentService, sdsService,staticResourceService [url \\ {PublishedTask|url} <- published]]
 where
 	published = publishAll publishable 
 
