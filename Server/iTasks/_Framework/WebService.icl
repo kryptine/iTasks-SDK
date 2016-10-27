@@ -111,8 +111,11 @@ wsockPongMsg payload = wsockControlFrame WS_OP_PONG payload
 wsockMsgFrame :: !Int !Bool !String -> String
 wsockMsgFrame opcode final payload = header +++ payload
 where
-	header = {toChar (opcode bitor (if final 0x80 0x00)),toChar payload_length}
-	payload_length = size payload //TODO: Check for larger messages
+	header = {toChar (opcode bitor (if final 0x80 0x00)),toChar payload_length} +++ ext_payload_length
+	
+	num_bytes = size payload
+	payload_length = if (num_bytes < 125) num_bytes 126
+	ext_payload_length = if (num_bytes < 125) "" {toChar (num_bytes >> 8), toChar num_bytes}
 
 wsockTextMsg :: String -> [String]
 wsockTextMsg payload = [wsockMsgFrame WS_OP_TEXT True payload]
@@ -314,19 +317,51 @@ where
 					Just taskId			= FocusEvent (fromString taskId)
 					_   = if (resetEventParam == "") (RefreshEvent "Browser refresh") ResetEvent
 
-    dataFun req output Nothing (WebSocketConnection state instances) iworld //Only react for now...
-		= ([],False,WebSocketConnection  state instances,Nothing,iworld)
 	dataFun req output (Just data) (WebSocketConnection state instances) iworld
 		# (state,result) = wsockAddData state data 
 		= case result of //TODO: Process multiple events
 			[WSClose msg:_]
-				= ([wsockCloseMsg msg],True, WebSocketConnection state instances,Nothing,iworld)
 				//Respond with a close frame and close the connection
+				= ([wsockCloseMsg msg],True, WebSocketConnection state instances,Nothing,iworld)
 			[WSTextMessage msg:_] 
-				= (wsockTextMsg ("ACKNOWLEDGE: " +++ msg),False,WebSocketConnection state instances,Nothing,iworld)
+				//Process events:
+				= case fromString msg of
+					//- new session
+					(JSONArray [JSONString "new"])
+                    	= case createTaskInstance (task req) iworld of
+							(Error (_,err), iworld)
+								# json = JSONArray [JSONString "ERROR",JSONString err]
+								= (wsockTextMsg (toString json),False, WebSocketConnection state instances,Nothing,iworld)
+                        	(Ok (instanceNo,instanceKey),iworld)
+								# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
+								# json = JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]
+								= (wsockTextMsg (toString json),False, WebSocketConnection state [instanceNo:instances],Nothing,iworld)
+					//- attach existing instance
+					(JSONArray [JSONString "attach",JSONInt instanceNo,JSONString instanceKey])
+						//TODO: Clear output
+						# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
+						= ([],False, WebSocketConnection state [instanceNo:instances],Nothing,iworld) //TODO: Maybe send confirmation message?
+					//- detach instance
+					(JSONArray [JSONString "detach",JSONInt instanceNo,JSONString instanceKey])
+						= ([],False, WebSocketConnection state (removeMember instanceNo instances),Nothing,iworld) //TODO: Maybe send confirmation message?
+					//Unknown message, close connection
+					_
+						# json = JSONArray [JSONString "ERROR",JSONString "Unknown event"]
+						= (wsockTextMsg (toString json),False, WebSocketConnection state instances,Nothing,iworld)
 			[WSPing msg:_]
 				= ([wsockPongMsg msg],False,WebSocketConnection state instances,Nothing,iworld)
 			_ = ([],False,WebSocketConnection state instances,Nothing,iworld)
+
+    dataFun req output Nothing (WebSocketConnection state instances) iworld
+		//Check for UI updates for all attached instances
+		# (changes, output) = dequeueOutput instances output
+		= case changes of //Ignore empty updates
+			[] = ([],False,WebSocketConnection  state instances,Nothing,iworld)
+			changes	
+                # (_,iworld) = updateInstanceLastIO instances iworld
+				# msgs = [wsockTextMsg (toString (JSONObject [("instance",JSONInt instanceNo)
+															 ,("change",encodeUIChange change)])) \\ (instanceNo,change) <- changes]
+				= (flatten msgs,False, WebSocketConnection state instances,Just output,iworld)
 
 	dataFun req output _ (EventSourceConnection instances) iworld
 		# (messages,output) = dequeueOutput instances output
@@ -360,16 +395,7 @@ where
     where
         format (instanceNo,change) = "data: {\"instance\":" +++toString instanceNo+++",\"change\":" +++ toString (encodeUIChange change) +++ "}\n\n"
 
-createDocumentsFromUploads [] iworld = ([],iworld)
-createDocumentsFromUploads [(n,u):us] iworld
-	# (mbD,iworld)	= createDocument u.upl_filename u.upl_mimetype u.upl_content iworld
-	| isError mbD	= createDocumentsFromUploads us iworld
-	# (ds,iworld)	= createDocumentsFromUploads us iworld
-	= ([fromOk mbD:ds],iworld)
 
-jsonResponse json
-		= {okResponse & rsp_headers = [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = toString json}
-	
 //TODO: The upload and download mechanism used here is inherently insecure!!!
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
 // unauthorized downloading of documents and DDOS uploading.
@@ -408,6 +434,16 @@ where
 	dataFun _ _ _ s env = ([],True,s,Nothing,env)
 	lostFun _ _ s env = (Nothing,env)
 
+createDocumentsFromUploads [] iworld = ([],iworld)
+createDocumentsFromUploads [(n,u):us] iworld
+	# (mbD,iworld)	= createDocument u.upl_filename u.upl_mimetype u.upl_content iworld
+	| isError mbD	= createDocumentsFromUploads us iworld
+	# (ds,iworld)	= createDocumentsFromUploads us iworld
+	= ([fromOk mbD:ds],iworld)
+
+jsonResponse json
+		= {okResponse & rsp_headers = [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = toString json}
+	
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
