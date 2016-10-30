@@ -47,7 +47,12 @@ where
 	(SHA1Digest digest) = sha1StringDigest (key+++"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
 wsockAddData :: WebSockState {#Char} -> (!WebSockState,![WebSockEvent])
-wsockAddData state=:{WebSockState|cur_frame,message_data} data
+wsockAddData state data //Read as many frames as possible
+	# (state,evCur) = wsockReadFrame state data
+	| evCur =:[] = (state,[])
+	# (state,evNext) = wsockAddData state ""
+	= (state,evCur++evNext)
+wsockReadFrame state=:{WebSockState|cur_frame,message_data} data
 	# cur_frame = cur_frame +++ data
 	| size cur_frame < 6 = ({state & cur_frame = cur_frame},[]) //No frame header yet
 	//Determine values of flags in the first two header bytes
@@ -62,14 +67,15 @@ wsockAddData state=:{WebSockState|cur_frame,message_data} data
 	| size cur_frame < frame_length 
 		= ({state & cur_frame = cur_frame},[])
 	//Extract the payload
-	# (payload,cur_frame) = if masked
+	# payload = if masked
 		(let mask = cur_frame % (2 + ext_payload_length_size, 5 + ext_payload_length_size) in
-			(decodePayload mask (cur_frame % (6 + ext_payload_length_size, 6 + ext_payload_length_size + payload_length - 1))
-			,cur_frame % (2 + ext_payload_length_size + payload_length - 1, size cur_frame))
+			decodePayload mask (cur_frame % (6 + ext_payload_length_size, 6 + ext_payload_length_size + payload_length - 1))
 		)
-		(cur_frame % (2 + ext_payload_length_size, payload_length)
-		,cur_frame % (2 + ext_payload_length_size + payload_length, size cur_frame))
-	# state = {state & cur_frame = cur_frame}
+		(cur_frame % (2 + ext_payload_length_size, payload_length))
+	//Remove the frame data
+	# state = if (size cur_frame == frame_length)
+					 {state & cur_frame = ""}
+					 {state & cur_frame = cur_frame % (frame_length,size cur_frame)}
 	//Process frame	
 	| opcode == WS_OP_CLOSE
 		= (state,[WSClose payload])
@@ -322,20 +328,20 @@ where
 		= case result of //TODO: Process multiple events
 			[WSClose msg:_]
 				//Respond with a close frame and close the connection
-				= ([wsockCloseMsg msg],True, WebSocketConnection state instances,Nothing,iworld)
+				= trace_n "CLOSE" ([wsockCloseMsg msg],True, WebSocketConnection state instances,Nothing,iworld)
 			[WSTextMessage msg:_] 
 				//Process events:
 				= case fromString msg of
 					//- new session
-					(JSONArray [JSONString "new"])
+					(JSONArray [JSONInt reqId,JSONString "new"])
                     	= case createTaskInstance (task req) iworld of
 							(Error (_,err), iworld)
-								# json = JSONArray [JSONString "ERROR",JSONString err]
+								# json = JSONArray [JSONInt reqId,JSONString "ERROR",JSONString err]
 								= (wsockTextMsg (toString json),False, WebSocketConnection state instances,Nothing,iworld)
                         	(Ok (instanceNo,instanceKey),iworld)
 								# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
-								# json = JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]
-								= (wsockTextMsg (toString json),False, WebSocketConnection state [instanceNo:instances],Nothing,iworld)
+								# json = JSONArray [JSONInt reqId, JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]]
+								= (wsockTextMsg (toString json),False, WebSocketConnection state instances,Nothing,iworld)
 					//- attach existing instance
 					(JSONArray [JSONString "attach",JSONInt instanceNo,JSONString instanceKey])
 						//TODO: Clear output
@@ -344,12 +350,18 @@ where
 					//- detach instance
 					(JSONArray [JSONString "detach",JSONInt instanceNo,JSONString instanceKey])
 						= ([],False, WebSocketConnection state (removeMember instanceNo instances),Nothing,iworld) //TODO: Maybe send confirmation message?
-					//Unknown message, close connection
-					_
+					(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONNull,JSONString actionId]]) //Action event
+						# iworld = queueEvent instanceNo (ActionEvent (fromString taskId) actionId) iworld //Queue event
+						= ([],False, WebSocketConnection state instances,Nothing,iworld) //TODO: Maybe send confirmation message?
+					(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONString name,value]]) //Edit event
+						# iworld = queueEvent instanceNo (EditEvent (fromString taskId) name value) iworld //Queue event
+						= ([],False, WebSocketConnection state instances,Nothing,iworld) //TODO: Maybe send confirmation message?
+					//Unknown message 
+					e
 						# json = JSONArray [JSONString "ERROR",JSONString "Unknown event"]
-						= (wsockTextMsg (toString json),False, WebSocketConnection state instances,Nothing,iworld)
+						= trace_n e (wsockTextMsg (toString json),False, WebSocketConnection state instances,Nothing,iworld)
 			[WSPing msg:_]
-				= ([wsockPongMsg msg],False,WebSocketConnection state instances,Nothing,iworld)
+				= trace_n "PING" ([wsockPongMsg msg],False,WebSocketConnection state instances,Nothing,iworld)
 			_ = ([],False,WebSocketConnection state instances,Nothing,iworld)
 
     dataFun req output Nothing (WebSocketConnection state instances) iworld
@@ -395,7 +407,7 @@ where
     where
         format (instanceNo,change) = "data: {\"instance\":" +++toString instanceNo+++",\"change\":" +++ toString (encodeUIChange change) +++ "}\n\n"
 
-
+import StdDebug, StdMisc
 //TODO: The upload and download mechanism used here is inherently insecure!!!
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
 // unauthorized downloading of documents and DDOS uploading.
