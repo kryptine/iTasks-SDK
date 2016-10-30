@@ -5,6 +5,7 @@ definition module iTasks._Framework.WebService
 */
 from Internet.HTTP					import :: HTTPRequest, :: HTTPResponse
 from iTasks._Framework.IWorld		import :: IWorld
+from iTasks._Framework.Engine       import :: PublishedTask
 from iTasks._Framework.Task 	    import :: Task, :: ConnectionTask
 from iTasks._Framework.TaskState 	import :: TIUIState
 from iTasks._Framework.SDS 			import :: RWShared
@@ -14,10 +15,7 @@ from Data.Queue 					import :: Queue
 
 import iTasks._Framework.Generic
 
-//Connection types used by the engine
-:: ConnectionType
-    = EventSourceConnection [InstanceNo]            //Server -> Client updates push
-    | WebSocketConnection WebSockState [InstanceNo] //Server <-> Client events and updates channel
+:: ConnectionState :== (WebSockState,[InstanceNo])
 
 :: WebSockState =
 	{ cur_frame    :: !{#Char}   //The fram
@@ -33,21 +31,21 @@ import iTasks._Framework.Generic
 
 httpServer :: !Int !Int ![(!String -> Bool
 				,!Bool
-				,!(HTTPRequest r *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe w, !*IWorld))
-				,!(HTTPRequest r (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe w, !*IWorld))
-				,!(HTTPRequest r ConnectionType *IWorld -> (!Maybe w, !*IWorld))
+				,!(HTTPRequest r *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe w, !*IWorld))
+				,!(HTTPRequest r (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe w, !*IWorld))
+				,!(HTTPRequest r ConnectionState *IWorld -> (!Maybe w, !*IWorld))
 				)] (RWShared () r w) -> ConnectionTask | TC r & TC w
 
 
 :: ChangeQueues :== Map InstanceNo (Queue UIChange)
 
-taskWebService :: !String !(HTTPRequest -> Task a) ->
+taskUIService :: ![PublishedTask] ->
                  (!(String -> Bool)
 				 ,!Bool
-                 ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe ChangeQueues, !*IWorld))
-                 ,!(HTTPRequest ChangeQueues (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe ChangeQueues, !*IWorld))
-                 ,!(HTTPRequest ChangeQueues ConnectionType *IWorld -> (!Maybe ChangeQueues, !*IWorld))
-                 ) | iTask a
+                 ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues ConnectionState *IWorld -> (!Maybe ChangeQueues, !*IWorld))
+                 )
 
 documentService :: 
 				(!(String -> Bool)

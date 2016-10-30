@@ -23,7 +23,7 @@ from iTasks._Framework.HttpUtil import http_addRequestData, http_parseArguments
 :: NetTaskState
     = NTIdle String Timestamp
     | NTReadingRequest HttpReqState
-	| NTProcessingRequest HTTPRequest ConnectionType
+	| NTProcessingRequest HTTPRequest ConnectionState
 
 :: HttpReqState =
     { request       :: HTTPRequest
@@ -128,9 +128,9 @@ wsockTextMsg payload = [wsockMsgFrame WS_OP_TEXT True payload]
 
 httpServer :: !Int !Int ![(!String -> Bool
 				,!Bool
-				,!(HTTPRequest r *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe w, !*IWorld))
-				,!(HTTPRequest r (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe w, !*IWorld))
-				,!(HTTPRequest r ConnectionType *IWorld -> (!Maybe w, !*IWorld))
+				,!(HTTPRequest r *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe w, !*IWorld))
+				,!(HTTPRequest r (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe w, !*IWorld))
+				,!(HTTPRequest r ConnectionState *IWorld -> (!Maybe w, !*IWorld))
 				)] (RWShared () r w) -> ConnectionTask | TC r & TC w
 httpServer port keepAliveTime requestProcessHandlers sds
  = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, whileConnected=whileConnected, onDisconnect=onDisconnect} sds
@@ -233,158 +233,95 @@ where
 
 :: ChangeQueues :== Map InstanceNo (Queue UIChange)
 
-taskWebService :: !String !(HTTPRequest -> Task a) ->
+
+taskUIService :: ![PublishedTask] ->
                  (!(String -> Bool)
                  ,!Bool
-                 ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe ChangeQueues, !*IWorld))
-                 ,!(HTTPRequest ChangeQueues (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe ChangeQueues, !*IWorld))
-                 ,!(HTTPRequest ChangeQueues ConnectionType *IWorld -> (!Maybe ChangeQueues, !*IWorld))
-                 ) | iTask a
-taskWebService url task = (matchFun url,True,reqFun` url task,dataFun,disconnectFun)
+                 ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues ConnectionState *IWorld -> (!Maybe ChangeQueues, !*IWorld))
+                 ) 
+taskUIService taskUrls = (matchFun [url \\ {PublishedTask|url} <-taskUrls],True,reqFun` taskUrls,dataFun,disconnectFun)
 where
-    matchFun :: String String -> Bool
-    matchFun matchUrl reqUrl = startsWith matchUrl reqUrl && isTaskUrl (reqUrl % (size matchUrl,size reqUrl))
-    where
-        isTaskUrl s = case dropWhile ((==)"") (split "/" s) of  // Ignore slashes at the beginning of the path
-            ["new"]             = True                          // Creation of new instances 
-            ["gui-events"]      = True                          // Events for multiple instances
-            ["gui-stream"]      = True                          // Updates stream for multiple instances
-            ["gui-wsock"]       = True                          // Updates stream for multiple instances (websocket)
-            [instanceNo,_]      = toInt instanceNo > 0          // {instanceNo}/{instanceKey}
-            [instanceNo,_,_]    = toInt instanceNo > 0          // {instanceNo}/{instanceKey}/{view}
-            _                   = False
+    matchFun :: [String] String -> Bool
+    matchFun matchUrls reqUrl = or [reqUrl == matchUrl +++ "gui-wsock" \\ matchUrl <- matchUrls]
 
-	reqFun` url task req output iworld=:{server}
+	reqFun` taskUrls req output iworld=:{server}
 		# server_url = "//" +++ req.server_name +++ ":" +++ toString req.server_port
-		= reqFun url task req output {IWorld|iworld & server = {server & serverURL = server_url}}
+		= reqFun taskUrls req output {IWorld|iworld & server = {server & serverURL = server_url}}
 
-	reqFun url task req output iworld=:{IWorld|server={serverName},config}
+	reqFun taskUrls req output iworld=:{IWorld|server={serverName},config}
 		//Check for WebSocket upgrade headers
         | ('DM'.get "Upgrade" req.HTTPRequest.req_headers) =:(Just "websocket") && isJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
             # secWebSocketKey       = fromJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
             # secWebSocketAccept    = wsockHandShake secWebSocketKey
             //Create handshake response
             # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
-                        ,("Sec-WebSocket-Accept",secWebSocketAccept),("Sec-WebSocket-Protocol","itasks-ui")]
+                        ,("Sec-WebSocket-Accept",secWebSocketAccept)]
 			# state = {WebSockState|cur_frame = "",message_text = True, message_data = []}
             = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = headers, rsp_data = ""}
-			  , Just (WebSocketConnection state []),Nothing,iworld)
+			  , Just (state,[]),Nothing,iworld)
         | otherwise
-            = case dropWhile ((==)"") (split "/" urlSpec) of
-				["new"]
-					//Create new instances
-                    = case createTaskInstance (task req) iworld of
-						(Error (_,err), iworld)
-				            = (errorResponse err, Nothing, Nothing, iworld)
-                        (Ok (instanceNo,instanceKey),iworld)
-							# json = JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]
-                    		= (jsonResponse json, Nothing, Nothing, iworld)
-                ["gui-events"]
-                    //Load task instance and edit / evaluate
-                    # instanceNo         = toInt instanceNoParam
-                    # (_,iworld)         = updateInstanceLastIO [instanceNo] iworld
-					# iworld 			 = queueEvent instanceNo event iworld
-					# json				 = JSONObject [("instance",JSONInt instanceNo)]
-                    = (jsonResponse json, Nothing, Nothing, iworld)
-                ["gui-stream"]
-                    //Stream messages for multiple instances
-                    # (_,iworld)        = updateInstanceConnect req.client_name instances iworld
-					# (messages,output) = dequeueOutput instances output //TODO: Check keys
-                    = (eventsResponse messages, Just (EventSourceConnection instances), Just output, iworld)
-                [instanceNo,instanceKey,"gui"]
-                    //Load task instance and edit / evaluate
-                    # instanceNo         = toInt instanceNo
-                    # (_,iworld)         = updateInstanceLastIO [instanceNo] iworld
-					# iworld 			 = queueEvent instanceNo event iworld
-					# json				 = JSONObject [("instance",JSONInt instanceNo)]
-                    = (jsonResponse json, Nothing, Nothing, iworld)
-                //Stream messages for a specific instance
-                [instanceNo,instanceKey,"gui-stream"]
-                    # instances         = [toInt instanceNo]
-                    # (_,iworld)        = updateInstanceConnect req.client_name instances iworld
-					# (messages,output) = dequeueOutput instances output
-                    = (eventsResponse messages, Just (EventSourceConnection instances), Nothing, iworld)
-                _
-				    = (errorResponse "Requested service format not available for this task", Nothing, Nothing, iworld)
-	    where
-            urlSpec             = req.HTTPRequest.req_path % (size url,size req.HTTPRequest.req_path)
+			= (errorResponse "Requested service format not available for this task", Nothing, Nothing, iworld)
 
-		    editEventParam		= paramValue "editEvent" req
-		    focusEventParam		= paramValue "focusEvent" req
-            resetEventParam     = paramValue "resetEvent" req
-			instanceNoParam 	= paramValue "instanceNo" req
-
-            instances = filter (\i. i > 0) (map toInt (split "," (paramValue "instances" req)))
-
-            event = case (fromJSON (fromString editEventParam)) of
-				Just (taskId,JSONNull,JSONString actionId) = ActionEvent (fromString taskId) actionId
-			    Just (taskId,JSONString name,value)	= EditEvent (fromString taskId) name value
-				_	= case (fromJSON (fromString focusEventParam)) of
-					Just taskId			= FocusEvent (fromString taskId)
-					_   = if (resetEventParam == "") (RefreshEvent "Browser refresh") ResetEvent
-
-	dataFun req output (Just data) (WebSocketConnection state instances) iworld
+	dataFun req output (Just data) (state,instances) iworld
 		# (state,result) = wsockAddData state data 
 		= case result of //TODO: Process multiple events
 			[WSClose msg:_]
 				//Respond with a close frame and close the connection
-				= trace_n "CLOSE" ([wsockCloseMsg msg],True, WebSocketConnection state instances,Nothing,iworld)
+				= trace_n "CLOSE" ([wsockCloseMsg msg],True, (state,instances),Nothing,iworld)
 			[WSTextMessage msg:_] 
 				//Process events:
 				= case fromString msg of
 					//- new session
 					(JSONArray [JSONInt reqId,JSONString "new"])
-                    	= case createTaskInstance (task req) iworld of
+                    	= case createTaskInstance` req taskUrls iworld of
 							(Error (_,err), iworld)
 								# json = JSONArray [JSONInt reqId,JSONString "ERROR",JSONString err]
-								= (wsockTextMsg (toString json),False, WebSocketConnection state instances,Nothing,iworld)
+								= trace_n err (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
                         	(Ok (instanceNo,instanceKey),iworld)
 								# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
 								# json = JSONArray [JSONInt reqId, JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]]
-								= (wsockTextMsg (toString json),False, WebSocketConnection state instances,Nothing,iworld)
+								= (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
 					//- attach existing instance
 					(JSONArray [JSONString "attach",JSONInt instanceNo,JSONString instanceKey])
 						//TODO: Clear output
 						# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
-						= ([],False, WebSocketConnection state [instanceNo:instances],Nothing,iworld) //TODO: Maybe send confirmation message?
+						= ([],False, (state,[instanceNo:instances]),Nothing,iworld) //TODO: Maybe send confirmation message?
 					//- detach instance
 					(JSONArray [JSONString "detach",JSONInt instanceNo,JSONString instanceKey])
-						= ([],False, WebSocketConnection state (removeMember instanceNo instances),Nothing,iworld) //TODO: Maybe send confirmation message?
+						= ([],False, (state,removeMember instanceNo instances),Nothing,iworld) //TODO: Maybe send confirmation message?
 					(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONNull,JSONString actionId]]) //Action event
 						# iworld = queueEvent instanceNo (ActionEvent (fromString taskId) actionId) iworld //Queue event
-						= ([],False, WebSocketConnection state instances,Nothing,iworld) //TODO: Maybe send confirmation message?
+						= ([],False, (state,instances),Nothing,iworld) //TODO: Maybe send confirmation message?
 					(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONString name,value]]) //Edit event
 						# iworld = queueEvent instanceNo (EditEvent (fromString taskId) name value) iworld //Queue event
-						= ([],False, WebSocketConnection state instances,Nothing,iworld) //TODO: Maybe send confirmation message?
+						= ([],False, (state,instances),Nothing,iworld) //TODO: Maybe send confirmation message?
 					//Unknown message 
 					e
 						# json = JSONArray [JSONString "ERROR",JSONString "Unknown event"]
-						= trace_n e (wsockTextMsg (toString json),False, WebSocketConnection state instances,Nothing,iworld)
+						= trace_n e (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
 			[WSPing msg:_]
-				= trace_n "PING" ([wsockPongMsg msg],False,WebSocketConnection state instances,Nothing,iworld)
-			_ = ([],False,WebSocketConnection state instances,Nothing,iworld)
-
-    dataFun req output Nothing (WebSocketConnection state instances) iworld
+				= trace_n "PING" ([wsockPongMsg msg],False,(state,instances),Nothing,iworld)
+			_ = ([],False,(state,instances),Nothing,iworld)
+	
+    dataFun req output Nothing (state,instances) iworld
 		//Check for UI updates for all attached instances
 		# (changes, output) = dequeueOutput instances output
 		= case changes of //Ignore empty updates
-			[] = ([],False,WebSocketConnection  state instances,Nothing,iworld)
+			[] = ([],False,(state,instances),Nothing,iworld)
 			changes	
                 # (_,iworld) = updateInstanceLastIO instances iworld
 				# msgs = [wsockTextMsg (toString (JSONObject [("instance",JSONInt instanceNo)
 															 ,("change",encodeUIChange change)])) \\ (instanceNo,change) <- changes]
-				= (flatten msgs,False, WebSocketConnection state instances,Just output,iworld)
+				= (flatten msgs,False, (state,instances),Just output,iworld)
 
-	dataFun req output _ (EventSourceConnection instances) iworld
-		# (messages,output) = dequeueOutput instances output
-		= case messages of //Ignore empty updates
-			[] = ([],False,(EventSourceConnection instances),Nothing,iworld)
-            messages	
-                # (_,iworld) = updateInstanceLastIO instances iworld
-                = ([formatMessageEvents messages],False,(EventSourceConnection instances),Just output, iworld)
+	disconnectFun _ _ (state,instances) iworld = (Nothing, snd (updateInstanceDisconnect instances iworld))
+	disconnectFun _ _ _ iworld                 = (Nothing, iworld)
 
-	disconnectFun _ _ (EventSourceConnection instances) iworld    = (Nothing, snd (updateInstanceDisconnect instances iworld))
-	disconnectFun _ _ _ iworld                                    = (Nothing, iworld)
+	createTaskInstance` req [{PublishedTask|url,task=TaskWrapper task}:taskUrls] iworld
+		| (url +++ "gui-wsock") == req.HTTPRequest.req_path = createTaskInstance (task req) iworld
+		| otherwise = createTaskInstance` req taskUrls iworld
 
 	dequeueOutput :: ![InstanceNo] !(Map InstanceNo (Queue UIChange)) -> (![(!InstanceNo,!UIChange)],!Map InstanceNo (Queue UIChange))
 	dequeueOutput [] states = ([],states)

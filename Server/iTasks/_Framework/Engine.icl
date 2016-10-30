@@ -172,13 +172,13 @@ background iworld
 // The iTasks engine consist of a set of HTTP WebService 
 engine :: publish -> [(!String -> Bool
 					  ,!Bool
-					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionState *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 					  )] | Publishable publish
 
-engine publishable = [taskWebService url task \\ {PublishedTask|url,task=TaskWrapper task} <- published]
-				  ++ [documentService, sdsService,staticResourceService [url \\ {PublishedTask|url} <- published]]
+engine publishable = [taskUIService published /*[(url,task) \\ {PublishedTask|url,task=TaskWrapper task} <- published]*/
+				  	 ,documentService, sdsService,staticResourceService [url \\ {PublishedTask|url} <- published]]
 where
 	published = publishAll publishable 
 
