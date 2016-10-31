@@ -27,6 +27,9 @@ derive class iTask TestCons
 :: TestConsWithField = ConsWithFieldA | ConsWithFieldB String
 derive class iTask TestConsWithField
 
+:: TestRecursiveCons = RNil | RCons TestRecursiveCons
+derive class iTask TestRecursiveCons
+
 testGenericEditorGenUI :: TestSuite
 testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the core generic UI generation"
 	[testIntEnter
@@ -153,6 +156,8 @@ where
 testGenericEditorEdits :: TestSuite
 testGenericEditorEdits = testsuite "Generic edits" "Tests for processing edits by editors"
 	[testEditConsChange
+	,testEditRecursiveConsChange
+	,testEditRecursiveConsChange2
 	,testEditListElement
 	,testAddListElement
 	,testMoveListElementUp
@@ -170,14 +175,25 @@ where
 		# world = fromStubIWorld (fromStubVSt vst)
 		= (fmap (\(nc,nm) -> (nv,nm,nc)) res,world)
 
-testEditConsChange = skip "Change constructor" 
-/*
+testEditConsChange
 	= testGenEdit "Change constructor"
-	(ConsB, Touched)
-	(ConsA, Touched)
-	[]
-	(JSONInt 1)
-*/
+	(ConsB, CompoundMask {CompoundMask|fields=[FieldMask {touched=True,valid=True,state=JSONInt 1}],state=JSONNull},ChangeUI [] [])
+	(ConsA, CompoundMask {CompoundMask|fields=[FieldMask {touched=False,valid=False,state=JSONNull}],state=JSONNull})
+	([],JSONArray [JSONInt 1])
+
+testEditRecursiveConsChange
+	= testGenEdit "Change recursive constructor"
+	(RCons RNil, CompoundMask {CompoundMask|fields=[FieldMask {touched=True,valid=True,state=JSONInt 1},CompoundMask {CompoundMask|fields=[FieldMask {touched=False,valid=False,state=JSONNull}],state=JSONNull}],state=JSONNull},ChangeUI [] [(1,InsertChild newConsUI)])
+	(RNil, CompoundMask {CompoundMask|fields=[FieldMask {touched=False,valid=False,state=JSONNull}],state=JSONNull})
+	([],JSONArray [JSONInt 1])
+where
+	newConsUI = uic UIVarCons [uia UIDropdown (choiceAttrs "STUB" "v0" [] [JSONObject [("id",JSONInt 0),("text",JSONString "RNil")],JSONObject [("id",JSONInt 1),("text",JSONString "RCons")]])]
+
+testEditRecursiveConsChange2
+	= testGenEdit "Change changed recursive constructor"
+	(RCons RNil, CompoundMask {CompoundMask|fields=[FieldMask {touched=True,valid=True,state=JSONInt 1},CompoundMask {CompoundMask|fields=[FieldMask {touched=True,valid=True,state=JSONInt 1}],state=JSONNull}],state=JSONNull},ChangeUI [] [(1,ChangeChild (ChangeUI [] []))])
+	(RCons RNil, CompoundMask {CompoundMask|fields=[FieldMask {touched=True,valid=True,state=JSONInt 1},CompoundMask {CompoundMask|fields=[FieldMask {touched=False,valid=False,state=JSONNull}],state=JSONNull}],state=JSONNull})
+	([1],JSONArray [JSONInt 0])
 
 testEditListElement = testGenEdit "List element edit" 
 	([42],CompoundMask {fields=[FieldMask {touched=True,valid=True,state=JSONInt 42}],state=JSONArray [JSONInt 0]}
