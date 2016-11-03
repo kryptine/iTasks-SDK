@@ -104,11 +104,12 @@ where
 	tut :: Task [Int]
 	tut = testCommonInteractions "Int list"
 
-:: List a = Nil | Cons a (List a)
+//:: List a = Nil | Cons a (List a)
+:: List = Nil | Cons Int List 
 derive class iTask List
 
 testCustomList = itest "List defined with custom constructors" "Check if you can edit the list"
 	"You should be able to add Conses" tut
 where
-	tut :: Task (List Int)
+	tut :: Task List
 	tut = testCommonInteractions "Custom list"

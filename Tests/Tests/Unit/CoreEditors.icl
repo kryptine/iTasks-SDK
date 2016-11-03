@@ -27,7 +27,7 @@ derive class iTask TestCons
 :: TestConsWithField = ConsWithFieldA | ConsWithFieldB String
 derive class iTask TestConsWithField
 
-:: TestRecursiveCons = RNil | RCons TestRecursiveCons
+:: TestRecursiveCons = RNil | RCons Int TestRecursiveCons
 derive class iTask TestRecursiveCons
 
 testGenericEditorGenUI :: TestSuite
@@ -183,16 +183,21 @@ testEditConsChange
 
 testEditRecursiveConsChange
 	= testGenEdit "Change recursive constructor"
-	(RCons RNil, CompoundMask {CompoundMask|fields=[FieldMask {touched=True,valid=True,state=JSONInt 1},CompoundMask {CompoundMask|fields=[FieldMask {touched=False,valid=False,state=JSONNull}],state=JSONNull}],state=JSONNull},ChangeUI [] [(1,InsertChild newConsUI)])
+	(RCons 0 RNil, CompoundMask {CompoundMask|fields=[FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=False,valid=False,state=JSONNull},CompoundMask {CompoundMask|fields=[FieldMask {touched=False,valid=False,state=JSONNull}],state=JSONNull}],state=JSONNull},ChangeUI [] [(1,InsertChild intUI),(2,InsertChild newConsUI)])
 	(RNil, CompoundMask {CompoundMask|fields=[FieldMask {touched=False,valid=False,state=JSONNull}],state=JSONNull})
 	([],JSONArray [JSONInt 1])
 where
-	newConsUI = uic UIVarCons [uia UIDropdown (choiceAttrs "STUB" "v0" [] [JSONObject [("id",JSONInt 0),("text",JSONString "RNil")],JSONObject [("id",JSONInt 1),("text",JSONString "RCons")]])]
+	intUI = uia UIIntegerField ('DM'.unions [editAttrs "STUB" "v0" Nothing,'DM'.fromList [("hint-type",JSONString "info"),("hint",JSONString "Please enter a whole number (this value is required)"),("optional",JSONBool False)]])
+	newConsUI = uic UIVarCons [uia UIDropdown (choiceAttrs "STUB" "v1" [] [JSONObject [("id",JSONInt 0),("text",JSONString "RNil")],JSONObject [("id",JSONInt 1),("text",JSONString "RCons")]])]
 
 testEditRecursiveConsChange2
 	= testGenEdit "Change changed recursive constructor"
-	(RCons RNil, CompoundMask {CompoundMask|fields=[FieldMask {touched=True,valid=True,state=JSONInt 1},CompoundMask {CompoundMask|fields=[FieldMask {touched=True,valid=True,state=JSONInt 1}],state=JSONNull}],state=JSONNull},ChangeUI [] [(1,ChangeChild (ChangeUI [] []))])
-	(RCons RNil, CompoundMask {CompoundMask|fields=[FieldMask {touched=True,valid=True,state=JSONInt 1},CompoundMask {CompoundMask|fields=[FieldMask {touched=False,valid=False,state=JSONNull}],state=JSONNull}],state=JSONNull})
+	(RCons 0 RNil, CompoundMask {CompoundMask|fields=[FieldMask {touched=True,valid=True,state=JSONInt 1}
+								                     ,FieldMask {touched=False,valid=False,state=JSONNull}
+													 ,CompoundMask {CompoundMask|fields=[FieldMask {touched=True,valid=True,state=JSONInt 0}],state=JSONNull}],state=JSONNull},ChangeUI [] [(2,ChangeChild (ChangeUI [] []))])
+	(RCons 0 RNil, CompoundMask {CompoundMask|fields=[FieldMask {touched=True,valid=True,state=JSONInt 1}
+                                ,FieldMask {touched=False,valid=False,state=JSONNull}
+                                ,CompoundMask {CompoundMask|fields=[FieldMask {touched=False,valid=False,state=JSONNull}],state=JSONNull}],state=JSONNull})
 	([1],JSONArray [JSONInt 0])
 
 testEditListElement = testGenEdit "List element edit" 
@@ -305,7 +310,7 @@ testDiffConsFields1
 		(ChangeUI [] [(3,ChangeChild (ChangeUI [SetAttribute "value" (JSONInt 44)] []))])
 		(TestConsFields 1 2 3 44 5 6) 
 		(TestConsFields 1 2 3 4 5 6)
-		newFieldMask
+		(CompoundMask {fields=[newFieldMask,newFieldMask,newFieldMask,newFieldMask,newFieldMask,newFieldMask],state=JSONNull})
 
 testDiffConsFields2 :: Test
 testDiffConsFields2 
@@ -322,7 +327,9 @@ testDiffRecordFields :: Test
 testDiffRecordFields 
 	= testOnRefresh "Diff record fields"
 		(ChangeUI [] [(0, ChangeChild (ChangeUI [SetAttribute "value" (JSONInt 23)] [])),(1,ChangeChild (ChangeUI [SetAttribute "value" (JSONString "bar")] []))])
-		{TestRecordFields|a=23,b="bar",c=True} {TestRecordFields|a=42,b="foo",c=True} newFieldMask
+		{TestRecordFields|a=23,b="bar",c=True}
+		{TestRecordFields|a=42,b="foo",c=True} 
+		(CompoundMask {fields=[newFieldMask,newFieldMask,newFieldMask],state=JSONNull})
 
 testDiffConsChange :: Test
 testDiffConsChange 
