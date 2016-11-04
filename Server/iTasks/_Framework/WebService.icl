@@ -253,7 +253,7 @@ where
 	reqFun taskUrls req output iworld=:{IWorld|server={serverName},config}
 		//Check for WebSocket upgrade headers
         | ('DM'.get "Upgrade" req.HTTPRequest.req_headers) =:(Just "websocket") && isJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
-            # secWebSocketKey       = fromJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
+            # secWebSocketKey       = trim (fromJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers))
             # secWebSocketAccept    = wsockHandShake secWebSocketKey
             //Create handshake response
             # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
@@ -269,7 +269,7 @@ where
 		= case result of //TODO: Process multiple events
 			[WSClose msg:_]
 				//Respond with a close frame and close the connection
-				= trace_n "CLOSE" ([wsockCloseMsg msg],True, (state,instances),Nothing,iworld)
+				= ([wsockCloseMsg msg],True, (state,instances),Nothing,iworld)
 			[WSTextMessage msg:_] 
 				//Process events:
 				= case fromString msg of
@@ -278,7 +278,7 @@ where
                     	= case createTaskInstance` req taskUrls iworld of
 							(Error (_,err), iworld)
 								# json = JSONArray [JSONInt reqId,JSONString "ERROR",JSONString err]
-								= trace_n err (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
+								= (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
                         	(Ok (instanceNo,instanceKey),iworld)
 								# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
 								# json = JSONArray [JSONInt reqId, JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]]
@@ -300,9 +300,9 @@ where
 					//Unknown message 
 					e
 						# json = JSONArray [JSONString "ERROR",JSONString "Unknown event"]
-						= trace_n e (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
+						= (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
 			[WSPing msg:_]
-				= trace_n "PING" ([wsockPongMsg msg],False,(state,instances),Nothing,iworld)
+				= ([wsockPongMsg msg],False,(state,instances),Nothing,iworld)
 			_ = ([],False,(state,instances),Nothing,iworld)
 	
     dataFun req output Nothing (state,instances) iworld
@@ -344,7 +344,6 @@ where
     where
         format (instanceNo,change) = "data: {\"instance\":" +++toString instanceNo+++",\"change\":" +++ toString (encodeUIChange change) +++ "}\n\n"
 
-import StdDebug, StdMisc
 //TODO: The upload and download mechanism used here is inherently insecure!!!
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
 // unauthorized downloading of documents and DDOS uploading.
