@@ -1,6 +1,7 @@
 implementation module iTasks.API.Extensions.Web
 import iTasks
-import Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding, StdArray, Data.Either
+import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import Internet.HTTP, Text, Text.HTML, Text.Encodings.MIME, Text.Encodings.UrlEncoding, StdArray, Data.Either
 
 from iTasks._Framework.HttpUtil import http_addRequestData, http_parseArguments
 import iTasks._Framework.HtmlUtil
@@ -44,7 +45,7 @@ KEEPALIVE_TIME :== 5
     , error         :: Bool
     }
 
-derive class iTask HttpConnState, HttpReqState, HTTPRequest, HTTPResponse, HTTPMethod, HTTPProtocol, HTTPUpload, ConnectionType
+derive class iTask HttpConnState, HttpReqState, HTTPRequest, HTTPResponse, HTTPMethod, HTTPProtocol, HTTPUpload
 
 serveWebService :: Int (HTTPRequest -> Task HTTPResponse) -> Task ()
 serveWebService port handler 
@@ -74,7 +75,7 @@ where
 			(Nothing,_) = (Ok l, Nothing, [], False)
 			(Just response,io)
 				//Add keep alive header if necessary
-				# response	= if keepalive {response & rsp_headers = [("Connection","Keep-Alive"):response.rsp_headers]} response
+				# response	= if keepalive {HTTPResponse|response & rsp_headers = [("Connection","Keep-Alive"):response.HTTPResponse.rsp_headers]} response
 				# reply		= encodeResponse True response
 				= (Ok (Idle client_name now), Just io, [reply], keepalive)
 
@@ -104,7 +105,7 @@ where
 
     onDisconnect l _        = (Ok l, Nothing)
 
-	isKeepAlive request = maybe (request.req_version == "HTTP/1.1") (\h -> (toLowerCase h == "keep-alive")) ('DM'.get "Connection" request.req_headers)
+	isKeepAlive request = maybe (request.HTTPRequest.req_version == "HTTP/1.1") (\h -> (toLowerCase h == "keep-alive")) ('DM'.get "Connection" request.HTTPRequest.req_headers)
 
     encodeResponse autoContentLength response=:{rsp_headers, rsp_data}
 	    # rsp_headers = addDefault rsp_headers "Server" "iTasks HTTP Server"
@@ -112,7 +113,7 @@ where
 	    # rsp_headers = if autoContentLength
 	    					(addDefault rsp_headers "Content-Length" (toString (size rsp_data)))
 	    					rsp_headers
-	    = toString {response & rsp_headers = rsp_headers}
+	    = toString {HTTPResponse|response & rsp_headers = rsp_headers}
     where		
     	addDefault headers hdr val = if (('DL'.lookup hdr headers) =: Nothing) [(hdr,val):headers] headers
 

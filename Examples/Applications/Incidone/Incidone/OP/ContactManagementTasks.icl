@@ -1,5 +1,5 @@
 implementation module Incidone.OP.ContactManagementTasks
-import iTasks, iTasks.API.Extensions.SQLDatabase
+import iTasks, iTasks.API.Extensions.SQLDatabase, iTasks.API.Extensions.Web
 import Incidone.Configuration
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.Conversions
 import Incidone.OP.IncidentManagementTasks
@@ -93,7 +93,7 @@ manageContactBasics contactNo = (
         [viewAndEdit (viewContactBasics contactNo) (editContactBasics contactNo)
         ,manageContactAccess contactNo
         ]
-    >^*[OnAction (Action "/Share to wall" [ActionIcon "share-to-wall"]) (\_ -> Just (shareContact contactNo))
+    >^*[OnAction (Action "/Share to wall") (\_ -> Just (shareContact contactNo))
        ] @! ()) <<@ Title "General" <<@ (Attribute "icon" "basic-information")
 where
 
@@ -132,7 +132,7 @@ manageContactDetails contactNo
 where
     manageDetails share log = forever (
             viewSharedInformation [Att (Title "Details"),Att (Icon "details")] [] share
-        >>* [OnAction (Action "/Edit" [ActionIcon "edit"]) (always (editDetails share log))]
+        >>* [OnAction (Action "/Edit") (always (editDetails share log))]
         )
 
     editDetails share log
@@ -144,8 +144,8 @@ where
 manageContactPhotos :: ContactNo -> Task ()
 manageContactPhotos contactNo
     =   (enterChoiceWithShared () [ChooseFromList toPrj] (sdsFocus contactNo contactPhotos)
-    >^* [OnAction (Action "/Add photo" [ActionIcon "add"]) (always (addPhoto <<@ InWindow))
-        ,OnAction (Action "/Delete photo" [ActionIcon "delete"]) (hasValue (\p -> delPhoto p <<@ InWindow))
+    >^* [OnAction (Action "/Add photo") (always (addPhoto <<@ InWindow))
+        ,OnAction (Action "/Delete photo") (hasValue (\p -> delPhoto p <<@ InWindow))
         ])
         <<@ Title "Photos"
         <<@ Icon "photos"
@@ -183,9 +183,9 @@ manageContactCommunicationMeans compact contactNo = forever (
         ] 
     )
 where
-    ActionAdd = Action (if compact "Add" "/Add") [ActionIcon "add"]
-    ActionEdit = Action (if compact "Edit" "/Edit") [ActionIcon "edit"]
-    ActionRemove = Action (if compact "Remove" "/Remove") [ActionIcon "remove"]
+    ActionAdd = Action (if compact "Add" "/Add")
+    ActionEdit = Action (if compact "Edit" "/Edit")
+    ActionRemove = Action (if compact "Remove" "/Remove")
 
     group means expanded = [] /*[{ChoiceTree|label=label m,icon=Just (icon m.CommunicationMean.type),value=ChoiceNode i,type=LeafNode} \\ (i,m) <- means]
     where
@@ -228,8 +228,8 @@ manageContactActions compact contactNo
         ]
 	@!  ()
 where
-    ActionAdd = Action (if compact "Add" "/Add action") [ActionIcon "add"]
-    ActionEdit = Action (if compact "Edit" "/Edit action") [ActionIcon "edit"]
+    ActionAdd = Action (if compact "Add" "/Add action")
+    ActionEdit = Action (if compact "Edit" "/Edit action")
 
     title = (Title (if compact "Actions" "Overview"))
     selectActions
@@ -422,14 +422,14 @@ updateContactStatus contactNo
 updateSharedContactRefList :: d (RWShared () [ContactNo] [ContactNo]) -> Task [ContactNo] | toPrompt d
 updateSharedContactRefList d refs
     =   manageCurrentItems
-    >^* [OnAction (Action "Add" []) (always (addItem <<@ InWindow))]
+    >^* [OnAction (Action "Add") (always (addItem <<@ InWindow))]
 where
     manageCurrentItems
         = updateSharedInformation d [UpdateAs toPrj fromPrj] items @ map contactIdentity
     where
         items = sdsDeref refs id contactsByNosShort (\_ cs -> cs)
-        toPrj l = [(Hidden (contactIdentity c),Display (contactTitle c)) \\ c <-l]
-        fromPrj _ items = [c \\ (Hidden c,_) <- items]
+        toPrj l = [(contactIdentity c,contactTitle c) \\ c <-l]
+        fromPrj _ items = map fst items
 
     addItem
         =   selectKnownOrDefineNewContact
@@ -546,7 +546,7 @@ viewContactsOnMap sharedContacts sel
             updateSharedInformation "Show AIS contacts:" [UpdateAs fst (\(_,y) x -> (x,y))] localState
             ||-
             (updateSharedInformation () [UpdateAs (toPrj baseLayers) fromPrj] (mapState localState sharedContacts sel)) @ (\(a,b,c) -> (b,c))
-            >^* [OnAction (Action "/Share map to wall" [ActionIcon "share-to-wall"]) (hasValue sharePerspective)
+            >^* [OnAction (Action "/Share map to wall") (hasValue sharePerspective)
                 ]
         @? selection
 where

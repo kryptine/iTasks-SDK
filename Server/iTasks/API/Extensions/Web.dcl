@@ -6,10 +6,16 @@ from Internet.HTTP import :: HTTPRequest, :: HTTPResponse
 */
 
 //* Uniform resource locators
-:: URL			= URL !String
+:: URL = URL !String
 instance toString	URL
 instance html		URL
 
+derive gEditor    URL
+derive gText      URL
+derive JSONEncode URL
+derive JSONDecode URL
+derive gDefault	  URL
+derive gEq        URL
 
 //Simple web server task
 serveWebService :: Int (HTTPRequest -> Task HTTPResponse) -> Task ()

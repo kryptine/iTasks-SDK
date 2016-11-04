@@ -55,7 +55,7 @@ where
 doAuthenticated :: (User -> Task a) -> Task a | iTask a
 doAuthenticated task
 	= (	enterCredentials
-	>>* [OnAction (Action "Login" [ActionIcon "login",ActionKey {key=KEY_ENTER,ctrl=False,shift=False,alt=False}])
+	>>* [OnAction (Action "Login")
 			(hasValue (\cred -> verifyCredentials cred >>- executeTask task))
 		] ) <<@ Title "Login" <<@ ApplyLayout (beforeStep frameCompact) //Compact layout before login, full screen afterwards
 where
@@ -85,7 +85,7 @@ where
 		    viewInformation () [] ("Welcome " +++ toString user) 
              -&&-
             viewNotifications
-        >>* [OnAction (Action "Log out" [ActionIcon "logout"]) (always (return ()))]
+        >>* [OnAction (Action "Log out") (always (return ()))]
         )  <<@ ApplyLayout layoutControlDash
 
 	workOnTasks = doIndependent tasks <<@ ArrangeWithTabs
