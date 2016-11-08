@@ -105,6 +105,12 @@ testEditorWithShare :: (Editor a) a EditMode -> Task a | iTask a
 */
 testCommonInteractions :: String -> Task a | iTask a
 
+
+/**
+* Test if all tests have passed
+*/
+allPassed :: TestReport -> Bool
+
 /**
 * Run all tests interactively and run all tests
 *

@@ -3,7 +3,7 @@ import iTasks, StdFile
 import iTasks.API.Extensions.Image
 import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
 import iTasks._Framework.Serialization
-import Text, Text.HTML
+import Text, Text.HTML, System.CommandLine
 import qualified Data.Map as DM
 
 // TEST FRAMEWORK
@@ -107,6 +107,12 @@ testCommonInteractions typeName
 				  )
 		 )
 
+allPassed :: TestReport -> Bool
+allPassed suiteResults = all suitePassed suiteResults
+
+suitePassed :: SuiteResult -> Bool
+suitePassed {SuiteResult|testResults} = all (\(_,r) -> r =: Passed) testResults
+
 runTests :: [TestSuite] -> Task ()
 runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
     ( allTasks [runInteractiveTests <<@ Title "Interactive Tests"
@@ -169,30 +175,34 @@ where
 
 runUnitTestsCLI :: [TestSuite] *World -> *World
 runUnitTestsCLI suites world
-	# (console,world)	= stdio world
-	# (console,world) 	= foldl runSuite (console,world) suites
-	# (_,world)			= fclose console world
-	= world
+	# (console,world)	       = stdio world
+	# (report,(console,world)) = foldl runSuite ([],(console,world)) suites
+	# (_,world)			       = fclose console world
+	# world 			       = setReturnCode (if (allPassed report) 0 1) world
+    = world
 where	
-	runSuite (console,world) {TestSuite|name,tests}
+	runSuite (report,(console,world)) {TestSuite|name,tests}
 		# console = fwrites ("===[ "+++ name +++ " ]===\n") console
-		= foldl runTest (console,world) [t \\ UnitTest t <- tests]
+		# (testResults,(console,world)) = foldr runTest ([],(console,world)) [t \\ UnitTest t <- tests]
+		= ([{SuiteResult|suiteName=name,testResults=testResults}:report],(console,world))
 		
-	runTest (console,world) {UnitTest|name,test}
+	runTest {UnitTest|name,test} (results,(console,world)) 
 		# console = fwrites (name +++ "... ") console
-		= case (test world) of
-			(Passed,world)
+		# (result,world) = test world
+		# (console,world) = case result of
+			Passed
 				# console = fwrites (green "PASSED\n") console
 				= (console,world)
-			(Failed Nothing,world)
+			Failed Nothing
 				# console = fwrites (red "FAILED\n") console
 				= (console,world)
-			(Failed (Just msg),world)
+			Failed (Just msg)
 				# console = fwrites (red ("FAILED\n" +++msg+++"\n")) console
 				= (console,world)
-			(Skipped,world)
+			Skipped
 				# console = fwrites (yellow "SKIPPED\n") console
 				= (console,world)
+		= ([(name,result):results],(console,world))
 
 	//ANSI COLOR CODES -> TODO: Create a library in clean-platform for ANSI colored output
 	red s = toString [toChar 27,'[','3','1','m'] +++ s +++ toString [toChar 27,'[','0','m']
@@ -201,9 +211,10 @@ where
 
 runUnitTestsJSON :: [TestSuite] *World -> *World
 runUnitTestsJSON suites world
-	# (result,world) 	= runUnitTestsWorld suites world
+	# (report,world) 	= runUnitTestsWorld suites world
 	# (console,world)	= stdio world
-	# console 			= fwrites (toString (toJSON result)) console
+	# console 			= fwrites (toString (toJSON report)) console
 	# (_,world)			= fclose console world
+	# world 			= setReturnCode (if (allPassed report) 0 1) world
 	= world
 
