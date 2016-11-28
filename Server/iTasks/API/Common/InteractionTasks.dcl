@@ -200,12 +200,12 @@ waitForDateTime :: !DateTime 		-> Task DateTime
 * Task completes after specified amount of time has passed
 * since the creation of the task.
 *
-* @param Time: The time to wait before the task should complete
+* @param The time to wait (in seconds before the task should complete
 *
 * @return The time the timer went off
 * 
 */
-waitForTimer	:: !Time			-> Task Time
+waitForTimer	:: !Int -> Task DateTime
 
 /*** Special tasks for choosing actions ***/
 
