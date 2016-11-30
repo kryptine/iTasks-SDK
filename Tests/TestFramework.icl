@@ -5,6 +5,7 @@ import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTas
 import iTasks._Framework.Serialization
 import Text, Text.HTML, System.CommandLine
 import qualified Data.Map as DM
+import iTasks.API.Extensions.Development.Codebase
 
 // TEST FRAMEWORK
 derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult
@@ -127,6 +128,7 @@ runTests :: [TestSuite] -> Task ()
 runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
     ( allTasks [runInteractiveTests <<@ Title "Interactive Tests"
 			   ,runUnitTests        <<@ Title "Unit Tests"
+			   ,viewQualityMetrics  <<@ Title "Metrics"
 			   ] <<@ ArrangeWithTabs
     ) @! ()
 where
@@ -171,6 +173,42 @@ where
 
 	application header mainTask
 		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False <<@ ApplyLayout (setNodeType UIContainer)
+
+	viewQualityMetrics :: Task ()
+	viewQualityMetrics 
+		= 	analyzeITasksCodeBase
+		>>- viewInformation () [ViewAs view]  @! ()
+	where
+		view {numTODO,numFIXME} = UlTag [] [LiTag [] [Text "Number of TODO's found: ",Text (toString numTODO)]
+										   ,LiTag [] [Text "Number of FIXME's found: ",Text (toString numFIXME)]
+										   ]
+//Begin metrics 
+//The following section should probably be moved to a separate module
+:: SourceTreeQualityMetrics =
+	{ numTODO  :: Int
+	, numFIXME :: Int
+	}
+derive class iTask SourceTreeQualityMetrics 
+
+analyzeITasksCodeBase :: Task SourceTreeQualityMetrics 
+analyzeITasksCodeBase
+	= 	rescanCodeBase [{name="iTasks",rootPath=".."</>"Server",subPaths=[],readOnly=True,modules=[]}]
+	@   listFilesInCodeBase
+	>>- \files -> allTasks (map determineQualityMetrics files) @ aggregate
+where
+	aggregate ms = foldr (+) zero ms
+
+determineQualityMetrics :: CleanFile -> Task SourceTreeQualityMetrics
+determineQualityMetrics file = importTextFile (cleanFilePath file) @ analyze
+where
+	analyze text = {numTODO=num "TODO" text ,numFIXME=num "FIXME" text}
+	num needle text = length (split needle text) - 1
+
+instance zero SourceTreeQualityMetrics where zero = {numTODO=0,numFIXME=0}
+instance + SourceTreeQualityMetrics where (+) {numTODO=xt,numFIXME=xf} {numTODO=yt,numFIXME=yf} = {numTODO = xt+yt, numFIXME= xf+yf}
+
+//End metrics 
+
 
 runUnitTestsWorld :: [TestSuite] *World -> *(!TestReport,!*World)
 runUnitTestsWorld suites world = foldr runSuite ([],world) suites
