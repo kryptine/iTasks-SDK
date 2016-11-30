@@ -69,7 +69,11 @@ assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | JSONEncode{|
 
 assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & JSONEncode{|*|} a
 
-skip :: String -> Test
+pass :: String -> Test
+
+fail :: String -> Test
+
+skip :: Test -> Test
 
 /**
 * Convenient wrapper for defining test suites

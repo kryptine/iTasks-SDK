@@ -70,7 +70,7 @@ expPromptUI msg
 						,("halign",JSONString "left"),("valign",JSONString "top"),("baseCls",JSONString "itwc-prompt")
 						,("value",JSONString "msg")])
 
-testInitialEditorUI = skip "Initial UI of minimal editor task"
+testInitialEditorUI = skip (fail "Initial UI of minimal editor task")
 /* testTaskOutput "Initial UI of minimal editor task" minimalEditor events exp (===)
 where
 	events = [ResetEvent]
@@ -86,7 +86,7 @@ where
 								])
 */
 
-testInitialEditletUI = skip "Initial UI of minimal editlet task"
+testInitialEditletUI = skip (fail "Initial UI of minimal editlet task")
 /* testTaskOutput "Initial UI of minimal editlet task" minimalEditlet events exp compare
 where
 	events = [ResetEvent]
@@ -108,7 +108,7 @@ where
 						,("saplDeps",JSONString ""),("saplInit",JSONString "IGNORE")] 
 */
 
-testInitialStepUI = skip "Initial UI of minimal step task"
+testInitialStepUI = skip (fail "Initial UI of minimal step task")
 /* testTaskOutput "Initial UI of minimal step task" minimalStep events exp (===)
 where
 	events = [ResetEvent]
@@ -126,7 +126,7 @@ where
 
 	expActionOk = uia UIAction ('DM'.fromList [("actionId",JSONString "ActionOk"),("taskId",JSONString "1-0"),("enabled",JSONBool False)])
 
-testInitialParallelUI = skip "Initial UI of minimal parallel task"
+testInitialParallelUI = skip (fail "Initial UI of minimal parallel task")
 /* testTaskOutput "Initial UI of minimal parallel task" minimalParallel events exp (===)
 where
 	events = [ResetEvent]
@@ -143,7 +143,7 @@ where
 	editorAttr = [("hint-type",JSONString "valid"),("hint",JSONString "You have correctly entered a single line of text")]
 	editorOpts = [("value",JSONString value),("taskId",JSONString ("1-"<+++taskNum)),("editorId",JSONString "v")]
 
-testStepEnableAction = skip "Test enabling of an action of a step"
+testStepEnableAction = skip (fail "Test enabling of an action of a step")
 /* testTaskOutput "Test enabling of an action of a step" minimalStep events exp (===)
 where
 	events = [ResetEvent,minimalStepInputEvent] //Reset, then make sure the editor has a valid value
@@ -162,7 +162,7 @@ where
 
 	changeAction = (1,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool True)] [])) //Enable the first action
 
-testStepApplyAction = skip "Test replacement of UI after step"
+testStepApplyAction = skip (fail "Test replacement of UI after step")
 /* testTaskOutput "Test replacement of UI after step" minimalStep events exp (===)
 where
 	events = [ResetEvent,minimalStepInputEvent,ActionEvent (TaskId 1 0) "Ok"] 
@@ -196,7 +196,7 @@ where
 	//When there are no more elements, the pop action should be disabled
 	actionChanges = ChangeUI [] [(0,ChangeChild NoChange),(1,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool False)] []))] 
 
-testForeverLoop = skip "Test a 'forever' loop construct (a more complex version of a dynamic parallel)"
+testForeverLoop = skip (fail "Test a 'forever' loop construct (a more complex version of a dynamic parallel)")
 /* testTaskOutput "Test a 'forever' loop construct (a more complex version of a dynamic parallel)" minimalForever events exp (===)
 where
 	events = [ResetEvent, ActionEvent (TaskId 1 1) "Continue"]

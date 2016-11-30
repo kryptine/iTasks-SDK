@@ -44,16 +44,16 @@ testLayout = testsuite "Layout" "Tests for the layout functions"
 
 
 //Tests for the core operations of the layout library
-testChangeNodeType = skip "Changing node type"
-testChangeAttributes = skip "Changing attributes"
+testChangeNodeType = skip (fail "Changing node type")
+testChangeAttributes = skip (fail "Changing attributes")
 
-testWrap = skip "Wrapping a UI in a panel"
-testUnwrap = skip "Unwrapping a UI from a container"
+testWrap = skip (fail "Wrapping a UI in a panel")
+testUnwrap = skip (fail "Unwrapping a UI from a container")
 
-testInsertSubAt = skip "Inserting a sub-UI at a specific path"
-testRemoveSubAt = skip "Remove a sub-UI from a specific path"
-testLayoutSubAt = skip "Applying another layout at a specific path (by setting attribute)"
-testMoveSubAt = skip "Moving a node from one place to another"
+testInsertSubAt = skip (fail "Inserting a sub-UI at a specific path")
+testRemoveSubAt = skip (fail "Remove a sub-UI from a specific path")
+testLayoutSubAt = skip (fail "Applying another layout at a specific path (by setting attribute)")
+testMoveSubAt = skip (fail "Moving a node from one place to another")
 
 testRemoveSubsMatchingOnReplace = assertEqual "Removing everything that matches, when replacing a UI" exp sut
 where
@@ -167,7 +167,7 @@ where
 
 
 
-testLayoutSubsMatching = skip "Applying another layout to all matching nodes"
+testLayoutSubsMatching = skip (fail "Applying another layout to all matching nodes")
 
 testMoveSubsMatchingInitial = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
 where
@@ -248,12 +248,12 @@ where
 	isAction (UI type _ _) = type =: UIAction
 
 
-testSequenceLayouts = skip "Test sequencing multiple layouts"
-testSelectLayout = skip "Test selecting of a layout"
+testSequenceLayouts = skip (fail "Test sequencing multiple layouts")
+testSelectLayout = skip (fail "Test selecting of a layout")
 
 //Tests for the common layout patterns
 
-testMoveTaskToWindow = skip "Moving a task UI to a separate window"
+testMoveTaskToWindow = skip (fail "Moving a task UI to a separate window")
 
 ::TestRecOuter =
 	{ a :: TestRecInner
@@ -265,7 +265,7 @@ testMoveTaskToWindow = skip "Moving a task UI to a separate window"
 	}
 derive class iTask TestRecInner, TestRecOuter
 
-testAutoInteractionLayoutInitial = skip "Test if the auto interaction layout correctly turns an editor into a form"
+testAutoInteractionLayoutInitial = skip (fail "Test if the auto interaction layout correctly turns an editor into a form")
 /* assertEqual "Test if the auto interaction layout correctly turns an editor into a form" exp sut
 where
 	exp = ReplaceUI (uic UICompoundContent [stdPrompt,expIntForm])
@@ -285,9 +285,9 @@ where
 		('DM'.fromList [("optional",JSONBool False),("hint-type",JSONString "info"),("hint",JSONString"Please enter a whole number (this value is required)")
 						,("taskId",JSONString "STUB"),("editorId",JSONString "v")])
 */
-testAutoInteractionLayoutEditorValueChange = skip "Test if the auto interaction layout correctly maps changes in the editor to the form item"
+testAutoInteractionLayoutEditorValueChange = skip (fail "Test if the auto interaction layout correctly maps changes in the editor to the form item")
 
-testFlatteningOfNestedRecords = skip "Auto interact layout should flatten a nested-record structure"
+testFlatteningOfNestedRecords = skip (fail "Auto interact layout should flatten a nested-record structure")
 	//= assertEqualWorld "Auto interact layout should flatten a nested-record structure" exp sut
 //where
 	//We expect a change to the control with index 3, because the autoAccuInteract flattens the form

@@ -52,10 +52,17 @@ where
 		# (res,w) = sut w
 		= (if (exp === res) Passed (Failed (Just ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON res)))),w)
 
-skip :: String -> Test
-skip name = UnitTest {UnitTest|name=name,test=test}
+pass :: String -> Test
+pass name = UnitTest {UnitTest|name=name,test = \w -> (Passed,w)}
+
+fail :: String -> Test
+fail name = UnitTest {UnitTest|name=name,test = \w -> (Failed Nothing, w)}
+
+skip :: Test -> Test
+skip skipped = UnitTest {UnitTest|name=nameOf skipped,test= \w -> (Skipped,w)}
 where
-	test w = (Skipped,w)
+	nameOf (UnitTest {UnitTest|name}) = name
+	nameOf (InteractiveTest {InteractiveTest|name}) = name
 
 testsuite :: String String [Test] -> TestSuite
 testsuite name description tests

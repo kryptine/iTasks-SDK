@@ -115,7 +115,7 @@ where
 	expMask = CompoundMask {fields=[FieldMask {touched=False,valid=True,state=JSONInt 0}],state=JSONNull}
 	fieldsExp = ui UIEmpty//Placeholder
 
-testRecordTouched = skip "Touched record"
+testRecordTouched = skip (fail "Touched record")
 /* testGenUI "Touched record"
 	(uiac UICompoundContent ('DM'.fromList [("optional",JSONBool False)]) 
 		[intField,stringField,boolField])
@@ -364,7 +364,7 @@ testMaybeIntChangeToJust
 		newFieldMask
 
 testMaybeIntChangeToNothing :: Test
-testMaybeIntChangeToNothing = skip "Switch Maybe Int Just to Nothing"
+testMaybeIntChangeToNothing = skip (fail "Switch Maybe Int Just to Nothing")
 /*
 	= testOnRefresh "Switch Maybe Int Just to Nothing"
 		(ChangeUI [("setEditorValue", [JSONNull])] [])
