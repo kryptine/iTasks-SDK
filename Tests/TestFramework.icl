@@ -115,10 +115,13 @@ testCommonInteractions typeName
 		 )
 
 allPassed :: TestReport -> Bool
-allPassed suiteResults = all suitePassed suiteResults
+allPassed suiteResults = all (checkSuiteResult (\r -> r =: Passed)) suiteResults
 
-suitePassed :: SuiteResult -> Bool
-suitePassed {SuiteResult|testResults} = all (\(_,r) -> r =: Passed) testResults
+noneFailed :: TestReport -> Bool
+noneFailed suiteResults = all (checkSuiteResult (\r -> r =: Passed || r =: Skipped)) suiteResults
+
+checkSuiteResult :: (TestResult -> Bool) SuiteResult -> Bool
+checkSuiteResult f {SuiteResult|testResults} = all (\(_,r) -> f r) testResults
 
 runTests :: [TestSuite] -> Task ()
 runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
@@ -185,7 +188,7 @@ runUnitTestsCLI suites world
 	# (console,world)	       = stdio world
 	# (report,(console,world)) = foldl runSuite ([],(console,world)) suites
 	# (_,world)			       = fclose console world
-	# world 			       = setReturnCode (if (allPassed report) 0 1) world
+	# world 			       = setReturnCode (if (noneFailed report) 0 1) world
     = world
 where	
 	runSuite (report,(console,world)) {TestSuite|name,tests}
@@ -222,6 +225,6 @@ runUnitTestsJSON suites world
 	# (console,world)	= stdio world
 	# console 			= fwrites (toString (toJSON report)) console
 	# (_,world)			= fclose console world
-	# world 			= setReturnCode (if (allPassed report) 0 1) world
+	# world 			= setReturnCode (if (noneFailed report) 0 1) world
 	= world
 

@@ -114,6 +114,10 @@ testCommonInteractions :: String -> Task a | iTask a
 * Test if all tests have passed
 */
 allPassed :: TestReport -> Bool
+/**
+* Check if no tests have failed (skipped and passed)
+*/
+noneFailed :: TestReport -> Bool
 
 /**
 * Run all tests interactively and run all tests
