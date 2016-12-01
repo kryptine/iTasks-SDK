@@ -174,6 +174,15 @@ where
 
 	adjust :: (Map NodePath NodePath) UIChange -> UIChange //TODO
 	adjust moves change = change 
+	where
+		selectChanges :: [NodePath] UIChange -> [(NodePath,UIChange)]
+		selectChanges _ _ = []
+
+		remap :: (Map NodePath NodePath) [(NodePath,UIChange)] -> [(NodePath,UIChange)]
+		remap moves changes = [(fromJust ('DM'.get path moves),change) \\ (path,change) <- changes]
+		
+		combineChanges :: [(NodePath,UIChange)] -> UIChange
+		combineChanges _ = NoChange
 
 insertSubAt :: NodePath UI-> Layout
 insertSubAt [] def = id
