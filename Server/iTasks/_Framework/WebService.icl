@@ -115,14 +115,15 @@ wsockPongMsg :: String -> String
 wsockPongMsg payload = wsockControlFrame WS_OP_PONG payload
 
 wsockMsgFrame :: !Int !Bool !String -> String
-wsockMsgFrame opcode final payload = header +++ payload
+wsockMsgFrame opcode final payload 
+	| num_bytes < 125   = frame num_bytes "" payload
+	| num_bytes < 65536 = frame 126 {toChar (num_bytes >> (8*i)) \\ i <- [1,0]} payload
+	| otherwise         = frame 127 {toChar (num_bytes >> (8*i)) \\ i <- [7,6,5,4,3,2,1,0]} payload
 where
-	header = {toChar (opcode bitor (if final 0x80 0x00)),toChar payload_length} +++ ext_payload_length
-	
 	num_bytes = size payload
-	payload_length = if (num_bytes < 125) num_bytes 126
-	ext_payload_length = if (num_bytes < 125) "" {toChar (num_bytes >> 8), toChar num_bytes}
-
+	frame payload_length ext_payload_length payload
+		= {toChar (opcode bitor (if final 0x80 0x00)),toChar payload_length} +++ ext_payload_length +++ payload
+	
 wsockTextMsg :: String -> [String]
 wsockTextMsg payload = [wsockMsgFrame WS_OP_TEXT True payload]
 
