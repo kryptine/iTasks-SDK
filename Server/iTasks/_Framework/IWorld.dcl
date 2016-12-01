@@ -96,7 +96,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 :: *IOTaskInstance
     = ListenerInstance !ListenerInstanceOpts !*TCP_Listener
     | ConnectionInstance !ConnectionInstanceOpts !*TCP_DuplexChannel
-    | BackgroundInstance !BackgroundTask
+    | BackgroundInstance !BackgroundInstanceOpts !BackgroundTask
 
 :: ListenerInstanceOpts =
     { taskId                :: !TaskId          //Reference to the task that created the listener
@@ -115,6 +115,13 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     }
 
 :: ConnectionId             :== Int
+
+:: BackgroundInstanceOpts =
+    { bgInstId              :: !BackgroundTaskId
+    }
+
+:: BackgroundTaskId         :== Int
+
 
 :: IOStates :== Map TaskId IOState
 :: IOState

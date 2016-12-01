@@ -8,7 +8,7 @@ from Internet.HTTP		import :: HTTPRequest, :: HTTPResponse
 from System.Time				import :: Timestamp
 from Data.Error                 import :: MaybeError
 from iTasks.API.Core.Types      import :: TaskId
-from iTasks._Framework.IWorld	import :: IWorld
+from iTasks._Framework.IWorld	import :: IWorld, :: BackgroundTaskId
 from iTasks._Framework.Task     import :: ConnectionTask, :: BackgroundTask, :: TaskException
 
 //Core task server loop
@@ -19,3 +19,9 @@ addListener :: !TaskId !Int !Bool !ConnectionTask !*IWorld -> (!MaybeError TaskE
 
 //Dynamically add a connection
 addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
+
+//Dynamically add a background task
+addBackgroundTask :: !BackgroundTaskId !BackgroundTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
+
+//Dynamically remove a background task
+removeBackgroundTask :: !BackgroundTaskId !*IWorld -> (!MaybeError TaskException (),!*IWorld)

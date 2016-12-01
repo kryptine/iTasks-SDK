@@ -24,6 +24,17 @@ RELATIVE_LOCATIONS		:== [".": take 5 (iterate ((</>) "..") "..")]
 	{ url			:: String
 	, task			:: TaskWrapper
 	}
+
+:: ServerOptions =
+	{ appName 		:: String
+	, appPath		:: FilePath
+	, sdkPath		:: Maybe FilePath
+	, serverPort	:: Int
+	, keepalive 	:: Int
+	, webDirPaths	:: Maybe [FilePath]
+	, storeOpt 		:: Maybe FilePath
+	, saplOpt		:: Maybe FilePath
+	}
 	
 :: TaskWrapper = E.a: TaskWrapper (HTTPRequest -> Task a) & iTask a
 
@@ -35,6 +46,16 @@ RELATIVE_LOCATIONS		:== [".": take 5 (iterate ((</>) "..") "..")]
 * @return The world
 */
 startEngine :: a !*World -> *World | Publishable a
+
+/**
+* Starts the task engine with options and a list of published task definitions.
+*
+* @param Tasks to start
+* @param Options to use like port and server paths.
+* @param The world
+* @return The world
+*/
+startEngineWithOptions :: a ServerOptions !*World -> *World | Publishable a
 
 /**
 * Wraps a task together with a url to make it publishable by the engine

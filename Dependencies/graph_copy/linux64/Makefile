@@ -22,12 +22,12 @@ copy_string_to_graph_interface.o: copy_string_to_graph_interface.s
 	cp copy_string_to_graph_interface.o "Clean System Files"/copy_string_to_graph_interface.o
 
 cleanup:
-	rm copy_graph_to_string.o
-	rm copy_graph_to_string_interface.o
-	rm copy_string_to_graph.o
-	rm copy_string_to_graph_interface.o
-	rm "Clean System Files"/copy_graph_to_string.o
-	rm "Clean System Files"/copy_graph_to_string_interface.o
-	rm "Clean System Files"/copy_string_to_graph.o
-	rm "Clean System Files"/copy_string_to_graph_interface.o
+	rm -f copy_graph_to_string.o
+	rm -f copy_graph_to_string_interface.o
+	rm -f copy_string_to_graph.o
+	rm -f copy_string_to_graph_interface.o
+	rm -f "Clean System Files"/copy_graph_to_string.o
+	rm -f "Clean System Files"/copy_graph_to_string_interface.o
+	rm -f "Clean System Files"/copy_string_to_graph.o
+	rm -f "Clean System Files"/copy_string_to_graph_interface.o
 
