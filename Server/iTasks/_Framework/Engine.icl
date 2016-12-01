@@ -139,7 +139,7 @@ where
 						
 	timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
 	timeout iworld = case 'SDS'.read taskEvents iworld of //Check if there are events in the queue
-		(Ok (Queue [] []),iworld)   = (Just 100,iworld) //Empty queue, don't waste CPU, but refresh
+		(Ok (Queue [] []),iworld)   = (Just 10,iworld) //Empty queue, don't waste CPU, but refresh
 		(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
 		(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
 
