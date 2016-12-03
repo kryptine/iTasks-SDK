@@ -265,41 +265,38 @@ testMoveTaskToWindow = skip (fail "Moving a task UI to a separate window")
 	}
 derive class iTask TestRecInner, TestRecOuter
 
-testAutoInteractionLayoutInitial = skip (fail "Test if the auto interaction layout correctly turns an editor into a form")
-/* assertEqual "Test if the auto interaction layout correctly turns an editor into a form" exp sut
+testAutoInteractionLayoutInitial = skip (assertEqual "Test if the auto interaction layout correctly turns an editor into a form" exp sut)
 where
-	exp = ReplaceUI (uic UICompoundContent [stdPrompt,expIntForm])
-	sut = fst (finalizeInteract ((ReplaceUI (uic UICompoundContent [stdPrompt,stdIntEditor])),JSONNull))
+	exp = ReplaceUI (uic UIContainer [stdPrompt,expIntForm])
+	sut = fst (finalizeInteract ((ReplaceUI (uic UIContainer [stdPrompt,stdIntEditor])),JSONNull))
 	
 	stdPrompt = ui UIEmpty //STUB Don't care what the prompt is!
-	stdIntEditor = uia UIEditInt
+	stdIntEditor = uia UIIntegerField
 		('DM'.fromList [("optional",JSONBool False),("hint-type",JSONString "info"),("hint",JSONString"Please enter a whole number (this value is required)")
 						,("taskId",JSONString "STUB"),("editorId",JSONString "v")])
 			
 
-	expIntForm = uic UIForm [uic UIFormItem [ui UIEmpty,intControl,expIcon]]
+	expIntForm = uic UIContainer [uic UIContainer [ui UIEmpty,intControl,expIcon]]
 	expIcon = uia UIIcon ('DM'.fromList [("margins",JSONString "0 0 0 5"),("iconCls",JSONString "icon-info")
 										,("tooltip",JSONString "Please enter a whole number (this value is required)")])
 
-	intControl = uia UIEditInt 
+	intControl = uia UIIntegerField
 		('DM'.fromList [("optional",JSONBool False),("hint-type",JSONString "info"),("hint",JSONString"Please enter a whole number (this value is required)")
 						,("taskId",JSONString "STUB"),("editorId",JSONString "v")])
-*/
+
 testAutoInteractionLayoutEditorValueChange = skip (fail "Test if the auto interaction layout correctly maps changes in the editor to the form item")
 
-testFlatteningOfNestedRecords = skip (fail "Auto interact layout should flatten a nested-record structure")
-	//= assertEqualWorld "Auto interact layout should flatten a nested-record structure" exp sut
-//where
+testFlatteningOfNestedRecords = skip (assertEqualWorld "Auto interact layout should flatten a nested-record structure" exp sut)
+where
 	//We expect a change to the control with index 3, because the autoAccuInteract flattens the form
-	/*
-	exp = ChangeUI [] [(3, ChangeChild (ChangeUI [("setEditorValue", [JSONString "bax"])] []))] 
+	exp = (Ok (ChangeUI [] [(3, ChangeChild (ChangeUI [SetAttribute "setEditorValue" (JSONString "bax")] []))],newFieldMask)
+          , { a = {c="foo",d="foo"}, b = { c = "bar", d = "baz"}})
 
 	sut world 
 		# vst = toStubVSt (toStubIWorld world)
-		# (res,vst) = gEditor{|*|}.Editor.updUI [] { a = {c="foo",d="foo"}, b = { c = "bar", d = "baz"}} newFieldMask {a={c="foo",d="foo"}, b = { c = "bar", d = "bax"}} newFieldMask vst
+		# (res,val,vst) = gEditor{|*|}.Editor.onRefresh [] { a = {c="foo",d="foo"}, b = { c = "bar", d = "baz"}} {a={c="foo",d="foo"}, b = { c = "bar", d = "bax"}} newFieldMask vst
 		# world = fromStubIWorld (fromStubVSt vst)
-		= (res,world)
-	*/
+		= ((res,val),world)
 
 
 testCombination1 = assertEqual "Complex combination layout with insert events" exp sut

@@ -115,21 +115,23 @@ where
 	expMask = CompoundMask {fields=[FieldMask {touched=False,valid=True,state=JSONInt 0}],state=JSONNull}
 	fieldsExp = ui UIEmpty//Placeholder
 
-testRecordTouched = skip (fail "Touched record")
-/* testGenUI "Touched record"
-	(uiac UICompoundContent ('DM'.fromList [("optional",JSONBool False)]) 
-		[intField,stringField,boolField])
-	{ a = 42, b = "Foo", c = True} Touched
+testRecordTouched = skip (
+	testGenUI "Touched record"
+	(uiac UIRecord ('DM'.fromList [("optional",JSONBool False)]) 
+		[intField,stringField,boolField],expMask)
+	{ a = 42, b = "Foo", c = True} Update)
 where
+	expMask = newFieldMask
+
 	intField =
-		(uia UIEditInt 
+		(uia UIIntegerField
 			('DM'.fromList[("optional",JSONBool False),("hint-type",JSONString "valid")
 							,("hint",JSONString "You have correctly entered a whole number"),("label",JSONString "a")
 							,("taskId",JSONString "STUB")
 							,("editorId",JSONString "v0")
 							,("value",JSONInt 42)]))
 	stringField =
-		(uia UIEditString
+		(uia UITextField
 			('DM'.fromList[("optional",JSONBool False),("hint-type",JSONString "valid")
 							,("hint",JSONString "You have correctly entered a single line of text"),("label",JSONString "b")
 							,("taskId",JSONString "STUB")
@@ -137,9 +139,8 @@ where
 							,("value",JSONString "Foo")
 							]))
 	boolField =
-		(uia UIEditCheckbox 
+		(uia UICheckbox 
 			('DM'.fromList[("optional",JSONBool False),("label",JSONString "c"),("taskId",JSONString "STUB"),("editorId",JSONString "v2")]))
-*/
 
 testMaybeIntEnter = testGenUI "Enter optional Int"
    (uia UIIntegerField ('DM'.fromList[("optional",JSONBool True)
