@@ -4,13 +4,14 @@ import StdInt, StdFile, StdTuple, StdList
 
 import System.Directory, System.File, System.FilePath, Data.Error, System.OSError, Text.Encodings.UrlEncoding, Text, Data.Tuple, Text.JSON
 import Data.Either, System.OS, Text.URI, Internet.HTTP
+import qualified Data.Map as DM
 
 import iTasks._Framework.IWorld, iTasks._Framework.Task, iTasks._Framework.TaskState
 import iTasks._Framework.SDS, iTasks._Framework.TaskStore, iTasks._Framework.TaskEval
 import iTasks.API.Core.Types, iTasks.API.Core.Tasks, iTasks.UI.Layout
 import iTasks.API.Core.SDSs
 import iTasks.API.Common.InteractionTasks, iTasks.API.Common.TaskCombinators //TODO don't import from Common in Core
-import iTasks.UI.Editor, iTasks.UI.Prompt
+import iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
 
 from iTasks.API.Common.ImportTasks		import importTextFile
 
@@ -18,7 +19,7 @@ from System.File				import qualified fileExists, readFile
 from Data.Map				import qualified newMap, put
 from System.Process			import qualified ::ProcessHandle, runProcess, checkProcess,callProcess
 from System.Process			import :: ProcessHandle(..)
-from StdFunc			import o
+from StdFunc			import o, const
 
 derive JSONEncode ProcessHandle
 derive JSONDecode ProcessHandle
@@ -82,19 +83,19 @@ where
 				= (Ok change, iworld)
 			(Error e,iworld) = (Error e,iworld)
 						
-	makeView [ViewAs viewFun] status taskId iworld
-		= makeEditor (Display (viewFun status),newFieldMask) taskId iworld
 	makeView _ status taskId iworld
-		= makeEditor (Display (defaultViewFun status),newFieldMask) taskId iworld
+		= makeEditor (status,newFieldMask) taskId iworld
 
 	makeEditor value=:(v,vmask) taskId iworld
 		# vst = {VSt| taskId = toString taskId, mode = View, optional = False, selectedConsIndex = -1, iworld = iworld}
-		# (editUI,vst=:{VSt|iworld}) = gEditor{|*|}.Editor.genUI [] v vst
+		# (editUI,vst=:{VSt|iworld}) = defaultEditor.Editor.genUI [] v vst
 		= (editUI,iworld)
 
 	//By default show a progress bar 
-	defaultViewFun (RunningProcess cmd) = {Progress|progress=ProgressUndetermined,description="Running " +++ cmd +++ "..."}
-	defaultViewFun (CompletedProcess exit) = {Progress|progress=ProgressRatio 1.0,description=cmd +++ " done (" +++ toString exit +++ ")"}
+	defaultEditor = liftEditor viewFun (const defaultValue) (progressBar 'DM'.newMap)
+
+	viewFun (RunningProcess cmd) = (Nothing, Just ("Running " +++ cmd +++ "..."))
+	viewFun (CompletedProcess exit) =(Just 100, Just (cmd +++ " done (" +++ toString exit +++ ")"))
 		
 callInstantProcess :: !FilePath ![String] !(Maybe FilePath) -> Task Int
 callInstantProcess cmd args dir = mkInstantTask eval

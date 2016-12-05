@@ -29,7 +29,7 @@ import Incidone.OP.Concepts
 
 :: ItemMeta
     = { title       :: String
-      , description :: Maybe Note
+      , description :: Maybe String
       }
 
 :: ActionTasks
@@ -47,7 +47,7 @@ import Incidone.OP.Concepts
 // Run time information of action items
 :: ActionStatus
     = { title       :: String
-      , description :: Maybe Note
+      , description :: Maybe String
       , progress    :: ActionProgress
       , incidents   :: [IncidentNo]
       , contacts    :: [ContactNo]

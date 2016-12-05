@@ -14,7 +14,7 @@ toStubIWorld world
   = {IWorld
   |server = {serverName = "STUB",serverURL = "//127.0.0.1:80",buildID = "STUB"
         	,paths = {appDirectory = "./STUB/",dataDirectory = "./STUB/",publicWebDirectories = []
-		     	,saplDirectory = "./STUB/", saplFlavourFile = "./STUB/flavour.f"},customCSS  = False}
+		     	,saplDirectory = "./STUB/", saplFlavourFile = "./STUB/flavour.f"}}
   ,config = {sessionTime = 3600, smtpServer = "localhost"}
   ,clocks = {SystemClocks |timestamp = Timestamp 0,localDate=defaultValue,localTime=defaultValue,utcDate=defaultValue,utcTime=defaultValue}
   ,current ={TaskEvalState|taskTime= 0,taskInstance= 0,sessionInstance = Nothing,attachmentChain = [] ,nextTaskNo = 0}

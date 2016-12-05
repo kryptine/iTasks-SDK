@@ -5,8 +5,8 @@ import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.F
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 import Graphics.Layout
-from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys, singleton
 import StdEnum
+from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys, unions, singleton
 
 from StdFunc import o, const, id, flip
 from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
@@ -119,9 +119,19 @@ where
 	layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.union extraAttr attr) items),s)
 	layout (ChangeUI attrChanges itemChanges,s)
 		//Filter out updates for the attributes that we are setting here
-		# attrChanges = filter (\(SetAttribute k v) -> not (isMember k ('DM'.keys extraAttr))) attrChanges
+		# attrChanges = filter (\(SetAttribute k _) -> not (isMember k ('DM'.keys extraAttr))) attrChanges
 		= (ChangeUI attrChanges itemChanges,s)
 	layout (change,s) = (change,s)
+
+delAttributes :: [String] -> Layout
+delAttributes delAttr = layout
+where
+	layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type (foldr 'DM'.del attr delAttr) items),s)
+	layout (ChangeUI attrChanges itemChanges,s)
+		# attrChanges = filter (\(SetAttribute k _) -> not (isMember k delAttr)) attrChanges
+		= (ChangeUI attrChanges itemChanges,s)
+	layout (change,s) = (change,s)
+	
 
 copyAttributes :: [String] NodePath NodePath -> Layout
 copyAttributes selection src dst = copyAttributes` (Just selection) src dst
@@ -149,6 +159,18 @@ where
 						   = UI type attr items
 
 	condition = maybe (const True) (flip isMember) selection
+
+modifyAttribute :: String (JSONNode -> UIAttributes) -> Layout
+modifyAttribute name modifier = layout
+where
+	layout (ReplaceUI (UI type attr items),s)
+		# attr = maybe attr (\val -> 'DM'.union (modifier val) attr) ('DM'.get name attr)
+		= (ReplaceUI (UI type attr items),s)
+
+	layout (ChangeUI attrChanges childChanges,s)
+		# attrChanges = flatten [if (key == name) [SetAttribute k v \\ (k,v) <- 'DM'.toList (modifier value)] [c] \\c=:(SetAttribute key value) <- attrChanges]
+		= (ChangeUI attrChanges childChanges,s)
+	layout (c,s) = (c,s)
 
 wrapUI :: UINodeType -> Layout
 wrapUI type = layout
@@ -183,6 +205,44 @@ where
 		# (items,spines) = unzip (map flattenWithSpine items)
 		# items = flatten [[UI type attr []:children] \\ UI type attr children <- items]
 		= (UI type attr items,NS spines)
+
+reorderUI :: (UI -> UI) -> Layout 
+reorderUI reorder = layout
+where
+	layout (NoChange,s)
+		 = (NoChange,s)
+	layout (ReplaceUI ui,_) 
+		//Determine a skeleton of the reordered ui, and replace references
+		//Replace references to parts of the original ui
+		# (moves,ui) = derefAll ui [] (reorder ui)
+		= (ReplaceUI ui,toJSON moves)
+	//Adjust followup changes to the moved parts
+	layout (c,s) = (adjust (fromMaybe 'DM'.newMap (fromJSON s)) c,s)
+
+	derefAll :: UI NodePath UI -> (Map NodePath NodePath,UI)
+	derefAll origUI curNp (UI type attr items) = case 'DM'.get "include" attr of
+		(Just jsonNp)
+			# refNp = fromMaybe [] (fromJSON jsonNp)
+			= ('DM'.singleton curNp refNp, lookup refNp origUI)
+		Nothing
+			# (paths,items) = unzip [derefAll origUI (curNp ++ [i]) item \\ item <- items & i <- [0..]]
+			= ('DM'.unions paths,UI type attr items)
+
+	lookup :: NodePath UI -> UI //ASSUMES SUCCESS
+	lookup [] ui = ui
+	lookup [p:ps] (UI _ _ items) = lookup ps (items !! p)
+
+	adjust :: (Map NodePath NodePath) UIChange -> UIChange //TODO
+	adjust moves change = change 
+	where
+		selectChanges :: [NodePath] UIChange -> [(NodePath,UIChange)]
+		selectChanges _ _ = []
+
+		remap :: (Map NodePath NodePath) [(NodePath,UIChange)] -> [(NodePath,UIChange)]
+		remap moves changes = [(fromJust ('DM'.get path moves),change) \\ (path,change) <- changes]
+		
+		combineChanges :: [(NodePath,UIChange)] -> UIChange
+		combineChanges _ = NoChange
 
 insertSubAt :: NodePath UI-> Layout
 insertSubAt [] def = id
@@ -227,6 +287,11 @@ layoutSubsMatching :: NodePath (UI -> Bool) Layout -> Layout
 layoutSubsMatching src pred layout = layoutSubs_ pred` layout
 where
 	pred` path ui = isSubPathOf_ path src && pred ui
+
+layoutSubsOfType :: NodePath [UINodeType] Layout -> Layout
+layoutSubsOfType src types layout = layoutSubs_ pred` layout
+where
+	pred` path (UI type _ _) = isSubPathOf_ path src && any ((===) type) types
 
 //Test if a path extends another path
 isSubPathOf_ :: NodePath NodePath -> Bool

@@ -86,10 +86,10 @@ loginAndManageWorkList welcome workflows
 					||-
 	 				enterInformation "Enter your credentials and login or press continue to remain anonymous" []
 	 			) 
-		>>* 	[OnAction (Action "Login" [ActionIcon "login"]) (hasValue (browseAuthenticated workflows))
-				,OnAction (Action "Continue" []) (always (browseAnonymous workflows))
+		>>* 	[OnAction (Action "Login") (hasValue (browseAuthenticated workflows))
+				,OnAction (Action "Continue") (always (browseAnonymous workflows))
 		] 
-		) <<@ ApplyLayout (beforeStep frameCompact)) //Compact layout before login, full screen afterwards
+		) <<@ ApplyLayout (beforeStep layout)) //Compact layout before login, full screen afterwards
 where
 	browseAuthenticated workflows {Credentials|username,password}
 		= authenticateUser username password
@@ -100,6 +100,10 @@ where
 	browseAnonymous workflows
 		= manageWorklist workflows
 		
+	layout = sequenceLayouts
+		[layoutSubsOfType [] [UIAction] (setActionIcon ('DM'.fromList [("Login","login")]))
+		,frameCompact
+		]
 		
 // Application specific types
 :: ClientPart
@@ -155,13 +159,14 @@ where
 		]
 
 manageSession :: !(SharedTaskList ClientPart) -> Task ClientPart
-manageSession list
-	=	(viewSharedInformation () [ViewAs view] currentUser	
-			>>* [OnAction (Action "Shutdown" [ActionIcon "close"])	(always (shutDown @! Nothing))
-				,OnAction (Action "Log out" [ActionIcon "logout"])	(always (return (Just Logout)))
+manageSession list =
+	(	(viewSharedInformation () [ViewAs view] currentUser	
+			>>* [OnAction (Action "Shutdown")	(always (shutDown @! Nothing))
+				,OnAction (Action "Log out")	(always (return (Just Logout)))
 				]															
 		) <! isJust	
 	@	fromJust	
+	) <<@ ApplyLayout (layoutSubsOfType [] [UIAction] (setActionIcon ('DM'.fromList [("Shutdown","close"),("Log out","logout")])))
 where
 	view user	= "Welcome " +++ toString user		
 
@@ -170,7 +175,7 @@ startWork list = chooseWorkflow >&> viewAndStart
 where
 	viewAndStart sel = forever (
 			viewWorkflowDetails sel
-		>>* [OnAction (Action "Start Task" []) (hasValue (startWorkflow list))]
+		>>* [OnAction (Action "Start Task") (hasValue (startWorkflow list))]
 		@	\wf -> SelWorkflow wf.Workflow.path
 		)
 
@@ -178,18 +183,26 @@ chooseWorkflow :: Task Workflow
 chooseWorkflow
 	=  editSelectionWithShared [Att (Title "Tasks"), Att IconEdit] False (SelectInTree toTree fromTree) allowedWorkflows (const []) @? tvHd
 where
-	toTree workflows = seq (map add (zip ([0..],workflows))) []
+	//We assign unique negative id's to each folder and unique positive id's to each workflow in the list
+	toTree workflows = snd (seq (map add (zip ([0..],workflows))) (-1,[]))
 	where
-	    add (i,wf=:{Workflow|path}) nodeList = add` path (split "/" path) nodeList
+	    add (i,wf=:{Workflow|path}) (folderId,nodeList) = add` path (split "/" path) (folderId,nodeList)
         where
-    	    add` wfpath [] nodeList = nodeList
-		    add` wfpath [title] nodeList = nodeList ++ [{ChoiceNode|id=i,label=workflowTitle wf,icon=Nothing,children=[],expanded=False}]
-		    add` wfpath path=:[nodeP:pathR] [node=:{ChoiceNode|label=nodeL}:nodesR]
-		    	| nodeP == nodeL	= [{ChoiceNode|node & children = add` wfpath pathR node.ChoiceNode.children,expanded=False}:nodesR]
-		    	| otherwise			= [node:add` wfpath path nodesR]
-		    add` wfpath path=:[nodeP:pathR] []
-                = [{ChoiceNode|id = -1, label=nodeP, icon=Nothing, children=add` wfpath pathR [],expanded=False}]
-		    add` wfpath path [node:nodesR] = [node:add` wfpath path nodesR]
+    	    add` wfpath [] (folderId,nodeList) = (folderId,nodeList)
+		    add` wfpath [title] (folderId,nodeList) = (folderId,nodeList ++ [{ChoiceNode|id=i,label=workflowTitle wf,icon=Nothing,children=[],expanded=False}])
+		    add` wfpath path=:[nodeP:pathR] (folderId,[node=:{ChoiceNode|label=nodeL}:nodesR])
+		    	| nodeP == nodeL
+					# (folderId,children) = add` wfpath pathR (folderId,node.ChoiceNode.children)
+					= (folderId,[{ChoiceNode|node & children = children,expanded=False}:nodesR])
+		    	| otherwise
+					# (folderId,rest) = add` wfpath path (folderId,nodesR)
+					= (folderId,[node:rest])
+		    add` wfpath path=:[nodeP:pathR] (folderId,[])
+				# (folderId`,children) = add` wfpath pathR (folderId - 1,[])
+                = (folderId`,[{ChoiceNode|id = folderId, label=nodeP, icon=Nothing, children=children,expanded=False}])
+		    add` wfpath path (folderId,[node:nodesR]) 
+				# (folderId,rest) = add` wfpath path (folderId,nodesR)
+				= (folderId,[node:rest])
 
  	fromTree workflows [idx]
       | idx >= 0 && idx < length workflows = [workflows !! idx]
@@ -217,7 +230,7 @@ startWorkflow list wf
                                           , ("createdBy",  toString (toUserConstraint user))
                                           , ("createdAt",  toString now)
                                           , ("createdFor", toString (toUserConstraint user))
-                                          , ("priority",   toString 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task <<@ ApplyLayout defaultSessionLayout)
+                                          , ("priority",   toString 5):userAttr user]) False (unwrapWorkflowTask wf.Workflow.task)
 	>>= \procId ->
 		openTask list procId
 	@	const wf
@@ -231,8 +244,8 @@ unwrapWorkflowTask (ParamWorkflowTask tf) = (enterInformation "Enter parameters"
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
 	(	enterChoiceWithSharedAs () [ChooseFromGrid snd] processes fst
-	>>* [OnAction (Action "Open" [ActionTrigger DoubleClick]) (hasValue (\taskId -> openTask taskList taskId @ const OpenProcess))
-		,OnAction (Action "Delete" []) (hasValue (\taskId -> removeTask taskId topLevelTasks @ const OpenProcess))]
+	>>* [OnAction (Action "Open") (hasValue (\taskId -> openTask taskList taskId @ const OpenProcess))
+		,OnAction (Action "Delete") (hasValue (\taskId -> removeTask taskId topLevelTasks @ const OpenProcess))]
 	)
 where
 	// list of active processes for current user without current one (to avoid work on dependency cycles)

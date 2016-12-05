@@ -1,7 +1,7 @@
 implementation module iTasks.UI.Layout.Common
 
 import iTasks.UI.Layout, iTasks.UI.Layout.Default
-import iTasks.UI.Definition
+import iTasks.UI.Definition, iTasks.UI.Prompt
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 import qualified Data.Map as DM
 import StdBool
@@ -66,7 +66,9 @@ beforeStep layout = conditionalLayout (\n -> n =:(UI UIStep _ _)) layout //TODO:
 
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
 toWindow windowType vpos hpos = sequenceLayouts 
-	[setNodeType UIWindow
+	[wrapUI UIWindow
+	,copyAttributes [TITLE_ATTRIBUTE] [0] []
+	,layoutSubAt [0] (delAttributes [TITLE_ATTRIBUTE])
 	,setAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
 	]
 
@@ -85,10 +87,38 @@ where
 	layout (ReplaceUI (UI UIAction attr _),_)
 		= case ('DM'.get "actionId" attr) of
 			Just (JSONString a)
-				= (ReplaceUI (uia UIButton ('DM'.unions [attr,valueAttr (JSONString a),textAttr a])),JSONNull)
+				= (ReplaceUI (uia UIButton ('DM'.unions [attr,valueAttr (JSONString a),textAttr a,icon a])),JSONNull)
 			_ 	= (ReplaceUI (uia UIButton attr),JSONNull)
 	
 	layout (change,s) = (change,s)
+
+	//Set default icons
+	icon "Ok" = iconClsAttr "icon-ok"
+	icon "Cancel" = iconClsAttr "icon-cancel"
+	icon "Yes" = iconClsAttr "icon-yes"
+	icon "No" = iconClsAttr "icon-no"
+	icon "Next" = iconClsAttr "icon-next"
+	icon "Previous" = iconClsAttr "icon-previous"
+	icon "Finish" = iconClsAttr "icon-finish"
+	icon "Continue" = iconClsAttr "icon-next"
+	icon "/File/Open" = iconClsAttr "icon-open"
+	icon "/File/Save" = iconClsAttr "icon-save"
+	icon "/File/Save as" = iconClsAttr "icon-save"
+	icon "/File/Quit" = iconClsAttr "icon-quit"
+	icon "/Help/Help" = iconClsAttr "icon-help"
+	icon "/Help/About" = iconClsAttr "icon-about"
+	icon "/Edit/Find" = iconClsAttr "icon-find"
+	icon "New" = iconClsAttr "icon-new"
+	icon "Edit" = iconClsAttr "icon-edit"
+	icon "Delete" = iconClsAttr "icon-delete"
+	icon "Refresh" = iconClsAttr "icon-refresh"
+	icon "Close" = iconClsAttr "icon-close"
+	icon _ = 'DM'.newMap
+
+setActionIcon :: (Map String String) -> Layout
+setActionIcon icons = modifyAttribute "actionId" f
+where
+	f (JSONString actionId) = maybe 'DM'.newMap (\icon -> iconClsAttr ("icon-"+++icon)) ('DM'.get actionId icons)
 
 instance tune ArrangeWithTabs
 where tune ArrangeWithTabs t = tune (ApplyLayout arrangeWithTabs) t

@@ -34,8 +34,8 @@ configureIncidone = map const [configureDatabase		<<@ (Title "Database")
 configureDatabase :: Task ()
 configureDatabase
     =   viewDatabaseConfigStatus
-    >^* [OnAction (Action "Configure database" []) (always (doOrCancel setupDatabase <<@ InWindow))
-        ,OnAction (Action "Manage database" []) (ifValue hasAccess (\_ -> doOrClose manageDatabase /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600))*/ <<@ InWindow))
+    >^* [OnAction (Action "Configure database") (always (doOrCancel setupDatabase <<@ InWindow))
+        ,OnAction (Action "Manage database") (ifValue hasAccess (\_ -> doOrClose manageDatabase /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600))*/ <<@ InWindow))
         ]
     @! ()
 where
@@ -48,11 +48,11 @@ where
             checkDatabaseConfig config
         >>- viewInformation (Title "Database configuration") [ViewAs databaseStatusView]
 
-    databaseStatusView (Ok InternalSQLiteDB)            = Row (LightOnGreen, "Incidone is correctly configured to use an internal SQLite database.")
-    databaseStatusView (Ok (ExternalMySQLDB _))         = Row (LightOnGreen, "Incidone is correctly configured to use an external MySQL database.")
-    databaseStatusView (Error NoDatabaseAccess)         = Row (LightOnRed, "A database is configured, but it can not be accessed. Please reconfigure.")
-    databaseStatusView (Error NoDatabaseTables)         = Row (LightOnRed, "A database is configured, but it contains no tables. Please reconfigure.")
-    databaseStatusView (Error IncorrectDatabaseTables)  = Row (LightOnRed, "A database is configured, but it contains other tables than Incidone's. Please reconfigure.")
+    databaseStatusView (Ok InternalSQLiteDB)            = (LightOnGreen, "Incidone is correctly configured to use an internal SQLite database.")
+    databaseStatusView (Ok (ExternalMySQLDB _))         = (LightOnGreen, "Incidone is correctly configured to use an external MySQL database.")
+    databaseStatusView (Error NoDatabaseAccess)         = (LightOnRed, "A database is configured, but it can not be accessed. Please reconfigure.")
+    databaseStatusView (Error NoDatabaseTables)         = (LightOnRed, "A database is configured, but it contains no tables. Please reconfigure.")
+    databaseStatusView (Error IncorrectDatabaseTables)  = (LightOnRed, "A database is configured, but it contains other tables than Incidone's. Please reconfigure.")
 
     setupDatabase
         =   get databaseConfig
@@ -74,8 +74,8 @@ where
 
                 Error e
                     =   viewInformation ("Warning","The new configuration appears to have a problem") [ViewAs databaseStatusView] (Error e)
-                    >>* [OnAction (Action "Set anyway" []) (always (set config databaseConfig @! ()))
-                        ,OnAction (Action "Change and try again" []) (always (editDatabaseConfig newConfig))
+                    >>* [OnAction (Action "Set anyway") (always (set config databaseConfig @! ()))
+                        ,OnAction (Action "Change and try again") (always (editDatabaseConfig newConfig))
                         ]
 
     checkDatabaseConfig config
@@ -97,8 +97,8 @@ where
         >>- \db ->
           (  (enterChoiceWithShared (Title "Tables") [/*ChooseFromTree group */] (sdsFocus db sqlTables)
               >^* [OnAction ActionDelete (hasValue (\table -> deleteTable db table <<@ InWindow @! ()))
-                  ,OnAction (Action "Empty database" []) (always (emptyDatabase db <<@ InWindow @! ()))
-                  ,OnAction (Action "Load Incidone tables" []) (always (createIncidoneTables db <<@ InWindow ))
+                  ,OnAction (Action "Empty database") (always (emptyDatabase db <<@ InWindow @! ()))
+                  ,OnAction (Action "Load Incidone tables") (always (createIncidoneTables db <<@ InWindow ))
                   ]
              )
         >&> withSelection viewNoSelection
@@ -132,9 +132,9 @@ where
 manageUsers :: Task ()
 manageUsers = forever (catchAll (
         manageExistingUsers
-    >^* [OnAction (Action "/Add" []) (always (addUser <<@ InWindow))
-        ,OnAction (Action "/Import from CSV" []) (always (importUsers <<@ InWindow))
-        ,OnAction (Action "/Set admin password" []) (always (setAdminPassword <<@ InWindow))
+    >^* [OnAction (Action "/Add") (always (addUser <<@ InWindow))
+        ,OnAction (Action "/Import from CSV") (always (importUsers <<@ InWindow))
+        ,OnAction (Action "/Set admin password") (always (setAdminPassword <<@ InWindow))
         ]
       ) (\e -> viewInformation "Error" [] e >>| return ()))
 where
@@ -162,7 +162,7 @@ where
     setAdminPassword = (
             enterPasswords -&&- get adminPassword
         >>* [OnAction ActionCancel (always (return Nothing))
-            ,OnAction (Action "Change" [ActionIcon "ok"]) (hasValue updatePassword)
+            ,OnAction (Action "Change") (hasValue updatePassword)
             ]
         ) <<@ Title "Set admin password"
     where
@@ -230,8 +230,8 @@ configureWebLinks :: Task ()
 configureWebLinks
     = viewAndEdit (viewSharedInformation "Web integration configuration" [] webLinksConfig)
                   (get webLinksConfig >>- updateInformation () [] >>? \updated -> set updated webLinksConfig)
-    >^* [OnAction (Action "/Export" []) (always (exportConfig <<@ InWindow))
-        ,OnAction (Action "/Import" []) (always (importConfig <<@ InWindow))]
+    >^* [OnAction (Action "/Export") (always (exportConfig <<@ InWindow))
+        ,OnAction (Action "/Import") (always (importConfig <<@ InWindow))]
     @! ()
 where
     exportConfig
@@ -241,6 +241,9 @@ where
             >>- viewInformation "An export file has been created" []
             @!  ()
             ) <<@ Title "Export web links"
+	where
+		paddedDateTimeString {DateTime|year,mon,day,hour,min,sec}
+			= toString year +++ toString mon +++ toString day +++ toString hour +++ toString min +++ toString sec
 
     importConfig
         =   doOrClose (

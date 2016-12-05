@@ -130,7 +130,7 @@ createClientIWorld serverURL currentInstance
                           ,publicWebDirectories = locundef "publicWebDirectories"
 						  ,saplDirectory = locundef "saplDirectory"
 						  ,saplFlavourFile = locundef "saplFlavourFile"}
-            ,customCSS  = False }
+            }
 		  ,config				= {sessionTime = 3600, smtpServer = locundef "smtpServer"}
           ,clocks =
             { timestamp =   timestamp

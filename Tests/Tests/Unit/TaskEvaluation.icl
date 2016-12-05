@@ -70,8 +70,7 @@ expPromptUI msg
 						,("halign",JSONString "left"),("valign",JSONString "top"),("baseCls",JSONString "itwc-prompt")
 						,("value",JSONString "msg")])
 
-testInitialEditorUI = skip "Initial UI of minimal editor task"
-/* testTaskOutput "Initial UI of minimal editor task" minimalEditor events exp (===)
+testInitialEditorUI = skip (testTaskOutput "Initial UI of minimal editor task" minimalEditor events exp (===))
 where
 	events = [ResetEvent]
 	exp = [ReplaceUI expMinimalEditorUI]
@@ -79,41 +78,36 @@ where
 	expMinimalEditorUI
 		= uic UIInteract [expPromptUI "Minimal String editor",editor]
 	where
-		editor = uia UIEditString ('DM'.fromList [("optional",JSONBool False),("hint-type",JSONString "valid")
+		editor = uia UITextField ('DM'.fromList [("optional",JSONBool False),("hint-type",JSONString "valid")
 								,("hint",JSONString "You have correctly entered a single line of text")
 								,("taskId",JSONString "1-0"),("editorId",JSONString "v")
 								,("value",JSONString "Hello World")
 								])
-*/
 
-testInitialEditletUI = skip "Initial UI of minimal editlet task"
-/* testTaskOutput "Initial UI of minimal editlet task" minimalEditlet events exp compare
+testInitialEditletUI = skip (testTaskOutput "Initial UI of minimal editlet task" minimalEditlet events exp compare)
 where
 	events = [ResetEvent]
 	exp = [ReplaceUI expMinimalEditletUI]
 
 	//Because we can't test if correct Sapl code is generated here, we need to use a custom comparison
 	//function that first replaces all Sapl fields with the marker "IGNORE" before comparing to the expected value
-	compare [ReplaceUI (UI UIInteract attr [p,UI UIViewHtml attr2 i])] exp 
+	compare [ReplaceUI (UI UIInteract attr [p,UI UIHtmlView attr2 i])] exp 
 		# attr2 = 'DM'.put "saplInit" (JSONString "IGNORE") attr2
-		= [ReplaceUI (UI UIInteract attr [p,UI UIViewHtml attr2 i])] === exp
+		= [ReplaceUI (UI UIInteract attr [p,UI UIHtmlView  attr2 i])] === exp
 	compare _ _ = False
 
 	expMinimalEditletUI
 		= uic UIInteract [expPromptUI "Minimal String editlet",editor]
 	where
-		editor = uia UIViewHtml ('DM'.fromList [("optional",JSONBool False):sizeOpts++editletOpts]) 
+		editor = uia UIHtmlView ('DM'.fromList [("optional",JSONBool False):sizeOpts++editletOpts]) 
 		sizeOpts = [("width",JSONString "wrap"),("height",JSONString "wrap")]
 		editletOpts = [("taskId",JSONString "1-0"),("editorId",JSONString "v"),("value",JSONString "Hello World")
 						,("saplDeps",JSONString ""),("saplInit",JSONString "IGNORE")] 
-*/
 
-testInitialStepUI = skip "Initial UI of minimal step task"
-/* testTaskOutput "Initial UI of minimal step task" minimalStep events exp (===)
+testInitialStepUI = skip (testTaskOutput "Initial UI of minimal step task" minimalStep events exp (===))
 where
 	events = [ResetEvent]
 	exp = [ReplaceUI expMinStepInitialUI]
-*/
 
 //The step is a compound editor with the "sub" UI as first element, and the actions as remaining elements	
 expMinStepInitialUI = uic UIStep [expEditorUI, expActionOk]
@@ -126,16 +120,13 @@ where
 
 	expActionOk = uia UIAction ('DM'.fromList [("actionId",JSONString "ActionOk"),("taskId",JSONString "1-0"),("enabled",JSONBool False)])
 
-testInitialParallelUI = skip "Initial UI of minimal parallel task"
-/* testTaskOutput "Initial UI of minimal parallel task" minimalParallel events exp (===)
+testInitialParallelUI = skip (testTaskOutput "Initial UI of minimal parallel task" minimalParallel events exp (===))
 where
 	events = [ResetEvent]
 	exp = [ReplaceUI expParUI]
 	
-	expParUI = uic UIParallel [uic UICompoundContent [expMinimalEditorUI 1 "Edit string 1" "A",expMinimalEditorUI 2 "Edit string 2" "B"]
-						     ,uic UICompoundContent []
-						     ] //No actions
-*/
+	expParUI = uic UIParallel [expMinimalEditorUI 1 "Edit string 1" "A",expMinimalEditorUI 2 "Edit string 2" "B"]
+
 expMinimalEditorUI taskNum prompt value
 	= uic UIInteract [expPromptUI prompt,editor]
 where
@@ -143,15 +134,13 @@ where
 	editorAttr = [("hint-type",JSONString "valid"),("hint",JSONString "You have correctly entered a single line of text")]
 	editorOpts = [("value",JSONString value),("taskId",JSONString ("1-"<+++taskNum)),("editorId",JSONString "v")]
 
-testStepEnableAction = skip "Test enabling of an action of a step"
-/* testTaskOutput "Test enabling of an action of a step" minimalStep events exp (===)
+testStepEnableAction = skip (testTaskOutput "Test enabling of an action of a step" minimalStep events exp (===))
 where
 	events = [ResetEvent,minimalStepInputEvent] //Reset, then make sure the editor has a valid value
 	exp = [ReplaceUI expMinStepInitialUI, minimalStepInputResponse]
-*/
 
 minimalStepInputEvent = EditEvent (TaskId 1 1) "v" (JSONString "foo")
-minimalStepInputResponse =ChangeUI [] [changeInteract,changeAction]
+minimalStepInputResponse = ChangeUI [] [changeInteract,changeAction]
 where
 	changeInteract = (0,ChangeChild (ChangeUI [] [changePrompt,changeEditor] ))
 	changePrompt = (0,ChangeChild NoChange)
@@ -162,12 +151,10 @@ where
 
 	changeAction = (1,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool True)] [])) //Enable the first action
 
-testStepApplyAction = skip "Test replacement of UI after step"
-/* testTaskOutput "Test replacement of UI after step" minimalStep events exp (===)
+testStepApplyAction = skip (testTaskOutput "Test replacement of UI after step" minimalStep events exp (===))
 where
 	events = [ResetEvent,minimalStepInputEvent,ActionEvent (TaskId 1 0) "Ok"] 
 	exp = [ReplaceUI expMinStepInitialUI, minimalStepInputResponse, ReplaceUI (expMinimalEditorUI 2 "Result" "foo")] 
-*/
 
 expMinParOperationsInitialUI
 	= uic UIParallel [expEditorUI,expActionPush,expActionPop]
@@ -196,11 +183,10 @@ where
 	//When there are no more elements, the pop action should be disabled
 	actionChanges = ChangeUI [] [(0,ChangeChild NoChange),(1,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool False)] []))] 
 
-testForeverLoop = skip "Test a 'forever' loop construct (a more complex version of a dynamic parallel)"
-/* testTaskOutput "Test a 'forever' loop construct (a more complex version of a dynamic parallel)" minimalForever events exp (===)
+testForeverLoop = skip (testTaskOutput "Test a 'forever' loop construct (a more complex version of a dynamic parallel)" minimalForever events exp (===))
 where
 	events = [ResetEvent, ActionEvent (TaskId 1 1) "Continue"]
-	exp = [ReplaceUI (uic UIParallel [uic UICompoundContent [expStep "1-1",expRestarter],uic UICompoundContent []]) //Initial UI
+	exp = [ReplaceUI (uic UIParallel [uic UIContainer [expStep "1-1",expRestarter],uic UIContainer []]) //Initial UI
 		  //Remove UI of first loop cycle, and UI for next cycle: Remove two original tasks, create two new ones
 		  ,ChangeUI [] [(0,ChangeChild (ChangeUI [] [(0,RemoveChild),(0,RemoveChild),(0,InsertChild (expStep "1-14")),(1,InsertChild expRestarter)]))
 					   ,(1,ChangeChild (ChangeUI [] []))
@@ -210,8 +196,7 @@ where
 	expRestarter = uic UIStep [ui UIEmpty]
 	expStep taskId = uic UIStep [expEditor,uia UIAction ('DM'.fromList [("actionId",JSONString "ActionContinue"),("taskId",JSONString taskId)
 																			,("enabled",JSONBool True)])]
-	expEditor = uic UIInteract [ui UIEmpty, uia UIViewString ('DM'.fromList [("optional",JSONBool False),("value",JSONString "Forever...")])]
-*/
+	expEditor = uic UIInteract [ui UIEmpty, uia UITextView ('DM'.fromList [("optional",JSONBool False),("value",JSONString "Forever...")])]
 
 testTaskOutput :: String (Task a) [Event] [UIChange] ([UIChange] [UIChange] -> Bool) -> Test | iTask a
 testTaskOutput name task events exp comparison = utest name test

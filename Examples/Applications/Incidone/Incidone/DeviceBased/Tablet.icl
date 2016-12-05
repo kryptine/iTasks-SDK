@@ -23,7 +23,7 @@ where
 
     configureContent selection
         =   (configure selection
-        >^* [OnAction (Action "Share to Wall" []) (hasValue (\c -> set c wallContent))])
+        >^* [OnAction (Action "Share to Wall") (hasValue (\c -> set c wallContent))])
     where
         title = "Configure Content"
         configure "Overview"

@@ -11,7 +11,7 @@ from iTasks._Framework.Tonic.Types import :: TStability, :: BlueprintIdent, :: B
 import iTasks._Framework.Generic
 from iTasks.UI.Definition import :: UI
 
-from iTasks.API.Core.Types import :: Scale, :: TaskId
+from iTasks.API.Core.Types import :: TaskId
 from iTasks._Framework.Task import :: TaskValue
 
 :: ActionState a s = { state :: s, action :: Maybe a }

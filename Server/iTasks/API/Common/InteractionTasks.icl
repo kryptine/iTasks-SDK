@@ -12,6 +12,7 @@ import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators
 import iTasks.API.Common.TaskCombinators, iTasks.API.Core.SDSs
 import iTasks.API.Common.SDSCombinators
 import iTasks._Framework.Tonic
+import iTasks._Framework.Util
 import iTasks.UI.Layout, iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Builtin
 import Text.HTML
 
@@ -313,8 +314,10 @@ waitForDateTime :: !DateTime -> Task DateTime
 waitForDateTime datetime =
 	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime >>* [OnValue (ifValue (\now -> datetime < now) return)]
 
-waitForTimer :: !Time -> Task Time
-waitForTimer time = get currentTime >>- \now -> waitForTime (now /* + time */) //FIXME
+waitForTimer :: !Int -> Task DateTime
+waitForTimer interval = get currentDateTime >>- \now -> waitForDateTime (endTime interval now)
+where
+	endTime interval now = let (Timestamp ts) = datetimeToTimestamp now in timestampToGmDateTime (Timestamp (ts + interval))
 
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions
@@ -338,10 +341,10 @@ crudWith descr choiceOpts enterOpts viewOpts updateOpts toList putItem delItem s
   where
   goCRUD
     =   enterChoiceWithShared descr choiceOpts (mapRead toList sh)
-    >>* [ OnAction (Action "New" [])    (always   newItem)
-        , OnAction (Action "View" [])   (hasValue viewItem)
-        , OnAction (Action "Edit" [])   (hasValue editItem)
-        , OnAction (Action "Delete" []) (hasValue deleteItem)
+    >>* [ OnAction (Action "New")    (always   newItem)
+        , OnAction (Action "View")   (hasValue viewItem)
+        , OnAction (Action "Edit")   (hasValue editItem)
+        , OnAction (Action "Delete") (hasValue deleteItem)
         ]
   newItem
     =            enterInformation (Title "New item") enterOpts

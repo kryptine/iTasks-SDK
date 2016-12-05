@@ -3,8 +3,9 @@ import iTasks, StdFile
 import iTasks.API.Extensions.Image
 import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
 import iTasks._Framework.Serialization
-import Text, Text.HTML
+import Text, Text.HTML, System.CommandLine
 import qualified Data.Map as DM
+import iTasks.API.Extensions.Development.Codebase
 
 // TEST FRAMEWORK
 derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult
@@ -52,10 +53,17 @@ where
 		# (res,w) = sut w
 		= (if (exp === res) Passed (Failed (Just ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON res)))),w)
 
-skip :: String -> Test
-skip name = UnitTest {UnitTest|name=name,test=test}
+pass :: String -> Test
+pass name = UnitTest {UnitTest|name=name,test = \w -> (Passed,w)}
+
+fail :: String -> Test
+fail name = UnitTest {UnitTest|name=name,test = \w -> (Failed Nothing, w)}
+
+skip :: Test -> Test
+skip skipped = UnitTest {UnitTest|name=nameOf skipped,test= \w -> (Skipped,w)}
 where
-	test w = (Skipped,w)
+	nameOf (UnitTest {UnitTest|name}) = name
+	nameOf (InteractiveTest {InteractiveTest|name}) = name
 
 testsuite :: String String [Test] -> TestSuite
 testsuite name description tests
@@ -107,10 +115,20 @@ testCommonInteractions typeName
 				  )
 		 )
 
+allPassed :: TestReport -> Bool
+allPassed suiteResults = all (checkSuiteResult (\r -> r =: Passed)) suiteResults
+
+noneFailed :: TestReport -> Bool
+noneFailed suiteResults = all (checkSuiteResult (\r -> r =: Passed || r =: Skipped)) suiteResults
+
+checkSuiteResult :: (TestResult -> Bool) SuiteResult -> Bool
+checkSuiteResult f {SuiteResult|testResults} = all (\(_,r) -> f r) testResults
+
 runTests :: [TestSuite] -> Task ()
 runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
     ( allTasks [runInteractiveTests <<@ Title "Interactive Tests"
 			   ,runUnitTests        <<@ Title "Unit Tests"
+			   ,viewQualityMetrics  <<@ Title "Metrics"
 			   ] <<@ ArrangeWithTabs
     ) @! ()
 where
@@ -156,6 +174,42 @@ where
 	application header mainTask
 		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False <<@ ApplyLayout (setNodeType UIContainer)
 
+	viewQualityMetrics :: Task ()
+	viewQualityMetrics 
+		= 	analyzeITasksCodeBase
+		>>- viewInformation () [ViewAs view]  @! ()
+	where
+		view {numTODO,numFIXME} = UlTag [] [LiTag [] [Text "Number of TODO's found: ",Text (toString numTODO)]
+										   ,LiTag [] [Text "Number of FIXME's found: ",Text (toString numFIXME)]
+										   ]
+//Begin metrics 
+//The following section should probably be moved to a separate module
+:: SourceTreeQualityMetrics =
+	{ numTODO  :: Int
+	, numFIXME :: Int
+	}
+derive class iTask SourceTreeQualityMetrics 
+
+analyzeITasksCodeBase :: Task SourceTreeQualityMetrics 
+analyzeITasksCodeBase
+	= 	rescanCodeBase [{name="iTasks",rootPath=".."</>"Server",subPaths=[],readOnly=True,modules=[]}]
+	@   listFilesInCodeBase
+	>>- \files -> allTasks (map determineQualityMetrics files) @ aggregate
+where
+	aggregate ms = foldr (+) zero ms
+
+determineQualityMetrics :: CleanFile -> Task SourceTreeQualityMetrics
+determineQualityMetrics file = importTextFile (cleanFilePath file) @ analyze
+where
+	analyze text = {numTODO=num "TODO" text ,numFIXME=num "FIXME" text}
+	num needle text = length (split needle text) - 1
+
+instance zero SourceTreeQualityMetrics where zero = {numTODO=0,numFIXME=0}
+instance + SourceTreeQualityMetrics where (+) {numTODO=xt,numFIXME=xf} {numTODO=yt,numFIXME=yf} = {numTODO = xt+yt, numFIXME= xf+yf}
+
+//End metrics 
+
+
 runUnitTestsWorld :: [TestSuite] *World -> *(!TestReport,!*World)
 runUnitTestsWorld suites world = foldr runSuite ([],world) suites
 where
@@ -169,30 +223,34 @@ where
 
 runUnitTestsCLI :: [TestSuite] *World -> *World
 runUnitTestsCLI suites world
-	# (console,world)	= stdio world
-	# (console,world) 	= foldl runSuite (console,world) suites
-	# (_,world)			= fclose console world
-	= world
+	# (console,world)	       = stdio world
+	# (report,(console,world)) = foldl runSuite ([],(console,world)) suites
+	# (_,world)			       = fclose console world
+	# world 			       = setReturnCode (if (noneFailed report) 0 1) world
+    = world
 where	
-	runSuite (console,world) {TestSuite|name,tests}
+	runSuite (report,(console,world)) {TestSuite|name,tests}
 		# console = fwrites ("===[ "+++ name +++ " ]===\n") console
-		= foldl runTest (console,world) [t \\ UnitTest t <- tests]
+		# (testResults,(console,world)) = foldr runTest ([],(console,world)) [t \\ UnitTest t <- tests]
+		= ([{SuiteResult|suiteName=name,testResults=testResults}:report],(console,world))
 		
-	runTest (console,world) {UnitTest|name,test}
+	runTest {UnitTest|name,test} (results,(console,world)) 
 		# console = fwrites (name +++ "... ") console
-		= case (test world) of
-			(Passed,world)
+		# (result,world) = test world
+		# (console,world) = case result of
+			Passed
 				# console = fwrites (green "PASSED\n") console
 				= (console,world)
-			(Failed Nothing,world)
+			Failed Nothing
 				# console = fwrites (red "FAILED\n") console
 				= (console,world)
-			(Failed (Just msg),world)
+			Failed (Just msg)
 				# console = fwrites (red ("FAILED\n" +++msg+++"\n")) console
 				= (console,world)
-			(Skipped,world)
+			Skipped
 				# console = fwrites (yellow "SKIPPED\n") console
 				= (console,world)
+		= ([(name,result):results],(console,world))
 
 	//ANSI COLOR CODES -> TODO: Create a library in clean-platform for ANSI colored output
 	red s = toString [toChar 27,'[','3','1','m'] +++ s +++ toString [toChar 27,'[','0','m']
@@ -201,9 +259,10 @@ where
 
 runUnitTestsJSON :: [TestSuite] *World -> *World
 runUnitTestsJSON suites world
-	# (result,world) 	= runUnitTestsWorld suites world
+	# (report,world) 	= runUnitTestsWorld suites world
 	# (console,world)	= stdio world
-	# console 			= fwrites (toString (toJSON result)) console
+	# console 			= fwrites (toString (toJSON report)) console
 	# (_,world)			= fclose console world
+	# world 			= setReturnCode (if (noneFailed report) 0 1) world
 	= world
 

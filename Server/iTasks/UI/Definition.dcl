@@ -14,7 +14,7 @@ from Data.Functor import class Functor
 from iTasks._Framework.Task	import :: TaskId
 from Text.HTML			import :: HtmlTag
 from Data.Map			import :: Map
-from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action
+from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, :: Action
 
 from iTasks._Framework.Generic import class iTask(..)
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
@@ -242,7 +242,6 @@ instance encodeUI Document
 instance encodeUI Date
 instance encodeUI Time
 instance encodeUI HtmlTag
-instance encodeUI ProgressAmount
 instance encodeUI JSONNode
 instance encodeUI (Maybe a) | encodeUI a
 instance encodeUI [a] | encodeUI a

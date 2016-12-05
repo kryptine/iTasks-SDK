@@ -42,9 +42,9 @@ where
 	editItem i list = updateInformation ("INITIAL: "<+++ i) [] i
 
 	//Add an item
-	pushAction = OnAction (Action "Push" []) (hasValue (\list -> (Embedded,editItem (length list))))
+	pushAction = OnAction (Action "Push") (hasValue (\list -> (Embedded,editItem (length list))))
 	//Remove the last item
-	popAction = OnAction (Action "Pop" []) (ifValue (\list -> not (isEmpty list)) (const (Embedded, popItem)))
+	popAction = OnAction (Action "Pop") (ifValue (\list -> not (isEmpty list)) (const (Embedded, popItem)))
 
 	popItem list //Kinda ugly that we need to add a task to remove one...
 		= 	get (sdsFocus filter list) @ appSnd reverse

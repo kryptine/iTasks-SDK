@@ -9,6 +9,7 @@ import iTasks._Framework.Tonic.Types
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Pretty
 import iTasks._Framework.Tonic.Images
+import iTasks.UI.Definition
 from StdFunc import seq
 import qualified Data.Map as DM
 from Data.Map import instance Functor (Map a)
@@ -78,13 +79,13 @@ tonicBrowseWithModule allbps rs navstack tm
   noTaskSelection = viewInformation () [] "Select task..."
 
 
-viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !BlueprintIdent !TonicModule !TonicFunc !Scale !Bool -> Task ()
+viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !BlueprintIdent !TonicModule !TonicFunc !Int !Bool -> Task ()
 viewStaticTask allbps rs navstack bpref tm tt depth compact
   =          get navstack
-  >>~ \ns -> showStaticBlueprint rs bpref (expandTask allbps depth.cur tt) compact depth
+  >>~ \ns -> (showStaticBlueprint rs bpref (expandTask allbps depth tt) compact depth
          >>* [ OnValue (doAction (handleClicks tm tt))
-             , OnAction (Action "Back" [ActionIcon "previous"]) (navigateBackwards tm tt ns)
-             ] @! ()
+             , OnAction (Action "Back") (navigateBackwards tm tt ns)
+             ] @! ()) <<@ ApplyLayout (layoutSubsOfType [] [UIAction] (setActionIcon ('DM'.fromList [("Back","Previous")])))
   where
 
   navigateBackwards :: TonicModule TonicFunc NavStack a -> Maybe (Task ())
@@ -139,7 +140,7 @@ viewStaticTask allbps rs navstack bpref tm tt depth compact
 
 showBlueprintInstance :: ![TaskAppRenderer] !BlueprintInstance
                          !(Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int)))
-                         !(Map ExprId [UI]) !Bool !Scale
+                         !(Map ExprId [UI]) !Bool !Int
                       -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showBlueprintInstance rs bpi selDetail enabledSteps compact depth
   =               get (mapRead (fmap (\(_, _, _, x) -> x)) storedOutputEditors)
@@ -161,7 +162,7 @@ showBlueprintInstance rs bpi selDetail enabledSteps compact depth
     , updModel    = \x _ -> x
     }
 
-showStaticBlueprint :: ![TaskAppRenderer] !BlueprintIdent !TonicFunc !Bool !Scale
+showStaticBlueprint :: ![TaskAppRenderer] !BlueprintIdent !TonicFunc !Bool !Int
                     -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showStaticBlueprint rs bpref task compact depth
   = updateInformation ()
@@ -308,14 +309,14 @@ tonicDynamicBrowser` rs navstack =
                                                  \shareData ->
                                                     case shareData of
                                                        (Just bpinst, dynSett) ->     viewInstance rs navstack dynSett bpinst selDetail meta
-                                                                                 >>*   [ OnAction (Action "Back"        [ActionIcon "previous"]) (navigateBackwards dynSett selDetail ns)
-                                                                                       //, OnAction (Action "Parent task" [ActionIcon "open"])     (\_ -> navToParent bpinst dynSett selDetail tid rs mbprnt)
+                                                                                 >>*   [ OnAction (Action "Back") (navigateBackwards dynSett selDetail ns)
+                                                                                       //, OnAction (Action "Parent task")     (\_ -> navToParent bpinst dynSett selDetail tid rs mbprnt)
                                                                                        ]
                                                        _                      -> return ()
                                                )
 
                            _ = viewInformation () [] "Please select a blueprint" @! ()
-      )
+      )<<@ ApplyLayout (layoutSubsOfType [] [UIAction] (setActionIcon ('DM'.fromList [("Back","previous"),("Parent task","open")])))
      where
      //navToParent currinst=:{bpi_bpref = currbpref} dynSett selDetail tid rs (Just inst=:{bpi_bpref = bpref}) // TODO Check
        //=   Just (   upd (\xs -> [mkMeta tid : xs]) navstack
@@ -395,13 +396,13 @@ viewInstance rs navstack dynSett bpinst=:{bpi_bpref = {bpr_moduleName, bpr_taskN
        (return ()))
     -&&-
     ((whileUnchanged (sdsFocus bpinst.bpi_taskId tonicActionsForTaskID) (
-        \steps -> showBlueprintInstance rs bpinst selDetail steps False { Scale | min = 0, cur = 0, max = 0})
+        \steps -> showBlueprintInstance rs bpinst selDetail steps False 0)
     -|| showChildTasks dynSett bpinst)
     >>* [OnValue (doAction (handleClicks bpr_moduleName bpr_taskName))]) @! ()
   where
   showChildTasks :: DynamicDisplaySettings BlueprintInstance -> Task ()
-  showChildTasks {DynamicDisplaySettings | show_all_child_tasks = False, unfold_depth = {Scale | cur = 0} } bpinst = return ()
-  showChildTasks {DynamicDisplaySettings | show_all_child_tasks, unfold_depth = {Scale | cur = d}, show_finished_blueprints } bpinst
+  showChildTasks {DynamicDisplaySettings | show_all_child_tasks = False, unfold_depth = 0} bpinst = return ()
+  showChildTasks {DynamicDisplaySettings | show_all_child_tasks, unfold_depth = d, show_finished_blueprints } bpinst
     # childIds  = getActiveCompIds bpinst // TODO: Should this be retrieved from the runtime map share instead?
     # childIds  = if show_finished_blueprints
                     ('DM'.elems (getPreviouslyActive bpinst) ++ childIds)
@@ -413,7 +414,7 @@ viewInstance rs navstack dynSett bpinst=:{bpi_bpref = {bpr_moduleName, bpr_taskN
                                         ] of
                                      [bpref` : _]
                                        # dynSett = if show_all_child_tasks dynSett
-                                                     {DynamicDisplaySettings | dynSett & unfold_depth = {dynSett.DynamicDisplaySettings.unfold_depth & cur = d - 1}}
+                                                     {DynamicDisplaySettings | dynSett & unfold_depth = d - 1}
                                        = viewInstance rs navstack dynSett bpref` selDetail (mkClickMeta childId)
                                      _ = return ())) childIds
     = allTasks viewTasks @! ()
@@ -453,7 +454,7 @@ viewInstance rs navstack dynSett bpinst=:{bpi_bpref = {bpr_moduleName, bpr_taskN
 viewInstance rs navstack dynSett bpinst selDetail {click_target_bpident = {bpident_moduleName, bpident_compName}}
   =                allBlueprints
   >>- \allbps   -> getModuleAndTask allbps bpident_moduleName bpident_compName
-  >>- \(tm, tt) -> viewStaticTask allbps rs navstack bpinst.bpi_bpref tm tt { Scale | min = 0, cur = 0, max = 0} False
+  >>- \(tm, tt) -> viewStaticTask allbps rs navstack bpinst.bpi_bpref tm tt 0 False
 
 pp3 (x, y, ns) = toString x +++ " " +++ toString y +++ " " +++ toString ns
 

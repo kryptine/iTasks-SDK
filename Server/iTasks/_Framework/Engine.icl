@@ -31,10 +31,18 @@ from Sapl.Linker.LazyLinker import generateLoaderState, :: LoaderStateExt
 from Sapl.Linker.SaplLinkerShared import :: SkipSet
 from Sapl.Target.Flavour import :: Flavour, toFlavour
 
+show :: ![String] !*World -> *World
+show lines world
+	# (console,world)	= stdio world
+	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
+	# (_,world)			= fclose console world
+	= world
+
 startEngine :: a !*World -> *World | Publishable a
 startEngine publishable world
 	# (opts,world)			= getCommandLine world
 	# (appName,world)		= determineAppName world
+	# (appPath,world)		= determineAppPath world	
 	# (mbSDKPath,world)		= determineSDKPath SEARCH_PATHS world
 	// Show server name
 	# world					= show (infoline appName) world
@@ -51,23 +59,18 @@ startEngine publishable world
 	| help					= show instructions world
 	//Check sdkpath
 	# mbSDKPath				= maybe mbSDKPath Just sdkOpt //Commandline SDK option overrides found paths
-	//Normal execution
-	# world					= show (running port) world
-	# iworld				= createIWorld appName mbSDKPath webDirPaths storeOpt saplOpt world
-	# (res,iworld) 			= initJSCompilerState iworld
-	| res =:(Error _)
-		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-	// All persistent task instances should receive a reset event to continue their work
-    # iworld                = queueAllPersistent iworld
-    //Run task server
-	# iworld				= serve port (httpServer port keepalive (engine publishable) allUIChanges)
-		[BackgroundTask removeOutdatedSessions
-		,BackgroundTask updateClocks, BackgroundTask (processEvents MAX_EVENTS)] timeout iworld
-	= destroyIWorld iworld
+	# options				=
+		{ appName			= appName
+		, appPath			= appPath
+		, sdkPath 			= mbSDKPath
+		, serverPort		= port
+		, keepalive 		= keepalive
+		, webDirPaths 		= webDirPaths
+		, storeOpt			= storeOpt
+		, saplOpt 			= saplOpt
+		}
+	= startEngineWithOptions publishable options world
 where
-	infoline :: !String -> [String]
-	infoline app	= ["*** " +++ app +++ " HTTP server ***",""]
-	
 	instructions :: [String]
 	instructions =
 		["Available commandline options:"
@@ -81,8 +84,10 @@ where
 		,""
 		]
 
-	running :: !Int -> [String]
-	running port = ["Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
+	//running :: !Int -> [String]
+	//running port = ["Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
+	infoline :: !String -> [String]
+	infoline app	= ["*** " +++ app +++ " HTTP server ***",""]
 
 	boolOpt :: !String ![String] -> Bool
 	boolOpt key opts = isMember key opts
@@ -102,10 +107,27 @@ where
 	stringOpt key [n,v:r]
 		| n == key	= Just v
 					= stringOpt key [v:r]
-					
+
+startEngineWithOptions :: a ServerOptions !*World -> *World | Publishable a
+startEngineWithOptions publishable options=:{appName,sdkPath,serverPort,webDirPaths,keepalive,storeOpt,saplOpt} world
+	# world					= show (running serverPort) world
+ 	# iworld				= createIWorld appName sdkPath webDirPaths storeOpt saplOpt world
+ 	# (res,iworld) 			= initJSCompilerState iworld
+ 	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
+ 	// All persistent task instances should receive a reset event to continue their work
+    # iworld                = queueAllPersistent iworld
+    //Start task server
+	# iworld				= serve serverPort (httpServer serverPort keepalive (engine publishable) allUIChanges)
+		[BackgroundTask removeOutdatedSessions
+ 		,BackgroundTask updateClocks, BackgroundTask (processEvents MAX_EVENTS)] timeout iworld
+	= destroyIWorld iworld
+where
+	running :: !Int -> [String]
+	running port = ["Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
+						
 	timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
 	timeout iworld = case 'SDS'.read taskEvents iworld of //Check if there are events in the queue
-		(Ok (Queue [] []),iworld)   = (Just 100,iworld) //Empty queue, don't waste CPU, but refresh
+		(Ok (Queue [] []),iworld)   = (Just 10,iworld) //Empty queue, don't waste CPU, but refresh
 		(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
 		(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
 
@@ -172,14 +194,13 @@ background iworld
 // The iTasks engine consist of a set of HTTP WebService 
 engine :: publish -> [(!String -> Bool
 					  ,!Bool
-					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionType *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionState *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 					  )] | Publishable publish
 
-engine publishable = [taskWebService url task \\ {PublishedTask|url,task=TaskWrapper task} <- published]
-				  ++ [staticResourceService [url \\ {PublishedTask|url} <- published]]
-				  ++ [sdsService]
+engine publishable = [taskUIService published /*[(url,task) \\ {PublishedTask|url,task=TaskWrapper task} <- published]*/
+				  	 ,documentService, sdsService,staticResourceService [url \\ {PublishedTask|url} <- published]]
 where
 	published = publishAll publishable 
 

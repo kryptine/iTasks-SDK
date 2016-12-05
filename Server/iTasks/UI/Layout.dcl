@@ -34,8 +34,10 @@ setNodeType :: UINodeType -> Layout
 
 // == Changing attributes ===
 setAttributes :: UIAttributes -> Layout
+delAttributes :: [String] -> Layout
 copyAttributes :: [String] NodePath NodePath -> Layout
 copyAllAttributes :: NodePath NodePath -> Layout
+modifyAttribute :: String (JSONNode -> UIAttributes) -> Layout
 
 // === Changing the structure of the tree ===
 
@@ -48,6 +50,9 @@ unwrapUI :: Layout
 //* Flatten the tree of children in pre-order
 flattenUI :: Layout
 
+//* Reorder a static part of a UI
+reorderUI :: (UI -> UI) -> Layout 
+
 //Operations on single specific sub-UI's indicated by a path
 insertSubAt :: NodePath UI       -> Layout
 removeSubAt :: NodePath          -> Layout
@@ -56,8 +61,8 @@ moveSubAt   :: NodePath NodePath -> Layout
 //Group operations on selections of sub-UI's
 removeSubsMatching :: NodePath (UI -> Bool)          -> Layout
 moveSubsMatching   :: NodePath (UI -> Bool) NodePath -> Layout
-
 moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
+
 
 //Composition of layouts
 sequenceLayouts   :: [Layout]               -> Layout
@@ -65,7 +70,8 @@ selectLayout      :: [(UI -> Bool, Layout)] -> Layout
 conditionalLayout :: (UI -> Bool) Layout    -> Layout
 
 layoutSubAt        :: NodePath Layout   -> Layout
-layoutSubsMatching :: NodePath (UI -> Bool) Layout   -> Layout
+layoutSubsMatching :: NodePath (UI -> Bool) Layout -> Layout
+layoutSubsOfType   :: NodePath [UINodeType] Layout -> Layout
 layoutChildrenOf   :: NodePath Layout -> Layout
 
 //Easier debugging

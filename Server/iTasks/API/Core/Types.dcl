@@ -57,37 +57,6 @@ instance TMonad []
 instance TApplicative (Either e)
 instance TMonad (Either e)
 
-//****************************************************************************//
-// Common data types that have specialized user interfaces
-//****************************************************************************//
-
-//* E-mail addresses
-:: EmailAddress	= EmailAddress !String
-instance toString	EmailAddress
-instance html		EmailAddress
-
-//* Phone number
-:: PhoneNumber = PhoneNumber !String
-instance toString	PhoneNumber
-instance html		PhoneNumber
-
-//* Uniform resource locators
-:: URL			= URL !String
-instance toString	URL
-instance html		URL
-
-//* Money (ISO4217 currency codes are used)
-:: EUR 			= EUR !Int		//Euros (amount in cents)
-:: USD 			= USD !Int		//Dollars (amount in cents)
-
-instance toString	EUR, USD
-instance + 			EUR, USD
-instance - 			EUR, USD
-instance == 		EUR, USD
-instance < 			EUR, USD
-instance toInt		EUR, USD
-instance zero		EUR, USD
-
 //* local date and time
 :: Date	=
 	{ year	:: !Int
@@ -142,13 +111,12 @@ instance <	Date, Time, DateTime
 instance toString	Document
 instance ==			Document
 
-derive JSONEncode		EmailAddress, PhoneNumber, URL, EUR, USD, Date, Time, DateTime, Document 
-derive JSONDecode		EmailAddress, PhoneNumber, URL, EUR, USD, Date, Time, DateTime, Document
-derive gDefault			EmailAddress, PhoneNumber, URL, EUR, USD, Date, Time, DateTime, Document
-derive gEq				EmailAddress, PhoneNumber, URL, EUR, USD, Date, Time, DateTime, Document
-
-derive gText	        EmailAddress, PhoneNumber, URL, EUR, USD, Date, Time, DateTime, Document
-derive gEditor 			EmailAddress, PhoneNumber, URL, EUR, USD, Date, Time, DateTime, Document
+derive JSONEncode		Date, Time, DateTime, Document 
+derive JSONDecode		Date, Time, DateTime, Document
+derive gDefault			Date, Time, DateTime, Document
+derive gEq				Date, Time, DateTime, Document
+derive gText	        Date, Time, DateTime, Document
+derive gEditor 			Date, Time, DateTime, Document
 
 //* Common exceptions used by API tasks
 
@@ -162,96 +130,6 @@ derive gEditor 			EmailAddress, PhoneNumber, URL, EUR, USD, Date, Time, DateTime
 
 derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, AttachException
 instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, AttachException
-
-//****************************************************************************//
-// Low level data types that can be used to construct more fine grained user
-// experiences.
-// These types map to specific user interface components.
-//****************************************************************************//
-
-//* A sliding scale
-:: Scale =
-	{ min	:: Int
-	, cur	:: Int
-	, max	:: Int
-	}
-	
-//* Progress bars
-:: Progress =
-	{ progress		:: !ProgressAmount 	//*Value between 0.0 and 1.0 indicating how much progress has been made
-	, description	:: !String			//*Description of how much progress has been made
-	}
-:: ProgressAmount
-	= ProgressUndetermined	//Value for progress that cannot be estimated
-	| ProgressRatio Real	//Value between 0.0 and 1.0 that defines the ratio of progress
-
-//* Inclusion of external html files
-:: HtmlInclude	= HtmlInclude String
-
-//* Table consisting of headers, the displayed data cells & possibly a selection
-:: Table = Table ![String] ![[HtmlTag]] !(Maybe Int)
-
-toTable	:: ![a] -> Table | gText{|*|} a
-
-derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, Table
-derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, Table
-derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, Table
-derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, Table
-derive gText	        Scale, Progress, ProgressAmount, HtmlInclude, Table
-derive gEditor	        Scale, Progress, ProgressAmount, HtmlInclude, Table
-
-//****************************************************************************//
-// Wrapper types for guiding the generic visualization process.
-// These types can be used as annotations
-//****************************************************************************//
-
-:: VisualizationHint a 	= VHEditable a
-					   	| VHDisplay a
-					   	| VHHidden a
-
-fromVisualizationHint	:: !(VisualizationHint .a) -> .a
-toVisualizationHint		:: !.a -> VisualizationHint .a
-
-//* Value is always rendered within a form as editor field
-:: Editable a 			= Editable a		
-
-fromEditable			:: !(Editable .a) -> .a
-toEditable				:: !.a -> Editable .a
-
-//* Value is always rendered within a form as a static element
-:: Display a 			= Display a			
-
-fromDisplay				:: !(Display .a) -> .a
-toDisplay				:: !.a -> Display .a
-
-//* Value is never rendered
-:: Hidden a 			= Hidden a			
-
-fromHidden				:: !(Hidden .a) -> .a
-toHidden				:: !.a -> Hidden .a
-
-//* Setting layout directions
-:: Row a                = Row a  //Horizontal
-:: Col a                = Col a  //Vertical
-
-//* Editing lists
-:: EditableList a       =
-    { items     :: [a]
-    , add       :: !EditableListAdd a
-    , remove    :: !Bool
-    , reorder   :: !Bool
-    , count     :: !Bool
-    }
-
-:: EditableListAdd a
-    = ELNoAdd | ELAddBlank | ELAddValue ([a] -> a)
-
-derive JSONEncode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive JSONDecode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive gDefault			Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive gEq				Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive gText	        Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive gEditor			Hidden, Display, Editable, VisualizationHint, Row, Col
 
 //****************************************************************************//
 // Framework types.
@@ -374,49 +252,37 @@ derive class iTask TaskListFilter
 	| CompletedProcess !Int
 
 //* Next task actions
-:: Action	= Action !ActionName ![ActionOption]
-
-:: ActionName	:== String	//Locally unique identifier for actions
-:: ActionOption
-	= ActionWeight	!Int		//Specifies a weight for specific sorting in menus
-	| ActionIcon	!String		//Specifies a symbolic icon name e.g. 'close' or 'ok' (the application styling dereferences this to an image)
-	| ActionTrigger	!Trigger	//Special event that triggers this action (other than clicking the action button/menu item)
-
-actionName		:: !Action -> ActionName
-actionIcon 		:: !Action -> Maybe String
-actionWeight	:: !Action -> Int			//Default weight is 0
-
-:: Trigger	= DoubleClick	//Currently only doubleclick is supported as special trigger
+:: Action	= Action !String //Locally unique identifier for actions
 
 //Common action constants with predefined options
-ActionOk		:== Action "Ok"				[ActionIcon "ok" ]
-ActionCancel	:==	Action "Cancel"			[ActionIcon "cancel"]
-ActionYes		:== Action "Yes"			[ActionIcon "yes"]
-ActionNo		:== Action "No"				[ActionIcon "no"]
-ActionNext		:== Action "Next"			[ActionIcon "next"]
-ActionPrevious	:== Action "Previous"		[ActionIcon "previous"]
-ActionFinish	:== Action "Finish"			[ActionIcon "finish"]
-ActionContinue	:==	Action "Continue"		[ActionIcon "continue"]
-ActionOpen		:== Action "/File/Open"		[ActionIcon "open" ]
-ActionSave		:== Action "/File/Save" 	[ActionIcon "save"]
-ActionSaveAs 	:== Action "/File/Save as"	[ActionIcon "save"]
-ActionQuit		:== Action "/File/Quit"		[ActionIcon "quit"]
-ActionHelp		:==	Action "/Help/Help"		[ActionIcon "help"]
-ActionAbout		:== Action "/Help/About"	[ActionIcon "about"]
-ActionFind		:== Action "/Edit/Find"		[ActionIcon "find"]
-ActionNew		:== Action "New"			[ActionIcon "new"]
-ActionEdit		:== Action "Edit"			[ActionIcon "edit"]
-ActionDelete	:== Action "Delete"			[ActionIcon "delete"]
-ActionRefresh	:== Action "Refresh"		[ActionIcon "refresh"]
-ActionClose		:==	Action "Close"			[ActionIcon "close"]
+ActionOk		:== Action "Ok"
+ActionCancel	:==	Action "Cancel"
+ActionYes		:== Action "Yes"
+ActionNo		:== Action "No"
+ActionNext		:== Action "Next"
+ActionPrevious	:== Action "Previous"
+ActionFinish	:== Action "Finish"
+ActionContinue	:==	Action "Continue"
+ActionOpen		:== Action "/File/Open"
+ActionSave		:== Action "/File/Save"
+ActionSaveAs 	:== Action "/File/Save as"
+ActionQuit		:== Action "/File/Quit"
+ActionHelp		:==	Action "/Help/Help"
+ActionAbout		:== Action "/Help/About"
+ActionFind		:== Action "/Edit/Find"
+ActionNew		:== Action "New"
+ActionEdit		:== Action "Edit"
+ActionDelete	:== Action "Delete"
+ActionRefresh	:== Action "Refresh"
+ActionClose		:==	Action "Close"
 	
-derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption,Trigger
-derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption,Trigger
-derive gDefault			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption,Trigger
-derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption,Trigger
+derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
+derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
+derive gDefault			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
+derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
 
-derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Trigger
-derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Trigger
+derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
+derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
 
 derive class iTask		TaskId, Config, ProcessStatus
 
@@ -443,38 +309,6 @@ SCREEN_ATTRIBUTE        :== "screen"
 CREATED_AT_ATTRIBUTE	:== "createdate"//Creation task time, used for ordering but not real time
 LAST_EVENT_ATTRIBUTE	:== "lastevent"	//Last event task time, used for ordering but not real time
 LAST_FOCUS_ATTRIBUTE    :== "lastfocus" //Last focus, also used for ordering
-
-//Preferred container attribute for abstract containers. Does not have to be honoured by layouts
-CONTAINER_ATTRIBUTE		:==	"container"	//Container preference for layout functions. Possible preferences: "container", "panel", or "window"
-
-:: Att				= E.a: Att !a & toPrompt a
-
-:: Title			= Title !String
-:: Label            = Label !String
-:: Hint				= Hint !String
-
-:: Icon				= Icon !String
-					| IconView
-					| IconEdit
-
-
-instance toPrompt (!Icon, !String, !String)	//Icon attribute, title attribute, and instruction
-//instance toPrompt (!Icon, !Title)			//Icon attribute, title attribute 
-instance toPrompt Title
-instance toPrompt Label
-instance toPrompt Hint
-instance toPrompt Icon
-instance toPrompt Attribute
-
-instance toPrompt Att
-instance toPrompt [d] | toPrompt d
-
-derive JSONEncode		Icon
-derive JSONDecode		Icon
-derive gDefault			Icon
-derive gEq				Icon
-derive gText	        Icon
-derive gEditor          Icon	
 
 //Task evaluation tuning directives, for increasing performance
 :: LazyRefresh = LazyRefresh //If you tune a task in a parallel set with this directive, it not be evaluated unless its focused

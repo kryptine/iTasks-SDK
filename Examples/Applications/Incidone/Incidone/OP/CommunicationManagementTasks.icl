@@ -9,11 +9,11 @@ import Incidone.Util.TaskPatterns
 import Incidone.Util.Notification
 import Incidone.Integration.Asterisk
 
-ActionDial      :== Action "Dial"   [ActionIcon "phone-call"]
-ActionHangup    :== Action "Hangup" [ActionIcon "phone-call"]
-ActionChange    :== Action "Change" []
-ActionCreate    :== Action "Create" [ActionIcon "add"]
-ActionSend      :== Action "Send" []
+ActionDial      :== Action "Dial"
+ActionHangup    :== Action "Hangup"
+ActionChange    :== Action "Change"
+ActionCreate    :== Action "Create"
+ActionSend      :== Action "Send"
 
 //Update the information about a communication
 updateCommunication :: CommunicationNo -> Task CommunicationNo
@@ -139,7 +139,7 @@ where
 
     details incidentNo
         =   manageLinkedIncidentInfo incidentNo
-        >>* [OnAction (Action "Remove" []) (always (upd (filter ((<>) incidentNo)) aboutIncidents))]
+        >>* [OnAction (Action "Remove") (always (upd (filter ((<>) incidentNo)) aboutIncidents))]
         @!  ()
 
     add =   selectKnownOrDefineNewIncident <<@ Title "+"

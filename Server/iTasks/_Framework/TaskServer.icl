@@ -19,7 +19,7 @@ from iTasks._Framework.TaskStore import queueRefresh
 :: *IOTaskInstanceDuringSelect
     = ListenerInstanceDS !ListenerInstanceOpts
     | ConnectionInstanceDS !ConnectionInstanceOpts !*TCP_SChannel
-    | BackgroundInstanceDS !BackgroundTask
+    | BackgroundInstanceDS !BackgroundInstanceOpts !BackgroundTask
 
 serve :: !Int !ConnectionTask ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
 serve port ct bt determineTimeout iworld
@@ -31,7 +31,7 @@ init port ct bt iworld=:{IWorld|ioTasks,world}
     | not success = abort ("Error: port "+++ toString port +++ " already in use.\n")
     # opts = {ListenerInstanceOpts|taskId=TaskId 0 0, nextConnectionId=0, port=port, connectionTask=ct, removeOnClose = True}
     # ioStates = 'DM'.fromList [(TaskId 0 0, IOActive 'DM'.newMap)]
-    = {iworld & ioTasks = {done=[],todo=[ListenerInstance opts (fromJust mbListener):map BackgroundInstance bt]}, ioStates = ioStates,  world = world}
+    = {iworld & ioTasks = {done=[],todo=[ListenerInstance opts (fromJust mbListener):map (BackgroundInstance {bgInstId=0})bt]}, ioStates = ioStates,  world = world}
 
 loop :: !(*IWorld -> (!Maybe Timeout,!*IWorld)) !*IWorld -> *IWorld
 loop determineTimeout iworld
@@ -63,7 +63,7 @@ toSelectSet [i:is]
     = case i of
         ListenerInstance opts l = ([l:ls],rs,[ListenerInstanceDS opts:is])
         ConnectionInstance opts {rChannel,sChannel} = (ls,[rChannel:rs],[ConnectionInstanceDS opts sChannel:is])
-        BackgroundInstance bt = (ls,rs,[BackgroundInstanceDS bt:is])
+        BackgroundInstance opts bt = (ls,rs,[BackgroundInstanceDS opts bt:is])
 
 /* Restore the list of main loop instances.
     In the same pass also update the indices in the select result to match the
@@ -99,9 +99,9 @@ where
             # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners (numSeenReceivers+1) ls rs [(c,what):ch] is
             = ([ConnectionInstance opts {rChannel=rChannel,sChannel=sChannel}:is],ch)
     //Background tasks
-    fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls rs ch [BackgroundInstanceDS bt:is]
+    fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls rs ch [BackgroundInstanceDS opts bt:is]
         # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners numSeenReceivers ls rs ch is
-        = ([BackgroundInstance bt:is],ch)
+        = ([BackgroundInstance opts bt:is],ch)
 
     ulength [] = (0,[])
     ulength [x:xs]
@@ -263,10 +263,10 @@ process i chList iworld=:{ioTasks={done,todo=[ConnectionInstance opts {rChannel,
             # world = closeChannel sChannel world
             = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
            
-process i chList iworld=:{ioTasks={done,todo=[BackgroundInstance bt=:(BackgroundTask eval):todo]}}
+process i chList iworld=:{ioTasks={done,todo=[BackgroundInstance opts bt=:(BackgroundTask eval):todo]}}
     # (mbe,iworld=:{ioTasks={done,todo}}) = eval {iworld & ioTasks = {done=done,todo=todo}}
 	| mbe =: (Error _) = abort (snd (fromError mbe)) //TODO Handle the error without an abort
-    = process (i+1) chList {iworld & ioTasks={done=[BackgroundInstance bt:done],todo=todo}}
+    = process (i+1) chList {iworld & ioTasks={done=[BackgroundInstance opts bt:done],todo=todo}}
 process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
     = process (i+1) chList {iworld & ioTasks={done=[t:done],todo=todo}}
 
@@ -321,6 +321,24 @@ addConnection taskId=:(TaskId instanceNo _) host port connectionTask iworld=:{io
                     Error e     = 'DM'.put taskId (IOException e) ioStates
                 = (Ok (),{iworld & ioTasks = {done=done,todo=todo}, ioStates = ioStates, world = world})
 
+//Dynamically add a background task
+addBackgroundTask :: !BackgroundTaskId !BackgroundTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
+addBackgroundTask btid bt iworld=:{ioTasks={done,todo}}
+# todo = todo ++ [BackgroundInstance {BackgroundInstanceOpts|bgInstId=btid} bt]
+= (Ok (), {iworld & ioTasks={done=done, todo=todo}})
+
+//Dynamically remove a background task
+removeBackgroundTask :: !BackgroundTaskId !*IWorld -> (!MaybeError TaskException (),!*IWorld)
+removeBackgroundTask btid iworld=:{ioTasks={done,todo}} 
+//We filter the tasks and use the boolean state to hold whether a task was dropped
+# (r, todo) = foldr (\e (b, l)->let (b`, e`)=drop e in (b` || b, if b` l [e`:l])) (False, []) todo
+# iworld = {iworld & ioTasks={done=done, todo=todo}}
+| not r = (Error (exception "No backgroundtask with that id"), iworld)
+= (Ok (), iworld)
+	where
+		drop a=:(BackgroundInstance {bgInstId} _) = (bgInstId == btid, a)
+		drop a = (False, a)
+
 checkSelect :: !Int ![(!Int,!SelectResult)] -> (!Maybe SelectResult,![(!Int,!SelectResult)])
 checkSelect i chList =:[(who,what):ws] | (i == who) = (Just what,ws)
 checkSelect i chList = (Nothing,chList)
@@ -334,6 +352,6 @@ halt iworld=:{ioTasks={todo=[ConnectionInstance _ {rChannel,sChannel}:todo],done
  	# world = closeRChannel rChannel world
     # world = closeChannel sChannel world
     = halt {iworld & ioTasks = {todo=todo,done=done}}
-halt iworld=:{ioTasks={todo=[BackgroundInstance _ :todo],done},world}
+halt iworld=:{ioTasks={todo=[BackgroundInstance _ _ :todo],done},world}
     = halt {iworld & ioTasks= {todo=todo,done=done}}
 
