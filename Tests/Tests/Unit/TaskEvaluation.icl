@@ -6,6 +6,7 @@ from iTasks._Framework.IWorld import createIWorld, destroyIWorld, initJSCompiler
 from iTasks._Framework.TaskStore import createTaskInstance, taskInstanceUIChanges
 from iTasks._Framework.TaskEval import evalTaskInstance
 from iTasks._Framework.Store import flushShareCache, emptyStore
+from iTasks._Framework.Util import toCanonicalPath
 import iTasks._Framework.Serialization
 import iTasks.UI.Definition
 import qualified iTasks._Framework.SDS as SDS
@@ -14,6 +15,7 @@ import System.Directory
 import qualified Data.Queue as DQ
 import qualified Data.Map as DM
 from Data.Queue import :: Queue(..)
+import System.CommandLine
 
 import Tests.Common.MinimalTasks
 
@@ -42,13 +44,12 @@ testTaskEvaluation = testsuite "Task evaluation" "Tests to verify properties of 
 testInitIWorld = assertWorld "Init IWorld" id sut
 where
 	sut world
-		# (currentDir,world) = getCurrentDirectory world
+		# (argv,world) = getCommandLine world
+		# (appDir,world) = toCanonicalPath (takeDirectory (hd argv)) world
 		# iworld=:{server} = createIWorld "TEST" Nothing Nothing Nothing Nothing world
 		//Check some properties
-		# res = case currentDir of
-			Ok dir 	= server.paths.dataDirectory == (dir </> "TEST-data") //Is the data directory path correctly initialized
-					 && (server.paths.saplFlavourFile == (dir </> "sapl/clean.f"))
-			_ 		= False
+		# res = server.paths.dataDirectory ==  appDir </> "TEST-data"//Is the data directory path correctly initialized
+		     && server.paths.saplFlavourFile == appDir </> "sapl" </> "clean.f"
 		# world = destroyIWorld {iworld & server = server}
 		= (res,world)
 
