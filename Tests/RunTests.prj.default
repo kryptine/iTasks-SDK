@@ -7,8 +7,8 @@ Global
 		CheckStacks:	False
 		CheckIndexes:	True
 	Application
-		HeapSize:	209715200
-		StackSize:	1012000
+		HeapSize:	20971520
+		StackSize:	512000
 		ExtraMemory:	8192
 		IntialHeapSize:	204800
 		HeapSizeMultiplier:	4096
@@ -19,10 +19,10 @@ Global
 		DisableRTSFlags:	False
 		StandardRuntimeEnv:	True
 		Profile
-			Memory:	True
+			Memory:	False
 			MemoryMinimumHeapSize:	0
-			Time:	True
-			Stack:	True
+			Time:	False
+			Stack:	False
 		Output
 			Output:	ShowConstructors
 			Font:	Monaco
@@ -31,6 +31,7 @@ Global
 	Link
 		LinkMethod:	Static
 		GenerateRelocations:	False
+		GenerateSymbolTable:	False
 		GenerateLinkMap:	False
 		LinkResources:	False
 		ResourceSource:	
@@ -38,8 +39,6 @@ Global
 		ExportedNames:	
 	Paths
 		Path:	{Project}
-		Path:	{Application}/Libraries/Gast
-		Path:	{Application}/Libraries/MersenneTwister
 	Precompile:	
 	Postlink:	
 MainModule
