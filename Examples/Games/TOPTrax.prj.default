@@ -38,7 +38,7 @@ Global
 		ExportedNames:	
 	Paths
 		Path:	{Project}
-		Path:	{Project}/trax
+		Path:	{Project}/Trax
 	Precompile:	
 	Postlink:	
 MainModule

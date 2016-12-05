@@ -10,7 +10,14 @@ import iTasks, MultiUser
 import Data.List
 from StdFunc import flip
 
-derive class iTask TraxSt, Coordinate, TraxTile, TileEdge, Trax, LineColor
+//derive class iTask TraxSt, Coordinate, TraxTile, TileEdge, Trax, LineColor
+derive gEditor TraxSt, Coordinate, TraxTile, TileEdge, Trax, LineColor
+derive gText TraxSt, Coordinate, TraxTile, TileEdge, Trax, LineColor
+derive gDefault TraxSt, Coordinate, TraxTile, TileEdge, Trax, LineColor
+derive gEq TraxSt//, Coordinate, /* TraxTile, TileEdge, Trax,*/ LineColor
+
+derive JSONEncode TraxSt, Coordinate, TraxTile, TileEdge, Trax, LineColor
+derive JSONDecode TraxSt, Coordinate, TraxTile, TileEdge, Trax, LineColor
 
 Start :: *World -> *World
 Start world = StartMultiUserTasks [ workflow "SVG Trax" "Play SVG trax" play_trax
@@ -93,7 +100,7 @@ settile coord tile st=:{trax,turn}
 
 toImage :: Bool TraxSt *TagSource -> Image TraxSt
 toImage my_turn st=:{trax,names=[me,you],turn} _
-	= above (repeat AtMiddleX) [] [text font message, board it_is_my_turn d st] Nothing
+	= above` (repeat AtMiddleX) [] [text font message, board it_is_my_turn d st] NoHost
 where
 	it_is_my_turn				= my_turn == turn
 	message						= if it_is_my_turn "Select a tile" "Wait for other player..."
@@ -102,17 +109,17 @@ where
 board :: Bool Span TraxSt -> Image TraxSt
 board it_is_my_turn d st=:{trax}
 | nr_of_tiles trax == zero
-	| it_is_my_turn				= grid (Rows 2) (RowMajor, LeftToRight, TopToBottom) [] [] 
-							           [tileImage d tile <@< {onclick = const (start_with_this tile), local = False} \\ tile <- gFDomain{|*|}] Nothing
+	| it_is_my_turn				= grid` (Rows 2) (RowMajor, LeftToRight, TopToBottom) [] [] 
+							           [tileImage d tile <@< {onclick = const (start_with_this tile), local = False} \\ tile <- gFDomain{|*|}] NoHost
 	| otherwise					= voidImage d
-| otherwise						= grid (Rows (maxy-miny+3)) (RowMajor, LeftToRight, TopToBottom) (repeat (AtMiddleX,AtMiddleY)) []
+| otherwise						= grid` (Rows (maxy-miny+3)) (RowMajor, LeftToRight, TopToBottom) (repeat (AtMiddleX,AtMiddleY)) []
 							           [  case tile_at trax coord of
 							                 Nothing   = if (it_is_my_turn && isMember coord free_coords) (freeImage d coord st) (voidImage d)
 							                 Just tile = tileImage d tile
 							           \\ row <- [miny-1..maxy+1]
 							            , col <- [minx-1..maxx+1]
 							            , let coord = fromTuple (col,row)
-							           ] Nothing
+							           ] NoHost
 where
 	((minx,maxx),(miny,maxy))	= bounds trax
 	free_coords					= free_coordinates trax
@@ -124,7 +131,7 @@ freeImage :: Span Coordinate TraxSt -> Image TraxSt
 freeImage d coord {trax,choice}
 | maybe True (\c -> coord <> c) choice
 						= unselected <@< {onclick = const (setcell coord), local = False}
-| otherwise				= above [] [] [tileImage (d /. nr_of_candidates) tile <@< {onclick = const (settile coord tile), local = False} \\ tile <- candidates] Nothing
+| otherwise				= above` [] [] [tileImage (d /. nr_of_candidates) tile <@< {onclick = const (settile coord tile), local = False} \\ tile <- candidates] NoHost
 where
 	candidates			= possible_tiles (linecolors trax coord)
 	nr_of_candidates	= length candidates
@@ -139,7 +146,7 @@ tileImage d tile		= fromJust (lookup tile [ (horizontal,rotate (deg 0.0)   horiz
 			                                    , (southwest, rotate (deg 270.0) northwest_tile)
 			                                    ])
 where
-	brick				= Just (tileShape d <@< {stroke = toSVGColor "white"} <@< {strokewidth = d /. 20})
+	brick				= Host (tileShape d <@< {stroke = toSVGColor "white"} <@< {strokewidth = d /. 20})
 	horizontal_tile		= overlay (repeat (AtMiddleX,AtMiddleY)) [] [ bar yline "white", bar xline "red" ] brick
 	northwest_tile		= (overlay [] [(d /. 2, d /. 2),(d /. -2, d /. -2)] [ arc "white", arc "red" ] brick) <@< { MaskAttr | mask = tileShape d <@< {fill = toSVGColor "white"}}
 	bar line c			= line Nothing d <@< {stroke = toSVGColor c} <@< {strokewidth = d /. 5}
