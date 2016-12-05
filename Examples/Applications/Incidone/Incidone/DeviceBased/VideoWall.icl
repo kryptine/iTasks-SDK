@@ -21,7 +21,7 @@ where
     content
         = whileUnchanged wallContent \content -> case content of
         WallClock                               = (viewSharedInformation (Title "Local Time") [ViewAs formatTime] currentTime @! content)
-        WallCountDown until                     = (viewSharedInformation (Title "Countdown") [ViewAs (\t -> formatDateTime (until - t))] currentDateTime @! content)
+//        WallCountDown until                     = (viewSharedInformation (Title "Countdown") [ViewAs (\t -> formatDateTime (until - t))] currentDateTime @! content)
         WallOverview perspective                = viewWallOverview perspective @! content
         WallContactSummary (Just contactNo)     = viewWallContactSummary contactNo @! content
         WallIncidentSummary (Just incidentNo)   = viewWallIncidentSummary incidentNo @! content
@@ -147,10 +147,7 @@ where
                                 (vizName entry.loggedBy ++ vizTime entry.eventAt ++ vizMessage entry.message)
         vizName (Just {ContactAvatar|name=Just name}) = [DivTag [ClassAttr "wall-log-name"] [Text name]]
         vizName _ = [DivTag [ClassAttr "wall-log-name"] [Text "System message"]]
-        vizTime (DateTime _ time) = [DivTag [ClassAttr "wall-log-time"] [Text (toString time)]]
+        vizTime datetime = [DivTag [ClassAttr "wall-log-time"] [Text (toString (toTime datetime))]]
         vizMessage message = [DivTag [ClassAttr "wall-log-message"] [nl2br (toString message)]]
 
-        groupByDate log = [(date e.eventAt,es) \\ es=:[e:_] <-  groupBy (\e1 e2 -> date e1.eventAt == date e2.eventAt) log]
-        where
-            date (DateTime d _) = d
-
+        groupByDate log = [(toDate e.eventAt,es) \\ es=:[e:_] <-  groupBy (\e1 e2 -> toDate e1.eventAt == toDate e2.eventAt) log]

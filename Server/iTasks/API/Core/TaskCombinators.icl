@@ -12,6 +12,7 @@ import iTasks._Framework.Tonic.Shares
 import iTasks._Framework.Client.Override
 
 import qualified Data.Map as DM
+import qualified Data.Queue as DQ
 from StdFunc					        import id, const, o, seq
 from iTasks._Framework.Serialization	import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from iTasks._Framework.TaskStore        import localShare, parallelTaskList, topLevelTaskList
@@ -163,8 +164,8 @@ where
 	    = case f val of
 			Just cont	= Just (i, cont, DeferredJSON val)			//Don't look any further, first matching trigger wins
 			Nothing		= search val mbAction (i + 1) mbMatch cs	//Keep search
-    search val mbAction=:(Just actionEvent) i Nothing [OnAction action f:cs]
-	    | actionEvent == actionName action
+    search val mbAction=:(Just actionEvent) i Nothing [OnAction (Action actionName) f:cs]
+	    | actionEvent == actionName
 		    = case f val of
                 Just cont	= search val mbAction (i + 1) (Just (i, cont, DeferredJSON val)) cs 	//We found a potential winner (if no OnValue values are in cs)
                 Nothing		= search val mbAction (i + 1) Nothing cs								//Keep searching
@@ -685,6 +686,7 @@ where
         | mbError =:(Error _)   = (liftError mbError, iworld)
         = (Ok (), iworld)
 
+
 attach :: !TaskId -> Task AttachmentStatus
 attach (TaskId instanceNo taskNo) = Task eval
 where
@@ -695,7 +697,10 @@ where
                 //Just steal the instance, TODO, make stealing optional
                 # progress      = {InstanceProgress|progress & attachedTo = [taskId:attachmentChain]}
 				# (_,iworld)	= write progress (sdsFocus instanceNo taskInstanceProgress) iworld
-				# iworld		= queueRefresh [(instanceNo,"attach of " <+++ instanceNo <+++ " requires refresh")] iworld
+				//Clear all input and output of that instance
+				# (_,iworld)    = write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceUIChanges) iworld 
+				# (_,iworld)    = modify (\('DQ'.Queue a b) -> ((),'DQ'.Queue [(i,e) \\(i,e)<- a| i <> instanceNo][(i,e) \\(i,e)<- b| i <> instanceNo])) taskEvents iworld 
+				//# iworld		= queueRefresh [(instanceNo,"attach of " <+++ instanceNo <+++ " requires refresh")] iworld
 				= eval event evalOpts (TCBasic taskId ts JSONNull False) iworld
 			Error e
 				= (ExceptionResult e,iworld)

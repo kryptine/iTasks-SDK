@@ -30,4 +30,4 @@ where
         ++  if (capCode == "") [] [{NewCommunicationMean|defaultValue&type=CMP2000,capCode=Just capCode}]
 
     cnotes "" = Nothing
-    cnotes note = Just (Note note)
+    cnotes note = Just note

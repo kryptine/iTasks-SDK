@@ -52,7 +52,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 	, serverURL		  :: !String				// URL of the server like "//any.com:80"
 	, buildID		  :: !String				// The date/time identifier of the server's build
     , paths           :: !SystemPaths           // Filesystem paths that are used by iTasks
-    , customCSS       :: !Bool                  // Does the application use a custom css stylesheet
     }
 
 :: SystemPaths =
@@ -97,7 +96,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 :: *IOTaskInstance
     = ListenerInstance !ListenerInstanceOpts !*TCP_Listener
     | ConnectionInstance !ConnectionInstanceOpts !*TCP_DuplexChannel
-    | BackgroundInstance !BackgroundTask
+    | BackgroundInstance !BackgroundInstanceOpts !BackgroundTask
 
 :: ListenerInstanceOpts =
     { taskId                :: !TaskId          //Reference to the task that created the listener
@@ -116,6 +115,13 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     }
 
 :: ConnectionId             :== Int
+
+:: BackgroundInstanceOpts =
+    { bgInstId              :: !BackgroundTaskId
+    }
+
+:: BackgroundTaskId         :== Int
+
 
 :: IOStates :== Map TaskId IOState
 :: IOState

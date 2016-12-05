@@ -5,10 +5,12 @@ import iTasks.API.Extensions.Admin.ServerAdmin
 import iTasks.API.Extensions.Admin.StoreAdmin
 import iTasks.API.Extensions.Admin.WorkflowAdmin
 import iTasks.API.Extensions.Admin.TonicAdmin
-import iTasks._Framework.Tonic
 import iTasks.API.Extensions.GIS.GoogleMap
+import iTasks.API.Extensions.Currency
+import iTasks.API.Extensions.Contact
 import iTasks.UI.Definition, iTasks.UI.Editor.Builtin
 import Text, Text.HTML, StdArray
+import iTasks._Framework.Tonic
 //import ligrettoTOP
 //import iTaskGraphics, editletGraphics, edgehog
 import qualified Data.Map as DM
@@ -371,13 +373,13 @@ where
 						  	, OnAction ActionOk  		(always  	(return (n1 + n2)))
 						  	]
 //
-:: MySum = {firstNumber :: Int, secondNumber :: Int, sum :: Display Int}
+:: MySum = {firstNumber :: Int, secondNumber :: Int, sum :: Int}
 derive class iTask MySum
 
 calculateSum2 :: Task Int
 calculateSum2
   = 				updateInformation ("Sum of 2 numbers, with view","") 
-  						[UpdateAs (\(i,j) -> {firstNumber = i, secondNumber = j, sum = Display (i+j)}) 
+  						[UpdateAs (\(i,j) -> {firstNumber = i, secondNumber = j, sum = (i+j)}) 
   						          (\_ res -> (res.firstNumber,res.secondNumber))] (0,0)
   	>>= \(i,j) -> 	return (i+j)
 
@@ -423,7 +425,7 @@ calculator :: Task Int
 calculator = calc initSt
 where
 	calc st
-	= 		viewInformation "Calculator" [ViewAs Display] st
+	= 		viewInformation "Calculator" [] st
 		>>* [ OnAction (Action "7") (always (updateDigit 7 st)) 
 			, OnAction (Action "8") (always (updateDigit 8 st))
 			, OnAction (Action "9") (always (updateDigit 9 st))
@@ -543,8 +545,8 @@ where
 		= 			updateSharedInformation ("Chat with " <+++ who) [UpdateAs toView fromView] notes
 			>>*		[OnAction (Action "Stop") (always (return ()))]
 
-	toView   (me,you) 							= (Display you, me)
-	fromView _ (Display you, me) 	= (me,you) 
+	toView   (me,you) 							= (you, me)
+	fromView _ (you, me) 	= (me,you) 
 
 	switch (me,you) = (you,me)
 
@@ -637,7 +639,7 @@ text x	= TdTag [AlignAttr "center"] [Text (toString x)]
 
 TileTag :: !(!Int,!Int) !String -> HtmlTag
 TileTag (width,height) tile
-	= ImgTag [SrcAttr ("/"<+++ tile <+++ ".png"),w,h]
+	= ImgTag [SrcAttr ("/"<+++ tile <+++ ".png"), StyleAttr "min-height:0;",w,h]
 where
 	(w,h) = (WidthAttr (toString width),HeightAttr (toString height))
 
@@ -662,7 +664,7 @@ tictactoe_for_1 :: !Bool !(Shared TicTacToe) -> Task User
 tictactoe_for_1 my_turn sharedGameSt
 	= (viewSharedInformation "Board:" [ViewAs (\gameSt -> viewBoard (42,42) gameSt)] sharedGameSt) ||- play
 where
-	play= (updateSharedInformation "Play:" [UpdateAs Hidden (\gameSt _ -> gameSt)] sharedGameSt)
+	play= (viewSharedInformation "Play:" [ViewAs (const ())] sharedGameSt)
 	      >>* [ OnValue (ifValue game_over declare_winner)
               , OnValue (ifValue on_turn   make_a_move)
               ]

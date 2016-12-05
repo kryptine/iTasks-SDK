@@ -69,7 +69,11 @@ assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | JSONEncode{|
 
 assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & JSONEncode{|*|} a
 
-skip :: String -> Test
+pass :: String -> Test
+
+fail :: String -> Test
+
+skip :: Test -> Test
 
 /**
 * Convenient wrapper for defining test suites
@@ -104,6 +108,16 @@ testEditorWithShare :: (Editor a) a EditMode -> Task a | iTask a
 * @param The name of the type to test (e.g. "Int" or "MyADT"
 */
 testCommonInteractions :: String -> Task a | iTask a
+
+
+/**
+* Test if all tests have passed
+*/
+allPassed :: TestReport -> Bool
+/**
+* Check if no tests have failed (skipped and passed)
+*/
+noneFailed :: TestReport -> Bool
 
 /**
 * Run all tests interactively and run all tests

@@ -59,29 +59,29 @@ optionalNewOrOpen :: (String,Task ()) (String,i -> Task ()) Workspace (ReadOnlyS
 optionalNewOrOpen (newLabel,newTask) (openLabel,openTask) ws selection
 	= forever (
 		watch selection >>*
-			[OnAction (Action newLabel [ActionIcon "add"]) (always (addToWorkspace (newTask <<@ InWindow) ws))
-			,OnAction (Action openLabel [ActionIcon "open"]) (ifValue isJust (\(Just c) -> addToWorkspace (doOrClose (openTask c)) ws))
+			[OnAction (Action newLabel) (always (addToWorkspace (newTask <<@ InWindow) ws))
+			,OnAction (Action openLabel) (ifValue isJust (\(Just c) -> addToWorkspace (doOrClose (openTask c)) ws))
 			]
 	)
 
 doAddRemoveOpen :: (Task a) (r -> Task b) (r -> Task c) Workspace (ReadWriteShared (Maybe r) w) -> Task () | iTask a & iTask b & iTask c & iTask r
 doAddRemoveOpen  add remove open ws selection = forever
 	(watch selection >>*
-		[OnAction (Action "/Add" [ActionIcon "add"])	    (always (addToWorkspace add ws))
-		,OnAction (Action "/Remove" [ActionIcon "remove"])  (ifValue isJust	(\(Just sel) -> addToWorkspace (remove sel) ws))
-		,OnAction (Action "/Open" [ActionIcon "open"])      (ifValue isJust	(\(Just sel) -> addToWorkspace (open sel) ws))
+		[OnAction (Action "/Add")	  (always (addToWorkspace add ws))
+		,OnAction (Action "/Remove")  (ifValue isJust	(\(Just sel) -> addToWorkspace (remove sel) ws))
+		,OnAction (Action "/Open")    (ifValue isJust	(\(Just sel) -> addToWorkspace (open sel) ws))
 		]
 	)
 
 //Move to util
 viewAndEdit :: (Task a) (Task b) -> Task b | iTask a & iTask b
 viewAndEdit view edit
-    = forever (view >>* [OnAction (Action "Edit" [ActionIcon "edit"]) (always edit)])
+    = forever (view >>* [OnAction (Action "Edit") (always edit)])
 
 //Move to common tasks
 viewOrEdit :: d (Shared a) (a a -> Task ()) -> Task () | toPrompt d & iTask a
 viewOrEdit prompt s log
-	= forever (view >>* [OnAction (Action "/Edit" [ActionIcon "edit"]) (hasValue edit)]) @! ()
+	= forever (view >>* [OnAction (Action "/Edit") (hasValue edit)]) @! ()
 where
 	view = viewSharedInformation prompt [] s
 	edit old
@@ -154,7 +154,7 @@ where
     allStable cur _             = False
 
     more list =   viewInformation () [] ()
-              >>* [OnAction (Action action [ActionIcon "add"]) (always (appendTask Embedded more list >>| task))]
+              >>* [OnAction (Action action) (always (appendTask Embedded more list >>| task))]
 
 manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (Shared [Int]) -> Task ()
 manageSharedListWithDetails detailsTask addTask refsList //Not the best implementation, but good enough for now
@@ -175,12 +175,12 @@ where
 manageBackgroundTask :: !d !String !String (Task a) -> Task () | toPrompt d & iTask a
 manageBackgroundTask d identity title task
     =   viewSharedInformation d [ViewAs (view title)] taskPid
-    >^* [OnAction (Action "Start" []) (ifValue isNothing startTask)
-        ,OnAction (Action "Stop" []) (ifValue isJust stopTask)
+    >^* [OnAction (Action "Start") (ifValue isNothing startTask)
+        ,OnAction (Action "Stop") (ifValue isJust stopTask)
         ]
     @!  ()
 where
-    view title t = let (color,statusmsg) = status t in Row (color,title +++ " is " +++ statusmsg)
+    view title t = let (color,statusmsg) = status t in (color,title +++ " is " +++ statusmsg)
     status Nothing              = (LightOff,"not activated")
     status (Just (taskId,None))      = (LightOnGreen,"running " <+++ taskId )
     status (Just (taskId,Unstable))  = (LightOnGreen,"running" <+++ taskId )

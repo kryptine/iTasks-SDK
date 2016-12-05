@@ -167,6 +167,7 @@
 }
 .#{$prefix}tabitem.#{$prefix}selected {
    display: flex;
+   border-top: 0;
 }
 
 /* Windows */
@@ -176,6 +177,8 @@
     left: 0px;
     z-index: 100;
     display: flex;
+    flex-direction: column;
+
     > .#{$prefix}inner {
         overflow: auto;
     }
@@ -217,7 +220,7 @@
     background: -webkit-linear-gradient(center top, $canvas-base-color + #0a0a0a, $canvas-base-color - #0a0907);
 
     > .#{$prefix}menu-item > a {
-        background-image: url('icons/menu-down.png');
+        background-image: url('#{$icon-path}menu-down.png');
         background-repeat: no-repeat;
         background-position: 95% center;
     }
@@ -242,7 +245,7 @@
         background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color);
         background: -webkit-linear-gradient(top, $button-base-color + #101010, $button-base-color);
         background-repeat: none;
-        background-image: url('icons/menu-down.png');
+        background-image: url('#{$icon-path}menu-down.png');
         background-repeat: no-repeat;
         background-position: 95% center;
 
@@ -290,7 +293,7 @@
         	border-radius: 0;
 			border-width: 0 0 1px 0;
 
-        	background-image: url('icons/menu-down.png');
+        	background-image: url('#{$icon-path}/menu-down.png');
 
 			&:hover {
 				background: #{$select-base-color};

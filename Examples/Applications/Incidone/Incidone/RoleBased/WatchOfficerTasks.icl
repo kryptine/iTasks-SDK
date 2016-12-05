@@ -17,13 +17,13 @@ keepWatch =	[browseCommunications,browseIncidents,browseContacts,browseActions]
 browseCommunications :: Workspace -> Task ()
 browseCommunications ws
     =   selectCommunication
-    >^* [OnAction (Action "/Add/Phone/Answer call"   [ActionIcon "phone-call"])                     (always createAndAnswerPhoneCall)
-		,OnAction (Action "/Add/Phone/Initiate call" [ActionIcon "phone-call"])                     (always createAndInitiatePhoneCall)
-		,OnAction (Action "/Add/Radio/Answer call"   [ActionIcon "vhf-call"])	                    (always createAndAnswerRadioCall)
-		,OnAction (Action "/Add/Radio/Initiate call" [ActionIcon "vhf-call"])                       (always createAndInitiateRadioCall)
-		,OnAction (Action "/Add/E-mail/Send message" [ActionIcon "email-message"])                  (always createAndComposeEmailMessage)
-		,OnAction (Action "/Add/P2000/Send message"  [ActionIcon "p2000-message"])                  (always createAndComposeP2000Message)
-		,OnAction (Action "/Open"                    [ActionIcon "open",ActionTrigger DoubleClick]) (hasValue (openCommunication ws))
+    >^* [OnAction (Action "/Add/Phone/Answer call")    (always createAndAnswerPhoneCall)
+		,OnAction (Action "/Add/Phone/Initiate call")  (always createAndInitiatePhoneCall)
+		,OnAction (Action "/Add/Radio/Answer call")	   (always createAndAnswerRadioCall)
+		,OnAction (Action "/Add/Radio/Initiate call")  (always createAndInitiateRadioCall)
+		,OnAction (Action "/Add/E-mail/Send message")  (always createAndComposeEmailMessage)
+		,OnAction (Action "/Add/P2000/Send message")   (always createAndComposeP2000Message)
+		,OnAction (Action "/Open")                     (hasValue (openCommunication ws))
         ] @! ()
 where
 	selectCommunication
@@ -47,8 +47,8 @@ browseIncidents :: Workspace -> Task ()
 browseIncidents ws
 	=	feedForward
     (   selectIncident
-        >^* [OnAction (Action "/Add incident" [ActionIcon "add"]) (always (createNewIncident <<@ InWindow @! ()))
-            ,OnAction (Action "/Open" [ActionIcon "open",ActionTrigger DoubleClick]) (hasValue (\i -> openIncidentInWorkspace ws i @! ()))
+        >^* [OnAction (Action "/Add incident") (always (createNewIncident <<@ InWindow @! ()))
+            ,OnAction (Action "/Open") (hasValue (\i -> openIncidentInWorkspace ws i @! ()))
             ]
     )
 	(	withSelection viewNoSelection viewIncidentDetails
@@ -67,10 +67,10 @@ browseContacts :: Workspace -> Task ()
 browseContacts ws
 	=	feedForward
     (   selectContact
-        >^* [(OnAction (Action "/Add contact" [ActionIcon "add"]) (always (addContact <<@ InWindow @! ())))
-            ,(OnAction (Action "/Open" [ActionIcon "open",ActionTrigger DoubleClick]) (ifValue (\c-> c=:(Left _)) (\(Left c) -> (openContactInWorkspace ws c) @! ())))
-            ,(OnAction (Action "/Quick update/Position" [ActionIcon "map"]) (ifValue (\c-> c=:(Left _)) (\(Left c) -> updateContactPosition c <<@ InWindow @! ())))
-            ,(OnAction (Action "/Quick update/Status" [ActionIcon "edit"]) (ifValue (\c-> c=:(Left _)) (\(Left c) -> updateContactStatus c <<@ InWindow @! ())))
+        >^* [(OnAction (Action "/Add contact") (always (addContact <<@ InWindow @! ())))
+            ,(OnAction (Action "/Open") (ifValue (\c-> c=:(Left _)) (\(Left c) -> (openContactInWorkspace ws c) @! ())))
+            ,(OnAction (Action "/Quick update/Position") (ifValue (\c-> c=:(Left _)) (\(Left c) -> updateContactPosition c <<@ InWindow @! ())))
+            ,(OnAction (Action "/Quick update/Status") (ifValue (\c-> c=:(Left _)) (\(Left c) -> updateContactStatus c <<@ InWindow @! ())))
             ]
     )
 	(   withSelection viewNoSelection viewDetails
@@ -99,7 +99,7 @@ derive class iTask ActionSet, ActionShort
 browseActions :: Workspace -> Task ()
 browseActions ws
 	=	selectAndWorkOnActions
-    >^* [OnAction (Action "/Add action" [ActionIcon "add"]) (always (addTopActionItem [] []))]
+    >^* [OnAction (Action "/Add action") (always (addTopActionItem [] []))]
 	@!  ()
 where
 	selectAndWorkOnActions

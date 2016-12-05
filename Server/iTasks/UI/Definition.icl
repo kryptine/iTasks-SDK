@@ -5,7 +5,7 @@ from Data.Map import :: Map (..)
 from Data.Functor import class Functor(..)
 import qualified Data.Map as DM
 import qualified Data.List as DL
-from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action(..)
+from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: Action(..)
 
 from iTasks._Framework.Generic import class iTask(..)
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
@@ -221,10 +221,6 @@ instance encodeUI Document			where encodeUI v = toJSON v
 instance encodeUI Date				where encodeUI v = toJSON v
 instance encodeUI Time				where encodeUI v = toJSON v
 instance encodeUI HtmlTag			where encodeUI v = JSONString (toString v)
-instance encodeUI ProgressAmount
-where
-	encodeUI ProgressUndetermined = JSONString "undetermined"
-	encodeUI (ProgressRatio ratio)	= JSONReal ratio
 
 instance encodeUI JSONNode
 where

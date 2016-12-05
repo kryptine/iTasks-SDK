@@ -54,8 +54,14 @@ play_Ligretto
 	>>= \me   -> invite_friends
 	>>= \them -> let us = zip2 (colors (1+length them)) [me : them]
 	              in allTasks (repeatn (length us) (get randomInt))
-	>>= \rs   -> let gameSt = init_gameSt us rs
+	>>= \rs   -> let gameSt = init_gameSt us (map limitInt rs)
 	              in withShared gameSt (play_game us)
+
+MAX_JS_INT :== 0x7FFFFFFE
+
+limitInt n
+  | n < MAX_JS_INT = n
+  | otherwise      = MAX_JS_INT
 
 init_gameSt :: [(Color,User)] [Int] -> GameSt
 init_gameSt us rs
@@ -152,7 +158,7 @@ black       :== toSVGColor "black"
 card_shape  :== rect card_width card_height <@< {xradius = card_height /. 18} <@< {yradius = card_height /. 18}
 
 //no_card_image :: Image m
-no_card_image   :== overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] (Just (card_shape <@< {fill = toSVGColor "lightgrey"}))
+no_card_image   :== overlay [(AtMiddleX,AtMiddleY)] [] [text (pilefont 12.0) "empty"] (Host (card_shape <@< {fill = toSVGColor "lightgrey"}))
 
 big_no no color :== text (cardfont 20.0) (toString no) <@< {fill   = white}
                                                        <@< {stroke = toSVGColor color}
@@ -161,7 +167,7 @@ ligretto  color :== text (cardfont 12.0) "Ligretto"    <@< {fill   = toSVGColor 
 
 card_image :: !SideUp !Card -> Image m
 card_image side card
-  #! host = Just (card_shape <@< {fill = if (side === Front) (toSVGColor card.front) white})
+  #! host = Host (card_shape <@< {fill = if (side === Front) (toSVGColor card.front) white})
   | side === Front
      #! no = margin (px 5.0)
                (big_no card.no (no_stroke_color card.front))
@@ -178,14 +184,14 @@ card_image side card
 pile_of_cards :: !SideUp !Pile -> Image m
 pile_of_cards side pile
   = overlay [] [(zero,card_height /. 18 *. dy) \\ dy <- [0 .. ]]
-               (map (card_image side) (reverse pile)) (Just no_card_image)
+               (map (card_image side) (reverse pile)) (Host no_card_image)
 
 pile_image :: !SideUp !Pile -> Image m
 pile_image side pile
   #! no_of_cards     = length pile
   #! top_cards       = take 10 pile
   #! top_cards_image = pile_of_cards side top_cards
-  | no_of_cards > 10 = above [AtMiddleX] [] [text (pilefont 10.0) (toString no_of_cards),top_cards_image] Nothing
+  | no_of_cards > 10 = above [] [AtMiddleX] [] [text (pilefont 10.0) (toString no_of_cards),top_cards_image] NoHost
   | otherwise        = top_cards_image
 
 row_images :: !Bool !RowPlayer -> [Image GameSt]
@@ -230,7 +236,7 @@ name_image {Player | name,color}
  # height = card_width  *. 0.4
  = overlay [(AtMiddleX,AtMiddleY)] []
      [text {FontDef | cardfont 16.0 & fontweight = "bold"} name <@< { FillAttr | fill = if (color === Yellow) black white}]
-     (Just (rect width height <@< { FillAttr | fill = toSVGColor color}))
+     (Host (rect width height <@< { FillAttr | fill = toSVGColor color}))
      <@< { MaskAttr | mask = rect width height <@< { FillAttr | fill = white} <@< { StrokeAttr | stroke = white}}
 
 names_image :: !Span ![Player] -> Image m
@@ -252,7 +258,7 @@ game_image color {players,middle}
              , names_image   (card_height *. 3.2) players       // the middle tier: the player names
              , players_image (card_height *. 4) color players   // outer-most tier: the player cards
              ]
-            ) (Just (empty (card_height *. 12) (card_height *. 12)))
+            ) (Host (empty (card_height *. 12) (card_height *. 12)))
 
 //	a generally useful image combinator:
 circular :: !Span !Real ![Image m] -> Image m
@@ -264,7 +270,7 @@ circular r a imgs
   = overlay (repeat (AtMiddleX,AtMiddleY))
                     [(~r *. cos angle,~r *. sin angle) \\ i <- [0.0, sign_a ..], angle <- [i*alpha - 0.5*pi]]
                     [rotate (rad (i*alpha)) img \\ i <- [0.0, sign_a ..] & img <- imgs]
-                    (Just (empty (r *. 2) (r *. 2)))              // BUG: using Nothing creates incorrect image (offset to left)
+                    (Host (empty (r *. 2) (r *. 2)))              // BUG: using Nothing creates incorrect image (offset to left)
 
 pi =: 3.14159265359
 

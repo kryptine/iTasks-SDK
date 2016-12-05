@@ -16,7 +16,7 @@ import Incidone.Extensions.CrewLists
 //Local additional view types
 :: CommunicationAttempt =
     { method            :: String
-    , details           :: Note
+    , details           :: String
     , success           :: Bool
     }
 
@@ -64,7 +64,7 @@ toActionStatusesTL items = [toActionStatusTL i \\ i=:{TaskListItem|progress=Just
 toActionStatus :: TaskInstance -> (InstanceNo,InstanceNo,ActionStatus)
 toActionStatus {TaskInstance|instanceNo=tNo,listId=(TaskId lNo _),attributes}
     # title		    = fromMaybe "-" ('DM'.get "title" attributes)
-    # description   = fmap Note ('DM'.get "description" attributes)
+    # description   = 'DM'.get "description" attributes
     # progress  = fromMaybe ActionActive (maybe Nothing (fromJSON o fromString) ('DM'.get "action-progress" attributes))
     # incidents = fromMaybe [] (maybe Nothing (fromJSON o fromString) ('DM'.get "action-incidents" attributes))
     # contacts  = fromMaybe [] (maybe Nothing (fromJSON o fromString) ('DM'.get "action-contacts" attributes))
@@ -73,7 +73,7 @@ toActionStatus {TaskInstance|instanceNo=tNo,listId=(TaskId lNo _),attributes}
 toActionStatusTL :: (TaskListItem a) -> (InstanceNo,InstanceNo,ActionStatus)
 toActionStatusTL {TaskListItem|taskId=(TaskId tNo _),listId=(TaskId lNo _),attributes}
     # title		    = fromMaybe "-" ('DM'.get "title" attributes)
-    # description   = fmap (Note ) ('DM'.get "description" attributes)
+    # description   = 'DM'.get "description" attributes
     # progress  = fromMaybe ActionActive (maybe Nothing (fromJSON o fromString) ('DM'.get "action-progress" attributes))
     # incidents = fromMaybe [] (maybe Nothing (fromJSON o fromString) ('DM'.get "action-incidents" attributes))
     # contacts  = fromMaybe [] (maybe Nothing (fromJSON o fromString) ('DM'.get "action-contacts" attributes))
@@ -82,7 +82,7 @@ toActionStatusTL {TaskListItem|taskId=(TaskId tNo _),listId=(TaskId lNo _),attri
 fromActionStatus :: ActionStatus TaskAttributes -> TaskAttributes
 fromActionStatus {ActionStatus|title,description,progress,incidents,contacts} attributes
     # attributes = 'DM'.put "title" title attributes
-    # attributes = maybe ('DM'.del "description" attributes) (\(Note d) -> 'DM'.put "description" d attributes) description
+    # attributes = maybe ('DM'.del "description" attributes) (\d -> 'DM'.put "description" d attributes) description
     # attributes = 'DM'.put "action-progress"  (toString (toJSON progress)) attributes
     # attributes = 'DM'.put "action-incidents" (toString (toJSON incidents)) attributes
     # attributes = 'DM'.put "action-contacts"  (toString (toJSON contacts)) attributes
@@ -195,10 +195,10 @@ where
 updateSharedActionStatus :: (Shared ActionStatus) -> Task ActionStatus
 updateSharedActionStatus status
     = watch status
-        >^* [OnAction (Action "Mark active" [ActionIcon "action-active"]) (ifValue (ifProgress ActionActive) (\_ -> setProgress ActionActive status))
-            ,OnAction (Action "Mark completed" [ActionIcon "action-completed"]) (ifValue (ifProgress ActionCompleted) (\_ -> setProgress ActionCompleted status))
-            ,OnAction (Action "Mark failed" [ActionIcon "action-failed"]) (ifValue (ifProgress ActionFailed) (\_ -> setProgress ActionFailed status))
-            ,OnAction (Action "Mark canceled" [ActionIcon "action-canceled"]) (ifValue (ifProgress ActionCanceled) (\_ -> setProgress ActionCanceled status))
+        >^* [OnAction (Action "Mark active") (ifValue (ifProgress ActionActive) (\_ -> setProgress ActionActive status))
+            ,OnAction (Action "Mark completed") (ifValue (ifProgress ActionCompleted) (\_ -> setProgress ActionCompleted status))
+            ,OnAction (Action "Mark failed") (ifValue (ifProgress ActionFailed) (\_ -> setProgress ActionFailed status))
+            ,OnAction (Action "Mark canceled") (ifValue (ifProgress ActionCanceled) (\_ -> setProgress ActionCanceled status))
             ]
 where
     ifProgress p {ActionStatus|progress} = p =!= progress
@@ -446,8 +446,8 @@ where
             -&&-
             //View communications tried to complete this action
             (enterChoiceWithShared "Attempts:" [ChooseFromGrid viewAttempt] attempts
-            >^* [OnAction (Action "Make Phone Call" []) (always (addPhoneCall status attempts))
-                ,OnAction (Action "Send P2000 Message" []) (always (addP2000Message status attempts))
+            >^* [OnAction (Action "Make Phone Call") (always (addPhoneCall status attempts))
+                ,OnAction (Action "Send P2000 Message") (always (addP2000Message status attempts))
                 ]
             ))
     addPhoneCall status attempts
@@ -471,15 +471,15 @@ where
                 = upd (updateState (Just communicationNo)) (attempts >+< status) @! ()
 
     viewAttempt communicationNo
-        = {CommunicationAttempt|method="Phone",details= Note "-",success = isJust communicationNo}
+        = {CommunicationAttempt|method="Phone",details= "-",success = isJust communicationNo}
 
     updateState communicationNo (attempts,status)
         = (attempts ++ [communicationNo], {ActionStatus|status & progress = if (isJust communicationNo) ActionCompleted ActionFailed})
 
-    initMessageFromTemplate communicationNo contactNo tpl=:{P2000Message|prio,body=Note body}
+    initMessageFromTemplate communicationNo contactNo tpl=:{P2000Message|prio,body=body}
         =   get (sdsFocus contactNo contactByNo)
         >>- \contact ->
-            set {P2000Message|tpl & body = Note (replaceAll [("{prio}",toString prio),("{contact_name}",contactTitle contact)] body)}
+            set {P2000Message|tpl & body = replaceAll [("{prio}",toString prio),("{contact_name}",contactTitle contact)] body}
                 (sdsFocus communicationNo p2000MessageByNo)
         @! ()
     where
@@ -613,12 +613,12 @@ where
 manageActionStatus :: InstanceNo -> Task ActionStatus
 manageActionStatus instanceNo
     =   viewSharedInformation () [ViewAs view] status
-    >^* [OnAction (Action "Mark active" [ActionIcon "action-active"]) (ifValue (ifProgress ActionActive) (\_ -> setProgress ActionActive status))
-        ,OnAction (Action "Mark completed" [ActionIcon "action-completed"]) (ifValue (ifProgress ActionCompleted) (\_ -> setProgress ActionCompleted status))
-        ,OnAction (Action "Mark failed" [ActionIcon "action-failed"]) (ifValue (ifProgress ActionFailed) (\_ -> setProgress ActionFailed status))
-        ,OnAction (Action "Mark canceled" [ActionIcon "action-canceled"]) (ifValue (ifProgress ActionCanceled) (\_ -> setProgress ActionCanceled status))
-        ,OnAction (Action "Edit" [ActionIcon "edit"]) (always (editActionItem instanceNo))
-        ,OnAction (Action "Delete" [ActionIcon "delete"]) (always (deleteActionItem instanceNo))
+    >^* [OnAction (Action "Mark active") (ifValue (ifProgress ActionActive) (\_ -> setProgress ActionActive status))
+        ,OnAction (Action "Mark completed") (ifValue (ifProgress ActionCompleted) (\_ -> setProgress ActionCompleted status))
+        ,OnAction (Action "Mark failed") (ifValue (ifProgress ActionFailed) (\_ -> setProgress ActionFailed status))
+        ,OnAction (Action "Mark canceled") (ifValue (ifProgress ActionCanceled) (\_ -> setProgress ActionCanceled status))
+        ,OnAction (Action "Edit") (always (editActionItem instanceNo))
+        ,OnAction (Action "Delete") (always (deleteActionItem instanceNo))
         ]
 where
     status = sdsFocus instanceNo actionStatusByNo
@@ -683,7 +683,7 @@ manageSubActions plan status list
 manageCurrentSubActionItems :: (Shared ActionStatus) (SharedTaskList ()) -> Task ()
 manageCurrentSubActionItems status list
     =   enterChoiceWithShared (Title "Current Actions") [ChooseFromGrid (format o thd3)] (subTaskItems list)
-    >^* [OnAction (Action "Add action" [ActionIcon "add"]) (always (get status >>- \{ActionStatus|contacts,incidents} -> addSubAction contacts incidents list))]
+    >^* [OnAction (Action "Add action") (always (get status >>- \{ActionStatus|contacts,incidents} -> addSubAction contacts incidents list))]
     @!  ()
 where
     //Filter the list for detached items
@@ -699,7 +699,7 @@ addSuggestedSubActionItems plan status list
     =   plan.suggestedActions
     >&> \suggestions ->
         enterChoiceWithShared (Title "Suggested actions") [/*ChooseFromTree group*/] (mapRead (fromMaybe []) suggestions)
-        >^* [OnAction (Action "Add" [ActionIcon "add",ActionTrigger DoubleClick]) (hasValue (\i -> get status >>- \{ActionStatus|contacts,incidents} -> addSubActionItem contacts incidents i list))]
+        >^* [OnAction (Action "Add") (hasValue (\i -> get status >>- \{ActionStatus|contacts,incidents} -> addSubActionItem contacts incidents i list))]
         @!  ()
 /*
 where
@@ -763,11 +763,11 @@ initAttributes identity status
 manageUserActionCatalog :: Task ()
 manageUserActionCatalog
     =   enterChoiceWithShared (Title "Action catalog") [] userActionCatalog
-    >^* [OnAction (Action "/Add" []) (always (addCatalogItem <<@ InWindow))
-        ,OnAction (Action "/Edit" []) (hasValue (\i -> editCatalogItem i <<@ InWindow))
-        ,OnAction (Action "/Remove" []) (hasValue (\i -> removeCatalogItem i <<@ InWindow))
-        ,OnAction (Action "/Import" []) (always (importCatalog <<@ InWindow))
-        ,OnAction (Action "/Export" []) (always (exportCatalog <<@ InWindow))
+    >^* [OnAction (Action "/Add") (always (addCatalogItem <<@ InWindow))
+        ,OnAction (Action "/Edit") (hasValue (\i -> editCatalogItem i <<@ InWindow))
+        ,OnAction (Action "/Remove") (hasValue (\i -> removeCatalogItem i <<@ InWindow))
+        ,OnAction (Action "/Import") (always (importCatalog <<@ InWindow))
+        ,OnAction (Action "/Export") (always (exportCatalog <<@ InWindow))
         ]
     @! ()
 where
@@ -793,6 +793,9 @@ where
             >>- viewInformation "An export file has been created" []
             @!  ()
             ) <<@ Title "Export actions"
+	where
+		paddedDateTimeString {DateTime|year,mon,day,hour,min,sec}
+			= toString year +++ toString mon +++ toString day +++ toString hour +++ toString min +++ toString sec
 
     importCatalog
         =   doOrClose (
@@ -809,3 +812,4 @@ where
             (PTag [] [Text "Please select a JSON export file to upload.",BrTag []
                      ,Text "The file needs to be formatted like ",ATag [HrefAttr "/demo-content/actioncatalog.json",TargetAttr "_blank"] [Text "actioncatalog.json"]
                      ])
+

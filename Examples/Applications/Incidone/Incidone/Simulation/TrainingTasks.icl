@@ -13,7 +13,7 @@ simulatePhoneCalls :: Task ()
 simulatePhoneCalls
     = forever (
             enterInformation ("Simulate phonecall","Type a phonenumber or leave blank for a call without caller identification") []
-        >>* [OnAction (Action "Place call" []) (hasValue (\num -> reportPhoneCallBegin num Nothing))]
+        >>* [OnAction (Action "Place call") (hasValue (\num -> reportPhoneCallBegin num Nothing))]
      ) @! ()
 
 
@@ -21,7 +21,7 @@ simulateEmail :: Task ()
 simulateEmail
     = forever (
             enterInformation ("Simulate e-mail","Type an e-mail message and press send to deliver it to Incidone directly") []
-        >>* [OnAction (Action "Send" []) (hasValue injectEmail)]
+        >>* [OnAction (Action "Send") (hasValue injectEmail)]
     ) @! ()
 
 simulateAIS :: Task ()
@@ -31,17 +31,18 @@ simulateAIS
 where
     simulate
        =   get applicationDirectory
-       >>- \dir -> forever (simulateStep (dir</> "Demo-content"</>"AIS"))
+       //>>- \dir -> forever (simulateStep (dir</> "Demo-content"</>"AIS"))
 
     simulateStep contentDir
-       =   get currentTime
+       =   get currentTime //Fixme
+/*
        >>- \now -> let updateTime = nextUpdate now in
            waitForTime updateTime
        >>- \_ -> let fileName = (contentDir </> updatesFile updateTime) in
            importTextFile fileName
        >>- \content ->
            injectAISUpdates fileName (split "\n" content)
-
+*/
     nextUpdate :: Time -> Time //Round time on 10 seconds
     nextUpdate time = time + {Time|hour=0,min=0,sec=10 - (time.Time.sec rem 10)}
 

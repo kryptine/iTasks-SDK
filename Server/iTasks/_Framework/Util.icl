@@ -22,8 +22,6 @@ list2mb	:: ![a] -> (Maybe [a])
 list2mb [] = Nothing
 list2mb a = (Just a)
 
-decFormat :: !Int -> String
-decFormat x = toString (x / 100) +++ "." +++ lpad (toString (x rem 100)) 2 '0'
 
 currentLocalDateTimeWorld :: !*World -> (!DateTime,!*World)
 currentLocalDateTimeWorld world = appFst tmToDateTime (localTime world)

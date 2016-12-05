@@ -105,7 +105,7 @@
                 margin: -15px 0 0 -44px;
                 display: block;
                 height: 1em;
-                background: url(icons/toggle-small-expand.png) 42px -3px no-repeat;
+                background: url('#{$icon-path}toggle-small-expand.png') 42px -3px no-repeat;
 
                 > li {
                     display: none;
@@ -117,7 +117,7 @@
                 margin: -20px 0 0 -44px;
                 padding: 20px 0 0 80px;
                 height: auto;
-                background: url(icons/toggle-small.png) 42px 0 no-repeat;
+                background: url('#{$icon-path}/toggle-small.png') 42px 0 no-repeat;
 
                 > li {
                     display: block;
@@ -147,10 +147,10 @@
             background-repeat: no-repeat;
         }
         label.#{$prefix}default-folder {
-            background-image: url('icons/folder.png');
+            background-image: url('#{$icon-path}folder.png');
         }
         label.#{$prefix}default-leaf {
-            background-image: url('icons/document.png');
+            background-image: url('#{$icon-path}document.png');
         }
     }
 }

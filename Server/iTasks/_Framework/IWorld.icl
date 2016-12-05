@@ -30,6 +30,7 @@ from Data.Set import :: Set, newSet
 from Sapl.Linker.LazyLinker import generateLoaderState, :: LoaderStateExt, :: LoaderState, :: FuncTypeMap, :: LineType
 from Sapl.Linker.SaplLinkerShared import :: SkipSet
 from Sapl.Target.Flavour import :: Flavour, toFlavour
+from Sapl.SaplParser import :: ParserState
 
 //The following modules are excluded by the SAPL -> Javascript compiler
 //because they contain functions implemented in ABC code that cannot
@@ -71,7 +72,6 @@ createIWorld appName mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 					= (appWebDirs ++ libWebDirs,world)	
 				Nothing
 					= (appWebDirs,world)
-    # (customCSS,world)    = checkCustomCSS appName webdirPaths world 
 	# (res,world)				= getFileInfo appPath world
 	| isError res				= abort "Cannot get executable info."
 	# tm						= (fromOk res).lastModifiedTime
@@ -96,7 +96,6 @@ createIWorld appName mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 			,saplDirectory 			= saplDir
 			,saplFlavourFile 		= flavourPath
             }
-        ,customCSS  = customCSS 
         }
 	  ,config				= initialConfig
       ,clocks =
@@ -209,13 +208,6 @@ where
 		    = case mbInfo of
 			    Ok info	| info.directory	= determineWebPublicDirs path world //Continue search
                 _                           = ([],world)
-
-checkCustomCSS :: !String ![FilePath] !*World -> (!Bool, !*World)
-checkCustomCSS appName [] world = (False,world)
-checkCustomCSS appName [d:ds] world 
-	# (exists,world) = fileExists (d </> addExtension appName "css") world
-	| exists 	= (True,world)
-				= checkCustomCSS appName ds world
 
 destroyIWorld :: !*IWorld -> *World
 destroyIWorld iworld=:{IWorld|world} = world

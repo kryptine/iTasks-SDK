@@ -1,7 +1,7 @@
 implementation module iTasks.UI.Layout.Common
 
 import iTasks.UI.Layout, iTasks.UI.Layout.Default
-import iTasks.UI.Definition
+import iTasks.UI.Definition, iTasks.UI.Prompt
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
 import qualified Data.Map as DM
 import StdBool
@@ -66,7 +66,9 @@ beforeStep layout = conditionalLayout (\n -> n =:(UI UIStep _ _)) layout //TODO:
 
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
 toWindow windowType vpos hpos = sequenceLayouts 
-	[setNodeType UIWindow
+	[wrapUI UIWindow
+	,copyAttributes [TITLE_ATTRIBUTE] [0] []
+	,layoutSubAt [0] (delAttributes [TITLE_ATTRIBUTE])
 	,setAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
 	]
 

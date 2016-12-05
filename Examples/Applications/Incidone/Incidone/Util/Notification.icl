@@ -11,9 +11,9 @@ notifications = sharedStore "notifications" []
 currentNotifications :: ReadOnlyShared [String]
 currentNotifications = mapRead prj (currentDateTime |+| notifications)
 where
-    prj (now,notifications) = [msg \\ (dt,msg) <- notifications | now - dt < limit]
+    prj (now,notifications) = [msg \\ (dt,msg) <- notifications /* | now - dt < limit*/]
 
-    limit = DateTime {Date|day=0,mon=0,year=0} {Time|hour=0,min=0,sec=5}
+    //limit = DateTime {Date|day=0,mon=0,year=0} {Time|hour=0,min=0,sec=5}
 
 addNotification :: String -> Task ()
 addNotification msg

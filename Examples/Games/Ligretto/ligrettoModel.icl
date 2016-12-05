@@ -71,7 +71,7 @@ initial_player_cards no_of_players back
 
 shuffle :: ![a] !Int -> [a]
 shuffle xs seed
-	= fst (unzip (sortBy (\(_,r1) (_,r2) -> (r1 < r2)) (zip2 xs (genRandInt (abs seed)))))
+	= fst (unzip (sortBy (\(_,r1) (_,r2) -> (r1 < r2)) (zip2 xs (genRandInt (abs seed + 1)))))
 
 initial_player :: !NoOfPlayers !Color !String !Int -> Player
 initial_player no_of_players back name seed
@@ -111,7 +111,7 @@ shuffle_hand player=:{hand=hand=:{conceal,discard},seed}
                       }
 | otherwise         = abort ("ligretto.shuffle_hand: not allowed to shuffle non-empty concealed pile.\n")
 where
-	[r1,r2:_]		= genRandInt (abs seed)
+	[r1,r2:_]		= genRandInt (abs seed + 1)
 
 remove_top_of_discard :: !Player -> Player
 remove_top_of_discard player=:{hand=hand=:{conceal,discard}}

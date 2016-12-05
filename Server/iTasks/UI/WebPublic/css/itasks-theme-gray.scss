@@ -1,3 +1,10 @@
+/*
+ SASS-Themable stylesheet for iTasks javascript UI library
+ You can customize this to create branded iTask applications.
+*/
+@import "options.scss";
+
+/* Custom colors: */
 $canvas-base-color: #eee;
 $canvas-text-color: #000;
 
@@ -18,3 +25,11 @@ $tab-border-color: #ccc;
 
 $select-base-color: #333;
 $select-text-color: #fff;
+
+/* Include shared styles */
+@import "itasks-core.scss";
+@import "itasks-components-raw.scss";
+@import "itasks-components-container.scss";
+@import "itasks-components-form.scss";
+@import "itasks-components-display.scss";
+@import "itasks-components-selection.scss";
