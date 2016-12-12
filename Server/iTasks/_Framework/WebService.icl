@@ -118,7 +118,9 @@ wsockMsgFrame :: !Int !Bool !String -> String
 wsockMsgFrame opcode final payload 
 	| num_bytes < 125   = frame num_bytes "" payload
 	| num_bytes < 65536 = frame 126 {toChar (num_bytes >> (8*i)) \\ i <- [1,0]} payload
-	| otherwise         = frame 127 {toChar (num_bytes >> (8*i)) \\ i <- [7,6,5,4,3,2,1,0]} payload
+	| otherwise         = IF_INT_64_OR_32
+							(frame 127 {toChar (num_bytes >> (8*i)) \\ i <- [7,6,5,4,3,2,1,0]} payload)
+							(frame 127 {toChar (if (i < 4) (num_bytes >> (8*i)) 0) \\ i <- [7,6,5,4,3,2,1,0]} payload)
 where
 	num_bytes = size payload
 	frame payload_length ext_payload_length payload
