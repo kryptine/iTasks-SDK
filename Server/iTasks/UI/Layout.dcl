@@ -1,149 +1,91 @@
 definition module iTasks.UI.Layout
+/**
+* This module provides a simple DSL for creating layouts.
+* Layouts are stateful transformations on a stream of UIChange events.
+* They rearrange UI's when they are initially created and modify incremental
+* updates that are later applied accordingly.
+*/
 
-import iTasks.API.Core.Types
 from iTasks.API.Core.TaskCombinators import class tune
-
-import iTasks.UI.Definition
+from iTasks.UI.Definition import :: UI, :: UINodeType, :: UIAttributes, :: UIChange
 
 from Data.Maybe import :: Maybe
+from Data.Map import :: Map
+from Text.JSON import :: JSONNode
 
-// Definition of a layout as collection of combination functions
-:: LayoutRules =
-	{ accuInteract	:: UIAttributes UIForm                  -> UIForm       //Combine the prompt and editor of an interact
-	, accuStep		:: UIDef [UIAction]                     -> UIDef		//Combine current definition with the step actions
-	, accuParallel	:: [UIDef] [UIAction]                   -> UIDef		//Combine the prompt, parts of a parallel composition and possible actions
-	, accuWorkOn	:: UIDef TaskAttributes                 -> UIDef		//When a detached task is worked on
+// When a layout changes the stucture of the UI, changes to the UI have to be
+// changed too to route the changes to the correct place in the structure
+:: Layout      :== LayoutFun JSONNode
+:: LayoutFun s :== (UIChange,s) -> (UIChange,s)
 
-    , layoutSubEditor	:: UIForm                           -> [(UIControl,UIAttributes)] //Combine multiple controls in editors
-    , layoutForm        :: UIForm                           -> UIBlock              //Lay out the controls of a control stack to create a sub-user interface
-    , layoutBlocks      :: [UIBlock] [UIAction]             -> UIBlock              //Combine a stack of sub-user interfaces into one
-	}
+// These types are used to control when to apply layout in a task composition
+:: ApplyLayout	= ApplyLayout Layout
 
-:: UIFormCombinator     :== UIForm -> UIBlock
-:: UIBlocksCombinator   :== [UIBlock] [UIAction] -> UIBlock
+instance tune	ApplyLayout //Apply a modification after a layout has been run
 
-// These types are used to specify modifications to layouts
-:: SetLayout	= SetLayout LayoutRules
-:: AfterLayout	= AfterLayout (UIDef -> UIDef)
-:: ModifyLayout	= ModifyLayout (LayoutRules -> LayoutRules)
+// In specifications of layouts, sub-parts of UI's are commonly addressed as 
+// a path of child selections in the UI tree.
+:: NodePath :== [Int]
 
-:: SetValueAttribute a = SetValueAttribute !String (a -> String)
+//Basic DSL for creating more complex layouts
 
-/**
-* This is a layout that aims to automatically determine a simple, but
-* functional and visually pleasing layout by following some simple layout heuristics.
-*/
-autoLayoutRules :: LayoutRules
+// == Changing node types ===
+setNodeType :: UINodeType -> Layout
 
-//Partial layouts of autolayout
-autoAccuInteract        :: UIAttributes UIForm -> UIForm
-autoAccuStep            :: UIDef [UIAction]-> UIDef
-autoAccuParallel        :: [UIDef] [UIAction] -> UIDef
-autoAccuWorkOn          :: UIDef TaskAttributes -> UIDef
+// == Changing attributes ===
+setAttributes :: UIAttributes -> Layout
+delAttributes :: [String] -> Layout
+copyAttributes :: [String] NodePath NodePath -> Layout
+copyAllAttributes :: NodePath NodePath -> Layout
+modifyAttribute :: String (JSONNode -> UIAttributes) -> Layout
 
-autoLayoutSubEditor     :: UIForm -> [(UIControl,UIAttributes)]
-autoLayoutForm          :: UIForm -> UIBlock
-autoLayoutBlocks        :: [UIBlock] [UIAction] -> UIBlock
+// === Changing the structure of the tree ===
 
-//Applied automatically when a published has a UI other than UIFinal
-autoLayoutFinal        :: UIDef -> UIDef
+//* Create a new UI node which has the original UI as its only child.
+wrapUI :: UINodeType -> Layout
 
-//Alternative plain final layout
-plainLayoutFinal       :: UIDef -> UIDef
+//* Replace the UI by its first child. 
+unwrapUI :: Layout
 
-//Placement tuning types
-:: ToWindow     = ToWindow UIWindowType UIVAlign UIHAlign
+//* Flatten the tree of children in pre-order
+flattenUI :: Layout
 
-InWindow                :== InFloatingWindow  //Indicate that a task should be put in a window
-InFloatingWindow        :== ToWindow FloatingWindow AlignMiddle AlignCenter
-InNotificationBubble    :== ToWindow NotificationBubble AlignTop AlignRight
-InModalDialog           :== ToWindow ModalDialog AlignMiddle AlignCenter
+//* Reorder a static part of a UI
+reorderUI :: (UI -> UI) -> Layout 
 
-:: InPanel          = InPanel           //Indicate that a task should be wrapped in a panel
-:: InContainer      = InContainer       //Indicate that a task should be wrapped in a panel
-:: FullScreen       = FullScreen        //Indicate that the full screen space should be used during final layout
+//Operations on single specific sub-UI's indicated by a path
+insertSubAt :: NodePath UI       -> Layout
+removeSubAt :: NodePath          -> Layout
+moveSubAt   :: NodePath NodePath -> Layout
 
-instance tune ToWindow
-instance tune InPanel
-instance tune InContainer
-instance tune FullScreen
+//Group operations on selections of sub-UI's
+removeSubsMatching :: NodePath (UI -> Bool)          -> Layout
+moveSubsMatching   :: NodePath (UI -> Bool) NodePath -> Layout
+moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
 
-//Attribute tuning types
-instance tune Title
-instance tune Label
-instance tune Icon
-instance tune Attribute
 
-:: NoUserInterface  = NoUserInterface   //Don't create a user interface for this task
-instance tune NoUserInterface
+//Composition of layouts
+sequenceLayouts   :: [Layout]               -> Layout
+selectLayout      :: [(UI -> Bool, Layout)] -> Layout
+conditionalLayout :: (UI -> Bool) Layout    -> Layout
 
-:: ForceLayout = ForceLayout            //Force layout ofo accumulated user interface parts so far
-instance tune ForceLayout
+layoutSubAt        :: NodePath Layout   -> Layout
+layoutSubsMatching :: NodePath (UI -> Bool) Layout -> Layout
+layoutSubsOfType   :: NodePath [UINodeType] Layout -> Layout
+layoutChildrenOf   :: NodePath Layout -> Layout
 
-//Alternative block combinators and their layout tuning types
-:: ArrangeVertical = ArrangeVertical
-instance tune ArrangeVertical
-arrangeVertical         ::                      UIBlocksCombinator
+//Easier debugging
+traceLayout :: String Layout -> Layout
 
-:: ArrangeHorizontal = ArrangeHorizontal
-instance tune ArrangeHorizontal
-arrangeHorizontal       ::                      UIBlocksCombinator
+//TYPES EXPORTED FOR TESTING
+:: NodeMoves :== [(Int,NodeMove)] 
+:: NodeMove = BranchMoved
+            | ChildBranchesMoved NodeMoves
 
-:: ArrangeWithTabs = ArrangeWithTabs
-instance tune ArrangeWithTabs
-arrangeWithTabs         ::                      UIBlocksCombinator
-
-:: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool
-instance tune ArrangeWithSideBar
-/*
-* @param Index of the task in the set that should be put in the sidebar
-* @param Location of the sidebar
-* @param Initial size of the sidebar
-* @param Enable resize?
-*/
-arrangeWithSideBar      :: !Int !UISide !Int !Bool -> UIBlocksCombinator
-
-/*
-* @param Direction to split the available space in
-* @param Enable resize?
-*/
-:: ArrangeSplit = ArrangeSplit !UIDirection !Bool
-instance tune ArrangeSplit
-arrangeSplit            :: !UIDirection !Bool -> UIBlocksCombinator
-
-:: ArrangeCustom = ArrangeCustom UIBlocksCombinator
-instance tune ArrangeCustom
-
-blockToControl      :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-blockToContainer    :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-blockToPanel        :: UIBlock -> (UIControl,UIAttributes,[UIAction],[UIKeyAction])
-
-//Combinators on interface definitions
-hjoin :: ![UIControl] -> UIControl
-vjoin :: ![UIControl] -> UIControl
-
-//Operations on containers
-addItemToUI		:: (Maybe Int) UIControl UIControl -> UIControl
-getItemsOfUI	:: UIControl -> [UIControl]
-setItemsOfUI	:: [UIControl] UIControl -> UIControl
-
-//Coercion between different types of containers
-toPanel			:: !UIControl -> UIControl
-toContainer		:: !UIControl -> UIControl
-
-//Predefined panels
-buttonPanel		:: ![UIControl]	-> UIControl	//Container for a set of horizontally layed out buttons
-
-mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
-
-//Predefined action placement
-actionsToButtons			:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
-actionsToMenus				:: ![UIAction]	-> (![UIControl],![UIKeyAction],![UIAction])
-actionsToCloseId			:: ![UIAction]	-> (!Maybe String,![UIAction])
-
-tweakUI			:: (UIControl -> UIControl) UIDef -> UIDef
-tweakAttr		:: (UIAttributes -> UIAttributes) UIDef -> UIDef 
-tweakControls	:: ([(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]) UIDef -> UIDef
-
-decorateControls    :: [(UIControl,UIAttributes)] -> [UIControl]
-decorateControl     :: Bool (!UIControl,!UIAttributes) -> UIControl
+//This type records the states of layouts applied somewhere in a ui tree
+:: NodeLayoutStates :== [(Int,NodeLayoutState)]
+:: NodeLayoutState
+	= BranchLayout JSONNode
+	| ChildBranchLayout NodeLayoutStates
+	
+:: TaskHost a = InTaskHost | NoTaskHost

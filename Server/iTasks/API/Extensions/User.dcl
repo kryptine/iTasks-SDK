@@ -59,9 +59,6 @@ derive gEq				User, UserConstraint, Username, Password
 
 derive gText	        User, UserConstraint, Username, Password
 derive gEditor 			User, UserConstraint, Username, Password
-derive gEditMeta		User, UserConstraint, Username, Password
-derive gUpdate			User, UserConstraint, Username, Password 
-derive gVerify			User, UserConstraint, Username, Password
 
 derive class iTask	Credentials
 
@@ -71,8 +68,8 @@ currentUser 			:: RWShared () User User
 taskInstanceUser 		:: RWShared InstanceNo User User
 
 //* Selected task instances
-processesForUser :: User -> ReadOnlyShared [TaskListItem Void]
-processesForCurrentUser :: ReadOnlyShared [TaskListItem Void]
+processesForUser :: User -> ReadOnlyShared [TaskListItem ()]
+processesForCurrentUser :: ReadOnlyShared [TaskListItem ()]
 
 /*
 * Copies authentication attributes of current task 

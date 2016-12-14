@@ -5,8 +5,9 @@ definition module iTasks.API.Core.Tasks
 
 import iTasks._Framework.Generic
 import iTasks._Framework.SDS
-from iTasks._Framework.Task			import :: Task, :: ConnectionHandlers
-from iTasks.API.Core.Types	    import class descr
+from iTasks._Framework.Task			import :: Task, :: Event, :: ConnectionHandlers, :: TaskEvalOpts, :: TaskTime
+from iTasks.UI.Definition 		import :: UI, :: UINodeType, :: UIChange
+from iTasks.UI.Prompt 			import class toPrompt
 from Data.Error					import ::MaybeError(..)
 from System.OSError				import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
 
@@ -91,16 +92,21 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 * An interaction tasks works on a local state and has read-only access to shared data.
 *
 * @param Description: A description of the task to display to the user
+* @param Edit mode: The type of interaction: viewing, entering or updating information
 * @param ReadOnlyShared: A reference to shared data the task has access to
 * @param Initialization function: Computes the initial local state and view
 * @param Refresh function: Recomputes the local state and view when either the view is edited or the shared data changes.
+* @param Custom editor: Optional custom editor for the interaction
 *
 * @return The local state
 *
 * @gin False
 */
-interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask))) -> Task l | descr d & iTask l & iTask r & iTask v
-
+interact :: !d !EditMode !(RWShared () r w)
+				(r -> (l, v))                       //On init
+				(v l v -> (l, v, Maybe (r -> w))) 	//On edit
+				(r l v -> (l, v, Maybe (r -> w)))  	//On refresh
+				(Maybe (Editor v)) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed
 * @param Hostname
@@ -167,7 +173,9 @@ accWorldOSError :: !(*World -> (!MaybeOSError a, !*World))             -> Task a
 * Write a value to the server console output for tracing
 */
 traceValue :: a -> Task a | iTask a
+
 /**
 * Terminates a running task server
 */
 shutDown :: Task ()
+

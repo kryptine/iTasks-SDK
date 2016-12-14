@@ -2,10 +2,10 @@ definition module iTasks._Framework.TaskState
 
 import iTasks.API.Core.Types
 
-from iTasks._Framework.Task	import :: TaskTime, :: TaskResult, :: TaskRep, :: TonicOpts
+from iTasks._Framework.Task	import :: TaskTime, :: TaskResult, :: TonicOpts
 from iTasks._Framework.Task	import :: TaskException
-from iTasks.UI.Diff import :: UIUpdate
 from Data.Queue import :: Queue
+from iTasks.UI.Definition import :: UIChange
 
 derive JSONEncode TIMeta, TIReduct, TaskTree
 derive JSONDecode TIMeta, TIReduct, TaskTree
@@ -43,28 +43,23 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 
 // UI State
 :: TIUIState
-	= UIDisabled 								//The UI is disabled (e.g. when nobody is viewing the task)
-	| UIEnabled !Int !TaskRep !(Queue UIUpdate) //The UI is enabled and streams incremental diffs, a version number and the previous task rep are stored for comparision
-	| UIException !String 						//An unhandled exception occurred and the UI should only show the error message
+	= UIDisabled 									//The UI is disabled (e.g. when nobody is viewing the task)
+	| UIEnabled !Int !UIChange  					//The UI is enabled, a version number and the previous task rep are stored for comparision //FIXME
+	| UIException !String 							//An unhandled exception occurred and the UI should only show the error message
 
 :: TaskTree
 	= TCInit		            !TaskId !TaskTime													//Initial state for all tasks
 	| TCBasic		            !TaskId !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
-	| TCInteract	            !TaskId !TaskTime !JSONNode !JSONNode !JSONNode !InteractionMask
-	| TCInteractLocal	        !TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
-	| TCInteractViewOnly	    !TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
-	| TCInteractLocalViewOnly   !TaskId !TaskTime !JSONNode !InteractionMask
-	| TCInteract1				!TaskId !TaskTime !JSONNode !InteractionMask
-	| TCInteract2				!TaskId !TaskTime !JSONNode !JSONNode !InteractionMask
+	| TCInteract	            !TaskId !TaskTime !JSONNode !JSONNode !EditMask
 	| TCProject					!TaskId !JSONNode !TaskTree
-	| TCStep					!TaskId !TaskTime !(Either TaskTree (!DeferredJSON, !Int, !TaskTree))
-	| TCParallel				!TaskId !TaskTime ![(!TaskId,!TaskTree)] //Subtrees of embedded tasks
+	| TCStep					!TaskId !TaskTime !(Either (TaskTree,[String]) (DeferredJSON,Int,TaskTree)) 
+	| TCParallel				!TaskId !TaskTime ![(!TaskId,!TaskTree)] [String] //Subtrees of embedded tasks and enabled actions
 	| TCShared					!TaskId !TaskTime !TaskTree
-	| TCExposedShared			!TaskId !TaskTime !String !TaskTree	// +URL
+	| TCExposedShared			!TaskId !TaskTime !String !TaskTree	// +URL //TODO: Remove
 	| TCStable					!TaskId !TaskTime !DeferredJSON
+	| TCLayout					!JSONNode !TaskTree
 	| TCNop			
-	| TCDestroy					!TaskTree															//Marks a task state as garbage that must be destroyed
-	| TCTasklet			
+	| TCDestroy					!TaskTree	//Marks a task state as garbage that must be destroyed (TODO: replace by explicit event
 
 taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
 

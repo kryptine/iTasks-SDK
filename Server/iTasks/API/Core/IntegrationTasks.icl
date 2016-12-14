@@ -4,13 +4,14 @@ import StdInt, StdFile, StdTuple, StdList
 
 import System.Directory, System.File, System.FilePath, Data.Error, System.OSError, Text.Encodings.UrlEncoding, Text, Data.Tuple, Text.JSON
 import Data.Either, System.OS, Text.URI, Internet.HTTP
+import qualified Data.Map as DM
 
 import iTasks._Framework.IWorld, iTasks._Framework.Task, iTasks._Framework.TaskState
-import iTasks._Framework.SDS, iTasks._Framework.TaskEval
-import iTasks._Framework.Generic.Interaction
+import iTasks._Framework.SDS, iTasks._Framework.TaskStore, iTasks._Framework.TaskEval
 import iTasks.API.Core.Types, iTasks.API.Core.Tasks, iTasks.UI.Layout
 import iTasks.API.Core.SDSs
 import iTasks.API.Common.InteractionTasks, iTasks.API.Common.TaskCombinators //TODO don't import from Common in Core
+import iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
 
 from iTasks.API.Common.ImportTasks		import importTextFile
 
@@ -18,7 +19,7 @@ from System.File				import qualified fileExists, readFile
 from Data.Map				import qualified newMap, put
 from System.Process			import qualified ::ProcessHandle, runProcess, checkProcess,callProcess
 from System.Process			import :: ProcessHandle(..)
-from StdFunc			import o
+from StdFunc			import o, const
 
 derive JSONEncode ProcessHandle
 derive JSONDecode ProcessHandle
@@ -35,7 +36,7 @@ where
 			(Ok a,world)	= (Ok a, {IWorld|iworld & world = world})
 			(Error e,world)	= (Error (dynamic e,toString e), {IWorld|iworld & world = world})
 
-callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | descr d
+callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | toPrompt d
 callProcess desc opts cmd args dir = Task eval
 where
     //Start the process
@@ -50,9 +51,11 @@ where
 	eval event evalOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{IWorld|world,current={TaskEvalState|taskInstance}}
 		| stable
             # status        = fromJust (fromJSON encv)
-            # (rep,iworld)  = makeRep taskId evalOpts status iworld
-            # iworld = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
-			= (ValueResult (Value status True) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
+			= case makeRep taskId evalOpts status iworld of
+            	(Ok rep,iworld)
+            		# iworld = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
+					= (ValueResult (Value status True) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
+				(Error e,iworld) = (ExceptionResult (exception e),iworld)
 		| otherwise
             //Check status
             # handle = fromJust (fromJSON encv)
@@ -63,30 +66,36 @@ where
                     # (status,stable,state) = case mbExitCode of
                         Just c  = (CompletedProcess c,True, TCBasic taskId lastEvent (toJSON (CompletedProcess c)) False)
                         Nothing = (RunningProcess cmd,False, state)
-                    # (rep,iworld)  = makeRep taskId evalOpts status {IWorld|iworld & world = world}
-                    # iworld = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
-                    = (ValueResult (Value status stable) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
+                    = case makeRep taskId evalOpts status {IWorld|iworld & world = world} of
+                    	(Ok rep,iworld)
+                    		# iworld = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
+                    		= (ValueResult (Value status stable) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
+						(Error e,iworld) = (ExceptionResult (exception e),iworld)
 
 	eval event repAs (TCDestroy _) iworld
 		= (DestroyedResult,iworld)
 
     makeRep taskId evalOpts status iworld
-	    # layout			= repLayoutRules evalOpts
-		# (controls,iworld)	= makeView opts status taskId layout iworld
-		# prompt			= toPrompt desc
-		# editor			= {UIForm| attributes = 'Data.Map'.newMap, controls = controls, size = defaultSizeOpts}
-		= (TaskRep ({UIDef|content=UIForm (layout.LayoutRules.accuInteract prompt editor),windows=[]}),iworld)
+		= case makeView opts status taskId iworld of
+			(Ok (content,mask),iworld)
+				# prompt			= toPrompt desc
+				# change 			= ReplaceUI (uic UIContainer [prompt,content])
+				= (Ok change, iworld)
+			(Error e,iworld) = (Error e,iworld)
 						
-	makeView [ViewWith viewFun] status taskId layout iworld
-		# ver = verifyMaskedValue (Display (viewFun status),Touched)
-		= visualizeAsEditor (Display (viewFun status),Touched,ver) taskId layout iworld
-	makeView _ status taskId layout iworld
-		# ver = verifyMaskedValue (Display (defaultViewFun status),Touched)
-		= visualizeAsEditor (Display (defaultViewFun status),Touched,ver) taskId layout iworld
-	
+	makeView _ status taskId iworld
+		= makeEditor (status,newFieldMask) taskId iworld
+
+	makeEditor value=:(v,vmask) taskId iworld
+		# vst = {VSt| taskId = toString taskId, mode = View, optional = False, selectedConsIndex = -1, iworld = iworld}
+		# (editUI,vst=:{VSt|iworld}) = defaultEditor.Editor.genUI [] v vst
+		= (editUI,iworld)
+
 	//By default show a progress bar 
-	defaultViewFun (RunningProcess cmd) = {Progress|progress=ProgressUndetermined,description="Running " +++ cmd +++ "..."}
-	defaultViewFun (CompletedProcess exit) = {Progress|progress=ProgressRatio 1.0,description=cmd +++ " done (" +++ toString exit +++ ")"}
+	defaultEditor = liftEditor viewFun (const defaultValue) (progressBar 'DM'.newMap)
+
+	viewFun (RunningProcess cmd) = (Nothing, Just ("Running " +++ cmd +++ "..."))
+	viewFun (CompletedProcess exit) =(Just 100, Just (cmd +++ " done (" +++ toString exit +++ ")"))
 		
 callInstantProcess :: !FilePath ![String] !(Maybe FilePath) -> Task Int
 callInstantProcess cmd args dir = mkInstantTask eval

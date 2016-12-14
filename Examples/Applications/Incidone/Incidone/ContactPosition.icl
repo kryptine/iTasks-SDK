@@ -1,5 +1,5 @@
 implementation module Incidone.ContactPosition
-import iTasks
+import iTasks, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators, iTasks.UI.Definition
 import qualified Data.Map as DM
 import Data.Functor, Text
 import qualified Text.Parsers.ZParsers.ParsersKernel as PK
@@ -14,30 +14,7 @@ import Incidone.Util.TaskPatterns
 derive JSONEncode ContactPosition
 derive JSONDecode ContactPosition
 
-gEditor{|ContactPosition|} path vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
-    | disabled
-        = (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just (toSingleLineText val)},'DM'.newMap)], vst)
-    | otherwise
-    # value = case val of
-        PositionDescription s _ = JSONString s
-        PositionLatLng l        = JSONString (formatLatLng l)
-    # control = UIEditString defaultHSizeOpts {UIEditOpts| taskId = taskId,editorId = editorId path, value = Just value}
-    # attributes = 'DM'.newMap
-    = (NormalEditor [(control,editorAttributes vv meta)],vst)
-
-gUpdate{|ContactPosition|} [] JSONNull mv=:(val,_) ust  = ((PositionDescription "" Nothing,Blanked),ust)
-gUpdate{|ContactPosition|} [] (JSONString nval) _ ust   = ((parsePosition nval,Touched),ust)
-gUpdate{|ContactPosition|} _ _ mv ust = (mv,ust)
-
-gVerify{|ContactPosition|} {VerifyOptions|optional=False} (_,Blanked)   = MissingValue
-gVerify{|ContactPosition|} _ (PositionDescription _ Nothing,mask)       = WarningValue "This position can not be plotted on a map"
-gVerify{|ContactPosition|} _ _                                          = CorrectValue Nothing
-
-gEditMeta{|ContactPosition|} _ = [{label=Nothing
-                                  ,hint=Just "Specify a position. If you specify degrees in the format '[degrees]N|S [degrees]E|W' the position can be plotted on maps"
-                                  ,unit=Nothing
-                                  }]
-
+gEditor{|ContactPosition|} = liftEditor printPosition parsePosition (textField 'DM'.newMap)
 gText{|ContactPosition|} _ val = [maybe "" printPosition val]
 
 derive gDefault ContactPosition
@@ -105,9 +82,6 @@ derive class iTask ContactMap, ContactMapLayer, ContactMapLayerDefinition, Conta
 derive JSONEncode ContactMapPerspective
 derive JSONDecode ContactMapPerspective
 derive gEditor ContactMapPerspective
-derive gEditMeta ContactMapPerspective
-derive gUpdate ContactMapPerspective
-derive gVerify ContactMapPerspective
 derive gText ContactMapPerspective
 
 gEq{|ContactMapPerspective|} {ContactMapPerspective|center=(xla,xlo),zoom=xz,bounds=xb} {ContactMapPerspective|center=(yla,ylo),zoom=yz,bounds=yb}

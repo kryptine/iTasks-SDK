@@ -1,6 +1,6 @@
 concept module Incidone.OP.Concepts
 
-import iTasks, Database.SQL, Incidone.OP.ConceptsTOP, Incidone.OP.ConceptsSQL, Incidone.ContactPosition, Incidone.Util.AIS
+import iTasks, iTasks.API.Extensions.Contact, Database.SQL, Incidone.OP.ConceptsTOP, Incidone.OP.ConceptsSQL, Incidone.ContactPosition, Incidone.Util.AIS
 
 //Shared value types
 $$ MMSI = Int
@@ -28,7 +28,7 @@ $$ CommunicationNo = ID
 $$ CommunicationType = {"Phone call" (PhoneCall),"Radio call" (RadioCall), "E-mail message" (EmailMessage),"P2000 message" (P2000Message), "DSC message" (DSCMessage)}
 $$ CommunicationDirection = {"In" (In),"Out" (Out)}
 $$ CommunicationStatus = {"Pending" (Pending), "Ringing" (Ringing), "Connected" (Connected), "Answered" (Answered), "Missed" (Missed), "Sent" (Sent)}
-$$ CallNotes = Note
+$$ CallNotes = String
 
 ## communicationNo  = << !!Communication >> has << CommunicationNo >>
 ## time			    = << !Communication >> started at UTCDateTime
@@ -63,7 +63,7 @@ $$ EmailMessage [Communication]
 $$ EmailRecipient = EmailAddress
 $$ EmailSender = EmailAddress
 $$ EmailSubject = String
-$$ EmailBody = Note
+$$ EmailBody = String
 
 ## recipient = << !EmailMessage >> is sent to EmailRecipient
 ## sender = << !EmailMessage >> is sent by EmailSender
@@ -72,7 +72,7 @@ $$ EmailBody = Note
 
 // Message send/received
 $$ P2000Message [Communication]
-$$ P2000Body = Note
+$$ P2000Body = String
 $$ P2000Prio = Int
 
 ## capCode  = << !P2000Message >> is addressed to CapCode
@@ -128,7 +128,7 @@ $$ Incident
 
 $$ IncidentNo = ID
 $$ IncidentTitle = String
-$$ IncidentSummary = Note
+$$ IncidentSummary = String
 
 $$ EmergencyPhase =
 	{"INCERFA" (INCERFA)
@@ -201,7 +201,7 @@ $$ IncidentType =
 //I Should use objectification here
 $$ LogEntry
 
-$$ LogMessage		= Note
+$$ LogMessage		= String
 
 ## eventAt			= << !LogEntry >> was about event at UTCDateTime
 ## loggedAt			= << !LogEntry >> was logged at UTCDateTime
@@ -245,7 +245,7 @@ $$ ContactType = {"Person" (Person), "Vessel" (Vessel), "Surfer" (Surfer), "Dive
 $$ ContactName = String
 $$ ContactGroup = String
 $$ ContactHeading = Degrees
-$$ ContactNotes = Note
+$$ ContactNotes = String
 $$ ContactStatus =
     { "Alerted" (Alerted)
     , "Briefed" (Briefed)
@@ -320,9 +320,9 @@ $$ Person [Contact]
 $$ PersonAge = Int
 $$ Gender = {"Male" (Male), "Female" (Female)}
 $$ Nationality = String
-$$ Injuries = Note
-$$ StateOfMind = Note
-$$ MedicalHistory = Note
+$$ Injuries = String
+$$ StateOfMind = String
+$$ MedicalHistory = String
 
 ## age				= << Person >> has PersonAge
 ## gender			= << Person >> has Gender
@@ -341,7 +341,7 @@ $$ VesselType =
 	,"Rescue vessel" (RescueVessel)
 	,"Other" (OtherVessel)
 	}
-$$ VesselDescription = Note
+$$ VesselDescription = String
 $$ VesselPob = Int
 $$ VesselEngineType = String
 $$ VesselFuel = String
@@ -369,8 +369,8 @@ $$ VesselRange = Miles
 ## navaidsOnBoard	= << Vessel >> has navigational aids on board
 
 $$ Surfer [Contact]
-$$ SurfboardDescription = Note
-$$ SurfSuitDescription = Note
+$$ SurfboardDescription = String
+$$ SurfSuitDescription = String
 
 //Duplicated from Person, because we can't do multi-level subtypes yet
 ## surfboardDescription = << Surfer >> has SurfboardDescription
@@ -383,7 +383,7 @@ $$ SurfSuitDescription = Note
 ## medicalHistory	    = << Surfer >> has a MedicalHistory
 
 $$ Diver [Contact]
-$$ DiverDescription = Note
+$$ DiverDescription = String
 ## description      = << Diver >> has << DiverDescription >>
 
 $$ Airplane [Contact]

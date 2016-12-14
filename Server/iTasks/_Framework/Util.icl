@@ -1,10 +1,19 @@
 implementation module iTasks._Framework.Util
 
 import StdBool, StdChar, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList
-import Data.Maybe, Data.Tuple, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Void, Data.Error, GenEq
+import Data.Maybe, Data.Tuple, Data.Func, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Error, GenEq
 from iTasks._Framework.IWorld 		import :: IWorld{current}, :: TaskEvalState
 from iTasks.API.Core.Types	        import :: Date{..}, :: Time{..}, :: DateTime(..)
-
+import qualified Data.Map as DM
+from Data.Map import :: Map
+	
+show :: ![String] !*World -> *World
+show lines world
+	# (console,world)	= stdio world
+	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
+	# (_,world)			= fclose console world
+	= world
+	
 mb2list	:: !(Maybe [a]) -> [a]
 mb2list	Nothing = []
 mb2list (Just a) = a
@@ -13,21 +22,6 @@ list2mb	:: ![a] -> (Maybe [a])
 list2mb [] = Nothing
 list2mb a = (Just a)
 
-voidNothing :: Maybe Void
-voidNothing = Nothing
-
-decFormat :: !Int -> String
-decFormat x = toString (x / 100) +++ "." +++ lpad (toString (x rem 100)) 2 '0'
-
-camelCaseToWords :: !String -> String
-camelCaseToWords label = {c \\ c <- [toUpper lname : addspace lnames]}
-where
-	[lname:lnames]		= fromString label
-	addspace []			= []
-	addspace [c:cs]
-		| c == '_'			= [' ':addspace cs]
-		| isUpper c			= [' ',toLower c:addspace cs]
-		| otherwise			= [c:addspace cs]
 
 currentLocalDateTimeWorld :: !*World -> (!DateTime,!*World)
 currentLocalDateTimeWorld world = appFst tmToDateTime (localTime world)
@@ -40,16 +34,15 @@ timestampToGmDateTime timestamp = tmToDateTime (toGmTime timestamp)
 
 tmToDateTime :: !Tm -> DateTime
 tmToDateTime tm
-	# date	= {Date| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year}
-	# time	= {Time|hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
-	= DateTime date time
+	= {DateTime| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year
+	  ,hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
 
 dateToTimestamp :: !Date -> Timestamp
 dateToTimestamp {Date|day,mon,year}
 	= mkTime {Tm|sec = 0, min = 0, hour = 0, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = False}
 
 datetimeToTimestamp :: !DateTime -> Timestamp
-datetimeToTimestamp (DateTime {Date|day,mon,year} {Time|hour,min,sec})
+datetimeToTimestamp {DateTime|day,mon,year,hour,min,sec}
 	= mkTime {Tm|sec = sec, min = min, hour = hour, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = False}
 
 instance toString (Maybe a) | toString a
@@ -76,6 +69,9 @@ where
 	undot [] ["":ds]			= undot [""] ds //Only allowed at the beginning
 	undot acc ["":ds]			= undot acc ds
 	undot acc [d:ds] 			= undot [d:acc] ds
+
+mergeMaps :: (Map k v) (Map k v) -> Map k v | < k
+mergeMaps m1 m2 = foldl (\m (k,v)  -> 'DM'.put k v m) m1 ('DM'.toList m2)
 
 kvGet :: k ![(k,v)]		-> Maybe v	| Eq k // Linear search
 kvGet m []				= Nothing

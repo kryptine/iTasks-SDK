@@ -1,7 +1,6 @@
 implementation module iTasks.API.Extensions.Development.Codebase
 import iTasks
 import System.File, System.Directory, Text, StdFile, Data.List, Data.Tree
-import iTasks.API.Extensions.CodeMirror
 
 derive class iTask SourceTree, SourceTreeSelection, ModuleType, Extension
 instance == Extension where (==) x y = x === y
@@ -19,19 +18,20 @@ rescanCodeBase codebase
 
 navigateCodebase :: CodeBase -> Task SourceTreeSelection
 navigateCodebase codebase
-    = enterChoice () [ChooseWith (ChooseFromTree (groupModules (sourceTreeRoots codebase)))] (modulesOf codebase)
+    = enterChoice () [/* ChooseWith (ChooseFromTree (groupModules (sourceTreeRoots codebase)))*/] (modulesOf codebase)
 where
     modulesOf codebase
         = flatten [[SelSourceTree name rootPath:[moduleSelection modName modType modPath \\ (modName,modType,modPath) <- modules]] \\ {SourceTree|name,rootPath,modules} <- codebase]
 
+    moduleSelection modName MainModule modPath = SelMainModule modName modPath
+    moduleSelection modName AuxModule modPath = SelAuxModule modName modPath
+/*
     sourceTreeRoots codebase
         = flatten (map roots codebase)
     where
         roots {SourceTree|name,rootPath,subPaths=[]}  = [(name,rootPath)]
         roots {SourceTree|name,rootPath,subPaths}     = [(name,rootPath </> sub) \\sub <- subPaths]
 
-    moduleSelection modName MainModule modPath = SelMainModule modName modPath
-    moduleSelection modName AuxModule modPath = SelAuxModule modName modPath
 
     groupModules roots options expanded = sortByLabel (foldl insert [] options)
     where
@@ -85,6 +85,7 @@ where
         sortChildren node=:{ChoiceTree|type=ExpandedNode children} = {node & type = ExpandedNode (sortByLabel children)}
         sortChildren node=:{ChoiceTree|type=CollapsedNode children} = {node & type = CollapsedNode (sortByLabel children)}
         sortChildren node = node
+*/
 
 lookupModule :: ModuleName CodeBase -> Maybe (ModuleName,ModuleType,FilePath)
 lookupModule module [] = Nothing
@@ -196,48 +197,4 @@ readDir path w
 | isError mbInfo             = ([],w)
 | (fromOk mbInfo).directory = getFilesInPath path w
 = ([],w)
-
-/*
-editCleanModule :: Bool CleanModule -> Task CodeMirror
-editCleanModule mode ((path,fileName),ext) = openEditor mode (path,fileName +++ toString ext)
-
-openEditor True (path,fileName)
-	=					importTextFile (path </> fileName)
-	>>- \content ->		withShared (initCleanEditor False content)
-						(\config -> updateSharedInformation fileName [UpdateWith
-																		(\cm -> codeMirrorEditlet cm [])
-																		(\_ (Editlet value _ _) -> value)
-																	 ] config)
-openEditor False (path,fileName)
-	=					importTextFile (path </> fileName)
-	>>- \content ->		withShared (initCleanEditor True content)
-						(\config -> viewSharedInformation fileName [ViewWith
-																		(\cm -> codeMirrorEditlet cm [])
-																	 ] config)
-*/
-updateCleanEditor :: (Shared CodeMirror) -> Task CodeMirror
-updateCleanEditor mirror
-	= updateSharedInformation () [UpdateWith  (\cm -> codeMirrorEditlet cm [])
-													  (\_ e -> e.Editlet.currVal)
-										 ] mirror
-    <<@ ForceLayout <<@ AfterLayout (tweakUI fill)
-
-viewCleanEditor :: (Shared CodeMirror) -> Task CodeMirror
-viewCleanEditor mirror
-    = viewSharedInformation () [ViewWith (\cm -> codeMirrorEditlet cm [])] mirror
-
-initCleanEditor :: Bool [String] -> CodeMirror
-initCleanEditor mode content
-	=   { configuration = [ CMLineNumbers True
-						  , CMMode "haskell"
-						  , CMDragDrop True
-		 				  , CMReadOnly mode
-		 				  , CMAutofocus True
-						  ] 			// [CodeMirrorConfiguration]
-		 , position		= (0,0)			// cursor position
-		 , selection 	= Nothing		//!Maybe ((Int,Int),(Int,Int))
-		 , highlighted	= []
-		 , source		= content
-		 }
-
 

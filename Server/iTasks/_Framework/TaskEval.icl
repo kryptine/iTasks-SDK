@@ -3,9 +3,9 @@ implementation module iTasks._Framework.TaskEval
 import StdList, StdBool, StdTuple, StdMisc, StdDebug
 import Data.Error, Data.Func, Data.Tuple, Data.Either, Data.Functor, Data.List, Text, Text.JSON
 import iTasks._Framework.IWorld, iTasks._Framework.Task, iTasks._Framework.TaskState
-import iTasks._Framework.TaskStore, iTasks._Framework.Util, iTasks._Framework.Generic
+import iTasks._Framework.Store, iTasks._Framework.TaskStore, iTasks._Framework.Util, iTasks._Framework.Generic
 import iTasks.API.Core.Types
-import iTasks.UI.Diff, iTasks.UI.Layout
+import iTasks.UI.Layout
 import iTasks._Framework.SDSService
 
 from iTasks.API.Core.TaskCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
@@ -22,41 +22,19 @@ getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
     = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
 
-queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
-//Special case for refresh events, queue only if the instance has no events in the queue yet
-queueEvent instanceNo event=:(RefreshEvent r) iworld 
-    # (_,iworld) = 'SDS'.modify (queueIfNotScheduled instanceNo event) taskEvents iworld
-    = iworld
-where
-    queueIfNotScheduled instanceNo event q=:(Queue front back)
-        | isMember instanceNo (map fst (front ++ back)) = ((),q)
-                                                        = ((),'DQ'.enqueue (instanceNo,event) q)
-//Standard case...
-queueEvent instanceNo event iworld 
-    # (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue (instanceNo,event) q)) taskEvents iworld
-    = iworld
-
-dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
-dequeueEvent iworld
-	= case 'SDS'.modify 'DQ'.dequeue taskEvents iworld of
-		(Ok mbEvent,iworld) 	= (mbEvent,iworld)
-		(Error (_,e),iworld) 	= (Nothing,iworld) //TODO handle errors
-
-processEvents :: !Int *IWorld -> *IWorld
-processEvents max iworld  
-	| max <= 0 = iworld
+processEvents :: !Int *IWorld -> *(!MaybeError TaskException (), !*IWorld)
+processEvents max iworld
+	| max <= 0 = (Ok (), iworld)
 	| otherwise
 		= case dequeueEvent iworld of 
-			(Nothing,iworld) = iworld 
+			(Nothing,iworld) = (Ok (),iworld)
 			(Just (instanceNo,event),iworld)
 				= case evalTaskInstance instanceNo event iworld of 
 					(Ok taskValue,iworld)
 						= processEvents (max - 1) iworld
-					(Error msg,iworld)
-						= processEvents (max - 1) iworld //TODO: Do something useful with this error
-where
-	addUIUpdates instanceNo updates output
-		= ((), 'DM'.put instanceNo (maybe updates (\q -> q ++ updates) ('DM'.get instanceNo output)) output)
+					(Error msg,iworld=:{IWorld|world})
+						# world = show ["WARNING: "+++ msg] world	
+						= (Ok (),{IWorld|iworld & world = world})
 
 //Evaluate a single task instance
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue JSONNode),!*IWorld)
@@ -89,37 +67,34 @@ where
         (_,attachment=:[TaskId sessionNo _:_])    = (Just sessionNo,attachment)
 	//Update current process id & eval stack in iworld
 	# taskId					= TaskId instanceNo 0
-	//# eventRoute				= determineEventRoute event lists
-    # eventRoute                = 'DM'.newMap //TODO: Check if eventroute is still necessary
 	# iworld					= {iworld & current =
                                         { taskInstance = instanceNo
                                         , sessionInstance = currentSession
                                         , attachmentChain = currentAttachment
 										, taskTime = oldReduct.TIReduct.nextTaskTime
                                         , nextTaskNo = oldReduct.TIReduct.nextTaskNo
-										, eventRoute = eventRoute
-                                        , editletDiffs = current.editletDiffs //FIXME: MEMLEAK//'DM'.newMap
 										}}
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (newResult,iworld=:{current})	= eval event {mkEvalOpts & tonicOpts = tonicRedOpts} tree iworld
-    //Finalize task UI
-    # newResult                 = finalizeUI session newResult
     # tree                      = case newResult of
         (ValueResult _ _ _ newTree)  = newTree
-        _                                                   = tree
+        _                            = tree
     //Reset necessary 'current' values in iworld
     # iworld = {IWorld|iworld & current = {TaskEvalState|current & taskInstance = 0}}
     // Check if instance was deleted by trying to reread the instance constants share
 	# (deleted,iworld) = appFst isError ('SDS'.read (sdsFocus instanceNo taskInstanceConstants) iworld)
     // Write the updated progress
-    # (mbErr,iworld)            = 'SDS'.modify (\p -> ((),updateProgress (DateTime localDate localTime) newResult p)) (sdsFocus instanceNo taskInstanceProgress) iworld
+	# (mbErr,iworld) = if (updateProgress (toDateTime localDate localTime) newResult oldProgress === oldProgress)
+		(Ok (),iworld)	//Only update progress when something changed
+   		('SDS'.modify (\p -> ((),updateProgress (toDateTime localDate localTime) newResult p)) (sdsFocus instanceNo taskInstanceProgress) iworld)
     = case mbErr of
         Error (e,msg)          = (Error msg,iworld)
         Ok _
             //Store updated reduct
             # (nextTaskNo,iworld)		= getNextTaskNo iworld
             # (_,iworld)                = 'SDS'.modify (\r -> ((),{TIReduct|r & tree = tree, nextTaskNo = nextTaskNo, nextTaskTime = nextTaskTime + 1}))
-                                                (sdsFocus instanceNo taskInstanceReduct) iworld //FIXME: Don't write the full reduct (all parallel shares are triggered then!)
+                                                (sdsFocus instanceNo taskInstanceReduct) iworld
+												//FIXME: Don't write the full reduct (all parallel shares are triggered then!)
             //Store update value
             # newValue                  = case newResult of
                 (ValueResult val _ _ _)     = TIValue val
@@ -128,50 +103,30 @@ where
             = case mbErr of
                 Error (e,msg)          = (Error msg,iworld)
                 Ok _
-                //Determine user interface updates by comparing the previous UI to the newly calculated one
-                = case newResult of
-                    (ValueResult value _ newRep _)	
-						= case 'SDS'.read (sdsFocus instanceNo taskInstanceUI) iworld of
-							(Ok UIDisabled, iworld)
-								= (Ok value, iworld) //Nothing to do, the UI is disabled
-							(Ok (UIEnabled uiVersion prevRep outputQueue),iworld)
-                                # oldUI = case prevRep of (TaskRep oldUI) = oldUI; _ = emptyUI
-                                # newUI = case newRep of (TaskRep newUI) = newUI; _ = emptyUI
-							    # (editletDiffs,iworld)		= getEditletDiffs iworld
-                                # (updates,editletDiffs)    = diffUIDefinitions oldUI newUI event editletDiffs
-                                # iworld                    = setEditletDiffs editletDiffs iworld
-                                # (mbErr,iworld) 	= if deleted (Ok (),iworld) ('SDS'.write (UIEnabled (uiVersion + 1) newRep (enqueueAll updates outputQueue)) (sdsFocus instanceNo taskInstanceUI) iworld)
-                                //Flush the share cache 
-                                # iworld = flushShareCache iworld
-								= (Ok value, iworld)
-							(Ok (UIException msg), iworld)
-								= (Error msg, iworld) //Just dump the old error message for now
-							(Error (e,msg),iworld)
-								= case 'SDS'.write (UIException msg) (sdsFocus instanceNo taskInstanceUI) iworld of
-									(Ok _,iworld)          = (Error msg, iworld)
-									(Error (e,msg),iworld) = (Error msg, iworld)	
-                    (ExceptionResult (e,msg))
-						= case 'SDS'.write (UIException msg) (sdsFocus instanceNo taskInstanceUI) iworld of
-							(Ok _,iworld)          = (Error msg, iworld)
-							(Error (e,msg),iworld) = (Error msg, iworld)	
-
-	enqueueAll [] q = q
-	enqueueAll [x:xs] q = enqueueAll xs ('DQ'.enqueue x q)
+                	= case newResult of
+                    	(ValueResult value _ change _)	
+							| deleted
+								= (Ok value,iworld)
+							//Only queue UI changes if something interesting is changed
+							= case compactUIChange change of
+								NoChange = (Ok value,iworld)
+								change
+									# iworld = queueUIChange instanceNo change iworld
+                        			# iworld = flushShareCache iworld
+									= (Ok value, iworld)
+                    	(ExceptionResult (e,msg))
+							= (Error msg, iworld)
 
 	getNextTaskNo iworld=:{IWorld|current={TaskEvalState|nextTaskNo}}	    = (nextTaskNo,iworld)
-	getEditletDiffs iworld=:{IWorld|current={editletDiffs}}	= (editletDiffs,iworld)
-    setEditletDiffs editletDiffs iworld=:{current} = {IWorld|iworld & current = {current & editletDiffs = editletDiffs}}
-
-    finalizeUI session (ValueResult value info (TaskRep ui) tree)
-        # ui = if session (uiDefSetAttribute "session" "true" ui) ui
-        = (ValueResult value info (TaskRep (autoLayoutFinal ui)) tree)
-    finalizeUI session res = res
 
 	updateProgress now result progress
         # attachedTo = case progress.InstanceProgress.attachedTo of //Release temporary attachment after first evaluation
             (Just (_,[]))   = Nothing
             attachment      = attachment
-		# progress = {InstanceProgress|progress & firstEvent = Just (fromMaybe now progress.InstanceProgress.firstEvent), lastEvent = Nothing} //EXPERIMENT
+		# progress = {InstanceProgress|progress
+					 &firstEvent = Just (fromMaybe now progress.InstanceProgress.firstEvent)
+					 ,lastEvent = Just now
+					 }
 		= case result of
 			(ExceptionResult _)				    = {InstanceProgress|progress & value = Exception}
 			(ValueResult (Value _ stable) _  _ _)	
@@ -181,79 +136,35 @@ where
 			_									= {InstanceProgress|progress & value = None}
 
     mbResetUIState instanceNo ResetEvent iworld 
-		# (_,iworld) = 'SDS'.write (UIEnabled -1 NoRep 'DQ'.newQueue) (sdsFocus instanceNo taskInstanceUI) iworld 
-		//Remove all editlet state for this instance
-		# (diffs,iworld) = getEditletDiffs iworld
-		# diffs = 'DM'.fromList [d \\ d=:((t,_),_) <- 'DM'.toList diffs | let (TaskId i _) = fromString t in i <> instanceNo]
-		# iworld = setEditletDiffs diffs iworld
+		# (_,iworld) = 'SDS'.write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceUIChanges) iworld 
 		//Remove all js compiler state for this instance
-		# iworld=:{jsCompilerState=(ls,ftm,fl,ps,cm)} = iworld
-		# iworld = {iworld & jsCompilerState = (ls,ftm,fl,ps,'DM'.del instanceNo cm)}
+		# iworld=:{jsCompilerState=jsCompilerState} = iworld
+		# jsCompilerState = fmap (\state -> {state & skipMap = 'DM'.del instanceNo state.skipMap}) jsCompilerState
+		# iworld = {iworld & jsCompilerState = jsCompilerState}
 		= iworld
 
     mbResetUIState _ _ iworld = iworld
-/*
-//The event route determines for every parallel which branch the event is in
-determineEventRoute :: Event (Map TaskId [ParallelTaskState]) -> Map TaskId Int
-determineEventRoute (ResetEvent) _			    = 'DM'.newMap
-determineEventRoute (RefreshEvent _) _			= 'DM'.newMap
-determineEventRoute (EditEvent _ id _ _) lists	= determineEventRoute` id ('DM'.toList lists)
-determineEventRoute (ActionEvent _ id _) lists	= determineEventRoute` id ('DM'.toList lists)
-determineEventRoute (FocusEvent _ id) lists		= determineEventRoute` id ('DM'.toList lists)
 
-//TODO: Optimize this search function
-determineEventRoute` :: TaskId [(TaskId,[ParallelTaskState])] -> Map TaskId Int 
-determineEventRoute` eventId lists = 'DM'.fromList (search eventId)
-where
-	search searchId = case searchInLists searchId lists of	
-		Just (parId, index)	= [(parId,index):search parId]
-		Nothing				= []
-
-	searchInLists searchId [] = Nothing
-	searchInLists searchId [(parId,entries):xs] = case [i \\ e <- entries & i <- [0..] | inEntry searchId e] of
-		[index] = Just (parId,index)
-		_		= searchInLists searchId xs
-
-	inEntry searchId {ParallelTaskState|lastEval=ValueResult _ _ _ tree} = inTree searchId tree
-	inEntry _ _ = False
-
-	inTree searchId (TCInit taskId _) = searchId == taskId
-	inTree searchId (TCBasic taskId _ _ _) = searchId == taskId
-	inTree searchId (TCInteract taskId _ _ _ _ _) = searchId == taskId
-	inTree searchId (TCInteract1 taskId _ _ _) = searchId == taskId
-	inTree searchId (TCInteract2 taskId _ _ _ _) = searchId == taskId
-	inTree searchId (TCProject taskId _ tree) = searchId == taskId || inTree searchId tree
-	inTree searchId (TCStep taskId _ (Left tree)) = searchId == taskId || inTree searchId tree
-	inTree searchId (TCStep taskId _ (Right (_,_,tree))) = searchId == taskId || inTree searchId tree
-	inTree searchId (TCParallel taskId _ trees) = searchId == taskId || any (map (inTree searchId o fst) trees)
-	inTree searchId (TCShared taskId _ tree) = searchId == taskId || inTree searchId tree
-	inTree searchId (TCStable taskId _ _) = searchId == taskId
-	inTree searchId _ = False
-*/
-queueRefresh :: ![(InstanceNo,String)] !*IWorld -> *IWorld
-queueRefresh instances iworld
-    //Clear the instance's share change registrations, we are going to evaluate anyway
-	# iworld	= clearInstanceSDSRegistrations (map fst instances) iworld
-	# iworld 	= foldl (\w (i,r) -> queueEvent i (RefreshEvent r) w) iworld instances
-	= iworld
-
-updateInstanceLastIO ::![InstanceNo] !*IWorld -> *IWorld
-updateInstanceLastIO [] iworld = iworld
+updateInstanceLastIO ::![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceLastIO [] iworld = (Ok (),iworld)
 updateInstanceLastIO [instanceNo:instanceNos] iworld=:{IWorld|clocks={localDate,localTime}}
-    # (_,iworld) = 'SDS'.modify (\p -> ((),{InstanceProgress|p & lastIO =Just (DateTime localDate localTime)})) (sdsFocus instanceNo taskInstanceProgress) iworld
-    = updateInstanceLastIO instanceNos iworld
+    = case 'SDS'.modify (\io -> ((),fmap (appSnd (const (toDateTime localDate localTime))) io)) (sdsFocus instanceNo taskInstanceIO) iworld of
+    	(Ok (),iworld) = updateInstanceLastIO instanceNos iworld
+		(Error e,iworld) = (Error e,iworld)
 
-updateInstanceConnect :: !String ![InstanceNo] !*IWorld -> *IWorld //TODO Check error
-updateInstanceConnect client [] iworld = iworld
+updateInstanceConnect :: !String ![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceConnect client [] iworld = (Ok (),iworld)
 updateInstanceConnect client [instanceNo:instanceNos] iworld=:{IWorld|clocks={localDate,localTime}}
-    # (_,iworld) = 'SDS'.modify (\p -> ((),{InstanceProgress|p & connectedTo = Just client, lastIO = Just (DateTime localDate localTime)})) (sdsFocus instanceNo taskInstanceProgress) iworld
-    = updateInstanceConnect client instanceNos iworld
+    = case 'SDS'.write (Just (client,toDateTime localDate localTime)) (sdsFocus instanceNo taskInstanceIO) iworld of
+		(Ok (),iworld) = updateInstanceConnect client instanceNos iworld
+		(Error e,iworld) = (Error e,iworld)
 
-updateInstanceDisconnect :: ![InstanceNo] !*IWorld -> *IWorld //TODO Check error
-updateInstanceDisconnect [] iworld = iworld
+updateInstanceDisconnect :: ![InstanceNo] !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceDisconnect [] iworld = (Ok (),iworld)
 updateInstanceDisconnect [instanceNo:instanceNos] iworld=:{IWorld|clocks={localDate,localTime}}
-    # (_,iworld) = 'SDS'.modify (\p -> ((),{InstanceProgress|p & connectedTo = Nothing, lastIO = Just (DateTime localDate localTime)})) (sdsFocus instanceNo taskInstanceProgress) iworld
-    = updateInstanceDisconnect instanceNos iworld
+    = case 'SDS'.modify (\io -> ((),fmap (appSnd (const (toDateTime localDate localTime))) io)) (sdsFocus instanceNo taskInstanceIO) iworld of
+		(Ok (),iworld) = updateInstanceDisconnect instanceNos iworld
+		(Error e,iworld) = (Error e,iworld)
 
 currentInstanceShare :: ReadOnlyShared InstanceNo
 currentInstanceShare = createReadOnlySDS (\() iworld=:{current={TaskEvalState|taskInstance}} -> (taskInstance,iworld))

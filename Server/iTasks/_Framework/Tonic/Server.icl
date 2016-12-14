@@ -10,7 +10,7 @@ import qualified Data.List as DL
 from Data.IntMap.Strict import :: IntMap
 import iTasks._Framework.Tonic.Blueprints
 import iTasks.API.Extensions.Admin.TonicAdmin
-import iTasks.API.Extensions.SVG.SVGlet
+import iTasks.API.Extensions.SVG.SVGEditor
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
 import iTasks._Framework.Tonic.Images
@@ -102,13 +102,14 @@ processMessage (TMApply tma) rtMap
           = 'DM'.put tma.tma_computationId [(x, newParent) : xs] rtMap
         _ = rtMap
 
+import StdMisc
 showGenBlueprintInstance :: ![TaskAppRenderer] !GenBlueprintInstance
                             !(Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int)))
-                            !Bool !Scale
+                            !Bool !Int
                          -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showGenBlueprintInstance rs bpi selDetail compact depth
   = updateInformation ()
-      [imageUpdate id (\_ -> mkGenInstanceImage rs bpi selDetail compact) (const id) (const id) (\_ _ -> Nothing) (const id)]
+      [undef /*imageUpdate id (\_ -> mkGenInstanceImage rs bpi selDetail compact) (const id) (const id)  (\_ _ -> Nothing) (const id) */]
       { ActionState
       | state  = { tis_task    = bpi.gbpi_blueprint
                  , tis_depth   = depth
@@ -135,18 +136,18 @@ archivedStandAloneViewer
     # notLast  = curIdx < numMsgs - 1
     =                newRTMapFromMessages (take (curIdx + 1) recs)
     >>~ \newRTMap -> archivedStandAloneViewer`` curIdx newRTMap
-    >>* [ OnAction (Action "First" [])    (ifCond notFirst (showRecs 0 recs))
-        , OnAction (Action "Previous" []) (ifCond notFirst (showRecs (curIdx - 1) recs))
-        , OnAction (Action "Next" [])     (ifCond notLast  (showRecs (curIdx + 1) recs))
-        , OnAction (Action "Last" [])     (ifCond notLast  (showRecs lastIdx recs))
+    >>* [ OnAction (Action "First")    (ifCond notFirst (showRecs 0 recs))
+        , OnAction (Action "Previous") (ifCond notFirst (showRecs (curIdx - 1) recs))
+        , OnAction (Action "Next")     (ifCond notLast  (showRecs (curIdx + 1) recs))
+        , OnAction (Action "Last")     (ifCond notLast  (showRecs lastIdx recs))
         ]
   archivedStandAloneViewer`` curIdx newRTMap
-    =   enterChoice "Select blueprint" [ChooseWith (ChooseFromGrid (\(x, y, z, _) -> (x, y, z)))] (flattenRTMap newRTMap)
+    =   enterChoice "Select blueprint" [ChooseFromGrid (\(x, y, z, _) -> (x, y, z))] (flattenRTMap newRTMap)
     >&> withSelection noSel2 viewBP
   noSel1 = viewInformation "Notice" [] "No recording selected"
   noSel2 = viewInformation "Notice" [] "No blueprint"
   viewBP :: (ComputationId, ModuleName, FuncName, GenBlueprintInstance) -> Task ()
-  viewBP (cid, _, _, gbpi) = showGenBlueprintInstance [] gbpi Nothing False { Scale | min = 0, cur = 0, max = 0} @! () // TODO Enable controls
+  viewBP (cid, _, _, gbpi) = showGenBlueprintInstance [] gbpi Nothing False 0 @! () // TODO Enable controls
 
 flattenRTMap :: TonicGenRTMap -> [(ComputationId, ModuleName, FuncName, GenBlueprintInstance)]
 flattenRTMap m = flatten (flattenRTMap` ('DM'.toList m))
@@ -176,22 +177,22 @@ liveStandAloneViewer
                                                                             ])))))
     where
     startAction :: TMessageStore -> TaskCont a (Task ())
-    startAction {ts_recording} = OnAction (Action "Start new recording" []) (ifCond (not ts_recording) startTask)
+    startAction {ts_recording} = OnAction (Action "Start new recording") (ifCond (not ts_recording) startTask)
       where
       startTask
         =   upd (\ts -> {ts & ts_recording = True, ts_recordingBuffer = []}) tonicServerShare @! ()
     pauseAction :: TMessageStore -> TaskCont a (Task ())
-    pauseAction {ts_recording} = OnAction (Action "Pause recording" []) (ifCond ts_recording stopTask)
+    pauseAction {ts_recording} = OnAction (Action "Pause recording") (ifCond ts_recording stopTask)
       where
       stopTask
         =   upd (\ts -> {ts & ts_recording = False}) tonicServerShare @! ()
     continueAction :: TMessageStore -> TaskCont a (Task ())
-    continueAction {ts_recording} = OnAction (Action "Continue recording" []) (ifCond (not ts_recording) stopTask)
+    continueAction {ts_recording} = OnAction (Action "Continue recording") (ifCond (not ts_recording) stopTask)
       where
       stopTask
         =   upd (\ts -> {ts & ts_recording = True}) tonicServerShare @! ()
     stopAction :: TMessageStore -> TaskCont a (Task ())
-    stopAction {ts_recording} = OnAction (Action "Pause and save recording" []) (ifCond ts_recording stopTask)
+    stopAction {ts_recording} = OnAction (Action "Pause and save recording") (ifCond ts_recording stopTask)
       where
       stopTask
         =           get tonicServerShare
@@ -199,7 +200,7 @@ liveStandAloneViewer
         >>- \cdt -> upd ('DM'.put cdt ts.ts_recordingBuffer) recordingsShare
         >>- \_   -> upd (\ts -> {ts & ts_recording = False}) tonicServerShare @! ()
     refreshAction :: TaskCont a (Task ())
-    refreshAction = OnAction (Action "Refresh" []) (always startViewer)
+    refreshAction = OnAction (Action "Refresh") (always startViewer)
 
     noSel :: Task ()
     noSel = viewInformation "Notice" [] "No blueprint selected" @! ()
@@ -210,7 +211,7 @@ liveStandAloneViewer
     =                newRTMapFromMessages ts_allMsgs
     >>~ \newRTMap -> case 'DM'.get tmn.tmn_computationId newRTMap of
                        Just [(_, selBPI) : _]
-                         = showGenBlueprintInstance [] selBPI Nothing False { Scale | min = 0, cur = 0, max = 0} @! () // TODO Enable controls
+                         = showGenBlueprintInstance [] selBPI Nothing False 0 @! () // TODO Enable controls
                        _ = startViewer
   runViewer x = viewInformation "Notice" [] "No blueprint selected" >>| runViewer x
 
@@ -232,17 +233,19 @@ viewMessage (TMApply msg) prevMsgs
                 _ = viewInformation () [] "No blueprint found!" @! ()
 
 viewInstance :: !BlueprintInstance -> Task ()
-viewInstance bpi=:{bpi_blueprint, bpi_bpref = {bpr_moduleName, bpr_taskName}}
+viewInstance bpi=:{bpi_blueprint, bpi_bpref = {bpr_moduleName, bpr_taskName}} = return ()
+/*
   = updateInformation ()
       [imageUpdate id (\_ -> mkTaskInstanceImage [] bpi 'DM'.newMap 'DM'.newMap Nothing False) (const id) (const id) (\_ _ -> Nothing) (const id)]
       { ActionState
       | state  = { tis_task    = bpi.bpi_blueprint
-                 , tis_depth   = { Scale | min = 0, cur = 0, max = 0}
+                 , tis_depth   = 0
                  , tis_compact = False }
       , action = Nothing}
       @! ()
+*/
 
-nulDT = DateTime { Date | day = 0, mon = 0, year = 0 } { Time | hour = 0, min = 0, sec = 0 }
+nulDT = toDateTime { Date | day = 0, mon = 0, year = 0 } { Time | hour = 0, min = 0, sec = 0 }
 
 mkInstance :: NodeId TonicFunc -> BlueprintInstance
 mkInstance nid tf =

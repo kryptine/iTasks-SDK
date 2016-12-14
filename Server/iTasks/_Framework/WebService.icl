@@ -1,7 +1,7 @@
 implementation module iTasks._Framework.WebService
 
-import StdList, StdBool, StdTuple, StdArray
-from StdFunc import o
+import StdList, StdBool, StdTuple, StdArray, StdFile
+from StdFunc import o, const
 import Data.Maybe, Data.Functor
 from Data.Map import :: Map (..)
 import qualified Data.List as DL
@@ -10,20 +10,20 @@ import qualified Data.Queue as DQ
 import qualified iTasks._Framework.SDS as SDS
 
 import System.Time, Text, Text.JSON, Internet.HTTP, Data.Error
+import System.File, System.FilePath, System.Directory
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskEval, iTasks._Framework.TaskStore
-import iTasks.UI.Diff, iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.Engine, iTasks._Framework.IWorld
+import iTasks.UI.Definition, iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.Engine, iTasks._Framework.IWorld
 import iTasks.API.Core.SDSs, iTasks.API.Common.SDSCombinators
 import iTasks.API.Core.Types
-import Crypto.Hash.SHA1, Text.Encodings.Base64
+import Crypto.Hash.SHA1, Text.Encodings.Base64, Text.Encodings.MIME
+import Text.HTML
 
 from iTasks._Framework.HttpUtil import http_addRequestData, http_parseArguments
-
-DEFAULT_THEME :== "gray"
 
 :: NetTaskState
     = NTIdle String Timestamp
     | NTReadingRequest HttpReqState
-	| NTProcessingRequest HTTPRequest ConnectionType
+	| NTProcessingRequest HTTPRequest ConnectionState
 
 :: HttpReqState =
     { request       :: HTTPRequest
@@ -33,231 +33,127 @@ DEFAULT_THEME :== "gray"
     , error         :: Bool
     }
 
-// Websocket task access messages
-:: WSCReq
-    = ReqStartSession !InstanceNo
-    | TaskEvent !Event
+//Opcodes used in websocket frames:
+WS_OP_CONTINUE :== 0x00
+WS_OP_TEXT     :== 0x01 
+WS_OP_BINARY   :== 0x02
+WS_OP_CLOSE    :== 0x08
+WS_OP_PING     :== 0x09
+WS_OP_PONG     :== 0x0A
 
-:: WSCRsp
-    = AckStartSession !InstanceNo
-    | TaskUpdates !InstanceNo ![UIUpdate]
-
-//TODO: The upload and download mechanism used here is inherently insecure!!!
-// A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
-// unauthorized downloading of documents and DDOS uploading.
-webService :: !String !(HTTPRequest -> Task a) !ServiceFormat ->
-						 (!(String -> Bool)
-                         ,!(HTTPRequest (Map InstanceNo TIUIState) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
-						 ,!(HTTPRequest (Map InstanceNo TIUIState) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
-						 ,!(HTTPRequest (Map InstanceNo TIUIState) ConnectionType *IWorld -> (!Maybe (Map InstanceNo TIUIState), !*IWorld))
-						 ) | iTask a
-webService url task defaultFormat = (matchFun url,reqFun` url task defaultFormat,dataFun,disconnectFun)
+wsockHandShake :: String -> String
+wsockHandShake key = base64Encode digest
 where
-    matchFun :: String String -> Bool
-    matchFun matchUrl reqUrl = startsWith matchUrl reqUrl && isTaskUrl (reqUrl % (size matchUrl,size reqUrl))
-    where
-        isTaskUrl "" = True
-        isTaskUrl s = case dropWhile ((==)"") (split "/" s) of  // Ignore slashes at the beginning of the path
-            ["gui-stream"]      = True                          // Updates stream for multiple instances
-            [instanceNo,_]      = toInt instanceNo > 0          // {instanceNo}/{instanceKey}
-            [instanceNo,_,_]    = toInt instanceNo > 0          // {instanceNo}/{instanceKey}/{view}
-            _                   = False
+	(SHA1Digest digest) = sha1StringDigest (key+++"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
-	reqFun` url task defaultFormat req output iworld=:{server}
-		# server_url = "//" +++ req.server_name +++ ":" +++ toString req.server_port
-		= reqFun url task defaultFormat req output {IWorld|iworld & server = {server & serverURL = server_url}}
+wsockAddData :: WebSockState {#Char} -> (!WebSockState,![WebSockEvent])
+wsockAddData state data //Read as many frames as possible
+	# (state,evCur) = wsockReadFrame state data
+	| evCur =:[] = (state,[])
+	# (state,evNext) = wsockAddData state ""
+	= (state,evCur++evNext)
+wsockReadFrame state=:{WebSockState|cur_frame,message_data} data
+	# cur_frame = cur_frame +++ data
+	| size cur_frame < 6 = ({state & cur_frame = cur_frame},[]) //No frame header yet
+	//Determine values of flags in the first two header bytes
+	# final = (fromChar cur_frame.[0] bitand 0x80) > 0
+	# opcode = (fromChar cur_frame.[0] bitand 0x0F)
+	# masked = (fromChar cur_frame.[1] bitand 0x80) > 0
+	//Determine payload length (and how many bytes were used to encode it)
+	# (payload_length,ext_payload_length_size) = payloadLen cur_frame
+	//Determine the total expected frame length
+	# frame_length = 2 + ext_payload_length_size + if masked 4 0 + payload_length 
+	//If no full frame is read yet we can stop for now 
+	| size cur_frame < frame_length 
+		= ({state & cur_frame = cur_frame},[])
+	//Extract the payload
+	# payload = if masked
+		(let mask = cur_frame % (2 + ext_payload_length_size, 5 + ext_payload_length_size) in
+			decodePayload mask (cur_frame % (6 + ext_payload_length_size, 6 + ext_payload_length_size + payload_length - 1))
+		)
+		(cur_frame % (2 + ext_payload_length_size, payload_length))
+	//Remove the frame data
+	# state = if (size cur_frame == frame_length)
+					 {state & cur_frame = ""}
+					 {state & cur_frame = cur_frame % (frame_length,size cur_frame)}
+	//Process frame	
+	| opcode == WS_OP_CLOSE
+		= (state,[WSClose payload])
+	| opcode == WS_OP_PING
+		= (state,[WSPing payload])
+	| opcode == WS_OP_TEXT 
+		| final = ({state & message_data = []},[WSTextMessage payload])
+		| otherwise = ({state & message_text = True, message_data = [payload]},[])
+	| opcode == WS_OP_BINARY
+		| final = ({state & message_data = []},[WSBinMessage payload])
+		| otherwise = ({state & message_text = False, message_data = [payload]},[])
+	| opcode == WS_OP_CONTINUE
+		| final = ({state & message_data = []},[(if state.message_text WSTextMessage WSBinMessage) (concat (reverse [payload:state.message_data]))])
+		| otherwise = ({state & message_data = [payload:state.message_data]},[])
+	| otherwise	
+		= (state,[])
+where
+	payloadLen data
+		# len = fromChar data.[1] bitand 0x7F //First determine if length fits in first 7 available bits
+		| len == 126 //Use byte 2 & 3 as length (16-bit)
+			= ((fromChar data.[2] << 8) + (fromChar data.[3]), 2)
+		| len == 127 //Use byte 2,3,4,5,6,7,8,9 as length (64-bit)
+			= (foldr (+) 0 [fromChar data.[b] << (i * 8) \\ b <- [2..9] & i <- [0..7]], 8)
+		| otherwise = (len,0)
 
-	reqFun url task defaultFormat req output iworld=:{IWorld|server={serverName,customCSS},config}
-		//Check for uploads
-		| hasParam "upload" req
-			# uploads = 'DM'.toList req.arg_uploads
-			| length uploads == 0
-				= (jsonResponse (JSONArray []),Nothing,Nothing,iworld)
-			# (documents, iworld) = createDocumentsFromUploads uploads iworld
-			= (jsonResponse (toJSON documents),Nothing,Nothing,iworld)
-		//Check for downloads
-		| hasParam "download" req
-			# (mbContent, iworld)	= loadDocumentContent downloadParam iworld
-			# (mbMeta, iworld)		= loadDocumentMeta downloadParam iworld
-			= case (mbContent,mbMeta) of
-				(Just content,Just {Document|name,mime,size})
-					# headers	= [("Content-Type", mime),("Content-Length", toString size),("Content-Disposition","attachment;filename=\"" +++ name +++ "\"")]
-					= ({okResponse & rsp_headers = headers, rsp_data = content},Nothing,Nothing,iworld)
-				_
-					= (notFoundResponse req,Nothing,Nothing,iworld)
-        //Check for WebSocket upgrade headers
-        | ('DM'.get "Upgrade" req.HTTPRequest.req_headers) =:(Just "websocket") && isJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
-            # secWebSocketKey       = fromJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
-            # secWebSocketAccept    = webSocketHandShake secWebSocketKey
-            //Create handshake response
-            # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
-                        ,("Sec-WebSocket-Accept",secWebSocketAccept),("Sec-WebSocket-Protocol","itwc")]
-            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = headers, rsp_data = ""}, Just (WebSocketConnection []),Nothing,iworld)
-        | urlSpec == ""
-            = case defaultFormat of
-			    (WebApp	opts)
-                    = case createTaskInstance (task req) iworld of
-                        (Error (_,err), iworld)
-				            = (errorResponse err, Nothing, Nothing, iworld)
-                        (Ok (instanceNo,instanceKey),iworld)
-							# iworld = queueEvent instanceNo (RefreshEvent "First refresh") iworld
-				            = (itwcStartResponse url instanceNo instanceKey (theme opts) serverName customCSS, Nothing, Nothing, iworld)
-			    _
-				    = (jsonResponse (JSONString "Unknown service format"), Nothing, Nothing, iworld)
-        | otherwise
-            = case dropWhile ((==)"") (split "/" urlSpec) of
-                ["gui-stream"]
-                    //Stream messages for multiple instances
-                    # iworld            = updateInstanceConnect req.client_name instances iworld
-					# (messages,output) = dequeueOutput instances output //TODO: Check keys
-                    = (eventsResponse messages, Just (EventSourceConnection instances), Just output, iworld)
-                [instanceNo,instanceKey]
-                    = (itwcStartResponse url instanceNo instanceKey (theme []) serverName customCSS, Nothing, Nothing, iworld)
-                [instanceNo,instanceKey,"gui"]
-                    //Load task instance and edit / evaluate
-                    # instanceNo         = toInt instanceNo
-                    # iworld             = updateInstanceLastIO [instanceNo] iworld
-					# iworld 			 = queueEvent instanceNo event iworld
-					# json				 = JSONObject [("instance",JSONInt instanceNo)]
-                    = (jsonResponse json, Nothing, Nothing, iworld)
-                //Stream messages for a specific instance
-                [instanceNo,instanceKey,"gui-stream"]
-                    # instances         = [toInt instanceNo]
-                    # iworld            = updateInstanceConnect req.client_name instances iworld
-					# (messages,output) = dequeueOutput instances output
-                    = (eventsResponse messages, Just (EventSourceConnection instances), Nothing, iworld)
-                _
-				    = (errorResponse "Requested service format not available for this task", Nothing, Nothing, iworld)
-	    where
-            urlSpec             = req.HTTPRequest.req_path % (size url,size req.HTTPRequest.req_path)
-
-		    downloadParam		= paramValue "download" req
-		    uploadParam			= paramValue "upload" req
-
-		    editEventParam		= paramValue "editEvent" req
-		    actionEventParam	= paramValue "actionEvent" req
-		    focusEventParam		= paramValue "focusEvent" req
-            resetEventParam     = paramValue "resetEvent" req
-
-            instances = filter (\i. i > 0) (map toInt (split "," (paramValue "instances" req)))
-
-            theme [Theme name:_] = name
-            theme _              = DEFAULT_THEME
-
-		    event = case (fromJSON (fromString editEventParam)) of
-			    Just (taskId,name,value)	= EditEvent (fromString taskId) name value
-			    _	= case (fromJSON (fromString actionEventParam)) of
-				    Just (taskId,actionId)	= ActionEvent (fromString taskId) actionId
-				    _	= case (fromJSON (fromString focusEventParam)) of
-					    Just taskId			= FocusEvent (fromString taskId)
-					    _   = if (resetEventParam == "") (RefreshEvent "Browser refresh") ResetEvent
-
-        webSocketHandShake key = base64Encode digest
-        where
-            (SHA1Digest digest) = sha1StringDigest (key+++"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
-
-    dataFun req output mbData (WebSocketConnection instances) iworld
-        = (maybe [] (\d -> [d]) mbData,False,(WebSocketConnection instances),Nothing,iworld) //TEMPORARY ECHO WEBSOCKET
-	dataFun req output _ (EventSourceConnection instances) iworld
-		# (messages,output) = dequeueOutput instances output
-		= case filter (not o isEmpty o snd) messages of //Ignore empty updates
-			[]	= ([],False,(EventSourceConnection instances),Nothing,iworld)
-            messages	
-                # iworld = updateInstanceLastIO instances iworld
-                = ([formatMessageEvents messages],False,(EventSourceConnection instances),Just output, iworld)
-
-	disconnectFun _ _ (EventSourceConnection instances) iworld    = (Nothing, updateInstanceDisconnect instances iworld)
-	disconnectFun _ _ _ iworld                                    = (Nothing, iworld)
-
-	dequeueOutput :: ![InstanceNo] !(Map InstanceNo TIUIState) -> (![(!InstanceNo,![UIUpdate])],!Map InstanceNo TIUIState)
-	dequeueOutput [] states = ([],states)
-	dequeueOutput [i:is] states
-		# (output,states) = dequeueOutput is states
-		= case 'DM'.get i states of
-			Just (UIEnabled version ref out)
-				= ([(i,toList out):output],'DM'.put i (UIEnabled version ref 'DQ'.newQueue) states)
-			_ 		= (output,states)
+	decodePayload mask encoded =  {decode i c \\ c <-: encoded & i <- [0..]}
 	where
-		toList q = case 'DQ'.dequeue q of
-			(Nothing,q) 	= []
-			(Just x,q) 		= [x:toList q]
+		decode i c = toChar ((fromChar mask.[i rem 4]) bitxor (fromChar c))
 
-	jsonResponse json
-		= {okResponse & rsp_headers = [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = toString json}
-			
-	eventsResponse messages
-		= {okResponse &   rsp_headers = [("Content-Type","text/event-stream"),("Cache-Control","no-cache")]
-                        , rsp_data = formatMessageEvents messages}
+wsockControlFrame :: !Int !String -> String
+wsockControlFrame opcode payload = wsockMsgFrame opcode True payload
+
+wsockCloseMsg :: String -> String
+wsockCloseMsg payload = wsockControlFrame WS_OP_CLOSE payload 
+
+wsockPongMsg :: String -> String
+wsockPongMsg payload = wsockControlFrame WS_OP_PONG payload
+
+wsockMsgFrame :: !Int !Bool !String -> String
+wsockMsgFrame opcode final payload 
+	| num_bytes < 125   = frame num_bytes "" payload
+	| num_bytes < 65536 = frame 126 {toChar (num_bytes >> (8*i)) \\ i <- [1,0]} payload
+	| otherwise         = IF_INT_64_OR_32
+							(frame 127 {toChar (num_bytes >> (8*i)) \\ i <- [7,6,5,4,3,2,1,0]} payload)
+							(frame 127 {toChar (if (i < 4) (num_bytes >> (8*i)) 0) \\ i <- [7,6,5,4,3,2,1,0]} payload)
+where
+	num_bytes = size payload
+	frame payload_length ext_payload_length payload
+		= {toChar (opcode bitor (if final 0x80 0x00)),toChar payload_length} +++ ext_payload_length +++ payload
 	
-	formatMessageEvents messages = concat (map format messages)
-    where
-        format (instanceNo,updates) = "data: {\"instance\":" +++toString instanceNo+++",\"updates\":" +++ toString (encodeUIUpdates updates) +++ "}\n\n"
-
-	itwcStartResponse path instanceNo instanceKey theme appName customCSS = {okResponse & rsp_data = toString itwcStartPage}
-	where
-		itwcStartPage = HtmlTag [] [head,body]
-		head = HeadTag [] [MetaTag [CharsetAttr "UTF-8"] []
-                          ,MetaTag [NameAttr "viewport",ContentAttr "width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, minimal-ui"] []
-                          ,MetaTag [NameAttr "mobile-web-app-capable",ContentAttr "yes"] []
-                          ,MetaTag [NameAttr "apple-mobile-web-app-capable",ContentAttr "yes"] []
-                          ,TitleTag [] [Text appName], startUrlScript : styles ++ scripts]
-		body = BodyTag [] []
-
-        startUrlScript = ScriptTag [TypeAttr "text/javascript"]
-            [RawText "window.itwc = {};"
-            ,RawText ("itwc.START_INSTANCE_NO = "+++toString instanceNo+++";")
-            ,RawText ("itwc.START_INSTANCE_KEY = \""+++instanceKey+++"\";")
-            ]
-		styles = [LinkTag [RelAttr "stylesheet", HrefAttr file, TypeAttr "text/css"] [] \\ file <- stylefiles]
-		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
-		
-		stylefiles =
-            ["itwc-theme-"+++theme+++"/itwc-theme.css"
-			: if customCSS [appName +++ ".css"] []]
-
-        scriptfiles =
-            ["/utils.js","/itask.js"
-			,"/builtin.js","/dynamic.js"
-			,"/sapl-rt.js","/sapl-support.js"
-			,"/db.js", "/debug.js","/interface.js"
-            ,"/itwc.js"
-            ]
-
-	createDocumentsFromUploads [] iworld = ([],iworld)
-	createDocumentsFromUploads [(n,u):us] iworld
-		# (mbD,iworld)	= createDocument u.upl_filename u.upl_mimetype u.upl_content iworld
-		| isError mbD	= createDocumentsFromUploads us iworld
-		# (ds,iworld)	= createDocumentsFromUploads us iworld
-		= ([fromOk mbD:ds],iworld)
-
+wsockTextMsg :: String -> [String]
+wsockTextMsg payload = [wsockMsgFrame WS_OP_TEXT True payload]
 
 httpServer :: !Int !Int ![(!String -> Bool
 				,!Bool
-				,!(HTTPRequest r *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe w, !*IWorld))
-				,!(HTTPRequest r (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe w, !*IWorld))
-				,!(HTTPRequest r ConnectionType *IWorld -> (!Maybe w, !*IWorld))
+				,!(HTTPRequest r *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe w, !*IWorld))
+				,!(HTTPRequest r (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe w, !*IWorld))
+				,!(HTTPRequest r ConnectionState *IWorld -> (!Maybe w, !*IWorld))
 				)] (RWShared () r w) -> ConnectionTask | TC r & TC w
 httpServer port keepAliveTime requestProcessHandlers sds
  = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, whileConnected=whileConnected, onDisconnect=onDisconnect} sds
 where
-    onConnect host r iworld=:{IWorld|world}
-        # (ts,world) = time world
-        = (Ok (NTIdle host ts),Nothing,[],False,{IWorld|iworld & world = world})
+    onConnect host r iworld=:{IWorld|world,clocks}
+        = (Ok (NTIdle host clocks.timestamp),Nothing,[],False,{IWorld|iworld & world = world})
 
 	whileConnected mbData connState=:(NTProcessingRequest request localState) r env
 		//Select handler based on request path
 		= case selectHandler request requestProcessHandlers of
 			Just (_,_,_,handler,_)
-				# (mbData,done,localState,mbW,env=:{IWorld|world}) = handler request r mbData localState env
+				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = handler request r mbData localState env
 				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
-					# (now,world)       = time world
-					= (Ok (NTIdle request.client_name now), mbW, mbData, False,{IWorld|env & world = world})
+					= (Ok (NTIdle request.client_name clocks.timestamp), mbW, mbData, False,{IWorld|env & world = world})
 				| otherwise
 					= (Ok (NTProcessingRequest request localState), mbW, mbData,done,{IWorld|env & world = world})
 			Nothing
 				= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, env)
 
-	whileConnected (Just data) connState r env  //(connState is either Idle or ReadingRequest)
+	whileConnected (Just data) connState r iworld=:{IWorld|clocks}//(connState is either Idle or ReadingRequest)
 		# rstate = case connState of
 			(NTIdle client_name _)
 				//Add new data to the request
@@ -272,14 +168,14 @@ where
 				= {HttpReqState|request=newHTTPRequest,method_done=False,headers_done=False,data_done=False,error=True}
 		| rstate.HttpReqState.error
 			//Sent bad request response and disconnect
-			= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, env)
+			= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, iworld)
 		| not rstate.HttpReqState.headers_done
 			//Without headers we can't select our handler functions yet
-			= (Ok (NTReadingRequest rstate), Nothing, [], False, env)
+			= (Ok (NTReadingRequest rstate), Nothing, [], False, iworld)
 		//Determine the handler
 		= case selectHandler rstate.HttpReqState.request requestProcessHandlers of
 			Nothing
-				= (Ok connState, Nothing, ["HTTP/1.1 404 Not Found\r\n\r\n"], True, env)
+				= (Ok connState, Nothing, ["HTTP/1.1 404 Not Found\r\n\r\n"], True, iworld)
 			Just (_,completeRequest,newReqHandler,procReqHandler,_)
 				//Process a completed request, or as soon as the headers are done if the handler indicates so
 				| rstate.HttpReqState.data_done || (not completeRequest)
@@ -287,7 +183,7 @@ where
 					//Determine if a  persistent connection was requested
 					# keepalive	= isKeepAlive request
 					// Create a response
-					# (response,mbLocalState,mbW,env)	= newReqHandler request r env
+					# (response,mbLocalState,mbW,iworld)	= newReqHandler request r iworld 
 					//Add keep alive header if necessary
 					# response	= if keepalive {HTTPResponse|response & rsp_headers = [("Connection","Keep-Alive"):response.HTTPResponse.rsp_headers]} response
 					// Encode the response to the HTTP protocol format
@@ -295,23 +191,20 @@ where
 						Nothing	
 							# reply		= encodeResponse True response
 							| keepalive
-                                # env=:{IWorld|world} = env
-								# (now,world)       = time world
-								= (Ok (NTIdle rstate.HttpReqState.request.client_name now), mbW, [reply], False, {IWorld|env & world=world})
+								= (Ok (NTIdle rstate.HttpReqState.request.client_name clocks.timestamp), mbW, [reply], False, iworld)
 							| otherwise
-								= (Ok connState, mbW, [reply], True, env)
+								= (Ok connState, mbW, [reply], True, iworld)
 						Just localState	
-							= (Ok (NTProcessingRequest request localState), mbW, [(encodeResponse False response)], False, env)
+							= (Ok (NTProcessingRequest request localState), mbW, [(encodeResponse False response)], False, iworld)
 				| otherwise
-					= (Ok (NTReadingRequest rstate), Nothing, [], False, env)		
+					= (Ok (NTReadingRequest rstate), Nothing, [], False, iworld)		
 
 	//Close idle connections if the keepalive time has passed
-	whileConnected Nothing connState=:(NTIdle ip (Timestamp t)) r iworld=:{IWorld|world}
-		# (Timestamp now,world)	= time world//TODO: Do we really need to do this for every connection all the time?
-		= (Ok connState, Nothing, [], now >= t + keepAliveTime, {IWorld|iworld & world = world})
+	whileConnected Nothing connState=:(NTIdle ip (Timestamp t)) r iworld=:{IWorld|clocks={timestamp=Timestamp now}}
+		= (Ok connState, Nothing, [], now >= t + keepAliveTime, iworld)
 
 	//Do nothing if no data arrives for now
-	whileConnected Nothing connState r env = (Ok connState,Nothing,[],False,env)
+	whileConnected Nothing connState r iworld = (Ok connState,Nothing,[],False,iworld)
 
 	//If we were processing a request and were interupted we need to
 	//select the appropriate handler to wrap up
@@ -341,3 +234,203 @@ where
     where		
     	addDefault headers hdr val = if (('DL'.lookup hdr headers) =: Nothing) [(hdr,val):headers] headers
 
+:: ChangeQueues :== Map InstanceNo (Queue UIChange)
+
+
+taskUIService :: ![PublishedTask] ->
+                 (!(String -> Bool)
+                 ,!Bool
+                 ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues ConnectionState *IWorld -> (!Maybe ChangeQueues, !*IWorld))
+                 ) 
+taskUIService taskUrls = (matchFun [url \\ {PublishedTask|url} <-taskUrls],True,reqFun` taskUrls,dataFun,disconnectFun)
+where
+    matchFun :: [String] String -> Bool
+    matchFun matchUrls reqUrl = or [reqUrl == matchUrl +++ "gui-wsock" \\ matchUrl <- matchUrls]
+
+	reqFun` taskUrls req output iworld=:{server}
+		# server_url = "//" +++ req.server_name +++ ":" +++ toString req.server_port
+		= reqFun taskUrls req output {IWorld|iworld & server = {server & serverURL = server_url}}
+
+	reqFun taskUrls req output iworld=:{IWorld|server={serverName},config}
+		//Check for WebSocket upgrade headers
+        | ('DM'.get "Upgrade" req.HTTPRequest.req_headers) =:(Just "websocket") && isJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
+            # secWebSocketKey       = trim (fromJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers))
+            # secWebSocketAccept    = wsockHandShake secWebSocketKey
+            //Create handshake response
+            # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
+                        ,("Sec-WebSocket-Accept",secWebSocketAccept)]
+			# state = {WebSockState|cur_frame = "",message_text = True, message_data = []}
+            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = headers, rsp_data = ""}
+			  , Just (state,[]),Nothing,iworld)
+        | otherwise
+			= (errorResponse "Requested service format not available for this task", Nothing, Nothing, iworld)
+
+	dataFun req output (Just data) (state,instances) iworld
+		# (state,result) = wsockAddData state data 
+		= case result of //TODO: Process multiple events
+			[WSClose msg:_]
+				//Respond with a close frame and close the connection
+				= ([wsockCloseMsg msg],True, (state,instances),Nothing,iworld)
+			[WSTextMessage msg:_] 
+				//Process events:
+				= case fromString msg of
+					//- new session
+					(JSONArray [JSONInt reqId,JSONString "new"])
+                    	= case createTaskInstance` req taskUrls iworld of
+							(Error (_,err), iworld)
+								# json = JSONArray [JSONInt reqId,JSONString "ERROR",JSONString err]
+								= (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
+                        	(Ok (instanceNo,instanceKey),iworld)
+								# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
+								# json = JSONArray [JSONInt reqId, JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]]
+								= (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
+					//- attach existing instance
+					(JSONArray [JSONString "attach",JSONInt instanceNo,JSONString instanceKey])
+						//TODO: Clear output
+						# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
+						= ([],False, (state,[instanceNo:instances]),Nothing,iworld) //TODO: Maybe send confirmation message?
+					//- detach instance
+					(JSONArray [JSONString "detach",JSONInt instanceNo,JSONString instanceKey])
+						= ([],False, (state,removeMember instanceNo instances),Nothing,iworld) //TODO: Maybe send confirmation message?
+					(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONNull,JSONString actionId]]) //Action event
+						# iworld = queueEvent instanceNo (ActionEvent (fromString taskId) actionId) iworld //Queue event
+						= ([],False, (state,instances),Nothing,iworld) //TODO: Maybe send confirmation message?
+					(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONString name,value]]) //Edit event
+						# iworld = queueEvent instanceNo (EditEvent (fromString taskId) name value) iworld //Queue event
+						= ([],False, (state,instances),Nothing,iworld) //TODO: Maybe send confirmation message?
+					//Unknown message 
+					e
+						# json = JSONArray [JSONString "ERROR",JSONString "Unknown event"]
+						= (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
+			[WSPing msg:_]
+				= ([wsockPongMsg msg],False,(state,instances),Nothing,iworld)
+			_ = ([],False,(state,instances),Nothing,iworld)
+	
+    dataFun req output Nothing (state,instances) iworld
+		//Check for UI updates for all attached instances
+		# (changes, output) = dequeueOutput instances output
+		= case changes of //Ignore empty updates
+			[] = ([],False,(state,instances),Nothing,iworld)
+			changes	
+                # (_,iworld) = updateInstanceLastIO instances iworld
+				# msgs = [wsockTextMsg (toString (JSONObject [("instance",JSONInt instanceNo)
+															 ,("change",encodeUIChange change)])) \\ (instanceNo,change) <- changes]
+				= (flatten msgs,False, (state,instances),Just output,iworld)
+
+	disconnectFun _ _ (state,instances) iworld = (Nothing, snd (updateInstanceDisconnect instances iworld))
+	disconnectFun _ _ _ iworld                 = (Nothing, iworld)
+
+	createTaskInstance` req [{PublishedTask|url,task=TaskWrapper task}:taskUrls] iworld
+		| (url +++ "gui-wsock") == req.HTTPRequest.req_path = createTaskInstance (task req) iworld
+		| otherwise = createTaskInstance` req taskUrls iworld
+
+	dequeueOutput :: ![InstanceNo] !(Map InstanceNo (Queue UIChange)) -> (![(!InstanceNo,!UIChange)],!Map InstanceNo (Queue UIChange))
+	dequeueOutput [] states = ([],states)
+	dequeueOutput [i:is] states
+		# (output,states) = dequeueOutput is states
+		= case 'DM'.get i states of
+			Just out 	= ([(i,c) \\ c <- toList out] ++ output,'DM'.put i 'DQ'.newQueue states)
+			Nothing  	= (output,states)
+	where
+		toList q = case 'DQ'.dequeue q of
+			(Nothing,q) 	= []
+			(Just x,q) 		= [x:toList q]
+
+		
+	eventsResponse messages
+		= {okResponse &   rsp_headers = [("Content-Type","text/event-stream"),("Cache-Control","no-cache")]
+                        , rsp_data = formatMessageEvents messages}
+	
+	formatMessageEvents messages = concat (map format messages)
+    where
+        format (instanceNo,change) = "data: {\"instance\":" +++toString instanceNo+++",\"change\":" +++ toString (encodeUIChange change) +++ "}\n\n"
+
+//TODO: The upload and download mechanism used here is inherently insecure!!!
+// A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
+// unauthorized downloading of documents and DDOS uploading.
+	
+documentService :: (!(String -> Bool),!Bool,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
+                        ,!(HTTPRequest r (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
+                        ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld)))
+documentService = (matchFun,True,reqFun,dataFun,lostFun)
+where
+	matchFun path = case dropWhile ((==)"") (split "/" path) of
+		["upload"]          = True  // Upload of documents
+		["download",_]      = True  // Download of documents
+		_ 					= False
+
+	reqFun req output iworld=:{IWorld|server={serverName},config}
+		= case dropWhile ((==)"") (split "/" req.HTTPRequest.req_path) of
+			["upload"]
+				# uploads = 'DM'.toList req.arg_uploads
+				| length uploads == 0
+					= (jsonResponse (JSONArray []),Nothing,Nothing,iworld)
+				# (documents, iworld) = createDocumentsFromUploads uploads iworld
+				= (jsonResponse (toJSON documents),Nothing,Nothing,iworld)
+			["download",downloadParam]
+				# (mbContent, iworld)	= loadDocumentContent downloadParam iworld
+				# (mbMeta, iworld)		= loadDocumentMeta downloadParam iworld
+				= case (mbContent,mbMeta) of
+					(Just content,Just {Document|name,mime,size})
+						# headers	= [("Content-Type", mime),("Content-Length", toString size)
+									  ,("Content-Disposition","attachment;filename=\"" +++ name +++ "\"")]
+						= ({okResponse & rsp_headers = headers, rsp_data = content},Nothing,Nothing,iworld)
+					_
+						= (notFoundResponse req,Nothing,Nothing,iworld)
+			_
+				= (notFoundResponse req,Nothing,Nothing,iworld)
+
+	dataFun _ _ _ s env = ([],True,s,Nothing,env)
+	lostFun _ _ s env = (Nothing,env)
+
+createDocumentsFromUploads [] iworld = ([],iworld)
+createDocumentsFromUploads [(n,u):us] iworld
+	# (mbD,iworld)	= createDocument u.upl_filename u.upl_mimetype u.upl_content iworld
+	| isError mbD	= createDocumentsFromUploads us iworld
+	# (ds,iworld)	= createDocumentsFromUploads us iworld
+	= ([fromOk mbD:ds],iworld)
+
+jsonResponse json
+		= {okResponse & rsp_headers = [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = toString json}
+	
+// Request handler which serves static resources from the application directory,
+// or a system wide default directory if it is not found locally.
+// This request handler is used for serving system wide javascript, css, images, etc...
+staticResourceService :: [String] -> (!(String -> Bool),!Bool,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
+                        ,!(HTTPRequest r (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
+                        ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld)))
+staticResourceService taskPaths = (const True,True,initFun,dataFun,lostFun)
+where
+	initFun req _ env
+		# (rsp,env) = handleStaticResourceRequest req env
+		= (rsp,Nothing,Nothing,env)
+		
+	dataFun _ _ _ s env = ([],True,s,Nothing,env)
+	lostFun _ _ s env = (Nothing,env)
+
+	handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
+	handleStaticResourceRequest req iworld=:{IWorld|server={paths={publicWebDirectories}}}
+    	= serveStaticResource req publicWebDirectories iworld
+	where
+    	serveStaticResource req [] iworld
+	    	= (notFoundResponse req,iworld)
+    	serveStaticResource req [d:ds] iworld=:{IWorld|world}
+			# filename		   = if (isMember req.HTTPRequest.req_path taskPaths) //Check if one of the published tasks is requested, then serve bootstrap page
+									(d +++ filePath "/index.html")
+									(d +++ filePath req.HTTPRequest.req_path)
+			# type			   = mimeType filename
+            # (mbInfo,world) = getFileInfo filename world
+			| case mbInfo of (Ok info) = info.directory ; _ = True
+               = serveStaticResource req ds {IWorld|iworld & world = world}
+			# (mbContent, world)	= readFile filename world
+			= case mbContent of
+				(Ok content) = ({ okResponse
+	    						& rsp_headers = [("Content-Type", type),("Content-Length", toString (size content))]
+                                , rsp_data = content}, {IWorld|iworld & world = world})
+                (Error e)    = (errorResponse (toString e +++ " ("+++ filename +++")"), {IWorld|iworld & world = world})
+
+		//Translate a URL path to a filesystem path
+		filePath path	= ((replaceSubString "/" {pathSeparator}) o (replaceSubString ".." "")) path
+		mimeType path	= extensionToMimeType (takeExtension path)

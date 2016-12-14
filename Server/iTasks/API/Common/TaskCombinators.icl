@@ -6,13 +6,13 @@ import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdCl
 import Text, System.Time, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks._Framework.Util
 from StdFunc			import id, const, o
-from iTasks.API.Core.Types		    import :: Note(..)
 from iTasks.API.Core.SDSs           import randomInt, topLevelTasks, currentDateTime
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON
 import qualified Data.Map as DM
 
-import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators, iTasks.API.Common.InteractionTasks, iTasks.UI.Layout
+import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators, iTasks.API.Common.InteractionTasks, iTasks.UI.Layout, iTasks.UI.Prompt
 import iTasks.API.Common.SDSCombinators
+import iTasks.UI.Layout.Common, iTasks.UI.Layout.Default
 
 (>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | iTask a & iTask b
 (>>*) task steps = step task (const Nothing) steps
@@ -40,9 +40,6 @@ tbind taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasVal
 
 (@!) infixl 1 :: !(Task a) !b -> Task b
 (@!) task b = transform (fmap (const b)) task
-
-(@>) infixl 1 :: !(Task a) !((TaskValue a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
-(@>) task (f,share) = project f share task
 
 (<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
 (<<@) t a = tune a t
@@ -229,14 +226,14 @@ onlyJust _                  = NoValue
 
 whileUnchangedWith :: !(r r -> Bool) !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchangedWith eq share task
-	= 	((get share >>= \val -> (wait Void (eq val) share <<@ NoUserInterface @ const Nothing) -||- (task val @ Just)) <! isJust)
+	= 	((get share >>= \val -> (wait () (eq val) share <<@ NoUserInterface @ const Nothing) -||- (task val @ Just)) <! isJust)
 	@?	onlyJust
 
 withSelection :: (Task c) (a -> Task b) (ReadOnlyShared (Maybe a)) -> Task b | iTask a & iTask b & iTask c
 withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
 
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
-appendTopLevelTask attr evalDirect task = appendTask (Detached attr evalDirect) (\_ -> task @ const Void) topLevelTasks
+appendTopLevelTask attr evalDirect task = appendTask (Detached attr evalDirect) (\_ -> task <<@ ApplyLayout defaultSessionLayout @! ()) topLevelTasks
 
 valToMaybe :: (TaskValue a) -> Maybe a
 valToMaybe (Value v _)  = Just v
@@ -285,3 +282,22 @@ withStable _    _               = Nothing
 withUnstable :: (a -> Maybe b) (TaskValue a) -> Maybe b
 withUnstable a2mb (Value tv False) = a2mb tv
 withUnstable _    _                = Nothing
+
+tvHd :: (TaskValue [a]) -> TaskValue a
+tvHd (Value [x] s) = Value x s
+tvHd _             = NoValue
+
+tvFst :: (TaskValue (a,b)) -> TaskValue a
+tvFst tv = fmap fst tv
+
+tvSnd :: (TaskValue (a,b)) -> TaskValue b
+tvSnd tv = fmap snd tv
+
+tvFromMaybe :: (TaskValue (Maybe a)) -> TaskValue a
+tvFromMaybe (Value (Just a) s) = Value a s
+tvFromMaybe _                  = NoValue
+
+tvToMaybe :: (TaskValue a) -> TaskValue (Maybe a)
+tvToMaybe (Value a s) = Value (Just a) s
+tvToMaybe NoValue     = Value Nothing False
+

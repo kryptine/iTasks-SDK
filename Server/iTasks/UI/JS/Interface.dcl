@@ -1,6 +1,6 @@
 definition module iTasks.UI.JS.Interface
 
-import StdString, StdGeneric, Data.Void, Data.Maybe
+import StdString, StdGeneric, Data.Maybe
 import iTasks
 
 from Control.Applicative import class Applicative
@@ -93,10 +93,16 @@ jsAbort             :: a -> b
 toJSVal 			:: !a -> JSVal b
 toJSArg 			:: !a -> JSArg
 toJSArgs 			:: ![a] -> [JSArg]
+fromJSArgUnsafe     :: !JSArg -> Dynamic
+fromJSArg 			:: !JSArg !*JSWorld -> *(!Dynamic, !*JSWorld)
 fromJSValUnsafe		:: !(JSVal a) -> Dynamic
 fromJSVal 			:: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
 
-newJSArray          :: !*JSWorld                          -> *(!JSArr a, !*JSWorld)
+newJSArray          :: !*JSWorld -> *(!JSArr a, !*JSWorld)
+
+//Storing arbitrary Clean values in as properties on a Javascript object
+jsPutCleanVal       :: !String !a !(JSVal o) !*JSWorld -> *JSWorld
+jsGetCleanVal       :: !String    !(JSVal o) !*JSWorld -> *(!a,!*JSWorld)
 
 //USEFUL DERIVED UTIL FUNCTIONS
 
@@ -108,13 +114,6 @@ fromJSArray         :: !(JSArr a) !((JSVal b) -> c) !*JSWorld -> *(![c], !*JSWor
 
 jsIsUndefined 		:: !(JSVal a) -> Bool
 
-/*
-getElementById 		:: !DomElementId !*JSWorld -> *(!JSObj a, !*JSWorld)
-getDomElement		:: !DomElementId					!*JSWorld -> *(!JSObj a, !*JSWorld)
-getDomAttr			:: !DomElementId !String			!*JSWorld -> *(!JSVal a, !*JSWorld)
-setDomAttr			:: !DomElementId !String !(JSVal a)	!*JSWorld -> *JSWorld
-*/
-
 //Call a method on a javascript object. Object can be (JSVal null)
 callObjectMethod	:: !String ![JSArg] !(JSObj o) !*JSWorld -> *(!JSVal c, !*JSWorld)
 
@@ -125,7 +124,7 @@ findObject			:: !String !*JSWorld -> *(!JSVal a, !*JSWorld)
 //Load external JS by its URL. A continuation can be given,
 //which is called when script is actually loaded
 addJSFromUrl		:: !String !(Maybe (JSFun f)) !*JSWorld -> *JSWorld
-//Loaf external CSS stylesheet by its URL
+//Load external CSS stylesheet by its URL
 addCSSFromUrl       :: !String !*JSWorld -> *JSWorld
 
 jsTrace :: !a !*JSWorld -> *JSWorld
@@ -134,6 +133,11 @@ jsValToString :: !(JSVal a) -> String
 jsValToReal   :: !(JSVal a) -> Real
 jsValToInt    :: !(JSVal a) -> Int
 jsValToBool   :: !(JSVal a) -> Bool
+
+jsArgToString :: !JSArg -> String
+jsArgToReal   :: !JSArg -> Real
+jsArgToInt    :: !JSArg -> Int
+jsArgToBool   :: !JSArg -> Bool
 
 withDef     :: !((JSVal a) -> b) !b !(JSVal a) -> b
 
@@ -149,8 +153,6 @@ instance ToArgs Real
 instance ToArgs Char
 
 instance ToArgs String
-
-instance ToArgs Void
 
 instance ToArgs ()
 

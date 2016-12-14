@@ -3,34 +3,35 @@ import iTasks
 import Incidone.OP.Concepts, Incidone.OP.SDSs
 import Incidone.DeviceBased.VideoWall
 import Incidone.Util.TaskPatterns
+import Text.HTML
 
 selectVideoWallContent :: Task ()
 selectVideoWallContent
-    = (header ||- selectContent) <<@ (ArrangeWithSideBar 0 TopSide 30 False) <<@ FullScreen <<@ AfterLayout plainLayoutFinal
+    = (header ||- selectContent) <<@ (ArrangeWithSideBar 0 TopSide 30 False) 
     @! ()
 where
     header
-        = viewInformation () [] ("REMOTE CONTROL") <<@ ForceLayout <<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header"))
+        = viewInformation () [] ("REMOTE CONTROL") //<<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header")) //FIXME
 
     mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |+| contactsProvidingHelpGeo)
     selectContent
         = (switchContent >&> withSelection viewNoSelection configureContent) <<@ (ArrangeWithSideBar 0 LeftSide 300 False)
 
-    switchContent = enterChoice (Title "Choose Content") [ChooseWith (ChooseFromList bigLabel)] contentOptions
+    switchContent = enterChoice (Title "Choose Content") [ChooseFromList bigLabel] contentOptions
     contentOptions
         = ["Overview","Incident","Contact","Clock","Countdown"]
 
     configureContent selection
         =   (configure selection
-        >^* [OnAction (Action "Share to Wall" []) (hasValue (\c -> set c wallContent))])
+        >^* [OnAction (Action "Share to Wall") (hasValue (\c -> set c wallContent))])
     where
         title = "Configure Content"
         configure "Overview"
             = get (standardMapLayers |+| standardPerspective)
             >>- \(baseLayers,perspective) ->
                 withShared perspective
-                \p -> updateSharedInformation (Title title) [UpdateWith (toMap baseLayers) fromMap] (p >+| mapContacts)
-            <<@ AfterLayout (tweakUI fill)
+                \p -> updateSharedInformation (Title title) [UpdateAs (toMap baseLayers) fromMap] (p >+| mapContacts) @ fst
+            //<<@ AfterLayout (tweakUI fill) //FIXME
             @   WallOverview
         where
             toMap baseLayers (perspective,contacts)
@@ -38,12 +39,12 @@ where
             fromMap _ {LeafletMap|perspective}
                 = fromLeafletPerspective perspective
         configure "Incident"
-            =   enterChoiceWithSharedAs (Title title) [ChooseWith (ChooseFromList bigLabel)] allIncidentsShort (\{IncidentShort|incidentNo} -> WallIncidentSummary (Just incidentNo))
+            =   enterChoiceWithSharedAs (Title title) [ChooseFromList bigLabel] allIncidentsShort (\{IncidentShort|incidentNo} -> WallIncidentSummary (Just incidentNo))
         configure "Contact"
-            =   enterChoiceWithSharedAs (Title title) [ChooseWith (ChooseFromList bigLabel)] allContactsShort (\{ContactShort|contactNo} -> WallContactSummary (Just contactNo))
+            =   enterChoiceWithSharedAs (Title title) [ChooseFromList bigLabel] allContactsShort (\{ContactShort|contactNo} -> WallContactSummary (Just contactNo))
         configure "Clock"
             =   viewInformation (Title title) [] "No configuration is needed for the clock."
-            <<@ AfterLayout (tweakUI fill)
+            //<<@ AfterLayout (tweakUI fill) //FIXME
             @!  WallClock
         configure "Countdown"
             =   get currentDateTime

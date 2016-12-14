@@ -3,7 +3,7 @@ implementation module iTasks.UI.JS.Interface
 import iTasks
 
 import StdGeneric, StdString, StdMisc, StdBool, StdEnum, StdTuple, StdList
-import Data.Void, Data.Maybe, Text
+import Data.Maybe, Text
 
 import Control.Applicative
 import qualified Control.Monad as M
@@ -165,11 +165,23 @@ toJSArg val = undef
 toJSArgs :: ![a] -> [JSArg]
 toJSArgs xs = map toJSArg xs
 
+fromJSArgUnsafe :: !JSArg -> Dynamic
+fromJSArgUnsafe ptr = undef
+
+fromJSArg :: !JSArg !*JSWorld -> *(!Dynamic, !*JSWorld)
+fromJSArg ptr world = undef
+
 fromJSValUnsafe :: !(JSVal a) -> Dynamic
 fromJSValUnsafe ptr = undef
 
 fromJSVal :: !(JSVal a) !*JSWorld -> *(!Dynamic, !*JSWorld)
 fromJSVal ptr world = undef
+
+jsPutCleanVal :: !String !a !(JSVal o) !*JSWorld -> *JSWorld
+jsPutCleanVal key val obj world = undef
+
+jsGetCleanVal :: !String !(JSVal o) !*JSWorld -> *(!a,!*JSWorld)
+jsGetCleanVal key obj world = undef
 
 //UTIL
 
@@ -207,26 +219,6 @@ fromJSArray arr f world
 jsIsUndefined :: !(JSVal a) -> Bool
 jsIsUndefined obj = jsTypeof obj == "undefined"
 
-/*	
-getElementById :: !DomElementId !*JSWorld -> *(!JSObj a, !*JSWorld)
-getElementById elemId world
-	= callObjectMethod "getElementById" [toJSArg elemId] jsDocument world
-
-getDomElement :: !DomElementId !*JSWorld -> *(!JSObj a, !*JSWorld)
-getDomElement elemId world
-	= callObjectMethod "getElementById" [toJSArg elemId] jsDocument world
-
-getDomAttr :: !DomElementId !String !*JSWorld -> *(!JSVal a, !*JSWorld)
-getDomAttr elemId attr world
-	# (elem, world)	= getDomElement elemId world
-	= jsGetObjectAttr attr elem world
-	
-setDomAttr :: !DomElementId !String !(JSVal a) !*JSWorld -> *JSWorld
-setDomAttr elemId attr value world
-	# (elem, world)	= getDomElement elemId world
-	= jsSetObjectAttr attr value elem world
-*/
-
 findObject :: !String !*JSWorld -> *(!JSVal a, !*JSWorld)
 findObject query world
   #! (obj,world) = jsGetObjectAttr attr jsWindow world //deref first attr separate to make the typechecker happy
@@ -259,9 +251,6 @@ instance ToArgs String where
   toArgs s = [toJSArg s]
 
 instance ToArgs () where
-  toArgs _ = []
-
-instance ToArgs Void where
   toArgs _ = []
 
 instance ToArgs (JSVal a) where
@@ -362,6 +351,30 @@ jsValToBool ptr = case fromJSValUnsafe ptr of
 					(val :: Bool)	= val
 								   	= abort "Bool was expected but something else came"
 
+jsArgToString :: !JSArg -> String
+jsArgToString ptr = case fromJSArgUnsafe ptr of
+					(val :: String) = val
+					(val :: Real)   = toString val
+					(val :: Int)    = toString val
+					val				= jsAbort val
+jsArgToReal :: !JSArg -> Real
+jsArgToReal ptr = case fromJSArgUnsafe ptr of
+					(val :: Real)   = val
+					(val :: String)	= toReal val
+					(val :: Int)    = toReal val
+									= abort "Real was expected but something else came"
+jsArgToInt :: !JSArg -> Int
+jsArgToInt ptr = case fromJSArgUnsafe ptr of
+					(val :: Int)	= val
+					(val :: String)	= toInt val
+					(val :: Real)	= toInt val
+								   	= abort "Int was expected but something else came"
+
+jsArgToBool :: !JSArg -> Bool
+jsArgToBool ptr = case fromJSArgUnsafe ptr of
+					(val :: Bool)	= val
+								   	= abort "Bool was expected but something else came"
+
 withDef :: !((JSVal a) -> b) !b !(JSVal a) -> b
 withDef f def ptr | jsIsUndefined ptr
 	= def 
@@ -402,7 +415,7 @@ ifFun val f def world
 jsIsArray :: !(JSVal a) !*JSWorld -> *(!Bool, !*JSWorld)
 jsIsArray x world
   #! (arr, world) = findObject "Array" world
-  #! (jb, world)  = callObjectMethod "isArray" [] arr world
+  #! (jb, world)  = callObjectMethod "isArray" [toJSArg x] arr world
   = (jsValToBool jb, world)
 
 jsIsNull :: !(JSVal a) -> Bool

@@ -3,22 +3,13 @@ definition module iTasks.API.Core.Types
 * This module provides types for all the globally shared concepts
 * of the iTasks framework.
 */
-//import GenEq
-//import Data.Maybe, Text.JSON, Data.Void, Data.Either, System.FilePath, Text.HTML, Data.Error, System.File, System.OS
-
-import iTasks._Framework.Store
-
-// TODO: Remove these big-bang imports
-import Data.Void, Text.HTML, GenEq
-
 from Data.Maybe import :: Maybe
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
-from Data.Void import :: Void
 from Data.Either import :: Either
 from System.FilePath import :: FilePath
 from Text.HTML import :: HtmlTag, :: HtmlAttr
 import Data.Functor
-from Data.Error import :: MaybeError
+from Data.Error import :: MaybeError, :: MaybeErrorString
 from System.File import :: FileError
 from System.OSError import :: OSError, :: OSErrorMessage, :: OSErrorCode
 from StdOverloaded import class +, class -, class <, class zero, class fromString, class toInt
@@ -30,23 +21,22 @@ from Data.Map 				import qualified get
 from Text.HTML 				import class html
 from System.Time				import :: Timestamp
 from iTasks._Framework.IWorld			import :: IWorld
-from iTasks.UI.Definition		import :: UIDef, :: UIForm, :: UIControl, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
+from iTasks.UI.Definition		import :: UI, :: UINodeType, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
+from iTasks.UI.Editor 			import :: Editor, :: EditMask, :: Masked
+from iTasks.UI.Editor.Generic   import generic gEditor, :: VSt
 from iTasks._Framework.Task				import :: Task, :: TaskId
 from iTasks._Framework.Generic				import class iTask
-from iTasks._Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, generic gUpdate, :: VSt, ::USt, :: VisualizationResult,:: EditMeta, :: VerifyOptions
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks._Framework.Generic.Defaults		import generic gDefault
 from iTasks._Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 from iTasks.UI.JS.Interface	import :: JSWorld, :: JSVal
-from iTasks.UI.Layout import :: LayoutRules
-import iTasks._Framework.Serialization
+from iTasks.UI.Prompt import class toPrompt
 
-class TFunctor f where
-    tmap :: (a -> b) (f a) -> f b | iTask a & iTask b
+from Text.HTML import :: SVGElt, :: SVGAttr, :: SVGAlign, :: SVGColor, :: SVGDefer, :: SVGFillOpacity, :: SVGFuncIRI, :: SVGLengthAdjust
+from Text.HTML import :: SVGLengthUnit, :: SVGLineCap, :: SVGFillRule, :: SVGLineJoin, :: SVGMeetOrSlice, :: SVGStrokeMiterLimit, :: SVGPaint
+from Text.HTML import :: SVGStrokeDashArray, :: SVGStrokeDashOffset, :: SVGStrokeWidth, :: SVGTransform, :: SVGZoomAndPan
 
-(@$) infixl 1 :: (a -> b) (f a) -> f b | iTask a & iTask b & TFunctor f
-
-class TApplicative f | TFunctor f where
+class TApplicative f | Functor f where
     (<#>)  :: (f (a -> b)) (f a) -> f b | iTask a & iTask b
     return :: a -> f a | iTask a
 
@@ -54,68 +44,24 @@ class TMonad m | TApplicative m where
     (>>=) infixl 1 :: (m a) (a -> m b) -> m b | iTask a & iTask b
     (>>|) infixl 1 :: (m a) (     m b) -> m b | iTask a & iTask b
 
-instance TFunctor Task
+instance Functor Task
 instance TApplicative Task
 instance TMonad Task
 
-instance TFunctor Maybe
 instance TApplicative Maybe
 instance TMonad Maybe
 
-instance TFunctor []
 instance TApplicative []
 instance TMonad []
 
-instance TFunctor (Either e)
 instance TApplicative (Either e)
 instance TMonad (Either e)
 
-//****************************************************************************//
-// Common data types that have specialized user interfaces
-//****************************************************************************//
-
-//* E-mail addresses
-:: EmailAddress	= EmailAddress !String
-instance toString	EmailAddress
-instance html		EmailAddress
-
-//* Phone number
-:: PhoneNumber = PhoneNumber !String
-instance toString	PhoneNumber
-instance html		PhoneNumber
-
-//* Uniform resource locators
-:: URL			= URL !String
-instance toString	URL
-instance html		URL
-
-//* Plain text notes 
-:: Note			= Note !String
-instance toString	Note
-instance html		Note
-instance ==			Note
-
-//* Source code
-:: CleanCode	= CleanCode !String
-instance toString CleanCode
-
-//* Money (ISO4217 currency codes are used)
-:: EUR 			= EUR !Int		//Euros (amount in cents)
-:: USD 			= USD !Int		//Dollars (amount in cents)
-
-instance toString	EUR, USD
-instance + 			EUR, USD
-instance - 			EUR, USD
-instance == 		EUR, USD
-instance < 			EUR, USD
-instance toInt		EUR, USD
-instance zero		EUR, USD
-
-//* (Local) date and time
+//* local date and time
 :: Date	=
-	{ day	:: !Int // 1..31
-	, mon	:: !Int // 1..12
-	, year	:: !Int
+	{ year	:: !Int
+	, mon	:: !Int
+	, day	:: !Int
 	}
 
 :: Time =
@@ -124,20 +70,33 @@ instance zero		EUR, USD
 	, sec	:: !Int
 	}
 
-:: DateTime = DateTime !Date !Time
+:: DateTime =
+	{ year	:: !Int
+	, mon	:: !Int 
+	, day	:: !Int
+	, hour	:: !Int
+	, min	:: !Int
+	, sec	:: !Int
+	}
 
-//Date addition" righthand argument is treated as interval (days are added first)
-//Time addition: righthand argument is treated as interval (seconds are added first)
-//Time subtraction: righthand argument is treated as interval (seconds are subtracted first)
+//Conversion
+toTime :: DateTime -> Time
+toDate :: DateTime -> Date
+toDateTime :: Date Time -> DateTime
+
+//Printing and parsing
+
 instance toString	Date, Time, DateTime
-instance fromString	Date, Time, DateTime
-instance +			Date, Time, DateTime
-instance -			Date, Time, DateTime
-instance ==			Date, Time, DateTime
-instance <			Date, Time, DateTime
 
-//Format datetime as padded string: YYYYmmddHHMMss
-paddedDateTimeString :: DateTime -> String
+parseDate :: String -> MaybeErrorString Date         //Expected format: "yyyy-mm-dd"
+parseTime :: String -> MaybeErrorString Time         //Expected format: "hh:mm:ss"
+parseDateTime :: String -> MaybeErrorString DateTime //Expected format: "yyyy-mm-dd hh:mm:ss"
+
+instance fromString	Date, Time, DateTime //Assumes parse* succeeds
+
+//Comparison
+instance ==	Date, Time, DateTime
+instance <	Date, Time, DateTime
 
 //* Documents
 :: Document =
@@ -152,16 +111,12 @@ paddedDateTimeString :: DateTime -> String
 instance toString	Document
 instance ==			Document
 
-derive JSONEncode		EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document 
-derive JSONDecode		EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
-derive gDefault			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
-derive gEq				EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
-
-derive gText	        EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
-derive gEditor 			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
-derive gEditMeta		EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
-derive gUpdate			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document 
-derive gVerify			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date, Time, DateTime, Document
+derive JSONEncode		Date, Time, DateTime, Document 
+derive JSONDecode		Date, Time, DateTime, Document
+derive gDefault			Date, Time, DateTime, Document
+derive gEq				Date, Time, DateTime, Document
+derive gText	        Date, Time, DateTime, Document
+derive gEditor 			Date, Time, DateTime, Document
 
 //* Common exceptions used by API tasks
 
@@ -171,223 +126,10 @@ derive gVerify			EmailAddress, PhoneNumber, URL, Note, CleanCode, EUR, USD, Date
 :: SharedException		= SharedException !String
 :: RPCException			= RPCException !String
 :: OSException			= OSException !OSError
-:: WorkOnException		= WorkOnNotFound | WorkOnEvalError | WorkOnDependencyCycle //FIXME: Rename to attachment exceptions
+:: AttachException		= InstanceNotFound | InstanceEvalError 
 
-derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
-instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
-
-//****************************************************************************//
-// Low level data types that can be used to construct more fine grained user
-// experiences.
-// These types map to specific user interface components.
-//****************************************************************************//
-
-//* A sliding scale
-:: Scale =
-	{ min	:: Int
-	, cur	:: Int
-	, max	:: Int
-	}
-	
-//* Progress bars
-:: Progress =
-	{ progress		:: !ProgressAmount 	//*Value between 0.0 and 1.0 indicating how much progress has been made
-	, description	:: !String			//*Description of how much progress has been made
-	}
-:: ProgressAmount
-	= ProgressUndetermined	//Value for progress that cannot be estimated
-	| ProgressRatio Real	//Value between 0.0 and 1.0 that defines the ratio of progress
-
-//* Inclusion of external html files
-:: HtmlInclude	= HtmlInclude String
-
-//* Form buttons
-:: FormButton 		= 
-	{ label			:: !String
-	, icon			:: !String
-	, state			:: !ButtonState
-	}
-:: ButtonState		= NotPressed | Pressed
-
-instance toString FormButton
-
-//* Table consisting of headers, the displayed data cells & possibly a selection
-:: Table = Table ![String] ![[HtmlTag]] !(Maybe Int)
-
-toTable	:: ![a] -> Table | gText{|*|} a
-
-//* More elaborate tree type for grouping elements hierarchically from a choice
-:: ChoiceTree v =
-    { label     :: v
-    , icon      :: Maybe String
-    , value     :: ChoiceTreeValue
-    , type      :: ChoiceTreeType v
-    }
-//There are two types of nodes in a choice tree
-//Some nodes represent an element of the list of choices (ChoiceNode) and you
-//indicate which element by its index in the list of options.
-//Other nodes are only used for grouping the available options (GroupNode) and don't indicate
-//a choice. For these nodes a unique name must be supplied to make it possible to
-//track if the node is collapsed or expanded
-:: ChoiceTreeValue
-    = ChoiceNode !Int
-    | GroupNode !String
-
-:: ChoiceTreeType v = LeafNode | CollapsedNode [ChoiceTree v] | ExpandedNode [ChoiceTree v]
-
-choiceTreeChildren :: (ChoiceTree v) -> [ChoiceTree v]
-ifExpandedGroup :: String [ChoiceTreeValue] [ChoiceTree v] -> ChoiceTreeType v
-ifExpandedChoice :: Int [ChoiceTreeValue] [ChoiceTree v] -> ChoiceTreeType v
-
-instance == ChoiceTreeValue
-
-instance Functor ChoiceTree
-
-derive JSONEncode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive JSONDecode		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gDefault			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gEq				Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gText	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gEditor	        Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gEditMeta		Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gUpdate			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-derive gVerify			Scale, Progress, ProgressAmount, HtmlInclude, FormButton, ButtonState, Table, ChoiceTree, ChoiceTreeValue, ChoiceTreeType
-
-//* Represents the choice of one element from a list represented as combo box
-:: ComboChoice v = ComboChoice ![v] !(Maybe Int)
-
-//* Represents the choice of one element from a list represented as radio buttons
-:: RadioChoice v = RadioChoice ![v] !(Maybe Int)
-
-//* Represents the choice of one element from a list represented as a list of html buttons
-:: ListChoice v = ListChoice ![v] !(Maybe Int)
-
-//* Bundles a tree with options with a selection
-:: TreeChoice v = TreeChoice ![ChoiceTree v] !(Maybe Int)
-
-//* Represents the choice of one element from a list represented as grid
-//* (typically v is a record which's labels are used as headers)
-:: GridChoice v = GridChoice ![v] !(Maybe Int)
-
-//* Represents the choice of one element from a set with a dynamic representation
-:: DynamicChoice v
-	= DCCombo (ComboChoice v)
-	| DCRadio (RadioChoice v)
-	| DCList  (ListChoice v)
-	| DCTree  (TreeChoice v)
-	| DCGrid  (GridChoice v)
-
-derive JSONEncode		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive JSONEncode		CheckMultiChoice
-derive JSONDecode		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive JSONDecode		CheckMultiChoice
-derive gDefault			ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive gDefault			CheckMultiChoice
-derive gEq				ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive gEq				CheckMultiChoice
-derive gText	        ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive gText	        CheckMultiChoice
-derive gEditor	        ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive gEditor	        CheckMultiChoice
-derive gEditMeta		ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive gEditMeta		CheckMultiChoice
-derive gUpdate			ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive gUpdate			CheckMultiChoice
-derive gVerify			ComboChoice, RadioChoice, ListChoice, TreeChoice, GridChoice, DynamicChoice
-derive gVerify			CheckMultiChoice
-
-/**
-* Interface for types representing choices of one element out of a set of options.
-* There are different kinds of containers for such options (e.g. lists, trees, ...).
-* Each option consists of an actual value (o) & a view value shown to the user (v).
-*/
-class Choice t
-where
-	// Gets the current selection's view if present
-	getSelectionView		:: !(t v)						-> Maybe v
-    // Sets the selection based on the view value
-    setSelectionView        :: !(Maybe v) !(t v)            -> t v | gEq {|*|} v
-    // Gets the index of the selection
-    getSelectionIndex       :: !(t v)                       -> Maybe Int
-    // Sets the index of the selection
-    setSelectionIndex       :: !(Maybe Int) !(t v)          -> t v
-
-instance Choice ComboChoice,RadioChoice,ListChoice,TreeChoice,GridChoice,DynamicChoice
-
-//* Represents the choice of a number of items from a list
-:: CheckMultiChoice v o = CheckMultiChoice ![(!v,!o)] ![Int]
-
-/**
-* Interface for types representing choices a number of elements out of a set of options.
-* There are different kinds of containers for such options (e.g. lists, trees, ...).
-* Each option consists of an actual value (o) & a view value shown to the user (v).
-*/
-class MultiChoice choiceType
-where
-	// Selects the given options, selections not present in list of options are ignored
-	selectOptions			:: ![o] !(choiceType v o)					-> choiceType v o | gEq{|*|} o
-	// Gets the current selections
-	getSelections			:: !(choiceType v o)						-> [o]
-	// Gets the current selection's views
-	getSelectionViews		:: !(choiceType v o)						-> [v]
-
-instance MultiChoice CheckMultiChoice
-
-//****************************************************************************//
-// Wrapper types for guiding the generic visualization process.
-// These types can be used as annotations
-//****************************************************************************//
-
-:: VisualizationHint a 	= VHEditable a
-					   	| VHDisplay a
-					   	| VHHidden a
-
-fromVisualizationHint	:: !(VisualizationHint .a) -> .a
-toVisualizationHint		:: !.a -> VisualizationHint .a
-
-//* Value is always rendered within a form as editor field
-:: Editable a 			= Editable a		
-
-fromEditable			:: !(Editable .a) -> .a
-toEditable				:: !.a -> Editable .a
-
-//* Value is always rendered within a form as a static element
-:: Display a 			= Display a			
-
-fromDisplay				:: !(Display .a) -> .a
-toDisplay				:: !.a -> Display .a
-
-//* Value is never rendered
-:: Hidden a 			= Hidden a			
-
-fromHidden				:: !(Hidden .a) -> .a
-toHidden				:: !.a -> Hidden .a
-
-//* Setting layout directions
-:: Row a                = Row a  //Horizontal
-:: Col a                = Col a  //Vertical
-
-//* Editing lists
-:: EditableList a       =
-    { items     :: [a]
-    , add       :: !EditableListAdd a
-    , remove    :: !Bool
-    , reorder   :: !Bool
-    , count     :: !Bool
-    }
-:: EditableListAdd a
-    = ELNoAdd | ELAddBlank | ELAddValue ([a] -> a)
-
-derive JSONEncode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive JSONDecode		Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive gDefault			Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive gEq				Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive gText	        Hidden, Display, Editable, VisualizationHint, Row, Col, EditableList, EditableListAdd
-derive gEditor			Hidden, Display, Editable, VisualizationHint, Row, Col
-derive gEditMeta		Hidden, Display, Editable, VisualizationHint, Row, Col
-derive gUpdate			Hidden, Display, Editable, VisualizationHint, Row, Col
-derive gVerify			Hidden, Display, Editable, VisualizationHint, Row, Col
-
+derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, AttachException
+instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, AttachException
 
 //****************************************************************************//
 // Framework types.
@@ -404,8 +146,7 @@ StableValue   a :== Value a True
 UnstableValue a :== Value a False
 
 instance Functor TaskValue
-instance Functor Task
-			
+
 :: TaskTime			:== Int
 
 :: Stability		:== Bool
@@ -438,9 +179,7 @@ instance <			TaskId
 	{ value             :: !ValueStatus             //* Status of the task value
     , attachedTo        :: ![TaskId] 				//* Chain of tasks through which this instance was attached
 	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
-	, lastEvent		    :: !Maybe DateTime			//* When was the latest event on this task	
-    , connectedTo       :: !Maybe String            //* Is there an active client connection for this task
-    , lastIO            :: !Maybe DateTime          //* When was the last input received or output sent to a client
+	, lastEvent		    :: !Maybe DateTime			//* When was the latest event on this task (excluding Refresh events)
 	}
 
 :: ValueStatus
@@ -497,52 +236,9 @@ instance <			TaskId
 	, value             :: !ValueStatus         //* Status of the task value
 	, firstEvent		:: !Maybe DateTime		//* When was the first work done on this task
 	, lastEvent		    :: !Maybe DateTime		//* When was the last event on this task	
-    , connectedTo       :: !Maybe String        //* Is there an active client connection for this task
-    , lastIO            :: !Maybe DateTime      //* When was the last input received or output sent to a client
 	}
 
 derive class iTask TaskListFilter
-
-/** Interaction masks contain information about a value as it is being edited
-*   in an interactive task.
-*/  
-:: InteractionMask
-	= Untouched								//The value has not been touched by the user
-	| Touched								//The value has been touched by the user, now it makes sense to check the input
-    | TouchedUnparsed !JSONNode              //The user has edited the value to something that cannot be parsed to a valid value
-	| TouchedWithState !JSONNode			//Some components need to keep local state that can't be encoded in the value
-	| Blanked								//The value was previously touched, but has been made blank again
-	| CompoundMask ![InteractionMask]	    //The value is a compound structure of which some parts are, and some aren't touched
-
-:: MaskedValue a :== (a,InteractionMask)
-
-subMasks	:: !Int InteractionMask -> [InteractionMask]
-toPairMask	:: !Int !InteractionMask -> InteractionMask
-isTouched	:: !InteractionMask -> Bool
-
-:: Verification
-    = CorrectValue !(Maybe String)
-    | WarningValue !String
-    | IncorrectValue !String
-    | UnparsableValue
-    | MissingValue
-    | CompoundVerification [Verification]
-
-:: VerifiedValue a :== (a,InteractionMask,Verification)
-
-subVerifications :: !Int Verification -> [Verification]
-toPairVerification :: !Int !Verification -> Verification
-fromPairVerification :: !Int !Verification -> Verification
-
-derive JSONEncode InteractionMask, Verification
-derive JSONDecode InteractionMask, Verification
-
-//* Datapaths identify sub structures in a composite structure
-:: DataPath :== [Int]
-
-//Generate the editorId string for a given datapath
-editorId 				:: !DataPath 		-> String
-s2dp					:: !String			-> DataPath
 
 //* Framework configuration
 :: Config =
@@ -556,118 +252,37 @@ s2dp					:: !String			-> DataPath
 	| CompletedProcess !Int
 
 //* Next task actions
-:: Action	= Action !ActionName ![ActionOption]
-
-:: ActionName	:== String	//Locally unique identifier for actions
-:: ActionOption
-	= ActionKey		!Hotkey		//Specifies a hotkey for the action. 
-	| ActionWeight	!Int		//Specifies a weight for specific sorting in menus
-	| ActionIcon	!String		//Specifies a symbolic icon name e.g. 'close' or 'ok' (the application styling dereferences this to an image)
-	| ActionTrigger	!Trigger	//Special event that triggers this action (other than clicking the action button/menu item)
-
-actionName		:: !Action -> ActionName
-actionIcon 		:: !Action -> Maybe String
-actionWeight	:: !Action -> Int			//Default weight is 0
-			
-:: Hotkey =	{ key	:: !Key
-			, ctrl	:: !Bool
-			, alt	:: !Bool
-			, shift	:: !Bool
-			}
-
-:: Key :== Int //Key code
-
-:: Trigger	= DoubleClick	//Currently only doubleclick is supported as special trigger
+:: Action	= Action !String //Locally unique identifier for actions
 
 //Common action constants with predefined options
-ActionOk		:== Action "Ok"				[ActionIcon "ok", ActionKey (unmodified KEY_ENTER)]
-ActionCancel	:==	Action "Cancel"			[ActionIcon "cancel", ActionKey (unmodified KEY_ESC)]
-ActionYes		:== Action "Yes"			[ActionIcon "yes"]
-ActionNo		:== Action "No"				[ActionIcon "no"]
-ActionNext		:== Action "Next"			[ActionIcon "next"]
-ActionPrevious	:== Action "Previous"		[ActionIcon "previous"]
-ActionFinish	:== Action "Finish"			[ActionIcon "finish"]
-ActionContinue	:==	Action "Continue"		[ActionIcon "continue"]
-//ActionContinue	:==	Action "Continue"		[ActionIcon "continue", ActionKey (unmodified KEY_ENTER)]
-ActionOpen		:== Action "/File/Open"		[ActionIcon "open", ActionKey (ctrl KEY_O)]
-ActionSave		:== Action "/File/Save" 	[ActionIcon "save", ActionKey (ctrl KEY_S)]
-ActionSaveAs 	:== Action "/File/Save as"	[ActionIcon "save"]
-ActionQuit		:== Action "/File/Quit"		[ActionIcon "quit"]
-ActionHelp		:==	Action "/Help/Help"		[ActionIcon "help"]
-ActionAbout		:== Action "/Help/About"	[ActionIcon "about"]
-ActionFind		:== Action "/Edit/Find"		[ActionIcon "find", ActionKey (ctrl KEY_F)]
-ActionNew		:== Action "New"			[ActionIcon "new", ActionKey (ctrl KEY_N)]
-ActionEdit		:== Action "Edit"			[ActionIcon "edit"]
-ActionDelete	:== Action "Delete"			[ActionIcon "delete", ActionKey (unmodified KEY_DELETE)]
-ActionRefresh	:== Action "Refresh"		[ActionIcon "refresh", ActionKey (unmodified KEY_F5)]
-ActionClose		:==	Action "Close"			[ActionIcon "close", ActionKey (unmodified KEY_ESC)]
+ActionOk		:== Action "Ok"
+ActionCancel	:==	Action "Cancel"
+ActionYes		:== Action "Yes"
+ActionNo		:== Action "No"
+ActionNext		:== Action "Next"
+ActionPrevious	:== Action "Previous"
+ActionFinish	:== Action "Finish"
+ActionContinue	:==	Action "Continue"
+ActionOpen		:== Action "/File/Open"
+ActionSave		:== Action "/File/Save"
+ActionSaveAs 	:== Action "/File/Save as"
+ActionQuit		:== Action "/File/Quit"
+ActionHelp		:==	Action "/Help/Help"
+ActionAbout		:== Action "/Help/About"
+ActionFind		:== Action "/Edit/Find"
+ActionNew		:== Action "New"
+ActionEdit		:== Action "Edit"
+ActionDelete	:== Action "Delete"
+ActionRefresh	:== Action "Refresh"
+ActionClose		:==	Action "Close"
 	
-//Common key codes
-KEY_ENTER		:== 13
-KEY_ESC			:== 27
-KEY_BACKSPACE	:== 8
-KEY_DELETE		:== 46
-KEY_LEFT		:== 37
-KEY_UP			:== 38
-KEY_RIGHT		:== 39
-KEY_DOWN		:== 40
+derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
+derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
+derive gDefault			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
+derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
 
-KEY_A		:== 65
-KEY_B		:== 66
-KEY_C		:== 67
-KEY_D		:== 68
-KEY_E		:== 69
-KEY_F		:== 70
-KEY_G		:== 71
-KEY_H		:== 72
-KEY_I		:== 73
-KEY_J		:== 74
-KEY_K		:== 75
-KEY_L		:== 76
-KEY_M		:== 77
-KEY_N		:== 78
-KEY_O		:== 79
-KEY_P		:== 80
-KEY_Q		:== 81
-KEY_R		:== 82
-KEY_S		:== 83
-KEY_T		:== 84
-KEY_U		:== 85
-KEY_V		:== 86
-KEY_W		:== 87
-KEY_X		:== 88
-KEY_Y		:== 89
-KEY_Z		:== 90
-
-KEY_F1		:== 112
-KEY_F2		:== 113
-KEY_F3		:== 114
-KEY_F4		:== 115
-KEY_F5		:== 116
-KEY_F6		:== 117
-KEY_F7		:== 118
-KEY_F8		:== 119
-KEY_F9		:== 120
-KEY_F10		:== 121
-KEY_F11		:== 122
-KEY_F12		:== 123
-
-//Common modifiers
-unmodified key	:== {key=key,ctrl=False,alt=False,shift=False}
-ctrl key		:== {key=key,ctrl=True,alt=False,shift=False}
-alt key			:== {key=key,ctrl=False,alt=True,shift=False}
-shift key		:== {key=key,ctrl=False,alt=False,shift=True}
-
-derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
-derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
-derive gDefault			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
-derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
-
-derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
-derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
-derive gEditMeta		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
-derive gUpdate			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
-derive gVerify			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, ActionOption, Hotkey, Trigger
+derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
+derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
 
 derive class iTask		TaskId, Config, ProcessStatus
 
@@ -689,65 +304,11 @@ derive class iTask		TaskId, Config, ProcessStatus
 				
 //Define initial meta attributes
 TASK_ATTRIBUTE			:== "task"
-TITLE_ATTRIBUTE			:== "title"
-HINT_ATTRIBUTE			:== "hint"
-VALID_ATTRIBUTE			:== "valid"
-WARNING_ATTRIBUTE		:== "warning"
-ERROR_ATTRIBUTE			:== "error"
-LABEL_ATTRIBUTE			:== "label"
-PREFIX_ATTRIBUTE		:== "prefix"
-POSTFIX_ATTRIBUTE		:== "postfix"
-ICON_ATTRIBUTE			:== "icon"
+
 SCREEN_ATTRIBUTE        :== "screen"
 CREATED_AT_ATTRIBUTE	:== "createdate"//Creation task time, used for ordering but not real time
 LAST_EVENT_ATTRIBUTE	:== "lastevent"	//Last event task time, used for ordering but not real time
 LAST_FOCUS_ATTRIBUTE    :== "lastfocus" //Last focus, also used for ordering
-
-//Preferred container attribute for abstract containers. Does not have to be honoured by layouts
-CONTAINER_ATTRIBUTE		:==	"container"	//Container preference for layout functions. Possible preferences: "container", "panel", or "window"
-
-:: Att				= E.a: Att !a & descr a
-
-:: Title			= Title !String
-:: Label            = Label !String
-:: Hint				= Hint !String
-
-:: Icon				= Icon !String
-					| IconView
-					| IconEdit
-
-
-//Make the UI definition of the interaction prompt
-class descr d
-where
-	toPrompt		:: !d -> UIAttributes
-
-instance descr ()                           //No prompt
-instance descr Void							//No prompt
-instance descr String						//Simple instruction
-instance descr (!String, !String)			//Title attribute + instruction
-instance descr (!Icon, !String, !String)	//Icon attribute, title attribute, and instruction
-//instance descr (!Icon, !Title)			//Icon attribute, title attribute 
-instance descr Title
-instance descr Label
-instance descr Hint
-instance descr Icon
-instance descr Attribute
-
-instance descr Att
-instance descr [d] | descr d
-
-derive JSONEncode		Icon
-derive JSONDecode		Icon
-derive gDefault			Icon
-derive gEq				Icon
-derive gText	        Icon
-derive gEditor          Icon	
-derive gEditMeta		Icon
-derive gUpdate			Icon
-derive gVerify			Icon
-
-
 
 //Task evaluation tuning directives, for increasing performance
 :: LazyRefresh = LazyRefresh //If you tune a task in a parallel set with this directive, it not be evaluated unless its focused
@@ -756,15 +317,12 @@ derive gVerify			Icon
 // Generic instances for common library types
 //****************************************************************************//
 
-derive JSONEncode		(), HtmlTag, HtmlAttr, Void, Either, MaybeError, Timestamp
-derive JSONDecode		(), HtmlTag, HtmlAttr, Void, Either, MaybeError, Timestamp
-derive gEq				(), HtmlTag, HtmlAttr, Void, Either, MaybeError, Timestamp, JSONNode, (->), Dynamic
+derive JSONEncode		(), HtmlTag, HtmlAttr, Either, MaybeError, Timestamp
+derive JSONDecode		(), HtmlTag, HtmlAttr, Either, MaybeError, Timestamp
+derive gEq				(), HtmlTag, HtmlAttr, Either, MaybeError, Timestamp, JSONNode, (->), Dynamic
 derive gDefault   HtmlAttr
-derive gEditMeta  HtmlAttr
 derive gEditor    HtmlAttr
 derive gText      HtmlAttr
-derive gUpdate    HtmlAttr
-derive gVerify    HtmlAttr
 
 derive JSONEncode		RWShared
 derive JSONDecode		RWShared
@@ -775,15 +333,9 @@ derive JSONEncode SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity,
 derive JSONDecode SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gEq        SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gDefault   SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
-derive gEditMeta  SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gEditor    SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive gText      SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
-derive gUpdate    SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
-derive gVerify    SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 
 derive gDefault   {}
-derive gEditMeta  {}
 derive gEditor    {}
 derive gText      {}
-derive gUpdate    {}
-derive gVerify    {}

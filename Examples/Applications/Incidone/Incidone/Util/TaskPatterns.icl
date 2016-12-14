@@ -1,16 +1,20 @@
 implementation module Incidone.Util.TaskPatterns
 
 import iTasks, iTasks.API.Extensions.Dashboard
+import iTasks.UI.Definition
 import Incidone.OP.IncidentManagementTasks, Incidone.OP.ContactManagementTasks
 import Text, Data.Functor, Data.Either
 import qualified Data.Map as DM
 import StdMisc
 
+//FIXME
+/*
 fillNotes :: [(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]
 fillNotes cs = map fillNote cs
 where
     fillNote (c=:(UIEditNote _ _),a) = (fillHeight c,'DM'.newMap)
     fillNote x = x
+*/
 
 /**
 * Create a new incident containing no information at all.
@@ -39,7 +43,7 @@ where
     writel = SDSWriteConst (\_ w -> Ok (Just w))
     writer = SDSWriteConst (\_ _ -> Ok Nothing)
 
-viewDetails	:: !d (ReadOnlyShared (Maybe i)) (RWShared i c c) (c -> v) -> Task (Maybe v) | descr d & iTask i & iTask v
+viewDetails	:: !d (ReadOnlyShared (Maybe i)) (RWShared i c c) (c -> v) -> Task (Maybe v) | toPrompt d & iTask i & iTask v
 viewDetails desc sel target prj = viewSharedInformation desc [] (mapRead (fmap prj) targetShare)
 where
     targetShare = sdsSequence "viewDetailsSeq" (\_ i -> i) snd writel writer sel valueShare
@@ -55,29 +59,29 @@ optionalNewOrOpen :: (String,Task ()) (String,i -> Task ()) Workspace (ReadOnlyS
 optionalNewOrOpen (newLabel,newTask) (openLabel,openTask) ws selection
 	= forever (
 		watch selection >>*
-			[OnAction (Action newLabel [ActionIcon "add"]) (always (addToWorkspace (newTask <<@ InWindow) ws))
-			,OnAction (Action openLabel [ActionIcon "open"]) (ifValue isJust (\(Just c) -> addToWorkspace (doOrClose (openTask c)) ws))
+			[OnAction (Action newLabel) (always (addToWorkspace (newTask <<@ InWindow) ws))
+			,OnAction (Action openLabel) (ifValue isJust (\(Just c) -> addToWorkspace (doOrClose (openTask c)) ws))
 			]
 	)
 
 doAddRemoveOpen :: (Task a) (r -> Task b) (r -> Task c) Workspace (ReadWriteShared (Maybe r) w) -> Task () | iTask a & iTask b & iTask c & iTask r
 doAddRemoveOpen  add remove open ws selection = forever
 	(watch selection >>*
-		[OnAction (Action "/Add" [ActionIcon "add"])	    (always (addToWorkspace add ws))
-		,OnAction (Action "/Remove" [ActionIcon "remove"])  (ifValue isJust	(\(Just sel) -> addToWorkspace (remove sel) ws))
-		,OnAction (Action "/Open" [ActionIcon "open"])      (ifValue isJust	(\(Just sel) -> addToWorkspace (open sel) ws))
+		[OnAction (Action "/Add")	  (always (addToWorkspace add ws))
+		,OnAction (Action "/Remove")  (ifValue isJust	(\(Just sel) -> addToWorkspace (remove sel) ws))
+		,OnAction (Action "/Open")    (ifValue isJust	(\(Just sel) -> addToWorkspace (open sel) ws))
 		]
 	)
 
 //Move to util
 viewAndEdit :: (Task a) (Task b) -> Task b | iTask a & iTask b
 viewAndEdit view edit
-    = forever (view >>* [OnAction (Action "Edit" [ActionIcon "edit"]) (always edit)])
+    = forever (view >>* [OnAction (Action "Edit") (always edit)])
 
 //Move to common tasks
-viewOrEdit :: d (Shared a) (a a -> Task ()) -> Task () | descr d & iTask a
+viewOrEdit :: d (Shared a) (a a -> Task ()) -> Task () | toPrompt d & iTask a
 viewOrEdit prompt s log
-	= forever (view >>* [OnAction (Action "/Edit" [ActionIcon "edit"]) (hasValue edit)]) @! ()
+	= forever (view >>* [OnAction (Action "/Edit") (hasValue edit)]) @! ()
 where
 	view = viewSharedInformation prompt [] s
 	edit old
@@ -98,8 +102,11 @@ doOrCancel task = (chooseAction [(ActionCancel,Nothing)] -||- (task @ Just)) >>-
 
 withHeader :: (Task a) (Task b) -> Task b | iTask a	& iTask b
 withHeader headerTask bodyTask
-	= ((headerTask <<@ ForceLayout) ||- (bodyTask <<@ ForceLayout)) <<@ AfterLayout arrange
+	= (headerTask ||- bodyTask ) //<<@ AfterLayout arrange
+//FIXME
+/*
 where
+
     arrange ui=:{UIDef|content=UIBlocks [header,body] actions,windows}
         # (hcontrol,_,_,_) = blockToControl header
         # (UIContainer sOpts iOpts=:{UIItemsOpts|items},_,_,_) = blockToContainer body
@@ -115,6 +122,7 @@ where
             ,size = defaultSizeOpts
             },windows = windows}
     arrange ui = ui
+*/
 
 viewNoSelection :: Task ()
 viewNoSelection = viewTitle "Select..." @! ()
@@ -126,9 +134,9 @@ viewNoSelection = viewTitle "Select..." @! ()
 							,OnValue  					    (ifStable (\a -> taskbf a @ Just))
 							]
 
-oneOrAnother :: !d (String,Task a) (String,Task b) -> Task (Either a b) | descr d & iTask a & iTask b
+oneOrAnother :: !d (String,Task a) (String,Task b) -> Task (Either a b) | toPrompt d & iTask a & iTask b
 oneOrAnother desc (labela,taska) (labelb,taskb)
-    =   updateChoice desc [ChooseWith (ChooseFromRadioButtons ((!!) [labela,labelb]))]  [0,1] 0 <<@ AfterLayout (uiDefSetHeight WrapSize)
+    =   updateChoice desc [ChooseFromCheckGroup ((!!) [labela,labelb])]  [0,1] 0  <<@ ApplyLayout (setAttributes (heightAttr WrapSize))
     >&> \s -> whileUnchanged s (
         \choice -> case choice of
             Nothing = (viewInformation () [] "You have to make a choice" @? const NoValue)
@@ -146,7 +154,7 @@ where
     allStable cur _             = False
 
     more list =   viewInformation () [] ()
-              >>* [OnAction (Action action [ActionIcon "add"]) (always (appendTask Embedded more list >>| task))]
+              >>* [OnAction (Action action) (always (appendTask Embedded more list >>| task))]
 
 manageSharedListWithDetails :: (Int -> Task ()) (Task Int) (Shared [Int]) -> Task ()
 manageSharedListWithDetails detailsTask addTask refsList //Not the best implementation, but good enough for now
@@ -164,15 +172,15 @@ where
 
     removeWhenStable t l = t >>* [OnValue (ifStable (\v -> get (taskListSelfId l) >>- \id -> removeTask id l @! v))]
 
-manageBackgroundTask :: !d !String !String (Task a) -> Task () | descr d & iTask a
+manageBackgroundTask :: !d !String !String (Task a) -> Task () | toPrompt d & iTask a
 manageBackgroundTask d identity title task
-    =   viewSharedInformation d [ViewWith (view title)] taskPid
-    >^* [OnAction (Action "Start" []) (ifValue isNothing startTask)
-        ,OnAction (Action "Stop" []) (ifValue isJust stopTask)
+    =   viewSharedInformation d [ViewAs (view title)] taskPid
+    >^* [OnAction (Action "Start") (ifValue isNothing startTask)
+        ,OnAction (Action "Stop") (ifValue isJust stopTask)
         ]
     @!  ()
 where
-    view title t = let (color,statusmsg) = status t in Row (color,title +++ " is " +++ statusmsg)
+    view title t = let (color,statusmsg) = status t in (color,title +++ " is " +++ statusmsg)
     status Nothing              = (LightOff,"not activated")
     status (Just (taskId,None))      = (LightOnGreen,"running " <+++ taskId )
     status (Just (taskId,Unstable))  = (LightOnGreen,"running" <+++ taskId )

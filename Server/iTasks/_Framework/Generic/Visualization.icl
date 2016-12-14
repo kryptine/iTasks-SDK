@@ -1,7 +1,7 @@
 implementation module iTasks._Framework.Generic.Visualization
 
-import StdGeneric, StdList, StdMisc
-import Data.Maybe, Data.Either, Data.Void, Data.Functor
+import StdGeneric, StdList, StdMisc, StdArray
+import Data.Maybe, Data.Either, Data.Functor
 from Data.Map import :: Map (..)
 import qualified Data.Map as DM
 import qualified Data.List as DL
@@ -58,7 +58,6 @@ gText{|[]|} fx mode Nothing                 = [""]
 gText{|Maybe|} fx mode (Just val)			= fromMaybe ["-"] (fmap (\v -> fx mode (Just v)) val)
 gText{|Maybe|} fx mode Nothing              = fx AsHeader Nothing
 
-gText{|Void|} _ _					= []
 gText{|Dynamic|} _ _				= []
 gText{|(->)|} _ _ _ _				= []
 gText{|JSONNode|} _ val			    = [maybe "" toString val]
@@ -88,6 +87,7 @@ gText{|(,,,,)|} fa fb fc fd fe AsHeader     _                   = ["","","","","
 gText{|(,,,,)|} fa fb fc fd fe AsRow        (Just (a,b,c,d,e))  = [concat (fa AsSingleLine (Just a)),concat (fb AsSingleLine (Just b)),concat (fc AsSingleLine (Just c)),concat (fd AsSingleLine (Just d)),concat (fe AsSingleLine (Just e))]
 gText{|(,,,,)|} fa fb fc fd fe AsSingleLine (Just (a,b,c,d,e))  = [concat (fa AsSingleLine (Just a)),", ",concat (fb AsSingleLine (Just b)),", ",concat (fc AsSingleLine (Just c)),", ",concat (fd AsSingleLine (Just d)),", ",concat (fe AsSingleLine (Just e))]
 gText{|(,,,,)|} fa fb fc fd fe mode         (Just (a,b,c,d,e))  = fa mode (Just a) ++ fb mode (Just b) ++ fc mode (Just c) ++ fd mode (Just d) ++ fe mode (Just e)
+gText{|(,,,,,)|} fa fb fc fd fe ff mode         (Just (a,b,c,d,e,f))  = fa mode (Just a) ++ fb mode (Just b) ++ fc mode (Just c) ++ fd mode (Just d) ++ fe mode (Just e) ++ ff mode (Just f)
 
 gText{|(,,,,,)|} fa fb fc fd fe ff AsHeader     _                     = ["","","","","",""]
 gText{|(,,,,,)|} fa fb fc fd fe ff AsRow        (Just (a,b,c,d,e,f))  = [concat (fa AsSingleLine (Just a)),concat (fb AsSingleLine (Just b)),concat (fc AsSingleLine (Just c)),concat (fd AsSingleLine (Just d)),concat (fe AsSingleLine (Just e)),concat (ff AsSingleLine (Just f))]
@@ -105,6 +105,16 @@ gText{|(,,,,,,,)|} fa fb fc fd fe ff fg fh AsSingleLine (Just (a,b,c,d,e,f,g,h))
 gText{|(,,,,,,,)|} fa fb fc fd fe ff fg fh mode         (Just (a,b,c,d,e,f,g,h))  = fa mode (Just a) ++ fb mode (Just b) ++ fc mode (Just c) ++ fd mode (Just d) ++ fe mode (Just e) ++ ff mode (Just f) ++ fg mode (Just g) ++ fh mode (Just h)
 
 derive gText Either, MaybeError, Timestamp, Map
+
+//Utility function for visualizing record fields
+camelCaseToWords label = {c \\ c <- [toUpper lname : addspace lnames]}
+where
+	[lname:lnames]		= fromString label
+	addspace []			= []
+	addspace [c:cs]
+		| c == '_'			= [' ':addspace cs]
+		| isUpper c			= [' ',toLower c:addspace cs]
+		| otherwise			= [c:addspace cs]
 
 (+++>) infixr 5	:: !a !String -> String | gText{|*|} a
 (+++>) a s = toSingleLineText a +++ s

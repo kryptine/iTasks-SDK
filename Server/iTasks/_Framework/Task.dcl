@@ -8,18 +8,15 @@ import iTasks._Framework.Generic
 from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
 
 from iTasks._Framework.TaskState			import :: TaskTree
-from iTasks.UI.Layout 	import :: LayoutRules
+from iTasks.UI.Definition import :: UIChange
 from Data.Map			import :: Map
 from Data.CircularStack import :: CircularStack
 
 derive JSONEncode		Task
 derive JSONDecode		Task
 derive gDefault			Task
-derive gUpdate			Task
-derive gVerify			Task
 derive gText	        Task
 derive gEditor			Task
-derive gEditMeta		Task
 derive gEq				Task
 
 // Tasks
@@ -31,16 +28,14 @@ derive gEq				Task
 			| RefreshEvent	!String 					//Nop event, just recalcalutate the entire task instance (the string is the reason for the refresh)
             | ResetEvent                                //Nop event, recalculate the entire task and reset output stream
 
-:: TaskResult a		= ValueResult !(TaskValue a) !TaskEvalInfo !TaskRep !TaskTree						//If all goes well, a task computes its current value, an observable representation and a new task state
+:: TaskResult a		= ValueResult !(TaskValue a) !TaskEvalInfo !UIChange !TaskTree //If all goes well, a task computes its current value, an observable representation and a new task state
 					| ExceptionResult !TaskException													//If something went wrong, a task produces an exception value
 					| DestroyedResult																	//If a task finalizes and cleaned up it gives this result
 :: TaskException    :== (!Dynamic,!String) //The dynamic contains the actual exception which can be matched, the string is an error message
 
 //Additional options to pass down the tree when evaluating a task
 :: TaskEvalOpts	=
-	{ useLayout			:: Maybe LayoutRules
-	, modLayout			:: Maybe (LayoutRules -> LayoutRules)
-    , noUI              :: Bool
+	{ noUI              :: Bool
     , tonicOpts         :: TonicOpts
 	}
 
@@ -65,8 +60,6 @@ defaultTonicOpts :: TonicOpts
 	, refreshSensitive	:: !Bool		        //Can refresh events change the value or ui of this task (e.g. because shared data is read)
 	}
 	
-:: TaskRep	= NoRep				//For some tasks no external representation is generated
-			| TaskRep !UIDef 	//Compute both the UI and the raw service representation simultaneously
 
 //Low-level tasks that handle network connections
 :: ConnectionTask = ConnectionTask !(ConnectionHandlersIWorld Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)
@@ -87,7 +80,7 @@ defaultTonicOpts :: TonicOpts
     }
 
 //Background computation tasks
-:: BackgroundTask = BackgroundTask !(*IWorld -> *IWorld)
+:: BackgroundTask = BackgroundTask !(*IWorld -> *(!MaybeError TaskException (), !*IWorld))
 
 /**
 * 'downgrades' an event to a refresh, but keeps the client given event number
@@ -98,16 +91,6 @@ toRefresh :: Event -> Event
 * Creates an execption
 */
 exception :: !e -> TaskException | TC, toString e
-
-/**
-* Determine the layout function for a rep target
-*/
-repLayoutRules :: !TaskEvalOpts -> LayoutRules
-
-/**
-* Apply the final layout if necessary
-*/
-finalizeRep :: !TaskEvalOpts !TaskRep -> TaskRep
 
 /**
 * Extend the call trace with the current task number

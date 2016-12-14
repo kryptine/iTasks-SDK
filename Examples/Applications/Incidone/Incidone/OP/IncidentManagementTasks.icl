@@ -10,6 +10,7 @@ import Incidone.DeviceBased.VideoWall
 import Incidone.ActionManagementTasks
 import Data.List
 import qualified Data.Map as DM
+import Text.HTML
 
 openIncidentInWorkspace :: Workspace IncidentNo -> Task ()
 openIncidentInWorkspace ws incidentNo
@@ -33,8 +34,8 @@ manageIncidentInformation ws incidentNo
 manageIncidentSituationInfo :: IncidentNo -> Task ()
 manageIncidentSituationInfo incidentNo
     =	viewOrEdit (Icon "basic-information","General","The following general information is known about the situation") situation log
-    >^* [OnAction (Action "/Share to wall" [ActionIcon "share-to-wall"]) (always (shareIncident incidentNo))
-        ,OnAction (Action "/Close incident" [ActionIcon "action-completed"]) (always (confirmCloseIncident incidentNo <<@ InWindow))
+    >^* [OnAction (Action "/Share to wall") (always (shareIncident incidentNo))
+        ,OnAction (Action "/Close incident") (always (confirmCloseIncident incidentNo <<@ InWindow))
         ]
 where
     situation = mapReadWrite (toPrj,fromPrj) (sdsFocus incidentNo incidentByNo)
@@ -60,20 +61,20 @@ manageIncidentContacts ws incidentNo
 where
 	contacts        = sdsFocus incidentNo contactsByIncident
 	manageContacts  = ((withShared Nothing (\sel -> (chooseFromList sel -||- chooseFromMap sel) <<@ (ArrangeWithSideBar 0 LeftSide 250 True))))
-                    >^* [(OnAction (Action "/Add contact"    [ActionIcon "add"]) (always (add <<@ InWindow @! ())))
-                        ,(OnAction (Action "/Remove contact" [ActionIcon "remove"]) (ifValue (\c -> c=:(Left _)) (\(Left c) -> (remove c <<@ InWindow @! ()))))
-                        ,(OnAction (Action "/Update position" [ActionIcon "map"]) (ifValue (\c -> c=:(Left _)) (\(Left c) -> updateContactPosition c <<@ InWindow @! ())))
-                        ,(OnAction (Action "/Update status"  [ActionIcon "edit"]) (ifValue (\c -> c=:(Left _)) (\(Left c) -> updateContactStatus c <<@ InWindow @! ())))
-                        ,(OnAction (Action "/Open contact"   [ActionIcon "open"]) (ifValue (\c -> c=:(Left _)) (\(Left c) -> openContactInWorkspace ws c)))
+                    >^* [(OnAction (Action "/Add contact") (always (add <<@ InWindow @! ())))
+                        ,(OnAction (Action "/Remove contact") (ifValue (\c -> c=:(Left _)) (\(Left c) -> (remove c <<@ InWindow @! ()))))
+                        ,(OnAction (Action "/Update position") (ifValue (\c -> c=:(Left _)) (\(Left c) -> updateContactPosition c <<@ InWindow @! ())))
+                        ,(OnAction (Action "/Update status") (ifValue (\c -> c=:(Left _)) (\(Left c) -> updateContactStatus c <<@ InWindow @! ())))
+                        ,(OnAction (Action "/Open contact") (ifValue (\c -> c=:(Left _)) (\(Left c) -> openContactInWorkspace ws c)))
                         ]
-    chooseFromList sel = editSharedChoiceWithSharedAs () [ChooseWith (ChooseFromList listView)] contacts (Left o contactIdentity) sel
+    chooseFromList sel = editSharedChoiceWithSharedAs () [ChooseFromList listView] contacts (Left o contactIdentity) sel
     chooseFromMap sel = viewContactsOnMap (sdsFocus incidentNo contactsByIncidentGeo) sel
 
     listView c=:{Contact|name,type,status,photos}
         = ">" <+++ type <+++ ": " <+++ name <+++ " (" <+++ status <+++ ")"
 
     add	= oneOrAnother (Title "Add contact..")
-            ("Known contact",enterChoiceWithSharedAs () [ChooseWith (ChooseFromComboBox id)] allContactsShort contactNo)
+            ("Known contact",enterChoiceWithSharedAs () [ChooseFromDropdown id] allContactsShort contactNo)
             ("Add new contact",enterInformation () [])
 		>>? \contact ->
             createContactIfNew contact
@@ -95,17 +96,17 @@ where
 manageIncidentActions :: IncidentNo -> Task ()
 manageIncidentActions incidentNo
 	=	selectAndWorkOnPlannedActions
-    >^* [OnAction (Action "/Add action" [ActionIcon "add"]) (always (addTopActionItem [] [incidentNo]))]
+    >^* [OnAction (Action "/Add action") (always (addTopActionItem [] [incidentNo]))]
 	@!  ()
 where
     selectAndWorkOnPlannedActions
-        = (feedForward (chooseActionItem (Title "Overview") False True (sdsFocus incidentNo actionStatusesByIncident) <<@ ForceLayout <<@ AfterLayout (tweakUI fill))
+        = (feedForward (chooseActionItem (Title "Overview") False True (sdsFocus incidentNo actionStatusesByIncident) /* <<@ AfterLayout (tweakUI fill) */) 
         (\s -> whileUnchanged s
             (\t -> case t of
               Just taskId    = workOnActionItem taskId
               Nothing        = viewInformation () [] ()
             )
-        )) <<@ (ArrangeWithSideBar 0 LeftSide 250 True) <<@ (Icon "actions") <<@ (Title "Incident Actions")
+        )) <<@ (ArrangeWithSideBar 0 LeftSide 250 True) <<@ (Icon "actions") <<@ (Title "Incident Actions") //FIXME
 
 manageIncidentWeather :: IncidentNo -> Task ()
 manageIncidentWeather incidentNo
@@ -118,7 +119,7 @@ manageIncidentWeather incidentNo
 where
     weather = sdsFocus incidentNo incidentWeather
     log     = logIncidentWeatherUpdated incidentNo
-    viewWebWeather (Note widgets) = viewInformation (Title "Web weather info") [] (RawText widgets)
+    viewWebWeather widgets = viewInformation (Title "Web weather info") [] (RawText widgets)
 
 manageIncidentLog :: IncidentNo -> Task ()
 manageIncidentLog incidentNo
@@ -127,7 +128,7 @@ manageIncidentLog incidentNo
     @! ()
 where
     viewIncidentLog :: IncidentNo -> Task [LogEntry]
-    viewIncidentLog incident = viewSharedInformation () [ViewWith toView] (sdsFocus incidentNo incidentLog)
+    viewIncidentLog incident = viewSharedInformation () [ViewAs toView] (sdsFocus incidentNo incidentLog)
     where
         toView log = DivTag [ClassAttr "incident-log"] (flatten [[vizDate date:map vizEntry entries] \\ (date,entries) <- groupByDate log])
 
@@ -141,17 +142,18 @@ where
         vizAvatar (Just {ContactAvatar|photos=[p:_]})
             = [DivTag [ClassAttr "incident-log-avatar"] [ImgTag [SrcAttr p.ContactPhoto.avatar.contentUrl,HeightAttr "50",WidthAttr "50"]]]
         vizAvatar _ = []
-        vizTime (DateTime _ time) = [DivTag [ClassAttr "incident-log-time"] [Text (toString time)]]
+        vizTime (datetime) = [DivTag [ClassAttr "incident-log-time"] [Text (toString (toTime datetime))]]
         vizMessage message = [DivTag [ClassAttr "incident-log-message"] [nl2br (toString message)]]
 
-        groupByDate log = [(date e.eventAt,es) \\ es=:[e:_] <-  groupBy (\e1 e2 -> date e1.eventAt == date e2.eventAt) log]
-        where
-            date (DateTime d _) = d
+        groupByDate log = [(toDate e.eventAt,es) \\ es=:[e:_] <-  groupBy (\e1 e2 -> toDate e1.eventAt == toDate e2.eventAt) log]
 
     addMessages incidentNo = forever
-        (   enterInformation () []
-        >>* [OnAction (Action "Add log message" [ActionIcon "add"]) (hasValue (\(Note msg) -> addLogMessage msg incidentNo))]
+        (   enterInformation () [] @ string
+        >>* [OnAction (Action "Add log message") (hasValue (\msg -> addLogMessage msg incidentNo))]
         )
+	
+	string :: String -> String
+	string x = x
 
 viewIncidentDetails :: IncidentNo -> Task ()
 viewIncidentDetails incidentNo
@@ -161,17 +163,17 @@ viewIncidentDetails incidentNo
 where
     incident = sdsFocus incidentNo incidentByNo
 
-updateSharedIncidentRefList :: d Bool (RWShared () [IncidentNo] [IncidentNo]) -> Task [IncidentNo] | descr d
+updateSharedIncidentRefList :: d Bool (RWShared () [IncidentNo] [IncidentNo]) -> Task [IncidentNo] | toPrompt d
 updateSharedIncidentRefList d compact refs
     =   manageCurrentItems
-    >^* [OnAction (Action "Add" []) (always (addItem <<@ InWindow))]
+    >^* [OnAction (Action "Add") (always (addItem <<@ InWindow))]
 where
     manageCurrentItems
-        = updateSharedInformation d [UpdateWith toPrj fromPrj] items
+        = updateSharedInformation d [UpdateAs toPrj fromPrj] items @ map incidentIdentity
     where
         items = sdsDeref refs id incidentsByNosShort (\_ is -> is)
-        toPrj l = {EditableList|items = [(Hidden (incidentIdentity i),Display (incidentTitle i))\\i <-l],add=ELNoAdd,remove=True,reorder=True,count=False}
-        fromPrj _ {EditableList|items} = [i \\ (Hidden i,_) <- items]
+        toPrj l = [(incidentIdentity i,incidentTitle i) \\i <-l]
+        fromPrj _ items = map fst items
 
     addItem
         =   selectKnownOrDefineNewIncident
@@ -184,7 +186,7 @@ selectKnownOrDefineNewIncident
         ("Add new incident",enterNewIncident)
 where
     chooseKnownIncident
-        = enterChoiceWithSharedAs () [ChooseWith (ChooseFromComboBox id)] openIncidentsShort incidentIdentity
+        = enterChoiceWithSharedAs () [ChooseFromDropdown id] openIncidentsShort incidentIdentity
     enterNewIncident
         = enterInformation () []
 
@@ -196,7 +198,7 @@ addLogMessage :: msg IncidentNo -> Task IncidentNo | toString msg
 addLogMessage message incidentNo
 	=	get currentUserAvatar -&&- get currentDateTime
 	>>- \(user,now) ->
-        set {LogEntry|incident = incidentNo,eventAt = now , loggedAt = now, loggedBy = user, message = Note (toString message)}
+        set {LogEntry|incident = incidentNo,eventAt = now, loggedAt = now, loggedBy = user, message = toString message}
             (sdsFocus incidentNo incidentLog)
     >>| addNotification (toString message)
 	@!	incidentNo
@@ -208,7 +210,7 @@ addLogMessageForContact msg contactNo
         allTasks [addLogMessage msg incidentNo \\ incidentNo <- incidentNos]
 
 derive gDifferences IncidentBasic, IncidentType, ContactBasic, ContactType, ContactPosition, WeatherData, Maybe, Feet, Temperature, Meters, Degrees, WeatherType, Knots
-derive gDifferences PersonDetails, SurferDetails, VesselDetails, DiverDetails, AirplaneDetails, HelicopterDetails, EmergencyPhase, Note, ContactStatus, Gender, Miles, VesselType
+derive gDifferences PersonDetails, SurferDetails, VesselDetails, DiverDetails, AirplaneDetails, HelicopterDetails, EmergencyPhase, ContactStatus, Gender, Miles, VesselType
 
 logCommunicationResponded :: CommunicationNo -> Task ()
 logCommunicationResponded communicationNo
@@ -370,7 +372,7 @@ closeIncident :: IncidentNo -> Task ()
 closeIncident incidentNo
 	=	upd (\i -> {Incident|i & closed = True}) (sdsFocus incidentNo incidentByNo)
 	>>- \i ->
-		addLogMessage (Note "Incident closed") (incidentIdentity i)
+		addLogMessage "Incident closed" (incidentIdentity i)
     @!  ()
 
 linkContactsToIncident  :: [ContactNo] IncidentNo -> Task IncidentNo

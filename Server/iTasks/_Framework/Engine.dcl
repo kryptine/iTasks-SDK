@@ -12,7 +12,7 @@ import iTasks._Framework.Task
 
 from Internet.HTTP			import :: HTTPRequest
 
-//* Configuarion defaults
+//* Configuration defaults
 DEFAULT_PORT			:== IF_POSIX_OR_WINDOWS 8080 80
 DEFAULT_KEEPALIVE_TIME	:== 300 // 5 minutes
 DEFAULT_THEME           :== "gray"
@@ -23,26 +23,20 @@ RELATIVE_LOCATIONS		:== [".": take 5 (iterate ((</>) "..") "..")]
 :: PublishedTask =
 	{ url			:: String
 	, task			:: TaskWrapper
-	, defaultFormat	:: ServiceFormat
+	}
+
+:: ServerOptions =
+	{ appName 		:: String
+	, appPath		:: FilePath
+	, sdkPath		:: Maybe FilePath
+	, serverPort	:: Int
+	, keepalive 	:: Int
+	, webDirPaths	:: Maybe [FilePath]
+	, storeOpt 		:: Maybe FilePath
+	, saplOpt		:: Maybe FilePath
 	}
 	
 :: TaskWrapper = E.a: TaskWrapper (HTTPRequest -> Task a) & iTask a
-	
-//* The format in which a task is presented.
-:: ServiceFormat
-	= WebApp [WebAppOption]
-	| JSONGui
-	| JSONGuiEventStream
-	| JSONService
-	| JSONPlain
-
-:: WebAppOption
-    = Theme String
-
-//Connection types used by the engine
-:: ConnectionType
-    = EventSourceConnection [InstanceNo]    //Server -> Client updates push
-    | WebSocketConnection [InstanceNo]      //Server <-> Client events and updates channel
 
 /**
 * Starts the task engine with a list of published task definitions.
@@ -54,9 +48,25 @@ RELATIVE_LOCATIONS		:== [".": take 5 (iterate ((</>) "..") "..")]
 startEngine :: a !*World -> *World | Publishable a
 
 /**
+* Starts the task engine with options and a list of published task definitions.
+*
+* @param Tasks to start
+* @param Options to use like port and server paths.
+* @param The world
+* @return The world
+*/
+startEngineWithOptions :: a ServerOptions !*World -> *World | Publishable a
+
+/**
 * Wraps a task together with a url to make it publishable by the engine
 */
-publish :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
+publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
+
+/**
+* This function publishes a task with autolayouting turned off 
+* to enable testing and debugging without layout processing
+*/
+publishWithoutLayout :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
 
 class Publishable a
 where

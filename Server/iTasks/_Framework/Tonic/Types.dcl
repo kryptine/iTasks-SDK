@@ -6,19 +6,19 @@ from Data.IntMap.Strict import :: IntMap
 from iTasks._Framework.Tonic.AbsSyn import :: TonicModule, :: TAssoc, :: TLit, :: TExpr, :: FuncName, :: TPriority, :: ModuleName, :: TonicFunc
 import iTasks._Framework.Generic
 import iTasks.API.Extensions.User
-from iTasks.API.Core.Types import :: DateTime, :: Scale
+from iTasks.API.Core.Types import :: DateTime
 from iTasks.API.Extensions.User import :: User
 
 :: ListId :== TaskId
 
 :: StaticDisplaySettings
-  = { unfold_depth    :: !Scale
+  = { unfold_depth    :: !Int
     , display_compact :: !Bool
     , show_comments   :: !Bool
     }
 
 :: DynamicDisplaySettings
-  = { unfold_depth             :: !Scale
+  = { unfold_depth             :: !Int
     , display_compact          :: !Bool
     , show_finished_blueprints :: !Bool
     , show_task_value          :: !Bool
@@ -127,7 +127,7 @@ instance BlueprintLike GenBlueprintInstance
 
 :: TonicImageState
   = { tis_task    :: TonicFunc
-    , tis_depth   :: Scale
+    , tis_depth   :: Int
     , tis_compact :: Bool
     }
 
@@ -151,16 +151,7 @@ derive class iTask GenBlueprintInstance, TonicMessage, TMNewTopLevel, TMApply
 derive gEditor
   TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
 
-derive gEditMeta
-  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
-
 derive gDefault
-  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
-
-derive gUpdate
-  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
-
-derive gVerify
   TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
 
 derive gText

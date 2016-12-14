@@ -1,6 +1,7 @@
 definition module Incidone.Configuration
 import iTasks
 from iTasks.API.Extensions.SQLDatabase import :: SQLDatabase, :: SQLDatabaseDef
+from iTasks.API.Extensions.Web import :: URL
 
 :: DBConfig
     = InternalSQLiteDB
@@ -22,7 +23,7 @@ from iTasks.API.Extensions.SQLDatabase import :: SQLDatabase, :: SQLDatabaseDef
       }
 
 :: WebLinksConfig
-    = {weatherWidgets   :: Maybe Note
+    = {weatherWidgets   :: Maybe String
       ,vesselLinks      :: [WebLink]
       }
 :: WebLink =

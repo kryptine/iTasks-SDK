@@ -15,6 +15,7 @@ import iTasks._Framework.TaskState
 import iTasks._Framework.TaskStore
 import iTasks._Framework.TaskEval
 import iTasks._Framework.Task
+import iTasks._Framework.Serialization
 import iTasks.API.Core.TaskCombinators
 import iTasks.API.Core.Tasks
 import iTasks.API.Core.Types
@@ -23,8 +24,7 @@ import iTasks.API.Common.TaskCombinators
 import iTasks.API.Common.ImportTasks
 import iTasks.API.Common.InteractionTasks
 import iTasks.API.Extensions.Admin.UserAdmin
-import iTasks.API.Extensions.SVG.SVGlet
-import iTasks.API.Extensions.Admin.WorkflowAdmin
+import iTasks.API.Extensions.SVG.SVGEditor
 import System.File
 from StdFunc import o
 from System.FilePath import </>
@@ -222,9 +222,6 @@ instance TApplicative IO where
   return x   = IO (\s -> (x, s))
   (<#>) f g  = liftA2 id f g
 
-instance TFunctor IO where
-  tmap f x = x >>= (return o f)
-
 instance TMonad IO where
   (>>=) (IO f) a2mb = IO run
     where
@@ -240,10 +237,10 @@ ppnid nid = "[" +++ ppnid` nid +++ "]"
   ppnid` [x] = toString x
   ppnid` [x:xs] = toString x +++ ", " +++ ppnid` xs
 
-liftA2 f a b = (tmap f a) <#> b
+liftA2 f a b = f <$> a <#> b
 
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
-                   DynamicView, BlueprintQuery, UIAction, CircularStack
+                   DynamicView, BlueprintQuery, CircularStack
 
 //-----------------------------------------------------------------------------
 // REST
@@ -302,8 +299,8 @@ tonicWrapTaskBody` mn tn args cases t=:(Task eval)
           # (muser, iworld)  = 'DSDS'.read (sdsFocus instanceNo taskInstanceUser) iworld
           # bpinst           = { BlueprintInstance
                                | bpi_taskId           = currTaskId
-                               , bpi_startTime        = DateTime clocks.localDate clocks.localTime
-                               , bpi_lastUpdated      = DateTime clocks.localDate clocks.localTime
+                               , bpi_startTime        = toDateTime clocks.localDate clocks.localTime
+                               , bpi_lastUpdated      = toDateTime clocks.localDate clocks.localTime
                                , bpi_endTime          = Nothing
                                , bpi_activeNodes      = 'DM'.newMap
                                , bpi_previouslyActive = 'DM'.newMap
@@ -335,7 +332,7 @@ tonicWrapTaskBody` mn tn args cases t=:(Task eval)
              # oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems bpi.bpi_activeNodes)])
                                              bpi.bpi_previouslyActive
              # (_, iworld)      = 'DSDS'.write { bpi
-                                               & bpi_endTime          = Just (DateTime clocks.localDate clocks.localTime)
+                                               & bpi_endTime          = Just (toDateTime clocks.localDate clocks.localTime)
                                                , bpi_previouslyActive = oldActive
                                                , bpi_activeNodes      = 'DM'.newMap
                                                } (sdsFocus (currTaskId, mn, tn) tonicInstances) iworld
@@ -349,9 +346,6 @@ tonicWrapTaskBody` mn tn args cases t=:(Task eval)
     = (tr, iworld)
 
   eval` _ event evalOpts taskTree=:TCNop iworld
-    = eval event (resetInhOpts (setBlueprintInfo evalOpts)) taskTree iworld
-
-  eval` _ event evalOpts taskTree=:TCTasklet iworld
     = eval event (resetInhOpts (setBlueprintInfo evalOpts)) taskTree iworld
 
   eval` _ event evalOpts taskTree iworld
@@ -379,7 +373,7 @@ markStable currTaskId currBlueprintModuleName currBlueprintFuncName iworld
       Ok (Just bpi)
         # (curr, iworld)   = iworld!current
         # (clocks, iworld) = iworld!clocks
-        # currDateTime     = DateTime clocks.localDate clocks.localTime
+        # currDateTime     = toDateTime clocks.localDate clocks.localTime
         # oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems bpi.bpi_activeNodes)])
                                         bpi.bpi_previouslyActive
         # (_, iworld)      = 'DSDS'.write { bpi
@@ -435,11 +429,17 @@ stepEval cases eval nid event evalOpts taskTree iworld
 stepEval` cases nid childTaskId=:(TaskId ino tno) eval event evalOpts=:{TaskEvalOpts|tonicOpts} taskTree iworld
   # (taskResult, iworld) = eval event evalOpts taskTree iworld
   # iworld               = case taskResult of
-                             ValueResult (Value x _) _ (TaskRep uiDef) _
-                               # iworld = addCases evalOpts (map (\(eid, f) -> (eid, f x)) cases) iworld
-                               = storeActions uiDef iworld
-                             ValueResult _ _ (TaskRep uiDef) _
-                               = storeActions uiDef iworld
+                             ValueResult (Value x _) _ change _
+								# iworld = addCases evalOpts (map (\(eid, f) -> (eid, f x)) cases) iworld
+								# iworld = case change of 
+									ReplaceUI ui = storeActions ui iworld
+									_ 			 = iworld
+                               = iworld
+                             ValueResult _ _ change _
+								# iworld = case change of 
+									ReplaceUI ui = storeActions ui iworld
+									_ 			 = iworld
+                               = iworld
                              _ = iworld
   = (taskResult, iworld)
   where
@@ -447,7 +447,7 @@ stepEval` cases nid childTaskId=:(TaskId ino tno) eval event evalOpts=:{TaskEval
     // TODO
     // This LC filters out the actions for the current task. For some reason, we sometimes
     // get actions for the _next_ step here. Why is this? Ideally, we should remove this LC here.
-    = case [a \\ a <- uiDefActions uiDef | a.UIAction.taskId == toString ino +++ "-" +++ toString tno] of
+    = case [a \\ a <- [] /*uiDefActions uiDef*/ | ("TODO" /*a.UIAction.taskId*/) == toString ino +++ "-" +++ toString tno] of
         [] = iworld
         xs
           # focus         = sdsFocus (tonicOpts.currBlueprintTaskId, nid) tonicActionsForTaskIDAndExpr
@@ -535,7 +535,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
           // - The childTaskId blueprint won't be instantiated before the continuation is evaluated
           # (mparent_bpr, iworld) = 'DSDS'.read (sdsFocus (parentBPInst.bpi_taskId, currBlueprintModuleName, currBlueprintFuncName) tonicInstances) iworld
           # iworld = case (tr, mparent_bpr) of
-                       (ValueResult _ _ _ (TCParallel childTaskId _ parallelChildren), Ok (Just new_parent_instance))
+                       (ValueResult _ _ _ (TCParallel childTaskId _ parallelChildren _), Ok (Just new_parent_instance))
                          = evalParallel new_parent_instance tr evalOpts childTaskId parallelChildren iworld
                        (_, Ok (Just new_parent_instance))
                          # (new_parent_instance, chng)          = case (tr, cases) of
@@ -584,9 +584,6 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
     = eval event evalOpts taskTree iworld
 
   eval` event evalOpts taskTree=:(TCDestroy _) iworld
-    = eval event evalOpts taskTree iworld
-
-  eval` event evalOpts taskTree=:TCTasklet iworld
     = eval event evalOpts taskTree iworld
 
   eval` event evalOpts taskTree iworld

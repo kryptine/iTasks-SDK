@@ -5,8 +5,7 @@ import iTasks
 import iTasks._Framework.TaskStore
 import iTasks._Framework.TaskEval
 import iTasks._Framework.IWorld
-import iTasks.API.Core.Client.Tasklet
-import iTasks.UI.Diff
+import iTasks.UI.Definition
 import qualified iTasks._Framework.SDS as SDS
 
 from Data.Map import qualified newMap, toList, fromList, get
@@ -26,8 +25,8 @@ import StdDebug
 			}
 
 runOnClient :: !(Task m) -> Task m | iTask m
-runOnClient task
-
+runOnClient task = task
+/*
 	# roc_tasklet =
 		{ Tasklet 
 		| genUI				= roc_generator task
@@ -36,11 +35,12 @@ runOnClient task
 		}
  
 	= mkTask roc_tasklet
-
+*/
 gen_res {TaskState|value=Nothing} = NoValue
 gen_res {TaskState|value=Just NoValue} = NoValue
 gen_res {TaskState|value=Just (Value json stability)} = Value (fromJust (fromJSON json)) stability
 
+/*
 roc_generator :: !(Task m) !TaskId (Maybe (TaskState m)) !*IWorld -> *(!TaskletGUI (TaskState m), !TaskState m, !*IWorld) | iTask m
 roc_generator task (TaskId instanceNo _) _ iworld=:{current={sessionInstance=Just currentInstance}}
     # currentSession = "SESSIONID-" +++ toString currentInstance
@@ -52,7 +52,7 @@ roc_generator task (TaskId instanceNo _) _ iworld=:{current={sessionInstance=Jus
 				, task		 = task
 				, value 	 = Nothing}
 	= (gui, state, iworld)
-
+*/
 // Init
 controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Nothing} Nothing Nothing Nothing iworld
 	# (mbTaskId, iworld) = createClientTaskInstance task sessionId instanceNo iworld
@@ -101,28 +101,25 @@ newWorld = undef
 
 getUIUpdates :: !*IWorld -> (!Maybe [(InstanceNo, [String])], *IWorld)
 getUIUpdates iworld
-	= case 'SDS'.read taskInstanceUIs iworld of
-		(Ok uiStates,iworld)
-			= case 'Data.Map'.toList uiStates of
+	= case 'SDS'.read allUIChanges iworld of
+		(Ok uiChanges,iworld)
+			= case 'Data.Map'.toList uiChanges of
 				[] = (Nothing,iworld)
-				states
-					# (_,iworld) = 'SDS'.write ('Data.Map'.fromList (map clearOutput states)) taskInstanceUIs iworld
-					= (Just (map getUpdates states), iworld)
+				changes
+					# (_,iworld) = 'SDS'.write 'Data.Map'.newMap allUIChanges iworld
+					= (Just (map getUpdates changes), iworld)
 		(_,iworld)
 			= (Nothing, iworld)
 where
-	getUpdates (instanceNo,UIEnabled _ _ upds) = (instanceNo, [toString (encodeUIUpdates (toList upds))])
+	getUpdates (instanceNo,upds) = (instanceNo, [toString (encodeUIChanges (toList upds))])
 	toList q = case 'DQ'.dequeue q of //TODO SHOULD BE IN Data.Queue
 		(Nothing,q) 	= []
 		(Just x,q) 		= [x:toList q]
 
-	clearOutput (instanceNo,UIEnabled version refUI _) = (instanceNo, UIEnabled version refUI 'DQ'.newQueue)
-	clearOutput state = state
-
 createClientIWorld :: !String !InstanceNo -> *IWorld
 createClientIWorld serverURL currentInstance
         # world = newWorld
-        # (Timestamp seed,world) = time world
+        # (timestamp=:(Timestamp seed),world) = time world
 		= {IWorld
 		  |server =
             {serverName = "application"
@@ -130,11 +127,14 @@ createClientIWorld serverURL currentInstance
 		    ,buildID    = "build"
 		    ,paths      = {appDirectory  = locundef "appDirectory"
                           ,dataDirectory = locundef "dataDirectory"
-                          ,publicWebDirectories = locundef "publicWebDirectories" }
-            ,customCSS  = False }
+                          ,publicWebDirectories = locundef "publicWebDirectories"
+						  ,saplDirectory = locundef "saplDirectory"
+						  ,saplFlavourFile = locundef "saplFlavourFile"}
+            }
 		  ,config				= {sessionTime = 3600, smtpServer = locundef "smtpServer"}
           ,clocks =
-            { localDate =   {Date|day = 1, mon = 1, year = 1977}
+            { timestamp =   timestamp
+			, localDate =   {Date|day = 1, mon = 1, year = 1977}
             , localTime =   {Time|hour = 0, min = 0, sec = 0}
             , utcDate =     {Date|day = 1, mon = 1, year = 1977}
             , utcTime =     {Time|hour = 0, min = 0, sec = 0}
@@ -145,8 +145,6 @@ createClientIWorld serverURL currentInstance
 		    ,sessionInstance	= Just currentInstance
 		    ,attachmentChain    = []
 		    ,nextTaskNo			= 6666
-		    ,eventRoute			= 'Data.Map'.newMap
-		    ,editletDiffs		= 'Data.Map'.newMap
           }
           ,sdsNotifyRequests    = []
           ,memoryShares         = 'Data.Map'.newMap

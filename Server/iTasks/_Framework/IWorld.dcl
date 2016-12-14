@@ -1,16 +1,15 @@
 definition module iTasks._Framework.IWorld
 
 from System.FilePath		import :: FilePath
-from Data.Void				import :: Void
 from Data.Map				import :: Map
 from Data.Maybe				import :: Maybe
+from Data.Error 			import :: MaybeError(..), :: MaybeErrorString(..)
 from Data.Set               import :: Set
 from StdFile			                import class FileSystem		
 from System.Time				        import :: Timestamp
 from Text.JSON				            import :: JSONNode
 from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
-from iTasks.UI.Definition				import :: UIDef, :: UIControl, :: UIEditletOpts
-from iTasks.UI.Diff						import :: UIUpdate, :: UIEditletDiffs, :: ReferenceVersion, :: MessageType
+from iTasks.UI.Definition				import :: UI, :: UINodeType
 from iTasks._Framework.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
 from iTasks._Framework.Task             import :: TaskValue, :: ConnectionTask, :: BackgroundTask, :: Event
 from iTasks._Framework.SDS import :: SDSNotifyRequest, :: BasicShareId
@@ -21,6 +20,8 @@ from Sapl.Linker.SaplLinkerShared import :: LineType, :: FuncTypeMap
 from Sapl.Target.Flavour import :: Flavour
 from Sapl.SaplParser import :: ParserState
 from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SChannel_, :: TCP_DuplexChannel, :: DuplexChannel, :: IPAddress, :: ByteSeq
+
+CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
 :: *IWorld		=	{ server                :: !ServerInfo                              // Static server info, initialized at startup
 					, config				:: !Config									// Server configuration
@@ -33,14 +34,9 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
                     , memoryShares          :: !Map (String,String) Dynamic             // Run-time memory shares
                     , cachedShares          :: !ShareCache                              // Cached json file shares
 					, exposedShares			:: !Map String (Dynamic, JSONShared)        // Shared source
+					, jsCompilerState 		:: !Maybe JSCompilerState 					// Sapl to Javascript compiler state
 
-					, jsCompilerState 		:: (!LoaderState 							// State of the lazy loader
-											   ,!FuncTypeMap							// Function name -> source code mapping
-											   ,!Flavour								// Clean flavour for JS compilation
-											   ,!Maybe ParserState						// Some information collected by the parser for the code generator
-											   ,!Map InstanceNo (Set String))			// Per client information of the names of the already generated functions
-
-                    , ioTasks               :: !*IOTasks                                // The low-level input/output tasks
+	                , ioTasks               :: !*IOTasks                                // The low-level input/output tasks
                     , ioStates              :: !IOStates                                // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
 
 					, world					:: !*World									// The outside world
@@ -56,17 +52,19 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 	, serverURL		  :: !String				// URL of the server like "//any.com:80"
 	, buildID		  :: !String				// The date/time identifier of the server's build
     , paths           :: !SystemPaths           // Filesystem paths that are used by iTasks
-    , customCSS       :: !Bool                  // Does the application use a custom css stylesheet
     }
 
 :: SystemPaths =
     { appDirectory			:: !FilePath		// Location of the application's executable
-	, dataDirectory			:: !FilePath		// Location of the applications data files
+	, dataDirectory			:: !FilePath		// Location of the application's data files
     , publicWebDirectories  :: ![FilePath]      // List of directories that contain files that are served publicly by the iTask webserver
+	, saplDirectory 		:: !FilePath 		// Location of the application's sapl files
+	, saplFlavourFile 		:: !FilePath  		// Location of the sapl flavour file
     }
 
 :: SystemClocks =
-    { localDate             :: !Date
+    { timestamp 			:: !Timestamp
+	, localDate             :: !Date
     , localTime             :: !Time
     , utcDate               :: !Date
     , utcTime               :: !Time
@@ -74,14 +72,20 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 :: ShareCache :== Map (String,String) (Dynamic,Bool,Maybe DeferredJSON)
 
+:: JSCompilerState =
+	{ loaderState 			:: !LoaderState							// State of the lazy loader
+	, functionMap 			:: !FuncTypeMap 						// Function name -> source code mapping
+ 	, flavour 				:: !Flavour 							// Clean flavour for JS compilation
+	, parserState 			:: !Maybe ParserState 					// Some information collected by the parser for the code generator
+	, skipMap 				:: !Map InstanceNo (Set String) 		// Per client information of the names of the already generated functions
+	}
+
 :: TaskEvalState =
-    { taskTime				 :: !TaskTime								// The 'virtual' time for the task. Increments at every event
-	, taskInstance		     :: !InstanceNo								// The current evaluated task instance
-    , sessionInstance        :: !Maybe InstanceNo                        // If we are evaluating a task in response to an event from a session
-    , attachmentChain        :: ![TaskId]                                // The current way the evaluated task instance is attached to other instances
-    , nextTaskNo			 :: !TaskNo									// The next task number to assign
-    , eventRoute			 :: !Map TaskId Int							// Index of parallel branches the event is targeted at
-    , editletDiffs           :: !UIEditletDiffs                          // Diffs of editlets
+    { taskTime				 :: !TaskTime							// The 'virtual' time for the task. Increments at every event
+	, taskInstance		     :: !InstanceNo							// The current evaluated task instance
+    , sessionInstance        :: !Maybe InstanceNo                   // If we are evaluating a task in response to an event from a session
+    , attachmentChain        :: ![TaskId]                           // The current way the evaluated task instance is attached to other instances
+    , nextTaskNo			 :: !TaskNo								// The next task number to assign
     }
 
 :: *IOTasks =
@@ -92,7 +96,7 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 :: *IOTaskInstance
     = ListenerInstance !ListenerInstanceOpts !*TCP_Listener
     | ConnectionInstance !ConnectionInstanceOpts !*TCP_DuplexChannel
-    | BackgroundInstance !BackgroundTask
+    | BackgroundInstance !BackgroundInstanceOpts !BackgroundTask
 
 :: ListenerInstanceOpts =
     { taskId                :: !TaskId          //Reference to the task that created the listener
@@ -112,6 +116,13 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 :: ConnectionId             :== Int
 
+:: BackgroundInstanceOpts =
+    { bgInstId              :: !BackgroundTaskId
+    }
+
+:: BackgroundTaskId         :== Int
+
+
 :: IOStates :== Map TaskId IOState
 :: IOState
     = IOActive      !(Map ConnectionId (!Dynamic,!Bool))
@@ -124,13 +135,37 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 :: *Resource = Resource | .. //Extensible resource type for caching database connections etc...
 
+//Creation and destruction of the iworld
+/**
+* Creates and initializes the IWorld state
+*
+* @param The application's name
+* @param The path where the iTasks SDK can be found (optional)
+* @param Additional paths where static web assets can be found (optional)
+* @param The path where the iTasks data store is located (optional)
+* @param Path to where the applications's SAPL files are stored (optional)
+* @param The world
+*
+* @return An initialized iworld
+*/
+createIWorld :: !String !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
+
+/**
+* Initialize the SAPL->JS compiler state
+* 
+*/
+initJSCompilerState :: *IWorld -> *(!MaybeErrorString (), !*IWorld)
+
+/**
+* Destroys the iworld state
+*/
+destroyIWorld :: !*IWorld -> *World
+
 //Internally used clock shares
+iworldTimestamp :: Shared Timestamp
 iworldLocalDate :: Shared Date
 iworldLocalTime :: Shared Time
 iworldUTCDate   :: Shared Date
 iworldUTCTime   :: Shared Time
-
-//Update the clock shares
-updateClocks    :: !*IWorld -> *IWorld
 
 instance FileSystem IWorld

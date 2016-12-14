@@ -1,14 +1,14 @@
 implementation module iTasks.API.Core.Tasks
 
-import StdList, StdBool, StdInt, StdTuple, StdMisc, StdDebug
+import StdList, StdBool, StdInt, StdTuple, StdDebug
 import System.Time, Data.Error, System.OSError, Data.Tuple, Text, Text.JSON
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.TaskServer
-import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction, iTasks._Framework.Task, iTasks._Framework.TaskState
+import iTasks._Framework.Generic, iTasks._Framework.Task, iTasks._Framework.TaskState
 import iTasks._Framework.TaskEval, iTasks._Framework.TaskStore, iTasks.UI.Definition, iTasks._Framework.IWorld
-import iTasks.UI.Layout
+import iTasks.UI.Layout, iTasks.UI.Editor, iTasks.UI.Prompt
 import iTasks.API.Core.SDSs, iTasks.API.Common.SDSCombinators
 
-from iTasks._Framework.SDS as SDS import qualified read, readRegister, write
+from iTasks._Framework.SDS as SDS import qualified read, readRegister, write, modify
 from StdFunc					import o, id
 from Data.Map as DM				import qualified newMap, get, put, del, toList, fromList
 from TCPChannels                import lookupIPAddress, class ChannelEnv, instance ChannelEnv World, connectTCP_MT
@@ -62,62 +62,97 @@ where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (val,iworld)	= 'SDS'.readRegister taskId shared iworld
 		# res = case val of
-			Ok val		= ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
-				(finalizeRep evalOpts NoRep) (TCInit taskId ts)
+			Ok val		= ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) (TCInit taskId ts)
 			Error e		= ExceptionResult e
 		= (res,iworld)
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
 
+	rep ResetEvent  = ReplaceUI (ui UIEmpty) 
+	rep _ 			= NoChange
 
-interact :: !d !(ReadOnlyShared r) (r -> (l,(v,InteractionMask))) (l r (v,InteractionMask) Bool Bool Bool -> (l,(v,InteractionMask)))
-			-> Task l | descr d & iTask l & iTask r & iTask v
-interact desc shared initFun refreshFun = Task eval
+
+interact :: !d !EditMode !(RWShared () r w)
+				(r -> (l, v))                       //On init
+				(v l v -> (l, v, Maybe (r -> w))) 	//On edit
+				(r l v -> (l, v, Maybe (r -> w)))  	//On refresh
+				(Maybe (Editor v)) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v
+interact prompt mode shared initFun editFun refreshFun mbEditor = Task eval
 where
-	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
-		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
-		= case mbr of
-			Error e		= (ExceptionResult e, iworld)
-			Ok r
-				# (l,(v,mask))	= initFun r
-				= eval event evalOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
-				
-	eval event evalOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv mask) iworld=:{current={taskTime}}
-		//Decode stored values
-		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
-		//Determine next v by applying edit event if applicable	
-		# (nv,nmask,nts,iworld) = matchAndApplyEvent event taskId taskTime v mask ts iworld
-		//Load next r from shared value
-		# (mbr,iworld) 			= 'SDS'.readRegister taskId shared iworld
-		| isError mbr			= (ExceptionResult (fromError mbr),iworld)
-		# nr					= fromOk mbr
-		//Apply refresh function if r or v changed
-		# rChanged				= nr =!= r
-		# vChanged				= nts =!= ts
-		# vValid				= isValid (verifyMaskedValue (nv,nmask))
-		# (nl,(nv,nmask)) 		= if (rChanged || vChanged) (refreshFun l nr (nv,nmask) rChanged vChanged vValid) (l,(nv,nmask))
-		//Make visualization
-		# nver					= verifyMaskedValue (nv,nmask)
-		# (rep,iworld) 			= visualizeView taskId evalOpts (nv,nmask,nver) desc iworld
-		# value 				= if (isValid nver) (Value nl False) NoValue
-		= (ValueResult value {TaskEvalInfo|lastEvent=nts,removedTasks=[],refreshSensitive=True} (finalizeRep evalOpts rep)
-			(TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
-
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-	matchAndApplyEvent (EditEvent taskId name value) matchId taskTime v mask ts iworld
-		| taskId == matchId
-			| otherwise
-				# ((nv,nmask),iworld)	= updateValueAndMask taskId (s2dp name) value (v,mask) iworld
-				= (nv,nmask,taskTime,iworld)
-		| otherwise	= (v,mask,ts,iworld)
-	matchAndApplyEvent _ matchId taskTime v mask ts iworld
-		= (v,mask,ts,iworld)
+	eval event evalOpts tree iworld=:{current={taskTime}}
+		//Decode or initialize state
+		# (mbd,iworld) = case tree of
+			(TCInit taskId ts)
+				= case 'SDS'.readRegister taskId shared iworld of
+					(Ok r,iworld)
+						# (l,v) = initFun r
+						= (Ok (taskId,ts,l,v,newFieldMask),iworld)
+					(Error e,iworld)  = (Error e,iworld)
+			(TCInteract taskId ts encl encv m)
+				//Just decode the initially stored values
+				= case (fromJSON encl, fromJSON encv) of
+					(Just l,Just v) = (Ok (taskId,ts,l,v,m),iworld)
+					_				= (Error (exception ("Failed to decode stored model and view in interact: '" +++ toString encl +++ "', '"+++toString encv+++"'")),iworld)
+		| mbd =:(Error _) = (ExceptionResult (fromError mbd), iworld)
+		# (taskId,ts,l,v,m) = fromOk mbd
+		//Apply event (if there is one for this interact)	
+		= case matchAndApplyEvent_ event taskId mode mbEditor taskTime shared editFun l v m ts prompt iworld of
+			(Error e,iworld) = (ExceptionResult e,iworld)
+			(Ok (l,v,ce,m,ts),iworld) 
+				//Refresh the editor with a view based on the share editor
+				= case refreshView_ taskId mode mbEditor shared refreshFun l v m iworld of
+					(Error e,iworld) = (ExceptionResult e,iworld)
+					(Ok (l,v,cr,m),iworld)
+						//Construct the result
+						# change    = mergeUIChanges ce cr
+						# valid     = not (containsInvalidFields m)
+						# value     = if valid (Value (l,v) False) NoValue
+						# info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
+						= (ValueResult value info change (TCInteract taskId ts (toJSON l) (toJSON v) m), iworld)
 
-	visualizeView taskId evalOpts value=:(v,vmask,vver) desc iworld
-		# layout	= repLayoutRules evalOpts
-		# (controls,iworld) = visualizeAsEditor value taskId layout iworld
-		# uidef		= {UIDef|content=UIForm (layout.LayoutRules.accuInteract (toPrompt desc) {UIForm|attributes='DM'.newMap,controls=controls,size=defaultSizeOpts}),windows=[]}
-		= (TaskRep uidef, iworld)
+
+matchAndApplyEvent_ event taskId mode mbEditor taskTime shared editFun l ov m ts prompt iworld
+	# editor = fromMaybe gEditor{|*|} mbEditor
+	# vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
+	= case event of
+		ResetEvent
+			= case editor.Editor.genUI [] ov vst of
+				(Ok (ui,m),{VSt|iworld}) = (Ok (l,ov,ReplaceUI (uic UIInteract [toPrompt prompt,ui]),m,taskTime),iworld)
+				(Error e,{VSt|iworld})   = (Error (exception e),iworld)
+		(EditEvent eTaskId name edit) | eTaskId == taskId 
+			= case editor.Editor.onEdit [] (s2dp name,edit) ov m vst of
+				(Ok (change,m),v,{VSt|iworld}) 
+					# (l,v,mbf) = editFun v l ov
+					# change = case change of NoChange = NoChange; _ = ChangeUI [] [(1,ChangeChild change)]
+					= case mbf of
+						Just f = case 'SDS'.modify (\r -> ((),f r)) shared iworld of
+							(Ok (),iworld) = (Ok (l,v,change,m,taskTime),iworld)
+							(Error e,iworld) = (Error e,iworld)
+						Nothing
+							= (Ok (l,v,change,m,taskTime),iworld)
+				(Error e,_,{VSt|iworld}) = (Error (exception e),iworld)
+		_   = (Ok (l,ov,NoChange,m,ts),iworld)
+
+refreshView_ taskId mode mbEditor shared refreshFun l ov m iworld
+	//Read the shared source and refresh the editor
+	= case 'SDS'.readRegister taskId shared iworld of
+		(Error e,iworld) = (Error e,iworld)
+		(Ok r,iworld)
+			# (l,v,mbf) = refreshFun r l ov
+			# editor = fromMaybe gEditor{|*|} mbEditor
+			# vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
+			= case editor.Editor.onRefresh [] v ov m vst of
+				(Ok (change,m),_,vst=:{VSt|iworld})
+					# change = case change of NoChange = NoChange; _ = ChangeUI [] [(1,ChangeChild change)]
+					//Update the share if necessary
+					= case mbf of
+						Just f = case 'SDS'.modify (\r -> ((),f r)) shared iworld of
+							(Ok (),iworld) = (Ok (l,v,change,m), iworld)
+							(Error e,iworld) = (Error e,iworld)
+						Nothing
+							= (Ok (l,v,change,m), iworld)
+				(Error e,_,vst=:{VSt|iworld}) = (Error (exception e),iworld)
 
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w
 tcplisten port removeClosed sds handlers = Task eval
@@ -146,9 +181,7 @@ where
             _                       = ioStates
         = (DestroyedResult,{iworld & ioStates = ioStates})
 
-    rep port = TaskRep {UIDef|content=UIForm {UIForm|attributes ='DM'.newMap
-                       ,controls= [(stringDisplay ("Listening for connections on port "<+++ port),'DM'.newMap)]
-                       ,size=defaultSizeOpts},windows = []}
+    rep port = ReplaceUI (stringDisplay ("Listening for connections on port "<+++ port))
 
 tcpconnect :: !String !Int !(RWShared () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w
 tcpconnect host port sds handlers = Task eval
@@ -158,16 +191,16 @@ where
             (Error e,iworld)
                 = (ExceptionResult e, iworld)
             (Ok _,iworld)
-                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoRep (TCBasic taskId ts JSONNull False),iworld)
+                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange (TCBasic taskId ts JSONNull False),iworld)
 
     eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioStates}
         = case 'DM'.get taskId ioStates of
             Nothing
-                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoRep tree, iworld)
+                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange tree, iworld)
             Just (IOActive values)
                 = case 'DM'.get 0 values of 
                     Just (l :: l^, s)
-                        = (ValueResult (Value l s) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoRep tree, iworld)
+                        = (ValueResult (Value l s) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange tree, iworld)
                     _
                         = (ExceptionResult (exception "Corrupt IO task result"),iworld)
             Just (IOException e)

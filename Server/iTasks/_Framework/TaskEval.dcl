@@ -7,7 +7,6 @@ from iTasks.API.Core.Types	        import :: TaskListItem, :: TaskId, :: Session
 from iTasks._Framework.IWorld		import :: IWorld
 from iTasks._Framework.Task			import :: Task, :: TaskResult, :: Event, :: TaskEvalOpts
 from iTasks._Framework.SDS          import :: Shared
-from iTasks.UI.Diff					import :: UIUpdate
 
 import iTasks._Framework.TaskState, iTasks._Framework.Generic
 
@@ -18,30 +17,11 @@ from Data.Error import :: MaybeErrorString, :: MaybeError
  * Get the next TaskId
  */
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
-
-/**
-* Queue an event for a task instance
-* events are applied in FIFO order when the task instance is evaluated
-*
-* By splitting up event queuing and instance evaluation, events can come in asynchronously without
-* the need to directly processing them. 
-*
-* @param The instance id
-* @param An event
-* @param The IWorld state
-*
-* @return The IWorld state
-*/
-queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
-
-//Update the refresh queue (add multiple refresh events at conce)
-queueRefresh :: ![(InstanceNo,String)] !*IWorld -> *IWorld
-
 /**
 * Dequeues events from the event queue and evaluates the tasks instances
 * @param Maximum amount of events to process at once
 */
-processEvents :: !Int *IWorld -> *IWorld
+processEvents :: !Int *IWorld -> *(!MaybeError TaskException (), !*IWorld)
 
 /**
 * Evaluate a task instance
@@ -56,9 +36,9 @@ processEvents :: !Int *IWorld -> *IWorld
 evalTaskInstance :: !InstanceNo !Event !*IWorld -> (!MaybeErrorString (TaskValue JSONNode),!*IWorld)
 
 //Update the I/O information for task instances
-updateInstanceLastIO        ::          ![InstanceNo]       !*IWorld -> *IWorld
-updateInstanceConnect       :: !String  ![InstanceNo]       !*IWorld -> *IWorld
-updateInstanceDisconnect    ::          ![InstanceNo]       !*IWorld -> *IWorld
+updateInstanceLastIO        ::          ![InstanceNo]       !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceConnect       :: !String  ![InstanceNo]       !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateInstanceDisconnect    ::          ![InstanceNo]       !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 
 //Shares providing access to the evaluation information (constants from an evaluation point of view)
 currentInstanceShare        :: ReadOnlyShared InstanceNo

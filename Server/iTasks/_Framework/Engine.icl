@@ -5,33 +5,18 @@ from StdFunc import o, seqList, ::St, const
 from Data.Map import :: Map
 from Data.Queue import :: Queue(..)
 import qualified Data.Map as DM
-import Data.Error, Data.Func, Data.Tuple, Math.Random, Internet.HTTP, Text, Text.Encodings.MIME, Text.Encodings.UrlEncoding
+import Data.List, Data.Error, Data.Func, Data.Tuple, Math.Random, Text 
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil
 import iTasks._Framework.IWorld, iTasks._Framework.WebService, iTasks._Framework.SDSService
 import iTasks.API.Common.SDSCombinators
 import qualified iTasks._Framework.SDS as SDS
+import iTasks.UI.Layout, iTasks.UI.Layout.Default
+from iTasks.API.Core.TaskCombinators import class tune(..)
+from iTasks.UI.Layout import instance tune ApplyLayout
 
-CLEAN_HOME_VAR	:== "CLEAN_HOME"
-SESSION_TIMEOUT :== fromString "0000-00-00 00:10:00"
+SESSION_TIMEOUT :==  600 //Seconds (10 minutes)
 MAX_EVENTS 		:== 5
-
-//The following modules are excluded by the SAPL -> Javascript compiler
-//because they contain functions implemented in ABC code that cannot
-//be compiled to javascript anyway. Handwritten Javascript overrides need
-//to be provided for them.
-JS_COMPILER_EXCLUDES :==
-	["iTasks._Framework.Client.Override"
-	,"dynamic_string"
-	,"graph_to_string_with_descriptors"
-	,"graph_to_sapl_string"
-	,"Text.Encodings.Base64"
-	,"Sapl.LazyLinker"
-	,"Sapl.Target.JS.CodeGeneratorJS"
-	,"System.Pointer"
-	,"System.File"
-	,"System.Directory"
-	]
 
 import StdInt, StdChar, StdString
 import tcp
@@ -46,14 +31,22 @@ from Sapl.Linker.LazyLinker import generateLoaderState, :: LoaderStateExt
 from Sapl.Linker.SaplLinkerShared import :: SkipSet
 from Sapl.Target.Flavour import :: Flavour, toFlavour
 
+show :: ![String] !*World -> *World
+show lines world
+	# (console,world)	= stdio world
+	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
+	# (_,world)			= fclose console world
+	= world
+
 startEngine :: a !*World -> *World | Publishable a
 startEngine publishable world
 	# (opts,world)			= getCommandLine world
-	# (app,world)			= determineAppName world
+	# (appName,world)		= determineAppName world
+	# (appPath,world)		= determineAppPath world	
 	# (mbSDKPath,world)		= determineSDKPath SEARCH_PATHS world
 	// Show server name
-	# world					= show (infoline app) world
-  	//Check options
+	# world					= show (infoline appName) world
+  	//Check commandline options
 	# port 					= fromMaybe DEFAULT_PORT (intOpt "-port" opts)
 	# keepalive				= fromMaybe DEFAULT_KEEPALIVE_TIME (intOpt "-keepalive" opts)
 	# help					= boolOpt "-help" opts
@@ -66,20 +59,18 @@ startEngine publishable world
 	| help					= show instructions world
 	//Check sdkpath
 	# mbSDKPath				= maybe mbSDKPath Just sdkOpt //Commandline SDK option overrides found paths
-	//Normal execution
-	# world					= show (running port) world
-	# iworld				= initIWorld mbSDKPath webDirPaths storeOpt saplOpt world
-    //Reset connectedTo for all task instances
-    # iworld                = clearConnections iworld
-	// mark all instance as outdated initially
-    # iworld                = queueAllPersistent iworld
-    //Start task server
-	# iworld				= serve port (httpServer port keepalive (engine publishable) taskInstanceUIs) [BackgroundTask removeOutdatedSessions,BackgroundTask updateClocks, BackgroundTask (processEvents MAX_EVENTS)] timeout iworld
-	= finalizeIWorld iworld
+	# options				=
+		{ appName			= appName
+		, appPath			= appPath
+		, sdkPath 			= mbSDKPath
+		, serverPort		= port
+		, keepalive 		= keepalive
+		, webDirPaths 		= webDirPaths
+		, storeOpt			= storeOpt
+		, saplOpt 			= saplOpt
+		}
+	= startEngineWithOptions publishable options world
 where
-	infoline :: !String -> [String]
-	infoline app	= ["*** " +++ app +++ " HTTP server ***",""]
-	
 	instructions :: [String]
 	instructions =
 		["Available commandline options:"
@@ -93,16 +84,11 @@ where
 		,""
 		]
 
-	running :: !Int -> [String]
-	running port = ["Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
-	
-	show :: ![String] !*World -> *World
-	show lines world
-		# (console,world)	= stdio world
-		# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
-		# (_,world)			= fclose console world
-		= world
-		
+	//running :: !Int -> [String]
+	//running port = ["Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
+	infoline :: !String -> [String]
+	infoline app	= ["*** " +++ app +++ " HTTP server ***",""]
+
 	boolOpt :: !String ![String] -> Bool
 	boolOpt key opts = isMember key opts
 	
@@ -121,20 +107,29 @@ where
 	stringOpt key [n,v:r]
 		| n == key	= Just v
 					= stringOpt key [v:r]
-					
+
+startEngineWithOptions :: a ServerOptions !*World -> *World | Publishable a
+startEngineWithOptions publishable options=:{appName,sdkPath,serverPort,webDirPaths,keepalive,storeOpt,saplOpt} world
+	# world					= show (running serverPort) world
+ 	# iworld				= createIWorld appName sdkPath webDirPaths storeOpt saplOpt world
+ 	# (res,iworld) 			= initJSCompilerState iworld
+ 	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
+ 	// All persistent task instances should receive a reset event to continue their work
+    # iworld                = queueAllPersistent iworld
+    //Start task server
+	# iworld				= serve serverPort (httpServer serverPort keepalive (engine publishable) allUIChanges)
+		[BackgroundTask removeOutdatedSessions
+ 		,BackgroundTask updateClocks, BackgroundTask (processEvents MAX_EVENTS)] timeout iworld
+	= destroyIWorld iworld
+where
+	running :: !Int -> [String]
+	running port = ["Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
+						
 	timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
 	timeout iworld = case 'SDS'.read taskEvents iworld of //Check if there are events in the queue
-		(Ok (Queue [] []),iworld)   = (Just 100,iworld) //Empty queue, don't waste CPU, but refresh
+		(Ok (Queue [] []),iworld)   = (Just 10,iworld) //Empty queue, don't waste CPU, but refresh
 		(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
 		(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
-
-    //Read the content of the master instance index on disk to the "ti" field in the iworld
-    clearConnections :: !*IWorld -> *IWorld
-    clearConnections iworld = snd (modify clear (sdsFocus filter filteredInstanceIndex) iworld)
-    where
-        //When the server starts we make sure all have a blank connectedTo field
-        filter = {InstanceFilter|defaultValue & includeProgress = True}
-        clear index = ((),[(n,c,Just {InstanceProgress|p & connectedTo = Nothing},a) \\(n,c,Just p,a) <-index])
 
 queueAllPersistent :: !*IWorld -> *IWorld
 queueAllPersistent iworld
@@ -143,204 +138,98 @@ queueAllPersistent iworld
         Ok index    = queueRefresh [(instanceNo,"Persistent first refresh") \\ (instanceNo,_,_,_)<- index]  iworld
         _           = iworld
 
-removeOutdatedSessions :: !*IWorld -> *IWorld
+updateClocks :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateClocks iworld=:{IWorld|clocks,world}
+    //Determine current date and time
+	# (timestamp,world) 	= time world
+	# (local,world)	= currentLocalDateTimeWorld world
+	# localDate = toDate local
+	  localTime = toTime local 
+	# (utc,world)	= currentUTCDateTimeWorld world
+	# utcDate = toDate utc
+	  utcTime = toTime utc 
+    # iworld = {iworld & world = world}
+    //Write SDS's if necessary
+    # (mbe,iworld) = if (localDate == clocks.localDate) (Ok (),iworld) (write localDate iworldLocalDate iworld)
+	| mbe =:(Error _) = (mbe,iworld)
+    # (mbe,iworld) = if (localTime == clocks.localTime) (Ok (),iworld) (write localTime iworldLocalTime iworld)
+	| mbe =:(Error _) = (mbe,iworld)
+    # (mbe,iworld) = if (utcDate == clocks.utcDate) (Ok (),iworld) (write utcDate iworldUTCDate iworld)
+	| mbe =:(Error _) = (mbe,iworld)
+    # (mbe,iworld) = if (utcTime == clocks.utcTime) (Ok (),iworld) (write utcTime iworldUTCTime iworld)
+	| mbe =:(Error _) = (mbe,iworld)
+    # (mbe,iworld) = if (timestamp == clocks.timestamp) (Ok (),iworld) (write timestamp iworldTimestamp iworld)
+	| mbe =:(Error _) = (mbe,iworld)
+    = (Ok (),iworld)
+
+removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 removeOutdatedSessions iworld
-    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True,includeProgress=True} filteredInstanceIndex) iworld
+    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) iworld
     = case mbIndex of
-        Ok index    = foldr removeIfOutdated iworld index
-        _           = iworld
+        Ok index    = (Ok (), foldr removeIfOutdated iworld index)
+        Error e     = (Error e, iworld)
 where
-    removeIfOutdated (instanceNo,_,Just {InstanceProgress|connectedTo,lastIO},_) iworld=:{clocks={localDate,localTime}}
-        | connectedTo=:Nothing && maybe True (\t -> ((DateTime localDate localTime) - t) > SESSION_TIMEOUT) lastIO
-            = deleteTaskInstance instanceNo iworld
-        | otherwise
-            = iworld
+    removeIfOutdated (instanceNo,_,_,_) iworld=:{clocks={localDate,localTime}}
+		//Get lastIO time
+		= case read (sdsFocus instanceNo taskInstanceIO) iworld of
+			(Ok (Just (client,time)),iworld) //No IO for too long, clean up
+				# (Timestamp tInstance) = datetimeToTimestamp time
+				  (Timestamp tNow) = datetimeToTimestamp (toDateTime localDate localTime)
+				| (tNow - tInstance) > SESSION_TIMEOUT
+					# (_,iworld) = deleteTaskInstance instanceNo iworld
+					# (_,iworld) = 'SDS'.write Nothing (sdsFocus instanceNo taskInstanceIO) iworld
+					= iworld
+				| otherwise
+					= iworld
+			(Ok Nothing,iworld) = iworld
+			(Error e,iworld) = iworld
 
 //HACK FOR RUNNING BACKGROUND TASKS ON A CLIENT
 background :: !*IWorld -> *IWorld
-background iworld = (processEvents MAX_EVENTS o removeOutdatedSessions) iworld
+background iworld
+	# iworld = snd (processEvents MAX_EVENTS iworld)
+	# iworld = snd (removeOutdatedSessions iworld)
+	= iworld
 
-// The iTasks engine consist of a set of HTTP request handlers
+// The iTasks engine consist of a set of HTTP WebService 
 engine :: publish -> [(!String -> Bool
 					  ,!Bool
-					  ,!(HTTPRequest (Map InstanceNo TIUIState) *IWorld -> (!HTTPResponse,!Maybe ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
-					  ,!(HTTPRequest (Map InstanceNo TIUIState) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
-					  ,!(HTTPRequest (Map InstanceNo TIUIState) ConnectionType *IWorld -> (!Maybe (Map InstanceNo TIUIState), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionState *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 					  )] | Publishable publish
-engine publishable
-	= taskHandlers (publishAll publishable) ++ defaultHandlers
+
+engine publishable = [taskUIService published /*[(url,task) \\ {PublishedTask|url,task=TaskWrapper task} <- published]*/
+				  	 ,documentService, sdsService,staticResourceService [url \\ {PublishedTask|url} <- published]]
 where
-	taskHandlers published
-		= [let (matchF,reqF,dataF,disconnectF) = webService url task defaultFormat in (matchF,True,reqF,dataF,disconnectF)
-		  \\ {url,task=TaskWrapper task,defaultFormat} <- published]	
-	
-	defaultHandlers = [sdsService, simpleHTTPResponse (const True, handleStaticResourceRequest)]
+	published = publishAll publishable 
 
-initIWorld :: !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
-initIWorld mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
-	# (appName,world) 			= determineAppName world
-	# (appPath,world)			= determineAppPath world
-	# appDir					= takeDirectory appPath
-	# dataDir					= case mbStorePath of
-		Just path 				= path	
-		Nothing 				= appDir </> appName +++ "-data"
-	# (webdirPaths,world) 	 	= case mbWebdirPaths of
-		Just paths 				= (paths,world)
-		Nothing 
-			# appWebDirs = [appDir </> "WebPublic"]
-			= case mbSDKPath of 
-				Just sdkDir	//Scan extensions for public web files
-					# (libWebDirs,world) = determineWebPublicDirs (sdkDir </>"Server"</>"iTasks"</>"API"</>"Extensions") world
-					= ([sdkDir</>"Client"] ++ appWebDirs ++ libWebDirs,world)	
-				Nothing
-					= (appWebDirs,world)
-    # (customCSS,world)    = checkCustomCSS appName webdirPaths world 
-	# saplPath = case mbSaplPath of
-		Just path 	= path
-		Nothing 	= appDir</>"sapl"
-	# flavourPath = case mbSDKPath of
-		Just sdkPath 	= sdkPath </> "Dependencies" </> "clean-sapl" </> "src" </>"clean.f"
-		Nothing 		= saplPath </> "clean.f"
-	# (res,world)				= getFileInfo appPath world
-	| isError res				= abort "Cannot get executable info."
-	# tm						= (fromOk res).lastModifiedTime
-	# build						= strfTime "%Y%m%d-%H%M%S" tm
-	# (DateTime localDate localTime,world)	= currentLocalDateTimeWorld world
-	# (DateTime utcDate utcTime,world)	    = currentUTCDateTimeWorld world
-	# (_,world)					= ensureDir "data" dataDir world
-	# tmpDir					= dataDir </> "tmp"
-	# (_,world)					= ensureDir "tmp" tmpDir world
-	# storeDir					= dataDir </> "stores"
-	# (exists,world)			= ensureDir "stores" storeDir world
-	# ((lst, ftmap, _), world)  = generateLoaderState [saplPath] [] JS_COMPILER_EXCLUDES world
-	# (flavour, world)			= readFlavour flavourPath world
-	# (Timestamp seed, world)	= time world
-	= {IWorld
-	  |server =
-        {serverName = appName
-	    ,serverURL	= "//127.0.0.1:80"
-	    ,buildID	= build
-        ,paths      =
-            {appDirectory		    = appDir
-	        ,dataDirectory		    = dataDir
-            ,publicWebDirectories   = webdirPaths 
-            }
-        ,customCSS  = customCSS 
-        }
-	  ,config				= initialConfig
-      ,clocks =
-        {SystemClocks
-        |localDate=localDate
-        ,localTime=localTime
-        ,utcDate=utcDate
-        ,utcTime=utcTime
-        }
-      ,current =
-	    {TaskEvalState
-        |taskTime				= 0
-	    ,taskInstance		    = 0
-        ,sessionInstance        = Nothing
-        ,attachmentChain        = []
-	    ,nextTaskNo			    = 0
-        ,eventRoute			    = 'DM'.newMap
-        ,editletDiffs           = 'DM'.newMap
-        }
-      ,sdsNotifyRequests    = []
-      ,memoryShares         = 'DM'.newMap
-      ,cachedShares         = 'DM'.newMap
-	  ,exposedShares		= 'DM'.newMap
-	  ,jsCompilerState		= (lst, ftmap, flavour, Nothing, 'DM'.newMap)
-	  ,shutdown				= False
-      ,ioTasks              = {done = [], todo = []}
-      ,ioStates             = 'DM'.newMap
-	  ,world				= world
-      ,resources            = Nothing
-      ,random               = genRandInt seed
-      ,onClient				= False
-	  }
-where
-	initialConfig :: Config
-	initialConfig =
-		{ sessionTime		= 3600
-		, smtpServer		= "localhost"
-		}
-		
-	ensureDir :: !String !FilePath *World -> (!Bool,!*World)
-	ensureDir name path world
-		# (exists, world) = fileExists path world
-		| exists = (True,world)
-		# (res, world) = createDirectory path world
-		| isError res = abort ("Cannot create " +++ name +++ " directory" +++ path +++ " : "  +++ snd (fromError res))
-		= (False,world)
+publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
+publish url task = {url = url, task = TaskWrapper (withFinalSessionLayout task)}
 
-    readFlavour :: !String !*World -> *(!Flavour, !*World)
-    readFlavour flavourPath world
-	    # (flavres, world) 	= readFile flavourPath world
-	    | isError flavres
-		    = abort ("JavaScript Flavour file cannot be found at " +++ flavourPath)
-	    # mbFlav 			= toFlavour (fromOk flavres)
-	    | isNothing mbFlav
-		    = abort "Error in JavaScript flavour file"	
-	    = (fromJust mbFlav, world)
+withFinalSessionLayout :: (HTTPRequest -> Task a) -> (HTTPRequest -> Task a) | iTask a
+withFinalSessionLayout taskf = \req -> tune (ApplyLayout defaultSessionLayout) (taskf req)
 
-finalizeIWorld :: !*IWorld -> *World
-finalizeIWorld iworld=:{IWorld|world} = world
-
-// Request handler which serves static resources from the application directory,
-// or a system wide default directory if it is not found locally.
-// This request handler is used for serving system wide javascript, css, images, etc...
-
-handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
-handleStaticResourceRequest req iworld=:{IWorld|server={paths={publicWebDirectories}}}
-    = serveStaticResource req publicWebDirectories iworld
-where
-    serveStaticResource req [] iworld
-	    = (notFoundResponse req,iworld)
-    serveStaticResource req [d:ds] iworld=:{IWorld|world}
-	    # filename		= d +++ filePath req.HTTPRequest.req_path
-	    # type			= mimeType filename
-	    # (mbContent, world)	= readFile filename world
-	    | isOk mbContent		= ({ okResponse &
-	    							 rsp_headers = [("Content-Type", type),
-												    ("Content-Length", toString (size (fromOk mbContent)))]
-							   	   , rsp_data = fromOk mbContent}, {IWorld|iworld & world = world})
-        | otherwise
-            = serveStaticResource req ds {IWorld|iworld & world = world}
-
-	//Translate a URL path to a filesystem path
-	filePath path	= ((replaceSubString "/" {pathSeparator}) o (replaceSubString ".." "")) path
-	mimeType path	= extensionToMimeType (takeExtension path)
-
-simpleHTTPResponse ::
-	(!(String -> Bool),HTTPRequest *IWorld -> (!HTTPResponse,*IWorld))
-	->
-	(!(String -> Bool),!Bool,!(HTTPRequest (Map InstanceNo TIUIState) *IWorld -> (HTTPResponse, Maybe loc, Maybe (Map InstanceNo TIUIState) ,*IWorld))
-							,!(HTTPRequest (Map InstanceNo TIUIState) (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe (Map InstanceNo TIUIState) ,!*IWorld))
-							,!(HTTPRequest (Map InstanceNo TIUIState) loc *IWorld -> (!Maybe (Map InstanceNo TIUIState),!*IWorld)))
-simpleHTTPResponse (pred,responseFun) = (pred,True,initFun,dataFun,lostFun)
-where
-	initFun req _ env
-		# (rsp,env) = responseFun req env
-		= (rsp,Nothing,Nothing,env)
-		
-	dataFun _ _ _ s env = ([],True,s,Nothing,env)
-	lostFun _ _ s env = (Nothing,env)
-
-
-publish :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
-publish url format task = {url = url, task = TaskWrapper task, defaultFormat = format}
+publishWithoutLayout :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
+publishWithoutLayout url task = {url = url, task = TaskWrapper task}
 
 instance Publishable (Task a) | iTask a
 where
-	publishAll task = [publish "/" (WebApp []) (\_ -> task)]
+	publishAll task = [publish "/" (const task)]
 
 instance Publishable (HTTPRequest -> Task a) | iTask a
 where
-	publishAll task = [publish "/" (WebApp []) task]
+	publishAll task = [publish "/" task]
 	
 instance Publishable [PublishedTask]
 where
 	publishAll list = list
+
+// Determines the server executables name
+determineAppName :: !*World -> (!String,!*World)
+determineAppName world 
+	# (appPath, world) = determineAppPath world
+	= ((dropExtension o dropDirectory) appPath, world)
 
 // Determines the server executables path
 determineAppPath :: !*World -> (!FilePath, !*World)
@@ -362,12 +251,6 @@ determineAppPath world
 		cmpFileTime (_,Ok {FileInfo | lastModifiedTime = x})
 					(_,Ok {FileInfo | lastModifiedTime = y}) = mkTime x > mkTime y
 	
-// Determines the server executables name
-determineAppName :: !*World -> (!String,!*World)
-determineAppName world 
-	# (appPath, world) = determineAppPath world
-	= ((dropExtension o dropDirectory) appPath, world)
-
 determineSDKPath :: ![FilePath] !*World -> (!Maybe FilePath, !*World)
 determineSDKPath paths world
 	//Try environment var first
@@ -384,32 +267,4 @@ where
 			_							= searchPaths ps world
 	where
 		path = (p </> "iTasks-SDK")
-
-//Do a recursive scan of a directory for subdirectories with the name "WebPublic"
-//Files in these directories are meant to be publicly served by an iTask webserver
-determineWebPublicDirs :: !FilePath !*World -> (![FilePath], !*World)
-determineWebPublicDirs path world
-	# (dir, world)	= readDirectory path world	
-    = case dir of
-        Ok entries
-            = appFst flatten (mapSt (checkEntry path) entries world)
-        _   = ([],world)
-where
-    checkEntry :: !FilePath !String !*World -> (![FilePath], !*World)
-    checkEntry dir name world
-        # path = dir </> name
-        | name == "." || name == ".." = ([],world)
-        | name == "WebPublic"   = ([path],world) //Dont' recurse into a found WebPublic dir
-        | otherwise
-		    # (mbInfo,world) = getFileInfo path world
-		    = case mbInfo of
-			    Ok info	| info.directory	= determineWebPublicDirs path world //Continue search
-                _                           = ([],world)
-
-checkCustomCSS :: !String ![FilePath] !*World -> (!Bool, !*World)
-checkCustomCSS appName [] world = (False,world)
-checkCustomCSS appName [d:ds] world 
-	# (exists,world) = fileExists (d </> addExtension appName "css") world
-	| exists 	= (True,world)
-				= checkCustomCSS appName ds world
 

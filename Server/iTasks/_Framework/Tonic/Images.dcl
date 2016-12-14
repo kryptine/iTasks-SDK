@@ -8,11 +8,14 @@ from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
 
 from iTasks._Framework.Tonic.AbsSyn import :: TonicFunc, :: ExprId, :: FuncName, :: ModuleName, :: TExpr
 from iTasks._Framework.Tonic.Types import :: TStability, :: BlueprintIdent, :: BlueprintInstance, :: GenBlueprintInstance, :: ComputationId, :: TClickAction, :: ClickMeta, :: TonicImageState
-from iTasks.UI.Definition import :: UIAction
 import iTasks._Framework.Generic
+from iTasks.UI.Definition import :: UI
 
-from iTasks.API.Core.Types import :: Scale, :: TaskId
-from iTasks.API.Extensions.SVG.SVGlet import :: ActionState
+from iTasks.API.Core.Types import :: TaskId
+from iTasks._Framework.Task import :: TaskValue
+
+:: ActionState a s = { state :: s, action :: Maybe a }
+doAction :: !(a (ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe b
 
 :: ModelTy :== ActionState (TClickAction, ClickMeta) TonicImageState
 
@@ -23,9 +26,8 @@ from iTasks.API.Extensions.SVG.SVGlet import :: ActionState
 mkStaticImage   :: ![TaskAppRenderer] !BlueprintIdent !Bool !ModelTy *TagSource
                 -> Image ModelTy
 
-
 mkTaskInstanceImage :: ![TaskAppRenderer] !BlueprintInstance
-                       !(Map ExprId TStability) !(Map ExprId [UIAction])
+                       !(Map ExprId TStability) !(Map ExprId [UI])
                        !(Maybe (Either ClickMeta (!ModuleName, !FuncName, !ComputationId, !Int)))
                        !Bool !ModelTy *TagSource
                     -> Image ModelTy
@@ -39,3 +41,4 @@ tDefaultMApp :: !Bool !Bool !Bool !Bool !Bool !Bool !Bool !ExprId !ModuleName !F
                 !ModuleName !FuncName ![TExpr] ![Image ModelTy] ![Image ModelTy] !*TagSource
              -> *(!Image ModelTy, !*TagSource)
 
+derive class iTask ActionState

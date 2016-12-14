@@ -4,9 +4,8 @@ import iTasks
 
 from Internet.HTTP					import :: HTTPRequest {req_method, req_path, req_data}, :: HTTPResponse(..), :: HTTPMethod(..)
 from iTasks._Framework.IWorld		import :: IWorld {exposedShares}
-from iTasks._Framework.Engine	    import :: ConnectionType
+from iTasks._Framework.WebService   import :: ConnectionState, :: WebSockState
 from iTasks._Framework.TaskState 	import :: TIUIState
-from iTasks.UI.Diff 				import :: UIUpdate
 
 import iTasks._Framework.HtmlUtil, iTasks._Framework.DynamicUtil
 import iTasks._Framework.RemoteAccess
@@ -19,15 +18,16 @@ from StdFunc import o
 import StdString, StdList
 from Data.Map import qualified get, fromList
 from Data.Map import fromList
-import Data.Maybe, Data.Void, Data.Error
+import Data.Maybe, Data.Error
 import Text.URI
 import StdMisc, graph_to_sapl_string
+import Data.Queue
 
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
-                 ,!(HTTPRequest (Map InstanceNo TIUIState) *IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
-				 ,!(HTTPRequest (Map InstanceNo TIUIState) (Maybe {#Char}) ConnectionType *IWorld -> (![{#Char}], !Bool, !ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld))
-				 ,!(HTTPRequest (Map InstanceNo TIUIState) ConnectionType *IWorld -> (!Maybe (Map InstanceNo TIUIState), !*IWorld))
+                 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> *(!HTTPResponse, !Maybe ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionState *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 				 )
 
 sdsService = (matchFun,True,reqFun,dataFun,disconnectFun)
@@ -37,7 +37,7 @@ where
     					["","sds",_] = True
     							  	 = False
 
-	reqFun :: !HTTPRequest (Map InstanceNo TIUIState) !*IWorld -> *(!HTTPResponse, !Maybe ConnectionType, !Maybe (Map InstanceNo TIUIState), !*IWorld)
+	reqFun :: !HTTPRequest (Map InstanceNo (Queue UIChange)) !*IWorld -> *(!HTTPResponse, !Maybe ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld)
 	reqFun req _ iworld | hasParam "client_session_id" req
 		= abort "Shareds on clients are not supported yet"
 	reqFun req _ iworld=:{exposedShares} | hasParam "focus" req
@@ -75,10 +75,10 @@ where
 	plainResponse string
 		= {okResponse & rsp_headers = [("Content-Type","text/plain")], rsp_data = string}			
 				
-	dataFun :: !HTTPRequest (Map InstanceNo TIUIState) !(Maybe {#Char}) !ConnectionType !*IWorld -> (![{#Char}], !Bool, !ConnectionType,!Maybe (Map InstanceNo TIUIState), !*IWorld)
+	dataFun :: !HTTPRequest (Map InstanceNo (Queue UIChange)) !(Maybe {#Char}) !ConnectionState !*IWorld -> (![{#Char}], !Bool, !ConnectionState,!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld)
     dataFun req _ mbData instanceNo iworld = ([], True, instanceNo, Nothing, iworld)
 
-    disconnectFun :: !HTTPRequest (Map InstanceNo TIUIState) !ConnectionType !*IWorld -> (!Maybe (Map InstanceNo TIUIState), !*IWorld)
+    disconnectFun :: !HTTPRequest (Map InstanceNo (Queue UIChange)) !ConnectionState !*IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld)
 	disconnectFun _ _ _ iworld = (Nothing,iworld)
 
 readRemoteSDS  :: !JSONNode !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
@@ -107,7 +107,7 @@ where
 						   uriPort		= u.uriPort,
 						   uriPath		= "/sds" +++ u.uriPath}
 							
-writeRemoteSDS :: !JSONNode !JSONNode !String !*IWorld -> *(!MaybeErrorString Void, !*IWorld)
+writeRemoteSDS :: !JSONNode !JSONNode !String !*IWorld -> *(!MaybeErrorString (), !*IWorld)
 writeRemoteSDS p val url iworld
 	= case convertURL url (Just p) of
 		(Ok uri) 	= load uri val iworld
@@ -116,7 +116,7 @@ where
 	load uri val iworld
 		# (response, iworld) = httpRequest HTTP_PUT uri (Just (toString val)) iworld
 		= if (isOkResponse response)
-					(Ok Void, iworld)
+					(Ok (), iworld)
 					(Error ("Request failed: "+++response.HTTPResponse.rsp_reason), iworld)
 
 remoteJSONShared :: !String -> JSONShared
@@ -134,7 +134,7 @@ where
             (Error msg, iworld) = (Error (exception msg), iworld)
 	rwrite jsonp jsonw iworld
 		= case writeRemoteSDS jsonp jsonw url iworld of
-			(Ok Void, iworld) = (Ok (const False), iworld)
+			(Ok (), iworld) = (Ok (const False), iworld)
 			(Error msg, iworld) = (Error (exception msg), iworld)
 
 openRemoteSDS :: !String !((Maybe (RWShared p r w)) -> Task a) -> Task a | iTask a & JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w & TC p & TC r & TC w

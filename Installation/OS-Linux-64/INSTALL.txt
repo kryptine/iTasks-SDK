@@ -1,6 +1,6 @@
 Follow these steps to get a working system:
 
- 1. Install clean. Download the Clean nightly distribution for your Mac, unzip
+ 1. Install clean. Download the Clean nightly distribution for your Linux disto, unzip
     it in your home directory (e.g. in ~/clean) and run make inside that
     directory.
 
@@ -14,12 +14,7 @@ Follow these steps to get a working system:
 
  3. Append the contents of iTasks.env to $CLEAN_HOME/etc/IDEEnvs
 
- 4. Compile the latest graph_copy for your platform. It can be found in
-    $CLEAN_HOME/lib/iTasks-SDK/Dependencies/graph_copy. Build it using:
-
-      make -f Makefile.linux64
-
- 5. You are now ready to compile your iTasks program. The best way to do so is
+ 4. You are now ready to compile your iTasks program. The best way to do so is
     by using CPM. To build all project files in the current directory, simply
     type
 

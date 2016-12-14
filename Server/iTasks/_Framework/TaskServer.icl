@@ -11,6 +11,7 @@ import TCPChannelClass, TCPChannels, TCPEvent, TCPStringChannels, TCPDef, tcp
 import iTasks._Framework.IWorld
 import iTasks._Framework.Task
 import iTasks._Framework.TaskEval
+from iTasks._Framework.TaskStore import queueRefresh
 
 //Helper type that holds the mainloop instances during a select call
 //in these mainloop instances the unique listeners and read channels
@@ -18,7 +19,7 @@ import iTasks._Framework.TaskEval
 :: *IOTaskInstanceDuringSelect
     = ListenerInstanceDS !ListenerInstanceOpts
     | ConnectionInstanceDS !ConnectionInstanceOpts !*TCP_SChannel
-    | BackgroundInstanceDS !BackgroundTask
+    | BackgroundInstanceDS !BackgroundInstanceOpts !BackgroundTask
 
 serve :: !Int !ConnectionTask ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
 serve port ct bt determineTimeout iworld
@@ -30,7 +31,7 @@ init port ct bt iworld=:{IWorld|ioTasks,world}
     | not success = abort ("Error: port "+++ toString port +++ " already in use.\n")
     # opts = {ListenerInstanceOpts|taskId=TaskId 0 0, nextConnectionId=0, port=port, connectionTask=ct, removeOnClose = True}
     # ioStates = 'DM'.fromList [(TaskId 0 0, IOActive 'DM'.newMap)]
-    = {iworld & ioTasks = {done=[],todo=[ListenerInstance opts (fromJust mbListener):map BackgroundInstance bt]}, ioStates = ioStates,  world = world}
+    = {iworld & ioTasks = {done=[],todo=[ListenerInstance opts (fromJust mbListener):map (BackgroundInstance {bgInstId=0})bt]}, ioStates = ioStates,  world = world}
 
 loop :: !(*IWorld -> (!Maybe Timeout,!*IWorld)) !*IWorld -> *IWorld
 loop determineTimeout iworld
@@ -62,7 +63,7 @@ toSelectSet [i:is]
     = case i of
         ListenerInstance opts l = ([l:ls],rs,[ListenerInstanceDS opts:is])
         ConnectionInstance opts {rChannel,sChannel} = (ls,[rChannel:rs],[ConnectionInstanceDS opts sChannel:is])
-        BackgroundInstance bt = (ls,rs,[BackgroundInstanceDS bt:is])
+        BackgroundInstance opts bt = (ls,rs,[BackgroundInstanceDS opts bt:is])
 
 /* Restore the list of main loop instances.
     In the same pass also update the indices in the select result to match the
@@ -98,9 +99,9 @@ where
             # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners (numSeenReceivers+1) ls rs [(c,what):ch] is
             = ([ConnectionInstance opts {rChannel=rChannel,sChannel=sChannel}:is],ch)
     //Background tasks
-    fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls rs ch [BackgroundInstanceDS bt:is]
+    fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls rs ch [BackgroundInstanceDS opts bt:is]
         # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners numSeenReceivers ls rs ch is
-        = ([BackgroundInstance bt:is],ch)
+        = ([BackgroundInstance opts bt:is],ch)
 
     ulength [] = (0,[])
     ulength [x:xs]
@@ -123,12 +124,12 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                     # (ConnectionTask handlers sds) = lopts.ListenerInstanceOpts.connectionTask
                     # (mbr,iworld) = 'SDS'.read sds {iworld & ioTasks={done=done,todo=todo},world=world}
                     | mbr =:(Error _)
-                        # iworld=:{ioTasks={done,todo},world} = queueRefresh [(instanceNo,"IO Exception for instance "<+++instanceNo)] iworld
+                        # iworld=:{ioTasks={done,todo},world} = if (instanceNo > 0) (queueRefresh [(instanceNo,"IO Exception for instance "<+++instanceNo)] iworld) iworld
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (snd (fromError mbr))) ioStates
  	                    # world = closeRChannel listener world
                         = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
                     # (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (toString ip) (fromOk mbr) iworld
-                    # iworld = queueRefresh [(instanceNo,"New TCP connection for instance "<+++instanceNo)] iworld
+                    # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo,"New TCP connection for instance "<+++instanceNo)] iworld) iworld
                     # iworld=:{ioTasks={done,todo},world}  = writeShareIfNeeded sds mbw iworld
                     | mbConState =:(Error _)
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (fromError mbConState)) ioStates
@@ -200,7 +201,7 @@ process i chList iworld=:{ioTasks={done,todo=[ConnectionInstance opts {rChannel,
             | mbSelect =:(Just SR_Disconnected) || mbSelect=:(Just SR_EOM)
                 //Call disconnect function
                 # (conState,mbw,iworld) = handlers.ConnectionHandlersIWorld.onDisconnect conState (fromOk mbr) {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world}
-                # iworld = queueRefresh [(instanceNo,"TCP connection disconnected for "<+++instanceNo)] iworld
+                # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo,"TCP connection disconnected for "<+++instanceNo)] iworld) iworld
                 # iworld=:{world,ioStates} = writeShareIfNeeded sds mbw iworld
                 # ioStates = case conState of
                     Ok state
@@ -221,8 +222,8 @@ process i chList iworld=:{ioTasks={done,todo=[ConnectionInstance opts {rChannel,
             # (mbConState,mbw,out,close,iworld)
                 = handlers.ConnectionHandlersIWorld.whileConnected data conState (fromOk mbr) {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world} 
             //Queue refresh when there was new data or when the connection was closed
-            # iworld = if (isNothing data) iworld (queueRefresh [(instanceNo, "New TCP data for "<+++instanceNo)] iworld)
-            # iworld = if close (queueRefresh [(instanceNo, "TCP connection closed for "<+++instanceNo)] iworld) iworld
+            # iworld = if (isJust data && instanceNo > 0) (queueRefresh [(instanceNo, "New TCP data for "<+++instanceNo)] iworld) iworld 
+            # iworld = if (close && instanceNo > 0) (queueRefresh [(instanceNo, "TCP connection closed for "<+++instanceNo)] iworld) iworld
             //Write share
             # iworld=:{ioTasks={todo,done},ioStates,world} = writeShareIfNeeded sds mbw iworld
             | mbConState =:(Error _)
@@ -262,9 +263,10 @@ process i chList iworld=:{ioTasks={done,todo=[ConnectionInstance opts {rChannel,
             # world = closeChannel sChannel world
             = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
            
-process i chList iworld=:{ioTasks={done,todo=[BackgroundInstance bt=:(BackgroundTask eval):todo]}}
-    # iworld=:{ioTasks={done,todo}} = eval {iworld & ioTasks = {done=done,todo=todo}}
-    = process (i+1) chList {iworld & ioTasks={done=[BackgroundInstance bt:done],todo=todo}}
+process i chList iworld=:{ioTasks={done,todo=[BackgroundInstance opts bt=:(BackgroundTask eval):todo]}}
+    # (mbe,iworld=:{ioTasks={done,todo}}) = eval {iworld & ioTasks = {done=done,todo=todo}}
+	| mbe =: (Error _) = abort (snd (fromError mbe)) //TODO Handle the error without an abort
+    = process (i+1) chList {iworld & ioTasks={done=[BackgroundInstance opts bt:done],todo=todo}}
 process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
     = process (i+1) chList {iworld & ioTasks={done=[t:done],todo=todo}}
 
@@ -319,6 +321,24 @@ addConnection taskId=:(TaskId instanceNo _) host port connectionTask iworld=:{io
                     Error e     = 'DM'.put taskId (IOException e) ioStates
                 = (Ok (),{iworld & ioTasks = {done=done,todo=todo}, ioStates = ioStates, world = world})
 
+//Dynamically add a background task
+addBackgroundTask :: !BackgroundTaskId !BackgroundTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
+addBackgroundTask btid bt iworld=:{ioTasks={done,todo}}
+# todo = todo ++ [BackgroundInstance {BackgroundInstanceOpts|bgInstId=btid} bt]
+= (Ok (), {iworld & ioTasks={done=done, todo=todo}})
+
+//Dynamically remove a background task
+removeBackgroundTask :: !BackgroundTaskId !*IWorld -> (!MaybeError TaskException (),!*IWorld)
+removeBackgroundTask btid iworld=:{ioTasks={done,todo}} 
+//We filter the tasks and use the boolean state to hold whether a task was dropped
+# (r, todo) = foldr (\e (b, l)->let (b`, e`)=drop e in (b` || b, if b` l [e`:l])) (False, []) todo
+# iworld = {iworld & ioTasks={done=done, todo=todo}}
+| not r = (Error (exception "No backgroundtask with that id"), iworld)
+= (Ok (), iworld)
+	where
+		drop a=:(BackgroundInstance {bgInstId} _) = (bgInstId == btid, a)
+		drop a = (False, a)
+
 checkSelect :: !Int ![(!Int,!SelectResult)] -> (!Maybe SelectResult,![(!Int,!SelectResult)])
 checkSelect i chList =:[(who,what):ws] | (i == who) = (Just what,ws)
 checkSelect i chList = (Nothing,chList)
@@ -332,6 +352,6 @@ halt iworld=:{ioTasks={todo=[ConnectionInstance _ {rChannel,sChannel}:todo],done
  	# world = closeRChannel rChannel world
     # world = closeChannel sChannel world
     = halt {iworld & ioTasks = {todo=todo,done=done}}
-halt iworld=:{ioTasks={todo=[BackgroundInstance _ :todo],done},world}
+halt iworld=:{ioTasks={todo=[BackgroundInstance _ _ :todo],done},world}
     = halt {iworld & ioTasks= {todo=todo,done=done}}
 

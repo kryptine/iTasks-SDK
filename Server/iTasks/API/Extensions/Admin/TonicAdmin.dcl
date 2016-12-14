@@ -19,4 +19,4 @@ tonicDynamicBrowser   :: [TaskAppRenderer] -> Task ()
 
 tonicDynamicWorkflow  :: [TaskAppRenderer] -> Workflow
 
-viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !BlueprintIdent !TonicModule !TonicFunc !Scale !Bool -> Task ()
+viewStaticTask :: !AllBlueprints ![TaskAppRenderer] !(Shared NavStack) !BlueprintIdent !TonicModule !TonicFunc !Int !Bool -> Task ()

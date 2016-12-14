@@ -29,7 +29,7 @@ import Incidone.OP.Concepts
 
 :: ItemMeta
     = { title       :: String
-      , description :: Maybe Note
+      , description :: Maybe String
       }
 
 :: ActionTasks
@@ -47,7 +47,7 @@ import Incidone.OP.Concepts
 // Run time information of action items
 :: ActionStatus
     = { title       :: String
-      , description :: Maybe Note
+      , description :: Maybe String
       , progress    :: ActionProgress
       , incidents   :: [IncidentNo]
       , contacts    :: [ContactNo]
@@ -143,9 +143,6 @@ derive gEq              CatalogAction
 derive gDefault         CatalogAction
 derive gText            CatalogAction
 derive gEditor          CatalogAction
-derive gEditMeta        CatalogAction
-derive gVerify          CatalogAction
-derive gUpdate          CatalogAction
 
 toInstantAction             :: c ActionProgress [ContactNo] [IncidentNo] (ActionDefinition c) -> CatalogAction | iTask c
 toConfigurableAction        :: ([ContactNo] [IncidentNo] -> Task (c,ActionStatus)) (ActionDefinition c) -> CatalogAction | iTask c
@@ -195,7 +192,7 @@ configurableListItem        :: String ItemMeta (Task c) (c -> ActionPlan)       
 * @param Group by incidents
 * @param Use 'my actions' group for current user
 */
-chooseActionItem         :: d Bool Bool (ROShared () [(InstanceNo,InstanceNo,ActionStatus)])  -> Task InstanceNo | descr d
+chooseActionItem         :: d Bool Bool (ROShared () [(InstanceNo,InstanceNo,ActionStatus)])  -> Task InstanceNo | toPrompt d
 workOnActionItem         :: InstanceNo                                              -> Task ()
 editActionItem           :: InstanceNo                                              -> Task (Maybe ActionStatus)
 deleteActionItem         :: InstanceNo                                              -> Task (Maybe ActionStatus)

@@ -11,11 +11,6 @@ fromSQL cols = case (mbFromSQL cols) of
     Just x  = x
     _       = abort ("fromSQL did not match for row: " +++ (join "," (map toString cols)))
 
-instance mbToSQL Note
-where
-	mbToSQL (Just (Note x))   = [SQLVText x]
-    mbToSQL Nothing           = [SQLVNull]
-
 instance mbToSQL EmailAddress
 where
 	mbToSQL (Just (EmailAddress x)) = [SQLVText x]
@@ -23,7 +18,7 @@ where
 
 instance mbToSQL DateTime
 where
-	mbToSQL (Just (DateTime {Date|day,mon,year} {Time|hour,min,sec}))
+	mbToSQL (Just {DateTime|day,mon,year,hour,min,sec})
 		= [SQLVDatetime {SQLDate|day=day,month=mon,year=year} {SQLTime|hour=hour,minute=min,second=sec}]
     mbToSQL Nothing
         = [SQLVNull]
@@ -38,11 +33,6 @@ where
 	mbToSQL (Just x) = [SQLVText (toString (toJSON x))]
     mbToSQL Nothing  = [SQLVNull]
 
-instance mbFromSQL Note
-where
-	mbFromSQL [SQLVText x]	= Just (Note x)
-	mbFromSQL _	= Nothing
-
 instance mbFromSQL EmailAddress
 where
 	mbFromSQL [SQLVText x]	= Just (EmailAddress x)
@@ -51,7 +41,7 @@ where
 instance mbFromSQL DateTime
 where
 	mbFromSQL [SQLVDatetime {SQLDate|day,month,year} {SQLTime|hour,minute,second}]
-		= Just (DateTime {Date|day=day,mon=month,year=year} {Time|hour=hour,min=minute,sec=second})
+		= Just {DateTime|day=day,mon=month,year=year,hour=hour,min=minute,sec=second}
 	mbFromSQL [SQLVText dt]
         = Just (fromString dt)
 	mbFromSQL _	= Nothing

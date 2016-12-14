@@ -2,7 +2,6 @@ definition module iTasks.API.Extensions.Development.Codebase
 
 import iTasks
 import System.FilePath
-import iTasks.API.Extensions.CodeMirror
 
 :: CodeBase 		:== [SourceTree]
 
@@ -56,8 +55,3 @@ getModuleType :: ModuleName CodeBase -> Maybe ModuleType
 
 // Convert CodeBase Tree to a list
 codeBaseToCleanModuleNames :: CodeBase -> [CleanModuleName]
-
-initCleanEditor     :: Bool [String] -> CodeMirror
-updateCleanEditor 	:: (Shared CodeMirror) -> Task CodeMirror
-viewCleanEditor 	:: (Shared CodeMirror) -> Task CodeMirror
-

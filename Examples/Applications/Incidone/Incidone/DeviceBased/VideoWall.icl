@@ -2,7 +2,7 @@ implementation module Incidone.DeviceBased.VideoWall
 import iTasks
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.ActionManagementTasks
 import Incidone.Util.TaskPatterns
-import Text, Data.List, iTasks._Framework.HtmlUtil
+import Text, Text.HTML, Data.List, iTasks._Framework.HtmlUtil
 
 derive class iTask WallContent
 
@@ -11,17 +11,17 @@ wallContent = sharedStore "WallContent" (WallOverview defaultValue)
 
 viewVideoWallContent :: Task WallContent
 viewVideoWallContent
-    = (header ||- content) <<@ (ArrangeWithSideBar 0 TopSide 30 False) <<@ FullScreen <<@ AfterLayout plainLayoutFinal
+    = (header ||- content) <<@ (ArrangeWithSideBar 0 TopSide 30 False) //<<@ AfterLayout plainLayoutFinal //FIXME
 where
     header
-        = viewSharedInformation () [ViewWith view] (currentTime |+| currentUTCTime) <<@ ForceLayout <<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header"))
+        = viewSharedInformation () [ViewAs view] (currentTime |+| currentUTCTime)  //<<@ (AfterLayout (uiDefSetHalign AlignRight o uiDefSetBaseCls "wall-header")) //FIXME
     where
         view (local,utc) = "LOCAL: " + lpad (toString local.Time.hour) 2 '0' + ":" + lpad (toString local.Time.min) 2 '0' + " "
                          + "UTC: " + lpad (toString utc.Time.hour) 2 '0' + ":" + lpad (toString utc.Time.min) 2 '0'
     content
         = whileUnchanged wallContent \content -> case content of
-        WallClock                               = (viewSharedInformation (Title "Local Time") [ViewWith formatTime] currentTime @! content) <<@ ForceLayout
-        WallCountDown until                     = (viewSharedInformation (Title "Countdown") [ViewWith (\t -> formatDateTime (until - t))] currentDateTime @! content) <<@ ForceLayout
+        WallClock                               = (viewSharedInformation (Title "Local Time") [ViewAs formatTime] currentTime @! content)
+//        WallCountDown until                     = (viewSharedInformation (Title "Countdown") [ViewAs (\t -> formatDateTime (until - t))] currentDateTime @! content)
         WallOverview perspective                = viewWallOverview perspective @! content
         WallContactSummary (Just contactNo)     = viewWallContactSummary contactNo @! content
         WallIncidentSummary (Just incidentNo)   = viewWallIncidentSummary incidentNo @! content
@@ -33,11 +33,11 @@ formatDateTime time = DivTag [StyleAttr "font-size: 80pt; text-align: center; pa
 mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |+| contactsProvidingHelpGeo)
 
 viewWallOverview perspective
-    = ((viewSharedInformation (Title "Open Incidents") [ViewWith formatIncidents] openIncidentsDetails <<@ ForceLayout)
+    = ((viewSharedInformation (Title "Open Incidents") [ViewAs formatIncidents] openIncidentsDetails)
         -&&-
        (get standardMapLayers
         >>- \baseLayers ->
-        viewSharedInformation () [ViewWith (toMap perspective baseLayers)] mapContacts <<@ AfterLayout (tweakUI (setMargins 0 0 0 0 o fill)))
+        viewSharedInformation () [ViewAs (toMap perspective baseLayers)] mapContacts /* <<@ AfterLayout (tweakUI (setMargins 0 0 0 0 o fill))*/ ) //FIXME
       ) <<@ ArrangeWithSideBar 0 LeftSide 300 False
 where
     toMap perspective baseLayers contacts
@@ -52,19 +52,19 @@ where
 
 viewWallContactSummary contactNo
 	= withHeader viewContactTitle
-      (((viewDetails <<@ ForceLayout)
+      ((viewDetails
        -&&-
-        (((viewPosition <<@ ForceLayout) -&&- (viewCommunication <<@ ForceLayout)) <<@ArrangeWithSideBar 1 RightSide 350 False)
+        ((viewPosition -&&- viewCommunication ) <<@ArrangeWithSideBar 1 RightSide 350 False)
        ) <<@ArrangeWithSideBar 0 LeftSide 250 False)
 where
     contact = sdsFocus contactNo contactByNo
 
     viewContactTitle
-        = viewSharedInformation () [] (mapRead contactTitle contact) <<@ ForceLayout <<@ AfterLayout (uiDefSetBaseCls "wall-contact-title")
+        = viewSharedInformation () [] (mapRead contactTitle contact) /* <<@ AfterLayout (uiDefSetBaseCls "wall-contact-title") */ //FIXME
     viewDetails
         = (viewPhoto -&&- viewTypeDetails) <<@ (Title "Details")
     viewPhoto
-		= viewSharedInformation () [ViewWith formatPhoto] contact
+		= viewSharedInformation () [ViewAs formatPhoto] contact
     where
 	    formatPhoto {Contact|photos,type,notes}
             = ImgTag [ClassAttr "wall-contact-details",WidthAttr "200",HeightAttr "200",SrcAttr (photoSrc photos)]
@@ -79,9 +79,9 @@ where
             _           = viewInformation () [] ()
 
     viewPosition
-        = ((viewSharedInformation (Title "Position") [ViewWith formatPosition] contact <<@ ForceLayout <<@ AfterLayout (uiDefSetBaseCls "wall-contact-position"))
+        = ((viewSharedInformation (Title "Position") [ViewAs formatPosition] contact /* <<@ AfterLayout (uiDefSetBaseCls "wall-contact-position") */) //FIXME
            -&&-
-           (viewSharedInformation (Title "Map") [ViewWith contactMap] contact <<@ ForceLayout <<@ AfterLayout (tweakUI (setMargins 0 0 0 0 o fill)))
+           (viewSharedInformation (Title "Map") [ViewAs contactMap] contact /*<<@ AfterLayout (tweakUI (setMargins 0 0 0 0 o fill)) */) //FIXME
           )
     where
         formatPosition {Contact|position=Just pos}  = toSingleLineText pos
@@ -98,7 +98,7 @@ where
         markers c _         = []
 
     viewCommunication
-        = viewSharedInformation (Title "Last communication") [ViewWith (formatComms o take 5)] (sdsFocus contactNo contactCommunications)
+        = viewSharedInformation (Title "Last communication") [ViewAs (formatComms o take 5)] (sdsFocus contactNo contactCommunications)
     where
         formatComms items
             = DivTag []
@@ -115,9 +115,9 @@ where
     incident = sdsFocus incidentNo incidentByNo
 
     viewIncidentTitle
-        = viewSharedInformation () [] (sdsFocus incidentNo incidentTitleByNo) <<@ ForceLayout <<@ AfterLayout (uiDefSetBaseCls "wall-contact-title")
+        = viewSharedInformation () [] (sdsFocus incidentNo incidentTitleByNo) //<<@ AfterLayout (uiDefSetBaseCls "wall-contact-title") //FIXME
     viewIncidentContacts
-        = viewSharedInformation (Title "Involved Contacts") [ViewWith toView] (sdsFocus incidentNo contactsByIncident) <<@ ForceLayout
+        = viewSharedInformation (Title "Involved Contacts") [ViewAs toView] (sdsFocus incidentNo contactsByIncident)
     where
         toView contacts = DivTag [ClassAttr "wall-incident-contacts"] (map formatContact contacts)
 
@@ -131,14 +131,14 @@ where
 	    photoSrc _							= "/no-photo.jpg"
 
     viewIncidentActions
-        = viewSharedInformation (Title "Open Actions") [ViewWith toView]  (sdsFocus incidentNo actionStatusesByIncident) <<@ ForceLayout <<@ AfterLayout (tweakUI fill)
+        = viewSharedInformation (Title "Open Actions") [ViewAs toView]  (sdsFocus incidentNo actionStatusesByIncident) /* <<@ AfterLayout (tweakUI fill) */ //FIXME
     where
         toView actions = DivTag [] [vizAction a \\ (_,_,a) <- actions]
         vizAction {ActionStatus|title}
             = DivTag [ClassAttr "wall-action"] [H2Tag [ClassAttr "wall-action-title"] [Text title]]
 
     viewIncidentLog
-        = viewSharedInformation (Title "Last Log Messages") [ViewWith (toView o take 5)] (sdsFocus incidentNo incidentLog) <<@ ForceLayout
+        = viewSharedInformation (Title "Last Log Messages") [ViewAs (toView o take 5)] (sdsFocus incidentNo incidentLog)
     where
         toView log = DivTag [] (flatten [[vizDate date:map vizEntry entries] \\ (date,entries) <- groupByDate log])
 
@@ -147,10 +147,7 @@ where
                                 (vizName entry.loggedBy ++ vizTime entry.eventAt ++ vizMessage entry.message)
         vizName (Just {ContactAvatar|name=Just name}) = [DivTag [ClassAttr "wall-log-name"] [Text name]]
         vizName _ = [DivTag [ClassAttr "wall-log-name"] [Text "System message"]]
-        vizTime (DateTime _ time) = [DivTag [ClassAttr "wall-log-time"] [Text (toString time)]]
+        vizTime datetime = [DivTag [ClassAttr "wall-log-time"] [Text (toString (toTime datetime))]]
         vizMessage message = [DivTag [ClassAttr "wall-log-message"] [nl2br (toString message)]]
 
-        groupByDate log = [(date e.eventAt,es) \\ es=:[e:_] <-  groupBy (\e1 e2 -> date e1.eventAt == date e2.eventAt) log]
-        where
-            date (DateTime d _) = d
-
+        groupByDate log = [(toDate e.eventAt,es) \\ es=:[e:_] <-  groupBy (\e1 e2 -> toDate e1.eventAt == toDate e2.eventAt) log]

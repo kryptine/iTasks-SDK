@@ -54,16 +54,7 @@ derive class iTask GenBlueprintInstance, TonicMessage, TMNewTopLevel, TMApply
 derive gEditor
   TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
 
-derive gEditMeta
-  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
-
 derive gDefault
-  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
-
-derive gUpdate
-  TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
-
-derive gVerify
   TonicModule, TonicFunc, TExpr, TPriority, TAssoc, IntMap, TLit
 
 derive gText

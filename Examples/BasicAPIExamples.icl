@@ -5,9 +5,12 @@ import iTasks.API.Extensions.Admin.ServerAdmin
 import iTasks.API.Extensions.Admin.StoreAdmin
 import iTasks.API.Extensions.Admin.WorkflowAdmin
 import iTasks.API.Extensions.Admin.TonicAdmin
-import iTasks._Framework.Tonic
 import iTasks.API.Extensions.GIS.GoogleMap
-import Text, StdArray
+import iTasks.API.Extensions.Currency
+import iTasks.API.Extensions.Contact
+import iTasks.UI.Definition, iTasks.UI.Editor.Builtin
+import Text, Text.HTML, StdArray
+import iTasks._Framework.Tonic
 //import ligrettoTOP
 //import iTaskGraphics, editletGraphics, edgehog
 import qualified Data.Map as DM
@@ -28,6 +31,9 @@ seqTasks	:== bae +++ "/Sequential task composition/"
 parTasks	:== bae +++ "/Parallel task composition/"
 distrTask	:== bae +++ "/Distributed tasks/"
 svgTasks    :== bae +++ "/SVG experiments/"
+miscTask    :== bae +++ "/Miscellaneous/"
+
+adminTask   :== "Admin/"
 
 basicAPIExamples :: [Workflow]
 basicAPIExamples =
@@ -72,24 +78,26 @@ basicAPIExamples =
 	,workflow (distrTask +++ "Tic-Tac-Toe")                 "Play tic-tac-toe"                  tictactoe
 //	,workflow (distrTask +++ "Ligretto")                    "Play Ligretto"                     play_ligretto
 
-	,workflow "Droste Cacaobus" 							"Start this application as a task" 	(manageWorklist basicAPIExamples)
+	,workflow (miscTask +++ "Droste Cacaobus") 				"Start this application as a task" 	(manageWorklist basicAPIExamples)
 
-	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
-	,workflow "Manage server" 							 	"Manage itask server..." 			manageServer
-	,workflow "Manage store" 							 	"Manage itask store..." 			manageStore
+	,workflow (adminTask +++ "Manage users") 				"Manage system users..." 			manageUsers
+	,workflow (adminTask +++ "Manage server")				"Manage itask server..." 			manageServer
+	,workflow (adminTask +++ "Manage store") 				"Manage itask store..." 			manageStore
 	//,workflow (svgTasks +++ "Graphics tests")               "Graphics tests"                    svg_test
 	//,workflow (svgTasks +++ "Graphics editlet")             "Editlet test with clickable elements" svg_image
 	//,workflow (svgTasks +++ "Edgehog")                      "Experiment with lines"             edgehog
 //	,workflow "Play Ligretto"								"Play Ligretto"						play_ligretto
-    ,workflow "Tonic"								"Tonic dashboard"						(tonicDashboard [])
+    ,workflow (adminTask +++ "Tonic")						"Tonic dashboard"						(tonicDashboard [])
 	]
 
 
 Start :: *World -> *World
 Start world 
-	= startEngine 	[	publish "/" (WebApp []) (\_-> loginAndManageWorkList "iTasks Example Collection" basicAPIExamples)
-					,	publish "/persons" (WebApp []) (const enterPersons)
+	= startEngine 	[	publish "/" (\_ -> loginAndManageWorkList title basicAPIExamples <<@ ApplyLayout (setAttributes (titleAttr title)))
+					,	publish "/persons" (const enterPersons)
 					] world
+where
+	title = "iTasks Example Collection"
 		
 		
 //* utility functions
@@ -180,7 +188,7 @@ viewCurDateTime = viewSharedInformation "The current date and time is:" [] curre
 
 import iTasks.API.Extensions.Clock
 viewTime :: Task Time
-viewTime = viewSharedInformation "The current time is:" [ViewWith AnalogClock] currentTime
+viewTime = viewSharedInformation "The current time is:" [ViewAs AnalogClock] currentTime
 
 personStore :: Shared [MyPerson]
 personStore = sharedStore "Persons" []
@@ -191,14 +199,14 @@ editStoredPersons = updateSharedInformation "Update the stored list of persons" 
 viewStoredPersons :: Task [MyPerson] 
 viewStoredPersons = viewSharedInformation "These are the currently stored persons" [] personStore
 
-notes :: Task Note
+notes :: Task String
 notes 
-	= withShared (Note "")
-		(\note -> 	viewSharedInformation "view on note" [] note
+	= withShared ""
+		(\note -> 	viewSharedInformation "view on note" [ViewUsing id (textView 'DM'.newMap)] note
 					-||-
-					updateSharedInformation "edit shared note 1" [] note
+					updateSharedInformation "edit shared note 1" [UpdateUsing id (const id) (textArea 'DM'.newMap)] note
 					-||-
-					updateSharedInformation "edit shared note 2" [] note
+					updateSharedInformation "edit shared note 2" [UpdateUsing id (const id) (textArea 'DM'.newMap)] note
 		)
 
 linesPar :: Task (Maybe String)
@@ -213,14 +221,14 @@ where
 
 	noteE state 
 		= 			updateSharedInformation ("Text","Edit text") [noteEditor] state
-			>>*		[ OnAction (Action "Trim" []) (\txt -> Just (upd trim state >>| noteE state))	
+			>>*		[ OnAction (Action "Trim") (\txt -> Just (upd trim state >>| noteE state))	
 					]
 
 	lineE state
 		=	updateSharedInformation ("Lines","Edit lines") [listEditor] state
 
-	noteEditor = UpdateWith (\txt -> Note txt) (\_ (Note txt) -> txt)
-	listEditor = UpdateWith (split "\n") (\_ l -> join "\n" l)
+	noteEditor = UpdateUsing id (const id) (textArea 'DM'.newMap)
+	listEditor = UpdateAs (split "\n") (\_ l -> join "\n" l)
 
 browseAndViewGoogleMap :: Task GoogleMap
 browseAndViewGoogleMap = withShared defaultValue (\smap -> updateSharedInformation "Browse Map" [] smap 
@@ -255,25 +263,25 @@ where
 person1by1 :: [MyPerson] -> Task [MyPerson]
 person1by1 persons
 	=       enterInformation "Add a person" [] 	//-|| viewInformation "List so far.." [] persons
-		>>*	[ OnAction  (Action "Add" []) 		(hasValue (\v -> person1by1  [v : persons]))
-		    , OnAction  (Action "Finish" [])    (always (return persons))
-		    , OnAction  ActionCancel 			(always (return []))
+		>>*	[ OnAction  (Action "Add") 		(hasValue (\v -> person1by1  [v : persons]))
+		    , OnAction  (Action "Finish")   (always (return persons))
+		    , OnAction  ActionCancel 		(always (return []))
 	        ]
 
 // BUG? not always all record fields are shown in a choice...
 // sometimes I get several continues... does not looks nice
 
-editPersonList :: Task Void
+editPersonList :: Task ()
 editPersonList = editSharedList personStore
 
-editSharedList :: (Shared [a]) -> Task Void | iTask a
+editSharedList :: (Shared [a]) -> Task () | iTask a
 editSharedList store
-	=			enterChoiceWithShared "Choose an item to edit" [ChooseWith (ChooseFromGrid snd)] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
-		>>*		[ OnAction (Action "Append" [])   (hasValue (showAndDo append))
-				, OnAction (Action "Delete" [])   (hasValue (showAndDo delete))
-				, OnAction (Action "Edit" [])     (hasValue (showAndDo edit))
-				, OnAction (Action "Clear" [])    (always (showAndDo append (-1,undef)))
-				, OnAction (Action "Quit" [])     (always (return Void))
+	=			enterChoiceWithShared "Choose an item to edit" [ChooseFromGrid snd] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
+		>>*		[ OnAction (Action "Append")   (hasValue (showAndDo append))
+				, OnAction (Action "Delete")   (hasValue (showAndDo delete))
+				, OnAction (Action "Edit")     (hasValue (showAndDo edit))
+				, OnAction (Action "Clear")    (always (showAndDo append (-1,undef)))
+				, OnAction (Action "Quit")     (always (return ()))
 				]
 where
 	showAndDo fun ip
@@ -281,7 +289,7 @@ where
  		 		||- 
  		 		fun ip
  		 	>>* [ OnValue 					    (hasValue	(\_ -> editSharedList store))
- 		 		, OnAction (Action "Cancel" []) (always	(editSharedList store))
+ 		 		, OnAction (Action "Cancel") (always	(editSharedList store))
  		 		]
 
 	append (i,_)
@@ -297,7 +305,7 @@ where
 
 :: ToDo =	{ name     :: String
 			, deadline :: Maybe Date
-			, remark   :: Maybe Note
+			, remark   :: Maybe String
 			, done     :: Bool
 			}
 derive class iTask ToDo
@@ -319,7 +327,7 @@ followTweets
 		>>= \me ->		enterChoiceWithShared "Whoms tweets you want to see?" [] users
 		>>= \user ->	let name = getUserName user in joinTweets me user "type in your tweet" (twitterId name)
 where
-	joinTweets  :: User User String (Shared [Tweet]) -> Task Void
+	joinTweets  :: User User String (Shared [Tweet]) -> Task ()
 	joinTweets me you message tweetsStore
 		=			(viewSharedInformation ("You are following " +++ tweeter) [] tweetsStore)
 					||-
@@ -331,11 +339,11 @@ where
 			=			updateInformation "Add a tweet" [] message
 						-||
 						viewSharedInformation ("Tweets of " +++ tweeter) [] tweetsStore
-				>>*		[ OnAction (Action "Quit" [])    (always (return Void))
-						, OnAction (Action "Commit" [])  (hasValue commit )
+				>>*		[ OnAction (Action "Quit")    (always (return ()))
+						, OnAction (Action "Commit")  (hasValue commit )
 						]
 
-		commit :: String -> Task Void
+		commit :: String -> Task ()
 		commit message
 			=				upd (\tweets -> [(tweeter,message)] ++ tweets) tweetsStore 
 				>>| 		tweeting 
@@ -365,14 +373,14 @@ where
 						  	, OnAction ActionOk  		(always  	(return (n1 + n2)))
 						  	]
 //
-:: MySum = {firstNumber :: Int, secondNumber :: Int, sum :: Display Int}
+:: MySum = {firstNumber :: Int, secondNumber :: Int, sum :: Int}
 derive class iTask MySum
 
 calculateSum2 :: Task Int
 calculateSum2
   = 				updateInformation ("Sum of 2 numbers, with view","") 
-  						[UpdateWith (\(i,j) -> {firstNumber = i, secondNumber = j, sum = Display (i+j)}) 
-  						            (\_ res -> (res.firstNumber,res.secondNumber))] (0,0)
+  						[UpdateAs (\(i,j) -> {firstNumber = i, secondNumber = j, sum = (i+j)}) 
+  						          (\_ res -> (res.firstNumber,res.secondNumber))] (0,0)
   	>>= \(i,j) -> 	return (i+j)
 
 //
@@ -389,11 +397,11 @@ coffeemachine
 
 getCoins :: EUR (String,EUR) -> Task (String,EUR)
 getCoins paid (product,toPay) 
-	= 				viewInformation "Coffee Machine" [ViewWith view1] toPay
+	= 				viewInformation "Coffee Machine" [ViewAs view1] toPay
 					||-		
-					enterChoice  ("Insert coins","Please insert a coin...") [ChooseWith (ChooseFromRadioButtons id)] coins
+					enterChoice  ("Insert coins","Please insert a coin...") [ChooseFromCheckGroup id] coins
 			>>*		[ OnAction ActionCancel 		(always (stop ("Cancelled",paid)))
-					, OnAction (Action "Insert" []) (hasValue handleMoney)
+					, OnAction (Action "Insert") (hasValue handleMoney)
 					]
 where				
 	coins	= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
@@ -402,7 +410,7 @@ where
 	| toPay > coin	= getCoins (paid+coin) (product, toPay-coin)
 	| otherwise		= stop (product,coin-toPay)
 	
-	stop (product, money) = viewInformation "Coffee Machine" [ViewWith view2] (product,money)
+	stop (product, money) = viewInformation "Coffee Machine" [ViewAs view2] (product,money)
 
 	view1 toPay 		   = [(DivTag [] [Text ("Chosen product: " <+++ product), BrTag [], Text ("To pay: " <+++ toPay)])]
 	view2 (product,money)  = [(DivTag [] [Text ("Chosen product: " <+++ product), BrTag [], Text ("Money returned: " <+++ money)])]
@@ -417,21 +425,21 @@ calculator :: Task Int
 calculator = calc initSt
 where
 	calc st
-	= 		viewInformation "Calculator" [ViewWith Display] st
-		>>* [ OnAction (Action "7" []) (always (updateDigit 7 st)) 
-			, OnAction (Action "8" []) (always (updateDigit 8 st))
-			, OnAction (Action "9" []) (always (updateDigit 9 st))
-			, OnAction (Action "4" []) (always (updateDigit 4 st)) 
-			, OnAction (Action "5" []) (always (updateDigit 5 st))
-			, OnAction (Action "6" []) (always (updateDigit 6 st))
-			, OnAction (Action "1" []) (always (updateDigit 1 st)) 
-			, OnAction (Action "2" []) (always (updateDigit 2 st))
-			, OnAction (Action "3" []) (always (updateDigit 3 st)) 
-			, OnAction (Action "0" []) (always (updateDigit 0 st))
-			, OnAction (Action "+" []) (always (apply (+) st))
-			, OnAction (Action "-" []) (always (apply (-) st))
-			, OnAction (Action "*" []) (always (apply (*) st))
-			, OnAction (Action "/" []) (always (apply (/) st))
+	= 		viewInformation "Calculator" [] st
+		>>* [ OnAction (Action "7") (always (updateDigit 7 st)) 
+			, OnAction (Action "8") (always (updateDigit 8 st))
+			, OnAction (Action "9") (always (updateDigit 9 st))
+			, OnAction (Action "4") (always (updateDigit 4 st)) 
+			, OnAction (Action "5") (always (updateDigit 5 st))
+			, OnAction (Action "6") (always (updateDigit 6 st))
+			, OnAction (Action "1") (always (updateDigit 1 st)) 
+			, OnAction (Action "2") (always (updateDigit 2 st))
+			, OnAction (Action "3") (always (updateDigit 3 st)) 
+			, OnAction (Action "0") (always (updateDigit 0 st))
+			, OnAction (Action "+") (always (apply (+) st))
+			, OnAction (Action "-") (always (apply (-) st))
+			, OnAction (Action "*") (always (apply (*) st))
+			, OnAction (Action "/") (always (apply (/) st))
 			]
 	where
 		updateDigit n st = calc {st & n = st.n*10 + n}
@@ -463,7 +471,7 @@ where
 	lengthWords "" 	 = 0
 	lengthWords text = length (split " " (replaceSubString "\n" " " text))
 			
-editWithStatistics :: Task Void
+editWithStatistics :: Task ()
 editWithStatistics 
  =						enterInformation "Give name of text file you want to edit..." []
 	>>= \fileName -> 	let file = sharedStore fileName ""
@@ -471,42 +479,39 @@ editWithStatistics
 									  		, (Embedded, editFile fileName file)
 									  		, (Embedded, replace initReplace file)
 									  		] []
-							>>*	 			[ OnAction (ActionQuit) (always (return Void))
+							>>*	 			[ OnAction (ActionQuit) (always (return ()))
 											]
 											
-editFile :: String (Shared String) (SharedTaskList Void) -> Task Void
+editFile :: String (Shared String) (SharedTaskList ()) -> Task ()
 editFile fileName sharedFile _
- =						updateSharedInformation ("edit " +++ fileName) [UpdateWith toV fromV] sharedFile
- 	@ 					const Void
-where
-	toV text 			= Note text
-	fromV _ (Note text) = text
+ =						updateSharedInformation ("edit " +++ fileName) [UpdateUsing id (const id) (textArea 'DM'.newMap)] sharedFile
+ 	@!					()
 
 showStatistics sharedFile _  = noStat <<@ InWindow
 where
-	noStat :: Task Void
-	noStat	=			viewInformation Void [] Void
- 				>>*		[ OnAction (Action "/File/Show Statistics" []) (always showStat)
+	noStat :: Task ()
+	noStat	=			viewInformation () [] ()
+ 				>>*		[ OnAction (Action "/File/Show Statistics") (always showStat)
  						]
-	showStat :: Task Void
-	showStat =			viewSharedInformation "Statistics:" [ViewWith stat] sharedFile
- 				>>*		[ OnAction (Action "/File/Hide Statistics" []) (always noStat)
+	showStat :: Task ()
+	showStat =			viewSharedInformation "Statistics:" [ViewAs stat] sharedFile
+ 				>>*		[ OnAction (Action "/File/Hide Statistics") (always noStat)
  						]
 
 
 replace cmnd sharedFile _ = noReplace cmnd <<@ InWindow
 where
-	noReplace :: Replace -> Task Void
+	noReplace :: Replace -> Task ()
 	noReplace cmnd 
-		=		viewInformation Void [] Void
- 			>>*	[ OnAction (Action "/File/Replace" []) (always (showReplace cmnd))
+		=		viewInformation () [] () 
+ 			>>*	[ OnAction (Action "/File/Replace") (always (showReplace cmnd))
 				]
 
-	showReplace :: Replace -> Task Void 
+	showReplace :: Replace -> Task ()
 	showReplace cmnd
 		=		updateInformation "Replace:" [] cmnd 
- 			>>*	[ OnAction (Action "Replace" []) (hasValue substitute)
- 				, OnAction (Action "Cancel" [])  (always (noReplace cmnd))
+ 			>>*	[ OnAction (Action "Replace") (hasValue substitute)
+ 				, OnAction (Action "Cancel")  (always (noReplace cmnd))
  				]
  			
  	substitute cmnd =	upd (replaceSubString cmnd.search cmnd.replaceBy) sharedFile 
@@ -526,7 +531,7 @@ delegate task
 // chat
 
 
-chat :: Task Void
+chat :: Task ()
 chat = 					get currentUser
 		>>= \me ->		enterChoiceWithShared "Select someone to chat with:" [] users
 		>>= \you -> 	withShared ("","") (duoChat me you)
@@ -537,11 +542,11 @@ where
 			(you @: chat me (toView o switch) (\a v -> switch (fromView a v)) notes)
 
 	chat who toView fromView notes
-		= 			updateSharedInformation ("Chat with " <+++ who) [UpdateWith toView fromView] notes
-			>>*		[OnAction (Action "Stop" []) (always (return Void))]
+		= 			updateSharedInformation ("Chat with " <+++ who) [UpdateAs toView fromView] notes
+			>>*		[OnAction (Action "Stop") (always (return ()))]
 
-	toView   (me,you) 							= (Display you, Note me)
-	fromView _ (Display you, Note me) 	= (me,you) 
+	toView   (me,you) 							= (you, me)
+	fromView _ (you, me) 	= (me,you) 
 
 	switch (me,you) = (you,me)
 
@@ -549,7 +554,7 @@ where
 
 testMeeting :: Task DateTime
 testMeeting
-	=	enterSharedMultipleChoice ("Choose users","Select the users with whom you want to plan a meeting...") [] users
+	=	enterMultipleChoiceWithShared ("Choose users","Select the users with whom you want to plan a meeting...") [] users
 	>>=	planMeeting
 	
 planMeeting :: [User] -> Task DateTime
@@ -562,7 +567,7 @@ enterDateTimeOptions = enterInformation "Propose meeting dates and times..." []
 
 askPreferences :: [User] -> TaskCont [DateTime] (Task [(User,[DateTime])])
 askPreferences users
-  = OnAction (Action "Continue" []) (hasValue (ask users))
+  = OnAction (Action "Continue") (hasValue (ask users))
 
 ask :: [User] [DateTime] -> Task [(User,[DateTime])]
 ask users options
@@ -580,17 +585,17 @@ select user options = \_ -> (enterMultipleChoice "Enter preferences" [] options 
  
 tryAgain :: [User] -> TaskCont [(User,[DateTime])] (Task DateTime)
 tryAgain users
-  = OnAction (Action "Try again" []) (always (planMeeting users))
+  = OnAction (Action "Try again") (always (planMeeting users))
  
 decide :: TaskCont [(User,[DateTime])] (Task DateTime)
-decide = OnAction (Action "Make decision" []) (hasValue pick)
+decide = OnAction (Action "Make decision") (hasValue pick)
 
 pick :: [(User,[DateTime])] -> Task DateTime
 pick user_dates
   =   (enterChoice "Choose date" [] (transpose user_dates) @ fst)
       -||-
       (enterInformation "Enter override" [])
-  >>* [OnAction (Action "Continue" []) returnV]
+  >>* [OnAction (Action "Continue") returnV]
 
 transpose :: [(a,[b])] -> [(b,[a])] | Eq b
 transpose a_bs = [(b,[a \\ (a,bs) <- a_bs | isMember b bs]) \\ b <- removeDup (flatten (map snd a_bs))]
@@ -657,9 +662,9 @@ where
 
 tictactoe_for_1 :: !Bool !(Shared TicTacToe) -> Task User
 tictactoe_for_1 my_turn sharedGameSt
-	= (viewSharedInformation "Board:" [ViewWith (\gameSt -> viewBoard (42,42) gameSt)] sharedGameSt) ||- play
+	= (viewSharedInformation "Board:" [ViewAs (\gameSt -> viewBoard (42,42) gameSt)] sharedGameSt) ||- play
 where
-	play= (updateSharedInformation "Play:" [UpdateWith Hidden (\gameSt _ -> gameSt)] sharedGameSt)
+	play= (viewSharedInformation "Play:" [ViewAs (const ())] sharedGameSt)
 	      >>* [ OnValue (ifValue game_over declare_winner)
               , OnValue (ifValue on_turn   make_a_move)
               ]

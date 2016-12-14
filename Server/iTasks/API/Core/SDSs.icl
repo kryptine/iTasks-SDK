@@ -27,7 +27,7 @@ null :: WriteOnlyShared a
 null = createReadWriteSDS NS_SYSTEM_DATA "null" (\() env -> (Ok (), env)) (\() _ env -> (Ok (const False), env))
 			
 currentDateTime :: ReadOnlyShared DateTime
-currentDateTime = mapRead (\(d,t) -> DateTime d t) (iworldLocalDate |+| iworldLocalTime)
+currentDateTime = mapRead (\(d,t) -> toDateTime d t) (iworldLocalDate |+| iworldLocalTime)
 
 currentTime :: ReadOnlyShared Time
 currentTime = toReadOnly iworldLocalTime
@@ -36,7 +36,7 @@ currentDate :: ReadOnlyShared Date
 currentDate = toReadOnly iworldLocalDate
 
 currentUTCDateTime :: ReadOnlyShared DateTime
-currentUTCDateTime = mapRead (\(d,t) -> DateTime d t) (iworldUTCDate |+| iworldUTCTime)
+currentUTCDateTime = mapRead (\(d,t) -> toDateTime d t) (iworldUTCDate |+| iworldUTCTime)
 
 currentUTCTime :: ReadOnlyShared Time
 currentUTCTime = toReadOnly iworldUTCTime
@@ -48,17 +48,17 @@ currentTimestamp :: ReadOnlyShared Timestamp
 currentTimestamp = mapRead datetimeToTimestamp currentUTCDateTime
 
 // Workflow processes
-topLevelTasks :: SharedTaskList Void
+topLevelTasks :: SharedTaskList ()
 topLevelTasks = topLevelTaskList
 
-currentSessions ::ReadOnlyShared [TaskListItem Void]
+currentSessions ::ReadOnlyShared [TaskListItem ()]
 currentSessions
     = mapRead (map toTaskListItem) (toReadOnly (sdsFocus filter filteredInstanceIndex))
 where
     filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just True,matchAttribute=Nothing
              ,includeConstants=True,includeProgress=True,includeAttributes=True}
 
-currentProcesses ::ReadOnlyShared [TaskListItem Void]
+currentProcesses ::ReadOnlyShared [TaskListItem ()]
 currentProcesses
     = mapRead (map toTaskListItem) (toReadOnly (sdsFocus filter filteredInstanceIndex))
 where
@@ -70,9 +70,9 @@ toTaskListItem (instanceNo,Just {InstanceConstants|listId},Just progress, Just a
 	= {TaskListItem|taskId = TaskId instanceNo 0, listId = listId, detached = True, self = False, value = NoValue, progress = Just progress, attributes = attributes}
 
 taskInstanceFromInstanceData :: InstanceData -> TaskInstance
-taskInstanceFromInstanceData (instanceNo,Just {InstanceConstants|instanceKey,session,listId,build,issuedAt},Just progress=:{InstanceProgress|value,firstEvent,lastEvent,connectedTo,lastIO},Just attributes)
+taskInstanceFromInstanceData (instanceNo,Just {InstanceConstants|instanceKey,session,listId,build,issuedAt},Just progress=:{InstanceProgress|value,firstEvent,lastEvent},Just attributes)
     = {TaskInstance|instanceNo = instanceNo, instanceKey = instanceKey, session = session, listId = listId, build = build
-      ,attributes = attributes, value = value, issuedAt = issuedAt, firstEvent = firstEvent, lastEvent = lastEvent, connectedTo = connectedTo,lastIO = lastIO}
+      ,attributes = attributes, value = value, issuedAt = issuedAt, firstEvent = firstEvent, lastEvent = lastEvent}
 
 currentTaskInstanceNo :: ROShared () InstanceNo
 currentTaskInstanceNo = createReadOnlySDS (\() iworld=:{current={taskInstance}} -> (taskInstance,iworld))

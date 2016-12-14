@@ -1,6 +1,7 @@
 implementation module iTasks.API.Extensions.Admin.UserAdmin
 
 import iTasks, Text, Data.Tuple, StdArray
+import iTasks.UI.Editor
 
 derive class iTask UserAccount
 
@@ -70,31 +71,31 @@ createUser account
 		_	
 			= throw ("A user with username '" +++ toString account.UserAccount.credentials.Credentials.username +++ "' already exists.")
 
-deleteUser :: !UserId -> Task Void
-deleteUser userId = upd (filter (\acc -> identifyUserAccount acc <> userId)) userAccounts @ const Void
+deleteUser :: !UserId -> Task ()
+deleteUser userId = upd (filter (\acc -> identifyUserAccount acc <> userId)) userAccounts @! ()
 
 
-manageUsers :: Task Void
+manageUsers :: Task ()
 manageUsers =
-	(		enterChoiceWithSharedAs ("Users","The following users are available") [] userAccounts identifyUserAccount
-		>>*	[ OnAction		(Action "New" [])									(always (createUserFlow	@ const False))
+	(		enterChoiceWithSharedAs ("Users","The following users are available") [ChooseFromGrid id] userAccounts identifyUserAccount
+		>>*	[ OnAction		(Action "New")									(always (createUserFlow	@ const False))
 			, OnAction 	    (ActionEdit) 						                (hasValue (\u -> updateUserFlow u @ const False))
 			, OnAction      (ActionDelete) 		            					(hasValue (\u -> deleteUserFlow u @ const False))
-			, OnAction      (Action "Import & export/Import CSV file..." [])	(always (importUserFileFlow @ const False))
-			, OnAction      (Action "Import & export/Export CSV file..." [])	(always (exportUserFileFlow @ const False))
-			, OnAction      (Action "Import & export/Import demo users" [])		(always (importDemoUsersFlow @ const False))
+			, OnAction      (Action "Import & export/Import CSV file...")	(always (importUserFileFlow @ const False))
+			, OnAction      (Action "Import & export/Export CSV file...")	(always (exportUserFileFlow @ const False))
+			, OnAction      (Action "Import & export/Import demo users")		(always (importDemoUsersFlow @ const False))
 			, OnAction      (ActionQuit)										(always (return True))
 			]
-	) <! id @ const Void
+	) <! id @! ()
 
-createUserFlow :: Task Void
+createUserFlow :: Task ()
 createUserFlow =
 		enterInformation ("Create user","Enter user information") []
-	>>*	[ OnAction		ActionCancel	(always (return Void))
+	>>*	[ OnAction		ActionCancel	(always (return ()))
 		, OnAction	    ActionOk 		(hasValue (\user ->
 											createUser user
 										>>|	viewInformation "User created" [] "Successfully added new user"
-										>>| return Void
+										>>| return ()
 									    ))
 		]
 		
@@ -107,7 +108,7 @@ updateUserFlow userId
 			>>*	[ OnAction ActionCancel (always (return account))
 				, OnAction ActionOk (hasValue (\newAccount ->
 												set (Just newAccount) (userAccount userId)
-											>>=	viewInformation "User updated" [ViewWith (\(Just {UserAccount|title}) -> "Successfully updated " +++ fromMaybe "Untitled" title)]
+											>>=	viewInformation "User updated" [ViewAs (\(Just {UserAccount|title}) -> "Successfully updated " +++ fromMaybe "Untitled" title)]
 											>>| return newAccount
 											))
 				])
@@ -122,13 +123,13 @@ deleteUserFlow userId
 			=	viewInformation "Delete user" [] ("Are you sure you want to delete " +++ accountTitle account +++ "? This cannot be undone.")
 			>>*	[ OnAction ActionNo	(always (return account))
 				, OnAction ActionYes (always (deleteUser userId
-									>>|	viewInformation "User deleted" [ViewWith (\account -> "Successfully deleted " +++ accountTitle account +++ ".")] account
+									>>|	viewInformation "User deleted" [ViewAs (\account -> "Successfully deleted " +++ accountTitle account +++ ".")] account
 									>>| return account
 									))
 				]
 				
-importUserFileFlow :: Task Void
-importUserFileFlow = viewInformation "Not implemented" [] Void
+importUserFileFlow :: Task ()
+importUserFileFlow = viewInformation "Not implemented" [] ()
 
 exportUserFileFlow :: Task Document
 exportUserFileFlow

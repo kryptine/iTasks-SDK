@@ -4,11 +4,10 @@ import qualified Data.Map as DM
 import qualified iTasks._Framework.SDS as DSDS
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
+import iTasks._Framework.Store
 import StdMisc
 
 NS_TONIC_INSTANCES :== "tonic-instances"
-
-derive class iTask UIAction
 
 sdsUnsafeRead :: (RWShared () a b) *IWorld -> *(a, *IWorld)
 sdsUnsafeRead focus iworld
@@ -81,32 +80,32 @@ tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite wr
                                       _                    -> False
 
 
-tonicEnabledSteps :: RWShared () (Map TaskId (Map ExprId [UIAction])) (Map TaskId (Map ExprId [UIAction]))
+tonicEnabledSteps :: RWShared () (Map TaskId (Map ExprId [UI])) (Map TaskId (Map ExprId [UI]))
 tonicEnabledSteps = sdsTranslate "tonicEnabledSteps" (\t -> t +++> "-tonicEnabledSteps")
                                  (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
 
-tonicActionsForTaskID :: RWShared TaskId (Map ExprId [UIAction]) (Map ExprId [UIAction])
+tonicActionsForTaskID :: RWShared TaskId (Map ExprId [UI]) (Map ExprId [UI])
 tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicEnabledSteps
   where
-  read :: TaskId (Map TaskId (Map ExprId [UIAction])) -> MaybeError TaskException (Map ExprId [UIAction])
+  read :: TaskId (Map TaskId (Map ExprId [UI])) -> MaybeError TaskException (Map ExprId [UI])
   read tid acts
     = case 'DM'.get tid acts of
         Just acts` -> Ok acts`
         _          -> Ok 'DM'.newMap
 
-  write :: TaskId (Map TaskId (Map ExprId [UIAction])) (Map ExprId [UIAction]) -> MaybeError TaskException (Maybe (Map TaskId (Map ExprId [UIAction])))
+  write :: TaskId (Map TaskId (Map ExprId [UI])) (Map ExprId [UI]) -> MaybeError TaskException (Maybe (Map TaskId (Map ExprId [UI])))
   write tid oldmap acts
     = Ok (Just ('DM'.put tid acts oldmap))
 
-  notify :: TaskId (Map TaskId (Map ExprId [UIAction])) (Map ExprId [UIAction]) -> SDSNotifyPred TaskId
+  notify :: TaskId (Map TaskId (Map ExprId [UI])) (Map ExprId [UI]) -> SDSNotifyPred TaskId
   notify tid oldmap acts = \tid` -> case read tid oldmap of
                                       Ok oldacts -> oldacts =!= acts
                                       _          -> False
 
-tonicActionsForTaskIDAndExpr :: RWShared (TaskId, ExprId) [UIAction] [UIAction]
+tonicActionsForTaskIDAndExpr :: RWShared (TaskId, ExprId) [UI] [UI]
 tonicActionsForTaskIDAndExpr = sdsLens "tonicActionsForTaskIDAndExpr" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicEnabledSteps
   where
-  read :: (TaskId, ExprId) (Map TaskId (Map ExprId [UIAction])) -> MaybeError TaskException [UIAction]
+  read :: (TaskId, ExprId) (Map TaskId (Map ExprId [UI])) -> MaybeError TaskException [UI]
   read (tid, eid) acts
     = case 'DM'.get tid acts of
         Just acts` -> case 'DM'.get eid acts` of
@@ -114,7 +113,7 @@ tonicActionsForTaskIDAndExpr = sdsLens "tonicActionsForTaskIDAndExpr" (const ())
                         _       -> Ok []
         _          -> Ok []
 
-  write :: (TaskId, ExprId) (Map TaskId (Map ExprId [UIAction])) [UIAction] -> MaybeError TaskException (Maybe (Map TaskId (Map ExprId [UIAction])))
+  write :: (TaskId, ExprId) (Map TaskId (Map ExprId [UI])) [UI] -> MaybeError TaskException (Maybe (Map TaskId (Map ExprId [UI])))
   write (tid, eid) oldmap acts
     # m = case 'DM'.get tid oldmap of
             Just acts` -> acts`
@@ -122,7 +121,7 @@ tonicActionsForTaskIDAndExpr = sdsLens "tonicActionsForTaskIDAndExpr" (const ())
     # m = 'DM'.put eid acts m
     = Ok (Just ('DM'.put tid m oldmap))
 
-  notify :: (TaskId, ExprId) (Map TaskId (Map ExprId [UIAction])) [UIAction] -> SDSNotifyPred (TaskId, ExprId)
+  notify :: (TaskId, ExprId) (Map TaskId (Map ExprId [UI])) [UI] -> SDSNotifyPred (TaskId, ExprId)
   notify tid oldmap acts = \tid` -> case read tid oldmap of
                                       Ok oldacts -> oldacts =!= acts
                                       _          -> False
@@ -130,11 +129,7 @@ tonicActionsForTaskIDAndExpr = sdsLens "tonicActionsForTaskIDAndExpr" (const ())
 staticDisplaySettings :: RWShared () StaticDisplaySettings StaticDisplaySettings
 staticDisplaySettings = sdsFocus "staticDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
                                      { StaticDisplaySettings
-                                     | unfold_depth    = { Scale
-                                                         | min = 0
-                                                         , cur = 0
-                                                         , max = 25
-                                                         }
+                                     | unfold_depth    = 0
                                      , display_compact = False
                                      , show_comments   = True
                                      }))
@@ -145,11 +140,7 @@ queryShare = sdsFocus "queryShare" (memoryStore NS_TONIC_INSTANCES (Just Nothing
 dynamicDisplaySettings :: RWShared () DynamicDisplaySettings DynamicDisplaySettings
 dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
                                      { DynamicDisplaySettings
-                                     | unfold_depth    = { Scale
-                                                         | min = 0
-                                                         , cur = 0
-                                                         , max = 5
-                                                         }
+                                     | unfold_depth    = 0
                                      , display_compact = False
                                      , show_finished_blueprints = False
                                      , show_task_value = False

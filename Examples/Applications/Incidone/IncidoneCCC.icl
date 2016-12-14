@@ -4,7 +4,9 @@ module IncidoneCCC
 * to support SAR operations of the Netherlands Coast guard. It is loosely based on their
 * procedure documentation and observation of, and interviews with, Coast guard officers.
 */
-import iTasks, StdMisc, System.Time, Text, Data.Tuple
+import iTasks, StdMisc, System.Time, Text, Text.HTML, Data.Tuple
+import iTasks.UI.Layout, iTasks.UI.Definition
+import qualified Data.Map as DM
 
 //General configuration
 import Incidone.Configuration
@@ -31,11 +33,12 @@ import Incidone.Simulation.TrainingTasks
 import Incidone.DeviceBased.VideoWall
 import Incidone.DeviceBased.Tablet
 
+
 Start :: *World -> *World
-Start world = startEngine [publish "/" (WebApp [Theme "kustwacht"])                         (\_ -> ccPerson)
-						  ,publish "/wall" (WebApp [Theme "kustwacht"])                     (\_ -> viewVideoWallContent)
-						  ,publish "/wall-control" (WebApp [Theme "kustwacht-touch"])       (\_ -> selectVideoWallContent)
-                          ,publish "/exercise-control" (WebApp [Theme "kustwacht-touch"])   (\_ -> controlExercise)
+Start world = startEngine [publish "/"                 (\_ -> ccPerson)
+						  ,publish "/wall"             (\_ -> viewVideoWallContent)
+						  ,publish "/wall-control"     (\_ -> selectVideoWallContent)
+                          ,publish "/exercise-control" (\_ -> controlExercise)
 						  ] world
 where
 	//Main task for command center operators
@@ -51,10 +54,10 @@ where
 
 doAuthenticated :: (User -> Task a) -> Task a | iTask a
 doAuthenticated task
-	=	enterCredentials
-	>>* [OnAction (Action "Login" [ActionIcon "login",ActionKey {key=KEY_ENTER,ctrl=False,shift=False,alt=False}])
+	= (	enterCredentials
+	>>* [OnAction (Action "Login")
 			(hasValue (\cred -> verifyCredentials cred >>- executeTask task))
-		]
+		] ) <<@ Title "Login" <<@ ApplyLayout (beforeStep frameCompact) //Compact layout before login, full screen afterwards
 where
 	enterCredentials :: Task Credentials
 	enterCredentials
@@ -76,14 +79,22 @@ where
 
 whileAuthenticated :: User [Workspace -> Task ()] -> Task ()
 whileAuthenticated user tasks
-    =  (controlDash -|| workOnTasks)  <<@ (ArrangeWithSideBar 0 TopSide 30 False) <<@ FullScreen <<@ (Title "Incidone")
+    =  (controlDash -|| workOnTasks) <<@ (ArrangeWithSideBar 0 TopSide 30 False)
 where
 	controlDash = (
-		    (viewInformation () [] ("Welcome " +++ toString user) <<@ ForceLayout)
+		    viewInformation () [] ("Welcome " +++ toString user) 
              -&&-
-            (viewNotifications <<@ ForceLayout) <<@ ArrangeHorizontal <<@ (Attribute "buttonPosition" "right")
-        >>* [OnAction (Action "Log out" [ActionIcon "logout"]) (always (return ()))]
-        ) <<@ (AfterLayout (uiDefSetPadding 0 0 0 250 o uiDefSetBaseCls "summary-bar"))
+            viewNotifications
+        >>* [OnAction (Action "Log out") (always (return ()))]
+        )  <<@ ApplyLayout layoutControlDash
 
 	workOnTasks = doIndependent tasks <<@ ArrangeWithTabs
 
+	layoutControlDash = sequenceLayouts
+		[moveSubAt [0,0] [1]
+		,moveSubAt [0,0] [2]
+		,removeSubAt [0]
+		,layoutChildrenOf [] actionToButton
+		,setAttributes ('DM'.unions [directionAttr Horizontal,paddingAttr 2 2 2 250, baseClsAttr "summary-bar"])
+		,setNodeType UIPanel
+        ]

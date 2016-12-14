@@ -7,21 +7,20 @@ import qualified Data.Map as DM
 import Text.HTML, Internet.HTTP, Data.Error, Text.JSON
 import iTasks._Framework.IWorld, iTasks.UI.Definition, iTasks._Framework.Util
 import iTasks.API.Core.Types
-import iTasks._Framework.Generic, iTasks._Framework.Generic.Interaction
+import iTasks._Framework.Generic
+
+import iTasks.UI.Editor, iTasks.UI.Editor.Common
 
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
-from iTasks.UI.Layout 					import :: LayoutRules(..), autoLayoutRules
 from iTasks.API.Common.SDSCombinators	import toDynamic 
-from iTasks								import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
+from iTasks._Framework.Serialization    import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 import qualified Data.CircularStack as DCS
 
 mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =
   { TaskEvalOpts
-  | useLayout = Nothing
-  , modLayout = Nothing
-  , noUI      = False
-  , tonicOpts = defaultTonicOpts
+  | noUI        = False
+  , tonicOpts   = defaultTonicOpts
   }
 
 defaultTonicOpts :: TonicOpts
@@ -50,14 +49,8 @@ JSONEncode{|Task|} _ _ tt = [dynamicJSONEncode tt]
 JSONDecode{|Task|} _ _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Task|} _ _ c = (Nothing,c)
 
-gUpdate{|Task|} _ _ _ _ target upd val iworld = basicUpdate (\Void t -> Just t) target upd val iworld
-
-gVerify{|Task|} _ _ mv = alwaysValid mv
-
 gText{|Task|} _ _ _ = ["<Task>"]
-gEditor{|Task|} _ _ _ _ _ _ _ _ _ vst = (NormalEditor [(stringDisplay "<Task>", 'DM'.newMap)],vst)
-
-gEditMeta{|Task|} _ _ 		= [{label=Just "Task",hint=Nothing,unit=Nothing}]
+gEditor{|Task|} _ _ _ _ _ = emptyEditor
 gEq{|Task|} _ _ _			= True // tasks are always equal??
 
 gDefault{|Task|} gDefx = Task (\_ -> abort error)
@@ -73,13 +66,6 @@ toRefresh (ResetEvent)          = RefreshEvent "Converted from Reset"
 
 exception :: !e -> TaskException | TC, toString e
 exception e = (dynamic e, toString e)
-
-repLayoutRules :: !TaskEvalOpts -> LayoutRules
-repLayoutRules {TaskEvalOpts|useLayout,modLayout}	= (fromMaybe id modLayout) (fromMaybe autoLayoutRules useLayout)
-
-finalizeRep :: !TaskEvalOpts !TaskRep -> TaskRep
-finalizeRep repOpts=:{TaskEvalOpts|noUI=True} _ = NoRep
-finalizeRep repOpts rep = rep
 
 extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
 extendCallTrace taskId repOpts=:{TaskEvalOpts|tonicOpts = {callTrace = xs}}
@@ -147,13 +133,16 @@ where
 mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
 mkInstantTask iworldfun = Task (evalOnce iworldfun)
 where
-	evalOnce f _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of	
-		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep repOpts NoRep) (TCStable taskId ts (DeferredJSON a)), iworld)
+	evalOnce f event repOpts (TCInit taskId ts) iworld = case f taskId iworld of	
+		(Ok a,iworld)							= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) (TCStable taskId ts (DeferredJSON a)), iworld)
 		(Error e, iworld)					    = (ExceptionResult e, iworld)
 
-	evalOnce f _ repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
-		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (finalizeRep repOpts NoRep) state, iworld)
+	evalOnce f event repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
+		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) state, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
 	evalOnce f _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)
+
+	rep ResetEvent  = ReplaceUI (ui UIEmpty)
+	rep _ 			= NoChange	
 

@@ -1,37 +1,18 @@
 definition module iTasks._Framework.Client.LinkerSupport
 
 import StdString
-import Data.Maybe, Data.Void
+import Data.Maybe
 import iTasks._Framework.IWorld
-import iTasks.API.Core.Client.Editlet
+import iTasks.UI.Editor
 
-//taskletUpdateLinker :: !val !*IWorld -> *(!String, !*IWorld)
-
-taskletLinker :: !st 							// state
-	![(!String, !iarg -> Void)] 				// interface functions
-	![(!String, !String, *JSWorld -> Void)]		// event handlers
-	!rs											// result function
-	!(Maybe cf)									// controller function
-	!*IWorld
-	->
-	*(!String									// JS code of the state
-	 ,!String 									// JS code of the support code for all the expressions
-	 ,![(!String,!String,!String)]				// JS code of the eventhandlers
-	 ,![(!String,!String)]						// JS code of the interface functions
-	 ,!String									// JS code of the result function
-	 ,!Maybe String								// JS code of the controller function
-	 ,!*IWorld)
-
-editletLinker ::
-	!idf												// initDiff function
-	!dvf												// defVal function
-	!adf												// adddiff function
-	!*IWorld
-	->
-	*(!String									// JS code of the support code for all the expressions
-	 ,!String									// JS code of the initDiff function
-	 ,!String									// JS code of the defVal function
-	 ,!String									// JS code of the adddiff function
-	 ,!*IWorld)
-
-diffLinker :: !cdf !idf !*IWorld -> (!String,!String,!String,!*IWorld)
+/**
+* Links all necessary Sapl functions for an editlet and compiles them to Javascript 
+*
+* @param initUI function
+* @param IWorld state
+*
+* @return JS code of the support code for all the expressions
+* @return JS code of the initUI function
+* @return IWorld state
+*/
+editletLinker :: !f !*IWorld -> *(!MaybeErrorString (!String,!String),!*IWorld)

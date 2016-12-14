@@ -2,7 +2,7 @@ definition module iTasks._Framework.Tonic.Shares
 
 import iTasks.API.Core.Types
 import iTasks.API.Core.SDSs
-from iTasks.UI.Definition import :: UIAction
+from iTasks.UI.Definition import :: UI
 from iTasks._Framework.Tonic.AbsSyn import :: VarName
 from iTasks._Framework.Tonic.Types import :: ModuleName, :: FuncName, :: ClickMeta, :: ExprId, :: TStability, :: TonicRTMap, :: BlueprintInstance, :: StaticDisplaySettings, :: BlueprintQuery, :: DynamicDisplaySettings, :: TaskResult, :: ComputationId
 
@@ -20,11 +20,11 @@ allTonicInstances :: RWShared TaskId [((ModuleName, FuncName), BlueprintInstance
 
 tonicInstances :: RWShared (TaskId, ModuleName, FuncName) (Maybe BlueprintInstance) BlueprintInstance
 
-tonicEnabledSteps :: RWShared () (Map TaskId (Map ExprId [UIAction])) (Map TaskId (Map ExprId [UIAction]))
+tonicEnabledSteps :: RWShared () (Map TaskId (Map ExprId [UI])) (Map TaskId (Map ExprId [UI]))
 
-tonicActionsForTaskID :: RWShared TaskId (Map ExprId [UIAction]) (Map ExprId [UIAction])
+tonicActionsForTaskID :: RWShared TaskId (Map ExprId [UI]) (Map ExprId [UI])
 
-tonicActionsForTaskIDAndExpr :: RWShared (TaskId, ExprId) [UIAction] [UIAction]
+tonicActionsForTaskIDAndExpr :: RWShared (TaskId, ExprId) [UI] [UI]
 
 staticDisplaySettings :: RWShared () StaticDisplaySettings StaticDisplaySettings
 

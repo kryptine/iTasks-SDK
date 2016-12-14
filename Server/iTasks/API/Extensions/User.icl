@@ -2,6 +2,8 @@ implementation module iTasks.API.Extensions.User
 import iTasks
 import Text
 import qualified Data.Map as DM
+import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import iTasks.UI.Layout.Default
 
 gText{|User|} _ val = [maybe "" toString val]
 
@@ -11,9 +13,6 @@ derive gDefault			User, UserConstraint
 derive gEq				User, UserConstraint
 derive gText	        UserConstraint
 derive gEditor			User, UserConstraint
-derive gEditMeta		User, UserConstraint
-derive gUpdate			User, UserConstraint
-derive gVerify			User, UserConstraint
 
 instance toString User
 where
@@ -68,17 +67,7 @@ JSONEncode{|Username|} _ (Username u) = [JSONString u]
 JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
 JSONDecode{|Username|} _ c = (Nothing,c)
 
-gEditor{|Username|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
-	| disabled	
-		# val = checkMask mask val
-		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},'DM'.newMap)],vst)
-	| otherwise
-		# value = checkMaskValue mask ((\(Username v) -> v) val)
-		= (NormalEditor [(UIEditString defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
-
-gUpdate{|Username|} target upd val iworld = basicUpdateSimple target upd val iworld
-gVerify{|Username|} mv options = simpleVerify mv options
-gEditMeta{|Username|} _ = [{label=Nothing,hint=Just "Enter a username",unit=Nothing}]
+gEditor{|Username|} = liftEditor (\(Username u) -> u) (\s -> (Username s)) (whenDisabled (textView 'DM'.newMap) (withHintAttributes "username" (textField 'DM'.newMap)))
 
 derive gDefault			Username
 derive gEq				Username
@@ -103,15 +92,8 @@ JSONDecode{|Password|} _ c = (Nothing,c)
 gText{|Password|} AsHeader _ = [""]
 gText{|Password|} _ _        = ["********"]
 
-gEditor{|Password|} dp vv=:(val,mask,ver) meta vst=:{VSt|taskId,disabled}
-	| disabled	
-		= (NormalEditor [(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},'DM'.newMap)],vst)
-	| otherwise	
-		# value = checkMaskValue mask ((\(Password v) -> v) val)
-		= (NormalEditor [(UIEditPassword defaultHSizeOpts {UIEditOpts|taskId=taskId,editorId=editorId dp,value=value},editorAttributes vv meta)],vst)
-gUpdate{|Password|} target upd val iworld = basicUpdateSimple target upd val iworld
-gVerify{|Password|} mv options = simpleVerify mv options
-gEditMeta{|Password|} _ = [{label=Nothing,hint=Just "Enter a password",unit=Nothing}]
+gEditor{|Password|} = liftEditor (\(Password p) -> p) (\s -> (Password s)) 
+						(whenDisabled (constEditor "********" (textView 'DM'.newMap)) (withHintAttributes "password" (passwordField 'DM'.newMap)))
 
 derive gDefault			Password
 derive gEq				Password
@@ -161,10 +143,10 @@ userToAttr _ attr _
 	# attr = 'DM'.del "auth-title" attr
 	= Ok (Just attr)
 
-processesForUser :: User -> ReadOnlyShared [TaskListItem Void]
+processesForUser :: User -> ReadOnlyShared [TaskListItem ()]
 processesForUser user = mapRead (filter (forWorker user)) currentProcesses
 
-processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
+processesForCurrentUser	:: ReadOnlyShared [TaskListItem ()]
 processesForCurrentUser = mapRead readPrj (currentProcesses >+| currentUser)
 where
 	readPrj (items,user)	= filter (forWorker user) items
@@ -182,11 +164,10 @@ forWorker user {TaskListItem|attributes} = case 'DM'.get "user" attributes of
 workOn :: !TaskId -> Task AttachmentStatus
 workOn taskId=:(TaskId no _) 
 	//Copy authentication attributes from current instance 
-	= 			 	get currentUser
-	>>- \user -> 	set user (sdsFocus no taskInstanceUser)
+	= 			 		get currentUser -&&- get (sdsFocus no taskInstanceAttributesByNo)
+	>>- \(user,attr) -> set user (sdsFocus no taskInstanceUser)
 	//Attach the instance
-	>>|			 	attach taskId
-
+	>>|			 		attach taskId <<@ Title (fromMaybe "Untitled" ('DM'.get "title" attr))
 /*
 * Alters the evaluation functions of a task in such a way
 * that before evaluation the currentUser field in iworld is set to
@@ -207,11 +188,11 @@ workAs asUser task
 */
 assign :: !TaskAttributes !(Task a) -> Task a | iTask a
 assign attr task
-	=	parallel [(Embedded, \s -> processControl s),(Detached attr False, \_ -> task)] []
+	=	parallel [(Embedded, \s -> processControl s),(Detached attr False, const (task <<@ ApplyLayout defaultSessionLayout))] []
 	@?	result
 where
 	processControl tlist
-		= viewSharedInformation () [ViewWith toView] (sdsFocus filter tlist) @? const NoValue
+		= viewSharedInformation () [ViewAs toView] (sdsFocus filter tlist) @? const NoValue
     where
         filter = {TaskListFilter|onlySelf=False,onlyTaskId = Nothing, onlyIndex = Just [1]
                  ,includeValue=False,includeAttributes=True,includeProgress=True}
@@ -281,5 +262,3 @@ appendTopLevelTaskFor :: !worker !Bool !(Task a) -> Task TaskId | iTask a & toUs
 appendTopLevelTaskFor worker evalDirect task 
 	= appendTopLevelTask (workerAttributes worker []) evalDirect task
 
-
-	

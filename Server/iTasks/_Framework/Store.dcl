@@ -11,14 +11,14 @@ definition module iTasks._Framework.Store
 */
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.Maybe import :: Maybe
-from Data.Void import :: Void
 from Data.Error import :: MaybeError, :: MaybeErrorString
 from System.Time import :: Timestamp
 from System.FilePath import :: FilePath
 from iTasks._Framework.SDS import :: Shared, :: ReadWriteShared, :: RWShared
 from iTasks._Framework.IWorld import :: IWorld
 from iTasks._Framework.Generic				import class iTask
-from iTasks._Framework.Generic.Interaction	import generic gEditor, generic gEditMeta, generic gVerify, generic gUpdate, :: VSt, ::USt, :: VisualizationResult,:: EditMeta, :: VerifyOptions, :: DataPath, :: VerifiedValue, :: MaskedValue, :: Verification, :: InteractionMask
+from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked, :: VSt
+from iTasks.UI.Editor.Generic import generic gEditor
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks._Framework.Generic.Defaults		import generic gDefault
 from GenEq import generic gEq
@@ -35,10 +35,10 @@ NS_APPLICATION_SHARES	:== "application-data"
 NS_JAVASCRIPT_CACHE     :== "js-cache"
 
 :: StoreReadError
-    = StoreReadMissingError         //When there is no file on disk for this
-    | StoreReadDataError            //When there is a problem reading data from disk
-    | StoreReadTypeError            //When the data cannot be decoded based on the type
-    | StoreReadBuildVersionError    //When there is a stored value but it has the wrong build version
+    = StoreReadMissingError !StoreName      //When there is no file on disk for this
+    | StoreReadDataError !StoreName         //When there is a problem reading data from disk
+    | StoreReadTypeError !StoreName         //When the data cannot be decoded based on the type
+    | StoreReadBuildVersionError !StoreName //When there is a stored value but it has the wrong build version
 
 instance toString StoreReadError
 derive class iTask StoreReadError
@@ -102,16 +102,15 @@ blobStoreWrite	:: !StoreNamespace !StoreName !{#Char}		!*IWorld -> *IWorld
 */
 blobStoreRead	:: !StoreNamespace !StoreName 				!*IWorld -> (!MaybeError StoreReadError {#Char}, !*IWorld)
 
-
 /**
 * Deletes the value with given key from the store
 */
-deleteValue				:: !StoreNamespace !StoreName				!*IWorld -> *IWorld
+deleteValue             :: !StoreNamespace !StoreName !*IWorld -> *(MaybeErrorString (),*IWorld)
 
 /**
 * Deletes all values that start with the prefix from the store
 */
-deleteValues			:: !StoreNamespace !StorePrefix				!*IWorld -> *IWorld
+deleteValues 			:: !StoreNamespace !StorePrefix !*IWorld -> *(MaybeErrorString (),*IWorld)
 
 /**
 * List the namespaces in the store
@@ -122,6 +121,12 @@ listStoreNamespaces     ::                                          !*IWorld -> 
 */
 listStoreNames          :: !StoreNamespace                          !*IWorld -> (!MaybeErrorString [StoreName], !*IWorld)
 
-writeToDisk :: !StoreNamespace !StoreName !String !*IWorld -> *IWorld
+/**
+* Delete all values in the store
+*/
+emptyStore :: !*IWorld -> *IWorld
+
+//writeToDisk :: !StoreNamespace !StoreName !String !*IWorld -> *IWorld
+writeToDisk :: !StoreNamespace !StoreName !String !*IWorld -> (MaybeErrorString (), *IWorld)
 
 readFromDisk :: !StoreNamespace !StoreName !*IWorld -> (MaybeError StoreReadError (!BuildID, !String), !*IWorld)

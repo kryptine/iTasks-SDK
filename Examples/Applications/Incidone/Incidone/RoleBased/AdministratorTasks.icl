@@ -12,6 +12,7 @@ import Incidone.ActionManagementTasks
 import Incidone.Util.TaskPatterns
 import iTasks.API.Extensions.Admin.ServerAdmin
 import iTasks.API.Extensions.Dashboard
+import Text.HTML
 
 :: DatabaseProblem
     = NoDatabaseAccess
@@ -21,11 +22,11 @@ import iTasks.API.Extensions.Dashboard
 derive class iTask DatabaseProblem
 
 configureIncidone :: [Workspace -> Task ()]
-configureIncidone = map const [configureDatabase
+configureIncidone = map const [configureDatabase		<<@ (Title "Database")
                               ,manageUsers              <<@ (Title "Users")
                               ,manageDemoData
                               ,configureIntegration
-                              ,manageUserActionCatalog
+                              ,manageUserActionCatalog  <<@ (Title "Action catalog")
                               ,configureMaps            <<@ (Title "Maps")
                               ,configureWebLinks        <<@ (Title "Web integration")
 //                              ,(manageServer @! ())     <<@ (Title "Processes")
@@ -33,8 +34,8 @@ configureIncidone = map const [configureDatabase
 configureDatabase :: Task ()
 configureDatabase
     =   viewDatabaseConfigStatus
-    >^* [OnAction (Action "Configure database" []) (always (doOrCancel setupDatabase <<@ InWindow))
-        ,OnAction (Action "Manage database" []) (ifValue hasAccess (\_ -> doOrClose manageDatabase <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600)) <<@ InWindow))
+    >^* [OnAction (Action "Configure database") (always (doOrCancel setupDatabase <<@ InWindow))
+        ,OnAction (Action "Manage database") (ifValue hasAccess (\_ -> doOrClose manageDatabase /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600))*/ <<@ InWindow))
         ]
     @! ()
 where
@@ -45,13 +46,13 @@ where
         =   whileUnchanged databaseConfig
         \config ->
             checkDatabaseConfig config
-        >>- viewInformation (Title "Database configuration") [ViewWith databaseStatusView]
+        >>- viewInformation (Title "Database configuration") [ViewAs databaseStatusView]
 
-    databaseStatusView (Ok InternalSQLiteDB)            = Row (LightOnGreen, "Incidone is correctly configured to use an internal SQLite database.")
-    databaseStatusView (Ok (ExternalMySQLDB _))         = Row (LightOnGreen, "Incidone is correctly configured to use an external MySQL database.")
-    databaseStatusView (Error NoDatabaseAccess)         = Row (LightOnRed, "A database is configured, but it can not be accessed. Please reconfigure.")
-    databaseStatusView (Error NoDatabaseTables)         = Row (LightOnRed, "A database is configured, but it contains no tables. Please reconfigure.")
-    databaseStatusView (Error IncorrectDatabaseTables)  = Row (LightOnRed, "A database is configured, but it contains other tables than Incidone's. Please reconfigure.")
+    databaseStatusView (Ok InternalSQLiteDB)            = (LightOnGreen, "Incidone is correctly configured to use an internal SQLite database.")
+    databaseStatusView (Ok (ExternalMySQLDB _))         = (LightOnGreen, "Incidone is correctly configured to use an external MySQL database.")
+    databaseStatusView (Error NoDatabaseAccess)         = (LightOnRed, "A database is configured, but it can not be accessed. Please reconfigure.")
+    databaseStatusView (Error NoDatabaseTables)         = (LightOnRed, "A database is configured, but it contains no tables. Please reconfigure.")
+    databaseStatusView (Error IncorrectDatabaseTables)  = (LightOnRed, "A database is configured, but it contains other tables than Incidone's. Please reconfigure.")
 
     setupDatabase
         =   get databaseConfig
@@ -72,9 +73,9 @@ where
                         ]
 
                 Error e
-                    =   viewInformation ("Warning","The new configuration appears to have a problem") [ViewWith databaseStatusView] (Error e)
-                    >>* [OnAction (Action "Set anyway" []) (always (set config databaseConfig @! ()))
-                        ,OnAction (Action "Change and try again" []) (always (editDatabaseConfig newConfig))
+                    =   viewInformation ("Warning","The new configuration appears to have a problem") [ViewAs databaseStatusView] (Error e)
+                    >>* [OnAction (Action "Set anyway") (always (set config databaseConfig @! ()))
+                        ,OnAction (Action "Change and try again") (always (editDatabaseConfig newConfig))
                         ]
 
     checkDatabaseConfig config
@@ -94,10 +95,10 @@ where
     manageDatabase
         =   get databaseDef
         >>- \db ->
-          (  (enterChoiceWithShared (Title "Tables") [ChooseWith (ChooseFromTree group)] (sdsFocus db sqlTables)
+          (  (enterChoiceWithShared (Title "Tables") [/*ChooseFromTree group */] (sdsFocus db sqlTables)
               >^* [OnAction ActionDelete (hasValue (\table -> deleteTable db table <<@ InWindow @! ()))
-                  ,OnAction (Action "Empty database" []) (always (emptyDatabase db <<@ InWindow @! ()))
-                  ,OnAction (Action "Load Incidone tables" []) (always (createIncidoneTables db <<@ InWindow ))
+                  ,OnAction (Action "Empty database") (always (emptyDatabase db <<@ InWindow @! ()))
+                  ,OnAction (Action "Load Incidone tables") (always (createIncidoneTables db <<@ InWindow ))
                   ]
              )
         >&> withSelection viewNoSelection
@@ -107,7 +108,7 @@ where
             ) (\e -> viewInformation () [] e @! ())
         ) <<@ (ArrangeWithSideBar 0 LeftSide 300 True)
     where
-        group items _ = [{ChoiceTree|defaultValue & label=o,value=ChoiceNode i}\\(i,o) <- items]
+        //group items _ = [{ChoiceTree|defaultValue & label=o,value=ChoiceNode i}\\(i,o) <- items]
 
         deleteTable db table
             =   viewInformation "Are your sure you want to delete this table?" [] table
@@ -131,14 +132,14 @@ where
 manageUsers :: Task ()
 manageUsers = forever (catchAll (
         manageExistingUsers
-    >^* [OnAction (Action "/Add" []) (always (addUser <<@ InWindow))
-        ,OnAction (Action "/Import from CSV" []) (always (importUsers <<@ InWindow))
-        ,OnAction (Action "/Set admin password" []) (always (setAdminPassword <<@ InWindow))
+    >^* [OnAction (Action "/Add") (always (addUser <<@ InWindow))
+        ,OnAction (Action "/Import from CSV") (always (importUsers <<@ InWindow))
+        ,OnAction (Action "/Set admin password") (always (setAdminPassword <<@ InWindow))
         ]
       ) (\e -> viewInformation "Error" [] e >>| return ()))
 where
     manageExistingUsers
-        =   (enterChoiceWithSharedAs () [ChooseWith (ChooseFromGrid id)] allContactsShort contactIdentity 
+        =   (enterChoiceWithSharedAs () [ChooseFromGrid id] allContactsShort contactIdentity 
         >&> withSelection viewNoSelection manageContactAccess
         )<<@ ArrangeWithSideBar 0 LeftSide 200 True
 
@@ -161,7 +162,7 @@ where
     setAdminPassword = (
             enterPasswords -&&- get adminPassword
         >>* [OnAction ActionCancel (always (return Nothing))
-            ,OnAction (Action "Change" [ActionIcon "ok"]) (hasValue updatePassword)
+            ,OnAction (Action "Change") (hasValue updatePassword)
             ]
         ) <<@ Title "Set admin password"
     where
@@ -194,7 +195,7 @@ where
 
 configureIntegration :: Task ()
 configureIntegration
-    = anyTask [configureAISIntegration,configureAsteriskIntegration,configureEmailIntegration] <<@ ForceLayout <<@ Title "Integration"
+    = anyTask [configureAISIntegration,configureAsteriskIntegration,configureEmailIntegration] <<@ Title "Integration"
     @! ()
 where
     configureAISIntegration
@@ -220,7 +221,7 @@ configureMaps
 where
     previewMapLayers :: Task ContactMapPerspective
     previewMapLayers = withShared defaultValue
-        \perspective -> updateSharedInformation (Title "Preview") [UpdateWith toPrj fromPrj] (perspective >+| standardMapLayers) <<@ AfterLayout (tweakUI fill)
+        \perspective -> updateSharedInformation (Title "Preview") [UpdateAs toPrj fromPrj] (perspective >+| standardMapLayers) @ fst /* <<@ AfterLayout (tweakUI fill) */ //FIXME
     where
         toPrj (perspective,layers) = toLeafletMap {ContactMap|defaultValue & perspective=perspective,layers=layers}
         fromPrj _ {LeafletMap|perspective} = fromLeafletPerspective perspective
@@ -229,8 +230,8 @@ configureWebLinks :: Task ()
 configureWebLinks
     = viewAndEdit (viewSharedInformation "Web integration configuration" [] webLinksConfig)
                   (get webLinksConfig >>- updateInformation () [] >>? \updated -> set updated webLinksConfig)
-    >^* [OnAction (Action "/Export" []) (always (exportConfig <<@ InWindow))
-        ,OnAction (Action "/Import" []) (always (importConfig <<@ InWindow))]
+    >^* [OnAction (Action "/Export") (always (exportConfig <<@ InWindow))
+        ,OnAction (Action "/Import") (always (importConfig <<@ InWindow))]
     @! ()
 where
     exportConfig
@@ -240,6 +241,9 @@ where
             >>- viewInformation "An export file has been created" []
             @!  ()
             ) <<@ Title "Export web links"
+	where
+		paddedDateTimeString {DateTime|year,mon,day,hour,min,sec}
+			= toString year +++ toString mon +++ toString day +++ toString hour +++ toString min +++ toString sec
 
     importConfig
         =   doOrClose (

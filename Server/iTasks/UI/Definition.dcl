@@ -1,162 +1,113 @@
 definition module iTasks.UI.Definition
 /**
 * This module provides an abstract representation of user interfaces.
+*
+* It is the interface between UI's as specified by tasks and the Web-based UI framework that
+* renders the task UI's in a web browser.
+* 
 * This representation seeks a middle ground between being fine grained enough
-* to describe rich user interfaces and being leaving rendering details to the client framework.
+* to describe rich user interfaces and being abstract enough to leave rendering details to the client framework.
 */
 from Text.JSON import :: JSONNode
 from Data.Maybe import :: Maybe
+from Data.Functor import class Functor
 from iTasks._Framework.Task	import :: TaskId
 from Text.HTML			import :: HtmlTag
 from Data.Map			import :: Map
-from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action, :: Hotkey
+from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, :: Action
 
-//TODO:
-//- Multi select in grids
-//- Multi select in trees
+from iTasks._Framework.Generic import class iTask(..)
+from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
+from iTasks._Framework.Generic.Defaults			import generic gDefault
+from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
+from iTasks.UI.Editor.Generic import generic gEditor
+from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from GenEq import generic gEq
+
+//Provide generic instances for all UI definitions
+derive class iTask UI, UINodeType
+derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
+derive class iTask UITreeNode
+
+//Representation of a collection of changes that need to be applied to an existing UI
+:: UIChange
+	= NoChange		                                       //No changes are needed
+	| ReplaceUI !UI                                        //Replace the entire UI with a new version
+	| ChangeUI [UIAttributeChange] [(!Int,!UIChildChange)] //Change the current UI and/or its children
+
+:: UIAttributeChange = SetAttribute !String !JSONNode  //A change to a user interface attribute
+:: UIChildChange 	 = ChangeChild !UIChange           //Select a sub-component and apply the change definition there
+					 | RemoveChild                     //Remove the child at the given index (next children 'move down')
+					 | InsertChild !UI                 //Insert a new child at the given index (next children 'move up')
+                     | MoveChild !Int                  //Move an existing child a given index to a new index
+
+derive class iTask UIChange, UIAttributeChange, UIChildChange
 
 /**
 * Rendering a user interface for a composition of is a staged process in which
 * the raw UI material provided by basic tasks is grouped by layout policies to reach
 * a final UI definition consisting of a set of controls and a window title for the top-level application window.
 *
-* The UIDef type has contstructors for the various types of partial UI definitions.
+* The UI type has contstructors for the various types of partial UI definitions.
 */
-:: UIDef =
-    { content :: UIContent
-    , windows :: [UIWindow]
-    }
+:: UI = UI UINodeType UIAttributes [UI]
 
-:: UIContent
-    = UIEmpty   !UIEmpty                //An empty task UI, which may still carry windows and actions
-    | UIForm    !UIForm                 //A set of controls from one or more interact tasks
-    | UIBlock   !UIBlock                //A partial user interface, the controls of such a UI have been arranged, but the container they will be put in is not decided yet
-    | UIBlocks  ![UIBlock] ![UIAction]  //A set of aggregated blocks that have not yet been arranged
-    | UIFinal   !UIViewport             //The final user interface
+:: UINodeType
+	// --- Intermediate nodes: (implemented in itasks-components-raw.js) ---
+    = UIEmpty
+	| UIAction 
+	| UIPair
+	| UIRecord
+	| UICons
+	| UIVarCons
+	| UIInteract
+	| UIStep
+	| UIParallel
+	// --- Client components: ---
+	// Core framework components (implemented in itasks-core.js)
+	| UIComponent                                                                   // - Component (the client-side base class)
+    | UIViewport       			                                                	// - Viewport for embedding another task instance's UI (like an iframe for tasks)
+	// Form components (implemented in itasks-components-form.js):
+	| UITextField                                                                   // - Textfield (single line text field)
+	| UITextArea                                                                    // - Textarea (multi-line text field)
+	| UIPasswordField                                                               // - Password (single line text field that hides the text)
+	| UIIntegerField                                                                // - Integerfield (integer number field)
+	| UIDecimalField	                                                            // - Decimalfield (decimal number field)
+	| UIDocumentField                                                               // - Document (info + upload possibility)
+	| UICheckbox                                                                    // - Checkbox (editable checkbox)
+	| UISlider                                                                      // - Slider (editable slider)
+	| UIButton                                                                      // - Button that sends edit events on click
+	| UILabel						                                                // - Label (non-wrapping text label, clicks focus next component)
+	| UIIcon															    		// - Icon (information icon with tooltip text)
+	// Display components (implemented in itasks-components-display.js)
+	| UITextView					                     							// - String (non-wrapping single line text with automatic escaping)
+	| UIHtmlView                                                                    // - Html (formatted multi line text)
+	| UIProgressBar                                                                 // - Progress (non editable progress bar)
+	// Selection components (implemented in itasks-components-selection.js)
+	| UIDropdown                                                                    // - Dropdown (choice from a list of alternatives)
+	| UICheckGroup                                                                  // - A group of radio buttons or checkboxes (depends on multiple attribute)
+	| UIChoiceList                                                                  // - A mutually exclusive set of radio buttons 
+	| UIGrid                                                                        // - Grid (selecting an item in a table)
+	| UITree                                                                        // - Tree (selecting a node in a tree structure)
+	// Containers (implemented in itasks-components-container.js)
+    | UIContainer      				
+	| UIPanel 						
+	| UITabSet
+	| UIWindow
+	| UIMenu
+	| UIToolBar
+	| UIButtonBar
+	| UIDebug
 
-:: UIEmpty =
-    { actions       :: [UIAction]
-    }
-:: UIForm =
-	{ attributes	:: UIAttributes
-	, controls		:: [(!UIControl,!UIAttributes)]
-    , size          :: UISizeOpts
-	}
-:: UIBlock =
-	{ attributes	:: UIAttributes
-	, content       :: UIItemsOpts
-    , size          :: UISizeOpts
-	, actions		:: [UIAction]
-	, hotkeys		:: [UIKeyAction]
-	}
-
-:: UIAttributes 		:== Map String String
-:: UIActions			:== [UIAction]
-
-:: UIAction	=
-	{ taskId	:: !String
-	, action	:: !Action
-	, enabled	:: !Bool
-	}
-
-//The top level viewport
-:: UIViewport = UIViewport !UIItemsOpts !UIViewportOpts
-
-:: UIViewportOpts =
-	{ title			:: !Maybe String
-	, menu			:: !Maybe [UIControl]
-	, hotkeys		:: !Maybe [UIKeyAction]
-	}
+:: UIAttributes 		:== Map String JSONNode
 
 // Floating window
-:: UIWindow = UIWindow !UISizeOpts !UIItemsOpts !UIWindowOpts					
-	
-:: UIWindowOpts =
-	{ windowType    :: !UIWindowType
-    , title			:: !Maybe String
-	, iconCls		:: !Maybe String
-	, menu			:: !Maybe [UIControl]
-	, hotkeys		:: !Maybe [UIKeyAction]
-    , vpos          :: !Maybe UIVAlign
-    , hpos          :: !Maybe UIHAlign
-	, focusTaskId	:: !Maybe String
-	, closeTaskId	:: !Maybe String
-	}
 :: UIWindowType
     = FloatingWindow        //Normal movable window
     | ModalDialog           //Fixed position modal dialog
     | NotificationBubble    //Fixed position info
 
-// A tab that goes into a tab set.
-:: UITab = UITab !UIItemsOpts !UITabOpts
-
-:: UIControl
-	// Components for viewing data:
-	= UIViewString		!UISizeOpts	    !(UIViewOpts String)							// - String (non-wrapping single line text with automatic escaping)
-	| UIViewHtml		!UISizeOpts	    !(UIViewOpts HtmlTag)							// - Html (formatted multi line text)
-	| UIViewDocument	!UIHSizeOpts	!(UIViewOpts Document)							// - Document (info + download link)
-	| UIViewCheckbox	!UIFSizeOpts	!(UIViewOpts Bool)								// - Checkbox (non-editable tick-mark)
-	| UIViewSlider		!UIHSizeOpts	!(UIViewOpts Int)	!UISliderOpts				// - Slider (non-editable slider)
-	| UIViewProgress	!UIHSizeOpts	!(UIViewOpts ProgressAmount) !UIProgressOpts	// - Progress (non editable progress bar)
-	// Components for editing data:
-	| UIEditString		!UIHSizeOpts	!UIEditOpts                                     // - String (single line text field)
-	| UIEditNote		!UISizeOpts	    !UIEditOpts                                     // - Note (multi-line text field)
-	| UIEditPassword	!UIHSizeOpts	!UIEditOpts                                     // - Password (single line text field that hides the text)
-	| UIEditInt			!UIHSizeOpts	!UIEditOpts                                     // - Int (integer number field)
-	| UIEditDecimal		!UIHSizeOpts	!UIEditOpts                                     // - Decimal (decimal number field)
-	| UIEditCheckbox	!UIFSizeOpts    !UIEditOpts                                     // - Checkbox (editable checkbox)
-	| UIEditSlider		!UIHSizeOpts	!UIEditOpts  !UISliderOpts				        // - Slider (editable slider)
-	| UIEditDate		!UIHSizeOpts	!UIEditOpts 							        // - Date (date picker)
-	| UIEditTime		!UIHSizeOpts	!UIEditOpts 							        // - Time (time picker)
-	| UIEditDateTime	!UIHSizeOpts	!UIEditOpts 							        // - DateTime (date + time picker)
-	| UIEditDocument	!UIHSizeOpts    !UIEditOpts 						            // - Document (info + upload possibility)
-	| UIEditButton		!UISizeOpts     !UIEditOpts  !UIButtonOpts		                // - Button that sends edit events on click
-	// Components for indicating choices:
-	| UIDropdown		!UIHSizeOpts	!(UIChoiceOpts String)						    // - Dropdown (choice from a list of alternatives)
-	| UIGrid			!UISizeOpts	    !(UIChoiceOpts [String]) !UIGridOpts		    // - Grid (selecting an item in a table)
-	| UITree			!UISizeOpts	    !(UIChoiceOpts UITreeNode) !UITreeOpts		    // - Tree (selecting a node in a tree structure)
-	| UIListChoice		!UISizeOpts     !(UIChoiceOpts String)						    // - A mutually exclusive set of radio buttons 
-	| UIRadioGroup		!UISizeOpts     !(UIChoiceOpts String)						    // - A mutually exclusive set of radio buttons 
-	| UICheckboxGroup	!UISizeOpts     !(UIChoiceOpts String)						    // - A group of checkboxes that indicate a multiple selection
-	// Components for triggering actions:
-	| UIActionButton	!UISizeOpts	    !UIActionOpts !UIButtonOpts					    // - Action Button (clicks trigger action events)
-	| UIMenuButton		!UISizeOpts	    !UIMenuButtonOpts							    // - Menu Button (clicks open a menu)
-	// Misc auxiliary components:
-	| UILabel			!UIHSizeOpts	!UILabelOpts								    // - Label (non-wrapping text label, clicks focus next component)
-	| UIIcon			!UIFSizeOpts	!UIIconOpts									    // - Icon (information icon with tooltip text)
-    | UISplitter
-	// Tasklet stuff
-	| UITasklet			!UISizeOpts     !UITaskletOpts								    // - Tasklet (custom clientside interaction)
-	| UIEditlet			!UISizeOpts	    !UIEditletOpts								    // - Editlet (custom clientside editor)
-	// Container components for composition:
-	| UIContainer		!UISizeOpts     !UIItemsOpts 				                    // - Container (lightweight wrapper to compose components)
-	| UIPanel			!UISizeOpts     !UIItemsOpts !UIPanelOpts					    // - Panel (container with decoration like a title header, icon and frame)
-	| UIFieldSet		!UISizeOpts     !UIItemsOpts !UIFieldSetOpts				    // - Fieldset (wrapper with a simple border and title)
-	| UITabSet			!UISizeOpts     !UITabSetOpts
-    | UIEmbedding       !UISizeOpts     !UIEmbeddingOpts                                // - Embedding of a related task gui (like an iframe for tasks)
-
 //Most components can be resized in two dimensions
-:: UISizeOpts =
-	{ width		:: !Maybe UISize
-	, minWidth	:: !Maybe UIBound
-    , maxWidth  :: !Maybe UIBound
-	, height	:: !Maybe UISize
-	, minHeight	:: !Maybe UIBound
-	, maxHeight	:: !Maybe UIBound
-	, margins	:: !Maybe UISideSizes
-	}
-//Some components can only be resized in the horizontal dimension
-:: UIHSizeOpts =
-	{ width		:: !Maybe UISize
-	, minWidth	:: !Maybe UIBound
-    , maxWidth  :: !Maybe UIBound
-	, margins	:: !Maybe UISideSizes
-	}
-//Some components can not be sized. You can only set margins
-:: UIFSizeOpts = //F stands for Fixed)
-    { margins   :: !Maybe UISideSizes
-    }
-
 :: UISize
 	= ExactSize !Int
 	| WrapSize
@@ -166,16 +117,6 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	= ExactBound !Int
 	| WrapBound
 	
-:: UIItemsOpts =
-	{ items		:: ![UIControl]
-	, direction	:: !UIDirection
-	, halign	:: !UIHAlign
-	, valign	:: !UIVAlign
-	, padding	:: !Maybe UISideSizes
-	, baseCls	:: !Maybe String
-	, bodyCls	:: !Maybe String
-	}
-
 :: UIHAlign
 	= AlignLeft
 	| AlignCenter
@@ -203,49 +144,6 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	, left		:: !Int
 	}	
 
-:: UIViewOpts a =
-	{ value			:: !Maybe a
-	}
-	
-:: UIEditOpts =
-	{ taskId		:: !String
-	, editorId		:: !String
-	, value			:: !Maybe JSONNode
-	}
-
-:: UIActionOpts =
-	{ taskId		:: !String
-	, actionId		:: !String
-	}
-
-:: UIKeyAction :== (!Hotkey,!UIActionOpts)
-
-:: UIChoiceOpts a =
-	{ taskId		:: !String
-	, editorId		:: !String
-	, value			:: ![Int]
-	, options		:: ![a]
-	}
-		
-:: UISliderOpts =
-	{ minValue		:: !Int
-	, maxValue		:: !Int
-    , value         :: !Int
-	}
-	
-:: UIProgressOpts = 
-	{ text			:: !String
-	}
-
-:: UIGridOpts =
-	{ columns			:: ![String]
-	, doubleClickAction	:: !Maybe (String,String)
-	}
-
-:: UITreeOpts =
-	{ doubleClickAction	:: !Maybe (String,String)
-	}
-
 :: UITreeNode =
 	{ text		:: !String
     , iconCls   :: !Maybe String
@@ -255,171 +153,125 @@ from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, 
 	, value		:: !Int
 	}
 
-:: UIButtonOpts =
-	{ text		:: !Maybe String
-	, iconCls	:: !Maybe String
-	, disabled	:: !Bool
-	}
+//Predefined attribute names
+TITLE_ATTRIBUTE			:== "title"
+HINT_ATTRIBUTE			:== "hint"
+HINT_TYPE_ATTRIBUTE		:== "hint-type"
+HINT_TYPE_INFO 			:== "info"
+HINT_TYPE_VALID 		:== "valid"
+HINT_TYPE_WARNING 		:== "warning"
+HINT_TYPE_INVALID 		:== "invalid"
+LABEL_ATTRIBUTE			:== "label"
+PREFIX_ATTRIBUTE		:== "prefix"
+POSTFIX_ATTRIBUTE		:== "postfix"
+ICON_ATTRIBUTE			:== "icon"
 
-:: UIMenuButtonOpts =
-	{ text		:: !Maybe String
-	, iconCls	:: !Maybe String
-	, disabled	:: !Bool
-	, menu		:: ![UIMenuItem]
-	}
 
-:: UIMenuItem
-	= UIActionMenuItem	!UIActionOpts	!UIButtonOpts		// - Action Menu Item (clicks trigger action events)
-	| UISubMenuItem						!UIMenuButtonOpts	// - Sub Menu Item (clicks open a submenu)
-		
-:: UILabelOpts =
-	{ text			:: !String
-	}
-	
-:: UIIconOpts =
-	{ iconCls		:: !String
-	, tooltip		:: !Maybe String
-	}
+//Construction functions
+ui   :: UINodeType -> UI
+uic  :: UINodeType [UI] -> UI
+uia  :: UINodeType UIAttributes -> UI
+uiac :: UINodeType UIAttributes [UI] -> UI
 
-:: UITaskletOpts =
-	{ taskId		 :: !String
-	, html 			 :: !Maybe String
-	, st			 :: !Maybe String
-	, script		 :: !Maybe String
-	, events		 :: !Maybe [(!String,!String,!String)]	// HTML id, event name, handler function
-	, interfaceFuncs :: !Maybe [(!String,!String)] 			// function name, function
-	, resultFunc     :: !Maybe String
-	// They are a pair: the controller hijacks all the events sent to the given instance
-	, instanceNo	 :: !Maybe String
-	, controllerFunc :: !Maybe String
-	}
+//Predefined attribute defintions
+optionalAttr 	  :: !Bool                                -> UIAttributes
+sizeAttr          :: !UISize !UISize                      -> UIAttributes
+widthAttr         :: !UISize                              -> UIAttributes
+heightAttr        :: !UISize                              -> UIAttributes
+minSizeAttr       :: !UIBound !UIBound                    -> UIAttributes
+minWidthAttr      :: !UIBound                             -> UIAttributes
+minHeightAttr     :: !UIBound                             -> UIAttributes
+maxSizeAttr       :: !UIBound !UIBound                    -> UIAttributes
+maxWidthAttr      :: !UIBound                             -> UIAttributes
+maxHeightAttr     :: !UIBound                             -> UIAttributes
+marginsAttr       :: !Int !Int !Int !Int                  -> UIAttributes
+topMarginAttr     :: !Int                                 -> UIAttributes
+rightMarginAttr   :: !Int                                 -> UIAttributes
+bottomMarginAttr  :: !Int                                 -> UIAttributes
+leftMarginAttr    :: !Int                                 -> UIAttributes
+paddingAttr       :: !Int !Int !Int !Int                  -> UIAttributes
+topPaddingAttr    :: !Int                                 -> UIAttributes
+rightPaddingAttr  :: !Int                                 -> UIAttributes
+bottomPaddingAttr :: !Int                                 -> UIAttributes
+leftPaddingAttr   :: !Int                                 -> UIAttributes
+titleAttr         :: !String                              -> UIAttributes
+frameAttr         :: !Bool                                -> UIAttributes
+iconClsAttr       :: !String                              -> UIAttributes
+baseClsAttr       :: !String                              -> UIAttributes
+tooltipAttr       :: !String                              -> UIAttributes
+directionAttr     :: !UIDirection                         -> UIAttributes
+halignAttr        :: !UIHAlign                            -> UIAttributes
+valignAttr        :: !UIVAlign                            -> UIAttributes
+hposAttr          :: !UIHAlign                            -> UIAttributes
+vposAttr          :: !UIVAlign                            -> UIAttributes
+windowTypeAttr    :: !UIWindowType                        -> UIAttributes
+focusTaskIdAttr   :: !String                              -> UIAttributes
+closeTaskIdAttr   :: !String                              -> UIAttributes
+activeTabAttr     :: !Int                                 -> UIAttributes
+valueAttr         :: !JSONNode                            -> UIAttributes
+minAttr           :: !Int                                 -> UIAttributes
+maxAttr           :: !Int                                 -> UIAttributes
+textAttr          :: !String                              -> UIAttributes
+enabledAttr       :: !Bool                                -> UIAttributes
+multipleAttr      :: !Bool                                -> UIAttributes
+instanceNoAttr    :: !Int                                 -> UIAttributes
+instanceKeyAttr   :: !String                              -> UIAttributes
+columnsAttr       :: ![String]                            -> UIAttributes
+doubleClickAttr   :: !String !String                      -> UIAttributes
+actionIdAttr      :: !String                              -> UIAttributes
+editorIdAttr      :: !String                              -> UIAttributes
+taskIdAttr        :: !String                              -> UIAttributes
+labelAttr         :: !String                              -> UIAttributes
+styleAttr         :: !String                              -> UIAttributes
 
-:: UIEditletOpts =
-	{ taskId		:: !String
-	, editorId		:: !String
-	, value			:: !JSONNode
-	, html			:: !String
-	, script		:: !String
-	, initClient	:: !String	
-	, initDiff		:: !String
-	, appDiff		:: !String
-	}
+editAttrs         :: !String !String !(Maybe JSONNode)    -> UIAttributes
+choiceAttrs       :: !String !String ![Int] ![JSONNode]   -> UIAttributes
 
-:: UIPanelOpts =
-	{ title			:: !Maybe String
-	, frame			:: !Bool
-	, hotkeys		:: !Maybe [UIKeyAction]
-	, iconCls		:: !Maybe String
-	}
+//Util
+isOptional :: !UI -> Bool	
+stringDisplay   :: !String  -> UI
 
-:: UIFieldSetOpts =
-	{ title			:: !Maybe String
-	}
+//Encoding of UI to the format sent to the client framework
+class encodeUI a :: a -> JSONNode
+instance encodeUI Int
+instance encodeUI Real
+instance encodeUI Char
+instance encodeUI String
+instance encodeUI Bool
+instance encodeUI Document
+instance encodeUI Date
+instance encodeUI Time
+instance encodeUI HtmlTag
+instance encodeUI JSONNode
+instance encodeUI (Maybe a) | encodeUI a
+instance encodeUI [a] | encodeUI a
+instance encodeUI UI
+instance encodeUI UISideSizes
+instance encodeUI UISize
+instance encodeUI UIBound
+instance encodeUI UIVAlign
+instance encodeUI UIHAlign
+instance encodeUI UIDirection
+instance encodeUI UIWindowType
 
-:: UITabSetOpts =
-	{ items		:: ![UITab]
-	, activeTab	:: !Maybe Int
-	}
-:: UIEmbeddingOpts =
-    { instanceNo  :: !Int
-    , instanceKey :: !String
-    }
+//Combine two changes that would have to be applied one after the other into a single change
+mergeUIChanges :: UIChange UIChange -> UIChange
 
-:: UITabOpts =
-	{ title			:: !String
-	, iconCls		:: !Maybe String
-	, menu			:: !Maybe [UIControl]
-	, hotkeys		:: !Maybe [UIKeyAction]
-	, focusTaskId	:: !Maybe String
-	, closeTaskId	:: !Maybe String
-	}
+//Apply a change to a ui
+applyUIChange :: !UIChange !UI -> UI
 
-//Empty viewport
-emptyUI         :: UIDef
+//Remove all paths that lead to a NoChange node
+compactUIChange :: UIChange -> UIChange
 
-//Modifier functions
-setSize         :: !UISize !UISize          !UIControl -> UIControl
-setWidth		:: !UISize					!UIControl -> UIControl
-setHeight		:: !UISize					!UIControl -> UIControl
-setMinSize		:: !UIBound !UIBound	    !UIControl -> UIControl
-setMinWidth		:: !UIBound				    !UIControl -> UIControl
-setMinHeight	:: !UIBound                 !UIControl -> UIControl
-setMaxSize		:: !UIBound !UIBound	    !UIControl -> UIControl
-setMaxWidth		:: !UIBound				    !UIControl -> UIControl
-setMaxHeight	:: !UIBound                 !UIControl -> UIControl
-fill			:: 							!UIControl -> UIControl
-fillHeight		:: 							!UIControl -> UIControl
-fillWidth		:: 							!UIControl -> UIControl
-fixedHeight		:: !Int 					!UIControl -> UIControl
-fixedWidth		:: !Int 					!UIControl -> UIControl
-wrapHeight		::							!UIControl -> UIControl
-wrapWidth		:: 							!UIControl -> UIControl
-setMargins		:: !Int !Int !Int !Int		!UIControl -> UIControl
-setTopMargin	:: !Int 					!UIControl -> UIControl
-setRightMargin	:: !Int 					!UIControl -> UIControl
-setBottomMargin	:: !Int 					!UIControl -> UIControl
-setLeftMargin	:: !Int 					!UIControl -> UIControl
-setPadding		:: !Int !Int !Int !Int		!UIControl -> UIControl
-setTitle 		:: !String 					!UIControl -> UIControl
-setFramed		:: !Bool					!UIControl -> UIControl
-setIconCls		:: !String					!UIControl -> UIControl
-setBaseCls		:: !String					!UIControl -> UIControl
-setDirection	:: !UIDirection				!UIControl -> UIControl
-setHalign		:: !UIHAlign				!UIControl -> UIControl
-setValign		:: !UIVAlign				!UIControl -> UIControl
+//Makes sure that all children ranging 0 to max(index) are in the list
+completeChildChanges :: [(Int,UIChildChange)] -> [(Int,UIChildChange)]
 
-//Access functions
-getMargins      ::                          !UIControl -> (Maybe UISideSizes)
+//Reassigns indices from 0 upwarths to the changes in the list
+reindexChildChanges :: [(Int,UIChildChange)] -> [(Int,UIChildChange)]
+//Remove all childchanges that do nothing
+compactChildChanges :: [(Int,UIChildChange)] -> [(Int,UIChildChange)]
 
-//Utility functions
-defaultSizeOpts		    :: UISizeOpts
-defaultHSizeOpts        :: UIHSizeOpts
-defaultFSizeOpts	    :: UIFSizeOpts
+//Serialize change definitions such that they can be sent to a client
+encodeUIChange :: !UIChange -> JSONNode
+encodeUIChanges :: ![UIChange] -> JSONNode
 
-defaultItemsOpts 		:: [UIControl] -> UIItemsOpts
-
-defaultContainer		:: ![UIControl]	-> UIControl
-defaultFieldSet         :: !(Maybe String) ![UIControl]	-> UIControl
-defaultPanel			:: ![UIControl]	-> UIControl
-defaultWindow			:: ![UIControl]	-> UIWindow
-stringDisplay			:: !String		-> UIControl
-
-//Success guaranteed access to the possible parts of a ui definition
-uiDefAttributes			:: UIDef -> UIAttributes
-uiDefControls			:: UIDef -> [UIControl]
-uiDefAnnotatedControls	:: UIDef -> [(UIControl,UIAttributes)]
-uiDefActions			:: UIDef -> [UIAction]
-uiDefDirection			:: UIDef -> UIDirection
-uiDefWindows			:: UIDef -> [UIWindow]
-
-uiDefSetAttribute		:: String String UIDef -> UIDef
-uiDefSetDirection		:: UIDirection UIDef -> UIDef
-uiDefSetHalign		    :: UIHAlign	UIDef -> UIDef
-uiDefSetValign		    :: UIVAlign	UIDef -> UIDef
-uiDefSetPadding         :: Int Int Int Int UIDef -> UIDef
-uiDefSetMargins         :: Int Int Int Int UIDef -> UIDef
-uiDefSetBaseCls         :: String UIDef -> UIDef
-uiDefSetHeight		    :: UISize UIDef -> UIDef
-uiDefSetWidth           :: UISize UIDef -> UIDef
-uiDefSetSize            :: UISize UISize UIDef -> UIDef
-
-//Encode a user interface definition to a format that
-//can be interpreted by the client framework
-encodeUIDefinition		:: !UIDef -> JSONNode
-encodeUIControl			:: !UIControl -> JSONNode
-encodeUITab				:: !UITab -> JSONNode
-encodeUIWindow			:: !UIWindow -> JSONNode
-
-//Encoding of values for use in UI diffs
-class encodeUIValue a :: a -> JSONNode
-instance encodeUIValue String
-instance encodeUIValue Int
-instance encodeUIValue Real
-instance encodeUIValue Bool
-instance encodeUIValue Document
-instance encodeUIValue Date
-instance encodeUIValue Time
-instance encodeUIValue HtmlTag
-instance encodeUIValue ProgressAmount
-instance encodeUIValue JSONNode
-instance encodeUIValue (Maybe a) | encodeUIValue a
