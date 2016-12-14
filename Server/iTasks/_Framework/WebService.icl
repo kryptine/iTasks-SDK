@@ -247,7 +247,7 @@ taskUIService :: ![PublishedTask] ->
 taskUIService taskUrls = (matchFun [url \\ {PublishedTask|url} <-taskUrls],True,reqFun` taskUrls,dataFun,disconnectFun)
 where
     matchFun :: [String] String -> Bool
-    matchFun matchUrls reqUrl = or [reqUrl == matchUrl +++ "gui-wsock" \\ matchUrl <- matchUrls]
+    matchFun matchUrls reqUrl = or [reqUrl == uiUrl matchUrl \\ matchUrl <- matchUrls]
 
 	reqFun` taskUrls req output iworld=:{server}
 		# server_url = "//" +++ req.server_name +++ ":" +++ toString req.server_port
@@ -323,8 +323,10 @@ where
 	disconnectFun _ _ _ iworld                 = (Nothing, iworld)
 
 	createTaskInstance` req [{PublishedTask|url,task=TaskWrapper task}:taskUrls] iworld
-		| (url +++ "gui-wsock") == req.HTTPRequest.req_path = createTaskInstance (task req) iworld
+		| req.HTTPRequest.req_path == uiUrl url = createTaskInstance (task req) iworld
 		| otherwise = createTaskInstance` req taskUrls iworld
+
+	uiUrl matchUrl = (if (endsWith "/" matchUrl) matchUrl (matchUrl +++ "/")) +++ "gui-wsock"
 
 	dequeueOutput :: ![InstanceNo] !(Map InstanceNo (Queue UIChange)) -> (![(!InstanceNo,!UIChange)],!Map InstanceNo (Queue UIChange))
 	dequeueOutput [] states = ([],states)

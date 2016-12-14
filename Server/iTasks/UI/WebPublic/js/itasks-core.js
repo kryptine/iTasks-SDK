@@ -530,7 +530,7 @@ itasks.Connection = {
 	connect: function() {
 		var me = this;
 
-		me.wsock = new WebSocket('ws://' + location.host + '/gui-wsock');
+		me.wsock = new WebSocket('ws://' + location.host + location.pathname + (location.pathname.endsWith('/') ? '' : '/') + 'gui-wsock');
 		me.wsock.onopen = function() {
 			//First send deferred requests
 			me.reqDeferred.forEach(function(msg) {
