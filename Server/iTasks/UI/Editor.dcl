@@ -62,6 +62,8 @@ derive JSONEncode EditMask, FieldMask
 derive JSONDecode EditMask, FieldMask
 derive gEq        EditMask, FieldMask
 
+instance toString EditMode
+
 newFieldMask :: EditMask
 newCompoundMask :: EditMask
 

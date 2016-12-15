@@ -14,6 +14,14 @@ where
 			(Ok (UI type attr items,mask),vst) = (Ok (UI type ('DM'.union attr extra) items,mask),vst) 
 			(e,vst) = (e,vst)
 
+withEditMode :: (Editor a) -> Editor a
+withEditMode editor = {Editor|editor & genUI = genUI}
+where
+	genUI dp val vst=:{VSt|taskId,mode}
+		= case editor.Editor.genUI dp val vst of
+			(Ok (UI type attr items,mask),vst) = (Ok (UI type ('DM'.put "mode" (JSONString (toString mode)) attr) items, mask),vst) 
+			(e,vst) = (e,vst)
+
 withHintAttributes :: String (Editor a) -> Editor a
 withHintAttributes typeDesc editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
