@@ -11,6 +11,11 @@ import Data.Error
 withAttributes :: UIAttributes (Editor a) -> Editor a
 
 /**
+* Adds an attribute that marks edit type: view, enter, update a
+*/
+withEditMode :: (Editor a) -> Editor a
+
+/**
 * Adds hint attributes to an editor by checking the edit mask
 */
 withHintAttributes :: String (Editor a) -> Editor a

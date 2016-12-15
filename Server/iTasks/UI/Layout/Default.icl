@@ -161,14 +161,21 @@ where
 	layout (c,s) = (c,s)
 	
 labelControl :: UIAttributes -> Maybe UI
-labelControl attributes 
-	= case 'DM'.get LABEL_ATTRIBUTE attributes of
-		Just (JSONString label)
-			# optional = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attributes)
-			# (UI type attr items) = stringDisplay (formatLabel optional label)
-			# attr = 'DM'.unions [widthAttr (ExactSize LABEL_WIDTH), attr]
-			= Just (UI type attr items)
-		_   = Nothing
+labelControl attributes = case 'DM'.get LABEL_ATTRIBUTE attributes of
+	Just (JSONString labelAttr)
+		# optional = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attributes) 
+		# enterOrUpdate = maybe False (\(JSONString m) -> isMember m ["enter","update"]) ('DM'.get "mode" attributes) 
+		# formatted = formatDefaultLabel labelAttr
+		# text = (if (enterOrUpdate && not optional) (formatted +++ "*") formatted) +++ ":"
+
+		# attr = 'DM'.unions [textAttr text, widthAttr (ExactSize LABEL_WIDTH)]
+		= Just (UI UILabel attr [])
+/*
+		# (UI type attr items) = stringDisplay text
+		# attr = 'DM'.unions [widthAttr (ExactSize LABEL_WIDTH), attr]
+		= Just (UI type attr items)
+*/
+	_   = Nothing
 
 infoControl :: UIAttributes -> Maybe UI
 infoControl attributes
@@ -178,16 +185,13 @@ infoControl attributes
 where
 	icon type tooltip = uia UIIcon ('DM'.unions [leftMarginAttr 5,tooltipAttr tooltip,iconClsAttr ("icon-"+++type)])
 
-formatLabel :: Bool String -> String
-formatLabel optional label
-	= camelCaseToWords label +++ if optional "" "*" +++ ":"
+formatDefaultLabel :: String -> String 
+formatDefaultLabel label = {c \\ c <- [toUpper lname : addspace lnames]}
 where
-	camelCaseToWords label = {c \\ c <- [toUpper lname : addspace lnames]}
-	where
-		[lname:lnames]		= fromString label
-		addspace []			= []
-		addspace [c:cs]
-			| c == '_'			= [' ':addspace cs]
-			| isUpper c			= [' ',toLower c:addspace cs]
-			| otherwise			= [c:addspace cs]
+	[lname:lnames]		= fromString label
+	addspace []			= []
+	addspace [c:cs]
+		| c == '_'			= [' ':addspace cs]
+		| isUpper c			= [' ',toLower c:addspace cs]
+		| otherwise			= [c:addspace cs]
 

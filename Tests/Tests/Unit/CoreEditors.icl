@@ -58,6 +58,7 @@ testIntEnter = testGenUI "Enter Int"
 						,("taskId",JSONString "STUB")
 						,("editorId",JSONString "v")
 						,("value",JSONNull)
+						,("mode",JSONString "enter")
 						]),FieldMask {touched=False,valid=False,state=JSONNull})
 	0 Enter
 
@@ -68,6 +69,7 @@ testIntUpdate = testGenUI "Update Int"
 						,("taskId",JSONString "STUB")
 						,("editorId",JSONString "v")
 						,("value",JSONInt 42)
+						,("mode",JSONString "update")
 						]),FieldMask {touched=False,valid=True,state=JSONInt 42})
 	42 Update
 
@@ -78,6 +80,7 @@ testRealUpdate = testGenUI "Update Real"
 						,("taskId",JSONString "STUB")
 						,("editorId",JSONString "v")
 						,("value",JSONReal 3.14)
+						,("mode",JSONString "update")
 						]),FieldMask {touched=False,valid=True,state=JSONReal 3.14})
 	3.14 Update
 
@@ -89,7 +92,7 @@ where
 	fieldExp editorId val = 
 		uia UIIntegerField
 			('DM'.fromList[("optional",JSONBool False),("hint-type",JSONString "valid"),("hint",JSONString "You have correctly entered a whole number")
-							,("taskId",JSONString "STUB"),("editorId",JSONString editorId),("value",JSONInt val)
+							,("taskId",JSONString "STUB"),("editorId",JSONString editorId),("value",JSONInt val),("mode",JSONString "update")
 							])
 	maskExp n = FieldMask {touched = False, valid = True, state = JSONInt n}
 
@@ -148,6 +151,7 @@ testMaybeIntEnter = testGenUI "Enter optional Int"
                                      ,("hint",JSONString "Please enter a whole number")
                                      ,("taskId",JSONString "STUB")
                                      ,("editorId",JSONString "v")
+                                     ,("mode",JSONString "enter")
                                      ,("value",JSONNull)]), FieldMask {touched=False,valid=True,state=JSONNull})
 		test Enter
 where
@@ -188,7 +192,7 @@ testEditRecursiveConsChange
 	(RNil, CompoundMask {CompoundMask|fields=[FieldMask {touched=False,valid=False,state=JSONNull}],state=JSONNull})
 	([],JSONArray [JSONInt 1])
 where
-	intUI = uia UIIntegerField ('DM'.unions [editAttrs "STUB" "v0" Nothing,'DM'.fromList [("hint-type",JSONString "info"),("hint",JSONString "Please enter a whole number (this value is required)"),("optional",JSONBool False)]])
+	intUI = uia UIIntegerField ('DM'.unions [editAttrs "STUB" "v0" Nothing,'DM'.fromList [("hint-type",JSONString "info"),("hint",JSONString "Please enter a whole number (this value is required)"),("optional",JSONBool False),("mode",JSONString "enter")]])
 	newConsUI = uic UIVarCons [uia UIDropdown (choiceAttrs "STUB" "v1" [] [JSONObject [("id",JSONInt 0),("text",JSONString "RNil")],JSONObject [("id",JSONInt 1),("text",JSONString "RCons")]])]
 
 testEditRecursiveConsChange2
@@ -223,6 +227,7 @@ where
                                      ,("hint",JSONString "Please enter a whole number (this value is required)")
                                      ,("taskId",JSONString "STUB")
                                      ,("editorId",JSONString "v1")
+                                     ,("mode",JSONString "enter")
                                      ,("value",JSONNull)])
 	buis = [uia UIButton ('DM'.fromList [("iconCls",JSONString "icon-up"),("value",JSONString "mup_1"),("enabled",JSONBool True),("taskId",JSONString "STUB"),("editorId",JSONString "v")])
 	       ,uia UIButton ('DM'.fromList [("iconCls",JSONString "icon-down"),("value",JSONString "mdn_1"),("enabled",JSONBool False),("taskId",JSONString "STUB"),("editorId",JSONString "v")])

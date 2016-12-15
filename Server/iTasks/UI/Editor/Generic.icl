@@ -437,10 +437,18 @@ fromPairDiff s n (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)],CompoundMask 
 where
 	half = n / 2
 
-gEditor{|Int|}    = whenDisabled (liftEditor toString toInt (textView 'DM'.newMap)) (withHintAttributes "whole number" (integerField 'DM'.newMap))
-gEditor{|Real|}   = whenDisabled (liftEditor toString toReal (textView 'DM'.newMap)) (withHintAttributes "decimal number" (decimalField 'DM'.newMap))
-gEditor{|Char|}   = liftEditor toString (\c -> c.[0]) (whenDisabled (textView 'DM'.newMap) (withHintAttributes "single character" (textField 'DM'.newMap)))
-gEditor{|String|} = whenDisabled (textView 'DM'.newMap) (withHintAttributes "single line of text" (textField 'DM'.newMap))
+gEditor{|Int|}    = whenDisabled
+						(liftEditor toString toInt (textView 'DM'.newMap))
+						(withHintAttributes "whole number" (withEditMode (integerField 'DM'.newMap)))
+gEditor{|Real|}   = whenDisabled
+						(liftEditor toString toReal (textView 'DM'.newMap))
+						(withHintAttributes "decimal number" (withEditMode (decimalField 'DM'.newMap)))
+gEditor{|Char|}   = liftEditor toString (\c -> c.[0]) (whenDisabled
+							(textView 'DM'.newMap)
+							(withHintAttributes "single character" (withEditMode (textField 'DM'.newMap))))
+gEditor{|String|} = whenDisabled
+						(textView 'DM'.newMap)
+						(withHintAttributes "single line of text" (withEditMode (textField 'DM'.newMap)))
 gEditor{|Bool|}   = checkBox 'DM'.newMap
 
 gEditor{|[]|} ex _ dx tjx _ = listEditor_ tjx (Just (const dx)) True True (Just (\l -> toString (length l) +++ " items")) ex
