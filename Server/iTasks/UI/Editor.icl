@@ -12,6 +12,12 @@ derive JSONEncode EditMask, FieldMask, CompoundMask
 derive JSONDecode EditMask, FieldMask, CompoundMask
 derive gEq        EditMask, FieldMask, CompoundMask
 
+instance toString EditMode
+where
+	toString Enter = "enter"
+	toString Update = "update"
+	toString View = "view"
+
 newFieldMask :: EditMask
 newFieldMask = FieldMask {FieldMask|touched=False,valid=True,state=JSONNull}
 
