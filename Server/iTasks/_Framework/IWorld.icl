@@ -162,12 +162,21 @@ where
     readFlavour flavourPath world
 	    # (flavRes, world) 	= readFile flavourPath world
 		= case readFile flavourPath world of
-			(Error e,world) = (Error ("JavaScript Flavour file could not be read: " +++ toString e),world)
-			(Ok flavFile,world)
-				= case toFlavour flavFile of
-					Nothing      = (Error "Error in JavaScript flavour file",world)
-					Just flavour = (Ok flavour,world)
-
+			(Error e,world)
+				//Check if a Clean install is configured with the SAPL library installed to find a default flavour file
+				= case getEnvironmentVariable "CLEAN_HOME" world of
+					(Just cleanHome,world)
+						= case readFile (cleanHome </> "lib" </> "Sapl" </> "clean.f") world of
+							(Ok flavFile,world) = parseFlavour flavFile world
+							(Error e,world) = (Error ("Default Javascript Flavour file could not be read: " +++ toString e),world)
+					(Nothing,world)
+						= (Error ("JavaScript Flavour file could not be read: " +++ toString e),world)
+			(Ok flavFile,world) = parseFlavour flavFile world
+					
+	parseFlavour flavFile world
+		= case toFlavour flavFile of
+			Nothing      = (Error "Error in JavaScript flavour file",world)
+			Just flavour = (Ok flavour,world)
 // Determines the server executables path
 determineAppPath :: !*World -> (!FilePath, !*World)
 determineAppPath world
