@@ -511,7 +511,7 @@ where
 		| i == idx  = [(i,ChangeChild (insertAndAdjust_ ss startIdx numInserts insertChanges change)):cs] //Adjust an existing branch
 		| i < idx 	= [(i,ChangeChild change):adjustChildChanges idx cs] //Scan forward
 					= [(idx,ChangeChild (insertAndAdjust_ ss startIdx numInserts insertChanges NoChange)),(i,ChangeChild change):cs] //Add a branch
-	adjustChildChanges idx [c:cs] = trace_n "Warning: insertAndAdjust: edge case" [c:adjustChildChanges idx cs] //TODO: Figure out if we can properly handle structure changes on the path
+	adjustChildChanges idx [c:cs] = [c:adjustChildChanges idx cs] //TODO: Figure out if we can properly handle structure changes on the path
 	
 countMoves_ :: NodeMoves Bool -> Int
 countMoves_  moves recursive = foldr count 0 (map snd moves)
