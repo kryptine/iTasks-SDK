@@ -61,9 +61,12 @@ exePathToOutputDir path = dropExtension path +++ "-www"
 
 //Determine the potential input folders 
 objectPathsToInputDirs :: [FilePath] -> [FilePath]
-objectPathsToInputDirs paths = map rewrite paths
+objectPathsToInputDirs paths = flatten (map rewrite paths)
 where
-	rewrite path = join {pathSeparator} ((filter ((<>) "Clean System Files") (split {pathSeparator} (dropExtension path)))) +++ "-WebPublic"
+	rewrite path = [join {pathSeparator} ((filter ((<>) "Clean System Files") (split {pathSeparator} (dropExtension path)))) +++ "-WebPublic"
+				   //Transitional location of WebPublic files, they should eventually be linked directory to specific modules dash
+				   ,join {pathSeparator} ((filter ((<>) "Clean System Files") (split {pathSeparator} (takeDirectory path)))) </> "WebPublic"
+				   ]
 
 //Copy the web resources if the input directory exists
 copyWebResources :: !FilePath !FilePath !*World -> *World
