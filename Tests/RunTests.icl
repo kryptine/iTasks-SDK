@@ -16,6 +16,7 @@ import Tests.Interactive.BuiltinContainers
 import Tests.Interactive.CustomEditors
 import Tests.Interactive.Layout
 import Tests.Interactive.Editlets
+import Tests.Interactive.CoreTasks
 import Tests.Interactive.TaskPatterns
 
 import Tests.Unit.CoreEditors
@@ -34,6 +35,7 @@ suites = [//Interactive tests
 		 ,testCustomEditors
  		 ,testLayoutI
 		 ,testEditletsI
+         ,testCoreTasksI
          ,testTaskPatternsI
 		 //Unit tests
 		 ,testGenericEditorGenUI
