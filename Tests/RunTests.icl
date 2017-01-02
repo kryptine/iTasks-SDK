@@ -24,6 +24,7 @@ import Tests.Unit.Layout
 import Tests.Unit.Editlets
 import Tests.Unit.Misc
 import Tests.Unit.TaskEvaluation
+import Tests.Unit.CoreTasks
 
 import Tests.Common.MinimalTasks
 
@@ -42,10 +43,12 @@ suites = [//Interactive tests
 		 ,testGenericEditorEdits
 		 ,testGenericEditorRefreshes
 		 ,testGenericHelperFunctions
+         ,testCoreTasksUI
 		 ,testLayout
 		 ,testEditlets
 		 ,testMisc
 		 ,testTaskEvaluation
+		 ,testCoreTasksUI 
 		 ]
 
 //Commandline options 
