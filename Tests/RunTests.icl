@@ -16,6 +16,7 @@ import Tests.Interactive.BuiltinContainers
 import Tests.Interactive.CustomEditors
 import Tests.Interactive.Layout
 import Tests.Interactive.Editlets
+import Tests.Interactive.CoreTasks
 import Tests.Interactive.TaskPatterns
 
 import Tests.Unit.CoreEditors
@@ -23,6 +24,7 @@ import Tests.Unit.Layout
 import Tests.Unit.Editlets
 import Tests.Unit.Misc
 import Tests.Unit.TaskEvaluation
+import Tests.Unit.CoreTasks
 
 import Tests.Common.MinimalTasks
 
@@ -34,6 +36,7 @@ suites = [//Interactive tests
 		 ,testCustomEditors
  		 ,testLayoutI
 		 ,testEditletsI
+         ,testCoreTasksI
          ,testTaskPatternsI
 		 //Unit tests
 		 ,testGenericEditorGenUI
@@ -44,6 +47,7 @@ suites = [//Interactive tests
 		 ,testEditlets
 		 ,testMisc
 		 ,testTaskEvaluation
+		 ,testCoreTasksUI 
 		 ]
 
 //Commandline options 

@@ -1,6 +1,6 @@
 implementation module iTasks.API.Core.IntegrationTasks
 
-import StdInt, StdFile, StdTuple, StdList
+import StdInt, StdBool, StdFile, StdTuple, StdList
 
 import System.Directory, System.File, System.FilePath, Data.Error, System.OSError, Text.Encodings.UrlEncoding, Text, Data.Tuple, Text.JSON
 import Data.Either, System.OS, Text.URI, Internet.HTTP
@@ -51,7 +51,7 @@ where
 	eval event evalOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{IWorld|world,current={TaskEvalState|taskInstance}}
 		| stable
             # status        = fromJust (fromJSON encv)
-			= case makeRep taskId evalOpts status iworld of
+			= case makeRep event taskId evalOpts status False iworld of
             	(Ok rep,iworld)
             		# iworld = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
 					= (ValueResult (Value status True) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
@@ -64,9 +64,9 @@ where
 			    Error e	= (ExceptionResult (dynamic e,snd e), {IWorld|iworld & world = world})
                 Ok mbExitCode
                     # (status,stable,state) = case mbExitCode of
-                        Just c  = (CompletedProcess c,True, TCBasic taskId lastEvent (toJSON (CompletedProcess c)) False)
+                        Just c  = (CompletedProcess c,True, TCBasic taskId lastEvent (toJSON (CompletedProcess c)) True)
                         Nothing = (RunningProcess cmd,False, state)
-                    = case makeRep taskId evalOpts status {IWorld|iworld & world = world} of
+                    = case makeRep event taskId evalOpts status stable {IWorld|iworld & world = world} of
                     	(Ok rep,iworld)
                     		# iworld = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
                     		= (ValueResult (Value status stable) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
@@ -75,13 +75,16 @@ where
 	eval event repAs (TCDestroy _) iworld
 		= (DestroyedResult,iworld)
 
-    makeRep taskId evalOpts status iworld
-		= case makeView opts status taskId iworld of
+    makeRep event taskId evalOpts status stateChange iworld
+		| stateChange || (event =: ResetEvent)
+			= case makeView opts status taskId iworld of
 			(Ok (content,mask),iworld)
 				# prompt			= toPrompt desc
 				# change 			= ReplaceUI (uic UIContainer [prompt,content])
 				= (Ok change, iworld)
 			(Error e,iworld) = (Error e,iworld)
+		| otherwise
+			= (Ok NoChange, iworld)
 						
 	makeView _ status taskId iworld
 		= makeEditor (status,newFieldMask) taskId iworld

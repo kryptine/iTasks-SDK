@@ -69,6 +69,9 @@ assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | JSONEncode{|
 
 assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & JSONEncode{|*|} a
 
+checkEqual :: a a -> TestResult | gEq{|*|} a & JSONEncode{|*|} a 
+checkEqualWith :: (a a -> Bool) a a -> TestResult |JSONEncode{|*|} a 
+
 pass :: String -> Test
 
 fail :: String -> Test
@@ -109,6 +112,8 @@ testEditorWithShare :: (Editor a) a EditMode -> Task a | iTask a
 */
 testCommonInteractions :: String -> Task a | iTask a
 
+
+testTaskOutput :: String (Task a) [Either Event Int] [UIChange] ([UIChange] [UIChange] -> TestResult) -> Test | iTask a
 
 /**
 * Test if all tests have passed

@@ -1,11 +1,24 @@
 implementation module TestFramework
-import iTasks, StdFile
+import iTasks, StdFile, StdMisc
 import iTasks.API.Extensions.Image
 import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
 import iTasks._Framework.Serialization
 import Text, Text.HTML, System.CommandLine
 import qualified Data.Map as DM
 import iTasks.API.Extensions.Development.Codebase
+
+SDK_LOCATION :== ".."
+from iTasks._Framework.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{server}, :: ServerInfo(..), :: SystemPaths(..)
+from iTasks._Framework.TaskStore import createTaskInstance, taskInstanceUIChanges
+from iTasks._Framework.TaskEval import evalTaskInstance
+from iTasks._Framework.Store import flushShareCache, emptyStore
+from iTasks._Framework.Util import toCanonicalPath
+import iTasks._Framework.Serialization
+import iTasks._Framework.IWorld
+import iTasks.UI.Definition
+import qualified iTasks._Framework.SDS as SDS
+from Data.Queue import :: Queue(..)
+import System.OS
 
 // TEST FRAMEWORK
 derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult
@@ -37,7 +50,7 @@ where
 assertEqual :: String a a -> Test | gEq{|*|} a & JSONEncode{|*|} a 
 assertEqual name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
-	test w = (if (exp === sut) Passed (Failed (Just ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON sut)))),w)
+	test w = (checkEqual exp sut,w)
 
 assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | JSONEncode{|*|} a
 assertWorld name exp sut = UnitTest {UnitTest|name=name,test=test}
@@ -52,6 +65,12 @@ where
 	test w
 		# (res,w) = sut w
 		= (if (exp === res) Passed (Failed (Just ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON res)))),w)
+
+checkEqual :: a a -> TestResult | gEq{|*|} a & JSONEncode{|*|} a 
+checkEqual exp sut = checkEqualWith (===) exp sut
+
+checkEqualWith :: (a a -> Bool) a a -> TestResult |JSONEncode{|*|} a 
+checkEqualWith pred exp sut = if (pred exp sut) Passed (Failed (Just ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON sut))))
 
 pass :: String -> Test
 pass name = UnitTest {UnitTest|name=name,test = \w -> (Passed,w)}
@@ -114,6 +133,65 @@ testCommonInteractions typeName
 				   viewSharedInformation ("View shared","View shared value of type " +++ typeName) [] s
 				  )
 		 )
+
+testTaskOutput :: String (Task a) [Either Event Int] [UIChange] ([UIChange] [UIChange] -> TestResult) -> Test | iTask a
+testTaskOutput name task events exp comparison = utest name test
+where
+	test world 
+		# iworld = createIWorld "TEST" (Just SDK_LOCATION) Nothing Nothing Nothing world
+		//Initialize JS compiler support
+		# (res,iworld) = initJSCompilerState iworld
+		| res =:(Error _)
+			= (Failed (Just (fromError res)),destroyIWorld iworld)
+		//Empty the store to make sure that we get a reliable task instance no 1
+		# iworld = emptyStore iworld
+		//Create an instance with autolayouting disabled at the top level
+		# (res,iworld) = createTaskInstance task iworld
+		= case res of
+			(Ok (instanceNo,instanceKey))
+				//Apply all events
+				# (res,iworld) = applyEvents instanceNo events iworld 
+				= case res of
+					(Ok ())
+						//Collect output
+						# (res,iworld) = 'SDS'.read (sdsFocus instanceNo taskInstanceUIChanges) iworld
+						# world = destroyIWorld iworld
+						//Compare result
+						# verdict = case res of
+							Ok queue = comparison exp (toList queue)
+							(Error (_,e)) = Failed (Just e)
+						= (verdict,world)
+					(Error e)
+						# world = destroyIWorld iworld
+						= (Failed (Just e),world)
+			(Error (_,e)) 	
+				# world = destroyIWorld iworld
+				= (Failed (Just e),world)
+
+	applyEvents _ [] iworld = (Ok (),iworld)
+	applyEvents instanceNo [Left e:es] iworld
+		= case evalTaskInstance instanceNo e iworld of
+			(Ok _,iworld) = applyEvents instanceNo es iworld
+			(Error e,iworld) = (Error e,iworld)
+	applyEvents instanceNo [Right e:es] iworld
+		//Wait between events
+		# iworld = (sleep e) iworld
+		= applyEvents instanceNo es iworld
+
+	//SHOULD BE IN Data.Queue
+	toList (Queue front rear) = front ++ reverse rear
+
+	//TODO: Do this with a platform independent standard function
+	sleep secs iworld = IF_POSIX (sleep_posix secs iworld) iworld
+	sleep_posix secs iworld
+		# x = sleep` secs
+		| x == 0 && x <> 0 = undef
+		= iworld
+	where
+       sleep` :: !Int -> !Int
+       sleep` secs = code {
+          ccall sleep "I:I"
+       }
 
 allPassed :: TestReport -> Bool
 allPassed suiteResults = all (checkSuiteResult (\r -> r =: Passed)) suiteResults
@@ -231,10 +309,10 @@ runUnitTestsCLI suites world
 where	
 	runSuite (report,(console,world)) {TestSuite|name,tests}
 		# console = fwrites ("===[ "+++ name +++ " ]===\n") console
-		# (testResults,(console,world)) = foldr runTest ([],(console,world)) [t \\ UnitTest t <- tests]
-		= ([{SuiteResult|suiteName=name,testResults=testResults}:report],(console,world))
+		# (testResults,(console,world)) = foldl runTest ([],(console,world)) [t \\ UnitTest t <- tests]
+		= ([{SuiteResult|suiteName=name,testResults=reverse testResults}:report],(console,world))
 		
-	runTest {UnitTest|name,test} (results,(console,world)) 
+	runTest (results,(console,world)) {UnitTest|name,test}  
 		# console = fwrites (name +++ "... ") console
 		# (result,world) = test world
 		# (console,world) = case result of
