@@ -309,10 +309,10 @@ runUnitTestsCLI suites world
 where	
 	runSuite (report,(console,world)) {TestSuite|name,tests}
 		# console = fwrites ("===[ "+++ name +++ " ]===\n") console
-		# (testResults,(console,world)) = foldr runTest ([],(console,world)) [t \\ UnitTest t <- tests]
-		= ([{SuiteResult|suiteName=name,testResults=testResults}:report],(console,world))
+		# (testResults,(console,world)) = foldl runTest ([],(console,world)) [t \\ UnitTest t <- tests]
+		= ([{SuiteResult|suiteName=name,testResults=reverse testResults}:report],(console,world))
 		
-	runTest {UnitTest|name,test} (results,(console,world)) 
+	runTest (results,(console,world)) {UnitTest|name,test}  
 		# console = fwrites (name +++ "... ") console
 		# (result,world) = test world
 		# (console,world) = case result of
