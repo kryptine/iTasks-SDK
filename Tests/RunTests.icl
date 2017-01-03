@@ -43,7 +43,6 @@ suites = [//Interactive tests
 		 ,testGenericEditorEdits
 		 ,testGenericEditorRefreshes
 		 ,testGenericHelperFunctions
-         ,testCoreTasksUI
 		 ,testLayout
 		 ,testEditlets
 		 ,testMisc
