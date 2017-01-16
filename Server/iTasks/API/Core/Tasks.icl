@@ -191,16 +191,16 @@ where
             (Error e,iworld)
                 = (ExceptionResult e, iworld)
             (Ok _,iworld)
-                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange (TCBasic taskId ts JSONNull False),iworld)
+                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep (TCBasic taskId ts JSONNull False),iworld)
 
     eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioStates}
         = case 'DM'.get taskId ioStates of
             Nothing
-                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange tree, iworld)
+                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
             Just (IOActive values)
                 = case 'DM'.get 0 values of 
                     Just (l :: l^, s)
-                        = (ValueResult (Value l s) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange tree, iworld)
+                        = (ValueResult (Value l s) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
                     _
                         = (ExceptionResult (exception "Corrupt IO task result"),iworld)
             Just (IOException e)
@@ -211,6 +211,8 @@ where
             Just (IOActive values)  = 'DM'.put taskId (IODestroyed values) ioStates
             _                       = ioStates
         = (DestroyedResult,{iworld & ioStates = ioStates})
+
+    rep = ReplaceUI (stringDisplay ("TCP client " <+++ host <+++ ":" <+++ port))
 
 appWorld :: !(*World -> *World) -> Task ()
 appWorld fun = mkInstantTask eval
