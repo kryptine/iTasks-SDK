@@ -30,6 +30,7 @@ from Data.Set import :: Set, newSet
 from Sapl.Linker.LazyLinker import generateLoaderState, :: LoaderStateExt, :: LoaderState, :: FuncTypeMap, :: LineType
 from Sapl.Linker.SaplLinkerShared import :: SkipSet
 from Sapl.Target.Flavour import :: Flavour, toFlavour
+from Sapl.Target.CleanFlavour import cleanFlavour
 from Sapl.SaplParser import :: ParserState
 
 //The following modules are excluded by the SAPL -> Javascript compiler
@@ -53,15 +54,9 @@ createIWorld :: !String !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) 
 createIWorld appName mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 	# (appPath,world)			= determineAppPath world
 	# appDir					= takeDirectory appPath
-	# dataDir					= case mbStorePath of
-		Just path 				= path	
-		Nothing 				= appDir </> appName +++ "-data"
-	# saplDir = case mbSaplPath of
-		Just path 	= path
-		Nothing 	= appDir </>"sapl"
-	# flavourPath = case mbSDKPath of
-		Just sdkPath 	= sdkPath </> "Dependencies" </> "clean-sapl" </> "src" </>"clean.f"
-		Nothing 		= saplDir </> "clean.f"
+	# dataDir					= fromMaybe (appDir </> appName +++ "-data") mbStorePath
+	# saplDir                   = fromMaybe (appDir </> appName +++ "-sapl") mbSaplPath 
+	# (saplDir,world)           = fallBackSaplDir appDir saplDir world
 	# (webdirPaths,world) 	 	= case mbWebdirPaths of
 		Just paths 				= (paths,world)
 		Nothing 
@@ -94,7 +89,6 @@ createIWorld appName mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 	        ,dataDirectory		    = dataDir
             ,publicWebDirectories   = webdirPaths 
 			,saplDirectory 			= saplDir
-			,saplFlavourFile 		= flavourPath
             }
         }
 	  ,config				= initialConfig
@@ -142,41 +136,21 @@ where
 		| isError res = abort ("Cannot create " +++ name +++ " directory" +++ path +++ " : "  +++ snd (fromError res))
 		= (False,world)
 
+	//Temporary fallback to use "sapl" instead of "<Application name>-sapl".
+    //Once everybody uses an upgraded sapl-collector-linker that creates the proper
+    //directory name it can be removed
+	fallBackSaplDir appDir saplDir world
+		# (exists, world) = fileExists saplDir world
+		| exists = (saplDir,world)
+				 = (appDir </> "sapl",world)
+		
+
 initJSCompilerState :: *IWorld -> *(!MaybeErrorString (), !*IWorld)
-initJSCompilerState iworld=:{IWorld|world,server={paths={appDirectory,saplDirectory,saplFlavourFile}}}
+initJSCompilerState iworld=:{IWorld|world,server={paths={appDirectory,saplDirectory}}}
 	# ((lst, ftmap, _), world)  = generateLoaderState [saplDirectory] [] JS_COMPILER_EXCLUDES world
-	= case readFlavour saplFlavourFile world of
-		(Ok flavour,world)
- 			# jsCompilerState =
-				{ loaderState = lst
-				, functionMap = ftmap
-				, flavour 		= flavour
-				, parserState = Nothing
-				, skipMap = 'DM'.newMap
-				}
-			= (Ok (),{iworld & jsCompilerState = Just jsCompilerState, world = world})
-		(Error e,world)
-			= (Error e,{iworld & world = world})
-where
-    readFlavour :: !String !*World -> *(!MaybeErrorString Flavour, !*World)
-    readFlavour flavourPath world
-	    # (flavRes, world) 	= readFile flavourPath world
-		= case readFile flavourPath world of
-			(Error e,world)
-				//Check if a Clean install is configured with the SAPL library installed to find a default flavour file
-				= case getEnvironmentVariable "CLEAN_HOME" world of
-					(Just cleanHome,world)
-						= case readFile (cleanHome </> "lib" </> "Sapl" </> "clean.f") world of
-							(Ok flavFile,world) = parseFlavour flavFile world
-							(Error e,world) = (Error ("Default Javascript Flavour file could not be read: " +++ toString e),world)
-					(Nothing,world)
-						= (Error ("JavaScript Flavour file could not be read: " +++ toString e),world)
-			(Ok flavFile,world) = parseFlavour flavFile world
-					
-	parseFlavour flavFile world
-		= case toFlavour flavFile of
-			Nothing      = (Error "Error in JavaScript flavour file",world)
-			Just flavour = (Ok flavour,world)
+    # jsCompilerState = { loaderState = lst, functionMap = ftmap, flavour = cleanFlavour, parserState = Nothing, skipMap = 'DM'.newMap}
+    = (Ok (), {iworld & jsCompilerState = Just jsCompilerState, world = world})
+
 // Determines the server executables path
 determineAppPath :: !*World -> (!FilePath, !*World)
 determineAppPath world

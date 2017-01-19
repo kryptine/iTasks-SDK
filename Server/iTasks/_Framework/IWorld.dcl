@@ -59,7 +59,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 	, dataDirectory			:: !FilePath		// Location of the application's data files
     , publicWebDirectories  :: ![FilePath]      // List of directories that contain files that are served publicly by the iTask webserver
 	, saplDirectory 		:: !FilePath 		// Location of the application's sapl files
-	, saplFlavourFile 		:: !FilePath  		// Location of the sapl flavour file
     }
 
 :: SystemClocks =
