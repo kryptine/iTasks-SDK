@@ -47,7 +47,6 @@ where
 		# iworld=:{server} = createIWorld "TEST" Nothing Nothing Nothing Nothing world
 		//Check some properties
 		# res = server.paths.dataDirectory ==  appDir </> "TEST-data"//Is the data directory path correctly initialized
-		     && server.paths.saplFlavourFile == appDir </> "sapl" </> "clean.f"
 		# world = destroyIWorld {iworld & server = server}
 		= (res,world)
 
