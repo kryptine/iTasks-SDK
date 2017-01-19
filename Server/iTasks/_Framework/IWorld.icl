@@ -50,9 +50,8 @@ JS_COMPILER_EXCLUDES :==
 	,"System.Directory"
 	]
 
-createIWorld :: !String !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
-createIWorld appName mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
-	# (appPath,world)			= determineAppPath world
+createIWorld :: !String FilePath !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
+createIWorld appName appPath mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
 	# appDir					= takeDirectory appPath
 	# dataDir					= fromMaybe (appDir </> appName +++ "-data") mbStorePath
 	# saplDir                   = fromMaybe (appDir </> appName +++ "-sapl") mbSaplPath 

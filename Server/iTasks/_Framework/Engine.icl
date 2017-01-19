@@ -109,9 +109,9 @@ where
 					= stringOpt key [v:r]
 
 startEngineWithOptions :: a ServerOptions !*World -> *World | Publishable a
-startEngineWithOptions publishable options=:{appName,sdkPath,serverPort,webDirPaths,keepalive,storeOpt,saplOpt} world
+startEngineWithOptions publishable options=:{appName,appPath,sdkPath,serverPort,webDirPaths,keepalive,storeOpt,saplOpt} world
 	# world					= show (running serverPort) world
- 	# iworld				= createIWorld appName sdkPath webDirPaths storeOpt saplOpt world
+ 	# iworld				= createIWorld appName appPath sdkPath webDirPaths storeOpt saplOpt world
  	# (res,iworld) 			= initJSCompilerState iworld
  	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
  	// All persistent task instances should receive a reset event to continue their work
