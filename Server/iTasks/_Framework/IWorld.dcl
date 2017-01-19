@@ -140,6 +140,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 * Creates and initializes the IWorld state
 *
 * @param The application's name
+* @param The application's pad (e.g. to executable).
 * @param The path where the iTasks SDK can be found (optional)
 * @param Additional paths where static web assets can be found (optional)
 * @param The path where the iTasks data store is located (optional)
@@ -148,7 +149,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 *
 * @return An initialized iworld
 */
-createIWorld :: !String !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
+createIWorld :: !String FilePath !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
 
 /**
 * Initialize the SAPL->JS compiler state
