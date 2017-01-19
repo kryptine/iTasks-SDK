@@ -10,7 +10,8 @@ testEditletsI = testsuite "Editlets" "These tests check if the advanced clientsi
     ,testSVGEditletClick
     ,testLeafletMap
     ,testGoogleMap
-	,testAceEditor]
+	,testAceEditor
+	,testAceEditorWithShare]
 
 import iTasks.API.Extensions.Clock
 testEditlet = itest "Simple clock editlet" "Look at the image below" "You should see a changing interactive clock" tut
@@ -73,3 +74,7 @@ where
 	tut :: Task String
 	tut = testEditor (aceTextArea) "Hello world" Update
 
+testAceEditorWithShare = itest "Ace editor on share" "Try to edit some text" "You should see an editor with line numbers" tut
+where
+	tut :: Task String
+	tut = testEditorWithShare (aceTextArea) "Hello world" Update

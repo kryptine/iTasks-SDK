@@ -38,8 +38,11 @@ where
 		# (_,world)      = ((editor .# "on") .$ ("change",cb)) world
 		= world
 
-	onAttributeChange me args world
-		= jsTrace "Ace: change event from server" world
+	onAttributeChange me [name,value] world
+		//Only the value attribute is implemented currently
+		# (editor,world)  = .? (me .# "editor") world
+        # (_,world)       = ((editor .# "setValue") .$ value) world
+		= world
 
 	onChange editor me world
         # (value,world)  = ((editor .# "getValue") .$ ()) world
@@ -51,7 +54,7 @@ where
 	onEdit dp ([],JSONString nv) v m vst = (Ok (NoChange,m),nv,vst)
 	onEdit dp (tp,e) v m vst = (Ok (NoChange,m),v,vst)
 
-	onRefresh dp r v m vst = (Ok (NoChange,m),v,vst)
+	//onRefresh dp r v m vst = (Ok (NoChange,m),v,vst)
 	onRefresh dp r v m vst 
 		| r == v = (Ok (NoChange,m),v,vst)
 				 = (Ok (ChangeUI [SetAttribute "value" (JSONString r)] [] ,m),r,vst)
