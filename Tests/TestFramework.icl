@@ -139,8 +139,8 @@ testTaskOutput name task events exp comparison = utest name test
 where
 	test world 
 		# (argv,world) = getCommandLine world
-		# (appDir,world) = toCanonicalPath (takeDirectory (hd argv)) world
-		# iworld = createIWorld "TEST" (appDir </> "TEST") (Just SDK_LOCATION) Nothing Nothing Nothing world
+		# (appPath,world) = toCanonicalPath (hd argv) world
+		# iworld = createIWorld "TEST" appPath (Just SDK_LOCATION) Nothing Nothing Nothing world
 		//Initialize JS compiler support
 		# (res,iworld) = initJSCompilerState iworld
 		| res =:(Error _)
