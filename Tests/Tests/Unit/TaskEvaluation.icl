@@ -44,16 +44,18 @@ where
 	sut world
 		# (argv,world) = getCommandLine world
 		# (appDir,world) = toCanonicalPath (takeDirectory (hd argv)) world
-		# iworld=:{server} = createIWorld "TEST" Nothing Nothing Nothing Nothing world
+		# iworld=:{server} = createIWorld "TEST" (appDir </> "TEST")  Nothing Nothing Nothing Nothing world
 		//Check some properties
-		# res = server.paths.dataDirectory ==  appDir </> "TEST-data"//Is the data directory path correctly initialized
+		# res = server.paths.dataDirectory == appDir </> "TEST-data"//Is the data directory path correctly initialized
 		# world = destroyIWorld {iworld & server = server}
 		= (res,world)
 
 testCreateTaskInstance = assertWorld "Create task instance" isOk sut
 where
 	sut world
-		# iworld = createIWorld "TEST" Nothing Nothing Nothing Nothing world
+		# (argv,world) = getCommandLine world
+		# (appDir,world) = toCanonicalPath (takeDirectory (hd argv)) world
+		# iworld = createIWorld "TEST" (appDir </> "TEST") Nothing Nothing Nothing Nothing world
 		//Create a task instance
 		# (res,iworld) = createTaskInstance minimalEditor iworld
 		# world = destroyIWorld iworld

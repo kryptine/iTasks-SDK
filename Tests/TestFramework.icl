@@ -138,7 +138,9 @@ testTaskOutput :: String (Task a) [Either Event Int] [UIChange] ([UIChange] [UIC
 testTaskOutput name task events exp comparison = utest name test
 where
 	test world 
-		# iworld = createIWorld "TEST" (Just SDK_LOCATION) Nothing Nothing Nothing world
+		# (argv,world) = getCommandLine world
+		# (appDir,world) = toCanonicalPath (takeDirectory (hd argv)) world
+		# iworld = createIWorld "TEST" (appDir </> "TEST") (Just SDK_LOCATION) Nothing Nothing Nothing world
 		//Initialize JS compiler support
 		# (res,iworld) = initJSCompilerState iworld
 		| res =:(Error _)
