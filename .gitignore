@@ -1,10 +1,11 @@
 **/Clean System Files
 Examples/**/*-data
-Examples/**/sapl
+Examples/**/*-sapl
+Examples/**/*-www
 Examples/**/*.prj
 Examples/**/*.exe
 Tests/**/*-data
-Tests/**/sapl
+Tests/**/*-sapl
+Tests/**/*-www
 Tests/**/*.prj
 Tests/**/*.exe
-Client/**/*.scssc
