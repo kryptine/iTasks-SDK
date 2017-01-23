@@ -95,7 +95,7 @@ where
     //      Because the current selectLayout is static, we cannot do that...
 
 	//Just unwrap
-	layoutMinimal = sequenceLayouts [unwrapUI,finalizeUI]
+	layoutMinimal = layoutSubAt [0] finalizeUI//sequenceLayouts [unwrapUI,finalizeUI]
 
 	//Create a buttonbar with buttons for each action
 	layoutWithButtons = sequenceLayouts [layoutSubAt [0] finalizeUI, actionsToButtonBar,setNodeType UIPanel]
