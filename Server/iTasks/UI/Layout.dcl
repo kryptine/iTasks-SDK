@@ -96,6 +96,7 @@ traceLayout :: String Layout -> Layout
 //TYPES EXPORTED FOR TESTING
 :: NodeMoves :== [(Int,NodeMove)] 
 :: NodeMove = BranchMoved
+            | BranchHidden UI
             | ChildBranchesMoved NodeMoves
 
 //This type records the states of layouts applied somewhere in a ui tree
