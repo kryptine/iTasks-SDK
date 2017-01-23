@@ -314,8 +314,12 @@ waitForDateTime :: !DateTime -> Task DateTime
 waitForDateTime datetime =
 	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime >>* [OnValue (ifValue (\now -> datetime < now) return)]
 
+waitForUTCDateTime :: !DateTime -> Task DateTime
+waitForUTCDateTime datetime =
+	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentUTCDateTime >>* [OnValue (ifValue (\now -> datetime < now) return)]
+
 waitForTimer :: !Int -> Task DateTime
-waitForTimer interval = get currentDateTime >>- \now -> waitForDateTime (endTime interval now)
+waitForTimer interval = get currentDateTime >>- \now -> waitForUTCDateTime (endTime interval now)
 where
 	endTime interval now = let (Timestamp ts) = datetimeToTimestamp now in timestampToGmDateTime (Timestamp (ts + interval))
 
