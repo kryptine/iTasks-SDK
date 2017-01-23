@@ -86,9 +86,28 @@ finalizeStep :: Layout
 finalizeStep = conditionalLayout isStep layout
 where
 	layout = selectLayout
-		[(hasActions, sequenceLayouts [layoutSubAt [0] finalizeUI, actionsToButtonBar,setNodeType UIPanel])
-		,(const True, sequenceLayouts [unwrapUI,finalizeUI])
+		[(hasActions, selectLayout
+						[(nestedStep, sequenceLayouts [hideInActiveActions, layoutWithButtons])
+						,(const True, layoutWithButtons)])
+		,(const True, layoutMinimal)
 		]
+    //NOTE: We would like to be able to do the hasActions, after the nestedStep check
+    //      Because the current selectLayout is static, we cannot do that...
+
+	//Just unwrap
+	layoutMinimal = sequenceLayouts [unwrapUI,finalizeUI]
+
+	//Create a buttonbar with buttons for each action
+	layoutWithButtons = sequenceLayouts [layoutSubAt [0] finalizeUI, actionsToButtonBar,setNodeType UIPanel]
+
+	//For directly nested steps we hide all actions that are not active to prevent lots of
+    //buttons that are not yet relevant to clutter up the UI
+	hideInActiveActions = hideSubsMatching [] inActiveAction
+	
+	nestedStep (UI type attr [UI UIStep _ _:_]) = True
+	nestedStep _ = False
+
+	inActiveAction (UI type attr _) = (type =: UIAction) && (maybe False (\(JSONBool b) -> not b) ('DM'.get "enabled" attr))
 
 finalizeParallel :: Layout
 finalizeParallel = selectLayout

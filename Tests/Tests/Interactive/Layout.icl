@@ -3,7 +3,7 @@ import TestFramework
 
 testLayoutI :: TestSuite
 testLayoutI = testsuite "Layout" "Test for layout functions" 
-	[testWindow,testForeverLoop]
+	[testWindow,testForeverLoop,testNestedSteps]
 
 testWindow = itest "Window test" "Press the button" "A window should open" sut
 where
@@ -21,3 +21,9 @@ where
 			>>| return ()
 		)
 
+testNestedSteps = itest "Nested steps" "Test nested steps" "You sheed be able to click to three screens by pressing continue (you should see only one continue button)" sut
+where
+	sut =   viewInformation () [] "Step 1"
+		>>| viewInformation () [] "Step 2"
+		>>| viewInformation () [] "Step 3"
+		>>| viewInformation () [] "Step 4"
