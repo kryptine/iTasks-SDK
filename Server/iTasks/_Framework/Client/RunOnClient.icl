@@ -128,8 +128,7 @@ createClientIWorld serverURL currentInstance
 		    ,paths      = {appDirectory  = locundef "appDirectory"
                           ,dataDirectory = locundef "dataDirectory"
                           ,publicWebDirectories = locundef "publicWebDirectories"
-						  ,saplDirectory = locundef "saplDirectory"
-						  ,saplFlavourFile = locundef "saplFlavourFile"}
+						  ,saplDirectory = locundef "saplDirectory"}
             }
 		  ,config				= {sessionTime = 3600, smtpServer = locundef "smtpServer"}
           ,clocks =
