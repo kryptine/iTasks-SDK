@@ -53,18 +53,34 @@ flattenUI :: Layout
 //* Reorder a static part of a UI
 reorderUI :: (UI -> UI) -> Layout 
 
-//Operations on single specific sub-UI's indicated by a path
+// Operations on single specific sub-UI's indicated by a path
 insertSubAt :: NodePath UI       -> Layout
 removeSubAt :: NodePath          -> Layout
 moveSubAt   :: NodePath NodePath -> Layout
 
-//Group operations on selections of sub-UI's
+// Group operations on selections of sub-UI's
+
+/**
+* Remove all elements that match the predicate. Further changes to these elements are discarded.
+* When new elements are added dynamically they are also tested against the predicate
+*/
 removeSubsMatching :: NodePath (UI -> Bool)          -> Layout
+/*
+* Move all elements that match the predicate to a particular location in the tree.
+* Further changes to these elements are rewritten to target the new location.
+* When new elements are added dynamically they are also tested against the predicate
+*/
 moveSubsMatching   :: NodePath (UI -> Bool) NodePath -> Layout
-moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
+//* Same as moveSubsMatching, but only for direct children
+moveChildren       :: NodePath (UI -> Bool) NodePath -> Layout
+/**
+* Remove all elements that match the predicate, but keep the removed elements in the state.
+* Further changes to these elements are processed in the background. When the predicate no longer holds, the elements are inserted back into the UI.
+* When new elements are added dynamically they are also tested against the predicate
+*/
+hideSubsMatching   :: NodePath (UI -> Bool)          -> Layout
 
-
-//Composition of layouts
+// Composition of layouts
 sequenceLayouts   :: [Layout]               -> Layout
 selectLayout      :: [(UI -> Bool, Layout)] -> Layout
 conditionalLayout :: (UI -> Bool) Layout    -> Layout
@@ -74,7 +90,7 @@ layoutSubsMatching :: NodePath (UI -> Bool) Layout -> Layout
 layoutSubsOfType   :: NodePath [UINodeType] Layout -> Layout
 layoutChildrenOf   :: NodePath Layout -> Layout
 
-//Easier debugging
+// Easier debugging
 traceLayout :: String Layout -> Layout
 
 //TYPES EXPORTED FOR TESTING

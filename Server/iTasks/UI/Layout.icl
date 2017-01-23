@@ -283,6 +283,9 @@ moveSubsMatching src pred dst = moveSubs_ pred` (Just dst)
 where
 	pred` path ui = isSubPathOf_ path src && pred ui
 
+hideSubsMatching :: NodePath (UI -> Bool) -> Layout
+hideSubsMatching src pred = removeSubsMatching src pred //TEMPORARY PLACEHOLDER, NOT THE CORRECT BEHAVIOR
+
 layoutSubsMatching :: NodePath (UI -> Bool) Layout -> Layout
 layoutSubsMatching src pred layout = layoutSubs_ pred` layout
 where
