@@ -64,19 +64,19 @@ instance TonicTopLevelBlueprint Task where
 instance TonicBlueprintPart Task where
   tonicWrapApp mn fn nid cases t = tonicWrapApp` mn fn nid cases t
 
-instance TonicTopLevelBlueprint Maybe where
-  tonicWrapBody mn tn args _ t = t // tonicIOTopLevel mn tn t TODO FIXME
-  tonicWrapArg _ _ _ = return ()
+//instance TonicTopLevelBlueprint Maybe where
+  //tonicWrapBody mn tn args _ t = t // tonicIOTopLevel mn tn t TODO FIXME
+  //tonicWrapArg _ _ _ = return ()
 
 instance TonicBlueprintPart Maybe where
   tonicWrapApp mn fn nid _ mb = mb // tonicIOBlueprintPart mn fn nid mb TODO FIXME
 
-instance TonicTopLevelBlueprint (Either e) where
-  tonicWrapBody mn tn args _ t = t // tonicIOTopLevel mn tn t TODO FIXME
-  tonicWrapArg _ _ _ = return ()
+//instance TonicTopLevelBlueprint (Either e) where
+  //tonicWrapBody mn tn args _ t = t // tonicIOTopLevel mn tn t TODO FIXME
+  //tonicWrapArg _ _ _ = return ()
 
-instance TonicBlueprintPart (Either e) where
-  tonicWrapApp mn fn nid _ mb = mb // tonicIOBlueprintPart mn fn nid mb TODO FIXME
+//instance TonicBlueprintPart (Either e) where
+  //tonicWrapApp mn fn nid _ mb = mb // tonicIOBlueprintPart mn fn nid mb TODO FIXME
 
 import StdDebug
 tcpsend :: TonicMessage *World -> *World
@@ -106,12 +106,12 @@ tcpsend` host port out world
   where
   mkError = Error ("Failed to connect to host " +++ host)
 
-instance TonicTopLevelBlueprint IO where
-  tonicWrapBody mn tn args _ t = t // TODO FIXME tonicIOTopLevel mn tn t
-  tonicWrapArg _ _ _ = return ()
+//instance TonicTopLevelBlueprint IO where
+  //tonicWrapBody mn tn args _ t = t // TODO FIXME tonicIOTopLevel mn tn t
+  //tonicWrapArg _ _ _ = return ()
 
-instance TonicBlueprintPart IO where
-  tonicWrapApp mn fn nid _ mb = mb // TODO FIXME tonicIOBlueprintPart mn fn nid mb
+//instance TonicBlueprintPart IO where
+  //tonicWrapApp mn fn nid _ mb = mb // TODO FIXME tonicIOBlueprintPart mn fn nid mb
 
 TonicBookkeepingFile =: "TonicBookkeepingFile"
 

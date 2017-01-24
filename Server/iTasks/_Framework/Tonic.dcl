@@ -31,17 +31,17 @@ class TonicBlueprintPart m | TMonad m where
 instance TonicTopLevelBlueprint Task
 instance TonicBlueprintPart Task
 
-instance TonicTopLevelBlueprint Maybe
+//instance TonicTopLevelBlueprint Maybe
 instance TonicBlueprintPart Maybe
 
-instance TonicTopLevelBlueprint (Either e)
-instance TonicBlueprintPart (Either e)
+//instance TonicTopLevelBlueprint (Either e)
+//instance TonicBlueprintPart (Either e)
 
-instance TonicTopLevelBlueprint IO
-instance TonicBlueprintPart IO
+//instance TonicTopLevelBlueprint IO
+//instance TonicBlueprintPart IO
 
-instance TApplicative IO
-instance TMonad IO
+//instance TApplicative IO
+//instance TMonad IO
 
 tonicExtWrapArg       :: !VarName !Int !a -> m () | TonicTopLevelBlueprint m
 
