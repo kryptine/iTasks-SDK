@@ -49,65 +49,6 @@ where
 		
 		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
 
-/*
-
-Function UI -> UI s.t. h o g o f
-Where
-f : UI -> TaskUITree
-g : TaskUITree -> TaskUILayout
-h : TaskUILayout -> UI
-
-f transforms the original UI into a TaskUITree the same way we do now
-g transforms the UILayout into a layout
-h transforms the UILayout into a sparse new UI with some attributes (like direction), including an attribute origin that contains the original NodePath in the original tree
-
-*/
-
-:: TaskUITree
-  = Ed  NodePath
-  | Par NodePath [TaskUITree]
-
-:: TaskUILayout a
-  = UIBeside [TaskUILayout a]
-  | UIAbove  [TaskUILayout a]
-  | UINode   NodePath
-
-uiOf :: TaskUITree -> TaskUILayout a
-uiOf (Ed  path  ) = UINode path
-uiOf (Par path _) = UINode path
-
-instance Layout TaskUILayout Int Int TaskHost where
-  collage        _ _ _ = UINode []
-  overlay      _ _ _ _ = UINode []
-  beside    _ _ _ ts _ = UIBeside ts
-  above     _ _ _ ts _ = UIAbove ts
-  grid _ _ _ _ _ _ _ _ = UINode []
-
-uiToRefs :: UI -> TaskUITree
-uiToRefs ui
-  = case ui of
-      UI UIParallel _ subs = Par [] (recurse [] subs)
-      UI _          _ subs = case recurse [] subs of
-                               [x : _] -> x
-                               _       -> Ed []
-  where
-  uiToRefs` :: NodePath (Int, UI) -> [TaskUITree]
-  uiToRefs` path (i, UI UIParallel _ subs)
-    # curPath = path ++ [i]
-    = [Par curPath (recurse curPath subs)]
-  uiToRefs` path (i, UI x _ _)
-    # curPath = path ++ [i]
-    = [Ed curPath]
-  recurse curPath subs = flatten (map (uiToRefs` curPath) (zip2 [0..] subs))
-
-taskUILayoutToUI :: (TaskUILayout a) -> UI
-taskUILayoutToUI (UIBeside ls)
-  = UI UIParallel ('DM'.singleton "direction" (encodeUI Horizontal)) (map taskUILayoutToUI ls)
-taskUILayoutToUI (UIAbove ls)
-  = UI UIParallel ('DM'.singleton "direction" (encodeUI Vertical)) (map taskUILayoutToUI ls)
-taskUILayoutToUI (UINode path)
-  = UI UIContainer ('DM'.singleton "origin" (toJSON path)) []
-
 setNodeType :: UINodeType -> Layout
 setNodeType type = layout
 where
@@ -205,44 +146,6 @@ where
 		# (items,spines) = unzip (map flattenWithSpine items)
 		# items = flatten [[UI type attr []:children] \\ UI type attr children <- items]
 		= (UI type attr items,NS spines)
-
-reorderUI :: (UI -> UI) -> Layout 
-reorderUI reorder = layout
-where
-	layout (NoChange,s)
-		 = (NoChange,s)
-	layout (ReplaceUI ui,_) 
-		//Determine a skeleton of the reordered ui, and replace references
-		//Replace references to parts of the original ui
-		# (moves,ui) = derefAll ui [] (reorder ui)
-		= (ReplaceUI ui,toJSON moves)
-	//Adjust followup changes to the moved parts
-	layout (c,s) = (adjust (fromMaybe 'DM'.newMap (fromJSON s)) c,s)
-
-	derefAll :: UI NodePath UI -> (Map NodePath NodePath,UI)
-	derefAll origUI curNp (UI type attr items) = case 'DM'.get "include" attr of
-		(Just jsonNp)
-			# refNp = fromMaybe [] (fromJSON jsonNp)
-			= ('DM'.singleton curNp refNp, lookup refNp origUI)
-		Nothing
-			# (paths,items) = unzip [derefAll origUI (curNp ++ [i]) item \\ item <- items & i <- [0..]]
-			= ('DM'.unions paths,UI type attr items)
-
-	lookup :: NodePath UI -> UI //ASSUMES SUCCESS
-	lookup [] ui = ui
-	lookup [p:ps] (UI _ _ items) = lookup ps (items !! p)
-
-	adjust :: (Map NodePath NodePath) UIChange -> UIChange //TODO
-	adjust moves change = change 
-	where
-		selectChanges :: [NodePath] UIChange -> [(NodePath,UIChange)]
-		selectChanges _ _ = []
-
-		remap :: (Map NodePath NodePath) [(NodePath,UIChange)] -> [(NodePath,UIChange)]
-		remap moves changes = [(fromJust ('DM'.get path moves),change) \\ (path,change) <- changes]
-		
-		combineChanges :: [(NodePath,UIChange)] -> UIChange
-		combineChanges _ = NoChange
 
 insertSubAt :: NodePath UI-> Layout
 insertSubAt [] def = id
@@ -677,18 +580,6 @@ where
         ([(_,s):_],states) = (Just s,states)
         _                  = (Nothing,states)
 
-
-//Common patterns
-moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
-moveChildren container pred dst = moveSubs_ pred` dst
-where
-	pred` path ui = isSubPathOf_ path container && length path == length container + 1 && pred ui
-
-layoutChildrenOf :: NodePath Layout -> Layout
-layoutChildrenOf container layout = layoutSubs_ pred layout
-where
-	pred path ui = isSubPathOf_ path container && length path == length container + 1
-
 sequenceLayouts :: [Layout] -> Layout
 sequenceLayouts layouts = layout
 where
@@ -729,6 +620,17 @@ where
 		| pred def 	= Just (i,layout)
 					= selectLayout def (i + 1) ls
 
+//Common patterns
+moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
+moveChildren container pred dst = moveSubs_ pred` dst
+where
+	pred` path ui = isSubPathOf_ path container && length path == length container + 1 && pred ui
+
+layoutChildrenOf :: NodePath Layout -> Layout
+layoutChildrenOf container layout = layoutSubs_ pred layout
+where
+	pred path ui = isSubPathOf_ path container && length path == length container + 1
+
 conditionalLayout :: (UI -> Bool) Layout -> Layout
 conditionalLayout pred condLayout = selectLayout [(pred,condLayout)]
 
@@ -745,3 +647,100 @@ where
 			,toString (toJSON change`)]
 		= trace_n msg (change`,state`)
 
+//Experiment to create an alternative, more declarative way of specifying layouts
+
+/*
+
+Function UI -> UI s.t. h o g o f
+Where
+f : UI -> TaskUITree
+g : TaskUITree -> TaskUILayout
+h : TaskUILayout -> UI
+
+f transforms the original UI into a TaskUITree the same way we do now
+g transforms the UILayout into a layout
+h transforms the UILayout into a sparse new UI with some attributes (like direction), including an attribute origin that contains the original NodePath in the original tree
+
+*/
+:: TaskUITree
+  = Ed  NodePath
+  | Par NodePath [TaskUITree]
+
+:: TaskUILayout a
+  = UIBeside [TaskUILayout a]
+  | UIAbove  [TaskUILayout a]
+  | UINode   NodePath
+
+uiOf :: TaskUITree -> TaskUILayout a
+uiOf (Ed  path  ) = UINode path
+uiOf (Par path _) = UINode path
+
+instance Layout TaskUILayout Int Int TaskHost where
+  collage        _ _ _ = UINode []
+  overlay      _ _ _ _ = UINode []
+  beside    _ _ _ ts _ = UIBeside ts
+  above     _ _ _ ts _ = UIAbove ts
+  grid _ _ _ _ _ _ _ _ = UINode []
+
+uiToRefs :: UI -> TaskUITree
+uiToRefs ui
+  = case ui of
+      UI UIParallel _ subs = Par [] (recurse [] subs)
+      UI _          _ subs = case recurse [] subs of
+                               [x : _] -> x
+                               _       -> Ed []
+  where
+  uiToRefs` :: NodePath (Int, UI) -> [TaskUITree]
+  uiToRefs` path (i, UI UIParallel _ subs)
+    # curPath = path ++ [i]
+    = [Par curPath (recurse curPath subs)]
+  uiToRefs` path (i, UI x _ _)
+    # curPath = path ++ [i]
+    = [Ed curPath]
+  recurse curPath subs = flatten (map (uiToRefs` curPath) (zip2 [0..] subs))
+
+taskUILayoutToUI :: (TaskUILayout a) -> UI
+taskUILayoutToUI (UIBeside ls)
+  = UI UIParallel ('DM'.singleton "direction" (encodeUI Horizontal)) (map taskUILayoutToUI ls)
+taskUILayoutToUI (UIAbove ls)
+  = UI UIParallel ('DM'.singleton "direction" (encodeUI Vertical)) (map taskUILayoutToUI ls)
+taskUILayoutToUI (UINode path)
+  = UI UIContainer ('DM'.singleton "origin" (toJSON path)) []
+
+reorderUI :: (UI -> UI) -> Layout 
+reorderUI reorder = layout
+where
+	layout (NoChange,s)
+		 = (NoChange,s)
+	layout (ReplaceUI ui,_) 
+		//Determine a skeleton of the reordered ui, and replace references
+		//Replace references to parts of the original ui
+		# (moves,ui) = derefAll ui [] (reorder ui)
+		= (ReplaceUI ui,toJSON moves)
+	//Adjust followup changes to the moved parts
+	layout (c,s) = (adjust (fromMaybe 'DM'.newMap (fromJSON s)) c,s)
+
+	derefAll :: UI NodePath UI -> (Map NodePath NodePath,UI)
+	derefAll origUI curNp (UI type attr items) = case 'DM'.get "include" attr of
+		(Just jsonNp)
+			# refNp = fromMaybe [] (fromJSON jsonNp)
+			= ('DM'.singleton curNp refNp, lookup refNp origUI)
+		Nothing
+			# (paths,items) = unzip [derefAll origUI (curNp ++ [i]) item \\ item <- items & i <- [0..]]
+			= ('DM'.unions paths,UI type attr items)
+
+	lookup :: NodePath UI -> UI //ASSUMES SUCCESS
+	lookup [] ui = ui
+	lookup [p:ps] (UI _ _ items) = lookup ps (items !! p)
+
+	adjust :: (Map NodePath NodePath) UIChange -> UIChange //TODO
+	adjust moves change = change 
+	where
+		selectChanges :: [NodePath] UIChange -> [(NodePath,UIChange)]
+		selectChanges _ _ = []
+
+		remap :: (Map NodePath NodePath) [(NodePath,UIChange)] -> [(NodePath,UIChange)]
+		remap moves changes = [(fromJust ('DM'.get path moves),change) \\ (path,change) <- changes]
+		
+		combineChanges :: [(NodePath,UIChange)] -> UIChange
+		combineChanges _ = NoChange
