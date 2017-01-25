@@ -354,6 +354,7 @@ where
 	appChildChange items (i,RemoveChild) = removeAt i items
 	appChildChange items (i,InsertChild ui) = insertAt i ui items
 	appChildChange items (i,ChangeChild change) = updateAt i (applyUIChange change (items !! i)) items
+	//FIXME: There is no case MoveChild
 
 //Remove unnessecary directives
 compactUIChange :: UIChange -> UIChange

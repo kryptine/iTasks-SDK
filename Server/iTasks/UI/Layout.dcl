@@ -83,6 +83,7 @@ hideSubsMatching   :: NodePath (UI -> Bool)          -> Layout
 // Composition of layouts
 sequenceLayouts   :: [Layout]               -> Layout
 selectLayout      :: [(UI -> Bool, Layout)] -> Layout
+
 conditionalLayout :: (UI -> Bool) Layout    -> Layout
 
 layoutSubAt        :: NodePath Layout   -> Layout
