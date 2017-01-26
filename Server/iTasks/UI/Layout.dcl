@@ -25,7 +25,24 @@ instance tune	ApplyLayout //Apply a modification after a layout has been run
 
 // In specifications of layouts, sub-parts of UI's are commonly addressed as 
 // a path of child selections in the UI tree.
-:: NodePath :== [Int]
+:: UIPath :== [Int]
+
+// This type is a mini query language to describe a selection
+// of nodes in a UI (use for removing, moving, hiding or layouting)
+// We use a data type instead of a function of type (UI -> Bool) because
+// we want to keep only minimal state. Using an opaque function would require
+// keeping track of the full state
+
+:: UISelection
+	= SelectByPath UIPath //Direct addressing
+	| SelectChildren
+	| SelectByType UINodeType
+	| SelectByNumChildren Int //Mostly to match containers with 0 or 1 children
+	| SelectByHasChildrenOfType UINodeType //E.g. to check if a step/parallel has actions
+	//Set operations
+	| SelectAND UISelection UISelection //Intersection
+	| SelectOR UISelection UISelection //Union
+	| SelectNOT UISelection //Inverse
 
 //Basic DSL for creating more complex layouts
 
@@ -35,8 +52,8 @@ setNodeType :: UINodeType -> Layout
 // == Changing attributes ===
 setAttributes :: UIAttributes -> Layout
 delAttributes :: [String] -> Layout
-copyAttributes :: [String] NodePath NodePath -> Layout
-copyAllAttributes :: NodePath NodePath -> Layout
+copyAttributes :: [String] UIPath UIPath -> Layout
+copyAllAttributes :: UIPath UIPath -> Layout
 modifyAttribute :: String (JSONNode -> UIAttributes) -> Layout
 
 // === Changing the structure of the tree ===
@@ -54,9 +71,9 @@ flattenUI :: Layout
 reorderUI :: (UI -> UI) -> Layout 
 
 // Operations on single specific sub-UI's indicated by a path
-insertSubAt :: NodePath UI       -> Layout
-removeSubAt :: NodePath          -> Layout
-moveSubAt   :: NodePath NodePath -> Layout
+insertSubAt :: UIPath UI     -> Layout
+removeSubAt :: UIPath        -> Layout
+moveSubAt   :: UIPath UIPath -> Layout
 
 // Group operations on selections of sub-UI's
 
@@ -64,21 +81,21 @@ moveSubAt   :: NodePath NodePath -> Layout
 * Remove all elements that match the predicate. Further changes to these elements are discarded.
 * When new elements are added dynamically they are also tested against the predicate
 */
-removeSubsMatching :: NodePath (UI -> Bool)          -> Layout
+removeSubsMatching :: UIPath (UI -> Bool)          -> Layout
 /*
 * Move all elements that match the predicate to a particular location in the tree.
 * Further changes to these elements are rewritten to target the new location.
 * When new elements are added dynamically they are also tested against the predicate
 */
-moveSubsMatching   :: NodePath (UI -> Bool) NodePath -> Layout
+moveSubsMatching   :: UIPath (UI -> Bool) UIPath -> Layout
 //* Same as moveSubsMatching, but only for direct children
-moveChildren       :: NodePath (UI -> Bool) NodePath -> Layout
+moveChildren       :: UIPath (UI -> Bool) UIPath -> Layout
 /**
 * Remove all elements that match the predicate, but keep the removed elements in the state.
 * Further changes to these elements are processed in the background. When the predicate no longer holds, the elements are inserted back into the UI.
 * When new elements are added dynamically they are also tested against the predicate
 */
-hideSubsMatching   :: NodePath (UI -> Bool)          -> Layout
+hideSubsMatching   :: UIPath (UI -> Bool)          -> Layout
 
 // Composition of layouts
 sequenceLayouts   :: [Layout]               -> Layout
@@ -86,10 +103,10 @@ selectLayout      :: [(UI -> Bool, Layout)] -> Layout
 
 conditionalLayout :: (UI -> Bool) Layout    -> Layout
 
-layoutSubAt        :: NodePath Layout   -> Layout
-layoutSubsMatching :: NodePath (UI -> Bool) Layout -> Layout
-layoutSubsOfType   :: NodePath [UINodeType] Layout -> Layout
-layoutChildrenOf   :: NodePath Layout -> Layout
+layoutSubAt        :: UIPath Layout   -> Layout
+layoutSubsMatching :: UIPath (UI -> Bool) Layout -> Layout
+layoutSubsOfType   :: UIPath [UINodeType] Layout -> Layout
+layoutChildrenOf   :: UIPath Layout -> Layout
 
 // Easier debugging
 traceLayout :: String Layout -> Layout
