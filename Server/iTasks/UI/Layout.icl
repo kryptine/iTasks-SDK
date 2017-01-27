@@ -163,42 +163,42 @@ where
 	insertSub _ _ (change,s) = (change,s)
 
 moveSubAt :: UIPath UIPath -> Layout 
-moveSubAt src dst = moveSubs_ pred dst
+moveSubAt src dst = moveSubs pred dst
 where
 	pred path _ = path == src
 
 removeSubAt :: UIPath -> Layout
-removeSubAt src = removeSubs_ pred
+removeSubAt src = removeSubs pred
 where
 	pred path _ = path == src
 
 layoutSubAt :: UIPath Layout -> Layout
-layoutSubAt target layout = layoutSubs_ pred layout
+layoutSubAt target layout = layoutSubs pred layout
 where
 	pred path _ = path == target
 
 removeSubsMatching :: UIPath (UI -> Bool) -> Layout
-removeSubsMatching src pred = removeSubs_ pred`
+removeSubsMatching src pred = removeSubs pred`
 where
 	pred` path ui = isSubPathOf_ path src && pred ui
 
 moveSubsMatching :: UIPath (UI -> Bool) UIPath -> Layout
-moveSubsMatching src pred dst = moveSubs_ pred` dst
+moveSubsMatching src pred dst = moveSubs pred` dst
 where
 	pred` path ui = isSubPathOf_ path src && pred ui
 
 hideSubsMatching :: UIPath (UI -> Bool) -> Layout
-hideSubsMatching src pred =  hideSubs_ pred`
+hideSubsMatching src pred =  hideSubs pred`
 where
 	pred` path ui = isSubPathOf_ path src && pred ui
 
 layoutSubsMatching :: UIPath (UI -> Bool) Layout -> Layout
-layoutSubsMatching src pred layout = layoutSubs_ pred` layout
+layoutSubsMatching src pred layout = layoutSubs pred` layout
 where
 	pred` path ui = isSubPathOf_ path src && pred ui
 
 layoutSubsOfType :: UIPath [UINodeType] Layout -> Layout
-layoutSubsOfType src types layout = layoutSubs_ pred` layout
+layoutSubsOfType src types layout = layoutSubs pred` layout
 where
 	pred` path (UI type _ _) = isSubPathOf_ path src && any ((===) type) types
 
@@ -209,16 +209,16 @@ where
 	isPrefix p [] = True
 	isPrefix [p1:ps1] [p2:ps2] = if (p1 == p2) (isPrefix ps1 ps2) False
 
-removeSubs_ :: (UIPath UI -> Bool) -> Layout 
-removeSubs_ pred = layout
+removeSubs :: (UIPath UI -> Bool) -> Layout 
+removeSubs pred = layout
 where
 	layout (change,s)
 		# moves = if (change=:(ReplaceUI _)) [] (fromMaybe [] (fromJSON s)) //On a replace, we reset the state
 		# (change,moves,_) = removeAndAdjust_ [] pred False 0 change moves
 		= (change, toJSON moves)
 
-moveSubs_ :: (UIPath UI -> Bool) UIPath -> Layout
-moveSubs_ pred dst = layout
+moveSubs :: (UIPath UI -> Bool) UIPath -> Layout
+moveSubs pred dst = layout
 where
 	layout (change,s)
 		# moves = if (change=:(ReplaceUI _)) [] (fromMaybe [] (fromJSON s)) //On a replace, we reset the state
@@ -229,8 +229,8 @@ where
 	 	# change = insertAndAdjust_ (init dst) startIdx (countMoves_ moves True) inserts change
 	    = (change, toJSON moves)
 
-hideSubs_ :: (UIPath UI -> Bool) -> Layout 
-hideSubs_ pred = layout
+hideSubs :: (UIPath UI -> Bool) -> Layout 
+hideSubs pred = layout
 where
 	layout (change,s)
 		# moves = if (change=:(ReplaceUI _)) [] (fromMaybe [] (fromJSON s)) //On a replace, we reset the state
@@ -506,8 +506,8 @@ insertNodes_ [s:ss] changes (UI type attr items)
 	| s < length items  = UI type attr (updateAt s (insertNodes_ ss changes (items !! s)) items)
 	| otherwise 		= UI type attr items
 
-layoutSubs_ :: (UIPath UI -> Bool) Layout -> Layout
-layoutSubs_ pred layout = layout`
+layoutSubs :: (UIPath UI -> Bool) Layout -> Layout
+layoutSubs pred layout = layout`
 where
 	layout` (change,s)
 		| change=:(ReplaceUI _)
@@ -623,12 +623,12 @@ where
 
 //Common patterns
 moveChildren :: UIPath (UI -> Bool) UIPath -> Layout
-moveChildren container pred dst = moveSubs_ pred` dst
+moveChildren container pred dst = moveSubs pred` dst
 where
 	pred` path ui = isSubPathOf_ path container && length path == length container + 1 && pred ui
 
 layoutChildrenOf :: UIPath Layout -> Layout
-layoutChildrenOf container layout = layoutSubs_ pred layout
+layoutChildrenOf container layout = layoutSubs pred layout
 where
 	pred path ui = isSubPathOf_ path container && length path == length container + 1
 

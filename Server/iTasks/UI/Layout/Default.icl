@@ -16,7 +16,7 @@ LABEL_WIDTH :== 100
 defaultSessionLayout :: Layout
 defaultSessionLayout = sequenceLayouts 
     [finalizeUI                                      //Finalize all remaining intermediate layouts
-	,removeSubsMatching [] isEmpty                   //Remove temporary placeholders
+	,removeSubs (\p u -> length p > 0 && isEmpty u)  //Remove temporary placeholders
 	,setAttributes (sizeAttr FlexSize FlexSize)      //Make sure we use the full viewport
     ]
 
@@ -27,7 +27,7 @@ finalizeUI = selectLayout
 	,(isStep,finalizeStep)
 	,(isParallel,finalizeParallel)
 	//Always recursively finalize the children
-	,(const True,layoutSubsMatching [] isIntermediate finalizeUI)
+	,(const True, layoutSubs (\p u -> length p > 0 && isIntermediate u) finalizeUI)
 	]
 
 finalizeInteract :: Layout
@@ -51,31 +51,31 @@ finalizeEditor = selectLayout
 	,(isCons,finalizeCons)
 	,(isVarCons,finalizeVarCons)
 	,(isFormComponent,finalizeFormComponent)
-	,(const True, layoutSubsMatching [] isEditorPart finalizeEditor)
+	,(const True, layoutSubs (\p u -> length p > 0 && isEditorPart u) finalizeEditor)
 	]
 
 finalizeFormComponent = sequenceLayouts
-	[layoutSubsMatching [] isEditorIntermediate finalizeEditor
+	[layoutSubs (\p u -> length p > 0 && isEditorIntermediate u) finalizeEditor
 	,toFormItem
 	]
 
 finalizeRecord :: Layout
 finalizeRecord = sequenceLayouts
-	[layoutSubsMatching [] isEditorPart finalizeEditor 
+	[layoutSubs (\p u -> length p > 0 && isEditorPart u) finalizeEditor 
 	,setNodeType UIContainer
 	,setAttributes (heightAttr WrapSize)
 	]
 
 finalizeCons :: Layout
 finalizeCons = sequenceLayouts
-	[layoutSubsMatching [] isEditorPart finalizeEditor 
+	[layoutSubs (\p u -> length p > 0 && isEditorPart u) finalizeEditor 
 	,setAttributes (directionAttr Horizontal)
 	,setNodeType UIContainer
 	,toFormItem
 	]
 finalizeVarCons :: Layout
 finalizeVarCons = sequenceLayouts
-	[layoutSubsMatching [] isEditorPart finalizeEditor 
+	[layoutSubs (\p u -> length p > 0 && isEditorPart u) finalizeEditor 
 	,layoutSubAt [0] (setAttributes (widthAttr WrapSize)) //Make the constructor selection wrapping
 	,setAttributes (directionAttr Horizontal)
 	,setNodeType UIContainer
@@ -102,7 +102,7 @@ where
 
 	//For directly nested steps we hide all actions that are not active to prevent lots of
     //buttons that are not yet relevant to clutter up the UI
-	hideInActiveActions = hideSubsMatching [] inActiveAction
+	hideInActiveActions = hideSubs (\p u -> length p > 0 && inActiveAction u)
 	
 	nestedStep (UI type attr [UI UIStep _ _:_]) = True
 	nestedStep _ = False
@@ -116,12 +116,12 @@ finalizeParallel = selectLayout
 	]
 where
 	layoutWithoutActions = sequenceLayouts
-		[layoutSubsMatching [] isIntermediate finalizeUI
+		[layoutSubs (\p u -> length p > 0 && isIntermediate u) finalizeUI
 		,setNodeType UIContainer
 		]
 	layoutWithActions = sequenceLayouts
 		[actionsToButtonBar
-		,layoutSubsMatching [] isIntermediate finalizeUI
+		,layoutSubs (\p u -> length p > 0 && isIntermediate u) finalizeUI
 		,setNodeType UIPanel
 		]
 
