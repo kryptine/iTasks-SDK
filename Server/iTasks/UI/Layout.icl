@@ -177,26 +177,6 @@ layoutSubAt target layout = layoutSubs pred layout
 where
 	pred path _ = path == target
 
-removeSubsMatching :: UIPath (UI -> Bool) -> Layout
-removeSubsMatching src pred = removeSubs pred`
-where
-	pred` path ui = isSubPathOf_ path src && pred ui
-
-moveSubsMatching :: UIPath (UI -> Bool) UIPath -> Layout
-moveSubsMatching src pred dst = moveSubs pred` dst
-where
-	pred` path ui = isSubPathOf_ path src && pred ui
-
-hideSubsMatching :: UIPath (UI -> Bool) -> Layout
-hideSubsMatching src pred =  hideSubs pred`
-where
-	pred` path ui = isSubPathOf_ path src && pred ui
-
-layoutSubsMatching :: UIPath (UI -> Bool) Layout -> Layout
-layoutSubsMatching src pred layout = layoutSubs pred` layout
-where
-	pred` path ui = isSubPathOf_ path src && pred ui
-
 layoutSubsOfType :: UIPath [UINodeType] Layout -> Layout
 layoutSubsOfType src types layout = layoutSubs pred` layout
 where
@@ -600,26 +580,6 @@ where
 		# (change,ss) = applyAll ls ss change
 		= (change,[s:ss])
 
-//Select the first matching layout
-selectLayout :: [(UI -> Bool,Layout)] -> Layout
-selectLayout layouts = layout
-where
-	layout (change=:(ReplaceUI def),_) = case selectLayout def 0 layouts of
-		Just (index,childLayout)
-			# (change,state) = childLayout (change,JSONNull)
-			= (change,JSONArray [JSONInt index,state])
-		Nothing = (change,JSONNull)
-
-	layout (change,JSONArray [JSONInt index,state])
-		# (change,state) = (snd (layouts !! index)) (change,state)
-		= (change,JSONArray [JSONInt index,state])
-
-	layout (change,s) = (change,s)
-
-	selectLayout def i [] = Nothing
-	selectLayout def i [(pred,layout):ls]
-		| pred def 	= Just (i,layout)
-					= selectLayout def (i + 1) ls
 
 //Common patterns
 moveChildren :: UIPath (UI -> Bool) UIPath -> Layout
@@ -631,9 +591,6 @@ layoutChildrenOf :: UIPath Layout -> Layout
 layoutChildrenOf container layout = layoutSubs pred layout
 where
 	pred path ui = isSubPathOf_ path container && length path == length container + 1
-
-conditionalLayout :: (UI -> Bool) Layout -> Layout
-conditionalLayout pred condLayout = selectLayout [(pred,condLayout)]
 
 traceLayout :: String Layout -> Layout
 traceLayout name layout = layout`

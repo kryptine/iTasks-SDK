@@ -8,7 +8,7 @@ import StdBool
 from StdFunc import id, const, o
 
 arrangeWithTabs :: Layout
-arrangeWithTabs = conditionalLayout isParallel (setNodeType UITabSet)
+arrangeWithTabs = layoutSubs (\p u -> p =: [] && isParallel u) (setNodeType UITabSet)
 where
 	isParallel d = d =:(UI UIParallel _ _)
 
@@ -62,7 +62,7 @@ frameCompact = sequenceLayouts
 	]
 
 beforeStep :: Layout -> Layout
-beforeStep layout = conditionalLayout (\n -> n =:(UI UIStep _ _)) layout //TODO: Explicitly detect if we are before or after a step
+beforeStep layout = layoutSubs (\p u -> p =: [] && u =:(UI UIStep _ _)) layout //TODO: Explicitly detect if we are before or after a step
 
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
 toWindow windowType vpos hpos = sequenceLayouts 

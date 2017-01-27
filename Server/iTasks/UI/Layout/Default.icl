@@ -22,16 +22,16 @@ defaultSessionLayout = sequenceLayouts
 
 //The finalize layouts remove all intermediate 
 finalizeUI :: Layout
-finalizeUI = selectLayout
-	[(isInteract,finalizeInteract) 	
-	,(isStep,finalizeStep)
-	,(isParallel,finalizeParallel)
+finalizeUI = sequenceLayouts
+	[layoutSubs (\p u -> p =: [] && isInteract u) finalizeInteract
+	,layoutSubs (\p u -> p =: [] && isStep u) finalizeStep
+	,layoutSubs (\p u -> p =: [] && isParallel u) finalizeParallel
 	//Always recursively finalize the children
-	,(const True, layoutSubs (\p u -> length p > 0 && isIntermediate u) finalizeUI)
+	,layoutSubs (\p u -> length p > 0 && isIntermediate u) finalizeUI	
 	]
 
 finalizeInteract :: Layout
-finalizeInteract = conditionalLayout isInteract layout
+finalizeInteract = layout
 where
 	layout = sequenceLayouts 
 		[layoutSubAt [1] finalizeEditor
@@ -40,18 +40,17 @@ where
 		,setNodeType UIPanel
 		] 
 
-	removeEmptyPrompt = conditionalLayout emptyPrompt (removeSubAt [0])
+	removeEmptyPrompt = layoutSubs (\p u -> p =:[] && emptyPrompt u) (removeSubAt [0])
 	where
 		emptyPrompt (UI _ _ [UI _ _ []:_]) = True
 		emptyPrompt _ = False
 
 finalizeEditor :: Layout
-finalizeEditor = selectLayout
-	[(isRecord,finalizeRecord)
-	,(isCons,finalizeCons)
-	,(isVarCons,finalizeVarCons)
-	,(isFormComponent,finalizeFormComponent)
-	,(const True, layoutSubs (\p u -> length p > 0 && isEditorPart u) finalizeEditor)
+finalizeEditor = sequenceLayouts
+	[layoutSubs (\p u -> p =: [] && isRecord u) finalizeRecord
+	,layoutSubs (\p u -> p =: [] && isCons u) finalizeCons
+	,layoutSubs (\p u -> p =: [] && isVarCons u) finalizeVarCons
+	,layoutSubs (\p u -> p =: [] && isFormComponent u) finalizeFormComponent
 	]
 
 finalizeFormComponent = sequenceLayouts
@@ -83,8 +82,13 @@ finalizeVarCons = sequenceLayouts
 	]
 
 finalizeStep :: Layout
-finalizeStep = conditionalLayout isStep layout
-where
+finalizeStep = sequenceLayouts
+	[layoutSubs (\p u -> p =: [] && isStep u && hasActions u) (sequenceLayouts [layoutSubAt [0] finalizeUI, actionsToButtonBar,setNodeType UIPanel])
+	,layoutSubs (\p u -> p =: [] && isStep u && not (hasActions u)) (sequenceLayouts [unwrapUI,finalizeUI])
+	]
+
+/*
+
 	layout = selectLayout
 		[(hasActions, selectLayout
 						[(nestedStep, sequenceLayouts [hideInActiveActions, layoutWithButtons])
@@ -108,11 +112,11 @@ where
 	nestedStep _ = False
 
 	inActiveAction (UI type attr _) = (type =: UIAction) && (maybe False (\(JSONBool b) -> not b) ('DM'.get "enabled" attr))
-
+*/
 finalizeParallel :: Layout
-finalizeParallel = selectLayout
-	[(\ui -> isParallel ui && hasActions ui,layoutWithActions)
-	,(isParallel,layoutWithoutActions)
+finalizeParallel = sequenceLayouts
+	[layoutSubs (\p u -> p =: [] && isParallel u && hasActions u) layoutWithActions
+	,layoutSubs (\p u -> p =: [] && isParallel u) layoutWithoutActions
 	]
 where
 	layoutWithoutActions = sequenceLayouts
