@@ -107,9 +107,6 @@ moveSubAt   :: UIPath UIPath -> Layout
 layoutSubAt        :: UIPath Layout   -> Layout
 layoutSubsOfType   :: UIPath [UINodeType] Layout -> Layout
 
-selectLayout       :: [(UI -> Bool, Layout)] -> Layout
-conditionalLayout  :: (UI -> Bool) Layout    -> Layout
-
 moveChildren       :: UIPath (UI -> Bool) UIPath -> Layout
 layoutChildrenOf   :: UIPath Layout -> Layout
 
