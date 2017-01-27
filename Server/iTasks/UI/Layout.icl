@@ -50,6 +50,30 @@ where
 		
 		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
 
+//Test if a specific UI at a path is in the selection
+inUISelection :: UISelection UIPath UI -> Bool
+inUISelection (SelectByPath p) path _ = p === path
+inUISelection (SelectRoot) [] _ = True
+inUISelection (SelectRoot) _ _ = False
+inUISelection (SelectChildren) [_] _ = True
+inUISelection (SelectChildren) _ _ = False
+inUISelection (SelectDescendents) [_:_] _ = True
+inUISelection (SelectDescendents) _ _ = False
+inUISelection (SelectByType t) _ (UI type _ _) = t === type
+inUISelection (SelectByHasAttribute k) _ (UI _ attr _) = isJust ('DM'.get k attr)
+inUISelection (SelectByAttribute k v) _ (UI _ attr _) = maybe False ((==) v) ('DM'.get k attr)
+inUISelection (SelectByNumChildren num) _ (UI _ _  items) = length items == num
+inUISelection (SelectByHasChildrenOfType t) _ (UI _ _  items) = any (\(UI type _ _) -> type === t) items
+inUISelection (SelectRelative prefix sel) absolutePath ui 
+	= maybe False (\relativePath -> inUISelection sel relativePath ui) (removePrefix prefix absolutePath)
+where
+	removePrefix [] psb = Just psb
+	removePrefix [pa:psa] [pb:psb] = if (pa == pb) (removePrefix psa psb) Nothing
+	removePrefix _ _ = Nothing
+inUISelection (SelectAND sell selr) path ui = inUISelection sell path ui && inUISelection selr path ui 
+inUISelection (SelectOR sell selr) path ui = inUISelection sell path ui || inUISelection selr path ui 
+inUISelection (SelectNOT sel) path ui = not (inUISelection sel path ui)
+
 setNodeType :: UINodeType -> Layout
 setNodeType type = layout
 where
@@ -163,43 +187,34 @@ where
 	insertSub _ _ (change,s) = (change,s)
 
 moveSubAt :: UIPath UIPath -> Layout 
-moveSubAt src dst = moveSubs pred dst
-where
-	pred path _ = path == src
+moveSubAt src dst = moveSubs (SelectByPath src) dst
 
 removeSubAt :: UIPath -> Layout
-removeSubAt src = removeSubs pred
-where
-	pred path _ = path == src
+removeSubAt src = removeSubs (SelectByPath src)
 
 layoutSubAt :: UIPath Layout -> Layout
-layoutSubAt target layout = layoutSubs pred layout
-where
-	pred path _ = path == target
+layoutSubAt target layout = layoutSubs (SelectByPath target) layout
 
+/*
 layoutSubsOfType :: UIPath [UINodeType] Layout -> Layout
-layoutSubsOfType src types layout = layoutSubs pred` layout
+layoutSubsOfType src [t:ts] layout = layoutSubs (inUISelection (SelectAND SelectDescendents selectTypes)) layout
 where
-	pred` path (UI type _ _) = isSubPathOf_ path src && any ((===) type) types
+	selectTypes	= foldl SelectOR (SelectByType t) (map SelectByType ts)
+*/
 
-//Test if a path extends another path
-isSubPathOf_ :: UIPath UIPath -> Bool
-isSubPathOf_ p1 p2 = length p1 > length p2 && isPrefix p1 p2
+removeSubs :: UISelection -> Layout 
+removeSubs selection = layout
 where
-	isPrefix p [] = True
-	isPrefix [p1:ps1] [p2:ps2] = if (p1 == p2) (isPrefix ps1 ps2) False
-
-removeSubs :: (UIPath UI -> Bool) -> Layout 
-removeSubs pred = layout
-where
+	pred = inUISelection selection
 	layout (change,s)
 		# moves = if (change=:(ReplaceUI _)) [] (fromMaybe [] (fromJSON s)) //On a replace, we reset the state
 		# (change,moves,_) = removeAndAdjust_ [] pred False 0 change moves
 		= (change, toJSON moves)
 
-moveSubs :: (UIPath UI -> Bool) UIPath -> Layout
-moveSubs pred dst = layout
+moveSubs :: UISelection UIPath -> Layout
+moveSubs selection dst = layout
 where
+	pred = inUISelection selection
 	layout (change,s)
 		# moves = if (change=:(ReplaceUI _)) [] (fromMaybe [] (fromJSON s)) //On a replace, we reset the state
 		# startIdx = last dst
@@ -209,9 +224,10 @@ where
 	 	# change = insertAndAdjust_ (init dst) startIdx (countMoves_ moves True) inserts change
 	    = (change, toJSON moves)
 
-hideSubs :: (UIPath UI -> Bool) -> Layout 
-hideSubs pred = layout
+hideSubs :: UISelection -> Layout 
+hideSubs selection = layout
 where
+	pred = inUISelection selection
 	layout (change,s)
 		# moves = if (change=:(ReplaceUI _)) [] (fromMaybe [] (fromJSON s)) //On a replace, we reset the state
 		# (change,moves,_) = removeAndAdjust_ [] pred True 0 change moves
@@ -486,9 +502,10 @@ insertNodes_ [s:ss] changes (UI type attr items)
 	| s < length items  = UI type attr (updateAt s (insertNodes_ ss changes (items !! s)) items)
 	| otherwise 		= UI type attr items
 
-layoutSubs :: (UIPath UI -> Bool) Layout -> Layout
-layoutSubs pred layout = layout`
+layoutSubs :: UISelection Layout -> Layout
+layoutSubs selection layout = layout`
 where
+	pred = inUISelection selection
 	layout` (change,s)
 		| change=:(ReplaceUI _)
 			# (change,eitherState) = layoutChange_ [] pred layout change []
@@ -582,15 +599,12 @@ where
 
 
 //Common patterns
-moveChildren :: UIPath (UI -> Bool) UIPath -> Layout
-moveChildren container pred dst = moveSubs pred` dst
-where
-	pred` path ui = isSubPathOf_ path container && length path == length container + 1 && pred ui
-
+/*
 layoutChildrenOf :: UIPath Layout -> Layout
 layoutChildrenOf container layout = layoutSubs pred layout
 where
 	pred path ui = isSubPathOf_ path container && length path == length container + 1
+*/
 
 traceLayout :: String Layout -> Layout
 traceLayout name layout = layout`
