@@ -85,7 +85,7 @@ viewStaticTask allbps rs navstack bpref tm tt depth compact
   >>~ \ns -> (showStaticBlueprint rs bpref (expandTask allbps depth tt) compact depth
          >>* [ OnValue (doAction (handleClicks tm tt))
              , OnAction (Action "Back") (navigateBackwards tm tt ns)
-             ] @! ()) <<@ ApplyLayout (layoutSubsOfType [] [UIAction] (setActionIcon ('DM'.fromList [("Back","Previous")])))
+             ] @! ()) <<@ ApplyLayout (layoutSubs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Back","Previous")])))
   where
 
   navigateBackwards :: TonicModule TonicFunc NavStack a -> Maybe (Task ())
@@ -316,7 +316,7 @@ tonicDynamicBrowser` rs navstack =
                                                )
 
                            _ = viewInformation () [] "Please select a blueprint" @! ()
-      )<<@ ApplyLayout (layoutSubsOfType [] [UIAction] (setActionIcon ('DM'.fromList [("Back","previous"),("Parent task","open")])))
+      )<<@ ApplyLayout (layoutSubs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Back","previous"),("Parent task","open")])))
      where
      //navToParent currinst=:{bpi_bpref = currbpref} dynSett selDetail tid rs (Just inst=:{bpi_bpref = bpref}) // TODO Check
        //=   Just (   upd (\xs -> [mkMeta tid : xs]) navstack

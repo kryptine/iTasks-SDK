@@ -35,17 +35,22 @@ instance tune	ApplyLayout //Apply a modification after a layout has been run
 
 :: UISelection
 	= SelectByPath UIPath //Direct addressing
+	| SelectRoot
 	| SelectChildren
+	| SelectDescendents
 	| SelectByType UINodeType
 	| SelectByAttribute String JSONNode
+	| SelectByHasAttribute String
 	| SelectByNumChildren Int //Mostly to match containers with 0 or 1 children
 	| SelectByHasChildrenOfType UINodeType //E.g. to check if a step/parallel has actions
+	//Relative selection
+	| SelectRelative UIPath UISelection
 	//Set operations
 	| SelectAND UISelection UISelection //Intersection
 	| SelectOR UISelection UISelection //Union
 	| SelectNOT UISelection //Inverse
 
-//Basic DSL for creating more complex layouts
+// Basic DSL for creating layouts
 
 // == Changing node types ==
 setNodeType :: UINodeType -> Layout
@@ -57,13 +62,18 @@ copyAttributes    :: [String] UIPath UIPath -> Layout
 copyAllAttributes :: UIPath UIPath -> Layout
 modifyAttribute   :: String (JSONNode -> UIAttributes) -> Layout
 
-// == Changing the structure of the tree ==
+// == Changing the structure of a UI ==
 
 //* Create a new UI node which has the original UI as its only child.
 wrapUI :: UINodeType -> Layout
 
 //* Replace the UI by its first child. 
 unwrapUI :: Layout
+
+/*
+* Insert a (static) element into a UI
+*/
+insertSubAt  :: UIPath UI     -> Layout
 
 //* Flatten the tree of children in pre-order
 flattenUI :: Layout
@@ -73,42 +83,28 @@ flattenUI :: Layout
 * Further changes to these elements are processed in the background. When the predicate no longer holds, the elements are inserted back into the UI.
 * When new elements are added dynamically they are also tested against the predicate
 */
-hideSubs   :: (UIPath UI -> Bool) -> Layout 
+hideSubs   :: UISelection -> Layout 
 /**
 * Remove all elements that match the predicate. Further changes to these elements are discarded.
 * When new elements are added dynamically they are also tested against the predicate
 */
-removeSubs :: (UIPath UI -> Bool) -> Layout 
-/*
+removeSubs :: UISelection -> Layout 
+/**
 * Move all elements that match the predicate to a particular location in the tree.
 * Further changes to these elements are rewritten to target the new location.
 * When new elements are added dynamically they are also tested against the predicate
 */
-moveSubs :: (UIPath UI -> Bool) UIPath -> Layout
+moveSubs   :: UISelection UIPath -> Layout
 
 // == Composition of layouts ==
 /**
 * Apply a layout locally to parts of a UI
 */
-layoutSubs        :: (UIPath UI -> Bool) Layout -> Layout
+layoutSubs :: UISelection Layout -> Layout
 /**
 * Apply multiple layouts sequentially. The UI changes that have been transformed by one layout are further transformed by the next layout
 */
-sequenceLayouts   :: [Layout]                   -> Layout
-
-
-// == Useful derived operations ==
-
-// Operations on single specific sub-UI's indicated by a path
-insertSubAt :: UIPath UI     -> Layout
-removeSubAt :: UIPath        -> Layout
-moveSubAt   :: UIPath UIPath -> Layout
-
-layoutSubAt        :: UIPath Layout   -> Layout
-layoutSubsOfType   :: UIPath [UINodeType] Layout -> Layout
-
-moveChildren       :: UIPath (UI -> Bool) UIPath -> Layout
-layoutChildrenOf   :: UIPath Layout -> Layout
+sequenceLayouts   :: [Layout]    -> Layout
 
 // Easier debugging
 traceLayout :: String Layout -> Layout

@@ -16,66 +16,76 @@ LABEL_WIDTH :== 100
 defaultSessionLayout :: Layout
 defaultSessionLayout = sequenceLayouts 
     [finalizeUI                                      //Finalize all remaining intermediate layouts
-	,removeSubs (\p u -> length p > 0 && isEmpty u)  //Remove temporary placeholders
+	,removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))  //Remove temporary placeholders
 	,setAttributes (sizeAttr FlexSize FlexSize)      //Make sure we use the full viewport
     ]
 
 //The finalize layouts remove all intermediate 
 finalizeUI :: Layout
 finalizeUI = sequenceLayouts
-	[layoutSubs (\p u -> p =: [] && isInteract u) finalizeInteract
-	,layoutSubs (\p u -> p =: [] && isStep u) finalizeStep
-	,layoutSubs (\p u -> p =: [] && isParallel u) finalizeParallel
-	//Always recursively finalize the children
-	,layoutSubs (\p u -> length p > 0 && isIntermediate u) finalizeUI	
+	[layoutSubs (SelectByType UIInteract) finalizeInteract
+	,layoutSubs (SelectByType UIStep) finalizeStep
+	,layoutSubs (SelectByType UIParallel) finalizeParallel
 	]
 
 finalizeInteract :: Layout
 finalizeInteract = layout
 where
 	layout = sequenceLayouts 
-		[layoutSubAt [1] finalizeEditor
+		[layoutSubs (SelectByPath [1]) finalizeEditor
 		,copyAttributes ["title"] [0] []
 		,removeEmptyPrompt
 		,setNodeType UIPanel
 		] 
 
-	removeEmptyPrompt = layoutSubs (\p u -> p =:[] && emptyPrompt u) (removeSubAt [0])
-	where
-		emptyPrompt (UI _ _ [UI _ _ []:_]) = True
-		emptyPrompt _ = False
+	removeEmptyPrompt = layoutSubs (SelectAND SelectRoot (SelectRelative [0] (SelectByNumChildren 0))) (removeSubs (SelectByPath [0]))
 
 finalizeEditor :: Layout
 finalizeEditor = sequenceLayouts
-	[layoutSubs (\p u -> p =: [] && isRecord u) finalizeRecord
-	,layoutSubs (\p u -> p =: [] && isCons u) finalizeCons
-	,layoutSubs (\p u -> p =: [] && isVarCons u) finalizeVarCons
-	,layoutSubs (\p u -> p =: [] && isFormComponent u) finalizeFormComponent
+	[layoutSubs (SelectAND SelectRoot (SelectByType UIRecord)) finalizeRecord
+	,layoutSubs (SelectAND SelectRoot (SelectByType UICons)) finalizeCons
+	,layoutSubs (SelectAND SelectRoot (SelectByType UIVarCons)) finalizeVarCons
+	,layoutSubs (SelectAND SelectRoot selectFormComponent) finalizeFormComponent
 	]
 
+selectFormComponent
+	= foldl SelectOR (SelectByHasAttribute LABEL_ATTRIBUTE)
+		[SelectByType t \\ t <- [UITextField,UITextArea,UIPasswordField,UIIntegerField,UIDecimalField
+						        ,UICheckbox,UISlider,UIDocumentField,UIDropdown,UICheckGroup,UITextView,UIHtmlView]
+					    ]
+
 finalizeFormComponent = sequenceLayouts
-	[layoutSubs (\p u -> length p > 0 && isEditorIntermediate u) finalizeEditor
+	[layoutSubs (SelectAND SelectDescendents (selectEditorIntermediate)) finalizeEditor
 	,toFormItem
 	]
 
+selectIntermediate
+	= foldl SelectOR (SelectByType UIRecord) [SelectByType t \\ t <- [UIInteract, UIStep, UIParallel]]
+selectEditorIntermediate
+	= foldl SelectOR (SelectByType UIRecord) [SelectByType t \\ t <- [UIRecord, UICons, UIVarCons]]
+
+selectEditorParts
+	= SelectOR selectFormComponent selectEditorIntermediate
+
 finalizeRecord :: Layout
 finalizeRecord = sequenceLayouts
-	[layoutSubs (\p u -> length p > 0 && isEditorPart u) finalizeEditor 
+	[layoutSubs (SelectAND SelectDescendents selectEditorParts) finalizeEditor 
 	,setNodeType UIContainer
 	,setAttributes (heightAttr WrapSize)
 	]
 
+
 finalizeCons :: Layout
 finalizeCons = sequenceLayouts
-	[layoutSubs (\p u -> length p > 0 && isEditorPart u) finalizeEditor 
+	[layoutSubs (SelectAND SelectDescendents selectEditorParts) finalizeEditor 
 	,setAttributes (directionAttr Horizontal)
 	,setNodeType UIContainer
 	,toFormItem
 	]
 finalizeVarCons :: Layout
 finalizeVarCons = sequenceLayouts
-	[layoutSubs (\p u -> length p > 0 && isEditorPart u) finalizeEditor 
-	,layoutSubAt [0] (setAttributes (widthAttr WrapSize)) //Make the constructor selection wrapping
+	[layoutSubs (SelectAND SelectDescendents selectEditorParts) finalizeEditor 
+	,layoutSubs (SelectByPath [0]) (setAttributes (widthAttr WrapSize)) //Make the constructor selection wrapping
 	,setAttributes (directionAttr Horizontal)
 	,setNodeType UIContainer
 	,toFormItem
@@ -83,8 +93,10 @@ finalizeVarCons = sequenceLayouts
 
 finalizeStep :: Layout
 finalizeStep = sequenceLayouts
-	[layoutSubs (\p u -> p =: [] && isStep u && hasActions u) (sequenceLayouts [layoutSubAt [0] finalizeUI, actionsToButtonBar,setNodeType UIPanel])
-	,layoutSubs (\p u -> p =: [] && isStep u && not (hasActions u)) (sequenceLayouts [unwrapUI,finalizeUI])
+	[layoutSubs (SelectAND SelectRoot (SelectAND (SelectByType UIStep) (SelectByHasChildrenOfType UIAction)))
+					 (sequenceLayouts [layoutSubs (SelectByPath [0]) finalizeUI, actionsToButtonBar,setNodeType UIPanel])
+	,layoutSubs (SelectAND SelectRoot (SelectByType UIStep))
+					(sequenceLayouts [unwrapUI,finalizeUI])
 	]
 
 /*
@@ -115,49 +127,26 @@ finalizeStep = sequenceLayouts
 */
 finalizeParallel :: Layout
 finalizeParallel = sequenceLayouts
-	[layoutSubs (\p u -> p =: [] && isParallel u && hasActions u) layoutWithActions
-	,layoutSubs (\p u -> p =: [] && isParallel u) layoutWithoutActions
+	[layoutSubs (SelectAND SelectRoot (SelectAND (SelectByType UIParallel) (SelectByHasChildrenOfType UIAction))) layoutWithActions
+	,layoutSubs (SelectAND SelectRoot (SelectByType UIParallel)) layoutWithoutActions
 	]
 where
 	layoutWithoutActions = sequenceLayouts
-		[layoutSubs (\p u -> length p > 0 && isIntermediate u) finalizeUI
+		[layoutSubs (SelectAND SelectDescendents selectIntermediate) finalizeUI
 		,setNodeType UIContainer
 		]
 	layoutWithActions = sequenceLayouts
 		[actionsToButtonBar
-		,layoutSubs (\p u -> length p > 0 && isIntermediate u) finalizeUI
+		,layoutSubs (SelectAND SelectDescendents selectIntermediate) finalizeUI
 		,setNodeType UIPanel
 		]
 
-hasActions (UI _ _ items) = any isAction items //Dangerous? TODO: check
-	
+
 actionsToButtonBar= sequenceLayouts
-	[insertSubAt [1] (ui UIButtonBar) 	 //Create a buttonbar
-	,moveChildren [] isAction [1,0]   	 //Move all actions to the buttonbar
-	,layoutChildrenOf [1] actionToButton //Transform actions to buttons 
+	[insertSubAt [1] (ui UIButtonBar) //Create a buttonbar
+	,moveSubs (SelectAND SelectChildren (SelectByType UIAction)) [1,0] //Move all actions to the buttonbar
+	,layoutSubs (SelectByPath [1]) (layoutSubs SelectChildren actionToButton) //Transform actions to buttons 
 	]
-
-//Util predicates
-isInteract = \n -> n =:(UI UIInteract _ _)
-isStep = \n -> n =:(UI UIStep _ _)
-isParallel = \n -> n =:(UI UIParallel _ _)
-isAction = \n -> n =:(UI UIAction _ _)
-isEmpty = \n -> n =:(UI UIEmpty _ _)
-isRecord = \n -> n =:(UI UIRecord _ _)
-isCons = \n -> n =:(UI UICons _ _)
-isVarCons = \n -> n =:(UI UIVarCons _ _)
-
-isIntermediate (UI type _ _) = isMember type [UIInteract,UIStep,UIParallel]
-isEditorIntermediate (UI type _ _) = isMember type [UIRecord, UICons, UIVarCons] 
-isEditorPart ui = isEditorIntermediate ui || isFormComponent ui
-
-isFormComponent (UI type attr _) = isMember type 
-	[UITextField,UITextArea,UIPasswordField,UIIntegerField,UIDecimalField
-	,UICheckbox,UISlider,UIDocumentField,UIDropdown,UICheckGroup
-	,UITextView,UIHtmlView
-	] || isJust ('DM'.get LABEL_ATTRIBUTE attr) //If another type (for example some editlet representation) has a label attribute we also need to process it
-
-instance == UINodeType where (==) x y = x === y
 
 //Flatten an editor into a form
 toFormItem :: Layout
