@@ -57,7 +57,7 @@ testMoveSubAt = skip (fail "Moving a node from one place to another")
 
 testRemoveSubsMatchingOnReplace = assertEqual "Removing everything that matches, when replacing a UI" exp sut
 where
-	sutLayout = removeSubsMatching [] isEmpty 
+	sutLayout = removeSubs (\p u -> length p > 0 && isEmpty u)
 	sut
 		//Initial, followed by an event in the new structure
 		# (c,s) = sutLayout (ReplaceUI initUI,initState)
@@ -74,7 +74,7 @@ where
 
 testRemoveSubsMatchingOnChildChange = assertEqual "Removing everything that matches, when changing a child" exp sut
 where
-	sutLayout = removeSubsMatching [] isEmpty
+	sutLayout = removeSubs (\p u -> length p > 0 && isEmpty u)
 	sut
 		//Initial, followed by an event in the new structure
 		# (_,s) = sutLayout (initChange,initState)
@@ -95,7 +95,7 @@ where
 
 testRemoveSubsMatchingOnReplaceAfterRemove = assertEqual "Removing everything that matches, then replacing a part" exp sut
 where
-	sutLayout = removeSubsMatching [] isEmpty
+	sutLayout = removeSubs (\p u -> length p > 0 && isEmpty u)
 	sut
 		//Initial, followed by an event in the new structure
 		# (c,s) = sutLayout (initChange,initState)
@@ -115,7 +115,7 @@ where
 
 testRemoveSubsMatchingOnReplaceMultipleAfterRemove = assertEqual "Removing everything that matches, then replacing multiple parts" exp sut
 where
-	sutLayout = removeSubsMatching [] isEmpty
+	sutLayout = removeSubs (\p u -> length p > 0 && isEmpty u)
 	sut
 		//Initial, followed by an event in the new structure
 		# (c,s) = sutLayout (initChange,initState)
@@ -147,7 +147,7 @@ where
 
 testRemoveSubsMatchingOnRemove = assertEqual "Removing everything that matches, then explicitly remove somehting" exp sut
 where
-	sutLayout = removeSubsMatching [] isEmpty
+	sutLayout = removeSubs (\p u -> length p > 0 && isEmpty u)
 	sut
 		//Initial, followed by an event in the new structure
 		# (c,s) = sutLayout (initChange,initState)
@@ -187,7 +187,7 @@ where
 
 testMoveSubsMatchingInitial2 = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
 where
-	sutLayout = (moveSubsMatching [0] isAction [1,0]) 
+	sutLayout = (moveSubs (\p u -> (length p > 1 && hd p == 0) && isAction u) [1,0]) 
 	sut = sutLayout (ReplaceUI initUI,initState)
 
 	exp = (ReplaceUI expUI,expState)
@@ -225,7 +225,7 @@ where
 
 testMoveSubsMatchingNewRoutes2 = assertEqual "Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
-	sutLayout = (moveSubsMatching [0] isAction [1,0]) 
+	sutLayout = (moveSubs (\p u -> (length p > 1 && hd p == 0) && isAction u) [1,0]) 
 	sut
 		//Initial, followed by an event in the new structure
 		# (_,s) = sutLayout (ReplaceUI initUI,initState)
@@ -308,7 +308,7 @@ where
         	,layoutSubAt [1] arrangeWithSideBar3
         	]
 		//Second stage
-        ,removeSubsMatching [] isInteract 
+        ,removeSubs (\p u -> length p > 0 && isInteract u)
         ]
 	where
 		arrangeWithSideBar3 :: Layout
@@ -357,7 +357,7 @@ where
 		= c2
 	exp = expModifiedChange
 
-	sutLayout = removeSubsMatching [] isInteract
+	sutLayout = removeSubs (\p u -> length p > 0 && isInteract u)
 	where
     	isInteract (UI type _ _) = type =: UIInteract
 
