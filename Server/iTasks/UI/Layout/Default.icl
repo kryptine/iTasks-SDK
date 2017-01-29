@@ -93,38 +93,26 @@ finalizeVarCons = sequenceLayouts
 
 finalizeStep :: Layout
 finalizeStep = sequenceLayouts
+/*
+	//SIMPLE VERSION
 	[layoutSubs (SelectAND SelectRoot (SelectAND (SelectByType UIStep) (SelectByHasChildrenOfType UIAction)))
 					 (sequenceLayouts [layoutSubs (SelectByPath [0]) finalizeUI, actionsToButtonBar,setNodeType UIPanel])
 	,layoutSubs (SelectAND SelectRoot (SelectByType UIStep))
 					(sequenceLayouts [unwrapUI,finalizeUI])
 	]
-
-/*
-
-	layout = selectLayout
-		[(hasActions, selectLayout
-						[(nestedStep, sequenceLayouts [hideInActiveActions, layoutWithButtons])
-						,(const True, layoutWithButtons)])
-		,(const True, layoutMinimal)
-		]
-    //NOTE: We would like to be able to do the hasActions, after the nestedStep check
-    //      Because the current selectLayout is static, we cannot do that...
-
-	//Just unwrap
-	layoutMinimal = layoutSubAt [0] finalizeUI//sequenceLayouts [unwrapUI,finalizeUI]
-
-	//Create a buttonbar with buttons for each action
-	layoutWithButtons = sequenceLayouts [layoutSubAt [0] finalizeUI, actionsToButtonBar,setNodeType UIPanel]
-
-	//For directly nested steps we hide all actions that are not active to prevent lots of
-    //buttons that are not yet relevant to clutter up the UI
-	hideInActiveActions = hideSubs (\p u -> length p > 0 && inActiveAction u)
-	
-	nestedStep (UI type attr [UI UIStep _ _:_]) = True
-	nestedStep _ = False
-
-	inActiveAction (UI type attr _) = (type =: UIAction) && (maybe False (\(JSONBool b) -> not b) ('DM'.get "enabled" attr))
 */
+	//VERSION THAT SHOULD WORK...
+	//In case of nested steps, memove disabled actions
+	[layoutSubs (SelectAND SelectRoot (SelectByHasChildrenOfType UIStep))
+		(hideSubs (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" (JSONBool True)))))
+	//If there are no actions, unwrap
+	,layoutSubs (SelectAND SelectRoot (SelectNOT (SelectByHasChildrenOfType UIStep)))
+		(sequenceLayouts [unwrapUI,finalizeUI])
+	//Else, create a buttonbar
+	,layoutSubs (SelectAND SelectRoot (SelectByType UIStep)) // (only if the previous layout has not yet eliminated the UIStep)
+	 	(sequenceLayouts [layoutSubs (SelectByPath [0]) finalizeUI, actionsToButtonBar,setNodeType UIPanel])
+	]
+
 finalizeParallel :: Layout
 finalizeParallel = sequenceLayouts
 	[layoutSubs (SelectAND SelectRoot (SelectAND (SelectByType UIParallel) (SelectByHasChildrenOfType UIAction))) layoutWithActions
