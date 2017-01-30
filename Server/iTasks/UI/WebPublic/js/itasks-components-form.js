@@ -13,7 +13,7 @@ itasks.TextField = {
 	onAttributeChange: function(name,value) {
 		var me = this;
 		if(name == 'value') {
-			if(me.domEl !== document.activeElement) { //Don't update the focused element...
+			if(me.domEl !== document.activeElement || ! document.hasFocus() ) { //Don't update the focused element...
 				me.domEl.value = (value === null) ? '' : value;
 			}
 		}
@@ -34,7 +34,7 @@ itasks.TextArea = {
 	onAttributeChange: function(name,value) {
 		var me = this;
 		if(name == 'value') {
-			if(me.domEl !== document.activeElement) { //Don't update the focused element...
+			if(me.domEl !== document.activeElement || ! document.hasFocus()) { //Don't update the focused element...
 				me.domEl.value = (value === null) ? '' : value;
 			}
 		}
@@ -55,7 +55,7 @@ itasks.PasswordField = {
 	,onAttributeChange: function(name,value) {
 		var me = this;
 		if(name == 'value') {
-			if(me.domEl !== document.activeElement) { //Don't update the focused element...
+			if(me.domEl !== document.activeElement || ! document.hasFocus()) { //Don't update the focused element...
 				me.domEl.value = (value === null) ? '' : value;
 			}
 		}
@@ -107,7 +107,7 @@ itasks.NumberField = {
 	onAttributeChange: function(name,value) {
 		var me = this;
 		if(name == 'value') {
-			if(me.domEl !== document.activeElement) { //Don't update the focused element...
+			if(me.domEl !== document.activeElement || ! document.hasFocus()) { //Don't update the focused element...
 				me.domEl.value = (value === null) ? '' : value;
 			}
 		}
