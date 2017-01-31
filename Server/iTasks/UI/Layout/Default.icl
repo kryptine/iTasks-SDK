@@ -93,15 +93,14 @@ finalizeVarCons = sequenceLayouts
 
 finalizeStep :: Layout
 finalizeStep = sequenceLayouts
-/*
-	//SIMPLE VERSION
+	//STRAIGHTFORWARD TEMPORARY VERSION
 	[layoutSubs (SelectAND SelectRoot (SelectAND (SelectByType UIStep) (SelectByHasChildrenOfType UIAction)))
 					 (sequenceLayouts [layoutSubs (SelectByPath [0]) finalizeUI, actionsToButtonBar,setNodeType UIPanel])
 	,layoutSubs (SelectAND SelectRoot (SelectByType UIStep))
 					(sequenceLayouts [unwrapUI,finalizeUI])
 	]
-*/
-	//VERSION THAT SHOULD WORK...
+/*
+	//VERSION THAT SHOULD EVENTUALLY WORK... (NEEDS REDESIGN OF LAYOUT STATE FIRST)
 	//In case of nested steps, memove disabled actions
 	[layoutSubs (SelectAND SelectRoot (SelectByHasChildrenOfType UIStep))
 		(hideSubs (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" (JSONBool True)))))
@@ -112,7 +111,7 @@ finalizeStep = sequenceLayouts
 	,layoutSubs (SelectAND SelectRoot (SelectByType UIStep)) // (only if the previous layout has not yet eliminated the UIStep)
 	 	(sequenceLayouts [layoutSubs (SelectByPath [0]) finalizeUI, actionsToButtonBar,setNodeType UIPanel])
 	]
-
+*/
 finalizeParallel :: Layout
 finalizeParallel = sequenceLayouts
 	[layoutSubs (SelectAND SelectRoot (SelectAND (SelectByType UIParallel) (SelectByHasChildrenOfType UIAction))) layoutWithActions
