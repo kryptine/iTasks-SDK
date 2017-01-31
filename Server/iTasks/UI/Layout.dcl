@@ -25,21 +25,44 @@ instance tune	ApplyLayout //Apply a modification after a layout has been run
 
 // In specifications of layouts, sub-parts of UI's are commonly addressed as 
 // a path of child selections in the UI tree.
-:: NodePath :== [Int]
+:: UIPath :== [Int]
 
-//Basic DSL for creating more complex layouts
+// This type is a mini query language to describe a selection
+// of nodes in a UI (use for removing, moving, hiding or layouting)
+// We use a data type instead of a function of type (UI -> Bool) because
+// we want to keep only minimal state. Using an opaque function would require
+// keeping track of the full state
 
-// == Changing node types ===
+:: UISelection
+	= SelectByPath UIPath //Direct addressing
+	| SelectRoot
+	| SelectChildren
+	| SelectDescendents
+	| SelectByType UINodeType
+	| SelectByAttribute String JSONNode
+	| SelectByHasAttribute String
+	| SelectByNumChildren Int //Mostly to match containers with 0 or 1 children
+	| SelectByHasChildrenOfType UINodeType //E.g. to check if a step/parallel has actions
+	//Relative selection
+	| SelectRelative UIPath UISelection
+	//Set operations
+	| SelectAND UISelection UISelection //Intersection
+	| SelectOR UISelection UISelection //Union
+	| SelectNOT UISelection //Inverse
+
+// Basic DSL for creating layouts
+
+// == Changing node types ==
 setNodeType :: UINodeType -> Layout
 
-// == Changing attributes ===
-setAttributes :: UIAttributes -> Layout
-delAttributes :: [String] -> Layout
-copyAttributes :: [String] NodePath NodePath -> Layout
-copyAllAttributes :: NodePath NodePath -> Layout
-modifyAttribute :: String (JSONNode -> UIAttributes) -> Layout
+// == Changing attributes ==
+setAttributes     :: UIAttributes -> Layout
+delAttributes     :: [String] -> Layout
+copyAttributes    :: [String] UIPath UIPath -> Layout
+copyAllAttributes :: UIPath UIPath -> Layout
+modifyAttribute   :: String (JSONNode -> UIAttributes) -> Layout
 
-// === Changing the structure of the tree ===
+// == Changing the structure of a UI ==
 
 //* Create a new UI node which has the original UI as its only child.
 wrapUI :: UINodeType -> Layout
@@ -47,39 +70,54 @@ wrapUI :: UINodeType -> Layout
 //* Replace the UI by its first child. 
 unwrapUI :: Layout
 
+/*
+* Insert a (static) element into a UI
+*/
+insertSubAt  :: UIPath UI     -> Layout
+
 //* Flatten the tree of children in pre-order
 flattenUI :: Layout
+
+/**
+* Remove all elements that match the predicate, but keep the removed elements in the state.
+* Further changes to these elements are processed in the background. When the predicate no longer holds, the elements are inserted back into the UI.
+* When new elements are added dynamically they are also tested against the predicate
+*/
+hideSubs   :: UISelection -> Layout 
+/**
+* Remove all elements that match the predicate. Further changes to these elements are discarded.
+* When new elements are added dynamically they are also tested against the predicate
+*/
+removeSubs :: UISelection -> Layout 
+/**
+* Move all elements that match the predicate to a particular location in the tree.
+* Further changes to these elements are rewritten to target the new location.
+* When new elements are added dynamically they are also tested against the predicate
+*/
+moveSubs   :: UISelection UIPath -> Layout
+
+// == Composition of layouts ==
+/**
+* Apply a layout locally to parts of a UI
+*/
+layoutSubs :: UISelection Layout -> Layout
+/**
+* Apply multiple layouts sequentially. The UI changes that have been transformed by one layout are further transformed by the next layout
+*/
+sequenceLayouts   :: [Layout]    -> Layout
+
+// Easier debugging
+traceLayout :: String Layout -> Layout
+
+//-- Experiments with a more declarative type of layout specification
 
 //* Reorder a static part of a UI
 reorderUI :: (UI -> UI) -> Layout 
 
-//Operations on single specific sub-UI's indicated by a path
-insertSubAt :: NodePath UI       -> Layout
-removeSubAt :: NodePath          -> Layout
-moveSubAt   :: NodePath NodePath -> Layout
-
-//Group operations on selections of sub-UI's
-removeSubsMatching :: NodePath (UI -> Bool)          -> Layout
-moveSubsMatching   :: NodePath (UI -> Bool) NodePath -> Layout
-moveChildren :: NodePath (UI -> Bool) NodePath -> Layout
-
-
-//Composition of layouts
-sequenceLayouts   :: [Layout]               -> Layout
-selectLayout      :: [(UI -> Bool, Layout)] -> Layout
-conditionalLayout :: (UI -> Bool) Layout    -> Layout
-
-layoutSubAt        :: NodePath Layout   -> Layout
-layoutSubsMatching :: NodePath (UI -> Bool) Layout -> Layout
-layoutSubsOfType   :: NodePath [UINodeType] Layout -> Layout
-layoutChildrenOf   :: NodePath Layout -> Layout
-
-//Easier debugging
-traceLayout :: String Layout -> Layout
-
 //TYPES EXPORTED FOR TESTING
 :: NodeMoves :== [(Int,NodeMove)] 
 :: NodeMove = BranchMoved
+            | BranchHidden UI
             | ChildBranchesMoved NodeMoves
 
 //This type records the states of layouts applied somewhere in a ui tree

@@ -8,9 +8,7 @@ import StdBool
 from StdFunc import id, const, o
 
 arrangeWithTabs :: Layout
-arrangeWithTabs = conditionalLayout isParallel (setNodeType UITabSet)
-where
-	isParallel d = d =:(UI UIParallel _ _)
+arrangeWithTabs = layoutSubs (SelectAND SelectRoot (SelectByType UIParallel)) (setNodeType UITabSet)
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 arrangeWithSideBar index side size resize = sequenceLayouts 
@@ -18,9 +16,9 @@ arrangeWithSideBar index side size resize = sequenceLayouts
 	,copyAllAttributes [0] [] 	//Keep the attributes from the original UI
 	,setAttributes (directionAttr direction)
 	,insertSubAt [sidePanelIndex] (ui UIComponent) //Make sure we have a target for the move
-	,moveSubAt [mainPanelIndex,index] [sidePanelIndex,0]
-	,layoutSubAt [sidePanelIndex] unwrapUI //Remove the temporary wrapping panel
-	,layoutSubAt [sidePanelIndex] (setAttributes (sizeAttr sidePanelWidth sidePanelHeight))
+	,moveSubs (SelectByPath [mainPanelIndex,index]) [sidePanelIndex,0]
+	,layoutSubs (SelectByPath [sidePanelIndex]) unwrapUI //Remove the temporary wrapping panel
+	,layoutSubs (SelectByPath [sidePanelIndex]) (setAttributes (sizeAttr sidePanelWidth sidePanelHeight))
 	]
 where
 	sidePanelIndex = if (side === TopSide || side === LeftSide) 0 1
@@ -61,14 +59,15 @@ frameCompact = sequenceLayouts
 	,setAttributes (halignAttr AlignCenter)
 	]
 
+//TODO: Explicitly detect if we are before or after a step
 beforeStep :: Layout -> Layout
-beforeStep layout = conditionalLayout (\n -> n =:(UI UIStep _ _)) layout //TODO: Explicitly detect if we are before or after a step
+beforeStep layout = layoutSubs (SelectAND SelectRoot (SelectByType UIStep)) layout
 
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
 toWindow windowType vpos hpos = sequenceLayouts 
 	[wrapUI UIWindow
 	,copyAttributes [TITLE_ATTRIBUTE] [0] []
-	,layoutSubAt [0] (delAttributes [TITLE_ATTRIBUTE])
+	,layoutSubs (SelectByPath [0]) (delAttributes [TITLE_ATTRIBUTE])
 	,setAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
 	]
 

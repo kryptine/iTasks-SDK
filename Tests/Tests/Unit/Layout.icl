@@ -41,8 +41,6 @@ testLayout = testsuite "Layout" "Tests for the layout functions"
 	,testCombination2
 	]
 
-
-
 //Tests for the core operations of the layout library
 testChangeNodeType = skip (fail "Changing node type")
 testChangeAttributes = skip (fail "Changing attributes")
@@ -57,7 +55,7 @@ testMoveSubAt = skip (fail "Moving a node from one place to another")
 
 testRemoveSubsMatchingOnReplace = assertEqual "Removing everything that matches, when replacing a UI" exp sut
 where
-	sutLayout = removeSubsMatching [] isEmpty 
+	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
 		# (c,s) = sutLayout (ReplaceUI initUI,initState)
@@ -70,11 +68,9 @@ where
 	//Expected final UI
 	expUI = uic UIPanel [ui UIContainer, uic UIContainer [ui UITextView] ,ui UIAction]
 
-	isEmpty (UI type _ _) = type =: UIEmpty
-
 testRemoveSubsMatchingOnChildChange = assertEqual "Removing everything that matches, when changing a child" exp sut
 where
-	sutLayout = removeSubsMatching [] isEmpty
+	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
 		# (_,s) = sutLayout (initChange,initState)
@@ -91,11 +87,9 @@ where
 
 	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
-	isEmpty (UI type _ _) = type =: UIEmpty
-
 testRemoveSubsMatchingOnReplaceAfterRemove = assertEqual "Removing everything that matches, then replacing a part" exp sut
 where
-	sutLayout = removeSubsMatching [] isEmpty
+	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
 		# (c,s) = sutLayout (initChange,initState)
@@ -111,11 +105,9 @@ where
 	//Expected reroute change 
 	expChange = ChangeUI [] [(1,ChangeChild (ReplaceUI (ui UIPanel)))]
 
-	isEmpty (UI type _ _) = type =: UIEmpty
-
 testRemoveSubsMatchingOnReplaceMultipleAfterRemove = assertEqual "Removing everything that matches, then replacing multiple parts" exp sut
 where
-	sutLayout = removeSubsMatching [] isEmpty
+	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
 		# (c,s) = sutLayout (initChange,initState)
@@ -142,12 +134,9 @@ where
 											[(0,ChangeChild (ChangeUI []
 												[(0, ChangeChild (ReplaceUI (ui UITextView)))])) ]))]))]))]
 
-	isEmpty (UI type _ _) = type =: UIEmpty
-
-
 testRemoveSubsMatchingOnRemove = assertEqual "Removing everything that matches, then explicitly remove somehting" exp sut
 where
-	sutLayout = removeSubsMatching [] isEmpty
+	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
 		# (c,s) = sutLayout (initChange,initState)
@@ -162,16 +151,11 @@ where
 	changeToReRoute = ChangeUI [] [(0,RemoveChild),(0,RemoveChild)]
 	expChange = ChangeUI [] [(0,RemoveChild)]
 
-	isEmpty (UI type _ _) = type =: UIEmpty
-
-
-
-
 testLayoutSubsMatching = skip (fail "Applying another layout to all matching nodes")
 
 testMoveSubsMatchingInitial = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
 where
-	sutLayout = (moveChildren [] isTarget [0,0]) 
+	sutLayout = (moveSubs (SelectAND SelectChildren (SelectOR (SelectByType UIAction) (SelectByType UIEmpty))) [0,0]) 
 	sut = sutLayout (ReplaceUI initUI,initState)
 
 	exp = (ReplaceUI expUI,expState)
@@ -187,7 +171,7 @@ where
 
 testMoveSubsMatchingInitial2 = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
 where
-	sutLayout = (moveSubsMatching [0] isAction [1,0]) 
+	sutLayout = (moveSubs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1,0]) 
 	sut = sutLayout (ReplaceUI initUI,initState)
 
 	exp = (ReplaceUI expUI,expState)
@@ -199,11 +183,9 @@ where
 	expUI = uic UIPanel [uic UIContainer [ui UIEmpty], uic UIContainer [ui UIAction, ui UIAction]]
 	expState = toJSON [(0,ChildBranchesMoved [(0,BranchMoved),(2,BranchMoved)])]
 
-	isAction (UI type _ _) = type =: UIAction
-
 testMoveSubsMatchingNewRoutes = assertEqual "Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
-	sutLayout = (moveChildren [] isAction [0,0]) 
+	sutLayout = (moveSubs (SelectAND SelectChildren (SelectByType UIAction)) [0,0]) 
 	sut
 		//Initial, followed by an event in the new structure
 		# (_,s) = sutLayout (initChange,initState)
@@ -225,7 +207,7 @@ where
 
 testMoveSubsMatchingNewRoutes2 = assertEqual "Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
-	sutLayout = (moveSubsMatching [0] isAction [1,0]) 
+	sutLayout = (moveSubs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1,0]) 
 	sut
 		//Initial, followed by an event in the new structure
 		# (_,s) = sutLayout (ReplaceUI initUI,initState)
@@ -305,21 +287,19 @@ where
         [//First stage 
 		 sequenceLayouts
         	[arrangeWithSideBar3
-        	,layoutSubAt [1] arrangeWithSideBar3
+        	,layoutSubs (SelectByPath [1]) arrangeWithSideBar3
         	]
 		//Second stage
-        ,removeSubsMatching [] isInteract 
+        ,removeSubs (SelectAND SelectDescendents (SelectByType UIInteract))
         ]
 	where
 		arrangeWithSideBar3 :: Layout
 		arrangeWithSideBar3 = sequenceLayouts
 			[wrapUI UIDebug //Push the current container down a level
 			,insertSubAt [0] (ui UIComponent) //Make sure we have a target for the move
-			,moveSubAt [1,0] [0,0] //Key difference
-			,layoutSubAt [0] unwrapUI //Remove the temporary wrapping panel
+			,moveSubs (SelectByPath [1,0]) [0,0] //Key difference
+			,layoutSubs (SelectByPath [0]) unwrapUI //Remove the temporary wrapping panel
 			]
-
-    isInteract (UI type _ _) = type =: UIInteract
 
 	sut
 		//Initial, followed by an event in the new structure
@@ -357,9 +337,7 @@ where
 		= c2
 	exp = expModifiedChange
 
-	sutLayout = removeSubsMatching [] isInteract
-	where
-    	isInteract (UI type _ _) = type =: UIInteract
+	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIInteract))
 
 	initState = toJSON [(0,ChildBranchesMoved [(0,BranchMoved)])
 					   ,(1,ChildBranchesMoved [(0,ChildBranchesMoved [(0,BranchMoved)])])]

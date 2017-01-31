@@ -101,7 +101,7 @@ where
 		= manageWorklist workflows
 		
 	layout = sequenceLayouts
-		[layoutSubsOfType [] [UIAction] (setActionIcon ('DM'.fromList [("Login","login")]))
+		[layoutSubs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")]))
 		,frameCompact
 		]
 		
@@ -138,13 +138,13 @@ where
 
 	layout = sequenceLayouts
 		[ arrangeWithSideBar 0 LeftSide 260 True
-		, layoutSubAt [0] layoutStartWork
-		, layoutSubAt [1] (sequenceLayouts
-			[layoutSubAt [0] (wrapUI UIContainer) //Put manageSession and manageWork together in a container
-			,layoutSubAt [0,0] layoutManageSession
-			,moveSubAt [1] [0,1]
+		, layoutSubs (SelectByPath [0]) layoutStartWork
+		, layoutSubs (SelectByPath [1]) (sequenceLayouts
+			[layoutSubs (SelectByPath [0]) (wrapUI UIContainer) //Put manageSession and manageWork together in a container
+			,layoutSubs (SelectByPath [0,0]) layoutManageSession
+			,moveSubs (SelectByPath [1]) [0,1]
 			,arrangeWithSideBar 0 TopSide 200 True
-			,layoutSubAt [1] arrangeWithTabs
+			,layoutSubs (SelectByPath [1]) arrangeWithTabs
 			])
 		, setAttributes (sizeAttr FlexSize FlexSize)
 		]
@@ -152,8 +152,8 @@ where
 	layoutStartWork = arrangeWithSideBar 1 BottomSide  200 True
 	layoutManageSession = sequenceLayouts 
 		[unwrapUI
-		,layoutChildrenOf [] actionToButton
-		,layoutSubAt [0] (setNodeType UIContainer)
+		,layoutSubs SelectChildren actionToButton
+		,layoutSubs (SelectByPath [0]) (setNodeType UIContainer)
 		,setNodeType UIContainer
 		,setAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
 		]
@@ -166,7 +166,7 @@ manageSession list =
 				]															
 		) <! isJust	
 	@	fromJust	
-	) <<@ ApplyLayout (layoutSubsOfType [] [UIAction] (setActionIcon ('DM'.fromList [("Shutdown","close"),("Log out","logout")])))
+	) <<@ ApplyLayout (layoutSubs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Shutdown","close"),("Log out","logout")])))
 where
 	view user	= "Welcome " +++ toString user		
 
