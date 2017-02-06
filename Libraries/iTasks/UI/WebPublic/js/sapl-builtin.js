@@ -62,14 +62,6 @@ function __traceln(val, cont){
 
 // --------- Primitive functions -----------------------------
 
-function _atan(a){
-    return Math.atan(Sapl.feval(a));
-}
-
-function _acos(a){
-    return Math.acos(Sapl.feval(a));
-}
-
 function _mult(a,b){
     return Sapl.feval(a)*Sapl.feval(b);
 }
@@ -105,14 +97,23 @@ function _pow(a,b){
 function _sin(a){
     return Math.sin(Sapl.feval(a));
 }	
+function _asin(a){
+    return Math.asin(Sapl.feval(a));
+}	
 
 function _cos(a){
     return Math.cos(Sapl.feval(a));
 }	
+function _acos(a){
+    return Math.acos(Sapl.feval(a));
+}
 
-function __tan(a){
+function _tan(a){
     return Math.tan(Sapl.feval(a));
 }	
+function _atan(a){
+    return Math.atan(Sapl.feval(a));
+}
 
 function _mod(a,b){
     return Sapl.feval(a)%Sapl.feval(b);
