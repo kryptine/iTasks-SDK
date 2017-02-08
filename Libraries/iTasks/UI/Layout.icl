@@ -33,7 +33,7 @@ derive JSONDecode NodeMove, NodeLayoutState, NodeSpine
 
 instance tune ApplyLayout
 where
-	tune (ApplyLayout f) task=:(Task evala) = Task eval
+	tune (ApplyLayout l) task=:(Task evala) = Task eval
 	where
 		eval event evalOpts (TCDestroy (TCLayout s tt)) iworld //Cleanup duty simply passed to inner task
 			= evala event evalOpts (TCDestroy tt) iworld
@@ -44,7 +44,7 @@ where
 		eval event evalOpts (TCLayout s tt) iworld = case evala event evalOpts tt iworld of
 	        (ValueResult value info change tt,iworld) 
 				# s = fromMaybe JSONNull (fromJSON s)	
-				# (change,s) = f (change,s)
+				# (change,s) = l.Layout.layout (change,s)
 				= (ValueResult value info change (TCLayout s tt), iworld)
             (res,iworld) = (res,iworld)
 		
@@ -75,13 +75,13 @@ inUISelection (SelectOR sell selr) path ui = inUISelection sell path ui || inUIS
 inUISelection (SelectNOT sel) path ui = not (inUISelection sel path ui)
 
 setNodeType :: UINodeType -> Layout
-setNodeType type = layout
+setNodeType type = {Layout|layout=layout}
 where
 	layout (ReplaceUI (UI _ attr items),s) = (ReplaceUI (UI type attr items),s)
 	layout (change,s) = (change,s)
 
 setAttributes :: UIAttributes -> Layout
-setAttributes extraAttr = layout 
+setAttributes extraAttr = {Layout|layout=layout}
 where
 	layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.union extraAttr attr) items),s)
 	layout (ChangeUI attrChanges itemChanges,s)
@@ -91,7 +91,7 @@ where
 	layout (change,s) = (change,s)
 
 delAttributes :: [String] -> Layout
-delAttributes delAttr = layout
+delAttributes delAttr = {Layout|layout=layout}
 where
 	layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type (foldr 'DM'.del attr delAttr) items),s)
 	layout (ChangeUI attrChanges itemChanges,s)
@@ -106,7 +106,7 @@ copyAllAttributes :: UIPath UIPath -> Layout
 copyAllAttributes src dst = copyAttributes` Nothing src dst
 
 copyAttributes` :: (Maybe [String]) UIPath UIPath -> Layout
-copyAttributes` selection src dst = layout //TODO: Also handle attribute updates in the src location, and partial replacements along the path
+copyAttributes` selection src dst = {Layout|layout=layout} //TODO: Also handle attribute updates in the src location, and partial replacements along the path
 where
 	layout (ReplaceUI ui,s) = case selectAttr src ui of 
 		Just attr = (ReplaceUI (addAttr attr dst ui),s)
@@ -127,7 +127,7 @@ where
 	condition = maybe (const True) (flip isMember) selection
 
 modifyAttribute :: String (JSONNode -> UIAttributes) -> Layout
-modifyAttribute name modifier = layout
+modifyAttribute name modifier = {Layout|layout=layout}
 where
 	layout (ReplaceUI (UI type attr items),s)
 		# attr = maybe attr (\val -> 'DM'.union (modifier val) attr) ('DM'.get name attr)
@@ -139,14 +139,14 @@ where
 	layout (c,s) = (c,s)
 
 wrapUI :: UINodeType -> Layout
-wrapUI type = layout
+wrapUI type = {Layout|layout=layout}
 where
 	layout (ReplaceUI def,_) = (ReplaceUI (uic type [def]),JSONNull)
 	layout (NoChange,def) = (NoChange,def)
 	layout (change,s) = (ChangeUI [] [(0,ChangeChild change)],s)
 
 unwrapUI :: Layout
-unwrapUI = layout
+unwrapUI = {Layout|layout=layout}
 where
 	layout (ReplaceUI def,_) = case def of
 		(UI _ _ [child:_])  = (ReplaceUI child,JSONBool False)
@@ -160,7 +160,7 @@ where
 	layout (change,s) = (NoChange,s) 
 
 flattenUI :: Layout
-flattenUI = layout
+flattenUI = {Layout|layout=layout} 
 where
 	layout (ReplaceUI def,_)
 		# (def,spine) = flattenWithSpine def
@@ -173,8 +173,8 @@ where
 		= (UI type attr items,NS spines)
 
 insertSubAt :: UIPath UI-> Layout
-insertSubAt [] def = id
-insertSubAt path def = layoutSubAt (init path) (insertSub (last path) def)
+insertSubAt [] def = {Layout|layout=id}
+insertSubAt path def = layoutSubAt (init path) {Layout|layout=(insertSub (last path) def)}
 where
 	insertSub idx def (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type attr (insertAt idx def items)),s)
 	insertSub idx _ (ChangeUI attrChanges childChanges,s) = (ChangeUI attrChanges (insert idx childChanges),s)
@@ -203,7 +203,7 @@ where
 */
 
 removeSubs :: UISelection -> Layout 
-removeSubs selection = layout
+removeSubs selection = {Layout|layout=layout}
 where
 	pred = inUISelection selection
 	layout (change,s)
@@ -212,7 +212,7 @@ where
 		= (change, toJSON moves)
 
 moveSubs :: UISelection UIPath -> Layout
-moveSubs selection dst = layout
+moveSubs selection dst = {Layout|layout=layout} 
 where
 	pred = inUISelection selection
 	layout (change,s)
@@ -225,7 +225,7 @@ where
 	    = (change, toJSON moves)
 
 hideSubs :: UISelection -> Layout 
-hideSubs selection = layout
+hideSubs selection = {Layout|layout=layout}
 where
 	pred = inUISelection selection
 	layout (change,s)
@@ -503,7 +503,7 @@ insertNodes_ [s:ss] changes (UI type attr items)
 	| otherwise 		= UI type attr items
 
 layoutSubs :: UISelection Layout -> Layout
-layoutSubs selection layout = layout`
+layoutSubs selection layout = {Layout|layout=layout`}
 where
 	pred = inUISelection selection
 	layout` (change,s)
@@ -512,7 +512,7 @@ where
 			= (change,toJSON eitherState)
 		| otherwise
 			# (change,eitherState) = case fromMaybe (ChildBranchLayout []) (fromJSON s) of
-				(BranchLayout state) = appSnd BranchLayout (layout (change,state))
+				(BranchLayout state) = appSnd BranchLayout (layout.Layout.layout (change,state))
 				(ChildBranchLayout states) = layoutChange_ [] pred layout change states
 			= (change,toJSON eitherState)
 
@@ -529,7 +529,7 @@ layoutChange_ path pred layout change states
 layoutUI_ :: UIPath (UIPath UI -> Bool) Layout UI -> (UI,NodeLayoutState)
 layoutUI_ path pred layout ui=:(UI type attr items)
 	| pred path ui
-		= case layout (ReplaceUI ui,JSONNull) of
+		= case layout.Layout.layout (ReplaceUI ui,JSONNull) of
 			(ReplaceUI ui,state) = (ui,BranchLayout state)
 			_                    = (ui,ChildBranchLayout []) //Consider it a non-match if the layout function behaves flakey
 	| otherwise
@@ -549,7 +549,7 @@ where
 	//to pass the change and the state to that layout, otherwise we need to recursively adjust the change
 	layoutChildChange_ path pred layout (idx,ChangeChild change) states = case selectState idx states of
 		(Just (BranchLayout state),states) //Reapply the layout with the stored state
-			# (change,state) = layout (change,state)
+			# (change,state) = layout.Layout.layout (change,state)
 			= ((idx,ChangeChild change),[(idx,BranchLayout state):states])
 		(Just (ChildBranchLayout childStates),states) //Recursively adjust the change
 			# (change,state) = layoutChange_ (path ++ [idx]) pred layout change childStates
@@ -579,7 +579,7 @@ where
         _                  = (Nothing,states)
 
 sequenceLayouts :: [Layout] -> Layout
-sequenceLayouts layouts = layout
+sequenceLayouts layouts = {Layout|layout=layout}
 where
 	layout (change=:(ReplaceUI _),_)
 		# (change,states) = applyAll layouts [] change 
@@ -593,7 +593,7 @@ where
 	applyAll [] _ change = (change,[])
 	applyAll [l:ls] states change 
 		# [s:ss] = case states of [] = [JSONNull]; _ = states;
-		# (change,s) = l (change,s) 
+		# (change,s) = l.Layout.layout (change,s) 
 		# (change,ss) = applyAll ls ss change
 		= (change,[s:ss])
 
@@ -607,10 +607,10 @@ where
 */
 
 traceLayout :: String Layout -> Layout
-traceLayout name layout = layout`
+traceLayout name layout = {Layout|layout=layout`}
 where
 	layout` (change,state)
-		# (change`,state`) = layout (change,state)
+		# (change`,state`) = layout.Layout.layout (change,state)
 		# msg = join "\n" 
 			["Layout trace ("+++ name +++")"
 			,"ORIGINAL CHANGE:"			
@@ -680,7 +680,7 @@ taskUILayoutToUI (UINode path)
   = UI UIContainer ('DM'.singleton "origin" (toJSON path)) []
 
 reorderUI :: (UI -> UI) -> Layout 
-reorderUI reorder = layout
+reorderUI reorder = {Layout|layout=layout}
 where
 	layout (NoChange,s)
 		 = (NoChange,s)
