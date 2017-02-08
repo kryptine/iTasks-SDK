@@ -1,11 +1,11 @@
 "use strict";
 
 var isFloat = function(n){
-  return n===+n && n!==(n|0);
+	return n % 1 !== 0;
 }
 
 var isInteger = function(n){
-  return n===+n && n===(n|0);
+	return n % 1 === 0;
 }
 
 var isString = function(o){
