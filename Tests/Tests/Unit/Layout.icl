@@ -58,7 +58,7 @@ where
 	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
-		# (c,s) = sutLayout (ReplaceUI initUI,initState)
+		# (c,s) = sutLayout.Layout.layout (ReplaceUI initUI,initState)
 		= c
 	exp = ReplaceUI expUI
 
@@ -73,8 +73,8 @@ where
 	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
-		# (_,s) = sutLayout (initChange,initState)
-		# (c,s) = sutLayout (changeToReRoute,s)
+		# (_,s) = sutLayout.Layout.layout (initChange,initState)
+		# (c,s) = sutLayout.Layout.layout (changeToReRoute,s)
 		= c
 	exp = expChange
 
@@ -92,8 +92,8 @@ where
 	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
-		# (c,s) = sutLayout (initChange,initState)
-		# (c,s) = sutLayout (changeToReRoute,s)
+		# (c,s) = sutLayout.Layout.layout (initChange,initState)
+		# (c,s) = sutLayout.Layout.layout (changeToReRoute,s)
 		= c
 	exp = expChange
 
@@ -110,8 +110,8 @@ where
 	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
-		# (c,s) = sutLayout (initChange,initState)
-		# (c,s) = sutLayout (changeToReRoute,s)
+		# (c,s) = sutLayout.Layout.layout (initChange,initState)
+		# (c,s) = sutLayout.Layout.layout (changeToReRoute,s)
 		= c
 	exp = expChange
 
@@ -139,8 +139,8 @@ where
 	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
-		# (c,s) = sutLayout (initChange,initState)
-		# (c,s) = sutLayout (changeToReRoute,s)
+		# (c,s) = sutLayout.Layout.layout (initChange,initState)
+		# (c,s) = sutLayout.Layout.layout (changeToReRoute,s)
 		= c
 	exp = expChange
 
@@ -156,7 +156,7 @@ testLayoutSubsMatching = skip (fail "Applying another layout to all matching nod
 testMoveSubsMatchingInitial = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
 where
 	sutLayout = (moveSubs (SelectAND SelectChildren (SelectOR (SelectByType UIAction) (SelectByType UIEmpty))) [0,0]) 
-	sut = sutLayout (ReplaceUI initUI,initState)
+	sut = sutLayout.Layout.layout (ReplaceUI initUI,initState)
 
 	exp = (ReplaceUI expUI,expState)
 
@@ -172,7 +172,7 @@ where
 testMoveSubsMatchingInitial2 = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
 where
 	sutLayout = (moveSubs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1,0]) 
-	sut = sutLayout (ReplaceUI initUI,initState)
+	sut = sutLayout.Layout.layout (ReplaceUI initUI,initState)
 
 	exp = (ReplaceUI expUI,expState)
 
@@ -188,8 +188,8 @@ where
 	sutLayout = (moveSubs (SelectAND SelectChildren (SelectByType UIAction)) [0,0]) 
 	sut
 		//Initial, followed by an event in the new structure
-		# (_,s) = sutLayout (initChange,initState)
-		# (c,s) = sutLayout (changeToReRoute,s)
+		# (_,s) = sutLayout.Layout.layout (initChange,initState)
+		# (c,s) = sutLayout.Layout.layout (changeToReRoute,s)
 		= c
 	exp = expChange
 
@@ -210,8 +210,8 @@ where
 	sutLayout = (moveSubs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1,0]) 
 	sut
 		//Initial, followed by an event in the new structure
-		# (_,s) = sutLayout (ReplaceUI initUI,initState)
-		# (c,s) = sutLayout (changeToReRoute,s)
+		# (_,s) = sutLayout.Layout.layout (ReplaceUI initUI,initState)
+		# (c,s) = sutLayout.Layout.layout (changeToReRoute,s)
 		= (c,s)
 
 	exp = (expChange,expState)
@@ -250,7 +250,7 @@ derive class iTask TestRecInner, TestRecOuter
 testAutoInteractionLayoutInitial = skip (assertEqual "Test if the auto interaction layout correctly turns an editor into a form" exp sut)
 where
 	exp = ReplaceUI (uic UIContainer [stdPrompt,expIntForm])
-	sut = fst (finalizeInteract ((ReplaceUI (uic UIContainer [stdPrompt,stdIntEditor])),JSONNull))
+	sut = fst (finalizeInteract.Layout.layout ((ReplaceUI (uic UIContainer [stdPrompt,stdIntEditor])),JSONNull))
 	
 	stdPrompt = ui UIEmpty //STUB Don't care what the prompt is!
 	stdIntEditor = uia UIIntegerField
@@ -303,8 +303,8 @@ where
 
 	sut
 		//Initial, followed by an event in the new structure
-		# (c1,s1) = sutLayout (ReplaceUI initUI,initState)
-		# (c2,s2) = sutLayout (changeToModify,s1)
+		# (c1,s1) = sutLayout.Layout.layout (ReplaceUI initUI,initState)
+		# (c2,s2) = sutLayout.Layout.layout (changeToModify,s1)
 		= c2
 
 	exp = expModifiedChange
@@ -333,7 +333,7 @@ testCombination2 = assertEqual "Insert after global removal" exp sut
 where
 	sut
 		//Initial, followed by an event in the new structure
-		# (c2,s2) = sutLayout (changeToModify,initState)
+		# (c2,s2) = sutLayout.Layout.layout (changeToModify,initState)
 		= c2
 	exp = expModifiedChange
 

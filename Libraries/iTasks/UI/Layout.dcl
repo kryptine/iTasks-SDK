@@ -15,7 +15,11 @@ from Text.JSON import :: JSONNode
 
 // When a layout changes the stucture of the UI, changes to the UI have to be
 // changed too to route the changes to the correct place in the structure
-:: Layout      :== LayoutFun JSONNode
+//:: Layout      :== LayoutFun JSONNode
+:: Layout =
+	{ layout :: LayoutFun JSONNode
+	}
+
 :: LayoutFun s :== (UIChange,s) -> (UIChange,s)
 
 // These types are used to control when to apply layout in a task composition

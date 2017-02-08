@@ -28,7 +28,7 @@ where
 	(sidePanelWidth,sidePanelHeight) = if (direction === Vertical) (FlexSize,ExactSize size) (ExactSize size,FlexSize)
 
 arrangeSplit :: !UIDirection !Bool -> Layout
-arrangeSplit direction resize = id
+arrangeSplit direction resize = {Layout|layout=id}
 /*
 arrangeSplit :: !UIDirection !Bool -> UIBlocksCombinator
 arrangeSplit direction resize = arrange
@@ -81,16 +81,11 @@ toPanel :: Layout
 toPanel = setNodeType UIPanel
 
 actionToButton :: Layout
-actionToButton = layout 
+actionToButton = sequenceLayouts
+	[setNodeType UIButton
+	,modifyAttribute "actionId" (\(JSONString a) -> 'DM'.unions [valueAttr (JSONString a),textAttr a,icon a])
+	]
 where
-	layout (ReplaceUI (UI UIAction attr _),_)
-		= case ('DM'.get "actionId" attr) of
-			Just (JSONString a)
-				= (ReplaceUI (uia UIButton ('DM'.unions [attr,valueAttr (JSONString a),textAttr a,icon a])),JSONNull)
-			_ 	= (ReplaceUI (uia UIButton attr),JSONNull)
-	
-	layout (change,s) = (change,s)
-
 	//Set default icons
 	icon "Ok" = iconClsAttr "icon-ok"
 	icon "Cancel" = iconClsAttr "icon-cancel"

@@ -137,7 +137,7 @@ actionsToButtonBar= sequenceLayouts
 
 //Flatten an editor into a form
 toFormItem :: Layout
-toFormItem = layout
+toFormItem = {Layout|layout=layout}
 where
 	layout (ReplaceUI (control=:(UI _ attr _)),s) 
 		# label = fromMaybe (ui UIEmpty) (labelControl attr)
