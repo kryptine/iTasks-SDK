@@ -22,25 +22,25 @@ content :: Task String
 content = viewInformation () [] "This is the content of the container"
 
 buttons :: Task (Bool,Bool)
-buttons = enterInformation () [EnterUsing id editor] <<@ ApplyLayout (foldl1 sequenceLayouts [removeSubs (SelectByPath [0]),unwrapUI,setAttributes (textAttr "Sub menu")])
+buttons = enterInformation () [EnterUsing id editor] <<@ ApplyLayout (foldl1 sequenceLayouts [removeSubUIs (SelectByPath [0]),unwrapUI,setUIAttributes (textAttr "Sub menu")])
 where
 	editor = composeEditors UIMenu (button ('DM'.unions[textAttr "Button a",iconClsAttr "icon-ok"])) (button (textAttr "Button b")) 
 
 testPanel = itest "Panel" "Check if the panel looks ok" "You cannot do anything with a panel" tut
 where
-	tut = content <<@ ApplyLayout (wrapUI UIPanel) <<@ ApplyLayout (setAttributes (titleAttr "Panel with title"))
+	tut = content <<@ ApplyLayout (wrapUI UIPanel) <<@ ApplyLayout (setUIAttributes (titleAttr "Panel with title"))
 
 testTabSet = itest "Tab set" "Check if the tab panel looks ok" "There is only one tab" tut
 where
-	tut = content <<@ ApplyLayout (setAttributes (titleAttr "Tab title")) <<@ ApplyLayout (wrapUI UITabSet)
+	tut = content <<@ ApplyLayout (setUIAttributes (titleAttr "Tab title")) <<@ ApplyLayout (wrapUI UITabSet)
 
 testWindow = itest "Window" "Check if the window looks ok" "It should be a basic floating window" tut
 where
-	tut = content <<@ ApplyLayout (wrapUI UIWindow) <<@ ApplyLayout (setAttributes (titleAttr "Window with title"))
+	tut = content <<@ ApplyLayout (wrapUI UIWindow) <<@ ApplyLayout (setUIAttributes (titleAttr "Window with title"))
 
 testMenu = itest "Menu" "Check if the menu looks ok" "It should be a top-level menu that can expand on clicking" tut
 where
-	tut = buttons <<@ ApplyLayout (wrapUI UIMenu) <<@ ApplyLayout (setAttributes (textAttr "Open menu"))
+	tut = buttons <<@ ApplyLayout (wrapUI UIMenu) <<@ ApplyLayout (setUIAttributes (textAttr "Open menu"))
 
 testToolBar = itest "Tool bar" "Check if the tool bar looks ok" "You cannot do anything with a tool bar" tut
 where

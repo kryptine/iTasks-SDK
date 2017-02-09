@@ -73,14 +73,14 @@ inUISelection (SelectAND sell selr) path ui = inUISelection sell path ui && inUI
 inUISelection (SelectOR sell selr) path ui = inUISelection sell path ui || inUISelection selr path ui 
 inUISelection (SelectNOT sel) path ui = not (inUISelection sel path ui)
 
-setNodeType :: UINodeType -> Layout
-setNodeType type = {Layout|layout=layout}
+setUIType :: UINodeType -> Layout
+setUIType type = {Layout|layout=layout}
 where
 	layout (ReplaceUI (UI _ attr items),s) = (ReplaceUI (UI type attr items),s)
 	layout (change,s) = (change,s)
 
-setAttributes :: UIAttributes -> Layout
-setAttributes extraAttr = {Layout|layout=layout}
+setUIAttributes :: UIAttributes -> Layout
+setUIAttributes extraAttr = {Layout|layout=layout}
 where
 	layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.union extraAttr attr) items),s)
 	layout (ChangeUI attrChanges itemChanges,s)
@@ -89,8 +89,8 @@ where
 		= (ChangeUI attrChanges itemChanges,s)
 	layout (change,s) = (change,s)
 
-delAttributes :: [String] -> Layout
-delAttributes delAttr = {Layout|layout=layout}
+delUIAttributes :: [String] -> Layout
+delUIAttributes delAttr = {Layout|layout=layout}
 where
 	layout (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type (foldr 'DM'.del attr delAttr) items),s)
 	layout (ChangeUI attrChanges itemChanges,s)
@@ -98,11 +98,24 @@ where
 		= (ChangeUI attrChanges itemChanges,s)
 	layout (change,s) = (change,s)
 	
-copyAttributes :: [String] UIPath UIPath -> Layout
-copyAttributes selection src dst = copyAttributes` (Just selection) src dst
+modifyUIAttributes :: String (JSONNode -> UIAttributes) -> Layout
+modifyUIAttributes name modifier = {Layout|layout=layout}
+where
+	layout (ReplaceUI (UI type attr items),s)
+		# attr = maybe attr (\val -> 'DM'.union (modifier val) attr) ('DM'.get name attr)
+		= (ReplaceUI (UI type attr items),s)
 
-copyAllAttributes :: UIPath UIPath -> Layout
-copyAllAttributes src dst = copyAttributes` Nothing src dst
+	layout (ChangeUI attrChanges childChanges,s)
+		# attrChanges = flatten [if (key == name) [SetAttribute k v \\ (k,v) <- 'DM'.toList (modifier value)] [c] \\c=:(SetAttribute key value) <- attrChanges]
+		= (ChangeUI attrChanges childChanges,s)
+	layout (c,s) = (c,s)
+
+
+copyUIAttributes :: [String] UIPath UIPath -> Layout
+copyUIAttributes selection src dst = copyAttributes` (Just selection) src dst
+
+copyAllUIAttributes :: UIPath UIPath -> Layout
+copyAllUIAttributes src dst = copyAttributes` Nothing src dst
 
 copyAttributes` :: (Maybe [String]) UIPath UIPath -> Layout
 copyAttributes` selection src dst = {Layout|layout=layout} //TODO: Also handle attribute updates in the src location, and partial replacements along the path
@@ -124,18 +137,6 @@ where
 						   = UI type attr items
 
 	condition = maybe (const True) (flip isMember) selection
-
-modifyAttribute :: String (JSONNode -> UIAttributes) -> Layout
-modifyAttribute name modifier = {Layout|layout=layout}
-where
-	layout (ReplaceUI (UI type attr items),s)
-		# attr = maybe attr (\val -> 'DM'.union (modifier val) attr) ('DM'.get name attr)
-		= (ReplaceUI (UI type attr items),s)
-
-	layout (ChangeUI attrChanges childChanges,s)
-		# attrChanges = flatten [if (key == name) [SetAttribute k v \\ (k,v) <- 'DM'.toList (modifier value)] [c] \\c=:(SetAttribute key value) <- attrChanges]
-		= (ChangeUI attrChanges childChanges,s)
-	layout (c,s) = (c,s)
 
 wrapUI :: UINodeType -> Layout
 wrapUI type = {Layout|layout=layout}
@@ -171,9 +172,9 @@ where
 		# items = flatten [[UI type attr []:children] \\ UI type attr children <- items]
 		= (UI type attr items,NS spines)
 
-insertSubAt :: UIPath UI-> Layout
-insertSubAt [] def = {Layout|layout=id}
-insertSubAt path def = layoutSubAt (init path) {Layout|layout=(insertSub (last path) def)}
+insertSubUI :: UIPath UI-> Layout
+insertSubUI [] def = {Layout|layout=id}
+insertSubUI path def = layoutSubUIs (SelectByPath (init path)) {Layout|layout=(insertSub (last path) def)}
 where
 	insertSub idx def (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type attr (insertAt idx def items)),s)
 	insertSub idx _ (ChangeUI attrChanges childChanges,s) = (ChangeUI attrChanges (insert idx childChanges),s)
@@ -185,17 +186,8 @@ where
 
 	insertSub _ _ (change,s) = (change,s)
 
-moveSubAt :: UIPath UIPath -> Layout 
-moveSubAt src dst = moveSubs (SelectByPath src) dst
-
-removeSubAt :: UIPath -> Layout
-removeSubAt src = removeSubs (SelectByPath src)
-
-layoutSubAt :: UIPath Layout -> Layout
-layoutSubAt target layout = layoutSubs (SelectByPath target) layout
-
-moveSubs :: UISelection UIPath -> Layout
-moveSubs selection dst = {Layout|layout=layout} 
+moveSubUIs :: UISelection UIPath -> Layout
+moveSubUIs selection dst = {Layout|layout=layout} 
 where
 	pred = inUISelection selection
 	layout (change,s)
@@ -207,8 +199,8 @@ where
 	 	# change = insertAndAdjust_ (init dst) startIdx (countMoves_ moves True) inserts change
 	    = (change, toJSON moves)
 
-removeSubs :: UISelection -> Layout 
-removeSubs selection = {Layout|layout=layout}
+removeSubUIs :: UISelection -> Layout 
+removeSubUIs selection = {Layout|layout=layout}
 where
 	pred = inUISelection selection
 	layout (change,s)
@@ -485,8 +477,8 @@ insertNodes_ [s:ss] changes (UI type attr items)
 	| s < length items  = UI type attr (updateAt s (insertNodes_ ss changes (items !! s)) items)
 	| otherwise 		= UI type attr items
 
-layoutSubs :: UISelection Layout -> Layout
-layoutSubs selection layout = {Layout|layout=layout`}
+layoutSubUIs :: UISelection Layout -> Layout
+layoutSubUIs selection layout = {Layout|layout=layout`}
 where
 	pred = inUISelection selection
 	layout` (change,s)
