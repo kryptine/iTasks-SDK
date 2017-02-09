@@ -10,17 +10,20 @@ from iTasks.API.Core.TaskCombinators import class tune
 from iTasks.UI.Definition import :: UI, :: UINodeType, :: UIAttributes, :: UIChange
 
 from Data.Maybe import :: Maybe
-from Data.Map import :: Map
+from Data.Map  import :: Map
 from Text.JSON import :: JSONNode
 
 // When a layout changes the stucture of the UI, changes to the UI have to be
 // changed too to route the changes to the correct place in the structure
-//:: Layout      :== LayoutFun JSONNode
 :: Layout =
-	{ layout :: LayoutFun JSONNode
+	{ apply   :: UI                     -> (UIChange,LayoutState) // Modify the UI layout to the existing UI
+	, adjust  :: (UIChange,LayoutState) -> (UIChange,LayoutState) // Rewrite changes to the UI to accomodate for the changes caused by the layout
+	, restore :: LayoutState -> UIChange                          // Modify the UI to a state as if the layout had never been applied
 	}
 
 :: LayoutFun s :== (UIChange,s) -> (UIChange,s)
+
+:: LayoutState :== JSONNode
 
 // These types are used to control when to apply layout in a task composition
 :: ApplyLayout	= ApplyLayout Layout

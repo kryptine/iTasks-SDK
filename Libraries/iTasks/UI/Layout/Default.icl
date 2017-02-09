@@ -136,15 +136,16 @@ actionsToButtonBar = foldl1 sequenceLayouts
 
 //Flatten an editor into a form
 toFormItem :: Layout
-toFormItem = {Layout|layout=layout}
+toFormItem = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	layout (ReplaceUI (control=:(UI _ attr _)),s) 
+	apply _ = (NoChange,JSONNull)
+	adjust (ReplaceUI (control=:(UI _ attr _)),s) 
 		# label = fromMaybe (ui UIEmpty) (labelControl attr)
 		# info = fromMaybe (ui UIEmpty) (infoControl attr)
 		# attr = 'DM'.unions [marginsAttr 2 4 2 4, directionAttr Horizontal, sizeAttr FlexSize WrapSize]
 		= (ReplaceUI (uiac UIContainer attr [label,control,info]),s)
 
-	layout (ChangeUI localChanges childChanges,s) 
+	adjust (ChangeUI localChanges childChanges,s) 
 		//Check if the tooltip or icon needs to be updated
 		#iconChanges = case [remap t v \\ SetAttribute t (JSONString v) <- localChanges | isMember t [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]] of
 			[] = []
@@ -156,7 +157,9 @@ where
 		remap HINT_TYPE_ATTRIBUTE v = SetAttribute "iconCls" (JSONString ("icon-" +++ v))
 		remap t v = SetAttribute t (JSONString v)
 
-	layout (c,s) = (c,s)
+	adjust (c,s) = (c,s)
+
+	restore _ = NoChange
 	
 labelControl :: UIAttributes -> Maybe UI
 labelControl attributes = case 'DM'.get LABEL_ATTRIBUTE attributes of
