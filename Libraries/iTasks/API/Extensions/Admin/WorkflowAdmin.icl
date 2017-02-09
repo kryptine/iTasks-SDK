@@ -280,7 +280,7 @@ workOnTask taskId
         ,OnValue    (ifValue ((===) ASDeleted) (\_ -> return OpenProcess))
         ,OnValue    (ifValue ((===) (ASAttached True)) (\_ -> return OpenProcess)) //If the task is stable, there is no need to work on it anymore
         ,OnAction ActionClose   (always (return OpenProcess))
-        ] ) <<@ ApplyLayout (copyUIAttributes ["title"] [0] []) //Use the title from the workOn for the composition
+        ] ) <<@ ApplyLayout (copySubUIAttributes (SelectKeys ["title"]) [0] []) //Use the title from the workOn for the composition
 where
     dealWithIncompatibleTask
         =   viewInformation (Title "Error") [] "This this task is incompatible with the current application version. Restart?"
