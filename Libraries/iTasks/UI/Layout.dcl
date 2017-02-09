@@ -54,6 +54,10 @@ instance tune	ApplyLayout //Apply a modification after a layout has been run
 	| SelectOR UISelection UISelection //Union
 	| SelectNOT UISelection //Inverse
 
+:: UIAttributeSelection
+	= SelectAll
+	| SelectKeys ![String]
+
 // Basic DSL for creating layouts
 
 // == Changing node types ==
@@ -64,8 +68,7 @@ setUIAttributes      :: UIAttributes -> Layout
 delUIAttributes      :: [String] -> Layout
 modifyUIAttributes   :: String (JSONNode -> UIAttributes) -> Layout
 
-copyUIAttributes    :: [String] UIPath UIPath -> Layout
-copyAllUIAttributes :: UIPath UIPath -> Layout
+copySubUIAttributes  :: UIAttributeSelection UIPath UIPath -> Layout
 
 // == Changing the structure of a UI ==
 

@@ -34,7 +34,7 @@ finalizeInteract = layout
 where
 	layout = foldl1 sequenceLayouts 
 		[layoutSubUIs (SelectByPath [1]) finalizeEditor
-		,copyUIAttributes ["title"] [0] []
+		,copySubUIAttributes (SelectKeys ["title"]) [0] []
 		,removeEmptyPrompt
 		,setUIType UIPanel
 		] 
@@ -74,7 +74,6 @@ finalizeRecord = foldl1 sequenceLayouts
 	,setUIType UIContainer
 	,setUIAttributes (heightAttr WrapSize)
 	]
-
 
 finalizeCons :: Layout
 finalizeCons = foldl1 sequenceLayouts

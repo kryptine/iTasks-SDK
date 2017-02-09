@@ -14,7 +14,7 @@ arrangeWithTabs = layoutSubUIs (SelectAND SelectRoot (SelectByType UIParallel)) 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 arrangeWithSideBar index side size resize = foldl1 sequenceLayouts 
 	[wrapUI UIPanel 			//Push the current container down a level
-	,copyAllUIAttributes [0] [] 	//Keep the attributes from the original UI
+	,copySubUIAttributes SelectAll [0] [] 	//Keep the attributes from the original UI
 	,setUIAttributes (directionAttr direction)
 	,insertSubUI [sidePanelIndex] (ui UIComponent) //Make sure we have a target for the move
 	,moveSubUIs (SelectByPath [mainPanelIndex,index]) [sidePanelIndex,0]
@@ -67,7 +67,7 @@ beforeStep layout = layoutSubUIs (SelectAND SelectRoot (SelectByType UIStep)) la
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
 toWindow windowType vpos hpos = foldl1 sequenceLayouts 
 	[wrapUI UIWindow
-	,copyUIAttributes [TITLE_ATTRIBUTE] [0] []
+	,copySubUIAttributes (SelectKeys [TITLE_ATTRIBUTE]) [0] []
 	,layoutSubUIs (SelectByPath [0]) (delUIAttributes [TITLE_ATTRIBUTE])
 	,setUIAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
 	]

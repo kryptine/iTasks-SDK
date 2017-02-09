@@ -110,15 +110,8 @@ where
 		= (ChangeUI attrChanges childChanges,s)
 	layout (c,s) = (c,s)
 
-
-copyUIAttributes :: [String] UIPath UIPath -> Layout
-copyUIAttributes selection src dst = copyAttributes` (Just selection) src dst
-
-copyAllUIAttributes :: UIPath UIPath -> Layout
-copyAllUIAttributes src dst = copyAttributes` Nothing src dst
-
-copyAttributes` :: (Maybe [String]) UIPath UIPath -> Layout
-copyAttributes` selection src dst = {Layout|layout=layout} //TODO: Also handle attribute updates in the src location, and partial replacements along the path
+copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> Layout
+copySubUIAttributes selection src dst = {Layout|layout=layout} //TODO: Also handle attribute updates in the src location, and partial replacements along the path
 where
 	layout (ReplaceUI ui,s) = case selectAttr src ui of 
 		Just attr = (ReplaceUI (addAttr attr dst ui),s)
@@ -131,12 +124,13 @@ where
 							= Nothing
 
 	addAttr extra [] (UI type attr items)
-		= UI type (foldl (\m (k,v) -> 'DM'.put k v m) attr [(k,v) \\ (k,v) <- 'DM'.toList extra | condition k]) items
+		= UI type (foldl (\m (k,v) -> 'DM'.put k v m) attr [(k,v) \\ (k,v) <- 'DM'.toList extra | condition selection k]) items
 	addAttr extra [s:ss] (UI type attr items) 
 		| s < length items = UI type attr (updateAt s (addAttr extra ss (items !! s)) items) 
 						   = UI type attr items
 
-	condition = maybe (const True) (flip isMember) selection
+	condition (SelectAll) _ = True
+	condition (SelectKeys keys) k = isMember k keys
 
 wrapUI :: UINodeType -> Layout
 wrapUI type = {Layout|layout=layout}
