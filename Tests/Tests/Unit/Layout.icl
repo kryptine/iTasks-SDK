@@ -5,6 +5,7 @@ import Tests.Unit.FrameworkStubs
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks._Framework.IWorld
 import qualified Data.Map as DM
+import Data.List
 import StdMisc
 
 derive JSONEncode NodeMove, NodeLayoutState
@@ -283,9 +284,9 @@ where
 
 testCombination1 = assertEqual "Complex combination layout with insert events" exp sut
 where
-	sutLayout = sequenceLayouts
+	sutLayout = foldl1 sequenceLayouts
         [//First stage 
-		 sequenceLayouts
+		 foldl1 sequenceLayouts
         	[arrangeWithSideBar3
         	,layoutSubs (SelectByPath [1]) arrangeWithSideBar3
         	]
@@ -294,7 +295,7 @@ where
         ]
 	where
 		arrangeWithSideBar3 :: Layout
-		arrangeWithSideBar3 = sequenceLayouts
+		arrangeWithSideBar3 = foldl1 sequenceLayouts
 			[wrapUI UIDebug //Push the current container down a level
 			,insertSubAt [0] (ui UIComponent) //Make sure we have a target for the move
 			,moveSubs (SelectByPath [1,0]) [0,0] //Key difference

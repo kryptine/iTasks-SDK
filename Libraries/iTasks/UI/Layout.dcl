@@ -108,7 +108,7 @@ layoutSubs :: UISelection Layout -> Layout
 /**
 * Apply multiple layouts sequentially. The UI changes that have been transformed by one layout are further transformed by the next layout
 */
-sequenceLayouts   :: [Layout]    -> Layout
+sequenceLayouts :: Layout Layout -> Layout
 
 // Easier debugging
 traceLayout :: String Layout -> Layout
