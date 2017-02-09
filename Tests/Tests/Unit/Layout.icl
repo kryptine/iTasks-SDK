@@ -56,7 +56,7 @@ testMoveSubAt = skip (fail "Moving a node from one place to another")
 
 testRemoveSubsMatchingOnReplace = assertEqual "Removing everything that matches, when replacing a UI" exp sut
 where
-	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
+	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
 		# (c,s) = sutLayout.Layout.layout (ReplaceUI initUI,initState)
@@ -71,7 +71,7 @@ where
 
 testRemoveSubsMatchingOnChildChange = assertEqual "Removing everything that matches, when changing a child" exp sut
 where
-	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
+	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
 		# (_,s) = sutLayout.Layout.layout (initChange,initState)
@@ -90,7 +90,7 @@ where
 
 testRemoveSubsMatchingOnReplaceAfterRemove = assertEqual "Removing everything that matches, then replacing a part" exp sut
 where
-	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
+	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
 		# (c,s) = sutLayout.Layout.layout (initChange,initState)
@@ -108,7 +108,7 @@ where
 
 testRemoveSubsMatchingOnReplaceMultipleAfterRemove = assertEqual "Removing everything that matches, then replacing multiple parts" exp sut
 where
-	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
+	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
 		# (c,s) = sutLayout.Layout.layout (initChange,initState)
@@ -137,7 +137,7 @@ where
 
 testRemoveSubsMatchingOnRemove = assertEqual "Removing everything that matches, then explicitly remove somehting" exp sut
 where
-	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIEmpty))
+	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
 		//Initial, followed by an event in the new structure
 		# (c,s) = sutLayout.Layout.layout (initChange,initState)
@@ -156,7 +156,7 @@ testLayoutSubsMatching = skip (fail "Applying another layout to all matching nod
 
 testMoveSubsMatchingInitial = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
 where
-	sutLayout = (moveSubs (SelectAND SelectChildren (SelectOR (SelectByType UIAction) (SelectByType UIEmpty))) [0,0]) 
+	sutLayout = (moveSubUIs (SelectAND SelectChildren (SelectOR (SelectByType UIAction) (SelectByType UIEmpty))) [0,0]) 
 	sut = sutLayout.Layout.layout (ReplaceUI initUI,initState)
 
 	exp = (ReplaceUI expUI,expState)
@@ -172,7 +172,7 @@ where
 
 testMoveSubsMatchingInitial2 = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
 where
-	sutLayout = (moveSubs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1,0]) 
+	sutLayout = (moveSubUIs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1,0]) 
 	sut = sutLayout.Layout.layout (ReplaceUI initUI,initState)
 
 	exp = (ReplaceUI expUI,expState)
@@ -186,7 +186,7 @@ where
 
 testMoveSubsMatchingNewRoutes = assertEqual "Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
-	sutLayout = (moveSubs (SelectAND SelectChildren (SelectByType UIAction)) [0,0]) 
+	sutLayout = (moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [0,0]) 
 	sut
 		//Initial, followed by an event in the new structure
 		# (_,s) = sutLayout.Layout.layout (initChange,initState)
@@ -208,7 +208,7 @@ where
 
 testMoveSubsMatchingNewRoutes2 = assertEqual "Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
-	sutLayout = (moveSubs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1,0]) 
+	sutLayout = (moveSubUIs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1,0]) 
 	sut
 		//Initial, followed by an event in the new structure
 		# (_,s) = sutLayout.Layout.layout (ReplaceUI initUI,initState)
@@ -288,18 +288,18 @@ where
         [//First stage 
 		 foldl1 sequenceLayouts
         	[arrangeWithSideBar3
-        	,layoutSubs (SelectByPath [1]) arrangeWithSideBar3
+        	,layoutSubUIs (SelectByPath [1]) arrangeWithSideBar3
         	]
 		//Second stage
-        ,removeSubs (SelectAND SelectDescendents (SelectByType UIInteract))
+        ,removeSubUIs (SelectAND SelectDescendents (SelectByType UIInteract))
         ]
 	where
 		arrangeWithSideBar3 :: Layout
 		arrangeWithSideBar3 = foldl1 sequenceLayouts
 			[wrapUI UIDebug //Push the current container down a level
-			,insertSubAt [0] (ui UIComponent) //Make sure we have a target for the move
-			,moveSubs (SelectByPath [1,0]) [0,0] //Key difference
-			,layoutSubs (SelectByPath [0]) unwrapUI //Remove the temporary wrapping panel
+			,insertSubUI [0] (ui UIComponent) //Make sure we have a target for the move
+			,moveSubUIs (SelectByPath [1,0]) [0,0] //Key difference
+			,layoutSubUIs (SelectByPath [0]) unwrapUI //Remove the temporary wrapping panel
 			]
 
 	sut
@@ -338,7 +338,7 @@ where
 		= c2
 	exp = expModifiedChange
 
-	sutLayout = removeSubs (SelectAND SelectDescendents (SelectByType UIInteract))
+	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIInteract))
 
 	initState = toJSON [(0,ChildBranchesMoved [(0,BranchMoved)])
 					   ,(1,ChildBranchesMoved [(0,ChildBranchesMoved [(0,BranchMoved)])])]

@@ -57,14 +57,15 @@ instance tune	ApplyLayout //Apply a modification after a layout has been run
 // Basic DSL for creating layouts
 
 // == Changing node types ==
-setNodeType :: UINodeType -> Layout
+setUIType :: UINodeType -> Layout
 
 // == Changing attributes ==
-setAttributes     :: UIAttributes -> Layout
-delAttributes     :: [String] -> Layout
-copyAttributes    :: [String] UIPath UIPath -> Layout
-copyAllAttributes :: UIPath UIPath -> Layout
-modifyAttribute   :: String (JSONNode -> UIAttributes) -> Layout
+setUIAttributes      :: UIAttributes -> Layout
+delUIAttributes      :: [String] -> Layout
+modifyUIAttributes   :: String (JSONNode -> UIAttributes) -> Layout
+
+copyUIAttributes    :: [String] UIPath UIPath -> Layout
+copyAllUIAttributes :: UIPath UIPath -> Layout
 
 // == Changing the structure of a UI ==
 
@@ -80,25 +81,25 @@ flattenUI :: Layout
 /*
 * Insert a (static) element into a UI
 */
-insertSubAt  :: UIPath UI     -> Layout
+insertSubUI  :: UIPath UI     -> Layout
 /**
 * Remove all elements that match the predicate, but keep the removed elements in the state.
 * Further changes to these elements are processed in the background. When the predicate no longer holds, the elements are inserted back into the UI.
 * When new elements are added dynamically they are also tested against the predicate
 */
-removeSubs   :: UISelection -> Layout 
+removeSubUIs   :: UISelection -> Layout 
 /**
 * Move all elements that match the predicate to a particular location in the tree.
 * Further changes to these elements are rewritten to target the new location.
 * When new elements are added dynamically they are also tested against the predicate
 */
-moveSubs   :: UISelection UIPath -> Layout
+moveSubUIs   :: UISelection UIPath -> Layout
 
 // == Composition of layouts ==
 /**
 * Apply a layout locally to parts of a UI
 */
-layoutSubs :: UISelection Layout -> Layout
+layoutSubUIs :: UISelection Layout -> Layout
 /**
 * Apply multiple layouts sequentially. The UI changes that have been transformed by one layout are further transformed by the next layout
 */
