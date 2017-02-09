@@ -3,6 +3,7 @@ implementation module iTasks.UI.Layout.Common
 import iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks.UI.Definition, iTasks.UI.Prompt
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
+import Data.List
 import qualified Data.Map as DM
 import StdBool
 from StdFunc import id, const, o
@@ -11,7 +12,7 @@ arrangeWithTabs :: Layout
 arrangeWithTabs = layoutSubs (SelectAND SelectRoot (SelectByType UIParallel)) (setNodeType UITabSet)
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
-arrangeWithSideBar index side size resize = sequenceLayouts 
+arrangeWithSideBar index side size resize = foldl1 sequenceLayouts 
 	[wrapUI UIPanel 			//Push the current container down a level
 	,copyAllAttributes [0] [] 	//Keep the attributes from the original UI
 	,setAttributes (directionAttr direction)
@@ -53,7 +54,7 @@ arrangeHorizontal :: Layout
 arrangeHorizontal = setAttributes (directionAttr Horizontal)
 
 frameCompact :: Layout
-frameCompact = sequenceLayouts
+frameCompact = foldl1 sequenceLayouts
 	[setAttributes ('DM'.unions [frameAttr True,sizeAttr WrapSize WrapSize,marginsAttr 50 0 20 0,minWidthAttr (ExactBound 600)])
 	,wrapUI UIContainer
 	,setAttributes (halignAttr AlignCenter)
@@ -64,7 +65,7 @@ beforeStep :: Layout -> Layout
 beforeStep layout = layoutSubs (SelectAND SelectRoot (SelectByType UIStep)) layout
 
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
-toWindow windowType vpos hpos = sequenceLayouts 
+toWindow windowType vpos hpos = foldl1 sequenceLayouts 
 	[wrapUI UIWindow
 	,copyAttributes [TITLE_ATTRIBUTE] [0] []
 	,layoutSubs (SelectByPath [0]) (delAttributes [TITLE_ATTRIBUTE])
@@ -81,7 +82,7 @@ toPanel :: Layout
 toPanel = setNodeType UIPanel
 
 actionToButton :: Layout
-actionToButton = sequenceLayouts
+actionToButton = foldl1 sequenceLayouts
 	[setNodeType UIButton
 	,modifyAttribute "actionId" (\(JSONString a) -> 'DM'.unions [valueAttr (JSONString a),textAttr a,icon a])
 	]

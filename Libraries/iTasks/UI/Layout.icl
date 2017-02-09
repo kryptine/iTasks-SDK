@@ -578,25 +578,27 @@ where
         ([(_,s):_],states) = (Just s,states)
         _                  = (Nothing,states)
 
-sequenceLayouts :: [Layout] -> Layout
-sequenceLayouts layouts = {Layout|layout=layout}
+sequenceLayouts :: Layout Layout -> Layout
+sequenceLayouts layout1 layout2 = {Layout|layout=layout}
 where
 	layout (change=:(ReplaceUI _),_)
-		# (change,states) = applyAll layouts [] change 
-		= (change,JSONArray states)
+		# (change,s1) = layout1.Layout.layout (change,JSONNull)
+		# (change,s2) = layout2.Layout.layout (change,JSONNull)
+		= (change,JSONArray [s1,s2])
 	
-	layout (change,JSONArray states) 
-		# (change,states) = applyAll layouts states change 
-		= (change,JSONArray states)
+	layout (change,JSONArray [s1,s2]) 
+		# (change,s1) = layout1.Layout.layout (change,s1)
+		# (change,s2) = layout2.Layout.layout (change,s2)
+		= (change,JSONArray [s1,s2])
 	layout (change,s) = (change,s)
-
+/*
 	applyAll [] _ change = (change,[])
 	applyAll [l:ls] states change 
 		# [s:ss] = case states of [] = [JSONNull]; _ = states;
 		# (change,s) = l.Layout.layout (change,s) 
 		# (change,ss) = applyAll ls ss change
 		= (change,[s:ss])
-
+*/
 
 //Common patterns
 /*

@@ -4,6 +4,7 @@ implementation module Tests.Interactive.BuiltinContainers
 */
 import iTasks, TestFramework
 import iTasks.UI.Definition, iTasks.UI.Layout, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import Data.List
 import qualified Data.Map as DM
 
 testBuiltinContainers :: TestSuite
@@ -21,7 +22,7 @@ content :: Task String
 content = viewInformation () [] "This is the content of the container"
 
 buttons :: Task (Bool,Bool)
-buttons = enterInformation () [EnterUsing id editor] <<@ ApplyLayout (sequenceLayouts [removeSubs (SelectByPath [0]),unwrapUI,setAttributes (textAttr "Sub menu")])
+buttons = enterInformation () [EnterUsing id editor] <<@ ApplyLayout (foldl1 sequenceLayouts [removeSubs (SelectByPath [0]),unwrapUI,setAttributes (textAttr "Sub menu")])
 where
 	editor = composeEditors UIMenu (button ('DM'.unions[textAttr "Button a",iconClsAttr "icon-ok"])) (button (textAttr "Button b")) 
 

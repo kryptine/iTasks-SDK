@@ -7,6 +7,7 @@ import iTasks._Framework.Serialization
 import iTasks._Framework.Store
 from StdFunc import seq
 import qualified Data.Map as DM
+import Data.List
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Layout.Default, iTasks.UI.Layout.Common
 // SPECIALIZATIONS
 derive class iTask Workflow
@@ -100,7 +101,7 @@ where
 	browseAnonymous workflows
 		= manageWorklist workflows
 		
-	layout = sequenceLayouts
+	layout = foldl1 sequenceLayouts
 		[layoutSubs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")]))
 		,frameCompact
 		]
@@ -136,10 +137,10 @@ where
 	isValue (Value _ _) = True
 	isValue _			= False
 
-	layout = sequenceLayouts
+	layout = foldl1 sequenceLayouts
 		[ arrangeWithSideBar 0 LeftSide 260 True
 		, layoutSubs (SelectByPath [0]) layoutStartWork
-		, layoutSubs (SelectByPath [1]) (sequenceLayouts
+		, layoutSubs (SelectByPath [1]) (foldl1 sequenceLayouts
 			[layoutSubs (SelectByPath [0]) (wrapUI UIContainer) //Put manageSession and manageWork together in a container
 			,layoutSubs (SelectByPath [0,0]) layoutManageSession
 			,moveSubs (SelectByPath [1]) [0,1]
@@ -150,7 +151,7 @@ where
 		]
 
 	layoutStartWork = arrangeWithSideBar 1 BottomSide  200 True
-	layoutManageSession = sequenceLayouts 
+	layoutManageSession = foldl1 sequenceLayouts 
 		[unwrapUI
 		,layoutSubs SelectChildren actionToButton
 		,layoutSubs (SelectByPath [0]) (setNodeType UIContainer)
