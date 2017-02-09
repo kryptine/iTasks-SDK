@@ -12,7 +12,6 @@ from StdFunc import o, const, id, flip
 from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
 import StdDebug
 
-
 //This type records where parts were removed from a ui tree
 :: NodeMoves :== [(Int,NodeMove)] 
 :: NodeMove = BranchMoved                  //This branch was moved to another location (or removed)
@@ -195,22 +194,6 @@ removeSubAt src = removeSubs (SelectByPath src)
 layoutSubAt :: UIPath Layout -> Layout
 layoutSubAt target layout = layoutSubs (SelectByPath target) layout
 
-/*
-layoutSubsOfType :: UIPath [UINodeType] Layout -> Layout
-layoutSubsOfType src [t:ts] layout = layoutSubs (inUISelection (SelectAND SelectDescendents selectTypes)) layout
-where
-	selectTypes	= foldl SelectOR (SelectByType t) (map SelectByType ts)
-*/
-
-removeSubs :: UISelection -> Layout 
-removeSubs selection = {Layout|layout=layout}
-where
-	pred = inUISelection selection
-	layout (change,s)
-		# moves = if (change=:(ReplaceUI _)) [] (fromMaybe [] (fromJSON s)) //On a replace, we reset the state
-		# (change,moves,_) = removeAndAdjust_ [] pred False 0 change moves
-		= (change, toJSON moves)
-
 moveSubs :: UISelection UIPath -> Layout
 moveSubs selection dst = {Layout|layout=layout} 
 where
@@ -224,8 +207,8 @@ where
 	 	# change = insertAndAdjust_ (init dst) startIdx (countMoves_ moves True) inserts change
 	    = (change, toJSON moves)
 
-hideSubs :: UISelection -> Layout 
-hideSubs selection = {Layout|layout=layout}
+removeSubs :: UISelection -> Layout 
+removeSubs selection = {Layout|layout=layout}
 where
 	pred = inUISelection selection
 	layout (change,s)
@@ -591,22 +574,6 @@ where
 		# (change,s2) = layout2.Layout.layout (change,s2)
 		= (change,JSONArray [s1,s2])
 	layout (change,s) = (change,s)
-/*
-	applyAll [] _ change = (change,[])
-	applyAll [l:ls] states change 
-		# [s:ss] = case states of [] = [JSONNull]; _ = states;
-		# (change,s) = l.Layout.layout (change,s) 
-		# (change,ss) = applyAll ls ss change
-		= (change,[s:ss])
-*/
-
-//Common patterns
-/*
-layoutChildrenOf :: UIPath Layout -> Layout
-layoutChildrenOf container layout = layoutSubs pred layout
-where
-	pred path ui = isSubPathOf_ path container && length path == length container + 1
-*/
 
 traceLayout :: String Layout -> Layout
 traceLayout name layout = {Layout|layout=layout`}
@@ -621,8 +588,8 @@ where
 			,toString (toJSON change`)]
 		= trace_n msg (change`,state`)
 
-//Experiment to create an alternative, more declarative way of specifying layouts
 
+//Experiment to create an alternative, more declarative way of specifying layouts
 /*
 
 Function UI -> UI s.t. h o g o f
