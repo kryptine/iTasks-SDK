@@ -95,6 +95,7 @@ finalizeVarCons = foldl1 sequenceLayouts
 finalizeStep :: Layout
 finalizeStep = foldl1 sequenceLayouts
 	//STRAIGHTFORWARD TEMPORARY VERSION
+
 	[layoutSubs (SelectAND SelectRoot (SelectAND (SelectByType UIStep) (SelectByHasChildrenOfType UIAction)))
 					 (foldl1 sequenceLayouts [layoutSubs (SelectByPath [0]) finalizeUI, actionsToButtonBar,setNodeType UIPanel])
 	,layoutSubs (SelectAND SelectRoot (SelectByType UIStep))
@@ -104,13 +105,13 @@ finalizeStep = foldl1 sequenceLayouts
 	//VERSION THAT SHOULD EVENTUALLY WORK... (NEEDS REDESIGN OF LAYOUT STATE FIRST)
 	//In case of nested steps, memove disabled actions
 	[layoutSubs (SelectAND SelectRoot (SelectByHasChildrenOfType UIStep))
-		(hideSubs (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" (JSONBool True)))))
+		(removeSubs (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" (JSONBool True)))))
 	//If there are no actions, unwrap
 	,layoutSubs (SelectAND SelectRoot (SelectNOT (SelectByHasChildrenOfType UIStep)))
-		(sequenceLayouts [unwrapUI,finalizeUI])
+		(foldl1 sequenceLayouts [unwrapUI,finalizeUI])
 	//Else, create a buttonbar
 	,layoutSubs (SelectAND SelectRoot (SelectByType UIStep)) // (only if the previous layout has not yet eliminated the UIStep)
-	 	(sequenceLayouts [layoutSubs (SelectByPath [0]) finalizeUI, actionsToButtonBar,setNodeType UIPanel])
+	 	(foldl1 sequenceLayouts [layoutSubs (SelectByPath [0]) finalizeUI, actionsToButtonBar,setNodeType UIPanel])
 	]
 */
 finalizeParallel :: Layout

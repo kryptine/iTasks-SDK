@@ -74,25 +74,19 @@ wrapUI :: UINodeType -> Layout
 //* Replace the UI by its first child. 
 unwrapUI :: Layout
 
+//* Flatten the tree of children in pre-order
+flattenUI :: Layout
+
 /*
 * Insert a (static) element into a UI
 */
 insertSubAt  :: UIPath UI     -> Layout
-
-//* Flatten the tree of children in pre-order
-flattenUI :: Layout
-
 /**
 * Remove all elements that match the predicate, but keep the removed elements in the state.
 * Further changes to these elements are processed in the background. When the predicate no longer holds, the elements are inserted back into the UI.
 * When new elements are added dynamically they are also tested against the predicate
 */
-hideSubs   :: UISelection -> Layout 
-/**
-* Remove all elements that match the predicate. Further changes to these elements are discarded.
-* When new elements are added dynamically they are also tested against the predicate
-*/
-removeSubs :: UISelection -> Layout 
+removeSubs   :: UISelection -> Layout 
 /**
 * Move all elements that match the predicate to a particular location in the tree.
 * Further changes to these elements are rewritten to target the new location.
@@ -110,13 +104,9 @@ layoutSubs :: UISelection Layout -> Layout
 */
 sequenceLayouts :: Layout Layout -> Layout
 
+
 // Easier debugging
 traceLayout :: String Layout -> Layout
-
-//-- Experiments with a more declarative type of layout specification
-
-//* Reorder a static part of a UI
-reorderUI :: (UI -> UI) -> Layout 
 
 //TYPES EXPORTED FOR TESTING
 :: NodeMoves :== [(Int,NodeMove)] 
