@@ -40,6 +40,7 @@ testLayout = testsuite "Layout" "Tests for the layout functions"
 	//Complex combination
 	,testCombination1
 	,testCombination2
+	,testDynamicBehaviour1
 	]
 
 //Tests for the core operations of the layout library
@@ -346,3 +347,26 @@ where
 	//Change after first transform 
 	changeToModify = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar [ui UIInteract]))]))]))]
 	expModifiedChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar []))]))]))]
+
+
+testDynamicBehaviour1 = assertEqual "Dynamic (late) activation of layouts" exp sut
+where
+	sutLayout = layoutSubUIs (SelectByHasAttribute "x") markFirstChild
+	where
+		markFirstChild = layoutSubUIs (SelectByPath [0]) (setUIAttributes ('DM'.fromList [("y",JSONBool True)]))
+	
+	sut
+		# (c1,s1) = sutLayout.Layout.layout (change1,JSONNull)
+		# (c2,s2) = sutLayout.Layout.layout (change2,JSONNull)
+		= c2
+
+	initState = JSONNull
+
+	//Begin with a UI without attribute "x" at the root
+	change1 = ReplaceUI (uic UIContainer [ui UIContainer])
+	//Now set the attribute, this means the layout should now match the root node
+	change2 = ChangeUI [SetAttribute "x" (JSONBool True)] []
+
+	exp = ChangeUI [SetAttribute "x" (JSONBool True)] [(0,ChangeChild (ChangeUI [SetAttribute "y" (JSONBool True)] []))]
+
+
