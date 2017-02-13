@@ -262,7 +262,7 @@ where
             # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
                         ,("Sec-WebSocket-Accept",secWebSocketAccept)]
 			# state = {WebSockState|cur_frame = "",message_text = True, message_data = []}
-            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = headers, rsp_data = ""}
+            = ({newHTTPResponse 101 "Switching Protocols" & rsp_version = "HTTP/1.1", rsp_headers = headers, rsp_data = ""}
 			  , Just (state,[]),Nothing,iworld)
         | otherwise
 			= (errorResponse "Requested service format not available for this task", Nothing, Nothing, iworld)
