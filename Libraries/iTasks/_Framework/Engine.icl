@@ -190,8 +190,7 @@ engine :: publish -> [(!String -> Bool
 					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionState *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 					  )] | Publishable publish
 
-engine publishable = [taskUIService published /*[(url,task) \\ {PublishedTask|url,task=TaskWrapper task} <- published]*/
-				  	 ,documentService, sdsService,staticResourceService [url \\ {PublishedTask|url} <- published]]
+engine publishable = [taskUIService published, documentService, sdsService, staticResourceService [url \\ {PublishedTask|url} <- published]]
 where
 	published = publishAll publishable 
 
@@ -242,20 +241,3 @@ determineAppPath world
 		cmpFileTime (_,Ok {FileInfo | lastModifiedTime = x})
 					(_,Ok {FileInfo | lastModifiedTime = y}) = mkTime x > mkTime y
 	
-determineSDKPath :: ![FilePath] !*World -> (!Maybe FilePath, !*World)
-determineSDKPath paths world
-	//Try environment var first
-	# (mbCleanHome,world) = getEnvironmentVariable CLEAN_HOME_VAR world
-	= case mbCleanHome of
-		Nothing			= searchPaths paths world
-		Just cleanHome	= searchPaths [cleanHome, cleanHome </> "lib", cleanHome </> "Libraries"] world
-where	
-	searchPaths [] world = (Nothing, world)
-	searchPaths [p:ps] world
-		# (mbInfo,world) = getFileInfo path world
-		= case mbInfo of
-			Ok info	| info.directory	= (Just path,world)
-			_							= searchPaths ps world
-	where
-		path = (p </> "iTasks-SDK")
-
