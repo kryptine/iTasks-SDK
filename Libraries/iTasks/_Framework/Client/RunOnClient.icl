@@ -127,7 +127,7 @@ createClientIWorld serverURL currentInstance
 		    ,buildID    = "build"
 		    ,paths      = {appDirectory  = locundef "appDirectory"
                           ,dataDirectory = locundef "dataDirectory"
-                          ,publicWebDirectories = locundef "publicWebDirectories"
+                          ,webDirectory  = locundef "webDirectory"
 						  ,saplDirectory = locundef "saplDirectory"}
             }
 		  ,config				= {sessionTime = 3600, smtpServer = locundef "smtpServer"}

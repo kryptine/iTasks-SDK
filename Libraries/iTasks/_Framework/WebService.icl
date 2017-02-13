@@ -413,26 +413,22 @@ where
 	lostFun _ _ s env = (Nothing,env)
 
 	handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
-	handleStaticResourceRequest req iworld=:{IWorld|server={paths={publicWebDirectories}}}
-    	= serveStaticResource req publicWebDirectories iworld
+	handleStaticResourceRequest req iworld=:{IWorld|server={paths={webDirectory}},world}
+		# filename		   = if (isMember req.HTTPRequest.req_path taskPaths) //Check if one of the published tasks is requested, then serve bootstrap page
+									(webDirectory +++ filePath "/index.html")
+									(webDirectory +++ filePath req.HTTPRequest.req_path)
+		
+		# type			   = mimeType filename
+       	# (mbInfo,world) = getFileInfo filename world
+		| case mbInfo of (Ok info) = info.directory ; _ = True
+	   		= (notFoundResponse req,{IWorld|iworld & world = world})
+		# (mbContent, world)	= readFile filename world
+		= case mbContent of
+			(Ok content) = ({ okResponse
+						  	& rsp_headers = [("Content-Type", type),("Content-Length", toString (size content))]
+							, rsp_data = content}, {IWorld|iworld & world = world})
+			(Error e)    = (errorResponse (toString e +++ " ("+++ filename +++")"), {IWorld|iworld & world = world})
 	where
-    	serveStaticResource req [] iworld
-	    	= (notFoundResponse req,iworld)
-    	serveStaticResource req [d:ds] iworld=:{IWorld|world}
-			# filename		   = if (isMember req.HTTPRequest.req_path taskPaths) //Check if one of the published tasks is requested, then serve bootstrap page
-									(d +++ filePath "/index.html")
-									(d +++ filePath req.HTTPRequest.req_path)
-			# type			   = mimeType filename
-            # (mbInfo,world) = getFileInfo filename world
-			| case mbInfo of (Ok info) = info.directory ; _ = True
-               = serveStaticResource req ds {IWorld|iworld & world = world}
-			# (mbContent, world)	= readFile filename world
-			= case mbContent of
-				(Ok content) = ({ okResponse
-	    						& rsp_headers = [("Content-Type", type),("Content-Length", toString (size content))]
-                                , rsp_data = content}, {IWorld|iworld & world = world})
-                (Error e)    = (errorResponse (toString e +++ " ("+++ filename +++")"), {IWorld|iworld & world = world})
-
 		//Translate a URL path to a filesystem path
 		filePath path	= ((replaceSubString "/" {pathSeparator}) o (replaceSubString ".." "")) path
 		mimeType path	= extensionToMimeType (takeExtension path)

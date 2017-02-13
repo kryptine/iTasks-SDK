@@ -45,7 +45,7 @@ where
 		# (argv,world) = getCommandLine world
 		# (appPath,world) = toCanonicalPath (hd argv) world
 		# (appDir,world) = toCanonicalPath (takeDirectory (hd argv)) world
-		# iworld=:{server} = createIWorld "TEST" appPath Nothing Nothing Nothing Nothing world
+		# iworld=:{server} = createIWorld "TEST" appPath Nothing Nothing Nothing world
 		//Check some properties
 		# res = server.paths.dataDirectory == appDir </> "TEST-data"//Is the data directory path correctly initialized
 		# world = destroyIWorld {iworld & server = server}
@@ -57,7 +57,7 @@ where
 		# (argv,world) = getCommandLine world
 		# (appPath,world) = toCanonicalPath (hd argv) world
 		# (appDir,world) = toCanonicalPath (takeDirectory (hd argv)) world
-		# iworld = createIWorld "TEST" appPath Nothing Nothing Nothing Nothing world
+		# iworld = createIWorld "TEST" appPath Nothing Nothing Nothing world
 		//Create a task instance
 		# (res,iworld) = createTaskInstance minimalEditor iworld
 		# world = destroyIWorld iworld
