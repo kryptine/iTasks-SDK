@@ -6,7 +6,7 @@ testGenericEditors :: TestSuite
 testGenericEditors = testsuite "Generic editors" "These tests check if generic editors for standard types work"
 	[testString,testChar,testInt,testReal,testBool
 	,testADTSingleConsOne,testADTSingleConsMulti,testADTMultiCons
-	,testSingleRecord,testNestedRecord,testOptionalRecord,testIntList
+	,testSingleRecord,testNestedRecord,testOptionalRecord,testRecordWithADT,testIntList
 	,testCustomList
 	]
 
@@ -97,6 +97,18 @@ where
 	tut :: Task (Maybe TwoFieldRecord)
 	tut = testCommonInteractions "Optional record"
 
+:: RecordWithADT =
+	{ first  :: String
+	, second :: ADTMultiCons
+	}
+
+derive class iTask RecordWithADT
+
+testRecordWithADT = itest "Record with ADT" "Check the behavior of the editors"
+	"You should see an editor for a record with two fields, an Int and an ADT field.\n" tut
+where
+	tut :: Task RecordWithADT
+	tut = testCommonInteractions "Record with ADT"
 
 testIntList = itest "Standard Int list" "Check the behavior of the editors"
 	"You should see an editor for a list of integers" tut

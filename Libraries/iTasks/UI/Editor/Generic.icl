@@ -111,7 +111,7 @@ where
 		# (change,val,vst) = ex.Editor.onRefresh dp new old mask vst
 		= (change,FIELD val,vst)
 
-gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ _ _ = withEditMode {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (OBJECT x) vst=:{VSt|taskId,mode,optional,selectedConsIndex}
 		= case mode of
