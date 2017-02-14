@@ -124,6 +124,9 @@ where
 		# (domEl,world)       = .? (me .# "domEl") world
 	    # (mapobj, world)     = jsNewObject "google.maps.Map" [toJSArg domEl,toJSArg options] world
 		# world               = (me .# "map" .= mapobj) world
+		//Attach onAttributeChange
+		# (cb,world) = jsWrapFun (\a w -> (jsNull,onAttributeChange me a w)) world
+		# world      = ((me .# "onAttributeChange") .= cb) world		
 		//Attach event handlers
 		# (jsOnShow,world)    = jsWrapFun (onShow me) world
 		# world               = (me .# "onShow" .= jsOnShow) world
@@ -153,12 +156,15 @@ where
         # (_, world)         = (map .# "setCenter" .$ center) world
 		= (jsNull,world)
 
+	onAttributeChange me [name,value] world
+		= jsTrace name world
+
 	getPespective map world
 		# (zoom, world) = callObjectMethod "getZoom" [] map world
 		# (latLng, world) = callObjectMethod "getCenter" [] map world
 		# (typeId, world) = callObjectMethod "getMapTypeId" [] map world		
 		# ((lat, lng), world) = getPos latLng world
-		= ({type = fromString (jsValToString typeId), center = {lat = lat, lng = lng}, zoom = jsValToInt zoom}, world)
+		= ({type = fromString (toUpperCase (jsValToString typeId)), center = {lat = lat, lng = lng}, zoom = jsValToInt zoom}, world)
 		
 	onPerspectiveChanged me args world
 		# (map,world) = .? (me .# "map") world
@@ -449,17 +455,17 @@ where
 //--------------------------------------------------------------------------------------------------
 instance toString GoogleMapType
 where
-	toString ROADMAP    = "roadmap"
-	toString SATELLITE  = "satellite"
-	toString HYBRID     = "hybrid"
-	toString TERRAIN    = "terrain"
+	toString ROADMAP    = "ROADMAP"
+	toString SATELLITE  = "SATELLITE"
+	toString HYBRID     = "HYBRID"
+	toString TERRAIN    = "TERRAIN"
 
 instance fromString GoogleMapType
 where 
-	fromString "roadmap"    = ROADMAP
-	fromString "satellite"  = SATELLITE
-	fromString "hybrid"     = HYBRID
-	fromString "terrain"    = TERRAIN			
+	fromString "ROADMAP"    = ROADMAP
+	fromString "SATELLITE"  = SATELLITE
+	fromString "HYBRID"     = HYBRID
+	fromString "TERRAIN"    = TERRAIN			
 
 gText{|GoogleMapPosition|} _ (Just {GoogleMapPosition|lat,lng}) = [toString lat + " " + toString lng]
 gText{|GoogleMapPosition|} _ _ = [""]
