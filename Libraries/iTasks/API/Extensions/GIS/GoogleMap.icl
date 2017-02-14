@@ -175,7 +175,7 @@ where
 		
 		# diff = SetPerspective perspective
 		
-		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,diff)) world
+		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,[diff])) world
 		= (jsNull, world)
 	
 	onMapClick me args world
