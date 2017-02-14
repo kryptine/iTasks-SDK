@@ -127,11 +127,11 @@ where
 		//Attach event handlers
 		# (jsOnShow,world)    = jsWrapFun (onShow me) world
 		# world               = (me .# "onShow" .= jsOnShow) world
-		# (jsOnDragEnd,world) = jsWrapFun (onDragEnd me) world
+		# (jsOnDragEnd,world) = jsWrapFun (onPerspectiveChanged me) world
 		# (_, world)          = (jsWindow .# "google.maps.event.addListener" .$ (mapobj, "dragend", jsOnDragEnd)) world
-		# (jsOnMapTypeChanged,world) = jsWrapFun (onMapTypeChanged me) world
+		# (jsOnMapTypeChanged,world) = jsWrapFun (onPerspectiveChanged me) world
 		# (_, world)          = (jsWindow .# "google.maps.event.addListener" .$ (mapobj, "maptypeid_changed", jsOnMapTypeChanged)) world
-		# (jsOnZoomChanged,world) = jsWrapFun (onZoomChanged me) world
+		# (jsOnZoomChanged,world) = jsWrapFun (onPerspectiveChanged me) world
 		# (_, world)          = (jsWindow .# "google.maps.event.addListener" .$ (mapobj, "zoom_changed", jsOnZoomChanged)) world
 		# (jsOnMapClick,world) = jsWrapFun (onMapClick me) world
 		# (_, world)          = (jsWindow .# "google.maps.event.addListener" .$ (mapobj, "click", jsOnMapClick)) world
@@ -153,15 +153,25 @@ where
         # (_, world)         = (map .# "setCenter" .$ center) world
 		= (jsNull,world)
 
-	onDragEnd me args world
-		= (jsNull,jsTrace "onDragEnd" world)
-
-	onMapTypeChanged me args world
-		= (jsNull,jsTrace "onMapTypeChange" world)
-
-	onZoomChanged me args world
-		= (jsNull,jsTrace "onZoomChange" world)
-
+	getPespective map world
+		# (zoom, world) = callObjectMethod "getZoom" [] map world
+		# (latLng, world) = callObjectMethod "getCenter" [] map world
+		# (typeId, world) = callObjectMethod "getMapTypeId" [] map world		
+		# ((lat, lng), world) = getPos latLng world
+		= ({type = fromString (jsValToString typeId), center = {lat = lat, lng = lng}, zoom = jsValToInt zoom}, world)
+		
+	onPerspectiveChanged me args world
+		# (map,world) = .? (me .# "map") world
+		# (perspective, world) = getPespective map world
+		
+		# (taskId,world)  = .? (me .# "taskId") world
+		# (editorId,world)  = .? (me .# "editorId") world
+		
+		# diff = SetPerspective perspective
+		
+		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,diff)) world
+		= (jsNull, world)
+	
 	onMapClick me args world
 		# (latlng, world)       = .? (toJSVal (args !! 0) .# "latLng") world
 		# ((lat, lng), world)   = getPos latlng world
@@ -439,17 +449,17 @@ where
 //--------------------------------------------------------------------------------------------------
 instance toString GoogleMapType
 where
-	toString ROADMAP    = "ROADMAP"
-	toString SATELLITE  = "SATELLITE"
-	toString HYBRID     = "HYBRID"
-	toString TERRAIN    = "TERRAIN"
+	toString ROADMAP    = "roadmap"
+	toString SATELLITE  = "satellite"
+	toString HYBRID     = "hybrid"
+	toString TERRAIN    = "terrain"
 
 instance fromString GoogleMapType
 where 
-	fromString "ROADMAP"    = ROADMAP
-	fromString "SATELLITE"  = SATELLITE
-	fromString "HYBRID"     = HYBRID
-	fromString "TERRAIN"    = TERRAIN			
+	fromString "roadmap"    = ROADMAP
+	fromString "satellite"  = SATELLITE
+	fromString "hybrid"     = HYBRID
+	fromString "terrain"    = TERRAIN			
 
 gText{|GoogleMapPosition|} _ (Just {GoogleMapPosition|lat,lng}) = [toString lat + " " + toString lng]
 gText{|GoogleMapPosition|} _ _ = [""]
