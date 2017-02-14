@@ -539,13 +539,13 @@ tParSumL :: !(InhMkImg i) !ExprId !String !String !TExpr !TExpr !*TagSource
          -> *(!SynMkImg, !*TagSource) | BlueprintLike i
 tParSumL inh eid mn tn l r [(contextTag, uContextTag) : tsrc]
   #! (syn_branches, tsrc) = tBranches {inh & inh_in_parallel = True} tExpr2Image True False [(Nothing, l, True, False), (Nothing, r, False, False)] contextTag tsrc
-  = renderParallelContainer inh eid mn tn "Parallel (-||): left bias" syn_branches uContextTag tsrc
+  = renderParallelContainer inh eid mn tn "Parallel: left bias" syn_branches uContextTag tsrc
 
 tParSumR :: !(InhMkImg i) !ExprId !String !String !TExpr !TExpr !*TagSource
          -> *(!SynMkImg, !*TagSource) | BlueprintLike i
 tParSumR inh eid mn tn l r [(contextTag, uContextTag) : tsrc]
   #! (syn_branches, tsrc) = tBranches {inh & inh_in_parallel = True} tExpr2Image True False [(Nothing, l, False, False), (Nothing, r, True, False)] contextTag tsrc
-  = renderParallelContainer inh eid mn tn "Parallel (||-): right bias" syn_branches uContextTag tsrc
+  = renderParallelContainer inh eid mn tn "Parallel: right bias" syn_branches uContextTag tsrc
 
 tParSumN :: !(InhMkImg i) !ExprId !String !String !String ![TExpr]
             !*TagSource
@@ -726,13 +726,13 @@ tMApp inh eid mtn mn=:"iTasks.API.Core.TaskCombinators" tn=:"parallel" [x : _] a
           in strictTRMap f xs
   = tParProdN inh eid mn tn "Parallel tasks" xs tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-&&-" [lhsExpr : rhsExpr : _] _ _ tsrc
-  = tParProdN inh eid mn tn "Parallel (-&&-): both tasks" [lhsExpr, rhsExpr] tsrc
+  = tParProdN inh eid mn tn "Parallel: both tasks" [lhsExpr, rhsExpr] tsrc
 tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"allTasks" [x] assoc _ tsrc
-  = tParProdN inh eid mn tn "Parallel allTasks" (if (tExprIsList x) (tUnsafeExpr2List x) [x]) tsrc
+  = tParProdN inh eid mn tn "Parallel: all tasks" (if (tExprIsList x) (tUnsafeExpr2List x) [x]) tsrc
 tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"anyTask" [x] assoc _ tsrc
-  = tParSumN inh eid mn tn "Parallel anyTask" (if (tExprIsList x) (tUnsafeExpr2List x) [x]) tsrc
+  = tParSumN inh eid mn tn "Parallel: any task" (if (tExprIsList x) (tUnsafeExpr2List x) [x]) tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||-" [lhsExpr : rhsExpr : _] _ _ tsrc
-  = tParSumN inh eid mn tn "Parallel (-||-): any task" [lhsExpr, rhsExpr] tsrc
+  = tParSumN inh eid mn tn "Parallel: any task" [lhsExpr, rhsExpr] tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"||-" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tParSumR inh eid mn tn lhsExpr rhsExpr tsrc
 tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||" [lhsExpr : rhsExpr : _] _ _ tsrc
