@@ -64,7 +64,7 @@ Start world
 		= (if useJSON runUnitTestsJSON runUnitTestsCLI) suites world
 	| otherwise
 		= startEngine [publish "/" (\_ -> runTests suites <<@ ApplyLayout (setUIAttributes (titleAttr "iTasks Testbench")))
-					  ,publish "/alternative" (const (viewInformation () [] "Alternative URL"))] world
+					  :layoutTestTasks] world
 where
 	unitOpt = Option [] ["unit"] (NoArg UnitTestOnly) "Only run unit tests and show output on console"
 	jsonOpt = Option [] ["json"] (NoArg UseJSON) "Output testresults as JSON"
