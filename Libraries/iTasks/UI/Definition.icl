@@ -239,8 +239,8 @@ instance encodeUI UI
 where
 	encodeUI (UI type attr items) = JSONObject (typeField ++ attrFields ++ childrenField)
 	where
-		typeField     = [("xtype",JSONString (toString type))]
-		attrFields    = 'DM'.toList attr
+		typeField     = [("type",JSONString (toString type))]
+		attrFields    = [("attributes",JSONObject ('DM'.toList attr))]
 		childrenField = case items of
 			[]    = []
 			_     = [("children",JSONArray (map encodeUI items))]
