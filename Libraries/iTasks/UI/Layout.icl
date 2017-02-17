@@ -271,7 +271,7 @@ where
 		//Sort for easier debugging
 		# moves = sortBy (\(i1,m1) (i2,m2) -> i1 < i2) moves
 		= (moves,[],[])
-	//- Insert 
+	// - Insert 
 	adjustChildChanges tidx moves [(idx,InsertChild ui):cs] 
 		//Determine additional moves in the replacement ui
 		# (_,mbUI,subMoves,subInserts) = collectNodes_ (path ++ [idx]) pred hide (adjustTargetIndex moves idx tidx) ui	
@@ -286,7 +286,7 @@ where
 		//Recurse
 		# (moves,cs,inserts) = adjustChildChanges tidx moves cs
 		= (moves, change ++ cs, subInserts ++ inserts)
-	//- Remove
+	// - Remove
 	adjustChildChanges tidx moves [(idx,RemoveChild):cs] 
 		//Check if the branch was moved by the layout 
 		# (change,moves,subInserts) = case findMove idx moves of
@@ -309,7 +309,7 @@ where
 					  ,repeatn (countMoves_ subMoves True) (adjustTargetIndex moves idx tidx, RemoveChild))
 		# (moves, cs, inserts) = adjustChildChanges tidx moves cs
 		= (moves, change ++ cs, subInserts ++ inserts)
-	//- Move
+	// - Move
 	adjustChildChanges tidx moves [(idx,MoveChild dst):cs] 
 		| countMoves_ moves False > 0 = abort "Cannot adjust move instructions at a level where previous layout rules have matched" 
 		//Apply the rearrangement to the move information 
@@ -322,7 +322,7 @@ where
 		# subInserts = []
 		# (moves, cs, inserts) = adjustChildChanges tidx moves cs
 		= (moves, change ++ cs, subInserts ++ inserts)
-	//- Replace
+	// - Replace
 	adjustChildChanges tidx moves [(idx,ChangeChild change=:(ReplaceUI ui)):cs] 
 		# (change,moves,subInserts) = case findMove idx moves of
 			//Previously the child did not match
@@ -396,7 +396,7 @@ where
 					      ,inserts ++ subInserts)
 		# (moves,cs,inserts) = adjustChildChanges tidx moves cs
 		= (moves, change ++ cs, subInserts ++ inserts)
-	//- Other recursive changes
+	// - Other recursive changes
 	adjustChildChanges tidx moves [(idx,ChangeChild change):cs] 
 		# (change,moves,subInserts) = case findMove idx moves of
 			//Nothing moved yet, but the predicate might match on inserts or replace instructions in descendant nodes
