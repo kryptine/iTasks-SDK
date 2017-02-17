@@ -4,7 +4,6 @@ import StdTuple, StdList, StdBool, StdInt, StdOrdList, StdArray, StdMisc
 import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
-import Graphics.Layout
 import StdEnum
 from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys, unions, singleton
 
@@ -647,12 +646,8 @@ uiOf :: TaskUITree -> TaskUILayout a
 uiOf (Ed  path  ) = UINode path
 uiOf (Par path _) = UINode path
 
-instance Layout TaskUILayout Int Int TaskHost where
-  collage        _ _ _ = UINode []
-  overlay      _ _ _ _ = UINode []
-  beside    _ _ _ ts _ = UIBeside ts
-  above     _ _ _ ts _ = UIAbove ts
-  grid _ _ _ _ _ _ _ _ = UINode []
+besideT ts = UIBeside ts
+aboveT ts = UIAbove ts
 
 uiToRefs :: UI -> TaskUITree
 uiToRefs ui
