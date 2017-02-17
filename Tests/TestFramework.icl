@@ -19,6 +19,7 @@ import iTasks.UI.Definition
 import qualified iTasks._Framework.SDS as SDS
 from Data.Queue import :: Queue(..)
 import System.OS
+import StressTestFramework
 
 // TEST FRAMEWORK
 derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult
@@ -86,7 +87,7 @@ where
 
 testsuite :: String String [Test] -> TestSuite
 testsuite name description tests
-  = {name=name,description=description,tests=tests}
+  = {TestSuite|name=name,description=description,tests=tests}
 
 filterSuitesByTestName ::String [TestSuite] -> [TestSuite]
 filterSuitesByTestName pattern suites = [{TestSuite|s & tests =filterTestsByName pattern tests} \\ s=:{TestSuite|tests} <- suites]
@@ -190,7 +191,7 @@ where
 		| x == 0 && x <> 0 = undef
 		= iworld
 	where
-       sleep` :: !Int -> !Int
+       sleep` :: !Int -> Int
        sleep` secs = code {
           ccall sleep "I:I"
        }
@@ -204,11 +205,12 @@ noneFailed suiteResults = all (checkSuiteResult (\r -> r =: Passed || r =: Skipp
 checkSuiteResult :: (TestResult -> Bool) SuiteResult -> Bool
 checkSuiteResult f {SuiteResult|testResults} = all (\(_,r) -> f r) testResults
 
-runTests :: [TestSuite] -> Task ()
-runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
-    ( allTasks [runInteractiveTests <<@ Title "Interactive Tests"
-			   ,runUnitTests        <<@ Title "Unit Tests"
-			   ,viewQualityMetrics  <<@ Title "Metrics"
+runTests :: [TestSuite] [StressTestSuite] -> Task ()
+runTests suites stressSuites = application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
+    ( allTasks [runInteractiveTests         <<@ Title "Interactive Tests"
+			   ,runUnitTests                <<@ Title "Unit Tests"
+			   ,viewQualityMetrics          <<@ Title "Metrics"
+               ,runStressTests stressSuites <<@ Title "Stress Tests"
 			   ] <<@ ArrangeWithTabs
     ) @! ()
 where

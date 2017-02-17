@@ -77,6 +77,7 @@ instance Publishable (HTTPRequest -> Task a) | iTask a
 instance Publishable [PublishedTask]
 
 determineAppName :: !*World -> (!String,!*World)
+determineAppPath :: !*World -> (!FilePath, !*World)
 
 //HACK FOR RUNNING BACKGROUND TASKS ON A CLIENT
 background :: !*IWorld -> *IWorld

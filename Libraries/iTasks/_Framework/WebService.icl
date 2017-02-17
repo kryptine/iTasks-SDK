@@ -237,6 +237,94 @@ where
 :: ChangeQueues :== Map InstanceNo (Queue UIChange)
 
 
+taskUIServiceHttp :: ![PublishedTask] ->
+                 (!(String -> Bool)
+                 ,!Bool
+                 ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues ConnectionState *IWorld -> (!Maybe ChangeQueues, !*IWorld))
+                 ) 
+taskUIServiceHttp taskUrls = (matchFun [url \\ {PublishedTask|url} <-taskUrls],True,initFun,dataFun,lostFun)
+where
+    matchFun :: [String] String -> Bool
+    matchFun matchUrls reqUrl = or [reqUrl == uiUrl matchUrl \\ matchUrl <- matchUrls]
+
+	initFun req _ env
+		# (rsp,env) = handleUIRequest req env
+		= (rsp,Nothing,Nothing,env)
+		
+	dataFun _ _ _ s env = ([],True,s,Nothing,env)
+	lostFun _ _ s env = (Nothing,env)
+
+	handleUIRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
+	handleUIRequest req iworld = case fromString req.req_data of
+	    //- new session
+	    JSONString "new" = case createTaskInstance` req taskUrls iworld of
+	        /*(Error (_,err), iworld)
+		        # json = JSONArray [JSONInt reqId,JSONString "ERROR",JSONString err]
+		        = (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)*/
+        	(Ok (instanceNo,instanceKey),iworld)
+                # (_, iworld) = evalTaskInstance instanceNo ResetEvent iworld
+                # (change, iworld) = getUIChange instanceNo iworld
+		        # json = JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey),("ui",change)]
+		        = (jsonResponse json, iworld)
+        JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONNull,JSONString actionId]] = //Action event
+            case evalTaskInstance instanceNo (ActionEvent (fromString taskId) actionId) iworld of 
+				(Ok _, iworld)
+					# (change, iworld) = getUIChange instanceNo iworld
+                    = (jsonResponse change, iworld)
+				//(Error msg,iworld)
+        e
+		    # json = JSONArray [JSONString "ERROR",JSONString "Unknown event"]
+		    = (jsonResponse json, iworld) 
+	    //- attach existing instance
+	    /*
+        JSONArray [JSONString "attach",JSONInt instanceNo,JSONString instanceKey]
+		    //TODO: Clear output
+		    # iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
+		    = (okResponse, iworld) //TODO: Maybe send confirmation message?
+	    //- detach instance
+	    (JSONArray [JSONString "detach",JSONInt instanceNo,JSONString instanceKey])
+		    = ([],False, (state,removeMember instanceNo instances),Nothing,iworld) //TODO: Maybe send confirmation message?
+	    
+	    (JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONString name,value]]) //Edit event
+		    # iworld = queueEvent instanceNo (EditEvent (fromString taskId) name value) iworld //Queue event
+		    = ([],False, (state,instances),Nothing,iworld) //TODO: Maybe send confirmation message?
+*/
+    where
+        createTaskInstance` req [{PublishedTask|url,task=TaskWrapper task}:taskUrls] iworld
+		    | req.HTTPRequest.req_path == uiUrl url = createTaskInstance (task req) iworld
+		    | otherwise = createTaskInstance` req taskUrls iworld
+
+        getUIChange instanceNo iworld
+            # uiChangeSDS = sdsFocus instanceNo taskInstanceUIChanges
+            # (mbChanges,iworld) = 'SDS'.read uiChangeSDS iworld
+            = case mbChanges of
+                Ok changes
+                    # (Just change,changes`) = 'DQ'.dequeue changes
+                    # (_, iworld) = 'SDS'.write changes` uiChangeSDS iworld
+                    = (encodeUIChange change, iworld)
+                //Error...
+
+    uiUrl matchUrl = (if (endsWith "/" matchUrl) matchUrl (matchUrl +++ "/")) +++ "gui-http"
+	/*where
+    	serveStaticResource req [] iworld
+	    	= (notFoundResponse req,iworld)
+    	serveStaticResource req [d:ds] iworld=:{IWorld|world}
+			# filename		   = if (isMember req.HTTPRequest.req_path taskPaths) //Check if one of the published tasks is requested, then serve bootstrap page
+									(d +++ filePath "/index.html")
+									(d +++ filePath req.HTTPRequest.req_path)
+			# type			   = mimeType filename
+            # (mbInfo,world) = getFileInfo filename world
+			| case mbInfo of (Ok info) = info.directory ; _ = True
+               = serveStaticResource req ds {IWorld|iworld & world = world}
+			# (mbContent, world)	= readFile filename world
+			= case mbContent of
+				(Ok content) = ({ okResponse
+	    						& rsp_headers = [("Content-Type", type),("Content-Length", toString (size content))]
+                                , rsp_data = content}, {IWorld|iworld & world = world})
+                (Error e)    = (errorResponse (toString e +++ " ("+++ filename +++")"), {IWorld|iworld & world = world})*/
+
 taskUIService :: ![PublishedTask] ->
                  (!(String -> Bool)
                  ,!Bool
@@ -396,7 +484,7 @@ createDocumentsFromUploads [(n,u):us] iworld
 
 jsonResponse json
 		= {okResponse & rsp_headers = [("Content-Type","text/json"),("Access-Control-Allow-Origin","*")], rsp_data = toString json}
-	
+
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...

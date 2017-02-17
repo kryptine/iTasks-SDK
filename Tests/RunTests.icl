@@ -28,6 +28,8 @@ import Tests.Unit.CoreTasks
 
 import Tests.Common.MinimalTasks
 
+import Tests.Stress.Stress
+
 suites = [//Interactive tests
 		  testBuiltinEditors
          ,testBuiltinEditorsWithShares
@@ -50,6 +52,8 @@ suites = [//Interactive tests
 		 ,testCoreTasksUI 
 		 ]
 
+stressSuites = [ stressTest ]
+
 //Commandline options 
 :: CLIOpt = UnitTestOnly | UseJSON | NameFilter String
 
@@ -63,8 +67,12 @@ Start world
 	| unitOnly 
 		= (if useJSON runUnitTestsJSON runUnitTestsCLI) suites world
 	| otherwise
-		= startEngine [publish "/" (\_ -> runTests suites <<@ ApplyLayout (setAttributes (titleAttr "iTasks Testbench")))
-					  ,publish "/alternative" (const (viewInformation () [] "Alternative URL"))] world
+		= startEngine [ publish "/" (\_ -> runTests suites stressSuites <<@ ApplyLayout (setAttributes (titleAttr "iTasks Testbench")))
+					  , publish "/alternative" (const (viewInformation () [] "Alternative URL"))
+                      , publish "/shutdown" (const shutDown) // needed to shutdown test server for stress tests
+                      : exposedStressTestTasks stressSuites
+                      ] world
+                      
 where
 	unitOpt = Option [] ["unit"] (NoArg UnitTestOnly) "Only run unit tests and show output on console"
 	jsonOpt = Option [] ["json"] (NoArg UseJSON) "Output testresults as JSON"

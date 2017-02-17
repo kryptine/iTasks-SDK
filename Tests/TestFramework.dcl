@@ -1,5 +1,6 @@
 definition module TestFramework
 import iTasks
+import StressTestFramework
 
 :: InteractiveTest 
 	= { name :: String
@@ -128,8 +129,9 @@ noneFailed :: TestReport -> Bool
 * Run all tests interactively and run all tests
 *
 * @param the list of test suites to choose from
+* @param the list of stress test suites to choose from
 */
-runTests :: [TestSuite] -> Task ()
+runTests :: [TestSuite] [StressTestSuite] -> Task ()
 
 /**
 * Runs the unit tests from the test suites and shows test

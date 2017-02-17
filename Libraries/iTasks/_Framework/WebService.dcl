@@ -47,6 +47,14 @@ taskUIService :: ![PublishedTask] ->
                  ,!(HTTPRequest ChangeQueues ConnectionState *IWorld -> (!Maybe ChangeQueues, !*IWorld))
                  )
 
+taskUIServiceHttp :: ![PublishedTask] ->
+                 (!(String -> Bool)
+                 ,!Bool
+                 ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues ConnectionState *IWorld -> (!Maybe ChangeQueues, !*IWorld))
+                 )
+
 documentService :: 
 				(!(String -> Bool)
 				,!Bool
