@@ -32,6 +32,20 @@ from Data.Either				import :: Either
 * @gin False
 */
 tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
+
+/**
+* Combines two tasks sequentially. The first task is executed first. When it has a value
+* the user may continue to the second task, which is executed with the result of the first task as parameter.
+* If the first task becomes stable, the second task is started automatically.
+*
+* @param First: The first task to be executed
+* @param Second: The second task, which receives the result of the first task
+* @return The combined task
+* 
+* @gin False
+*/
+(>>$) infixl 1 :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
+
 /**
 * Combines two tasks sequentially but explicitly waits for user input to confirm the completion of
 * the first task.
@@ -99,6 +113,14 @@ tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 * @return The transformed task
 */
 (@!) infixl 1 :: !(Task a) !b -> Task b
+
+/**
+ * Stabilizes a task value
+ *
+ * @param Task: The task to stabilize
+ * @return The stabilized task
+ */
+stabilize :: (Task a) -> Task a
 /**
 * Infix shorthands for the (overloaded) tune combinator.
 */

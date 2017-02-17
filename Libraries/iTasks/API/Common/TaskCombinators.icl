@@ -18,7 +18,20 @@ import iTasks.UI.Layout.Common, iTasks.UI.Layout.Default
 (>>*) task steps = step task (const Nothing) steps
 
 tbind :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-tbind taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf), OnValue (ifStable taskbf)]
+tbind taska taskbf
+  =   taska
+  >>* [ OnAction ActionContinue cont
+      , OnValue (ifStable taskbf)
+      ]
+  where
+  cont (Value x st) = Just (taskbf x @? mkSt)
+    where
+    mkSt (Value y st`) = Value y (st && st`)
+    mkSt _ = NoValue
+  cont _ = Nothing
+
+(>>$) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>$) taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf), OnValue (ifStable taskbf)]
 
 (>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 (>>!) taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasValue taskbf)]
@@ -40,6 +53,12 @@ tbind taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasVal
 
 (@!) infixl 1 :: !(Task a) !b -> Task b
 (@!) task b = transform (fmap (const b)) task
+
+stabilize :: (Task a) -> Task a
+stabilize t = t @? f
+  where
+  f (Value x _) = Value x True
+  f _ = NoValue
 
 (<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
 (<<@) t a = tune a t
