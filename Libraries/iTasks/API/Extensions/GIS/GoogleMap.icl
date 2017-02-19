@@ -125,7 +125,7 @@ where
 	    # (mapobj, world)     = jsNewObject "google.maps.Map" [toJSArg domEl,toJSArg options] world
 		# world               = (me .# "map" .= mapobj) world
 		//Attach onAttributeChange
-		# (cb,world) = jsWrapFun (\a w -> (jsNull,onAttributeChange me a w)) world
+		# (cb,world) = jsWrapFun (onAttributeChange me) world
 		# world      = ((me .# "onAttributeChange") .= cb) world		
 		//Attach event handlers
 		# (jsOnShow,world)    = jsWrapFun (onShow me) world
@@ -157,7 +157,29 @@ where
 		= (jsNull,world)
 
 	onAttributeChange me [name,value] world
-		= jsTrace name world
+		| jsArgToString name == "diff"
+			# (json,world)  = jsValToJSONNode (toJSVal value) world
+			= case fromJSON json of
+				Nothing   = (jsNull, jsTrace "Unknown message type" world)
+				Just diff = (jsNull, applyDiffs me diff world)
+		| otherwise
+			= (jsNull, jsTrace "Unknown attribute change" world)
+
+	applyDiffs :: (JSObj ()) [GoogleMapDiff] *JSWorld -> *JSWorld			
+	applyDiffs me diffs world
+		# (map,world) = .? (me .# "map") world
+		= foldl (appDiff map) world diffs
+	where
+		appDiff map world (SetPerspective {type, center = {lat, lng}, zoom})
+	    	# (center, world) = jsNewObject "google.maps.LatLng" [toJSArg lat,toJSArg lng] world
+        	# (_, world)      = (map .# "setCenter" .$ center) world	
+        	# (_, world)      = callObjectMethod "setZoom" [toJSArg zoom] map world
+			# (mapTypeId, world)= findObject ("google.maps.MapTypeId." +++ toString type) world 
+        	# (_, world)        = callObjectMethod "setMapTypeId" [toJSArg mapTypeId] map world			       	      	 		
+			= world
+			
+		appDiff map world _
+			= world
 
 	getPespective map world
 		# (zoom, world) = callObjectMethod "getZoom" [] map world

@@ -193,3 +193,6 @@ ifFun :: !(JSVal a) !((JSFun b) *JSWorld -> *(JSVal c, *JSWorld)) !(JSVal c) !*J
 jsIsArray :: !(JSVal a) !*JSWorld -> *(!Bool, !*JSWorld)
 
 jsIsNull :: !(JSVal a) -> Bool
+
+jsValToJSONNode :: !(JSVal a) !*JSWorld -> *(!JSONNode, !*JSWorld)
+
