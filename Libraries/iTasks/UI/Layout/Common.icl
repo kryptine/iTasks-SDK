@@ -29,7 +29,7 @@ where
 	(sidePanelWidth,sidePanelHeight) = if (direction === Vertical) (FlexSize,ExactSize size) (ExactSize size,FlexSize)
 
 arrangeSplit :: !UIDirection !Bool -> Layout
-arrangeSplit direction resize = {Layout|apply=const (NoChange,JSONNull),adjust=id,restore=const NoChange}
+arrangeSplit direction resize = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
 /*
 arrangeSplit :: !UIDirection !Bool -> UIBlocksCombinator
 arrangeSplit direction resize = arrange

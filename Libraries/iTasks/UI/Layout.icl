@@ -12,6 +12,7 @@ from StdFunc import o, const, id, flip
 from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
 import StdDebug
 
+//All different types of state that are used by the various core layouts
 //This type records where parts were removed from a ui tree
 :: NodeMoves :== [(Int,NodeMove)] 
 :: NodeMove = BranchMoved                  //This branch was moved to another location (or removed)
@@ -19,16 +20,20 @@ import StdDebug
             | ChildBranchesMoved NodeMoves
 
 //This type records the states of layouts applied somewhere in a ui tree
-:: NodeLayoutStates :== [(Int,NodeLayoutState)]
-:: NodeLayoutState
-	= BranchLayout JSONNode
-	| ChildBranchLayout NodeLayoutStates
-			
-//This type represents the structure of a ui tree, which needs to be remembered when flattening a tree
-:: NodeSpine = NS [NodeSpine]
+/*
+:: LayoutState
+	= LSNone                                      //No state is tracked for a layout
+	| LSJson JSONNode                             //Temporary constructor for migration
+	| LSSequence LayoutState LayoutState          //Combined state of two sequenced layouts
+	| LSLayoutSubUIs UI (LayoutTree LayoutState)  //States of layouts applied to sub-ui's 
 
-derive JSONEncode NodeMove, NodeLayoutState, NodeSpine
-derive JSONDecode NodeMove, NodeLayoutState, NodeSpine
+:: LayoutTree a
+	= UIModified a
+	| SubUIsModified [(Int,LayoutTree a)]
+*/
+			
+derive JSONEncode NodeMove, NodeLayoutState, LayoutState, LayoutTree
+derive JSONDecode NodeMove, NodeLayoutState, LayoutState, LayoutTree
 
 instance tune ApplyLayout
 where
@@ -40,11 +45,21 @@ where
 		eval event evalOpts tt=:(TCInit _ _) iworld
 			= eval event evalOpts (TCLayout JSONNull tt) iworld
 
-		eval event evalOpts (TCLayout s tt) iworld = case evala event evalOpts tt iworld of
+		//On Reset events, we (re-)apply the layout
+		eval ResetEvent evalOpts (TCLayout _ tt) iworld = case evala ResetEvent evalOpts tt iworld of
+			(ValueResult value info (ReplaceUI ui) tt,iworld)
+				//Determine the change the layout makes to the UI
+				# (change,state) = l.Layout.apply ui
+				//Modify the layout accorgingly
+				# ui = applyUIChange change ui
+				= (ValueResult value info (ReplaceUI ui) (TCLayout (toJSON state) tt), iworld)		
+            (res,iworld) = (res,iworld)
+
+		eval event evalOpts (TCLayout json tt) iworld = case evala event evalOpts tt iworld of
 	        (ValueResult value info change tt,iworld) 
-				# s = fromMaybe JSONNull (fromJSON s)	
+				# s = fromMaybe (LSJson JSONNull) (fromJSON json)
 				# (change,s) = l.Layout.adjust (change,s)
-				= (ValueResult value info change (TCLayout s tt), iworld)
+				= (ValueResult value info change (TCLayout (toJSON s) tt), iworld)
             (res,iworld) = (res,iworld)
 		
 		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
@@ -76,33 +91,31 @@ inUISelection (SelectNOT sel) path ui = not (inUISelection sel path ui)
 setUIType :: UINodeType -> Layout
 setUIType type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,JSONNull)
+	apply (UI _ attr items) = (ReplaceUI (UI type attr items), LSNone) //Crude replacement (no instruction possible
 
-	adjust (ReplaceUI (UI _ attr items),s) = (ReplaceUI (UI type attr items),s)
 	adjust (change,s) = (change,s)
 
-	restore _ = NoChange
+	restore _ = NoChange //Cannot be restored...
 
 setUIAttributes :: UIAttributes -> Layout
 setUIAttributes extraAttr = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,JSONNull)
+	apply ui = (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList extraAttr] [],LSNone)
 
-	adjust (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type ('DM'.union extraAttr attr) items),s)
 	adjust (ChangeUI attrChanges itemChanges,s)
-		//Filter out updates for the attributes that we are setting here
+
+		//Filter out updates for the attributes that this layout has overwritten setting here
 		# attrChanges = filter (\(SetAttribute k _) -> not (isMember k ('DM'.keys extraAttr))) attrChanges
 		= (ChangeUI attrChanges itemChanges,s)
 	adjust (change,s) = (change,s)
 
-	restore _ = NoChange
+	restore _ = NoChange 
 
 delUIAttributes :: [String] -> Layout
-delUIAttributes delAttr = {Layout|apply=apply,adjust=adjust,restore=restore}
+delUIAttributes delAttr = {Layout|apply=apply,adjust=adjust,restore=restore} //There is no delete instruction, so deleting means setting the value to null 
 where
-	apply _ = (NoChange,JSONNull)
+	apply ui = (ChangeUI [SetAttribute k JSONNull \\ k <- delAttr] [],LSNone)
 
-	adjust (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type (foldr 'DM'.del attr delAttr) items),s)
 	adjust (ChangeUI attrChanges itemChanges,s)
 		# attrChanges = filter (\(SetAttribute k _) -> not (isMember k delAttr)) attrChanges
 		= (ChangeUI attrChanges itemChanges,s)
@@ -113,11 +126,13 @@ where
 modifyUIAttributes :: String (JSONNode -> UIAttributes) -> Layout
 modifyUIAttributes name modifier = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,JSONNull)
+	apply (UI type attr items)
+		= (maybe NoChange (\val -> ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList (modifier val)] []) ('DM'.get name attr),LSNone)
 
-	adjust (ReplaceUI (UI type attr items),s)
-		# attr = maybe attr (\val -> 'DM'.union (modifier val) attr) ('DM'.get name attr)
-		= (ReplaceUI (UI type attr items),s)
+	adjust (ReplaceUI ui,_)
+		# (change,s) = apply ui
+		# ui = applyUIChange change ui
+		= (ReplaceUI ui,s)
 
 	adjust (ChangeUI attrChanges childChanges,s)
 		# attrChanges = flatten [if (key == name) [SetAttribute k v \\ (k,v) <- 'DM'.toList (modifier value)] [c] \\c=:(SetAttribute key value) <- attrChanges]
@@ -129,7 +144,7 @@ where
 copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> Layout
 copySubUIAttributes selection src dst = {Layout|apply=apply,adjust=adjust,restore=restore} 
 where
-	apply _ = (NoChange,JSONNull)
+	apply _ = (NoChange,LSNone)
 
 	//TODO: Also handle attribute updates in the src location, and partial replacements along the path
 	adjust (ReplaceUI ui,s) = case selectAttr src ui of 
@@ -156,9 +171,9 @@ where
 wrapUI :: UINodeType -> Layout
 wrapUI type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,JSONNull)
+	apply _ = (NoChange,LSNone)
 
-	adjust (ReplaceUI def,_) = (ReplaceUI (uic type [def]),JSONNull)
+	adjust (ReplaceUI def,_) = (ReplaceUI (uic type [def]),LSNone)
 	adjust (NoChange,def) = (NoChange,def)
 	adjust (change,s) = (ChangeUI [] [(0,ChangeChild change)],s)
 
@@ -167,13 +182,13 @@ where
 unwrapUI :: Layout
 unwrapUI = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,JSONNull)
+	apply _ = (NoChange,LSNone)
 
 	adjust (ReplaceUI def,_) = case def of
-		(UI _ _ [child:_])  = (ReplaceUI child,JSONBool False)
-		_ 					= (ReplaceUI (ui UIEmpty),JSONBool True) //If there is no inner component, remember we replaced it with empty...
+		(UI _ _ [child:_])  = (ReplaceUI child,LSJson (JSONBool False))
+		_ 					= (ReplaceUI (ui UIEmpty),LSJson (JSONBool True)) //If there is no inner component, remember we replaced it with empty...
 
-	adjust (ChangeUI _ childChanges,s=:(JSONBool False)) = case [change \\ (0,ChangeChild change) <- childChanges] of
+	adjust (ChangeUI _ childChanges,s=:(LSJson (JSONBool False))) = case [change \\ (0,ChangeChild change) <- childChanges] of
 		[change] = (change,s) //TODO: Check if there are cases with multiple changes to child 0
 		[change:x] = trace_n "Warning: unwrapUI: edge case" (NoChange,s) //TODO: Check if there are cases with multiple changes to child 0
 		_        = (NoChange,s)
@@ -185,25 +200,27 @@ where
 flattenUI :: Layout
 flattenUI = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,JSONNull)
+	apply _ = (NoChange,LSNone)
 
 	adjust (ReplaceUI def,_)
 		# (def,spine) = flattenWithSpine def
-		= (ReplaceUI def, toJSON spine)
+		= (ReplaceUI def,LSNone)
 	adjust (change,s) = (change,s) //TODO
 
 	flattenWithSpine  ui=:(UI type attr items) 
+		/*
 		# (items,spines) = unzip (map flattenWithSpine items)
 		# items = flatten [[UI type attr []:children] \\ UI type attr children <- items]
-		= (UI type attr items,NS spines)
+*/
+		= (UI type attr items,JSONNull)
 
 	restore _ = NoChange
 
 insertSubUI :: UIPath UI-> Layout
-insertSubUI [] def = {Layout|apply=const (NoChange,JSONNull),adjust=id,restore=const NoChange}
+insertSubUI [] def = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
 insertSubUI path def = layoutSubUIs (SelectByPath (init path)) {Layout|apply=apply,adjust=(insertSub (last path) def), restore=restore}
 where
-	apply _ = (NoChange,JSONNull)
+	apply _ = (NoChange,LSNone)
 
 	insertSub idx def (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type attr (insertAt idx def items)),s)
 	insertSub idx _ (ChangeUI attrChanges childChanges,s) = (ChangeUI attrChanges (insert idx childChanges),s)
@@ -222,29 +239,29 @@ moveSubUIs selection dst = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	pred = inUISelection selection
 
-	apply _ = (NoChange,JSONNull)
+	apply _ = (NoChange,LSJson JSONNull)
 
-	adjust (change,s)
+	adjust (change,LSJson s)
 		# moves = if (change=:(ReplaceUI _)) [] (fromMaybe [] (fromJSON s)) //On a replace, we reset the state
 		# startIdx = last dst
 		//Remove based on the predicate
 		# (change,moves,inserts) = removeAndAdjust_ [] pred False startIdx change moves
 		//If there is a destination path, adjust the change for these moves
 	 	# change = insertAndAdjust_ (init dst) startIdx (countMoves_ moves True) inserts change
-	    = (change, toJSON moves)
+	    = (change, LSJson (toJSON moves))
 
 	restore _ = NoChange
 
 removeSubUIs :: UISelection -> Layout 
 removeSubUIs selection = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,JSONNull)
+	apply _ = (NoChange,LSJson JSONNull)
 
 	pred = inUISelection selection
-	adjust (change,s)
+	adjust (change,LSJson s)
 		# moves = if (change=:(ReplaceUI _)) [] (fromMaybe [] (fromJSON s)) //On a replace, we reset the state
 		# (change,moves,_) = removeAndAdjust_ [] pred True 0 change moves
-		= (change, toJSON moves)
+		= (change, LSJson (toJSON moves))
 
 	restore _ = NoChange
 /**
@@ -519,44 +536,68 @@ insertNodes_ [s:ss] changes (UI type attr items)
 layoutSubUIs :: UISelection Layout -> Layout
 layoutSubUIs selection layout = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,JSONNull)
-
 	pred = inUISelection selection
-	adjust (change,s)
-		| change=:(ReplaceUI _)
-			# (change,eitherState) = layoutChange_ [] pred layout change []
-			= (change,toJSON eitherState)
-		| otherwise
-			# (change,eitherState) = case fromMaybe (ChildBranchLayout []) (fromJSON s) of
-				(BranchLayout state) = appSnd BranchLayout (layout.Layout.adjust (change,state))
-				(ChildBranchLayout states) = layoutChange_ [] pred layout change states
-			= (change,toJSON eitherState)
 
-	restore _ = NoChange
+	//Find all places that match the selection
+	//Keep track of the original UI in the state to enable dynamic matches
+	apply ui
+		# (change, state) = apply` [] ui
+		= (change, LSLayoutSubUIs ui state)
+	where
+		apply` path ui=:(UI type attr items)
+			| inUISelection selection path ui
+				# (change,state) = layout.Layout.apply ui
+				= (change,UIModified state)
+			| otherwise
+				# (itemChanges,itemStates) = unzip
+					[apply` (path ++ [i]) ui \\ ui <- items & i <- [0..]]
+				//Cleanup item changes (only keep those that actually change something
+				# itemChanges =	[(i,ChangeChild c) \\ c <- itemChanges & i <- [0..] | not (c =: NoChange || c =: (ChangeUI [] []))]
+				//Also cleanup item states
+				# itemStates = [(i,s) \\ s <- itemStates & i <- [0..] | not s =: (SubUIsModified [])]
+				= (ChangeUI [] itemChanges,SubUIsModified itemStates)
 
-layoutChange_ :: UIPath (UIPath UI -> Bool) Layout UIChange NodeLayoutStates -> (UIChange,NodeLayoutState)
+	adjust (ReplaceUI ui, LSLayoutSubUIs _ s)
+		# (change, state) = apply ui
+		= (ReplaceUI (applyUIChange change ui), state)
+
+	adjust (change,LSLayoutSubUIs ui (UIModified state))
+		# ui = applyUIChange change ui //Keep the 'shadow' copy of the UI up-to date
+		| inUISelection selection [] ui //The layout should still be applied
+			# (change,state) = layout.Layout.adjust (change, state)
+			= (change, LSLayoutSubUIs ui (UIModified state))
+		| otherwise //The layout should no longer be applied, use the restore function to undo the layout
+			# change = mergeUIChanges (layout.Layout.restore state) change
+			= (change, LSLayoutSubUIs ui (SubUIsModified []))
+
+	adjust (change, LSLayoutSubUIs ui (SubUIsModified states))
+		# (change,state) = layoutChange_ [] pred layout change states	
+		= (change,LSLayoutSubUIs ui state)
+
+	restore (LSLayoutSubUIs ui _) = ReplaceUI ui //VERY CRUDE RESTORE... TODO:We can do better than this
+
+layoutChange_ :: UIPath (UIPath UI -> Bool) Layout UIChange [(Int,LayoutTree LayoutState)] -> (UIChange,LayoutTree LayoutState)
 layoutChange_ path pred layout (ReplaceUI ui) states
 	# (ui,eitherState) = layoutUI_ path pred layout ui
 	= (ReplaceUI ui,eitherState)
 layoutChange_ path pred layout (ChangeUI localChanges childChanges) states
 	# (childChanges,states) = layoutChildChanges_ path pred layout childChanges states
-	= (ChangeUI localChanges childChanges, ChildBranchLayout states)
+	= (ChangeUI localChanges childChanges, SubUIsModified states)
 layoutChange_ path pred layout change states
-	= (change,ChildBranchLayout states)
+	= (change,SubUIsModified states)
 
-layoutUI_ :: UIPath (UIPath UI -> Bool) Layout UI -> (UI,NodeLayoutState)
+layoutUI_ :: UIPath (UIPath UI -> Bool) Layout UI -> (UI,LayoutTree LayoutState)
 layoutUI_ path pred layout ui=:(UI type attr items)
 	| pred path ui
-		= case layout.Layout.adjust (ReplaceUI ui,JSONNull) of
-			(ReplaceUI ui,state) = (ui,BranchLayout state)
-			_                    = (ui,ChildBranchLayout []) //Consider it a non-match if the layout function behaves flakey
+		# (change,state) = layout.Layout.apply ui 	
+		= (applyUIChange change ui,UIModified state)
 	| otherwise
 		# (items,states) = unzip [let (ui`,s) = layoutUI_ (path ++ [i]) pred layout ui in (ui`,(i,s)) \\ ui <- items & i <- [0..]]
-		# states = filter (\(_,s) -> not (s =:(ChildBranchLayout []))) states //Filter unnecessary state
-		= (UI type attr items, ChildBranchLayout states)
+		# states = filter (\(_,s) -> not (s =:(SubUIsModified []))) states //Filter unnecessary state
+		= (UI type attr items, SubUIsModified states)
 
-layoutChildChanges_ :: UIPath (UIPath UI -> Bool) Layout [(Int,UIChildChange)] NodeLayoutStates
-                    -> (![(Int,UIChildChange)],!NodeLayoutStates)
+layoutChildChanges_ :: UIPath (UIPath UI -> Bool) Layout [(Int,UIChildChange)] [(Int,LayoutTree LayoutState)] 
+                    -> (![(Int,UIChildChange)],![(Int,LayoutTree LayoutState)])
 layoutChildChanges_ path pred layout [] states = ([],states)
 layoutChildChanges_ path pred layout [c:cs] states
 	# (c,states) = layoutChildChange_ path pred layout c states
@@ -566,19 +607,19 @@ where
 	//Check if there is existing state for the change, in that case a layout was applied and we need
 	//to pass the change and the state to that layout, otherwise we need to recursively adjust the change
 	layoutChildChange_ path pred layout (idx,ChangeChild change) states = case selectState idx states of
-		(Just (BranchLayout state),states) //Reapply the layout with the stored state
+		(Just (UIModified state),states) //Reapply the layout with the stored state
 			# (change,state) = layout.Layout.adjust (change,state)
-			= ((idx,ChangeChild change),[(idx,BranchLayout state):states])
-		(Just (ChildBranchLayout childStates),states) //Recursively adjust the change
+			= ((idx,ChangeChild change),[(idx,UIModified state):states])
+		(Just (SubUIsModified childStates),states) //Recursively adjust the change
 			# (change,state) = layoutChange_ (path ++ [idx]) pred layout change childStates
 			= case state of
-				ChildBranchLayout [] = ((idx,ChangeChild change),states) //Don't store empty state
-				_ 					 = ((idx,ChangeChild change),[(idx,state):states])
+				SubUIsModified [] = ((idx,ChangeChild change),states) //Don't store empty state
+				_ 				  = ((idx,ChangeChild change),[(idx,state):states])
 		(Nothing,states) //Recursively adjust the change
 			# (change,state) = layoutChange_ (path ++ [idx]) pred layout change []
 			= case state of
-				ChildBranchLayout [] = ((idx,ChangeChild change),states) //Don't store empty state
-				_ 					 = ((idx,ChangeChild change),[(idx,state):states])
+				SubUIsModified [] = ((idx,ChangeChild change),states) //Don't store empty state
+				_ 				  = ((idx,ChangeChild change),[(idx,state):states])
 
 	layoutChildChange_ path pred layout (idx,InsertChild ui) states
 		# (ui,eitherState) = layoutUI_ (path ++ [idx]) pred layout ui
@@ -599,25 +640,27 @@ where
 sequenceLayouts :: Layout Layout -> Layout
 sequenceLayouts layout1 layout2 = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,JSONNull)
+	apply ui
+		# (change1,s1) = layout1.Layout.apply ui
+		# (change2,s2) = layout2.Layout.apply (applyUIChange change1 ui)
+		= (mergeUIChanges change1 change2, LSSequence s1 s2)
 
-	adjust (change=:(ReplaceUI _),_)
-		# (change,s1) = layout1.Layout.adjust (change,JSONNull)
-		# (change,s2) = layout2.Layout.adjust (change,JSONNull)
-		= (change,JSONArray [s1,s2])
-	
-	adjust (change,JSONArray [s1,s2]) 
+	adjust (change,LSSequence s1 s2) 
 		# (change,s1) = layout1.Layout.adjust (change,s1)
 		# (change,s2) = layout2.Layout.adjust (change,s2)
-		= (change,JSONArray [s1,s2])
+		= (change,LSSequence s1 s2)
 	adjust (change,s) = (change,s)
 
-	restore _ = NoChange
+	restore (LSSequence s1 s2)
+		//Restore in reverse order
+		# change2 = layout2.Layout.restore s2
+		# change1 = layout1.Layout.restore s1
+		= mergeUIChanges change2 change1	
 
 traceLayout :: String Layout -> Layout
 traceLayout name layout = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,JSONNull)
+	apply _ = (NoChange,LSNone)
 
 	adjust (change,state)
 		# (change`,state`) = layout.Layout.adjust (change,state)
@@ -693,7 +736,7 @@ taskUILayoutToUI (UINode path)
 reorderUI :: (UI -> UI) -> Layout 
 reorderUI reorder = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,JSONNull)
+	apply _ = (NoChange,LSJson JSONNull)
 
 	adjust (NoChange,s)
 		 = (NoChange,s)
@@ -701,9 +744,10 @@ where
 		//Determine a skeleton of the reordered ui, and replace references
 		//Replace references to parts of the original ui
 		# (moves,ui) = derefAll ui [] (reorder ui)
-		= (ReplaceUI ui,toJSON moves)
+		= (ReplaceUI ui,LSJson (toJSON moves))
 	//Adjust followup changes to the moved parts
-	adjust (c,s) = (adjust` (fromMaybe 'DM'.newMap (fromJSON s)) c,s)
+	adjust (c,s) = (c,s)
+	//adjust (c,s) = (adjust` (fromMaybe 'DM'.newMap (fromJSON s)) c,s)
 
 	restore _ = NoChange
 

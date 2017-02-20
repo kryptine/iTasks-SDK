@@ -8,7 +8,8 @@ import qualified Data.Map as DM
 import Data.List
 import StdMisc
 
-derive JSONEncode NodeMove, NodeLayoutState
+derive JSONEncode NodeMove, NodeLayoutState, LayoutState, LayoutTree
+derive gEq LayoutState, LayoutTree
 
 testLayout :: TestSuite
 testLayout = testsuite "Layout" "Tests for the layout functions"
@@ -66,7 +67,7 @@ where
 
 	//Initial UI	
 	initUI = uic UIPanel [ui UIContainer, ui UIEmpty, uic UIContainer [ui UIEmpty, ui UITextView], ui UIAction]
-	initState = JSONNull
+	initState = snd (sutLayout.Layout.apply initUI)
 	//Expected final UI
 	expUI = uic UIPanel [ui UIContainer, uic UIContainer [ui UITextView] ,ui UIAction]
 
@@ -81,8 +82,9 @@ where
 	exp = expChange
 
 	//Initial UI	
-	initChange = ReplaceUI (uic UIPanel [ui UIContainer, ui UIEmpty, uic UIContainer [ui UIEmpty, ui UITextView ], ui UIAction])
-	initState = JSONNull
+	initUI = uic UIPanel [ui UIContainer, ui UIEmpty, uic UIContainer [ui UIEmpty, ui UITextView ], ui UIAction]
+	initChange = ReplaceUI initUI
+	initState = snd (sutLayout.Layout.apply initUI)
 	changeToReRoute = ChangeUI [] [(2,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
 	//Expected reroute change 
@@ -100,8 +102,9 @@ where
 	exp = expChange
 
 	//Initial UI	
-	initChange = ReplaceUI (uic UIPanel [ui UIContainer, uic UIContainer [ui UIEmpty, ui UITextView], ui UIAction])
-	initState = JSONNull
+	initUI = uic UIPanel [ui UIContainer, uic UIContainer [ui UIEmpty, ui UITextView], ui UIAction]
+	initChange = ReplaceUI initUI
+	initState = snd (sutLayout.Layout.apply initUI)
 	changeToReRoute = ChangeUI [] [(1,ChangeChild (ReplaceUI (ui UIPanel)))]
 
 	//Expected reroute change 
@@ -119,9 +122,10 @@ where
 
 	//Initial UI	
 //	initChange = ReplaceUI (uic UIPanel [ui UIEmpty, ui UIContainer, uic UIContainer [ui UIEmpty, ui UIViewString], ui UIEmpty, ui UIAction])
-	initChange = ReplaceUI (uic UIStep [uic UIParallel [uic UIParallel [uic UIStep [uic UIInteract [ui UIEmpty, ui UIGrid],ui UIAction, ui UIAction], uic UIStep [ui UIEmpty]]]])
+	initUI = uic UIStep [uic UIParallel [uic UIParallel [uic UIStep [uic UIInteract [ui UIEmpty, ui UIGrid],ui UIAction, ui UIAction], uic UIStep [ui UIEmpty]]]]
+	initChange = ReplaceUI initUI
+	initState = snd (sutLayout.Layout.apply initUI)
 
-	initState = JSONNull
 	changeToReRoute = ChangeUI [] [(0,ChangeChild (ChangeUI [] 
 									[(0,ChangeChild (ChangeUI []
 										[(0,ChangeChild (ChangeUI []
@@ -146,9 +150,9 @@ where
 		= c
 	exp = expChange
 
-	initState = JSONNull
-
-	initChange = ReplaceUI (uic UIPanel [ui UIContainer, ui UIEmpty])
+	initUI = uic UIPanel [ui UIContainer, ui UIEmpty]
+	initChange = ReplaceUI initUI
+	initState = snd (sutLayout.Layout.apply initUI)
 
 	changeToReRoute = ChangeUI [] [(0,RemoveChild),(0,RemoveChild)]
 	expChange = ChangeUI [] [(0,RemoveChild)]
@@ -164,10 +168,11 @@ where
 
 	//Initial UI	
 	initUI = uic UIStep [ui UIContainer, ui UIAction, ui UIEmpty]
-	initState = JSONNull
+	initState = snd (sutLayout.Layout.apply initUI)
+
 	//Expected final UI
 	expUI = uic UIStep [uic UIContainer [ui UIAction, ui UIEmpty]]
-	expState = toJSON [(1,BranchMoved),(2,BranchMoved)]
+	expState = LSJson (toJSON [(1,BranchMoved),(2,BranchMoved)])
 
 	isTarget (UI type _ _) = (type =: UIAction) || (type =: UIEmpty)
 
@@ -180,10 +185,10 @@ where
 
 	//Initial UI	
 	initUI = uic UIPanel [uic UIContainer [ui UIAction, ui UIEmpty, ui UIAction], ui UIContainer]
-	initState = JSONNull
+	initState = snd (sutLayout.Layout.apply initUI)
 	//Expected final UI
 	expUI = uic UIPanel [uic UIContainer [ui UIEmpty], uic UIContainer [ui UIAction, ui UIAction]]
-	expState = toJSON [(0,ChildBranchesMoved [(0,BranchMoved),(2,BranchMoved)])]
+	expState = LSJson (toJSON [(0,ChildBranchesMoved [(0,BranchMoved),(2,BranchMoved)])])
 
 testMoveSubsMatchingNewRoutes = assertEqual "Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
@@ -196,8 +201,10 @@ where
 	exp = expChange
 
 	//Initial UI	
-	initChange = ReplaceUI (uic UIStep [ui UIContainer, ui UIAction, ui UIAction])
-	initState = JSONNull
+	initUI = uic UIStep [ui UIContainer, ui UIAction, ui UIAction]
+	initChange = ReplaceUI initUI
+	initState = snd (sutLayout.Layout.apply initUI)
+
 	changeToReRoute = ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))
 								  ,(2,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "baz")] []))]
 
@@ -220,14 +227,14 @@ where
 
 	//Initial UI	
 	initUI = uic UIPanel [uic UIContainer [ui UIAction, ui UIEmpty, ui UIAction], ui UIContainer]
-	initState = JSONNull
+	initState = snd (sutLayout.Layout.apply initUI)
 
 	changeToReRoute = ChangeUI [] [(0,ChangeChild (ChangeUI [] [(2,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
 	//Expected reroute change 
 	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
-	expState = toJSON [(0,ChildBranchesMoved [(0,BranchMoved),(2,BranchMoved)])]
+	expState = LSJson (toJSON [(0,ChildBranchesMoved [(0,BranchMoved),(2,BranchMoved)])])
 
 	isAction (UI type _ _) = type =: UIAction
 
@@ -252,7 +259,7 @@ derive class iTask TestRecInner, TestRecOuter
 testAutoInteractionLayoutInitial = skip (assertEqual "Test if the auto interaction layout correctly turns an editor into a form" exp sut)
 where
 	exp = ReplaceUI (uic UIContainer [stdPrompt,expIntForm])
-	sut = fst (finalizeInteract.Layout.adjust ((ReplaceUI (uic UIContainer [stdPrompt,stdIntEditor])),JSONNull))
+	sut = fst (finalizeInteract.Layout.adjust ((ReplaceUI (uic UIContainer [stdPrompt,stdIntEditor])),LSNone))
 	
 	stdPrompt = ui UIEmpty //STUB Don't care what the prompt is!
 	stdIntEditor = uia UIIntegerField
@@ -313,7 +320,7 @@ where
 
 	//Initial UI	
 	initUI = uic UIPanel [uic UIContainer [ui UIInteract], uic UIMenu [ui UIInteract]]
-	initState = JSONNull
+	initState = snd (sutLayout.Layout.apply initUI)
 
 	//First rendering
 	renderedUI = uic UIDebug [uic UIContainer [], uic UIDebug [uic UIMenu [], uic UIPanel []] ]
@@ -341,8 +348,8 @@ where
 
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIInteract))
 
-	initState = toJSON [(0,ChildBranchesMoved [(0,BranchMoved)])
-					   ,(1,ChildBranchesMoved [(0,ChildBranchesMoved [(0,BranchMoved)])])]
+	initState = LSJson (toJSON [(0,ChildBranchesMoved [(0,BranchMoved)])
+					   ,(1,ChildBranchesMoved [(0,ChildBranchesMoved [(0,BranchMoved)])])])
 
 	//Change after first transform 
 	changeToModify = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar [ui UIInteract]))]))]))]
@@ -356,14 +363,15 @@ where
 		markFirstChild = layoutSubUIs (SelectByPath [0]) (setUIAttributes ('DM'.fromList [("y",JSONBool True)]))
 	
 	sut
-		# (c1,s1) = sutLayout.Layout.adjust (change1,JSONNull)
-		# (c2,s2) = sutLayout.Layout.adjust (change2,JSONNull)
+		# (c1,s1) = sutLayout.Layout.adjust (change1,initState)
+		# (c2,s2) = sutLayout.Layout.adjust (change2,s1)
 		= c2
 
-	initState = JSONNull
+	initUI = uic UIContainer [ui UIContainer]
+	initState = snd (sutLayout.Layout.apply initUI)
 
 	//Begin with a UI without attribute "x" at the root
-	change1 = ReplaceUI (uic UIContainer [ui UIContainer])
+	change1 = ReplaceUI initUI
 	//Now set the attribute, this means the layout should now match the root node
 	change2 = ChangeUI [SetAttribute "x" (JSONBool True)] []
 

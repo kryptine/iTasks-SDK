@@ -21,10 +21,16 @@ from Text.JSON import :: JSONNode
 	, restore :: LayoutState -> UIChange                          // Modify the UI to a state as if the layout had never been applied
 	}
 
-:: LayoutFun s :== (UIChange,s) -> (UIChange,s)
+:: LayoutState
+	= LSNone                                      //No state is tracked for a layout
+	| LSJson JSONNode                             //Temporary constructor for migration
+	| LSSequence LayoutState LayoutState          //Combined state of two sequenced layouts
+	| LSLayoutSubUIs UI (LayoutTree LayoutState)  //States of layouts applied to sub-ui's 
 
-:: LayoutState :== JSONNode
-
+:: LayoutTree a
+	= UIModified a
+	| SubUIsModified [(Int,LayoutTree a)]
+	
 // These types are used to control when to apply layout in a task composition
 :: ApplyLayout	= ApplyLayout Layout
 
@@ -124,7 +130,7 @@ traceLayout :: String Layout -> Layout
 //This type records the states of layouts applied somewhere in a ui tree
 :: NodeLayoutStates :== [(Int,NodeLayoutState)]
 :: NodeLayoutState
-	= BranchLayout JSONNode
+	= BranchLayout LayoutState
 	| ChildBranchLayout NodeLayoutStates
 	
 :: TaskHost a = InTaskHost | NoTaskHost

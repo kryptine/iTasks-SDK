@@ -138,7 +138,7 @@ actionsToButtonBar = foldl1 sequenceLayouts
 toFormItem :: Layout
 toFormItem = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,JSONNull)
+	apply _ = (NoChange,LSNone)
 	adjust (ReplaceUI (control=:(UI _ attr _)),s) 
 		# label = fromMaybe (ui UIEmpty) (labelControl attr)
 		# info = fromMaybe (ui UIEmpty) (infoControl attr)

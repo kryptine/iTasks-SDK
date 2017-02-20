@@ -93,7 +93,7 @@ basicAPIExamples =
 
 Start :: *World -> *World
 Start world 
-	= startEngine 	[	publish "/" (\_ -> loginAndManageWorkList title basicAPIExamples <<@ ApplyLayout (setAttributes (titleAttr title)))
+	= startEngine 	[	publish "/" (\_ -> loginAndManageWorkList title basicAPIExamples <<@ ApplyLayout (setUIAttributes (titleAttr title)))
 					,	publish "/persons" (const enterPersons)
 					] world
 where

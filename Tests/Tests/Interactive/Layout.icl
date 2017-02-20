@@ -61,12 +61,12 @@ where
 testDelAttributesTask :: Task ()
 testDelAttributesTask = taskToLayout "Test for deleting an attribute" <<@ ApplyLayout layout
 where
-	layout = delUIAttributes ["optional"]
+	layout = delUIAttributes ["direction"]
 
 testModifyAttributesTask :: Task ()
-testModifyAttributesTask = taskToLayout "Test for deleting an attribute" <<@ ApplyLayout layout
+testModifyAttributesTask = taskToLayout "Test for modifying attributes" <<@ ApplyLayout layout
 where
-	layout = modifyUIAttributes "optional" (\(JSONBool b) -> optionalAttr (not b)) 
+	layout = modifyUIAttributes "direction" (\(JSONString dir) -> optionalAttr (dir == "horizontal")) 
 
 testCopySubAttributesTask :: Task ()
 testCopySubAttributesTask = taskToLayout "Test for copying an attribute" <<@ ApplyLayout layout
@@ -109,6 +109,6 @@ where
 	layout = layoutSubUIs (SelectByPath [0]) (setUIType UIDebug)
 
 testSequenceLayoutsTask :: Task ()
-testSequenceLayoutsTask = taskToLayout "Test for layouting a sub ui" <<@ ApplyLayout layout
+testSequenceLayoutsTask = taskToLayout "Test for sequencing layouts" <<@ ApplyLayout layout
 where
-	layout = sequenceLayouts (setUIType UIDebug) (setUIAttributes (styleAttr "background: #f0f"))
+	layout = sequenceLayouts (setUIType UIStep) (setUIAttributes (styleAttr "background: #ff0"))
