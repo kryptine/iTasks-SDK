@@ -11,28 +11,9 @@ from StdFunc import o, const, id, flip
 from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
 import StdDebug
 
-//All different types of state that are used by the various core layouts
-//This type records where parts were removed from a ui tree
-:: NodeMoves :== [(Int,NodeMove)] 
-:: NodeMove = BranchMoved                  //This branch was moved to another location (or removed)
-			| BranchHidden UI              //This branch was hidden and can be restored
-            | ChildBranchesMoved NodeMoves
-
 //This type records the states of layouts applied somewhere in a ui tree
-/*
-:: LayoutState
-	= LSNone                                      //No state is tracked for a layout
-	| LSJson JSONNode                             //Temporary constructor for migration
-	| LSSequence LayoutState LayoutState          //Combined state of two sequenced layouts
-	| LSLayoutSubUIs UI (LayoutTree LayoutState)  //States of layouts applied to sub-ui's 
-
-:: LayoutTree a
-	= UIModified a
-	| SubUIsModified [(Int,LayoutTree a)]
-*/
-			
-derive JSONEncode NodeMove, NodeLayoutState, LayoutState, LayoutTree
-derive JSONDecode NodeMove, NodeLayoutState, LayoutState, LayoutTree
+derive JSONEncode LayoutState, LayoutTree
+derive JSONDecode LayoutState, LayoutTree
 
 instance tune ApplyLayout
 where
@@ -170,31 +151,62 @@ where
 wrapUI :: UINodeType -> Layout
 wrapUI type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,LSNone)
+	apply ui = (ReplaceUI (uic type [ui]), LSWrap ui)
 
-	adjust (ReplaceUI def,_) = (ReplaceUI (uic type [def]),LSNone)
-	adjust (NoChange,def) = (NoChange,def)
-	adjust (change,s) = (ChangeUI [] [(0,ChangeChild change)],s)
+	adjust (ReplaceUI ui,_) = apply ui 
 
-	restore _ = NoChange
+	adjust (NoChange,s)   = (NoChange,s)
+	adjust (change,LSWrap ui) 
+		= (ChangeUI [] [(0,ChangeChild change)],LSWrap (applyUIChange change ui))
+
+	//Crude restore...
+	//As long as the UIChange type does not support moving elements up and down the tree we cannot do better
+	restore (LSWrap ui) = ReplaceUI ui 
 
 unwrapUI :: Layout
 unwrapUI = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,LSNone)
+	apply ui=:(UI type attr [i:is]) = (ReplaceUI i, LSUnwrap ui)
+	apply ui 					    = (NoChange, LSUnwrap ui)	
 
-	adjust (ReplaceUI def,_) = case def of
-		(UI _ _ [child:_])  = (ReplaceUI child,LSJson (JSONBool False))
-		_ 					= (ReplaceUI (ui UIEmpty),LSJson (JSONBool True)) //If there is no inner component, remember we replaced it with empty...
+	adjust (ReplaceUI ui,_)
+		# (change,state) = apply ui
+		= (ReplaceUI (applyUIChange change ui), state)
 
-	adjust (ChangeUI _ childChanges,s=:(LSJson (JSONBool False))) = case [change \\ (0,ChangeChild change) <- childChanges] of
-		[change] = (change,s) //TODO: Check if there are cases with multiple changes to child 0
-		[change:x] = trace_n "Warning: unwrapUI: edge case" (NoChange,s) //TODO: Check if there are cases with multiple changes to child 0
-		_        = (NoChange,s)
+	adjust (ChangeUI attrChanges childChanges, LSUnwrap	ui)
+		//First update attributes
+		# ui = applyUIChange (ChangeUI attrChanges []) ui
+		//Process the child changes
+		# (change, ui) = foldl adjust` (NoChange, ui) childChanges
+		= (change, LSUnwrap ui)
+	where
+		adjust` (change, ui) c=:(n, ChangeChild cc)
+			= (if (n == 0) (mergeUIChanges cc change) change, applyUIChange (ChangeUI [] [c]) ui)
 
-	adjust (change,s) = (NoChange,s) 
+		//When the first element (the one that was unwrapped) is removed, the first sibling is now the unwrapped element.
+		//If there is no first sibling, we undo the unwrapping by replacing with the stored ui
 
-	restore _ = NoChange
+		adjust` (change, UI type attr [_,i:is]) (0, RemoveChild) = (ReplaceUI i, UI type attr [i:is])
+		adjust` (change, UI type attr [_]) (0, RemoveChild) = (ReplaceUI (UI type attr []), UI type attr [])
+		adjust` (change, ui) (n, RemoveChild) = (change, applyUIChange (ChangeUI [] [(n,RemoveChild)]) ui)
+
+		//When a new element is inserted at position 0, it should now be the shown element
+		adjust` (change, ui) c=:(n, InsertChild i)
+			= (if (n == 0) (ReplaceUI i) change, applyUIChange (ChangeUI [] [c]) ui)
+
+		//When a move affects the first position, we need to update the shown element
+		adjust` (change, ui) c=:(nfrom, MoveChild nto)
+			# ui = applyUIChange (ChangeUI [] [c]) ui
+			| nfrom == 0 || nto == 0
+				= case ui of (UI _ _ [i:_]) = (ReplaceUI i, ui) ; _ = (change, ui)
+			| otherwise 
+				= (change, ui)
+
+	adjust change = change
+
+	//Crude restore...
+	//As long as the UIChange type does not support moving elements up and down the tree we cannot do better
+	restore (LSUnwrap ui) = ReplaceUI ui 
 
 flattenUI :: Layout
 flattenUI = {Layout|apply=apply,adjust=adjust,restore=restore}
@@ -265,7 +277,7 @@ where
 	restore _ = NoChange
 /**
 * This is the core function that tranforms UIChange instructions to effect the layout
-* It uses a datastructure (NodeMoves) to track changes that have been applied in 'previous' calls to this function
+* It uses a datastructure to track changes that have been applied in 'previous' calls to this function
 *
 * @param path::UIPath: The location in the (unmodified) tree where they original change was targeted at
 * @param pred::(UIPath UI -> Bool): The predicate that tests if a node should be (re) moved
@@ -273,7 +285,7 @@ where
 * @param targetIdx::Int: The index in the destination node where the nodes are moved to
 * @param change:UIChange: The change that needs to be transformed
 */
-removeAndAdjust_ :: UIPath (UIPath UI -> Bool) Bool Int UIChange NodeMoves -> (!UIChange,!NodeMoves,![(Int,UIChildChange)])
+removeAndAdjust_ :: UIPath (UIPath UI -> Bool) Bool Int UIChange [(Int,LayoutTree UI)] -> (!UIChange,![(Int,LayoutTree UI)],![(Int,UIChildChange)])
 //Basic NoChange case: if there is no change we don't need to transform anything
 //            We do need to count how many nodes were removed to keep track of the targetIndex in other branches
 removeAndAdjust_ path pred hide tidx NoChange moves //Only adjust the targetIdx by counting the moved nodes
@@ -312,8 +324,8 @@ where
 			Just ui = [(adjustIndex moves idx,InsertChild ui)]
 		//Adjust the moved nodes state to adjust for the 'inserted' branch
 		# moves = [(if (i >= idx) (i + 1) i , m) \\ (i,m) <- moves]
-		# moves = if (mbUI =:Nothing) [(idx,if hide (BranchHidden ui) BranchMoved):moves] moves
-		# moves = if (subMoves =:[]) moves [(idx,ChildBranchesMoved subMoves):moves]
+		# moves = if (mbUI =:Nothing) [(idx,UIModified ui):moves] moves
+		# moves = if (subMoves =:[]) moves [(idx,SubUIsModified subMoves):moves]
 		//Recurse
 		# (moves,cs,inserts) = adjustChildChanges tidx moves cs
 		= (moves, change ++ cs, subInserts ++ inserts)
@@ -324,16 +336,12 @@ where
 			Nothing = ([(adjustIndex moves idx, RemoveChild)]
 					  ,[(if (i > idx) (i - 1) i , m) \\ (i,m) <- moves]	
 					  ,[])
-			Just BranchMoved
+			Just (UIModified _) 
 					//The branch was moved, generate a remove instruction at the destination 
 					= ([]
 					  ,[(if (i > idx) (i - 1) i, m) \\ (i,m) <- moves | i <> idx]
 					  ,[(adjustTargetIndex moves idx tidx,RemoveChild)])
-			Just (BranchHidden _) //TODO: This exactly the same case as BranchMoved
-					= ([]
-					  ,[(if (i > idx) (i - 1) i, m) \\ (i,m) <- moves | i <> idx]
-					  ,[(adjustTargetIndex moves idx tidx,RemoveChild)])
-			Just (ChildBranchesMoved subMoves)
+			Just (SubUIsModified subMoves)
 					//Children of the branch were moved, generate instructions for those
 					= ([(adjustIndex moves idx, RemoveChild)]	
 					  ,[(if (i > idx) (i - 1) i, m) \\ (i,m) <- moves | i <> idx]
@@ -361,7 +369,7 @@ where
 				= case collectNodes_ (path ++ [idx]) pred hide (adjustTargetIndex moves idx tidx) ui of
 					(_,Nothing,subMoves,subInserts) //The inserted UI matched, record the move and remove the child
 						= ([(adjustIndex moves idx, RemoveChild)]
-                      	  ,[(idx,if hide (BranchHidden ui) BranchMoved):moves]
+                      	  ,[(idx, UIModified ui):moves]
                       	  ,subInserts)
 					(_,_,[],_) //Nothing matched, no need to record anything
 						= ([(adjustIndex moves idx,ChangeChild (ReplaceUI ui))]
@@ -369,10 +377,10 @@ where
                           ,[])
 					(_,Just ui,subMoves,subInserts) //One or more sub nodes matched, we need to record the moves for this branch
 					    = ([(adjustIndex moves idx, ChangeChild (ReplaceUI ui))]
-					      ,[(idx,ChildBranchesMoved subMoves):[(i,m) \\ (i,m) <- moves | i <> idx]]
+					      ,[(idx,SubUIsModified subMoves):[(i,m) \\ (i,m) <- moves | i <> idx]]
 					      ,subInserts)
 			//Previously this child node matched the predicate
-			Just BranchMoved 
+			Just (UIModified _)
 				| pred (path ++ [idx]) ui //The replacement still matches, just replace in the target locatation
 					= ([]
                       ,moves
@@ -387,35 +395,17 @@ where
 						(_,Just ui,subMoves,subInserts)
 							# moves = [(i,m) \\ (i,m) <- moves | i <> idx]
 						    = ([(adjustIndex moves idx,InsertChild ui)]
-						      ,[(idx,ChildBranchesMoved subMoves):moves]
+						      ,[(idx,SubUIsModified subMoves):moves]
 						      ,[(adjustTargetIndex moves idx tidx,RemoveChild):subInserts])
-			//Previously this child node matched the predicate and was hidden
-			Just (BranchHidden _) //TODO: This case is exactly the same as the (Just BranchMoved case)
-				| pred (path ++ [idx]) ui //The replacement still matches, just replace in the target locatation
-					= ([]
-                      ,moves
-					  ,[(adjustTargetIndex moves idx tidx, ChangeChild change)])
-				| otherwise //The Moved node should no longer be moved -> change the replacement to an insert instruction
-					= case collectNodes_ (path ++ [idx]) pred hide (adjustTargetIndex moves idx tidx) ui of
-						(_,_,[],_) //Nothing matched, no need to record anything
-							# moves = [(i,m) \\ (i,m) <- moves | i <> idx]
-							= ([(adjustIndex moves idx,InsertChild ui)]
-					   	  	  ,moves 
-					          ,[(adjustTargetIndex moves idx tidx,RemoveChild)])
-						(_,Just ui,subMoves,subInserts)
-							# moves = [(i,m) \\ (i,m) <- moves | i <> idx]
-						    = ([(adjustIndex moves idx,InsertChild ui)]
-						      ,[(idx,ChildBranchesMoved subMoves):moves]
-						      ,[(adjustTargetIndex moves idx tidx,RemoveChild):subInserts])			
 			//Previously children of the child node matched the predicate
-			Just (ChildBranchesMoved subMoves)
+			Just (SubUIsModified subMoves)
 				//Create remove instructions for the replaced nodes
 				# inserts = repeatn (countMoves_ subMoves True) (adjustTargetIndex moves idx tidx,RemoveChild) 
 				//Find out what needs to be replaced in the new ui
 				= case collectNodes_ (path ++ [idx]) pred hide (adjustTargetIndex moves idx tidx) ui of
 					(_,Nothing,subMoves,subInserts) //The replacement UI matched, record the move
 						= ([(adjustIndex moves idx, RemoveChild)]
-					      ,[(idx,BranchMoved):[(i,m) \\ (i,m) <- moves | i <> idx]]
+					      ,[(idx,UIModified ui):[(i,m) \\ (i,m) <- moves | i <> idx]]
 					      ,inserts ++ subInserts)
 					(_,_,[],_) //Nothing matched, no longer need to record anything
 						= ([(adjustIndex moves idx, ChangeChild (ReplaceUI ui))]
@@ -423,7 +413,7 @@ where
                           ,inserts)
 					(_,Just ui,subMoves,subInserts) //One or more sub nodes matched, we need to record the moves for this branch
 				        = ([(adjustIndex moves idx, ChangeChild (ReplaceUI ui))]
-                          ,[(idx,ChildBranchesMoved subMoves):[(i,m) \\ (i,m) <- moves | i <> idx]]
+                          ,[(idx,SubUIsModified subMoves):[(i,m) \\ (i,m) <- moves | i <> idx]]
 					      ,inserts ++ subInserts)
 		# (moves,cs,inserts) = adjustChildChanges tidx moves cs
 		= (moves, change ++ cs, subInserts ++ inserts)
@@ -435,40 +425,35 @@ where
 				# (change,subMoves,subInserts) = removeAndAdjust_ (path ++ [idx]) pred hide (adjustTargetIndex moves idx tidx) change []
 				# moves = case subMoves of
 					[] = moves
-					_  = [(idx,ChildBranchesMoved subMoves):moves]
+					_  = [(idx,SubUIsModified subMoves):moves]
 				= ([(adjustIndex moves idx,ChangeChild change)]
 					  ,moves
 					  ,[])
-			//Redirect the change
-			Just BranchMoved
-					= ([]
-					  ,moves
-					  ,[(adjustTargetIndex moves idx tidx,ChangeChild change)]) 
 			//Apply the change to the hidden UI and check if the predicate still holds
-			Just (BranchHidden ui)
+			Just (UIModified ui)
 				# ui = applyUIChange change ui
 				| pred (path ++ [idx]) ui //The predicate still matches update the moves
-					= ([],[(idx,BranchHidden ui):[(i,m) \\ (i,m) <- moves | i <> idx]], []) 
+					= ([],[(idx,UIModified ui):[(i,m) \\ (i,m) <- moves | i <> idx]], []) 
 				| otherwise //The predicate no longer matches -> re-insert the change
 					# moves = [(i,m) \\ (i,m) <- moves | i <> idx]
 					= ([(adjustIndex moves idx, InsertChild ui)],moves,[]) 
 			//Recursively adjust the change 
-			Just (ChildBranchesMoved subMoves)
+			Just (SubUIsModified subMoves)
 					# (change,subMoves,subInserts) = removeAndAdjust_ (path ++ [idx]) pred hide (adjustTargetIndex moves idx tidx) change subMoves
 					= ([(adjustIndex moves idx,ChangeChild change)]
-                      ,[(idx,ChildBranchesMoved subMoves):[(i,m) \\ (i,m) <- moves | i <> idx]]
+                      ,[(idx,SubUIsModified subMoves):[(i,m) \\ (i,m) <- moves | i <> idx]]
 					  ,subInserts)
 		# (moves,cs,inserts) = adjustChildChanges tidx moves cs
 		= (moves, change ++ cs, subInserts ++ inserts)
 
-	adjustIndex moves idx = idx - foldr (\(i,m) n -> if (i <= idx && (m =: BranchMoved || m =: (BranchHidden _))) (n + 1) n) 0 moves
+	adjustIndex moves idx = idx - foldr (\(i,m) n -> if (i <= idx && (m =: (UIModified _))) (n + 1) n) 0 moves
 
 	adjustTargetIndex moves idx tidx = tidx + countMoves_ [(i,m) \\ (i,m) <- moves | i < idx] True
 
 	findMove idx moves = listToMaybe [m \\ (i,m) <- moves | i == idx]
 
 //Collect parts of a UI and record their positions
-collectNodes_ :: UIPath (UIPath UI -> Bool) Bool Int UI -> (Int, Maybe UI, NodeMoves, [(Int,UIChildChange)])
+collectNodes_ :: UIPath (UIPath UI -> Bool) Bool Int UI -> (Int, Maybe UI, [(Int,LayoutTree UI)], [(Int,UIChildChange)])
 collectNodes_ path pred hide idx ui=:(UI type attr items)
 	| pred path ui = (idx + 1, Nothing, [], [(idx,InsertChild ui)])
 	| otherwise 
@@ -481,12 +466,12 @@ where
 		# (idx, items, moves, inserts)          = collectInItems idx (i + 1) items
 		= case mbItem of 
 			Nothing   //The item itself was collected
-				= (idx, items, [(i,if hide (BranchHidden item) BranchMoved):moves], itemInserts ++ inserts)
+				= (idx, items, [(i,UIModified item):moves], itemInserts ++ inserts)
 			Just item //Maybe modified
 				| itemMoves =:[] //If there are no moves in the branch, we don't need to add it
 					= (idx, [item:items], moves, itemInserts ++ inserts)
 				| otherwise	
-					= (idx, [item:items], [(i,ChildBranchesMoved itemMoves):moves], itemInserts ++ inserts)
+					= (idx, [item:items], [(i,SubUIsModified itemMoves):moves], itemInserts ++ inserts)
 
 insertAndAdjust_ :: UIPath Int Int [(Int,UIChildChange)] UIChange -> UIChange
 insertAndAdjust_ path=:[] startIdx numInserts insertChanges change = case change of //Add the inserts here
@@ -514,12 +499,11 @@ where
 					= [(idx,ChangeChild (insertAndAdjust_ ss startIdx numInserts insertChanges NoChange)),(i,ChangeChild change):cs] //Add a branch
 	adjustChildChanges idx [c:cs] = [c:adjustChildChanges idx cs] //TODO: Figure out if we can properly handle structure changes on the path
 	
-countMoves_ :: NodeMoves Bool -> Int
+countMoves_ :: [(Int,LayoutTree a)] Bool -> Int
 countMoves_  moves recursive = foldr count 0 (map snd moves)
 where
-	count BranchMoved n = n + 1
-	count (BranchHidden _) n = n + 1
-	count (ChildBranchesMoved moves) n = if recursive (n + countMoves_ moves recursive) n
+	count (UIModified _) n = n + 1
+	count (SubUIsModified changes) n = if recursive (n + countMoves_ changes recursive) n
 
 insertNodes_ :: UIPath [(Int,UIChildChange)] UI -> UI
 insertNodes_ [] changes (UI type attr items) = UI type attr (foldl apply items changes)

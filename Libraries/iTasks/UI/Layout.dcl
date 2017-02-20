@@ -24,8 +24,11 @@ from Text.JSON import :: JSONNode
 :: LayoutState
 	= LSNone                                      //No state is tracked for a layout
 	| LSJson JSONNode                             //Temporary constructor for migration
+	| LSWrap UI                                   //State for unwrap tasks
+	| LSUnwrap UI                                 //State for unwrap tasks
 	| LSSequence LayoutState LayoutState          //Combined state of two sequenced layouts
 	| LSLayoutSubUIs UI (LayoutTree LayoutState)  //States of layouts applied to sub-ui's 
+	| LSRemoveSubUIs UI (LayoutTree UI)           //Ui's that were removed by the layout
 
 :: LayoutTree a
 	= UIModified a
