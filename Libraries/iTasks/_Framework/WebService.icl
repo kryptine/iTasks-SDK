@@ -276,7 +276,7 @@ where
 			[WSTextMessage msg:_] 
 				//Process events:
 				= case fromString msg of
-					//- new session
+					// - new session
 					(JSONArray [JSONInt reqId,JSONString "new"])
                     	= case createTaskInstance` req taskUrls iworld of
 							(Error (_,err), iworld)
@@ -286,12 +286,12 @@ where
 								# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
 								# json = JSONArray [JSONInt reqId, JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]]
 								= (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
-					//- attach existing instance
+					// - attach existing instance
 					(JSONArray [JSONString "attach",JSONInt instanceNo,JSONString instanceKey])
 						//TODO: Clear output
 						# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
 						= ([],False, (state,[instanceNo:instances]),Nothing,iworld) //TODO: Maybe send confirmation message?
-					//- detach instance
+					// - detach instance
 					(JSONArray [JSONString "detach",JSONInt instanceNo,JSONString instanceKey])
 						= ([],False, (state,removeMember instanceNo instances),Nothing,iworld) //TODO: Maybe send confirmation message?
 					(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONNull,JSONString actionId]]) //Action event

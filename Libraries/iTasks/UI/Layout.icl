@@ -4,7 +4,6 @@ import StdTuple, StdList, StdBool, StdInt, StdOrdList, StdArray, StdMisc
 import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
-import Graphics.Layout
 import StdEnum
 from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys, unions, singleton
 
@@ -303,7 +302,7 @@ where
 		//Sort for easier debugging
 		# moves = sortBy (\(i1,m1) (i2,m2) -> i1 < i2) moves
 		= (moves,[],[])
-	//- Insert 
+	// - Insert 
 	adjustChildChanges tidx moves [(idx,InsertChild ui):cs] 
 		//Determine additional moves in the replacement ui
 		# (_,mbUI,subMoves,subInserts) = collectNodes_ (path ++ [idx]) pred hide (adjustTargetIndex moves idx tidx) ui	
@@ -318,7 +317,7 @@ where
 		//Recurse
 		# (moves,cs,inserts) = adjustChildChanges tidx moves cs
 		= (moves, change ++ cs, subInserts ++ inserts)
-	//- Remove
+	// - Remove
 	adjustChildChanges tidx moves [(idx,RemoveChild):cs] 
 		//Check if the branch was moved by the layout 
 		# (change,moves,subInserts) = case findMove idx moves of
@@ -341,7 +340,7 @@ where
 					  ,repeatn (countMoves_ subMoves True) (adjustTargetIndex moves idx tidx, RemoveChild))
 		# (moves, cs, inserts) = adjustChildChanges tidx moves cs
 		= (moves, change ++ cs, subInserts ++ inserts)
-	//- Move
+	// - Move
 	adjustChildChanges tidx moves [(idx,MoveChild dst):cs] 
 		| countMoves_ moves False > 0 = abort "Cannot adjust move instructions at a level where previous layout rules have matched" 
 		//Apply the rearrangement to the move information 
@@ -354,7 +353,7 @@ where
 		# subInserts = []
 		# (moves, cs, inserts) = adjustChildChanges tidx moves cs
 		= (moves, change ++ cs, subInserts ++ inserts)
-	//- Replace
+	// - Replace
 	adjustChildChanges tidx moves [(idx,ChangeChild change=:(ReplaceUI ui)):cs] 
 		# (change,moves,subInserts) = case findMove idx moves of
 			//Previously the child did not match
@@ -428,7 +427,7 @@ where
 					      ,inserts ++ subInserts)
 		# (moves,cs,inserts) = adjustChildChanges tidx moves cs
 		= (moves, change ++ cs, subInserts ++ inserts)
-	//- Other recursive changes
+	// - Other recursive changes
 	adjustChildChanges tidx moves [(idx,ChangeChild change):cs] 
 		# (change,moves,subInserts) = case findMove idx moves of
 			//Nothing moved yet, but the predicate might match on inserts or replace instructions in descendant nodes
@@ -701,12 +700,8 @@ uiOf :: TaskUITree -> TaskUILayout a
 uiOf (Ed  path  ) = UINode path
 uiOf (Par path _) = UINode path
 
-instance Layout TaskUILayout Int Int TaskHost where
-  collage        _ _ _ = UINode []
-  overlay      _ _ _ _ = UINode []
-  beside    _ _ _ ts _ = UIBeside ts
-  above     _ _ _ ts _ = UIAbove ts
-  grid _ _ _ _ _ _ _ _ = UINode []
+besideT ts = UIBeside ts
+aboveT ts = UIAbove ts
 
 uiToRefs :: UI -> TaskUITree
 uiToRefs ui
