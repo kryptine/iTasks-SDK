@@ -172,7 +172,7 @@ where
 
 	//Expected final UI
 	expUI = uic UIStep [uic UIContainer [ui UIAction, ui UIEmpty]]
-	expState = LSJson (toJSON [(1,BranchMoved),(2,BranchMoved)])
+	expState = LSRemoveSubUIs expUI (SubUIsModified [(1,UIModified (ui UIAction)),(2,UIModified (ui UIEmpty))])
 
 	isTarget (UI type _ _) = (type =: UIAction) || (type =: UIEmpty)
 
@@ -188,7 +188,7 @@ where
 	initState = snd (sutLayout.Layout.apply initUI)
 	//Expected final UI
 	expUI = uic UIPanel [uic UIContainer [ui UIEmpty], uic UIContainer [ui UIAction, ui UIAction]]
-	expState = LSJson (toJSON [(0,ChildBranchesMoved [(0,BranchMoved),(2,BranchMoved)])])
+	expState = LSRemoveSubUIs expUI (SubUIsModified [(0,SubUIsModified [(0,UIModified (ui UIAction)),(2,UIModified (ui UIAction))])])
 
 testMoveSubsMatchingNewRoutes = assertEqual "Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
@@ -234,7 +234,7 @@ where
 	//Expected reroute change 
 	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
-	expState = LSJson (toJSON [(0,ChildBranchesMoved [(0,BranchMoved),(2,BranchMoved)])])
+	expState = LSRemoveSubUIs initUI (SubUIsModified [(0,SubUIsModified [(0,UIModified (ui UIAction)),(2,UIModified (ui UIAction))])])
 
 	isAction (UI type _ _) = type =: UIAction
 
@@ -348,8 +348,8 @@ where
 
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIInteract))
 
-	initState = LSJson (toJSON [(0,ChildBranchesMoved [(0,BranchMoved)])
-					   ,(1,ChildBranchesMoved [(0,ChildBranchesMoved [(0,BranchMoved)])])])
+	initState = LSRemoveSubUIs (ui UIEmpty) (SubUIsModified [(0,SubUIsModified [(0,UIModified (ui UIEmpty))])
+					   ,(1,SubUIsModified [(0,SubUIsModified [(0,UIModified (ui UIAction))])])])
 
 	//Change after first transform 
 	changeToModify = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar [ui UIInteract]))]))]))]

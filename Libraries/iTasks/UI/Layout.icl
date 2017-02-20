@@ -37,9 +37,12 @@ where
 
 		eval event evalOpts (TCLayout json tt) iworld = case evala event evalOpts tt iworld of
 	        (ValueResult value info change tt,iworld) 
-				# s = fromMaybe (LSJson JSONNull) (fromJSON json)
-				# (change,s) = l.Layout.adjust (change,s)
-				= (ValueResult value info change (TCLayout (toJSON s) tt), iworld)
+				= case fromJSON json of
+					(Just s)	
+						# (change,s) = l.Layout.adjust (change,s)
+						= (ValueResult value info change (TCLayout (toJSON s) tt), iworld)
+					Nothing	
+						= (ExceptionResult (exception "Corrupt layout state"), iworld)
             (res,iworld) = (res,iworld)
 		
 		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
@@ -71,7 +74,7 @@ inUISelection (SelectNOT sel) path ui = not (inUISelection sel path ui)
 setUIType :: UINodeType -> Layout
 setUIType type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply (UI _ attr items) = (ReplaceUI (UI type attr items), LSNone) //Crude replacement (no instruction possible
+	apply (UI _ attr items) = (ReplaceUI (UI type attr items), LSNone) //Crude replacement (no instruction possible)
 
 	adjust (change,s) = (change,s)
 
@@ -250,29 +253,29 @@ moveSubUIs selection dst = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	pred = inUISelection selection
 
-	apply _ = (NoChange,LSJson JSONNull)
+	apply ui = (NoChange, LSRemoveSubUIs ui (SubUIsModified []))
 
-	adjust (change,LSJson s)
-		# moves = if (change=:(ReplaceUI _)) [] (fromMaybe [] (fromJSON s)) //On a replace, we reset the state
+	adjust (change, LSRemoveSubUIs ui (SubUIsModified moves))
+		# moves = if (change=:(ReplaceUI _)) [] moves//On a replace, we reset the state
 		# startIdx = last dst
 		//Remove based on the predicate
 		# (change,moves,inserts) = removeAndAdjust_ [] pred False startIdx change moves
 		//If there is a destination path, adjust the change for these moves
 	 	# change = insertAndAdjust_ (init dst) startIdx (countMoves_ moves True) inserts change
-	    = (change, LSJson (toJSON moves))
+	    = (change, LSRemoveSubUIs ui (SubUIsModified moves))
 
 	restore _ = NoChange
 
 removeSubUIs :: UISelection -> Layout 
 removeSubUIs selection = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,LSJson JSONNull)
+	apply ui = (NoChange, LSRemoveSubUIs ui (SubUIsModified []))
 
 	pred = inUISelection selection
-	adjust (change,LSJson s)
-		# moves = if (change=:(ReplaceUI _)) [] (fromMaybe [] (fromJSON s)) //On a replace, we reset the state
-		# (change,moves,_) = removeAndAdjust_ [] pred True 0 change moves
-		= (change, LSJson (toJSON moves))
+	adjust (change,LSRemoveSubUIs ui (SubUIsModified moves))
+		# moves = if (change=:(ReplaceUI _)) [] moves //On a replace, we reset the state
+		# (change, moves,_) = removeAndAdjust_ [] pred True 0 change moves
+		= (change, LSRemoveSubUIs ui (SubUIsModified moves))
 
 	restore _ = NoChange
 /**
@@ -715,7 +718,7 @@ taskUILayoutToUI (UINode path)
 reorderUI :: (UI -> UI) -> Layout 
 reorderUI reorder = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,LSJson JSONNull)
+	apply _ = (NoChange,LSNone)
 
 	adjust (NoChange,s)
 		 = (NoChange,s)
@@ -723,7 +726,7 @@ where
 		//Determine a skeleton of the reordered ui, and replace references
 		//Replace references to parts of the original ui
 		# (moves,ui) = derefAll ui [] (reorder ui)
-		= (ReplaceUI ui,LSJson (toJSON moves))
+		= (ReplaceUI ui,LSNone)
 	//Adjust followup changes to the moved parts
 	adjust (c,s) = (c,s)
 	//adjust (c,s) = (adjust` (fromMaybe 'DM'.newMap (fromJSON s)) c,s)
