@@ -30,7 +30,7 @@ where
              (viewInformation () [] (H1Tag [] [Text name]) <<@ ApplyLayout (setAttributes (heightAttr WrapSize)))
         -&&- catchAll
                  ( viewInformation "Test description" [] description ||- updateInformation "Test run parameters" [] {numberOfSteps = 100}
-                   >>* [OnAction (Action "Start test") (hasValue (runTest suiteName test))] @! ()
+                   >>* [OnAction (Action "Start test") (ifValue (\{numberOfSteps} -> numberOfSteps > 0) (runTest suiteName test))] @! ()
                  )
                  (\e -> viewInformation "Error" [] e @! ())
 
