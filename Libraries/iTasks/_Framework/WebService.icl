@@ -274,23 +274,15 @@ where
 					# (change, iworld) = getUIChange instanceNo iworld
                     = (jsonResponse change, iworld)
 				//(Error msg,iworld)
+        (JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONString name,value]]) = //Edit event
+            case evalTaskInstance instanceNo (EditEvent (fromString taskId) name value) iworld of 
+				(Ok _, iworld)
+					# (change, iworld) = getUIChange instanceNo iworld
+                    = (jsonResponse change, iworld)
+				//(Error msg,iworld)
         e
 		    # json = JSONArray [JSONString "ERROR",JSONString "Unknown event"]
-		    = (jsonResponse json, iworld) 
-	    //- attach existing instance
-	    /*
-        JSONArray [JSONString "attach",JSONInt instanceNo,JSONString instanceKey]
-		    //TODO: Clear output
-		    # iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
-		    = (okResponse, iworld) //TODO: Maybe send confirmation message?
-	    //- detach instance
-	    (JSONArray [JSONString "detach",JSONInt instanceNo,JSONString instanceKey])
-		    = ([],False, (state,removeMember instanceNo instances),Nothing,iworld) //TODO: Maybe send confirmation message?
-	    
-	    (JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONString name,value]]) //Edit event
-		    # iworld = queueEvent instanceNo (EditEvent (fromString taskId) name value) iworld //Queue event
-		    = ([],False, (state,instances),Nothing,iworld) //TODO: Maybe send confirmation message?
-*/
+		    = (jsonResponse json, iworld)
     where
         createTaskInstance` req [{PublishedTask|url,task=TaskWrapper task}:taskUrls] iworld
 		    | req.HTTPRequest.req_path == uiUrl url = createTaskInstance (task req) iworld
@@ -307,23 +299,6 @@ where
                 //Error...
 
     uiUrl matchUrl = (if (endsWith "/" matchUrl) matchUrl (matchUrl +++ "/")) +++ "gui-http"
-	/*where
-    	serveStaticResource req [] iworld
-	    	= (notFoundResponse req,iworld)
-    	serveStaticResource req [d:ds] iworld=:{IWorld|world}
-			# filename		   = if (isMember req.HTTPRequest.req_path taskPaths) //Check if one of the published tasks is requested, then serve bootstrap page
-									(d +++ filePath "/index.html")
-									(d +++ filePath req.HTTPRequest.req_path)
-			# type			   = mimeType filename
-            # (mbInfo,world) = getFileInfo filename world
-			| case mbInfo of (Ok info) = info.directory ; _ = True
-               = serveStaticResource req ds {IWorld|iworld & world = world}
-			# (mbContent, world)	= readFile filename world
-			= case mbContent of
-				(Ok content) = ({ okResponse
-	    						& rsp_headers = [("Content-Type", type),("Content-Length", toString (size content))]
-                                , rsp_data = content}, {IWorld|iworld & world = world})
-                (Error e)    = (errorResponse (toString e +++ " ("+++ filename +++")"), {IWorld|iworld & world = world})*/
 
 taskUIService :: ![PublishedTask] ->
                  (!(String -> Bool)

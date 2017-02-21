@@ -4,21 +4,26 @@ import iTasks
 :: StressTestSuite =
 	{ name        :: String
 	, description :: String
-	, tests       :: [StressTest]
+	, tests       :: [StressTestContainer]
 	}
+:: StressTestContainer = E.st: StressTestContainer (StressTest st) & iTask st
 
-:: StressTest =
+:: StressTest st =
     { name          :: String
     , description   :: String
     , taskUnderTest :: Task ()
-    , testStep      :: [ActionWithTaskId] -> TestStepEvent
+    , testStep      :: [ActionWithTaskId] [EditorId] st -> (TestStepEvent, st)
+    , initState     :: st
     }
 
-:: ActionWithTaskId :== (String, Action)
-:: TestStepEvent = DoAction ActionWithTaskId //| Edit
+:: TestStepEvent = DoAction ActionWithTaskId | Edit EditorId JSONNode
+:: ActionWithTaskId     :== (String, Action)
+:: EditorId             :== (String, String) // (taskId, editorId)
 
-stest :: String String (Task a) ([ActionWithTaskId] -> TestStepEvent) -> StressTest | iTask a
+stestState :: String String (Task a) ([ActionWithTaskId] [EditorId] st -> (TestStepEvent, st)) st -> StressTestContainer | iTask a & iTask st
+stest      :: String String (Task a) ([ActionWithTaskId] [EditorId]    -> TestStepEvent)          -> StressTestContainer | iTask a
+tsEdit :: EditorId v -> TestStepEvent | JSONEncode{|*|} v
 
-runStressTests :: [StressTestSuite] -> Task ()
+runStressTests         :: [StressTestSuite] -> Task ()
 exposedStressTestTasks :: [StressTestSuite] -> [PublishedTask]
 

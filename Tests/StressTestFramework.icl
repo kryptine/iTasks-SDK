@@ -13,9 +13,16 @@ from Data.List import maximum
 
 TEST_SERVER_PORT :== "12345"
 
-stest :: String String (Task a) ([ActionWithTaskId] -> TestStepEvent) -> StressTest | iTask a
-stest name description tut step =
-    {name = name, description = description, testStep = step, taskUnderTest = tut @! ()}
+stestState :: String String (Task a) ([ActionWithTaskId] [EditorId] st -> (TestStepEvent, st)) st -> StressTestContainer | iTask a & iTask st
+stestState name description tut step initSt = StressTestContainer
+    {name = name, description = description, testStep = step, taskUnderTest = tut @! (), initState = initSt}
+
+stest :: String String (Task a) ([ActionWithTaskId] [EditorId] -> TestStepEvent) -> StressTestContainer | iTask a
+stest name description tut step = StressTestContainer
+    {name = name, description = description, testStep = \a e st -> (step a e, st), taskUnderTest = tut @! (), initState = ()}
+
+tsEdit :: EditorId v -> TestStepEvent | JSONEncode{|*|} v
+tsEdit editorId v = Edit editorId (toJSON v)
 
 :: RunParameters = { numberOfSteps :: Int }
 
@@ -23,48 +30,64 @@ derive class iTask StressTest, TestStepEvent, HTTPResponse, RunParameters
 
 runStressTests :: [StressTestSuite] -> Task ()
 runStressTests suites =
-    ( editSelection (Title "Select test") False (SelectInTree toTree selectTest) suites [] @? tvHd
+    ( editSelection (Title "Select test") False (SelectInTree toTree selectIdx) suites [] @? tvHd
     >&> withSelection (viewInformation () [] "Select a test") testStress) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
 where
-    testStress (test=:{StressTest|name, description}, suiteName) =
-             (viewInformation () [] (H1Tag [] [Text name]) <<@ ApplyLayout (setAttributes (heightAttr WrapSize)))
+    //testStress :: Int -> Task ()
+    testStress idx =
+             (viewInformation () [] (H1Tag [] [Text (testName test)]) <<@ ApplyLayout (setAttributes (heightAttr WrapSize)))
         -&&- catchAll
-                 ( viewInformation "Test description" [] description ||- updateInformation "Test run parameters" [] {numberOfSteps = 100}
+                 ( viewInformation "Test description" [] (testDescr test) ||- updateInformation "Test run parameters" [] {numberOfSteps = 100}
                    >>* [OnAction (Action "Start test") (ifValue (\{numberOfSteps} -> numberOfSteps > 0) (runTest suiteName test))] @! ()
                  )
                  (\e -> viewInformation "Error" [] e @! ())
+    where
+        (test, suiteName) = (flatten [[(t,name) \\ t <- tests] \\ {name,tests} <- suites]) !! idx
+        testName  (StressTestContainer {StressTest|name})        = name
+        testDescr (StressTestContainer {StressTest|description}) = description
 
-    runTest suiteName {StressTest|name, testStep} {numberOfSteps} =
+    runTest :: String StressTestContainer RunParameters -> Task ()
+    runTest suiteName (StressTestContainer {StressTest|name, testStep, initState}) {numberOfSteps} =
         (     (runTestServer <<@ ApplyLayout (hideSubs SelectRoot))
           ||- (sleep "Waiting for test server..." 2 >>| performRequests)
         ) >>=
         visualizeResults
     where
         performRequests =
-            startSession uri >>= \(instanceNo, actions) ->
-            performSteps instanceNo testStep actions 0 [] >>= \result ->
+            startSession uri >>= \(instanceNo, actions, editors) ->
+            performSteps instanceNo testStep actions editors initState 0 [] >>= \result ->
             shutdownTestServer >>|
             return result
 
-        performSteps :: Int ([ActionWithTaskId] -> TestStepEvent) [ActionWithTaskId] Int [Int] -> Task [Int]
-        performSteps _ _ _ n acc | n == numberOfSteps = return (reverse acc)
-        performSteps instanceNo step actions n acc =
+        performSteps :: Int
+                        ([ActionWithTaskId] [EditorId] st -> (TestStepEvent, st))
+                        [ActionWithTaskId]
+                        [EditorId]
+                        st
+                        Int
+                        [Int]
+                     -> Task [Int]
+                      | iTask st
+        performSteps _ _ _ _ _ n acc | n == numberOfSteps = return (reverse acc)
+        performSteps instanceNo step actions editors st n acc =
             (     viewInformation "Progress" [] ((n +++> "/") <+++ numberOfSteps)
-              ||- case step actions of
+              ||- getTimeMs >>= \tBefore ->
+                  let (stepEvent, st`) = step actions editors st in
+                  (case stepEvent of
                       DoAction action ->
-                          getTimeMs >>= \tBefore ->
-                          doAction uri instanceNo action >>= \actions ->
-                          getTimeMs >>= \tAfter ->
-                          return (actions, tAfter - tBefore)
-            ) >>= \(actions, respTime) ->
-            performSteps instanceNo step actions (inc n) [respTime:acc]
+                          doAction uri instanceNo action
+                      Edit editorId value ->
+                          edit uri instanceNo editorId value
+                  ) >>= \actions ->
+                  getTimeMs >>= \tAfter ->
+                  return (actions, st`, tAfter - tBefore)
+            ) >>= \(actions, st`, respTime) ->
+            performSteps instanceNo step actions editors st` (inc n) [respTime:acc]
 
         uri = testURI suiteName name
 
-    selectTest suites [idx] 
-		| idx >= 0  = [(flatten [[(t,name) \\ t <- tests] \\ {name,tests} <- suites]) !! idx]
-		| otherwise = []
-	selectTest _ _ = []
+    selectIdx _ [idx] | idx >= 0 = [idx]
+    selectIdx _ _                = []
 
     toTree suites = reverse (snd (foldl addSuite (0,[]) suites))
 
@@ -73,7 +96,7 @@ where
 		# (i,children) = foldl addTest (i,[]) tests
 		= (i, [{ChoiceNode|id = -1 * i, label=name, expanded=False, icon=Nothing, children=reverse children}:t])
 
-    addTest (i,t) {StressTest|name}
+    addTest (i,t) (StressTestContainer {StressTest|name})
 		= (i + 1, [{ChoiceNode|id = i, label=name, expanded=False, icon=Nothing, children=[]}:t])
 	addTest (i,t) _ = (i,t)
 
@@ -81,7 +104,7 @@ exposedStressTestTasks :: [StressTestSuite] -> [PublishedTask]
 exposedStressTestTasks suites = flatten [suiteTasks name tests \\ {name,tests} <- suites]
 where
     suiteTasks suiteName tests =
-        [publish (testURL suiteName name) (const taskUnderTest) \\ {name,taskUnderTest} <- tests]
+        [publish (testURL suiteName name) (const taskUnderTest) \\ StressTestContainer {name,taskUnderTest} <- tests]
 
 // utility
 
@@ -146,12 +169,12 @@ where
     margin = px  50.0
     nRes   = length res
 
-startSession :: URI -> Task (Int, [ActionWithTaskId])
+startSession :: URI -> Task (Int, [ActionWithTaskId], [EditorId])
 startSession uri =
     sendToTestServer uri (JSONString "new") >>= \rsp ->
     case rsp of
         JSONObject [("instanceNo", JSONInt instanceNo), ("instanceKey", JSONString _), ("ui", ui)] ->
-            return (instanceNo, possibleActions ui)
+            return (instanceNo, possibleActions ui, editors ui)
         _ ->
             throw ("Unexpected response from test server: " +++ toString rsp)
 
@@ -162,6 +185,17 @@ doAction uri instanceNo (taskId, Action actionId) =
         ( JSONArray [ JSONString "event"
                     , JSONInt instanceNo
                     , JSONArray [JSONString taskId,JSONNull,JSONString actionId]
+                    ]
+        ) >>= \rsp ->
+        return (possibleActions rsp)
+
+edit :: URI Int EditorId JSONNode -> Task [ActionWithTaskId]
+edit uri instanceNo (taskId, editorId) value =
+    sendToTestServer
+        uri
+        ( JSONArray [ JSONString "event"
+                    , JSONInt instanceNo
+                    , JSONArray [JSONString taskId, JSONString editorId, value]
                     ]
         ) >>= \rsp ->
         return (possibleActions rsp)
@@ -207,6 +241,16 @@ where
         _ -> foldl (\acc (_, json) -> possibleActions` json acc) acc fields
     possibleActions` (JSONArray fields) acc = foldl (flip possibleActions`) acc fields
     possibleActions` _ acc = acc
+
+editors :: JSONNode -> [EditorId]
+editors ui = editors` ui []
+where
+    editors` (JSONObject fields) acc = case filter (\(k,_) -> k == "editorId" || k == "taskId") fields of
+        [("editorId", JSONString editorId), ("taskId", JSONString taskId)] -> [(taskId, editorId) : acc]
+        [("taskId", JSONString taskId), ("editorId", JSONString editorId)] -> [(taskId, editorId) : acc]
+        _ -> foldl (\acc (_, json) -> editors` json acc) acc fields
+    editors` (JSONArray fields) acc = foldl (flip editors`) acc fields
+    editors` _ acc = acc
 
 sleep :: d Int -> Task () | toPrompt d
 sleep d delta =
