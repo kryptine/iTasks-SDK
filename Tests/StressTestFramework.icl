@@ -90,17 +90,61 @@ visualizeResults res = viewInformation "Results" [ViewUsing id (fromSVGEditor sv
 where
 	svgeditor = {SVGEditor|initView=const (),renderImage = \_ _ _ -> resultViz, updView = \m v -> v, updModel = \m v -> m}
 
-    //resultViz :: Image m
-    resultViz = collage` [] [line] (Host frame)
+    resultViz = overlay`
+        [(AtMiddleX, AtMiddleY), (AtMiddleX, AtMiddleY)]
+        []
+        [empty (width + margin*.2) (height + margin*.2), resultViz`]
+        NoHost
 
-    frame = rect (px width) (px height) <@< {fill = toSVGColor "none"}
-    line = polyline Nothing [(px (i * iStep), px (height - toReal t * tStep)) \\ i <- [0.0..] & t <- res]
-           <@< {stroke = toSVGColor "red"}
+    resultViz` = overlay`
+        [(AtLeft, AtTop)]
+        [(zero, height), (zero, zero), (zero, height - tickLength /. 2), (~tickLength /. 2, zero), (zero, zero)]
+        [xAxis, yAxis, xTicks, yTicks, resLine]
+        NoHost
 
-    iStep  = width  / toReal (length res - 1)
-    tStep  = height / toReal (maximum res)
-    width  = 800.0
-    height = 500.0
+    // coordinate system
+    xAxis = line Nothing Slash width zero
+    yAxis = line Nothing Slash zero height
+    xTicks = beside`
+        []
+        [(iStep *. resultIdxAtNthTick j, zero) \\ j <- [0..nXTicks-1]]
+        [xTick (resultIdxAtNthTick j + 1) \\ j <- [0..nXTicks-1]]
+        NoHost
+    where
+        resultIdxAtNthTick n = n * (nRes - 1) / (nXTicks - 1)
+
+        xTick i = line (Just {defaultMarkers & markerStart = Just label}) Slash zero tickLength
+        where
+            label =  (text ticksLabelFont (toString i +++ " "))
+        nXTicks = 10
+
+    yTicks = above`
+        []
+        [(zero, yStep *. j) \\ j <- [0..nYTicks-1]]
+        [yTick ((nYTicks-1-j) * maxRes / (nYTicks-1)) \\ j <- [0..nYTicks-1]]
+        NoHost
+    where
+        yStep = height /. (nYTicks - 1)
+
+        yTick i = line (Just {defaultMarkers & markerStart = Just label}) Slash tickLength zero
+        where
+            label = text ticksLabelFont (toString i +++ "ms ")
+        nYTicks = 10
+
+    tickLength = px 10.0
+    ticksLabelFont = normalFontDef "Times New Roman" 12.0
+
+    // actual result lines
+    resLine = polyline Nothing [(iStep *. i, height - tStep *. t) \\ i <- [0..] & t <- res]
+              <@< {stroke = toSVGColor "red"}
+    
+    iStep  = width  /. (nRes - 1)
+    tStep  = height /. maxRes
+    maxRes = maximum res
+    width  = px 800.0
+    height = px 500.0
+    margin = px  50.0
+    nRes   = length res
 
 startSession :: URI -> Task (Int, [ActionWithTaskId])
 startSession uri =
