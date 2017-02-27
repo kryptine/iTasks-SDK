@@ -161,7 +161,15 @@ where
     ticksLabelFont = normalFontDef "Times New Roman" 12.0
 
     // actual result lines
-    resLine = polyline Nothing [(iStep *. i, height - tStep *. t) \\ i <- [0..] & t <- res]
+    resLine = polyline Nothing ( [  (iStep *. i, height - tStep *. t)
+                                 \\ i <- [0..nRes - 1]
+                                 &  t <- res
+                                 // make sure only maxNrPointsDrawn are drawn
+                                 | i rem (divRoundUp nRes maxNrPointsDrawn) == 0
+                                 ]
+                                 ++
+                                 [(iStep *. (nRes - 1), height - tStep *. last res)]
+                               )
               <@< {stroke = toSVGColor "red"}
     
     iStep  = width  /. (nRes - 1)
@@ -171,6 +179,10 @@ where
     height = px 500.0
     margin = px  50.0
     nRes   = length res
+    maxNrPointsDrawn = 400
+    divRoundUp x y
+        | x rem y == 0 = x / y
+        | otherwise    = x / y + 1
 
 startSession :: URI -> Task (Int, [ActionWithTaskId], [EditorId])
 startSession uri =
