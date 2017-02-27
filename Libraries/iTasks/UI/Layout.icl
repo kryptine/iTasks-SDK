@@ -75,6 +75,10 @@ inUISelectionAfterChange :: UISelection UIPath UI UIChange -> Bool
 inUISelectionAfterChange selection path ui change //TODO: This needs a more efficient implemenation that does apply the full change if it is not necessary
 	= inUISelection selection path (applyUIChange change ui)
 
+//A layout that has no effect at all
+idLayout :: Layout 
+idLayout = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
+
 setUIType :: UINodeType -> Layout
 setUIType type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
@@ -214,7 +218,7 @@ where
 	//As long as the UIChange type does not support moving elements up and down the tree we cannot do better
 	restore (LSUnwrap ui) = ReplaceUI ui 
 
-flattenUI :: Layout
+flattenUI :: Layout //TODO
 flattenUI = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply _ = (NoChange,LSNone)
@@ -222,7 +226,7 @@ where
 	adjust (ReplaceUI def,_)
 		# (def,spine) = flattenWithSpine def
 		= (ReplaceUI def,LSNone)
-	adjust (change,s) = (change,s) //TODO
+	adjust (change,s) = (change,s) 
 
 	flattenWithSpine  ui=:(UI type attr items) 
 		/*
@@ -234,24 +238,23 @@ where
 	restore _ = NoChange
 
 insertSubUI :: UIPath UI-> Layout
-insertSubUI [] def = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
-insertSubUI path def = layoutSubUIs (SelectByPath (init path)) {Layout|apply=apply,adjust=(insertSub (last path) def), restore=restore}
+insertSubUI [] _ = idLayout 
+insertSubUI path ui = layoutSubUIs (SelectByPath (init path)) (insertChildUI (last path) ui)
+
+insertChildUI :: Int UI -> Layout
+insertChildUI idx insert = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply _ = (NoChange,LSNone)
+	apply _ = (ChangeUI [] [(idx,InsertChild insert)],LSNone)
 
-	insertSub idx def (ReplaceUI (UI type attr items),s) = (ReplaceUI (UI type attr (insertAt idx def items)),s)
-	insertSub idx _ (ChangeUI attrChanges childChanges,s) = (ChangeUI attrChanges (insert idx childChanges),s)
-	where
-		insert idx [] = []
-		insert idx [c:cs]
-			| fst c < idx  = [c:insert idx cs]
-                       	   = [(idx,ChangeChild (ChangeUI [] [])): [(n+1,x) \\(n,x) <-[c:cs]]]
+	adjust change=:(NoChange,_) = change
+	//Simply (re-) insert the ui
+	adjust change=:(ReplaceUI (UI type attr items), s) = (ReplaceUI (UI type attr (insertAt idx insert items)), s)
+	//Increment the id's of child changes to adjust for the inserted static child
+	adjust change=:(ChangeUI attrChanges childChanges, s) = (ChangeUI attrChanges [(if (i >= idx) (i + 1) i,c) \\ (i,c) <- childChanges], s)
 
-	insertSub _ _ (change,s) = (change,s)
+	restore _ = ChangeUI [] [(idx,RemoveChild)]
 
-	restore _ = NoChange
-
-moveSubUIs :: UISelection UIPath -> Layout
+moveSubUIs :: UISelection UIPath -> Layout //TODO
 moveSubUIs selection dst = {Layout|apply=apply,adjust=adjust,restore=restore} 
 where
 	pred = inUISelection selection
@@ -259,7 +262,7 @@ where
 	apply ui = (NoChange, LSRemoveSubUIs ui (SubUIsModified []))
 
 	adjust (change, LSRemoveSubUIs ui (SubUIsModified moves))
-		# moves = if (change=:(ReplaceUI _)) [] moves//On a replace, we reset the state
+		# moves = if (change=:(ReplaceUI _)) [] moves//On a replace, we reset the state 
 		# startIdx = last dst
 		//Remove based on the predicate
 		# (change,moves,inserts) = removeAndAdjust_ [] pred False startIdx change moves
