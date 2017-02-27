@@ -211,11 +211,11 @@ where
         )
 
 sendToTestServer :: URI JSONNode -> Task JSONNode
-sendToTestServer uri msg = callHTTP
+sendToTestServer uri msg = callHTTP`
     'Internet.HTTP'.HTTP_POST
     uri
     (toString msg)
-    Ok @ \rsp -> fromString rsp.rsp_data
+    Ok @ \{rsp_data} -> fromString rsp_data
 
 testURI :: String String -> URI
 testURI suiteName testName = fromJust ('Text.URI'.parseURI
@@ -259,6 +259,39 @@ sleep :: d Int -> Task () | toPrompt d
 sleep d delta =
     get currentTimestamp >>= \(Timestamp t) ->
     wait d (\(Timestamp t`) -> t` >= t + delta) currentTimestamp @! ()
+
+import Text.URI, TCPChannels, Internet.HTTP, Text
+
+// do HTTP call bypassing the iTasks framework and measure response time
+callHTTP` :: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a
+callHTTP` method url=:{URI|uriScheme,uriRegName=Just uriRegName,uriPort,uriPath,uriQuery,uriFragment} data parseFun =
+    worldIO callHTTP`` >>= \rsp ->
+    case parseFun rsp of
+        Ok r    -> return r
+        Error e -> throw e
+where
+    callHTTP`` :: !*World -> *(!MaybeError String HTTPResponse, !*World)
+    callHTTP`` w
+        # (Just ip, w)                                   = lookupIPAddress uriRegName w
+        # (_, Just {DuplexChannel|rChannel,sChannel}, w) = connectTCP_MT Nothing (ip, port) w
+        # (sChannel,w)                                   = send (toByteSeq req) sChannel w
+        # (data, rChannel, w)                            = getData [] rChannel w
+        # w                                              = closeRChannel rChannel w
+        # w                                              = closeChannel sChannel w
+        = case parseResponse data of
+            Nothing  -> (Error "Invalid response", w)
+            Just rsp -> (Ok rsp, w)
+
+    getData acc ch w
+        # (_, mbData, ch, w) = receive_MT Nothing ch w
+        = case mbData of
+            Nothing   -> (concat (reverse acc), ch, w)
+            Just data -> getData [toString data : acc] ch w
+
+    port = fromMaybe 80 uriPort
+    path = uriPath +++ maybe "" (\q -> ("?"+++q)) uriQuery +++ maybe "" (\f -> ("#"+++f)) uriFragment
+    //VERY SIMPLE HTTP 1.1 Request
+    req = toString method +++ " " +++ path +++ " HTTP/1.1\r\nHost:"+++uriRegName+++"\r\nConnection: close\r\n\r\n"+++data
 
 getTimeMs :: Task Int
 getTimeMs = worldIO getTimeMs`
