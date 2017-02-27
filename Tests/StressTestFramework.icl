@@ -74,7 +74,8 @@ where
         performSteps _ _ _ _ _ n acc | n == numberOfSteps = return (reverse acc)
         performSteps instanceNo step actions editors st n acc =
             (     viewInformation "Progress" [] ((n +++> "/") <+++ numberOfSteps)
-              ||- getTimeMs >>= \tBefore ->
+              ||- (if (n rem 500 == 0) (sleep "..." 1) (return ())) >>|
+                  getTimeMs >>= \tBefore ->
                   let (stepEvent, st`) = step actions editors st in
                   (case stepEvent of
                       DoAction action ->
