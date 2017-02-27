@@ -22,7 +22,9 @@ import iTasks
 
 stestState :: String String (Task a) ([ActionWithTaskId] [EditorId] st -> (TestStepEvent, st)) st -> StressTestContainer | iTask a & iTask st
 stest      :: String String (Task a) ([ActionWithTaskId] [EditorId]    -> TestStepEvent)          -> StressTestContainer | iTask a
-tsEdit :: EditorId v -> TestStepEvent | JSONEncode{|*|} v
+
+tsAction :: ActionWithTaskId -> TestStepEvent
+tsEdit   :: EditorId v       -> TestStepEvent | JSONEncode{|*|} v
 
 runStressTests         :: [StressTestSuite] -> Task ()
 exposedStressTestTasks :: [StressTestSuite] -> [PublishedTask]

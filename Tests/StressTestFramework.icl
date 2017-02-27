@@ -21,6 +21,9 @@ stest :: String String (Task a) ([ActionWithTaskId] [EditorId] -> TestStepEvent)
 stest name description tut step = StressTestContainer
     {name = name, description = description, testStep = \a e st -> (step a e, st), taskUnderTest = tut @! (), initState = ()}
 
+tsAction :: ActionWithTaskId -> TestStepEvent
+tsAction action = DoAction action
+
 tsEdit :: EditorId v -> TestStepEvent | JSONEncode{|*|} v
 tsEdit editorId v = Edit editorId (toJSON v)
 
@@ -78,10 +81,10 @@ where
                           doAction uri instanceNo action
                       Edit editorId value ->
                           edit uri instanceNo editorId value
-                  ) >>= \actions ->
+                  ) >>= \(actions, editors) ->
                   getTimeMs >>= \tAfter ->
-                  return (actions, st`, tAfter - tBefore)
-            ) >>= \(actions, st`, respTime) ->
+                  return (actions, editors, st`, tAfter - tBefore)
+            ) >>= \(actions, editors, st`, respTime) ->
             performSteps instanceNo step actions editors st` (inc n) [respTime:acc]
 
         uri = testURI suiteName name
@@ -178,7 +181,7 @@ startSession uri =
         _ ->
             throw ("Unexpected response from test server: " +++ toString rsp)
 
-doAction :: URI Int ActionWithTaskId -> Task [ActionWithTaskId]
+doAction :: URI Int ActionWithTaskId -> Task ([ActionWithTaskId], [EditorId])
 doAction uri instanceNo (taskId, Action actionId) =
     sendToTestServer
         uri
@@ -187,9 +190,9 @@ doAction uri instanceNo (taskId, Action actionId) =
                     , JSONArray [JSONString taskId,JSONNull,JSONString actionId]
                     ]
         ) >>= \rsp ->
-        return (possibleActions rsp)
+        return (possibleActions rsp, editors rsp)
 
-edit :: URI Int EditorId JSONNode -> Task [ActionWithTaskId]
+edit :: URI Int EditorId JSONNode -> Task ([ActionWithTaskId], [EditorId])
 edit uri instanceNo (taskId, editorId) value =
     sendToTestServer
         uri
@@ -198,7 +201,7 @@ edit uri instanceNo (taskId, editorId) value =
                     , JSONArray [JSONString taskId, JSONString editorId, value]
                     ]
         ) >>= \rsp ->
-        return (possibleActions rsp)
+        return (possibleActions rsp, editors rsp)
 
 shutdownTestServer :: Task ()
 shutdownTestServer = startSession uri @! ()

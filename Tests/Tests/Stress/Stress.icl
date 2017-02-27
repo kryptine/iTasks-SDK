@@ -10,6 +10,7 @@ stressTest = { name        = "Stress tests"
                              , recursiveTaskGrowingInp
                              , recursiveTaskGrowingRes
                              , editInt
+                             , editIntReset
                              ]
 	         }
 
@@ -52,4 +53,17 @@ editInt = stestState
     (updateInformation () [] 0)
     (\[] [intEditor] i -> (tsEdit intEditor i, inc i))
     0
+
+editIntReset = stestState
+    "Edit single integer and reset"
+    "An integer editor task of which the value is changed repeatedly. The task is recursively continued after 50 iterations."
+    t
+    step
+    0
+where
+    t :: Task ()
+    t = updateInformation () [] 0 >>| t
+
+    step [cont] _           50 = (tsAction cont, 0)
+    step _      [intEditor]  i = (tsEdit intEditor i, inc i)
 

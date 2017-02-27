@@ -271,12 +271,14 @@ where
         JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONNull,JSONString actionId]] = //Action event
             case evalTaskInstance instanceNo (ActionEvent (fromString taskId) actionId) iworld of 
 				(Ok _, iworld)
+                    # (_, iworld) = evalTaskInstance instanceNo ResetEvent iworld
 					# (change, iworld) = getUIChange instanceNo iworld
                     = (jsonResponse change, iworld)
 				//(Error msg,iworld)
         (JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONString name,value]]) = //Edit event
             case evalTaskInstance instanceNo (EditEvent (fromString taskId) name value) iworld of 
 				(Ok _, iworld)
+                    # (_, iworld) = evalTaskInstance instanceNo ResetEvent iworld
 					# (change, iworld) = getUIChange instanceNo iworld
                     = (jsonResponse change, iworld)
 				//(Error msg,iworld)
