@@ -36,25 +36,43 @@ runStressTests suites =
     ( editSelection (Title "Select test") False (SelectInTree toTree selectIdx) suites [] @? tvHd
     >&> withSelection (viewInformation () [] "Select a test") testStress) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
 where
-    //testStress :: Int -> Task ()
+    testStress :: Int -> Task ()
     testStress idx =
-             (viewInformation () [] (H1Tag [] [Text (testName test)]) <<@ ApplyLayout (setAttributes (heightAttr WrapSize)))
-        -&&- catchAll
-                 ( viewInformation "Test description" [] (testDescr test) ||- updateInformation "Test run parameters" [] {numberOfSteps = 100}
-                   >>* [OnAction (Action "Start test") (ifValue (\{numberOfSteps} -> numberOfSteps > 0) (runTest suiteName test))] @! ()
+        (     (viewInformation () [] (H1Tag [] [Text (testName test)]) <<@ ApplyLayout (setAttributes (heightAttr WrapSize)))
+          ||- catchAll
+                 (     viewInformation "Test description" [] (testDescr test)
+                   ||- ( get resultStore >>= \res ->
+                         ( case res of
+                             []         -> enterChoiceWithShared  "Select result" [ChooseFromDropdown fst] resultStore
+                             [fstRes:_] -> updateChoiceWithShared "Select result" [ChooseFromDropdown fst] resultStore fstRes
+                         ) >&>
+                         visualizeResult
+                       )
+                   ||- updateInformation "Test run parameters" [] {numberOfSteps = 100}
+                   >>* [ OnAction
+                           (Action "Start test")
+                           (ifValue (\{numberOfSteps} -> numberOfSteps > 0)
+                           ( \params ->
+                             runTest suiteName test params >>= \r ->
+                             get currentDateTime >>= \t ->
+                             upd (\rs -> [(t,r):rs]) resultStore)
+                           )
+                       ] @! ()
                  )
                  (\e -> viewInformation "Error" [] e @! ())
+        ) >>|
+        testStress idx
     where
         (test, suiteName) = (flatten [[(t,name) \\ t <- tests] \\ {name,tests} <- suites]) !! idx
         testName  (StressTestContainer {StressTest|name})        = name
         testDescr (StressTestContainer {StressTest|description}) = description
+        resultStore = sharedStore (testName test) []
 
-    runTest :: String StressTestContainer RunParameters -> Task ()
+    runTest :: String StressTestContainer RunParameters -> Task [Int]
     runTest suiteName (StressTestContainer {StressTest|name, testStep, initState}) {numberOfSteps} =
         (     (runTestServer <<@ ApplyLayout (hideSubs SelectRoot))
           ||- (sleep "Waiting for test server..." 2 >>| performRequests)
-        ) >>=
-        visualizeResults
+        )
     where
         performRequests =
             startSession uri >>= \(instanceNo, actions, editors) ->
@@ -112,78 +130,82 @@ where
 
 // utility
 
-visualizeResults :: [Int] -> Task ()
-visualizeResults res = viewInformation "Results" [ViewUsing id (fromSVGEditor svgeditor)] ()
+visualizeResult :: (ReadOnlyShared (Maybe (DateTime, [Int]))) -> Task ()
+visualizeResult res = viewSharedInformation "Result" [ViewUsing id (fromSVGEditor svgeditor)] res @! ()
 where
-	svgeditor = {SVGEditor|initView=const (),renderImage = \_ _ _ -> resultViz, updView = \m v -> v, updModel = \m v -> m}
+    svgeditor :: SVGEditor (Maybe (DateTime,[Int])) ()
+	svgeditor = {SVGEditor|initView=const (), renderImage = \res _ _ -> resultViz res, updView = \_ v -> v, updModel = \m _ -> m}
 
-    resultViz = overlay`
-        [(AtMiddleX, AtMiddleY), (AtMiddleX, AtMiddleY)]
-        []
-        [empty (width + margin*.2) (height + margin*.2), resultViz`]
-        NoHost
+    resultViz mbRes = case mbRes of
+        Just (_, res) -> overlay`
+            [(AtMiddleX, AtMiddleY), (AtMiddleX, AtMiddleY)]
+            []
+            [empty (width + margin*.2) (height + margin*.2), resultViz` res]
+            NoHost
+        Nothing -> empty (width + margin*.2) (height + margin*.2)
 
-    resultViz` = overlay`
+    resultViz` res = overlay`
         [(AtLeft, AtTop)]
         [(zero, height), (zero, zero), (zero, height - tickLength /. 2), (~tickLength /. 2, zero), (zero, zero)]
         [xAxis, yAxis, xTicks, yTicks, resLine]
         NoHost
-
-    // coordinate system
-    xAxis = line Nothing Slash width zero
-    yAxis = line Nothing Slash zero height
-    xTicks = beside`
-        []
-        [(iStep *. resultIdxAtNthTick j, zero) \\ j <- [0..nXTicks-1]]
-        [xTick (resultIdxAtNthTick j + 1) \\ j <- [0..nXTicks-1]]
-        NoHost
-    where
-        resultIdxAtNthTick n = n * (nRes - 1) / (nXTicks - 1)
-
-        xTick i = line (Just {defaultMarkers & markerStart = Just label}) Slash zero tickLength
         where
-            label =  (text ticksLabelFont (toString i +++ " "))
-        nXTicks = 10
-
-    yTicks = above`
-        []
-        [(zero, yStep *. j) \\ j <- [0..nYTicks-1]]
-        [yTick ((nYTicks-1-j) * maxRes / (nYTicks-1)) \\ j <- [0..nYTicks-1]]
-        NoHost
-    where
-        yStep = height /. (nYTicks - 1)
-
-        yTick i = line (Just {defaultMarkers & markerStart = Just label}) Slash tickLength zero
+        // coordinate system
+        xAxis = line Nothing Slash width zero
+        yAxis = line Nothing Slash zero height
+        xTicks = beside`
+            []
+            [(iStep *. resultIdxAtNthTick j, zero) \\ j <- [0..nXTicks-1]]
+            [xTick (resultIdxAtNthTick j + 1) \\ j <- [0..nXTicks-1]]
+            NoHost
         where
-            label = text ticksLabelFont (toString i +++ "ms ")
-        nYTicks = 10
+            resultIdxAtNthTick n = n * (nRes - 1) / (nXTicks - 1)
 
-    tickLength = px 10.0
-    ticksLabelFont = normalFontDef "Times New Roman" 12.0
+            xTick i = line (Just {defaultMarkers & markerStart = Just label}) Slash zero tickLength
+            where
+                label =  (text ticksLabelFont (toString i +++ " "))
+            nXTicks = 10
 
-    // actual result lines
-    resLine = polyline Nothing ( [  (iStep *. i, height - tStep *. t)
-                                 \\ i <- [0..nRes - 1]
-                                 &  t <- res
-                                 // make sure only maxNrPointsDrawn are drawn
-                                 | i rem (divRoundUp nRes maxNrPointsDrawn) == 0
-                                 ]
-                                 ++
-                                 [(iStep *. (nRes - 1), height - tStep *. last res)]
-                               )
-              <@< {stroke = toSVGColor "red"}
-    
-    iStep  = width  /. (nRes - 1)
-    tStep  = height /. maxRes
-    maxRes = maximum res
+        yTicks = above`
+            []
+            [(zero, yStep *. j) \\ j <- [0..nYTicks-1]]
+            [yTick ((nYTicks-1-j) * maxRes / (nYTicks-1)) \\ j <- [0..nYTicks-1]]
+            NoHost
+        where
+            yStep = height /. (nYTicks - 1)
+
+            yTick i = line (Just {defaultMarkers & markerStart = Just label}) Slash tickLength zero
+            where
+                label = text ticksLabelFont (toString i +++ "ms ")
+            nYTicks = 10
+
+        tickLength = px 10.0
+        ticksLabelFont = normalFontDef "Times New Roman" 12.0
+
+        // actual result lines
+        resLine = polyline Nothing ( [  (iStep *. i, height - tStep *. t)
+                                     \\ i <- [0..nRes - 1]
+                                     &  t <- res
+                                     // make sure only maxNrPointsDrawn are drawn
+                                     | i rem (divRoundUp nRes maxNrPointsDrawn) == 0
+                                     ]
+                                     ++
+                                     [(iStep *. (nRes - 1), height - tStep *. last res)]
+                                   )
+                  <@< {stroke = toSVGColor "red"}
+        
+        iStep  = width  /. (nRes - 1)
+        tStep  = height /. maxRes
+        maxRes = maximum res
+        margin = px  50.0
+        nRes   = length res
+        maxNrPointsDrawn = 400
+        divRoundUp x y
+            | x rem y == 0 = x / y
+            | otherwise    = x / y + 1
     width  = px 800.0
     height = px 500.0
     margin = px  50.0
-    nRes   = length res
-    maxNrPointsDrawn = 400
-    divRoundUp x y
-        | x rem y == 0 = x / y
-        | otherwise    = x / y + 1
 
 startSession :: URI -> Task (Int, [ActionWithTaskId], [EditorId])
 startSession uri =
