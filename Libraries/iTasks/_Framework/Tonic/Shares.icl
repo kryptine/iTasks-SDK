@@ -153,13 +153,13 @@ paramsForTaskInstance :: RWShared (ModuleName, FuncName, TaskId) [(VarName, Int,
 paramsForTaskInstance = sdsTranslate "paramsForTaskInstance" (\t -> t +++> "-paramsForTaskInstance")
                              (memoryStore NS_TONIC_INSTANCES Nothing)
 
-storeTaskOutputViewer :: !(TaskResult a) !ExprId !TaskId !TaskId !*IWorld -> *IWorld
-storeTaskOutputViewer tr nid parentTaskId childTaskId iworld = iworld // TODO FIXME
-  //| nid <> [] && parentTaskId <> TaskId 0 0
-    //# childFocus             = sdsFocus (parentTaskId, nid) outputForTaskId
-    //# ((_, n, _, _), iworld) = sdsUnsafeRead childFocus iworld
-    //= snd ('DSDS'.write (resultToOutput (n + 1) childTaskId tr) childFocus iworld)
-  //| otherwise = iworld
+storeTaskOutputViewer :: !(TaskResult a) !ExprId !TaskId !TaskId !*IWorld -> *IWorld | iTask a
+storeTaskOutputViewer tr nid parentTaskId childTaskId iworld // = iworld // TODO FIXME
+  | nid <> [] && parentTaskId <> TaskId 0 0
+    # childFocus             = sdsFocus (parentTaskId, nid) outputForTaskId
+    # ((_, n, _, _), iworld) = sdsUnsafeRead childFocus iworld
+    = snd ('DSDS'.write (resultToOutput (n + 1) childTaskId tr) childFocus iworld)
+  | otherwise = iworld
 
 resultToOutput :: !Int !TaskId !(TaskResult a) -> (!TaskId, !Int, !Task (), !TStability) | iTask a
 resultToOutput newN tid (ValueResult (Value v s) _ _ _) = (tid, newN, viewInformation (Title ("Value for task " +++ toString tid)) [] v @! (), if s TStable TUnstable)

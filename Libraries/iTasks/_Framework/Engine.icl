@@ -15,8 +15,6 @@ import iTasks.UI.Layout, iTasks.UI.Layout.Default
 from iTasks.API.Core.TaskCombinators import class tune(..)
 from iTasks.UI.Layout import instance tune ApplyLayout
 
-SESSION_TIMEOUT :==  600 //Seconds (10 minutes)
-MAX_EVENTS 		:== 5
 
 import StdInt, StdChar, StdString
 import tcp
@@ -43,31 +41,25 @@ startEngine publishable world
 	# (opts,world)			= getCommandLine world
 	# (appName,world)		= determineAppName world
 	# (appPath,world)		= determineAppPath world	
-	# (mbSDKPath,world)		= determineSDKPath SEARCH_PATHS world
 	// Show server name
 	# world					= show (infoline appName) world
   	//Check commandline options
 	# port 					= fromMaybe DEFAULT_PORT (intOpt "-port" opts)
 	# keepalive				= fromMaybe DEFAULT_KEEPALIVE_TIME (intOpt "-keepalive" opts)
 	# help					= boolOpt "-help" opts
-	# sdkOpt				= stringOpt "-sdk" opts
-	# webDirsOpt		    = stringOpt "-webpublic" opts
-	# webDirPaths 			= fmap (split ":") webDirsOpt
+	# webOpt				= stringOpt "-webpublic" opts
 	# storeOpt		    	= stringOpt "-store" opts
 	# saplOpt		    	= stringOpt "-sapl" opts
 	//If -help option is given show help and stop
 	| help					= show instructions world
-	//Check sdkpath
-	# mbSDKPath				= maybe mbSDKPath Just sdkOpt //Commandline SDK option overrides found paths
 	# options				=
 		{ appName			= appName
 		, appPath			= appPath
-		, sdkPath 			= mbSDKPath
 		, serverPort		= port
 		, keepalive 		= keepalive
-		, webDirPaths 		= webDirPaths
-		, storeOpt			= storeOpt
-		, saplOpt 			= saplOpt
+		, webDirPath 		= webOpt
+		, storeDirPath      = storeOpt
+		, saplDirPath 	    = saplOpt
 		}
 	= startEngineWithOptions publishable options world
 where
@@ -75,8 +67,7 @@ where
 	instructions =
 		["Available commandline options:"
 		," -help             : Show this message and exit"
-		," -sdk <path>       : Use <path> as location of the iTasks SDK (optional)"
-		," -webpublic <path> : Use <path> to point to the folders that contain the application's static web content"
+		," -webpublic <path> : Use <path> to point to the folder that contain the application's static web content"
 	    ," -store <path> 	 : Use <path> as data store location"
 	    ," -sapl <path> 	 : Use <path> to point to the folders that hold the sapl version of the application"
 		," -port <port>      : Set port number (default " +++ toString DEFAULT_PORT +++ ")"
@@ -109,9 +100,9 @@ where
 					= stringOpt key [v:r]
 
 startEngineWithOptions :: a ServerOptions !*World -> *World | Publishable a
-startEngineWithOptions publishable options=:{appName,appPath,sdkPath,serverPort,webDirPaths,keepalive,storeOpt,saplOpt} world
+startEngineWithOptions publishable options=:{appName,appPath,serverPort,keepalive,webDirPath,storeDirPath,saplDirPath} world
 	# world					= show (running serverPort) world
- 	# iworld				= createIWorld appName appPath sdkPath webDirPaths storeOpt saplOpt world
+ 	# iworld				= createIWorld appName appPath webDirPath storeDirPath saplDirPath world
  	# (res,iworld) 			= initJSCompilerState iworld
  	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
  	// All persistent task instances should receive a reset event to continue their work
@@ -199,9 +190,7 @@ engine :: publish -> [(!String -> Bool
 					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionState *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 					  )] | Publishable publish
 
-engine publishable = [taskUIService published /*[(url,task) \\ {PublishedTask|url,task=TaskWrapper task} <- published]*/
-                     , taskUIServiceHttp published
-				  	 ,documentService, sdsService,staticResourceService [url \\ {PublishedTask|url} <- published]]
+engine publishable = [taskUIService published, taskUIServiceHttp published, documentService, sdsService, staticResourceService [url \\ {PublishedTask|url} <- published]]
 where
 	published = publishAll publishable 
 
@@ -252,20 +241,3 @@ determineAppPath world
 		cmpFileTime (_,Ok {FileInfo | lastModifiedTime = x})
 					(_,Ok {FileInfo | lastModifiedTime = y}) = mkTime x > mkTime y
 	
-determineSDKPath :: ![FilePath] !*World -> (!Maybe FilePath, !*World)
-determineSDKPath paths world
-	//Try environment var first
-	# (mbCleanHome,world) = getEnvironmentVariable CLEAN_HOME_VAR world
-	= case mbCleanHome of
-		Nothing			= searchPaths paths world
-		Just cleanHome	= searchPaths [cleanHome, cleanHome </> "lib", cleanHome </> "Libraries"] world
-where	
-	searchPaths [] world = (Nothing, world)
-	searchPaths [p:ps] world
-		# (mbInfo,world) = getFileInfo path world
-		= case mbInfo of
-			Ok info	| info.directory	= (Just path,world)
-			_							= searchPaths ps world
-	where
-		path = (p </> "iTasks-SDK")
-

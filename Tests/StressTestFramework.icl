@@ -137,14 +137,14 @@ where
 	svgeditor = {SVGEditor|initView=const (), renderImage = \res _ _ -> resultViz res, updView = \_ v -> v, updModel = \m _ -> m}
 
     resultViz mbRes = case mbRes of
-        Just (_, res) -> overlay`
+        Just (_, res) -> overlay
             [(AtMiddleX, AtMiddleY), (AtMiddleX, AtMiddleY)]
             []
             [empty (width + margin*.2) (height + margin*.2), resultViz` res]
             NoHost
         Nothing -> empty (width + margin*.2) (height + margin*.2)
 
-    resultViz` res = overlay`
+    resultViz` res = overlay
         [(AtLeft, AtTop)]
         [(zero, height), (zero, zero), (zero, height - tickLength /. 2), (~tickLength /. 2, zero), (zero, zero)]
         [xAxis, yAxis, xTicks, yTicks, resLine]
@@ -153,7 +153,7 @@ where
         // coordinate system
         xAxis = line Nothing Slash width zero
         yAxis = line Nothing Slash zero height
-        xTicks = beside`
+        xTicks = beside
             []
             [(iStep *. resultIdxAtNthTick j, zero) \\ j <- [0..nXTicks-1]]
             [xTick (resultIdxAtNthTick j + 1) \\ j <- [0..nXTicks-1]]
@@ -166,7 +166,7 @@ where
                 label =  (text ticksLabelFont (toString i +++ " "))
             nXTicks = 10
 
-        yTicks = above`
+        yTicks = above
             []
             [(zero, yStep *. j) \\ j <- [0..nYTicks-1]]
             [yTick ((nYTicks-1-j) * maxRes / (nYTicks-1)) \\ j <- [0..nYTicks-1]]

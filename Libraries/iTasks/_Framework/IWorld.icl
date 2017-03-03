@@ -50,22 +50,13 @@ JS_COMPILER_EXCLUDES :==
 	,"System.Directory"
 	]
 
-createIWorld :: !String FilePath !(Maybe FilePath) !(Maybe [FilePath]) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
-createIWorld appName appPath mbSDKPath mbWebdirPaths mbStorePath mbSaplPath world
+createIWorld :: !String FilePath !(Maybe FilePath) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
+createIWorld appName appPath mbWebdirPath mbStorePath mbSaplPath world
 	# appDir					= takeDirectory appPath
 	# dataDir					= fromMaybe (appDir </> appName +++ "-data") mbStorePath
+	# webDir                    = fromMaybe (appDir </> appName +++ "-www") mbWebdirPath 
 	# saplDir                   = fromMaybe (appDir </> appName +++ "-sapl") mbSaplPath 
 	# (saplDir,world)           = fallBackSaplDir appDir saplDir world
-	# (webdirPaths,world) 	 	= case mbWebdirPaths of
-		Just paths 				= (paths,world)
-		Nothing 
-			# appWebDirs = [appDir </> appName +++ "-www", appDir </> "WebPublic"]
-			= case mbSDKPath of 
-				Just sdkDir	//Scan libraries for public web files
-					# (libWebDirs,world) = determineWebPublicDirs (sdkDir </>"Server"</>"iTasks") world
-					= (appWebDirs ++ libWebDirs,world)	
-				Nothing
-					= (appWebDirs,world)
 	# (res,world)				= getFileInfo appPath world
 	| isError res				= abort "Cannot get executable info."
 	# tm						= (fromOk res).lastModifiedTime
@@ -84,10 +75,10 @@ createIWorld appName appPath mbSDKPath mbWebdirPaths mbStorePath mbSaplPath worl
 	    ,serverURL	= "//127.0.0.1:80"
 	    ,buildID	= build
         ,paths      =
-            {appDirectory		    = appDir
-	        ,dataDirectory		    = dataDir
-            ,publicWebDirectories   = webdirPaths 
-			,saplDirectory 			= saplDir
+            {appDirectory   = appDir
+	        ,dataDirectory  = dataDir
+            ,webDirectory   = webDir
+			,saplDirectory  = saplDir
             }
         }
 	  ,config				= initialConfig
@@ -169,27 +160,6 @@ determineAppPath world
 	where		
 		cmpFileTime (_,Ok {FileInfo | lastModifiedTime = x})
 					(_,Ok {FileInfo | lastModifiedTime = y}) = mkTime x > mkTime y
-
-//Do a recursive scan of a directory for subdirectories with the name "WebPublic"
-//Files in these directories are meant to be publicly served by an iTask webserver
-determineWebPublicDirs :: !FilePath !*World -> (![FilePath], !*World)
-determineWebPublicDirs path world
-	# (dir, world)	= readDirectory path world	
-    = case dir of
-        Ok entries
-            = appFst flatten (mapSt (checkEntry path) entries world)
-        _   = ([],world)
-where
-    checkEntry :: !FilePath !String !*World -> (![FilePath], !*World)
-    checkEntry dir name world
-        # path = dir </> name
-        | name == "." || name == ".." = ([],world)
-        | name == "WebPublic"   = ([path],world) //Dont' recurse into a found WebPublic dir
-        | otherwise
-		    # (mbInfo,world) = getFileInfo path world
-		    = case mbInfo of
-			    Ok info	| info.directory	= determineWebPublicDirs path world //Continue search
-                _                           = ([],world)
 
 destroyIWorld :: !*IWorld -> *World
 destroyIWorld iworld=:{IWorld|world} = world

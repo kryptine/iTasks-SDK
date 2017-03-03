@@ -7,7 +7,6 @@ import Text, Text.HTML, System.CommandLine
 import qualified Data.Map as DM
 import iTasks.API.Extensions.Development.Codebase
 
-SDK_LOCATION :== ".."
 from iTasks._Framework.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{server}, :: ServerInfo(..), :: SystemPaths(..)
 from iTasks._Framework.TaskStore import createTaskInstance, taskInstanceUIChanges
 from iTasks._Framework.TaskEval import evalTaskInstance
@@ -141,7 +140,7 @@ where
 	test world 
 		# (argv,world) = getCommandLine world
 		# (appPath,world) = toCanonicalPath (hd argv) world
-		# iworld = createIWorld "TEST" appPath (Just SDK_LOCATION) Nothing Nothing Nothing world
+		# iworld = createIWorld "TEST" appPath Nothing Nothing Nothing world
 		//Initialize JS compiler support
 		# (res,iworld) = initJSCompilerState iworld
 		| res =:(Error _)

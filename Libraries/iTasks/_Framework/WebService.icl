@@ -327,7 +327,7 @@ where
             # headers = [("Upgrade","websocket"), ("Connection","Upgrade")
                         ,("Sec-WebSocket-Accept",secWebSocketAccept)]
 			# state = {WebSockState|cur_frame = "",message_text = True, message_data = []}
-            = ({newHTTPResponse 101 "Switching Protocols" & rsp_headers = headers, rsp_data = ""}
+            = ({newHTTPResponse 101 "Switching Protocols" & rsp_version = "HTTP/1.1", rsp_headers = headers, rsp_data = ""}
 			  , Just (state,[]),Nothing,iworld)
         | otherwise
 			= (errorResponse "Requested service format not available for this task", Nothing, Nothing, iworld)
@@ -341,7 +341,7 @@ where
 			[WSTextMessage msg:_] 
 				//Process events:
 				= case fromString msg of
-					//- new session
+					// - new session
 					(JSONArray [JSONInt reqId,JSONString "new"])
                     	= case createTaskInstance` req taskUrls iworld of
 							(Error (_,err), iworld)
@@ -351,12 +351,12 @@ where
 								# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
 								# json = JSONArray [JSONInt reqId, JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]]
 								= (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
-					//- attach existing instance
+					// - attach existing instance
 					(JSONArray [JSONString "attach",JSONInt instanceNo,JSONString instanceKey])
 						//TODO: Clear output
 						# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
 						= ([],False, (state,[instanceNo:instances]),Nothing,iworld) //TODO: Maybe send confirmation message?
-					//- detach instance
+					// - detach instance
 					(JSONArray [JSONString "detach",JSONInt instanceNo,JSONString instanceKey])
 						= ([],False, (state,removeMember instanceNo instances),Nothing,iworld) //TODO: Maybe send confirmation message?
 					(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONNull,JSONString actionId]]) //Action event
@@ -478,26 +478,22 @@ where
 	lostFun _ _ s env = (Nothing,env)
 
 	handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
-	handleStaticResourceRequest req iworld=:{IWorld|server={paths={publicWebDirectories}}}
-    	= serveStaticResource req publicWebDirectories iworld
+	handleStaticResourceRequest req iworld=:{IWorld|server={paths={webDirectory}},world}
+		# filename		   = if (isMember req.HTTPRequest.req_path taskPaths) //Check if one of the published tasks is requested, then serve bootstrap page
+									(webDirectory +++ filePath "/index.html")
+									(webDirectory +++ filePath req.HTTPRequest.req_path)
+		
+		# type			   = mimeType filename
+       	# (mbInfo,world) = getFileInfo filename world
+		| case mbInfo of (Ok info) = info.directory ; _ = True
+	   		= (notFoundResponse req,{IWorld|iworld & world = world})
+		# (mbContent, world)	= readFile filename world
+		= case mbContent of
+			(Ok content) = ({ okResponse
+						  	& rsp_headers = [("Content-Type", type),("Content-Length", toString (size content))]
+							, rsp_data = content}, {IWorld|iworld & world = world})
+			(Error e)    = (errorResponse (toString e +++ " ("+++ filename +++")"), {IWorld|iworld & world = world})
 	where
-    	serveStaticResource req [] iworld
-	    	= (notFoundResponse req,iworld)
-    	serveStaticResource req [d:ds] iworld=:{IWorld|world}
-			# filename		   = if (isMember req.HTTPRequest.req_path taskPaths) //Check if one of the published tasks is requested, then serve bootstrap page
-									(d +++ filePath "/index.html")
-									(d +++ filePath req.HTTPRequest.req_path)
-			# type			   = mimeType filename
-            # (mbInfo,world) = getFileInfo filename world
-			| case mbInfo of (Ok info) = info.directory ; _ = True
-               = serveStaticResource req ds {IWorld|iworld & world = world}
-			# (mbContent, world)	= readFile filename world
-			= case mbContent of
-				(Ok content) = ({ okResponse
-	    						& rsp_headers = [("Content-Type", type),("Content-Length", toString (size content))]
-                                , rsp_data = content}, {IWorld|iworld & world = world})
-                (Error e)    = (errorResponse (toString e +++ " ("+++ filename +++")"), {IWorld|iworld & world = world})
-
 		//Translate a URL path to a filesystem path
 		filePath path	= ((replaceSubString "/" {pathSeparator}) o (replaceSubString ".." "")) path
 		mimeType path	= extensionToMimeType (takeExtension path)
