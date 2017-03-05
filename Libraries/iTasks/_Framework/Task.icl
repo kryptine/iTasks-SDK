@@ -15,6 +15,8 @@ from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :
 from iTasks.API.Common.SDSCombinators	import toDynamic 
 from iTasks._Framework.Serialization    import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 import qualified Data.CircularStack as DCS
+from Data.CircularStack import :: CircularStack
+from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
 
 mkEvalOpts :: TaskEvalOpts
 mkEvalOpts =
