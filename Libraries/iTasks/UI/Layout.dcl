@@ -22,16 +22,21 @@ from Text.JSON import :: JSONNode
 	}
 
 :: LayoutState
-	= LSNone                                      //No state is tracked for a layout
-	| LSWrap UI                                   //State for unwrap tasks
-	| LSUnwrap UI                                 //State for unwrap tasks
-	| LSSequence LayoutState LayoutState          //Combined state of two sequenced layouts
-	| LSLayoutSubUIs UI (LayoutTree LayoutState)  //States of layouts applied to sub-ui's 
-	| LSRemoveSubUIs UI (LayoutTree ())           //UI's that were removed by the layout
+	= LSNone                                           //No state is tracked for a layout
+	| LSWrap UI                                        //State for unwrap tasks
+	| LSUnwrap UI                                      //State for unwrap tasks
+	| LSSequence LayoutState LayoutState               //Combined state of two sequenced layouts
+	| LSLayoutSubUIs UI (LayoutTree LayoutState ())    //States of layouts applied to sub-ui's 
+	| LSRemoveSubUIs UI (LayoutTree LayoutRemoval Int) //UI's that were removed by the layout
 
-:: LayoutTree a
+:: LayoutTree a b
 	= UIModified a
-	| SubUIsModified [(Int,LayoutTree a)]
+	| SubUIsModified b [(Int,LayoutTree a b)]
+
+:: LayoutRemoval
+	= LRRemoved Int        //When a UI is first removed, we mark it with this constructor
+						   //The Int is the number of children of this node that were moved/removed when this node was removed
+    | LRMoved UIChange     //When a removed UI is inserted somewhere else, we mark it with this constructor
 	
 // These types are used to control when to apply layout in a task composition
 :: ApplyLayout	= ApplyLayout Layout
