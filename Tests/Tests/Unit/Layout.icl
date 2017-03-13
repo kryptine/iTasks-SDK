@@ -172,7 +172,8 @@ where
 
 	//Expected final UI
 	expUI = uic UIStep [uic UIContainer [ui UIAction, ui UIEmpty]]
-	expState = LSRemoveSubUIs expUI (SubUIsModified [(1,UIModified (ui UIAction)),(2,UIModified (ui UIEmpty))])
+	//expState = LSRemoveSubUIs expUI (SubUIsModified [(1,UIModified (ui UIAction)),(2,UIModified (ui UIEmpty))])
+	expState = LSRemoveSubUIs expUI (SubUIsModified [(1,UIModified ()),(2,UIModified ())])
 
 	isTarget (UI type _ _) = (type =: UIAction) || (type =: UIEmpty)
 
@@ -188,7 +189,8 @@ where
 	initState = snd (sutLayout.Layout.apply initUI)
 	//Expected final UI
 	expUI = uic UIPanel [uic UIContainer [ui UIEmpty], uic UIContainer [ui UIAction, ui UIAction]]
-	expState = LSRemoveSubUIs expUI (SubUIsModified [(0,SubUIsModified [(0,UIModified (ui UIAction)),(2,UIModified (ui UIAction))])])
+	//expState = LSRemoveSubUIs expUI (SubUIsModified [(0,SubUIsModified [(0,UIModified (ui UIAction)),(2,UIModified (ui UIAction))])])
+	expState = LSRemoveSubUIs expUI (SubUIsModified [(0,SubUIsModified [(0,UIModified ()),(2,UIModified ())])])
 
 testMoveSubsMatchingNewRoutes = assertEqual "Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
@@ -234,7 +236,7 @@ where
 	//Expected reroute change 
 	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
-	expState = LSRemoveSubUIs initUI (SubUIsModified [(0,SubUIsModified [(0,UIModified (ui UIAction)),(2,UIModified (ui UIAction))])])
+	expState = LSRemoveSubUIs initUI (SubUIsModified [(0,SubUIsModified [(0,UIModified ()),(2,UIModified ())])])
 
 	isAction (UI type _ _) = type =: UIAction
 
@@ -338,7 +340,7 @@ where
 	changeToModify = ChangeUI [] [(2,InsertChild (uic UIToolBar [ui UIInteract]))]
 	expModifiedChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar []))]))]))]
 
-testCombination2 = assertEqual "Insert after global removal" exp sut
+testCombination2 = skip (assertEqual "Insert after global removal" exp sut)
 where
 	sut
 		//Initial, followed by an event in the new structure
@@ -348,8 +350,8 @@ where
 
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIInteract))
 
-	initState = LSRemoveSubUIs (ui UIEmpty) (SubUIsModified [(0,SubUIsModified [(0,UIModified (ui UIEmpty))])
-					   ,(1,SubUIsModified [(0,SubUIsModified [(0,UIModified (ui UIAction))])])])
+	initState = LSRemoveSubUIs (ui UIDebug) (SubUIsModified [(0,SubUIsModified [(0,UIModified ())])
+					   ,(1,SubUIsModified [(0,SubUIsModified [(0,UIModified ())])])])
 
 	//Change after first transform 
 	changeToModify = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar [ui UIInteract]))]))]))]

@@ -130,7 +130,7 @@ where
 
 actionsToButtonBar = foldl1 sequenceLayouts
 	[insertSubUI [1] (ui UIButtonBar) //Create a buttonbar
-	,moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [1,0] //Move all actions to the buttonbar
+	,moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [1] //Move all actions to the buttonbar
 	,layoutSubUIs (SelectByPath [1]) (layoutSubUIs SelectChildren actionToButton) //Transform actions to buttons 
 	]
 

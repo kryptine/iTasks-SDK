@@ -46,7 +46,7 @@ layoutTestTasks =
 	,publishWithoutLayout "/layout-tests/sequence-layouts" (const testSequenceLayoutsTask)
 	]
 
-taskToLayout title = updateInformation () [] title @! ()
+taskToLayout title = updateInformation () [] title @! () >>= return
 
 testSetTypeTask :: Task ()
 testSetTypeTask = taskToLayout "Test for setting a UI type" <<@ ApplyLayout layout
@@ -101,7 +101,7 @@ where
 testMoveSubsTask :: Task ()
 testMoveSubsTask = taskToLayout "Test for moving a sub ui" <<@ ApplyLayout layout
 where
-	layout = moveSubUIs (SelectByPath [0]) [2]
+	layout = moveSubUIs (SelectByPath [1]) [0]
 
 testLayoutSubsTask :: Task ()
 testLayoutSubsTask = taskToLayout "Test for layouting a sub ui" <<@ ApplyLayout layout

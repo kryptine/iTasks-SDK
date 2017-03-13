@@ -27,7 +27,7 @@ from Text.JSON import :: JSONNode
 	| LSUnwrap UI                                 //State for unwrap tasks
 	| LSSequence LayoutState LayoutState          //Combined state of two sequenced layouts
 	| LSLayoutSubUIs UI (LayoutTree LayoutState)  //States of layouts applied to sub-ui's 
-	| LSRemoveSubUIs UI (LayoutTree UI)           //Ui's that were removed by the layout
+	| LSRemoveSubUIs UI (LayoutTree ())           //UI's that were removed by the layout
 
 :: LayoutTree a
 	= UIModified a
@@ -70,6 +70,9 @@ instance tune	ApplyLayout //Apply a modification after a layout has been run
 	| SelectKeys ![String]
 
 // Basic DSL for creating layouts
+
+// == Do nothing ==
+idLayout :: Layout 
 
 // == Changing node types ==
 setUIType :: UINodeType -> Layout
@@ -118,7 +121,6 @@ layoutSubUIs :: UISelection Layout -> Layout
 * Apply multiple layouts sequentially. The UI changes that have been transformed by one layout are further transformed by the next layout
 */
 sequenceLayouts :: Layout Layout -> Layout
-
 
 // Easier debugging
 traceLayout :: String Layout -> Layout
