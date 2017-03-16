@@ -340,6 +340,7 @@ where
 
 		adjustRemChildChange i (ChangeChild change) items states
 			//Recursively adjust the change
+			| i >= length items = abort "adjustRemChildChange index too large"
 			# (cchange, item, state) = adjustRem (path ++ [i]) change (items !! i) (ltGet i states)
 			= ([(adjustIndex i states, cchange)], updateAt i item items, ltPut i state states)
 
@@ -400,6 +401,7 @@ where
 		collect n (UIModified (LRMoved change)) ui     //An old removal, that was changed in the source location
 			= (n + 1, [(n,ChangeChild change)], UIModified (LRMoved NoChange))
 		collect n (SubUIsModified numBefore mods) (UI _ _ items) //Recursive case
+
 			# (n`, changes, mods) = collectInChildren n [(i,m,items !! i) \\ (i,m) <- mods]
 			= (n`, repeatn numBefore (n,RemoveChild) ++ changes, SubUIsModified 0 mods)
 
@@ -439,13 +441,11 @@ where
 		# (change,ui,state) = adjust` [] change ui state
 		= (change,LSLayoutSubUIs ui state)
 
-	//No change, is still no change
-	adjust` path NoChange ui state
-		= (NoChange,ui,state)
 	//For replacements, just use the apply rule on the new ui
 	adjust` path (ReplaceUI ui) _ state 
 		# (change, state) = apply` path ui
 		= (ReplaceUI (applyUIChange change ui), ui, state)
+
 	//When we get a change for a previously modified ui, we need to check whether the change still holds
 	adjust` path change ui (UIModified state)
 		# ui = applyUIChange change ui //Keep the 'shadow' copy of the UI up-to date
@@ -456,10 +456,15 @@ where
 		| otherwise
 			//The layout should no longer be applied, use the restore function to undo the layout
 			//then apply the upstream change
-			# change = mergeUIChanges (layout.Layout.restore state) change
-			= (change, ui, SubUIsModified () [])
+			# rchange = layout.Layout.restore state
+			//Now that this ui no longer matches, maybe its descendents do
+			# (achange, state) = apply` path ui
+			//The result is, the combination of first restoring, then updating, t
+			# change = mergeUIChanges rchange (mergeUIChanges change achange)
+			= (change, ui, state)
+
 	//When we get a change, we need to check which sub-uis were affected
-	adjust` path change=:(ChangeUI attrChanges childChanges) ui state=:(SubUIsModified _ states)
+	adjust` path change ui state=:(SubUIsModified _ states)
 		//Check if the change means that the layout is now applicable to this node
 		| inUISelectionAfterChange selection path ui change
 			//Update the 'shadow' copy of the UI
@@ -470,31 +475,59 @@ where
 			= (mergeUIChanges restore change, ui, UIModified state)
 		//Apply the change, and modify it if necessary
 		| otherwise
-			//Update the attributes of the 'shadow' ui
-			# (UI type attr items) = applyUIChange (ChangeUI attrChanges []) ui
-			# (childChanges, items, states) = adjustChildChanges childChanges items states
-			= (ChangeUI attrChanges childChanges, UI type attr items, SubUIsModified () states)
+			= case change of
+				(ChangeUI attrChanges childChanges)
+					//Update the attributes of the 'shadow' ui
+					# (UI type attr items) = applyUIChange (ChangeUI attrChanges []) ui
+					# (childChanges, items, states) = adjustChildChanges childChanges items states
+					= (ChangeUI attrChanges childChanges, UI type attr items, SubUIsModified () states)
+				NoChange
+					//Recursively check all children
+					# (UI type attr items) = ui
+					# (childChanges, items, states) = adjustChildChanges [(i, ChangeChild NoChange) \\ i <- [0 .. (length items - 1)]] items states
+					# change = if (childChanges =: []) NoChange	(ChangeUI [] childChanges)
+					= (change, UI type attr items, SubUIsModified () states)
 	where
 		adjustChildChanges [] items states = ([], items, states)
 		adjustChildChanges [(i,c):cs] items states
 			# (c, items, states)  = adjustChildChange i c items states
 			# (cs, items, states) = adjustChildChanges cs items states
-			= ([(i,c):cs], items, states)
+			= (c ++ cs, items, states)
 
-		//FIXME: The rearrangement of children can cause their siblings to either match, or not match a path
-		//       We need to recheck all affected siblings after an InsertChild, RemoveChild or MoveChild
 		adjustChildChange i (ChangeChild change) items states
 			//Recursively adjust the change
 			# (change, item, state) = adjust` (path ++ [i]) change (items !! i) (ltGet i states)
-			= (ChangeChild change, updateAt i item items, ltPut i state states)
+			= (case change of NoChange = []; _ = [(i,ChangeChild change)], updateAt i item items, ltPut i state states)
 		adjustChildChange i (InsertChild ui) items states
 			//(potentially) apply the layout to the inserted item
 			# (change,state) = apply` (path ++ [i]) ui
-			= (InsertChild (applyUIChange change ui), insertAt i ui items, ltInsert i state states)
+			//Check the siblings, because their path has changed
+			# (schanges, items, states) = adjustSiblings path (\x -> x > i) (insertAt i ui items) (ltInsert i state states)
+			= ([(i,InsertChild (applyUIChange change ui)):schanges], items, states)
 		adjustChildChange i RemoveChild items states
-			= (RemoveChild, removeAt i items, ltRemove i states)
+			//Check the siblings, because their path has changed
+			# (schanges, items, states) = adjustSiblings path (\x -> x >= i) (removeAt i items) (ltRemove i states)
+			= ([(i,RemoveChild)], items, states)
 		adjustChildChange i (MoveChild d) items states
-			= (MoveChild d, listMove i d items, ltMove i d states)
+			//Check the siblings, because their path has changed //TODO: We can do better... don't need to check all
+			# (schanges, items, states) = adjustSiblings path (const True) (listMove i d items) (ltMove i d states)
+			= ([(i,MoveChild d)], items, states)
+
+		adjustSiblings path whichSiblings items states = adjust 0 items states
+		where
+			adjust i [] states = ([],[],states)
+			adjust i [item:items] states
+				| whichSiblings i
+					//Check
+					# (change,_,state) = adjust` (path ++ [i]) NoChange item (ltGet i states)
+					//Check the remaining items
+					# (changes, items, states) = adjust (i + 1) items (ltPut i state states)
+					= case change of 
+						NoChange = (changes, items, states)
+						_        = ([(i,ChangeChild change):changes], items, states)
+				| otherwise
+					# (changes, items, states) = adjust (i + 1) items states
+					= (changes, [item:items], states)
 
 	restoreSubUIs (UIModified state) = layout.Layout.restore state
 	restoreSubUIs (SubUIsModified _ states)
@@ -570,12 +603,12 @@ where
 	count (SubUIsModified _ mods) n = if recursive (n + ltCount recursive mods) n
 
 listMove :: Int Int [a] -> [a]
-listMove src dst list = insertAt dst (list !! src) (removeAt src list)
+listMove src dst list = insertAt dst (if (src >= length list) (abort "NEE") (list !! src)) (removeAt src list)
 
 //Check if the UI node that the path targets exists in the UI
 uiPathExists :: UIPath UI -> Bool
 uiPathExists [] _ = True
-uiPathExists [s:ss] (UI _ _ items) = (s < length items) && uiPathExists ss (items !! s)
+uiPathExists [s:ss] (UI _ _ items) = (s < length items) && (uiPathExists ss (items !! s))
 
 changeAtUIPath :: UIPath UIChange -> UIChange
 changeAtUIPath [] change = change
