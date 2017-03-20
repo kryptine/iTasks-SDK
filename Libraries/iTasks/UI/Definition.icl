@@ -16,6 +16,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 import Text.HTML
+import StdMisc
 
 derive class iTask UI, UINodeType
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
@@ -353,7 +354,9 @@ where
 
 	appChildChange items (i,RemoveChild) = removeAt i items
 	appChildChange items (i,InsertChild ui) = insertAt i ui items
-	appChildChange items (i,ChangeChild change) = updateAt i (applyUIChange change (items !! i)) items
+	appChildChange items (i,ChangeChild change)
+		| i >= length items = abort "applyUIChange: index too large"
+							= updateAt i (applyUIChange change (items !! i)) items
 	//FIXME: There is no case MoveChild
 
 //Remove unnessecary directives

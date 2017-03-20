@@ -175,7 +175,7 @@ where
 	//Expected final UI
 	expUI = uic UIStep [uic UIContainer [ui UIAction, ui UIEmpty]]
 	//expState = LSRemoveSubUIs expUI (SubUIsModified [(1,UIModified (ui UIAction)),(2,UIModified (ui UIEmpty))])
-	expState = LSRemoveSubUIs expUI (SubUIsModified 0 [(1,UIModified (LRRemoved 0)),(2,UIModified (LRRemoved 0))])
+	expState = LSRemoveSubUIs expUI (SubUIsModified 'DM'.newMap [(1,UIModified (LRRemoved 0)),(2,UIModified (LRRemoved 0))])
 
 	isTarget (UI type _ _) = (type =: UIAction) || (type =: UIEmpty)
 
@@ -192,7 +192,7 @@ where
 	//Expected final UI
 	expUI = uic UIPanel [uic UIContainer [ui UIEmpty], uic UIContainer [ui UIAction, ui UIAction]]
 	//expState = LSRemoveSubUIs expUI (SubUIsModified [(0,SubUIsModified [(0,UIModified (ui UIAction)),(2,UIModified (ui UIAction))])])
-	expState = LSRemoveSubUIs expUI (SubUIsModified 0 [(0,SubUIsModified 0 [(0,UIModified (LRRemoved 0)),(2,UIModified (LRRemoved 0))])])
+	expState = LSRemoveSubUIs expUI (SubUIsModified 'DM'.newMap [(0,SubUIsModified 'DM'.newMap [(0,UIModified (LRRemoved 0)),(2,UIModified (LRRemoved 0))])])
 
 testMoveSubsMatchingNewRoutes = assertEqual "Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
@@ -238,7 +238,7 @@ where
 	//Expected reroute change 
 	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
-	expState = LSRemoveSubUIs initUI (SubUIsModified 0 [(0,SubUIsModified 0 [(0,UIModified (LRRemoved 0)),(2,UIModified (LRRemoved 0))])])
+	expState = LSRemoveSubUIs initUI (SubUIsModified 'DM'.newMap [(0,SubUIsModified 'DM'.newMap [(0,UIModified (LRRemoved 0)),(2,UIModified (LRRemoved 0))])])
 
 	isAction (UI type _ _) = type =: UIAction
 
@@ -353,8 +353,8 @@ where
 
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIInteract))
 
-	initState = LSRemoveSubUIs (ui UIDebug) (SubUIsModified 0 [(0,SubUIsModified 0 [(0,UIModified (LRRemoved 0))])
-					   ,(1,SubUIsModified 0 [(0,SubUIsModified 0 [(0,UIModified (LRRemoved 0))])])])
+	initState = LSRemoveSubUIs (ui UIDebug) (SubUIsModified 'DM'.newMap [(0,SubUIsModified 'DM'.newMap [(0,UIModified (LRRemoved 0))])
+					   ,(1,SubUIsModified 'DM'.newMap [(0,SubUIsModified 'DM'.newMap [(0,UIModified (LRRemoved 0))])])])
 
 	//Change after first transform 
 	changeToModify = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar [ui UIInteract]))]))]))]

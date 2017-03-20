@@ -100,9 +100,9 @@ where
 //RUNNING TESTS
 testInteractive :: InteractiveTest -> Task TestResult
 testInteractive {name,instructions,expectation,taskUnderTest}
-	= 	(viewInformation () [] (H1Tag [] [Text name]) /*<<@ ApplyLayout (setUIAttributes (heightAttr WrapSize)) */)
+	= 	(viewInformation () [] (H1Tag [] [Text name]) <<@ ApplyLayout (setUIAttributes (heightAttr WrapSize)))
 	||-	((viewInformation (Title "Instructions") [] instructions)
-		  -&&- (viewInformation (Title "Expected result") [] expectation) /*<<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)) */)
+		  -&&- (viewInformation (Title "Expected result") [] expectation) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
 	||- taskUnderTest
 	||- enterInformation (Title "Result") []
 
@@ -121,7 +121,7 @@ testEditorWithShare editor model mode = (withShared model
 	    interact "Editor under test" mode smodel (\r -> ((),r))
 												 (\v l _ -> (l,v,Just (\_ -> v)))
 												 (\r l v -> (l,r,Nothing)) (Just editor) @ snd
-	) /*<<@ ApplyLayout (setUIAttributes (directionAttr Horizontal) ) */
+	) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)) 
 
 testCommonInteractions :: String -> Task a | iTask a
 testCommonInteractions typeName
@@ -207,9 +207,9 @@ checkSuiteResult f {SuiteResult|testResults} = all (\(_,r) -> f r) testResults
 runTests :: [TestSuite] -> Task ()
 runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
     ( allTasks [runInteractiveTests <<@ Title "Interactive Tests"
-			   //,runUnitTests        <<@ Title "Unit Tests"
-			   //,viewQualityMetrics  <<@ Title "Metrics"
-			   ] //<<@ ArrangeWithTabs
+			   ,runUnitTests        <<@ Title "Unit Tests"
+			   ,viewQualityMetrics  <<@ Title "Metrics"
+			   ] <<@ ArrangeWithTabs
     ) @! ()
 where
 	runInteractiveTests
@@ -252,7 +252,7 @@ where
 		resultRow (test,Failed (Just details)) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [TextareaTag [] [Text details]]]
 
 	application header mainTask
-		= (viewInformation () [] header ||- mainTask) //<<@ ArrangeWithSideBar 0 TopSide 50 False //<<@ ApplyLayout (setUIType UIContainer)
+		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False <<@ ApplyLayout (setUIType UIContainer)
 
 	viewQualityMetrics :: Task ()
 	viewQualityMetrics 
