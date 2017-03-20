@@ -18,6 +18,7 @@ import iTasks.UI.Definition
 import qualified iTasks._Framework.SDS as SDS
 from Data.Queue import :: Queue(..)
 import System.OS
+import iTasks.Util.Trace
 
 // TEST FRAMEWORK
 derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult
@@ -41,35 +42,35 @@ itest name instructions expectation tut
 utest :: String (*World -> *(TestResult,*World)) -> Test
 utest name test = UnitTest {UnitTest|name=name,test=test}
 
-assert :: String (a -> Bool) a -> Test | JSONEncode{|*|} a
+assert :: String (a -> Bool) a -> Test | gPrettyTrace{|*|} a
 assert name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
-	test w = (if (exp sut) Passed (Failed (Just ("Actual: " <+++ (toJSON sut)))),w)
+	test w = (if (exp sut) Passed (Failed (Just ("Actual:\n" +++ (prettyTrace sut)))),w)
 
-assertEqual :: String a a -> Test | gEq{|*|} a & JSONEncode{|*|} a 
+assertEqual :: String a a -> Test | gEq{|*|} a & gPrettyTrace{|*|} a
 assertEqual name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
 	test w = (checkEqual exp sut,w)
 
-assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | JSONEncode{|*|} a
+assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | gPrettyTrace{|*|} a
 assertWorld name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
 	test w 
 		# (res,w) = sut w
-		= (if (exp res) Passed (Failed (Just ("Actual: " <+++ (toJSON res)))),w)
+		= (if (exp res) Passed (Failed (Just ("Actual:\n" +++ (prettyTrace res)))),w)
 
-assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & JSONEncode{|*|} a
+assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & gPrettyTrace{|*|} a
 assertEqualWorld name exp sut = UnitTest {UnitTest|name=name,test=test}
 where
 	test w
 		# (res,w) = sut w
-		= (if (exp === res) Passed (Failed (Just ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON res)))),w)
+		= (if (exp === res) Passed (Failed (Just (sideBySideTrace ("Expected:",exp) ("Actual:",res)))),w)
 
-checkEqual :: a a -> TestResult | gEq{|*|} a & JSONEncode{|*|} a 
+checkEqual :: a a -> TestResult | gEq{|*|} a & gPrettyTrace{|*|} a
 checkEqual exp sut = checkEqualWith (===) exp sut
 
-checkEqualWith :: (a a -> Bool) a a -> TestResult |JSONEncode{|*|} a 
-checkEqualWith pred exp sut = if (pred exp sut) Passed (Failed (Just ("Expected: " <+++ (toJSON exp) <+++ "\nActual:   " <+++ (toJSON sut))))
+checkEqualWith :: (a a -> Bool) a a -> TestResult | gPrettyTrace{|*|} a
+checkEqualWith pred exp sut = if (pred exp sut) Passed (Failed (Just (sideBySideTrace ("Expected:",exp) ("Actual:", sut))))
 
 pass :: String -> Test
 pass name = UnitTest {UnitTest|name=name,test = \w -> (Passed,w)}
@@ -99,9 +100,9 @@ where
 //RUNNING TESTS
 testInteractive :: InteractiveTest -> Task TestResult
 testInteractive {name,instructions,expectation,taskUnderTest}
-	= 	(viewInformation () [] (H1Tag [] [Text name]) <<@ ApplyLayout (setUIAttributes (heightAttr WrapSize)))
+	= 	(viewInformation () [] (H1Tag [] [Text name]) /*<<@ ApplyLayout (setUIAttributes (heightAttr WrapSize)) */)
 	||-	((viewInformation (Title "Instructions") [] instructions)
-		  -&&- (viewInformation (Title "Expected result") [] expectation) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
+		  -&&- (viewInformation (Title "Expected result") [] expectation) /*<<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)) */)
 	||- taskUnderTest
 	||- enterInformation (Title "Result") []
 
@@ -110,7 +111,7 @@ testEditor :: (Editor a) a EditMode -> Task a | iTask a
 testEditor editor model mode
 	=   (interact "Editor test" mode null (const ((),model)) (\v l _ -> (l,v,Nothing)) (\_ l v -> (l,v,Nothing)) (Just editor) @ snd
 	>&> viewSharedInformation "Editor value" [ViewAs (toString o toJSON)] @? tvFromMaybe
-	) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
+	)  <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal) )
 
 testEditorWithShare :: (Editor a) a EditMode -> Task a | iTask a
 testEditorWithShare editor model mode = (withShared model
@@ -120,7 +121,7 @@ testEditorWithShare editor model mode = (withShared model
 	    interact "Editor under test" mode smodel (\r -> ((),r))
 												 (\v l _ -> (l,v,Just (\_ -> v)))
 												 (\r l v -> (l,r,Nothing)) (Just editor) @ snd
-	) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
+	) /*<<@ ApplyLayout (setUIAttributes (directionAttr Horizontal) ) */
 
 testCommonInteractions :: String -> Task a | iTask a
 testCommonInteractions typeName
@@ -206,9 +207,9 @@ checkSuiteResult f {SuiteResult|testResults} = all (\(_,r) -> f r) testResults
 runTests :: [TestSuite] -> Task ()
 runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
     ( allTasks [runInteractiveTests <<@ Title "Interactive Tests"
-			   ,runUnitTests        <<@ Title "Unit Tests"
-			   ,viewQualityMetrics  <<@ Title "Metrics"
-			   ] <<@ ArrangeWithTabs
+			   //,runUnitTests        <<@ Title "Unit Tests"
+			   //,viewQualityMetrics  <<@ Title "Metrics"
+			   ] //<<@ ArrangeWithTabs
     ) @! ()
 where
 	runInteractiveTests
@@ -251,7 +252,7 @@ where
 		resultRow (test,Failed (Just details)) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [TextareaTag [] [Text details]]]
 
 	application header mainTask
-		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False <<@ ApplyLayout (setUIType UIContainer)
+		= (viewInformation () [] header ||- mainTask) //<<@ ArrangeWithSideBar 0 TopSide 50 False //<<@ ApplyLayout (setUIType UIContainer)
 
 	viewQualityMetrics :: Task ()
 	viewQualityMetrics 

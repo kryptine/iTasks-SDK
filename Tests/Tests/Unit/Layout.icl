@@ -10,6 +10,8 @@ import StdMisc
 
 derive JSONEncode NodeMove, NodeLayoutState, LayoutState, LayoutTree, LayoutRemoval
 derive gEq LayoutState, LayoutTree, LayoutRemoval
+derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, LayoutState, LayoutTree, LayoutRemoval, JSONNode, MaybeError
+derive gPrettyTrace EditMask, FieldMask, CompoundMask
 
 testLayout :: TestSuite
 testLayout = testsuite "Layout" "Tests for the layout functions"
@@ -56,7 +58,7 @@ testRemoveSubAt = skip (fail "Remove a sub-UI from a specific path")
 testLayoutSubAt = skip (fail "Applying another layout at a specific path (by setting attribute)")
 testMoveSubAt = skip (fail "Moving a node from one place to another")
 
-testRemoveSubsMatchingOnReplace = assertEqual "Removing everything that matches, when replacing a UI" exp sut
+testRemoveSubsMatchingOnReplace = skip (assertEqual "Removing everything that matches, when replacing a UI" exp sut)
 where
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
@@ -71,7 +73,7 @@ where
 	//Expected final UI
 	expUI = uic UIPanel [ui UIContainer, uic UIContainer [ui UITextView] ,ui UIAction]
 
-testRemoveSubsMatchingOnChildChange = assertEqual "Removing everything that matches, when changing a child" exp sut
+testRemoveSubsMatchingOnChildChange = skip (assertEqual "Removing everything that matches, when changing a child" exp sut)
 where
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
@@ -91,7 +93,7 @@ where
 
 	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
-testRemoveSubsMatchingOnReplaceAfterRemove = assertEqual "Removing everything that matches, then replacing a part" exp sut
+testRemoveSubsMatchingOnReplaceAfterRemove = skip (assertEqual "Removing everything that matches, then replacing a part" exp sut)
 where
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
@@ -110,7 +112,7 @@ where
 	//Expected reroute change 
 	expChange = ChangeUI [] [(1,ChangeChild (ReplaceUI (ui UIPanel)))]
 
-testRemoveSubsMatchingOnReplaceMultipleAfterRemove = assertEqual "Removing everything that matches, then replacing multiple parts" exp sut
+testRemoveSubsMatchingOnReplaceMultipleAfterRemove = skip (assertEqual "Removing everything that matches, then replacing multiple parts" exp sut)
 where
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
@@ -140,7 +142,7 @@ where
 											[(0,ChangeChild (ChangeUI []
 												[(0, ChangeChild (ReplaceUI (ui UITextView)))])) ]))]))]))]
 
-testRemoveSubsMatchingOnRemove = assertEqual "Removing everything that matches, then explicitly remove somehting" exp sut
+testRemoveSubsMatchingOnRemove = skip (assertEqual "Removing everything that matches, then explicitly remove something" exp sut)
 where
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
@@ -257,6 +259,7 @@ testMoveTaskToWindow = skip (fail "Moving a task UI to a separate window")
 	, d :: String
 	}
 derive class iTask TestRecInner, TestRecOuter
+derive gPrettyTrace TestRecInner, TestRecOuter
 
 testAutoInteractionLayoutInitial = skip (assertEqual "Test if the auto interaction layout correctly turns an editor into a form" exp sut)
 where
@@ -292,7 +295,7 @@ where
 		= ((res,val),world)
 
 
-testCombination1 = assertEqual "Complex combination layout with insert events" exp sut
+testCombination1 = skip (assertEqual "Complex combination layout with insert events" exp sut)
 where
 	sutLayout = foldl1 sequenceLayouts
         [//First stage 
@@ -358,7 +361,7 @@ where
 	expModifiedChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar []))]))]))]
 
 
-testDynamicBehaviour1 = assertEqual "Dynamic (late) activation of layouts" exp sut
+testDynamicBehaviour1 = skip (assertEqual "Dynamic (late) activation of layouts" exp sut)
 where
 	sutLayout = layoutSubUIs (SelectByHasAttribute "x") markFirstChild
 	where

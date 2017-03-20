@@ -11,6 +11,7 @@ testMisc = testsuite "Miscellaneous" "All tests that don't fit anywhere else, bu
 	, b :: JSONNode
 	}
 derive class iTask TestRecord
+derive gPrettyTrace Maybe, TestRecord, JSONNode
 
 jsonDecodeOfJSONField
 	= assertEqual "Encoding and decoding of record fields of type JSONNode with value JSONNull"
