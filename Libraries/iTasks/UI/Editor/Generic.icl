@@ -56,7 +56,9 @@ where
 				# enableMask = FieldMask {touched=True,valid=True,state=JSONBool True}
 				= (Ok (change,CompoundMask {fields=[enableMask:masks],state=JSONNull}), RECORD val, {vst & mode = mode})
 			(Error e,vst) = (Error e, RECORD val, {vst & mode = mode})
+
 	onEdit dp ([],JSONBool False) (RECORD val) (CompoundMask {fields=[enableMask:masks]}) vst=:{VSt|optional} //Disabling an optional record
+
 		| not optional
 			= (Error "Disabling non-optional record",RECORD val,vst)
 		//Remove all fields except the enable/disable checkbox
@@ -83,18 +85,17 @@ where
 				
 	onEdit _ _ val mask vst = (Ok (NoChange,mask),val,vst)
 
-	onRefresh dp (RECORD new) (RECORD old) mask vst=:{VSt|optional}
-		| optional //TODO: This needs proper testing
-			//Adjust for the added enable UI
-			# (CompoundMask {fields=[enableMask:masks]}) = mask
-			= case ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask grd_arity (CompoundMask {fields=masks,state=JSONNull})) vst of
+	onRefresh dp (RECORD new) (RECORD old) mask=:(CompoundMask {fields}) vst=:{VSt|optional,mode}
+		| optional && not (mode =: View)
+			//Account for the extra mask of the enable/disable checkbox
+			= case ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask (CompoundMask {fields=tl fields,state=JSONNull})) vst of
 				(Ok (change,mask),val,vst)
 					# (change,CompoundMask {fields=masks}) = fromPairDiff 0 grd_arity (change,mask)	
-					= (Ok (change,CompoundMask {fields=[enableMask:masks],state=JSONNull}), RECORD val, vst)
+					= (Ok (change,CompoundMask {fields=[hd fields:masks],state=JSONNull}), RECORD val, vst)
 				(Error e,val,vst)
 					= (Error e, RECORD val, vst)
 		| otherwise
-			# (change,val,vst) = ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask grd_arity mask) vst
+			# (change,val,vst) = ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask mask) vst
 			= (fmap (fromPairDiff 0 grd_arity) change,RECORD val,vst)
 
 gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
@@ -294,7 +295,7 @@ where
 
 	onRefresh dp (CONS new) (CONS old) mask vst 
 		//Diff all fields of the constructor
-		# (change,val,vst) = ex.Editor.onRefresh (pairPath gcd_arity dp) new old (toPairMask gcd_arity mask) vst 	
+		# (change,val,vst) = ex.Editor.onRefresh (pairPath gcd_arity dp) new old (toPairMask mask) vst 	
 		//Flatten the binary tree of ChangeUI constructors created from
 		//the PAIR's into a single ChangeUI constructor
 		= (fmap (fromPairDiff 0 gcd_arity) change,CONS val,vst)
@@ -393,19 +394,15 @@ pairSelectPath i n
 //When UIs, or UI differences are aggregated in PAIR's they form a binary tree 
 
 //Recreate the binary-tree representation for a pair
-toPairMask 0 (CompoundMask {fields=[],state}) = CompoundMask {fields=[],state=state}
-toPairMask 1 (CompoundMask {fields=[m1],state}) = CompoundMask {fields=[m1],state=state}
-toPairMask 2 (CompoundMask {fields=[m1,m2],state}) = CompoundMask {fields=[m1,m2],state=state}
-toPairMask 3 (CompoundMask {fields=[m1,m2,m3],state}) = CompoundMask {fields=[m1,CompoundMask {fields=[m2,m3],state=JSONNull}],state=state}
-toPairMask n (CompoundMask {fields,state}) = CompoundMask {fields=[m1,m2],state=state}
+toPairMask m=:(CompoundMask {fields=[]}) = m
+toPairMask m=:(CompoundMask {fields=[m1]}) = m1
+toPairMask m=:(CompoundMask {fields=[m1,m2]}) = m
+toPairMask m=:(CompoundMask {fields=[m1,m2,m3],state}) = CompoundMask {fields=[m1, CompoundMask {fields=[m2,m3],state=state}],state=state}
+toPairMask m=:(CompoundMask {fields,state}) = CompoundMask {fields=[m1,m2],state=state}
 where
-	half = n / 2
-	m1 = toPairMask half (CompoundMask {fields=take half fields,state=JSONNull})
-	m2 = toPairMask (n - half) (CompoundMask {fields=drop half fields,state=JSONNull})
-
-toPairMask n mask = abort (toString (toJSON (n,mask)))
-import StdMisc
-
+	half = length fields / 2
+	m1 = toPairMask (CompoundMask {fields=take half fields,state=state})
+	m2 = toPairMask (CompoundMask {fields=drop half fields,state=state})
 
 //These functions flatten this tree back to a single CompoundEditor or ChangeUI definition
 fromPairUI type 0 (ui,mask) = (UI type 'DM'.newMap [],CompoundMask {fields=[],state=JSONNull})
