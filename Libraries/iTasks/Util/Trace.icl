@@ -51,7 +51,7 @@ where
 		| length left > length right
 			= [l +++ " | " +++ r \\ l <- map (\l -> rpad l maxLenLeft ' ') left & r <- (right ++ repeat "")]
 		| otherwise
-			= [l +++ " | " +++ r \\ l <- map (\l -> rpad l maxLenLeft ' ') (left ++ repeat "") & r <- (right ++ repeat "")]
+			= [l +++ " | " +++ r \\ l <- map (\l -> rpad l maxLenLeft ' ') (left ++ repeat "") & r <- right]
 	where
 		maxLenLeft = maximum (map textSize left)
 
