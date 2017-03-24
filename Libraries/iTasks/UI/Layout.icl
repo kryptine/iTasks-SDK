@@ -315,14 +315,20 @@ where
 				= (ChangeChild (ReplaceUI (applyUIChange change ui)), ui, SubUIsModified 'DM'.newMap/*numCurRemoved*/ mods)
 
 	//The UI was removed earlier
-	adjustRem path change=:(ChangeUI attrChanges childChanges) ui (UIModified _) //FIXME: check if we don't lose removal information..
+	adjustRem path change=:(ChangeUI attrChanges childChanges) ui (UIModified removal) //FIXME: check if we don't lose removal information..
 		//Update the 'shadow' UI
 		# ui = applyUIChange change ui
 		//Check if the UI should still be removed after the effects of the change 
 		= case applyRem path ui of
-			(RemoveChild,state) = (ChangeChild NoChange, ui, state)
+			(RemoveChild,state)
+				//Store the change for application in the target location
+				# removal = case removal of 
+					(LRMoved curChange) = LRMoved (mergeUIChanges curChange change)
+					_					= removal
+				= (ChangeChild NoChange, ui, UIModified removal)
 			//Restore the UI, but make sure that the layout still applies to the children of the UI
-			(ChangeChild change, state) = (InsertChild (applyUIChange change ui), ui, state)
+			(ChangeChild change, state) //TODO: Store the restore point in the state
+				= (InsertChild (applyUIChange change ui), ui, state)
 
 	adjustRem path change=:(ChangeUI attrChanges childChanges) ui state=:(SubUIsModified _ mods)
 		| inUISelectionAfterChange selection path ui change
@@ -381,7 +387,9 @@ where
 				| whichSiblings i
 					//Check the ui
 					# (cchange, item, state) = adjustRem (path ++ [i]) NoChange item (ltGet i states)
-					# change = [(adjustIndex i states,cchange)]
+					# change = case cchange of
+						(ChangeChild NoChange)  = []
+						_                       = [(adjustIndex i states,cchange)]
 					//Check the remaining items
 					# (changes, items, states) = adjust (i + 1) items (ltPut i state states)
 					= (change ++ changes, items, states)

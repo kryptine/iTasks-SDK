@@ -70,6 +70,7 @@ where
 	//Initial UI	
 	initUI = uic UIPanel [ui UIContainer, ui UIEmpty, uic UIContainer [ui UIEmpty, ui UITextView], ui UIAction]
 	initState = snd (sutLayout.Layout.apply initUI)
+
 	//Expected final UI
 	expUI = uic UIPanel [ui UIContainer, uic UIContainer [ui UITextView] ,ui UIAction]
 
@@ -90,7 +91,6 @@ where
 	changeToReRoute = ChangeUI [] [(2,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
 	//Expected reroute change 
-
 	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
 testRemoveSubsMatchingOnReplaceAfterRemove = skip (assertEqual "Removing everything that matches, then replacing a part" exp sut)
@@ -163,60 +163,61 @@ testLayoutSubsMatching = skip (fail "Applying another layout to all matching nod
 
 testMoveSubsMatchingInitial = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
 where
-	sutLayout = (moveSubUIs (SelectAND SelectChildren (SelectOR (SelectByType UIAction) (SelectByType UIEmpty))) [0,0]) 
-	sut = sutLayout.Layout.adjust (ReplaceUI initUI,initState)
+	sutLayout = moveSubUIs (SelectAND SelectChildren (SelectOR (SelectByType UIAction) (SelectByType UIEmpty))) [0]
 
-	exp = (ReplaceUI expUI,expState)
+	sut = let (change,state) = sutLayout.Layout.apply initUI in (applyUIChange change initUI, state)
+
+	exp = (expUI, expState)
 
 	//Initial UI	
 	initUI = uic UIStep [ui UIContainer, ui UIAction, ui UIEmpty]
-	initState = snd (sutLayout.Layout.apply initUI)
 
 	//Expected final UI
 	expUI = uic UIStep [uic UIContainer [ui UIAction, ui UIEmpty]]
-	//expState = LSRemoveSubUIs expUI (SubUIsModified [(1,UIModified (ui UIAction)),(2,UIModified (ui UIEmpty))])
-	expState = LSRemoveSubUIs expUI (SubUIsModified 'DM'.newMap [(1,UIModified (LRRemoved 0)),(2,UIModified (LRRemoved 0))])
 
-	isTarget (UI type _ _) = (type =: UIAction) || (type =: UIEmpty)
+	expState = LSRemoveSubUIs initUI
+					(SubUIsModified 'DM'.newMap [(1,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])
+
 
 testMoveSubsMatchingInitial2 = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
 where
-	sutLayout = (moveSubUIs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1,0]) 
-	sut = sutLayout.Layout.adjust (ReplaceUI initUI,initState)
+	sutLayout = moveSubUIs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1] 
 
-	exp = (ReplaceUI expUI,expState)
+	sut = let (change,state) = sutLayout.Layout.apply initUI in (applyUIChange change initUI, state)
+	exp = (expUI,expState)
 
 	//Initial UI	
 	initUI = uic UIPanel [uic UIContainer [ui UIAction, ui UIEmpty, ui UIAction], ui UIContainer]
-	initState = snd (sutLayout.Layout.apply initUI)
+
 	//Expected final UI
 	expUI = uic UIPanel [uic UIContainer [ui UIEmpty], uic UIContainer [ui UIAction, ui UIAction]]
-	//expState = LSRemoveSubUIs expUI (SubUIsModified [(0,SubUIsModified [(0,UIModified (ui UIAction)),(2,UIModified (ui UIAction))])])
-	expState = LSRemoveSubUIs expUI (SubUIsModified 'DM'.newMap [(0,SubUIsModified 'DM'.newMap [(0,UIModified (LRRemoved 0)),(2,UIModified (LRRemoved 0))])])
+	expState = LSRemoveSubUIs initUI
+		(SubUIsModified 'DM'.newMap [(0,SubUIsModified 'DM'.newMap [(0,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])])
 
 testMoveSubsMatchingNewRoutes = assertEqual "Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
-	sutLayout = (moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [0,0]) 
-	sut
-		//Initial, followed by an event in the new structure
-		# (_,s) = sutLayout.Layout.adjust (initChange,initState)
-		# (c,s) = sutLayout.Layout.adjust (changeToReRoute,s)
-		= c
-	exp = expChange
+	sutLayout = moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [0]
 
-	//Initial UI	
-	initUI = uic UIStep [ui UIContainer, ui UIAction, ui UIAction]
-	initChange = ReplaceUI initUI
-	initState = snd (sutLayout.Layout.apply initUI)
+	sut = sutLayout.Layout.adjust (sutChange,initState)
+	exp = (expChange,expState)
 
-	changeToReRoute = ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))
-								  ,(2,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "baz")] []))]
+	//Initial state
+	initShadowUI = uic UIStep [ui UIContainer, ui UIAction, ui UIAction]
+	initRemovals = (SubUIsModified 'DM'.newMap [(1,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])
 
-	//Expected reroute change 
+	initState = LSRemoveSubUIs initShadowUI initRemovals
+
+	//The change that should be re-routed
+	sutChange = ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))
+							,(2,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "baz")] []))]
+
+	//Expected rerouted change 
 	expChange = ChangeUI [] [(0,ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))
 														 ,(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "baz")] [])) ]))] 
 
-	isAction (UI type _ _) = type =: UIAction
+	//In the state, the attributes should have been applied the 'shadow' administration
+	expState = LSRemoveSubUIs (applyUIChange sutChange initShadowUI) initRemovals
+import StdDebug
 
 testMoveSubsMatchingNewRoutes2 = assertEqual "Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
