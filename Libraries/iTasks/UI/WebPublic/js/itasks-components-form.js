@@ -297,7 +297,7 @@ itasks.Button = {
 				me.attributes.value = !me.attributes.value;
 			}
             if(me.attributes.enabled) {
-				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,me.value);
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,me.attributes.value);
             }
 			e.preventDefault();
 			return false;

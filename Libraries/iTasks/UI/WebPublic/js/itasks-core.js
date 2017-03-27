@@ -471,7 +471,7 @@ itasks.Service = {
 		var me = this,
 			taskUrl, parentViewport, taskInstance, connection;
 
-		if(taskInstance = viewport.instanceNo) {
+		if(taskInstance = viewport.attributes.instanceNo) {
 			//Connect to an existing task instance
 			me.registerInstance_(viewport);	
 			
@@ -485,8 +485,8 @@ itasks.Service = {
 		connection = me.getViewportConnection_(viewport);	
 		connection.newSession(function(instanceNo,instanceKey) {
 			//Store the instanceNo and key on the viewport
-			viewport.instanceNo = instanceNo;
-			viewport.instanceKey = instanceKey;
+			viewport.attributes.instanceNo = instanceNo;
+			viewport.attributes.instanceKey = instanceKey;
 
 			//Register the instance
 			me.instances[instanceNo] = {connection: connection, viewport: viewport}
@@ -494,7 +494,7 @@ itasks.Service = {
 		});
 	},
 	registerInstance_: function(viewport) {
-		var me = this, connection, instanceNo = viewport.instanceNo;
+		var me = this, connection, instanceNo = viewport.attributes.instanceNo;
 	
 		connection = me.getViewportConnection_(viewport);	
 		connection.attachTaskInstance(instanceNo, viewport.onInstanceUIChange.bind(viewport));
@@ -506,7 +506,7 @@ itasks.Service = {
 		var me = this, parentViewport, connection;
 		//If the viewport is embedded in another viewport, reuse its connection
 		if(parentViewport = viewport.getParentViewport()) {
-			return me.instances[parentViewport.instanceNo].connection;
+			return me.instances[parentViewport.attributes.instanceNo].connection;
 		} else {
 			//Create the connection
 			connection = Object.assign(Object.create(itasks.Connection),{taskUrl:viewport.taskUrl});

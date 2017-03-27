@@ -59,7 +59,7 @@ itasks.RawAction = {
 		var me = this, el = me.domEl;
 		switch(name) {
 			case 'enabled':
-				if(me.enabled) {
+				if(value) {
 					el.classList.remove(this.cssPrefix + 'raw-action-disabled');
 					el.classList.add(this.cssPrefix + 'raw-action-enabled');
 				} else {
