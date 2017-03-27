@@ -21,7 +21,7 @@ addListener :: !TaskId !Int !Bool !ConnectionTask !*IWorld -> (!MaybeError TaskE
 addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
 
 //Dynamically add a background task
-addBackgroundTask :: !BackgroundTaskId !BackgroundTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
+addBackgroundTask :: !BackgroundTask !*IWorld -> (!MaybeError TaskException BackgroundTaskId,!*IWorld)
 
 //Dynamically remove a background task
 removeBackgroundTask :: !BackgroundTaskId !*IWorld -> (!MaybeError TaskException (),!*IWorld)

@@ -1,7 +1,7 @@
 implementation module iTasks._Framework.TaskServer
 
 import StdFile, StdBool, StdInt, StdClass, StdList, StdMisc, StdArray, StdTuple, StdOrdList
-import Data.Maybe, Data.Functor, Data.Error, System.Time, Text
+import Data.Maybe, Data.Functor, Data.Error, System.Time, Text, Data.Tuple
 from Data.Map import :: Map (..)
 import qualified Data.List as DL
 import qualified Data.Map as DM
@@ -322,10 +322,14 @@ addConnection taskId=:(TaskId instanceNo _) host port connectionTask iworld=:{io
                 = (Ok (),{iworld & ioTasks = {done=done,todo=todo}, ioStates = ioStates, world = world})
 
 //Dynamically add a background task
-addBackgroundTask :: !BackgroundTaskId !BackgroundTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
-addBackgroundTask btid bt iworld=:{ioTasks={done,todo}}
-# todo = todo ++ [BackgroundInstance {BackgroundInstanceOpts|bgInstId=btid} bt]
-= (Ok (), {iworld & ioTasks={done=done, todo=todo}})
+addBackgroundTask :: !BackgroundTask !*IWorld -> (!MaybeError TaskException BackgroundTaskId,!*IWorld)
+addBackgroundTask bt iworld=:{ioTasks={done,todo}}
+# (todo, i) = appSnd (\is->1 + maxList is) (unzip (map transform todo))
+# todo = todo ++ [BackgroundInstance {BackgroundInstanceOpts|bgInstId=i} bt]
+= (Ok i, {iworld & ioTasks={done=done, todo=todo}})
+	where
+		transform a=:(BackgroundInstance {bgInstId} _) = (a, bgInstId)
+		transform a = (a, 1)
 
 //Dynamically remove a background task
 removeBackgroundTask :: !BackgroundTaskId !*IWorld -> (!MaybeError TaskException (),!*IWorld)
