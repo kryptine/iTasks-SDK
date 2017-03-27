@@ -342,7 +342,7 @@ testDiffConsChange :: Test
 testDiffConsChange 
 	= testOnRefresh "Changing a single constructor"
 		(ChangeUI [SetAttribute "value" (JSONArray [JSONInt 1,JSONBool True])] [])
-		ConsB ConsA newFieldMask
+		ConsB ConsA newCompoundMask
 
 testDiffConsWithFieldChange :: Test
 testDiffConsWithFieldChange 
