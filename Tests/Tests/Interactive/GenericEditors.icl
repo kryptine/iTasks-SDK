@@ -5,7 +5,7 @@ import iTasks, TestFramework
 testGenericEditors :: TestSuite
 testGenericEditors = testsuite "Generic editors" "These tests check if generic editors for standard types work"
 	[testString,testChar,testInt,testReal,testBool
-	,testADTSingleConsOne,testADTSingleConsMulti,testADTMultiCons
+	,testADTSingleConsOne,testADTSingleConsMulti,testADTSingleConsMany,testADTMultiCons
 	,testSingleRecord,testNestedRecord,testOptionalRecord,testRecordWithADT,testIntList
 	,testCustomList
 	]
@@ -50,6 +50,14 @@ testADTSingleConsMulti = itest "Single Constructor Multi" "Check the behavior of
 where
 	tut :: Task ADTSingleConsMulti
 	tut = testCommonInteractions "ADTSingleConsMulti"
+
+:: ADTSingleConsMany = ADTSingleConsMany String Int String Int String
+derive class iTask ADTSingleConsMany
+
+testADTSingleConsMany= itest "Single Constructor Many" "Check the behavior of the editors" "You should have a 3 String editors interleaved with 2 Int editors" tut
+where
+	tut :: Task ADTSingleConsMany
+	tut = testCommonInteractions "ADTSingleConsMany"
 
 :: ADTMultiCons
 	= ADTMultiConsNone
