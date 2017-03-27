@@ -136,9 +136,12 @@ actionsToButtonBar = foldl1 sequenceLayouts
 
 //Flatten an editor into a form
 toFormItem :: Layout
+toFormItem = idLayout 
+/*
 toFormItem = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply _ = (NoChange,LSNone)
+
 	adjust (ReplaceUI (control=:(UI _ attr _)),s) 
 		# label = fromMaybe (ui UIEmpty) (labelControl attr)
 		# info = fromMaybe (ui UIEmpty) (infoControl attr)
@@ -160,6 +163,7 @@ where
 	adjust (c,s) = (c,s)
 
 	restore _ = NoChange
+*/
 	
 labelControl :: UIAttributes -> Maybe UI
 labelControl attributes = case 'DM'.get LABEL_ATTRIBUTE attributes of
