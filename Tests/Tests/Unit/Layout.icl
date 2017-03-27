@@ -15,50 +15,51 @@ derive gPrettyTrace EditMask, FieldMask, CompoundMask
 
 testLayout :: TestSuite
 testLayout = testsuite "Layout" "Tests for the layout functions"
-	[testChangeNodeType
-	,testChangeAttributes
-	,testWrap
-	,testUnwrap
-	,testInsertSubAt
-	,testRemoveSubAt
-	,testLayoutSubAt
-	,testMoveSubAt
+	[skip testChangeNodeType
+	,skip testChangeAttributes
+	,skip testWrap
+	,skip testUnwrap
+	,skip testInsertSubAt
+	,skip testRemoveSubAt
+	,skip testLayoutSubAt
+	,skip testMoveSubAt
 	,testRemoveSubsMatchingOnReplace
 	,testRemoveSubsMatchingOnChildChange
 	,testRemoveSubsMatchingOnReplaceAfterRemove 
 	,testRemoveSubsMatchingOnReplaceMultipleAfterRemove
 	,testRemoveSubsMatchingOnRemove
-	,testLayoutSubsMatching
+	,skip testLayoutSubsMatching
 	,testMoveSubsMatchingInitial
 	,testMoveSubsMatchingInitial2
 	,testMoveSubsMatchingNewRoutes
 	,testMoveSubsMatchingNewRoutes2
-	,testSequenceLayouts
-	,testSelectLayout
+	,testMoveSubsMatchingNewRoutes3
+	,skip testSequenceLayouts
+	,skip testSelectLayout
 	//Common patterns
-	,testAutoInteractionLayoutInitial
-	,testAutoInteractionLayoutEditorValueChange
-	,testMoveTaskToWindow
-	,testFlatteningOfNestedRecords
+	,skip testAutoInteractionLayoutInitial
+	,skip testAutoInteractionLayoutEditorValueChange
+	,skip testMoveTaskToWindow
+	,skip testFlatteningOfNestedRecords
 	//Complex combination
 	,testCombination1
-	,testCombination2
-	,testDynamicBehaviour1
+	,skip testCombination2
+	,skip testDynamicBehaviour1
 	]
 
 //Tests for the core operations of the layout library
-testChangeNodeType = skip (fail "Changing node type")
-testChangeAttributes = skip (fail "Changing attributes")
+testChangeNodeType = fail "testChangeNodeType: Changing node type"
+testChangeAttributes = fail "testChangeAttributes: Changing attributes"
 
-testWrap = skip (fail "Wrapping a UI in a panel")
-testUnwrap = skip (fail "Unwrapping a UI from a container")
+testWrap = fail "testWrap: Wrapping a UI in a panel"
+testUnwrap = fail "testUnwrap: Unwrapping a UI from a container"
 
-testInsertSubAt = skip (fail "Inserting a sub-UI at a specific path")
-testRemoveSubAt = skip (fail "Remove a sub-UI from a specific path")
-testLayoutSubAt = skip (fail "Applying another layout at a specific path (by setting attribute)")
-testMoveSubAt = skip (fail "Moving a node from one place to another")
+testInsertSubAt = fail "testInsertSubAt: Inserting a sub-UI at a specific path"
+testRemoveSubAt = fail "testRemoveSubAt: Remove a sub-UI from a specific path"
+testLayoutSubAt = fail "testLayoutSubAt: Applying another layout at a specific path (by setting attribute)"
+testMoveSubAt = fail "testMoveSubAt: Moving a node from one place to another"
 
-testRemoveSubsMatchingOnReplace = skip (assertEqual "Removing everything that matches, when replacing a UI" exp sut)
+testRemoveSubsMatchingOnReplace = assertEqual "testRemoveSubsMatchingOnReplace: Removing everything that matches, when replacing a UI" exp sut
 where
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
@@ -74,7 +75,7 @@ where
 	//Expected final UI
 	expUI = uic UIPanel [ui UIContainer, uic UIContainer [ui UITextView] ,ui UIAction]
 
-testRemoveSubsMatchingOnChildChange = skip (assertEqual "Removing everything that matches, when changing a child" exp sut)
+testRemoveSubsMatchingOnChildChange = assertEqual "testRemoveSubsMatchingOnChildChange: Removing everything that matches, when changing a child" exp sut
 where
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
@@ -93,7 +94,7 @@ where
 	//Expected reroute change 
 	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
-testRemoveSubsMatchingOnReplaceAfterRemove = skip (assertEqual "Removing everything that matches, then replacing a part" exp sut)
+testRemoveSubsMatchingOnReplaceAfterRemove = assertEqual "testRemoveSubsMatchingOnReplaceAfterRemove: Removing everything that matches, then replacing a part" exp sut
 where
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
@@ -112,7 +113,7 @@ where
 	//Expected reroute change 
 	expChange = ChangeUI [] [(1,ChangeChild (ReplaceUI (ui UIPanel)))]
 
-testRemoveSubsMatchingOnReplaceMultipleAfterRemove = skip (assertEqual "Removing everything that matches, then replacing multiple parts" exp sut)
+testRemoveSubsMatchingOnReplaceMultipleAfterRemove = assertEqual "testRemoveSubsMatchingOnReplaceMultipleAfterRemove: Removing everything that matches, then replacing multiple parts" exp sut
 where
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
@@ -142,7 +143,7 @@ where
 											[(0,ChangeChild (ChangeUI []
 												[(0, ChangeChild (ReplaceUI (ui UITextView)))])) ]))]))]))]
 
-testRemoveSubsMatchingOnRemove = skip (assertEqual "Removing everything that matches, then explicitly remove something" exp sut)
+testRemoveSubsMatchingOnRemove = assertEqual "testRemoveSubsMatchingOnRemove: Removing everything that matches, then explicitly remove something" exp sut
 where
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))
 	sut
@@ -159,9 +160,9 @@ where
 	changeToReRoute = ChangeUI [] [(0,RemoveChild),(0,RemoveChild)]
 	expChange = ChangeUI [] [(0,RemoveChild)]
 
-testLayoutSubsMatching = skip (fail "Applying another layout to all matching nodes")
+testLayoutSubsMatching = fail "testLayoutSubsMatching: Applying another layout to all matching nodes"
 
-testMoveSubsMatchingInitial = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
+testMoveSubsMatchingInitial = assertEqual "testMoveSubsMatchingInitial: Moving nodes matching a predicate -> initial move" exp sut
 where
 	sutLayout = moveSubUIs (SelectAND SelectChildren (SelectOR (SelectByType UIAction) (SelectByType UIEmpty))) [0]
 
@@ -176,10 +177,10 @@ where
 	expUI = uic UIStep [uic UIContainer [ui UIAction, ui UIEmpty]]
 
 	expState = LSRemoveSubUIs initUI
-					(SubUIsModified 'DM'.newMap [(1,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])
+					(SubUIsModified [] [(1,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])
 
 
-testMoveSubsMatchingInitial2 = assertEqual "Moving nodes matching a predicate -> initial move" exp sut
+testMoveSubsMatchingInitial2 = assertEqual "testMoveSubsMatchingInitial2: Moving nodes matching a predicate -> initial move" exp sut
 where
 	sutLayout = moveSubUIs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1] 
 
@@ -192,9 +193,9 @@ where
 	//Expected final UI
 	expUI = uic UIPanel [uic UIContainer [ui UIEmpty], uic UIContainer [ui UIAction, ui UIAction]]
 	expState = LSRemoveSubUIs initUI
-		(SubUIsModified 'DM'.newMap [(0,SubUIsModified 'DM'.newMap [(0,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])])
+		(SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])])
 
-testMoveSubsMatchingNewRoutes = assertEqual "Moving nodes matching a predicate -> check if changes are moved too" exp sut
+testMoveSubsMatchingNewRoutes = assertEqual "testMoveSubsMatchingNewRoutes: Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
 	sutLayout = moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [0]
 
@@ -203,7 +204,7 @@ where
 
 	//Initial state
 	initShadowUI = uic UIStep [ui UIContainer, ui UIAction, ui UIAction]
-	initRemovals = (SubUIsModified 'DM'.newMap [(1,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])
+	initRemovals = (SubUIsModified [] [(1,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])
 
 	initState = LSRemoveSubUIs initShadowUI initRemovals
 
@@ -219,37 +220,54 @@ where
 	expState = LSRemoveSubUIs (applyUIChange sutChange initShadowUI) initRemovals
 import StdDebug
 
-testMoveSubsMatchingNewRoutes2 = assertEqual "Moving nodes matching a predicate -> check if changes are moved too" exp sut
+testMoveSubsMatchingNewRoutes2 = assertEqual "testMoveSubsMatchingNewRoutes2: Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
-	sutLayout = (moveSubUIs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1,0]) 
-	sut
-		//Initial, followed by an event in the new structure
-		# (_,s) = sutLayout.Layout.adjust (ReplaceUI initUI,initState)
-		# (c,s) = sutLayout.Layout.adjust (changeToReRoute,s)
-		= (c,s)
+	sutLayout = moveSubUIs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1] 
 
+	sut = sutLayout.adjust (sutChange,initState)
 	exp = (expChange,expState)
 
-	//Initial UI	
-	initUI = uic UIPanel [uic UIContainer [ui UIAction, ui UIEmpty, ui UIAction], ui UIContainer]
-	initState = snd (sutLayout.Layout.apply initUI)
+	initShadowUI = uic UIPanel [uic UIContainer [ui UIAction, ui UIEmpty, ui UIAction], ui UIContainer]
+	initRemovals = SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])]
+	
+	initState = LSRemoveSubUIs initShadowUI initRemovals
 
-	changeToReRoute = ChangeUI [] [(0,ChangeChild (ChangeUI [] [(2,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
+	sutChange = ChangeUI [] [(0,ChangeChild (ChangeUI [] [(2,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
-	//Expected reroute change 
+	//Expected rerouted change 
 	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
-	expState = LSRemoveSubUIs initUI (SubUIsModified 'DM'.newMap [(0,SubUIsModified 'DM'.newMap [(0,UIModified (LRRemoved 0)),(2,UIModified (LRRemoved 0))])])
+	//In the state, the attributes should have been applied the 'shadow' administration
+	expState = LSRemoveSubUIs (applyUIChange sutChange initShadowUI) initRemovals
 
-	isAction (UI type _ _) = type =: UIAction
+testMoveSubsMatchingNewRoutes3 = assertEqual "testMoveSubsMatchingNewRoutes3: Moving nodes matching a predicate -> check if changes are moved too" exp sut
+where
+	sutLayout = moveSubUIs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1] 
+
+	sut = sutLayout.adjust (sutChange,initState)
+	exp = (expChange,expState)
+
+	initShadowUI = uic UIPanel [uic UIContainer [ui UIAction, ui UIEmpty, ui UIAction], ui UIContainer]
+	initRemovals = SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])]
+	
+	initState = LSRemoveSubUIs initShadowUI initRemovals
+
+	//Test crude replace, first remove than re-insert
+	sutChange = ChangeUI [] [(0,ChangeChild (ChangeUI [] [(0,RemoveChild),(0,InsertChild (ui UIAction)),(2,RemoveChild),(2,InsertChild (ui UIAction))] ))]
+
+	//Expected rerouted change 
+	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,RemoveChild),(0,InsertChild (ui UIAction)),(1,RemoveChild),(1,InsertChild (ui UIAction))] ))]
+
+	//In the state, the UI should be identical
+	expState = LSRemoveSubUIs initShadowUI initRemovals
 
 
-testSequenceLayouts = skip (fail "Test sequencing multiple layouts")
-testSelectLayout = skip (fail "Test selecting of a layout")
+testSequenceLayouts = fail "testSequenceLayouts: Test sequencing multiple layouts"
+testSelectLayout = fail "testSelectLayout: Test selecting of a layout"
 
 //Tests for the common layout patterns
 
-testMoveTaskToWindow = skip (fail "Moving a task UI to a separate window")
+testMoveTaskToWindow = fail "testMoveTaskToWindow: Moving a task UI to a separate window"
 
 ::TestRecOuter =
 	{ a :: TestRecInner
@@ -262,7 +280,7 @@ testMoveTaskToWindow = skip (fail "Moving a task UI to a separate window")
 derive class iTask TestRecInner, TestRecOuter
 derive gPrettyTrace TestRecInner, TestRecOuter
 
-testAutoInteractionLayoutInitial = skip (assertEqual "Test if the auto interaction layout correctly turns an editor into a form" exp sut)
+testAutoInteractionLayoutInitial = assertEqual "testAutoInteractionLayoutInitial: Test if the auto interaction layout correctly turns an editor into a form" exp sut
 where
 	exp = ReplaceUI (uic UIContainer [stdPrompt,expIntForm])
 	sut = fst (finalizeInteract.Layout.adjust ((ReplaceUI (uic UIContainer [stdPrompt,stdIntEditor])),LSNone))
@@ -281,9 +299,9 @@ where
 		('DM'.fromList [("optional",JSONBool False),("hint-type",JSONString "info"),("hint",JSONString"Please enter a whole number (this value is required)")
 						,("taskId",JSONString "STUB"),("editorId",JSONString "v")])
 
-testAutoInteractionLayoutEditorValueChange = skip (fail "Test if the auto interaction layout correctly maps changes in the editor to the form item")
+testAutoInteractionLayoutEditorValueChange = fail "testAutoInteractionLayoutEditorValueChange: Test if the auto interaction layout correctly maps changes in the editor to the form item"
 
-testFlatteningOfNestedRecords = skip (assertEqualWorld "Auto interact layout should flatten a nested-record structure" exp sut)
+testFlatteningOfNestedRecords = assertEqualWorld "testFlatteningOfNestedRecords: Auto interact layout should flatten a nested-record structure" exp sut
 where
 	//We expect a change to the control with index 3, because the autoAccuInteract flattens the form
 	exp = (Ok (ChangeUI [] [(3, ChangeChild (ChangeUI [SetAttribute "setEditorValue" (JSONString "bax")] []))],newFieldMask)
@@ -296,7 +314,7 @@ where
 		= ((res,val),world)
 
 
-testCombination1 = skip (assertEqual "Complex combination layout with insert events" exp sut)
+testCombination1 = assertEqual "testCombination1: Complex combination layout with insert events" exp sut
 where
 	sutLayout = foldl1 sequenceLayouts
         [//First stage 
@@ -344,7 +362,7 @@ where
 	changeToModify = ChangeUI [] [(2,InsertChild (uic UIToolBar [ui UIInteract]))]
 	expModifiedChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar []))]))]))]
 
-testCombination2 = skip (assertEqual "Insert after global removal" exp sut)
+testCombination2 = assertEqual "testCombination2: Insert after global removal" exp sut
 where
 	sut
 		//Initial, followed by an event in the new structure
@@ -354,15 +372,15 @@ where
 
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIInteract))
 
-	initState = LSRemoveSubUIs (ui UIDebug) (SubUIsModified 'DM'.newMap [(0,SubUIsModified 'DM'.newMap [(0,UIModified (LRRemoved 0))])
-					   ,(1,SubUIsModified 'DM'.newMap [(0,SubUIsModified 'DM'.newMap [(0,UIModified (LRRemoved 0))])])])
+	initState = LSRemoveSubUIs (ui UIDebug) (SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRRemoved 0))])
+					   ,(1,SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRRemoved 0))])])])
 
 	//Change after first transform 
 	changeToModify = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar [ui UIInteract]))]))]))]
 	expModifiedChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar []))]))]))]
 
 
-testDynamicBehaviour1 = skip (assertEqual "Dynamic (late) activation of layouts" exp sut)
+testDynamicBehaviour1 = assertEqual "testDynamicBehaviour1: Dynamic (late) activation of layouts" exp sut
 where
 	sutLayout = layoutSubUIs (SelectByHasAttribute "x") markFirstChild
 	where

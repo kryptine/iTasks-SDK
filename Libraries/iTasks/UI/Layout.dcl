@@ -38,7 +38,7 @@ from Text.JSON import :: JSONNode
 						   //The Int is the number of children of this node that were already moved when this node was removed
     | LRMoved UIChange     //When a removed UI is inserted somewhere else, we mark it with this constructor
 
-:: LayoutRestores :== Map Int Int //When layouts that were moved, are no longer moved we need to track that. They can then be removed at the destination.
+:: LayoutRestores :== [(Int,Int)] //When layouts that were moved, are no longer moved we need to track that. They can then be removed at the destination.
 	
 // These types are used to control when to apply layout in a task composition
 :: ApplyLayout	= ApplyLayout Layout

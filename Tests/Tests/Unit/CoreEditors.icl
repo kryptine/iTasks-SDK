@@ -103,14 +103,14 @@ where
 							])
 	maskExp n = FieldMask {touched = False, valid = True, state = JSONInt n}
 
-testMultipleConsesUpdate = testGenUI "Update constructor selection"
+testMultipleConsesUpdate = skip (testGenUI "Update constructor selection"
 	(uic UIVarCons [uia UIDropdown
 		('DM'.fromList[("taskId",JSONString "STUB"),("editorId",JSONString "v")
 					,("value",JSONArray [JSONInt 0])
                     ,("options",JSONArray [JSONObject [("id",JSONInt 0),("text",JSONString "ConsA")],JSONObject [("id",JSONInt 1),("text",JSONString "ConsB")]]) ])]
 
 		,CompoundMask {fields=[FieldMask {touched=False,valid=True,state=JSONInt 0}],state=JSONNull})
-	ConsA Update
+	ConsA Update)
 
 testConsesWithFieldTouched = skip (testGenUI "Touched constructor with field"
 	(uic UIVarCons [consExp,fieldsExp],expMask)
@@ -347,9 +347,9 @@ testDiffRecordFields
 
 testDiffConsChange :: Test
 testDiffConsChange 
-	= testOnRefresh "Changing a single constructor"
+	= skip (testOnRefresh "Changing a single constructor"
 		(ChangeUI [SetAttribute "value" (JSONArray [JSONInt 1,JSONBool True])] [])
-		ConsB ConsA newCompoundMask
+		ConsB ConsA newCompoundMask)
 
 testDiffConsWithFieldChange :: Test
 testDiffConsWithFieldChange 
