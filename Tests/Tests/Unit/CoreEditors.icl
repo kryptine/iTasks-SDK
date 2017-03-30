@@ -36,7 +36,7 @@ testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the core g
 	,testIntUpdate
 	,testRealUpdate
 	,testConsFieldsUpdate
-	,testMultipleConsesUpdate
+	,skip testMultipleConsesUpdate
 	,testConsesWithFieldTouched
 	,testRecordTouched 
 	,testMaybeIntEnter
@@ -275,7 +275,7 @@ testGenericEditorRefreshes = testsuite "Generic refresh" "Tests for the generic 
 	,testDiffConsFields1
 	,testDiffConsFields2
 	,testDiffRecordFields
-	,testDiffConsChange
+	,skip testDiffConsChange
 	,testDiffConsWithFieldChange
 	,testMaybeIntChangeToJust
 	,testMaybeIntChangeToNothing
