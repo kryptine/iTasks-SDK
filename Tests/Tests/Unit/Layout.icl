@@ -3,6 +3,7 @@ import TestFramework
 import Tests.Unit.FrameworkStubs
 
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Layout, iTasks.UI.Layout.Default
+import iTasks.UI.Layout.Common
 import iTasks._Framework.IWorld
 import qualified Data.Map as DM
 import Data.List
@@ -45,6 +46,8 @@ testLayout = testsuite "Layout" "Tests for the layout functions"
 	,testCombination1
 	,skip testCombination2
 	,skip testDynamicBehaviour1
+	//Common layouts
+	,testSideBarInitial
 	]
 
 //Tests for the core operations of the layout library
@@ -401,4 +404,16 @@ where
 
 	exp = ChangeUI [SetAttribute "x" (JSONBool True)] [(0,ChangeChild (ChangeUI [SetAttribute "y" (JSONBool True)] []))]
 
+testSideBarInitial = assertEqual "testSideBarInitial: arrangeWithSideBar -> initial arrangement" exp sut
+where
+	sutLayout = arrangeWithSideBar 0 LeftSide 100 False
 
+	sut = let (change,_) = sutLayout.Layout.apply initUI in (applyUIChange change initUI)
+
+	exp = expUI 
+
+	//Initial UI	
+	initUI = uic UIStep [ui UIButton, ui UIAction, ui UITextField]
+
+	//Expected final UI
+	expUI = uic UIPanel [uia UIButton (sizeAttr (ExactSize 100) FlexSize), uic UIStep [ui UIAction, ui UITextField]]
