@@ -416,4 +416,4 @@ where
 	initUI = uic UIStep [ui UIButton, ui UIAction, ui UITextField]
 
 	//Expected final UI
-	expUI = uic UIPanel [uia UIButton (sizeAttr (ExactSize 100) FlexSize), uic UIStep [ui UIAction, ui UITextField]]
+	expUI = uiac UIPanel (directionAttr Horizontal) [uia UIButton (sizeAttr (ExactSize 100) FlexSize), uic UIStep [ui UIAction, ui UITextField]]

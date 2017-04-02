@@ -135,10 +135,12 @@ where
 
 	restore _ = NoChange
 
-copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> Layout //TODO
+copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> Layout
 copySubUIAttributes selection src dst = {Layout|apply=apply,adjust=adjust,restore=restore} 
 where
-	apply _ = (NoChange,LSNone)
+	apply ui = case selectAttr src ui of
+		Just attr = (changeAtPath dst (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList attr | condition selection k] []),LSNone)
+		Nothing   = (NoChange,LSNone)
 
 	//TODO: Also handle attribute updates in the src location, and partial replacements along the path
 	adjust (ReplaceUI ui,s) = case selectAttr src ui of 
@@ -160,6 +162,7 @@ where
 	condition (SelectAll) _ = True
 	condition (SelectKeys keys) k = isMember k keys
 
+	//TODO, track which attributes were chagned and restore accorindingly
 	restore _ = NoChange
 
 wrapUI :: UINodeType -> Layout
@@ -464,10 +467,6 @@ where
 			| otherwise
 				= Nothing
 
-		changeAtPath :: UIPath UIChange -> UIChange
-		changeAtPath [] change = change
-		changeAtPath [s:ss] change = ChangeUI [] [(s,ChangeChild (changeAtPath ss change))]
-
 	restore (LSRemoveSubUIs ui _) = ReplaceUI ui //VERY CRUDE RESTORE..
 
 layoutSubUIs :: UISelection Layout -> Layout
@@ -659,6 +658,10 @@ where
 
 listMove :: Int Int [a] -> [a]
 listMove src dst list = insertAt dst (if (src >= length list) (abort "NEE") (list !! src)) (removeAt src list)
+
+changeAtPath :: UIPath UIChange -> UIChange
+changeAtPath [] change = change
+changeAtPath [s:ss] change = ChangeUI [] [(s,ChangeChild (changeAtPath ss change))]
 
 //Experiment to create an alternative, more declarative way of specifying layouts
 /*
