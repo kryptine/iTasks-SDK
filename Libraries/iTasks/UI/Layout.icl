@@ -283,33 +283,34 @@ where
 
 	adjust (change, LSRemoveSubUIs ui state)
 		//First update all removals
-		# (cchange, ui, state) = adjustRem [] change ui state
+		# (cchange, ui, state) = adjustRem (ltCount True (\x -> x =: (LRMoved _)) [(0,state)]) [] change ui state 
 		# removeChange = case cchange of
 			(ChangeChild change) = change
 			(RemoveChild)        = ReplaceUI (UI UIEmpty 'DM'.newMap []) //If the root-level UI needs to be removed, replace it with UIEmpty
 			(InsertChild ui)     = ReplaceUI ui           				 //If the root-level UI is going to be restored, replace it
 		//If there is a target, also update the target location
 		# (destinationChange, state) = maybe (NoChange,state) (\dst -> extractDestinationChange dst ui state) mbDst
-		= (mergeUIChanges removeChange destinationChange, LSRemoveSubUIs ui state)
+		# change                     = mergeUIChanges removeChange destinationChange
+		= (change, LSRemoveSubUIs ui state)
 
 	//If there is no change, but a node was moved to a different path, we recheck the selection
-	adjustRem path NoChange ui state=:(UIModified removal)
+	adjustRem numMoved path NoChange ui state=:(UIModified removal)
 		= case applyRem path ui of
 			(RemoveChild, UIModified _) = (ChangeChild NoChange, ui,UIModified removal)
 			(ChangeChild change, SubUIsModified _ mods)
 				= (InsertChild (applyUIChange change ui), ui, SubUIsModified [] mods) //TODO: Check if we don't lose the mod information
 
-	adjustRem path NoChange ui state=:(SubUIsModified _ mods)
+	adjustRem numMoved path NoChange ui state=:(SubUIsModified _ mods)
 		| inUISelection selection path ui
-			= (RemoveChild, ui, UIModified (LRRemoved (ltCount True mods)))
+			= (RemoveChild, ui, UIModified (LRRemoved (ltCount True (const True) mods)))
 		| otherwise
 			= (ChangeChild NoChange, ui, state)
 
-	adjustRem path (ReplaceUI ui) _ state
+	adjustRem numMoved path (ReplaceUI ui) _ state
 		//First determine how many UI's were removed in the previous layout
 		# numCurRemoved = case state of
 			(UIModified _) = 1
-			(SubUIsModified _ mods) = ltCount True mods
+			(SubUIsModified _ mods) = ltCount True (const True) mods
 		//Apply the layout to the replacement UI
 		= case applyRem path ui of
 			(RemoveChild, state)
@@ -318,7 +319,7 @@ where
 				= (ChangeChild (ReplaceUI (applyUIChange change ui)), ui, SubUIsModified [] mods) //TODO: Check if we don't lose the mod information
 
 	//The UI was removed earlier
-	adjustRem path change=:(ChangeUI attrChanges childChanges) ui (UIModified removal) //FIXME: check if we don't lose removal information..
+	adjustRem numMoved path change=:(ChangeUI attrChanges childChanges) ui (UIModified removal) //FIXME: check if we don't lose removal information..
 		//Update the 'shadow' UI
 		# ui = applyUIChange change ui
 		//Check if the UI should still be removed after the effects of the change 
@@ -333,55 +334,56 @@ where
 			(ChangeChild change, state) //TODO: Store the restore point in the state
 				= (InsertChild (applyUIChange change ui), ui, state)
 
-	adjustRem path change=:(ChangeUI attrChanges childChanges) ui state=:(SubUIsModified _ mods)
+	adjustRem numMoved path change=:(ChangeUI attrChanges childChanges) ui state=:(SubUIsModified _ mods)
 		| inUISelectionAfterChange selection path ui change
 			//If the change causes the selection to match
 			# ui = applyUIChange change ui
-			= (RemoveChild, ui, UIModified (LRRemoved (ltCount True mods)))
+			= (RemoveChild, ui, UIModified (LRRemoved (ltCount True (const True) mods)))
 		| otherwise
 			//Update the attributes in the 'shadow' UI
 			# (UI type attr items) = applyUIChange (ChangeUI attrChanges []) ui
 			//Adjust the child changes
-			# (childChanges, items, reverts, mods) = adjustRemChildChanges childChanges items [] mods
+			# offset = if ((Just path) === mbDst) numMoved 0 //If the current path is the target of a move, we also adjust for additionally inserted items
+			# (childChanges, items, reverts, mods) = adjustRemChildChanges offset childChanges items [] mods
 			= (ChangeChild (ChangeUI attrChanges childChanges), UI type attr items, SubUIsModified reverts mods)
 	where
-		adjustRemChildChanges [] items reverts mods = ([], items, reverts, mods)
-		adjustRemChildChanges [(i,c):cs] items reverts mods
-			# (c, items, reverts, mods) = adjustRemChildChange i c items reverts mods
-			# (cs, items, reverts, mods) = adjustRemChildChanges cs items reverts mods
+		adjustRemChildChanges offset [] items reverts mods = ([], items, reverts, mods)
+		adjustRemChildChanges offset [(i,c):cs] items reverts mods
+			# (c, items, reverts, mods) = adjustRemChildChange offset i c items reverts mods
+			# (cs, items, reverts, mods) = adjustRemChildChanges offset cs items reverts mods
 			= (c ++ cs, items, reverts, mods)
 
-		adjustRemChildChange i (ChangeChild change) items reverts mods//TODO: Check the what to do if the change causes a removal...
+		adjustRemChildChange offset i (ChangeChild change) items reverts mods//TODO: Check the what to do if the change causes a removal...
 			//Recursively adjust the change
 			| i >= length items = abort "adjustRemChildChange index too large"
-			# (cchange, item, mod) = adjustRem (path ++ [i]) change (items !! i) (ltGet i mods)
+			# (cchange, item, mod) = adjustRem numMoved (path ++ [i]) change (items !! i) (ltGet i mods)
 			# changes = case cchange of
 				(ChangeChild NoChange)         = []
 				(ChangeChild (ChangeUI [] [])) = []
-				_                              = [(adjustIndex i mods, cchange)]
+				_                              = [(offset + adjustIndex i mods, cchange)]
 			= (changes, updateAt i item items, reverts, ltPut i mod mods)
 
-		adjustRemChildChange i (InsertChild ui) items reverts mods
+		adjustRemChildChange offset i (InsertChild ui) items reverts mods
 			# (rchange,mod) = applyRem (path ++ [i]) ui
 			//If the child is immediately matched, don't insert insert it upstream
 			# cchange = case rchange of
 				RemoveChild = []
-				ChangeChild change = [(adjustIndex i mods, InsertChild (applyUIChange change ui))]
+				ChangeChild change = [(offset + adjustIndex i mods, InsertChild (applyUIChange change ui))]
 			//The insertion potentially affects all siblings after the insertion point, we need to check them
 			# (schanges, items, mods) = adjustRemSiblings path (\x -> x > i) (insertAt i ui items) (ltInsert i mod mods)
 			= (cchange ++ schanges, items, reverts, mods)
 
-		adjustRemChildChange i RemoveChild items reverts mods
+		adjustRemChildChange offset i RemoveChild items reverts mods
 			//If the child was already removed by this layout it no longer need to be removed from the UI
 			# (cchange,reverts) = case (ltGet i mods) of
 				UIModified (LRMoved _) = ([],reverts ++ [(i,1)]) //The child was already moved to a new location, we also need to remove it there
 				UIModified lr          = ([],reverts)
-				state 			       = ([(adjustIndex i mods, RemoveChild)],reverts)
+				state 			       = ([(offset + adjustIndex i mods, RemoveChild)],reverts)
 			# (schanges, items, mods) = adjustRemSiblings path (\x -> x >= i) (removeAt i items) (ltRemove i mods)
 			= (cchange ++ schanges, items, reverts, mods)
 
-		adjustRemChildChange i (MoveChild d) items reverts mods
-			# cchange = (adjustIndex i mods, MoveChild (adjustIndex d mods))
+		adjustRemChildChange offset i (MoveChild d) items reverts mods
+			# cchange = (offset + adjustIndex i mods, MoveChild (offset + adjustIndex d mods))
 			# (schanges, items, mods) = adjustRemSiblings path (const True) (listMove i d items) (ltMove i d mods) //TODO we don't need to check *all* siblings
 			= ([cchange:schanges], items, reverts, mods)
 
@@ -392,7 +394,7 @@ where
 			adjust i [item:items] mods
 				| whichSiblings i
 					//Check the ui
-					# (cchange, item, mod) = adjustRem (path ++ [i]) NoChange item (ltGet i mods)
+					# (cchange, item, mod) = adjustRem numMoved (path ++ [i]) NoChange item (ltGet i mods)
 					# change = case cchange of
 						(ChangeChild NoChange)         = []
 						(ChangeChild (ChangeUI [] [])) = []
@@ -459,7 +461,7 @@ where
 		determineAdjustedPath [] _ _             = Just [] //The path (root node) is ok
 		determineAdjustedPath [s:ss] (UI _ _ items) (SubUIsModified _ mods)
 			# sAdjusted = adjustIndex s mods
-			# totalAdjusted = length items - ltCount False mods
+			# totalAdjusted = length items - ltCount False (const True) mods
 			| sAdjusted < totalAdjusted //Check if it is in range
 				= case determineAdjustedPath ss (items !! s) (ltGet s mods) of
 					(Just ssAdjusted) = Just [sAdjusted:ssAdjusted]
@@ -650,11 +652,11 @@ ltRemove index list = [(if (i > index) (i - 1) i, x) \\ (i,x) <- list | i <> ind
 ltMove :: Int Int [(Int,LayoutTree a b)] -> [(Int,LayoutTree a b)] | gDefault{|*|} b
 ltMove src dst list = ltInsert dst (ltGet src list) (ltRemove src list)
 
-ltCount :: Bool [(Int,LayoutTree a b)] -> Int
-ltCount recursive list = foldr count 0 (map snd list)
+ltCount :: Bool (a -> Bool) [(Int,LayoutTree a b)] -> Int
+ltCount recursive pred list = foldr count 0 (map snd list)
 where
-	count (UIModified _) n = n + 1
-	count (SubUIsModified _ mods) n = if recursive (n + ltCount recursive mods) n
+	count (UIModified x) n = if (pred x) (n + 1) n
+	count (SubUIsModified _ mods) n = if recursive (n + ltCount recursive pred mods) n
 
 listMove :: Int Int [a] -> [a]
 listMove src dst list = insertAt dst (if (src >= length list) (abort "NEE") (list !! src)) (removeAt src list)
