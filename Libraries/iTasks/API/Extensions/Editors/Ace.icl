@@ -91,8 +91,10 @@ where
 	onAttributeChange me [name,value] world
 		# (editor,world)  = .? (me .# "editor") world
 		| jsArgToString name == "lines" 
-        	# (value,world)  = (((toJSVal value) .# "join") .$ "\n") world
-        	# (_,world)       = ((editor .# "setValue") .$ (value,-1)) world
+			# world           = ((me .# "noEvents") .= True) world //Flag that no events should be sent because we just received the latest value
+        	# (value,world)   = (((toJSVal value) .# "join") .$ "\n") world
+        	# (_,world)       = ((editor .# "setValue") .$ (value,1)) world
+			# world           = ((me .# "noEvents") .= False) world
 			= world
 		| jsArgToString name == "cursor" 
 			# (row,world)    = .? ((toJSVal value) .# 0) world
@@ -115,12 +117,17 @@ where
 		= world
 
 	onChange editor me world
+		# (noEvents,world)  = .? (me .# "noEvents") world
+		| jsValToBool noEvents
+			= world
         # (value,world)  = ((editor .# "getValue") .$ ()) world
 		# (taskId,world)  = .? (me .# "taskId") world
 		# (editorId,world)  = .? (me .# "editorId") world
 		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,("lines",value))) world
+		# world = jsTrace "LINES >" world
+		# world = jsTrace value world
+		# world = jsTrace "< LINES" world
 		= world
-
 	onCursorChange selection me world
         # (cursor,world)  = ((selection.# "getCursor") .$ ()) world
 		# (row,world) = .? (cursor .# "row") world
