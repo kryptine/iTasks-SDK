@@ -18,7 +18,7 @@ TOP can be seen as an Embedded Domain Specific language, realized with a Combina
 
 To use the framework you need to have a recent install of the Clean language. The easiest way to obtain this is to get the `clean-bundle-itasks` nightly build package. This contains everything you need to get started. This bundle can be downloaded from:
 
-ftp://ftp.cs.ru.nl/pub/Clean/builds/<OS version>/clean-bundle-itasks-<OS version>-latest.[zip|tgz]
+[ftp://ftp.cs.ru.nl/pub/Clean/builds/&lt;OS version&gt;/clean-bundle-itasks-&lt;OS version&gt;-latest.[zip|tgz]](ftp://ftp.cs.ru.nl/pub/Clean/builds/<OS version>/clean-bundle-itasks-linux-64-latest.tgz)
 
 Alternatively you can also download a `clean-base` package from the same ftp-site and add the following packages `clean-lib-generics` `clean-lib-dynamics` `clean-lib-platform` `clean-lib-sapl` `clean-lib-graphcopy` and `clean-lib-tcpip`.
 
