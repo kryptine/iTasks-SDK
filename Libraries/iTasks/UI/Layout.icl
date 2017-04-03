@@ -105,23 +105,27 @@ where
 
 	restore _ = NoChange 
 
-delUIAttributes :: [String] -> Layout
-delUIAttributes delAttr = {Layout|apply=apply,adjust=adjust,restore=restore} //There is no delete instruction, so deleting means setting the value to null 
+delUIAttributes :: UIAttributeSelection -> Layout
+delUIAttributes selection = {Layout|apply=apply,adjust=adjust,restore=restore} //There is no delete instruction, so deleting means setting the value to null 
 where
-	apply ui = (ChangeUI [SetAttribute k JSONNull \\ k <- delAttr] [],LSNone)
+	apply (UI _ attr _)
+		= (ChangeUI [SetAttribute k JSONNull \\ k <- 'DM'.keys attr | matchKey selection k] [],LSNone)
 
 	adjust (ChangeUI attrChanges itemChanges,s)
-		# attrChanges = filter (\(SetAttribute k _) -> not (isMember k delAttr)) attrChanges
+		# attrChanges = filter (\(SetAttribute k _) -> not (matchKey selection k)) attrChanges
 		= (ChangeUI attrChanges itemChanges,s)
 	adjust (change,s) = (change,s)
 	
 	restore _ = NoChange
 
-modifyUIAttributes :: String (JSONNode -> UIAttributes) -> Layout //TODO
-modifyUIAttributes name modifier = {Layout|apply=apply,adjust=adjust,restore=restore}
+modifyUIAttributes :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
+modifyUIAttributes selection modifier = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply (UI type attr items)
-		= (maybe NoChange (\val -> ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList (modifier val)] []) ('DM'.get name attr),LSNone)
+		# selAttr = case selection of
+			SelectAll = attr
+			SelectKeys keys = 'DM'.fromList [a \\ a=:(k,_) <- 'DM'.toList attr | isMember k keys]
+		= (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList (modifier selAttr)] [],LSNone)
 
 	adjust (ReplaceUI ui,_)
 		# (change,s) = apply ui
@@ -129,7 +133,9 @@ where
 		= (ReplaceUI ui,s)
 
 	adjust (ChangeUI attrChanges childChanges,s)
-		# attrChanges = flatten [if (key == name) [SetAttribute k v \\ (k,v) <- 'DM'.toList (modifier value)] [c] \\c=:(SetAttribute key value) <- attrChanges]
+		//TODO: We need to know all attributes
+		# selAttr = 'DM'.fromList [(k,v) \\ SetAttribute k v <- attrChanges | matchKey selection k]
+		# attrChanges = [SetAttribute k v \\ (k,v) <- 'DM'.toList (modifier selAttr)]
 		= (ChangeUI attrChanges childChanges,s)
 	adjust (c,s) = (c,s)
 
@@ -139,7 +145,7 @@ copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> Layout
 copySubUIAttributes selection src dst = {Layout|apply=apply,adjust=adjust,restore=restore} 
 where
 	apply ui = case selectAttr src ui of
-		Just attr = (changeAtPath dst (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList attr | condition selection k] []),LSNone)
+		Just attr = (changeAtPath dst (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList attr | matchKey selection k] []),LSNone)
 		Nothing   = (NoChange,LSNone)
 
 	//TODO: Also handle attribute updates in the src location, and partial replacements along the path
@@ -154,16 +160,16 @@ where
 							= Nothing
 
 	addAttr extra [] (UI type attr items)
-		= UI type (foldl (\m (k,v) -> 'DM'.put k v m) attr [(k,v) \\ (k,v) <- 'DM'.toList extra | condition selection k]) items
+		= UI type (foldl (\m (k,v) -> 'DM'.put k v m) attr [(k,v) \\ (k,v) <- 'DM'.toList extra | matchKey selection k]) items
 	addAttr extra [s:ss] (UI type attr items) 
 		| s < length items = UI type attr (updateAt s (addAttr extra ss (items !! s)) items) 
 						   = UI type attr items
 
-	condition (SelectAll) _ = True
-	condition (SelectKeys keys) k = isMember k keys
-
 	//TODO, track which attributes were chagned and restore accorindingly
 	restore _ = NoChange
+
+matchKey (SelectAll) _ = True
+matchKey (SelectKeys keys) k = isMember k keys
 
 wrapUI :: UINodeType -> Layout
 wrapUI type = {Layout|apply=apply,adjust=adjust,restore=restore}

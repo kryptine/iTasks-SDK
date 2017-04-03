@@ -1,6 +1,7 @@
 implementation module Tests.Interactive.Layout
 import TestFramework
 import iTasks.UI.Definition, iTasks.UI.Layout
+import qualified Data.Map as DM
 
 testLayoutI :: TestSuite
 testLayoutI = testsuite "Layout" "Test for layout functions" 
@@ -61,12 +62,13 @@ where
 testDelAttributesTask :: Task ()
 testDelAttributesTask = taskToLayout "Test for deleting an attribute" <<@ ApplyLayout layout
 where
-	layout = delUIAttributes ["direction"]
+	layout = delUIAttributes (SelectKeys ["direction"])
 
 testModifyAttributesTask :: Task ()
 testModifyAttributesTask = taskToLayout "Test for modifying attributes" <<@ ApplyLayout layout
 where
-	layout = modifyUIAttributes "direction" (\(JSONString dir) -> optionalAttr (dir == "horizontal")) 
+	layout = modifyUIAttributes (SelectKeys ["direction"]) f 
+	f attr = maybe 'DM'.newMap (\(JSONString dir) -> optionalAttr (dir == "horizontal")) ('DM'.get "direction" attr)
 
 testCopySubAttributesTask :: Task ()
 testCopySubAttributesTask = taskToLayout "Test for copying an attribute" <<@ ApplyLayout layout

@@ -141,11 +141,18 @@ toFormItem = layoutSubUIs (SelectAND SelectRoot (SelectByHasAttribute LABEL_ATTR
 		[wrapUI UIContainer
 		,setUIAttributes ('DM'.unions [marginsAttr 2 4 2 4, directionAttr Horizontal, sizeAttr FlexSize WrapSize])
 		,insertSubUI [0] (uia UILabel (widthAttr (ExactSize LABEL_WIDTH)))
-		,copySubUIAttributes (SelectKeys ["label","optional"]) [1] [0]
-		,layoutSubUIs (SelectByPath [0]) (modifyUIAttributes "label" (\(JSONString label) -> textAttr (formatDefaultLabel label)))
+		,copySubUIAttributes (SelectKeys ["label","optional","mode"]) [1] [0]
+		,layoutSubUIs (SelectByPath [0]) (modifyUIAttributes (SelectKeys ["label","optional","mode"]) formatLabelAttr)
 		]
 	)
-
+where
+	formatLabelAttr attr
+		# label = maybe "-" (\(JSONString s) -> s) ('DM'.get "label" attr)
+		# optional = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attr) 
+		# enterOrUpdate = maybe False (\(JSONString m) -> isMember m ["enter","update"]) ('DM'.get "mode" attr) 
+		# formatted = formatDefaultLabel label
+		# text = (if (enterOrUpdate && not optional) (formatted +++ "*") formatted) +++ ":"
+		= textAttr text
 //idLayout 
 /*
 toFormItem = {Layout|apply=apply,adjust=adjust,restore=restore}

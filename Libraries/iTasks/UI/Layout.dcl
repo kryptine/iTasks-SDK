@@ -86,8 +86,8 @@ setUIType :: UINodeType -> Layout
 
 // == Changing attributes ==
 setUIAttributes      :: UIAttributes -> Layout
-delUIAttributes      :: [String] -> Layout
-modifyUIAttributes   :: String (JSONNode -> UIAttributes) -> Layout
+delUIAttributes      :: UIAttributeSelection -> Layout
+modifyUIAttributes   :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
 
 copySubUIAttributes  :: UIAttributeSelection UIPath UIPath -> Layout
 

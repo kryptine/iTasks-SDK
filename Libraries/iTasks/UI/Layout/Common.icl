@@ -68,7 +68,7 @@ toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
 toWindow windowType vpos hpos = foldl1 sequenceLayouts 
 	[wrapUI UIWindow
 	,copySubUIAttributes (SelectKeys [TITLE_ATTRIBUTE]) [0] []
-	,layoutSubUIs (SelectByPath [0]) (delUIAttributes [TITLE_ATTRIBUTE])
+	,layoutSubUIs (SelectByPath [0]) (delUIAttributes (SelectKeys [TITLE_ATTRIBUTE]))
 	,setUIAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
 	]
 
@@ -84,7 +84,8 @@ toPanel = setUIType UIPanel
 actionToButton :: Layout
 actionToButton = foldl1 sequenceLayouts
 	[setUIType UIButton
-	,modifyUIAttributes "actionId" (\(JSONString a) -> 'DM'.unions [valueAttr (JSONString a),textAttr a,icon a])
+	,modifyUIAttributes (SelectKeys ["actionId"]) (\attr -> maybe 'DM'.newMap
+																(\(JSONString a) -> 'DM'.unions [valueAttr (JSONString a),textAttr a,icon a]) ('DM'.get "actionId" attr))
 	]
 where
 	//Set default icons
@@ -111,9 +112,12 @@ where
 	icon _ = 'DM'.newMap
 
 setActionIcon :: (Map String String) -> Layout
-setActionIcon icons = modifyUIAttributes "actionId" f
+setActionIcon icons = modifyUIAttributes (SelectKeys ["actionId"]) f
 where
-	f (JSONString actionId) = maybe 'DM'.newMap (\icon -> iconClsAttr ("icon-"+++icon)) ('DM'.get actionId icons)
+	f attr = fromMaybe 'DM'.newMap
+		(                               'DM'.get "actionId" attr
+		  >>= \(JSONString actionId) -> 'DM'.get actionId icons
+		  >>= \icon ->                   return (iconClsAttr ("icon-"+++icon)))
 
 instance tune ArrangeWithTabs
 where tune ArrangeWithTabs t = tune (ApplyLayout arrangeWithTabs) t
