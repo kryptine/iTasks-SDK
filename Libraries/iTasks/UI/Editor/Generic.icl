@@ -176,7 +176,7 @@ where
 	where
 		consOptions = [JSONObject [("id",JSONInt i),("text",JSONString gdc.gcd_name)] \\ gdc <- gtd_conses & i <- [0..]]
 		consChooseUI = uia UIDropdown (choiceAttrs taskId (editorId dp) (maybe [] (\x -> [x]) mbSelectedCons) consOptions)
-		consChooseMask = FieldMask {touched=False,valid=optional,state=maybe JSONNull (\x -> JSONInt x) mbSelectedCons}
+		consChooseMask = FieldMask {touched=False,valid=optional || isJust mbSelectedCons,state=maybe JSONNull (\x -> JSONInt x) mbSelectedCons}
 
 	genConsViewUI gtd_conses selectedCons
 		= (uia UITextView (valueAttr (JSONString (gtd_conses !! selectedCons).gcd_name)), newFieldMask)
