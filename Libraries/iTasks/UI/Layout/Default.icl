@@ -136,7 +136,17 @@ actionsToButtonBar = foldl1 sequenceLayouts
 
 //Flatten an editor into a form
 toFormItem :: Layout
-toFormItem = idLayout 
+toFormItem = layoutSubUIs (SelectAND SelectRoot (SelectByHasAttribute LABEL_ATTRIBUTE))
+	(foldl1 sequenceLayouts
+		[wrapUI UIContainer
+		,setUIAttributes ('DM'.unions [marginsAttr 2 4 2 4, directionAttr Horizontal, sizeAttr FlexSize WrapSize])
+		,insertSubUI [0] (uia UILabel (widthAttr (ExactSize LABEL_WIDTH)))
+		,copySubUIAttributes (SelectKeys ["label","optional"]) [1] [0]
+		,layoutSubUIs (SelectByPath [0]) (modifyUIAttributes "label" (\(JSONString label) -> textAttr (formatDefaultLabel label)))
+		]
+	)
+
+//idLayout 
 /*
 toFormItem = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
