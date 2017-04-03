@@ -36,7 +36,7 @@ testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the core g
 	,testIntUpdate
 	,testRealUpdate
 	,testConsFieldsUpdate
-	,skip testMultipleConsesUpdate
+	,testMultipleConsesUpdate
 	,testConsesWithFieldTouched
 	,testRecordTouched 
 	,testMaybeIntEnter
@@ -85,7 +85,7 @@ testRealUpdate = testGenUI "Update Real"
 	3.14 Update
 
 testConsFieldsUpdate = testGenUI "Update constructor fields"
-	(uic UICons [fieldExp "v0" 1, fieldExp "v1" 2, fieldExp "v2" 3, fieldExp "v3" 4,fieldExp "v4" 5,fieldExp "v5" 6]
+	(uiac UICons ('DM'.fromList [("mode",JSONString "update")]) [fieldExp "v0" 1, fieldExp "v1" 2, fieldExp "v2" 3, fieldExp "v3" 4,fieldExp "v4" 5,fieldExp "v5" 6]
 		,CompoundMask {fields=[maskExp n \\ n <- [1..6]],state=JSONNull})
 	(TestConsFields 1 2 3 4 5 6) Update
 where
@@ -97,7 +97,7 @@ where
 	maskExp n = FieldMask {touched = False, valid = True, state = JSONInt n}
 
 testMultipleConsesUpdate = testGenUI "Update constructor selection"
-	(uic UIVarCons [uia UIDropdown
+	(uiac UIVarCons ('DM'.fromList [("mode",JSONString "update")]) [uia UIDropdown
 		('DM'.fromList[("taskId",JSONString "STUB"),("editorId",JSONString "v")
 					,("value",JSONArray [JSONInt 0])
                     ,("options",JSONArray [JSONObject [("id",JSONInt 0),("text",JSONString "ConsA")],JSONObject [("id",JSONInt 1),("text",JSONString "ConsB")]]) ])]
@@ -161,7 +161,7 @@ where
 testGenericEditorEdits :: TestSuite
 testGenericEditorEdits = testsuite "Generic edits" "Tests for processing edits by editors"
 	[testEditConsChange
-	,testEditRecursiveConsChange
+	,skip testEditRecursiveConsChange
 	,testEditRecursiveConsChange2
 	,testEditListElement
 	,testAddListElement
