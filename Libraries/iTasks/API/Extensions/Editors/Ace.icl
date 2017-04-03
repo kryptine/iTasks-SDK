@@ -6,9 +6,9 @@ import iTasks.UI.JS.Interface
 import qualified Data.Map as DM
 import Text
 
-ACE_JS_URL :== "/ace.js"
-ACE_DEFAULT_THEME :== "ace/theme/monokai.js"
-ACE_DEFAULT_MODE  :== "ace/mode/javascript"
+ACE_JS_URL :== "/ace/src-noconflict/ace.js"
+ACE_DEFAULT_THEME :== "ace/theme/chrome"
+ACE_DEFAULT_MODE  :== "ace/mode/text"
 
 derive class iTask AceState, AceRange
 
@@ -41,7 +41,7 @@ where
 			,("mode",JSONString options.AceOptions.mode)
 			]
     	# attr = 'DM'.unions [aceAttr, optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp)]
-		= (Ok (uia UIComponent attr, newFieldMask),vst)
+		= (Ok (uia UIComponent attr, FieldMask {touched = True, valid = True, state = JSONNull}),vst)
 
 	initUI me world
 		//Setup UI component
@@ -118,16 +118,14 @@ where
 
 	onChange editor me world
 		# (noEvents,world)  = .? (me .# "noEvents") world
-		| jsValToBool noEvents
+		| (not (jsIsUndefined noEvents)) && jsValToBool noEvents
 			= world
         # (value,world)  = ((editor .# "getValue") .$ ()) world
 		# (taskId,world)  = .? (me .# "taskId") world
 		# (editorId,world)  = .? (me .# "editorId") world
 		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,("lines",value))) world
-		# world = jsTrace "LINES >" world
-		# world = jsTrace value world
-		# world = jsTrace "< LINES" world
 		= world
+
 	onCursorChange selection me world
         # (cursor,world)  = ((selection.# "getCursor") .$ ()) world
 		# (row,world) = .? (cursor .# "row") world
