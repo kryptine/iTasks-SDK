@@ -154,6 +154,11 @@ refreshView_ taskId mode mbEditor shared refreshFun l ov m iworld
 							= (Ok (l,v,change,m), iworld)
 				(Error e,_,vst=:{VSt|iworld}) = (Error (exception e),iworld)
 
+import StdMisc
+
+externalProcess :: !FilePath ![String] !(Maybe FilePath) !(RWShared () r w) !(ProcessIOHandlers l r w) -> Task l
+externalProcess cmd args dir sds handlers = undef
+
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w
 tcplisten port removeClosed sds handlers = Task eval
 where

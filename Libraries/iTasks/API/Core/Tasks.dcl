@@ -5,7 +5,7 @@ definition module iTasks.API.Core.Tasks
 
 import iTasks._Framework.Generic
 import iTasks._Framework.SDS
-from iTasks._Framework.Task			import :: Task, :: Event, :: ConnectionHandlers, :: TaskEvalOpts, :: TaskTime
+from iTasks._Framework.Task			import :: Task, :: Event, :: ProcessIOHandlers, :: ConnectionHandlers, :: TaskEvalOpts, :: TaskTime
 from iTasks.UI.Definition 		import :: UI, :: UINodeType, :: UIChange
 from iTasks.UI.Prompt 			import class toPrompt
 from Data.Error					import ::MaybeError(..)
@@ -107,6 +107,7 @@ interact :: !d !EditMode !(RWShared () r w)
 				(v l v -> (l, v, Maybe (r -> w))) 	//On edit
 				(r l v -> (l, v, Maybe (r -> w)))  	//On refresh
 				(Maybe (Editor v)) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v
+externalProcess :: !FilePath ![String] !(Maybe FilePath) !(RWShared () r w) !(ProcessIOHandlers l r w) -> Task l
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed
 * @param Hostname

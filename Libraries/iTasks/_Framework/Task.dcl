@@ -11,6 +11,7 @@ from iTasks._Framework.TaskState			import :: TaskTree
 from iTasks.UI.Definition import :: UIChange
 from Data.Map			import :: Map
 from Data.CircularStack import :: CircularStack
+from System.OSError		import ::MaybeOSError
 
 derive JSONEncode		Task
 derive JSONDecode		Task
@@ -60,6 +61,14 @@ defaultTonicOpts :: TonicOpts
 	, refreshSensitive	:: !Bool		        //Can refresh events change the value or ui of this task (e.g. because shared data is read)
 	}
 	
+
+:: ProcessOutChannel = StdOut | StdErr
+:: ExitCode = ExitCode !Int
+:: ProcessIOHandlers l r w =
+    { onStartup    :: !(                                      r -> (!MaybeOSError l, !Maybe w, ![String], !Bool))
+    , whileRunning :: !((Maybe (ProcessOutChannel, String)) l r -> (!MaybeOSError l, !Maybe w, ![String], !Bool))
+    , onExit       :: !(ExitCode                            l r -> (!MaybeOSError l, !Maybe w                  ))
+    }
 
 //Low-level tasks that handle network connections
 :: ConnectionTask = ConnectionTask !(ConnectionHandlersIWorld Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)
