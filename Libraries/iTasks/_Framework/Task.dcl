@@ -11,7 +11,7 @@ from iTasks._Framework.TaskState			import :: TaskTree
 from iTasks.UI.Definition import :: UIChange
 from Data.Map			import :: Map
 from Data.CircularStack import :: CircularStack
-from System.OSError		import ::MaybeOSError
+from System.OSError		import :: MaybeOSError
 
 derive JSONEncode		Task
 derive JSONDecode		Task
@@ -62,12 +62,14 @@ defaultTonicOpts :: TonicOpts
 	}
 	
 
+:: ExternalProcessTask = ExternalProcessTask !(ExternalProcessHandlers Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)
+
 :: ProcessOutChannel = StdOut | StdErr
 :: ExitCode = ExitCode !Int
-:: ProcessIOHandlers l r w =
-    { onStartup    :: !(                                      r -> (!MaybeOSError l, !Maybe w, ![String], !Bool))
-    , whileRunning :: !((Maybe (ProcessOutChannel, String)) l r -> (!MaybeOSError l, !Maybe w, ![String], !Bool))
-    , onExit       :: !(ExitCode                            l r -> (!MaybeOSError l, !Maybe w                  ))
+:: ExternalProcessHandlers l r w =
+    { onStartup    :: !(                                      r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
+    , whileRunning :: !((Maybe (ProcessOutChannel, String)) l r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
+    , onExit       :: !(ExitCode                            l r -> (!MaybeErrorString l, !Maybe w                  ))
     }
 
 //Low-level tasks that handle network connections
@@ -105,6 +107,8 @@ exception :: !e -> TaskException | TC, toString e
 * Extend the call trace with the current task number
 */
 extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
+
+wrapExternalProcTask :: !(ExternalProcessHandlers l r w) !(RWShared () r w) -> ExternalProcessTask | TC l & TC r & TC w & iTask l
 
 /**
 * Wraps a set of connection handlers and a shared source as a connection task

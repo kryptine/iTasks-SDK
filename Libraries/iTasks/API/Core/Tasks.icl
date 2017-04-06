@@ -154,11 +154,6 @@ refreshView_ taskId mode mbEditor shared refreshFun l ov m iworld
 							= (Ok (l,v,change,m), iworld)
 				(Error e,_,vst=:{VSt|iworld}) = (Error (exception e),iworld)
 
-import StdMisc
-
-externalProcess :: !FilePath ![String] !(Maybe FilePath) !(RWShared () r w) !(ProcessIOHandlers l r w) -> Task l
-externalProcess cmd args dir sds handlers = undef
-
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w
 tcplisten port removeClosed sds handlers = Task eval
 where
@@ -187,6 +182,33 @@ where
         = (DestroyedResult,{iworld & ioStates = ioStates})
 
     rep port = ReplaceUI (stringDisplay ("Listening for connections on port "<+++ port))
+
+
+import StdMisc
+
+externalProcess :: !FilePath ![String] !(Maybe FilePath) !(RWShared () r w) !(ExternalProcessHandlers l r w) -> Task l | iTask l & TC r & TC w
+externalProcess cmd args dir sds handlers = Task eval
+where
+    eval event evalOpts tree=:(TCInit taskId ts) iworld
+        = case addExternalProc taskId cmd args dir (wrapExternalProcTask handlers sds) iworld of
+            (Error e, iworld)
+                = (ExceptionResult e, iworld)
+            (Ok _, iworld)
+                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep (TCBasic taskId ts JSONNull False),iworld)
+    eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioStates}
+        = case 'DM'.get taskId ioStates of
+            Nothing
+                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
+            Just (IOActive values)
+                = case 'DM'.get 0 values of 
+                    Just (l :: l^, s)
+                        = (ValueResult (Value l s) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
+                    _
+                        = (ExceptionResult (exception "Corrupt IO task result"),iworld)
+            Just (IOException e)
+                = (ExceptionResult (exception e),iworld)
+
+    rep = ReplaceUI (stringDisplay ("External process " <+++ cmd <+++ " " <+++ join " " args))
 
 tcpconnect :: !String !Int !(RWShared () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w
 tcpconnect host port sds handlers = Task eval
