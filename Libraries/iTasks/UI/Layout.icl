@@ -95,28 +95,45 @@ where
 setUIAttributes :: UIAttributes -> Layout
 setUIAttributes extraAttr = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply ui = (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList extraAttr] [],LSNone)
+	
+	apply (UI _ attr _)
+		= (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList extraAttr] [],LSAttributes attr)
 
-	adjust (ChangeUI attrChanges itemChanges,s)
+	adjust (ChangeUI attrChanges itemChanges,LSAttributes attr)
+		//Update the shadow attributes
+		# attr = foldl (\a (SetAttribute k v) -> 'DM'.put k v a) attr attrChanges
 		//Filter out updates for the attributes that this layout has overwritten setting here
 		# attrChanges = filter (\(SetAttribute k _) -> not (isMember k ('DM'.keys extraAttr))) attrChanges
-		= (ChangeUI attrChanges itemChanges,s)
+		= (ChangeUI attrChanges itemChanges,LSAttributes attr)
+
+	adjust (ReplaceUI ui,LSAttributes attr)
+		# (change,state) = apply ui
+		= (ReplaceUI (applyUIChange change ui),state)
 	adjust (change,s) = (change,s)
 
-	restore _ = NoChange 
+	restore (LSAttributes attr) //Restore or delete the extra attributes
+		= ChangeUI [SetAttribute k (fromMaybe JSONNull ('DM'.get k attr)) \\ k <- 'DM'.keys extraAttr] []
 
-delUIAttributes :: UIAttributeSelection -> Layout
-delUIAttributes selection = {Layout|apply=apply,adjust=adjust,restore=restore} //There is no delete instruction, so deleting means setting the value to null 
+delUIAttributes :: UIAttributeSelection -> Layout 
+delUIAttributes selection = {Layout|apply=apply,adjust=adjust,restore=restore} 
 where
-	apply (UI _ attr _)
-		= (ChangeUI [SetAttribute k JSONNull \\ k <- 'DM'.keys attr | matchKey selection k] [],LSNone)
+	apply (UI _ attr _) //There is no delete instruction, so deleting means setting the value to null 
+		= (ChangeUI [SetAttribute k JSONNull \\ k <- 'DM'.keys attr | matchKey selection k] [],LSAttributes attr)
 
-	adjust (ChangeUI attrChanges itemChanges,s)
+	adjust (ChangeUI attrChanges itemChanges,LSAttributes attr)
+		//Update the shadow attributes
+		# attr = foldl (\a (SetAttribute k v) -> 'DM'.put k v a) attr attrChanges
 		# attrChanges = filter (\(SetAttribute k _) -> not (matchKey selection k)) attrChanges
-		= (ChangeUI attrChanges itemChanges,s)
+		= (ChangeUI attrChanges itemChanges,LSAttributes attr)
+
+	adjust (ReplaceUI ui,_)
+		# (change,state) = apply ui
+		= (ReplaceUI (applyUIChange change ui),state)
+
 	adjust (change,s) = (change,s)
 	
-	restore _ = NoChange
+	restore (LSAttributes attr) //Restore the attributes
+		= ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList attr | matchKey selection k] []
 
 modifyUIAttributes :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
 modifyUIAttributes selection modifier = {Layout|apply=apply,adjust=adjust,restore=restore}
@@ -125,21 +142,25 @@ where
 		# selAttr = case selection of
 			SelectAll = attr
 			SelectKeys keys = 'DM'.fromList [a \\ a=:(k,_) <- 'DM'.toList attr | isMember k keys]
-		= (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList (modifier selAttr)] [],LSNone)
+		= (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList (modifier selAttr)] [],LSAttributes attr)
+
+	adjust (ChangeUI attrChanges childChanges, LSAttributes attr)
+		//Update the shadow attributes
+		# attr = foldl (\a (SetAttribute k v) -> 'DM'.put k v a) attr attrChanges
+		//Recompute the the changes
+		# selAttr = case selection of
+			SelectAll = attr
+			SelectKeys keys = 'DM'.fromList [a \\ a=:(k,_) <- 'DM'.toList attr | isMember k keys]
+		# attrChanges = [SetAttribute k v \\ (k,v) <- 'DM'.toList (modifier selAttr)]
+		= (ChangeUI attrChanges childChanges,LSAttributes attr)
 
 	adjust (ReplaceUI ui,_)
-		# (change,s) = apply ui
-		# ui = applyUIChange change ui
-		= (ReplaceUI ui,s)
+		# (change,state) = apply ui
+		= (ReplaceUI (applyUIChange change ui),state)
+	adjust (change,s) = (change,s)
 
-	adjust (ChangeUI attrChanges childChanges,s)
-		//TODO: We need to know all attributes
-		# selAttr = 'DM'.fromList [(k,v) \\ SetAttribute k v <- attrChanges | matchKey selection k]
-		# attrChanges = [SetAttribute k v \\ (k,v) <- 'DM'.toList (modifier selAttr)]
-		= (ChangeUI attrChanges childChanges,s)
-	adjust (c,s) = (c,s)
-
-	restore _ = NoChange
+	restore (LSAttributes attr) //Restore the attributes
+		= ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList attr] []
 
 copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> Layout
 copySubUIAttributes selection src dst = {Layout|apply=apply,adjust=adjust,restore=restore} 
