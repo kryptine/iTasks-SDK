@@ -12,7 +12,7 @@ from System.Process         import :: ProcessHandle, :: ProcessIO
 from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
 from iTasks.UI.Definition				import :: UI, :: UINodeType
 from iTasks._Framework.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
-from iTasks._Framework.Task             import :: TaskValue, :: ConnectionTask, :: BackgroundTask, :: Event
+from iTasks._Framework.Task             import :: TaskValue, :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask, :: Event
 from iTasks._Framework.SDS import :: SDSNotifyRequest, :: BasicShareId
 from iTasks._Framework.SDS import :: RWShared, :: ReadWriteShared, :: Shared, :: JSONShared
 
@@ -94,10 +94,16 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     }
 
 :: *IOTaskInstance
-    = ExternalProcessInstance !ProcessHandle !ProcessIO
+    = ExternalProcessInstance !ExternalProcessInstanceOpts !ProcessHandle !ProcessIO
     | ListenerInstance        !ListenerInstanceOpts !*TCP_Listener
     | ConnectionInstance      !ConnectionInstanceOpts !*TCP_DuplexChannel
     | BackgroundInstance      !BackgroundInstanceOpts !BackgroundTask
+
+:: ExternalProcessInstanceOpts =
+    { taskId                :: !TaskId              //Reference to the task that started the external process
+    , connectionId          :: !ConnectionId        //Unique connection id (per listener/outgoing connection)     
+    , externalProcessTask   :: !ExternalProcessTask //The io task definition that defines how the process IO is handled
+    }
 
 :: ListenerInstanceOpts =
     { taskId                :: !TaskId          //Reference to the task that created the listener

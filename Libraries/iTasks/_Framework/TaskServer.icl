@@ -180,31 +180,57 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
         _
  	        # world = closeRChannel listener world
             = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
-/*process _ _ iworld=:{ioTasks={done,todo=[ExternalProcessInstance pHandle pIO:todo]},ioStates,world}
-    # taskId = abort "taskId"
-    = case 'DM'.get taskId ioStates of
-        Just (IOActive (l, stable))
-            # (ExternalProcessTask handlers sds) = abort "ext proc task"
-            // Read sds
-            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds {iworld & ioTasks={done=done,todo=todo},world=world}
-            | mbr =:(Error _)
-                # ioStates = 'DM'.put opts.ConnectionInstanceOpts.taskId (IOException (snd (fromError mbr))) ioStates
- 	            // TODO: close pipes & kill process
-                = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
-            // Check if disconnected
-            // try to read process output
-            # (mbData, world) = readPipeNonBlocking pIO.stdOut world
-            // TODO: check error
-            # data = fromOk mbData
-            // call handler
-            # (mbConState,mbw,out,close,iworld)
-                = handlers.whileRunning data conState (fromOk mbr) {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world}*/
+process i chList iworld=:{ioTasks={done, todo=[ExternalProcessInstance opts pHandle pIO:todo]}}
+    # iworld = {iworld & ioTasks = {done = done, todo = todo}} 
+    # iworld = processIOTask
+        opts.ExternalProcessInstanceOpts.taskId opts.ExternalProcessInstanceOpts.connectionId
+        sds closeIO readData writeData onClose
+        whileRunning (\(pHandle, pIO) -> ExternalProcessInstance opts pHandle pIO) (pHandle, pIO) iworld
+    = process (i+1) chList iworld
+where
+    (ExternalProcessTask handlers sds) = opts.externalProcessTask
+
+    closeIO :: !(!(!ProcessHandle, !ProcessIO), !*IWorld) -> *IWorld
+    closeIO ((pHandle, pIO), iworld) = iworld // TODO: kill process & close pipes
+
+    readData :: !(!(!ProcessHandle, !ProcessIO), !*IWorld)
+             -> (!IOData (!ProcessOutChannel, !String) ExitCode, !(!ProcessHandle, !ProcessIO), !*IWorld)
+    readData ((pHandle, pIO), iworld)
+        # (mbData, world) = 'Process'.readPipeNonBlocking pIO.stdOut iworld.world
+        = case mbData of
+            Error _ = abort "TODO: handle error"
+            Ok data
+                | data == ""
+                    # (mbMbRetCode, world) = 'Process'.checkProcess pHandle world
+                    = case mbMbRetCode of
+                        Error _ = abort "TODO: handle error"
+                        Ok Nothing   = (IODData Nothing,         (pHandle, pIO), {iworld & world = world})
+                        Ok (Just ec) = (IODClosed (ExitCode ec), (pHandle, pIO), {iworld & world = world})
+                | otherwise = (IODData (Just (StdOut, data)), (pHandle, pIO), {iworld & world = world})
+
+    writeData :: !String !(!(!ProcessHandle, !ProcessIO), !*IWorld) -> (!(!ProcessHandle, !ProcessIO), !*IWorld)
+    writeData data ((pHandle, pIO), iworld)
+        # (mbErr, world) = 'Process'.writePipe data pIO.stdIn iworld.world
+        = case mbErr of
+            Error e = abort "TODO: handle error"
+            _       = ((pHandle, pIO), {iworld & world = world})
+
+    whileRunning :: (Maybe (!ProcessOutChannel, !String)) Dynamic Dynamic *IWorld
+                 -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
+    whileRunning mbData l r iworld
+        # (mbl, mbw, out, close) = handlers.whileRunning mbData l r
+        = (mbl, mbw, out, close, iworld)
+
+    onClose :: !ExitCode !Dynamic !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, !*IWorld)
+    onClose exitCode l r iworld
+        # (mbl, mbw) = handlers.onExit exitCode l r
+        = (mbl, mbw, iworld)
 
 process i chList iworld=:{ioTasks={done, todo=[ConnectionInstance opts duplexChannel:todo]}}
     # iworld = {iworld & ioTasks = {done = done, todo = todo}} 
     # iworld = processIOTask
         opts.ConnectionInstanceOpts.taskId opts.ConnectionInstanceOpts.connectionId
-        sds closeIO readData writeData handlers.ConnectionHandlersIWorld.onDisconnect
+        sds closeIO readData writeData (\_ -> handlers.ConnectionHandlersIWorld.onDisconnect)
         handlers.ConnectionHandlersIWorld.whileConnected (ConnectionInstance opts) duplexChannel iworld
     = process (i+1) chList iworld
 where
@@ -216,11 +242,11 @@ where
         # world = closeChannel  sChannel world
         = {iworld & world = world}
 
-    readData :: !(!*TCP_DuplexChannel, !*IWorld) -> (!IOData, !*TCP_DuplexChannel, !*IWorld)
+    readData :: !(!*TCP_DuplexChannel, !*IWorld) -> (!IOData String (), !*TCP_DuplexChannel, !*IWorld)
     readData (channel, iworld)
         # (mbSelect, chList) = checkSelect i chList
         | mbSelect =: (Just SR_Disconnected) || mbSelect=:(Just SR_EOM)
-            = (IODClosed, channel, iworld)
+            = (IODClosed (), channel, iworld)
         | mbSelect =: (Just SR_Available)
             # (data, rChannel, world) = receive channel.rChannel iworld.world
             = (IODData (Just (toString data)), {channel & rChannel = rChannel}, {iworld & world = world})
@@ -326,17 +352,17 @@ process i chList iworld=:{ioTasks={done,todo=[BackgroundInstance opts bt=:(Backg
 process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
     = process (i+1) chList {iworld & ioTasks={done=[t:done],todo=todo}}
 
-:: IOData = IODClosed
-          | IODData !(Maybe String)
+:: IOData data closeInfo = IODClosed closeInfo
+                         | IODData !(Maybe data)
 
 processIOTask :: !TaskId
                  !ConnectionId
                  !(RWShared () Dynamic Dynamic)
                  !((!.ioChannels, !*IWorld) -> *IWorld)
-                 !((!.ioChannels, !*IWorld) -> (!IOData, !.ioChannels, !*IWorld))
+                 !((!.ioChannels, !*IWorld) -> (!IOData data closeInfo, !.ioChannels, !*IWorld))
                  !(String (!.ioChannels, !*IWorld) -> (!.ioChannels, !*IWorld))
-                 !(Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, !*IWorld))
-                 !((Maybe String) Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
+                 !(closeInfo Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, !*IWorld))
+                 !((Maybe data) Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
                  !(.ioChannels -> *IOTaskInstance)
                  !.ioChannels
                  !*IWorld
@@ -360,8 +386,8 @@ processIOTask taskId connectionId sds closeIO readData writeData onCloseHandler 
             // try to read data
             # (mbData, ioChannels, iworld) = readData (ioChannels, iworld)
             = case mbData of
-                IODClosed
-                    # (mbTaskState, mbw, iworld) = onCloseHandler taskState r iworld
+                IODClosed closeInfo
+                    # (mbTaskState, mbw, iworld) = onCloseHandler closeInfo taskState r iworld
                     # ioStates = case mbTaskState of
                         Ok state
                             = 'DM'.put taskId (IOActive ('DM'.put connectionId (state, True) taskStates)) ioStates

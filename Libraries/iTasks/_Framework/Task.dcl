@@ -67,9 +67,9 @@ defaultTonicOpts :: TonicOpts
 :: ProcessOutChannel = StdOut | StdErr
 :: ExitCode = ExitCode !Int
 :: ExternalProcessHandlers l r w =
-    { onStartup    :: !(                                      r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
-    , whileRunning :: !((Maybe (ProcessOutChannel, String)) l r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
-    , onExit       :: !(ExitCode                            l r -> (!MaybeErrorString l, !Maybe w                  ))
+    { onStartup    :: !(                                        r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
+    , whileRunning :: !((Maybe (!ProcessOutChannel, !String)) l r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
+    , onExit       :: !(ExitCode                              l r -> (!MaybeErrorString l, !Maybe w                  ))
     }
 
 //Low-level tasks that handle network connections
