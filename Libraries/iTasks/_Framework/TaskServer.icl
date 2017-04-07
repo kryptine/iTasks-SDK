@@ -384,72 +384,14 @@ processIOTask taskId connectionId sds closeIO readData writeData onCloseHandler 
                         // persist connection
                         # {done, todo} = iworld.ioTasks
                         = {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance ioChannels : done], todo = todo}}
-        Just (IODestroyed conStates) = abort "destroyed"
+        Just (IODestroyed taskStates)
+            # iworld = closeIO (ioChannels, iworld)
+            //Remove the state for this connection
+            # taskStates = 'DM'.del connectionId taskStates
+            //If this is the last connection for this task, we can clean up.
+            # ioStates = if ('DM'.mapSize taskStates == 0) ('DM'.del taskId ioStates) ioStates
+            = {iworld & ioStates = ioStates}
         _ = closeIO (ioChannels, iworld)
-        /*| mbSelect =:(Just SR_Disconnected) || mbSelect=:(Just SR_EOM)
-            //Call disconnect function
-            # (conState,mbw,iworld) = handlers.ConnectionHandlersIWorld.onDisconnect conState (fromOk mbr) {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world}
-            # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo,"TCP connection disconnected for "<+++instanceNo)] iworld) iworld
-            # iworld=:{world,ioStates} = writeShareIfNeeded sds mbw iworld
-            # ioStates = case conState of
-                Ok state
-                    = 'DM'.put opts.ConnectionInstanceOpts.taskId (IOActive ('DM'.put opts.ConnectionInstanceOpts.connectionId (state,True) conStates)) ioStates
-                Error e
-                    = 'DM'.put opts.ConnectionInstanceOpts.taskId (IOException e) ioStates
-            # world = closeRChannel rChannel world
-            # world = closeChannel sChannel world
-            = process (i+1) chList {iworld & ioStates = ioStates, world=world}
-        //Read channel data
-        # (data,rChannel,world) = case mbSelect of
-            Just SR_Available
-	            # (data,rChannel,world) = receive rChannel world
-                = (Just (toString data),rChannel,world)
-            _
-                = (Nothing,rChannel,world)
-        //Call whileConnected function
-        # (mbConState,mbw,out,close,iworld)
-            = handlers.ConnectionHandlersIWorld.whileConnected data conState (fromOk mbr) {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world} 
-        //Queue refresh when there was new data or when the connection was closed
-        # iworld = if (isJust data && instanceNo > 0) (queueRefresh [(instanceNo, "New TCP data for "<+++instanceNo)] iworld) iworld 
-        # iworld = if (close && instanceNo > 0) (queueRefresh [(instanceNo, "TCP connection closed for "<+++instanceNo)] iworld) iworld
-        //Write share
-        # iworld=:{ioTasks={todo,done},ioStates,world} = writeShareIfNeeded sds mbw iworld
-        | mbConState =:(Error _)
-            # ioStates = 'DM'.put opts.ConnectionInstanceOpts.taskId (IOException (fromError mbConState)) ioStates
-	        # world = closeRChannel rChannel world
-            # world = closeChannel sChannel world
-            = process (i+1) chList {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world}
-        # conStates = 'DM'.put opts.ConnectionInstanceOpts.connectionId (fromOk mbConState,close) conStates
-        //Send data if produced
-        # (sChannel,world) = case out of
-            []          = (sChannel,world)
-            data        = foldl (\(s,w) d -> send (toByteSeq d) s w) (sChannel,world) data
-        | close
-            //Remove the connection state if configured in the connection listener options
-            # conStates = if opts.ConnectionInstanceOpts.removeOnClose
-                ('DM'.del opts.ConnectionInstanceOpts.connectionId conStates)
-                conStates
-            # ioStates  = 'DM'.put opts.ConnectionInstanceOpts.taskId (IOActive conStates) ioStates
-	        # world = closeRChannel rChannel world
-            # world = closeChannel sChannel world
-            = process (i+1) chList {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world}
-        | otherwise
-            //Perssist connection
-            # ioStates  = 'DM'.put opts.ConnectionInstanceOpts.taskId (IOActive conStates) ioStates
-            = process (i+1) chList {iworld & ioTasks={done=[ConnectionInstance opts {rChannel=rChannel,sChannel=sChannel}:done],todo=todo},ioStates=ioStates,world=world}
-    Just (IODestroyed conStates)
-        # world = closeRChannel rChannel world
-        # world = closeChannel sChannel world
-        //Remove the state for this connection
-        # conStates = 'DM'.del opts.ConnectionInstanceOpts.connectionId conStates
-        //If this is the last connection for this task, we can clean up.
-        # ioStates = if ('DM'.mapSize conStates == 0) ('DM'.del opts.ConnectionInstanceOpts.taskId ioStates) ioStates
-        = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
-    _
-        //No state, just close
-        # world = closeRChannel rChannel world
-        # world = closeChannel sChannel world
-        = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}*/
 
 writeShareIfNeeded sds Nothing iworld = iworld
 writeShareIfNeeded sds (Just w) iworld 
