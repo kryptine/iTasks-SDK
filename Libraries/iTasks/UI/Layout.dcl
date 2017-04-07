@@ -24,6 +24,7 @@ from Text.JSON import :: JSONNode
 :: LayoutState
 	= LSNone                                           //No state is tracked for a layout
 	| LSAttributes UIAttributes                        //State for layouts that modify attributes
+	| LSAttributeChanges UIAttributes UIAttributes     //A more extended state for layouts that modify attributes
 	| LSWrap UI                                        //State for unwrap layouts
 	| LSUnwrap UI                                      //State for unwrap layouts
 	| LSSequence LayoutState LayoutState               //Combined state of two sequenced layouts
