@@ -326,8 +326,6 @@ process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
 :: IOData = IODClosed
           | IODData !(Maybe String)
 
-import StdDebug
-
 processIOTask :: !TaskId
                  !ConnectionId
                  !(RWShared () Dynamic Dynamic)
@@ -341,12 +339,14 @@ processIOTask :: !TaskId
                  !*IWorld
               -> *IWorld
 processIOTask taskId connectionId sds closeIO readData writeData onCloseHandler whileOpenHandler mkIOTaskInstance ioChannels iworld=:{ioStates}
-    = case trace_n (toString taskId) ('DM'.get taskId ioStates) of
+    = case 'DM'.get taskId ioStates of
         Just (IOActive taskStates)
             # (TaskId instanceNo _) = taskId
             // get task state
             # mbTaskState = 'DM'.get connectionId taskStates
             | isNothing mbTaskState
+                # ioStates = 'DM'.put taskId (IOException "Missing IO task state") ioStates
+                = closeIO (ioChannels, {iworld & ioStates = ioStates})
             # taskState = fst (fromJust mbTaskState)
             // read sds
             # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
@@ -366,9 +366,11 @@ processIOTask taskId connectionId sds closeIO readData writeData onCloseHandler 
                             = 'DM'.put taskId (IOException e) ioStates
                     # iworld = writeShareIfNeeded sds mbw iworld
                     # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "IO closed for " <+++ instanceNo)] iworld) iworld
-                    = closeIO (ioChannels, iworld)
+                    = closeIO (ioChannels, {iworld & ioStates = ioStates})
                 IODData mbData
                     # (mbTaskState, mbw, out, close, iworld) = whileOpenHandler mbData taskState r iworld
+                    # iworld = if (isJust mbData && instanceNo > 0) (queueRefresh [(instanceNo, "New data for "<+++ instanceNo)] iworld)  iworld 
+                    # iworld = if (close && instanceNo > 0)         (queueRefresh [(instanceNo, "IO closed for "<+++ instanceNo)] iworld) iworld
                     # iworld = writeShareIfNeeded sds mbw iworld
                     # (ioChannels, iworld) = seq [writeData o \\ o <- out] (ioChannels, iworld)
                     | mbTaskState =: (Error _)
@@ -383,7 +385,7 @@ processIOTask taskId connectionId sds closeIO readData writeData onCloseHandler 
                         # {done, todo} = iworld.ioTasks
                         = {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance ioChannels : done], todo = todo}}
         Just (IODestroyed conStates) = abort "destroyed"
-        _ = trace_n "no state" (closeIO (ioChannels, iworld))
+        _ = closeIO (ioChannels, iworld)
         /*| mbSelect =:(Just SR_Disconnected) || mbSelect=:(Just SR_EOM)
             //Call disconnect function
             # (conState,mbw,iworld) = handlers.ConnectionHandlersIWorld.onDisconnect conState (fromOk mbr) {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world}
