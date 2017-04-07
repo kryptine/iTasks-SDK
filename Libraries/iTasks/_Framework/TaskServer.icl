@@ -133,9 +133,12 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                         = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
                     # (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (toString ip) (fromOk mbr) iworld
                     # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo,"New TCP connection for instance "<+++instanceNo)] iworld) iworld
-                    # iworld=:{ioTasks={done,todo},world}  = writeShareIfNeeded sds mbw iworld
+                    # (mbSdsErr, iworld=:{ioTasks={done,todo},world}) = writeShareIfNeeded sds mbw iworld
                     | mbConState =:(Error _)
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (fromError mbConState)) ioStates
+                        = process (i+1) chList {iworld & ioTasks={done=[ListenerInstance lopts listener:done],todo=todo}, ioStates = ioStates, world=world}
+                    | isError mbSdsErr
+                        # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (snd (fromError mbSdsErr))) ioStates
                         = process (i+1) chList {iworld & ioTasks={done=[ListenerInstance lopts listener:done],todo=todo}, ioStates = ioStates, world=world}
                     # conStates = 'DM'.put lopts.ListenerInstanceOpts.nextConnectionId (fromOk mbConState,close) conStates
                     # (sChannel,world) = case out of
@@ -364,17 +367,23 @@ processIOTask taskId connectionId sds closeIO readData writeData onCloseHandler 
                             = 'DM'.put taskId (IOActive ('DM'.put connectionId (state, True) taskStates)) ioStates
                         Error e
                             = 'DM'.put taskId (IOException e) ioStates
-                    # iworld = writeShareIfNeeded sds mbw iworld
+                    # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
+                    | isError mbSdsErr
+                        # ioStates = 'DM'.put taskId (IOException (snd (fromError mbSdsErr))) ioStates
+                        = closeIO (ioChannels, {iworld & ioStates = ioStates})
                     # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "IO closed for " <+++ instanceNo)] iworld) iworld
                     = closeIO (ioChannels, {iworld & ioStates = ioStates})
                 IODData mbData
                     # (mbTaskState, mbw, out, close, iworld) = whileOpenHandler mbData taskState r iworld
                     # iworld = if (isJust mbData && instanceNo > 0) (queueRefresh [(instanceNo, "New data for "<+++ instanceNo)] iworld)  iworld 
                     # iworld = if (close && instanceNo > 0)         (queueRefresh [(instanceNo, "IO closed for "<+++ instanceNo)] iworld) iworld
-                    # iworld = writeShareIfNeeded sds mbw iworld
+                    # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
                     # (ioChannels, iworld) = seq [writeData o \\ o <- out] (ioChannels, iworld)
                     | mbTaskState =: (Error _)
                         # ioStates = 'DM'.put taskId (IOException (fromError mbTaskState)) ioStates
+                        = closeIO (ioChannels, {iworld & ioStates = ioStates})
+                    | isError mbSdsErr
+                        # ioStates = 'DM'.put taskId (IOException (snd (fromError mbSdsErr))) ioStates
                         = closeIO (ioChannels, {iworld & ioStates = ioStates})
                     # ioStates = 'DM'.put taskId (IOActive ('DM'.put connectionId (fromOk mbTaskState, close) taskStates)) ioStates
                     | close
@@ -393,10 +402,9 @@ processIOTask taskId connectionId sds closeIO readData writeData onCloseHandler 
             = {iworld & ioStates = ioStates}
         _ = closeIO (ioChannels, iworld)
 
-writeShareIfNeeded sds Nothing iworld = iworld
-writeShareIfNeeded sds (Just w) iworld 
-    # (_,iworld) = 'SDS'.write w sds iworld //TODO: Deal with exceptions at this level
-    = iworld
+writeShareIfNeeded :: !(RWShared () r w) !(Maybe w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
+writeShareIfNeeded sds Nothing iworld  = (Ok (), iworld)
+writeShareIfNeeded sds (Just w) iworld = 'SDS'.write w sds iworld
 
 addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !ExternalProcessTask !IWorld -> (!MaybeError TaskException (), !*IWorld)
 addExternalProc taskId cmd args dir extProcTask=:(ExternalProcessTask handlers sds) iworld=:{ioTasks={todo,done}, ioStates, world}
