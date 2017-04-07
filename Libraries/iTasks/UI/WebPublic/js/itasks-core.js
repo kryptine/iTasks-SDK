@@ -37,12 +37,12 @@ itasks.Component = {
 	initSaplCustomization: function() { //When necessary, apply customizatons for Check if some of the component's methods are custom defined using sapl/js
 		var me = this, fun, evalfun;
 		//Initialize linked sapl functions 
-		if(me.saplDeps != null && me.saplDeps != '') {
-			me.saplDeps = me.evalJs(me.saplDeps);
+		if(me.attributes.saplDeps != null && me.attributes.saplDeps != '') {
+			me.evalJs(me.attributes.saplDeps);
         }
 		//Decode and evaluate the sapl initialization function
-		if(me.saplInit !=null && me.saplInit!= '') {
-			Sapl.feval([me.evalJsVal(me.saplInit),[___wrapJS(me),"JSWorld"]]);
+		if(me.attributes.saplInit !=null && me.attributes.saplInit!= '') {
+			Sapl.feval([me.evalJsVal(me.attributes.saplInit),[___wrapJS(me),"JSWorld"]]);
 		}
 	},
 	initComponent: function() {}, //Abstract method: every component implements this differently

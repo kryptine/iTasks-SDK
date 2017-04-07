@@ -259,7 +259,7 @@ itasks.Tree = Object.assign({
         },me);
 
         me.attributes.value.forEach(function(idx) {
-            me.nodes[idx].classList.add(me.cssPrefix + 'selected');
+			me.attributes.options[idx].domEl.classList.add(me.cssPrefix + 'selected');
         });
         el.appendChild(rootNode);
     },
