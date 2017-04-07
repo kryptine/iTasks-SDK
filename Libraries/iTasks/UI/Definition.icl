@@ -345,19 +345,24 @@ applyUIChange NoChange ui = ui
 applyUIChange (ReplaceUI ui) _ = ui
 applyUIChange (ChangeUI ca ci) (UI type attr items)
 	//Change the attributes
-	# attr = foldl appAttributeChange attr ca
+	# attr = foldl (flip applyUIAttributeChange) attr ca
 	//Adjust the children
 	# items = foldl appChildChange items ci
 	= UI type attr items
 where
-	appAttributeChange attr (SetAttribute n v) = 'DM'.put n v attr
 
 	appChildChange items (i,RemoveChild) = removeAt i items
 	appChildChange items (i,InsertChild ui) = insertAt i ui items
 	appChildChange items (i,ChangeChild change)
-		| i >= length items = abort "applyUIChange: index too large"
+		| i >= length items = items
 							= updateAt i (applyUIChange change (items !! i)) items
-	//FIXME: There is no case MoveChild
+	appChildChange items (i,MoveChild d)
+		| i >= length items = items
+		                    = insertAt d (items !! i) (removeAt i items) 
+
+applyUIAttributeChange :: !UIAttributeChange !UIAttributes -> UIAttributes
+applyUIAttributeChange (SetAttribute k v) attr  = 'DM'.put k v attr
+applyUIAttributeChange (DelAttribute k) attr = 'DM'.del k attr
 
 //Remove unnessecary directives
 compactUIChange :: UIChange -> UIChange
@@ -404,10 +409,13 @@ encodeUIChange (ReplaceUI def)
 encodeUIChange (ChangeUI attributes children)
 	= JSONObject
 		[("type",JSONString "change")
-		,("attributes", JSONArray [JSONObject [("name",JSONString name),("value",value)] \\ SetAttribute name value <- attributes])
+		,("attributes", JSONArray (map encodeAttrChange attributes))
 		,("children",JSONArray (map encodeChildChange children))
 		]
 where
+	encodeAttrChange (SetAttribute name value) = JSONObject [("name",JSONString name),("value",value)]
+	encodeAttrChange (DelAttribute name) = JSONObject [("name",JSONString name),("value",JSONNull)]
+
 	encodeChildChange (i,ChangeChild child) = JSONArray [JSONInt i,JSONString "change",encodeUIChange child]
 	encodeChildChange (i,RemoveChild) 		= JSONArray [JSONInt i,JSONString "remove"]
 	encodeChildChange (i,InsertChild child) = JSONArray [JSONInt i,JSONString "insert",encodeUI child]
