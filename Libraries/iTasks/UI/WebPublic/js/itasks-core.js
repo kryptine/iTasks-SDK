@@ -232,13 +232,16 @@ itasks.Component = {
 	createChild: function(spec) {
 		var me = this,
 			type = spec.type || 'Component',
-			child = Object.create(itasks.Component);
-			child.parentCmp = me;
-			child.children = [];
+			child = {};
+
+		me.addSpec_(child, itasks.Component);
 				
 		if(itasks[type]) {
 			me.addSpec_(child,itasks[type]);
 		}
+		child.parentCmp = me;
+		child.children = [];
+
 		me.addSpec_(child,spec);
 
 		return child;
@@ -246,7 +249,8 @@ itasks.Component = {
 	addSpec_:function(obj,spec) {
 		var attributes = {};
 		Object.assign(attributes,obj.attributes,spec.attributes);
-		Object.assign(obj,spec,{attributes:attributes});
+		Object.assign(obj,spec);
+		obj.attributes = attributes;
 	},
 	insertChild: function(idx = 0, spec = {}) {
 		var me = this,
@@ -458,7 +462,14 @@ itasks.Viewport = {
 
 //Convenience function for concisely creating viewports
 itasks.viewport = function(spec,domEl) {
-	return Object.assign(Object.create(itasks.Component), itasks.Viewport, spec, {domEl:domEl}).init();
+	var vp = {}, vpattr = {};
+
+	Object.assign(vpattr,itasks.Component.attributes,itasks.Viewport.attributes,spec.attributes);
+	Object.assign(vp,itasks.Component,itasks.Viewport,spec);
+	
+	vp.attributes = vpattr;
+	vp.domEl = domEl;
+	vp.init();
 };
 
 //Web service proxy/multiplexer class
@@ -482,6 +493,7 @@ itasks.Service = {
 	},
 	createSession_:function(viewport) {
 		var me = this, connection;
+		
 		connection = me.getViewportConnection_(viewport);	
 		connection.newSession(function(instanceNo,instanceKey) {
 			//Store the instanceNo and key on the viewport
