@@ -61,23 +61,23 @@ where
         # (selection,world) = ((session.# "getSelection") .$ ()) world
 		# world             = ((me .# "editor") .= editor) world
 		//Set options
-		# (readOnly,world)  = .? (me .# "disabled") world
+		# (readOnly,world)  = .? (me .# "attributes.disabled") world
         # (_,world)         = ((editor .# "setReadOnly") .$ readOnly) world
-		# (theme,world)     = .? (me .# "theme") world
+		# (theme,world)     = .? (me .# "attributes.theme") world
         # (_,world)         = ((editor .# "setTheme") .$ theme) world
-		# (mode,world)      = .? (me .# "mode") world
+		# (mode,world)      = .? (me .# "attributes.mode") world
         # (_,world)         = ((session .# "setMode") .$ mode) world
 		//Initialize state based on attributes
-		# (lines,world)     = .? (me .# "lines") world
+		# (lines,world)     = .? (me .# "attributes.lines") world
         # (value,world)     = ((lines.# "join") .$ "\n") world
         # (_,world)         = ((editor .# "setValue") .$ value) world
 		//Set initial cursor position
-		# (cursor,world)    = .? (me .# "cursor") world
+		# (cursor,world)    = .? (me .# "attributes.cursor") world
 		# (row,world)       = .? (cursor .# 0) world
 		# (col,world)       = .? (cursor .# 1) world
 		# (_,world)       	= ((editor .# "navigateTo") .$ (row,col)) world
 		//Potentially set initial selection
-		# (selattr,world)     = .? (me .# "selection") world
+		# (selattr,world)     = .? (me .# "attributes.selection") world
 		# world = if (jsIsNull (toJSVal selattr)) world (snd (((selection .# "setSelectionRange") .$ value) world))
 		//Add event listeners
 		# (cb,world)     = jsWrapFun (\a w -> (jsNull,onChange editor me w)) world
@@ -121,8 +121,8 @@ where
 		| (not (jsIsUndefined noEvents)) && jsValToBool noEvents
 			= world
         # (value,world)  = ((editor .# "getValue") .$ ()) world
-		# (taskId,world)  = .? (me .# "taskId") world
-		# (editorId,world)  = .? (me .# "editorId") world
+		# (taskId,world)  = .? (me .# "attributes.taskId") world
+		# (editorId,world)  = .? (me .# "attributes.editorId") world
 		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,("lines",value))) world
 		= world
 
@@ -130,14 +130,14 @@ where
         # (cursor,world)  = ((selection.# "getCursor") .$ ()) world
 		# (row,world) = .? (cursor .# "row") world
 		# (column,world) = .? (cursor .# "column") world
-		# (taskId,world)  = .? (me .# "taskId") world
-		# (editorId,world)  = .? (me .# "editorId") world
+		# (taskId,world)  = .? (me .# "attributes.taskId") world
+		# (editorId,world)  = .? (me .# "attributes.editorId") world
 		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,("cursor",row,column))) world
 		= world
 
 	onSelectionChange selection me world
-		# (taskId,world)  = .? (me .# "taskId") world
-		# (editorId,world)  = .? (me .# "editorId") world
+		# (taskId,world)  = .? (me .# "attributes.taskId") world
+		# (editorId,world)  = .? (me .# "attributes.editorId") world
 		# (empty,world)  = ((selection .# "isEmpty") .$ ()) world
 		| jsValToBool empty
 			# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,("selection",JSONNull))) world

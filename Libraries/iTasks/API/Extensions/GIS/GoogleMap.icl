@@ -100,21 +100,21 @@ where
 	initDOM me args world
 		//Create the parameter object
 		# (options,world)    = jsEmptyObject world
-		# (mapType,world)    = .? (me .# "value.perspective.type" .# 0) world
+		# (mapType,world)    = .? (me .# "attributes.value.perspective.type" .# 0) world
 		# (mapTypeId,world)  = .? (jsWindow .# "google.maps.MapTypeId" .# (jsValToString mapType)) world
 		# world              = (options .# "mapTypeId" .= mapTypeId) world
-		# (lat,world)        = .? (me .# "value.perspective.center.lat") world
-		# (lng,world)        = .? (me .# "value.perspective.center.lng") world
+		# (lat,world)        = .? (me .# "attributes.value.perspective.center.lat") world
+		# (lng,world)        = .? (me .# "attributes.value.perspective.center.lng") world
 	    # (center, world)    = jsNewObject "google.maps.LatLng" [toJSArg lat,toJSArg lng] world
 		# world              = (options .# "center" .= center) world
-		# world              = copy (me .# "value.perspective.zoom") (options .# "zoom") world
-		# world              = copy (me .# "value.settings.mapTypeControl") (options .# "mapTypeControl") world
-		# world              = copy (me .# "value.settings.panControl") (options .# "panControl") world
-		# world              = copy (me .# "value.settings.zoomControl") (options .# "zoomControl") world
-		# world              = copy (me .# "value.settings.streetViewControl") (options .# "streetViewControl") world
-		# world              = copy (me .# "value.settings.scaleControl") (options .# "scaleControl") world
-		# world              = copy (me .# "value.settings.scrollwheel") (options .# "scrollwheel") world
-		# world              = copy (me .# "value.settings.draggable") (options .# "draggable") world
+		# world              = copy (me .# "attributes.value.perspective.zoom") (options .# "zoom") world
+		# world              = copy (me .# "attributes.value.settings.mapTypeControl") (options .# "mapTypeControl") world
+		# world              = copy (me .# "attributes.value.settings.panControl") (options .# "panControl") world
+		# world              = copy (me .# "attributes.value.settings.zoomControl") (options .# "zoomControl") world
+		# world              = copy (me .# "attributes.value.settings.streetViewControl") (options .# "streetViewControl") world
+		# world              = copy (me .# "attributes.value.settings.scaleControl") (options .# "scaleControl") world
+		# world              = copy (me .# "attributes.value.settings.scrollwheel") (options .# "scrollwheel") world
+		# world              = copy (me .# "attributes.value.settings.draggable") (options .# "draggable") world
 		//Create the map object
 		# (domEl,world)       = .? (me .# "domEl") world
 	    # (mapobj, world)     = jsNewObject "google.maps.Map" [toJSArg domEl,toJSArg options] world
@@ -242,8 +242,8 @@ where
 		# (map,world) = .? (me .# "map") world
 		# (perspective, world) = getPespective map world
 		
-		# (taskId,world)  = .? (me .# "taskId") world
-		# (editorId,world)  = .? (me .# "editorId") world
+		# (taskId,world)  = .? (me .# "attributes.taskId") world
+		# (editorId,world)  = .? (me .# "attributes.editorId") world
 		# diff = SetPerspective perspective
 		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,[diff])) world
 		
@@ -259,8 +259,8 @@ where
 		# world 				= createMarker me map st.markerMap markrec world
 		# world					= setState me {st & nextMarkerId = st.nextMarkerId + 1, markers = markers} world
 		
-		# (taskId,world)  		= .? (me .# "taskId") world
-		# (editorId,world)  	= .? (me .# "editorId") world		
+		# (taskId,world)  		= .? (me .# "attributes.taskId") world
+		# (editorId,world)  	= .? (me .# "attributes.editorId") world		
 		# diff 					= AddMarkers [markrec]		
 		# (_,world) 			= ((me .# "doEditEvent") .$ (taskId,editorId,[diff])) world
 		
@@ -316,8 +316,8 @@ where
             //Toggle selection
             # markers 			= [{GoogleMapMarker|m & selected = (m.GoogleMapMarker.markerId == markerId)} \\ m <- st.GoogleMapState.markers]
 			
-			# (taskId,world)  	= .? (me .# "taskId") world
-			# (editorId,world)  = .? (me .# "editorId") world		
+			# (taskId,world)  	= .? (me .# "attributes.taskId") world
+			# (editorId,world)  = .? (me .# "attributes.editorId") world		
 			# diff 				= UpdateMarkers markers		
 			# (_,world) 		= ((me .# "doEditEvent") .$ (taskId,editorId,[diff])) world
 
@@ -331,8 +331,8 @@ where
 			# ((lat, lng), world)   = getPos latLng world
             #  markers 				= [if (m.GoogleMapMarker.markerId == markerId) {GoogleMapMarker|m & position= {GoogleMapPosition | lat = lat, lng = lng}} m \\ m <- st.GoogleMapState.markers]
             
-			# (taskId,world)  	= .? (me .# "taskId") world
-			# (editorId,world)  = .? (me .# "editorId") world		
+			# (taskId,world)  	= .? (me .# "attributes.taskId") world
+			# (editorId,world)  = .? (me .# "attributes.editorId") world		
 			# diff 				= UpdateMarkers markers		
 			# (_,world) 		= ((me .# "doEditEvent") .$ (taskId,editorId,[diff])) world					
 			
