@@ -23,6 +23,7 @@ from iTasks._Framework.TaskStore import queueRefresh
     = ListenerInstanceDS !ListenerInstanceOpts
     | ConnectionInstanceDS !ConnectionInstanceOpts !*TCP_SChannel
     | BackgroundInstanceDS !BackgroundInstanceOpts !BackgroundTask
+    | ExternalProcessInstanceDS !ExternalProcessInstanceOpts !ProcessHandle !ProcessIO
 
 serve :: !Int !ConnectionTask ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
 serve port ct bt determineTimeout iworld
@@ -67,6 +68,7 @@ toSelectSet [i:is]
         ListenerInstance opts l = ([l:ls],rs,[ListenerInstanceDS opts:is])
         ConnectionInstance opts {rChannel,sChannel} = (ls,[rChannel:rs],[ConnectionInstanceDS opts sChannel:is])
         BackgroundInstance opts bt = (ls,rs,[BackgroundInstanceDS opts bt:is])
+        ExternalProcessInstance opts pHandle pIO = (ls, rs, [ExternalProcessInstanceDS opts pHandle pIO : is])
 
 /* Restore the list of main loop instances.
     In the same pass also update the indices in the select result to match the
@@ -105,6 +107,10 @@ where
     fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls rs ch [BackgroundInstanceDS opts bt:is]
         # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners numSeenReceivers ls rs ch is
         = ([BackgroundInstance opts bt:is],ch)
+    //External process task
+    fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls rs ch [ExternalProcessInstanceDS opts pHandle pIO : is]
+        # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners numSeenReceivers ls rs ch is
+        = ([ExternalProcessInstance opts pHandle pIO:is],ch)
 
     ulength [] = (0,[])
     ulength [x:xs]
@@ -374,12 +380,14 @@ processIOTask taskId connectionId sds closeIO readData writeData onCloseHandler 
             // get task state
             # mbTaskState = 'DM'.get connectionId taskStates
             | isNothing mbTaskState
+                # iworld   = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
                 # ioStates = 'DM'.put taskId (IOException "Missing IO task state") ioStates
                 = closeIO (ioChannels, {iworld & ioStates = ioStates})
             # taskState = fst (fromJust mbTaskState)
             // read sds
             # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
             | mbr =: (Error _)
+                # iworld   = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
                 # ioStates = 'DM'.put taskId (IOException (snd (fromError mbr))) ioStates
                 = closeIO (ioChannels, {iworld & ioStates = ioStates})
             # r = fromOk mbr
@@ -395,6 +403,7 @@ processIOTask taskId connectionId sds closeIO readData writeData onCloseHandler 
                             = 'DM'.put taskId (IOException e) ioStates
                     # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
                     | isError mbSdsErr
+                        # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
                         # ioStates = 'DM'.put taskId (IOException (snd (fromError mbSdsErr))) ioStates
                         = closeIO (ioChannels, {iworld & ioStates = ioStates})
                     # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "IO closed for " <+++ instanceNo)] iworld) iworld
@@ -406,9 +415,11 @@ processIOTask taskId connectionId sds closeIO readData writeData onCloseHandler 
                     # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
                     # (ioChannels, iworld) = seq [writeData o \\ o <- out] (ioChannels, iworld)
                     | mbTaskState =: (Error _)
+                        # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
                         # ioStates = 'DM'.put taskId (IOException (fromError mbTaskState)) ioStates
                         = closeIO (ioChannels, {iworld & ioStates = ioStates})
                     | isError mbSdsErr
+                        # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
                         # ioStates = 'DM'.put taskId (IOException (snd (fromError mbSdsErr))) ioStates
                         = closeIO (ioChannels, {iworld & ioStates = ioStates})
                     # ioStates = 'DM'.put taskId (IOActive ('DM'.put connectionId (fromOk mbTaskState, close) taskStates)) ioStates
@@ -433,13 +444,13 @@ writeShareIfNeeded sds Nothing iworld  = (Ok (), iworld)
 writeShareIfNeeded sds (Just w) iworld = 'SDS'.write w sds iworld
 
 addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !ExternalProcessTask !IWorld -> (!MaybeError TaskException (), !*IWorld)
-addExternalProc taskId cmd args dir extProcTask=:(ExternalProcessTask handlers sds) iworld=:{ioTasks={todo,done}, ioStates, world}
+addExternalProc taskId cmd args dir extProcTask=:(ExternalProcessTask handlers sds) iworld=:{ioStates, world}
     # (mbRes, world) = 'Process'.runProcessIO cmd args dir world
+    # iworld = {iworld & world = world}
     = case mbRes of
         Error (_, e)
-            = (Error (exception e), {iworld & world = world})
+            = (Error (exception e), iworld)
         Ok (pHandle, pIO)
-            # iworld = {iworld & ioTasks={todo = todo, done = done}, ioStates = ioStates, world = world}
             // first evaluate onStartup handler
             # (mbr,iworld) = 'SDS'.read sds iworld
             | mbr =: (Error _) = (liftError mbr, iworld)
@@ -456,11 +467,13 @@ addExternalProc taskId cmd args dir extProcTask=:(ExternalProcessTask handlers s
                 // TODO: kill process
                 = (Ok (), iworld)
             | otherwise
-                # todo = todo ++ [ExternalProcessInstance pHandle pIO]
+                # opts = {ExternalProcessInstanceOpts|taskId = taskId, connectionId = 0, externalProcessTask = extProcTask}
+                # ioTasks = iworld.ioTasks
+                # ioTasks = {ioTasks & todo = ioTasks.todo ++ [ExternalProcessInstance opts pHandle pIO]}
                 # ioStates = case mbl of
                     Ok l        = 'DM'.put taskId (IOActive ('DM'.fromList [(0,(l,False))])) ioStates
                     Error e     = 'DM'.put taskId (IOException e) ioStates
-                = (Ok (), iworld)
+                = (Ok (), {iworld & ioStates = ioStates, ioTasks=ioTasks})
 
 addListener :: !TaskId !Int !Bool !ConnectionTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
 addListener taskId port removeOnClose connectionTask iworld=:{ioTasks={todo,done}, ioStates, world}
