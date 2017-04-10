@@ -268,46 +268,51 @@ where
 			= (errorResponse "Requested service format not available for this task", Nothing, Nothing, iworld)
 
 	dataFun req output (Just data) (state,instances) iworld
-		# (state,result) = wsockAddData state data 
-		= case result of //TODO: Process multiple events
-			[WSClose msg:_]
-				//Respond with a close frame and close the connection
-				= ([wsockCloseMsg msg],True, (state,instances),Nothing,iworld)
-			[WSTextMessage msg:_] 
-				//Process events:
-				= case fromString msg of
-					// - new session
-					(JSONArray [JSONInt reqId,JSONString "new"])
-                    	= case createTaskInstance` req taskUrls iworld of
-							(Error (_,err), iworld)
-								# json = JSONArray [JSONInt reqId,JSONString "ERROR",JSONString err]
-								= (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
-                        	(Ok (instanceNo,instanceKey),iworld)
-								# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
-								# json = JSONArray [JSONInt reqId, JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]]
-								= (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
-					// - attach existing instance
-					(JSONArray [JSONString "attach",JSONInt instanceNo,JSONString instanceKey])
-						//TODO: Clear output
-						# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
-						= ([],False, (state,[instanceNo:instances]),Nothing,iworld) //TODO: Maybe send confirmation message?
-					// - detach instance
-					(JSONArray [JSONString "detach",JSONInt instanceNo,JSONString instanceKey])
-						= ([],False, (state,removeMember instanceNo instances),Nothing,iworld) //TODO: Maybe send confirmation message?
-					(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONNull,JSONString actionId]]) //Action event
-						# iworld = queueEvent instanceNo (ActionEvent (fromString taskId) actionId) iworld //Queue event
-						= ([],False, (state,instances),Nothing,iworld) //TODO: Maybe send confirmation message?
-					(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONString name,value]]) //Edit event
-						# iworld = queueEvent instanceNo (EditEvent (fromString taskId) name value) iworld //Queue event
-						= ([],False, (state,instances),Nothing,iworld) //TODO: Maybe send confirmation message?
-					//Unknown message 
-					e
-						# json = JSONArray [JSONString "ERROR",JSONString "Unknown event"]
-						= (wsockTextMsg (toString json),False, (state,instances),Nothing,iworld)
-			[WSPing msg:_]
-				= ([wsockPongMsg msg],False,(state,instances),Nothing,iworld)
-			_ = ([],False,(state,instances),Nothing,iworld)
-	
+		# (state,events) = wsockAddData state data 
+		# (output,close,instances,iworld) = handleEvents instances [] False events iworld
+		= (output,close,(state,instances),Nothing,iworld)
+	where	
+		handleEvents instances output close [] iworld
+			= (output,close,instances,iworld)
+		handleEvents instances output close [e:es] iworld
+			# (eoutput, eclose, instances, iworld) = handleEvent e instances iworld
+			= handleEvents instances (output ++ eoutput) eclose (if eclose [] es) iworld //Ignore further events if this event closes the connection
+
+		handleEvent (WSClose msg) instances iworld
+			= ([wsockCloseMsg msg], True, instances, iworld)
+		handleEvent	(WSPing msg) instances iworld
+			= ([wsockPongMsg msg], False, instances, iworld)
+		handleEvent (WSTextMessage msg) instances iworld //Process events:
+			= case fromString msg of
+				// - new session
+				(JSONArray [JSONInt reqId,JSONString "new"])
+                	= case createTaskInstance` req taskUrls iworld of
+						(Error (_,err), iworld)
+							# json = JSONArray [JSONInt reqId,JSONString "ERROR",JSONString err]
+							= (wsockTextMsg (toString json),False, instances,iworld)
+						(Ok (instanceNo,instanceKey),iworld)
+							# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
+							# json = JSONArray [JSONInt reqId, JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]]
+							= (wsockTextMsg (toString json),False, instances, iworld)
+				// - attach existing instance
+				(JSONArray [JSONString "attach",JSONInt instanceNo,JSONString instanceKey])
+					//TODO: Clear output
+					# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
+					= ([],False, [instanceNo:instances], iworld) //TODO: Maybe send confirmation message?
+				// - detach instance
+				(JSONArray [JSONString "detach",JSONInt instanceNo,JSONString instanceKey])
+					= ([],False, removeMember instanceNo instances, iworld) //TODO: Maybe send confirmation message?
+				(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONNull,JSONString actionId]]) //Action event
+					# iworld = queueEvent instanceNo (ActionEvent (fromString taskId) actionId) iworld //Queue event
+					= ([],False, instances,iworld) //TODO: Maybe send confirmation message?
+				(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONString name,value]]) //Edit event
+					# iworld = queueEvent instanceNo (EditEvent (fromString taskId) name value) iworld //Queue event
+					= ([],False, instances,iworld) //TODO: Maybe send confirmation message?
+				//Unknown message 
+				e
+					# json = JSONArray [JSONString "ERROR",JSONString "Unknown event"]
+					= (wsockTextMsg (toString json),False, instances, iworld)
+
     dataFun req output Nothing (state,instances) iworld
 		//Check for UI updates for all attached instances
 		# (changes, output) = dequeueOutput instances output
