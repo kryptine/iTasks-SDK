@@ -225,6 +225,10 @@ itasks.Checkbox = {
         el.type = 'checkbox';
         el.checked = me.value;
 
+		if('enabled' in me && me['enabled'] === false) {
+			el.disabled = true;
+		}
+
         el.addEventListener('click',function(e) {
 			var value = e.target.checked;
             me.doEditEvent(me.taskId,me.editorId,value);
