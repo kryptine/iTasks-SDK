@@ -66,9 +66,10 @@ instance tune	ApplyLayout //Apply a modification after a layout has been run
 	| SelectByAttribute String JSONNode
 	| SelectByHasAttribute String
 	| SelectByNumChildren Int //Mostly to match containers with 0 or 1 children
-	| SelectByHasChildrenOfType UINodeType //E.g. to check if a step/parallel has actions
 	//Relative selection
 	| SelectRelative UIPath UISelection
+	//Check if another (sub)-selection exists
+	| SelectByContains UISelection
 	//Set operations
 	| SelectAND UISelection UISelection //Intersection
 	| SelectOR UISelection UISelection //Union

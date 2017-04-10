@@ -64,7 +64,9 @@ inUISelection (SelectByType t) _ (UI type _ _) = t === type
 inUISelection (SelectByHasAttribute k) _ (UI _ attr _) = isJust ('DM'.get k attr)
 inUISelection (SelectByAttribute k v) _ (UI _ attr _) = maybe False ((==) v) ('DM'.get k attr)
 inUISelection (SelectByNumChildren num) _ (UI _ _  items) = length items == num
-inUISelection (SelectByHasChildrenOfType t) _ (UI _ _  items) = any (\(UI type _ _) -> type === t) items
+inUISelection (SelectByContains selection) path ui=:(UI _ _ items)
+	| inUISelection selection path ui = True 
+			  						  = or [inUISelection (SelectByContains selection) (path ++ [i]) item \\ item <- items & i <- [0..]]
 inUISelection (SelectRelative prefix sel) absolutePath ui 
 	= maybe False (\relativePath -> inUISelection sel relativePath ui) (removePrefix prefix absolutePath)
 where
