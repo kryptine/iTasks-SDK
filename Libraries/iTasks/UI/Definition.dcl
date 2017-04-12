@@ -51,7 +51,7 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 *
 * The UI type has contstructors for the various types of partial UI definitions.
 */
-:: UI = UI UINodeType UIAttributes [UI]
+:: UI = UI !UINodeType !UIAttributes ![UI]
 
 :: UINodeType
 	// --- Intermediate nodes: (implemented in itasks-components-raw.js) ---
