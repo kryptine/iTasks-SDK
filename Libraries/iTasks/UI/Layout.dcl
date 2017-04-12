@@ -23,22 +23,23 @@ from Text.JSON import :: JSONNode
 
 :: LayoutState
 	= LSNone                                           //No state is tracked for a layout
-	| LSAttributes UIAttributes                        //State for layouts that modify attributes
-	| LSAttributeChanges UIAttributes UIAttributes     //A more extended state for layouts that modify attributes
-	| LSWrap UI                                        //State for unwrap layouts
-	| LSUnwrap UI                                      //State for unwrap layouts
-	| LSSequence LayoutState LayoutState               //Combined state of two sequenced layouts
-	| LSLayoutSubUIs UI (LayoutTree LayoutState ())    //States of layouts applied to sub-ui's 
-	| LSRemoveSubUIs UI (LayoutTree LayoutRemoval LayoutRestores) //UI's that were removed by the layout
+	| LSType !UI                                       //State for layouts that change the type
+	| LSAttributes !UIAttributes                       //State for layouts that modify attributes
+	| LSAttributeChanges !UIAttributes !UIAttributes   //A more extended state for layouts that modify attributes
+	| LSWrap !UI                                       //State for unwrap layouts
+	| LSUnwrap !UI                                     //State for unwrap layouts
+	| LSSequence !LayoutState !LayoutState               //Combined state of two sequenced layouts
+	| LSLayoutSubUIs !UI (LayoutTree LayoutState ())    //States of layouts applied to sub-ui's 
+	| LSRemoveSubUIs !UI (LayoutTree LayoutRemoval LayoutRestores) //UI's that were removed by the layout
 
 :: LayoutTree a b
-	= UIModified a
-	| SubUIsModified b [(Int,LayoutTree a b)]
+	= UIModified !a
+	| SubUIsModified !b ![(Int,LayoutTree a b)]
 
 :: LayoutRemoval
-	= LRRemoved Int        //When a UI is first removed, we mark it with this constructor
+	= LRRemoved !Int        //When a UI is first removed, we mark it with this constructor
 						   //The Int is the number of children of this node that were already moved when this node was removed
-    | LRMoved UIChange     //When a removed UI is inserted somewhere else, we mark it with this constructor
+    | LRMoved !UIChange     //When a removed UI is inserted somewhere else, we mark it with this constructor
 
 :: LayoutRestores :== [(Int,Int)] //When layouts that were moved, are no longer moved we need to track that. They can then be removed at the destination.
 	

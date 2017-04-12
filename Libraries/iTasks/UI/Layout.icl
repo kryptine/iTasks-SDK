@@ -88,11 +88,14 @@ idLayout = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChang
 setUIType :: UINodeType -> Layout
 setUIType type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	apply (UI _ attr items) = (ReplaceUI (UI type attr items), LSNone) //Crude replacement (no instruction possible)
+	apply ui=:(UI _ attr items) = (ReplaceUI (UI type attr items), LSType ui) //Crude replacement (no instruction possible)
 
-	adjust (change,s) = (change,s)
+	adjust (NoChange,s)   = (NoChange,s)
+	adjust (ReplaceUI ui,_) = apply ui 
+	adjust (change,LSType ui) = (change, LSType (applyUIChange change ui))
 
-	restore _ = NoChange //Cannot be restored...
+	//Crude restore...
+	restore (LSType ui) = ReplaceUI ui 
 
 setUIAttributes :: UIAttributes -> Layout
 setUIAttributes extraAttr = {Layout|apply=apply,adjust=adjust,restore=restore}
