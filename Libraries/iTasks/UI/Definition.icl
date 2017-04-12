@@ -354,11 +354,11 @@ where
 	appChildChange items (i,RemoveChild) = removeAt i items
 	appChildChange items (i,InsertChild ui) = insertAt i ui items
 	appChildChange items (i,ChangeChild change)
-		| i >= length items = items
-							= updateAt i (applyUIChange change (items !! i)) items
+		| i < 0 || i >= length items = items
+							         = updateAt i (applyUIChange change (items !! i)) items
 	appChildChange items (i,MoveChild d)
-		| i >= length items = items
-		                    = insertAt d (items !! i) (removeAt i items) 
+		| i < 0 || i >= length items = items
+		                             = insertAt d (items !! i) (removeAt i items) 
 
 applyUIAttributeChange :: !UIAttributeChange !UIAttributes -> UIAttributes
 applyUIAttributeChange (SetAttribute k v) attr  = 'DM'.put k v attr

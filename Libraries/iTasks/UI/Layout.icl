@@ -208,8 +208,8 @@ where
 	//Find the attributes of a sub ui
 	selectAttr [] (UI type attr items) = Just attr
 	selectAttr [s:ss] (UI type attr items) 
-		| s < length items  = selectAttr ss (items !! s)
-							= Nothing
+		| s >= 0 && s < length items = selectAttr ss (items !! s)
+							         = Nothing
 
 	//Determine changes to the attributes of a sub ui
 	selectChanges _ NoChange = []
