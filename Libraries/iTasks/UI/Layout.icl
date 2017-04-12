@@ -106,10 +106,13 @@ where
 
 	adjust (ChangeUI attrChanges itemChanges,LSAttributes attr)
 		//Update the shadow attributes
-		# attr = foldl (\a (SetAttribute k v) -> 'DM'.put k v a) attr attrChanges
+		# attr = foldl (flip applyUIAttributeChange) attr attrChanges
 		//Filter out updates for the attributes that this layout has overwritten setting here
-		# attrChanges = filter (\(SetAttribute k _) -> not (isMember k ('DM'.keys extraAttr))) attrChanges
+		# attrChanges = filter (not o matchChange) attrChanges
 		= (ChangeUI attrChanges itemChanges, LSAttributes attr)
+	where
+		matchChange (SetAttribute k _) = isMember k ('DM'.keys extraAttr)
+		matchChange (DelAttribute k) = isMember k ('DM'.keys extraAttr)
 
 	adjust (ReplaceUI ui,LSAttributes attr)
 		# (change,state) = apply ui
