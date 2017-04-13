@@ -54,8 +54,6 @@ where
 //Test if a specific UI at a path is in the selection
 inUISelection :: UISelection UIPath UI -> Bool
 inUISelection (SelectByPath p) path _ = p === path
-inUISelection (SelectRoot) [] _ = True
-inUISelection (SelectRoot) _ _ = False
 inUISelection (SelectChildren) [_] _ = True
 inUISelection (SelectChildren) _ _ = False
 inUISelection (SelectDescendents) [_:_] _ = True

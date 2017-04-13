@@ -61,7 +61,6 @@ instance tune	ApplyLayout //Apply a modification after a layout has been run
 
 :: UISelection
 	= SelectByPath UIPath //Direct addressing
-	| SelectRoot
 	| SelectChildren
 	| SelectDescendents
 	| SelectByType UINodeType

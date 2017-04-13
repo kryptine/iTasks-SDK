@@ -9,7 +9,7 @@ import StdBool
 from StdFunc import id, const, o
 
 arrangeWithTabs :: Layout
-arrangeWithTabs = layoutSubUIs (SelectAND SelectRoot (SelectByType UIParallel)) (setUIType UITabSet)
+arrangeWithTabs = layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIParallel)) (setUIType UITabSet)
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 arrangeWithSideBar index side size resize = foldl1 sequenceLayouts 
@@ -62,7 +62,7 @@ frameCompact = foldl1 sequenceLayouts
 
 //TODO: Explicitly detect if we are before or after a step
 beforeStep :: Layout -> Layout
-beforeStep layout = layoutSubUIs (SelectAND SelectRoot (SelectByType UIStep)) layout
+beforeStep layout = layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIStep)) layout
 
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
 toWindow windowType vpos hpos = foldl1 sequenceLayouts 
