@@ -107,6 +107,14 @@ interact :: !d !EditMode !(RWShared () r w)
 				(v l v -> (l, v, Maybe (r -> w))) 	//On edit
 				(r l v -> (l, v, Maybe (r -> w)))  	//On refresh
 				(Maybe (Editor v)) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v
+/**
+* Execute an external process. This task's value becomes stable when the process is terminated.
+* @param Path to the executable
+* @param a list of command-line arguments
+* @param (optional) startup directory
+* @param A reference to shared data the task has access to
+* @param The event handler functions
+*/
 externalProcess :: !FilePath ![String] !(Maybe FilePath) !(RWShared () r w) !(ExternalProcessHandlers l r w) -> Task l | iTask l & TC r & TC w
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed

@@ -77,20 +77,6 @@ extendCallTrace taskId repOpts=:{TaskEvalOpts|tonicOpts = {callTrace = xs}}
         | taskId == topTaskId = repOpts
       _ = {repOpts & tonicOpts = {repOpts.tonicOpts & callTrace = 'DCS'.push taskId repOpts.tonicOpts.callTrace}}
 
-wrapExternalProcTask :: !(ExternalProcessHandlers l r w) !(RWShared () r w) -> ExternalProcessTask | TC l & TC r & TC w & iTask l
-wrapExternalProcTask {onStartup, whileRunning, onExit} sds
-    = ExternalProcessTask {onStartup = onStartup`, whileRunning = whileRunning`, onExit = onExit`} (toDynamic sds)
-where
-    onStartup` (r :: r^) = (toDyn <$> mbl, toDyn <$> mbw, out, close)
-    where
-        (mbl, mbw, out, close) = onStartup r
-    whileRunning` mbData (l :: l^) (r :: r^) = (toDyn <$> mbl, toDyn <$> mbw, out, close)
-    where
-        (mbl, mbw, out, close) = whileRunning mbData l r
-    onExit` eCode (l :: l^) (r :: r^) = (toDyn <$> mbl, toDyn <$> mbw)
-    where
-        (mbl, mbw) = onExit eCode l r
-
 wrapConnectionTask :: (ConnectionHandlers l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
 wrapConnectionTask {ConnectionHandlers|onConnect,whileConnected,onDisconnect} sds
     = ConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect`,whileConnected=whileConnected`,onDisconnect=onDisconnect`} (toDynamic sds)
@@ -146,6 +132,20 @@ where
         (Error e, mbw, env) = case mbw of
             Just w  = (Error e, Just (dynamic w :: w^), env)
             Nothing = (Error e, Nothing, env)
+
+wrapExternalProcTask :: !(ExternalProcessHandlers l r w) !(RWShared () r w) -> ExternalProcessTask | TC l & TC r & TC w & iTask l
+wrapExternalProcTask {onStartup, whileRunning, onExit} sds
+    = ExternalProcessTask {onStartup = onStartup`, whileRunning = whileRunning`, onExit = onExit`} (toDynamic sds)
+where
+    onStartup` (r :: r^) = (toDyn <$> mbl, toDyn <$> mbw, out, close)
+    where
+        (mbl, mbw, out, close) = onStartup r
+    whileRunning` mbData (l :: l^) (r :: r^) = (toDyn <$> mbl, toDyn <$> mbw, out, close)
+    where
+        (mbl, mbw, out, close) = whileRunning mbData l r
+    onExit` eCode (l :: l^) (r :: r^) = (toDyn <$> mbl, toDyn <$> mbw)
+    where
+        (mbl, mbw) = onExit eCode l r
 
 mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
 mkInstantTask iworldfun = Task (evalOnce iworldfun)

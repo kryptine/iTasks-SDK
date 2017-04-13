@@ -94,16 +94,10 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     }
 
 :: *IOTaskInstance
-    = ExternalProcessInstance !ExternalProcessInstanceOpts !ProcessHandle !ProcessIO
-    | ListenerInstance        !ListenerInstanceOpts !*TCP_Listener
+    = ListenerInstance        !ListenerInstanceOpts !*TCP_Listener
     | ConnectionInstance      !ConnectionInstanceOpts !*TCP_DuplexChannel
+    | ExternalProcessInstance !ExternalProcessInstanceOpts !ProcessHandle !ProcessIO
     | BackgroundInstance      !BackgroundInstanceOpts !BackgroundTask
-
-:: ExternalProcessInstanceOpts =
-    { taskId                :: !TaskId              //Reference to the task that started the external process
-    , connectionId          :: !ConnectionId        //Unique connection id (per listener/outgoing connection)     
-    , externalProcessTask   :: !ExternalProcessTask //The io task definition that defines how the process IO is handled
-    }
 
 :: ListenerInstanceOpts =
     { taskId                :: !TaskId          //Reference to the task that created the listener
@@ -122,6 +116,12 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     }
 
 :: ConnectionId             :== Int
+
+:: ExternalProcessInstanceOpts =
+    { taskId                :: !TaskId              //Reference to the task that started the external process
+    , connectionId          :: !ConnectionId        //Unique connection id (per listener/outgoing connection)     
+    , externalProcessTask   :: !ExternalProcessTask //The io task definition that defines how the process IO is handled
+    }
 
 :: BackgroundInstanceOpts =
     { bgInstId              :: !BackgroundTaskId

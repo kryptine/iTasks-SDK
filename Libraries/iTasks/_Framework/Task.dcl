@@ -60,17 +60,6 @@ defaultTonicOpts :: TonicOpts
     , removedTasks      :: ![(TaskId,TaskId)]   //Which embedded parallel tasks were removed (listId,taskId)
 	, refreshSensitive	:: !Bool		        //Can refresh events change the value or ui of this task (e.g. because shared data is read)
 	}
-	
-
-:: ExternalProcessTask = ExternalProcessTask !(ExternalProcessHandlers Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)
-
-:: ProcessOutChannel = StdOut | StdErr
-:: ExitCode = ExitCode !Int
-:: ExternalProcessHandlers l r w =
-    { onStartup    :: !(                                        r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
-    , whileRunning :: !((Maybe (!ProcessOutChannel, !String)) l r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
-    , onExit       :: !(ExitCode                              l r -> (!MaybeErrorString l, !Maybe w                  ))
-    }
 
 //Low-level tasks that handle network connections
 :: ConnectionTask = ConnectionTask !(ConnectionHandlersIWorld Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)
@@ -88,6 +77,16 @@ defaultTonicOpts :: TonicOpts
     { onConnect         :: !(String r           *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
     , whileConnected    :: !((Maybe String) l r *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
     , onDisconnect      :: !(               l r *IWorld -> *(!MaybeErrorString l, Maybe w,                   !*IWorld))
+    }
+
+:: ExternalProcessTask = ExternalProcessTask !(ExternalProcessHandlers Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)
+
+:: ProcessOutChannel = StdOut | StdErr
+:: ExitCode = ExitCode !Int
+:: ExternalProcessHandlers l r w =
+    { onStartup    :: !(                                        r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
+    , whileRunning :: !((Maybe (!ProcessOutChannel, !String)) l r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
+    , onExit       :: !(ExitCode                              l r -> (!MaybeErrorString l, !Maybe w                  ))
     }
 
 //Background computation tasks
@@ -108,13 +107,16 @@ exception :: !e -> TaskException | TC, toString e
 */
 extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
 
-wrapExternalProcTask :: !(ExternalProcessHandlers l r w) !(RWShared () r w) -> ExternalProcessTask | TC l & TC r & TC w & iTask l
-
 /**
 * Wraps a set of connection handlers and a shared source as a connection task
 */
 wrapConnectionTask :: (ConnectionHandlers l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
 wrapIWorldConnectionTask :: (ConnectionHandlersIWorld l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
+
+/**
+* Wraps a set of handlers and a shared source as an external process task
+*/
+wrapExternalProcTask :: !(ExternalProcessHandlers l r w) !(RWShared () r w) -> ExternalProcessTask | TC l & TC r & TC w & iTask l
 
 /**
 * Create a task that finishes instantly

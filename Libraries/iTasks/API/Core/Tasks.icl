@@ -183,9 +183,6 @@ where
 
     rep port = ReplaceUI (stringDisplay ("Listening for connections on port "<+++ port))
 
-
-import StdMisc
-
 externalProcess :: !FilePath ![String] !(Maybe FilePath) !(RWShared () r w) !(ExternalProcessHandlers l r w) -> Task l | iTask l & TC r & TC w
 externalProcess cmd args dir sds handlers = Task eval
 where
@@ -207,6 +204,12 @@ where
                         = (ExceptionResult (exception "Corrupt IO task result"),iworld)
             Just (IOException e)
                 = (ExceptionResult (exception e),iworld)
+
+    eval event evalOpts tree=:(TCDestroy (TCBasic taskId ts _ _)) iworld=:{ioStates}
+        # ioStates = case 'DM'.get taskId ioStates of
+            Just (IOActive values)  = 'DM'.put taskId (IODestroyed values) ioStates
+            _                       = ioStates
+        = (DestroyedResult,{iworld & ioStates = ioStates})
 
     rep = ReplaceUI (stringDisplay ("External process " <+++ cmd <+++ " " <+++ join " " args))
 
