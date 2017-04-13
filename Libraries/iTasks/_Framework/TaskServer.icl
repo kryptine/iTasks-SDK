@@ -191,6 +191,7 @@ process i chList iworld=:{ioTasks={done, todo=[ConnectionInstance opts duplexCha
     # iworld = {iworld & ioTasks = {done = done, todo = todo}} 
     # iworld = processIOTask
         opts.ConnectionInstanceOpts.taskId opts.ConnectionInstanceOpts.connectionId
+        opts.ConnectionInstanceOpts.removeOnClose
         sds tcpCloseIO readData tcpWriteData (\_ -> handlers.ConnectionHandlersIWorld.onDisconnect)
         handlers.ConnectionHandlersIWorld.whileConnected (ConnectionInstance opts) duplexChannel iworld
     = process (i+1) chList iworld
@@ -211,7 +212,7 @@ where
 process i chList iworld=:{ioTasks={done, todo=[ExternalProcessInstance opts pHandle pIO:todo]}}
     # iworld = {iworld & ioTasks = {done = done, todo = todo}} 
     # iworld = processIOTask
-        opts.ExternalProcessInstanceOpts.taskId opts.ExternalProcessInstanceOpts.connectionId
+        opts.ExternalProcessInstanceOpts.taskId opts.ExternalProcessInstanceOpts.connectionId False
         sds extProcCloseIO readData extProcWriteData onClose
         whileRunning (\(pHandle, pIO) -> ExternalProcessInstance opts pHandle pIO) (pHandle, pIO) iworld
     = process (i+1) chList iworld
@@ -281,6 +282,7 @@ extProcWriteData data ((pHandle, pIO), iworld)
 
 processIOTask :: !TaskId
                  !ConnectionId
+                 !Bool
                  !(RWShared () Dynamic Dynamic)
                  !((!.ioChannels, !*IWorld) -> *IWorld)
                  !((!.ioChannels, !*IWorld) -> (!IOData data closeInfo, !.ioChannels, !*IWorld))
@@ -291,7 +293,7 @@ processIOTask :: !TaskId
                  !.ioChannels
                  !*IWorld
               -> *IWorld
-processIOTask taskId connectionId sds closeIO readData writeData onCloseHandler whileOpenHandler mkIOTaskInstance ioChannels iworld=:{ioStates}
+processIOTask taskId connectionId removeOnClose sds closeIO readData writeData onCloseHandler whileOpenHandler mkIOTaskInstance ioChannels iworld=:{ioStates}
     = case 'DM'.get taskId ioStates of
         Just (IOActive taskStates)
             # (TaskId instanceNo _) = taskId
@@ -343,7 +345,11 @@ processIOTask taskId connectionId sds closeIO readData writeData onCloseHandler 
                         = closeIO (ioChannels, {iworld & ioStates = ioStates})
                     # ioStates = 'DM'.put taskId (IOActive ('DM'.put connectionId (fromOk mbTaskState, close) taskStates)) ioStates
                     | close
-                        // TODO: remove on close option
+                        //Remove the connection state if configured in the connection listener options
+                        # taskStates = if removeOnClose
+                            ('DM'.del connectionId taskStates)
+                            taskStates
+                        # ioStates = 'DM'.put taskId (IOActive taskStates) ioStates
                         = closeIO (ioChannels, {iworld & ioStates = ioStates})
                     | otherwise
                         // persist connection
