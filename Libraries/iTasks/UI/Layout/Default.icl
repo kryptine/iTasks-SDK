@@ -129,7 +129,7 @@ where
 		]
 
 actionsToButtonBar = foldl1 sequenceLayouts
-	[insertSubUI [1] (ui UIButtonBar) //Create a buttonbar
+	[insertChildUI 1 (ui UIButtonBar) //Create a buttonbar
 	,moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [1] //Move all actions to the buttonbar
 	,layoutSubUIs (SelectByPath [1]) (layoutSubUIs SelectChildren actionToButton) //Transform actions to buttons 
 	]
@@ -150,7 +150,7 @@ toFormItem = layoutSubUIs (SelectAND SelectRoot (SelectOR (SelectByHasAttribute 
 where
 	optAddLabel = layoutSubUIs (SelectByContains (SelectAND (SelectByPath [0]) (SelectByHasAttribute LABEL_ATTRIBUTE))) addLabel
 	addLabel = foldl1 sequenceLayouts
-		[insertSubUI [0] (uia UILabel (widthAttr (ExactSize LABEL_WIDTH)))
+		[insertChildUI 0 (uia UILabel (widthAttr (ExactSize LABEL_WIDTH)))
 		,copySubUIAttributes (SelectKeys ["label","optional","mode"]) [1] [0]
 		,layoutSubUIs (SelectByPath [0]) (modifyUIAttributes (SelectKeys ["label","optional","mode"]) createLabelText)
 		]
@@ -170,7 +170,7 @@ where
 					)
 
 	addIcon iconIndex = foldl1 sequenceLayouts
-		[insertSubUI [iconIndex] (uia UIIcon (leftMarginAttr 5))
+		[insertChildUI iconIndex (uia UIIcon (leftMarginAttr 5))
 		,copySubUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) [1] [iconIndex]
 		,layoutSubUIs (SelectByPath [iconIndex]) (modifyUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) createIconAttr)
 		]

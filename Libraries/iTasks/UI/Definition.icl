@@ -350,15 +350,19 @@ applyUIChange (ChangeUI ca ci) (UI type attr items)
 	# items = foldl appChildChange items ci
 	= UI type attr items
 where
-
-	appChildChange items (i,RemoveChild) = removeAt i items
-	appChildChange items (i,InsertChild ui) = insertAt i ui items
+	appChildChange items (i,RemoveChild)
+		| i >= 0 && i < length items = removeAt i items
+									 = items
+	appChildChange items (i,InsertChild ui)
+		| i >= 0 && i <= length items = insertAt i ui items
+									  = items
 	appChildChange items (i,ChangeChild change)
-		| i < 0 || i >= length items = items
-							         = updateAt i (applyUIChange change (items !! i)) items
-	appChildChange items (i,MoveChild d)
-		| i < 0 || i >= length items = items
-		                             = insertAt d (items !! i) (removeAt i items) 
+		| i >= 0 && i < length items = updateAt i (applyUIChange change (items !! i)) items
+		                             = items
+	appChildChange items (s,MoveChild d)
+		# num = length items
+		| s >= 0 && d >= 0 && s < num && d < num = insertAt d (items !! s) (removeAt s items)
+                                                 = items
 
 applyUIAttributeChange :: !UIAttributeChange !UIAttributes -> UIAttributes
 applyUIAttributeChange (SetAttribute k v) attr  = 'DM'.put k v attr

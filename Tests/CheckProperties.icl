@@ -57,6 +57,10 @@ where
  
 	withoutLayout = foldl (flip applyUIChange) ui changes
 
+/* Every change that would be 'valid' (e.g. only targeting existing parts of the ui) without the layout, should be valid
+   with the layout. In other words, a layout should not introduce invalid changes.
+*/
+
 // Tests for every core layout
 
 // == Changing node types ==
@@ -81,8 +85,8 @@ checkWrapUI type changes ui = applyAndRevert (wrapUI type) changes ui
 checkUnwrapUI :: [UIChange] UI -> Bool
 checkUnwrapUI changes ui = applyAndRevert unwrapUI changes ui
 
-checkInsertSubUI :: UIPath UI [UIChange] UI -> Bool
-checkInsertSubUI path insert changes ui = applyAndRevert (insertSubUI path insert) changes ui
+checkInsertChildUI :: Int UI [UIChange] UI -> Bool
+checkInsertChildUI idx insert changes ui = applyAndRevert (insertChildUI idx insert) changes ui
 
 checkRemoveSubUIs :: UISelection [UIChange] UI -> Bool
 checkRemoveSubUIs selection changes ui = applyAndRevert (removeSubUIs selection) changes ui
@@ -97,10 +101,10 @@ NUM :== 100
 //Start = testn NUM checkSetUIAttributes
 //Start = testn NUM checkDelUIAttributes
 //Start = testn NUM checkModifyUIAttributes
-Start = testn NUM checkCopySubUIAttributes
+//Start = testn NUM checkCopySubUIAttributes
 //Start = testn NUM checkWrapUI
 //Start = testn NUM checkUnwrapUI
-//Start = testn NUM checkInsertSubUI
+Start = testn NUM checkInsertChildUI
 //Start = testn NUM checkRemoveSubUIs
 //Start = testn NUM checkMoveSubUIs
 

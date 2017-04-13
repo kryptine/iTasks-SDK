@@ -28,6 +28,7 @@ from Text.JSON import :: JSONNode
 	| LSAttributeChanges !UIAttributes !UIAttributes   //A more extended state for layouts that modify attributes
 	| LSWrap !UI                                       //State for unwrap layouts
 	| LSUnwrap !UI                                     //State for unwrap layouts
+	| LSInsert !Int                                    //State for inserting layouts
 	| LSSequence !LayoutState !LayoutState               //Combined state of two sequenced layouts
 	| LSLayoutSubUIs !UI (LayoutTree LayoutState ())    //States of layouts applied to sub-ui's 
 	| LSRemoveSubUIs !UI (LayoutTree LayoutRemoval LayoutRestores) //UI's that were removed by the layout
@@ -109,7 +110,7 @@ flattenUI :: Layout
 /*
 * Insert a (static) element into a UI
 */
-insertSubUI  :: UIPath UI     -> Layout
+insertChildUI :: Int UI -> Layout
 /**
 * Remove all elements that match the predicate, but keep the removed elements in the state.
 * Further changes to these elements are processed in the background. When the predicate no longer holds, the elements are inserted back into the UI.

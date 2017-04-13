@@ -306,22 +306,107 @@ where
 	adjust change = change
 	restore _ = NoChange
 
-insertSubUI :: UIPath UI-> Layout
-insertSubUI [] _ = idLayout 
-insertSubUI path ui = layoutSubUIs (SelectByPath (init path)) (insertChildUI (last path) ui)
-
+//Insert the element at the specified index.
+//Only insert if there are at least as many children as the specified index
 insertChildUI :: Int UI -> Layout
-insertChildUI idx insert = {Layout|apply=apply,adjust=adjust,restore=restore}
+insertChildUI idx insert
+	| idx >= 0  = {Layout|apply=apply,adjust=adjust,restore=restore}
+				= idLayout
 where
-	apply _ = (ChangeUI [] [(idx,InsertChild insert)],LSNone)
+	apply (UI _ _ items) 
+		# num = length items
+		| idx >= 0 && idx <= num = (ChangeUI [] [(idx,InsertChild insert)],LSInsert num)
+					             = (NoChange, LSInsert num)
 
-	adjust change=:(NoChange,_) = change
-	//Simply (re-) insert the ui
-	adjust change=:(ReplaceUI (UI type attr items), s) = (ReplaceUI (UI type attr (insertAt idx insert items)), s)
-	//Increment the id's of child changes to adjust for the inserted static child
-	adjust change=:(ChangeUI attrChanges childChanges, s) = (ChangeUI attrChanges [(if (i >= idx) (i + 1) i,c) \\ (i,c) <- childChanges], s)
+	adjust (NoChange,state) = (NoChange,state)
 
-	restore _ = ChangeUI [] [(idx,RemoveChild)]
+	adjust (ReplaceUI ui, _) //We are replacing everything, so don't keep state
+		# (change,state) = apply ui
+		= (ReplaceUI (applyUIChange change ui), state)
+
+	//Adjust the child changes to account for the additional insert
+	adjust (ChangeUI attrChanges childChanges, LSInsert num) 
+		# (childChanges,num) = adjustChildChanges childChanges num
+		= (ChangeUI attrChanges childChanges, LSInsert num)
+
+	adjustChildChanges [] num = ([],num)
+	adjustChildChanges [(i,ChangeChild change):cs] num
+		| i >= 0 && i < num //The child is in a valid range
+			//Adjust everything 'after' the inserted element
+			# (cs,num) = adjustChildChanges cs num
+			= ([(if (i < idx) i (i + 1),ChangeChild change):cs], num)
+		| otherwise = adjustChildChanges cs num //The change is targeted out of range, drop it 
+	adjustChildChanges [(i,RemoveChild):cs] num
+		| i >= 0 && i < num //The child is in a valid range
+			//This removal means we also have to remove the inserted element
+			| num == idx 
+				# (cs,num) = adjustChildChanges cs (num - 1)
+				= ([(idx,RemoveChild),(i,RemoveChild):cs], num)
+			//The element has not been inserted because there are too few children, there is no effect 
+			| num < idx
+				# (cs,num) = adjustChildChanges cs (num - 1)
+				= ([(i,RemoveChild):cs], num)
+			//The extra element was inserted:
+			// If we remove an element 'after' the inserted index we have to offset the index of the removal
+			| i >= idx
+				# (cs,num) = adjustChildChanges cs (num - 1)
+				= ([(i + 1, RemoveChild):cs], num)
+			// If we remove an element 'before' the inserted element
+			// it affects its position, so we need to move its sibling to adjust for that.
+			| otherwise
+				# (cs,num) = adjustChildChanges cs (num - 1)
+				= ([(i,RemoveChild),(idx - 1,MoveChild idx):cs], num)
+		| otherwise = adjustChildChanges cs num //The change is targeted out of range, drop it 
+
+	adjustChildChanges [(i,InsertChild ui):cs] num
+		| i >= 0 && i <= num //The child is in a valid range
+			//This addition means we have to insert the extra element now
+			| num == (idx - 1)
+				# (cs,num) = adjustChildChanges cs (num + 1)
+				= ([(i,InsertChild ui),(idx,InsertChild insert):cs], num)
+			//The element has not been inserted because (even with this insert) there are too few children, there is no effect 
+			| num < (idx - 1)
+				# (cs,num) = adjustChildChanges cs (num + 1)
+				= ([(i,InsertChild ui):cs], num)
+			//The extra element was inserted:
+			// If we insert an element 'after' the inserted index we have to offset the index of the insert
+			| i >= idx
+				# (cs,num) = adjustChildChanges cs (num + 1)
+				= ([(i + 1,InsertChild ui):cs], num)
+			// If we insert an element 'before' the inserted element
+			// it affects its position, so we need to move its sibling to adjust for that.
+			| otherwise
+				# (cs,num) = adjustChildChanges cs (num + 1)
+				= ([(i,InsertChild ui),(idx + 1,MoveChild idx):cs], num)
+		| otherwise = adjustChildChanges cs num //The change is targeted out of range, drop it 
+	adjustChildChanges [(s,MoveChild d):cs] num
+		| s >= 0 && s < num && d >= 0 && d < num //Both source and destination are in a valid range
+			//The element has not been inserted, there is no effect
+			| num < idx 
+				# (cs,num) = adjustChildChanges cs num 
+				= adjustChildChanges [(s,MoveChild d):cs] num
+			//Both are 'before' the inserted element, there is no effect
+			| s < idx && d < idx
+				# (cs,num) = adjustChildChanges cs num 
+				= adjustChildChanges [(s,MoveChild d):cs] num
+			//Only the source is 'before' the inserted element. We need to offset the destination and adjust
+			| s < idx 
+				# (cs,num) = adjustChildChanges cs num
+				= adjustChildChanges [(s,MoveChild (d + 1)),(idx - 1,MoveChild idx):cs] num
+			//Only the destination is 'before' the in
+			| d < idx 	
+				# (cs,num) = adjustChildChanges cs num
+				= adjustChildChanges [(s + 1, MoveChild d),(idx + 1,MoveChild idx):cs] num
+			//Both are 'after' the inserted element, offset the indices
+			| otherwise
+				# (cs,num) = adjustChildChanges cs num 
+				= adjustChildChanges [(s + 1,MoveChild (d + 1)):cs] num
+		| otherwise = adjustChildChanges cs num //The change is targeted out of range, drop it 
+
+	//Check in the state if the extra element was inserted or not
+	restore (LSInsert num)
+		| idx >= 0 && idx <= num = ChangeUI [] [(idx,RemoveChild)]
+					             = NoChange
 
 moveSubUIs :: UISelection UIPath -> Layout 
 moveSubUIs selection path = moveSubUIs` selection (Just path) 
