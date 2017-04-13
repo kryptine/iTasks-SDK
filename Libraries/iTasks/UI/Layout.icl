@@ -514,38 +514,49 @@ where
 			= (c ++ cs, items, reverts, mods)
 
 		adjustRemChildChange offset i (ChangeChild change) items reverts mods//TODO: Check the what to do if the change causes a removal...
-			//Recursively adjust the change
-			| i >= length items = abort "adjustRemChildChange index too large"
-			# (cchange, item, mod) = adjustRem numMoved (path ++ [i]) change (items !! i) (ltGet i mods)
-			# changes = case cchange of
-				(ChangeChild NoChange)         = []
-				(ChangeChild (ChangeUI [] [])) = []
-				_                              = [(offset + adjustIndex i mods, cchange)]
-			= (changes, updateAt i item items, reverts, ltPut i mod mods)
+			| i >= 0 && i < length items 
+				//Recursively adjust the change
+				# (cchange, item, mod) = adjustRem numMoved (path ++ [i]) change (items !! i) (ltGet i mods)
+				# changes = case cchange of
+					(ChangeChild NoChange)         = []
+					(ChangeChild (ChangeUI [] [])) = []
+					_                              = [(offset + adjustIndex i mods, cchange)]
+				= (changes, updateAt i item items, reverts, ltPut i mod mods)
+			| otherwise //Out of range, ignore
+				= ([],items,reverts,mods)
 
 		adjustRemChildChange offset i (InsertChild ui) items reverts mods
-			# (rchange,mod) = applyRem (path ++ [i]) ui
-			//If the child is immediately matched, don't insert insert it upstream
-			# cchange = case rchange of
-				RemoveChild = []
-				ChangeChild change = [(offset + adjustIndex i mods, InsertChild (applyUIChange change ui))]
-			//The insertion potentially affects all siblings after the insertion point, we need to check them
-			# (schanges, items, mods) = adjustRemSiblings path (\x -> x > i) (insertAt i ui items) (ltInsert i mod mods)
-			= (cchange ++ schanges, items, reverts, mods)
+			| i >= 0 && i <= length items 
+				# (rchange,mod) = applyRem (path ++ [i]) ui
+				//If the child is immediately matched, don't insert insert it upstream
+				# cchange = case rchange of
+					RemoveChild = []
+					ChangeChild change = [(offset + adjustIndex i mods, InsertChild (applyUIChange change ui))]
+				//The insertion potentially affects all siblings after the insertion point, we need to check them
+				# (schanges, items, mods) = adjustRemSiblings path (\x -> x > i) (insertAt i ui items) (ltInsert i mod mods)
+				= (cchange ++ schanges, items, reverts, mods)
+			| otherwise //Out of range, ignore
+				= ([],items,reverts,mods)
 
 		adjustRemChildChange offset i RemoveChild items reverts mods
-			//If the child was already removed by this layout it no longer need to be removed from the UI
-			# (cchange,reverts) = case (ltGet i mods) of
-				UIModified (LRMoved _) = ([],reverts ++ [(i,1)]) //The child was already moved to a new location, we also need to remove it there
-				UIModified lr          = ([],reverts)
-				state 			       = ([(offset + adjustIndex i mods, RemoveChild)],reverts)
-			# (schanges, items, mods) = adjustRemSiblings path (\x -> x >= i) (removeAt i items) (ltRemove i mods)
-			= (cchange ++ schanges, items, reverts, mods)
+			| i >= 0 && i < length items 
+				//If the child was already removed by this layout it no longer need to be removed from the UI
+				# (cchange,reverts) = case (ltGet i mods) of
+					UIModified (LRMoved _) = ([],reverts ++ [(i,1)]) //The child was already moved to a new location, we also need to remove it there
+					UIModified lr          = ([],reverts)
+					state 			       = ([(offset + adjustIndex i mods, RemoveChild)],reverts)
+				# (schanges, items, mods) = adjustRemSiblings path (\x -> x >= i) (removeAt i items) (ltRemove i mods)
+				= (cchange ++ schanges, items, reverts, mods)
+			| otherwise //Out of range, ignore
+				= ([],items,reverts,mods)
 
 		adjustRemChildChange offset i (MoveChild d) items reverts mods
-			# cchange = (offset + adjustIndex i mods, MoveChild (offset + adjustIndex d mods))
-			# (schanges, items, mods) = adjustRemSiblings path (const True) (listMove i d items) (ltMove i d mods) //TODO we don't need to check *all* siblings
-			= ([cchange:schanges], items, reverts, mods)
+			| i >= 0 && i < length items &&  d >= 0 && d < length items
+				# cchange = (offset + adjustIndex i mods, MoveChild (offset + adjustIndex d mods))
+				# (schanges, items, mods) = adjustRemSiblings path (const True) (listMove i d items) (ltMove i d mods) //TODO we don't need to check *all* siblings
+				= ([cchange:schanges], items, reverts, mods)
+			| otherwise //Out of range, ignore
+				= ([],items,reverts,mods)
 
 		//For the selected items call adjustRem with NoChange to check if they need to be removed or restored
 		adjustRemSiblings path whichSiblings items mods = adjust 0 items mods
@@ -622,7 +633,7 @@ where
 		determineAdjustedPath [s:ss] (UI _ _ items) (SubUIsModified _ mods)
 			# sAdjusted = adjustIndex s mods
 			# totalAdjusted = length items - ltCount False (const True) mods
-			| sAdjusted < totalAdjusted //Check if it is in range
+			| sAdjusted >= 0 && sAdjusted < totalAdjusted //Check if it is in range
 				= case determineAdjustedPath ss (items !! s) (ltGet s mods) of
 					(Just ssAdjusted) = Just [sAdjusted:ssAdjusted]
 					Nothing           = Nothing
