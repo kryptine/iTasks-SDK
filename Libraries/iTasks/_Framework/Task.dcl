@@ -79,6 +79,7 @@ defaultTonicOpts :: TonicOpts
     , onDisconnect      :: !(               l r *IWorld -> *(!MaybeErrorString l, Maybe w,                   !*IWorld))
     }
 
+//Low-level task that handles external processes
 :: ExternalProcessTask = ExternalProcessTask !(ExternalProcessHandlers Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)
 
 :: ProcessOutChannel = StdOut | StdErr
