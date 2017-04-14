@@ -142,7 +142,7 @@ where
 		, layoutSubUIs (SelectByPath [0]) layoutStartWork
 		, layoutSubUIs (SelectByPath [1]) (foldl1 sequenceLayouts
 			[layoutSubUIs (SelectByPath [1]) (wrapUI UIContainer) //Put manageSession and manageWork together in a container
-			,moveSubUIs (SelectByPath [0]) [1]
+			,moveSubUIs (SelectByPath [0]) [1] 0
 			,layoutSubUIs (SelectByPath [0,0]) layoutManageSession
 			,arrangeWithSideBar 0 TopSide 200 True
 			,layoutSubUIs (SelectByPath [1]) arrangeWithTabs

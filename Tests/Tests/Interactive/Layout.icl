@@ -93,7 +93,7 @@ where
 testInsertSubTask :: Task ()
 testInsertSubTask = taskToLayout "Test for inserting a sub ui" <<@ ApplyLayout layout
 where
-	layout = insertSubUI [1] (ui UIDebug)
+	layout = insertChildUI 1 (ui UIDebug)
 
 testRemoveSubsTask :: Task ()
 testRemoveSubsTask = taskToLayout "Test for removing a sub ui" <<@ ApplyLayout layout
@@ -103,7 +103,7 @@ where
 testMoveSubsTask :: Task ()
 testMoveSubsTask = taskToLayout "Test for moving a sub ui" <<@ ApplyLayout layout
 where
-	layout = moveSubUIs (SelectByPath [1]) [0]
+	layout = moveSubUIs (SelectByPath [1]) [0] 0
 
 testLayoutSubsTask :: Task ()
 testLayoutSubsTask = taskToLayout "Test for layouting a sub ui" <<@ ApplyLayout layout

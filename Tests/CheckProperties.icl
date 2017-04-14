@@ -8,10 +8,11 @@ import iTasks.UI.Definition
 import Gast.Testable
 import Gast.GenLibTest
 import Gast.Gen
+import Gast.StdProperty
 
 import StdGeneric
 from StdFunc import o, flip
-import StdEnum
+import StdEnum, StdBool
 import Data.Map
 import Text.JSON
 import Text
@@ -61,6 +62,39 @@ where
    with the layout. In other words, a layout should not introduce invalid changes.
 */
 
+/**
+* When moving things around, the size of a UI should not change (if the target location exists)
+*/
+
+
+uiSize :: UI -> Int
+uiSize (UI _ _ items) = foldr (\i s -> s + uiSize i) 1 items
+
+pathExists :: UIPath UI -> Bool
+pathExists [] _ = True
+pathExists [s:ss] (UI _ _ items)
+	| s >= 0 && s < length items = pathExists ss (items !! s)
+								 = False
+
+applyChangesWithLayout :: Layout [UIChange] UI -> UI
+applyChangesWithLayout layout changes ui
+	//Apply the layout
+	# (achange, state) = layout.Layout.apply ui
+	# ui = applyUIChange achange ui
+	//Transform all further changes and apply them
+	# (ui,state) = applyChanges changes (ui,state)
+	= ui
+where
+	applyChanges [] (ui,state) = (ui,state)
+	applyChanges [c:cs] (ui,state) 
+		# (c,state) = layout.Layout.adjust (c,state)
+		# ui = applyUIChange c ui
+		= applyChanges cs (ui,state)
+
+applyChangesWithoutLayout :: [UIChange] UI -> UI
+applyChangesWithoutLayout changes ui
+	= foldl (flip applyUIChange) ui changes
+
 // Tests for every core layout
 
 // == Changing node types ==
@@ -92,10 +126,17 @@ checkRemoveSubUIs :: UISelection [UIChange] UI -> Bool
 checkRemoveSubUIs selection changes ui = applyAndRevert (removeSubUIs selection) changes ui
 
 checkMoveSubUIs :: UISelection UIPath [UIChange] UI -> Bool
-checkMoveSubUIs selection dst changes ui = applyAndRevert (moveSubUIs selection dst) changes ui
+checkMoveSubUIs selection dst changes ui = applyAndRevert (moveSubUIs selection dst 0) changes ui
+
+//If the target path exists in a ui, then moving elements around should not affect the number of elements
+checkSizeMoveSubUIs :: UISelection UIPath [UIChange] UI -> Property
+checkSizeMoveSubUIs selection dst changes ui
+	# withLayout = applyChangesWithLayout (moveSubUIs selection dst 0) changes ui
+	# withoutLayout = applyChangesWithoutLayout changes ui
+	= (pathExists dst withoutLayout) ==> uiSize withLayout == uiSize withoutLayout
 
 //Tests for composite layouts
-NUM :== 100
+NUM :== 200
 
 //Start = testn NUM checkSetUIType
 //Start = testn NUM checkSetUIAttributes
@@ -104,8 +145,8 @@ NUM :== 100
 //Start = testn NUM checkCopySubUIAttributes
 //Start = testn NUM checkWrapUI
 //Start = testn NUM checkUnwrapUI
-Start = testn NUM checkInsertChildUI
+//Start = testn NUM checkInsertChildUI
 //Start = testn NUM checkRemoveSubUIs
-//Start = testn NUM checkMoveSubUIs
+Start = testn NUM checkSizeMoveSubUIs
 
 

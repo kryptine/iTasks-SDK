@@ -121,7 +121,7 @@ removeSubUIs   :: UISelection -> Layout
 * Further changes to these elements are rewritten to target the new location.
 * When new elements are added dynamically they are also tested against the predicate
 */
-moveSubUIs   :: UISelection UIPath -> Layout
+moveSubUIs   :: UISelection UIPath Int -> Layout
 
 // == Composition of layouts ==
 /**

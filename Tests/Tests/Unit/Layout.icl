@@ -167,7 +167,7 @@ testLayoutSubsMatching = fail "testLayoutSubsMatching: Applying another layout t
 
 testMoveSubsMatchingInitial = assertEqual "testMoveSubsMatchingInitial: Moving nodes matching a predicate -> initial move" exp sut
 where
-	sutLayout = moveSubUIs (SelectAND SelectChildren (SelectOR (SelectByType UIAction) (SelectByType UIEmpty))) [0]
+	sutLayout = moveSubUIs (SelectAND SelectChildren (SelectOR (SelectByType UIAction) (SelectByType UIEmpty))) [0] 0
 
 	sut = let (change,state) = sutLayout.Layout.apply initUI in (applyUIChange change initUI, state)
 
@@ -185,7 +185,7 @@ where
 
 testMoveSubsMatchingInitial2 = assertEqual "testMoveSubsMatchingInitial2: Moving nodes matching a predicate -> initial move" exp sut
 where
-	sutLayout = moveSubUIs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1] 
+	sutLayout = moveSubUIs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1] 0
 
 	sut = let (change,state) = sutLayout.Layout.apply initUI in (applyUIChange change initUI, state)
 	exp = (expUI,expState)
@@ -200,7 +200,7 @@ where
 
 testMoveSubsMatchingNewRoutes = assertEqual "testMoveSubsMatchingNewRoutes: Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
-	sutLayout = moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [0]
+	sutLayout = moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [0] 0
 
 	sut = sutLayout.Layout.adjust (sutChange,initState)
 	exp = (expChange,expState)
@@ -225,7 +225,7 @@ import StdDebug
 
 testMoveSubsMatchingNewRoutes2 = assertEqual "testMoveSubsMatchingNewRoutes2: Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
-	sutLayout = moveSubUIs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1] 
+	sutLayout = moveSubUIs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1] 0
 
 	sut = sutLayout.adjust (sutChange,initState)
 	exp = (expChange,expState)
@@ -245,7 +245,7 @@ where
 
 testMoveSubsMatchingNewRoutes3 = assertEqual "testMoveSubsMatchingNewRoutes3: Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
-	sutLayout = moveSubUIs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1] 
+	sutLayout = moveSubUIs (SelectRelative [0] (SelectAND SelectDescendents (SelectByType UIAction))) [1] 0
 
 	sut = sutLayout.adjust (sutChange,initState)
 	exp = (expChange,expState)
@@ -332,8 +332,8 @@ where
 		arrangeWithSideBar3 :: Layout
 		arrangeWithSideBar3 = foldl1 sequenceLayouts
 			[wrapUI UIDebug //Push the current container down a level
-			,insertSubUI [0] (ui UIComponent) //Make sure we have a target for the move
-			,moveSubUIs (SelectByPath [1,0]) [0,0] //Key difference
+			,insertChildUI 0 (ui UIComponent) //Make sure we have a target for the move
+			,moveSubUIs (SelectByPath [1,0]) [0,0] 0 //Key difference
 			,layoutSubUIs (SelectByPath [0]) unwrapUI //Remove the temporary wrapping panel
 			]
 

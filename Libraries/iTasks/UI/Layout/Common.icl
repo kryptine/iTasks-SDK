@@ -17,7 +17,7 @@ arrangeWithSideBar index side size resize = foldl1 sequenceLayouts
 	,copySubUIAttributes SelectAll [0] [] 	//Keep the attributes from the original UI
 	,setUIAttributes (directionAttr direction)
 	,insertChildUI sidePanelIndex (ui UIComponent) //Make sure we have a target for the move
-	,moveSubUIs (SelectByPath [mainPanelIndex,index]) [sidePanelIndex]
+	,moveSubUIs (SelectByPath [mainPanelIndex,index]) [sidePanelIndex] 0
 	,layoutSubUIs (SelectByPath [sidePanelIndex]) unwrapUI //Remove the temporary wrapping panel
 	,layoutSubUIs (SelectByPath [sidePanelIndex]) (setUIAttributes (sizeAttr sidePanelWidth sidePanelHeight))
 	]
