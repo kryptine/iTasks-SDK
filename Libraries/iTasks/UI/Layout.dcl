@@ -103,9 +103,6 @@ wrapUI :: UINodeType -> Layout
 //* Replace the UI by its first child. 
 unwrapUI :: Layout
 
-//* Flatten the tree of children in pre-order
-flattenUI :: Layout
-
 /*
 * Insert a (static) element into a UI
 */

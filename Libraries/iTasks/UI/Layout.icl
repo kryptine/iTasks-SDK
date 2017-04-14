@@ -297,13 +297,6 @@ where
 	//As long as the UIChange type does not support moving elements up and down the tree we cannot do better
 	restore (LSUnwrap ui) = ReplaceUI ui 
 
-flattenUI :: Layout //TODO
-flattenUI = {Layout|apply=apply,adjust=adjust,restore=restore}
-where
-	apply _ = (NoChange,LSNone)
-	adjust change = change
-	restore _ = NoChange
-
 //Insert the element at the specified index.
 //Only insert if there are at least as many children as the specified index
 insertChildUI :: Int UI -> Layout

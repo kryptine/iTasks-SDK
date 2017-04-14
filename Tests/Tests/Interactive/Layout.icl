@@ -39,7 +39,6 @@ layoutTestTasks =
 	,publishWithoutLayout "/layout-tests/copy-attributes" (const testCopySubAttributesTask)
 	,publishWithoutLayout "/layout-tests/wrap" (const testWrapTask)
 	,publishWithoutLayout "/layout-tests/unwrap" (const testUnwrapTask)
-	,publishWithoutLayout "/layout-tests/flatten" (const testFlattenTask)
 	,publishWithoutLayout "/layout-tests/insert-sub" (const testInsertSubTask)
 	,publishWithoutLayout "/layout-tests/remove-subs" (const testRemoveSubsTask)
 	,publishWithoutLayout "/layout-tests/move-subs" (const testMoveSubsTask)
@@ -84,11 +83,6 @@ testUnwrapTask :: Task ()
 testUnwrapTask = taskToLayout "Test for unwrapping a ui" <<@ ApplyLayout layout
 where
 	layout = unwrapUI
-
-testFlattenTask :: Task ()
-testFlattenTask = taskToLayout "Test for flattening a ui" <<@ ApplyLayout layout
-where
-	layout = flattenUI
 
 testInsertSubTask :: Task ()
 testInsertSubTask = taskToLayout "Test for inserting a sub ui" <<@ ApplyLayout layout
