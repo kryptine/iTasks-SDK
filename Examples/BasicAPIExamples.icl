@@ -80,7 +80,7 @@ basicAPIExamples =
 //	,workflow (distrTask +++ "Ligretto")                    "Play Ligretto"                     play_ligretto
 
 	,workflow (miscTask +++ "Droste Cacaobus") 				"Start this application as a task" 	(manageWorklist basicAPIExamples)
-    ,workflow (miscTask +++ "External process") 		    "Starts an external process" 	    externalProcess
+    ,workflow (miscTask +++ "External process") 		    "Starts an external process" 	    externalProcessExample
 
 	,workflow (adminTask +++ "Manage users") 				"Manage system users..." 			manageUsers
 	,workflow (adminTask +++ "Manage server")				"Manage itask server..." 			manageServer
@@ -710,13 +710,16 @@ add_cell new turn board
 	  ]
 
 
-externalProcess = enterInformation "Enter the path to the external process" [] >>= \path ->
-                  withShared "" \sds -> externalProcess path [] Nothing sds handlers >&> viewSharedInformation "Process output" []
+externalProcessExample =
+	enterInformation "Enter the path to the external process" [] >>= \path ->
+    withShared "" (\sds -> externalProcess path [] Nothing sds handlers >&> viewSharedInformation "Process" [])
 where
     handlers = { onStartup    = \_ -> (Ok "", Nothing, [], False) 
-               , whileRunning = \(Just (_, data)) l _ -> (Ok (l +++ data), Nothing, [], False)
+               , whileRunning = whileRunning
                , onExit       = \_ l _ -> (Ok l, Nothing)
                }
+	whileRunning (Just (_, data)) l _ = (Ok (l +++ data), Nothing, [], False)
+	whileRunning Nothing l _ = (Ok l, Nothing, [], False)
 
 //* Customizing interaction with views
 
