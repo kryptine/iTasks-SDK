@@ -265,7 +265,7 @@ tcpCloseIO ({rChannel, sChannel}, iworld=:{world})
 
 extProcCloseIO :: !(!(!ProcessHandle, !ProcessIO), !*IWorld) -> *IWorld
 extProcCloseIO ((pHandle, pIO), iworld)
-    # (mbErr1, world) = 'Process'.closeProcess pHandle iworld.world
+    # (mbErr1, world) = 'Process'.terminateProcess pHandle iworld.world
     # (mbErr2, world) = 'Process'.closeProcessIO pIO world
     // TODO: handle errors
     = {iworld & world = world}
