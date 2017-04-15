@@ -14,6 +14,7 @@ import iTasks._Framework.Tonic
 //import ligrettoTOP
 //import iTaskGraphics, editletGraphics, edgehog
 import qualified Data.Map as DM
+from iTasks._Framework.Task import :: ExternalProcessHandlers
 
 /**
 * This module contains a series of small examples of basic usage of the iTasks API.
@@ -79,6 +80,7 @@ basicAPIExamples =
 //	,workflow (distrTask +++ "Ligretto")                    "Play Ligretto"                     play_ligretto
 
 	,workflow (miscTask +++ "Droste Cacaobus") 				"Start this application as a task" 	(manageWorklist basicAPIExamples)
+    ,workflow (miscTask +++ "External process") 		    "Starts an external process" 	    externalProcess
 
 	,workflow (adminTask +++ "Manage users") 				"Manage system users..." 			manageUsers
 	,workflow (adminTask +++ "Manage server")				"Manage itask server..." 			manageServer
@@ -706,6 +708,15 @@ add_cell new turn board
 	    ]
 	  \\ row <- board & y <- [1..]
 	  ]
+
+
+externalProcess = enterInformation "Enter the path to the external process" [] >>= \path ->
+                  withShared "" \sds -> externalProcess path [] Nothing sds handlers >&> viewSharedInformation "Process output" []
+where
+    handlers = { onStartup    = \_ -> (Ok "", Nothing, [], False) 
+               , whileRunning = \(Just (_, data)) l _ -> (Ok (l +++ data), Nothing, [], False)
+               , onExit       = \_ l _ -> (Ok l, Nothing)
+               }
 
 //* Customizing interaction with views
 
