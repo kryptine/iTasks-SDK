@@ -14,7 +14,6 @@ import iTasks._Framework.Tonic
 //import ligrettoTOP
 //import iTaskGraphics, editletGraphics, edgehog
 import qualified Data.Map as DM
-from iTasks._Framework.Task import :: ExternalProcessHandlers
 
 /**
 * This module contains a series of small examples of basic usage of the iTasks API.
@@ -711,15 +710,21 @@ add_cell new turn board
 
 
 externalProcessExample =
-	enterInformation "Enter the path to the external process" [] >>= \path ->
-    withShared "" (\sds -> externalProcess path [] Nothing sds handlers >&> viewSharedInformation "Process" [])
+	enterInformation "Enter the path to the external process. To for instance open a shell run '/bin/bash' or 'c:\\Windows\\System32\\cmd.exe'." [] >>= \path ->
+    withShared
+        Nothing
+        ( \sds -> ( externalProcess path [] Nothing sds handlers <<@ ApplyLayout (hideSubs SelectRoot) >&>
+                    viewSharedInformation "Process output" []
+                  ) -&&-
+                  forever (enterInformation "Enter data to send to StdIn" [] >>= \data -> set (Just (data +++ "\n")) sds)
+        )
 where
     handlers = { onStartup    = \_ -> (Ok "", Nothing, [], False) 
                , whileRunning = whileRunning
                , onExit       = \_ l _ -> (Ok l, Nothing)
                }
-	whileRunning (Just (_, data)) l _ = (Ok (l +++ data), Nothing, [], False)
-	whileRunning Nothing l _ = (Ok l, Nothing, [], False)
+	whileRunning (Just (_, data)) l mbOutput = (Ok (l +++ data +++ "\n"), Just Nothing, maybeToList mbOutput, False)
+	whileRunning Nothing          l mbOutput = (Ok l,                     Just Nothing, maybeToList mbOutput, False)
 
 //* Customizing interaction with views
 
