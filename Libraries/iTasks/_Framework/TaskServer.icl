@@ -222,16 +222,24 @@ where
     readData :: !(!(!ProcessHandle, !ProcessIO), !*IWorld)
              -> (!IOData (!ProcessOutChannel, !String) ExitCode, !(!ProcessHandle, !ProcessIO), !*IWorld)
     readData ((pHandle, pIO), iworld)
+        // try to read StdOut
         # (mbData, world) = 'Process'.readPipeNonBlocking pIO.stdOut iworld.world
         = case mbData of
             Error _ = abort "TODO: handle error"
             Ok data
                 | data == ""
-                    # (mbMbRetCode, world) = 'Process'.checkProcess pHandle world
-                    = case mbMbRetCode of
+                    // try to read StdErr
+                    # (mbData, world) = 'Process'.readPipeNonBlocking pIO.stdErr iworld.world
+                    = case mbData of
                         Error _ = abort "TODO: handle error"
-                        Ok Nothing   = (IODData Nothing,         (pHandle, pIO), {iworld & world = world})
-                        Ok (Just ec) = (IODClosed (ExitCode ec), (pHandle, pIO), {iworld & world = world})
+                        Ok data
+                            | data == ""
+                                # (mbMbRetCode, world) = 'Process'.checkProcess pHandle world
+                                = case mbMbRetCode of
+                                    Error _ = abort "TODO: handle error"
+                                    Ok Nothing   = (IODData Nothing,         (pHandle, pIO), {iworld & world = world})
+                                    Ok (Just ec) = (IODClosed (ExitCode ec), (pHandle, pIO), {iworld & world = world})
+                            | otherwise = (IODData (Just (StdErr, data)), (pHandle, pIO), {iworld & world = world})
                 | otherwise = (IODData (Just (StdOut, data)), (pHandle, pIO), {iworld & world = world})
 
     whileRunning :: (Maybe (!ProcessOutChannel, !String)) Dynamic Dynamic *IWorld
