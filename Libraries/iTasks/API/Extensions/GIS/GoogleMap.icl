@@ -195,7 +195,7 @@ where
 		# world = foldl (appDiff map) world diffs
 		= addListeners me world
 	where
-		appDiff map world (SetPerspective {type, center = {lat, lng}, zoom})
+		appDiff map world (SetPerspective {GoogleMapPerspective|type, center = {lat, lng}, zoom})
 	    	# (center, world) 	= jsNewObject "google.maps.LatLng" [toJSArg lat,toJSArg lng] world
         	# (_, world)      	= (map .# "setCenter" .$ center) world	
         	# (_, world)      	= callObjectMethod "setZoom" [toJSArg zoom] map world
@@ -236,7 +236,7 @@ where
 		# (latLng, world) = callObjectMethod "getCenter" [] map world
 		# (typeId, world) = callObjectMethod "getMapTypeId" [] map world		
 		# ((lat, lng), world) = getPos latLng world
-		= ({type = fromString (toUpperCase (jsValToString typeId)), center = {lat = lat, lng = lng}, zoom = jsValToInt zoom}, world)
+		= ({GoogleMapPerspective|type = fromString (toUpperCase (jsValToString typeId)), center = {lat = lat, lng = lng}, zoom = jsValToInt zoom}, world)
 		
 	onPerspectiveChanged me args world
 		# (map,world) = .? (me .# "map") world

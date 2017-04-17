@@ -9,10 +9,11 @@ import qualified Data.Map as DM
 import Data.List
 import StdMisc
 
-derive JSONEncode NodeMove, NodeLayoutState, LayoutState, LayoutTree, LayoutRemoval
-derive gEq LayoutState, LayoutTree, LayoutRemoval
+derive JSONEncode NodeMove, NodeLayoutState, LayoutState, LayoutTree, LayoutRemoval, MvUI
+derive gEq LayoutState, LayoutTree, LayoutRemoval, MvUI
 derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, LayoutState, LayoutTree, LayoutRemoval, JSONNode, MaybeError
-derive gPrettyTrace EditMask, FieldMask, CompoundMask
+derive gPrettyTrace EditMask, FieldMask, CompoundMask, MvUI, Either
+derive gDefault MvUI
 
 testLayout :: TestSuite
 testLayout = testsuite "Layout" "Tests for the layout functions"
@@ -179,8 +180,9 @@ where
 	//Expected final UI
 	expUI = uic UIStep [uic UIContainer [ui UIAction, ui UIEmpty]]
 
-	expState = LSRemoveSubUIs initUI
-					(SubUIsModified [] [(1,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])
+	expState = LSRemoveSubUIs defaultValue /*undef LSRemoveSubUIs initUI
+					(SubUIsModified [] [(1,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))]) */
+		
 
 
 testMoveSubsMatchingInitial2 = assertEqual "testMoveSubsMatchingInitial2: Moving nodes matching a predicate -> initial move" exp sut
@@ -195,8 +197,9 @@ where
 
 	//Expected final UI
 	expUI = uic UIPanel [uic UIContainer [ui UIEmpty], uic UIContainer [ui UIAction, ui UIAction]]
-	expState = LSRemoveSubUIs initUI
+	expState = LSRemoveSubUIs defaultValue /*LSRemoveSubUIs initUI
 		(SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])])
+		*/
 
 testMoveSubsMatchingNewRoutes = assertEqual "testMoveSubsMatchingNewRoutes: Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
@@ -209,7 +212,7 @@ where
 	initShadowUI = uic UIStep [ui UIContainer, ui UIAction, ui UIAction]
 	initRemovals = (SubUIsModified [] [(1,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])
 
-	initState = LSRemoveSubUIs initShadowUI initRemovals
+	initState = LSRemoveSubUIs defaultValue /* LSRemoveSubUIs initShadowUI initRemovals */
 
 	//The change that should be re-routed
 	sutChange = ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))
@@ -220,7 +223,7 @@ where
 														 ,(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "baz")] [])) ]))] 
 
 	//In the state, the attributes should have been applied the 'shadow' administration
-	expState = LSRemoveSubUIs (applyUIChange sutChange initShadowUI) initRemovals
+	expState = LSRemoveSubUIs defaultValue /* LSRemoveSubUIs (applyUIChange sutChange initShadowUI) initRemovals */
 import StdDebug
 
 testMoveSubsMatchingNewRoutes2 = assertEqual "testMoveSubsMatchingNewRoutes2: Moving nodes matching a predicate -> check if changes are moved too" exp sut
@@ -233,7 +236,7 @@ where
 	initShadowUI = uic UIPanel [uic UIContainer [ui UIAction, ui UIEmpty, ui UIAction], ui UIContainer]
 	initRemovals = SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])]
 	
-	initState = LSRemoveSubUIs initShadowUI initRemovals
+	initState = LSRemoveSubUIs defaultValue /* LSRemoveSubUIs initShadowUI initRemovals*/
 
 	sutChange = ChangeUI [] [(0,ChangeChild (ChangeUI [] [(2,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
@@ -241,7 +244,7 @@ where
 	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "foo" (JSONString "bar")] []))]))]
 
 	//In the state, the attributes should have been applied the 'shadow' administration
-	expState = LSRemoveSubUIs (applyUIChange sutChange initShadowUI) initRemovals
+	expState = LSRemoveSubUIs defaultValue /* LSRemoveSubUIs (applyUIChange sutChange initShadowUI) initRemovals */
 
 testMoveSubsMatchingNewRoutes3 = assertEqual "testMoveSubsMatchingNewRoutes3: Moving nodes matching a predicate -> check if changes are moved too" exp sut
 where
@@ -253,7 +256,7 @@ where
 	initShadowUI = uic UIPanel [uic UIContainer [ui UIAction, ui UIEmpty, ui UIAction], ui UIContainer]
 	initRemovals = SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])]
 	
-	initState = LSRemoveSubUIs initShadowUI initRemovals
+	initState = LSRemoveSubUIs defaultValue /* LSRemoveSubUIs initShadowUI initRemovals */
 
 	//Test crude replace, first remove than re-insert
 	sutChange = ChangeUI [] [(0,ChangeChild (ChangeUI [] [(0,RemoveChild),(0,InsertChild (ui UIAction)),(2,RemoveChild),(2,InsertChild (ui UIAction))] ))]
@@ -262,7 +265,7 @@ where
 	expChange = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,RemoveChild),(0,InsertChild (ui UIAction)),(1,RemoveChild),(1,InsertChild (ui UIAction))] ))]
 
 	//In the state, the UI should be identical
-	expState = LSRemoveSubUIs initShadowUI initRemovals
+	expState = LSRemoveSubUIs defaultValue /* LSRemoveSubUIs initShadowUI initRemovals */
 
 
 testSequenceLayouts = fail "testSequenceLayouts: Test sequencing multiple layouts"
@@ -375,8 +378,8 @@ where
 
 	sutLayout = removeSubUIs (SelectAND SelectDescendents (SelectByType UIInteract))
 
-	initState = LSRemoveSubUIs (ui UIDebug) (SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRRemoved 0))])
-					   ,(1,SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRRemoved 0))])])])
+	initState = LSRemoveSubUIs defaultValue /* LSRemoveSubUIs (ui UIDebug) (SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRRemoved 0))])
+					   ,(1,SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRRemoved 0))])])]) */
 
 	//Change after first transform 
 	changeToModify = ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [] [(0,InsertChild (uic UIToolBar [ui UIInteract]))]))]))]

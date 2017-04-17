@@ -11,6 +11,8 @@ from iTasks.UI.Definition import :: UI, :: UINodeType, :: UIAttributes, :: UICha
 
 from Data.Maybe import :: Maybe
 from Data.Map  import :: Map
+from Data.Either import :: Either
+
 from Text.JSON import :: JSONNode
 
 // When a layout changes the stucture of the UI, changes to the UI have to be
@@ -29,9 +31,10 @@ from Text.JSON import :: JSONNode
 	| LSWrap !UI                                       //State for unwrap layouts
 	| LSUnwrap !UI                                     //State for unwrap layouts
 	| LSInsert !Int                                    //State for inserting layouts
-	| LSSequence !LayoutState !LayoutState               //Combined state of two sequenced layouts
-	| LSLayoutSubUIs !UI (LayoutTree LayoutState ())    //States of layouts applied to sub-ui's 
-	| LSRemoveSubUIs !UI (LayoutTree LayoutRemoval LayoutRestores) //UI's that were removed by the layout
+	| LSSequence !LayoutState !LayoutState             //Combined state of two sequenced layouts
+	| LSLayoutSubUIs !UI (LayoutTree LayoutState ())   //States of layouts applied to sub-ui's 
+	//| LSRemoveSubUIs !UI (LayoutTree LayoutRemoval LayoutRestores) //UI's that were removed by the layout
+	| LSRemoveSubUIs !MvUI                             //UI's that were removed by the layout
 
 :: LayoutTree a b
 	= UIModified !a
@@ -43,6 +46,16 @@ from Text.JSON import :: JSONNode
     | LRMoved !UIChange     //When a removed UI is inserted somewhere else, we mark it with this constructor
 
 :: LayoutRestores :== [(Int,Int)] //When layouts that were moved, are no longer moved we need to track that. They can then be removed at the destination.
+
+// This is an extended version of UI that annotates UI's with additional information about nodes that were removed, moved or restored.
+:: MvUI = { type     :: UINodeType        //From UI
+		  , attr     :: UIAttributes      //From UI
+          , removed  :: Bool              //Do we hide this node downstream?
+		  , moved    :: Bool              //Have we moved this node to another node?
+		  , restore  :: Int               //When a node is modified (replaced, or no longer matches), we need to track how many 'moved' nodes we discarded.
+                                          //They were inserted somewhere, so we should know that we have to remove them there
+		  , items    :: [Either MvUI Int] //Either items original nodes, or an inserted segment of n nodes
+		  }
 	
 // These types are used to control when to apply layout in a task composition
 :: ApplyLayout	= ApplyLayout Layout

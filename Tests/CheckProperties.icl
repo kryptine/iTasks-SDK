@@ -129,8 +129,9 @@ checkMoveSubUIs :: UISelection UIPath [UIChange] UI -> Bool
 checkMoveSubUIs selection dst changes ui = applyAndRevert (moveSubUIs selection dst 0) changes ui
 
 //If the target path exists in a ui, then moving elements around should not affect the number of elements
-checkSizeMoveSubUIs :: UISelection UIPath [UIChange] UI -> Property
-checkSizeMoveSubUIs selection dst changes ui
+checkSizeMoveSubUIs :: UISelection UIPath /*[UIChange]*/ UI -> Property
+checkSizeMoveSubUIs selection dst /*changes*/ ui
+	# changes = []
 	# withLayout = applyChangesWithLayout (moveSubUIs selection dst 0) changes ui
 	# withoutLayout = applyChangesWithoutLayout changes ui
 	= (pathExists dst withoutLayout) ==> uiSize withLayout == uiSize withoutLayout
