@@ -13,11 +13,11 @@ from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: Defer
 import StdDebug
 
 import iTasks.Util.Trace
-derive gPrettyTrace LayoutTree, LayoutRemoval, UIChange, UIChildChange, UI, UIAttributeChange, JSONNode, UINodeType, UISelection, Either
+derive gPrettyTrace LayoutTree, UIChange, UIChildChange, UI, UIAttributeChange, JSONNode, UINodeType, UISelection
 
 //This type records the states of layouts applied somewhere in a ui tree
-derive JSONEncode LayoutState, LayoutTree, LayoutRemoval, MvUI
-derive JSONDecode LayoutState, LayoutTree, LayoutRemoval, MvUI
+derive JSONEncode LayoutState, LayoutTree, MvUI, MvUIChild
+derive JSONDecode LayoutState, LayoutTree, MvUI, MvUIChild
 
 instance tune ApplyLayout
 where
@@ -71,6 +71,7 @@ where
 	removePrefix [] psb = Just psb
 	removePrefix [pa:psa] [pb:psb] = if (pa == pb) (removePrefix psa psb) Nothing
 	removePrefix _ _ = Nothing
+inUISelection (SelectNone) _ _ = False
 inUISelection (SelectAND sell selr) path ui = inUISelection sell path ui && inUISelection selr path ui 
 inUISelection (SelectOR sell selr) path ui = inUISelection sell path ui || inUISelection selr path ui 
 inUISelection (SelectNOT sel) path ui = not (inUISelection sel path ui)
@@ -410,7 +411,7 @@ moveSubUIs` selection mbDst = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui
 		//First construct the state and determine the change that removes all matching nodes
-		# (rchange, state) = case applyRem [] ui of
+		# (rchange, state) = case applyRem selection [] ui of
 			//We can't remove the root-level UI, therefore if it matches the selection we replace it with UIEmpty
 			(RemoveChild,state)         = (ReplaceUI (UI UIEmpty 'DM'.newMap []),state) 
 			(ChangeChild change, state) = (change,state)
@@ -418,21 +419,21 @@ where
 		# (ichange, state) = applyIns mbDst [] state
 		= (mergeUIChanges rchange ichange, LSRemoveSubUIs state)
 
-	applyRem path ui=:(UI type attr items)
+	applyRem selection path ui=:(UI type attr items)
 		| not (onDestinationPath path) && inUISelection selection path ui //Match
 			= (RemoveChild, {toMvUI ui & removed = True})
 		| otherwise
-			# (change,items) = case applyRemChildren path 0 0 items of
-				([],items) = (NoChange,items)
-				(changes,items) = (ChangeUI [] changes, items)
-			# state = {MvUI|type=type,attr=attr,removed=False,moved=False,restore=0,items=items}
+			# (change,children) = case applyRemChildren path 0 0 items of
+				([],children) = (NoChange,children)
+				(changes,children) = (ChangeUI [] changes, children)
+			# state = {MvUI|type=type,attr=attr,removed=False,moved=False,dstChange=NoChange,children=children}
 			= (ChangeChild change, state)
 	where
 		applyRemChildren path i n [] = ([],[])
 		applyRemChildren path i n [item:items]
-			# (change,item) = applyRem (path ++ [i]) item 
+			# (change,item) = applyRem selection (path ++ [i]) item 
 			# (changes,items) = applyRemChildren path (i + 1) (if item.MvUI.removed n (n + 1)) items
-			= ([(n,change):changes], [Left item:items])
+			= ([(n,change):changes], [MvUIItem item:items])
 
 	applyIns Nothing path mvui = (NoChange,mvui)
 	applyIns (Just dst) path mvui
@@ -442,231 +443,205 @@ where
 			= (change,mvui)
 		| otherwise = (NoChange,mvui)
 
-	adjust (change, state) = (change,state)
-/*
-	adjust (change, LSRemoveSubUIs ui state)
-		//First adjust for the removals
-		# (cchange, numRestored, ui, state) = adjustRem [] change ui state 
-		# change = case cchange of
-			(ChangeChild change) = change
-			(RemoveChild)        = ReplaceUI (UI UIEmpty 'DM'.newMap []) //If the root-level UI needs to be removed, replace it with UIEmpty
-			(InsertChild ui)     = ReplaceUI ui           				 //If the root-level UI is going to be restored, replace it
-		//If there is a target, also update the target location
-		# (change, state) = maybe (change,state) (\dst -> adjustIns dst change ui state) mbDst
-		= (change, LSRemoveSubUIs ui state)
+	adjust (change, LSRemoveSubUIs mvui)
+		//Adjusting changes happens in two passes 
+		//In the first pass we adjust the upstream change and remove or restore items that match, or no longer match the selection
+		# (rchange, mvui) = case adjustRem selection [] change mvui of
+			(ChangeChild change,_, mvui) = (change,mvui)
+			(RemoveChild,_, mvui)        = (ReplaceUI (UI UIEmpty 'DM'.newMap []),mvui) //If the root-level UI needs to be removed, replace it with UIEmpty
+			(InsertChild ui,_, mvui)     = (ReplaceUI ui,mvui)           				 //If the root-level UI is going to be restored, replace it
+		//In the second pass we update the nodes that were moved
+		# (ichange, mvui) = adjustIns mbDst [] mvui
+		= (rchange, LSRemoveSubUIs mvui)
 
-	//If there is no change, but a node was moved to a different path, we recheck the selection
-	adjustRem path NoChange ui state=:(UIModified removal)
-		= case applyRem path ui of
-			(RemoveChild, UIModified _) = (ChangeChild NoChange, 0, ui,UIModified removal)
-			(ChangeChild change, SubUIsModified _ mods)
-				= (InsertChild (applyUIChange change ui), 1, ui, SubUIsModified [] mods)
-
-	adjustRem path NoChange ui state=:(SubUIsModified restores mods)
+	adjustRem selection path NoChange mvui=:{MvUI|removed,moved} 
+		//Check if the node should have been removed by the layout
+		# ui = fromMvUI mvui
 		| not (onDestinationPath path) && inUISelection selection path ui
-			//Removing this ui means that earlier matches of descendents are no longer separate ui's in the destination
-			# numMoved = ltCount True (\s -> s =: (LRMoved _)) mods
-			# numRestored = sum (map snd restores) 
-			= (RemoveChild, 0, ui, UIModified (LRRemoved (numMoved + numRestored)))
+			| removed   = (ChangeChild NoChange, 0, mvui) //Already removed, nothing to do
+			| otherwise = (RemoveChild, 0, {MvUI|mvui & removed = True}) //Remove it now
 		| otherwise
-			= (ChangeChild NoChange, 0, ui, state)
+			| removed //It should not be removed, restore it 
+				# ui = fromMvUI mvui
+				# (ChangeChild change,mvui) = applyRem selection path ui //Recreate the state, it is now possible that subnodes are matched
+				= (InsertChild (applyUIChange change ui), if moved 1 0, mvui)
+			| otherwise 
+				//TODO: Don't we need to recursively adjust here?
+				= (ChangeChild NoChange, 0, mvui) //Wasn't moved, nothing to do
 
-	adjustRem path (ReplaceUI ui) _ state
-		//First determine how many nodes were already moved in the current ui
-		# numMoved = case state of
-			(UIModified (LRMoved _)) = 1
-			(UIModified (LRRemoved _)) = 0
-			(SubUIsModified _ mods) = ltCount True (\s -> s =: (LRMoved _)) mods
-		//Apply the layout to the replacement UI
-		= case applyRem path ui of
-			(RemoveChild, state)
-				= (RemoveChild, numMoved, ui, state)
-			(ChangeChild change,SubUIsModified _ mods )
-				= (ChangeChild (ReplaceUI (applyUIChange change ui)), numMoved, ui, SubUIsModified [] mods)
+	adjustRem selection path (ReplaceUI ui) mvui=:{MvUI|removed,moved}
+		# numNoLongerMoved = countNoLongerMoved mvui
+		= case applyRem selection path ui of
+			(ChangeChild change,mvui) //The new ui does not match the selection
+				| removed //This node was previously removed, we need to insert it
+					= (InsertChild (applyUIChange change ui), numNoLongerMoved, mvui)
+				| otherwise //The ui existed, so we replace it with the adjusted version
+					= (ChangeChild (ReplaceUI (applyUIChange change ui)), numNoLongerMoved, mvui)
+			(RemoveChild,mvui) //The new ui matches the selection 
+				| removed //The previous ui was also removed, so we don't have to do anything here, but we may have to update the target location
+					 | moved
+						= (ChangeChild NoChange, 0, {mvui & dstChange = ReplaceUI ui})
+					 | otherwise
+						= (ChangeChild NoChange, 0, mvui)
+				| otherwise //The previous ui was not removed, so we remove it now
+					= (RemoveChild, numNoLongerMoved, mvui)
 
-	//The UI was removed earlier
-	adjustRem path change=:(ChangeUI attrChanges childChanges) ui (UIModified removal)
-		//Update the 'shadow' UI
-		# ui = applyUIChange change ui
-		//Check if the UI should still be removed after the effects of the change 
-		= case applyRem path ui of
-			(RemoveChild,state)
-				//Store the change for application in the target location
-				# removal = case removal of 
-					(LRMoved curChange) = LRMoved (mergeUIChanges curChange change)
-					_					= removal
-				= (ChangeChild NoChange, 0, ui, UIModified removal)
-			//Restore the UI, but make sure that the layout still applies to the children of the UI
-			(ChangeChild change, state)
-				= (InsertChild (applyUIChange change ui), 1, ui, state)
-
-	adjustRem path change=:(ChangeUI attrChanges childChanges) ui state=:(SubUIsModified restores mods)
-		| not (onDestinationPath path) && inUISelectionAfterChange selection path ui change
-			//If the change causes the selection to match
-			# ui = applyUIChange change ui
-			//Removing this ui means that earlier matches of descendents are no longer separate ui's in the destination
-			# numMoved = ltCount True (\s -> s =: (LRMoved _)) mods
-			# numRestored = sum (map snd restores) 
-			= (RemoveChild, 0, ui, UIModified (LRRemoved (numMoved + numRestored)))
+	adjustRem selection path change=:(ChangeUI attrChanges childChanges) mvui=:{MvUI|attr,removed,moved,dstChange,children}
+		//Check if the change, when applied, would make this ui match the selection
+		| not (onDestinationPath path) && inUISelection selection path (applyUIChange change (fromMvUI mvui))
+			//Apply the changes to the state, but ignore the downstream changes because the node is hidden
+			# attr         = foldl (flip applyUIAttributeChange) attr attrChanges
+			//By passing SelectNone we make sure that all moved descendents are no longer removed
+			# (_,children) = adjustRemChildChanges SelectNone path childChanges children 
+			//If this item was already moved before, we need to apply the changge
+			# dstChange = if moved (mergeUIChanges dstChange change) dstChange
+			= (if removed (ChangeChild NoChange) RemoveChild, 0, {MvUI|mvui & attr = attr, removed = True, dstChange = dstChange, children = children})
 		| otherwise
-			//Update the attributes in the 'shadow' UI
-			# (UI type attr items) = applyUIChange (ChangeUI attrChanges []) ui
-			//Adjust the child changes
-			# (childChanges, items, restores, mods) = adjustRemChildChanges childChanges items ('DM'.fromList restores) mods
-			= (ChangeChild (ChangeUI attrChanges childChanges), 0, UI type attr items, SubUIsModified ('DM'.toList restores) mods)
+			//Apply the changes to the state
+			# attr                    = foldl (flip applyUIAttributeChange) attr attrChanges
+			# (childChanges,children) = adjustRemChildChanges selection path childChanges children
+			# mvui                    = {MvUI|mvui & attr = attr, children = children}
+			| removed //If this ui was previously removed, we need to restore it
+				= (InsertChild (fromMvUI mvui), if moved 1 0, mvui)
+			| otherwise
+				= (ChangeChild (ChangeUI attrChanges childChanges), 0, mvui)
+
+	adjustRemChildChanges selection path [] items = ([], items)
+	adjustRemChildChanges selection path [(i,c):cs] items
+		# (c, items) = adjustRemChildChange selection path i c items 
+		# (cs, items) = adjustRemChildChanges selection path cs items
+		= (c ++ cs, items)
+
+	adjustRemChildChange selection path i (ChangeChild change) items
+		| i >= 0 && i < numItems items //Check bounds
+			//Recursively apply change 
+			# (cchange, numNoLongerMoved, item) = adjustRem selection (path ++ [i]) change (getItem i items)
+			# items           = setItem i item items
+			# items           = if (numNoLongerMoved > 0) (addNoLongerMoved i numNoLongerMoved items) items
+			# change = case cchange of 
+				(ChangeChild NoChange)         = []
+				(ChangeChild (ChangeUI [] [])) = []	
+				_                              = [(adjustIndex i items, cchange)]
+			= (change, items)
+		| otherwise
+			= ([],items)
+
+	adjustRemChildChange selection path i (InsertChild ui) items
+		| i >= 0 && i <= numItems items 
+			# (cchange,item) = applyRem selection (path ++ [i]) ui
+			# change = case cchange of 
+				RemoveChild = []
+				ChangeChild change = [(adjustIndex i items, InsertChild (applyUIChange change ui))]
+			# items = insertItem i item items
+			# (schanges, items) = adjustRemSiblings selection path (\x -> x > i) items
+			= (change ++ schanges, items)
+		| otherwise
+			= ([],items)
+	
+	adjustRemChildChange selection path i (RemoveChild) items
+		| i >= 0 && i < numItems items 
+			# item=:{MvUI|removed} = getItem i items
+			# change = if removed [] [(adjustIndex i items,RemoveChild)]
+			# items = removeItem i items
+			# numNoLongerMoved = countNoLongerMoved item
+			# items = if (numNoLongerMoved > 0) (addNoLongerMoved i numNoLongerMoved items) items
+			# (schanges, items) = adjustRemSiblings selection path (\x -> x >= i) items
+			= (change ++ schanges, items)
+		| otherwise
+			= ([],items)
+
+	adjustRemChildChange selection path i (MoveChild d) items
+		| i >= 0 && i < numItems items &&  d >= 0 && d < numItems items
+			# item=:{MvUI|removed} = getItem i items //If the item was removed by the layout, we don't need to move it downstream
+			# change = if removed [] [(adjustIndex i items,MoveChild (adjustIndex d items))]
+			# items = moveItem i d items
+			# (schanges, items) = adjustRemSiblings selection path (\x -> True) items //TODO: Improved the predicate, we don't have to check all...
+			= (change ++ schanges, items) 
+		| otherwise
+			= ([],items)
+	
+	adjustRemSiblings selection path whichSiblings children = adjust 0 [] children
 	where
-		adjustRemChildChanges [] items restores mods = ([], items, restores, mods)
-		adjustRemChildChanges [(i,c):cs] items restores mods
-			# (c, items, restores, mods) = adjustRemChildChange i c items restores mods
-			# (cs, items, restores, mods) = adjustRemChildChanges cs items restores mods
-			= (c ++ cs, items, restores, mods)
-
-		adjustRemChildChange i (ChangeChild change) items restores mods
-			| i >= 0 && i < length items 
-				//Recursively adjust the change
-				# (cchange, numRestores, item, mod) = adjustRem (path ++ [i]) change (items !! i) (ltGet i mods)
-				# changes = case cchange of
+		adjust i before [] = ([],before)
+		adjust i before [MvUIItem item:children]
+			| whichSiblings i
+				# (cchange, numNoLongerMoved, item) = adjustRem selection (path ++ [i]) NoChange item
+				# change = case cchange of
 					(ChangeChild NoChange)         = []
 					(ChangeChild (ChangeUI [] [])) = []
-					_                              = [(adjustIndex i mods, cchange)]
-				# restores = if (numRestores > 0) ('DM'.alter (\n -> Just (fromMaybe 0 n + numRestores)) i restores) restores
-				= (changes, updateAt i item items, restores, ltPut i mod mods)
-			| otherwise //Out of range, ignore
-				= ([],items,restores,mods)
+					(ChangeChild change)           = [(adjustIndex i before,cchange)]
+				# (changes, children) = adjust (i + 1) (before ++ [MvUIItem item]) children
+				= (change ++ changes, children)
+			| otherwise
+				= adjust (i + 1) (before ++ [MvUIItem item]) children
+		adjust i before [child:children]
+			= adjust i (before ++ [child]) children
+			
+	adjustIns Nothing path mvui = (NoChange,mvui)
+	adjustIns (Just dst) path mvui
+		//First check if the previously inserted nodes are still where they were last time
+		//If they are not, remove them if necessary and clear all 'moved' annotations in the state
+		//Then collect the changes to the destination and apply them in the right place
+		| destinationExists dst mvui
+			//TODO: Check if the insert section has not moved...
+			# (i,changes,mvui) = collectDestinationChanges mvui
+			# (change,mvui)    = applyAtDestinationPath dst changes mvui
+			= (change,mvui)
+		| otherwise
+			//TODO: Check if there is still a misplaced insert section 
+			= (NoChange,mvui)
 
-		adjustRemChildChange i (InsertChild ui) items restores mods
-			| i >= 0 && i <= length items 
-				# (rchange,mod) = applyRem (path ++ [i]) ui
-				//If the child is immediately matched, don't insert insert it upstream
-				# cchange = case rchange of
-					RemoveChild = []
-					ChangeChild change = [(adjustIndex i mods, InsertChild (applyUIChange change ui))]
-				//The insertion potentially affects all siblings after the insertion point, we need to check them
-				# (schanges, items, restores, mods) = adjustRemSiblings path (\x -> x > i) (insertAt i ui items) restores (ltInsert i mod mods)
-				= (cchange ++ schanges, items, restores, mods)
-			| otherwise //Out of range, ignore
-				= ([],items,restores,mods)
-
-		adjustRemChildChange i RemoveChild items restores mods
-			| i >= 0 && i < length items 
-				# (cchange,restores) = case (ltGet i mods) of
-					//If the child was already removed by this layout it no longer need to be removed from the UI:
-					//The child was already moved to the destination, we also need to remove it there
-					UIModified (LRMoved _)   = ([],'DM'.alter (\n -> Just (fromMaybe 0 n + 1)) i restores) 
-					UIModified (LRRemoved r) = ([],'DM'.alter (\n -> Just (fromMaybe 0 n + r)) i restores)
-					//If the child was yet not removed by the layout it will now removed.
-					//We therefore additionally we need to check for moved descendents. If this ui is removed its moved parts should be removed too.
-					SubUIsModified srestores smods 
-						# numMoved = ltCount True (\s -> s =: (LRMoved _)) smods
-						# numRestored = sum (map snd srestores) 
-						# restores = 'DM'.alter (\n -> Just (fromMaybe 0 n + numMoved + numRestored)) i restores
-						= ([(adjustIndex i mods, RemoveChild)],restores)
-				# (schanges, items, restores, mods) = adjustRemSiblings path (\x -> x >= i) (removeAt i items) restores (ltRemove i mods)
-				= (cchange ++ schanges, items, restores, mods)
-			| otherwise //Out of range, ignore
-				= ([],items,restores,mods)
-
-		adjustRemChildChange i (MoveChild d) items restores mods
-			| i >= 0 && i < length items &&  d >= 0 && d < length items
-				# cchange = (adjustIndex i mods, MoveChild (adjustIndex d mods))
-				# (schanges, items, restores, mods) = adjustRemSiblings path (const True) (listMove i d items) restores (ltMove i d mods) //TODO we don't need to check *all* siblings
-				= ([cchange:schanges], items, restores, mods)
-			| otherwise //Out of range, ignore
-				= ([],items,restores,mods)
-
-		//For the selected items call adjustRem with NoChange to check if they need to be removed or restored
-		adjustRemSiblings path whichSiblings items restores mods = adjust 0 items restores mods
-		where
-			adjust i [] restores mods = ([],[],restores,mods)
-			adjust i [item:items] restores mods
-				| whichSiblings i
-					//Check the ui
-					# (cchange, numRestores, item, mod) = adjustRem (path ++ [i]) NoChange item (ltGet i mods)
-					# change = case cchange of
-						(ChangeChild NoChange)         = []
-						(ChangeChild (ChangeUI [] [])) = []
-						_                              = [(adjustIndex i mods,cchange)]
-					//Update the amount of restored items for this position
-					# restores = if (numRestores > 0) ('DM'.alter (\n -> Just (fromMaybe 0 n + numRestores)) i restores) restores
-					//Check the remaining items
-					# (changes, items, restores, mods) = adjust (i + 1) items restores (ltPut i mod mods)
-					= (change ++ changes, [item:items], restores, mods)
-				| otherwise
-					# (changes, items, restores, mods) = adjust (i + 1) items restores mods
-					= (changes, [item:items], restores, mods)
-
-
-	//Correct an index for the number of removed sibling preceding it
-	adjustIndex idx mods = idx - foldr (\(i,m) n -> if (i <= idx && (m =: (UIModified _))) (n + 1) n) 0 mods
-
-	adjustIns dst change ui state
-		//FIXME: Too simple...
-		# (achange,state) = determineDestinationChange dst ui state
-		= (mergeUIChanges change achange,state)
-
-	//Handle the insertion of the removed sub-UI's in the target location
-	determineDestinationChange (path,pos) ui state = case determineAdjustedPath path ui state of
-		Just path
-				//Extract the child changes to the destionation from the layout state
-				# (_,changes,state) = collect 0 state ui
-				| changes =:[] = (NoChange, state)
-			                   = (changeAtPath path (ChangeUI [] changes), state)
-		Nothing
-			//Clear all state about moves (the destination apparently no longer exists
-			= (NoChange, clear state)
+	collectDestinationChanges mvui = collect 0 mvui
 	where
-		collect n (UIModified (LRRemoved numBefore)) ui //A new removal
-			= (n + 1, repeatn numBefore (n,RemoveChild) ++ [(n,InsertChild ui)], UIModified (LRMoved NoChange))
-		collect n (UIModified (LRMoved NoChange)) ui   //An old removal, no need to change anything..
-			= (n + 1, [], UIModified (LRMoved NoChange))
-		collect n (UIModified (LRMoved change)) ui     //An old removal, that was changed in the source location
-			# changes = case change of
-				NoChange = []
-				(ChangeUI [] []) = []
-				_                = [(n,ChangeChild change)]
-			= (n + 1, changes, UIModified (LRMoved NoChange))
-		collect n (SubUIsModified reverts mods) (UI _ _ items) //Recursive case
-			//Create an interleaved list from the reverts and the branches with modifications
-			# potential = sortBy collectOrder ((map Left reverts) ++ [Right (i,m,items !! i) \\ (i,m) <- mods])
-			# (n`, changes, mods) = collectInChildren n potential
-			= (n`, changes, SubUIsModified [] mods)
+		collect i mvui=:{MvUI|removed,moved,dstChange,children}
+			| removed 
+				| moved //Already moved, apply the local changes
+					= case dstChange of
+						NoChange = (i + 1, [], mvui)
+						_        = (i + 1, [(i,ChangeChild dstChange)],{MvUI|mvui & dstChange = NoChange})
+				| otherwise //Newly removed node
+					= (i + 1, [(i,InsertChild (fromMvUI mvui))],{MvUI|mvui & moved=True})
+			| otherwise
+				# (i,changes,children) = collectc i children
+				= (i,changes,{MvUI|mvui & children=children})
 
-		collectInChildren n [] = (n,[],[])
-		collectInChildren n [Left (i,num):ms] 
-			# cchanges = repeatn num (n,RemoveChild)
-			# (n,rchanges,ms) = collectInChildren n ms
-			= (n, cchanges ++ rchanges, ms)
-		collectInChildren n [Right (i,m,ui):ms] 
-			# (n,cchanges,m)  = collect n m ui
-			# (n,rchanges,ms) = collectInChildren n ms
-			= (n, cchanges ++ rchanges, [(i,m):ms])
+		collectc i [] = (i,[],[])
+		collectc i [MvUIItem x:xs]
+			# (i,c,x) = collect i x
+			# (i,cs,xs) = collectc i xs
+			= (i, c ++ cs, [MvUIItem x:xs])
+		collectc i [MvUINoLongerMoved n:xs]
+			# c = repeatn n (i,RemoveChild)
+			# (i,cs,xs) = collectc i xs
+			= (i, c ++ cs, xs)
+		collectc i [x:xs]
+			# (i,cs,xs) = collectc i xs
+			= (i,cs,[x:xs])
 
-		collectOrder (Left (i1,_)) (Left (i2,_)) = i1 < i2
-		collectOrder (Right (i1,_,_)) (Right (i2,_,_)) = i1 < i2
-		//For the same index, reverts (Left) are handled before mods (Right)
-		collectOrder (Left (i1,_)) (Right (i2,_,_)) = if (i1 == i2) True (i1 < i2)
-		collectOrder (Right (i1,_,_)) (Left (i2,_)) = if (i1 == i2) False (i1 < i2)
+	applyAtDestinationPath ([],pos) changes mvui=:{MvUI|children}
+		//Adjust the indices of the changes
+		# numRemovedBeforePos = length [removed \\ MvUIItem {MvUI|removed} <- take pos children | removed]
+		# changes = [(pos - numRemovedBeforePos + i,c) \\ (i,c) <- changes]
+		//Determine how much the number of moved items changes in the destination
+		# insertedAmountChange = length [c \\ c=:(_,InsertChild _) <- changes] - length  [c \\ c=:(_,RemoveChild) <- changes]
+		# children = updateMoveDestination pos ((+) insertedAmountChange) children
+		= (ChangeUI [] changes, {MvUI|mvui & children = children})
+	applyAtDestinationPath ([s:ss],pos) changes mvui=:{MvUI|children}
+		| s >= 0 && s < numItems children
+			# (change,item) = applyAtDestinationPath (ss,pos) changes (getItem s children)
+			= (ChangeUI [] [(adjustIndex s children,ChangeChild change)], {MvUI|mvui & children = setItem s item children})
+		| otherwise
+			= (NoChange,mvui)
 
-		clear (UIModified _) = UIModified (LRRemoved 0)
-		clear (SubUIsModified _ mods) = SubUIsModified [] (map (appSnd clear) mods)
-	
-		determineAdjustedPath :: UIPath UI (LayoutTree LayoutRemoval LayoutRestores) -> Maybe UIPath
-		determineAdjustedPath _ _ (UIModified _) = Nothing //The destination is part of removed node
-		determineAdjustedPath [] _ _             = Just [] //The path (root node) is ok
-		determineAdjustedPath [s:ss] (UI _ _ items) (SubUIsModified _ mods)
-			| s >= 0 && s < length items 
-				= fmap (\ss`-> [adjustIndex s mods:ss`]) (determineAdjustedPath ss (items !! s) (ltGet s mods))
-				= Nothing //Out of range
-*/
 	restore (LSRemoveSubUIs mvui)
 		= ReplaceUI (fromMvUI mvui) //VERY CRUDE RESTORE..
 
 	//UTIL FUNCTIONS 
 	toMvUI :: UI -> MvUI 
-	toMvUI (UI type attr items) = {MvUI|type=type,attr=attr,removed=False,moved=False,restore=0,items=map (Left o toMvUI) items}
+	toMvUI (UI type attr items) = {MvUI|type=type,attr=attr,removed=False,moved=False,dstChange=NoChange,children=map (MvUIItem o toMvUI) items}
 
 	fromMvUI :: MvUI -> UI
-	fromMvUI {MvUI|type,attr,items} = UI type attr [fromMvUI mvui \\ Left mvui <- items]
+	fromMvUI {MvUI|type,attr,children} = UI type attr [fromMvUI mvui \\ MvUIItem mvui <- children]
 	
 	//Check if the destination for moving elements is this node or one of its descendents
 	onDestinationPath path = maybe False (startsWith path o fst) mbDst
@@ -675,70 +650,64 @@ where
 		startsWith [p:ps] [d:ds] = if (p == d) (startsWith ps ds) False
 		startsWith _ _ = False
 
-	destinationExists ([],pos) {MvUI|items} = pos >= 0 && length [item \\ Left item <- items] >= (pos - 1)
-	destinationExists ([s:ss],pos) {MvUI|items}
-		# oitems = [item \\ Left item <- items]
-		| s >= 0 && s < length oitems = destinationExists (ss,pos) (oitems !! s)
-									  = False
+	destinationExists ([],pos) {MvUI|children} = pos >= 0 && length [item \\ MvUIItem item <- children] >= (pos - 1)
+	destinationExists ([s:ss],pos) {MvUI|children}
+		| s >= 0 && s < numItems children = destinationExists (ss,pos) (getItem s children)
+										  = False
+	numItems xs = length [x \\ x=:(MvUIItem _) <- xs]
 
-	collectDestinationChanges mvui = collect 0 mvui
-	where
-		collect i mvui=:{MvUI|removed,moved,items}
-			| removed && not moved = (i + 1, [(i,InsertChild (fromMvUI mvui))],{MvUI|mvui & moved=True})
-			| otherwise
-				# (i,changes,items) = collecti i items
-				= (i,changes,{MvUI|mvui & items=items})
-
-		collecti i [] = (i,[],[])
-		collecti i [Left x:xs]
-			# (i,c,x) = collect i x
-			# (i,cs,xs) = collecti i xs
-			= (i, c ++ cs, [Left x:xs])
-		collecti i [Right x:xs]
-			# (i,cs,xs) = collecti i xs
-			= (i,cs,[Right x:xs])
-
-	applyAtDestinationPath ([],pos) changes mvui=:{MvUI|items}
-		//Adjust the indices of the changes
-		# numRemovedBeforePos = length [removed \\ Left {MvUI|removed} <- take pos items | removed]
-		# changes = [(pos - numRemovedBeforePos + i,c) \\ (i,c) <- changes]
-		//Determine how much the number of moved items changes in the destination
-		# insertedAmountChange = length [c \\ c=:(_,InsertChild _) <- changes] - length  [c \\ c=:(_,RemoveChild) <- changes]
-		# items = case drop pos items of
-			[Right n:is] = take pos items ++ [Right (n + insertedAmountChange):is]
-			is           = take pos items ++ [Right insertedAmountChange:is]
-		= (ChangeUI [] changes, {MvUI|mvui & items = items})
-	applyAtDestinationPath ([s:ss],pos) changes mvui=:{MvUI|items}
-		| hasItem s items
-			# (change,item) = applyAtDestinationPath (ss,pos) changes (getItem s items)
-			= (ChangeUI [] [(adjustIndex s items,ChangeChild change)], {MvUI|mvui & items = setItem s item items})
-		| otherwise
-			= (NoChange,mvui)
-
-
-	hasItem i [] = False
-	hasItem i [Left _:items] 
-		| i < 0  = False
-		| i == 0 = True
-				 = hasItem (i - 1) items
-	hasItem	i [Right _:items] = hasItem i items
-
-	getItem i [Left x:items] = if (i == 0) x (getItem (i - 1) items)
-	getItem i [Right _:items] = getItem i items
+	getItem i [MvUIItem x:xs] = if (i == 0) x (getItem (i - 1) xs)
+	getItem i [_:xs] = getItem i xs
 		
 	setItem i item [] = []
-	setItem i item [Right n:items] = [Right n:setItem i item items]
-	setItem i item [Left x:items]
-		| i < 0  = [Left x:items]
-		| i == 0 = [Left item:items]
-				 = [Left x:setItem (i - 1) item items]
+	setItem i item [MvUIItem x:xs]
+		| i < 0  = [MvUIItem x:xs]
+		| i == 0 = [MvUIItem item:xs]
+				 = [MvUIItem x:setItem (i - 1) item xs]
+	setItem i item [x:xs] = [x:setItem i item xs]
+
+	insertItem i item [] 
+		| i == 0 = [MvUIItem item]
+				 = []
+	insertItem i item [MvUIItem x:xs]
+		| i < 0  = [MvUIItem x:xs]
+		| i == 0 = [MvUIItem item, MvUIItem x:xs]
+				 = [MvUIItem x:insertItem (i - 1) item xs]
+	insertItem i item [x:xs] = [x:insertItem i item xs]
+	
+	removeItem i [] = []
+	removeItem i [MvUIItem x:xs]
+	 	| i < 0  = [MvUIItem x:xs]
+		| i == 0 = xs
+				 = [MvUIItem x:removeItem (i - 1) xs]
+	removeItem i [x:xs] = [x:removeItem i xs]
+	
+	moveItem i d xs = insertItem d (getItem i xs) (removeItem i xs)
+
+	updateMoveDestination 0 f [MvUIMoveDestination n:xs] = [MvUIMoveDestination (f n):xs]
+	updateMoveDestination 0 f xs                         = [MvUIMoveDestination (f 0):xs]
+	updateMoveDestination i f [MvUIItem x:xs]            = [MvUIItem x:updateMoveDestination (i - 1) f xs]
+	updateMoveDestination i f [x:xs]                     = [x:updateMoveDestination i f xs]
+	updateMoveDestination i f [] = []
+
+	//Compute the amount of nodes marked as moved plus the sum of all nodes with information about nodes that are no lnoger moved
+	countNoLongerMoved {MvUI|moved,children} = (if moved 1 0) + sum [countNoLongerMoved x \\ MvUIItem x <- children] + sum [n \\ MvUINoLongerMoved n <- children]
+
+	addNoLongerMoved 0 num [MvUINoLongerMoved n:xs] = [MvUINoLongerMoved (n + num):xs]
+	addNoLongerMoved 0 num []                       = [MvUINoLongerMoved num]
+	addNoLongerMoved i num [MvUIItem x:xs]
+		| i < 0  = [MvUIItem x:xs]
+		| i == 0 = [MvUINoLongerMoved num,MvUIItem x:xs]
+				 = [MvUIItem x:addNoLongerMoved (i - 1) num xs]
+	addNoLongerMoved i num [x:xs] = [x:addNoLongerMoved i num xs]
 
 	adjustIndex s items = s + (offset s items)
 	where
 		offset _ [] = 0
-		offset n [Right num:items] = offset n items + num
-		offset 0 [Left x:_] = 0 //stop
-		offset n [Left {MvUI|removed}:items] = offset (n - 1) items - (if removed 1 0)
+		offset 0 [MvUIItem x:_] = 0 //stop
+		offset n [MvUIItem {MvUI|removed}:xs] = offset (n - 1) xs - (if removed 1 0)
+		offset n [MvUIMoveDestination num:xs] = offset n xs + num
+		offset n [_:xs] = offset n xs //Ignore other elements
 
 layoutSubUIs :: UISelection Layout -> Layout
 layoutSubUIs selection layout = {Layout|apply=apply,adjust=adjust,restore=restore}

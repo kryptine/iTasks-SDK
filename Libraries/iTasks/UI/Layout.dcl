@@ -33,29 +33,27 @@ from Text.JSON import :: JSONNode
 	| LSInsert !Int                                    //State for inserting layouts
 	| LSSequence !LayoutState !LayoutState             //Combined state of two sequenced layouts
 	| LSLayoutSubUIs !UI (LayoutTree LayoutState ())   //States of layouts applied to sub-ui's 
-	//| LSRemoveSubUIs !UI (LayoutTree LayoutRemoval LayoutRestores) //UI's that were removed by the layout
 	| LSRemoveSubUIs !MvUI                             //UI's that were removed by the layout
 
 :: LayoutTree a b
 	= UIModified !a
 	| SubUIsModified !b ![(Int,LayoutTree a b)]
 
-:: LayoutRemoval
-	= LRRemoved !Int        //When a UI is first removed, we mark it with this constructor
-						   //The Int is the number of children of this node that were already moved when this node was removed
-    | LRMoved !UIChange     //When a removed UI is inserted somewhere else, we mark it with this constructor
-
-:: LayoutRestores :== [(Int,Int)] //When layouts that were moved, are no longer moved we need to track that. They can then be removed at the destination.
-
 // This is an extended version of UI that annotates UI's with additional information about nodes that were removed, moved or restored.
-:: MvUI = { type     :: UINodeType        //From UI
-		  , attr     :: UIAttributes      //From UI
-          , removed  :: Bool              //Do we hide this node downstream?
-		  , moved    :: Bool              //Have we moved this node to another node?
-		  , restore  :: Int               //When a node is modified (replaced, or no longer matches), we need to track how many 'moved' nodes we discarded.
-                                          //They were inserted somewhere, so we should know that we have to remove them there
-		  , items    :: [Either MvUI Int] //Either items original nodes, or an inserted segment of n nodes
+:: MvUI = { type      :: UINodeType        //From UI
+		  , attr      :: UIAttributes      //From UI
+          , removed   :: Bool              //Do we hide this node downstream?
+		  , moved     :: Bool              //Have we moved this node to another node?
+                                           //They were inserted somewhere, so we should know that we have to remove them there
+		  , dstChange :: UIChange          //If we have moved an item, we need to store local changes such that they can be applied in the target location
+		  , children  :: [MvUIChild]       //Either items original nodes, or additional marks
 		  }
+
+:: MvUIChild
+	= MvUIItem MvUI           //Upstream UI nodes with their annotations
+	| MvUIMoveDestination Int //A marker for the segment in the upstream ui where the moved nodes have been inserted (n should equal the amount of moved nodes)
+	| MvUINoLongerMoved Int   //A marker that indicates that at this location in the UI there were previously 'moved' nodes.
+                              //A RemoveChild or ReplaceUI change has removed them.
 	
 // These types are used to control when to apply layout in a task composition
 :: ApplyLayout	= ApplyLayout Layout
@@ -84,6 +82,8 @@ instance tune	ApplyLayout //Apply a modification after a layout has been run
 	| SelectRelative UIPath UISelection
 	//Check if another (sub)-selection exists
 	| SelectByContains UISelection
+	//No-op
+	| SelectNone
 	//Set operations
 	| SelectAND UISelection UISelection //Intersection
 	| SelectOR UISelection UISelection //Union

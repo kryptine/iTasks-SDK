@@ -9,11 +9,11 @@ import qualified Data.Map as DM
 import Data.List
 import StdMisc
 
-derive JSONEncode NodeMove, NodeLayoutState, LayoutState, LayoutTree, LayoutRemoval, MvUI
-derive gEq LayoutState, LayoutTree, LayoutRemoval, MvUI
-derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, LayoutState, LayoutTree, LayoutRemoval, JSONNode, MaybeError
-derive gPrettyTrace EditMask, FieldMask, CompoundMask, MvUI, Either
-derive gDefault MvUI
+derive JSONEncode NodeMove, NodeLayoutState, LayoutState, LayoutTree, MvUI, MvUIChild
+derive gEq LayoutState, LayoutTree, MvUI, MvUIChild
+derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, LayoutState, LayoutTree, JSONNode, MaybeError
+derive gPrettyTrace EditMask, FieldMask, CompoundMask, MvUI, MvUIChild
+derive gDefault MvUI, MvUIChild
 
 testLayout :: TestSuite
 testLayout = testsuite "Layout" "Tests for the layout functions"
@@ -210,7 +210,7 @@ where
 
 	//Initial state
 	initShadowUI = uic UIStep [ui UIContainer, ui UIAction, ui UIAction]
-	initRemovals = (SubUIsModified [] [(1,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])
+	//initRemovals = (SubUIsModified [] [(1,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])
 
 	initState = LSRemoveSubUIs defaultValue /* LSRemoveSubUIs initShadowUI initRemovals */
 
@@ -234,7 +234,7 @@ where
 	exp = (expChange,expState)
 
 	initShadowUI = uic UIPanel [uic UIContainer [ui UIAction, ui UIEmpty, ui UIAction], ui UIContainer]
-	initRemovals = SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])]
+	//initRemovals = SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])]
 	
 	initState = LSRemoveSubUIs defaultValue /* LSRemoveSubUIs initShadowUI initRemovals*/
 
@@ -254,7 +254,7 @@ where
 	exp = (expChange,expState)
 
 	initShadowUI = uic UIPanel [uic UIContainer [ui UIAction, ui UIEmpty, ui UIAction], ui UIContainer]
-	initRemovals = SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])]
+	//initRemovals = SubUIsModified [] [(0,SubUIsModified [] [(0,UIModified (LRMoved NoChange)),(2,UIModified (LRMoved NoChange))])]
 	
 	initState = LSRemoveSubUIs defaultValue /* LSRemoveSubUIs initShadowUI initRemovals */
 
