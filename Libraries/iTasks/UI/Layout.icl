@@ -12,9 +12,6 @@ from StdFunc import o, const, id, flip
 from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
 import StdDebug
 
-import iTasks.Util.Trace
-derive gPrettyTrace LayoutTree, UIChange, UIChildChange, UI, UIAttributeChange, JSONNode, UINodeType, UISelection
-
 //This type records the states of layouts applied somewhere in a ui tree
 derive JSONEncode LayoutState, LayoutTree, MvUI, MvUIChild
 derive JSONDecode LayoutState, LayoutTree, MvUI, MvUIChild
@@ -85,6 +82,7 @@ idLayout :: Layout
 idLayout = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
 
 setUIType :: UINodeType -> Layout
+setUIType type = setUITypeRef type
 setUIType type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui=:(UI _ attr items) = (ReplaceUI (UI type attr items), LSType ui) //Crude replacement (no instruction possible)
@@ -96,10 +94,15 @@ where
 	//Crude restore...
 	restore (LSType ui) = ReplaceUI ui 
 
+setUITypeRef :: UINodeType -> Layout
+setUITypeRef type = referenceLayout ref
+where 
+	ref (UI _ attr items) = UI type attr items
+
 setUIAttributes :: UIAttributes -> Layout
+setUIAttributes extraAttr = setUIAttributesRef extraAttr 
 setUIAttributes extraAttr = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
-	
 	apply (UI _ attr _)
 		= (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList extraAttr] [],LSAttributes attr)
 
@@ -121,7 +124,13 @@ where
 	restore (LSAttributes attr) //Restore or delete the extra attributes
 		= ChangeUI [maybe (DelAttribute k) (\v -> SetAttribute k v) ('DM'.get k attr) \\ k <- 'DM'.keys extraAttr] []
 
+setUIAttributesRef :: UIAttributes -> Layout
+setUIAttributesRef extraAttr = referenceLayout ref
+where
+	ref (UI type attr items) = UI type ('DM'.union extraAttr attr) items
+
 delUIAttributes :: UIAttributeSelection -> Layout 
+delUIAttributes selection = delUIAttributesRef selection
 delUIAttributes selection = {Layout|apply=apply,adjust=adjust,restore=restore} 
 where
 	apply (UI _ attr _) //There is no delete instruction, so deleting means setting the value to null 
@@ -146,7 +155,13 @@ where
 	restore (LSAttributes attr) //Restore the attributes
 		= ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList attr | matchKey selection k] []
 
+delUIAttributesRef :: UIAttributeSelection -> Layout 
+delUIAttributesRef selection = referenceLayout ref
+where
+	ref (UI type attr items) = UI type (foldl (\a k -> if (matchKey selection k) ('DM'.del k a) a) attr ('DM'.keys attr)) items
+
 modifyUIAttributes :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
+modifyUIAttributes selection modifier = modifyUIAttributesRef selection modifier
 modifyUIAttributes selection modifier = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply (UI type attr items)
@@ -174,7 +189,15 @@ where
 	restore (LSAttributeChanges attr mods) //Restore the attributes
 		= ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList attr] []
 
+modifyUIAttributesRef :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
+modifyUIAttributesRef selection modifier = referenceLayout ref
+where
+	ref (UI type attr items) = UI type ('DM'.union (modifier selected) attr) items
+	where
+		selected = selectAttributes selection attr
+
 copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> Layout
+copySubUIAttributes selection src dst = copySubUIAttributesRef selection src dst 
 copySubUIAttributes selection src dst = {Layout|apply=apply,adjust=adjust,restore=restore} 
 where
 	apply ui = case selectAttr src ui of //Check if source exists
@@ -182,7 +205,7 @@ where
  			Just dstAttr = (changeAtPath dst (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList srcAttr | matchKey selection k] []), LSAttributeChanges srcAttr dstAttr)
 			Nothing      = (NoChange, LSAttributeChanges srcAttr 'DM'.newMap)
 		Nothing = (NoChange, LSAttributeChanges 'DM'.newMap 'DM'.newMap)
-
+/*
 	adjust (NoChange, s) 
 		= (NoChange, s)
 
@@ -201,7 +224,7 @@ where
 		# change = mergeUIChanges change (changeAtPath dst (ChangeUI (filter (matchChange selection) srcChanges) []))
 		//TODO: Should actually replace the updates in the dst location, not just set original values first and then the copies
 		= (change, LSAttributeChanges srcAttr dstAttr)
-
+*/
 	adjust (change,s) = (change,s)
 
 	//Find the attributes of a sub ui
@@ -234,12 +257,24 @@ matchKey (SelectKeys keys) k = isMember k keys
 selectAttributes SelectAll attr = attr
 selectAttributes (SelectKeys keys) attr = 'DM'.fromList [a \\ a=:(k,_) <- 'DM'.toList attr | isMember k keys]
 
+copySubUIAttributesRef :: UIAttributeSelection UIPath UIPath -> Layout
+copySubUIAttributesRef selection src dst = referenceLayout ref
+where
+	ref ui = updDst dst (selAttr src ui) ui
+
+	selAttr [] (UI _ attr _) = [a \\ a=:(k,_) <- 'DM'.toList attr | matchKey selection k]
+	selAttr [s:ss] (UI _ _ items) = if (s >= 0 && s < length items) (selAttr ss (items !! s)) []
+
+	updDst [] selected (UI type attr items) = UI type (foldl (\a (k,v) -> 'DM'.put k v a) attr selected) items
+	updDst [s:ss] selected ui=:(UI type attr items) = if (s >= 0 && s < length items) (UI type attr (updateAt s (updDst ss selected (items !! s)) items)) ui
+
 //Set attributes in 'new' if they are different than, or not found in 'old'
 //Remove attributes that were in old, but are no longer in new
 diffAttributes old new = [SetAttribute k v \\ (k,v) <- 'DM'.toList new | maybe True (\ov -> ov <> v) ('DM'.get k old)] 
 					  ++ [DelAttribute k \\ k <- 'DM'.keys old | isNothing ('DM'.get k new)]
 
 wrapUI :: UINodeType -> Layout
+wrapUI type = wrapUIRef type
 wrapUI type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui = (ReplaceUI (uic type [ui]), LSWrap ui)
@@ -254,7 +289,13 @@ where
 	//As long as the UIChange type does not support moving elements up and down the tree we cannot do better
 	restore (LSWrap ui) = ReplaceUI ui 
 
+wrapUIRef :: UINodeType -> Layout
+wrapUIRef type = referenceLayout ref
+where
+	ref ui = uic type [ui]
+
 unwrapUI :: Layout
+unwrapUI = unwrapUIRef 
 unwrapUI = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui=:(UI type attr [i:is]) = (ReplaceUI i, LSUnwrap ui)
@@ -298,9 +339,16 @@ where
 	//As long as the UIChange type does not support moving elements up and down the tree we cannot do better
 	restore (LSUnwrap ui) = ReplaceUI ui 
 
+unwrapUIRef :: Layout
+unwrapUIRef = referenceLayout ref
+where
+	ref (UI _ _ [ui:_]) = ui
+	ref ui = ui
+
 //Insert the element at the specified index.
 //Only insert if there are at least as many children as the specified index
 insertChildUI :: Int UI -> Layout
+insertChildUI idx insert = insertChildUIRef idx insert
 insertChildUI idx insert
 	| idx >= 0  = {Layout|apply=apply,adjust=adjust,restore=restore}
 				= idLayout
@@ -400,11 +448,68 @@ where
 		| idx >= 0 && idx <= num = ChangeUI [] [(idx,RemoveChild)]
 					             = NoChange
 
+insertChildUIRef :: Int UI -> Layout
+insertChildUIRef idx insert = referenceLayout ref
+where
+	ref ui=:(UI type attr items)
+		| idx >= 0 && idx <= length items = UI type attr (insertAt idx insert items)
+										  = ui
+
 removeSubUIs :: UISelection -> Layout
-removeSubUIs selection = moveSubUIs` selection Nothing
+removeSubUIs selection = removeSubUIsRef selection
+//removeSubUIs selection = moveSubUIs` selection Nothing
+
+removeSubUIsRef :: UISelection -> Layout
+removeSubUIsRef selection = referenceLayout ref
+where
+	ref ui=:(UI type attr items) //Special case for the root node
+	  | inUISelection selection [] ui = UI UIEmpty 'DM'.newMap []
+							          = UI type attr (flatten [rem [i] x \\ x <- items & i <- [0..]])
+
+	rem path ui=:(UI type attr items)
+	  | inUISelection selection path ui = []
+						      = [UI type attr (flatten [rem (path ++ [i]) x \\ x <- items & i <- [0..]])]
 
 moveSubUIs :: UISelection UIPath Int -> Layout 
-moveSubUIs selection path pos = moveSubUIs` selection (Just (path,pos)) 
+moveSubUIs selection path pos = moveSubUIsRef selection path pos
+//moveSubUIs selection path pos = moveSubUIs` selection (Just (path,pos)) 
+
+moveSubUIsRef :: UISelection UIPath Int -> Layout 
+moveSubUIsRef selection dst pos = referenceLayout ref
+where
+	ref ui
+		# (selected,Just ui`) = collect [] ui //Find and remove all matching nodes
+		# (dst`,pos`)   = adjust [] dst pos ui   //Adjust the path and position for the removals
+		= insert selected dst` pos` ui`       //Insert the selected nodes at the destination
+
+	collect path ui=:(UI type attr items)
+		| not (startsWith path dst) && inUISelection selection path ui //Match
+			= ([ui],Nothing)
+		| otherwise //Check all children
+			# (collects,items) = unzip [collect (path ++ [i]) x \\ x <- items & i <- [0..]]
+			= (flatten collects, Just (UI type attr [x \\ Just x <- items]))
+
+	startsWith [] dst = True
+	startsWith [p:ps] [d:ds] = if (p == d) (startsWith ps ds) False
+	startsWith _ _ = False
+
+	adjust cur [] pos (UI _ _ items) = ([],index cur pos items)
+	adjust cur [s:ss] pos (UI _ _ items)
+		| s >= 0 && s < length items
+			# (ss`,pos`) = adjust (cur ++ [s]) ss pos (items !! s)
+			= ([index cur s items:ss`],pos`)
+		| otherwise
+			= ([s:ss],pos)
+
+	index cur n items = length (filter (not o (inUISelection selection cur)) (take n items))
+
+	insert selected [] i (UI type attr items)
+		| i >= 0 && i <= length items = UI type attr (take i items ++ selected  ++ drop i items)
+									  = UI type attr items
+	insert selected [s:ss] i (UI type attr items)
+		| s >= 0 && s < length items
+			= UI type attr (updateAt s (insert selected ss i (items !! s)) items)
+			= UI type attr items
 
 moveSubUIs` :: UISelection (Maybe (!UIPath,!Int)) -> Layout
 moveSubUIs` selection mbDst = {Layout|apply=apply,adjust=adjust,restore=restore}
@@ -790,6 +895,7 @@ where
 		offset n [_:xs] = offset n xs //Ignore other elements
 
 layoutSubUIs :: UISelection Layout -> Layout
+layoutSubUIs selection layout = layoutSubUIsRef selection layout 
 layoutSubUIs selection layout = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	//Find all places that match the selection
@@ -922,7 +1028,16 @@ where
 
 	restore (LSLayoutSubUIs ui _) = ReplaceUI ui //VERY CRUDE RESTORE... TODO:We can do better than this
 
-sequenceLayouts :: Layout Layout -> Layout
+layoutSubUIsRef :: UISelection Layout -> Layout
+layoutSubUIsRef selection layout = referenceLayout ref
+where
+	ref ui = app [] ui
+	app path ui=:(UI type attr items) 
+		| inUISelection selection path ui = applyLayout layout ui
+										  = UI type attr [app (path ++ [i]) x \\ x <- items & i <- [0..]]
+
+sequenceLayouts :: Layout Layout -> Layout 
+sequenceLayouts layout1 layout2 = sequenceLayoutsRef layout1 layout2
 sequenceLayouts layout1 layout2 = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui
@@ -942,22 +1057,27 @@ where
 		# change1 = layout1.Layout.restore s1
 		= mergeUIChanges change2 change1	
 
-traceLayout :: String Layout -> Layout
-traceLayout name layout = {Layout|apply=apply,adjust=adjust,restore=restore}
+sequenceLayoutsRef :: Layout Layout -> Layout
+sequenceLayoutsRef layout1 layout2 = referenceLayout ref
 where
-	apply _ = (NoChange,LSNone)
+	ref ui = applyLayout layout2 (applyLayout layout1 ui)
 
-	adjust (change,state)
-		# (change`,state`) = layout.Layout.adjust (change,state)
-		# msg = join "\n" 
-			["Layout trace ("+++ name +++")"
-			,"ORIGINAL CHANGE:"			
-			,toString (toJSON change)
-			,"REWRITTEN CHANGE:"
-			,toString (toJSON change`)]
-		= trace_n msg (change`,state`)
+referenceLayout :: (UI -> UI) -> Layout
+referenceLayout ref = {Layout|apply=apply,adjust=adjust,restore=restore}
+where
+	apply ui = (ReplaceUI (ref ui), LSReference ui)
+		
+	adjust (NoChange,state) = (NoChange,state)
+	adjust (change, LSReference ui) 
+		# ui = applyUIChange change ui
+		= (ReplaceUI (ref ui),LSReference ui)
 
-	restore _ = NoChange
+	restore (LSReference ui)
+		= ReplaceUI ui
+
+//Helper for sequence layouts
+applyLayout :: Layout UI -> UI 
+applyLayout {Layout|apply} ui = applyUIChange (fst (apply ui)) ui
 
 //Util functions on the layout tree structure
 ltGet :: Int [(Int,LayoutTree a b)] -> (LayoutTree a b) | gDefault{|*|} b
@@ -988,7 +1108,7 @@ where
 	count (SubUIsModified _ mods) n = if recursive (n + ltCount recursive pred mods) n
 
 listMove :: Int Int [a] -> [a]
-listMove src dst list = insertAt dst (if (src >= length list) (abort "NEE") (list !! src)) (removeAt src list)
+listMove src dst list = insertAt dst (list !! src) (removeAt src list)
 
 changeAtPath :: UIPath UIChange -> UIChange
 changeAtPath [] change = change

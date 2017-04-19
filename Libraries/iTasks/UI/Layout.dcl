@@ -34,6 +34,7 @@ from Text.JSON import :: JSONNode
 	| LSSequence !LayoutState !LayoutState             //Combined state of two sequenced layouts
 	| LSLayoutSubUIs !UI (LayoutTree LayoutState ())   //States of layouts applied to sub-ui's 
 	| LSRemoveSubUIs !MvUI                             //UI's that were removed by the layout
+	| LSReference !UI
 
 :: LayoutTree a b
 	= UIModified !a
@@ -143,8 +144,11 @@ layoutSubUIs :: UISelection Layout -> Layout
 */
 sequenceLayouts :: Layout Layout -> Layout
 
-// Easier debugging
-traceLayout :: String Layout -> Layout
+/**
+* This layout can apply any transformation on UI's, but it replaces everything on each change.
+* Use this only as a debugging tool, because it will effectively remove the minimal data exchange of editors with UIChanges
+*/
+referenceLayout :: (UI -> UI) -> Layout
 
 //TYPES EXPORTED FOR TESTING
 :: NodeMoves :== [(Int,NodeMove)] 
