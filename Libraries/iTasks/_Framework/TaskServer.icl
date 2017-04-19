@@ -2,7 +2,10 @@ implementation module iTasks._Framework.TaskServer
 
 import StdFile, StdBool, StdInt, StdClass, StdList, StdMisc, StdArray, StdTuple, StdOrdList
 import Data.Maybe, Data.Functor, Data.Error, System.Time, Text, Data.Tuple
+from StdFunc import seq
 from Data.Map import :: Map (..)
+import qualified System.Process as Process
+from System.Process import :: ProcessIO (..), :: ReadPipe, :: WritePipe
 import qualified Data.List as DL
 import qualified Data.Map as DM
 import qualified iTasks._Framework.SDS as SDS
@@ -19,6 +22,7 @@ from iTasks._Framework.TaskStore import queueRefresh
 :: *IOTaskInstanceDuringSelect
     = ListenerInstanceDS !ListenerInstanceOpts
     | ConnectionInstanceDS !ConnectionInstanceOpts !*TCP_SChannel
+    | ExternalProcessInstanceDS !ExternalProcessInstanceOpts !ProcessHandle !ProcessIO
     | BackgroundInstanceDS !BackgroundInstanceOpts !BackgroundTask
 
 serve :: !Int !ConnectionTask ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
@@ -63,6 +67,7 @@ toSelectSet [i:is]
     = case i of
         ListenerInstance opts l = ([l:ls],rs,[ListenerInstanceDS opts:is])
         ConnectionInstance opts {rChannel,sChannel} = (ls,[rChannel:rs],[ConnectionInstanceDS opts sChannel:is])
+        ExternalProcessInstance opts pHandle pIO = (ls, rs, [ExternalProcessInstanceDS opts pHandle pIO : is])
         BackgroundInstance opts bt = (ls,rs,[BackgroundInstanceDS opts bt:is])
 
 /* Restore the list of main loop instances.
@@ -98,6 +103,10 @@ where
         | otherwise
             # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners (numSeenReceivers+1) ls rs [(c,what):ch] is
             = ([ConnectionInstance opts {rChannel=rChannel,sChannel=sChannel}:is],ch)
+    //External process task
+    fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls rs ch [ExternalProcessInstanceDS opts pHandle pIO : is]
+        # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners numSeenReceivers ls rs ch is
+        = ([ExternalProcessInstance opts pHandle pIO:is],ch)
     //Background tasks
     fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls rs ch [BackgroundInstanceDS opts bt:is]
         # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners numSeenReceivers ls rs ch is
@@ -130,9 +139,12 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                         = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
                     # (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (toString ip) (fromOk mbr) iworld
                     # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo,"New TCP connection for instance "<+++instanceNo)] iworld) iworld
-                    # iworld=:{ioTasks={done,todo},world}  = writeShareIfNeeded sds mbw iworld
+                    # (mbSdsErr, iworld=:{ioTasks={done,todo},world}) = writeShareIfNeeded sds mbw iworld
                     | mbConState =:(Error _)
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (fromError mbConState)) ioStates
+                        = process (i+1) chList {iworld & ioTasks={done=[ListenerInstance lopts listener:done],todo=todo}, ioStates = ioStates, world=world}
+                    | isError mbSdsErr
+                        # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (snd (fromError mbSdsErr))) ioStates
                         = process (i+1) chList {iworld & ioTasks={done=[ListenerInstance lopts listener:done],todo=todo}, ioStates = ioStates, world=world}
                     # conStates = 'DM'.put lopts.ListenerInstanceOpts.nextConnectionId (fromOk mbConState,close) conStates
                     # (sChannel,world) = case out of
@@ -174,95 +186,73 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
         _
  	        # world = closeRChannel listener world
             = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
-           
-process i chList iworld=:{ioTasks={done,todo=[ConnectionInstance opts {rChannel,sChannel}:todo]},ioStates,world}
-    # (TaskId instanceNo _) = opts.ConnectionInstanceOpts.taskId
-    = case 'DM'.get opts.ConnectionInstanceOpts.taskId ioStates of
-        Just (IOActive conStates)
-            # (ConnectionTask handlers sds) = opts.ConnectionInstanceOpts.connectionTask
-            # (mbSelect,chList) = checkSelect i chList
 
-            # mbConState = 'DM'.get opts.ConnectionInstanceOpts.connectionId conStates
-            | mbConState =: Nothing
-                //Set exception, close connection and continue 
-                # ioStates = 'DM'.put opts.ConnectionInstanceOpts.taskId (IOException "Missing connection state") ioStates
- 	            # world = closeRChannel rChannel world
-                # world = closeChannel sChannel world
-                = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
-            # conState = fst (fromJust mbConState)
-            //Read sds
-            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds {iworld & ioTasks={done=done,todo=todo},world=world}
-            | mbr =:(Error _)
-                # ioStates = 'DM'.put opts.ConnectionInstanceOpts.taskId (IOException (snd (fromError mbr))) ioStates
- 	            # world = closeRChannel rChannel world
-                # world = closeChannel sChannel world
-                = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
-            //Check if disconnected
-            | mbSelect =:(Just SR_Disconnected) || mbSelect=:(Just SR_EOM)
-                //Call disconnect function
-                # (conState,mbw,iworld) = handlers.ConnectionHandlersIWorld.onDisconnect conState (fromOk mbr) {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world}
-                # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo,"TCP connection disconnected for "<+++instanceNo)] iworld) iworld
-                # iworld=:{world,ioStates} = writeShareIfNeeded sds mbw iworld
-                # ioStates = case conState of
-                    Ok state
-                        = 'DM'.put opts.ConnectionInstanceOpts.taskId (IOActive ('DM'.put opts.ConnectionInstanceOpts.connectionId (state,True) conStates)) ioStates
-                    Error e
-                        = 'DM'.put opts.ConnectionInstanceOpts.taskId (IOException e) ioStates
- 	            # world = closeRChannel rChannel world
-                # world = closeChannel sChannel world
-                = process (i+1) chList {iworld & ioStates = ioStates, world=world}
-            //Read channel data
-            # (data,rChannel,world) = case mbSelect of
-                Just SR_Available
-		            # (data,rChannel,world) = receive rChannel world
-                    = (Just (toString data),rChannel,world)
-                _
-                    = (Nothing,rChannel,world)
-            //Call whileConnected function
-            # (mbConState,mbw,out,close,iworld)
-                = handlers.ConnectionHandlersIWorld.whileConnected data conState (fromOk mbr) {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world} 
-            //Queue refresh when there was new data or when the connection was closed
-            # iworld = if (isJust data && instanceNo > 0) (queueRefresh [(instanceNo, "New TCP data for "<+++instanceNo)] iworld) iworld 
-            # iworld = if (close && instanceNo > 0) (queueRefresh [(instanceNo, "TCP connection closed for "<+++instanceNo)] iworld) iworld
-            //Write share
-            # iworld=:{ioTasks={todo,done},ioStates,world} = writeShareIfNeeded sds mbw iworld
-            | mbConState =:(Error _)
-                # ioStates = 'DM'.put opts.ConnectionInstanceOpts.taskId (IOException (fromError mbConState)) ioStates
- 		        # world = closeRChannel rChannel world
-                # world = closeChannel sChannel world
-                = process (i+1) chList {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world}
-            # conStates = 'DM'.put opts.ConnectionInstanceOpts.connectionId (fromOk mbConState,close) conStates
-            //Send data if produced
-            # (sChannel,world) = case out of
-                []          = (sChannel,world)
-                data        = foldl (\(s,w) d -> send (toByteSeq d) s w) (sChannel,world) data
-            | close
-                //Remove the connection state if configured in the connection listener options
-                # conStates = if opts.ConnectionInstanceOpts.removeOnClose
-                    ('DM'.del opts.ConnectionInstanceOpts.connectionId conStates)
-                    conStates
-                # ioStates  = 'DM'.put opts.ConnectionInstanceOpts.taskId (IOActive conStates) ioStates
- 		        # world = closeRChannel rChannel world
-                # world = closeChannel sChannel world
-                = process (i+1) chList {iworld & ioTasks={done=done,todo=todo},ioStates=ioStates,world=world}
-            | otherwise
-                //Perssist connection
-                # ioStates  = 'DM'.put opts.ConnectionInstanceOpts.taskId (IOActive conStates) ioStates
-                = process (i+1) chList {iworld & ioTasks={done=[ConnectionInstance opts {rChannel=rChannel,sChannel=sChannel}:done],todo=todo},ioStates=ioStates,world=world}
-        Just (IODestroyed conStates)
- 	        # world = closeRChannel rChannel world
-            # world = closeChannel sChannel world
-            //Remove the state for this connection
-            # conStates = 'DM'.del opts.ConnectionInstanceOpts.connectionId conStates
-            //If this is the last connection for this task, we can clean up.
-            # ioStates = if ('DM'.mapSize conStates == 0) ('DM'.del opts.ConnectionInstanceOpts.taskId ioStates) ioStates
-            = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
-        _
-            //No state, just close
- 	        # world = closeRChannel rChannel world
-            # world = closeChannel sChannel world
-            = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
-           
+process i chList iworld=:{ioTasks={done, todo=[ConnectionInstance opts duplexChannel:todo]}}
+    # iworld = {iworld & ioTasks = {done = done, todo = todo}} 
+    # iworld = processIOTask
+        opts.ConnectionInstanceOpts.taskId opts.ConnectionInstanceOpts.connectionId
+        opts.ConnectionInstanceOpts.removeOnClose
+        sds tcpCloseIO readData tcpWriteData (\_ -> handlers.ConnectionHandlersIWorld.onDisconnect)
+        handlers.ConnectionHandlersIWorld.whileConnected (ConnectionInstance opts) duplexChannel iworld
+    = process (i+1) chList iworld
+where
+    (ConnectionTask handlers sds) = opts.ConnectionInstanceOpts.connectionTask
+
+    readData :: !(!*TCP_DuplexChannel, !*IWorld) -> (!IOData String (), !*TCP_DuplexChannel, !*IWorld)
+    readData (channel, iworld)
+        # (mbSelect, chList) = checkSelect i chList
+        | mbSelect =: (Just SR_Disconnected) || mbSelect=:(Just SR_EOM)
+            = (IODClosed (), channel, iworld)
+        | mbSelect =: (Just SR_Available)
+            # (data, rChannel, world) = receive channel.rChannel iworld.world
+            = (IODData (Just (toString data)), {channel & rChannel = rChannel}, {iworld & world = world})
+        | otherwise
+            = (IODData Nothing, channel, iworld)
+
+process i chList iworld=:{ioTasks={done, todo=[ExternalProcessInstance opts pHandle pIO:todo]}}
+    # iworld = {iworld & ioTasks = {done = done, todo = todo}} 
+    # iworld = processIOTask
+        opts.ExternalProcessInstanceOpts.taskId opts.ExternalProcessInstanceOpts.connectionId False
+        sds extProcCloseIO readData extProcWriteData onClose
+        whileRunning (\(pHandle, pIO) -> ExternalProcessInstance opts pHandle pIO) (pHandle, pIO) iworld
+    = process (i+1) chList iworld
+where
+    (ExternalProcessTask handlers sds) = opts.externalProcessTask
+
+    readData :: !(!(!ProcessHandle, !ProcessIO), !*IWorld)
+             -> (!IOData (!ProcessOutChannel, !String) ExitCode, !(!ProcessHandle, !ProcessIO), !*IWorld)
+    readData ((pHandle, pIO), iworld)
+        // try to read StdOut
+        # (mbData, world) = 'Process'.readPipeNonBlocking pIO.stdOut iworld.world
+        = case mbData of
+            Error _ = abort "TODO: handle error"
+            Ok data
+                | data == ""
+                    // try to read StdErr
+                    # (mbData, world) = 'Process'.readPipeNonBlocking pIO.stdErr iworld.world
+                    = case mbData of
+                        Error _ = abort "TODO: handle error"
+                        Ok data
+                            | data == ""
+                                # (mbMbRetCode, world) = 'Process'.checkProcess pHandle world
+                                = case mbMbRetCode of
+                                    Error _ = abort "TODO: handle error"
+                                    Ok Nothing   = (IODData Nothing,         (pHandle, pIO), {iworld & world = world})
+                                    Ok (Just ec) = (IODClosed (ExitCode ec), (pHandle, pIO), {iworld & world = world})
+                            | otherwise = (IODData (Just (StdErr, data)), (pHandle, pIO), {iworld & world = world})
+                | otherwise = (IODData (Just (StdOut, data)), (pHandle, pIO), {iworld & world = world})
+
+    whileRunning :: (Maybe (!ProcessOutChannel, !String)) Dynamic Dynamic *IWorld
+                 -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
+    whileRunning mbData l r iworld
+        # (mbl, mbw, out, close) = handlers.whileRunning mbData l r
+        = (mbl, mbw, out, close, iworld)
+
+    onClose :: !ExitCode !Dynamic !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, !*IWorld)
+    onClose exitCode l r iworld
+        # (mbl, mbw) = handlers.onExit exitCode l r
+        = (mbl, mbw, iworld)
+
 process i chList iworld=:{ioTasks={done,todo=[BackgroundInstance opts bt=:(BackgroundTask eval):todo]}}
     # (mbe,iworld=:{ioTasks={done,todo}}) = eval {iworld & ioTasks = {done=done,todo=todo}}
 	| mbe =: (Error _) = abort (snd (fromError mbe)) //TODO Handle the error without an abort
@@ -270,10 +260,121 @@ process i chList iworld=:{ioTasks={done,todo=[BackgroundInstance opts bt=:(Backg
 process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
     = process (i+1) chList {iworld & ioTasks={done=[t:done],todo=todo}}
 
-writeShareIfNeeded sds Nothing iworld = iworld
-writeShareIfNeeded sds (Just w) iworld 
-    # (_,iworld) = 'SDS'.write w sds iworld //TODO: Deal with exceptions at this level
-    = iworld
+tcpWriteData :: !String !(!*TCP_DuplexChannel, !*IWorld) -> (!*TCP_DuplexChannel, !*IWorld)
+tcpWriteData data (channel, iworld)
+    # (sChannel, world) = send (toByteSeq data) channel.sChannel iworld.world
+    = ({channel & sChannel = sChannel}, {iworld & world = world})
+
+tcpCloseIO :: !(!*TCP_DuplexChannel, !*IWorld) -> *IWorld
+tcpCloseIO ({rChannel, sChannel}, iworld=:{world})
+    # world = closeRChannel rChannel world
+    # world = closeChannel  sChannel world
+    = {iworld & world = world}
+
+extProcCloseIO :: !(!(!ProcessHandle, !ProcessIO), !*IWorld) -> *IWorld
+extProcCloseIO ((pHandle, pIO), iworld)
+    # (mbErr1, world) = 'Process'.terminateProcess pHandle iworld.world
+    # (mbErr2, world) = 'Process'.closeProcessIO pIO world
+    // TODO: handle errors
+    = {iworld & world = world}
+
+extProcWriteData :: !String !(!(!ProcessHandle, !ProcessIO), !*IWorld) -> (!(!ProcessHandle, !ProcessIO), !*IWorld)
+extProcWriteData data ((pHandle, pIO), iworld)
+    # (mbErr, world) = 'Process'.writePipe data pIO.stdIn iworld.world
+    = case mbErr of
+        Error e = abort "TODO: handle error"
+        _       = ((pHandle, pIO), {iworld & world = world})
+
+:: IOData data closeInfo = IODClosed closeInfo
+                         | IODData !(Maybe data)
+
+processIOTask :: !TaskId
+                 !ConnectionId
+                 !Bool
+                 !(RWShared () Dynamic Dynamic)
+                 !((!.ioChannels, !*IWorld) -> *IWorld)
+                 !((!.ioChannels, !*IWorld) -> (!IOData data closeInfo, !.ioChannels, !*IWorld))
+                 !(String (!.ioChannels, !*IWorld) -> (!.ioChannels, !*IWorld))
+                 !(closeInfo Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, !*IWorld))
+                 !((Maybe data) Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
+                 !(.ioChannels -> *IOTaskInstance)
+                 !.ioChannels
+                 !*IWorld
+              -> *IWorld
+processIOTask taskId connectionId removeOnClose sds closeIO readData writeData onCloseHandler whileOpenHandler mkIOTaskInstance ioChannels iworld=:{ioStates}
+    = case 'DM'.get taskId ioStates of
+        Just (IOActive taskStates)
+            # (TaskId instanceNo _) = taskId
+            // get task state
+            # mbTaskState = 'DM'.get connectionId taskStates
+            | isNothing mbTaskState
+                # iworld   = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
+                # ioStates = 'DM'.put taskId (IOException "Missing IO task state") ioStates
+                = closeIO (ioChannels, {iworld & ioStates = ioStates})
+            # taskState = fst (fromJust mbTaskState)
+            // read sds
+            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
+            | mbr =: (Error _)
+                # iworld   = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
+                # ioStates = 'DM'.put taskId (IOException (snd (fromError mbr))) ioStates
+                = closeIO (ioChannels, {iworld & ioStates = ioStates})
+            # r = fromOk mbr
+            // try to read data
+            # (mbData, ioChannels, iworld) = readData (ioChannels, iworld)
+            = case mbData of
+                IODClosed closeInfo
+                    # (mbTaskState, mbw, iworld) = onCloseHandler closeInfo taskState r iworld
+                    # ioStates = case mbTaskState of
+                        Ok state
+                            = 'DM'.put taskId (IOActive ('DM'.put connectionId (state, True) taskStates)) ioStates
+                        Error e
+                            = 'DM'.put taskId (IOException e) ioStates
+                    # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
+                    | isError mbSdsErr
+                        # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
+                        # ioStates = 'DM'.put taskId (IOException (snd (fromError mbSdsErr))) ioStates
+                        = closeIO (ioChannels, {iworld & ioStates = ioStates})
+                    # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "IO closed for " <+++ instanceNo)] iworld) iworld
+                    = closeIO (ioChannels, {iworld & ioStates = ioStates})
+                IODData mbData
+                    # (mbTaskState, mbw, out, close, iworld) = whileOpenHandler mbData taskState r iworld
+                    # iworld = if (isJust mbData && instanceNo > 0) (queueRefresh [(instanceNo, "New data for "<+++ instanceNo)] iworld)  iworld 
+                    # iworld = if (close && instanceNo > 0)         (queueRefresh [(instanceNo, "IO closed for "<+++ instanceNo)] iworld) iworld
+                    # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
+                    // write data
+                    # (ioChannels, iworld) = seq [writeData o \\ o <- out] (ioChannels, iworld)
+                    | mbTaskState =: (Error _)
+                        # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
+                        # ioStates = 'DM'.put taskId (IOException (fromError mbTaskState)) ioStates
+                        = closeIO (ioChannels, {iworld & ioStates = ioStates})
+                    | isError mbSdsErr
+                        # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
+                        # ioStates = 'DM'.put taskId (IOException (snd (fromError mbSdsErr))) ioStates
+                        = closeIO (ioChannels, {iworld & ioStates = ioStates})
+                    # ioStates = 'DM'.put taskId (IOActive ('DM'.put connectionId (fromOk mbTaskState, close) taskStates)) ioStates
+                    | close
+                        //Remove the connection state if configured in the connection listener options
+                        # taskStates = if removeOnClose
+                            ('DM'.del connectionId taskStates)
+                            taskStates
+                        # ioStates = 'DM'.put taskId (IOActive taskStates) ioStates
+                        = closeIO (ioChannels, {iworld & ioStates = ioStates})
+                    | otherwise
+                        // persist connection
+                        # {done, todo} = iworld.ioTasks
+                        = {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance ioChannels : done], todo = todo}}
+        Just (IODestroyed taskStates)
+            # iworld = closeIO (ioChannels, iworld)
+            //Remove the state for this connection
+            # taskStates = 'DM'.del connectionId taskStates
+            //If this is the last connection for this task, we can clean up.
+            # ioStates = if ('DM'.mapSize taskStates == 0) ('DM'.del taskId ioStates) ioStates
+            = {iworld & ioStates = ioStates}
+        _ = closeIO (ioChannels, iworld)
+
+writeShareIfNeeded :: !(RWShared () r w) !(Maybe w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
+writeShareIfNeeded sds Nothing iworld  = (Ok (), iworld)
+writeShareIfNeeded sds (Just w) iworld = 'SDS'.write w sds iworld
 
 addListener :: !TaskId !Int !Bool !ConnectionTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
 addListener taskId port removeOnClose connectionTask iworld=:{ioTasks={todo,done}, ioStates, world}
@@ -287,39 +388,88 @@ addListener taskId port removeOnClose connectionTask iworld=:{ioTasks={todo,done
     = (Ok (),{iworld & ioTasks = {done=done,todo=todo}, ioStates = ioStates, world = world})
 
 addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
-addConnection taskId=:(TaskId instanceNo _) host port connectionTask iworld=:{ioTasks={done,todo},ioStates,world}
-    # (mbIP,world) = lookupIPAddress host world
-    | mbIP =: Nothing
-        = (Error (exception ("Failed to connect to host "+++ host)), {iworld & ioTasks = {done=done,todo=todo}, world = world})
-    # (tReport,mbConn,world) = connectTCP_MT Nothing (fromJust mbIP,port) world
-    = case mbConn of
-        Nothing
-            = (Error (exception ("Failed to connect to host "+++ host)), {iworld & ioTasks = {done=done,todo=todo}, world = world})
-        Just {DuplexChannel|rChannel,sChannel}
-            # ip                                = fromJust mbIP
-            # (ConnectionTask handlers sds)     = connectionTask
+addConnection taskId host port connectionTask=:(ConnectionTask handlers sds) iworld
+    = addIOTask taskId sds init tcpCloseIO tcpWriteData onInitHandler mkIOTaskInstance iworld
+where
+    init :: !*IWorld -> (!MaybeErrorString (!IPAddress, !*TCP_DuplexChannel), !*IWorld)
+    init iworld
+        # (mbIP, world) = lookupIPAddress host iworld.world
+        = case mbIP of
+            Nothing = (Error ("Failed to connect to host " +++ host), {iworld & world = world})
+            Just ip
+                # (tReport, mbConn, world) = connectTCP_MT Nothing (fromJust mbIP,port) world
+                = case mbConn of
+                    Nothing = (Error ("Failed to connect to host " +++ host), {iworld & world = world})
+                    Just channel = (Ok (ip, channel), {iworld & world = world})
+                
+    onInitHandler :: !IPAddress !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
+    onInitHandler ip r iworld = handlers.ConnectionHandlersIWorld.onConnect (toString ip) r iworld
+
+    mkIOTaskInstance :: !IPAddress !*TCP_DuplexChannel -> *IOTaskInstance
+    mkIOTaskInstance ip channel
+        # opts = {ConnectionInstanceOpts|taskId = taskId, connectionId = 0, remoteHost = ip, connectionTask = connectionTask, removeOnClose = False}
+        = ConnectionInstance opts channel
+
+addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !ExternalProcessTask !IWorld -> (!MaybeError TaskException (), !*IWorld)
+addExternalProc taskId cmd args dir extProcTask=:(ExternalProcessTask handlers sds) iworld
+    = addIOTask taskId sds init extProcCloseIO extProcWriteData onInitHandler mkIOTaskInstance iworld
+where
+    init :: !*IWorld -> (!MaybeErrorString (!(), (!ProcessHandle, !ProcessIO)), !*IWorld)
+    init iworld
+        # (mbRes, world) = 'Process'.runProcessIO cmd args dir iworld.world
+        = case mbRes of
+            Error (_, e) = (Error e,       {iworld & world = world})
+            Ok proc      = (Ok ((), proc), {iworld & world = world})
+        /*# (mbIP, world) = lookupIPAddress host iworld.world
+        = case mbIP of
+            Nothing = (Error ("Failed to connect to host " +++ host), {iworld & world = world})
+            Just ip
+                # (tReport, mbConn, world) = connectTCP_MT Nothing (fromJust mbIP,port) world
+                = case mbConn of
+                    Nothing = (Error ("Failed to connect to host " +++ host), {iworld & world = world})
+                    Just channel = (Ok (ip, channel), {iworld & world = world})*/
+                
+    onInitHandler :: !() !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
+    onInitHandler _ r iworld
+        # (mbl, mbw, out, close) = handlers.ExternalProcessHandlers.onStartup r
+        = (mbl, mbw, out, close, iworld)
+
+    mkIOTaskInstance :: !() !(!ProcessHandle, !ProcessIO) -> *IOTaskInstance
+    mkIOTaskInstance _ (pHandle, pIO)
+        # opts = {ExternalProcessInstanceOpts|taskId = taskId, connectionId = 0, externalProcessTask = extProcTask}
+        = ExternalProcessInstance opts pHandle pIO
+
+addIOTask :: !TaskId
+             !(RWShared () Dynamic Dynamic)
+             !(*IWorld -> (!MaybeErrorString (!initInfo, !.ioChannels), !*IWorld))
+             !((!.ioChannels, !*IWorld) -> *IWorld)
+             !(String -> (!.ioChannels, !*IWorld) -> (!.ioChannels, !*IWorld))
+             !(initInfo Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
+             !(initInfo .ioChannels -> *IOTaskInstance)
+             !*IWorld
+          -> (!MaybeError TaskException (), !*IWorld)
+addIOTask taskId sds init closeIO writeData onInitHandler mkIOTaskInstance iworld
+    # (mbInitRes, iworld) = init iworld
+    = case mbInitRes of
+        Error e = (Error (exception e), iworld)
+        Ok (initInfo, ioChannels)
             // Read share
-            # (mbr,iworld) = 'SDS'.read sds {iworld & ioTasks = {done=done,todo=todo}, ioStates = ioStates, world = world}
-            | mbr =: (Error _)
-                = (liftError mbr, iworld)
-            // Evaluate onConnect handler
-            # (mbl,mbw,out,close,iworld=:{IWorld|ioTasks={done,todo},ioStates,world}) = handlers.ConnectionHandlersIWorld.onConnect (toString ip) (fromOk mbr) iworld
-            // Write possible output
-            # (sChannel,world) = case out of
-                []          = (sChannel,world)
-                data        = foldl (\(s,w) d -> send (toByteSeq d) s w) (sChannel,world) data
-            //Close connection, or add to queue
+            # (mbr, iworld) = 'SDS'.read sds iworld
+            | isError mbr = (liftError mbr, iworld)
+            // Evaluate onInit handler
+            # (mbl, mbw, out, close, iworld) = onInitHandler initInfo (fromOk mbr) iworld
+            // write output
+            //# (ioChannels, iworld) = seq [writeData o \\ o <- out] (ioChannels, iworld)
+            //Close or add to queue
             | close
-         	    # world = closeRChannel rChannel world
-                # world = closeChannel sChannel world
-                = (Ok (), {iworld & ioTasks = {done=done,todo=todo}, ioStates = ioStates, world = world})
-            | otherwise
-                # opts = {ConnectionInstanceOpts|taskId = taskId, connectionId = 0, remoteHost = ip, connectionTask = connectionTask, removeOnClose = False}
-                # todo = todo ++ [ConnectionInstance opts {rChannel=rChannel,sChannel=sChannel}]
-                # ioStates = case mbl of
-                    Ok l        = 'DM'.put taskId (IOActive ('DM'.fromList [(0,(l,False))])) ioStates
-                    Error e     = 'DM'.put taskId (IOException e) ioStates
-                = (Ok (),{iworld & ioTasks = {done=done,todo=todo}, ioStates = ioStates, world = world})
+                # iworld = closeIO (ioChannels, iworld)
+                = (Ok (), iworld)
+            # ioStates = iworld.ioStates
+            # ioStates = case mbl of
+                Ok l    = 'DM'.put taskId (IOActive ('DM'.fromList [(0,(l, False))])) ioStates
+                Error e = 'DM'.put taskId (IOException e) ioStates
+            # {done, todo} = iworld.ioTasks
+            = (Ok (), {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance initInfo ioChannels : done], todo = todo}})
 
 //Dynamically add a background task
 addBackgroundTask :: !BackgroundTask !*IWorld -> (!MaybeError TaskException BackgroundTaskId,!*IWorld)

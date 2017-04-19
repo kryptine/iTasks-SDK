@@ -84,3 +84,6 @@ JSONDecode{|TypeCode|} [JSONArray [JSONString "TypeUnique", tc]:ts]
 JSONDecode{|TypeCode|} ts = (Nothing, ts)
 */
 
+toDyn :: a -> Dynamic | TC a
+toDyn x = dynamic x
+

@@ -8,10 +8,11 @@ from Data.Set               import :: Set
 from StdFile			                import class FileSystem		
 from System.Time				        import :: Timestamp
 from Text.JSON				            import :: JSONNode
+from System.Process         import :: ProcessHandle, :: ProcessIO
 from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
 from iTasks.UI.Definition				import :: UI, :: UINodeType
 from iTasks._Framework.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
-from iTasks._Framework.Task             import :: TaskValue, :: ConnectionTask, :: BackgroundTask, :: Event
+from iTasks._Framework.Task             import :: TaskValue, :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask, :: Event
 from iTasks._Framework.SDS import :: SDSNotifyRequest, :: BasicShareId
 from iTasks._Framework.SDS import :: RWShared, :: ReadWriteShared, :: Shared, :: JSONShared
 
@@ -93,9 +94,10 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     }
 
 :: *IOTaskInstance
-    = ListenerInstance !ListenerInstanceOpts !*TCP_Listener
-    | ConnectionInstance !ConnectionInstanceOpts !*TCP_DuplexChannel
-    | BackgroundInstance !BackgroundInstanceOpts !BackgroundTask
+    = ListenerInstance        !ListenerInstanceOpts !*TCP_Listener
+    | ConnectionInstance      !ConnectionInstanceOpts !*TCP_DuplexChannel
+    | ExternalProcessInstance !ExternalProcessInstanceOpts !ProcessHandle !ProcessIO
+    | BackgroundInstance      !BackgroundInstanceOpts !BackgroundTask
 
 :: ListenerInstanceOpts =
     { taskId                :: !TaskId          //Reference to the task that created the listener
@@ -115,6 +117,12 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
 :: ConnectionId             :== Int
 
+:: ExternalProcessInstanceOpts =
+    { taskId                :: !TaskId              //Reference to the task that started the external process
+    , connectionId          :: !ConnectionId        //Unique connection id (per listener/outgoing connection)     
+    , externalProcessTask   :: !ExternalProcessTask //The io task definition that defines how the process IO is handled
+    }
+
 :: BackgroundInstanceOpts =
     { bgInstId              :: !BackgroundTaskId
     }
@@ -124,8 +132,8 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
 :: IOStates :== Map TaskId IOState
 :: IOState
-    = IOActive      !(Map ConnectionId (!Dynamic,!Bool))
-    | IODestroyed   !(Map ConnectionId (!Dynamic,!Bool))
+    = IOActive      !(Map ConnectionId (!Dynamic,!Bool)) // Bool: stability
+    | IODestroyed   !(Map ConnectionId (!Dynamic,!Bool)) // Bool: stability
     | IOException   !String
 :: IOConnectionState =
     { connectionTaskState   :: !Dynamic //The persisted local state of the connection task that handles the connection

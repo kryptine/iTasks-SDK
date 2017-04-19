@@ -8,3 +8,6 @@ import Text.JSON
 unpackType 		:: !Dynamic -> TypeCode
 //typeCodeName 	:: !TypeCodeConstructor -> String
 //unsafeCreateDynamic :: !a !TypeCode -> Dynamic
+
+toDyn :: a -> Dynamic | TC a
+
