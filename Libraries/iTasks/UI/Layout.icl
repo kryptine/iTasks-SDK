@@ -438,7 +438,7 @@ where
 	applyIns Nothing path mvui = (NoChange,mvui)
 	applyIns (Just dst) path mvui
 		| destinationExists dst mvui
-			# (_,changes,mvui) = collectDestinationChanges mvui
+			# (_,changes,mvui) = collectDestinationChanges True mvui
 			# (change,mvui)    = applyAtDestinationPath dst changes mvui
 			= (change,mvui)
 		| otherwise = (NoChange,mvui)
@@ -466,7 +466,7 @@ where
 				# (ChangeChild change,mvui) = applyRem selection path ui //Recreate the state, it is now possible that subnodes are matched
 				= (InsertChild (applyUIChange change ui), if moved 1 0, mvui)
 			| otherwise 
-				//TODO: Don't we need to recursively adjust here?
+				//FIXME: Check if we don't we need to recursively adjust
 				= (ChangeChild NoChange, 0, mvui) //Wasn't moved, nothing to do
 
 	adjustRem selection path (ReplaceUI ui) mvui=:{MvUI|removed,moved}
@@ -555,7 +555,7 @@ where
 			# item=:{MvUI|removed} = getItem i items //If the item was removed by the layout, we don't need to move it downstream
 			# change = if removed [] [(adjustIndex i items,MoveChild (adjustIndex d items))]
 			# items = moveItem i d items
-			# (schanges, items) = adjustRemSiblings selection path (\x -> True) items //TODO: Improved the predicate, we don't have to check all...
+			# (schanges, items) = adjustRemSiblings selection path (\x -> True) items //TODO: Improve the predicate, we don't have to check all...
 			= (change ++ schanges, items) 
 		| otherwise
 			= ([],items)
@@ -580,22 +580,98 @@ where
 	adjustIns Nothing path mvui = (NoChange,mvui)
 	adjustIns (Just dst) path mvui
 		//First check if the previously inserted nodes are still where they were last time
-		//If they are not, remove them if necessary and clear all 'moved' annotations in the state
+		//If they are not, remove them if necessary
+		# (dstExists,dstNew,correctionChange,mvui) = adjustDestination (Just dst) mvui
 		//Then collect the changes to the destination and apply them in the right place
-		| destinationExists dst mvui
-			//TODO: Check if the insert section has not moved...
-			# (i,changes,mvui) = collectDestinationChanges mvui
-			# (change,mvui)    = applyAtDestinationPath dst changes mvui
-			= (change,mvui)
+		| dstExists
+			# (_,changes,mvui)    = collectDestinationChanges dstNew mvui
+			# (updateChange,mvui) = applyAtDestinationPath dst changes mvui
+			= (mergeUIChanges correctionChange updateChange, mvui)
 		| otherwise
-			//TODO: Check if there is still a misplaced insert section 
-			= (NoChange,mvui)
+			= (correctionChange,mvui)
 
-	collectDestinationChanges mvui = collect 0 mvui
+	//Check if a MvUIMoveDestination node is found where we expect it.
+	//If it is not, we remove it from the state and create a change to correct the downstream UI 
+	//We also return if we had to insert the exists and if we inserted the destination node for the first time
+	adjustDestination :: (Maybe (UIPath, Int)) MvUI -> (Bool, Bool,UIChange, MvUI)
+	adjustDestination (Just ([], pos)) mvui=:{MvUI|children} //We found the correct container, start looking for MvUIMoveDestination node
+		| pos < 0 = (False,False,NoChange,mvui) //Out of bounds...
+		# dstExists = numItems children >= pos
+		= case find 0 0 children of
+			Nothing //Not found, check if there are enough items for the position
+				= (dstExists, True, NoChange, mvui)
+			Just (i,ai,n) //Found
+				| i == pos //The inserted segment is where it should be!
+				    = (True, False, NoChange, mvui)
+				| i < pos  //Elements have been removed before the inserted segment
+					| dstExists //If there are 'enough' items we can move elements from after the inserted segment to just before it
+						# difference = pos - i
+						# change = ChangeUI [] [(ai + n + j, MoveChild (ai + j)) \\ j <- [0 .. (difference - 1)]]
+						# children = moveMoveDestinationTowardsEnd difference children
+						= (True, False,change, {MvUI|mvui & children = children})
+					| otherwise //If there are not enough elements, then the destination should not exist
+						# change = ChangeUI [] (repeatn n (ai,RemoveChild))
+						# children = [x \\ x <- children | not (x =:(MvUIMoveDestination _))]
+					    = (False,False,change, {MvUI|mvui & children = children})
+				| i > pos  //Elements have been inserted before the inserted segment
+					# difference = i - pos
+					# change = ChangeUI [] [(ai - 1 - j, MoveChild (ai + n - 1 - j)) \\ j <- [0 .. (difference - 1)]]
+					# children = moveMoveDestinationTowardsBegin difference children
+					= (True,False,change, {MvUI|mvui & children = children})
+	where
+		find i ai [] = Nothing
+		find i ai [MvUIMoveDestination n:_] = Just (i,ai,n)
+		find i ai [MvUIItem x:xs] = find (i + 1) (if x.MvUI.removed ai (ai + 1)) xs
+		find i ai [_:xs] = find i ai xs
+
+	//We found the correct container, start looking for MvUIMoveDestination node
+	adjustDestination (Just ([s:ss], pos)) mvui=:{MvUI|children} //We are still searching for the destination
+		# (dstExists, dstNew, changes, children) = adjust 0 0 children
+		# change = case changes of
+			[] = NoChange
+			_  = ChangeUI [] changes
+		= (dstExists,dstNew,change, {MvUI|mvui & children = children})
+	where
+		adjust i ai [] = (False,False,[],[])
+		adjust i ai [MvUIItem x:xs]
+			# (de,dn,c,x)     = adjustDestination (if (i == s) (Just (ss,pos)) Nothing) x
+			# (des,dns,cs,xs) = adjust (i + 1) (if x.MvUI.removed ai (ai + 1)) xs
+			= case c of 
+				NoChange = (de || des, dn || dns, cs, [MvUIItem x:xs])
+				_        = (de || des, dn || dns, [(ai,ChangeChild c):cs], [MvUIItem x:xs])
+		adjust i ai [MvUIMoveDestination n :xs] //This should not be here, create remove instructions
+			# (de,dn,cs,xs)   = adjust i ai xs
+			= (de,dn,repeatn n (ai,RemoveChild) ++ cs, xs)
+		adjust i ai [x:xs] //Ignore other nodes
+			# (de,dn,cs,xs)   = adjust i ai xs
+			= (de,dn,cs,[x:xs])
+
+	adjustDestination Nothing mvui=:{MvUI|children}
+		# (changes, children) = adjust 0 0 children //There should not be a destination node here, process children and remove it when we find one
+		# change = case changes of
+			[] = NoChange
+			_  = ChangeUI [] changes
+		= (False,False,change,{MvUI|mvui & children = children})
+	where
+		adjust i ai [] = ([],[])
+		adjust i ai [MvUIItem x:xs]
+			# (_,_,c,x) = adjustDestination Nothing x
+			# (cs,xs)   = adjust (i + 1) (if x.MvUI.removed ai (ai + 1)) xs
+			= case c of 
+				NoChange = (cs,[MvUIItem x:xs])
+				_        = ([(ai,ChangeChild c):cs], [MvUIItem x:xs])
+		adjust i ai [MvUIMoveDestination n :xs] //This should not be here, create remove instructions
+			# (cs,xs)   = adjust i ai xs
+			= (repeatn n (ai,RemoveChild) ++ cs, xs)
+		adjust i ai [x:xs] //Ignore other nodes
+			# (cs,xs)   = adjust i ai xs
+			= (cs,[x:xs])
+
+	collectDestinationChanges dstNew mvui = collect 0 mvui
 	where
 		collect i mvui=:{MvUI|removed,moved,dstChange,children}
 			| removed 
-				| moved //Already moved, apply the local changes
+				| moved && not dstNew //Already moved, only apply the local changes
 					= case dstChange of
 						NoChange = (i + 1, [], mvui)
 						_        = (i + 1, [(i,ChangeChild dstChange)],{MvUI|mvui & dstChange = NoChange})
@@ -650,7 +726,8 @@ where
 		startsWith [p:ps] [d:ds] = if (p == d) (startsWith ps ds) False
 		startsWith _ _ = False
 
-	destinationExists ([],pos) {MvUI|children} = pos >= 0 && length [item \\ MvUIItem item <- children] >= (pos - 1)
+	destinationExists ([],pos) {MvUI|children}
+		= pos >= 0 && pos <= numItems children
 	destinationExists ([s:ss],pos) {MvUI|children}
 		| s >= 0 && s < numItems children = destinationExists (ss,pos) (getItem s children)
 										  = False
@@ -689,6 +766,9 @@ where
 	updateMoveDestination i f [MvUIItem x:xs]            = [MvUIItem x:updateMoveDestination (i - 1) f xs]
 	updateMoveDestination i f [x:xs]                     = [x:updateMoveDestination i f xs]
 	updateMoveDestination i f [] = []
+
+    moveMoveDestinationTowardsEnd n children = children //FIXME
+    moveMoveDestinationTowardsBegin n children = children
 
 	//Compute the amount of nodes marked as moved plus the sum of all nodes with information about nodes that are no lnoger moved
 	countNoLongerMoved {MvUI|moved,children} = (if moved 1 0) + sum [countNoLongerMoved x \\ MvUIItem x <- children] + sum [n \\ MvUINoLongerMoved n <- children]
@@ -789,23 +869,34 @@ where
 
 		adjustChildChange i (ChangeChild change) items states
 			//Recursively adjust the change
-			| i >= length items = abort "adjustChildChange index too large"
-			# (change, item, state) = adjust` (path ++ [i]) change (items !! i) (ltGet i states)
-			= (case change of NoChange = []; _ = [(i,ChangeChild change)], updateAt i item items, ltPut i state states)
+			| i >= 0 && i < length items
+				# (change, item, state) = adjust` (path ++ [i]) change (items !! i) (ltGet i states)
+				= (case change of NoChange = []; _ = [(i,ChangeChild change)], updateAt i item items, ltPut i state states)
+			| otherwise
+				= ([],items, states)
 		adjustChildChange i (InsertChild ui) items states
-			//(potentially) apply the layout to the inserted item
-			# (change,state) = apply` (path ++ [i]) ui
-			//Check the siblings, because their path has changed
-			# (schanges, items, states) = adjustSiblings path (\x -> x > i) (insertAt i ui items) (ltInsert i state states)
-			= ([(i,InsertChild (applyUIChange change ui)):schanges], items, states)
+			| i >= 0 && i <= length items
+				//(potentially) apply the layout to the inserted item
+				# (change,state) = apply` (path ++ [i]) ui
+				//Check the siblings, because their path has changed
+				# (schanges, items, states) = adjustSiblings path (\x -> x > i) (insertAt i ui items) (ltInsert i state states)
+				= ([(i,InsertChild (applyUIChange change ui)):schanges], items, states)
+			| otherwise
+				= ([], items, states)
 		adjustChildChange i RemoveChild items states
-			//Check the siblings, because their path has changed
-			# (schanges, items, states) = adjustSiblings path (\x -> x >= i) (removeAt i items) (ltRemove i states)
-			= ([(i,RemoveChild):schanges], items, states)
+			| i >= 0 && i < length items
+				//Check the siblings, because their path has changed
+				# (schanges, items, states) = adjustSiblings path (\x -> x >= i) (removeAt i items) (ltRemove i states)
+				= ([(i,RemoveChild):schanges], items, states)
+			| otherwise
+				= ([], items, states)
 		adjustChildChange i (MoveChild d) items states
-			//Check the siblings, because their path has changed //TODO: We can do better... don't need to check all
-			# (schanges, items, states) = adjustSiblings path (const True) (listMove i d items) (ltMove i d states)
-			= ([(i,MoveChild d):schanges], items, states)
+			| i >= 0 && i < length items && d >= 0 && d < length items
+				//Check the siblings, because their path has changed //TODO: We can do better... don't need to check all
+				# (schanges, items, states) = adjustSiblings path (const True) (listMove i d items) (ltMove i d states)
+				= ([(i,MoveChild d):schanges], items, states)
+			| otherwise
+				= ([], items, states)
 
 		adjustSiblings path whichSiblings items states = adjust 0 items states
 		where

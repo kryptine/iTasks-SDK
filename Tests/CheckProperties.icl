@@ -12,7 +12,7 @@ import Gast.StdProperty
 
 import StdGeneric
 from StdFunc import o, flip
-import StdEnum, StdBool
+import StdEnum, StdBool, StdTuple
 import Data.Map
 import Text.JSON
 import Text
@@ -34,7 +34,7 @@ derive ggen UI, UINodeType, UIChange, UIChildChange, UIAttributeChange, UISelect
 derive gLess UI, UINodeType, UIChange, UIChildChange, UIAttributeChange, UISelection, UIAttributeSelection, Map, JSONNode
 derive genShow UI, UINodeType, UIChange, UIChildChange, UIAttributeChange, UISelection, UIAttributeSelection, Map, JSONNode
 
-ggen{|Map|} fk fv n rnd = [newMap]
+ggen{|Map|} fk fv s = [newMap]
 
 // Properties that should hold for every layout
 
@@ -61,7 +61,10 @@ where
 /* Every change that would be 'valid' (e.g. only targeting existing parts of the ui) without the layout, should be valid
    with the layout. In other words, a layout should not introduce invalid changes.
 */
-
+remainValid layout changes ui
+	# withLayout = applyChangesWithLayout layout changes ui
+	# withoutLayout = applyChangesWithoutLayout changes ui
+	= fst withoutLayout ==> fst withLayout
 /**
 * When moving things around, the size of a UI should not change (if the target location exists)
 */
@@ -70,30 +73,49 @@ where
 uiSize :: UI -> Int
 uiSize (UI _ _ items) = foldr (\i s -> s + uiSize i) 1 items
 
-pathExists :: UIPath UI -> Bool
-pathExists [] _ = True
-pathExists [s:ss] (UI _ _ items)
-	| s >= 0 && s < length items = pathExists ss (items !! s)
-								 = False
-
-applyChangesWithLayout :: Layout [UIChange] UI -> UI
+applyChangesWithLayout :: Layout [UIChange] UI -> (Bool,UI)
 applyChangesWithLayout layout changes ui
 	//Apply the layout
 	# (achange, state) = layout.Layout.apply ui
 	# ui = applyUIChange achange ui
 	//Transform all further changes and apply them
-	# (ui,state) = applyChanges changes (ui,state)
-	= ui
+	# (ok,ui,state) = applyChanges changes (True,ui,state)
+	= (ok,ui)
 where
-	applyChanges [] (ui,state) = (ui,state)
-	applyChanges [c:cs] (ui,state) 
+	applyChanges [] (ok,ui,state) = (ok,ui,state)
+	applyChanges [c:cs] (ok,ui,state) 
 		# (c,state) = layout.Layout.adjust (c,state)
+		# ok = ok && isValidChange ui c
 		# ui = applyUIChange c ui
-		= applyChanges cs (ui,state)
+		= applyChanges cs (ok,ui,state)
 
-applyChangesWithoutLayout :: [UIChange] UI -> UI
+applyChangesWithoutLayout :: [UIChange] UI -> (Bool,UI)
 applyChangesWithoutLayout changes ui
-	= foldl (flip applyUIChange) ui changes
+	= foldl (\(o,u) c -> (o && isValidChange u c, applyUIChange c u)) (True,ui) changes
+
+//Check if the change is applicable to this UI (e.g. It does not address nodes that don't exist)
+isValidChange :: UI UIChange -> Bool
+isValidChange _ NoChange = True
+isValidChange _ (ReplaceUI _) = True
+isValidChange (UI _ _ items) (ChangeUI _ childChanges) = validChildChanges childChanges items
+where
+	validChildChanges [] items = True
+	validChildChanges [(i,ChangeChild change):is] items
+		| i < 0 || i >= length items  = False 
+		| not (isValidChange (items !! i) change) = False
+												  = validChildChanges is (updateAt i (applyUIChange change (items !! i)) items)
+
+	validChildChanges [(i,InsertChild item):is] items 
+		| i < 0 || i > length items  = False 
+									 = validChildChanges is (insertAt i item items)
+
+	validChildChanges [(i,RemoveChild):is] items 
+		| i < 0 || i >= length items  = False 
+									  = validChildChanges is (removeAt i items)
+
+	validChildChanges [(i,MoveChild d):is] items 
+		| i < 0 || i >= length items || d < 0 || d >= length items = False
+			= validChildChanges is (insertAt d (items !! i) (removeAt i items))
 
 // Tests for every core layout
 
@@ -129,15 +151,24 @@ checkMoveSubUIs :: UISelection UIPath [UIChange] UI -> Bool
 checkMoveSubUIs selection dst changes ui = applyAndRevert (moveSubUIs selection dst 0) changes ui
 
 //If the target path exists in a ui, then moving elements around should not affect the number of elements
-checkSizeMoveSubUIs :: UISelection UIPath /*[UIChange]*/ UI -> Property
-checkSizeMoveSubUIs selection dst /*changes*/ ui
-	# changes = []
-	# withLayout = applyChangesWithLayout (moveSubUIs selection dst 0) changes ui
+checkSizeMoveSubUIs :: UISelection UIPath Int [UIChange] UI -> Property
+checkSizeMoveSubUIs selection dst pos changes ui
+	# withLayout = applyChangesWithLayout (moveSubUIs selection dst pos) changes ui
 	# withoutLayout = applyChangesWithoutLayout changes ui
-	= (pathExists dst withoutLayout) ==> uiSize withLayout == uiSize withoutLayout
+	= (dstExists dst pos (snd withoutLayout)) ==> uiSize (snd withLayout) == uiSize (snd withoutLayout)
+where
+
+	dstExists :: UIPath Int UI -> Bool
+	dstExists [] pos (UI _ _ items) = pos >= 0 && pos <= length items
+	dstExists [s:ss] pos (UI _ _ items)
+		| s >= 0 && s < length items = dstExists ss pos (items !! s)
+								     = False
+//Check valid 
+checkValidMoveSubUIs :: UISelection UIPath Int [UIChange] UI -> Property
+checkValidMoveSubUIs selection dst pos changes ui = remainValid (moveSubUIs selection dst pos) changes ui
 
 //Tests for composite layouts
-NUM :== 200
+NUM :== 100000
 
 //Start = testn NUM checkSetUIType
 //Start = testn NUM checkSetUIAttributes
@@ -148,6 +179,6 @@ NUM :== 200
 //Start = testn NUM checkUnwrapUI
 //Start = testn NUM checkInsertChildUI
 //Start = testn NUM checkRemoveSubUIs
-Start = testn NUM checkSizeMoveSubUIs
-
+Start = Test [Tests NUM, RandomSeed 1984] (\s t u -> checkSizeMoveSubUIs s [0] 0 t u)
+//Start = testn NUM checkValidMoveSubUIs
 
