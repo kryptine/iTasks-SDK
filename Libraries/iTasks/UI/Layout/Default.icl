@@ -14,8 +14,12 @@ import qualified Data.Map as DM
 
 LABEL_WIDTH :== 100
 
+//Util:
+sequenceAllLayouts [] = idLayout
+sequenceAllLayouts list = foldl1 sequenceLayouts list 
+
 defaultSessionLayout :: Layout
-defaultSessionLayout = foldl1 sequenceLayouts 
+defaultSessionLayout = sequenceAllLayouts 
     [finalizeUI                                      //Finalize all remaining intermediate layouts
 	,removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))  //Remove temporary placeholders
 	,setUIAttributes (sizeAttr FlexSize FlexSize)      //Make sure we use the full viewport
@@ -23,26 +27,25 @@ defaultSessionLayout = foldl1 sequenceLayouts
 
 //The finalize layouts remove all intermediate 
 finalizeUI :: Layout
-finalizeUI = foldl1 sequenceLayouts
+finalizeUI = sequenceAllLayouts
 	[layoutSubUIs (SelectByType UIInteract) finalizeInteract
 	,layoutSubUIs (SelectByType UIStep) finalizeStep
 	,layoutSubUIs (SelectByType UIParallel) finalizeParallel
 	]
 
 finalizeInteract :: Layout
-finalizeInteract = layout
-where
-	layout = foldl1 sequenceLayouts 
+finalizeInteract = sequenceAllLayouts
 		[layoutSubUIs (SelectByPath [1]) finalizeEditor
-		,copySubUIAttributes (SelectKeys ["title"]) [0] []
+		,copyContentTitle 
 		,removeEmptyPrompt
 		,setUIType UIPanel
 		] 
-
+where
 	removeEmptyPrompt = layoutSubUIs (SelectAND (SelectByPath []) (SelectRelative [0] (SelectByNumChildren 0))) (removeSubUIs (SelectByPath [0]))
+	copyContentTitle = copySubUIAttributes (SelectKeys ["title"]) [0] []
 
 finalizeEditor :: Layout
-finalizeEditor = foldl1 sequenceLayouts
+finalizeEditor = sequenceAllLayouts
 	[layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIRecord)) finalizeRecord
 	,layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UICons)) finalizeCons
 	,layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIVarCons)) finalizeVarCons
@@ -55,7 +58,7 @@ selectFormComponent
 						        ,UICheckbox,UISlider,UIDocumentField,UIDropdown,UICheckGroup,UITextView,UIHtmlView]
 					    ]
 
-finalizeFormComponent = foldl1 sequenceLayouts
+finalizeFormComponent = sequenceAllLayouts
 	[layoutSubUIs (SelectAND SelectDescendents (selectEditorIntermediate)) finalizeEditor
 	,toFormItem
 	]
@@ -69,21 +72,21 @@ selectEditorParts
 	= SelectOR selectFormComponent selectEditorIntermediate
 
 finalizeRecord :: Layout
-finalizeRecord = foldl1 sequenceLayouts
+finalizeRecord = sequenceAllLayouts
 	[layoutSubUIs (SelectAND SelectDescendents selectEditorParts) finalizeEditor 
 	,setUIType UIContainer
 	,setUIAttributes (heightAttr WrapSize)
 	]
 
 finalizeCons :: Layout
-finalizeCons = foldl1 sequenceLayouts
+finalizeCons = sequenceAllLayouts
 	[layoutSubUIs (SelectAND SelectDescendents selectEditorParts) finalizeEditor 
 	,setUIAttributes (directionAttr Horizontal)
 	,setUIType UIContainer
 	,toFormItem
 	]
 finalizeVarCons :: Layout
-finalizeVarCons = foldl1 sequenceLayouts
+finalizeVarCons = sequenceAllLayouts
 	[layoutSubUIs (SelectAND SelectDescendents selectEditorParts) finalizeEditor 
 	,layoutSubUIs (SelectByPath [0]) (setUIAttributes (widthAttr WrapSize)) //Make the constructor selection wrapping
 	,setUIAttributes (directionAttr Horizontal)
@@ -92,43 +95,46 @@ finalizeVarCons = foldl1 sequenceLayouts
 	]
 
 finalizeStep :: Layout
-finalizeStep = foldl1 sequenceLayouts
-	//STRAIGHTFORWARD TEMPORARY VERSION
-	[layoutSubUIs (SelectAND (SelectByPath []) (SelectAND (SelectByType UIStep) (SelectByContains (SelectAND SelectChildren (SelectByType UIAction)))))
-					 (foldl1 sequenceLayouts [layoutSubUIs (SelectByPath [0]) finalizeUI, actionsToButtonBar,setUIType UIPanel])
-	,layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIStep))
-					(foldl1 sequenceLayouts [unwrapUI,finalizeUI])
-	]
-	//VERSION THAT SHOULD EVENTUALLY WORK... (NEEDS REDESIGN OF LAYOUT STATE FIRST)
-/*
-	//In case of nested steps, memove disabled actions
-	[layoutSubUIs (SelectAND (SelectByPath []) (SelectByHasChildrenOfType UIStep))
-		(removeSubUIs (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" (JSONBool True)))))
+finalizeStep = sequenceAllLayouts
+	[removeDisabledActionsOfNestedSteps //In case of nested steps, memove disabled actions
 	//If there are no actions, unwrap
-	,layoutSubUIs (SelectAND (SelectByPath []) (SelectNOT (SelectByHasChildrenOfType UIStep)))
-		(foldl1 sequenceLayouts [unwrapUI,finalizeUI])
-	//Else, create a buttonbar
-	,layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIStep)) // (only if the previous layout has not yet eliminated the UIStep)
-	 	(foldl1 sequenceLayouts [layoutSubUIs (SelectByPath [0]) finalizeUI, actionsToButtonBar,setUIType UIPanel])
+	,layoutSubUIs (ContainsNoChildOfType UIAction) (sequenceLayouts unwrapUI finalizeUI)
+	//If the previous rule did not eliminate the UIStep
+	,layoutSubUIs RootIsStep  
+	 	(sequenceAllLayouts [layoutSubUIs (SelectByPath [0]) finalizeUI, actionsToButtonBar,setUIType UIPanel])
 	]
-*/
+where
+	removeDisabledActionsOfNestedSteps //Select all children of type UIstep
+		= layoutSubUIs (ContainsChildOfType UIStep)
+			(sequenceAllLayouts 
+				[removeDisabledActions //Remove disabled actions
+				,layoutSubUIs (SelectAND SelectChildren (SelectByType UIStep)) removeDisabledActions //Recursively apply to the UIStep child
+				]
+			)
+	removeDisabledActions
+		= removeSubUIs (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" (JSONBool False))))
+
+	ContainsChildOfType type =SelectAND (SelectByPath []) (SelectByContains (SelectAND SelectChildren (SelectByType type)))
+	ContainsNoChildOfType type =SelectAND (SelectByPath []) (SelectNOT (SelectByContains (SelectAND SelectChildren (SelectByType type))))
+	RootIsStep = SelectAND (SelectByPath []) (SelectByType UIStep)
+
 finalizeParallel :: Layout
-finalizeParallel = foldl1 sequenceLayouts
+finalizeParallel = sequenceAllLayouts
 	[layoutSubUIs (SelectAND (SelectByPath []) (SelectAND (SelectByType UIParallel) (SelectByContains (SelectAND SelectChildren (SelectByType UIAction))))) layoutWithActions
 	,layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIParallel)) layoutWithoutActions
 	]
 where
-	layoutWithoutActions = foldl1 sequenceLayouts
+	layoutWithoutActions = sequenceAllLayouts
 		[layoutSubUIs (SelectAND SelectDescendents selectIntermediate) finalizeUI
 		,setUIType UIContainer
 		]
-	layoutWithActions = foldl1 sequenceLayouts
+	layoutWithActions = sequenceAllLayouts
 		[actionsToButtonBar
 		,layoutSubUIs (SelectAND SelectDescendents selectIntermediate) finalizeUI
 		,setUIType UIPanel
 		]
 
-actionsToButtonBar = foldl1 sequenceLayouts
+actionsToButtonBar = sequenceAllLayouts
 	[insertChildUI 1 (ui UIButtonBar) //Create a buttonbar
 	,moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [1] 0 //Move all actions to the buttonbar
 	,layoutSubUIs (SelectByPath [1]) (layoutSubUIs SelectChildren actionToButton) //Transform actions to buttons 
@@ -137,7 +143,7 @@ actionsToButtonBar = foldl1 sequenceLayouts
 //Flatten an editor into a form
 toFormItem :: Layout
 toFormItem = layoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAttribute LABEL_ATTRIBUTE) (SelectByHasAttribute HINT_ATTRIBUTE)))
-	(foldl1 sequenceLayouts
+	(sequenceAllLayouts
 		//Create the 'row' that holds the form item
 		[wrapUI UIContainer
 		,setUIAttributes ('DM'.unions [marginsAttr 2 4 2 4, directionAttr Horizontal, sizeAttr FlexSize WrapSize])
@@ -149,7 +155,7 @@ toFormItem = layoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAtt
 	)
 where
 	optAddLabel = layoutSubUIs (SelectByContains (SelectAND (SelectByPath [0]) (SelectByHasAttribute LABEL_ATTRIBUTE))) addLabel
-	addLabel = foldl1 sequenceLayouts
+	addLabel = sequenceAllLayouts
 		[insertChildUI 0 (uia UILabel (widthAttr (ExactSize LABEL_WIDTH)))
 		,copySubUIAttributes (SelectKeys ["label","optional","mode"]) [1] [0]
 		,layoutSubUIs (SelectByPath [0]) (modifyUIAttributes (SelectKeys ["label","optional","mode"]) createLabelText)
