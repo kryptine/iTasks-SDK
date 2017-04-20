@@ -140,17 +140,23 @@ where
 	layout = foldl1 sequenceLayouts
 		[ arrangeWithSideBar 0 LeftSide 260 True
 		, layoutSubUIs (SelectByPath [0]) layoutStartWork
-		, layoutSubUIs (SelectByPath [1]) (foldl1 sequenceLayouts
-			[layoutSubUIs (SelectByPath [1]) (wrapUI UIContainer) //Put manageSession and manageWork together in a container
-			,moveSubUIs (SelectByPath [0]) [1] 0
-			,layoutSubUIs (SelectByPath [0,0]) layoutManageSession
-			,arrangeWithSideBar 0 TopSide 200 True
-			,layoutSubUIs (SelectByPath [1]) arrangeWithTabs
-			])
+		, layoutSubUIs (SelectByPath [1]) layoutDoWork
 		, setUIAttributes (sizeAttr FlexSize FlexSize)
 		]
 
 	layoutStartWork = arrangeWithSideBar 1 BottomSide  200 True
+
+	layoutDoWork = foldl1 sequenceLayouts
+			[layoutSubUIs (SelectByPath [0]) layoutManageSession
+			//Put manageSession and manageWork together in a container
+			,layoutSubUIs (SelectByPath [0]) (wrapUI UIContainer)
+		    ,moveSubUIs (SelectByPath [1]) [0] 1
+			//Split the screen real estate
+			,arrangeWithSideBar 0 TopSide 200 True
+			//Layout all dynamically added tasks as tabs
+			,layoutSubUIs (SelectByPath [1]) arrangeWithTabs
+			]
+
 	layoutManageSession = foldl1 sequenceLayouts 
 		[unwrapUI
 		,layoutSubUIs SelectChildren actionToButton
