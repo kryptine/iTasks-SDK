@@ -80,9 +80,6 @@ function __iTasks_UI_JS_Interface_jsGetObjectAttr(attr,obj,world) {
 	}catch(err){
 		value = undefined;
 	}
-    if(typeof value	=== 'undefined') {
-        console.warn("jsGetObjectAttr: accessed undefined attribute: "+attr);
-    }
 	return ___Tuple2(___wrapJS(value), world);
 }
 

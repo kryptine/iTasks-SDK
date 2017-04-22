@@ -21,6 +21,7 @@ import Tests.Common.MinimalTasks
 
 derive gText ServerInfo, SystemPaths, Queue
 derive gEq Queue
+derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, JSONNode, MaybeError
 
 testTaskEvaluation :: TestSuite
 testTaskEvaluation = testsuite "Task evaluation" "Tests to verify properties of task evaluation"

@@ -16,6 +16,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 import Text.HTML
+import StdMisc
 
 derive class iTask UI, UINodeType
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
@@ -239,8 +240,8 @@ instance encodeUI UI
 where
 	encodeUI (UI type attr items) = JSONObject (typeField ++ attrFields ++ childrenField)
 	where
-		typeField     = [("xtype",JSONString (toString type))]
-		attrFields    = 'DM'.toList attr
+		typeField     = [("type",JSONString (toString type))]
+		attrFields    = [("attributes",JSONObject ('DM'.toList attr))]
 		childrenField = case items of
 			[]    = []
 			_     = [("children",JSONArray (map encodeUI items))]
@@ -344,17 +345,28 @@ applyUIChange NoChange ui = ui
 applyUIChange (ReplaceUI ui) _ = ui
 applyUIChange (ChangeUI ca ci) (UI type attr items)
 	//Change the attributes
-	# attr = foldl appAttributeChange attr ca
+	# attr = foldl (flip applyUIAttributeChange) attr ca
 	//Adjust the children
 	# items = foldl appChildChange items ci
 	= UI type attr items
 where
-	appAttributeChange attr (SetAttribute n v) = 'DM'.put n v attr
+	appChildChange items (i,RemoveChild)
+		| i >= 0 && i < length items = removeAt i items
+									 = items
+	appChildChange items (i,InsertChild ui)
+		| i >= 0 && i <= length items = insertAt i ui items
+									  = items
+	appChildChange items (i,ChangeChild change)
+		| i >= 0 && i < length items = updateAt i (applyUIChange change (items !! i)) items
+		                             = items
+	appChildChange items (s,MoveChild d)
+		# num = length items
+		| s >= 0 && d >= 0 && s < num && d < num = insertAt d (items !! s) (removeAt s items)
+                                                 = items
 
-	appChildChange items (i,RemoveChild) = removeAt i items
-	appChildChange items (i,InsertChild ui) = insertAt i ui items
-	appChildChange items (i,ChangeChild change) = updateAt i (applyUIChange change (items !! i)) items
-	//FIXME: There is no case MoveChild
+applyUIAttributeChange :: !UIAttributeChange !UIAttributes -> UIAttributes
+applyUIAttributeChange (SetAttribute k v) attr  = 'DM'.put k v attr
+applyUIAttributeChange (DelAttribute k) attr = 'DM'.del k attr
 
 //Remove unnessecary directives
 compactUIChange :: UIChange -> UIChange
@@ -401,10 +413,13 @@ encodeUIChange (ReplaceUI def)
 encodeUIChange (ChangeUI attributes children)
 	= JSONObject
 		[("type",JSONString "change")
-		,("attributes", JSONArray [JSONObject [("name",JSONString name),("value",value)] \\ SetAttribute name value <- attributes])
+		,("attributes", JSONArray (map encodeAttrChange attributes))
 		,("children",JSONArray (map encodeChildChange children))
 		]
 where
+	encodeAttrChange (SetAttribute name value) = JSONObject [("name",JSONString name),("value",value)]
+	encodeAttrChange (DelAttribute name) = JSONObject [("name",JSONString name),("value",JSONNull)]
+
 	encodeChildChange (i,ChangeChild child) = JSONArray [JSONInt i,JSONString "change",encodeUIChange child]
 	encodeChildChange (i,RemoveChild) 		= JSONArray [JSONInt i,JSONString "remove"]
 	encodeChildChange (i,InsertChild child) = JSONArray [JSONInt i,JSONString "insert",encodeUI child]

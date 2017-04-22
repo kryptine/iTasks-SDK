@@ -98,7 +98,7 @@ svgRenderer svglet=:{initView,renderImage,updView,updModel}
                                  ,svgGrabPointX=0.0,svgGrabPointY=0.0,svgDragTarget=Nothing}
 
 	initDOMEl me args world
-		# (value,world) = .? (me .# "value") world
+		# (value,world) = .? (me .# "attributes.value") world
 		# (json,world) = jsValToJSONNode value world
 		= case fromJSON json of
 			Nothing = (jsNull,world)
@@ -241,8 +241,8 @@ doImageEvent me svglet svg elemId sttf local _ world
   	= (jsNull,onNewState me svglet model world)
   //Send edit event
   #! (json,world)     = (jsWindow .# "JSON.parse" .$ (toString (toJSON model))) world //TODO: Should not really print+parse here
-  #! (taskId,world)   = .? (me .# "taskId") world
-  #! (editorId,world) = .? (me .# "editorId") world
+  #! (taskId,world)   = .? (me .# "attributes.taskId") world
+  #! (editorId,world) = .? (me .# "attributes.editorId") world
   #! (_,world)  	  = (me .# "doEditEvent" .$ (taskId,editorId,json)) world
   //Re-render
   = (jsNull,onNewState me svglet model world)

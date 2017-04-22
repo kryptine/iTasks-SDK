@@ -3,22 +3,23 @@ implementation module iTasks.UI.Layout.Common
 import iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks.UI.Definition, iTasks.UI.Prompt
 import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
+import Data.List
 import qualified Data.Map as DM
 import StdBool
 from StdFunc import id, const, o
 
 arrangeWithTabs :: Layout
-arrangeWithTabs = layoutSubs (SelectAND SelectRoot (SelectByType UIParallel)) (setNodeType UITabSet)
+arrangeWithTabs = layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIParallel)) (setUIType UITabSet)
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
-arrangeWithSideBar index side size resize = sequenceLayouts 
+arrangeWithSideBar index side size resize = foldl1 sequenceLayouts 
 	[wrapUI UIPanel 			//Push the current container down a level
-	,copyAllAttributes [0] [] 	//Keep the attributes from the original UI
-	,setAttributes (directionAttr direction)
-	,insertSubAt [sidePanelIndex] (ui UIComponent) //Make sure we have a target for the move
-	,moveSubs (SelectByPath [mainPanelIndex,index]) [sidePanelIndex,0]
-	,layoutSubs (SelectByPath [sidePanelIndex]) unwrapUI //Remove the temporary wrapping panel
-	,layoutSubs (SelectByPath [sidePanelIndex]) (setAttributes (sizeAttr sidePanelWidth sidePanelHeight))
+	,copySubUIAttributes SelectAll [0] [] 	//Keep the attributes from the original UI
+	,setUIAttributes (directionAttr direction)
+	,insertChildUI sidePanelIndex (ui UIComponent) //Make sure we have a target for the move
+	,moveSubUIs (SelectByPath [mainPanelIndex,index]) [sidePanelIndex] 0
+	,layoutSubUIs (SelectByPath [sidePanelIndex]) unwrapUI //Remove the temporary wrapping panel
+	,layoutSubUIs (SelectByPath [sidePanelIndex]) (setUIAttributes (sizeAttr sidePanelWidth sidePanelHeight))
 	]
 where
 	sidePanelIndex = if (side === TopSide || side === LeftSide) 0 1
@@ -28,7 +29,7 @@ where
 	(sidePanelWidth,sidePanelHeight) = if (direction === Vertical) (FlexSize,ExactSize size) (ExactSize size,FlexSize)
 
 arrangeSplit :: !UIDirection !Bool -> Layout
-arrangeSplit direction resize = id
+arrangeSplit direction resize = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
 /*
 arrangeSplit :: !UIDirection !Bool -> UIBlocksCombinator
 arrangeSplit direction resize = arrange
@@ -47,50 +48,46 @@ where
 */
 
 arrangeVertical :: Layout
-arrangeVertical = setAttributes (directionAttr Vertical)
+arrangeVertical = setUIAttributes (directionAttr Vertical)
 
 arrangeHorizontal :: Layout
-arrangeHorizontal = setAttributes (directionAttr Horizontal)
+arrangeHorizontal = setUIAttributes (directionAttr Horizontal)
 
 frameCompact :: Layout
-frameCompact = sequenceLayouts
-	[setAttributes ('DM'.unions [frameAttr True,sizeAttr WrapSize WrapSize,marginsAttr 50 0 20 0,minWidthAttr (ExactBound 600)])
+frameCompact = foldl1 sequenceLayouts
+	[setUIAttributes ('DM'.unions [frameAttr True,sizeAttr WrapSize WrapSize,marginsAttr 50 0 20 0,minWidthAttr (ExactBound 600)])
 	,wrapUI UIContainer
-	,setAttributes (halignAttr AlignCenter)
+	,setUIAttributes (halignAttr AlignCenter)
 	]
 
 //TODO: Explicitly detect if we are before or after a step
 beforeStep :: Layout -> Layout
-beforeStep layout = layoutSubs (SelectAND SelectRoot (SelectByType UIStep)) layout
+beforeStep layout = layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIStep)) layout
 
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
-toWindow windowType vpos hpos = sequenceLayouts 
+toWindow windowType vpos hpos = foldl1 sequenceLayouts 
 	[wrapUI UIWindow
-	,copyAttributes [TITLE_ATTRIBUTE] [0] []
-	,layoutSubs (SelectByPath [0]) (delAttributes [TITLE_ATTRIBUTE])
-	,setAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
+	,copySubUIAttributes (SelectKeys [TITLE_ATTRIBUTE]) [0] []
+	,layoutSubUIs (SelectByPath [0]) (delUIAttributes (SelectKeys [TITLE_ATTRIBUTE]))
+	,setUIAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
 	]
 
 toEmpty :: Layout
-toEmpty = setNodeType UIEmpty
+toEmpty = setUIType UIEmpty
 
 toContainer :: Layout
-toContainer = setNodeType UIContainer 
+toContainer = setUIType UIContainer 
 
 toPanel :: Layout
-toPanel = setNodeType UIPanel
+toPanel = setUIType UIPanel
 
 actionToButton :: Layout
-actionToButton = layout 
+actionToButton = foldl1 sequenceLayouts
+	[setUIType UIButton
+	,modifyUIAttributes (SelectKeys ["actionId"]) (\attr -> maybe 'DM'.newMap
+																(\(JSONString a) -> 'DM'.unions [valueAttr (JSONString a),textAttr a,icon a]) ('DM'.get "actionId" attr))
+	]
 where
-	layout (ReplaceUI (UI UIAction attr _),_)
-		= case ('DM'.get "actionId" attr) of
-			Just (JSONString a)
-				= (ReplaceUI (uia UIButton ('DM'.unions [attr,valueAttr (JSONString a),textAttr a,icon a])),JSONNull)
-			_ 	= (ReplaceUI (uia UIButton attr),JSONNull)
-	
-	layout (change,s) = (change,s)
-
 	//Set default icons
 	icon "Ok" = iconClsAttr "icon-ok"
 	icon "Cancel" = iconClsAttr "icon-cancel"
@@ -115,9 +112,12 @@ where
 	icon _ = 'DM'.newMap
 
 setActionIcon :: (Map String String) -> Layout
-setActionIcon icons = modifyAttribute "actionId" f
+setActionIcon icons = modifyUIAttributes (SelectKeys ["actionId"]) f
 where
-	f (JSONString actionId) = maybe 'DM'.newMap (\icon -> iconClsAttr ("icon-"+++icon)) ('DM'.get actionId icons)
+	f attr = fromMaybe 'DM'.newMap
+		(                               'DM'.get "actionId" attr
+		  >>= \(JSONString actionId) -> 'DM'.get actionId icons
+		  >>= \icon ->                   return (iconClsAttr ("icon-"+++icon)))
 
 instance tune ArrangeWithTabs
 where tune ArrangeWithTabs t = tune (ApplyLayout arrangeWithTabs) t
@@ -158,16 +158,16 @@ where
 
 instance tune Title
 where
-	tune (Title title) t = tune (ApplyLayout (setAttributes (titleAttr title)) ) t
+	tune (Title title) t = tune (ApplyLayout (setUIAttributes (titleAttr title)) ) t
 	
 instance tune Icon
 where
-	tune (Icon icon) t = tune (ApplyLayout (setAttributes ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]))) t
+	tune (Icon icon) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]))) t
 
 instance tune Attribute
 where
-	tune (Attribute k v) t = tune (ApplyLayout (setAttributes ('DM'.fromList [(k,JSONString v)]))) t
+	tune (Attribute k v) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(k,JSONString v)]))) t
 
 instance tune Label
 where
-	tune (Label label) t = tune (ApplyLayout (setAttributes ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]))) t
+	tune (Label label) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]))) t

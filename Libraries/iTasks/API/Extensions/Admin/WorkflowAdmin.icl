@@ -7,6 +7,7 @@ import iTasks._Framework.Serialization
 import iTasks._Framework.Store
 from StdFunc import seq
 import qualified Data.Map as DM
+import Data.List
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Layout.Default, iTasks.UI.Layout.Common
 // SPECIALIZATIONS
 derive class iTask Workflow
@@ -100,8 +101,8 @@ where
 	browseAnonymous workflows
 		= manageWorklist workflows
 		
-	layout = sequenceLayouts
-		[layoutSubs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")]))
+	layout = foldl1 sequenceLayouts
+		[layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")]))
 		,frameCompact
 		]
 		
@@ -136,26 +137,32 @@ where
 	isValue (Value _ _) = True
 	isValue _			= False
 
-	layout = sequenceLayouts
+	layout = foldl1 sequenceLayouts
 		[ arrangeWithSideBar 0 LeftSide 260 True
-		, layoutSubs (SelectByPath [0]) layoutStartWork
-		, layoutSubs (SelectByPath [1]) (sequenceLayouts
-			[layoutSubs (SelectByPath [0]) (wrapUI UIContainer) //Put manageSession and manageWork together in a container
-			,layoutSubs (SelectByPath [0,0]) layoutManageSession
-			,moveSubs (SelectByPath [1]) [0,1]
-			,arrangeWithSideBar 0 TopSide 200 True
-			,layoutSubs (SelectByPath [1]) arrangeWithTabs
-			])
-		, setAttributes (sizeAttr FlexSize FlexSize)
+		, layoutSubUIs (SelectByPath [0]) layoutStartWork
+		, layoutSubUIs (SelectByPath [1]) layoutDoWork
+		, setUIAttributes (sizeAttr FlexSize FlexSize)
 		]
 
 	layoutStartWork = arrangeWithSideBar 1 BottomSide  200 True
-	layoutManageSession = sequenceLayouts 
+
+	layoutDoWork = foldl1 sequenceLayouts
+			[layoutSubUIs (SelectByPath [0]) layoutManageSession
+			//Put manageSession and manageWork together in a container
+			,layoutSubUIs (SelectByPath [0]) (wrapUI UIContainer)
+		    ,moveSubUIs (SelectByPath [1]) [0] 1
+			//Split the screen real estate
+			,arrangeWithSideBar 0 TopSide 200 True
+			//Layout all dynamically added tasks as tabs
+			,layoutSubUIs (SelectByPath [1]) arrangeWithTabs
+			]
+
+	layoutManageSession = foldl1 sequenceLayouts 
 		[unwrapUI
-		,layoutSubs SelectChildren actionToButton
-		,layoutSubs (SelectByPath [0]) (setNodeType UIContainer)
-		,setNodeType UIContainer
-		,setAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
+		,layoutSubUIs SelectChildren actionToButton
+		,layoutSubUIs (SelectByPath [0]) (setUIType UIContainer)
+		,setUIType UIContainer
+		,setUIAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
 		]
 
 manageSession :: !(SharedTaskList ClientPart) -> Task ClientPart
@@ -166,7 +173,7 @@ manageSession list =
 				]															
 		) <! isJust	
 	@	fromJust	
-	) <<@ ApplyLayout (layoutSubs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Shutdown","close"),("Log out","logout")])))
+	) <<@ ApplyLayout (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Shutdown","close"),("Log out","logout")])))
 where
 	view user	= "Welcome " +++ toString user		
 
@@ -273,13 +280,13 @@ openTask taskList taskId
 
 workOnTask :: !TaskId -> Task ClientPart
 workOnTask taskId
-    =   (workOn taskId <<@ ApplyLayout (setAttributes (heightAttr FlexSize))
+    =   (workOn taskId <<@ ApplyLayout (setUIAttributes (heightAttr FlexSize))
     >>* [OnValue    (ifValue ((===) ASExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this task" >>| return OpenProcess))
         ,OnValue    (ifValue ((===) ASIncompatible) (\_ -> dealWithIncompatibleTask))
         ,OnValue    (ifValue ((===) ASDeleted) (\_ -> return OpenProcess))
         ,OnValue    (ifValue ((===) (ASAttached True)) (\_ -> return OpenProcess)) //If the task is stable, there is no need to work on it anymore
         ,OnAction ActionClose   (always (return OpenProcess))
-        ] ) <<@ ApplyLayout (copyAttributes ["title"] [0] []) //Use the title from the workOn for the composition
+        ] ) <<@ ApplyLayout (copySubUIAttributes (SelectKeys ["title"]) [0] []) //Use the title from the workOn for the composition
 where
     dealWithIncompatibleTask
         =   viewInformation (Title "Error") [] "This this task is incompatible with the current application version. Restart?"

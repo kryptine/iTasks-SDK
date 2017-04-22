@@ -3,6 +3,8 @@ import iTasks, TestFramework
 import iTasks.UI.Definition
 import System.OS
 
+derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, JSONNode
+
 testCoreTasksUI :: TestSuite
 testCoreTasksUI = testsuite "UIs of core tasks" "Tests for UI behavior of core tasks"
 	[skip (testCallFastProcess)
