@@ -27,7 +27,8 @@ from Text.JSON import :: JSONNode
 	= LSNone                                           //No state is tracked for a layout
 	| LSType !UI                                       //State for layouts that change the type
 	| LSAttributes !UIAttributes                       //State for layouts that modify attributes
-	| LSAttributeChanges !UIAttributes !UIAttributes   //A more extended state for layouts that modify attributes
+	| LSModifyAttributes !UIAttributes !UIAttributes   //A more extended state for layouts that modify attributes
+	| LSCopyAttributes !UI                             //A more extended state for layouts that copy attributes
 	| LSWrap !UI                                       //State for unwrap layouts
 	| LSUnwrap !UI                                     //State for unwrap layouts
 	| LSInsert !Int                                    //State for inserting layouts
@@ -148,13 +149,23 @@ sequenceLayouts :: Layout Layout -> Layout
 * This layout can apply any transformation on UI's, but it replaces everything on each change.
 * Use this only as a debugging tool, because it will effectively remove the minimal data exchange of editors with UIChanges
 */
-referenceLayout :: (UI -> UI) -> Layout
+referenceLayout :: (UI -> UI) -> Layout 
 
-//TYPES EXPORTED FOR TESTING
-:: NodeMoves :== [(Int,NodeMove)] 
-:: NodeMove = BranchMoved
-            | BranchHidden UI
-            | ChildBranchesMoved NodeMoves
+applyLayout :: Layout UI -> UI 
+
+//Reference layouts of all core layouts for testing
+setUITypeRef_            :: UINodeType -> Layout
+setUIAttributesRef_      :: UIAttributes -> Layout
+delUIAttributesRef_      :: UIAttributeSelection -> Layout
+modifyUIAttributesRef_   :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
+copySubUIAttributesRef_  :: UIAttributeSelection UIPath UIPath -> Layout
+wrapUIRef_               :: UINodeType -> Layout
+unwrapUIRef_             :: Layout
+insertChildUIRef_        :: Int UI -> Layout
+removeSubUIsRef_         :: UISelection -> Layout 
+moveSubUIsRef_           :: UISelection UIPath Int -> Layout
+layoutSubUIsRef_         :: UISelection Layout -> Layout
+sequenceLayoutsRef_      :: Layout Layout -> Layout
 
 //This type records the states of layouts applied somewhere in a ui tree
 :: NodeLayoutStates :== [(Int,NodeLayoutState)]

@@ -82,7 +82,7 @@ idLayout :: Layout
 idLayout = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
 
 setUIType :: UINodeType -> Layout
-setUIType type = setUITypeRef type
+//setUIType type = setUITypeRef_ type
 setUIType type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui=:(UI _ attr items) = (ReplaceUI (UI type attr items), LSType ui) //Crude replacement (no instruction possible)
@@ -94,13 +94,13 @@ where
 	//Crude restore...
 	restore (LSType ui) = ReplaceUI ui 
 
-setUITypeRef :: UINodeType -> Layout
-setUITypeRef type = referenceLayout ref
+setUITypeRef_ :: UINodeType -> Layout
+setUITypeRef_ type = referenceLayout ref
 where 
 	ref (UI _ attr items) = UI type attr items
 
 setUIAttributes :: UIAttributes -> Layout
-setUIAttributes extraAttr = setUIAttributesRef extraAttr 
+//setUIAttributes extraAttr = setUIAttributesRef_ extraAttr 
 setUIAttributes extraAttr = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply (UI _ attr _)
@@ -124,27 +124,25 @@ where
 	restore (LSAttributes attr) //Restore or delete the extra attributes
 		= ChangeUI [maybe (DelAttribute k) (\v -> SetAttribute k v) ('DM'.get k attr) \\ k <- 'DM'.keys extraAttr] []
 
-setUIAttributesRef :: UIAttributes -> Layout
-setUIAttributesRef extraAttr = referenceLayout ref
+setUIAttributesRef_ :: UIAttributes -> Layout
+setUIAttributesRef_ extraAttr = referenceLayout ref
 where
 	ref (UI type attr items) = UI type ('DM'.union extraAttr attr) items
 
 delUIAttributes :: UIAttributeSelection -> Layout 
-delUIAttributes selection = delUIAttributesRef selection
+//delUIAttributes selection = delUIAttributesRef_ selection
 delUIAttributes selection = {Layout|apply=apply,adjust=adjust,restore=restore} 
 where
-	apply (UI _ attr _) //There is no delete instruction, so deleting means setting the value to null 
+	apply (UI _ attr _) 
 		= (ChangeUI [DelAttribute k \\ k <- 'DM'.keys attr | matchKey selection k] [],LSAttributes attr)
 
 	adjust (ChangeUI attrChanges itemChanges,LSAttributes attr)
 		//Update the shadow attributes
 		# attr = foldl (flip applyUIAttributeChange) attr attrChanges
 		//Remove changes that affect the deleted attributes
-		# attrChanges = filter (not o matchChange) attrChanges
+		# attrChanges = filter (not o (matchChange selection)) attrChanges
 		= (ChangeUI attrChanges itemChanges,LSAttributes attr)
-	where
-		matchChange (SetAttribute k _) = matchKey selection k
-		matchChange (DelAttribute k) = matchKey selection k 
+
 
 	adjust (ReplaceUI ui,_)
 		# (change,state) = apply ui
@@ -155,20 +153,20 @@ where
 	restore (LSAttributes attr) //Restore the attributes
 		= ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList attr | matchKey selection k] []
 
-delUIAttributesRef :: UIAttributeSelection -> Layout 
-delUIAttributesRef selection = referenceLayout ref
+delUIAttributesRef_ :: UIAttributeSelection -> Layout 
+delUIAttributesRef_ selection = referenceLayout ref
 where
 	ref (UI type attr items) = UI type (foldl (\a k -> if (matchKey selection k) ('DM'.del k a) a) attr ('DM'.keys attr)) items
 
 modifyUIAttributes :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
-modifyUIAttributes selection modifier = modifyUIAttributesRef selection modifier
+//modifyUIAttributes selection modifier = modifyUIAttributesRef_ selection modifier
 modifyUIAttributes selection modifier = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply (UI type attr items)
 		# mods = modifier (selectAttributes selection attr)
-		= (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList mods] [],LSAttributeChanges attr mods)
+		= (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList mods] [],LSModifyAttributes attr mods)
 
-	adjust (ChangeUI attrChanges childChanges, LSAttributeChanges attr mods)
+	adjust (ChangeUI attrChanges childChanges, LSModifyAttributes attr mods)
 		//Update the shadow attributes
 		# attr = foldl (flip applyUIAttributeChange) attr attrChanges
 		//Recompute the modifications
@@ -176,7 +174,7 @@ where
 		# modChanges = diffAttributes mods newMods
 		//Remove changes that affect the modified attributes
 		# attrChanges = filter (not o (matchMods ('DM'.keys newMods))) attrChanges
-		= (ChangeUI (attrChanges ++ modChanges) childChanges, LSAttributeChanges attr newMods)
+		= (ChangeUI (attrChanges ++ modChanges) childChanges, LSModifyAttributes attr newMods)
 	where
 		matchMods modKeys (SetAttribute k _) = isMember k modKeys
 		matchMods modKeys (DelAttribute k)   = isMember k modKeys
@@ -186,79 +184,115 @@ where
 		= (ReplaceUI (applyUIChange change ui),state)
 	adjust (change,s) = (change,s)
 
-	restore (LSAttributeChanges attr mods) //Restore the attributes
+	restore (LSModifyAttributes attr mods) //Restore the attributes
 		= ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList attr] []
 
-modifyUIAttributesRef :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
-modifyUIAttributesRef selection modifier = referenceLayout ref
+modifyUIAttributesRef_ :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
+modifyUIAttributesRef_ selection modifier = referenceLayout ref
 where
 	ref (UI type attr items) = UI type ('DM'.union (modifier selected) attr) items
 	where
 		selected = selectAttributes selection attr
 
 copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> Layout
-copySubUIAttributes selection src dst = copySubUIAttributesRef selection src dst 
+//copySubUIAttributes selection src dst = copySubUIAttributesRef_ selection src dst 
 copySubUIAttributes selection src dst = {Layout|apply=apply,adjust=adjust,restore=restore} 
 where
-	apply ui = case selectAttr src ui of //Check if source exists
-		Just srcAttr = case selectAttr dst ui of //Check if the destination exists
- 			Just dstAttr = (changeAtPath dst (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList srcAttr | matchKey selection k] []), LSAttributeChanges srcAttr dstAttr)
-			Nothing      = (NoChange, LSAttributeChanges srcAttr 'DM'.newMap)
-		Nothing = (NoChange, LSAttributeChanges 'DM'.newMap 'DM'.newMap)
-/*
-	adjust (NoChange, s) 
-		= (NoChange, s)
+	apply ui 
+		# srcAttr = getAttrAtPath src ui //Find the attributes in the source
+		# change  = changeAtPath dst ui (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList srcAttr | matchKey selection k] [])
+		= (change, LSCopyAttributes ui)
 
-	adjust (ReplaceUI ui,_)
-		# (change,state) = apply ui
-		= (ReplaceUI (applyUIChange change ui),state)
+	adjust (change, LSCopyAttributes ui)
+		//Check if the change affects the position of the destination
+		# dstAfterChange = pathAfterChange dst change
+		# ui = applyUIChange change ui
+		//Apply the change to the ui
+		= case dstAfterChange of
+			Nothing  //The old destination node no longer exist, we have to copy all attributes again
+				# change  = changeAtPath dst ui (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList (getAttrAtPath src ui) | matchKey selection k] [])
+				= (change, LSCopyAttributes ui)
+			Just (dstAfterChange)
+				| dstAfterChange === dst //Destination is still in the same place -> only look at changes in the source
+					# srcChanges = getAttrChangesAtPath src change
+					# change = changeAtPath dst ui (ChangeUI [c \\ c <- srcChanges | matchChange selection c] [])
+					= (change,LSCopyAttributes ui)
+						
+				| otherwise //The old destination is no longer the destination -> restore old node and insert in new place
+					# correctionChange = changeAtPath dstAfterChange ui 
+						(ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList (getAttrAtPath dstAfterChange ui) | matchKey selection k] [])
+					# dstChange = changeAtPath dst ui
+						(ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList (getAttrAtPath src ui) | matchKey selection k] [])
+					= (mergeUIChanges correctionChange dstChange, LSCopyAttributes ui)
 
-	adjust (change, LSAttributeChanges srcAttr dstAttr)
-		//Determine the effect of the change to both the src and dst attributes
-		# srcChanges = selectChanges src change
-		# dstChanges = selectChanges dst change
-		//Update the 'shadow' attributes
-		# srcAttr = foldl (flip applyUIAttributeChange) srcAttr srcChanges
-		# dstAttr = foldl (flip applyUIAttributeChange) dstAttr dstChanges
-		//Determine the modified change in the destination
-		# change = mergeUIChanges change (changeAtPath dst (ChangeUI (filter (matchChange selection) srcChanges) []))
-		//TODO: Should actually replace the updates in the dst location, not just set original values first and then the copies
-		= (change, LSAttributeChanges srcAttr dstAttr)
-*/
-	adjust (change,s) = (change,s)
+	restore (LSCopyAttributes ui) = ReplaceUI ui
 
 	//Find the attributes of a sub ui
-	selectAttr [] (UI type attr items) = Just attr
-	selectAttr [s:ss] (UI type attr items) 
-		| s >= 0 && s < length items = selectAttr ss (items !! s)
-							         = Nothing
+	getAttrAtPath [] (UI type attr items) = attr
+	getAttrAtPath [s:ss] (UI type attr items) 
+		| s >= 0 && s < length items = getAttrAtPath ss (items !! s)
+							         = 'DM'.newMap
 
-	//Determine changes to the attributes of a sub ui
-	selectChanges _ NoChange = []
-	selectChanges ss (ReplaceUI ui) = case selectAttr ss ui of
-		Just attr = [SetAttribute k v \\ (k,v) <- 'DM'.toList attr]
-		Nothing = [] //FIXME this should produce deletes for all current attributes
+	changeAtPath [] _ change = change
+	changeAtPath [s:ss] (UI _ _ items) change
+		| s >= 0 && s < length items = ChangeUI [] [(s,ChangeChild (changeAtPath ss (items !! s) change))]
+									 = NoChange
 
-	selectChanges [] (ChangeUI attrChanges _) = attrChanges
-	selectChanges [s:ss] (ChangeUI _ childChanges) = flatten (map selectChildChanges childChanges)
-	where	
-		selectChildChanges (i,ChangeChild c) = if (i == s) (selectChanges ss c) []
-		selectChildChanges _ = [] //FIXME Properly deal with inserts and removes
+	//Determine where a node addressed by a path ends up after a change is applied
+	pathAfterChange path NoChange = Just path //Nothing happened
+	pathAfterChange path (ReplaceUI _) = Nothing //The ui indicated by the path longer exists
+	pathAfterChange [] (ChangeUI _ _) = Just []
+	pathAfterChange [s:ss] (ChangeUI _ childChanges) = adjust s ss childChanges
+	where
+		adjust s ss [] = Just [s:ss]
+		adjust s ss [(i,ChangeChild c):cs]
+			| i == s = case pathAfterChange ss c of 
+				(Just ss) = adjust s ss cs
+				Nothing = Nothing
+			| otherwise
+				= adjust s ss cs
+		adjust s ss [(i,InsertChild _):cs]
+			= if (i <= s) (adjust (s + 1) ss cs) (adjust s ss cs)
+		adjust s ss [(i,RemoveChild):cs]
+			| i == s = Nothing
+					 = if (i < s) (adjust (s - 1) ss cs) (adjust s ss cs)
+		adjust s ss [(i,MoveChild d):cs]
+			| i == s = adjust d ss cs
+					 = adjust (s - (if (i < s) 1 0) + (if (d <= s) 1 0)) ss cs
 
-	matchChange selection (SetAttribute k v) = matchKey selection k
-	matchChange selection (DelAttribute k) = matchKey selection k
+	getAttrChangesAtPath path change = fst (get path change) //FIXME: ChangeUI  n, Remove (n - 1), ChangeUI n
+	where
+		get path NoChange = ([],Just path)
+		get path (ReplaceUI ui) = ([SetAttribute k v \\ (k,v) <- 'DM'.toList (getAttrAtPath path ui)],Just path)
+		get []    (ChangeUI attrChanges _) = (attrChanges,Just [])
+	    get [s:ss] (ChangeUI _ childChanges) = adjust s ss childChanges
 
-	//TODO, track which attributes were chagned and restore accordingly
-	restore _ = NoChange
+		adjust s ss [] = ([],Just [s:ss])
+		adjust s ss [(i,ChangeChild c):cs]
+			| i == s = case get ss c of 
+				(as,Just ss) = adjust s ss cs
+				(_,Nothing) = ([],Nothing)
+			         = adjust s ss cs
+		adjust s ss [(i,InsertChild _):cs]
+			= if (i <= s) (adjust (s + 1) ss cs) (adjust s ss cs)
+		adjust s ss [(i,RemoveChild):cs]
+			| i == s = ([],Nothing)
+					 = if (i < s) (adjust (s - 1) ss cs) (adjust s ss cs)
+		adjust s ss [(i,MoveChild d):cs]
+			| i == s = adjust d ss cs
+					 = adjust (s - (if (i < s) 1 0) + (if (d <= s) 1 0)) ss cs
 
 matchKey (SelectAll) _ = True
 matchKey (SelectKeys keys) k = isMember k keys
 
+matchChange selection (SetAttribute k _) = matchKey selection k
+matchChange selection (DelAttribute k) = matchKey selection k 
+
 selectAttributes SelectAll attr = attr
 selectAttributes (SelectKeys keys) attr = 'DM'.fromList [a \\ a=:(k,_) <- 'DM'.toList attr | isMember k keys]
 
-copySubUIAttributesRef :: UIAttributeSelection UIPath UIPath -> Layout
-copySubUIAttributesRef selection src dst = referenceLayout ref
+copySubUIAttributesRef_ :: UIAttributeSelection UIPath UIPath -> Layout
+copySubUIAttributesRef_ selection src dst = referenceLayout ref
 where
 	ref ui = updDst dst (selAttr src ui) ui
 
@@ -274,7 +308,7 @@ diffAttributes old new = [SetAttribute k v \\ (k,v) <- 'DM'.toList new | maybe T
 					  ++ [DelAttribute k \\ k <- 'DM'.keys old | isNothing ('DM'.get k new)]
 
 wrapUI :: UINodeType -> Layout
-wrapUI type = wrapUIRef type
+//wrapUI type = wrapUIRef_ type
 wrapUI type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui = (ReplaceUI (uic type [ui]), LSWrap ui)
@@ -289,18 +323,19 @@ where
 	//As long as the UIChange type does not support moving elements up and down the tree we cannot do better
 	restore (LSWrap ui) = ReplaceUI ui 
 
-wrapUIRef :: UINodeType -> Layout
-wrapUIRef type = referenceLayout ref
+wrapUIRef_ :: UINodeType -> Layout
+wrapUIRef_ type = referenceLayout ref
 where
 	ref ui = uic type [ui]
 
 unwrapUI :: Layout
-unwrapUI = unwrapUIRef 
+//unwrapUI = unwrapUIRef_ 
 unwrapUI = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui=:(UI type attr [i:is]) = (ReplaceUI i, LSUnwrap ui)
 	apply ui 					    = (NoChange, LSUnwrap ui)	
 
+	adjust (NoChange,state) = (NoChange,state)
 	adjust (ReplaceUI ui,_)
 		# (change,state) = apply ui
 		= (ReplaceUI (applyUIChange change ui), state)
@@ -333,14 +368,13 @@ where
 			| otherwise 
 				= (change, ui)
 
-	adjust change = change
 
 	//Crude restore...
 	//As long as the UIChange type does not support moving elements up and down the tree we cannot do better
 	restore (LSUnwrap ui) = ReplaceUI ui 
 
-unwrapUIRef :: Layout
-unwrapUIRef = referenceLayout ref
+unwrapUIRef_ :: Layout
+unwrapUIRef_ = referenceLayout ref
 where
 	ref (UI _ _ [ui:_]) = ui
 	ref ui = ui
@@ -348,7 +382,7 @@ where
 //Insert the element at the specified index.
 //Only insert if there are at least as many children as the specified index
 insertChildUI :: Int UI -> Layout
-insertChildUI idx insert = insertChildUIRef idx insert
+//insertChildUI idx insert = insertChildUIRef_ idx insert
 insertChildUI idx insert
 	| idx >= 0  = {Layout|apply=apply,adjust=adjust,restore=restore}
 				= idLayout
@@ -448,19 +482,19 @@ where
 		| idx >= 0 && idx <= num = ChangeUI [] [(idx,RemoveChild)]
 					             = NoChange
 
-insertChildUIRef :: Int UI -> Layout
-insertChildUIRef idx insert = referenceLayout ref
+insertChildUIRef_ :: Int UI -> Layout
+insertChildUIRef_ idx insert = referenceLayout ref
 where
 	ref ui=:(UI type attr items)
 		| idx >= 0 && idx <= length items = UI type attr (insertAt idx insert items)
 										  = ui
 
 removeSubUIs :: UISelection -> Layout
-removeSubUIs selection = removeSubUIsRef selection
-//removeSubUIs selection = moveSubUIs` selection Nothing
+//removeSubUIs selection = removeSubUIsRef_ selection
+removeSubUIs selection = moveSubUIs` selection Nothing
 
-removeSubUIsRef :: UISelection -> Layout
-removeSubUIsRef selection = referenceLayout ref
+removeSubUIsRef_ :: UISelection -> Layout
+removeSubUIsRef_ selection = referenceLayout ref
 where
 	ref ui=:(UI type attr items) //Special case for the root node
 	  | inUISelection selection [] ui = UI UIEmpty 'DM'.newMap []
@@ -471,16 +505,16 @@ where
 						      = [UI type attr (flatten [rem (path ++ [i]) x \\ x <- items & i <- [0..]])]
 
 moveSubUIs :: UISelection UIPath Int -> Layout 
-moveSubUIs selection path pos = moveSubUIsRef selection path pos
-//moveSubUIs selection path pos = moveSubUIs` selection (Just (path,pos)) 
+//moveSubUIs selection path pos = moveSubUIsRef_ selection path pos
+moveSubUIs selection path pos = moveSubUIs` selection (Just (path,pos)) 
 
-moveSubUIsRef :: UISelection UIPath Int -> Layout 
-moveSubUIsRef selection dst pos = referenceLayout ref
+moveSubUIsRef_ :: UISelection UIPath Int -> Layout 
+moveSubUIsRef_ selection dst pos = referenceLayout ref
 where
 	ref ui
-		# (selected,Just ui`) = collect [] ui //Find and remove all matching nodes
-		# (dst`,pos`)   = adjust [] dst pos ui   //Adjust the path and position for the removals
-		= insert selected dst` pos` ui`       //Insert the selected nodes at the destination
+		# (selected,Just ui`) = collect [] ui   //Find and remove all matching nodes
+		# (dst`,pos`)   = adjust [] dst pos ui  //Adjust the path and position for the removals
+		= (insert selected dst` pos` ui`)       //Insert the selected nodes at the destination
 
 	collect path ui=:(UI type attr items)
 		| not (startsWith path dst) && inUISelection selection path ui //Match
@@ -501,7 +535,7 @@ where
 		| otherwise
 			= ([s:ss],pos)
 
-	index cur n items = length (filter (not o (inUISelection selection cur)) (take n items))
+	index cur n items = length [x \\ x <- take n items & i <- [0..] | not (inUISelection selection (cur ++ [i]) x)]
 
 	insert selected [] i (UI type attr items)
 		| i >= 0 && i <= length items = UI type attr (take i items ++ selected  ++ drop i items)
@@ -557,9 +591,9 @@ where
 			(InsertChild ui,_, mvui)     = (ReplaceUI ui,mvui)           				 //If the root-level UI is going to be restored, replace it
 		//In the second pass we update the nodes that were moved
 		# (ichange, mvui) = adjustIns mbDst [] mvui
-		= (rchange, LSRemoveSubUIs mvui)
+		= (mergeUIChanges rchange ichange, LSRemoveSubUIs mvui)
 
-	adjustRem selection path NoChange mvui=:{MvUI|removed,moved} 
+	adjustRem selection path NoChange mvui=:{MvUI|removed,moved,children} 
 		//Check if the node should have been removed by the layout
 		# ui = fromMvUI mvui
 		| not (onDestinationPath path) && inUISelection selection path ui
@@ -571,8 +605,12 @@ where
 				# (ChangeChild change,mvui) = applyRem selection path ui //Recreate the state, it is now possible that subnodes are matched
 				= (InsertChild (applyUIChange change ui), if moved 1 0, mvui)
 			| otherwise 
-				//FIXME: Check if we don't we need to recursively adjust
-				= (ChangeChild NoChange, 0, mvui) //Wasn't moved, nothing to do
+				//EXPERIMENT: Recursively check children (may not be neccesary)
+				# (schanges, children) = adjustRemSiblings selection path (\x -> True) children
+				# change = case schanges of
+					[] = NoChange
+					_  = ChangeUI [] schanges
+				= (ChangeChild change, 0, {MvUI|mvui & children = children}) //Wasn't moved, nothing to do
 
 	adjustRem selection path (ReplaceUI ui) mvui=:{MvUI|removed,moved}
 		# numNoLongerMoved = countNoLongerMoved mvui
@@ -872,8 +910,8 @@ where
 	updateMoveDestination i f [x:xs]                     = [x:updateMoveDestination i f xs]
 	updateMoveDestination i f [] = []
 
-    moveMoveDestinationTowardsEnd n children = children //FIXME
-    moveMoveDestinationTowardsBegin n children = children
+    moveMoveDestinationTowardsEnd n children = trace_n "A" children //FIXME
+    moveMoveDestinationTowardsBegin n children = trace_n "B" children
 
 	//Compute the amount of nodes marked as moved plus the sum of all nodes with information about nodes that are no lnoger moved
 	countNoLongerMoved {MvUI|moved,children} = (if moved 1 0) + sum [countNoLongerMoved x \\ MvUIItem x <- children] + sum [n \\ MvUINoLongerMoved n <- children]
@@ -895,7 +933,7 @@ where
 		offset n [_:xs] = offset n xs //Ignore other elements
 
 layoutSubUIs :: UISelection Layout -> Layout
-layoutSubUIs selection layout = layoutSubUIsRef selection layout 
+//layoutSubUIs selection layout = layoutSubUIsRef_ selection layout 
 layoutSubUIs selection layout = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	//Find all places that match the selection
@@ -1010,12 +1048,12 @@ where
 			adjust i [item:items] states
 				| whichSiblings i
 					//Check
-					# (change,_,state) = adjust` (path ++ [i]) NoChange item (ltGet i states)
+					# (change,item,state) = adjust` (path ++ [i]) NoChange item (ltGet i states)
 					//Check the remaining items
 					# (changes, items, states) = adjust (i + 1) items (ltPut i state states)
 					= case change of 
-						NoChange = (changes, items, states)
-						_        = ([(i,ChangeChild change):changes], items, states)
+						NoChange = (changes, [item:items], states)
+						_        = ([(i,ChangeChild change):changes], [item:items], states)
 				| otherwise
 					# (changes, items, states) = adjust (i + 1) items states
 					= (changes, [item:items], states)
@@ -1028,8 +1066,8 @@ where
 
 	restore (LSLayoutSubUIs ui _) = ReplaceUI ui //VERY CRUDE RESTORE... TODO:We can do better than this
 
-layoutSubUIsRef :: UISelection Layout -> Layout
-layoutSubUIsRef selection layout = referenceLayout ref
+layoutSubUIsRef_ :: UISelection Layout -> Layout
+layoutSubUIsRef_ selection layout = referenceLayout ref
 where
 	ref ui = app [] ui
 	app path ui=:(UI type attr items) 
@@ -1037,7 +1075,7 @@ where
 										  = UI type attr [app (path ++ [i]) x \\ x <- items & i <- [0..]]
 
 sequenceLayouts :: Layout Layout -> Layout 
-sequenceLayouts layout1 layout2 = sequenceLayoutsRef layout1 layout2
+//sequenceLayouts layout1 layout2 = sequenceLayoutsRef_ layout1 layout2
 sequenceLayouts layout1 layout2 = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui
@@ -1057,8 +1095,8 @@ where
 		# change1 = layout1.Layout.restore s1
 		= mergeUIChanges change2 change1	
 
-sequenceLayoutsRef :: Layout Layout -> Layout
-sequenceLayoutsRef layout1 layout2 = referenceLayout ref
+sequenceLayoutsRef_ :: Layout Layout -> Layout
+sequenceLayoutsRef_ layout1 layout2 = referenceLayout ref
 where
 	ref ui = applyLayout layout2 (applyLayout layout1 ui)
 
@@ -1110,13 +1148,8 @@ where
 listMove :: Int Int [a] -> [a]
 listMove src dst list = insertAt dst (list !! src) (removeAt src list)
 
-changeAtPath :: UIPath UIChange -> UIChange
-changeAtPath [] change = change
-changeAtPath [s:ss] change = ChangeUI [] [(s,ChangeChild (changeAtPath ss change))]
-
 //Experiment to create an alternative, more declarative way of specifying layouts
 /*
-
 Function UI -> UI s.t. h o g o f
 Where
 f : UI -> TaskUITree
@@ -1169,45 +1202,3 @@ taskUILayoutToUI (UIAbove ls)
 taskUILayoutToUI (UINode path)
   = UI UIContainer ('DM'.singleton "origin" (toJSON path)) []
 
-reorderUI :: (UI -> UI) -> Layout 
-reorderUI reorder = {Layout|apply=apply,adjust=adjust,restore=restore}
-where
-	apply _ = (NoChange,LSNone)
-
-	adjust (NoChange,s)
-		 = (NoChange,s)
-	adjust (ReplaceUI ui,_) 
-		//Determine a skeleton of the reordered ui, and replace references
-		//Replace references to parts of the original ui
-		# (moves,ui) = derefAll ui [] (reorder ui)
-		= (ReplaceUI ui,LSNone)
-	//Adjust followup changes to the moved parts
-	adjust (c,s) = (c,s)
-	//adjust (c,s) = (adjust` (fromMaybe 'DM'.newMap (fromJSON s)) c,s)
-
-	restore _ = NoChange
-
-	derefAll :: UI UIPath UI -> (Map UIPath UIPath,UI)
-	derefAll origUI curNp (UI type attr items) = case 'DM'.get "include" attr of
-		(Just jsonNp)
-			# refNp = fromMaybe [] (fromJSON jsonNp)
-			= ('DM'.singleton curNp refNp, lookup refNp origUI)
-		Nothing
-			# (paths,items) = unzip [derefAll origUI (curNp ++ [i]) item \\ item <- items & i <- [0..]]
-			= ('DM'.unions paths,UI type attr items)
-
-	lookup :: UIPath UI -> UI //ASSUMES SUCCESS
-	lookup [] ui = ui
-	lookup [p:ps] (UI _ _ items) = lookup ps (items !! p)
-
-	adjust` :: (Map UIPath UIPath) UIChange -> UIChange //TODO
-	adjust` moves change = change 
-	where
-		selectChanges :: [UIPath] UIChange -> [(UIPath,UIChange)]
-		selectChanges _ _ = []
-
-		remap :: (Map UIPath UIPath) [(UIPath,UIChange)] -> [(UIPath,UIChange)]
-		remap moves changes =[(fromJust ('DM'.get path moves),change) \\ (path,change) <- changes]
-		
-		combineChanges :: [(UIPath,UIChange)] -> UIChange
-		combineChanges _ = NoChange
