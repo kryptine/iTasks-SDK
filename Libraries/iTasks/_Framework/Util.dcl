@@ -30,3 +30,4 @@ mergeMaps :: (Map k v) (Map k v) -> Map k v | < k
 kvGet		:: k	![(k,v)]	-> Maybe v	| Eq k
 kvSet		:: k v	![(k,v)]	-> [(k,v)]	| Eq k
 kvSetOnce	:: k v	![(k,v)]	-> [(k,v)]	| Eq k
+

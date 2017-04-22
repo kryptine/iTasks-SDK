@@ -85,4 +85,3 @@ kvSetOnce :: k v ![(k,v)]	-> [(k,v)]	| Eq k //Linear search
 kvSetOnce m nv []			= [(m,nv)]
 kvSetOnce m nv [(k,v):kvs]	= if (k == m) [(k,v):kvs] [(k,v):kvSet m nv kvs]
 
-
