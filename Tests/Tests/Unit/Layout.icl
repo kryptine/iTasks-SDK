@@ -9,7 +9,7 @@ import qualified Data.Map as DM
 import Data.List
 import StdMisc
 
-derive JSONEncode NodeMove, NodeLayoutState, LayoutState, LayoutTree, MvUI, MvUIChild
+derive JSONEncode NodeLayoutState, LayoutState, LayoutTree, MvUI, MvUIChild
 derive gEq LayoutState, LayoutTree, MvUI, MvUIChild
 derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, LayoutState, LayoutTree, JSONNode, MaybeError
 derive gPrettyTrace EditMask, FieldMask, CompoundMask, MvUI, MvUIChild
@@ -356,13 +356,16 @@ where
 	renderedUI = uic UIDebug [uic UIContainer [], uic UIDebug [uic UIMenu [], uic UIPanel []] ]
 	renderedState = JSONArray [JSONArray [sSideBar,sSub1], sRmInteract]
 	where
+		sSideBar = JSONArray []
+/*
 		sSideBar = JSONArray [JSONNull,toJSON (BranchLayout JSONNull),toJSON moves, toJSON (ChildBranchLayout [(0,BranchLayout (JSONBool False))])]
 		where
 			moves = [(1,ChildBranchesMoved [(0,BranchMoved)])]
+*/
 
 		sSub1 = toJSON (ChildBranchLayout [(1,BranchLayout sSideBar)])
 
-		sRmInteract = toJSON [(0,ChildBranchesMoved [(0,BranchMoved)]),(1,ChildBranchesMoved [(0,ChildBranchesMoved [(0,BranchMoved)])])]
+		sRmInteract = JSONNull //toJSON [(0,ChildBranchesMoved [(0,BranchMoved)]),(1,ChildBranchesMoved [(0,ChildBranchesMoved [(0,BranchMoved)])])]
 
 	//Expected reroute change 
 	changeToModify = ChangeUI [] [(2,InsertChild (uic UIToolBar [ui UIInteract]))]

@@ -5,6 +5,7 @@ module CheckProperties
 */
 import iTasks.UI.Layout
 import iTasks.UI.Definition
+import iTasks.Util.Trace
 import Gast.Testable
 import Gast.GenLibTest
 import Gast.Gen
@@ -12,29 +13,28 @@ import Gast.StdProperty
 
 import StdGeneric
 from StdFunc import o, flip
-import StdEnum, StdBool, StdTuple
+import StdEnum, StdBool, StdTuple, StdDebug
 import Data.Map
+from Data.List import foldl1
 import Text.JSON
 import Text
 
+instance == UI where (==) x y = x === y
+//Derive the necessary generic functions
+derive ggen UI, /* UINodeType,*/ UIChange, UIChildChange, UIAttributeChange, UISelection, UIAttributeSelection, JSONNode
+derive gLess UI, UINodeType,  UIChange, UIChildChange, UIAttributeChange, UISelection, UIAttributeSelection, Map, JSONNode
+derive genShow UI, UINodeType, UIChange, UIChildChange, UIAttributeChange, UISelection, UIAttributeSelection, Map, JSONNode
 derive bimap []
 
-/*
-:: A = A | B X | C
-:: X = X [X]
-
-derive ggen A, X
-
-Start :: [A]
-Start = take 1000 (generateAll aStream)
-*/
-
-//Derive the necessary generic functions
-derive ggen UI, UINodeType, UIChange, UIChildChange, UIAttributeChange, UISelection, UIAttributeSelection, JSONNode
-derive gLess UI, UINodeType, UIChange, UIChildChange, UIAttributeChange, UISelection, UIAttributeSelection, Map, JSONNode
-derive genShow UI, UINodeType, UIChange, UIChildChange, UIAttributeChange, UISelection, UIAttributeSelection, Map, JSONNode
+derive gPrettyTrace UI, UINodeType
+derive gPrettyTrace JSONNode
 
 ggen{|Map|} fk fv s = [newMap]
+
+ggen{|UINodeType|} s = [UIContainer] //When testing structure changes, limit the amount of different node types...
+
+//Some arbitrary constants...
+mediumUI = (UI UIContainer Tip [(UI UIContainer Tip [(UI UIContainer Tip [(UI UIContainer Tip [(UI UIContainer Tip [])]),(UI UIContainer Tip [(UI UIContainer Tip [])]),(UI UIContainer Tip []),(UI UIContainer Tip [])]),(UI UIContainer Tip [(UI UIContainer Tip [])]),(UI UIContainer Tip []),(UI UIContainer Tip []),(UI UIContainer Tip [])]),(UI UIContainer Tip [(UI UIContainer Tip [(UI UIContainer Tip [])]),(UI UIContainer Tip []),(UI UIContainer Tip []),(UI UIContainer Tip [])]),(UI UIContainer Tip [(UI UIContainer Tip []),(UI UIContainer Tip [(UI UIContainer Tip [])])]),(UI UIContainer Tip [])]) //Start = ggen{|*|} genState !! 10000000
 
 // Properties that should hold for every layout
 
@@ -65,10 +65,13 @@ remainValid layout changes ui
 	# withLayout = applyChangesWithLayout layout changes ui
 	# withoutLayout = applyChangesWithoutLayout changes ui
 	= fst withoutLayout ==> fst withLayout
-/**
-* When moving things around, the size of a UI should not change (if the target location exists)
-*/
 
+/* All optimized incremental layouts should have the same final effect as simpler
+   reference layouts
+*/
+compareToReference reference layout changes ui
+	//= applyChangesWithLayout reference changes ui =.= applyChangesWithLayout layout changes ui
+	= (applyChangesWithLayout reference changes ui) == (applyChangesWithLayout layout changes ui)
 
 uiSize :: UI -> Int
 uiSize (UI _ _ items) = foldr (\i s -> s + uiSize i) 1 items
@@ -86,6 +89,7 @@ where
 	applyChanges [c:cs] (ok,ui,state) 
 		# (c,state) = layout.Layout.adjust (c,state)
 		# ok = ok && isValidChange ui c
+		# ok = True
 		# ui = applyUIChange c ui
 		= applyChanges cs (ok,ui,state)
 
@@ -121,34 +125,44 @@ where
 
 // == Changing node types ==
 checkSetUIType :: UINodeType [UIChange] UI -> Bool
-checkSetUIType type changes ui = applyAndRevert (setUIType type) changes ui
+//checkSetUIType type changes ui = applyAndRevert (setUIType type) changes ui
+checkSetUIType type changes ui = compareToReference (setUITypeRef_ type) (setUIType type) changes ui
 
 checkSetUIAttributes :: UIAttributes [UIChange] UI -> Bool
-checkSetUIAttributes attr changes ui = applyAndRevert (setUIAttributes attr) changes ui
+//checkSetUIAttributes attr changes ui = applyAndRevert (setUIAttributes attr) changes ui
+checkSetUIAttributes attr changes ui = compareToReference (setUIAttributesRef_ attr) (setUIAttributes attr) changes ui
 
 checkDelUIAttributes :: UIAttributeSelection [UIChange] UI -> Bool
-checkDelUIAttributes sel changes ui = applyAndRevert (delUIAttributes sel) changes ui
+//checkDelUIAttributes sel changes ui = applyAndRevert (delUIAttributes sel) changes ui
+checkDelUIAttributes sel changes ui = compareToReference (delUIAttributesRef_ sel) (delUIAttributes sel) changes ui
 
 checkModifyUIAttributes :: UIAttributeSelection [UIChange] UI -> Bool
-checkModifyUIAttributes sel changes ui = applyAndRevert (modifyUIAttributes sel id) changes ui //TODO use other functions than 'id'
+//checkModifyUIAttributes sel changes ui = applyAndRevert (modifyUIAttributes sel id) changes ui //TODO use other functions than 'id'
+checkModifyUIAttributes sel changes ui = compareToReference (modifyUIAttributesRef_ sel id) (modifyUIAttributes sel id) changes ui //TODO use other functions than 'id'
 
 checkCopySubUIAttributes :: UIAttributeSelection UIPath UIPath [UIChange] UI -> Bool
-checkCopySubUIAttributes sel src dst changes ui = applyAndRevert (copySubUIAttributes sel src dst) changes ui
+//checkCopySubUIAttributes sel src dst changes ui = applyAndRevert (copySubUIAttributes sel src dst) changes ui
+checkCopySubUIAttributes sel src dst changes ui = compareToReference (copySubUIAttributesRef_ sel src dst) (copySubUIAttributes sel src dst) changes ui
 
 checkWrapUI :: UINodeType [UIChange] UI -> Bool
-checkWrapUI type changes ui = applyAndRevert (wrapUI type) changes ui
+//checkWrapUI type changes ui = applyAndRevert (wrapUI type) changes ui
+checkWrapUI type changes ui = compareToReference (wrapUIRef_ type) (wrapUI type) changes ui
 
 checkUnwrapUI :: [UIChange] UI -> Bool
-checkUnwrapUI changes ui = applyAndRevert unwrapUI changes ui
+//checkUnwrapUI changes ui = applyAndRevert unwrapUI changes ui
+checkUnwrapUI changes ui = compareToReference unwrapUIRef_ unwrapUI changes ui
 
 checkInsertChildUI :: Int UI [UIChange] UI -> Bool
-checkInsertChildUI idx insert changes ui = applyAndRevert (insertChildUI idx insert) changes ui
+//checkInsertChildUI idx insert changes ui = applyAndRevert (insertChildUI idx insert) changes ui
+checkInsertChildUI idx insert changes ui = compareToReference (insertChildUIRef_ idx insert) (insertChildUI idx insert) changes ui
 
 checkRemoveSubUIs :: UISelection [UIChange] UI -> Bool
-checkRemoveSubUIs selection changes ui = applyAndRevert (removeSubUIs selection) changes ui
+//checkRemoveSubUIs selection changes ui = applyAndRevert (removeSubUIs selection) changes ui
+checkRemoveSubUIs selection changes ui = compareToReference (removeSubUIsRef_ selection) (removeSubUIs selection) changes ui
 
 checkMoveSubUIs :: UISelection UIPath [UIChange] UI -> Bool
-checkMoveSubUIs selection dst changes ui = applyAndRevert (moveSubUIs selection dst 0) changes ui
+//checkMoveSubUIs selection dst changes ui = applyAndRevert (moveSubUIs selection dst 0) changes ui
+checkMoveSubUIs selection dst changes ui = compareToReference (moveSubUIsRef_ selection dst 0) (moveSubUIs selection dst 0) changes ui
 
 //If the target path exists in a ui, then moving elements around should not affect the number of elements
 checkSizeMoveSubUIs :: UISelection UIPath Int [UIChange] UI -> Property
@@ -167,8 +181,25 @@ where
 checkValidMoveSubUIs :: UISelection UIPath Int [UIChange] UI -> Property
 checkValidMoveSubUIs selection dst pos changes ui = remainValid (moveSubUIs selection dst pos) changes ui
 
+checkLayoutSubUIs :: UISelection [UIChange] UI -> Bool
+checkLayoutSubUIs selection changes ui = compareToReference (layoutSubUIsRef_ selection (setUIType (UIDebug))) (layoutSubUIs selection (setUIType (UIDebug))) changes ui
+
+
+//Bug:
+
+bug1 changes = compareToReference bug1ref bug1sut changes mediumUI
+bug1sut = sequenceLayouts (insertChildUI 0 (ui UIComponent)) (layoutSubUIs (SelectByPath [0]) (setUIType UIDebug))
+bug1ref = sequenceLayoutsRef_ (insertChildUIRef_ 0 (ui UIComponent)) (layoutSubUIsRef_ (SelectByPath [0]) (setUITypeRef_ UIDebug))
+
+bug2 changes = compareToReference bug2ref bug2sut changes mediumUI
+bug2sut = (layoutSubUIs (SelectByPath [0]) (setUIType UIDebug))
+bug2ref = (layoutSubUIsRef_ (SelectByPath [0]) (setUITypeRef_ UIDebug))
+
+bug3 changes = compareToReference bug3ref bug3sut changes mediumUI
+bug3sut = insertChildUI 0 (ui UIComponent)
+bug3ref = insertChildUIRef_ 0 (ui UIComponent)
 //Tests for composite layouts
-NUM :== 100000
+NUM :== 1000000
 
 //Start = testn NUM checkSetUIType
 //Start = testn NUM checkSetUIAttributes
@@ -179,6 +210,17 @@ NUM :== 100000
 //Start = testn NUM checkUnwrapUI
 //Start = testn NUM checkInsertChildUI
 //Start = testn NUM checkRemoveSubUIs
-Start = Test [Tests NUM, RandomSeed 1984] (\s t u -> checkSizeMoveSubUIs s [0] 0 t u)
+//Start = testn NUM (\s p c -> checkMoveSubUIs s p c mediumUI)
+//Start = applyChangesWithLayout (moveSubUIs SelectChildren [] 0) [ReplaceUI (UI UIContainer Tip [UI UIContainer Tip []])] mediumUI 
+//Start = testn NUM checkSizeMoveSubUIs
 //Start = testn NUM checkValidMoveSubUIs
+//Start = (applyUIChange refchange mediumUI) == (applyUIChange change mediumUI)
 
+//Start = test (checkMoveSubUIs SelectChildren [1] [] mediumUI)
+//Start = Test [Tests NUM, RandomSeed 1984] checkLayoutSubUIs 
+Start = Test [Tests NUM, RandomSeed 1982] bug1  
+//Start = Test [Tests NUM, RandomSeed 1984] (bug2 [ChangeUI [] [(1,RemoveChild),(1,RemoveChild)]])
+/*
+Start = sideBySideTrace ("Reference", applyChangesWithLayout bug3ref [ChangeUI [] [(0,MoveChild 0),(0,RemoveChild)]] mediumUI)
+						("SUT", applyChangesWithLayout bug3sut [ChangeUI [] [(0,MoveChild 0),(0,RemoveChild)]] mediumUI)
+*/
