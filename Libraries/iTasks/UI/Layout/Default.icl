@@ -19,6 +19,7 @@ sequenceAllLayouts [] = idLayout
 sequenceAllLayouts list = foldl1 sequenceLayouts list 
 
 defaultSessionLayout :: Layout
+//defaultSessionLayout = idLayout
 defaultSessionLayout = sequenceAllLayouts 
     [finalizeUI                                      //Finalize all remaining intermediate layouts
 	,removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))  //Remove temporary placeholders
@@ -35,14 +36,14 @@ finalizeUI = sequenceAllLayouts
 
 finalizeInteract :: Layout
 finalizeInteract = sequenceAllLayouts
-		[layoutSubUIs (SelectByPath [1]) finalizeEditor
-		,copyContentTitle 
+		[copyContentTitle
+		,layoutSubUIs (SelectByPath [1]) finalizeEditor
 		,removeEmptyPrompt
 		,setUIType UIPanel
 		] 
 where
-	removeEmptyPrompt = layoutSubUIs (SelectAND (SelectByPath []) (SelectRelative [0] (SelectByNumChildren 0))) (removeSubUIs (SelectByPath [0]))
 	copyContentTitle = copySubUIAttributes (SelectKeys ["title"]) [0] []
+	removeEmptyPrompt = layoutSubUIs (SelectAND (SelectByPath []) (SelectRelative [0] (SelectByNumChildren 0))) (removeSubUIs (SelectByPath [0]))
 
 finalizeEditor :: Layout
 finalizeEditor = sequenceAllLayouts
@@ -50,21 +51,21 @@ finalizeEditor = sequenceAllLayouts
 	,layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UICons)) finalizeCons
 	,layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIVarCons)) finalizeVarCons
 	,layoutSubUIs (SelectAND (SelectByPath []) selectFormComponent) finalizeFormComponent
+	//Fallback in case the editor is some other container (this happens with lists...)
+	,layoutSubUIs (SelectAND SelectDescendents selectEditorIntermediate) finalizeEditor 
 	]
 
 selectFormComponent
-	= foldl SelectOR (SelectByHasAttribute LABEL_ATTRIBUTE)
-		[SelectByType t \\ t <- [UITextField,UITextArea,UIPasswordField,UIIntegerField,UIDecimalField
+	= SelectOR (SelectByHasAttribute LABEL_ATTRIBUTE)
+		(foldl1 SelectOR [SelectByType t \\ t <- [UITextField,UITextArea,UIPasswordField,UIIntegerField,UIDecimalField
 						        ,UICheckbox,UISlider,UIDocumentField,UIDropdown,UICheckGroup,UITextView,UIHtmlView]
-					    ]
+					    ])
 
 finalizeFormComponent = sequenceAllLayouts
 	[layoutSubUIs (SelectAND SelectDescendents (selectEditorIntermediate)) finalizeEditor
 	,toFormItem
 	]
 
-selectIntermediate
-	= foldl1 SelectOR [SelectByType t \\ t <- [UIRecord, UIInteract, UIStep, UIParallel]]
 selectEditorIntermediate
 	= foldl1 SelectOR [SelectByType t \\ t <- [UIRecord, UICons, UIVarCons]]
 
@@ -85,6 +86,7 @@ finalizeCons = sequenceAllLayouts
 	,setUIType UIContainer
 	,toFormItem
 	]
+
 finalizeVarCons :: Layout
 finalizeVarCons = sequenceAllLayouts
 	[layoutSubUIs (SelectAND SelectDescendents selectEditorParts) finalizeEditor 
@@ -134,6 +136,9 @@ where
 		,setUIType UIPanel
 		]
 
+selectIntermediate
+	= foldl1 SelectOR [SelectByType t \\ t <- [UIRecord, UIInteract, UIStep, UIParallel]]
+
 actionsToButtonBar = sequenceAllLayouts
 	[insertChildUI 1 (ui UIButtonBar) //Create a buttonbar
 	,moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [1] 0 //Move all actions to the buttonbar
@@ -146,7 +151,7 @@ toFormItem = layoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAtt
 	(sequenceAllLayouts
 		//Create the 'row' that holds the form item
 		[wrapUI UIContainer
-		,setUIAttributes ('DM'.unions [marginsAttr 2 4 2 4, directionAttr Horizontal, sizeAttr FlexSize WrapSize])
+		,setUIAttributes ('DM'.unions [marginsAttr 2 4 2 4, directionAttr Horizontal,valignAttr AlignMiddle, sizeAttr FlexSize WrapSize])
 		//If there is a label attribute, create a label 
 		,optAddLabel
 		//If there is hint attribute, create an extra icon 
@@ -177,7 +182,7 @@ where
 
 	addIcon iconIndex = foldl1 sequenceLayouts
 		[insertChildUI iconIndex (uia UIIcon (leftMarginAttr 5))
-		,copySubUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) [1] [iconIndex]
+		,copySubUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) [iconIndex - 1] [iconIndex]
 		,layoutSubUIs (SelectByPath [iconIndex]) (modifyUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) createIconAttr)
 		]
 	where

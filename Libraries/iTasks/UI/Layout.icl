@@ -82,7 +82,6 @@ idLayout :: Layout
 idLayout = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
 
 setUIType :: UINodeType -> Layout
-//setUIType type = setUITypeRef_ type
 setUIType type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui=:(UI _ attr items) = (ReplaceUI (UI type attr items), LSType ui) //Crude replacement (no instruction possible)
@@ -100,7 +99,6 @@ where
 	ref (UI _ attr items) = UI type attr items
 
 setUIAttributes :: UIAttributes -> Layout
-//setUIAttributes extraAttr = setUIAttributesRef_ extraAttr 
 setUIAttributes extraAttr = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply (UI _ attr _)
@@ -130,7 +128,6 @@ where
 	ref (UI type attr items) = UI type ('DM'.union extraAttr attr) items
 
 delUIAttributes :: UIAttributeSelection -> Layout 
-//delUIAttributes selection = delUIAttributesRef_ selection
 delUIAttributes selection = {Layout|apply=apply,adjust=adjust,restore=restore} 
 where
 	apply (UI _ attr _) 
@@ -142,7 +139,6 @@ where
 		//Remove changes that affect the deleted attributes
 		# attrChanges = filter (not o (matchChange selection)) attrChanges
 		= (ChangeUI attrChanges itemChanges,LSAttributes attr)
-
 
 	adjust (ReplaceUI ui,_)
 		# (change,state) = apply ui
@@ -159,7 +155,6 @@ where
 	ref (UI type attr items) = UI type (foldl (\a k -> if (matchKey selection k) ('DM'.del k a) a) attr ('DM'.keys attr)) items
 
 modifyUIAttributes :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
-//modifyUIAttributes selection modifier = modifyUIAttributesRef_ selection modifier
 modifyUIAttributes selection modifier = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply (UI type attr items)
@@ -194,8 +189,13 @@ where
 	where
 		selected = selectAttributes selection attr
 
+//Known use:
+//-	copySubUIAttributes SelectAll [0] [] 
+//- copySubUIAttributes (SelectKeys ["title"]) [0] []	
+//- copySubUIAttributes (SelectKeys ["label","optional","mode"]) [1] [0]
+//- copySubUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) [1] [2]
+//- copySubUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) [1] [1]
 copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> Layout
-//copySubUIAttributes selection src dst = copySubUIAttributesRef_ selection src dst 
 copySubUIAttributes selection src dst = {Layout|apply=apply,adjust=adjust,restore=restore} 
 where
 	apply ui 
@@ -203,6 +203,28 @@ where
 		# change  = changeAtPath dst ui (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList srcAttr | matchKey selection k] [])
 		= (change, LSCopyAttributes ui)
 
+	//THIS IS A TEMPORARY VERSION:
+	//It is incorrect in general, but works for the current concrete use-cases we have in the default layouts
+	adjust (change, LSCopyAttributes ui)
+		//Update the ui
+		# (copyChange,state) = apply (applyUIChange change ui)
+		= (mergeUIChanges change copyChange, state)
+			
+	restore (LSCopyAttributes ui) = ReplaceUI ui
+
+	//Find the attributes of a sub ui
+	getAttrAtPath [] (UI type attr items) = attr
+	getAttrAtPath [s:ss] (UI type attr items) 
+		| s >= 0 && s < length items = getAttrAtPath ss (items !! s)
+							         = 'DM'.newMap
+
+	changeAtPath [] _ change = change
+	changeAtPath [s:ss] (UI _ _ items) change
+		| s >= 0 && s < length items = ChangeUI [] [(s,ChangeChild (changeAtPath ss (items !! s) change))]
+									 = NoChange
+
+
+/*
 	adjust (change, LSCopyAttributes ui)
 		//Check if the change affects the position of the destination
 		# dstAfterChange = pathAfterChange dst change
@@ -281,7 +303,7 @@ where
 		adjust s ss [(i,MoveChild d):cs]
 			| i == s = adjust d ss cs
 					 = adjust (s - (if (i < s) 1 0) + (if (d <= s) 1 0)) ss cs
-
+*/
 matchKey (SelectAll) _ = True
 matchKey (SelectKeys keys) k = isMember k keys
 
@@ -308,7 +330,6 @@ diffAttributes old new = [SetAttribute k v \\ (k,v) <- 'DM'.toList new | maybe T
 					  ++ [DelAttribute k \\ k <- 'DM'.keys old | isNothing ('DM'.get k new)]
 
 wrapUI :: UINodeType -> Layout
-//wrapUI type = wrapUIRef_ type
 wrapUI type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui = (ReplaceUI (uic type [ui]), LSWrap ui)
@@ -329,7 +350,6 @@ where
 	ref ui = uic type [ui]
 
 unwrapUI :: Layout
-//unwrapUI = unwrapUIRef_ 
 unwrapUI = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui=:(UI type attr [i:is]) = (ReplaceUI i, LSUnwrap ui)
@@ -382,7 +402,6 @@ where
 //Insert the element at the specified index.
 //Only insert if there are at least as many children as the specified index
 insertChildUI :: Int UI -> Layout
-//insertChildUI idx insert = insertChildUIRef_ idx insert
 insertChildUI idx insert
 	| idx >= 0  = {Layout|apply=apply,adjust=adjust,restore=restore}
 				= idLayout
@@ -458,23 +477,23 @@ where
 			//The element has not been inserted, there is no effect
 			| num < idx 
 				# (cs,num) = adjustChildChanges cs num 
-				= adjustChildChanges [(s,MoveChild d):cs] num
+				= ([(s,MoveChild d):cs],num)
 			//Both are 'before' the inserted element, there is no effect
 			| s < idx && d < idx
 				# (cs,num) = adjustChildChanges cs num 
-				= adjustChildChanges [(s,MoveChild d):cs] num
+				= ([(s,MoveChild d):cs],num)
 			//Only the source is 'before' the inserted element. We need to offset the destination and adjust
 			| s < idx 
 				# (cs,num) = adjustChildChanges cs num
-				= adjustChildChanges [(s,MoveChild (d + 1)),(idx - 1,MoveChild idx):cs] num
+				= ([(s,MoveChild (d + 1)),(idx - 1,MoveChild idx):cs],num)
 			//Only the destination is 'before' the in
 			| d < idx 	
 				# (cs,num) = adjustChildChanges cs num
-				= adjustChildChanges [(s + 1, MoveChild d),(idx + 1,MoveChild idx):cs] num
+				= ([(s + 1, MoveChild d),(idx + 1,MoveChild idx):cs],num)
 			//Both are 'after' the inserted element, offset the indices
 			| otherwise
 				# (cs,num) = adjustChildChanges cs num 
-				= adjustChildChanges [(s + 1,MoveChild (d + 1)):cs] num
+				= ([(s + 1,MoveChild (d + 1)):cs],num)
 		| otherwise = adjustChildChanges cs num //The change is targeted out of range, drop it 
 
 	//Check in the state if the extra element was inserted or not
