@@ -100,7 +100,7 @@ finalizeStep :: Layout
 finalizeStep = sequenceAllLayouts
 	[removeDisabledActionsOfNestedSteps //In case of nested steps, memove disabled actions
 	//If there are no actions, unwrap
-	,layoutSubUIs (ContainsNoChildOfType UIAction) (sequenceAllLayouts [copySubUIAttributes SelectAll [] [0], unwrapUI,finalizeUI])
+	,layoutSubUIs (ContainsNoChildOfType UIAction) (sequenceLayouts unwrapUI finalizeUI)
 	//If the previous rule did not eliminate the UIStep
 	,layoutSubUIs RootIsStep  
 	 	(sequenceAllLayouts [layoutSubUIs (SelectByPath [0]) finalizeUI, actionsToButtonBar,setUIType UIPanel])
