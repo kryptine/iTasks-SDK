@@ -82,29 +82,29 @@ installInitialWorkflows iflows
 		
 loginAndManageWorkList :: !String ![Workflow] -> Task ()
 loginAndManageWorkList welcome workflows 
-	= forever
-		(((	viewTitle welcome
-			||-
-			(anyTask [
-	 				enterInformation ("Authenticated access","Enter your credentials and login") [] @ Just
-				>>* [OnAction (Action "Login")  (hasValue return)]
-				,
-					viewInformation ("Guest access","Alternatively, you can continue anonymously as guest user") [] ()
-					>>| (return Nothing)
-				] <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
-	 	   ) 
-		>>- browse workflows) <<@ ApplyLayout (beforeStep layout) //Compact layout before login, full screen afterwards
-		) 
+	= forever 
+		((		(	viewTitle welcome
+					||-
+	 				enterInformation "Enter your credentials and login or press continue to remain anonymous" []
+	 			) 
+		>>* 	[OnAction (Action "Login") (hasValue (browseAuthenticated workflows))
+				,OnAction (Action "Continue") (always (browseAnonymous workflows))
+		] 
+		) <<@ ApplyLayout (beforeStep layout)) //Compact layout before login, full screen afterwards
 where
-	browse workflows (Just {Credentials|username,password})
+	browseAuthenticated workflows {Credentials|username,password}
 		= authenticateUser username password
 		>>= \mbUser -> case mbUser of
 			Just user 	= workAs user (manageWorklist workflows)
 			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()
-	browse workflows Nothing
+	
+	browseAnonymous workflows
 		= manageWorklist workflows
 		
-	layout = sequenceLayouts (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")]))) frameCompact
+	layout = foldl1 sequenceLayouts
+		[layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")]))
+		,frameCompact
+		]
 		
 // Application specific types
 :: ClientPart
@@ -127,12 +127,12 @@ derive class iTask ClientPart, WorklistRow
 	
 workflowDashboard :: Task ()
 workflowDashboard
-	=  (parallel
+	=  parallel
 		[ (Embedded, startWork)
 		, (Embedded, manageSession)
 		, (Embedded, manageWork)
 		] [] <<@ ApplyLayout layout
-	>>* [OnValue (ifValue (\results -> isValue (snd (results !! 1))) (\_ -> return ()))]) <<@ ApplyLayout unwrapUI
+	>>* [OnValue (ifValue (\results -> isValue (snd (results !! 1))) (\_ -> return ()))]
 where
 	isValue (Value _ _) = True
 	isValue _			= False
@@ -158,7 +158,8 @@ where
 			]
 
 	layoutManageSession = foldl1 sequenceLayouts 
-		[layoutSubUIs SelectChildren actionToButton
+		[unwrapUI
+		,layoutSubUIs SelectChildren actionToButton
 		,layoutSubUIs (SelectByPath [0]) (setUIType UIContainer)
 		,setUIType UIContainer
 		,setUIAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
@@ -167,7 +168,8 @@ where
 manageSession :: !(SharedTaskList ClientPart) -> Task ClientPart
 manageSession list =
 	(	(viewSharedInformation () [ViewAs view] currentUser	
-			>>* [OnAction (Action "Log out")	(always (return (Just Logout)))
+			>>* [OnAction (Action "Shutdown")	(always (shutDown @! Nothing))
+				,OnAction (Action "Log out")	(always (return (Just Logout)))
 				]															
 		) <! isJust	
 	@	fromJust	

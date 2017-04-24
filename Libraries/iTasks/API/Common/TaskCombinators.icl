@@ -98,7 +98,7 @@ where
 //Repeat task until the predicate holds (loops if the predicate is false)
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
 (<!) task pred
-	= parallel [(Embedded,const task),(Embedded,restarter)] [] <<@ ApplyLayout unwrapUI @? res
+	= parallel [(Embedded,const task),(Embedded,restarter)] [] @? res
 where
     restarter tlist = (watch (sdsFocus (Left 0) (taskListItemValue tlist)) >>* [OnValue (check (restart tlist))]) <<@ NoUserInterface
 
