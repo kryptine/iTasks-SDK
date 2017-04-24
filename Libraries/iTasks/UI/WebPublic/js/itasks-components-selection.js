@@ -43,6 +43,7 @@ itasks.Dropdown = Object.assign({
     domTag: 'select',
 	attributes: {
     	width: 150,
+		height: 'wrap',
 		multiple: false
 	},
     initDOMEl: function() {
