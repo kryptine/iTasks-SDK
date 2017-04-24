@@ -146,7 +146,7 @@ itasks.DocumentField = {
         el.appendChild(me.actionEl);
 
         me.xhr = null;
-        me.value = me.value || null;
+        me.value = me.attributes.value || null;
         me.showValue();
     },
     showUploading: function(progress) {
@@ -156,7 +156,7 @@ itasks.DocumentField = {
     showValue: function() {
         var me = this;
         if(me.attributes.value !== null) {
-            me.labelEl.innerHTML = '<a href="' + me.attributes.value.contentUrl + '" target="_blank">' + me.attributes.value.name + '</a>';
+            me.labelEl.innerHTML = '<a href="' + me.attributes.value[1] + '" target="_blank">' + me.attributes.value[2] + '</a>';
             me.actionEl.innerHTML = 'Clear';
         } else {
             me.labelEl.innerHTML = 'No file selected';
@@ -198,20 +198,31 @@ itasks.DocumentField = {
         me.xhr.send(fd);
     },
     onUploadStateChange: function(e) {
-        var me = this, rsp;
+        var me = this, rsp,doc,value;
 
         if (me.xhr.readyState == 4 && me.xhr.status == 200) {
             //Upload ready
             rsp = JSON.parse(me.xhr.responseText);
+			doc = rsp[0];	
+			value = [doc.documentId,doc.contentUrl,doc.name,doc.mime,doc.size];
 
             //Switch to value state
-            me.doEditEvent(me.attributes.taskId,me.attributes.editorId,rsp[0]);
+            me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
             me.xhr = null;
-            me.attributes.value = rsp[0];
+			
+            me.attributes.value = value;
             me.showValue();
         }
     },
+	onAttributeChange: function(name,value) {
+		var me = this;
+		if(name == 'value') {
+			me.setEditorValue(value);
+		}
+	},
     setEditorValue: function(value) {
+		var me = this;
+
         if(me.xhr != null) {
             me.xhr.abort();
             me.xhr = null;
