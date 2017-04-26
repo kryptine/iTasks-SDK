@@ -44,9 +44,10 @@ from Text.JSON import :: JSONNode
 // This is an extended version of UI that annotates UI's with additional information about nodes that were removed, moved or restored.
 :: MvUI = { type      :: UINodeType        //From UI
 		  , attr      :: UIAttributes      //From UI
-          , removed   :: Bool              //Do we hide this node downstream?
+          , matched   :: Bool              //Does this node match the selection upstream? (we hide this node downstream)
 		  , moved     :: Bool              //Have we moved this node to another node?
                                            //They were inserted somewhere, so we should know that we have to remove them there
+		  , deleted   :: Bool              //When an upstream change replaces, or removes a UI, we only mark it, and remove it after we have adjusted the destination
 		  , dstChange :: UIChange          //If we have moved an item, we need to store local changes such that they can be applied in the target location
 		  , children  :: [MvUIChild]       //Either items original nodes, or additional marks
 		  }
@@ -54,8 +55,8 @@ from Text.JSON import :: JSONNode
 :: MvUIChild
 	= MvUIItem MvUI           //Upstream UI nodes with their annotations
 	| MvUIMoveDestination Int //A marker for the segment in the upstream ui where the moved nodes have been inserted (n should equal the amount of moved nodes)
-	| MvUINoLongerMoved Int   //A marker that indicates that at this location in the UI there were previously 'moved' nodes.
-                              //A RemoveChild or ReplaceUI change has removed them.
+//	| MvUINoLongerMoved Int   //A marker that indicates that at this location in the UI there were previously 'moved' nodes.
+//                             //A RemoveChild or ReplaceUI change has removed them.
 	
 // These types are used to control when to apply layout in a task composition
 :: ApplyLayout	= ApplyLayout Layout
