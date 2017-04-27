@@ -53,6 +53,12 @@ workflowByPath			:: !String -> Shared Workflow
 * @param The task(container) (with or without parameter)
 */
 workflow :: String String w -> Workflow | toWorkflow w
+/*
+* Wraps any task as a transient workflow with no access restrictions
+* users will be able to do this flow embedded in a session, but can't add it
+* as a persisent workflow.
+*/
+transientWorkflow :: String String w -> Workflow | toWorkflow w
 /**
 *
 * Wraps any task as a workflow that is only available to specified roles
@@ -63,6 +69,7 @@ workflow :: String String w -> Workflow | toWorkflow w
 * @param The task(container) (with or without parameter)
 */
 restrictedWorkflow :: String String [Role] w -> Workflow | toWorkflow w
+restrictedTransientWorkflow :: String String [Role] w -> Workflow | toWorkflow w
 
 class toWorkflow w :: String String [Role] Bool !w -> Workflow
 

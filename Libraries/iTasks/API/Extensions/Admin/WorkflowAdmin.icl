@@ -63,14 +63,14 @@ externalTaskInterface
 manageWorkflows :: ![Workflow] ->  Task ()
 manageWorkflows iflows
 	=	installInitialWorkflows iflows
-	>>| forever (catchAll (doAuthenticated workflowDashboard) viewError)
+	>>| forever (catchAll (doAuthenticated manageWorkInSession) viewError)
 where
 	viewError error = viewInformation "Error" [] error >>! \_ -> return ()
 
 manageWorklist :: ![Workflow] -> Task ()
 manageWorklist iflows
 	=	installInitialWorkflows iflows
-	>>| workflowDashboard
+	>>| manageWorkInSession
 
 installInitialWorkflows ::[Workflow] -> Task ()
 installInitialWorkflows [] = return ()
@@ -107,12 +107,6 @@ where
 	layout = sequenceLayouts (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")]))) frameCompact
 		
 // Application specific types
-:: ClientPart
-	= Logout								//Produced by the control task
-	| SelWorkflow 	!String					//Produced by the workflow chooser & workflow details
-	| SelProcess 	!TaskId					//Produced by the worklist
-	| OpenProcess			
-		
 :: WorklistRow =
     { taskNr	:: Maybe String
     , title		:: Maybe String
@@ -123,32 +117,27 @@ where
 	, createdFor:: Maybe String
 	}
 
-derive class iTask ClientPart, WorklistRow
+derive class iTask WorklistRow
 	
-workflowDashboard :: Task ()
-workflowDashboard
-	=  (parallel
-		[ (Embedded, manageSession)
-		, (Embedded, manageWork)
-		] [] <<@ ApplyLayout layout
-	>>* [OnValue (ifValue (\results -> isValue (snd (results !! 0))) (\_ -> return ()))]) <<@ ApplyLayout unwrapUI
+manageWorkInSession:: Task ()
+manageWorkInSession
+	= 	((manageSession -|| manageWork)
+	>>* [OnValue (ifStable (const (return ())))]) <<@ ApplyLayout layout
 where
-	isValue (Value _ _) = True
-	isValue _			= False
-
 	layout = foldl1 sequenceLayouts
-		[layoutSubUIs (SelectByPath [0]) layoutManageSession
-		//Put manageSession and manageWork together in a container
-		,layoutSubUIs (SelectByPath [0]) (wrapUI UIContainer)
-		,moveSubUIs (SelectByPath [1]) [0] 1
-		//Split the screen space
-		,arrangeWithSideBar 0 TopSide 250 True
-		//Layout all dynamically added tasks as tabs
-		,layoutSubUIs (SelectByPath [1]) arrangeWithTabs
+		[unwrapUI //Get rid of the step
+		,arrangeWithSideBar 0 TopSide 50 True
+		,layoutSubUIs (SelectByPath [0]) layoutManageSession
+		,layoutSubUIs (SelectByPath [1]) (sequenceLayouts unwrapUI layoutManageWork)
 		//Use maximal screen space
 		,setUIAttributes (sizeAttr FlexSize FlexSize)
 		]
-
+	layoutManageWork = foldl1 sequenceLayouts
+		//Split the screen space
+		[arrangeWithSideBar 0 TopSide 200 True
+		//Layout all dynamically added tasks as tabs
+		,layoutSubUIs (SelectByPath [1]) arrangeWithTabs
+		]
 	layoutManageSession = foldl1 sequenceLayouts 
 		[layoutSubUIs SelectChildren actionToButton
 		,layoutSubUIs (SelectByPath [0]) (setUIType UIContainer)
@@ -156,22 +145,48 @@ where
 		,setUIAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
 		]
 
-manageSession :: !(SharedTaskList ClientPart) -> Task ClientPart
-manageSession list =
-	(	(viewSharedInformation () [ViewAs view] currentUser	
-			>>* [OnAction (Action "Log out")	(always (return (Just Logout)))
-				]															
-		) <! isJust	
-	@	fromJust	
-	) <<@ ApplyLayout (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Log out","logout")])))
+manageSession :: Task ()
+manageSession =
+		(viewSharedInformation () [ViewAs view] currentUser	
+	>>* [OnAction (Action "Log out") (always (return ()))])
+		 <<@ ApplyLayout (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Log out","logout")])))
 where
 	view user	= "Welcome " +++ toString user		
 
-startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
-startWork list 
+manageWork :: Task ()
+manageWork = parallel [(Embedded, manageList)] [] @! ()
+where
+	manageList taskList = forever
+		(	enterChoiceWithSharedAs () [ChooseFromGrid snd] processes fst
+		>>* [OnAction (Action "New") (always (appendTask Embedded (removeWhenStable (addNewTask taskList)) taskList @! () ))
+			,OnAction (Action "Open") (hasValue (\taskId -> openTask taskList taskId @! ()))
+			,OnAction (Action "Delete") (hasValue (\taskId -> removeTask taskId topLevelTasks @! ()))]
+		)
+	// list of active processes for current user without current one (to avoid work on dependency cycles)
+	where
+		processes = mapRead (\(procs,ownPid) -> [(p.TaskListItem.taskId,mkRow p) \\ p <- procs | show ownPid p && isActive p])  (processesForCurrentUser |+| currentTopTask)
+		where
+			show ownPid {TaskListItem|taskId,progress=Just _} = taskId <> ownPid
+			show ownPid _ = False
+		
+		isActive {TaskListItem|progress=Just {InstanceProgress|value}}	= value === None || value === Unstable
+
+	mkRow {TaskListItem|taskId,attributes} =
+		{WorklistRow
+		|taskNr		= Just (toString taskId)
+		,title      = fmap toString ('DM'.get "title"          attributes)
+		,priority   = fmap toString ('DM'.get "priority"       attributes)
+		,createdBy	= fmap toString ('DM'.get "createdBy"      attributes)
+		,date       = fmap toString ('DM'.get "createdAt"      attributes)
+		,deadline   = fmap toString ('DM'.get "completeBefore" attributes)
+		,createdFor = fmap toString ('DM'.get "createdFor"     attributes)
+		}
+	
+addNewTask :: !(SharedTaskList ()) -> Task ()
+addNewTask list 
 	=   ((chooseWorkflow >&> viewWorkflowDetails) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
-	>>* [OnAction (Action "Start task") (hasValue (\wf -> startWorkflow list wf @! SelWorkflow wf.Workflow.path))
-		,OnAction ActionCancel (always (return OpenProcess))
+	>>* [OnAction (Action "Start task") (hasValue (\wf -> startWorkflow list wf @! ()))
+		,OnAction ActionCancel (always (return ()))
 		] ) <<@ Title "New work"
 
 chooseWorkflow :: Task Workflow
@@ -217,7 +232,7 @@ where
 	onlyJust (Value (Just v) s) = Value v s
 	onlyJust _					= NoValue
 
-startWorkflow :: !(SharedTaskList ClientPart) !Workflow -> Task Workflow
+startWorkflow :: !(SharedTaskList ()) !Workflow -> Task Workflow
 startWorkflow list wf
 	= 	get currentUser -&&- get currentDateTime
 	>>=	\(user,now) ->
@@ -237,51 +252,24 @@ where
 unwrapWorkflowTask (WorkflowTask t) = t @! ()
 unwrapWorkflowTask (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf @! ())		
 
-manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
-manageWork taskList = forever
-	(	enterChoiceWithSharedAs () [ChooseFromGrid snd] processes fst
-	>>* [OnAction (Action "New") (always (appendTask Embedded (removeWhenStable (startWork taskList)) taskList @! OpenProcess))
-		,OnAction (Action "Open") (hasValue (\taskId -> openTask taskList taskId @! OpenProcess))
-		,OnAction (Action "Delete") (hasValue (\taskId -> removeTask taskId topLevelTasks @! OpenProcess))]
-	)
-where
-	// list of active processes for current user without current one (to avoid work on dependency cycles)
-	processes = mapRead (\(procs,ownPid) -> [(p.TaskListItem.taskId,mkRow p) \\ p <- procs | show ownPid p && isActive p])  (processesForCurrentUser |+| currentTopTask)
-	where
-		show ownPid {TaskListItem|taskId,progress=Just _} = taskId <> ownPid
-		show ownPid _ = False
-		
-	isActive {TaskListItem|progress=Just {InstanceProgress|value}}	= value === None || value === Unstable
-
-	mkRow {TaskListItem|taskId,attributes} =
-		{WorklistRow
-		|taskNr		= Just (toString taskId)
-		,title      = fmap toString ('DM'.get "title"          attributes)
-		,priority   = fmap toString ('DM'.get "priority"       attributes)
-		,createdBy	= fmap toString ('DM'.get "createdBy"      attributes)
-		,date       = fmap toString ('DM'.get "createdAt"      attributes)
-		,deadline   = fmap toString ('DM'.get "completeBefore" attributes)
-		,createdFor = fmap toString ('DM'.get "createdFor"     attributes)
-		}
-	
-openTask :: !(SharedTaskList ClientPart) !TaskId -> Task ClientPart
+openTask :: !(SharedTaskList ()) !TaskId -> Task ()
 openTask taskList taskId
-	=	appendOnce taskId (workOnTask taskId) taskList @! OpenProcess
+	=	appendOnce taskId (workOnTask taskId) taskList @! ()
 
-workOnTask :: !TaskId -> Task ClientPart
+workOnTask :: !TaskId -> Task ()
 workOnTask taskId
     =   (workOn taskId <<@ ApplyLayout (setUIAttributes (heightAttr FlexSize))
-    >>* [OnValue    (ifValue ((===) ASExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this task" >>| return OpenProcess))
+    >>* [OnValue    (ifValue ((===) ASExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this task" >>| return ()))
         ,OnValue    (ifValue ((===) ASIncompatible) (\_ -> dealWithIncompatibleTask))
-        ,OnValue    (ifValue ((===) ASDeleted) (\_ -> return OpenProcess))
-        ,OnValue    (ifValue ((===) (ASAttached True)) (\_ -> return OpenProcess)) //If the task is stable, there is no need to work on it anymore
-        ,OnAction ActionClose   (always (return OpenProcess))
+        ,OnValue    (ifValue ((===) ASDeleted) (\_ -> return ()))
+        ,OnValue    (ifValue ((===) (ASAttached True)) (\_ -> return ())) //If the task is stable, there is no need to work on it anymore
+        ,OnAction ActionClose   (always (return ()))
         ] ) <<@ ApplyLayout (copySubUIAttributes (SelectKeys ["title"]) [0] []) //Use the title from the workOn for the composition
 where
     dealWithIncompatibleTask
         =   viewInformation (Title "Error") [] "This this task is incompatible with the current application version. Restart?"
         >>* [OnAction ActionYes (always restartTask)
-            ,OnAction ActionNo (always (return OpenProcess))
+            ,OnAction ActionNo (always (return ()))
             ]
 
     restartTask
@@ -289,7 +277,7 @@ where
         >>- \mbReplacement -> case mbReplacement of
             Nothing
                 =   viewInformation (Title "Error") [] "Sorry, this task is no longer available in the workflow catalog"
-                >>| return OpenProcess
+                >>| return ()
             Just replacement
                 =   replaceTask taskId (const ((unwrapWorkflowTask replacement.Workflow.task) <<@ ApplyLayout defaultSessionLayout)) topLevelTasks
                 >>| workOnTask taskId
@@ -330,8 +318,14 @@ addWorkflows additional
 workflow :: String String w -> Workflow | toWorkflow w
 workflow path description task = toWorkflow path description [] False task
 
+transientWorkflow :: String String w -> Workflow | toWorkflow w
+transientWorkflow path description task = toWorkflow path description [] True task
+
 restrictedWorkflow :: String String [Role] w -> Workflow | toWorkflow w
 restrictedWorkflow path description roles task = toWorkflow path description roles False task
+
+restrictedTransientWorkflow :: String String [Role] w -> Workflow | toWorkflow w
+restrictedTransientWorkflow path description roles task = toWorkflow path description roles True task
 
 inputWorkflow :: String String String (a -> Task b) -> Workflow | iTask a & iTask b
 inputWorkflow name desc inputdesc tfun
