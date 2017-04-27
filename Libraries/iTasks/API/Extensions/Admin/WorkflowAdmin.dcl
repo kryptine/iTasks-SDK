@@ -9,6 +9,7 @@ import iTasks
 	{ path				:: String					//* a unique name of this workflow
 	, roles				:: [String]					//* the roles that are allowed to initate this workflow
 	, description		:: String					//* a description of the workflow
+	, transient			:: Bool						//* this workflow is intended only as part of a session, it is not persistent
 	, managerProperties	:: TaskAttributes           //* the initial manager properties of the main task
 	, task				:: WorkflowTaskContainer	//* the thread of the main task of the workflow
 	}						
@@ -63,7 +64,7 @@ workflow :: String String w -> Workflow | toWorkflow w
 */
 restrictedWorkflow :: String String [Role] w -> Workflow | toWorkflow w
 
-class toWorkflow w :: String String [Role] !w -> Workflow
+class toWorkflow w :: String String [Role] Bool !w -> Workflow
 
 instance toWorkflow (Task a)						| iTask a
 instance toWorkflow (WorkflowContainer a)			| iTask a

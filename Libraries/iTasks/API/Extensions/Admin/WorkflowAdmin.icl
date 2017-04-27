@@ -128,34 +128,26 @@ derive class iTask ClientPart, WorklistRow
 workflowDashboard :: Task ()
 workflowDashboard
 	=  (parallel
-		[ (Embedded, startWork)
-		, (Embedded, manageSession)
+		[ (Embedded, manageSession)
 		, (Embedded, manageWork)
 		] [] <<@ ApplyLayout layout
-	>>* [OnValue (ifValue (\results -> isValue (snd (results !! 1))) (\_ -> return ()))]) <<@ ApplyLayout unwrapUI
+	>>* [OnValue (ifValue (\results -> isValue (snd (results !! 0))) (\_ -> return ()))]) <<@ ApplyLayout unwrapUI
 where
 	isValue (Value _ _) = True
 	isValue _			= False
 
 	layout = foldl1 sequenceLayouts
-		[ arrangeWithSideBar 0 LeftSide 260 True
-		, layoutSubUIs (SelectByPath [0]) layoutStartWork
-		, layoutSubUIs (SelectByPath [1]) layoutDoWork
-		, setUIAttributes (sizeAttr FlexSize FlexSize)
+		[layoutSubUIs (SelectByPath [0]) layoutManageSession
+		//Put manageSession and manageWork together in a container
+		,layoutSubUIs (SelectByPath [0]) (wrapUI UIContainer)
+		,moveSubUIs (SelectByPath [1]) [0] 1
+		//Split the screen space
+		,arrangeWithSideBar 0 TopSide 250 True
+		//Layout all dynamically added tasks as tabs
+		,layoutSubUIs (SelectByPath [1]) arrangeWithTabs
+		//Use maximal screen space
+		,setUIAttributes (sizeAttr FlexSize FlexSize)
 		]
-
-	layoutStartWork = arrangeWithSideBar 1 BottomSide  200 True
-
-	layoutDoWork = foldl1 sequenceLayouts
-			[layoutSubUIs (SelectByPath [0]) layoutManageSession
-			//Put manageSession and manageWork together in a container
-			,layoutSubUIs (SelectByPath [0]) (wrapUI UIContainer)
-		    ,moveSubUIs (SelectByPath [1]) [0] 1
-			//Split the screen real estate
-			,arrangeWithSideBar 0 TopSide 200 True
-			//Layout all dynamically added tasks as tabs
-			,layoutSubUIs (SelectByPath [1]) arrangeWithTabs
-			]
 
 	layoutManageSession = foldl1 sequenceLayouts 
 		[layoutSubUIs SelectChildren actionToButton
@@ -171,22 +163,21 @@ manageSession list =
 				]															
 		) <! isJust	
 	@	fromJust	
-	) <<@ ApplyLayout (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Shutdown","close"),("Log out","logout")])))
+	) <<@ ApplyLayout (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Log out","logout")])))
 where
 	view user	= "Welcome " +++ toString user		
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
-startWork list = chooseWorkflow >&> viewAndStart
-where
-	viewAndStart sel = forever (
-			viewWorkflowDetails sel
-		>>* [OnAction (Action "Start Task") (hasValue (startWorkflow list))]
-		@	\wf -> SelWorkflow wf.Workflow.path
-		)
+startWork list 
+	=   ((chooseWorkflow >&> viewWorkflowDetails) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
+	>>* [OnAction (Action "Start task") (hasValue (\wf -> startWorkflow list wf @! SelWorkflow wf.Workflow.path))
+		,OnAction ActionCancel (always (return OpenProcess))
+		] ) <<@ Title "New work"
 
 chooseWorkflow :: Task Workflow
 chooseWorkflow
-	=  editSelectionWithShared [Att (Title "Tasks"), Att IconEdit] False (SelectInTree toTree fromTree) allowedWorkflows (const []) @? tvHd
+	=  editSelectionWithShared [Att (Title "Tasks"), Att IconEdit] False (SelectInTree toTree fromTree) allowedWorkflows (const []) <<@ Title "Workflow Catalogue"
+	@? tvHd 
 where
 	//We assign unique negative id's to each folder and unique positive id's to each workflow in the list
 	toTree workflows = snd (seq (map add (zip ([0..],workflows))) (-1,[]))
@@ -249,8 +240,9 @@ unwrapWorkflowTask (ParamWorkflowTask tf) = (enterInformation "Enter parameters"
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
 	(	enterChoiceWithSharedAs () [ChooseFromGrid snd] processes fst
-	>>* [OnAction (Action "Open") (hasValue (\taskId -> openTask taskList taskId @ const OpenProcess))
-		,OnAction (Action "Delete") (hasValue (\taskId -> removeTask taskId topLevelTasks @ const OpenProcess))]
+	>>* [OnAction (Action "New") (always (appendTask Embedded (removeWhenStable (startWork taskList)) taskList @! OpenProcess))
+		,OnAction (Action "Open") (hasValue (\taskId -> openTask taskList taskId @! OpenProcess))
+		,OnAction (Action "Delete") (hasValue (\taskId -> removeTask taskId topLevelTasks @! OpenProcess))]
 	)
 where
 	// list of active processes for current user without current one (to avoid work on dependency cycles)
@@ -336,10 +328,10 @@ addWorkflows additional
 
 // UTIL FUNCTIONS
 workflow :: String String w -> Workflow | toWorkflow w
-workflow path description task = toWorkflow path description [] task
+workflow path description task = toWorkflow path description [] False task
 
 restrictedWorkflow :: String String [Role] w -> Workflow | toWorkflow w
-restrictedWorkflow path description roles task = toWorkflow path description roles task
+restrictedWorkflow path description roles task = toWorkflow path description roles False task
 
 inputWorkflow :: String String String (a -> Task b) -> Workflow | iTask a & iTask b
 inputWorkflow name desc inputdesc tfun
@@ -347,24 +339,25 @@ inputWorkflow name desc inputdesc tfun
 	
 instance toWorkflow (Task a) | iTask a
 where
-	toWorkflow path description roles task = toWorkflow path description roles (Workflow defaultValue task)
+	toWorkflow path description roles transient task = toWorkflow path description roles transient (Workflow defaultValue task)
 	
 instance toWorkflow (WorkflowContainer a) | iTask a
 where
-	toWorkflow path description roles (Workflow managerP task) = mkWorkflow path description roles (WorkflowTask task) managerP
+	toWorkflow path description roles transient (Workflow managerP task) = mkWorkflow path description roles transient (WorkflowTask task) managerP
 
 instance toWorkflow (a -> Task b) | iTask a & iTask b
 where
-	toWorkflow path description roles paramTask = toWorkflow path description roles (ParamWorkflow defaultValue paramTask)
+	toWorkflow path description roles transient paramTask = toWorkflow path description roles transient (ParamWorkflow defaultValue paramTask)
 	
 instance toWorkflow (ParamWorkflowContainer a b) | iTask a & iTask b
 where
-	toWorkflow path description roles (ParamWorkflow managerP paramTask) = mkWorkflow path description roles (ParamWorkflowTask paramTask) managerP
+	toWorkflow path description roles transient (ParamWorkflow managerP paramTask) = mkWorkflow path description roles transient (ParamWorkflowTask paramTask) managerP
 	
-mkWorkflow path description roles taskContainer managerProps =
+mkWorkflow path description roles transient taskContainer managerProps =
 	{ Workflow
 	| path	= path
 	, roles	= roles
+	, transient = transient
 	, task = taskContainer
 	, description = description
 	, managerProperties = managerProps
