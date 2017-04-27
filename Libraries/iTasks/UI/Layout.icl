@@ -564,9 +564,6 @@ where
 			= UI type attr (updateAt s (insert selected ss i (items !! s)) items)
 			= UI type attr items
 
-from Gast.GenLibTest import show1, generic genShow
-derive genShow UIChange, UIChildChange, UI, UIAttributeChange, Map, UINodeType, JSONNode, MvUI, MvUIChild
-
 moveSubUIs` :: UISelection (Maybe (!UIPath,!Int)) -> Layout
 moveSubUIs` selection mbDst = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
