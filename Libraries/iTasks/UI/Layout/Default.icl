@@ -39,7 +39,8 @@ finalizeInteract = sequenceAllLayouts
 		[copyContentTitle
 		,layoutSubUIs (SelectByPath [1]) finalizeEditor
 		,removeEmptyPrompt
-		,setUIType UIPanel
+		,setUIType UIContainer
+		,layoutSubUIs (SelectAND (SelectByPath []) (SelectByHasAttribute "title")) (setUIType UIPanel)
 		] 
 where
 	copyContentTitle = copySubUIAttributes (SelectKeys ["title"]) [0] []
