@@ -153,6 +153,9 @@ itasks.ChoiceList = Object.assign({
 			option.domEl = optionEl;
         });
 		me.optionsDOM = me.domEl.children;
+
+		//Highlight initital selection
+		me.select(me.attributes.value,false);
     },
 	setOptions: function(options) {
 	},
