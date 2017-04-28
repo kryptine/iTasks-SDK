@@ -40,7 +40,14 @@ allowedWorkflows :: ReadOnlyShared [Workflow]
 allowedWorkflows = mapRead filterAllowed (workflows |+| currentUser)
 where
 	filterAllowed (workflows,user) = filter (isAllowedWorkflow user) workflows
-	
+
+//All tasks that you can do in a session
+allowedTransientTasks :: ReadOnlyShared [Workflow] 
+allowedTransientTasks = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <- wfs | transient]) allowedWorkflows
+
+allowedPersistentWorkflows :: ReadOnlyShared [Workflow]
+allowedPersistentWorkflows = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <- wfs | not transient]) allowedWorkflows
+
 // SERVICE TASKS
 viewTaskList :: Task [TaskListItem ()]
 viewTaskList 
@@ -118,32 +125,51 @@ where
 	}
 
 derive class iTask WorklistRow
-	
+/*
+		runInteractiveTests
+		= ( editSelection (Title "Select test") False (SelectInTree toTree selectTest) suites [] @? tvHd
+		>&> withSelection (viewInformation () [] "Select a test") testInteractive ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
+
+	toTree suites = reverse (snd (foldl addSuite (0,[]) suites))
+	addSuite (i,t) {TestSuite|name,tests}
+		| isEmpty [t \\ InteractiveTest t <- tests]  = (i,t) //There are no interactive tests in the suite
+		# (i,children) = foldl addTest (i,[]) tests
+		= (i, [{ChoiceNode|id = -1 * i, label=name, expanded=False, icon=Nothing, children=reverse children}:t])
+
+	addTest (i,t) (InteractiveTest {InteractiveTest|name})
+		= (i + 1, [{ChoiceNode|id = i, label=name, expanded=False, icon=Nothing, children=[]}:t])
+	addTest (i,t) _ = (i,t)
+
+	selectTest suites [idx] 
+		| idx >= 0  = [(flatten [[t \\ InteractiveTest t <- s.TestSuite.tests] \\ s <- suites]) !! idx]
+		| otherwise = []
+	selectTest _ _ = []
+*/
+
 manageWorkInSession:: Task ()
 manageWorkInSession
-	= 	((manageSession -|| manageWork)
+	= 	((manageSession -||
+		  (chooseWhatToDo >&> withSelection (viewInformation () [] "Welcome!") (\wf -> unwrapWorkflowTask wf.Workflow.task))
+		)
 	>>* [OnValue (ifStable (const (return ())))]) <<@ ApplyLayout layout
 where
 	layout = foldl1 sequenceLayouts
 		[unwrapUI //Get rid of the step
 		,arrangeWithSideBar 0 TopSide 50 True
 		,layoutSubUIs (SelectByPath [0]) layoutManageSession
-		,layoutSubUIs (SelectByPath [1]) (sequenceLayouts unwrapUI layoutManageWork)
+		,layoutSubUIs (SelectByPath [1]) (sequenceLayouts unwrapUI layoutWhatToDo)
 		//Use maximal screen space
 		,setUIAttributes (sizeAttr FlexSize FlexSize)
 		]
-	layoutManageWork = foldl1 sequenceLayouts
-		//Split the screen space
-		[arrangeWithSideBar 0 TopSide 200 True
-		//Layout all dynamically added tasks as tabs
-		,layoutSubUIs (SelectByPath [1]) arrangeWithTabs
-		]
+
+		//,layoutSubUIs (SelectByPath [1]) (sequenceLayouts unwrapUI layoutManageWork)
 	layoutManageSession = foldl1 sequenceLayouts 
 		[layoutSubUIs SelectChildren actionToButton
 		,layoutSubUIs (SelectByPath [0]) (setUIType UIContainer)
 		,setUIType UIContainer
 		,setUIAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
 		]
+	layoutWhatToDo = arrangeWithSideBar 0 LeftSide 150 True
 
 manageSession :: Task ()
 manageSession =
@@ -153,8 +179,14 @@ manageSession =
 where
 	view user	= "Welcome " +++ toString user		
 
+chooseWhatToDo = updateChoiceWithShared (Title "Menu") [ChooseFromList workflowTitle] (mapRead addManageWork allowedTransientTasks) manageWorkWf
+where
+	addManageWork wfs = [manageWorkWf:wfs]
+	manageWorkWf = transientWorkflow "My work" "Manage your worklist"  manageWork
+	
+
 manageWork :: Task ()
-manageWork = parallel [(Embedded, manageList)] [] @! ()
+manageWork = parallel [(Embedded, manageList)] [] <<@ ApplyLayout layoutManageWork @! ()
 where
 	manageList taskList = forever
 		(	enterChoiceWithSharedAs () [ChooseFromGrid snd] processes fst
@@ -182,6 +214,14 @@ where
 		,createdFor = fmap toString ('DM'.get "createdFor"     attributes)
 		}
 	
+	layoutManageWork = foldl1 sequenceLayouts
+		//Split the screen space
+		[arrangeWithSideBar 0 TopSide 200 True
+		//Layout all dynamically added tasks as tabs
+		,layoutSubUIs (SelectByPath [1]) arrangeWithTabs
+		]
+
+
 addNewTask :: !(SharedTaskList ()) -> Task ()
 addNewTask list 
 	=   ((chooseWorkflow >&> viewWorkflowDetails) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))

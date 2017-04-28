@@ -81,14 +81,14 @@ basicAPIExamples =
 	,workflow (miscTask +++ "Droste Cacaobus") 				"Start this application as a task" 	(manageWorklist basicAPIExamples)
     ,workflow (miscTask +++ "External process") 		    "Starts an external process" 	    externalProcessExample
 
-	,workflow (adminTask +++ "Manage users") 				"Manage system users..." 			manageUsers
-	,workflow (adminTask +++ "Manage server")				"Manage itask server..." 			manageServer
-	,workflow (adminTask +++ "Manage store") 				"Manage itask store..." 			manageStore
+	,restrictedTransientWorkflow (adminTask +++ "Manage users") "Manage system users..." 	["admin"]		manageUsers
+	,restrictedTransientWorkflow (adminTask +++ "Manage server")				"Manage itask server..." ["admin"]			manageServer
+	,restrictedTransientWorkflow (adminTask +++ "Manage store") 				"Manage itask store..." ["admin"] 			manageStore
 	//,workflow (svgTasks +++ "Graphics tests")               "Graphics tests"                    svg_test
 	//,workflow (svgTasks +++ "Graphics editlet")             "Editlet test with clickable elements" svg_image
 	//,workflow (svgTasks +++ "Edgehog")                      "Experiment with lines"             edgehog
 //	,workflow "Play Ligretto"								"Play Ligretto"						play_ligretto
-    ,workflow (adminTask +++ "Tonic")						"Tonic dashboard"						(tonicDashboard [])
+    ,restrictedTransientWorkflow (adminTask +++ "Tonic")						"Tonic dashboard" ["admin"]					(tonicDashboard [])
 	]
 
 
