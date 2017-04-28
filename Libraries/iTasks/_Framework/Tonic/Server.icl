@@ -301,9 +301,10 @@ acceptAndViewTonicTraces
 acceptTonicTraces :: !(Shared TMessageStore) -> Task [ServerState]
 acceptTonicTraces tonicShare
   = tcplisten 9000 True tonicShare { ConnectionHandlers
-                                   | onConnect      = onConnect
-                                   , whileConnected = whileConnected
-                                   , onDisconnect   = onDisconnect
+                                   | onConnect     = onConnect
+                                   , onData        = undef
+                                   , onShareChange = undef
+                                   , onDisconnect  = onDisconnect
                                    }
   where
   onConnect :: String TMessageStore

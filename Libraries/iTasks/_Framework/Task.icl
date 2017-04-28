@@ -78,74 +78,77 @@ extendCallTrace taskId repOpts=:{TaskEvalOpts|tonicOpts = {callTrace = xs}}
       _ = {repOpts & tonicOpts = {repOpts.tonicOpts & callTrace = 'DCS'.push taskId repOpts.tonicOpts.callTrace}}
 
 wrapConnectionTask :: (ConnectionHandlers l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
-wrapConnectionTask {ConnectionHandlers|onConnect,whileConnected,onDisconnect} sds
-    = ConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect`,whileConnected=whileConnected`,onDisconnect=onDisconnect`} (toDynamic sds)
+wrapConnectionTask {ConnectionHandlers|onConnect,onData,onShareChange,onDisconnect} sds
+    = ConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect`,onData=onData`,onShareChange=onShareChange`,onTick=onTick`,onDisconnect=onDisconnect`} (toDynamic sds)
 where
-    onConnect` host (r :: r^) env = case onConnect host r of
-        (Ok l, mbw, out, close) = case mbw of
-            Just w  = (Ok (dynamic l :: l^), Just (dynamic w :: w^), out, close, env)
-            Nothing = (Ok (dynamic l :: l^), Nothing, out, close, env)
-        (Error e, mbw, out, close) = case mbw of
-            Just w  = (Error e, Just (dynamic w :: w^), out, close, env)
-            Nothing = (Error e, Nothing, out, close, env)
+    onConnect` host (r :: r^) env
+        # (mbl, mbw, out, close) = onConnect host r
+        = (toDyn <$> mbl, toDyn <$> mbw, out, close, env)
 
-    whileConnected` mbIn (l :: l^) (r :: r^) env = case whileConnected mbIn l r of
-        (Ok l, mbw, out, close) = case mbw of
-            Just w  = (Ok (dynamic l :: l^), Just (dynamic w :: w^), out, close, env)
-            Nothing = (Ok (dynamic l :: l^), Nothing, out, close, env)
-        (Error e, mbw, out, close) = case mbw of
-            Just w = (Error e, Just (dynamic w :: w^), out, close, env)
-            Nothing = (Error e, Nothing, out, close, env)
+    onData` data (l :: l^) (r :: r^) env
+        # (mbl, mbw, out, close) = onData data l r
+        = (toDyn <$> mbl, toDyn <$> mbw, out, close, env)
 
-    onDisconnect` (l :: l^) (r :: r^) env = case onDisconnect l r of
-        (Ok l, mbw) = case mbw of
-            Just w  = (Ok (dynamic l :: l^), Just (dynamic w :: w^), env)
-            Nothing = (Ok (dynamic l :: l^), Nothing, env)
-        (Error e, mbw) = case mbw of
-            Just w  = (Error e, Just (dynamic w :: w^), env)
-            Nothing = (Error e, Nothing, env)
+    onShareChange` (l :: l^) (r :: r^) env
+        # (mbl, mbw, out, close) = onShareChange l r
+        = (toDyn <$> mbl, toDyn <$> mbw, out, close, env)
+
+    // do nothing
+    onTick` l _ env
+        = (Ok l, Nothing, [], False, env)
+
+    onDisconnect` (l :: l^) (r :: r^) env
+        # (mbl, mbw) = onDisconnect l r
+        = (toDyn <$> mbl, toDyn <$> mbw, env)
 
 wrapIWorldConnectionTask :: (ConnectionHandlersIWorld l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
-wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect,whileConnected,onDisconnect} sds
-    = ConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect`,whileConnected=whileConnected`,onDisconnect=onDisconnect`} (toDynamic sds)
+wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect,onData,onShareChange,onTick,onDisconnect} sds
+    = ConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect`,onData=onData`,onShareChange=onShareChange`,onTick=onTick`,onDisconnect=onDisconnect`} (toDynamic sds)
 where
-    onConnect` host (r :: r^) env = case onConnect host r env of
-        (Ok l, mbw, out, close, env) = case mbw of
-            Just w  = (Ok (dynamic l :: l^), Just (dynamic w :: w^), out, close, env)
-            Nothing = (Ok (dynamic l :: l^), Nothing, out, close, env)
-        (Error e, mbw, out, close, env) = case mbw of
-            Just w  = (Error e, Just (dynamic w :: w^), out, close, env)
-            Nothing = (Error e, Nothing, out, close, env)
+    onConnect` host (r :: r^) env
+        # (mbl, mbw, out, close, env) = onConnect host r env
+        = (toDyn <$> mbl, toDyn <$> mbw, out, close, env)
 
-    whileConnected` mbIn (l :: l^) (r :: r^) env = case whileConnected mbIn l r env of
-        (Ok l, mbw, out, close, env) = case mbw of
-            Just w  = (Ok (dynamic l :: l^), Just (dynamic w :: w^), out, close, env)
-            Nothing = (Ok (dynamic l :: l^), Nothing, out, close, env)
-        (Error e, mbw, out, close, env) = case mbw of
-            Just w = (Error e, Just (dynamic w :: w^), out, close, env)
-            Nothing = (Error e, Nothing, out, close, env)
+    onData` data (l :: l^) (r :: r^) env
+        # (mbl, mbw, out, close, env) = onData data l r env
+        = (toDyn <$> mbl, toDyn <$> mbw, out, close, env)
 
-    onDisconnect` (l :: l^) (r :: r^) env = case onDisconnect l r env of
-        (Ok l, mbw, env) = case mbw of
-            Just w  = (Ok (dynamic l :: l^), Just (dynamic w :: w^), env)
-            Nothing = (Ok (dynamic l :: l^), Nothing, env)
-        (Error e, mbw, env) = case mbw of
-            Just w  = (Error e, Just (dynamic w :: w^), env)
-            Nothing = (Error e, Nothing, env)
+    onShareChange` (l :: l^) (r :: r^) env
+        # (mbl, mbw, out, close, env) = onShareChange l r env
+        = (toDyn <$> mbl, toDyn <$> mbw, out, close, env)
+
+    onTick` (l :: l^) (r :: r^) env
+        # (mbl, mbw, out, close, env) = onTick l r env
+        = (toDyn <$> mbl, toDyn <$> mbw, out, close, env)
+
+    onDisconnect` (l :: l^) (r :: r^) env
+        # (mbl, mbw, env) = onDisconnect l r env
+        = (toDyn <$> mbl, toDyn <$> mbw, env)
 
 wrapExternalProcTask :: !(ExternalProcessHandlers l r w) !(RWShared () r w) -> ExternalProcessTask | TC l & TC r & TC w & iTask l
-wrapExternalProcTask {onStartup, whileRunning, onExit} sds
-    = ExternalProcessTask {onStartup = onStartup`, whileRunning = whileRunning`, onExit = onExit`} (toDynamic sds)
+wrapExternalProcTask {onStartup, onOutData, onErrData, onShareChange, onExit} sds = ExternalProcessTask
+    {onStartup = onStartup`, onOutData = onOutData`, onErrData = onErrData`, onShareChange = onShareChange`, onExit = onExit`}
+    (toDynamic sds)
 where
-    onStartup` (r :: r^) = (toDyn <$> mbl, toDyn <$> mbw, out, close)
-    where
-        (mbl, mbw, out, close) = onStartup r
-    whileRunning` mbData (l :: l^) (r :: r^) = (toDyn <$> mbl, toDyn <$> mbw, out, close)
-    where
-        (mbl, mbw, out, close) = whileRunning mbData l r
-    onExit` eCode (l :: l^) (r :: r^) = (toDyn <$> mbl, toDyn <$> mbw)
-    where
-        (mbl, mbw) = onExit eCode l r
+    onStartup` (r :: r^)
+        # (mbl, mbw, out, close) = onStartup r
+        = (toDyn <$> mbl, toDyn <$> mbw, out, close)
+        
+    onOutData` data (l :: l^) (r :: r^)
+        # (mbl, mbw, out, close) = onOutData data l r
+        = (toDyn <$> mbl, toDyn <$> mbw, out, close)
+
+    onErrData` data (l :: l^) (r :: r^)
+        # (mbl, mbw, out, close) = onErrData data l r
+        = (toDyn <$> mbl, toDyn <$> mbw, out, close)
+        
+    onShareChange` (l :: l^) (r :: r^)
+        # (mbl, mbw, out, close) = onShareChange l r
+        = (toDyn <$> mbl, toDyn <$> mbw, out, close)
+        
+    onExit` eCode (l :: l^) (r :: r^)
+        # (mbl, mbw) = onExit eCode l r
+        = (toDyn <$> mbl, toDyn <$> mbw)
 
 mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
 mkInstantTask iworldfun = Task (evalOnce iworldfun)

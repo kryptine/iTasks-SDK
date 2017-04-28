@@ -130,30 +130,28 @@ wsockTextMsg :: String -> [String]
 wsockTextMsg payload = [wsockMsgFrame WS_OP_TEXT True payload]
 
 httpServer :: !Int !Int ![(!String -> Bool
-				,!Bool
-				,!(HTTPRequest r *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe w, !*IWorld))
-				,!(HTTPRequest r (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe w, !*IWorld))
-				,!(HTTPRequest r ConnectionState *IWorld -> (!Maybe w, !*IWorld))
-				)] (RWShared () r w) -> ConnectionTask | TC r & TC w
+				          ,!Bool
+				          ,!(HTTPRequest r *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe w, !*IWorld))
+				          ,!(HTTPRequest r String ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe w, !*IWorld))
+				          ,!(HTTPRequest r ConnectionState *IWorld -> (!Maybe w, !*IWorld))
+				          )] (RWShared () r w) -> ConnectionTask | TC r & TC w
 httpServer port keepAliveTime requestProcessHandlers sds
- = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, whileConnected=whileConnected, onDisconnect=onDisconnect} sds
+ = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, onData=onData, onShareChange=onShareChange, onTick=onTick, onDisconnect=onDisconnect} sds
 where
     onConnect host r iworld=:{IWorld|world,clocks}
         = (Ok (NTIdle host clocks.timestamp),Nothing,[],False,{IWorld|iworld & world = world})
 
-	whileConnected mbData connState=:(NTProcessingRequest request localState) r env
-		//Select handler based on request path
-		= case selectHandler request requestProcessHandlers of
+    onData data connState=:(NTProcessingRequest request localState) r env
+        = case selectHandler request requestProcessHandlers of
 			Just (_,_,_,handler,_)
-				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = handler request r mbData localState env
+				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = handler request r data localState env
 				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
 					= (Ok (NTIdle request.client_name clocks.timestamp), mbW, mbData, False,{IWorld|env & world = world})
 				| otherwise
 					= (Ok (NTProcessingRequest request localState), mbW, mbData,done,{IWorld|env & world = world})
 			Nothing
 				= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, env)
-
-	whileConnected (Just data) connState r iworld=:{IWorld|clocks}//(connState is either Idle or ReadingRequest)
+	onData data connState r iworld=:{IWorld|clocks}//(connState is either Idle or ReadingRequest)
 		# rstate = case connState of
 			(NTIdle client_name _)
 				//Add new data to the request
@@ -200,11 +198,14 @@ where
 					= (Ok (NTReadingRequest rstate), Nothing, [], False, iworld)		
 
 	//Close idle connections if the keepalive time has passed
-	whileConnected Nothing connState=:(NTIdle ip (Timestamp t)) r iworld=:{IWorld|clocks={timestamp=Timestamp now}}
+	onTick connState=:(NTIdle ip (Timestamp t)) r iworld=:{IWorld|clocks={timestamp=Timestamp now}}
 		= (Ok connState, Nothing, [], now >= t + keepAliveTime, iworld)
 
 	//Do nothing if no data arrives for now
-	whileConnected Nothing connState r iworld = (Ok connState,Nothing,[],False,iworld)
+	onTick connState r iworld = (Ok connState,Nothing,[],False,iworld)
+
+    // TODO: add corresponding handler to 'httpServer'
+    onShareChange connState _ iworld = (Ok connState,Nothing,[],False,iworld)
 
 	//If we were processing a request and were interupted we need to
 	//select the appropriate handler to wrap up
@@ -241,7 +242,7 @@ taskUIService :: ![PublishedTask] ->
                  (!(String -> Bool)
                  ,!Bool
                  ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe ChangeQueues, !*IWorld))
-                 ,!(HTTPRequest ChangeQueues (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe ChangeQueues, !*IWorld))
+                 ,!(HTTPRequest ChangeQueues String ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe ChangeQueues, !*IWorld))
                  ,!(HTTPRequest ChangeQueues ConnectionState *IWorld -> (!Maybe ChangeQueues, !*IWorld))
                  ) 
 taskUIService taskUrls = (matchFun [url \\ {PublishedTask|url} <-taskUrls],True,reqFun` taskUrls,dataFun,disconnectFun)
@@ -267,7 +268,7 @@ where
         | otherwise
 			= (errorResponse "Requested service format not available for this task", Nothing, Nothing, iworld)
 
-	dataFun req output (Just data) (state,instances) iworld
+	dataFun req output data (state,instances) iworld
 		# (state,result) = wsockAddData state data 
 		= case result of //TODO: Process multiple events
 			[WSClose msg:_]
@@ -308,7 +309,7 @@ where
 				= ([wsockPongMsg msg],False,(state,instances),Nothing,iworld)
 			_ = ([],False,(state,instances),Nothing,iworld)
 	
-    dataFun req output Nothing (state,instances) iworld
+    /*dataFun req output Nothing (state,instances) iworld
 		//Check for UI updates for all attached instances
 		# (changes, output) = dequeueOutput instances output
 		= case changes of //Ignore empty updates
@@ -317,7 +318,7 @@ where
                 # (_,iworld) = updateInstanceLastIO instances iworld
 				# msgs = [wsockTextMsg (toString (JSONObject [("instance",JSONInt instanceNo)
 															 ,("change",encodeUIChange change)])) \\ (instanceNo,change) <- changes]
-				= (flatten msgs,False, (state,instances),Just output,iworld)
+				= (flatten msgs,False, (state,instances),Just output,iworld)*/
 
 	disconnectFun _ _ (state,instances) iworld = (Nothing, snd (updateInstanceDisconnect instances iworld))
 	disconnectFun _ _ _ iworld                 = (Nothing, iworld)
@@ -354,7 +355,7 @@ where
 // unauthorized downloading of documents and DDOS uploading.
 	
 documentService :: (!(String -> Bool),!Bool,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
-                        ,!(HTTPRequest r (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
+                        ,!(HTTPRequest r String loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
                         ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld)))
 documentService = (matchFun,True,reqFun,dataFun,lostFun)
 where
@@ -401,7 +402,7 @@ jsonResponse json
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
 staticResourceService :: [String] -> (!(String -> Bool),!Bool,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
-                        ,!(HTTPRequest r (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
+                        ,!(HTTPRequest r String loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
                         ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld)))
 staticResourceService taskPaths = (const True,True,initFun,dataFun,lostFun)
 where

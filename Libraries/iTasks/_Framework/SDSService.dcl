@@ -16,7 +16,7 @@ import Data.Maybe, Data.Error, Text.JSON
 sdsService ::   (!(String -> Bool)
 				 ,!Bool
                  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> *(!HTTPResponse, !Maybe ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-				 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
+				 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) String ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 				 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionState *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
 				 )
 

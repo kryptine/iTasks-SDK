@@ -113,7 +113,7 @@ where
 
 callHTTP :: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a
 callHTTP method url=:{URI|uriScheme,uriRegName=Just uriRegName,uriPort,uriPath,uriQuery,uriFragment} data parseFun
-    =   tcpconnect uriRegName port (constShare ()) {ConnectionHandlers|onConnect=onConnect,whileConnected=whileConnected,onDisconnect=onDisconnect}
+    =   tcpconnect uriRegName port (constShare ()) {ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect}
     @?  taskResult
 where
     port = fromMaybe 80 uriPort
@@ -123,11 +123,10 @@ where
 
     onConnect _ _
         = (Ok (Left []),Nothing,[req],False)
-    whileConnected (Just data) (Left acc) _ 
+    onData data (Left acc) _
         = (Ok (Left (acc ++ [data])),Nothing,[],False)
-    whileConnected Nothing acc _ 
+    onShareChange acc _
         = (Ok acc,Nothing,[],False)
-
     onDisconnect (Left acc) _
         = case parseResponse (concat acc) of
 			Nothing    = (Error "Invalid response",Nothing)
