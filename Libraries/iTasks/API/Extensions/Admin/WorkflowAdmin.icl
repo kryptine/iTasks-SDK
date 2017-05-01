@@ -168,14 +168,13 @@ where
 		,setUIAttributes (sizeAttr FlexSize FlexSize)
 		]
 
-		//,layoutSubUIs (SelectByPath [1]) (sequenceLayouts unwrapUI layoutManageWork)
 	layoutManageSession = foldl1 sequenceLayouts 
 		[layoutSubUIs SelectChildren actionToButton
 		,layoutSubUIs (SelectByPath [0]) (setUIType UIContainer)
 		,setUIType UIContainer
 		,setUIAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
 		]
-	layoutWhatToDo = arrangeWithSideBar 0 LeftSide 150 True
+	layoutWhatToDo = sequenceLayouts (arrangeWithSideBar 0 LeftSide 150 True) (layoutSubUIs (SelectByPath [1]) unwrapUI)
 
 manageSession :: Task ()
 manageSession =

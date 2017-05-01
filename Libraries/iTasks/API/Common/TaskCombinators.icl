@@ -211,7 +211,10 @@ repeatTask task pred a =
 whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask b
 whileUnchanged share task
 	= 	( (get share >>- \val ->
-            try ((watch share >>* [OnValue (ifValue ((=!=) val) (\_ -> throw ShareChanged))]) -||- (task val @ Just))
+            try (
+					((watch share >>* [OnValue (ifValue ((=!=) val) (\_ -> throw ShareChanged))])
+					  -||- (task val @ Just)
+					 ) <<@ ApplyLayout (sequenceLayouts (removeSubUIs (SelectByPath [0])) unwrapUI)) 
                 (\ShareChanged -> (return Nothing) )
           ) <! isJust
         )
