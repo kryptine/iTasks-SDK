@@ -147,13 +147,13 @@ itasks.Component = {
 			isLast = (curIdx == lastIdx);
 
         //Set left and right margins as specified
-		if(me.attributes.marginLeft) { el.style.marginLeft = me.attributes.marginLeft + 'px'; }
-		if(me.attributes.marginRight) { el.style.marginRight = me.attributes.marginRight + 'px' ; }
+		if('marginLeft' in me.attributes) { el.style.marginLeft = me.attributes.marginLeft + 'px'; }
+		if('marginRight' in me.attributes) { el.style.marginRight = me.attributes.marginRight + 'px' ; }
 	
 		//Because vertical borders 'collapse' into each other, we never set the
 		//bottom-margin, but set top-margin's that also include the bottom margin of
 		//the previous element
-		if(!isFirst) {
+		if(parentDirection == 'vertical' && !isFirst) {
 			//The first element never sets a top-margin. Its top-margin is added to the parent's padding
 			//and its bottom margin is added to the next elements top-margin 
 			el.style.marginTop = ((me.attributes.marginTop || 0) + (me.parentCmp.children[curIdx - 1].attributes.marginBottom || 0)) + 'px';
