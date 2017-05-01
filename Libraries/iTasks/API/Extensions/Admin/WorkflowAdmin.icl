@@ -192,12 +192,24 @@ where
 manageWork :: Task ()
 manageWork = parallel [(Embedded, manageList)] [] <<@ ApplyLayout layoutManageWork @! ()
 where
-	manageList taskList = forever
-		(	enterChoiceWithSharedAs () [ChooseFromGrid snd] myWork (appSnd (\{WorklistRow|parentTask} -> isNothing parentTask))
-		>>* [OnAction (Action "New") (always (appendTask Embedded (removeWhenStable (addNewTask taskList)) taskList @! () ))
-			,OnAction (Action "Open") (hasValue (\(taskId,_) -> openTask taskList taskId @! ()))
-			,OnAction (Action "Delete") (ifValue snd (\(taskId,_) -> removeTask taskId topLevelTasks @! ()))]
-		)
+	
+	manageList taskList
+		= get currentUser
+		>>- \user -> 
+			 forever
+			(	enterChoiceWithSharedAs () [ChooseFromGrid snd] myWork (appSnd (\{WorklistRow|parentTask} -> isNothing parentTask))
+				>>* (continuations (userRoles user) taskList)
+			)
+
+	continuations roles taskList = if (isMember "manager" roles) [new,open,delete] [open]
+	where
+		new = OnAction (Action "New") (always (appendTask Embedded (removeWhenStable (addNewTask taskList)) taskList @! () ))
+		open = OnAction (Action "Open") (hasValue (\(taskId,_) -> openTask taskList taskId @! ()))
+		delete = OnAction (Action "Delete") (ifValue snd (\(taskId,_) -> removeTask taskId topLevelTasks @! ()))
+
+	userRoles (AuthenticatedUser _ roles _)  = roles
+	userRoles _ = []
+
 	layoutManageWork = foldl1 sequenceLayouts
 		//Split the screen space
 		[arrangeWithSideBar 0 TopSide 200 True
