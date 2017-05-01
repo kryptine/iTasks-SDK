@@ -17,18 +17,6 @@ import iTasks
 	= E.a:		WorkflowTask		(Task a)		& iTask a
 	| E.a b:	ParamWorkflowTask	(a -> (Task b))	& iTask a & iTask b
 
-:: WorklistRow =
-    { taskNr	:: Maybe String
-    , title		:: Maybe String
-	, priority	:: Maybe String
-	, createdBy	:: Maybe String
-	, date		:: Maybe String
-	, deadline	:: Maybe String
-	, createdFor:: Maybe String
-	}
-
-derive class iTask WorklistRow
-
 derive class iTask Workflow
 		
 derive gText	        WorkflowTaskContainer

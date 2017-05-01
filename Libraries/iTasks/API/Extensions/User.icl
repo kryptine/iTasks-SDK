@@ -161,6 +161,28 @@ forWorker user {TaskListItem|attributes} = case 'DM'.get "user" attributes of
             _                               = False
         Nothing = True
 
+taskInstancesForUser :: ROShared User [TaskInstance]
+taskInstancesForUser = sdsLens "taskInstancesForUser" (const ()) (SDSRead read) (SDSWriteConst write) (SDSNotify notify) detachedTaskInstances
+where
+	read u instances = Ok (filter (forUser u) instances)
+	write _ () = Ok Nothing
+	notify _ _ _ = const False
+
+	forUser user {TaskInstance|attributes} = case 'DM'.get "user" attributes of
+	    Just uid1 = case user of
+			(AuthenticatedUser uid2 _ _)    = uid1 == uid2
+			_                               = False
+
+		Nothing = case 'DM'.get "role" attributes of
+			Just role = case user of
+				(AuthenticatedUser _ roles _)   = isMember role roles
+				_                               = False
+			Nothing = True
+
+taskInstancesForCurrentUser :: ROShared () [TaskInstance]
+taskInstancesForCurrentUser
+	= sdsSequence "taskInstancesForCurrentUser" (\() u -> u) snd (SDSWriteConst (\_ _ -> Ok Nothing)) (SDSWriteConst (\_ _ -> Ok Nothing)) currentUser taskInstancesForUser
+
 workOn :: !TaskId -> Task AttachmentStatus
 workOn taskId=:(TaskId no _) 
 	//Copy authentication attributes from current instance 

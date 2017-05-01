@@ -7,7 +7,7 @@ import iTasks._Framework.Serialization
 import iTasks._Framework.Store
 from StdFunc import seq
 import qualified Data.Map as DM
-import Data.List
+import Data.List, Data.Tuple
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Layout.Default, iTasks.UI.Layout.Common
 // SPECIALIZATIONS
 derive class iTask Workflow
@@ -19,6 +19,45 @@ JSONDecode{|WorkflowTaskContainer|} _ [c:r]			    = (dynamicJSONDecode c,r)
 JSONDecode{|WorkflowTaskContainer|} _ r				    = (Nothing,r)
 gEq{|WorkflowTaskContainer|} _ _					    = True
 gDefault{|WorkflowTaskContainer|}					    = WorkflowTask (return ())
+
+
+// Application specific types
+:: WorklistRow =
+    { taskNr	 :: Maybe String
+    , title		 :: Maybe String
+	, priority	 :: Maybe String
+	, createdBy	 :: Maybe String
+	, date		 :: Maybe String
+	, deadline	 :: Maybe String
+	, createdFor :: Maybe String
+	, parentTask :: Maybe String
+	}
+
+derive class iTask WorklistRow
+
+// list of active task instances for current user without current one (to avoid work on dependency cycles)
+myWork :: ReadOnlyShared [(TaskId,WorklistRow)]
+myWork = mapRead projection (taskInstancesForCurrentUser |+| currentTopTask)
+where
+	projection (instances,ownPid)
+		= [(TaskId i.TaskInstance.instanceNo 0, mkRow i) \\ i <- instances | notSelf ownPid i && isActive i]
+
+	notSelf ownPid {TaskInstance|instanceNo} = (TaskId instanceNo 0) <> ownPid
+	notSelf ownPid _ = False
+		
+	isActive {TaskInstance|value} = value === None || value === Unstable
+
+	mkRow {TaskInstance|instanceNo,attributes,listId} =
+		{WorklistRow
+		|taskNr		= Just (toString instanceNo)
+		,title      = fmap toString ('DM'.get "title"          attributes)
+		,priority   = fmap toString ('DM'.get "priority"       attributes)
+		,createdBy	= fmap toString ('DM'.get "createdBy"      attributes)
+		,date       = fmap toString ('DM'.get "createdAt"      attributes)
+		,deadline   = fmap toString ('DM'.get "completeBefore" attributes)
+		,createdFor = fmap toString ('DM'.get "createdFor"     attributes)
+		,parentTask = if (listId == TaskId 0 0) Nothing (Just (toString listId))
+		}
 
 // SHARES
 // Available workflows
@@ -113,39 +152,6 @@ where
 		
 	layout = sequenceLayouts (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")]))) frameCompact
 		
-// Application specific types
-:: WorklistRow =
-    { taskNr	:: Maybe String
-    , title		:: Maybe String
-	, priority	:: Maybe String
-	, createdBy	:: Maybe String
-	, date		:: Maybe String
-	, deadline	:: Maybe String
-	, createdFor:: Maybe String
-	}
-
-derive class iTask WorklistRow
-/*
-		runInteractiveTests
-		= ( editSelection (Title "Select test") False (SelectInTree toTree selectTest) suites [] @? tvHd
-		>&> withSelection (viewInformation () [] "Select a test") testInteractive ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
-
-	toTree suites = reverse (snd (foldl addSuite (0,[]) suites))
-	addSuite (i,t) {TestSuite|name,tests}
-		| isEmpty [t \\ InteractiveTest t <- tests]  = (i,t) //There are no interactive tests in the suite
-		# (i,children) = foldl addTest (i,[]) tests
-		= (i, [{ChoiceNode|id = -1 * i, label=name, expanded=False, icon=Nothing, children=reverse children}:t])
-
-	addTest (i,t) (InteractiveTest {InteractiveTest|name})
-		= (i + 1, [{ChoiceNode|id = i, label=name, expanded=False, icon=Nothing, children=[]}:t])
-	addTest (i,t) _ = (i,t)
-
-	selectTest suites [idx] 
-		| idx >= 0  = [(flatten [[t \\ InteractiveTest t <- s.TestSuite.tests] \\ s <- suites]) !! idx]
-		| otherwise = []
-	selectTest _ _ = []
-*/
-
 manageWorkInSession:: Task ()
 manageWorkInSession
 	= 	((manageSession -||
@@ -184,43 +190,21 @@ where
 	addManageWork wfs = [manageWorkWf:wfs]
 	manageWorkWf = transientWorkflow "My work" "Manage your worklist"  manageWork
 	
-
 manageWork :: Task ()
 manageWork = parallel [(Embedded, manageList)] [] <<@ ApplyLayout layoutManageWork @! ()
 where
 	manageList taskList = forever
-		(	enterChoiceWithSharedAs () [ChooseFromGrid snd] processes fst
+		(	enterChoiceWithSharedAs () [ChooseFromGrid snd] myWork (appSnd (\{WorklistRow|parentTask} -> isNothing parentTask))
 		>>* [OnAction (Action "New") (always (appendTask Embedded (removeWhenStable (addNewTask taskList)) taskList @! () ))
-			,OnAction (Action "Open") (hasValue (\taskId -> openTask taskList taskId @! ()))
-			,OnAction (Action "Delete") (hasValue (\taskId -> removeTask taskId topLevelTasks @! ()))]
+			,OnAction (Action "Open") (hasValue (\(taskId,_) -> openTask taskList taskId @! ()))
+			,OnAction (Action "Delete") (ifValue snd (\(taskId,_) -> removeTask taskId topLevelTasks @! ()))]
 		)
-	// list of active processes for current user without current one (to avoid work on dependency cycles)
-	where
-		processes = mapRead (\(procs,ownPid) -> [(p.TaskListItem.taskId,mkRow p) \\ p <- procs | show ownPid p && isActive p])  (processesForCurrentUser |+| currentTopTask)
-		where
-			show ownPid {TaskListItem|taskId,progress=Just _} = taskId <> ownPid
-			show ownPid _ = False
-		
-		isActive {TaskListItem|progress=Just {InstanceProgress|value}}	= value === None || value === Unstable
-
-	mkRow {TaskListItem|taskId,attributes} =
-		{WorklistRow
-		|taskNr		= Just (toString taskId)
-		,title      = fmap toString ('DM'.get "title"          attributes)
-		,priority   = fmap toString ('DM'.get "priority"       attributes)
-		,createdBy	= fmap toString ('DM'.get "createdBy"      attributes)
-		,date       = fmap toString ('DM'.get "createdAt"      attributes)
-		,deadline   = fmap toString ('DM'.get "completeBefore" attributes)
-		,createdFor = fmap toString ('DM'.get "createdFor"     attributes)
-		}
-	
 	layoutManageWork = foldl1 sequenceLayouts
 		//Split the screen space
 		[arrangeWithSideBar 0 TopSide 200 True
 		//Layout all dynamically added tasks as tabs
 		,layoutSubUIs (SelectByPath [1]) arrangeWithTabs
 		]
-
 
 addNewTask :: !(SharedTaskList ()) -> Task ()
 addNewTask list 
