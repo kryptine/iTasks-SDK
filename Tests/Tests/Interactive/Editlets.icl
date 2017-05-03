@@ -90,7 +90,7 @@ where
 import iTasks.API.Extensions.Form.Pikaday
 testPikadayEditlet = itest "Pikaday date picker" "Try to edit a date" "You should see a date picker" tut
 where
-	tut :: Task String
-	tut = testEditorWithShare pikadayField "2017-01-01" Update
+	tut :: Task Date
+	tut = testEditorWithShare pikadayDateField defaultValue Update
 
 

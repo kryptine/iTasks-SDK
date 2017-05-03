@@ -1,6 +1,7 @@
 implementation module iTasks.API.Extensions.Form.Pikaday
 import iTasks
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JS.Interface
+import iTasks.UI.Editor.Combinators, iTasks.UI.Editor.Builtin
 import qualified Data.Map as DM
 
 PIKADAY_JS_URL :== "/pikaday/pikaday.js"
@@ -81,3 +82,8 @@ where
 	onRefresh dp new old mask vst=:{VSt|mode,optional}
 		| old === new = (Ok (NoChange,mask),new,vst)
 		| otherwise   = (Ok (ChangeUI [SetAttribute "value" (JSONString new)] [],mask),new,vst)
+
+pikadayDateField :: Editor Date
+pikadayDateField = whenDisabled
+	(liftEditor toString fromString (textView 'DM'.newMap))
+   	(liftEditorAsymmetric toString parseDate (withHintAttributes "date (yyyy-mm-dd)" pikadayField))
