@@ -20,6 +20,8 @@ from iTasks.UI.Definition import :: UI(..), :: UIDirection(..), stringDisplay
 from iTasks.API.Core.Tasks import treturn
 from iTasks.API.Common.TaskCombinators import tbind, @
 
+from iTasks.API.Extensions.Form.Pikaday import pikadayDateField
+
 instance Functor Task where
   fmap f x = x @ f
 instance TApplicative Task where
@@ -106,11 +108,12 @@ JSONDecode{|Date|} _ c = (Nothing, c)
 
 gText{|Date|} _ val = [maybe "" toString val]
 
-gEditor{|Date|} = whenDisabled
+gEditor{|Date|} = pikadayDateField /*whenDisabled
 		(liftEditor toString fromString (textView 'DM'.newMap))
 		(liftEditorAsymmetric toString parseDate (withHintAttributes "date (yyyy-mm-dd)" (textField 'DM'.newMap)))
+*/
 
-gDefault{|Date|} = {Date|day = 1, mon = 1, year = 1970}
+gDefault{|Date|} = {Date|day = 1, mon = 1, year = 2017}
 derive gEq Date
 
 instance toString Time
