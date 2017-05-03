@@ -40,7 +40,7 @@ myWork :: ReadOnlyShared [(TaskId,WorklistRow)]
 myWork = workList taskInstancesForCurrentUser
 
 allWork :: ReadOnlyShared [(TaskId,WorklistRow)]
-allWork = workList taskInstancesForCurrentUser
+allWork = workList allTaskInstances
 
 workList instances = mapRead projection (instances |+| currentTopTask)
 where
@@ -212,7 +212,7 @@ where
 	where
 		new = OnAction (Action "New") (always (appendTask Embedded (removeWhenStable (addNewTask taskList)) taskList @! () ))
 		open = OnAction (Action "Open") (hasValue (\(taskId,_) -> openTask taskList taskId @! ()))
-		delete = OnAction (Action "Delete") (ifValue snd (\(taskId,_) -> removeTask taskId topLevelTasks @! ()))
+		delete = OnAction (Action "Delete") (ifValue (\x -> snd x || isMember "admin" roles) (\(taskId,_) -> removeTask taskId topLevelTasks @! ()))
 
 	userRoles (AuthenticatedUser _ roles _)  = roles
 	userRoles _ = []
