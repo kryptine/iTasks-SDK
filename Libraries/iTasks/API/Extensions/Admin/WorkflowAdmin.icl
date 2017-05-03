@@ -37,7 +37,12 @@ derive class iTask WorklistRow
 
 // list of active task instances for current user without current one (to avoid work on dependency cycles)
 myWork :: ReadOnlyShared [(TaskId,WorklistRow)]
-myWork = mapRead projection (taskInstancesForCurrentUser |+| currentTopTask)
+myWork = workList taskInstancesForCurrentUser
+
+allWork :: ReadOnlyShared [(TaskId,WorklistRow)]
+allWork = workList taskInstancesForCurrentUser
+
+workList instances = mapRead projection (instances |+| currentTopTask)
 where
 	projection (instances,ownPid)
 		= [(TaskId i.TaskInstance.instanceNo 0, mkRow i) \\ i <- instances | notSelf ownPid i && isActive i]
@@ -58,6 +63,7 @@ where
 		,createdFor = fmap toString ('DM'.get "createdFor"     attributes)
 		,parentTask = if (listId == TaskId 0 0) Nothing (Just (toString listId))
 		}
+
 
 // SHARES
 // Available workflows
@@ -194,13 +200,14 @@ manageWork = parallel [(Embedded, manageList)] [] <<@ ApplyLayout layoutManageWo
 where
 	
 	manageList taskList
-		= get currentUser
-		>>- \user -> 
+		= get currentUser @ userRoles
+		>>- \roles -> 
 			 forever
-			(	enterChoiceWithSharedAs () [ChooseFromGrid snd] myWork (appSnd (\{WorklistRow|parentTask} -> isNothing parentTask))
-				>>* (continuations (userRoles user) taskList)
+			(	enterChoiceWithSharedAs () [ChooseFromGrid snd] (worklist roles) (appSnd (\{WorklistRow|parentTask} -> isNothing parentTask))
+				>>* (continuations roles taskList)
 			)
 
+	worklist roles = if (isMember "admin" roles) allWork myWork
 	continuations roles taskList = if (isMember "manager" roles) [new,open,delete] [open]
 	where
 		new = OnAction (Action "New") (always (appendTask Embedded (removeWhenStable (addNewTask taskList)) taskList @! () ))
