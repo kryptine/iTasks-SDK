@@ -13,6 +13,7 @@ testEditletsI = testsuite "Editlets" "These tests check if the advanced clientsi
 	,testAceTextArea
 	,testAceTextAreaWithShare
 	,testAceEditorWithShare
+	,testPikadayEditlet
 	]
 
 import iTasks.API.Extensions.Clock
@@ -85,4 +86,11 @@ testAceEditorWithShare = itest "Full-fledged ace editor on share" "Try to edit s
 where
 	tut :: Task (AceOptions,AceState)
 	tut = testEditorWithShare aceEditor defaultValue Update
+
+import iTasks.API.Extensions.Form.Pikaday
+testPikadayEditlet = itest "Pikaday date picker" "Try to edit a date" "You should see a date picker" tut
+where
+	tut :: Task String
+	tut = testEditorWithShare pikadayField "2017-01-01" Update
+
 
