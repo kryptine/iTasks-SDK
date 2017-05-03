@@ -4,7 +4,7 @@ module IncidoneCCC
 * to support SAR operations of the Netherlands Coast guard. It is loosely based on their
 * procedure documentation and observation of, and interviews with, Coast guard officers.
 */
-import iTasks, StdMisc, System.Time, Text, Text.HTML, Data.Tuple
+import iTasks, StdMisc, System.Time, Text, Text.HTML, Data.Tuple, Data.List
 import iTasks.UI.Layout, iTasks.UI.Definition
 import qualified Data.Map as DM
 
@@ -90,11 +90,11 @@ where
 
 	workOnTasks = doIndependent tasks <<@ ArrangeWithTabs
 
-	layoutControlDash = sequenceLayouts
-		[moveSubAt [0,0] [1]
-		,moveSubAt [0,0] [2]
-		,removeSubAt [0]
-		,layoutChildrenOf [] actionToButton
-		,setAttributes ('DM'.unions [directionAttr Horizontal,paddingAttr 2 2 2 250, baseClsAttr "summary-bar"])
-		,setNodeType UIPanel
+	layoutControlDash = foldl1 sequenceLayouts
+		[moveSubUIs (SelectByPath [0,0]) [] 1
+		,moveSubUIs (SelectByPath [0,0]) [] 2
+		,removeSubUIs (SelectByPath [0])
+		,layoutSubUIs SelectChildren actionToButton
+		,setUIAttributes ('DM'.unions [directionAttr Horizontal,paddingAttr 2 2 2 250, baseClsAttr "summary-bar"])
+		,setUIType UIPanel
         ]

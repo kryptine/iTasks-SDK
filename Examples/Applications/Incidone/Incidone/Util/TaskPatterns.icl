@@ -136,7 +136,7 @@ viewNoSelection = viewTitle "Select..." @! ()
 
 oneOrAnother :: !d (String,Task a) (String,Task b) -> Task (Either a b) | toPrompt d & iTask a & iTask b
 oneOrAnother desc (labela,taska) (labelb,taskb)
-    =   updateChoice desc [ChooseFromCheckGroup ((!!) [labela,labelb])]  [0,1] 0  <<@ ApplyLayout (setAttributes (heightAttr WrapSize))
+    =   updateChoice desc [ChooseFromCheckGroup ((!!) [labela,labelb])]  [0,1] 0  <<@ ApplyLayout (setUIAttributes (heightAttr WrapSize))
     >&> \s -> whileUnchanged s (
         \choice -> case choice of
             Nothing = (viewInformation () [] "You have to make a choice" @? const NoValue)
