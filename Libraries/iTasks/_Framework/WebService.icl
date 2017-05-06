@@ -129,22 +129,17 @@ where
 wsockTextMsg :: String -> [String]
 wsockTextMsg payload = [wsockMsgFrame WS_OP_TEXT True payload]
 
-httpServer :: !Int !Int ![(!String -> Bool
-				          ,!Bool
-				          ,!(HTTPRequest r *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe w, !*IWorld))
-				          ,!(HTTPRequest r String ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe w, !*IWorld))
-				          ,!(HTTPRequest r ConnectionState *IWorld -> (!Maybe w, !*IWorld))
-				          )] (RWShared () r w) -> ConnectionTask | TC r & TC w
+httpServer :: !Int !Int ![WebService r w] (RWShared () r w) -> ConnectionTask | TC r & TC w
 httpServer port keepAliveTime requestProcessHandlers sds
- = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, onData=onData, onShareChange=onShareChange, onTick=onTick, onDisconnect=onDisconnect} sds
+    = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, onData=onData, onShareChange=onShareChange, onTick=onTick, onDisconnect=onDisconnect} sds
 where
     onConnect host r iworld=:{IWorld|world,clocks}
         = (Ok (NTIdle host clocks.timestamp),Nothing,[],False,{IWorld|iworld & world = world})
 
     onData data connState=:(NTProcessingRequest request localState) r env
         = case selectHandler request requestProcessHandlers of
-			Just (_,_,_,handler,_)
-				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = handler request r data localState env
+			Just {WebService | onData}
+				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = onData request r data localState env
 				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
 					= (Ok (NTIdle request.client_name clocks.timestamp), mbW, mbData, False,{IWorld|env & world = world})
 				| otherwise
@@ -174,14 +169,14 @@ where
 		= case selectHandler rstate.HttpReqState.request requestProcessHandlers of
 			Nothing
 				= (Ok connState, Nothing, ["HTTP/1.1 404 Not Found\r\n\r\n"], True, iworld)
-			Just (_,completeRequest,newReqHandler,procReqHandler,_)
+			Just {completeRequest, onNewReq}
 				//Process a completed request, or as soon as the headers are done if the handler indicates so
 				| rstate.HttpReqState.data_done || (not completeRequest)
 					# request	= if completeRequest (http_parseArguments rstate.HttpReqState.request) rstate.HttpReqState.request
 					//Determine if a  persistent connection was requested
 					# keepalive	= isKeepAlive request
 					// Create a response
-					# (response,mbLocalState,mbW,iworld)	= newReqHandler request r iworld 
+					# (response,mbLocalState,mbW,iworld) = onNewReq request r iworld 
 					//Add keep alive header if necessary
 					# response	= if keepalive {HTTPResponse|response & rsp_headers = [("Connection","Keep-Alive"):response.HTTPResponse.rsp_headers]} response
 					// Encode the response to the HTTP protocol format
@@ -212,16 +207,16 @@ where
 
     onDisconnect connState=:(NTProcessingRequest request localState) r env
 		= case selectHandler request requestProcessHandlers of
-			Nothing	                        = (Ok connState, Nothing, env)
-			Just (_,_,_,_,connLostHandler)  
-				# (mbW, env) = connLostHandler request r localState env
+			Nothing = (Ok connState, Nothing, env)
+			Just {WebService | onDisconnect}  
+				# (mbW, env) = onDisconnect request r localState env
 				= (Ok connState, mbW, env)
     onDisconnect connState r env = (Ok connState, Nothing, env)
 
 	selectHandler req [] = Nothing
-	selectHandler req [h=:(pred,_,_,_,_):hs]
-		| pred req.HTTPRequest.req_path	= Just h
-										= selectHandler req hs
+	selectHandler req [h:hs]
+		| h.urlMatchPred req.HTTPRequest.req_path = Just h
+										          = selectHandler req hs
 
 	isKeepAlive request = maybe (request.HTTPRequest.req_version == "HTTP/1.1") (\h -> (toLowerCase h == "keep-alive")) ('DM'.get "Connection" request.HTTPRequest.req_headers)
 
@@ -238,14 +233,13 @@ where
 :: ChangeQueues :== Map InstanceNo (Queue UIChange)
 
 
-taskUIService :: ![PublishedTask] ->
-                 (!(String -> Bool)
-                 ,!Bool
-                 ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe ChangeQueues, !*IWorld))
-                 ,!(HTTPRequest ChangeQueues String ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe ChangeQueues, !*IWorld))
-                 ,!(HTTPRequest ChangeQueues ConnectionState *IWorld -> (!Maybe ChangeQueues, !*IWorld))
-                 ) 
-taskUIService taskUrls = (matchFun [url \\ {PublishedTask|url} <-taskUrls],True,reqFun` taskUrls,dataFun,disconnectFun)
+taskUIService :: ![PublishedTask] -> WebService ChangeQueues ChangeQueues
+taskUIService taskUrls = { urlMatchPred    = matchFun [url \\ {PublishedTask|url} <-taskUrls]
+                         , completeRequest = True
+                         , onNewReq        = reqFun` taskUrls
+                         , onData          = dataFun
+                         , onDisconnect    = disconnectFun
+                         }
 where
     matchFun :: [String] String -> Bool
     matchFun matchUrls reqUrl = or [reqUrl == uiUrl matchUrl \\ matchUrl <- matchUrls]
@@ -359,10 +353,13 @@ where
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
 // unauthorized downloading of documents and DDOS uploading.
 	
-documentService :: (!(String -> Bool),!Bool,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
-                        ,!(HTTPRequest r String loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
-                        ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld)))
-documentService = (matchFun,True,reqFun,dataFun,lostFun)
+documentService :: WebService r w
+documentService = { urlMatchPred    = matchFun
+                  , completeRequest = True
+                  , onNewReq        = reqFun
+                  , onData          = dataFun
+                  , onDisconnect    = lostFun
+                  }
 where
 	matchFun path = case dropWhile ((==)"") (split "/" path) of
 		["upload"]          = True  // Upload of documents
@@ -406,10 +403,13 @@ jsonResponse json
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
-staticResourceService :: [String] -> (!(String -> Bool),!Bool,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
-                        ,!(HTTPRequest r String loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
-                        ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld)))
-staticResourceService taskPaths = (const True,True,initFun,dataFun,lostFun)
+staticResourceService :: [String] -> WebService r w
+staticResourceService taskPaths = { urlMatchPred    = const True
+                                  , completeRequest = True
+                                  , onNewReq        = initFun
+                                  , onData          = dataFun
+                                  , onDisconnect    = lostFun
+                                  }
 where
 	initFun req _ env
 		# (rsp,env) = handleStaticResourceRequest req env

@@ -183,13 +183,7 @@ background iworld
 	= iworld
 
 // The iTasks engine consist of a set of HTTP WebService 
-engine :: publish -> [(!String -> Bool
-					  ,!Bool
-					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) String ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-					  ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionState *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-					  )] | Publishable publish
-
+engine :: publish -> [WebService (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange))] | Publishable publish
 engine publishable = [taskUIService published, documentService, sdsService, staticResourceService [url \\ {PublishedTask|url} <- published]]
 where
 	published = publishAll publishable 

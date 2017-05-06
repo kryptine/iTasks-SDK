@@ -29,37 +29,19 @@ import iTasks._Framework.Generic
 	| WSClose String       //A close frame was received
 	| WSPing String        //A ping frame was received
 
-httpServer :: !Int !Int ![ (!String -> Bool
-                           ,!Bool
-                           ,!(HTTPRequest r *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe w, !*IWorld))
-                           ,!(HTTPRequest r String ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe w, !*IWorld))
-                           ,!(HTTPRequest r ConnectionState *IWorld -> (!Maybe w, !*IWorld))
-                           )] (RWShared () r w) -> ConnectionTask | TC r & TC w
+:: WebService r w =
+    { urlMatchPred    :: !(String -> Bool)                                                                                            // checks whether the URL is served by this service
+    , completeRequest :: !Bool                                                                                                        // wait for complete request before start serving request
+    , onNewReq        :: !(HTTPRequest r                        *IWorld-> *(!HTTPResponse,!Maybe ConnectionState, !Maybe w, !*IWorld)) // is called for each new request
+    , onData          :: !(HTTPRequest r String ConnectionState *IWorld -> *(![{#Char}], !Bool, !ConnectionState, !Maybe w, !*IWorld)) // on new data from client
+    , onDisconnect    :: !(HTTPRequest r ConnectionState        *IWorld -> *(!Maybe w, !*IWorld))                                      // is called on disconnect
+    }
 
+httpServer :: !Int !Int ![WebService r w] (RWShared () r w) -> ConnectionTask | TC r & TC w
 
 :: ChangeQueues :== Map InstanceNo (Queue UIChange)
 
-taskUIService :: ![PublishedTask] ->
-                 (!(String -> Bool)
-				 ,!Bool
-                 ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe ChangeQueues, !*IWorld))
-                 ,!(HTTPRequest ChangeQueues String ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe ChangeQueues, !*IWorld))
-                 ,!(HTTPRequest ChangeQueues ConnectionState *IWorld -> (!Maybe ChangeQueues, !*IWorld))
-                 )
-
-documentService :: 
-				(!(String -> Bool)
-				,!Bool
-				,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
-                ,!(HTTPRequest r String loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
-                ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld))
-				)
-
-staticResourceService :: [String] ->
-                 (!(String -> Bool)
-				 ,!Bool
-                 ,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
-				 ,!(HTTPRequest r String loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
-				 ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld))
-                 )
+taskUIService         :: ![PublishedTask] -> WebService ChangeQueues ChangeQueues
+documentService       ::                     WebService r w
+staticResourceService :: [String]         -> WebService r w
 
