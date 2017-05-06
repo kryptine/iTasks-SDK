@@ -1,5 +1,6 @@
 definition module TestFramework
 import iTasks
+import iTasks.Util.Trace
 
 :: InteractiveTest 
 	= { name :: String
@@ -61,16 +62,16 @@ itest :: String String String (Task a) -> Test | iTask a
 */
 utest :: String (*World -> *(TestResult,*World)) -> Test
 
-assert :: String (a -> Bool) a -> Test | JSONEncode{|*|} a
+assert :: String (a -> Bool) a -> Test | gPrettyTrace{|*|} a
 
-assertEqual :: String a a -> Test | gEq{|*|} a & JSONEncode{|*|} a
+assertEqual :: String a a -> Test | gEq{|*|} a & gPrettyTrace{|*|} a
 
-assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | JSONEncode{|*|} a
+assertWorld :: String (a -> Bool) (*World -> *(a,*World)) -> Test | gPrettyTrace{|*|} a
 
-assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & JSONEncode{|*|} a
+assertEqualWorld :: String a (*World -> *(a,*World)) -> Test | gEq{|*|} a & gPrettyTrace{|*|} a
 
-checkEqual :: a a -> TestResult | gEq{|*|} a & JSONEncode{|*|} a 
-checkEqualWith :: (a a -> Bool) a a -> TestResult |JSONEncode{|*|} a 
+checkEqual :: a a -> TestResult | gEq{|*|} a & gPrettyTrace{|*|} a
+checkEqualWith :: (a a -> Bool) a a -> TestResult | gPrettyTrace{|*|} a
 
 pass :: String -> Test
 

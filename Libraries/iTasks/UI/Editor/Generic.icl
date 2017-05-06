@@ -176,7 +176,7 @@ where
 	where
 		consOptions = [JSONObject [("id",JSONInt i),("text",JSONString gdc.gcd_name)] \\ gdc <- gtd_conses & i <- [0..]]
 		consChooseUI = uia UIDropdown (choiceAttrs taskId (editorId dp) (maybe [] (\x -> [x]) mbSelectedCons) consOptions)
-		consChooseMask = FieldMask {touched=False,valid=optional,state=maybe JSONNull (\x -> JSONInt x) mbSelectedCons}
+		consChooseMask = FieldMask {touched=False,valid=optional || isJust mbSelectedCons,state=maybe JSONNull (\x -> JSONInt x) mbSelectedCons}
 
 	genConsViewUI gtd_conses selectedCons
 		= (uia UITextView (valueAttr (JSONString (gtd_conses !! selectedCons).gcd_name)), newFieldMask)
@@ -510,7 +510,7 @@ gEditor{|Char|}   = liftEditor toString (\c -> c.[0]) (whenDisabled
 gEditor{|String|} = whenDisabled
 						(textView 'DM'.newMap)
 						(withHintAttributes "single line of text" (withEditMode (textField 'DM'.newMap)))
-gEditor{|Bool|}   = checkBox 'DM'.newMap
+gEditor{|Bool|}   = whenDisabled (checkBox (enabledAttr False)) (checkBox 'DM'.newMap)
 
 gEditor{|[]|} ex _ dx tjx _ = listEditor_ tjx (Just (const dx)) True True (Just (\l -> toString (length l) +++ " items")) ex
 

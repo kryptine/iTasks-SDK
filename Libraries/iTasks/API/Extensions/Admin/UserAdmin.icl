@@ -6,7 +6,7 @@ import iTasks.UI.Editor
 derive class iTask UserAccount
 
 //Initial root user
-ROOT_USER :== {credentials={Credentials|username=Username "root",password = Password "root"},title = Just "Root user", roles = ["admin"]}
+ROOT_USER :== {credentials={Credentials|username=Username "root",password = Password "root"},title = Just "Root user", roles = ["admin","manager"]}
 
 userAccounts :: Shared [UserAccount]
 userAccounts = sharedStore "UserAccounts" [ROOT_USER]
@@ -84,7 +84,6 @@ manageUsers =
 			, OnAction      (Action "Import & export/Import CSV file...")	(always (importUserFileFlow @ const False))
 			, OnAction      (Action "Import & export/Export CSV file...")	(always (exportUserFileFlow @ const False))
 			, OnAction      (Action "Import & export/Import demo users")		(always (importDemoUsersFlow @ const False))
-			, OnAction      (ActionQuit)										(always (return True))
 			]
 	) <! id @! ()
 

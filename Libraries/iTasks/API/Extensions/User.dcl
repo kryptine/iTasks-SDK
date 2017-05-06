@@ -71,6 +71,9 @@ taskInstanceUser 		:: RWShared InstanceNo User User
 processesForUser :: User -> ReadOnlyShared [TaskListItem ()]
 processesForCurrentUser :: ReadOnlyShared [TaskListItem ()]
 
+taskInstancesForUser :: ROShared User [TaskInstance]
+taskInstancesForCurrentUser :: ROShared () [TaskInstance]
+
 /*
 * Copies authentication attributes of current task 
 * and then attaches it

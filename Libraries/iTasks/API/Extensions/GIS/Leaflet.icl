@@ -11,8 +11,8 @@ from StdArray import class Array(uselect), instance Array {} a
 //the indexed javascript objects are properly removed from all indices.
 //Otherwise you'll get a memory leak in the javascript
 
-LEAFLET_JS :== "leaflet-0.7.2/leaflet.js"
-LEAFLET_CSS :== "leaflet-0.7.2/leaflet.css"
+LEAFLET_JS :== "/leaflet-0.7.2/leaflet.js"
+LEAFLET_CSS :== "/leaflet-0.7.2/leaflet.css"
 
 :: JSLM = JSLM
 

@@ -98,7 +98,7 @@ where
 //Repeat task until the predicate holds (loops if the predicate is false)
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
 (<!) task pred
-	= parallel [(Embedded,const task),(Embedded,restarter)] [] @? res
+	= parallel [(Embedded,const task),(Embedded,restarter)] [] <<@ ApplyLayout unwrapUI @? res
 where
     restarter tlist = (watch (sdsFocus (Left 0) (taskListItemValue tlist)) >>* [OnValue (check (restart tlist))]) <<@ NoUserInterface
 
@@ -211,7 +211,10 @@ repeatTask task pred a =
 whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask b
 whileUnchanged share task
 	= 	( (get share >>- \val ->
-            try ((watch share >>* [OnValue (ifValue ((=!=) val) (\_ -> throw ShareChanged))]) -||- (task val @ Just))
+            try (
+					((watch share >>* [OnValue (ifValue ((=!=) val) (\_ -> throw ShareChanged))])
+					  -||- (task val @ Just)
+					 ) <<@ ApplyLayout (sequenceLayouts (removeSubUIs (SelectByPath [0])) unwrapUI)) 
                 (\ShareChanged -> (return Nothing) )
           ) <! isJust
         )

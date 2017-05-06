@@ -43,7 +43,7 @@ suites = [//Interactive tests
 		 ,testGenericEditorEdits
 		 ,testGenericEditorRefreshes
 		 ,testGenericHelperFunctions
-		 ,testLayout
+		 //,testLayout
 		 ,testEditlets
 		 ,testMisc
 		 ,testTaskEvaluation
@@ -63,8 +63,8 @@ Start world
 	| unitOnly 
 		= (if useJSON runUnitTestsJSON runUnitTestsCLI) suites world
 	| otherwise
-		= startEngine [publish "/" (\_ -> runTests suites <<@ ApplyLayout (setAttributes (titleAttr "iTasks Testbench")))
-					  ,publish "/alternative" (const (viewInformation () [] "Alternative URL"))] world
+		= startEngine [publish "/" (\_ -> runTests suites <<@ ApplyLayout (setUIAttributes (titleAttr "iTasks Testbench")))
+					  :layoutTestTasks] world
 where
 	unitOpt = Option [] ["unit"] (NoArg UnitTestOnly) "Only run unit tests and show output on console"
 	jsonOpt = Option [] ["json"] (NoArg UseJSON) "Output testresults as JSON"

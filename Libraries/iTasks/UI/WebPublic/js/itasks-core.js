@@ -13,9 +13,11 @@ itasks.Component = {
 	cssPrefix: 'itasks-',
 	cssCls: 'component',
 
-	width: 'flex',
-	height: 'flex',
-	direction: 'vertical',
+	attributes: {
+		width: 'flex',
+		height: 'flex',
+		direction: 'vertical'
+	},
 
 	parentCmp: null,
 	children: [],
@@ -35,12 +37,12 @@ itasks.Component = {
 	initSaplCustomization: function() { //When necessary, apply customizatons for Check if some of the component's methods are custom defined using sapl/js
 		var me = this, fun, evalfun;
 		//Initialize linked sapl functions 
-		if(me.saplDeps != null && me.saplDeps != '') {
-			me.saplDeps = me.evalJs(me.saplDeps);
+		if(me.attributes.saplDeps != null && me.attributes.saplDeps != '') {
+			me.evalJs(me.attributes.saplDeps);
         }
 		//Decode and evaluate the sapl initialization function
-		if(me.saplInit !=null && me.saplInit!= '') {
-			Sapl.feval([me.evalJsVal(me.saplInit),[___wrapJS(me),"JSWorld"]]);
+		if(me.attributes.saplInit !=null && me.attributes.saplInit!= '') {
+			Sapl.feval([me.evalJsVal(me.attributes.saplInit),[___wrapJS(me),"JSWorld"]]);
 		}
 	},
 	initComponent: function() {}, //Abstract method: every component implements this differently
@@ -65,8 +67,8 @@ itasks.Component = {
 			
 		//Style the dom element
 		me.domEl.classList.add(me.cssPrefix + me.cssCls);
-		if(me.style) {
-			me.domEl.style = me.style;
+		if(me.attributes.style) {
+			me.domEl.style = me.attributes.style;
 		}
 		//Custom initialization after the dom element has been rendered
 		me.initDOMEl();
@@ -86,9 +88,9 @@ itasks.Component = {
 	initDOMElSize: function() {
 		var me = this,
 			el = me.domEl,
-			width = me.width,
-			height = me.height,
-			direction = (me.parentCmp && me.parentCmp.direction) || 'vertical';
+			width = me.attributes.width,
+			height = me.attributes.height,
+			direction = (me.parentCmp && me.parentCmp.attributes.direction) || 'vertical';
 
 		//Set width
 		if(width === 'flex') {
@@ -130,31 +132,31 @@ itasks.Component = {
 	initDOMElMargins: function() {
 		var me = this,
 			el = me.domEl,
-            width = me.width,
-            height = me.height;
+            width = me.attributes.width,
+            height = me.attributes.height;
 
 		if(!me.parentCmp) { //Do not set margins on the root component, let the embedding page handle that
 			return;
 		}
-		var parentDirection = (me.parentCmp && me.parentCmp.direction) || 'vertical',
-            parentVAlign = (me.parentCmp && me.parentCmp.valign) || 'top',
-            parentHAlign = (me.parentCmp && me.parentCmp.halign) || 'left',
+		var parentDirection = (me.parentCmp && me.parentCmp.attributes.direction) || 'vertical',
+            parentVAlign = (me.parentCmp && me.parentCmp.attributes.valign) || 'top',
+            parentHAlign = (me.parentCmp && me.parentCmp.attributes.halign) || 'left',
 			curIdx = me.parentCmp.findChild(me),
 			lastIdx = me.parentCmp.children.length - 1,
 			isFirst = (curIdx == 0),
 			isLast = (curIdx == lastIdx);
 
         //Set left and right margins as specified
-		if(me.marginLeft) { el.style.marginLeft = me.marginLeft + 'px'; }
-		if(me.marginRight) { el.style.marginRight = me.marginRight + 'px' ; }
+		if('marginLeft' in me.attributes) { el.style.marginLeft = me.attributes.marginLeft + 'px'; }
+		if('marginRight' in me.attributes) { el.style.marginRight = me.attributes.marginRight + 'px' ; }
 	
 		//Because vertical borders 'collapse' into each other, we never set the
 		//bottom-margin, but set top-margin's that also include the bottom margin of
 		//the previous element
-		if(!isFirst) {
+		if(parentDirection == 'vertical' && !isFirst) {
 			//The first element never sets a top-margin. Its top-margin is added to the parent's padding
 			//and its bottom margin is added to the next elements top-margin 
-			el.style.marginTop = ((me.marginTop || 0) + (me.parentCmp.children[curIdx - 1].marginBottom || 0)) + 'px';
+			el.style.marginTop = ((me.attributes.marginTop || 0) + (me.parentCmp.children[curIdx - 1].attributes.marginBottom || 0)) + 'px';
 		}
 
 		//Set margins to auto based on alignment of parent
@@ -195,20 +197,20 @@ itasks.Component = {
 	initContainerEl: function() {
 		var me = this,
             el = me.containerEl,
-            horizontal = (me.direction && (me.direction === 'horizontal')) || false,
+            horizontal = (me.attributes.direction && (me.attributes.direction === 'horizontal')) || false,
 			paddingTop, paddingBottom;
 
         el.classList.add(me.cssPrefix + (horizontal ? 'hcontainer' : 'vcontainer'));
 
 		//Set padding
-		if(me.paddingRight) { el.style.paddingRight = me.paddingRight + 'px' ; }
-		if(me.paddingLeft) { el.style.paddingLeft = me.paddingLeft + 'px' ; }
+		if(me.attributes.paddingRight) { el.style.paddingRight = me.attributes.paddingRight + 'px' ; }
+		if(me.attributes.paddingLeft) { el.style.paddingLeft = me.attributes.paddingLeft + 'px' ; }
 
-		paddingTop = me.paddingTop || 0;			
-		paddingBottom = me.paddingBottom || 0;
+		paddingTop = me.attributes.paddingTop || 0;			
+		paddingBottom = me.attributes.paddingBottom || 0;
 		if(me.children.length > 0) {
-			paddingTop += (me.children[0].marginBottom || 0);
-			paddingBottom += (me.children[me.children.length - 1].marginTop || 0);
+			paddingTop += (me.children[0].attributes.marginBottom || 0);
+			paddingBottom += (me.children[me.children.length - 1].attributes.marginTop || 0);
 		}
 		el.style.paddingTop = paddingTop + 'px';
 		el.style.paddingBottom = paddingBottom + 'px';
@@ -229,12 +231,26 @@ itasks.Component = {
 	},
 	createChild: function(spec) {
 		var me = this,
-			type = spec.xtype || 'Component';
+			type = spec.type || 'Component',
+			child = {};
+
+		me.addSpec_(child, itasks.Component);
+				
 		if(itasks[type]) {
-			return Object.assign(Object.create(itasks.Component),itasks[type],{parentCmp:me,children:[]},spec);
-		} else {
-			return Object.assign(Object.create(itasks.Component),{parentCmp:me,children:[]},spec);
+			me.addSpec_(child,itasks[type]);
 		}
+		child.parentCmp = me;
+		child.children = [];
+
+		me.addSpec_(child,spec);
+
+		return child;
+	},
+	addSpec_:function(obj,spec) {
+		var attributes = {};
+		Object.assign(attributes,obj.attributes,spec.attributes);
+		Object.assign(obj,spec);
+		obj.attributes = attributes;
 	},
 	insertChild: function(idx = 0, spec = {}) {
 		var me = this,
@@ -291,7 +307,7 @@ itasks.Component = {
 	setAttribute: function(name,value) {
 		var me = this;
 	
-		me[name] = value;	
+		me.attributes[name] = value;	
 		me.onAttributeChange(name,value);
 	},
 	onAttributeChange: function(name,value) {},
@@ -404,7 +420,7 @@ itasks.Viewport = {
 		}
 			
 		//Create a temporary root element
-		me.insertChild(0,{xtype:'Loader', parentCmp: me});
+		me.insertChild(0,{type:'Loader', parentCmp: me});
 
 		//Register the viewport with the iTasks service
 		me.service = itasks.Service.getInstance();
@@ -430,8 +446,8 @@ itasks.Viewport = {
 		me.children[0].onUIChange(change);
 		//Sync title of the top level element
 		if(me.syncTitle) {
-			if(change.type == 'replace' && change.definition.title) {
-				document.title = change.definition.title;
+			if(change.type == 'replace' && change.definition.attributes.title) {
+				document.title = change.definition.attributes.title;
 			}
 			if(change.type == 'change' && change.attributes.length > 0) {
 				change.attributes.forEach(function(change) {
@@ -446,7 +462,14 @@ itasks.Viewport = {
 
 //Convenience function for concisely creating viewports
 itasks.viewport = function(spec,domEl) {
-	return Object.assign(Object.create(itasks.Component), itasks.Viewport, spec, {domEl:domEl}).init();
+	var vp = {}, vpattr = {};
+
+	Object.assign(vpattr,itasks.Component.attributes,itasks.Viewport.attributes,spec.attributes);
+	Object.assign(vp,itasks.Component,itasks.Viewport,spec);
+	
+	vp.attributes = vpattr;
+	vp.domEl = domEl;
+	vp.init();
 };
 
 //Web service proxy/multiplexer class
@@ -459,7 +482,7 @@ itasks.Service = {
 		var me = this,
 			taskUrl, parentViewport, taskInstance, connection;
 
-		if(taskInstance = viewport.instanceNo) {
+		if(taskInstance = viewport.attributes.instanceNo) {
 			//Connect to an existing task instance
 			me.registerInstance_(viewport);	
 			
@@ -470,11 +493,12 @@ itasks.Service = {
 	},
 	createSession_:function(viewport) {
 		var me = this, connection;
+		
 		connection = me.getViewportConnection_(viewport);	
 		connection.newSession(function(instanceNo,instanceKey) {
 			//Store the instanceNo and key on the viewport
-			viewport.instanceNo = instanceNo;
-			viewport.instanceKey = instanceKey;
+			viewport.attributes.instanceNo = instanceNo;
+			viewport.attributes.instanceKey = instanceKey;
 
 			//Register the instance
 			me.instances[instanceNo] = {connection: connection, viewport: viewport}
@@ -482,7 +506,7 @@ itasks.Service = {
 		});
 	},
 	registerInstance_: function(viewport) {
-		var me = this, connection, instanceNo = viewport.instanceNo;
+		var me = this, connection, instanceNo = viewport.attributes.instanceNo;
 	
 		connection = me.getViewportConnection_(viewport);	
 		connection.attachTaskInstance(instanceNo, viewport.onInstanceUIChange.bind(viewport));
@@ -494,7 +518,7 @@ itasks.Service = {
 		var me = this, parentViewport, connection;
 		//If the viewport is embedded in another viewport, reuse its connection
 		if(parentViewport = viewport.getParentViewport()) {
-			return me.instances[parentViewport.instanceNo].connection;
+			return me.instances[parentViewport.attributes.instanceNo].connection;
 		} else {
 			//Create the connection
 			connection = Object.assign(Object.create(itasks.Connection),{taskUrl:viewport.taskUrl});

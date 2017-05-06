@@ -36,6 +36,7 @@ derive class iTask UITreeNode
 	| ChangeUI [UIAttributeChange] [(!Int,!UIChildChange)] //Change the current UI and/or its children
 
 :: UIAttributeChange = SetAttribute !String !JSONNode  //A change to a user interface attribute
+					 | DelAttribute !String            //Remove an attribute
 :: UIChildChange 	 = ChangeChild !UIChange           //Select a sub-component and apply the change definition there
 					 | RemoveChild                     //Remove the child at the given index (next children 'move down')
 					 | InsertChild !UI                 //Insert a new child at the given index (next children 'move up')
@@ -50,7 +51,7 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 *
 * The UI type has contstructors for the various types of partial UI definitions.
 */
-:: UI = UI UINodeType UIAttributes [UI]
+:: UI = UI !UINodeType !UIAttributes ![UI]
 
 :: UINodeType
 	// --- Intermediate nodes: (implemented in itasks-components-raw.js) ---
@@ -257,8 +258,9 @@ instance encodeUI UIWindowType
 //Combine two changes that would have to be applied one after the other into a single change
 mergeUIChanges :: UIChange UIChange -> UIChange
 
-//Apply a change to a ui
+//Apply changes to a ui
 applyUIChange :: !UIChange !UI -> UI
+applyUIAttributeChange :: !UIAttributeChange !UIAttributes -> UIAttributes
 
 //Remove all paths that lead to a NoChange node
 compactUIChange :: UIChange -> UIChange
