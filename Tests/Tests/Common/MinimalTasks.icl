@@ -9,14 +9,14 @@ minimalEditor :: Task String
 minimalEditor = updateInformation "Minimal String editor" [] "Hello World"
 
 minimalEditlet :: Task String
-minimalEditlet = updateInformation "Minimal String editlet" [UpdateUsing id const (fromEditlet editlet)] "Hello World"
+minimalEditlet = updateInformation "Minimal String editlet" [UpdateUsing id const editor] "Hello World"
 where
 	//Simple button
-	editlet = { genUI  = genUI
-			  , initUI = \m w -> w
-              , onEdit = \_ _ n msk ust -> (Ok (NoChange,msk),n,ust)
-			  , onRefresh = \_ n o m vst -> (Ok (if (o == n) NoChange (ChangeUI [SetAttribute "value" (toJSON n)] []),m),n,vst)
-			  }
+	editor = { Editor
+             | genUI  = withClientSideInit (\m w -> w) genUI
+             , onEdit = \_ _ n msk ust -> (Ok (NoChange,msk),n,ust)
+			 , onRefresh = \_ n o m vst -> (Ok (if (o == n) NoChange (ChangeUI [SetAttribute "value" (toJSON n)] []),m),n,vst)
+			 }
 
 	genUI dp val world
 		= (Ok (uia UIHtmlView ('DM'.unions [sizeAttr WrapSize WrapSize, valueAttr (JSONString (toString (html "DEPRECATED")))]),newFieldMask), world)

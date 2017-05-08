@@ -123,11 +123,10 @@ onEdit _ _ m msk ust                             = (Ok (NoChange,msk),m,ust)
 openStreetMapTiles :: LeafletLayer
 openStreetMapTiles = TileLayer "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 	
-leafletEditlet :: Editlet LeafletMap
-leafletEditlet 
-  = { Editlet
-    | genUI   = genUI 
-    , initUI  = initUI
+leafletEditor :: Editor LeafletMap
+leafletEditor
+  = { Editor
+    | genUI   = withClientSideInit initUI genUI 
     , onEdit  = onEdit
     , onRefresh = onRefresh
     }
@@ -511,7 +510,7 @@ where
 
     //ignoreConflict conflict state env = (state, NoDiff, env)
 
-gEditor{|LeafletMap|} = fromEditlet leafletEditlet
+gEditor{|LeafletMap|} = leafletEditor
 
 gDefault{|LeafletPerspective|}
     = {LeafletPerspective|center = {LeafletLatLng|lat = 51.82, lng = 5.86}, zoom = 7, cursor = Nothing, bounds = Nothing}

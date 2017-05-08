@@ -14,14 +14,13 @@ derive gEq AnalogClock
 derive gDefault AnalogClock
 derive gText AnalogClock
 
-gEditor{|AnalogClock|} = fromEditlet analogClockEditlet
+gEditor{|AnalogClock|} = analogClockEditor
 
 //SVG Based analog clock editlet
-analogClockEditlet :: Editlet AnalogClock
-analogClockEditlet
-    = {Editlet
-      |genUI    = genUI
-      ,initUI   = initUI
+analogClockEditor :: Editor AnalogClock
+analogClockEditor
+    = {Editor
+      |genUI    = withClientSideInit initUI genUI
       ,onEdit   = onEdit 
       ,onRefresh = onRefresh
       }

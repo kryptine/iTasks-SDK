@@ -15,4 +15,4 @@ import iTasks.UI.Editor
 * @return JS code of the initUI function
 * @return IWorld state
 */
-editletLinker :: !f !*IWorld -> *(!MaybeErrorString (!String,!String),!*IWorld)
+editorLinker :: !f !*IWorld -> *(!MaybeErrorString (!String,!String),!*IWorld)

@@ -51,11 +51,10 @@ GOOGLEMAP_JS = "http://maps.googleapis.com/maps/api/js?callback=googleMapsLoaded
 
 derive class iTask GoogleMapState, JSGM
 
-googleMapEditlet :: Editlet GoogleMap
-googleMapEditlet
-    = { Editlet
-      | genUI  = genUI
-      , initUI = initUI 
+googleMapEditor :: Editor GoogleMap
+googleMapEditor
+    = { Editor
+      | genUI  = withClientSideInit initUI genUI
       , onEdit = onEdit
       , onRefresh = onRefresh
       }
@@ -461,7 +460,7 @@ where
 gText{|GoogleMapPosition|} _ (Just {GoogleMapPosition|lat,lng}) = [toString lat + " " + toString lng]
 gText{|GoogleMapPosition|} _ _ = [""]
 
-gEditor{|GoogleMap|} = fromEditlet googleMapEditlet
+gEditor{|GoogleMap|} = googleMapEditor
 
 gDefault{|GoogleMapPerspective|} =
 	{ GoogleMapPerspective

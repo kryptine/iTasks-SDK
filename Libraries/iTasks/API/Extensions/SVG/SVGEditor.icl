@@ -69,12 +69,9 @@ svgns =: "http://www.w3.org/2000/svg"
 derive class iTask Set, DropTarget, MousePos, ImageTag
 
 fromSVGEditor :: (SVGEditor s v) -> Editor s | iTask s 
-fromSVGEditor svglet = fromEditlet (svgRenderer svglet)
-
-svgRenderer :: (SVGEditor s v) -> Editlet s | iTask s
-svgRenderer svglet=:{initView,renderImage,updView,updModel}
-  = { genUI   = genUI
-	, initUI  = initUI
+fromSVGEditor svglet=:{initView,renderImage,updView,updModel}
+  = { Editor
+    | genUI   = withClientSideInit initUI genUI
     , onEdit  = onEdit
     , onRefresh = onRefresh
     }
