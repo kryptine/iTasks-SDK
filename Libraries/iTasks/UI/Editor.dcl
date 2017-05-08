@@ -76,15 +76,8 @@ isTouched	:: !EditMask -> Bool
 
 containsInvalidFields :: !EditMask -> Bool
 
-//****************************************************************************//
-// Alternative wrapper type for defining custom editor components that can process events
-// that are defined server-side but run client-side
-//****************************************************************************//
-:: Editlet a
-  =
-  { genUI     :: DataPath                     a          *VSt -> *(!MaybeErrorString (!UI, !EditMask),           !*VSt) //Generating the initial UI
-  , initUI    :: (JSObj ())                              *JSWorld -> *JSWorld                                           //Initialize client-side
-  , onEdit    :: DataPath (DataPath,JSONNode) a EditMask *VSt -> *(!MaybeErrorString (!UIChange, !EditMask), !a, !*VSt) //React to edit events
-  , onRefresh :: DataPath a                   a EditMask *VSt -> *(!MaybeErrorString (!UIChange, !EditMask), !a, !*VSt) //React to a new model value 
-  }
-fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a
+//Add client-side initialization to the generation of an initial UI
+withClientSideInit ::
+	((JSObj ()) *JSWorld -> *JSWorld)
+	(DataPath a *VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt))
+	DataPath a *VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt)

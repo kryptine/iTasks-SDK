@@ -18,12 +18,12 @@ from iTasks._Framework.Engine import background
 import iTasks.API.Core.Types, iTasks._Framework.IWorld
 import Sapl.Target.JS.CodeGeneratorJS, Sapl.Linker.LazyLinker, Sapl.SaplParser
 
-editletLinker :: !f !*IWorld -> *(!MaybeErrorString (!String,!String),!*IWorld)
-editletLinker initUIFunc iworld=:{world,current={sessionInstance=Nothing}} = (Error "Could not link editlet javascript: no session instance",iworld)
-editletLinker initUIFunc iworld=:{world,current={sessionInstance=Just currentInstance}
+editorLinker :: !f !*IWorld -> *(!MaybeErrorString (!String,!String),!*IWorld)
+editorLinker initUIFunc iworld=:{world,current={sessionInstance=Nothing}} = (Error "Could not link editlet javascript: no session instance",iworld)
+editorLinker initUIFunc iworld=:{world,current={sessionInstance=Just currentInstance}
 									   ,jsCompilerState=Just jsCompilerState=:{loaderState,functionMap,flavour,parserState,skipMap}}
 	// Create per sesssion "linker state"
-	# linkerstate = (loaderState, functionMap, maybe newSet id (get currentInstance skipMap))
+	# linkerstate = (loaderState, functionMap, maybe newSet id Nothing /*(get currentInstance skipMap)*/)
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 	# (linkerstate, lib, sapl_IU, world) = linkByExpr linkerstate newAppender (graph_to_sapl_string initUIFunc) world
 	// unwrap linker state

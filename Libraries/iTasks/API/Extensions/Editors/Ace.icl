@@ -28,7 +28,7 @@ where
 	fromAce (_,{AceState|lines}) = join "\n" lines
 
 aceEditor :: Editor (!AceOptions,!AceState)
-aceEditor = fromEditlet {Editlet|genUI = genUI,initUI = initUI, onEdit = onEdit, onRefresh = onRefresh}
+aceEditor = {Editor|genUI = withClientSideInit initUI genUI, onEdit = onEdit, onRefresh = onRefresh}
 where
 	genUI dp (options,state) vst=:{VSt|taskId,optional}
 		//Set both state and options as attributes
