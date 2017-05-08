@@ -111,6 +111,8 @@ where
 					= (Ok (fromPairChange 0 grd_arity change, fromPairMask grd_arity mask), RECORD val, vst)
 				(Error e,val,vst)
 					= (Error e, RECORD val, vst)
+	onRefresh dp (RECORD new) (RECORD old) mask vst=:{VSt|taskId,optional,mode}
+		= (Error "Corrupt mask in generic RECORD editor",RECORD old, vst)
 
 gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
@@ -242,6 +244,9 @@ where
 		| otherwise
 			//Adjust for the added constructor view/choose UI
 			# consChooseMask = hd fields
+			//Don't recursively refresh if no constructor has been chosen
+			| consChooseMask =: (FieldMask {FieldMask|state=JSONNull})
+				= (Ok (NoChange,mask),OBJECT old,vst)
 			= case ex.Editor.onRefresh dp new old (CompoundMask {fields=tl fields,state=JSONNull}) {vst & selectedConsIndex = 0} of
 				(Ok (change,CompoundMask {fields}),val,vst=:{VSt|selectedConsIndex}) 
 					//If the cons was changed we need to update the selector
@@ -263,10 +268,10 @@ where
 						= (Ok (change, CompoundMask {fields=[consChooseMask:fields],state=JSONNull}), OBJECT val,{vst & selectedConsIndex = curSelectedConsIndex})
 
 				(Ok (change,mask),val,vst=:{VSt|selectedConsIndex}) 
-					= (Error "Corrupt mask in generic editor",OBJECT old, vst)
+					= (Error "Corrupt mask in generic OBJECT editor",OBJECT old, vst)
 				(Error e,val,vst) = (Error e,OBJECT val,vst)
 	onRefresh dp (OBJECT new) (OBJECT old) mask vst
-		= (Error "Corrupt mask in generic editor",OBJECT old, vst)
+		= (Error "Corrupt mask in generic OBJECT editor",OBJECT old, vst)
 
 gEditor{|EITHER|} ex _ dx _ _ ey _ dy _ _  = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
@@ -367,6 +372,9 @@ where
 		# ((changex,maskx),(changey,masky)) = (fromOk changex,fromOk changey)
 		= (Ok (ChangeUI [] [(0,ChangeChild changex),(1,ChangeChild changey)]
 			  ,CompoundMask {fields=[maskx,masky],state=JSONNull}),PAIR newx newy, vst)
+
+	onRefresh dp (PAIR newx newy) (PAIR oldx oldy) mask vst
+		= (Error "Corrupt mask in generic PAIR editor",PAIR oldx oldy, vst)
 
 //The maybe editor makes it content optional
 gEditor{|Maybe|} ex _ dx _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}

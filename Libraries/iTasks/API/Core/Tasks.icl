@@ -87,7 +87,9 @@ where
 				= case 'SDS'.readRegister taskId shared iworld of
 					(Ok r,iworld)
 						# (l,v) = initFun r
-						= (Ok (taskId,ts,l,v,newFieldMask),iworld)
+						= case initMask taskId mode mbEditor v iworld of
+							(Ok m,iworld) = (Ok (taskId,ts,l,v,m),iworld)
+							(Error e,iworld) = (Error e,iworld)
 					(Error e,iworld)  = (Error e,iworld)
 			(TCInteract taskId ts encl encv m)
 				//Just decode the initially stored values
@@ -111,6 +113,12 @@ where
 						# info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
 						= (ValueResult value info change (TCInteract taskId ts (toJSON l) (toJSON v) m), iworld)
 
+initMask taskId mode mbEditor v iworld
+	# editor = fromMaybe gEditor{|*|} mbEditor
+	# vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
+	= case editor.Editor.genUI [] v vst of
+		(Ok (_,mask),{VSt|iworld}) = (Ok mask, iworld)
+		(Error e, {VSt|iworld}) = (Error (exception e), iworld)
 
 matchAndApplyEvent_ event taskId mode mbEditor taskTime shared editFun l ov m ts prompt iworld
 	# editor = fromMaybe gEditor{|*|} mbEditor
