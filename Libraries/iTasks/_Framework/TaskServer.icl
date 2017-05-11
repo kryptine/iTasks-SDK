@@ -193,7 +193,7 @@ process i chList iworld=:{ioTasks={done, todo=[ConnectionInstance opts duplexCha
         i chList opts.ConnectionInstanceOpts.taskId opts.ConnectionInstanceOpts.connectionId
         opts.ConnectionInstanceOpts.removeOnClose sds tcpConnectionIOOps
         (\_ -> handlers.ConnectionHandlersIWorld.onDisconnect) handlers.ConnectionHandlersIWorld.onData
-        handlers.ConnectionHandlersIWorld.onShareChange (ConnectionInstance opts) duplexChannel iworld
+        handlers.ConnectionHandlersIWorld.onShareChange handlers.ConnectionHandlersIWorld.onTick (ConnectionInstance opts) duplexChannel iworld
     = process (i+1) chList iworld
 where
     (ConnectionTask handlers sds) = opts.ConnectionInstanceOpts.connectionTask
@@ -202,7 +202,7 @@ process i chList iworld=:{ioTasks={done, todo=[ExternalProcessInstance opts pHan
     # iworld = {iworld & ioTasks = {done = done, todo = todo}} 
     # iworld = processIOTask
         i chList opts.ExternalProcessInstanceOpts.taskId opts.ExternalProcessInstanceOpts.connectionId
-        False sds externalProcessIOOps onClose onData onShareChange
+        False sds externalProcessIOOps onClose onData onShareChange onTick
         (\(pHandle, pIO) -> ExternalProcessInstance opts pHandle pIO) (pHandle, pIO) iworld
     = process (i+1) chList iworld
 where
@@ -222,6 +222,12 @@ where
     onShareChange l r iworld
         # (mbl, mbw, out, close) = handlers.ExternalProcessHandlers.onShareChange l r
         = (mbl, mbw, out, close, iworld)
+
+    // do nothing to external proc tasks
+    onTick :: !Dynamic !Dynamic !*IWorld
+           -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
+    onTick l r iworld
+        = (Ok l, Nothing, [], False, iworld)
 
     onClose :: !ExitCode !Dynamic !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, !*IWorld)
     onClose exitCode l r iworld
@@ -328,12 +334,13 @@ processIOTask :: !Int
                  !(closeInfo Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, !*IWorld))
                  !(readData Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
                  !(Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
+                 !(Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
                  !(.ioChannels -> *IOTaskInstance)
                  !.ioChannels
                  !*IWorld
               -> *IWorld
 processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandler onDataHandler
-              onShareChangeHandler mkIOTaskInstance ioChannels iworld=:{ioStates}
+              onShareChangeHandler onTickHandler mkIOTaskInstance ioChannels iworld=:{ioStates}
     = case 'DM'.get taskId ioStates of
         Just (IOActive taskStates)
             # (TaskId instanceNo _) = taskId
@@ -351,6 +358,40 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
                 # ioStates = 'DM'.put taskId (IOException (snd (fromError mbr))) ioStates
                 = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
             # r = fromOk mbr
+            // on tick handler
+            # (mbTaskState, mbw, out, close, iworld) = onTickHandler taskState r iworld
+            // TODO: START duplication
+            # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
+            // write data
+            # (ioChannels, iworld) = seq [ioOps.writeData o \\ o <- out] (ioChannels, iworld)
+            | mbTaskState =: (Error _)
+                # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
+                # ioStates = 'DM'.put taskId (IOException (fromError mbTaskState)) ioStates
+                = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
+            | isError mbSdsErr
+                # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
+                # ioStates = 'DM'.put taskId (IOException (snd (fromError mbSdsErr))) ioStates
+                = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
+            // TODO: END duplication
+            // TODO: START duplication
+            | close
+                //Remove the connection state if configured in the connection listener options
+                # taskStates = if removeOnClose
+                    ('DM'.del connectionId taskStates)
+                    taskStates
+                # ioStates = 'DM'.put taskId (IOActive taskStates) ioStates
+                = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
+            // TODO: END duplication
+            // TODO: START duplication
+            // read sds
+            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
+            | mbr =: (Error _)
+                # iworld   = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
+                # ioStates = 'DM'.put taskId (IOException (snd (fromError mbr))) ioStates
+                = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
+            # r = fromOk mbr
+            // TODO: END duplication
+            # taskState = fromOk mbTaskState
             // try to read data
             # (mbData, ioChannels, iworld) = ioOps.readData i chList (ioChannels, iworld)
             = case mbData of

@@ -238,6 +238,7 @@ taskUIService taskUrls = { urlMatchPred    = matchFun [url \\ {PublishedTask|url
                          , completeRequest = True
                          , onNewReq        = reqFun` taskUrls
                          , onData          = dataFun
+                         , onTick          = onTick
                          , onDisconnect    = disconnectFun
                          }
 where
@@ -308,7 +309,7 @@ where
 					# json = JSONArray [JSONString "ERROR",JSONString "Unknown event"]
 					= (wsockTextMsg (toString json),False, instances, iworld)
 
-    /*dataFun req output Nothing (state,instances) iworld
+    onTick req output (state,instances) iworld
 		//Check for UI updates for all attached instances
 		# (changes, output) = dequeueOutput instances output
 		= case changes of //Ignore empty updates
@@ -317,7 +318,7 @@ where
                 # (_,iworld) = updateInstanceLastIO instances iworld
 				# msgs = [wsockTextMsg (toString (JSONObject [("instance",JSONInt instanceNo)
 															 ,("change",encodeUIChange change)])) \\ (instanceNo,change) <- changes]
-				= (flatten msgs,False, (state,instances),Just output,iworld)*/
+				= (flatten msgs,False, (state,instances),Just output,iworld)
 
 	disconnectFun _ _ (state,instances) iworld = (Nothing, snd (updateInstanceDisconnect instances iworld))
 	disconnectFun _ _ _ iworld                 = (Nothing, iworld)
@@ -358,6 +359,7 @@ documentService = { urlMatchPred    = matchFun
                   , completeRequest = True
                   , onNewReq        = reqFun
                   , onData          = dataFun
+                  , onTick          = onTick
                   , onDisconnect    = lostFun
                   }
 where
@@ -388,6 +390,7 @@ where
 				= (notFoundResponse req,Nothing,Nothing,iworld)
 
 	dataFun _ _ _ s env = ([],True,s,Nothing,env)
+    onTick  _ _   s env = ([],True,s,Nothing,env)
 	lostFun _ _ s env = (Nothing,env)
 
 createDocumentsFromUploads [] iworld = ([],iworld)
@@ -408,6 +411,7 @@ staticResourceService taskPaths = { urlMatchPred    = const True
                                   , completeRequest = True
                                   , onNewReq        = initFun
                                   , onData          = dataFun
+                                  , onTick          = onTick
                                   , onDisconnect    = lostFun
                                   }
 where
@@ -416,6 +420,7 @@ where
 		= (rsp,Nothing,Nothing,env)
 		
 	dataFun _ _ _ s env = ([],True,s,Nothing,env)
+    onTick  _ _   s env = ([],True,s,Nothing,env)
 	lostFun _ _ s env = (Nothing,env)
 
 	handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)

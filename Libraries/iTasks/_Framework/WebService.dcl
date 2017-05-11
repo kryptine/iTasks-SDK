@@ -32,8 +32,9 @@ import iTasks._Framework.Generic
 :: WebService r w =
     { urlMatchPred    :: !(String -> Bool)                                                                                            // checks whether the URL is served by this service
     , completeRequest :: !Bool                                                                                                        // wait for complete request before start serving request
-    , onNewReq        :: !(HTTPRequest r                        *IWorld-> *(!HTTPResponse,!Maybe ConnectionState, !Maybe w, !*IWorld)) // is called for each new request
+    , onNewReq        :: !(HTTPRequest r                        *IWorld -> *(!HTTPResponse,!Maybe ConnectionState, !Maybe w, !*IWorld)) // is called for each new request
     , onData          :: !(HTTPRequest r String ConnectionState *IWorld -> *(![{#Char}], !Bool, !ConnectionState, !Maybe w, !*IWorld)) // on new data from client
+    , onTick          :: !(HTTPRequest r        ConnectionState *IWorld -> *(![{#Char}], !Bool, !ConnectionState, !Maybe w, !*IWorld)) // called on each iteration of main loop
     , onDisconnect    :: !(HTTPRequest r ConnectionState        *IWorld -> *(!Maybe w, !*IWorld))                                      // is called on disconnect
     }
 

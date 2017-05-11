@@ -28,6 +28,7 @@ sdsService = { urlMatchPred    = matchFun
              , completeRequest = True
              , onNewReq        = reqFun
              , onData          = dataFun
+             , onTick          = onTick
              , onDisconnect    = disconnectFun
              }
 where
@@ -76,6 +77,8 @@ where
 				
 	dataFun :: !HTTPRequest (Map InstanceNo (Queue UIChange)) !String !ConnectionState !*IWorld -> (![{#Char}], !Bool, !ConnectionState,!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld)
     dataFun req _ data instanceNo iworld = ([], True, instanceNo, Nothing, iworld)
+
+    onTick _ _ instanceNo iworld = ([], True, instanceNo, Nothing, iworld)
 
     disconnectFun :: !HTTPRequest (Map InstanceNo (Queue UIChange)) !ConnectionState !*IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld)
 	disconnectFun _ _ _ iworld = (Nothing,iworld)
