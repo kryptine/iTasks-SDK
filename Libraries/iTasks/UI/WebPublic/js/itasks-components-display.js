@@ -19,6 +19,7 @@ itasks.TextView = {
 	}
 };
 itasks.HtmlView = {
+	cssCls: 'htmlview',
 	//Default padding
 	attributes: {
 		paddingTop: 5,
