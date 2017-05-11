@@ -3,18 +3,23 @@ definition module iTasks.API.Extensions.GIS.Leaflet
 import iTasks
 
 :: LeafletMap =
-    { perspective   :: LeafletPerspective
-    , layers        :: [LeafletLayer]
-    , icons         :: [LeafletIcon]    //Custom icons used in this map
+    { perspective   :: LeafletPerspective 
+	, tilesUrl      :: Maybe String      
+	, objects       :: [LeafletObject]    //Markers, lines and polygon
+    , icons         :: [LeafletIcon]      //Custom icons used by markers. They are indexed by 'iconId' string and cannot be changed once the map is loaded
     }
+
 :: LeafletPerspective =
     { center        :: LeafletLatLng
     , zoom          :: Int
     , cursor        :: Maybe LeafletLatLng
     , bounds        :: Maybe LeafletBounds
     }
+
+:: LeafletIconID :== String
 :: LeafletIcon =
-    { iconUrl       :: String
+    { iconId        :: LeafletIconID
+    , iconUrl       :: String
     , iconSize      :: (!Int,!Int)
     }
 
@@ -22,49 +27,47 @@ import iTasks
     { lat :: !Real
     , lng :: !Real
     }
+
 :: LeafletBounds =
     { southWest :: !LeafletLatLng
     , northEast :: !LeafletLatLng
     }
-
-:: LeafletLayer
-    = TileLayer String
-    | ObjectLayer [LeafletObject]
 
 :: LeafletObject
     = Marker LeafletMarker
     | Polyline LeafletPolyline
     | Polygon LeafletPolygon
 
+:: LeafletObjectID :== String
 :: LeafletMarker =
-    { markerId      :: String
-    , position      :: LeafletLatLng
-    , title         :: Maybe String
-    , icon          :: Maybe Int        //Index in the list of icons defined for the map
-    , selected      :: Bool
+    { markerId      :: !LeafletObjectID
+    , position      :: !LeafletLatLng
+    , title         :: !Maybe String
+    , icon          :: !Maybe LeafletIconID// Id of the list of icons defined for the map
+    , selected      :: !Bool
     }
 
 :: LeafletPolyline =
-    { polylineId    :: !String
+    { polylineId    :: !LeafletObjectID
     , points        :: ![LeafletLatLng]
-    , strokeColor   :: !String       //html/css color definition
+    , strokeColor   :: !String // html/css color definition
     , strokeWidth   :: !Int
     }
 
 :: LeafletPolygon =
-    { polygonId     :: !String
+    { polygonId     :: !LeafletObjectID
     , points        :: ![LeafletLatLng]
-    , strokeColor   :: !String       //html/css color definition
+    , strokeColor   :: !String       // html/css color definition
     , strokeWidth   :: !Int
-    , fillColor     :: !Maybe String //Nothing means no fill
+    , fillColor     :: !Maybe String // Nothing means no fill
     }
 
+//Public tileserver of openstreetmaps
+openStreetMapTiles :: String
 
-openStreetMapTiles :: LeafletLayer
-
-derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
-derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
-derive gDefault         LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
-derive gEq              LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
-derive gText            LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
-derive gEditor          LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
+derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
+derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
+derive gDefault         LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
+derive gEq              LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
+derive gText            LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
+derive gEditor          LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon

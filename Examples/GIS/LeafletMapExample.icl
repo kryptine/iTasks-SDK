@@ -6,7 +6,7 @@ import Data.List
 
 playWithMaps :: Task ()
 playWithMaps = withShared defaultValue (\m ->
-	(allTasks [viewPerspective m, manageMapObjects m,manageMapLayers m])
+	(allTasks [viewPerspective m, manageMapObjects m])
 	-&&-
 	manipulateMap m
 	) <<@ ArrangeWithSideBar 0 LeftSide 300 True @! () 
@@ -19,9 +19,9 @@ viewPerspective :: (Shared LeafletMap) -> Task ()
 viewPerspective m = viewSharedInformation (Title "Perspective") [] (mapRead (\x -> x.LeafletMap.perspective) m)  @! ()
 
 manageMapObjects :: (Shared LeafletMap) -> Task ()
-manageMapObjects m = viewInformation (Title "Manage objects") [] ()
-
-manageMapLayers :: (Shared LeafletMap) -> Task ()
-manageMapLayers m = viewInformation (Title "Manage layers") [] ()
+manageMapObjects m = updateSharedInformation (Title "Manage objects") [UpdateAs toPrj fromPrj] m @! ()
+where
+	toPrj m = m.LeafletMap.objects
+	fromPrj m objects = {m & objects = objects}
 
 Start world = startEngine playWithMaps world

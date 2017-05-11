@@ -6,23 +6,10 @@ import StdMisc, Data.Tuple
 import qualified Data.Map as DM
 
 from StdArray import class Array(uselect), instance Array {} a
-//TODOS:
-//The client side update* and remove* diff operations need to make sure that all
-//the indexed javascript objects are properly removed from all indices.
-//Otherwise you'll get a memory leak in the javascript
 
 LEAFLET_JS :== "/leaflet-0.7.2/leaflet.js"
 LEAFLET_CSS :== "/leaflet-0.7.2/leaflet.css"
 
-:: JSLM = JSLM
-
-:: LeafletClientState =
-    {mapObj         :: !JSObj JSLM
-    ,mapLayers      :: !JSArr (JSObject JSLM)
-    ,mapIcons       :: !JSArr (JSObject JSLM)
-    ,mapCursor      :: !Maybe (JSObj JSLM)
-    ,mapObjects     :: !JSMap Int (JSArr JSLM) //For every object layer we keep an index of the objects in this layer
-    }
 :: IconOptions =
     { iconUrl   :: !String
     , iconSize  :: ![Int]
@@ -37,6 +24,8 @@ LEAFLET_CSS :== "/leaflet-0.7.2/leaflet.css"
     , radius    :: !Int
     }
 
+derive JSONEncode IconOptions
+
 CURSOR_OPTIONS  :== {color = "#00f", opacity = 1.0, radius = 3}
 MAP_OPTIONS     :== {attributionControl = False, zoomControl = True}
 
@@ -46,68 +35,23 @@ MAP_OPTIONS     :== {attributionControl = False, zoomControl = True}
     | LDSetCenter       !LeafletLatLng
     | LDSetCursor       !LeafletLatLng
     | LDSetBounds       !LeafletBounds
-    //Icons
-    | LDAddIcons        ![LeafletIcon]
-    | LDUpdateIcon      !Int LeafletIcon
-    | LDRemoveIcons     !Int
-    //Layers
-    | LDAddLayers       ![LeafletLayer]
-    | LDUpdateLayer     !Int LeafletLayer
-    | LDRemoveLayers    !Int
-    //Individual objects
-    | LDAddObjects      !Int ![LeafletObject]
-    | LDUpdateObject    !Int !Int !LeafletObject
-    | LDRemoveObjects   !Int !Int
+	//Updating markers 
+	| LDSelectMarker    LeafletObjectID
 
-onRefresh _ m2 m1 mask vst = case diffs of [] = (Ok (NoChange,mask),m2,vst) ; _ = (Ok (ChangeUI [SetAttribute "diff" (toJSON diffs)] [],mask),m2,vst)
-where
-    diffs
-        =   diffPerspectives m1.perspective m2.perspective
-        ++  diffIcons 0 m1.icons m2.icons
-        ++  diffLayers 0 m1.layers m2.layers
-
-    diffPerspectives p1 p2
-		= []
-/*
-        =   if (p1.zoom === p2.zoom) [] [LDSetZoom p2.zoom]
-        ++  if (p1.center === p2.center) [] [LDSetCenter p2.center]
-        ++  if (p1.cursor === p2.cursor) [] [LDSetCursor p2.cursor]
-        ++  if (p1.bounds === p2.bounds) [] [LDSetBounds p2.bounds]
-*/
-
-    diffIcons i [] [] = []
-    diffIcons i [] i2 = [LDAddIcons i2]
-    diffIcons i i1 [] = [LDRemoveIcons i]
-    diffIcons i [i1:is1] [i2:is2]
-        | i1 === i2     = diffIcons (inc i) is1 is2
-                        = [LDUpdateIcon i i2:diffIcons (inc i) is1 is2]
-
-    diffLayers i [] [] = []
-    diffLayers i [] l2 = [LDAddLayers l2]
-    diffLayers i l1 [] = [LDRemoveIcons i]
-    diffLayers i [TileLayer url1:ls1] [TileLayer url2:ls2]
-        | url1 == url2  = diffLayers (inc i) ls1 ls2
-                        = [LDUpdateLayer i (TileLayer url2):diffLayers (inc i) ls1 ls2]
-    diffLayers i [ObjectLayer obj1:ls1] [ObjectLayer obj2:ls2]
-                        = diffObjects i 0 obj1 obj2 ++ diffLayers (inc i) ls1 ls2
-    diffLayers i [l1:ls1] [l2:ls2]
-                        = [LDUpdateLayer i l2:diffLayers (inc i) ls1 ls2]
-
-    diffObjects l i [] [] = []
-    diffObjects l i [] o2 = [LDAddObjects l o2]
-    diffObjects l i o1 [] = [LDRemoveObjects l i]
-    diffObjects l i [o1:os1] [o2:os2]
-        | o1 === o2     = diffObjects l (inc i) os1 os2
-                        = [LDUpdateObject l i o2:diffObjects l (inc i) os1 os2]
-
-openStreetMapTiles :: LeafletLayer
-openStreetMapTiles = TileLayer "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+openStreetMapTiles :: String
+openStreetMapTiles = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 	
 leafletEditor :: Editor LeafletMap
 leafletEditor = {Editor|genUI = withClientSideInit initUI genUI, onEdit  = onEdit, onRefresh = onRefresh}
 where
-	genUI dp val world
-		# attr = sizeAttr (ExactSize 500) (ExactSize 150)
+	genUI dp val=:{LeafletMap|perspective={center,zoom},tilesUrl,icons} world
+		# mapAttr = 'DM'.fromList
+			[("zoom", JSONInt zoom)
+			,("center", JSONArray [JSONReal center.LeafletLatLng.lat, JSONReal center.LeafletLatLng.lng])
+			,("tilesUrl", maybe JSONNull JSONString tilesUrl)
+			,("icons", JSONArray [toJSON (iconId,{IconOptions|iconUrl=iconUrl,iconSize=[w,h]}) \\ {iconId,iconUrl,iconSize=(w,h)} <- icons])
+			]
+		# attr = 'DM'.unions [mapAttr, sizeAttr (ExactSize 500) (ExactSize 150)]
 		= (Ok (uia UIHtmlView attr,newFieldMask), world)
 
 	initUI me world
@@ -125,31 +69,29 @@ where
 			= world
 
 	initDOM me args world
-		# map=:{LeafletMap|perspective,icons,layers} = {gDefault{|*|} & layers =[openStreetMapTiles]} //Initial default map
         # (l,world)         = findObject "L" world
 		# (domEl,world) 	= .? (me .# "domEl") world
 		//Create the map
 		# (mapObj,world)    = (l .# "map" .$ (domEl,MAP_OPTIONS)) world
 		# world 			= (me .# "map" .= mapObj) world
 		//Set perspective
-        # (center,world)    = toJSArray [perspective.center.lat,perspective.center.lng] world
-        # (_,world)         = (mapObj .# "setView" .$ (center, perspective.LeafletPerspective.zoom)) world
-		//Create cursor
-		# world = case perspective.cursor of
-			Just cursor = setMapCursor me mapObj cursor world
-			Nothing = world
+		# (center,world)    = .? (me .# "attributes.center") world
+		# (zoom,world)      = .? (me .# "attributes.zoom") world
+        # (_,world)         = (mapObj .# "setView" .$ (center,zoom)) world
+		//Optionally set initial cursor (TODO)
         //Add icons
-        # (mapIcons,world)  = newJSArray world
-        # world             = foldl (\w icon -> addIcon icon l mapIcons w) world icons
-		# world 			= (me .# "icons" .= mapIcons) world
+		# (icons,world)     = .? (me .# "attributes.icons") world
+		# world             = setMapIcons me mapObj icons world 
+		//Create tile layer
+		# (tilesUrl,world)    = .? (me .# "attributes.tilesUrl") world
+		# world               = setMapTilesLayer me mapObj tilesUrl world 
 		//Synchronize lat/lng bounds to server (they depend on the size of the map in the browser)
 		# (taskId,world)    = .? (me .# "attributes.taskId") world
 		# (editorId,world)  = .? (me .# "attributes.editorId") world
         # (bounds,world)    = getMapBounds mapObj world
 		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,[LDSetBounds bounds])) world
-        //Add initial layers
-        # (mapLayers,world)   = newJSArray world
-        # (_,world)           = foldl (\w layer -> addLayer layer l mapObj mapLayers mapIcons w) (0,world) layers
+        //Add initial objects
+		//TODO
 		//Add event handlers
 		# (cb,world)       = jsWrapFun (\a w -> onResize me w) world	
 		# world            = ((me .# "onResize") .= cb) world
@@ -160,25 +102,6 @@ where
 		# (cb,world)       = jsWrapFun (\a w -> onMapClick me a w) world
         # (_,world)        = (mapObj .# "addEventListener" .$ ("click",cb)) world
 		= (jsNull,world)
-
-    addIcon {LeafletIcon|iconUrl,iconSize=(w,h)} l icons world
-        # (icon,world)    = (l .# "icon" .$ (toJSArg {IconOptions|iconUrl=iconUrl,iconSize=[w,h]})) world
-        # (_,world)       = jsArrayPush icon icons world
-        = world
-
-    addLayer (TileLayer url) l mapObj mapLayers mapIcons (i,world)
-        # (layer,world)       = (l .# "tileLayer" .$ url) world
-        # (_,world)           = jsArrayPush layer mapLayers world
-        # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
-        = (i + 1,world)
-
-    addLayer (ObjectLayer objects) l mapObj mapLayers mapIcons (i,world)
-        # (layer,world)       = (l .# "layerGroup" .$ ()) world
-        //# (_,world)           = foldl (\w object -> createObject mkHandler object l layer objRefs mapIcons cid w) (0,env) objects
-        # (_,world)           = jsArrayPush layer mapLayers world
-        # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
-        = (i + 1,world)
-
 	onResize me world
 		# (mapObj,world) 	= .? (me .# "map") world
         # (_,world)         = (mapObj .# "invalidateSize" .$ ()) world
@@ -235,6 +158,29 @@ where
         # (center,world)    = (mapObj .# "getCenter" .$ ()) world
         = toLatLng center world
 
+	setMapTilesLayer me mapObj tilesUrl world 
+		| jsIsNull tilesUrl = world
+		# (l, world)      	= findObject "L" world
+        # (layer,world)     = (l .# "tileLayer" .$ tilesUrl) world
+        # (_,world)         = (layer .# "addTo" .$ mapObj) world
+		= world
+
+	setMapIcons me mapObj icons world 
+		# (l, world)      	= findObject "L" world
+		# (num,world)  		= .? (icons .# "length") world
+		# (index,world) 	= jsEmptyObject world
+		# world 			= ((me .# "icons") .= index) world
+		= add l index 0 (jsValToInt num) world
+	where
+		add l index i n world
+			| i == n = world
+			# (def,world)      = .? (icons .# i) world
+			# (iconId,world)   = .? (def .# 0) world
+			# (iconSpec,world) = .? (def .# 1) world
+        	# (icon,world)     = (l .# "icon" .$ iconSpec) world
+			# world            = ((index .# (jsValToString iconId)) .= icon) world
+			= add l index (i + 1) n world
+
 	setMapCursor me mapObj {LeafletLatLng|lat,lng} world
 		# (cursor,world) = .? (me .# "cursor") world
 		| jsIsUndefined cursor //Create the cursor
@@ -247,33 +193,68 @@ where
         	# (_,world)        = (cursor .# "setLatLng" .$ (toJSArg [lat,lng])) world
 			= world
 		
-	//Process the diffs received from the client
+	//Process the edits received from the client
 	onEdit dp ([],diff) m msk vst = case fromJSON diff of
 		Just diffs = (Ok (NoChange,msk),foldl app m diffs,vst)
 		Nothing = (Ok (NoChange,msk),m,vst)
 	where
-		app m (LDSetZoom zoom)     = {m & perspective = {m.perspective & zoom = zoom}}
-		app m (LDSetCenter center) = {m & perspective = {m.perspective & center = center}}
-		app m (LDSetCursor cursor) = {m & perspective = {m.perspective & cursor = Just cursor}}
-		app m (LDSetBounds bounds) = {m & perspective = {m.perspective & bounds = Just bounds}}
+		app m (LDSetZoom zoom)          = {LeafletMap|m & perspective = {m.perspective & zoom = zoom}}
+		app m (LDSetCenter center)      = {LeafletMap|m & perspective = {m.perspective & center = center}}
+		app m (LDSetCursor cursor)      = {LeafletMap|m & perspective = {m.perspective & cursor = Just cursor}}
+		app m (LDSetBounds bounds)      = {LeafletMap|m & perspective = {m.perspective & bounds = Just bounds}}
+		app m (LDSelectMarker markerId) = {LeafletMap|m & objects = map (sel markerId) m.LeafletMap.objects}
+		where
+			sel x (Marker m=:{LeafletMarker|markerId}) = Marker {LeafletMarker|m & selected = markerId == x}
+			sel x o = o
 		app m _ = m
 	onEdit _ _ m msk ust = (Ok (NoChange,msk),m,ust)
+
+	//Check for changed objects and update the client: TODO
+	onRefresh _ m2 m1 mask vst = (Ok (NoChange,mask),m2,vst)
+
 /*
-	app [] m = m
-	app [LDSetBounds bounds:ds] m       = app ds {m & perspective = {m.perspective & bounds = bounds}}
-	app [LDAddIcons icons:ds] m         = app ds {m & icons = m.icons ++ icons}
-	app [LDRemoveIcons n:ds] m          = app ds {m & icons = take n m.icons}
-	app [LDUpdateIcon i icon:ds] m      = app ds {m & icons = updateAt i icon m.icons}
-	app [LDAddLayers layers:ds] m       = app ds {m & layers = m.layers ++ layers}
-	app [LDRemoveLayers n:ds] m         = app ds {m & layers = take n m.layers}
-	app [LDUpdateLayer i layer:ds] m    = app ds {m & layers = updateAt i layer m.layers}
-	app [LDAddObjects l objects:ds] m   = let (ObjectLayer o) = m.layers !! l in
-		app ds {m & layers = updateAt l (ObjectLayer (o++objects)) m.layers}
-	app [LDRemoveObjects l n:ds] m     = let (ObjectLayer o) = m.layers !! l in
-    	app ds {m & layers = updateAt l (ObjectLayer (take n o)) m.layers}
-	app [LDUpdateObject l i object:ds] m = let (ObjectLayer o) = m.layers !! l in
-    	app ds {m & layers = updateAt l (ObjectLayer (updateAt i object o)) m.layers}
+onRefresh _ m2 m1 mask vst = case diffs of [] = (Ok (NoChange,mask),m2,vst) ; _ = (Ok (ChangeUI [SetAttribute "diff" (toJSON diffs)] [],mask),m2,vst)
+where
+    diffs
+        =   diffPerspectives m1.perspective m2.perspective
+        ++  diffIcons 0 m1.icons m2.icons
+        ++  diffLayers 0 m1.layers m2.layers
+
+    diffPerspectives p1 p2
+		= []
+/*
+        =   if (p1.zoom === p2.zoom) [] [LDSetZoom p2.zoom]
+        ++  if (p1.center === p2.center) [] [LDSetCenter p2.center]
+        ++  if (p1.cursor === p2.cursor) [] [LDSetCursor p2.cursor]
+        ++  if (p1.bounds === p2.bounds) [] [LDSetBounds p2.bounds]
 */
+
+    diffIcons i [] [] = []
+    diffIcons i [] i2 = [LDAddIcons i2]
+    diffIcons i i1 [] = [LDRemoveIcons i]
+    diffIcons i [i1:is1] [i2:is2]
+        | i1 === i2     = diffIcons (inc i) is1 is2
+                        = [LDUpdateIcon i i2:diffIcons (inc i) is1 is2]
+
+    diffLayers i [] [] = []
+    diffLayers i [] l2 = [LDAddLayers l2]
+    diffLayers i l1 [] = [LDRemoveIcons i]
+    diffLayers i [TileLayer url1:ls1] [TileLayer url2:ls2]
+        | url1 == url2  = diffLayers (inc i) ls1 ls2
+                        = [LDUpdateLayer i (TileLayer url2):diffLayers (inc i) ls1 ls2]
+    diffLayers i [ObjectLayer obj1:ls1] [ObjectLayer obj2:ls2]
+                        = diffObjects i 0 obj1 obj2 ++ diffLayers (inc i) ls1 ls2
+    diffLayers i [l1:ls1] [l2:ls2]
+                        = [LDUpdateLayer i l2:diffLayers (inc i) ls1 ls2]
+
+    diffObjects l i [] [] = []
+    diffObjects l i [] o2 = [LDAddObjects l o2]
+    diffObjects l i o1 [] = [LDRemoveObjects l i]
+    diffObjects l i [o1:os1] [o2:os2]
+        | o1 === o2     = diffObjects l (inc i) os1 os2
+                        = [LDUpdateObject l i o2:diffObjects l (inc i) os1 os2]
+*/
+
 /*
     onLibLoaded mkHandler cid _ (map=:{LeafletMap|perspective,icons,layers},_) env
         # (l,env)           = findObject "L" env
@@ -327,7 +308,7 @@ where
             # (clval, _, env) = onLibLoaded mkHandler cid (abort "Not implemented") (map,Nothing) env
             = (clval, env)
 */
-
+/*
     onUpdate mkHandler cid [] (map,st) env
         = ((map,st),env)
     onUpdate mkHandler cid [LDSetZoom zoom:diffs] (map,Just st=:{mapObj}) env
@@ -408,6 +389,7 @@ where
 		= onUpdate mkHandler cid updates (map,Just st) env
     onUpdate mkHandler cid updates (map,st) env
         = ((map,st),env)
+*/
 /*
     onLibLoaded mkHandler cid _ (map=:{LeafletMap|perspective,icons,layers},_) env
         # (l,env)           = findObject "L" env
@@ -445,6 +427,7 @@ where
         # env               = (cmp .# "afterResize" .= (toJSVal (mkHandler onAfterShow cid))) env
         = ((map,Just {mapObj=mapObj,mapIcons=mapIcons,mapLayers=mapLayers,mapObjects,mapCursor=mapCursor}),Diff [LDSetBounds bounds] ignoreConflict,env)
 */
+/*
 	createIcon :: !LeafletIcon !(JSObj JSLM) !(JSArr (JSObject b)) !*JSWorld -> *JSWorld
     createIcon {LeafletIcon|iconUrl,iconSize=(w,h)} l mapIcons env
         # (icon,env)    = (l .# "icon" .$ (toJSArg {IconOptions|iconUrl=iconUrl,iconSize=[w,h]})) env
@@ -507,6 +490,7 @@ where
         # env               = (objRefs .# i .= polygon) env
         # (_,env)           = (polygon .# "addTo" .$ (toJSArg layer)) env
         = (i + 1,env)
+*/
 /*
     onMapMove cid {[0]=event} (map=:{LeafletMap|perspective},mbSt) env
         # (mapobj,env)      = .? (event .# "target") env
@@ -551,6 +535,7 @@ where
     onAfterShow cid event st env
         = (st,NoDiff,env)
 */
+/*
 	getPos obj env
 		# (lat,env)     = .? (obj .# "lat") env
 		# (lng,env)     = .? (obj .# "lng") env
@@ -585,9 +570,10 @@ where
         = env
 
     //ignoreConflict conflict state env = (state, NoDiff, env)
-
+*/
 gEditor{|LeafletMap|} = leafletEditor
-
+gDefault{|LeafletMap|}
+	= {LeafletMap|perspective=defaultValue, tilesUrl =Just openStreetMapTiles, objects = [], icons = []}
 gDefault{|LeafletPerspective|}
     = {LeafletPerspective|center = {LeafletLatLng|lat = 51.82, lng = 5.86}, zoom = 7, cursor = Nothing, bounds = Nothing}
 
@@ -596,9 +582,9 @@ gDefault{|LeafletPerspective|}
 gEq{|LeafletLatLng|} x y
     = (toString x.lat == toString y.lat) && (toString x.lng == toString y.lng)
 
-derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletClientState, JSLM
-derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletClientState, JSLM
-derive gDefault         LeafletMap,                     LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletClientState, JSLM
-derive gEq              LeafletMap, LeafletPerspective, LeafletIcon,                LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletClientState, JSLM
-derive gText            LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletClientState, JSLM
-derive gEditor                      LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletLayer, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletClientState, JSLM
+derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
+derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
+derive gDefault         LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
+derive gEq              LeafletMap, LeafletPerspective, LeafletIcon,                LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
+derive gText            LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
+derive gEditor  LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
