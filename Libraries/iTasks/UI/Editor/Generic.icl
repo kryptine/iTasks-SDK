@@ -245,7 +245,7 @@ where
 			//Adjust for the added constructor view/choose UI
 			# consChooseMask = hd fields
 			//Don't recursively refresh if no constructor has been chosen
-			| consChooseMask =: (FieldMask {FieldMask|state=JSONNull})
+			| (not mode =: View) && consChooseMask =: (FieldMask {FieldMask|state=JSONNull})
 				= (Ok (NoChange,mask),OBJECT old,vst)
 			= case ex.Editor.onRefresh dp new old (CompoundMask {fields=tl fields,state=JSONNull}) {vst & selectedConsIndex = 0} of
 				(Ok (change,CompoundMask {fields}),val,vst=:{VSt|selectedConsIndex}) 
