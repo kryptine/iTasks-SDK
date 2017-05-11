@@ -44,7 +44,7 @@ openStreetMapTiles = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 leafletEditor :: Editor LeafletMap
 leafletEditor = {Editor|genUI = withClientSideInit initUI genUI, onEdit  = onEdit, onRefresh = onRefresh}
 where
-	genUI dp val=:{LeafletMap|perspective={center,zoom},tilesUrl,icons} world
+	genUI dp val=:{LeafletMap|perspective={center,zoom},tilesUrl,objects,icons} world
 		# mapAttr = 'DM'.fromList
 			[("zoom", JSONInt zoom)
 			,("center", JSONArray [JSONReal center.LeafletLatLng.lat, JSONReal center.LeafletLatLng.lng])
@@ -52,7 +52,12 @@ where
 			,("icons", JSONArray [toJSON (iconId,{IconOptions|iconUrl=iconUrl,iconSize=[w,h]}) \\ {iconId,iconUrl,iconSize=(w,h)} <- icons])
 			]
 		# attr = 'DM'.unions [mapAttr, sizeAttr (ExactSize 500) (ExactSize 150)]
-		= (Ok (uia UIHtmlView attr,newFieldMask), world)
+		# children = map toData objects
+		= (Ok (uiac UIHtmlView attr children,newFieldMask), world)
+	where
+		toData (Marker o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList attr)
+		toData (Polyline o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList attr)
+		toData (Polygon o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList attr)
 
 	initUI me world
 		# (jsInitDOM,world) = jsWrapFun (initDOM me) world
@@ -91,7 +96,8 @@ where
         # (bounds,world)    = getMapBounds mapObj world
 		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,[LDSetBounds bounds])) world
         //Add initial objects
-		//TODO
+		# (objects,world)   = .? (me .# "children") world
+		# world             = createMapObjects me mapObj objects world
 		//Add event handlers
 		# (cb,world)       = jsWrapFun (\a w -> onResize me w) world	
 		# world            = ((me .# "onResize") .= cb) world
@@ -136,6 +142,12 @@ where
 		# world             = setMapCursor me mapObj cursor world
 		= (jsNull,world)
 
+	onMarkerClick me markerId args world
+		# (taskId,world)    = .? (me .# "attributes.taskId") world
+		# (editorId,world)  = .? (me .# "attributes.editorId") world
+		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,[LDSelectMarker markerId])) world
+		= (jsNull,world)
+
 	//Map object access
 	toLatLng obj world
 		# (lat,world)     = .? (obj .# "lat") world
@@ -167,19 +179,47 @@ where
 
 	setMapIcons me mapObj icons world 
 		# (l, world)      	= findObject "L" world
-		# (num,world)  		= .? (icons .# "length") world
 		# (index,world) 	= jsEmptyObject world
 		# world 			= ((me .# "icons") .= index) world
-		= add l index 0 (jsValToInt num) world
-	where
-		add l index i n world
-			| i == n = world
-			# (def,world)      = .? (icons .# i) world
+		= forall (createMapIcon me mapObj l index) icons world
+	where	
+		createMapIcon me mapObj l index def world
 			# (iconId,world)   = .? (def .# 0) world
 			# (iconSpec,world) = .? (def .# 1) world
         	# (icon,world)     = (l .# "icon" .$ iconSpec) world
 			# world            = ((index .# (jsValToString iconId)) .= icon) world
-			= add l index (i + 1) n world
+			= world
+
+	createMapObjects me mapObj objects world
+		# (l, world)      	= findObject "L" world
+		= forall (createMapObject me mapObj l) objects world
+
+	createMapObject me mapObj l object world
+        # (options,world)     = jsEmptyObject world
+		//Set title
+		# (title,world)       = .? (object .# "attributes.title") world
+		# world               = (options .# "title" .= title) world
+		# world               = (options .# "alt" .= title) world
+		//Optionally set icon TODO
+		//Create marker
+		# (position,world)    = .? (object .# "attributes.position") world
+        # (marker,world)      = (l .# "marker" .$ (position,options) ) world
+        # (_,world)           = (marker .# "addTo" .$ (toJSArg mapObj)) world
+		//Set click handler
+		# (markerId,world)    = .? (object .# "attributes.markerId") world
+		# (cb,world)          = jsWrapFun (\a w -> onMarkerClick me (jsValToString markerId) a w) world
+        # (_,world)           = (marker .# "addEventListener" .$ ("click",cb)) world
+		= world	
+	
+	//Loop through a javascript array
+	forall f array world
+		# (len,world) = .? (array .# "length") world
+		= forall` 0 (jsValToInt len) world
+	where
+		forall` i len world
+			| i >= len = world
+			# (el,world) = .? (array .# i) world
+			= forall` (i + 1) len (f el world)
 
 	setMapCursor me mapObj {LeafletLatLng|lat,lng} world
 		# (cursor,world) = .? (me .# "cursor") world
@@ -292,8 +332,6 @@ where
         # env               = (cmp .# "afterResize" .= (toJSVal (mkHandler onAfterShow cid))) env
         = ((map,Just {mapObj=mapObj,mapIcons=mapIcons,mapLayers=mapLayers,mapObjects,mapCursor=mapCursor}),Diff [LDSetBounds bounds] ignoreConflict,env)
 */
-
-
 
 	mapdivid cid = "map_div_" +++ cid
 /*
@@ -573,7 +611,10 @@ where
 */
 gEditor{|LeafletMap|} = leafletEditor
 gDefault{|LeafletMap|}
-	= {LeafletMap|perspective=defaultValue, tilesUrl =Just openStreetMapTiles, objects = [], icons = []}
+	= {LeafletMap|perspective=defaultValue, tilesUrl =Just openStreetMapTiles, objects = [Marker homeMarker], icons = []}
+where
+	homeMarker = {markerId = "home", position= {LeafletLatLng|lat = 51.82, lng = 5.86}, title = Just "HOME", icon = Nothing, selected = False}
+
 gDefault{|LeafletPerspective|}
     = {LeafletPerspective|center = {LeafletLatLng|lat = 51.82, lng = 5.86}, zoom = 7, cursor = Nothing, bounds = Nothing}
 
