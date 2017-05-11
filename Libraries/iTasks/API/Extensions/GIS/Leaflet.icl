@@ -253,49 +253,6 @@ where
 	onRefresh _ m2 m1 mask vst = (Ok (NoChange,mask),m2,vst)
 
 /*
-onRefresh _ m2 m1 mask vst = case diffs of [] = (Ok (NoChange,mask),m2,vst) ; _ = (Ok (ChangeUI [SetAttribute "diff" (toJSON diffs)] [],mask),m2,vst)
-where
-    diffs
-        =   diffPerspectives m1.perspective m2.perspective
-        ++  diffIcons 0 m1.icons m2.icons
-        ++  diffLayers 0 m1.layers m2.layers
-
-    diffPerspectives p1 p2
-		= []
-/*
-        =   if (p1.zoom === p2.zoom) [] [LDSetZoom p2.zoom]
-        ++  if (p1.center === p2.center) [] [LDSetCenter p2.center]
-        ++  if (p1.cursor === p2.cursor) [] [LDSetCursor p2.cursor]
-        ++  if (p1.bounds === p2.bounds) [] [LDSetBounds p2.bounds]
-*/
-
-    diffIcons i [] [] = []
-    diffIcons i [] i2 = [LDAddIcons i2]
-    diffIcons i i1 [] = [LDRemoveIcons i]
-    diffIcons i [i1:is1] [i2:is2]
-        | i1 === i2     = diffIcons (inc i) is1 is2
-                        = [LDUpdateIcon i i2:diffIcons (inc i) is1 is2]
-
-    diffLayers i [] [] = []
-    diffLayers i [] l2 = [LDAddLayers l2]
-    diffLayers i l1 [] = [LDRemoveIcons i]
-    diffLayers i [TileLayer url1:ls1] [TileLayer url2:ls2]
-        | url1 == url2  = diffLayers (inc i) ls1 ls2
-                        = [LDUpdateLayer i (TileLayer url2):diffLayers (inc i) ls1 ls2]
-    diffLayers i [ObjectLayer obj1:ls1] [ObjectLayer obj2:ls2]
-                        = diffObjects i 0 obj1 obj2 ++ diffLayers (inc i) ls1 ls2
-    diffLayers i [l1:ls1] [l2:ls2]
-                        = [LDUpdateLayer i l2:diffLayers (inc i) ls1 ls2]
-
-    diffObjects l i [] [] = []
-    diffObjects l i [] o2 = [LDAddObjects l o2]
-    diffObjects l i o1 [] = [LDRemoveObjects l i]
-    diffObjects l i [o1:os1] [o2:os2]
-        | o1 === o2     = diffObjects l (inc i) os1 os2
-                        = [LDUpdateObject l i o2:diffObjects l (inc i) os1 os2]
-*/
-
-/*
     onLibLoaded mkHandler cid _ (map=:{LeafletMap|perspective,icons,layers},_) env
         # (l,env)           = findObject "L" env
         //Create map
@@ -610,6 +567,7 @@ where
     //ignoreConflict conflict state env = (state, NoDiff, env)
 */
 gEditor{|LeafletMap|} = leafletEditor
+
 gDefault{|LeafletMap|}
 	= {LeafletMap|perspective=defaultValue, tilesUrl =Just openStreetMapTiles, objects = [Marker homeMarker], icons = []}
 where
