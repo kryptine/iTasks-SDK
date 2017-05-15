@@ -246,7 +246,7 @@ where
 			# (iconId,world)   = .? (def .# 0) world
 			# (iconSpec,world) = .? (def .# 1) world
         	# (icon,world)     = (l .# "icon" .$ iconSpec) world
-			# world            = ((index .# (jsValToString iconId)) .= icon) world
+			# world            = ((index .# jsValToString iconId) .= icon) world
 			= world
 
 	createMapObjects me mapObj objects world
@@ -261,13 +261,16 @@ where
 			"polygon"  = createPolygon me mapObj l object world
 			_ 		   = world
 
-	createMarker me mapObj l object world 
+	createMarker me mapObj  l object world 
         # (options,world)     = jsEmptyObject world
 		//Set title
 		# (title,world)       = .? (object .# "attributes.title") world
 		# world               = (options .# "title" .= title) world
 		# world               = (options .# "alt" .= title) world
-		//Optionally set icon TODO
+		//Optionally set icon
+		# (iconId,world)      = .? (object .# "attributes.icon") world
+		# (icons,world)       = .? (me .# "icons") world
+		# world               = addIconOption iconId icons options world
 		//Create marker
 		# (position,world)    = .? (object .# "attributes.position") world
         # (layer,world)       = (l .# "marker" .$ (position,options) ) world
@@ -278,6 +281,13 @@ where
 		# (cb,world)          = jsWrapFun (\a w -> onMarkerClick me (jsValToString markerId) a w) world
         # (_,world)           = (layer .# "addEventListener" .$ ("click",cb)) world
 		= world	
+	where
+		addIconOption iconId icons options world
+			| jsIsUndefined iconId = world
+			# (icon,world) = .? (icons .# (jsValToString iconId)) world
+			| jsIsUndefined icon = world
+			# world = (options .# "icon" .= icon) world
+			= world
 	
 	createPolyline me mapObj l object world 
 		//Set options
