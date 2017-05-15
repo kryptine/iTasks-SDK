@@ -99,6 +99,8 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	| UIToolBar
 	| UIButtonBar
 	| UIDebug
+	// Data elements (implemented in itasks-core.js)
+	| UIData 
 
 :: UIAttributes 		:== Map String JSONNode
 

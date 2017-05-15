@@ -26,7 +26,7 @@ where
 					# (enableUI,enableMask) = genEnableUI taskId dp False	
 					= (Ok (uic UIRecord [enableUI], CompoundMask {fields=[enableMask],state=JSONNull}), vst)
 				| otherwise
-					= case ex.Editor.genUI (pairPath grd_arity dp) x vst of
+					= case ex.Editor.genUI (pairPath grd_arity dp) x {VSt|vst & optional = False} of
 						(Ok viz,vst) = (Ok (fromPairUI UIRecord grd_arity viz),vst)
 						(Error e,vst) = (Error e,vst)
 			Update
@@ -41,7 +41,7 @@ where
 							= (Ok (UI type attr items,CompoundMask {fields=masks,state=JSONNull}),vst)
 					(Error e,vst) = (Error e,vst)
 			View 
-				= case ex.Editor.genUI (pairPath grd_arity dp) x vst of
+				= case ex.Editor.genUI (pairPath grd_arity dp) x {VSt|vst & optional = False} of
 					(Ok viz,vst)  = (Ok (fromPairUI UIRecord grd_arity viz),vst)
 					(Error e,vst) = (Error e,vst)
 
@@ -51,7 +51,7 @@ where
 		| not optional
 			= (Error "Enabling non-optional record",RECORD val,vst)
 		//Create and add the fields
-		= case ex.Editor.genUI (pairPath grd_arity dp) val {vst & mode = Enter} of
+		= case ex.Editor.genUI (pairPath grd_arity dp) val {vst & mode = Enter, optional = False} of
 			(Ok viz,vst)
 				# (UI type attr items, CompoundMask {fields=masks}) = fromPairUI UIRecord grd_arity viz 
 				# change = ChangeUI [] [(i,InsertChild ui) \\ ui <- items & i <- [1..]]
@@ -60,7 +60,6 @@ where
 			(Error e,vst) = (Error e, RECORD val, {vst & mode = mode})
 
 	onEdit dp ([],JSONBool False) (RECORD val) (CompoundMask {fields=[enableMask:masks]}) vst=:{VSt|optional} //Disabling an optional record
-
 		| not optional
 			= (Error "Disabling non-optional record",RECORD val,vst)
 		//Remove all fields except the enable/disable checkbox
@@ -76,7 +75,7 @@ where
 		//When optional we need to adjust for the added checkbox, so we need to offset the record field index with one
 		//In the generated UI and mask (but not in the paths when targeting the edit!!).
 		# idx = if optional (d + 1) d
-		= case ex.Editor.onEdit (pairPath grd_arity dp) (pairSelectPath d grd_arity ++ ds,e) val (masks !! idx) vst of
+		= case ex.Editor.onEdit (pairPath grd_arity dp) (pairSelectPath d grd_arity ++ ds,e) val (masks !! idx) {VSt|vst & optional = False} of
 			(Ok (change,mask),val,vst)
 				//Extend the change
 				# change = case change of NoChange = NoChange; _ = ChangeUI [] [(idx,ChangeChild change)]
@@ -91,7 +90,7 @@ where
 		| optional && not (mode =: View)
 			//Account for the extra mask of the enable/disable checkbox
 			# enableMask = hd fields
-			= case ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask (CompoundMask {fields=tl fields,state=JSONNull})) vst of
+			= case ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask (CompoundMask {fields=tl fields,state=JSONNull})) {VSt|vst & optional = False} of
 				(Ok (change,mask),val,vst)
 					# change = fromPairChange 0 grd_arity change
 					# (CompoundMask {fields}) = fromPairMask grd_arity mask
@@ -106,7 +105,7 @@ where
 				(Error e,val,vst)
 					= (Error e, RECORD val, vst)
 		| otherwise
-			= case ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask mask) vst of
+			= case ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask mask) {VSt|vst & optional = False} of
 				(Ok (change,mask),val,vst)
 					= (Ok (fromPairChange 0 grd_arity change, fromPairMask grd_arity mask), RECORD val, vst)
 				(Error e,val,vst)

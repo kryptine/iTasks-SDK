@@ -9,7 +9,7 @@ PIKADAY_CSS_URL :== "/pikaday/css/pikaday.css"
 MOMENT_JS_URL :== "/momentjs/moment.min.js"
 
 pikadayField :: Editor String
-pikadayField = fromEditlet {Editlet|genUI = genUI,initUI = initUI, onEdit = onEdit, onRefresh = onRefresh}
+pikadayField = {Editor|genUI = withClientSideInit initUI genUI, onEdit = onEdit, onRefresh = onRefresh}
 where
 	genUI dp value vst=:{VSt|taskId,optional}
 		//Set both state and options as attributes

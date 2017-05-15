@@ -52,7 +52,7 @@ itasks.Component = {
 			me.beforeChildInsert(i,spec);
 			me.children[i] = me.createChild(spec);
 			me.children[i].init();
-			me.afterChildInsert(i);
+			me.afterChildInsert(i,me.children[i]);
 		});
 	},
 	renderComponent: function() {
@@ -80,7 +80,9 @@ itasks.Component = {
 
 		//Add the the child renderings 
 		me.children.forEach(function(child) {
-			me.containerEl.appendChild(child.domEl);
+			if(child.domEl) {
+				me.containerEl.appendChild(child.domEl);
+			}
 		});
 	},
 	initDOMEl: function() {},
@@ -234,7 +236,9 @@ itasks.Component = {
 			type = spec.type || 'Component',
 			child = {};
 
-		me.addSpec_(child, itasks.Component);
+		if(type !== 'Data') {
+			me.addSpec_(child, itasks.Component);
+		}
 				
 		if(itasks[type]) {
 			me.addSpec_(child,itasks[type]);
@@ -269,22 +273,29 @@ itasks.Component = {
 			//Initialize, if we are already initialized
 			child.init();
 			//Add the child to the dom
-			if(isLast) {
-				me.containerEl.appendChild(child.domEl);
-			} else {
-				me.containerEl.insertBefore(child.domEl,me.containerEl.childNodes[idx]);
+			if(child.domEl) {
+				if(isLast) {
+					me.containerEl.appendChild(child.domEl);
+				} else {
+					me.containerEl.insertBefore(child.domEl,me.containerEl.childNodes[idx]);
+				}
 			}
 		} 
-		me.afterChildInsert(idx);
+		me.afterChildInsert(idx,child);
+
+		//When the child is first added, we trigger a resize event
+		if(child.onResize) {
+			child.onResize();
+		}
 	},
 	beforeChildInsert: function(idx,spec) {},
-	afterChildInsert: function(idx) {},
+	afterChildInsert: function(idx,child) {},
 	removeChild: function(idx = 0) {
 		var me = this;
 
-		me.beforeChildRemove(idx);
+		me.beforeChildRemove(idx,me.children[idx]);
 
-		if(me.initialized) {
+		if(me.initialized && me.children[idx].domEl) {
 			me.containerEl.removeChild(me.containerEl.childNodes[idx]);
 		}
 		me.children.splice(idx,1);	
@@ -292,7 +303,7 @@ itasks.Component = {
 	moveChild: function(sidx,didx) {
 		var me = this, child;
 
-		if(me.initialized) {
+		if(me.initialized && me.children[sidx].domEl) {
 			if(didx == (me.containerEl.children.length - 1)) {
 				me.containerEl.appendChild(me.containerEl.children[sidx]);
 			} else {
@@ -303,7 +314,7 @@ itasks.Component = {
 		child = me.children.splice(sidx,1)[0]; //Remove followed by insert...
 		me.children.splice(didx, 0, child);
 	},
-	beforeChildRemove: function(idx) {},
+	beforeChildRemove: function(idx,child) {},
 	setAttribute: function(name,value) {
 		var me = this;
 	
@@ -368,10 +379,13 @@ itasks.Component = {
 		});
 	},
 	onShow: function() {
-		this.children.forEach(function(child) { child.onShow(); });
+		this.children.forEach(function(child) { if(child.onShow) {child.onShow();}});
 	},
 	onHide: function() {
-		this.children.forEach(function(child) { child.onHide(); });
+		this.children.forEach(function(child) { if(child.onHide) {child.onHide();}});
+	},
+	onResize: function() {
+		this.children.forEach(function(child) { if(child.onResize) {child.onResize();}});
 	},
 	/* Utility methods */
 	evalJs: function(js) {
@@ -458,6 +472,13 @@ itasks.Viewport = {
 			}
 		}
 	}
+};
+
+//Data components are elements in the tree that don't render themselves, but make it possible to
+//use the generic incremental change mechanism to update parts of a Component
+//This can be used for example to incrementally update the list of options in a dropdown component
+itasks.Data = {
+	init: function () { return this; }
 };
 
 //Convenience function for concisely creating viewports

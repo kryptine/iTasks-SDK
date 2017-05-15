@@ -292,6 +292,8 @@ where
 	toString UIButtonBar       = "ButtonBar"
 	toString UIDebug           = "Debug"
 
+	toString UIData            = "Data"
+
 instance encodeUI UISideSizes 
 where
 	encodeUI {top,right,bottom,left}

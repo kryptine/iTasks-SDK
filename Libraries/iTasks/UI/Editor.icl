@@ -53,20 +53,20 @@ checkMaskValue :: !EditMask a -> Maybe JSONNode | JSONEncode{|*|} a
 checkMaskValue (FieldMask {FieldMask|touched,state}) _ = if touched (Just state) Nothing
 checkMaskValue _ _                       = Nothing
 
-fromEditlet :: (Editlet a) -> (Editor a) | JSONEncode{|*|} a & JSONDecode{|*|} a & gDefault{|*|} a
-fromEditlet editlet=:{Editlet|genUI,initUI,onEdit,onRefresh} = {Editor|genUI=genUI`,onEdit=onEdit,onRefresh=onRefresh}
-where
-	genUI` dp val vst=:{VSt|taskId}
-		= case genUI dp val vst of
-			(Ok (UI type attr items,mask),vst=:{VSt|iworld}) = case editletLinker initUI iworld of
-				(Ok (saplDeps, saplInit),iworld)
-					# editletAttr = 'DM'.fromList [("taskId",JSONString taskId)
-                   		                    ,("editorId",JSONString (editorId dp))
-                   		                    ,("saplDeps",JSONString saplDeps)
-                       		                ,("saplInit",JSONString saplInit)
-                           		            ]
-					= (Ok (UI type ('DM'.union editletAttr attr) items,mask), {VSt|vst & iworld = iworld})
-				(Error e,iworld)
-					= (Error e, {VSt|vst & iworld = iworld})
-			(Error e,vst) = (Error e,vst)
+withClientSideInit ::
+	((JSObj ()) *JSWorld -> *JSWorld)
+	(DataPath a *VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt))
+	DataPath a *VSt -> *(!MaybeErrorString (!UI, !EditMask), !*VSt)
+withClientSideInit initUI genUI dp val vst=:{VSt|taskId} = case genUI dp val vst of
+    (Ok (UI type attr items,mask),vst=:{VSt|iworld}) = case editorLinker initUI iworld of
+        (Ok (saplDeps, saplInit),iworld)
+			# extraAttr = 'DM'.fromList [("taskId",JSONString taskId)
+                                         ,("editorId",JSONString (editorId dp))
+                                         ,("saplDeps",JSONString saplDeps)
+                                         ,("saplInit",JSONString saplInit)
+                                        ]
+            = (Ok (UI type ('DM'.union extraAttr attr) items,mask), {VSt|vst & iworld = iworld})
+        (Error e,iworld)
+            = (Error e, {VSt|vst & iworld = iworld})
+    (Error e,vst) = (Error e,vst)
 
