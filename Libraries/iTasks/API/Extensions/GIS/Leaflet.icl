@@ -44,10 +44,11 @@ openStreetMapTiles = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 leafletEditor :: Editor LeafletMap
 leafletEditor = {Editor|genUI = withClientSideInit initUI genUI, onEdit  = onEdit, onRefresh = onRefresh}
 where
-	genUI dp val=:{LeafletMap|perspective={center,zoom},tilesUrl,objects,icons} world
+	genUI dp val=:{LeafletMap|perspective={center,zoom,cursor},tilesUrl,objects,icons} world
 		# mapAttr = 'DM'.fromList
 			[("zoom", JSONInt zoom)
 			,("center", JSONArray [JSONReal center.LeafletLatLng.lat, JSONReal center.LeafletLatLng.lng])
+			,("cursor", maybe JSONNull toJSON cursor)
 			,("tilesUrl", maybe JSONNull JSONString tilesUrl)
 			,("icons", JSONArray [toJSON (iconId,{IconOptions|iconUrl=iconUrl,iconSize=[w,h]}) \\ {iconId,iconUrl,iconSize=(w,h)} <- icons])
 			]
@@ -82,8 +83,10 @@ where
 		//Set perspective
 		# (center,world)    = .? (me .# "attributes.center") world
 		# (zoom,world)      = .? (me .# "attributes.zoom") world
+		# (cursor,world)    = .? (me .# "attributes.cursor") world
         # (_,world)         = (mapObj .# "setView" .$ (center,zoom)) world
-		//Optionally set initial cursor (TODO)
+		//Set initial cursor
+        # world             = setMapCursor me mapObj cursor world
         //Add icons
 		# (icons,world)     = .? (me .# "attributes.icons") world
 		# world             = setMapIcons me mapObj icons world 
@@ -101,6 +104,8 @@ where
 		//Add event handlers
 		# (cb,world)       = jsWrapFun (\a w -> onResize me w) world	
 		# world            = ((me .# "onResize") .= cb) world
+		# (cb,world)       = jsWrapFun (\a w -> onAttributeChange me a w) world	
+		# world            = ((me .# "onAttributeChange") .= cb) world
 		# (cb,world)       = jsWrapFun (\a w -> onAfterChildInsert me a w) world	
 		# world            = ((me .# "afterChildInsert") .= cb) world
 		# (cb,world)       = jsWrapFun (\a w -> onBeforeChildRemove me a w) world	
@@ -144,7 +149,7 @@ where
 		# (cursor,world)    = toLatLng clickPos world 
 		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,[LDSetCursor cursor])) world
 		//Update cursor position on the map
-		# world             = setMapCursor me mapObj cursor world
+		# world             = setMapCursor me mapObj (toJSVal cursor) world
 		= (jsNull,world)
 
 	onMarkerClick me markerId args world
@@ -153,6 +158,14 @@ where
 		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,[LDSelectMarker markerId])) world
 		= (jsNull,world)
 
+	onAttributeChange me args world
+		# (mapObj,world)    = .? (me .# "map") world
+		= case jsArgToString (args !! 0) of
+			"center"  = (jsNull,setMapCenter mapObj (args !! 1) world)
+			"zoom"    = (jsNull,setMapZoom mapObj (args !! 1) world)
+			"cursor"  = (jsNull,setMapCursor me mapObj (toJSVal (args !! 1)) world)
+			_ 		  = (jsNull,world)
+		
 	onAfterChildInsert me args world
 		# (l, world)      	= findObject "L" world
 		# (mapObj,world)    = .? (me .# "map") world
@@ -182,9 +195,39 @@ where
 		# (zoom,world) = (mapObj .# "getZoom" .$ ()) world
 		= (jsValToInt zoom, world)
 
+	setMapZoom mapObj zoom world
+		# (_,world) = (mapObj .# "setZoom" .$ zoom) world
+		= world
+
 	getMapCenter mapObj world
         # (center,world)    = (mapObj .# "getCenter" .$ ()) world
         = toLatLng center world
+	
+	setMapCenter mapObj center world
+		# (_,world) = (mapObj .# "panTo" .$ center) world
+		= world
+
+	setMapCursor me mapObj position world
+		# (cursor,world) = .? (me .# "cursor") world
+		| jsIsUndefined cursor
+			| jsIsNull position //Nothing to do
+				= world
+			| otherwise
+				//Create the cursor
+				# (l, world)      = findObject "L" world
+				# (cursor,world)  = (l .# "circleMarker" .$ (position, CURSOR_OPTIONS)) world
+				# (_,world)       = (cursor .# "addTo" .$ mapObj) world
+				# world           = ((me .# "cursor") .= cursor) world	
+				= world
+		| otherwise //Update the position
+			| jsIsNull position
+				//Destroy the cursor
+				# (_,world)       = (mapObj .# "removeLayer" .$ cursor) world
+				# world           = jsDeleteObjectAttr "cursor" me world
+				= world
+			| otherwise
+        		# (_,world)       = (cursor .# "setLatLng" .$ position) world
+				= world
 
 	setMapTilesLayer me mapObj tilesUrl world 
 		| jsIsNull tilesUrl = world
@@ -274,18 +317,6 @@ where
 			# (el,world) = .? (array .# i) world
 			= forall` (i + 1) len (f el world)
 
-	setMapCursor me mapObj {LeafletLatLng|lat,lng} world
-		# (cursor,world) = .? (me .# "cursor") world
-		| jsIsUndefined cursor //Create the cursor
-			# (l, world)      = findObject "L" world
-			# (cursor,world)  = (l .# "circleMarker" .$ ([lat,lng],CURSOR_OPTIONS)) world
-			# (_,world)       = (cursor .# "addTo" .$ mapObj) world
-			# world           = ((me .# "cursor") .= cursor) world	
-			= world
-		| otherwise //Update the position
-        	# (_,world)        = (cursor .# "setLatLng" .$ (toJSArg [lat,lng])) world
-			= world
-		
 	//Process the edits received from the client
 	onEdit dp ([],diff) m msk vst = case fromJSON diff of
 		Just diffs = (Ok (NoChange,msk),foldl app m diffs,vst)
@@ -304,8 +335,8 @@ where
 
 	//Check for changed objects and update the client
 	onRefresh _ m2 m1 mask vst
-		//Determine attribute changes: TODO
-		# attrChanges = []
+		//Determine attribute changes
+		# attrChanges = diffAttributes m1 m2
 		//Determine object changes
 		# childChanges = diffObjects 0 m1.LeafletMap.objects m2.LeafletMap.objects
 		= (Ok (ChangeUI attrChanges childChanges,mask),m2,vst)
@@ -317,6 +348,15 @@ where
 			| x === y = diffObjects (i + 1) xs ys //The head has not changed, just compare the remainder
 					  = [(i,RemoveChild),(i,InsertChild (encodeUI y)):diffObjects (i + 1) xs ys] //Replace the head
 
+		//Only center, zoom and cursor are synced to the client, bounds are only synced from client to server
+		diffAttributes {LeafletMap|perspective=p1} {LeafletMap|perspective=p2}
+			//Center
+			# center = if (p2.LeafletPerspective.center === p1.LeafletPerspective.center) [] [SetAttribute "center" (toJSON p2.LeafletPerspective.center)]
+			//Zoom
+			# zoom = if (p2.LeafletPerspective.zoom === p1.LeafletPerspective.zoom) [] [SetAttribute "zoom" (toJSON p2.LeafletPerspective.zoom)]
+			//Cursor
+			# cursor = if (p2.LeafletPerspective.cursor === p1.LeafletPerspective.cursor) [] [SetAttribute "cursor" (maybe JSONNull toJSON p2.LeafletPerspective.cursor)]
+			= center ++ zoom ++ cursor
 /*
 	syncMapDivSize :: !String !*JSWorld -> *JSWorld
     syncMapDivSize cid env

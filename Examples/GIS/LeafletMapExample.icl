@@ -16,7 +16,7 @@ manipulateMap m = updateSharedInformation () [] m
 	<<@ ApplyLayout (layoutSubUIs (SelectByPath [1]) (setUIAttributes (sizeAttr FlexSize FlexSize))) @! ()
 
 managePerspective :: (Shared LeafletMap) -> Task ()
-managePerspective m = viewSharedInformation (Title "Perspective") [] (mapReadWrite (\x -> x.LeafletMap.perspective,\p x -> Just {x & perspective = p}) m)  @! ()
+managePerspective m = updateSharedInformation (Title "Perspective") [] (mapReadWrite (\x -> x.LeafletMap.perspective,\p x -> Just {x & perspective = p}) m)  @! ()
 
 manageMapObjects :: (Shared LeafletMap) -> Task ()
 manageMapObjects m = updateSharedInformation (Title "Manage objects") [UpdateAs toPrj fromPrj] m
