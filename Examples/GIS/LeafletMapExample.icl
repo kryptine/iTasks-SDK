@@ -1,11 +1,12 @@
 module LeafletMapExample
 import iTasks
 import iTasks.API.Extensions.GIS.Leaflet
+import iTasks.API.Extensions.GIS.LeafletNavalIcons
 import iTasks.UI.Definition
 import Data.List 
 
 playWithMaps :: Task ()
-playWithMaps = withShared defaultValue (\m ->
+playWithMaps = withShared {defaultValue & icons = shipIcons} (\m ->
 	(allTasks [managePerspective m, manageMapObjects m])
 	-&&-
 	manipulateMap m
@@ -42,11 +43,12 @@ where
 		>>- \marker -> upd (\l=:{LeafletMap|objects} -> {LeafletMap|l & objects = objects ++ [marker]}) m 
 
 	toRandomMarker (rLat,rLng)
-		= Marker {markerId = markerId, position= {LeafletLatLng|lat = lat, lng = lng}, title = Just markerId, icon = Nothing, selected = False}
+		= Marker {markerId = markerId, position= {LeafletLatLng|lat = lat, lng = lng}, title = Just markerId, icon = Just icon, selected = False}
 	where
 		lat = 52.0 + (toReal (500 + (rLat rem 1000)) / 1000.0)
 		lng = 6.0 + (toReal (500 + (rLng rem 1000)) / 1000.0)
 		markerId = "RANDOM-" <+++ rLat <+++ rLng
+		icon = shipIconId (Just (rLat rem 360)) OrangeShip False
 
 	addMarkerConnectingLine m
 		= upd (\l=:{LeafletMap|objects} -> {LeafletMap|l & objects = objects ++ [line objects]}) m
