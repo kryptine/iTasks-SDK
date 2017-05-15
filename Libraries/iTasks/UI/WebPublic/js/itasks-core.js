@@ -52,7 +52,7 @@ itasks.Component = {
 			me.beforeChildInsert(i,spec);
 			me.children[i] = me.createChild(spec);
 			me.children[i].init();
-			me.afterChildInsert(i);
+			me.afterChildInsert(i,me.children[i]);
 		});
 	},
 	renderComponent: function() {
@@ -281,7 +281,7 @@ itasks.Component = {
 				}
 			}
 		} 
-		me.afterChildInsert(idx);
+		me.afterChildInsert(idx,child);
 
 		//When the child is first added, we trigger a resize event
 		if(child.onResize) {
@@ -289,11 +289,11 @@ itasks.Component = {
 		}
 	},
 	beforeChildInsert: function(idx,spec) {},
-	afterChildInsert: function(idx) {},
+	afterChildInsert: function(idx,child) {},
 	removeChild: function(idx = 0) {
 		var me = this;
 
-		me.beforeChildRemove(idx);
+		me.beforeChildRemove(idx,me.children[idx]);
 
 		if(me.initialized && me.children[idx].domEl) {
 			me.containerEl.removeChild(me.containerEl.childNodes[idx]);
@@ -314,7 +314,7 @@ itasks.Component = {
 		child = me.children.splice(sidx,1)[0]; //Remove followed by insert...
 		me.children.splice(didx, 0, child);
 	},
-	beforeChildRemove: function(idx) {},
+	beforeChildRemove: function(idx,child) {},
 	setAttribute: function(name,value) {
 		var me = this;
 	
