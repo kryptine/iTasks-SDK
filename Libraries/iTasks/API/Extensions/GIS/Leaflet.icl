@@ -52,12 +52,12 @@ where
 			,("icons", JSONArray [toJSON (iconId,{IconOptions|iconUrl=iconUrl,iconSize=[w,h]}) \\ {iconId,iconUrl,iconSize=(w,h)} <- icons])
 			]
 		# attr = 'DM'.unions [mapAttr, sizeAttr (ExactSize 500) (ExactSize 150)]
-		# children = map toData objects
+		# children = map encodeUI objects
 		= (Ok (uiac UIHtmlView attr children,newFieldMask), world)
-	where
-		toData (Marker o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList attr)
-		toData (Polyline o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList attr)
-		toData (Polygon o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList attr)
+
+	encodeUI (Marker o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList [("type",JSONString "marker"):attr])
+	encodeUI (Polyline o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList [("type",JSONString "polyline"):attr])
+	encodeUI (Polygon o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList [("type",JSONString "polygon") : attr])
 
 	initUI me world
 		# (jsInitDOM,world) = jsWrapFun (initDOM me) world
@@ -101,6 +101,10 @@ where
 		//Add event handlers
 		# (cb,world)       = jsWrapFun (\a w -> onResize me w) world	
 		# world            = ((me .# "onResize") .= cb) world
+		# (cb,world)       = jsWrapFun (\a w -> onAfterChildInsert me a w) world	
+		# world            = ((me .# "afterChildInsert") .= cb) world
+		# (cb,world)       = jsWrapFun (\a w -> onBeforeChildRemove me a w) world	
+		# world            = ((me .# "beforeChildRemove") .= cb) world
 		# (cb,world)       = jsWrapFun (\a w -> onMapDragEnd me a w) world
         # (_,world)        = (mapObj .# "addEventListener" .$ ("dragend",cb)) world
 		# (cb,world)       = jsWrapFun (\a w -> onMapZoomEnd me a w) world
@@ -108,6 +112,7 @@ where
 		# (cb,world)       = jsWrapFun (\a w -> onMapClick me a w) world
         # (_,world)        = (mapObj .# "addEventListener" .$ ("click",cb)) world
 		= (jsNull,world)
+
 	onResize me world
 		# (mapObj,world) 	= .? (me .# "map") world
         # (_,world)         = (mapObj .# "invalidateSize" .$ ()) world
@@ -146,6 +151,17 @@ where
 		# (taskId,world)    = .? (me .# "attributes.taskId") world
 		# (editorId,world)  = .? (me .# "attributes.editorId") world
 		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,[LDSelectMarker markerId])) world
+		= (jsNull,world)
+
+	onAfterChildInsert me args world
+		# (l, world)      	= findObject "L" world
+		# (mapObj,world)    = .? (me .# "map") world
+		= (jsNull,createMapObject me mapObj l (toJSVal (args !! 1)) world)
+
+	onBeforeChildRemove me args world
+		# (layer,world)     = .? (toJSVal (args !! 1) .# "layer") world
+		# (mapObj,world)    = .? (me .# "map") world
+        # (_,world)         = (mapObj.# "removeLayer" .$ layer) world
 		= (jsNull,world)
 
 	//Map object access
@@ -195,6 +211,14 @@ where
 		= forall (createMapObject me mapObj l) objects world
 
 	createMapObject me mapObj l object world
+		# (type,world)        = .? (object .# "attributes.type") world
+		= case jsValToString type of
+			"marker"   = createMarker me mapObj l object world
+			"polyline" = createPolyline me mapObj l object world
+			"polygon"  = createPolygon me mapObj l object world
+			_ 		   = world
+
+	createMarker me mapObj l object world 
         # (options,world)     = jsEmptyObject world
 		//Set title
 		# (title,world)       = .? (object .# "attributes.title") world
@@ -203,14 +227,43 @@ where
 		//Optionally set icon TODO
 		//Create marker
 		# (position,world)    = .? (object .# "attributes.position") world
-        # (marker,world)      = (l .# "marker" .$ (position,options) ) world
-        # (_,world)           = (marker .# "addTo" .$ (toJSArg mapObj)) world
+        # (layer,world)       = (l .# "marker" .$ (position,options) ) world
+        # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
+		# world               = (object .# "layer" .= layer) world
 		//Set click handler
 		# (markerId,world)    = .? (object .# "attributes.markerId") world
 		# (cb,world)          = jsWrapFun (\a w -> onMarkerClick me (jsValToString markerId) a w) world
-        # (_,world)           = (marker .# "addEventListener" .$ ("click",cb)) world
+        # (_,world)           = (layer .# "addEventListener" .$ ("click",cb)) world
 		= world	
 	
+	createPolyline me mapObj l object world 
+		//Set options
+        # (options,world)     = jsEmptyObject world
+		# (stroke,world)      = .? (object .# "attributes.strokeWidth") world
+		# (color,world)       = .? (object .# "attributes.strokeColor") world
+		# world               = (options .# "stroke" .= stroke) world
+		# world               = (options .# "color" .= color) world
+		# (points,world)      = .? (object .# "attributes.points") world
+        # (layer,world)       = (l .# "polyline" .$ (points ,options)) world
+        # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
+		# world               = (object .# "layer" .= layer) world
+		= world	
+
+	createPolygon me mapObj l object world 
+		//Set options
+        # (options,world)     = jsEmptyObject world
+		# (stroke,world)      = .? (object .# "attributes.strokeWidth") world
+		# (strokeColor,world) = .? (object .# "attributes.strokeColor") world
+		# (fillColor,world)   = .? (object .# "attributes.fillColor") world
+		# world               = (options .# "stroke" .= stroke) world
+		# world               = (options .# "color"  .= strokeColor) world
+		# world               = (options .# "fillColor"  .= fillColor) world
+		# (points,world)      = .? (object .# "attributes.points") world
+        # (layer,world)       = (l .# "polygon" .$ (points ,options)) world
+        # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
+		# world               = (object .# "layer" .= layer) world
+		= world	
+
 	//Loop through a javascript array
 	forall f array world
 		# (len,world) = .? (array .# "length") world
@@ -249,300 +302,22 @@ where
 		app m _ = m
 	onEdit _ _ m msk ust = (Ok (NoChange,msk),m,ust)
 
-	//Check for changed objects and update the client: TODO
-	onRefresh _ m2 m1 mask vst = (Ok (NoChange,mask),m2,vst)
+	//Check for changed objects and update the client
+	onRefresh _ m2 m1 mask vst
+		//Determine attribute changes: TODO
+		# attrChanges = []
+		//Determine object changes
+		# childChanges = diffObjects 0 m1.LeafletMap.objects m2.LeafletMap.objects
+		= (Ok (ChangeUI attrChanges childChanges,mask),m2,vst)
+	where
+		diffObjects _ [] [] = []
+		diffObjects i [] objs = [(n,InsertChild (encodeUI o)) \\ o <- objs & n <- [i..]] //Add new objects
+		diffObjects i objs [] = repeatn (length objs) (i,RemoveChild)                   //Remove trailing objects
+		diffObjects i [x:xs] [y:ys]
+			| x === y = diffObjects (i + 1) xs ys //The head has not changed, just compare the remainder
+					  = [(i,RemoveChild),(i,InsertChild (encodeUI y)):diffObjects (i + 1) xs ys] //Replace the head
 
 /*
-    onLibLoaded mkHandler cid _ (map=:{LeafletMap|perspective,icons,layers},_) env
-        # (l,env)           = findObject "L" env
-        //Create map
-        # env               = syncMapDivSize cid env
-        # (mapObj,env)      = (l .# "map" .$ (mapdivid cid,MAP_OPTIONS)) env
-        //Set perspective
-        # (center,env)      = toJSArray [perspective.center.lat,perspective.center.lng] env
-        # (_,env)           = (mapObj .# "setView" .$ (center, perspective.LeafletPerspective.zoom)) env
-        //Update map bounds
-        # (bounds,env)      = getMapBounds mapObj env
-        # map = {LeafletMap|map & perspective ={LeafletPerspective|perspective & bounds = bounds}}
-        //Create cursor
-        # (mapCursor,env) = case perspective.cursor of
-            Nothing     = (Nothing,env)
-            Just {LeafletLatLng|lat,lng}
-                # (mapCursor,env)   = (l .# "circleMarker" .$ ([lat,lng],CURSOR_OPTIONS)) env
-                # (_,env)           = (mapCursor .# "addTo" .$ mapObj) env
-                = (Just mapCursor,env)
-        //Add icons
-        # (mapIcons,env)    = newJSArray env
-        # env               = foldl (\w icon -> createIcon icon l mapIcons w) env icons
-        //Add initial layers
-        # (mapLayers,env)   = newJSArray env
-        # (mapObjects,env)  = jsNewMap env
-        # (_,env)           = foldl (\w layer -> createLayer mkHandler layer l mapObj mapLayers mapObjects mapIcons cid w) (0,env) layers
-        //Add map event handlers
-        # (_,env)           = (mapObj .# "addEventListener" .$ ("dragend",mkHandler onMapMove cid)) env
-        # (_,env)           = (mapObj .# "addEventListener" .$ ("zoomend",mkHandler onZoomChange cid)) env
-        # (_,env)           = (mapObj .# "addEventListener" .$ ("click",mkHandler onMapClick cid)) env
-        //Add editlet event handler
-        # (editlets,env)    = findObject "itwc.controller.editlets" env
-        # (cmp,env)         = .? (editlets .# cid) env
-        # env               = (cmp .# "afterShow" .= (toJSVal (mkHandler onAfterShow cid))) env
-        # env               = (cmp .# "afterResize" .= (toJSVal (mkHandler onAfterShow cid))) env
-        = ((map,Just {mapObj=mapObj,mapIcons=mapIcons,mapLayers=mapLayers,mapObjects,mapCursor=mapCursor}),Diff [LDSetBounds bounds] ignoreConflict,env)
-*/
-
-	mapdivid cid = "map_div_" +++ cid
-/*
-	onInit _ mkHandler cid env
-		# map = gDefault{|*|}
-        # (l, env) = findObject "L" env
-        | jsIsUndefined l
-            # env = addCSSFromUrl LEAFLET_CSS env
-            # env = addJSFromUrl LEAFLET_JS (Just (mkHandler (onLibLoaded mkHandler) cid)) env
-            = ((map,Nothing), env)
-        | otherwise
-            # (clval, _, env) = onLibLoaded mkHandler cid (abort "Not implemented") (map,Nothing) env
-            = (clval, env)
-*/
-/*
-    onUpdate mkHandler cid [] (map,st) env
-        = ((map,st),env)
-    onUpdate mkHandler cid [LDSetZoom zoom:diffs] (map,Just st=:{mapObj}) env
-        # (_,env) = (mapObj .# "setZoom" .$ zoom) env
-        = onUpdate mkHandler cid diffs (map,Just st) env
-    onUpdate mkHandler cid [LDSetCenter {LeafletLatLng|lat,lng}:diffs] (map,Just st=:{mapObj}) env
-        # (_,env) = (mapObj .# "panTo" .$ (toJSArg [lat,lng])) env
-        = onUpdate mkHandler cid diffs (map,Just st) env
-    onUpdate mkHandler cid [LDSetCursor (Just {LeafletLatLng|lat,lng}):diffs] (map,Just st=:{mapObj,mapCursor=Nothing}) env
-        # (l, env)        = findObject "L" env
-        # (mapCursor,env) = (l .# "circleMarker" .$ ([lat,lng],CURSOR_OPTIONS)) env
-        # (_,env)         = (mapCursor .# "addTo" .$ mapObj) env
-        = onUpdate mkHandler cid diffs (map,Just {st & mapCursor = Just mapCursor}) env
-    onUpdate mkHandler cid [LDSetCursor (Just {LeafletLatLng|lat,lng}):diffs] (map,Just st=:{mapObj,mapCursor=Just mapCursor}) env
-        # (_,env)         = (mapCursor .# "setLatLng" .$ (toJSArg [lat,lng])) env
-        = onUpdate mkHandler cid diffs (map,Just st) env
-    onUpdate mkHandler cid [LDSetCursor Nothing:diffs] (map,Just st=:{mapObj,mapCursor=Just mapCursor}) env
-        # (_,env)       = (mapObj .# "removeLayer" .$ mapCursor) env
-        = onUpdate mkHandler cid diffs (map ,Just {st & mapCursor = Nothing}) env
-	onUpdate mkHandler cid [LDSetBounds _:diffs] (map,Just st) env
-		//Bounds are never set on the client
-		= onUpdate mkHandler cid diffs (map,Just st) env
-	onUpdate mkHandler cid [LDAddIcons icons:diffs] (map,Just st=:{mapObj,mapIcons}) env
-        # (l,env)         = findObject "L" env
-        # env             = foldl (\w icon -> createIcon icon l mapIcons w) env icons
-        = onUpdate mkHandler cid diffs (map ,Just st) env
-	onUpdate mkHandler cid [LDUpdateIcon idx icon:diffs] (map,Just st) env
-		//TODO
-		= onUpdate mkHandler cid diffs (map, Just st) env
-	onUpdate mkHandler cid [LDRemoveIcons idx:diffs] (map,Just st=:{mapIcons}) env
-        # (removeRefs,env)  = (mapIcons .# "splice" .$ idx) env 
-		//Icons don't need to be explicitly destroyed
-		= onUpdate mkHandler cid diffs (map, Just st) env
-    onUpdate mkHandler cid [LDAddLayers []:diffs] (map,st) env
-        = onUpdate mkHandler cid diffs (map,st) env
-    onUpdate mkHandler cid [LDAddLayers [layer:layers]:diffs] (map,Just st=:{mapObj,mapIcons,mapLayers,mapObjects}) env
-        # (l,env)           = findObject "L" env
-        # (lidx,env)        = .? (mapLayers .# "length") env
-		# (_,env) 			= createLayer mkHandler layer l mapObj mapLayers mapObjects mapIcons cid (jsValToInt lidx,env)
-        = onUpdate mkHandler cid [LDAddLayers layers:diffs] (map,Just st) env
-    onUpdate mkHandler cid [LDUpdateLayer idx (ObjectLayer objects):diffs] (map,Just st=:{mapObj,mapIcons,mapLayers,mapObjects}) env
-        # (l,env)         = findObject "L" env
-        # (layer,env)     = .? (mapLayers .# idx) env
-        # (_,env)         = (mapObj .# "removeLayer" .$ layer) env
-        # (layer,env)     = (l .# "layerGroup" .$ ()) env
-        # (objRefs,env)   = newJSArray env
-        # (_,env)         = foldl (\w object -> createObject mkHandler object l layer objRefs mapIcons cid w) (0,env) objects
-        # env             = (mapLayers .# idx .= layer) env
-		# env             = jsPut idx objRefs mapObjects env
-        # (_,env)         = (layer .# "addTo" .$ mapObj) env
-        = onUpdate mkHandler cid diffs (map,Just st) env
-    onUpdate mkHandler cid [LDRemoveLayers idx:diffs] (map,Just st=:{mapObj,mapIcons,mapLayers,mapObjects}) env
-		//TODO
-		= onUpdate mkHandler cid diffs (map, Just st) env
-    onUpdate mkHandler cid [LDAddObjects lidx objects:diffs] (map,Just st=:{mapObj,mapIcons,mapLayers,mapObjects}) env
-        # (l, env)          = findObject "L" env
-        # (layer,env)       = .? (mapLayers .# lidx) env
-        # (objRefs,env)     = appFst fromJust (jsGet lidx mapObjects env)
-        # (oidx,env)        = .? (objRefs .# "length") env
-        # (_,env)           = foldl (\w object -> createObject mkHandler object l layer objRefs mapIcons cid w) (jsValToInt oidx,env) objects
-        = onUpdate mkHandler cid diffs (map,Just st) env
-    onUpdate mkHandler cid [LDUpdateObject lidx oidx object:diffs] (map,Just st=:{mapObj,mapIcons,mapLayers,mapObjects}) env
-        # (l, env)          = findObject "L" env
-        # (layer,env)       = .? (mapLayers .# lidx) env
-        # (objRefs,env)     = appFst fromJust (jsGet lidx mapObjects env)
-        # (objRef,env)      = .? (objRefs .# oidx) env
-        # (_,env)           = (layer .# "removeLayer" .$ objRef) env
-        # (_,env)           = createObject mkHandler object l layer objRefs mapIcons cid (oidx,env)
-        = onUpdate mkHandler cid diffs (map,Just st) env
-    onUpdate mkHandler cid [LDRemoveObjects lidx oidx:diffs] (map,Just st=:{mapLayers,mapObjects}) env
-        # (layer,env)       = .? (mapLayers .# lidx) env
-        # (objRefs,env)     = appFst fromJust (jsGet lidx mapObjects env)
-        # (removeRefs,env)  = (objRefs .# "splice" .$ oidx) env
-        # env               = removeObjects removeRefs layer env
-        = onUpdate mkHandler cid diffs (map,Just st) env
-	onUpdate mkHandler cid [_:updates] (map,Just st) env
-		//Unimplemented clientside update -> continue with the other updates
-		= onUpdate mkHandler cid updates (map,Just st) env
-    onUpdate mkHandler cid updates (map,st) env
-        = ((map,st),env)
-*/
-/*
-    onLibLoaded mkHandler cid _ (map=:{LeafletMap|perspective,icons,layers},_) env
-        # (l,env)           = findObject "L" env
-        //Create map
-        # env               = syncMapDivSize cid env
-        # (mapObj,env)      = (l .# "map" .$ (mapdivid cid,MAP_OPTIONS)) env
-        //Set perspective
-        # (center,env)      = toJSArray [perspective.center.lat,perspective.center.lng] env
-        # (_,env)           = (mapObj .# "setView" .$ (center, perspective.LeafletPerspective.zoom)) env
-        //Update map bounds
-        # (bounds,env)      = getMapBounds mapObj env
-        # map = {LeafletMap|map & perspective ={LeafletPerspective|perspective & bounds = bounds}}
-        //Create cursor
-        # (mapCursor,env) = case perspective.cursor of
-            Nothing     = (Nothing,env)
-            Just {LeafletLatLng|lat,lng}
-                # (mapCursor,env)   = (l .# "circleMarker" .$ ([lat,lng],CURSOR_OPTIONS)) env
-                # (_,env)           = (mapCursor .# "addTo" .$ mapObj) env
-                = (Just mapCursor,env)
-        //Add icons
-        # (mapIcons,env)    = newJSArray env
-        # env               = foldl (\w icon -> createIcon icon l mapIcons w) env icons
-        //Add initial layers
-        # (mapLayers,env)   = newJSArray env
-        # (mapObjects,env)  = jsNewMap env
-        # (_,env)           = foldl (\w layer -> createLayer mkHandler layer l mapObj mapLayers mapObjects mapIcons cid w) (0,env) layers
-        //Add map event handlers
-        # (_,env)           = (mapObj .# "addEventListener" .$ ("dragend",mkHandler onMapMove cid)) env
-        # (_,env)           = (mapObj .# "addEventListener" .$ ("zoomend",mkHandler onZoomChange cid)) env
-        # (_,env)           = (mapObj .# "addEventListener" .$ ("click",mkHandler onMapClick cid)) env
-        //Add editlet event handler
-        # (editlets,env)    = findObject "itwc.controller.editlets" env
-        # (cmp,env)         = .? (editlets .# cid) env
-        # env               = (cmp .# "afterShow" .= (toJSVal (mkHandler onAfterShow cid))) env
-        # env               = (cmp .# "afterResize" .= (toJSVal (mkHandler onAfterShow cid))) env
-        = ((map,Just {mapObj=mapObj,mapIcons=mapIcons,mapLayers=mapLayers,mapObjects,mapCursor=mapCursor}),Diff [LDSetBounds bounds] ignoreConflict,env)
-*/
-/*
-	createIcon :: !LeafletIcon !(JSObj JSLM) !(JSArr (JSObject b)) !*JSWorld -> *JSWorld
-    createIcon {LeafletIcon|iconUrl,iconSize=(w,h)} l mapIcons env
-        # (icon,env)    = (l .# "icon" .$ (toJSArg {IconOptions|iconUrl=iconUrl,iconSize=[w,h]})) env
-        # (_,env)       = jsArrayPush icon mapIcons env
-        = env
-
-    //createLayer :: !LeafletLayer !(JSObj JSLM) a !(JSArr (JSObject b)) !(JSMap Int (JSArr JSLM)) !(JSVal (JSObject d)) !String !*(!Int,!*JSWorld) -> *(!Int,!*JSWorld)
-    createLayer mkHandler (TileLayer url) l mapObj mapLayers mapObjects mapIcons cid (i,env)
-        # (layer,env)       = (l .# "tileLayer" .$ url) env
-        # (_,env)           = jsArrayPush layer mapLayers env
-        # (_,env)           = (layer .# "addTo" .$ (toJSArg mapObj)) env
-        = (i + 1,env)
-    createLayer mkHandler (ObjectLayer objects) l mapObj mapLayers mapObjects mapIcons cid (i,env)
-        # (layer,env)       = (l .# "layerGroup" .$ ()) env
-        # (objRefs,env)     = newJSArray env
-        # (_,env)           = foldl (\w object -> createObject mkHandler object l layer objRefs mapIcons cid w) (0,env) objects
-        # (_,env)           = jsArrayPush layer mapLayers env
-		# env               = jsPut i objRefs mapObjects env
-        # (_,env)           = (layer .# "addTo" .$ (toJSArg mapObj)) env
-        = (i + 1,env)
-
-    //createObject :: !LeafletObject !(JSObj JSLM) !a !(JSVal (JSObject b)) !(JSVal (JSObject c)) !String !(!Int,!*JSWorld) -> (!Int,!*JSWorld)
-    createObject mkHandler (Marker {LeafletMarker|markerId,position,title,icon}) l layer objRefs mapIcons cid (i,env)
-        # (options,env)     = jsEmptyObject env
-        # (options,env)     = case icon of
-                                Nothing         = (options, env)
-                                Just iconIdx
-                                    # (iconRef, env) = .? (mapIcons .# iconIdx) env
-                                    # env            = (options .# "icon" .= iconRef) env
-                                    = (options, env)
-        # (options,env)     = case title of
-                                Nothing         = (options, env)
-                                Just title
-                                    # env = (options .# "title" .= title) env
-                                    # env = (options .# "alt"   .= title) env
-                                    = (options, env)
-        # args              = [toJSArg [position.lat,position.lng], toJSArg options]
-
-        # (marker,env)      = (l .# "marker" .$ args) env
-        # env               = (objRefs .# i .= marker) env
-        //# (_,env)           = (marker .# "addEventListener" .$ ("click",mkHandler (onMarkerClick markerId) cid)) env
-        # (_,env)           = (marker .# "addTo" .$ (toJSArg layer)) env
-        = (i + 1,env)
-    createObject mkHandler (Polyline {LeafletPolyline|polylineId,points,strokeWidth,strokeColor}) l layer objRefs mapIcons cid (i,env)
-        # (options,env)     = jsEmptyObject env
-        # env               = (options .# "stroke" .= strokeWidth) env
-        # env               = (options .# "color" .= strokeColor) env
-        # (polyline,env)    = (l .# "polyline" .$ ([toJSArg [p.lat,p.lng] \\ p <- points],options)) env
-        # env               = (objRefs .# i .= polyline) env
-        # (_,env)           = (polyline .# "addTo" .$ (toJSArg layer)) env
-        = (i + 1,env)
-    createObject mkHandler (Polygon {LeafletPolygon|polygonId,points,strokeWidth,strokeColor,fillColor}) l layer objRefs mapIcons cid (i,env)
-        # (options,env)     = jsEmptyObject env
-        # env               = (options .# "stroke" .= strokeWidth) env
-        # env               = (options .# "color" .= strokeColor) env
-        # env               = (options .# "fill" .= (isJust fillColor)) env
-        # env               = (maybe id (\c -> (options .# "fillColor" .= c)) fillColor) env
-        # env               = (options .# "clickable" .= False) env
-        # (polygon,env)     = (l .# "polygon" .$ ([toJSArg [p.lat,p.lng] \\ p <- points],options)) env
-        # env               = (objRefs .# i .= polygon) env
-        # (_,env)           = (polygon .# "addTo" .$ (toJSArg layer)) env
-        = (i + 1,env)
-*/
-/*
-    onMapMove cid {[0]=event} (map=:{LeafletMap|perspective},mbSt) env
-        # (mapobj,env)      = .? (event .# "target") env
-        # (latlng,env)      = (mapobj .# "getCenter" .$ ()) env
-        # (center,env)      = getPos latlng env
-        # (bounds,env)      = getMapBounds mapobj env
-        = (({LeafletMap|map & perspective = {perspective & center = center,bounds=bounds}},mbSt),Diff [LDSetCenter center] ignoreConflict,env)
-
-    onZoomChange cid {[0]=event} (map=:{LeafletMap|perspective},mbSt) env
-        # (mapobj,env)      = .? (event .# "target") env
-        # (zoom,env)        = (mapobj .# "getZoom" .$ ()) env
-        # (bounds,env)      = getMapBounds mapobj env
-        = (({LeafletMap|map & perspective = {perspective & zoom = jsValToInt zoom,bounds=bounds}},mbSt),Diff [LDSetZoom (jsValToInt zoom)] ignoreConflict,env)
-    onMapClick cid {[0]=event} (map=:{LeafletMap|perspective},Just st=:{mapObj,mapCursor=Nothing}) env
-        # (l,env)           = findObject "L" env
-        # (latlng,env)      = .? (event .# "latlng") env
-        # (cursor,env)      = getPos latlng env
-        # (mapCursor,env)   = (l .# "circleMarker" .$ (latlng,CURSOR_OPTIONS)) env
-        # (_,env)           = (mapCursor .# "addTo" .$ (toJSArg mapObj)) env
-        = (({LeafletMap|map & perspective = {perspective & cursor = Just cursor}},Just {st & mapCursor = Just mapCursor}),Diff [LDSetCursor (Just cursor)] ignoreConflict,env)
-    onMapClick cid {[0]=event} (map=:{LeafletMap|perspective},Just st=:{mapObj,mapCursor=Just mapCursor}) env
-        # (latlng,env)      = .? (event .# "latlng") env
-        # (cursor,env)      = getPos latlng env
-        # (_,env)           = (mapCursor .# "setLatLng" .$ (toJSArg latlng)) env
-        = (({LeafletMap|map & perspective = {perspective & cursor = Just cursor}},Just st),Diff [LDSetCursor (Just cursor)] ignoreConflict,env)
-
-    onMarkerClick markerId cid event (map=:{LeafletMap|layers},st) env
-        # layers = [selectMarker l \\ l <- layers]
-		# diff = maybe NoDiff (\d -> Diff d ignoreConflict) (updUI map ({map & layers = layers}))
-        = (({map & layers = layers},st),diff,env)
-    where
-        selectMarker (ObjectLayer objects)
-            = ObjectLayer [Marker {m & selected = m.markerId == markerId} \\ Marker m <- objects]
-        selectMarker l = l
-
-    onAfterShow cid event (map=:{LeafletMap|perspective},Just st=:{mapObj}) env
-        # env           = syncMapDivSize cid env
-        # (_,env)       = (mapObj .# "invalidateSize" .$ ()) env
-        # (bounds,env)  = getMapBounds mapObj env
-        # map = {LeafletMap|map & perspective ={LeafletPerspective|perspective & bounds = bounds}}
-        = ((map,Just st),Diff [LDSetBounds bounds] ignoreConflict,env)
-    onAfterShow cid event st env
-        = (st,NoDiff,env)
-*/
-/*
-	getPos obj env
-		# (lat,env)     = .? (obj .# "lat") env
-		# (lng,env)     = .? (obj .# "lng") env
-		= ({LeafletLatLng|lat=jsValToReal lat,lng=jsValToReal lng}, env)
-
-    removeObjects :: !(JSArr a) !(JSObj b) !*JSWorld -> *JSWorld
-    removeObjects removeRefs layer env
-        # (ref,env)         = jsArrayPop removeRefs env
-        | jsIsUndefined ref = env
-        # (_,env)           = (layer .# "removeLayer" .$ (toJSArg ref)) env
-        = removeObjects removeRefs layer env
-
 	syncMapDivSize :: !String !*JSWorld -> *JSWorld
     syncMapDivSize cid env
         # (editlets,env)    = findObject "itwc.controller.editlets" env
@@ -563,8 +338,6 @@ where
         # env = (el .# "style.width" .= (toString w +++"px")) env
         # env = (el .# "style.height" .= (toString h +++"px")) env
         = env
-
-    //ignoreConflict conflict state env = (state, NoDiff, env)
 */
 gEditor{|LeafletMap|} = leafletEditor
 
@@ -576,14 +349,12 @@ where
 gDefault{|LeafletPerspective|}
     = {LeafletPerspective|center = {LeafletLatLng|lat = 51.82, lng = 5.86}, zoom = 7, cursor = Nothing, bounds = Nothing}
 
-//Comparing reals may have unexpected results!!!
-//Especially when comparing constants to previously stored ones
-gEq{|LeafletLatLng|} x y
-    = (toString x.lat == toString y.lat) && (toString x.lng == toString y.lng)
+//Comparing reals may have unexpected results, especially when comparing constants to previously stored ones
+gEq{|LeafletLatLng|} x y = (toString x.lat == toString y.lat) && (toString x.lng == toString y.lng)
 
-derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive gDefault         LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive gEq              LeafletMap, LeafletPerspective, LeafletIcon,                LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive gText            LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive gEditor  LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
+derive JSONEncode LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
+derive JSONDecode LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
+derive gDefault   LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
+derive gEq        LeafletMap, LeafletPerspective, LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
+derive gText      LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
+derive gEditor    LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
