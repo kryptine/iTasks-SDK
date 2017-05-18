@@ -104,6 +104,8 @@ where
 		//Add event handlers
 		# (cb,world)       = jsWrapFun (\a w -> onResize me w) world	
 		# world            = ((me .# "onResize") .= cb) world
+		# (cb,world)       = jsWrapFun (\a w -> onShow me w) world	
+		# world            = ((me .# "onShow") .= cb) world
 		# (cb,world)       = jsWrapFun (\a w -> onAttributeChange me a w) world	
 		# world            = ((me .# "onAttributeChange") .= cb) world
 		# (cb,world)       = jsWrapFun (\a w -> onAfterChildInsert me a w) world	
@@ -119,6 +121,11 @@ where
 		= (jsNull,world)
 
 	onResize me world
+		# (mapObj,world) 	= .? (me .# "map") world
+        # (_,world)         = (mapObj .# "invalidateSize" .$ ()) world
+		= (jsNull,world)
+
+	onShow me world
 		# (mapObj,world) 	= .? (me .# "map") world
         # (_,world)         = (mapObj .# "invalidateSize" .$ ()) world
 		= (jsNull,world)
@@ -367,28 +374,7 @@ where
 			//Cursor
 			# cursor = if (p2.LeafletPerspective.cursor === p1.LeafletPerspective.cursor) [] [SetAttribute "cursor" (maybe JSONNull toJSON p2.LeafletPerspective.cursor)]
 			= center ++ zoom ++ cursor
-/*
-	syncMapDivSize :: !String !*JSWorld -> *JSWorld
-    syncMapDivSize cid env
-        # (editlets,env)    = findObject "itwc.controller.editlets" env
-        # (cmp,env)         = .? (editlets .# cid) env
-        # (cmpDiv,env)      = .? (cmp .# "domEl") env
-        # (mapDiv,env)      = .? (getElementById (mapdivid cid)) env
-        # (divSize,env)     = measureDomEl cmpDiv env
-        = sizeDomEl divSize mapDiv env
 
-    measureDomEl :: !(JSObj a) !*JSWorld -> (!(!Int,!Int),!*JSWorld)
-    measureDomEl el env
-        # (w,env)           = .? (el .# "clientWidth") env
-        # (h,env)           = .? (el .# "clientHeight") env
-        = ((jsValToInt w,jsValToInt h),env)
-
-    sizeDomEl :: !(!Int,!Int) !(JSObj a) !*JSWorld -> *JSWorld
-    sizeDomEl (w,h) el env
-        # env = (el .# "style.width" .= (toString w +++"px")) env
-        # env = (el .# "style.height" .= (toString h +++"px")) env
-        = env
-*/
 gEditor{|LeafletMap|} = leafletEditor
 
 gDefault{|LeafletMap|}
