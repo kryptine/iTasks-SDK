@@ -199,7 +199,6 @@ leftPaddingAttr   :: !Int                                 -> UIAttributes
 titleAttr         :: !String                              -> UIAttributes
 frameAttr         :: !Bool                                -> UIAttributes
 iconClsAttr       :: !String                              -> UIAttributes
-baseClsAttr       :: !String                              -> UIAttributes
 tooltipAttr       :: !String                              -> UIAttributes
 directionAttr     :: !UIDirection                         -> UIAttributes
 halignAttr        :: !UIHAlign                            -> UIAttributes
@@ -225,6 +224,7 @@ editorIdAttr      :: !String                              -> UIAttributes
 taskIdAttr        :: !String                              -> UIAttributes
 labelAttr         :: !String                              -> UIAttributes
 styleAttr         :: !String                              -> UIAttributes
+classAttr         :: !String                              -> UIAttributes
 
 editAttrs         :: !String !String !(Maybe JSONNode)    -> UIAttributes
 choiceAttrs       :: !String !String ![Int] ![JSONNode]   -> UIAttributes

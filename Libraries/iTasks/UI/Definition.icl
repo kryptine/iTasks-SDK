@@ -118,9 +118,6 @@ frameAttr frame = 'DM'.fromList [("frame",JSONBool frame)]
 iconClsAttr :: !String -> UIAttributes
 iconClsAttr iconCls = 'DM'.fromList [("iconCls",JSONString iconCls)]
 
-baseClsAttr :: !String -> UIAttributes
-baseClsAttr baseCls = 'DM'.fromList [("baseCls",JSONString baseCls)]
-
 tooltipAttr :: !String -> UIAttributes
 tooltipAttr tooltip = 'DM'.fromList [("tooltip",JSONString tooltip)]
 
@@ -195,6 +192,9 @@ labelAttr taskId = 'DM'.fromList [(LABEL_ATTRIBUTE,JSONString taskId)]
 
 styleAttr :: !String -> UIAttributes
 styleAttr style = 'DM'.fromList [("style",JSONString style)]
+
+classAttr :: !String -> UIAttributes
+classAttr cls = 'DM'.fromList [("class",JSONString cls)]
 
 editAttrs :: !String !String !(Maybe JSONNode) -> UIAttributes
 editAttrs taskId editorId mbValue 

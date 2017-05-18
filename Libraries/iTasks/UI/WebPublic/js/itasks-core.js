@@ -67,8 +67,11 @@ itasks.Component = {
 			
 		//Style the dom element
 		me.domEl.classList.add(me.cssPrefix + me.cssCls);
-		if(me.attributes.style) {
-			me.domEl.style = me.attributes.style;
+		if(me.attributes['style']) {
+			me.domEl.style = me.attributes['style'];
+		}
+		if(me.attributes['class']) {
+			me.domEl.classList.add(me.attributes['class']);
 		}
 		//Custom initialization after the dom element has been rendered
 		me.initDOMEl();
