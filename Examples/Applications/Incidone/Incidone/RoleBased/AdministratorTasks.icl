@@ -144,7 +144,7 @@ where
         >&> withSelection viewNoSelection manageContactAccess
         )<<@ ArrangeWithSideBar 0 LeftSide 200 True
 
-	viewNoSelection = return () //FIXME
+	viewNoSelection = viewInformation "Select a user" [] ()
     addUser
         =   enterInformation (Title "Add user") []
         >>? \newUser -> (createContact newUser @! ())
@@ -156,9 +156,8 @@ where
             ) (\_ -> viewInformation "Failed to import contacts" [] ())
         ) <<@ Title "Import contacts"
 	where
-		instructions = toString (PTag [] [Text "Please select a CSV file to upload.",BrTag []
-							,Text "The file needs to be formatted like ",ATag [HrefAttr "/demo-content/contacts.csv",TargetAttr "_blank"] [Text "this example file"]
-							])
+		instructions = "Please select a CSV file to upload.\n" +++
+					   "The file needs to be formatted like the example /demo-content/contacts.csv file."
 
     setAdminPassword = (
             enterPasswords -&&- get adminPassword

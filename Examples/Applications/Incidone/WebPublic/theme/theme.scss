@@ -1,0 +1,12 @@
+/*
+ SASS-Themable stylesheet for iTasks javascript UI library
+ You can customize this to create branded iTask applications.
+*/
+@import "options.scss";
+/* Include shared styles */
+@import "itasks-core.scss";
+@import "itasks-components-raw.scss";
+@import "itasks-components-container.scss";
+@import "itasks-components-form.scss";
+@import "itasks-components-display.scss";
+@import "itasks-components-selection.scss";
