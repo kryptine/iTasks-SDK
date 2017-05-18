@@ -168,6 +168,7 @@ itasks.Window = {
 	attributes: {
     	marginTop: 10, marginRight: 10, marginBottom: 10, marginLeft: 10,
 		movable: true,
+		resizable: true,
 		windowType: 'floating',
 		hpos: 'center',
 		vpos: 'top',
@@ -181,23 +182,23 @@ itasks.Window = {
                 me.domEl.classList.add(me.cssPrefix + 'notification-bubble');
                 break;
             default:
-                me.movable = true;
                 me.domEl.classList.add(me.cssPrefix + 'floating-window');
         }
-/*
-        me.setCloseTaskId(me.definition.closeTaskId);
-*/
 		//Create header
-		if(me.attributes.title) {
+		if(me.attributes.windowType === 'floating' || me.attributes.title) {
 			me.headerEl = document.createElement('div');
 			me.headerEl.classList.add(me.cssPrefix + 'header');
-			me.headerEl.innerHTML = '<span>' + me.attributes.title + '</span>';
+			me.headerEl.innerHTML = '<span>' + (me.attributes.title || '') + '</span>';
 			me.domEl.appendChild(me.headerEl);
 
         	if(me.attributes.movable) {
             	me.headerEl.addEventListener('mousedown', me.onStartDrag.bind(me));
 	            me.headerEl.style.cursor = 'move';
 			}
+		}
+		if(me.attributes.resizable) {
+			me.domEl.style.resize = 'both';
+			me.domEl.style.overflow = 'scroll';
 		}
 		//Create separate container div
 		me.containerEl = document.createElement('div');
