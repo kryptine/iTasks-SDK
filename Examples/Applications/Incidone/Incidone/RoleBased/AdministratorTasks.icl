@@ -12,6 +12,7 @@ import Incidone.ActionManagementTasks
 import Incidone.Util.TaskPatterns
 import iTasks.API.Extensions.Admin.ServerAdmin
 import iTasks.API.Extensions.Dashboard
+import iTasks.UI.Layout, iTasks.UI.Definition
 import Text.HTML
 
 :: DatabaseProblem
@@ -221,10 +222,11 @@ configureMaps
 where
     previewMapLayers :: Task ContactMapPerspective
     previewMapLayers = withShared defaultValue
-        \perspective -> updateSharedInformation (Title "Preview") [UpdateAs toPrj fromPrj] (perspective >+| standardMapLayers) @ fst /* <<@ AfterLayout (tweakUI fill) */ //FIXME
+        \perspective -> updateSharedInformation (Title "Preview") [UpdateAs toPrj fromPrj] (perspective >*| standardMapLayers) <<@ ApplyLayout flexMap @ fst 
     where
         toPrj (perspective,layers) = toLeafletMap {ContactMap|defaultValue & perspective=perspective,layers=layers}
         fromPrj _ {LeafletMap|perspective} = fromLeafletPerspective perspective
+		flexMap = layoutSubUIs (SelectByPath [1]) (setUIAttributes (sizeAttr FlexSize FlexSize))
 
 configureWebLinks :: Task ()
 configureWebLinks

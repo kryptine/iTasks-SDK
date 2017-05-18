@@ -27,7 +27,7 @@ browseCommunications ws
         ] @! ()
 where
 	selectCommunication
-        = enterChoiceWithSharedAs [Att (Icon "communication"),Att (Title "Communication")] [] allCommunications communicationIdentity
+        = enterChoiceWithSharedAs [Att (Icon "communication"),Att (Title "Communication")] [ChooseFromGrid id] allCommunications communicationIdentity
     openCommunication ws communicationNo
         = addToWorkspace ((doOrClose (updateCommunication communicationNo)) <<@ InWindow) ws @! ()
 
@@ -52,15 +52,15 @@ browseIncidents ws
             ]
     )
 	(	withSelection viewNoSelection viewIncidentDetails
-	)	<<@ LazyRefresh <<@ (ArrangeWithSideBar 1 RightSide 300 True) <<@ (Icon "incidents") <<@ (Title "Incidents")
+	)	<<@ (ArrangeWithSideBar 1 RightSide 300 True) <<@ (Icon "incidents") <<@ (Title "Incidents")
     @! ()
 where
 	selectIncident
 		= ( (enterChoiceWithSharedAs (Title "Open incidents")
-			    [] openIncidentsDetails (\{IncidentDetails|incidentNo} -> incidentNo) /* <<@ AfterLayout (tweakUI fill) */) //FIXME
+			    [ChooseFromGrid id] openIncidentsDetails (\{IncidentDetails|incidentNo} -> incidentNo) /* <<@ AfterLayout (tweakUI fill) */) //FIXME
             -||-
             (enterChoiceWithSharedAs (Title "Recent incidents")
-                [] recentIncidentsDetails (\{IncidentDetails|incidentNo} -> incidentNo) /* <<@ AfterLayout (tweakUI fill) */) //FIXME
+                [ChooseFromGrid id] recentIncidentsDetails (\{IncidentDetails|incidentNo} -> incidentNo) /* <<@ AfterLayout (tweakUI fill) */) //FIXME
          ) <<@ ArrangeWithTabs
 
 browseContacts :: Workspace -> Task ()
@@ -74,7 +74,7 @@ browseContacts ws
             ]
     )
 	(   withSelection viewNoSelection viewDetails
-	)	<<@ LazyRefresh <<@ (ArrangeWithSideBar 1 RightSide 300 True) <<@ (Icon "contacts") <<@ (Title "Contacts")
+	)	<<@ (ArrangeWithSideBar 1 RightSide 300 True) <<@ (Icon "contacts") <<@ (Title "Contacts")
     @! ()
 where
     viewDetails (Left contactNo)    = viewContactDetails contactNo

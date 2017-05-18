@@ -22,7 +22,7 @@ selectContact = withShared Nothing
 		(selectContactFromLists sel <<@ Title "Browse")
 		 -||-
          (viewContactsOnMap mapContacts sel <<@ Title "Map")
-		 <<@ LazyRefresh <<@ ArrangeWithTabs
+		 <<@ ArrangeWithTabs
         )
 where	
     mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |+| contactsProvidingHelpGeo)

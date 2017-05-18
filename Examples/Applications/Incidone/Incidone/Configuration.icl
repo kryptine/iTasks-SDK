@@ -1,5 +1,5 @@
 implementation module Incidone.Configuration
-import iTasks, iTasks.API.Extensions.SQLDatabase
+import iTasks, iTasks.API.Extensions.SQLDatabase, iTasks.API.Extensions.Web
 
 derive class iTask DBConfig, AISConfig, AsteriskConfig, SMTPConfig, WebLinksConfig, WebLink
 

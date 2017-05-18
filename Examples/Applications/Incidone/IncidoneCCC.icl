@@ -57,7 +57,7 @@ doAuthenticated task
 	= (	enterCredentials
 	>>* [OnAction (Action "Login")
 			(hasValue (\cred -> verifyCredentials cred >>- executeTask task))
-		] ) <<@ Title "Login" <<@ ApplyLayout (beforeStep frameCompact) //Compact layout before login, full screen afterwards
+		] ) /*<<@ Title "Login"*/ <<@ ApplyLayout (beforeStep frameCompact) //Compact layout before login, full screen afterwards
 where
 	enterCredentials :: Task Credentials
 	enterCredentials
@@ -94,7 +94,7 @@ where
 		[moveSubUIs (SelectByPath [0,0]) [] 1
 		,moveSubUIs (SelectByPath [0,0]) [] 2
 		,removeSubUIs (SelectByPath [0])
-		,layoutSubUIs SelectChildren actionToButton
+		,layoutSubUIs (SelectByType UIAction) actionToButton
 		,setUIAttributes ('DM'.unions [directionAttr Horizontal,paddingAttr 2 2 2 250, baseClsAttr "summary-bar"])
-		,setUIType UIPanel
+		,setUIType UIContainer
         ]

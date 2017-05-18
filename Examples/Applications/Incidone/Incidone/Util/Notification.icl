@@ -1,5 +1,6 @@
 implementation module Incidone.Util.Notification
 import iTasks
+from iTasks._Framework.Util import datetimeToTimestamp
 import Text
 import Incidone.Util.TaskPatterns
 
@@ -9,11 +10,13 @@ notifications = sharedStore "notifications" []
 
 //Only show notifications added in the last 5 seconds
 currentNotifications :: ReadOnlyShared [String]
-currentNotifications = mapRead prj (currentDateTime |+| notifications)
+currentNotifications = mapRead prj (currentDateTime |*| notifications)
 where
-    prj (now,notifications) = [msg \\ (dt,msg) <- notifications /* | now - dt < limit*/]
-
-    //limit = DateTime {Date|day=0,mon=0,year=0} {Time|hour=0,min=0,sec=5}
+    prj (now,notifications) = [toString dt +++ msg \\ (dt,msg) <- notifications | limit now dt ]
+	limit t1 t2
+		# (Timestamp s1) = datetimeToTimestamp t1
+		# (Timestamp s2) = datetimeToTimestamp t2
+		= s1 - s2 < 3
 
 addNotification :: String -> Task ()
 addNotification msg
