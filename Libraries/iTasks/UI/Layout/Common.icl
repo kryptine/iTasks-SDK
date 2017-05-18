@@ -29,23 +29,11 @@ where
 	(sidePanelWidth,sidePanelHeight) = if (direction === Vertical) (FlexSize,ExactSize size) (ExactSize size,FlexSize)
 
 arrangeSplit :: !UIDirection !Bool -> Layout
-arrangeSplit direction resize = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
-/*
-arrangeSplit :: !UIDirection !Bool -> UIBlocksCombinator
-arrangeSplit direction resize = arrange
-where
-    arrange [] actions = autoLayoutBlocks [] actions
-    arrange blocks actions
-        # (bcontrols,_,bactions,bhotkeys) = unzip4 (map blockToPanel blocks)
-        # controls = map fill bcontrols
-        # controls = if resize (intersperse UISplitter controls) controls
-        = {UIBlock|attributes='DM'.newMap
-                  ,content = {UIItemsOpts|defaultItemsOpts controls & direction = direction}
-                  //,actions = actions ++ flatten bactions
-                  ,hotkeys = flatten bhotkeys
-                  ,size = defaultSizeOpts
-                  }
-*/
+arrangeSplit direction resize 
+	= foldl1 sequenceLayouts 
+		[layoutSubUIs (SelectByPath []) (setUIAttributes (directionAttr direction))
+		,layoutSubUIs SelectChildren (setUIAttributes (sizeAttr FlexSize FlexSize))
+		]
 
 arrangeVertical :: Layout
 arrangeVertical = setUIAttributes (directionAttr Vertical)
