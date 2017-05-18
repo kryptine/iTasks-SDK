@@ -107,7 +107,6 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 // Floating window
 :: UIWindowType
     = FloatingWindow        //Normal movable window
-    | ModalDialog           //Fixed position modal dialog
     | NotificationBubble    //Fixed position info
 
 //Most components can be resized in two dimensions

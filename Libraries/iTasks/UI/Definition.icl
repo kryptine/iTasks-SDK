@@ -330,7 +330,6 @@ where
 instance encodeUI UIWindowType
 where
 	encodeUI FloatingWindow 	= JSONString "floating"
-	encodeUI ModalDialog 		= JSONString "modal"
 	encodeUI NotificationBubble = JSONString "bubble"
 
 derive class iTask UIChange, UIAttributeChange, UIChildChange

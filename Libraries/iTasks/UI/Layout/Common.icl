@@ -67,10 +67,17 @@ beforeStep layout = layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UISt
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
 toWindow windowType vpos hpos = foldl1 sequenceLayouts 
 	[wrapUI UIWindow
+	,interactToWindow
 	,copySubUIAttributes (SelectKeys [TITLE_ATTRIBUTE]) [0] []
 	,layoutSubUIs (SelectByPath [0]) (delUIAttributes (SelectKeys [TITLE_ATTRIBUTE]))
 	,setUIAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
 	]
+where
+	interactToWindow = layoutSubUIs (SelectAND (SelectByPath []) (SelectByContains (SelectAND (SelectByPath [0]) (SelectByType UIInteract))))
+		(foldl1 sequenceLayouts	[copySubUIAttributes (SelectKeys ["title"]) [0,0] []
+								,layoutSubUIs (SelectByPath [0,0]) (delUIAttributes (SelectKeys ["title"]))
+								])
+
 
 toEmpty :: Layout
 toEmpty = setUIType UIEmpty

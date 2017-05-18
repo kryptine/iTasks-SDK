@@ -165,21 +165,18 @@ itasks.TabSet = {
 }
 
 itasks.Window = {
-    marginTop: 10, marginRight: 10, marginBottom: 10, marginLeft: 10,
-	movable: true,
-	modal: false,
-	windowType: 'bubble',
-	hpos: 'center',
-	vpos: 'top',
+	attributes: {
+    	marginTop: 10, marginRight: 10, marginBottom: 10, marginLeft: 10,
+		movable: true,
+		windowType: 'floating',
+		hpos: 'center',
+		vpos: 'top',
+	},
 
     initDOMEl: function() {
         var me = this,left,top;
 
         switch(me.attributes.windowType) {
-            case 'modal':
-                me.modal = true;
-                me.domEl.classList.add(me.cssPrefix + 'modal-window');
-                break;
             case 'bubble':
                 me.domEl.classList.add(me.cssPrefix + 'notification-bubble');
                 break;
@@ -207,21 +204,32 @@ itasks.Window = {
 		me.containerEl.classList.add(me.cssPrefix + 'inner');
 		me.domEl.appendChild(me.containerEl);
 
-		//Position window
-		switch(me.attributes.vpos) {
-			case 'top': top = me.attributes.marginTop; break;
-			case 'middle': top = (document.body.offsetHeight / 2) - (me.domEl.offsetHeight / 2); break;
-			case 'bottom': top = document.body.offsetHeight - me.domEl.offsetHeight - me.attributes.marginBottom; break;
-		}
-		switch(me.attributes.hpos) {
-			case 'left': left = me.attributes.marginLeft; break;
-			case 'center': left = ((document.body.offsetWidth / 2) - (me.domEl.offsetWidth / 2)); break;
-			case 'right': left = document.body.offsetWidth - me.domEl.offsetWidth - me.attributes.marginRight; break;
-		}
-		me.domEl.style.top = top + 'px';
-		me.domEl.style.left = left + 'px';
+		//Intially position the window offscreen, it will be repositioned once its dimensions are known
+		me.domEl.style.top = '-10000px';
+		me.domEl.style.left = '-10000px';
 	},
     initSize: function() {},
+	onShow: function() {
+		//Position the window when it is is first shown
+		var me = this, top, left;
+
+		if(!me.positioned) {	
+			switch(me.attributes.vpos) {
+				case 'top': top = me.attributes.marginTop; break;
+				case 'middle': top = (document.body.offsetHeight / 2) - (me.domEl.offsetHeight / 2); break;
+				case 'bottom': top = document.body.offsetHeight - me.domEl.offsetHeight - me.attributes.marginBottom; break;
+			}
+			switch(me.attributes.hpos) {
+				case 'left': left = me.attributes.marginLeft; break;
+				case 'center': left = (document.body.offsetWidth / 2) - (me.domEl.offsetWidth / 2); break;
+				case 'right': left = document.body.offsetWidth - me.domEl.offsetWidth - me.attributes.marginRight; break;
+			}
+
+			me.domEl.style.top = top + 'px';
+			me.domEl.style.left = left + 'px';
+			me.positioned = true;
+		}
+	},
     onStartDrag: function(e) {
         var me = this;
         e.preventDefault();

@@ -279,6 +279,7 @@ itasks.Component = {
 				} else {
 					me.containerEl.insertBefore(child.domEl,me.containerEl.childNodes[idx]);
 				}
+				child.onShow();
 			}
 		} 
 		me.afterChildInsert(idx,child);
