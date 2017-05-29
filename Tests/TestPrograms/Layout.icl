@@ -1,6 +1,6 @@
-implementation module Tests.Unit.Layout
+module Layout
 import TestFramework
-import Tests.Unit.FrameworkStubs
+import FrameworkStubs
 
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks.UI.Layout.Common
@@ -15,8 +15,7 @@ derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, 
 derive gPrettyTrace EditMask, FieldMask, CompoundMask, MvUI, MvUIChild
 derive gDefault MvUI, MvUIChild
 
-testLayout :: TestSuite
-testLayout = testsuite "Layout" "Tests for the layout functions"
+Start world = execTestSuite (testsuite "Layout" "Tests for the layout functions"
 	[skip testChangeNodeType
 	,skip testChangeAttributes
 	,skip testWrap
@@ -49,7 +48,7 @@ testLayout = testsuite "Layout" "Tests for the layout functions"
 	,skip testDynamicBehaviour1
 	//Common layouts
 	,testSideBarInitial
-	]
+	]) world
 
 //Tests for the core operations of the layout library
 testChangeNodeType = fail "testChangeNodeType: Changing node type"

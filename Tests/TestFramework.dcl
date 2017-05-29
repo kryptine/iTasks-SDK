@@ -125,6 +125,7 @@ allPassed :: TestReport -> Bool
 */
 noneFailed :: TestReport -> Bool
 
+
 /**
 * Run all tests interactively and run all tests
 *
@@ -141,4 +142,15 @@ runUnitTestsCLI :: [TestSuite] *World -> *World
 * Run all unit tests from the test suites and dump
 */
 runUnitTestsJSON :: [TestSuite] *World -> *World
+
+/**
+* Execute a set of tests as a separate program
+* It writes the result of the test in an easily parsable format to the console
+*/
+execTestSuite :: TestSuite *World -> World
+
+/**
+* Run a test in an external module
+*/
+runExternalTests :: FilePath -> Task SuiteResult
 

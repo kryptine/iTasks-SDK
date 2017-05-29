@@ -1,9 +1,8 @@
-implementation module Tests.Unit.Misc
+module Misc
 import TestFramework
 
-testMisc :: TestSuite
-testMisc = testsuite "Miscellaneous" "All tests that don't fit anywhere else, but should not get lost"
-	[jsonDecodeOfJSONField]
+Start world = execTestSuite (testsuite "Miscellaneous" "All tests that don't fit anywhere else, but should not get lost"
+	[jsonDecodeOfJSONField]) world
 
 
 :: TestRecord =

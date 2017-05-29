@@ -1,15 +1,14 @@
-implementation module Tests.Unit.CoreTasks
+module CoreTasks
 import iTasks, TestFramework
 import iTasks.UI.Definition
 import System.OS
 
 derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, JSONNode
 
-testCoreTasksUI :: TestSuite
-testCoreTasksUI = testsuite "UIs of core tasks" "Tests for UI behavior of core tasks"
+Start world = execTestSuite (testsuite "UIs of core tasks" "Tests for UI behavior of core tasks" 
 	[skip (testCallFastProcess)
 	,skip (testCallSlowProcess)
- 	]
+ 	]) world
 
 //Currently only tested on unix systems
 testCallFastProcess = IF_WINDOWS (pass "Test call for fast process") (testTaskOutput "Test call fast process" tut events exp checkEqual)

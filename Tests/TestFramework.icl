@@ -2,10 +2,12 @@ implementation module TestFramework
 import iTasks, StdFile, StdMisc
 import iTasks.API.Extensions.Image
 import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
+import iTasks.API.Extensions.Editors.Ace
 import iTasks._Framework.Serialization
 import Text, Text.HTML, System.CommandLine
 import qualified Data.Map as DM
 import iTasks.API.Extensions.Development.Codebase
+import Data.Func
 
 from iTasks._Framework.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{server}, :: ServerInfo(..), :: SystemPaths(..)
 from iTasks._Framework.TaskStore import createTaskInstance, taskInstanceUIChanges
@@ -21,7 +23,7 @@ import System.OS
 import iTasks.Util.Trace
 
 // TEST FRAMEWORK
-derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult
+derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult, ExitCode
 
 gText{|UnitTest|} _ _			            = []
 gEditor{|UnitTest|} = emptyEditor 
@@ -207,7 +209,7 @@ checkSuiteResult f {SuiteResult|testResults} = all (\(_,r) -> f r) testResults
 runTests :: [TestSuite] -> Task ()
 runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
     ( allTasks [runInteractiveTests <<@ Title "Interactive Tests"
-			   ,runUnitTests        <<@ Title "Unit Tests"
+			   ,runUnitTests   <<@ Title "Unit Tests"
 			   ,viewQualityMetrics  <<@ Title "Metrics"
 			   ] <<@ ArrangeWithTabs
     ) @! ()
@@ -231,10 +233,28 @@ where
 		| otherwise = []
 	selectTest _ _ = []
 
-	runUnitTests
-		= 	accWorld (runUnitTestsWorld suites)
-		>>- viewInformation () [ViewUsing toHtml (htmlView 'DM'.newMap)]
-		@! ()
+	runUnitTests = withShared 'DM'.newMap
+		\results ->
+		(
+		 (enterChoiceWithSharedAs () [ChooseFromGrid fst] (testsWithResults results) fst 
+		>&> withSelection (viewInformation "Select a test" [] ())
+			(\path -> 
+				(viewSharedInformation (Title "Code") [ViewUsing id aceTextArea] (sdsFocus (testDir </> path) externalFile)
+				-&&-
+				viewSharedInformation (Title "Results") [ViewAs (toHtml o maybeToList)] (mapRead ('DM'.get path) results) <<@ ArrangeHorizontal)
+				>^* [OnAction (Action "Run") (always
+						(		runExternalTests (testDir </> path) <<@ InWindow
+							>>- \res -> (upd ('DM'.put path res)) results
+						)
+					)]
+			) @! ()) <<@ ArrangeWithSideBar 0 LeftSide 250 True
+		)		
+	where
+		testDir = "TestPrograms"
+		testsWithResults results = mapRead (\(res,tests) -> [(t,'DM'.get t res) \\t <- tests]) (results |*| tests)
+		where
+ 			tests = mapRead (filter ((==) "icl" o takeExtension)) (sdsFocus testDir externalDirectory)
+
 
 	toHtml results
 		= DivTag [] [suiteHtml res \\ res <- results | not (isEmpty res.testResults)]
@@ -288,7 +308,6 @@ instance zero SourceTreeQualityMetrics where zero = {numTODO=0,numFIXME=0}
 instance + SourceTreeQualityMetrics where (+) {numTODO=xt,numFIXME=xf} {numTODO=yt,numFIXME=yf} = {numTODO = xt+yt, numFIXME= xf+yf}
 
 //End metrics 
-
 
 runUnitTestsWorld :: [TestSuite] *World -> *(!TestReport,!*World)
 runUnitTestsWorld suites world = foldr runSuite ([],world) suites
@@ -346,3 +365,79 @@ runUnitTestsJSON suites world
 	# world 			= setReturnCode (if (noneFailed report) 0 1) world
 	= world
 
+execTestSuite :: TestSuite *World -> World //TODO: Use a standard format for reporting test results
+execTestSuite  {TestSuite|name,tests} world
+	# (console,world) = stdio world
+	# console = fwrites ("Suite: " +++ name +++ "\n") console
+	# console = fwrites ("Num: " +++ toString (length tests) +++ "\n") console
+	# (allOk,console,world) = execTests tests console world 
+	# (_,world) = fclose console world
+	= setReturnCode (if allOk 0 1) world
+where
+	execTests [] console world = (True,console,world)
+	execTests [t:ts] console world
+		# (r,console,world) = execTest t console world
+		# (rs,console,world) = execTests ts console world
+		= (r && rs,console,world)
+
+	execTest (UnitTest {UnitTest|name,test}) console world
+		# console = fwrites ("\nTest: " +++ name +++ "\n") console
+		# (result,world) = test world
+		# console = case result of	
+			Passed = fwrites "Result: Passed\n" console
+			Skipped = fwrites "Result: Skipped\n" console
+			Failed Nothing = fwrites "Result: Failed\n" console
+			Failed (Just msg) = (fwrites "Result: Failed\n") $ (fwrites msg) console
+		= (result =: Passed || result =: Skipped, console, world)
+	execTest _ console world
+		= (True,console,world)
+
+runExternalTests :: FilePath -> Task SuiteResult
+runExternalTests path
+	= withShared [] ( \io -> (
+			 runWithOutput "/Users/bas/Clean/bin/cpm" [prj] (Just baseDir) io //Build the test
+		>>- \res -> case res of
+			(ExitCode 0,_) = runWithOutput exe [] Nothing io @ parseSuiteResult //Run the test
+			(_,output)     = return {SuiteResult|suiteName=path,testResults=[("build",Failed (Just ("Failed to build " +++ prj +++ "\n" +++ output)))]}
+	   )
+	  )
+where
+	baseDir = takeDirectory path
+	base = dropExtension path
+	exe = addExtension base "exe"
+	prj = addExtension base "prj"
+
+	runWithOutput prog args dir out 
+		= externalProcess prog args dir out {onStartup=onStartup,whileRunning=whileRunning,onExit=onExit}	
+	where
+		onStartup r = (Ok (ExitCode 0,""), Nothing, [], False) 
+		whileRunning (Just (_,data)) (e,o) r = (Ok (e,o +++ data), Just (r ++ [data]), [], False)
+		whileRunning _ l r = (Ok l, Nothing, [], False)
+		onExit ecode (_,o) r =  (Ok (ecode,o), Nothing)
+	
+	parseSuiteResult :: (ExitCode,String) -> SuiteResult //QUICK AND DIRTY PARSER
+	parseSuiteResult (ExitCode ecode,output)
+		# lines = split "\n" output
+		| length lines < 2 = fallback ecode output
+		# suiteName = trim ((split ":" (lines !! 0)) !! 1)
+		# results = [parseRes resLines \\ resLines <- splitLines (drop 3 lines) | length resLines >= 2]
+		= {SuiteResult|suiteName=suiteName,testResults=results}
+	where
+		splitLines lines = split` lines [[]]
+		where
+			split` ["":lines] acc = split` lines [[]:acc]
+			split` [l:lines] [h:acc] = split` lines [[l:h]:acc]
+			split` [] acc = reverse (map reverse acc)
+
+		parseRes [nameLine,resultLine:descLines]
+			# name = trim ((split ":" nameLine) !! 1)
+			# result = case resultLine of
+				"Result: Passed" = Passed
+				"Result: Skipped" = Skipped
+				_ = Failed (if (descLines =: []) Nothing (Just (join "\n" descLines)))
+			= (name,result)
+		parseRes _ = ("oops",Failed Nothing)
+
+		//If we can't parse the output, We'll treat it as a single simple test executable
+		fallback 0 _ = {SuiteResult|suiteName="Unknown",testResults=[("executable",Passed)]}
+		fallback _ output = {SuiteResult|suiteName="Unknown",testResults=[("executable",Failed (Just output))]}

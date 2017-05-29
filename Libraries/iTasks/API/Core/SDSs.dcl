@@ -72,3 +72,6 @@ randomInt				:: ROShared () Int
 
 // External file
 externalFile            :: RWShared FilePath String String
+
+// External directory
+externalDirectory       :: ROShared FilePath [FilePath]

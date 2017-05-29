@@ -1,4 +1,4 @@
-definition module Tests.Unit.FrameworkStubs
+definition module FrameworkStubs
 
 from iTasks._Framework.IWorld import :: IWorld
 from iTasks.UI.Editor import :: VSt

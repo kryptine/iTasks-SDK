@@ -1,4 +1,4 @@
-implementation module Tests.Unit.FrameworkStubs
+implementation module FrameworkStubs
 import iTasks._Framework.IWorld
 import iTasks._Framework.Generic
 import iTasks.API.Core.Types

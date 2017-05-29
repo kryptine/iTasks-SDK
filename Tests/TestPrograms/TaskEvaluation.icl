@@ -1,4 +1,4 @@
-implementation module Tests.Unit.TaskEvaluation
+module TaskEvaluation
 
 import TestFramework
 
@@ -23,8 +23,7 @@ derive gText ServerInfo, SystemPaths, Queue
 derive gEq Queue
 derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, JSONNode, MaybeError
 
-testTaskEvaluation :: TestSuite
-testTaskEvaluation = testsuite "Task evaluation" "Tests to verify properties of task evaluation"
+Start world = execTestSuite (testsuite "Task evaluation" "Tests to verify properties of task evaluation"
 	[testInitIWorld
 	,testCreateTaskInstance
 	,testInitialEditorUI
@@ -38,7 +37,7 @@ testTaskEvaluation = testsuite "Task evaluation" "Tests to verify properties of 
 	,testParallelRemove
 */
 	,testForeverLoop
-	]
+	]) world
 
 testInitIWorld = assertWorld "Init IWorld" id sut
 where

@@ -1,6 +1,6 @@
-implementation module Tests.Unit.CoreEditors
+module CoreEditors
 import TestFramework
-import Tests.Unit.FrameworkStubs
+import FrameworkStubs
 
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Layout
 import iTasks._Framework.IWorld
@@ -37,17 +37,37 @@ derive gPrettyTrace TestConsWithField
 derive class iTask TestRecursiveCons
 derive gPrettyTrace TestRecursiveCons
 
-testGenericEditorGenUI :: TestSuite
-testGenericEditorGenUI = testsuite "Generic UI generation" "Tests for the core generic UI generation"
-	[testIntEnter
-	,testIntUpdate
-	,testRealUpdate
-	,testConsFieldsUpdate
-	,testMultipleConsesUpdate
-	,testConsesWithFieldTouched
-	,testRecordTouched 
-	,testMaybeIntEnter
-	]
+Start world = execTestSuite (testsuite "Core editors" "Tests for core editors" tests) world
+where
+	tests = 
+        [testIntEnter
+        ,testIntUpdate
+	    ,testRealUpdate
+	    ,testConsFieldsUpdate
+        ,testMultipleConsesUpdate
+        ,testConsesWithFieldTouched
+        ,testRecordTouched 
+        ,testMaybeIntEnter
+        ,testEditConsChange
+        ,skip testEditRecursiveConsChange
+        ,testEditRecursiveConsChange2
+        ,testEditListElement
+        ,testAddListElement
+        ,testMoveListElementUp
+        ,testMoveListElementDown
+        ,testMoveFirstListElementDown
+        ,testRemoveListElement
+        ,testSameInt
+        ,testDifferentInt1
+        ,testDifferentInt2
+        ,testDiffConsFields1
+        ,testDiffConsFields2
+        ,testDiffRecordFields
+        ,skip testDiffConsChange
+        ,testDiffConsWithFieldChange
+        ,testMaybeIntChangeToJust
+        ,testMaybeIntChangeToNothing
+        ]
 
 testGenUI :: String (UI,EditMask) a EditMode-> Test | iTask a
 testGenUI name exp x mode = assertEqualWorld name (Ok exp) sut
@@ -164,20 +184,6 @@ testMaybeIntEnter = testGenUI "Enter optional Int"
 where
 	test :: Maybe Int
 	test = Nothing
-
-testGenericEditorEdits :: TestSuite
-testGenericEditorEdits = testsuite "Generic edits" "Tests for processing edits by editors"
-	[testEditConsChange
-	,skip testEditRecursiveConsChange
-	,testEditRecursiveConsChange2
-	,testEditListElement
-	,testAddListElement
-	,testMoveListElementUp
-	,testMoveListElementDown
-	,testMoveFirstListElementDown
-	,testRemoveListElement
-	]
-
 testGenEdit :: String (a,EditMask,UIChange) (a,EditMask) (DataPath,JSONNode) -> Test | iTask a & gPrettyTrace{|*|} a
 testGenEdit name exp (ov,om) (tp,edit) = assertEqualWorld name (Ok exp) sut
 where
@@ -273,20 +279,6 @@ testRemoveListElement = skip (testGenEdit "Remove list element"
                              ,(2,RemoveChild)])
 	([1,2,3], CompoundMask {fields=[FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 3}],state=JSONArray [JSONInt 0,JSONInt 1,JSONInt 2]})
 	([],JSONString "rem_2"))
-
-testGenericEditorRefreshes :: TestSuite
-testGenericEditorRefreshes = testsuite "Generic refresh" "Tests for the generic refresh functions"
-	[testSameInt
-	,testDifferentInt1
-	,testDifferentInt2
-	,testDiffConsFields1
-	,testDiffConsFields2
-	,testDiffRecordFields
-	,skip testDiffConsChange
-	,testDiffConsWithFieldChange
-	,testMaybeIntChangeToJust
-	,testMaybeIntChangeToNothing
-	]
 
 //General pattern for diff tests
 
@@ -385,10 +377,3 @@ testMaybeIntChangeToNothing = skip (fail "Switch Maybe Int Just to Nothing")
 		(Just 42)
 		Nothing
 */
-
-testGenericHelperFunctions :: TestSuite
-testGenericHelperFunctions = testsuite "Generic helper functions" "Tests for the helper functions used by the generic editors"
-	[
-	]
-
-
