@@ -1,6 +1,6 @@
 module TaskEvaluation
 
-import TestFramework
+import iTasks._Framework.Test.Definition
 
 from iTasks._Framework.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{server}, :: ServerInfo(..), :: SystemPaths(..)
 from iTasks._Framework.TaskStore import createTaskInstance, taskInstanceUIChanges

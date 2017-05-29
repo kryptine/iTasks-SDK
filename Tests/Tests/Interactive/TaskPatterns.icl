@@ -1,5 +1,5 @@
 implementation module Tests.Interactive.TaskPatterns
-import TestFramework
+import iTasks._Framework.Test.Definition
 import Data.Maybe, Text
 import qualified Data.Map as DM
 import iTasks.UI.Editor.Builtin

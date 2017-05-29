@@ -1,6 +1,6 @@
 module CoreEditors
-import TestFramework
-import FrameworkStubs
+import iTasks._Framework.Test.Definition
+import iTasks._Framework.Test.Stubs
 
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Layout
 import iTasks._Framework.IWorld

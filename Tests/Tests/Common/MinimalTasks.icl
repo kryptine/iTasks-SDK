@@ -1,5 +1,5 @@
 implementation module Tests.Common.MinimalTasks
-import TestFramework
+import iTasks
 import iTasks.UI.Definition, iTasks.UI.Editor
 import Data.Tuple
 import qualified Data.Map as DM

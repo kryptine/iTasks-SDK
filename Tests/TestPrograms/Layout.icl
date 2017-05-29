@@ -1,6 +1,6 @@
 module Layout
-import TestFramework
-import FrameworkStubs
+import iTasks._Framework.Test.Definition
+import iTasks._Framework.Test.Stubs
 
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks.UI.Layout.Common

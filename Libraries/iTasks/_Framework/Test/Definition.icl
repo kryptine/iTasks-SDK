@@ -1,4 +1,4 @@
-implementation module TestFramework
+implementation module iTasks._Framework.Test.Definition
 import iTasks, StdFile, StdMisc
 import iTasks.API.Extensions.Image
 import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
@@ -22,7 +22,6 @@ from Data.Queue import :: Queue(..)
 import System.OS
 import iTasks.Util.Trace
 
-// TEST FRAMEWORK
 derive class iTask TestSuite, Test, InteractiveTest, TestResult, SuiteResult, ExitCode
 
 gText{|UnitTest|} _ _			            = []
@@ -98,15 +97,6 @@ filterTestsByName pattern tests = filter match tests
 where
 	match (UnitTest {UnitTest|name}) = indexOf pattern name >= 0
 	match (InteractiveTest {InteractiveTest|name}) = indexOf pattern name >= 0
-
-//RUNNING TESTS
-testInteractive :: InteractiveTest -> Task TestResult
-testInteractive {name,instructions,expectation,taskUnderTest}
-	= 	(viewInformation () [] (H1Tag [] [Text name]) <<@ ApplyLayout (setUIAttributes (heightAttr WrapSize)))
-	||-	((viewInformation (Title "Instructions") [] instructions)
-		  -&&- (viewInformation (Title "Expected result") [] expectation) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
-	||- taskUnderTest
-	||- enterInformation (Title "Result") []
 
 //UTILITY TASKS
 testEditor :: (Editor a) a EditMode -> Task a | iTask a
@@ -206,120 +196,6 @@ noneFailed suiteResults = all (checkSuiteResult (\r -> r =: Passed || r =: Skipp
 checkSuiteResult :: (TestResult -> Bool) SuiteResult -> Bool
 checkSuiteResult f {SuiteResult|testResults} = all (\(_,r) -> f r) testResults
 
-runTests :: [TestSuite] -> Task ()
-runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
-    ( allTasks [runInteractiveTests <<@ Title "Interactive Tests"
-			   ,runUnitTests   <<@ Title "Unit Tests"
-			   ,viewQualityMetrics  <<@ Title "Metrics"
-			   ] <<@ ArrangeWithTabs
-    ) @! ()
-where
-	runInteractiveTests
-		= ( editSelection (Title "Select test") False (SelectInTree toTree selectTest) suites [] @? tvHd
-		>&> withSelection (viewInformation () [] "Select a test") testInteractive ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
-
-	toTree suites = reverse (snd (foldl addSuite (0,[]) suites))
-	addSuite (i,t) {TestSuite|name,tests}
-		| isEmpty [t \\ InteractiveTest t <- tests]  = (i,t) //There are no interactive tests in the suite
-		# (i,children) = foldl addTest (i,[]) tests
-		= (i, [{ChoiceNode|id = -1 * i, label=name, expanded=False, icon=Nothing, children=reverse children}:t])
-
-	addTest (i,t) (InteractiveTest {InteractiveTest|name})
-		= (i + 1, [{ChoiceNode|id = i, label=name, expanded=False, icon=Nothing, children=[]}:t])
-	addTest (i,t) _ = (i,t)
-
-	selectTest suites [idx] 
-		| idx >= 0  = [(flatten [[t \\ InteractiveTest t <- s.TestSuite.tests] \\ s <- suites]) !! idx]
-		| otherwise = []
-	selectTest _ _ = []
-
-	runUnitTests = withShared 'DM'.newMap
-		\results ->
-		(
-		 (enterChoiceWithSharedAs () [ChooseFromGrid fst] (testsWithResults results) fst 
-		>&> withSelection (viewInformation "Select a test" [] ())
-			(\path -> 
-				(viewSharedInformation (Title "Code") [ViewUsing id aceTextArea] (sdsFocus (testDir </> path) externalFile)
-				-&&-
-				viewSharedInformation (Title "Results") [ViewAs (toHtml o maybeToList)] (mapRead ('DM'.get path) results) <<@ ArrangeHorizontal)
-				>^* [OnAction (Action "Run") (always
-						(		runExternalTests (testDir </> path) <<@ InWindow
-							>>- \res -> (upd ('DM'.put path res)) results
-						)
-					)]
-			) @! ()) <<@ ArrangeWithSideBar 0 LeftSide 250 True
-		)		
-	where
-		testDir = "TestPrograms"
-		testsWithResults results = mapRead (\(res,tests) -> [(t,'DM'.get t res) \\t <- tests]) (results |*| tests)
-		where
- 			tests = mapRead (filter ((==) "icl" o takeExtension)) (sdsFocus testDir externalDirectory)
-
-
-	toHtml results
-		= DivTag [] [suiteHtml res \\ res <- results | not (isEmpty res.testResults)]
-	where
-		suiteHtml {suiteName,testResults}
-			=  DivTag [] [H2Tag [] [Text suiteName]
-						 ,TableTag [StyleAttr "width: 100%"] [headerRow:map resultRow testResults]
-						 ]
-
-		headerRow = TrTag [] [ThTag [] [Text "Test"],ThTag [] [Text "Result"],ThTag [] [Text "Details"]]
-
-		resultRow (test,Passed) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: green"] [Text "Passed"]],TdTag [] []]
-		resultRow (test,Skipped) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: orange"] [Text "Skipped"]],TdTag [] []]
-		resultRow (test,Failed Nothing) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] []]
-		resultRow (test,Failed (Just details)) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [TextareaTag [] [Text details]]]
-
-	application header mainTask
-		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False <<@ ApplyLayout (setUIType UIContainer)
-
-	viewQualityMetrics :: Task ()
-	viewQualityMetrics 
-		= 	analyzeITasksCodeBase
-		>>- viewInformation () [ViewAs view]  @! ()
-	where
-		view {numTODO,numFIXME} = UlTag [] [LiTag [] [Text "Number of TODO's found: ",Text (toString numTODO)]
-										   ,LiTag [] [Text "Number of FIXME's found: ",Text (toString numFIXME)]
-										   ]
-//Begin metrics 
-//The following section should probably be moved to a separate module
-:: SourceTreeQualityMetrics =
-	{ numTODO  :: Int
-	, numFIXME :: Int
-	}
-derive class iTask SourceTreeQualityMetrics 
-
-analyzeITasksCodeBase :: Task SourceTreeQualityMetrics 
-analyzeITasksCodeBase
-	= 	rescanCodeBase [{name="iTasks",rootPath=".."</>"Server",subPaths=[],readOnly=True,modules=[]}]
-	@   listFilesInCodeBase
-	>>- \files -> allTasks (map determineQualityMetrics files) @ aggregate
-where
-	aggregate ms = foldr (+) zero ms
-
-determineQualityMetrics :: CleanFile -> Task SourceTreeQualityMetrics
-determineQualityMetrics file = importTextFile (cleanFilePath file) @ analyze
-where
-	analyze text = {numTODO=num "TODO" text ,numFIXME=num "FIXME" text}
-	num needle text = length (split needle text) - 1
-
-instance zero SourceTreeQualityMetrics where zero = {numTODO=0,numFIXME=0}
-instance + SourceTreeQualityMetrics where (+) {numTODO=xt,numFIXME=xf} {numTODO=yt,numFIXME=yf} = {numTODO = xt+yt, numFIXME= xf+yf}
-
-//End metrics 
-
-runUnitTestsWorld :: [TestSuite] *World -> *(!TestReport,!*World)
-runUnitTestsWorld suites world = foldr runSuite ([],world) suites
-where
-	runSuite {TestSuite|name,tests} (report,world)
-		# (testResults,world) = foldr runTest ([],world) [t \\ UnitTest t <- tests]
-		= ([{SuiteResult|suiteName=name,testResults=testResults}:report],world)
-
-	runTest {UnitTest|name,test} (results,world)
-		# (result,world) = test world
-		= ([(name,result):results],world)
-
 runUnitTestsCLI :: [TestSuite] *World -> *World
 runUnitTestsCLI suites world
 	# (console,world)	       = stdio world
@@ -365,6 +241,17 @@ runUnitTestsJSON suites world
 	# world 			= setReturnCode (if (noneFailed report) 0 1) world
 	= world
 
+runUnitTestsWorld :: [TestSuite] *World -> *(!TestReport,!*World)
+runUnitTestsWorld suites world = foldr runSuite ([],world) suites
+where
+    runSuite {TestSuite|name,tests} (report,world)
+        # (testResults,world) = foldr runTest ([],world) [t \\ UnitTest t <- tests]
+        = ([{SuiteResult|suiteName=name,testResults=testResults}:report],world)
+
+    runTest {UnitTest|name,test} (results,world)
+        # (result,world) = test world
+        = ([(name,result):results],world)
+
 execTestSuite :: TestSuite *World -> World //TODO: Use a standard format for reporting test results
 execTestSuite  {TestSuite|name,tests} world
 	# (console,world) = stdio world
@@ -392,52 +279,3 @@ where
 	execTest _ console world
 		= (True,console,world)
 
-runExternalTests :: FilePath -> Task SuiteResult
-runExternalTests path
-	= withShared [] ( \io -> (
-			 runWithOutput "/Users/bas/Clean/bin/cpm" [prj] (Just baseDir) io //Build the test
-		>>- \res -> case res of
-			(ExitCode 0,_) = runWithOutput exe [] Nothing io @ parseSuiteResult //Run the test
-			(_,output)     = return {SuiteResult|suiteName=path,testResults=[("build",Failed (Just ("Failed to build " +++ prj +++ "\n" +++ output)))]}
-	   )
-	  )
-where
-	baseDir = takeDirectory path
-	base = dropExtension path
-	exe = addExtension base "exe"
-	prj = addExtension base "prj"
-
-	runWithOutput prog args dir out 
-		= externalProcess prog args dir out {onStartup=onStartup,whileRunning=whileRunning,onExit=onExit}	
-	where
-		onStartup r = (Ok (ExitCode 0,""), Nothing, [], False) 
-		whileRunning (Just (_,data)) (e,o) r = (Ok (e,o +++ data), Just (r ++ [data]), [], False)
-		whileRunning _ l r = (Ok l, Nothing, [], False)
-		onExit ecode (_,o) r =  (Ok (ecode,o), Nothing)
-	
-	parseSuiteResult :: (ExitCode,String) -> SuiteResult //QUICK AND DIRTY PARSER
-	parseSuiteResult (ExitCode ecode,output)
-		# lines = split "\n" output
-		| length lines < 2 = fallback ecode output
-		# suiteName = trim ((split ":" (lines !! 0)) !! 1)
-		# results = [parseRes resLines \\ resLines <- splitLines (drop 3 lines) | length resLines >= 2]
-		= {SuiteResult|suiteName=suiteName,testResults=results}
-	where
-		splitLines lines = split` lines [[]]
-		where
-			split` ["":lines] acc = split` lines [[]:acc]
-			split` [l:lines] [h:acc] = split` lines [[l:h]:acc]
-			split` [] acc = reverse (map reverse acc)
-
-		parseRes [nameLine,resultLine:descLines]
-			# name = trim ((split ":" nameLine) !! 1)
-			# result = case resultLine of
-				"Result: Passed" = Passed
-				"Result: Skipped" = Skipped
-				_ = Failed (if (descLines =: []) Nothing (Just (join "\n" descLines)))
-			= (name,result)
-		parseRes _ = ("oops",Failed Nothing)
-
-		//If we can't parse the output, We'll treat it as a single simple test executable
-		fallback 0 _ = {SuiteResult|suiteName="Unknown",testResults=[("executable",Passed)]}
-		fallback _ output = {SuiteResult|suiteName="Unknown",testResults=[("executable",Failed (Just output))]}

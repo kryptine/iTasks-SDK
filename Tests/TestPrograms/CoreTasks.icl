@@ -1,5 +1,5 @@
 module CoreTasks
-import iTasks, TestFramework
+import iTasks, iTasks._Framework.Test.Definition
 import iTasks.UI.Definition
 import System.OS
 
