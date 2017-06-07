@@ -105,13 +105,19 @@ startEngineWithOptions publishable options=:{appName,appPath,serverPort,keepaliv
  	# (res,iworld) 			= initJSCompilerState iworld
  	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
     //Start task server
-	# iworld				= serve [] [(serverPort,httpServer serverPort keepalive (engine publishable) allUIChanges)] backgroundTasks timeout iworld
+	# iworld				= serve [] tcpTasks systemTasks timeout iworld
 	= destroyIWorld iworld
 where
 	running :: !String !Int -> [String]
 	running app port = ["*** " +++ app +++ " HTTP server ***"
                        ,""
                        ,"Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
+
+	tcpTasks = [(serverPort,httpServer serverPort keepalive (engine publishable) allUIChanges)]
+	systemTasks =
+ 		[BackgroundTask updateClocks
+		,BackgroundTask (processEvents MAX_EVENTS)
+		,BackgroundTask removeOutdatedSessions]
 
 runTasks :: a !*World -> *World | Runnable a
 runTasks tasks world
@@ -124,13 +130,13 @@ runTasksWithOptions runnable options=:{appName,appPath,serverPort,keepalive,webD
  	# iworld				= createIWorld appName appPath webDirPath storeDirPath saplDirPath world
  	# (res,iworld) 			= initJSCompilerState iworld
  	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-	# iworld				= serve (toRunnable runnable) [] backgroundTasks timeout iworld
+	# iworld				= serve (toRunnable runnable) [] systemTasks timeout iworld
 	= destroyIWorld iworld
-
-backgroundTasks =
- 	[BackgroundTask updateClocks
-	,BackgroundTask (processEvents MAX_EVENTS)
-	,BackgroundTask removeOutdatedSessions]
+where
+	systemTasks =
+ 		[BackgroundTask updateClocks
+		,BackgroundTask (processEvents MAX_EVENTS)
+		,BackgroundTask stopOnStable]
 
 timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
 timeout iworld = case 'SDS'.read taskEvents iworld of //Check if there are events in the queue
@@ -162,6 +168,7 @@ updateClocks iworld=:{IWorld|clocks,world}
 	| mbe =:(Error _) = (mbe,iworld)
     = (Ok (),iworld)
 
+//When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
 removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 removeOutdatedSessions iworld
     # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) iworld
@@ -184,6 +191,16 @@ where
 			(Ok Nothing,iworld) = iworld
 			(Error e,iworld) = iworld
 
+//When we don't run the built-in HTTP server we don't want to loop forever so we stop the loop
+//once all tasks are stable
+stopOnStable :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+stopOnStable iworld=:{IWorld|shutdown}
+    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & includeProgress=True} filteredInstanceIndex) iworld
+	= case mbIndex of 
+		Ok index = (Ok (), {IWorld|iworld & shutdown = shutdown || allStable index})
+		Error e  = (Error e, iworld)
+where
+	allStable instances = and [value =: Stable || value =: Exception \\ (_,_,Just {InstanceProgress|value},_) <- instances]
 
 //HACK FOR RUNNING BACKGROUND TASKS ON A CLIENT
 background :: !*IWorld -> *IWorld
