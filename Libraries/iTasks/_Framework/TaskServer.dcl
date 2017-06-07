@@ -11,9 +11,10 @@ from Data.Error                 import :: MaybeError
 from iTasks.API.Core.Types      import :: TaskId
 from iTasks._Framework.IWorld	import :: IWorld, :: BackgroundTaskId
 from iTasks._Framework.Task     import :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask, :: TaskException
+from iTasks._Framework.Engine   import :: TaskWrapper
 
 //Core task server loop
-serve :: !Int !ConnectionTask ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
+serve :: ![TaskWrapper] ![(!Int,!ConnectionTask)] ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
 
 //Dynamically add a listener
 addListener :: !TaskId !Int !Bool !ConnectionTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)

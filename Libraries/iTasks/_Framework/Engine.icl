@@ -36,14 +36,12 @@ show lines world
 	# (_,world)			= fclose console world
 	= world
 
-startEngine :: a !*World -> *World | Publishable a
-startEngine publishable world
+getServerOptions :: !*World -> (!Maybe ServerOptions,!*World)
+getServerOptions world
 	# (opts,world)			= getCommandLine world
 	# (appName,world)		= determineAppName world
 	# (appPath,world)		= determineAppPath world	
-	// Show server name
-	# world					= show (infoline appName) world
-  	//Check commandline options
+	//Check commandline options
 	# port 					= fromMaybe DEFAULT_PORT (intOpt "-port" opts)
 	# keepalive				= fromMaybe DEFAULT_KEEPALIVE_TIME (intOpt "-keepalive" opts)
 	# help					= boolOpt "-help" opts
@@ -51,8 +49,8 @@ startEngine publishable world
 	# storeOpt		    	= stringOpt "-store" opts
 	# saplOpt		    	= stringOpt "-sapl" opts
 	//If -help option is given show help and stop
-	| help					= show instructions world
-	# options				=
+	| help					= (Nothing, show instructions world)
+	# options =	
 		{ appName			= appName
 		, appPath			= appPath
 		, serverPort		= port
@@ -61,7 +59,7 @@ startEngine publishable world
 		, storeDirPath      = storeOpt
 		, saplDirPath 	    = saplOpt
 		}
-	= startEngineWithOptions publishable options world
+	= (Just options,world)
 where
 	instructions :: [String]
 	instructions =
@@ -74,11 +72,6 @@ where
 		," -keepalive <time> : Set connection keepalive time in seconds (default " +++ toString DEFAULT_KEEPALIVE_TIME +++ ")"
 		,""
 		]
-
-	//running :: !Int -> [String]
-	//running port = ["Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
-	infoline :: !String -> [String]
-	infoline app	= ["*** " +++ app +++ " HTTP server ***",""]
 
 	boolOpt :: !String ![String] -> Bool
 	boolOpt key opts = isMember key opts
@@ -99,35 +92,51 @@ where
 		| n == key	= Just v
 					= stringOpt key [v:r]
 
+startEngine :: a !*World -> *World | Publishable a
+startEngine publishable world
+	= case getServerOptions world of
+		(Nothing,world)      = world
+		(Just options,world) = startEngineWithOptions publishable options world
+
 startEngineWithOptions :: a ServerOptions !*World -> *World | Publishable a
 startEngineWithOptions publishable options=:{appName,appPath,serverPort,keepalive,webDirPath,storeDirPath,saplDirPath} world
-	# world					= show (running serverPort) world
+	# world					= show (running appName serverPort) world
  	# iworld				= createIWorld appName appPath webDirPath storeDirPath saplDirPath world
  	# (res,iworld) 			= initJSCompilerState iworld
  	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
- 	// All persistent task instances should receive a reset event to continue their work
-    # iworld                = queueAllPersistent iworld
     //Start task server
-	# iworld				= serve serverPort (httpServer serverPort keepalive (engine publishable) allUIChanges)
-		[BackgroundTask removeOutdatedSessions
- 		,BackgroundTask updateClocks, BackgroundTask (processEvents MAX_EVENTS)] timeout iworld
+	# iworld				= serve [] [(serverPort,httpServer serverPort keepalive (engine publishable) allUIChanges)] backgroundTasks timeout iworld
 	= destroyIWorld iworld
 where
-	running :: !Int -> [String]
-	running port = ["Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
-						
-	timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
-	timeout iworld = case 'SDS'.read taskEvents iworld of //Check if there are events in the queue
-		(Ok (Queue [] []),iworld)   = (Just 10,iworld) //Empty queue, don't waste CPU, but refresh
-		(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
-		(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
+	running :: !String !Int -> [String]
+	running app port = ["*** " +++ app +++ " HTTP server ***"
+                       ,""
+                       ,"Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
 
-queueAllPersistent :: !*IWorld -> *IWorld
-queueAllPersistent iworld
-    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just False} filteredInstanceIndex) iworld
-    = case mbIndex of
-        Ok index    = queueRefresh [(instanceNo,"Persistent first refresh") \\ (instanceNo,_,_,_)<- index]  iworld
-        _           = iworld
+runTasks :: a !*World -> *World | Runnable a
+runTasks tasks world
+	= case getServerOptions world of
+		(Nothing,world)      = world
+		(Just options,world) = runTasksWithOptions tasks options world
+
+runTasksWithOptions :: a ServerOptions !*World -> *World | Runnable a
+runTasksWithOptions runnable options=:{appName,appPath,serverPort,keepalive,webDirPath,storeDirPath,saplDirPath} world
+ 	# iworld				= createIWorld appName appPath webDirPath storeDirPath saplDirPath world
+ 	# (res,iworld) 			= initJSCompilerState iworld
+ 	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
+	# iworld				= serve (toRunnable runnable) [] backgroundTasks timeout iworld
+	= destroyIWorld iworld
+
+backgroundTasks =
+ 	[BackgroundTask updateClocks
+	,BackgroundTask (processEvents MAX_EVENTS)
+	,BackgroundTask removeOutdatedSessions]
+
+timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
+timeout iworld = case 'SDS'.read taskEvents iworld of //Check if there are events in the queue
+	(Ok (Queue [] []),iworld)   = (Just 10,iworld) //Empty queue, don't waste CPU, but refresh
+	(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
+	(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
 
 updateClocks :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateClocks iworld=:{IWorld|clocks,world}
@@ -175,6 +184,7 @@ where
 			(Ok Nothing,iworld) = iworld
 			(Error e,iworld) = iworld
 
+
 //HACK FOR RUNNING BACKGROUND TASKS ON A CLIENT
 background :: !*IWorld -> *IWorld
 background iworld
@@ -195,13 +205,13 @@ where
 	published = publishAll publishable 
 
 publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
-publish url task = {url = url, task = TaskWrapper (withFinalSessionLayout task)}
+publish url task = {url = url, task = WebTaskWrapper (withFinalSessionLayout task)}
 
 withFinalSessionLayout :: (HTTPRequest -> Task a) -> (HTTPRequest -> Task a) | iTask a
 withFinalSessionLayout taskf = \req -> tune (ApplyLayout defaultSessionLayout) (taskf req)
 
 publishWithoutLayout :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
-publishWithoutLayout url task = {url = url, task = TaskWrapper task}
+publishWithoutLayout url task = {url = url, task = WebTaskWrapper task}
 
 instance Publishable (Task a) | iTask a
 where
@@ -214,6 +224,19 @@ where
 instance Publishable [PublishedTask]
 where
 	publishAll list = list
+
+class Runnable a
+where
+	toRunnable :: !a -> [TaskWrapper] 
+
+instance Runnable (Task a) | iTask a
+where
+	toRunnable task = [TaskWrapper task]
+
+instance Runnable [TaskWrapper]
+where
+	toRunnable list = list
+
 
 // Determines the server executables name
 determineAppName :: !*World -> (!String,!*World)
