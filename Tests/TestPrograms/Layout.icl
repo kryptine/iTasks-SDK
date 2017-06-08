@@ -30,11 +30,11 @@ Start world = execTestSuite (testsuite "Layout" "Tests for the layout functions"
 	,testRemoveSubsMatchingOnReplaceMultipleAfterRemove
 	,testRemoveSubsMatchingOnRemove
 	,skip testLayoutSubsMatching
-	,testMoveSubsMatchingInitial
-	,testMoveSubsMatchingInitial2
-	,testMoveSubsMatchingNewRoutes
-	,testMoveSubsMatchingNewRoutes2
-	,testMoveSubsMatchingNewRoutes3
+	,skip testMoveSubsMatchingInitial
+	,skip testMoveSubsMatchingInitial2
+	,skip testMoveSubsMatchingNewRoutes
+	,skip testMoveSubsMatchingNewRoutes2
+	,skip testMoveSubsMatchingNewRoutes3
 	,skip testSequenceLayouts
 	,skip testSelectLayout
 	//Common patterns
