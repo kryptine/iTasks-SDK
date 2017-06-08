@@ -185,6 +185,8 @@ traceValue :: a -> Task a | iTask a
 
 /**
 * Terminates a running task server
+*
+* @param The exit code of the server process
 */
-shutDown :: Task ()
+shutDown :: Int -> Task ()
 

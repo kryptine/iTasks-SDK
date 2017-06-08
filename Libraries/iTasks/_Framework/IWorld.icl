@@ -104,7 +104,7 @@ createIWorld appName appPath mbWebdirPath mbStorePath mbSaplPath world
       ,cachedShares         = 'DM'.newMap
 	  ,exposedShares		= 'DM'.newMap
 	  ,jsCompilerState		= Nothing
-	  ,shutdown				= False
+	  ,shutdown				= Nothing
       ,ioTasks              = {done = [], todo = []}
       ,ioStates             = 'DM'.newMap
 	  ,world				= world

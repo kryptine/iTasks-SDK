@@ -327,7 +327,7 @@ where
 	disconnectFun _ _ (state,instances) iworld = (Nothing, snd (updateInstanceDisconnect instances iworld))
 	disconnectFun _ _ _ iworld                 = (Nothing, iworld)
 
-	createTaskInstance` req [{PublishedTask|url,task=TaskWrapper task}:taskUrls] iworld
+	createTaskInstance` req [{PublishedTask|url,task=WebTaskWrapper task}:taskUrls] iworld
 		| req.HTTPRequest.req_path == uiUrl url = createTaskInstance (task req) iworld
 		| otherwise = createTaskInstance` req taskUrls iworld
 

@@ -150,7 +150,7 @@ createClientIWorld serverURL currentInstance
           ,cachedShares         = 'Data.Map'.newMap
 		  ,exposedShares		= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
-		  ,shutdown				= False
+		  ,shutdown				= Nothing
           ,random               = genRandInt seed
           ,ioTasks              = {done=[],todo=[]}
 		  ,ioStates             = 'Data.Map'.newMap
