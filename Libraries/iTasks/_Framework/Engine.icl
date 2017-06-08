@@ -197,10 +197,16 @@ stopOnStable :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 stopOnStable iworld=:{IWorld|shutdown}
     # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & includeProgress=True} filteredInstanceIndex) iworld
 	= case mbIndex of 
-		Ok index = (Ok (), {IWorld|iworld & shutdown = shutdown || allStable index})
+		Ok index 
+			# shutdown = case shutdown of
+				Nothing = if (allStable index) (Just (if (exceptionOccurred index) 1 0)) Nothing
+				_       = shutdown
+			= (Ok (), {IWorld|iworld & shutdown = shutdown})
 		Error e  = (Error e, iworld)
 where
-	allStable instances = and [value =: Stable || value =: Exception \\ (_,_,Just {InstanceProgress|value},_) <- instances]
+	allStable instances = all (\v -> v =: Stable || v =: Exception) (values instances) 
+	exceptionOccurred instances = any (\v -> v =: Exception) (values instances)
+	values instances = [value \\ (_,_,Just {InstanceProgress|value},_) <- instances]
 
 //HACK FOR RUNNING BACKGROUND TASKS ON A CLIENT
 background :: !*IWorld -> *IWorld

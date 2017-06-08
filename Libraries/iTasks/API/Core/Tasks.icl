@@ -287,5 +287,5 @@ where
        # iworld = trace_n (toSingleLineText v) iworld
        = (Ok v,iworld)
 
-shutDown :: Task ()
-shutDown = mkInstantTask (\taskId iworld -> (Ok (), {IWorld|iworld & shutdown = True}))
+shutDown :: Int -> Task ()
+shutDown exitCode = mkInstantTask (\taskId iworld -> (Ok (), {IWorld|iworld & shutdown = Just exitCode}))

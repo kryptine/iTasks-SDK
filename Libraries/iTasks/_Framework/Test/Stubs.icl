@@ -18,7 +18,7 @@ toStubIWorld world
   ,clocks = {SystemClocks |timestamp = Timestamp 0,localDate=defaultValue,localTime=defaultValue,utcDate=defaultValue,utcTime=defaultValue}
   ,current ={TaskEvalState|taskTime= 0,taskInstance= 0,sessionInstance = Nothing,attachmentChain = [] ,nextTaskNo = 0}
   ,sdsNotifyRequests = [], memoryShares = 'DM'.newMap, cachedShares = 'DM'.newMap, exposedShares = 'DM'.newMap
-  ,jsCompilerState = Nothing ,shutdown = False,ioTasks = {done = [], todo = []},ioStates = 'DM'.newMap
+  ,jsCompilerState = Nothing ,shutdown = Nothing ,ioTasks = {done = [], todo = []},ioStates = 'DM'.newMap
   ,world = world
   ,resources = Nothing,random = [],onClient = False }
 	

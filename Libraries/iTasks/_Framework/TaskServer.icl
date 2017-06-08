@@ -6,6 +6,7 @@ from StdFunc import seq
 from Data.Map import :: Map (..)
 import qualified System.Process as Process
 from System.Process import :: ProcessIO (..), :: ReadPipe, :: WritePipe
+import System.CommandLine
 import qualified Data.List as DL
 import qualified Data.Map as DM
 import qualified iTasks._Framework.SDS as SDS
@@ -85,8 +86,9 @@ loop determineTimeout iworld
     //Move everything from the done list  back to the todo list
     # iworld = {iworld & ioTasks={todo = reverse done,done=[]}}
     //Everything needs to be re-evaluated
-    | shutdown  = halt iworld
-    | otherwise = loop determineTimeout iworld
+	= case shutdown of
+    	(Just exitCode) = halt exitCode iworld
+        _               = loop determineTimeout iworld
 
 select :: (Maybe Timeout) *[IOTaskInstance] *World -> (!*[IOTaskInstance],![(Int,SelectResult)],!*World)
 select mbTimeout mlInstances world
@@ -538,15 +540,17 @@ checkSelect :: !Int ![(!Int,!SelectResult)] -> (!Maybe SelectResult,![(!Int,!Sel
 checkSelect i chList =:[(who,what):ws] | (i == who) = (Just what,ws)
 checkSelect i chList = (Nothing,chList)
 
-halt :: !*IWorld -> *IWorld
-halt iworld=:{ioTasks={todo=[],done}} = iworld
-halt iworld=:{ioTasks={todo=[ListenerInstance _ listener:todo],done},world}
+halt :: !Int !*IWorld -> *IWorld
+halt exitCode iworld=:{ioTasks={todo=[],done},world}
+	# world = setReturnCode exitCode world
+	= {IWorld|iworld & world = world}
+halt exitCode iworld=:{ioTasks={todo=[ListenerInstance _ listener:todo],done},world}
  	# world = closeRChannel listener world
-    = halt {iworld & ioTasks = {todo=todo,done=done}}
-halt iworld=:{ioTasks={todo=[ConnectionInstance _ {rChannel,sChannel}:todo],done},world}
+    = halt exitCode {iworld & ioTasks = {todo=todo,done=done}}
+halt exitCode iworld=:{ioTasks={todo=[ConnectionInstance _ {rChannel,sChannel}:todo],done},world}
  	# world = closeRChannel rChannel world
     # world = closeChannel sChannel world
-    = halt {iworld & ioTasks = {todo=todo,done=done}}
-halt iworld=:{ioTasks={todo=[BackgroundInstance _ _ :todo],done},world}
-    = halt {iworld & ioTasks= {todo=todo,done=done}}
+    = halt exitCode {iworld & ioTasks = {todo=todo,done=done}}
+halt exitCode iworld=:{ioTasks={todo=[BackgroundInstance _ _ :todo],done},world}
+    = halt exitCode {iworld & ioTasks= {todo=todo,done=done}}
 
