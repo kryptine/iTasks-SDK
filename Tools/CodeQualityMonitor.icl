@@ -14,6 +14,7 @@ import iTasks.UI.Definition
 import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common
 import iTasks.API.Extensions.Editors.Ace
 import iTasks.API.Extensions.Development.Codebase
+import iTasks.API.Extensions.Development.Testing
 import iTasks.API.Extensions.Image
 
 
@@ -85,7 +86,7 @@ where
 				-&&-
 				viewSharedInformation (Title "Results") [ViewAs (toHtml o maybeToList)] (mapRead ('DM'.get path) results) <<@ ArrangeHorizontal)
 				>^* [OnAction (Action "Run") (always
-						(		runExternalTests (TESTS_PATH </> path) <<@ InWindow
+						(		runTestModule (TESTS_PATH </> path) <<@ InWindow
 							>>- \res -> (upd ('DM'.put path res)) results
 						)
 					)]
@@ -167,56 +168,6 @@ testInteractive {name,instructions,expectation,taskUnderTest}
              -&&- (viewInformation (Title "Expected result") [] expectation) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
     ||- taskUnderTest
     ||- enterInformation (Title "Result") []
-
-runExternalTests :: FilePath -> Task SuiteResult
-runExternalTests path
-	= withShared [] ( \io -> (
-			 runWithOutput CPM_PATH [prj] (Just baseDir) io //Build the test
-		>>- \res -> case res of
-			(ExitCode 0,_) = runWithOutput exe [] Nothing io @ parseSuiteResult //Run the test
-			(_,output)     = return {SuiteResult|suiteName=path,testResults=[("build",Failed (Just ("Failed to build " +++ prj +++ "\n" +++ output)))]}
-	   )
-	  )
-where
-	baseDir = takeDirectory path
-	base = dropExtension path
-	exe = addExtension base "exe"
-	prj = addExtension base "prj"
-
-	runWithOutput prog args dir out 
-		= externalProcess prog args dir out {onStartup=onStartup,whileRunning=whileRunning,onExit=onExit}	
-	where
-		onStartup r = (Ok (ExitCode 0,""), Nothing, [], False) 
-		whileRunning (Just (_,data)) (e,o) r = (Ok (e,o +++ data), Just (r ++ [data]), [], False)
-		whileRunning _ l r = (Ok l, Nothing, [], False)
-		onExit ecode (_,o) r =  (Ok (ecode,o), Nothing)
-	
-	parseSuiteResult :: (ExitCode,String) -> SuiteResult //QUICK AND DIRTY PARSER
-	parseSuiteResult (ExitCode ecode,output)
-		# lines = split "\n" output
-		| length lines < 2 = fallback ecode output
-		# suiteName = trim ((split ":" (lines !! 0)) !! 1)
-		# results = [parseRes resLines \\ resLines <- splitLines (drop 3 lines) | length resLines >= 2]
-		= {SuiteResult|suiteName=suiteName,testResults=results}
-	where
-		splitLines lines = split` lines [[]]
-		where
-			split` ["":lines] acc = split` lines [[]:acc]
-			split` [l:lines] [h:acc] = split` lines [[l:h]:acc]
-			split` [] acc = reverse (map reverse acc)
-
-		parseRes [nameLine,resultLine:descLines]
-			# name = trim ((split ":" nameLine) !! 1)
-			# result = case resultLine of
-				"Result: Passed" = Passed
-				"Result: Skipped" = Skipped
-				_ = Failed (if (descLines =: []) Nothing (Just (join "\n" descLines)))
-			= (name,result)
-		parseRes _ = ("oops",Failed Nothing)
-
-		//If we can't parse the output, We'll treat it as a single simple test executable
-		fallback 0 _ = {SuiteResult|suiteName="Unknown",testResults=[("executable",Passed)]}
-		fallback _ output = {SuiteResult|suiteName="Unknown",testResults=[("executable",Failed (Just output))]}
 
 Start world
 	# (args,world) = getCommandLine world
