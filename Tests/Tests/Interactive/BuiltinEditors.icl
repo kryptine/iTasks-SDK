@@ -1,6 +1,6 @@
 implementation module Tests.Interactive.BuiltinEditors
 
-import iTasks, TestFramework
+import iTasks, iTasks._Framework.Test.Definition
 import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
 import qualified Data.Map as DM
 import Text.HTML
@@ -160,5 +160,5 @@ where
 testList = itest "List of strings" "Check if the list editor works" "You should be able to edit a list of strings" tut
 where
 	tut :: Task [String]
-	tut = testEditor (listEditor (Just (const "New item")) True True (Just (\items -> length items +++> " items")) (textField 'DM'.newMap)) [] Update
+	tut = testEditor (listEditor (Just (const (Just "New item"))) True True (Just (\items -> length items +++> " items")) (textField 'DM'.newMap)) [] Update
 

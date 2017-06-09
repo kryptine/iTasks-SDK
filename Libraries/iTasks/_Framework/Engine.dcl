@@ -20,7 +20,7 @@ MAX_EVENTS 		        :== 5
 
 :: PublishedTask =
 	{ url			:: String
-	, task			:: TaskWrapper
+	, task			:: WebTaskWrapper
 	}
 
 :: ServerOptions =
@@ -33,7 +33,8 @@ MAX_EVENTS 		        :== 5
 	, saplDirPath   :: Maybe FilePath
 	}
 	
-:: TaskWrapper = E.a: TaskWrapper (HTTPRequest -> Task a) & iTask a
+:: WebTaskWrapper = E.a: WebTaskWrapper (HTTPRequest -> Task a) & iTask a
+:: TaskWrapper = E.a: TaskWrapper (Task a) & iTask a
 
 /**
 * Starts the task engine with a list of published task definitions.
@@ -74,6 +75,18 @@ instance Publishable (HTTPRequest -> Task a) | iTask a
 instance Publishable [PublishedTask]
 
 determineAppName :: !*World -> (!String,!*World)
+
+/**
+* Start a stripped task engine (without an HTTP server) with a list of tasks to be created 
+*/
+class Runnable a
+where
+	toRunnable :: !a -> [TaskWrapper] 
+
+instance Runnable (Task a) | iTask a
+instance Runnable [TaskWrapper]
+
+runTasks :: a !*World -> *World | Runnable a
 
 //HACK FOR RUNNING BACKGROUND TASKS ON A CLIENT
 background :: !*IWorld -> *IWorld

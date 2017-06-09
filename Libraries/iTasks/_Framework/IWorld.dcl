@@ -45,7 +45,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
                     //Experimental database connection cache
                     , resources             :: !*(Maybe *Resource)
                     , onClient				:: !Bool									// "False" on the server, "True" on the client
-					, shutdown				:: !Bool									// Flag that signals the server function to shut down
+					, shutdown				:: !Maybe Int                               // Signals the server function to shut down, the int will be set as exit code
 					}
 
 :: ServerInfo =

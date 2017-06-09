@@ -9,6 +9,7 @@ import Incidone.DeviceBased.VideoWall
 import Incidone.Extensions.CrewLists //For demo
 import qualified Data.Map as DM
 import Text, Text.HTML
+import iTasks.UI.Editor.Builtin
 
 CONVERT_BIN :== "/opt/local/bin/convert"
 //CONVERT_BIN :== "/usr/bin/convert"
@@ -22,49 +23,62 @@ selectContact = withShared Nothing
 		(selectContactFromLists sel <<@ Title "Browse")
 		 -||-
          (viewContactsOnMap mapContacts sel <<@ Title "Map")
-		 <<@ LazyRefresh <<@ ArrangeWithTabs
+		 <<@ ArrangeWithTabs
         )
 where	
     mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |+| contactsProvidingHelpGeo)
 
 	selectContactFromLists :: (Shared (Maybe (Either ContactNo MMSI))) -> Task (Either ContactNo MMSI)
 	selectContactFromLists sel
-		= enterInformation "FIXME" []
+		= anyTask [editSharedSelectionWithShared (Title "Involved in open incidents") False
+						(SelectInTree groupByIncident select) contactsOfOpenIncidentsShort (selIds sel)
+				  ,editSharedSelectionWithShared (Title "Available for help") False
+						(SelectInTree groupByGroup select) contactsProvidingHelpShort (selIds sel)
+                  ,editSharedSelectionWithShared (Title "All contacts") False
+                        (SelectInTree groupByGroup select) allContactsShort (selIds sel)
 /*
-		= anyTask [(editSharedSelectionWithShared (Title "Involved in open incidents")
-						[SelectInTree groupByIncident] contactsOfOpenIncidentsShort (Left o fromOpenOption)) sel
-				  ,(editSharedSelectionWithShared (Title "Available for help")
-						[SelectInTree groupByGroup] contactsProvidingHelpShort (Left o contactIdentity)) sel
-                  ,(editSharedSelectionWithShared (Title "All contacts")
-                        [SelectInTree groupByGroup] allContactsShort (Left o contactIdentity)) sel
-				  ,(editSharedSelectionWithShared (Title "AIS")
-						[SelectInTree ungrouped] (mapRead (sortBy (\x y -> contactTitle x < contactTitle y) o map aisToContact) allAISContacts) (Right o contactIdentity)) sel
-				  ] @? tvHd //<<@ (ArrangeSplit Horizontal True)
+				  ,(editSharedSelectionWithShared (Title "AIS") False
+						(SelectInTree ungrouped) (mapRead (sortBy (\x y -> contactTitle x < contactTitle y) o map aisToContact) allAISContacts) (Right o contactIdentity)) sel
+*/				  ] <<@ (ArrangeSplit Horizontal True) @? tvHd 
 
-*/
-    fromOpenOption {ContactShortWithIncidents|contactNo} = contactNo
+    fromOpenOption [{ContactShortWithIncidents|contactNo}] = contactNo
+
+	selIds sel = mapReadWrite (toPrj,fromPrj) sel
+	where
+		toPrj Nothing = []
+		toPrj (Just (Left contactNo)) = [contactNo]
+		toPrj (Just (Right mmsi)) = [~ mmsi]
+
+		fromPrj [s] _ = Just (Just (if (s > 0) (Left s) (Right (~s))))
+		fromPrj _ _   = Just Nothing
 
 	//Organize contacts into a tree
-	groupByIncident contacts expanded
-		= []
-/*
-        = [{ChoiceTree|label=label c,icon=Just (contactIcon {Contact|defaultValue&type=c.ContactShortWithIncidents.type}),value=ChoiceNode i,type=LeafNode} \\ (i,c) <- contacts]
+	groupByIncident contacts
+        = [{ChoiceNode|id=c.ContactShortWithIncidents.contactNo, label=label c
+					,icon=Just (contactIcon {Contact|defaultValue&type=c.ContactShortWithIncidents.type})
+					,expanded=False,children=[]} \\ c <- contacts]
     where
         label {ContactShortWithIncidents|name,incidents}
             = fromMaybe "-" name +++ " (" +++ join "," [fromMaybe "-" title\\{IncidentShort|title}<-incidents] +++ ")"
-*/
 
-    ungrouped contacts expanded = [] //[{ChoiceTree|label=contactTitle c,icon=Just (contactIcon c),value=ChoiceNode i,type=LeafNode} \\ (i,c) <- contacts]
-
-    groupByGroup contacts expanded
-		= []
-	/*
-        = [{ChoiceTree|label=group,icon=Nothing,value=GroupNode group,type=ifExpandedGroup group expanded items} \\(group,items) <- 'DM'.toList (foldl group 'DM'.newMap contacts)]
+    groupByGroup contacts
+        = [{ChoiceNode|id=0,label=group,icon=Nothing,expanded=True,children=
+			[{ChoiceNode|id=c.ContactShort.contactNo, label=fromMaybe "-" c.ContactShort.name
+					,icon=Just (contactIcon c)
+					,expanded=False,children=[]} \\ c <- items]} \\ (group,items) <- 'DM'.toList (foldl group 'DM'.newMap contacts)]
     where
-        group groups (i,c=:{ContactShort|group})
+        label {ContactShort|name} = fromMaybe "-" name
+        group groups c=:{ContactShort|group}
             # g = fromMaybe "Uncategorized" group
-            = 'DM'.put g  (fromMaybe [] ('DM'.get g groups) ++ [{ChoiceTree|label=contactTitle c,icon=Just (contactIcon c),value=ChoiceNode i, type=LeafNode}]) groups
-*/
+            = 'DM'.put g (fromMaybe [] ('DM'.get g groups) ++ [c]) groups
+
+	ungrouped contacts =
+		[{ChoiceNode|id=c.ContactShort.contactNo, label=fromMaybe "-" c.ContactShort.name, icon=Just (contactIcon c),expanded=False,children=[]} \\ c <- contacts]
+
+	select _ [0] = []
+	select _ [s] = [if (s > 0) (Left s) (Right (~s))]
+	select _ _   = []
+
 
 manageContactInformation :: Workspace ContactNo -> Task ()
 manageContactInformation ws contactNo

@@ -54,15 +54,15 @@ where
 
 doAuthenticated :: (User -> Task a) -> Task a | iTask a
 doAuthenticated task
-	= (	enterCredentials
+	= (	enterCredentials 
 	>>* [OnAction (Action "Login")
 			(hasValue (\cred -> verifyCredentials cred >>- executeTask task))
-		] ) <<@ Title "Login" <<@ ApplyLayout (beforeStep frameCompact) //Compact layout before login, full screen afterwards
+		] ) <<@ ApplyLayout (beforeStep (sequenceLayouts (setUIAttributes (titleAttr "Login")) frameCompact)) //Compact layout before login, full screen afterwards
 where
 	enterCredentials :: Task Credentials
 	enterCredentials
 		= 	viewInformation () [] (DivTag [ClassAttr "identify-app",StyleAttr "width: 350px; height: 55px; margin-bottom: 5px"] [])
-		||-	enterInformation (Title "Log in") []
+		||-	enterInformation () []
 
 	verifyCredentials :: Credentials -> Task (Maybe User)
 	verifyCredentials credentials=:{Credentials|username,password}
@@ -94,7 +94,7 @@ where
 		[moveSubUIs (SelectByPath [0,0]) [] 1
 		,moveSubUIs (SelectByPath [0,0]) [] 2
 		,removeSubUIs (SelectByPath [0])
-		,layoutSubUIs SelectChildren actionToButton
-		,setUIAttributes ('DM'.unions [directionAttr Horizontal,paddingAttr 2 2 2 250, baseClsAttr "summary-bar"])
-		,setUIType UIPanel
+		,layoutSubUIs (SelectByType UIAction) actionToButton
+		,setUIAttributes ('DM'.unions [directionAttr Horizontal,paddingAttr 2 2 2 250, classAttr "summary-bar"])
+		,setUIType UIContainer
         ]

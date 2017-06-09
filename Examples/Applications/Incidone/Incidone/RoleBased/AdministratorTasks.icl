@@ -12,6 +12,7 @@ import Incidone.ActionManagementTasks
 import Incidone.Util.TaskPatterns
 import iTasks.API.Extensions.Admin.ServerAdmin
 import iTasks.API.Extensions.Dashboard
+import iTasks.UI.Layout, iTasks.UI.Definition
 import Text.HTML
 
 :: DatabaseProblem
@@ -143,7 +144,7 @@ where
         >&> withSelection viewNoSelection manageContactAccess
         )<<@ ArrangeWithSideBar 0 LeftSide 200 True
 
-	viewNoSelection = return () //FIXME
+	viewNoSelection = viewInformation "Select a user" [] ()
     addUser
         =   enterInformation (Title "Add user") []
         >>? \newUser -> (createContact newUser @! ())
@@ -155,9 +156,8 @@ where
             ) (\_ -> viewInformation "Failed to import contacts" [] ())
         ) <<@ Title "Import contacts"
 	where
-		instructions = toString (PTag [] [Text "Please select a CSV file to upload.",BrTag []
-							,Text "The file needs to be formatted like ",ATag [HrefAttr "/demo-content/contacts.csv",TargetAttr "_blank"] [Text "this example file"]
-							])
+		instructions = "Please select a CSV file to upload.\n" +++
+					   "The file needs to be formatted like the example /demo-content/contacts.csv file."
 
     setAdminPassword = (
             enterPasswords -&&- get adminPassword
@@ -221,10 +221,11 @@ configureMaps
 where
     previewMapLayers :: Task ContactMapPerspective
     previewMapLayers = withShared defaultValue
-        \perspective -> updateSharedInformation (Title "Preview") [UpdateAs toPrj fromPrj] (perspective >+| standardMapLayers) @ fst /* <<@ AfterLayout (tweakUI fill) */ //FIXME
+        \perspective -> updateSharedInformation (Title "Preview") [UpdateAs toPrj fromPrj] (perspective >*| standardMapLayers) <<@ ApplyLayout flexMap @ fst 
     where
         toPrj (perspective,layers) = toLeafletMap {ContactMap|defaultValue & perspective=perspective,layers=layers}
         fromPrj _ {LeafletMap|perspective} = fromLeafletPerspective perspective
+		flexMap = layoutSubUIs (SelectByPath [1]) (setUIAttributes (sizeAttr FlexSize FlexSize))
 
 configureWebLinks :: Task ()
 configureWebLinks

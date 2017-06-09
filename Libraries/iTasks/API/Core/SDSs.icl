@@ -1,7 +1,7 @@
 implementation module iTasks.API.Core.SDSs
 
 import StdList, StdBool, StdFile, StdTuple
-import System.Time, Text, Data.Tuple, Data.Functor, Data.Error, System.File
+import System.Time, Text, Data.Tuple, Data.Functor, Data.Error, System.File, System.Directory
 import iTasks._Framework.Store, iTasks._Framework.TaskStore, iTasks._Framework.Util
 import iTasks._Framework.Task
 import iTasks._Framework.IWorld
@@ -197,4 +197,11 @@ where
 		# (ok,world)				= fclose file world
 		| not ok					= (Error (exception CannotClose) ,{IWorld|iworld & world = world})
 		= (Ok ((==) path), {IWorld|iworld & world = world})
+
+externalDirectory :: ROShared FilePath [FilePath]
+externalDirectory = createReadOnlySDSError read
+where
+	read path iworld = case readDirectory path iworld of
+		(Ok files,iworld) = (Ok files,iworld)
+		(Error (_,e),iworld) = (Error (exception e),iworld)
 

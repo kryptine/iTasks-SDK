@@ -1,20 +1,23 @@
 implementation module iTasks._Framework.TaskServer
 
 import StdFile, StdBool, StdInt, StdClass, StdList, StdMisc, StdArray, StdTuple, StdOrdList
-import Data.Maybe, Data.Functor, Data.Error, System.Time, Text, Data.Tuple
+import Data.Maybe, Data.Functor, Data.Func, Data.Error, System.Time, Text, Data.Tuple
 from StdFunc import seq
 from Data.Map import :: Map (..)
 import qualified System.Process as Process
 from System.Process import :: ProcessIO (..), :: ReadPipe, :: WritePipe
+import System.CommandLine
 import qualified Data.List as DL
 import qualified Data.Map as DM
 import qualified iTasks._Framework.SDS as SDS
 import TCPChannelClass, TCPChannels, TCPEvent, TCPStringChannels, TCPDef, tcp
 
+import iTasks._Framework.Engine, iTasks._Framework.IWorld, iTasks._Framework.TaskEval, iTasks._Framework.TaskStore
 import iTasks._Framework.IWorld
 import iTasks._Framework.Task
 import iTasks._Framework.TaskEval
 from iTasks._Framework.TaskStore import queueRefresh
+import iTasks.API.Common.SDSCombinators
 
 //Helper type that holds the mainloop instances during a select call
 //in these mainloop instances the unique listeners and read channels
@@ -25,17 +28,53 @@ from iTasks._Framework.TaskStore import queueRefresh
     | ExternalProcessInstanceDS !ExternalProcessInstanceOpts !ProcessHandle !ProcessIO
     | BackgroundInstanceDS !BackgroundInstanceOpts !BackgroundTask
 
-serve :: !Int !ConnectionTask ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
-serve port ct bt determineTimeout iworld
-    = loop determineTimeout (init port ct bt iworld)
+serve :: ![TaskWrapper] ![(!Int,!ConnectionTask)] ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
+serve its cts bts determineTimeout iworld
+    = loop determineTimeout (init its cts bts iworld)
 
-init :: !Int !ConnectionTask ![BackgroundTask] !*IWorld -> *IWorld
-init port ct bt iworld=:{IWorld|ioTasks,world}
-    # (success, mbListener, world) = openTCP_Listener port world
-    | not success = abort ("Error: port "+++ toString port +++ " already in use.\n")
-    # opts = {ListenerInstanceOpts|taskId=TaskId 0 0, nextConnectionId=0, port=port, connectionTask=ct, removeOnClose = True}
+init :: ![TaskWrapper] ![(!Int,!ConnectionTask)] ![BackgroundTask] !*IWorld -> *IWorld
+init its cts bts iworld
+	// Check if it the initial tasks have been added already
+	# iworld = createInitialInstances its iworld	
+ 	// All persistent task instances should receive a reset event to continue their work
+    # iworld=:{IWorld|ioTasks,world} = queueAll iworld
+	# (listeners,world) = connectAll cts world
     # ioStates = 'DM'.fromList [(TaskId 0 0, IOActive 'DM'.newMap)]
-    = {iworld & ioTasks = {done=[],todo=[ListenerInstance opts (fromJust mbListener):map (BackgroundInstance {bgInstId=0})bt]}, ioStates = ioStates,  world = world}
+    = {iworld & ioTasks = {done=[],todo=listeners ++ map (BackgroundInstance {bgInstId=0}) bts}, ioStates = ioStates,  world = world}
+where
+	createInitialInstances :: [TaskWrapper] !*IWorld -> *IWorld
+	createInitialInstances its iworld
+		# (mbNextNo,iworld) = read nextInstanceNo iworld
+		| (mbNextNo =: (Ok 1)) = createAll its iworld //This way we check if it is the initial run of the program
+                               = iworld
+
+	createAll :: [TaskWrapper] !*IWorld -> *IWorld
+	createAll [] iworld = iworld
+	createAll [TaskWrapper task:ts] iworld
+		= case createTaskInstance task iworld of
+			(Ok _,iworld) = createAll ts iworld
+			(Error (_,e),iworld) = abort e
+
+	queueAll :: !*IWorld -> *IWorld
+	queueAll iworld
+		# (mbIndex,iworld) = read (sdsFocus defaultValue filteredInstanceIndex) iworld
+		= case mbIndex of
+			Ok index    = queueRefresh [(instanceNo,"Persistent first refresh") \\ (instanceNo,_,_,_)<- index]  iworld
+			_           = iworld
+
+	connectAll :: ![(!Int,!ConnectionTask)] !*World -> *(![*IOTaskInstance],!*World)
+	connectAll [] world = ([],world)
+	connectAll [(port,ct):cts] world
+		# (l,world) = connect port ct world
+		# (ls,world) = connectAll cts world 
+		= ([l:ls],world)
+
+	connect :: !Int !ConnectionTask !*World -> *(!*IOTaskInstance,!*World)
+	connect port ct world
+    	# (success, mbListener, world) = openTCP_Listener port world
+    	| not success = abort ("Error: port "+++ toString port +++ " already in use.\n")
+    	# opts = {ListenerInstanceOpts|taskId=TaskId 0 0, nextConnectionId=0, port=port, connectionTask=ct, removeOnClose = True}
+		= (ListenerInstance opts (fromJust mbListener),world)
 
 loop :: !(*IWorld -> (!Maybe Timeout,!*IWorld)) !*IWorld -> *IWorld
 loop determineTimeout iworld
@@ -47,28 +86,32 @@ loop determineTimeout iworld
     //Move everything from the done list  back to the todo list
     # iworld = {iworld & ioTasks={todo = reverse done,done=[]}}
     //Everything needs to be re-evaluated
-    | shutdown  = halt iworld
-    | otherwise = loop determineTimeout iworld
+	= case shutdown of
+    	(Just exitCode) = halt exitCode iworld
+        _               = loop determineTimeout iworld
 
 select :: (Maybe Timeout) *[IOTaskInstance] *World -> (!*[IOTaskInstance],![(Int,SelectResult)],!*World)
 select mbTimeout mlInstances world
-    # (listeners,rChannels,mlInstances)
-        = toSelectSet mlInstances
-    # (chList,(TCP_Pair (TCP_Listeners listeners) (TCP_RChannels rChannels)),_,world)	
-        = selectChannel_MT mbTimeout (TCP_Pair (TCP_Listeners listeners) (TCP_RChannels rChannels)) TCP_Void world
-    # (mlInstances, chList)
-        = fromSelectSet listeners rChannels mlInstances chList
-    = (mlInstances, chList, world)
+    # (empty,listeners,rChannels,mlInstances) = toSelectSet mlInstances
+	| empty //selectChannel_MT aborts if it is called with an empty list, so we must make sure that never happens
+    	# (mlInstances, chList) = fromSelectSet listeners rChannels mlInstances []
+    	= (mlInstances, chList, world)
+	| otherwise
+    	# (chList,(TCP_Pair (TCP_Listeners listeners) (TCP_RChannels rChannels)),_,world)	
+     	   = selectChannel_MT mbTimeout (TCP_Pair (TCP_Listeners listeners) (TCP_RChannels rChannels)) TCP_Void world
+    	# (mlInstances, chList)
+           = fromSelectSet listeners rChannels mlInstances chList
+    	= (mlInstances, chList, world)
 
-toSelectSet :: !*[IOTaskInstance] -> *(!*[*TCP_Listener],!*[*TCP_RChannel],!*[*IOTaskInstanceDuringSelect])
-toSelectSet [] = ([],[],[])
+toSelectSet :: !*[IOTaskInstance] -> *(!Bool,!*[*TCP_Listener],!*[*TCP_RChannel],!*[*IOTaskInstanceDuringSelect])
+toSelectSet [] = (True,[],[],[])
 toSelectSet [i:is]
-    # (ls,rs,is) = toSelectSet is
+    # (e,ls,rs,is) = toSelectSet is
     = case i of
-        ListenerInstance opts l = ([l:ls],rs,[ListenerInstanceDS opts:is])
-        ConnectionInstance opts {rChannel,sChannel} = (ls,[rChannel:rs],[ConnectionInstanceDS opts sChannel:is])
-        ExternalProcessInstance opts pHandle pIO = (ls, rs, [ExternalProcessInstanceDS opts pHandle pIO : is])
-        BackgroundInstance opts bt = (ls,rs,[BackgroundInstanceDS opts bt:is])
+        ListenerInstance opts l = (False,[l:ls],rs,[ListenerInstanceDS opts:is])
+        ConnectionInstance opts {rChannel,sChannel} = (False,ls,[rChannel:rs],[ConnectionInstanceDS opts sChannel:is])
+        ExternalProcessInstance opts pHandle pIO = (e, ls, rs, [ExternalProcessInstanceDS opts pHandle pIO : is])
+        BackgroundInstance opts bt = (e,ls,rs,[BackgroundInstanceDS opts bt:is])
 
 /* Restore the list of main loop instances.
     In the same pass also update the indices in the select result to match the
@@ -564,15 +607,17 @@ checkSelect :: !Int ![(!Int,!SelectResult)] -> (!Maybe SelectResult,![(!Int,!Sel
 checkSelect i chList =:[(who,what):ws] | (i == who) = (Just what,ws)
 checkSelect i chList = (Nothing,chList)
 
-halt :: !*IWorld -> *IWorld
-halt iworld=:{ioTasks={todo=[],done}} = iworld
-halt iworld=:{ioTasks={todo=[ListenerInstance _ listener:todo],done},world}
+halt :: !Int !*IWorld -> *IWorld
+halt exitCode iworld=:{ioTasks={todo=[],done},world}
+	# world = setReturnCode exitCode world
+	= {IWorld|iworld & world = world}
+halt exitCode iworld=:{ioTasks={todo=[ListenerInstance _ listener:todo],done},world}
  	# world = closeRChannel listener world
-    = halt {iworld & ioTasks = {todo=todo,done=done}}
-halt iworld=:{ioTasks={todo=[ConnectionInstance _ {rChannel,sChannel}:todo],done},world}
+    = halt exitCode {iworld & ioTasks = {todo=todo,done=done}}
+halt exitCode iworld=:{ioTasks={todo=[ConnectionInstance _ {rChannel,sChannel}:todo],done},world}
  	# world = closeRChannel rChannel world
     # world = closeChannel sChannel world
-    = halt {iworld & ioTasks = {todo=todo,done=done}}
-halt iworld=:{ioTasks={todo=[BackgroundInstance _ _ :todo],done},world}
-    = halt {iworld & ioTasks= {todo=todo,done=done}}
+    = halt exitCode {iworld & ioTasks = {todo=todo,done=done}}
+halt exitCode iworld=:{ioTasks={todo=[BackgroundInstance _ _ :todo],done},world}
+    = halt exitCode {iworld & ioTasks= {todo=todo,done=done}}
 

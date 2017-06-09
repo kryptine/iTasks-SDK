@@ -81,7 +81,6 @@ toEmpty     ::                                   Layout
 InWindow                :== InFloatingWindow
 InFloatingWindow        :== ToWindow FloatingWindow AlignMiddle AlignCenter
 InNotificationBubble    :== ToWindow NotificationBubble AlignTop AlignRight
-InModalDialog           :== ToWindow ModalDialog AlignMiddle AlignCenter
 instance tune ToWindow
 
 :: InPanel          = InPanel           //Indicate that a task should be wrapped in a panel

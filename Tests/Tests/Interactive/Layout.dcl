@@ -1,6 +1,5 @@
 definition module Tests.Interactive.Layout
-import iTasks
-import TestFramework
+import iTasks, iTasks._Framework.Test.Definition
 
 testLayoutI :: TestSuite
 

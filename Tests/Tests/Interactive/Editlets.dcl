@@ -1,5 +1,5 @@
 definition module Tests.Interactive.Editlets
 
-import iTasks, TestFramework
+import iTasks, iTasks._Framework.Test.Definition
 
 testEditletsI :: TestSuite

@@ -1,5 +1,5 @@
 implementation module Tests.Interactive.Layout
-import TestFramework
+import iTasks._Framework.Test.Definition
 import iTasks.UI.Definition, iTasks.UI.Layout
 import qualified Data.Map as DM
 

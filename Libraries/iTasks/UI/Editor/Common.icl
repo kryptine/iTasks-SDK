@@ -14,11 +14,11 @@ where
 	onEdit _ _ val mask vst 	= (Ok (NoChange,mask),val,vst)
 	onRefresh _ _ val mask vst  = (Ok (NoChange,mask),val,vst)
 
-listEditor :: (Maybe ([a] -> a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a] | JSONEncode{|*|} a
-listEditor add remove reorder count itemEditor = listEditor_ JSONEncode{|*|} add remove reorder count itemEditor
+listEditor :: (Maybe ([a] -> Maybe a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a] | JSONEncode{|*|}, gDefault{|*|} a
+listEditor add remove reorder count itemEditor = listEditor_ JSONEncode{|*|} gDefault{|*|} add remove reorder count itemEditor
 
-listEditor_ :: (Bool a -> [JSONNode]) (Maybe ([a] -> a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a]
-listEditor_ jsonenc add remove reorder count itemEditor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+listEditor_ :: (Bool a -> [JSONNode]) a (Maybe ([a] -> Maybe a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a]
+listEditor_ jsonenc defVal add remove reorder count itemEditor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId,mode} = case genChildUIs dp 0 val [] vst of
 		(Ok (items,masks),vst)
@@ -52,7 +52,7 @@ where
 		= uiac UIContainer attr (if (reorder || remove) ([item] ++ buttons) [item])
 			
 	//Structural edits on the list
-	onEdit dp ([],JSONString e) items (CompoundMask {fields=masks,state}) vst=:{VSt|taskId}
+	onEdit dp ([],JSONString e) items (CompoundMask {fields=masks,state}) vst=:{VSt|taskId, mode}
 		# ids = fromMaybe [] (fromJSON state) //All item UI's have a unique id that is used in the data-paths of that UI
 		# [op,id:_] = split "_" e
 		# id = toInt id 
@@ -80,11 +80,14 @@ where
 			= (Ok (ChangeUI [] changes, CompoundMask {fields=removeAt index masks,state=toJSON (removeAt index ids)}), nitems, vst)
 		| op == "add" && add =: (Just _)
 			# f = fromJust add
-			# nx = f items
+			# mbNx = f items
+            # nx = fromMaybe defVal mbNx
 			# ni = num 
 			# nid = nextId ids
+            // use enter mode if no value for new item is given; otherwise use update mode
+            # vst = if (isJust mbNx) {vst & mode = Update} {vst & mode = Enter}
 			= case itemEditor.Editor.genUI (dp++[nid]) nx vst of
-				(Error e,vst) = (Error e,items,vst)
+				(Error e,vst) = (Error e,items, {vst & mode = mode})
 				(Ok (ui,nm),vst)
 					# nitems = items ++ [nx]
 					# nmasks = masks ++ [nm]
@@ -93,7 +96,7 @@ where
 					# counter = maybe [] (\f -> [(ni + 1, ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "value" (JSONString (f nitems))] []))]))]) count
 					# prevdown = if (ni > 0) [(ni - 1,toggle 2 True)] []
 					# change = ChangeUI [] (insert ++ counter ++ prevdown)
-					= (Ok (change,CompoundMask {fields=nmasks,state=toJSON nids}),nitems,vst)
+					= (Ok (change,CompoundMask {fields=nmasks,state=toJSON nids}),nitems, {vst & mode = mode})
 		= (Ok (NoChange,CompoundMask {fields=masks,state=toJSON ids}),items,vst)
 	where
 		swap []	  _		= []

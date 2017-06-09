@@ -36,6 +36,10 @@ newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)
 //=== Task instance index: ===
 
 //A global index of all task instances is maintained
+
+//This counter is used to ensure unique instance numbers
+nextInstanceNo :: RWShared () Int Int
+
 //This index contains all meta-data about the task instances on this engine
 taskInstanceIndex :: RWShared () [TIMeta] [TIMeta]
 

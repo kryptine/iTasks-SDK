@@ -2,7 +2,7 @@ implementation module Tests.Interactive.BuiltinContainers
 /**
 * Tests for the builtin containers in the client library
 */
-import iTasks, TestFramework
+import iTasks, iTasks._Framework.Test.Definition
 import iTasks.UI.Definition, iTasks.UI.Layout, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
 import Data.List
 import qualified Data.Map as DM

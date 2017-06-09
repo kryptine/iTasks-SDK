@@ -29,23 +29,11 @@ where
 	(sidePanelWidth,sidePanelHeight) = if (direction === Vertical) (FlexSize,ExactSize size) (ExactSize size,FlexSize)
 
 arrangeSplit :: !UIDirection !Bool -> Layout
-arrangeSplit direction resize = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
-/*
-arrangeSplit :: !UIDirection !Bool -> UIBlocksCombinator
-arrangeSplit direction resize = arrange
-where
-    arrange [] actions = autoLayoutBlocks [] actions
-    arrange blocks actions
-        # (bcontrols,_,bactions,bhotkeys) = unzip4 (map blockToPanel blocks)
-        # controls = map fill bcontrols
-        # controls = if resize (intersperse UISplitter controls) controls
-        = {UIBlock|attributes='DM'.newMap
-                  ,content = {UIItemsOpts|defaultItemsOpts controls & direction = direction}
-                  //,actions = actions ++ flatten bactions
-                  ,hotkeys = flatten bhotkeys
-                  ,size = defaultSizeOpts
-                  }
-*/
+arrangeSplit direction resize 
+	= foldl1 sequenceLayouts 
+		[layoutSubUIs (SelectByPath []) (setUIAttributes (directionAttr direction))
+		,layoutSubUIs SelectChildren (setUIAttributes (sizeAttr FlexSize FlexSize))
+		]
 
 arrangeVertical :: Layout
 arrangeVertical = setUIAttributes (directionAttr Vertical)
@@ -67,10 +55,17 @@ beforeStep layout = layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UISt
 toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
 toWindow windowType vpos hpos = foldl1 sequenceLayouts 
 	[wrapUI UIWindow
+	,interactToWindow
 	,copySubUIAttributes (SelectKeys [TITLE_ATTRIBUTE]) [0] []
 	,layoutSubUIs (SelectByPath [0]) (delUIAttributes (SelectKeys [TITLE_ATTRIBUTE]))
 	,setUIAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
 	]
+where
+	interactToWindow = layoutSubUIs (SelectAND (SelectByPath []) (SelectByContains (SelectAND (SelectByPath [0]) (SelectByType UIInteract))))
+		(foldl1 sequenceLayouts	[copySubUIAttributes (SelectKeys ["title"]) [0,0] []
+								,layoutSubUIs (SelectByPath [0,0]) (delUIAttributes (SelectKeys ["title"]))
+								])
+
 
 toEmpty :: Layout
 toEmpty = setUIType UIEmpty

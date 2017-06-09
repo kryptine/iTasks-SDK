@@ -99,13 +99,14 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	| UIToolBar
 	| UIButtonBar
 	| UIDebug
+	// Data elements (implemented in itasks-core.js)
+	| UIData 
 
 :: UIAttributes 		:== Map String JSONNode
 
 // Floating window
 :: UIWindowType
     = FloatingWindow        //Normal movable window
-    | ModalDialog           //Fixed position modal dialog
     | NotificationBubble    //Fixed position info
 
 //Most components can be resized in two dimensions
@@ -198,7 +199,6 @@ leftPaddingAttr   :: !Int                                 -> UIAttributes
 titleAttr         :: !String                              -> UIAttributes
 frameAttr         :: !Bool                                -> UIAttributes
 iconClsAttr       :: !String                              -> UIAttributes
-baseClsAttr       :: !String                              -> UIAttributes
 tooltipAttr       :: !String                              -> UIAttributes
 directionAttr     :: !UIDirection                         -> UIAttributes
 halignAttr        :: !UIHAlign                            -> UIAttributes
@@ -224,6 +224,7 @@ editorIdAttr      :: !String                              -> UIAttributes
 taskIdAttr        :: !String                              -> UIAttributes
 labelAttr         :: !String                              -> UIAttributes
 styleAttr         :: !String                              -> UIAttributes
+classAttr         :: !String                              -> UIAttributes
 
 editAttrs         :: !String !String !(Maybe JSONNode)    -> UIAttributes
 choiceAttrs       :: !String !String ![Int] ![JSONNode]   -> UIAttributes

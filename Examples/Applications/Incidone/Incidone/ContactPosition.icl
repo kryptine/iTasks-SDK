@@ -1,12 +1,13 @@
 implementation module Incidone.ContactPosition
 import iTasks, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators, iTasks.UI.Definition
 import qualified Data.Map as DM
-import Data.Functor, Text
+import Data.Functor, Data.List, Text 
 import qualified Text.Parsers.ZParsers.ParsersKernel as PK
 import qualified Text.Parsers.ZParsers.ParsersDerived as PD
 import qualified Control.Applicative as CA
 from Control.Applicative import class Alternative, class Applicative
 from Text.Parsers.ZParsers.ParsersKernel import :: Parser, instance Alternative Parser, instance Applicative Parser, instance Functor Parser
+import iTasks.API.Extensions.GIS.LeafletNavalIcons
 
 import Incidone.OP.Concepts
 import Incidone.Util.TaskPatterns
@@ -133,20 +134,21 @@ hasLatLng _ = False
 toLeafletMap :: ContactMap -> LeafletMap
 toLeafletMap {ContactMap|perspective,layers}
     = {LeafletMap|perspective = toLeafletPerspective perspective
-      ,icons = [icon i \\ i <- [1..250]]
-      ,layers = map toLeafletLayer layers
+	  ,tilesUrl = tilesUrl layers
+      ,icons = shipIcons
+	  ,objects = []
       }
 where
+	tilesUrl layers = listToMaybe [url \\ {ContactMapLayer|def=CMTileLayer url} <- layers]
+
     convMarkers markers = [conv m \\ m=:{ContactMapMarker|position} <- markers | hasLatLng position]
     conv {ContactMapMarker|markerId,title,position,heading,type,selected}
-        = Marker {LeafletMarker|markerId = markerId, title = title, position = pos position, icon = fmap (\t -> iconIndex heading t selected) type, selected = selected}
+        = Marker {LeafletMarker|markerId = markerId, title = title, position = pos position, icon = Nothing /* fmap (\t -> iconIndex heading t selected) type */, selected = selected}
 
     pos (PositionLatLng (lat,lng)) = {LeafletLatLng|lat=lat,lng=lng}
     pos (PositionDescription _ (Just(lat,lng))) = {LeafletLatLng|lat=lat,lng=lng}
 
-	icon i = {LeafletIcon|iconUrl ="/ship-icons/"+++toString i+++".png",iconSize=(24,24)}
-    iconIndex heading type selected = (cat type + ( (maybe 24 (\d -> d / 15) heading) + (if selected 25 0)) * 5)
-
+/*
 toLeafletLayer :: ContactMapLayer -> LeafletLayer
 toLeafletLayer {ContactMapLayer|def=CMTileLayer url} = TileLayer url
 toLeafletLayer {ContactMapLayer|def=CMRegionsLayer regions}
@@ -177,6 +179,7 @@ where
     pos (PositionDescription _ (Just(lat,lng))) = {LeafletLatLng|lat=lat,lng=lng}
 
     iconIndex heading type selected = (cat type + ( (maybe 24 (\d -> d / 15) heading) + (if selected 25 0)) * 5)
+*/
 
 toLeafletPerspective :: ContactMapPerspective -> LeafletPerspective
 toLeafletPerspective {ContactMapPerspective|center,zoom,cursor,bounds}
@@ -192,13 +195,14 @@ fromLeafletMap :: ContactMap LeafletMap -> ContactMap
 fromLeafletMap contactMap leafletMap
     = {ContactMap|contactMap
       &perspective = fromLeafletPerspective leafletMap.LeafletMap.perspective
-      ,layers = [fromLeafletLayer cl ll \\ cl <- contactMap.ContactMap.layers & ll <- leafletMap.LeafletMap.layers]
+      /*,layers = [fromLeafletLayer cl ll \\ cl <- contactMap.ContactMap.layers & ll <- leafletMap.LeafletMap.layers]*/
       }
 
 fromLeafletPerspective :: LeafletPerspective -> ContactMapPerspective
 fromLeafletPerspective {LeafletPerspective|center,cursor,zoom,bounds}
     = {ContactMapPerspective|center=fromLeafletLatLng center,zoom=zoom,cursor=fmap fromLeafletLatLng cursor,bounds=fmap fromLeafletBounds bounds}
 
+/*
 fromLeafletLayer :: ContactMapLayer LeafletLayer -> ContactMapLayer
 fromLeafletLayer cl=:{ContactMapLayer|def=CMMarkersLayer markers} (ObjectLayer objects)
     = {ContactMapLayer|cl & def = CMMarkersLayer (map updateMarker markers)}
@@ -209,12 +213,10 @@ where
     indexedLeafletMarkers = 'DM'.fromList [(markerId,m) \\ Marker m=:{LeafletMarker|markerId} <- objects]
 
 fromLeafletLayer cl ll = cl
+*/
 
 selectionFromLeafletMap :: LeafletMap -> [String]
-selectionFromLeafletMap {LeafletMap|layers} = flatten (map selection layers)
-where
-    selection (ObjectLayer markers) = [markerId \\ Marker {LeafletMarker|markerId,selected} <- markers | selected]
-    selection _ = []
+selectionFromLeafletMap {LeafletMap|objects} = [markerId \\ Marker {LeafletMarker|markerId,selected} <- objects | selected]
 
 fromLeafletLatLng :: !LeafletLatLng -> (!Real,!Real)
 fromLeafletLatLng {LeafletLatLng|lat,lng} = (lat,lng)

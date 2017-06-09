@@ -26,7 +26,7 @@ where
 					# (enableUI,enableMask) = genEnableUI taskId dp False	
 					= (Ok (uic UIRecord [enableUI], CompoundMask {fields=[enableMask],state=JSONNull}), vst)
 				| otherwise
-					= case ex.Editor.genUI (pairPath grd_arity dp) x vst of
+					= case ex.Editor.genUI (pairPath grd_arity dp) x {VSt|vst & optional = False} of
 						(Ok viz,vst) = (Ok (fromPairUI UIRecord grd_arity viz),vst)
 						(Error e,vst) = (Error e,vst)
 			Update
@@ -41,7 +41,7 @@ where
 							= (Ok (UI type attr items,CompoundMask {fields=masks,state=JSONNull}),vst)
 					(Error e,vst) = (Error e,vst)
 			View 
-				= case ex.Editor.genUI (pairPath grd_arity dp) x vst of
+				= case ex.Editor.genUI (pairPath grd_arity dp) x {VSt|vst & optional = False} of
 					(Ok viz,vst)  = (Ok (fromPairUI UIRecord grd_arity viz),vst)
 					(Error e,vst) = (Error e,vst)
 
@@ -51,7 +51,7 @@ where
 		| not optional
 			= (Error "Enabling non-optional record",RECORD val,vst)
 		//Create and add the fields
-		= case ex.Editor.genUI (pairPath grd_arity dp) val {vst & mode = Enter} of
+		= case ex.Editor.genUI (pairPath grd_arity dp) val {vst & mode = Enter, optional = False} of
 			(Ok viz,vst)
 				# (UI type attr items, CompoundMask {fields=masks}) = fromPairUI UIRecord grd_arity viz 
 				# change = ChangeUI [] [(i,InsertChild ui) \\ ui <- items & i <- [1..]]
@@ -60,7 +60,6 @@ where
 			(Error e,vst) = (Error e, RECORD val, {vst & mode = mode})
 
 	onEdit dp ([],JSONBool False) (RECORD val) (CompoundMask {fields=[enableMask:masks]}) vst=:{VSt|optional} //Disabling an optional record
-
 		| not optional
 			= (Error "Disabling non-optional record",RECORD val,vst)
 		//Remove all fields except the enable/disable checkbox
@@ -76,7 +75,7 @@ where
 		//When optional we need to adjust for the added checkbox, so we need to offset the record field index with one
 		//In the generated UI and mask (but not in the paths when targeting the edit!!).
 		# idx = if optional (d + 1) d
-		= case ex.Editor.onEdit (pairPath grd_arity dp) (pairSelectPath d grd_arity ++ ds,e) val (masks !! idx) vst of
+		= case ex.Editor.onEdit (pairPath grd_arity dp) (pairSelectPath d grd_arity ++ ds,e) val (masks !! idx) {VSt|vst & optional = False} of
 			(Ok (change,mask),val,vst)
 				//Extend the change
 				# change = case change of NoChange = NoChange; _ = ChangeUI [] [(idx,ChangeChild change)]
@@ -91,7 +90,7 @@ where
 		| optional && not (mode =: View)
 			//Account for the extra mask of the enable/disable checkbox
 			# enableMask = hd fields
-			= case ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask (CompoundMask {fields=tl fields,state=JSONNull})) vst of
+			= case ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask (CompoundMask {fields=tl fields,state=JSONNull})) {VSt|vst & optional = False} of
 				(Ok (change,mask),val,vst)
 					# change = fromPairChange 0 grd_arity change
 					# (CompoundMask {fields}) = fromPairMask grd_arity mask
@@ -106,11 +105,13 @@ where
 				(Error e,val,vst)
 					= (Error e, RECORD val, vst)
 		| otherwise
-			= case ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask mask) vst of
+			= case ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask mask) {VSt|vst & optional = False} of
 				(Ok (change,mask),val,vst)
 					= (Ok (fromPairChange 0 grd_arity change, fromPairMask grd_arity mask), RECORD val, vst)
 				(Error e,val,vst)
 					= (Error e, RECORD val, vst)
+	onRefresh dp (RECORD new) (RECORD old) mask vst=:{VSt|taskId,optional,mode}
+		= (Error "Corrupt mask in generic RECORD editor",RECORD old, vst)
 
 gEditor{|FIELD of {gfd_name}|} ex _ _ _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
@@ -242,6 +243,9 @@ where
 		| otherwise
 			//Adjust for the added constructor view/choose UI
 			# consChooseMask = hd fields
+			//Don't recursively refresh if no constructor has been chosen
+			| (not mode =: View) && consChooseMask =: (FieldMask {FieldMask|state=JSONNull})
+				= (Ok (NoChange,mask),OBJECT old,vst)
 			= case ex.Editor.onRefresh dp new old (CompoundMask {fields=tl fields,state=JSONNull}) {vst & selectedConsIndex = 0} of
 				(Ok (change,CompoundMask {fields}),val,vst=:{VSt|selectedConsIndex}) 
 					//If the cons was changed we need to update the selector
@@ -263,10 +267,10 @@ where
 						= (Ok (change, CompoundMask {fields=[consChooseMask:fields],state=JSONNull}), OBJECT val,{vst & selectedConsIndex = curSelectedConsIndex})
 
 				(Ok (change,mask),val,vst=:{VSt|selectedConsIndex}) 
-					= (Error "Corrupt mask in generic editor",OBJECT old, vst)
+					= (Error "Corrupt mask in generic OBJECT editor",OBJECT old, vst)
 				(Error e,val,vst) = (Error e,OBJECT val,vst)
 	onRefresh dp (OBJECT new) (OBJECT old) mask vst
-		= (Error "Corrupt mask in generic editor",OBJECT old, vst)
+		= (Error "Corrupt mask in generic OBJECT editor",OBJECT old, vst)
 
 gEditor{|EITHER|} ex _ dx _ _ ey _ dy _ _  = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
@@ -367,6 +371,9 @@ where
 		# ((changex,maskx),(changey,masky)) = (fromOk changex,fromOk changey)
 		= (Ok (ChangeUI [] [(0,ChangeChild changex),(1,ChangeChild changey)]
 			  ,CompoundMask {fields=[maskx,masky],state=JSONNull}),PAIR newx newy, vst)
+
+	onRefresh dp (PAIR newx newy) (PAIR oldx oldy) mask vst
+		= (Error "Corrupt mask in generic PAIR editor",PAIR oldx oldy, vst)
 
 //The maybe editor makes it content optional
 gEditor{|Maybe|} ex _ dx _ _ = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
@@ -512,7 +519,7 @@ gEditor{|String|} = whenDisabled
 						(withHintAttributes "single line of text" (withEditMode (textField 'DM'.newMap)))
 gEditor{|Bool|}   = whenDisabled (checkBox (enabledAttr False)) (checkBox 'DM'.newMap)
 
-gEditor{|[]|} ex _ dx tjx _ = listEditor_ tjx (Just (const dx)) True True (Just (\l -> toString (length l) +++ " items")) ex
+gEditor{|[]|} ex _ dx tjx _ = listEditor_ tjx dx (Just (const Nothing)) True True (Just (\l -> toString (length l) +++ " items")) ex
 
 gEditor{|()|} = emptyEditor
 gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ = emptyEditor
