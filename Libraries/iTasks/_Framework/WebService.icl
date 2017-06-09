@@ -128,7 +128,7 @@ where
 	
 wsockTextMsg :: String -> [String]
 wsockTextMsg payload = [wsockMsgFrame WS_OP_TEXT True payload]
-
+import StdMisc
 httpServer :: !Int !Int ![WebService r w] (RWShared () r w) -> ConnectionTask | TC r & TC w
 httpServer port keepAliveTime requestProcessHandlers sds
     = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, onData=onData, onShareChange=onShareChange, onTick=onTick, onDisconnect=onDisconnect} sds
@@ -137,6 +137,7 @@ where
         = (Ok (NTIdle host clocks.timestamp),Nothing,[],False,{IWorld|iworld & world = world})
 
     onData data connState=:(NTProcessingRequest request localState) r env
+        //Select handler based on request path
         = case selectHandler request requestProcessHandlers of
 			Just {WebService | onData}
 				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = onData request r data localState env
@@ -146,7 +147,8 @@ where
 					= (Ok (NTProcessingRequest request localState), mbW, mbData,done,{IWorld|env & world = world})
 			Nothing
 				= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, env)
-	onData data connState r iworld=:{IWorld|clocks}//(connState is either Idle or ReadingRequest)
+	onData data connState r iworld=:{IWorld|clocks}
+        //(connState is either Idle or ReadingRequest)
 		# rstate = case connState of
 			(NTIdle client_name _)
 				//Add new data to the request
@@ -196,8 +198,17 @@ where
 	onTick connState=:(NTIdle ip (Timestamp t)) r iworld=:{IWorld|clocks={timestamp=Timestamp now}}
 		= (Ok connState, Nothing, [], now >= t + keepAliveTime, iworld)
 
-	//Do nothing if no data arrives for now
-	onTick connState r iworld = (Ok connState,Nothing,[],False,iworld)
+	onTick connState=:(NTProcessingRequest request localState) r env
+        //Select handler based on request path
+        = case selectHandler request requestProcessHandlers of
+			Just {WebService | onTick}
+				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = onTick request r localState env
+				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
+					= (Ok (NTIdle request.client_name clocks.timestamp), mbW, mbData, False,{IWorld|env & world = world})
+				| otherwise
+					= (Ok (NTProcessingRequest request localState), mbW, mbData,done,{IWorld|env & world = world})
+			Nothing
+				= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, env)
 
     // TODO: add corresponding handler to 'httpServer'
     onShareChange connState _ iworld = (Ok connState,Nothing,[],False,iworld)
@@ -231,7 +242,6 @@ where
     	addDefault headers hdr val = if (('DL'.lookup hdr headers) =: Nothing) [(hdr,val):headers] headers
 
 :: ChangeQueues :== Map InstanceNo (Queue UIChange)
-
 
 taskUIService :: ![PublishedTask] -> WebService ChangeQueues ChangeQueues
 taskUIService taskUrls = { urlMatchPred    = matchFun [url \\ {PublishedTask|url} <-taskUrls]
