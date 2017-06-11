@@ -302,48 +302,46 @@ acceptTonicTraces :: !(Shared TMessageStore) -> Task [ServerState]
 acceptTonicTraces tonicShare
   = tcplisten 9000 True tonicShare { ConnectionHandlers
                                    | onConnect     = onConnect
-                                   , onData        = undef
-                                   , onShareChange = undef
+                                   , onData        = onData
+                                   , onShareChange = onShareChange
                                    , onDisconnect  = onDisconnect
                                    }
   where
-  onConnect :: String TMessageStore
-            -> (MaybeErrorString ServerState, Maybe TMessageStore, [String], Bool)
-  onConnect host olderMessages
+    onConnect :: String TMessageStore
+              -> (MaybeErrorString ServerState, Maybe TMessageStore, [String], Bool)
+    onConnect host olderMessages
     = ( Ok { oldData = ""
            , clientIp = host}
       , Just olderMessages
       , ["Welcome!"]
       , False)
 
-  whileConnected :: (Maybe String) ServerState TMessageStore
-                 -> (MaybeErrorString ServerState, Maybe TMessageStore, [String], Bool)
-  whileConnected (Just newData) st=:{oldData} tstate
-    # collectedData       = oldData +++ 'T'.trim newData
-    # (strmsgs, leftover) = partitionMessages ('T'.split "TONIC_EOL" collectedData)
-    # tmsgs               = [msg \\ Just msg <- map strToMessage strmsgs]
-    # tstate & ts_allMsgs = tmsgs ++ tstate.ts_allMsgs
-    # tstate              = if tstate.ts_recording
-                              {tstate & ts_recordingBuffer = tmsgs ++ tstate.ts_recordingBuffer}
-                              tstate
-    = (Ok {st & oldData = leftover}, Just tstate, [], False)
+    onData :: String ServerState TMessageStore
+           -> (MaybeErrorString ServerState, Maybe TMessageStore, [String], Bool)
+    onData newData st=:{oldData} tstate
+        # collectedData       = oldData +++ 'T'.trim newData
+        # (strmsgs, leftover) = partitionMessages ('T'.split "TONIC_EOL" collectedData)
+        # tmsgs               = [msg \\ Just msg <- map strToMessage strmsgs]
+        # tstate & ts_allMsgs = tmsgs ++ tstate.ts_allMsgs
+        # tstate              = if tstate.ts_recording
+                                  {tstate & ts_recordingBuffer = tmsgs ++ tstate.ts_recordingBuffer}
+                                  tstate
+        = (Ok {st & oldData = leftover}, Just tstate, [], False)
     where
-    strToMessage :: !String -> Maybe TonicMessage
-    strToMessage str = fromJSON (fromString str)
+        strToMessage :: !String -> Maybe TonicMessage
+        strToMessage str = fromJSON (fromString str)
 
-    partitionMessages :: [String] -> ([String], String)
-    partitionMessages []  = ([], "")
-    partitionMessages [x] = ([], x)
-    partitionMessages [x:y:xs]
-      # (msgs, leftover) = partitionMessages [y:xs]
-      = ([x:msgs], leftover)
+        partitionMessages :: [String] -> ([String], String)
+        partitionMessages []  = ([], "")
+        partitionMessages [x] = ([], x)
+        partitionMessages [x:y:xs]
+            # (msgs, leftover) = partitionMessages [y:xs]
+            = ([x:msgs], leftover)
 
-  whileConnected Nothing st olderMessages
-    = (Ok st, Nothing, [], False)
+    onShareChange st _  = (Ok st, Nothing, [], False)
 
-  onDisconnect :: ServerState TMessageStore
-               -> (MaybeErrorString ServerState, Maybe TMessageStore)
-  onDisconnect st lines
-    = (Ok st, Just lines)
-
+    onDisconnect :: ServerState TMessageStore
+                 -> (MaybeErrorString ServerState, Maybe TMessageStore)
+    onDisconnect st lines
+        = (Ok st, Just lines)
 
