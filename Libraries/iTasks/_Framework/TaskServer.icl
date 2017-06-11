@@ -396,44 +396,20 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
             # taskState = fst (fromJust mbTaskState)
             // read sds
             # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
-            | mbr =: (Error _)
-                # iworld   = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
-                # ioStates = 'DM'.put taskId (IOException (snd (fromError mbr))) ioStates
-                = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
+            | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
             # r = fromOk mbr
             // on tick handler
             # (mbTaskState, mbw, out, close, iworld) = onTickHandler taskState r iworld
-            // TODO: START duplication
             # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
             // write data
             # (ioChannels, iworld) = seq [ioOps.writeData o \\ o <- out] (ioChannels, iworld)
-            | mbTaskState =: (Error _)
-                # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
-                # ioStates = 'DM'.put taskId (IOException (fromError mbTaskState)) ioStates
-                = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
-            | isError mbSdsErr
-                # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
-                # ioStates = 'DM'.put taskId (IOException (snd (fromError mbSdsErr))) ioStates
-                = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
-            // TODO: END duplication
-            // TODO: START duplication
-            | close
-                //Remove the connection state if configured in the connection listener options
-                # taskStates = if removeOnClose
-                    ('DM'.del connectionId taskStates)
-                    taskStates
-                # ioStates = 'DM'.put taskId (IOActive taskStates) ioStates
-                = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
-            // TODO: END duplication
-            // TODO: START duplication
+            | mbTaskState =: (Error _) = taskStateException mbTaskState instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
+            | isError mbSdsErr         = sdsException       mbSdsErr    instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
+            | close = closeConnection taskStates ioStates ioOps.closeIO (ioChannels, iworld)
             // read sds
             # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
-            | mbr =: (Error _)
-                # iworld   = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
-                # ioStates = 'DM'.put taskId (IOException (snd (fromError mbr))) ioStates
-                = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
+            | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
             # r = fromOk mbr
-            // TODO: END duplication
             # taskState = fromOk mbTaskState
             // try to read data
             # (mbData, ioChannels, iworld) = ioOps.readData i chList (ioChannels, iworld)
@@ -462,22 +438,10 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
                     # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
                     // write data
                     # (ioChannels, iworld) = seq [ioOps.writeData o \\ o <- out] (ioChannels, iworld)
-                    | mbTaskState =: (Error _)
-                        # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
-                        # ioStates = 'DM'.put taskId (IOException (fromError mbTaskState)) ioStates
-                        = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
-                    | isError mbSdsErr
-                        # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
-                        # ioStates = 'DM'.put taskId (IOException (snd (fromError mbSdsErr))) ioStates
-                        = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
+                    | mbTaskState =: (Error _) = taskStateException mbTaskState instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
+                    | isError mbSdsErr         = sdsException       mbSdsErr    instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
                     # ioStates = 'DM'.put taskId (IOActive ('DM'.put connectionId (fromOk mbTaskState, close) taskStates)) ioStates
-                    | close
-                        //Remove the connection state if configured in the connection listener options
-                        # taskStates = if removeOnClose
-                            ('DM'.del connectionId taskStates)
-                            taskStates
-                        # ioStates = 'DM'.put taskId (IOActive taskStates) ioStates
-                        = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
+                    | close = closeConnection taskStates ioStates ioOps.closeIO (ioChannels, iworld)
                     | otherwise
                         // persist connection
                         # {done, todo} = iworld.ioTasks
@@ -490,6 +454,41 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
             # ioStates = if ('DM'.mapSize taskStates == 0) ('DM'.del taskId ioStates) ioStates
             = {iworld & ioStates = ioStates}
         _ = ioOps.closeIO (ioChannels, iworld)
+where
+    taskStateException :: (MaybeError String Dynamic)
+                          InstanceNo
+                          (Map TaskId IOState)
+                          (*(!.ioChannels, !*IWorld) -> *IWorld)
+                          *(!.ioChannels, !*IWorld)
+                       -> *IWorld
+    taskStateException mbTaskState instanceNo ioStates closeIO (ioChannels, iworld)
+        # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
+        # ioStates = 'DM'.put taskId (IOException (fromError mbTaskState)) ioStates
+        = closeIO (ioChannels, {iworld & ioStates = ioStates})
+
+    sdsException :: (MaybeError TaskException a)
+                    InstanceNo
+                    (Map TaskId IOState)
+                    (*(!.ioChannels, !*IWorld) -> *IWorld)
+                    *(!.ioChannels, !*IWorld)
+                    -> *IWorld
+    sdsException mbSdsErr instanceNo ioStates closeIO (ioChannels, iworld)
+        # iworld = if (instanceNo > 0) (queueRefresh [(instanceNo, "Exception for " <+++ instanceNo)] iworld) iworld
+        # ioStates = 'DM'.put taskId (IOException (snd (fromError mbSdsErr))) ioStates
+        = closeIO (ioChannels, {iworld & ioStates = ioStates})
+
+    closeConnection :: (Map ConnectionId (Dynamic,Bool))
+                       (Map TaskId IOState)
+                       (*(!.ioChannels, !*IWorld) -> *IWorld)
+                       *(!.ioChannels, !*IWorld)
+                    -> *IWorld
+    closeConnection taskStates ioStates closeIO (ioChannels, iworld)
+        //Remove the connection state if configured in the connection listener options
+        # taskStates = if removeOnClose
+            ('DM'.del connectionId taskStates)
+            taskStates
+        # ioStates = 'DM'.put taskId (IOActive taskStates) ioStates
+        = closeIO (ioChannels, iworld)//{iworld & ioStates = ioStates})
 
 writeShareIfNeeded :: !(RWShared () r w) !(Maybe w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 writeShareIfNeeded sds Nothing iworld  = (Ok (), iworld)
