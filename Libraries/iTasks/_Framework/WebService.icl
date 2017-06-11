@@ -128,7 +128,7 @@ where
 	
 wsockTextMsg :: String -> [String]
 wsockTextMsg payload = [wsockMsgFrame WS_OP_TEXT True payload]
-import StdMisc
+
 httpServer :: !Int !Int ![WebService r w] (RWShared () r w) -> ConnectionTask | TC r & TC w
 httpServer port keepAliveTime requestProcessHandlers sds
     = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, onData=onData, onShareChange=onShareChange, onTick=onTick, onDisconnect=onDisconnect} sds
@@ -209,8 +209,19 @@ where
 					= (Ok (NTProcessingRequest request localState), mbW, mbData,done,{IWorld|env & world = world})
 			Nothing
 				= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, env)
+    onTick connState _ iworld = (Ok connState,Nothing,[],False,iworld)
 
-    // TODO: add corresponding handler to 'httpServer'
+    onShareChange connState=:(NTProcessingRequest request localState) r env
+        //Select handler based on request path
+        = case selectHandler request requestProcessHandlers of
+			Just {WebService | onShareChange}
+				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = onShareChange request r localState env
+				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
+					= (Ok (NTIdle request.client_name clocks.timestamp), mbW, mbData, False,{IWorld|env & world = world})
+				| otherwise
+					= (Ok (NTProcessingRequest request localState), mbW, mbData,done,{IWorld|env & world = world})
+			Nothing
+				= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, env)
     onShareChange connState _ iworld = (Ok connState,Nothing,[],False,iworld)
 
 	//If we were processing a request and were interupted we need to
@@ -248,6 +259,7 @@ taskUIService taskUrls = { urlMatchPred    = matchFun [url \\ {PublishedTask|url
                          , completeRequest = True
                          , onNewReq        = reqFun` taskUrls
                          , onData          = dataFun
+                         , onShareChange   = shareChangeFun
                          , onTick          = onTick
                          , onDisconnect    = disconnectFun
                          }
@@ -319,6 +331,8 @@ where
 					# json = JSONArray [JSONString "ERROR",JSONString "Unknown event"]
 					= (wsockTextMsg (toString json),False, instances, iworld)
 
+    shareChangeFun _ _ connState iworld = ([], False, connState, Nothing, iworld)
+
     onTick req output (state,instances) iworld
 		//Check for UI updates for all attached instances
 		# (changes, output) = dequeueOutput instances output
@@ -369,6 +383,7 @@ documentService = { urlMatchPred    = matchFun
                   , completeRequest = True
                   , onNewReq        = reqFun
                   , onData          = dataFun
+                  , onShareChange   = onShareChange
                   , onTick          = onTick
                   , onDisconnect    = lostFun
                   }
@@ -399,9 +414,10 @@ where
 			_
 				= (notFoundResponse req,Nothing,Nothing,iworld)
 
-	dataFun _ _ _ s env = ([],True,s,Nothing,env)
-    onTick  _ _   s env = ([],True,s,Nothing,env)
-	lostFun _ _ s env = (Nothing,env)
+	dataFun _ _ _     s env = ([], True, s, Nothing, env)
+    onTick  _ _       s env = ([], True, s, Nothing, env)
+    onShareChange _ _ s env = ([], True, s, Nothing, env)
+	lostFun _ _       s env = (Nothing, env)
 
 createDocumentsFromUploads [] iworld = ([],iworld)
 createDocumentsFromUploads [(n,u):us] iworld
@@ -421,6 +437,7 @@ staticResourceService taskPaths = { urlMatchPred    = const True
                                   , completeRequest = True
                                   , onNewReq        = initFun
                                   , onData          = dataFun
+                                  , onShareChange   = shareChangeFun
                                   , onTick          = onTick
                                   , onDisconnect    = lostFun
                                   }
@@ -429,9 +446,10 @@ where
 		# (rsp,env) = handleStaticResourceRequest req env
 		= (rsp,Nothing,Nothing,env)
 		
-	dataFun _ _ _ s env = ([],True,s,Nothing,env)
-    onTick  _ _   s env = ([],True,s,Nothing,env)
-	lostFun _ _ s env = (Nothing,env)
+	dataFun _ _ _      s env = ([], True, s, Nothing, env)
+    shareChangeFun _ _ s env = ([], True, s, Nothing, env)
+    onTick  _ _        s env = ([], True, s, Nothing, env)
+	lostFun _ _        s env = (Nothing, env)
 
 	handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
 	handleStaticResourceRequest req iworld=:{IWorld|server={paths={webDirectory}},world}
