@@ -394,11 +394,13 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
                 # ioStates = 'DM'.put taskId (IOException "Missing IO task state") ioStates
                 = ioOps.closeIO (ioChannels, {iworld & ioStates = ioStates})
             # taskState = fst (fromJust mbTaskState)
+
+            // *** onTick handler ***
             // read sds
             # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
             | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
             # r = fromOk mbr
-            // on tick handler
+            // call handler
             # (mbTaskState, mbw, out, close, iworld) = onTickHandler taskState r iworld
             # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
             // write data
@@ -406,6 +408,22 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
             | mbTaskState =: (Error _) = taskStateException mbTaskState instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
             | isError mbSdsErr         = sdsException       mbSdsErr    instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
             | close = closeConnection taskStates ioStates ioOps.closeIO (ioChannels, iworld)
+
+            // *** onShareChange handler ***
+            // read sds
+            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
+            | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
+            # r = fromOk mbr
+            // call handler
+            # (mbTaskState, mbw, out, close, iworld) = onShareChangeHandler taskState r iworld
+            # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
+            // write data
+            # (ioChannels, iworld) = seq [ioOps.writeData o \\ o <- out] (ioChannels, iworld)
+            | mbTaskState =: (Error _) = taskStateException mbTaskState instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
+            | isError mbSdsErr         = sdsException       mbSdsErr    instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
+            | close = closeConnection taskStates ioStates ioOps.closeIO (ioChannels, iworld)
+
+            // ** onData handler ***
             // read sds
             # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
             | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
