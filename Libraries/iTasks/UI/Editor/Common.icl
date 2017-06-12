@@ -26,7 +26,7 @@ where
 			# items = if (not (mode =: View) && (remove || reorder)) [listItemUI taskId dp (length val) idx idx dx \\ dx <- items & idx <- [0..]] items
 			//Add the add button
 			# items = if (not (mode =: View) && add =: Just _) (items ++ [addItemControl val]) items
-			= (Ok (uic UIContainer items,CompoundMask {fields=masks,state=toJSON (indexList val)}), vst)
+			= (Ok (uic UIList items,CompoundMask {fields=masks,state=toJSON (indexList val)}), vst)
 		(Error e,vst)  = (Error e,vst)
 	where			
 		genChildUIs dp _ [] us vst = (Ok (unzip (reverse us)), vst)
@@ -38,7 +38,7 @@ where
 			# counter  	= maybe [] (\f -> [uia UITextView ('DM'.unions [widthAttr FlexSize, valueAttr (JSONString (f val))])]) count
 			# button	= if (isJust add) [uia UIButton ('DM'.unions [iconClsAttr "icon-add",editAttrs taskId (editorId dp) (Just (JSONString "add"))])] []
 			# attr      = 'DM'.unions [halignAttr AlignRight,heightAttr WrapSize,directionAttr Horizontal]
-			= uiac UIContainer attr (counter ++ button)
+			= uiac UIToolBar attr (counter ++ button)
 
 	listItemUI taskId dp numItems idx id item
 		# buttons	= (if reorder
@@ -49,7 +49,10 @@ where
 							  [uia UIButton ('DM'.unions [iconClsAttr "icon-remove",editAttrs taskId (editorId dp) (Just (JSONString ("rem_" +++ toString id)))])
 							  ] [])
 		# attr = 'DM'.unions [halignAttr AlignRight,heightAttr WrapSize,directionAttr Horizontal]
-		= uiac UIContainer attr (if (reorder || remove) ([item] ++ buttons) [item])
+		= uiac UIListItem attr (if (reorder || remove) ([flexWidth item] ++ buttons) [flexWidth item])
+	where
+		flexWidth (UI type attr content) = UI type ('DM'.union (widthAttr FlexSize) attr) content
+
 			
 	//Structural edits on the list
 	onEdit dp ([],JSONString e) items (CompoundMask {fields=masks,state}) vst=:{VSt|taskId, mode}
