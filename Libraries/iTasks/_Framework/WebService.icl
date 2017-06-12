@@ -129,31 +129,26 @@ where
 wsockTextMsg :: String -> [String]
 wsockTextMsg payload = [wsockMsgFrame WS_OP_TEXT True payload]
 
-httpServer :: !Int !Int ![(!String -> Bool
-				,!Bool
-				,!(HTTPRequest r *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe w, !*IWorld))
-				,!(HTTPRequest r (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe w, !*IWorld))
-				,!(HTTPRequest r ConnectionState *IWorld -> (!Maybe w, !*IWorld))
-				)] (RWShared () r w) -> ConnectionTask | TC r & TC w
+httpServer :: !Int !Int ![WebService r w] (RWShared () r w) -> ConnectionTask | TC r & TC w
 httpServer port keepAliveTime requestProcessHandlers sds
- = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, whileConnected=whileConnected, onDisconnect=onDisconnect} sds
+    = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, onData=onData, onShareChange=onShareChange, onTick=onTick, onDisconnect=onDisconnect} sds
 where
     onConnect host r iworld=:{IWorld|world,clocks}
         = (Ok (NTIdle host clocks.timestamp),Nothing,[],False,{IWorld|iworld & world = world})
 
-	whileConnected mbData connState=:(NTProcessingRequest request localState) r env
-		//Select handler based on request path
-		= case selectHandler request requestProcessHandlers of
-			Just (_,_,_,handler,_)
-				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = handler request r mbData localState env
+    onData data connState=:(NTProcessingRequest request localState) r env
+        //Select handler based on request path
+        = case selectHandler request requestProcessHandlers of
+			Just {WebService | onData}
+				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = onData request r data localState env
 				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
 					= (Ok (NTIdle request.client_name clocks.timestamp), mbW, mbData, False,{IWorld|env & world = world})
 				| otherwise
 					= (Ok (NTProcessingRequest request localState), mbW, mbData,done,{IWorld|env & world = world})
 			Nothing
 				= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, env)
-
-	whileConnected (Just data) connState r iworld=:{IWorld|clocks}//(connState is either Idle or ReadingRequest)
+	onData data connState r iworld=:{IWorld|clocks}
+        //(connState is either Idle or ReadingRequest)
 		# rstate = case connState of
 			(NTIdle client_name _)
 				//Add new data to the request
@@ -176,14 +171,14 @@ where
 		= case selectHandler rstate.HttpReqState.request requestProcessHandlers of
 			Nothing
 				= (Ok connState, Nothing, ["HTTP/1.1 404 Not Found\r\n\r\n"], True, iworld)
-			Just (_,completeRequest,newReqHandler,procReqHandler,_)
+			Just {completeRequest, onNewReq}
 				//Process a completed request, or as soon as the headers are done if the handler indicates so
 				| rstate.HttpReqState.data_done || (not completeRequest)
 					# request	= if completeRequest (http_parseArguments rstate.HttpReqState.request) rstate.HttpReqState.request
 					//Determine if a  persistent connection was requested
 					# keepalive	= isKeepAlive request
 					// Create a response
-					# (response,mbLocalState,mbW,iworld)	= newReqHandler request r iworld 
+					# (response,mbLocalState,mbW,iworld) = onNewReq request r iworld 
 					//Add keep alive header if necessary
 					# response	= if keepalive {HTTPResponse|response & rsp_headers = [("Connection","Keep-Alive"):response.HTTPResponse.rsp_headers]} response
 					// Encode the response to the HTTP protocol format
@@ -200,27 +195,50 @@ where
 					= (Ok (NTReadingRequest rstate), Nothing, [], False, iworld)		
 
 	//Close idle connections if the keepalive time has passed
-	whileConnected Nothing connState=:(NTIdle ip (Timestamp t)) r iworld=:{IWorld|clocks={timestamp=Timestamp now}}
+	onTick connState=:(NTIdle ip (Timestamp t)) r iworld=:{IWorld|clocks={timestamp=Timestamp now}}
 		= (Ok connState, Nothing, [], now >= t + keepAliveTime, iworld)
 
-	//Do nothing if no data arrives for now
-	whileConnected Nothing connState r iworld = (Ok connState,Nothing,[],False,iworld)
+	onTick connState=:(NTProcessingRequest request localState) r env
+        //Select handler based on request path
+        = case selectHandler request requestProcessHandlers of
+			Just {WebService | onTick}
+				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = onTick request r localState env
+				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
+					= (Ok (NTIdle request.client_name clocks.timestamp), mbW, mbData, False,{IWorld|env & world = world})
+				| otherwise
+					= (Ok (NTProcessingRequest request localState), mbW, mbData,done,{IWorld|env & world = world})
+			Nothing
+				= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, env)
+    onTick connState _ iworld = (Ok connState,Nothing,[],False,iworld)
+
+    onShareChange connState=:(NTProcessingRequest request localState) r env
+        //Select handler based on request path
+        = case selectHandler request requestProcessHandlers of
+			Just {WebService | onShareChange}
+				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = onShareChange request r localState env
+				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
+					= (Ok (NTIdle request.client_name clocks.timestamp), mbW, mbData, False,{IWorld|env & world = world})
+				| otherwise
+					= (Ok (NTProcessingRequest request localState), mbW, mbData,done,{IWorld|env & world = world})
+			Nothing
+				= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, env)
+    onShareChange connState _ iworld = (Ok connState,Nothing,[],False,iworld)
 
 	//If we were processing a request and were interupted we need to
 	//select the appropriate handler to wrap up
 
     onDisconnect connState=:(NTProcessingRequest request localState) r env
 		= case selectHandler request requestProcessHandlers of
-			Nothing	                        = (Ok connState, Nothing, env)
-			Just (_,_,_,_,connLostHandler)  
-				# (mbW, env) = connLostHandler request r localState env
+			Nothing = (Ok connState, Nothing, env)
+			Just {WebService | onDisconnect}  
+				# (mbW, env) = onDisconnect request r localState env
 				= (Ok connState, mbW, env)
     onDisconnect connState r env = (Ok connState, Nothing, env)
 
 	selectHandler req [] = Nothing
-	selectHandler req [h=:(pred,_,_,_,_):hs]
-		| pred req.HTTPRequest.req_path	= Just h
-										= selectHandler req hs
+	selectHandler req [h:hs]
+		| h.urlMatchPred req.HTTPRequest.req_path = Just h
+										          = selectHandler req hs
 
 	isKeepAlive request = maybe (request.HTTPRequest.req_version == "HTTP/1.1") (\h -> (toLowerCase h == "keep-alive")) ('DM'.get "Connection" request.HTTPRequest.req_headers)
 
@@ -236,15 +254,15 @@ where
 
 :: ChangeQueues :== Map InstanceNo (Queue UIChange)
 
-
-taskUIService :: ![PublishedTask] ->
-                 (!(String -> Bool)
-                 ,!Bool
-                 ,!(HTTPRequest ChangeQueues *IWorld -> (!HTTPResponse,!Maybe ConnectionState, !Maybe ChangeQueues, !*IWorld))
-                 ,!(HTTPRequest ChangeQueues (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe ChangeQueues, !*IWorld))
-                 ,!(HTTPRequest ChangeQueues ConnectionState *IWorld -> (!Maybe ChangeQueues, !*IWorld))
-                 ) 
-taskUIService taskUrls = (matchFun [url \\ {PublishedTask|url} <-taskUrls],True,reqFun` taskUrls,dataFun,disconnectFun)
+taskUIService :: ![PublishedTask] -> WebService ChangeQueues ChangeQueues
+taskUIService taskUrls = { urlMatchPred    = matchFun [url \\ {PublishedTask|url} <-taskUrls]
+                         , completeRequest = True
+                         , onNewReq        = reqFun` taskUrls
+                         , onData          = dataFun
+                         , onShareChange   = shareChangeFun
+                         , onTick          = onTick
+                         , onDisconnect    = disconnectFun
+                         }
 where
     matchFun :: [String] String -> Bool
     matchFun matchUrls reqUrl = or [reqUrl == uiUrl matchUrl \\ matchUrl <- matchUrls]
@@ -267,7 +285,7 @@ where
         | otherwise
 			= (errorResponse "Requested service format not available for this task", Nothing, Nothing, iworld)
 
-	dataFun req output (Just data) (state,instances) iworld
+	dataFun req output data (state,instances) iworld
 		# (state,events) = wsockAddData state data 
 		# (output,close,instances,iworld) = handleEvents instances [] False events iworld
 		= (output,close,(state,instances),Nothing,iworld)
@@ -313,7 +331,9 @@ where
 					# json = JSONArray [JSONString "ERROR",JSONString "Unknown event"]
 					= (wsockTextMsg (toString json),False, instances, iworld)
 
-    dataFun req output Nothing (state,instances) iworld
+    shareChangeFun _ _ connState iworld = ([], False, connState, Nothing, iworld)
+
+    onTick req output (state,instances) iworld
 		//Check for UI updates for all attached instances
 		# (changes, output) = dequeueOutput instances output
 		= case changes of //Ignore empty updates
@@ -358,10 +378,15 @@ where
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
 // unauthorized downloading of documents and DDOS uploading.
 	
-documentService :: (!(String -> Bool),!Bool,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
-                        ,!(HTTPRequest r (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
-                        ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld)))
-documentService = (matchFun,True,reqFun,dataFun,lostFun)
+documentService :: WebService r w
+documentService = { urlMatchPred    = matchFun
+                  , completeRequest = True
+                  , onNewReq        = reqFun
+                  , onData          = dataFun
+                  , onShareChange   = onShareChange
+                  , onTick          = onTick
+                  , onDisconnect    = lostFun
+                  }
 where
 	matchFun path = case dropWhile ((==)"") (split "/" path) of
 		["upload"]          = True  // Upload of documents
@@ -389,8 +414,10 @@ where
 			_
 				= (notFoundResponse req,Nothing,Nothing,iworld)
 
-	dataFun _ _ _ s env = ([],True,s,Nothing,env)
-	lostFun _ _ s env = (Nothing,env)
+	dataFun _ _ _     s env = ([], True, s, Nothing, env)
+    onTick  _ _       s env = ([], True, s, Nothing, env)
+    onShareChange _ _ s env = ([], True, s, Nothing, env)
+	lostFun _ _       s env = (Nothing, env)
 
 createDocumentsFromUploads [] iworld = ([],iworld)
 createDocumentsFromUploads [(n,u):us] iworld
@@ -405,17 +432,24 @@ jsonResponse json
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
-staticResourceService :: [String] -> (!(String -> Bool),!Bool,!(HTTPRequest r *IWorld -> (HTTPResponse, Maybe loc, Maybe w ,*IWorld))
-                        ,!(HTTPRequest r (Maybe {#Char}) loc *IWorld -> (![{#Char}], !Bool, loc, Maybe w ,!*IWorld))
-                        ,!(HTTPRequest r loc *IWorld -> (!Maybe w,!*IWorld)))
-staticResourceService taskPaths = (const True,True,initFun,dataFun,lostFun)
+staticResourceService :: [String] -> WebService r w
+staticResourceService taskPaths = { urlMatchPred    = const True
+                                  , completeRequest = True
+                                  , onNewReq        = initFun
+                                  , onData          = dataFun
+                                  , onShareChange   = shareChangeFun
+                                  , onTick          = onTick
+                                  , onDisconnect    = lostFun
+                                  }
 where
 	initFun req _ env
 		# (rsp,env) = handleStaticResourceRequest req env
 		= (rsp,Nothing,Nothing,env)
 		
-	dataFun _ _ _ s env = ([],True,s,Nothing,env)
-	lostFun _ _ s env = (Nothing,env)
+	dataFun _ _ _      s env = ([], True, s, Nothing, env)
+    shareChangeFun _ _ s env = ([], True, s, Nothing, env)
+    onTick  _ _        s env = ([], True, s, Nothing, env)
+	lostFun _ _        s env = (Nothing, env)
 
 	handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
 	handleStaticResourceRequest req iworld=:{IWorld|server={paths={webDirectory}},world}

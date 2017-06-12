@@ -67,27 +67,31 @@ defaultTonicOpts :: TonicOpts
 //Definition of low-level network interaction
 
 :: ConnectionHandlers l r w = 
-    { onConnect         :: !(String r           -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
-    , whileConnected    :: !((Maybe String) l r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
-    , onDisconnect      :: !(               l r -> (!MaybeErrorString l, Maybe w                  ))
+    { onConnect         :: !(String r   -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
+    , onData            :: !(String l r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
+    , onShareChange     :: !(       l r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
+    , onDisconnect      :: !(       l r -> (!MaybeErrorString l, Maybe w                  ))
 	}
 
 //Version of connection handlers with IWorld side-effects that is still necessary for built-in framework handlers
 :: ConnectionHandlersIWorld l r w =
-    { onConnect         :: !(String r           *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
-    , whileConnected    :: !((Maybe String) l r *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
-    , onDisconnect      :: !(               l r *IWorld -> *(!MaybeErrorString l, Maybe w,                   !*IWorld))
+    { onConnect     :: !(String r   *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
+    , onData        :: !(String l r *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
+    , onShareChange :: !(       l r *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
+    , onTick        :: !(       l r *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
+    , onDisconnect  :: !(       l r *IWorld -> *(!MaybeErrorString l, Maybe w,                   !*IWorld))
     }
 
 //Low-level task that handles external processes
 :: ExternalProcessTask = ExternalProcessTask !(ExternalProcessHandlers Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)
 
-:: ProcessOutChannel = StdOut | StdErr
 :: ExitCode = ExitCode !Int
 :: ExternalProcessHandlers l r w =
-    { onStartup    :: !(                                        r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
-    , whileRunning :: !((Maybe (!ProcessOutChannel, !String)) l r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
-    , onExit       :: !(ExitCode                              l r -> (!MaybeErrorString l, !Maybe w                  ))
+    { onStartup     :: !(           r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
+    , onOutData     :: !(String   l r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
+    , onErrData     :: !(String   l r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
+    , onShareChange :: !(         l r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
+    , onExit        :: !(ExitCode l r -> (!MaybeErrorString l, !Maybe w                  ))
     }
 
 //Background computation tasks

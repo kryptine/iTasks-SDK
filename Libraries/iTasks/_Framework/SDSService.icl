@@ -4,7 +4,7 @@ import iTasks
 
 from Internet.HTTP					import :: HTTPRequest {req_method, req_path, req_data}, :: HTTPResponse(..), :: HTTPMethod(..)
 from iTasks._Framework.IWorld		import :: IWorld {exposedShares}
-from iTasks._Framework.WebService   import :: ConnectionState, :: WebSockState
+from iTasks._Framework.WebService   import :: ConnectionState, :: WebSockState, :: WebService(..)
 from iTasks._Framework.TaskState 	import :: TIUIState
 
 import iTasks._Framework.HtmlUtil, iTasks._Framework.DynamicUtil
@@ -23,14 +23,15 @@ import Text.URI
 import StdMisc, graph_to_sapl_string
 import Data.Queue
 
-sdsService ::   (!(String -> Bool)
-				 ,!Bool
-                 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) *IWorld -> *(!HTTPResponse, !Maybe ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-				 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) (Maybe {#Char}) ConnectionState *IWorld -> (![{#Char}], !Bool, !ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-				 ,!(HTTPRequest (Map InstanceNo (Queue UIChange)) ConnectionState *IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld))
-				 )
-
-sdsService = (matchFun,True,reqFun,dataFun,disconnectFun)
+sdsService :: WebService (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange))
+sdsService = { urlMatchPred    = matchFun
+             , completeRequest = True
+             , onNewReq        = reqFun
+             , onData          = dataFun
+             , onShareChange   = onShareChange
+             , onTick          = onTick
+             , onDisconnect    = disconnectFun
+             }
 where
     matchFun :: String -> Bool
     matchFun reqUrl = case pathToSegments reqUrl of
@@ -75,8 +76,11 @@ where
 	plainResponse string
 		= {okResponse & rsp_headers = [("Content-Type","text/plain")], rsp_data = string}			
 				
-	dataFun :: !HTTPRequest (Map InstanceNo (Queue UIChange)) !(Maybe {#Char}) !ConnectionState !*IWorld -> (![{#Char}], !Bool, !ConnectionState,!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld)
-    dataFun req _ mbData instanceNo iworld = ([], True, instanceNo, Nothing, iworld)
+	dataFun :: !HTTPRequest (Map InstanceNo (Queue UIChange)) !String !ConnectionState !*IWorld -> (![{#Char}], !Bool, !ConnectionState,!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld)
+    dataFun req _ data instanceNo iworld = ([], True, instanceNo, Nothing, iworld)
+
+    onShareChange _ _ s iworld = ([], True, s, Nothing, iworld)
+    onTick _ _ instanceNo iworld = ([], True, instanceNo, Nothing, iworld)
 
     disconnectFun :: !HTTPRequest (Map InstanceNo (Queue UIChange)) !ConnectionState !*IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld)
 	disconnectFun _ _ _ iworld = (Nothing,iworld)

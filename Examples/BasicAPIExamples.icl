@@ -719,12 +719,13 @@ externalProcessExample =
                   forever (enterInformation "Enter data to send to StdIn" [] >>= \data -> set (Just (data +++ "\n")) sds)
         )
 where
-    handlers = { onStartup    = \_ -> (Ok "", Nothing, [], False) 
-               , whileRunning = whileRunning
-               , onExit       = \_ l _ -> (Ok l, Nothing)
+    handlers = { onStartup     = \  _   -> (Ok "", Nothing, [], False)
+               , onOutData     = onData
+               , onErrData     = onData
+               , onShareChange = \  l _ -> (Ok l, Nothing, [], False)
+               , onExit        = \_ l _ -> (Ok l, Nothing)
                }
-	whileRunning (Just (_, data)) l mbOutput = (Ok (l +++ data +++ "\n"), Just Nothing, maybeToList mbOutput, False)
-	whileRunning Nothing          l mbOutput = (Ok l,                     Just Nothing, maybeToList mbOutput, False)
+	onData data l mbOutput = (Ok (l +++ data +++ "\n"), Just Nothing, maybeToList mbOutput, False)
 
 //* Customizing interaction with views
 
