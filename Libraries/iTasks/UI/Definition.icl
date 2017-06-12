@@ -290,6 +290,8 @@ where
 	toString UIMenu            = "Menu"
 	toString UIToolBar         = "ToolBar"
 	toString UIButtonBar       = "ButtonBar"
+	toString UIList            = "List"
+	toString UIListItem        = "ListItem"
 	toString UIDebug           = "Debug"
 
 	toString UIData            = "Data"

@@ -454,6 +454,18 @@ div.itasks-loader-spinner {
 .itasks-buttonbar, .itasks-toolbar {
   background: -moz-linear-gradient(top, #fefefe, #cccccc); }
 
+.itasks-list {
+  color: #000;
+  background-color: #fff;
+  border: 2px solid #ccc;
+  border-radius: 5px; }
+
+.itasks-listitem {
+  margin: 0px 5px 5px 5px; }
+
+.itasks-listitem:nth-child(even) {
+  background-color: #eee; }
+
 .itasks-menu {
   display: block;
   position: relative;

@@ -284,9 +284,16 @@ itasks.ButtonBar  = {
 		padding: '2 2 2 0'
 	}
 };
+itasks.List = {
+	cssCls: 'list'
+};
+itasks.ListItem = {
+	cssCls: 'listitem'
+};
 itasks.Debug = {
 	cssCls: 'debug'
 };
+
 itasks.Menu = {
 	cssCls: 'menu',
 	attributes: {

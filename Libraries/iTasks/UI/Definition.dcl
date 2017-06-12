@@ -98,6 +98,8 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	| UIMenu
 	| UIToolBar
 	| UIButtonBar
+	| UIList
+	| UIListItem
 	| UIDebug
 	// Data elements (implemented in itasks-core.js)
 	| UIData 
