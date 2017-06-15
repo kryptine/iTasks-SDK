@@ -148,6 +148,6 @@ where
 		= {UserAccount
 		  | credentials = {Credentials| username = Username (toLowerCase name), password = Password (toLowerCase name)}
 		  , title = Just name
-		  , roles = []
+		  , roles = ["manager"]
 		  }
 	names = ["Alice","Bob","Carol","Dave","Eve","Fred"]
