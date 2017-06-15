@@ -154,7 +154,7 @@ where
 			Just user 	= workAs user (manageWorklist workflows)
 			Nothing		= viewInformation (Title "Login failed") [] "Your username or password is incorrect" >>| return ()
 	browse workflows Nothing
-		= manageWorklist workflows
+		= workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) (manageWorklist workflows)
 		
 	layout = sequenceLayouts (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")]))) frameCompact
 		
