@@ -173,23 +173,45 @@ removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 removeOutdatedSessions iworld
     # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) iworld
     = case mbIndex of
-        Ok index    = (Ok (), foldr removeIfOutdated iworld index)
+        Ok index    = checkAll removeIfOutdated index iworld 
         Error e     = (Error e, iworld)
 where
-    removeIfOutdated (instanceNo,_,_,_) iworld=:{clocks={localDate,localTime}}
-		//Get lastIO time
-		= case read (sdsFocus instanceNo taskInstanceIO) iworld of
+	checkAll f [] iworld = (Ok (),iworld)
+	checkAll f [x:xs] iworld = case f x iworld of
+		(Ok (),iworld) = checkAll f xs iworld
+		(Error e,iworld) = (Error e,iworld)
+
+    removeIfOutdated (instanceNo,_,_,_) iworld=:{clocks={localDate,localTime},server={buildID}}
+		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) iworld of
+			//If there is I/O information, we check that age first
 			(Ok (Just (client,time)),iworld) //No IO for too long, clean up
 				# (Timestamp tInstance) = datetimeToTimestamp time
-				  (Timestamp tNow) = datetimeToTimestamp (toDateTime localDate localTime)
-				| (tNow - tInstance) > SESSION_TIMEOUT
-					# (_,iworld) = deleteTaskInstance instanceNo iworld
-					# (_,iworld) = 'SDS'.write Nothing (sdsFocus instanceNo taskInstanceIO) iworld
-					= iworld
-				| otherwise
-					= iworld
-			(Ok Nothing,iworld) = iworld
-			(Error e,iworld) = iworld
+				= (Ok ((tNow - tInstance) > SESSION_TIMEOUT),iworld)
+			//If there is no I/O information, get meta-data and check builtId and creation date
+			(Ok Nothing,iworld)
+				= case read (sdsFocus instanceNo taskInstanceConstants) iworld of
+					(Ok {InstanceConstants|build,issuedAt},iworld)
+						| build <> buildID = (Ok True,iworld)
+						# (Timestamp tInstance) = datetimeToTimestamp issuedAt
+						| (tNow - tInstance) > SESSION_TIMEOUT = (Ok True,iworld)
+						= (Ok False,iworld)
+					(Error e,iworld)
+						= (Error e,iworld)
+			(Error e,iworld) 
+				= (Error e,iworld)
+		= case remove of
+			(Ok True)
+				# (e,iworld) = deleteTaskInstance instanceNo iworld
+				| e=:(Error _) = (e,iworld)
+				# (e,iworld) = 'SDS'.write Nothing (sdsFocus instanceNo taskInstanceIO) iworld
+				| e=:(Error _) = (e,iworld)
+				= (Ok (),iworld)
+			(Ok False)
+				= (Ok (), iworld)
+			(Error e)
+				= (Error e,iworld)
+	where
+		(Timestamp tNow) = datetimeToTimestamp (toDateTime localDate localTime)
 
 //When we don't run the built-in HTTP server we don't want to loop forever so we stop the loop
 //once all tasks are stable
