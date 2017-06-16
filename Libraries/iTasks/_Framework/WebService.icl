@@ -309,7 +309,6 @@ where
 							# json = JSONArray [JSONInt reqId,JSONString "ERROR",JSONString err]
 							= (wsockTextMsg (toString json),False, instances,iworld)
 						(Ok (instanceNo,instanceKey),iworld)
-							# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
 							# json = JSONArray [JSONInt reqId, JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]]
 							= (wsockTextMsg (toString json),False, instances, iworld)
 				// - attach existing instance

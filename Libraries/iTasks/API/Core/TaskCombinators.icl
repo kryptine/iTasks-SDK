@@ -686,68 +686,52 @@ where
         | mbError =:(Error _)   = (liftError mbError, iworld)
         = (Ok (), iworld)
 
-
 attach :: !TaskId -> Task AttachmentStatus
 attach (TaskId instanceNo taskNo) = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld=:{current={attachmentChain}}
-		# (progress,iworld)		= read (sdsFocus instanceNo taskInstanceProgress) iworld
-		= case progress of
-			Ok progress
-                //Just steal the instance, TODO, make stealing optional
-                # progress      = {InstanceProgress|progress & attachedTo = [taskId:attachmentChain]}
-				# (_,iworld)	= write progress (sdsFocus instanceNo taskInstanceProgress) iworld
-				//Clear all input and output of that instance
-				# (_,iworld)    = write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceUIChanges) iworld 
-				# (_,iworld)    = modify (\('DQ'.Queue a b) -> ((),'DQ'.Queue [(i,e) \\(i,e)<- a| i <> instanceNo][(i,e) \\(i,e)<- b| i <> instanceNo])) taskEvents iworld 
-				//# iworld		= queueRefresh [(instanceNo,"attach of " <+++ instanceNo <+++ " requires refresh")] iworld
-				= eval event evalOpts (TCBasic taskId ts JSONNull False) iworld
-			Error e
-				= (ExceptionResult e,iworld)
-		
-	eval event evalOpts tree=:(TCBasic taskId ts state _) iworld=:{server={buildID},current={taskInstance}}
-		//Load instance
-        # (constants,iworld)    = read (sdsFocus instanceNo taskInstanceConstants) iworld 
-		# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
-		= case (constants,progress) of
-			(Ok {InstanceConstants|instanceKey,build},Ok progress=:{InstanceProgress|attachedTo=[attachedId],value})
-				# (curValue,stable)
-					 = if (build <> buildID) (ASIncompatible,True)
-						(if (value === Exception) (ASExcepted,True) 
-							(if(attachedId == taskId)
-								(let stable = (value === Stable) in (ASAttached stable,stable))
-								(ASInUse attachedId,False)
-							)
-						)
-				# prevValue = fromJSON state
-				//Only replace the UI if the value is different
-				# rep = if (Just curValue === prevValue) NoChange
-							(if (curValue =:(ASInUse _)) (ReplaceUI inUseDef) (ReplaceUI (embedTaskDef instanceNo instanceKey)))
-				# tree = TCBasic taskId ts (toJSON curValue) False 	
-				= (ValueResult (Value curValue stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} rep tree,iworld)
-			_
-				= (ValueResult (Value ASDeleted True) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange tree, iworld)
+		# (mbConstants,iworld)		= read (sdsFocus instanceNo taskInstanceConstants) iworld
+		| mbConstants =: (Error _)   = (ExceptionResult (fromError mbConstants),iworld)
+		# (mbProgress,iworld)		= read (sdsFocus instanceNo taskInstanceProgress) iworld
+		| mbProgress =: (Error _)   = (ExceptionResult (fromError mbProgress),iworld)
+		# (Ok {InstanceConstants|instanceKey,build}) = mbConstants
+		# (Ok progress=:{InstanceProgress|value})    = mbProgress
+		//Just steal the instance, TODO, make stealing optional
+        # progress      = {InstanceProgress|progress & attachedTo = [taskId:attachmentChain]}
+		# (_,iworld)	= write progress (sdsFocus instanceNo taskInstanceProgress) iworld
+		//Clear all input and output of that instance
+		# (_,iworld)    = write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceUIChanges) iworld 
+		# (_,iworld)    = modify (\('DQ'.Queue a b) -> ((),'DQ'.Queue [(i,e) \\(i,e)<- a| i <> instanceNo][(i,e) \\(i,e)<- b| i <> instanceNo])) taskEvents iworld 
+		= eval event evalOpts (TCAttach taskId ts (ASAttached (value =: Stable)) build instanceKey) iworld
 
-	eval event evalOpts (TCDestroy (TCBasic taskId _ _ _)) iworld
-        /*
-        # (meta,iworld) = read fullInstanceMeta iworld //FIXME: Figure out how to get the right share notifications for the released instances
-        = case meta of
-            Ok instances
-                # (_,iworld) = write (map (release taskId) instances) fullInstanceMeta iworld
-                = (DestroyedResult,iworld)
-		    _   = (DestroyedResult,iworld)
-        */
+	eval event evalOpts tree=:(TCAttach taskId ts prevStatus build instanceKey) iworld=:{server={buildID},current={taskInstance}}
+		//Load instance
+		# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
+		//Determine state of the instance
+		# curStatus = case progress of
+			(Ok progress=:{InstanceProgress|attachedTo=[attachedId:_],value})
+			    | build <> buildID      = ASIncompatible
+				| value =: Exception    = ASExcepted
+				| attachedId <> taskId  = ASInUse attachedId	
+									 	= ASAttached (value =: Stable)
+			_                           = ASDeleted
+		//Determine UI change
+		# change = determineUIChange event curStatus prevStatus instanceNo instanceKey
+		# stable = (curStatus =: ASDeleted) || (curStatus =: ASExcepted)
+		= (ValueResult (Value curStatus stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} change (TCAttach taskId ts curStatus build instanceKey), iworld)
+
+	eval event evalOpts (TCDestroy (TCAttach taskId _ _ _ _)) iworld //FIXME: Release the task instance
         = (DestroyedResult,iworld)
 
-    release taskId meta=:{TIMeta|progress=progress=:{InstanceProgress|attachedTo=Just (worker,attachment)}}
-        | isMember taskId attachment    = {TIMeta|meta & progress = {InstanceProgress|meta.TIMeta.progress & attachedTo = Nothing}}
-                                        = meta
-    release taskId meta = meta
-
-    embedTaskDef instanceNo instanceKey
-		= uia UIViewport ('DM'.unions [sizeAttr FlexSize (ExactSize 300), instanceNoAttr instanceNo, instanceKeyAttr instanceKey])
-
-	inUseDef = stringDisplay "This task is already in use"
+	determineUIChange event curStatus prevStatus instanceNo instanceKey
+		| curStatus === prevStatus && not (event =: ResetEvent) = NoChange
+		| curStatus =: (ASInUse _) = ReplaceUI inuse
+		| curStatus =: ASExcepted  = ReplaceUI exception
+		| otherwise     		   = ReplaceUI viewport
+	where
+		inuse     = stringDisplay "This task is already in use"
+		exception = stringDisplay "An exception occurred in this task"
+		viewport  =	(uia UIViewport ('DM'.unions [sizeAttr FlexSize FlexSize, instanceNoAttr instanceNo, instanceKeyAttr instanceKey]))
 
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 withShared initial stask = Task eval

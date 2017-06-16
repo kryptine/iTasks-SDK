@@ -224,6 +224,16 @@ instance <			TaskId
 
 :: ParallelTask a	:== (SharedTaskList a) -> Task a
 
+/**
+* State of another process the user works on.
+*/
+:: AttachmentStatus
+    = ASAttached Stability  //* the task instance is currently attached to this task
+    | ASInUse TaskId 		//* the task instance is already attached to another task 
+    | ASExcepted            //* the task instance had an uncaught exception
+    | ASDeleted             //* the task instance does not exist anymore
+    | ASIncompatible        //* the task instance can not be executed in this is version of the program (it was created by an older version)
+
 //* Types to view the server's internal table of running task instances
 :: TaskInstance =
 	{ instanceNo	    :: !InstanceNo			//* Unique global identification

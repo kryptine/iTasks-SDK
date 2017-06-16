@@ -82,16 +82,6 @@ replaceTask :: !TaskId !(ParallelTask a)            !(SharedTaskList a) -> Task 
 focusTask   :: !TaskId                              !(SharedTaskList a) -> Task () | iTask a
 
 /**
-* State of another process the user works on.
-*/
-:: AttachmentStatus
-    = ASAttached Stability  //* the task instance is currently attached to this task
-    | ASInUse TaskId 		//* the task instance is already attached to another task 
-    | ASExcepted            //* the task instance had an uncaught exception
-    | ASDeleted             //* the task instance does not exist anymore
-    | ASIncompatible        //* the task instance can not be executed in this is version of the program (it was created by an older version)
-
-/**
 * Attaches a a detached task.
 *
 * @param Task identification of the task to attach
