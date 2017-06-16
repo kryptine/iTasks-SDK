@@ -281,14 +281,14 @@ where
                         ,("Sec-WebSocket-Accept",secWebSocketAccept)]
 			# state = {WebSockState|cur_frame = "",message_text = True, message_data = []}
             = ({newHTTPResponse 101 "Switching Protocols" & rsp_version = "HTTP/1.1", rsp_headers = headers, rsp_data = ""}
-			  , Just (state,[]),Nothing,iworld)
+			  , Just (req.client_name,state,[]),Nothing,iworld)
         | otherwise
 			= (errorResponse "Requested service format not available for this task", Nothing, Nothing, iworld)
 
-	dataFun req output data (state,instances) iworld
+	dataFun req output data (clientname,state,instances) iworld
 		# (state,events) = wsockAddData state data 
 		# (output,close,instances,iworld) = handleEvents instances [] False events iworld
-		= (output,close,(state,instances),Nothing,iworld)
+		= (output,close,(clientname,state,instances),Nothing,iworld)
 	where	
 		handleEvents instances output close [] iworld
 			= (output,close,instances,iworld)
@@ -300,7 +300,7 @@ where
 			= ([wsockCloseMsg msg], True, instances, iworld)
 		handleEvent	(WSPing msg) instances iworld
 			= ([wsockPongMsg msg], False, instances, iworld)
-		handleEvent (WSTextMessage msg) instances iworld //Process events:
+		handleEvent (WSTextMessage msg) instances iworld //Process events TODO:Send confirmation messages after 'void' events (attach,detach,event)
 			= case fromString msg of
 				// - new session
 				(JSONArray [JSONInt reqId,JSONString "new"])
@@ -313,18 +313,21 @@ where
 							= (wsockTextMsg (toString json),False, instances, iworld)
 				// - attach existing instance
 				(JSONArray [JSONString "attach",JSONInt instanceNo,JSONString instanceKey])
-					//TODO: Clear output
-					# iworld = queueEvent instanceNo ResetEvent iworld //Queue a Reset event to make sure we start with a fresh GUI
-					= ([],False, [instanceNo:instances], iworld) //TODO: Maybe send confirmation message?
+                    //Clear all io and queue a Reset event to make sure we start with a fresh GUI
+					# iworld = attachViewport instanceNo iworld 
+                	# (_,iworld) = updateInstanceConnect clientname [instanceNo] iworld
+					= ([],False, [instanceNo:instances], iworld)
 				// - detach instance
-				(JSONArray [JSONString "detach",JSONInt instanceNo,JSONString instanceKey])
-					= ([],False, removeMember instanceNo instances, iworld) //TODO: Maybe send confirmation message?
+				(JSONArray [JSONString "detach",JSONInt instanceNo])
+					# iworld = detachViewport instanceNo iworld
+                	# (_,iworld) = updateInstanceDisconnect [instanceNo] iworld
+					= ([],False, removeMember instanceNo instances, iworld) 
 				(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONNull,JSONString actionId]]) //Action event
-					# iworld = queueEvent instanceNo (ActionEvent (fromString taskId) actionId) iworld //Queue event
-					= ([],False, instances,iworld) //TODO: Maybe send confirmation message?
+					# iworld = queueEvent instanceNo (ActionEvent (fromString taskId) actionId) iworld 
+					= ([],False, instances,iworld)
 				(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONString name,value]]) //Edit event
-					# iworld = queueEvent instanceNo (EditEvent (fromString taskId) name value) iworld //Queue event
-					= ([],False, instances,iworld) //TODO: Maybe send confirmation message?
+					# iworld = queueEvent instanceNo (EditEvent (fromString taskId) name value) iworld
+					= ([],False, instances,iworld)
 				//Unknown message 
 				e
 					# json = JSONArray [JSONString "ERROR",JSONString "Unknown event"]
@@ -332,19 +335,19 @@ where
 
     shareChangeFun _ _ connState iworld = ([], False, connState, Nothing, iworld)
 
-    onTick req output (state,instances) iworld
+    onTick req output (clientname,state,instances) iworld
 		//Check for UI updates for all attached instances
 		# (changes, output) = dequeueOutput instances output
 		= case changes of //Ignore empty updates
-			[] = ([],False,(state,instances),Nothing,iworld)
+			[] = ([],False,(clientname,state,instances),Nothing,iworld)
 			changes	
                 # (_,iworld) = updateInstanceLastIO instances iworld
 				# msgs = [wsockTextMsg (toString (JSONObject [("instance",JSONInt instanceNo)
 															 ,("change",encodeUIChange change)])) \\ (instanceNo,change) <- changes]
-				= (flatten msgs,False, (state,instances),Just output,iworld)
+				= (flatten msgs,False, (clientname,state,instances),Just output,iworld)
 
-	disconnectFun _ _ (state,instances) iworld = (Nothing, snd (updateInstanceDisconnect instances iworld))
-	disconnectFun _ _ _ iworld                 = (Nothing, iworld)
+	disconnectFun _ _ (clientname,state,instances) iworld = (Nothing, snd (updateInstanceDisconnect instances iworld))
+	disconnectFun _ _ _ iworld                            = (Nothing, iworld)
 
 	createTaskInstance` req [{PublishedTask|url,task=WebTaskWrapper task}:taskUrls] iworld
 		| req.HTTPRequest.req_path == uiUrl url = createTaskInstance (task req) iworld

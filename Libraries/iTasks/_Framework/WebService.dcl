@@ -15,7 +15,7 @@ from Data.Queue 					import :: Queue
 
 import iTasks._Framework.Generic
 
-:: ConnectionState :== (WebSockState,[InstanceNo])
+:: ConnectionState :== (String, WebSockState,[InstanceNo])
 
 :: WebSockState =
 	{ cur_frame    :: !{#Char}   //The fram

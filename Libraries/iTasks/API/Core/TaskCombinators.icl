@@ -725,12 +725,14 @@ where
 
 	determineUIChange event curStatus prevStatus instanceNo instanceKey
 		| curStatus === prevStatus && not (event =: ResetEvent) = NoChange
-		| curStatus =: (ASInUse _) = ReplaceUI inuse
-		| curStatus =: ASExcepted  = ReplaceUI exception
-		| otherwise     		   = ReplaceUI viewport
+		| curStatus =: (ASInUse _)    = ReplaceUI inuse
+		| curStatus =: ASExcepted     = ReplaceUI exception
+		| curStatus =: ASIncompatible = ReplaceUI incompatible
+		| otherwise     		      = ReplaceUI viewport
 	where
-		inuse     = stringDisplay "This task is already in use"
-		exception = stringDisplay "An exception occurred in this task"
+		inuse        = stringDisplay "This task is already in use"
+		exception    = stringDisplay "An exception occurred in this task"
+		incompatible = stringDisplay "This task can no longer be evaluated"
 		viewport  =	(uia UIViewport ('DM'.unions [sizeAttr FlexSize FlexSize, instanceNoAttr instanceNo, instanceKeyAttr instanceKey]))
 
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b

@@ -46,8 +46,8 @@ where
 	write instanceNo m Nothing = Ok (Just ('DM'.del instanceNo m))
 	notify instanceNo _ 	= (==) instanceNo
 
-	allInstanceIO :: RWShared () (Map InstanceNo (!String,!DateTime)) (Map InstanceNo (!String,DateTime)) 
-	allInstanceIO = sdsFocus "io" (memoryStore NS_TASK_INSTANCES (Just 'DM'.newMap))
+allInstanceIO :: RWShared () (Map InstanceNo (!String,!DateTime)) (Map InstanceNo (!String,DateTime)) 
+allInstanceIO = sdsFocus "io" (memoryStore NS_TASK_INSTANCES (Just 'DM'.newMap))
 
 //Event queues of task instances
 taskEvents :: RWShared () (Queue (InstanceNo,Event)) (Queue (InstanceNo,Event))
@@ -467,6 +467,13 @@ dequeueEvent iworld
 		(Ok mbEvent,iworld) 	= (mbEvent,iworld)
 		(Error (_,e),iworld) 	= (Nothing,iworld) //TODO handle errors
 
+clearEvents :: !InstanceNo !*IWorld -> *IWorld
+clearEvents instanceNo iworld
+	# (_,iworld) = 'SDS'.modify (\q -> ((),clear q)) taskEvents iworld
+	= iworld
+where
+	clear (Queue fs bs) = Queue [f \\ f=:(i,_) <- fs | i <> instanceNo] [b \\ b=:(i,_) <- bs | i <> instanceNo] 
+
 queueUIChange :: !InstanceNo !UIChange !*IWorld -> *IWorld
 queueUIChange instanceNo change iworld
 	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue change q)) (sdsFocus instanceNo taskInstanceUIChanges) iworld
@@ -479,6 +486,17 @@ queueUIChanges instanceNo changes iworld
 where
 	enqueueAll [] q = q
 	enqueueAll [x:xs] q = enqueueAll xs ('DQ'.enqueue x q)
+
+attachViewport :: !InstanceNo !*IWorld -> *IWorld
+attachViewport instanceNo iworld
+	# iworld = clearEvents instanceNo iworld
+	# iworld = queueEvent instanceNo ResetEvent iworld
+	= iworld
+	
+detachViewport :: !InstanceNo !*IWorld -> *IWorld
+detachViewport instanceNo iworld
+	# iworld = clearEvents instanceNo iworld
+	= iworld
 
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocument name mime content iworld
