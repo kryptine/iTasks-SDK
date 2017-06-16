@@ -720,8 +720,14 @@ where
 		# stable = (curStatus =: ASDeleted) || (curStatus =: ASExcepted)
 		= (ValueResult (Value curStatus stable) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} change (TCAttach taskId ts curStatus build instanceKey), iworld)
 
-	eval event evalOpts (TCDestroy (TCAttach taskId _ _ _ _)) iworld //FIXME: Release the task instance
+	eval event evalOpts (TCDestroy (TCAttach taskId _ _ _ _)) iworld
+		# (_,iworld)	    = modify (\p -> ((),release p)) (sdsFocus instanceNo taskInstanceProgress) iworld
         = (DestroyedResult,iworld)
+	where
+		release progress=:{InstanceProgress|attachedTo=[t:_]}
+			| t == taskId = {InstanceProgress|progress & attachedTo=[]} //Only release if the instance is still attached to this 'attach' task
+						  = progress
+		release progress = progress
 
 	determineUIChange event curStatus prevStatus instanceNo instanceKey
 		| curStatus === prevStatus && not (event =: ResetEvent) = NoChange
