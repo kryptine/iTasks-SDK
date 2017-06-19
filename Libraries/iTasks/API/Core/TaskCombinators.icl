@@ -686,8 +686,8 @@ where
         | mbError =:(Error _)   = (liftError mbError, iworld)
         = (Ok (), iworld)
 
-attach :: !InstanceNo -> Task AttachmentStatus
-attach instanceNo = Task eval
+attach :: !InstanceNo !Bool -> Task AttachmentStatus
+attach instanceNo steal = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld=:{current={attachmentChain}}
 		# (mbConstants,iworld)		= read (sdsFocus instanceNo taskInstanceConstants) iworld
@@ -695,9 +695,13 @@ where
 		# (mbProgress,iworld)		= read (sdsFocus instanceNo taskInstanceProgress) iworld
 		| mbProgress =: (Error _)   = (ExceptionResult (fromError mbProgress),iworld)
 		# (Ok {InstanceConstants|build}) = mbConstants
-		# (Ok progress=:{InstanceProgress|instanceKey,value}) = mbProgress
+		# (Ok progress=:{InstanceProgress|instanceKey,value,attachedTo}) = mbProgress
+		//Check if the task is already in use
+		| (not (attachedTo =: [])) && (not steal)
+			= eval event evalOpts (TCAttach taskId ts (ASInUse (hd attachedTo)) build instanceKey) iworld
+		| otherwise
+		//Take over the instance. We generate a new key, so the other instance will no longer have access
 		# (newKey,iworld) = newInstanceKey iworld
-		//Just steal the instance, TODO, make stealing optional
         # progress      = {InstanceProgress|progress & instanceKey = newKey, attachedTo = [taskId:attachmentChain]}
 		# (_,iworld)	= write progress (sdsFocus instanceNo taskInstanceProgress) iworld
 		//Clear all input and output of that instance

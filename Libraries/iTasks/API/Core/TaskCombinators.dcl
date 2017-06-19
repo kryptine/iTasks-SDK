@@ -85,10 +85,10 @@ focusTask   :: !TaskId                              !(SharedTaskList a) -> Task 
 * Attaches a a detached task.
 *
 * @param Identification of the task instance to attach
-* 
+* @param Steal/takeover if this is true this attach will takeover the instance when it was already attached somewhere else
 * @return The state of the task to work on
 */
-attach :: !InstanceNo -> Task AttachmentStatus
+attach :: !InstanceNo !Bool -> Task AttachmentStatus
 
 /**
 * Provide a local read/write shared for a task to work on.
