@@ -93,24 +93,6 @@ allowedTransientTasks = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <- wfs 
 allowedPersistentWorkflows :: ReadOnlyShared [Workflow]
 allowedPersistentWorkflows = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <- wfs | not transient]) allowedWorkflows
 
-// SERVICE TASKS
-viewTaskList :: Task [TaskListItem ()]
-viewTaskList 
-	=	doAuthenticated (viewSharedInformation "Tasks" [] processesForCurrentUser)
-
-viewTask :: Task AttachmentStatus
-viewTask
-	=	doAuthenticated (
-			enterInformation "Enter task identification" []
-		>>= workOn 
-		)
-		
-externalTaskInterface :: [PublishedTask]
-externalTaskInterface
-	= [publish "/external/tasklist" (\_ -> viewTaskList)
-	  ,publish "/external/task" (\_ -> viewTask)
-	  ]
-
 // MANAGEMENT TASKS
 manageWorkflows :: ![Workflow] ->  Task ()
 manageWorkflows iflows

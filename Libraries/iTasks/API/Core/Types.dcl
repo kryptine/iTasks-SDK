@@ -161,6 +161,10 @@ instance Functor TaskValue
 
 :: SessionId	:== String
 
+class toInstanceNo t :: t -> InstanceNo
+instance toInstanceNo InstanceNo
+instance toInstanceNo TaskId
+
 instance toString	TaskId
 instance fromString	TaskId
 instance ==			TaskId

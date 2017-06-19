@@ -686,8 +686,8 @@ where
         | mbError =:(Error _)   = (liftError mbError, iworld)
         = (Ok (), iworld)
 
-attach :: !TaskId -> Task AttachmentStatus //TODO: Change to instanceNo only
-attach (TaskId instanceNo taskNo) = Task eval
+attach :: !InstanceNo -> Task AttachmentStatus
+attach instanceNo = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld=:{current={attachmentChain}}
 		# (mbConstants,iworld)		= read (sdsFocus instanceNo taskInstanceConstants) iworld

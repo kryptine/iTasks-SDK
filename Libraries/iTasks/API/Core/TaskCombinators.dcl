@@ -84,12 +84,11 @@ focusTask   :: !TaskId                              !(SharedTaskList a) -> Task 
 /**
 * Attaches a a detached task.
 *
-* @param Task identification of the task to attach
+* @param Identification of the task instance to attach
 * 
 * @return The state of the task to work on
-* @throws WorkOnException
 */
-attach :: !TaskId -> Task AttachmentStatus
+attach :: !InstanceNo -> Task AttachmentStatus
 
 /**
 * Provide a local read/write shared for a task to work on.

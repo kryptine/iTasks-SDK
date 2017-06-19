@@ -93,11 +93,4 @@ addWorkflows :: ![Workflow] -> Task [Workflow]
 
 isAllowedWorkflow :: !User !Workflow -> Bool
 
-//Service tasks
-viewTaskList	:: Task [TaskListItem ()]
-viewTask		:: Task AttachmentStatus
-
-//The default external services
-externalTaskInterface :: [PublishedTask]
-
 appendOnce :: TaskId (Task a) (SharedTaskList a) -> Task () | iTask a
