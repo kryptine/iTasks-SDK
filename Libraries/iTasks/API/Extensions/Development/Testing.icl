@@ -27,13 +27,14 @@ where
 	prj = addExtension base "prj"
 
 	runWithOutput prog args dir out 
-		= externalProcess prog args dir out {onStartup=onStartup,whileRunning=whileRunning,onExit=onExit}	
+		= externalProcess prog args dir out {onStartup=onStartup,onOutData=onOutData,onErrData=onErrData,onShareChange=onShareChange,onExit=onExit}	
 	where
 		onStartup r = (Ok (ExitCode 0,""), Nothing, [], False) 
-		whileRunning (Just (_,data)) (e,o) r = (Ok (e,o +++ data), Just (r ++ [data]), [], False)
-		whileRunning _ l r = (Ok l, Nothing, [], False)
+		onOutData data (e,o) r = (Ok (e,o +++ data), Just (r ++ [data]), [], False)
+		onErrData data l r = (Ok l, Nothing, [], False)
+		onShareChange  l r = (Ok l, Nothing, [], False)
 		onExit ecode (_,o) r =  (Ok (ecode,o), Nothing)
-	
+
 	parseSuiteResult :: (ExitCode,String) -> SuiteResult //QUICK AND DIRTY PARSER
 	parseSuiteResult (ExitCode ecode,output)
 		# lines = split "\n" output

@@ -55,22 +55,23 @@ serveWebService port handler
     @! ()
 where
 	manageConnections io
-		= tcplisten port False (currentTimestamp |+< io) {ConnectionHandlers|onConnect=onConnect,whileConnected=whileConnected,onDisconnect}
+		= tcplisten port False (currentTimestamp |+< io)
+			{ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect}
 
     onConnect client_name (now,io)
 		= (Ok (Idle client_name now), Nothing, [], False)
 
-    whileConnected (Just data) l=:(Idle client_name last) (now,io)
+    onData data l=:(Idle client_name last) (now,io)
 		# request = {newHTTPRequest & client_name = client_name, server_port = port}
 	 	# (request, method_done, headers_done, data_done, error) = http_addRequestData request False False False data
 		# reqs = {HttpReqState|request=request,method_done=method_done,headers_done=headers_done,data_done=data_done,error=error}
 		= whileReadingRequest data reqs now io
-	whileConnected (Just data) l=:(ReadingRequest {HttpReqState|request, method_done, headers_done, data_done}) (now,io)
+	onData data l=:(ReadingRequest {HttpReqState|request, method_done, headers_done, data_done}) (now,io)
 		# (request, method_done, headers_done, data_done, error) = http_addRequestData request method_done headers_done data_done (toString data)
 		# reqs = {HttpReqState|request=request,method_done=method_done,headers_done=headers_done,data_done=data_done,error=error}
 		= whileReadingRequest data reqs now io
 
-	whileConnected Nothing l=:(AwaitingResponse client_name reqId keepalive) (now,io)
+	onShareChange l=:(AwaitingResponse client_name reqId keepalive) (now,io)
 		= case getResponse reqId io of
 			(Nothing,_) = (Ok l, Nothing, [], False)
 			(Just response,io)
@@ -79,10 +80,10 @@ where
 				# reply		= encodeResponse True response
 				= (Ok (Idle client_name now), Just io, [reply], keepalive)
 
-	whileConnected Nothing l=:(Idle client_name (Timestamp last)) (Timestamp now,_) //Close idle connections if the keepalive time passed
+	onShareChange l=:(Idle client_name (Timestamp last)) (Timestamp now,_) //Close idle connections if the keepalive time passed
 		= (Ok l, Nothing, [], now - last > KEEPALIVE_TIME)
 
-    whileConnected _ l (now,io)
+    onShareChange l (now,io)
 		= (Ok l, Nothing, [], False)
 
 	whileReadingRequest data reqs now io
