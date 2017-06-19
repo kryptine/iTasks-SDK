@@ -5,6 +5,7 @@ import System.Time, Text, Data.Tuple, Data.Functor, Data.Error, System.File, Sys
 import iTasks._Framework.Store, iTasks._Framework.TaskStore, iTasks._Framework.Util
 import iTasks._Framework.Task
 import iTasks._Framework.IWorld
+import iTasks._Framework.Serialization
 import iTasks.API.Core.Types
 import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
 
@@ -15,6 +16,15 @@ from iTasks._Framework.TaskEval  import currentInstanceShare
 import qualified Data.Map as DM
 
 NS_SYSTEM_DATA :== "SystemData"
+
+sharedDynamicStore :: !String !a -> Shared a | TC a
+sharedDynamicStore storeId defaultV
+	= mapReadWriteError (read, write) (sharedStore storeId (dynamic defaultV))
+where
+	read (r :: a^) = r
+	read x = Error (exception "Dynamic types mismatched?")
+
+	write _ w = Ok (Just (dynamic w))
 
 sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV

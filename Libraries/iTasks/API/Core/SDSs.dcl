@@ -17,6 +17,7 @@ from System.FilePath			import :: FilePath
 * If no data is store the default value given as second argument is given as result.
 */
 sharedStore 			:: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedDynamicStore :: !String !a -> Shared a | TC a
 
 // constant share, value does never change
 constShare	            :: !a -> ROShared p a
