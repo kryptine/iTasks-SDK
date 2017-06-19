@@ -686,7 +686,7 @@ where
         | mbError =:(Error _)   = (liftError mbError, iworld)
         = (Ok (), iworld)
 
-attach :: !TaskId -> Task AttachmentStatus
+attach :: !TaskId -> Task AttachmentStatus //TODO: Change to instanceNo only
 attach (TaskId instanceNo taskNo) = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld=:{current={attachmentChain}}
@@ -694,15 +694,16 @@ where
 		| mbConstants =: (Error _)   = (ExceptionResult (fromError mbConstants),iworld)
 		# (mbProgress,iworld)		= read (sdsFocus instanceNo taskInstanceProgress) iworld
 		| mbProgress =: (Error _)   = (ExceptionResult (fromError mbProgress),iworld)
-		# (Ok {InstanceConstants|instanceKey,build}) = mbConstants
-		# (Ok progress=:{InstanceProgress|value})    = mbProgress
+		# (Ok {InstanceConstants|build}) = mbConstants
+		# (Ok progress=:{InstanceProgress|instanceKey,value}) = mbProgress
+		# (newKey,iworld) = newInstanceKey iworld
 		//Just steal the instance, TODO, make stealing optional
-        # progress      = {InstanceProgress|progress & attachedTo = [taskId:attachmentChain]}
+        # progress      = {InstanceProgress|progress & instanceKey = newKey, attachedTo = [taskId:attachmentChain]}
 		# (_,iworld)	= write progress (sdsFocus instanceNo taskInstanceProgress) iworld
 		//Clear all input and output of that instance
 		# (_,iworld)    = write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceUIChanges) iworld 
 		# (_,iworld)    = modify (\('DQ'.Queue a b) -> ((),'DQ'.Queue [(i,e) \\(i,e)<- a| i <> instanceNo][(i,e) \\(i,e)<- b| i <> instanceNo])) taskEvents iworld 
-		= eval event evalOpts (TCAttach taskId ts (ASAttached (value =: Stable)) build instanceKey) iworld
+		= eval event evalOpts (TCAttach taskId ts (ASAttached (value =: Stable)) build newKey) iworld
 
 	eval event evalOpts tree=:(TCAttach taskId ts prevStatus build instanceKey) iworld=:{server={buildID},current={taskInstance}}
 		//Load instance

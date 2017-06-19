@@ -316,12 +316,12 @@ where
                     //Clear all io and queue a Reset event to make sure we start with a fresh GUI
 					# iworld = attachViewport instanceNo iworld 
                 	# (_,iworld) = updateInstanceConnect clientname [instanceNo] iworld
-					= ([],False, [instanceNo:instances], iworld)
+					= ([],False, [(instanceNo,instanceKey):instances], iworld)
 				// - detach instance
 				(JSONArray [JSONString "detach",JSONInt instanceNo])
 					# iworld = detachViewport instanceNo iworld
                 	# (_,iworld) = updateInstanceDisconnect [instanceNo] iworld
-					= ([],False, removeMember instanceNo instances, iworld) 
+					= ([],False, filter (((==) instanceNo) o fst) instances, iworld) 
 				(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONNull,JSONString actionId]]) //Action event
 					# iworld = queueEvent instanceNo (ActionEvent (fromString taskId) actionId) iworld 
 					= ([],False, instances,iworld)
@@ -336,17 +336,19 @@ where
     shareChangeFun _ _ connState iworld = ([], False, connState, Nothing, iworld)
 
     onTick req output (clientname,state,instances) iworld
+		//Check keys 
+		# (instances,iworld) = verifyKeys instances iworld
 		//Check for UI updates for all attached instances
-		# (changes, output) = dequeueOutput instances output
+		# (changes, output) = dequeueOutput (map fst instances) output
 		= case changes of //Ignore empty updates
 			[] = ([],False,(clientname,state,instances),Nothing,iworld)
 			changes	
-                # (_,iworld) = updateInstanceLastIO instances iworld
+                # (_,iworld) = updateInstanceLastIO (map fst instances) iworld
 				# msgs = [wsockTextMsg (toString (JSONObject [("instance",JSONInt instanceNo)
 															 ,("change",encodeUIChange change)])) \\ (instanceNo,change) <- changes]
 				= (flatten msgs,False, (clientname,state,instances),Just output,iworld)
 
-	disconnectFun _ _ (clientname,state,instances) iworld = (Nothing, snd (updateInstanceDisconnect instances iworld))
+	disconnectFun _ _ (clientname,state,instances) iworld = (Nothing, snd (updateInstanceDisconnect (map fst instances) iworld))
 	disconnectFun _ _ _ iworld                            = (Nothing, iworld)
 
 	createTaskInstance` req [{PublishedTask|url,task=WebTaskWrapper task}:taskUrls] iworld
@@ -367,7 +369,19 @@ where
 			(Nothing,q) 	= []
 			(Just x,q) 		= [x:toList q]
 
-		
+	verifyKeys :: [(InstanceNo,String)] *IWorld -> (![(InstanceNo,String)],!*IWorld)
+	verifyKeys instances iworld = filterSt verifyKey instances iworld 
+	where
+		verifyKey (instanceNo,viewportKey) iworld = case 'SDS'.read (sdsFocus instanceNo taskInstanceProgress) iworld of
+			(Ok {InstanceProgress|instanceKey},iworld) = (viewportKey == instanceKey,iworld)
+			(_,iworld) = (False,iworld)
+	
+		filterSt p [] s = ([],s)
+		filterSt p [x:xs] s
+			# (t,s) = p x s	
+			# (xs,s) = filterSt p xs s	
+			= (if t [x:xs] xs, s)
+
 	eventsResponse messages
 		= {okResponse &   rsp_headers = [("Content-Type","text/event-stream"),("Cache-Control","no-cache")]
                         , rsp_data = formatMessageEvents messages}

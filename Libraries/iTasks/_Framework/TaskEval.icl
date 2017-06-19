@@ -46,7 +46,7 @@ where
     evalTaskInstance` instanceNo event iworld=:{clocks={localDate,localTime},current}
     # (constants, iworld)       = 'SDS'.read (sdsFocus instanceNo taskInstanceConstants) iworld
 	| isError constants         = ((\(Error (e,msg)) -> Error msg) constants, iworld)
-	# constants=:{InstanceConstants|instanceKey,session,listId} = fromOk constants
+	# constants=:{InstanceConstants|session,listId} = fromOk constants
 	# (oldReduct, iworld)		= 'SDS'.read (sdsFocus instanceNo taskInstanceReduct) iworld
 	| isError oldReduct			= ((\(Error (e,msg)) -> Error msg) oldReduct, iworld)
 	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,tasks,tonicRedOpts} = fromOk oldReduct
