@@ -161,6 +161,10 @@ instance Functor TaskValue
 
 :: SessionId	:== String
 
+class toInstanceNo t :: t -> InstanceNo
+instance toInstanceNo InstanceNo
+instance toInstanceNo TaskId
+
 instance toString	TaskId
 instance fromString	TaskId
 instance ==			TaskId
@@ -168,8 +172,7 @@ instance <			TaskId
 
 // Instance data which does not change after creation (except when a task is replaced)
 :: InstanceConstants =
-    { instanceKey   :: !InstanceKey         //* Random string that a client needs to provide to access the task instance
-	, listId        :: !TaskId              //* Reference to parent tasklist
+    { listId        :: !TaskId              //* Reference to parent tasklist
     , session       :: !Bool                //* True for sessions (instances that automatically get garbage collected)
     , build         :: !String              //* Application build version when the instance was created
     , issuedAt		:: !DateTime			//* When was the task created
@@ -178,6 +181,7 @@ instance <			TaskId
 :: InstanceProgress =
 	{ value             :: !ValueStatus             //* Status of the task value
     , attachedTo        :: ![TaskId] 				//* Chain of tasks through which this instance was attached
+	, instanceKey       :: !InstanceKey             //* Random token that a client gets to have (temporary) access to the task instance
 	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
 	, lastEvent		    :: !Maybe DateTime			//* When was the latest event on this task (excluding Refresh events)
 	}
@@ -223,6 +227,16 @@ instance <			TaskId
     | NamedDetached !String !TaskAttributes !Bool //Detached with name
 
 :: ParallelTask a	:== (SharedTaskList a) -> Task a
+
+/**
+* State of another process the user works on.
+*/
+:: AttachmentStatus
+    = ASAttached Stability  //* the task instance is currently attached to this task
+    | ASInUse TaskId 		//* the task instance is already attached to another task 
+    | ASExcepted            //* the task instance had an uncaught exception
+    | ASDeleted             //* the task instance does not exist anymore
+    | ASIncompatible        //* the task instance can not be executed in this is version of the program (it was created by an older version)
 
 //* Types to view the server's internal table of running task instances
 :: TaskInstance =

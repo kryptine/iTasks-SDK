@@ -183,13 +183,15 @@ taskInstancesForCurrentUser :: ROShared () [TaskInstance]
 taskInstancesForCurrentUser
 	= sdsSequence "taskInstancesForCurrentUser" (\() u -> u) snd (SDSWriteConst (\_ _ -> Ok Nothing)) (SDSWriteConst (\_ _ -> Ok Nothing)) currentUser taskInstancesForUser
 
-workOn :: !TaskId -> Task AttachmentStatus
-workOn taskId=:(TaskId no _) 
+workOn :: !t -> Task AttachmentStatus | toInstanceNo t
+workOn t 
 	//Copy authentication attributes from current instance 
 	= 			 		get currentUser -&&- get (sdsFocus no taskInstanceAttributesByNo)
 	>>- \(user,attr) -> set user (sdsFocus no taskInstanceUser)
 	//Attach the instance
-	>>|			 		attach taskId <<@ Title (fromMaybe "Untitled" ('DM'.get "title" attr))
+	>>|			 		attach no True <<@ Title (fromMaybe "Untitled" ('DM'.get "title" attr))
+where
+	no = toInstanceNo t
 /*
 * Alters the evaluation functions of a task in such a way
 * that before evaluation the currentUser field in iworld is set to

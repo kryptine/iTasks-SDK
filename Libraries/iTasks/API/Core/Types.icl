@@ -314,6 +314,10 @@ where
 
 derive class iTask TaskListFilter
 
+class toInstanceNo t :: t -> InstanceNo
+instance toInstanceNo InstanceNo where toInstanceNo no = no
+instance toInstanceNo TaskId where toInstanceNo (TaskId no _) = no
+
 instance == Action
 where
 	(==) :: !Action !Action -> Bool

@@ -55,6 +55,7 @@ taskInstanceAttributes  :: RWShared InstanceNo TaskAttributes TaskAttributes
 topLevelTaskList        :: RWShared TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
 
 taskInstanceIO 			:: RWShared InstanceNo (Maybe (!String,!DateTime)) (Maybe (!String,!DateTime))
+allInstanceIO           :: RWShared () (Map InstanceNo (!String,!DateTime)) (Map InstanceNo (!String,DateTime)) 
 
 //=== Task instance input: ===
 
@@ -155,6 +156,18 @@ queueUIChange :: !InstanceNo !UIChange !*IWorld -> *IWorld
 * Convenience function that queues multiple changes at once
 */
 queueUIChanges :: !InstanceNo ![UIChange] !*IWorld -> *IWorld
+
+/**
+* When a new viewport is attached to an instance, all events and output are removed
+* and a single Reset event is queued
+*/
+attachViewport :: !InstanceNo !*IWorld -> *IWorld
+
+/**
+* When a new viewport is detached from an instance, all events and output are removed
+*/
+detachViewport :: !InstanceNo !*IWorld -> *IWorld
+
 
 //Documents
 createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)

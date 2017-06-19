@@ -295,11 +295,12 @@ itasks.Component = {
 	beforeChildInsert: function(idx,spec) {},
 	afterChildInsert: function(idx,child) {},
 	removeChild: function(idx = 0) {
-		var me = this;
+		var me = this, child = me.children[idx];
 
-		me.beforeChildRemove(idx,me.children[idx]);
+		child.beforeRemove();
+		me.beforeChildRemove(idx,child);
 
-		if(me.initialized && me.children[idx].domEl) {
+		if(me.initialized && child.domEl) {
 			me.containerEl.removeChild(me.containerEl.childNodes[idx]);
 		}
 		me.children.splice(idx,1);	
@@ -319,6 +320,7 @@ itasks.Component = {
 		me.children.splice(didx, 0, child);
 	},
 	beforeChildRemove: function(idx,child) {},
+	beforeRemove: function() {},
 	setAttribute: function(name,value) {
 		var me = this;
 	
@@ -475,6 +477,10 @@ itasks.Viewport = {
             	});
 			}
 		}
+	},
+	beforeRemove: function() {
+		var me = this;	
+		me.service.unregister(me);
 	}
 };
 
@@ -504,14 +510,13 @@ itasks.viewport = function(spec,domEl) {
 itasks.Service = {
 	instances: {},
 	register: function(viewport) {
-		var me = this,
-			taskUrl, parentViewport, taskInstance, connection;
+		var me = this;
 
-		if(taskInstance = viewport.attributes.instanceNo) {
+		if("instanceNo" in viewport.attributes) {
 			//Connect to an existing task instance
 			me.registerInstance_(viewport);	
 			
-		} else if(taskUrl = viewport.taskUrl) {
+		} else if("taskUrl" in viewport) {
 			//Create a new session
 			me.createSession_(viewport);
 		}
@@ -527,14 +532,16 @@ itasks.Service = {
 
 			//Register the instance
 			me.instances[instanceNo] = {connection: connection, viewport: viewport}
-			connection.attachTaskInstance(instanceNo, viewport.onInstanceUIChange.bind(viewport));
+			connection.attachTaskInstance(instanceNo, instanceKey, viewport.onInstanceUIChange.bind(viewport));
 		});
 	},
 	registerInstance_: function(viewport) {
-		var me = this, connection, instanceNo = viewport.attributes.instanceNo;
+		var me = this, connection,
+			instanceNo = viewport.attributes.instanceNo,
+			instanceKey = viewport.attributes.instanceKey;
 	
 		connection = me.getViewportConnection_(viewport);	
-		connection.attachTaskInstance(instanceNo, viewport.onInstanceUIChange.bind(viewport));
+		connection.attachTaskInstance(instanceNo, instanceKey, viewport.onInstanceUIChange.bind(viewport));
 
 		//Register the instance
 		me.instances[instanceNo] = {connection: connection, viewport: viewport}
@@ -558,6 +565,12 @@ itasks.Service = {
 		me.instances[instanceNo].connection.sendEvent(instanceNo,[taskId,editorId,value]);
 	},
 	unregister: function(viewport) {
+		var me = this, connection, instanceNo = viewport.attributes.instanceNo;
+	
+		connection = me.getViewportConnection_(viewport);	
+		connection.detachTaskInstance(instanceNo);
+
+		delete(me.instances[instanceNo]);
 	},
 	getInstance: function() {
 		if(typeof itasks.Service.INSTANCE === 'undefined') {
@@ -571,7 +584,8 @@ itasks.Service = {
 itasks.Connection = {
 	wsock: null,
 	taskUrl: '',
-	taskInstances: {},
+	taskInstanceCallbacks: {},
+	taskInstanceKeys: {},
 	reqId: 1,
 	reqCallbacks: {},
 	reqDeferred: [],
@@ -586,8 +600,8 @@ itasks.Connection = {
 				me.wsock.send(msg);
 			});
 			//Attach currently added instances
-			Object.keys(me.taskInstances).forEach(function(instanceNo) {
-				me.wsock.send(JSON.stringify(["attach",parseInt(instanceNo),"dummykey"]));
+			Object.keys(me.taskInstanceKeys).forEach(function(instanceNo,instanceKey) {
+				me.wsock.send(JSON.stringify(["attach",parseInt(instanceNo),instanceKey]));
 			});
 		};	
 		me.wsock.onmessage = me.onMessage_.bind(me);
@@ -603,19 +617,21 @@ itasks.Connection = {
 			me.reqDeferred.push(JSON.stringify([parseInt(reqId),"new"]));
 		}
 	},
-	attachTaskInstance: function(taskInstance, callback) {
+	attachTaskInstance: function(taskInstance, taskInstanceKey, callback) {
 		var me = this;
-		me.taskInstances[taskInstance] = callback;
+		me.taskInstanceCallbacks[taskInstance] = callback;
 
 		if(me.wsock !== null) {
-			me.wsock.send(JSON.stringify(["attach",parseInt(taskInstance),"dummykey"]));
+			me.wsock.send(JSON.stringify(["attach",parseInt(taskInstance),taskInstanceKey]));
 		}
 	},
-	removeTaskInstance: function(taskInstance) {
-		delete(me.taskInstances[taskInstance]);
+	detachTaskInstance: function(taskInstance) {
+		var me = this;
+		delete(me.taskInstanceKeys[taskInstance]);
+		delete(me.taskInstanceCallbacks[taskInstance]);
 
 		if(me.wsock !== null) {
-			me.wsock.send(JSON.stringify(["detach",taskInstance,"dummykey"]));
+			me.wsock.send(JSON.stringify(["detach",taskInstance]));
 		}
 	},
 	sendEvent: function(taskInstance, event) {
@@ -653,8 +669,8 @@ itasks.Connection = {
 			var taskInstance = msg.instance,
 				change = msg.change;
 
-			if(me.taskInstances[taskInstance]) {
-				me.taskInstances[taskInstance](change);
+			if(taskInstance in me.taskInstanceCallbacks) {
+				me.taskInstanceCallbacks[taskInstance](change);
 			} 
 		}
 	}

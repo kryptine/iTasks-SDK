@@ -78,7 +78,7 @@ taskInstancesForCurrentUser :: ROShared () [TaskInstance]
 * Copies authentication attributes of current task 
 * and then attaches it
 */
-workOn :: !TaskId -> Task AttachmentStatus
+workOn :: !t -> Task AttachmentStatus | toInstanceNo t
 
 /**
 * Execute a task with the identity of the given user

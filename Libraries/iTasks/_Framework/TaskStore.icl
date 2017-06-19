@@ -46,8 +46,8 @@ where
 	write instanceNo m Nothing = Ok (Just ('DM'.del instanceNo m))
 	notify instanceNo _ 	= (==) instanceNo
 
-	allInstanceIO :: RWShared () (Map InstanceNo (!String,!DateTime)) (Map InstanceNo (!String,DateTime)) 
-	allInstanceIO = sdsFocus "io" (memoryStore NS_TASK_INSTANCES (Just 'DM'.newMap))
+allInstanceIO :: RWShared () (Map InstanceNo (!String,!DateTime)) (Map InstanceNo (!String,DateTime)) 
+allInstanceIO = sdsFocus "io" (memoryStore NS_TASK_INSTANCES (Just 'DM'.newMap))
 
 //Event queues of task instances
 taskEvents :: RWShared () (Queue (InstanceNo,Event)) (Queue (InstanceNo,Event))
@@ -106,8 +106,8 @@ newDocumentId iworld=:{IWorld|random}
 createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
 createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
     //Create the initial instance data in the store
-    # progress  = {InstanceProgress|value=None,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants = {InstanceConstants|instanceKey="client",session=True,listId=TaskId 0 0,build=buildID,issuedAt=toDateTime localDate localTime}
+    # progress  = {InstanceProgress|value=None,instanceKey="client",attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+    # constants = {InstanceConstants|session=True,listId=TaskId 0 0,build=buildID,issuedAt=toDateTime localDate localTime}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
@@ -118,8 +118,8 @@ createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={loc
     # (mbInstanceNo,iworld) = newInstanceNo iworld
     # instanceNo            = fromOk mbInstanceNo
     # (instanceKey,iworld)  = newInstanceKey iworld
-    # progress              = {InstanceProgress|value=None,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants             = {InstanceConstants|instanceKey=instanceKey,session=True,listId=TaskId 0 0,build=buildID,issuedAt=toDateTime localDate localTime}
+    # progress              = {InstanceProgress|value=None,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+    # constants             = {InstanceConstants|session=True,listId=TaskId 0 0,build=buildID,issuedAt=toDateTime localDate localTime}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
@@ -132,8 +132,8 @@ createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={loc
 createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
 createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
     # (instanceKey,iworld) = newInstanceKey iworld
-    # progress             = {InstanceProgress|value=None,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants            = {InstanceConstants|instanceKey=instanceKey,session=False,listId=listId,build=buildID,issuedAt=toDateTime localDate localTime}
+    # progress             = {InstanceProgress|value=None,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+    # constants            = {InstanceConstants|session=False,listId=listId,build=buildID,issuedAt=toDateTime localDate localTime}
     =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
@@ -225,15 +225,15 @@ where
         existingInstances = [instanceNo\\ {TIMeta|instanceNo} <- rs]
 
     selectRows tfilter is = filter (filterPredicate tfilter) is
-    selectColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} {TIMeta|instanceNo,instanceKey,listId,session,build,issuedAt,progress,attributes}
-        # constants  = if includeConstants (Just {InstanceConstants|instanceKey=instanceKey,listId=listId,session=session,build=build,issuedAt=issuedAt}) Nothing
+    selectColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} {TIMeta|instanceNo,listId,session,build,issuedAt,progress,attributes}
+        # constants  = if includeConstants (Just {InstanceConstants|listId=listId,session=session,build=build,issuedAt=issuedAt}) Nothing
         # progress   = if includeProgress (Just progress) Nothing
         # attributes = if includeAttributes (Just attributes) Nothing
         = (instanceNo,constants,progress,attributes)
 
     updateColumns {InstanceFilter|includeConstants,includeProgress,includeAttributes} i (iNo,mbC,mbP,mbA)
-        # i = if includeConstants (maybe i (\{InstanceConstants|instanceKey,listId,session,build,issuedAt}
-                                            -> {TIMeta|i & instanceKey=instanceKey,listId=listId,session=session,build=build,issuedAt=issuedAt}) mbC) i
+        # i = if includeConstants (maybe i (\{InstanceConstants|listId,session,build,issuedAt}
+                                            -> {TIMeta|i & listId=listId,session=session,build=build,issuedAt=issuedAt}) mbC) i
         # i = if includeProgress (maybe i (\progress -> {TIMeta|i & progress = progress}) mbP) i
         # i = if includeAttributes (maybe i (\attributes -> {TIMeta|i & attributes = attributes}) mbA) i
         = {TIMeta|i & instanceNo = iNo}
@@ -467,6 +467,13 @@ dequeueEvent iworld
 		(Ok mbEvent,iworld) 	= (mbEvent,iworld)
 		(Error (_,e),iworld) 	= (Nothing,iworld) //TODO handle errors
 
+clearEvents :: !InstanceNo !*IWorld -> *IWorld
+clearEvents instanceNo iworld
+	# (_,iworld) = 'SDS'.modify (\q -> ((),clear q)) taskEvents iworld
+	= iworld
+where
+	clear (Queue fs bs) = Queue [f \\ f=:(i,_) <- fs | i <> instanceNo] [b \\ b=:(i,_) <- bs | i <> instanceNo] 
+
 queueUIChange :: !InstanceNo !UIChange !*IWorld -> *IWorld
 queueUIChange instanceNo change iworld
 	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue change q)) (sdsFocus instanceNo taskInstanceUIChanges) iworld
@@ -479,6 +486,17 @@ queueUIChanges instanceNo changes iworld
 where
 	enqueueAll [] q = q
 	enqueueAll [x:xs] q = enqueueAll xs ('DQ'.enqueue x q)
+
+attachViewport :: !InstanceNo !*IWorld -> *IWorld
+attachViewport instanceNo iworld
+	# iworld = clearEvents instanceNo iworld
+	# iworld = queueEvent instanceNo ResetEvent iworld
+	= iworld
+	
+detachViewport :: !InstanceNo !*IWorld -> *IWorld
+detachViewport instanceNo iworld
+	# iworld = clearEvents instanceNo iworld
+	= iworld
 
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocument name mime content iworld
