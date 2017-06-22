@@ -26,6 +26,8 @@ from Control.Applicative import class Applicative, instance Applicative Maybe
 derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
                    DynamicView, BlueprintQuery, CircularStack
 
+derive JSEncode ActionState, TClickAction, ClickMeta, TonicImageState, BlueprintRef, TonicFunc, TExpr, TPriority, TLit, TAssoc, Maybe
+
 tonic :: Task ()
 tonic = tonicDashboard []
 

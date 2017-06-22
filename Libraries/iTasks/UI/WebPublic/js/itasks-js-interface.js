@@ -293,3 +293,11 @@ function __iTasks_UI_JS_Interface_jsGetCleanVal(key,obj,world) {
 	world = Sapl.feval(world);
     return ___Tuple2(obj[key], world);
 }
+
+// decodeOnClient :: !(JSVal a) !*JSWorld -> *(!a, !*JSWorld)
+function __iTasks_UI_JS_Encoding_decodeOnClient(val,world) {
+	// Do nothing. The value is already in the right representation
+	val = ___unwrapJS(Sapl.feval(val));
+	world = Sapl.feval(world);
+    return ___Tuple2(val, world);
+}

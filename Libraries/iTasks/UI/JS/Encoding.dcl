@@ -16,20 +16,17 @@ decodeOnClient :: !(JSVal a) !*JSWorld -> *(!a, !*JSWorld)
 //encodeOnClient :: !a *JSWorld -> (!JSVal a, !*JSWorld)
 //decodeOnServer :: !JSONNode -> (Maybe a)
 
-generic JSEncode t :: !Bool !t -> [JSONNode]
-derive  JSEncode Int, Real, Char, Bool, String, UNIT, [], (,), (,,), (,,,), (,,,,), (,,,,,), (,,,,,,), (,,,,,,,), {}, {!}, (->), Maybe, JSONNode,
-    EITHER, CONS of {gcd_name}, OBJECT
+generic JSEncode t :: !t -> [JSONNode]
+derive  JSEncode Int, Real, Char, Bool, String, UNIT, [],
+	(,), (,,), (,,,), (,,,,), (,,,,,), (,,,,,,), (,,,,,,,), {}, {!}, (->),
+    EITHER, OBJECT
 
-JSEncode{|RECORD of {grd_fields}|} fx _ (RECORD x)
-  = [JSONObject [(name, o) \\ o <- fx False x & name <- grd_fields | isNotNull o]]
-  where
-  isNotNull :: !JSONNode -> Bool
-  isNotNull JSONNull = False
-  isNotNull _ = True
+JSEncode{|CONS of {gcd_name,gcd_index}|} fx (CONS x) = [JSONArray [JSONInt gcd_index, JSONString gcd_name : fx x]]
+JSEncode{|RECORD of {grd_name}|} fx (RECORD x) = [JSONArray [JSONInt 0, JSONString ("_" +++ grd_name) : fx x]]
 
-JSEncode{|FIELD|} fx _ (FIELD x) = fx True x
+JSEncode{|FIELD|} fx (FIELD x) = fx x
 
-JSEncode{|PAIR|} fx fy _ (PAIR x y) = fx False x ++ fy False y
+JSEncode{|PAIR|} fx fy (PAIR x y) = fx x ++ fy y
 where
     (++) infixr 5::![.a] !u:[.a] -> u:[.a]
     (++) [hd:tl]    list    = [hd:tl ++ list]

@@ -38,7 +38,7 @@ derive JSEncode LineContent, Compose, XAlign, YAlign, OnMouseOutAttr, OnMouseMov
 derive JSEncode OpacityAttr, FillAttr, XRadiusAttr, YRadiusAttr, StrokeWidthAttr, StrokeAttr
 derive JSEncode Slash, DraggableAttr, OnMouseOverAttr, OnMouseUpAttr, DashAttr
 derive JSEncode OnMouseDownAttr, OnClickAttr, SVGColor
-derive JSEncode Set, Angle
+derive JSEncode Set, Angle, Maybe
 
 CLICK_DELAY :== 225
 svgns =: "http://www.w3.org/2000/svg"
@@ -104,17 +104,13 @@ fromSVGEditor svglet=:{initView,renderImage,updView,updModel}
 
 	initDOMEl me args world
 		# (value,world) = .? (me .# "attributes.value") world
-		# (json,world) = jsValToJSONNode value world
-		= case fromJSON json of
-			Nothing = (jsNull,world)
-			Just s 	= (jsNull,onNewState me svglet s world)
+		# (value,world) = decodeOnClient value world
+		= (jsNull,onNewState me svglet value world)
 
 	onAttributeChange me args world
 		| jsArgToString (args !! 0) == "stateChange"
-			# (json,world)  = jsValToJSONNode (toJSVal (args !! 1)) world
-			= case fromJSON json of
-				Nothing = (jsNull,world)
-				Just s  = (jsNull,onNewState me svglet s world)
+			# (value,world) = decodeOnClient (toJSVal (args !! 1))world
+			= (jsNull,onNewState me svglet value world)
 		| otherwise
 			= (jsNull,jsTrace "Unknown attribute change" world)
 
