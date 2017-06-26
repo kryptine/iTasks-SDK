@@ -10,7 +10,7 @@ import iTasks._Framework.Serialization
 
 import qualified iTasks._Framework.SDS as SDS
 from iTasks.SDS.Definition import :: SDSLensRead(..), :: SDSLensWrite(..), :: SDSLensNotify(..), :: SDS(SDSDynamic)
-import iTasks.SDS.Combinators.Core, iTasks.API.Common.SDSCombinators
+import iTasks.SDS.Combinators.Core, iTasks.SDS.Combinators.Common
 import iTasks._Framework.SDSService
 import iTasks._Framework.Client.Override
 

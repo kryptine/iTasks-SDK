@@ -9,8 +9,8 @@ from Data.Map import qualified get, put
 import StdBool, StdList, StdMisc, StdTuple, Data.Functor
 import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators
 import iTasks.API.Common.TaskCombinators
-import iTasks.API.Common.SDSCombinators
 import iTasks.SDS.Sources.Core, iTasks.SDS.Sources.System
+import iTasks.SDS.Combinators.Common
 import iTasks._Framework.Util
 import iTasks.UI.Layout, iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Builtin
 import Text.HTML

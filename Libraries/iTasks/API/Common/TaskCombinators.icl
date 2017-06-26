@@ -8,11 +8,11 @@ import iTasks._Framework.Util
 from StdFunc			import id, const, o
 from iTasks.SDS.Sources.Core import randomInt
 from iTasks.SDS.Sources.System import currentDateTime, topLevelTasks
+import iTasks.SDS.Combinators.Common
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON
 import qualified Data.Map as DM
 
 import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators, iTasks.API.Common.InteractionTasks, iTasks.UI.Layout, iTasks.UI.Prompt
-import iTasks.API.Common.SDSCombinators
 import iTasks.UI.Layout.Common, iTasks.UI.Layout.Default
 
 (>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | iTask a & iTask b

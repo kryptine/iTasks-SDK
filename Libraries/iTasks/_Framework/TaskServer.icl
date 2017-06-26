@@ -17,7 +17,7 @@ import iTasks._Framework.IWorld
 import iTasks._Framework.Task
 import iTasks._Framework.TaskEval
 from iTasks._Framework.TaskStore import queueRefresh
-import iTasks.API.Common.SDSCombinators
+import iTasks.SDS.Combinators.Common
 
 //Helper type that holds the mainloop instances during a select call
 //in these mainloop instances the unique listeners and read channels

@@ -18,7 +18,7 @@ from iTasks._Framework.Serialization	import JSONEncode, JSONDecode, dynamicJSONE
 from iTasks._Framework.TaskStore        import localShare, parallelTaskList, topLevelTaskList
 from iTasks._Framework.SDS              import write, read, readRegister
 import iTasks.API.Core.Types
-from iTasks.API.Common.SDSCombinators   import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle
+from iTasks.SDS.Combinators.Common import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle
 
 derive class iTask ParallelTaskType, AttachmentStatus
 derive gEq ParallelTaskChange

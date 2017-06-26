@@ -7,6 +7,7 @@ import	iTasks._Framework.Engine				// iTasks engine
     // iTasks API
     ,   iTasks.SDS.Definition
     ,   iTasks.SDS.Combinators.Core
+    ,   iTasks.SDS.Combinators.Common
     ,   iTasks.SDS.Sources.Core
     ,   iTasks.SDS.Sources.Store
     ,   iTasks.SDS.Sources.System

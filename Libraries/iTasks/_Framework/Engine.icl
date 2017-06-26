@@ -9,11 +9,11 @@ import Data.List, Data.Error, Data.Func, Data.Tuple, Math.Random, Text
 import System.Time, System.CommandLine, System.Environment, System.OSError, System.File, System.FilePath, System.Directory
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil
 import iTasks._Framework.IWorld, iTasks._Framework.WebService, iTasks._Framework.SDSService
-import iTasks.API.Common.SDSCombinators
 import qualified iTasks._Framework.SDS as SDS
 import iTasks.UI.Layout, iTasks.UI.Layout.Default
 from iTasks.API.Core.TaskCombinators import class tune(..)
 from iTasks.UI.Layout import instance tune ApplyLayout
+from iTasks.SDS.Combinators.Common import sdsFocus
 
 
 import StdInt, StdChar, StdString

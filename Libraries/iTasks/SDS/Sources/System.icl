@@ -2,7 +2,7 @@ implementation module iTasks.SDS.Sources.System
 
 import iTasks.SDS.Definition
 import iTasks.SDS.Combinators.Core
-import iTasks.API.Common.SDSCombinators
+import iTasks.SDS.Combinators.Common
 import iTasks.API.Core.Types
 import System.Time
 

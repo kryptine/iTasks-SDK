@@ -17,8 +17,5 @@ import
      ,  iTasks.API.Core.TaskCombinators      // The core iTask combinators
      ,  iTasks.API.Common.TaskCombinators  // Set of derived useful iTask combinators
 
-     // Shared data sources
-     ,  iTasks.API.Common.SDSCombinators
-
      //  Layout tuning
      ,  iTasks.UI.Layout

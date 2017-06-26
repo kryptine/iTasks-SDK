@@ -13,7 +13,7 @@ from Data.Map as DM				        import qualified newMap, fromList, toList, get, p
 from Data.Queue import :: Queue (..)
 from Data.Queue as DQ					import qualified newQueue, enqueue, dequeue, empty
 from iTasks._Framework.SDS as SDS       import qualified read, write, modify
-from iTasks.API.Common.SDSCombinators   import sdsFocus, >+|, mapReadWrite, mapReadWriteError
+from iTasks.SDS.Combinators.Common      import sdsFocus, >+|, mapReadWrite, mapReadWriteError
 from StdFunc import const
 
 derive gEq TIMeta

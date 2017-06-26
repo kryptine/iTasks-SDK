@@ -13,7 +13,7 @@ from System.OSError import :: MaybeOSError
 import iTasks.UI.Editor, iTasks.UI.Editor.Common
 
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
-from iTasks.API.Common.SDSCombinators	import toDynamic 
+from iTasks.SDS.Combinators.Common import toDynamic 
 from iTasks._Framework.Serialization    import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 import qualified Data.CircularStack as DCS
 from Data.CircularStack import :: CircularStack
