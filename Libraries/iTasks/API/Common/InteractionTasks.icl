@@ -1,7 +1,6 @@
 implementation module iTasks.API.Common.InteractionTasks
 
 from StdFunc import id, const, o, flip
-from iTasks.API.Core.SDSs import null
 from Data.Tuple import appSnd
 from Data.List import isMemberGen, findIndex, instance Functor []
 from System.Time import :: Timestamp(..)
@@ -9,8 +8,9 @@ from Data.Map import qualified get, put
 
 import StdBool, StdList, StdMisc, StdTuple, Data.Functor
 import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators
-import iTasks.API.Common.TaskCombinators, iTasks.API.Core.SDSs
+import iTasks.API.Common.TaskCombinators
 import iTasks.API.Common.SDSCombinators
+import iTasks.SDS.Sources.Core, iTasks.SDS.Sources.System
 import iTasks._Framework.Util
 import iTasks.UI.Layout, iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Builtin
 import Text.HTML
@@ -19,25 +19,25 @@ derive class iTask ChoiceText, ChoiceGrid, ChoiceRow, ChoiceNode
 
 enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
 enterInformation d [EnterAs fromf:_]
-	= interact d Enter null (const ((),defaultValue)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) Nothing @ (\((),v) -> fromf v) 
+	= interact d Enter nullShare (const ((),defaultValue)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) Nothing @ (\((),v) -> fromf v) 
 enterInformation d [EnterUsing fromf editor:_]
-	= interact d Enter null (const ((),defaultValue)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) (Just editor) @ (\((),v) -> fromf v) 
+	= interact d Enter nullShare (const ((),defaultValue)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) (Just editor) @ (\((),v) -> fromf v) 
 enterInformation d _ = enterInformation d [EnterAs id]
 
 updateInformation :: !d ![UpdateOption m m] m -> Task m | toPrompt d & iTask m
 updateInformation d [UpdateAs tof fromf:_] m
-	= interact d Update null (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing))
+	= interact d Update nullShare (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing))
 		Nothing @ (\((),v) -> fromf m v)
 updateInformation d [UpdateUsing tof fromf editor:_] m
-	= interact d Update null (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing))
+	= interact d Update nullShare (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing))
 		(Just editor) @ (\((),v) -> fromf m v)
 updateInformation d _ m = updateInformation d [UpdateAs (\l -> l) (\_ v -> v)] m
 
 viewInformation :: !d ![ViewOption m] !m -> Task m | toPrompt d & iTask m
 viewInformation d [ViewAs tof:_] m 
-	= interact d View null (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) Nothing @! m
+	= interact d View nullShare (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) Nothing @! m
 viewInformation d [ViewUsing tof editor:_] m
-	= interact d View null (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) (Just editor) @! m
+	= interact d View nullShare (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) (Just editor) @! m
 viewInformation d _ m = viewInformation d [ViewAs id] m
 
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r & iTask w
@@ -100,7 +100,7 @@ editSelection d multi (SelectInList toView fromView) container sel = editSelecti
 editSelection d multi (SelectInGrid toView fromView) container sel = editSelection` d (grid (multipleAttr multi)) toView fromView container sel
 editSelection d multi (SelectInTree toView fromView) container sel = editSelection` d (tree (multipleAttr multi)) toView fromView container sel
 editSelection` d editor toView fromView container sel
-	= interact d (if (isEmpty sel) Enter Update) null
+	= interact d (if (isEmpty sel) Enter Update) nullShare
 		(\r     -> ((),(toView container,sel)))
 		(\v l _ -> (l,v,Nothing))
 		(\_ l v -> (l,v,Nothing))

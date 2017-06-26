@@ -6,7 +6,7 @@ import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.Tas
 import iTasks._Framework.Generic, iTasks._Framework.Task, iTasks._Framework.TaskState
 import iTasks._Framework.TaskEval, iTasks._Framework.TaskStore, iTasks.UI.Definition, iTasks._Framework.IWorld
 import iTasks.UI.Layout, iTasks.UI.Editor, iTasks.UI.Prompt
-import iTasks.API.Core.SDSs, iTasks.API.Common.SDSCombinators
+import iTasks.API.Common.SDSCombinators
 
 from iTasks._Framework.SDS as SDS import qualified read, readRegister, write, modify
 from StdFunc					import o, id

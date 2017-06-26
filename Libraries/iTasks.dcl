@@ -7,9 +7,10 @@ import	iTasks._Framework.Engine				// iTasks engine
     // iTasks API
     ,   iTasks.SDS.Definition
     ,   iTasks.SDS.Combinators.Core
-
+    ,   iTasks.SDS.Sources.Core
+    ,   iTasks.SDS.Sources.Store
+    ,   iTasks.SDS.Sources.System
     ,   iTasks.API
-
 	
 	//	Miscellaneous machinery
 	,	Text.JSON							// JSON is used for serializing/deserializing strings

@@ -1,7 +1,7 @@
 definition module iTasks._Framework.Tonic.Shares
 
 import iTasks.API.Core.Types
-import iTasks.API.Core.SDSs
+import iTasks.SDS.Definition
 from iTasks.UI.Definition import :: UI
 from iTasks._Framework.Tonic.AbsSyn import :: VarName
 from iTasks._Framework.Tonic.Types import :: ModuleName, :: FuncName, :: ClickMeta, :: ExprId, :: TStability, :: TonicRTMap, :: BlueprintInstance, :: StaticDisplaySettings, :: BlueprintQuery, :: DynamicDisplaySettings, :: TaskResult, :: ComputationId

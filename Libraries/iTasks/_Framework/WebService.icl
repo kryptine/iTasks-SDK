@@ -13,7 +13,7 @@ import System.Time, Text, Text.JSON, Internet.HTTP, Data.Error
 import System.File, System.FilePath, System.Directory
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskEval, iTasks._Framework.TaskStore
 import iTasks.UI.Definition, iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks._Framework.Engine, iTasks._Framework.IWorld
-import iTasks.API.Core.SDSs, iTasks.API.Common.SDSCombinators
+import iTasks.API.Common.SDSCombinators
 import iTasks.API.Core.Types
 import Crypto.Hash.SHA1, Text.Encodings.Base64, Text.Encodings.MIME
 import Text.HTML

@@ -9,7 +9,7 @@ import qualified Data.Map as DM
 import iTasks._Framework.IWorld, iTasks._Framework.Task, iTasks._Framework.TaskState
 import iTasks._Framework.SDS, iTasks._Framework.TaskStore, iTasks._Framework.TaskEval
 import iTasks.API.Core.Types, iTasks.API.Core.Tasks, iTasks.UI.Layout
-import iTasks.API.Core.SDSs
+import iTasks.SDS.Sources.Core
 import iTasks.API.Common.InteractionTasks, iTasks.API.Common.TaskCombinators //TODO don't import from Common in Core
 import iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
 

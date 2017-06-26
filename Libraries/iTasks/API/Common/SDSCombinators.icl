@@ -1,10 +1,10 @@
 implementation module iTasks.API.Common.SDSCombinators
 
 import StdTuple, StdList
-import iTasks.API.Core.SDSs, iTasks.SDS.Combinators.Core
+import iTasks.SDS.Definition, iTasks.SDS.Combinators.Core
 import iTasks.API.Core.Types
 from StdFunc import o, const, flip, id
-from iTasks._Framework.Task import exception
+from iTasks._Framework.Task import exception, :: TaskException
 import qualified Data.Map as DM
 import qualified Data.IntMap.Strict as DIS
 from Data.IntMap.Strict import :: IntMap
