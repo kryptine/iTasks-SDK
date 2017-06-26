@@ -33,6 +33,11 @@ derive class iTask ExitCode
 CPM_PATH :== "/Users/bas/Clean/bin/cpm"
 TESTS_PATH :== "../Tests/TestPrograms"
 LIBRARY_PATH :== "../Libraries"
+EXAMPLE_MODULES :== ["../Examples/BasicApiExamples.icl"
+                    ,"../Examples/Applications/Incidone/IncidoneCCC.icl"
+                    ,"../Examples/Applications/c2-demo/main.icl"
+                    ,"../Examples/GIS/LeafletMapExample.icl"
+                    ]
 
 suites = [//Interactive tests
 		  testBuiltinEditors
@@ -53,6 +58,7 @@ runTests :: [TestSuite] -> Task ()
 runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
     ( allTasks [runInteractiveTests <<@ Title "Interactive Tests"
 			   ,runUnitTests   <<@ Title "Unit Tests"
+               ,checkExampleApplications  <<@ Title "Example applications"
 			   ,viewQualityMetrics  <<@ Title "Metrics"
 			   ] <<@ ArrangeWithTabs
     ) @! ()
@@ -116,6 +122,27 @@ where
 	application header mainTask
 		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False <<@ ApplyLayout (setUIType UIContainer)
 
+	checkExampleApplications = withShared 'DM'.newMap
+		\results ->
+		(
+		 (enterChoiceWithSharedAs () [ChooseFromGrid fst] (examplesWithResults results) fst 
+		>&> withSelection (viewInformation "Select an example" [] ())
+			(\path -> 
+				(viewSharedInformation (Title "Code") [ViewUsing id aceTextArea] (sdsFocus path externalFile)
+				-&&-
+				viewSharedInformation (Title "Results") [] (mapRead ('DM'.get path) results) <<@ ArrangeHorizontal)
+				>^* [OnAction (Action "Run") (always
+						(		compileTestModule path <<@ InWindow
+							>>- \res -> (upd ('DM'.put path res)) results
+						)
+					)]
+			) @! ()) <<@ ArrangeWithSideBar 0 LeftSide 250 True
+		)		
+	where
+		examplesWithResults results = mapRead (\(res,examples) -> [(e,'DM'.get e res) \\e <- examples ]) (results |*| examples)
+		where
+			examples = constShare EXAMPLE_MODULES
+
 	viewQualityMetrics :: Task ()
 	viewQualityMetrics 
 		= 	analyzeITasksCodeBase
@@ -124,6 +151,7 @@ where
 		view {numTODO,numFIXME} = UlTag [] [LiTag [] [Text "Number of TODO's found: ",Text (toString numTODO)]
 										   ,LiTag [] [Text "Number of FIXME's found: ",Text (toString numFIXME)]
 										   ]
+
 //Begin metrics 
 //The following section should probably be moved to a separate module
 :: SourceTreeQualityMetrics =
