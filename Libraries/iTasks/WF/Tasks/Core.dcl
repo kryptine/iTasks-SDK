@@ -1,4 +1,4 @@
-definition module iTasks.TOP.Tasks.Core
+definition module iTasks.WF.Tasks.Core
 /**
 * This module provis the builtin basic tasks 
 */
