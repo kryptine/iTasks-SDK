@@ -5,12 +5,12 @@ from Data.Map import :: Map
 import qualified Data.Map as DM
 import Data.Maybe, Data.Functor, Data.Error
 import System.File, System.Directory, System.OSError, System.FilePath
-import Text, Text.JSON
+import Text, Text.JSON, iTasks._Framework.Serialization
 
 import iTasks._Framework.Client.JSStore
 import iTasks._Framework.SDS
 
-from iTasks._Framework.IWorld		import :: IWorld {onClient,server,memoryShares,cachedShares,world}, :: ServerInfo(..), :: SystemPaths(..), :: Resource, :: ShareCache(..)
+from iTasks._Framework.IWorld		import :: IWorld {onClient,server,memoryShares,cachedShares,world}, :: ServerInfo(..), :: SystemPaths(..), :: Resource, :: ShareCache(..), :: CachedValue(..)
 from iTasks._Framework.Task		    import exception
 from iTasks._Framework.TaskState		import :: DeferredJSON(..)
 from iTasks._Framework.Generic				import class iTask
@@ -146,10 +146,10 @@ where
                             = (Ok value,iworld)
                         Nothing = (Error (exception (StoreReadTypeError storeDesc)),iworld)
             (Error (StoreReadMissingError _),Just def)
-                # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic def, keepBetweenEvals,Just (DeferredJSON def)) cachedShares}
+                # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic def, keepBetweenEvals,Just (CachedJSONValue (DeferredJSON def))) cachedShares}
                 = (Ok def,iworld)
             (Error e,Just def) | resetOnError
-                # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic def, keepBetweenEvals,Just (DeferredJSON def)) cachedShares}
+                # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic def, keepBetweenEvals,Just (CachedJSONValue (DeferredJSON def))) cachedShares}
                 = (Ok def,iworld)
             (Error e,Nothing) | resetOnError
                 # (_,iworld) = deleteValue namespace key iworld //Try to delete value
@@ -164,7 +164,58 @@ where
 	        = (Ok ((==) key),jsStoreValue namespace key value iworld)
         | otherwise
             //Write to cache
-            # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic value, keepBetweenEvals,Just (DeferredJSON value)) cachedShares}
+            # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic value, keepBetweenEvals,Just (CachedJSONValue (DeferredJSON value))) cachedShares}
+	        = (Ok ((==) key),iworld)
+
+cachedDynamicStringFileStore :: !StoreNamespace !Bool !Bool !Bool !(Maybe a) -> RWShared StoreName a a | TC a
+cachedDynamicStringFileStore namespace checkBuild resetOnError keepBetweenEvals defaultV
+    = createReadWriteSDS namespace "cachedDynamicStringFileStore" read write
+where
+	read key iworld=:{IWorld|onClient,server={buildID},cachedShares}
+        | onClient //Special case for tasks running on a client
+            # (mbVal,iworld) = jsLoadValue namespace key iworld
+	        = (maybe (Error (exception (StoreReadMissingError storeDesc))) Ok mbVal, iworld)
+        //Try cache first
+        # mbResult = case 'DM'.get (namespace,key) cachedShares of
+            (Just (val :: a^,_,_))  = Just (Ok val)
+            (Just _)                = Just (Error (exception (StoreReadTypeError storeDesc)))
+            Nothing                 = Nothing
+        | mbResult =:(Just _)
+            = (fromJust mbResult,iworld)
+        //Try disk if the value is not in the cache
+	    # (mbItem,iworld) = readFromDisk namespace key iworld
+	    = case (mbItem,defaultV) of
+ 		    (Ok (buildIDWhenStored,encoded),_)
+                | checkBuild && buildIDWhenStored <> buildID
+                    = (Error (exception (StoreReadBuildVersionError storeDesc)),iworld)
+                | otherwise
+                    # dynValue = deserializeDynamic {c \\ c <-: encoded}
+                    = case dynValue of
+                        (value :: a^)
+                            //Keep in cache
+                            # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynValue,keepBetweenEvals,Nothing) cachedShares}
+                            = (Ok value, iworld)
+                        _ = (Error (exception (StoreReadTypeError storeDesc)),iworld)
+            (Error (StoreReadMissingError _),Just def)
+                # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic def, keepBetweenEvals,Just CachedDynamicValue) cachedShares}
+                = (Ok def,iworld)
+            (Error e,Just def) | resetOnError
+                # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic def, keepBetweenEvals,Just CachedDynamicValue) cachedShares}
+                = (Ok def,iworld)
+            (Error e,Nothing) | resetOnError
+                # (_,iworld) = deleteValue namespace key iworld //Try to delete value
+                = (Error (exception e), iworld)
+		    (Error e,_)
+                = (Error (exception e),iworld)
+	where
+		storeDesc = namespace +++ "/" +++ key
+
+	write key value iworld=:{IWorld|onClient,cachedShares}
+        | onClient //Special case for tasks running on a client
+	        = (Ok ((==) key),jsStoreValue namespace key value iworld)
+        | otherwise
+            //Write to cache
+            # iworld = {iworld & cachedShares = 'DM'.put (namespace,key) (dynamic value, keepBetweenEvals,Just CachedDynamicValue) cachedShares}
 	        = (Ok ((==) key),iworld)
 
 
@@ -177,8 +228,11 @@ flushShareCache iworld=:{IWorld|onClient,cachedShares}
 where
     flushShare cached=:((namespace,key),(val,keep,mbDeferredWrite)) (shares,iworld)
         # iworld = case mbDeferredWrite of
-            Just deferred   
-				# (_,iworld) = writeToDisk namespace key (toString (toJSON deferred)) iworld
+            Just cachedVal
+                # valStr = case cachedVal of
+                    CachedJSONValue deferred = toString (toJSON deferred)
+                    CachedDynamicValue       = serializeDynamic val
+				# (_, iworld) = writeToDisk namespace key valStr iworld
 				= iworld
             Nothing         = iworld
         | keep  = ([((namespace,key),(val,keep,Nothing)):shares],iworld)
