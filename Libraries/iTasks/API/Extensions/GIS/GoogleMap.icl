@@ -57,6 +57,12 @@ derive JSEncode Maybe, HtmlTag, HtmlAttr, SVGElt, SVGAttr, SVGZoomAndPan, SVGLen
 derive JSEncode SVGLineJoin, SVGLineCap, SVGStrokeDashOffset, SVGStrokeDashArray, SVGPaint, SVGMeetOrSlice, SVGAlign, SVGDefer, SVGLengthAdjust, SVGFillRule
 derive JSEncode SVGFillOpacity, SVGFuncIRI, SVGColor
 
+derive JSDecode GoogleMap, GoogleMapPerspective, GoogleMapMarker, GoogleMapSettings, GoogleMapType, GoogleMapIcon, GoogleMapPosition, GoogleMapComplexIcon
+derive JSDecode GoogleMapDiff
+derive JSDecode Maybe, HtmlTag, HtmlAttr, SVGElt, SVGAttr, SVGZoomAndPan, SVGLengthUnit, SVGTransform, SVGStrokeWidth, SVGStrokeMiterLimit
+derive JSDecode SVGLineJoin, SVGLineCap, SVGStrokeDashOffset, SVGStrokeDashArray, SVGPaint, SVGMeetOrSlice, SVGAlign, SVGDefer, SVGLengthAdjust, SVGFillRule
+derive JSDecode SVGFillOpacity, SVGFuncIRI, SVGColor
+
 googleMapEditor :: Editor GoogleMap
 googleMapEditor
     = { Editor
@@ -247,10 +253,10 @@ where
 		# (map,world) = .? (me .# "map") world
 		# (perspective, world) = getPespective map world
 		
-		# (taskId,world)  = .? (me .# "attributes.taskId") world
+		# (taskId,world)    = .? (me .# "attributes.taskId") world
 		# (editorId,world)  = .? (me .# "attributes.editorId") world
-		# diff = SetPerspective perspective
-		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,[diff])) world
+		# (diff,world)      = encodeOnClient [SetPerspective perspective] world
+		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,diff)) world
 		
 		= (jsNull, world)
 
@@ -266,8 +272,8 @@ where
 
 		# (taskId,world)  		= .? (me .# "attributes.taskId") world
 		# (editorId,world)  	= .? (me .# "attributes.editorId") world		
-		# diff 					= AddMarkers [markrec]		
-		# (_,world) 			= ((me .# "doEditEvent") .$ (taskId,editorId,[diff])) world
+		# (diff,world)          = encodeOnClient [AddMarkers [markrec]] world
+		# (_,world) 			= ((me .# "doEditEvent") .$ (taskId,editorId,diff)) world
 		
 		= (jsNull, world)
 		
@@ -322,8 +328,8 @@ where
 			
 			# (taskId,world)  	= .? (me .# "attributes.taskId") world
 			# (editorId,world)  = .? (me .# "attributes.editorId") world		
-			# diff 				= UpdateMarkers markers		
-			# (_,world) 		= ((me .# "doEditEvent") .$ (taskId,editorId,[diff])) world
+			# (diff,world) 		= encodeOnClient [UpdateMarkers markers] world		
+			# (_,world) 		= ((me .# "doEditEvent") .$ (taskId,editorId,diff)) world
 
 			# world				= setState me {GoogleMapState | st & markers = markers} world					
 			= (jsNull, world)
@@ -337,8 +343,8 @@ where
             
 			# (taskId,world)  	= .? (me .# "attributes.taskId") world
 			# (editorId,world)  = .? (me .# "attributes.editorId") world		
-			# diff 				= UpdateMarkers markers		
-			# (_,world) 		= ((me .# "doEditEvent") .$ (taskId,editorId,[diff])) world					
+			# (diff,world) 	    = encodeOnClient [UpdateMarkers markers] world
+			# (_,world) 		= ((me .# "doEditEvent") .$ (taskId,editorId,diff)) world					
 
 			# world				= setState me {GoogleMapState | st & markers = markers} world		
 			= (jsNull, world)
@@ -430,7 +436,7 @@ where
         oldMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g1.GoogleMap.markers]
         newMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g2.GoogleMap.markers]
 
-	onEdit dp ([],d) g msk ust = case fromJSON d of
+	onEdit dp ([],d) g msk ust = case decodeOnServer d of
 		Just diffs = (Ok (NoChange,msk),foldl app g diffs,ust)
 		Nothing    = (Ok (NoChange,msk),g,ust)
     where
