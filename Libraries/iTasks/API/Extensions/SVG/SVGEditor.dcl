@@ -6,7 +6,7 @@ import iTasks
 import iTasks.UI.Editor
 import iTasks.API.Core.Types
 import iTasks.API.Extensions.Platform
-
+import iTasks.UI.JS.Encoding
 
 //An SVGEditor let's you specify an editor as an interactive SVG image
 :: SVGEditor m v =
@@ -16,7 +16,7 @@ import iTasks.API.Extensions.Platform
 	, updModel    :: m v -> m                   //When the view is updated (using the image), the change needs to be merged back into the view
 	}
 
-fromSVGEditor :: (SVGEditor s v) -> Editor s | iTask s
+fromSVGEditor :: (SVGEditor s v) -> Editor s | iTask s & JSEncode{|*|} s
 
 derive class iTask Image, Host, Span, LookupSpan, FontDef, ImageTransform, ImageAttr
 derive class iTask ImageContent, BasicImage, CompositeImage, LineImage, Markers

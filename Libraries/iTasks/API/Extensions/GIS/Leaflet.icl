@@ -1,7 +1,7 @@
 implementation module iTasks.API.Extensions.GIS.Leaflet
 
 import iTasks
-import iTasks.UI.Definition, iTasks.UI.JS.Map, iTasks.UI.Editor
+import iTasks.UI.Definition, iTasks.UI.JS.Map, iTasks.UI.Editor, iTasks.UI.JS.Encoding
 import StdMisc, Data.Tuple
 import qualified Data.Map as DM
 
@@ -25,6 +25,9 @@ LEAFLET_CSS :== "/leaflet-0.7.2/leaflet.css"
     }
 
 derive JSONEncode IconOptions
+
+derive JSEncode LeafletEdit, LeafletBounds, LeafletLatLng
+derive JSDecode LeafletEdit, LeafletBounds, LeafletLatLng
 
 CURSOR_OPTIONS  :== {color = "#00f", opacity = 1.0, radius = 3}
 MAP_OPTIONS     :== {attributionControl = False, zoomControl = True}
@@ -97,7 +100,8 @@ where
 		# (taskId,world)    = .? (me .# "attributes.taskId") world
 		# (editorId,world)  = .? (me .# "attributes.editorId") world
         # (bounds,world)    = getMapBounds mapObj world
-		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,[LDSetBounds bounds])) world
+		# (edit,world)      = encodeOnClient [LDSetBounds bounds] world
+		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,edit)) world
         //Add initial objects
 		# (objects,world)   = .? (me .# "children") world
 		# world             = createMapObjects me mapObj objects world
@@ -136,7 +140,8 @@ where
         # (mapObj,world)    = .? (toJSVal (args !! 0) .# "target") world
         # (center,world)    = getMapCenter mapObj world
         # (bounds,world)    = getMapBounds mapObj world
-		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,[LDSetCenter center,LDSetBounds bounds])) world
+		# (edit,world)      = encodeOnClient [LDSetCenter center,LDSetBounds bounds] world
+		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,edit)) world
 		= (jsNull,world)
 
 	onMapZoomEnd me args world
@@ -145,7 +150,8 @@ where
         # (mapObj,world)    = .? (toJSVal (args !! 0) .# "target") world
         # (zoom,world)      = getMapZoom mapObj world
         # (bounds,world)    = getMapBounds mapObj world
-		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,[LDSetZoom zoom,LDSetBounds bounds])) world
+		# (edit,world)      = encodeOnClient [LDSetZoom zoom,LDSetBounds bounds] world
+		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,edit)) world
 		= (jsNull,world)
 
 	onMapClick me args world
@@ -154,7 +160,8 @@ where
         # (mapObj,world)    = .? (toJSVal (args !! 0) .# "target") world
         # (clickPos,world)  = .? (toJSVal (args !! 0) .# "latlng") world
 		# (cursor,world)    = toLatLng clickPos world 
-		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,[LDSetCursor cursor])) world
+		# (edit,world)      = encodeOnClient [LDSetCursor cursor] world
+		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,edit)) world
 		//Update cursor position on the map
 		# world             = setMapCursor me mapObj (toJSVal cursor) world
 		= (jsNull,world)
@@ -162,7 +169,8 @@ where
 	onMarkerClick me markerId args world
 		# (taskId,world)    = .? (me .# "attributes.taskId") world
 		# (editorId,world)  = .? (me .# "attributes.editorId") world
-		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,[LDSelectMarker markerId])) world
+		# (edit,world)      = encodeOnClient [LDSelectMarker markerId] world
+		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,edit)) world
 		= (jsNull,world)
 
 	onAttributeChange me args world
@@ -335,7 +343,7 @@ where
 			= forall` (i + 1) len (f el world)
 
 	//Process the edits received from the client
-	onEdit dp ([],diff) m msk vst = case fromJSON diff of
+	onEdit dp ([],diff) m msk vst = case decodeOnServer diff of
 		Just diffs = (Ok (NoChange,msk),foldl app m diffs,vst)
 		Nothing = (Ok (NoChange,msk),m,vst)
 	where

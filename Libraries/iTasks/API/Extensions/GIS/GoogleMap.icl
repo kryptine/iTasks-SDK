@@ -1,7 +1,7 @@
 implementation module iTasks.API.Extensions.GIS.GoogleMap
 
 import iTasks
-import iTasks.UI.Definition, iTasks.UI.JS.Interface, iTasks.UI.Editor
+import iTasks.UI.Definition, iTasks.UI.JS.Interface, iTasks.UI.JS.Encoding, iTasks.UI.Editor
 import iTasks.UI.JS.Map
 
 import Data.Functor, Text, StdMisc
@@ -51,6 +51,18 @@ GOOGLEMAP_JS = "http://maps.googleapis.com/maps/api/js?callback=googleMapsLoaded
 
 derive class iTask GoogleMapState, JSGM
 
+derive JSEncode GoogleMap, GoogleMapPerspective, GoogleMapMarker, GoogleMapSettings, GoogleMapType, GoogleMapIcon, GoogleMapPosition, GoogleMapComplexIcon
+derive JSEncode GoogleMapDiff
+derive JSEncode Maybe, HtmlTag, HtmlAttr, SVGElt, SVGAttr, SVGZoomAndPan, SVGLengthUnit, SVGTransform, SVGStrokeWidth, SVGStrokeMiterLimit
+derive JSEncode SVGLineJoin, SVGLineCap, SVGStrokeDashOffset, SVGStrokeDashArray, SVGPaint, SVGMeetOrSlice, SVGAlign, SVGDefer, SVGLengthAdjust, SVGFillRule
+derive JSEncode SVGFillOpacity, SVGFuncIRI, SVGColor
+
+derive JSDecode GoogleMap, GoogleMapPerspective, GoogleMapMarker, GoogleMapSettings, GoogleMapType, GoogleMapIcon, GoogleMapPosition, GoogleMapComplexIcon
+derive JSDecode GoogleMapDiff
+derive JSDecode Maybe, HtmlTag, HtmlAttr, SVGElt, SVGAttr, SVGZoomAndPan, SVGLengthUnit, SVGTransform, SVGStrokeWidth, SVGStrokeMiterLimit
+derive JSDecode SVGLineJoin, SVGLineCap, SVGStrokeDashOffset, SVGStrokeDashArray, SVGPaint, SVGMeetOrSlice, SVGAlign, SVGDefer, SVGLengthAdjust, SVGFillRule
+derive JSDecode SVGFillOpacity, SVGFuncIRI, SVGColor
+
 googleMapEditor :: Editor GoogleMap
 googleMapEditor
     = { Editor
@@ -60,7 +72,7 @@ googleMapEditor
       }
 where
 	genUI dp val world
-		# attr = 'DM'.unions [sizeAttr (ExactSize 500) (ExactSize 200), valueAttr (toJSON val)]
+		# attr = 'DM'.unions [sizeAttr (ExactSize 500) (ExactSize 200), valueAttr (encodeOnServer val)]
 		= (Ok (uia UIComponent attr,newFieldMask),world)
 
 	initUI me world
@@ -97,23 +109,27 @@ where
 		= (jsNull, world)
 
 	initDOM me args world
+		//Get the initial data from the value attribute
+		# (value,world)      = .? (me .# "attributes.value") world 
+		# (st,world)         = decodeOnClient value world
 		//Create the parameter object
 		# (options,world)    = jsEmptyObject world
-		# (mapType,world)    = .? (me .# "attributes.value.perspective.type" .# 0) world
-		# (mapTypeId,world)  = .? (jsWindow .# "google.maps.MapTypeId" .# (jsValToString mapType)) world
+		# perspective        = st.GoogleMap.perspective
+		# mapType            = toString perspective.GoogleMapPerspective.type
+		# (mapTypeId,world)  = .? (jsWindow .# "google.maps.MapTypeId" .# mapType) world
 		# world              = (options .# "mapTypeId" .= mapTypeId) world
-		# (lat,world)        = .? (me .# "attributes.value.perspective.center.lat") world
-		# (lng,world)        = .? (me .# "attributes.value.perspective.center.lng") world
+		# {lat,lng}          = perspective.GoogleMapPerspective.center
 	    # (center, world)    = jsNewObject "google.maps.LatLng" [toJSArg lat,toJSArg lng] world
 		# world              = (options .# "center" .= center) world
-		# world              = copy (me .# "attributes.value.perspective.zoom") (options .# "zoom") world
-		# world              = copy (me .# "attributes.value.settings.mapTypeControl") (options .# "mapTypeControl") world
-		# world              = copy (me .# "attributes.value.settings.panControl") (options .# "panControl") world
-		# world              = copy (me .# "attributes.value.settings.zoomControl") (options .# "zoomControl") world
-		# world              = copy (me .# "attributes.value.settings.streetViewControl") (options .# "streetViewControl") world
-		# world              = copy (me .# "attributes.value.settings.scaleControl") (options .# "scaleControl") world
-		# world              = copy (me .# "attributes.value.settings.scrollwheel") (options .# "scrollwheel") world
-		# world              = copy (me .# "attributes.value.settings.draggable") (options .# "draggable") world
+		# world              = (options .# "zoom" .= perspective.GoogleMapPerspective.zoom) world
+		# settings           = st.GoogleMap.settings
+		# world              = (options .# "mapTypeControl" .= settings.GoogleMapSettings.mapTypeControl) world
+		# world              = (options .# "panControl" .= settings.GoogleMapSettings.panControl) world
+		# world              = (options .# "zoomControl" .= settings.GoogleMapSettings.zoomControl) world
+		# world              = (options .# "streetViewControl" .= settings.GoogleMapSettings.streetViewControl) world
+		# world              = (options .# "scaleControl" .= settings.GoogleMapSettings.scaleControl) world
+		# world              = (options .# "scrollwheel" .= settings.GoogleMapSettings.scrollwheel) world
+		# world              = (options .# "draggable" .= settings.GoogleMapSettings.draggable) world
 		//Create the map object
 		# (domEl,world)       = .? (me .# "domEl") world
 	    # (mapobj, world)     = jsNewObject "google.maps.Map" [toJSArg domEl,toJSArg options] world
@@ -128,10 +144,6 @@ where
 		//Create initial markers
 		= (jsNull,world)
 
-	copy src tgt world //Util
-		# (tmp,world) = .? src world
-		= (tgt .= tmp) world
-	
 	addListeners me world
 		# (mapobj,world) = .? (me .# "map") world
 		
@@ -179,11 +191,11 @@ where
 		= (jsNull,world)
 
 	onAttributeChange me [name,value] world
+		# world = jsTrace name world
+		# world = jsTrace value world
 		| jsArgToString name == "diff"
-			# (json,world)  = jsValToJSONNode (toJSVal value) world
-			= case fromJSON json of
-				Nothing   = (jsNull, jsTrace "Unknown message type" world)
-				Just diff = (jsNull, applyDiffs me diff world)
+			# (diff,world) = decodeOnClient (toJSVal value) world
+			= (jsNull, applyDiffs me diff world)
 		| otherwise
 			= (jsNull, jsTrace "Unknown attribute change" world)
 
@@ -241,10 +253,10 @@ where
 		# (map,world) = .? (me .# "map") world
 		# (perspective, world) = getPespective map world
 		
-		# (taskId,world)  = .? (me .# "attributes.taskId") world
+		# (taskId,world)    = .? (me .# "attributes.taskId") world
 		# (editorId,world)  = .? (me .# "attributes.editorId") world
-		# diff = SetPerspective perspective
-		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,[diff])) world
+		# (diff,world)      = encodeOnClient [SetPerspective perspective] world
+		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,diff)) world
 		
 		= (jsNull, world)
 
@@ -257,11 +269,11 @@ where
 		# markers 				= [markrec: st.GoogleMapState.markers]
 		# world 				= createMarker me map st.markerMap markrec world
 		# world					= setState me {st & nextMarkerId = st.nextMarkerId + 1, markers = markers} world
-		
+
 		# (taskId,world)  		= .? (me .# "attributes.taskId") world
 		# (editorId,world)  	= .? (me .# "attributes.editorId") world		
-		# diff 					= AddMarkers [markrec]		
-		# (_,world) 			= ((me .# "doEditEvent") .$ (taskId,editorId,[diff])) world
+		# (diff,world)          = encodeOnClient [AddMarkers [markrec]] world
+		# (_,world) 			= ((me .# "doEditEvent") .$ (taskId,editorId,diff)) world
 		
 		= (jsNull, world)
 		
@@ -311,14 +323,13 @@ where
 	where
         onMarkerClick me args world
 			# (st, world) 		= getState me world
-			
             //Toggle selection
             # markers 			= [{GoogleMapMarker|m & selected = (m.GoogleMapMarker.markerId == markerId)} \\ m <- st.GoogleMapState.markers]
 			
 			# (taskId,world)  	= .? (me .# "attributes.taskId") world
 			# (editorId,world)  = .? (me .# "attributes.editorId") world		
-			# diff 				= UpdateMarkers markers		
-			# (_,world) 		= ((me .# "doEditEvent") .$ (taskId,editorId,[diff])) world
+			# (diff,world) 		= encodeOnClient [UpdateMarkers markers] world		
+			# (_,world) 		= ((me .# "doEditEvent") .$ (taskId,editorId,diff)) world
 
 			# world				= setState me {GoogleMapState | st & markers = markers} world					
 			= (jsNull, world)
@@ -332,23 +343,20 @@ where
             
 			# (taskId,world)  	= .? (me .# "attributes.taskId") world
 			# (editorId,world)  = .? (me .# "attributes.editorId") world		
-			# diff 				= UpdateMarkers markers		
-			# (_,world) 		= ((me .# "doEditEvent") .$ (taskId,editorId,[diff])) world					
-			
+			# (diff,world) 	    = encodeOnClient [UpdateMarkers markers] world
+			# (_,world) 		= ((me .# "doEditEvent") .$ (taskId,editorId,diff)) world					
+
 			# world				= setState me {GoogleMapState | st & markers = markers} world		
 			= (jsNull, world)
-			
+
 	getState me world
 		# (jsState,world) = .? (me .# "st") world
 		= case jsIsUndefined jsState of
 				True	= defaultState world
-				False   # (json,world)  = jsValToJSONNode (toJSVal jsState) world
-						= case fromJSON json of
-							Nothing      = defaultState world
-							Just state   = (state, world)
-			
+				False   = jsGetCleanVal "st" me world
+		
 	setState me state world
-		= ((me .# "st") .= (toJSVal (toJSON state))) world	
+		= jsPutCleanVal "st" state me world
 			
 	defaultState world 
 		# (jsMap, world) = jsNewMap world
@@ -409,7 +417,7 @@ where
 
 	onRefresh _ g2 g1 mask vst = case settingsDiff ++ perspectiveDiff ++ remMarkersDiff ++ addMarkersDiff ++ updMarkersDiff of
         []      = (Ok (NoChange,mask),g2,vst)
-        diffs   = (Ok (ChangeUI [SetAttribute "diff" (toJSON diffs)] [],mask),g2,vst)
+        diffs   = (Ok (ChangeUI [SetAttribute "diff" (encodeOnServer diffs)] [],mask),g2,vst)
     where
         settingsDiff    = if (g1.GoogleMap.settings === g2.GoogleMap.settings) [] [SetSettings g2.GoogleMap.settings]
         perspectiveDiff = if (g1.GoogleMap.perspective === g2.GoogleMap.perspective) [] [SetPerspective g2.GoogleMap.perspective]
@@ -428,7 +436,7 @@ where
         oldMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g1.GoogleMap.markers]
         newMarkerIds = [markerId \\ {GoogleMapMarker|markerId} <- g2.GoogleMap.markers]
 
-	onEdit dp ([],d) g msk ust = case fromJSON d of
+	onEdit dp ([],d) g msk ust = case decodeOnServer d of
 		Just diffs = (Ok (NoChange,msk),foldl app g diffs,ust)
 		Nothing    = (Ok (NoChange,msk),g,ust)
     where

@@ -6,6 +6,7 @@ import Graphics.Scalable.Internal
 import iTasks
 import iTasks.UI.Definition, iTasks.UI.Editor
 import iTasks.UI.JS.Interface
+import iTasks.UI.JS.Encoding
 import iTasks._Framework.Serialization
 from StdOrdList import minList, maxList
 import StdOverloaded
@@ -31,6 +32,13 @@ derive class iTask OpacityAttr, FillAttr, XRadiusAttr, YRadiusAttr, StrokeWidthA
 derive class iTask Slash, DraggableAttr, OnMouseOverAttr, OnMouseUpAttr, DashAttr
 derive class iTask OnMouseDownAttr, OnClickAttr
 
+derive JSEncode Image, ImageTag, Host, Span, LookupSpan, FontDef, ImageTransform, ImageAttr
+derive JSEncode ImageContent, BasicImage, CompositeImage, LineImage, Markers
+derive JSEncode LineContent, Compose, XAlign, YAlign, OnMouseOutAttr, OnMouseMoveAttr
+derive JSEncode OpacityAttr, FillAttr, XRadiusAttr, YRadiusAttr, StrokeWidthAttr, StrokeAttr
+derive JSEncode Slash, DraggableAttr, OnMouseOverAttr, OnMouseUpAttr, DashAttr
+derive JSEncode OnMouseDownAttr, OnClickAttr, SVGColor
+derive JSEncode Set, Angle, Maybe
 
 CLICK_DELAY :== 225
 svgns =: "http://www.w3.org/2000/svg"
@@ -68,7 +76,7 @@ svgns =: "http://www.w3.org/2000/svg"
 
 derive class iTask Set, DropTarget, MousePos, ImageTag
 
-fromSVGEditor :: (SVGEditor s v) -> Editor s | iTask s 
+fromSVGEditor :: (SVGEditor s v) -> Editor s | iTask s & JSEncode{|*|} s
 fromSVGEditor svglet=:{initView,renderImage,updView,updModel}
   = { Editor
     | genUI   = withClientSideInit initUI genUI
@@ -96,22 +104,18 @@ fromSVGEditor svglet=:{initView,renderImage,updView,updModel}
 
 	initDOMEl me args world
 		# (value,world) = .? (me .# "attributes.value") world
-		# (json,world) = jsValToJSONNode value world
-		= case fromJSON json of
-			Nothing = (jsNull,world)
-			Just s 	= (jsNull,onNewState me svglet s world)
+		# (value,world) = decodeOnClient value world
+		= (jsNull,onNewState me svglet value world)
 
 	onAttributeChange me args world
 		| jsArgToString (args !! 0) == "stateChange"
-			# (json,world)  = jsValToJSONNode (toJSVal (args !! 1)) world
-			= case fromJSON json of
-				Nothing = (jsNull,world)
-				Just s  = (jsNull,onNewState me svglet s world)
+			# (value,world) = decodeOnClient (toJSVal (args !! 1))world
+			= (jsNull,onNewState me svglet value world)
 		| otherwise
 			= (jsNull,jsTrace "Unknown attribute change" world)
 
   	onRefresh _ new old mask vst 
-		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "stateChange" (toJSON new)] []),mask),new,vst)
+		= (Ok (if (old === new) NoChange (ChangeUI [SetAttribute "stateChange" (encodeOnServer new)] []),mask),new,vst)
 
   	onEdit _ (_,json) st m ust 
 		= case fromJSON json of 	

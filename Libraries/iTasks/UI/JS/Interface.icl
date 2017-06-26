@@ -421,47 +421,4 @@ jsIsArray x world
 jsIsNull :: !(JSVal a) -> Bool
 jsIsNull x = undef
 
-//JAVASCRIPT UTIL: Should be in UI.JS.Interface or something
-
-jsValToJSONNode :: !(JSVal a) !*JSWorld -> *(!JSONNode, !*JSWorld)
-jsValToJSONNode val world
-	//Null
-	| jsIsNull val
-		= (JSONNull,world)	
-	//Arrays
-	# (check,world) = jsIsArray val world
-	| check
-		# (len,world) = .? (val .# "length") world
-		# (els,world) = readArrayEls val 0 (jsValToInt len) world
-		= (JSONArray els,world)
-	//Objects	
-	| jsTypeof val == "object"
-		# (keys,world) = readObjectKeys val world
-		# (fields,world) = readObjectFields keys val world
-		= (JSONObject (zip (keys,fields)),world)
-	//Primitives
-	= case fromJSValUnsafe val of
-		(v :: Bool)    = (JSONBool v, world)
-		(v :: Int)     = (JSONInt v, world)
- 		(v :: Real)    = (JSONReal v, world)
-		(v :: String)  = (JSONString v, world)
-		_ 			   = (JSONError,world)
-where
-	readArrayEls arr i n world
-		| i >= n = ([],world)
-		# (jel,world) = .? (val .# i) world
-		# (el,world)  = jsValToJSONNode jel world
-		# (els,world) = readArrayEls arr (i + 1) n world
-		= ([el:els],world)
-		
-	readObjectKeys obj world
-		# (jskeys,world) = (jsWindow .# "Object.keys" .$ obj) world
-		= fromJSArray jskeys jsValToString world
-
-	readObjectFields [] obj world = ([],world)
-	readObjectFields [k:ks] obj world
-		# (jel,world)  = .? (obj .# k) world
-		# (el,world)   = jsValToJSONNode jel world
-		# (els,world)  = readObjectFields ks obj world
-		= ([el:els],world)
 
