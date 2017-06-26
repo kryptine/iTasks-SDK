@@ -5,6 +5,7 @@ definition module iTasks
 */
 import	iTasks._Framework.Engine				// iTasks engine
     // iTasks API
+    ,   iTasks.SDS.Definition
     ,   iTasks.API
 
 	

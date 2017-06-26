@@ -1,6 +1,6 @@
 definition module iTasks.API.Core.SDSCombinators
 
-from iTasks._Framework.SDS import :: RWShared, :: ROShared, :: SDSNotifyPred, :: SDSLens, :: SDSLensRead, :: SDSLensWrite, :: SDSLensNotify, :: SDSSelect, :: SDSParallel, ::SDSSequence, :: WriteShare
+from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ROShared, :: SDSNotifyPred, :: SDSLens, :: SDSLensRead, :: SDSLensWrite, :: SDSLensNotify, :: SDSSelect, :: SDSParallel, ::SDSSequence
 from iTasks._Framework.Task import :: TaskException
 from iTasks._Framework.Generic import class iTask, generic gEditor, generic gEq, generic gDefault, generic gText, :: TextFormat
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked

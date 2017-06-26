@@ -1,6 +1,6 @@
 definition module iTasks.API.Common.SDSCombinators
 
-from iTasks._Framework.SDS import :: RWShared, :: ROShared, :: WriteShare, :: SDSNotifyPred, :: Shared, :: ReadOnlyShared, :: ReadWriteShared
+from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ROShared, :: SDSNotifyPred, :: Shared, :: ReadOnlyShared, :: ReadWriteShared
 from iTasks._Framework.Task import :: TaskException, :: TaskValue, :: TaskId
 from iTasks._Framework.Generic import class iTask, generic gEditor, generic gEq, generic gDefault, generic gText
 from iTasks._Framework.Generic.Visualization import :: TextFormat

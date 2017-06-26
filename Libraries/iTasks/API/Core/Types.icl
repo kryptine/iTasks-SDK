@@ -15,7 +15,7 @@ import iTasks._Framework.Serialization
 import iTasks._Framework.IWorld
 
 import System.Time, System.File, System.FilePath
-import iTasks._Framework.SDS
+import iTasks.SDS.Definition
 from iTasks.UI.Definition import :: UI(..), :: UIDirection(..), stringDisplay
 from iTasks.API.Core.Tasks import treturn
 from iTasks.API.Common.TaskCombinators import tbind, @
@@ -57,13 +57,13 @@ instance TMonad (Either e) where
   (>>=) (Right x) f = f x
   (>>|) l r = l >>= \_ -> r
 
-JSONEncode{|RWShared|} _ _ _ _ s = []
-JSONDecode{|RWShared|} _ _ _ _ s = (Nothing, s)
-gEq{|RWShared|} _ _ _ _ _ = False
-gDefault{|RWShared|} _ _ _ = SDSSource { SDSSource
-                                       | name  = "gDefault RWShared"
-                                       , read  = \_ w -> (Error (dynamic "", "No gDefault RWShared implementation"), w)
-                                       , write = \_ _ w -> (Error (dynamic "", "No gDefault RWShared implementation"), w)}
+JSONEncode{|SDS|} _ _ _ _ s = []
+JSONDecode{|SDS|} _ _ _ _ s = (Nothing, s)
+gEq{|SDS|} _ _ _ _ _ = False
+gDefault{|SDS|} _ _ _ = SDSSource { SDSSource
+                                  | name  = "gDefault RWShared"
+                                  , read  = \_ w -> (Error (dynamic "", "No gDefault RWShared implementation"), w)
+                                  , write = \_ _ w -> (Error (dynamic "", "No gDefault RWShared implementation"), w)}
 
 //* (Local) date and time
 toTime :: DateTime -> Time

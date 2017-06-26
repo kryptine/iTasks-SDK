@@ -8,6 +8,7 @@ import iTasks._Framework.Generic
 from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
 
 from iTasks._Framework.TaskState			import :: TaskTree
+from iTasks.SDS.Definition import :: RWShared
 from iTasks.UI.Definition import :: UIChange
 from Data.Map			import :: Map
 from Data.CircularStack import :: CircularStack

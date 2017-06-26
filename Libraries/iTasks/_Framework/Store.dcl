@@ -14,7 +14,7 @@ from Data.Maybe import :: Maybe
 from Data.Error import :: MaybeError, :: MaybeErrorString
 from System.Time import :: Timestamp
 from System.FilePath import :: FilePath
-from iTasks._Framework.SDS import :: Shared, :: ReadWriteShared, :: RWShared
+from iTasks.SDS.Definition import :: SDS, :: Shared, :: ReadWriteShared, :: RWShared
 from iTasks._Framework.IWorld import :: IWorld
 from iTasks._Framework.Generic				import class iTask
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked, :: VSt

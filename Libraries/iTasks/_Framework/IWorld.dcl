@@ -13,8 +13,9 @@ from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: Con
 from iTasks.UI.Definition				import :: UI, :: UINodeType
 from iTasks._Framework.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
 from iTasks._Framework.Task             import :: TaskValue, :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask, :: Event
-from iTasks._Framework.SDS import :: SDSNotifyRequest, :: BasicShareId
-from iTasks._Framework.SDS import :: RWShared, :: ReadWriteShared, :: Shared, :: JSONShared
+
+from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared, :: Shared
+from iTasks._Framework.SDS import :: SDSNotifyRequest, :: JSONShared 
 
 from Sapl.Linker.LazyLinker import :: LoaderState
 from Sapl.Linker.SaplLinkerShared import :: LineType, :: FuncTypeMap

@@ -28,7 +28,7 @@ from iTasks._Framework.Task				import :: Task, :: TaskId
 from iTasks._Framework.Generic				import class iTask
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks._Framework.Generic.Defaults		import generic gDefault
-from iTasks._Framework.SDS import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
+from iTasks.SDS.Definition import :: SDS, :: ReadWriteShared, :: ReadOnlyShared
 from iTasks.UI.JS.Interface	import :: JSWorld, :: JSVal
 from iTasks.UI.Prompt import class toPrompt
 
@@ -195,7 +195,7 @@ instance <			TaskId
 //* Access to parallel task lists
 
 :: TaskList a :== (!TaskId,![TaskListItem a])
-:: SharedTaskList a	:==	RWShared TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
+:: SharedTaskList a	:==	SDS TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
 
 :: TaskListItem a =
 	{ taskId			:: !TaskId
@@ -338,10 +338,10 @@ derive gDefault   HtmlAttr
 derive gEditor    HtmlAttr
 derive gText      HtmlAttr
 
-derive JSONEncode		RWShared
-derive JSONDecode		RWShared
-derive gEq				RWShared
-derive gDefault   RWShared
+derive JSONEncode		SDS
+derive JSONDecode		SDS
+derive gEq				SDS
+derive gDefault   SDS
 
 derive JSONEncode SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive JSONDecode SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan

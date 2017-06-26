@@ -7,7 +7,7 @@ import StdGeneric
 from Text.HTML import :: HtmlTag
 from Data.Error import :: MaybeError
 from System.Time import :: Timestamp
-from iTasks._Framework.SDS import :: RWShared
+from iTasks.SDS.Definition import :: SDS
 from iTasks._Framework.Generic.Visualization import generic gText, :: TextFormat
 
 /**
@@ -26,6 +26,6 @@ derive gEditor
 
 derive gEditor Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (,,,,,), (->), Dynamic
 derive gEditor Maybe, Either, MaybeError, Map, JSONNode, HtmlTag, Timestamp
-derive gEditor RWShared
+derive gEditor SDS
 
 derive bimap Editor

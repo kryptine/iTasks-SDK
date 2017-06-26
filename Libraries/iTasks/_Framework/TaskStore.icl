@@ -10,7 +10,7 @@ import iTasks._Framework.Serialization
 import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
 
 import qualified iTasks._Framework.SDS as SDS
-from iTasks._Framework.SDS import :: SDSLensRead(..), :: SDSLensWrite(..), :: SDSLensNotify(..), :: RWShared(SDSDynamic), clearInstanceSDSRegistrations
+from iTasks.SDS.Definition import :: SDSLensRead(..), :: SDSLensWrite(..), :: SDSLensNotify(..), :: SDS(SDSDynamic)
 import iTasks._Framework.SDSService
 import iTasks._Framework.Client.Override
 
@@ -457,7 +457,7 @@ queueEvent instanceNo event iworld
 queueRefresh :: ![(InstanceNo,String)] !*IWorld -> *IWorld
 queueRefresh instances iworld
     //Clear the instance's share change registrations, we are going to evaluate anyway
-	# iworld	= clearInstanceSDSRegistrations (map fst instances) iworld
+	# iworld	= 'SDS'.clearInstanceSDSRegistrations (map fst instances) iworld
 	# iworld 	= foldl (\w (i,r) -> queueEvent i (RefreshEvent r) w) iworld instances
 	= iworld
 
