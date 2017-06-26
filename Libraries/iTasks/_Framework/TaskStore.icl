@@ -7,10 +7,10 @@ import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tu
 import iTasks._Framework.IWorld, iTasks._Framework.TaskState, iTasks._Framework.Task, iTasks._Framework.Store
 import iTasks._Framework.TaskEval, iTasks._Framework.Util, iTasks.UI.Definition
 import iTasks._Framework.Serialization
-import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
 
 import qualified iTasks._Framework.SDS as SDS
 from iTasks.SDS.Definition import :: SDSLensRead(..), :: SDSLensWrite(..), :: SDSLensNotify(..), :: SDS(SDSDynamic)
+import iTasks.SDS.Combinators.Core, iTasks.API.Common.SDSCombinators
 import iTasks._Framework.SDSService
 import iTasks._Framework.Client.Override
 

@@ -7,7 +7,7 @@ import iTasks._Framework.Task
 import iTasks._Framework.IWorld
 import iTasks._Framework.Serialization
 import iTasks.API.Core.Types
-import iTasks.API.Core.SDSCombinators, iTasks.API.Common.SDSCombinators
+import iTasks.SDS.Combinators.Core, iTasks.API.Common.SDSCombinators
 
 from StdFunc					import o, seq, const, id
 from iTasks._Framework.Util as iFU import qualified dateToTimestamp

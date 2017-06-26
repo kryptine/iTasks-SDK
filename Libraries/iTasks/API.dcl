@@ -19,7 +19,6 @@ import
 
      // Shared data sources
      ,  iTasks.API.Core.SDSs
-     ,  iTasks.API.Core.SDSCombinators
      ,  iTasks.API.Common.SDSCombinators
 
      //  Layout tuning

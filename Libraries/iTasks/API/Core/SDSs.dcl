@@ -4,7 +4,8 @@ definition module iTasks.API.Core.SDSs
 * a set of shared data structures.
 */
 from Text.JSON import generic JSONEncode, generic JSONDecode
-import iTasks._Framework.SDS
+
+import iTasks.SDS.Definition
 from iTasks.API.Core.Types	    import :: DateTime, :: Date, :: Time, :: TaskList, :: TaskAttributes
 from iTasks.API.Core.Types	    import :: TaskListFilter, :: TaskListItem, :: TaskInstance, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: SharedTaskList
 from Data.Map                   import :: Map
