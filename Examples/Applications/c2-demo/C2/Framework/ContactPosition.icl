@@ -157,7 +157,7 @@ toLeafletMap {ContactMap|perspective,markers}
 where
     convMarkers markers = [conv m \\ m=:{ContactMapMarker|position} <- markers]
     conv {ContactMapMarker|markerId,title,position,heading,type,selected}
-        = Marker {LeafletMarker|markerId = markerId, title = title, position = toLeafletLatLng position, icon = fmap (\t -> iconIndex heading t selected) type, selected = selected}
+        = Marker {LeafletMarker|markerId = markerId, title = title, position = toLeafletLatLng position, icon = fmap (\t -> iconIndex heading t selected) type, selected = selected, popup = Nothing}
 
 	icon i = {LeafletIcon|iconUrl ="/ship-icons/"+++toString i+++".png",iconSize=(24,24)}
     iconIndex heading type selected = (cat type + ( (maybe 24 (\d -> toInt d / 15) heading) + (if selected 25 0)) * 5)
