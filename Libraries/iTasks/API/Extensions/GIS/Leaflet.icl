@@ -319,12 +319,15 @@ where
 
         addPopup content position marker world
             | jsIsUndefined content = world
-            # (popup, world) = (l .# "popup" .$ ()) world
-            # (_, world)     = (popup .# "setLatLng" .$ position) world
-            # (_, world)     = (popup .# "setContent" .$ content) world
-            # (_, world)     = (mapObj .# "addLayer" .$ popup) world
+            # (options,world) = jsEmptyObject world
+            # world           = (options .# "maxWidth" .= 1000000) world // large nr to let size content determine size
+            # world           = (options .# "closeOnClick" .= False) world
+            # (popup, world)  = (l .# "popup" .$ options) world
+            # (_, world)      = (popup .# "setLatLng" .$ position) world
+            # (_, world)      = (popup .# "setContent" .$ content) world
+            # (_, world)      = (mapObj .# "addLayer" .$ popup) world
             // keep reference in marker object to remove popup if marker is removed
-            # world          = (marker .# "myPopup" .= popup) world
+            # world           = (marker .# "myPopup" .= popup) world
             = world
 	
 	createPolyline me mapObj l object world 
