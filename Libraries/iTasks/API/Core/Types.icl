@@ -347,7 +347,7 @@ JSONEncode{|Timestamp|} _ (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} _ [JSONInt t:c]	= (Just (Timestamp t), c)
 JSONDecode{|Timestamp|} _ c				= (Nothing, c)
 
-gEq{|(->)|} _ _ fa fb		= copy_to_string fa == copy_to_string fb // HACK: Compare string representations of graphs functions are never equal
+gEq{|(->)|} _ _ fa fb		= False // copy_to_string fa == copy_to_string fb // HACK: Compare string representations of graphs functions are never equal
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 
 gDefault{|{}|} _ = undef
