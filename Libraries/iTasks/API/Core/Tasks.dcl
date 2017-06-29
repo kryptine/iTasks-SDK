@@ -2,14 +2,16 @@ definition module iTasks.API.Core.Tasks
 /**
 * This module provides the core 'basic tasks' from which more specialized tasks can be derived.
 */
-
 import iTasks._Framework.Generic
-import iTasks._Framework.SDS
-from iTasks._Framework.Task		import :: Task, :: Event, :: ExternalProcessHandlers, :: ConnectionHandlers, :: TaskEvalOpts, :: TaskTime
+
+from iTasks.WF.Definition       import :: Task, :: Event
+from iTasks._Framework.Task		import :: ExternalProcessHandlers, :: ConnectionHandlers
 from iTasks.UI.Definition 		import :: UI, :: UINodeType, :: UIChange
 from iTasks.UI.Prompt 			import class toPrompt
-from Data.Error					import ::MaybeError(..)
-from System.OSError				import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
+from iTasks.SDS.Definition      import :: RWShared, :: ReadWriteShared
+from Data.Error					import :: MaybeError(..)
+from System.OSError				import :: MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
+from System.FilePath            import :: FilePath
 
 /**
 * Lifts a value to the task domain. The task finishes immediately and yields its parameter

@@ -9,11 +9,13 @@ from StdFile			                import class FileSystem
 from System.Time				        import :: Timestamp
 from Text.JSON				            import :: JSONNode
 from System.Process         import :: ProcessHandle, :: ProcessIO
-from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
+from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: Config,  :: TaskListItem, :: ParallelTaskType,  :: SessionId
 from iTasks.UI.Definition				import :: UI, :: UINodeType
 from iTasks._Framework.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
-from iTasks._Framework.Task             import :: TaskValue, :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask, :: Event
+from iTasks._Framework.Task             import :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask
+from iTasks._Framework.TaskEval         import :: TaskTime
 
+from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo
 from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared, :: Shared
 from iTasks._Framework.SDS import :: SDSNotifyRequest, :: JSONShared 
 

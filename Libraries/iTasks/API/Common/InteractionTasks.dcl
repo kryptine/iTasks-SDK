@@ -5,6 +5,7 @@ import iTasks.API.Core.Tasks
 from iTasks.API.Core.Types import :: Date, :: Time, :: DateTime, :: Action
 from Data.Functor import class Functor
 from iTasks.UI.Editor.Builtin import :: ChoiceText, :: ChoiceGrid, :: ChoiceNode 
+from iTasks.SDS.Definition import :: Shared
 
 /*** General input/update/output tasks ***/
 

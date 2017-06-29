@@ -16,7 +16,38 @@ from iTasks._Framework.SDS as SDS       import qualified read, write, modify
 from iTasks.SDS.Combinators.Common      import sdsFocus, >+|, mapReadWrite, mapReadWriteError
 from StdFunc import const
 
+import qualified Data.CircularStack as DCS
+from Data.CircularStack import :: CircularStack
+from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
+
 derive gEq TIMeta
+
+mkEvalOpts :: TaskEvalOpts
+mkEvalOpts =
+  { TaskEvalOpts
+  | noUI        = False
+  , tonicOpts   = defaultTonicOpts
+  }
+
+defaultTonicOpts :: TonicOpts
+defaultTonicOpts = { TonicOpts
+                   | inAssignNode            = Nothing
+                   , inParallel              = Nothing
+                   , captureParallel         = False
+                   , currBlueprintModuleName = ""
+                   , currBlueprintFuncName   = ""
+                   , currBlueprintTaskId     = TaskId 0 0
+                   , currBlueprintExprId     = []
+                   , callTrace               = 'DCS'.newStack 1024
+                   }
+
+extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
+extendCallTrace taskId repOpts=:{TaskEvalOpts|tonicOpts = {callTrace = xs}}
+  = case 'DCS'.peek xs of
+      Just topTaskId
+        | taskId == topTaskId = repOpts
+      _ = {repOpts & tonicOpts = {repOpts.tonicOpts & callTrace = 'DCS'.push taskId repOpts.tonicOpts.callTrace}}
+
 
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}

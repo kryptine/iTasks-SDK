@@ -10,33 +10,13 @@ import iTasks.API.Core.Types
 import iTasks._Framework.Generic
 from System.OSError import :: MaybeOSError
 
+import iTasks.WF.Definition
 import iTasks.UI.Editor, iTasks.UI.Editor.Common
 
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
+from iTasks._Framework.TaskEval         import :: TaskEvalInfo(..)
 from iTasks.SDS.Combinators.Common import toDynamic 
 from iTasks._Framework.Serialization    import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
-import qualified Data.CircularStack as DCS
-from Data.CircularStack import :: CircularStack
-from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
-
-mkEvalOpts :: TaskEvalOpts
-mkEvalOpts =
-  { TaskEvalOpts
-  | noUI        = False
-  , tonicOpts   = defaultTonicOpts
-  }
-
-defaultTonicOpts :: TonicOpts
-defaultTonicOpts = { TonicOpts
-                   | inAssignNode            = Nothing
-                   , inParallel              = Nothing
-                   , captureParallel         = False
-                   , currBlueprintModuleName = ""
-                   , currBlueprintFuncName   = ""
-                   , currBlueprintTaskId     = TaskId 0 0
-                   , currBlueprintExprId     = []
-                   , callTrace               = 'DCS'.newStack 1024
-                   }
 
 fromJSONOfDeferredJSON :: !DeferredJSON -> Maybe a | TC a & JSONDecode{|*|} a
 fromJSONOfDeferredJSON (DeferredJSON v)
@@ -66,16 +46,6 @@ toRefresh (ActionEvent _ _)		= RefreshEvent "Converted from Action"
 toRefresh (FocusEvent _)		= RefreshEvent "Converted from Focus"
 toRefresh (RefreshEvent reason)	= RefreshEvent reason
 toRefresh (ResetEvent)          = RefreshEvent "Converted from Reset"
-
-exception :: !e -> TaskException | TC, toString e
-exception e = (dynamic e, toString e)
-
-extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
-extendCallTrace taskId repOpts=:{TaskEvalOpts|tonicOpts = {callTrace = xs}}
-  = case 'DCS'.peek xs of
-      Just topTaskId
-        | taskId == topTaskId = repOpts
-      _ = {repOpts & tonicOpts = {repOpts.tonicOpts & callTrace = 'DCS'.push taskId repOpts.tonicOpts.callTrace}}
 
 wrapConnectionTask :: (ConnectionHandlers l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
 wrapConnectionTask {ConnectionHandlers|onConnect,onData,onShareChange,onDisconnect} sds

@@ -2,9 +2,10 @@ definition module iTasks._Framework.TaskState
 
 import iTasks.API.Core.Types
 
-from iTasks._Framework.Task	import :: TaskTime, :: TaskResult, :: TonicOpts
-from iTasks._Framework.Task	import :: TaskException
+from iTasks._Framework.TaskEval import :: TonicOpts, :: TaskTime
 from Data.Queue import :: Queue
+
+from iTasks.WF.Definition import :: TaskResult, :: TaskException, :: TaskNo
 from iTasks.UI.Definition import :: UIChange
 
 derive JSONEncode TIMeta, TIReduct, TaskTree

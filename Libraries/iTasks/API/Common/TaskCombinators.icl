@@ -10,6 +10,7 @@ from iTasks.SDS.Sources.Core import randomInt
 from iTasks.SDS.Sources.System import currentDateTime, topLevelTasks
 import iTasks.SDS.Combinators.Common
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON
+from iTasks._Framework.TaskEval         import :: TaskTime
 import qualified Data.Map as DM
 
 import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators, iTasks.API.Common.InteractionTasks, iTasks.UI.Layout, iTasks.UI.Prompt

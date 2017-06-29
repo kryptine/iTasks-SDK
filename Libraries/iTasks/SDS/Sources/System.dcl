@@ -4,9 +4,10 @@ definition module iTasks.SDS.Sources.System
 */
 
 from iTasks.SDS.Definition import :: SDS
+from iTasks.WF.Definition  import :: TaskId, :: TaskNo, :: InstanceNo
 from iTasks.API.Core.Types import :: DateTime, :: Date, :: Time
 from iTasks.API.Core.Types import :: TaskList, :: TaskAttributes
-from iTasks.API.Core.Types import :: TaskListFilter, :: TaskListItem, :: TaskInstance, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: SharedTaskList
+from iTasks.API.Core.Types import :: TaskListFilter, :: TaskListItem, :: TaskInstance, :: Config, :: SharedTaskList
 
 from System.Time import :: Timestamp
 from System.FilePath import :: FilePath

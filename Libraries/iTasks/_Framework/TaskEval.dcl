@@ -3,15 +3,53 @@ definition module iTasks._Framework.TaskEval
 * This module provides functions for creation, evaluation and removal of task/workflow instances.
 */
 
-from iTasks.API.Core.Types	        import :: TaskListItem, :: TaskId, :: SessionId
+from iTasks.API.Core.Types	        import :: TaskListItem, :: SessionId
+from iTasks.WF.Definition           import :: Task, :: TaskResult, :: TaskException, :: TaskValue, :: Event, :: TaskId, :: InstanceNo
 from iTasks._Framework.IWorld		import :: IWorld
-from iTasks._Framework.Task			import :: Task, :: TaskResult, :: Event, :: TaskEvalOpts
-from iTasks._Framework.SDS          import :: Shared
+from iTasks._Framework.SDS          import :: Shared, :: ReadOnlyShared
+from iTasks._Framework.Tonic        import :: ExprId
 
-import iTasks._Framework.TaskState, iTasks._Framework.Generic
+import iTasks._Framework.Generic
 
 from Text.JSON import :: JSONNode
 from Data.Error import :: MaybeErrorString, :: MaybeError
+from Data.CircularStack import :: CircularStack
+
+//Extra types used during evaluation
+
+//Additional options to pass down the tree when evaluating a task
+:: TaskEvalOpts	=
+	{ noUI              :: Bool
+    , tonicOpts         :: TonicOpts
+	}
+
+:: TonicOpts =
+  { inAssignNode            :: Maybe ExprId
+  , inParallel              :: Maybe TaskId
+  , captureParallel         :: Bool
+  , currBlueprintModuleName :: String
+  , currBlueprintFuncName   :: String
+  , currBlueprintTaskId     :: TaskId
+  , currBlueprintExprId     :: ExprId
+  , callTrace               :: CircularStack TaskId
+  }
+
+mkEvalOpts :: TaskEvalOpts
+defaultTonicOpts :: TonicOpts
+
+//Additional information passed up from the tree when evaluating a task
+:: TaskEvalInfo =
+	{ lastEvent			:: !TaskTime	        //When was the last edit, action or focus event in this task
+    , removedTasks      :: ![(TaskId,TaskId)]   //Which embedded parallel tasks were removed (listId,taskId)
+	, refreshSensitive	:: !Bool		        //Can refresh events change the value or ui of this task (e.g. because shared data is read)
+	}
+
+:: TaskTime			:== Int
+
+/**
+* Extend the call trace with the current task number
+*/
+extendCallTrace :: !TaskId !TaskEvalOpts -> TaskEvalOpts
 
 /**
  * Get the next TaskId

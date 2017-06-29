@@ -6,7 +6,9 @@ from Data.Maybe						import :: Maybe
 from Data.Error 					import :: MaybeError(..), :: MaybeErrorString(..)
 from System.Time					import :: Timestamp, time
 from Text.JSON						import :: JSONNode
-from iTasks.API.Core.Types	        import :: DateTime, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
+from iTasks.WF.Definition           import :: TaskId, :: InstanceNo, :: TaskNo
+from iTasks.API.Core.Types	        import :: DateTime, :: Config, :: TaskListItem, :: ParallelTaskType
+from iTasks._Framework.TaskEval     import :: TaskTime
 from System.Process                 import :: ProcessHandle, :: ProcessIO
 
 from StdFile import class FileSystem(..)

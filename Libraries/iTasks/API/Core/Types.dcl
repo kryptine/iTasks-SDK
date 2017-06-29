@@ -24,7 +24,7 @@ from iTasks._Framework.IWorld			import :: IWorld
 from iTasks.UI.Definition		import :: UI, :: UINodeType, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
 from iTasks.UI.Editor 			import :: Editor, :: EditMask, :: Masked
 from iTasks.UI.Editor.Generic   import generic gEditor, :: VSt
-from iTasks._Framework.Task				import :: Task, :: TaskId
+from iTasks.WF.Definition		import :: Task, :: TaskId, :: InstanceNo, :: TaskValue, :: Stability
 from iTasks._Framework.Generic				import class iTask
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks._Framework.Generic.Defaults		import generic gDefault
@@ -138,27 +138,12 @@ instance toString	FileException, ParseException, CallException, SharedException,
 // you may read them when interacting with the framework
 //****************************************************************************//
 
-//* Task results
-:: TaskValue a		= NoValue				
-					| Value !a !Stability 
-
-StableValue   a :== Value a True
-UnstableValue a :== Value a False
 
 instance Functor TaskValue
 
-:: TaskTime			:== Int
 
-:: Stability		:== Bool
 
-//* Each task instance can be identified by two numbers:
-// - A unique number identifying the top-level state
-// - A unique number the task within the the state
-:: TaskId		= TaskId !InstanceNo !TaskNo
-:: InstanceNo	:== Int
-:: TaskNo		:== Int
 :: InstanceKey  :== String
-
 :: SessionId	:== String
 
 class toInstanceNo t :: t -> InstanceNo
@@ -312,8 +297,8 @@ derive class iTask		TaskId, Config, ProcessStatus
 				| ValidAttribute
 				| ErrorAttribute !String
 				| IconAttribute !String
-				| CreatedAtAttribute !TaskTime
-				| LastEventAttribute !TaskTime
+				| CreatedAtAttribute !Int
+				| LastEventAttribute !Int
 				| FloatAttribute
 				
 //Define initial meta attributes

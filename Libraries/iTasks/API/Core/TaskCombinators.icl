@@ -141,6 +141,13 @@ where
             Just a ->  Just (f_tva_tb a)
             Nothing -> Nothing
 
+    toRefresh :: Event -> Event
+    toRefresh (EditEvent _ _ _)		= RefreshEvent "Converted from Edit"
+    toRefresh (ActionEvent _ _)		= RefreshEvent "Converted from Action"
+    toRefresh (FocusEvent _)		= RefreshEvent "Converted from Focus"
+    toRefresh (RefreshEvent reason)	= RefreshEvent reason
+    toRefresh (ResetEvent)          = RefreshEvent "Converted from Reset"
+
 isEnabled (UI _ attr _) = maybe False (\(JSONBool b) -> b) ('DM'.get "enabled" attr)
 actionId (UI _ attr _) = maybe "" (\(JSONString s) -> s) ('DM'.get "actionId" attr)
 
@@ -189,7 +196,7 @@ where
 
 
 // Parallel composition
-parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!TaskTime,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | iTask a
+parallel :: ![(!ParallelTaskType,!ParallelTask a)] [TaskCont [(!Int,!TaskValue a)] (!ParallelTaskType,!ParallelTask a)] -> Task [(!Int,!TaskValue a)] | iTask a
 parallel initTasks conts = Task eval
 where
     //Create initial task list

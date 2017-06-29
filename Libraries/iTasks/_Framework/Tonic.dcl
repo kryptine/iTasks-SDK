@@ -6,7 +6,8 @@ from iTasks._Framework.Engine import :: PublishedTask
 import iTasks._Framework.Generic
 from iTasks._Framework.Task import :: TaskEvalOpts, :: TaskResult
 from iTasks.API.Core.TaskCombinators import class tune
-from iTasks.API.Core.Tasks import :: Task, :: InstanceNo
+from iTasks.WF.Definition import :: Task, :: InstanceNo
+
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Images
 from System.Time import :: Timestamp

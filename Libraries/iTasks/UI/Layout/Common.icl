@@ -7,6 +7,7 @@ import Data.List
 import qualified Data.Map as DM
 import StdBool
 from StdFunc import id, const, o
+from iTasks._Framework.TaskEval import :: TaskEvalOpts(..), :: TonicOpts
 
 arrangeWithTabs :: Layout
 arrangeWithTabs = layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIParallel)) (setUIType UITabSet)
