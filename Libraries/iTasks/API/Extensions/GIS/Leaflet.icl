@@ -359,10 +359,12 @@ where
 		= world	
 
 	//Loop through a javascript array
+    forall :: (!(JSVal v11) !*JSWorld -> *JSWorld) !(JSVal a) !*JSWorld -> *JSWorld
 	forall f array world
 		# (len,world) = .? (array .# "length") world
 		= forall` 0 (jsValToInt len) world
 	where
+        forall` :: !Int !Int !*JSWorld -> *JSWorld
 		forall` i len world
 			| i >= len = world
 			# (el,world) = .? (array .# i) world
