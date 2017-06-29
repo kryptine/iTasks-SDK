@@ -8,8 +8,8 @@ from Text.HTML import instance toString HtmlTag
 
 from StdArray import class Array(uselect), instance Array {} a
 
-LEAFLET_JS :== "/leaflet-0.7.2/leaflet.js"
-LEAFLET_CSS :== "/leaflet-0.7.2/leaflet.css"
+LEAFLET_JS :== "/leaflet-1.1.0/leaflet.js"
+LEAFLET_CSS :== "/leaflet-1.1.0/leaflet.css"
 
 :: IconOptions =
     { iconUrl   :: !String
