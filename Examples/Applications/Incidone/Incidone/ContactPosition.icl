@@ -143,7 +143,7 @@ where
 
     convMarkers markers = [conv m \\ m=:{ContactMapMarker|position} <- markers | hasLatLng position]
     conv {ContactMapMarker|markerId,title,position,heading,type,selected}
-        = Marker {LeafletMarker|markerId = markerId, title = title, position = pos position, icon = Nothing /* fmap (\t -> iconIndex heading t selected) type */, selected = selected}
+        = Marker {LeafletMarker|markerId = markerId, title = title, position = pos position, icon = Nothing /* fmap (\t -> iconIndex heading t selected) type */, selected = selected, popup = Nothing}
 
     pos (PositionLatLng (lat,lng)) = {LeafletLatLng|lat=lat,lng=lng}
     pos (PositionDescription _ (Just(lat,lng))) = {LeafletLatLng|lat=lat,lng=lng}

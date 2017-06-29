@@ -43,7 +43,7 @@ where
 		>>- \marker -> upd (\l=:{LeafletMap|objects} -> {LeafletMap|l & objects = objects ++ [marker]}) m 
 
 	toRandomMarker (rLat,rLng)
-		= Marker {markerId = markerId, position= {LeafletLatLng|lat = lat, lng = lng}, title = Just markerId, icon = Just icon, selected = False}
+		= Marker {markerId = markerId, position= {LeafletLatLng|lat = lat, lng = lng}, title = Just markerId, icon = Just icon, selected = False, popup = Nothing}
 	where
 		lat = 52.0 + (toReal (500 + (rLat rem 1000)) / 1000.0)
 		lng = 6.0 + (toReal (500 + (rLng rem 1000)) / 1000.0)
@@ -66,6 +66,6 @@ where
 		= upd (\l=:{LeafletMap|perspective={LeafletPerspective|cursor},objects} -> {LeafletMap|l & objects = withMarkerFromCursor cursor objects}) m
 	where
 		withMarkerFromCursor Nothing objects = objects
-		withMarkerFromCursor (Just position) objects = objects ++ [Marker {markerId = "CURSOR", position= position, title = Nothing, icon = Nothing, selected = False}]
+		withMarkerFromCursor (Just position) objects = objects ++ [Marker {markerId = "CURSOR", position= position, title = Nothing, icon = Nothing, selected = False, popup = Nothing}]
 
 Start world = startEngine playWithMaps world

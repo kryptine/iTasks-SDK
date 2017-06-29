@@ -4,6 +4,7 @@ import iTasks
 import iTasks.UI.Definition, iTasks.UI.JS.Map, iTasks.UI.Editor, iTasks.UI.JS.Encoding
 import StdMisc, Data.Tuple
 import qualified Data.Map as DM
+from Text.HTML import instance toString HtmlTag
 
 from StdArray import class Array(uselect), instance Array {} a
 
@@ -59,7 +60,13 @@ where
 		# children = map encodeUI objects
 		= (Ok (uiac UIHtmlView attr children,newFieldMask), world)
 
-	encodeUI (Marker o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList [("type",JSONString "marker"):attr])
+	encodeUI (Marker o) = let (JSONObject attr) = toJSON o
+                              dataMap = 'DM'.fromList [("type",JSONString "marker"):attr]
+                              // translate HtmlTag of popup to HTML code
+                              dataMap` = case o.popup of
+                                  Nothing = dataMap
+                                  Just html = 'DM'.put "popup" (JSONString (toString html)) dataMap
+                          in uia UIData dataMap`
 	encodeUI (Polyline o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList [("type",JSONString "polyline"):attr])
 	encodeUI (Polygon o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList [("type",JSONString "polygon") : attr])
 
@@ -190,7 +197,10 @@ where
 		# (layer,world)     = .? (toJSVal (args !! 1) .# "layer") world
 		# (mapObj,world)    = .? (me .# "map") world
         # (_,world)         = (mapObj.# "removeLayer" .$ layer) world
-		= (jsNull,world)
+        # (popup, world)    = .? (layer .# "myPopup") world
+        | jsIsUndefined popup = (jsNull, world)
+        # (_,world)         = (mapObj.# "removeLayer" .$ popup) world
+        = (jsNull, world)
 
 	//Map object access
 	toLatLng obj world
@@ -291,6 +301,9 @@ where
         # (layer,world)       = (l .# "marker" .$ (position,options) ) world
         # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
 		# world               = (object .# "layer" .= layer) world
+        //Optionally add popup
+        # (popup,world)       = .? (object .# "attributes.popup") world
+        # world               = addPopup popup position layer world
 		//Set click handler
 		# (markerId,world)    = .? (object .# "attributes.markerId") world
 		# (cb,world)          = jsWrapFun (\a w -> onMarkerClick me (jsValToString markerId) a w) world
@@ -303,6 +316,19 @@ where
 			| jsIsUndefined icon = world
 			# world = (options .# "icon" .= icon) world
 			= world
+
+        addPopup content position marker world
+            | jsIsUndefined content = world
+            # (options,world) = jsEmptyObject world
+            # world           = (options .# "maxWidth" .= 1000000) world // large nr to let size content determine size
+            # world           = (options .# "closeOnClick" .= False) world
+            # (popup, world)  = (l .# "popup" .$ options) world
+            # (_, world)      = (popup .# "setLatLng" .$ position) world
+            # (_, world)      = (popup .# "setContent" .$ content) world
+            # (_, world)      = (mapObj .# "addLayer" .$ popup) world
+            // keep reference in marker object to remove popup if marker is removed
+            # world           = (marker .# "myPopup" .= popup) world
+            = world
 	
 	createPolyline me mapObj l object world 
 		//Set options
@@ -388,7 +414,7 @@ gEditor{|LeafletMap|} = leafletEditor
 gDefault{|LeafletMap|}
 	= {LeafletMap|perspective=defaultValue, tilesUrl =Just openStreetMapTiles, objects = [Marker homeMarker], icons = []}
 where
-	homeMarker = {markerId = "home", position= {LeafletLatLng|lat = 51.82, lng = 5.86}, title = Just "HOME", icon = Nothing, selected = False}
+	homeMarker = {markerId = "home", position= {LeafletLatLng|lat = 51.82, lng = 5.86}, title = Just "HOME", icon = Nothing, popup = Nothing, selected = False}
 
 gDefault{|LeafletPerspective|}
     = {LeafletPerspective|center = {LeafletLatLng|lat = 51.82, lng = 5.86}, zoom = 7, cursor = Nothing, bounds = Nothing}
