@@ -488,7 +488,8 @@ itasks.Viewport = {
 //use the generic incremental change mechanism to update parts of a Component
 //This can be used for example to incrementally update the list of options in a dropdown component
 itasks.Data = {
-	init: function () { return this; }
+	init: function () { return this; },
+    beforeRemove: function() {}
 };
 
 //Convenience function for concisely creating viewports
