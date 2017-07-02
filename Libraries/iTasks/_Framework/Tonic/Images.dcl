@@ -4,15 +4,22 @@ from Data.IntMap.Strict import :: IntMap
 from Data.Map import :: Map
 from Data.Set import :: Set
 from Data.Maybe import :: Maybe
+from Data.Either import :: Either
 from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
 
 from iTasks._Framework.Tonic.AbsSyn import :: TonicFunc, :: ExprId, :: FuncName, :: ModuleName, :: TExpr
 from iTasks._Framework.Tonic.Types import :: TStability, :: BlueprintIdent, :: BlueprintInstance, :: GenBlueprintInstance, :: ComputationId, :: TClickAction, :: ClickMeta, :: TonicImageState
-import iTasks._Framework.Generic
-from iTasks.UI.Definition import :: UI
 
-from iTasks.API.Core.Types import :: TaskId
-from iTasks._Framework.Task import :: TaskValue
+from iTasks.UI.Definition import :: UI
+from iTasks.WF.Definition import :: TaskId, :: TaskValue, class iTask(..)
+
+from iTasks.UI.Editor import :: Editor
+from iTasks.UI.Editor.Generic import generic gEditor
+from iTasks._Framework.Generic.Visualization import generic gText, :: TextFormat
+from iTasks._Framework.Generic.Defaults import generic gDefault
+from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from GenEq import generic gEq
+
 
 :: ActionState a s = { state :: s, action :: Maybe a }
 doAction :: !(a (ActionState a s) -> b) !(TaskValue (ActionState a s)) -> Maybe b

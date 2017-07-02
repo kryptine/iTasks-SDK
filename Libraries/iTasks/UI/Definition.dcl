@@ -16,10 +16,11 @@ from Text.HTML			import :: HtmlTag
 from Data.Map			import :: Map
 from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, :: Action
 
-from iTasks._Framework.Generic import class iTask(..)
+from iTasks.WF.Definition import class iTask
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
 from iTasks._Framework.Generic.Defaults			import generic gDefault
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
+
 from iTasks.UI.Editor.Generic import generic gEditor
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq

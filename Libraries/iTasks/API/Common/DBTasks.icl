@@ -4,8 +4,9 @@ import StdList, StdOrdList, Data.List
 import iTasks._Framework.Generic, iTasks._Framework.Task, iTasks._Framework.SDS
 import iTasks._Framework.Util
 import iTasks.API.Core.Types
-from iTasks.API.Core.Tasks			    import get, set
 import iTasks.API.Common.TaskCombinators
+
+from iTasks.WF.Tasks.SDS import get, set
 
 //	Convenient operations on databases
 eqItemId :: a a -> Bool | DB a

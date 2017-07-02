@@ -1,11 +1,12 @@
 definition module iTasks.API.Common.InteractionTasks
 
-import iTasks.API.Core.Tasks
-
+import iTasks.WF.Definition
 from iTasks.API.Core.Types import :: Date, :: Time, :: DateTime, :: Action
 from Data.Functor import class Functor
+from iTasks.UI.Prompt import class toPrompt
 from iTasks.UI.Editor.Builtin import :: ChoiceText, :: ChoiceGrid, :: ChoiceNode 
-from iTasks.SDS.Definition import :: Shared
+from iTasks.SDS.Definition import :: Shared, :: SDS, :: RWShared, :: ReadWriteShared
+
 
 /*** General input/update/output tasks ***/
 

@@ -3,14 +3,21 @@ definition module iTasks
 /**
 * Main iTask module exporting all end user iTask modules 
 */
-import	iTasks._Framework.Engine				// iTasks engine
+import	
+    // iTasks engine
+        iTasks._Framework.Engine				
     // iTasks API
     ,   iTasks.SDS.Definition
-    ,   iTasks.SDS.Combinators.Core
-    ,   iTasks.SDS.Combinators.Common
     ,   iTasks.SDS.Sources.Core
     ,   iTasks.SDS.Sources.Store
     ,   iTasks.SDS.Sources.System
+    ,   iTasks.SDS.Combinators.Core
+    ,   iTasks.SDS.Combinators.Common
+
+    ,   iTasks.WF.Tasks.Core
+    ,   iTasks.WF.Tasks.SDS
+    ,   iTasks.WF.Tasks.IO
+    ,   iTasks.WF.Tasks.System
     ,   iTasks.API
 	
 	//	Miscellaneous machinery

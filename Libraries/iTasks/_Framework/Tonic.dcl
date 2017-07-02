@@ -3,16 +3,17 @@ definition module iTasks._Framework.Tonic
 from iTasks._Framework.SDS import :: Shared, :: ReadWriteShared, :: RWShared
 from iTasks._Framework.IWorld import :: IWorld, :: SystemClocks
 from iTasks._Framework.Engine import :: PublishedTask
-import iTasks._Framework.Generic
 from iTasks._Framework.Task import :: TaskEvalOpts, :: TaskResult
 from iTasks.API.Core.TaskCombinators import class tune
-from iTasks.WF.Definition import :: Task, :: InstanceNo
+from iTasks.WF.Definition import :: Task, :: InstanceNo, class iTask
+from iTasks.SDS.Definition import :: SDS
 
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Images
 from System.Time import :: Timestamp
 from Data.Map import :: Map
 from Data.Set import :: Set
+from Data.Either import :: Either
 from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
 from iTasks.API.Core.Types import class TMonad, class TApplicative
 import Data.Functor

@@ -8,6 +8,14 @@ from iTasks._Framework.TaskState import :: TaskTree
 from iTasks._Framework.TaskEval import :: TaskEvalOpts, :: TaskEvalInfo
 from iTasks.UI.Definition import :: UIChange
 from Text.JSON import :: JSONNode
+from Data.Maybe import :: Maybe
+
+from iTasks.UI.Editor import :: Editor
+from iTasks.UI.Editor.Generic import generic gEditor
+from iTasks._Framework.Generic.Visualization import generic gText, :: TextFormat
+from iTasks._Framework.Generic.Defaults import generic gDefault
+from Text.JSON import generic JSONEncode, generic JSONDecode
+from GenEq import generic gEq
 
 // Task definition:
 :: Task a = Task !(Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
@@ -48,3 +56,19 @@ exception :: !e -> TaskException | TC, toString e
 :: TaskId		= TaskId !InstanceNo !TaskNo
 :: InstanceNo	:== Int
 :: TaskNo		:== Int
+
+//The iTask context restriction contains all generic functions that need to
+//be available for a type to be used in tasks
+class iTask a
+	//Interaction
+	| gEditor{|*|}
+	//Visualization
+	, gText{|*|}
+	//Serialization
+	, JSONEncode{|*|}
+	, JSONDecode{|*|}
+	//Data
+	, gDefault{|*|}
+	, gEq{|*|}
+	, TC a
+

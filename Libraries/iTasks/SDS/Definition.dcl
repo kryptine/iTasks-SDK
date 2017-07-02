@@ -2,10 +2,9 @@ definition module iTasks.SDS.Definition
 /**
 * This module provides the types that define a shared data source
 */
-from iTasks.WF.Definition import :: TaskException
+from iTasks.WF.Definition import :: TaskException, class iTask
 from iTasks._Framework.IWorld import :: IWorld
 
-from iTasks._Framework.Generic import class iTask
 import iTasks._Framework.Generic.Visualization
 import iTasks._Framework.Generic.Defaults
 import iTasks.UI.Editor.Generic

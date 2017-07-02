@@ -8,10 +8,20 @@ from iTasks._Framework.Task			import :: Task, :: InstanceNo
 from iTasks._Framework.TaskState	import :: TIUIState
 from iTasks.UI.Definition           import :: UIChange
 from Data.Queue						import :: Queue
+from Data.Maybe                     import :: Maybe
+from Data.Error                     import :: MaybeError, :: MaybeErrorString
+from Data.Map                       import :: Map
+from Text.JSON                      import :: JSONNode
 
-import iTasks._Framework.Generic
+from iTasks.WF.Definition import class iTask
+from iTasks.UI.Editor import :: Editor
+from iTasks.UI.Editor.Generic import generic gEditor
+from iTasks._Framework.Generic.Visualization import generic gText, :: TextFormat
+from iTasks._Framework.Generic.Defaults import generic gDefault
+from Text.JSON import generic JSONEncode, generic JSONDecode
+from GenEq import generic gEq
 
-import Data.Maybe, Data.Error, Text.JSON
+from iTasks.SDS.Definition import :: SDS
 
 sdsService :: WebService (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange))
 

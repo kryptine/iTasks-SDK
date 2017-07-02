@@ -16,7 +16,7 @@ from System.Time import :: Timestamp
 from System.FilePath import :: FilePath
 from iTasks.SDS.Definition import :: SDS, :: Shared, :: ReadWriteShared, :: RWShared
 from iTasks._Framework.IWorld import :: IWorld
-from iTasks._Framework.Generic				import class iTask
+from iTasks.WF.Definition import class iTask
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked, :: VSt
 from iTasks.UI.Editor.Generic import generic gEditor
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText

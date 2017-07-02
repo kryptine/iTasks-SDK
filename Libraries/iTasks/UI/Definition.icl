@@ -7,7 +7,7 @@ import qualified Data.Map as DM
 import qualified Data.List as DL
 from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: Action(..)
 
-from iTasks._Framework.Generic import class iTask(..)
+from iTasks.WF.Definition import class iTask(..)
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
 from iTasks._Framework.Generic.Defaults			import generic gDefault
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked

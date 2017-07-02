@@ -14,7 +14,8 @@ from iTasks._Framework.IWorld		import :: IWorld {onClient,server,memoryShares,ca
 from iTasks._Framework.Task		    import exception
 from iTasks._Framework.TaskState		import :: DeferredJSON(..)
 from iTasks._Framework.TaskEval import :: TaskTime
-from iTasks._Framework.Generic				import class iTask
+
+from iTasks.WF.Definition				import class iTask
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks._Framework.Generic.Defaults		import generic gDefault
 from iTasks._Framework.Serialization import serialize, deserialize, functionFree

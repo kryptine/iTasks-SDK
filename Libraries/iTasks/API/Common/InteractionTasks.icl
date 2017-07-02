@@ -7,7 +7,9 @@ from System.Time import :: Timestamp(..)
 from Data.Map import qualified get, put
 
 import StdBool, StdList, StdMisc, StdTuple, Data.Functor
-import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators
+import iTasks.WF.Tasks.Core
+import iTasks.WF.Tasks.SDS
+import iTasks.API.Core.TaskCombinators
 import iTasks.API.Common.TaskCombinators
 import iTasks.SDS.Sources.Core, iTasks.SDS.Sources.System
 import iTasks.SDS.Combinators.Common

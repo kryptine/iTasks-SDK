@@ -24,10 +24,8 @@ from iTasks._Framework.IWorld			import :: IWorld
 from iTasks.UI.Definition		import :: UI, :: UINodeType, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
 from iTasks.UI.Editor 			import :: Editor, :: EditMask, :: Masked
 from iTasks.UI.Editor.Generic   import generic gEditor, :: VSt
-from iTasks.WF.Definition		import :: Task, :: TaskId, :: InstanceNo, :: TaskValue, :: Stability
-from iTasks._Framework.Generic				import class iTask
-from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
-from iTasks._Framework.Generic.Defaults		import generic gDefault
+from iTasks.WF.Definition		import :: Task, :: TaskId, :: InstanceNo, :: TaskValue, :: Stability, class iTask
+
 from iTasks.SDS.Definition import :: SDS, :: ReadWriteShared, :: ReadOnlyShared
 from iTasks.UI.JS.Interface	import :: JSWorld, :: JSVal
 from iTasks.UI.Prompt import class toPrompt
@@ -35,6 +33,13 @@ from iTasks.UI.Prompt import class toPrompt
 from Text.HTML import :: SVGElt, :: SVGAttr, :: SVGAlign, :: SVGColor, :: SVGDefer, :: SVGFillOpacity, :: SVGFuncIRI, :: SVGLengthAdjust
 from Text.HTML import :: SVGLengthUnit, :: SVGLineCap, :: SVGFillRule, :: SVGLineJoin, :: SVGMeetOrSlice, :: SVGStrokeMiterLimit, :: SVGPaint
 from Text.HTML import :: SVGStrokeDashArray, :: SVGStrokeDashOffset, :: SVGStrokeWidth, :: SVGTransform, :: SVGZoomAndPan
+
+from iTasks.UI.Editor import :: Editor
+from iTasks.UI.Editor.Generic import generic gEditor
+from iTasks._Framework.Generic.Visualization import generic gText, :: TextFormat
+from iTasks._Framework.Generic.Defaults import generic gDefault
+from Text.JSON import generic JSONEncode, generic JSONDecode
+from GenEq import generic gEq
 
 class TApplicative f | Functor f where
     (<#>)  :: (f (a -> b)) (f a) -> f b | iTask a & iTask b

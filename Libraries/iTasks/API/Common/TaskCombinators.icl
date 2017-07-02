@@ -13,7 +13,9 @@ from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON
 from iTasks._Framework.TaskEval         import :: TaskTime
 import qualified Data.Map as DM
 
-import iTasks.API.Core.Tasks, iTasks.API.Core.TaskCombinators, iTasks.API.Common.InteractionTasks, iTasks.UI.Layout, iTasks.UI.Prompt
+import iTasks.WF.Tasks.Core
+import iTasks.WF.Tasks.SDS
+import iTasks.API.Core.TaskCombinators, iTasks.API.Common.InteractionTasks, iTasks.UI.Layout, iTasks.UI.Prompt
 import iTasks.UI.Layout.Common, iTasks.UI.Layout.Default
 
 (>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | iTask a & iTask b

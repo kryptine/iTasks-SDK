@@ -17,7 +17,7 @@ import iTasks._Framework.IWorld
 import System.Time, System.File, System.FilePath
 import iTasks.SDS.Definition
 from iTasks.UI.Definition import :: UI(..), :: UIDirection(..), stringDisplay
-from iTasks.API.Core.Tasks import treturn
+from iTasks.WF.Tasks.Core import treturn
 from iTasks.API.Common.TaskCombinators import tbind, @
 
 from iTasks.API.Extensions.Form.Pikaday import pikadayDateField

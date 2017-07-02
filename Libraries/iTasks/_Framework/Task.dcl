@@ -7,6 +7,7 @@ import iTasks.API.Core.Types
 import iTasks._Framework.Generic
 import iTasks.WF.Definition
 from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
+from iTasks.WF.Tasks.IO import :: ExternalProcessHandlers, :: ConnectionHandlers
 
 from iTasks._Framework.TaskState			import :: TaskTree
 from iTasks.SDS.Definition import :: RWShared
@@ -26,14 +27,14 @@ derive gEq				Task
 :: ConnectionTask = ConnectionTask !(ConnectionHandlersIWorld Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)
 
 //Definition of low-level network interaction
-
+/*
 :: ConnectionHandlers l r w = 
     { onConnect         :: !(String r   -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
     , onData            :: !(String l r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
     , onShareChange     :: !(       l r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
     , onDisconnect      :: !(       l r -> (!MaybeErrorString l, Maybe w                  ))
 	}
-
+*/
 //Version of connection handlers with IWorld side-effects that is still necessary for built-in framework handlers
 :: ConnectionHandlersIWorld l r w =
     { onConnect     :: !(String r   *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))
@@ -46,6 +47,7 @@ derive gEq				Task
 //Low-level task that handles external processes
 :: ExternalProcessTask = ExternalProcessTask !(ExternalProcessHandlers Dynamic Dynamic Dynamic) !(RWShared () Dynamic Dynamic)
 
+/*
 :: ExitCode = ExitCode !Int
 :: ExternalProcessHandlers l r w =
     { onStartup     :: !(           r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
@@ -54,6 +56,7 @@ derive gEq				Task
     , onShareChange :: !(         l r -> (!MaybeErrorString l, !Maybe w, ![String], !Bool))
     , onExit        :: !(ExitCode l r -> (!MaybeErrorString l, !Maybe w                  ))
     }
+*/
 
 //Background computation tasks
 :: BackgroundTask = BackgroundTask !(*IWorld -> *(!MaybeError TaskException (), !*IWorld))

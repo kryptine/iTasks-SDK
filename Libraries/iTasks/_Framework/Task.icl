@@ -11,6 +11,7 @@ import iTasks._Framework.Generic
 from System.OSError import :: MaybeOSError
 
 import iTasks.WF.Definition
+import iTasks.WF.Tasks.IO
 import iTasks.UI.Editor, iTasks.UI.Editor.Common
 
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)

@@ -10,7 +10,7 @@ from Internet.HTTP import :: HTTPMethod, :: HTTPResponse
 from Text.URI import :: URI
 
 import iTasks._Framework.Generic
-from iTasks._Framework.Task             import :: Task
+from iTasks.WF.Definition               import :: Task, class iTask
 from iTasks.API.Core.Types              import :: ProcessStatus, :: Document
 from iTasks.UI.Prompt                   import class toPrompt
 from iTasks.API.Common.InteractionTasks import :: ViewOption //TODO: We shouldn't import from Common in Core

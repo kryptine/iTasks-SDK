@@ -17,7 +17,6 @@ import iTasks._Framework.TaskEval
 import iTasks._Framework.Task
 import iTasks._Framework.Serialization
 import iTasks.API.Core.TaskCombinators
-import iTasks.API.Core.Tasks
 import iTasks.API.Core.Types
 import iTasks.API.Common.TaskCombinators
 import iTasks.API.Common.ImportTasks

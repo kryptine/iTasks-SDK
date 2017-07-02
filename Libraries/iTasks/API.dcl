@@ -5,7 +5,6 @@ import
         iTasks.API.Core.Types
 
      //  Basic tasks
-     ,  iTasks.API.Core.Tasks                // Core basic tasks
      ,  iTasks.API.Core.IntegrationTasks     // Tasks for integration with other systems
 
      ,  iTasks.API.Common.InteractionTasks   // Tasks for interaction with users
