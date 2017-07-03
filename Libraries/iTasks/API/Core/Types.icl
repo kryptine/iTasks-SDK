@@ -330,7 +330,7 @@ derive gEq				TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskI
 derive gText	        TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
 derive gEditor			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
 
-derive class iTask TaskId, Config, ProcessStatus
+derive class iTask TaskId, Config
 
 // Generic instances for common library types
 derive JSONEncode		Either, MaybeError, HtmlTag, HtmlAttr

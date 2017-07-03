@@ -5,7 +5,7 @@ import
         iTasks.API.Core.Types
 
      //  Basic tasks
-     ,  iTasks.API.Core.IntegrationTasks     // Tasks for integration with other systems
+     ,  iTasks.API.Extensions.Process // Tasks for integration with other systems
 
      ,  iTasks.API.Common.InteractionTasks   // Tasks for interaction with users
      ,  iTasks.API.Common.DBTasks            // convenience wrapper functions for databases with multiple values of type a

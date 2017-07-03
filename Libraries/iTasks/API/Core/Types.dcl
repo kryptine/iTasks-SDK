@@ -170,11 +170,6 @@ derive class iTask TaskListFilter
 	, smtpServer		:: !String	//* The smtp server to use for sending e-mails
 	}
 
-//* External (operating system) process status
-:: ProcessStatus
-	= RunningProcess !String
-	| CompletedProcess !Int
-
 //Common action constants with predefined options
 ActionOk		:== Action "Ok"
 ActionCancel	:==	Action "Cancel"
@@ -205,7 +200,7 @@ derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, Valu
 derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
 derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
 
-derive class iTask		TaskId, Config, ProcessStatus
+derive class iTask		TaskId, Config
 
 //****************************************************************************//
 // Types for task meta-data

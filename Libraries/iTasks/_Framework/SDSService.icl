@@ -12,7 +12,7 @@ import iTasks._Framework.RemoteAccess
 from iTasks._Framework.SDS as SDS import qualified read, write, :: Shared, :: JSONShared
 from iTasks._Framework.SDS import getURLbyId
 from iTasks.API.Core.Types import :: InstanceNo
-from iTasks.API.Core.IntegrationTasks import callHTTP
+from iTasks.API.Extensions.Web import callHTTP
 
 from StdFunc import o
 import StdString, StdList

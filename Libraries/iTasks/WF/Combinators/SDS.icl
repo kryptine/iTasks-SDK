@@ -11,8 +11,10 @@ import iTasks._Framework.TaskStore
 import iTasks._Framework.TaskEval
 from iTasks._Framework.SDS import write, read, readRegister
 
+import StdTuple
 import Text.JSON
 import Data.Maybe, Data.Error
+import System.Directory, System.File, System.FilePath, Data.Error, System.OSError
 import qualified Data.Map as DM
 
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
@@ -92,3 +94,46 @@ withTaskId (Task eval) = Task eval`
         (ExceptionResult te, iworld) -> (ExceptionResult te, iworld)
         (DestroyedResult, iworld) -> (DestroyedResult, iworld)
 
+withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
+withTemporaryDirectory taskfun = Task eval
+where
+	eval event evalOpts (TCInit taskId ts) iworld=:{server={buildID,paths={dataDirectory}}}
+		# tmpDir 			= dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
+		# (taskIda,iworld=:{world})	= getNextTaskId iworld
+		# (mbErr,world)		= createDirectory tmpDir world
+		= case mbErr of
+			Ok _
+				= eval event evalOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & world = world}
+			Error e=:(ecode,emsg)
+				= (ExceptionResult (dynamic e,emsg), {iworld & world = world})
+
+	eval event evalOpts (TCShared taskId ts treea) iworld=:{server={buildID,paths={dataDirectory}},current={taskTime},world}
+		# tmpDir 			        = dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
+        # (mbCurdir,world)          = getCurrentDirectory world
+        | isError mbCurdir          = (ExceptionResult (exception (fromError mbCurdir)), {IWorld|iworld & world = world})
+        # (mbErr,world)             = setCurrentDirectory tmpDir world
+        | isError mbErr             = (ExceptionResult (exception (fromError mbErr)), {IWorld|iworld & world = world})
+		# ts						= case event of
+			(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
+			_						= ts
+		# (Task evala)			= taskfun tmpDir
+		# (resa,iworld=:{world})	= evala event evalOpts treea {IWorld|iworld & world = world}
+        # (_,world)                 = setCurrentDirectory (fromOk mbCurdir) world
+        | isError mbErr             = (ExceptionResult (exception (fromError mbErr)), {IWorld|iworld & world = world})
+		= case resa of
+			ValueResult value info rep ntreea
+				# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
+				= (ValueResult value info rep (TCShared taskId info.TaskEvalInfo.lastEvent ntreea),{IWorld|iworld & world = world})
+			ExceptionResult e = (ExceptionResult e,{IWorld|iworld & world = world})
+	
+	eval event evalOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{server={buildID,paths={dataDirectory}}} //First destroy inner task
+		# tmpDir 			= dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
+		# (Task evala)	= taskfun tmpDir
+		# (resa,iworld)		= evala event evalOpts (TCDestroy treea) iworld
+		//TODO: recursive delete of tmp dir to not fill up the task store
+		= (resa,iworld)
+
+	eval _ _ _ iworld
+		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)	
+
+instance toString (OSErrorCode,String) where toString x = snd x

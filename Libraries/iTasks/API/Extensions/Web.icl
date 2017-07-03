@@ -1,7 +1,7 @@
 implementation module iTasks.API.Extensions.Web
 import iTasks
 import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
-import Internet.HTTP, Text, Text.HTML, Text.Encodings.MIME, Text.Encodings.UrlEncoding, StdArray, Data.Either
+import Internet.HTTP, Text, Text.HTML, Text.URI, Text.Encodings.MIME, Text.Encodings.UrlEncoding, StdArray, Data.Either
 
 from iTasks._Framework.HttpUtil import http_addRequestData, http_parseArguments
 import iTasks._Framework.HtmlUtil
@@ -176,3 +176,38 @@ where
 			,("Content-Length", toString (size content))]
 		, rsp_data = content
 		}
+
+callHTTP :: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a
+callHTTP method url=:{URI|uriScheme,uriRegName=Just uriRegName,uriPort,uriPath,uriQuery,uriFragment} data parseFun
+    =   tcpconnect uriRegName port (constShare ()) {ConnectionHandlers|onConnect=onConnect,onData=onData,onShareChange=onShareChange,onDisconnect=onDisconnect}
+    @?  taskResult
+where
+    port = fromMaybe 80 uriPort
+    path = uriPath +++ maybe "" (\q -> ("?"+++q)) uriQuery +++ maybe "" (\f -> ("#"+++f)) uriFragment
+    //VERY SIMPLE HTTP 1.1 Request
+    req = toString method +++ " " +++ path +++ " HTTP/1.1\r\nHost:"+++uriRegName+++"\r\nConnection: close\r\n\r\n"+++data
+
+    onConnect _ _
+        = (Ok (Left []),Nothing,[req],False)
+    onData data (Left acc) _
+        = (Ok (Left (acc ++ [data])),Nothing,[],False)
+    onShareChange acc _
+        = (Ok acc,Nothing,[],False)
+    onDisconnect (Left acc) _
+        = case parseResponse (concat acc) of
+			Nothing    = (Error "Invalid response",Nothing)
+            (Just rsp) = case parseFun rsp of
+ 				               	Ok a    = (Ok (Right a),Nothing)
+                				Error e = (Error e,Nothing)
+
+    taskResult (Value (Right a) _)  = Value a True
+    taskResult _                    = NoValue
+
+callHTTP _ url _ _
+    = throw ("Invalid url: " +++ toString url)
+
+callRPCHTTP :: !HTTPMethod !URI ![(String,String)] !(HTTPResponse -> a) -> Task a | iTask a
+callRPCHTTP method url params transformResult
+	= callHTTP method url (urlEncodePairs params) (Ok o transformResult)
+
+

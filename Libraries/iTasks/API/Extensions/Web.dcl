@@ -1,6 +1,7 @@
 definition module iTasks.API.Extensions.Web
 import iTasks
-from Internet.HTTP import :: HTTPRequest, :: HTTPResponse
+from Internet.HTTP import :: HTTPMethod, :: HTTPRequest, :: HTTPResponse
+from Text.URI import :: URI
 /**
 * This module provides support for building web applications.
 */
@@ -22,3 +23,19 @@ serveWebService :: Int (HTTPRequest -> Task HTTPResponse) -> Task ()
 
 //Task for serving a static file
 serveFile :: [FilePath] HTTPRequest -> Task HTTPResponse
+
+/**
+* Calls an external HTTP webservice.
+*
+* @param HTTP Method: the HTTP method (GET or POST) to use
+* @param URL: The URL of the webservice
+* @param Parameters: A list of name/value pairs
+* @param Response handler: A parse function that parses the response
+*
+* @return The parsedd value
+*
+* @gin-title Call web service
+* @gin-icon webservice
+*/
+callHTTP	:: !HTTPMethod !URI !String !(HTTPResponse -> (MaybeErrorString a)) -> Task a | iTask a	
+callRPCHTTP :: !HTTPMethod !URI ![(String,String)] !(HTTPResponse -> a) -> Task a | iTask a
