@@ -2,6 +2,7 @@ implementation module iTasks.SDS.Combinators.Common
 
 import StdTuple, StdList
 import iTasks.SDS.Definition, iTasks.SDS.Combinators.Core
+import iTasks.WF.Combinators.Core
 import iTasks.API.Core.Types
 from StdFunc import o, const, flip, id
 from iTasks._Framework.Task import exception, :: TaskException

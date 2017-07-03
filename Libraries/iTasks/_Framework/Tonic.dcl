@@ -4,8 +4,8 @@ from iTasks._Framework.SDS import :: Shared, :: ReadWriteShared, :: RWShared
 from iTasks._Framework.IWorld import :: IWorld, :: SystemClocks
 from iTasks._Framework.Engine import :: PublishedTask
 from iTasks._Framework.Task import :: TaskEvalOpts, :: TaskResult
-from iTasks.API.Core.TaskCombinators import class tune
 from iTasks.WF.Definition import :: Task, :: InstanceNo, class iTask
+from iTasks.WF.Combinators.Tune import class tune
 from iTasks.SDS.Definition import :: SDS
 
 import iTasks._Framework.Tonic.AbsSyn

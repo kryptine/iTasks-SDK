@@ -38,7 +38,7 @@ taskInstanceIndex = sdsFocus "instances" (cachedJSONFileStore NS_TASK_INSTANCES 
 nextInstanceNo :: RWShared () Int Int
 nextInstanceNo = sdsFocus "increment" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just 1))
 
-taskInstanceIO :: RWShared InstanceNo (Maybe (!String,!DateTime)) (Maybe (!String,!DateTime))
+taskInstanceIO :: RWShared InstanceNo (Maybe (!String,!Timestamp)) (Maybe (!String,!Timestamp))
 taskInstanceIO = sdsLens "taskInstanceIO" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) allInstanceIO
 where
 	read instanceNo m = Ok ('DM'.get instanceNo m)
@@ -46,7 +46,7 @@ where
 	write instanceNo m Nothing = Ok (Just ('DM'.del instanceNo m))
 	notify instanceNo _ 	= (==) instanceNo
 
-allInstanceIO :: RWShared () (Map InstanceNo (!String,!DateTime)) (Map InstanceNo (!String,DateTime)) 
+allInstanceIO :: RWShared () (Map InstanceNo (!String,!Timestamp)) (Map InstanceNo (!String,Timestamp)) 
 allInstanceIO = sdsFocus "io" (memoryStore NS_TASK_INSTANCES (Just 'DM'.newMap))
 
 //Event queues of task instances
@@ -104,22 +104,22 @@ newDocumentId iworld=:{IWorld|random}
 	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld & random = drop 32 random})
 	
 createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
-createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
+createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},current={taskTime},clocks={timestamp,localDate,localTime}}
     //Create the initial instance data in the store
     # progress  = {InstanceProgress|value=None,instanceKey="client",attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants = {InstanceConstants|session=True,listId=TaskId 0 0,build=buildID,issuedAt=toDateTime localDate localTime}
+    # constants = {InstanceConstants|session=True,listId=TaskId 0 0,build=buildID,issuedAt=timestamp}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
 createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
-createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
+createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={timestamp,localDate,localTime}}
     # (mbInstanceNo,iworld) = newInstanceNo iworld
     # instanceNo            = fromOk mbInstanceNo
     # (instanceKey,iworld)  = newInstanceKey iworld
     # progress              = {InstanceProgress|value=None,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants             = {InstanceConstants|session=True,listId=TaskId 0 0,build=buildID,issuedAt=toDateTime localDate localTime}
+    # constants             = {InstanceConstants|session=True,listId=TaskId 0 0,build=buildID,issuedAt=timestamp}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
@@ -130,10 +130,10 @@ createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={loc
 (`b`) (Error e, st) _ = (Error e, st)
 
 createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
-createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{server={buildID},current={taskTime},clocks={localDate,localTime}}
+createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{server={buildID},current={taskTime},clocks={timestamp,localDate,localTime}}
     # (instanceKey,iworld) = newInstanceKey iworld
     # progress             = {InstanceProgress|value=None,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants            = {InstanceConstants|session=False,listId=listId,build=buildID,issuedAt=toDateTime localDate localTime}
+    # constants            = {InstanceConstants|session=False,listId=listId,build=buildID,issuedAt=timestamp}
     =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld

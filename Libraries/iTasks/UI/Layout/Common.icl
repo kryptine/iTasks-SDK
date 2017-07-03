@@ -2,8 +2,9 @@ implementation module iTasks.UI.Layout.Common
 
 import iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks.UI.Definition, iTasks.UI.Prompt
-import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
-import Data.List
+import iTasks.WF.Combinators.Tune
+import iTasks.API.Core.Types
+import Data.List, Text.JSON
 import qualified Data.Map as DM
 import StdBool
 from StdFunc import id, const, o

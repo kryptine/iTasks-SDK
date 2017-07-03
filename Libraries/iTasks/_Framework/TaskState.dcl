@@ -6,6 +6,7 @@ from iTasks._Framework.TaskEval import :: TonicOpts, :: TaskTime
 from Data.Queue import :: Queue
 
 from iTasks.WF.Definition import :: TaskResult, :: TaskException, :: TaskNo
+from iTasks.WF.Combinators.Core import :: AttachmentStatus
 from iTasks.UI.Definition import :: UIChange
 
 derive JSONEncode TIMeta, TIReduct, TaskTree
@@ -21,7 +22,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	, listId        :: !TaskId              //Reference to parent tasklist
     , session       :: !Bool                //Is this a session
     , build         :: !String              //Application build version when the instance was created
-    , issuedAt      :: !DateTime
+    , issuedAt      :: !Timestamp
     //Evaluation information
 	, progress		:: !InstanceProgress
     //Identification and classification information

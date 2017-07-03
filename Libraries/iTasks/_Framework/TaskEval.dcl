@@ -3,8 +3,9 @@ definition module iTasks._Framework.TaskEval
 * This module provides functions for creation, evaluation and removal of task/workflow instances.
 */
 
-from iTasks.API.Core.Types	        import :: TaskListItem, :: SessionId
+from iTasks.API.Core.Types	        import :: SessionId
 from iTasks.WF.Definition           import :: Task, :: TaskResult, :: TaskException, :: TaskValue, :: Event, :: TaskId, :: InstanceNo
+from iTasks.WF.Combinators.Core     import :: TaskListItem
 from iTasks._Framework.IWorld		import :: IWorld
 from iTasks._Framework.SDS          import :: Shared, :: ReadOnlyShared
 from iTasks._Framework.Tonic        import :: ExprId

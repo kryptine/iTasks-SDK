@@ -3,6 +3,7 @@ implementation module iTasks._Framework.TaskState
 import Text.JSON
 import iTasks.UI.Definition
 import iTasks.WF.Definition
+from iTasks.WF.Combinators.Core import :: AttachmentStatus
 
 from iTasks._Framework.Task	import exception
 from iTasks._Framework.TaskEval import :: TaskTime, :: TaskEvalInfo(..), :: TonicOpts(..)
@@ -12,8 +13,8 @@ import Data.CircularStack
 import iTasks.API.Core.Types
 import Data.Error
 
-derive JSONEncode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack
-derive JSONDecode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack
+derive JSONEncode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack, AttachmentStatus
+derive JSONDecode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack, AttachmentStatus
 
 JSONEncode{|DeferredJSON|} _ (DeferredJSON a)
 	= JSONEncode{|*|} False a

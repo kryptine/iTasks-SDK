@@ -13,8 +13,4 @@ import
      ,  iTasks.API.Common.ExportTasks        // tasks for exporting data
 
      //  Task combinators
-     ,  iTasks.API.Core.TaskCombinators      // The core iTask combinators
      ,  iTasks.API.Common.TaskCombinators  // Set of derived useful iTask combinators
-
-     //  Layout tuning
-     ,  iTasks.UI.Layout

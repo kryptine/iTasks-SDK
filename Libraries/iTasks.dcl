@@ -14,10 +14,14 @@ import
     ,   iTasks.SDS.Combinators.Core
     ,   iTasks.SDS.Combinators.Common
 
+    ,   iTasks.WF.Definition
     ,   iTasks.WF.Tasks.Core
     ,   iTasks.WF.Tasks.SDS
     ,   iTasks.WF.Tasks.IO
     ,   iTasks.WF.Tasks.System
+    ,   iTasks.WF.Combinators.Core
+    ,   iTasks.WF.Combinators.SDS
+    ,   iTasks.WF.Combinators.Tune
     ,   iTasks.API
 	
 	//	Miscellaneous machinery

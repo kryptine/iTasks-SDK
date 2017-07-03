@@ -9,6 +9,8 @@ from iTasks._Framework.TaskEval import :: TaskEvalOpts, :: TaskEvalInfo
 from iTasks.UI.Definition import :: UIChange
 from Text.JSON import :: JSONNode
 from Data.Maybe import :: Maybe
+from Data.Map import :: Map(..)
+from System.Time import :: Timestamp
 
 from iTasks.UI.Editor import :: Editor
 from iTasks.UI.Editor.Generic import generic gEditor
@@ -56,6 +58,31 @@ exception :: !e -> TaskException | TC, toString e
 :: TaskId		= TaskId !InstanceNo !TaskNo
 :: InstanceNo	:== Int
 :: TaskNo		:== Int
+
+:: TaskAttributes :== Map String String
+:: InstanceKey  :== String
+
+// Instance data which does not change after creation (except when a task is replaced)
+:: InstanceConstants =
+    { listId        :: !TaskId              //* Reference to parent tasklist
+    , session       :: !Bool                //* True for sessions (instances that automatically get garbage collected)
+    , build         :: !String              //* Application build version when the instance was created
+    , issuedAt		:: !Timestamp           //* When was the task created
+    }
+
+:: InstanceProgress =
+	{ value             :: !ValueStatus     //* Status of the task value
+    , attachedTo        :: ![TaskId]        //* Chain of tasks through which this instance was attached
+	, instanceKey       :: !InstanceKey     //* Random token that a client gets to have (temporary) access to the task instance
+	, firstEvent		:: !Maybe Timestamp //* When was the first work done on this task
+	, lastEvent		    :: !Maybe Timestamp //* When was the latest event on this task (excluding Refresh events)
+	}
+
+:: ValueStatus
+    = None
+    | Unstable
+    | Stable
+    | Exception
 
 //The iTask context restriction contains all generic functions that need to
 //be available for a type to be used in tasks

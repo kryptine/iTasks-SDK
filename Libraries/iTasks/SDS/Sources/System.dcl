@@ -4,14 +4,28 @@ definition module iTasks.SDS.Sources.System
 */
 
 from iTasks.SDS.Definition import :: SDS
-from iTasks.WF.Definition  import :: TaskId, :: TaskNo, :: InstanceNo
-from iTasks.API.Core.Types import :: DateTime, :: Date, :: Time
-from iTasks.API.Core.Types import :: TaskList, :: TaskAttributes
-from iTasks.API.Core.Types import :: TaskListFilter, :: TaskListItem, :: TaskInstance, :: Config, :: SharedTaskList
+from iTasks.WF.Definition import :: TaskId, :: TaskNo, :: InstanceNo, :: InstanceKey, :: TaskAttributes, :: ValueStatus
+from iTasks.WF.Combinators.Core import :: TaskList, :: SharedTaskList, :: TaskListFilter, :: TaskListItem 
+from iTasks.API.Core.Types import :: DateTime, :: Date, :: Time, :: Config
 
 from System.Time import :: Timestamp
 from System.FilePath import :: FilePath
 from Data.Map import :: Map
+from Data.Maybe import :: Maybe
+
+//* Types to view the server's internal table of running task instances
+:: TaskInstance =
+	{ instanceNo	    :: !InstanceNo			//* Unique global identification
+    , instanceKey       :: !InstanceKey         //* Random string that a client needs to provide to access the task instance
+    , session           :: !Bool                //* Is this a session
+	, listId            :: !TaskId              //* Reference to parent tasklist
+    , build             :: !String              //* Application build version when the instance was created
+    , issuedAt			:: !Timestamp           //* When was the task created
+	, attributes        :: !TaskAttributes      //* Arbitrary meta-data
+	, value             :: !ValueStatus         //* Status of the task value
+	, firstEvent		:: !Maybe Timestamp     //*When was the first work done on this task
+	, lastEvent		    :: !Maybe Timestamp     //* When was the last event on this task	
+	}
 
 // Date & time (in task server's local timezone)
 currentDateTime			:: SDS () DateTime ()

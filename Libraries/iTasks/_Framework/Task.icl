@@ -12,6 +12,7 @@ from System.OSError import :: MaybeOSError
 
 import iTasks.WF.Definition
 import iTasks.WF.Tasks.IO
+from   iTasks.WF.Combinators.Core import :: AttachmentStatus
 import iTasks.UI.Editor, iTasks.UI.Editor.Common
 
 from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)

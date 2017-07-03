@@ -10,7 +10,7 @@ import qualified Data.Map as DM
 import Data.List, Data.Tuple
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Layout.Default, iTasks.UI.Layout.Common
 // SPECIALIZATIONS
-derive class iTask Workflow
+derive class iTask Workflow, AttachmentStatus
 
 gText{|WorkflowTaskContainer|} _ _			            = []
 gEditor{|WorkflowTaskContainer|} 						= emptyEditor

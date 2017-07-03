@@ -2,7 +2,9 @@ definition module iTasks.API.Common.TaskCombinators
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators.
 */
-import iTasks.API.Core.TaskCombinators
+import iTasks.SDS.Definition
+import iTasks.WF.Combinators.Core
+import iTasks.WF.Combinators.Tune
 
 from Data.Map				    import :: Map
 from Data.Either				import :: Either

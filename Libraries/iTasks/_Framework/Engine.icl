@@ -11,10 +11,9 @@ import iTasks._Framework.Util, iTasks._Framework.HtmlUtil
 import iTasks._Framework.IWorld, iTasks._Framework.WebService, iTasks._Framework.SDSService
 import qualified iTasks._Framework.SDS as SDS
 import iTasks.UI.Layout, iTasks.UI.Layout.Default
-from iTasks.API.Core.TaskCombinators import class tune(..)
-from iTasks.UI.Layout import instance tune ApplyLayout
-from iTasks.SDS.Combinators.Common import sdsFocus
 
+from iTasks.WF.Combinators.Tune import class tune(..), instance tune ApplyLayout, :: ApplyLayout(..)
+from iTasks.SDS.Combinators.Common import sdsFocus
 
 import StdInt, StdChar, StdString
 import tcp
@@ -181,18 +180,17 @@ where
 		(Ok (),iworld) = checkAll f xs iworld
 		(Error e,iworld) = (Error e,iworld)
 
-    removeIfOutdated (instanceNo,_,_,_) iworld=:{clocks={localDate,localTime},server={buildID}}
+    removeIfOutdated (instanceNo,_,_,_) iworld=:{clocks={timestamp},server={buildID}}
 		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) iworld of
 			//If there is I/O information, we check that age first
-			(Ok (Just (client,time)),iworld) //No IO for too long, clean up
-				# (Timestamp tInstance) = datetimeToTimestamp time
+			(Ok (Just (client,Timestamp tInstance)),iworld) //No IO for too long, clean up
 				= (Ok ((tNow - tInstance) > SESSION_TIMEOUT),iworld)
 			//If there is no I/O information, get meta-data and check builtId and creation date
 			(Ok Nothing,iworld)
 				= case read (sdsFocus instanceNo taskInstanceConstants) iworld of
 					(Ok {InstanceConstants|build,issuedAt},iworld)
 						| build <> buildID = (Ok True,iworld)
-						# (Timestamp tInstance) = datetimeToTimestamp issuedAt
+						# (Timestamp tInstance) = issuedAt
 						| (tNow - tInstance) > SESSION_TIMEOUT = (Ok True,iworld)
 						= (Ok False,iworld)
 					(Error e,iworld)
@@ -211,7 +209,7 @@ where
 			(Error e)
 				= (Error e,iworld)
 	where
-		(Timestamp tNow) = datetimeToTimestamp (toDateTime localDate localTime)
+		(Timestamp tNow) = timestamp
 
 //When we don't run the built-in HTTP server we don't want to loop forever so we stop the loop
 //once all tasks are stable

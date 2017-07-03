@@ -6,7 +6,6 @@ definition module iTasks.UI.Layout
 * updates that are later applied accordingly.
 */
 
-from iTasks.API.Core.TaskCombinators import class tune
 from iTasks.UI.Definition import :: UI, :: UINodeType, :: UIAttributes, :: UIChange
 
 from Data.Maybe import :: Maybe
@@ -58,10 +57,6 @@ from Text.JSON import :: JSONNode
 //	| MvUINoLongerMoved Int   //A marker that indicates that at this location in the UI there were previously 'moved' nodes.
 //                             //A RemoveChild or ReplaceUI change has removed them.
 	
-// These types are used to control when to apply layout in a task composition
-:: ApplyLayout	= ApplyLayout Layout
-
-instance tune	ApplyLayout //Apply a modification after a layout has been run
 
 // In specifications of layouts, sub-parts of UI's are commonly addressed as 
 // a path of child selections in the UI tree.

@@ -54,8 +54,8 @@ taskInstanceAttributes  :: RWShared InstanceNo TaskAttributes TaskAttributes
 
 topLevelTaskList        :: RWShared TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
 
-taskInstanceIO 			:: RWShared InstanceNo (Maybe (!String,!DateTime)) (Maybe (!String,!DateTime))
-allInstanceIO           :: RWShared () (Map InstanceNo (!String,!DateTime)) (Map InstanceNo (!String,DateTime)) 
+taskInstanceIO 			:: RWShared InstanceNo (Maybe (!String,!Timestamp)) (Maybe (!String,!Timestamp))
+allInstanceIO           :: RWShared () (Map InstanceNo (!String,!Timestamp)) (Map InstanceNo (!String,Timestamp)) 
 
 //=== Task instance input: ===
 

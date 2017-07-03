@@ -2,8 +2,8 @@ implementation module iTasks.API.Common.TaskCombinators
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 */
-import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass
-import Text, System.Time, Data.Tuple, Data.List, Data.Either, Data.Functor
+import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, StdString
+import Text, System.Time, Data.Maybe, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks._Framework.Util
 from StdFunc			import id, const, o
 from iTasks.SDS.Sources.Core import randomInt
@@ -15,7 +15,8 @@ import qualified Data.Map as DM
 
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
-import iTasks.API.Core.TaskCombinators, iTasks.API.Common.InteractionTasks, iTasks.UI.Layout, iTasks.UI.Prompt
+import iTasks.WF.Combinators.Core, iTasks.WF.Combinators.Tune
+import iTasks.API.Common.InteractionTasks, iTasks.UI.Layout, iTasks.UI.Prompt
 import iTasks.UI.Layout.Common, iTasks.UI.Layout.Default
 
 (>>*) infixl 1 :: !(Task a) ![TaskCont a (Task b)] -> Task b | iTask a & iTask b

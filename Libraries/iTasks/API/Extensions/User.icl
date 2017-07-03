@@ -5,14 +5,18 @@ import qualified Data.Map as DM
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
 import iTasks.UI.Layout.Default
 
+from iTasks.WF.Definition import :: InstanceProgress(..)
+from iTasks.WF.Combinators.Core import :: TaskListItem(..) 
+from iTasks._Framework.Util import timestampToGmDateTime
+
 gText{|User|} _ val = [maybe "" toString val]
 
-derive JSONEncode		User, UserConstraint
-derive JSONDecode		User, UserConstraint
-derive gDefault			User, UserConstraint
-derive gEq				User, UserConstraint
-derive gText	        UserConstraint
-derive gEditor			User, UserConstraint
+derive JSONEncode		User, UserConstraint, AttachmentStatus
+derive JSONDecode		User, UserConstraint, AttachmentStatus
+derive gDefault			User, UserConstraint, AttachmentStatus
+derive gEq				User, UserConstraint, AttachmentStatus
+derive gText	        UserConstraint, AttachmentStatus
+derive gEditor			User, UserConstraint, AttachmentStatus
 
 instance toString User
 where
@@ -223,8 +227,8 @@ where
 
     toView (_,[{TaskListItem|progress=Just p,attributes}:_]) =
       { assignedTo    = mkAssignedTo attributes
-      , firstWorkedOn = p.InstanceProgress.firstEvent
-      , lastWorkedOn  = p.InstanceProgress.lastEvent
+      , firstWorkedOn = fmap timestampToGmDateTime p.InstanceProgress.firstEvent
+      , lastWorkedOn  = fmap timestampToGmDateTime p.InstanceProgress.lastEvent
       , taskStatus    = case p.InstanceProgress.value of
                           None      -> "No results so far..."
                           Unstable  -> "In progres..."

@@ -24,9 +24,13 @@ from iTasks._Framework.IWorld			import :: IWorld
 from iTasks.UI.Definition		import :: UI, :: UINodeType, :: UISize, :: UIDirection, :: UISideSizes, :: UIBound, :: UIAttributes
 from iTasks.UI.Editor 			import :: Editor, :: EditMask, :: Masked
 from iTasks.UI.Editor.Generic   import generic gEditor, :: VSt
-from iTasks.WF.Definition		import :: Task, :: TaskId, :: InstanceNo, :: TaskValue, :: Stability, class iTask
+from iTasks.WF.Definition		import :: Task, :: TaskId, :: InstanceNo, :: TaskValue, :: Stability, :: TaskAttributes, class iTask
+from iTasks.WF.Combinators.Core import :: Action(..), :: TaskListItem(..), :: TaskListFilter(..), :: InstanceKey
+from iTasks.WF.Combinators.Core import :: InstanceConstants(..), :: InstanceProgress(..), :: ValueStatus(..)
 
 from iTasks.SDS.Definition import :: SDS, :: ReadWriteShared, :: ReadOnlyShared
+from iTasks.SDS.Sources.System import :: TaskInstance
+
 from iTasks.UI.JS.Interface	import :: JSWorld, :: JSVal
 from iTasks.UI.Prompt import class toPrompt
 
@@ -143,12 +147,8 @@ instance toString	FileException, ParseException, CallException, SharedException,
 // you may read them when interacting with the framework
 //****************************************************************************//
 
-
 instance Functor TaskValue
 
-
-
-:: InstanceKey  :== String
 :: SessionId	:== String
 
 class toInstanceNo t :: t -> InstanceNo
@@ -160,87 +160,7 @@ instance fromString	TaskId
 instance ==			TaskId
 instance <			TaskId
 
-// Instance data which does not change after creation (except when a task is replaced)
-:: InstanceConstants =
-    { listId        :: !TaskId              //* Reference to parent tasklist
-    , session       :: !Bool                //* True for sessions (instances that automatically get garbage collected)
-    , build         :: !String              //* Application build version when the instance was created
-    , issuedAt		:: !DateTime			//* When was the task created
-    }
-
-:: InstanceProgress =
-	{ value             :: !ValueStatus             //* Status of the task value
-    , attachedTo        :: ![TaskId] 				//* Chain of tasks through which this instance was attached
-	, instanceKey       :: !InstanceKey             //* Random token that a client gets to have (temporary) access to the task instance
-	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
-	, lastEvent		    :: !Maybe DateTime			//* When was the latest event on this task (excluding Refresh events)
-	}
-
-:: ValueStatus
-    = None
-    | Unstable
-    | Stable
-    | Exception
-
 //* Access to parallel task lists
-
-:: TaskList a :== (!TaskId,![TaskListItem a])
-:: SharedTaskList a	:==	SDS TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
-
-:: TaskListItem a =
-	{ taskId			:: !TaskId
-    , listId            :: !TaskId
-    , detached          :: !Bool
-    , self              :: !Bool
-	, value				:: !TaskValue a
-	, attributes        :: !TaskAttributes
-	, progress		    :: !Maybe InstanceProgress //Only possible for detached tasks
-	}
-
-:: TaskListFilter =
-    //Which rows to filter
-    { onlyIndex         :: !Maybe [Int]
-    , onlyTaskId        :: !Maybe [TaskId]
-    , onlySelf          :: !Bool
-    //What to include
-    , includeValue      :: !Bool
-    , includeAttributes :: !Bool
-    , includeProgress   :: !Bool
-    }
-
-:: TaskAttributes :== Map String String
-
-:: ParallelTaskType	
-	= Embedded                                    //Simplest embedded
-    | NamedEmbedded !String                       //Embedded with name
-	| Detached !TaskAttributes !Bool              //Management meta and flag whether the task should be started at once
-    | NamedDetached !String !TaskAttributes !Bool //Detached with name
-
-:: ParallelTask a	:== (SharedTaskList a) -> Task a
-
-/**
-* State of another process the user works on.
-*/
-:: AttachmentStatus
-    = ASAttached Stability  //* the task instance is currently attached to this task
-    | ASInUse TaskId 		//* the task instance is already attached to another task 
-    | ASExcepted            //* the task instance had an uncaught exception
-    | ASDeleted             //* the task instance does not exist anymore
-    | ASIncompatible        //* the task instance can not be executed in this is version of the program (it was created by an older version)
-
-//* Types to view the server's internal table of running task instances
-:: TaskInstance =
-	{ instanceNo	    :: !InstanceNo			//* Unique global identification
-    , instanceKey       :: !InstanceKey         //* Random string that a client needs to provide to access the task instance
-    , session           :: !Bool                //* Is this a session
-	, listId            :: !TaskId              //* Reference to parent tasklist
-    , build             :: !String              //* Application build version when the instance was created
-    , issuedAt			:: !DateTime			//* When was the task created
-	, attributes        :: !TaskAttributes      //* Arbitrary meta-data
-	, value             :: !ValueStatus         //* Status of the task value
-	, firstEvent		:: !Maybe DateTime		//* When was the first work done on this task
-	, lastEvent		    :: !Maybe DateTime		//* When was the last event on this task	
-	}
 
 derive class iTask TaskListFilter
 
@@ -254,9 +174,6 @@ derive class iTask TaskListFilter
 :: ProcessStatus
 	= RunningProcess !String
 	| CompletedProcess !Int
-
-//* Next task actions
-:: Action	= Action !String //Locally unique identifier for actions
 
 //Common action constants with predefined options
 ActionOk		:== Action "Ok"
@@ -313,9 +230,6 @@ SCREEN_ATTRIBUTE        :== "screen"
 CREATED_AT_ATTRIBUTE	:== "createdate"//Creation task time, used for ordering but not real time
 LAST_EVENT_ATTRIBUTE	:== "lastevent"	//Last event task time, used for ordering but not real time
 LAST_FOCUS_ATTRIBUTE    :== "lastfocus" //Last focus, also used for ordering
-
-//Task evaluation tuning directives, for increasing performance
-:: LazyRefresh = LazyRefresh //If you tune a task in a parallel set with this directive, it not be evaluated unless its focused
 
 //****************************************************************************//
 // Generic instances for common library types

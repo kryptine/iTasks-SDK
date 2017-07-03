@@ -8,6 +8,7 @@ import iTasks.UI.Layout
 from iTasks.UI.Definition import :: UISide(..), :: UIDirection(..), :: UIWindowType(..), :: UIHAlign(..), :: UIVAlign(..)
 from iTasks.UI.Prompt import :: Title, :: Label, :: Icon
 from iTasks.API.Core.Types import :: Attribute
+from iTasks.WF.Combinators.Tune import class tune
 
 /**
 * Create a tabset with all child items as separate tabs
