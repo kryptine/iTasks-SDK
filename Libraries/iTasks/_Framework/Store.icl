@@ -14,13 +14,15 @@ from iTasks._Framework.IWorld		import :: IWorld {onClient,server,memoryShares,ca
 from iTasks._Framework.Task		    import exception
 from iTasks._Framework.TaskState		import :: DeferredJSON(..)
 from iTasks._Framework.TaskEval import :: TaskTime
+from iTasks._Framework.IWorld import :: Config
 
 from iTasks.WF.Definition				import class iTask
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks._Framework.Generic.Defaults		import generic gDefault
 from iTasks._Framework.Serialization import serialize, deserialize, functionFree
 from iTasks.UI.Editor.Generic import generic gEditor
-from iTasks.API.Core.Types import :: DateTime, :: Config,  :: TaskListItem, :: SessionId
+from iTasks.API.Core.Types import :: TaskListItem
+
 from iTasks.WF.Definition import :: TaskId, :: TaskNo, :: InstanceNo
 from iTasks.SDS.Combinators.Core import sdsLens
 from iTasks.SDS.Combinators.Common import >+<, sdsFocus

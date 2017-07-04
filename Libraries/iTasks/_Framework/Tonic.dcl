@@ -15,7 +15,7 @@ from Data.Map import :: Map
 from Data.Set import :: Set
 from Data.Either import :: Either
 from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
-from iTasks.API.Core.Types import class TMonad, class TApplicative
+from iTasks.WF.Combinators.Overloaded import class TMonad, class TApplicative
 import Data.Functor
 
 from System.IO import :: IO

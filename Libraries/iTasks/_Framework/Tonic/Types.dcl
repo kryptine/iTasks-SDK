@@ -6,7 +6,6 @@ from Data.IntMap.Strict import :: IntMap
 from iTasks._Framework.Tonic.AbsSyn import :: TonicModule, :: TAssoc, :: TLit, :: TExpr, :: FuncName, :: TPriority, :: ModuleName, :: TonicFunc
 import iTasks._Framework.Generic
 import iTasks.API.Extensions.User
-from iTasks.API.Core.Types import :: DateTime
 from iTasks.API.Extensions.User import :: User
 
 :: ListId :== TaskId

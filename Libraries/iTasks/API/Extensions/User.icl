@@ -7,7 +7,7 @@ import iTasks.UI.Layout.Default
 
 from iTasks.WF.Definition import :: InstanceProgress(..)
 from iTasks.WF.Combinators.Core import :: TaskListItem(..) 
-from iTasks._Framework.Util import timestampToGmDateTime
+import iTasks.API.Extensions.DateTime
 
 gText{|User|} _ val = [maybe "" toString val]
 

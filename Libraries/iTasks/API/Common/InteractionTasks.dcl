@@ -2,7 +2,6 @@ definition module iTasks.API.Common.InteractionTasks
 
 import iTasks.WF.Definition
 from iTasks.WF.Combinators.Core import :: Action
-from iTasks.API.Core.Types import :: Date, :: Time, :: DateTime
 from Data.Functor import class Functor
 from iTasks.UI.Prompt import class toPrompt
 from iTasks.UI.Editor.Builtin import :: ChoiceText, :: ChoiceGrid, :: ChoiceNode 
@@ -172,42 +171,6 @@ editSharedMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [
 */
 wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r
 
-/*** Special wait tasks ***/
-/**
-* Creates a task which blocks a workflow until a specified time.
-*
-* @param Time: The specified time at which the task should complete
-*
-* @return The time to wait for
-* 
-*/
-waitForTime		:: !Time			-> Task Time
-/**
-* Creates a task which blocks a workflow until a specified date.
-*
-* @param Date: The specified date at which the task should complete
-*
-* @return The date to wait for
-*/
-waitForDate		:: !Date			-> Task Date
-/**
-* Creates a task which blocks a workflow until a specified date and time.
-*
-* @param DateTime: The specified date and time at which the task should complete
-*
-* @return The date and time to wait for
-*/
-waitForDateTime :: !DateTime 		-> Task DateTime
-/**
-* Task completes after specified amount of time has passed
-* since the creation of the task.
-*
-* @param The time to wait (in seconds before the task should complete
-*
-* @return The time the timer went off
-* 
-*/
-waitForTimer	:: !Int -> Task DateTime
 
 /*** Special tasks for choosing actions ***/
 

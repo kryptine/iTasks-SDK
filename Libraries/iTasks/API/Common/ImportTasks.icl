@@ -4,6 +4,8 @@ import StdBool, _SystemArray, StdInt
 import Text.Encodings.MIME, Text, Text.CSV, System.File, Text.JSON, Data.Error, System.FilePath
 import iTasks._Framework.IWorld, iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskStore
 import iTasks._Framework.Util
+import iTasks.API.Core.Types
+
 from StdFunc import id
 
 CHUNK_SIZE :== 1048576 // 1M

@@ -2,6 +2,7 @@ implementation module iTasks.API.Extensions.Form.Pikaday
 import iTasks
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JS.Interface
 import iTasks.UI.Editor.Combinators, iTasks.UI.Editor.Builtin
+import iTasks.API.Extensions.DateTime
 import qualified Data.Map as DM
 
 PIKADAY_JS_URL :== "/pikaday/pikaday.js"

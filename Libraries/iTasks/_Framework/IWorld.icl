@@ -8,8 +8,9 @@ from System.Time					import :: Timestamp, time
 from Text.JSON						import :: JSONNode
 from iTasks.WF.Definition           import :: TaskId, :: InstanceNo, :: TaskNo 
 from iTasks.WF.Combinators.Core     import :: TaskListItem, :: ParallelTaskType
-from iTasks.API.Core.Types	        import :: DateTime, :: Config
+from iTasks.API.Extensions.DateTime import :: Time, :: Date, :: DateTime, toTime, toDate
 from iTasks._Framework.TaskEval     import :: TaskTime
+from iTasks._Framework.IWorld       import :: Config
 from System.Process                 import :: ProcessHandle, :: ProcessIO
 
 from StdFile import class FileSystem(..)

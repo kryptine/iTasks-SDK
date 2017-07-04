@@ -9,6 +9,7 @@ from Data.Map import qualified get, put
 import StdBool, StdList, StdMisc, StdTuple, Data.Functor
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
+import iTasks.WF.Combinators.Overloaded
 import iTasks.API.Common.TaskCombinators
 import iTasks.SDS.Sources.Core, iTasks.SDS.Sources.System
 import iTasks.SDS.Combinators.Common
@@ -302,27 +303,6 @@ wait desc pred shared
 	=	viewSharedInformation desc [ViewAs (const "Waiting for information update")] shared
 	>>* [OnValue (ifValue pred return)]
 	
-waitForTime :: !Time -> Task Time
-waitForTime time =
-	viewSharedInformation ("Wait for time", ("Wait until " +++ toString time)) [] currentTime >>* [OnValue (ifValue (\now -> time < now) return)]
-
-waitForDate :: !Date -> Task Date
-waitForDate date =
-	viewSharedInformation ("Wait for date", ("Wait until " +++ toString date)) [] currentDate >>* [OnValue (ifValue (\now -> date < now) return)]
-	
-waitForDateTime :: !DateTime -> Task DateTime
-waitForDateTime datetime =
-	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime >>* [OnValue (ifValue (\now -> datetime < now) return)]
-
-waitForUTCDateTime :: !DateTime -> Task DateTime
-waitForUTCDateTime datetime =
-	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentUTCDateTime >>* [OnValue (ifValue (\now -> datetime < now) return)]
-
-waitForTimer :: !Int -> Task DateTime
-waitForTimer interval = get currentDateTime >>- \now -> waitForUTCDateTime (endTime interval now)
-where
-	endTime interval now = let (Timestamp ts) = datetimeToTimestamp now in timestampToGmDateTime (Timestamp (ts + interval))
-
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions
 	=	viewInformation () [] ()

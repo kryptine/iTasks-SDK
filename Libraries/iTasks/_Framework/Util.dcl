@@ -2,9 +2,9 @@ definition module iTasks._Framework.Util
 
 from StdClass import class Eq
 from Data.Error import :: MaybeErrorString, :: MaybeError
-
 import iTasks.API.Core.Types
 from Data.Map import :: Map
+from iTasks.API.Extensions.DateTime import :: DateTime
 
 show                :: ![String] !*World -> *World
 
@@ -15,10 +15,6 @@ instance toString (Maybe a) | toString a
 
 currentLocalDateTimeWorld	:: !*World	-> (!DateTime,!*World)
 currentUTCDateTimeWorld	    :: !*World	-> (!DateTime,!*World)
-
-timestampToGmDateTime	:: !Timestamp -> DateTime
-dateToTimestamp			:: !Date -> Timestamp
-datetimeToTimestamp 	:: !DateTime -> Timestamp
 
 //Path conversion
 toCanonicalPath			:: !FilePath !*World -> (!FilePath,!*World)

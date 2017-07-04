@@ -76,7 +76,7 @@ evalTaskInstance instanceNo event iworld
     # (res,iworld)      = evalTaskInstance` instanceNo event iworld
     = (res,iworld)
 where
-    evalTaskInstance` instanceNo event iworld=:{clocks={localDate,localTime},current}
+    evalTaskInstance` instanceNo event iworld=:{clocks={timestamp,localDate,localTime},current}
     # (constants, iworld)       = 'SDS'.read (sdsFocus instanceNo taskInstanceConstants) iworld
 	| isError constants         = ((\(Error (e,msg)) -> Error msg) constants, iworld)
 	# constants=:{InstanceConstants|session,listId} = fromOk constants
@@ -117,9 +117,9 @@ where
     // Check if instance was deleted by trying to reread the instance constants share
 	# (deleted,iworld) = appFst isError ('SDS'.read (sdsFocus instanceNo taskInstanceConstants) iworld)
     // Write the updated progress
-	# (mbErr,iworld) = if (updateProgress (datetimeToTimestamp (toDateTime localDate localTime)) newResult oldProgress === oldProgress)
+	# (mbErr,iworld) = if (updateProgress timestamp newResult oldProgress === oldProgress)
 		(Ok (),iworld)	//Only update progress when something changed
-   		('SDS'.modify (\p -> ((),updateProgress (datetimeToTimestamp (toDateTime localDate localTime)) newResult p)) (sdsFocus instanceNo taskInstanceProgress) iworld)
+   		('SDS'.modify (\p -> ((),updateProgress timestamp newResult p)) (sdsFocus instanceNo taskInstanceProgress) iworld)
     = case mbErr of
         Error (e,msg)          = (Error msg,iworld)
         Ok _

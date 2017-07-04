@@ -59,6 +59,12 @@ derive gEq ParallelTaskChange, AttachmentStatus
     , includeProgress   :: !Bool
     }
 
+instance toString AttachException
+where
+	toString InstanceNotFound	= "Cannot find task instance to attach"
+	toString InstanceEvalError	= "Error in attached task instance "
+
+derive class iTask AttachException
 
 transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b
 transform f (Task evala) = Task eval

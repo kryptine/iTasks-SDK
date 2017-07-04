@@ -5,7 +5,6 @@ from Data.Map import :: Map (..)
 from Data.Functor import class Functor(..)
 import qualified Data.Map as DM
 import qualified Data.List as DL
-from iTasks.API.Core.Types import :: Document, :: DocumentId, :: Date, :: Time, :: Action(..)
 
 from iTasks.WF.Definition import class iTask(..)
 from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
@@ -218,9 +217,6 @@ instance encodeUI Real				where encodeUI v = JSONReal v
 instance encodeUI Char 				where encodeUI v = JSONString (toString v)
 instance encodeUI String			where encodeUI v = JSONString v
 instance encodeUI Bool				where encodeUI v = JSONBool v
-instance encodeUI Document			where encodeUI v = toJSON v
-instance encodeUI Date				where encodeUI v = toJSON v
-instance encodeUI Time				where encodeUI v = toJSON v
 instance encodeUI HtmlTag			where encodeUI v = JSONString (toString v)
 
 instance encodeUI JSONNode

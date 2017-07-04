@@ -3,6 +3,7 @@ implementation module iTasks.UI.Layout.Common
 import iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks.UI.Definition, iTasks.UI.Prompt
 import iTasks.WF.Combinators.Tune
+import iTasks.WF.Combinators.Overloaded
 import iTasks.API.Core.Types
 import Data.List, Text.JSON
 import qualified Data.Map as DM

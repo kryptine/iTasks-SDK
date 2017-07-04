@@ -9,6 +9,28 @@ from Data.Maybe import :: Maybe
 //* Next task actions
 :: Action	= Action !String //Locally unique identifier for actions
 
+//* Common action constants with predefined options
+ActionOk		:== Action "Ok"
+ActionCancel	:==	Action "Cancel"
+ActionYes		:== Action "Yes"
+ActionNo		:== Action "No"
+ActionNext		:== Action "Next"
+ActionPrevious	:== Action "Previous"
+ActionFinish	:== Action "Finish"
+ActionContinue	:==	Action "Continue"
+ActionOpen		:== Action "/File/Open"
+ActionSave		:== Action "/File/Save"
+ActionSaveAs 	:== Action "/File/Save as"
+ActionQuit		:== Action "/File/Quit"
+ActionHelp		:==	Action "/Help/Help"
+ActionAbout		:== Action "/Help/About"
+ActionFind		:== Action "/Edit/Find"
+ActionNew		:== Action "New"
+ActionEdit		:== Action "Edit"
+ActionDelete	:== Action "Delete"
+ActionRefresh	:== Action "Refresh"
+ActionClose		:==	Action "Close"
+	
 :: ParallelTaskType	
 	= Embedded                                    //Simplest embedded
     | NamedEmbedded !String                       //Embedded with name
@@ -52,6 +74,10 @@ from Data.Maybe import :: Maybe
     | ASDeleted             //* the task instance does not exist anymore
     | ASIncompatible        //* the task instance can not be executed in this is version of the program (it was created by an older version)
 
+:: AttachException		= InstanceNotFound | InstanceEvalError 
+
+derive class iTask AttachException
+instance toString AttachException
 /**
 * Adds a result transformation function to a task.
 * The resulting task is still considered a single step in the workflow.

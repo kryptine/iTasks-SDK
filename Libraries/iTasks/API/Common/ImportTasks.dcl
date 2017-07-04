@@ -3,8 +3,8 @@ definition module iTasks.API.Common.ImportTasks
 * This module provides tasks for importing external data into a workflow.
 */
 from System.FilePath import :: FilePath
-import iTasks.API.Core.Types
-import iTasks._Framework.Task
+import iTasks.API.Extensions.Document
+
 /**
 * Import a file on the server's filesystem as a Document
 *

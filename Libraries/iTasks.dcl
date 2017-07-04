@@ -22,6 +22,7 @@ import
     ,   iTasks.WF.Combinators.Core
     ,   iTasks.WF.Combinators.SDS
     ,   iTasks.WF.Combinators.Tune
+    ,   iTasks.WF.Combinators.Overloaded
     ,   iTasks.API
 	
 	//	Miscellaneous machinery

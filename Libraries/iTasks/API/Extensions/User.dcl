@@ -8,7 +8,7 @@ import iTasks
 //* User identification
 :: User
     = SystemUser                                            //* The global user that is used when events do not originate from a session
-	| AnonymousUser !SessionId								//* An anonymous user identified only by a session id
+	| AnonymousUser !String								    //* An anonymous user identified only by a session id
 	| AuthenticatedUser !UserId ![Role] !(Maybe UserTitle)	//* An authenticated user
 
 instance toString	User

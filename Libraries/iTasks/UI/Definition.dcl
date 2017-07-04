@@ -14,7 +14,6 @@ from Data.Functor import class Functor
 from iTasks._Framework.Task	import :: TaskId
 from Text.HTML			import :: HtmlTag
 from Data.Map			import :: Map
-from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time
 from iTasks.WF.Combinators.Core import :: Action
 
 from iTasks.WF.Definition import class iTask
@@ -244,9 +243,6 @@ instance encodeUI Real
 instance encodeUI Char
 instance encodeUI String
 instance encodeUI Bool
-instance encodeUI Document
-instance encodeUI Date
-instance encodeUI Time
 instance encodeUI HtmlTag
 instance encodeUI JSONNode
 instance encodeUI (Maybe a) | encodeUI a

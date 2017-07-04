@@ -13,6 +13,7 @@ from iTasks.SDS.Definition import :: SDSLensRead(..), :: SDSLensWrite(..), :: SD
 import iTasks.SDS.Combinators.Core, iTasks.SDS.Combinators.Common
 import iTasks._Framework.SDSService
 import iTasks._Framework.Client.Override
+import iTasks.API.Extensions.Document
 
 import qualified Data.Map as DM
 import qualified Data.Queue as DQ
@@ -103,7 +104,7 @@ newDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)
 newDocumentId iworld=:{IWorld|random}
 	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld & random = drop 32 random})
 	
-createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
+createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
 createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},current={taskTime},clocks={timestamp,localDate,localTime}}
     //Create the initial instance data in the store
     # progress  = {InstanceProgress|value=None,instanceKey="client",attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}

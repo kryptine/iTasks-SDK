@@ -9,7 +9,6 @@ from StdFile			                import class FileSystem
 from System.Time				        import :: Timestamp
 from Text.JSON				            import :: JSONNode
 from System.Process         import :: ProcessHandle, :: ProcessIO
-from iTasks.API.Core.Types		        import :: Date, :: Time, :: DateTime, :: Config,   :: SessionId
 from iTasks.UI.Definition				import :: UI, :: UINodeType
 from iTasks._Framework.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
 from iTasks._Framework.Task             import :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask
@@ -19,6 +18,7 @@ from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceN
 from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem 
 from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared, :: Shared
 from iTasks._Framework.SDS import :: SDSNotifyRequest, :: JSONShared 
+from iTasks.API.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
 from Sapl.Linker.LazyLinker import :: LoaderState
 from Sapl.Linker.SaplLinkerShared import :: LineType, :: FuncTypeMap
@@ -51,6 +51,11 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
                     , onClient				:: !Bool									// "False" on the server, "True" on the client
 					, shutdown				:: !Maybe Int                               // Signals the server function to shut down, the int will be set as exit code
 					}
+
+:: Config =
+	{ sessionTime		:: !Int		//* Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
+	, smtpServer		:: !String	//* The smtp server to use for sending e-mails
+	}
 
 :: ServerInfo =
     { serverName      :: !String				// The name of the server application

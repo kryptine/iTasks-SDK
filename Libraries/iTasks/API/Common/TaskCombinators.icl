@@ -15,7 +15,7 @@ import qualified Data.Map as DM
 
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
-import iTasks.WF.Combinators.Core, iTasks.WF.Combinators.Tune
+import iTasks.WF.Combinators.Core, iTasks.WF.Combinators.Tune, iTasks.WF.Combinators.Overloaded
 import iTasks.API.Common.InteractionTasks, iTasks.UI.Layout, iTasks.UI.Prompt
 import iTasks.UI.Layout.Common, iTasks.UI.Layout.Default
 

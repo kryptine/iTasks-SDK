@@ -22,6 +22,7 @@ import Internet.HTTP, System.Time, System.CommandLine, Data.Func
 import iTasks._Framework.Engine, iTasks._Framework.IWorld, iTasks._Framework.TaskEval, iTasks._Framework.TaskStore
 import iTasks._Framework.Util
 import iTasks._Framework.TaskServer
+from iTasks.API.Extensions.DateTime import toDate, toTime, instance == Date, instance == Time
 
 from Data.Set import :: Set, newSet
 from Sapl.Linker.LazyLinker import generateLoaderState, :: LoaderStateExt

@@ -45,100 +45,15 @@ from iTasks._Framework.Generic.Defaults import generic gDefault
 from Text.JSON import generic JSONEncode, generic JSONDecode
 from GenEq import generic gEq
 
-class TApplicative f | Functor f where
-    (<#>)  :: (f (a -> b)) (f a) -> f b | iTask a & iTask b
-    return :: a -> f a | iTask a
-
-class TMonad m | TApplicative m where
-    (>>=) infixl 1 :: (m a) (a -> m b) -> m b | iTask a & iTask b
-    (>>|) infixl 1 :: (m a) (     m b) -> m b | iTask a & iTask b
-
-instance Functor Task
-instance TApplicative Task
-instance TMonad Task
-
-instance TApplicative Maybe
-instance TMonad Maybe
-
-instance TApplicative []
-instance TMonad []
-
-instance TApplicative (Either e)
-instance TMonad (Either e)
-
-//* local date and time
-:: Date	=
-	{ year	:: !Int
-	, mon	:: !Int
-	, day	:: !Int
-	}
-
-:: Time =
-	{ hour	:: !Int
-	, min	:: !Int
-	, sec	:: !Int
-	}
-
-:: DateTime =
-	{ year	:: !Int
-	, mon	:: !Int 
-	, day	:: !Int
-	, hour	:: !Int
-	, min	:: !Int
-	, sec	:: !Int
-	}
-
-//Conversion
-toTime :: DateTime -> Time
-toDate :: DateTime -> Date
-toDateTime :: Date Time -> DateTime
-
-//Printing and parsing
-
-instance toString	Date, Time, DateTime
-
-parseDate :: String -> MaybeErrorString Date         //Expected format: "yyyy-mm-dd"
-parseTime :: String -> MaybeErrorString Time         //Expected format: "hh:mm:ss"
-parseDateTime :: String -> MaybeErrorString DateTime //Expected format: "yyyy-mm-dd hh:mm:ss"
-
-instance fromString	Date, Time, DateTime //Assumes parse* succeeds
-
-//Comparison
-instance ==	Date, Time, DateTime
-instance <	Date, Time, DateTime
-
-//* Documents
-:: Document =
-	{ documentId	:: !DocumentId				//*A unique identifier of the document
-	, contentUrl	:: !String					//*A url to where the document can be downloaded
-	, name			:: !String					//*The filename of a document
-	, mime			:: !String					//*The mime type of the document
-	, size			:: !Int						//*The filesize in bytes
-	}
-:: DocumentId	:== String
-
-instance toString	Document
-instance ==			Document
-
-derive JSONEncode		Date, Time, DateTime, Document 
-derive JSONDecode		Date, Time, DateTime, Document
-derive gDefault			Date, Time, DateTime, Document
-derive gEq				Date, Time, DateTime, Document
-derive gText	        Date, Time, DateTime, Document
-derive gEditor 			Date, Time, DateTime, Document
-
 //* Common exceptions used by API tasks
-
 :: FileException		= FileException !FilePath !FileError
 :: ParseException		= CannotParse !String
 :: CallException		= CallFailed !OSError
-:: SharedException		= SharedException !String
 :: RPCException			= RPCException !String
 :: OSException			= OSException !OSError
-:: AttachException		= InstanceNotFound | InstanceEvalError 
 
-derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, AttachException
-instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, AttachException
+derive class iTask	FileException, ParseException, CallException, RPCException, OSException
+instance toString	FileException, ParseException, CallException, RPCException, OSException
 
 //****************************************************************************//
 // Framework types.
@@ -147,51 +62,10 @@ instance toString	FileException, ParseException, CallException, SharedException,
 // you may read them when interacting with the framework
 //****************************************************************************//
 
-instance Functor TaskValue
-
-:: SessionId	:== String
-
-class toInstanceNo t :: t -> InstanceNo
-instance toInstanceNo InstanceNo
-instance toInstanceNo TaskId
-
-instance toString	TaskId
-instance fromString	TaskId
-instance ==			TaskId
-instance <			TaskId
-
 //* Access to parallel task lists
 
 derive class iTask TaskListFilter
 
-//* Framework configuration
-:: Config =
-	{ sessionTime		:: !Int		//* Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
-	, smtpServer		:: !String	//* The smtp server to use for sending e-mails
-	}
-
-//Common action constants with predefined options
-ActionOk		:== Action "Ok"
-ActionCancel	:==	Action "Cancel"
-ActionYes		:== Action "Yes"
-ActionNo		:== Action "No"
-ActionNext		:== Action "Next"
-ActionPrevious	:== Action "Previous"
-ActionFinish	:== Action "Finish"
-ActionContinue	:==	Action "Continue"
-ActionOpen		:== Action "/File/Open"
-ActionSave		:== Action "/File/Save"
-ActionSaveAs 	:== Action "/File/Save as"
-ActionQuit		:== Action "/File/Quit"
-ActionHelp		:==	Action "/Help/Help"
-ActionAbout		:== Action "/Help/About"
-ActionFind		:== Action "/Edit/Find"
-ActionNew		:== Action "New"
-ActionEdit		:== Action "Edit"
-ActionDelete	:== Action "Delete"
-ActionRefresh	:== Action "Refresh"
-ActionClose		:==	Action "Close"
-	
 derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
 derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
 derive gDefault			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
@@ -200,7 +74,7 @@ derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, Valu
 derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
 derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
 
-derive class iTask		TaskId, Config
+derive class iTask		TaskId
 
 //****************************************************************************//
 // Types for task meta-data

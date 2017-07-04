@@ -8,7 +8,14 @@ import iTasks._Framework.Task
 import iTasks._Framework.TaskState
 import iTasks._Framework.TaskEval
 import qualified iTasks._Framework.SDS as SDS
+import StdString
 
+instance toString SharedException
+where
+	toString (SharedException err) = "Error performing operation on shared:" +++ err
+
+derive class iTask SharedException
+	
 get :: !(ReadWriteShared a w) -> Task a | iTask a
 get shared = mkInstantTask eval
 where

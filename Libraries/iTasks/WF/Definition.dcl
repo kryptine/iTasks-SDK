@@ -10,6 +10,7 @@ from iTasks.UI.Definition import :: UIChange
 from Text.JSON import :: JSONNode
 from Data.Maybe import :: Maybe
 from Data.Map import :: Map(..)
+from Data.Functor import class Functor
 from System.Time import :: Timestamp
 
 from iTasks.UI.Editor import :: Editor
@@ -18,6 +19,8 @@ from iTasks._Framework.Generic.Visualization import generic gText, :: TextFormat
 from iTasks._Framework.Generic.Defaults import generic gDefault
 from Text.JSON import generic JSONEncode, generic JSONDecode
 from GenEq import generic gEq
+from StdString import class toString, class fromString
+from StdClass import class <
 
 // Task definition:
 :: Task a = Task !(Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
@@ -45,6 +48,8 @@ StableValue   a :== Value a True
 UnstableValue a :== Value a False
 
 :: TaskException    :== (!Dynamic,!String) //The dynamic contains the actual exception which can be matched, the string is an error message
+
+instance Functor TaskValue
 /**
 * Creates an exception
 */
@@ -61,6 +66,15 @@ exception :: !e -> TaskException | TC, toString e
 
 :: TaskAttributes :== Map String String
 :: InstanceKey  :== String
+
+instance toString	TaskId
+instance fromString	TaskId
+instance ==			TaskId
+instance <			TaskId
+
+class toInstanceNo t :: t -> InstanceNo
+instance toInstanceNo InstanceNo
+instance toInstanceNo TaskId
 
 // Instance data which does not change after creation (except when a task is replaced)
 :: InstanceConstants =

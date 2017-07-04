@@ -13,6 +13,11 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 from Data.Maybe import :: Maybe
 
+:: SharedException		= SharedException !String
+
+derive class iTask SharedException
+instance toString SharedException
+
 /**
 * Reads shared data once.
 *

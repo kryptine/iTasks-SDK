@@ -6,7 +6,7 @@ definition module iTasks._Framework.TaskStore
 * Workflow instances: persistent long-running tasks that may be shared between users and exist between sessions.
 */
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks.UI.Definition, iTasks._Framework.SDS
-import iTasks.API.Core.Types
+import iTasks.API.Extensions.Document
 
 from Data.Maybe     import :: Maybe
 from Data.Error     import :: MaybeError
@@ -96,7 +96,7 @@ taskInstanceUIChanges	:: RWShared InstanceNo (Queue UIChange) (Queue UIChange)
 
 // Create and delete task instances:
 
-createClientTaskInstance :: !(Task a) !SessionId !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
+createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
 
 //Create a task instance
 createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
