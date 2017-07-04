@@ -6,6 +6,7 @@ from StdFunc import o
 import Data.Func
 import Data.List
 import Data.Maybe
+import Data.Either
 import qualified Data.Map as DM
 from Data.Map import instance Functor (Map a)
 from Data.Set import :: Set

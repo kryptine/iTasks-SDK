@@ -7,7 +7,7 @@ import iTasks._Framework.Serialization
 import Text, Text.HTML, System.CommandLine
 import qualified Data.Map as DM
 import iTasks.API.Extensions.Development.Codebase
-import Data.Func
+import Data.Func, Data.Either, Data.Error
 
 from iTasks._Framework.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{server}, :: ServerInfo(..), :: SystemPaths(..)
 from iTasks._Framework.TaskStore import createTaskInstance, taskInstanceUIChanges

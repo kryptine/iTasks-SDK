@@ -1,6 +1,6 @@
 implementation module iTasks.API.Extensions.Development.Codebase
 import iTasks
-import System.File, System.Directory, Text, StdFile, Data.List, Data.Tree
+import System.FilePath, System.File, System.Directory, Text, StdFile, Data.List, Data.Tree, Data.Error
 
 derive class iTask SourceTree, SourceTreeSelection, ModuleType, Extension
 instance == Extension where (==) x y = x === y

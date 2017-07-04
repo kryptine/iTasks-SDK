@@ -4,7 +4,7 @@ import iTasks
 import iTasks.UI.Definition, iTasks.UI.JS.Interface, iTasks.UI.JS.Encoding, iTasks.UI.Editor
 import iTasks.UI.JS.Map
 
-import Data.Functor, Text, StdMisc
+import Data.Functor, Data.Error, Text, StdMisc
 
 import qualified Data.Map as DM
 from StdArray import class Array(uselect), instance Array {} a

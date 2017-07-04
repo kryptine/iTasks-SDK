@@ -1,6 +1,10 @@
-definition module iTasks.API.Common.DBTasks
+definition module iTasks.API.Extensions.Database.StoreDatabase
+/**
+* This module provides a simple database on top of the iTasks store
+*
+*/
 
-import iTasks._Framework.Generic, iTasks._Framework.Task, iTasks._Framework.SDS
+import iTasks
 
 //Convenience wrapper functions for databases with multiple values of type a 
 class DB a where

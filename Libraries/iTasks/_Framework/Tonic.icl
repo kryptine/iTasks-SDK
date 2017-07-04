@@ -17,9 +17,8 @@ import iTasks._Framework.TaskEval
 import iTasks._Framework.Task
 import iTasks._Framework.Serialization
 import iTasks.API.Core.Types
-import iTasks.API.Common.TaskCombinators
-import iTasks.API.Common.ImportTasks
-import iTasks.API.Common.InteractionTasks
+import iTasks.WF.Tasks.Interaction
+import iTasks.WF.Combinators.Common
 import iTasks.API.Extensions.Admin.UserAdmin
 import iTasks.API.Extensions.SVG.SVGEditor
 import iTasks.API.Extensions.DateTime

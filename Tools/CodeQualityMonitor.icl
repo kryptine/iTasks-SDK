@@ -16,6 +16,7 @@ import iTasks.API.Extensions.Editors.Ace
 import iTasks.API.Extensions.Development.Codebase
 import iTasks.API.Extensions.Development.Testing
 import iTasks.API.Extensions.Image
+import iTasks.API.Extensions.TextFile
 
 
 import Tests.Interactive.BuiltinEditors

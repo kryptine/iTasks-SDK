@@ -1,13 +1,7 @@
-implementation module iTasks.API.Common.DBTasks
+definition module iTasks.API.Extensions.Database.StoreDatabase
 
+import iTasks
 import StdList, StdOrdList, Data.List
-import iTasks._Framework.Generic, iTasks._Framework.Task, iTasks._Framework.SDS
-import iTasks._Framework.Util
-import iTasks.API.Core.Types
-import iTasks.API.Common.TaskCombinators
-import iTasks.WF.Combinators.Overloaded
-
-from iTasks.WF.Tasks.SDS import get, set
 
 //	Convenient operations on databases
 eqItemId :: a a -> Bool | DB a

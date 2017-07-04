@@ -15,6 +15,7 @@ import StdMisc
 import Data.Array
 import Data.List
 import Data.Func
+import Data.Error
 from Data.Set import :: Set, instance == (Set a), instance < (Set a)
 import qualified Data.Set as DS
 from StdFunc import `bind`, flip

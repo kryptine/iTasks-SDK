@@ -18,7 +18,7 @@ import System.Time, System.File, System.FilePath
 import iTasks.SDS.Definition
 from iTasks.UI.Definition import :: UI(..), :: UIDirection(..), stringDisplay
 from iTasks.WF.Tasks.Core import treturn
-from iTasks.API.Common.TaskCombinators import tbind, @
+from iTasks.WF.Combinators.Common import tbind, @
 
 JSONEncode{|SDS|} _ _ _ _ s = []
 JSONDecode{|SDS|} _ _ _ _ s = (Nothing, s)

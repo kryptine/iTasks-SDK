@@ -3,11 +3,10 @@ implementation module iTasks.WF.Combinators.Overloaded
 import iTasks.WF.Definition
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Combinators.Core
+import iTasks.WF.Combinators.Common
 import Data.Maybe, Data.Either, Data.List
 
-import iTasks.API.Common.TaskCombinators
 import iTasks._Framework.Serialization
-
 
 instance Functor Task where
   fmap f x = transform (fmap f) x 

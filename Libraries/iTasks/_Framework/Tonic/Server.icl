@@ -7,6 +7,7 @@ import qualified Data.Map as DM
 from Data.Map import :: Map
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.List as DL
+import Data.Error 
 from Data.IntMap.Strict import :: IntMap
 import iTasks._Framework.Tonic.Blueprints
 import iTasks.API.Extensions.Admin.TonicAdmin

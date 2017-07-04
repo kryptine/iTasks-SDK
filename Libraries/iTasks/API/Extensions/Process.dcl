@@ -2,7 +2,7 @@ definition module iTasks.API.Extensions.Process
 
 import iTasks.WF.Definition
 from iTasks.UI.Prompt import class toPrompt
-from iTasks.API.Common.InteractionTasks import :: ViewOption
+from iTasks.WF.Tasks.Interaction import :: ViewOption
 
 from System.FilePath import :: FilePath
 

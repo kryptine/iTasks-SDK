@@ -1,11 +1,11 @@
 implementation module iTasks.API.Extensions.Process
 
 import iTasks.WF.Definition
+import iTasks.WF.Tasks.Interaction
 import iTasks.UI.Definition
 import iTasks.UI.Prompt
 import iTasks.UI.Editor.Builtin
 import iTasks.UI.Editor.Combinators
-import iTasks.API.Common.InteractionTasks
 import iTasks._Framework.Task
 import iTasks._Framework.TaskEval
 import iTasks._Framework.TaskState
@@ -17,7 +17,6 @@ import StdTuple, StdBool
 import Data.Maybe, Data.Error, Text.JSON
 import qualified System.Process
 import qualified Data.Map as DM
-
 
 :: ProcessStatus
 	= RunningProcess !String

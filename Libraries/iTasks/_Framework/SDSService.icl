@@ -9,8 +9,9 @@ from iTasks._Framework.TaskState 	import :: TIUIState
 
 import iTasks._Framework.HtmlUtil, iTasks._Framework.DynamicUtil
 import iTasks._Framework.RemoteAccess
-from iTasks._Framework.SDS as SDS import qualified read, write, :: Shared, :: JSONShared
-from iTasks._Framework.SDS import getURLbyId
+from iTasks._Framework.SDS as SDS import qualified read, write, :: Shared 
+from iTasks._Framework.SDS import :: JSONShared
+from iTasks._Framework.SDS import getURLbyId, createReadWriteSDS, fromJSONShared
 from iTasks.API.Core.Types import :: InstanceNo
 from iTasks.API.Extensions.Web import callHTTP
 
@@ -19,7 +20,7 @@ import StdString, StdList
 from Data.Map import qualified get, fromList
 from Data.Map import fromList
 import Data.Maybe, Data.Error
-import Text.URI
+import Text.JSON, Text.URI
 import StdMisc, graph_to_sapl_string
 import Data.Queue
 

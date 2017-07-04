@@ -19,10 +19,12 @@ import
     ,   iTasks.WF.Tasks.SDS
     ,   iTasks.WF.Tasks.IO
     ,   iTasks.WF.Tasks.System
+    ,   iTasks.WF.Tasks.Interaction
     ,   iTasks.WF.Combinators.Core
     ,   iTasks.WF.Combinators.SDS
     ,   iTasks.WF.Combinators.Tune
     ,   iTasks.WF.Combinators.Overloaded
+    ,   iTasks.WF.Combinators.Common
     ,   iTasks.API
 	
 	//	Miscellaneous machinery
