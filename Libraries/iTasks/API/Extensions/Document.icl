@@ -5,7 +5,6 @@ import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
 
 import iTasks._Framework.Task, iTasks._Framework.IWorld, iTasks._Framework.TaskStore
 import StdBool, StdString, StdFile, StdArray
-from iTasks.API.Core.Types import :: FileException(..)
 
 import Text.JSON, Text.Encodings.MIME, System.FilePath, System.File, System.OSError, Data.Error
 import qualified Data.Map as DM
@@ -35,6 +34,15 @@ where
 instance == Document
 where
 	(==) doc0 doc1 = doc0.documentId == doc1.documentId
+
+instance toString FileException
+where
+	toString (FileException path error) = case error of
+		CannotOpen	= "Cannot open file '" +++ path +++ "'"
+		CannotClose	= "Cannot close file '" +++ path +++ "'"
+		IOError		= "Error reading/writing file '" +++ path +++ "'"
+
+derive class iTask	FileException, FileError
 
 importDocument :: !FilePath -> Task Document
 importDocument filename = mkInstantTask eval

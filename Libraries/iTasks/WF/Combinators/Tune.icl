@@ -7,6 +7,7 @@ import iTasks.UI.Layout
 import iTasks._Framework.TaskState
 import iTasks._Framework.TaskEval
 import Text.JSON
+import qualified Data.Map as DM
 
 //This type records the states of layouts applied somewhere in a ui tree
 derive JSONEncode LayoutState, LayoutTree, MvUI, MvUIChild
@@ -59,4 +60,11 @@ where
 		
 		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
 
+
+class toAttribute a where toAttribute :: a -> JSONNode
+instance toAttribute String where toAttribute s = JSONString s
+
+instance tune (ApplyAttribute a) | toAttribute a
+where
+	tune (ApplyAttribute k v) task = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(k,toAttribute v)]))) task
 

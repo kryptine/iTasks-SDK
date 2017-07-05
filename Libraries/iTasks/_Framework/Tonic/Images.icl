@@ -20,7 +20,6 @@ import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
 import iTasks._Framework.Tonic.Pretty
 import iTasks.UI.Definition
-import iTasks.API.Core.Types
 import iTasks.API.Extensions.SVG.SVGEditor
 import Text
 import StdMisc

@@ -78,6 +78,8 @@ accWorldError   :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a
 */
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World))             -> Task a | iTask a
 
+:: OSException			= OSException !OSError
+instance toString OSException
 
 /**
 * Core interaction task. All other interaction tasks are derived from this one.

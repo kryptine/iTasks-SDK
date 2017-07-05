@@ -4,5 +4,6 @@ definition module Incidone.OP.ImportExportTasks
 * parts of the operational picture data
 */
 import iTasks
+import iTasks.API.Extensions.Document
 
 importContactsFromCSVFile :: Document -> Task ()

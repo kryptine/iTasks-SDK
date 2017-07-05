@@ -21,7 +21,6 @@ from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat
 from iTasks._Framework.Generic.Defaults		import generic gDefault
 from iTasks._Framework.Serialization import serialize, deserialize, functionFree
 from iTasks.UI.Editor.Generic import generic gEditor
-from iTasks.API.Core.Types import :: TaskListItem
 
 from iTasks.WF.Definition import :: TaskId, :: TaskNo, :: InstanceNo
 from iTasks.SDS.Combinators.Core import sdsLens

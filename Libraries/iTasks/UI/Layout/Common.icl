@@ -4,7 +4,6 @@ import iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks.UI.Definition, iTasks.UI.Prompt
 import iTasks.WF.Combinators.Tune
 import iTasks.WF.Combinators.Overloaded
-import iTasks.API.Core.Types
 import Data.List, Text.JSON
 import qualified Data.Map as DM
 import StdBool
@@ -161,10 +160,6 @@ where
 instance tune Icon
 where
 	tune (Icon icon) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]))) t
-
-instance tune Attribute
-where
-	tune (Attribute k v) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(k,JSONString v)]))) t
 
 instance tune Label
 where

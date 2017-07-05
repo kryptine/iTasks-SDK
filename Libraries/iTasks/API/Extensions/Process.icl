@@ -22,9 +22,13 @@ import qualified Data.Map as DM
 	= RunningProcess !String
 	| CompletedProcess !Int
 
-derive class iTask ProcessStatus
+derive class iTask ProcessStatus, CallException
 derive JSONEncode ProcessHandle
 derive JSONDecode ProcessHandle
+
+instance toString CallException
+where
+	toString (CallFailed (_,err)) = "Error calling external process: " +++ err
 
 callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | toPrompt d
 callProcess desc opts cmd args dir = Task eval

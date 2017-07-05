@@ -1,6 +1,6 @@
 implementation module iTasks._Framework.Client.Override
 
-import iTasks.API.Core.Types
+import iTasks.WF.Definition
 
 cast :: a -> b | TC a & TC b
 cast a = case make_dynamic a of (a::b^) -> a

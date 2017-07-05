@@ -1,5 +1,6 @@
 definition module iTasks.API.Extensions.Contact
 import iTasks
+import Text.HTML
 
 //* E-mail addresses
 :: EmailAddress	= EmailAddress !String

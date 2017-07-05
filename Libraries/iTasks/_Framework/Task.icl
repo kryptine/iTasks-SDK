@@ -4,11 +4,10 @@ from StdFunc import const, id
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdBool, StdMisc
 from Data.Map import :: Map
 import qualified Data.Map as DM
-import Text.HTML, Internet.HTTP, Data.Error, Text.JSON
+import Text.HTML, Internet.HTTP, Data.Error, Data.Functor, Text.JSON
 import iTasks._Framework.IWorld, iTasks.UI.Definition, iTasks._Framework.Util, iTasks._Framework.DynamicUtil
-import iTasks.API.Core.Types
 import iTasks._Framework.Generic
-from System.OSError import :: MaybeOSError
+from System.OSError import :: MaybeOSError, :: OSError, :: OSErrorCode, :: OSErrorMessage
 
 import iTasks.WF.Definition
 import iTasks.WF.Tasks.IO

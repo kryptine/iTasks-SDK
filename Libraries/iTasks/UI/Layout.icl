@@ -4,7 +4,6 @@ import StdTuple, StdList, StdBool, StdInt, StdOrdList, StdArray, StdMisc
 import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition
 import iTasks._Framework.Generic.Defaults 
-import iTasks.API.Core.Types
 import StdEnum
 from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys, unions, singleton
 from Data.Tuple import appSnd
@@ -14,6 +13,7 @@ from StdFunc import o, const, id, flip
 from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
 from iTasks._Framework.TaskEval import :: TaskTime
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
+import iTasks.WF.Definition
 import GenEq
 import StdDebug
 

@@ -48,6 +48,10 @@ where
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World)) -> Task a | iTask a
 accWorldOSError fun = accWorldError fun OSException
 
+instance toString OSException
+where
+	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
+
 interact :: !d !EditMode !(RWShared () r w)
 				(r -> (l, v))                       //On init
 				(v l v -> (l, v, Maybe (r -> w))) 	//On edit

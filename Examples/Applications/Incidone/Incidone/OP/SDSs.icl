@@ -5,6 +5,7 @@ import qualified Data.Map as DM
 import Incidone.Configuration
 import Incidone.OP.Concepts, Incidone.OP.Conversions
 import Incidone.Util.SQLSDS
+import Data.Functor
 
 derive class iTask ContactFilter
 

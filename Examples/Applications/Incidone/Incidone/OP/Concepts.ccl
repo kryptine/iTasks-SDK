@@ -1,6 +1,6 @@
 concept module Incidone.OP.Concepts
 
-import iTasks, iTasks.API.Extensions.Contact, Database.SQL, Incidone.OP.ConceptsTOP, Incidone.OP.ConceptsSQL, Incidone.ContactPosition, Incidone.Util.AIS
+import iTasks, iTasks.API.Extensions.Document, iTasks.API.Extensions.Contact, Database.SQL, Incidone.OP.ConceptsTOP, Incidone.OP.ConceptsSQL, Incidone.ContactPosition, Incidone.Util.AIS
 
 //Shared value types
 $$ MMSI = Int

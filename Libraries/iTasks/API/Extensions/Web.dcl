@@ -2,6 +2,7 @@ definition module iTasks.API.Extensions.Web
 import iTasks
 from Internet.HTTP import :: HTTPMethod, :: HTTPRequest, :: HTTPResponse
 from Text.URI import :: URI
+from Text.HTML import class html
 /**
 * This module provides support for building web applications.
 */

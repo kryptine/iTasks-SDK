@@ -12,7 +12,6 @@ import iTasks._Framework.RemoteAccess
 from iTasks._Framework.SDS as SDS import qualified read, write, :: Shared 
 from iTasks._Framework.SDS import :: JSONShared
 from iTasks._Framework.SDS import getURLbyId, createReadWriteSDS, fromJSONShared
-from iTasks.API.Core.Types import :: InstanceNo
 from iTasks.API.Extensions.Web import callHTTP
 
 from StdFunc import o
@@ -22,7 +21,7 @@ from Data.Map import fromList
 import Data.Maybe, Data.Error
 import Text.JSON, Text.URI
 import StdMisc, graph_to_sapl_string
-import Data.Queue
+import Data.Queue, Data.Functor
 
 sdsService :: WebService (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange))
 sdsService = { urlMatchPred    = matchFun

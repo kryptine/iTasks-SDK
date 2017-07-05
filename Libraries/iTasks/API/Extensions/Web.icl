@@ -7,6 +7,7 @@ import System.Time, System.FilePath
 from iTasks._Framework.HttpUtil import http_addRequestData, http_parseArguments
 import iTasks._Framework.HtmlUtil
 
+import iTasks.API.Extensions.Document
 import iTasks.API.Extensions.TextFile
 
 import qualified Data.Map as DM

@@ -3,7 +3,6 @@ definition module iTasks._Framework.Task
 * This module provides types for the definition of tasks.
 */
 
-import iTasks.API.Core.Types
 import iTasks._Framework.Generic
 import iTasks.WF.Definition
 from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
@@ -14,7 +13,7 @@ from iTasks.SDS.Definition import :: RWShared
 from iTasks.UI.Definition import :: UIChange
 from Data.Map			import :: Map
 from Data.CircularStack import :: CircularStack
-from System.OSError		import :: MaybeOSError
+from System.OSError		import :: MaybeOSError, :: OSError, :: OSErrorCode, :: OSErrorMessage
 
 derive JSONEncode		Task
 derive JSONDecode		Task

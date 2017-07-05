@@ -5,6 +5,7 @@ import iTasks._Framework.Test.Stubs
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Layout
 import iTasks._Framework.IWorld
 import qualified Data.Map as DM
+import Data.Either
 import StdMisc
 
 derive gText EditMask, FieldMask, CompoundMask

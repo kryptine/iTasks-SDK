@@ -2,7 +2,6 @@ implementation module iTasks._Framework.Tonic.Types
 
 import StdString
 import StdOverloaded
-import iTasks.API.Core.Types
 import iTasks._Framework.Generic
 import iTasks._Framework.Tonic.AbsSyn
 import qualified Data.Map as DM

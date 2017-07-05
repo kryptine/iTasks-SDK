@@ -1,6 +1,7 @@
 implementation module iTasks.API.Extensions.Admin.StoreAdmin
 import iTasks
 import qualified iTasks._Framework.Store
+import Data.Error
 
 manageStore :: Task ()
 manageStore

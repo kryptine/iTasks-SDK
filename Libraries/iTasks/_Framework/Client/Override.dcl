@@ -1,6 +1,7 @@
 definition module iTasks._Framework.Client.Override
 
-import StdDynamic, iTasks.API.Core.Types
+import StdDynamic
+import iTasks.WF.Definition
 
 // The functions of this module have different implementation
 // at clint side. It is achieved by excluding this module from linking.

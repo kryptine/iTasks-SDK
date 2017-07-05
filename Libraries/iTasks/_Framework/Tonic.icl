@@ -16,7 +16,6 @@ import iTasks._Framework.TaskStore
 import iTasks._Framework.TaskEval
 import iTasks._Framework.Task
 import iTasks._Framework.Serialization
-import iTasks.API.Core.Types
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
 import iTasks.API.Extensions.Admin.UserAdmin

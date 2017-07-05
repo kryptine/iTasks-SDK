@@ -10,11 +10,10 @@ from iTasks._Framework.TaskEval import :: TaskTime, :: TaskEvalInfo(..), :: Toni
 from iTasks._Framework.Tonic.AbsSyn import :: ExprId (..)
 import iTasks._Framework.Serialization
 import Data.CircularStack
-import iTasks.API.Core.Types
-import Data.Error
+import Data.Error, Data.Either
 
-derive JSONEncode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack, AttachmentStatus
-derive JSONDecode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack, AttachmentStatus
+derive JSONEncode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack
+derive JSONDecode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack
 
 JSONEncode{|DeferredJSON|} _ (DeferredJSON a)
 	= JSONEncode{|*|} False a

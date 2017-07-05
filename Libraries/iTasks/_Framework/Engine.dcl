@@ -7,6 +7,7 @@ definition module iTasks._Framework.Engine
 
 from StdList import ++, iterate, take
 from System.FilePath import </>
+from System.FilePath import :: FilePath
 from System.OS import IF_POSIX_OR_WINDOWS
 import iTasks._Framework.Task
 

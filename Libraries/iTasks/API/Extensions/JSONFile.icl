@@ -1,7 +1,14 @@
 implementation module iTasks.API.Extensions.JSONFile
 
-import StdBool, StdList, System.FilePath, System.File, Data.Error, Text.JSON
+import StdBool, StdList, StdFile, StdArray, System.FilePath, System.File, Data.Error, Text.JSON
 import iTasks._Framework.IWorld, iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks._Framework.TaskStore
+
+:: JSONParseException = CannotParse !String
+instance toString JSONParseException
+where
+	toString (CannotParse msg) = msg
+
+CHUNK_SIZE :== 1048576 // 1M
 
 importJSONFile :: !FilePath -> Task a | iTask a
 importJSONFile filename = mkInstantTask eval
@@ -61,7 +68,15 @@ readJSON taskId filename parsefun iworld=:{IWorld|current={taskTime},world}
           = (Ok a, {IWorld|iworld & world = world})
 		Nothing
           = (parseException filename, {IWorld|iworld & world = world})
-	
+
+readAll file
+	# (chunk,file) = freads file CHUNK_SIZE
+	| size chunk < CHUNK_SIZE
+		= (chunk,file)
+	| otherwise
+		# (rest,file) = readAll file
+		= (chunk +++ rest,file)
+
 writeAll content file
 	= fwrites content file
 

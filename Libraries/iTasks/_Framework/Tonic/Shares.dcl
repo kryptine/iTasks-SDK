@@ -1,6 +1,6 @@
 definition module iTasks._Framework.Tonic.Shares
 
-import iTasks.API.Core.Types
+import iTasks.WF.Definition
 import iTasks.SDS.Definition
 from iTasks.UI.Definition import :: UI
 from iTasks._Framework.Tonic.AbsSyn import :: VarName

@@ -2,7 +2,7 @@ implementation module iTasks._Framework.Tonic.Blueprints
 
 import iTasks
 import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
-import iTasks._Framework.SDS, iTasks.API.Core.Types
+import iTasks._Framework.SDS
 import iTasks._Framework.Tonic.Blueprints
 import iTasks._Framework.Engine
 import iTasks._Framework.SDS
@@ -18,7 +18,6 @@ import iTasks._Framework.TaskState
 import iTasks._Framework.TaskStore
 import iTasks._Framework.TaskEval
 import iTasks._Framework.Task
-import iTasks.API.Core.Types
 from StdFunc import seq
 import qualified Data.Map as DM
 import System.File, StdFile

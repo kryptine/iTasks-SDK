@@ -6,7 +6,7 @@ import Incidone.OP.Conversions
 import Incidone.OP.SDSs
 import Incidone.OP.CommunicationManagementTasks
 import Incidone.Util.TaskPatterns
-import Text
+import Text, Data.Either
 import qualified Data.Map as DM
 
 :: AsteriskEvent :== Map String String // Simple key/value mapping

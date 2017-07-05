@@ -10,7 +10,7 @@ from iTasks._Framework.Task 	    import :: Task, :: ConnectionTask
 from iTasks._Framework.TaskState 	import :: TIUIState
 from iTasks._Framework.SDS 			import :: RWShared
 from iTasks.UI.Definition           import :: UIChange
-from iTasks.API.Core.Types	        import :: InstanceNo
+from iTasks.WF.Definition	        import :: InstanceNo
 from Data.Queue 					import :: Queue
 
 import iTasks._Framework.Generic

@@ -1,6 +1,7 @@
 implementation module iTasks.API.Extensions.User
 import iTasks
 import Text
+import Data.Functor
 import qualified Data.Map as DM
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
 import iTasks.UI.Layout.Default
@@ -11,12 +12,12 @@ import iTasks.API.Extensions.DateTime
 
 gText{|User|} _ val = [maybe "" toString val]
 
-derive JSONEncode		User, UserConstraint, AttachmentStatus
-derive JSONDecode		User, UserConstraint, AttachmentStatus
-derive gDefault			User, UserConstraint, AttachmentStatus
-derive gEq				User, UserConstraint, AttachmentStatus
-derive gText	        UserConstraint, AttachmentStatus
-derive gEditor			User, UserConstraint, AttachmentStatus
+derive JSONEncode		User, UserConstraint
+derive JSONDecode		User, UserConstraint
+derive gDefault			User, UserConstraint
+derive gEq				User, UserConstraint
+derive gText	        UserConstraint
+derive gEditor			User, UserConstraint
 
 instance toString User
 where

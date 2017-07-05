@@ -3,17 +3,19 @@ implementation module iTasks._Framework.RemoteAccess
 import StdString, StdMisc, StdFile, StdBool, StdArray
 import Text
 
-from iTasks._Framework.Task			import :: Task, mkInstantTask
 
+import iTasks.WF.Definition
+import iTasks._Framework.Task
 import iTasks._Framework.IWorld
 import iTasks._Framework.Generic
-import iTasks.API.Core.Types
 
 import Data.Maybe, Internet.HTTP, Text.URI, Data.Error
 import System.OS, System.FilePath, System.File
 
 from System.Process			import qualified ::ProcessHandle, runProcess, checkProcess,callProcess
 from System.Process			import :: ProcessHandle(..)
+
+from iTasks.API.Extensions.Document import :: FileException(..), instance toString FileException
 
 CHUNK_SIZE :== 1048576 // 1M
 

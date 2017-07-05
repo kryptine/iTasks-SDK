@@ -1,13 +1,19 @@
 definition module iTasks._Framework.TaskState
 
-import iTasks.API.Core.Types
-
 from iTasks._Framework.TaskEval import :: TonicOpts, :: TaskTime
-from Data.Queue import :: Queue
 
-from iTasks.WF.Definition import :: TaskResult, :: TaskException, :: TaskNo
+from iTasks.WF.Definition import :: Task, :: TaskResult, :: TaskValue, :: TaskException, :: TaskNo, :: TaskId, :: TaskAttributes
+from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: InstanceProgress
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 from iTasks.UI.Definition import :: UIChange
+from iTasks.UI.Editor import :: EditMask
+from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from Data.Map import :: Map
+from Data.Maybe import :: Maybe
+from Data.Queue import :: Queue
+from Data.Error import :: MaybeError
+from Data.Either import :: Either
+from System.Time import :: Timestamp
 
 derive JSONEncode TIMeta, TIReduct, TaskTree
 derive JSONDecode TIMeta, TIReduct, TaskTree

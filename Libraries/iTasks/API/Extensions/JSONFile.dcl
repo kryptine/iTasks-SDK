@@ -4,6 +4,9 @@ import iTasks
 import iTasks.API.Extensions.Document
 from System.FilePath import :: FilePath
 
+:: JSONParseException = CannotParse !String
+instance toString JSONParseException
+
 /**
 * Import and parse a JSON datafile on the server's filesystem.
 *

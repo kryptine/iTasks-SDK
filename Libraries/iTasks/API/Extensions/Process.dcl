@@ -5,14 +5,17 @@ from iTasks.UI.Prompt import class toPrompt
 from iTasks.WF.Tasks.Interaction import :: ViewOption
 
 from System.FilePath import :: FilePath
-
+from System.OSError import :: OSError, :: OSErrorCode, :: OSErrorMessage 
 
 //* External (operating system) process status
 :: ProcessStatus
 	= RunningProcess !String
 	| CompletedProcess !Int
 
-derive class iTask ProcessStatus
+:: CallException		= CallFailed !OSError
+
+derive class iTask ProcessStatus, CallException
+instance toString CallException
 
 /**
 * Calls an external executable. The call is non-blocking.

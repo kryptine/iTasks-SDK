@@ -22,7 +22,7 @@ import qualified Data.Queue as DQ
 import Data.Maybe, Data.Either, Data.Error
 import Text.JSON
 
-derive gEq ParallelTaskChange, AttachmentStatus
+derive gEq ParallelTaskChange
 
 :: Action	= Action !String //Locally unique identifier for actions
 

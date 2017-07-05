@@ -11,7 +11,8 @@ import iTasks._Framework.Serialization
 import iTasks.UI.Definition
 import qualified iTasks._Framework.SDS as SDS
 import Text
-import System.Directory
+import System.Directory, System.FilePath
+import Data.Either, Data.Error
 import qualified Data.Queue as DQ
 import qualified Data.Map as DM
 from Data.Queue import :: Queue(..)

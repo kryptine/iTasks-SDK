@@ -1,6 +1,7 @@
 implementation module Incidone.RoleBased.AdministratorTasks
 
-import iTasks, iTasks.API.Extensions.SQLDatabase
+import iTasks, iTasks.API.Extensions.SQLDatabase, iTasks.API.Extensions.DateTime
+import iTasks.API.Extensions.Document, iTasks.API.Extensions.JSONFile
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.DemonstrationTasks
 import Incidone.OP.ContactManagementTasks
 import Incidone.OP.ImportExportTasks

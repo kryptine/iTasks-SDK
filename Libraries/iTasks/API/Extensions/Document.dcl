@@ -2,6 +2,7 @@ definition module iTasks.API.Extensions.Document
 
 import iTasks.WF.Definition
 from System.FilePath import :: FilePath
+from System.File import :: FileError
 
 //* Documents
 :: Document =
@@ -13,8 +14,11 @@ from System.FilePath import :: FilePath
 	}
 :: DocumentId	:== String
 
+:: FileException		= FileException !FilePath !FileError
+
 instance toString	Document
 instance ==			Document
+instance toString	FileException
 
 //Necessary generics to be able to handle documents in tasks
 derive JSONEncode		Document
@@ -23,6 +27,8 @@ derive gDefault			Document
 derive gEq				Document
 derive gText	        Document
 derive gEditor			Document
+
+derive class iTask FileException
 
 /**
 * Import a file on the server's filesystem as a Document

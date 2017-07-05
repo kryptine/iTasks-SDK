@@ -2,9 +2,11 @@ definition module iTasks._Framework.Util
 
 from StdClass import class Eq
 from Data.Error import :: MaybeErrorString, :: MaybeError
-import iTasks.API.Core.Types
 from Data.Map import :: Map
+from Data.Maybe import :: Maybe
+from System.FilePath import :: FilePath
 from iTasks.API.Extensions.DateTime import :: DateTime
+from StdOverloaded import class <
 
 show                :: ![String] !*World -> *World
 

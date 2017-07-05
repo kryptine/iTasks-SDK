@@ -2,6 +2,7 @@ definition module iTasks.WF.Combinators.Tune
 
 import iTasks.WF.Definition
 from iTasks.UI.Layout import :: Layout
+from Text.JSON import :: JSONNode
 
 /**
 * Fine tune a task by specifying custom layouts, tweaking generic layouts,
@@ -17,3 +18,10 @@ instance tune	LazyRefresh
 //* Apply a layout to a task
 :: ApplyLayout	= ApplyLayout Layout
 instance tune	ApplyLayout 
+
+:: ApplyAttribute a = ApplyAttribute String a
+
+class toAttribute a where toAttribute :: a -> JSONNode
+instance toAttribute String
+
+instance tune (ApplyAttribute a) | toAttribute a

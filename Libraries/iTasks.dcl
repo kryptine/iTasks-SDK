@@ -15,6 +15,7 @@ import
     ,   iTasks.SDS.Combinators.Common
 
     ,   iTasks.WF.Definition
+    ,   iTasks.WF.Derives
     ,   iTasks.WF.Tasks.Core
     ,   iTasks.WF.Tasks.SDS
     ,   iTasks.WF.Tasks.IO
@@ -25,7 +26,6 @@ import
     ,   iTasks.WF.Combinators.Tune
     ,   iTasks.WF.Combinators.Overloaded
     ,   iTasks.WF.Combinators.Common
-    ,   iTasks.API
 	
 	//	Miscellaneous machinery
 	,	Text.JSON							// JSON is used for serializing/deserializing strings

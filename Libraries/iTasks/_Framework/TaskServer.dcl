@@ -8,7 +8,7 @@ from System.FilePath    import :: FilePath
 
 from System.Time				import :: Timestamp
 from Data.Error                 import :: MaybeError
-from iTasks.API.Core.Types      import :: TaskId
+from iTasks.WF.Definition       import :: TaskId
 from iTasks._Framework.IWorld	import :: IWorld, :: BackgroundTaskId
 from iTasks._Framework.Task     import :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask, :: TaskException
 from iTasks._Framework.Engine   import :: TaskWrapper

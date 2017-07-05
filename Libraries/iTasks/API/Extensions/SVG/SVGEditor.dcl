@@ -4,7 +4,6 @@ import Graphics.Scalable
 import Graphics.Scalable.Internal
 import iTasks
 import iTasks.UI.Editor
-import iTasks.API.Core.Types
 import iTasks.API.Extensions.Platform
 import iTasks.UI.JS.Encoding
 
