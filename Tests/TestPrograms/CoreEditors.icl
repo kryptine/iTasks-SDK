@@ -5,7 +5,7 @@ import iTasks.Internal.Test.Stubs
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Layout
 import iTasks.Internal.IWorld
 import qualified Data.Map as DM
-import Data.Either
+import Data.Either, Data.Error, Data.Functor
 import StdMisc
 
 derive gText EditMask, FieldMask, CompoundMask
@@ -235,13 +235,14 @@ testAddListElement = testGenEdit "List element add"
 	([42],CompoundMask {fields=[FieldMask {touched=True,valid=True,state=JSONInt 42}],state=JSONArray [JSONInt 0]})
 	([],JSONString "add")
 where
-	elui = uiac UIContainer ('DM'.fromList [("direction",JSONString "horizontal"),("halign",JSONString "right"),("height",JSONString "wrap")]) [inui:buis]
+	elui = uiac UIListItem ('DM'.fromList [("direction",JSONString "horizontal"),("halign",JSONString "right"),("height",JSONString "wrap")]) [inui:buis]
 	inui = uia UIIntegerField ('DM'.fromList[("optional",JSONBool False)
                                      ,("hint-type",JSONString "info")
                                      ,("hint",JSONString "Please enter a whole number (this value is required)")
                                      ,("taskId",JSONString "STUB")
                                      ,("editorId",JSONString "v1")
                                      ,("mode",JSONString "enter")
+                                     ,("width",JSONString "flex")
                                      ,("value",JSONNull)])
 	buis = [uia UIButton ('DM'.fromList [("iconCls",JSONString "icon-up"),("value",JSONString "mup_1"),("enabled",JSONBool True),("taskId",JSONString "STUB"),("editorId",JSONString "v")])
 	       ,uia UIButton ('DM'.fromList [("iconCls",JSONString "icon-down"),("value",JSONString "mdn_1"),("enabled",JSONBool False),("taskId",JSONString "STUB"),("editorId",JSONString "v")])
