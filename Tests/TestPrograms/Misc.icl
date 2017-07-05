@@ -1,5 +1,5 @@
 module Misc
-import iTasks._Framework.Test.Definition
+import iTasks.Internal.Test.Definition
 
 Start world = execTestSuite (testsuite "Miscellaneous" "All tests that don't fit anywhere else, but should not get lost"
 	[jsonDecodeOfJSONField]) world

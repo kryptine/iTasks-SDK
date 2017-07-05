@@ -2,11 +2,13 @@ implementation module iTasks.UI.Layout.Common
 
 import iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks.UI.Definition, iTasks.UI.Prompt
-import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
-import Data.List
+import iTasks.WF.Combinators.Tune
+import iTasks.WF.Combinators.Overloaded
+import Data.List, Text.JSON
 import qualified Data.Map as DM
 import StdBool
 from StdFunc import id, const, o
+from iTasks.Internal.TaskEval import :: TaskEvalOpts(..), :: TonicOpts
 
 arrangeWithTabs :: Layout
 arrangeWithTabs = layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIParallel)) (setUIType UITabSet)
@@ -158,10 +160,6 @@ where
 instance tune Icon
 where
 	tune (Icon icon) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]))) t
-
-instance tune Attribute
-where
-	tune (Attribute k v) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(k,JSONString v)]))) t
 
 instance tune Label
 where

@@ -2,51 +2,24 @@ implementation module iTasks.UI.Layout
 
 import StdTuple, StdList, StdBool, StdInt, StdOrdList, StdArray, StdMisc
 import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
-import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition
-import iTasks.API.Core.Types, iTasks.API.Core.TaskCombinators
+import iTasks.Internal.Util, iTasks.Internal.HtmlUtil, iTasks.UI.Definition
+import iTasks.Internal.Generic.Defaults 
 import StdEnum
 from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys, unions, singleton
 from Data.Tuple import appSnd
+import Text.JSON
 
 from StdFunc import o, const, id, flip
-from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
+from iTasks.Internal.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
+from iTasks.Internal.TaskEval import :: TaskTime
+from iTasks.WF.Combinators.Core import :: AttachmentStatus
+import iTasks.WF.Definition
+import GenEq
 import StdDebug
 
 //This type records the states of layouts applied somewhere in a ui tree
 derive JSONEncode LayoutState, LayoutTree, MvUI, MvUIChild
 derive JSONDecode LayoutState, LayoutTree, MvUI, MvUIChild
-
-instance tune ApplyLayout
-where
-	tune (ApplyLayout l) task=:(Task evala) = Task eval
-	where
-		eval event evalOpts (TCDestroy (TCLayout s tt)) iworld //Cleanup duty simply passed to inner task
-			= evala event evalOpts (TCDestroy tt) iworld
-
-		eval event evalOpts tt=:(TCInit _ _) iworld
-			= eval ResetEvent evalOpts (TCLayout JSONNull tt) iworld //On initialization, we need to do a reset to be able to apply the layout
-
-		//On Reset events, we (re-)apply the layout
-		eval ResetEvent evalOpts (TCLayout _ tt) iworld = case evala ResetEvent evalOpts tt iworld of
-			(ValueResult value info (ReplaceUI ui) tt,iworld)
-				//Determine the change the layout makes to the UI
-				# (change,state) = l.Layout.apply ui
-				//Modify the layout accorgingly
-				# ui = applyUIChange change ui
-				= (ValueResult value info (ReplaceUI ui) (TCLayout (toJSON state) tt), iworld)		
-            (res,iworld) = (res,iworld)
-
-		eval event evalOpts (TCLayout json tt) iworld = case evala event evalOpts tt iworld of
-	        (ValueResult value info change tt,iworld) 
-				= case fromJSON json of
-					(Just s)	
-						# (change,s) = l.Layout.adjust (change,s)
-						= (ValueResult value info change (TCLayout (toJSON s) tt), iworld)
-					Nothing	
-						= (ExceptionResult (exception ("Corrupt layout state:" +++ toString json)), iworld)
-            (res,iworld) = (res,iworld)
-		
-		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
 
 //Test if a specific UI at a path is in the selection
 inUISelection :: UISelection UIPath UI -> Bool

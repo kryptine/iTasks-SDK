@@ -3,7 +3,6 @@ implementation module iTasks.UI.Layout.Default
 import iTasks.UI.Layout
 import iTasks.UI.Layout.Common
 import iTasks.UI.Definition
-import iTasks.API.Core.Types
 import Text.JSON
 import GenEq
 

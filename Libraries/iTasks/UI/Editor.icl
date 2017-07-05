@@ -1,8 +1,8 @@
 implementation module iTasks.UI.Editor
 
 import StdBool, StdMisc
-import iTasks._Framework.Client.LinkerSupport, Data.Maybe, Data.Functor
-import iTasks._Framework.IWorld
+import iTasks.Internal.Client.LinkerSupport, Data.Maybe, Data.Functor
+import iTasks.Internal.IWorld
 import iTasks.UI.Definition
 import qualified Data.Map as DM
 import Text, Text.JSON

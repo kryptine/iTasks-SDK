@@ -1,10 +1,11 @@
 implementation module Incidone.OP.SDSs
 
-import iTasks, iTasks.API.Extensions.SQLDatabase
+import iTasks, iTasks.Extensions.SQLDatabase
 import qualified Data.Map as DM
 import Incidone.Configuration
 import Incidone.OP.Concepts, Incidone.OP.Conversions
 import Incidone.Util.SQLSDS
+import Data.Functor
 
 derive class iTask ContactFilter
 

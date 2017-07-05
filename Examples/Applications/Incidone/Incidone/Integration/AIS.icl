@@ -5,6 +5,7 @@ import Incidone.Configuration
 import Incidone.OP.SDSs, Incidone.OP.Conversions
 import Incidone.Util.TaskPatterns
 import qualified Data.Map as DM
+import Data.Functor
 
 syncAISStream :: Task ()
 syncAISStream = withShared ([],False,[],False) (\channel -> (sync channel -&&- consume channel) @! ())

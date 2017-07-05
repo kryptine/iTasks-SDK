@@ -1,7 +1,7 @@
 implementation module Incidone.Util.Notification
 import iTasks
-from iTasks._Framework.Util import datetimeToTimestamp
-import Text
+import iTasks.Extensions.DateTime
+import Text, System.Time
 import Incidone.Util.TaskPatterns
 
 //Notifications are stored newest first 

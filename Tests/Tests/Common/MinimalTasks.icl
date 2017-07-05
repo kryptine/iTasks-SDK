@@ -1,7 +1,7 @@
 implementation module Tests.Common.MinimalTasks
 import iTasks
 import iTasks.UI.Definition, iTasks.UI.Editor
-import Data.Tuple
+import Data.Tuple, Data.Error
 import qualified Data.Map as DM
 import Text.HTML
 

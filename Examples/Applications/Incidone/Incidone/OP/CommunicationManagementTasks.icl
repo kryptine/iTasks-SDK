@@ -1,6 +1,6 @@
 implementation module Incidone.OP.CommunicationManagementTasks
 import iTasks
-import iTasks.API.Extensions.SQLDatabase
+import iTasks.Extensions.SQLDatabase
 import Incidone.Configuration
 import Incidone.OP.Concepts, Incidone.OP.SDSs
 import Incidone.OP.ContactManagementTasks, Incidone.OP.IncidentManagementTasks
@@ -8,6 +8,7 @@ import Incidone.ActionManagementTasks
 import Incidone.Util.TaskPatterns
 import Incidone.Util.Notification
 import Incidone.Integration.Asterisk
+import Data.Either
 
 ActionDial      :== Action "Dial"
 ActionHangup    :== Action "Hangup"
@@ -155,7 +156,7 @@ connectOutboundPhoneCall communicationNo
     >^* [OnAction ActionDial (ifValue isNothing (\_ -> initiateAsteriskChannel communicationNo))
         ,OnAction ActionCancel (ifValue (maybe False ((===) Pending)) (\_ -> destroyAsteriskChannel communicationNo))
         ,OnAction ActionHangup (ifValue (maybe False ((===) Connected)) (\_ -> destroyAsteriskChannel communicationNo))
-        ]) <<@ Attribute "buttonPosition" "right"
+        ]) <<@ ApplyAttribute "buttonPosition" "right"
     @! ()
 
 updatePhoneCallMeta :: CommunicationNo -> Task CommunicationStatus

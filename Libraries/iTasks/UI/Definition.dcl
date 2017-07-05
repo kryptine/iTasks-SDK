@@ -11,15 +11,16 @@ definition module iTasks.UI.Definition
 from Text.JSON import :: JSONNode
 from Data.Maybe import :: Maybe
 from Data.Functor import class Functor
-from iTasks._Framework.Task	import :: TaskId
+from iTasks.Internal.Task	import :: TaskId
 from Text.HTML			import :: HtmlTag
 from Data.Map			import :: Map
-from iTasks.API.Core.Types	import :: Document, :: DocumentId, :: Date, :: Time, :: Action
+from iTasks.WF.Combinators.Core import :: Action
 
-from iTasks._Framework.Generic import class iTask(..)
-from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
-from iTasks._Framework.Generic.Defaults			import generic gDefault
+from iTasks.WF.Definition import class iTask
+from iTasks.Internal.Generic.Visualization	import generic gText, :: TextFormat(..)
+from iTasks.Internal.Generic.Defaults			import generic gDefault
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
+
 from iTasks.UI.Editor.Generic import generic gEditor
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
@@ -242,9 +243,6 @@ instance encodeUI Real
 instance encodeUI Char
 instance encodeUI String
 instance encodeUI Bool
-instance encodeUI Document
-instance encodeUI Date
-instance encodeUI Time
 instance encodeUI HtmlTag
 instance encodeUI JSONNode
 instance encodeUI (Maybe a) | encodeUI a

@@ -5,7 +5,7 @@ import iTasks.UI.Editor
 import iTasks.UI.Editor.Builtin
 import iTasks.UI.Editor.Combinators
 import iTasks.UI.Editor.Common
-import iTasks._Framework.SDS
+import iTasks.SDS.Definition
 
 import qualified Data.Map as DM
 import StdArray, StdBool, StdFunc
@@ -525,7 +525,7 @@ gEditor{|()|} = emptyEditor
 gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ = emptyEditor
 gEditor{|Dynamic|} = emptyEditor
 gEditor{|HtmlTag|} = htmlView 'DM'.newMap
-gEditor{|RWShared|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = emptyEditor
+gEditor{|SDS|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = emptyEditor
 
 derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), Timestamp, Map
 

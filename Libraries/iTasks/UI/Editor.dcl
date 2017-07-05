@@ -7,8 +7,8 @@ definition module iTasks.UI.Editor
 from iTasks.UI.Definition import :: UI, :: UIAttributes, :: UIChange, :: UIAttributeChange
 from iTasks.UI.JS.Interface import :: JSWorld, :: JSObj, :: JSVal, :: JSObject
 
-from iTasks._Framework.IWorld import :: IWorld
-from iTasks._Framework.Generic.Defaults import generic gDefault
+from iTasks.Internal.IWorld import :: IWorld
+from iTasks.Internal.Generic.Defaults import generic gDefault
 from Data.Maybe import :: Maybe
 from Data.Either import :: Either
 from Data.Map import :: Map

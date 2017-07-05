@@ -1,6 +1,6 @@
 implementation module Tests.Interactive.GenericEditors
 
-import iTasks, iTasks._Framework.Test.Definition
+import iTasks, iTasks.Internal.Test.Definition
 
 testGenericEditors :: TestSuite
 testGenericEditors = testsuite "Generic editors" "These tests check if generic editors for standard types work"

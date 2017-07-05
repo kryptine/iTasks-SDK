@@ -1,4 +1,4 @@
 definition module Tests.Interactive.TaskPatterns
-import iTasks._Framework.Test.Definition
+import iTasks.Internal.Test.Definition
 
 testTaskPatternsI :: TestSuite

@@ -2,6 +2,7 @@ implementation module Incidone.OP.Conversions
 
 import Incidone.OP.Concepts
 import Text, Text.HTML
+import iTasks.Extensions.DateTime
 
 class contactTitle a :: a -> String
 instance contactTitle Contact

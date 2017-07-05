@@ -1,5 +1,5 @@
 implementation module Incidone.OP.ContactManagementTasks
-import iTasks, iTasks.API.Extensions.SQLDatabase, iTasks.API.Extensions.Web
+import iTasks, iTasks.Extensions.SQLDatabase, iTasks.Extensions.Web, iTasks.Extensions.Process
 import Incidone.Configuration
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.Conversions
 import Incidone.OP.IncidentManagementTasks
@@ -8,7 +8,7 @@ import Incidone.DeviceBased.VideoWall
 
 import Incidone.Extensions.CrewLists //For demo
 import qualified Data.Map as DM
-import Text, Text.HTML
+import Text, Text.HTML, Data.Either
 import iTasks.UI.Editor.Builtin
 
 CONVERT_BIN :== "/opt/local/bin/convert"
@@ -108,7 +108,7 @@ manageContactBasics contactNo = (
         ,manageContactAccess contactNo
         ]
     >^*[OnAction (Action "/Share to wall") (\_ -> Just (shareContact contactNo))
-       ] @! ()) <<@ Title "General" <<@ (Attribute "icon" "basic-information")
+       ] @! ()) <<@ Title "General" <<@ (ApplyAttribute "icon" "basic-information")
 where
 
     contactBasics contactNo = mapReadWrite (toPrj,fromPrj) (sdsFocus contactNo contactByNo)

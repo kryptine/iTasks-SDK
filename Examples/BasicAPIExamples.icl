@@ -1,18 +1,21 @@
 implementation module BasicAPIExamples
 import iTasks
-import iTasks.API.Extensions.Admin.UserAdmin
-import iTasks.API.Extensions.Admin.ServerAdmin
-import iTasks.API.Extensions.Admin.StoreAdmin
-import iTasks.API.Extensions.Admin.WorkflowAdmin
-import iTasks.API.Extensions.Admin.TonicAdmin
-import iTasks.API.Extensions.GIS.GoogleMap
-import iTasks.API.Extensions.Currency
-import iTasks.API.Extensions.Contact
+import iTasks.Extensions.Admin.UserAdmin
+import iTasks.Extensions.Admin.ServerAdmin
+import iTasks.Extensions.Admin.StoreAdmin
+import iTasks.Extensions.Admin.WorkflowAdmin
+import iTasks.Extensions.Admin.TonicAdmin
+import iTasks.Extensions.GIS.GoogleMap
+import iTasks.Extensions.Currency
+import iTasks.Extensions.Contact
+import iTasks.Extensions.DateTime
+import iTasks.Extensions.Clock
 import iTasks.UI.Definition, iTasks.UI.Editor.Builtin
 import Text, Text.HTML, StdArray
-import iTasks._Framework.Tonic
+import iTasks.Internal.Tonic
 //import ligrettoTOP
 //import iTaskGraphics, editletGraphics, edgehog
+import Data.Error
 import qualified Data.Map as DM
 
 /**
@@ -187,7 +190,6 @@ viewPerson = viewInformation "View a person" [] {name = "Peter Achten", gender =
 viewCurDateTime :: Task DateTime
 viewCurDateTime = viewSharedInformation "The current date and time is:" [] currentDateTime
 
-import iTasks.API.Extensions.Clock
 viewTime :: Task Time
 viewTime = viewSharedInformation "The current time is:" [ViewAs AnalogClock] currentTime
 

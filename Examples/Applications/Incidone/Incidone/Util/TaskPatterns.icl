@@ -1,6 +1,6 @@
 implementation module Incidone.Util.TaskPatterns
 
-import iTasks, iTasks.API.Extensions.Dashboard
+import iTasks, iTasks.Extensions.Dashboard
 import iTasks.UI.Definition
 import Incidone.OP.IncidentManagementTasks, Incidone.OP.ContactManagementTasks
 import Text, Data.Functor, Data.Either

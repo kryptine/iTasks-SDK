@@ -1,5 +1,5 @@
 implementation module Tests.Interactive.CoreTasks
-import iTasks, iTasks._Framework.Test.Definition
+import iTasks, iTasks.Internal.Test.Definition, Data.Error
 
 testCoreTasksI :: TestSuite
 testCoreTasksI = testsuite "Core tasks" "These tests check if the core tasks work"

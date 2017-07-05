@@ -1,7 +1,7 @@
 module LeafletMapExample
 import iTasks
-import iTasks.API.Extensions.GIS.Leaflet
-import iTasks.API.Extensions.GIS.LeafletNavalIcons
+import iTasks.Extensions.GIS.Leaflet
+import iTasks.Extensions.GIS.LeafletNavalIcons
 import iTasks.UI.Definition
 import Data.List 
 

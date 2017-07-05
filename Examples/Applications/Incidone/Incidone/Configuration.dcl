@@ -1,7 +1,7 @@
 definition module Incidone.Configuration
 import iTasks
-from iTasks.API.Extensions.SQLDatabase import :: SQLDatabase, :: SQLDatabaseDef
-from iTasks.API.Extensions.Web import :: URL
+from iTasks.Extensions.SQLDatabase import :: SQLDatabase, :: SQLDatabaseDef
+from iTasks.Extensions.Web import :: URL
 
 :: DBConfig
     = InternalSQLiteDB

@@ -1,5 +1,6 @@
 implementation module Incidone.OP.IncidentManagementTasks
-import iTasks, iTasks._Framework.HtmlUtil, iTasks.API.Extensions.SQLDatabase
+import iTasks, iTasks.Internal.HtmlUtil, iTasks.Extensions.SQLDatabase
+import iTasks.Extensions.DateTime
 import Incidone.Configuration
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.Conversions
 import Incidone.OP.ContactManagementTasks
@@ -8,7 +9,7 @@ import Incidone.Util.Differences
 import Incidone.Util.Notification
 import Incidone.DeviceBased.VideoWall
 import Incidone.ActionManagementTasks
-import Data.List
+import Data.List, Data.Either
 import qualified Data.Map as DM
 import Text.HTML
 

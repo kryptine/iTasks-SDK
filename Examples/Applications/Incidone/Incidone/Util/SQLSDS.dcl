@@ -1,6 +1,6 @@
 definition module Incidone.Util.SQLSDS
 
-import iTasks, Data.Maybe, Database.SQL, iTasks.API.Extensions.SQLDatabase, Incidone.OP.Concepts
+import iTasks, Data.Maybe, Database.SQL, iTasks.Extensions.SQLDatabase, Incidone.OP.Concepts
 //Utility types and functions for defining SQL based shares
 
 :: QueryDef =
