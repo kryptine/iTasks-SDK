@@ -1,8 +1,9 @@
 implementation module iTasks.WF.Tasks.System
 
 import iTasks.WF.Definition
-import iTasks._Framework.Task
-import iTasks._Framework.IWorld
+import iTasks.Internal.Task
+import iTasks.Internal.IWorld
+import iTasks.Internal.Generic.Visualization
 import StdDebug
 import Data.Error, Data.Maybe
 

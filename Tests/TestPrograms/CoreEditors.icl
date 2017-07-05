@@ -1,9 +1,9 @@
 module CoreEditors
-import iTasks._Framework.Test.Definition
-import iTasks._Framework.Test.Stubs
+import iTasks.Internal.Test.Definition
+import iTasks.Internal.Test.Stubs
 
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Layout
-import iTasks._Framework.IWorld
+import iTasks.Internal.IWorld
 import qualified Data.Map as DM
 import Data.Either
 import StdMisc

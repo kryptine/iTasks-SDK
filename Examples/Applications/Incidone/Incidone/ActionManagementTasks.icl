@@ -2,7 +2,7 @@ implementation module Incidone.ActionManagementTasks
 
 import iTasks
 import iTasks.UI.Editor, iTasks.UI.Editor.Common
-import iTasks._Framework.Serialization
+import iTasks.Internal.Serialization
 import iTasks.Extensions.DateTime
 import iTasks.Extensions.JSONFile
 import Incidone.Util.TaskPatterns

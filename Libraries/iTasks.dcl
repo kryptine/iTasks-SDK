@@ -5,7 +5,7 @@ definition module iTasks
 */
 import	
     // iTasks engine
-        iTasks._Framework.Engine				
+        iTasks.Internal.Engine				
     // iTasks API
     ,   iTasks.SDS.Definition
     ,   iTasks.SDS.Sources.Core
@@ -29,7 +29,6 @@ import
 	
 	//	Miscellaneous machinery
 	,	Text.JSON							// JSON is used for serializing/deserializing strings
-	,	iTasks._Framework.Generic			// Generic foundation modules
 	,   iTasks.UI.Prompt 					// Standard for creating prompts
 	,   iTasks.UI.Layout.Common 			// Standard layout patterns
 	

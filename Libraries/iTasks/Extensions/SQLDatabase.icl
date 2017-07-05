@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.SQLDatabase
 
 import iTasks, Database.SQL, Database.SQL.MySQL, Database.SQL.SQLite, Data.Error, Data.Func, System.FilePath
-import iTasks._Framework.IWorld, iTasks._Framework.SDS
+import iTasks.Internal.IWorld, iTasks.Internal.SDS
 import qualified Data.Map
 
 //Extend Resource type for mysql resources

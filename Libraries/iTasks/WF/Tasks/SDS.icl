@@ -3,11 +3,11 @@ implementation module iTasks.WF.Tasks.SDS
 import iTasks.WF.Definition
 import iTasks.UI.Definition
 import iTasks.SDS.Definition
-import iTasks._Framework.IWorld
-import iTasks._Framework.Task
-import iTasks._Framework.TaskState
-import iTasks._Framework.TaskEval
-import qualified iTasks._Framework.SDS as SDS
+import iTasks.Internal.IWorld
+import iTasks.Internal.Task
+import iTasks.Internal.TaskState
+import iTasks.Internal.TaskEval
+import qualified iTasks.Internal.SDS as SDS
 import StdString
 
 instance toString SharedException

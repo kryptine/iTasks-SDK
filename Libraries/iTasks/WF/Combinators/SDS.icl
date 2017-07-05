@@ -4,12 +4,12 @@ import iTasks.WF.Definition
 import iTasks.SDS.Definition
 from iTasks.SDS.Combinators.Common import sdsFocus
 
-import iTasks._Framework.IWorld
-import iTasks._Framework.Task
-import iTasks._Framework.TaskState
-import iTasks._Framework.TaskStore
-import iTasks._Framework.TaskEval
-from iTasks._Framework.SDS import write, read, readRegister
+import iTasks.Internal.IWorld
+import iTasks.Internal.Task
+import iTasks.Internal.TaskState
+import iTasks.Internal.TaskStore
+import iTasks.Internal.TaskEval
+from iTasks.Internal.SDS import write, read, readRegister
 
 import StdTuple
 import Text.JSON

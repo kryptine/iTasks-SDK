@@ -5,7 +5,7 @@ definition module iTasks.UI.Editor.Common
 from iTasks.UI.Editor import :: Editor
 from Data.Maybe import :: Maybe
 from Text.JSON import generic JSONEncode, :: JSONNode
-import iTasks._Framework.Generic.Defaults
+import iTasks.Internal.Generic.Defaults
 
 /**
 * Editor that does nothing

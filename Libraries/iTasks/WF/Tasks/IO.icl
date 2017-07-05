@@ -3,12 +3,12 @@ implementation module iTasks.WF.Tasks.IO
 import iTasks.WF.Definition
 import iTasks.UI.Definition
 
-import iTasks._Framework.IWorld
-import iTasks._Framework.Task
-import iTasks._Framework.TaskState
-import iTasks._Framework.TaskEval
-import iTasks._Framework.TaskServer
-import iTasks._Framework.Generic.Visualization
+import iTasks.Internal.IWorld
+import iTasks.Internal.Task
+import iTasks.Internal.TaskState
+import iTasks.Internal.TaskEval
+import iTasks.Internal.TaskServer
+import iTasks.Internal.Generic.Visualization
 
 import Text, Text.JSON
 import qualified Data.Map as DM

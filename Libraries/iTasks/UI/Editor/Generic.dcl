@@ -8,7 +8,7 @@ from Text.HTML import :: HtmlTag
 from Data.Error import :: MaybeError
 from System.Time import :: Timestamp
 from iTasks.SDS.Definition import :: SDS
-from iTasks._Framework.Generic.Visualization import generic gText, :: TextFormat
+from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
 
 /**
 * Main eneric editor function

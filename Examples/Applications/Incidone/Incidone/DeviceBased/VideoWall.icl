@@ -3,7 +3,7 @@ import iTasks
 import iTasks.Extensions.DateTime
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.ActionManagementTasks
 import Incidone.Util.TaskPatterns
-import Text, Text.HTML, Data.List, iTasks._Framework.HtmlUtil
+import Text, Text.HTML, Data.List, iTasks.Internal.HtmlUtil
 
 derive class iTask WallContent
 

@@ -4,10 +4,10 @@ import iTasks.SDS.Definition
 import iTasks.SDS.Combinators.Core
 import iTasks.SDS.Combinators.Common
 
-import iTasks._Framework.SDS
-import iTasks._Framework.Store
-import iTasks._Framework.Task
-import iTasks._Framework.Serialization
+import iTasks.Internal.SDS
+import iTasks.Internal.Store
+import iTasks.Internal.Task
+import iTasks.Internal.Serialization
 
 sharedDynamicStore :: !String !a -> SDS () a a | TC a
 sharedDynamicStore storeId defaultV

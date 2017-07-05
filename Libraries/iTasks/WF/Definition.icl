@@ -1,8 +1,8 @@
 implementation module iTasks.WF.Definition
 
-from iTasks._Framework.IWorld import :: IWorld
-from iTasks._Framework.TaskState import :: TaskTree
-from iTasks._Framework.TaskEval import :: TaskEvalOpts, :: TaskEvalInfo
+from iTasks.Internal.IWorld import :: IWorld
+from iTasks.Internal.TaskState import :: TaskTree
+from iTasks.Internal.TaskEval import :: TaskEvalOpts, :: TaskEvalInfo
 import iTasks.UI.Definition
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Generic

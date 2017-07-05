@@ -7,8 +7,8 @@ import qualified Data.Map as DM
 import qualified Data.List as DL
 
 from iTasks.WF.Definition import class iTask(..)
-from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
-from iTasks._Framework.Generic.Defaults			import generic gDefault
+from iTasks.Internal.Generic.Visualization	import generic gText, :: TextFormat(..)
+from iTasks.Internal.Generic.Defaults			import generic gDefault
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
 from iTasks.UI.Editor.Generic import generic gEditor
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode

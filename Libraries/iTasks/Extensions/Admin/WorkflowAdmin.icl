@@ -2,9 +2,9 @@ implementation module iTasks.Extensions.Admin.WorkflowAdmin
 
 import iTasks
 import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
-import iTasks._Framework.SDS
-import iTasks._Framework.Serialization
-import iTasks._Framework.Store
+import iTasks.Internal.SDS
+import iTasks.Internal.Serialization
+import iTasks.Internal.Store
 from StdFunc import seq
 import qualified Data.Map as DM
 import Data.List, Data.Tuple

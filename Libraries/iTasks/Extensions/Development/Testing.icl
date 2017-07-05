@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.Development.Testing
 import iTasks
 import iTasks.Extensions.Development.Tools
-import iTasks._Framework.Test.Definition
+import iTasks.Internal.Test.Definition
 import Text, Data.Tuple, Data.Error, System.FilePath
 
 derive class iTask ExitCode

@@ -11,14 +11,14 @@ definition module iTasks.UI.Definition
 from Text.JSON import :: JSONNode
 from Data.Maybe import :: Maybe
 from Data.Functor import class Functor
-from iTasks._Framework.Task	import :: TaskId
+from iTasks.Internal.Task	import :: TaskId
 from Text.HTML			import :: HtmlTag
 from Data.Map			import :: Map
 from iTasks.WF.Combinators.Core import :: Action
 
 from iTasks.WF.Definition import class iTask
-from iTasks._Framework.Generic.Visualization	import generic gText, :: TextFormat(..)
-from iTasks._Framework.Generic.Defaults			import generic gDefault
+from iTasks.Internal.Generic.Visualization	import generic gText, :: TextFormat(..)
+from iTasks.Internal.Generic.Defaults			import generic gDefault
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
 
 from iTasks.UI.Editor.Generic import generic gEditor

@@ -2,16 +2,16 @@ implementation module iTasks.UI.Layout
 
 import StdTuple, StdList, StdBool, StdInt, StdOrdList, StdArray, StdMisc
 import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
-import iTasks._Framework.Util, iTasks._Framework.HtmlUtil, iTasks.UI.Definition
-import iTasks._Framework.Generic.Defaults 
+import iTasks.Internal.Util, iTasks.Internal.HtmlUtil, iTasks.UI.Definition
+import iTasks.Internal.Generic.Defaults 
 import StdEnum
 from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys, unions, singleton
 from Data.Tuple import appSnd
 import Text.JSON
 
 from StdFunc import o, const, id, flip
-from iTasks._Framework.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
-from iTasks._Framework.TaskEval import :: TaskTime
+from iTasks.Internal.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
+from iTasks.Internal.TaskEval import :: TaskTime
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 import iTasks.WF.Definition
 import GenEq

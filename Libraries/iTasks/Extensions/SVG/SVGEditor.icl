@@ -7,7 +7,7 @@ import iTasks
 import iTasks.UI.Definition, iTasks.UI.Editor
 import iTasks.UI.JS.Interface
 import iTasks.UI.JS.Encoding
-import iTasks._Framework.Serialization
+import iTasks.Internal.Serialization
 from StdOrdList import minList, maxList
 import StdOverloaded
 import StdArray

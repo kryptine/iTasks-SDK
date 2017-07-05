@@ -11,7 +11,7 @@ from iTasks.WF.Definition import class iTask
 from iTasks.WF.Definition import generic gEditor, generic gEq, generic gDefault, generic gText, generic JSONEncode, generic JSONDecode
 
 from iTasks.UI.Editor import :: Editor
-from iTasks._Framework.Generic.Visualization import :: TextFormat
+from iTasks.Internal.Generic.Visualization import :: TextFormat
 
 //Apply a parametric lens
 sdsLens :: !String (p -> ps) (SDSLensRead p r rs) (SDSLensWrite p w rs ws) (SDSLensNotify p w rs) !(SDS ps rs ws) -> SDS p r w | iTask ps

@@ -12,7 +12,7 @@ import iTasks.Extensions.DateTime
 import iTasks.Extensions.Clock
 import iTasks.UI.Definition, iTasks.UI.Editor.Builtin
 import Text, Text.HTML, StdArray
-import iTasks._Framework.Tonic
+import iTasks.Internal.Tonic
 //import ligrettoTOP
 //import iTaskGraphics, editletGraphics, edgehog
 import Data.Error

@@ -4,11 +4,11 @@ import iTasks.WF.Definition
 import iTasks.UI.Definition
 import iTasks.UI.Prompt
 import iTasks.SDS.Definition
-import iTasks._Framework.Task
-import iTasks._Framework.TaskState
-import iTasks._Framework.TaskEval
-import iTasks._Framework.IWorld
-import qualified iTasks._Framework.SDS as SDS
+import iTasks.Internal.Task
+import iTasks.Internal.TaskState
+import iTasks.Internal.TaskEval
+import iTasks.Internal.IWorld
+import qualified iTasks.Internal.SDS as SDS
 
 import Data.Error, Data.Maybe
 import Text.JSON

@@ -4,8 +4,9 @@ module RunUnitTestsForCI
 *  This way all testing code specified as tasks can be easily tested in our continous integration pipeline.
 */
 import iTasks
-import iTasks.API.Extensions.Development.Testing
-import iTasks._Framework.Test.Definition
+import iTasks.Extensions.Development.Testing
+import iTasks.Internal.Test.Definition
+import System.FilePath
 
 TESTS_PATH :== "../Tests/TestPrograms"
 

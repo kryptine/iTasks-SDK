@@ -1,6 +1,6 @@
 implementation module iTasks.Extensions.Admin.StoreAdmin
 import iTasks
-import qualified iTasks._Framework.Store
+import qualified iTasks.Internal.Store
 import Data.Error
 
 manageStore :: Task ()
@@ -22,6 +22,6 @@ selectStore
 deleteStore :: (String,String) -> Task ()
 deleteStore (namespace,storename) = mkInstantTask eval
 where
-    eval _ iworld = case 'iTasks._Framework.Store'.deleteValue namespace storename iworld of
+    eval _ iworld = case 'iTasks.Internal.Store'.deleteValue namespace storename iworld of
 		(Ok (),iworld) = (Ok (),iworld)
 		(Error msg,iworld) = (Error (exception msg),iworld)

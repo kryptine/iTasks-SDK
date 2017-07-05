@@ -4,16 +4,16 @@ import iTasks.WF.Definition
 import iTasks.UI.Definition
 import iTasks.SDS.Definition
 
-import iTasks._Framework.Task
-import iTasks._Framework.TaskState
-import iTasks._Framework.TaskStore
-import iTasks._Framework.TaskEval
-import iTasks._Framework.IWorld
-import iTasks._Framework.Tonic.Shares
-import iTasks._Framework.Client.Override
+import iTasks.Internal.Task
+import iTasks.Internal.TaskState
+import iTasks.Internal.TaskStore
+import iTasks.Internal.TaskEval
+import iTasks.Internal.IWorld
+import iTasks.Internal.Tonic.Shares
+import iTasks.Internal.Client.Override
 
 from iTasks.SDS.Combinators.Common import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle
-from iTasks._Framework.SDS import write, read, readRegister, modify
+from iTasks.Internal.SDS import write, read, readRegister, modify
 
 import StdList, StdBool, StdTuple
 import qualified Data.Map as DM

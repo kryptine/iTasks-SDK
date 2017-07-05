@@ -6,13 +6,13 @@ import iTasks.SDS.Combinators.Common
 import iTasks.Extensions.DateTime
 import System.Time
 
-import iTasks._Framework.SDS
-import iTasks._Framework.IWorld
-import iTasks._Framework.Util
+import iTasks.Internal.SDS
+import iTasks.Internal.IWorld
+import iTasks.Internal.Util
 
-import iTasks._Framework.TaskStore
+import iTasks.Internal.TaskStore
 import StdTuple
-from iTasks._Framework.TaskEval  import currentInstanceShare
+from iTasks.Internal.TaskEval  import currentInstanceShare
 
 NS_SYSTEM_DATA :== "SystemData"
 

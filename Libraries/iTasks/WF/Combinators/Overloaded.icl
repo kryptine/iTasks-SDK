@@ -6,7 +6,7 @@ import iTasks.WF.Combinators.Core
 import iTasks.WF.Combinators.Common
 import Data.Maybe, Data.Either, Data.List
 
-import iTasks._Framework.Serialization
+import iTasks.Internal.Serialization
 
 instance Functor Task where
   fmap f x = transform (fmap f) x 

@@ -4,8 +4,8 @@ import iTasks.WF.Definition
 import iTasks.UI.Definition
 import iTasks.UI.Layout
 
-import iTasks._Framework.TaskState
-import iTasks._Framework.TaskEval
+import iTasks.Internal.TaskState
+import iTasks.Internal.TaskEval
 import Text.JSON
 import qualified Data.Map as DM
 

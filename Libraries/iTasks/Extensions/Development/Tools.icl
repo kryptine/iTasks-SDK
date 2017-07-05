@@ -1,6 +1,6 @@
 implementation module iTasks.Extensions.Development.Tools
 import iTasks
-import iTasks._Framework.IWorld, iTasks._Framework.SDS
+import iTasks.Internal.IWorld, iTasks.Internal.SDS
 import System.Environment
 
 CPM_EXE :== IF_POSIX_OR_WINDOWS "bin/cpm" "Tools\\cpm.exe"

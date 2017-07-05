@@ -9,7 +9,7 @@ import Text, Text.HTML
 import qualified Data.Map as DM
 
 import iTasks
-import iTasks._Framework.Test.Definition
+import iTasks.Internal.Test.Definition
 import iTasks.UI.Definition
 import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common
 import iTasks.Extensions.Editors.Ace

@@ -2,6 +2,6 @@ definition module Tests.Interactive.GenericEditors
 /**
 * Tests for the generic editors of standard datatypes
 */
-import iTasks, iTasks._Framework.Test.Definition
+import iTasks, iTasks.Internal.Test.Definition
 
 testGenericEditors :: TestSuite

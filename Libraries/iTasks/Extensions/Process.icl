@@ -6,11 +6,11 @@ import iTasks.UI.Definition
 import iTasks.UI.Prompt
 import iTasks.UI.Editor.Builtin
 import iTasks.UI.Editor.Combinators
-import iTasks._Framework.Task
-import iTasks._Framework.TaskEval
-import iTasks._Framework.TaskState
-import iTasks._Framework.TaskStore
-import iTasks._Framework.IWorld
+import iTasks.Internal.Task
+import iTasks.Internal.TaskEval
+import iTasks.Internal.TaskState
+import iTasks.Internal.TaskStore
+import iTasks.Internal.IWorld
 
 from StdFunc import const
 import StdTuple, StdBool

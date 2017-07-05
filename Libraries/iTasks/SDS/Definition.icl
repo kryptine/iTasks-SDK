@@ -1,11 +1,10 @@
 implementation module iTasks.SDS.Definition
 
-import iTasks._Framework.IWorld 
-import iTasks._Framework.Task
-import iTasks._Framework.Generic 
+import iTasks.Internal.IWorld 
+import iTasks.Internal.Task
 
-import iTasks._Framework.Generic.Visualization
-import iTasks._Framework.Generic.Defaults
+import iTasks.Internal.Generic.Visualization
+import iTasks.Internal.Generic.Defaults
 import iTasks.UI.Editor.Generic
 import GenEq
 

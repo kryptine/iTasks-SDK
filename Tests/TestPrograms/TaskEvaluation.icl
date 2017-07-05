@@ -1,15 +1,15 @@
 module TaskEvaluation
 
-import iTasks._Framework.Test.Definition
+import iTasks.Internal.Test.Definition
 
-from iTasks._Framework.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{server}, :: ServerInfo(..), :: SystemPaths(..)
-from iTasks._Framework.TaskStore import createTaskInstance, taskInstanceUIChanges
-from iTasks._Framework.TaskEval import evalTaskInstance
-from iTasks._Framework.Store import flushShareCache, emptyStore
-from iTasks._Framework.Util import toCanonicalPath
-import iTasks._Framework.Serialization
+from iTasks.Internal.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{server}, :: ServerInfo(..), :: SystemPaths(..)
+from iTasks.Internal.TaskStore import createTaskInstance, taskInstanceUIChanges
+from iTasks.Internal.TaskEval import evalTaskInstance
+from iTasks.Internal.Store import flushShareCache, emptyStore
+from iTasks.Internal.Util import toCanonicalPath
+import iTasks.Internal.Serialization
 import iTasks.UI.Definition
-import qualified iTasks._Framework.SDS as SDS
+import qualified iTasks.Internal.SDS as SDS
 import Text
 import System.Directory, System.FilePath
 import Data.Either, Data.Error

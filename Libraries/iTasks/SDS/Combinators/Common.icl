@@ -4,7 +4,7 @@ import StdTuple, StdList
 import iTasks.SDS.Definition, iTasks.SDS.Combinators.Core
 import iTasks.WF.Combinators.Core
 from StdFunc import o, const, flip, id
-from iTasks._Framework.Task import exception, :: TaskException
+from iTasks.Internal.Task import exception, :: TaskException
 import qualified Data.Map as DM
 import qualified Data.IntMap.Strict as DIS
 from Data.IntMap.Strict import :: IntMap

@@ -8,7 +8,7 @@ import Data.List, Text.JSON
 import qualified Data.Map as DM
 import StdBool
 from StdFunc import id, const, o
-from iTasks._Framework.TaskEval import :: TaskEvalOpts(..), :: TonicOpts
+from iTasks.Internal.TaskEval import :: TaskEvalOpts(..), :: TonicOpts
 
 arrangeWithTabs :: Layout
 arrangeWithTabs = layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIParallel)) (setUIType UITabSet)

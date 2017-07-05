@@ -1,13 +1,13 @@
 implementation module iTasks.SDS.Sources.Core
 
 import iTasks.SDS.Definition
-import iTasks._Framework.SDS
-import iTasks._Framework.IWorld
+import iTasks.Internal.SDS
+import iTasks.Internal.IWorld
 import System.FilePath, System.Directory, System.File
 import StdFile
 
 from StdFunc import const
-from iTasks._Framework.Task import exception
+from iTasks.Internal.Task import exception
 
 constShare :: !a -> SDS p a ()
 constShare v = createReadOnlySDS (\_ env -> (v, env))

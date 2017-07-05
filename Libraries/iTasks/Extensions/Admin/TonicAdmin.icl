@@ -2,20 +2,20 @@ implementation module iTasks.Extensions.Admin.TonicAdmin
 
 import iTasks
 import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
-import iTasks._Framework.SDS
-import iTasks._Framework.Tonic.Blueprints
-import iTasks._Framework.Tonic.Shares
-import iTasks._Framework.Tonic.Types
-import iTasks._Framework.Tonic.AbsSyn
-import iTasks._Framework.Tonic.Pretty
-import iTasks._Framework.Tonic.Images
+import iTasks.Internal.SDS
+import iTasks.Internal.Tonic.Blueprints
+import iTasks.Internal.Tonic.Shares
+import iTasks.Internal.Tonic.Types
+import iTasks.Internal.Tonic.AbsSyn
+import iTasks.Internal.Tonic.Pretty
+import iTasks.Internal.Tonic.Images
 import iTasks.UI.Definition
 import iTasks.Extensions.DateTime
 from StdFunc import seq
 import qualified Data.Map as DM
 from Data.Map import instance Functor (Map a)
 from Control.Monad import `b`, class Monad, instance Monad Maybe
-import qualified iTasks._Framework.SDS as DSDS
+import qualified iTasks.Internal.SDS as DSDS
 import Data.List
 import iTasks.Extensions.SVG.SVGEditor
 from Data.IntMap.Strict import :: IntMap

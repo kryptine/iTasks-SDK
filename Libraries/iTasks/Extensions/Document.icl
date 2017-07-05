@@ -3,7 +3,7 @@ implementation module iTasks.Extensions.Document
 import iTasks.WF.Definition
 import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
 
-import iTasks._Framework.Task, iTasks._Framework.IWorld, iTasks._Framework.TaskStore
+import iTasks.Internal.Task, iTasks.Internal.IWorld, iTasks.Internal.TaskStore
 import StdBool, StdString, StdFile, StdArray
 
 import Text.JSON, Text.Encodings.MIME, System.FilePath, System.File, System.OSError, Data.Error

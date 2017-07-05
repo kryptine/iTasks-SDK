@@ -3,9 +3,9 @@ definition module iTasks.WF.Definition
 * This provides the types that define the core concepts for specifying workflow
 */
 
-from iTasks._Framework.IWorld import :: IWorld
-from iTasks._Framework.TaskState import :: TaskTree
-from iTasks._Framework.TaskEval import :: TaskEvalOpts, :: TaskEvalInfo
+from iTasks.Internal.IWorld import :: IWorld
+from iTasks.Internal.TaskState import :: TaskTree
+from iTasks.Internal.TaskEval import :: TaskEvalOpts, :: TaskEvalInfo
 from iTasks.UI.Definition import :: UIChange
 from Text.JSON import :: JSONNode
 from Data.Maybe import :: Maybe
@@ -15,8 +15,8 @@ from System.Time import :: Timestamp
 
 from iTasks.UI.Editor import :: Editor
 from iTasks.UI.Editor.Generic import generic gEditor
-from iTasks._Framework.Generic.Visualization import generic gText, :: TextFormat
-from iTasks._Framework.Generic.Defaults import generic gDefault
+from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
+from iTasks.Internal.Generic.Defaults import generic gDefault
 from Text.JSON import generic JSONEncode, generic JSONDecode
 from GenEq import generic gEq
 from StdString import class toString, class fromString

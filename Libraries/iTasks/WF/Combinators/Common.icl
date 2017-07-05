@@ -4,13 +4,13 @@ implementation module iTasks.WF.Combinators.Common
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, StdString
 import Text, System.Time, Data.Maybe, Data.Tuple, Data.List, Data.Either, Data.Functor
-import iTasks._Framework.Util
+import iTasks.Internal.Util
 from StdFunc			import id, const, o
 from iTasks.SDS.Sources.Core import randomInt
 from iTasks.SDS.Sources.System import currentDateTime, topLevelTasks
 import iTasks.SDS.Combinators.Common
-from iTasks._Framework.TaskState		import :: TaskTree(..), :: DeferredJSON
-from iTasks._Framework.TaskEval         import :: TaskTime
+from iTasks.Internal.TaskState		import :: TaskTree(..), :: DeferredJSON
+from iTasks.Internal.TaskEval         import :: TaskTime
 import qualified Data.Map as DM
 
 import iTasks.WF.Tasks.Core
