@@ -16,18 +16,18 @@ testEditletsI = testsuite "Editlets" "These tests check if the advanced clientsi
 	,testPikadayEditlet
 	]
 
-import iTasks.API.Extensions.Clock
+import iTasks.Extensions.Clock
 testEditlet = itest "Simple clock editlet" "Look at the image below" "You should see a changing interactive clock" tut
 where
 	tut = viewSharedInformation "Clock" [ViewAs (\t -> AnalogClock t)] currentTime
 
-import iTasks.API.Extensions.Dashboard
+import iTasks.Extensions.Dashboard
 testDashEditlet = itest "Another simple editlet" "Look at the image below" "You should see a status LED" tut
 where
 	tut = viewInformation "LED" [] LightOnRed
 
 import Graphics.Scalable, StdReal
-import iTasks.API.Extensions.SVG.SVGEditor
+import iTasks.Extensions.SVG.SVGEditor
 testSVGEditlet = itest "SVG editlet rendering" "Look at the image presented" "You should see the dutch flag" tut
 where
 	tut = updateInformation "SVG image" [UpdateUsing id (const id) (fromSVGEditor svgeditor)] 42
@@ -58,20 +58,20 @@ where
                                                                                       n -> toString n +++ " clicks"
                                                                 , local = False }
 
-import iTasks.API.Extensions.GIS.Leaflet
+import iTasks.Extensions.GIS.Leaflet
 testLeafletMap = itest "Leaflet Map" "Try to zoom and pan the map" "You should see a Leaflet Map in which you can pan and zoom" tut
 where
 	tut :: Task LeafletMap
 	tut = enterInformation "Test a Leaflet map" []
 
-import iTasks.API.Extensions.GIS.GoogleMap
+import iTasks.Extensions.GIS.GoogleMap
 testGoogleMap = itest "Google Map" "Try to zoom and pan the map" "You should see a Google Map in which you can pan and zoom" tut
 where
 	tut :: Task GoogleMap
 	tut = enterInformation "Test a Google map" []
 
 
-import iTasks.API.Extensions.Editors.Ace
+import iTasks.Extensions.Editors.Ace
 testAceTextArea = itest "Ace text area" "Try to edit some text" "You should see an editor with line numbers" tut
 where
 	tut :: Task String
@@ -87,7 +87,7 @@ where
 	tut :: Task (AceOptions,AceState)
 	tut = testEditorWithShare aceEditor defaultValue Update
 
-import iTasks.API.Extensions.Form.Pikaday
+import iTasks.Extensions.Form.Pikaday
 testPikadayEditlet = itest "Pikaday date picker" "Try to edit a date" "You should see a date picker" tut
 where
 	tut :: Task Date

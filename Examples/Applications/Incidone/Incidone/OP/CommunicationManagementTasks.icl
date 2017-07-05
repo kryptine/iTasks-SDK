@@ -1,6 +1,6 @@
 implementation module Incidone.OP.CommunicationManagementTasks
 import iTasks
-import iTasks.API.Extensions.SQLDatabase
+import iTasks.Extensions.SQLDatabase
 import Incidone.Configuration
 import Incidone.OP.Concepts, Incidone.OP.SDSs
 import Incidone.OP.ContactManagementTasks, Incidone.OP.IncidentManagementTasks

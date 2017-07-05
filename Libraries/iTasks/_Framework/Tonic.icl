@@ -18,9 +18,9 @@ import iTasks._Framework.Task
 import iTasks._Framework.Serialization
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
-import iTasks.API.Extensions.Admin.UserAdmin
-import iTasks.API.Extensions.SVG.SVGEditor
-import iTasks.API.Extensions.DateTime
+import iTasks.Extensions.Admin.UserAdmin
+import iTasks.Extensions.SVG.SVGEditor
+import iTasks.Extensions.DateTime
 import System.File
 from StdFunc import o
 from System.FilePath import </>

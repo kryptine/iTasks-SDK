@@ -1,6 +1,6 @@
 implementation module Incidone.OP.IncidentManagementTasks
-import iTasks, iTasks._Framework.HtmlUtil, iTasks.API.Extensions.SQLDatabase
-import iTasks.API.Extensions.DateTime
+import iTasks, iTasks._Framework.HtmlUtil, iTasks.Extensions.SQLDatabase
+import iTasks.Extensions.DateTime
 import Incidone.Configuration
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.Conversions
 import Incidone.OP.ContactManagementTasks

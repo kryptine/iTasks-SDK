@@ -10,9 +10,9 @@ import qualified Data.List as DL
 import Data.Error 
 from Data.IntMap.Strict import :: IntMap
 import iTasks._Framework.Tonic.Blueprints
-import iTasks.API.Extensions.Admin.TonicAdmin
-import iTasks.API.Extensions.SVG.SVGEditor
-import iTasks.API.Extensions.DateTime
+import iTasks.Extensions.Admin.TonicAdmin
+import iTasks.Extensions.SVG.SVGEditor
+import iTasks.Extensions.DateTime
 import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
 import iTasks._Framework.Tonic.Images

@@ -14,8 +14,7 @@ import iTasks.SDS.Combinators.Core, iTasks.SDS.Combinators.Common
 import iTasks._Framework.SDSService
 import iTasks._Framework.Client.Override
 import iTasks.WF.Combinators.Core
-import iTasks.API.Extensions.Document
-
+import iTasks.Extensions.Document
 
 import qualified Data.Map as DM
 import qualified Data.Queue as DQ

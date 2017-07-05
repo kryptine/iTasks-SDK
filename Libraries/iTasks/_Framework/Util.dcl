@@ -5,7 +5,7 @@ from Data.Error import :: MaybeErrorString, :: MaybeError
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe
 from System.FilePath import :: FilePath
-from iTasks.API.Extensions.DateTime import :: DateTime
+from iTasks.Extensions.DateTime import :: DateTime
 from StdOverloaded import class <
 
 show                :: ![String] !*World -> *World

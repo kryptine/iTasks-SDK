@@ -1,12 +1,12 @@
 implementation module iTasks._Framework.Test.Definition
 import iTasks, StdFile, StdMisc
-import iTasks.API.Extensions.Image
+import iTasks.Extensions.Image
 import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
-import iTasks.API.Extensions.Editors.Ace
+import iTasks.Extensions.Editors.Ace
 import iTasks._Framework.Serialization
 import Text, Text.HTML, System.CommandLine
 import qualified Data.Map as DM
-import iTasks.API.Extensions.Development.Codebase
+import iTasks.Extensions.Development.Codebase
 import Data.Func, Data.Either, Data.Error
 
 from iTasks._Framework.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{server}, :: ServerInfo(..), :: SystemPaths(..)

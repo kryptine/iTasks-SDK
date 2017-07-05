@@ -34,8 +34,8 @@ import
 	,   iTasks.UI.Layout.Common 			// Standard layout patterns
 	
 	//	API extensions for user  & workflow management
-	,	iTasks.API.Extensions.Admin.UserAdmin
-	,	iTasks.API.Extensions.Admin.WorkflowAdmin
+	,	iTasks.Extensions.Admin.UserAdmin
+	,	iTasks.Extensions.Admin.WorkflowAdmin
 	
 	//StdEnv modules
 	,	StdInt

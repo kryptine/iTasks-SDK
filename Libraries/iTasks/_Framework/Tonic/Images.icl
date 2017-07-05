@@ -20,7 +20,7 @@ import iTasks._Framework.Tonic.AbsSyn
 import iTasks._Framework.Tonic.Types
 import iTasks._Framework.Tonic.Pretty
 import iTasks.UI.Definition
-import iTasks.API.Extensions.SVG.SVGEditor
+import iTasks.Extensions.SVG.SVGEditor
 import Text
 import StdMisc
 
@@ -690,58 +690,58 @@ tTaskDef inh moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTa
 tMApp :: !(InhMkImg i) !ExprId !(Maybe TypeName) !ModuleName !VarName ![TExpr]
          !TPriority !(Maybe VarPtr) !*TagSource
       -> *(!SynMkImg, !*TagSource) | BlueprintLike i
-tMApp inh _ _ "iTasks.API.Extensions.User" "@:" [lhsExpr : rhsExpr : _] _ _ tsrc
+tMApp inh _ _ "iTasks.Extensions.User" "@:" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tAssign inh lhsExpr rhsExpr tsrc
-tMApp inh _ _ "iTasks.API.Core.Types" ">>|" [lhsExpr : rhsExpr : _] _ _ tsrc
+tMApp inh _ _ "iTasks.Core.Types" ">>|" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
-tMApp inh _ _ "iTasks.API.Core.Types" ">>=" [lhsExpr : TLam vars rhsExpr : _] _ _ tsrc
+tMApp inh _ _ "iTasks.Core.Types" ">>=" [lhsExpr : TLam vars rhsExpr : _] _ _ tsrc
   # var = case filterLamVars vars of
             [var : _] = Just var
             _         = Nothing
   = tBind inh lhsExpr var rhsExpr tsrc
-tMApp inh _ _ "iTasks.API.Core.Types" ">>=" [lhsExpr : rhsExpr : _] _ _ tsrc
+tMApp inh _ _ "iTasks.Core.Types" ">>=" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
-tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>-" [lhsExpr : TLam vars rhsExpr : _] _ _ tsrc
+tMApp inh _ _ "iTasks.Common.TaskCombinators" ">>-" [lhsExpr : TLam vars rhsExpr : _] _ _ tsrc
   # var = case filterLamVars vars of
             [var : _] = Just var
             _         = Nothing
   = tBind inh lhsExpr var rhsExpr tsrc
-tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>-" [lhsExpr : rhsExpr : _] _ _ tsrc
+tMApp inh _ _ "iTasks.Common.TaskCombinators" ">>-" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
-tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>~" [lhsExpr : TLam vars rhsExpr : _] _ _ tsrc
+tMApp inh _ _ "iTasks.Common.TaskCombinators" ">>~" [lhsExpr : TLam vars rhsExpr : _] _ _ tsrc
   # var = case filterLamVars vars of
             [var : _] = Just var
             _         = Nothing
   = tBind inh lhsExpr var rhsExpr tsrc
-tMApp inh _ _ "iTasks.API.Common.TaskCombinators" ">>~" [lhsExpr : rhsExpr : _] _ _ tsrc
+tMApp inh _ _ "iTasks.Common.TaskCombinators" ">>~" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tBind inh lhsExpr Nothing rhsExpr tsrc
-tMApp inh eid _ "iTasks.API.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ _ tsrc
+tMApp inh eid _ "iTasks.Common.TaskCombinators" ">>*" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tStep inh eid lhsExpr rhsExpr tsrc
-tMApp inh eid _ "iTasks.API.Core.TaskCombinators" "step" [lhsExpr : _ : rhsExpr : _] _ _ tsrc
+tMApp inh eid _ "iTasks.Core.TaskCombinators" "step" [lhsExpr : _ : rhsExpr : _] _ _ tsrc
   = tStep inh eid lhsExpr rhsExpr tsrc
-tMApp inh eid mtn mn=:"iTasks.API.Core.TaskCombinators" tn=:"parallel" [x : _] assoc _ tsrc
+tMApp inh eid mtn mn=:"iTasks.Core.TaskCombinators" tn=:"parallel" [x : _] assoc _ tsrc
   # xs = if (tExprIsList x) (tUnsafeExpr2List x) [x]
   # xs = let f (TFApp _ "_Tuple2" [_ : x : _] _) = x
              f x                                 = x
           in strictTRMap f xs
   = tParProdN inh eid mn tn "Parallel tasks" xs tsrc
-tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-&&-" [lhsExpr : rhsExpr : _] _ _ tsrc
+tMApp inh eid _ mn=:"iTasks.Common.TaskCombinators" tn=:"-&&-" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tParProdN inh eid mn tn "Parallel: both tasks" [lhsExpr, rhsExpr] tsrc
-tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"allTasks" [x] assoc _ tsrc
+tMApp inh eid mtn mn=:"iTasks.Common.TaskCombinators" tn=:"allTasks" [x] assoc _ tsrc
   = tParProdN inh eid mn tn "Parallel: all tasks" (if (tExprIsList x) (tUnsafeExpr2List x) [x]) tsrc
-tMApp inh eid mtn mn=:"iTasks.API.Common.TaskCombinators" tn=:"anyTask" [x] assoc _ tsrc
+tMApp inh eid mtn mn=:"iTasks.Common.TaskCombinators" tn=:"anyTask" [x] assoc _ tsrc
   = tParSumN inh eid mn tn "Parallel: any task" (if (tExprIsList x) (tUnsafeExpr2List x) [x]) tsrc
-tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||-" [lhsExpr : rhsExpr : _] _ _ tsrc
+tMApp inh eid _ mn=:"iTasks.Common.TaskCombinators" tn=:"-||-" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tParSumN inh eid mn tn "Parallel: any task" [lhsExpr, rhsExpr] tsrc
-tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"||-" [lhsExpr : rhsExpr : _] _ _ tsrc
+tMApp inh eid _ mn=:"iTasks.Common.TaskCombinators" tn=:"||-" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tParSumR inh eid mn tn lhsExpr rhsExpr tsrc
-tMApp inh eid _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"-||" [lhsExpr : rhsExpr : _] _ _ tsrc
+tMApp inh eid _ mn=:"iTasks.Common.TaskCombinators" tn=:"-||" [lhsExpr : rhsExpr : _] _ _ tsrc
   = tParSumL inh eid mn tn lhsExpr rhsExpr tsrc
-tMApp inh _ _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"@!" [lhsExpr : _] _ _ tsrc
+tMApp inh _ _ mn=:"iTasks.Common.TaskCombinators" tn=:"@!" [lhsExpr : _] _ _ tsrc
   = tExpr2Image inh lhsExpr tsrc
-tMApp inh _ _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"<<@" [lhsExpr : _] _ _ tsrc
+tMApp inh _ _ mn=:"iTasks.Common.TaskCombinators" tn=:"<<@" [lhsExpr : _] _ _ tsrc
   = tExpr2Image inh lhsExpr tsrc
-tMApp inh _ _ mn=:"iTasks.API.Common.TaskCombinators" tn=:"@>>" [_ : rhsExpr : _] _ _ tsrc
+tMApp inh _ _ mn=:"iTasks.Common.TaskCombinators" tn=:"@>>" [_ : rhsExpr : _] _ _ tsrc
   = tExpr2Image inh rhsExpr tsrc
 tMApp inh eid _ modName taskName taskArgs _ _ tsrc
   #! inh = {inh & inh_in_mapp = True}
@@ -994,27 +994,27 @@ tStepCont _ inh (TFApp _ "OnAllExceptions" [cont : _ ] _) tsrc
 tStepCont _ inh expr tsrc = tExpr2Image inh expr tsrc
 
 mkStepCont :: !(InhMkImg i) !(Maybe (!String, !Bool)) !TExpr !*TagSource -> *(!SynMkImg, !*TagSource) | BlueprintLike i
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "always" [mapp : _] _ _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.Common.TaskCombinators" "always" [mapp : _] _ _) tsrc
   = stepAlwaysNeverWithoutVal inh mact mapp tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "never" [mapp : _] _ _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.Common.TaskCombinators" "never" [mapp : _] _ _) tsrc
   = stepAlwaysNeverWithoutVal inh mact mapp tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withoutValue" [mapp : _] _ _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.Common.TaskCombinators" "withoutValue" [mapp : _] _ _) tsrc
   = stepAlwaysNeverWithoutVal inh mact mapp tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifStable" e _ _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.Common.TaskCombinators" "ifStable" e _ _) tsrc
   = stepIfStableUnstableHasValue inh mact tStable e tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifUnstable" e _ _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.Common.TaskCombinators" "ifUnstable" e _ _) tsrc
   = stepIfStableUnstableHasValue inh mact tUnstable e tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "hasValue" e _ _) [ref : tsrc]
+mkStepCont inh mact (TMApp _ _ "iTasks.Common.TaskCombinators" "hasValue" e _ _) [ref : tsrc]
   = stepIfStableUnstableHasValue inh mact hasValueFilter e tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifValue" [conditionApp : continuationApp : _] _ _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.Common.TaskCombinators" "ifValue" [conditionApp : continuationApp : _] _ _) tsrc
   = stepIfValueCond inh mact conditionApp continuationApp tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "ifCond" [conditionApp : continuationApp : _] _ _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.Common.TaskCombinators" "ifCond" [conditionApp : continuationApp : _] _ _) tsrc
   = stepIfValueCond inh mact conditionApp continuationApp tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withValue" [mapp : _] _ _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.Common.TaskCombinators" "withValue" [mapp : _] _ _) tsrc
   = stepWithValue inh mact hasValueFilter mapp tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withStable" [mapp : _] _ _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.Common.TaskCombinators" "withStable" [mapp : _] _ _) tsrc
   = stepWithValue inh mact tStable mapp tsrc
-mkStepCont inh mact (TMApp _ _ "iTasks.API.Common.TaskCombinators" "withUnstable" [mapp : _] _ _) tsrc
+mkStepCont inh mact (TMApp _ _ "iTasks.TaskCombinators" "withUnstable" [mapp : _] _ _) tsrc
   = stepWithValue inh mact tUnstable mapp tsrc
 mkStepCont inh mact e [ref : tsrc]
   #! (x, tsrc)            = tExpr2Image inh e tsrc

@@ -8,7 +8,7 @@ definition module iTasks._Framework.TaskStore
 
 import iTasks._Framework.Task, iTasks._Framework.TaskState, iTasks.UI.Definition, iTasks._Framework.SDS
 import iTasks.WF.Combinators.Core
-import iTasks.API.Extensions.Document
+import iTasks.Extensions.Document
 
 from Data.Maybe     import :: Maybe
 from Data.Error     import :: MaybeError

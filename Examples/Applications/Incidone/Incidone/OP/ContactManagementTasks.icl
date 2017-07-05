@@ -1,5 +1,5 @@
 implementation module Incidone.OP.ContactManagementTasks
-import iTasks, iTasks.API.Extensions.SQLDatabase, iTasks.API.Extensions.Web, iTasks.API.Extensions.Process
+import iTasks, iTasks.Extensions.SQLDatabase, iTasks.Extensions.Web, iTasks.Extensions.Process
 import Incidone.Configuration
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.Conversions
 import Incidone.OP.IncidentManagementTasks

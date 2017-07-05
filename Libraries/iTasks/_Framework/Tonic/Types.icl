@@ -11,7 +11,7 @@ from Data.IntMap.Strict import :: IntMap
 import Data.Functor
 import Data.List
 import Data.Maybe
-import iTasks.API.Extensions.User
+import iTasks.Extensions.User
 
 derive class iTask TonicImageState, TClickAction, ClickMeta, BlueprintRef
 

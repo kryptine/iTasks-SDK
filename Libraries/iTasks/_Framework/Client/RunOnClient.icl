@@ -12,7 +12,7 @@ from Data.Map import qualified newMap, toList, fromList, get
 from Data.List import find
 from Data.Queue as DQ import qualified newQueue, dequeue
 
-import iTasks.API.Extensions.DateTime
+import iTasks.Extensions.DateTime
 import System.Time, Math.Random
 import Text.JSON
 import StdDebug

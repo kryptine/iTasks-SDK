@@ -1,6 +1,6 @@
 implementation module Incidone.Util.Notification
 import iTasks
-import iTasks.API.Extensions.DateTime
+import iTasks.Extensions.DateTime
 import Text, System.Time
 import Incidone.Util.TaskPatterns
 

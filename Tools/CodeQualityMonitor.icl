@@ -12,11 +12,11 @@ import iTasks
 import iTasks._Framework.Test.Definition
 import iTasks.UI.Definition
 import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common
-import iTasks.API.Extensions.Editors.Ace
-import iTasks.API.Extensions.Development.Codebase
-import iTasks.API.Extensions.Development.Testing
-import iTasks.API.Extensions.Image
-import iTasks.API.Extensions.TextFile
+import iTasks.Extensions.Editors.Ace
+import iTasks.Extensions.Development.Codebase
+import iTasks.Extensions.Development.Testing
+import iTasks.Extensions.Image
+import iTasks.Extensions.TextFile
 
 
 import Tests.Interactive.BuiltinEditors

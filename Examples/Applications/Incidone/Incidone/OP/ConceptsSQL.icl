@@ -1,6 +1,6 @@
 implementation module Incidone.OP.ConceptsSQL
 
-import iTasks.API.Extensions.DateTime
+import iTasks.Extensions.DateTime
 import Incidone.OP.Concepts, Incidone.OP.ConceptsTOP
 import Text, StdMisc
 

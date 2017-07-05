@@ -1,6 +1,6 @@
 implementation module Incidone.Util.SQLSDS
 import iTasks
-import iTasks.API.Extensions.SQLDatabase, Database.SQL, Incidone.OP.Concepts
+import iTasks.Extensions.SQLDatabase, Database.SQL, Incidone.OP.Concepts
 import Text, Data.Either, Data.Functor
 import qualified Data.Map as DM
 import StdMisc

@@ -1,7 +1,7 @@
 module CoreTasks
 import iTasks, iTasks._Framework.Test.Definition
 import iTasks.UI.Definition
-import iTasks.API.Extensions.Process
+import iTasks.Extensions.Process
 import System.OS, Data.Either
 
 derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, JSONNode

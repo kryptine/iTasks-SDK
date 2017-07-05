@@ -18,7 +18,7 @@ from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceN
 from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem 
 from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared, :: Shared
 from iTasks._Framework.SDS import :: SDSNotifyRequest, :: JSONShared 
-from iTasks.API.Extensions.DateTime import :: Time, :: Date, :: DateTime
+from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
 from Sapl.Linker.LazyLinker import :: LoaderState
 from Sapl.Linker.SaplLinkerShared import :: LineType, :: FuncTypeMap

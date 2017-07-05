@@ -15,7 +15,7 @@ import System.OS, System.FilePath, System.File
 from System.Process			import qualified ::ProcessHandle, runProcess, checkProcess,callProcess
 from System.Process			import :: ProcessHandle(..)
 
-from iTasks.API.Extensions.Document import :: FileException(..), instance toString FileException
+from iTasks.Extensions.Document import :: FileException(..), instance toString FileException
 
 CHUNK_SIZE :== 1048576 // 1M
 

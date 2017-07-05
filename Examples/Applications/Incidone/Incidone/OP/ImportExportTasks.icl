@@ -1,6 +1,6 @@
 implementation module Incidone.OP.ImportExportTasks
 import iTasks
-import iTasks.API.Extensions.CSVFile
+import iTasks.Extensions.CSVFile
 import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.ContactManagementTasks
 
 importContactsFromCSVFile :: Document -> Task ()
