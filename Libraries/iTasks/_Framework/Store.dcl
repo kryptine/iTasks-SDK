@@ -75,7 +75,7 @@ jsonFileStore :: !StoreNamespace !Bool !Bool !(Maybe a) -> RWShared StoreName a 
 
 /**
 * Optimized caching version of the jsonFileStore.
-* During the evaluation of a task instance, the shares that are read from disk are kept in memory
+* During the evaluation of a task instance, the shares that are read from disk are kept in memory,
 * writes are applied to the in-memory version, and json encoding and writing to disk is deferred.
 *
 * @param The namespace in the store
@@ -85,6 +85,21 @@ jsonFileStore :: !StoreNamespace !Bool !Bool !(Maybe a) -> RWShared StoreName a 
 * @param Optionally a default content to be used on first read. If nothing is given an error will occur when reading before writing.
 */
 cachedJSONFileStore :: !StoreNamespace !Bool !Bool !Bool !(Maybe a) -> RWShared StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+
+/**
+* Extends a fullFileStore with dynamic string encoding such that arbitrary values can be stored.
+* This encoding can be significantly more efficient for storing large functions.
+* Additionally, caching is applied as for cachedJSONFileStore.
+* During the evaluation of a task instance, the shares that are read from disk are kept in memory,
+* writes are applied to the in-memory version, and encoding and writing to disk is deferred.
+*
+* @param The namespace in the store
+* @param Check the build versions to protect against deserializing outdated functions stored by older versions
+* @param Automatically reset the the store if an error occurs
+* @param Keep the value in the cache between evaluations
+* @param Optionally a default content to be used on first read. If nothing is given an error will occur when reading before writing.
+*/
+cachedDynamicStringFileStore :: !StoreNamespace !Bool !Bool !Bool !(Maybe a) -> RWShared StoreName a a | TC a
 
 /**
 * This function is called at the very end of the evaluation of a task instance.

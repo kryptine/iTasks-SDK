@@ -44,6 +44,7 @@ import iTasks
     , position      :: !LeafletLatLng
     , title         :: !Maybe String
     , icon          :: !Maybe LeafletIconID// Id of the list of icons defined for the map
+    , popup         :: !Maybe HtmlTag
     , selected      :: !Bool
     }
 

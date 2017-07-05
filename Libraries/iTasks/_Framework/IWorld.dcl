@@ -79,7 +79,9 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     , utcTime               :: !Time
     }
 
-:: ShareCache :== Map (String,String) (Dynamic,Bool,Maybe DeferredJSON)
+// share cached used for json stores (Store.cachedJSONFileStore) and dynamic string stores (Store.cachedDynamicStringFileStore)
+:: ShareCache :== Map (String, String) (Dynamic, Bool, Maybe CachedValue)
+:: CachedValue = CachedJSONValue DeferredJSON | CachedDynamicValue 
 
 :: JSCompilerState =
 	{ loaderState 			:: !LoaderState							// State of the lazy loader

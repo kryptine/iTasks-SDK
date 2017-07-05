@@ -59,15 +59,15 @@ taskEvents = sdsFocus "events" (cachedJSONFileStore NS_TASK_INSTANCES False Fals
 //Instance evaluation state
 taskInstanceReduct :: RWShared InstanceNo TIReduct TIReduct
 //taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") (memoryStore NS_TASK_INSTANCES Nothing)
-taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") (cachedJSONFileStore NS_TASK_INSTANCES True False False Nothing)
+taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") (cachedDynamicStringFileStore NS_TASK_INSTANCES True False False Nothing)
 
 //Last computed value for task instance
 taskInstanceValue :: RWShared InstanceNo TIValue TIValue
-taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") (cachedJSONFileStore NS_TASK_INSTANCES True False False Nothing)
+taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") (cachedDynamicStringFileStore NS_TASK_INSTANCES True False False Nothing)
 
 //Local shared data
 taskInstanceShares :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
-taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
+taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") (cachedDynamicStringFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
 
 allUIChanges :: RWShared () (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange)) 
 allUIChanges = sdsFocus "allUIChanges" (memoryStore NS_TASK_INSTANCES (Just 'DM'.newMap))
@@ -84,7 +84,7 @@ where
 
 //Task instance parallel lists
 taskInstanceParallelTaskLists :: RWShared InstanceNo (Map TaskId [ParallelTaskState]) (Map TaskId [ParallelTaskState])
-taskInstanceParallelTaskLists = sdsTranslate "taskInstanceParallelLists" (\t -> t +++> "-tasklists") (cachedJSONFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
+taskInstanceParallelTaskLists = sdsTranslate "taskInstanceParallelLists" (\t -> t +++> "-tasklists") (cachedDynamicStringFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
 
 newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceNo iworld
