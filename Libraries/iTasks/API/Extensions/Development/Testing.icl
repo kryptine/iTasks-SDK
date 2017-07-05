@@ -15,7 +15,7 @@ compileTestModule path
 	= 	get cpmExecutable 
 	>>- \cpm ->
 	    withShared [] ( \io -> (
-			 runWithOutput cpm [prj] (Just baseDir) io //Build the test
+			 runWithOutput cpm [prj] Nothing io //Build the test
 		@ \(ExitCode c,o) -> if (passed c o) Passed (Failed (Just ("Failed to build " +++ prj +++ "\n" +++ join "" o)))
        ))
 where

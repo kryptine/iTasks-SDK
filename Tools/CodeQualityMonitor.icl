@@ -31,7 +31,7 @@ import Tests.Common.MinimalTasks
 
 derive class iTask ExitCode
 
-CPM_PATH :== "/Users/bas/Clean/bin/cpm"
+//CPM_PATH :== "/Users/bas/Clean/bin/cpm"
 TESTS_PATH :== "../Tests/TestPrograms"
 LIBRARY_PATH :== "../Libraries"
 EXAMPLE_MODULES :== ["../Examples/BasicApiExamples.icl"
