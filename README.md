@@ -41,4 +41,5 @@ The top-level folders are:
 - `Examples`: In this folder you can find example programs that demonstrate the iTask framework.
 - `Tests`: In this folder you can find test programs that are used to automatically and interactively test the framework
 - `Config`: Here you can find the environment definitions for the CleanIDE/Cpm. These are organized in subfolders for each OS/Platform because paths are different on each target.
+- `Documentation`: Here you can find supplemental documentation. A good starting point is the iTask guide (`Documentation/GUIDE.md`).
 
