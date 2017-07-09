@@ -1,6 +1,7 @@
 implementation module iTasks.Extensions.Development.Codebase
 import iTasks
-import System.FilePath, System.File, System.Directory, Text, StdFile, Data.List, Data.Tree, Data.Error
+import iTasks.UI.Editor.Builtin
+import StdArray, System.FilePath, System.File, System.Directory, Text, StdFile, Data.List, Data.Tree, Data.Error
 
 derive class iTask SourceTree, SourceTreeSelection, ModuleType, Extension
 instance == Extension where (==) x y = x === y
@@ -10,6 +11,90 @@ where
 	toString Dcl = ".dcl"
 	toString Icl = ".icl"
 
+moduleList :: SDS FilePath [(ModuleName,ModuleType)] ()
+moduleList = worldShare read write
+where
+	read path world = case scanPaths [path] world of
+		(Ok paths,world) = (Ok (determineModules path paths), world)
+		(Error e,world) = (Error (snd e), world)
+
+	write path () world = (Ok (),world)
+
+	scanPaths [] world = (Ok [],world)
+	scanPaths [p:ps] world = case getFileInfo p world of
+		(Error e,world) = (Error e,world)
+		(Ok info,world)
+			| not info.directory
+	 			= case scanPaths ps world of
+					(Error e,world) = (Error e,world)
+					(Ok filesps,world)
+						| include p = (Ok ([p:filesps]),world)
+                                    = (Ok filesps,world)
+				= case readDirectory p world of
+					(Error e,world) = (Error e,world)
+					(Ok files,world)
+						= case scanPaths [p </> name \\ name <- files | not (exclude name)] world of
+							(Error e,world) = (Error e,world)
+							(Ok filesp,world) = case scanPaths ps world of
+								(Error e,world) = (Error e,world)
+								(Ok filesps,world) = (Ok (filesp++filesps),world)
+					
+    //Include
+    include p = let ext = takeExtension p in ext == "icl" || ext == "dcl"
+       
+	//We can skip directories that we know don't contain Clean modules
+	exclude p = startsWith "." p || p == "Clean System Files" || p == "WebPublic"
+
+    determineModules root paths = mods (sort pathsWithoutRoot)
+	where
+		//The module name is determined only from the part of the path without the root directory
+		pathsWithoutRoot = [subString (textSize root + 1) (textSize s) s \\ s <- paths]
+
+		mods [] = []
+		mods [p1,p2:ps]
+			# p1name = dropExtension p1
+			# p2name = dropExtension p2
+			| p1name == p2name && takeExtension p1 == "dcl" && takeExtension p2 == "icl"
+				= [(moduleName p1name,AuxModule):mods ps]
+			| takeExtension p1 == "icl"
+				= [(moduleName p1name,MainModule):mods [p2:ps]]
+			    = mods [p2:ps]
+		mods [p1:ps]
+			| takeExtension p1 == "icl"
+				= [(moduleName (dropExtension p1),MainModule):mods ps]
+			    = mods ps
+
+		mods paths = [(p,MainModule) \\ p <- paths]
+		moduleName p = replaceSubString {pathSeparator} "." p
+	
+
+moduleDefinition :: SDS (FilePath,ModuleName) [String] [String]
+moduleDefinition = mapReadWrite mapToLines (sdsTranslate "moduleDefinition" (\(p,m) -> modulePath p m "dcl") externalFile)
+
+moduleImplementation :: SDS (FilePath,ModuleName) [String] [String]
+moduleImplementation = mapReadWrite mapToLines (sdsTranslate "moduleImplementation" (\(p,m) -> modulePath p m "icl") externalFile)
+
+moduleDocumentation :: SDS (FilePath,ModuleName) [String] [String]
+moduleDocumentation = mapReadWrite mapToLines (sdsTranslate "moduleDocumentation" (\(p,m) -> modulePath p m "md") externalFile)
+
+mapToLines = (split "\n",\w _ -> Just (join "\n" w))
+
+modulePath path name ext = path </> addExtension (replaceSubString "." {pathSeparator} name) ext
+
+toModuleSelectTree :: [(ModuleName,ModuleType)] -> [(ChoiceNode)]
+toModuleSelectTree modules = foldl addModule [] [(i,name,type) \\(name,type) <- modules & i <- [0..]]
+where
+	addModule tree (i,name,type) = insert i type (split "." name) tree
+
+	insert i type [s] [t:ts]
+		| s == t.ChoiceNode.label= [{ChoiceNode|t & id = i}:ts]
+                                 = [t:insert i type [s] ts]
+	insert i type [s:ss] [t:ts]
+		| s == t.ChoiceNode.label= [{ChoiceNode|t & children = insert i type ss t.ChoiceNode.children}:ts]
+                                 = [t:insert i type [s:ss] ts]
+	insert i type [s] [] = [{id=i,label=s,icon=Nothing,expanded=False,children=[]}]
+	insert i type [s:ss] [] = [{ChoiceNode|id= -1,label=s,icon=Nothing,expanded=False,children = insert i type ss []}]
+	
 rescanCodeBase :: CodeBase -> Task CodeBase
 rescanCodeBase codebase
     =   allTasks [ accWorld (findModulesForTree tree)
@@ -156,7 +241,7 @@ where
                                 = [(m,type,p):addModule path modName isAux ms]
 
 
-    toModuleName fileName modBase =join "." (reverse [fileName:modBase])
+    toModuleName fileName modBase = join "." (reverse [fileName:modBase])
 
 :: FileExtension :== String
 

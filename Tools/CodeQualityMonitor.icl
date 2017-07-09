@@ -31,7 +31,6 @@ import Tests.Common.MinimalTasks
 
 derive class iTask ExitCode
 
-//CPM_PATH :== "/Users/bas/Clean/bin/cpm"
 TESTS_PATH :== "../Tests/TestPrograms"
 LIBRARY_PATH :== "../Libraries"
 EXAMPLE_MODULES :== ["../Examples/BasicApiExamples.icl"
@@ -61,6 +60,7 @@ runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testben
 			   ,runUnitTests   <<@ Title "Unit Tests"
                ,checkExampleApplications  <<@ Title "Example applications"
 			   ,viewQualityMetrics  <<@ Title "Metrics"
+               ,exploreCode <<@ Title "Code"
 			   ] <<@ ArrangeWithTabs
     ) @! ()
 where
@@ -152,6 +152,27 @@ where
 		view {numTODO,numFIXME} = UlTag [] [LiTag [] [Text "Number of TODO's found: ",Text (toString numTODO)]
 										   ,LiTag [] [Text "Number of FIXME's found: ",Text (toString numFIXME)]
 										   ]
+
+	exploreCode :: Task ()
+    exploreCode 
+	   = ((    editSelectionWithShared (Title "Modules") False (SelectInTree toModuleSelectTree selectByIndex) (sdsFocus LIBRARY_PATH moduleList) (const []) @? tvHd
+		   >&> withSelection (viewInformation "Select a module" [] ())
+                             viewModule 
+          )
+		@! ()) <<@ ArrangeWithSideBar 0 LeftSide 250 True
+
+	selectByIndex nodes indices = [nodes !! i \\ i <- indices | i >= 0 && i < length nodes]
+
+	viewModule (name,MainModule)
+		= allTasks
+			[viewSharedInformation (Title "Implementation") [] (sdsFocus (LIBRARY_PATH,name) moduleImplementation)
+			] <<@ ArrangeWithTabs
+
+	viewModule (name,AuxModule)
+		= allTasks
+			[viewSharedInformation (Title "Definition") [] (sdsFocus (LIBRARY_PATH,name) moduleDefinition)
+			,viewSharedInformation (Title "Implementation") [] (sdsFocus (LIBRARY_PATH,name) moduleImplementation)
+			] <<@ ArrangeWithTabs
 
 //Begin metrics 
 //The following section should probably be moved to a separate module

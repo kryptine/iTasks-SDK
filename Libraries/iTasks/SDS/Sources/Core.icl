@@ -15,6 +15,17 @@ constShare v = createReadOnlySDS (\_ env -> (v, env))
 nullShare :: SDS p () a
 nullShare = createReadWriteSDS "_core_" "nullShare" (\_ env -> (Ok (), env)) (\_ _ env -> (Ok (const False), env))
 
+worldShare :: (p *World -> *(MaybeErrorString r,*World)) (p w *World -> *(MaybeErrorString (),*World)) -> SDS p r w 
+worldShare read write = createReadWriteSDS "_core_" "worldShare" read` write`
+where
+	read` p iworld=:{IWorld|world} = case read p world of
+		(Ok r,world) = (Ok r, {IWorld|iworld & world = world})
+		(Error e,world) = (Error (exception e), {IWorld|iworld & world = world})
+
+	write` p w iworld=:{IWorld|world} = case write p w world of
+		(Ok (),world) = (Ok (const False), {IWorld|iworld & world = world})
+		(Error e,world) = (Error (exception e), {IWorld|iworld & world = world})
+
 // Random source
 randomInt :: SDS () Int ()
 randomInt = createReadOnlySDS randomInt
