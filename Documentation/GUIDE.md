@@ -1,11 +1,9 @@
 # iTasks Guide
 
 ## Introduction
-The iTasks Framework is a large, complex and unusual library in an obscure programming language.
-So if you are a little lost trying to understand the concepts, or figure out how we organized things,
-we understand, and sympathize.
-This document is intended to give you an overview of the library (and the toolchain around it), and to
-answer some questions we expect you might have.
+The iTasks Framework is not your average codebase. It is an implementation of a new paradigm in a programming language you will likely never have programmed in before.
+So if you are a unfamiliar with Clean, TOP, iTasks or all of the above, you may get a little lost trying to wrap your head around things.
+This document is intended to help you find your way around the  library (and the toolchain around it), and to answer some questions we expect you might have.
 
 ## Context
 
@@ -28,7 +26,21 @@ Every design decision in the iTask framework should ultimately be judged against
 
 The iTask framework is an open-source system developed in an academic setting by a small team. For none of the people that work on it, it is their primary task. It is not a product backed by a company with customers who need iTasks-based applications to run their daily operations. In practice, this means that you cannot expect support reliably (we do want to help everyone, but can't always afford to) and that what gets worked on is primary dictated by the personal agenda's and interests of the contributors.
 
-For us, the researchers that work on it, it is a platform for experimenting with new ideas and to demonstrate results with. This means that attention to features and quality attributes is distributed differently than in libraries intended for use in production systems. There are a lot of cool advanced techniques used in the framework, but a mundane (but useful) features that you might expect are sometimes missing. Think of iTasks being something akin to a F1 race car. They are great for experimenting with and showing off advances in automotive technology, but they are lousy cars for daily use. No room for passengers or groceries, no lights and don't even think of parallel parking. 
+For us, the researchers that work on it, it is a platform for experimenting with new ideas and to demonstrate results with. This means that attention to features and quality attributes is distributed differently than in libraries intended for use in production systems. There are a lot of cool advanced techniques used in the framework, but a mundane (but useful) features that you might expect are sometimes missing. Think of iTasks being something akin to a F1 race car. They are great for experimenting with and showing off advances in automotive technology, but they are lousy cars for daily use. No room for passengers or groceries, no lights and don't even think of parallel parking.
+
+## Software Architecture
+
+The iTasks _framework_ is implementated as a _library_ in the programming language Clean. This means that an iTasks program is "just" a Clean program. But, because it is a framework, is a program that will call your program. So generally all iTasks programs will have a `Start` expression (think `main` in C) that looks something like this: `Start world = startEngine myTaskExpression world`. The `startEngine` runs the iTask framework which is parameterized with your program expressed by `myTaskExpression`.
+
+How you specify that task expression we'll ignore for now. The necessary concepts are explained in the next section. We first look at what iTasks does with that expression. To summarize: it generates a complete interactive (multi-user) web-application that let's you perform the task you specified. Many web applications consist of code written different languages. Typically 'frontend' code in javascript (and html fragments) and backend code in a mainstream language of choice. iTasks programs are _single source_ specifications. This does not mean that you are not allowed to divide your program into modules, but that a full web application is generated from the Clean program you write. The "client-side" javascript code of the web-applications is generated from the same Clean source code as the web server program. In fact, to explain the overall architecture of an iTasks program, let's first look at the artifacts that are created when you compile an iTask program.
+
+When you compile an iTask program, say a Clean module called `HelloWorld.icl`, you will get three things:
+
+- An executable  e.g. `HelloWorld.exe` on Windows. This is the application server that will coordinate and execute the task(s) you specified in your program. It exposes the GUI of your application through an HTTP web service (by default on port 80 on Windows and 8080 on Linux and Mac).
+- A folder with static web resources called `HelloWorld-www`. This contains all the static HTML, Javascript, CSS and images that the application needs. Most importantly it contains the `index.html` landing page that will load the `itask-*.js` libraries that make up the client-side runtime system. If your application uses iTasks extension libraries that integrate with other Javascript libraries, things like Google Maps for example, the additional scripts necessary for that will also be added to this folder during compilation.
+- A folder with partially compiled client-side code called `HelloWorld-sapl`. This folder contains the code of your application in an intermediate language called SAPL. This language is compiled just-in-time to Javascript and downloaded only when needed by tasks that use client-side computation.
+
+TODO: Explain main components: Server executable with two services: ui and static content, client runtime with interpreter for gui's
 
 ## iTasks Concepts
 
