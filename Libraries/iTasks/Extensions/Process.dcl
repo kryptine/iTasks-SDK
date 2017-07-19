@@ -23,7 +23,7 @@ instance toString CallException
 * @param Task description
 * @param Executable: path to the executable
 * @param Arguments: a list of command-line arguments
-@ @param Optional startup directory
+* @param Optional startup directory
 * @return return-code of the process
 * @throws CallException
 * 
@@ -36,7 +36,7 @@ callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePa
 * Calls an external executable. This call blocks task computation, only use when process is known to terminate fast.
 * @param Executable: path to the executable
 * @param Arguments: a list of command-line arguments
-@ @param Optional startup directory
+* @param Optional startup directory
 * @return return-code of the process
 * @throws CallException
 */
