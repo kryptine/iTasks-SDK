@@ -13,16 +13,13 @@ import iTasks.Internal.Generic.Defaults
 emptyEditor :: Editor a
 
 /**
-* Editor for lists
-*/
-/**
 * Show Editor for lists
 *
 * @param Add:		        Determines whether new elements can be added.
-                            If this is the case a function on the current values determines the element to add,
-                            where the result of the function means:
-                                Nothing: a new value has to be entered for the new element (Enter mode)
-                                Just x:  a new element with value 'x' is added and can be updated (Update mode)
+*                           If this is the case a function on the current values determines the element to add,
+*                           where the result of the function means:
+*                               Nothing: a new value has to be entered for the new element (Enter mode)
+*                               Just x:  a new element with value 'x' is added and can be updated (Update mode)
 * @param Remove:            Can elements be removed?
 * @param Reorder:           Can elements be reordered?
 * @param Summary:           Optionally generates a summary of the list (e.g. the nr of items)
