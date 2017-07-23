@@ -55,8 +55,8 @@ JS_COMPILER_EXCLUDES :==
 	,"System.Directory"
 	]
 
-createIWorld :: !String FilePath !(Maybe FilePath) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
-createIWorld appName appPath mbWebdirPath mbStorePath mbSaplPath world
+createIWorld :: !String FilePath !Bool !(Maybe FilePath) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
+createIWorld appName appPath persistTasks mbWebdirPath mbStorePath mbSaplPath world
 	# appDir					= takeDirectory appPath
 	# dataDir					= fromMaybe (appDir </> appName +++ "-data") mbStorePath
 	# webDir                    = fromMaybe (appDir </> appName +++ "-www") mbWebdirPath 
@@ -86,7 +86,7 @@ createIWorld appName appPath mbWebdirPath mbStorePath mbSaplPath world
 			,saplDirectory  = saplDir
             }
         }
-	  ,config				= initialConfig
+	  ,config				= initialConfig persistTasks
       ,clocks =
         {SystemClocks
 		|timestamp=timestamp
@@ -117,10 +117,10 @@ createIWorld appName appPath mbWebdirPath mbStorePath mbSaplPath world
       ,onClient				= False
 	  }
 where
-	initialConfig :: Config
-	initialConfig =
+	initialConfig persistTasks =
 		{ sessionTime		= 3600
 		, smtpServer		= "localhost"
+        , persistTasks      = persistTasks
 		}
 		
 	ensureDir :: !String !FilePath *World -> (!Bool,!*World)

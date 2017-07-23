@@ -45,6 +45,7 @@ getServerOptions world
 	# port 					= fromMaybe DEFAULT_PORT (intOpt "-port" opts)
 	# keepalive				= fromMaybe DEFAULT_KEEPALIVE_TIME (intOpt "-keepalive" opts)
 	# help					= boolOpt "-help" opts
+	# noPersist             = boolOpt "-no-persist" opts
 	# webOpt				= stringOpt "-webpublic" opts
 	# storeOpt		    	= stringOpt "-store" opts
 	# saplOpt		    	= stringOpt "-sapl" opts
@@ -58,6 +59,7 @@ getServerOptions world
 		, webDirPath 		= webOpt
 		, storeDirPath      = storeOpt
 		, saplDirPath 	    = saplOpt
+        , persistTasks      = not noPersist
 		}
 	= (Just options,world)
 where
@@ -99,9 +101,9 @@ startEngine publishable world
 		(Just options,world) = startEngineWithOptions publishable options world
 
 startEngineWithOptions :: a ServerOptions !*World -> *World | Publishable a
-startEngineWithOptions publishable options=:{appName,appPath,serverPort,keepalive,webDirPath,storeDirPath,saplDirPath} world
+startEngineWithOptions publishable options=:{appName,appPath,serverPort,keepalive,persistTasks,webDirPath,storeDirPath,saplDirPath} world
 	# world					= show (running appName serverPort) world
- 	# iworld				= createIWorld appName appPath webDirPath storeDirPath saplDirPath world
+ 	# iworld				= createIWorld appName appPath persistTasks webDirPath storeDirPath saplDirPath world
  	# (res,iworld) 			= initJSCompilerState iworld
  	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
     //Start task server
@@ -126,8 +128,8 @@ runTasks tasks world
 		(Just options,world) = runTasksWithOptions tasks options world
 
 runTasksWithOptions :: a ServerOptions !*World -> *World | Runnable a
-runTasksWithOptions runnable options=:{appName,appPath,serverPort,keepalive,webDirPath,storeDirPath,saplDirPath} world
- 	# iworld				= createIWorld appName appPath webDirPath storeDirPath saplDirPath world
+runTasksWithOptions runnable options=:{appName,appPath,serverPort,keepalive,persistTasks,webDirPath,storeDirPath,saplDirPath} world
+ 	# iworld				= createIWorld appName appPath persistTasks webDirPath storeDirPath saplDirPath world
  	# (res,iworld) 			= initJSCompilerState iworld
  	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
 	# iworld				= serve (toRunnable runnable) [] systemTasks timeout iworld

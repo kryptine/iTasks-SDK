@@ -34,13 +34,28 @@ derive gEq ParallelTaskChange
 derive gText ParallelTaskChange
 derive class iTask InstanceFilter
 
-//Master instance index on disk
+
+//Unfiltered administration
+
+rawTaskIndex = systemStore NS_TASK_INSTANCES StoreInJSONFile False False True (Just [])
+rawTaskNoCounter = systemStore NS_TASK_INSTANCES StoreInJSONFile False False True (Just 1)
+
+rawInstanceIO = systemStore NS_TASK_INSTANCES StoreInMemory False False False (Just 'DM'.newMap)
+rawInstanceEvents = systemStore NS_TASK_INSTANCES StoreInJSONFile False False True (Just 'DQ'.newQueue)
+rawInstanceUIChanges = systemStore NS_TASK_INSTANCES StoreInMemory False False False (Just 'DM'.newMap)
+
+rawInstanceReduct = systemStore NS_TASK_INSTANCES StoreInDynamicFile True False False Nothing
+rawInstanceValue = systemStore NS_TASK_INSTANCES StoreInDynamicFile True False False Nothing
+rawInstanceShares = systemStore NS_TASK_INSTANCES StoreInDynamicFile  True False False (Just 'DM'.newMap)
+rawInstanceParallels = systemStore NS_TASK_INSTANCES StoreInDynamicFile True False False (Just 'DM'.newMap)
+
+//Master instance index 
 taskInstanceIndex :: RWShared () [TIMeta] [TIMeta]
-taskInstanceIndex = sdsFocus "instances" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just []))
+taskInstanceIndex = sdsFocus "instances" rawTaskIndex
 
 //Next instance no counter
 nextInstanceNo :: RWShared () Int Int
-nextInstanceNo = sdsFocus "increment" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just 1))
+nextInstanceNo = sdsFocus "increment" rawTaskNoCounter
 
 taskInstanceIO :: RWShared InstanceNo (Maybe (!String,!Timestamp)) (Maybe (!String,!Timestamp))
 taskInstanceIO = sdsLens "taskInstanceIO" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) allInstanceIO
@@ -51,27 +66,26 @@ where
 	notify instanceNo _ 	= (==) instanceNo
 
 allInstanceIO :: RWShared () (Map InstanceNo (!String,!Timestamp)) (Map InstanceNo (!String,Timestamp)) 
-allInstanceIO = sdsFocus "io" (memoryStore NS_TASK_INSTANCES (Just 'DM'.newMap))
+allInstanceIO = sdsFocus "io" rawInstanceIO
 
 //Event queues of task instances
 taskEvents :: RWShared () (Queue (InstanceNo,Event)) (Queue (InstanceNo,Event))
-taskEvents = sdsFocus "events" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just 'DQ'.newQueue))
+taskEvents = sdsFocus "events" rawInstanceEvents
 
 //Instance evaluation state
 taskInstanceReduct :: RWShared InstanceNo TIReduct TIReduct
-//taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") (memoryStore NS_TASK_INSTANCES Nothing)
-taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") (cachedDynamicStringFileStore NS_TASK_INSTANCES True False False Nothing)
+taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") rawInstanceReduct
 
 //Last computed value for task instance
 taskInstanceValue :: RWShared InstanceNo TIValue TIValue
-taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") (cachedDynamicStringFileStore NS_TASK_INSTANCES True False False Nothing)
+taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") rawInstanceValue
 
 //Local shared data
 taskInstanceShares :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
-taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") (cachedDynamicStringFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
+taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") rawInstanceShares
 
 allUIChanges :: RWShared () (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange)) 
-allUIChanges = sdsFocus "allUIChanges" (memoryStore NS_TASK_INSTANCES (Just 'DM'.newMap))
+allUIChanges = sdsFocus "allUIChanges" rawInstanceUIChanges 
 
 taskInstanceUIChanges :: RWShared InstanceNo (Queue UIChange) (Queue UIChange) 
 taskInstanceUIChanges = sdsLens "taskInstanceUIChanges" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) allUIChanges
@@ -85,7 +99,7 @@ where
 
 //Task instance parallel lists
 taskInstanceParallelTaskLists :: RWShared InstanceNo (Map TaskId [ParallelTaskState]) (Map TaskId [ParallelTaskState])
-taskInstanceParallelTaskLists = sdsTranslate "taskInstanceParallelLists" (\t -> t +++> "-tasklists") (cachedDynamicStringFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
+taskInstanceParallelTaskLists = sdsTranslate "taskInstanceParallelLists" (\t -> t +++> "-tasklists") rawInstanceParallels
 
 newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceNo iworld

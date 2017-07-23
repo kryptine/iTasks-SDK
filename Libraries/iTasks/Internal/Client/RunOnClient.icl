@@ -131,7 +131,7 @@ createClientIWorld serverURL currentInstance
                           ,webDirectory  = locundef "webDirectory"
 						  ,saplDirectory = locundef "saplDirectory"}
             }
-		  ,config				= {sessionTime = 3600, smtpServer = locundef "smtpServer"}
+		  ,config = {sessionTime = 3600, smtpServer = locundef "smtpServer", persistTasks = True}
           ,clocks =
             { timestamp =   timestamp
 			, localDate =   {Date|day = 1, mon = 1, year = 1977}

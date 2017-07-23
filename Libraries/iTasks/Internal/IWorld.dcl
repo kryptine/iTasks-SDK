@@ -55,6 +55,8 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 :: Config =
 	{ sessionTime		:: !Int		//* Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
 	, smtpServer		:: !String	//* The smtp server to use for sending e-mails
+
+	, persistTasks      :: !Bool    //* Persist the task state to disk
 	}
 
 :: ServerInfo =
@@ -159,6 +161,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 *
 * @param The application's name
 * @param The application's path (e.g. to executable).
+* @param Persist task administration
 * @param The path where static web assets can be found (optional)
 * @param The path where the iTasks data store is located (optional)
 * @param Path to where the applications's SAPL files are stored (optional)
@@ -166,7 +169,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 *
 * @return An initialized iworld
 */
-createIWorld :: !String FilePath !(Maybe FilePath) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
+createIWorld :: !String FilePath !Bool !(Maybe FilePath) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
 
 /**
 * Initialize the SAPL->JS compiler state

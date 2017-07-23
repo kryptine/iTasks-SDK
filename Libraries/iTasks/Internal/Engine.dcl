@@ -29,6 +29,7 @@ MAX_EVENTS 		        :== 5
 	, appPath		:: FilePath
 	, serverPort	:: Int
 	, keepalive 	:: Int
+    , persistTasks  :: Bool
 	, webDirPath 	:: Maybe FilePath
 	, storeDirPath 	:: Maybe FilePath
 	, saplDirPath   :: Maybe FilePath

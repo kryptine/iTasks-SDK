@@ -43,6 +43,13 @@ NS_JAVASCRIPT_CACHE     :== "js-cache"
 instance toString StoreReadError
 derive class iTask StoreReadError
 
+//For system stores, the server configuration determines if and when data is written to disk
+//This storage preference type is used to indicate 
+:: StoragePreference
+  = StoreInMemory      //When the data is disposable. It will be gone when the application shuts down
+  | StoreInJSONFile    //When the data should be persisted between different versions of an application
+  | StoreInDynamicFile //When the data contains functions, dynamics or otherwise 
+
 /**
 * Creates a store in memory. Values in this store are lost when the server shuts down.
 *
@@ -60,6 +67,17 @@ memoryStore   :: !StoreNamespace !(Maybe a) -> RWShared StoreName a a | TC a
 * @param Optionally a default content to be used on first read. If nothing is given an error will occur when reading before writing.
 */
 fullFileStore :: !StoreNamespace !Bool !(Maybe {#Char}) -> RWShared StoreName (!BuildID,!{#Char}) {#Char}
+
+/**
+* Creates a store that is either in-memory, or persisted to disk depending on the global configuation option
+*
+* @param The namespace in the store
+* @param Check the build version
+* @param Automatically reset the the store if an error occurs
+* @param Cache the value
+* @param Optionally a default content to be used on first read. If nothing is given an error will occur when reading before writing.
+*/
+systemStore :: !StoreNamespace !StoragePreference !Bool !Bool !Bool !(Maybe a) -> RWShared StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
 * Extends a fullFileStore with JSON encoding/decoding such that arbitrary values can be stored.

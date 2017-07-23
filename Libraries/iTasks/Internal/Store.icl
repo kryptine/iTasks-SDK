@@ -10,11 +10,11 @@ import Text, Text.JSON, iTasks.Internal.Serialization
 import iTasks.Internal.Client.JSStore
 import iTasks.Internal.SDS
 
-from iTasks.Internal.IWorld		import :: IWorld {onClient,server,memoryShares,cachedShares,world}, :: ServerInfo(..), :: SystemPaths(..), :: Resource, :: ShareCache(..), :: CachedValue(..)
+from iTasks.Internal.IWorld		import :: IWorld {config,onClient,server,memoryShares,cachedShares,world}, :: ServerInfo(..), :: SystemPaths(..), :: Resource, :: ShareCache(..), :: CachedValue(..)
 from iTasks.Internal.Task		    import exception
 from iTasks.Internal.TaskState		import :: DeferredJSON(..)
 from iTasks.Internal.TaskEval import :: TaskTime
-from iTasks.Internal.IWorld import :: Config
+from iTasks.Internal.IWorld import :: Config(..)
 
 from iTasks.WF.Definition				import class iTask
 from iTasks.Internal.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
@@ -39,58 +39,86 @@ derive class iTask StoreReadError
 
 //Temporary memory storage
 memoryStore :: !StoreNamespace !(Maybe a) -> RWShared StoreName a a | TC a
-memoryStore namespace defaultV = createReadWriteSDS namespace "memoryStore" read write
+memoryStore namespace defaultV
+	= createReadWriteSDS namespace "memoryStore" (memoryStoreRead namespace defaultV) (memoryStoreWrite namespace)
+
+memoryStoreRead namespace defaultV key iworld=:{IWorld|memoryShares}
+	= case 'DM'.get (namespace,key) memoryShares of
+		(Just (val :: a^))  = (Ok val,iworld)
+		(Just _)            = (Error (exception (StoreReadTypeError storeDesc)), iworld)
+       	_                   = case defaultV of
+			Nothing     = (Error (exception (StoreReadMissingError storeDesc)), iworld)
+			Just val    = (Ok val, {IWorld|iworld & memoryShares = 'DM'.put (namespace,key) (dynamic val :: a^) memoryShares})
 where
-    read key iworld=:{IWorld|memoryShares}
-        = case 'DM'.get (namespace,key) memoryShares of
-            (Just (val :: a^))  = (Ok val,iworld)
-            (Just _)            = (Error (exception (StoreReadTypeError storeDesc)), iworld)
-            _                   = case defaultV of
-                Nothing     = (Error (exception (StoreReadMissingError storeDesc)), iworld)
-                Just val    = (Ok val, {IWorld|iworld & memoryShares = 'DM'.put (namespace,key) (dynamic val :: a^) memoryShares})
-	where
-		storeDesc = namespace +++ "/" +++ key
-	write key val iworld=:{IWorld|memoryShares}
-        = (Ok ((==) key),{IWorld|iworld & memoryShares = 'DM'.put (namespace,key) (dynamic val :: a^) memoryShares})
+	storeDesc = namespace +++ "/" +++ key
+
+memoryStoreWrite namespace key val iworld=:{IWorld|memoryShares}
+	= (Ok ((==) key),{IWorld|iworld & memoryShares = 'DM'.put (namespace,key) (dynamic val :: a^) memoryShares})
 
 //'Core' file storage SDS
 fullFileStore :: !StoreNamespace !Bool !(Maybe {#Char}) -> RWShared StoreName (!BuildID,!{#Char}) {#Char}
-fullFileStore namespace resetOnError defaultV = createReadWriteSDS namespace "fullFileStore" read write
-where
-	read key iworld=:{IWorld|onClient,server={buildID}}
-        | onClient //Special case for tasks running on a client
-            # (mbVal,iworld) = jsLoadValue namespace key iworld
-	        = (maybe (Error (exception (StoreReadMissingError storeDesc))) Ok mbVal, iworld)
-	    # (mbItem,iworld) = readFromDisk namespace key iworld
-	    = case (mbItem,defaultV) of
- 		    (Ok item,_)
-                = (Ok item,iworld)
-            (Error (StoreReadMissingError desc),Just def)
-                # (mbErr,iworld) = writeToDisk namespace key def iworld
-				| mbErr =: (Error _)
-					= (Error (exception (fromError mbErr)),iworld)
-                = (Ok (buildID,def),iworld)
-            (Error e,Just def) | resetOnError
-                # (mbErr,iworld) = writeToDisk namespace key def iworld
-				| mbErr =: (Error _)
-					= (Error (exception (fromError mbErr)),iworld)
-                = (Ok (buildID,def),iworld)
-            (Error e,Nothing) | resetOnError
-                # (_,iworld) = deleteValue namespace key iworld //Try to delete the value
-                = (Error (exception e), iworld)
-		    (Error e,_)
-                = (Error (exception e),iworld)
-	where
-		storeDesc = namespace +++ "/" +++ key
+fullFileStore namespace resetOnError defaultV
+	= createReadWriteSDS namespace "fullFileStore" (fileStoreRead namespace resetOnError defaultV) (fileStoreWrite namespace resetOnError defaultV)
 
-	write key value iworld=:{IWorld|onClient}
-        | onClient //Special case for tasks running on a client
-	        = (Ok ((==) key),jsStoreValue namespace key value iworld)
-        | otherwise
-			# (mbErr,iworld) = writeToDisk namespace key value iworld
+fileStoreRead namespace resetOnError defaultV key iworld=:{IWorld|onClient,server={buildID}}
+	| onClient //Special case for tasks running on a client
+	    # (mbVal,iworld) = jsLoadValue namespace key iworld
+		= (maybe (Error (exception (StoreReadMissingError storeDesc))) Ok mbVal, iworld)
+	# (mbItem,iworld) = readFromDisk namespace key iworld
+	= case (mbItem,defaultV) of
+		(Ok item,_)
+			= (Ok item,iworld)
+		(Error (StoreReadMissingError desc),Just def)
+			# (mbErr,iworld) = writeToDisk namespace key def iworld
 			| mbErr =: (Error _)
 				= (Error (exception (fromError mbErr)),iworld)
-	        = (Ok ((==) key),iworld)
+			= (Ok (buildID,def),iworld)
+		(Error e,Just def) | resetOnError
+			# (mbErr,iworld) = writeToDisk namespace key def iworld
+			| mbErr =: (Error _)
+				= (Error (exception (fromError mbErr)),iworld)
+			= (Ok (buildID,def),iworld)
+		(Error e,Nothing) | resetOnError
+	       # (_,iworld) = deleteValue namespace key iworld //Try to delete the value
+			= (Error (exception e), iworld)
+		(Error e,_)
+			= (Error (exception e),iworld)
+where
+	storeDesc = namespace +++ "/" +++ key
+
+fileStoreWrite namespace resetOnError defaultV key value iworld=:{IWorld|onClient}
+	| onClient //Special case for tasks running on a client
+		= (Ok ((==) key),jsStoreValue namespace key value iworld)
+	| otherwise
+		# (mbErr,iworld) = writeToDisk namespace key value iworld
+		| mbErr =: (Error _)
+			= (Error (exception (fromError mbErr)),iworld)
+		= (Ok ((==) key),iworld)
+
+
+systemStore :: !StoreNamespace !StoragePreference !Bool !Bool !Bool !(Maybe a) -> RWShared StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+systemStore namespace preference checkBuild cache resetOnError defaultV
+	= createReadWriteSDS namespace "systemStore" systemStoreRead systemStoreWrite
+where
+	systemStoreRead key iworld=:{IWorld|config={persistTasks}}
+		| persistTasks  = case preference of
+			StoreInMemory = memoryStoreRead namespace defaultV key iworld
+			StoreInJSONFile = read (sdsFocus key (cachedJSONFileStore namespace checkBuild resetOnError cache defaultV)) iworld
+			StoreInDynamicFile = read (sdsFocus key (cachedDynamicStringFileStore namespace checkBuild resetOnError cache defaultV)) iworld
+		| otherwise
+			= memoryStoreRead namespace defaultV key iworld
+
+	systemStoreWrite key value iworld=:{IWorld|config={persistTasks}} 
+		| persistTasks = case preference of
+			StoreInMemory = memoryStoreWrite namespace key value iworld
+			StoreInJSONFile = case write value (sdsFocus key (cachedJSONFileStore namespace checkBuild resetOnError cache defaultV)) iworld of
+				(Ok (), iworld) = (Ok (const False),iworld)
+				(Error e,iworld) = (Error e, iworld)
+			StoreInDynamicFile = case write value (sdsFocus key (cachedDynamicStringFileStore namespace checkBuild resetOnError cache defaultV)) iworld of
+				(Ok (), iworld) = (Ok (const False),iworld)
+				(Error e,iworld) = (Error e, iworld)
+		| otherwise
+			= memoryStoreWrite namespace key value iworld
 
 //Utility SDS which provides the current build such that higher level stores can check against it
 buildID :: RWShared p BuildID ()
