@@ -2,7 +2,7 @@ implementation module iTasks.WF.Tasks.Interaction
 
 from StdFunc import id, const, o, flip
 from Data.Tuple import appSnd
-from Data.List import isMemberGen, findIndex, instance Functor []
+from Data.List import isMemberGen, findIndex, instance Functor [], getItems
 from System.Time import :: Timestamp(..)
 from Data.Map import qualified get, put
 
@@ -148,10 +148,10 @@ editSharedSelectionWithShared d multi (SelectInTree toView fromView) sharedConta
 	= editSharedSelectionWithShared` d (tree (multipleAttr multi)) toView fromView sharedContainer sharedSel
 editSharedSelectionWithShared` d editor toView fromView sharedContainer sharedSel 
 	= interact d Update (sharedContainer |+< sharedSel)
-		(\(rc,rs)           -> (rc,(toView rc,rs)))
-		(\(vt,vs) l _       -> (l,(vt,vs),Just (const vs)))
-		(\(rc,rs) l (vt,vs) -> (l,(toView rc,rs),Nothing))
-		(Just editor) @ (\(container,(_,sel)) -> fromView container sel)
+		(\(rc, rs)       -> (rc, (toView rc,rs)))
+		(\v=:(_, vs) l _ -> (l, v, Just (const vs)))
+		(\(rc, rs)   _ _ -> (rc, (toView rc, rs), Nothing))
+		(Just editor) @ (\(container, (_, sel)) -> (fromView container sel))
 
 //Core choice tasks
 editChoice :: !d ![ChoiceOption a] ![a] (Maybe a) -> Task a | toPrompt d & iTask a
@@ -257,12 +257,13 @@ editSharedMultipleChoiceWithSharedAs d vopts sharedContainer target sharedSel
 	= editSharedSelectionWithShared d True (selectOption target vopts) sharedContainer (findIndicesShareWithShared target (sharedContainer |+< sharedSel))
 
 //Helper functions for the edit*Choice* tasks
+selectOption :: (o -> s) [ChoiceOption o] -> SelectOption [o] s | gText{|*|} o
 selectOption target opts = case opts of
-	[(ChooseFromDropdown f):_]     = SelectInDropdown (toTexts f) (findSelection target)
-	[(ChooseFromCheckGroup f):_]   = SelectInCheckGroup (toTexts f) (findSelection target)
-	[(ChooseFromList f):_]         = SelectInList (toTexts f) (findSelection target)
-	[(ChooseFromGrid f):_]         = SelectInGrid (toGrid f) (findSelection target)
-	_                              = SelectInDropdown (toTexts id) (findSelection target) 
+	[(ChooseFromDropdown f):_]     = SelectInDropdown   (toTexts f)  (findSelection target)
+	[(ChooseFromCheckGroup f):_]   = SelectInCheckGroup (toTexts f)  (findSelection target)
+	[(ChooseFromList f):_]         = SelectInList       (toTexts f)  (findSelection target)
+	[(ChooseFromGrid f):_]         = SelectInGrid       (toGrid f)   (findSelection target)
+	_                              = SelectInDropdown   (toTexts id) (findSelection target)
 
 toTexts f options = [{ChoiceText|id=i,text=toSingleLineText (f o)} \\ o <- options & i <- [0..]]
 toGrid f options = {ChoiceGrid|header=gText{|*|} AsHeader (fixtype vals),rows = [{ChoiceRow|id=i,cells=map Text (gText{|*|} AsRow (Just v))} \\ v <- vals & i <- [0..]]}
@@ -272,7 +273,8 @@ where
 	fixtype :: [a] -> Maybe a
 	fixtype _ = Nothing
 
-findSelection target options idxs = [target (options !! idx) \\ idx <- idxs]
+findSelection :: (o -> s) [o] [Int] -> [s]
+findSelection target options idxs = target <$> getItems options idxs
 
 findIndex target Nothing options = []
 findIndex target (Just val) options = [i \\ o <- options & i <- [0..] | target o === val]
