@@ -151,7 +151,7 @@ editSharedSelectionWithShared` d editor toView fromView sharedContainer sharedSe
 		(\(rc, rs)       -> (rc, (toView rc,rs)))
 		(\v=:(_, vs) l _ -> (l, v, Just (const vs)))
 		(\(rc, rs)   _ _ -> (rc, (toView rc, rs), Nothing))
-		(Just editor) @ (\(container, (_, sel)) -> (fromView container sel))
+		(Just editor) @ (\(container, (_, sel)) -> fromView container sel)
 
 //Core choice tasks
 editChoice :: !d ![ChoiceOption a] ![a] (Maybe a) -> Task a | toPrompt d & iTask a
