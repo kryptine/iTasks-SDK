@@ -598,7 +598,7 @@ where
         = {TaskEvalInfo|lastEvent=lastEvent,removedTasks=removedTasks,refreshSensitive=refreshSensitive}
     addResult _ i = i
 
-readListId :: (SharedTaskList a) *IWorld -> (MaybeError TaskException TaskId,*IWorld)
+readListId :: (SharedTaskList a) *IWorld -> (MaybeError TaskException TaskId,*IWorld) | TC a
 readListId slist iworld = case read (sdsFocus taskListFilter slist) iworld of
 	(Ok (listId,_),iworld)	= (Ok listId, iworld)
 	(Error e, iworld)	    = (Error e, iworld)
@@ -641,7 +641,7 @@ where
 /**
 * Removes (and stops) a task from a task list
 */
-removeTask :: !TaskId !(SharedTaskList a) -> Task ()
+removeTask :: !TaskId !(SharedTaskList a) -> Task () | TC a
 removeTask removeId=:(TaskId instanceNo taskNo) slist = Task eval
 where
     eval event evalOpts (TCInit taskId ts) iworld

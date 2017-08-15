@@ -20,27 +20,30 @@ import Text.HTML
 
 derive class iTask ChoiceText, ChoiceGrid, ChoiceRow, ChoiceNode
 
+unitShare :: SDS () () ()
+unitShare = nullShare
+
 enterInformation :: !d ![EnterOption m] -> Task m | toPrompt d & iTask m
 enterInformation d [EnterAs fromf:_]
-	= interact d Enter nullShare (const ((),defaultValue)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) Nothing @ (\((),v) -> fromf v) 
-enterInformation d [EnterUsing fromf editor:_]
-	= interact d Enter nullShare (const ((),defaultValue)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) (Just editor) @ (\((),v) -> fromf v) 
+	= interact d Enter unitShare (const ((),defaultValue)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) Nothing @ (\((),v) -> fromf v) 
+enterInformation d opts=:[EnterUsing fromf editor:_]
+	= interact d Enter unitShare (const ((),defaultValue)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) (Just editor) @ (\((),v) -> fromf v) 
 enterInformation d _ = enterInformation d [EnterAs id]
 
 updateInformation :: !d ![UpdateOption m m] m -> Task m | toPrompt d & iTask m
 updateInformation d [UpdateAs tof fromf:_] m
-	= interact d Update nullShare (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing))
+	= interact d Update unitShare (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing))
 		Nothing @ (\((),v) -> fromf m v)
 updateInformation d [UpdateUsing tof fromf editor:_] m
-	= interact d Update nullShare (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing))
+	= interact d Update unitShare (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing))
 		(Just editor) @ (\((),v) -> fromf m v)
 updateInformation d _ m = updateInformation d [UpdateAs (\l -> l) (\_ v -> v)] m
 
 viewInformation :: !d ![ViewOption m] !m -> Task m | toPrompt d & iTask m
 viewInformation d [ViewAs tof:_] m 
-	= interact d View nullShare (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) Nothing @! m
+	= interact d View unitShare (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) Nothing @! m
 viewInformation d [ViewUsing tof editor:_] m
-	= interact d View nullShare (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) (Just editor) @! m
+	= interact d View unitShare (const ((),tof m)) (\v l _ -> (l,v,Nothing)) (\r l v -> (l,v,Nothing)) (Just editor) @! m
 viewInformation d _ m = viewInformation d [ViewAs id] m
 
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r & iTask w
@@ -69,7 +72,7 @@ updateSharedInformation d _ shared
 		(rtow :: r^ -> w^) = updateSharedInformation d [UpdateAs rtow (flip const)] shared 
 		_                  = viewSharedInformation d [] shared
 
-viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r
+viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r & TC w
 viewSharedInformation d [ViewAs tof:_] shared
 	= interact d View shared (\r -> (r,tof r))
 				(\v l _ -> (l,v,Nothing))
@@ -82,7 +85,7 @@ viewSharedInformation d [ViewUsing tof editor:_] shared
 				(Just editor) @ fst
 viewSharedInformation d _ shared = viewSharedInformation d [ViewAs id] shared
 
-updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | toPrompt d & iTask r & iTask m
+updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | toPrompt d & iTask r & iTask m & TC w
 updateInformationWithShared d [UpdateAs tof fromf:_] shared m
 	= interact d Update shared (\r -> ((r,m),tof (r,m)))
 				(\v (r,m) _ -> let nm = fromf (r,m) v in ((r,nm),v,Nothing))
@@ -103,13 +106,13 @@ editSelection d multi (SelectInList toView fromView) container sel = editSelecti
 editSelection d multi (SelectInGrid toView fromView) container sel = editSelection` d (grid (multipleAttr multi)) toView fromView container sel
 editSelection d multi (SelectInTree toView fromView) container sel = editSelection` d (tree (multipleAttr multi)) toView fromView container sel
 editSelection` d editor toView fromView container sel
-	= interact d (if (isEmpty sel) Enter Update) nullShare
+	= interact d (if (isEmpty sel) Enter Update) unitShare
 		(\r     -> ((),(toView container,sel)))
 		(\v l _ -> (l,v,Nothing))
 		(\_ l v -> (l,v,Nothing))
 		(Just editor) @ (\(_,(_,sel)) -> fromView container sel)
 
-editSelectionWithShared :: !d !Bool !(SelectOption c a) (ReadWriteShared c w) (c -> [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
+editSelectionWithShared :: !d !Bool !(SelectOption c a) (ReadWriteShared c w) (c -> [Int]) -> Task [a] | toPrompt d & iTask c & iTask a & TC w
 editSelectionWithShared d multi (SelectInDropdown toView fromView) sharedContainer initSel = editSelectionWithShared` d (dropdown (multipleAttr multi)) toView fromView sharedContainer initSel
 editSelectionWithShared d multi (SelectInCheckGroup toView fromView) sharedContainer initSel = editSelectionWithShared` d (checkGroup (multipleAttr multi)) toView fromView sharedContainer initSel
 editSelectionWithShared d multi (SelectInList toView fromView) sharedContainer initSel = editSelectionWithShared` d (choiceList (multipleAttr multi)) toView fromView sharedContainer initSel
@@ -135,7 +138,7 @@ editSharedSelection` d editor toView fromView container sharedSel
 		(\r l (vt,vs) -> (l,(vt,r),Nothing))
 		(Just editor) @ (\(_,(_,sel)) -> fromView container sel)
 
-editSharedSelectionWithShared :: !d !Bool !(SelectOption c a) (ReadWriteShared c w) (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
+editSharedSelectionWithShared :: !d !Bool !(SelectOption c a) (ReadWriteShared c w) (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a & TC w
 editSharedSelectionWithShared d multi (SelectInDropdown toView fromView) sharedContainer sharedSel 
 	= editSharedSelectionWithShared` d (dropdown (multipleAttr multi)) toView fromView sharedContainer sharedSel
 editSharedSelectionWithShared d multi (SelectInCheckGroup toView fromView) sharedContainer sharedSel 
@@ -299,7 +302,7 @@ where
 	tof (options,mbv) = findIndices target mbv options
 	fromf w (options,_) = Just (findSelection target options w)
 
-wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r
+wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r & TC w
 wait desc pred shared
 	=	viewSharedInformation desc [ViewAs (const "Waiting for information update")] shared
 	>>* [OnValue (ifValue pred return)]

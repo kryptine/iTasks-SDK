@@ -32,7 +32,6 @@ from GenEq import generic gEq
 NS_TASK_INSTANCES		:== "task-instances"
 NS_DOCUMENT_CONTENT		:== "document-data"
 NS_APPLICATION_SHARES	:== "application-data"
-NS_JAVASCRIPT_CACHE     :== "js-cache"
 
 :: StoreReadError
     = StoreReadMissingError !StoreName      //When there is no file on disk for this
@@ -43,41 +42,13 @@ NS_JAVASCRIPT_CACHE     :== "js-cache"
 instance toString StoreReadError
 derive class iTask StoreReadError
 
-//For system stores, the server configuration determines if and when data is written to disk
-//This storage preference type is used to indicate 
-:: StoragePreference
-  = StoreInMemory      //When the data is disposable. It will be gone when the application shuts down
-  | StoreInJSONFile    //When the data should be persisted between different versions of an application
-  | StoreInDynamicFile //When the data contains functions, dynamics or otherwise 
-
 /**
 * Creates a store in memory. Values in this store are lost when the server shuts down.
 *
 * @param The namespace in the store
 * @param Optionally a default content to be used on first read. If nothing is given an error will occur when reading before writing.
 */
-memoryStore   :: !StoreNamespace !(Maybe a) -> RWShared StoreName a a | TC a
-
-/**
-* Creates a 'raw' store which keeps values in multiple files indexed by a store name
-* The application's build ID is automatically stored with the content, and returned when reading
-*
-* @param The namespace in the store
-* @param Automatically reset the the store if an error occurs
-* @param Optionally a default content to be used on first read. If nothing is given an error will occur when reading before writing.
-*/
-fullFileStore :: !StoreNamespace !Bool !(Maybe {#Char}) -> RWShared StoreName (!BuildID,!{#Char}) {#Char}
-
-/**
-* Creates a store that is either in-memory, or persisted to disk depending on the global configuation option
-*
-* @param The namespace in the store
-* @param Check the build version
-* @param Automatically reset the the store if an error occurs
-* @param Cache the value
-* @param Optionally a default content to be used on first read. If nothing is given an error will occur when reading before writing.
-*/
-systemStore :: !StoreNamespace !StoragePreference !Bool !Bool !Bool !(Maybe a) -> RWShared StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+memoryStore   :: !StoreNamespace !(Maybe a) -> RWShared StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
 * Extends a fullFileStore with JSON encoding/decoding such that arbitrary values can be stored.
@@ -90,50 +61,6 @@ systemStore :: !StoreNamespace !StoragePreference !Bool !Bool !Bool !(Maybe a) -
 * @param Optionally a default content to be used on first read. If nothing is given an error will occur when reading before writing.
 */
 jsonFileStore :: !StoreNamespace !Bool !Bool !(Maybe a) -> RWShared StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-
-/**
-* Optimized caching version of the jsonFileStore.
-* During the evaluation of a task instance, the shares that are read from disk are kept in memory,
-* writes are applied to the in-memory version, and json encoding and writing to disk is deferred.
-*
-* @param The namespace in the store
-* @param Check the build versions to protect against deserializing outdated functions stored by older versions
-* @param Automatically reset the the store if an error occurs
-* @param Keep the value in the cache between evaluations
-* @param Optionally a default content to be used on first read. If nothing is given an error will occur when reading before writing.
-*/
-cachedJSONFileStore :: !StoreNamespace !Bool !Bool !Bool !(Maybe a) -> RWShared StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-
-/**
-* Extends a fullFileStore with dynamic string encoding such that arbitrary values can be stored.
-* This encoding can be significantly more efficient for storing large functions.
-* Additionally, caching is applied as for cachedJSONFileStore.
-* During the evaluation of a task instance, the shares that are read from disk are kept in memory,
-* writes are applied to the in-memory version, and encoding and writing to disk is deferred.
-*
-* @param The namespace in the store
-* @param Check the build versions to protect against deserializing outdated functions stored by older versions
-* @param Automatically reset the the store if an error occurs
-* @param Keep the value in the cache between evaluations
-* @param Optionally a default content to be used on first read. If nothing is given an error will occur when reading before writing.
-*/
-cachedDynamicStringFileStore :: !StoreNamespace !Bool !Bool !Bool !(Maybe a) -> RWShared StoreName a a | TC a
-
-/**
-* This function is called at the very end of the evaluation of a task instance.
-* It writes all pending writes to disk and clears values that are no longer needed from memory.
-*/
-flushShareCache :: *IWorld -> *IWorld
-
-/**
-* Store a binary blob
-*/
-blobStoreWrite	:: !StoreNamespace !StoreName !{#Char}		!*IWorld -> *IWorld
-
-/**
-* Load a binary blob
-*/
-blobStoreRead	:: !StoreNamespace !StoreName 				!*IWorld -> (!MaybeError StoreReadError {#Char}, !*IWorld)
 
 /**
 * Deletes the value with given key from the store
@@ -158,8 +85,3 @@ listStoreNames          :: !StoreNamespace                          !*IWorld -> 
 * Delete all values in the store
 */
 emptyStore :: !*IWorld -> *IWorld
-
-//writeToDisk :: !StoreNamespace !StoreName !String !*IWorld -> *IWorld
-writeToDisk :: !StoreNamespace !StoreName !String !*IWorld -> (MaybeErrorString (), *IWorld)
-
-readFromDisk :: !StoreNamespace !StoreName !*IWorld -> (MaybeError StoreReadError (!BuildID, !String), !*IWorld)

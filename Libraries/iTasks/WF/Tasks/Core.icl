@@ -56,7 +56,7 @@ interact :: !d !EditMode !(RWShared () r w)
 				(r -> (l, v))                       //On init
 				(v l v -> (l, v, Maybe (r -> w))) 	//On edit
 				(r l v -> (l, v, Maybe (r -> w)))  	//On refresh
-				(Maybe (Editor v)) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v
+				(Maybe (Editor v)) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC w
 interact prompt mode shared initFun editFun refreshFun mbEditor = Task eval
 where
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)

@@ -119,7 +119,8 @@ where
 	systemTasks =
  		[BackgroundTask updateClocks
 		,BackgroundTask (processEvents MAX_EVENTS)
-		,BackgroundTask removeOutdatedSessions]
+		,BackgroundTask removeOutdatedSessions
+		,BackgroundTask flushWritesWhenIdle]
 
 runTasks :: a !*World -> *World | Runnable a
 runTasks tasks world
@@ -213,6 +214,14 @@ where
 				= (Error e,iworld)
 	where
 		(Timestamp tNow) = timestamp
+
+//When the event queue is empty, write deferred SDS's
+flushWritesWhenIdle:: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
+flushWritesWhenIdle iworld = case read taskEvents iworld of
+		(Error e,iworld)          = (Error e,iworld)
+		(Ok (Queue [] []),iworld) = flushDeferredSDSWrites iworld
+		(Ok _,iworld)             = (Ok (),iworld)
+
 
 //When we don't run the built-in HTTP server we don't want to loop forever so we stop the loop
 //once all tasks are stable

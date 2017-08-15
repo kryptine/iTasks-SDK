@@ -2,7 +2,7 @@ implementation module iTasks.Internal.TaskStore
 
 import StdOverloaded, StdBool, StdArray, StdTuple
 from StdFunc import const, id, o
-import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath, Data.Functor
+import Data.Maybe, Data.Either, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath, Data.Functor
 
 import iTasks.Internal.IWorld, iTasks.Internal.TaskState, iTasks.Internal.Task, iTasks.Internal.Store
 import iTasks.Internal.TaskEval, iTasks.Internal.Util, iTasks.UI.Definition
@@ -13,6 +13,7 @@ import iTasks.Internal.Generic.Visualization
 import qualified iTasks.Internal.SDS as SDS
 from iTasks.SDS.Definition import :: SDSLensRead(..), :: SDSLensWrite(..), :: SDSLensNotify(..), :: SDS(SDSDynamic)
 import iTasks.SDS.Combinators.Core, iTasks.SDS.Combinators.Common
+import iTasks.SDS.Sources.Store
 import iTasks.Internal.SDSService
 import iTasks.Internal.Client.Override
 import iTasks.WF.Combinators.Core
@@ -34,20 +35,18 @@ derive gEq ParallelTaskChange
 derive gText ParallelTaskChange
 derive class iTask InstanceFilter
 
-
 //Unfiltered administration
+rawTaskIndex         = storeShare NS_TASK_INSTANCES False InJSONFile (Just [])
+rawTaskNoCounter     = storeShare NS_TASK_INSTANCES False InJSONFile (Just 1)
 
-rawTaskIndex = systemStore NS_TASK_INSTANCES StoreInJSONFile False False True (Just [])
-rawTaskNoCounter = systemStore NS_TASK_INSTANCES StoreInJSONFile False False True (Just 1)
+rawInstanceIO        = storeShare NS_TASK_INSTANCES False InMemory (Just 'DM'.newMap)
+rawInstanceEvents    = storeShare NS_TASK_INSTANCES False InMemory (Just 'DQ'.newQueue)
+rawInstanceUIChanges = storeShare NS_TASK_INSTANCES False InMemory (Just 'DM'.newMap)
 
-rawInstanceIO = systemStore NS_TASK_INSTANCES StoreInMemory False False False (Just 'DM'.newMap)
-rawInstanceEvents = systemStore NS_TASK_INSTANCES StoreInJSONFile False False True (Just 'DQ'.newQueue)
-rawInstanceUIChanges = systemStore NS_TASK_INSTANCES StoreInMemory False False False (Just 'DM'.newMap)
-
-rawInstanceReduct = systemStore NS_TASK_INSTANCES StoreInDynamicFile True False False Nothing
-rawInstanceValue = systemStore NS_TASK_INSTANCES StoreInDynamicFile True False False Nothing
-rawInstanceShares = systemStore NS_TASK_INSTANCES StoreInDynamicFile  True False False (Just 'DM'.newMap)
-rawInstanceParallels = systemStore NS_TASK_INSTANCES StoreInDynamicFile True False False (Just 'DM'.newMap)
+rawInstanceReduct    = storeShare NS_TASK_INSTANCES True InDynamicFile Nothing
+rawInstanceValue     = storeShare NS_TASK_INSTANCES True InDynamicFile Nothing
+rawInstanceShares    = storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM'.newMap)
+rawInstanceParallels = storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM'.newMap)
 
 //Master instance index 
 taskInstanceIndex :: RWShared () [TIMeta] [TIMeta]
@@ -418,7 +417,7 @@ where
 
 parallelTaskList :: RWShared (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)] | iTask a
 parallelTaskList
-    = sdsSequence "parallelTaskList" param2 read (SDSWriteConst write1) (SDSWriteConst write2) filteredTaskStates filteredInstanceIndex
+    = sdsSequence "parallelTaskList" id param2 (\_ _ -> Right read) (SDSWriteConst write1) (SDSWriteConst write2) filteredTaskStates filteredInstanceIndex
 where
     filteredTaskStates
         = sdsLens "parallelTaskListStates" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceParallelTaskList
@@ -516,17 +515,20 @@ detachViewport instanceNo iworld
 	# iworld = clearEvents instanceNo iworld
 	= iworld
 
+documentContent :: SDS String String String 
+documentContent = sdsTranslate "documentContent" (\docId -> docId +++ "-content") (blobStoreShare NS_DOCUMENT_CONTENT False Nothing)
+
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocument name mime content iworld
 	# (documentId, iworld)	= newDocumentId iworld
 	# document				= {Document|documentId = documentId, contentUrl = "/download/"+++documentId, name = name, mime = mime, size = size content}
-	# iworld				= blobStoreWrite NS_DOCUMENT_CONTENT (documentId +++ "-data") content iworld
+	# (_,iworld)            = 'SDS'.write content (sdsFocus documentId documentContent) iworld
 	# (_,iworld)			= 'SDS'.write document (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d +++ "-meta") (jsonFileStore NS_DOCUMENT_CONTENT  False False Nothing))) iworld	
 	= (Ok document,iworld)
 	
 loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentContent documentId iworld
-	= case blobStoreRead NS_DOCUMENT_CONTENT (documentId +++ "-data") iworld of
+	= case 'SDS'.read (sdsFocus documentId documentContent) iworld of
         (Ok content,iworld) = (Just content,iworld)
         (Error e,iworld)    = (Nothing,iworld)
 

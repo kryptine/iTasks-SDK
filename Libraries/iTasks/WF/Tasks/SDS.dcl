@@ -41,7 +41,7 @@ get :: !(ReadWriteShared a w) -> Task a | iTask a
 * @gin-title Write shared
 * @gin-icon shared_update
 */
-set :: !a !(ReadWriteShared r a) -> Task a | iTask a
+set :: !a !(ReadWriteShared r a) -> Task a | iTask a & TC r
 
 /**
 * Updates shared data in one atomic operation.

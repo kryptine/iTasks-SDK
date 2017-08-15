@@ -89,7 +89,7 @@ where
 		 (enterChoiceWithSharedAs () [ChooseFromGrid fst] (testsWithResults results) fst 
 		>&> withSelection (viewInformation "Select a test" [] ())
 			(\path -> 
-				(viewSharedInformation (Title "Code") [ViewUsing id aceTextArea] (sdsFocus (TESTS_PATH </> path) externalFile)
+				(viewSharedInformation (Title "Code") [ViewUsing id aceTextArea] (sdsFocus (TESTS_PATH </> path) (removeMaybe Nothing fileShare))
 				-&&-
 				viewSharedInformation (Title "Results") [ViewAs (toHtml o maybeToList)] (mapRead ('DM'.get path) results) <<@ ArrangeHorizontal)
 				>^* [OnAction (Action "Run") (always
@@ -102,7 +102,7 @@ where
 	where
 		testsWithResults results = mapRead (\(res,tests) -> [(t,'DM'.get t res) \\t <- tests]) (results |*| tests)
 		where
- 			tests = mapRead (filter ((==) "icl" o takeExtension)) (sdsFocus TESTS_PATH externalDirectory)
+ 			tests = mapRead (filter ((==) "icl" o takeExtension)) (sdsFocus TESTS_PATH directoryListing)
 
 
 	toHtml results
@@ -129,7 +129,7 @@ where
 		 (enterChoiceWithSharedAs () [ChooseFromGrid fst] (examplesWithResults results) fst 
 		>&> withSelection (viewInformation "Select an example" [] ())
 			(\path -> 
-				(viewSharedInformation (Title "Code") [ViewUsing id aceTextArea] (sdsFocus path externalFile)
+				(viewSharedInformation (Title "Code") [ViewUsing id aceTextArea] (sdsFocus path (removeMaybe Nothing fileShare))
 				-&&-
 				viewSharedInformation (Title "Results") [] (mapRead ('DM'.get path) results) <<@ ArrangeHorizontal)
 				>^* [OnAction (Action "Run") (always

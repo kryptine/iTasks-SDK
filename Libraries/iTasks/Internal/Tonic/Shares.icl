@@ -10,21 +10,21 @@ import StdMisc
 
 NS_TONIC_INSTANCES :== "tonic-instances"
 
-sdsUnsafeRead :: (RWShared () a b) *IWorld -> *(a, *IWorld)
+sdsUnsafeRead :: (RWShared () a b) *IWorld -> *(a, *IWorld) | TC a
 sdsUnsafeRead focus iworld
   # (res, iworld) = 'DSDS'.read focus iworld
   = case res of
       Ok x -> (x, iworld)
 
 selectedBlueprint :: RWShared () (Maybe ClickMeta) (Maybe ClickMeta)
-selectedBlueprint = sdsFocus "selectedBlueprint" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
+selectedBlueprint = sdsFocus "selectedBlueprint" (removeMaybe (Just Nothing) memoryShare)
 
 selectedDetail :: RWShared () (Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int))) (Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int)))
-selectedDetail = sdsFocus "selectedDetail" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
+selectedDetail = sdsFocus "selectedDetail" (removeMaybe (Just Nothing) memoryShare)
 
 storedOutputEditors :: RWShared () (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)) (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability))
 storedOutputEditors = sdsTranslate "storedOutputEditors" (\t -> t +++> "-storedOutputEditors")
-                                  (memoryStore NS_TONIC_INSTANCES (Just 'DM'.newMap))
+                                  (removeMaybe (Just 'DM'.newMap) memoryShare)
 
 outputForTaskId :: RWShared (TaskId, ExprId) (TaskId, Int, Task (), TStability) (TaskId, Int, Task (), TStability)
 outputForTaskId = sdsLens "outputForTaskId" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) storedOutputEditors
@@ -128,18 +128,18 @@ tonicActionsForTaskIDAndExpr = sdsLens "tonicActionsForTaskIDAndExpr" (const ())
                                       _          -> False
 
 staticDisplaySettings :: RWShared () StaticDisplaySettings StaticDisplaySettings
-staticDisplaySettings = sdsFocus "staticDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
+staticDisplaySettings = sdsFocus "staticDisplaySettings" (removeMaybe (Just
                                      { StaticDisplaySettings
                                      | unfold_depth    = 0
                                      , display_compact = False
                                      , show_comments   = True
-                                     }))
+                                     }) memoryShare)
 
 queryShare :: RWShared () (Maybe BlueprintQuery) (Maybe BlueprintQuery)
-queryShare = sdsFocus "queryShare" (memoryStore NS_TONIC_INSTANCES (Just Nothing))
+queryShare = sdsFocus "queryShare" (removeMaybe (Just Nothing) memoryShare)
 
 dynamicDisplaySettings :: RWShared () DynamicDisplaySettings DynamicDisplaySettings
-dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (memoryStore NS_TONIC_INSTANCES (Just
+dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (removeMaybe (Just
                                      { DynamicDisplaySettings
                                      | unfold_depth    = 0
                                      , display_compact = False
@@ -147,7 +147,7 @@ dynamicDisplaySettings = sdsFocus "dynamicDisplaySettings" (memoryStore NS_TONIC
                                      , show_task_value = False
                                      , show_comments = False
                                      , show_all_child_tasks = False
-                                     }))
+                                     }) memoryShare)
 
 
 paramsForTaskInstance :: RWShared (ModuleName, FuncName, TaskId) [(VarName, Int, Task ())] [(VarName, Int, Task ())]

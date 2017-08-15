@@ -5,6 +5,7 @@ from Data.Map				import :: Map
 from Data.Maybe				import :: Maybe
 from Data.Error 			import :: MaybeError(..), :: MaybeErrorString(..)
 from Data.Set               import :: Set
+from Data.Queue             import :: Queue
 from StdFile			                import class FileSystem		
 from System.Time				        import :: Timestamp
 from Text.JSON				            import :: JSONNode
@@ -17,7 +18,7 @@ from iTasks.Internal.TaskEval         import :: TaskTime
 from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo
 from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem 
 from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared, :: Shared
-from iTasks.Internal.SDS import :: SDSNotifyRequest, :: JSONShared 
+from iTasks.Internal.SDS import :: SDSNotifyRequest, :: JSONShared, :: DeferredWrite
 from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
 from Sapl.Linker.LazyLinker import :: LoaderState
@@ -28,23 +29,24 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
-:: *IWorld		=	{ server                :: !ServerInfo                              // Static server info, initialized at startup
-					, config				:: !Config									// Server configuration
-                    , clocks                :: !SystemClocks                            // Server side clocks
-                    , current               :: !TaskEvalState                           // Shared state during task evaluation
+:: *IWorld		=	{ server                :: !ServerInfo                                  // Static server info, initialized at startup
+					, config				:: !Config									    // Server configuration
+                    , clocks                :: !SystemClocks                                // Server side clocks
+                    , current               :: !TaskEvalState                               // Shared state during task evaluation
 
-                    , random                :: [Int]                                    // Infinite random stream
+                    , random                :: [Int]                                        // Infinite random stream
 
-                    , sdsNotifyRequests     :: ![SDSNotifyRequest]                      // Notification requests from previously read sds's
-                    , memoryShares          :: !Map (String,String) Dynamic             // Run-time memory shares
-                    , cachedShares          :: !ShareCache                              // Cached json file shares
-					, exposedShares			:: !Map String (Dynamic, JSONShared)        // Shared source
-					, jsCompilerState 		:: !Maybe JSCompilerState 					// Sapl to Javascript compiler state
+                    , sdsNotifyRequests     :: ![SDSNotifyRequest]                          // Notification requests from previously read sds's
+                    , memoryShares          :: !Map String Dynamic                          // Run-time memory shares
+                    , readCache             :: !Map (String,String) Dynamic                 // Cached share reads
+                    , writeCache            :: !Map (String,String) (Dynamic,DeferredWrite) // Cached deferred writes
+					, exposedShares			:: !Map String (Dynamic, JSONShared)            // Shared source
+					, jsCompilerState 		:: !Maybe JSCompilerState 					    // Sapl to Javascript compiler state
 
-	                , ioTasks               :: !*IOTasks                                // The low-level input/output tasks
-                    , ioStates              :: !IOStates                                // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
+	                , ioTasks               :: !*IOTasks                                    // The low-level input/output tasks
+                    , ioStates              :: !IOStates                                    // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
 
-					, world					:: !*World									// The outside world
+					, world					:: !*World									    // The outside world
 
                     //Experimental database connection cache
                     , resources             :: !*(Maybe *Resource)
@@ -55,7 +57,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 :: Config =
 	{ sessionTime		:: !Int		//* Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
 	, smtpServer		:: !String	//* The smtp server to use for sending e-mails
-
 	, persistTasks      :: !Bool    //* Persist the task state to disk
 	}
 
@@ -80,10 +81,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     , utcDate               :: !Date
     , utcTime               :: !Time
     }
-
-// share cached used for json stores (Store.cachedJSONFileStore) and dynamic string stores (Store.cachedDynamicStringFileStore)
-:: ShareCache :== Map (String, String) (Dynamic, Bool, Maybe CachedValue)
-:: CachedValue = CachedJSONValue DeferredJSON | CachedDynamicValue 
 
 :: JSCompilerState =
 	{ loaderState 			:: !LoaderState							// State of the lazy loader

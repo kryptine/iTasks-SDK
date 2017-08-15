@@ -253,6 +253,7 @@ where
 
 :: ChangeQueues :== Map InstanceNo (Queue UIChange)
 
+import StdMisc
 taskUIService :: ![PublishedTask] -> WebService ChangeQueues ChangeQueues
 taskUIService taskUrls = { urlMatchPred    = matchFun [url \\ {PublishedTask|url} <-taskUrls]
                          , completeRequest = True
@@ -305,8 +306,10 @@ where
 				(JSONArray [JSONInt reqId,JSONString "new"])
                 	= case createTaskInstance` req taskUrls iworld of
 						(Error (_,err), iworld)
-							# json = JSONArray [JSONInt reqId,JSONString "ERROR",JSONString err]
-							= (wsockTextMsg (toString json),False, instances,iworld)
+							= abort err
+
+//							# json = JSONArray [JSONInt reqId,JSONString "ERROR",JSONString err]
+//							= (wsockTextMsg (toString json),False, instances,iworld)
 						(Ok (instanceNo,instanceKey),iworld)
 							# json = JSONArray [JSONInt reqId, JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]]
 							= (wsockTextMsg (toString json),False, instances, iworld)

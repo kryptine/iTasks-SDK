@@ -144,7 +144,6 @@ where
 								NoChange = (Ok value,iworld)
 								change
 									# iworld = queueUIChange instanceNo change iworld
-                        			# iworld = flushShareCache iworld
 									= (Ok value, iworld)
                     	(ExceptionResult (e,msg))
 							= (Error msg, iworld)

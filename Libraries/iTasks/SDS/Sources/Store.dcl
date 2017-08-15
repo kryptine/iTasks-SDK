@@ -3,9 +3,9 @@ definition module iTasks.SDS.Sources.Store
 * This module provides access to the generic document store where
 * itasks applications store their data by default
 */
-
 from iTasks.SDS.Definition import :: SDS
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from System.FilePath import :: FilePath
 from Data.Maybe import :: Maybe
 
 /*
@@ -18,3 +18,17 @@ sharedDynamicStore :: !String !a -> SDS () a a | TC a
 // Generic access to the store
 storeNamespaces    :: SDS () [String] ()     // List the namespaces in the store 
 storeNames         :: SDS String [String] () // List the stores in a given namespace
+
+// Store location 
+storePath          :: SDS () FilePath ()
+
+:: StorageType
+  = InMemory      //When the data is disposable. It will be gone when the application shuts down
+  | InJSONFile    //When the data should be persisted between different versions of an application
+  | InDynamicFile //When the data contains functions, dynamics or otherwise
+
+// Generic Store access
+storeShare :: !String !Bool !StorageType !(Maybe a) -> (SDS String a a) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+
+// Data blob storage access
+blobStoreShare :: !String !Bool !(Maybe {#Char}) -> SDS String {#Char} {#Char}

@@ -68,11 +68,8 @@ createIWorld appName appPath persistTasks mbWebdirPath mbStorePath mbSaplPath wo
 	# build						= strfTime "%Y%m%d-%H%M%S" tm
 	# (local,world)             = currentLocalDateTimeWorld world
 	# (utc,world)	            = currentUTCDateTimeWorld world
-	# (_,world)					= ensureDir "data" dataDir world
 	# tmpDir					= dataDir </> "tmp"
-	# (_,world)					= ensureDir "tmp" tmpDir world
 	# storeDir					= dataDir </> "stores"
-	# (exists,world)			= ensureDir "stores" storeDir world
 	# (timestamp=:(Timestamp seed), world)	= time world
 	= {IWorld
 	  |server =
@@ -105,7 +102,8 @@ createIWorld appName appPath persistTasks mbWebdirPath mbStorePath mbSaplPath wo
         }
       ,sdsNotifyRequests    = []
       ,memoryShares         = 'DM'.newMap
-      ,cachedShares         = 'DM'.newMap
+      ,readCache            = 'DM'.newMap
+      ,writeCache           = 'DM'.newMap
 	  ,exposedShares		= 'DM'.newMap
 	  ,jsCompilerState		= Nothing
 	  ,shutdown				= Nothing
@@ -123,14 +121,6 @@ where
         , persistTasks      = persistTasks
 		}
 		
-	ensureDir :: !String !FilePath *World -> (!Bool,!*World)
-	ensureDir name path world
-		# (exists, world) = fileExists path world
-		| exists = (True,world)
-		# (res, world) = createDirectory path world
-		| isError res = abort ("Cannot create " +++ name +++ " directory" +++ path +++ " : "  +++ snd (fromError res))
-		= (False,world)
-
 	//Temporary fallback to use "sapl" instead of "<Application name>-sapl".
     //Once everybody uses an upgraded sapl-collector-linker that creates the proper
     //directory name it can be removed

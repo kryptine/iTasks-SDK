@@ -13,10 +13,10 @@ toStubIWorld world
   = {IWorld
   |server = {serverName = "STUB",serverURL = "//127.0.0.1:80",buildID = "STUB"
         	,paths = {appDirectory = "./STUB/",dataDirectory = "./STUB/",webDirectory = "./STUB/",saplDirectory = "./STUB/"}}
-  ,config = {sessionTime = 3600, smtpServer = "localhost"}
+  ,config = {sessionTime = 3600, smtpServer = "localhost",persistTasks = True}
   ,clocks = {SystemClocks |timestamp = Timestamp 0,localDate=defaultValue,localTime=defaultValue,utcDate=defaultValue,utcTime=defaultValue}
   ,current ={TaskEvalState|taskTime= 0,taskInstance= 0,sessionInstance = Nothing,attachmentChain = [] ,nextTaskNo = 0}
-  ,sdsNotifyRequests = [], memoryShares = 'DM'.newMap, cachedShares = 'DM'.newMap, exposedShares = 'DM'.newMap
+  ,sdsNotifyRequests = [], memoryShares = 'DM'.newMap, readCache = 'DM'.newMap, writeCache = 'DM'.newMap, exposedShares = 'DM'.newMap
   ,jsCompilerState = Nothing ,shutdown = Nothing ,ioTasks = {done = [], todo = []},ioStates = 'DM'.newMap
   ,world = world
   ,resources = Nothing,random = [],onClient = False }

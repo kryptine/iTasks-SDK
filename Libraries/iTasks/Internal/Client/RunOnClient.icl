@@ -148,7 +148,8 @@ createClientIWorld serverURL currentInstance
           }
           ,sdsNotifyRequests    = []
           ,memoryShares         = 'Data.Map'.newMap
-          ,cachedShares         = 'Data.Map'.newMap
+          ,readCache            = 'Data.Map'.newMap
+          ,writeCache           = 'Data.Map'.newMap
 		  ,exposedShares		= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
 		  ,shutdown				= Nothing

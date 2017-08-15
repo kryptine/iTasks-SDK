@@ -5,7 +5,7 @@ import iTasks.Internal.Test.Definition
 from iTasks.Internal.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{server}, :: ServerInfo(..), :: SystemPaths(..)
 from iTasks.Internal.TaskStore import createTaskInstance, taskInstanceUIChanges
 from iTasks.Internal.TaskEval import evalTaskInstance
-from iTasks.Internal.Store import flushShareCache, emptyStore
+from iTasks.Internal.Store import emptyStore
 from iTasks.Internal.Util import toCanonicalPath
 import iTasks.Internal.Serialization
 import iTasks.UI.Definition

@@ -3,8 +3,11 @@ implementation module iTasks.SDS.Sources.Core
 import iTasks.SDS.Definition
 import iTasks.Internal.SDS
 import iTasks.Internal.IWorld
+import iTasks.Internal.Serialization
 import System.FilePath, System.Directory, System.File
-import StdFile
+import Text, Text.JSON
+import StdFile, StdTuple, StdArray
+import qualified Data.Map as DM
 
 from StdFunc import const
 from iTasks.Internal.Task import exception
@@ -14,6 +17,9 @@ constShare v = createReadOnlySDS (\_ env -> (v, env))
 
 nullShare :: SDS p () a
 nullShare = createReadWriteSDS "_core_" "nullShare" (\_ env -> (Ok (), env)) (\_ _ env -> (Ok (const False), env))
+
+unitShare :: SDS () () ()
+unitShare = nullShare
 
 worldShare :: (p *World -> *(MaybeErrorString r,*World)) (p w *World -> *(MaybeErrorString (),*World)) -> SDS p r w 
 worldShare read write = createReadWriteSDS "_core_" "worldShare" read` write`
@@ -33,29 +39,99 @@ where
 	randomInt () iworld=:{IWorld|random=[i:is]}
 		= (i, {IWorld|iworld & random = is})
 
-externalFile :: SDS FilePath String String
-externalFile = createReadWriteSDS "_core_" "externalFile" read write
+memoryShare :: SDS String (Maybe a) (Maybe a) | TC a
+memoryShare = createReadWriteSDS "_core_" "memoryShare" read write
 where
-	read path iworld=:{world}
-		# (ok,file,world)			= fopen path FReadData iworld.world
-		| not ok					= (Ok "", {IWorld|iworld & world = world}) // empty string if file doesn't exist
-		# (res,file)				= readAll file
-		# (ok,world)				= fclose file world
-		| not ok					= (Error (exception CannotClose) ,{IWorld|iworld & world = world})
-        = case res of
-            Error e                 = (Error (exception e), {IWorld|iworld & world = world})
-            Ok content              = (Ok content, {IWorld|iworld & world = world})
+	read key iworld=:{IWorld|memoryShares}
+		= case 'DM'.get key memoryShares of
+			(Just (val :: a^))  = (Ok (Just val),iworld)
+			Nothing             = (Ok Nothing, iworld)
+			(Just _)            = (Error (exception ("Read shared memory with incorrect type " +++ key)), iworld)
 
-	write path content iworld=:{world}
-		# (ok,file,world)			= fopen path FWriteText world
-		| not ok					= (Error (exception CannotOpen), {IWorld|iworld & world = world})
-		# file						= fwrites content file
-		# (ok,world)				= fclose file world
-		| not ok					= (Error (exception CannotClose) ,{IWorld|iworld & world = world})
-		= (Ok ((==) path), {IWorld|iworld & world = world})
+	write key (Just val) iworld=:{IWorld|memoryShares}
+       = (Ok ((===) key),{IWorld|iworld & memoryShares = 'DM'.put key (dynamic val :: a^) memoryShares})
+	write key Nothing iworld=:{IWorld|memoryShares}
+       = (Ok ((===) key),{IWorld|iworld & memoryShares = 'DM'.del key memoryShares})
 
-externalDirectory :: SDS FilePath [FilePath] ()
-externalDirectory = createReadOnlySDSError read
+fileShare :: SDS FilePath (Maybe String) (Maybe String)
+fileShare = createReadWriteSDS "_core_" "fileShare" (fileRead fromFile) (fileWrite toFile)
+where
+	fromFile path content = Ok content
+
+	toFile path content = content
+
+jsonFileShare :: SDS FilePath (Maybe a) (Maybe a) | JSONEncode{|*|}, JSONDecode{|*|} a
+jsonFileShare = createReadWriteSDS "_core_" "jsonFileShare" (fileRead fromFile) (fileWrite toFile)
+where
+	fromFile path content = case fromJSON (fromString content) of
+		(Just value) = Ok value
+		Nothing      = Error (exception ("Could not parse json file " +++ path))
+
+	toFile path content = toString (toJSON content)
+
+// Share that maps to a file that holds a serialized graph representation of the value
+graphFileShare :: SDS FilePath (Maybe a) (Maybe a)
+graphFileShare = createReadWriteSDS "_core_" "graphFileShare" (fileRead fromFile) (fileWrite toFile)
+where
+	fromFile path content = case deserialize {c \\ c <-: content} of
+	    Ok val  = Ok val
+		Error e = Error (exception e)
+
+	toFile path content = serialize content
+
+fileRead fromFile path iworld=:{world}
+	# (ok,file,world)			= fopen path FReadData iworld.world
+	| not ok					= (Ok Nothing, {IWorld|iworld & world = world})
+	# (res,file)				= readAll file
+	# (ok,world)				= fclose file world
+	| not ok					= (Error (exception CannotClose) ,{IWorld|iworld & world = world})
+	= case res of
+	   	Error e                 = (Error (exception e), {IWorld|iworld & world = world})
+        Ok content = case fromFile path content of
+			(Ok value) = (Ok (Just value), {IWorld|iworld & world = world})
+			(Error e) = (Error e,{IWorld|iworld & world = world})
+
+fileWrite toFile path (Just content) iworld=:{IWorld|world}
+	# (ok,file,world)			= fopen path FWriteData world
+	| ok
+		= writeContent file {IWorld|iworld & world = world}
+	| not ok					
+		//Check parent dirs...
+		# (ok,world) = ensureParentDirs path world
+		| not ok = (Error (exception CannotOpen), {IWorld|iworld & world = world})
+		//.. and try again
+		# (ok,file,world)			= fopen path FWriteData world
+		| ok
+			= writeContent file {IWorld|iworld & world = world}
+		//Really can't open
+			= (Error (exception CannotOpen), {IWorld|iworld & world = world})
+	where
+		writeContent file iworld=:{IWorld|world}
+			# file						= fwrites (toFile path content) file
+			# (ok,world)				= fclose file world
+			| not ok					= (Error (exception CannotClose) ,{IWorld|iworld & world = world})
+			= (Ok ((==) path), {IWorld|iworld & world = world})
+
+fileWrite toFile path Nothing iworld
+	= (Error (exception "Removing files through fileShare SDS not yet supported"),iworld)
+
+//Create all parent directories of a file if they don't exist
+ensureParentDirs :: FilePath *World -> (!Bool,*World)
+ensureParentDirs path world = let [b:p] = split {pathSeparator} path in create [b] p world
+where
+	create _ [] world = (True,world)
+	create _ [file] world = (True,world) 
+	create base [dir:rest] world
+		# next = base ++ [dir]
+		# path = join {pathSeparator} next
+		# (exists,world) = fileExists path world
+		| exists = create next rest world //This part exists, continue
+		# (res, world) = createDirectory path world 
+		| isError res = (False,world) //Can't create the directory
+		= create next rest world //Created the directory, continue
+
+directoryListing :: SDS FilePath [String] ()
+directoryListing = createReadOnlySDSError read
 where
 	read path iworld = case readDirectory path iworld of
 		(Ok files,iworld) = (Ok files,iworld)
