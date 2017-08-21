@@ -4,6 +4,7 @@ import iTasks.WF.Definition
 import iTasks.UI.Definition
 import iTasks.SDS.Definition
 
+import iTasks.Engine
 import iTasks.Internal.Task
 import iTasks.Internal.TaskState
 import iTasks.Internal.TaskStore
@@ -598,7 +599,7 @@ where
         = {TaskEvalInfo|lastEvent=lastEvent,removedTasks=removedTasks,refreshSensitive=refreshSensitive}
     addResult _ i = i
 
-readListId :: (SharedTaskList a) *IWorld -> (MaybeError TaskException TaskId,*IWorld)
+readListId :: (SharedTaskList a) *IWorld -> (MaybeError TaskException TaskId,*IWorld) | TC a
 readListId slist iworld = case read (sdsFocus taskListFilter slist) iworld of
 	(Ok (listId,_),iworld)	= (Ok listId, iworld)
 	(Error e, iworld)	    = (Error e, iworld)
@@ -641,7 +642,7 @@ where
 /**
 * Removes (and stops) a task from a task list
 */
-removeTask :: !TaskId !(SharedTaskList a) -> Task ()
+removeTask :: !TaskId !(SharedTaskList a) -> Task () | TC a
 removeTask removeId=:(TaskId instanceNo taskNo) slist = Task eval
 where
     eval event evalOpts (TCInit taskId ts) iworld
@@ -758,13 +759,13 @@ where
 		# (_,iworld)    = modify (\('DQ'.Queue a b) -> ((),'DQ'.Queue [(i,e) \\(i,e)<- a| i <> instanceNo][(i,e) \\(i,e)<- b| i <> instanceNo])) taskEvents iworld 
 		= eval event evalOpts (TCAttach taskId ts (ASAttached (value =: Stable)) build newKey) iworld
 
-	eval event evalOpts tree=:(TCAttach taskId ts prevStatus build instanceKey) iworld=:{server={buildID},current={taskInstance}}
+	eval event evalOpts tree=:(TCAttach taskId ts prevStatus build instanceKey) iworld=:{options={appVersion},current={taskInstance}}
 		//Load instance
 		# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
 		//Determine state of the instance
 		# curStatus = case progress of
 			(Ok progress=:{InstanceProgress|attachedTo=[attachedId:_],value})
-			    | build <> buildID      = ASIncompatible
+			    | build <> appVersion   = ASIncompatible
 				| value =: Exception    = ASExcepted
 				| attachedId <> taskId  = ASInUse attachedId	
 									 	= ASAttached (value =: Stable)

@@ -2,8 +2,9 @@ implementation module iTasks.Internal.TaskStore
 
 import StdOverloaded, StdBool, StdArray, StdTuple
 from StdFunc import const, id, o
-import Data.Maybe, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath, Data.Functor
+import Data.Maybe, Data.Either, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath, Data.Functor
 
+import iTasks.Engine
 import iTasks.Internal.IWorld, iTasks.Internal.TaskState, iTasks.Internal.Task, iTasks.Internal.Store
 import iTasks.Internal.TaskEval, iTasks.Internal.Util, iTasks.UI.Definition
 import iTasks.Internal.Serialization
@@ -13,6 +14,7 @@ import iTasks.Internal.Generic.Visualization
 import qualified iTasks.Internal.SDS as SDS
 from iTasks.SDS.Definition import :: SDSLensRead(..), :: SDSLensWrite(..), :: SDSLensNotify(..), :: SDS(SDSDynamic)
 import iTasks.SDS.Combinators.Core, iTasks.SDS.Combinators.Common
+import iTasks.SDS.Sources.Store
 import iTasks.Internal.SDSService
 import iTasks.Internal.Client.Override
 import iTasks.WF.Combinators.Core
@@ -34,13 +36,26 @@ derive gEq ParallelTaskChange
 derive gText ParallelTaskChange
 derive class iTask InstanceFilter
 
-//Master instance index on disk
+//Unfiltered administration
+rawTaskIndex         = storeShare NS_TASK_INSTANCES False InJSONFile (Just [])
+rawTaskNoCounter     = storeShare NS_TASK_INSTANCES False InJSONFile (Just 1)
+
+rawInstanceIO        = storeShare NS_TASK_INSTANCES False InMemory (Just 'DM'.newMap)
+rawInstanceEvents    = storeShare NS_TASK_INSTANCES False InMemory (Just 'DQ'.newQueue)
+rawInstanceUIChanges = storeShare NS_TASK_INSTANCES False InMemory (Just 'DM'.newMap)
+
+rawInstanceReduct    = storeShare NS_TASK_INSTANCES True InDynamicFile Nothing
+rawInstanceValue     = storeShare NS_TASK_INSTANCES True InDynamicFile Nothing
+rawInstanceShares    = storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM'.newMap)
+rawInstanceParallels = storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM'.newMap)
+
+//Master instance index 
 taskInstanceIndex :: RWShared () [TIMeta] [TIMeta]
-taskInstanceIndex = sdsFocus "instances" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just []))
+taskInstanceIndex = sdsFocus "instances" rawTaskIndex
 
 //Next instance no counter
 nextInstanceNo :: RWShared () Int Int
-nextInstanceNo = sdsFocus "increment" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just 1))
+nextInstanceNo = sdsFocus "increment" rawTaskNoCounter
 
 taskInstanceIO :: RWShared InstanceNo (Maybe (!String,!Timestamp)) (Maybe (!String,!Timestamp))
 taskInstanceIO = sdsLens "taskInstanceIO" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) allInstanceIO
@@ -51,27 +66,26 @@ where
 	notify instanceNo _ 	= (==) instanceNo
 
 allInstanceIO :: RWShared () (Map InstanceNo (!String,!Timestamp)) (Map InstanceNo (!String,Timestamp)) 
-allInstanceIO = sdsFocus "io" (memoryStore NS_TASK_INSTANCES (Just 'DM'.newMap))
+allInstanceIO = sdsFocus "io" rawInstanceIO
 
 //Event queues of task instances
 taskEvents :: RWShared () (Queue (InstanceNo,Event)) (Queue (InstanceNo,Event))
-taskEvents = sdsFocus "events" (cachedJSONFileStore NS_TASK_INSTANCES False False True (Just 'DQ'.newQueue))
+taskEvents = sdsFocus "events" rawInstanceEvents
 
 //Instance evaluation state
 taskInstanceReduct :: RWShared InstanceNo TIReduct TIReduct
-//taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") (memoryStore NS_TASK_INSTANCES Nothing)
-taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") (cachedDynamicStringFileStore NS_TASK_INSTANCES True False False Nothing)
+taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") rawInstanceReduct
 
 //Last computed value for task instance
 taskInstanceValue :: RWShared InstanceNo TIValue TIValue
-taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") (cachedDynamicStringFileStore NS_TASK_INSTANCES True False False Nothing)
+taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") rawInstanceValue
 
 //Local shared data
 taskInstanceShares :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
-taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") (cachedDynamicStringFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
+taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") rawInstanceShares
 
 allUIChanges :: RWShared () (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange)) 
-allUIChanges = sdsFocus "allUIChanges" (memoryStore NS_TASK_INSTANCES (Just 'DM'.newMap))
+allUIChanges = sdsFocus "allUIChanges" rawInstanceUIChanges 
 
 taskInstanceUIChanges :: RWShared InstanceNo (Queue UIChange) (Queue UIChange) 
 taskInstanceUIChanges = sdsLens "taskInstanceUIChanges" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) allUIChanges
@@ -85,7 +99,7 @@ where
 
 //Task instance parallel lists
 taskInstanceParallelTaskLists :: RWShared InstanceNo (Map TaskId [ParallelTaskState]) (Map TaskId [ParallelTaskState])
-taskInstanceParallelTaskLists = sdsTranslate "taskInstanceParallelLists" (\t -> t +++> "-tasklists") (cachedDynamicStringFileStore NS_TASK_INSTANCES True False False (Just 'DM'.newMap))
+taskInstanceParallelTaskLists = sdsTranslate "taskInstanceParallelLists" (\t -> t +++> "-tasklists") rawInstanceParallels
 
 newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceNo iworld
@@ -108,22 +122,22 @@ newDocumentId iworld=:{IWorld|random}
 	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld & random = drop 32 random})
 	
 createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
-createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},current={taskTime},clocks={timestamp,localDate,localTime}}
+createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion},current={taskTime},clocks={timestamp,localDate,localTime}}
     //Create the initial instance data in the store
     # progress  = {InstanceProgress|value=None,instanceKey="client",attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants = {InstanceConstants|session=True,listId=TaskId 0 0,build=buildID,issuedAt=timestamp}
+    # constants = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=timestamp}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
 createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
-createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={timestamp,localDate,localTime}}
+createTaskInstance task iworld=:{options={appVersion},current={taskTime},clocks={timestamp,localDate,localTime}}
     # (mbInstanceNo,iworld) = newInstanceNo iworld
     # instanceNo            = fromOk mbInstanceNo
     # (instanceKey,iworld)  = newInstanceKey iworld
     # progress              = {InstanceProgress|value=None,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants             = {InstanceConstants|session=True,listId=TaskId 0 0,build=buildID,issuedAt=timestamp}
+    # constants             = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=timestamp}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
@@ -134,10 +148,10 @@ createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={tim
 (`b`) (Error e, st) _ = (Error e, st)
 
 createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
-createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{server={buildID},current={taskTime},clocks={timestamp,localDate,localTime}}
+createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion},current={taskTime},clocks={timestamp,localDate,localTime}}
     # (instanceKey,iworld) = newInstanceKey iworld
     # progress             = {InstanceProgress|value=None,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants            = {InstanceConstants|session=False,listId=listId,build=buildID,issuedAt=timestamp}
+    # constants            = {InstanceConstants|session=False,listId=listId,build=appVersion,issuedAt=timestamp}
     =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
@@ -164,13 +178,13 @@ where
 			(ExceptionResult e,iworld)			    = (ExceptionResult e,iworld)
 
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
-replaceTaskInstance instanceNo task iworld=:{server={buildID},current={taskTime}}
+replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskTime}}
     # (meta, iworld)        = 'SDS'.read (sdsFocus instanceNo taskInstance) iworld
     | isError meta          = (liftError meta, iworld)
     =            'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> let (_,Just constants,progress,attributes) = fromOk meta
-                 in  'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=buildID},progress,attributes) (sdsFocus instanceNo taskInstance) iworld
+                 in  'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=appVersion},progress,attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> (Ok (), iworld)
 
 deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
@@ -404,7 +418,7 @@ where
 
 parallelTaskList :: RWShared (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)] | iTask a
 parallelTaskList
-    = sdsSequence "parallelTaskList" param2 read (SDSWriteConst write1) (SDSWriteConst write2) filteredTaskStates filteredInstanceIndex
+    = sdsSequence "parallelTaskList" id param2 (\_ _ -> Right read) (SDSWriteConst write1) (SDSWriteConst write2) filteredTaskStates filteredInstanceIndex
 where
     filteredTaskStates
         = sdsLens "parallelTaskListStates" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceParallelTaskList
@@ -502,17 +516,20 @@ detachViewport instanceNo iworld
 	# iworld = clearEvents instanceNo iworld
 	= iworld
 
+documentContent :: SDS String String String 
+documentContent = sdsTranslate "documentContent" (\docId -> docId +++ "-content") (blobStoreShare NS_DOCUMENT_CONTENT False Nothing)
+
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 createDocument name mime content iworld
 	# (documentId, iworld)	= newDocumentId iworld
 	# document				= {Document|documentId = documentId, contentUrl = "/download/"+++documentId, name = name, mime = mime, size = size content}
-	# iworld				= blobStoreWrite NS_DOCUMENT_CONTENT (documentId +++ "-data") content iworld
+	# (_,iworld)            = 'SDS'.write content (sdsFocus documentId documentContent) iworld
 	# (_,iworld)			= 'SDS'.write document (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d +++ "-meta") (jsonFileStore NS_DOCUMENT_CONTENT  False False Nothing))) iworld	
 	= (Ok document,iworld)
 	
 loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentContent documentId iworld
-	= case blobStoreRead NS_DOCUMENT_CONTENT (documentId +++ "-data") iworld of
+	= case 'SDS'.read (sdsFocus documentId documentContent) iworld of
         (Ok content,iworld) = (Just content,iworld)
         (Error e,iworld)    = (Nothing,iworld)
 
@@ -523,8 +540,8 @@ loadDocumentMeta documentId iworld
         (Error e,iworld)    = (Nothing,iworld)
 
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
-documentLocation documentId iworld=:{server={buildID,paths={dataDirectory}}}
-	= (dataDirectory </>"stores"</> NS_DOCUMENT_CONTENT </> (documentId +++ "-data.txt"),iworld)
+documentLocation documentId iworld=:{options={storeDirPath}}
+	= (storeDirPath </> NS_DOCUMENT_CONTENT </> (documentId +++ "-content"),iworld)
 
 //OBSOLETE
 exposedShare :: !String -> RWShared p r w | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p

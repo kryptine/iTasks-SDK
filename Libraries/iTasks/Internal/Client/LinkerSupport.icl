@@ -13,7 +13,6 @@ from Data.Set import :: Set, newSet
 from iTasks.UI.JS.Interface import :: JSWorld, :: JSEvent, :: JSObj, :: JSObject, :: JSVal
 
 from iTasks.Internal.Client.RunOnClient import createClientIWorld, getUIUpdates
-from iTasks.Internal.Engine import background
 
 import iTasks.Internal.IWorld
 import Sapl.Target.JS.CodeGeneratorJS, Sapl.Linker.LazyLinker, Sapl.SaplParser

@@ -6,6 +6,7 @@ import iTasks.SDS.Combinators.Common
 import iTasks.Extensions.DateTime
 import System.Time
 
+import iTasks.Engine
 import iTasks.Internal.SDS
 import iTasks.Internal.IWorld
 import iTasks.Internal.Util
@@ -13,6 +14,7 @@ import iTasks.Internal.Util
 import iTasks.Internal.TaskStore
 import StdTuple
 from iTasks.Internal.TaskEval  import currentInstanceShare
+from StdFunc import id
 
 NS_SYSTEM_DATA :== "SystemData"
 
@@ -71,22 +73,23 @@ currentTaskInstanceNo = createReadOnlySDS (\() iworld=:{current={taskInstance}} 
 currentTaskInstanceAttributes :: SDS () TaskAttributes TaskAttributes
 currentTaskInstanceAttributes
 	= sdsSequence "currentTaskInstanceAttributes" 
-		(\_ no -> no) snd (SDSWriteConst (\_ _ -> Ok Nothing))  (SDSWriteConst (\no w -> (Ok (Just w))))
+		id
+		(\_ no -> no) 
+		(\_ _ -> Right snd)
+		(SDSWriteConst (\_ _ -> Ok Nothing))  (SDSWriteConst (\no w -> (Ok (Just w))))
 		currentTaskInstanceNo
 		taskInstanceAttributes
 
 allTaskInstances :: SDS () [TaskInstance] ()
 allTaskInstances
-    = toReadOnly
-      (sdsProject (SDSLensRead readInstances) SDSNoWrite
+    = (sdsProject (SDSLensRead readInstances) SDSNoWrite
        (sdsFocus {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
 where
     readInstances is = Ok (map taskInstanceFromInstanceData is)
 
 detachedTaskInstances :: SDS () [TaskInstance] ()
 detachedTaskInstances
-    = toReadOnly
-      (sdsProject (SDSLensRead readInstances) SDSNoWrite
+    =  (sdsProject (SDSLensRead readInstances) SDSNoWrite
        (sdsFocus {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False,matchAttribute=Nothing,includeConstants=True,includeProgress=True,includeAttributes=True} filteredInstanceIndex))
 where
     readInstances is = Ok (map taskInstanceFromInstanceData is)
@@ -119,7 +122,7 @@ where
 
 taskInstancesByAttribute :: SDS (!String,!String) [TaskInstance] ()
 taskInstancesByAttribute 
-    = toReadOnly
+    = 
       (sdsProject (SDSLensRead readInstances) SDSNoWrite
        (sdsTranslate "taskInstancesByAttribute" (\p -> {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Just p,includeConstants=True,includeProgress=True,includeAttributes=True}) filteredInstanceIndex))
 where
@@ -131,20 +134,20 @@ currentTopTask = mapRead (\currentInstance -> TaskId currentInstance 0) currentI
 applicationName :: SDS () String ()
 applicationName = createReadOnlySDS appName
 where
-	appName () iworld=:{IWorld|server={serverName}} = (serverName,iworld)
+	appName () iworld=:{IWorld|options={EngineOptions|appName}} = (appName,iworld)
 
-applicationBuild :: SDS () String ()
-applicationBuild = createReadOnlySDS appBuild
+applicationVersion :: SDS () String ()
+applicationVersion = createReadOnlySDS appBuild
 where
-	appBuild () iworld=:{IWorld|server={buildID}} = (buildID,iworld)
+	appBuild () iworld=:{IWorld|options={EngineOptions|appVersion}} = (appVersion,iworld)
 
 applicationDirectory :: SDS () FilePath ()
 applicationDirectory = createReadOnlySDS appDir
 where
-	appDir () iworld=:{IWorld|server={paths={appDirectory}}} = (appDirectory,iworld)
+	appDir () iworld=:{IWorld|options={EngineOptions|appPath}} = (takeDirectory appPath,iworld)
 
-applicationConfig :: SDS () Config ()
-applicationConfig = createReadOnlySDS config
+applicationOptions :: SDS () EngineOptions ()
+applicationOptions = createReadOnlySDS options
 where
-	config () iworld=:{IWorld|config} = (config,iworld)
+	options () iworld=:{IWorld|options} = (options,iworld)
 

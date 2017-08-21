@@ -93,14 +93,14 @@ updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task
 *
 * @return					Last value of the monitored state
 */
-viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r
+viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r & TC w
 
 /*** Special tasks for a mix of manipulating shared and local information ***/
 
 /**
 * Update a local value, making use of shared information.
 */
-updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | toPrompt d & iTask r & iTask m
+updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | toPrompt d & iTask r & iTask m & TC w
 
 /**
 * General selection with explicit identification in arbitrary containers
@@ -110,13 +110,13 @@ updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w)
 editSelection :: !d !Bool !(SelectOption c a) c [Int] -> Task [a] | toPrompt d & iTask a
 
 //Options: shared, selection: local
-editSelectionWithShared :: !d !Bool !(SelectOption c a) (ReadWriteShared c w) (c -> [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
+editSelectionWithShared :: !d !Bool !(SelectOption c a) (ReadWriteShared c w) (c -> [Int]) -> Task [a] | toPrompt d & iTask c & iTask a & TC w
 
 //Options: local, selection: shared
 editSharedSelection :: !d !Bool !(SelectOption c a) c (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
 
 //Options: shared, selection: shared
-editSharedSelectionWithShared :: !d !Bool !(SelectOption c a) (ReadWriteShared c w) (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a 
+editSharedSelectionWithShared :: !d !Bool !(SelectOption c a) (ReadWriteShared c w) (Shared [Int]) -> Task [a] | toPrompt d & iTask c & iTask a & TC w
 
 /**
 * More specific selection from lists
@@ -170,7 +170,7 @@ editSharedMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(ReadWriteShared [
 *
 * @return					The value of the shared when the predicate becomes true
 */
-wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r
+wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | toPrompt d & iTask r & TC w
 
 
 /*** Special tasks for choosing actions ***/

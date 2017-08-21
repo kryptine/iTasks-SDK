@@ -4,6 +4,8 @@ import StdString
 import StdOverloaded
 from Data.IntMap.Strict import :: IntMap
 from iTasks.Internal.Tonic.AbsSyn import :: TonicModule, :: TAssoc, :: TLit, :: TExpr, :: FuncName, :: TPriority, :: ModuleName, :: TonicFunc
+from iTasks.Internal.Tonic.AbsSyn import :: ExprId
+from Data.CircularStack import :: CircularStack
 import iTasks.Extensions.User
 from iTasks.Extensions.User import :: User
 

@@ -69,13 +69,13 @@ where
 	
 
 moduleDefinition :: SDS (FilePath,ModuleName) [String] [String]
-moduleDefinition = mapReadWrite mapToLines (sdsTranslate "moduleDefinition" (\(p,m) -> modulePath p m "dcl") externalFile)
+moduleDefinition = mapReadWrite mapToLines (sdsTranslate "moduleDefinition" (\(p,m) -> modulePath p m "dcl") (removeMaybe (Just "") fileShare))
 
 moduleImplementation :: SDS (FilePath,ModuleName) [String] [String]
-moduleImplementation = mapReadWrite mapToLines (sdsTranslate "moduleImplementation" (\(p,m) -> modulePath p m "icl") externalFile)
+moduleImplementation = mapReadWrite mapToLines (sdsTranslate "moduleImplementation" (\(p,m) -> modulePath p m "icl") (removeMaybe (Just "") fileShare))
 
 moduleDocumentation :: SDS (FilePath,ModuleName) [String] [String]
-moduleDocumentation = mapReadWrite mapToLines (sdsTranslate "moduleDocumentation" (\(p,m) -> modulePath p m "md") externalFile)
+moduleDocumentation = mapReadWrite mapToLines (sdsTranslate "moduleDocumentation" (\(p,m) -> modulePath p m "md") (removeMaybe (Just "") fileShare))
 
 mapToLines = (split "\n",\w _ -> Just (join "\n" w))
 

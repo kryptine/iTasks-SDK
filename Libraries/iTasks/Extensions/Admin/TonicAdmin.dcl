@@ -2,7 +2,7 @@ definition module iTasks.Extensions.Admin.TonicAdmin
 
 import iTasks
 from iTasks.Internal.Tonic.Images import :: TaskAppRenderer, :: ModelTy, :: ClickMeta, :: TonicImageState, :: ActionState, :: TClickAction
-from iTasks.Internal.Tonic.Types import :: AllBlueprints, :: TonicModule, :: TonicFunc, :: FuncName, :: ModuleName, :: NavStack, :: BlueprintIdent
+from iTasks.Internal.Tonic.Types import :: AllBlueprints, :: TonicModule, :: TonicFunc, :: FuncName, :: ModuleName, :: NavStack, :: BlueprintIdent, :: ExprId
 from Graphics.Scalable import :: TagSource, :: TagRef, :: Image, :: ImageTag
 
 tonicDashboard :: [TaskAppRenderer] -> Task ()

@@ -12,7 +12,7 @@ import qualified Data.Map as DM
 import qualified iTasks.Internal.SDS as SDS
 import TCPChannelClass, TCPChannels, TCPEvent, TCPStringChannels, TCPDef, tcp
 
-import iTasks.Internal.Engine, iTasks.Internal.IWorld, iTasks.Internal.TaskEval, iTasks.Internal.TaskStore
+import iTasks.Engine, iTasks.Internal.IWorld, iTasks.Internal.TaskEval, iTasks.Internal.TaskStore
 import iTasks.Internal.IWorld
 import iTasks.Internal.Task
 import iTasks.Internal.TaskEval
@@ -509,7 +509,7 @@ where
         # ioStates = 'DM'.put taskId (IOActive taskStates) ioStates
         = closeIO (ioChannels, iworld)//{iworld & ioStates = ioStates})
 
-writeShareIfNeeded :: !(RWShared () r w) !(Maybe w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
+writeShareIfNeeded :: !(RWShared () r w) !(Maybe w) !*IWorld -> (!MaybeError TaskException (), !*IWorld) | TC r & TC w
 writeShareIfNeeded sds Nothing iworld  = (Ok (), iworld)
 writeShareIfNeeded sds (Just w) iworld = 'SDS'.write w sds iworld
 

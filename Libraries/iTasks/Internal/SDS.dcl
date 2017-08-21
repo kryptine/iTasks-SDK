@@ -21,7 +21,7 @@ import iTasks.SDS.Definition
     }
 :: SDSIdentity  :== String
 
-//:: WriteShare p = E.r w: Write !w !(RWShared p r w)
+:: DeferredWrite = E. p r w: DeferredWrite !p !w !(SDS p r w) & iTask p & TC r & TC w
 
 //Internal creation functions:
 
@@ -46,13 +46,13 @@ createReadOnlySDSError ::
 //Internal access functions
 
 //Just read an SDS
-read			::						    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
+read			::						    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC r
 //Read an SDS and register a taskId to be notified when it is written
-readRegister	:: !TaskId                  !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld)
+readRegister	:: !TaskId                  !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC r
 //Write an SDS (and queue evaluation of those task instances which contained tasks that registered for notification)
-write			:: !w					    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)	
+write			:: !w					    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)	| TC r & TC w
 //Read followed by write. The 'a' typed value is a result that is returned
-modify          :: !(r -> (!a,!w))          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException a, !*IWorld)
+modify          :: !(r -> (!a,!w))          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException a, !*IWorld) | TC r & TC w
 
 //Force notify (queue evaluation of task instances that registered for notification)
 notify          ::                          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
@@ -66,10 +66,13 @@ clearInstanceSDSRegistrations :: ![InstanceNo] !*IWorld -> *IWorld
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
 formatSDSRegistrationsList :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 
+//Flush all deffered/cached writes of
+flushDeferredSDSWrites :: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
+
 :: JSONShared :== RWShared JSONNode JSONNode JSONNode
 
 //Exposing shares for external nodes
-toJSONShared    :: (RWShared p r w) -> JSONShared | JSONDecode{|*|} p & JSONEncode{|*|} r & JSONDecode{|*|} w & iTask p
+toJSONShared    :: (RWShared p r w) -> JSONShared | JSONDecode{|*|} p & JSONEncode{|*|} r & JSONDecode{|*|} w & iTask p & TC r & TC w
 fromJSONShared  :: JSONShared -> RWShared p r w | JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w
 newURL 		    :: !*IWorld -> (!String, !*IWorld)
 getURLbyId 	    :: !String !*IWorld -> (!String, !*IWorld)

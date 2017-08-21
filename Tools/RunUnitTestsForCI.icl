@@ -11,7 +11,7 @@ import System.FilePath
 TESTS_PATH :== "../Tests/TestPrograms"
 
 runAllTests
-	=   get (mapRead (filter ((==) "icl" o takeExtension)) (sdsFocus TESTS_PATH externalDirectory))
+	=   get (mapRead (filter ((==) "icl" o takeExtension)) (sdsFocus TESTS_PATH directoryListing))
 	>>- \modules ->
 		sequence "Running all tests" [runTestModule (TESTS_PATH </> m) >>- traceValue \\ m <- modules]
 	>>- \results ->

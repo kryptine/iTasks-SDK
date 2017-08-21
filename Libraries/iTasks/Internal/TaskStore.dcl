@@ -170,7 +170,6 @@ attachViewport :: !InstanceNo !*IWorld -> *IWorld
 */
 detachViewport :: !InstanceNo !*IWorld -> *IWorld
 
-
 //Documents
 createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 loadDocumentContent		:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)

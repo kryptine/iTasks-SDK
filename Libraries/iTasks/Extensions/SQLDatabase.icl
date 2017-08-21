@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.SQLDatabase
 
 import iTasks, Database.SQL, Database.SQL.MySQL, Database.SQL.SQLite, Data.Error, Data.Func, System.FilePath
-import iTasks.Internal.IWorld, iTasks.Internal.SDS
+import iTasks.Internal.Task, iTasks.Internal.IWorld, iTasks.Internal.SDS
 import qualified Data.Map
 
 //Extend Resource type for mysql resources
@@ -249,8 +249,8 @@ openSQLiteDB :: !SQLDatabase !*IWorld -> (MaybeErrorString (!*SQLiteCursor, !*SQ
 openSQLiteDB db iworld=:{IWorld|resources=Just (SQLiteResource con)}
     = (Ok con, {IWorld|iworld & resources=Nothing})
 openSQLiteDB db iworld=:{IWorld|resources=Nothing}
-    # iworld=:{IWorld|world,server={paths={dataDirectory}}} = {IWorld|iworld & resources = Nothing}
-    # db = {db & database = dataDirectory </> db.database}
+    # iworld=:{IWorld|world,options={storeDirPath}} = {IWorld|iworld & resources = Nothing}
+    # db = {db & database = storeDirPath </> db.database}
     # (err,mbContext,world) 	= openContext world
     | isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
     # (err,mbConn,context)		= openConnection db (fromJust mbContext)

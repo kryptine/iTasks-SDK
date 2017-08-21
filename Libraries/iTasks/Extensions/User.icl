@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.User
 import iTasks
 import Text
-import Data.Functor
+import Data.Functor, Data.Either
 import qualified Data.Map as DM
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
 import iTasks.UI.Layout.Default
@@ -186,7 +186,11 @@ where
 
 taskInstancesForCurrentUser :: ROShared () [TaskInstance]
 taskInstancesForCurrentUser
-	= sdsSequence "taskInstancesForCurrentUser" (\() u -> u) snd (SDSWriteConst (\_ _ -> Ok Nothing)) (SDSWriteConst (\_ _ -> Ok Nothing)) currentUser taskInstancesForUser
+	= sdsSequence "taskInstancesForCurrentUser"
+		id
+		(\() u -> u)
+		(\_ _ -> Right snd)
+		(SDSWriteConst (\_ _ -> Ok Nothing)) (SDSWriteConst (\_ _ -> Ok Nothing)) currentUser taskInstancesForUser
 
 workOn :: !t -> Task AttachmentStatus | toInstanceNo t
 workOn t 

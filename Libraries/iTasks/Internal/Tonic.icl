@@ -1,6 +1,6 @@
 implementation module iTasks.Internal.Tonic
 
-import iTasks.Internal.Engine
+import iTasks.Engine
 import iTasks.Internal.SDS
 import qualified iTasks.Internal.SDS as DSDS
 import iTasks.Internal.IWorld

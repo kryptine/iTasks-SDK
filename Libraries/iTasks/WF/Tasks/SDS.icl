@@ -25,7 +25,7 @@ where
 			Ok val		= (Ok val,iworld)
 			Error e		= (Error e, iworld)
 	
-set :: !a !(ReadWriteShared r a)  -> Task a | iTask a
+set :: !a !(ReadWriteShared r a)  -> Task a | iTask a & TC r
 set val shared = mkInstantTask eval
 where
 	eval taskId iworld=:{current={taskTime,taskInstance}}

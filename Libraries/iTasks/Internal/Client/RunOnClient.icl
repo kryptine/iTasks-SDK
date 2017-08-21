@@ -122,16 +122,18 @@ createClientIWorld serverURL currentInstance
         # world = newWorld
         # (timestamp=:(Timestamp seed),world) = time world
 		= {IWorld
-		  |server =
-            {serverName = "application"
-		    ,serverURL	= serverURL
-		    ,buildID    = "build"
-		    ,paths      = {appDirectory  = locundef "appDirectory"
-                          ,dataDirectory = locundef "dataDirectory"
-                          ,webDirectory  = locundef "webDirectory"
-						  ,saplDirectory = locundef "saplDirectory"}
-            }
-		  ,config				= {sessionTime = 3600, smtpServer = locundef "smtpServer"}
+		  |options =  { appName = "application"
+	                    , appPath = locundef "appDirectory"
+ 	                    , appVersion = locundef "appVersion"
+ 	                    , serverPort = 80
+                        , serverUrl = locundef "serverUrl"
+	                    , keepaliveTime = locundef "keepaliveTime"
+                        , sessionTime = locundef "sessionTime"
+                        , persistTasks = False
+	                    , webDirPath  = locundef "webDirectory"
+	                    , storeDirPath = locundef "dataDirectory"
+	                    , tempDirPath = locundef "tempDirectory"
+	                    , saplDirPath = locundef "saplDirectory"}				
           ,clocks =
             { timestamp =   timestamp
 			, localDate =   {Date|day = 1, mon = 1, year = 1977}
@@ -148,7 +150,8 @@ createClientIWorld serverURL currentInstance
           }
           ,sdsNotifyRequests    = []
           ,memoryShares         = 'Data.Map'.newMap
-          ,cachedShares         = 'Data.Map'.newMap
+          ,readCache            = 'Data.Map'.newMap
+          ,writeCache           = 'Data.Map'.newMap
 		  ,exposedShares		= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
 		  ,shutdown				= Nothing
