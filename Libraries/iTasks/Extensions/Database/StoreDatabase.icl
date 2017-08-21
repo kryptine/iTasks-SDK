@@ -1,4 +1,4 @@
-definition module iTasks.Extensions.Database.StoreDatabase
+implementation module iTasks.Extensions.Database.StoreDatabase
 
 import iTasks
 import StdList, StdOrdList, Data.List
