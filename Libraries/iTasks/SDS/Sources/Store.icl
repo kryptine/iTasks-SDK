@@ -6,6 +6,7 @@ import iTasks.SDS.Sources.System
 import iTasks.SDS.Combinators.Core
 import iTasks.SDS.Combinators.Common
 
+import iTasks.Engine
 import iTasks.Internal.SDS
 import iTasks.Internal.Store
 import iTasks.Internal.Task
@@ -39,12 +40,6 @@ where
         (Ok names,iworld) = (Ok names,iworld)
         (Error e,iworld) = (Error (exception e),iworld)
 
-storePath :: SDS () FilePath ()
-storePath = createReadOnlySDS read
-where
-	read () iworld=:{server={paths={dataDirectory}}}
-		= (dataDirectory </> "store", iworld)
-
 :: StorageType
   = InMemory      //When the data is disposable. It will be gone when the application shuts down
   | InJSONFile    //When the data should be persisted between different versions of an application
@@ -57,22 +52,22 @@ storeShare namespace versionSpecific prefType defaultV = sdsSequence "storeShare
 	(\key -> ())
 	//Compute the filepath in the store from the key
 	//And decide if the store should be memory-only or can use a persistent version
-	(\key ((path,{Config|persistTasks}),version) ->
-		(path </> namespace </> (if versionSpecific (version </> safeName key) (safeName key)), if persistTasks prefType InMemory))
+	(\key {EngineOptions|appVersion,storeDirPath,persistTasks} ->
+		(storeDirPath </> namespace </> (if versionSpecific (appVersion </> safeName key) (safeName key)), if persistTasks prefType InMemory))
 	(\_ _ -> Right snd)
 	(SDSWriteConst (\_ _ -> Ok Nothing))
 	(SDSWriteConst (\_ w -> Ok (Just w)))
-	(storePath |*| applicationConfig |*| applicationBuild)
+	applicationOptions
 	(storageLocation defaultV)
 
 blobStoreShare :: !String !Bool !(Maybe {#Char}) -> SDS String {#Char} {#Char}
 blobStoreShare namespace versionSpecific defaultV = sdsSequence "storeShare"
 	(\key -> ())
-	(\key (path,version) -> path </> namespace </> (if versionSpecific (version </> safeName key) (safeName key)))
+	(\key {storeDirPath,appVersion} -> storeDirPath </> namespace </> (if versionSpecific (appVersion </> safeName key) (safeName key)))
 	(\_ _ -> Right snd)
 	(SDSWriteConst (\_ _ -> Ok Nothing))
 	(SDSWriteConst (\_ w -> Ok (Just w)))
-	(storePath |*| applicationBuild)
+	applicationOptions
 	(removeMaybe defaultV fileShare)
 
 storageLocation :: !(Maybe a) -> SDS (FilePath,StorageType) a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a

@@ -1,6 +1,7 @@
 implementation module iTasks.Extensions.Admin.StoreAdmin
 import iTasks
 import qualified iTasks.Internal.Store
+import qualified iTasks.Internal.Task
 import Data.Error
 
 manageStore :: Task ()
@@ -20,7 +21,7 @@ selectStore
 
 //Low-level access
 deleteStore :: (String,String) -> Task ()
-deleteStore (namespace,storename) = mkInstantTask eval
+deleteStore (namespace,storename) = 'iTasks.Internal.Task'.mkInstantTask eval
 where
     eval _ iworld = case 'iTasks.Internal.Store'.deleteValue namespace storename iworld of
 		(Ok (),iworld) = (Ok (),iworld)

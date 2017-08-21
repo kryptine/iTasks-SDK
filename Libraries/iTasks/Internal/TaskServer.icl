@@ -12,7 +12,7 @@ import qualified Data.Map as DM
 import qualified iTasks.Internal.SDS as SDS
 import TCPChannelClass, TCPChannels, TCPEvent, TCPStringChannels, TCPDef, tcp
 
-import iTasks.Internal.Engine, iTasks.Internal.IWorld, iTasks.Internal.TaskEval, iTasks.Internal.TaskStore
+import iTasks.Engine, iTasks.Internal.IWorld, iTasks.Internal.TaskEval, iTasks.Internal.TaskStore
 import iTasks.Internal.IWorld
 import iTasks.Internal.Task
 import iTasks.Internal.TaskEval

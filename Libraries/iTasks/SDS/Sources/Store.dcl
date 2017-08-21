@@ -19,9 +19,6 @@ sharedDynamicStore :: !String !a -> SDS () a a | TC a
 storeNamespaces    :: SDS () [String] ()     // List the namespaces in the store 
 storeNames         :: SDS String [String] () // List the stores in a given namespace
 
-// Store location 
-storePath          :: SDS () FilePath ()
-
 :: StorageType
   = InMemory      //When the data is disposable. It will be gone when the application shuts down
   | InJSONFile    //When the data should be persisted between different versions of an application

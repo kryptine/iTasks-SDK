@@ -7,7 +7,7 @@ from iTasks.SDS.Definition import :: SDS
 from iTasks.WF.Definition import :: TaskId, :: TaskNo, :: InstanceNo, :: InstanceKey, :: TaskAttributes, :: ValueStatus
 from iTasks.WF.Combinators.Core import :: TaskList, :: SharedTaskList, :: TaskListFilter, :: TaskListItem 
 from iTasks.Extensions.DateTime import :: DateTime, :: Date, :: Time 
-from iTasks.Internal.IWorld import :: Config
+from iTasks.Engine import :: EngineOptions
 
 from System.Time import :: Timestamp
 from System.FilePath import :: FilePath
@@ -60,8 +60,8 @@ taskInstanceAttributesByNo      :: SDS InstanceNo TaskAttributes TaskAttributes
 taskInstancesByAttribute		:: SDS (!String,!String) [TaskInstance] () //Parameter is (key,value)
 
 // Application
-applicationName			:: SDS () String ()   // Application name
-applicationBuild		:: SDS () String ()   // Application build identifier
-applicationDirectory	:: SDS () FilePath () // Directory in which the applicaton resides
-applicationConfig		:: SDS () Config ()   // Server config
+applicationName			:: SDS () String ()          // Application name
+applicationVersion      :: SDS () String ()          // Application build identifier
+applicationDirectory	:: SDS () FilePath ()        // Directory in which the applicaton resides
+applicationOptions      :: SDS () EngineOptions ()   //Full engine options
 

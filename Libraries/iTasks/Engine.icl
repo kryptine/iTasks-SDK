@@ -1,7 +1,7 @@
-implementation module iTasks.Internal.Engine
+implementation module iTasks.Engine
 
 import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool, StdEnum
-from StdFunc import o, seqList, ::St, const
+from StdFunc import o, seqList, ::St, const, id
 from Data.Map import :: Map
 from Data.Queue import :: Queue(..)
 import qualified Data.Map as DM
@@ -19,7 +19,7 @@ import StdInt, StdChar, StdString
 import tcp
 import Internet.HTTP, System.Time, System.CommandLine, Data.Func
 
-import iTasks.Internal.Engine, iTasks.Internal.IWorld, iTasks.Internal.TaskEval, iTasks.Internal.TaskStore
+import iTasks.Internal.IWorld, iTasks.Internal.TaskEval, iTasks.Internal.TaskStore
 import iTasks.Internal.Util
 import iTasks.Internal.TaskServer
 from iTasks.Extensions.DateTime import toDate, toTime, instance == Date, instance == Time
@@ -29,39 +29,55 @@ from Sapl.Linker.LazyLinker import generateLoaderState, :: LoaderStateExt
 from Sapl.Linker.SaplLinkerShared import :: SkipSet
 from Sapl.Target.Flavour import :: Flavour, toFlavour
 
-show :: ![String] !*World -> *World
-show lines world
-	# (console,world)	= stdio world
-	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
-	# (_,world)			= fclose console world
-	= world
+from System.OS import IF_POSIX_OR_WINDOWS
 
-getServerOptions :: !*World -> (!Maybe ServerOptions,!*World)
-getServerOptions world
-	# (opts,world)			= getCommandLine world
-	# (appName,world)		= determineAppName world
-	# (appPath,world)		= determineAppPath world	
-	//Check commandline options
-	# port 					= fromMaybe DEFAULT_PORT (intOpt "-port" opts)
-	# keepalive				= fromMaybe DEFAULT_KEEPALIVE_TIME (intOpt "-keepalive" opts)
-	# help					= boolOpt "-help" opts
-	# noPersist             = boolOpt "-no-persist" opts
-	# webOpt				= stringOpt "-webpublic" opts
-	# storeOpt		    	= stringOpt "-store" opts
-	# saplOpt		    	= stringOpt "-sapl" opts
-	//If -help option is given show help and stop
-	| help					= (Nothing, show instructions world)
+MAX_EVENTS 		        :== 5
+
+defaultEngineOptions :: !*World -> (!EngineOptions,!*World)
+defaultEngineOptions world
+	# (appPath,world)    = determineAppPath world	
+	# (appVersion,world) = determineAppVersion appPath world
+	# appDir             = takeDirectory appPath
+	# appName            = (dropExtension o dropDirectory) appPath
 	# options =	
 		{ appName			= appName
 		, appPath			= appPath
-		, serverPort		= port
-		, keepalive 		= keepalive
-		, webDirPath 		= webOpt
-		, storeDirPath      = storeOpt
-		, saplDirPath 	    = saplOpt
+        , appVersion        = appVersion
+		, serverPort		= IF_POSIX_OR_WINDOWS 8080 80
+        , serverUrl         = "http://localhost/"
+		, keepaliveTime     = 300 // 5 minutes
+		, sessionTime       = 600 // 10 minutes
+		, webDirPath 		= appDir </> appName +++ "-www"
+		, storeDirPath      = appDir </> appName +++ "-data" </> "stores"
+		, tempDirPath       = appDir </> appName +++ "-data" </> "tmp"
+		, saplDirPath 	    = appDir </> appName +++ "-sapl"
+        , persistTasks      = False
+		}
+	= (options,world)
+
+
+defaultEngineCLIOptions :: [String] EngineOptions -> (!Maybe EngineOptions,![String])
+defaultEngineCLIOptions cli defaults
+	//Check commandline options
+	# port 					= fromMaybe defaults.serverPort (intOpt "-port" cli)
+	# keepaliveTime			= fromMaybe defaults.keepaliveTime (intOpt "-keepalive" cli)
+	# help					= boolOpt "-help" cli
+	# noPersist             = boolOpt "-no-persist" cli
+	# webOpt				= stringOpt "-webpublic" cli
+	# storeOpt		    	= stringOpt "-store" cli
+	# saplOpt		    	= stringOpt "-sapl" cli
+	//If -help option is given show help and stop
+	| help					= (Nothing, instructions)
+	# options =	
+		{ defaults 
+		& serverPort		= port
+		, keepaliveTime 	= keepaliveTime
+		, webDirPath 		= fromMaybe defaults.webDirPath webOpt
+		, storeDirPath      = fromMaybe defaults.storeDirPath storeOpt
+		, saplDirPath 	    = fromMaybe defaults.saplDirPath saplOpt
         , persistTasks      = not noPersist
 		}
-	= (Just options,world)
+	= (Just options,running options.appName options.serverPort)
 where
 	instructions :: [String]
 	instructions =
@@ -70,10 +86,15 @@ where
 		," -webpublic <path> : Use <path> to point to the folder that contain the application's static web content"
 	    ," -store <path> 	 : Use <path> as data store location"
 	    ," -sapl <path> 	 : Use <path> to point to the folders that hold the sapl version of the application"
-		," -port <port>      : Set port number (default " +++ toString DEFAULT_PORT +++ ")"
-		," -keepalive <time> : Set connection keepalive time in seconds (default " +++ toString DEFAULT_KEEPALIVE_TIME +++ ")"
+		," -port <port>      : Set port number (default " +++ toString defaults.serverPort +++ ")"
+		," -keepalive <time> : Set connection keepalive time in seconds (default " +++ toString defaults.keepaliveTime +++ ")"
 		,""
 		]
+
+	running :: !String !Int -> [String]
+	running app port = ["*** " +++ app +++ " HTTP server ***"
+                       ,""
+                       ,"Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
 
 	boolOpt :: !String ![String] -> Bool
 	boolOpt key opts = isMember key opts
@@ -95,27 +116,24 @@ where
 					= stringOpt key [v:r]
 
 startEngine :: a !*World -> *World | Publishable a
-startEngine publishable world
-	= case getServerOptions world of
-		(Nothing,world)      = world
-		(Just options,world) = startEngineWithOptions publishable options world
+startEngine publishable world = startEngineWithOptions defaultEngineCLIOptions publishable world
 
-startEngineWithOptions :: a ServerOptions !*World -> *World | Publishable a
-startEngineWithOptions publishable options=:{appName,appPath,serverPort,keepalive,persistTasks,webDirPath,storeDirPath,saplDirPath} world
-	# world					= show (running appName serverPort) world
- 	# iworld				= createIWorld appName appPath persistTasks webDirPath storeDirPath saplDirPath world
- 	# (res,iworld) 			= initJSCompilerState iworld
- 	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-    //Start task server
-	# iworld				= serve [] tcpTasks systemTasks timeout iworld
-	= destroyIWorld iworld
+startEngineWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Publishable a
+startEngineWithOptions initFun publishable world
+	# (cli,world)			= getCommandLine world
+	# (options,world)       = defaultEngineOptions world
+	# (mbOptions,msg)       = initFun cli options
+	# world                 = show msg world
+	= case mbOptions of
+		Nothing = world
+		Just options
+ 			# iworld				= createIWorld (fromJust mbOptions) world
+ 			# (res,iworld) 			= initJSCompilerState iworld
+		 	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
+			# iworld				= serve [] (tcpTasks options.serverPort options.keepaliveTime) systemTasks timeout iworld
+			= destroyIWorld iworld
 where
-	running :: !String !Int -> [String]
-	running app port = ["*** " +++ app +++ " HTTP server ***"
-                       ,""
-                       ,"Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
-
-	tcpTasks = [(serverPort,httpServer serverPort keepalive (engine publishable) allUIChanges)]
+	tcpTasks serverPort keepaliveTime = [(serverPort,httpServer serverPort keepaliveTime (engine publishable) allUIChanges)]
 	systemTasks =
  		[BackgroundTask updateClocks
 		,BackgroundTask (processEvents MAX_EVENTS)
@@ -123,14 +141,16 @@ where
 		,BackgroundTask flushWritesWhenIdle]
 
 runTasks :: a !*World -> *World | Runnable a
-runTasks tasks world
-	= case getServerOptions world of
-		(Nothing,world)      = world
-		(Just options,world) = runTasksWithOptions tasks options world
+runTasks tasks world = runTasksWithOptions (\c o -> (Just o,[])) tasks world
 
-runTasksWithOptions :: a ServerOptions !*World -> *World | Runnable a
-runTasksWithOptions runnable options=:{appName,appPath,serverPort,keepalive,persistTasks,webDirPath,storeDirPath,saplDirPath} world
- 	# iworld				= createIWorld appName appPath persistTasks webDirPath storeDirPath saplDirPath world
+runTasksWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Runnable a
+runTasksWithOptions initFun runnable world
+	# (cli,world)			= getCommandLine world
+	# (options,world)       = defaultEngineOptions world
+	# (mbOptions,msg)       = initFun cli options
+	# world                 = show msg world
+	| mbOptions =: Nothing  = world
+ 	# iworld				= createIWorld (fromJust mbOptions) world
  	# (res,iworld) 			= initJSCompilerState iworld
  	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
 	# iworld				= serve (toRunnable runnable) [] systemTasks timeout iworld
@@ -140,6 +160,13 @@ where
  		[BackgroundTask updateClocks
 		,BackgroundTask (processEvents MAX_EVENTS)
 		,BackgroundTask stopOnStable]
+
+show :: ![String] !*World -> *World
+show lines world
+	# (console,world)	= stdio world
+	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
+	# (_,world)			= fclose console world
+	= world
 
 timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
 timeout iworld = case 'SDS'.read taskEvents iworld of //Check if there are events in the queue
@@ -173,7 +200,7 @@ updateClocks iworld=:{IWorld|clocks,world}
 
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
 removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
-removeOutdatedSessions iworld
+removeOutdatedSessions iworld=:{IWorld|options}
     # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) iworld
     = case mbIndex of
         Ok index    = checkAll removeIfOutdated index iworld 
@@ -184,18 +211,18 @@ where
 		(Ok (),iworld) = checkAll f xs iworld
 		(Error e,iworld) = (Error e,iworld)
 
-    removeIfOutdated (instanceNo,_,_,_) iworld=:{clocks={timestamp},server={buildID}}
+    removeIfOutdated (instanceNo,_,_,_) iworld=:{options={appVersion},clocks={timestamp}}
 		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) iworld of
 			//If there is I/O information, we check that age first
 			(Ok (Just (client,Timestamp tInstance)),iworld) //No IO for too long, clean up
-				= (Ok ((tNow - tInstance) > SESSION_TIMEOUT),iworld)
+				= (Ok ((tNow - tInstance) > options.EngineOptions.sessionTime),iworld)
 			//If there is no I/O information, get meta-data and check builtId and creation date
 			(Ok Nothing,iworld)
 				= case read (sdsFocus instanceNo taskInstanceConstants) iworld of
 					(Ok {InstanceConstants|build,issuedAt},iworld)
-						| build <> buildID = (Ok True,iworld)
+						| build <> appVersion = (Ok True,iworld)
 						# (Timestamp tInstance) = issuedAt
-						| (tNow - tInstance) > SESSION_TIMEOUT = (Ok True,iworld)
+						| (tNow - tInstance) > options.EngineOptions.sessionTime = (Ok True,iworld)
 						= (Ok False,iworld)
 					(Error e,iworld)
 						= (Error e,iworld)
@@ -221,7 +248,6 @@ flushWritesWhenIdle iworld = case read taskEvents iworld of
 		(Error e,iworld)          = (Error e,iworld)
 		(Ok (Queue [] []),iworld) = flushDeferredSDSWrites iworld
 		(Ok _,iworld)             = (Ok (),iworld)
-
 
 //When we don't run the built-in HTTP server we don't want to loop forever so we stop the loop
 //once all tasks are stable
@@ -286,13 +312,6 @@ instance Runnable [TaskWrapper]
 where
 	toRunnable list = list
 
-
-// Determines the server executables name
-determineAppName :: !*World -> (!String,!*World)
-determineAppName world 
-	# (appPath, world) = determineAppPath world
-	= ((dropExtension o dropDirectory) appPath, world)
-
 // Determines the server executables path
 determineAppPath :: !*World -> (!FilePath, !*World)
 determineAppPath world
@@ -312,4 +331,13 @@ determineAppPath world
 	where		
 		cmpFileTime (_,Ok {FileInfo | lastModifiedTime = x})
 					(_,Ok {FileInfo | lastModifiedTime = y}) = mkTime x > mkTime y
-	
+
+//By default, we use the modification time of the applaction executable as version id
+determineAppVersion :: !FilePath!*World -> (!String,!*World)	
+determineAppVersion appPath world
+	# (res,world)       = getFileInfo appPath world
+	| res =: (Error _)  = ("unknown",world) 
+	# tm				= (fromOk res).lastModifiedTime
+	# version           = strfTime "%Y%m%d-%H%M%S" tm
+	= (version,world)
+

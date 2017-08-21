@@ -10,6 +10,7 @@ from StdFile			                import class FileSystem
 from System.Time				        import :: Timestamp
 from Text.JSON				            import :: JSONNode
 from System.Process         import :: ProcessHandle, :: ProcessIO
+from iTasks.Engine                      import :: EngineOptions
 from iTasks.UI.Definition				import :: UI, :: UINodeType
 from iTasks.Internal.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
 from iTasks.Internal.Task             import :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask
@@ -29,8 +30,7 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
-:: *IWorld		=	{ server                :: !ServerInfo                                  // Static server info, initialized at startup
-					, config				:: !Config									    // Server configuration
+:: *IWorld		=	{ options               :: !EngineOptions                               // Engine configuration
                     , clocks                :: !SystemClocks                                // Server side clocks
                     , current               :: !TaskEvalState                               // Shared state during task evaluation
 
@@ -53,26 +53,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
                     , onClient				:: !Bool									// "False" on the server, "True" on the client
 					, shutdown				:: !Maybe Int                               // Signals the server function to shut down, the int will be set as exit code
 					}
-
-:: Config =
-	{ sessionTime		:: !Int		//* Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
-	, smtpServer		:: !String	//* The smtp server to use for sending e-mails
-	, persistTasks      :: !Bool    //* Persist the task state to disk
-	}
-
-:: ServerInfo =
-    { serverName      :: !String				// The name of the server application
-	, serverURL		  :: !String				// URL of the server like "//any.com:80"
-	, buildID		  :: !String				// The date/time identifier of the server's build
-    , paths           :: !SystemPaths           // Filesystem paths that are used by iTasks
-    }
-
-:: SystemPaths =
-    { appDirectory			:: !FilePath		// Location of the application's executable
-	, dataDirectory			:: !FilePath		// Location of the application's data files
-    , webDirectory          :: !FilePath        // List of directories that contain files that are served publicly by the iTask webserver
-	, saplDirectory 		:: !FilePath 		// Location of the application's sapl files
-    }
 
 :: SystemClocks =
     { timestamp 			:: !Timestamp
@@ -139,7 +119,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
 :: BackgroundTaskId         :== Int
 
-
 :: IOStates :== Map TaskId IOState
 :: IOState
     = IOActive      !(Map ConnectionId (!Dynamic,!Bool)) // Bool: stability
@@ -156,17 +135,12 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 /**
 * Creates and initializes the IWorld state
 *
-* @param The application's name
-* @param The application's path (e.g. to executable).
-* @param Persist task administration
-* @param The path where static web assets can be found (optional)
-* @param The path where the iTasks data store is located (optional)
-* @param Path to where the applications's SAPL files are stored (optional)
+* @param The engine options
 * @param The world
 *
 * @return An initialized iworld
 */
-createIWorld :: !String FilePath !Bool !(Maybe FilePath) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
+createIWorld :: !EngineOptions !*World -> *IWorld
 
 /**
 * Initialize the SAPL->JS compiler state

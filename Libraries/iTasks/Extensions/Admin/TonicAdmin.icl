@@ -9,6 +9,7 @@ import iTasks.Internal.Tonic.Types
 import iTasks.Internal.Tonic.AbsSyn
 import iTasks.Internal.Tonic.Pretty
 import iTasks.Internal.Tonic.Images
+import iTasks.Internal.Task
 import iTasks.UI.Definition
 import iTasks.Extensions.DateTime
 from StdFunc import seq

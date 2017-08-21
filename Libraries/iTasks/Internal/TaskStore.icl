@@ -4,6 +4,7 @@ import StdOverloaded, StdBool, StdArray, StdTuple
 from StdFunc import const, id, o
 import Data.Maybe, Data.Either, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath, Data.Functor
 
+import iTasks.Engine
 import iTasks.Internal.IWorld, iTasks.Internal.TaskState, iTasks.Internal.Task, iTasks.Internal.Store
 import iTasks.Internal.TaskEval, iTasks.Internal.Util, iTasks.UI.Definition
 import iTasks.Internal.Serialization
@@ -121,22 +122,22 @@ newDocumentId iworld=:{IWorld|random}
 	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld & random = drop 32 random})
 	
 createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
-createClientTaskInstance task sessionId instanceNo iworld=:{server={buildID},current={taskTime},clocks={timestamp,localDate,localTime}}
+createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion},current={taskTime},clocks={timestamp,localDate,localTime}}
     //Create the initial instance data in the store
     # progress  = {InstanceProgress|value=None,instanceKey="client",attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants = {InstanceConstants|session=True,listId=TaskId 0 0,build=buildID,issuedAt=timestamp}
+    # constants = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=timestamp}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
 createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
-createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={timestamp,localDate,localTime}}
+createTaskInstance task iworld=:{options={appVersion},current={taskTime},clocks={timestamp,localDate,localTime}}
     # (mbInstanceNo,iworld) = newInstanceNo iworld
     # instanceNo            = fromOk mbInstanceNo
     # (instanceKey,iworld)  = newInstanceKey iworld
     # progress              = {InstanceProgress|value=None,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants             = {InstanceConstants|session=True,listId=TaskId 0 0,build=buildID,issuedAt=timestamp}
+    # constants             = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=timestamp}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
@@ -147,10 +148,10 @@ createTaskInstance task iworld=:{server={buildID},current={taskTime},clocks={tim
 (`b`) (Error e, st) _ = (Error e, st)
 
 createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
-createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{server={buildID},current={taskTime},clocks={timestamp,localDate,localTime}}
+createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion},current={taskTime},clocks={timestamp,localDate,localTime}}
     # (instanceKey,iworld) = newInstanceKey iworld
     # progress             = {InstanceProgress|value=None,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants            = {InstanceConstants|session=False,listId=listId,build=buildID,issuedAt=timestamp}
+    # constants            = {InstanceConstants|session=False,listId=listId,build=appVersion,issuedAt=timestamp}
     =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
@@ -177,13 +178,13 @@ where
 			(ExceptionResult e,iworld)			    = (ExceptionResult e,iworld)
 
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
-replaceTaskInstance instanceNo task iworld=:{server={buildID},current={taskTime}}
+replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskTime}}
     # (meta, iworld)        = 'SDS'.read (sdsFocus instanceNo taskInstance) iworld
     | isError meta          = (liftError meta, iworld)
     =            'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> let (_,Just constants,progress,attributes) = fromOk meta
-                 in  'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=buildID},progress,attributes) (sdsFocus instanceNo taskInstance) iworld
+                 in  'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=appVersion},progress,attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> (Ok (), iworld)
 
 deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
@@ -539,8 +540,8 @@ loadDocumentMeta documentId iworld
         (Error e,iworld)    = (Nothing,iworld)
 
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
-documentLocation documentId iworld=:{server={buildID,paths={dataDirectory}}}
-	= (dataDirectory </>"stores"</> NS_DOCUMENT_CONTENT </> (documentId +++ "-data.txt"),iworld)
+documentLocation documentId iworld=:{options={storeDirPath}}
+	= (storeDirPath </> NS_DOCUMENT_CONTENT </> (documentId +++ "-content"),iworld)
 
 //OBSOLETE
 exposedShare :: !String -> RWShared p r w | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p

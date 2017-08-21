@@ -1,4 +1,5 @@
 implementation module iTasks.Internal.Test.Stubs
+import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.Internal.Generic.Defaults
 import iTasks.UI.Editor
@@ -11,9 +12,8 @@ import qualified Data.Map as DM
 toStubIWorld :: *World -> *IWorld
 toStubIWorld world
   = {IWorld
-  |server = {serverName = "STUB",serverURL = "//127.0.0.1:80",buildID = "STUB"
-        	,paths = {appDirectory = "./STUB/",dataDirectory = "./STUB/",webDirectory = "./STUB/",saplDirectory = "./STUB/"}}
-  ,config = {sessionTime = 3600, smtpServer = "localhost",persistTasks = True}
+  |options = {EngineOptions|appName="STUB",appPath="./",appVersion="STUB",serverPort=80,serverUrl="/127.0.0.1:80/",keepaliveTime=0,sessionTime=0
+             ,persistTasks=False,webDirPath="./STUB/",storeDirPath="./STUB/",tempDirPath="./STUB/",saplDirPath="./STUB"}
   ,clocks = {SystemClocks |timestamp = Timestamp 0,localDate=defaultValue,localTime=defaultValue,utcDate=defaultValue,utcTime=defaultValue}
   ,current ={TaskEvalState|taskTime= 0,taskInstance= 0,sessionInstance = Nothing,attachmentChain = [] ,nextTaskNo = 0}
   ,sdsNotifyRequests = [], memoryShares = 'DM'.newMap, readCache = 'DM'.newMap, writeCache = 'DM'.newMap, exposedShares = 'DM'.newMap

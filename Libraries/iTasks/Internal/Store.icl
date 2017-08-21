@@ -10,11 +10,11 @@ import Text, Text.JSON, iTasks.Internal.Serialization
 import iTasks.Internal.Client.JSStore
 import iTasks.Internal.SDS
 
-from iTasks.Internal.IWorld		import :: IWorld {config,onClient,server,memoryShares,world}, :: ServerInfo(..), :: SystemPaths(..), :: Resource
+from iTasks.Engine import :: EngineOptions(..)
+from iTasks.Internal.IWorld		import :: IWorld {options,onClient,memoryShares,world}, :: Resource
 from iTasks.Internal.Task		    import exception
 from iTasks.Internal.TaskState		import :: DeferredJSON(..)
 from iTasks.Internal.TaskEval import :: TaskTime
-from iTasks.Internal.IWorld import :: Config(..)
 
 from iTasks.WF.Definition				import class iTask
 from iTasks.Internal.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
@@ -46,89 +46,6 @@ memoryStore namespace defaultV = storeShare namespace False InMemory defaultV
 jsonFileStore :: !StoreNamespace !Bool !Bool !(Maybe a) -> RWShared StoreName a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 jsonFileStore namespace check reset defaultV = storeShare namespace True InJSONFile defaultV
 
-blobStoreWrite :: !StoreNamespace !StoreName !{#Char} !*IWorld -> *IWorld //TODO: Propagate error up
-blobStoreWrite namespace key blob iworld=:{IWorld|onClient=True}
-	= jsStoreValue namespace key blob iworld
-blobStoreWrite namespace key blob iworld
-	# (_,iworld) = writeToDisk namespace key blob iworld 
-	= iworld
-
-blobStoreRead :: !StoreNamespace !StoreName !*IWorld -> (!MaybeError StoreReadError {#Char}, !*IWorld)
-blobStoreRead namespace key iworld=:{onClient=True}
-	# (mbBlob,iworld) =jsLoadValue namespace key iworld
-    = (maybe (Error (StoreReadMissingError (namespace +++ "/" +++ key))) Ok mbBlob, iworld)
-blobStoreRead namespace key iworld
-    = case readFromDisk namespace key iworld of
-        (Ok (_,content),iworld) = (Ok content,iworld)
-        (Error e,iworld) = (Error e,iworld)
-	
-writeToDisk :: !StoreNamespace !StoreName !String !*IWorld -> (MaybeErrorString (), *IWorld)
-writeToDisk namespace key content iworld=:{server={buildID,paths={dataDirectory}},world}
-	# location = dataDirectory </> "stores"
-	//Check if the location exists and create it otherwise
-	# (exists,world)	= fileExists location world
-	# (res,world)		= if exists (Ok (),world)
-							( case createDirectory location world of
-								(Ok (), world) = (Ok (),world)
-								(Error e, world) = (Error ("Cannot create store: " +++ location +++ ": " +++ snd e), world)
-							)
-	| res =: (Error _)
-		= (res,{IWorld|iworld & world = world})
-	//Check if the namespace exists and create it otherwise
-	# (exists,world)	= fileExists (location </> namespace) world
-	# (res,world)		= if exists (Ok (),world)
-							( case createDirectory (location </> namespace) world of
-								(Ok (), world) = (Ok (), world)
-								(Error e, world) = (Error ("Cannot create namespace " +++ namespace +++ ": " +++ snd e), world)
-							)
-	| res =: (Error _)
-		= (res,{IWorld|iworld & world = world})
-	//Write the value
-	# filename 			= addExtension (location </> namespace </> safeName key) "txt"
-	# (ok,file,world)	= fopen filename FWriteData world
-	| not ok			= (Error ("Failed to write value to store: " +++ filename),{IWorld|iworld & world = world})
-    //Write build ID
-    # file              = fwrites buildID file
-    //Write content
-	# file				= fwrites content file
-	# (ok,world)		= fclose file world
-	= (Ok (),{IWorld|iworld & world = world})
-
-readFromDisk :: !StoreNamespace !StoreName !*IWorld -> (MaybeError StoreReadError (!BuildID,!String), !*IWorld)	
-readFromDisk namespace key iworld=:{server={paths={dataDirectory}},world}
-	# filename			= addExtension (dataDirectory </> "stores" </> namespace </> safeName key) "txt"
-	# (ok,file,world)	= fopen filename FReadData world
-	| ok
-		# (maybe_build_id_and_content,file) = read_file storeDesc file
-		# (ok,world) = fclose file world
-		| ok
-			= (maybe_build_id_and_content,{iworld & world = world})
-            = (Error (StoreReadDataError storeDesc),{iworld & world = world})
-    | otherwise
-        = (Error (StoreReadMissingError storeDesc), {iworld & world = world})
-where
-	read_file :: !String !*File -> (!MaybeError StoreReadError (BuildID,String), !*File)	
-	read_file desc file
-		# (buildId,file) = freads file 15
-		| size buildId<15
-			= (Ok (buildId,""),file)
-		# (ok,file) = fseek file 0 FSeekEnd
-		| not ok
-			= (Error (StoreReadDataError desc),file)
-		# (file_size,file) = fposition file
-		| file_size<15
-			= (Error (StoreReadDataError desc),file)
-		# (ok,file) = fseek file 15 FSeekSet
-		| not ok
-			= (Error (StoreReadDataError desc),file)
-		# content_size = file_size - 15;
-		# (content,file) = freads file content_size;
-		| size content<>content_size
-			= (Error (StoreReadDataError desc),file)
-            = (Ok (buildId,content),file)
-
-	storeDesc = namespace +++ "/" +++ key
-
 deleteValue :: !StoreNamespace !StoreName !*IWorld -> *(MaybeErrorString (),*IWorld)
 deleteValue namespace delKey iworld=:{onClient=True}
 	= (Ok (), jsDeleteValue namespace delKey iworld)
@@ -141,13 +58,13 @@ deleteValues :: !StoreNamespace !StorePrefix !*IWorld -> *(MaybeErrorString (),*
 deleteValues namespace delKey iworld = deleteValues` namespace delKey startsWith startsWith iworld
 
 deleteValues` :: !String !String !(String String -> Bool) !(String String -> Bool) !*IWorld -> *(MaybeErrorString (),*IWorld)
-deleteValues` namespace delKey filterFuncCache filterFuncDisk iworld=:{server={buildID,paths={dataDirectory}},world}
+deleteValues` namespace delKey filterFuncCache filterFuncDisk iworld=:{options={storeDirPath},world}
 	//Delete items from disk
 	# (res,world) = deleteFromDisk world
 	= (res,{iworld & world = world})
 where
 	deleteFromDisk world
-		# storeDir		= dataDirectory </>"store"</> namespace
+		# storeDir		= storeDirPath</> namespace
 		# (res, world)	= readDirectory storeDir world
 		= case res of
 			(Ok _) = deleteFiles storeDir (fromOk res) world
@@ -184,19 +101,19 @@ where
 							                = copy (i + 1) {n & [i] = '_'}
 
 listStoreNamespaces :: !*IWorld -> (![StoreNamespace], !*IWorld)
-listStoreNamespaces iworld=:{server={buildID,paths={dataDirectory}},world}
-    # (res,world)   = readDirectory (dataDirectory</>"stores") world
+listStoreNamespaces iworld=:{options={storeDirPath},world}
+    # (res,world)   = readDirectory storeDirPath world
     = case res of
         Error e     = ([], {iworld & world = world})
         Ok files    = ([f \\ f <- files | not (f == "." || f == "..")], {iworld & world = world})
 
 listStoreNames :: !StoreNamespace !*IWorld -> (!MaybeErrorString [StoreName], !*IWorld)
 listStoreNames namespace iworld
-    # (namespaces,iworld=:{server={buildID,paths={dataDirectory}},world})
+    # (namespaces,iworld=:{options={storeDirPath},world})
                     = listStoreNamespaces iworld
     | not (isMember namespace namespaces)
                     = (Error ("Namespace " +++ namespace +++ " does not exist"), {iworld & world = world})
-    # storeDir		= dataDirectory </>"stores"</> namespace
+    # storeDir		= storeDirPath </> namespace
     # (res,world)   = readDirectory storeDir world
     = case res of
         Error e     = (Error (snd e), {iworld & world = world})

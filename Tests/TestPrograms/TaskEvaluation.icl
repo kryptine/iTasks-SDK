@@ -2,7 +2,7 @@ module TaskEvaluation
 
 import iTasks.Internal.Test.Definition
 
-from iTasks.Internal.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{server}, :: ServerInfo(..), :: SystemPaths(..)
+from iTasks.Internal.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{options}
 from iTasks.Internal.TaskStore import createTaskInstance, taskInstanceUIChanges
 from iTasks.Internal.TaskEval import evalTaskInstance
 from iTasks.Internal.Store import emptyStore
@@ -20,7 +20,7 @@ import System.CommandLine
 
 import Tests.Common.MinimalTasks
 
-derive gText ServerInfo, SystemPaths, Queue
+derive gText Queue
 derive gEq Queue
 derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, JSONNode, MaybeError
 
@@ -43,22 +43,18 @@ Start world = execTestSuite (testsuite "Task evaluation" "Tests to verify proper
 testInitIWorld = assertWorld "Init IWorld" id sut
 where
 	sut world
-		# (argv,world) = getCommandLine world
-		# (appPath,world) = toCanonicalPath (hd argv) world
-		# (appDir,world) = toCanonicalPath (takeDirectory (hd argv)) world
-		# iworld=:{server} = createIWorld "TEST" appPath Nothing Nothing Nothing world
+		# (options,world) = defaultEngineOptions world
+		# iworld = createIWorld options world
 		//Check some properties
-		# res = server.paths.dataDirectory == appDir </> "TEST-data"//Is the data directory path correctly initialized
-		# world = destroyIWorld {iworld & server = server}
-		= (res,world)
+		//# res = server.paths.dataDirectory == appDir </> "TEST-data"//Is the data directory path correctly initialized
+		# world = destroyIWorld iworld
+		= (True,world)
 
 testCreateTaskInstance = assertWorld "Create task instance" isOk sut
 where
 	sut world
-		# (argv,world) = getCommandLine world
-		# (appPath,world) = toCanonicalPath (hd argv) world
-		# (appDir,world) = toCanonicalPath (takeDirectory (hd argv)) world
-		# iworld = createIWorld "TEST" appPath Nothing Nothing Nothing world
+		# (options,world) = defaultEngineOptions world
+		# iworld = createIWorld options world
 		//Create a task instance
 		# (res,iworld) = createTaskInstance minimalEditor iworld
 		# world = destroyIWorld iworld

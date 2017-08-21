@@ -3,6 +3,7 @@ implementation module iTasks.Internal.RemoteAccess
 import StdString, StdMisc, StdFile, StdBool, StdArray
 import Text
 
+import iTasks.Engine
 import iTasks.WF.Definition
 import iTasks.Internal.Task
 import iTasks.Internal.IWorld
@@ -41,10 +42,10 @@ closeException s
 	= Error (dynamic e, toString e)
 
 httpRequest_server :: !HTTPMethod !URI !String !*IWorld -> *(!HTTPResponse, !*IWorld)
-httpRequest_server method uri request iworld=:{IWorld|current={taskTime},server={buildID,paths={dataDirectory}},world}
-		# infile  = dataDirectory </> "tmp-" +++ buildID </> (mkFileName "request")
-		# outfile = dataDirectory </> "tmp-" +++ buildID </> (mkFileName "response")
-		# hfile = dataDirectory </> "tmp-" +++ buildID </> (mkFileName "response-header")		
+httpRequest_server method uri request iworld=:{IWorld|current={taskTime},options={tempDirPath},world}
+		# infile  = tempDirPath </> (mkFileName "request")
+		# outfile = tempDirPath </> (mkFileName "response")
+		# hfile = tempDirPath </> (mkFileName "response-header")		
 		# (res,world) = writeFile infile request world
 		| isError res
 			= abort "httpRequest_server: infile creation error"

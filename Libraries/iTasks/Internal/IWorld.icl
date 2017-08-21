@@ -9,8 +9,8 @@ from Text.JSON						import :: JSONNode
 from iTasks.WF.Definition           import :: TaskId, :: InstanceNo, :: TaskNo 
 from iTasks.WF.Combinators.Core     import :: TaskListItem, :: ParallelTaskType
 from iTasks.Extensions.DateTime     import :: Time, :: Date, :: DateTime, toTime, toDate
-from iTasks.Internal.TaskEval     import :: TaskTime
-from iTasks.Internal.IWorld       import :: Config
+from iTasks.Internal.TaskEval       import :: TaskTime
+from iTasks.Engine                  import :: EngineOptions(..)
 from System.Process                 import :: ProcessHandle, :: ProcessIO
 
 from StdFile import class FileSystem(..)
@@ -55,35 +55,13 @@ JS_COMPILER_EXCLUDES :==
 	,"System.Directory"
 	]
 
-createIWorld :: !String FilePath !Bool !(Maybe FilePath) !(Maybe FilePath) !(Maybe FilePath) !*World -> *IWorld
-createIWorld appName appPath persistTasks mbWebdirPath mbStorePath mbSaplPath world
-	# appDir					= takeDirectory appPath
-	# dataDir					= fromMaybe (appDir </> appName +++ "-data") mbStorePath
-	# webDir                    = fromMaybe (appDir </> appName +++ "-www") mbWebdirPath 
-	# saplDir                   = fromMaybe (appDir </> appName +++ "-sapl") mbSaplPath 
-	# (saplDir,world)           = fallBackSaplDir appDir saplDir world
-	# (res,world)				= getFileInfo appPath world
-	| isError res				= abort "Cannot get executable info."
-	# tm						= (fromOk res).lastModifiedTime
-	# build						= strfTime "%Y%m%d-%H%M%S" tm
+createIWorld :: !EngineOptions !*World -> *IWorld
+createIWorld options world
 	# (local,world)             = currentLocalDateTimeWorld world
 	# (utc,world)	            = currentUTCDateTimeWorld world
-	# tmpDir					= dataDir </> "tmp"
-	# storeDir					= dataDir </> "stores"
 	# (timestamp=:(Timestamp seed), world)	= time world
 	= {IWorld
-	  |server =
-        {serverName = appName
-	    ,serverURL	= "//127.0.0.1:80"
-	    ,buildID	= build
-        ,paths      =
-            {appDirectory   = appDir
-	        ,dataDirectory  = dataDir
-            ,webDirectory   = webDir
-			,saplDirectory  = saplDir
-            }
-        }
-	  ,config				= initialConfig persistTasks
+	  |options = options 
       ,clocks =
         {SystemClocks
 		|timestamp=timestamp
@@ -114,25 +92,10 @@ createIWorld appName appPath persistTasks mbWebdirPath mbStorePath mbSaplPath wo
       ,random               = genRandInt seed
       ,onClient				= False
 	  }
-where
-	initialConfig persistTasks =
-		{ sessionTime		= 3600
-		, smtpServer		= "localhost"
-        , persistTasks      = persistTasks
-		}
-		
-	//Temporary fallback to use "sapl" instead of "<Application name>-sapl".
-    //Once everybody uses an upgraded sapl-collector-linker that creates the proper
-    //directory name it can be removed
-	fallBackSaplDir appDir saplDir world
-		# (exists, world) = fileExists saplDir world
-		| exists = (saplDir,world)
-				 = (appDir </> "sapl",world)
-		
 
 initJSCompilerState :: *IWorld -> *(!MaybeErrorString (), !*IWorld)
-initJSCompilerState iworld=:{IWorld|world,server={paths={appDirectory,saplDirectory}}}
-	# ((lst, ftmap, _), world)  = generateLoaderState [saplDirectory] [] JS_COMPILER_EXCLUDES world
+initJSCompilerState iworld=:{IWorld|world,options={EngineOptions|saplDirPath}}
+	# ((lst, ftmap, _), world)  = generateLoaderState [saplDirPath] [] JS_COMPILER_EXCLUDES world
     # jsCompilerState = { loaderState = lst, functionMap = ftmap, flavour = cleanFlavour, parserState = Nothing, skipMap = 'DM'.newMap}
     = (Ok (), {iworld & jsCompilerState = Just jsCompilerState, world = world})
 

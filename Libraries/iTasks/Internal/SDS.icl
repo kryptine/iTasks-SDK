@@ -6,6 +6,7 @@ from Data.Map import :: Map
 import qualified Data.Map as DM
 import Data.Error, Data.Func, Data.Tuple, System.Time, Text, Text.JSON
 import qualified Data.Set as Set
+import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.Internal.Task, iTasks.Internal.TaskStore, iTasks.Internal.TaskEval
 
@@ -423,12 +424,12 @@ newSDSId iworld=:{IWorld|random}
 	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld&random = drop 32 random})
 
 newURL :: !*IWorld -> (!String, !*IWorld)
-newURL iworld=:{IWorld|server={serverURL},random}
+newURL iworld=:{IWorld|options={serverUrl},random}
 	# (sdsId, iworld) = newSDSId iworld
 	= getURLbyId sdsId iworld
 
 // TODO: different URL for clients
 getURLbyId :: !String !*IWorld -> (!String, !*IWorld)
-getURLbyId sdsId iworld=:{IWorld|server={serverURL},random}
-	= ("sds:" +++ serverURL +++ "/" +++ sdsId, iworld)	
+getURLbyId sdsId iworld=:{IWorld|options={serverUrl},random}
+	= ("sds:" +++ serverUrl +++ "/" +++ sdsId, iworld)	
 

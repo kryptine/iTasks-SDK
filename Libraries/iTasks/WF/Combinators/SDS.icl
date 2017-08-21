@@ -4,6 +4,7 @@ import iTasks.WF.Definition
 import iTasks.SDS.Definition
 from iTasks.SDS.Combinators.Common import sdsFocus
 
+import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.Internal.Task
 import iTasks.Internal.TaskState
@@ -97,8 +98,8 @@ withTaskId (Task eval) = Task eval`
 withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
 withTemporaryDirectory taskfun = Task eval
 where
-	eval event evalOpts (TCInit taskId ts) iworld=:{server={buildID,paths={dataDirectory}}}
-		# tmpDir 			= dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
+	eval event evalOpts (TCInit taskId ts) iworld=:{options={appVersion,tempDirPath}}
+		# tmpDir 			= tempDirPath </> "tmp"</> (appVersion +++ "-" +++ toString taskId +++ "-tmpdir")
 		# (taskIda,iworld=:{world})	= getNextTaskId iworld
 		# (mbErr,world)		= createDirectory tmpDir world
 		= case mbErr of
@@ -107,8 +108,8 @@ where
 			Error e=:(ecode,emsg)
 				= (ExceptionResult (dynamic e,emsg), {iworld & world = world})
 
-	eval event evalOpts (TCShared taskId ts treea) iworld=:{server={buildID,paths={dataDirectory}},current={taskTime},world}
-		# tmpDir 			        = dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
+	eval event evalOpts (TCShared taskId ts treea) iworld=:{options={appVersion,tempDirPath},current={taskTime},world}
+		# tmpDir 			        = tempDirPath </> "tmp"</> (appVersion +++ "-" +++ toString taskId +++ "-tmpdir")
         # (mbCurdir,world)          = getCurrentDirectory world
         | isError mbCurdir          = (ExceptionResult (exception (fromError mbCurdir)), {IWorld|iworld & world = world})
         # (mbErr,world)             = setCurrentDirectory tmpDir world
@@ -126,10 +127,10 @@ where
 				= (ValueResult value info rep (TCShared taskId info.TaskEvalInfo.lastEvent ntreea),{IWorld|iworld & world = world})
 			ExceptionResult e = (ExceptionResult e,{IWorld|iworld & world = world})
 	
-	eval event evalOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{server={buildID,paths={dataDirectory}}} //First destroy inner task
-		# tmpDir 			= dataDirectory </> "tmp"</> (buildID +++ "-" +++ toString taskId +++ "-tmpdir")
+	eval event evalOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{options={appVersion,tempDirPath}} //First destroy inner task
+		# tmpDir        = tempDirPath </> "tmp"</> (appVersion +++ "-" +++ toString taskId +++ "-tmpdir")
 		# (Task evala)	= taskfun tmpDir
-		# (resa,iworld)		= evala event evalOpts (TCDestroy treea) iworld
+		# (resa,iworld)	= evala event evalOpts (TCDestroy treea) iworld
 		//TODO: recursive delete of tmp dir to not fill up the task store
 		= (resa,iworld)
 

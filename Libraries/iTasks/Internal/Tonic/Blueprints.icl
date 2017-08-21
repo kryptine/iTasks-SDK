@@ -4,7 +4,7 @@ import iTasks
 import StdMisc, Data.Tuple, Text, Data.Either, Data.Functor
 import iTasks.Internal.SDS
 import iTasks.Internal.Tonic.Blueprints
-import iTasks.Internal.Engine
+import iTasks.Engine
 import iTasks.Internal.SDS
 import qualified iTasks.Internal.SDS as DSDS
 import iTasks.Internal.IWorld
@@ -78,9 +78,8 @@ getTonicModules :: Task [String]
 getTonicModules = mkInstantTask (const getTonicModules`)
 
 getTonicDir :: !*IWorld -> *(!String, !*IWorld)
-getTonicDir iworld
-  # (server, iworld) = iworld!server
-  = (server.paths.appDirectory </> "tonic", iworld)
+getTonicDir iworld=:{options}
+  = (takeDirectory options.appPath </> "tonic", iworld)
 
 getTasks :: !TonicModule -> [String]
 getTasks tm = 'DM'.keys tm.tm_funcs

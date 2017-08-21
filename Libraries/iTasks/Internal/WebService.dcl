@@ -3,9 +3,9 @@ definition module iTasks.Internal.WebService
 * This module provides the web service that gives access to tasks via the web.
 * It also provides access to upload/download of blob content.
 */
-from Internet.HTTP					import :: HTTPRequest, :: HTTPResponse
+from Internet.HTTP				import :: HTTPRequest, :: HTTPResponse
+from iTasks.Engine              import :: PublishedTask
 from iTasks.Internal.IWorld		import :: IWorld
-from iTasks.Internal.Engine       import :: PublishedTask
 from iTasks.Internal.Task 	    import :: Task, :: ConnectionTask
 from iTasks.Internal.TaskState 	import :: TIUIState
 from iTasks.Internal.SDS 			import :: SDS, :: RWShared

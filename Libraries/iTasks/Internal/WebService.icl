@@ -11,8 +11,9 @@ import qualified iTasks.Internal.SDS as SDS
 
 import System.Time, Text, Text.JSON, Internet.HTTP, Data.Error
 import System.File, System.FilePath, System.Directory
+import iTasks.Engine 
 import iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.TaskEval, iTasks.Internal.TaskStore
-import iTasks.UI.Definition, iTasks.Internal.Util, iTasks.Internal.HtmlUtil, iTasks.Internal.Engine, iTasks.Internal.IWorld
+import iTasks.UI.Definition, iTasks.Internal.Util, iTasks.Internal.HtmlUtil, iTasks.Internal.IWorld
 import iTasks.SDS.Combinators.Common
 import Crypto.Hash.SHA1, Text.Encodings.Base64, Text.Encodings.MIME
 import Text.HTML
@@ -257,7 +258,7 @@ import StdMisc
 taskUIService :: ![PublishedTask] -> WebService ChangeQueues ChangeQueues
 taskUIService taskUrls = { urlMatchPred    = matchFun [url \\ {PublishedTask|url} <-taskUrls]
                          , completeRequest = True
-                         , onNewReq        = reqFun` taskUrls
+                         , onNewReq        = reqFun taskUrls
                          , onData          = dataFun
                          , onShareChange   = shareChangeFun
                          , onTick          = onTick
@@ -267,11 +268,7 @@ where
     matchFun :: [String] String -> Bool
     matchFun matchUrls reqUrl = or [reqUrl == uiUrl matchUrl \\ matchUrl <- matchUrls]
 
-	reqFun` taskUrls req output iworld=:{server}
-		# server_url = "//" +++ req.server_name +++ ":" +++ toString req.server_port
-		= reqFun taskUrls req output {IWorld|iworld & server = {server & serverURL = server_url}}
-
-	reqFun taskUrls req output iworld=:{IWorld|server={serverName},config}
+	reqFun taskUrls req output iworld=:{IWorld|options={appName}}
 		//Check for WebSocket upgrade headers
         | ('DM'.get "Upgrade" req.HTTPRequest.req_headers) =:(Just "websocket") && isJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers)
             # secWebSocketKey       = trim (fromJust ('DM'.get "Sec-WebSocket-Key" req.HTTPRequest.req_headers))
@@ -411,7 +408,7 @@ where
 		["download",_]      = True  // Download of documents
 		_ 					= False
 
-	reqFun req output iworld=:{IWorld|server={serverName},config}
+	reqFun req output iworld=:{IWorld|options={appName}}
 		= case dropWhile ((==)"") (split "/" req.HTTPRequest.req_path) of
 			["upload"]
 				# uploads = 'DM'.toList req.arg_uploads
@@ -470,10 +467,10 @@ where
 	lostFun _ _        s env = (Nothing, env)
 
 	handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
-	handleStaticResourceRequest req iworld=:{IWorld|server={paths={webDirectory}},world}
+	handleStaticResourceRequest req iworld=:{IWorld|options={webDirPath},world}
 		# filename		   = if (isMember req.HTTPRequest.req_path taskPaths) //Check if one of the published tasks is requested, then serve bootstrap page
-									(webDirectory +++ filePath "/index.html")
-									(webDirectory +++ filePath req.HTTPRequest.req_path)
+									(webDirPath +++ filePath "/index.html")
+									(webDirPath +++ filePath req.HTTPRequest.req_path)
 		
 		# type			   = mimeType filename
        	# (mbInfo,world) = getFileInfo filename world

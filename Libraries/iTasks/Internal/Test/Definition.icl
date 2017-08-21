@@ -9,7 +9,7 @@ import qualified Data.Map as DM
 import iTasks.Extensions.Development.Codebase
 import Data.Func, Data.Either, Data.Error
 
-from iTasks.Internal.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{server}, :: ServerInfo(..), :: SystemPaths(..)
+from iTasks.Internal.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{options} 
 from iTasks.Internal.TaskStore import createTaskInstance, taskInstanceUIChanges
 from iTasks.Internal.TaskEval import evalTaskInstance
 from iTasks.Internal.Store import emptyStore
@@ -130,9 +130,8 @@ testTaskOutput :: String (Task a) [Either Event Int] [UIChange] ([UIChange] [UIC
 testTaskOutput name task events exp comparison = utest name test
 where
 	test world 
-		# (argv,world) = getCommandLine world
-		# (appPath,world) = toCanonicalPath (hd argv) world
-		# iworld = createIWorld "TEST" appPath False Nothing Nothing Nothing world
+		# (options,world) = defaultEngineOptions world
+		# iworld = createIWorld options world
 		//Initialize JS compiler support
 		# (res,iworld) = initJSCompilerState iworld
 		| res =:(Error _)
