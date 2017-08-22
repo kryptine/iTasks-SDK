@@ -32,18 +32,18 @@ where
 
 layoutTestTasks :: [PublishedTask]
 layoutTestTasks =
-	[publishWithoutLayout "/layout-tests/set-type" (const testSetTypeTask)
-	,publishWithoutLayout "/layout-tests/set-attributes" (const testSetAttributesTask)
-	,publishWithoutLayout "/layout-tests/del-attributes" (const testDelAttributesTask)
-	,publishWithoutLayout "/layout-tests/modify-attributes" (const testModifyAttributesTask)
-	,publishWithoutLayout "/layout-tests/copy-attributes" (const testCopySubAttributesTask)
-	,publishWithoutLayout "/layout-tests/wrap" (const testWrapTask)
-	,publishWithoutLayout "/layout-tests/unwrap" (const testUnwrapTask)
-	,publishWithoutLayout "/layout-tests/insert-sub" (const testInsertSubTask)
-	,publishWithoutLayout "/layout-tests/remove-subs" (const testRemoveSubsTask)
-	,publishWithoutLayout "/layout-tests/move-subs" (const testMoveSubsTask)
-	,publishWithoutLayout "/layout-tests/layout-subs" (const testLayoutSubsTask)
-	,publishWithoutLayout "/layout-tests/sequence-layouts" (const testSequenceLayoutsTask)
+	[publish "/layout-tests/set-type" (const testSetTypeTask)
+	,publish "/layout-tests/set-attributes" (const testSetAttributesTask)
+	,publish "/layout-tests/del-attributes" (const testDelAttributesTask)
+	,publish "/layout-tests/modify-attributes" (const testModifyAttributesTask)
+	,publish "/layout-tests/copy-attributes" (const testCopySubAttributesTask)
+	,publish "/layout-tests/wrap" (const testWrapTask)
+	,publish "/layout-tests/unwrap" (const testUnwrapTask)
+	,publish "/layout-tests/insert-sub" (const testInsertSubTask)
+	,publish "/layout-tests/remove-subs" (const testRemoveSubsTask)
+	,publish "/layout-tests/move-subs" (const testMoveSubsTask)
+	,publish "/layout-tests/layout-subs" (const testLayoutSubsTask)
+	,publish "/layout-tests/sequence-layouts" (const testSequenceLayoutsTask)
 	]
 
 taskToLayout title = updateInformation () [] title @! () >>= return

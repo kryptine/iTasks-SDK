@@ -13,7 +13,7 @@ toStubIWorld :: *World -> *IWorld
 toStubIWorld world
   = {IWorld
   |options = {EngineOptions|appName="STUB",appPath="./",appVersion="STUB",serverPort=80,serverUrl="/127.0.0.1:80/",keepaliveTime=0,sessionTime=0
-             ,persistTasks=False,webDirPath="./STUB/",storeDirPath="./STUB/",tempDirPath="./STUB/",saplDirPath="./STUB"}
+             ,persistTasks=False,autoLayout=False,webDirPath="./STUB/",storeDirPath="./STUB/",tempDirPath="./STUB/",saplDirPath="./STUB"}
   ,clocks = {SystemClocks |timestamp = Timestamp 0,localDate=defaultValue,localTime=defaultValue,utcDate=defaultValue,utcTime=defaultValue}
   ,current ={TaskEvalState|taskTime= 0,taskInstance= 0,sessionInstance = Nothing,attachmentChain = [] ,nextTaskNo = 0}
   ,sdsNotifyRequests = [], memoryShares = 'DM'.newMap, readCache = 'DM'.newMap, writeCache = 'DM'.newMap, exposedShares = 'DM'.newMap

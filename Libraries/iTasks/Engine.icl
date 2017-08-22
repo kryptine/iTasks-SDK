@@ -49,11 +49,12 @@ defaultEngineOptions world
         , serverUrl         = "http://localhost/"
 		, keepaliveTime     = 300 // 5 minutes
 		, sessionTime       = 600 // 10 minutes
+        , persistTasks      = False
+		, autoLayout        = True
 		, webDirPath 		= appDir </> appName +++ "-www"
 		, storeDirPath      = appDir </> appName +++ "-data" </> "stores"
 		, tempDirPath       = appDir </> appName +++ "-data" </> "tmp"
 		, saplDirPath 	    = appDir </> appName +++ "-sapl"
-        , persistTasks      = False
 		}
 	= (options,world)
 
@@ -168,12 +169,13 @@ show lines world
 	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
 	# (_,world)			= fclose console world
 	= world
-
+/*
 timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
 timeout iworld = case 'SDS'.read taskEvents iworld of //Check if there are events in the queue
 	(Ok (Queue [] []),iworld)   = (Just 10,iworld) //Empty queue, don't waste CPU, but refresh
 	(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
 	(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
+*/
 
 // The iTasks engine consist of a set of HTTP WebService 
 engineWebService :: publish -> [WebService (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange))] | Publishable publish
@@ -182,13 +184,7 @@ where
 	published = publishAll publishable 
 
 publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
-publish url task = {url = url, task = WebTaskWrapper (withFinalSessionLayout task)}
-
-withFinalSessionLayout :: (HTTPRequest -> Task a) -> (HTTPRequest -> Task a) | iTask a
-withFinalSessionLayout taskf = \req -> tune (ApplyLayout defaultSessionLayout) (taskf req)
-
-publishWithoutLayout :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
-publishWithoutLayout url task = {url = url, task = WebTaskWrapper task}
+publish url task = {url = url, task = WebTaskWrapper task}
 
 instance Publishable (Task a) | iTask a
 where

@@ -69,6 +69,13 @@ where
 								])
 
 
+insertToolBar :: [String] -> Layout
+insertToolBar actions = foldl1 sequenceLayouts
+	[insertChildUI 0 (ui UIToolBar)
+	,moveSubUIs (foldl1 SelectOR [SelectByAttribute "actionId" (JSONString action)\\ action <- actions]) [0] 0
+	,layoutSubUIs (SelectByPath [0]) (layoutSubUIs (SelectByType UIAction) actionToButton)
+	]
+
 toEmpty :: Layout
 toEmpty = setUIType UIEmpty
 

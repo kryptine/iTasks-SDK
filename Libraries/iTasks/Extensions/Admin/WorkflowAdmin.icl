@@ -304,7 +304,7 @@ where
                 =   viewInformation (Title "Error") [] "Sorry, this task is no longer available in the workflow catalog"
                 >>| return ()
             Just replacement
-                =   replaceTask taskId (const ((unwrapWorkflowTask replacement.Workflow.task) <<@ ApplyLayout defaultSessionLayout)) topLevelTasks
+                =   replaceTask taskId (const (unwrapWorkflowTask replacement.Workflow.task)) topLevelTasks
                 >>| workOnTask taskId
 
     //Look in the catalog for an entry that has the same path as

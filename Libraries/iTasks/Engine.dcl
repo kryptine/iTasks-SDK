@@ -21,6 +21,7 @@ import iTasks.WF.Definition
 	, keepaliveTime :: Int
     , sessionTime   :: Int
     , persistTasks  :: Bool
+	, autoLayout    :: Bool
 	, webDirPath 	:: FilePath // Location of public files that are served by the iTask webserver
 	, storeDirPath 	:: FilePath // Location of the application's persistent data files 
 	, tempDirPath 	:: FilePath // Location for temporary files used in tasks
@@ -90,12 +91,6 @@ runTasksWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String
 * Wraps a task together with a url to make it publishable by the engine
 */
 publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
-
-/**
-* This function publishes a task with autolayouting turned off 
-* to enable testing and debugging without layout processing
-*/
-publishWithoutLayout :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
 
 class Publishable a
 where

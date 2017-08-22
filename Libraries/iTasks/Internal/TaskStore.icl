@@ -11,6 +11,8 @@ import iTasks.Internal.Serialization
 import iTasks.Internal.Generic.Defaults
 import iTasks.Internal.Generic.Visualization
 
+import iTasks.UI.Layout.Default
+
 import qualified iTasks.Internal.SDS as SDS
 from iTasks.SDS.Definition import :: SDSLensRead(..), :: SDSLensWrite(..), :: SDSLensNotify(..), :: SDS(SDSDynamic)
 import iTasks.SDS.Combinators.Core, iTasks.SDS.Combinators.Common
@@ -18,6 +20,7 @@ import iTasks.SDS.Sources.Store
 import iTasks.Internal.SDSService
 import iTasks.Internal.Client.Override
 import iTasks.WF.Combinators.Core
+import iTasks.WF.Combinators.Tune
 import iTasks.Extensions.Document
 
 import qualified Data.Map as DM
@@ -132,7 +135,8 @@ createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion}
   `b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
 createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
-createTaskInstance task iworld=:{options={appVersion},current={taskTime},clocks={timestamp,localDate,localTime}}
+createTaskInstance task iworld=:{options={appVersion,autoLayout},current={taskTime},clocks={timestamp,localDate,localTime}}
+	# task = if autoLayout (tune (ApplyLayout defaultSessionLayout) task) task
     # (mbInstanceNo,iworld) = newInstanceNo iworld
     # instanceNo            = fromOk mbInstanceNo
     # (instanceKey,iworld)  = newInstanceKey iworld
@@ -148,7 +152,8 @@ createTaskInstance task iworld=:{options={appVersion},current={taskTime},clocks=
 (`b`) (Error e, st) _ = (Error e, st)
 
 createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
-createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion},current={taskTime},clocks={timestamp,localDate,localTime}}
+createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clocks={timestamp,localDate,localTime}}
+	# task = if autoLayout (tune (ApplyLayout defaultSessionLayout) task) task
     # (instanceKey,iworld) = newInstanceKey iworld
     # progress             = {InstanceProgress|value=None,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants            = {InstanceConstants|session=False,listId=listId,build=appVersion,issuedAt=timestamp}

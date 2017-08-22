@@ -54,6 +54,12 @@ frameCompact :: Layout
 */
 beforeStep :: Layout -> Layout
 
+
+/**
+* Add a tool bar and move selected actions to it
+*/ 
+insertToolBar :: [String] -> Layout
+
 //Convenient annotatation types
 :: ArrangeWithTabs = ArrangeWithTabs
 instance tune ArrangeWithTabs

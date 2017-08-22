@@ -30,7 +30,7 @@ inUISelection (SelectDescendents) [_:_] _ = True
 inUISelection (SelectDescendents) _ _ = False
 inUISelection (SelectByType t) _ (UI type _ _) = t === type
 inUISelection (SelectByHasAttribute k) _ (UI _ attr _) = isJust ('DM'.get k attr)
-inUISelection (SelectByAttribute k v) _ (UI _ attr _) = False// maybe False ((==) v) ('DM'.get k attr) //FIXME
+inUISelection (SelectByAttribute k v) _ (UI _ attr _) = maybe False ((==) v) ('DM'.get k attr)
 inUISelection (SelectByNumChildren num) _ (UI _ _  items) = length items == num
 inUISelection (SelectByContains selection) path ui=:(UI _ _ items)
 	| inUISelection selection path ui = True 
