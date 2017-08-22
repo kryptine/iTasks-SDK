@@ -6,8 +6,9 @@ import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
 import iTasks.Internal.Task, iTasks.Internal.IWorld, iTasks.Internal.TaskStore
 import StdBool, StdString, StdFile, StdArray
 
-import Text.JSON, Text.Encodings.MIME, System.FilePath, System.File, System.OSError, Data.Error
+import Text.JSON, Text.Encodings.MIME, Text.HTML, System.FilePath, System.File, System.OSError, Data.Error
 import qualified Data.Map as DM
+from StdFunc import const
 
 CHUNK_SIZE :== 1048576 // 1M
 
@@ -17,10 +18,16 @@ gText{|Document|} _ (Just val)
 	| otherwise							= [val.Document.name]
 gText{|Document|} _ Nothing             = [""]
 
-gEditor {|Document|} = liftEditor toView fromView (documentField 'DM'.newMap)
+gEditor {|Document|} = whenDisabled viewDocument editDocument
 where
-	toView {Document|documentId,contentUrl,name,mime,size} = (documentId,contentUrl,name,mime,size)
-	fromView (documentId,contentUrl,name,mime,size) = {Document|documentId=documentId,contentUrl=contentUrl,name=name,mime=mime,size=size}
+	viewDocument = liftEditor toView (const defaultValue) (htmlView 'DM'.newMap)
+	where
+		toView {Document|contentUrl,name} = ATag [HrefAttr contentUrl, TargetAttr "_blank"] [Text name]
+
+	editDocument = liftEditor toView fromView (documentField 'DM'.newMap)
+	where
+		toView {Document|documentId,contentUrl,name,mime,size} = (documentId,contentUrl,name,mime,size)
+		fromView (documentId,contentUrl,name,mime,size) = {Document|documentId=documentId,contentUrl=contentUrl,name=name,mime=mime,size=size}
 
 derive JSONEncode		Document
 derive JSONDecode		Document
