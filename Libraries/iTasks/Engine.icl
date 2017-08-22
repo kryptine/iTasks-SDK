@@ -57,39 +57,35 @@ defaultEngineOptions world
 		}
 	= (options,world)
 
-
 defaultEngineCLIOptions :: [String] EngineOptions -> (!Maybe EngineOptions,![String])
 defaultEngineCLIOptions cli defaults
-	//Check commandline options
-	# port 					= fromMaybe defaults.serverPort (intOpt "-port" cli)
-	# keepaliveTime			= fromMaybe defaults.keepaliveTime (intOpt "-keepalive" cli)
-	# help					= boolOpt "-help" cli
-	# noPersist             = boolOpt "-no-persist" cli
-	# webOpt				= stringOpt "-webpublic" cli
-	# storeOpt		    	= stringOpt "-store" cli
-	# saplOpt		    	= stringOpt "-sapl" cli
 	//If -help option is given show help and stop
-	| help					= (Nothing, instructions)
+	# help					= fromMaybe False (boolOpt "-help" "-no-help" cli)
+	| help					= (Nothing, instructions defaults)
+	//Check commandline options
 	# options =	
 		{ defaults 
-		& serverPort		= port
-		, keepaliveTime 	= keepaliveTime
-		, webDirPath 		= fromMaybe defaults.webDirPath webOpt
-		, storeDirPath      = fromMaybe defaults.storeDirPath storeOpt
-		, saplDirPath 	    = fromMaybe defaults.saplDirPath saplOpt
-        , persistTasks      = not noPersist
+		& serverPort		= fromMaybe defaults.serverPort (intOpt "-port" cli)
+		, webDirPath 		= fromMaybe defaults.webDirPath (stringOpt "-webdir" cli)
+		, storeDirPath      = fromMaybe defaults.storeDirPath (stringOpt "-storedir" cli)
+		, tempDirPath 		= fromMaybe defaults.webDirPath (stringOpt "-tempdir" cli)
+		, saplDirPath 	    = fromMaybe defaults.saplDirPath (stringOpt "-sapldir" cli)
 		}
 	= (Just options,running options.appName options.serverPort)
 where
-	instructions :: [String]
-	instructions =
+	instructions :: EngineOptions -> [String]
+	instructions {serverPort,webDirPath,storeDirPath,tempDirPath,saplDirPath} =
 		["Available commandline options:"
-		," -help             : Show this message and exit"
-		," -webpublic <path> : Use <path> to point to the folder that contain the application's static web content"
-	    ," -store <path> 	 : Use <path> as data store location"
-	    ," -sapl <path> 	 : Use <path> to point to the folders that hold the sapl version of the application"
-		," -port <port>      : Set port number (default " +++ toString defaults.serverPort +++ ")"
-		," -keepalive <time> : Set connection keepalive time in seconds (default " +++ toString defaults.keepaliveTime +++ ")"
+		," -help            : Show this message and exit"
+		," -port <port>     : Listen on TCP port number (default " +++ toString serverPort +++ ")"
+		," -webdir <path>   : Use <path> to point to the folder that contain the application's static web content"
+		,"                  : (default "+++ webDirPath +++ ")"
+	    ," -storedir <path> : Use <path> as data store location"
+		,"                  : (default " +++ storeDirPath +++ ")"
+	    ," -tempdir <path>  : Use <path> as temporary file location"
+		,"                  : (default " +++ tempDirPath +++ ")"
+	    ," -sapldir <path>  : Use <path> to point to the folder that contains the sapl version of the application"
+		,"                  : (default "+++ saplDirPath +++ ")"
 		,""
 		]
 
@@ -98,8 +94,11 @@ where
                        ,""
                        ,"Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
 
-	boolOpt :: !String ![String] -> Bool
-	boolOpt key opts = isMember key opts
+	boolOpt :: !String !String ![String] -> Maybe Bool
+	boolOpt trueKey falseKey opts
+		| isMember trueKey opts = Just True
+		| isMember falseKey opts = Just False
+		                         = Nothing
 	
 	intOpt :: !String ![String] -> Maybe Int
 	intOpt key []	= Nothing
