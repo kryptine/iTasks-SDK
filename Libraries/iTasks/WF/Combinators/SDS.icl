@@ -12,8 +12,8 @@ import iTasks.Internal.TaskStore
 import iTasks.Internal.TaskEval
 from iTasks.Internal.SDS import write, read, readRegister
 
-import StdTuple
-import Text.JSON
+import StdTuple, StdArray
+import Text, Text.JSON
 import Data.Maybe, Data.Error
 import System.Directory, System.File, System.FilePath, Data.Error, System.OSError
 import qualified Data.Map as DM
@@ -99,17 +99,16 @@ withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
 withTemporaryDirectory taskfun = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld=:{options={appVersion,tempDirPath}}
-		# tmpDir 			= tempDirPath </> "tmp"</> (appVersion +++ "-" +++ toString taskId +++ "-tmpdir")
+		# tmpDir 			= tempDirPath </> (appVersion +++ "-" +++ toString taskId +++ "-tmpdir")
 		# (taskIda,iworld=:{world})	= getNextTaskId iworld
-		# (mbErr,world)		= createDirectory tmpDir world
-		= case mbErr of
-			Ok _
-				= eval event evalOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & world = world}
-			Error e=:(ecode,emsg)
-				= (ExceptionResult (dynamic e,emsg), {iworld & world = world})
+		# (ok ,world)		= ensureDir tmpDir world
+		| ok 
+			= eval event evalOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & world = world}
+		| otherwise
+			= (ExceptionResult (exception ("Could not create temporary directory: " +++ tmpDir)) , {iworld & world = world})
 
 	eval event evalOpts (TCShared taskId ts treea) iworld=:{options={appVersion,tempDirPath},current={taskTime},world}
-		# tmpDir 			        = tempDirPath </> "tmp"</> (appVersion +++ "-" +++ toString taskId +++ "-tmpdir")
+		# tmpDir 			        = tempDirPath </> (appVersion +++ "-" +++ toString taskId +++ "-tmpdir")
         # (mbCurdir,world)          = getCurrentDirectory world
         | isError mbCurdir          = (ExceptionResult (exception (fromError mbCurdir)), {IWorld|iworld & world = world})
         # (mbErr,world)             = setCurrentDirectory tmpDir world
@@ -128,7 +127,7 @@ where
 			ExceptionResult e = (ExceptionResult e,{IWorld|iworld & world = world})
 	
 	eval event evalOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{options={appVersion,tempDirPath}} //First destroy inner task
-		# tmpDir        = tempDirPath </> "tmp"</> (appVersion +++ "-" +++ toString taskId +++ "-tmpdir")
+		# tmpDir 		= tempDirPath </> (appVersion +++ "-" +++ toString taskId +++ "-tmpdir")
 		# (Task evala)	= taskfun tmpDir
 		# (resa,iworld)	= evala event evalOpts (TCDestroy treea) iworld
 		//TODO: recursive delete of tmp dir to not fill up the task store
@@ -136,5 +135,19 @@ where
 
 	eval _ _ _ iworld
 		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)	
+
+//Create a directory and its parent directories
+ensureDir :: FilePath *World -> (!Bool,*World)
+ensureDir path world = let [b:p] = split {pathSeparator} path in create [b] p world
+where
+	create _ [] world = (True,world)
+	create base [dir:rest] world
+		# next = base ++ [dir]
+		# path = join {pathSeparator} next
+		# (exists,world) = fileExists path world
+		| exists = create next rest world //This part exists, continue
+		# (res, world) = createDirectory path world 
+		| isError res = (False,world) //Can't create the directory
+		= create next rest world //Created the directory, continue
 
 instance toString (OSErrorCode,String) where toString x = snd x
