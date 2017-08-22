@@ -38,6 +38,8 @@ itasks.TabSet = {
 		height: 'flex',
 		width: 'flex'
 	},
+	replacing: false,
+
 	initComponent: function() {
 		var me = this;
 		me.children.forEach(function(child,i) {
@@ -147,20 +149,28 @@ itasks.TabSet = {
 				me.tabBar.insertBefore(tabEl,me.tabBar.children[idx]);
 			}
 
-			if(me.children.length == 1) { //Automatically select the first tab
+			if(me.replacing || me.children.length == 1) { //Automatically select the first tab
 				me.setActiveTab(idx);
 			}
-
 		}
 	},
 	beforeChildRemove: function(idx) {
 		var me = this;
 		if(me.initialized) {
-			if((idx == me.activeTab) && (me.children.length > 1)) { //Unless we remove the last tab, select another tab
+			if(!me.replacing && (idx == me.activeTab) && (me.children.length > 1)) { //Unless we remove the last tab, select another tab
 				me.setActiveTab( (idx == 0) ? 1 : (idx - 1));
 			}
 			me.tabBar.removeChild(me.tabBar.children[idx]);
 		}
+	},
+	replaceChild: function(idx,spec) {
+		var me = this;
+		me.replacing = true;
+		if(idx >= 0 && idx < me.children.length) {
+			me.removeChild(idx);
+			me.insertChild(idx,spec);
+		}
+		me.replacing = false;
 	}
 }
 

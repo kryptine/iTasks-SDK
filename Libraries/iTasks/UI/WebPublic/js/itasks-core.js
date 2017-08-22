@@ -305,6 +305,13 @@ itasks.Component = {
 		}
 		me.children.splice(idx,1);	
 	},
+	replaceChild: function(idx,spec) {
+		var me = this;
+		if(idx >= 0 && idx < me.children.length) {
+			me.removeChild(idx);
+			me.insertChild(idx,spec);
+		}
+	},
 	moveChild: function(sidx,didx) {
 		var me = this, child;
 
@@ -346,10 +353,7 @@ itasks.Component = {
 
 		if(me.parentCmp) {
 			idx = me.parentCmp.findChild(me);
-			if(idx >= 0 ) {
-				me.parentCmp.removeChild(idx);
-				me.parentCmp.insertChild(idx,spec);
-			}
+			me.parentCmp.replaceChild(idx,spec);
 		}
 	},
 	onChangeUI: function(attributeChanges,childChanges) {
