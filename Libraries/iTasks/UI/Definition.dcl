@@ -179,6 +179,8 @@ uia  :: UINodeType UIAttributes -> UI
 uiac :: UINodeType UIAttributes [UI] -> UI
 
 //Predefined attribute defintions
+emptyAttr         :: UIAttributes
+
 optionalAttr 	  :: !Bool                                -> UIAttributes
 sizeAttr          :: !UISize !UISize                      -> UIAttributes
 widthAttr         :: !UISize                              -> UIAttributes

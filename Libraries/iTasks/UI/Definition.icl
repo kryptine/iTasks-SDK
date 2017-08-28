@@ -48,6 +48,9 @@ uia type attr = UI type attr []
 uiac :: UINodeType UIAttributes [UI] -> UI
 uiac type attr items = UI type attr items
 
+emptyAttr :: UIAttributes
+emptyAttr = 'DM'.newMap
+
 optionalAttr :: !Bool -> UIAttributes
 optionalAttr optional = 'DM'.fromList [("optional",JSONBool optional)]
 
