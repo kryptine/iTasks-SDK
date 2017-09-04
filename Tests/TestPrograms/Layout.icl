@@ -11,7 +11,7 @@ import StdMisc
 
 derive JSONEncode NodeLayoutState, LayoutState, LayoutTree, MvUI, MvUIChild
 derive gEq LayoutState, LayoutTree, MvUI, MvUIChild
-derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, LayoutState, LayoutTree, JSONNode, MaybeError
+derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UIType, LayoutState, LayoutTree, JSONNode, MaybeError
 derive gPrettyTrace EditMask, FieldMask, CompoundMask, MvUI, MvUIChild
 derive gDefault MvUI, MvUIChild
 

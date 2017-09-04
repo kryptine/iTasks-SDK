@@ -50,4 +50,4 @@ constEditor :: a (Editor a) -> (Editor a)
 /**
 * Create a composition of two editors 
 */
-composeEditors :: UINodeType (Editor a) (Editor b) -> Editor (a,b)
+composeEditors :: UIType (Editor a) (Editor b) -> Editor (a,b)

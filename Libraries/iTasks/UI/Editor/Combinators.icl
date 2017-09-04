@@ -131,7 +131,7 @@ where
 	onEdit dp _ val mask vst = (Ok (NoChange,mask),val,vst)
 	onRefresh dp _ val mask vst = (Ok (NoChange,mask),val,vst)
 
-composeEditors :: UINodeType (Editor a) (Editor b) -> Editor (a,b)
+composeEditors :: UIType (Editor a) (Editor b) -> Editor (a,b)
 composeEditors type ex ey = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (x,y) vst

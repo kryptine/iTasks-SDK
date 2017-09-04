@@ -54,7 +54,7 @@ inUISelectionAfterChange selection path ui change //TODO: This needs a more effi
 idLayout :: Layout 
 idLayout = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
 
-setUIType :: UINodeType -> Layout
+setUIType :: UIType -> Layout
 setUIType type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui=:(UI _ attr items) = (ReplaceUI (UI type attr items), LSType ui) //Crude replacement (no instruction possible)
@@ -66,7 +66,7 @@ where
 	//Crude restore...
 	restore (LSType ui) = ReplaceUI ui 
 
-setUITypeRef_ :: UINodeType -> Layout
+setUITypeRef_ :: UIType -> Layout
 setUITypeRef_ type = referenceLayout ref
 where 
 	ref (UI _ attr items) = UI type attr items
@@ -302,7 +302,7 @@ where
 diffAttributes old new = [SetAttribute k v \\ (k,v) <- 'DM'.toList new | maybe True (\ov -> ov <> v) ('DM'.get k old)] 
 					  ++ [DelAttribute k \\ k <- 'DM'.keys old | isNothing ('DM'.get k new)]
 
-wrapUI :: UINodeType -> Layout
+wrapUI :: UIType -> Layout
 wrapUI type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui = (ReplaceUI (uic type [ui]), LSWrap ui)
@@ -317,7 +317,7 @@ where
 	//As long as the UIChange type does not support moving elements up and down the tree we cannot do better
 	restore (LSWrap ui) = ReplaceUI ui 
 
-wrapUIRef_ :: UINodeType -> Layout
+wrapUIRef_ :: UIType -> Layout
 wrapUIRef_ type = referenceLayout ref
 where
 	ref ui = uic type [ui]

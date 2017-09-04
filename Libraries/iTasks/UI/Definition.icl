@@ -17,7 +17,7 @@ from GenEq import generic gEq
 import Text.HTML
 import StdMisc
 
-derive class iTask UI, UINodeType
+derive class iTask UI, UIType
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
 derive class iTask UITreeNode 
 
@@ -36,16 +36,16 @@ where
 	get k [(fk,fv):fs] = if (k == fk) (Just fv) (get k fs)
 jsonObjectGet k node = Nothing
 
-ui :: UINodeType -> UI
+ui :: UIType -> UI
 ui type = UI type 'DM'.newMap []
 
-uic :: UINodeType [UI] -> UI
+uic :: UIType [UI] -> UI
 uic type items = UI type 'DM'.newMap items
 
-uia :: UINodeType UIAttributes -> UI
+uia :: UIType UIAttributes -> UI
 uia type attr = UI type attr []
 
-uiac :: UINodeType UIAttributes [UI] -> UI
+uiac :: UIType UIAttributes [UI] -> UI
 uiac type attr items = UI type attr items
 
 emptyAttr :: UIAttributes
@@ -245,7 +245,7 @@ where
 			[]    = []
 			_     = [("children",JSONArray (map encodeUI items))]
 
-instance toString UINodeType
+instance toString UIType
 where
 	toString UIEmpty           = "RawEmpty"
 	toString UIAction          = "RawAction"

@@ -22,7 +22,7 @@ import Tests.Common.MinimalTasks
 
 derive gText Queue
 derive gEq Queue
-derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, JSONNode, MaybeError
+derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UIType, JSONNode, MaybeError
 
 Start world = execTestSuite (testsuite "Task evaluation" "Tests to verify properties of task evaluation"
 	[testInitIWorld

@@ -1,5 +1,6 @@
 itasks.TextView = {
 	cssCls: 'textview',
+	container: false,
 	attributes: {
 		paddingTop: 5,
 		paddingRight: 5,

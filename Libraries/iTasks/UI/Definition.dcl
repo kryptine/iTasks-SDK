@@ -26,7 +26,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from GenEq import generic gEq
 
 //Provide generic instances for all UI definitions
-derive class iTask UI, UINodeType
+derive class iTask UI, UIType
 derive class iTask UISize, UIBound, UISideSizes, UIDirection, UIVAlign, UIHAlign, UISide, UIWindowType
 derive class iTask UITreeNode
 
@@ -52,9 +52,9 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 *
 * The UI type has contstructors for the various types of partial UI definitions.
 */
-:: UI = UI !UINodeType !UIAttributes ![UI]
+:: UI = UI !UIType !UIAttributes ![UI]
 
-:: UINodeType
+:: UIType
 	// --- Intermediate nodes: (implemented in itasks-components-raw.js) ---
     = UIEmpty
 	| UIAction 
@@ -173,10 +173,10 @@ ICON_ATTRIBUTE			:== "icon"
 
 
 //Construction functions
-ui   :: UINodeType -> UI
-uic  :: UINodeType [UI] -> UI
-uia  :: UINodeType UIAttributes -> UI
-uiac :: UINodeType UIAttributes [UI] -> UI
+ui   :: UIType -> UI
+uic  :: UIType [UI] -> UI
+uia  :: UIType UIAttributes -> UI
+uiac :: UIType UIAttributes [UI] -> UI
 
 //Predefined attribute defintions
 emptyAttr         :: UIAttributes

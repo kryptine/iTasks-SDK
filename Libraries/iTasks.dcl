@@ -27,8 +27,9 @@ import
     ,   iTasks.WF.Combinators.Overloaded
     ,   iTasks.WF.Combinators.Common
 
-	//  Custom tasks GUI's
+	//  Custom task GUI's
     ,   iTasks.UI.Editor.Builtin	
+    ,   iTasks.UI.Editor.Containers
     ,   iTasks.UI.Editor.Combinators
 
 	//	Miscellaneous machinery

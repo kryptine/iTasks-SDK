@@ -11,7 +11,7 @@ from System.Time				        import :: Timestamp
 from Text.JSON				            import :: JSONNode
 from System.Process         import :: ProcessHandle, :: ProcessIO
 from iTasks.Engine                      import :: EngineOptions
-from iTasks.UI.Definition				import :: UI, :: UINodeType
+from iTasks.UI.Definition				import :: UI, :: UIType
 from iTasks.Internal.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
 from iTasks.Internal.Task             import :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask
 from iTasks.Internal.TaskEval         import :: TaskTime

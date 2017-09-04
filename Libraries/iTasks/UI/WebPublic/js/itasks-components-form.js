@@ -22,7 +22,10 @@ itasks.TextField = {
 itasks.TextArea = {
     domTag: 'textarea',
 	attributes: {
-		height: 150
+		height: 'flex',
+		width: 'flex',
+		minHeight: 150,
+		minWidth: 400
 	},
     initDOMEl: function() {
         var me = this,
@@ -336,11 +339,24 @@ itasks.Button = {
 };
 itasks.Label = {
     domTag: 'label',
+	container: false,
+	attributes: {
+		width: '150px',
+		paddingTop: 5,
+		paddingRight: 5,
+		paddingBottom: 5,
+		paddingLeft: 5
+	},
     initDOMEl: function() {
         var me = this,
             el = me.domEl;
         el.innerHTML = me.attributes.text;
-    }
+    },
+	onAttributeChange:function(name,value) {
+		switch(name) {
+			case 'text': this.domEl.innerHTML = value; break;
+		}
+	}
 };
 itasks.Icon = {
 	attributes: {

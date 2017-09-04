@@ -33,7 +33,7 @@ button :: UIAttributes -> Editor Bool
 button attr = fieldComponent attr toJSON UIButton
 
 label :: UIAttributes -> Editor String
-label attr = viewComponent (\text ->  'DM'.union attr (textAttr text)) UILabel
+label attr = viewComponent (\text -> 'DM'.union attr (textAttr text)) UILabel
 
 icon :: UIAttributes -> Editor (!String,!Maybe String)
 icon attr = viewComponent (\(iconCls,tooltip) -> 'DM'.unions [iconClsAttr iconCls,maybe 'DM'.newMap tooltipAttr tooltip,attr]) UIIcon
