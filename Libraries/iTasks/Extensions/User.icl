@@ -98,7 +98,7 @@ gText{|Password|} AsHeader _ = [""]
 gText{|Password|} _ _        = ["********"]
 
 gEditor{|Password|} = liftEditor (\(Password p) -> p) (\s -> (Password s)) 
-						(whenDisabled (constEditor "********" (textView 'DM'.newMap)) (withHintAttributes "password" (passwordField 'DM'.newMap)))
+						(whenDisabled (constEditor "********" (textView 'DM'.newMap)) (withHintAttributes "password" (withEditMode (passwordField 'DM'.newMap))))
 
 derive gDefault			Password
 derive gEq				Password
