@@ -1,4 +1,4 @@
-# iTasks Guide
+# iTasks Overview
 
 ## Introduction
 The iTasks Framework is not your average codebase. It is an implementation of a new paradigm in a programming language you will likely never have programmed in before.
