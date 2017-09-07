@@ -1,4 +1,4 @@
-implementation module iTasks.UI.Editor.Builtin
+implementation module iTasks.UI.Editor.Controls
 
 import iTasks.UI.Definition, iTasks.UI.Editor
 import StdFunc, StdBool, GenEq

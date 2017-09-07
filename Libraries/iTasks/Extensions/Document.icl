@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.Document
 
 import iTasks.WF.Definition
-import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 
 import iTasks.Internal.Task, iTasks.Internal.IWorld, iTasks.Internal.TaskStore
 import StdBool, StdString, StdFile, StdArray

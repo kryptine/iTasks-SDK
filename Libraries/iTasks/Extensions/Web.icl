@@ -1,6 +1,6 @@
 implementation module iTasks.Extensions.Web
 import iTasks
-import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import Internet.HTTP, Text, Text.HTML, Text.URI, Text.Encodings.MIME, Text.Encodings.UrlEncoding, StdArray, Data.Either
 import System.Time, System.FilePath
 

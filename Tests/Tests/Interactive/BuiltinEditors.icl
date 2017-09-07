@@ -1,7 +1,7 @@
 implementation module Tests.Interactive.BuiltinEditors
 
 import iTasks, iTasks.Internal.Test.Definition
-import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
+import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Common, iTasks.UI.Definition
 import qualified Data.Map as DM
 import Text.HTML
 

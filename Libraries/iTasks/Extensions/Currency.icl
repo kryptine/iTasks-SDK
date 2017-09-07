@@ -1,6 +1,6 @@
 implementation module iTasks.Extensions.Currency
 import iTasks
-import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import Text
 import qualified Data.Map as DM
 

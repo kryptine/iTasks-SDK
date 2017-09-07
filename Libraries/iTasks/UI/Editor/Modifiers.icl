@@ -1,4 +1,4 @@
-implementation module iTasks.UI.Editor.Combinators
+implementation module iTasks.UI.Editor.Modifiers
 
 import StdBool
 import iTasks.UI.Editor, iTasks.UI.Definition

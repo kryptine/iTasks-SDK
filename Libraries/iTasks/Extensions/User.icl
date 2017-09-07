@@ -3,7 +3,7 @@ import iTasks
 import Text
 import Data.Functor, Data.Either
 import qualified Data.Map as DM
-import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import iTasks.UI.Layout.Default
 
 from iTasks.WF.Definition import :: InstanceProgress(..)

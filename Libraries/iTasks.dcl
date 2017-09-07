@@ -28,9 +28,9 @@ import
     ,   iTasks.WF.Combinators.Common
 
 	//  Custom task GUI's
-    ,   iTasks.UI.Editor.Builtin	
+    ,   iTasks.UI.Editor.Controls
     ,   iTasks.UI.Editor.Containers
-    ,   iTasks.UI.Editor.Combinators
+    ,   iTasks.UI.Editor.Modifiers
 
 	//	Miscellaneous machinery
 	,	Text.JSON							// JSON is used for serializing/deserializing strings

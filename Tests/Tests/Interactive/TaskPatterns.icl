@@ -2,7 +2,7 @@ implementation module Tests.Interactive.TaskPatterns
 import iTasks.Internal.Test.Definition
 import Data.Maybe, Text
 import qualified Data.Map as DM
-import iTasks.UI.Editor.Builtin
+import iTasks.UI.Editor.Controls
 
 testTaskPatternsI :: TestSuite
 testTaskPatternsI = testsuite "Task patterns" "Tests for common task patterns" 

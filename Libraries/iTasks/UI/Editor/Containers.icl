@@ -358,3 +358,135 @@ window4 a e1 e2 e3 e4 = group4 UIWindow a e1 e2 e3 e4
 window5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 window5 a e1 e2 e3 e4 e5 = group5 UIWindow a e1 e2 e3 e4 e5
 
+//# UIMenu
+menu :: UIAttributes -> Editor ()
+menu a = group UIMenu a
+
+menul :: UIAttributes (Editor a) -> Editor [a]
+menul a e = groupl UIMenu a e
+
+menu1 :: UIAttributes (Editor a) -> Editor a
+menu1 a e1 = group1 UIMenu a e1
+
+menu2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
+menu2 a e1 e2 = group2 UIMenu a e1 e2
+
+menu3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+menu3 a e1 e2 e3 = group3 UIMenu a e1 e2 e3
+
+menu4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+menu4 a e1 e2 e3 e4 = group4 UIMenu a e1 e2 e3 e4
+
+menu5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+menu5 a e1 e2 e3 e4 e5 = group5 UIMenu a e1 e2 e3 e4 e5
+
+//# UIToolBar
+toolbar :: UIAttributes -> Editor ()
+toolbar a = group UIToolBar a
+
+toolbarl :: UIAttributes (Editor a) -> Editor [a]
+toolbarl a e = groupl UIToolBar a e
+
+toolbar1 :: UIAttributes (Editor a) -> Editor a
+toolbar1 a e1 = group1 UIToolBar a e1
+
+toolbar2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
+toolbar2 a e1 e2 = group2 UIToolBar a e1 e2
+
+toolbar3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+toolbar3 a e1 e2 e3 = group3 UIToolBar a e1 e2 e3
+
+toolbar4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+toolbar4 a e1 e2 e3 e4 = group4 UIToolBar a e1 e2 e3 e4
+
+toolbar5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+toolbar5 a e1 e2 e3 e4 e5 = group5 UIToolBar a e1 e2 e3 e4 e5
+
+//# UIButtonBar
+buttonbar :: UIAttributes -> Editor ()
+buttonbar a = group UIButtonBar a
+
+buttonbarl :: UIAttributes (Editor a) -> Editor [a]
+buttonbarl a e = groupl UIButtonBar a e
+
+buttonbar1 :: UIAttributes (Editor a) -> Editor a
+buttonbar1 a e1 = group1 UIButtonBar a e1
+
+buttonbar2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
+buttonbar2 a e1 e2 = group2 UIButtonBar a e1 e2
+
+buttonbar3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+buttonbar3 a e1 e2 e3 = group3 UIButtonBar a e1 e2 e3
+
+buttonbar4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+buttonbar4 a e1 e2 e3 e4 = group4 UIButtonBar a e1 e2 e3 e4
+
+buttonbar5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+buttonbar5 a e1 e2 e3 e4 e5 = group5 UIButtonBar a e1 e2 e3 e4 e5
+
+//# UIList
+list :: UIAttributes -> Editor ()
+list a = group UIList a
+
+listl :: UIAttributes (Editor a) -> Editor [a]
+listl a e = groupl UIList a e 
+
+list1 :: UIAttributes (Editor a) -> Editor a
+list1 a e1 = group1 UIList a e1
+
+list2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
+list2 a e1 e2 = group2 UIList a e1 e2
+
+list3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+list3 a e1 e2 e3 = group3 UIList a e1 e2 e3
+
+list4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+list4 a e1 e2 e3 e4 = group4 UIList a e1 e2 e3 e4
+
+list5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+list5 a e1 e2 e3 e4 e5 = group5 UIList a e1 e2 e3 e4 e5
+
+//# UIListItem
+listitem :: UIAttributes -> Editor ()
+listitem a = group UIListItem a 
+
+listiteml :: UIAttributes (Editor a) -> Editor [a]
+listiteml a e = groupl UIListItem a e
+
+listitem1 :: UIAttributes (Editor a) -> Editor a
+listitem1 a e1 = group1 UIListItem a e1
+
+listitem2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
+listitem2 a e1 e2 = group2 UIListItem a e1 e2
+
+listitem3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+listitem3 a e1 e2 e3 = group3 UIListItem a e1 e2 e3
+
+listitem4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+listitem4 a e1 e2 e3 e4 = group4 UIListItem a e1 e2 e3 e4
+
+listitem5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+listitem5 a e1 e2 e3 e4 e5 = group5 UIListItem a e1 e2 e3 e4 e5
+
+//# UIDebug
+debug :: UIAttributes -> Editor ()
+debug a = group UIDebug a
+
+debugl :: UIAttributes (Editor a) -> Editor [a]
+debugl a e = groupl UIDebug a e
+
+debug1 :: UIAttributes (Editor a) -> Editor a
+debug1 a e1 = group1 UIDebug a e1
+
+debug2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
+debug2 a e1 e2 = group2 UIDebug a e1 e2
+
+debug3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+debug3 a e1 e2 e3 = group3 UIDebug a e1 e2 e3
+
+debug4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+debug4 a e1 e2 e3 e4 = group4 UIDebug a e1 e2 e3 e4
+
+debug5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+debug5 a e1 e2 e3 e4 e5 = group5 UIDebug a e1 e2 e3 e4 e5
+

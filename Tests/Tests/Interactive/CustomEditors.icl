@@ -1,7 +1,7 @@
 implementation module Tests.Interactive.CustomEditors
 
 import iTasks, iTasks.Internal.Test.Definition
-import iTasks.UI.Definition, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import iTasks.UI.Definition, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import iTasks.Extensions.DateTime
 import qualified Data.Map as DM
 

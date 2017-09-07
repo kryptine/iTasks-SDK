@@ -15,7 +15,7 @@ import iTasks.SDS.Sources.Core
 import iTasks.SDS.Sources.System
 import iTasks.SDS.Combinators.Common
 import iTasks.Internal.Util
-import iTasks.UI.Layout, iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Builtin
+import iTasks.UI.Layout, iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Prompt, iTasks.UI.Editor.Controls
 import Text.HTML
 
 derive class iTask ChoiceText, ChoiceGrid, ChoiceRow, ChoiceNode

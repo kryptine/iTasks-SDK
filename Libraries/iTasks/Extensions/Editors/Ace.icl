@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.Editors.Ace
 
 import iTasks
-import iTasks.UI.Editor, iTasks.UI.Editor.Combinators, iTasks.UI.Definition 
+import iTasks.UI.Editor, iTasks.UI.Editor.Modifiers, iTasks.UI.Definition 
 import iTasks.UI.JS.Interface
 import qualified Data.Map as DM
 import Text

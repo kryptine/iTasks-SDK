@@ -11,7 +11,7 @@ import qualified Data.Map as DM
 import iTasks
 import iTasks.Internal.Test.Definition
 import iTasks.UI.Definition
-import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common
+import iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import iTasks.Extensions.Editors.Ace
 import iTasks.Extensions.Development.Codebase
 import iTasks.Extensions.Development.Testing

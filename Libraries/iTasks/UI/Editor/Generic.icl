@@ -2,8 +2,8 @@ implementation module iTasks.UI.Editor.Generic
 
 import iTasks.UI.Definition
 import iTasks.UI.Editor
-import iTasks.UI.Editor.Builtin
-import iTasks.UI.Editor.Combinators
+import iTasks.UI.Editor.Controls
+import iTasks.UI.Editor.Modifiers
 import iTasks.UI.Editor.Common
 import iTasks.SDS.Definition
 

@@ -1,4 +1,4 @@
-definition module iTasks.UI.Editor.Combinators
+definition module iTasks.UI.Editor.Modifiers
 /**
 * This module provides combinator functions for combining editors
 */

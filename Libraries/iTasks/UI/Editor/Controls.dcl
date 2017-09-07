@@ -1,7 +1,7 @@
-definition module iTasks.UI.Editor.Builtin
+definition module iTasks.UI.Editor.Controls
 /**
-* This module provides a set of editors that are standard available
-* in the client-side UI framework.
+* This module provides a set of editors for builtin controls
+* of the client-side UI framework.
 */
 from iTasks.UI.Editor import :: Editor
 from iTasks.UI.Definition import :: UIAttributes
