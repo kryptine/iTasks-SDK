@@ -22,12 +22,6 @@ Every design decision in the iTask framework should ultimately be judged against
 - The generic solutions that supplement the TOP specifications must be "acceptable". The quality attributes should be such that for roughly 80% of a program the generic solutions should be "good enough".
 - All other development activities other than writing TOP specifications should be minimised. It is a bit disappointing if all the time you saved by creating a concise iTasks program that perfectly captures the task you want to support with your program is lost on figuring out how to deploy your application to a production environment.   
 
-## Constraints
-
-The iTask framework is an open-source system developed in an academic setting by a small team. For none of the people that work on it, it is their primary task. It is not a product backed by a company with customers who need iTasks-based applications to run their daily operations. In practice, this means that you cannot expect support reliably (we do want to help everyone, but can't always afford to) and that what gets worked on is primary dictated by the personal agenda's and interests of the contributors.
-
-For us, the researchers that work on it, it is a platform for experimenting with new ideas and to demonstrate results with. This means that attention to features and quality attributes is distributed differently than in libraries intended for use in production systems. There are a lot of cool advanced techniques used in the framework, but a mundane (but useful) features that you might expect are sometimes missing. Think of iTasks being something akin to a F1 race car. They are great for experimenting with and showing off advances in automotive technology, but they are lousy cars for daily use. No room for passengers or groceries, no lights and don't even think of parallel parking.
-
 ## Software Architecture
 
 The iTasks _framework_ is implementated as a _library_ in the programming language Clean. This means that an iTasks program is "just" a Clean program. But, because it is a framework, is a program that will call your program. So generally all iTasks programs will have a `Start` expression (think `main` in C) that looks something like this: `Start world = startEngine myTaskExpression world`. The `startEngine` runs the iTask framework which is parameterized with your program expressed by `myTaskExpression`.
@@ -40,7 +34,7 @@ When you compile an iTask program, say a Clean module called `HelloWorld.icl`, y
 - A folder with static web resources called `HelloWorld-www`. This contains all the static HTML, Javascript, CSS and images that the application needs. Most importantly it contains the `index.html` landing page that will load the `itask-*.js` libraries that make up the client-side runtime system. If your application uses iTasks extension libraries that integrate with other Javascript libraries, things like Google Maps for example, the additional scripts necessary for that will also be added to this folder during compilation.
 - A folder with partially compiled client-side code called `HelloWorld-sapl`. This folder contains the code of your application in an intermediate language called SAPL. This language is compiled just-in-time to Javascript and downloaded only when needed by tasks that use client-side computation.
 
-TODO: Explain main components: Server executable with two services: ui and static content, client runtime with interpreter for gui's
+Essentially all parts of a client-server web application are created from a single source. Client gui's are dynamically computed server-side from the task defintions and "streamed" to the browser as incremental changes. The client side run-time is a small(ish) javascript program that manages a tree of components that are rendered in the browser's DOM tree. It interprets the deltas (changes) it receives from the server application and relays user events back to the server.
 
 ## iTasks Concepts
 
@@ -88,5 +82,10 @@ User interface specification is done using the modules in `iTasks.UI`. Here you 
 
 The `iTasks.WF`, `iTasks.SDS`, and `iTasks.UI` modules are what you need to write iTask programs. But there are three more submodules in the `iTasks` namespace. The `iTasks.Internal` namespace contains all the machinery to make the first three work. You should never have to import anything from this namespace, unless you are working on the iTask framework itself. The `iTasks.Extensions` namespace contains a bunch of useful libraries that you can import individually. Finally, the `iTasks.Util` namespace contains general utility libraries that are not specific to iTasks and should eventually be migrated to the [Clean Platform](https://gitlab.science.ru.nl/clean-and-itasks/clean-platform) library.
 
-If you want to learn more about the modules you can look at the documentation comment blocks in the definition modules. When there is more to say about a module (or a whole namespace) that would just pollute the definition modules, you can look for markdown files in the `Documentation` folder. These files are structured to reflect the structure of the source code.
+If you want to learn more about the modules you can look at the documentation comment blocks in the definition modules. When there is more to say about a module (or a whole namespace) that would just pollute the definition modules, you can look for markdown files in the `Documentation/Libraries` folder. These files are structured to reflect the structure of the source code.
 
+## Constraints
+
+The iTask framework is an open-source system developed in an academic setting by a small team. For none of the people that work on it, it is their primary task. It is not a product backed by a company with customers who need iTasks-based applications to run their daily operations. In practice, this means that you cannot expect support reliably (we do want to help everyone, but can't always afford to) and that what gets worked on is primary dictated by the personal agenda's and interests of the contributors.
+
+For us, the researchers that work on it, it is a platform for experimenting with new ideas and to demonstrate results with. This means that attention to features and quality attributes is distributed differently than in libraries intended for use in production systems. There are a lot of cool advanced techniques used in the framework, but a mundane (but useful) features that you might expect are sometimes missing. Think of iTasks being something akin to a F1 race car. They are great for experimenting with and showing off advances in automotive technology, but they are lousy cars for daily use. No room for passengers or groceries, no lights and don't even think of parallel parking.
