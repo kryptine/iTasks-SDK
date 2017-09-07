@@ -132,7 +132,7 @@ where
 * - There is only one constructor
 * - There are multiple constructors
 */
-gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ _ _ = withEditMode {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ _ _ = withEditModeAttr {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (OBJECT x) vst=:{VSt|taskId,mode,optional,selectedConsIndex}
 		= case mode of
@@ -505,19 +505,23 @@ where
 	half = n / 2
 */
 
-gEditor{|Int|}    = whenDisabled
-						(liftEditor toString toInt (textView 'DM'.newMap))
-						(withHintAttributes "whole number" (withEditMode (integerField 'DM'.newMap)))
-gEditor{|Real|}   = whenDisabled
-						(liftEditor toString toReal (textView 'DM'.newMap))
-						(withHintAttributes "decimal number" (withEditMode (decimalField 'DM'.newMap)))
-gEditor{|Char|}   = liftEditor toString (\c -> c.[0]) (whenDisabled
+gEditor{|Int|}    = selectByMode 
+						(bijectEditorValue toString toInt (textView 'DM'.newMap))
+						(withDynamicHintAttributes "whole number" (withEditModeAttr (integerField 'DM'.newMap)))
+						(withDynamicHintAttributes "whole number" (withEditModeAttr (integerField 'DM'.newMap)))
+gEditor{|Real|}   = selectByMode
+						(bijectEditorValue toString toReal (textView 'DM'.newMap))
+						(withDynamicHintAttributes "decimal number" (withEditModeAttr (decimalField 'DM'.newMap)))
+						(withDynamicHintAttributes "decimal number" (withEditModeAttr (decimalField 'DM'.newMap)))
+gEditor{|Char|}   = bijectEditorValue toString (\c -> c.[0]) (selectByMode
 							(textView 'DM'.newMap)
-							(withHintAttributes "single character" (withEditMode (textField 'DM'.newMap))))
-gEditor{|String|} = whenDisabled
+							(withDynamicHintAttributes "single character" (withEditModeAttr (textField 'DM'.newMap)))
+							(withDynamicHintAttributes "single character" (withEditModeAttr (textField 'DM'.newMap))))
+gEditor{|String|} = selectByMode
 						(textView 'DM'.newMap)
-						(withHintAttributes "single line of text" (withEditMode (textField 'DM'.newMap)))
-gEditor{|Bool|}   = whenDisabled (checkBox (enabledAttr False)) (checkBox 'DM'.newMap)
+						(withDynamicHintAttributes "single line of text" (withEditModeAttr (textField 'DM'.newMap)))
+						(withDynamicHintAttributes "single line of text" (withEditModeAttr (textField 'DM'.newMap)))
+gEditor{|Bool|}   = selectByMode (checkBox (enabledAttr False)) (checkBox 'DM'.newMap) (checkBox 'DM'.newMap)
 
 gEditor{|[]|} ex _ dx tjx _ = listEditor_ tjx dx (Just (const Nothing)) True True (Just (\l -> toString (length l) +++ " items")) ex
 

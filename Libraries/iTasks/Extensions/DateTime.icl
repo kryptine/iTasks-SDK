@@ -65,10 +65,7 @@ JSONDecode{|Date|} _ c = (Nothing, c)
 
 gText{|Date|} _ val = [maybe "" toString val]
 
-gEditor{|Date|} = pikadayDateField /*whenDisabled
-		(liftEditor toString fromString (textView 'DM'.newMap))
-		(liftEditorAsymmetric toString parseDate (withHintAttributes "date (yyyy-mm-dd)" (textField 'DM'.newMap)))
-*/
+gEditor{|Date|} = pikadayDateField 
 
 gDefault{|Date|} = {Date|day = 1, mon = 1, year = 2017}
 derive gEq Date
@@ -106,9 +103,10 @@ JSONDecode{|Time|} _ c = (Nothing, c)
 
 gText{|Time|} _ val = [maybe "" toString val]
 
-gEditor{|Time|} = whenDisabled
-		(liftEditor toString fromString (textView 'DM'.newMap))
-		(liftEditorAsymmetric toString parseTime (withHintAttributes "time (hh:mm:ss)" (textField 'DM'.newMap)))
+gEditor{|Time|} = selectByMode 
+		(bijectEditorValue toString fromString (textView 'DM'.newMap))
+		(surjectEditorValue toString parseTime (withDynamicHintAttributes "time (hh:mm:ss)" (textField 'DM'.newMap)))
+		(surjectEditorValue toString parseTime (withDynamicHintAttributes "time (hh:mm:ss)" (textField 'DM'.newMap)))
 
 derive gDefault		Time
 derive gEq			Time
@@ -175,9 +173,10 @@ gText{|DateTime|} AsHeader _ = [""]
 gText{|DateTime|} _ (Just ({DateTime|year,mon,day,hour,min,sec}))
 	= [toSingleLineText {Date|year=year,mon=mon,day=day} +++" "+++ toSingleLineText {Time|hour=hour,min=min,sec=sec}]
 
-gEditor{|DateTime|} = whenDisabled
-		(liftEditor toString fromString (textView 'DM'.newMap))
-		(liftEditorAsymmetric toString parseDateTime (withHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" (textField 'DM'.newMap)))
+gEditor{|DateTime|} = selectByMode
+		(bijectEditorValue toString fromString (textView 'DM'.newMap))
+		(surjectEditorValue toString parseDateTime (withDynamicHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" (textField 'DM'.newMap)))
+		(surjectEditorValue toString parseDateTime (withDynamicHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" (textField 'DM'.newMap)))
 
 derive gDefault			DateTime
 derive gEq				DateTime

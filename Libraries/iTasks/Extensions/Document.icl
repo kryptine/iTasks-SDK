@@ -18,13 +18,13 @@ gText{|Document|} _ (Just val)
 	| otherwise							= [val.Document.name]
 gText{|Document|} _ Nothing             = [""]
 
-gEditor {|Document|} = whenDisabled viewDocument editDocument
+gEditor {|Document|} = selectByMode viewDocument editDocument editDocument
 where
-	viewDocument = liftEditor toView (const defaultValue) (htmlView 'DM'.newMap)
+	viewDocument = comapEditorValue toView (htmlView 'DM'.newMap)
 	where
 		toView {Document|contentUrl,name} = ATag [HrefAttr contentUrl, TargetAttr "_blank"] [Text name]
 
-	editDocument = liftEditor toView fromView (documentField 'DM'.newMap)
+	editDocument = bijectEditorValue toView fromView (documentField 'DM'.newMap)
 	where
 		toView {Document|documentId,contentUrl,name,mime,size} = (documentId,contentUrl,name,mime,size)
 		fromView (documentId,contentUrl,name,mime,size) = {Document|documentId=documentId,contentUrl=contentUrl,name=name,mime=mime,size=size}

@@ -24,7 +24,7 @@ content = viewInformation () [] "This is the content of the container"
 buttons :: Task (Bool,Bool)
 buttons = enterInformation () [EnterUsing id editor] <<@ ApplyLayout (foldl1 sequenceLayouts [removeSubUIs (SelectByPath [0]),unwrapUI,setUIAttributes (textAttr "Sub menu")])
 where
-	editor = composeEditors UIMenu (button ('DM'.unions[textAttr "Button a",iconClsAttr "icon-ok"])) (button (textAttr "Button b")) 
+	editor = menu2 emptyAttr (button ('DM'.unions[textAttr "Button a",iconClsAttr "icon-ok"])) (button (textAttr "Button b")) 
 
 testPanel = itest "Panel" "Check if the panel looks ok" "You cannot do anything with a panel" tut
 where

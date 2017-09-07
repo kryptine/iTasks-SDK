@@ -14,16 +14,19 @@ where
 			(Ok (UI type attr items,mask),vst) = (Ok (UI type ('DM'.union attr extra) items,mask),vst) 
 			(e,vst) = (e,vst)
 
-withEditMode :: (Editor a) -> Editor a
-withEditMode editor = {Editor|editor & genUI = genUI}
+withLabelAttr :: String (Editor a) -> Editor a
+withLabelAttr label editor = withAttributes (labelAttr label) editor
+
+withEditModeAttr :: (Editor a) -> Editor a
+withEditModeAttr editor = {Editor|editor & genUI = genUI}
 where
 	genUI dp val vst=:{VSt|taskId,mode}
 		= case editor.Editor.genUI dp val vst of
 			(Ok (UI type attr items,mask),vst) = (Ok (UI type ('DM'.put "mode" (JSONString (toString mode)) attr) items, mask),vst) 
 			(e,vst) = (e,vst)
 
-withHintAttributes :: String (Editor a) -> Editor a
-withHintAttributes typeDesc editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+withDynamicHintAttributes :: String (Editor a) -> Editor a
+withDynamicHintAttributes typeDesc editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId,optional}
 		= case editor.Editor.genUI dp val vst of
@@ -72,25 +75,41 @@ stdAttributeChanges typename optional om nm
 	| om === nm = [] //Nothing to change
 	| otherwise = [SetAttribute k v \\ (k,v) <- 'DM'.toList (stdAttributes typename optional nm)]
 
-withLabel :: String (Editor a) -> Editor a
-withLabel label editor = withAttributes (labelAttr label) editor
+selectByMode :: (Editor a) (Editor a) (Editor a) -> Editor a
+selectByMode viewEditor enterEditor updateEditor= {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+where
+	genUI dp val vst=:{VSt|mode} = case mode of
+		View = viewEditor.Editor.genUI dp val vst
+		Enter = enterEditor.Editor.genUI dp val vst
+		Update = updateEditor.Editor.genUI dp val vst
 
-whenDisabled :: (Editor a) (Editor a) -> Editor a
-whenDisabled disabledEditor enabledEditor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+	onEdit dp e val mask vst=:{VSt|mode} = case mode of
+		View = viewEditor.Editor.onEdit dp e val mask vst
+		Enter = enterEditor.Editor.onEdit dp e val mask vst
+		Update = updateEditor.Editor.onEdit dp e val mask vst
+
+	onRefresh dp new old mask vst=:{VSt|mode} = case mode of
+		View = viewEditor.Editor.onRefresh dp new old mask vst
+		Enter = enterEditor.Editor.onRefresh dp new old mask vst
+		Update = updateEditor.Editor.onRefresh dp new old mask vst
+
+withEditMode :: EditMode (Editor a) -> Editor a
+withEditMode newMode editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|mode}
-		| mode =: View = disabledEditor.Editor.genUI dp val vst
-                       = enabledEditor.Editor.genUI dp val vst
+		# (res,vst) = editor.Editor.genUI dp val {VSt|vst & mode = newMode}
+		= (res,{VSt|vst & mode=mode})
 
-	onEdit dp e val mask vst
-		= enabledEditor.Editor.onEdit dp e val mask vst
+	onEdit dp e val mask vst=:{VSt|mode}
+		# (mask,val,vst) = editor.Editor.onEdit dp e val mask {VSt|vst & mode = newMode}
+		= (mask,val,{VSt|vst & mode=mode})
 
-	onRefresh dp new old mask vst=:{VSt|mode}
-		| mode =: View = disabledEditor.Editor.onRefresh dp new old mask vst
-		               = enabledEditor.Editor.onRefresh dp new old mask vst
-	
-liftEditor :: (b -> a) (a -> b) (Editor a) -> Editor b
-liftEditor tof fromf editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+	onRefresh dp new old mask vst=:{VSt|mode} 
+		# (change,val,vst) = editor.Editor.onRefresh dp new old mask {VSt|vst & mode = newMode}
+		= (change,val,{VSt|vst & mode=mode})
+
+bijectEditorValue :: (b -> a) (a -> b) (Editor a) -> Editor b
+bijectEditorValue tof fromf editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst = editor.Editor.genUI dp (tof val) vst
 	onEdit dp e val mask vst
@@ -100,8 +119,8 @@ where
 		# (change,val,vst) = editor.Editor.onRefresh dp (tof new) (tof old) mask vst
 		= (change,fromf val,vst)
 
-liftEditorAsymmetric :: (b -> a) (a -> MaybeErrorString b) (Editor a) -> Editor b
-liftEditorAsymmetric tof fromf editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+surjectEditorValue :: (b -> a) (a -> MaybeErrorString b) (Editor a) -> Editor b
+surjectEditorValue tof fromf editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst = editor.Editor.genUI dp (tof val) vst
 
@@ -124,40 +143,13 @@ where
 			(Ok new)  = (change,new,vst)
 			(Error e) = (change,old,vst)
 
-constEditor :: a (Editor a) -> (Editor a)
-constEditor val editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+comapEditorValue :: (b -> a) (Editor a) -> (Editor b)
+comapEditorValue tof editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
-	genUI dp _ vst = editor.Editor.genUI dp val vst
-	onEdit dp _ val mask vst = (Ok (NoChange,mask),val,vst)
-	onRefresh dp _ val mask vst = (Ok (NoChange,mask),val,vst)
+	genUI dp val vst = editor.Editor.genUI dp (tof val) vst
 
-composeEditors :: UIType (Editor a) (Editor b) -> Editor (a,b)
-composeEditors type ex ey = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
-where
-	genUI dp (x,y) vst
-		# (vizx, vst)	= ex.Editor.genUI (dp ++ [0]) x vst
-		| vizx =: (Error _) = (vizx,vst)
-		# (vizy, vst)	= ey.Editor.genUI (dp ++ [1]) y vst
-		| vizy =: (Error _) = (vizy,vst)
-		# ((vizx,maskx),(vizy,masky)) = (fromOk vizx,fromOk vizy)
-		= (Ok (uic type [vizx,vizy],CompoundMask {fields=[maskx,masky],state=JSONNull}),vst)
+	onEdit dp _ val mask vst = (Ok (NoChange,mask),val,vst) //Ignore edits
 
-	onEdit dp ([0:ds],e) (x,y) (CompoundMask {fields=[xmask,ymask],state}) vst
-		= case  ex.Editor.onEdit (dp ++ [0]) (ds,e) x xmask vst of
-			(Ok (xchange,xmask),x,vst)
-				= (Ok (ChangeUI [] [(0,ChangeChild xchange)],CompoundMask {fields=[xmask,ymask],state=state}),(x,y),vst)
-			(Error e,x,vst) = (Error e,(x,y),vst)
-	onEdit dp ([1:ds],e) (x,y) (CompoundMask {fields=[xmask,ymask],state}) vst
-		= case  ey.Editor.onEdit (dp ++ [1]) (ds,e) y ymask vst of
-			(Ok (ychange,ymask),y,vst)
-				= (Ok (ChangeUI [] [(1,ChangeChild ychange)],CompoundMask {fields=[xmask,ymask],state=state}),(x,y),vst)
-			(Error e,y,vst) = (Error e,(x,y),vst)
-	onEdit _ _ val mask vst = (Ok (NoChange,mask),val,vst)
-
-	onRefresh dp (newx,newy) (oldx,oldy) (CompoundMask {fields=[maskx,masky],state}) vst
-		# (changex,newx,vst) 	= ex.Editor.onRefresh (dp ++ [0]) newx oldx maskx vst
-		| changex=: (Error _) = (changex,(oldx,oldy),vst)
-		# (changey,newy,vst) 	= ey.Editor.onRefresh (dp ++ [1]) newy oldy masky vst
-		| changey =: (Error _) = (changey,(oldx,oldy),vst)
-		# ((changex,maskx),(changey,masky)) = (fromOk changex,fromOk changey)
-		= (Ok (ChangeUI [] [(0,ChangeChild changex),(1,ChangeChild changey)],CompoundMask {fields=[maskx,masky],state=state}),(newx,newy), vst)
+	onRefresh dp new old mask vst 
+		# (change,val,vst) = editor.Editor.onRefresh dp (tof new) (tof old) mask vst
+		= (change, if (change =: Error _) old new,vst)
