@@ -123,51 +123,51 @@ where
 		  >>= \(JSONString actionId) -> 'DM'.get actionId icons
 		  >>= \icon ->                   return (iconClsAttr ("icon-"+++icon)))
 
-instance tune ArrangeWithTabs
+instance tune ArrangeWithTabs Task
 where tune ArrangeWithTabs t = tune (ApplyLayout arrangeWithTabs) t
 
-instance tune ArrangeWithSideBar
+instance tune ArrangeWithSideBar Task 
 where
     tune (ArrangeWithSideBar index side size resize) t = tune (ApplyLayout (arrangeWithSideBar index side size resize)) t
 
-instance tune ArrangeSplit
+instance tune ArrangeSplit Task
 where
     tune (ArrangeSplit direction resize) t = tune (ApplyLayout (arrangeSplit direction resize)) t
 
-instance tune ArrangeVertical
+instance tune ArrangeVertical Task
 where
     tune ArrangeVertical t = tune (ApplyLayout arrangeVertical)  t
 
-instance tune ArrangeHorizontal
+instance tune ArrangeHorizontal Task
 where
     tune ArrangeHorizontal t = tune (ApplyLayout arrangeHorizontal) t
 
-instance tune ToWindow
+instance tune ToWindow Task
 where
 	tune (ToWindow windowType vpos hpos) t = tune (ApplyLayout (toWindow windowType vpos hpos)) t
 
-instance tune InPanel
+instance tune InPanel Task
 where
 	tune InPanel t =  tune (ApplyLayout toPanel) t
 
-instance tune InContainer
+instance tune InContainer Task
 where
 	tune InContainer t = tune (ApplyLayout toContainer) t
 
-instance tune NoUserInterface
+instance tune NoUserInterface Task
 where
     tune NoUserInterface (Task eval) = Task eval`
     where
 	    eval` event repOpts state iworld = eval event {repOpts & noUI = True} state iworld
 
-instance tune Title
+instance tune Title Task
 where
 	tune (Title title) t = tune (ApplyLayout (setUIAttributes (titleAttr title)) ) t
 	
-instance tune Icon
+instance tune Icon Task
 where
 	tune (Icon icon) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]))) t
 
-instance tune Label
+instance tune Label Task
 where
 	tune (Label label) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]))) t

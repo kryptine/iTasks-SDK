@@ -1,7 +1,7 @@
 implementation module iTasks.UI.Editor.Modifiers
 
 import StdBool
-import iTasks.UI.Editor, iTasks.UI.Definition
+import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.UI.Tune
 import Data.Error, Text.JSON
 import GenEq
 import qualified Data.Map as DM
@@ -13,6 +13,10 @@ where
 		= case editor.Editor.genUI dp val vst of
 			(Ok (UI type attr items,mask),vst) = (Ok (UI type ('DM'.union attr extra) items,mask),vst) 
 			(e,vst) = (e,vst)
+
+instance tune UIAttributes Editor
+where
+	tune attr editor = withAttributes attr editor
 
 withLabelAttr :: String (Editor a) -> Editor a
 withLabelAttr label editor = withAttributes (labelAttr label) editor

@@ -2,7 +2,7 @@ definition module iTasks.UI.Editor.Modifiers
 /**
 * This module provides combinator functions for combining editors
 */
-import iTasks.UI.Editor, iTasks.UI.Definition
+import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.UI.Tune
 import Data.Error
 
 //### Modifying atributes of editors ### 
@@ -10,6 +10,8 @@ import Data.Error
 * Adds UI attributes to an editor
 */
 withAttributes :: UIAttributes (Editor a) -> Editor a
+
+instance tune UIAttributes Editor
 
 /**
 * Adds a label attribute

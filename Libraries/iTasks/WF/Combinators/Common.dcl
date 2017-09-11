@@ -4,7 +4,7 @@ definition module iTasks.WF.Combinators.Common
 */
 import iTasks.SDS.Definition
 import iTasks.WF.Combinators.Core
-import iTasks.WF.Combinators.Tune
+import iTasks.UI.Tune
 
 from Data.Map				    import :: Map
 from Data.Either				import :: Either
@@ -101,13 +101,6 @@ tbind :: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 * @return The transformed task
 */
 (@!) infixl 1 :: !(Task a) !b -> Task b
-/**
-* Infix shorthands for the (overloaded) tune combinator.
-*/
-(<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
-(@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
-(<@@) infixl 2 :: !(Task a) !(b a) -> Task a | tunev b a & iTask a
-(@@>) infixr 2 :: !(b a) !(Task a) -> Task a | tunev b a & iTask a
 /**
 * 'Sidestep' combinator. This combinator has a similar signature as the core 'step'
 * combinator, but instead of moving forward to a next step, the selected step is executed

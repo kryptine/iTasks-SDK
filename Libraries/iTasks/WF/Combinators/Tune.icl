@@ -2,6 +2,7 @@ implementation module iTasks.WF.Combinators.Tune
 
 import iTasks.WF.Definition
 import iTasks.UI.Definition
+import iTasks.UI.Tune
 import iTasks.UI.Layout
 
 import iTasks.Internal.TaskState
@@ -16,10 +17,7 @@ derive JSONDecode LayoutState, LayoutTree, MvUI, MvUIChild
 /*
 * Tuning of tasks
 */
-class tune b :: !b !(Task a) -> Task a
-class tunev b a | iTask a :: !(b a) !(Task a) -> Task a
-
-instance tune LazyRefresh
+instance tune LazyRefresh Task
 where
 	tune _ (Task eval) = Task eval`
 	where
@@ -28,7 +26,7 @@ where
 				(ValueResult value info rep tree,iworld) = (ValueResult value {TaskEvalInfo|info&refreshSensitive=False} rep tree, iworld)
 				(res,iworld) = (res,iworld)
 
-instance tune ApplyLayout
+instance tune ApplyLayout Task
 where
 	tune (ApplyLayout l) task=:(Task evala) = Task eval
 	where
@@ -64,7 +62,7 @@ where
 class toAttribute a where toAttribute :: a -> JSONNode
 instance toAttribute String where toAttribute s = JSONString s
 
-instance tune (ApplyAttribute a) | toAttribute a
+instance tune (ApplyAttribute a) Task | toAttribute a
 where
 	tune (ApplyAttribute k v) task = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(k,toAttribute v)]))) task
 
