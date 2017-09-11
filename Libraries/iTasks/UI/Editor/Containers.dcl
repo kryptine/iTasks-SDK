@@ -11,92 +11,92 @@ from Data.Map import :: Map
 from Text.JSON import :: JSONNode
 
 //# UIContainer
-container  :: UIAttributes -> Editor ()
-containerl :: UIAttributes (Editor a) -> Editor [a]
-container1 :: UIAttributes (Editor a) -> Editor a
-container2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-container3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-container4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-container5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+container  :: Editor ()
+containerl :: (Editor a) -> Editor [a]
+container1 :: (Editor a) -> Editor a
+container2 :: (Editor a) (Editor b) -> Editor (a,b)
+container3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+container4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+container5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 
 //# UIPanel
-panel  :: UIAttributes -> Editor ()
-panell :: UIAttributes (Editor a) -> Editor [a]
-panel1 :: UIAttributes (Editor a) -> Editor a
-panel2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-panel3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-panel4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-panel5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+panel  :: Editor ()
+panell :: (Editor a) -> Editor [a]
+panel1 :: (Editor a) -> Editor a
+panel2 :: (Editor a) (Editor b) -> Editor (a,b)
+panel3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+panel4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+panel5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 
 //# UITabSet
-tabset  :: UIAttributes -> Editor ()
-tabsetl :: UIAttributes (Editor a) -> Editor [a]
-tabset1 :: UIAttributes (Editor a) -> Editor a
-tabset2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-tabset3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-tabset4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-tabset5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+tabset  :: Editor ()
+tabsetl :: (Editor a) -> Editor [a]
+tabset1 :: (Editor a) -> Editor a
+tabset2 :: (Editor a) (Editor b) -> Editor (a,b)
+tabset3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+tabset4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+tabset5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 
 //# UIWindow
-window  :: UIAttributes -> Editor ()
-windowl :: UIAttributes (Editor a) -> Editor [a]
-window1 :: UIAttributes (Editor a) -> Editor a
-window2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-window3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-window4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-window5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+window  :: Editor ()
+windowl :: (Editor a) -> Editor [a]
+window1 :: (Editor a) -> Editor a
+window2 :: (Editor a) (Editor b) -> Editor (a,b)
+window3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+window4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+window5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 
 //# UIMenu
-menu  :: UIAttributes -> Editor ()
-menul :: UIAttributes (Editor a) -> Editor [a]
-menu1 :: UIAttributes (Editor a) -> Editor a
-menu2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-menu3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-menu4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-menu5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+menu  :: Editor ()
+menul :: (Editor a) -> Editor [a]
+menu1 :: (Editor a) -> Editor a
+menu2 :: (Editor a) (Editor b) -> Editor (a,b)
+menu3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+menu4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+menu5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 
 //# UIToolBar
-toolbar  :: UIAttributes -> Editor ()
-toolbarl :: UIAttributes (Editor a) -> Editor [a]
-toolbar1 :: UIAttributes (Editor a) -> Editor a
-toolbar2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-toolbar3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-toolbar4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-toolbar5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+toolbar  :: Editor ()
+toolbarl :: (Editor a) -> Editor [a]
+toolbar1 :: (Editor a) -> Editor a
+toolbar2 :: (Editor a) (Editor b) -> Editor (a,b)
+toolbar3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+toolbar4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+toolbar5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 
 //# UIButtonBar
-buttonbar  :: UIAttributes -> Editor ()
-buttonbarl :: UIAttributes (Editor a) -> Editor [a]
-buttonbar1 :: UIAttributes (Editor a) -> Editor a
-buttonbar2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-buttonbar3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-buttonbar4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-buttonbar5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+buttonbar  :: Editor ()
+buttonbarl :: (Editor a) -> Editor [a]
+buttonbar1 :: (Editor a) -> Editor a
+buttonbar2 :: (Editor a) (Editor b) -> Editor (a,b)
+buttonbar3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+buttonbar4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+buttonbar5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 
 //# UIList
-list  :: UIAttributes -> Editor ()
-listl :: UIAttributes (Editor a) -> Editor [a]
-list1 :: UIAttributes (Editor a) -> Editor a
-list2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-list3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-list4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-list5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+list  :: Editor ()
+listl :: (Editor a) -> Editor [a]
+list1 :: (Editor a) -> Editor a
+list2 :: (Editor a) (Editor b) -> Editor (a,b)
+list3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+list4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+list5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 
 //# UIListItem
-listitem  :: UIAttributes -> Editor ()
-listiteml :: UIAttributes (Editor a) -> Editor [a]
-listitem1 :: UIAttributes (Editor a) -> Editor a
-listitem2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-listitem3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-listitem4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-listitem5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+listitem  :: Editor ()
+listiteml :: (Editor a) -> Editor [a]
+listitem1 :: (Editor a) -> Editor a
+listitem2 :: (Editor a) (Editor b) -> Editor (a,b)
+listitem3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+listitem4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+listitem5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 
 //# UIDebug
-debug  :: UIAttributes -> Editor ()
-debugl :: UIAttributes (Editor a) -> Editor [a]
-debug1 :: UIAttributes (Editor a) -> Editor a
-debug2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-debug3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-debug4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-debug5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+debug  :: Editor ()
+debugl :: (Editor a) -> Editor [a]
+debug1 :: (Editor a) -> Editor a
+debug2 :: (Editor a) (Editor b) -> Editor (a,b)
+debug3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+debug4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+debug5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 

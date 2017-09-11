@@ -17,9 +17,9 @@ import qualified Data.List as DL
 gText{|URL|}	_ val	= [maybe "" toString val]
 
 gEditor{|URL|} = selectByMode
-		(comapEditorValue (\(URL s) -> ATag [HrefAttr s] [Text s]) (htmlView 'DM'.newMap))
-		(bijectEditorValue (\(URL s) -> s) (\s -> URL s) (withDynamicHintAttributes "uniform resource locator (URL)" (textField 'DM'.newMap)))
-		(bijectEditorValue (\(URL s) -> s) (\s -> URL s) (withDynamicHintAttributes "uniform resource locator (URL)" (textField 'DM'.newMap)))
+		(comapEditorValue (\(URL s) -> ATag [HrefAttr s] [Text s]) htmlView)
+		(bijectEditorValue (\(URL s) -> s) (\s -> URL s) (withDynamicHintAttributes "uniform resource locator (URL)" textField ))
+		(bijectEditorValue (\(URL s) -> s) (\s -> URL s) (withDynamicHintAttributes "uniform resource locator (URL)" textField ))
 
 derive JSONEncode		URL
 derive JSONDecode		URL

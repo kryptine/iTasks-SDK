@@ -506,29 +506,29 @@ where
 */
 
 gEditor{|Int|}    = selectByMode 
-						(bijectEditorValue toString toInt (textView 'DM'.newMap))
-						(withDynamicHintAttributes "whole number" (withEditModeAttr (integerField 'DM'.newMap)))
-						(withDynamicHintAttributes "whole number" (withEditModeAttr (integerField 'DM'.newMap)))
+						(bijectEditorValue toString toInt textView)
+						(withDynamicHintAttributes "whole number" (withEditModeAttr integerField ))
+						(withDynamicHintAttributes "whole number" (withEditModeAttr integerField ))
 gEditor{|Real|}   = selectByMode
-						(bijectEditorValue toString toReal (textView 'DM'.newMap))
-						(withDynamicHintAttributes "decimal number" (withEditModeAttr (decimalField 'DM'.newMap)))
-						(withDynamicHintAttributes "decimal number" (withEditModeAttr (decimalField 'DM'.newMap)))
+						(bijectEditorValue toString toReal textView)
+						(withDynamicHintAttributes "decimal number" (withEditModeAttr decimalField ))
+						(withDynamicHintAttributes "decimal number" (withEditModeAttr decimalField ))
 gEditor{|Char|}   = bijectEditorValue toString (\c -> c.[0]) (selectByMode
-							(textView 'DM'.newMap)
-							(withDynamicHintAttributes "single character" (withEditModeAttr (textField 'DM'.newMap)))
-							(withDynamicHintAttributes "single character" (withEditModeAttr (textField 'DM'.newMap))))
+							textView
+							(withDynamicHintAttributes "single character" (withEditModeAttr textField ))
+							(withDynamicHintAttributes "single character" (withEditModeAttr textField )))
 gEditor{|String|} = selectByMode
-						(textView 'DM'.newMap)
-						(withDynamicHintAttributes "single line of text" (withEditModeAttr (textField 'DM'.newMap)))
-						(withDynamicHintAttributes "single line of text" (withEditModeAttr (textField 'DM'.newMap)))
-gEditor{|Bool|}   = selectByMode (checkBox (enabledAttr False)) (checkBox 'DM'.newMap) (checkBox 'DM'.newMap)
+						textView
+						(withDynamicHintAttributes "single line of text" (withEditModeAttr textField ))
+						(withDynamicHintAttributes "single line of text" (withEditModeAttr textField ))
+gEditor{|Bool|}   = selectByMode (checkBox <<@ enabledAttr False) checkBox checkBox
 
 gEditor{|[]|} ex _ dx tjx _ = listEditor_ tjx dx (Just (const Nothing)) True True (Just (\l -> toString (length l) +++ " items")) ex
 
 gEditor{|()|} = emptyEditor
 gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ = emptyEditor
 gEditor{|Dynamic|} = emptyEditor
-gEditor{|HtmlTag|} = htmlView 'DM'.newMap
+gEditor{|HtmlTag|} = htmlView
 gEditor{|SDS|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = emptyEditor
 
 derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), Timestamp, Map

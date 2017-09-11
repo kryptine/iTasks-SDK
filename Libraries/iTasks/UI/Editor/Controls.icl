@@ -5,70 +5,70 @@ import StdFunc, StdBool, GenEq
 import Data.Error, Text.JSON, Text.HTML
 import qualified Data.Map as DM
 
-textField :: UIAttributes -> Editor String
-textField attr = fieldComponent attr toJSON UITextField
+textField :: Editor String
+textField = fieldComponent toJSON UITextField
 
-textArea :: UIAttributes -> Editor String
-textArea attr = fieldComponent attr toJSON UITextArea
+textArea :: Editor String
+textArea = fieldComponent toJSON UITextArea
 
-passwordField :: UIAttributes -> Editor String
-passwordField attr = fieldComponent attr toJSON UIPasswordField
+passwordField :: Editor String
+passwordField = fieldComponent toJSON UIPasswordField
 
-integerField :: UIAttributes -> Editor Int
-integerField attr = fieldComponent attr toJSON UIIntegerField
+integerField :: Editor Int
+integerField = fieldComponent toJSON UIIntegerField
 
-decimalField :: UIAttributes -> Editor Real
-decimalField attr = fieldComponent attr toJSON UIDecimalField
+decimalField :: Editor Real
+decimalField = fieldComponent toJSON UIDecimalField
 
-documentField :: UIAttributes -> Editor (!String,!String,!String,!String,!Int)
-documentField attr = fieldComponent attr toJSON UIDocumentField
+documentField :: Editor (!String,!String,!String,!String,!Int)
+documentField = fieldComponent toJSON UIDocumentField
 
-checkBox :: UIAttributes -> Editor Bool
-checkBox attr = fieldComponent attr toJSON UICheckbox
+checkBox :: Editor Bool
+checkBox = fieldComponent toJSON UICheckbox
 
-slider :: UIAttributes -> Editor Int
-slider attr = fieldComponent attr toJSON UISlider
+slider :: Editor Int
+slider = fieldComponent toJSON UISlider
 
-button :: UIAttributes -> Editor Bool
-button attr = fieldComponent attr toJSON UIButton
+button :: Editor Bool
+button = fieldComponent toJSON UIButton
 
-label :: UIAttributes -> Editor String
-label attr = viewComponent (\text -> 'DM'.union attr (textAttr text)) UILabel
+label :: Editor String
+label = viewComponent (\text -> (textAttr text)) UILabel
 
-icon :: UIAttributes -> Editor (!String,!Maybe String)
-icon attr = viewComponent (\(iconCls,tooltip) -> 'DM'.unions [iconClsAttr iconCls,maybe 'DM'.newMap tooltipAttr tooltip,attr]) UIIcon
+icon :: Editor (!String,!Maybe String)
+icon = viewComponent (\(iconCls,tooltip) -> 'DM'.unions [iconClsAttr iconCls,maybe 'DM'.newMap tooltipAttr tooltip]) UIIcon
 
-textView :: UIAttributes -> Editor String
-textView attr = viewComponent (\text -> 'DM'.fromList [("value",JSONString text)]) UITextView
+textView :: Editor String
+textView = viewComponent (\text -> valueAttr (JSONString text)) UITextView
 
-htmlView :: UIAttributes -> Editor HtmlTag
-htmlView attr = viewComponent (\html -> 'DM'.union (valueAttr (JSONString (toString html))) attr) UIHtmlView
+htmlView :: Editor HtmlTag
+htmlView = viewComponent (\html -> valueAttr (JSONString (toString html))) UIHtmlView
 
-progressBar :: UIAttributes -> Editor (Maybe Int, Maybe String)
-progressBar attr = viewComponent combine UIProgressBar
+progressBar :: Editor (Maybe Int, Maybe String)
+progressBar = viewComponent combine UIProgressBar
 where
-	combine (amount,text) = 'DM'.unions ((maybe [] (\t -> [textAttr t]) text) ++ (maybe [] (\v -> [valueAttr (JSONInt v)]) amount) ++ [attr])
+	combine (amount,text) = 'DM'.unions ((maybe [] (\t -> [textAttr t]) text) ++ (maybe [] (\v -> [valueAttr (JSONInt v)]) amount))
 						
-dropdown :: UIAttributes -> Editor ([ChoiceText], [Int])
-dropdown attr = choiceComponent (const attr) id toOptionText checkBoundsText UIDropdown
+dropdown :: Editor ([ChoiceText], [Int])
+dropdown = choiceComponent (const 'DM'.newMap) id toOptionText checkBoundsText UIDropdown
 
-checkGroup    :: UIAttributes -> Editor ([ChoiceText], [Int])
-checkGroup attr = choiceComponent (const attr) id toOptionText checkBoundsText UICheckGroup
+checkGroup :: Editor ([ChoiceText], [Int])
+checkGroup = choiceComponent (const 'DM'.newMap) id toOptionText checkBoundsText UICheckGroup
 
-choiceList :: UIAttributes -> Editor ([ChoiceText], [Int])
-choiceList attr = choiceComponent (const attr) id toOptionText checkBoundsText UIChoiceList
+choiceList :: Editor ([ChoiceText], [Int])
+choiceList = choiceComponent (const 'DM'.newMap) id toOptionText checkBoundsText UIChoiceList
 
 toOptionText {ChoiceText|id,text}= JSONObject [("id",JSONInt id),("text",JSONString text)]
 checkBoundsText options idx = or [id == idx \\ {ChoiceText|id} <- options]
 
-grid :: UIAttributes -> Editor (ChoiceGrid, [Int])
-grid attr = choiceComponent (\{ChoiceGrid|header} -> 'DM'.union attr (columnsAttr header)) (\{ChoiceGrid|rows} -> rows) toOption checkBounds UIGrid
+grid :: Editor (ChoiceGrid, [Int])
+grid = choiceComponent (\{ChoiceGrid|header} -> columnsAttr header) (\{ChoiceGrid|rows} -> rows) toOption checkBounds UIGrid
 where
 	toOption {ChoiceRow|id,cells}= JSONObject [("id",JSONInt id),("cells",JSONArray (map (JSONString o toString) cells))]
 	checkBounds options idx = or [id == idx \\ {ChoiceRow|id} <- options]
 
-tree :: UIAttributes -> Editor ([ChoiceNode], [Int])
-tree attr = choiceComponent (const attr) id toOption checkBounds UITree
+tree :: Editor ([ChoiceNode], [Int])
+tree = choiceComponent (const 'DM'.newMap) id toOption checkBounds UITree
 where
 	toOption {ChoiceNode|id,label,icon,expanded,children}
 		= JSONObject [("text",JSONString label)
@@ -85,13 +85,13 @@ where
 		| otherwise = or (map (checkNode idx) children)
 
 //Field like components for which simply knowing the UI type is sufficient
-fieldComponent attr toValue type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+fieldComponent toValue type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where 
 	genUI dp val vst=:{VSt|taskId,mode,optional}
 		# val = if (mode =: Enter) JSONNull (toValue val) 
 		# valid = if (mode =: Enter) optional True //When entering data a value is initially only valid if it is optional
 		# mask = FieldMask {touched = False, valid = valid, state = val}
-		# attr = 'DM'.unions [attr,optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr val]
+		# attr = 'DM'.unions [optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr val]
 		= (Ok (uia type attr,mask),vst)
 
 	onEdit dp (tp,e) val mask vst=:{VSt|optional}

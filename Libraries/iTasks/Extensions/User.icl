@@ -73,9 +73,9 @@ JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
 JSONDecode{|Username|} _ c = (Nothing,c)
 
 gEditor{|Username|} = bijectEditorValue (\(Username u) -> u) (\s -> (Username s)) (selectByMode
-	(textView 'DM'.newMap)
-	(withDynamicHintAttributes "username" (withEditModeAttr (textField 'DM'.newMap)))
-	(withDynamicHintAttributes "username" (withEditModeAttr (textField 'DM'.newMap))))
+	textView
+	(withDynamicHintAttributes "username" (withEditModeAttr textField ))
+	(withDynamicHintAttributes "username" (withEditModeAttr textField )))
 
 derive gDefault			Username
 derive gEq				Username
@@ -101,9 +101,9 @@ gText{|Password|} AsHeader _ = [""]
 gText{|Password|} _ _        = ["********"]
 
 gEditor{|Password|} = bijectEditorValue (\(Password p) -> p) (\s -> (Password s)) 
-						(selectByMode (comapEditorValue (const "********") (textView 'DM'.newMap))
-									  (withDynamicHintAttributes "password" (withEditModeAttr (passwordField 'DM'.newMap)))
-									  (withDynamicHintAttributes "password" (withEditModeAttr (passwordField 'DM'.newMap))))
+						(selectByMode (comapEditorValue (const "********") textView)
+									  (withDynamicHintAttributes "password" (withEditModeAttr passwordField ))
+									  (withDynamicHintAttributes "password" (withEditModeAttr passwordField )))
 
 derive gDefault			Password
 derive gEq				Password

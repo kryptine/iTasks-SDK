@@ -13,19 +13,19 @@ from Data.Map import :: Map
 import StdBool,StdList, StdMisc
 
 //Empty container
-group :: UIType UIAttributes -> Editor ()
-group type attr = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+group :: UIType -> Editor ()
+group type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
-	genUI _ _ vst			    = (Ok (uia type attr,newCompoundMask),vst)
+	genUI _ _ vst			    = (Ok (uia type emptyAttr,newCompoundMask),vst)
 	onEdit _ _ val mask vst 	= (Ok (NoChange,mask),val,vst)
 	onRefresh _ _ val mask vst  = (Ok (NoChange,mask),val,vst)
 
-groupl :: UIType UIAttributes (Editor a) -> Editor [a]
-groupl type attr editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+groupl :: UIType (Editor a) -> Editor [a]
+groupl type editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst = case genUIAll dp 0 val vst of
 		(Error e,vst) = (Error e,vst)
-		(Ok (uis,masks),vst) = (Ok (UI type attr uis, CompoundMask {CompoundMask|fields=masks,state=JSONNull}),vst)
+		(Ok (uis,masks),vst) = (Ok (UI type emptyAttr uis, CompoundMask {CompoundMask|fields=masks,state=JSONNull}),vst)
 
 	genUIAll dp i [] vst = (Ok ([],[]),vst)
 	genUIAll dp i [v:vs] vst = case editor.Editor.genUI (dp ++ [i]) v vst of
@@ -63,13 +63,13 @@ where
 	onRefreshAll dp i [] os ms vst //Elements have been removed from the list
 		= (Ok (repeatn (length os) (i,RemoveChild),[]),[],vst) 
 
-group1 :: UIType UIAttributes (Editor a) -> Editor a
-group1 type attr editor1 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+group1 :: UIType (Editor a) -> Editor a
+group1 type editor1 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst
 		= case editor1.Editor.genUI (dp ++ [0]) val vst of
 			(Error e,vst) = (Error e,vst)
-			(Ok (ui1,mask1),vst) = (Ok (UI type attr [ui1], CompoundMask {CompoundMask|fields=[mask1],state=JSONNull}),vst)
+			(Ok (ui1,mask1),vst) = (Ok (UI type emptyAttr [ui1], CompoundMask {CompoundMask|fields=[mask1],state=JSONNull}),vst)
 
 	onEdit dp ([0:tp],e) val (CompoundMask {CompoundMask|fields=[m1]}) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val m1 vst of
 		(Error e,val,vst) = (Error e,val,vst)
@@ -83,15 +83,15 @@ where
 			(Ok (NoChange,m1),val,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1],state=JSONNull}),val,vst)
 			(Ok (c1,m1),val,vst) = (Ok (ChangeUI [] [(0,ChangeChild c1)],CompoundMask {CompoundMask|fields=[m1],state=JSONNull}),val,vst)
 
-group2 :: UIType UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-group2 type attr editor1 editor2 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+group2 :: UIType (Editor a) (Editor b) -> Editor (a,b)
+group2 type editor1 editor2 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (val1,val2) vst
 		= case editor1.Editor.genUI (dp ++ [0]) val1 vst of
 			(Error e,vst) = (Error e,vst)
 			(Ok (ui1,m1),vst) = case editor2.Editor.genUI (dp ++ [1]) val2 vst of
 				(Error e,vst) = (Error e,vst)
-				(Ok (ui2,m2),vst) = (Ok (UI type attr [ui1,ui2], CompoundMask {CompoundMask|fields=[m1,m2],state=JSONNull}),vst)
+				(Ok (ui2,m2),vst) = (Ok (UI type emptyAttr [ui1,ui2], CompoundMask {CompoundMask|fields=[m1,m2],state=JSONNull}),vst)
 
 	onEdit dp ([0:tp],e) (val1,val2) (CompoundMask {CompoundMask|fields=[m1,m2]}) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val1 m1 vst of
 		(Error e,val1,vst) = (Error e,(val1,val2),vst)
@@ -116,8 +116,8 @@ where
 						_  = ChangeUI [] changes
 					= (Ok (change,CompoundMask {CompoundMask|fields=[m1,m2],state=JSONNull}),(v1,v2),vst)
 
-group3 :: UIType UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-group3 type attr editor1 editor2 editor3 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+group3 :: UIType (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+group3 type editor1 editor2 editor3 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (val1,val2,val3) vst
 		= case editor1.Editor.genUI (dp ++ [0]) val1 vst of
@@ -126,7 +126,7 @@ where
 				(Error e,vst) = (Error e,vst)
 				(Ok (ui2,m2),vst) = case editor3.Editor.genUI (dp ++ [2]) val3 vst of
 					(Error e,vst) = (Error e,vst)
-					(Ok (ui3,m3),vst) =(Ok (UI type attr [ui1,ui2,ui3], CompoundMask {CompoundMask|fields=[m1,m2,m3],state=JSONNull}),vst)
+					(Ok (ui3,m3),vst) =(Ok (UI type emptyAttr [ui1,ui2,ui3], CompoundMask {CompoundMask|fields=[m1,m2,m3],state=JSONNull}),vst)
 
 	onEdit dp ([0:tp],e) (val1,val2,val3) (CompoundMask {CompoundMask|fields=[m1,m2,m3]}) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val1 m1 vst of
 		(Error e,val1,vst) = (Error e,(val1,val2,val3),vst)
@@ -159,8 +159,8 @@ where
 							_  = ChangeUI [] changes
 						= (Ok (change,CompoundMask {CompoundMask|fields=[m1,m2,m3],state=JSONNull}),(v1,v2,v3),vst)
 
-group4 :: UIType UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-group4 type attr editor1 editor2 editor3 editor4 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+group4 :: UIType (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+group4 type editor1 editor2 editor3 editor4 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (val1,val2,val3,val4) vst
 		= case editor1.Editor.genUI (dp ++ [0]) val1 vst of
@@ -171,7 +171,7 @@ where
 					(Error e,vst) = (Error e,vst)
 					(Ok (ui3,m3),vst) = case editor4.Editor.genUI (dp ++ [3]) val4 vst of
 						(Error e,vst) = (Error e,vst)
-						(Ok (ui4,m4),vst) = (Ok (UI type attr [ui1,ui2,ui3,ui4], CompoundMask {CompoundMask|fields=[m1,m2,m3,m4],state=JSONNull}),vst)
+						(Ok (ui4,m4),vst) = (Ok (UI type emptyAttr [ui1,ui2,ui3,ui4], CompoundMask {CompoundMask|fields=[m1,m2,m3,m4],state=JSONNull}),vst)
 
 	onEdit dp ([0:tp],e) (val1,val2,val3,val4) (CompoundMask {CompoundMask|fields=[m1,m2,m3,m4]}) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val1 m1 vst of
 		(Error e,val1,vst) = (Error e,(val1,val2,val3,val4),vst)
@@ -211,8 +211,8 @@ where
 								_  = ChangeUI [] changes
 							= (Ok (change,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4],state=JSONNull}),(v1,v2,v3,v4),vst)
 
-group5 :: UIType UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
-group5 type attr editor1 editor2 editor3 editor4 editor5 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+group5 :: UIType (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+group5 type editor1 editor2 editor3 editor4 editor5 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (val1,val2,val3,val4,val5) vst
 		= case editor1.Editor.genUI (dp ++ [0]) val1 vst of
@@ -225,7 +225,7 @@ where
 						(Error e,vst) = (Error e,vst)
 						(Ok (ui4,m4),vst) = case editor5.Editor.genUI (dp ++ [4]) val5 vst of
 							(Error e,vst) = (Error e,vst)
-							(Ok (ui5,m5),vst) = (Ok (UI type attr [ui1,ui2,ui3,ui4,ui5], CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),vst)
+							(Ok (ui5,m5),vst) = (Ok (UI type emptyAttr [ui1,ui2,ui3,ui4,ui5], CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),vst)
 	onEdit dp ([0:tp],e) (val1,val2,val3,val4,val5) (CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5]}) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val1 m1 vst of
 		(Error e,val1,vst) = (Error e,(val1,val2,val3,val4,val5),vst)
 		(Ok (NoChange,m1),val1,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),(val1,val2,val3,val4,val5),vst)
@@ -271,222 +271,223 @@ where
 									_  = ChangeUI [] changes
 								= (Ok (change,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),(v1,v2,v3,v4,v5),vst)
 //# UIContainer
-container :: UIAttributes -> Editor ()
-container a = group UIContainer a
+container :: Editor ()
+container = group UIContainer
 
-containerl :: UIAttributes (Editor a) -> Editor [a]
-containerl a e = groupl UIContainer a e
+containerl :: (Editor a) -> Editor [a]
+containerl e = groupl UIContainer e
 
-container1 :: UIAttributes (Editor a) -> Editor a
-container1 a e1 = group1 UIContainer a e1
+container1 :: (Editor a) -> Editor a
+container1 e1 = group1 UIContainer e1
 
-container2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-container2 a e1 e2 = group2 UIContainer a e1 e2
+container2 :: (Editor a) (Editor b) -> Editor (a,b)
+container2 e1 e2 = group2 UIContainer e1 e2
 
-container3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-container3 a e1 e2 e3 = group3 UIContainer a e1 e2 e3
+container3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+container3 e1 e2 e3 = group3 UIContainer e1 e2 e3
 
-container4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-container4 a e1 e2 e3 e4 = group4 UIContainer a e1 e2 e3 e4
+container4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+container4 e1 e2 e3 e4 = group4 UIContainer e1 e2 e3 e4
 
-container5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
-container5 a e1 e2 e3 e4 e5 = group5 UIContainer a e1 e2 e3 e4 e5
+container5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+container5 e1 e2 e3 e4 e5 = group5 UIContainer e1 e2 e3 e4 e5
 
 //# UIPanel
-panel :: UIAttributes -> Editor ()
-panel a = group UIPanel a
+panel :: Editor ()
+panel = group UIPanel
 
-panell :: UIAttributes (Editor a) -> Editor [a]
-panell a e = groupl UIPanel a e
+panell :: (Editor a) -> Editor [a]
+panell e = groupl UIPanel e
 
-panel1 :: UIAttributes (Editor a) -> Editor a
-panel1 a e1 = group1 UIPanel a e1
+panel1 :: (Editor a) -> Editor a
+panel1 e1 = group1 UIPanel e1
 
-panel2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-panel2 a e1 e2 = group2 UIPanel a e1 e2
+panel2 :: (Editor a) (Editor b) -> Editor (a,b)
+panel2 e1 e2 = group2 UIPanel e1 e2
 
-panel3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-panel3 a e1 e2 e3 = group3 UIPanel a e1 e2 e3
+panel3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+panel3 e1 e2 e3 = group3 UIPanel e1 e2 e3
 
-panel4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-panel4 a e1 e2 e3 e4 = group4 UIPanel a e1 e2 e3 e4
+panel4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+panel4 e1 e2 e3 e4 = group4 UIPanel e1 e2 e3 e4
 
-panel5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
-panel5 a e1 e2 e3 e4 e5 = group5 UIPanel a e1 e2 e3 e4 e5
+panel5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+panel5 e1 e2 e3 e4 e5 = group5 UIPanel e1 e2 e3 e4 e5
 
 //# UITabSet
-tabset :: UIAttributes -> Editor ()
-tabset a = group UITabSet a
+tabset :: Editor ()
+tabset = group UITabSet
 
-tabsetl :: UIAttributes (Editor a) -> Editor [a]
-tabsetl a e = groupl UITabSet a e
+tabsetl :: (Editor a) -> Editor [a]
+tabsetl e = groupl UITabSet e
 
-tabset1 :: UIAttributes (Editor a) -> Editor a
-tabset1 a e1 = group1 UITabSet a e1
+tabset1 :: (Editor a) -> Editor a
+tabset1 e1 = group1 UITabSet e1
 
-tabset2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-tabset2 a e1 e2 = group2 UITabSet a e1 e2
+tabset2 :: (Editor a) (Editor b) -> Editor (a,b)
+tabset2 e1 e2 = group2 UITabSet e1 e2
 
-tabset3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-tabset3 a e1 e2 e3 = group3 UITabSet a e1 e2 e3
+tabset3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+tabset3 e1 e2 e3 = group3 UITabSet e1 e2 e3
 
-tabset4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-tabset4 a e1 e2 e3 e4 = group4 UITabSet a e1 e2 e3 e4
+tabset4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+tabset4 e1 e2 e3 e4 = group4 UITabSet e1 e2 e3 e4
 
-tabset5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
-tabset5 a e1 e2 e3 e4 e5 = group5 UITabSet a e1 e2 e3 e4 e5
+tabset5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+tabset5 e1 e2 e3 e4 e5 = group5 UITabSet e1 e2 e3 e4 e5
 
 //# UIWindow
-window :: UIAttributes -> Editor ()
-window a = group UIWindow a
+window :: Editor ()
+window = group UIWindow
 
-windowl :: UIAttributes (Editor a) -> Editor [a]
-windowl a e = groupl UIWindow a e
+windowl :: (Editor a) -> Editor [a]
+windowl e = groupl UIWindow e
 
-window1 :: UIAttributes (Editor a) -> Editor a
-window1 a e1 = group1 UIWindow a e1
+window1 :: (Editor a) -> Editor a
+window1 e1 = group1 UIWindow e1
 
-window2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-window2 a e1 e2 = group2 UIWindow a e1 e2
+window2 :: (Editor a) (Editor b) -> Editor (a,b)
+window2 e1 e2 = group2 UIWindow e1 e2
 
-window3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-window3 a e1 e2 e3 = group3 UIWindow a e1 e2 e3
+window3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+window3 e1 e2 e3 = group3 UIWindow e1 e2 e3
 
-window4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-window4 a e1 e2 e3 e4 = group4 UIWindow a e1 e2 e3 e4
+window4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+window4 e1 e2 e3 e4 = group4 UIWindow e1 e2 e3 e4
 
-window5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
-window5 a e1 e2 e3 e4 e5 = group5 UIWindow a e1 e2 e3 e4 e5
+window5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+window5 e1 e2 e3 e4 e5 = group5 UIWindow e1 e2 e3 e4 e5
 
 //# UIMenu
-menu :: UIAttributes -> Editor ()
-menu a = group UIMenu a
+menu :: Editor ()
+menu = group UIMenu
 
-menul :: UIAttributes (Editor a) -> Editor [a]
-menul a e = groupl UIMenu a e
+menul :: (Editor a) -> Editor [a]
+menul e = groupl UIMenu e
 
-menu1 :: UIAttributes (Editor a) -> Editor a
-menu1 a e1 = group1 UIMenu a e1
+menu1 :: (Editor a) -> Editor a
+menu1 e1 = group1 UIMenu e1
 
-menu2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-menu2 a e1 e2 = group2 UIMenu a e1 e2
+menu2 :: (Editor a) (Editor b) -> Editor (a,b)
+menu2 e1 e2 = group2 UIMenu e1 e2
 
-menu3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-menu3 a e1 e2 e3 = group3 UIMenu a e1 e2 e3
+menu3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+menu3 e1 e2 e3 = group3 UIMenu e1 e2 e3
 
-menu4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-menu4 a e1 e2 e3 e4 = group4 UIMenu a e1 e2 e3 e4
+menu4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+menu4 e1 e2 e3 e4 = group4 UIMenu e1 e2 e3 e4
 
-menu5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
-menu5 a e1 e2 e3 e4 e5 = group5 UIMenu a e1 e2 e3 e4 e5
+menu5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+menu5 e1 e2 e3 e4 e5 = group5 UIMenu e1 e2 e3 e4 e5
 
 //# UIToolBar
-toolbar :: UIAttributes -> Editor ()
-toolbar a = group UIToolBar a
+toolbar :: Editor ()
+toolbar = group UIToolBar
 
-toolbarl :: UIAttributes (Editor a) -> Editor [a]
-toolbarl a e = groupl UIToolBar a e
+toolbarl :: (Editor a) -> Editor [a]
+toolbarl e = groupl UIToolBar e
 
-toolbar1 :: UIAttributes (Editor a) -> Editor a
-toolbar1 a e1 = group1 UIToolBar a e1
+toolbar1 :: (Editor a) -> Editor a
+toolbar1 e1 = group1 UIToolBar e1
 
-toolbar2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-toolbar2 a e1 e2 = group2 UIToolBar a e1 e2
+toolbar2 :: (Editor a) (Editor b) -> Editor (a,b)
+toolbar2 e1 e2 = group2 UIToolBar e1 e2
 
-toolbar3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-toolbar3 a e1 e2 e3 = group3 UIToolBar a e1 e2 e3
+toolbar3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+toolbar3 e1 e2 e3 = group3 UIToolBar e1 e2 e3
 
-toolbar4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-toolbar4 a e1 e2 e3 e4 = group4 UIToolBar a e1 e2 e3 e4
+toolbar4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+toolbar4 e1 e2 e3 e4 = group4 UIToolBar e1 e2 e3 e4
 
-toolbar5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
-toolbar5 a e1 e2 e3 e4 e5 = group5 UIToolBar a e1 e2 e3 e4 e5
+toolbar5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+toolbar5 e1 e2 e3 e4 e5 = group5 UIToolBar e1 e2 e3 e4 e5
 
 //# UIButtonBar
-buttonbar :: UIAttributes -> Editor ()
-buttonbar a = group UIButtonBar a
+buttonbar :: Editor ()
+buttonbar = group UIButtonBar
 
-buttonbarl :: UIAttributes (Editor a) -> Editor [a]
-buttonbarl a e = groupl UIButtonBar a e
+buttonbarl :: (Editor a) -> Editor [a]
+buttonbarl e = groupl UIButtonBar e
 
-buttonbar1 :: UIAttributes (Editor a) -> Editor a
-buttonbar1 a e1 = group1 UIButtonBar a e1
+buttonbar1 :: (Editor a) -> Editor a
+buttonbar1 e1 = group1 UIButtonBar e1
 
-buttonbar2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-buttonbar2 a e1 e2 = group2 UIButtonBar a e1 e2
+buttonbar2 :: (Editor a) (Editor b) -> Editor (a,b)
+buttonbar2 e1 e2 = group2 UIButtonBar e1 e2
 
-buttonbar3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-buttonbar3 a e1 e2 e3 = group3 UIButtonBar a e1 e2 e3
+buttonbar3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+buttonbar3 e1 e2 e3 = group3 UIButtonBar e1 e2 e3
 
-buttonbar4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-buttonbar4 a e1 e2 e3 e4 = group4 UIButtonBar a e1 e2 e3 e4
+buttonbar4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+buttonbar4 e1 e2 e3 e4 = group4 UIButtonBar e1 e2 e3 e4
 
-buttonbar5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
-buttonbar5 a e1 e2 e3 e4 e5 = group5 UIButtonBar a e1 e2 e3 e4 e5
+buttonbar5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+buttonbar5 e1 e2 e3 e4 e5 = group5 UIButtonBar e1 e2 e3 e4 e5
 
 //# UIList
-list :: UIAttributes -> Editor ()
-list a = group UIList a
+list :: Editor ()
+list = group UIList
 
-listl :: UIAttributes (Editor a) -> Editor [a]
-listl a e = groupl UIList a e 
+listl :: (Editor a) -> Editor [a]
+listl e = groupl UIList e 
 
-list1 :: UIAttributes (Editor a) -> Editor a
-list1 a e1 = group1 UIList a e1
+list1 :: (Editor a) -> Editor a
+list1 e1 = group1 UIList e1
 
-list2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-list2 a e1 e2 = group2 UIList a e1 e2
+list2 :: (Editor a) (Editor b) -> Editor (a,b)
+list2 e1 e2 = group2 UIList e1 e2
 
-list3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-list3 a e1 e2 e3 = group3 UIList a e1 e2 e3
+list3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+list3 e1 e2 e3 = group3 UIList e1 e2 e3
 
-list4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-list4 a e1 e2 e3 e4 = group4 UIList a e1 e2 e3 e4
+list4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+list4 e1 e2 e3 e4 = group4 UIList e1 e2 e3 e4
 
-list5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
-list5 a e1 e2 e3 e4 e5 = group5 UIList a e1 e2 e3 e4 e5
+list5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+list5 e1 e2 e3 e4 e5 = group5 UIList e1 e2 e3 e4 e5
 
 //# UIListItem
-listitem :: UIAttributes -> Editor ()
-listitem a = group UIListItem a 
+listitem :: Editor ()
+listitem = group UIListItem
 
-listiteml :: UIAttributes (Editor a) -> Editor [a]
-listiteml a e = groupl UIListItem a e
+listiteml :: (Editor a) -> Editor [a]
+listiteml e = groupl UIListItem e
 
-listitem1 :: UIAttributes (Editor a) -> Editor a
-listitem1 a e1 = group1 UIListItem a e1
+listitem1 :: (Editor a) -> Editor a
+listitem1 e1 = group1 UIListItem e1
 
-listitem2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-listitem2 a e1 e2 = group2 UIListItem a e1 e2
+listitem2 :: (Editor a) (Editor b) -> Editor (a,b)
+listitem2 e1 e2 = group2 UIListItem e1 e2
 
-listitem3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-listitem3 a e1 e2 e3 = group3 UIListItem a e1 e2 e3
+listitem3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+listitem3 e1 e2 e3 = group3 UIListItem e1 e2 e3
 
-listitem4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-listitem4 a e1 e2 e3 e4 = group4 UIListItem a e1 e2 e3 e4
+listitem4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+listitem4 e1 e2 e3 e4 = group4 UIListItem e1 e2 e3 e4
 
-listitem5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
-listitem5 a e1 e2 e3 e4 e5 = group5 UIListItem a e1 e2 e3 e4 e5
+listitem5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+listitem5 e1 e2 e3 e4 e5 = group5 UIListItem e1 e2 e3 e4 e5
 
 //# UIDebug
-debug :: UIAttributes -> Editor ()
-debug a = group UIDebug a
+debug :: Editor ()
+debug = group UIDebug
 
-debugl :: UIAttributes (Editor a) -> Editor [a]
-debugl a e = groupl UIDebug a e
+debugl :: (Editor a) -> Editor [a]
+debugl e = groupl UIDebug e
 
-debug1 :: UIAttributes (Editor a) -> Editor a
-debug1 a e1 = group1 UIDebug a e1
+debug1 :: (Editor a) -> Editor a
+debug1 e1 = group1 UIDebug e1
 
-debug2 :: UIAttributes (Editor a) (Editor b) -> Editor (a,b)
-debug2 a e1 e2 = group2 UIDebug a e1 e2
+debug2 :: (Editor a) (Editor b) -> Editor (a,b)
+debug2 e1 e2 = group2 UIDebug e1 e2
 
-debug3 :: UIAttributes (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
-debug3 a e1 e2 e3 = group3 UIDebug a e1 e2 e3
+debug3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
+debug3 e1 e2 e3 = group3 UIDebug e1 e2 e3
 
-debug4 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
-debug4 a e1 e2 e3 e4 = group4 UIDebug a e1 e2 e3 e4
+debug4 :: (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
+debug4 e1 e2 e3 e4 = group4 UIDebug e1 e2 e3 e4
 
-debug5 :: UIAttributes (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
-debug5 a e1 e2 e3 e4 e5 = group5 UIDebug a e1 e2 e3 e4 e5
+debug5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
+debug5 e1 e2 e3 e4 e5 = group5 UIDebug e1 e2 e3 e4 e5
+
 

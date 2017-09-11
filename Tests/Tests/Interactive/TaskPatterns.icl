@@ -28,7 +28,7 @@ where
 	editAsListOfLines model
 		=	updateSharedInformation ("Lines","Edit lines") [listEditor] model
 
-	noteEditor = UpdateUsing id (const id) (textArea 'DM'.newMap)
+	noteEditor = UpdateUsing id (const id) textArea
 	listEditor = UpdateAs (split "\n") (\_ l -> join "\n" l)
 
 	toMaybe (Value v _) =  (Just v)

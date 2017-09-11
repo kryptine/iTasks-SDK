@@ -20,11 +20,11 @@ gText{|Document|} _ Nothing             = [""]
 
 gEditor {|Document|} = selectByMode viewDocument editDocument editDocument
 where
-	viewDocument = comapEditorValue toView (htmlView 'DM'.newMap)
+	viewDocument = comapEditorValue toView htmlView 
 	where
 		toView {Document|contentUrl,name} = ATag [HrefAttr contentUrl, TargetAttr "_blank"] [Text name]
 
-	editDocument = bijectEditorValue toView fromView (documentField 'DM'.newMap)
+	editDocument = bijectEditorValue toView fromView documentField
 	where
 		toView {Document|documentId,contentUrl,name,mime,size} = (documentId,contentUrl,name,mime,size)
 		fromView (documentId,contentUrl,name,mime,size) = {Document|documentId=documentId,contentUrl=contentUrl,name=name,mime=mime,size=size}
