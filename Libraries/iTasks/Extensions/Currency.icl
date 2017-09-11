@@ -9,8 +9,8 @@ gText{|EUR|} _ val = [maybe "" toString val]
 
 gEditor{|EUR|} = selectByMode
 		(comapEditorValue toString (textView 'DM'.newMap))
-		(bijectEditorValue (\(EUR v) -> toReal v / 100.0) (\v -> EUR (toInt (100.0 * v))) (withHintAttributes "amount in EUR" (decimalField 'DM'.newMap)))
-		(bijectEditorValue (\(EUR v) -> toReal v / 100.0) (\v -> EUR (toInt (100.0 * v))) (withHintAttributes "amount in EUR" (decimalField 'DM'.newMap)))
+		(bijectEditorValue (\(EUR v) -> toReal v / 100.0) (\v -> EUR (toInt (100.0 * v))) (withDynamicHintAttributes "amount in EUR" (decimalField 'DM'.newMap)))
+		(bijectEditorValue (\(EUR v) -> toReal v / 100.0) (\v -> EUR (toInt (100.0 * v))) (withDynamicHintAttributes "amount in EUR" (decimalField 'DM'.newMap)))
 
 instance toString EUR
 where
@@ -44,8 +44,8 @@ gText{|USD|} _ val = [maybe "" toString val]
 
 gEditor{|USD|} = selectByMode
 		(comapEditorValue toString (textView 'DM'.newMap))
-		(bijectEditorValue (\(USD v) -> toReal v / 100.0) (\v -> USD (toInt (100.0 * v))) (withHintAttributes "amount in USD" (decimalField 'DM'.newMap)))
-		(bijectEditorValue (\(USD v) -> toReal v / 100.0) (\v -> USD (toInt (100.0 * v))) (withHintAttributes "amount in USD" (decimalField 'DM'.newMap)))
+		(bijectEditorValue (\(USD v) -> toReal v / 100.0) (\v -> USD (toInt (100.0 * v))) (withDynamicHintAttributes "amount in USD" (decimalField 'DM'.newMap)))
+		(bijectEditorValue (\(USD v) -> toReal v / 100.0) (\v -> USD (toInt (100.0 * v))) (withDynamicHintAttributes "amount in USD" (decimalField 'DM'.newMap)))
 
 instance toString USD
 where
