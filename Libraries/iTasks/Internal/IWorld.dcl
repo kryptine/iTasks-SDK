@@ -49,7 +49,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 					, world					:: !*World									    // The outside world
 
                     //Experimental database connection cache
-                    , resources             :: !*(Maybe *Resource)
+                    , resources             :: *[*Resource]
                     , onClient				:: !Bool									// "False" on the server, "True" on the client
 					, shutdown				:: !Maybe Int                               // Signals the server function to shut down, the int will be set as exit code
 					}

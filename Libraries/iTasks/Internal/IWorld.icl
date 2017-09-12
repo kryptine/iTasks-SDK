@@ -88,7 +88,7 @@ createIWorld options world
       ,ioTasks              = {done = [], todo = []}
       ,ioStates             = 'DM'.newMap
 	  ,world				= world
-      ,resources            = Nothing
+      ,resources            = []
       ,random               = genRandInt seed
       ,onClient				= False
 	  }
