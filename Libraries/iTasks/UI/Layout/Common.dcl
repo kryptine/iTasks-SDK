@@ -7,7 +7,8 @@ definition module iTasks.UI.Layout.Common
 import iTasks.UI.Layout
 from iTasks.UI.Definition import :: UISide(..), :: UIDirection(..), :: UIWindowType(..), :: UIHAlign(..), :: UIVAlign(..)
 from iTasks.UI.Prompt import :: Title, :: Label, :: Icon
-from iTasks.WF.Combinators.Tune import class tune
+from iTasks.UI.Tune import class tune
+from iTasks.WF.Definition import :: Task
 
 /**
 * Create a tabset with all child items as separate tabs
@@ -62,19 +63,19 @@ insertToolBar :: [String] -> Layout
 
 //Convenient annotatation types
 :: ArrangeWithTabs = ArrangeWithTabs
-instance tune ArrangeWithTabs
+instance tune ArrangeWithTabs Task
 
 :: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool
-instance tune ArrangeWithSideBar
+instance tune ArrangeWithSideBar Task
 
 :: ArrangeSplit = ArrangeSplit !UIDirection !Bool
-instance tune ArrangeSplit
+instance tune ArrangeSplit Task
 
 :: ArrangeVertical = ArrangeVertical
-instance tune ArrangeVertical
+instance tune ArrangeVertical Task
 
 :: ArrangeHorizontal = ArrangeHorizontal
-instance tune ArrangeHorizontal
+instance tune ArrangeHorizontal Task
 
 //Changing container types
 
@@ -87,23 +88,23 @@ toEmpty     ::                                   Layout
 InWindow                :== InFloatingWindow
 InFloatingWindow        :== ToWindow FloatingWindow AlignMiddle AlignCenter
 InNotificationBubble    :== ToWindow NotificationBubble AlignTop AlignRight
-instance tune ToWindow
+instance tune ToWindow Task
 
 :: InPanel          = InPanel           //Indicate that a task should be wrapped in a panel
-instance tune InPanel
+instance tune InPanel Task
 
 :: InContainer      = InContainer       //Indicate that a task should be wrapped in a panel
-instance tune InContainer
+instance tune InContainer Task
 
 :: NoUserInterface  = NoUserInterface   //Replace the UI by an empty UI
-instance tune NoUserInterface
+instance tune NoUserInterface Task
 
 actionToButton :: Layout
 
 setActionIcon :: (Map String String) -> Layout
 
 //Setting attributes 
-instance tune Title
-instance tune Label
-instance tune Icon
+instance tune Title Task
+instance tune Label Task
+instance tune Icon Task
 

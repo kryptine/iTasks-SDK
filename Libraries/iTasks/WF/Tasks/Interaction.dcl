@@ -3,7 +3,7 @@ definition module iTasks.WF.Tasks.Interaction
 import iTasks.WF.Definition
 from iTasks.WF.Combinators.Core import :: Action
 from iTasks.UI.Prompt import class toPrompt
-from iTasks.UI.Editor.Builtin import :: ChoiceText, :: ChoiceGrid, :: ChoiceNode 
+from iTasks.UI.Editor.Controls import :: ChoiceText, :: ChoiceGrid, :: ChoiceNode 
 from iTasks.SDS.Definition import :: Shared, :: SDS, :: RWShared, :: ReadWriteShared
 
 from Data.Functor import class Functor

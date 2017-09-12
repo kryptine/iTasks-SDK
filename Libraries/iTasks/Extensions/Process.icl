@@ -4,8 +4,8 @@ import iTasks.WF.Definition
 import iTasks.WF.Tasks.Interaction
 import iTasks.UI.Definition
 import iTasks.UI.Prompt
-import iTasks.UI.Editor.Builtin
-import iTasks.UI.Editor.Combinators
+import iTasks.UI.Editor.Controls
+import iTasks.UI.Editor.Modifiers
 import iTasks.Internal.Task
 import iTasks.Internal.TaskEval
 import iTasks.Internal.TaskState
@@ -89,7 +89,7 @@ where
 		= (editUI,iworld)
 
 	//By default show a progress bar 
-	defaultEditor = liftEditor viewFun (const defaultValue) (progressBar 'DM'.newMap)
+	defaultEditor = comapEditorValue viewFun (progressBar 'DM'.newMap)
 
 	viewFun (RunningProcess cmd) = (Nothing, Just ("Running " +++ cmd +++ "..."))
 	viewFun (CompletedProcess exit) =(Just 100, Just (cmd +++ " done (" +++ toString exit +++ ")"))

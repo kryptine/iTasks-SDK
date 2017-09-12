@@ -12,7 +12,7 @@ import iTasks.Internal.IWorld, iTasks.Internal.WebService, iTasks.Internal.SDSSe
 import qualified iTasks.Internal.SDS as SDS
 import iTasks.UI.Layout, iTasks.UI.Layout.Default
 
-from iTasks.WF.Combinators.Tune import class tune(..), instance tune ApplyLayout, :: ApplyLayout(..)
+from iTasks.WF.Combinators.Tune import class tune(..), instance tune ApplyLayout Task, :: ApplyLayout(..)
 from iTasks.SDS.Combinators.Common import sdsFocus
 
 import StdInt, StdChar, StdString

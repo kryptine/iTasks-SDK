@@ -18,6 +18,7 @@ import iTasks.WF.Tasks.SDS
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Core, iTasks.WF.Combinators.Tune, iTasks.WF.Combinators.Overloaded
 import iTasks.UI.Prompt
+import iTasks.UI.Tune
 import iTasks.UI.Layout
 import iTasks.UI.Layout.Common, iTasks.UI.Layout.Default
 
@@ -47,18 +48,6 @@ tbind taska taskbf = step taska (const Nothing) [OnAction ActionContinue (hasVal
 
 (@!) infixl 1 :: !(Task a) !b -> Task b
 (@!) task b = transform (fmap (const b)) task
-
-(<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
-(<<@) t a = tune a t
-
-(@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
-(@>>) a t = tune a t
-
-(<@@) infixl 2 :: !(Task a) !(b a) -> Task a | tunev b a & iTask a
-(<@@) t a = tunev a t
-
-(@@>) infixr 2 :: !(b a) !(Task a) -> Task a | tunev b a & iTask a
-(@@>) a t = tunev a t
 
 try :: !(Task a) (e -> Task a) -> Task a | iTask a & iTask, toString e
 try task handler = step task id [OnValue (ifStable return), OnException handler]

@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.Form.Pikaday
 import iTasks
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JS.Interface
-import iTasks.UI.Editor.Combinators, iTasks.UI.Editor.Builtin
+import iTasks.UI.Editor.Modifiers, iTasks.UI.Editor.Controls
 import iTasks.Extensions.DateTime
 import qualified Data.Map as DM
 
@@ -85,6 +85,7 @@ where
 		| otherwise   = (Ok (ChangeUI [SetAttribute "value" (JSONString new)] [],mask),new,vst)
 
 pikadayDateField :: Editor Date
-pikadayDateField = whenDisabled
-	(liftEditor toString fromString (textView 'DM'.newMap))
-   	(liftEditorAsymmetric toString parseDate (withHintAttributes "date (yyyy-mm-dd)" pikadayField))
+pikadayDateField = selectByMode
+	(bijectEditorValue toString fromString textView)
+   	(surjectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" pikadayField))
+   	(surjectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" pikadayField))

@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.Document
 
 import iTasks.WF.Definition
-import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 
 import iTasks.Internal.Task, iTasks.Internal.IWorld, iTasks.Internal.TaskStore
 import StdBool, StdString, StdFile, StdArray
@@ -18,13 +18,13 @@ gText{|Document|} _ (Just val)
 	| otherwise							= [val.Document.name]
 gText{|Document|} _ Nothing             = [""]
 
-gEditor {|Document|} = whenDisabled viewDocument editDocument
+gEditor {|Document|} = selectByMode viewDocument editDocument editDocument
 where
-	viewDocument = liftEditor toView (const defaultValue) (htmlView 'DM'.newMap)
+	viewDocument = comapEditorValue toView htmlView 
 	where
 		toView {Document|contentUrl,name} = ATag [HrefAttr contentUrl, TargetAttr "_blank"] [Text name]
 
-	editDocument = liftEditor toView fromView (documentField 'DM'.newMap)
+	editDocument = bijectEditorValue toView fromView documentField
 	where
 		toView {Document|documentId,contentUrl,name,mime,size} = (documentId,contentUrl,name,mime,size)
 		fromView (documentId,contentUrl,name,mime,size) = {Document|documentId=documentId,contentUrl=contentUrl,name=name,mime=mime,size=size}

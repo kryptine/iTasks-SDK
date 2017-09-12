@@ -1,15 +1,16 @@
 implementation module iTasks.Extensions.Currency
 import iTasks
-import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import Text
 import qualified Data.Map as DM
 
 //* Money (ISO4217 currency codes are used)
 gText{|EUR|} _ val = [maybe "" toString val]
 
-gEditor{|EUR|} = whenDisabled
-		(liftEditor toString (\_ -> EUR 0) (textView 'DM'.newMap))
-		(liftEditor (\(EUR v) -> toReal v / 100.0) (\v -> EUR (toInt (100.0 * v))) (withHintAttributes "amount in EUR" (decimalField 'DM'.newMap)))
+gEditor{|EUR|} = selectByMode
+		(comapEditorValue toString (textView 'DM'.newMap))
+		(bijectEditorValue (\(EUR v) -> toReal v / 100.0) (\v -> EUR (toInt (100.0 * v))) (withDynamicHintAttributes "amount in EUR" (decimalField 'DM'.newMap)))
+		(bijectEditorValue (\(EUR v) -> toReal v / 100.0) (\v -> EUR (toInt (100.0 * v))) (withDynamicHintAttributes "amount in EUR" (decimalField 'DM'.newMap)))
 
 instance toString EUR
 where
@@ -41,9 +42,10 @@ where
 
 gText{|USD|} _ val = [maybe "" toString val]
 
-gEditor{|USD|} = whenDisabled
-		(liftEditor toString (\_ -> USD 0) (textView 'DM'.newMap))
-		(liftEditor (\(USD v) -> toReal v / 100.0) (\v -> USD (toInt (100.0 * v))) (withHintAttributes "amount in USD" (decimalField 'DM'.newMap)))
+gEditor{|USD|} = selectByMode
+		(comapEditorValue toString (textView 'DM'.newMap))
+		(bijectEditorValue (\(USD v) -> toReal v / 100.0) (\v -> USD (toInt (100.0 * v))) (withDynamicHintAttributes "amount in USD" (decimalField 'DM'.newMap)))
+		(bijectEditorValue (\(USD v) -> toReal v / 100.0) (\v -> USD (toInt (100.0 * v))) (withDynamicHintAttributes "amount in USD" (decimalField 'DM'.newMap)))
 
 instance toString USD
 where

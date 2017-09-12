@@ -6,7 +6,7 @@ definition module iTasks.UI.Layout
 * updates that are later applied accordingly.
 */
 
-from iTasks.UI.Definition import :: UI, :: UINodeType, :: UIAttributes, :: UIChange
+from iTasks.UI.Definition import :: UI, :: UIType, :: UIAttributes, :: UIChange
 
 from Data.Maybe import :: Maybe
 from Data.Map  import :: Map
@@ -41,7 +41,7 @@ from Text.JSON import :: JSONNode
 	| SubUIsModified !b ![(Int,LayoutTree a b)]
 
 // This is an extended version of UI that annotates UI's with additional information about nodes that were removed, moved or restored.
-:: MvUI = { type      :: UINodeType        //From UI
+:: MvUI = { type      :: UIType            //From UI
 		  , attr      :: UIAttributes      //From UI
           , matched   :: Bool              //Does this node match the selection upstream? (we hide this node downstream)
 		  , moved     :: Bool              //Have we moved this node to another node?
@@ -72,7 +72,7 @@ from Text.JSON import :: JSONNode
 	= SelectByPath UIPath //Direct addressing
 	| SelectChildren
 	| SelectDescendents
-	| SelectByType UINodeType
+	| SelectByType UIType
 	| SelectByAttribute String JSONNode
 	| SelectByHasAttribute String
 	| SelectByNumChildren Int //Mostly to match containers with 0 or 1 children
@@ -97,7 +97,7 @@ from Text.JSON import :: JSONNode
 idLayout :: Layout 
 
 // == Changing node types ==
-setUIType :: UINodeType -> Layout
+setUIType :: UIType -> Layout
 
 // == Changing attributes ==
 setUIAttributes      :: UIAttributes -> Layout
@@ -109,7 +109,7 @@ copySubUIAttributes  :: UIAttributeSelection UIPath UIPath -> Layout
 // == Changing the structure of a UI ==
 
 //* Create a new UI node which has the original UI as its only child.
-wrapUI :: UINodeType -> Layout
+wrapUI :: UIType -> Layout
 
 //* Replace the UI by its first child. 
 unwrapUI :: Layout
@@ -150,12 +150,12 @@ referenceLayout :: (UI -> UI) -> Layout
 applyLayout :: Layout UI -> UI 
 
 //Reference layouts of all core layouts for testing
-setUITypeRef_            :: UINodeType -> Layout
+setUITypeRef_            :: UIType -> Layout
 setUIAttributesRef_      :: UIAttributes -> Layout
 delUIAttributesRef_      :: UIAttributeSelection -> Layout
 modifyUIAttributesRef_   :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
 copySubUIAttributesRef_  :: UIAttributeSelection UIPath UIPath -> Layout
-wrapUIRef_               :: UINodeType -> Layout
+wrapUIRef_               :: UIType -> Layout
 unwrapUIRef_             :: Layout
 insertChildUIRef_        :: Int UI -> Layout
 removeSubUIsRef_         :: UISelection -> Layout 

@@ -1,7 +1,13 @@
 definition module iTasks.Extensions.SVG.SVGEditor
 
-import Graphics.Scalable
-import Graphics.Scalable.Internal
+from Graphics.Scalable.Internal import :: Image, :: Host, :: Span, :: LookupSpan, :: FontDef, :: ImageTransform, :: ImageAttr
+from Graphics.Scalable.Internal import :: ImageContent, :: BasicImage, :: CompositeImage, :: LineImage, :: Markers
+from Graphics.Scalable.Internal import :: OpacityAttr, :: FillAttr, :: XRadiusAttr, :: YRadiusAttr, :: StrokeWidthAttr, :: StrokeAttr
+from Graphics.Scalable.Internal import :: Slash, :: DraggableAttr, :: OnMouseOverAttr, :: OnMouseUpAttr, :: DashAttr
+from Graphics.Scalable.Internal import :: OnMouseDownAttr, :: OnClickAttr
+from Graphics.Scalable.Internal import :: LineContent, :: Compose, :: XAlign, :: YAlign, :: OnMouseOutAttr, :: OnMouseMoveAttr
+from Graphics.Scalable import :: TagSource, :: TagRef, :: ImageTag
+
 import iTasks
 import iTasks.UI.Editor
 import iTasks.Extensions.Platform

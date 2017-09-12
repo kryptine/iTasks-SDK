@@ -1,6 +1,6 @@
 implementation module iTasks.Extensions.Web
 import iTasks
-import iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import Internet.HTTP, Text, Text.HTML, Text.URI, Text.Encodings.MIME, Text.Encodings.UrlEncoding, StdArray, Data.Either
 import System.Time, System.FilePath
 
@@ -16,9 +16,10 @@ import qualified Data.List as DL
 //* URL
 gText{|URL|}	_ val	= [maybe "" toString val]
 
-gEditor{|URL|} = whenDisabled
-		(liftEditor (\(URL s) -> ATag [HrefAttr s] [Text s]) (\_ -> URL "") (htmlView 'DM'.newMap))
-		(liftEditor (\(URL s) -> s) (\s -> URL s) (withHintAttributes "uniform resource locator (URL)" (textField 'DM'.newMap)))
+gEditor{|URL|} = selectByMode
+		(comapEditorValue (\(URL s) -> ATag [HrefAttr s] [Text s]) htmlView)
+		(bijectEditorValue (\(URL s) -> s) (\s -> URL s) (withDynamicHintAttributes "uniform resource locator (URL)" textField ))
+		(bijectEditorValue (\(URL s) -> s) (\s -> URL s) (withDynamicHintAttributes "uniform resource locator (URL)" textField ))
 
 derive JSONEncode		URL
 derive JSONDecode		URL

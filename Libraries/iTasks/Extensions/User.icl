@@ -3,7 +3,7 @@ import iTasks
 import Text
 import Data.Functor, Data.Either
 import qualified Data.Map as DM
-import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import iTasks.UI.Layout.Default
 
 from iTasks.WF.Definition import :: InstanceProgress(..)
@@ -72,7 +72,10 @@ JSONEncode{|Username|} _ (Username u) = [JSONString u]
 JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
 JSONDecode{|Username|} _ c = (Nothing,c)
 
-gEditor{|Username|} = liftEditor (\(Username u) -> u) (\s -> (Username s)) (whenDisabled (textView 'DM'.newMap) (withHintAttributes "username" (withEditMode (textField 'DM'.newMap))))
+gEditor{|Username|} = bijectEditorValue (\(Username u) -> u) (\s -> (Username s)) (selectByMode
+	textView
+	(withDynamicHintAttributes "username" (withEditModeAttr textField ))
+	(withDynamicHintAttributes "username" (withEditModeAttr textField )))
 
 derive gDefault			Username
 derive gEq				Username
@@ -97,8 +100,10 @@ JSONDecode{|Password|} _ c = (Nothing,c)
 gText{|Password|} AsHeader _ = [""]
 gText{|Password|} _ _        = ["********"]
 
-gEditor{|Password|} = liftEditor (\(Password p) -> p) (\s -> (Password s)) 
-						(whenDisabled (constEditor "********" (textView 'DM'.newMap)) (withHintAttributes "password" (withEditMode (passwordField 'DM'.newMap))))
+gEditor{|Password|} = bijectEditorValue (\(Password p) -> p) (\s -> (Password s)) 
+						(selectByMode (comapEditorValue (const "********") textView)
+									  (withDynamicHintAttributes "password" (withEditModeAttr passwordField ))
+									  (withDynamicHintAttributes "password" (withEditModeAttr passwordField )))
 
 derive gDefault			Password
 derive gEq				Password

@@ -1,7 +1,7 @@
 implementation module iTasks.Internal.Test.Definition
 import iTasks, StdFile, StdMisc
 import iTasks.Extensions.Image
-import iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Definition
+import iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Common, iTasks.UI.Definition
 import iTasks.Extensions.Editors.Ace
 import iTasks.Internal.Serialization
 import Text, Text.HTML, System.CommandLine

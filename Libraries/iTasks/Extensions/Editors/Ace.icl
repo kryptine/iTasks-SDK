@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.Editors.Ace
 
 import iTasks
-import iTasks.UI.Editor, iTasks.UI.Editor.Combinators, iTasks.UI.Definition 
+import iTasks.UI.Editor, iTasks.UI.Editor.Modifiers, iTasks.UI.Definition 
 import iTasks.UI.JS.Interface
 import qualified Data.Map as DM
 import Text
@@ -21,7 +21,7 @@ derive JSONEncode AceOptions
 derive JSONDecode AceOptions
 
 aceTextArea :: Editor String
-aceTextArea = liftEditor toAce fromAce aceEditor
+aceTextArea = bijectEditorValue toAce fromAce aceEditor
 where
 	aceState = {AceState|lines = [],cursor = (0,0), selection = Nothing, disabled=False}
 	toAce s = (defaultValue, {AceState|aceState & lines = split "\n" s})

@@ -2,7 +2,7 @@ implementation module Tests.Interactive.TaskPatterns
 import iTasks.Internal.Test.Definition
 import Data.Maybe, Text
 import qualified Data.Map as DM
-import iTasks.UI.Editor.Builtin
+import iTasks.UI.Editor.Controls
 
 testTaskPatternsI :: TestSuite
 testTaskPatternsI = testsuite "Task patterns" "Tests for common task patterns" 
@@ -28,7 +28,7 @@ where
 	editAsListOfLines model
 		=	updateSharedInformation ("Lines","Edit lines") [listEditor] model
 
-	noteEditor = UpdateUsing id (const id) (textArea 'DM'.newMap)
+	noteEditor = UpdateUsing id (const id) textArea
 	listEditor = UpdateAs (split "\n") (\_ l -> join "\n" l)
 
 	toMaybe (Value v _) =  (Just v)

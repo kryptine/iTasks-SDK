@@ -2,8 +2,8 @@ implementation module iTasks.UI.Editor.Generic
 
 import iTasks.UI.Definition
 import iTasks.UI.Editor
-import iTasks.UI.Editor.Builtin
-import iTasks.UI.Editor.Combinators
+import iTasks.UI.Editor.Controls
+import iTasks.UI.Editor.Modifiers
 import iTasks.UI.Editor.Common
 import iTasks.SDS.Definition
 
@@ -132,7 +132,7 @@ where
 * - There is only one constructor
 * - There are multiple constructors
 */
-gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ _ _ = withEditMode {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+gEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} ex _ _ _ _ = withEditModeAttr {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp (OBJECT x) vst=:{VSt|taskId,mode,optional,selectedConsIndex}
 		= case mode of
@@ -505,26 +505,30 @@ where
 	half = n / 2
 */
 
-gEditor{|Int|}    = whenDisabled
-						(liftEditor toString toInt (textView 'DM'.newMap))
-						(withHintAttributes "whole number" (withEditMode (integerField 'DM'.newMap)))
-gEditor{|Real|}   = whenDisabled
-						(liftEditor toString toReal (textView 'DM'.newMap))
-						(withHintAttributes "decimal number" (withEditMode (decimalField 'DM'.newMap)))
-gEditor{|Char|}   = liftEditor toString (\c -> c.[0]) (whenDisabled
-							(textView 'DM'.newMap)
-							(withHintAttributes "single character" (withEditMode (textField 'DM'.newMap))))
-gEditor{|String|} = whenDisabled
-						(textView 'DM'.newMap)
-						(withHintAttributes "single line of text" (withEditMode (textField 'DM'.newMap)))
-gEditor{|Bool|}   = whenDisabled (checkBox (enabledAttr False)) (checkBox 'DM'.newMap)
+gEditor{|Int|}    = selectByMode 
+						(bijectEditorValue toString toInt textView)
+						(withDynamicHintAttributes "whole number" (withEditModeAttr integerField ))
+						(withDynamicHintAttributes "whole number" (withEditModeAttr integerField ))
+gEditor{|Real|}   = selectByMode
+						(bijectEditorValue toString toReal textView)
+						(withDynamicHintAttributes "decimal number" (withEditModeAttr decimalField ))
+						(withDynamicHintAttributes "decimal number" (withEditModeAttr decimalField ))
+gEditor{|Char|}   = bijectEditorValue toString (\c -> c.[0]) (selectByMode
+							textView
+							(withDynamicHintAttributes "single character" (withEditModeAttr textField ))
+							(withDynamicHintAttributes "single character" (withEditModeAttr textField )))
+gEditor{|String|} = selectByMode
+						textView
+						(withDynamicHintAttributes "single line of text" (withEditModeAttr textField ))
+						(withDynamicHintAttributes "single line of text" (withEditModeAttr textField ))
+gEditor{|Bool|}   = selectByMode (checkBox <<@ enabledAttr False) checkBox checkBox
 
 gEditor{|[]|} ex _ dx tjx _ = listEditor_ tjx dx (Just (const Nothing)) True True (Just (\l -> toString (length l) +++ " items")) ex
 
 gEditor{|()|} = emptyEditor
 gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ = emptyEditor
 gEditor{|Dynamic|} = emptyEditor
-gEditor{|HtmlTag|} = htmlView 'DM'.newMap
+gEditor{|HtmlTag|} = htmlView
 gEditor{|SDS|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = emptyEditor
 
 derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), Timestamp, Map

@@ -10,7 +10,6 @@ import iTasks.Extensions.Currency
 import iTasks.Extensions.Contact
 import iTasks.Extensions.DateTime
 import iTasks.Extensions.Clock
-import iTasks.UI.Definition, iTasks.UI.Editor.Builtin
 import Text, Text.HTML, StdArray
 import iTasks.Internal.Tonic
 //import ligrettoTOP

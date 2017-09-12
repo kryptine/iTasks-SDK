@@ -26,7 +26,13 @@ import
     ,   iTasks.WF.Combinators.Tune
     ,   iTasks.WF.Combinators.Overloaded
     ,   iTasks.WF.Combinators.Common
-	
+
+	//  Custom task GUI's
+	,   iTasks.UI.Tune
+    ,   iTasks.UI.Editor.Controls
+    ,   iTasks.UI.Editor.Containers
+    ,   iTasks.UI.Editor.Modifiers
+
 	//	Miscellaneous machinery
 	,	Text.JSON							// JSON is used for serializing/deserializing strings
 	,   iTasks.UI.Prompt 					// Standard for creating prompts

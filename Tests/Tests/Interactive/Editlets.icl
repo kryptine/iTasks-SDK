@@ -26,7 +26,12 @@ testDashEditlet = itest "Another simple editlet" "Look at the image below" "You 
 where
 	tut = viewInformation "LED" [] LightOnRed
 
-import Graphics.Scalable, StdReal
+import StdReal
+from Graphics.Scalable import px, above, class toSVGColor(..), instance toSVGColor String, instance toSVGColor RGB
+from Graphics.Scalable import :: Host(..), :: SVGColor(..), :: RGB(..), :: FillAttr(..), :: StrokeAttr(..), :: OnClickAttr(..)
+from Graphics.Scalable import <@<, class tuneImage(..), rect, text, overlay, normalFontDef
+from Graphics.Scalable import instance tuneImage FillAttr, instance tuneImage StrokeAttr, instance tuneImage OnClickAttr
+
 import iTasks.Extensions.SVG.SVGEditor
 testSVGEditlet = itest "SVG editlet rendering" "Look at the image presented" "You should see the dutch flag" tut
 where

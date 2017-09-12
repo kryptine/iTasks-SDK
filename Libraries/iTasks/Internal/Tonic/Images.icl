@@ -13,8 +13,21 @@ from Data.Set import :: Set
 import qualified Data.Set as DS
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
-import Graphics.Scalable
-import Graphics.Scalable.Internal
+import qualified Graphics.Scalable as GS
+import qualified Graphics.Scalable.Internal as GSI
+from Graphics.Scalable import px, text, class toSVGColor(..), instance toSVGColor String, beside, <@<, textxspan, class tuneImage(..)
+from Graphics.Scalable import instance tuneImage YRadiusAttr, instance tuneImage XRadiusAttr, instance tuneImage StrokeAttr
+from Graphics.Scalable import instance tuneImage StrokeWidthAttr, instance tuneImage FillAttr, instance tuneImage OnClickAttr
+from Graphics.Scalable import instance tuneImage DashAttr
+from Graphics.Scalable import overlay, polygon, defaultMarkers, xline, rect, deg, rotate, yline, tag, imageyspan, imagexspan, maxSpan
+from Graphics.Scalable import empty, above, class margin(..), circle, tuneIf
+from Graphics.Scalable import instance margin Span, instance margin (Span,Span), instance margin (Span,Span,Span,Span)
+from Graphics.Scalable import instance + Span, instance - Span, instance ~ Span, instance zero Span, instance *. Span, instance /. Span
+from Graphics.Scalable.Internal import :: FontDef(..), :: Host(..), :: YAlign(..), :: XAlign(..), :: ImageOffset(..), :: DashAttr(..), :: FillAttr(..)
+from Graphics.Scalable.Internal import :: XYAlign(..), :: StrokeAttr(..), :: Markers(..), :: GridMajor(..), :: GridXLayout(..), :: GridYLayout(..)
+from Graphics.Scalable.Internal import :: GridDimension(..), :: StrokeWidthAttr(..), :: OnClickAttr(..), :: XRadiusAttr(..), :: YRadiusAttr(..)
+from Graphics.Scalable.Internal import class *.(..), class /.(..)
+
 import iTasks.Internal.Tonic.AbsSyn
 import iTasks.Internal.Tonic.Types
 import iTasks.Internal.Tonic.Pretty
@@ -484,7 +497,7 @@ tLet inh pats expr [(txttag, uTxtTag) : tsrc]
         #! (t, tsrc)       = tExpr2Image inh expr tsrc
         #! (patRhss, tsrc) = strictTRMapSt (tExpr2Image inh) (map snd pats) tsrc
         #! binds           = strictFoldr (\(var, expr) acc -> [text ArialRegular10px (ppTExpr var) : text ArialRegular10px " = " : expr.syn_img : acc]) [] (strictTRZip2 (strictTRMap fst pats) patRhss)
-        #! letText         = tag uTxtTag (grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds NoHost)
+        #! letText         = tag uTxtTag ('GS'.grid (Columns 3) (RowMajor, LeftToRight, TopToBottom) [] [] binds NoHost)
         #! letWidth        = imagexspan txttag + px 8.0
         #! letHeight       = imageyspan txttag + px 8.0
         #! letBox          = rect letWidth letHeight
@@ -659,7 +672,7 @@ tTaskDef inh moduleName taskName resultTy args argvars tdbody [(nameTag, uNameTa
                                     _      -> tag uNameTag (margin (px 5.0) taskNameImg)
                       _ -> tag uNameTag (margin (px 5.0) taskNameImg)
   #! binds        = flatten (strictTRZipWith3 mkArgAndTy args [0..] (strictTRMap Just argvars ++ repeat Nothing))
-  #! argsText     = grid (Columns 4) (RowMajor, LeftToRight, TopToBottom) [] [] (strictTRMap (margin (px 1.0, px 0.0)) binds) NoHost
+  #! argsText     = 'GS'.grid (Columns 4) (RowMajor, LeftToRight, TopToBottom) [] [] (strictTRMap (margin (px 1.0, px 0.0)) binds) NoHost
   #! argsImg      = tag uArgsTag (margin (px 5.0) argsText)
   #! taskBodyImgs = tag uBodyTag (margin (px 5.0) tdbody)
   #! maxX         = maxSpan [imagexspan nameTag, imagexspan argsTag, imagexspan bdytag]
@@ -983,7 +996,6 @@ tStepCont actions inh (TFApp _ "OnAction" [TFApp _ "Action" [actionLit : _] _ : 
 	an (UI _ attr _) = maybe "" (\(JSONString s) -> s) ('DM'.get "actionId" attr)
 	enabled (UI _ attr _) = maybe False (\(JSONBool b) -> b) ('DM'.get "enabled" attr)
 
-  f _ acc = acc
 tStepCont _ inh (TFApp _ "OnValue"  [cont : _ ] _) tsrc
   = mkStepCont inh Nothing cont tsrc
 tStepCont _ inh (TFApp _ "OnException" [cont : _ ] _)     tsrc

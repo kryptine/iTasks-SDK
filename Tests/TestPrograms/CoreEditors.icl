@@ -10,7 +10,7 @@ import StdMisc
 
 derive gText EditMask, FieldMask, CompoundMask
 derive gPrettyTrace MaybeError, EditMask, FieldMask, CompoundMask
-derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UINodeType, JSONNode
+derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UIType, JSONNode
 
 //COMPLEX TYPES FOR TESTING
 

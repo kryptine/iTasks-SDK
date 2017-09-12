@@ -1,7 +1,7 @@
 definition module iTasks.Extensions.Development.Codebase
 
 import iTasks
-import iTasks.UI.Editor.Builtin
+import iTasks.UI.Editor.Controls
 import System.FilePath
 
 :: CodeBase 		:== [SourceTree]

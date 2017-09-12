@@ -8,7 +8,7 @@ import iTasks.Internal.Store
 from StdFunc import seq
 import qualified Data.Map as DM
 import Data.List, Data.Tuple
-import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Common, iTasks.UI.Layout.Default, iTasks.UI.Layout.Common
+import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Common, iTasks.UI.Layout.Default, iTasks.UI.Layout.Common
 import iTasks.Extensions.DateTime
 // SPECIALIZATIONS
 derive class iTask Workflow
@@ -249,7 +249,7 @@ where
 
 viewWorkflowDetails :: !(ReadOnlyShared (Maybe Workflow)) -> Task Workflow
 viewWorkflowDetails sel
-	= viewSharedInformation [Att (Title "Task description"), Att IconView] [ViewUsing view (textView 'DM'.newMap)] sel
+	= viewSharedInformation [Att (Title "Task description"), Att IconView] [ViewUsing view textView] sel
 	@? onlyJust
 where
 	view = maybe "" (\wf -> wf.Workflow.description)

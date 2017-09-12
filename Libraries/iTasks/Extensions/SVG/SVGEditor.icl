@@ -1,8 +1,23 @@
 implementation module iTasks.Extensions.SVG.SVGEditor
 
 import qualified Data.Map as DM
-import Graphics.Scalable
-import Graphics.Scalable.Internal
+import qualified Graphics.Scalable as GS
+import qualified Graphics.Scalable.Internal as GSI
+from Graphics.Scalable import px, minSpan, maxSpan, toRad, toDeg, class /.(..), class *.(..)
+from Graphics.Scalable import instance zero Span, instance + Span, instance /. Span, instance *. Span, instance - Span
+from Graphics.Scalable import instance < FontDef, instance < ImageTag, instance == ImageTag
+from Graphics.Scalable import :: TagSource(..), :: TagRef(..), :: ImageTag(..)
+
+from Graphics.Scalable.Internal import :: Span(..), :: LookupSpan(..), :: FontDef(..), :: Image(..), :: ImageOffset(..), :: ImageSpan(..)
+from Graphics.Scalable.Internal import :: ImageTransform(..), :: ImageAttr(..), :: ImageContent(..), :: CompositeImage(..)
+from Graphics.Scalable.Internal import :: Compose(..), :: Host(..), :: XYAlign(..), :: XAlign(..), :: YAlign(..)
+from Graphics.Scalable.Internal import :: LineImage(..), :: BasicImage(..), :: LineContent(..), :: Markers(..)
+from Graphics.Scalable.Internal import :: DraggableAttr(..), :: OnMouseOutAttr(..), :: OnMouseOverAttr(..), :: OnMouseUpAttr(..)
+from Graphics.Scalable.Internal import :: Slash(..), :: OnMouseMoveAttr(..), :: OnMouseDownAttr(..), :: OnClickAttr(..)
+from Graphics.Scalable.Internal import :: DashAttr(..), :: FillAttr(..), :: OpacityAttr(..), :: XRadiusAttr(..), :: YRadiusAttr(..)
+from Graphics.Scalable.Internal import :: StrokeWidthAttr(..), :: StrokeAttr(..), :: ImageTag(..)
+from Graphics.Scalable.Internal import instance * Span, instance / Span
+
 import iTasks
 import iTasks.UI.Definition, iTasks.UI.Editor
 import iTasks.UI.JS.Interface
