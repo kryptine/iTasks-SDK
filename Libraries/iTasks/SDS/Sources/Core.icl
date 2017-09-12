@@ -6,7 +6,7 @@ import iTasks.Internal.IWorld
 import iTasks.Internal.Serialization
 import System.FilePath, System.Directory, System.File
 import Text, Text.JSON
-import StdFile, StdTuple, StdArray
+import StdFile, StdTuple, StdArray, StdBool
 import qualified Data.Map as DM
 
 from StdFunc import const
@@ -134,6 +134,6 @@ directoryListing :: SDS FilePath [String] ()
 directoryListing = createReadOnlySDSError read
 where
 	read path iworld = case readDirectory path iworld of
-		(Ok files,iworld) = (Ok files,iworld)
+		(Ok files,iworld) = (Ok [f \\ f <- files | f <> "." && f <> ".."],iworld)
 		(Error (_,e),iworld) = (Error (exception e),iworld)
 
