@@ -72,7 +72,7 @@ JSONEncode{|Username|} _ (Username u) = [JSONString u]
 JSONDecode{|Username|} _ [JSONString u:c] = (Just (Username u),c)
 JSONDecode{|Username|} _ c = (Nothing,c)
 
-gEditor{|Username|} = liftEditor (\(Username u) -> u) (\s -> (Username s)) (whenDisabled (textView 'DM'.newMap) (withHintAttributes "username" (textField 'DM'.newMap)))
+gEditor{|Username|} = liftEditor (\(Username u) -> u) (\s -> (Username s)) (whenDisabled (textView 'DM'.newMap) (withHintAttributes "username" (withEditMode (textField 'DM'.newMap))))
 
 derive gDefault			Username
 derive gEq				Username
