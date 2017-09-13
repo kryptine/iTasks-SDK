@@ -22,6 +22,7 @@ import qualified Data.Queue as DQ
 
 import Data.Maybe, Data.Either, Data.Error
 import Text.JSON
+from Data.Functor import <$>
 
 derive gEq ParallelTaskChange
 
@@ -526,7 +527,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
             //Decode value value
             # mbValue = case encValue of
                 NoValue           = Just NoValue
-                Value json stable = fmap (\dec -> Value dec stable) (fromJSON json)
+                Value json stable = (\dec -> Value dec stable) <$> fromJSON json
             //TODO: use global tasktime to be able to compare event times between instances
             # evalInfo = {TaskEvalInfo|lastEvent=0,removedTasks=[],refreshSensitive=True}
             = maybe (ExceptionResult (exception "Could not decode task value of detached task"))

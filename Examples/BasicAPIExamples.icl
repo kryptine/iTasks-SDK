@@ -204,11 +204,11 @@ viewStoredPersons = viewSharedInformation "These are the currently stored person
 notes :: Task String
 notes 
 	= withShared ""
-		(\note -> 	viewSharedInformation "view on note" [ViewUsing id (textView 'DM'.newMap)] note
+		(\note -> 	viewSharedInformation "view on note" [ViewUsing id textView] note
 					-||-
-					updateSharedInformation "edit shared note 1" [UpdateUsing id (const id) (textArea 'DM'.newMap)] note
+					updateSharedInformation "edit shared note 1" [UpdateUsing id (const id) textArea] note
 					-||-
-					updateSharedInformation "edit shared note 2" [UpdateUsing id (const id) (textArea 'DM'.newMap)] note
+					updateSharedInformation "edit shared note 2" [UpdateUsing id (const id) textArea] note
 		)
 
 linesPar :: Task (Maybe String)
@@ -229,7 +229,7 @@ where
 	lineE state
 		=	updateSharedInformation ("Lines","Edit lines") [listEditor] state
 
-	noteEditor = UpdateUsing id (const id) (textArea 'DM'.newMap)
+	noteEditor = UpdateUsing id (const id) textArea
 	listEditor = UpdateAs (split "\n") (\_ l -> join "\n" l)
 
 browseAndViewGoogleMap :: Task GoogleMap
@@ -486,7 +486,7 @@ editWithStatistics
 											
 editFile :: String (Shared String) (SharedTaskList ()) -> Task ()
 editFile fileName sharedFile _
- =						updateSharedInformation ("edit " +++ fileName) [UpdateUsing id (const id) (textArea 'DM'.newMap)] sharedFile
+ =						updateSharedInformation ("edit " +++ fileName) [UpdateUsing id (const id) textArea] sharedFile
  	@!					()
 
 showStatistics sharedFile _  = noStat <<@ InWindow

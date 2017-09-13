@@ -4,14 +4,14 @@ import iTasks.WF.Definition
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Combinators.Core
 import iTasks.WF.Combinators.Common
-import Data.Maybe, Data.Either, Data.List
+import Data.Maybe, Data.Either, Data.List, Data.Functor
 
 import iTasks.Internal.Serialization
 
 instance Functor Task where
   fmap f x = transform (fmap f) x 
 instance TApplicative Task where
-  (<#>) tf ta = tf >>= \f -> fmap f ta
+  (<#>) tf ta = tf >>= \f -> f <$> ta
   return x    = treturn x
 
 instance TMonad Task where
