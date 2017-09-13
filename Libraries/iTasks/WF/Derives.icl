@@ -16,7 +16,7 @@ import StdArray
 // Generic instances for common library types
 derive JSONEncode		Either, MaybeError, HtmlTag, HtmlAttr
 derive JSONDecode		Either, MaybeError, HtmlTag, HtmlAttr
-derive gEq				Either, MaybeError, HtmlTag, HtmlAttr, Timestamp, JSONNode
+derive gEq				Either, MaybeError, HtmlTag, HtmlAttr, Timestamp, JSONNode, Maybe
 
 gEq{|()|} _ _ = True
 JSONEncode{|()|} _ () = [JSONNull]
