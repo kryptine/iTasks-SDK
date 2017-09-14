@@ -89,7 +89,7 @@ where
 		= (editUI,iworld)
 
 	//By default show a progress bar 
-	defaultEditor = comapEditorValue viewFun (progressBar 'DM'.newMap)
+	defaultEditor = comapEditorValue viewFun progressBar
 
 	viewFun (RunningProcess cmd) = (Nothing, Just ("Running " +++ cmd +++ "..."))
 	viewFun (CompletedProcess exit) =(Just 100, Just (cmd +++ " done (" +++ toString exit +++ ")"))
