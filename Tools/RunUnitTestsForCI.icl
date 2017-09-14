@@ -7,14 +7,24 @@ import iTasks
 import iTasks.Extensions.Development.Testing
 import iTasks.Internal.Test.Definition
 import System.FilePath
+import System.CommandLine
 
-TESTS_PATH :== "../Tests/TestPrograms"
+DEFAULT_TESTS_PATH :== "../Tests/TestPrograms"
 
 runAllTests
-	=   get (mapRead (filter ((==) "icl" o takeExtension)) (sdsFocus TESTS_PATH directoryListing))
+	=   determineTestDir
+	>>- \testDir ->
+        get (mapRead (filter ((==) "icl" o takeExtension)) (sdsFocus testDir directoryListing))
 	>>- \modules ->
-		sequence "Running all tests" [runTestModule (TESTS_PATH </> m) >>- traceValue \\ m <- modules]
+		sequence "Running all test programs"
+			[runTestModule (testDir </> m) >>- traceValue \\ m <- modules]
 	>>- \results ->
 		shutDown (if (noneFailed results) 0 1)
+
+determineTestDir
+	= accWorld getCommandLine
+	@ \args -> case args of
+		[_,path] = path
+		_      = DEFAULT_TESTS_PATH
 
 Start world = runTasks runAllTests world

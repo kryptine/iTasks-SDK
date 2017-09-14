@@ -2,7 +2,7 @@ Version: 1.4
 Global
 	ProjectRoot:	.
 	Target:	iTasks
-	Exec:	{Project}/RunTests.exe
+	Exec:	{Project}/TaskEvaluation.exe
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
@@ -41,10 +41,11 @@ Global
 		ExportedNames:	
 	Paths
 		Path:	{Project}
+		Path:	{Project}/..
 	Precompile:	
 	Postlink:	
 MainModule
-	Name:	RunTests
+	Name:	TaskEvaluation
 	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False
