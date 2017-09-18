@@ -51,6 +51,10 @@ itasks.Dropdown = Object.assign({
             el = me.domEl,
             optionEl;
 
+		if(me.attributes.multiple){
+			el.multiple = true;
+		}
+
 		//The empty selection
         optionEl = document.createElement('option');
         optionEl.innerHTML = "Select...";
@@ -58,7 +62,6 @@ itasks.Dropdown = Object.assign({
         el.appendChild(optionEl);
 
         me.attributes.options.forEach(function(option) {
-
             optionEl = document.createElement('option');
             optionEl.value = option.id;
             optionEl.innerHTML = option.text;
@@ -67,12 +70,26 @@ itasks.Dropdown = Object.assign({
             }
             el.appendChild(optionEl);
 			option.domEl = optionEl;
+
+			//Only if the selection is a multiple selection we place handlers
+			//on every element
+			if(me.attributes.multiple){
+        		option.domEl.addEventListener('click',function(e) {
+					me.select([option.id], me.attributes.multiple && (e.metaKey || e.ctrlKey));
+            	    me.doEditEvent(me.attributes.taskId,me.attributes.editorId,me.attributes.value);
+					e.preventDefault();
+        		});
+			}
         },me);
 
-        el.addEventListener('change',function(e) {
-			me.select(e.target.value === '' ? [] : [parseInt(e.target.value)]);
-            me.doEditEvent(me.attributes.taskId,me.attributes.editorId,me.attributes.value);
-        });
+		//If the selection is a single one, a single handler on the select
+		//suffices
+		if(!me.attributes.multiple){
+			el.addEventListener('change',function(e) {
+				me.select(e.target.value === '' ? [] : [parseInt(e.target.value)]);
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,me.attributes.value);
+			});
+		}
     },
 	selectInDOM: function(el,selected) {
 		el.selected = selected;
