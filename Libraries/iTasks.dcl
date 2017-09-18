@@ -52,5 +52,8 @@ import
 	,	StdEnum
 	,	StdOverloaded
 
+//JSON(En|De)code for Dynamic and (->)
+from iTasks.Internal.Serialization import generic JSONEncode, generic JSONDecode
+
 from StdFunc import id, const, o
 from Data.List import instance Functor []
