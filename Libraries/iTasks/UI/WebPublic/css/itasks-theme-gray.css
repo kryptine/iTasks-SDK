@@ -62,6 +62,8 @@
     background-image: url("/css/icons/arrow_right.png") !important; }
   *.itasks-viewport .icon-preferences {
     background-image: url("/css/icons/cog.png") !important; }
+  *.itasks-viewport .icon-finish {
+    background-image: url("/css/icons/flag.png") !important; }
   *.itasks-viewport [tooltip] {
     position: relative;
     display: inline-block; }
