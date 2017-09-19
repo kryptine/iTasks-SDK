@@ -53,13 +53,13 @@ itasks.Dropdown = Object.assign({
 
 		if(me.attributes.multiple){
 			el.multiple = true;
+		} else {
+			//The empty selection (only for single selections)
+        	optionEl = document.createElement('option');
+        	optionEl.innerHTML = "Select...";
+        	optionEl.value = "";
+        	el.appendChild(optionEl);
 		}
-
-		//The empty selection
-        optionEl = document.createElement('option');
-        optionEl.innerHTML = "Select...";
-        optionEl.value = "";
-        el.appendChild(optionEl);
 
         me.attributes.options.forEach(function(option) {
             optionEl = document.createElement('option');
