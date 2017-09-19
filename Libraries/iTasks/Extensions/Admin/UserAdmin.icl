@@ -4,6 +4,7 @@ import iTasks
 import iTasks.Extensions.CSVFile
 import iTasks.UI.Editor
 import Text, Data.Tuple, StdArray
+import iTasks.Extensions.User //import :: Role, :: User, :: UserTitle, :: Credentials(..), :: Username, :: Password, :: UserId
 
 derive class iTask UserAccount
 

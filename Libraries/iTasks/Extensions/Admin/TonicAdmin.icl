@@ -19,6 +19,8 @@ from Control.Monad import `b`, class Monad, instance Monad Maybe
 import qualified iTasks.Internal.SDS as DSDS
 import Data.List
 import iTasks.Extensions.SVG.SVGEditor
+import iTasks.Extensions.Admin.UserAdmin
+import iTasks.Extensions.Admin.WorkflowAdmin
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Data.Maybe

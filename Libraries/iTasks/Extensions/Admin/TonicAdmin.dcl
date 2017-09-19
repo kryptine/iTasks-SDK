@@ -1,6 +1,7 @@
 definition module iTasks.Extensions.Admin.TonicAdmin
 
 import iTasks
+from iTasks.Extensions.Admin.WorkflowAdmin import :: Workflow
 from iTasks.Internal.Tonic.Images import :: TaskAppRenderer, :: ModelTy, :: ClickMeta, :: TonicImageState, :: ActionState, :: TClickAction
 from iTasks.Internal.Tonic.Types import :: AllBlueprints, :: TonicModule, :: TonicFunc, :: FuncName, :: ModuleName, :: NavStack, :: BlueprintIdent, :: ExprId
 from Graphics.Scalable import :: TagSource, :: TagRef, :: Image, :: ImageTag

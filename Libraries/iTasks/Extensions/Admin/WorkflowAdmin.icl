@@ -10,6 +10,8 @@ import qualified Data.Map as DM
 import Data.List, Data.Tuple
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Common, iTasks.UI.Layout.Default, iTasks.UI.Layout.Common
 import iTasks.Extensions.DateTime
+import iTasks.Extensions.User
+import iTasks.Extensions.Admin.UserAdmin
 // SPECIALIZATIONS
 derive class iTask Workflow
 

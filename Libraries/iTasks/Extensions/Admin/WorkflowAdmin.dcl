@@ -3,6 +3,7 @@ definition module iTasks.Extensions.Admin.WorkflowAdmin
 * This extension provides workflows for managing the users of an iTask system.
 */
 import iTasks
+from iTasks.Extensions.User import :: Role, :: User
 
 // A workflow specification
 :: Workflow	=

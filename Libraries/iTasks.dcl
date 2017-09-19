@@ -38,10 +38,6 @@ import
 	,   iTasks.UI.Prompt 					// Standard for creating prompts
 	,   iTasks.UI.Layout.Common 			// Standard layout patterns
 	
-	//	API extensions for user  & workflow management
-	,	iTasks.Extensions.Admin.UserAdmin
-	,	iTasks.Extensions.Admin.WorkflowAdmin
-	
 	//StdEnv modules
 	,	StdInt
 	,	StdBool

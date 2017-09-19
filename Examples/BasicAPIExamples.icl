@@ -1,5 +1,6 @@
 implementation module BasicAPIExamples
 import iTasks
+import iTasks.Extensions.User
 import iTasks.Extensions.Admin.UserAdmin
 import iTasks.Extensions.Admin.ServerAdmin
 import iTasks.Extensions.Admin.StoreAdmin
