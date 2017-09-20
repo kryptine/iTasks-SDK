@@ -382,6 +382,9 @@ itasks.Tree = Object.assign({
         //Track the option in the dom
 		option.domEl = node;
     },
+    selectInDOM(el,selected) {
+        el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
+    },
 	setOptions: function(options) {
 		
 	}
