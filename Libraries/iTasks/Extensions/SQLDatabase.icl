@@ -251,7 +251,6 @@ openSQLiteDB db=:{database} iworld=:{IWorld|resources}
 = case iworldResource isSQLite iworld of
 	([SQLiteResource _ m], iworld) = (Ok m, iworld)
 	([], iworld=:{world,options={storeDirPath}})
-    	# db = {db & database = storeDirPath </> db.database}
     	# (err,mbContext,world) 	= openContext world
     	| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
     	# (err,mbConn,context)		= openConnection db (fromJust mbContext)
