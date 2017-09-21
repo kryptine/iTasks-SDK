@@ -160,4 +160,12 @@ iworldLocalTime :: Shared Time
 iworldUTCDate   :: Shared Date
 iworldUTCTime   :: Shared Time
 
+/*
+ * Gives you possibly a matching resource while adhering to the uniqueness
+ * constraints. Note that this does remove it from the IWorld
+ *
+ * @param Function that classifies the resource whether it matches
+ */
+iworldResource :: (*Resource -> (Bool, *Resource)) *IWorld -> (*[*Resource], *IWorld)
+
 instance FileSystem IWorld
