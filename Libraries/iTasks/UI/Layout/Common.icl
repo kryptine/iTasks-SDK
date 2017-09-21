@@ -160,7 +160,10 @@ where
     where
 	    eval` event repOpts state iworld = case eval event repOpts state iworld of
 			(ValueResult taskvalue evalinfo _ tasktree, iworld)
-				= (ValueResult taskvalue evalinfo NoChange tasktree, iworld)
+				# change = case event of 
+					ResetEvent = ReplaceUI (ui UIEmpty)
+					_          = NoChange
+				= (ValueResult taskvalue evalinfo change tasktree, iworld)
 			other = other
 
 instance tune Title Task
