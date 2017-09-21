@@ -3,6 +3,12 @@ definition module iTasks.Extensions.SQLDatabase
 * This experimental extension provides tasks and shares
 * for interacting with a relational database.
 *
+* To run this, link the code with sqlite3 and a mysqlclient
+* To find out what the linkerflags on debian you can run:
+* $ pkg-config --libs mariadb sqlite3
+*
+* Note that on debian mariadb is the mysql standard, it is fully compatible.
+*
 * It provides only mimimal functionality and currently only works with MySQL and SQLite
 */
 import iTasks, Database.SQL, Data.Error, System.FilePath
