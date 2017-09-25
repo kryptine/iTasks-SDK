@@ -26,7 +26,7 @@ where
 
 sharedStore :: !String !a -> SDS () a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV
-	= sdsFocus storeId (storeShare NS_APPLICATION_SHARES True InJSONFile (Just defaultV))
+	= sdsFocus storeId (storeShare NS_APPLICATION_SHARES False InJSONFile (Just defaultV))
 
 storeNamespaces :: SDS () [String] ()
 storeNamespaces = createReadOnlySDS read
@@ -89,10 +89,10 @@ where
 	memoryLoc defaultV = removeMaybe defaultV memoryShare
 
 	jsonLoc :: !(Maybe a) -> SDS FilePath a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-	jsonLoc defaultV = sdsCache (\_ _ _ w -> (Just w,WriteDelayed)) (removeMaybe defaultV jsonFileShare)
+	jsonLoc defaultV = removeMaybe defaultV (sdsCache (\_ _ _ w -> (Just w,WriteDelayed)) jsonFileShare)
 
 	graphLoc :: !(Maybe a) -> SDS FilePath a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-	graphLoc  defaultV = sdsCache (\_ _ _ w -> (Just w,WriteDelayed)) (removeMaybe defaultV graphFileShare)
+	graphLoc  defaultV = removeMaybe defaultV (sdsCache (\_ _ _ w -> (Just w,WriteDelayed)) graphFileShare)
 
 //Utility function to make sure we don't use names that escape the file path
 safeName :: !String -> String
