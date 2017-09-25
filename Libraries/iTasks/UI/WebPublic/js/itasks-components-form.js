@@ -120,10 +120,10 @@ itasks.NumberField = {
 		}
 	}
 };
-itasks.IntegerField = Object.assign(itasks.NumberField,{
+itasks.IntegerField = Object.assign(Object.assign({}, itasks.NumberField),{
     allowDecimal: false
 });
-itasks.DecimalField = Object.assign(itasks.NumberField,{
+itasks.DecimalField = Object.assign(Object.assign({}, itasks.NumberField),{
     allowDecimal: true
 });
 itasks.DocumentField = {
