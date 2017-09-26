@@ -8,7 +8,6 @@ import qualified Data.List as DL
 import Text, Text.JSON, Text.HTML
 import System.Time
 import iTasks.Internal.Util
-import iTasks.SDS.Definition
 
 toSingleLineText :: !a -> String | gText{|*|} a
 toSingleLineText v = concat (gText{|*|} AsSingleLine (Just v))
@@ -62,7 +61,6 @@ gText{|Dynamic|} _ _				= []
 gText{|(->)|} _ _ _ _				= []
 gText{|JSONNode|} _ val			    = [maybe "" toString val]
 gText{|HtmlTag|} _ val              = [maybe "" toString val]
-gText{|SDS|} _ _ _ _ _			    = []
 
 gText{|()|} _ _                    = []
 
