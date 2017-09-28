@@ -5,12 +5,12 @@ import iTasks.UI.Editor
 import iTasks.UI.Editor.Controls
 import iTasks.UI.Editor.Modifiers
 import iTasks.UI.Editor.Common
-import iTasks.SDS.Definition
 
 import qualified Data.Map as DM
 import StdArray, StdBool, StdFunc
 import Text.JSON
 import System.Time
+import GenEq
 
 generic gEditor a | gText a, gDefault a, JSONEncode a, JSONDecode a :: Editor a
 derive bimap Editor,(,),(,,),(,,,), MaybeError
@@ -529,7 +529,6 @@ gEditor{|()|} = emptyEditor
 gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ = emptyEditor
 gEditor{|Dynamic|} = emptyEditor
 gEditor{|HtmlTag|} = htmlView
-gEditor{|SDS|} _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ = emptyEditor
 
 derive gEditor JSONNode, Either, MaybeError, (,), (,,), (,,,), (,,,,), (,,,,,), Timestamp, Map
 
