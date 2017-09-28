@@ -8,8 +8,9 @@ from Text.HTML import instance toString HtmlTag
 
 from StdArray import class Array(uselect), instance Array {} a
 
-LEAFLET_JS :== "/leaflet-1.1.0/leaflet.js"
-LEAFLET_CSS :== "/leaflet-1.1.0/leaflet.css"
+LEAFLET_JS        :== "/leaflet-1.1.0/leaflet.js"
+LEAFLET_JS_WINDOW :== "leafletWindow.js"
+LEAFLET_CSS       :== "/leaflet-1.1.0/leaflet.css"
 
 :: IconOptions =
     { iconUrl   :: !String
@@ -40,7 +41,8 @@ MAP_OPTIONS     :== {attributionControl = False, zoomControl = True}
     | LDSetCursor       !LeafletLatLng
     | LDSetBounds       !LeafletBounds
 	//Updating markers 
-	| LDSelectMarker    LeafletObjectID
+	| LDSelectMarker    !LeafletObjectID
+    | LDRemoveWindow    !LeafletObjectID
 
 openStreetMapTiles :: String
 openStreetMapTiles = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -69,6 +71,11 @@ where
                           in uia UIData dataMap`
 	encodeUI (Polyline o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList [("type",JSONString "polyline"):attr])
 	encodeUI (Polygon o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList [("type",JSONString "polygon") : attr])
+    encodeUI (Window o) = let (JSONObject attr) = toJSON o
+                              dataMap = 'DM'.fromList [("type",JSONString "window"):attr]
+                              // translate HtmlTag to HTML code
+                              dataMap` = 'DM'.put "content" (JSONString (toString o.content)) dataMap
+                          in uia UIData dataMap`
 
 	initUI me world
 		# (jsInitDOM,world) = jsWrapFun (initDOM me) world
@@ -78,7 +85,8 @@ where
         # (l, world) = findObject "L" world
         | jsIsUndefined l
             # world = addCSSFromUrl LEAFLET_CSS world
-            # world = addJSFromUrl LEAFLET_JS (Just jsInitDOM) world
+            # world = addJSFromUrl LEAFLET_JS Nothing world
+            # world = addJSFromUrl LEAFLET_JS_WINDOW (Just jsInitDOM) world
 			= world
 		| otherwise
 			# world = (me .# "initDOMEl" .= jsInitDOM) world
@@ -202,6 +210,13 @@ where
         # (_,world)         = (mapObj.# "removeLayer" .$ popup) world
         = (jsNull, world)
 
+    onWindowRemove me windowId _ world
+        # (taskId,world)    = .? (me .# "attributes.taskId") world
+		# (editorId,world)  = .? (me .# "attributes.editorId") world
+		# (edit,world)      = encodeOnClient [LDRemoveWindow windowId] world
+		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,edit)) world
+		= (jsNull, world)
+
 	//Map object access
 	toLatLng obj world
 		# (lat,world)     = .? (obj .# "lat") world
@@ -281,9 +296,10 @@ where
 	createMapObject me mapObj l object world
 		# (type,world)        = .? (object .# "attributes.type") world
 		= case jsValToString type of
-			"marker"   = createMarker me mapObj l object world
+			"marker"   = createMarker   me mapObj l object world
 			"polyline" = createPolyline me mapObj l object world
-			"polygon"  = createPolygon me mapObj l object world
+			"polygon"  = createPolygon  me mapObj l object world
+            "window"   = createWindow   me mapObj l object world
 			_ 		   = world
 
 	createMarker me mapObj  l object world 
@@ -356,7 +372,23 @@ where
         # (layer,world)       = (l .# "polygon" .$ (points ,options)) world
         # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
 		# world               = (object .# "layer" .= layer) world
-		= world	
+		= world
+
+    createWindow me mapObj l object world
+        # (layer,world)      = (l .# "window" .$ () ) world
+		# world              = (object .# "layer" .= layer) world
+        # (position,world)   = .? (object .# "attributes.initPosition") world
+        # (_, world)         = (layer .# "setLatLng" .$ position) world
+        # (title,world)      = .? (object .# "attributes.title") world
+        # (_, world)         = (layer .# "setTitle" .$ title) world
+        # (content,world)    = .? (object .# "attributes.content") world
+        # (_, world)         = (layer .# "setContent" .$ content) world
+        # (_,world)          = (layer .# "addTo" .$ (toJSArg mapObj)) world
+        # (windowId,world)   = .? (object .# "attributes.windowId") world
+        # (onWRemove, world) = jsWrapFun (onWindowRemove me (jsValToString windowId)) world
+        // inject function to send event on window remove
+        # world              = (layer .# "_onWindowClose" .= onWRemove) world
+        = world
 
 	//Loop through a javascript array
     forall :: ((JSVal v11) *JSWorld -> *JSWorld) !(JSVal a) !*JSWorld -> *JSWorld
@@ -383,6 +415,10 @@ where
 		where
 			sel x (Marker m=:{LeafletMarker|markerId}) = Marker {LeafletMarker|m & selected = markerId == x}
 			sel x o = o
+        app m (LDRemoveWindow idToRemove) = {LeafletMap|m & objects = filter notToRemove m.LeafletMap.objects}
+        where
+            notToRemove (Window {windowId}) = windowId <> idToRemove
+            notToRemove _                   = True
 		app m _ = m
 	onEdit _ _ m msk ust = (Ok (NoChange,msk),m,ust)
 
@@ -424,9 +460,9 @@ gDefault{|LeafletPerspective|}
 //Comparing reals may have unexpected results, especially when comparing constants to previously stored ones
 gEq{|LeafletLatLng|} x y = (toString x.lat == toString y.lat) && (toString x.lng == toString y.lng)
 
-derive JSONEncode LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive JSONDecode LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive gDefault   LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive gEq        LeafletMap, LeafletPerspective, LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive gText      LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive gEditor    LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
+derive JSONEncode LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, Window
+derive JSONDecode LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, Window
+derive gDefault   LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, Window
+derive gEq        LeafletMap, LeafletPerspective, LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, Window
+derive gText      LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, Window
+derive gEditor    LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, Window

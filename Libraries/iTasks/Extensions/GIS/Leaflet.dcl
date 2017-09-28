@@ -2,6 +2,8 @@ definition module iTasks.Extensions.GIS.Leaflet
 
 import iTasks
 
+leafletEditor :: Editor LeafletMap
+
 :: LeafletMap =
     { perspective   :: LeafletPerspective 
 	, tilesUrl      :: Maybe String      
@@ -34,9 +36,10 @@ import iTasks
     }
 
 :: LeafletObject
-    = Marker LeafletMarker
-    | Polyline LeafletPolyline
-    | Polygon LeafletPolygon
+    = Marker   !LeafletMarker
+    | Polyline !LeafletPolyline
+    | Polygon  !LeafletPolygon
+    | Window   !Window
 
 :: LeafletObjectID :== String
 :: LeafletMarker =
@@ -63,12 +66,19 @@ import iTasks
     , fillColor     :: !Maybe String // Nothing means no fill
     }
 
+:: Window =
+    { windowId     :: !LeafletObjectID
+    , initPosition :: !LeafletLatLng
+    , title        :: !String
+    , content      :: !HtmlTag
+    }
+
 //Public tileserver of openstreetmaps
 openStreetMapTiles :: String
 
-derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
-derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
-derive gDefault         LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
-derive gEq              LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
-derive gText            LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
-derive gEditor          LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon
+derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, Window
+derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, Window
+derive gDefault         LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, Window
+derive gEq              LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, Window
+derive gText            LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, Window
+derive gEditor          LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, Window
