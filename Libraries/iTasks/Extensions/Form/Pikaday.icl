@@ -39,18 +39,20 @@ where
 		# (value,world) 	= .? (me .# "attributes.value") world
 		# (domEl,world)     = .? (me .# "domEl") world
 		# world 		 	= ((domEl .# "value") .= value) world
-		//Create onselect
+		//Create onselect/keyup
 		# (onSelectCb,world) = jsWrapFun (\a w -> (jsNull,onSelect me w)) world
-		# (cfg,world)		= jsEmptyObject world
-		# world				= ((cfg .# "field") .= domEl) world
-		# world				= ((cfg .# "format") .= "YYYY-MM-DD") world
-		# world				= ((cfg .# "firstDay") .= 1) world
-		# world				= ((cfg .# "onSelect") .= onSelectCb) world
-		# (picker,world)	= jsNewObject "Pikaday" [toJSArg cfg] world
-		# world				= ((me .# "picker") .= picker) world
+        # (onKeyupCb,world)  = jsWrapFun (\a w -> (jsNull,onKeyup me w)) world
+		# (cfg,world)		 = jsEmptyObject world
+		# world				 = ((cfg .# "field") .= domEl) world
+		# world				 = ((cfg .# "format") .= "YYYY-MM-DD") world
+		# world				 = ((cfg .# "firstDay") .= 1) world
+		# world				 = ((cfg .# "onSelect") .= onSelectCb) world
+        # (_,world)          = ((domEl .# "addEventListener") .$ ("keyup", onKeyupCb)) world
+		# (picker,world)	 = jsNewObject "Pikaday" [toJSArg cfg] world
+		# world				 = ((me .# "picker") .= picker) world
 		//Handle attribute changes
-		# (cb,world) 		= jsWrapFun (\a w -> (jsNull,onAttributeChange picker me a w)) world
-		# world      		= ((me .# "onAttributeChange") .= cb) world
+		# (cb,world) 		 = jsWrapFun (\a w -> (jsNull,onAttributeChange picker me a w)) world
+		# world      		 = ((me .# "onAttributeChange") .= cb) world
 		//React to selects
 		= world
 
@@ -71,6 +73,13 @@ where
 		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,value)) world
 		= world
 
+    onKeyup me world
+        # (taskId,world)   = .? (me .# "attributes.taskId") world
+		# (editorId,world) = .? (me .# "attributes.editorId") world
+        # (value,world)    = .? (me .# "domEl.value") world
+        # value            = if (jsValToString value == "") jsNull value
+        # (_,world)        = ((me .# "doEditEvent") .$ (taskId, editorId, value)) world
+		= world
 
 	onEdit dp (tp,e) val mask vst=:{VSt|optional}
 		= case e of
