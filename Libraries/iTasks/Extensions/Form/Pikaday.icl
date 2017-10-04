@@ -12,13 +12,12 @@ MOMENT_JS_URL :== "/momentjs/moment.min.js"
 pikadayField :: Editor String
 pikadayField = {Editor|genUI = withClientSideInit initUI genUI, onEdit = onEdit, onRefresh = onRefresh}
 where
-	genUI dp value vst=:{VSt|taskId,optional}
-		//Set both state and options as attributes
-		# optionsAttr = 'DM'.fromList
-			[("value",JSONString value)
-			]
-    	# attr = 'DM'.unions [optionsAttr, optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp)]
-		= (Ok (uia UITextField attr, FieldMask {touched = False, valid = True, state = JSONString value}),vst)
+	genUI dp value vst=:{VSt|taskId,optional,mode}
+        # val = if (mode =: Enter) JSONNull (JSONString value) 
+		# valid = if (mode =: Enter) optional True //When entering data a value is initially only valid if it is optional
+		# mask = FieldMask {touched = False, valid = valid, state = val}
+        # attr = 'DM'.unions [optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr val]
+		= (Ok (uia UITextField attr, mask),vst)
 
 	initUI me world
 		//Load css
@@ -40,18 +39,20 @@ where
 		# (value,world) 	= .? (me .# "attributes.value") world
 		# (domEl,world)     = .? (me .# "domEl") world
 		# world 		 	= ((domEl .# "value") .= value) world
-		//Create onselect
+		//Create onselect/keyup
 		# (onSelectCb,world) = jsWrapFun (\a w -> (jsNull,onSelect me w)) world
-		# (cfg,world)		= jsEmptyObject world
-		# world				= ((cfg .# "field") .= domEl) world
-		# world				= ((cfg .# "format") .= "YYYY-MM-DD") world
-		# world				= ((cfg .# "firstDay") .= 1) world
-		# world				= ((cfg .# "onSelect") .= onSelectCb) world
-		# (picker,world)	= jsNewObject "Pikaday" [toJSArg cfg] world
-		# world				= ((me .# "picker") .= picker) world
+        # (onKeyupCb,world)  = jsWrapFun (\a w -> (jsNull,onKeyup me w)) world
+		# (cfg,world)		 = jsEmptyObject world
+		# world				 = ((cfg .# "field") .= domEl) world
+		# world				 = ((cfg .# "format") .= "YYYY-MM-DD") world
+		# world				 = ((cfg .# "firstDay") .= 1) world
+		# world				 = ((cfg .# "onSelect") .= onSelectCb) world
+        # (_,world)          = ((domEl .# "addEventListener") .$ ("keyup", onKeyupCb)) world
+		# (picker,world)	 = jsNewObject "Pikaday" [toJSArg cfg] world
+		# world				 = ((me .# "picker") .= picker) world
 		//Handle attribute changes
-		# (cb,world) 		= jsWrapFun (\a w -> (jsNull,onAttributeChange picker me a w)) world
-		# world      		= ((me .# "onAttributeChange") .= cb) world
+		# (cb,world) 		 = jsWrapFun (\a w -> (jsNull,onAttributeChange picker me a w)) world
+		# world      		 = ((me .# "onAttributeChange") .= cb) world
 		//React to selects
 		= world
 
@@ -72,6 +73,13 @@ where
 		# (_,world) = ((me .# "doEditEvent") .$ (taskId,editorId,value)) world
 		= world
 
+    onKeyup me world
+        # (taskId,world)   = .? (me .# "attributes.taskId") world
+		# (editorId,world) = .? (me .# "attributes.editorId") world
+        # (value,world)    = .? (me .# "domEl.value") world
+        # value            = if (jsValToString value == "") jsNull value
+        # (_,world)        = ((me .# "doEditEvent") .$ (taskId, editorId, value)) world
+		= world
 
 	onEdit dp (tp,e) val mask vst=:{VSt|optional}
 		= case e of
