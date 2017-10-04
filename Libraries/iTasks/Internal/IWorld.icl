@@ -88,7 +88,7 @@ createIWorld options world
       ,ioTasks              = {done = [], todo = []}
       ,ioStates             = 'DM'.newMap
 	  ,world				= world
-      ,resources            = Nothing
+      ,resources            = []
       ,random               = genRandInt seed
       ,onClient				= False
 	  }
@@ -151,6 +151,18 @@ iworldTimestamp = createReadWriteSDS "IWorld" "timestamp" read write
 where
     read _ iworld=:{IWorld|clocks={timestamp}} = (Ok timestamp,iworld)
     write _ timestamp iworld=:{IWorld|clocks} = (Ok (const True), {iworld & clocks = {clocks & timestamp=timestamp}})
+
+iworldResource :: (*Resource -> (Bool, *Resource)) *IWorld -> (*[*Resource], *IWorld)
+iworldResource f iworld=:{IWorld|resources}
+# (matches, resources) = splitWithUnique f resources
+= (matches, {iworld & resources=resources})
+where
+	splitWithUnique f [] = ([], [])
+	splitWithUnique f [r:rs]
+	# (ok, r) = f r
+	| ok = let (ms, xs) = splitWithUnique f rs in ([r:ms], xs)
+	= let (ms, xs) = splitWithUnique f rs in (ms, [r:xs])
+
 
 //Wrapper instance for file access
 instance FileSystem IWorld

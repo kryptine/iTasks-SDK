@@ -49,7 +49,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 					, world					:: !*World									    // The outside world
 
                     //Experimental database connection cache
-                    , resources             :: !*(Maybe *Resource)
+                    , resources             :: *[*Resource]
                     , onClient				:: !Bool									// "False" on the server, "True" on the client
 					, shutdown				:: !Maybe Int                               // Signals the server function to shut down, the int will be set as exit code
 					}
@@ -159,5 +159,13 @@ iworldLocalDate :: Shared Date
 iworldLocalTime :: Shared Time
 iworldUTCDate   :: Shared Date
 iworldUTCTime   :: Shared Time
+
+/*
+ * Gives you possibly a matching resource while adhering to the uniqueness
+ * constraints. Note that this does remove it from the IWorld
+ *
+ * @param Function that classifies the resource whether it matches
+ */
+iworldResource :: (*Resource -> (Bool, *Resource)) *IWorld -> (*[*Resource], *IWorld)
 
 instance FileSystem IWorld
