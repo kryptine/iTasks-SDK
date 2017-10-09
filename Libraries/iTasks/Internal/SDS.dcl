@@ -2,6 +2,7 @@ definition module iTasks.Internal.SDS
 
 import GenEq
 import System.FilePath, Data.Maybe, Data.Either, Data.Error, System.Time, Text.JSON
+from Data.Set import :: Set
 from iTasks.Internal.IWorld import :: IWorld
 from iTasks.Internal.Generic.Visualization import :: TextFormat
 
@@ -57,10 +58,10 @@ modify          :: !(r -> (!a,!w))          !(RWShared () r w) !*IWorld -> (!May
 //Force notify (queue evaluation of task instances that registered for notification)
 notify          ::                          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 
-//Clear all registrations for a given task instance.
+//Clear all registrations for the given tasks.
 //This is normally called by the queueRefresh functions, because once an instance is queued
 //for evaluation anyway, it no longer make sense to notify it again.
-clearInstanceSDSRegistrations :: ![InstanceNo] !*IWorld -> *IWorld
+clearInstanceSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
 
 //List all current registrations (for debugging purposes)
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)

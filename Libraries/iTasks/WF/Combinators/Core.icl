@@ -106,7 +106,7 @@ where
 				//Cleanup state of left-hand side
 				# iworld	= case mbTreeA of
 					Nothing		= iworld
-					Just treea	= snd (evala (toRefresh event) (extendCallTrace taskId evalOpts) (TCDestroy treea) iworld) //TODO: Check for exceptions during cleanup
+					Just treea	= snd (evala (toRefreshAll event) (extendCallTrace taskId evalOpts) (TCDestroy treea) iworld) //TODO: Check for exceptions during cleanup
 				# (taskIdb,iworld)	= getNextTaskId iworld
 				# (resb,iworld)		= evalb ResetEvent (extendCallTrace taskId evalOpts) (TCInit taskIdb lastEvent) iworld
 				= case resb of
@@ -186,12 +186,12 @@ where
             Just a ->  Just (f_tva_tb a)
             Nothing -> Nothing
 
-    toRefresh :: Event -> Event
-    toRefresh (EditEvent _ _ _)		= RefreshEvent "Converted from Edit"
-    toRefresh (ActionEvent _ _)		= RefreshEvent "Converted from Action"
-    toRefresh (FocusEvent _)		= RefreshEvent "Converted from Focus"
-    toRefresh (RefreshEvent reason)	= RefreshEvent reason
-    toRefresh (ResetEvent)          = RefreshEvent "Converted from Reset"
+    toRefreshAll :: Event -> Event
+    toRefreshAll (EditEvent _ _ _)  = RefreshEvent Nothing "Converted from Edit"
+    toRefreshAll (ActionEvent _ _)  = RefreshEvent Nothing "Converted from Action"
+    toRefreshAll (FocusEvent _)		= RefreshEvent Nothing "Converted from Focus"
+    toRefreshAll (RefreshEvent _ _)	= RefreshEvent Nothing "Converted from Refresh"
+    toRefreshAll (ResetEvent)       = RefreshEvent Nothing "Converted from Reset"
 
 isEnabled (UI _ attr _) = maybe False (\(JSONBool b) -> b) ('DM'.get "enabled" attr)
 actionId (UI _ attr _) = maybe "" (\(JSONString s) -> s) ('DM'.get "actionId" attr)
@@ -430,7 +430,7 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
     # (tree,newBranch)    = maybe (TCInit taskId taskTime,True) (\tree -> (tree,False)) ('DM'.get taskId taskTrees)
     //Evaluate or destroy branch
     | change === Just RemoveParallelTask
-        # (result,iworld) = evala (RefreshEvent "Destroying parallel branch") {mkEvalOpts & noUI = True} (TCDestroy tree) iworld
+        # (result,iworld) = evala (RefreshEvent Nothing "Destroying parallel branch") {mkEvalOpts & noUI = True} (TCDestroy tree) iworld
         //TODO: remove the task evaluation function
         = evalParallelTasks listId taskTrees event evalOpts conts [result:completed] todo iworld
     | otherwise
@@ -502,7 +502,7 @@ where
                 # (Task evala)       = fromOk mbTask
                 //TODO: remove the task evaluation function
                 # evalOpts           = {mkEvalOpts & noUI = True}
-                # (r,iworld)         = evala (RefreshEvent "Destroying removed parallel branch") evalOpts (TCDestroy tree) iworld
+                # (r,iworld)         = evala (RefreshEvent Nothing "Destroying removed parallel branch") evalOpts (TCDestroy tree) iworld
                 # (rs,iworld)        = destroyRemoved removed rs iworld
                 = ([r:rs],iworld)
             | otherwise

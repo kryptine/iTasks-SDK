@@ -9,6 +9,7 @@ import iTasks.UI.Editor.Generic
 
 from Text.JSON import :: JSONNode
 from Data.Map import :: Map(..)
+from Data.Set import :: Set
 from Data.Maybe import :: Maybe
 from System.Time import :: Timestamp
 import Data.Functor

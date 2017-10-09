@@ -141,8 +141,8 @@ read` p mbNotify reqSDSId sds=:(SDSDynamic f) env
 write :: !w !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld) | TC r & TC w
 write w sds iworld
     = case write` () w sds iworld of
-		(Ok notify, iworld)  = (Ok (), queueNotifyEvents (sdsIdentity sds) notify iworld)
-        (Error e,iworld)    	= (Error e,iworld)
+		(Ok notify, iworld) = (Ok (), queueNotifyEvents (sdsIdentity sds) notify iworld)
+        (Error e,iworld)    = (Error e,iworld)
 
 write` :: !p !w !(RWShared p r w) !*IWorld -> (!MaybeError TaskException (Set TaskId), !*IWorld) | iTask p & TC r & TC w
 write` p w sds=:(SDSSource {SDSSource|name,write}) env
@@ -330,7 +330,7 @@ checkRegistrations :: !SDSIdentity (p -> Bool) !*IWorld -> (Set TaskId, Set Task
 checkRegistrations sdsId pred iworld
 	# (registrations, iworld) 	= lookupRegistrations sdsId iworld
 	# (match,nomatch) 			= matchRegistrations pred registrations
-	= (match,nomatch,iworld) 
+	= (match,nomatch,iworld)
 where
 	//Find all notify requests for the given share id
 	lookupRegistrations sdsId iworld=:{sdsNotifyRequests}
@@ -358,19 +358,13 @@ modify f sds iworld = case read sds iworld of
 notify :: !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 notify sds iworld = (Ok (), iworld) //TODO
 
-
-queueNotifyEvents :: !String (Set TaskId) *IWorld -> *IWorld
+queueNotifyEvents :: !String !(Set TaskId) *IWorld -> *IWorld
 queueNotifyEvents sdsId notify iworld
-	# instanceNos = [no \\ (TaskId no _) <- 'Set'.toList notify]
-	# iworld = queueRefresh [(i,"Notification for write of " +++ sdsId) \\ i <- instanceNos] iworld
-	# iworld = clearInstanceSDSRegistrations instanceNos iworld
-	= iworld
+	= queueRefresh [(t,"Notification for write of " +++ sdsId) \\ t <- 'Set'.toList notify] iworld
 
-clearInstanceSDSRegistrations :: ![InstanceNo] !*IWorld -> *IWorld
-clearInstanceSDSRegistrations instanceNos iworld=:{IWorld|sdsNotifyRequests}
-    = {iworld & sdsNotifyRequests = [r \\ r=:{SDSNotifyRequest|reqTaskId} <- sdsNotifyRequests | keep reqTaskId instanceNos]}
-where
-	keep (TaskId no _) nos = not (isMember no nos)
+clearInstanceSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
+clearInstanceSDSRegistrations taskIds iworld=:{IWorld|sdsNotifyRequests}
+    = {iworld & sdsNotifyRequests = [r \\ r=:{SDSNotifyRequest|reqTaskId} <- sdsNotifyRequests | not ('Set'.member reqTaskId taskIds)]}
 
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
 listAllSDSRegistrations iworld=:{IWorld|sdsNotifyRequests} = ('DM'.toList (foldr addReg 'DM'.newMap sdsNotifyRequests),iworld)

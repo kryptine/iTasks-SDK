@@ -24,15 +24,16 @@ import iTasks.WF.Combinators.Tune
 import iTasks.Extensions.Document
 
 import qualified Data.Map as DM
+import qualified Data.Set as DS
 import qualified Data.Queue as DQ
 from Data.Queue import :: Queue(..)
 
 //Derives required for storage of UI definitions
 derive JSONEncode TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
-derive JSONEncode Queue, Event
+derive JSONEncode Queue, Event, Set
 
 derive JSONDecode TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
-derive JSONDecode Queue, Event
+derive JSONDecode Queue, Event, Set
 
 derive gDefault TIMeta
 derive gEq ParallelTaskChange
@@ -162,7 +163,7 @@ createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> ( Ok (TaskId instanceNo 0)
 				 , if refreshImmediate
-                      (queueRefresh [(instanceNo,"First refresh of detached instance "<+++ instanceNo)] iworld)
+                      (queueEvent instanceNo (RefreshEvent Nothing ("First refresh of detached instance "<+++ instanceNo)) iworld)
                       iworld)
 
 createReduct :: !TonicOpts !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
@@ -465,23 +466,23 @@ where
 
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
 //Special case for refresh events, queue only if the instance has no events in the queue yet
-queueEvent instanceNo event=:(RefreshEvent r) iworld 
+/*queueEvent instanceNo event=:(RefreshEvent _ _) iworld
 	# (_,iworld) = 'SDS'.modify (queueIfNotScheduled instanceNo event) taskEvents iworld
 	= iworld
 where
 	queueIfNotScheduled instanceNo event q=:('DQ'.Queue front back)
 		| isMember instanceNo (map fst (front ++ back)) = ((),q)
-														= ((),'DQ'.enqueue (instanceNo,event) q)
+														= ((),'DQ'.enqueue (instanceNo,event) q)*/
 //Standard case...
 queueEvent instanceNo event iworld 
 	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue (instanceNo,event) q)) taskEvents iworld
 	= iworld
 
-queueRefresh :: ![(InstanceNo,String)] !*IWorld -> *IWorld
-queueRefresh instances iworld
+queueRefresh :: ![(!TaskId, !String)] !*IWorld -> *IWorld
+queueRefresh tasks iworld
     //Clear the instance's share change registrations, we are going to evaluate anyway
-	# iworld	= 'SDS'.clearInstanceSDSRegistrations (map fst instances) iworld
-	# iworld 	= foldl (\w (i,r) -> queueEvent i (RefreshEvent r) w) iworld instances
+	# iworld	= 'SDS'.clearInstanceSDSRegistrations ('DS'.fromList (map fst tasks)) iworld
+	# iworld 	= foldl (\w (t,r) -> queueEvent (toInstanceNo t) (RefreshEvent (Just ('DS'.singleton t)) r) w) iworld tasks
 	= iworld
 
 dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
