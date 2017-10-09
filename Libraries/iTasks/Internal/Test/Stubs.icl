@@ -19,7 +19,7 @@ toStubIWorld world
   ,sdsNotifyRequests = [], memoryShares = 'DM'.newMap, readCache = 'DM'.newMap, writeCache = 'DM'.newMap, exposedShares = 'DM'.newMap
   ,jsCompilerState = Nothing ,shutdown = Nothing ,ioTasks = {done = [], todo = []},ioStates = 'DM'.newMap
   ,world = world
-  ,resources = Nothing,random = [],onClient = False }
+  ,resources = [], random = [], onClient = False }
 	
 fromStubIWorld :: *IWorld -> *World
 fromStubIWorld iworld=:{IWorld|world} = world
