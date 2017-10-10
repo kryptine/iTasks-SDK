@@ -21,6 +21,7 @@ import Data.Maybe, Data.Error
 import qualified Data.Map as DM
 
 from iTasks.Extensions.Form.Pikaday import pikadayDateField
+from iTasks.Internal.Util import tmToDateTime
 
 //* (Local) date and time
 toTime :: DateTime -> Time
@@ -183,11 +184,6 @@ derive gEq				DateTime
 
 timestampToGmDateTime :: !Timestamp -> DateTime
 timestampToGmDateTime timestamp = tmToDateTime (toGmTime timestamp)
-
-tmToDateTime :: !Tm -> DateTime
-tmToDateTime tm
-	= {DateTime| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year
-	  ,hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
 
 dateToTimestamp :: !Date -> Timestamp
 dateToTimestamp {Date|day,mon,year}
