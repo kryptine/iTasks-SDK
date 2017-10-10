@@ -35,7 +35,7 @@ tonic = tonicDashboard []
 
 tonicDashboard :: [TaskAppRenderer] -> Task ()
 tonicDashboard rs = ((tonicStaticBrowser rs <<@ Title "Static Blueprints")
-               -||- (tonicDynamicBrowser rs <<@ Title "Dynamic Blueprints")) <<@ ArrangeWithTabs
+               -||- (tonicDynamicBrowser rs <<@ Title "Dynamic Blueprints")) <<@ ArrangeWithTabs False
 
 tonicStaticWorkflow :: [TaskAppRenderer] -> Workflow
 tonicStaticWorkflow rs = workflow "Tonic Static Browser" "Tonic Static Browser" (tonicStaticBrowser rs)
