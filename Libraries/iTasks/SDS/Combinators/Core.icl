@@ -1,11 +1,12 @@
 implementation module iTasks.SDS.Combinators.Core
 
-import iTasks.SDS.Definition
+import iTasks.SDS.Definition, iTasks.Internal.SDS
 import Data.Either
 
 import iTasks.Internal.Generic.Visualization
 import iTasks.Internal.Generic.Defaults
 import iTasks.UI.Editor.Generic
+import iTasks.WF.Definition
 import GenEq
 
 sdsLens :: !String (p -> ps) (SDSLensRead p r rs) (SDSLensWrite p w rs ws) (SDSLensNotify p p w rs) !(SDS ps rs ws) -> SDS p r w | iTask ps & TC rs & TC ws
@@ -21,4 +22,11 @@ sdsSequence :: !String !(p -> p1) !(p r1 -> p2) (p r1 -> Either r ((r1,r2) -> r)
 sdsSequence name paraml paramr read write1 write2 sds1 sds2 = SDSSequence sds1 sds2 {SDSSequence|name=name,paraml=paraml,paramr=paramr,read=read,writel=write1,writer=write2}
 
 sdsCache:: (p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)) (SDS p r w) -> SDS p r w | iTask p & TC r & TC w
-sdsCache write sds = SDSCache sds {SDSCache|write=write}
+sdsCache write (SDSSource sds) = SDSCache sds {SDSCache|write=write}
+sdsCache _ _ = createReadWriteSDS invalidCacheName
+                                  invalidCacheName
+                                  (\_   iworld -> (Error invalidCacheError, iworld))
+                                  (\_ _ iworld -> (Error invalidCacheError, iworld))
+where
+    invalidCacheName  = "invalid SDS cache"
+    invalidCacheError = exception "SDS cache only allowed on source SDSs."

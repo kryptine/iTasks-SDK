@@ -55,7 +55,7 @@ sdsIdentity (SDSLens sds {SDSLens|name}) = sdsIdentity sds +++"/["+++name+++"]"
 sdsIdentity (SDSSelect sds1 sds2 {SDSSelect|name}) = "{"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++"}"
 sdsIdentity (SDSParallel sds1 sds2 {SDSParallel|name}) = "|"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++"|"
 sdsIdentity (SDSSequence sds1 sds2 {SDSSequence|name}) = "<"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++">"
-sdsIdentity (SDSCache sds _) = sdsIdentity sds
+sdsIdentity (SDSCache {SDSSource|name} _) = "$" +++ name +++ "$"
 sdsIdentity (SDSDynamic f) = "SDSDYNAMIC" //TODO: Figure out how to determine the identity of the wrapped sds
 
 iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
@@ -121,12 +121,12 @@ read` p mbNotify reqSDSId sds=:(SDSSequence sds1 sds2 {SDSSequence|paraml,paramr
 
 read` p mbNotify reqSDSId sds=:(SDSCache sds1 _) env=:{IWorld|readCache}
     # env = mbRegister p sds mbNotify reqSDSId env
-	# key = (sdsIdentity sds1,toSingleLineText p)
+	# key = (sdsIdentity sds,toSingleLineText p)
 	//First check cache
 	= case 'DM'.get key readCache of
 		Just (val :: r^) = (Ok val,env)
 		Just _           = (Error (exception "Cached value of wrong type"), env)
-		Nothing = case read` p mbNotify reqSDSId sds1 env of
+		Nothing = case read` p mbNotify reqSDSId (SDSSource sds1) env of
 			(Error e,env) = (Error e, env)
 			//Read and add to cache
 			(Ok val,env)  = (Ok val, {env & readCache = 'DM'.put key (dynamic val :: r^) env.readCache})
@@ -297,7 +297,7 @@ write` p w sds=:(SDSSequence sds1 sds2 {SDSSequence|paraml,paramr,writel,writer}
             = (Ok ('Set'.union (fromOk npreds1) (fromOk npreds2)), env)
 
 write` p w sds=:(SDSCache sds1 {SDSCache|write}) env=:{IWorld|readCache,writeCache}
-	# key = (sdsIdentity sds1,toSingleLineText p)
+	# key = (sdsIdentity sds,toSingleLineText p)
 	//Check cache
 	# mbr = case 'DM'.get key readCache of
 		Just (val :: r^) = Just val
@@ -313,9 +313,9 @@ write` p w sds=:(SDSCache sds1 {SDSCache|write}) env=:{IWorld|readCache,writeCac
 		Nothing  = 'DM'.del key readCache
 	= case policy of
 		NoWrite = (Ok 'Set'.newSet, {env & readCache = readCache})
-		WriteNow = write` p w sds1 {env & readCache = readCache}
+		WriteNow = write` p w (SDSSource sds1) {env & readCache = readCache}
 		WriteDelayed
-			# writeCache = 'DM'.put key (dynamic w :: w^, DeferredWrite p w sds1) writeCache
+			# writeCache = 'DM'.put key (dynamic w :: w^, DeferredWrite p w (SDSSource sds1)) writeCache
 			= (Ok 'Set'.newSet, {env & readCache = readCache, writeCache = writeCache})
 
 write` p w sds=:(SDSDynamic f) env
