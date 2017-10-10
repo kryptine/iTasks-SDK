@@ -37,7 +37,7 @@ currentUTCDate :: SDS () Date ()
 currentUTCDate = toReadOnly iworldUTCDate
 
 currentTimestamp :: SDS () Timestamp ()
-currentTimestamp = mapRead datetimeToTimestamp currentUTCDateTime
+currentTimestamp = toReadOnly iworldTimestamp
 
 
 // Workflow processes
