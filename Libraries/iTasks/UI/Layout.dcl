@@ -71,6 +71,7 @@ from Text.JSON import :: JSONNode
 :: UISelection
 	= SelectByPath UIPath //Direct addressing
 	| SelectChildren
+	| SelectByDepth Int
 	| SelectDescendents
 	| SelectByType UIType
 	| SelectByAttribute String JSONNode
