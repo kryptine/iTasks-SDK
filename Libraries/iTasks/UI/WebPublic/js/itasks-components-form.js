@@ -5,10 +5,14 @@ itasks.TextField = {
 			el = this.domEl;
 		el.type = 'text';
 		el.value = me.attributes.value ? me.attributes.value : '';
-		el.addEventListener('keyup',function(e) {
-            var value = e.target.value === "" ? null : e.target.value
-			me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
-		});
+		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
+			el.disabled = true;
+		} else {
+			el.addEventListener('keyup',function(e) {
+        	    var value = e.target.value === "" ? null : e.target.value
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
+			});
+		}
 	},
 	onAttributeChange: function(name,value) {
 		var me = this;
@@ -25,16 +29,20 @@ itasks.TextArea = {
 		height: 'flex',
 		width: 'flex',
 		minHeight: 150,
-		minWidth: 400
+		minWidth: 400,
 	},
     initDOMEl: function() {
         var me = this,
             el = this.domEl;
         el.innerHTML = me.attributes.value ? me.attributes.value : '';
-        el.addEventListener('keyup',function(e) {
-			var value = e.target.value === "" ? null : e.target.value
-			me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
-        });
+		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
+			el.disabled = true;
+		} else {
+        	el.addEventListener('keyup',function(e) {
+				var value = e.target.value === "" ? null : e.target.value
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
+        	});
+		}
     },
 	onAttributeChange: function(name,value) {
 		var me = this;
@@ -52,10 +60,14 @@ itasks.PasswordField = {
 			el = this.domEl;
 		el.type = 'password';
 		el.value = me.attributes.value ? me.attributes.value : '';
-		el.addEventListener('keyup',function(e) {
-            var value = e.target.value === "" ? null : e.target.value
-			me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
-		});
+		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
+			el.disabled = true;
+		} else {
+			el.addEventListener('keyup',function(e) {
+        	    var value = e.target.value === "" ? null : e.target.value
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
+			});
+		}
 	}
 	,onAttributeChange: function(name,value) {
 		var me = this;
@@ -271,9 +283,13 @@ itasks.Slider = {
         el.max = me.attributes.max;
         el.value = me.attributes.value;
 
-        el.addEventListener('change',function(e) {
-            me.doEditEvent(me.attributes.taskId,me.attributes.editorId, (e.target.value | 0),true);
-        });
+		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
+			el.disabled = true;
+		} else {
+        	el.addEventListener('change',function(e) {
+        	    me.doEditEvent(me.attributes.taskId,me.attributes.editorId, (e.target.value | 0),true);
+        	});
+		}
     },
 	onAttributeChange: function(name,value) {
 		var me = this;

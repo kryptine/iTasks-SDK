@@ -5,6 +5,11 @@ import StdFunc, StdBool, GenEq
 import Data.Error, Text.JSON, Text.HTML
 import qualified Data.Map as DM
 
+import iTasks.UI.Definition
+import iTasks.UI.Editor.Modifiers
+
+disableOnView e = selectByMode (withAttributes (enabledAttr False) e) e e
+
 textField :: Editor String
 textField = fieldComponent toJSON UITextField
 
@@ -85,7 +90,7 @@ where
 		| otherwise = or (map (checkNode idx) children)
 
 //Field like components for which simply knowing the UI type is sufficient
-fieldComponent toValue type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+fieldComponent toValue type = disableOnView {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where 
 	genUI dp val vst=:{VSt|taskId,mode,optional}
 		# val = if (mode =: Enter) JSONNull (toValue val) 
