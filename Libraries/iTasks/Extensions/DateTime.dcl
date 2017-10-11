@@ -57,9 +57,10 @@ derive gEditor 			Date, Time, DateTime
 
 
 //Util
-timestampToGmDateTime	:: !Timestamp -> DateTime
-dateToTimestamp			:: !Date -> Timestamp
-datetimeToTimestamp 	:: !DateTime -> Timestamp
+timestampToGmDateTime	 :: !Timestamp -> DateTime
+timestampToLocalDateTime :: !Timestamp -> Task DateTime
+dateToTimestamp			 :: !Date      -> Timestamp
+datetimeToTimestamp 	 :: !DateTime  -> Timestamp
 
 
 /*** Special wait tasks ***/

@@ -7,7 +7,8 @@ import iTasks.WF.Combinators.Core
 import iTasks.WF.Combinators.Common
 import iTasks.WF.Combinators.Overloaded
 import iTasks.SDS.Sources.System
-
+from iTasks.Internal.Task import mkInstantTask
+import iTasks.Internal.IWorld
 import iTasks.UI.Definition
 import iTasks.UI.Prompt
 import iTasks.UI.Editor
@@ -185,6 +186,13 @@ derive gEq				DateTime
 timestampToGmDateTime :: !Timestamp -> DateTime
 timestampToGmDateTime timestamp = tmToDateTime (toGmTime timestamp)
 
+timestampToLocalDateTime :: !Timestamp -> Task DateTime
+timestampToLocalDateTime ts = mkInstantTask timestampToLocalDateTime`
+where
+    timestampToLocalDateTime` _ iworld=:{world}
+        # (tm, world) = toLocalTime ts world
+        = (Ok (tmToDateTime tm), {iworld & world = world})
+
 dateToTimestamp :: !Date -> Timestamp
 dateToTimestamp {Date|day,mon,year}
 	= mkTime {Tm|sec = 0, min = 0, hour = 0, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = -1}
@@ -206,13 +214,9 @@ waitForDateTime :: !DateTime -> Task DateTime
 waitForDateTime datetime =
 	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime >>* [OnValue (ifValue (\now -> datetime < now) return)]
 
-waitForUTCDateTime :: !DateTime -> Task DateTime
-waitForUTCDateTime datetime =
-	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentUTCDateTime >>* [OnValue (ifValue (\now -> datetime < now) return)]
-
 waitForTimer :: !Int -> Task DateTime
-waitForTimer interval = get currentDateTime >>- \now -> waitForUTCDateTime (endTime interval now)
-where
-	endTime interval now = let (Timestamp ts) = datetimeToTimestamp now in timestampToGmDateTime (Timestamp (ts + interval))
-
+waitForTimer interval =
+    get currentTimestamp                                  >>- \(Timestamp now) ->
+    timestampToLocalDateTime (Timestamp (now + interval)) >>- \endTime ->
+    waitForDateTime endTime
 
