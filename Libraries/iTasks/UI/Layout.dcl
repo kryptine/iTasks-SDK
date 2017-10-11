@@ -68,18 +68,34 @@ from Text.JSON import :: JSONNode
 // we want to keep only minimal state. Using an opaque function would require
 // keeping track of the full state
 
+//Only match children
+SelectChildren :== SelectByDepth 1
 :: UISelection
-	= SelectByPath UIPath //Direct addressing
-	| SelectChildren
+	//Select only nodes matching the exact path
+	= SelectByPath UIPath
+	//Only match nodes at a given depth
 	| SelectByDepth Int
+	//Match any descendents of any depth
 	| SelectDescendents
+	//Match nodes of a certain type
 	| SelectByType UIType
+	//Match nodes that have a matching attribute
 	| SelectByAttribute String JSONNode
+	//Match nodes that have the attribute
 	| SelectByHasAttribute String
-	| SelectByNumChildren Int //Mostly to match containers with 0 or 1 children
-	//Relative selection
+	//Match nodes with exactly the given number of children
+	| SelectByNumChildren Int
+	//Match nodes that match the given selection on traversal of the given path
 	| SelectRelative UIPath UISelection
 	//Check if another (sub)-selection exists
+	//For example, to select child nodes that have a UIAction child you use:
+	//SelectAND
+	//	 SelectChildren
+	//	(SelectByContains
+	//		SelectAND
+	//			(SelectByType UIAction)
+	//			(SelectByDepth 2)
+	//	)
 	| SelectByContains UISelection
 	//No-op
 	| SelectNone

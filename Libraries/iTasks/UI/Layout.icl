@@ -24,9 +24,7 @@ derive JSONDecode LayoutState, LayoutTree, MvUI, MvUIChild
 //Test if a specific UI at a path is in the selection
 inUISelection :: UISelection UIPath UI -> Bool
 inUISelection (SelectByPath p) path _ = p === path
-inUISelection (SelectChildren) [_] _ = True
 inUISelection (SelectByDepth n) p _ = length p == n
-inUISelection (SelectChildren) _ _ = False
 inUISelection (SelectDescendents) [_:_] _ = True
 inUISelection (SelectDescendents) _ _ = False
 inUISelection (SelectByType t) _ (UI type _ _) = t === type
