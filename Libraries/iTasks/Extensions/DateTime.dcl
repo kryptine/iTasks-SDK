@@ -56,11 +56,42 @@ derive gText	        Date, Time, DateTime
 derive gEditor 			Date, Time, DateTime
 
 
-//Util
+/*** Time & Date Conversion ***/
+/**
+* Converts a timestamp to UTC DateTime.
+*
+* @param Timestamp: The timestamp to convert.
+*
+* @return The resulting UTC DateTime
+*/
 timestampToGmDateTime	 :: !Timestamp -> DateTime
+/**
+* Converts a timestamp to local DateTime.
+* This is a task, as the local time zone has to be detected.
+*
+* @param Timestamp: The timestamp to convert.
+*
+* @return The resulting local DateTime
+*/
 timestampToLocalDateTime :: !Timestamp -> Task DateTime
-dateToTimestamp			 :: !Date      -> Timestamp
-datetimeToTimestamp 	 :: !DateTime  -> Timestamp
+/**
+* Converts a local Date to a timestamp.
+* This is a task, as the local time zone has to be detected.
+*
+* @param Date: The date to convert
+*
+* @return The resulting timestamp
+*/
+localDateToTimestamp     :: !Date      -> Task Timestamp
+/**
+* Converts a local DateTime to a timestamp.
+* This is a task, as the local time zone has to be detected.
+*
+* @param Date: The date & time to convert
+*
+* @return The resulting timestamp
+*/
+localDateTimeToTimestamp :: !DateTime  -> Task Timestamp
 
 
 /*** Special wait tasks ***/
