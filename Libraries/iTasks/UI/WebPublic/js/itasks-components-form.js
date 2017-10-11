@@ -90,26 +90,30 @@ itasks.NumberField = {
         el.type = 'text';
 		el.value = (me.attributes.value === undefined || me.attributes.value === null) ? '' : me.attributes.value;
 
-        el.addEventListener('keypress',function(e) {
-            if(me.invalidKey(e.which)) {
-                e.stopPropagation();
-                e.preventDefault();
-            }
-        });
-        el.addEventListener('keyup',function(e) {
-            var value;
-            if(me.invalidKey(e.which)) {
-                return;
-            }
-            if(e.target.value === "") {
-                value = null;
-            } else if(me.invalidValue(e.target.value)) {
-                value = e.target.value;
-            } else {
-                value = me.allowDecimal ? parseFloat(e.target.value) : (e.target.value | 0);
-            }
-            me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
-        });
+		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
+			el.disabled = true;
+		} else {
+        	el.addEventListener('keypress',function(e) {
+        	    if(me.invalidKey(e.which)) {
+        	        e.stopPropagation();
+        	        e.preventDefault();
+        	    }
+        	});
+        	el.addEventListener('keyup',function(e) {
+        	    var value;
+        	    if(me.invalidKey(e.which)) {
+        	        return;
+        	    }
+        	    if(e.target.value === "") {
+        	        value = null;
+        	    } else if(me.invalidValue(e.target.value)) {
+        	        value = e.target.value;
+        	    } else {
+        	        value = me.allowDecimal ? parseFloat(e.target.value) : (e.target.value | 0);
+        	    }
+        	    me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
+        	});
+		}
     },
     invalidKey: function(charCode) {
         return !(charCode < 32 || (charCode > 47 && charCode < 58) || charCode == 45 || (this.allowDecimal && charCode == 46));
