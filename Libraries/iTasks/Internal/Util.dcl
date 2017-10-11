@@ -16,9 +16,7 @@ list2mb				:: ![a] -> (Maybe [a])
 
 instance toString (Maybe a) | toString a
 
-currentLocalDateTimeWorld	:: !*World	-> (!DateTime,!*World)
-currentUTCDateTimeWorld	    :: !*World	-> (!DateTime,!*World)
-tmToDateTime                :: !Tm -> DateTime
+tmToDateTime :: !Tm -> DateTime
 
 //Path conversion
 toCanonicalPath			:: !FilePath !*World -> (!FilePath,!*World)

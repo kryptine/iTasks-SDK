@@ -135,13 +135,7 @@ createClientIWorld serverURL currentInstance
 	                    , storeDirPath = locundef "dataDirectory"
 	                    , tempDirPath = locundef "tempDirectory"
 	                    , saplDirPath = locundef "saplDirectory"}				
-          ,clocks =
-            { timestamp =   timestamp
-			, localDate =   {Date|day = 1, mon = 1, year = 1977}
-            , localTime =   {Time|hour = 0, min = 0, sec = 0}
-            , utcDate =     {Date|day = 1, mon = 1, year = 1977}
-            , utcTime =     {Time|hour = 0, min = 0, sec = 0}
-            }
+          ,clock = timestamp
           ,current =
             {taskTime			= 0
 		    ,taskInstance	    = currentInstance

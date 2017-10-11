@@ -22,16 +22,6 @@ list2mb	:: ![a] -> (Maybe [a])
 list2mb [] = Nothing
 list2mb a = (Just a)
 
-
-currentLocalDateTimeWorld :: !*World -> (!DateTime,!*World)
-currentLocalDateTimeWorld world = appFst tmToDateTime (localTime world)
-	
-currentUTCDateTimeWorld :: !*World -> (!DateTime,!*World)
-currentUTCDateTimeWorld world = appFst tmToDateTime (gmTime world)
-
-timestampToGmDateTime :: !Timestamp -> DateTime
-timestampToGmDateTime timestamp = tmToDateTime (toGmTime timestamp)
-
 tmToDateTime :: !Tm -> DateTime
 tmToDateTime tm
 	= {DateTime| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year
