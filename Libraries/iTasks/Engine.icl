@@ -228,7 +228,7 @@ determineAppPath world
 	= (currentDirectory </> (fst o hd o sortBy cmpFileTime) (zip2 batchfiles infos), world)	
 	where		
 		cmpFileTime (_,Ok {FileInfo | lastModifiedTime = x})
-					(_,Ok {FileInfo | lastModifiedTime = y}) = mkTime x > mkTime y
+					(_,Ok {FileInfo | lastModifiedTime = y}) = timeGm x > timeGm y
 
 //By default, we use the modification time of the applaction executable as version id
 determineAppVersion :: !FilePath!*World -> (!String,!*World)	
