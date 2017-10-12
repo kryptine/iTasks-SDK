@@ -24,7 +24,7 @@ import iTasks.Extensions.DateTime
 import System.File
 from StdFunc import o
 from System.FilePath import </>
-from StdMisc import abort
+from StdMisc import undef, abort
 from StdFile import instance FileSystem World
 import StdArray
 import System.Directory, System.FilePath, Data.Func, Data.Functor, Data.List
@@ -291,12 +291,12 @@ tonicWrapTaskBody` mn tn args cases t=:(Task eval)
       case getTonicFunc mod tn of
         Just bprep
           # (curr,   iworld) = iworld!current
-          # (currDateTime, iworld) = iworldLocalDateTime` iworld
+          # (clocks, iworld) = iworld!clocks
           # (muser, iworld)  = 'DSDS'.read (sdsFocus instanceNo taskInstanceUser) iworld
           # bpinst           = { BlueprintInstance
                                | bpi_taskId           = currTaskId
-                               , bpi_startTime        = currDateTime
-                               , bpi_lastUpdated      = currDateTime
+                               , bpi_startTime        = toDateTime clocks.localDate clocks.localTime
+                               , bpi_lastUpdated      = toDateTime clocks.localDate clocks.localTime
                                , bpi_endTime          = Nothing
                                , bpi_activeNodes      = 'DM'.newMap
                                , bpi_previouslyActive = 'DM'.newMap
@@ -324,11 +324,11 @@ tonicWrapTaskBody` mn tn args cases t=:(Task eval)
       # (mbpref, iworld) = 'DSDS'.read (sdsFocus (currTaskId, mn, tn) tonicInstances) iworld
       = case mbpref of
           Ok (Just bpi)
-             # (currDateTime, iworld) = iworldLocalDateTime` iworld
+             # (clocks, iworld) = iworld!clocks
              # oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems bpi.bpi_activeNodes)])
                                              bpi.bpi_previouslyActive
              # (_, iworld)      = 'DSDS'.write { bpi
-                                               & bpi_endTime          = Just currDateTime
+                                               & bpi_endTime          = Just (toDateTime clocks.localDate clocks.localTime)
                                                , bpi_previouslyActive = oldActive
                                                , bpi_activeNodes      = 'DM'.newMap
                                                } (sdsFocus (currTaskId, mn, tn) tonicInstances) iworld
@@ -367,8 +367,9 @@ markStable currTaskId currBlueprintModuleName currBlueprintFuncName iworld
       Ok (Just {bpi_endTime = Just _}) // Already marked as stable, don't do extra work
         = iworld
       Ok (Just bpi)
-        # (curr, iworld)         = iworld!current
-        # (currDateTime, iworld) = iworldLocalDateTime` iworld
+        # (curr, iworld)   = iworld!current
+        # (clocks, iworld) = iworld!clocks
+        # currDateTime     = toDateTime clocks.localDate clocks.localTime
         # oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems bpi.bpi_activeNodes)])
                                         bpi.bpi_previouslyActive
         # (_, iworld)      = 'DSDS'.write { bpi

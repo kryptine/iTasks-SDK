@@ -336,7 +336,7 @@ initParallelTask ::
 	,Maybe (TaskId,Task a))
 	,!*IWorld)
 	| iTask a
-initParallelTask evalOpts=:{tonicOpts = {callTrace}} listId index parType parTask iworld=:{current={taskTime}}
+initParallelTask evalOpts=:{tonicOpts = {callTrace}} listId index parType parTask iworld=:{current={taskTime},clocks={localDate,localTime}}
   # (mbTaskStuff,iworld) = case parType of
                              Embedded           = mkEmbedded 'DM'.newMap iworld
                              NamedEmbedded name = mkEmbedded ('DM'.singleton "name" name) iworld

@@ -18,7 +18,7 @@ from iTasks.Internal.TaskEval         import :: TaskTime
 
 from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo
 from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem 
-from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared, :: Shared, :: ReadOnlyShared
+from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared, :: Shared
 from iTasks.Internal.SDS import :: SDSNotifyRequest, :: JSONShared, :: DeferredWrite
 from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
@@ -31,7 +31,7 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
 :: *IWorld		=	{ options               :: !EngineOptions                               // Engine configuration
-                    , clock                 :: !Timestamp                                   // Server side clock
+                    , clocks                :: !SystemClocks                                // Server side clocks
                     , current               :: !TaskEvalState                               // Shared state during task evaluation
 
                     , random                :: [Int]                                        // Infinite random stream
@@ -53,6 +53,14 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
                     , onClient				:: !Bool									// "False" on the server, "True" on the client
 					, shutdown				:: !Maybe Int                               // Signals the server function to shut down, the int will be set as exit code
 					}
+
+:: SystemClocks =
+    { timestamp 			:: !Timestamp
+	, localDate             :: !Date
+    , localTime             :: !Time
+    , utcDate               :: !Date
+    , utcTime               :: !Time
+    }
 
 :: JSCompilerState =
 	{ loaderState 			:: !LoaderState							// State of the lazy loader
@@ -145,12 +153,12 @@ initJSCompilerState :: *IWorld -> *(!MaybeErrorString (), !*IWorld)
 */
 destroyIWorld :: !*IWorld -> *World
 
-//Internally used clock share
-// (UTC time can be derived from timestamp, local time requires *World to determine time zone)
-iworldTimestamp     :: Shared Timestamp
-iworldLocalDateTime :: ReadOnlyShared DateTime
-
-iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
+//Internally used clock shares
+iworldTimestamp :: Shared Timestamp
+iworldLocalDate :: Shared Date
+iworldLocalTime :: Shared Time
+iworldUTCDate   :: Shared Date
+iworldUTCTime   :: Shared Time
 
 /*
  * Gives you possibly a matching resource while adhering to the uniqueness

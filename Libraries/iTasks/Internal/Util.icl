@@ -22,10 +22,28 @@ list2mb	:: ![a] -> (Maybe [a])
 list2mb [] = Nothing
 list2mb a = (Just a)
 
+
+currentLocalDateTimeWorld :: !*World -> (!DateTime,!*World)
+currentLocalDateTimeWorld world = appFst tmToDateTime (localTime world)
+	
+currentUTCDateTimeWorld :: !*World -> (!DateTime,!*World)
+currentUTCDateTimeWorld world = appFst tmToDateTime (gmTime world)
+
+timestampToGmDateTime :: !Timestamp -> DateTime
+timestampToGmDateTime timestamp = tmToDateTime (toGmTime timestamp)
+
 tmToDateTime :: !Tm -> DateTime
 tmToDateTime tm
 	= {DateTime| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year
 	  ,hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
+
+dateToTimestamp :: !Date -> Timestamp
+dateToTimestamp {Date|day,mon,year}
+	= mkTime {Tm|sec = 0, min = 0, hour = 0, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = -1}
+
+datetimeToTimestamp :: !DateTime -> Timestamp
+datetimeToTimestamp {DateTime|day,mon,year,hour,min,sec}
+	= mkTime {Tm|sec = sec, min = min, hour = hour, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = -1}
 
 instance toString (Maybe a) | toString a
 where

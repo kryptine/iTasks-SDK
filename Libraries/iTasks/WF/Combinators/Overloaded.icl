@@ -16,9 +16,7 @@ instance TApplicative Task where
 
 instance TMonad Task where
   (>>=) l r = tbind l r
-  (>>|) l r = l >>*
-	[OnAction (Action "Continue") (always r)
-	,OnValue (ifStable (\_->r))]
+  (>>|) l r = l >>= \_ -> r
 
 instance TApplicative Maybe where
   (<#>) (Just f) (Just x) = Just (f x)

@@ -7,8 +7,7 @@ import iTasks.WF.Combinators.Core
 import iTasks.WF.Combinators.Common
 import iTasks.WF.Combinators.Overloaded
 import iTasks.SDS.Sources.System
-from iTasks.Internal.Task import mkInstantTask
-import iTasks.Internal.IWorld
+
 import iTasks.UI.Definition
 import iTasks.UI.Prompt
 import iTasks.UI.Editor
@@ -22,7 +21,6 @@ import Data.Maybe, Data.Error
 import qualified Data.Map as DM
 
 from iTasks.Extensions.Form.Pikaday import pikadayDateField
-from iTasks.Internal.Util import tmToDateTime
 
 //* (Local) date and time
 toTime :: DateTime -> Time
@@ -186,24 +184,19 @@ derive gEq				DateTime
 timestampToGmDateTime :: !Timestamp -> DateTime
 timestampToGmDateTime timestamp = tmToDateTime (toGmTime timestamp)
 
-timestampToLocalDateTime :: !Timestamp -> Task DateTime
-timestampToLocalDateTime ts = mkInstantTask timestampToLocalDateTime`
-where
-    timestampToLocalDateTime` _ iworld=:{world}
-        # (tm, world) = toLocalTime ts world
-        = (Ok (tmToDateTime tm), {iworld & world = world})
+tmToDateTime :: !Tm -> DateTime
+tmToDateTime tm
+	= {DateTime| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year
+	  ,hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
 
-localDateToTimestamp :: !Date -> Task Timestamp
-localDateToTimestamp {Date|day,mon,year} = mkInstantTask localDateToTimestamp`
-where
-    localDateToTimestamp` _ iworld =
-	    (Ok (mkTime {Tm|sec = 0, min = 0, hour = 0, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = -1}), iworld)
+dateToTimestamp :: !Date -> Timestamp
+dateToTimestamp {Date|day,mon,year}
+	= mkTime {Tm|sec = 0, min = 0, hour = 0, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = -1}
 
-localDateTimeToTimestamp :: !DateTime -> Task Timestamp
-localDateTimeToTimestamp {DateTime|day,mon,year,hour,min,sec} = mkInstantTask localDateTimeToTimestamp`
-where
-    localDateTimeToTimestamp` _ iworld =
-	    (Ok (mkTime {Tm|sec = sec, min = min, hour = hour, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = -1}), iworld)
+datetimeToTimestamp :: !DateTime -> Timestamp
+datetimeToTimestamp {DateTime|day,mon,year,hour,min,sec}
+	= mkTime {Tm|sec = sec, min = min, hour = hour, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = -1}
+
 
 waitForTime :: !Time -> Task Time
 waitForTime time =
@@ -217,9 +210,13 @@ waitForDateTime :: !DateTime -> Task DateTime
 waitForDateTime datetime =
 	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime >>* [OnValue (ifValue (\now -> datetime < now) return)]
 
+waitForUTCDateTime :: !DateTime -> Task DateTime
+waitForUTCDateTime datetime =
+	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentUTCDateTime >>* [OnValue (ifValue (\now -> datetime < now) return)]
+
 waitForTimer :: !Int -> Task DateTime
-waitForTimer interval =
-    get currentTimestamp                                  >>- \(Timestamp now) ->
-    timestampToLocalDateTime (Timestamp (now + interval)) >>- \endTime ->
-    waitForDateTime endTime
+waitForTimer interval = get currentDateTime >>- \now -> waitForUTCDateTime (endTime interval now)
+where
+	endTime interval now = let (Timestamp ts) = datetimeToTimestamp now in timestampToGmDateTime (Timestamp (ts + interval))
+
 

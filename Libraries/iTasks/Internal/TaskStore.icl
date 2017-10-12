@@ -125,23 +125,23 @@ newDocumentId iworld=:{IWorld|random}
 	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- random]) , {IWorld|iworld & random = drop 32 random})
 	
 createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
-createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion},current={taskTime},clock}
+createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion},current={taskTime},clocks={timestamp,localDate,localTime}}
     //Create the initial instance data in the store
     # progress  = {InstanceProgress|value=None,instanceKey="client",attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=clock}
+    # constants = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=timestamp}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
 createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
-createTaskInstance task iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
+createTaskInstance task iworld=:{options={appVersion,autoLayout},current={taskTime},clocks={timestamp,localDate,localTime}}
 	# task = if autoLayout (tune (ApplyLayout defaultSessionLayout) task) task
     # (mbInstanceNo,iworld) = newInstanceNo iworld
     # instanceNo            = fromOk mbInstanceNo
     # (instanceKey,iworld)  = newInstanceKey iworld
     # progress              = {InstanceProgress|value=None,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants             = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=clock}
+    # constants             = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=timestamp}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
@@ -152,11 +152,11 @@ createTaskInstance task iworld=:{options={appVersion,autoLayout},current={taskTi
 (`b`) (Error e, st) _ = (Error e, st)
 
 createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
-createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
+createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clocks={timestamp,localDate,localTime}}
 	# task = if autoLayout (tune (ApplyLayout defaultSessionLayout) task) task
     # (instanceKey,iworld) = newInstanceKey iworld
     # progress             = {InstanceProgress|value=None,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
-    # constants            = {InstanceConstants|session=False,listId=listId,build=appVersion,issuedAt=clock}
+    # constants            = {InstanceConstants|session=False,listId=listId,build=appVersion,issuedAt=timestamp}
     =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
