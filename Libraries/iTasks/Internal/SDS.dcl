@@ -59,9 +59,9 @@ modify          :: !(r -> (!a,!w))          !(RWShared () r w) !*IWorld -> (!May
 notify          ::                          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 
 //Clear all registrations for the given tasks.
-//This is normally called by the queueRefresh functions, because once an instance is queued
+//This is normally called by the queueRefresh functions, because once a task is queued
 //for evaluation anyway, it no longer make sense to notify it again.
-clearInstanceSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
+clearTaskSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
 
 //List all current registrations (for debugging purposes)
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)

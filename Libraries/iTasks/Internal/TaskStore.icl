@@ -508,7 +508,7 @@ where
 queueRefresh :: ![(!TaskId, !String)] !*IWorld -> *IWorld
 queueRefresh tasks iworld
     //Clear the instance's share change registrations, we are going to evaluate anyway
-	# iworld	= 'SDS'.clearInstanceSDSRegistrations ('DS'.fromList (map fst tasks)) iworld
+	# iworld	= 'SDS'.clearTaskSDSRegistrations ('DS'.fromList (map fst tasks)) iworld
 	# iworld 	= foldl (\w (t,r) -> queueEvent (toInstanceNo t) (RefreshEvent (Just ('DS'.singleton t)) r) w) iworld tasks
 	= iworld
 

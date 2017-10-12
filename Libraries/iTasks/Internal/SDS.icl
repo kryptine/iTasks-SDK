@@ -362,8 +362,8 @@ queueNotifyEvents :: !String !(Set TaskId) *IWorld -> *IWorld
 queueNotifyEvents sdsId notify iworld
 	= queueRefresh [(t,"Notification for write of " +++ sdsId) \\ t <- 'Set'.toList notify] iworld
 
-clearInstanceSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
-clearInstanceSDSRegistrations taskIds iworld=:{IWorld|sdsNotifyRequests}
+clearTaskSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
+clearTaskSDSRegistrations taskIds iworld=:{IWorld|sdsNotifyRequests}
     = {iworld & sdsNotifyRequests = [r \\ r=:{SDSNotifyRequest|reqTaskId} <- sdsNotifyRequests | not ('Set'.member reqTaskId taskIds)]}
 
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
