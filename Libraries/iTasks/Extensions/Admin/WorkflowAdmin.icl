@@ -204,7 +204,7 @@ where
 		//Split the screen space
 		[arrangeWithSideBar 0 TopSide 200 True
 		//Layout all dynamically added tasks as tabs
-		,layoutSubUIs (SelectByPath [1]) arrangeWithTabs
+		,layoutSubUIs (SelectByPath [1]) (arrangeWithTabs False)
 		]
 
 addNewTask :: !(SharedTaskList ()) -> Task ()
