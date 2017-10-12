@@ -493,13 +493,16 @@ where
             queueWithMergedRefreshEventList [] = Nothing
             queueWithMergedRefreshEventList [hd=:(instanceNo`, event`) : tl] = case event` of
                 RefreshEvent refreshTasks` reason` | instanceNo` == instanceNo =
-                    Just [(instanceNo, RefreshEvent (mergeRefrTasks refreshTasks refreshTasks`) reason) : tl]
+                    Just [(instanceNo, RefreshEvent (mergeRefrTasks refreshTasks refreshTasks`) (mergeReason reason reason`)) : tl]
                 _ =
                     (\tl` -> [hd : tl`]) <$> queueWithMergedRefreshEventList tl
 
             mergeRefrTasks :: !(Maybe (Set TaskId)) !(Maybe (Set TaskId)) -> Maybe (Set TaskId)
             mergeRefrTasks (Just x) (Just y) = Just ('DS'.union x y)
             mergeRefrTasks _        _        = Nothing
+
+            mergeReason :: !String !String -> String
+            mergeReason x y = concat [x , "; " , y]
         _ = Nothing
 
 queueRefresh :: ![(!TaskId, !String)] !*IWorld -> *IWorld
