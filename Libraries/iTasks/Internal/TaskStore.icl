@@ -27,6 +27,7 @@ import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.Queue as DQ
 from Data.Queue import :: Queue(..)
+from Control.Applicative import class Alternative(<|>), instance Alternative Maybe, instance Applicative Maybe
 
 //Derives required for storage of UI definitions
 derive JSONEncode TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
@@ -475,8 +476,31 @@ where
 														= ((),'DQ'.enqueue (instanceNo,event) q)*/
 //Standard case...
 queueEvent instanceNo event iworld 
-	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue (instanceNo,event) q)) taskEvents iworld
+	# (_,iworld) = 'SDS'.modify
+        (\q -> ((), fromMaybe ('DQ'.enqueue (instanceNo,event) q) (queueWithMergedRefreshEvent q)))
+        taskEvents
+        iworld
 	= iworld
+where
+    // merge multiple refresh events for same instance
+    queueWithMergedRefreshEvent :: !(Queue (!InstanceNo, !Event)) -> Maybe (Queue (!InstanceNo, !Event))
+    queueWithMergedRefreshEvent ('DQ'.Queue front back) = case event of
+        RefreshEvent refreshTasks reason =
+            ((\front` -> ('DQ'.Queue front` back))  <$> queueWithMergedRefreshEventList front) <|>
+            ((\back`  -> ('DQ'.Queue front  back`)) <$> queueWithMergedRefreshEventList back)
+        where
+            queueWithMergedRefreshEventList :: [(!InstanceNo, !Event)] -> Maybe [(!InstanceNo, !Event)]
+            queueWithMergedRefreshEventList [] = Nothing
+            queueWithMergedRefreshEventList [hd=:(instanceNo`, event`) : tl] = case event` of
+                RefreshEvent refreshTasks` reason` | instanceNo` == instanceNo =
+                    Just [(instanceNo, RefreshEvent (mergeRefrTasks refreshTasks refreshTasks`) reason) : tl]
+                _ =
+                    (\tl` -> [hd : tl`]) <$> queueWithMergedRefreshEventList tl
+
+            mergeRefrTasks :: !(Maybe (Set TaskId)) !(Maybe (Set TaskId)) -> Maybe (Set TaskId)
+            mergeRefrTasks (Just x) (Just y) = Just ('DS'.union x y)
+            mergeRefrTasks _        _        = Nothing
+        _ = Nothing
 
 queueRefresh :: ![(!TaskId, !String)] !*IWorld -> *IWorld
 queueRefresh tasks iworld
