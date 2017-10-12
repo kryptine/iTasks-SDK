@@ -10,7 +10,7 @@ from TCPIP import :: Timeout
 
 timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
 
-updateClocks :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateClock :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 
 removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 

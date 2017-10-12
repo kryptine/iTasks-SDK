@@ -14,30 +14,30 @@ import iTasks.Internal.Util
 import iTasks.Internal.TaskStore
 import StdTuple
 from iTasks.Internal.TaskEval  import currentInstanceShare
-from StdFunc import id
+from StdFunc import id, o
 
 NS_SYSTEM_DATA :== "SystemData"
 
 currentDateTime :: SDS () DateTime ()
-currentDateTime = mapRead (\(d,t) -> toDateTime d t) (iworldLocalDate |+| iworldLocalTime)
+currentDateTime = iworldLocalDateTime
 
 currentTime :: SDS () Time ()
-currentTime = toReadOnly iworldLocalTime
+currentTime = mapRead toTime iworldLocalDateTime
 		
 currentDate :: SDS () Date ()
-currentDate = toReadOnly iworldLocalDate
+currentDate = mapRead toDate iworldLocalDateTime
 
 currentUTCDateTime :: SDS () DateTime ()
-currentUTCDateTime = mapRead (\(d,t) -> toDateTime d t) (iworldUTCDate |+| iworldUTCTime)
+currentUTCDateTime = mapRead timestampToGmDateTime currentTimestamp
 
 currentUTCTime :: SDS () Time ()
-currentUTCTime = toReadOnly iworldUTCTime
+currentUTCTime = mapRead (toTime o timestampToGmDateTime) currentTimestamp
 
 currentUTCDate :: SDS () Date ()
-currentUTCDate = toReadOnly iworldUTCDate
+currentUTCDate = mapRead (toDate o timestampToGmDateTime) currentTimestamp
 
 currentTimestamp :: SDS () Timestamp ()
-currentTimestamp = mapRead datetimeToTimestamp currentUTCDateTime
+currentTimestamp = toReadOnly iworldTimestamp
 
 
 // Workflow processes
