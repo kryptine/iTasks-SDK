@@ -137,7 +137,7 @@ startEngineWithOptions initFun publishable world
 where
 	tcpTasks serverPort keepaliveTime = [(serverPort,httpServer serverPort keepaliveTime (engineWebService publishable) allUIChanges)]
 	engineTasks =
- 		[BackgroundTask updateClocks
+ 		[BackgroundTask updateClock
 		,BackgroundTask (processEvents MAX_EVENTS)
 		,BackgroundTask removeOutdatedSessions
 		,BackgroundTask flushWritesWhenIdle]
@@ -159,7 +159,7 @@ runTasksWithOptions initFun runnable world
 	= destroyIWorld iworld
 where
 	systemTasks =
- 		[BackgroundTask updateClocks
+ 		[BackgroundTask updateClock
 		,BackgroundTask (processEvents MAX_EVENTS)
 		,BackgroundTask stopOnStable]
 
