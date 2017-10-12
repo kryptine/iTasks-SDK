@@ -14,10 +14,10 @@ createNewIncident			:: Task (Maybe IncidentNo)
 createNewContact			:: Task (Maybe ContactNo)
 
 indexedStore        :: String v -> RWShared k v v | Eq k & Ord k & iTask k & iTask v
-sdsDeref            :: (RWShared p [a] [a]) (a -> Int) (RWShared [Int] [b] x) ([a] [b] -> [c]) -> (RWShared p [c] [a])
+sdsDeref            :: (RWShared p [a] [a]) (a -> Int) (RWShared [Int] [b] x) ([a] [b] -> [c]) -> (RWShared p [c] [a]) | iTask p & TC a & TC b & TC c & TC x
 
 // Information management
-viewDetails	        :: !d (ReadOnlyShared (Maybe i)) (RWShared i c c) (c -> v) -> Task (Maybe v) | toPrompt d & iTask i & iTask v
+viewDetails	        :: !d (ReadOnlyShared (Maybe i)) (RWShared i c c) (c -> v) -> Task (Maybe v) | toPrompt d & iTask i & iTask v & iTask c
 
 optionalNewOrOpen   :: (String,Task ()) (String,i -> Task ()) Workspace (ReadOnlyShared (Maybe i)) -> Task () | iTask i
 

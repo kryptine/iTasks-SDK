@@ -88,7 +88,7 @@ where
         >>* [OnAction (Action "Log out") (always (return ()))]
         )  <<@ ApplyLayout layoutControlDash
 
-	workOnTasks = doIndependent tasks <<@ ArrangeWithTabs
+	workOnTasks = doIndependent tasks <<@ ArrangeWithTabs True
 
 	layoutControlDash = foldl1 sequenceLayouts
 		[moveSubUIs (SelectByPath [0,0]) [] 1
