@@ -390,7 +390,7 @@ getModuleAndTask allbps mn tn
   >>~ \mod -> case 'DM'.get mn allbps `b` 'DM'.get tn of
                 Just tt -> return (mod, tt)
                 _       -> throw "Can't get module and task"
-import StdDebug
+
 viewInstance :: ![TaskAppRenderer] !(Shared NavStack) !DynamicDisplaySettings !BlueprintInstance
                 !(Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int))) !ClickMeta
              -> Task ()
