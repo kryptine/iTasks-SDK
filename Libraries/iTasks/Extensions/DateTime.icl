@@ -196,14 +196,24 @@ where
 localDateToTimestamp :: !Date -> Task Timestamp
 localDateToTimestamp {Date|day,mon,year} = mkInstantTask localDateToTimestamp`
 where
-    localDateToTimestamp` _ iworld =
-	    (Ok (mkTime {Tm|sec = 0, min = 0, hour = 0, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = -1}), iworld)
+    localDateToTimestamp` _ iworld=:{world}
+        # (ts, world) = mkTime {Tm|sec = 0, min = 0, hour = 0, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = -1} world
+	    = (Ok ts, {iworld & world = world})
 
 localDateTimeToTimestamp :: !DateTime -> Task Timestamp
 localDateTimeToTimestamp {DateTime|day,mon,year,hour,min,sec} = mkInstantTask localDateTimeToTimestamp`
 where
-    localDateTimeToTimestamp` _ iworld =
-	    (Ok (mkTime {Tm|sec = sec, min = min, hour = hour, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = -1}), iworld)
+    localDateTimeToTimestamp` _ iworld=:{world}
+        # (ts, world) = mkTime {Tm|sec = sec, min = min, hour = hour, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = -1} world
+	    = (Ok ts, {iworld & world = world})
+
+utcDateToTimestamp :: !Date -> Timestamp
+utcDateToTimestamp {Date|day,mon,year} =
+    timeGm {Tm|sec = 0, min = 0, hour = 0, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = -1}
+
+utcDateTimeToTimestamp :: !DateTime -> Timestamp
+utcDateTimeToTimestamp {DateTime|day,mon,year,hour,min,sec} =
+    timeGm {Tm|sec = sec, min = min, hour = hour, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = -1}
 
 waitForTime :: !Time -> Task Time
 waitForTime time =

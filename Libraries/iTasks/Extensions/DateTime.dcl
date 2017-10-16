@@ -92,6 +92,22 @@ localDateToTimestamp     :: !Date      -> Task Timestamp
 * @return The resulting timestamp
 */
 localDateTimeToTimestamp :: !DateTime  -> Task Timestamp
+/**
+* Converts a UTC Date to a timestamp.
+*
+* @param Date: The date to convert
+*
+* @return The resulting timestamp
+*/
+utcDateToTimestamp     :: !Date      -> Timestamp
+/**
+* Converts a UTC DateTime to a timestamp.
+*
+* @param Date: The date & time to convert
+*
+* @return The resulting timestamp
+*/
+utcDateTimeToTimestamp :: !DateTime  -> Timestamp
 
 
 /*** Special wait tasks ***/
