@@ -28,6 +28,12 @@ import iTasks.WF.Definition
 	, saplDirPath   :: FilePath // Location of the application's sapl files (client-side code)
 	}
 
+:: AppInfo = 
+	{ applicationName          :: String
+	, applicationVersion       :: String
+	, applicationPath          :: String
+	}
+
 /**
 * Starts the task engine with a list of published task definitions.
 *
@@ -42,14 +48,13 @@ startEngine :: a !*World -> *World | Publishable a
 *
 * @param Tasks to start
 * @param An initialization function to set the engine options with:
-      @param The command line arguments
       @param The default options
 	  @return Maybe the engine options, in case of Nothing, the engine is not started
       @return A message that is printed to the console when the engine is started
 * @param The world
 * @return The world
 */
-startEngineWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Publishable a
+startEngineWithOptions :: AppInfo (EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Publishable a
 
 /**
 * The function that takes the 'standard' command line options of an itask engine and
@@ -67,14 +72,14 @@ defaultEngineCLIOptions :: [String] EngineOptions -> (!Maybe EngineOptions,![Str
 /**
 * Determines the default options for an application
 */
-defaultEngineOptions :: !*World -> (!EngineOptions,!*World)
+defaultEngineOptions :: AppInfo !*World -> (!EngineOptions,!*World)
 
 /**
 * Start a stripped task engine (without an HTTP server) with a list of tasks to be created 
 */
 runTasks :: a !*World -> *World | Runnable a
 
-runTasksWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Runnable a
+runTasksWithOptions :: AppInfo (EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Runnable a
 
 
 // === Wrapping interactive tasks for use with the builtin iTask webserver ===

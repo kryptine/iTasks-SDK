@@ -35,13 +35,13 @@ from System.OS import IF_POSIX_OR_WINDOWS
 
 MAX_EVENTS 		        :== 5
 
-defaultEngineOptions :: !*World -> (!EngineOptions,!*World)
-defaultEngineOptions world
-	# (appPath,world)    = determineAppPath world	
-	# (appVersion,world) = determineAppVersion appPath world
+defaultEngineOptions :: AppInfo !*World -> (!EngineOptions,!*World)
+defaultEngineOptions appInfo world
+	# appName = appInfo.applicationName
+	# appVersion = appInfo.applicationVersion
+	# appPath = appInfo.applicationPath
 	# appDir             = takeDirectory appPath
-	# appName            = (dropExtension o dropDirectory) appPath
-	# options =	
+	# options =
 		{ appName			= appName
 		, appPath			= appPath
         , appVersion        = appVersion
@@ -118,13 +118,15 @@ where
 					= stringOpt key [v:r]
 
 startEngine :: a !*World -> *World | Publishable a
-startEngine publishable world = startEngineWithOptions defaultEngineCLIOptions publishable world
+startEngine publishable world 
+	# (cli,world)        = getCommandLine world
+	# (appInfo,world)    = cliAppInfo world
+	= startEngineWithOptions appInfo (defaultEngineCLIOptions cli) publishable world
 
-startEngineWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Publishable a
-startEngineWithOptions initFun publishable world
-	# (cli,world)			= getCommandLine world
-	# (options,world)       = defaultEngineOptions world
-	# (mbOptions,msg)       = initFun cli options
+startEngineWithOptions :: AppInfo (EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Publishable a
+startEngineWithOptions appInfo initFun publishable world
+	# (options,world)       = defaultEngineOptions appInfo world
+	# (mbOptions,msg)       = initFun options
 	# world                 = show msg world
 	= case mbOptions of
 		Nothing = world
@@ -143,13 +145,14 @@ where
 		,BackgroundTask flushWritesWhenIdle]
 
 runTasks :: a !*World -> *World | Runnable a
-runTasks tasks world = runTasksWithOptions (\c o -> (Just o,[])) tasks world
+runTasks tasks world 
+	# (appInfo, world) = cliAppInfo world
+	= runTasksWithOptions appInfo (\o -> (Just o,[])) tasks world
 
-runTasksWithOptions :: ([String] EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Runnable a
-runTasksWithOptions initFun runnable world
-	# (cli,world)			= getCommandLine world
-	# (options,world)       = defaultEngineOptions world
-	# (mbOptions,msg)       = initFun cli options
+runTasksWithOptions :: AppInfo (EngineOptions -> (!Maybe EngineOptions,![String])) a !*World -> *World | Runnable a
+runTasksWithOptions appInfo initFun runnable world
+	# (options,world)       = defaultEngineOptions appInfo world
+	# (mbOptions,msg)       = initFun options
 	# world                 = show msg world
 	| mbOptions =: Nothing  = world
  	# iworld				= createIWorld (fromJust mbOptions) world
@@ -162,6 +165,13 @@ where
  		[BackgroundTask updateClock
 		,BackgroundTask (processEvents MAX_EVENTS)
 		,BackgroundTask stopOnStable]
+
+cliAppInfo :: !*World -> (AppInfo, *World)
+cliAppInfo world
+	# (appPath,world)    = determineAppPath world
+	# (appVersion,world) = determineAppVersion appPath world
+	# appName            = (dropExtension o dropDirectory) appPath
+	= ({AppInfo| applicationName = appName, applicationVersion = appVersion, applicationPath = appPath }, world)
 
 show :: ![String] !*World -> *World
 show lines world
