@@ -97,7 +97,7 @@ basicAPIExamples =
 Start :: *World -> *World
 Start world 
 	= startEngine 	[	publish "/" (\_ -> loginAndManageWorkList title basicAPIExamples <<@ ApplyLayout (setUIAttributes (titleAttr title)))
-					,	publish "/persons23" (const enterPersons)
+					,	publish "/persons" (const enterPersons)
 					] world
 where
 	title = "iTasks Example Collection"
