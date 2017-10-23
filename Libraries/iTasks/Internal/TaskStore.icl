@@ -466,15 +466,6 @@ where
     write2 p w = Ok Nothing //TODO: Write attributes of detached instances
 
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
-//Special case for refresh events, queue only if the instance has no events in the queue yet
-/*queueEvent instanceNo event=:(RefreshEvent _ _) iworld
-	# (_,iworld) = 'SDS'.modify (queueIfNotScheduled instanceNo event) taskEvents iworld
-	= iworld
-where
-	queueIfNotScheduled instanceNo event q=:('DQ'.Queue front back)
-		| isMember instanceNo (map fst (front ++ back)) = ((),q)
-														= ((),'DQ'.enqueue (instanceNo,event) q)*/
-//Standard case...
 queueEvent instanceNo event iworld 
 	# (_,iworld) = 'SDS'.modify
         (\q -> ((), fromMaybe ('DQ'.enqueue (instanceNo,event) q) (queueWithMergedRefreshEvent q)))
