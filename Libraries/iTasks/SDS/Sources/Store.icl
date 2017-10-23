@@ -26,7 +26,7 @@ where
 
 sharedStore :: !String !a -> SDS () a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV
-	= sdsFocus storeId (storeShare NS_APPLICATION_SHARES False InJSONFile (Just defaultV))
+	= sdsFocus storeId (storeShare NS_APPLICATION_SHARES True InJSONFile (Just defaultV))
 
 storeNamespaces :: SDS () [String] ()
 storeNamespaces = createReadOnlySDS read
