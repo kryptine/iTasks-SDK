@@ -23,9 +23,6 @@ itasks.Selector = {
 			option.children.forEach(me.selectOptionsInDOM.bind(me));
 		}
 	},
-	selectInDOM(el,selected) {
-		el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
-	},
     onAttributeChange: function(name,value) {
 		var me = this;
 		switch(name) {
@@ -48,39 +45,13 @@ itasks.Dropdown = Object.assign({
 	},
     initDOMEl: function() {
         var me = this,
-            el = me.domEl,
-            optionEl;
+            el = me.domEl;
 
 		if(me.attributes.multiple){
 			el.multiple = true;
-		} else {
-			//The empty selection (only for single selections)
-        	optionEl = document.createElement('option');
-        	optionEl.innerHTML = "Select...";
-        	optionEl.value = "";
-        	el.appendChild(optionEl);
 		}
 
-        me.attributes.options.forEach(function(option) {
-            optionEl = document.createElement('option');
-            optionEl.value = option.id;
-            optionEl.innerHTML = option.text;
-            if(me.attributes.value.includes(option.id)) {
-                optionEl.selected = true;
-            }
-            el.appendChild(optionEl);
-			option.domEl = optionEl;
-
-			//Only if the selection is a multiple selection we place handlers
-			//on every element
-			if(me.attributes.multiple){
-        		option.domEl.addEventListener('click',function(e) {
-					me.select([option.id], me.attributes.multiple && (e.metaKey || e.ctrlKey));
-            	    me.doEditEvent(me.attributes.taskId,me.attributes.editorId,me.attributes.value);
-					e.preventDefault();
-        		});
-			}
-        },me);
+        me.setOptions(me.attributes.options);
 
 		//If the selection is a single one, a single handler on the select
 		//suffices
@@ -95,7 +66,45 @@ itasks.Dropdown = Object.assign({
 		el.selected = selected;
 	},
 	setOptions: function(options) {
-		
+        var me = this,
+            el = me.domEl;
+
+        //Store options
+		me.attributes.options = options;
+
+        //Clear
+		while (el.lastChild) {
+    		el.removeChild(el.lastChild);
+		}
+
+        if(!me.attributes.multiple) {
+			//The empty selection (only for single selections)
+        	optionEl = document.createElement('option');
+        	optionEl.innerHTML = "Select...";
+        	optionEl.value = "";
+        	el.appendChild(optionEl);
+		}
+
+		options.forEach(function(option) {
+            optionEl = document.createElement('option');
+            optionEl.value = option.id;
+            optionEl.innerHTML = option.text;
+            if(me.attributes.value.includes(option.id)) {
+                me.selectInDOM(optionEl, true);
+            }
+            el.appendChild(optionEl);
+			option.domEl = optionEl;
+
+			//Only if the selection is a multiple selection we place handlers
+			//on every element
+			if(me.attributes.multiple){
+        		option.domEl.addEventListener('click',function(e) {
+					me.select([option.id], me.attributes.multiple && (e.metaKey || e.ctrlKey));
+            	    me.doEditEvent(me.attributes.taskId,me.attributes.editorId,me.attributes.value);
+					e.preventDefault();
+        		});
+			}
+        },me);
 	}
 },itasks.Selector);
 
@@ -107,10 +116,24 @@ itasks.CheckGroup = Object.assign({
 	},
 	initDOMEl: function() {
 		var me = this,
-			el = me.domEl,
-			inputName = "choice-" + me.attributes.taskId + "-" + me.attributes.editorId;
+			el = me.domEl;
+        me.setOptions(me.attributes.options);
+        //Highlight initital selection
+		me.select(me.attributes.value,false);
+    },
+	setOptions: function(options) {
+        var me = this,
+			el = me.domEl
+            inputName = "choice-" + me.attributes.taskId + "-" + me.attributes.editorId;
+        //Store options
+		me.attributes.options = options;
 
-		me.attributes.options.forEach(function(option,idx) {
+        //Clear
+		while (el.lastChild) {
+    		el.removeChild(el.lastChild);
+		}
+
+		options.forEach(function(option,idx) {
 			var liEl,inputEl,labelEl;
 			liEl = document.createElement('li');
 			inputEl = document.createElement('input');
@@ -118,14 +141,15 @@ itasks.CheckGroup = Object.assign({
 			inputEl.value = idx;
 			inputEl.name = inputName;
 			inputEl.id = inputName + "-option-" + option.id;
-			if(me.attributes.value.includes(option.id)) {
-				inputEl.checked = true;
-            }
             inputEl.addEventListener('click',function(e) {
 				me.select([option.id],me.attributes.multiple);
 				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,me.attributes.value);
             });
 			liEl.appendChild(inputEl);
+
+            if(me.attributes.value.includes(option.id)) {
+				me.selectInDOM(liEl, true);
+            }
 
 			labelEl = document.createElement('label');
 			labelEl.setAttribute('for',inputName + "-option-" + option.id);
@@ -135,10 +159,6 @@ itasks.CheckGroup = Object.assign({
             el.appendChild(liEl);
 			option.domEl = liEl;
         });
-		me.optionsDOM = me.domEl.children;
-    },
-	setOptions: function(options) {
-		
 	},
 	selectInDOM: function(el,selected) {
 		el.children[0].checked = selected;
@@ -154,7 +174,22 @@ itasks.ChoiceList = Object.assign({
         var me = this,
             el = me.domEl;
 
-        me.attributes.options.forEach(function(option,idx) {
+        me.setOptions(me.attributes.options);
+
+		//Highlight initital selection
+		me.select(me.attributes.value,false);
+    },
+	setOptions: function(options) {
+         var me = this, el = me.domEl;
+		//Store options
+		me.attributes.options = options;
+
+        //Clear
+		while (el.lastChild) {
+    		el.removeChild(el.lastChild);
+		}
+
+        options.forEach(function(option,idx) {
             var optionEl;
             optionEl = document.createElement('div');
             optionEl.classList.add(me.cssPrefix + 'choice-list-option');
@@ -166,17 +201,15 @@ itasks.ChoiceList = Object.assign({
             });
             optionEl.innerHTML = option.text;
 
+            if(me.attributes.value.includes(option.id)) {
+				me.selectInDOM(optionEl, true);
+            }
+
             el.appendChild(optionEl);
 			option.domEl = optionEl;
         });
-		me.optionsDOM = me.domEl.children;
-
-		//Highlight initital selection
-		me.select(me.attributes.value,false);
-    },
-	setOptions: function(options) {
 	},
-	selectInDOM(el,selected) {
+	selectInDOM(el, selected) {
 		el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
 	}
 },itasks.Selector);
@@ -249,6 +282,11 @@ itasks.Grid = Object.assign({
                 cellEl.innerHTML = cell;
                 rowEl.appendChild(cellEl);
             });
+
+            if(me.attributes.value.includes(option.id)) {
+				me.selectInDOM(rowEl, true);
+            }
+
             bodyEl.appendChild(rowEl);
 			option.domEl = rowEl;
         });
@@ -343,6 +381,9 @@ itasks.Tree = Object.assign({
 
         //Track the option in the dom
 		option.domEl = node;
+    },
+    selectInDOM(el,selected) {
+        el.classList[selected ? 'add':'remove'](this.cssPrefix + 'selected');
     },
 	setOptions: function(options) {
 		

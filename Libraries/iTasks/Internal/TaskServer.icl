@@ -638,4 +638,6 @@ halt exitCode iworld=:{ioTasks={todo=[ConnectionInstance _ {rChannel,sChannel}:t
     = halt exitCode {iworld & ioTasks = {todo=todo,done=done}}
 halt exitCode iworld=:{ioTasks={todo=[BackgroundInstance _ _ :todo],done},world}
     = halt exitCode {iworld & ioTasks= {todo=todo,done=done}}
+halt exitCode iworld=:{ioTasks={todo=[ExternalProcessInstance _ _ _ :todo],done},world}
+    = halt exitCode {iworld & ioTasks= {todo=todo,done=done}}
 

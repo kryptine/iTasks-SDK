@@ -12,6 +12,11 @@ import iTasks.Internal.TaskStore
 import iTasks.Internal.TaskEval
 from iTasks.Internal.SDS import write, read, readRegister
 
+import qualified Control.Monad as M
+import StdBool
+
+from Data.Func import mapSt
+
 import StdTuple, StdArray
 import Text, Text.JSON
 import Data.Maybe, Data.Error
@@ -130,11 +135,27 @@ where
 		# tmpDir 		= tempDirPath </> (appVersion +++ "-" +++ toString taskId +++ "-tmpdir")
 		# (Task evala)	= taskfun tmpDir
 		# (resa,iworld)	= evala event evalOpts (TCDestroy treea) iworld
-		//TODO: recursive delete of tmp dir to not fill up the task store
+		# (merr, world) = delTree tmpDir iworld.world
+		# iworld        = {iworld & world = world}
+		| isError merr  = (ExceptionResult (exception (fromError merr)), iworld)
 		= (resa,iworld)
 
 	eval _ _ _ iworld
 		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)	
+
+delTree :: FilePath *World -> *(MaybeOSError (), *World)
+delTree fp w
+# (mfi, w) = getFileInfo fp w
+| isError mfi = (liftError mfi, w)
+| (fromOk mfi).directory
+	# (mdir, w) = readDirectory fp w
+	| isError mdir = (liftError mdir, w)
+	# (merr, w) = mapSt (\c->delTree (fp </> c))
+		(filter (\r->r <> "." && r <> "..") (fromOk mdir)) w
+	# merr = 'M'.sequence merr
+	| isError merr = (liftError merr, w)
+	= removeDirectory fp w
+= deleteFile fp w
 
 //Create a directory and its parent directories
 ensureDir :: FilePath *World -> (!Bool,*World)

@@ -12,8 +12,9 @@ from iTasks.WF.Definition import :: Task
 
 /**
 * Create a tabset with all child items as separate tabs
+* The flag denotes whether close buttons should be lifted to the tabs
 */
-arrangeWithTabs :: Layout
+arrangeWithTabs :: Bool -> Layout
 
 /**
 * Extract one child item and put it in a separate panel at the side of the screen
@@ -62,7 +63,7 @@ beforeStep :: Layout -> Layout
 insertToolBar :: [String] -> Layout
 
 //Convenient annotatation types
-:: ArrangeWithTabs = ArrangeWithTabs
+:: ArrangeWithTabs = ArrangeWithTabs Bool
 instance tune ArrangeWithTabs Task
 
 :: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool

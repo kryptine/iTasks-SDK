@@ -61,7 +61,7 @@ runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testben
                ,checkExampleApplications  <<@ Title "Example applications"
 			   ,viewQualityMetrics  <<@ Title "Metrics"
                ,exploreCode <<@ Title "Code"
-			   ] <<@ ArrangeWithTabs
+			   ] <<@ ArrangeWithTabs False
     ) @! ()
 where
 	runInteractiveTests
@@ -166,13 +166,13 @@ where
 	viewModule (name,MainModule)
 		= allTasks
 			[viewSharedInformation (Title "Implementation") [] (sdsFocus (LIBRARY_PATH,name) moduleImplementation)
-			] <<@ ArrangeWithTabs
+			] <<@ ArrangeWithTabs False
 
 	viewModule (name,AuxModule)
 		= allTasks
 			[viewSharedInformation (Title "Definition") [] (sdsFocus (LIBRARY_PATH,name) moduleDefinition)
 			,viewSharedInformation (Title "Implementation") [] (sdsFocus (LIBRARY_PATH,name) moduleImplementation)
-			] <<@ ArrangeWithTabs
+			] <<@ ArrangeWithTabs False
 
 //Begin metrics 
 //The following section should probably be moved to a separate module

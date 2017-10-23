@@ -35,7 +35,7 @@ tonic = tonicDashboard []
 
 tonicDashboard :: [TaskAppRenderer] -> Task ()
 tonicDashboard rs = ((tonicStaticBrowser rs <<@ Title "Static Blueprints")
-               -||- (tonicDynamicBrowser rs <<@ Title "Dynamic Blueprints")) <<@ ArrangeWithTabs
+               -||- (tonicDynamicBrowser rs <<@ Title "Dynamic Blueprints")) <<@ ArrangeWithTabs False
 
 tonicStaticWorkflow :: [TaskAppRenderer] -> Workflow
 tonicStaticWorkflow rs = workflow "Tonic Static Browser" "Tonic Static Browser" (tonicStaticBrowser rs)
@@ -390,7 +390,7 @@ getModuleAndTask allbps mn tn
   >>~ \mod -> case 'DM'.get mn allbps `b` 'DM'.get tn of
                 Just tt -> return (mod, tt)
                 _       -> throw "Can't get module and task"
-import StdDebug
+
 viewInstance :: ![TaskAppRenderer] !(Shared NavStack) !DynamicDisplaySettings !BlueprintInstance
                 !(Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int))) !ClickMeta
              -> Task ()

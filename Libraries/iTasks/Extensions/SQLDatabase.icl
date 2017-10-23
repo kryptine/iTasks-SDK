@@ -5,8 +5,8 @@ import iTasks.Internal.Task, iTasks.Internal.IWorld, iTasks.Internal.SDS
 import qualified Data.Map
 
 //Extend Resource type for mysql resources
-:: *Resource | MySQLResource *(!*MySQLCursor, !*MySQLConnection, !*MySQLContext)
-             | SQLiteResource *(!*SQLiteCursor, !*SQLiteConnection, !*SQLiteContext)
+:: *Resource | MySQLResource SQLDatabase *(!*MySQLCursor, !*MySQLConnection, !*MySQLContext)
+             | SQLiteResource FilePath *(!*SQLiteCursor, !*SQLiteConnection, !*SQLiteContext)
 
 derive class iTask SQLDatabaseDef, SQLDatabase, SQLValue, SQLTime, SQLDate, SQLTable, SQLColumn, SQLColumnType
 
@@ -19,9 +19,9 @@ readFunSQL fun (MySQLDatabase db,p) iworld
     # (mbOpen,iworld) = openMySQLDB db iworld
 	= case mbOpen of
 	    Error e			= (Error (exception e),  iworld)
-		Ok (cur,con,cxt)
+		Ok (cur,con,ctx)
 		    # (res,cur) = fun p cur
-			# iworld	= closeMySQLDB cur con cxt iworld
+			# iworld	= cacheResource (MySQLResource db (cur, con, ctx)) iworld
             = case res of
                 (Ok v)      = (Ok v,iworld)
                 (Error e)   = (Error (exception e),iworld)
@@ -31,9 +31,9 @@ readFunSQL fun (SQLiteDatabase path,p) iworld
     # (mbOpen,iworld) = openSQLiteDB db iworld
 	= case mbOpen of
 	    Error e			= (Error (exception e),  iworld)
-		Ok (cur,con,cxt)
+		Ok (cur,con,ctx)
 		    # (res,cur) = fun p cur
-			# iworld	= closeSQLiteDB cur con cxt iworld
+			# iworld	= cacheResource (SQLiteResource path (cur, con, ctx)) iworld
             = case res of
                 (Ok v)      = (Ok v,iworld)
                 (Error e)   = (Error (exception e),iworld)
@@ -45,7 +45,7 @@ writeFunSQL fun (MySQLDatabase db,p) w iworld
 	    Error e			= (Error (exception e), iworld)
 		Ok (cur,con,cxt)
 		    # (res,cur) = fun p w cur
-			# iworld	= closeMySQLDB cur con cxt iworld
+			# iworld	= cacheResource (MySQLResource db (cur, con, cxt)) iworld
             = case res of
                 (Ok _)      = (Ok (const True),iworld)
                 (Error e)   = (Error (exception e),iworld)
@@ -57,7 +57,7 @@ writeFunSQL fun (SQLiteDatabase path,p) w iworld
 	    Error e			= (Error (exception e), iworld)
 		Ok (cur,con,cxt)
 		    # (res,cur) = fun p w cur
-			# iworld	= closeSQLiteDB cur con cxt iworld
+			# iworld	= cacheResource (SQLiteResource path (cur, con, cxt)) iworld
             = case res of
                 (Ok _)      = (Ok (const True),iworld)
                 (Error e)   = (Error (exception e),iworld)
@@ -71,7 +71,7 @@ where
 			Error e			= (Error (exception e), iworld)
 			Ok (cur,con,cxt)
 				# (res,cur)		= queryFun cur
-				# iworld		= closeMySQLDB cur con cxt iworld
+				# iworld		= cacheResource (MySQLResource db (cur, con, cxt)) iworld
 				= case res of
 					Error e		= (Error (exception e), iworld)
 					Ok v		= (Ok v,iworld)
@@ -85,7 +85,7 @@ where
 			Error e			= (Error (exception e), iworld)
 			Ok (cur,con,cxt)
 				# (res,cur)		= queryFun cur
-				# iworld		= closeSQLiteDB cur con cxt iworld
+				# iworld		= cacheResource (SQLiteResource path (cur,con,cxt)) iworld
 				= case res of
 					Error e		= (Error (exception e), iworld)
 					Ok v		= (Ok v,iworld)
@@ -136,7 +136,7 @@ where
 			Ok (cur,con,cxt)
                 # (err,tables,cur)  = listTables cur
 				| isJust err		= (Error (exception (toString (fromJust err))),iworld)
-				# iworld            = closeMySQLDB cur con cxt iworld
+				# iworld            = cacheResource (MySQLResource db (cur, con, cxt)) iworld
 				= (Ok tables,iworld)
     read (SQLiteDatabase path) iworld
         # db = {SQLDatabase|database=path,host=Nothing,username=Nothing,password=Nothing}
@@ -146,7 +146,7 @@ where
 			Ok (cur,con,cxt)
                 # (err,tables,cur)  = listTables cur
 				| isJust err		= (Error (exception (toString (fromJust err))),iworld)
-				# iworld            = closeSQLiteDB cur con cxt iworld
+				# iworld            = cacheResource (SQLiteResource path (cur, con, cxt)) iworld
 				= (Ok tables,iworld)
 
 sqlTableDefinition :: ROShared (SQLDatabaseDef,SQLTableName) SQLTable
@@ -159,7 +159,7 @@ where
 			Ok (cur,con,cxt)
                 # (err,mbTable,cur) = describeTable tablename cur
 				| isJust err		= (Error (exception (toString (fromJust err))),iworld)
-				# iworld            = closeMySQLDB cur con cxt iworld
+				# iworld            = cacheResource (MySQLResource db (cur, con, cxt)) iworld
 				= (Ok (fromJust mbTable),iworld)
 
     read (SQLiteDatabase path,tablename) iworld
@@ -170,7 +170,7 @@ where
 			Ok (cur,con,cxt)
                 # (err,mbTable,cur) = describeTable tablename cur
 				| isJust err		= (Error (exception (toString (fromJust err))),iworld)
-				# iworld            = closeSQLiteDB cur con cxt iworld
+				# iworld            = cacheResource (SQLiteResource path (cur, con, cxt)) iworld
 				= (Ok (fromJust mbTable),iworld)
 
 sqlExecuteCreateTable :: SQLDatabaseDef SQLTable -> Task ()
@@ -182,7 +182,7 @@ where
 			Error e			= (Error (dynamic e,toString e), iworld)
 			Ok (cur,con,cxt)
 				# (res,cur)		= createTable table cur
-				# iworld		= closeMySQLDB cur con cxt iworld
+				# iworld		= cacheResource (MySQLResource db (cur, con, cxt)) iworld
 				= case res of
 					Just e		= (Error (dynamic e,toString e), iworld)
 					Nothing     = (Ok (), iworld)
@@ -195,7 +195,7 @@ where
 			Error e			= (Error (dynamic e,toString e), iworld)
 			Ok (cur,con,cxt)
 				# (res,cur)		= createTable table cur
-				# iworld		= closeSQLiteDB cur con cxt iworld
+				# iworld		= cacheResource (SQLiteResource path (cur, con, cxt)) iworld
 				= case res of
 					Just e		= (Error (dynamic e,toString e), iworld)
 					Nothing     = (Ok (), iworld)
@@ -209,7 +209,7 @@ where
 			Error e			= (Error (dynamic e,toString e), iworld)
 			Ok (cur,con,cxt)
 				# (res,cur)		= deleteTable tablename cur
-				# iworld		= closeMySQLDB cur con cxt iworld
+				# iworld		= cacheResource (MySQLResource db (cur, con, cxt)) iworld
 				= case res of
 					Just e		= (Error (dynamic e,toString e), iworld)
 					Nothing     = (Ok (), iworld)
@@ -222,58 +222,56 @@ where
 			Error e			= (Error (dynamic e,toString e), iworld)
 			Ok (cur,con,cxt)
 				# (res,cur)		= deleteTable tablename cur
-				# iworld		= closeSQLiteDB cur con cxt iworld
+				# iworld		= cacheResource (SQLiteResource path (cur, con, cxt)) iworld
 				= case res of
 					Just e		= (Error (dynamic e,toString e), iworld)
 					Nothing     = (Ok (), iworld)
 
 openMySQLDB :: !SQLDatabase !*IWorld -> (MaybeErrorString (!*MySQLCursor, !*MySQLConnection, !*MySQLContext), !*IWorld)
-openMySQLDB db iworld=:{IWorld|resources=Just (MySQLResource con)}
-    = (Ok con, {IWorld|iworld & resources=Nothing})
-openMySQLDB db iworld=:{IWorld|resources=Nothing}
-            # iworld=:{IWorld|world} = {IWorld|iworld & resources = Nothing}
-        	# (err,mbContext,world) 	= openContext world
-        	| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
-        	# (err,mbConn,context)		= openConnection db (fromJust mbContext)
-        	| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
-        	# (err,mbCursor,connection)	= openCursor (fromJust mbConn)
-        	| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
-        	= (Ok (fromJust mbCursor,connection, context),{IWorld|iworld & world = world})
-openMySQLDB db iworld = openMySQLDB db (closeCurrentResource iworld)
+openMySQLDB db iworld=:{IWorld|resources}
+= case iworldResource isMySQL iworld of
+	([MySQLResource _ m], iworld) = (Ok m, iworld)
+	([], iworld=:{world})
+		# (err,mbContext,world) 	= openContext world
+		| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
+		# (err,mbConn,context)		= openConnection db (fromJust mbContext)
+		| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
+		# (err,mbCursor,connection)	= openCursor (fromJust mbConn)
+		| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
+		= (Ok (fromJust mbCursor,connection, context),{IWorld|iworld & world = world})
+where
+	isMySQL m=:(MySQLResource db` _) = (db` === db, m)
+	isMySQL m = (False, m)
 
-closeMySQLDB :: !*MySQLCursor !*MySQLConnection !*MySQLContext !*IWorld -> *IWorld
-closeMySQLDB cursor connection context iworld=:{IWorld|resources=Nothing}
-   = {IWorld|closeCurrentResource iworld & resources=Just (MySQLResource (cursor,connection,context))}
+cacheResource :: *Resource *IWorld -> *IWorld
+cacheResource r iworld=:{resources} = {iworld & resources=[r:resources]}
 
 openSQLiteDB :: !SQLDatabase !*IWorld -> (MaybeErrorString (!*SQLiteCursor, !*SQLiteConnection, !*SQLiteContext), !*IWorld)
-openSQLiteDB db iworld=:{IWorld|resources=Just (SQLiteResource con)}
-    = (Ok con, {IWorld|iworld & resources=Nothing})
-openSQLiteDB db iworld=:{IWorld|resources=Nothing}
-    # iworld=:{IWorld|world,options={storeDirPath}} = {IWorld|iworld & resources = Nothing}
-    # db = {db & database = storeDirPath </> db.database}
-    # (err,mbContext,world) 	= openContext world
-    | isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
-    # (err,mbConn,context)		= openConnection db (fromJust mbContext)
-    | isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
-    # (err,mbCursor,connection)	= openCursor (fromJust mbConn)
-    | isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
-    = (Ok (fromJust mbCursor,connection, context),{IWorld|iworld & world = world})
-openSQLiteDB db iworld = openSQLiteDB db (closeCurrentResource iworld)
+openSQLiteDB db=:{database} iworld=:{IWorld|resources}
+= case iworldResource isSQLite iworld of
+	([SQLiteResource _ m], iworld) = (Ok m, iworld)
+	([], iworld=:{world,options={storeDirPath}})
+    	# (err,mbContext,world) 	= openContext world
+    	| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
+    	# (err,mbConn,context)		= openConnection db (fromJust mbContext)
+    	| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
+    	# (err,mbCursor,connection)	= openCursor (fromJust mbConn)
+    	| isJust err				= (Error (toString (fromJust err)),{IWorld|iworld & world = world})
+    	= (Ok (fromJust mbCursor,connection, context),{IWorld|iworld & world = world})
+where
+	isSQLite m=:(SQLiteResource db` _) = (db` === database, m)
+	isSQLite m = (False, m)
 
-closeSQLiteDB :: !*SQLiteCursor !*SQLiteConnection !*SQLiteContext !*IWorld -> *IWorld
-closeSQLiteDB cursor connection context iworld=:{IWorld|resources=Nothing}
-   = {IWorld|closeCurrentResource iworld & resources=Just (SQLiteResource (cursor,connection,context))}
+closeSQLResource :: *Resource *World -> (Maybe String, *World)
+closeSQLResource (SQLiteResource _ (cur, conn, ctx)) world = close cur conn ctx world
+closeSQLResource (MySQLResource _ (cur, conn, ctx)) world = close cur conn ctx world
+closeSQLResource _ world = (Just "Not an SQL resource", world)
 
-closeCurrentResource :: !*IWorld -> *IWorld
-closeCurrentResource iworld=:{IWorld|resources=Nothing} = iworld
-closeCurrentResource iworld=:{IWorld|resources=Just (SQLiteResource (cursor,connection,context)),world}
-	# (err,connection)	= closeCursor cursor connection
-	# (err,context) 	= closeConnection connection context
-	# (err,world)		= closeContext context world
-	= {IWorld|iworld & resources=Nothing, world = world}
-closeCurrentResource iworld=:{IWorld|resources=Just (MySQLResource (cursor,connection,context)),world}
-	# (err,connection)	= closeCursor cursor connection
-	# (err,context) 	= closeConnection connection context
-	# (err,world)		= closeContext context world
-	= {IWorld|iworld & resources=Nothing, world = world}
-
+close cur conn ctx world
+# (err,conn)	= closeCursor cur conn
+| isJust err = (Just $ toString $ fromJust err, world)
+# (err,ctx) 	= closeConnection conn ctx
+| isJust err = (Just $ toString $ fromJust err, world)
+# (err,world)		= closeContext ctx world
+| isJust err = (Just $ toString $ fromJust err, world)
+= (Nothing, world)

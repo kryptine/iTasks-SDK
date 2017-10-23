@@ -61,7 +61,7 @@ where
             -||-
             (enterChoiceWithSharedAs (Title "Recent incidents")
                 [ChooseFromGrid id] recentIncidentsDetails (\{IncidentDetails|incidentNo} -> incidentNo) /* <<@ AfterLayout (tweakUI fill) */) //FIXME
-         ) <<@ ArrangeWithTabs
+         ) <<@ ArrangeWithTabs True
 
 browseContacts :: Workspace -> Task ()
 browseContacts ws

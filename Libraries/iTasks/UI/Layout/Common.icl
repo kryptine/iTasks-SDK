@@ -10,8 +10,37 @@ import StdBool
 from StdFunc import id, const, o
 from iTasks.Internal.TaskEval import :: TaskEvalOpts(..), :: TonicOpts
 
-arrangeWithTabs :: Layout
-arrangeWithTabs = layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIParallel)) (setUIType UITabSet)
+arrangeWithTabs :: Bool -> Layout
+arrangeWithTabs closeable = layoutSubUIs
+	(SelectAND (SelectByPath []) (SelectByType UIParallel))
+	(sequenceLayouts (setUIType UITabSet)
+		(if closeable moveCloseToTab idLayout))
+where
+	moveCloseToTab = layoutSubUIs //Only on children directly containing a clos action
+		(SelectAND
+			SelectChildren
+			(SelectByContains
+				(SelectAND
+					(SelectByDepth 2)
+					selectCloseButton
+				)
+			)
+		)
+		reallyMoveCloseToTab
+
+	selectCloseButton = SelectAND
+		(SelectByType UIAction)
+		(SelectByAttribute "actionId" (JSONString "Close"))
+
+	reallyMoveCloseToTab = foldl1 sequenceLayouts
+		[moveSubUIs (SelectAND SelectChildren selectCloseButton) [] 0
+		,layoutSubUIs (SelectByPath [0]) (modifyUIAttributes SelectAll
+			(\ui->case 'DM'.get "taskId" ui of
+				Nothing = ui
+				Just tid = 'DM'.put "closeTaskId" tid ui))
+		,copySubUIAttributes (SelectKeys ["closeTaskId"]) [0] []
+		,removeSubUIs (SelectByPath [0])
+		]
 
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 arrangeWithSideBar index side size resize = foldl1 sequenceLayouts 
@@ -124,7 +153,7 @@ where
 		  >>= \icon ->                   return (iconClsAttr ("icon-"+++icon)))
 
 instance tune ArrangeWithTabs Task
-where tune ArrangeWithTabs t = tune (ApplyLayout arrangeWithTabs) t
+where tune (ArrangeWithTabs b) t = tune (ApplyLayout (arrangeWithTabs b)) t
 
 instance tune ArrangeWithSideBar Task 
 where
@@ -156,9 +185,15 @@ where
 
 instance tune NoUserInterface Task
 where
-    tune NoUserInterface (Task eval) = Task eval`
+    tune NoUserInterface (Task eval) = Task eval` 
     where
-	    eval` event repOpts state iworld = eval event {repOpts & noUI = True} state iworld
+	    eval` event repOpts state iworld = case eval event repOpts state iworld of
+			(ValueResult taskvalue evalinfo _ tasktree, iworld)
+				# change = case event of 
+					ResetEvent = ReplaceUI (ui UIEmpty)
+					_          = NoChange
+				= (ValueResult taskvalue evalinfo change tasktree, iworld)
+			other = other
 
 instance tune Title Task
 where

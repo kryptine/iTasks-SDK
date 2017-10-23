@@ -6,7 +6,6 @@ definition module iTasks.WF.Derives
 import iTasks.WF.Definition
 
 from iTasks.WF.Combinators.Core import :: Action, :: TaskListItem, :: TaskListFilter, :: AttachmentStatus
-from iTasks.SDS.Definition import :: SDS
 from iTasks.SDS.Sources.System import :: TaskInstance
 
 from Data.Either import :: Either
@@ -25,11 +24,6 @@ derive gEq				(), HtmlTag, HtmlAttr, Either, MaybeError, Timestamp, JSONNode, (-
 derive gDefault   HtmlAttr
 derive gEditor    HtmlAttr
 derive gText      HtmlAttr
-
-derive JSONEncode		SDS
-derive JSONDecode		SDS
-derive gEq				SDS
-derive gDefault   SDS
 
 derive JSONEncode SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
 derive JSONDecode SVGElt, SVGAttr, SVGAlign, SVGColor, SVGDefer, SVGFillOpacity, SVGFuncIRI, SVGLengthAdjust, SVGLengthUnit, SVGLineCap, SVGFillRule, SVGLineJoin, SVGMeetOrSlice, SVGStrokeMiterLimit, SVGPaint, SVGStrokeDashArray, SVGStrokeDashOffset, SVGStrokeWidth, SVGTransform, SVGZoomAndPan
