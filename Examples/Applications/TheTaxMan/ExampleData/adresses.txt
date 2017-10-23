@@ -1,0 +1,26 @@
+000000001	Jan	Akkerman	8196KC	77		
+000000002	Marco	Borsato	7904RT	1		
+000000003	Biffy	Clyro	AU		AU = Address Unknown	"lives ""nowhere"" "
+000000004	Miles	Davis	8167XA	1		
+000000005	Ludovico	Einaudi	7216GH 	11		
+000000006	Pink	Floyd	8161PP	34		
+000000007	Buddy	Guy	7514AB	2		
+000000008	Jimi	Hendrix	6525ED	1		
+000000009		Iona	1234AB	1		
+000000010	Norah	Jones	7315LV	77		
+000000011	Julia	Kent	7411PK	10		
+000000012	Tony	Levin	7414XS	8		
+000000013	Gary	Moore	6525ED	1	second inhabitant of same address	
+000000014	Sarah	Neufeld	7431TF	31		
+000000015	Beth	Orton	7339XT	62		
+000000016	John	Petrucci	6525ED	1	third inhabitant of same address	
+000000017	I	Q	1234AB	3		
+000000018	Jordan	Rudess	6525ED	1	fourth inhabitant of same address	
+000000019	Joe	Satriani	8196KC	77	second inhabitant of same address	
+000000020	Tarja	Turunen	1234AB	5		
+000000021		Ulver	1234AB	7		
+000000022	Steve	Vai	8196KC	77	third inhabitant of same address	
+000000023	Roger	Waters	4321RW	1		
+000000024	X	X	1234AB	9		
+000000025	Thom	Yorke	2891TY	42		
+000000026	Warren	Zevon	1234AB	11		
