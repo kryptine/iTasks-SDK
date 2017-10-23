@@ -156,9 +156,9 @@ submitOrCancelSubsidy dossier
 
 submitSubsidy :: TaxSolarPanelDossier -> Task ()
 submitSubsidy dossier
-	=                   get currentDate
-	>>- \date -> let dossier = {TaxSolarPanelDossier | dossier & date = date}
-	              in (	( viewInformation "Your request is being processed" [] ())
+	=                   (get currentDate @ \date -> {TaxSolarPanelDossier | dossier & date = date})
+	>>- \dossier ->
+	                (	( viewInformation "Your request is being processed" [] ())
 						||-
 						( (UserWithRole "officer","Solar panel subsidy request") @: processRequest dossier)
 					)
