@@ -25,7 +25,11 @@ where
 		//Defer further action till after the field is created...
 		# (cb,world) = jsWrapFun (\a w -> (jsNull,initDOMEl me w)) world
 		# world      = ((me .# "initDOMEl") .= cb) world
+		# (cb,world) = jsWrapFun (\a w -> (jsNull,beforeRemove me w)) world
+		# world      = ((me .# "beforeRemove") .= cb) world
 		= world
+
+	beforeRemove me = snd o (me .# "picker" .# "destroy" .$ [])
 	
 	initDOMEl me world
 		//Load javascript library first, then start

@@ -327,7 +327,11 @@ itasks.Component = {
 		me.children.splice(didx, 0, child);
 	},
 	beforeChildRemove: function(idx,child) {},
-	beforeRemove: function() {},
+	beforeRemove: function() {
+		this.children.forEach(function (child){
+			child.beforeRemove();
+		});
+	},
 	setAttribute: function(name,value) {
 		var me = this;
 	
