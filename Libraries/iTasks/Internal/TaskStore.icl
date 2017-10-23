@@ -164,7 +164,7 @@ createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> ( Ok (TaskId instanceNo 0)
 				 , if refreshImmediate
-                      (queueEvent instanceNo (RefreshEvent Nothing ("First refresh of detached instance "<+++ instanceNo)) iworld)
+                      (queueEvent instanceNo ResetEvent iworld)
                       iworld)
 
 createReduct :: !TonicOpts !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
@@ -493,13 +493,9 @@ where
             queueWithMergedRefreshEventList [] = Nothing
             queueWithMergedRefreshEventList [hd=:(instanceNo`, event`) : tl] = case event` of
                 RefreshEvent refreshTasks` reason` | instanceNo` == instanceNo =
-                    Just [(instanceNo, RefreshEvent (mergeRefrTasks refreshTasks refreshTasks`) (mergeReason reason reason`)) : tl]
+                    Just [(instanceNo, RefreshEvent ('DS'.union refreshTasks refreshTasks`) (mergeReason reason reason`)) : tl]
                 _ =
                     (\tl` -> [hd : tl`]) <$> queueWithMergedRefreshEventList tl
-
-            mergeRefrTasks :: !(Maybe (Set TaskId)) !(Maybe (Set TaskId)) -> Maybe (Set TaskId)
-            mergeRefrTasks (Just x) (Just y) = Just ('DS'.union x y)
-            mergeRefrTasks _        _        = Nothing
 
             mergeReason :: !String !String -> String
             mergeReason x y = concat [x , "; " , y]
@@ -509,7 +505,7 @@ queueRefresh :: ![(!TaskId, !String)] !*IWorld -> *IWorld
 queueRefresh tasks iworld
     //Clear the instance's share change registrations, we are going to evaluate anyway
 	# iworld	= 'SDS'.clearTaskSDSRegistrations ('DS'.fromList (map fst tasks)) iworld
-	# iworld 	= foldl (\w (t,r) -> queueEvent (toInstanceNo t) (RefreshEvent (Just ('DS'.singleton t)) r) w) iworld tasks
+	# iworld 	= foldl (\w (t,r) -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t) r) w) iworld tasks
 	= iworld
 
 dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)

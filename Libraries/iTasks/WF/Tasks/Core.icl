@@ -89,7 +89,7 @@ where
                 = case editor.Editor.genUI [] v vst of
 			        (Ok (ui,m),{VSt|iworld}) = (Ok (l,v,ReplaceUI (uic UIInteract [toPrompt prompt,ui]),m,taskTime),iworld)
 			        (Error e,{VSt|iworld})   = (Error (exception e),iworld)
-            RefreshEvent mbTaskIds _ | maybe True ('DS'.member taskId) mbTaskIds
+            RefreshEvent taskIds _ | 'DS'.member taskId taskIds
                 = refreshView_ taskId mode mbEditor shared refreshFun l v m taskTime iworld
             FocusEvent fTaskId | fTaskId == taskId = (Ok (l,v,NoChange,m,taskTime),iworld)
             _ = (Ok (l,v,NoChange,m,ts),iworld)
