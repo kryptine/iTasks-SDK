@@ -1,5 +1,5 @@
 implementation module Incidone.ContactPosition
-import iTasks, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators, iTasks.UI.Definition
+import iTasks, iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers, iTasks.UI.Definition
 import qualified Data.Map as DM
 import Data.Functor, Data.List, Text 
 import qualified Text.Parsers.ZParsers.ParsersKernel as PK
@@ -15,7 +15,7 @@ import Incidone.Util.TaskPatterns
 derive JSONEncode ContactPosition
 derive JSONDecode ContactPosition
 
-gEditor{|ContactPosition|} = liftEditor printPosition parsePosition (textField 'DM'.newMap)
+gEditor{|ContactPosition|} = bijectEditorValue printPosition parsePosition textField 
 gText{|ContactPosition|} _ val = [maybe "" printPosition val]
 
 derive gDefault ContactPosition

@@ -3,7 +3,7 @@ implementation module Incidone.Util.TaskPatterns
 import iTasks, iTasks.Extensions.Dashboard
 import iTasks.UI.Definition
 import Incidone.OP.IncidentManagementTasks, Incidone.OP.ContactManagementTasks
-import Text, Data.Functor, Data.Either
+import Text, Data.Functor, Data.Either, Data.Maybe
 import qualified Data.Map as DM
 import StdMisc
 
@@ -35,25 +35,32 @@ where
     read p mapping = fromMaybe def ('DM'.get p mapping)
     write p mapping v = ('DM'.put p v mapping,(==) p)
 
-sdsDeref :: (RWShared p [a] [a]) (a -> Int) (RWShared [Int] [b] x) ([a] [b] -> [c]) -> (RWShared p [c] [a])
-sdsDeref sds1 toRef sds2 merge = sdsSequence "sdsDeref" (\_ r -> map toRef r) read writel writer sds1 sds2
+sdsDeref :: (RWShared p [a] [a]) (a -> Int) (RWShared [Int] [b] x) ([a] [b] -> [c]) -> (RWShared p [c] [a]) | iTask p & TC a & TC b & TC c & TC x
+sdsDeref sds1 toRef sds2 merge = sdsSequence "sdsDeref" paraml paramr (\_ _ -> Right read) writel writer sds1 sds2
 where
+	paraml p = p
+	paramr p r1 = map toRef r1
     param _ r = (\_ r -> map toRef r)
     read (as,bs) = merge as bs
+
     writel = SDSWriteConst (\_ w -> Ok (Just w))
     writer = SDSWriteConst (\_ _ -> Ok Nothing)
 
-viewDetails	:: !d (ReadOnlyShared (Maybe i)) (RWShared i c c) (c -> v) -> Task (Maybe v) | toPrompt d & iTask i & iTask v
-viewDetails desc sel target prj = viewSharedInformation desc [] (mapRead (fmap prj) targetShare)
+viewDetails	:: !d (ReadOnlyShared (Maybe i)) (RWShared i c c) (c -> v) -> Task (Maybe v) | toPrompt d & iTask i & iTask v & iTask c
+viewDetails desc sel target prj = viewSharedInformation desc [] (mapRead (fmap prj) (targetShare sel target))
 where
-    targetShare = sdsSequence "viewDetailsSeq" (\_ i -> i) snd writel writer sel valueShare
+	targetShare :: (RWShared () (Maybe i) ()) (RWShared i c c) -> RWShared () (Maybe c) () | iTask i & iTask c
+    targetShare sel target = sdsSequence "viewDetailsSeq" id (\_ i -> i) (\_ _ -> Right snd) writel writer sel (valueShare target)
     where
         writel = SDSWriteConst (\_ _ -> Ok Nothing)
         writer = SDSWriteConst (\_ _ -> Ok Nothing)
-    valueShare = sdsSelect "viewDetailsValue" param (\_ _ _ _ -> False) (\_ _ _ _ -> False) (constShare Nothing) (mapRead Just (toReadOnly target))
 
-    param Nothing = Left ()
-    param (Just i) = Right i
+    valueShare :: (RWShared i c c) -> RWShared (Maybe i) (Maybe c) () | iTask i & iTask c
+    valueShare target = sdsSelect "viewDetailsValue" param (SDSNotifyConst (\_ _ _ -> False)) (SDSNotifyConst (\_ _ _ -> False))
+		(constShare Nothing) (mapRead Just (toReadOnly target))
+	where
+    	param Nothing = Left ()
+    	param (Just i) = Right i
 
 optionalNewOrOpen :: (String,Task ()) (String,i -> Task ()) Workspace (ReadOnlyShared (Maybe i)) -> Task () | iTask i
 optionalNewOrOpen (newLabel,newTask) (openLabel,openTask) ws selection

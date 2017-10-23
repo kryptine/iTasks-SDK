@@ -23,27 +23,13 @@ timeout iworld = case read taskEvents iworld of //Check if there are events in t
 	(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
 	(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
 
-updateClocks :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
-updateClocks iworld=:{IWorld|clocks,world}
+updateClock :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
+updateClock iworld=:{IWorld|clock,world}
     //Determine current date and time
 	# (timestamp,world) 	= time world
-	# (local,world)	= currentLocalDateTimeWorld world
-	# localDate = toDate local
-	  localTime = toTime local 
-	# (utc,world)	= currentUTCDateTimeWorld world
-	# utcDate = toDate utc
-	  utcTime = toTime utc 
     # iworld = {iworld & world = world}
-    //Write SDS's if necessary
-    # (mbe,iworld) = if (localDate == clocks.localDate) (Ok (),iworld) (write localDate iworldLocalDate iworld)
-	| mbe =:(Error _) = (mbe,iworld)
-    # (mbe,iworld) = if (localTime == clocks.localTime) (Ok (),iworld) (write localTime iworldLocalTime iworld)
-	| mbe =:(Error _) = (mbe,iworld)
-    # (mbe,iworld) = if (utcDate == clocks.utcDate) (Ok (),iworld) (write utcDate iworldUTCDate iworld)
-	| mbe =:(Error _) = (mbe,iworld)
-    # (mbe,iworld) = if (utcTime == clocks.utcTime) (Ok (),iworld) (write utcTime iworldUTCTime iworld)
-	| mbe =:(Error _) = (mbe,iworld)
-    # (mbe,iworld) = if (timestamp == clocks.timestamp) (Ok (),iworld) (write timestamp iworldTimestamp iworld)
+    //Write SDS if necessary
+    # (mbe,iworld) = if (timestamp == clock) (Ok (),iworld) (write timestamp iworldTimestamp iworld)
 	| mbe =:(Error _) = (mbe,iworld)
     = (Ok (),iworld)
 
@@ -60,7 +46,7 @@ where
 		(Ok (),iworld) = checkAll f xs iworld
 		(Error e,iworld) = (Error e,iworld)
 
-    removeIfOutdated (instanceNo,_,_,_) iworld=:{options={appVersion},clocks={timestamp}}
+    removeIfOutdated (instanceNo,_,_,_) iworld=:{options={appVersion},clock}
 		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) iworld of
 			//If there is I/O information, we check that age first
 			(Ok (Just (client,Timestamp tInstance)),iworld) //No IO for too long, clean up
@@ -89,7 +75,7 @@ where
 			(Error e)
 				= (Error e,iworld)
 	where
-		(Timestamp tNow) = timestamp
+		(Timestamp tNow) = clock
 
 //When the event queue is empty, write deferred SDS's
 flushWritesWhenIdle:: !*IWorld -> (!MaybeError TaskException (), !*IWorld)

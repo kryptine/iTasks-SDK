@@ -44,4 +44,4 @@ deleteCommunicationMean         :: CommunicationMeanId -> Task ()
 //Check credentials for contacts that can log in
 verifyContactCredentials        :: Credentials -> Task (Maybe User)
 
-viewContactsOnMap           :: (ReadWriteShared [ContactGeo] w) (Shared (Maybe (Either ContactNo MMSI))) -> Task (Either ContactNo MMSI)
+viewContactsOnMap           :: (ReadWriteShared [ContactGeo] w) (Shared (Maybe (Either ContactNo MMSI))) -> Task (Either ContactNo MMSI) | iTask w

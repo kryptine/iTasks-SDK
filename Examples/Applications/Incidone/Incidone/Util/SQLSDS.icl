@@ -147,8 +147,8 @@ fromSQLWithId :: [SQLValue] -> (Int,a) | mbFromSQL a
 fromSQLWithId row = (fromSQL [last row],fromSQL (init row))
 
 //UTIL SDS Combinators
-(>++>) infixl 6 :: (RWShared () SQLDatabaseDef SQLDatabaseDef) (RWShared (SQLDatabaseDef,p) r w) -> RWShared p r w | iTask p
-(>++>) db sds = sdsSequence ">++>" (\p db -> (db,p)) snd (SDSWriteConst (\_ _ -> Ok Nothing)) (SDSWriteConst (\_ w -> Ok (Just w))) (sdsFocus () db) sds
+(>++>) infixl 6 :: (RWShared () SQLDatabaseDef SQLDatabaseDef) (RWShared (SQLDatabaseDef,p) r w) -> RWShared p r w | iTask p & TC r & TC w
+(>++>) db sds = sdsSequence ">++>" id (\p db -> (db,p)) (\_ _ -> Right snd) (SDSWriteConst (\_ _ -> Ok Nothing)) (SDSWriteConst (\_ w -> Ok (Just w))) (sdsFocus () db) sds
 
 sqlReadSDS :: String -> ROShared (SQLDatabaseDef,QueryDef) [r] | mbFromSQL r
 sqlReadSDS notifyId = sqlShare notifyId readFun writeFun
@@ -231,8 +231,8 @@ where
 ungroupByFst :: (Map a [b]) -> [(a,b)]
 ungroupByFst index = flatten [[(a,b) \\ b <- bs] \\ (a,bs) <- 'DM'.toList index]
 
-roMaybe :: (RWShared p (Maybe r) ()) -> RWShared (Maybe p) (Maybe r) () | iTask p
-roMaybe sds = sdsSelect "roMaybe" choose (\_ _ _ _ -> False) (\_ _ _ _ -> False) (constShare Nothing) sds
+roMaybe :: (RWShared p (Maybe r) ()) -> RWShared (Maybe p) (Maybe r) () | iTask p & TC r
+roMaybe sds = sdsSelect "roMaybe" choose  (SDSNotifyConst (\_ _ _ -> False)) (SDSNotifyConst (\_ _ _ -> False)) (constShare Nothing) sds
 where
     choose Nothing  = Left ()
     choose (Just p) = Right p

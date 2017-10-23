@@ -5,14 +5,14 @@ import qualified Data.Map as DM
 import Incidone.Configuration
 import Incidone.OP.Concepts, Incidone.OP.Conversions
 import Incidone.Util.SQLSDS
-import Data.Functor
+import Data.Functor, Data.Either
 
 derive class iTask ContactFilter
 
-dbReadSDS :: String -> ROShared QueryDef [r] | mbFromSQL r
+dbReadSDS :: String -> ROShared QueryDef [r] | mbFromSQL r & TC r
 dbReadSDS notifyId = databaseDef >++> sqlReadSDS notifyId
 
-dbReadWriteOneSDS :: String -> RWShared QueryDef r r | mbFromSQL, mbToSQL r & gDefault{|*|} r
+dbReadWriteOneSDS :: String -> RWShared QueryDef r r | mbFromSQL, mbToSQL r & gDefault{|*|} r & TC r
 dbReadWriteOneSDS notifyId = databaseDef >++> sqlReadWriteOneSDS notifyId
 
 dbLinkSDS :: String String String String -> RWShared (Maybe [Int]) [(Int,Int)] [(Int,Int)]
@@ -481,7 +481,7 @@ where
     query group = Just (EqualsValue ("Contact","group") (toSQL group))
 
 contactsOfOpenIncidentsShort :: ROShared () [ContactShortWithIncidents]
-contactsOfOpenIncidentsShort = sdsSequence "contactsOfOpenIncidentsShort" param read writel writer contactsOfOpenIncidentsShortBase openIncidentsByContactsShortIndexed
+contactsOfOpenIncidentsShort = sdsSequence "contactsOfOpenIncidentsShort" id param (\_ _ -> Right read) writel writer contactsOfOpenIncidentsShortBase openIncidentsByContactsShortIndexed
 where
     writel = SDSWriteConst (\_ _ -> Ok Nothing)
     writer = SDSWriteConst (\_ _ -> Ok Nothing)
@@ -828,7 +828,8 @@ where
         _           = Nothing
 
 contactAIS :: ROShared ContactNo (Maybe AISContact)
-contactAIS = sdsSequence "contactAIS" (\_ mbMMSI -> mbMMSI) snd (SDSWriteConst (\_ _ -> Ok Nothing)) (SDSWriteConst (\_ w -> Ok (Just w))) contactMMSI (roMaybe (toReadOnly AISContactByMMSI))
+contactAIS = sdsSequence "contactAIS" id (\_ mbMMSI -> mbMMSI) (\_ _ -> Right snd) (SDSWriteConst (\_ _ -> Ok Nothing)) (SDSWriteConst (\_ w -> Ok (Just w)))
+	contactMMSI (roMaybe (toReadOnly AISContactByMMSI))
 
 contactCommunications :: ROShared ContactNo [CommunicationDetails]
 contactCommunications = sdsTranslate "contactCommunications" cond filteredCommunications
@@ -957,7 +958,7 @@ where
         = (Ok (),cur)
 
 currentUserAvatar :: ROShared () (Maybe ContactAvatar)
-currentUserAvatar = sdsSequence "userContactNo" (\_ u -> userContactNo u) snd writel writer currentUser (roMaybe (mapRead Just (toReadOnly contactAvatar)))
+currentUserAvatar = sdsSequence "userContactNo" id (\_ u -> userContactNo u) (\_ _ -> Right snd) writel writer currentUser (roMaybe (mapRead Just (toReadOnly contactAvatar)))
 where
     writel = SDSWriteConst (\_ _ -> Ok Nothing)
     writer = SDSWriteConst (\_ _ -> Ok Nothing)

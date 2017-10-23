@@ -2,7 +2,7 @@ implementation module iTasks.Extensions.Development.Testing
 import iTasks
 import iTasks.Extensions.Development.Tools
 import iTasks.Internal.Test.Definition
-import Text, Data.Tuple, Data.Error, System.FilePath
+import Text, Data.Tuple, Data.Error, System.FilePath, System.OS
 
 derive class iTask ExitCode
 
@@ -19,9 +19,11 @@ compileTestModule path
 		@ \(ExitCode c,o) -> if (passed c o) Passed (Failed (Just ("Failed to build " +++ prj +++ "\n" +++ join "" o)))
        ))
 where
-    //Cpm still return exitcode 0 on failure, so we have to check the output
-	passed 0 o = let lines = split "\n" (join "" o) in not (any (startsWith "Error") lines) 
+    //Cpm still returns exitcode 0 on failure, so we have to check the output
+	passed 0 o = let lines = split OS_NEWLINE (join "" o) in not (any isErrorLine lines) 
 	passed _ _ = False
+
+ 	isErrorLine l = startsWith "Error" l || startsWith "Type error" l || startsWith "Parse error" l
 
 	baseDir = takeDirectory path
 	base = dropExtension path

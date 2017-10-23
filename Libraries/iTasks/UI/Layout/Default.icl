@@ -6,6 +6,7 @@ import iTasks.UI.Definition
 import Text.JSON
 import GenEq
 
+from Data.Func import $
 from StdFunc import id, o, const
 import StdList, StdBool, StdArray, StdTuple, Data.Tuple, Data.Functor
 import Data.List
@@ -102,22 +103,28 @@ finalizeStep = sequenceAllLayouts
 	//If there are no actions, unwrap
 	,layoutSubUIs (ContainsNoChildOfType UIAction) (sequenceAllLayouts [copySubUIAttributes SelectAll [] [0], unwrapUI,finalizeUI])
 	//If the previous rule did not eliminate the UIStep
-	,layoutSubUIs RootIsStep  
-	 	(sequenceAllLayouts [layoutSubUIs (SelectByPath [0]) finalizeUI, actionsToButtonBar,setUIType UIPanel])
+	,layoutSubUIs RootIsStep
+		$ sequenceAllLayouts
+			[layoutSubUIs (SelectByPath [0]) finalizeUI
+			,actionsToButtonBar
+			,setUIType UIPanel]
 	]
 where
-	removeDisabledActionsOfNestedSteps //Select all children of type UIstep
-		= layoutSubUIs (ContainsChildOfType UIStep)
-			(sequenceAllLayouts 
-				[removeDisabledActions //Remove disabled actions
-				,layoutSubUIs (SelectAND SelectChildren (SelectByType UIStep)) removeDisabledActions //Recursively apply to the UIStep child
-				]
-			)
+	// Nested steps are steps having steps under them
+	removeDisabledActionsOfNestedSteps
+		= layoutSubUIs
+				(SelectAND                             // (Nested)
+					(SelectByType UIStep)              // Steps (are steps)
+						$ SelectByContains             // having
+							$ SelectAND
+								(SelectByType UIStep)  // steps
+								SelectDescendents)     // under them
+			removeDisabledActions
+
 	removeDisabledActions
 		= removeSubUIs (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" (JSONBool False))))
 
-	ContainsChildOfType type =SelectAND (SelectByPath []) (SelectByContains (SelectAND SelectChildren (SelectByType type)))
-	ContainsNoChildOfType type =SelectAND (SelectByPath []) (SelectNOT (SelectByContains (SelectAND SelectChildren (SelectByType type))))
+	ContainsNoChildOfType type = SelectAND (SelectByPath []) (SelectNOT (SelectByContains (SelectAND SelectChildren (SelectByType type))))
 	RootIsStep = SelectAND (SelectByPath []) (SelectByType UIStep)
 
 finalizeParallel :: Layout

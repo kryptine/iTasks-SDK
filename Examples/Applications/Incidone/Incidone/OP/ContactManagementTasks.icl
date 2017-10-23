@@ -7,9 +7,10 @@ import Incidone.Util.TaskPatterns
 import Incidone.DeviceBased.VideoWall
 
 import Incidone.Extensions.CrewLists //For demo
+
 import qualified Data.Map as DM
-import Text, Text.HTML, Data.Either
-import iTasks.UI.Editor.Builtin
+import Text, Text.HTML, Data.Either, Data.Functor
+import iTasks.UI.Editor.Controls
 
 CONVERT_BIN :== "/opt/local/bin/convert"
 //CONVERT_BIN :== "/usr/bin/convert"
@@ -23,7 +24,7 @@ selectContact = withShared Nothing
 		(selectContactFromLists sel <<@ Title "Browse")
 		 -||-
          (viewContactsOnMap mapContacts sel <<@ Title "Map")
-		 <<@ ArrangeWithTabs
+		 <<@ ArrangeWithTabs True
         )
 where	
     mapContacts = mapRead (\(x,y) -> x++y) (contactsOfOpenIncidentsGeo |+| contactsProvidingHelpGeo)
@@ -92,7 +93,7 @@ manageContactInformation ws contactNo
 			,manageContactIncidents ws contactNo
             ,manageContactActions False contactNo
             ,manageContactCrew` contactNo <<@ Title "Crew"
-            ] <<@ ArrangeWithTabs) @! ()
+            ] <<@ ArrangeWithTabs True) @! ()
 where
     viewTitle contactNo	= viewSharedTitle (mapRead contactTitle (sdsFocus contactNo contactByNo))
 
@@ -551,7 +552,7 @@ verifyContactCredentials credentials
     = get (sdsFocus credentials contactByCredentials)
     @ fmap contactUser
 
-viewContactsOnMap :: (ReadWriteShared [ContactGeo] w) (Shared (Maybe (Either ContactNo MMSI))) -> Task (Either ContactNo MMSI)
+viewContactsOnMap :: (ReadWriteShared [ContactGeo] w) (Shared (Maybe (Either ContactNo MMSI))) -> Task (Either ContactNo MMSI) | iTask w
 viewContactsOnMap sharedContacts sel
    =   get (standardMapLayers |+| standardPerspective)
    >>- \(baseLayers,perspective) ->
@@ -567,10 +568,10 @@ where
     mapState :: (Shared (Bool,ContactMapPerspective))
                 (ReadWriteShared [ContactGeo] w)
                 (Shared (Maybe (Either ContactNo MMSI))) ->
-                ReadWriteShared ([(Bool,ContactGeo)], Maybe (Either ContactNo MMSI), ContactMapPerspective) (Maybe (Either ContactNo MMSI), ContactMapPerspective)
-    mapState local contacts sel = sdsSequence "mapState" (\_ r -> r) read writel writer (local >+< sel) mapContacts
+                ReadWriteShared ([(Bool,ContactGeo)], Maybe (Either ContactNo MMSI), ContactMapPerspective) (Maybe (Either ContactNo MMSI), ContactMapPerspective) | iTask w
+    mapState local contacts sel = sdsSequence "mapState" id (\_ r -> r) (\_ _ -> Right read) writel writer (local >+< sel) mapContacts
     where
-        mapContacts = sdsSelect "mapContacts" choose (\_ _ _ _ -> False) (\_ _ _ _ -> False) withoutAISContacts withAISContacts
+        mapContacts = sdsSelect "mapContacts" choose (SDSNotifyConst (\_ _ _ -> False)) (SDSNotifyConst (\_ _ _ -> False)) withoutAISContacts withAISContacts
         where
             choose ((withAIS,{ContactMapPerspective|bounds=Just bounds}),_) = (if withAIS (Right bounds) (Left bounds))
             choose _                                                        = (Left defaultValue)

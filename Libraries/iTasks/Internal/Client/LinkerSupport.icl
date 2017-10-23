@@ -1,7 +1,7 @@
 implementation module iTasks.Internal.Client.LinkerSupport
 
 from StdFunc import id
-import StdString, StdList, StdFile, StdTuple, StdDebug
+import StdString, StdList, StdFile, StdTuple
 import Data.Maybe, System.File
 import graph_to_sapl_string
 

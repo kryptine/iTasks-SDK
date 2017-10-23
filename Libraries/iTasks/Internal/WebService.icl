@@ -133,21 +133,21 @@ httpServer :: !Int !Int ![WebService r w] (RWShared () r w) -> ConnectionTask | 
 httpServer port keepAliveTime requestProcessHandlers sds
     = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, onData=onData, onShareChange=onShareChange, onTick=onTick, onDisconnect=onDisconnect} sds
 where
-    onConnect host r iworld=:{IWorld|world,clocks}
-        = (Ok (NTIdle host clocks.timestamp),Nothing,[],False,{IWorld|iworld & world = world})
+    onConnect host r iworld=:{IWorld|world,clock}
+        = (Ok (NTIdle host clock),Nothing,[],False,{IWorld|iworld & world = world})
 
     onData data connState=:(NTProcessingRequest request localState) r env
         //Select handler based on request path
         = case selectHandler request requestProcessHandlers of
 			Just {WebService | onData}
-				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = onData request r data localState env
+				# (mbData,done,localState,mbW,env=:{IWorld|world,clock}) = onData request r data localState env
 				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
-					= (Ok (NTIdle request.client_name clocks.timestamp), mbW, mbData, False,{IWorld|env & world = world})
+					= (Ok (NTIdle request.client_name clock), mbW, mbData, False,{IWorld|env & world = world})
 				| otherwise
 					= (Ok (NTProcessingRequest request localState), mbW, mbData,done,{IWorld|env & world = world})
 			Nothing
 				= (Ok connState, Nothing, ["HTTP/1.1 400 Bad Request\r\n\r\n"], True, env)
-	onData data connState r iworld=:{IWorld|clocks}
+	onData data connState r iworld=:{IWorld|clock}
         //(connState is either Idle or ReadingRequest)
 		# rstate = case connState of
 			(NTIdle client_name _)
@@ -186,7 +186,7 @@ where
 						Nothing	
 							# reply		= encodeResponse True response
 							| keepalive
-								= (Ok (NTIdle rstate.HttpReqState.request.client_name clocks.timestamp), mbW, [reply], False, iworld)
+								= (Ok (NTIdle rstate.HttpReqState.request.client_name clock), mbW, [reply], False, iworld)
 							| otherwise
 								= (Ok connState, mbW, [reply], True, iworld)
 						Just localState	
@@ -195,16 +195,16 @@ where
 					= (Ok (NTReadingRequest rstate), Nothing, [], False, iworld)		
 
 	//Close idle connections if the keepalive time has passed
-	onTick connState=:(NTIdle ip (Timestamp t)) r iworld=:{IWorld|clocks={timestamp=Timestamp now}}
+	onTick connState=:(NTIdle ip (Timestamp t)) r iworld=:{IWorld|clock=Timestamp now}
 		= (Ok connState, Nothing, [], now >= t + keepAliveTime, iworld)
 
 	onTick connState=:(NTProcessingRequest request localState) r env
         //Select handler based on request path
         = case selectHandler request requestProcessHandlers of
 			Just {WebService | onTick}
-				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = onTick request r localState env
+				# (mbData,done,localState,mbW,env=:{IWorld|world,clock}) = onTick request r localState env
 				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
-					= (Ok (NTIdle request.client_name clocks.timestamp), mbW, mbData, False,{IWorld|env & world = world})
+					= (Ok (NTIdle request.client_name clock), mbW, mbData, False,{IWorld|env & world = world})
 				| otherwise
 					= (Ok (NTProcessingRequest request localState), mbW, mbData,done,{IWorld|env & world = world})
 			Nothing
@@ -215,9 +215,9 @@ where
         //Select handler based on request path
         = case selectHandler request requestProcessHandlers of
 			Just {WebService | onShareChange}
-				# (mbData,done,localState,mbW,env=:{IWorld|world,clocks}) = onShareChange request r localState env
+				# (mbData,done,localState,mbW,env=:{IWorld|world,clock}) = onShareChange request r localState env
 				| done && isKeepAlive request	//Don't close the connection if we are done, but keepalive is enabled
-					= (Ok (NTIdle request.client_name clocks.timestamp), mbW, mbData, False,{IWorld|env & world = world})
+					= (Ok (NTIdle request.client_name clock), mbW, mbData, False,{IWorld|env & world = world})
 				| otherwise
 					= (Ok (NTProcessingRequest request localState), mbW, mbData,done,{IWorld|env & world = world})
 			Nothing
