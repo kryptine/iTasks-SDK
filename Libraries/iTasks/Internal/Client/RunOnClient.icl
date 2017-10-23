@@ -15,7 +15,6 @@ from Data.Queue as DQ import qualified newQueue, dequeue
 import iTasks.Extensions.DateTime
 import System.Time, Math.Random
 import Text.JSON
-import StdDebug
 
 :: TaskState a = 
 			{ instanceNo :: !InstanceNo
