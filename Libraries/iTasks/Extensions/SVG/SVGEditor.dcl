@@ -8,7 +8,6 @@ from Graphics.Scalable.Internal import :: OnMouseDownAttr, :: OnClickAttr
 from Graphics.Scalable.Internal import :: LineContent, :: Compose, :: XAlign, :: YAlign, :: OnMouseOutAttr, :: OnMouseMoveAttr
 from Graphics.Scalable import :: TagSource, :: TagRef, :: ImageTag
 
-import iTasks
 import iTasks.UI.Editor
 import iTasks.Extensions.Platform
 import iTasks.UI.JS.Encoding
