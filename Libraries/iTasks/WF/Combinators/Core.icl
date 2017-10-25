@@ -25,7 +25,7 @@ import qualified Data.Queue as DQ
 
 import Data.Maybe, Data.Either, Data.Error
 import Text.JSON
-from Data.Functor import <$>
+from Data.Functor import <$>, class Functor(fmap)
 
 derive gEq ParallelTaskChange
 
