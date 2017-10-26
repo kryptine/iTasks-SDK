@@ -313,15 +313,18 @@ itasks.Menu = {
     initDOMEl: function() {
 		var me = this;	
 
-		me.labelEl = document.createElement('a');
-		me.labelEl.classList.add(me.cssPrefix + 'menu-label');
-		me.innerLabelEl = document.createElement('span');
-		me.innerLabelEl.innerHTML = me.attributes.text;
-		me.labelEl.appendChild(me.innerLabelEl);
-		me.domEl.appendChild(me.labelEl);
+		
+		if (!(me.parentCmp.type != 'Menu' && me.children.length == 1)){
+			me.labelEl = document.createElement('a');
+			me.labelEl.classList.add(me.cssPrefix + 'menu-label');
+			me.innerLabelEl = document.createElement('span');
+			me.innerLabelEl.innerHTML = me.attributes.text;
+			me.labelEl.appendChild(me.innerLabelEl);
+			me.domEl.appendChild(me.labelEl);
 
-		me.containerEl = document.createElement('div');
-		me.containerEl.classList.add(me.cssPrefix + 'menu-content');
-		me.domEl.appendChild(me.containerEl);
+			me.containerEl = document.createElement('div');
+			me.containerEl.classList.add(me.cssPrefix + 'menu-content');
+			me.domEl.appendChild(me.containerEl);
+		}
 	},
 };

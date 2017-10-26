@@ -69,7 +69,7 @@ arrangeAsMenu = foldl1 sequenceLayouts
 	// Wrap in panel
 	[ wrapUI UIPanel
 	// Add a buttonbar to hold the menu
-	, insertChildUI 0 (ui UIButtonBar)
+	, insertChildUI 0 (ui UIToolBar)
 	// Move the actions with a matching id to the menubar
 	, moveSubUIs (SelectAND
 			(SelectByDepth 2)
@@ -90,7 +90,7 @@ makeMenu = {apply=apply,adjust=adjust,restore=restore}
 where
 	apply (UI t attr cs)
 		# (actions, others) = splitWith (\s->s=:(UI UIAction _ _)) cs
-		= (ReplaceUI (UI t ('DM'.union attr (halignAttr AlignLeft)) (mkmenu actions ++ others)), LSNone)
+		= (ReplaceUI (UI t attr (mkmenu actions ++ others)), LSNone)
 
 	adjust (uic, lst) = (NoChange, lst)
 	restore lst = NoChange
@@ -110,7 +110,7 @@ where
 			[ attr
 			, textAttr p
 			, valueAttr $ maybe (JSONString "") id $ 'DM'.get "actionId" attr]
-		= [UI UIButton attr cs]
+		= [UI UIMenu (textAttr p) [UI UIButton attr cs]]
 	//Fork but we haven't found a matching node
 	ins [p:ps] ui []
 		= [UI UIMenu (textAttr p) $ ins ps ui []]
