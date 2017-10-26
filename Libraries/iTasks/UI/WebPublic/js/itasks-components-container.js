@@ -322,6 +322,5 @@ itasks.Menu = {
 		me.containerEl = document.createElement('div');
 		me.containerEl.classList.add(me.cssPrefix + 'menu-content');
 		me.domEl.appendChild(me.containerEl);
-		
-	}
+	},
 };

@@ -6,9 +6,14 @@ import iTasks.WF.Combinators.Tune
 import iTasks.WF.Combinators.Overloaded
 import Data.List, Text.JSON
 import qualified Data.Map as DM
-import StdBool
-from StdFunc import id, const, o
+import StdBool, _SystemArray
+from Data.Func import $
+from StdFunc import id, const, o, flip
+from StdTuple import uncurry, snd
+from StdListExtensions import foldlSt
 from iTasks.Internal.TaskEval import :: TaskEvalOpts(..), :: TonicOpts
+import qualified Text as T
+from Text import class Text, instance Text String
 
 arrangeWithTabs :: Bool -> Layout
 arrangeWithTabs closeable = layoutSubUIs
@@ -30,7 +35,7 @@ where
 
 	selectCloseButton = SelectAND
 		(SelectByType UIAction)
-		(SelectByAttribute "actionId" (JSONString "Close"))
+		(SelectByAttribute "actionId" ((==) (JSONString "Close")))
 
 	reallyMoveCloseToTab = foldl1 sequenceLayouts
 		[moveSubUIs (SelectAND SelectChildren selectCloseButton) [] 0
@@ -58,6 +63,51 @@ where
 	direction = if (side === TopSide|| side === BottomSide) Vertical Horizontal
 
 	(sidePanelWidth,sidePanelHeight) = if (direction === Vertical) (FlexSize,ExactSize size) (ExactSize size,FlexSize)
+
+arrangeAsMenu :: Layout
+arrangeAsMenu = foldl1 sequenceLayouts
+	[ wrapUI UIPanel
+	, insertChildUI 0 (ui UIPanel)
+	, moveSubUIs (SelectAND
+			(SelectByDepth 2)
+			(SelectAND
+				(SelectByType UIAction)
+				(SelectByAttribute "actionId" (\s->case s of
+						(JSONString s) = s.[0] == '/'
+						_ = False)
+				)
+			)
+		) [0] 0
+	, layoutSubUIs (SelectByPath [0]) (sequenceLayouts makeMenu arrangeHorizontal)
+	]
+
+makeMenu :: Layout
+makeMenu = {apply=apply,adjust=adjust,restore=restore}
+where
+	apply (UI UIPanel attr cs)
+		# (actions, others) = splitWith (\s->s=:(UI UIAction _ _)) cs
+		= (ReplaceUI (UI UIButtonBar attr (mkmenu actions ++ others)), LSNone)
+	adjust (uic, lst) = (NoChange, lst)
+	restore lst = NoChange
+	
+	mkmenu :: ([UI] -> [UI])
+	mkmenu  = flip (foldlSt (uncurry ins)) [] o extractPaths
+
+	extractPaths :: ([UI] -> [([String], UI)])
+	extractPaths = map \a=:(UI _ attr _)->
+		(maybe [""] (\(JSONString s)->'T'.split "/" $ 'T'.subString 1 ('T'.textSize s) s)
+			$ 'DM'.get "actionId" attr, a)
+
+	ins :: [String] UI [UI] -> [UI]
+	//Path empty, thus insert
+	ins [p] ui=:(UI _ attr cs) [] = [UI UIButton ('DM'.unions [attr, textAttr p, valueAttr $ fromJust $ 'DM'.get "actionId" attr]) cs]
+	//Path nonempty and no matching node, insert
+	ins [p:ps] ui [] = [UI UIMenu ('DM'.put "text" (JSONString p) 'DM'.newMap)
+		$ ins ps ui []]
+	ins [p:ps] ui [(UI t attr cs):us]
+		| maybe False (\(JSONString s)->s == p) $ 'DM'.get "text" attr
+			= [UI t attr (ins ps ui cs):us]
+		= [(UI t attr cs):ins [p:ps] ui us]
 
 arrangeSplit :: !UIDirection !Bool -> Layout
 arrangeSplit direction resize 
@@ -101,7 +151,7 @@ where
 insertToolBar :: [String] -> Layout
 insertToolBar actions = foldl1 sequenceLayouts
 	[insertChildUI 0 (ui UIToolBar)
-	,moveSubUIs (foldl1 SelectOR [SelectByAttribute "actionId" (JSONString action)\\ action <- actions]) [0] 0
+	,moveSubUIs (foldl1 SelectOR [SelectByAttribute "actionId" ((==) (JSONString action))\\ action <- actions]) [0] 0
 	,layoutSubUIs (SelectByPath [0]) (layoutSubUIs (SelectByType UIAction) actionToButton)
 	]
 
@@ -158,6 +208,10 @@ where tune (ArrangeWithTabs b) t = tune (ApplyLayout (arrangeWithTabs b)) t
 instance tune ArrangeWithSideBar Task 
 where
     tune (ArrangeWithSideBar index side size resize) t = tune (ApplyLayout (arrangeWithSideBar index side size resize)) t
+
+instance tune ArrangeAsMenu Task
+where
+	tune ArrangeAsMenu t = tune (ApplyLayout arrangeAsMenu) t
 
 instance tune ArrangeSplit Task
 where
