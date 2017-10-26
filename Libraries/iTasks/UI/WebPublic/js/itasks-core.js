@@ -38,8 +38,15 @@ itasks.Component = {
 		var me = this, fun, evalfun;
 		//Initialize linked sapl functions 
 		if(me.attributes.saplDeps != null && me.attributes.saplDeps != '') {
-			me.evalJs(me.attributes.saplDeps);
-        }
+			if(SAPL_DEBUG) {
+				console.log("BEGIN SAPL DEBUG");
+				console.log(me.attributes.saplDeps);
+				console.log("END SAPL DEBUG");
+			} else {
+				me.evalJs(me.attributes.saplDeps);
+        	}
+			me.replaceJsDynamicUnify();
+		}
 		//Decode and evaluate the sapl initialization function
 		if(me.attributes.saplInit !=null && me.attributes.saplInit!= '') {
 			Sapl.feval([me.evalJsVal(me.attributes.saplInit),[___wrapJS(me),"JSWorld"]]);
@@ -327,7 +334,11 @@ itasks.Component = {
 		me.children.splice(didx, 0, child);
 	},
 	beforeChildRemove: function(idx,child) {},
-	beforeRemove: function() {},
+	beforeRemove: function() {
+		this.children.forEach(function (child){
+			child.beforeRemove();
+		});
+	},
 	setAttribute: function(name,value) {
 		var me = this;
 	
@@ -405,18 +416,19 @@ itasks.Component = {
 		s.appendChild(document.createTextNode(js));
 		h.appendChild(s);
 		h.removeChild(s);
-
-		//Make sure that the dynamics unification is specialized for javavascript functions
-		if(typeof ___SystemDynamic__unify === "function" && ___SystemDynamic__unify != _gen_unify){
-			_orig_unify_fun = ___SystemDynamic__unify;
-			___SystemDynamic__unify = _gen_unify;
-		}
 		return null;
 	},
 	evalJsVal: function(js) {
 		var out;
  		eval("out = " + js + ";");
         return out;
+	},
+	replaceJsDynamicUnify: function() {
+		//Make sure that the dynamics unification is specialized for javavascript functions
+		if(typeof ___SystemDynamic__unify === "function" && ___SystemDynamic__unify != _gen_unify){
+			_orig_unify_fun = ___SystemDynamic__unify;
+			___SystemDynamic__unify = _gen_unify;
+		}
 	}
 };
 itasks.Loader = {

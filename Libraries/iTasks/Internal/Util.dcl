@@ -7,6 +7,7 @@ from Data.Maybe import :: Maybe
 from System.FilePath import :: FilePath
 from iTasks.Extensions.DateTime import :: DateTime
 from StdOverloaded import class <
+from System.Time import :: Tm
 
 show                :: ![String] !*World -> *World
 
@@ -15,8 +16,7 @@ list2mb				:: ![a] -> (Maybe [a])
 
 instance toString (Maybe a) | toString a
 
-currentLocalDateTimeWorld	:: !*World	-> (!DateTime,!*World)
-currentUTCDateTimeWorld	    :: !*World	-> (!DateTime,!*World)
+tmToDateTime :: !Tm -> DateTime
 
 //Path conversion
 toCanonicalPath			:: !FilePath !*World -> (!FilePath,!*World)

@@ -90,7 +90,7 @@ composeEmailMessage communicationNo
     >>| updateMessageMeta communicationNo
     ||- ((composeAndSendMessage communicationNo message transmitEmailMessage
           -&&-
-          relateMessageToIncidents communicationNo) <<@ ArrangeWithTabs)
+          relateMessageToIncidents communicationNo) <<@ ArrangeWithTabs True)
                                                     <<@ ArrangeWithSideBar 0 TopSide 60 False
                                                     <<@ Title "Compose E-mail"
                                                     /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600) ) */ //FIXME
@@ -105,7 +105,7 @@ composeP2000Message communicationNo
     >>| updateMessageMeta communicationNo
     ||- ((composeAndSendMessage communicationNo message transmitP2000Message
           -&&-
-          relateMessageToIncidents communicationNo) <<@ ArrangeWithTabs)
+          relateMessageToIncidents communicationNo) <<@ ArrangeWithTabs True)
                                                     <<@ ArrangeWithSideBar 0 TopSide 60 False
                                                     <<@ Title "Compose P2000 message"
                                                     /* <<@ AfterLayout (uiDefSetSize (ExactSize 800) (ExactSize 600)) */ //FIXME
@@ -290,7 +290,7 @@ manageLinkedIncidentInfo incidentNo
 
 manageVoiceCallContent :: CommunicationType CommunicationNo -> Task ()
 manageVoiceCallContent type communicationNo
-    = updateCallNotes -|| relateMessageToIncidents communicationNo <<@ ArrangeWithTabs
+    = updateCallNotes -|| relateMessageToIncidents communicationNo <<@ ArrangeWithTabs True
 where
     updateCallNotes
         =   updateSharedInformation (Title "Notes") [] (callNotes type) //<<@ FillNotes //FIXME

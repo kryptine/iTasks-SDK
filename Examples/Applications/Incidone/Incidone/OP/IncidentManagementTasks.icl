@@ -28,7 +28,7 @@ manageIncidentInformation ws incidentNo
 		    ,(Embedded, \_ -> manageIncidentActions incidentNo)
 		    ,(Embedded, \_ -> manageIncidentWeather incidentNo)
 		    ,(Embedded, \_ -> manageIncidentLog incidentNo)			
-		    ] [] <<@ ArrangeWithTabs)
+		    ] [] <<@ ArrangeWithTabs False)
     @! ()
 
 //Basic incident information (title, summary, type, phase etc..)

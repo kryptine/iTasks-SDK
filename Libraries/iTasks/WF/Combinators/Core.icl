@@ -14,15 +14,18 @@ import iTasks.Internal.Tonic.Shares
 import iTasks.Internal.Client.Override
 
 from iTasks.SDS.Combinators.Common import sdsFocus, sdsSplit, sdsTranslate, toReadOnly, mapRead, mapReadWriteError, mapSingle
+from iTasks.WF.Combinators.Common import ifStable
 from iTasks.Internal.SDS import write, read, readRegister, modify
+import iTasks.WF.Tasks.System
 
 import StdList, StdBool, StdTuple
+from StdFunc import o
 import qualified Data.Map as DM
 import qualified Data.Queue as DQ
 
 import Data.Maybe, Data.Either, Data.Error
 import Text.JSON
-from Data.Functor import <$>
+from Data.Functor import <$>, class Functor(fmap)
 
 derive gEq ParallelTaskChange
 
@@ -76,8 +79,23 @@ where
 		(ExceptionResult e, iworld)				    = (ExceptionResult e, iworld)
 		(DestroyedResult, iworld)					= (DestroyedResult, iworld)
 
+removeDupBy :: (a a -> Bool) [a] -> [a]
+removeDupBy eq [x:xs] = [x:removeDupBy eq (filter (not o eq x) xs)]
+removeDupBy _ [] = []
+
 step :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC a & JSONDecode{|*|} a & JSONEncode{|*|} a
-step (Task evala) lhsValFun conts = Task eval
+step task fun c
+= if (length conts <> length c)
+	(step` (traceValue "Duplicate actions in step") (\_->Nothing) [OnValue (ifStable \_->step` task fun conts)])
+	(step` task fun conts)
+where
+	conts = removeDupBy actionEq c
+
+	actionEq (OnAction (Action a) _) (OnAction (Action b) _) = a == b
+	actionEq _ _ = False
+
+step` :: !(Task a) ((Maybe a) -> (Maybe b)) [TaskCont a (Task b)] -> Task b | TC a & JSONDecode{|*|} a & JSONEncode{|*|} a
+step` (Task evala) lhsValFun conts = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld
 		# (taskIda,iworld)	= getNextTaskId iworld
@@ -336,7 +354,7 @@ initParallelTask ::
 	,Maybe (TaskId,Task a))
 	,!*IWorld)
 	| iTask a
-initParallelTask evalOpts=:{tonicOpts = {callTrace}} listId index parType parTask iworld=:{current={taskTime},clocks={localDate,localTime}}
+initParallelTask evalOpts=:{tonicOpts = {callTrace}} listId index parType parTask iworld=:{current={taskTime}}
   # (mbTaskStuff,iworld) = case parType of
                              Embedded           = mkEmbedded 'DM'.newMap iworld
                              NamedEmbedded name = mkEmbedded ('DM'.singleton "name" name) iworld

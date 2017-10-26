@@ -56,7 +56,7 @@ toOrderBySQL        :: [RowOrderDef] -> String
 
 fromSQLWithId       :: [SQLValue] -> (Int,a) | mbFromSQL a
 
-(>++>) infixl 6     :: (RWShared () SQLDatabaseDef SQLDatabaseDef) (RWShared (SQLDatabaseDef,p) r w) -> RWShared p r w | iTask p
+(>++>) infixl 6     :: (RWShared () SQLDatabaseDef SQLDatabaseDef) (RWShared (SQLDatabaseDef,p) r w) -> RWShared p r w | iTask p & TC r & TC w
 
 sqlReadSDS          :: String -> ROShared (SQLDatabaseDef,QueryDef) [r] | mbFromSQL r
 sqlReadWriteOneSDS  :: String -> RWShared (SQLDatabaseDef,QueryDef) r r | mbFromSQL, mbToSQL r & gDefault{|*|} r
@@ -64,4 +64,4 @@ sqlLinkSDS          :: String String String String-> RWShared (SQLDatabaseDef,Ma
 
 groupByFst          :: [(a,b)] -> Map a [b] | Eq a & Ord a
 ungroupByFst        :: (Map a [b]) -> [(a,b)]
-roMaybe             :: (RWShared p (Maybe r) ()) -> RWShared (Maybe p) (Maybe r) () | iTask p
+roMaybe             :: (RWShared p (Maybe r) ()) -> RWShared (Maybe p) (Maybe r) () | iTask p & TC r

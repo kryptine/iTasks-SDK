@@ -15,7 +15,6 @@ from iTasks.Internal.TaskEval import :: TaskTime
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 import iTasks.WF.Definition
 import GenEq
-import StdDebug
 
 //This type records the states of layouts applied somewhere in a ui tree
 derive JSONEncode LayoutState, LayoutTree, MvUI, MvUIChild
@@ -24,8 +23,7 @@ derive JSONDecode LayoutState, LayoutTree, MvUI, MvUIChild
 //Test if a specific UI at a path is in the selection
 inUISelection :: UISelection UIPath UI -> Bool
 inUISelection (SelectByPath p) path _ = p === path
-inUISelection (SelectChildren) [_] _ = True
-inUISelection (SelectChildren) _ _ = False
+inUISelection (SelectByDepth n) p _ = length p == n
 inUISelection (SelectDescendents) [_:_] _ = True
 inUISelection (SelectDescendents) _ _ = False
 inUISelection (SelectByType t) _ (UI type _ _) = t === type
@@ -934,8 +932,8 @@ where
 	updateMoveDestination i f [x:xs]                     = [x:updateMoveDestination i f xs]
 	updateMoveDestination i f [] = []
 
-    moveMoveDestinationTowardsEnd n children = trace_n "A" children //FIXME
-    moveMoveDestinationTowardsBegin n children = trace_n "B" children
+    moveMoveDestinationTowardsEnd n children = children//trace_n "A" children //FIXME
+    moveMoveDestinationTowardsBegin n children = children//trace_n "B" children
 
 	countMoved {MvUI|moved,children} = (if moved 1 0) + sum [countMoved x \\ MvUIItem x <- children]
 

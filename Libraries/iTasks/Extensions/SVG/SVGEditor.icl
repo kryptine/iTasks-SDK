@@ -101,7 +101,7 @@ fromSVGEditor svglet=:{initView,renderImage,updView,updModel}
     }
   where
 	genUI dp val world
-		# attr = 'DM'.unions [sizeAttr FlexSize FlexSize, valueAttr (toJSON val)]
+		# attr = 'DM'.unions [sizeAttr FlexSize FlexSize, valueAttr (encodeOnServer val)]
 		= (Ok (uia UIComponent attr,newFieldMask), world)
 
 	initUI me world

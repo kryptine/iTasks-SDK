@@ -10,7 +10,7 @@ import Incidone.OP.Concepts, Incidone.OP.SDSs, Incidone.OP.Conversions
 import Incidone.OP.IncidentManagementTasks, Incidone.OP.ContactManagementTasks, Incidone.OP.CommunicationManagementTasks
 
 import qualified Data.Map as DM
-import  Data.Tuple, Data.Functor, Data.List, Text, Text.HTML
+import  Data.Tuple, Data.Functor, Data.List, Data.Either, Text, Text.HTML
 
 //Extensions
 import Incidone.Extensions.CrewLists
@@ -43,7 +43,7 @@ where
     filterFun contactNo (_,_,{ActionStatus|contacts}) = isMember contactNo contacts
 
 actionStatusesOfCurrentContact :: ROShared () [(InstanceNo,InstanceNo,ActionStatus)]
-actionStatusesOfCurrentContact = sdsSequence "actionStatusesOfCurrentContact" (\_ r -> r) snd writel writer currentUserContactNo actionStatusesByContact
+actionStatusesOfCurrentContact = sdsSequence "actionStatusesOfCurrentContact" id (\_ r -> r) (\_ _ -> Right snd) writel writer currentUserContactNo actionStatusesByContact
 where
     writel = SDSWriteConst (\_ _ -> Ok Nothing)
     writer = SDSWriteConst (\_ _ -> Ok Nothing)
@@ -100,7 +100,7 @@ fromSelfActionStatus status (_,items) = case [i \\ i=:{TaskListItem|taskId,self}
     [{TaskListItem|taskId,attributes}:_] = Ok (Just [(taskId,fromActionStatus status attributes)])
     _                                    = Error (exception "Task id not found in self management share")
 
-selfActionStatus :: (SharedTaskList a) -> Shared ActionStatus
+selfActionStatus :: (SharedTaskList a) -> Shared ActionStatus | iTask a
 selfActionStatus list = sdsFocus taskListFilter (mapReadWriteError (toSelfActionStatus,fromSelfActionStatus) list)
 where
     taskListFilter = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False
