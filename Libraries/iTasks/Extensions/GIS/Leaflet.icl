@@ -302,7 +302,8 @@ where
             "window"   = createWindow   me mapObj l object world
 			_ 		   = world
 
-	createMarker me mapObj  l object world 
+	createMarker me mapObj  l object world
+        # (markerId,world)    = .? (object .# "attributes.markerId") world
         # (options,world)     = jsEmptyObject world
 		//Set title
 		# (title,world)       = .? (object .# "attributes.title") world
@@ -315,15 +316,17 @@ where
 		//Create marker
 		# (position,world)    = .? (object .# "attributes.position") world
         # (layer,world)       = (l .# "marker" .$ (position,options) ) world
-        # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
 		# world               = (object .# "layer" .= layer) world
         //Optionally add popup
         # (popup,world)       = .? (object .# "attributes.popup") world
         # world               = addPopup popup position layer world
+        //Store marker ID, needed for related markers of windows
+        # world               = (layer .# "markerId" .= markerId) world
 		//Set click handler
-		# (markerId,world)    = .? (object .# "attributes.markerId") world
 		# (cb,world)          = jsWrapFun (\a w -> onMarkerClick me (jsValToString markerId) a w) world
         # (_,world)           = (layer .# "addEventListener" .$ ("click",cb)) world
+        //Add to map
+        # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
 		= world	
 	where
 		addIconOption iconId icons options world
@@ -336,7 +339,7 @@ where
         addPopup content position marker world
             | jsIsUndefined content = world
             # (options,world) = jsEmptyObject world
-            # world           = (options .# "maxWidth" .= 1000000) world // large nr to let size content determine size
+            # world           = (options .# "maxWidth" .= 1000000) world // large nr to let content determine size
             # world           = (options .# "closeOnClick" .= False) world
             # (popup, world)  = (l .# "popup" .$ options) world
             # (_, world)      = (popup .# "setLatLng" .$ position) world
@@ -383,12 +386,20 @@ where
         # (_, world)         = (layer .# "setTitle" .$ title) world
         # (content,world)    = .? (object .# "attributes.content") world
         # (_, world)         = (layer .# "setContent" .$ content) world
-        # (_,world)          = (layer .# "addTo" .$ (toJSArg mapObj)) world
+        # (relMarkers,world) = .? (object .# "attributes.relatedMarkers") world
+        # world              = forall (addRelatedMarker layer) relMarkers world
+        // inject function to send event on window remove
         # (windowId,world)   = .? (object .# "attributes.windowId") world
         # (onWRemove, world) = jsWrapFun (onWindowRemove me (jsValToString windowId)) world
-        // inject function to send event on window remove
         # world              = (layer .# "_onWindowClose" .= onWRemove) world
+        // add to map
+        # (_,world)          = (layer .# "addTo" .$ (toJSArg mapObj)) world
         = world
+    where
+        addRelatedMarker layer markerId world
+            # (_, world) = (layer .# "addRelatedMarker" .$ markerId) world
+            = world
+            
 
 	//Loop through a javascript array
     forall :: ((JSVal v11) *JSWorld -> *JSWorld) !(JSVal a) !*JSWorld -> *JSWorld

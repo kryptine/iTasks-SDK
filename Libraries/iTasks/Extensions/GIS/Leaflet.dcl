@@ -67,10 +67,12 @@ leafletEditor :: Editor LeafletMap
     }
 
 :: LeafletWindow =
-    { windowId     :: !LeafletObjectID
-    , initPosition :: !LeafletWindowPos
-    , title        :: !String
-    , content      :: !HtmlTag
+    { windowId       :: !LeafletObjectID
+    , initPosition   :: !LeafletWindowPos
+    , title          :: !String
+    , content        :: !HtmlTag
+    , relatedMarkers :: ![LeafletObjectID] // connecting lines are drawn between the window and the marker
+                                           // to visualise the relation
     }
 
 :: LeafletWindowPos = { x :: !Int, y :: !Int }
