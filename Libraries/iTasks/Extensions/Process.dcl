@@ -12,7 +12,7 @@ from System.OSError import :: OSError, :: OSErrorCode, :: OSErrorMessage
 	= RunningProcess !String
 	| CompletedProcess !Int
 
-:: CallException		= CallFailed !OSError
+:: CallException = CallFailed !OSError
 
 derive class iTask ProcessStatus, CallException
 instance toString CallException
