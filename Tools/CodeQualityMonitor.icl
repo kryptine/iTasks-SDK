@@ -3,21 +3,23 @@ module CodeQualityMonitor
 * This tool supports the task of monitoring the quality of the iTasks codebase.
 * It allows you to run test programs and exlore the codebase
 */
-import System.CommandLine
-import System.GetOpt
+import System.OS
 import Text, Text.HTML
 import qualified Data.Map as DM
 
 import iTasks
+
 import iTasks.Internal.Test.Definition
 import iTasks.UI.Definition
 import iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import iTasks.Extensions.Editors.Ace
 import iTasks.Extensions.Development.Codebase
 import iTasks.Extensions.Development.Testing
+import iTasks.Extensions.Development.Tools
 import iTasks.Extensions.Image
 import iTasks.Extensions.TextFile
-
+import iTasks.Extensions.Document
+import iTasks.Extensions.Process
 
 import Tests.Interactive.BuiltinEditors
 import Tests.Interactive.GenericEditors
@@ -51,23 +53,25 @@ suites = [//Interactive tests
          ,testTaskPatternsI
 		 ]
 
-//Commandline options 
-:: CLIOpt = UnitTestOnly | UseJSON | NameFilter String
-
-runTests :: [TestSuite] -> Task ()
-runTests suites = application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
-    ( allTasks [runInteractiveTests <<@ Title "Interactive Tests"
-			   ,runUnitTests   <<@ Title "Unit Tests"
-               ,checkExampleApplications  <<@ Title "Example applications"
-			   ,viewQualityMetrics  <<@ Title "Metrics"
-               ,exploreCode <<@ Title "Code"
-			   ] <<@ ArrangeWithTabs False
-    ) @! ()
+inspectCodeQuality :: Task ()
+inspectCodeQuality
+	= application {WebImage|src="/testbench.png",alt="iTasks Testbench",width=200, height=50}
+    	( allTasks [Title "Unit Tests"           @>> runUnitTests 
+				   ,Title "Interactive Tests"    @>> runInteractiveTests 
+				   ,Title "Example applications" @>> checkExampleApplications
+				   ,Title "Code"                 @>> exploreCode 
+                   ,Title "Experiment"           @>> inspectCode "module test\nStart = \"Hello World\""
+				   ] <<@ ArrangeWithTabs False
+		)
 where
-	runInteractiveTests
-		= ( editSelection (Title "Select test") False (SelectInTree toTree selectTest) suites [] @? tvHd
-		>&> withSelection (viewInformation () [] "Select a test") testInteractive ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
+	application header mainTask
+		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False <<@ ApplyLayout (setUIType UIContainer) @! ()
 
+runInteractiveTests :: Task ()
+runInteractiveTests
+	= (     editSelection (Title "Select test") False (SelectInTree toTree selectTest) suites [] @? tvHd
+		>&> withSelection (viewInformation () [] "Select a test") testInteractive ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
+where
 	toTree suites = reverse (snd (foldl addSuite (0,[]) suites))
 	addSuite (i,t) {TestSuite|name,tests}
 		| isEmpty [t \\ InteractiveTest t <- tests]  = (i,t) //There are no interactive tests in the suite
@@ -83,15 +87,24 @@ where
 		| otherwise = []
 	selectTest _ _ = []
 
-	runUnitTests = withShared 'DM'.newMap
-		\results ->
+testInteractive :: InteractiveTest -> Task TestResult
+testInteractive {name,instructions,expectation,taskUnderTest}
+    =       (viewInformation () [] (H1Tag [] [Text name]) <<@ ApplyLayout (setUIAttributes (heightAttr WrapSize)))
+    ||-     ((viewInformation (Title "Instructions") [] instructions)
+             -&&- (viewInformation (Title "Expected result") [] expectation) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
+    ||- taskUnderTest
+    ||- enterInformation (Title "Result") []
+
+runUnitTests :: Task ()
+runUnitTests = withShared 'DM'.newMap
+	\results ->
 		(
 		 (enterChoiceWithSharedAs () [ChooseFromGrid fst] (testsWithResults results) fst 
 		>&> withSelection (viewInformation "Select a test" [] ())
 			(\path -> 
 				(viewSharedInformation (Title "Code") [ViewUsing id aceTextArea] (sdsFocus (TESTS_PATH </> path) (removeMaybe Nothing fileShare))
 				-&&-
-				viewSharedInformation (Title "Results") [ViewAs (toHtml o maybeToList)] (mapRead ('DM'.get path) results) <<@ ArrangeHorizontal)
+				viewSharedInformation (Title "Results") [ViewAs (toTestReport o maybeToList)] (mapRead ('DM'.get path) results) <<@ ArrangeHorizontal)
 				>^* [OnAction (Action "Run") (always
 						(		runTestModule (TESTS_PATH </> path) <<@ InWindow
 							>>- \res -> (upd ('DM'.put path res)) results
@@ -99,13 +112,12 @@ where
 					)]
 			) @! ()) <<@ ArrangeWithSideBar 0 LeftSide 250 True
 		)		
+where
+	testsWithResults results = mapRead (\(res,tests) -> [(t,'DM'.get t res) \\t <- tests]) (results |*| tests)
 	where
-		testsWithResults results = mapRead (\(res,tests) -> [(t,'DM'.get t res) \\t <- tests]) (results |*| tests)
-		where
- 			tests = mapRead (filter ((==) "icl" o takeExtension)) (sdsFocus TESTS_PATH directoryListing)
+ 		tests = mapRead (filter ((==) "icl" o takeExtension)) (sdsFocus TESTS_PATH directoryListing)
 
-
-	toHtml results
+	toTestReport results
 		= DivTag [] [suiteHtml res \\ res <- results | not (isEmpty res.testResults)]
 	where
 		suiteHtml {suiteName,testResults}
@@ -120,11 +132,8 @@ where
 		resultRow (test,Failed Nothing) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] []]
 		resultRow (test,Failed (Just details)) = TrTag [] [TdTag [] [Text test],TdTag [] [SpanTag [StyleAttr "color: red"] [Text "Failed"]],TdTag [] [TextareaTag [] [Text details]]]
 
-	application header mainTask
-		= (viewInformation () [] header ||- mainTask) <<@ ArrangeWithSideBar 0 TopSide 50 False <<@ ApplyLayout (setUIType UIContainer)
-
-	checkExampleApplications = withShared 'DM'.newMap
-		\results ->
+checkExampleApplications = withShared 'DM'.newMap
+	\results ->
 		(
 		 (enterChoiceWithSharedAs () [ChooseFromGrid fst] (examplesWithResults results) fst 
 		>&> withSelection (viewInformation "Select an example" [] ())
@@ -139,28 +148,23 @@ where
 					)]
 			) @! ()) <<@ ArrangeWithSideBar 0 LeftSide 250 True
 		)		
+where
+	examplesWithResults results = mapRead (\(res,examples) -> [(e,'DM'.get e res) \\e <- examples ]) (results |*| examples)
 	where
-		examplesWithResults results = mapRead (\(res,examples) -> [(e,'DM'.get e res) \\e <- examples ]) (results |*| examples)
-		where
-			examples = constShare EXAMPLE_MODULES
+		examples = constShare EXAMPLE_MODULES
 
-	viewQualityMetrics :: Task ()
-	viewQualityMetrics 
-		= 	analyzeITasksCodeBase
-		>>- viewInformation () [ViewAs view]  @! ()
-	where
-		view {numTODO,numFIXME} = UlTag [] [LiTag [] [Text "Number of TODO's found: ",Text (toString numTODO)]
-										   ,LiTag [] [Text "Number of FIXME's found: ",Text (toString numFIXME)]
-										   ]
-
-	exploreCode :: Task ()
-    exploreCode 
-	   = ((    editSelectionWithShared (Title "Modules") False (SelectInTree toModuleSelectTree selectByIndex) (sdsFocus LIBRARY_PATH moduleList) (const []) @? tvHd
+exploreCode :: Task ()
+exploreCode 
+	= ((    ((editSelectionWithShared (Title "Modules") False
+				(SelectInTree toModuleSelectTree selectByIndex)
+				(sdsFocus LIBRARY_PATH moduleList) (const []) @? tvHd)
+			 	-|| viewQualityMetrics
+			)
 		   >&> withSelection (viewInformation "Select a module" [] ())
                              viewModule 
           )
 		@! ()) <<@ ArrangeWithSideBar 0 LeftSide 250 True
-
+where
 	selectByIndex nodes indices = [nodes !! i \\ i <- indices | i >= 0 && i < length nodes]
 
 	viewModule (name,MainModule)
@@ -170,16 +174,105 @@ where
 
 	viewModule (name,AuxModule)
 		= allTasks
-			[viewSharedInformation (Title "Definition") [] (sdsFocus (LIBRARY_PATH,name) moduleDefinition)
-			,viewSharedInformation (Title "Implementation") [] (sdsFocus (LIBRARY_PATH,name) moduleImplementation)
+			[viewSharedInformation (Title "Definition") [ViewAs toCodeTag] (sdsFocus (LIBRARY_PATH,name) moduleDefinition)
+			,viewSharedInformation (Title "Implementation") [ViewAs toCodeTag] (sdsFocus (LIBRARY_PATH,name) moduleImplementation)
 			] <<@ ArrangeWithTabs False
 
-//Begin metrics 
-//The following section should probably be moved to a separate module
+	toCodeTag lines = PreTag [] [CodeTag [] [RawText (join "\n" lines)]]
+
+//Inspecting individual programs 
+:: InspectState
+  = { lines       :: [String]
+    , executable  :: Maybe Document
+    }
+
+derive class iTask InspectState
+
+// To inspect code we need to do a few things:
+// We must be able to view it, change it without risk and run it with changes
+inspectCode :: String -> Task ()
+inspectCode sourceCode = withShared
+	(initialInspectState sourceCode)
+	(\state ->
+		editSourceCode state
+		>^* [OnAction (Action "Build") (always (buildExecutable state))
+			,OnAction (Action "Run")   (ifValue hasExecutable (\_ -> runProgram state))
+			]
+    ) @! ()
+where
+	initialInspectState sourceCode
+		= {InspectState
+          |lines = split OS_NEWLINE sourceCode
+ 		  ,executable = Nothing
+		  }
+
+	hasExecutable {InspectState|executable} = (executable =: (Just _))
+
+	editSourceCode :: (Shared InspectState) -> Task InspectState
+	editSourceCode state
+		= updateSharedInformation (Title "Edit code")
+			[UpdateUsing (\{InspectState|lines} -> join OS_NEWLINE lines)
+                         (\s c -> {InspectState|s & lines = split OS_NEWLINE c})
+                         aceTextArea] state
+
+	buildExecutable :: (Shared InspectState) -> Task ()
+	buildExecutable state = withTemporaryDirectory 
+		( \temporaryDirectory ->
+              get state @ (\{InspectState|lines} -> join OS_NEWLINE lines)
+          >>-       prepareBuildFiles temporaryDirectory
+		  >>- \_ -> runBuildTool temporaryDirectory
+		  >>- \_ -> importExecutable temporaryDirectory state
+		  @!  ()
+        )
+	where
+		prepareBuildFiles directory sourceCode
+			=         exportTextFile (directory </> "test.icl") sourceCode
+			>>- \_ -> exportTextFile (directory </> "test.prj") projectTemplate
+		
+		runBuildTool directory 
+			=   get cpmExecutable 
+			>>- \cpm -> callProcess () [] cpm ["test.prj"] (Just directory)
+		
+		importExecutable directory state
+			=   importDocument (directory </> "test.exe")
+			>>- \executable -> 
+                upd (\s -> {InspectState|s & executable = Just executable}) state
+
+	runProgram :: (Shared InspectState) -> Task ()
+	runProgram state = withTemporaryDirectory
+		(\temporaryDirectory ->
+			    get state @ (\{InspectState|executable} -> executable)
+			>>-	maybe (throw "Cannot run the program. There is no executable yet")
+				      (\executable -> let programPath = temporaryDirectory </> "program.exe" in
+						          exportDocument programPath executable 
+						>>- \_ -> makeExecutable programPath 
+						>>- \_ -> callProcess () [] programPath [] (Just temporaryDirectory)
+					  )
+		) @! ()
+	where
+		makeExecutable path = callProcess () [] "chmod" ["+x",path] Nothing
+
 :: SourceTreeQualityMetrics =
-	{ numTODO  :: Int
+	{ numFiles :: Int
+    , numLines :: Int
+    , numTODO  :: Int
 	, numFIXME :: Int
 	}
+
+instance zero SourceTreeQualityMetrics
+where
+	zero =
+		{numFiles = 0, numLines = 0, numTODO=0,numFIXME=0}
+
+instance + SourceTreeQualityMetrics
+where
+	(+) x y = 
+		{numFiles = x.numFiles + y.numFiles
+		,numLines = x.numLines + y.numLines
+		,numTODO  = x.numTODO  + y.numTODO
+		,numFIXME = x.numFIXME + y.numFIXME
+		}
+
 derive class iTask SourceTreeQualityMetrics 
 
 analyzeITasksCodeBase :: Task SourceTreeQualityMetrics 
@@ -193,45 +286,83 @@ where
 determineQualityMetrics :: CleanFile -> Task SourceTreeQualityMetrics
 determineQualityMetrics file = importTextFile (cleanFilePath file) @ analyze
 where
-	analyze text = {numTODO=num "TODO" text ,numFIXME=num "FIXME" text}
+	analyze text = {numFiles = 1, numLines = num OS_NEWLINE text, numTODO=num "TODO" text ,numFIXME=num "FIXME" text}
 	num needle text = length (split needle text) - 1
 
-instance zero SourceTreeQualityMetrics where zero = {numTODO=0,numFIXME=0}
-instance + SourceTreeQualityMetrics where (+) {numTODO=xt,numFIXME=xf} {numTODO=yt,numFIXME=yf} = {numTODO = xt+yt, numFIXME= xf+yf}
-
-//End metrics 
-runUnitTestsWorld :: [TestSuite] *World -> *(!TestReport,!*World)
-runUnitTestsWorld suites world = foldr runSuite ([],world) suites
+viewQualityMetrics :: Task ()
+viewQualityMetrics 
+	= 	analyzeITasksCodeBase
+	>>- viewInformation (Title "Metrics") [ViewAs view]  @! ()
 where
-	runSuite {TestSuite|name,tests} (report,world)
-		# (testResults,world) = foldr runTest ([],world) [t \\ UnitTest t <- tests]
-		= ([{SuiteResult|suiteName=name,testResults=testResults}:report],world)
+	view {numFiles,numLines,numTODO,numFIXME}
+		= UlTag [] [LiTag [] [Text "Number of files: ",Text (toString numFiles)]
+				   ,LiTag [] [Text "Number of lines: ",Text (toString numLines)]
+				   ,LiTag [] [Text "Number of TODO's found: ",Text (toString numTODO)]
+                   ,LiTag [] [Text "Number of FIXME's found: ",Text (toString numFIXME)]
+                   ]
 
-	runTest {UnitTest|name,test} (results,world)
-		# (result,world) = test world
-		= ([(name,result):results],world)
+Start world = startEngine inspectCodeQuality world
 
-testInteractive :: InteractiveTest -> Task TestResult
-testInteractive {name,instructions,expectation,taskUnderTest}
-    =       (viewInformation () [] (H1Tag [] [Text name]) <<@ ApplyLayout (setUIAttributes (heightAttr WrapSize)))
-    ||-     ((viewInformation (Title "Instructions") [] instructions)
-             -&&- (viewInformation (Title "Expected result") [] expectation) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
-    ||- taskUnderTest
-    ||- enterInformation (Title "Result") []
+//CREATE THIS WITH CPM LIBRARY
+projectTemplate = join OS_NEWLINE
+	["Version: 1.4"
+	,"Global"
+	,"\tProjectRoot: ."
+	,"\tTarget: StdEnv"
+	,"\tExec: {Project}/test.exe"
+	,"\tCodeGen"
+	,"\t\tCheckStacks: False"
+	,"\t\tCheckIndexes: True"
+	,"\tApplication"
+    ,"\t\tHeapSize: 20971520"
+    ,"\t\tStackSize: 512000"
+    ,"\t\tExtraMemory: 8192"
+	,"\t\tIntialHeapSize: 204800"
+    ,"\t\tHeapSizeMultiplier: 4096"
+    ,"\t\tShowExecutionTime: False"
+    ,"\t\tShowGC: False"
+    ,"\t\tShowStackSize: False"
+    ,"\t\tMarkingCollector:	False"
+    ,"\t\tDisableRTSFlags: False"
+    ,"\t\tStandardRuntimeEnv: True"
+    ,"\t\tProfile"
+    ,"\t\t\tMemory: False"
+    ,"\t\t\tMemoryMinimumHeapSize: 0"
+	,"\t\t\tTime: False"
+	,"\t\t\tStack: False"
+ 	,"\t\t\tDynamics:	True"
+	,"\t\t\tDescExL: False"
+	,"\t\tOutput"
+	,"\t\t\tOutput: ShowConstructors"
+	,"\t\t\tFont: Monaco"
+	,"\t\t\tFontSize:	9"
+	,"\t\t\tWriteStdErr: False"
+	,"\tLink"
+	,"\t\tLinkMethod: Static"
+	,"\t\tGenerateRelocations: False"
+	,"\t\tGenerateSymbolTable: False"
+	,"\t\tGenerateLinkMap: False"
+	,"\t\tLinkResources: False"
+	,"\t\tResourceSource:"
+	,"\t\tGenerateDLL: False"
+	,"\t\tExportedNames:"
+	,"\tPaths"
+	,"\t\tPath: {Project}"
+	,"\tPrecompile:"
+	,"\tPostlink:"
 
-Start world
-	# (args,world) = getCommandLine world
-	# (options,args,errors) = getOpt Permute [unitOpt,jsonOpt,nameFilterOpt] args
-	# unitOnly     = not (isEmpty [UnitTestOnly \\ UnitTestOnly <- options])
-	# useJSON      = not (isEmpty [UseJSON \\ UseJSON <- options])
-	# nameFilter   = listToMaybe  [f \\ NameFilter f <- options]
-	# suites       = maybe suites (\f -> filterSuitesByTestName f suites) nameFilter
-	| unitOnly 
-		= (if useJSON runUnitTestsJSON runUnitTestsCLI) suites world
-	| otherwise
-		= startEngine [publish "/" (\_ -> runTests suites <<@ ApplyLayout (setUIAttributes (titleAttr "iTasks Testbench")))
-					  :layoutTestTasks] world
-where
-	unitOpt = Option [] ["unit"] (NoArg UnitTestOnly) "Only run unit tests and show output on console"
-	jsonOpt = Option [] ["json"] (NoArg UseJSON) "Output testresults as JSON"
-	nameFilterOpt = Option [] ["name"] (ReqArg NameFilter "*") "Only run tests that match a specific name"
+	,"MainModule"
+	,"\tName: test"
+	,"\tDir: {Project}"
+	,"\tCompiler"
+	,"\t\tNeverMemoryProfile: False"
+	,"\t\tNeverTimeProfile: False"
+	,"\t\tStrictnessAnalysis: True"
+	,"\t\tListTypes: StrictExportTypes"
+	,"\t\tListAttributes: True"
+	,"\t\tWarnings: True"
+	,"\t\tVerbose: True"
+	,"\t\tReadableABC: False"
+	,"\t\tReuseUniqueNodes: True"
+	,"\t\tFusion: False"
+	]
