@@ -1,7 +1,7 @@
 definition module iTasks.UI.JS.Interface
 
 import StdString, StdGeneric, Data.Maybe
-import iTasks
+import iTasks.WF.Definition
 
 from Control.Applicative import class Applicative
 import Data.Functor
