@@ -1,8 +1,8 @@
 L.Window = L.Control.extend({
-     options: {
+    options: {
         position: 'topleft'
     },
-    setLatLng: function(pos) {
+    setInitPos: function(pos) {
         this._initPos = pos;
     },
     setTitle: function(title) {
@@ -21,10 +21,9 @@ L.Window = L.Control.extend({
         this._contentNode.style = "padding: 10px;"
         this._contentNode.innerHTML = this._content;
 
-        const mapPt = this._map.latLngToContainerPoint(this._initPos);
         // absolute -> otherwise windows influence each other if multiple are present
         container.style = "margin: 0px; position: absolute;";
-        this._setPos(mapPt);
+        this._setPos(this._initPos);
 
         L.DomEvent.disableClickPropagation(container);
         L.DomEvent.disableScrollPropagation(container);

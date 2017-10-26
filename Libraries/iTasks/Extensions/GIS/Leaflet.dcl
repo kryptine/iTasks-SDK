@@ -39,7 +39,7 @@ leafletEditor :: Editor LeafletMap
     = Marker   !LeafletMarker
     | Polyline !LeafletPolyline
     | Polygon  !LeafletPolygon
-    | Window   !Window
+    | Window   !LeafletWindow
 
 :: LeafletObjectID :== String
 :: LeafletMarker =
@@ -66,19 +66,21 @@ leafletEditor :: Editor LeafletMap
     , fillColor     :: !Maybe String // Nothing means no fill
     }
 
-:: Window =
+:: LeafletWindow =
     { windowId     :: !LeafletObjectID
-    , initPosition :: !LeafletLatLng
+    , initPosition :: !LeafletWindowPos
     , title        :: !String
     , content      :: !HtmlTag
     }
 
+:: LeafletWindowPos = { x :: !Int, y :: !Int }
+
 //Public tileserver of openstreetmaps
 openStreetMapTiles :: String
 
-derive JSONEncode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, Window
-derive JSONDecode       LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, Window
-derive gDefault         LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, Window
-derive gEq              LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, Window
-derive gText            LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, Window
-derive gEditor          LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, Window
+derive JSONEncode       LeafletMap
+derive JSONDecode       LeafletMap
+derive gDefault         LeafletMap
+derive gEq              LeafletMap
+derive gText            LeafletMap
+derive gEditor          LeafletMap
