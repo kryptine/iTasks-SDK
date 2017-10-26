@@ -78,7 +78,7 @@ arrangeAsMenu = foldl1 sequenceLayouts
 				)
 			)
 		) [0] 0
-	, layoutSubUIs (SelectByPath [0]) (sequenceLayouts makeMenu arrangeHorizontal)
+	, layoutSubUIs (SelectByPath [0]) makeMenu
 	]
 
 makeMenu :: Layout
@@ -86,7 +86,8 @@ makeMenu = {apply=apply,adjust=adjust,restore=restore}
 where
 	apply (UI UIPanel attr cs)
 		# (actions, others) = splitWith (\s->s=:(UI UIAction _ _)) cs
-		= (ReplaceUI (UI UIButtonBar attr (mkmenu actions ++ others)), LSNone)
+		= (ReplaceUI (UI UIButtonBar ('DM'.union attr (halignAttr AlignLeft)) (mkmenu actions ++ others)), LSNone)
+
 	adjust (uic, lst) = (NoChange, lst)
 	restore lst = NoChange
 	

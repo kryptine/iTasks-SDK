@@ -307,7 +307,8 @@ itasks.Debug = {
 itasks.Menu = {
 	cssCls: 'menu',
 	attributes: {
-		height: 'wrap'
+		height: 'wrap',
+		width: 'wrap'
 	},
     initDOMEl: function() {
 		var me = this;	
