@@ -66,8 +66,11 @@ where
 
 arrangeAsMenu :: Layout
 arrangeAsMenu = foldl1 sequenceLayouts
+	// Wrap in panel
 	[ wrapUI UIPanel
-	, insertChildUI 0 (ui UIPanel)
+	// Add a buttonbar to hold the menu
+	, insertChildUI 0 (ui UIButtonBar)
+	// Move the actions with a matching id to the menubar
 	, moveSubUIs (SelectAND
 			(SelectByDepth 2)
 			(SelectAND
@@ -78,36 +81,45 @@ arrangeAsMenu = foldl1 sequenceLayouts
 				)
 			)
 		) [0] 0
+	// Transform the menubar in an actual menu
 	, layoutSubUIs (SelectByPath [0]) makeMenu
 	]
 
 makeMenu :: Layout
 makeMenu = {apply=apply,adjust=adjust,restore=restore}
 where
-	apply (UI UIPanel attr cs)
+	apply (UI t attr cs)
 		# (actions, others) = splitWith (\s->s=:(UI UIAction _ _)) cs
-		= (ReplaceUI (UI UIButtonBar ('DM'.union attr (halignAttr AlignLeft)) (mkmenu actions ++ others)), LSNone)
+		= (ReplaceUI (UI t ('DM'.union attr (halignAttr AlignLeft)) (mkmenu actions ++ others)), LSNone)
 
 	adjust (uic, lst) = (NoChange, lst)
 	restore lst = NoChange
 	
 	mkmenu :: ([UI] -> [UI])
-	mkmenu  = flip (foldlSt (uncurry ins)) [] o extractPaths
+	mkmenu  = flip (foldlSt (uncurry ins)) [] o map (\t->(exPath t, t))
 
-	extractPaths :: ([UI] -> [([String], UI)])
-	extractPaths = map \a=:(UI _ attr _)->
-		(maybe [""] (\(JSONString s)->'T'.split "/" $ 'T'.subString 1 ('T'.textSize s) s)
-			$ 'DM'.get "actionId" attr, a)
+	exPath :: UI -> [String]
+	exPath ui=:(UI _ attr _) = case 'DM'.get "actionId" attr of
+		Just (JSONString p) = 'T'.split "/" $ 'T'.subString 1 (size p) p
+		_ = []
 
 	ins :: [String] UI [UI] -> [UI]
-	//Path empty, thus insert
-	ins [p] ui=:(UI _ attr cs) [] = [UI UIButton ('DM'.unions [attr, textAttr p, valueAttr $ fromJust $ 'DM'.get "actionId" attr]) cs]
-	//Path nonempty and no matching node, insert
-	ins [p:ps] ui [] = [UI UIMenu ('DM'.put "text" (JSONString p) 'DM'.newMap)
-		$ ins ps ui []]
+	//Leaf path, thus we insert a button
+	ins [p] ui=:(UI _ attr cs) []
+		# attr = 'DM'.unions
+			[ attr
+			, textAttr p
+			, valueAttr $ maybe (JSONString "") id $ 'DM'.get "actionId" attr]
+		= [UI UIButton attr cs]
+	//Fork but we haven't found a matching node
+	ins [p:ps] ui []
+		= [UI UIMenu (textAttr p) $ ins ps ui []]
+	//Fork and there is already a menu tree, so we look for the matching node
 	ins [p:ps] ui [(UI t attr cs):us]
-		| maybe False (\(JSONString s)->s == p) $ 'DM'.get "text" attr
+		// If the label on the menu node matches we can add it there
+		| maybe False ((==) $ JSONString p) $ 'DM'.get "text" attr
 			= [UI t attr (ins ps ui cs):us]
+		// Otherwise we create a new menu node
 		= [(UI t attr cs):ins [p:ps] ui us]
 
 arrangeSplit :: !UIDirection !Bool -> Layout
