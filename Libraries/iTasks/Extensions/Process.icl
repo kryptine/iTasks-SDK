@@ -18,7 +18,7 @@ where
 
 callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | toPrompt d
 callProcess prompt viewOptions executable arguments workingDirectory
-	= externalProcess executable arguments workingDirectory unitShare handlers
+	= externalProcess executable arguments workingDirectory unitShare handlers gEditor{|*|}
 where
 	handlers = {onStartup = onStartup, onOutData = onOutData, onErrData = onErrData, onShareChange = onShareChange, onExit = onExit}
 

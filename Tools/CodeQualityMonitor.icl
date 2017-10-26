@@ -232,6 +232,7 @@ where
 		runBuildTool directory 
 			=   get cpmExecutable 
 			>>- \cpm -> callProcess () [] cpm ["test.prj"] (Just directory)
+			>>* [OnAction ActionClose (ifStable return)] //Pause after command...
 		
 		importExecutable directory state
 			=   importDocument (directory </> "test.exe")
@@ -247,6 +248,7 @@ where
 						          exportDocument programPath executable 
 						>>- \_ -> makeExecutable programPath 
 						>>- \_ -> callProcess () [] programPath [] (Just temporaryDirectory)
+						>>* [OnAction ActionClose (ifStable return)] //Pause after command...
 					  )
 		) @! ()
 	where

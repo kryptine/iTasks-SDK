@@ -2,6 +2,8 @@ implementation module iTasks.WF.Tasks.IO
 
 import iTasks.WF.Definition
 import iTasks.UI.Definition
+import iTasks.UI.Editor
+import iTasks.UI.Prompt
 
 import iTasks.Internal.IWorld
 import iTasks.Internal.Task
@@ -9,6 +11,7 @@ import iTasks.Internal.TaskState
 import iTasks.Internal.TaskEval
 import iTasks.Internal.TaskServer
 import iTasks.Internal.Generic.Visualization
+import iTasks.Internal.Generic.Defaults
 
 import Text, Text.JSON
 import qualified Data.Map as DM
@@ -29,25 +32,31 @@ import qualified Data.Map as DM
     , onExit        :: !(ExitCode l r -> (!MaybeErrorString l, !Maybe w                  ))
     }
 
-externalProcess :: !FilePath ![String] !(Maybe FilePath) !(RWShared () r w) !(ExternalProcessHandlers l r w) -> Task l | iTask l & TC r & TC w
-externalProcess cmd args dir sds handlers = Task eval
+externalProcess :: !FilePath ![String] !(Maybe FilePath) !(SDS () r w) !(ExternalProcessHandlers l r w) !(Editor l) -> Task l | iTask l & TC r & TC w
+externalProcess cmd args dir sds handlers editor = Task eval
 where
     eval event evalOpts tree=:(TCInit taskId ts) iworld
         = case addExternalProc taskId cmd args dir (wrapExternalProcTask handlers sds) iworld of
             (Error e, iworld)
                 = (ExceptionResult e, iworld)
+            (Ok (l :: l^), iworld)
+				= case replaceUI taskId l iworld of
+					(Ok change, iworld) = (ValueResult (Value l False) (info ts) change (TCBasic taskId ts JSONNull False),iworld)
+                    (Error e, iworld)   = (ExceptionResult (exception e),iworld)
             (Ok _, iworld)
-                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep (TCBasic taskId ts JSONNull False),iworld)
+                = (ExceptionResult (exception "Corrupt IO task init in externalProcess"), iworld)
+
     eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioStates}
         = case 'DM'.get taskId ioStates of
             Nothing
-                = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
+                = (ValueResult NoValue (info ts) NoChange tree, iworld)
             Just (IOActive values)
                 = case 'DM'.get 0 values of 
-                    Just (l :: l^, s)
-                        = (ValueResult (Value l s) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} rep tree, iworld)
+                    Just (l :: l^, s) = case replaceUI taskId l iworld of 
+						(Ok change,iworld) = (ValueResult (Value l s) (info ts) change tree, iworld)
+						(Error e,iworld)   = (ExceptionResult (exception e),iworld)
                     _
-                        = (ExceptionResult (exception "Corrupt IO task result"),iworld)
+                        = (ExceptionResult (exception "Corrupt IO task result in externalProcess"),iworld)
             Just (IOException e)
                 = (ExceptionResult (exception e),iworld)
 
@@ -57,8 +66,13 @@ where
             _                       = ioStates
         = (DestroyedResult,{iworld & ioStates = ioStates})
 
-    rep = ReplaceUI (stringDisplay ("External process " <+++ cmd <+++ " " <+++ join " " args))
+	info ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
 
+	replaceUI taskId view iworld
+		# vst = {VSt| taskId = toString taskId, mode = View, optional = False, selectedConsIndex = -1, iworld = iworld}
+		= case editor.Editor.genUI [] view vst of
+         	(Ok (editorUI,mask), {VSt|iworld}) = (Ok (ReplaceUI (uic UIInteract [ui UIEmpty, editorUI])), iworld)
+            (Error e,{VSt|iworld})             = (Error e,iworld)
 
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w
 tcplisten port removeClosed sds handlers = Task eval
