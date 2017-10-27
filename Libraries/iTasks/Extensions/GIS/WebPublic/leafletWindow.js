@@ -56,7 +56,7 @@ L.Window = L.Control.extend({
         this._contentWidth  = this._contentNode.offsetWidth;
         this._contentHeight = this._contentNode.offsetHeight;
 
-        this._relatedMarkerConnectors = [];
+        this._relatedMarkerConnectors = {};
         // handle related markers already added
         if (this._relatedMarkers) {
             map.eachLayer((l) => {
@@ -65,8 +65,10 @@ L.Window = L.Control.extend({
                 }
             });
         }
-        // handle related markers added in future
+        // handle related markers added in the future
         map.on('layeradd', this._onLayerAdd, this);
+        // handle related markers removed in the future
+        map.on('layerremove', this._onLayerRemove, this);
 
         return container;
     },
@@ -76,9 +78,16 @@ L.Window = L.Control.extend({
             this._addRelatedMarker(marker);
         }
     },
+    _onLayerRemove: function(e) {
+        const markerId = e.layer.markerId;
+        if (this._relatedMarkers.has(markerId)) {
+            this._relatedMarkerConnectors[markerId].polyline.remove();
+            delete this._relatedMarkerConnectors[markerId];
+        }
+    },
     _addRelatedMarker: function(marker) {
         const connector = {polyline: L.polyline([], {className: ''}), position: marker.getLatLng()};
-        this._relatedMarkerConnectors.push(connector);
+        this._relatedMarkerConnectors[marker.markerId] = connector;
         connector.polyline.addTo(this._map);
         this._updateRelatedMarkerConnectorPosition(connector);
     },
@@ -98,7 +107,7 @@ L.Window = L.Control.extend({
             const mapPos = this._map.mouseEventToContainerPoint(e);
             // delta (stored in 'dragging') to compensate for where inside title bar drag was started
             this._setPos({x: mapPos.x - dragging[0], y: mapPos.y - dragging[1]});
-            this._relatedMarkerConnectors.forEach(this._updateRelatedMarkerConnectorPosition, this);
+            Object.values(this._relatedMarkerConnectors).forEach(this._updateRelatedMarkerConnectorPosition, this);
         }
     },
     _onCloseButtonClick: function () {
@@ -113,6 +122,7 @@ L.Window = L.Control.extend({
         L.DomEvent.off(document, 'mouseup', this._mouseUp, this);
         L.DomEvent.off(document, 'mousemove', this._mouseMove, this);
         map.off('layeradd', this._onLayerAdd, this);
+        map.off('layerremove', this._onLayerRemove, this);
     }
 });
 L.window = function (options, source) {
