@@ -39,22 +39,32 @@ where
         = case addExternalProc taskId cmd args dir (wrapExternalProcTask handlers sds) iworld of
             (Error e, iworld)
                 = (ExceptionResult e, iworld)
-            (Ok (l :: l^), iworld)
-				= case replaceUI taskId l iworld of
-					(Ok change, iworld) = (ValueResult (Value l False) (info ts) change (TCBasic taskId ts JSONNull False),iworld)
+            (Ok (initialValue :: l^), iworld)
+				= case resetUI taskId initialValue iworld of
+					(Ok (change,mask), iworld)
+						# tree = TCBasic taskId ts (toJSON (initialValue,mask)) False
+						= (ValueResult (Value initialValue False) (info ts) change tree, iworld)
                     (Error e, iworld)   = (ExceptionResult (exception e),iworld)
             (Ok _, iworld)
                 = (ExceptionResult (exception "Corrupt IO task init in externalProcess"), iworld)
 
-    eval event evalOpts tree=:(TCBasic taskId ts _ _) iworld=:{ioStates}
+    eval event evalOpts tree=:(TCBasic taskId ts encodedLocalValue _) iworld=:{ioStates}
         = case 'DM'.get taskId ioStates of
             Nothing
                 = (ValueResult NoValue (info ts) NoChange tree, iworld)
             Just (IOActive values)
                 = case 'DM'.get 0 values of 
-                    Just (l :: l^, s) = case replaceUI taskId l iworld of 
-						(Ok change,iworld) = (ValueResult (Value l s) (info ts) change tree, iworld)
-						(Error e,iworld)   = (ExceptionResult (exception e),iworld)
+                    Just (ioStateValue :: l^, stable) = case event of 
+                         (RefreshEvent _ ) = case refreshUI taskId (fromJSON encodedLocalValue) ioStateValue iworld of
+                            (Ok (change,mask), nextValue, iworld)
+								# tree = TCBasic taskId ts (toJSON (nextValue,mask)) stable
+								= (ValueResult (Value ioStateValue stable) (info ts) change tree, iworld)
+                            (Error e, nextValue, iworld)   = (ExceptionResult (exception e),iworld)
+                         _ = case resetUI taskId ioStateValue iworld of 
+                            (Ok (change,mask),iworld)
+								# tree = TCBasic taskId ts (toJSON (ioStateValue,mask)) stable
+								= (ValueResult (Value ioStateValue stable) (info ts) change tree, iworld)
+                            (Error e,iworld)   = (ExceptionResult (exception e),iworld)
                     _
                         = (ExceptionResult (exception "Corrupt IO task result in externalProcess"),iworld)
             Just (IOException e)
@@ -68,11 +78,18 @@ where
 
 	info ts = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
 
-	replaceUI taskId view iworld
+	resetUI taskId value iworld
 		# vst = {VSt| taskId = toString taskId, mode = View, optional = False, selectedConsIndex = -1, iworld = iworld}
-		= case editor.Editor.genUI [] view vst of
-         	(Ok (editorUI,mask), {VSt|iworld}) = (Ok (ReplaceUI (uic UIInteract [ui UIEmpty, editorUI])), iworld)
+		= case editor.Editor.genUI [] value vst of
+         	(Ok (editorUI,mask), {VSt|iworld}) = (Ok (ReplaceUI (uic UIInteract [ui UIEmpty, editorUI]),mask), iworld)
             (Error e,{VSt|iworld})             = (Error e,iworld)
+
+	refreshUI taskId Nothing newValue iworld = (Error "Corrupt stored value in externalProcess", newValue, iworld)
+	refreshUI taskId (Just (oldValue,mask)) newValue iworld
+		# vst = {VSt| taskId = toString taskId, mode = View, optional = False, selectedConsIndex = -1, iworld = iworld}
+		= case editor.Editor.onRefresh [] newValue oldValue mask vst of
+         	(Ok (editorChange,mask), nextValue, {VSt|iworld}) = (Ok (ChangeUI [] [(1,ChangeChild editorChange)],mask), nextValue, iworld)
+            (Error e, nextValue, {VSt|iworld})                = (Error e,nextValue,iworld)
 
 tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w
 tcplisten port removeClosed sds handlers = Task eval
