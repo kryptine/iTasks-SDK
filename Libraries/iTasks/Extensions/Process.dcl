@@ -8,13 +8,21 @@ from System.FilePath import :: FilePath
 from System.OSError import :: OSError, :: OSErrorCode, :: OSErrorMessage 
 
 //* External (operating system) process status
+:: ProcessInformation =
+    { executable :: String
+    , arguments  :: [String]
+    , stdout     :: String
+    , stderr     :: String
+    , status     :: ProcessStatus
+    }
+
 :: ProcessStatus
-	= RunningProcess !String
+	= RunningProcess
 	| CompletedProcess !Int
 
 :: CallException = CallFailed !OSError
 
-derive class iTask ProcessStatus, CallException
+derive class iTask ProcessInformation, ProcessStatus, CallException
 instance toString CallException
 
 /**
@@ -30,7 +38,7 @@ instance toString CallException
 * @gin-title Start executable
 * @gin-icon executable
 */
-callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | toPrompt d
+callProcess :: !d ![ViewOption ProcessInformation] !FilePath ![String] !(Maybe FilePath) -> Task ProcessInformation | toPrompt d
 
 /**
 * Calls an external executable. This call blocks task computation, only use when process is known to terminate fast.

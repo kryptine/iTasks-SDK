@@ -6,27 +6,27 @@ import iTasks.WF.Tasks.IO
 import iTasks.WF.Tasks.Interaction
 import iTasks.SDS.Sources.Core
 
-import StdString
+import StdString, StdList
 import Data.Maybe, Data.Error
 import qualified System.Process
 
-derive class iTask ProcessStatus, CallException
+derive class iTask ProcessInformation, ProcessStatus, CallException
 
 instance toString CallException
 where
 	toString (CallFailed (_,err)) = "Error calling external process: " +++ err
 
-callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | toPrompt d
+callProcess :: !d ![ViewOption ProcessInformation] !FilePath ![String] !(Maybe FilePath) -> Task ProcessInformation | toPrompt d
 callProcess prompt viewOptions executable arguments workingDirectory
 	= externalProcess executable arguments workingDirectory unitShare handlers gEditor{|*|}
 where
-	handlers = {onStartup = onStartup, onOutData = onOutData, onErrData = onErrData, onShareChange = onShareChange, onExit = onExit}
+    handlers = {onStartup = onStartup, onOutData = onOutData, onErrData = onErrData, onShareChange = onShareChange, onExit = onExit}
 
-	onStartup _                    = (Ok (RunningProcess executable), Nothing, [], False)
-	onOutData data status _        = (Ok status, Nothing, [], False)
-	onErrData data status _        = (Ok status, Nothing, [], False)
-    onShareChange status _         = (Ok status, Nothing, [], False)
-	onExit (ExitCode exitCode) _ _ = (Ok (CompletedProcess exitCode), Nothing) 
+    onStartup _ = (Ok {ProcessInformation|executable=executable,arguments=arguments,stdout="",stderr="",status=RunningProcess}, Nothing, [], False)
+    onOutData data info=:{ProcessInformation|stdout} _ = (Ok {ProcessInformation|info & stdout = stdout +++ data}, Nothing, [], False)
+    onErrData data info=:{ProcessInformation|stderr} _ = (Ok {ProcessInformation|info & stderr = stderr +++ data}, Nothing, [], False)
+    onShareChange info _ = (Ok info, Nothing, [], False)
+    onExit (ExitCode exitCode) info _ = (Ok {ProcessInformation|info & status = CompletedProcess exitCode}, Nothing) 
 
 callInstantProcess :: !FilePath ![String] !(Maybe FilePath) -> Task Int
 callInstantProcess cmd args dir = accWorldError (\world -> 'System.Process'.callProcess cmd args dir world) CallFailed 
