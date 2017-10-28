@@ -82,18 +82,28 @@ arrangeAsMenu = foldl1 sequenceLayouts
 			)
 		) [0] 0
 	// Transform the menubar in an actual menu
-	, layoutSubUIs (SelectByPath [0]) makeMenu
+	, layoutSubUIs (SelectByPath [0]) makeMenu//(sequenceLayouts makeMenu actionToButton)
 	]
 
 makeMenu :: Layout
-makeMenu = {apply=apply,adjust=adjust,restore=restore}
+makeMenu =	
+	{apply=apply
+	,adjust=  \t->case t of
+		(NoChange, s) = (NoChange, s)
+		(ReplaceUI ui, _) = apply ui
+		(change, LSType ui) = (change, LSType (applyUIChange change ui))
+	,restore= \(LSType ui) = ReplaceUI ui
+	}
 where
-	apply (UI t attr cs)
+	apply ui=:(UI t attr cs)
 		# (actions, others) = splitWith (\s->s=:(UI UIAction _ _)) cs
-		= (ReplaceUI (UI t attr (mkmenu actions ++ others)), LSNone)
+		= (ReplaceUI (UI t attr (mkmenu actions ++ others)), LSType ui)
 
-	adjust (uic, lst) = (NoChange, lst)
-	restore lst = NoChange
+	adjust (NoChange,s)   = (NoChange,s)
+	adjust (ReplaceUI ui,_) = apply ui
+	adjust (change, LSType ui) = (change, LSType (applyUIChange change ui))
+
+	restore (LSType ui) = ReplaceUI ui 
 	
 	mkmenu :: ([UI] -> [UI])
 	mkmenu  = flip (foldlSt (uncurry ins)) [] o map (\t->(exPath t, t))
