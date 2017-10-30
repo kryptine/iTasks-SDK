@@ -54,19 +54,9 @@ L.Window = L.Control.extend({
 
         L.DomEvent.on(closeButton, 'mouseup', this._onCloseButtonClick, this);
 
-        this._contentWidth  = this._contentNode.offsetWidth;
-        this._contentHeight = this._contentNode.offsetHeight;
-
         this._relatedMarkerConnectors = {};
-        // handle related markers already added
-        if (this._relatedMarkers) {
-            map.eachLayer((l) => {
-                if (this._relatedMarkers.has(l.markerId)) {
-                    this._addRelatedMarker(l);
-                }
-            });
-        }
         // handle related markers added in the future
+        // markers already added are handled in 'addTo'
         map.on('layeradd', this._onLayerAdd, this);
         // handle related markers removed in the future
         map.on('layerremove', this._onLayerRemove, this);
@@ -75,6 +65,15 @@ L.Window = L.Control.extend({
         map.on('move', this._updateRelatedMarkerConnectorPositions, this);
 
         return container;
+    },
+    addTo: function(map) {
+        L.Control.prototype.addTo.call(this, map);
+        // handle related markers already added.
+        // this is done after adding the window,
+        // as we need the content's size
+        // to position the connectors properly
+        if (this._relatedMarkers)
+            map.eachLayer((l) => this._onLayerAdd({layer: l}));
     },
     _onLayerAdd: function(e) {
         const marker = e.layer;
@@ -99,8 +98,8 @@ L.Window = L.Control.extend({
         Object.values(this._relatedMarkerConnectors).forEach(this._updateRelatedMarkerConnectorPosition, this);
     },
     _updateRelatedMarkerConnectorPosition: function(connector) {
-        const windowCentrePos = { x: this._position.x + this._contentNode.offsetWidth/2
-                                , y: this._position.y + this._contentNode.offsetHeight/2 };
+        const windowCentrePos = { x: this._position.x + this._container.offsetWidth/2
+                                , y: this._position.y + this._container.offsetHeight/2 };
         connector.polyline.setLatLngs([this._map.containerPointToLatLng(windowCentrePos), connector.position]);
     },
     _mouseUp: function(e) {
