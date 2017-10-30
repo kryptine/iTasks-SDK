@@ -10,7 +10,7 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.TaskServer
 import iTasks.Internal.Generic.Visualization
 
-import Text, Text.JSON
+import Text, Text.JSON, StdString, StdInt
 import qualified Data.Map as DM
 
 :: ConnectionHandlers l r w = 

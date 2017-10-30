@@ -7,7 +7,7 @@ import iTasks.UI.Editor.Modifiers
 import iTasks.UI.Editor.Common
 
 import qualified Data.Map as DM
-import StdArray, StdBool, StdFunc
+import StdArray, StdBool, StdFunc, StdList, Data.Maybe, StdString
 import Text.JSON
 import System.Time
 import GenEq

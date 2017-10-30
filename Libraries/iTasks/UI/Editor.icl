@@ -1,6 +1,6 @@
 implementation module iTasks.UI.Editor
 
-import StdBool, StdMisc
+import StdBool, StdMisc, StdList
 import iTasks.Internal.Client.LinkerSupport, Data.Maybe, Data.Functor
 import iTasks.Internal.IWorld
 import iTasks.UI.Definition

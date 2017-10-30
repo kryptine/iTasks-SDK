@@ -14,7 +14,7 @@ from System.Time import :: Timestamp
 import Data.Functor
 import Text, Text.JSON
 
-import StdString, StdClass, StdBool
+import StdString, StdClass, StdBool, StdInt
 
 
 exception :: !e -> TaskException | TC, toString e

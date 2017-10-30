@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.Currency
 import iTasks
 import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
-import Text
+import Text, Data.Maybe
 import qualified Data.Map as DM
 
 //* Money (ISO4217 currency codes are used)

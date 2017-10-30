@@ -6,7 +6,8 @@ definition module iTasks.UI.JS.Encoding
 */
 import iTasks.UI.JS.Interface
 import StdGeneric
-from Text.JSON import :: JSONNode
+from Text.JSON import :: JSONNode (..)
+from StdList import !!
 
 //Sending values server -> client
 encodeOnServer :: !a -> JSONNode | JSEncode{|*|} a //Don't specialize JSEncode, it will break decoding

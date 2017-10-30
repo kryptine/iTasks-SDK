@@ -8,8 +8,8 @@ import GenEq
 
 from Data.Func import $
 from StdFunc import id, o, const
-import StdList, StdBool, StdArray, StdTuple, Data.Tuple, Data.Functor
-import Data.List
+import StdList, StdBool, StdArray, StdTuple, Data.Tuple, Data.Functor, Data.Maybe
+import Data.List, StdString
 import qualified Data.Map as DM
 
 LABEL_WIDTH :== 100
