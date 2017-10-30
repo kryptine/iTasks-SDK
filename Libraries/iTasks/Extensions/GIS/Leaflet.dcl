@@ -71,9 +71,10 @@ leafletEditor :: Editor LeafletMap
     , initPosition   :: !LeafletWindowPos
     , title          :: !String
     , content        :: !HtmlTag
-    , relatedMarkers :: ![LeafletObjectID] // connecting lines are drawn between the window and the marker
-                                           // to visualise the relation
+    , relatedMarkers :: ![(LeafletObjectID, Maybe CSSClass)] // connecting lines are drawn between the window and the marker
+                                                             // to visualise the relation
     }
+:: CSSClass :== String
 
 :: LeafletWindowPos = { x :: !Int, y :: !Int }
 

@@ -12,9 +12,9 @@ L.Window = L.Control.extend({
         this._content = content;
     },
     addRelatedMarker: function(marker) {
-        if (!this._relatedMarkers) this._relatedMarkers = new Set();
+        if (!this._relatedMarkers) this._relatedMarkers = {};
 
-        this._relatedMarkers.add(marker);
+        this._relatedMarkers[marker[0]] = marker[1];
     },
     onAdd: function (map) {
         this._map = map;
@@ -77,19 +77,20 @@ L.Window = L.Control.extend({
     },
     _onLayerAdd: function(e) {
         const marker = e.layer;
-        if (this._relatedMarkers.has(marker.markerId)) {
-            this._addRelatedMarker(marker);
+        if (marker.markerId in this._relatedMarkers) {
+            this._addRelatedMarker(marker, this._relatedMarkers[marker.markerId]);
         }
     },
     _onLayerRemove: function(e) {
         const markerId = e.layer.markerId;
-        if (this._relatedMarkers.has(markerId)) {
+        if (markerId in this._relatedMarkers) {
             this._relatedMarkerConnectors[markerId].polyline.remove();
             delete this._relatedMarkerConnectors[markerId];
         }
     },
-    _addRelatedMarker: function(marker) {
-        const connector = {polyline: L.polyline([], {className: ''}), position: marker.getLatLng()};
+    _addRelatedMarker: function(marker, mbCssCls) {
+        const options = mbCssCls[0] == 'Just' ? {className: mbCssCls[1]} : {};
+        const connector = {polyline: L.polyline([], options), position: marker.getLatLng()};
         this._relatedMarkerConnectors[marker.markerId] = connector;
         connector.polyline.addTo(this._map);
         this._updateRelatedMarkerConnectorPosition(connector);
