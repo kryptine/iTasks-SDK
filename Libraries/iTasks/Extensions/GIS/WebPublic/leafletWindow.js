@@ -119,6 +119,7 @@ L.Window = L.Control.extend({
         this._container.style.transform = "translate(" + p.x + "px, " + p.y + "px)";
     },
     onRemove: function (map) {
+        Object.values(this._relatedMarkerConnectors).forEach((m) => m.polyline.remove());
         L.DomEvent.off(document, 'mouseup', this._mouseUp, this);
         L.DomEvent.off(document, 'mousemove', this._mouseMove, this);
         map.off('layeradd', this._onLayerAdd, this);

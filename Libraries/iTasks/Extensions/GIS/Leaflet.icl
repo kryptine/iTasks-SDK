@@ -203,6 +203,10 @@ where
 
 	onBeforeChildRemove me args world
 		# (layer,world)     = .? (toJSVal (args !! 1) .# "layer") world
+        // for windows, based on control class
+        # (removeMethod, world) = .? (layer .# "remove") world
+        | not (jsIsUndefined removeMethod) = (layer .# "remove" .$ ()) world
+        // for all other objects
 		# (mapObj,world)    = .? (me .# "map") world
         # (_,world)         = (mapObj.# "removeLayer" .$ layer) world
         # (popup, world)    = .? (layer .# "myPopup") world
