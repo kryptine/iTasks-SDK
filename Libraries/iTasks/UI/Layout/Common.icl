@@ -218,12 +218,17 @@ where
 	icon _ = 'DM'.newMap
 
 setActionIcon :: (Map String String) -> Layout
-setActionIcon icons = modifyUIAttributes (SelectKeys ["actionId"]) f
+setActionIcon icons = sequenceLayouts
+	// Buttons and actions
+	(layoutSubUIs (SelectOR (SelectByType UIAction) (SelectByType UIButton))
+		$ ic "actionId")
+	(layoutSubUIs (SelectByType UIMenu)
+		$ ic "text")
 where
-	f attr = fromMaybe 'DM'.newMap
-		(                               'DM'.get "actionId" attr
-		  >>= \(JSONString actionId) -> 'DM'.get actionId icons
-		  >>= \icon ->                   return (iconClsAttr ("icon-"+++icon)))
+	ic field = modifyUIAttributes (SelectKeys [field]) $ \attr->fromMaybe 'DM'.newMap
+		$ 'DM'.get field attr
+		  >>= \(JSONString f) -> 'DM'.get f icons
+		  >>= \icon ->           return (iconClsAttr ("icon-" +++ icon))
 
 instance tune ArrangeWithTabs Task
 where tune (ArrangeWithTabs b) t = tune (ApplyLayout (arrangeWithTabs b)) t

@@ -314,9 +314,7 @@ itasks.Menu = {
 		var me = this;	
 
 		if (!(me.parentCmp.type != 'Menu' && me.children.length == 1)){
-
-		
-			me.labelEl = document.createElement('a');
+			me.labelEl = document.createElement('div');
 			me.labelEl.classList.add(me.cssPrefix + 'menu-label');
 			me.innerLabelEl = document.createElement('span');
 			me.innerLabelEl.innerHTML = me.attributes.text;
