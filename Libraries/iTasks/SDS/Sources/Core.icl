@@ -6,7 +6,7 @@ import iTasks.Internal.IWorld
 import iTasks.Internal.Serialization
 import System.FilePath, System.Directory, System.File
 import Text, Text.JSON
-import StdFile, StdTuple, StdArray, StdBool
+import StdFile, StdTuple, StdArray, StdBool, StdList, StdString
 import qualified Data.Map as DM
 
 from StdFunc import const

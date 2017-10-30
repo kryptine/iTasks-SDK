@@ -9,7 +9,7 @@ import qualified Data.Map as DM
 import qualified Data.IntMap.Strict as DIS
 from Data.IntMap.Strict import :: IntMap
 from Data.Map import :: Map
-import Data.Maybe, Data.Error, Data.Either
+import Data.Maybe, Data.Error, Data.Either, StdString
 import Text.JSON
 import System.FilePath
 

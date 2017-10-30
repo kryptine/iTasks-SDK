@@ -1,6 +1,6 @@
 implementation module iTasks.Internal.TaskStore
 
-import StdOverloaded, StdBool, StdArray, StdTuple
+import StdOverloaded, StdBool, StdArray, StdTuple, StdString
 from StdFunc import const, id, o
 import Data.Maybe, Data.Either, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath, Data.Functor
 
@@ -193,8 +193,15 @@ replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskT
   `b` \iworld -> (Ok (), iworld)
 
 deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
-deleteTaskInstance instanceNo iworld
-    //Delete all states
+deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTasks}}
+	//Delete in administration
+    # (mbe,iworld)    = 'SDS'.modify (\is -> ((),[i \\ i=:(no,_,_,_) <- is | no <> instanceNo])) (sdsFocus defaultValue filteredInstanceIndex) iworld
+	| mbe =: (Error _) = (mbe,iworld)
+    # (mbe,iworld)    = 'SDS'.modify (\(Queue f r) -> ((),Queue [e \\ e=:(no,_) <- f | no <> instanceNo] [e \\ e=:(no,_) <- r | no <> instanceNo])) taskEvents iworld
+	| mbe =: (Error _) = (mbe,iworld)
+	| not persistTasks
+    	= (Ok (),iworld)
+    //Delete all states on disk
     # (mbe,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-reduct") iworld
 	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
     # (mbe,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-value") iworld
@@ -203,10 +210,6 @@ deleteTaskInstance instanceNo iworld
 	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
     # (mbe,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-tasklists") iworld
 	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
-    # (mbe,iworld)    = 'SDS'.modify (\is -> ((),[i \\ i=:(no,_,_,_) <- is | no <> instanceNo])) (sdsFocus defaultValue filteredInstanceIndex) iworld
-	| mbe =: (Error _) = (mbe,iworld)
-    # (mbe,iworld)    = 'SDS'.modify (\(Queue f r) -> ((),Queue [e \\ e=:(no,_) <- f | no <> instanceNo] [e \\ e=:(no,_) <- r | no <> instanceNo])) taskEvents iworld
-	| mbe =: (Error _) = (mbe,iworld)
     = (Ok (),iworld)
 
 //Filtered interface to the instance index. This interface should always be used to access instance data

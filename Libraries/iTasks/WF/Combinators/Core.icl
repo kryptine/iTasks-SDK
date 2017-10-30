@@ -18,14 +18,14 @@ from iTasks.WF.Combinators.Common import ifStable
 from iTasks.Internal.SDS import write, read, readRegister, modify
 import iTasks.WF.Tasks.System
 
-import StdList, StdBool, StdTuple
+import StdList, StdBool, StdTuple, StdString, Data.Maybe
 from StdFunc import o
 import qualified Data.Map as DM
 import qualified Data.Queue as DQ
 
 import Data.Maybe, Data.Either, Data.Error
 import Text.JSON
-from Data.Functor import <$>
+from Data.Functor import <$>, class Functor(fmap)
 
 derive gEq ParallelTaskChange
 

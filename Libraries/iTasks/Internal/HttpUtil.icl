@@ -2,7 +2,8 @@ implementation module iTasks.Internal.HttpUtil
 
 import Internet.HTTP
 import StdArray, StdOverloaded, StdString, StdFile, StdBool, StdInt, StdArray, StdList, StdFunc, StdTuple
-import System.Time, Text, Text.Encodings.UrlEncoding, Data.Map
+import System.Time, Text, Text.Encodings.UrlEncoding
+from Data.Map import newMap, put, fromList, get, :: Map (..)
 from Data.List import lookup
 
 http_splitMultiPart :: !String !String -> [([(String,String)], String)]

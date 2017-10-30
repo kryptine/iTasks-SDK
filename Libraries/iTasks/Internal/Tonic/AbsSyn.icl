@@ -1,6 +1,6 @@
 implementation module iTasks.Internal.Tonic.AbsSyn
 
-import Text.JSON
+import Text.JSON, Data.Maybe
 from GenEq import generic gEq
 from Data.Map import :: Map
 import qualified Data.Map as DM

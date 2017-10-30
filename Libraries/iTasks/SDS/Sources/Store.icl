@@ -13,7 +13,7 @@ import iTasks.Internal.Task
 import iTasks.Internal.IWorld
 import iTasks.Internal.Serialization
 import System.FilePath
-import StdTuple, StdFunc, StdArray, StdBool
+import StdTuple, StdFunc, StdArray, StdBool, StdChar, StdInt, StdString
 
 sharedDynamicStore :: !String !a -> SDS () a a | TC a
 sharedDynamicStore storeId defaultV
@@ -26,7 +26,7 @@ where
 
 sharedStore :: !String !a -> SDS () a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV
-	= sdsFocus storeId (storeShare NS_APPLICATION_SHARES False InJSONFile (Just defaultV))
+	= sdsFocus storeId (storeShare NS_APPLICATION_SHARES True InJSONFile (Just defaultV))
 
 storeNamespaces :: SDS () [String] ()
 storeNamespaces = createReadOnlySDS read

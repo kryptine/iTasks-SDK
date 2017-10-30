@@ -4,7 +4,7 @@ import iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks.UI.Definition, iTasks.UI.Prompt
 import iTasks.WF.Combinators.Tune
 import iTasks.WF.Combinators.Overloaded
-import Data.List, Text.JSON
+import Data.List, Text.JSON, Data.Maybe, StdString
 import qualified Data.Map as DM
 import StdBool
 from StdFunc import id, const, o
