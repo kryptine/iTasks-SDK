@@ -1,6 +1,6 @@
 implementation module iTasks.Internal.TaskStore
 
-import StdOverloaded, StdBool, StdArray, StdTuple
+import StdOverloaded, StdBool, StdArray, StdTuple, StdString
 from StdFunc import const, id, o
 import Data.Maybe, Data.Either, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath, Data.Functor
 

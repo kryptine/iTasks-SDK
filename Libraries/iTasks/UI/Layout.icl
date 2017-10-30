@@ -1,6 +1,6 @@
 implementation module iTasks.UI.Layout
 
-import StdTuple, StdList, StdBool, StdInt, StdOrdList, StdArray, StdMisc
+import StdTuple, StdList, StdBool, StdInt, StdOrdList, StdArray, StdMisc, StdString
 import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks.Internal.Util, iTasks.Internal.HtmlUtil, iTasks.UI.Definition
 import iTasks.Internal.Generic.Defaults 

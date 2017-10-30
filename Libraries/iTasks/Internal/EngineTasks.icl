@@ -1,6 +1,6 @@
 implementation module iTasks.Internal.EngineTasks
 
-import StdBool, StdOverloaded
+import StdBool, StdOverloaded, StdList
 import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.WF.Definition

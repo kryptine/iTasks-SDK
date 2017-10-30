@@ -4,7 +4,7 @@ import iTasks.WF.Definition
 import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 
 import iTasks.Internal.Task, iTasks.Internal.IWorld, iTasks.Internal.TaskStore
-import StdBool, StdString, StdFile, StdArray
+import StdBool, StdString, StdFile, StdArray, StdInt
 
 import Text.JSON, Text.Encodings.MIME, Text.HTML, System.FilePath, System.File, System.OSError, Data.Error
 import qualified Data.Map as DM
