@@ -3,7 +3,7 @@ implementation module Compensation.Tasks
 import iTasks
 // Graphics.Scalable, iTasks.Extensions.SVG.SVGEditor
 import Compensation.SDS, ChamberOfCommerce.SDS
-import Task.Extensions
+import Task.Extensions, Data.Maybe
 //import iTasks._Framework.Tonic
 
 requestSolarPanelCompensation :: Citizen -> Task ()

@@ -1,7 +1,7 @@
 implementation module CivilAffairs.UoD
 
 import iTasks
-import iTasks.Extensions.Document //import :: Document(..), :: DocumentId
+import iTasks.Extensions.Document, Data.Maybe
 
 citizenFromSSN :: SSN [Citizen] -> Maybe Citizen
 citizenFromSSN ssn citizens
