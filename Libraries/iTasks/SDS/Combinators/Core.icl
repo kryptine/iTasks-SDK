@@ -7,7 +7,7 @@ import iTasks.Internal.Generic.Visualization
 import iTasks.Internal.Generic.Defaults
 import iTasks.UI.Editor.Generic
 import iTasks.WF.Definition
-import GenEq
+import GenEq, StdString
 
 sdsLens :: !String (p -> ps) (SDSLensRead p r rs) (SDSLensWrite p w rs ws) (SDSLensNotify p p w rs) !(SDS ps rs ws) -> SDS p r w | iTask ps & TC rs & TC ws
 sdsLens name param read write notify sds = SDSLens sds {SDSLens|name=name,param=param,read=read,write=write,notify=notify}
