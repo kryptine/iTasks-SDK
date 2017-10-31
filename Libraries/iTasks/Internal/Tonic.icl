@@ -38,7 +38,7 @@ from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Text
 import GenLexOrd
-from Control.Monad import `b`, class Monad, instance Monad Maybe
+from Control.Monad import `b`, class Monad(bind), instance Monad Maybe
 import qualified Control.Applicative as CA
 from Control.Applicative import class Applicative, instance Applicative Maybe
 import Data.CircularStack

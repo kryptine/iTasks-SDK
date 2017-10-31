@@ -12,8 +12,9 @@ import qualified iTasks.Internal.SDS as SDS
 
 import Data.Error, Data.Maybe
 import Text.JSON
-import StdString
+import StdString, StdBool
 import qualified Data.Set as DS
+
 
 treturn :: !a -> (Task a) | iTask a
 treturn a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))

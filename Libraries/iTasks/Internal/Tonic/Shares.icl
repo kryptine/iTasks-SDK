@@ -6,7 +6,7 @@ import Data.Error
 import iTasks.Internal.Tonic.AbsSyn
 import iTasks.Internal.Tonic.Types
 import iTasks.Internal.Store
-import StdMisc
+import StdMisc, Data.Maybe
 
 NS_TONIC_INSTANCES :== "tonic-instances"
 

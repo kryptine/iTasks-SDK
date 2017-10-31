@@ -15,7 +15,7 @@ import iTasks.Extensions.DateTime
 from StdFunc import seq
 import qualified Data.Map as DM
 from Data.Map import instance Functor (Map a)
-from Control.Monad import `b`, class Monad, instance Monad Maybe
+from Control.Monad import `b`, class Monad(bind), instance Monad Maybe
 import qualified iTasks.Internal.SDS as DSDS
 import Data.List
 import iTasks.Extensions.SVG.SVGEditor
