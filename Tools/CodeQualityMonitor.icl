@@ -3,15 +3,17 @@ module CodeQualityMonitor
 * This tool supports the task of monitoring the quality of the iTasks codebase.
 * It allows you to run test programs and exlore the codebase
 */
+import StdArray
 import System.OS
 import Text, Text.HTML
+import Data.List, Data.Func
 import qualified Data.Map as DM
 
 import iTasks
-
 import iTasks.Internal.Test.Definition
 import iTasks.UI.Definition
 import iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
+
 import iTasks.Extensions.Editors.Ace
 import iTasks.Extensions.Development.Codebase
 import iTasks.Extensions.Development.Testing
@@ -20,38 +22,19 @@ import iTasks.Extensions.Image
 import iTasks.Extensions.TextFile
 import iTasks.Extensions.Document
 import iTasks.Extensions.Process
-
-import Tests.Interactive.BuiltinEditors
-import Tests.Interactive.GenericEditors
-import Tests.Interactive.BuiltinContainers
-import Tests.Interactive.CustomEditors
-import Tests.Interactive.Layout
-import Tests.Interactive.Editlets
-import Tests.Interactive.CoreTasks
-import Tests.Interactive.TaskPatterns
-import Tests.Common.MinimalTasks
+import iTasks.Extensions.FileCollection
 
 derive class iTask ExitCode
 
-TESTS_PATH :== "../Tests/TestPrograms"
+UNIT_TESTS_PATH :== "../Tests/TestPrograms"
+INTERACTIVE_TESTS_PATH :== "../Tests/TestPrograms/Interactive"
+
 LIBRARY_PATH :== "../Libraries"
 EXAMPLE_MODULES :== ["../Examples/BasicApiExamples.icl"
                     ,"../Examples/Applications/Incidone/IncidoneCCC.icl"
                     ,"../Examples/Applications/c2-demo/main.icl"
                     ,"../Examples/GIS/LeafletMapExample.icl"
                     ]
-
-suites = [//Interactive tests
-		  testBuiltinEditors
-         ,testBuiltinEditorsWithShares
-		 ,testGenericEditors
-		 ,testBuiltinContainers
-		 ,testCustomEditors
- 		 ,testLayoutI
-		 ,testEditletsI
-         ,testCoreTasksI
-         ,testTaskPatternsI
-		 ]
 
 inspectCodeQuality :: Task ()
 inspectCodeQuality
@@ -60,7 +43,7 @@ inspectCodeQuality
 				   ,Title "Interactive Tests"    @>> runInteractiveTests 
 				   ,Title "Example applications" @>> checkExampleApplications
 				   ,Title "Code"                 @>> exploreCode 
-                   ,Title "Experiment"           @>> inspectCode "module test\nStart = \"Hello World\""
+                   ,Title "Experiment"           @>> inspectMainModule "test" "module test\nStart = \"Hello World\""
 				   ] <<@ ArrangeWithTabs False
 		)
 where
@@ -69,31 +52,31 @@ where
 
 runInteractiveTests :: Task ()
 runInteractiveTests
-	= (     editSelection (Title "Select test") False (SelectInTree toTree selectTest) suites [] @? tvHd
+	= (     editSelectionWithShared (Title "Select test") False (SelectInTree collectionToTree selectTest) tests (const []) @? tvHd
 		>&> withSelection (viewInformation () [] "Select a test") testInteractive ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
 where
-	toTree suites = reverse (snd (foldl addSuite (0,[]) suites))
-	addSuite (i,t) {TestSuite|name,tests}
-		| isEmpty [t \\ InteractiveTest t <- tests]  = (i,t) //There are no interactive tests in the suite
-		# (i,children) = foldl addTest (i,[]) tests
-		= (i, [{ChoiceNode|id = -1 * i, label=name, expanded=False, icon=Nothing, children=reverse children}:t])
+	tests = sdsFocus INTERACTIVE_TESTS_PATH (fileCollection (\path isDirectory -> isDirectory || takeExtension path == "icl"))
 
-	addTest (i,t) (InteractiveTest {InteractiveTest|name})
-		= (i + 1, [{ChoiceNode|id = i, label=name, expanded=False, icon=Nothing, children=[]}:t])
-	addTest (i,t) _ = (i,t)
+	collectionToTree collection = itemsToTree [] collection
+	where
+		itemsToTree prefix subCollection = map (itemToTree prefix) ('DM'.toList subCollection)
 
-	selectTest suites [idx] 
-		| idx >= 0  = [(flatten [[t \\ InteractiveTest t <- s.TestSuite.tests] \\ s <- suites]) !! idx]
-		| otherwise = []
-	selectTest _ _ = []
+		itemToTree prefix (name,FileContent _)
+			= {ChoiceNode|id = determineItemId (fileName [name:prefix]) collection, label = name
+              , expanded = False, icon = Nothing, children = []}
+		itemToTree prefix (name,FileCollection subCollection)
+			= {ChoiceNode|id = determineItemId (fileName [name:prefix]) collection, label = name
+              , expanded = False, icon = Nothing, children = itemsToTree [name:prefix] subCollection}
 
-testInteractive :: InteractiveTest -> Task TestResult
-testInteractive {name,instructions,expectation,taskUnderTest}
-    =       (viewInformation () [] (H1Tag [] [Text name]) <<@ ApplyLayout (setUIAttributes (heightAttr WrapSize)))
-    ||-     ((viewInformation (Title "Instructions") [] instructions)
-             -&&- (viewInformation (Title "Expected result") [] expectation) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
-    ||- taskUnderTest
-    ||- enterInformation (Title "Result") []
+	fileName path = join {OS_PATH_SEPARATOR} (reverse path)
+
+	determineItemId path collection = fromMaybe -1 (elemIndex path (toPaths collection))
+
+	selectTest collection indices = filter (((==) "icl") o takeExtension) (getItems (toPaths collection) indices)
+
+	testInteractive modulePath 
+		=   importTextFile (INTERACTIVE_TESTS_PATH </> modulePath) 
+		>>- inspectMainModule (dropExtension (dropDirectory modulePath))
 
 runUnitTests :: Task ()
 runUnitTests = withShared 'DM'.newMap
@@ -102,11 +85,11 @@ runUnitTests = withShared 'DM'.newMap
 		 (enterChoiceWithSharedAs () [ChooseFromGrid fst] (testsWithResults results) fst 
 		>&> withSelection (viewInformation "Select a test" [] ())
 			(\path -> 
-				(viewSharedInformation (Title "Code") [ViewUsing id aceTextArea] (sdsFocus (TESTS_PATH </> path) (removeMaybe Nothing fileShare))
+				(viewSharedInformation (Title "Code") [ViewUsing id aceTextArea] (sdsFocus (UNIT_TESTS_PATH </> path) (removeMaybe Nothing fileShare))
 				-&&-
 				viewSharedInformation (Title "Results") [ViewAs (toTestReport o maybeToList)] (mapRead ('DM'.get path) results) <<@ ArrangeHorizontal)
 				>^* [OnAction (Action "Run") (always
-						(		runTestModule (TESTS_PATH </> path) <<@ InWindow
+						(		runTestModule (UNIT_TESTS_PATH </> path) <<@ InWindow
 							>>- \res -> (upd ('DM'.put path res)) results
 						)
 					)]
@@ -115,7 +98,7 @@ runUnitTests = withShared 'DM'.newMap
 where
 	testsWithResults results = mapRead (\(res,tests) -> [(t,'DM'.get t res) \\t <- tests]) (results |*| tests)
 	where
- 		tests = mapRead (filter ((==) "icl" o takeExtension)) (sdsFocus TESTS_PATH directoryListing)
+ 		tests = mapRead (filter ((==) "icl" o takeExtension)) (sdsFocus UNIT_TESTS_PATH directoryListing)
 
 	toTestReport results
 		= DivTag [] [suiteHtml res \\ res <- results | not (isEmpty res.testResults)]
@@ -182,7 +165,8 @@ where
 
 //Inspecting individual programs 
 :: InspectState
-  = { lines       :: [String]
+  = { moduleName  :: String
+    , lines       :: [String]
     , executable  :: Maybe Document
     }
 
@@ -190,9 +174,9 @@ derive class iTask InspectState
 
 // To inspect code we need to do a few things:
 // We must be able to view it, change it without risk and run it with changes
-inspectCode :: String -> Task ()
-inspectCode sourceCode = withShared
-	(initialInspectState sourceCode)
+inspectMainModule :: String String -> Task ()
+inspectMainModule moduleName sourceCode = withShared
+	(initialInspectState moduleName sourceCode)
 	(\state ->
 		editSourceCode state
 		>^* [OnAction (Action "Build") (always (buildExecutable state))
@@ -200,13 +184,14 @@ inspectCode sourceCode = withShared
 			]
     ) @! ()
 where
-	initialInspectState sourceCode
+	initialInspectState moduleName ourceCode
 		= {InspectState
-          |lines = split OS_NEWLINE sourceCode
+          |moduleName = moduleName
+          ,lines = split OS_NEWLINE sourceCode
  		  ,executable = Nothing
 		  }
 
-	hasExecutable {InspectState|executable} = (executable =: (Just _))
+	hasExecutable {InspectState|executable} = isJust executable //(executable =: (Just _))
 
 	editSourceCode :: (Shared InspectState) -> Task InspectState
 	editSourceCode state
@@ -218,24 +203,25 @@ where
 	buildExecutable :: (Shared InspectState) -> Task ()
 	buildExecutable state = withTemporaryDirectory 
 		( \temporaryDirectory ->
-              get state @ (\{InspectState|lines} -> join OS_NEWLINE lines)
-          >>-       prepareBuildFiles temporaryDirectory
-		  >>- \_ -> runBuildTool temporaryDirectory
-		  >>- \_ -> importExecutable temporaryDirectory state
+              get state @ (\{InspectState|moduleName,lines} -> (moduleName,join OS_NEWLINE lines))
+		  >>- \(moduleName,sourceCode) -> 
+              prepareBuildFiles temporaryDirectory moduleName sourceCode
+		  >>- \_ -> runBuildTool temporaryDirectory moduleName
+		  >>- \_ -> importExecutable temporaryDirectory moduleName state
 		  @!  ()
         )
 	where
-		prepareBuildFiles directory sourceCode
-			=         exportTextFile (directory </> "test.icl") sourceCode
-			>>- \_ -> exportTextFile (directory </> "test.prj") projectTemplate
+		prepareBuildFiles directory moduleName sourceCode
+			=         exportTextFile (directory </> addExtension moduleName "icl") sourceCode
+			>>- \_ -> exportTextFile (directory </> addExtension moduleName "prj") (projectTemplate moduleName)
 		
-		runBuildTool directory 
+		runBuildTool directory moduleName
 			=   get cpmExecutable 
-			>>- \cpm -> callProcess () [] cpm ["test.prj"] (Just directory)
+			>>- \cpm -> callProcess () [] cpm [addExtension moduleName "prj"] (Just directory)
 			>>* [OnAction ActionClose (ifStable return)] //Pause after command...
 		
-		importExecutable directory state
-			=   importDocument (directory </> "test.exe")
+		importExecutable directory moduleName state
+			=   importDocument (directory </> addExtension moduleName "exe")
 			>>- \executable -> 
                 upd (\s -> {InspectState|s & executable = Just executable}) state
 
@@ -247,7 +233,7 @@ where
 				      (\executable -> let programPath = temporaryDirectory </> "program.exe" in
 						          exportDocument programPath executable 
 						>>- \_ -> makeExecutable programPath 
-						>>- \_ -> callProcess () [] programPath [] (Just temporaryDirectory)
+						>>- \_ -> callProcess () [] programPath ["-port","8084"] (Just temporaryDirectory)
 						>>* [OnAction ActionClose (ifStable return)] //Pause after command...
 					  )
 		) @! ()
@@ -304,14 +290,15 @@ where
                    ]
 
 Start world = startEngine inspectCodeQuality world
+//Start world = startEngineWithOptions (\cli options -> (Just {options & autoLayout = False},[])) inspectCodeQuality world
 
 //CREATE THIS WITH CPM LIBRARY
-projectTemplate = join OS_NEWLINE
+projectTemplate moduleName = join OS_NEWLINE
 	["Version: 1.4"
 	,"Global"
 	,"\tProjectRoot: ."
-	,"\tTarget: StdEnv"
-	,"\tExec: {Project}/test.exe"
+	,"\tTarget: iTasks git"
+	,"\tExec: {Project}/" +++ addExtension moduleName "exe"
 	,"\tCodeGen"
 	,"\t\tCheckStacks: False"
 	,"\t\tCheckIndexes: True"
@@ -354,7 +341,7 @@ projectTemplate = join OS_NEWLINE
 	,"\tPostlink:"
 
 	,"MainModule"
-	,"\tName: test"
+	,"\tName: " +++ moduleName
 	,"\tDir: {Project}"
 	,"\tCompiler"
 	,"\t\tNeverMemoryProfile: False"
