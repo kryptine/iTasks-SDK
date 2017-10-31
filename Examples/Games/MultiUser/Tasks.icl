@@ -1,7 +1,7 @@
-implementation module MultiUser
+implementation module MultiUser.Tasks
 
 import iTasks
-import iTasks.API.Extensions.Admin.UserAdmin
+import iTasks.Extensions.Admin.UserAdmin
 
 StartMultiUserTasks :: [Workflow] [PublishedTask] *World -> *World
 StartMultiUserTasks workflows tasks world 

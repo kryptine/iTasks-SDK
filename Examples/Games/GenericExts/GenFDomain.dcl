@@ -1,4 +1,4 @@
-definition module GenFDomain
+definition module GenericExts.GenFDomain
 
 import StdGeneric
 

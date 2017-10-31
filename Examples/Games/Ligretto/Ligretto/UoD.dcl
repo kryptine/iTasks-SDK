@@ -1,6 +1,7 @@
-definition module ligrettoModel
- 
-import Data.Maybe
+definition module Ligretto.UoD
+
+import iTasks.WF.Definition
+from   iTasks.Extensions.User import :: User, :: UserId
 
 /** A model for the game of Ligretto.
 */
@@ -28,7 +29,19 @@ import Data.Maybe
                    , players   :: ![Player]       // all players
                    }
 
+//	Make iTask infrastructure available for Ligretto model data types:
+derive class iTask GameSt, Player, Color, Hand, Card, SideUp
+
 //	Game state functions:
+/** init_gameSt players random_numbers = game:
+		provided that length @players <= length @random_numbers, @game has a middle
+		of empty piles of cards, and each player has a proper hand and row, using
+		@random_numbers.
+		
+		If length @players > length @random_numbers, then only the first
+		(length @random_numbers) of @players have been set up.
+*/
+init_gameSt :: ![(Color,User)] [Int] -> GameSt
 
 /** play_concealed_pile player game = game`:
 		if the concealed pile of @player in @game is empty, then all cards on the discard pile
@@ -81,3 +94,10 @@ initial_player       :: !NoOfPlayers !Color !String !Int -> Player
 		otherwise @maybe_player = Nothing.
 */
 and_the_winner_is    :: !GameSt -> Maybe Player
+
+/** determine_winner game = Just (color,name):
+		the player @name playing with @color has won.
+	determine_winner game = Nothing:
+		the @game is not over yet.
+*/
+determine_winner :: !GameSt -> Maybe (Color, String)

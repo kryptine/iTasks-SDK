@@ -1,19 +1,30 @@
-definition module trax
+definition module Trax.UoD
 
-import StdClass, StdTupleExt
-import StdMaybe
-import StdGeneric, GenEq, GenFDomain, GenLexOrd, GenMap
+import iTasks.WF.Definition
+from   iTasks.Extensions.User import :: User
+import PlatformExts.Tuple
+from   StdClass import class zero, class ~
+import Data.Maybe
+import GenericExts.GenFDomain
+import GenEq, GenLexOrd, GenMap
+
+derive class iTask TraxSt, /*Coordinate,*/ TileEdge, LineColor
 
 :: TraxTile                             // a tile connects two edges:
 	= { end1 :: !TileEdge               //    the red line at one end and
 	  , end2 :: !TileEdge               //    the red line at the other end
 	  }
-derive   gFDomain  TraxTile
-derive   gEq       TraxTile
-instance fromTuple TileEdge TileEdge TraxTile
-instance toTuple   TileEdge TileEdge TraxTile
-instance ==        TraxTile
-instance toString  TraxTile
+derive   gEditor    TraxTile
+derive   gText      TraxTile
+derive   JSONEncode TraxTile
+derive   JSONDecode TraxTile
+derive   gDefault   TraxTile
+derive   gEq        TraxTile
+derive   gFDomain   TraxTile
+instance fromTuple  TileEdge TileEdge TraxTile
+instance toTuple    TileEdge TileEdge TraxTile
+instance ==         TraxTile
+instance toString   TraxTile
 
 horizontal :: TraxTile                  // tile with a straight horizontal red line
 vertical   :: TraxTile                  // tile with a straight vertical   red line
@@ -28,48 +39,64 @@ southwest  :: TraxTile                  // tile with an elbow red line at south-
 other_edge :: !TraxTile !TileEdge -> TileEdge
 
 :: TileEdge                             // an edge is either at:
-	= North                         //    the north side of a tile, or at
-	| East                          //    the east side of a tile, or at
-	| South                         //    the south side of a tile, or at
-	| West                          //    the west side of a tile
+	= North	                            //    the north side of a tile, or at
+	| East                              //    the east side of a tile, or at
+	| South                             //    the south side of a tile, or at
+	| West                              //    the west side of a tile
 derive   gFDomain TileEdge
 derive   gLexOrd  TileEdge
-derive   gEq      TileEdge
 instance ==       TileEdge
 instance <        TileEdge
 instance ~        TileEdge
 
-:: LineColor                        // a line color is either:
-	= RedLine                       //    red, or
-	| WhiteLine                     //    white
+:: LineColor                            // a line color is either:
+	= RedLine                           //    red, or
+	| WhiteLine                         //    white
 derive   gFDomain LineColor
-derive   gEq      LineColor
 instance ==       LineColor
 instance ~        LineColor
 
-:: Coordinate                       // a coordinate consists of:
- = { col :: !Int                    //   a column-coordinate
-   , row :: !Int                    //   a row-coordinate
-   }
-derive   gEq       Coordinate
+:: Coordinate :== (Int,Int)				// debugging: use tuple instead of record
+/*
+:: Coordinate                           // a coordinate consists of:
+ = { col :: !Int                        //   a column-coordinate
+   , row :: !Int                        //   a row-coordinate
+   } */
 instance ==        Coordinate
 instance <         Coordinate
 instance zero      Coordinate
-instance fromTuple Int Int Coordinate
-instance toTuple   Int Int Coordinate
+//instance fromTuple Int Int Coordinate
+//instance toTuple   Int Int Coordinate
 
-:: Trax								// actually, Trax ought to be opaque
+/** col @{col} = col.
+*/
+col :: !Coordinate -> Int
+
+/** row @{row} = row.
+*/
+row :: !Coordinate -> Int
+
+
+:: Trax								    // actually, Trax ought to be opaque
  = { tiles :: ![(Coordinate,TraxTile)]  //   tiles that are placed on a certain location
    }
-derive   gEq  Trax
-instance ==   Trax
-instance zero Trax
+derive   gEditor    Trax
+derive   gText      Trax
+derive   JSONEncode Trax
+derive   JSONDecode Trax
+derive   gDefault   Trax
+derive   gEq        Trax
+instance ==         Trax
+instance zero       Trax
 
+
+class tiles a :: !a -> [(Coordinate,TraxTile)]
 
 /** tiles @trax = @tiles`:
 	   @tiles` is a finite map of all current tiles of @trax.
 */
-tiles :: !Trax -> [(Coordinate,TraxTile)]
+instance tiles Trax
+instance tiles TraxSt
 
 /** nr_of_tiles @trax = @nr_of_tiles:
         returns the current number of tiles (@nr_of_tiles) in @trax.
@@ -154,3 +181,16 @@ winning_lines :: !Trax -> [(LineColor,Line)]
        tile, and all subsequent other empty places, thus resulting in @trax`.
 */
 mandatory_moves :: !Trax !Coordinate -> Trax
+
+
+:: TraxSt
+ = { trax   :: Trax              // the current set of placed tiles
+   , names  :: [User]            // the current two players
+   , turn   :: Bool
+   , choice :: Maybe Coordinate
+   }
+
+game_over :: TraxSt -> Bool
+start_with_this :: TraxTile TraxSt -> TraxSt
+setcell :: Coordinate TraxSt -> TraxSt
+settile :: Coordinate TraxTile TraxSt -> TraxSt
