@@ -169,7 +169,7 @@ write` p w sds=:(SDSLens sds1 {SDSLens|param,write,notify}) env
                     (Error e, env) = (Error e, env)
                     (Ok notify, env) 
 						//Remove the registrations that we can eliminate based on the current parameter
-						# notify = foldr 'Set'.delete notify ('Set'.toList nomatch)
+						# notify = 'Set'.difference notify ('Set'.difference nomatch match)
 						= (Ok notify, env)
         //General case: read base SDS before writing
         _
@@ -192,7 +192,7 @@ write` p w sds=:(SDSLens sds1 {SDSLens|param,write,notify}) env
                             (Error e, env) = (Error e, env)
                             (Ok notify, env)
 								//Remove the registrations that we can eliminate based on the current parameter
-								# notify = foldr 'Set'.delete notify ('Set'.toList nomatch)
+								# notify = 'Set'.difference notify ('Set'.difference nomatch match)
                                 = (Ok notify, env)
 
 write` p w sds=:(SDSSelect sds1 sds2 {SDSSelect|select,notifyl,notifyr}) env
