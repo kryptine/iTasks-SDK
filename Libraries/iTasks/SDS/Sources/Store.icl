@@ -13,7 +13,7 @@ import iTasks.Internal.Task
 import iTasks.Internal.IWorld
 import iTasks.Internal.Serialization
 import System.FilePath
-import StdTuple, StdFunc, StdArray, StdBool
+import StdTuple, StdFunc, StdArray, StdBool, StdChar, StdInt, StdString
 
 sharedDynamicStore :: !String !a -> SDS () a a | TC a
 sharedDynamicStore storeId defaultV

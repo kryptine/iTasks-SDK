@@ -1,7 +1,7 @@
 implementation module iTasks.Extensions.Development.Codebase
 import iTasks
 import iTasks.UI.Editor.Controls
-import StdArray, System.FilePath, System.File, System.Directory, Text, StdFile, Data.List, Data.Tree, Data.Error
+import StdArray, System.FilePath, System.File, System.Directory, Text, StdFile, Data.List, Data.Tree, Data.Error, Data.Maybe
 
 derive class iTask SourceTree, SourceTreeSelection, ModuleType, Extension
 instance == Extension where (==) x y = x === y

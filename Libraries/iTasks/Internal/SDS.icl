@@ -55,7 +55,7 @@ sdsIdentity (SDSLens sds {SDSLens|name}) = sdsIdentity sds +++"/["+++name+++"]"
 sdsIdentity (SDSSelect sds1 sds2 {SDSSelect|name}) = "{"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++"}"
 sdsIdentity (SDSParallel sds1 sds2 {SDSParallel|name}) = "|"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++"|"
 sdsIdentity (SDSSequence sds1 sds2 {SDSSequence|name}) = "<"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++">"
-sdsIdentity (SDSCache sds _) = sdsIdentity sds
+sdsIdentity (SDSCache {SDSSource|name} _) = "$" +++ name +++ "$"
 sdsIdentity (SDSDynamic f) = "SDSDYNAMIC" //TODO: Figure out how to determine the identity of the wrapped sds
 
 iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
@@ -121,12 +121,12 @@ read` p mbNotify reqSDSId sds=:(SDSSequence sds1 sds2 {SDSSequence|paraml,paramr
 
 read` p mbNotify reqSDSId sds=:(SDSCache sds1 _) env=:{IWorld|readCache}
     # env = mbRegister p sds mbNotify reqSDSId env
-	# key = (sdsIdentity sds1,toSingleLineText p)
+	# key = (sdsIdentity sds,toSingleLineText p)
 	//First check cache
 	= case 'DM'.get key readCache of
 		Just (val :: r^) = (Ok val,env)
 		Just _           = (Error (exception "Cached value of wrong type"), env)
-		Nothing = case read` p mbNotify reqSDSId sds1 env of
+		Nothing = case read` p mbNotify reqSDSId (SDSSource sds1) env of
 			(Error e,env) = (Error e, env)
 			//Read and add to cache
 			(Ok val,env)  = (Ok val, {env & readCache = 'DM'.put key (dynamic val :: r^) env.readCache})
@@ -141,8 +141,8 @@ read` p mbNotify reqSDSId sds=:(SDSDynamic f) env
 write :: !w !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld) | TC r & TC w
 write w sds iworld
     = case write` () w sds iworld of
-		(Ok notify, iworld)  = (Ok (), queueNotifyEvents (sdsIdentity sds) notify iworld)
-        (Error e,iworld)    	= (Error e,iworld)
+		(Ok notify, iworld) = (Ok (), queueNotifyEvents (sdsIdentity sds) notify iworld)
+        (Error e,iworld)    = (Error e,iworld)
 
 write` :: !p !w !(RWShared p r w) !*IWorld -> (!MaybeError TaskException (Set TaskId), !*IWorld) | iTask p & TC r & TC w
 write` p w sds=:(SDSSource {SDSSource|name,write}) env
@@ -169,7 +169,7 @@ write` p w sds=:(SDSLens sds1 {SDSLens|param,write,notify}) env
                     (Error e, env) = (Error e, env)
                     (Ok notify, env) 
 						//Remove the registrations that we can eliminate based on the current parameter
-						# notify = foldr 'Set'.delete notify ('Set'.toList nomatch)
+						# notify = 'Set'.difference notify ('Set'.difference nomatch match)
 						= (Ok notify, env)
         //General case: read base SDS before writing
         _
@@ -192,7 +192,7 @@ write` p w sds=:(SDSLens sds1 {SDSLens|param,write,notify}) env
                             (Error e, env) = (Error e, env)
                             (Ok notify, env)
 								//Remove the registrations that we can eliminate based on the current parameter
-								# notify = foldr 'Set'.delete notify ('Set'.toList nomatch)
+								# notify = 'Set'.difference notify ('Set'.difference nomatch match)
                                 = (Ok notify, env)
 
 write` p w sds=:(SDSSelect sds1 sds2 {SDSSelect|select,notifyl,notifyr}) env
@@ -297,7 +297,7 @@ write` p w sds=:(SDSSequence sds1 sds2 {SDSSequence|paraml,paramr,writel,writer}
             = (Ok ('Set'.union (fromOk npreds1) (fromOk npreds2)), env)
 
 write` p w sds=:(SDSCache sds1 {SDSCache|write}) env=:{IWorld|readCache,writeCache}
-	# key = (sdsIdentity sds1,toSingleLineText p)
+	# key = (sdsIdentity sds,toSingleLineText p)
 	//Check cache
 	# mbr = case 'DM'.get key readCache of
 		Just (val :: r^) = Just val
@@ -313,9 +313,9 @@ write` p w sds=:(SDSCache sds1 {SDSCache|write}) env=:{IWorld|readCache,writeCac
 		Nothing  = 'DM'.del key readCache
 	= case policy of
 		NoWrite = (Ok 'Set'.newSet, {env & readCache = readCache})
-		WriteNow = write` p w sds1 {env & readCache = readCache}
+		WriteNow = write` p w (SDSSource sds1) {env & readCache = readCache}
 		WriteDelayed
-			# writeCache = 'DM'.put key (dynamic w :: w^, DeferredWrite p w sds1) writeCache
+			# writeCache = 'DM'.put key (dynamic w :: w^, DeferredWrite p w (SDSSource sds1)) writeCache
 			= (Ok 'Set'.newSet, {env & readCache = readCache, writeCache = writeCache})
 
 write` p w sds=:(SDSDynamic f) env
@@ -330,7 +330,7 @@ checkRegistrations :: !SDSIdentity (p -> Bool) !*IWorld -> (Set TaskId, Set Task
 checkRegistrations sdsId pred iworld
 	# (registrations, iworld) 	= lookupRegistrations sdsId iworld
 	# (match,nomatch) 			= matchRegistrations pred registrations
-	= (match,nomatch,iworld) 
+	= (match,nomatch,iworld)
 where
 	//Find all notify requests for the given share id
 	lookupRegistrations sdsId iworld=:{sdsNotifyRequests}
@@ -358,19 +358,13 @@ modify f sds iworld = case read sds iworld of
 notify :: !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 notify sds iworld = (Ok (), iworld) //TODO
 
-
-queueNotifyEvents :: !String (Set TaskId) *IWorld -> *IWorld
+queueNotifyEvents :: !String !(Set TaskId) *IWorld -> *IWorld
 queueNotifyEvents sdsId notify iworld
-	# instanceNos = [no \\ (TaskId no _) <- 'Set'.toList notify]
-	# iworld = queueRefresh [(i,"Notification for write of " +++ sdsId) \\ i <- instanceNos] iworld
-	# iworld = clearInstanceSDSRegistrations instanceNos iworld
-	= iworld
+	= queueRefresh [(t,"Notification for write of " +++ sdsId) \\ t <- 'Set'.toList notify] iworld
 
-clearInstanceSDSRegistrations :: ![InstanceNo] !*IWorld -> *IWorld
-clearInstanceSDSRegistrations instanceNos iworld=:{IWorld|sdsNotifyRequests}
-    = {iworld & sdsNotifyRequests = [r \\ r=:{SDSNotifyRequest|reqTaskId} <- sdsNotifyRequests | keep reqTaskId instanceNos]}
-where
-	keep (TaskId no _) nos = not (isMember no nos)
+clearTaskSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
+clearTaskSDSRegistrations taskIds iworld=:{IWorld|sdsNotifyRequests}
+    = {iworld & sdsNotifyRequests = [r \\ r=:{SDSNotifyRequest|reqTaskId} <- sdsNotifyRequests | not ('Set'.member reqTaskId taskIds)]}
 
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)
 listAllSDSRegistrations iworld=:{IWorld|sdsNotifyRequests} = ('DM'.toList (foldr addReg 'DM'.newMap sdsNotifyRequests),iworld)

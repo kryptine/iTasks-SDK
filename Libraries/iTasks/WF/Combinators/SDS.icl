@@ -17,7 +17,7 @@ import StdBool
 
 from Data.Func import mapSt
 
-import StdTuple, StdArray
+import StdTuple, StdArray, StdList, StdString
 import Text, Text.JSON
 import Data.Maybe, Data.Error
 import System.Directory, System.File, System.FilePath, Data.Error, System.OSError

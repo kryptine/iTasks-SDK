@@ -13,8 +13,9 @@ import iTasks.Internal.TaskServer
 import iTasks.Internal.Generic.Visualization
 import iTasks.Internal.Generic.Defaults
 
-import Text, Text.JSON
+import Text, Text.JSON, StdString, StdInt
 import qualified Data.Map as DM
+import qualified Data.Set as DS
 
 :: ConnectionHandlers l r w = 
     { onConnect         :: !(String r   -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
@@ -55,11 +56,12 @@ where
             Just (IOActive values)
                 = case 'DM'.get 0 values of 
                     Just (ioStateValue :: l^, stable) = case event of 
-                         (RefreshEvent _ ) = case refreshUI taskId (fromJSON encodedLocalValue) ioStateValue iworld of
-                            (Ok (change,mask), nextValue, iworld)
-								# tree = TCBasic taskId ts (toJSON (nextValue,mask)) stable
-								= (ValueResult (Value ioStateValue stable) (info ts) change tree, iworld)
-                            (Error e, nextValue, iworld)   = (ExceptionResult (exception e),iworld)
+                         (RefreshEvent taskIds _ )| 'DS'.member taskId taskIds
+							 = case refreshUI taskId (fromJSON encodedLocalValue) ioStateValue iworld of
+                            	(Ok (change,mask), nextValue, iworld)
+									# tree = TCBasic taskId ts (toJSON (nextValue,mask)) stable
+									= (ValueResult (Value ioStateValue stable) (info ts) change tree, iworld)
+								(Error e, nextValue, iworld)   = (ExceptionResult (exception e),iworld)
                          _ = case resetUI taskId ioStateValue iworld of 
                             (Ok (change,mask),iworld)
 								# tree = TCBasic taskId ts (toJSON (ioStateValue,mask)) stable

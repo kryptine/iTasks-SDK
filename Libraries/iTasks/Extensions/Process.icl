@@ -21,7 +21,6 @@ callProcess prompt viewOptions executable arguments workingDirectory
 	= externalProcess executable arguments workingDirectory unitShare handlers gEditor{|*|}
 where
     handlers = {onStartup = onStartup, onOutData = onOutData, onErrData = onErrData, onShareChange = onShareChange, onExit = onExit}
-
     onStartup _ = (Ok {ProcessInformation|executable=executable,arguments=arguments,stdout="",stderr="",status=RunningProcess}, Nothing, [], False)
     onOutData data info=:{ProcessInformation|stdout} _ = (Ok {ProcessInformation|info & stdout = stdout +++ data}, Nothing, [], False)
     onErrData data info=:{ProcessInformation|stderr} _ = (Ok {ProcessInformation|info & stderr = stderr +++ data}, Nothing, [], False)

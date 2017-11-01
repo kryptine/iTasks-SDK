@@ -12,7 +12,8 @@ import qualified iTasks.Internal.SDS as SDS
 
 import Data.Error, Data.Maybe
 import Text.JSON
-import StdString
+import StdString, StdBool
+import qualified Data.Set as DS
 
 treturn :: !a -> (Task a) | iTask a
 treturn a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))
@@ -83,7 +84,8 @@ where
                 = case editor.Editor.genUI [] v vst of
 			        (Ok (ui,m),{VSt|iworld}) = (Ok (l,v,ReplaceUI (uic UIInteract [toPrompt prompt,ui]),m,taskTime),iworld)
 			        (Error e,{VSt|iworld})   = (Error (exception e),iworld)
-            RefreshEvent _ = refreshView_ taskId mode editor shared onRefresh l v m taskTime iworld
+            RefreshEvent taskIds _ | 'DS'.member taskId taskIds
+                = refreshView_ taskId mode editor shared onRefresh l v m taskTime iworld
             FocusEvent fTaskId | fTaskId == taskId = (Ok (l,v,NoChange,m,taskTime),iworld)
             _ = (Ok (l,v,NoChange,m,ts),iworld)
         = case mbRes of
