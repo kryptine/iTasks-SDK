@@ -122,7 +122,7 @@ where
 			removeDisabledActions
 
 	removeDisabledActions
-		= removeSubUIs (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" (JSONBool False))))
+		= removeSubUIs (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" ((==) (JSONBool False)))))
 
 	ContainsNoChildOfType type = SelectAND (SelectByPath []) (SelectNOT (SelectByContains (SelectAND SelectChildren (SelectByType type))))
 	RootIsStep = SelectAND (SelectByPath []) (SelectByType UIStep)

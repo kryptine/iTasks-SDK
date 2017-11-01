@@ -9,3 +9,9 @@ Tests/**/*-sapl
 Tests/**/*-www
 Tests/**/*.prj
 Tests/**/*.exe
+Tools/**/*-data
+Tools/**/*-sapl
+Tools/**/*-www
+Tools/**/*.prj
+Tools/**/*.exe
+**/.sass-cache

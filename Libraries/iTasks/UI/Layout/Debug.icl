@@ -12,9 +12,9 @@ derive gPrint UIType, JSONNode, (,), Map
 
 traceLayout :: String -> Layout
 traceLayout m =
-	{ apply  = \ui->trace_n (m +++ "- (apply)  : " +++ printUI 0 ui) (NoChange, LSNone)
-	, adjust = \x ->trace_n (m +++ "- (adjust) : ") x
-	, restore= \c ->trace_n (m +++ "- (restore): ") NoChange
+	{ apply  = \ui->trace_n (m +++ "- (apply)  : \n" +++ printUI 0 ui) (NoChange, LSNone)
+	, adjust = \x ->trace_n (m +++ "- (adjust) : \n") x
+	, restore= \c ->trace_n (m +++ "- (restore): \n") NoChange
 	}
 where
 	printUI ident (UI type attr children)
