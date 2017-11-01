@@ -143,7 +143,7 @@ queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
 /** 
 * Convenience function for queueing multiple refresh multiple refresh events at once
 */
-queueRefresh :: ![(InstanceNo,String)] !*IWorld -> *IWorld
+queueRefresh :: ![(!TaskId, !String)] !*IWorld -> *IWorld
 
 /**
 * Dequeue a task event
