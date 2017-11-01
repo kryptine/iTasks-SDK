@@ -1,13 +1,24 @@
-implementation module ligrettoModel
+implementation module Ligretto.UoD
 
-from   StdMisc import abort
-import Math.Random		// for generating random numbers
-import StdEnv
-import Data.Maybe, GenEq
-import iTasks._Framework.Generic.Visualization
+import StdBool, StdInt, StdList, StdMisc, StdOrdList, StdString, StdTuple
+import Data.Maybe				// for the Maybe type
+import Math.Random				// for generating random numbers
+import iTasks.WF.Definition		// for the iTask infrastructure
+import iTasks.Extensions.User	// for the User data type
+import GenEq
+from   iTasks.Internal.Generic.Visualization import <+++	// <+++ shouldn't be imported from here
 
-derive gEq Card, SideUp, Color
-derive gText Color
+//	Make iTask infrastructure available for Ligretto model data types:
+derive class iTask GameSt, Player, Color, Hand, Card, SideUp
+
+init_gameSt :: ![(Color,User)] [Int] -> GameSt
+init_gameSt us rs
+	= { middle  = repeatn (4*length us) []
+      , players = [  initial_player (length us) c (toString u) (abs r) 
+                  \\ (c,u) <- us
+                   & r     <- rs
+                  ]
+      }
 
 play_concealed_pile :: !Color !GameSt -> GameSt
 play_concealed_pile color gameSt
@@ -47,7 +58,7 @@ get_player :: !Color !GameSt -> Player
 get_player color gameSt=:{GameSt | players}
 	= case [player \\ player <- players | player.color === color] of
 	     [player : _] = player
-	     ouch         = abort ("Could not find player with color " <+++ color)
+	     ouch         = abort ("Ligretto.UoD.get_player: could not find player with color " <+++ color)
 
 set_player :: !Player !GameSt -> GameSt
 set_player player gameSt=:{GameSt | players}
@@ -57,7 +68,7 @@ no_of_cards_in_row :: !NoOfPlayers -> Int
 no_of_cards_in_row 2 = 5
 no_of_cards_in_row 3 = 4
 no_of_cards_in_row 4 = 3
-no_of_cards_in_row n = abort ("ligretto.no_of_cards_in_row: illegal integer argument (" +++ toString n +++ ").\n")
+no_of_cards_in_row n = abort ("Ligretto.UoD.no_of_cards_in_row: illegal integer argument (" +++ toString n +++ ").\n")
 
 all_colors :: [Color]
 all_colors = [Red,Green,Blue,Yellow]
@@ -84,16 +95,16 @@ where
 row_card :: !Int !Player -> Card
 row_card row_no player=:{row}
 | row_no <= 0 || row_no > length row
-	= abort ("ligretto.row_card: illegal integer argument (" <+++ row_no <+++ ").\n")
+	= abort ("Ligretto.UoD.row_card: illegal integer argument (" <+++ row_no <+++ ").\n")
 | otherwise
 	= row !! (row_no-1)
 
 move_ligretto_card_to_row :: !Int !Player -> Player
 move_ligretto_card_to_row row_no player=:{row,ligretto}
 | row_no <= 0 || row_no > length row
-	= abort ("ligretto.move_ligretto_card_to_row: illegal integer argument (" <+++ row_no <+++ ").\n")
+	= abort ("Ligretto.UoD.move_ligretto_card_to_row: illegal integer argument (" <+++ row_no <+++ ").\n")
 | isEmpty ligretto
-	= abort "ligretto.move_ligretto_card_to_row: trying to take card from empty ligretto.\n"
+	= abort "Ligretto.UoD.move_ligretto_card_to_row: trying to take card from empty ligretto.\n"
 | otherwise
 	= {player & row = updateAt (row_no-1) (hd ligretto) row, ligretto = tl ligretto}
 
@@ -109,18 +120,18 @@ shuffle_hand player=:{hand=hand=:{conceal,discard},seed}
                                        }
                               , seed = r2
                       }
-| otherwise         = abort ("ligretto.shuffle_hand: not allowed to shuffle non-empty concealed pile.\n")
+| otherwise         = abort ("Ligretto.UoD.shuffle_hand: not allowed to shuffle non-empty concealed pile.\n")
 where
 	[r1,r2:_]		= genRandInt (abs seed + 1)
 
 remove_top_of_discard :: !Player -> Player
 remove_top_of_discard player=:{hand=hand=:{conceal,discard}}
-| isEmpty discard   = abort ("ligretto.remove_top_of_discard: no discarded card to pick.\n")
+| isEmpty discard   = abort ("Ligretto.UoD.remove_top_of_discard: no discarded card to pick.\n")
 | otherwise         = {player & hand = { hand & discard = tl discard }}
 
 swap_discards :: !Player -> Player
 swap_discards player=:{hand=hand=:{conceal,discard}}
-| isEmpty conceal   = abort ("ligretto:swap_discards: not allowed to take cards from an empty conceal pile.\n")
+| isEmpty conceal   = abort ("Ligretto.UoD:swap_discards: not allowed to take cards from an empty conceal pile.\n")
 | otherwise         = { player & hand = { hand & conceal = rest
                                                , discard = reverse top3 ++ discard
                       }                 }
@@ -142,3 +153,9 @@ and_the_winner_is {players}
 	= case [player \\ player=:{ligretto} <- players | isEmpty ligretto] of
 	    [p : _] = Just p
 	    _       = Nothing
+
+determine_winner :: !GameSt -> Maybe (Color, String)
+determine_winner {players}
+  = case [player \\ player=:{ligretto} <- players | isEmpty ligretto] of
+      [{color, name} : _] = Just (color, name)
+      _                   = Nothing

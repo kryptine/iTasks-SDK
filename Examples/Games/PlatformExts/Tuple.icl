@@ -1,8 +1,6 @@
-definition module StdTupleExt
+implementation module PlatformExts.Tuple
 
-import StdTuple
+import Data.Tuple
 
 class fromTuple a b c :: !(!a,!b) -> c
 class toTuple   a b c :: !c -> (!a,!b)
-
-dup2 :: a -> .(a,a)
