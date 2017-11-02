@@ -3,6 +3,7 @@ implementation module Ligretto.Tasks
 import iTasks
 import Ligretto.UoD
 import Ligretto.UI
+import Data.Maybe
 
 //	Task description of Ligretto:
 play_Ligretto :: Task (!Color,!String)
