@@ -438,8 +438,6 @@ itasks.Loader = {
 			l = document.createElement('div');
 			l.classList.add(me.cssPrefix + 'loader-spinner');
 		me.domEl.appendChild(l);
-		console.log("Initialized");
-		console.log(me.attributes);
 		if(me.attributes.taskId){
 			me.doEditEvent(me.attributes.taskId, me.attributes.editorId, true);
 		}
