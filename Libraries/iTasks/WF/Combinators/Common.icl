@@ -12,6 +12,8 @@ import iTasks.SDS.Combinators.Common
 from iTasks.Internal.TaskState		import :: TaskTree(..), :: DeferredJSON
 from iTasks.Internal.TaskEval         import :: TaskTime
 import qualified Data.Map as DM
+from iTasks.Extensions.DateTime import waitForTimer
+from iTasks.UI.Definition import :: UIType(UILoader)
 
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
@@ -233,6 +235,10 @@ withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
 
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask attr evalDirect task = appendTask (Detached attr evalDirect) (\_ -> task <<@ ApplyLayout defaultSessionLayout @! ()) topLevelTasks
+
+compute :: !String a -> Task a | iTask a
+compute s a = (viewInformation s [] () <<@ ApplyLayout (setUIType UILoader))
+	||- ((waitForTimer 1 <<@ NoUserInterface) >>- \_->return a)
 
 valToMaybe :: (TaskValue a) -> Maybe a
 valToMaybe (Value v _)  = Just v
