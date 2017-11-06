@@ -323,6 +323,15 @@ withSelection :: (Task c) (a -> Task b) (ReadOnlyShared (Maybe a)) -> Task b | i
 */
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 
+/**
+ * Do a blocking computation with a pure function while showing a loader
+ * @param String to show under the loader
+ * @param The value to return
+ *
+ * @return The return value
+ */
+compute :: !String a -> Task a | iTask a
+
 //Utility functions for defining task steps
 always 		:: b					    (TaskValue a) -> Maybe b
 never 		:: b 					    (TaskValue a) -> Maybe b

@@ -3,7 +3,7 @@ implementation module iTasks.WF.Combinators.Common
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, StdString
-import Text, System.Time, Data.Maybe, Data.Tuple, Data.List, Data.Either, Data.Functor
+import Text, System.Time, Data.Maybe, Data.Tuple, Data.List, Data.Either, Data.Functor, Text.JSON
 import iTasks.Internal.Util
 from StdFunc			import id, const, o
 from iTasks.SDS.Sources.Core import randomInt
@@ -12,11 +12,16 @@ import iTasks.SDS.Combinators.Common
 from iTasks.Internal.TaskState		import :: TaskTree(..), :: DeferredJSON
 from iTasks.Internal.TaskEval         import :: TaskTime
 import qualified Data.Map as DM
+from iTasks.Extensions.DateTime import waitForTimer
+from iTasks.UI.Definition import :: UIType(UILoader)
 
 import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.SDS
 import iTasks.WF.Tasks.Interaction
+import iTasks.WF.Combinators.SDS
 import iTasks.WF.Combinators.Core, iTasks.WF.Combinators.Tune, iTasks.WF.Combinators.Overloaded
+import iTasks.UI.Editor
+import iTasks.UI.Editor.Controls
 import iTasks.UI.Prompt
 import iTasks.UI.Tune
 import iTasks.UI.Layout
@@ -233,6 +238,12 @@ withSelection def tfun s = whileUnchanged s (maybe (def @? const NoValue) tfun)
 
 appendTopLevelTask :: !TaskAttributes !Bool !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask attr evalDirect task = appendTask (Detached attr evalDirect) (\_ -> task <<@ ApplyLayout defaultSessionLayout @! ()) topLevelTasks
+
+compute :: !String a -> Task a | iTask a
+compute s a = enterInformation s [EnterUsing id ed] >>~ \_->return a
+where
+	ed :: Editor Bool
+	ed = fieldComponent UILoader
 
 valToMaybe :: (TaskValue a) -> Maybe a
 valToMaybe (Value v _)  = Just v
