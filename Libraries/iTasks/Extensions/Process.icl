@@ -13,7 +13,7 @@ import iTasks.Internal.TaskStore
 import iTasks.Internal.IWorld
 
 from StdFunc import const
-import StdTuple, StdBool
+import StdTuple, StdBool, StdString
 import Data.Maybe, Data.Error, Text.JSON
 import qualified System.Process
 import qualified Data.Map as DM
