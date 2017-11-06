@@ -167,7 +167,7 @@ where
 :: InspectState
   = { moduleName  :: String
     , lines       :: [String]
-    , executable  :: Maybe Document
+    , executable  :: Maybe FilePath
     }
 
 derive class iTask InspectState
@@ -177,11 +177,12 @@ derive class iTask InspectState
 inspectMainModule :: String String -> Task ()
 inspectMainModule moduleName sourceCode = withShared
 	(initialInspectState moduleName sourceCode)
-	(\state ->
-		editSourceCode state
-		>^* [OnAction (Action "Build") (always (buildExecutable state))
-			,OnAction (Action "Run")   (ifValue hasExecutable (\_ -> runProgram state))
-			]
+	(\state -> withTemporaryDirectory
+		\workDirectory ->
+			editSourceCode state
+			>^* [OnAction (Action "Build") (always (buildExecutable workDirectory state))
+				,OnAction (Action "Run")   (ifValue hasExecutable (\_ -> runProgram workDirectory state))
+				]
     ) @! ()
 where
 	initialInspectState moduleName ourceCode
@@ -191,7 +192,7 @@ where
  		  ,executable = Nothing
 		  }
 
-	hasExecutable {InspectState|executable} = isJust executable //(executable =: (Just _))
+	hasExecutable {InspectState|executable} = (executable =: (Just _))
 
 	editSourceCode :: (Shared InspectState) -> Task InspectState
 	editSourceCode state
@@ -200,16 +201,14 @@ where
                          (\s c -> {InspectState|s & lines = split OS_NEWLINE c})
                          aceTextArea] state
 
-	buildExecutable :: (Shared InspectState) -> Task ()
-	buildExecutable state = withTemporaryDirectory 
-		( \temporaryDirectory ->
+	buildExecutable :: FilePath (Shared InspectState) -> Task ()
+	buildExecutable temporaryDirectory state = 
               get state @ (\{InspectState|moduleName,lines} -> (moduleName,join OS_NEWLINE lines))
 		  >>- \(moduleName,sourceCode) -> 
               prepareBuildFiles temporaryDirectory moduleName sourceCode
 		  >>- \_ -> runBuildTool temporaryDirectory moduleName
-		  >>- \_ -> importExecutable temporaryDirectory moduleName state
+		  >>- \_ -> setExecutable temporaryDirectory moduleName state
 		  @!  ()
-        )
 	where
 		prepareBuildFiles directory moduleName sourceCode
 			=         exportTextFile (directory </> addExtension moduleName "icl") sourceCode
@@ -220,21 +219,17 @@ where
 			>>- \cpm -> callProcess () [] cpm [addExtension moduleName "prj"] (Just directory)
 			>>* [OnAction ActionClose (ifStable return)] //Pause after command...
 		
-		importExecutable directory moduleName state
-			=   importDocument (directory </> addExtension moduleName "exe")
-			>>- \executable -> 
-                upd (\s -> {InspectState|s & executable = Just executable}) state
+		setExecutable directory moduleName state
+            = upd (\s -> {InspectState|s & executable = Just (directory </> addExtension moduleName "exe")}) state
 
-	runProgram :: (Shared InspectState) -> Task ()
-	runProgram state = withTemporaryDirectory
-		(\temporaryDirectory ->
+	runProgram :: FilePath (Shared InspectState) -> Task ()
+	runProgram temporaryDirectory state = (
 			    get state @ (\{InspectState|executable} -> executable)
 			>>-	maybe (throw "Cannot run the program. There is no executable yet")
-				      (\executable -> let programPath = temporaryDirectory </> "program.exe" in
-						          exportDocument programPath executable 
-						>>- \_ -> makeExecutable programPath 
-						>>- \_ -> callProcess () [] programPath ["-port","8084"] (Just temporaryDirectory)
-						>>* [OnAction ActionClose (ifStable return)] //Pause after command...
+				      (\executable -> 
+									makeExecutable executable
+						>>- \_ -> callProcess () [] executable ["-port","8084"] (Just temporaryDirectory)
+						>>* [OnAction ActionClose (always (return ()))] //Pause after command...
 					  )
 		) @! ()
 	where
