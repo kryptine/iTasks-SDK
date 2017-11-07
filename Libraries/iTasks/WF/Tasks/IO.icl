@@ -29,11 +29,11 @@ import qualified Data.Map as DM
     , onExit        :: !(ExitCode l r -> (!MaybeErrorString l, !Maybe w                  ))
     }
 
-externalProcess :: !FilePath ![String] !(Maybe FilePath) !(RWShared () r w) !(ExternalProcessHandlers l r w) -> Task l | iTask l & TC r & TC w
-externalProcess cmd args dir sds handlers = Task eval
+externalProcess :: !FilePath ![String] !(Maybe FilePath) !(RWShared () r w) !Bool !(ExternalProcessHandlers l r w) -> Task l | iTask l & TC r & TC w
+externalProcess cmd args dir sds pty handlers = Task eval
 where
     eval event evalOpts tree=:(TCInit taskId ts) iworld
-        = case addExternalProc taskId cmd args dir (wrapExternalProcTask handlers sds) iworld of
+        = case addExternalProc taskId cmd args dir pty (wrapExternalProcTask handlers sds) iworld of
             (Error e, iworld)
                 = (ExceptionResult e, iworld)
             (Ok _, iworld)
