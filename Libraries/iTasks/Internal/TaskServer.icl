@@ -547,13 +547,13 @@ where
         # opts = {ConnectionInstanceOpts|taskId = taskId, connectionId = 0, remoteHost = ip, connectionTask = connectionTask, removeOnClose = False}
         = ConnectionInstance opts channel
 
-addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !ExternalProcessTask !IWorld -> (!MaybeError TaskException (), !*IWorld)
-addExternalProc taskId cmd args dir extProcTask=:(ExternalProcessTask handlers sds) iworld
+addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !Bool !ExternalProcessTask !IWorld -> (!MaybeError TaskException (), !*IWorld)
+addExternalProc taskId cmd args dir pty extProcTask=:(ExternalProcessTask handlers sds) iworld
     = addIOTask taskId sds init externalProcessIOOps onInitHandler mkIOTaskInstance iworld
 where
     init :: !*IWorld -> (!MaybeErrorString (!(), (!ProcessHandle, !ProcessIO)), !*IWorld)
     init iworld
-        # (mbRes, world) = 'Process'.runProcessIO cmd args dir iworld.world
+        # (mbRes, world) = (if pty 'Process'.runProcessPty 'Process'.runProcessIO) cmd args dir iworld.world
         = case mbRes of
             Error (_, e) = (Error e,       {iworld & world = world})
             Ok proc      = (Ok ((), proc), {iworld & world = world})
