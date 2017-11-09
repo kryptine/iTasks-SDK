@@ -44,7 +44,7 @@ icon :: Editor (!String,!Maybe String)
 icon = viewComponent (\(iconCls,tooltip) -> 'DM'.unions [iconClsAttr iconCls,maybe 'DM'.newMap tooltipAttr tooltip]) UIIcon
 
 textView :: Editor String
-textView = viewComponent (\text -> valueAttr (JSONString text)) UITextView
+textView = viewComponent (\text -> valueAttr (JSONString (escapeStr text))) UITextView
 
 htmlView :: Editor HtmlTag
 htmlView = viewComponent (\html -> valueAttr (JSONString (toString html))) UIHtmlView
