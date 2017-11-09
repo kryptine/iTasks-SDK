@@ -2,6 +2,7 @@ implementation module Tests.Interactive.Layout
 import iTasks.Internal.Test.Definition
 import iTasks.UI.Definition, iTasks.UI.Layout
 import qualified Data.Map as DM
+import Data.Maybe
 
 testLayoutI :: TestSuite
 testLayoutI = testsuite "Layout" "Test for layout functions" 
