@@ -33,11 +33,11 @@ import qualified Data.Set as DS
     , onExit        :: !(ExitCode l r -> (!MaybeErrorString l, !Maybe w                  ))
     }
 
-externalProcess :: !FilePath ![String] !(Maybe FilePath) !(SDS () r w) !(ExternalProcessHandlers l r w) !(Editor l) -> Task l | iTask l & TC r & TC w
-externalProcess cmd args dir sds handlers editor = Task eval
+externalProcess :: !FilePath ![String] !(Maybe FilePath) !(SDS () r w) !Bool !(ExternalProcessHandlers l r w) !(Editor l) -> Task l | iTask l & TC r & TC w
+externalProcess cmd args dir sds pty handlers editor = Task eval
 where
     eval event evalOpts tree=:(TCInit taskId ts) iworld
-        = case addExternalProc taskId cmd args dir (wrapExternalProcTask handlers sds) iworld of
+        = case addExternalProc taskId cmd args dir pty (wrapExternalProcTask handlers sds) iworld of
             (Error e, iworld)
                 = (ExceptionResult e, iworld)
             (Ok (initialValue :: l^), iworld)

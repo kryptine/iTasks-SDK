@@ -16,9 +16,9 @@ instance toString CallException
 where
 	toString (CallFailed (_,err)) = "Error calling external process: " +++ err
 
-callProcess :: !d ![ViewOption ProcessInformation] !FilePath ![String] !(Maybe FilePath) -> Task ProcessInformation | toPrompt d
-callProcess prompt viewOptions executable arguments workingDirectory
-	= externalProcess executable arguments workingDirectory unitShare handlers gEditor{|*|}
+callProcess :: !d ![ViewOption ProcessInformation] !FilePath ![String] !(Maybe FilePath) !Bool -> Task ProcessInformation | toPrompt d
+callProcess prompt viewOptions executable arguments workingDirectory pty
+	= externalProcess executable arguments workingDirectory unitShare pty handlers gEditor{|*|}
 where
     handlers = {onStartup = onStartup, onOutData = onOutData, onErrData = onErrData, onShareChange = onShareChange, onExit = onExit}
     onStartup _ = (Ok {ProcessInformation|executable=executable,arguments=arguments,stdout="",stderr="",status=RunningProcess}, Nothing, [], False)

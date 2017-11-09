@@ -71,7 +71,7 @@ where
 
 runWithOutput :: FilePath [String] (Maybe FilePath) (Shared [String]) -> Task (ExitCode,[String])
 runWithOutput prog args dir out 
-   = externalProcess prog args dir out {onStartup=onStartup,onOutData=onOutData,onErrData=onErrData,onShareChange=onShareChange,onExit=onExit} gEditor{|*|}
+   = externalProcess prog args dir out False {onStartup=onStartup,onOutData=onOutData,onErrData=onErrData,onShareChange=onShareChange,onExit=onExit} gEditor{|*|}
 	where
 		onStartup r = (Ok (ExitCode 0,[]), Nothing, [], False) 
 		onOutData data (e,o) r = (Ok (e,o ++ [data]), Just (r ++ [data]), [], False)
