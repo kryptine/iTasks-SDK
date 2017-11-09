@@ -63,6 +63,49 @@ where
 	onRefreshAll dp i [] os ms vst //Elements have been removed from the list
 		= (Ok (repeatn (length os) (i,RemoveChild),[]),[],vst) 
 
+groupL :: UIType [Editor a] -> Editor [a]
+groupL type editors = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+where
+	genUI dp val vst = case genUIAll 0 editors dp val vst of
+		(Error e,vst) = (Error e,vst)
+		(Ok (uis,masks),vst) = (Ok (UI type emptyAttr uis, CompoundMask {CompoundMask|fields=masks,state=JSONNull}),vst)
+
+	genUIAll i _ dp [] vst = (Ok ([],[]),vst)
+	genUIAll i [ed:eds] dp [v:vs] vst = case ed.Editor.genUI (dp ++ [i]) v vst of
+		(Error e,vst) = (Error e,vst)
+		(Ok (ui,m),vst) = case genUIAll (i + 1) eds dp vs vst of
+			(Error e,vst) = (Error e,vst)
+			(Ok (uis,ms),vst) = (Ok ([ui:uis],[m:ms]),vst)
+
+	onEdit dp ([i:tp],e) val (CompoundMask {CompoundMask|fields=masks}) vst
+		| i < 0 || i >= length val || i >= length masks  = (Error "Event route out of range",val,vst)
+		= case (editors !! i).Editor.onEdit (dp ++ [i]) (tp,e) (val !! i) (masks !! i) vst of
+			(Error e,ival,vst) = (Error e,val,vst)
+			(Ok (NoChange,imask),ival,vst)
+				= (Ok (NoChange,CompoundMask {CompoundMask|fields=updateAt i imask masks,state=JSONNull}),updateAt i ival val,vst)
+			(Ok (change,imask),ival,vst)
+				= (Ok (ChangeUI [] [(i,ChangeChild change)],CompoundMask {CompoundMask|fields=updateAt i imask masks,state=JSONNull}),updateAt i ival val, vst)
+
+	onRefresh dp new old (CompoundMask {CompoundMask|fields=masks}) vst = case onRefreshAll 0 editors dp new old masks vst of
+		(Error e,val,vst) = (Error e,val,vst)
+		(Ok ([],masks),val,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=masks,state=JSONNull}),val,vst)
+		(Ok (changes,masks),val,vst) = (Ok (ChangeUI [] changes,CompoundMask {CompoundMask|fields=masks,state=JSONNull}),new,vst)
+
+	onRefreshAll i [ed:eds] dp [n:ns] [o:os] [m:ms] vst
+		 = case ed.Editor.onRefresh (dp ++ [i]) n o m vst of
+			(Error e,v,vst) = (Error e,[],vst)
+			(Ok (c,m),v,vst) = case onRefreshAll (i + 1) eds dp ns os ms vst of
+				(Error e,vs,vst) = (Error e,vs,vst)
+				(Ok (cs,ms),vs,vst) = (Ok ([(i,ChangeChild c):cs],[m:ms]),[v:vs],vst)
+
+	onRefreshAll i [ed:eds] dp ns [] _ vst //There are new elements in the list 
+		= case genUIAll i eds dp ns vst of
+			(Error e,vst)    = (Error e,[],vst)
+			(Ok (us,ms),vst) = (Ok ([(n,InsertChild u) \\ u <- us & n <- [i..]],ms),ns,vst)
+
+	onRefreshAll i eds dp [] os ms vst //Elements have been removed from the list
+		= (Ok (repeatn (length os) (i,RemoveChild),[]),[],vst) 
+
 group1 :: UIType (Editor a) -> Editor a
 group1 type editor1 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
@@ -277,6 +320,9 @@ container = group UIContainer
 containerl :: (Editor a) -> Editor [a]
 containerl e = groupl UIContainer e
 
+containerL :: [Editor a] -> Editor [a]
+containerL e = groupL UIContainer e
+
 container1 :: (Editor a) -> Editor a
 container1 e1 = group1 UIContainer e1
 
@@ -298,6 +344,9 @@ panel = group UIPanel
 
 panell :: (Editor a) -> Editor [a]
 panell e = groupl UIPanel e
+
+panelL :: [Editor a] -> Editor [a]
+panelL e = groupL UIPanel e
 
 panel1 :: (Editor a) -> Editor a
 panel1 e1 = group1 UIPanel e1
@@ -321,6 +370,9 @@ tabset = group UITabSet
 tabsetl :: (Editor a) -> Editor [a]
 tabsetl e = groupl UITabSet e
 
+tabsetL :: [Editor a] -> Editor [a]
+tabsetL e = groupL UITabSet e
+
 tabset1 :: (Editor a) -> Editor a
 tabset1 e1 = group1 UITabSet e1
 
@@ -342,6 +394,9 @@ window = group UIWindow
 
 windowl :: (Editor a) -> Editor [a]
 windowl e = groupl UIWindow e
+
+windowL :: [Editor a] -> Editor [a]
+windowL e = groupL UIWindow e
 
 window1 :: (Editor a) -> Editor a
 window1 e1 = group1 UIWindow e1
@@ -365,6 +420,9 @@ menu = group UIMenu
 menul :: (Editor a) -> Editor [a]
 menul e = groupl UIMenu e
 
+menuL :: [Editor a] -> Editor [a]
+menuL e = groupL UIMenu e
+
 menu1 :: (Editor a) -> Editor a
 menu1 e1 = group1 UIMenu e1
 
@@ -386,6 +444,9 @@ toolbar = group UIToolBar
 
 toolbarl :: (Editor a) -> Editor [a]
 toolbarl e = groupl UIToolBar e
+
+toolbarL :: [Editor a] -> Editor [a]
+toolbarL e = groupL UIToolBar e
 
 toolbar1 :: (Editor a) -> Editor a
 toolbar1 e1 = group1 UIToolBar e1
@@ -409,6 +470,9 @@ buttonbar = group UIButtonBar
 buttonbarl :: (Editor a) -> Editor [a]
 buttonbarl e = groupl UIButtonBar e
 
+buttonbarL :: [Editor a] -> Editor [a]
+buttonbarL e = groupL UIButtonBar e
+
 buttonbar1 :: (Editor a) -> Editor a
 buttonbar1 e1 = group1 UIButtonBar e1
 
@@ -430,6 +494,9 @@ list = group UIList
 
 listl :: (Editor a) -> Editor [a]
 listl e = groupl UIList e 
+
+listL :: [Editor a] -> Editor [a]
+listL e = groupL UIList e
 
 list1 :: (Editor a) -> Editor a
 list1 e1 = group1 UIList e1
@@ -453,6 +520,9 @@ listitem = group UIListItem
 listiteml :: (Editor a) -> Editor [a]
 listiteml e = groupl UIListItem e
 
+listitemL :: [Editor a] -> Editor [a]
+listitemL e = groupL UIListItem e
+
 listitem1 :: (Editor a) -> Editor a
 listitem1 e1 = group1 UIListItem e1
 
@@ -474,6 +544,9 @@ debug = group UIDebug
 
 debugl :: (Editor a) -> Editor [a]
 debugl e = groupl UIDebug e
+
+debugL :: [Editor a] -> Editor [a]
+debugL e = groupL UIDebug e
 
 debug1 :: (Editor a) -> Editor a
 debug1 e1 = group1 UIDebug e1
