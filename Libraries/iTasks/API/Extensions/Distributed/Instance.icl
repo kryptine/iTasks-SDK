@@ -85,7 +85,8 @@ instanceServerFilters = sharedStore "instanceServerFilters" []
 instanceServer :: Int Domain -> Task ()
 instanceServer port domain = tcplisten port True instanceServerShared {ConnectionHandlers
 	| onConnect 		= onConnect
-	, whileConnected	= whileConnected
+	, onData		= onData
+	, onShareChange		= onShareChange
 	, onDisconnect 		= onDisconnect
 	} -|| (instanceClient` "127.0.0.1" port domain True) -|| (process instanceServerShared) @! ()
 where
@@ -93,8 +94,8 @@ where
 	onConnect host share=:{InstanceServerShare|lastId,clients}
 		= ( Ok {InstanceServerState| id = -1, buffer = "" }, Nothing, [], False)
 
-	whileConnected :: (Maybe String) InstanceServerState InstanceServerShare -> (MaybeErrorString InstanceServerState, Maybe InstanceServerShare, [String], Bool)
-	whileConnected (Just newData) st=:{id,buffer} share=:{InstanceServerShare|lastId,clients}
+	onData :: String InstanceServerState InstanceServerShare -> (MaybeErrorString InstanceServerState, Maybe InstanceServerShare, [String], Bool)
+	onData newData st=:{id,buffer} share=:{InstanceServerShare|lastId,clients}
 		# (requests, newBuffer) = getRequests (buffer +++ newData)
 		| id == -1 = case notConnectedClientRequest requests of
 				(Just (-1, requests)) -> let clientId = lastId + 1 in
@@ -109,7 +110,8 @@ where
 			# (ack, pending) = getClientAck id clients
 			# (newack, input, pending) = extractAckMsgs ack requests pending
 			= (Ok {InstanceServerState| st & buffer = newBuffer}, Just {InstanceServerShare| share & clients = [ if (clientid == id) ({Communication| c & requests = orgrequests ++ input, ack = newack, pending = pending}) c \\ c=:{Communication|id=clientid,requests=orgrequests} <- clients] }, ["#ACK" +++ (toString newack) +++ "#\n"], False)
-	whileConnected Nothing state=:{InstanceServerState|id} share=:{InstanceServerShare|clients}
+
+	onShareChange state=:{InstanceServerState|id} share=:{InstanceServerShare|clients}
 		# responses = flatten [ responses \\ c=:{Communication|id=clientid,responses} <- clients | clientid == id ]
 		| isEmpty responses = (Ok state, Nothing, responses, False)
 		# share = {InstanceServerShare| share & clients = [ if (clientid == id) {Communication| c & responses = []} c \\ c=:{Communication|id=clientid} <- clients ] }
@@ -480,7 +482,8 @@ where
                 = getClientServerId clientId
                 >>- \serverId -> (tcpconnect host port (instanceClientShare clientId) { ConnectionHandlers
                                                       | onConnect      = (onConnect (maybe "connect" (\id -> ("reconnect " +++ (toString id))) serverId))
-                                                      , whileConnected = whileConnected
+                                                      , onData         = onData
+						      , onShareChange  = onShareChange
                                                       , onDisconnect   = onDisconnect
                                                       } @! Nothing)
                 -||- (viewInformation () [] () >>* [OnAction (Action "reset") (always (return Nothing))])
@@ -489,14 +492,15 @@ where
         onConnect helloMessage host store
                 = (Ok "", Just store, [helloMessage +++ "\n"] ++ [(toString nr) +++ "#!#" +++ resp +++ "\n" \\ (nr,resp) <- store.out], False)
 
-        whileConnected :: (Maybe String) ClientState ClientShare -> (MaybeErrorString ClientState, Maybe ClientShare, [String], Bool)
-        whileConnected (Just received) data store=:{ClientShare|requests,ack}
+        onData :: String ClientState ClientShare -> (MaybeErrorString ClientState, Maybe ClientShare, [String], Bool)
+        onData received data store=:{ClientShare|requests,ack}
                 # received_data = data +++ received
                 # (new_requests,other) = getRequests received_data
                 | isEmpty new_requests = (Ok received_data, Nothing, [], False)
                 # (newack, input) = extractAck ack new_requests
                 = (Ok other, Just {ClientShare| store & requests = requests ++ input, out = [ i \\ i=:(nr,_) <- store.out | nr <= newack], ack = newack}, [], False)
-        whileConnected Nothing state store=:{ClientShare|responses}
+        
+        onShareChange state store=:{ClientShare|responses}
                 | isEmpty responses = (Ok state, Nothing, [], False)
                 # newOut = [(i, resp) \\ resp <- responses & i <- [store.outNr..]]
                 # outNr = store.outNr + (length newOut)
