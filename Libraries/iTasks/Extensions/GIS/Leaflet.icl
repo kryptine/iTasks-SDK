@@ -5,7 +5,7 @@ import iTasks.UI.Definition, iTasks.UI.JS.Map, iTasks.UI.Editor, iTasks.UI.JS.En
 import StdMisc, Data.Tuple, Data.Error
 import qualified Data.Map as DM
 from Text.HTML import instance toString HtmlTag
-
+from iTasks.UI.Editor.Common import diffChildren
 from StdArray import class Array(uselect), instance Array {} a
 
 LEAFLET_JS        :== "/leaflet-1.1.0/leaflet.js"
@@ -442,16 +442,9 @@ where
 		//Determine attribute changes
 		# attrChanges = diffAttributes m1 m2
 		//Determine object changes
-		# childChanges = diffObjects 0 m1.LeafletMap.objects m2.LeafletMap.objects
+		# childChanges = diffChildren m1.LeafletMap.objects m2.LeafletMap.objects encodeUI
 		= (Ok (ChangeUI attrChanges childChanges,mask),m2,vst)
 	where
-		diffObjects _ [] [] = []
-		diffObjects i [] objs = [(n,InsertChild (encodeUI o)) \\ o <- objs & n <- [i..]] //Add new objects
-		diffObjects i objs [] = repeatn (length objs) (i,RemoveChild)                   //Remove trailing objects
-		diffObjects i [x:xs] [y:ys]
-			| x === y = diffObjects (i + 1) xs ys //The head has not changed, just compare the remainder
-					  = [(i,RemoveChild),(i,InsertChild (encodeUI y)):diffObjects (i + 1) xs ys] //Replace the head
-
 		//Only center, zoom and cursor are synced to the client, bounds are only synced from client to server
 		diffAttributes {LeafletMap|perspective=p1} {LeafletMap|perspective=p2}
 			//Center
