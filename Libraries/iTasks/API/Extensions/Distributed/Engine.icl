@@ -5,7 +5,7 @@ from iTasks.Internal.SDS import read, write
 import symbols_in_program
 from iTasks.Internal.IWorld import :: IWorld{world}
 from Data.Error import :: MaybeError(..)
-from iTasks.WF.Definition import :: TaskException, :: Task(..), :: TaskResult, :: TaskEvalOpts, :: Event(..)
+from iTasks.WF.Definition import :: TaskException, :: Task(..), :: TaskResult, :: TaskEvalOpts, :: Event(..), :: Set
 from iTasks.Internal.Task import mkInstantTask
 from iTasks.Internal.TaskState			import :: TaskTree
 from iTasks.WF.Definition import class iTask
@@ -56,5 +56,4 @@ where
                 # (val, iworld) = read symbolsShare iworld
                 = case val of
                         Ok val          = let (Task eval`) = taskfun (fst (copy_from_string (base64Decode val))) in eval` event evalOpts state iworld
-//                       Error e         = (Error e, iworld)
 

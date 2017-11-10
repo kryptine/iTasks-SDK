@@ -2,6 +2,7 @@ implementation module iTasks.API.Extensions.Distributed._Attributes
 
 import iTasks
 import qualified Data.Map as DM
+from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor Maybe, isJust
 
 derive class iTask InstanceReference
 
