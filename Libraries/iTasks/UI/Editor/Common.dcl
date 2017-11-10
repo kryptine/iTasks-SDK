@@ -14,7 +14,7 @@ from GenEq import generic gEq
 */
 emptyEditor :: Editor a
 
-diffChildren :: !(a a -> Bool) ![a] ![a] !(a -> UI) -> [(!Int, !UIChildChange)] | gEq{|*|} a
+diffChildren :: ![a] ![a] !(a -> UI) -> [(!Int, !UIChildChange)] | gEq{|*|} a
 
 /**
 * Show Editor for lists
