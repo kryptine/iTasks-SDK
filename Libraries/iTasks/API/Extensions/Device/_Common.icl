@@ -12,7 +12,8 @@ deviceRequest request close
 	= tcpconnect "127.0.0.1" 20097 (constShare ())
 		{ ConnectionHandlers
 		| onConnect      = onConnect
-		, whileConnected = whileConnected
+		, onData	 = onData
+		, onShareChange  = onShareChange
 		, onDisconnect   = onDisconnect
 		} 
 	>>= \{DeviceRequestState|result} -> return result            
@@ -25,8 +26,8 @@ where
       	  , False
       	  )
 
-	whileConnected :: (Maybe String) DeviceRequestState () -> (MaybeErrorString DeviceRequestState, Maybe (), [String], Bool)
-	whileConnected (Just newData) state=:{buffer} _
+	onData :: String DeviceRequestState () -> (MaybeErrorString DeviceRequestState, Maybe (), [String], Bool)
+	onData newData state=:{buffer} _
 		#! buffer = buffer +++ newData
 		# splitpoint = 'T'.indexOf "\n" buffer
 		| splitpoint <> -1 		
@@ -39,7 +40,8 @@ where
 			  , close result
 			  )
 		= (Ok {state & buffer = buffer}, Nothing, [], False)
-	whileConnected Nothing state _
+
+	onShareChange state _
 		= (Ok state, Nothing, [], False)
 
 	onDisconnect :: DeviceRequestState () -> (MaybeErrorString DeviceRequestState, Maybe ())
