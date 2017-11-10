@@ -3,7 +3,8 @@ implementation module iTasks.API.Extensions.Distributed._Util
 import iTasks
 from iTasks.Internal.Store import memoryStore, :: StoreName, :: StoreNamespace
 from System.Time import :: Timestamp(..)
-from iTasks.Extensions.DateTime import :: DateTime, instance < DateTime, instance toString DateTime, timestampToGmDateTime, datetimeToTimestamp
+from iTasks.Extensions.DateTime import :: DateTime, instance < DateTime, instance toString DateTime, timestampToGmDateTime, localDateTimeToTimestamp
+from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor Maybe, isJust
 
 memoryShare_ :: String a -> RWShared () a a | iTask a
 memoryShare_ name default = sdsFocus name (memoryStore name (Just default))
@@ -24,9 +25,12 @@ where
 		timeout = 60
                 
 waitForTimer` :: !Int -> Task DateTime
-waitForTimer` interval = get currentDateTime >>- \now -> waitForDateTime` (endTime interval now)
+waitForTimer` interval 
+	= get currentDateTime 
+	>>- \now -> endTime interval now
+	>>- \later -> waitForDateTime` later
 where
-	endTime interval now = let (Timestamp ts) = datetimeToTimestamp now in timestampToGmDateTime (Timestamp (ts + interval))
+	endTime interval now = localDateTimeToTimestamp now >>- \(Timestamp ts) -> return (timestampToGmDateTime (Timestamp (ts + interval)))
 
 waitForDateTime` :: !DateTime -> Task DateTime
 waitForDateTime` datetime

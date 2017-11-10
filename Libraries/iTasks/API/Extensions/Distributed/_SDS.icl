@@ -12,6 +12,7 @@ import iTasks.API.Extensions.Distributed.Engine
 
 from iTasks.Internal.Serialization import dynamicJSONEncode, dynamicJSONDecode
 from iTasks.UI.Editor.Common import emptyEditor
+from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor Maybe, isJust
 
 rr_get :: !(ReadWriteShared a w) -> Task a | iTask a & iTask w
 rr_get shared

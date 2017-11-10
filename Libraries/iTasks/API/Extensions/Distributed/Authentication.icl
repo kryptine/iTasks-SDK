@@ -8,6 +8,7 @@ import qualified Text as T
 import Text.Encodings.Base64
 from iTasks.API.Extensions.Distributed.Task import :: Domain(..)
 from iTasks.API.Extensions.Distributed._Util import repeatClient
+from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor Maybe
 
 :: Communication =
 	{ id :: Int

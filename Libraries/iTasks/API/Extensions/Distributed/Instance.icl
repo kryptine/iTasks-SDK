@@ -18,6 +18,7 @@ from iTasks.SDS.Sources.System import topLevelTasks
 from iTasks.Internal.Serialization import dynamicJSONEncode, dynamicJSONDecode
 from iTasks.UI.Editor.Common import emptyEditor
 from iTasks.Internal.SDS import modify
+from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor Maybe
 
 :: Source = Client Int InstanceNo
 	  | Server Int InstanceNo
