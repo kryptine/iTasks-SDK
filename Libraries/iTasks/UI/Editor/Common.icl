@@ -1,7 +1,7 @@
 implementation module iTasks.UI.Editor.Common
 
 import StdBool, StdEnum, StdOrdList, StdList, Data.Maybe, StdList, StdString
-import Text.JSON, GenEq
+import Text.JSON, GenEq, Data.List
 
 import iTasks.UI.Definition, iTasks.UI.Editor
 import Data.Tuple, Data.Error, Text, Text.JSON
@@ -13,6 +13,28 @@ where
 	genUI _ _ vst			    = (Ok (ui UIEmpty,newFieldMask),vst)
 	onEdit _ _ val mask vst 	= (Ok (NoChange,mask),val,vst)
 	onRefresh _ _ val mask vst  = (Ok (NoChange,mask),val,vst)
+
+diffChildren :: !(a a -> Bool) ![a] ![a] !(a -> UI) -> [(!Int, !UIChildChange)] | gEq{|*|} a
+diffChildren gEq old new toUI = diffChildren` 0 old new
+where
+    diffChildren` idx old [] = removeRemaining idx old
+    diffChildren` idx [] new = addNew idx new
+    diffChildren` idx [nextOld : old] [nextNew : new]
+        | gEq nextOld nextNew = diffChildren` (inc idx) old new
+        | not (isMember` nextOld new) = [(idx, RemoveChild) : diffChildren` idx old [nextNew : new]]
+        | otherwise
+            # (change, old`) = moveFromOldOrInsert (inc idx) old
+            = [change : diffChildren` (inc idx) [nextOld : old`] new]
+    where
+        moveFromOldOrInsert _ [] = ((idx, InsertChild (toUI nextNew)), [])
+        moveFromOldOrInsert idxOld [nextOld : oldRest]
+            | gEq nextNew nextOld = ((idx, MoveChild idxOld), oldRest)
+            | otherwise           = appSnd (\old` -> [nextOld : old`]) (moveFromOldOrInsert (inc idxOld) oldRest)
+
+    removeRemaining idx rem = [(idx, RemoveChild) \\ _ <- rem]
+    addNew          idx new = [(i, InsertChild (toUI x)) \\ i <- [idx..] & x <- new]
+
+    isMember` e l = isJust (find (gEq e) l)
 
 listEditor :: (Maybe ([a] -> Maybe a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a] | JSONEncode{|*|}, gDefault{|*|} a
 listEditor add remove reorder count itemEditor = listEditor_ JSONEncode{|*|} gDefault{|*|} add remove reorder count itemEditor
