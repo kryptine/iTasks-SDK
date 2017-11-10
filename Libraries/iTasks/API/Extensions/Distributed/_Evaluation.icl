@@ -1,12 +1,35 @@
 implementation module iTasks.API.Extensions.Distributed._Evaluation
 
-import iTasks
-import iTasks._Framework.TaskState
-import iTasks._Framework.IWorld
-from iTasks._Framework.SDS as SDS import qualified read, readRegister, write
+from iTasks.WF.Definition import :: Task(..), :: Event(ResetEvent), :: TaskEvalOpts, class iTask, :: TaskResult(..), :: TaskException, :: TaskValue(..), :: Stability, :: InstanceNo, :: TaskId
+from iTasks.Internal.TaskState import :: TaskTree(TCInit,TCDestroy)
+from iTasks.Internal.TaskEval import :: TaskTime, :: TaskEvalInfo{lastEvent,removedTasks,refreshSensitive}
+from iTasks.UI.Definition import :: UI, :: UIAttributeChange, :: UIType
+from iTasks.WF.Combinators.Common import @!, @?, whileUnchanged, ||-
+from iTasks.UI.Definition import :: UIType(UIEmpty)
+from iTasks.Internal.IWorld import :: IWorld
+from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared
+from iTasks.Internal.SDS as SDS import qualified read, readRegister, write
+from iTasks.SDS.Sources.System import currentTaskInstanceNo
+from iTasks.UI.Definition import :: UIChange(..), :: UIChildChange(..), ui
+from iTasks.Internal.Store import memoryStore, :: StoreName, :: StoreNamespace
+from iTasks.WF.Tasks.SDS import get
+from iTasks.SDS.Combinators.Common import sdsFocus
+from iTasks.UI.Editor import :: Editor
+from iTasks.UI.Editor.Generic import generic gEditor
+from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
+from iTasks.Internal.Generic.Defaults import generic gDefault
+from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from GenEq import generic gEq
 
-from iTasks.UI.Definition import :: UIChange(..), :: UINodeType(..), :: UIChildChange(..), ui
-from iTasks._Framework.Store import memoryStore, :: StoreName, :: StoreNamespace
+from iTasks.WF.Combinators.Overloaded import class TMonad(..), instance TMonad Task, instance Functor Task, instance TApplicative Task, class TApplicative
+from Data.Functor import class Functor
+
+from Data.Map import :: Map
+from Data.Maybe import :: Maybe(..)
+from Data.Error import :: MaybeError(..)
+from StdFunc import const
+from StdString import instance toString Int, instance +++ {#Char}   
+import StdOverloaded
 
 evalRemoteTask :: (Task a) ((TaskValue a) -> Task ()) -> Task a | iTask a
 evalRemoteTask task handleValue
@@ -23,7 +46,7 @@ where
 proxyTask :: (RWShared () (TaskValue a) (TaskValue a)) (*IWorld -> *IWorld) -> (Task a) | iTask a
 proxyTask value_share onDestroy = Task eval
         where
-        eval event evalOpts tree=:(TCInit taskId ts) iworld=:{IWorld|ioTasks={done,todo},ioStates,world}
+        eval event evalOpts tree=:(TCInit taskId ts) iworld
                 # (val,iworld)  = 'SDS'.readRegister taskId value_share iworld
                 = case val of
                       Ok val            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) tree, iworld)

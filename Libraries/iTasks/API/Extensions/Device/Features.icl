@@ -1,17 +1,20 @@
 implementation module iTasks.API.Extensions.Device.Features
 
-from iTasks.API.Core.SDSs import sharedStore
-from iTasks._Framework.SDS import :: RWShared
-from iTasks.API.Core.Tasks import get, set
-from iTasks._Framework.Generic import class iTask
-from iTasks.API.Core.Types import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor
+from iTasks.SDS.Sources.Store import :: SDS, sharedStore
+from iTasks.Internal.SDS import :: ReadWriteShared, :: RWShared, :: Shared
+from iTasks.WF.Tasks.SDS import get, set
+from iTasks.WF.Definition import class iTask
+from iTasks.WF.Definition      import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor, :: TaskId
+from iTasks.Internal.Generic.Visualization    import :: TextFormat(..)
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from Data.Maybe import :: Maybe
-from iTasks._Framework.Generic.Visualization    import :: TextFormat(..)
-from iTasks._Framework.SDS import :: ReadWriteShared, :: Shared
-from iTasks.API.Common.InteractionTasks import :: UpdateOption(..), updateInformation
-import iTasks.API.Common.TaskCombinators
-from iTasks.UI.Prompt import instance toPrompt String
+from iTasks.WF.Tasks.Interaction import :: UpdateOption, updateInformation
+from iTasks.UI.Prompt import class toPrompt, instance toPrompt String
+from iTasks.WF.Combinators.Common import >>-
+from iTasks.WF.Combinators.Overloaded import instance Functor Task, instance TMonad Task, class TMonad(..), class TApplicative, instance TApplicative Task
+from Data.Functor import class Functor 
+
+import StdString
 
 derive class iTask DeviceFeatures
 
@@ -24,5 +27,5 @@ device = sharedStore "deviceFeaturs" {DeviceFeatures| camera = False }
 manageDeviceFeaturs :: Task DeviceFeatures
 manageDeviceFeaturs
 	=              get device
-	>>- \info -> updateInformation "Manage device featurs" [] info
+	>>- \info -> updateInformation "Manage device features" [] info
 	>>= \info -> set info device

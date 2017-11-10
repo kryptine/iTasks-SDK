@@ -1,7 +1,7 @@
 implementation module iTasks.API.Extensions.Distributed.Instance
 
 import iTasks
-import iTasks.API.Extensions.Admin.UserAdmin
+import iTasks.Extensions.Admin.UserAdmin
 from Text import class Text, instance Text String
 import qualified Data.Map as DM
 import qualified Text as T
@@ -14,9 +14,10 @@ import iTasks.API.Extensions.Distributed.Engine
 import iTasks.API.Extensions.Distributed._Evaluation
 from iTasks.API.Extensions.Distributed.Task import :: Domain(..)
 from iTasks.API.Extensions.Distributed._Util import repeatClient
-from iTasks.API.Core.SDSs import topLevelTasks
-from iTasks._Framework.Serialization import dynamicJSONEncode, dynamicJSONDecode
+from iTasks.SDS.Sources.System import topLevelTasks
+from iTasks.Internal.Serialization import dynamicJSONEncode, dynamicJSONDecode
 from iTasks.UI.Editor.Common import emptyEditor
+from iTasks.Internal.SDS import modify
 
 :: Source = Client Int InstanceNo
 	  | Server Int InstanceNo
@@ -667,7 +668,7 @@ where
 :: WrapperTaskHandelers :== Map Int String
 
 wrapperTaskHandelersShare :: RWShared () WrapperTaskHandelers WrapperTaskHandelers
-wrapperTaskHandelersShare = memoryShare "wrapper_task_handelers" 'DM'.newMap
+wrapperTaskHandelersShare = memoryShare_ "wrapper_task_handelers" 'DM'.newMap
 
 addWrapperTaskHandler :: Int (String -> Task ()) -> Task ()
 addWrapperTaskHandler taskid handlerTask
