@@ -17,24 +17,29 @@ where
 diffChildren :: ![a] ![a] !(a -> UI) -> [(!Int, !UIChildChange)] | gEq{|*|} a
 diffChildren old new toUI = diffChildren` 0 old new
 where
+    // only children from old list are left -> remove them all
     diffChildren` idx old [] = removeRemaining idx old
+    // only new children are left -> insert them all
     diffChildren` idx [] new = addNew idx new
     diffChildren` idx [nextOld : old] [nextNew : new]
+        // children are equal -> no change required
         | nextOld === nextNew = diffChildren` (inc idx) old new
-        | not (isMember` nextOld new) = [(idx, RemoveChild) : diffChildren` idx old [nextNew : new]]
+        // old item cannot be reused, as it does not occur in remaining new children -> remove it
+        | not (isMemberGen nextOld new) = [(idx, RemoveChild) : diffChildren` idx old [nextNew : new]]
         | otherwise
             # (change, old`) = moveFromOldOrInsert (inc idx) old
             = [change : diffChildren` (inc idx) [nextOld : old`] new]
     where
+        // next new child not found in old children list -> insert it
         moveFromOldOrInsert _ [] = ((idx, InsertChild (toUI nextNew)), [])
         moveFromOldOrInsert idxOld [nextOld : oldRest]
+            // next new child found in old children list -> reuse it, i.e. move it to new index
             | nextNew === nextOld = ((idxOld, MoveChild idx), oldRest)
+            // look for child to reuse in remaining old children elements
             | otherwise           = appSnd (\old` -> [nextOld : old`]) (moveFromOldOrInsert (inc idxOld) oldRest)
 
     removeRemaining idx rem = [(idx, RemoveChild) \\ _ <- rem]
     addNew          idx new = [(i, InsertChild (toUI x)) \\ i <- [idx..] & x <- new]
-
-    isMember` e l = isJust (find ((===) e) l)
 
 listEditor :: (Maybe ([a] -> Maybe a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a] | JSONEncode{|*|}, gDefault{|*|} a
 listEditor add remove reorder count itemEditor = listEditor_ JSONEncode{|*|} gDefault{|*|} add remove reorder count itemEditor
