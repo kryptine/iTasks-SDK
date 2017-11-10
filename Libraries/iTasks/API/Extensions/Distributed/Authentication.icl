@@ -1,7 +1,7 @@
 implementation module iTasks.API.Extensions.Distributed.Authentication
 
 import iTasks
-import iTasks.API.Extensions.Admin.UserAdmin
+import iTasks.Extensions.Admin.UserAdmin
 from Text import class Text, instance Text String
 import qualified Data.Map as DM
 import qualified Text as T

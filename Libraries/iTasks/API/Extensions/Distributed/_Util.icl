@@ -1,12 +1,12 @@
 implementation module iTasks.API.Extensions.Distributed._Util
 
 import iTasks
-from iTasks._Framework.Store import memoryStore, :: StoreName, :: StoreNamespace
+from iTasks.Internal.Store import memoryStore, :: StoreName, :: StoreNamespace
 from System.Time import :: Timestamp(..)
-from iTasks._Framework.Util import timestampToGmDateTime, datetimeToTimestamp
+from iTasks.Extensions.DateTime import :: DateTime, instance < DateTime, instance toString DateTime, timestampToGmDateTime, datetimeToTimestamp
 
-memoryShare :: String a -> RWShared () a a | iTask a
-memoryShare name default = sdsFocus name (memoryStore name (Just default))
+memoryShare_ :: String a -> RWShared () a a | iTask a
+memoryShare_ name default = sdsFocus name (memoryStore name (Just default))
 
 repeatClient :: (Task (Maybe a)) -> Task (Maybe a) | iTask a
 repeatClient task

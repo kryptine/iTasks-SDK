@@ -10,7 +10,7 @@ import qualified Data.Map as DM
 import Text.Encodings.Base64
 import iTasks.API.Extensions.Distributed.Engine
 
-from iTasks._Framework.Serialization import dynamicJSONEncode, dynamicJSONDecode
+from iTasks.Internal.Serialization import dynamicJSONEncode, dynamicJSONDecode
 from iTasks.UI.Editor.Common import emptyEditor
 
 rr_get :: !(ReadWriteShared a w) -> Task a | iTask a & iTask w
@@ -102,7 +102,7 @@ gEq{|Handler|} _ _               = True
 gDefault{|Handler|}              = \_ -> return ()
 
 remoteSharedHandelersShared :: Shared RemoteShareHandelers
-remoteSharedHandelersShared = memoryShare "remote_shared_handelers" 'DM'.newMap
+remoteSharedHandelersShared = memoryShare_ "remote_shared_handelers" 'DM'.newMap
 
 addSharedHandler :: Int (String -> Task ()) -> Task ()
 addSharedHandler taskid handlerTask
@@ -118,7 +118,7 @@ callSharedHandler ref data
 	>>= \handlers -> (fromMaybe (\_ -> return ()) ('DM'.get ref handlers)) data
 
 dummyShared :: String a -> RWShared () a a | iTask a
-dummyShared ref default = memoryShare ("dummy_share_" +++ ref) default
+dummyShared ref default = memoryShare_ ("dummy_share_" +++ ref) default
 
 putSharedValueInDummyShared :: (Shared (Maybe a)) String -> Task () | iTask a
 putSharedValueInDummyShared shared value
