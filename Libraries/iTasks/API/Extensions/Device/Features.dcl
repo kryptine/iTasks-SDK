@@ -1,11 +1,11 @@
 definition module iTasks.API.Extensions.Device.Features
 
-from iTasks._Framework.Generic import class iTask
-from iTasks._Framework.SDS import :: RWShared
-from iTasks.API.Core.Types import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor
+from iTasks.WF.Definition import class iTask
+from iTasks.WF.Definition import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor
+from iTasks.SDS.Definition import :: SDS, :: RWShared
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
+from iTasks.Internal.Generic.Visualization    import :: TextFormat(..)
 from Data.Maybe import :: Maybe
-from iTasks._Framework.Generic.Visualization    import :: TextFormat(..)
 
 :: DeviceFeatures = { camera :: Bool }
 

@@ -3,22 +3,23 @@ implementation module iTasks.API.Extensions.Distributed.Task
 import StdString
 import StdInt
 
-from iTasks._Framework.Generic import class iTask
-from iTasks.API.Core.Types import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor, :: TaskAttributes, :: DateTime, instance toString DateTime
+from iTasks.WF.Definition import class iTask
+from iTasks.WF.Definition import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor, :: TaskAttributes
 from Data.Maybe import :: Maybe, maybe
-from iTasks.API.Extensions.User import class toUserConstraint(..), :: UserConstraint, instance toString UserConstraint, instance toUserConstraint User, instance toString UserConstraint
+from iTasks.Extensions.User import class toUserConstraint(..), :: UserConstraint, instance toString UserConstraint, instance toUserConstraint User, instance toString UserConstraint
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
-from iTasks._Framework.Generic.Visualization import :: TextFormat(..)
-import qualified iTasks.API.Extensions.User as U
+from iTasks.Internal.Generic.Visualization import :: TextFormat(..)
+import qualified iTasks.Extensions.User as U
 import Data.Map
 from symbols_in_program import :: Symbol
 from iTasks.API.Extensions.Distributed.RemoteTask import remoteAssignTask
-from iTasks.API.Common.TaskCombinators import -&&-, >>-
-from iTasks.API.Core.SDSs import currentDateTime
-from iTasks.API.Extensions.User import currentUser, :: User(..), :: UserTitle, :: Role, :: UserId, :: SessionId, assign, workerAttributes
-from iTasks._Framework.SDS import :: ReadWriteShared, :: RWShared, :: ReadOnlyShared, :: ROShared
+from iTasks.WF.Combinators.Common import -&&-, >>-
+from iTasks.SDS.Sources.System import currentDateTime
+from iTasks.Extensions.DateTime import :: DateTime, instance toString DateTime
+from iTasks.Extensions.User import currentUser, :: User(..), :: UserTitle, :: Role, :: UserId, assign, workerAttributes
+from iTasks.Internal.SDS import :: SDS, :: ReadWriteShared, :: RWShared, :: ReadOnlyShared, :: ROShared
 from iTasks.API.Extensions.Distributed.Authentication import currentDomain
-import qualified iTasks.API.Core.Tasks as C
+import qualified iTasks.WF.Tasks.SDS as C
 import iTasks.API.Extensions.Distributed.Engine
 
 instance @: worker (Task a) | iTask a & toUserConstraint worker
