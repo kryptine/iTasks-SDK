@@ -35,7 +35,8 @@ authServerShare = sharedStore "authServerShare" {AuthShare| lastId = 0, clients 
 authServer :: Int -> Task ()
 authServer port = tcplisten port True authServerShare {ConnectionHandlers
 	| onConnect 		= onConnect
-	, whileConnected	= whileConnected
+	, onData		= onData
+	, onShareChange		= onShareChange
 	, onDisconnect 		= onDisconnect
 	} -|| (process authServerShare) @! ()
 where
@@ -48,11 +49,12 @@ where
 		  , False
 		  )
 
-	whileConnected :: (Maybe String) AuthServerState AuthShare -> (MaybeErrorString AuthServerState, Maybe AuthShare, [String], Bool)
-	whileConnected (Just newData) st=:{id,buffer} share
+	onData :: String AuthServerState AuthShare -> (MaybeErrorString AuthServerState, Maybe AuthShare, [String], Bool)
+	onData newData st=:{id,buffer} share
 		= let (requests, newBuffer) = getRequests (buffer +++ newData) in
 			(Ok {AuthServerState| st & buffer = newBuffer}, Just { share & clients = [ if (clientid == id) ({Communication| c & requests = c.requests ++ requests}) c \\ c=:{Communication|id=clientid} <- share.clients] }, [], False)
-	whileConnected Nothing state=:{AuthServerState|id} share
+	
+	onShareChange state=:{AuthServerState|id} share
 		# responses = flatten [ c.responses \\ c=:{Communication|id=clientid} <- share.clients | clientid == id ]
 		| isEmpty responses = (Ok state, Just share, responses, False)
 		# share = {share & clients = [ if (clientid == id) {Communication| c & responses = []} c \\ c=:{Communication|id=clientid} <- share.clients ] }
@@ -126,31 +128,36 @@ request host port request
 where
 	client :: Task (Maybe a) | iTask a
 	client
-		= (tcpconnect host port (constShare ())  
+		= ((tcpconnect host port (constShare ())  
                         { ConnectionHandlers
                         | onConnect      = onConnect
-                        , whileConnected = whileConnected
+                        , onData	 = onData
+			, onShareChange  = onShareChange
                         , onDisconnect   = onDisconnect
-                        })
+                        }) @? taskResult)
 		>>- \(resps,_) -> case resps of
 					[resp:_]  -> return (fromJSON (fromString (base64Decode resp)))
 					_         -> return Nothing
 
-	onConnect :: String () -> (MaybeErrorString ([String], String), Maybe (), [String], Bool)
+	onConnect :: String () -> (MaybeErrorString ([String], String, Bool), Maybe (), [String], Bool)
 	onConnect host store
-		= (Ok ([], ""), Just store, [request +++ "\n"], False)
+		= (Ok ([], "", False), Just store, [request +++ "\n"], False)
 
-	whileConnected :: (Maybe String) ([String], String) () -> (MaybeErrorString ([String], String), Maybe (), [String], Bool)
-	whileConnected (Just received) state=:(response,data) store
+	onData :: String ([String], String,Bool) () -> (MaybeErrorString ([String], String, Bool), Maybe (), [String], Bool)
+	onData received state=:(response,data,_) store
 		# received_data = data +++ received
 		# (new_requests,other) = getRequests received_data
-		= (Ok (response ++ new_requests,data), Just store, [], not (isEmpty new_requests))
-	whileConnected Nothing state ()
+		= (Ok (response ++ new_requests,data, not (isEmpty new_requests)), Just store, [], False)
+
+	onShareChange state ()
 		= (Ok state, Nothing, [], False)
 
-	onDisconnect :: ([String], String) () -> (MaybeErrorString ([String], String), Maybe ())
+	onDisconnect :: ([String], String, Bool) () -> (MaybeErrorString ([String], String, Bool), Maybe ())
 	onDisconnect state share
                 = (Ok state, Just share)
+
+	taskResult (Value (r1,r2,True) _) = Value (r1,r2) True
+	taskResult _                      = NoValue	
 
 getRequests :: String -> ([String], String)
 getRequests input
