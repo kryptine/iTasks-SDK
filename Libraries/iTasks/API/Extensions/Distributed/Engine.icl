@@ -1,24 +1,25 @@
 implementation module iTasks.API.Extensions.Distributed.Engine
 
-from iTasks.API.Core.Tasks import accWorld
-from iTasks._Framework.SDS import read, write
+from iTasks.WF.Tasks.Core import accWorld
+from iTasks.Internal.SDS import read, write
 import symbols_in_program
-from iTasks._Framework.IWorld import :: IWorld{world}
+from iTasks.Internal.IWorld import :: IWorld{world}
 from Data.Error import :: MaybeError(..)
-from iTasks._Framework.Task import :: TaskException, mkInstantTask, :: Task(..), :: TaskResult, :: TaskEvalOpts, :: Event(..)
-from iTasks._Framework.TaskState			import :: TaskTree
-from iTasks._Framework.Generic import class iTask
-from iTasks._Framework.SDS import :: ReadWriteShared, :: RWShared, :: Shared
-from iTasks.API.Core.Types      import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor, :: TaskId
+from iTasks.WF.Definition import :: TaskException, :: Task(..), :: TaskResult, :: TaskEvalOpts, :: Event(..)
+from iTasks.Internal.Task import mkInstantTask
+from iTasks.Internal.TaskState			import :: TaskTree
+from iTasks.WF.Definition import class iTask
+from iTasks.Internal.SDS import :: ReadWriteShared, :: RWShared, :: Shared
+from iTasks.WF.Definition      import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor, :: TaskId
 from Data.Maybe import :: Maybe
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
-from iTasks._Framework.Generic.Visualization    import :: TextFormat(..)
+from iTasks.Internal.Generic.Visualization    import :: TextFormat(..)
 import StdFile
 import dynamic_string
 import Text.Encodings.Base64
-from iTasks.API.Common.TaskCombinators import @!, >>-
-from iTasks.API.Core.Tasks import set 
-from iTasks.API.Core.SDSs import sharedStore
+from iTasks.WF.Combinators.Common import @!, >>-
+from iTasks.WF.Tasks.SDS import set 
+from iTasks.SDS.Sources.Store import :: SDS, sharedStore
 import StdTuple
 
 symbolsShare :: Shared String

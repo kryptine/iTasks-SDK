@@ -1,8 +1,8 @@
 definition module iTasks.API.Extensions.Picture.JPEG
 
-from iTasks.API.Core.Types import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor, :: TaskAttributes, :: DateTime, instance toString DateTime
+from iTasks.WF.Definition import :: Task, generic gEq, generic gDefault, generic JSONDecode, generic JSONEncode, generic gText, generic gEditor, :: Editor
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
-from iTasks._Framework.Generic.Visualization import :: TextFormat(..)
+from iTasks.Internal.Generic.Visualization    import :: TextFormat(..)
 from Data.Maybe import :: Maybe
 from Data.Map import :: Map
 
