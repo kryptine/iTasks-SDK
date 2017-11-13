@@ -10,12 +10,7 @@ from StdOverloaded import class <
 from System.Time import :: Tm
 from System.OSError import :: OSError, :: OSErrorCode, :: OSErrorMessage, :: MaybeOSError
 
-show                :: ![String] !*World -> *World
-
-mb2list				:: !(Maybe [a]) -> [a]
-list2mb				:: ![a] -> (Maybe [a])
-
-instance toString (Maybe a) | toString a
+show :: ![String] !*World -> *World
 
 tmToDateTime :: !Tm -> DateTime
 
@@ -26,12 +21,4 @@ toCanonicalPath	:: !FilePath !*World -> (!FilePath,!*World)
 recursiveDelete :: FilePath *World -> *(MaybeOSError (), *World)
 //Create a directory and its parent directories
 ensureDir :: FilePath *World -> (!Bool,*World)
-
-//Merging Maps
-mergeMaps :: (Map k v) (Map k v) -> Map k v | < k
-
-//Simple key value functions when fullblown maps are overkill
-kvGet		:: k	![(k,v)]	-> Maybe v	| Eq k
-kvSet		:: k v	![(k,v)]	-> [(k,v)]	| Eq k
-kvSetOnce	:: k v	![(k,v)]	-> [(k,v)]	| Eq k
 

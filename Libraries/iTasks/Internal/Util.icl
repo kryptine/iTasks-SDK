@@ -16,23 +16,10 @@ show lines world
 	# (_,world)			= fclose console world
 	= world
 	
-mb2list	:: !(Maybe [a]) -> [a]
-mb2list	Nothing = []
-mb2list (Just a) = a
-
-list2mb	:: ![a] -> (Maybe [a])
-list2mb [] = Nothing
-list2mb a = (Just a)
-
 tmToDateTime :: !Tm -> DateTime
 tmToDateTime tm
 	= {DateTime| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year
 	  ,hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
-
-instance toString (Maybe a) | toString a
-where
-	toString Nothing	= ""
-	toString (Just x)	= toString x
 
 toCanonicalPath	:: !FilePath !*World -> (!FilePath,!*World)
 toCanonicalPath path world
@@ -80,20 +67,4 @@ where
 		# (res, world) = createDirectory path world 
 		| isError res = (False,world) //Can't create the directory
 		= create next rest world //Created the directory, continue
-
-
-mergeMaps :: (Map k v) (Map k v) -> Map k v | < k
-mergeMaps m1 m2 = foldl (\m (k,v)  -> 'DM'.put k v m) m1 ('DM'.toList m2)
-
-kvGet :: k ![(k,v)]		-> Maybe v	| Eq k // Linear search
-kvGet m []				= Nothing
-kvGet m [(k,v):kvs]		= if (k == m) (Just v) (kvGet m kvs)
-
-kvSet :: k v ![(k,v)]	-> [(k,v)]	| Eq k //Linear search
-kvSet m nv []			= [(m,nv)]
-kvSet m nv [(k,v):kvs]	= if (k == m) [(k,nv): kvs] [(k,v):kvSet m nv kvs]
-
-kvSetOnce :: k v ![(k,v)]	-> [(k,v)]	| Eq k //Linear search
-kvSetOnce m nv []			= [(m,nv)]
-kvSetOnce m nv [(k,v):kvs]	= if (k == m) [(k,v):kvs] [(k,v):kvSet m nv kvs]
 
