@@ -5,6 +5,7 @@ definition module iTasks.WF.Tasks.IO
 */
 import iTasks.WF.Definition
 from iTasks.SDS.Definition import :: RWShared, :: SDS
+from iTasks.UI.Prompt import class toPrompt
 from System.FilePath import :: FilePath
 from Data.Error import :: MaybeError, :: MaybeErrorString
 
@@ -34,7 +35,7 @@ from Data.Error import :: MaybeError, :: MaybeErrorString
 * @param The event handler functions
 * @param An editor for visualizing the local state
 */
-externalProcess :: !FilePath ![String] !(Maybe FilePath) !(SDS () r w) !Bool !(ExternalProcessHandlers l r w) !(Editor l) -> Task l | iTask l & TC r & TC w
+externalProcess :: !d !FilePath ![String] !(Maybe FilePath) !(SDS () r w) !Bool !(ExternalProcessHandlers l r w) !(Editor l) -> Task l | toPrompt d & iTask l & TC r & TC w
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed
 * @param Hostname

@@ -5,6 +5,7 @@ import iTasks.WF.Tasks.Core
 import iTasks.WF.Tasks.IO
 import iTasks.WF.Tasks.Interaction
 import iTasks.SDS.Sources.Core
+import iTasks.UI.Editor.Modifiers
 
 import StdString, StdList
 import Data.Maybe, Data.Error
@@ -16,11 +17,18 @@ instance toString CallException
 where
 	toString (CallFailed (_,err)) = "Error calling external process: " +++ err
 
+
 callProcess :: !d ![ViewOption ProcessInformation] !FilePath ![String] !(Maybe FilePath) !Bool -> Task ProcessInformation | toPrompt d
-callProcess prompt viewOptions executable arguments workingDirectory pty
-	= externalProcess executable arguments workingDirectory unitShare pty handlers gEditor{|*|}
+callProcess prompt [ViewAs tof:_] executable arguments workingDirectory pty
+	= externalProcess prompt executable arguments workingDirectory unitShare pty (callProcessHandlers executable arguments) (comapEditorValue tof gEditor{|*|})
+callProcess prompt [ViewUsing tof editor:_] executable arguments workingDirectory pty
+	= externalProcess prompt executable arguments workingDirectory unitShare pty (callProcessHandlers executable arguments) (comapEditorValue tof editor)
+callProcess prompt _ executable arguments workingDirectory pty
+	= externalProcess prompt executable arguments workingDirectory unitShare pty (callProcessHandlers executable arguments) gEditor{|*|}
+
+callProcessHandlers executable arguments
+	= {onStartup = onStartup, onOutData = onOutData, onErrData = onErrData, onShareChange = onShareChange, onExit = onExit}
 where
-    handlers = {onStartup = onStartup, onOutData = onOutData, onErrData = onErrData, onShareChange = onShareChange, onExit = onExit}
     onStartup _ = (Ok {ProcessInformation|executable=executable,arguments=arguments,stdout="",stderr="",status=RunningProcess}, Nothing, [], False)
     onOutData data info=:{ProcessInformation|stdout} _ = (Ok {ProcessInformation|info & stdout = stdout +++ data}, Nothing, [], False)
     onErrData data info=:{ProcessInformation|stderr} _ = (Ok {ProcessInformation|info & stderr = stderr +++ data}, Nothing, [], False)

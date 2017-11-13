@@ -33,8 +33,8 @@ import qualified Data.Set as DS
     , onExit        :: !(ExitCode l r -> (!MaybeErrorString l, !Maybe w                  ))
     }
 
-externalProcess :: !FilePath ![String] !(Maybe FilePath) !(SDS () r w) !Bool !(ExternalProcessHandlers l r w) !(Editor l) -> Task l | iTask l & TC r & TC w
-externalProcess cmd args dir sds pty handlers editor = Task eval
+externalProcess :: !d !FilePath ![String] !(Maybe FilePath) !(SDS () r w) !Bool !(ExternalProcessHandlers l r w) !(Editor l) -> Task l | toPrompt d & iTask l & TC r & TC w
+externalProcess prompt cmd args dir sds pty handlers editor = Task eval
 where
     eval event evalOpts tree=:(TCInit taskId ts) iworld
         = case addExternalProc taskId cmd args dir pty (wrapExternalProcTask handlers sds) iworld of
@@ -83,7 +83,7 @@ where
 	resetUI taskId value iworld
 		# vst = {VSt| taskId = toString taskId, mode = View, optional = False, selectedConsIndex = -1, iworld = iworld}
 		= case editor.Editor.genUI [] value vst of
-         	(Ok (editorUI,mask), {VSt|iworld}) = (Ok (ReplaceUI (uic UIInteract [ui UIEmpty, editorUI]),mask), iworld)
+         	(Ok (editorUI,mask), {VSt|iworld}) = (Ok (ReplaceUI (uic UIInteract [toPrompt prompt, editorUI]),mask), iworld)
             (Error e,{VSt|iworld})             = (Error e,iworld)
 
 	refreshUI taskId Nothing newValue iworld = (Error "Corrupt stored value in externalProcess", newValue, iworld)
