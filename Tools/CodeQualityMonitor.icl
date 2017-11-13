@@ -55,7 +55,7 @@ runInteractiveTests
 	= (     editSelectionWithShared (Title "Select test") False (SelectInTree collectionToTree selectTest) tests (const []) @? tvHd
 		>&> withSelection (viewInformation () [] "Select a test") testInteractive ) <<@ ArrangeWithSideBar 0 LeftSide 250 True @! ()
 where
-	tests = sdsFocus INTERACTIVE_TESTS_PATH (fileCollection (\path isDirectory -> isDirectory || takeExtension path == "icl"))
+	tests = sdsFocus INTERACTIVE_TESTS_PATH (fileCollection (\path isDirectory -> isDirectory || takeExtension path == "icl") False)
 
 	collectionToTree collection = itemsToTree [] collection
 	where
@@ -228,7 +228,7 @@ where
 			>>-	maybe (throw "Cannot run the program. There is no executable yet")
 				      (\executable -> 
 									makeExecutable executable
-						>>- \_ -> callProcess () [] executable ["-port","8084"] (Just temporaryDirectory) True
+						>>- \_ -> callProcess () [] executable ["-port","8084"] (Just temporaryDirectory) False
 						>>* [OnAction ActionClose (always (return ()))] //Pause after command...
 					  )
 		) @! ()

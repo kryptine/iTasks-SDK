@@ -15,7 +15,7 @@ Start world = execTestSuite (testsuite "UIs of core tasks" "Tests for UI behavio
 //Currently only tested on unix systems
 testCallFastProcess = IF_WINDOWS (pass "Test call for fast process") (testTaskOutput "Test call fast process" tut events exp checkEqual)
 where
-	tut = callProcess "Run fast process" [] "/bin/date" [] Nothing
+	tut = callProcess "Run fast process" [] "/bin/date" [] Nothing False
 	events = [Left ResetEvent,Right 1,Left (RefreshEvent 'DS'.newSet "Update")]
 	exp = [ReplaceUI initialUI,ReplaceUI finishedUI]
 
@@ -24,7 +24,7 @@ where
 
 testCallSlowProcess = IF_WINDOWS (pass "Test call for slow process") (testTaskOutput "Test call slow process" tut events exp checkEqual)
 where
-	tut = callProcess "Run slow process" [] "/bin/sleep" ["2"] Nothing
+	tut = callProcess "Run slow process" [] "/bin/sleep" ["2"] Nothing False
 	events = [Left ResetEvent,Right 1,Left (RefreshEvent 'DS'.newSet "Update"),Right 2,Left (RefreshEvent 'DS'.newSet "Update"),Left (RefreshEvent 'DS'.newSet "Update")]
 	exp = [ReplaceUI initialUI, ReplaceUI finishedUI]
 
