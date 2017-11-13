@@ -8,9 +8,10 @@ from Text.HTML import instance toString HtmlTag
 from iTasks.UI.Editor.Common import diffChildren
 from StdArray import class Array(uselect), instance Array {} a
 
-LEAFLET_JS        :== "/leaflet-1.1.0/leaflet.js"
-LEAFLET_JS_WINDOW :== "leafletWindow.js"
-LEAFLET_CSS       :== "/leaflet-1.1.0/leaflet.css"
+LEAFLET_JS         :== "/leaflet-1.1.0/leaflet.js"
+LEAFLET_JS_WINDOW  :== "leaflet-window.js"
+LEAFLET_CSS        :== "/leaflet-1.1.0/leaflet.css"
+LEAFLET_CSS_WINDOW :== "leaflet-window.css"
 
 :: IconOptions =
     { iconUrl   :: !String
@@ -85,6 +86,7 @@ where
         # (l, world) = findObject "L" world
         | jsIsUndefined l
             # world = addCSSFromUrl LEAFLET_CSS world
+            # world = addCSSFromUrl LEAFLET_CSS_WINDOW world
             # world = addJSFromUrl LEAFLET_JS Nothing world
             # world = addJSFromUrl LEAFLET_JS_WINDOW (Just jsInitDOM) world
 			= world

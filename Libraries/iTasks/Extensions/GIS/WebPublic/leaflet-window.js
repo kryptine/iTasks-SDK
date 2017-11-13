@@ -18,13 +18,21 @@ L.Window = L.Control.extend({
     },
     onAdd: function (map) {
         this._map = map;
-        var prefix = 'leaflet-popup';
-        var container = this._container = L.DomUtil.create('div', prefix + '-content-wrapper');
-        var titleBar = L.DomUtil.create('div', '', container);
-        titleBar.style = "height: 20px; background: -webkit-linear-gradient(top, #ffa554, #fb7322); border-radius: 12px; padding: 6px; overflow: hidden; white-space: nowrap; cursor: default;";
-        titleBar.innerHTML = this._title;
+        const container = this._container = L.DomUtil.create('div', 'itasks-leaflet-window');
+
+        // add title bar
+        const titleBar = L.DomUtil.create('div', 'titlebar', container);
+
+        const closeButton = this._closeButton = L.DomUtil.create('a', 'close', titleBar);
+        closeButton.href = '#close';
+        closeButton.innerHTML = 'x';
+        L.DomEvent.on(closeButton, 'mouseup', this._onCloseButtonClick, this);
+
+        const titleSpan = L.DomUtil.create('span', '', titleBar);
+        titleSpan.innerHTML = this._title;
+
+        // add content container
         this._contentNode = L.DomUtil.create('div', '', container);
-        this._contentNode.style = "padding: 10px;"
         this._contentNode.innerHTML = this._content;
 
         // absolute -> otherwise windows influence each other if multiple are present
@@ -46,13 +54,6 @@ L.Window = L.Control.extend({
                       this);
         L.DomEvent.on(document, 'mouseup', this._mouseUp, this);
         L.DomEvent.on(document, 'mousemove', this._mouseMove, this);
-
-        var closeButton = this._closeButton = L.DomUtil.create('a', prefix + '-close-button', titleBar);
-        closeButton.href = '#close';
-        closeButton.innerHTML = '&#215;';
-        closeButton.style = 'padding: 0px 6px 0px 0px; top: auto;';
-
-        L.DomEvent.on(closeButton, 'mouseup', this._onCloseButtonClick, this);
 
         this._relatedMarkerConnectors = {};
         // handle related markers added in the future
