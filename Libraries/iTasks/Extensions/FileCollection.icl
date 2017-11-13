@@ -5,53 +5,64 @@ implementation module iTasks.Extensions.FileCollection
 * plain text files on disk.
 */
 import iTasks
+import iTasks.Internal.Util
+
 import StdFile
 from Data.Map import :: Map
 import qualified Data.Map as DM
-import Data.Error, Data.Functor, Text
-import System.Directory, System.File, System.FilePath
+import Data.Error, Data.Functor, Data.Maybe, Text
+import System.Directory, System.File, System.FilePath, System.OS
 
 derive class iTask FileCollectionItem
 
+EXCLUDE_FILE :== "exclude.txt"
+
 //Writes a map of key/value pairs to a directory with one file per key/value
 //It will ignore all files in the directory that don't match the filter
-fileCollection :: FileFilter -> SDS FilePath FileCollection FileCollection
-fileCollection isFileInCollection = worldShare (read isFileInCollection) (write isFileInCollection)
+fileCollection :: FileFilter Bool -> SDS FilePath FileCollection FileCollection
+fileCollection isFileInCollection deleteRemovedFiles = worldShare (read isFileInCollection) (write isFileInCollection)
 where
 	read isFileInCollection dir world = case readDirectory dir world of
 		(Error (_,msg),world) = (Error msg,world) 
-		(Ok files,world) = case readFiles files isFileInCollection dir world of
+		(Ok files,world) = case (if deleteRemovedFiles (Ok [],world) (readExcludeList dir world)) of 
 			(Error e, world) = (Error e,world)
-			(Ok collection,world) = (Ok ('DM'.fromList collection), world)
+			(Ok excludes,world) = case readFiles isFileInCollection excludes dir files world of
+				(Error e, world) = (Error e,world)
+				(Ok collection,world) = (Ok ('DM'.fromList collection), world)
 	
-	readFiles [] isFileInCollection dir world = (Ok [],world)
-	readFiles [f:fs] isFileIncollection dir world
-		| f == "." || f == ".." = readFiles fs isFileInCollection dir world 
+	readFiles isFileInCollection excludes dir [] world = (Ok [],world)
+	readFiles isFileIncollection excludes dir [f:fs] world
+		| f == "." || f == ".." || (not deleteRemovedFiles && isMember f excludes) = readFiles isFileInCollection excludes dir fs world 
 		| otherwise = case getFileInfo (dir </> f) world of
 			(Error (_,msg),world) = (Error msg,world)
 			(Ok {FileInfo|directory},world) 
 				//Skip files that don't match the filter
 				| not (isFileInCollection f directory)
-					= readFiles fs isFileInCollection dir world 
+					= readFiles isFileInCollection excludes dir fs world 
 				//Read a subcollection
 				| directory = case read (\x -> isFileInCollection (f </> x)) (dir </> f) world of 
 					(Error e,world) = (Error e,world)
-					(Ok fcollection,world) = case readFiles fs isFileInCollection dir world of
+					(Ok fcollection,world) = case readFiles isFileInCollection excludes dir fs world of
 						(Error e,world) = (Error e,world)
 						(Ok collection,world) = (Ok [(f,FileCollection fcollection):collection], world)
 				//Read the file content
 				| otherwise = case readFile (dir </> f) world of
                     (Error e,world) = (Error (toString e),world)
-					(Ok fcontent,world) = case readFiles fs isFileInCollection dir world of
+					(Ok fcontent,world) = case readFiles isFileInCollection excludes dir fs world of
 						(Error e,world) = (Error e,world)
 						(Ok collection,world) = (Ok [(f,FileContent fcontent):collection], world)
+
+	readExcludeList dir world = case readFileLines (dir </> EXCLUDE_FILE) world of
+		(Ok lines,world)         = (Ok [EXCLUDE_FILE:lines],world) //the exclude file itself should also be excluded
+		(Error CannotOpen,world) = (Ok [EXCLUDE_FILE],world)
+		(Error e,world)          = (Error (toString e),world)
 
 	write isFileInCollection dir collection world = case readDirectory dir world of 
 		//We need to know the current content of the directory to be able to delete removed entries
 		(Error (_,msg),world) = (Error msg,world) 
 		(Ok curfiles,world) = case writeFiles ('DM'.toList collection) isFileInCollection dir world of
 			(Error e,world) = (Error e,world)
-			(Ok newfiles,world) = cleanFiles curfiles newfiles isFileInCollection world
+			(Ok newfiles,world) = cleanupRemovedFiles curfiles newfiles dir world
 		
 	writeFiles [] isFileInCollection dir world = (Ok [],world)
 	writeFiles [(name,FileContent content):fs] isFileInCollection dir world
@@ -64,22 +75,40 @@ where
 
 	writeFiles [(name,FileCollection collection):fs] isFileInCollection dir world 
 		| not (isFileInCollection name True) = writeFiles fs isFileInCollection dir world //Don't write files that don't match the filter
-		| otherwise = case write (\x -> isFileInCollection (name </> x)) (dir </> name) collection world  of
+		| otherwise = case ensureDirectory (dir </> name) world of
 			(Error e,world) = (Error e,world)
-			(Ok (),world) = case writeFiles fs isFileInCollection dir world of
+			(Ok (),world) = case write (\x -> isFileInCollection (name </> x)) (dir </> name) collection world  of
 				(Error e,world) = (Error e,world)
-				(Ok curfiles,world) = (Ok [name:curfiles],world)
+				(Ok (),world) = case writeFiles fs isFileInCollection dir world of
+					(Error e,world) = (Error e,world)
+					(Ok curfiles,world) = (Ok [name:curfiles],world)
+			
+	ensureDirectory path world = case getFileInfo path world of
+		(Ok {FileInfo|directory},world) 
+			| directory = (Ok (),world)
+			| otherwise = (Error ("Can't create directory " +++ path), world)
+		(Error _, world)
+			= case createDirectory path world of	
+				(Ok (),world) = (Ok (),world)
+				(Error (_,msg),world) = (Error msg,world)
 
 	//Check if files that existed before, are not in the newly written set.
 	//If they match the filter they 'belong' to the collection and should be removed.
 	//Otherwise they will be included on the next read of the collection
-	cleanFiles [] newfiles pred world = (Ok (),world)
-	cleanFiles [f:fs] newfiles pred world
-		| isMember f newfiles = cleanFiles fs newfiles pred world //The file is still in the collection
-		| f == "." || f == ".." || not (pred f False) = cleanFiles fs newfiles pred world //The file is not part of the collection, we can ignore it
-		| otherwise
-			//TODO: remove the file or directory
-			= cleanFiles fs newfiles pred world
+	cleanupRemovedFiles filesInDirectory filesInCollection dir world
+		| deleteRemovedFiles = deleteFiles filesToRemove dir world
+		| otherwise          = excludeFiles filesToRemove dir world
+	where
+		filesToRemove = [f \\ f <- filesInDirectory | f <> "." && f <> ".." && f <> EXCLUDE_FILE && not (isMember f filesInCollection)]
+
+		excludeFiles files dir world = case writeFile (dir </> EXCLUDE_FILE) (join OS_NEWLINE files) world of
+			(Error e, world) = (Error (toString e),world)
+			(Ok (),world)    = (Ok (),world)
+
+		deleteFiles [] dir world = (Ok (),world) 
+		deleteFiles [f:fs] dir world = case recursiveDelete (dir </> f) world of
+			(Ok (),world) = deleteFiles fs dir world
+			(Error (_,msg),world) = (Error msg,world)
 
 getStringContent :: String FileCollection -> Maybe String
 getStringContent key collection = case 'DM'.get key collection of

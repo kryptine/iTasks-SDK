@@ -17,9 +17,15 @@ from System.FilePath import :: FilePath
 
 derive class iTask FileCollectionItem
 
-//Writes a map of key/value pairs to a directory with one file per key/value
-//It will ignore all files in the directory that don't match the filter
-fileCollection :: FileFilter -> SDS FilePath FileCollection FileCollection
+/**
+* Writes a map of key/value pairs to a directory with one file per key/value
+* It will ignore all files in the directory that don't match the filter
+
+* @param The filter that specifies which files and directories are part of the collection
+* @param Delete flag: When this is true, files on disk that are not in the collection, but match the filter are deleted during a write.
+                      If it is false, entries on that are removed are only marked in a file called 'exclude.txt' but not deleted.
+*/
+fileCollection :: FileFilter Bool -> SDS FilePath FileCollection FileCollection
 
 //Access utilities:
 getStringContent:: String FileCollection -> Maybe String

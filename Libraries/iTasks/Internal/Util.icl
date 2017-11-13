@@ -2,8 +2,10 @@ implementation module iTasks.Internal.Util
 
 import StdBool, StdChar, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList
 import Data.Maybe, Data.Tuple, Data.Func, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Error, GenEq
+import Data.Error, System.OSError, System.File
 from iTasks.Internal.IWorld 		import :: IWorld{current}, :: TaskEvalState
 from iTasks.Extensions.DateTime import :: Date{..}, :: Time{..}, :: DateTime(..)
+import qualified Control.Monad as M
 import qualified Data.Map as DM
 from Data.Map import :: Map
 	
@@ -51,6 +53,34 @@ where
 	undot [] ["":ds]			= undot [""] ds //Only allowed at the beginning
 	undot acc ["":ds]			= undot acc ds
 	undot acc [d:ds] 			= undot [d:acc] ds
+
+recursiveDelete :: FilePath *World -> *(MaybeOSError (), *World)
+recursiveDelete fp w
+	# (mfi, w) = getFileInfo fp w
+	| isError mfi = (liftError mfi, w)
+	| (fromOk mfi).directory
+		# (mdir, w) = readDirectory fp w
+		| isError mdir = (liftError mdir, w)
+		# (merr, w) = mapSt (\c->recursiveDelete (fp </> c))
+			(filter (\r->r <> "." && r <> "..") (fromOk mdir)) w
+		# merr = 'M'.sequence merr
+		| isError merr = (liftError merr, w)
+		= removeDirectory fp w
+	= deleteFile fp w
+
+ensureDir :: FilePath *World -> (!Bool,*World)
+ensureDir path world = let [b:p] = split {pathSeparator} path in create [b] p world
+where
+	create _ [] world = (True,world)
+	create base [dir:rest] world
+		# next = base ++ [dir]
+		# path = join {pathSeparator} next
+		# (exists,world) = fileExists path world
+		| exists = create next rest world //This part exists, continue
+		# (res, world) = createDirectory path world 
+		| isError res = (False,world) //Can't create the directory
+		= create next rest world //Created the directory, continue
+
 
 mergeMaps :: (Map k v) (Map k v) -> Map k v | < k
 mergeMaps m1 m2 = foldl (\m (k,v)  -> 'DM'.put k v m) m1 ('DM'.toList m2)
