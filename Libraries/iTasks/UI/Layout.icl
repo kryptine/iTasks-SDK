@@ -689,10 +689,13 @@ where
 		| otherwise
 			= ([],items)
 
-	adjustRemSiblings selection path whichSiblings children = adjust 0 [] children
+	adjustRemSiblings selection path whichSiblings children = (changes, reverse items)
 	where
+        (changes, items) = adjust 0 [] children
+
+
         adjust :: !Int ![MvUIChild] ![MvUIChild] -> (![(!Int,!UIChildChange)],![MvUIChild])
-		adjust i before [] = ([],reverse before)
+		adjust i before [] = ([],before)
 		adjust i before [MvUIItem item:children]
 			| item.MvUI.deleted
 				= adjust i [MvUIItem item : before] children //Ignore deleted branches
@@ -703,7 +706,7 @@ where
 					(ChangeChild (ChangeUI [] [])) = []
 					(ChangeChild change)           = [(adjustIndex i (reverse before),cchange)]
 				# (changes, children) = adjust (i + 1) (map MvUIItem (reverse items) ++ before) children
-				= (change ++ changes, reverse children)
+				= (change ++ changes, children)
 			| otherwise
 				= adjust (i + 1) [MvUIItem item : before] children
 		adjust i before [child:children]
