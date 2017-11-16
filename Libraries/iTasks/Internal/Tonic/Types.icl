@@ -4,7 +4,7 @@ import StdString
 import StdOverloaded
 import iTasks.Internal.Tonic.AbsSyn
 import qualified Data.Map as DM
-from Data.Map import instance Functor Map
+from Data.Map import instance Functor (Map k)
 import qualified Data.IntMap.Strict as DIS
 from Data.IntMap.Strict import :: IntMap
 import Data.Functor
