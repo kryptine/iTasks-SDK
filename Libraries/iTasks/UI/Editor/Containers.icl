@@ -313,6 +313,105 @@ where
 									[] = NoChange
 									_  = ChangeUI [] changes
 								= (Ok (change,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),(v1,v2,v3,v4,v5),vst)
+
+groupc :: UIType (Editor Int) [Editor a] -> Editor (Int, a)
+groupc type choiceEditor fieldEditors = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+where
+	genUI dp (choice,val) vst
+		= case choiceEditor.Editor.genUI (dp ++ [0]) choice vst of
+			(Error e,vst) = (Error e,vst)
+			(Ok (uiSelector,maskSelector),vst)
+				| (containsInvalidFields maskSelector)  //Only generate the field UI if a selection has been made
+					= (Ok (UI type emptyAttr [uiSelector], CompoundMask {CompoundMask|fields=[maskSelector],state=JSONNull}),vst)
+				| otherwise
+					= case (fieldEditors !! choice).Editor.genUI (dp ++ [1]) val vst of 
+						(Error e,vst) = (Error e,vst)
+						(Ok (uiField,maskField),vst)	
+							 = (Ok (UI type emptyAttr [uiSelector,uiField], CompoundMask {CompoundMask|fields=[maskSelector,maskField],state=JSONNull}),vst)
+	
+	//Handle choice changes 
+	onEdit dp ([0:tp],choiceEdit) (currentChoice,val) mask=:(CompoundMask {CompoundMask|fields=[maskSelector:optMaskField]}) vst
+		= case choiceEditor.Editor.onEdit (dp ++ [0]) (tp,choiceEdit) currentChoice maskSelector vst of
+			(Error e,choice,vst) = (Error e,(choice,val),vst)
+			(Ok (choiceUIChange,maskSelector),newChoice,vst)
+				//Based on the effect of the selection change we may need to update the field editor
+				| optMaskField =:[] //Previously no choice was made
+					| containsInvalidFields maskSelector //Still no choice has been made
+						# change = ChangeUI [] [(0,ChangeChild choiceUIChange)]
+						# mask = CompoundMask {CompoundMask|fields=[maskSelector],state=JSONNull}
+						= (Ok (change,mask), (newChoice,val), vst)
+					| otherwise //A choice has been made -> create an initial UI
+						= case (fieldEditors !! newChoice).Editor.genUI (dp ++ [1]) val vst of 
+							(Error e,vst) = (Error e,(newChoice,val),vst)
+							(Ok (uiField,maskField),vst)
+								# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,InsertChild uiField)]
+								# mask = CompoundMask {CompoundMask|fields=[maskSelector,maskField],state=JSONNull}
+								= (Ok (change,mask), (newChoice,val), vst)
+				| otherwise // Previously an editor was chosen
+					| containsInvalidFields maskSelector //The selection has been cleared 
+						# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,RemoveChild)]
+						# mask = CompoundMask {CompoundMask|fields=[maskSelector],state=JSONNull}
+						= (Ok (change,mask), (newChoice,val), vst)
+					| newChoice == currentChoice //The selection stayed the same
+						# change = ChangeUI [] [(0,ChangeChild choiceUIChange)]
+						# mask = CompoundMask {CompoundMask|fields=[maskSelector:optMaskField],state=JSONNull}
+						= (Ok (change,mask), (newChoice,val), vst)
+					| otherwise //The selection changed -> replace with an initial UI of the new choice	
+						= case (fieldEditors !! newChoice).Editor.genUI (dp ++ [1]) val vst of 
+							(Error e,vst) = (Error e,(newChoice,val),vst)
+							(Ok (uiField,maskField),vst)
+								# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,ChangeChild (ReplaceUI uiField))]
+								# mask = CompoundMask {CompoundMask|fields=[maskSelector,maskField],state=JSONNull}
+								= (Ok (change,mask), (newChoice,val), vst)
+
+	//Handle edits in the field editor
+	onEdit dp ([1:tp],fieldEdit) (choice,val) mask=:(CompoundMask {CompoundMask|fields=[maskSelector,maskField]}) vst
+		= case (fieldEditors !! choice).Editor.onEdit (dp ++ [1]) (tp,fieldEdit) val maskField vst of 
+			(Error e,val,vst) = (Error e,(choice,val),vst)
+			(Ok (fieldChange,maskField),val,vst) 
+				# change = ChangeUI [] [(1,ChangeChild fieldChange)]
+				# mask = CompoundMask {CompoundMask|fields=[maskSelector,maskField],state=JSONNull}
+				= (Ok (change,mask), (choice,val), vst)
+
+	onEdit _ (tp,e) val mask vst = (Error "Event route out of range",val,vst)	
+
+	onRefresh dp (newChoice,newField) (oldChoice,oldField) mask=:(CompoundMask {CompoundMask|fields=[maskSelector:optMaskField]}) vst 
+		//Update the choice selector
+		= case choiceEditor.Editor.onRefresh (dp ++ [0]) newChoice oldChoice maskSelector vst of
+			(Error e,_,vst) = (Error e,(oldChoice,oldField),vst)
+			(Ok (choiceUIChange,maskSelector),newChoice,vst)
+				| optMaskField =:[] //Previously no choice was made
+					| containsInvalidFields maskSelector //Still no choice has been made
+						# change = ChangeUI [] [(0,ChangeChild choiceUIChange)]
+						# mask = CompoundMask {CompoundMask|fields=[maskSelector],state=JSONNull}
+						= (Ok (change,mask), (newChoice,newField), vst)
+					| otherwise //A choice has been made -> create an initial UI
+						= case (fieldEditors !! newChoice).Editor.genUI (dp ++ [1]) newField vst of 
+							(Error e,vst) = (Error e,(oldChoice,oldField),vst)
+							(Ok (uiField,maskField),vst)
+								# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,InsertChild uiField)]
+								# mask = CompoundMask {CompoundMask|fields=[maskSelector,maskField],state=JSONNull}
+								= (Ok (change,mask), (newChoice,newField), vst)
+				| otherwise // Previously an editor was chosen
+					| containsInvalidFields maskSelector //The selection has been cleared 
+						# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,RemoveChild)]
+						# mask = CompoundMask {CompoundMask|fields=[maskSelector],state=JSONNull}
+						= (Ok (change,mask), (newChoice,newField), vst)
+					| newChoice == oldChoice //The selection stayed the same -> update the field
+						= case (fieldEditors !! newChoice).Editor.onRefresh (dp ++ [1]) newField oldField (hd optMaskField) vst of
+							(Error e,_,vst) = (Error e,(oldChoice,oldField),vst)
+							(Ok (fieldUIChange,maskField),newField,vst)
+								# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,ChangeChild fieldUIChange)]
+								# mask = CompoundMask {CompoundMask|fields=[maskSelector,maskField],state=JSONNull}
+								= (Ok (change,mask), (newChoice,newField), vst)
+					| otherwise //The selection changed -> replace with an initial UI of the new choice	
+						= case (fieldEditors !! newChoice).Editor.genUI (dp ++ [1]) newField vst of 
+							(Error e,vst) = (Error e,(oldChoice,oldField),vst)
+							(Ok (uiField,maskField),vst)
+								# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,ChangeChild (ReplaceUI uiField))]
+								# mask = CompoundMask {CompoundMask|fields=[maskSelector,maskField],state=JSONNull}
+								= (Ok (change,mask), (newChoice,newField), vst)
+
 //# UIContainer
 container :: Editor ()
 container = group UIContainer
@@ -321,7 +420,7 @@ containerl :: (Editor a) -> Editor [a]
 containerl e = groupl UIContainer e
 
 containerL :: [Editor a] -> Editor [a]
-containerL e = groupL UIContainer e
+containerL es = groupL UIContainer es
 
 container1 :: (Editor a) -> Editor a
 container1 e1 = group1 UIContainer e1
@@ -338,6 +437,9 @@ container4 e1 e2 e3 e4 = group4 UIContainer e1 e2 e3 e4
 container5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 container5 e1 e2 e3 e4 e5 = group5 UIContainer e1 e2 e3 e4 e5
 
+containerc :: (Editor Int) [Editor a] -> Editor (Int,a)
+containerc ec es = groupc UIContainer ec es
+
 //# UIPanel
 panel :: Editor ()
 panel = group UIPanel
@@ -346,7 +448,7 @@ panell :: (Editor a) -> Editor [a]
 panell e = groupl UIPanel e
 
 panelL :: [Editor a] -> Editor [a]
-panelL e = groupL UIPanel e
+panelL es = groupL UIPanel es
 
 panel1 :: (Editor a) -> Editor a
 panel1 e1 = group1 UIPanel e1
@@ -363,6 +465,9 @@ panel4 e1 e2 e3 e4 = group4 UIPanel e1 e2 e3 e4
 panel5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 panel5 e1 e2 e3 e4 e5 = group5 UIPanel e1 e2 e3 e4 e5
 
+panelc :: (Editor Int) [Editor a] -> Editor (Int,a)
+panelc ec es = groupc UIPanel ec es
+
 //# UITabSet
 tabset :: Editor ()
 tabset = group UITabSet
@@ -371,7 +476,7 @@ tabsetl :: (Editor a) -> Editor [a]
 tabsetl e = groupl UITabSet e
 
 tabsetL :: [Editor a] -> Editor [a]
-tabsetL e = groupL UITabSet e
+tabsetL es = groupL UITabSet es
 
 tabset1 :: (Editor a) -> Editor a
 tabset1 e1 = group1 UITabSet e1
@@ -388,6 +493,9 @@ tabset4 e1 e2 e3 e4 = group4 UITabSet e1 e2 e3 e4
 tabset5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 tabset5 e1 e2 e3 e4 e5 = group5 UITabSet e1 e2 e3 e4 e5
 
+tabsetc :: (Editor Int) [Editor a] -> Editor (Int,a)
+tabsetc ec es = groupc UITabSet ec es
+
 //# UIWindow
 window :: Editor ()
 window = group UIWindow
@@ -396,7 +504,7 @@ windowl :: (Editor a) -> Editor [a]
 windowl e = groupl UIWindow e
 
 windowL :: [Editor a] -> Editor [a]
-windowL e = groupL UIWindow e
+windowL es = groupL UIWindow es
 
 window1 :: (Editor a) -> Editor a
 window1 e1 = group1 UIWindow e1
@@ -413,6 +521,9 @@ window4 e1 e2 e3 e4 = group4 UIWindow e1 e2 e3 e4
 window5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 window5 e1 e2 e3 e4 e5 = group5 UIWindow e1 e2 e3 e4 e5
 
+windowc :: (Editor Int) [Editor a] -> Editor (Int,a)
+windowc ec es = groupc UIWindow ec es
+
 //# UIMenu
 menu :: Editor ()
 menu = group UIMenu
@@ -421,7 +532,7 @@ menul :: (Editor a) -> Editor [a]
 menul e = groupl UIMenu e
 
 menuL :: [Editor a] -> Editor [a]
-menuL e = groupL UIMenu e
+menuL es = groupL UIMenu es
 
 menu1 :: (Editor a) -> Editor a
 menu1 e1 = group1 UIMenu e1
@@ -438,6 +549,9 @@ menu4 e1 e2 e3 e4 = group4 UIMenu e1 e2 e3 e4
 menu5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 menu5 e1 e2 e3 e4 e5 = group5 UIMenu e1 e2 e3 e4 e5
 
+menuc :: (Editor Int) [Editor a] -> Editor (Int,a)
+menuc ec es = groupc UIMenu ec es
+
 //# UIToolBar
 toolbar :: Editor ()
 toolbar = group UIToolBar
@@ -446,7 +560,7 @@ toolbarl :: (Editor a) -> Editor [a]
 toolbarl e = groupl UIToolBar e
 
 toolbarL :: [Editor a] -> Editor [a]
-toolbarL e = groupL UIToolBar e
+toolbarL es = groupL UIToolBar es
 
 toolbar1 :: (Editor a) -> Editor a
 toolbar1 e1 = group1 UIToolBar e1
@@ -463,6 +577,9 @@ toolbar4 e1 e2 e3 e4 = group4 UIToolBar e1 e2 e3 e4
 toolbar5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 toolbar5 e1 e2 e3 e4 e5 = group5 UIToolBar e1 e2 e3 e4 e5
 
+toolbarc :: (Editor Int) [Editor a] -> Editor (Int,a)
+toolbarc ec es = groupc UIToolBar ec es
+
 //# UIButtonBar
 buttonbar :: Editor ()
 buttonbar = group UIButtonBar
@@ -471,7 +588,7 @@ buttonbarl :: (Editor a) -> Editor [a]
 buttonbarl e = groupl UIButtonBar e
 
 buttonbarL :: [Editor a] -> Editor [a]
-buttonbarL e = groupL UIButtonBar e
+buttonbarL es = groupL UIButtonBar es
 
 buttonbar1 :: (Editor a) -> Editor a
 buttonbar1 e1 = group1 UIButtonBar e1
@@ -488,6 +605,9 @@ buttonbar4 e1 e2 e3 e4 = group4 UIButtonBar e1 e2 e3 e4
 buttonbar5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 buttonbar5 e1 e2 e3 e4 e5 = group5 UIButtonBar e1 e2 e3 e4 e5
 
+buttonbarc :: (Editor Int) [Editor a] -> Editor (Int,a)
+buttonbarc ec es = groupc UIButtonBar ec es
+
 //# UIList
 list :: Editor ()
 list = group UIList
@@ -496,7 +616,7 @@ listl :: (Editor a) -> Editor [a]
 listl e = groupl UIList e 
 
 listL :: [Editor a] -> Editor [a]
-listL e = groupL UIList e
+listL es = groupL UIList es
 
 list1 :: (Editor a) -> Editor a
 list1 e1 = group1 UIList e1
@@ -513,6 +633,9 @@ list4 e1 e2 e3 e4 = group4 UIList e1 e2 e3 e4
 list5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 list5 e1 e2 e3 e4 e5 = group5 UIList e1 e2 e3 e4 e5
 
+listc :: (Editor Int) [Editor a] -> Editor (Int,a)
+listc ec es = groupc UIList ec es
+
 //# UIListItem
 listitem :: Editor ()
 listitem = group UIListItem
@@ -521,7 +644,7 @@ listiteml :: (Editor a) -> Editor [a]
 listiteml e = groupl UIListItem e
 
 listitemL :: [Editor a] -> Editor [a]
-listitemL e = groupL UIListItem e
+listitemL es = groupL UIListItem es
 
 listitem1 :: (Editor a) -> Editor a
 listitem1 e1 = group1 UIListItem e1
@@ -538,6 +661,9 @@ listitem4 e1 e2 e3 e4 = group4 UIListItem e1 e2 e3 e4
 listitem5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 listitem5 e1 e2 e3 e4 e5 = group5 UIListItem e1 e2 e3 e4 e5
 
+listitemc :: (Editor Int) [Editor a] -> Editor (Int,a)
+listitemc ec es = groupc UIListItem ec es
+
 //# UIDebug
 debug :: Editor ()
 debug = group UIDebug
@@ -546,7 +672,7 @@ debugl :: (Editor a) -> Editor [a]
 debugl e = groupl UIDebug e
 
 debugL :: [Editor a] -> Editor [a]
-debugL e = groupL UIDebug e
+debugL es = groupL UIDebug es
 
 debug1 :: (Editor a) -> Editor a
 debug1 e1 = group1 UIDebug e1
@@ -563,4 +689,6 @@ debug4 e1 e2 e3 e4 = group4 UIDebug e1 e2 e3 e4
 debug5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 debug5 e1 e2 e3 e4 e5 = group5 UIDebug e1 e2 e3 e4 e5
 
+debugc :: (Editor Int) [Editor a] -> Editor (Int,a)
+debugc ec es = groupc UIDebug ec es
 

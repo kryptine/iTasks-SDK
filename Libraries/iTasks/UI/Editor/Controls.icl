@@ -131,6 +131,7 @@ where
 	genUI dp (val,sel) vst=:{VSt|taskId,mode,optional}
 		# valid = if (mode =: Enter) optional True //When entering data a value is initially only valid if it is optional
 		# mask = FieldMask {touched = False, valid = valid, state = JSONNull}
+		# sel = if (mode =: Enter) [] sel //When entering, the selection is initially empty
 		# attr = 'DM'.unions [attr val,choiceAttrs taskId (editorId dp) sel (map toOption (getOptions val))]
 		= (Ok (uia type attr,mask), vst)
 
@@ -142,7 +143,9 @@ where
 			(JSONArray ids)
 				# selection = [i \\ JSONInt i <- ids]
 				| all (checkBounds options) selection
-					= (Ok (NoChange,FieldMask {touched=True,valid=True,state=JSONArray ids}),(val,selection),vst)
+					# multiple = maybe False (\(JSONBool b) -> b) ('DM'.get "multiple" (attr val))
+					# valid = if (selection =: []) multiple True //The selection is only allowed to be empty when multiselect is enabled
+					= (Ok (NoChange,FieldMask {touched=True,valid=valid,state=JSONArray ids}),(val,selection),vst)
 				| otherwise
 					= (Error ("Choice event out of bounds: " +++ toString (JSONArray ids)),(val,sel),vst)
 			_ 
