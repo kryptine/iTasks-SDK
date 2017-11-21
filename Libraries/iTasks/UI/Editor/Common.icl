@@ -26,7 +26,7 @@ where
 			# items = if (not (mode =: View) && (remove || reorder)) [listItemUI taskId dp (length val) idx idx dx \\ dx <- items & idx <- [0..]] items
 			//Add the add button
 			# items = if (not (mode =: View) && add =: Just _) (items ++ [addItemControl val]) items
-			= (Ok (uic UIList items,CompoundMask {fields=masks,state=toJSON (indexList val)}), vst)
+			= (Ok (uic UIList items,StateCompoundMask masks (toJSON (indexList val))), vst)
 		(Error e,vst)  = (Error e,vst)
 	where			
 		genChildUIs dp _ [] us vst = (Ok (unzip (reverse us)), vst)
@@ -55,7 +55,7 @@ where
 
 			
 	//Structural edits on the list
-	onEdit dp ([],JSONString e) items (CompoundMask {fields=masks,state}) vst=:{VSt|taskId, mode}
+	onEdit dp ([],JSONString e) items (StateCompoundMask masks state) vst=:{VSt|taskId, mode}
 		# ids = fromMaybe [] (fromJSON state) //All item UI's have a unique id that is used in the data-paths of that UI
 		# [op,id:_] = split "_" e
 		# id = toInt id 
@@ -66,13 +66,13 @@ where
 				# changes =  if (index == 1) [(index,toggle 1 False),(index - 1,toggle 1 True)] [] //Update 'move-up' buttons
 						  ++ if (index == num - 1) [(index,toggle 2 True),(index - 1,toggle 2 False)] [] //Update 'move-down' buttons
 						  ++ [(index,MoveChild (index - 1))] //Actually move the item
-				= (Ok (ChangeUI [] changes,CompoundMask {fields=(swap masks index),state=toJSON (swap ids index)}), (swap items index), vst)
+				= (Ok (ChangeUI [] changes,StateCompoundMask (swap masks index) (toJSON (swap ids index))), (swap items index), vst)
 		| op == "mdn" && reorder
 			| index < 0 || index > (length items - 2) = (Error "List move-down out of bounds",items,vst)
 				# changes =  if (index == 0) [(index,toggle 1 True),(index + 1,toggle 1 False)] [] //Update 'move-up' buttons
                           ++ if (index == num - 2) [(index,toggle 2 False),(index + 1,toggle 2 True)] [] //Update 'move-down' buttons
                           ++ [(index,MoveChild (index + 1))]
-			    = (Ok (ChangeUI [] changes,CompoundMask {fields=(swap masks (index + 1)),state=toJSON (swap ids (index + 1))}), (swap items (index + 1)), vst)
+			    = (Ok (ChangeUI [] changes,StateCompoundMask (swap masks (index + 1)) (toJSON (swap ids (index + 1)))), (swap items (index + 1)), vst)
 		| op == "rem" && remove
 			| index < 0 || index >= num = (Error "List remove out of bounds",items,vst)
 				# nitems = (removeAt index items)
@@ -80,7 +80,7 @@ where
 				# changes =  if (index == 0 && num > 1) [(index + 1, toggle 1 False)] []
 						  ++ if (index == num - 1 && index > 0) [(index - 1, toggle 2 False)] []
 						  ++ [(index,RemoveChild)] ++ counter
-			= (Ok (ChangeUI [] changes, CompoundMask {fields=removeAt index masks,state=toJSON (removeAt index ids)}), nitems, vst)
+			= (Ok (ChangeUI [] changes, StateCompoundMask (removeAt index masks) (toJSON (removeAt index ids))), nitems, vst)
 		| op == "add" && add =: (Just _)
 			# f = fromJust add
 			# mbNx = f items
@@ -99,8 +99,8 @@ where
 					# counter = maybe [] (\f -> [(ni + 1, ChangeChild (ChangeUI [] [(0,ChangeChild (ChangeUI [SetAttribute "value" (JSONString (f nitems))] []))]))]) count
 					# prevdown = if (ni > 0) [(ni - 1,toggle 2 True)] []
 					# change = ChangeUI [] (insert ++ counter ++ prevdown)
-					= (Ok (change,CompoundMask {fields=nmasks,state=toJSON nids}),nitems, {vst & mode = mode})
-		= (Ok (NoChange,CompoundMask {fields=masks,state=toJSON ids}),items,vst)
+					= (Ok (change,StateCompoundMask nmasks (toJSON nids)),nitems, {vst & mode = mode})
+		= (Ok (NoChange,StateCompoundMask masks (toJSON ids)),items,vst)
 	where
 		swap []	  _		= []
 		swap list index
@@ -112,7 +112,7 @@ where
 				= updateAt (index-1) l (updateAt index f list)
 		toggle idx value = ChangeChild (ChangeUI [] [(idx,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool value)] []))])
 	//Edits inside the list
-	onEdit dp ([id:tp],e) items (CompoundMask {fields=masks,state}) vst
+	onEdit dp ([id:tp],e) items (StateCompoundMask masks state) vst
 		# ids = fromMaybe [] (fromJSON state)
 		# index = itemIndex id ids
 		| index < 0 || index >= length items = (Error ("List edit out of bounds (index:" +++ toString index +++", list length: "+++toString (length items)+++")"),items,vst)
@@ -121,7 +121,7 @@ where
 				(Error e,nx,vst) 
 					= (Error e, items,vst)
 				(Ok (change,nm),nx,vst)
-					= (Ok (childChange index change,CompoundMask {fields=updateAt index nm masks,state=state}), (updateAt index nx items),vst)
+					= (Ok (childChange index change,StateCompoundMask (updateAt index nm masks) state), (updateAt index nx items),vst)
 	where
 		childChange i NoChange = NoChange
 		childChange i change = ChangeUI [] [(i,ChangeChild (ChangeUI [] [(0,ChangeChild change)]))]

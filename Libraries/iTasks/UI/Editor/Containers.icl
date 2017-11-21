@@ -25,7 +25,7 @@ groupl type editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst = case genUIAll dp 0 val vst of
 		(Error e,vst) = (Error e,vst)
-		(Ok (uis,masks),vst) = (Ok (UI type emptyAttr uis, CompoundMask {CompoundMask|fields=masks,state=JSONNull}),vst)
+		(Ok (uis,masks),vst) = (Ok (UI type emptyAttr uis, CompoundMask masks),vst)
 
 	genUIAll dp i [] vst = (Ok ([],[]),vst)
 	genUIAll dp i [v:vs] vst = case editor.Editor.genUI (dp ++ [i]) v vst of
@@ -34,19 +34,19 @@ where
 			(Error e,vst) = (Error e,vst)
 			(Ok (uis,ms),vst) = (Ok ([ui:uis],[m:ms]),vst)
 
-	onEdit dp ([i:tp],e) val (CompoundMask {CompoundMask|fields=masks}) vst
+	onEdit dp ([i:tp],e) val (CompoundMask masks) vst
 		| i < 0 || i >= length val || i >= length masks  = (Error "Event route out of range",val,vst)
 		| otherwise = case editor.Editor.onEdit (dp ++ [i]) (tp,e) (val !! i) (masks !! i) vst of
 			(Error e,ival,vst) = (Error e,val,vst)
 			(Ok (NoChange,imask),ival,vst)
-				= (Ok (NoChange,CompoundMask {CompoundMask|fields=updateAt i imask masks,state=JSONNull}),updateAt i ival val,vst)
+				= (Ok (NoChange,CompoundMask (updateAt i imask masks)),updateAt i ival val,vst)
 			(Ok (change,imask),ival,vst)
-				= (Ok (ChangeUI [] [(i,ChangeChild change)],CompoundMask {CompoundMask|fields=updateAt i imask masks,state=JSONNull}),updateAt i ival val,vst)
+				= (Ok (ChangeUI [] [(i,ChangeChild change)],CompoundMask (updateAt i imask masks)),updateAt i ival val,vst)
 
-	onRefresh dp new old (CompoundMask {CompoundMask|fields=masks}) vst = case onRefreshAll dp 0 new old masks vst of
+	onRefresh dp new old (CompoundMask masks) vst = case onRefreshAll dp 0 new old masks vst of
 		(Error e,val,vst) = (Error e,val,vst)
-		(Ok ([],masks),val,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=masks,state=JSONNull}),val,vst)
-		(Ok (changes,masks),val,vst) = (Ok (ChangeUI [] changes,CompoundMask {CompoundMask|fields=masks,state=JSONNull}),new,vst)
+		(Ok ([],masks),val,vst) = (Ok (NoChange,CompoundMask masks),val,vst)
+		(Ok (changes,masks),val,vst) = (Ok (ChangeUI [] changes,CompoundMask masks),new,vst)
 
 	onRefreshAll dp i [n:ns] [o:os] [m:ms] vst
 		 = case editor.Editor.onRefresh (dp ++ [i]) n o m vst of
@@ -68,7 +68,7 @@ groupL type editors = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst = case genUIAll 0 editors dp val vst of
 		(Error e,vst) = (Error e,vst)
-		(Ok (uis,masks),vst) = (Ok (UI type emptyAttr uis, CompoundMask {CompoundMask|fields=masks,state=JSONNull}),vst)
+		(Ok (uis,masks),vst) = (Ok (UI type emptyAttr uis, CompoundMask masks),vst)
 
 	genUIAll i _ dp [] vst = (Ok ([],[]),vst)
 	genUIAll i [ed:eds] dp [v:vs] vst = case ed.Editor.genUI (dp ++ [i]) v vst of
@@ -77,19 +77,19 @@ where
 			(Error e,vst) = (Error e,vst)
 			(Ok (uis,ms),vst) = (Ok ([ui:uis],[m:ms]),vst)
 
-	onEdit dp ([i:tp],e) val (CompoundMask {CompoundMask|fields=masks}) vst
+	onEdit dp ([i:tp],e) val (CompoundMask masks) vst
 		| i < 0 || i >= length val || i >= length masks  = (Error "Event route out of range",val,vst)
 		= case (editors !! i).Editor.onEdit (dp ++ [i]) (tp,e) (val !! i) (masks !! i) vst of
 			(Error e,ival,vst) = (Error e,val,vst)
 			(Ok (NoChange,imask),ival,vst)
-				= (Ok (NoChange,CompoundMask {CompoundMask|fields=updateAt i imask masks,state=JSONNull}),updateAt i ival val,vst)
+				= (Ok (NoChange,CompoundMask (updateAt i imask masks)),updateAt i ival val,vst)
 			(Ok (change,imask),ival,vst)
-				= (Ok (ChangeUI [] [(i,ChangeChild change)],CompoundMask {CompoundMask|fields=updateAt i imask masks,state=JSONNull}),updateAt i ival val, vst)
+				= (Ok (ChangeUI [] [(i,ChangeChild change)],CompoundMask (updateAt i imask masks)),updateAt i ival val, vst)
 
-	onRefresh dp new old (CompoundMask {CompoundMask|fields=masks}) vst = case onRefreshAll 0 editors dp new old masks vst of
+	onRefresh dp new old (CompoundMask masks) vst = case onRefreshAll 0 editors dp new old masks vst of
 		(Error e,val,vst) = (Error e,val,vst)
-		(Ok ([],masks),val,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=masks,state=JSONNull}),val,vst)
-		(Ok (changes,masks),val,vst) = (Ok (ChangeUI [] changes,CompoundMask {CompoundMask|fields=masks,state=JSONNull}),new,vst)
+		(Ok ([],masks),val,vst) = (Ok (NoChange,CompoundMask masks),val,vst)
+		(Ok (changes,masks),val,vst) = (Ok (ChangeUI [] changes,CompoundMask masks),new,vst)
 
 	onRefreshAll i [ed:eds] dp [n:ns] [o:os] [m:ms] vst
 		 = case ed.Editor.onRefresh (dp ++ [i]) n o m vst of
@@ -112,19 +112,19 @@ where
 	genUI dp val vst
 		= case editor1.Editor.genUI (dp ++ [0]) val vst of
 			(Error e,vst) = (Error e,vst)
-			(Ok (ui1,mask1),vst) = (Ok (UI type emptyAttr [ui1], CompoundMask {CompoundMask|fields=[mask1],state=JSONNull}),vst)
+			(Ok (ui1,mask1),vst) = (Ok (UI type emptyAttr [ui1], CompoundMask [mask1]),vst)
 
-	onEdit dp ([0:tp],e) val (CompoundMask {CompoundMask|fields=[m1]}) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val m1 vst of
+	onEdit dp ([0:tp],e) val (CompoundMask [m1]) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val m1 vst of
 		(Error e,val,vst) = (Error e,val,vst)
-		(Ok (NoChange,m1),val,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1],state=JSONNull}),val,vst)
-		(Ok (c1,m1),val,vst) = (Ok (ChangeUI [] [(0,ChangeChild c1)],CompoundMask {CompoundMask|fields=[m1],state=JSONNull}),val,vst)
+		(Ok (NoChange,m1),val,vst) = (Ok (NoChange,CompoundMask [m1]),val,vst)
+		(Ok (c1,m1),val,vst) = (Ok (ChangeUI [] [(0,ChangeChild c1)],CompoundMask [m1]),val,vst)
 	onEdit _ _ val mask vst = (Error "Event route out of range",val,vst)	
 
-	onRefresh dp old new (CompoundMask {CompoundMask|fields=[m1]}) vst 
+	onRefresh dp old new (CompoundMask [m1]) vst 
 		= case editor1.Editor.onRefresh (dp ++ [0]) old new m1 vst of
 			(Error e,val,vst) = (Error e,val,vst)
-			(Ok (NoChange,m1),val,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1],state=JSONNull}),val,vst)
-			(Ok (c1,m1),val,vst) = (Ok (ChangeUI [] [(0,ChangeChild c1)],CompoundMask {CompoundMask|fields=[m1],state=JSONNull}),val,vst)
+			(Ok (NoChange,m1),val,vst) = (Ok (NoChange,CompoundMask [m1]),val,vst)
+			(Ok (c1,m1),val,vst) = (Ok (ChangeUI [] [(0,ChangeChild c1)],CompoundMask [m1]),val,vst)
 
 group2 :: UIType (Editor a) (Editor b) -> Editor (a,b)
 group2 type editor1 editor2 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
@@ -134,20 +134,20 @@ where
 			(Error e,vst) = (Error e,vst)
 			(Ok (ui1,m1),vst) = case editor2.Editor.genUI (dp ++ [1]) val2 vst of
 				(Error e,vst) = (Error e,vst)
-				(Ok (ui2,m2),vst) = (Ok (UI type emptyAttr [ui1,ui2], CompoundMask {CompoundMask|fields=[m1,m2],state=JSONNull}),vst)
+				(Ok (ui2,m2),vst) = (Ok (UI type emptyAttr [ui1,ui2], CompoundMask [m1,m2]),vst)
 
-	onEdit dp ([0:tp],e) (val1,val2) (CompoundMask {CompoundMask|fields=[m1,m2]}) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val1 m1 vst of
+	onEdit dp ([0:tp],e) (val1,val2) (CompoundMask [m1,m2]) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val1 m1 vst of
 		(Error e,val1,vst) = (Error e,(val1,val2),vst)
-		(Ok (NoChange,m1),val1,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2],state=JSONNull}),(val1,val2),vst)
-		(Ok (c1,m1),val1,vst) = (Ok (ChangeUI [] [(0,ChangeChild c1)],CompoundMask {CompoundMask|fields=[m1,m2],state=JSONNull}),(val1,val2),vst)
+		(Ok (NoChange,m1),val1,vst) = (Ok (NoChange,CompoundMask [m1,m2]),(val1,val2),vst)
+		(Ok (c1,m1),val1,vst) = (Ok (ChangeUI [] [(0,ChangeChild c1)],CompoundMask [m1,m2]),(val1,val2),vst)
 
-	onEdit dp ([1:tp],e) (val1,val2) (CompoundMask {CompoundMask|fields=[m1,m2]}) vst = case editor2.Editor.onEdit (dp ++ [1]) (tp,e) val2 m2 vst of
+	onEdit dp ([1:tp],e) (val1,val2) (CompoundMask [m1,m2]) vst = case editor2.Editor.onEdit (dp ++ [1]) (tp,e) val2 m2 vst of
 		(Error e,val2,vst) = (Error e,(val1,val2),vst)
-		(Ok (NoChange,m2),val2,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2],state=JSONNull}),(val1,val2),vst)
-		(Ok (c2,m2),val2,vst) = (Ok (ChangeUI [] [(1,ChangeChild c2)],CompoundMask {CompoundMask|fields=[m1,m2],state=JSONNull}),(val1,val2),vst)
+		(Ok (NoChange,m2),val2,vst) = (Ok (NoChange,CompoundMask [m1,m2]),(val1,val2),vst)
+		(Ok (c2,m2),val2,vst) = (Ok (ChangeUI [] [(1,ChangeChild c2)],CompoundMask [m1,m2]),(val1,val2),vst)
 	onEdit _ _ val mask vst = (Error "Event route out of range",val,vst)	
 	
-	onRefresh dp (n1,n2) (o1,o2) (CompoundMask {CompoundMask|fields=[m1,m2]}) vst 
+	onRefresh dp (n1,n2) (o1,o2) (CompoundMask [m1,m2]) vst 
 		= case editor1.Editor.onRefresh (dp ++ [0]) n1 o1 m1 vst of
 			(Error e,v1,vst) = (Error e,(v1,o2),vst)
 			(Ok (c1,m1),v1,vst) = case editor2.Editor.onRefresh (dp ++ [1]) n2 o2 m2 vst of
@@ -157,7 +157,7 @@ where
 					# change = case changes of
 						[] = NoChange
 						_  = ChangeUI [] changes
-					= (Ok (change,CompoundMask {CompoundMask|fields=[m1,m2],state=JSONNull}),(v1,v2),vst)
+					= (Ok (change,CompoundMask [m1,m2]),(v1,v2),vst)
 
 group3 :: UIType (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
 group3 type editor1 editor2 editor3 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
@@ -169,26 +169,26 @@ where
 				(Error e,vst) = (Error e,vst)
 				(Ok (ui2,m2),vst) = case editor3.Editor.genUI (dp ++ [2]) val3 vst of
 					(Error e,vst) = (Error e,vst)
-					(Ok (ui3,m3),vst) =(Ok (UI type emptyAttr [ui1,ui2,ui3], CompoundMask {CompoundMask|fields=[m1,m2,m3],state=JSONNull}),vst)
+					(Ok (ui3,m3),vst) =(Ok (UI type emptyAttr [ui1,ui2,ui3], CompoundMask [m1,m2,m3]),vst)
 
-	onEdit dp ([0:tp],e) (val1,val2,val3) (CompoundMask {CompoundMask|fields=[m1,m2,m3]}) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val1 m1 vst of
+	onEdit dp ([0:tp],e) (val1,val2,val3) (CompoundMask [m1,m2,m3]) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val1 m1 vst of
 		(Error e,val1,vst) = (Error e,(val1,val2,val3),vst)
-		(Ok (NoChange,m1),val1,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2,m3],state=JSONNull}),(val1,val2,val3),vst)
-		(Ok (c1,m1),val1,vst) = (Ok (ChangeUI [] [(0,ChangeChild c1)],CompoundMask {CompoundMask|fields=[m1,m2,m3],state=JSONNull}),(val1,val2,val3),vst)
+		(Ok (NoChange,m1),val1,vst) = (Ok (NoChange,CompoundMask [m1,m2,m3]),(val1,val2,val3),vst)
+		(Ok (c1,m1),val1,vst) = (Ok (ChangeUI [] [(0,ChangeChild c1)],CompoundMask [m1,m2,m3]),(val1,val2,val3),vst)
 
-	onEdit dp ([1:tp],e) (val1,val2,val3) (CompoundMask {CompoundMask|fields=[m1,m2,m3]}) vst = case editor2.Editor.onEdit (dp ++ [1]) (tp,e) val2 m2 vst of
+	onEdit dp ([1:tp],e) (val1,val2,val3) (CompoundMask [m1,m2,m3]) vst = case editor2.Editor.onEdit (dp ++ [1]) (tp,e) val2 m2 vst of
 		(Error e,val2,vst) = (Error e,(val1,val2,val3),vst)
-		(Ok (NoChange,m2),val2,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2,m3],state=JSONNull}),(val1,val2,val3),vst)
-		(Ok (c2,m2),val2,vst) = (Ok (ChangeUI [] [(1,ChangeChild c2)],CompoundMask {CompoundMask|fields=[m1,m2,m3],state=JSONNull}),(val1,val2,val3),vst)
+		(Ok (NoChange,m2),val2,vst) = (Ok (NoChange,CompoundMask [m1,m2,m3]),(val1,val2,val3),vst)
+		(Ok (c2,m2),val2,vst) = (Ok (ChangeUI [] [(1,ChangeChild c2)],CompoundMask [m1,m2,m3]),(val1,val2,val3),vst)
 
-	onEdit dp ([2:tp],e) (val1,val2,val3) (CompoundMask {CompoundMask|fields=[m1,m2,m3]}) vst = case editor3.Editor.onEdit (dp ++ [2]) (tp,e) val3 m3 vst of
+	onEdit dp ([2:tp],e) (val1,val2,val3) (CompoundMask [m1,m2,m3]) vst = case editor3.Editor.onEdit (dp ++ [2]) (tp,e) val3 m3 vst of
 		(Error e,val3,vst) = (Error e,(val1,val2,val3),vst)
-		(Ok (NoChange,m3),val3,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2,m3],state=JSONNull}),(val1,val2,val3),vst)
-		(Ok (c3,m3),val3,vst) = (Ok (ChangeUI [] [(2,ChangeChild c3)],CompoundMask {CompoundMask|fields=[m1,m2,m3],state=JSONNull}),(val1,val2,val3),vst)
+		(Ok (NoChange,m3),val3,vst) = (Ok (NoChange,CompoundMask [m1,m2,m3]),(val1,val2,val3),vst)
+		(Ok (c3,m3),val3,vst) = (Ok (ChangeUI [] [(2,ChangeChild c3)],CompoundMask [m1,m2,m3]),(val1,val2,val3),vst)
 
 	onEdit _ _ val mask vst = (Error "Event route out of range",val,vst)	
 	
-	onRefresh dp (n1,n2,n3) (o1,o2,o3) (CompoundMask {CompoundMask|fields=[m1,m2,m3]}) vst 
+	onRefresh dp (n1,n2,n3) (o1,o2,o3) (CompoundMask [m1,m2,m3]) vst 
 		= case editor1.Editor.onRefresh (dp ++ [0]) n1 o1 m1 vst of
 			(Error e,v1,vst) = (Error e,(v1,o2,o3),vst)
 			(Ok (c1,m1),v1,vst) = case editor2.Editor.onRefresh (dp ++ [1]) n2 o2 m2 vst of
@@ -200,7 +200,7 @@ where
 						# change = case changes of
 							[] = NoChange
 							_  = ChangeUI [] changes
-						= (Ok (change,CompoundMask {CompoundMask|fields=[m1,m2,m3],state=JSONNull}),(v1,v2,v3),vst)
+						= (Ok (change,CompoundMask [m1,m2,m3]),(v1,v2,v3),vst)
 
 group4 :: UIType (Editor a) (Editor b) (Editor c) (Editor d) -> Editor (a,b,c,d)
 group4 type editor1 editor2 editor3 editor4 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
@@ -214,31 +214,31 @@ where
 					(Error e,vst) = (Error e,vst)
 					(Ok (ui3,m3),vst) = case editor4.Editor.genUI (dp ++ [3]) val4 vst of
 						(Error e,vst) = (Error e,vst)
-						(Ok (ui4,m4),vst) = (Ok (UI type emptyAttr [ui1,ui2,ui3,ui4], CompoundMask {CompoundMask|fields=[m1,m2,m3,m4],state=JSONNull}),vst)
+						(Ok (ui4,m4),vst) = (Ok (UI type emptyAttr [ui1,ui2,ui3,ui4], CompoundMask [m1,m2,m3,m4]),vst)
 
-	onEdit dp ([0:tp],e) (val1,val2,val3,val4) (CompoundMask {CompoundMask|fields=[m1,m2,m3,m4]}) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val1 m1 vst of
+	onEdit dp ([0:tp],e) (val1,val2,val3,val4) (CompoundMask [m1,m2,m3,m4]) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val1 m1 vst of
 		(Error e,val1,vst) = (Error e,(val1,val2,val3,val4),vst)
-		(Ok (NoChange,m1),val1,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4],state=JSONNull}),(val1,val2,val3,val4),vst)
-		(Ok (c1,m1),val1,vst) = (Ok (ChangeUI [] [(0,ChangeChild c1)],CompoundMask {CompoundMask|fields=[m1,m2,m3,m4],state=JSONNull}),(val1,val2,val3,val4),vst)
+		(Ok (NoChange,m1),val1,vst) = (Ok (NoChange,CompoundMask [m1,m2,m3,m4]),(val1,val2,val3,val4),vst)
+		(Ok (c1,m1),val1,vst) = (Ok (ChangeUI [] [(0,ChangeChild c1)],CompoundMask [m1,m2,m3,m4]),(val1,val2,val3,val4),vst)
 
-	onEdit dp ([1:tp],e) (val1,val2,val3,val4) (CompoundMask {CompoundMask|fields=[m1,m2,m3,m4]}) vst = case editor2.Editor.onEdit (dp ++ [1]) (tp,e) val2 m2 vst of
+	onEdit dp ([1:tp],e) (val1,val2,val3,val4) (CompoundMask [m1,m2,m3,m4]) vst = case editor2.Editor.onEdit (dp ++ [1]) (tp,e) val2 m2 vst of
 		(Error e,val2,vst) = (Error e,(val1,val2,val3,val4),vst)
-		(Ok (NoChange,m2),val2,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4],state=JSONNull}),(val1,val2,val3,val4),vst)
-		(Ok (c2,m2),val2,vst) = (Ok (ChangeUI [] [(1,ChangeChild c2)],CompoundMask {CompoundMask|fields=[m1,m2,m3,m4],state=JSONNull}),(val1,val2,val3,val4),vst)
+		(Ok (NoChange,m2),val2,vst) = (Ok (NoChange,CompoundMask [m1,m2,m3,m4]),(val1,val2,val3,val4),vst)
+		(Ok (c2,m2),val2,vst) = (Ok (ChangeUI [] [(1,ChangeChild c2)],CompoundMask [m1,m2,m3,m4]),(val1,val2,val3,val4),vst)
 
-	onEdit dp ([2:tp],e) (val1,val2,val3,val4) (CompoundMask {CompoundMask|fields=[m1,m2,m3,m4]}) vst = case editor3.Editor.onEdit (dp ++ [2]) (tp,e) val3 m3 vst of
+	onEdit dp ([2:tp],e) (val1,val2,val3,val4) (CompoundMask [m1,m2,m3,m4]) vst = case editor3.Editor.onEdit (dp ++ [2]) (tp,e) val3 m3 vst of
 		(Error e,val3,vst) = (Error e,(val1,val2,val3,val4),vst)
-		(Ok (NoChange,m3),val3,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4],state=JSONNull}),(val1,val2,val3,val4),vst)
-		(Ok (c3,m3),val3,vst) = (Ok (ChangeUI [] [(2,ChangeChild c3)],CompoundMask {CompoundMask|fields=[m1,m2,m3,m4],state=JSONNull}),(val1,val2,val3,val4),vst)
+		(Ok (NoChange,m3),val3,vst) = (Ok (NoChange,CompoundMask [m1,m2,m3,m4]),(val1,val2,val3,val4),vst)
+		(Ok (c3,m3),val3,vst) = (Ok (ChangeUI [] [(2,ChangeChild c3)],CompoundMask [m1,m2,m3,m4]),(val1,val2,val3,val4),vst)
 
-	onEdit dp ([3:tp],e) (val1,val2,val3,val4) (CompoundMask {CompoundMask|fields=[m1,m2,m3,m4]}) vst = case editor4.Editor.onEdit (dp ++ [3]) (tp,e) val4 m4 vst of
+	onEdit dp ([3:tp],e) (val1,val2,val3,val4) (CompoundMask [m1,m2,m3,m4]) vst = case editor4.Editor.onEdit (dp ++ [3]) (tp,e) val4 m4 vst of
 		(Error e,val4,vst) = (Error e,(val1,val2,val3,val4),vst)
-		(Ok (NoChange,m4),val4,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4],state=JSONNull}),(val1,val2,val3,val4),vst)
-		(Ok (c4,m4),val4,vst) = (Ok (ChangeUI [] [(3,ChangeChild c4)],CompoundMask {CompoundMask|fields=[m1,m2,m3,m4],state=JSONNull}),(val1,val2,val3,val4),vst)
+		(Ok (NoChange,m4),val4,vst) = (Ok (NoChange,CompoundMask [m1,m2,m3,m4]),(val1,val2,val3,val4),vst)
+		(Ok (c4,m4),val4,vst) = (Ok (ChangeUI [] [(3,ChangeChild c4)],CompoundMask [m1,m2,m3,m4]),(val1,val2,val3,val4),vst)
 
 	onEdit _ _ val mask vst = (Error "Event route out of range",val,vst)	
 
-	onRefresh dp (n1,n2,n3,n4) (o1,o2,o3,o4) (CompoundMask {CompoundMask|fields=[m1,m2,m3,m4]}) vst 
+	onRefresh dp (n1,n2,n3,n4) (o1,o2,o3,o4) (CompoundMask [m1,m2,m3,m4]) vst 
 		= case editor1.Editor.onRefresh (dp ++ [0]) n1 o1 m1 vst of
 			(Error e,v1,vst) = (Error e,(v1,o2,o3,o4),vst)
 			(Ok (c1,m1),v1,vst) = case editor2.Editor.onRefresh (dp ++ [1]) n2 o2 m2 vst of
@@ -252,7 +252,7 @@ where
 							# change = case changes of
 								[] = NoChange
 								_  = ChangeUI [] changes
-							= (Ok (change,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4],state=JSONNull}),(v1,v2,v3,v4),vst)
+							= (Ok (change,CompoundMask [m1,m2,m3,m4]),(v1,v2,v3,v4),vst)
 
 group5 :: UIType (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c,d,e)
 group5 type editor1 editor2 editor3 editor4 editor5 = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
@@ -268,35 +268,35 @@ where
 						(Error e,vst) = (Error e,vst)
 						(Ok (ui4,m4),vst) = case editor5.Editor.genUI (dp ++ [4]) val5 vst of
 							(Error e,vst) = (Error e,vst)
-							(Ok (ui5,m5),vst) = (Ok (UI type emptyAttr [ui1,ui2,ui3,ui4,ui5], CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),vst)
-	onEdit dp ([0:tp],e) (val1,val2,val3,val4,val5) (CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5]}) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val1 m1 vst of
+							(Ok (ui5,m5),vst) = (Ok (UI type emptyAttr [ui1,ui2,ui3,ui4,ui5], CompoundMask [m1,m2,m3,m4,m5]),vst)
+	onEdit dp ([0:tp],e) (val1,val2,val3,val4,val5) (CompoundMask [m1,m2,m3,m4,m5]) vst = case editor1.Editor.onEdit (dp ++ [0]) (tp,e) val1 m1 vst of
 		(Error e,val1,vst) = (Error e,(val1,val2,val3,val4,val5),vst)
-		(Ok (NoChange,m1),val1,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),(val1,val2,val3,val4,val5),vst)
-		(Ok (c1,m1),val1,vst) = (Ok (ChangeUI [] [(0,ChangeChild c1)],CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),(val1,val2,val3,val4,val5),vst)
+		(Ok (NoChange,m1),val1,vst) = (Ok (NoChange,CompoundMask [m1,m2,m3,m4,m5]),(val1,val2,val3,val4,val5),vst)
+		(Ok (c1,m1),val1,vst) = (Ok (ChangeUI [] [(0,ChangeChild c1)],CompoundMask [m1,m2,m3,m4,m5]),(val1,val2,val3,val4,val5),vst)
 
-	onEdit dp ([1:tp],e) (val1,val2,val3,val4,val5) (CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5]}) vst = case editor2.Editor.onEdit (dp ++ [1]) (tp,e) val2 m2 vst of
+	onEdit dp ([1:tp],e) (val1,val2,val3,val4,val5) (CompoundMask [m1,m2,m3,m4,m5]) vst = case editor2.Editor.onEdit (dp ++ [1]) (tp,e) val2 m2 vst of
 		(Error e,val2,vst) = (Error e,(val1,val2,val3,val4,val5),vst)
-		(Ok (NoChange,m2),val2,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),(val1,val2,val3,val4,val5),vst)
-		(Ok (c2,m2),val2,vst) = (Ok (ChangeUI [] [(1,ChangeChild c2)],CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),(val1,val2,val3,val4,val5),vst)
+		(Ok (NoChange,m2),val2,vst) = (Ok (NoChange,CompoundMask [m1,m2,m3,m4,m5]),(val1,val2,val3,val4,val5),vst)
+		(Ok (c2,m2),val2,vst) = (Ok (ChangeUI [] [(1,ChangeChild c2)],CompoundMask [m1,m2,m3,m4,m5]),(val1,val2,val3,val4,val5),vst)
 
-	onEdit dp ([2:tp],e) (val1,val2,val3,val4,val5) (CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5]}) vst = case editor3.Editor.onEdit (dp ++ [2]) (tp,e) val3 m3 vst of
+	onEdit dp ([2:tp],e) (val1,val2,val3,val4,val5) (CompoundMask [m1,m2,m3,m4,m5]) vst = case editor3.Editor.onEdit (dp ++ [2]) (tp,e) val3 m3 vst of
 		(Error e,val3,vst) = (Error e,(val1,val2,val3,val4,val5),vst)
-		(Ok (NoChange,m3),val3,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),(val1,val2,val3,val4,val5),vst)
-		(Ok (c3,m3),val3,vst) = (Ok (ChangeUI [] [(2,ChangeChild c3)],CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),(val1,val2,val3,val4,val5),vst)
+		(Ok (NoChange,m3),val3,vst) = (Ok (NoChange,CompoundMask [m1,m2,m3,m4,m5]),(val1,val2,val3,val4,val5),vst)
+		(Ok (c3,m3),val3,vst) = (Ok (ChangeUI [] [(2,ChangeChild c3)],CompoundMask [m1,m2,m3,m4,m5]),(val1,val2,val3,val4,val5),vst)
 
-	onEdit dp ([3:tp],e) (val1,val2,val3,val4,val5) (CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5]}) vst = case editor4.Editor.onEdit (dp ++ [3]) (tp,e) val4 m4 vst of
+	onEdit dp ([3:tp],e) (val1,val2,val3,val4,val5) (CompoundMask [m1,m2,m3,m4,m5]) vst = case editor4.Editor.onEdit (dp ++ [3]) (tp,e) val4 m4 vst of
 		(Error e,val4,vst) = (Error e,(val1,val2,val3,val4,val5),vst)
-		(Ok (NoChange,m4),val4,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),(val1,val2,val3,val4,val5),vst)
-		(Ok (c4,m4),val4,vst) = (Ok (ChangeUI [] [(3,ChangeChild c4)],CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),(val1,val2,val3,val4,val5),vst)
+		(Ok (NoChange,m4),val4,vst) = (Ok (NoChange,CompoundMask [m1,m2,m3,m4,m5]),(val1,val2,val3,val4,val5),vst)
+		(Ok (c4,m4),val4,vst) = (Ok (ChangeUI [] [(3,ChangeChild c4)],CompoundMask [m1,m2,m3,m4,m5]),(val1,val2,val3,val4,val5),vst)
 
-	onEdit dp ([4:tp],e) (val1,val2,val3,val4,val5) (CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5]}) vst = case editor5.Editor.onEdit (dp ++ [4]) (tp,e) val5 m5 vst of
+	onEdit dp ([4:tp],e) (val1,val2,val3,val4,val5) (CompoundMask [m1,m2,m3,m4,m5]) vst = case editor5.Editor.onEdit (dp ++ [4]) (tp,e) val5 m5 vst of
 		(Error e,val5,vst) = (Error e,(val1,val2,val3,val4,val5),vst)
-		(Ok (NoChange,m5),val5,vst) = (Ok (NoChange,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),(val1,val2,val3,val4,val5),vst)
-		(Ok (c5,m5),val5,vst) = (Ok (ChangeUI [] [(4,ChangeChild c5)],CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),(val1,val2,val3,val4,val5),vst)
+		(Ok (NoChange,m5),val5,vst) = (Ok (NoChange,CompoundMask [m1,m2,m3,m4,m5]),(val1,val2,val3,val4,val5),vst)
+		(Ok (c5,m5),val5,vst) = (Ok (ChangeUI [] [(4,ChangeChild c5)],CompoundMask [m1,m2,m3,m4,m5]),(val1,val2,val3,val4,val5),vst)
 
 	onEdit _ _ val mask vst = (Error "Event route out of range",val,vst)	
 
-	onRefresh dp (n1,n2,n3,n4,n5) (o1,o2,o3,o4,o5) (CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5]}) vst 
+	onRefresh dp (n1,n2,n3,n4,n5) (o1,o2,o3,o4,o5) (CompoundMask [m1,m2,m3,m4,m5]) vst 
 		= case editor1.Editor.onRefresh (dp ++ [0]) n1 o1 m1 vst of
 			(Error e,v1,vst) = (Error e,(v1,o2,o3,o4,o5),vst)
 			(Ok (c1,m1),v1,vst) = case editor2.Editor.onRefresh (dp ++ [1]) n2 o2 m2 vst of
@@ -312,7 +312,7 @@ where
 								# change = case changes of
 									[] = NoChange
 									_  = ChangeUI [] changes
-								= (Ok (change,CompoundMask {CompoundMask|fields=[m1,m2,m3,m4,m5],state=JSONNull}),(v1,v2,v3,v4,v5),vst)
+								= (Ok (change,CompoundMask [m1,m2,m3,m4,m5]),(v1,v2,v3,v4,v5),vst)
 
 groupc :: UIType (Editor Int) [Editor a] -> Editor (Int, a)
 groupc type choiceEditor fieldEditors = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
@@ -322,15 +322,15 @@ where
 			(Error e,vst) = (Error e,vst)
 			(Ok (uiSelector,maskSelector),vst)
 				| (containsInvalidFields maskSelector)  //Only generate the field UI if a selection has been made
-					= (Ok (UI type emptyAttr [uiSelector], CompoundMask {CompoundMask|fields=[maskSelector],state=JSONNull}),vst)
+					= (Ok (UI type emptyAttr [uiSelector], CompoundMask [maskSelector]),vst)
 				| otherwise
 					= case (fieldEditors !! choice).Editor.genUI (dp ++ [1]) val vst of 
 						(Error e,vst) = (Error e,vst)
 						(Ok (uiField,maskField),vst)	
-							 = (Ok (UI type emptyAttr [uiSelector,uiField], CompoundMask {CompoundMask|fields=[maskSelector,maskField],state=JSONNull}),vst)
+							 = (Ok (UI type emptyAttr [uiSelector,uiField], CompoundMask [maskSelector,maskField]),vst)
 	
 	//Handle choice changes 
-	onEdit dp ([0:tp],choiceEdit) (currentChoice,val) mask=:(CompoundMask {CompoundMask|fields=[maskSelector:optMaskField]}) vst
+	onEdit dp ([0:tp],choiceEdit) (currentChoice,val) mask=:(CompoundMask [maskSelector:optMaskField]) vst
 		= case choiceEditor.Editor.onEdit (dp ++ [0]) (tp,choiceEdit) currentChoice maskSelector vst of
 			(Error e,choice,vst) = (Error e,(choice,val),vst)
 			(Ok (choiceUIChange,maskSelector),newChoice,vst)
@@ -338,44 +338,44 @@ where
 				| optMaskField =:[] //Previously no choice was made
 					| containsInvalidFields maskSelector //Still no choice has been made
 						# change = ChangeUI [] [(0,ChangeChild choiceUIChange)]
-						# mask = CompoundMask {CompoundMask|fields=[maskSelector],state=JSONNull}
+						# mask = CompoundMask [maskSelector]
 						= (Ok (change,mask), (newChoice,val), vst)
 					| otherwise //A choice has been made -> create an initial UI
 						= case (fieldEditors !! newChoice).Editor.genUI (dp ++ [1]) val vst of 
 							(Error e,vst) = (Error e,(newChoice,val),vst)
 							(Ok (uiField,maskField),vst)
 								# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,InsertChild uiField)]
-								# mask = CompoundMask {CompoundMask|fields=[maskSelector,maskField],state=JSONNull}
+								# mask = CompoundMask [maskSelector,maskField]
 								= (Ok (change,mask), (newChoice,val), vst)
 				| otherwise // Previously an editor was chosen
 					| containsInvalidFields maskSelector //The selection has been cleared 
 						# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,RemoveChild)]
-						# mask = CompoundMask {CompoundMask|fields=[maskSelector],state=JSONNull}
+						# mask = CompoundMask [maskSelector]
 						= (Ok (change,mask), (newChoice,val), vst)
 					| newChoice == currentChoice //The selection stayed the same
 						# change = ChangeUI [] [(0,ChangeChild choiceUIChange)]
-						# mask = CompoundMask {CompoundMask|fields=[maskSelector:optMaskField],state=JSONNull}
+						# mask = CompoundMask [maskSelector:optMaskField]
 						= (Ok (change,mask), (newChoice,val), vst)
 					| otherwise //The selection changed -> replace with an initial UI of the new choice	
 						= case (fieldEditors !! newChoice).Editor.genUI (dp ++ [1]) val vst of 
 							(Error e,vst) = (Error e,(newChoice,val),vst)
 							(Ok (uiField,maskField),vst)
 								# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,ChangeChild (ReplaceUI uiField))]
-								# mask = CompoundMask {CompoundMask|fields=[maskSelector,maskField],state=JSONNull}
+								# mask = CompoundMask [maskSelector,maskField]
 								= (Ok (change,mask), (newChoice,val), vst)
 
 	//Handle edits in the field editor
-	onEdit dp ([1:tp],fieldEdit) (choice,val) mask=:(CompoundMask {CompoundMask|fields=[maskSelector,maskField]}) vst
+	onEdit dp ([1:tp],fieldEdit) (choice,val) mask=:(CompoundMask [maskSelector,maskField]) vst
 		= case (fieldEditors !! choice).Editor.onEdit (dp ++ [1]) (tp,fieldEdit) val maskField vst of 
 			(Error e,val,vst) = (Error e,(choice,val),vst)
 			(Ok (fieldChange,maskField),val,vst) 
 				# change = ChangeUI [] [(1,ChangeChild fieldChange)]
-				# mask = CompoundMask {CompoundMask|fields=[maskSelector,maskField],state=JSONNull}
+				# mask = CompoundMask [maskSelector,maskField]
 				= (Ok (change,mask), (choice,val), vst)
 
 	onEdit _ (tp,e) val mask vst = (Error "Event route out of range",val,vst)	
 
-	onRefresh dp (newChoice,newField) (oldChoice,oldField) mask=:(CompoundMask {CompoundMask|fields=[maskSelector:optMaskField]}) vst 
+	onRefresh dp (newChoice,newField) (oldChoice,oldField) mask=:(CompoundMask [maskSelector:optMaskField]) vst 
 		//Update the choice selector
 		= case choiceEditor.Editor.onRefresh (dp ++ [0]) newChoice oldChoice maskSelector vst of
 			(Error e,_,vst) = (Error e,(oldChoice,oldField),vst)
@@ -383,33 +383,33 @@ where
 				| optMaskField =:[] //Previously no choice was made
 					| containsInvalidFields maskSelector //Still no choice has been made
 						# change = ChangeUI [] [(0,ChangeChild choiceUIChange)]
-						# mask = CompoundMask {CompoundMask|fields=[maskSelector],state=JSONNull}
+						# mask = CompoundMask [maskSelector]
 						= (Ok (change,mask), (newChoice,newField), vst)
 					| otherwise //A choice has been made -> create an initial UI
 						= case (fieldEditors !! newChoice).Editor.genUI (dp ++ [1]) newField vst of 
 							(Error e,vst) = (Error e,(oldChoice,oldField),vst)
 							(Ok (uiField,maskField),vst)
 								# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,InsertChild uiField)]
-								# mask = CompoundMask {CompoundMask|fields=[maskSelector,maskField],state=JSONNull}
+								# mask = CompoundMask [maskSelector,maskField]
 								= (Ok (change,mask), (newChoice,newField), vst)
 				| otherwise // Previously an editor was chosen
 					| containsInvalidFields maskSelector //The selection has been cleared 
 						# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,RemoveChild)]
-						# mask = CompoundMask {CompoundMask|fields=[maskSelector],state=JSONNull}
+						# mask = CompoundMask [maskSelector]
 						= (Ok (change,mask), (newChoice,newField), vst)
 					| newChoice == oldChoice //The selection stayed the same -> update the field
 						= case (fieldEditors !! newChoice).Editor.onRefresh (dp ++ [1]) newField oldField (hd optMaskField) vst of
 							(Error e,_,vst) = (Error e,(oldChoice,oldField),vst)
 							(Ok (fieldUIChange,maskField),newField,vst)
 								# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,ChangeChild fieldUIChange)]
-								# mask = CompoundMask {CompoundMask|fields=[maskSelector,maskField],state=JSONNull}
+								# mask = CompoundMask [maskSelector,maskField]
 								= (Ok (change,mask), (newChoice,newField), vst)
 					| otherwise //The selection changed -> replace with an initial UI of the new choice	
 						= case (fieldEditors !! newChoice).Editor.genUI (dp ++ [1]) newField vst of 
 							(Error e,vst) = (Error e,(oldChoice,oldField),vst)
 							(Ok (uiField,maskField),vst)
 								# change = ChangeUI [] [(0,ChangeChild choiceUIChange),(1,ChangeChild (ReplaceUI uiField))]
-								# mask = CompoundMask {CompoundMask|fields=[maskSelector,maskField],state=JSONNull}
+								# mask = CompoundMask [maskSelector,maskField]
 								= (Ok (change,mask), (newChoice,newField), vst)
 
 //# UIContainer
