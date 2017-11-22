@@ -216,7 +216,7 @@ where
 		
 		runBuildTool directory moduleName
 			=   get cpmExecutable 
-			>>- \cpm -> callProcess () [] cpm [addExtension moduleName "prj"] (Just directory) False
+			>>- \cpm -> callProcess () [] cpm [addExtension moduleName "prj"] (Just directory) Nothing
 			>>* [OnAction ActionClose (ifStable return)] //Pause after command...
 		
 		setExecutable directory moduleName state
@@ -228,12 +228,12 @@ where
 			>>-	maybe (throw "Cannot run the program. There is no executable yet")
 				      (\executable -> 
 									makeExecutable executable
-						>>- \_ -> callProcess () [] executable ["-port","8084"] (Just temporaryDirectory) False
+						>>- \_ -> callProcess () [] executable ["-port","8084"] (Just temporaryDirectory) Nothing
 						>>* [OnAction ActionClose (always (return ()))] //Pause after command...
 					  )
 		) @! ()
 	where
-		makeExecutable path = callProcess () [] "chmod" ["+x",path] Nothing False
+		makeExecutable path = callProcess () [] "chmod" ["+x",path] Nothing Nothing
 
 :: SourceTreeQualityMetrics =
 	{ numFiles :: Int

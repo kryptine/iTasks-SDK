@@ -7,6 +7,7 @@ import iTasks.WF.Definition
 from iTasks.SDS.Definition import :: RWShared, :: SDS
 from iTasks.UI.Prompt import class toPrompt
 from System.FilePath import :: FilePath
+from System.Process import :: ProcessPtyOptions
 from Data.Error import :: MaybeError, :: MaybeErrorString
 
 :: ConnectionHandlers l r w = 
@@ -31,11 +32,12 @@ from Data.Error import :: MaybeError, :: MaybeErrorString
 * @param a list of command-line arguments
 * @param (optional) startup directory
 * @param A reference to shared data the task has access to
-* @param A flag whether to open a pseudotty
 * @param The event handler functions
+* @param Optionally the pseudotty settings
 * @param An editor for visualizing the local state
 */
-externalProcess :: !d !FilePath ![String] !(Maybe FilePath) !(SDS () r w) !Bool !(ExternalProcessHandlers l r w) !(Editor l) -> Task l | toPrompt d & iTask l & TC r & TC w
+externalProcess :: !d !FilePath ![String] !(Maybe FilePath) !(SDS () r w) !(ExternalProcessHandlers l r w) !(Maybe ProcessPtyOptions) !(Editor l) -> Task l | toPrompt d & iTask l & TC r & TC w
+
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed
 * @param Hostname

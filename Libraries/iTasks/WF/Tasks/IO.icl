@@ -13,6 +13,7 @@ import iTasks.Internal.TaskServer
 import iTasks.Internal.Generic.Visualization
 import iTasks.Internal.Generic.Defaults
 
+import System.Process
 import Text, Text.JSON, StdString, StdInt
 import qualified Data.Map as DM
 import qualified Data.Set as DS
@@ -33,11 +34,11 @@ import qualified Data.Set as DS
     , onExit        :: !(ExitCode l r -> (!MaybeErrorString l, !Maybe w                  ))
     }
 
-externalProcess :: !d !FilePath ![String] !(Maybe FilePath) !(SDS () r w) !Bool !(ExternalProcessHandlers l r w) !(Editor l) -> Task l | toPrompt d & iTask l & TC r & TC w
-externalProcess prompt cmd args dir sds pty handlers editor = Task eval
+externalProcess :: !d !FilePath ![String] !(Maybe FilePath) !(SDS () r w) !(ExternalProcessHandlers l r w) !(Maybe ProcessPtyOptions) !(Editor l) -> Task l | toPrompt d & iTask l & TC r & TC w
+externalProcess prompt cmd args dir sds handlers mopts editor = Task eval
 where
     eval event evalOpts tree=:(TCInit taskId ts) iworld
-        = case addExternalProc taskId cmd args dir pty (wrapExternalProcTask handlers sds) iworld of
+        = case addExternalProc taskId cmd args dir (wrapExternalProcTask handlers sds) mopts iworld of
             (Error e, iworld)
                 = (ExceptionResult e, iworld)
             (Ok (initialValue :: l^), iworld)

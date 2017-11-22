@@ -18,13 +18,13 @@ where
 	toString (CallFailed (_,err)) = "Error calling external process: " +++ err
 
 
-callProcess :: !d ![ViewOption ProcessInformation] !FilePath ![String] !(Maybe FilePath) !Bool -> Task ProcessInformation | toPrompt d
+callProcess :: !d ![ViewOption ProcessInformation] !FilePath ![String] !(Maybe FilePath) (Maybe ProcessPtyOptions) -> Task ProcessInformation | toPrompt d
 callProcess prompt [ViewAs tof:_] executable arguments workingDirectory pty
-	= externalProcess prompt executable arguments workingDirectory unitShare pty (callProcessHandlers executable arguments) (comapEditorValue tof gEditor{|*|})
+	= externalProcess prompt executable arguments workingDirectory unitShare (callProcessHandlers executable arguments) pty (comapEditorValue tof gEditor{|*|})
 callProcess prompt [ViewUsing tof editor:_] executable arguments workingDirectory pty
-	= externalProcess prompt executable arguments workingDirectory unitShare pty (callProcessHandlers executable arguments) (comapEditorValue tof editor)
+	= externalProcess prompt executable arguments workingDirectory unitShare (callProcessHandlers executable arguments) pty (comapEditorValue tof editor)
 callProcess prompt _ executable arguments workingDirectory pty
-	= externalProcess prompt executable arguments workingDirectory unitShare pty (callProcessHandlers executable arguments) gEditor{|*|}
+	= externalProcess prompt executable arguments workingDirectory unitShare (callProcessHandlers executable arguments) pty gEditor{|*|}
 
 callProcessHandlers executable arguments
 	= {onStartup = onStartup, onOutData = onOutData, onErrData = onErrData, onShareChange = onShareChange, onExit = onExit}
