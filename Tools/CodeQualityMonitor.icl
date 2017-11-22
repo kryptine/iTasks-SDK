@@ -228,12 +228,15 @@ where
 			>>-	maybe (throw "Cannot run the program. There is no executable yet")
 				      (\executable -> 
 									makeExecutable executable
-						>>- \_ -> callProcess () [] executable ["-port","8084"] (Just temporaryDirectory) Nothing
+						>>- \_ -> callProcess () [ViewAs view] executable ["-port","8084"] (Just temporaryDirectory) Nothing
 						>>* [OnAction ActionClose (always (return ()))] //Pause after command...
 					  )
 		) @! ()
 	where
 		makeExecutable path = callProcess () [] "chmod" ["+x",path] Nothing Nothing
+		view _ = ATag [HrefAttr url,TargetAttr "_blank"] [Text "Running the test program at: ",Text url]
+		where
+			url = "http://localhost:8084"
 
 :: SourceTreeQualityMetrics =
 	{ numFiles :: Int
