@@ -538,7 +538,7 @@ where
                 = case mbConn of
                     Nothing = (Error ("Failed to connect to host " +++ host), {iworld & world = world})
                     Just channel = (Ok (ip, channel), {iworld & world = world})
-                
+
     onInitHandler :: !IPAddress !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
     onInitHandler ip r iworld = handlers.ConnectionHandlersIWorld.onConnect (toString ip) r iworld
 
@@ -547,17 +547,19 @@ where
         # opts = {ConnectionInstanceOpts|taskId = taskId, connectionId = 0, remoteHost = ip, connectionTask = connectionTask, removeOnClose = False}
         = ConnectionInstance opts channel
 
-addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !Bool !ExternalProcessTask !IWorld -> (!MaybeError TaskException (), !*IWorld)
-addExternalProc taskId cmd args dir pty extProcTask=:(ExternalProcessTask handlers sds) iworld
+addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !ExternalProcessTask (!Maybe 'Process'.ProcessPtyOptions) !IWorld -> (!MaybeError TaskException (), !*IWorld)
+addExternalProc taskId cmd args dir extProcTask=:(ExternalProcessTask handlers sds) mopts iworld
     = addIOTask taskId sds init externalProcessIOOps onInitHandler mkIOTaskInstance iworld
 where
     init :: !*IWorld -> (!MaybeErrorString (!(), (!ProcessHandle, !ProcessIO)), !*IWorld)
     init iworld
-        # (mbRes, world) = (if pty 'Process'.runProcessPty 'Process'.runProcessIO) cmd args dir iworld.world
+        # (mbRes, world) = case mopts of
+			Nothing   = 'Process'.runProcessIO cmd args dir iworld.world
+			Just opts = 'Process'.runProcessPty cmd args dir opts iworld.world
         = case mbRes of
             Error (_, e) = (Error e,       {iworld & world = world})
             Ok proc      = (Ok ((), proc), {iworld & world = world})
-                
+ 
     onInitHandler :: !() !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
     onInitHandler _ r iworld
         # (mbl, mbw, out, close) = handlers.ExternalProcessHandlers.onStartup r
