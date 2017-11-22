@@ -3,7 +3,7 @@ implementation module iTasks.UI.Editor.Common
 import StdBool, StdEnum, StdOrdList, StdList, Data.Maybe, StdList, StdString
 import Text.JSON, GenEq
 
-import iTasks.UI.Definition, iTasks.UI.Editor
+import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Containers, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import Data.Tuple, Data.Error, Text, Text.JSON
 import qualified Data.Map as DM
 
@@ -13,6 +13,14 @@ where
 	genUI _ _ vst			    = (Ok (ui UIEmpty,newFieldMask),vst)
 	onEdit _ _ val mask vst 	= (Ok (NoChange,mask),val,vst)
 	onRefresh _ _ val mask vst  = (Ok (NoChange,mask),val,vst)
+
+chooseWithDropdown :: [String] -> Editor Int
+chooseWithDropdown labels = bijectEditorValue (\i -> (options,[i])) selection (dropdown <<@ multipleAttr False)
+where
+	selection (_,[x]) = x
+	selection _ = 0
+
+	options = [{ChoiceText|id=i,text=t} \\ t <- labels & i <- [0..]]
 
 listEditor :: (Maybe ([a] -> Maybe a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a] | JSONEncode{|*|}, gDefault{|*|} a
 listEditor add remove reorder count itemEditor = listEditor_ JSONEncode{|*|} gDefault{|*|} add remove reorder count itemEditor
