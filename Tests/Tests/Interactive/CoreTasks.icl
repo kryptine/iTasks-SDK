@@ -10,7 +10,7 @@ testCallProcess = itest "Call process test" "Press the button" "You should get t
 where
 	sut = viewInformation "Press the button to run an OS process" [] ()
 		>>| withShared []
-		    \io -> (externalProcess "/bin/date" [] Nothing io False {onStartup=onStartup,onOutData=onOutData,onErrData=onErrData,onShareChange=onShareChange,onExit=onExit}
+		    \io -> (externalProcess "/bin/date" [] Nothing io {onStartup=onStartup,onOutData=onOutData,onErrData=onErrData,onShareChange=onShareChange,onExit=onExit} Nothing
 					-|| viewSharedInformation "OUTPUT: " [] io
 					)
 
