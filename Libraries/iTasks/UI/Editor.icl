@@ -34,20 +34,17 @@ s2dp str
 
 subMasks :: !Int EditMask -> [EditMask]
 subMasks n (CompoundMask fields) = fields
-subMasks n (StateCompoundMask fields _) = fields
 subMasks n (StateMask field _) = subMasks n field
 subMasks n m = repeatn n m
 
 isTouched :: !EditMask -> Bool
 isTouched (FieldMask {FieldMask|touched}) = touched
 isTouched (CompoundMask fields) = or (map isTouched fields) 
-isTouched (StateCompoundMask fields _) = or (map isTouched fields) 
 isTouched (StateMask field _) = isTouched field 
 
 containsInvalidFields :: !EditMask -> Bool
 containsInvalidFields (FieldMask {FieldMask|valid}) = not valid
 containsInvalidFields (CompoundMask fields) = or (map containsInvalidFields fields)
-containsInvalidFields (StateCompoundMask fields state) = or (map containsInvalidFields fields)
 containsInvalidFields (StateMask field _) = containsInvalidFields field
 
 checkMask :: !EditMask a -> Maybe a

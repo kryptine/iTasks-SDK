@@ -37,7 +37,6 @@ from GenEq import generic gEq
 	= FieldMask !FieldMask                    //Edit state of single fields/controls
 	| CompoundMask ![EditMask]                //Compound structure of multiple controls
 	| StateMask !EditMask !JSONNode           //Add arbitrary editing state to an edit mask
-	| StateCompoundMask ![EditMask] !JSONNode //Mix of compound structure with state
 
 :: FieldMask = 
 	{ touched :: !Bool
