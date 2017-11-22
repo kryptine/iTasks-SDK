@@ -107,8 +107,8 @@ gText{|Time|} _ val = [maybe "" toString val]
 
 gEditor{|Time|} = selectByMode 
 		(bijectEditorValue toString fromString textView)
-		(surjectEditorValue toString parseTime (withDynamicHintAttributes "time (hh:mm:ss)" (withEditModeAttr textField)))
-		(surjectEditorValue toString parseTime (withDynamicHintAttributes "time (hh:mm:ss)" (withEditModeAttr textField)))
+		(injectEditorValue toString parseTime (withDynamicHintAttributes "time (hh:mm:ss)" (withEditModeAttr textField)))
+		(injectEditorValue toString parseTime (withDynamicHintAttributes "time (hh:mm:ss)" (withEditModeAttr textField)))
 
 derive gDefault		Time
 derive gEq			Time
@@ -177,8 +177,8 @@ gText{|DateTime|} _ (Just ({DateTime|year,mon,day,hour,min,sec}))
 
 gEditor{|DateTime|} = selectByMode
 		(bijectEditorValue toString fromString textView)
-		(surjectEditorValue toString parseDateTime (withDynamicHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" (withEditModeAttr textField) ))
-		(surjectEditorValue toString parseDateTime (withDynamicHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" (withEditModeAttr textField) ))
+		(injectEditorValue toString parseDateTime (withDynamicHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" (withEditModeAttr textField) ))
+		(injectEditorValue toString parseDateTime (withDynamicHintAttributes "date/time (yyyy-mm-dd hh:mm:ss)" (withEditModeAttr textField) ))
 
 derive gDefault			DateTime
 derive gEq				DateTime
