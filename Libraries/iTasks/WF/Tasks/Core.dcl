@@ -7,7 +7,7 @@ from Data.Error import :: MaybeError
 from System.OSError import :: MaybeOSError, :: OSError, :: OSErrorCode, :: OSErrorMessage
 from iTasks.UI.Editor import :: EditMode
 from iTasks.UI.Prompt import class toPrompt
-from iTasks.SDS.Definition import :: SDS, :: RWShared
+from iTasks.SDS.Definition import :: SDS
 
 /**
 * Lifts a value to the task domain. The task finishes immediately and yields its parameter
@@ -83,23 +83,11 @@ instance toString OSException
 
 /**
 * Core interaction task. All other interaction tasks are derived from this one.
-*
-* An interaction tasks works on a local state and has read-only access to shared data.
-*
-* @param Description: A description of the task to display to the user
-* @param Edit mode: The type of interaction: viewing, entering or updating information
-* @param ReadOnlyShared: A reference to shared data the task has access to
-* @param Initialization function: Computes the initial local state and view
-* @param Refresh function: Recomputes the local state and view when either the view is edited or the shared data changes.
-* @param Custom editor: Optional custom editor for the interaction
-*
-* @return The local state
-*
-* @gin False
 */
-interact :: !d !EditMode !(RWShared () r w)
-				(r -> (l, v))                       //On init
-				(v l v -> (l, v, Maybe (r -> w))) 	//On edit
-				(r l v -> (l, v, Maybe (r -> w)))  	//On refresh
-				(Maybe (Editor v)) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC w
+:: InteractionHandlers l r w v = 
+    { onInit    :: !(r -> (l,v))
+    , onEdit    :: !(v l v -> (l, v, Maybe (r -> w)))
+    , onRefresh :: !(r l v -> (l, v, Maybe (r -> w)))
+	}
 
+interact :: !d !EditMode !(SDS () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC w

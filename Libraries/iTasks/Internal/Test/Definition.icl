@@ -101,7 +101,7 @@ where
 //UTILITY TASKS
 testEditor :: (Editor a) a EditMode -> Task a | iTask a
 testEditor editor model mode
-	=   (interact "Editor test" mode unitShare (const ((),model)) (\v l _ -> (l,v,Nothing)) (\_ l v -> (l,v,Nothing)) (Just editor) @ snd
+	=   (interact "Editor test" mode unitShare {onInit = const ((),model), onEdit = \v l _ -> (l,v,Nothing), onRefresh = \_ l v -> (l,v,Nothing)} editor @ snd
 	>&> viewSharedInformation "Editor value" [ViewAs (toString o toJSON)] @? tvFromMaybe
 	)  <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal) )
 
@@ -110,9 +110,9 @@ testEditorWithShare editor model mode = (withShared model
 	\smodel ->
 		updateSharedInformation "Edit the shared source" [] smodel 
 		||-
-	    interact "Editor under test" mode smodel (\r -> ((),r))
-												 (\v l _ -> (l,v,Just (\_ -> v)))
-												 (\r l v -> (l,r,Nothing)) (Just editor) @ snd
+	    interact "Editor under test" mode smodel {onInit = \r -> ((),r)
+												 ,onEdit = \v l _ -> (l,v,Just (\_ -> v))
+												 ,onRefresh = \r l v -> (l,r,Nothing)} editor @ snd
 	) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)) 
 
 testCommonInteractions :: String -> Task a | iTask a

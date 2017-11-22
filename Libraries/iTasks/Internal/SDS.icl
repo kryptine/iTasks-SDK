@@ -4,7 +4,7 @@ from StdFunc import const
 import StdString, StdTuple, StdMisc, StdList, StdBool
 from Data.Map import :: Map
 import qualified Data.Map as DM
-import Data.Error, Data.Func, Data.Tuple, System.Time, Text, Text.JSON
+import Data.Error, Data.Func, Data.Tuple, System.OS, System.Time, Text, Text.JSON
 import qualified Data.Set as Set
 import iTasks.Engine
 import iTasks.Internal.IWorld
@@ -381,7 +381,8 @@ flushDeferredSDSWrites :: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 flushDeferredSDSWrites iworld=:{writeCache}
 	# (errors,iworld) = flushAll ('DM'.toList writeCache) iworld
 	| errors =: [] = (Ok (), {iworld & writeCache = 'DM'.newMap})
-				   = (Error (exception "Could not flush all deferred SDS writes, some data may be lost"),{iworld & writeCache = 'DM'.newMap})
+	# msg = join OS_NEWLINE ["Could not flush all deferred SDS writes, some data may be lost":map snd errors]
+	= (Error (exception msg),{iworld & writeCache = 'DM'.newMap})
 where
 	flushAll [] iworld = ([],iworld)
 	flushAll [(_,(_,DeferredWrite p w sds)):rest] iworld
