@@ -217,11 +217,22 @@ where
         = (jsNull, world)
 
     onWindowRemove me windowId _ world
+        // remove children from iTasks component
+        # (children,world)  = .? (me .# "children") world
+        # world             = forall removeWindow children world
+        // send edit event to server
         # (taskId,world)    = .? (me .# "attributes.taskId") world
 		# (editorId,world)  = .? (me .# "attributes.editorId") world
 		# (edit,world)      = encodeOnClient [LDRemoveWindow windowId] world
 		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,edit)) world
 		= (jsNull, world)
+    where
+        removeWindow idx layer world
+            # (layerWindowId, world)  = .? (layer .# "attributes.windowId") world
+            # world = jsTrace (idx, layerWindowId) world
+            | not (jsIsUndefined layerWindowId) && jsValToString layerWindowId == windowId =
+                snd (((me .# "removeChild") .$ idx) world)
+            = world
 
 	//Map object access
 	toLatLng obj world
@@ -288,7 +299,7 @@ where
 		# world 			= ((me .# "icons") .= index) world
 		= forall (createMapIcon me mapObj l index) icons world
 	where	
-		createMapIcon me mapObj l index def world
+		createMapIcon me mapObj l index _ def world
 			# (iconId,world)   = .? (def .# 0) world
 			# (iconSpec,world) = .? (def .# 1) world
         	# (icon,world)     = (l .# "icon" .$ iconSpec) world
@@ -296,11 +307,11 @@ where
 			= world
 
 	createMapObjects me mapObj objects world
-		# (l, world)      	= findObject "L" world
-		= forall (createMapObject me mapObj l) objects world
+		# (l, world) = findObject "L" world
+		= forall (\_ obj -> createMapObject me mapObj l obj) objects world
 
 	createMapObject me mapObj l object world
-		# (type,world)        = .? (object .# "attributes.type") world
+		# (type,world) = .? (object .# "attributes.type") world
 		= case jsValToString type of
 			"marker"   = createMarker   me mapObj l object world
 			"polyline" = createPolyline me mapObj l object world
@@ -402,22 +413,23 @@ where
         # (_,world)          = (layer .# "addTo" .$ (toJSArg mapObj)) world
         = world
     where
-        addRelatedMarker layer markerId world
+        addRelatedMarker layer _ markerId world
             # (_, world) = (layer .# "addRelatedMarker" .$ markerId) world
             = world
             
 
 	//Loop through a javascript array
-    forall :: ((JSVal v11) *JSWorld -> *JSWorld) !(JSVal a) !*JSWorld -> *JSWorld
+    forall :: (Int (JSVal v11) *JSWorld -> *JSWorld) !(JSVal a) !*JSWorld -> *JSWorld
 	forall f array world
 		# (len,world) = .? (array .# "length") world
 		= forall` 0 (jsValToInt len) world
 	where
         forall` :: !Int !Int !*JSWorld -> *JSWorld
 		forall` i len world
+            #! j = jsValToInt (toJSVal i) // FIXME: workaround for https://gitlab.science.ru.nl/clean-and-itasks/iTasks-SDK/issues/199
 			| i >= len = world
 			# (el,world) = .? (array .# i) world
-			= forall` (i + 1) len (f el world)
+			= forall` (i + 1) len (f j el world)
 
 	//Process the edits received from the client
 	onEdit dp ([],diff) m msk vst = case decodeOnServer diff of
