@@ -229,7 +229,6 @@ where
     where
         removeWindow idx layer world
             # (layerWindowId, world)  = .? (layer .# "attributes.windowId") world
-            # world = jsTrace (idx, layerWindowId) world
             | not (jsIsUndefined layerWindowId) && jsValToString layerWindowId == windowId =
                 snd (((me .# "removeChild") .$ idx) world)
             = world
