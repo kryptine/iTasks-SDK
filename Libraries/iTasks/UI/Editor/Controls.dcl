@@ -4,11 +4,12 @@ definition module iTasks.UI.Editor.Controls
 * of the client-side UI framework.
 */
 from iTasks.UI.Editor import :: Editor
-from iTasks.UI.Definition import :: UIAttributes
+from iTasks.UI.Definition import :: UIAttributes, :: UIType
 from Data.Maybe import :: Maybe
 from Data.Map import :: Map
 from Text.HTML import :: HtmlTag
-from Text.JSON import :: JSONNode
+from Text.JSON import :: JSONNode, generic JSONDecode, generic JSONEncode
+from GenEq import generic gEq
 
 // ## Form components ##
 // UITextField, UITextArea, UIPasswordField, UIIntegerField, UIDecimalField, UIDocumentField
@@ -117,6 +118,8 @@ grid          :: Editor (ChoiceGrid,   [Int])
 * Supported attributes:
 */
 tree          :: Editor ([ChoiceNode], [Int])
+
+fieldComponent :: UIType -> Editor a | JSONDecode{|*|}, JSONEncode{|*|}, gEq{|*|} a
 
 //Convenient types for describing the values of grids and trees
 :: ChoiceText =

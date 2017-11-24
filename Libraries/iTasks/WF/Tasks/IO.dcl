@@ -6,6 +6,7 @@ definition module iTasks.WF.Tasks.IO
 import iTasks.WF.Definition
 from iTasks.SDS.Definition import :: RWShared, :: SDS
 from System.FilePath import :: FilePath
+from System.Process import :: ProcessPtyOptions
 from Data.Error import :: MaybeError, :: MaybeErrorString
 
 :: ConnectionHandlers l r w = 
@@ -31,8 +32,9 @@ from Data.Error import :: MaybeError, :: MaybeErrorString
 * @param (optional) startup directory
 * @param A reference to shared data the task has access to
 * @param The event handler functions
+* @param Optionally the pseudotty settings
 */
-externalProcess :: !FilePath ![String] !(Maybe FilePath) !(RWShared () r w) !(ExternalProcessHandlers l r w) -> Task l | iTask l & TC r & TC w
+externalProcess :: !FilePath ![String] !(Maybe FilePath) !(RWShared () r w) !(ExternalProcessHandlers l r w) !(Maybe ProcessPtyOptions) -> Task l | iTask l & TC r & TC w
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed
 * @param Hostname

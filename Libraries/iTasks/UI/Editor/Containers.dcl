@@ -13,6 +13,7 @@ from Text.JSON import :: JSONNode
 //# UIContainer
 container  :: Editor ()
 containerl :: (Editor a) -> Editor [a]
+containerL :: [Editor a] -> Editor [a]
 container1 :: (Editor a) -> Editor a
 container2 :: (Editor a) (Editor b) -> Editor (a,b)
 container3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
@@ -22,6 +23,7 @@ container5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (
 //# UIPanel
 panel  :: Editor ()
 panell :: (Editor a) -> Editor [a]
+panelL :: [Editor a] -> Editor [a]
 panel1 :: (Editor a) -> Editor a
 panel2 :: (Editor a) (Editor b) -> Editor (a,b)
 panel3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
@@ -31,6 +33,7 @@ panel5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,
 //# UITabSet
 tabset  :: Editor ()
 tabsetl :: (Editor a) -> Editor [a]
+tabsetL :: [Editor a] -> Editor [a]
 tabset1 :: (Editor a) -> Editor a
 tabset2 :: (Editor a) (Editor b) -> Editor (a,b)
 tabset3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
@@ -40,6 +43,7 @@ tabset5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b
 //# UIWindow
 window  :: Editor ()
 windowl :: (Editor a) -> Editor [a]
+windowL :: [Editor a] -> Editor [a]
 window1 :: (Editor a) -> Editor a
 window2 :: (Editor a) (Editor b) -> Editor (a,b)
 window3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
@@ -49,6 +53,7 @@ window5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b
 //# UIMenu
 menu  :: Editor ()
 menul :: (Editor a) -> Editor [a]
+menuL :: [Editor a] -> Editor [a]
 menu1 :: (Editor a) -> Editor a
 menu2 :: (Editor a) (Editor b) -> Editor (a,b)
 menu3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
@@ -58,6 +63,7 @@ menu5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c
 //# UIToolBar
 toolbar  :: Editor ()
 toolbarl :: (Editor a) -> Editor [a]
+toolbarL :: [Editor a] -> Editor [a]
 toolbar1 :: (Editor a) -> Editor a
 toolbar2 :: (Editor a) (Editor b) -> Editor (a,b)
 toolbar3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
@@ -67,6 +73,7 @@ toolbar5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,
 //# UIButtonBar
 buttonbar  :: Editor ()
 buttonbarl :: (Editor a) -> Editor [a]
+buttonbarL :: [Editor a] -> Editor [a]
 buttonbar1 :: (Editor a) -> Editor a
 buttonbar2 :: (Editor a) (Editor b) -> Editor (a,b)
 buttonbar3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
@@ -76,6 +83,7 @@ buttonbar5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (
 //# UIList
 list  :: Editor ()
 listl :: (Editor a) -> Editor [a]
+listL :: [Editor a] -> Editor [a]
 list1 :: (Editor a) -> Editor a
 list2 :: (Editor a) (Editor b) -> Editor (a,b)
 list3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
@@ -85,6 +93,7 @@ list5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a,b,c
 //# UIListItem
 listitem  :: Editor ()
 listiteml :: (Editor a) -> Editor [a]
+listitemL :: [Editor a] -> Editor [a]
 listitem1 :: (Editor a) -> Editor a
 listitem2 :: (Editor a) (Editor b) -> Editor (a,b)
 listitem3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)
@@ -94,6 +103,7 @@ listitem5 :: (Editor a) (Editor b) (Editor c) (Editor d) (Editor e) -> Editor (a
 //# UIDebug
 debug  :: Editor ()
 debugl :: (Editor a) -> Editor [a]
+debugL :: [Editor a] -> Editor [a]
 debug1 :: (Editor a) -> Editor a
 debug2 :: (Editor a) (Editor b) -> Editor (a,b)
 debug3 :: (Editor a) (Editor b) (Editor c) -> Editor (a,b,c)

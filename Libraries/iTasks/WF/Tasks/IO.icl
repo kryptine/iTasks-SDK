@@ -10,6 +10,7 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.TaskServer
 import iTasks.Internal.Generic.Visualization
 
+import System.Process
 import Text, Text.JSON, StdString, StdInt
 import qualified Data.Map as DM
 
@@ -29,11 +30,11 @@ import qualified Data.Map as DM
     , onExit        :: !(ExitCode l r -> (!MaybeErrorString l, !Maybe w                  ))
     }
 
-externalProcess :: !FilePath ![String] !(Maybe FilePath) !(RWShared () r w) !(ExternalProcessHandlers l r w) -> Task l | iTask l & TC r & TC w
-externalProcess cmd args dir sds handlers = Task eval
+externalProcess :: !FilePath ![String] !(Maybe FilePath) !(RWShared () r w) !(ExternalProcessHandlers l r w) !(Maybe ProcessPtyOptions) -> Task l | iTask l & TC r & TC w
+externalProcess cmd args dir sds handlers mopts = Task eval
 where
     eval event evalOpts tree=:(TCInit taskId ts) iworld
-        = case addExternalProc taskId cmd args dir (wrapExternalProcTask handlers sds) iworld of
+        = case addExternalProc taskId cmd args dir (wrapExternalProcTask handlers sds) mopts iworld of
             (Error e, iworld)
                 = (ExceptionResult e, iworld)
             (Ok _, iworld)

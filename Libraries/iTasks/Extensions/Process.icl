@@ -13,7 +13,7 @@ import iTasks.Internal.TaskStore
 import iTasks.Internal.IWorld
 
 from StdFunc import const
-import StdTuple, StdBool
+import StdTuple, StdBool, StdString
 import Data.Maybe, Data.Error, Text.JSON
 import qualified System.Process
 import qualified Data.Map as DM
@@ -42,12 +42,12 @@ where
 			Ok handle
 		        = eval event evalOpts (TCBasic taskId ts (toJSON handle) False) {IWorld|iworld & world = world}
     //Check the process
-	eval event evalOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{IWorld|world,current={TaskEvalState|taskInstance}}
+	eval event evalOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{IWorld|world}
 		| stable
             # status        = fromJust (fromJSON encv)
 			= case makeRep event taskId evalOpts status False iworld of
             	(Ok rep,iworld)
-            		# iworld = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
+            		# iworld = queueRefresh [(taskId,"Checked OS process for instance "<+++ taskId)] iworld
 					= (ValueResult (Value status True) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
 				(Error e,iworld) = (ExceptionResult (exception e),iworld)
 		| otherwise
@@ -62,7 +62,7 @@ where
                         Nothing = (RunningProcess cmd,False, state)
                     = case makeRep event taskId evalOpts status stable {IWorld|iworld & world = world} of
                     	(Ok rep,iworld)
-                    		# iworld = queueRefresh [(taskInstance,"Checked OS process for instance "<+++ taskInstance)] iworld
+                    		# iworld = queueRefresh [(taskId,"Checked OS process for instance "<+++ taskId)] iworld
                     		= (ValueResult (Value status stable) {TaskEvalInfo|lastEvent=lastEvent,removedTasks=[],refreshSensitive=True} rep state, iworld)
 						(Error e,iworld) = (ExceptionResult (exception e),iworld)
 

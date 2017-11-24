@@ -27,6 +27,11 @@ arrangeWithTabs :: Bool -> Layout
 arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 
 /**
+ * Lift actions starting with / to the menu
+ */
+arrangeAsMenu :: Layout
+
+/**
 * Divide the available screen space
 *
 * @param Direction to split the available space in
@@ -68,6 +73,9 @@ instance tune ArrangeWithTabs Task
 
 :: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool
 instance tune ArrangeWithSideBar Task
+
+:: ArrangeAsMenu = ArrangeAsMenu
+instance tune ArrangeAsMenu Task
 
 :: ArrangeSplit = ArrangeSplit !UIDirection !Bool
 instance tune ArrangeSplit Task

@@ -39,13 +39,6 @@ gEq{|Task|} _ _ _			= True // tasks are always equal??
 gDefault{|Task|} gDefx = Task (\_ -> abort error)
 where
 	error = "Creating default task functions is impossible"
-	
-toRefresh :: Event -> Event
-toRefresh (EditEvent _ _ _)		= RefreshEvent "Converted from Edit"
-toRefresh (ActionEvent _ _)		= RefreshEvent "Converted from Action"
-toRefresh (FocusEvent _)		= RefreshEvent "Converted from Focus"
-toRefresh (RefreshEvent reason)	= RefreshEvent reason
-toRefresh (ResetEvent)          = RefreshEvent "Converted from Reset"
 
 wrapConnectionTask :: (ConnectionHandlers l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
 wrapConnectionTask {ConnectionHandlers|onConnect,onData,onShareChange,onDisconnect} sds
