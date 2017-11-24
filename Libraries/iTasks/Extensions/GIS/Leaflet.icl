@@ -368,30 +368,45 @@ where
 	createPolyline me mapObj l object world 
 		//Set options
         # (options,world)     = jsEmptyObject world
-		# (stroke,world)      = .? (object .# "attributes.strokeWidth") world
-		# (color,world)       = .? (object .# "attributes.strokeColor") world
-		# world               = (options .# "stroke" .= stroke) world
-		# world               = (options .# "color" .= color) world
+        # (style,world)       = .? (object .# "attributes.style") world
+        # world               = forall (applyLineStyle options) style world
 		# (points,world)      = .? (object .# "attributes.points") world
         # (layer,world)       = (l .# "polyline" .$ (points ,options)) world
         # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
 		# world               = (object .# "layer" .= layer) world
-		= world	
+		= world
 
 	createPolygon me mapObj l object world 
 		//Set options
         # (options,world)     = jsEmptyObject world
-		# (stroke,world)      = .? (object .# "attributes.strokeWidth") world
-		# (strokeColor,world) = .? (object .# "attributes.strokeColor") world
-		# (fillColor,world)   = .? (object .# "attributes.fillColor") world
-		# world               = (options .# "stroke" .= stroke) world
-		# world               = (options .# "color"  .= strokeColor) world
-		# world               = (options .# "fillColor"  .= fillColor) world
+		# (style,world)       = .? (object .# "attributes.style") world
+        # world               = forall (applyStyle options) style world
 		# (points,world)      = .? (object .# "attributes.points") world
         # (layer,world)       = (l .# "polygon" .$ (points ,options)) world
         # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
 		# world               = (object .# "layer" .= layer) world
 		= world
+    where
+        applyStyle options _ style world
+            # (styleType, world) = .? (style .# 0) world
+            # styleType = jsValToString styleType
+            | styleType == "Style"
+                # (directStyle, world) = .? (style .# 1) world
+                # (directStyleType, world) = .? (directStyle .# 0) world
+                # (directStyleVal, world)  = .? (directStyle .# 1) world
+                # directStyleType = jsValToString directStyleType
+                | directStyleType == "PolygonLineStrokeColor" = (options .# "color"       .= directStyleVal) world
+                | directStyleType == "PolygonLineStrokeWidth" = (options .# "weight"      .= directStyleVal) world
+                | directStyleType == "PolygonLineOpacity"     = (options .# "opacity"     .= directStyleVal) world
+                | directStyleType == "PolygonLineDashArray"   = (options .# "dashArray"   .= directStyleVal) world
+                | directStyleType == "PolygonNoFill"          = (options .# "fill"        .= False)          world
+                | directStyleType == "PolygonFillColor"       = (options .# "fillColor"   .= directStyleVal) world
+                | directStyleType == "PolygonFillOpacity"     = (options .# "fillOpacity" .= directStyleVal) world
+                = abort "unknown style"
+            | styleType == "Class"
+                # (cls, world) = .? (style .# 1) world
+                = (options .# "className" .= cls) world
+            = abort "unknown style"
 
     createWindow me mapObj l object world
         # (layer,world)      = (l .# "window" .$ () ) world
@@ -412,10 +427,31 @@ where
         # (_,world)          = (layer .# "addTo" .$ (toJSArg mapObj)) world
         = world
     where
-        addRelatedMarker layer _ markerId world
-            # (_, world) = (layer .# "addRelatedMarker" .$ markerId) world
+        addRelatedMarker layer _ relMarker world
+            # (markerId, world)   = .? (relMarker .# 0) world
+            # (lineStyle, world)  = .? (relMarker .# 1) world
+            # (lineOptions,world) = jsEmptyObject world
+            # world               = forall (applyLineStyle lineOptions) lineStyle world
+            # (_, world) = (layer .# "addRelatedMarker" .$ (markerId, lineOptions)) world
             = world
-            
+
+    applyLineStyle options _ style world
+        # (styleType, world) = .? (style .# 0) world
+        # styleType = jsValToString styleType
+        | styleType == "Style"
+            # (directStyle, world) = .? (style .# 1) world
+            # (directStyleType, world) = .? (directStyle .# 0) world
+            # (directStyleVal, world)  = .? (directStyle .# 1) world
+            # directStyleType = jsValToString directStyleType
+            | directStyleType == "LineStrokeColor" = (options .# "color"     .= directStyleVal) world
+            | directStyleType == "LineStrokeWidth" = (options .# "weight"    .= directStyleVal) world
+            | directStyleType == "LineOpacity"     = (options .# "opacity"   .= directStyleVal) world
+            | directStyleType == "LineDashArray"   = (options .# "dashArray" .= directStyleVal) world
+            = abort "unknown style"
+        | styleType == "Class"
+            # (cls, world) = .? (style .# 1) world
+            = (options .# "className" .= cls) world
+        = abort "unknown style"
 
 	//Loop through a javascript array
     forall :: (Int (JSVal v11) *JSWorld -> *JSWorld) !(JSVal a) !*JSWorld -> *JSWorld
@@ -481,9 +517,9 @@ gDefault{|LeafletPerspective|}
 //Comparing reals may have unexpected results, especially when comparing constants to previously stored ones
 gEq{|LeafletLatLng|} x y = (toString x.lat == toString y.lat) && (toString x.lng == toString y.lng)
 
-derive JSONEncode LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos
-derive JSONDecode LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos
-derive gDefault   LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos
-derive gEq        LeafletMap, LeafletPerspective, LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos
-derive gText      LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos
-derive gEditor    LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos
+derive JSONEncode LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletPolygonStyle
+derive JSONDecode LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletPolygonStyle
+derive gDefault   LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletPolygonStyle
+derive gEq        LeafletMap, LeafletPerspective, LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletPolygonStyle
+derive gText      LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletPolygonStyle
+derive gEditor    LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletPolygonStyle

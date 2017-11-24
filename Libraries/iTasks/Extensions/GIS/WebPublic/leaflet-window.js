@@ -11,10 +11,10 @@ L.Window = L.Control.extend({
     setContent: function(content) {
         this._content = content;
     },
-    addRelatedMarker: function(marker) {
+    addRelatedMarker: function(markerId, options) {
         if (!this._relatedMarkers) this._relatedMarkers = {};
 
-        this._relatedMarkers[marker[0]] = marker[1];
+        this._relatedMarkers[markerId] = options;
     },
     onAdd: function (map) {
         this._map = map;
@@ -89,8 +89,7 @@ L.Window = L.Control.extend({
             delete this._relatedMarkerConnectors[markerId];
         }
     },
-    _addRelatedMarker: function(marker, mbCssCls) {
-        const options = mbCssCls[0] == 'Just' ? {className: mbCssCls[1]} : {};
+    _addRelatedMarker: function(marker, options) {
         const connector = {polyline: L.polyline([], options), position: marker.getLatLng()};
         this._relatedMarkerConnectors[marker.markerId] = connector;
         connector.polyline.addTo(this._map);

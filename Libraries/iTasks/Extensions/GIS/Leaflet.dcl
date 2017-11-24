@@ -54,16 +54,13 @@ leafletEditor :: Editor LeafletMap
 :: LeafletPolyline =
     { polylineId    :: !LeafletObjectID
     , points        :: ![LeafletLatLng]
-    , strokeColor   :: !String // html/css color definition
-    , strokeWidth   :: !Int
+    , style         :: ![LeafletStyleDef LeafletLineStyle]
     }
 
 :: LeafletPolygon =
     { polygonId     :: !LeafletObjectID
     , points        :: ![LeafletLatLng]
-    , strokeColor   :: !String       // html/css color definition
-    , strokeWidth   :: !Int
-    , fillColor     :: !Maybe String // Nothing means no fill
+    , style         :: ![LeafletStyleDef LeafletPolygonStyle]
     }
 
 :: LeafletWindow =
@@ -71,10 +68,27 @@ leafletEditor :: Editor LeafletMap
     , initPosition   :: !LeafletWindowPos
     , title          :: !String
     , content        :: !HtmlTag
-    , relatedMarkers :: ![(LeafletObjectID, Maybe CSSClass)] // connecting lines are drawn between the window and the marker
-                                                             // to visualise the relation
+    , relatedMarkers :: ![(LeafletObjectID, [LeafletStyleDef LeafletLineStyle])] // connecting lines are drawn between the window and the markers
+                                                                                 // to visualise the relation
     }
+
+:: LeafletLineStyle    = LineStrokeColor !String // html/css color definition
+                       | LineStrokeWidth !Int
+                       | LineOpacity     !Real   // between 0.0 and 1.0
+                       | LineDashArray   !String // a list of comma separated lengths of alternating dashes and gaps (e.g. "1,5,2,5")
+
+:: LeafletPolygonStyle = PolygonLineStrokeColor !String // html/css color definition
+                       | PolygonLineStrokeWidth !Int
+                       | PolygonLineOpacity     !Real   // between 0.0 and 1.0
+                       | PolygonLineDashArray   !String // a list of comma separated lengths of alternating dashes and gaps (e.g. "1,5,2,5")
+                       | PolygonNoFill                  // inside of polygone is not filled, all other fill options are ignored
+                       | PolygonFillColor       !String // html/css color definition
+                       | PolygonFillOpacity     !Real
+
 :: CSSClass :== String
+:: LeafletStyleDef style = Style style
+                         | Class CSSClass
+
 
 :: LeafletWindowPos = { x :: !Int, y :: !Int }
 
