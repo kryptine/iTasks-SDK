@@ -95,9 +95,11 @@ leafletEditor :: Editor LeafletMap
 //Public tileserver of openstreetmaps
 openStreetMapTiles :: String
 
-derive JSONEncode       LeafletMap
-derive JSONDecode       LeafletMap
-derive gDefault         LeafletMap
-derive gEq              LeafletMap
-derive gText            LeafletMap
-derive gEditor          LeafletMap
+derive JSONEncode LeafletMap, LeafletPerspective, LeafletLatLng
+derive JSONDecode LeafletMap, LeafletPerspective, LeafletLatLng
+derive gDefault   LeafletMap, LeafletPerspective, LeafletLatLng
+derive gEq        LeafletMap, LeafletPerspective
+derive gText      LeafletMap, LeafletPerspective, LeafletLatLng
+derive gEditor    LeafletMap, LeafletPerspective, LeafletLatLng
+derive class iTask LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletPolygonStyle
+
