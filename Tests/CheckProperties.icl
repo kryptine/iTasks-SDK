@@ -224,3 +224,45 @@ Start = Test [Tests NUM, RandomSeed 1982] bug1
 Start = sideBySideTrace ("Reference", applyChangesWithLayout bug3ref [ChangeUI [] [(0,MoveChild 0),(0,RemoveChild)]] mediumUI)
 						("SUT", applyChangesWithLayout bug3sut [ChangeUI [] [(0,MoveChild 0),(0,RemoveChild)]] mediumUI)
 */
+
+// PROPERTY FOR iTasks.UI.Editor.Common.diffChildren
+
+// TODO: How many distinct children to generate? As only the number of elements and order matters,
+// it seems that two distinct children are enough
+:: Child = A | B //| C | D | E | F | G | H | I | J
+
+derive gEq Child
+derive ggen Child
+derive genShow Child
+derive bimap []
+
+// incrementally updating the UI list from the old to the new list of children,
+// results in the new list of UIs
+correctDiffChildren :: [Child] [Child] -> Bool
+correctDiffChildren old new = newUIs === simulateUpdate (diffChildren old new dummyUI) oldUIs
+where
+    // the actual update is performed on the client and implemented in javascript,
+    // so it is simulated here
+    simulateUpdate :: [(Int, UIChildChange)] [UI] -> [UI]
+    simulateUpdate updates uis = foldl simulateUpdateInstruction uis updates
+
+    simulateUpdateInstruction :: [UI] (Int, UIChildChange) -> [UI]
+    simulateUpdateInstruction uis (idx, change) = case change of
+        RemoveChild      = removeAt idx uis
+        InsertChild ui   = insertAt idx ui uis
+        MoveChild newIdx = insertAt newIdx (uis !! idx) (removeAt idx uis)
+
+    oldUIs :: [UI]
+    oldUIs = dummyUI <$> old
+
+    newUIs :: [UI]
+    newUIs = dummyUI <$> new
+
+    diff :: [(Int, UIChildChange)]
+    diff = diffChildren old new dummyUI
+
+    // it doesn't really matter how to do this translation,
+    // but it should be a bijection between children and UIs
+    dummyUI :: a -> UI | genShow{|*|} a
+    dummyUI x = UI UIEmpty ('Map'.singleton (show1 x) JSONNull) []
+
