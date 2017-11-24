@@ -496,12 +496,12 @@ addContactPhoto contactNo original
         exportDocument (tmp</>"orig.jpg") original
     >>- \_ ->
         callProcess "Creating thumbnail..." [] CONVERT_BIN
-            ["-define","jpeg:size=400x400",(tmp</>"orig.jpg"),"-thumbnail","200x200^","-gravity","center","-extent","200x200",(tmp</>"thumb.png")] Nothing False
+            ["-define","jpeg:size=400x400",(tmp</>"orig.jpg"),"-thumbnail","200x200^","-gravity","center","-extent","200x200",(tmp</>"thumb.png")] Nothing Nothing
     >>- \_ ->
         importDocument (tmp</>"thumb.png")
     >>- \thumb ->
         callProcess "Creating avatar..." [] CONVERT_BIN
-            ["-define","jpeg:size=100x100",(tmp</>"orig.jpg"),"-thumbnail","50x50^","-gravity","center","-extent","50x50",(tmp</>"avatar.png")] Nothing False
+            ["-define","jpeg:size=100x100",(tmp</>"orig.jpg"),"-thumbnail","50x50^","-gravity","center","-extent","50x50",(tmp</>"avatar.png")] Nothing Nothing
     >>- \_ ->
         importDocument (tmp</>"avatar.png")
     >>- \avatar -> let photo = {ContactPhoto|original = original, thumb = thumb, avatar = avatar} in
