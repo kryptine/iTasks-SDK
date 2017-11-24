@@ -1,5 +1,5 @@
 implementation module Incidone.Util.Workspace
-import iTasks
+import iTasks, Data.Maybe
 import qualified Data.Map as DM
 
 doIndependent :: [Workspace -> Task ()] -> Task ()
