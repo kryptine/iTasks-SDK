@@ -6,7 +6,7 @@ leafletEditor :: Editor LeafletMap
 
 :: LeafletMap =
     { perspective   :: LeafletPerspective 
-	, tilesUrl      :: Maybe String      
+	, tilesUrls     :: [String]
 	, objects       :: [LeafletObject]    //Markers, lines and polygon
     , icons         :: [LeafletIcon]      //Custom icons used by markers. They are indexed by 'iconId' string and cannot be changed once the map is loaded
     }

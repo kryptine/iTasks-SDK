@@ -51,12 +51,12 @@ openStreetMapTiles = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 leafletEditor :: Editor LeafletMap
 leafletEditor = {Editor|genUI = withClientSideInit initUI genUI, onEdit  = onEdit, onRefresh = onRefresh}
 where
-	genUI dp val=:{LeafletMap|perspective={center,zoom,cursor},tilesUrl,objects,icons} world
+	genUI dp val=:{LeafletMap|perspective={center,zoom,cursor},tilesUrls,objects,icons} world
 		# mapAttr = 'DM'.fromList
 			[("zoom", JSONInt zoom)
 			,("center", JSONArray [JSONReal center.LeafletLatLng.lat, JSONReal center.LeafletLatLng.lng])
 			,("cursor", maybe JSONNull toJSON cursor)
-			,("tilesUrl", maybe JSONNull JSONString tilesUrl)
+			,("tilesUrls", toJSON tilesUrls)
 			,("icons", JSONArray [toJSON (iconId,{IconOptions|iconUrl=iconUrl,iconSize=[w,h]}) \\ {iconId,iconUrl,iconSize=(w,h)} <- icons])
 			]
 		# attr = 'DM'.unions [mapAttr, sizeAttr (ExactSize 500) (ExactSize 150)]
@@ -111,8 +111,8 @@ where
 		# (icons,world)     = .? (me .# "attributes.icons") world
 		# world             = setMapIcons me mapObj icons world 
 		//Create tile layer
-		# (tilesUrl,world)    = .? (me .# "attributes.tilesUrl") world
-		# world               = setMapTilesLayer me mapObj tilesUrl world 
+		# (tilesUrls,world) = .? (me .# "attributes.tilesUrls") world
+		# world             = forall (addMapTilesLayer me mapObj) tilesUrls world
 		//Synchronize lat/lng bounds to server (they depend on the size of the map in the browser)
 		# (taskId,world)    = .? (me .# "attributes.taskId") world
 		# (editorId,world)  = .? (me .# "attributes.editorId") world
@@ -285,7 +285,7 @@ where
         		# (_,world)       = (cursor .# "setLatLng" .$ position) world
 				= world
 
-	setMapTilesLayer me mapObj tilesUrl world 
+	addMapTilesLayer me mapObj _ tilesUrl world
 		| jsIsNull tilesUrl = world
 		# (l, world)      	= findObject "L" world
         # (layer,world)     = (l .# "tileLayer" .$ tilesUrl) world
@@ -507,7 +507,7 @@ where
 gEditor{|LeafletMap|} = leafletEditor
 
 gDefault{|LeafletMap|}
-	= {LeafletMap|perspective=defaultValue, tilesUrl =Just openStreetMapTiles, objects = [Marker homeMarker], icons = []}
+	= {LeafletMap|perspective=defaultValue, tilesUrls = [openStreetMapTiles], objects = [Marker homeMarker], icons = []}
 where
 	homeMarker = {markerId = "home", position= {LeafletLatLng|lat = 51.82, lng = 5.86}, title = Just "HOME", icon = Nothing, popup = Nothing, selected = False}
 
