@@ -6,15 +6,24 @@ from iTasks.WF.Tasks.Interaction import :: ViewOption
 
 from System.FilePath import :: FilePath
 from System.OSError import :: OSError, :: OSErrorCode, :: OSErrorMessage 
+from System.Process import :: ProcessPtyOptions
 
 //* External (operating system) process status
+:: ProcessInformation =
+    { executable :: String
+    , arguments  :: [String]
+    , stdout     :: String
+    , stderr     :: String
+    , status     :: ProcessStatus
+    }
+
 :: ProcessStatus
-	= RunningProcess !String
+	= RunningProcess
 	| CompletedProcess !Int
 
-:: CallException		= CallFailed !OSError
+:: CallException = CallFailed !OSError
 
-derive class iTask ProcessStatus, CallException
+derive class iTask ProcessInformation, ProcessStatus, CallException
 instance toString CallException
 
 /**
@@ -24,13 +33,14 @@ instance toString CallException
 * @param Executable: path to the executable
 * @param Arguments: a list of command-line arguments
 * @param Optional startup directory
+* @param Run with pseudo terminal options
 * @return return-code of the process
 * @throws CallException
 * 
 * @gin-title Start executable
 * @gin-icon executable
 */
-callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] !(Maybe FilePath) -> Task ProcessStatus | toPrompt d
+callProcess :: !d ![ViewOption ProcessInformation] !FilePath ![String] !(Maybe FilePath) (Maybe ProcessPtyOptions) -> Task ProcessInformation | toPrompt d
 
 /**
 * Calls an external executable. This call blocks task computation, only use when process is known to terminate fast.

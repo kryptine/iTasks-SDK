@@ -70,8 +70,8 @@ where
 		fallback _ output = {SuiteResult|suiteName="Unknown",testResults=[("executable",Failed (Just output))]}
 
 runWithOutput :: FilePath [String] (Maybe FilePath) (Shared [String]) -> Task (ExitCode,[String])
-runWithOutput prog args dir out 
-   = externalProcess prog args dir out {onStartup=onStartup,onOutData=onOutData,onErrData=onErrData,onShareChange=onShareChange,onExit=onExit} Nothing
+runWithOutput prog args dir out
+   = externalProcess () prog args dir out {onStartup=onStartup,onOutData=onOutData,onErrData=onErrData,onShareChange=onShareChange,onExit=onExit} Nothing gEditor{|*|}
 	where
 		onStartup r = (Ok (ExitCode 0,[]), Nothing, [], False) 
 		onOutData data (e,o) r = (Ok (e,o ++ [data]), Just (r ++ [data]), [], False)
