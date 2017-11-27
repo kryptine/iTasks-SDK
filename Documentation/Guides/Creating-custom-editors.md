@@ -116,7 +116,7 @@ where
     editor = injectEditorValue (\x -> (0,x)) (Ok o snd)
         (containerc (chooseWithDropdown ["Nil","Cons"])
             [(const MyNil, emptyEditor)
-            ,(const (MyCons gDefault{|*|} MyNil), editor)
+            ,(const (MyCons gDefault{|*|} MyNil), consEditor)
             ] <<@ heightAttr WrapSize)
 
     consEditor = bijectEditorValue (\(MyCons x xs) -> (x,xs)) (\(x,xs) -> MyCons x xs)
