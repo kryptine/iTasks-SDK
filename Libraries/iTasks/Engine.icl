@@ -48,7 +48,7 @@ defaultEngineOptions world
 		, serverPort		= IF_POSIX_OR_WINDOWS 8080 80
         , serverUrl         = "http://localhost/"
 		, keepaliveTime     = 300 // 5 minutes
-		, sessionTime       = 600 // 10 minutes
+		, sessionTime       = 60 // 1 minute, (the client pings every 10 seconds by default)
         , persistTasks      = False
 		, autoLayout        = True
 		, webDirPath 		= appDir </> appName +++ "-www"

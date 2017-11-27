@@ -351,9 +351,13 @@ where
 							= (wsockTextMsg (toString json),False, instances, iworld)
 				// - Pings 
 				(JSONArray [JSONInt commandId, JSONString "ping",_])
-					//TODO: Update timeout data for all instances
-					# json = JSONArray [JSONInt commandId, JSONString "ping", JSONObject []]
-					= (wsockTextMsg (toString json),False, instances, iworld)
+					= case updateInstanceLastIO (map fst instances) iworld of
+						(Error (_,err),iworld)
+							# json = JSONArray [JSONInt commandId, JSONString "exception",JSONObject [("description",JSONString err)]]
+							= (wsockTextMsg (toString json),False, instances, iworld)
+						(Ok (),iworld)
+							# json = JSONArray [JSONInt commandId, JSONString "ping", JSONObject []]
+							= (wsockTextMsg (toString json),False, instances, iworld)
 				//Unknown message 
 				e
 					# json = JSONArray [JSONInt 0, JSONString "exception", JSONObject [("description",JSONString "Unknown command")]]
@@ -376,7 +380,6 @@ where
 		= case changes of //Ignore empty updates
 			[] = ([],False,(clientname,state,instances),Nothing,iworld)
 			changes	
-                # (_,iworld) = updateInstanceLastIO (map fst instances) iworld
 				# msgs =
 					[wsockTextMsg (toString (JSONArray [JSONInt 0,JSONString "ui-change"
 					,JSONObject [("instanceNo",JSONInt instanceNo),("change",encodeUIChange change)]])) \\ (instanceNo,change) <- changes]
