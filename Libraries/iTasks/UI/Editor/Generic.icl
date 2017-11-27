@@ -24,7 +24,7 @@ where
 			Enter 
 				| optional //Just show the ui to enable the remaining fields
 					# (enableUI,enableMask) = genEnableUI taskId dp False	
-					= (Ok (uic UIRecord [enableUI], CompoundMask {fields=[enableMask],state=JSONNull}), vst)
+					= (Ok (uic UIRecord [enableUI], CompoundMask [enableMask]), vst)
 				| otherwise
 					= case ex.Editor.genUI (pairPath grd_arity dp) x {VSt|vst & optional = False} of
 						(Ok viz,vst) = (Ok (fromPairUI UIRecord grd_arity viz),vst)
@@ -32,13 +32,13 @@ where
 			Update
 				= case ex.Editor.genUI (pairPath grd_arity dp) x {VSt|vst & optional = False} of
 					(Ok viz,vst) 
-						# (UI type attr items, CompoundMask {fields=masks}) = fromPairUI UIRecord grd_arity viz 
+						# (UI type attr items, CompoundMask masks) = fromPairUI UIRecord grd_arity viz 
 						//When optional we add a checkbox to clear the record
 						| optional
 							# (enableUI,enableMask) = genEnableUI taskId dp True
-							= (Ok (UI type attr [enableUI:items],CompoundMask {fields=[enableMask:masks],state=JSONNull}), vst)
+							= (Ok (UI type attr [enableUI:items],CompoundMask [enableMask:masks]), vst)
 						| otherwise 
-							= (Ok (UI type attr items,CompoundMask {fields=masks,state=JSONNull}),vst)
+							= (Ok (UI type attr items,CompoundMask masks),vst)
 					(Error e,vst) = (Error e,vst)
 			View 
 				= case ex.Editor.genUI (pairPath grd_arity dp) x {VSt|vst & optional = False} of
@@ -47,29 +47,29 @@ where
 
 	genEnableUI taskId dp enabled = (uia UICheckbox (editAttrs taskId (editorId dp) (Just (JSONBool enabled))),newFieldMask)
 
-	onEdit dp ([],JSONBool True) (RECORD val) (CompoundMask {fields=[enableMask:masks]}) vst=:{VSt|mode,optional} //Enabling an optional record
+	onEdit dp ([],JSONBool True) (RECORD val) (CompoundMask [enableMask:masks]) vst=:{VSt|mode,optional} //Enabling an optional record
 		| not optional
 			= (Error "Enabling non-optional record",RECORD val,vst)
 		//Create and add the fields
 		= case ex.Editor.genUI (pairPath grd_arity dp) val {vst & mode = Enter, optional = False} of
 			(Ok viz,vst)
-				# (UI type attr items, CompoundMask {fields=masks}) = fromPairUI UIRecord grd_arity viz 
+				# (UI type attr items, CompoundMask masks) = fromPairUI UIRecord grd_arity viz 
 				# change = ChangeUI [] [(i,InsertChild ui) \\ ui <- items & i <- [1..]]
 				# enableMask = FieldMask {touched=True,valid=True,state=JSONBool True}
-				= (Ok (change,CompoundMask {fields=[enableMask:masks],state=JSONNull}), RECORD val, {vst & mode = mode})
+				= (Ok (change,CompoundMask [enableMask:masks]), RECORD val, {vst & mode = mode})
 			(Error e,vst) = (Error e, RECORD val, {vst & mode = mode})
 
-	onEdit dp ([],JSONBool False) (RECORD val) (CompoundMask {fields=[enableMask:masks]}) vst=:{VSt|optional} //Disabling an optional record
+	onEdit dp ([],JSONBool False) (RECORD val) (CompoundMask [enableMask:masks]) vst=:{VSt|optional} //Disabling an optional record
 		| not optional
 			= (Error "Disabling non-optional record",RECORD val,vst)
 		//Remove all fields except the enable/disable checkbox
 		# change = ChangeUI [] (repeatn grd_arity (1,RemoveChild))
 		# enableMask = FieldMask {touched=True,valid=True,state=JSONBool False}
-		= (Ok (change,CompoundMask {fields=[enableMask:masks],state=JSONNull}), RECORD val, vst)
+		= (Ok (change,CompoundMask [enableMask:masks]), RECORD val, vst)
 	onEdit dp ([],_) (RECORD val) mask vst
 		= (Error "Unknown edit event for record",RECORD val,vst)
 	
-	onEdit dp ([d:ds],e) (RECORD val) (CompoundMask {fields=masks}) vst=:{VSt|optional}
+	onEdit dp ([d:ds],e) (RECORD val) (CompoundMask masks) vst=:{VSt|optional}
 		| d >= grd_arity
 			= (Error "Edit aimed at non-existent record field",RECORD val,vst)
 		//When optional we need to adjust for the added checkbox, so we need to offset the record field index with one
@@ -80,20 +80,20 @@ where
 				//Extend the change
 				# change = case change of NoChange = NoChange; _ = ChangeUI [] [(idx,ChangeChild change)]
 				//Update the mask
-				# mask = CompoundMask {fields=(updateAt idx mask masks),state=JSONNull}
+				# mask = CompoundMask (updateAt idx mask masks)
 				= (Ok (change,mask),RECORD val,vst)
 			(Error e,val ,vst) = (Error e, RECORD val, vst)
 				
 	onEdit _ _ val mask vst = (Ok (NoChange,mask),val,vst)
 
-	onRefresh dp (RECORD new) (RECORD old) mask=:(CompoundMask {fields}) vst=:{VSt|taskId,optional,mode}
+	onRefresh dp (RECORD new) (RECORD old) mask=:(CompoundMask fields) vst=:{VSt|taskId,optional,mode}
 		| optional && not (mode =: View)
 			//Account for the extra mask of the enable/disable checkbox
 			# enableMask = hd fields
-			= case ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask (CompoundMask {fields=tl fields,state=JSONNull})) {VSt|vst & optional = False} of
+			= case ex.Editor.onRefresh (pairPath grd_arity dp) new old (toPairMask (CompoundMask (tl fields))) {VSt|vst & optional = False} of
 				(Ok (change,mask),val,vst)
 					# change = fromPairChange 0 grd_arity change
-					# (CompoundMask {fields}) = fromPairMask grd_arity mask
+					# (CompoundMask fields) = fromPairMask grd_arity mask
 					//Adjust the change
 					# change = case change of 
 						NoChange = NoChange
@@ -101,7 +101,7 @@ where
 						(ReplaceUI ui=:(UI type attr items))
 							# (enableUI,_) = genEnableUI taskId dp True
 							= ReplaceUI (UI type attr [enableUI:items])
-					= (Ok (change,CompoundMask {fields=[enableMask:fields],state=JSONNull}), RECORD val, vst)
+					= (Ok (change,CompoundMask [enableMask:fields]), RECORD val, vst)
 				(Error e,val,vst)
 					= (Error e, RECORD val, vst)
 		| otherwise
@@ -147,29 +147,29 @@ where
 				//If there are multiple constructors, we only generate a UI to select the constructor
 				| otherwise
 					# (consChooseUI,consChooseMask) = genConsChooseUI taskId dp optional gtd_conses Nothing
-					= (Ok (UI UIVarCons 'DM'.newMap [consChooseUI],CompoundMask {fields=[consChooseMask],state=JSONNull}),{vst & selectedConsIndex = selectedConsIndex})
+					= (Ok (UI UIVarCons 'DM'.newMap [consChooseUI],CompoundMask [consChooseMask]),{vst & selectedConsIndex = selectedConsIndex})
 			Update
 				//Generate the ui for the current value
 				= case ex.Editor.genUI dp x vst of
-					(Ok (consUI=:(UI UICons attr items), consMask=:(CompoundMask {fields})),vst)
+					(Ok (consUI=:(UI UICons attr items), consMask=:(CompoundMask fields)),vst)
 						//If there is only constructor, we are done
 						| gtd_num_conses == 1
 							= (Ok (consUI, consMask),{vst & selectedConsIndex = selectedConsIndex})
 						//If there are multiple constructors, we add the UI to select the constructor and change the type to UIVarCons	
 						| otherwise
 							# (consChooseUI,consChooseMask) = genConsChooseUI taskId dp optional gtd_conses (Just vst.selectedConsIndex)
-							= (Ok (UI UIVarCons attr [consChooseUI:items],CompoundMask {fields=[consChooseMask:fields],state=JSONNull})
+							= (Ok (UI UIVarCons attr [consChooseUI:items],CompoundMask [consChooseMask:fields])
 								,{vst & selectedConsIndex = selectedConsIndex})
 					(Error e,vst) = (Error e,vst)
 			View
 				//If there is only one constructor we don't need to show the constructor name
 				= case ex.Editor.genUI dp x vst of
-					(Ok (consUI=:(UI UICons attr items), consMask=:(CompoundMask {fields})),vst)
+					(Ok (consUI=:(UI UICons attr items), consMask=:(CompoundMask fields)),vst)
 						| gtd_num_conses == 1
 							= (Ok (consUI, consMask),{vst & selectedConsIndex = selectedConsIndex})
 						| otherwise
 							# (consViewUI,consViewMask) = genConsViewUI gtd_conses vst.selectedConsIndex
-							= (Ok (UI UIVarCons attr [consViewUI:items],CompoundMask {fields=[consViewMask:fields],state=JSONNull})
+							= (Ok (UI UIVarCons attr [consViewUI:items],CompoundMask [consViewMask:fields])
 								,{vst & selectedConsIndex = selectedConsIndex})
 					(Error e,vst) = (Error e,vst)
 
@@ -183,7 +183,7 @@ where
 		= (uia UITextView (valueAttr (JSONString (gtd_conses !! selectedCons).gcd_name)), newFieldMask)
 
 	//Update is a constructor switch
-	onEdit dp ([],JSONArray [JSONInt consIdx]) (OBJECT val) (CompoundMask {fields=[FieldMask {FieldMask|touched,valid,state}:masks]}) vst=:{VSt|mode} 
+	onEdit dp ([],JSONArray [JSONInt consIdx]) (OBJECT val) (CompoundMask [FieldMask {FieldMask|touched,valid,state}:masks]) vst=:{VSt|mode} 
 		| consIdx < 0 || consIdx >= gtd_num_conses
 			= (Error "Constructor selection out of bounds",OBJECT val,vst)
 		//Create a default value for the selected constructor
@@ -192,7 +192,7 @@ where
     	# (_,val,vst)	= ex.Editor.onEdit dp (consCreatePath consIdx gtd_num_conses,JSONNull) val newCompoundMask vst 
 		//Create a UI for the new constructor 
 		= case ex.Editor.genUI dp val {vst & mode = Enter} of
-			(Ok (UI UICons attr items, CompoundMask {fields=masks}),vst)
+			(Ok (UI UICons attr items, CompoundMask masks),vst)
 				//Construct a UI change that does the following: 
 				//1: If necessary remove the fields of the previously selected constructor
 				# removals = case state of
@@ -203,23 +203,23 @@ where
 				# change = ChangeUI [] (removals ++ inserts)
 				//Create a new mask for the constructor selection
 				# consChooseMask = FieldMask {touched=True,valid=True,state=JSONInt consIdx}
-				= (Ok (change,CompoundMask {fields=[consChooseMask:masks],state=JSONNull}), OBJECT val, {vst & mode = mode})
+				= (Ok (change,CompoundMask [consChooseMask:masks]), OBJECT val, {vst & mode = mode})
 			(Error e,vst) = (Error e, OBJECT val, {vst & mode = mode})
 
 	//Other events targeted directly at the ADT 
-	onEdit dp ([],e) (OBJECT val) (CompoundMask {fields=[consChooseMask=:(FieldMask {FieldMask|touched,valid,state}):masks]}) vst=:{VSt|optional}
+	onEdit dp ([],e) (OBJECT val) (CompoundMask [consChooseMask=:(FieldMask {FieldMask|touched,valid,state}):masks]) vst=:{VSt|optional}
 		| e =: JSONNull || e =: (JSONArray []) // A null or an empty array are accepted as a reset events
 			//If necessary remove the fields of the previously selected constructor
 			# change = case state of
 				(JSONInt prevConsIdx) = ChangeUI [] (repeatn (gtd_conses !! prevConsIdx).gcd_arity (1,RemoveChild))
 				_                     = NoChange		
 			# consChooseMask = FieldMask {touched=True,valid=optional,state=JSONNull}
-			= (Ok (change,CompoundMask {fields=[consChooseMask:masks],state=JSONNull}),OBJECT val, vst)	
+			= (Ok (change,CompoundMask [consChooseMask:masks]),OBJECT val, vst)	
 		| otherwise
 			= (Error ("Unknown constructor select event: '" +++ toString e +++ "'"),OBJECT val,vst)
 
 	//Update is targeted somewhere inside this value
-	onEdit dp (tp,e) (OBJECT val) mask=:(CompoundMask {fields,state}) vst 
+	onEdit dp (tp,e) (OBJECT val) mask=:(CompoundMask fields) vst 
 		| gtd_num_conses == 1
 			//Just call onEdit for the inner value
 			= case ex.Editor.onEdit dp (tp,e) val mask vst of
@@ -228,15 +228,15 @@ where
 		| otherwise
 			//Adjust for the added constructor switch UI
 			# consChooseMask = hd fields
-			= case ex.Editor.onEdit dp (tp,e) val (CompoundMask {fields=tl fields,state=JSONNull}) vst of
-				(Ok (change,CompoundMask {fields}),val,vst)
+			= case ex.Editor.onEdit dp (tp,e) val (CompoundMask (tl fields)) vst of
+				(Ok (change,CompoundMask fields),val,vst)
 					# change = case change of
 						(ChangeUI attrChanges itemChanges) = ChangeUI attrChanges [(i + 1,c) \\ (i,c) <- itemChanges]
 						_                                  = NoChange
-					= (Ok (change,CompoundMask {fields=[consChooseMask:fields],state=JSONNull}),OBJECT val,vst)
+					= (Ok (change,CompoundMask [consChooseMask:fields]),OBJECT val,vst)
 				(Error e,val,vst) = (Error e, OBJECT val, vst)
 
-	onRefresh dp (OBJECT new) (OBJECT old) mask=:(CompoundMask {fields}) vst=:{VSt|mode,taskId,optional,selectedConsIndex=curSelectedConsIndex}
+	onRefresh dp (OBJECT new) (OBJECT old) mask=:(CompoundMask fields) vst=:{VSt|mode,taskId,optional,selectedConsIndex=curSelectedConsIndex}
 		| gtd_num_conses == 1
 			# (change,val,vst) = ex.Editor.onRefresh dp new old mask vst
 			= (change,OBJECT val,vst)
@@ -246,8 +246,8 @@ where
 			//Don't recursively refresh if no constructor has been chosen
 			| (not mode =: View) && consChooseMask =: (FieldMask {FieldMask|state=JSONNull})
 				= (Ok (NoChange,mask),OBJECT old,vst)
-			= case ex.Editor.onRefresh dp new old (CompoundMask {fields=tl fields,state=JSONNull}) {vst & selectedConsIndex = 0} of
-				(Ok (change,CompoundMask {fields}),val,vst=:{VSt|selectedConsIndex}) 
+			= case ex.Editor.onRefresh dp new old (CompoundMask (tl fields)) {vst & selectedConsIndex = 0} of
+				(Ok (change,CompoundMask fields),val,vst=:{VSt|selectedConsIndex}) 
 					//If the cons was changed we need to update the selector
 					# consIndex = ~selectedConsIndex - 1
 					# consChange = if (selectedConsIndex < 0)
@@ -264,7 +264,7 @@ where
 												(genConsChooseUI taskId dp optional gtd_conses (Just consIndex))
 							= ReplaceUI (UI type attr [consUI:items])
 					| otherwise
-						= (Ok (change, CompoundMask {fields=[consChooseMask:fields],state=JSONNull}), OBJECT val,{vst & selectedConsIndex = curSelectedConsIndex})
+						= (Ok (change, CompoundMask [consChooseMask:fields]), OBJECT val,{vst & selectedConsIndex = curSelectedConsIndex})
 
 				(Ok (change,mask),val,vst=:{VSt|selectedConsIndex}) 
 					= (Error "Corrupt mask in generic OBJECT editor",OBJECT old, vst)
@@ -320,7 +320,7 @@ where
 		(Ok viz,vst)  = (Ok (fromPairUI UICons gcd_arity viz), {VSt| vst & selectedConsIndex = gcd_index})
 		(Error e,vst) = (Error e,{VSt| vst & selectedConsIndex = gcd_index})
 
-	onEdit dp ([d:ds],e) (CONS val) (CompoundMask {fields=masks}) vst
+	onEdit dp ([d:ds],e) (CONS val) (CompoundMask masks) vst
 		| d >= gcd_arity
 			= (Error "Edit aimed at non-existent constructor field",CONS val,vst)
 		//Update the targeted field in the constructor
@@ -329,7 +329,7 @@ where
 				//Extend the change
 				# change = case change of NoChange = NoChange; _ = ChangeUI [] [(d,ChangeChild change)]
 				//Update the mask
-				# mask = CompoundMask {fields=updateAt d mask masks,state=JSONNull}
+				# mask = CompoundMask (updateAt d mask masks)
 				= (Ok (change,mask),CONS val,vst)
 			(Error e,val,vst) = (Error e,CONS val,vst)
 
@@ -350,7 +350,7 @@ where
 		# (vizy, vst)	= ey.Editor.genUI dpy y vst
 		| vizy =: (Error _) = (vizy,vst)
 		# ((vizx,maskx),(vizy,masky)) = (fromOk vizx,fromOk vizy)
-		= (Ok (uic UIPair [vizx,vizy],CompoundMask {fields=[maskx,masky],state=JSONNull}),vst)
+		= (Ok (uic UIPair [vizx,vizy],CompoundMask [maskx,masky]),vst)
 
 	onEdit dp ([0:ds],e) (PAIR x y) xmask ust
 		# (dpx,_)		= pairPathSplit dp
@@ -362,7 +362,7 @@ where
 		= (ymask,PAIR x y,ust)
 	onEdit _ _ val mask ust = (Ok (NoChange,mask),val,ust)
 
-	onRefresh dp (PAIR newx newy) (PAIR oldx oldy) (CompoundMask {fields=[maskx,masky]}) vst
+	onRefresh dp (PAIR newx newy) (PAIR oldx oldy) (CompoundMask [maskx,masky]) vst
 		# (dpx,dpy)		= pairPathSplit dp
 		# (changex,newx,vst) 	= ex.Editor.onRefresh dpx newx oldx maskx vst
 		| changex=: (Error _) = (changex,PAIR oldx oldy,vst)
@@ -370,7 +370,7 @@ where
 		| changey =: (Error _) = (changey,PAIR oldx oldy,vst)
 		# ((changex,maskx),(changey,masky)) = (fromOk changex,fromOk changey)
 		= (Ok (ChangeUI [] [(0,ChangeChild changex),(1,ChangeChild changey)]
-			  ,CompoundMask {fields=[maskx,masky],state=JSONNull}),PAIR newx newy, vst)
+			  ,CompoundMask [maskx,masky]),PAIR newx newy, vst)
 
 	onRefresh dp (PAIR newx newy) (PAIR oldx oldy) mask vst
 		= (Error "Corrupt mask in generic PAIR editor",PAIR oldx oldy, vst)
@@ -438,40 +438,40 @@ pairSelectPath i n
 //When UIs, or UI differences are aggregated in PAIR's they form a binary tree 
 
 //Recreate the binary-tree representation for a pair
-toPairMask m=:(CompoundMask {fields=[]}) = m
-toPairMask m=:(CompoundMask {fields=[m1]}) = m1
-toPairMask m=:(CompoundMask {fields=[m1,m2]}) = m
-toPairMask m=:(CompoundMask {fields=[m1,m2,m3],state}) = CompoundMask {fields=[m1, CompoundMask {fields=[m2,m3],state=state}],state=state}
-toPairMask m=:(CompoundMask {fields,state}) = CompoundMask {fields=[m1,m2],state=state}
+toPairMask m=:(CompoundMask []) = m
+toPairMask m=:(CompoundMask [m1]) = m1
+toPairMask m=:(CompoundMask [m1,m2]) = m
+toPairMask m=:(CompoundMask [m1,m2,m3]) = CompoundMask [m1, CompoundMask [m2,m3]]
+toPairMask m=:(CompoundMask fields) = CompoundMask [m1,m2]
 where
 	half = length fields / 2
-	m1 = toPairMask (CompoundMask {fields=take half fields,state=state})
-	m2 = toPairMask (CompoundMask {fields=drop half fields,state=state})
+	m1 = toPairMask (CompoundMask (take half fields))
+	m2 = toPairMask (CompoundMask (drop half fields))
 
 //Desconstruct the binary-tree representation of a pair
-fromPairMask 0 m                                                                   = m 
-fromPairMask 1 m                                                                   = CompoundMask {fields=[m],state=JSONNull}
-fromPairMask 2 m=:(CompoundMask {fields=[m1,m2]})                                  = m
-fromPairMask 3 m=:(CompoundMask {fields=[m1,CompoundMask {fields=[m2,m3]}],state}) = CompoundMask {fields=[m1,m2,m3],state=state}
-fromPairMask n m=:(CompoundMask {fields=[m1,m2],state})                            = CompoundMask {fields=f1.fields ++ f2.fields,state = state}
+fromPairMask 0 m                                           = m 
+fromPairMask 1 m                                           = CompoundMask [m]
+fromPairMask 2 m=:(CompoundMask [m1,m2])                   = m
+fromPairMask 3 m=:(CompoundMask [m1,CompoundMask [m2,m3]]) = CompoundMask [m1,m2,m3]
+fromPairMask n m=:(CompoundMask [m1,m2])                   = CompoundMask (f1 ++ f2) 
 where
 	half = n / 2
 	(CompoundMask f1) = fromPairMask half m1
 	(CompoundMask f2) = fromPairMask (n - half) m2
 
 //These functions flatten this tree back to a single CompoundEditor or ChangeUI definition
-fromPairUI type 0 (ui,mask) = (UI type 'DM'.newMap [],CompoundMask {fields=[],state=JSONNull})
-fromPairUI type 1 (ui,mask) = (UI type 'DM'.newMap [ui],CompoundMask {fields=[mask],state=JSONNull})
-fromPairUI type 2 (UI UIPair _ [ul,ur], CompoundMask {fields=[ml,mr]})
-	= (UI type 'DM'.newMap [ul,ur],CompoundMask {fields=[ml,mr],state=JSONNull})
-fromPairUI type 3 (UI UIPair _ [ul,UI UIPair _ [um,ur]], CompoundMask {fields=[ml,CompoundMask {fields=[mm,mr]}]})
-	= (UI type 'DM'.newMap [ul,um,ur],CompoundMask {fields=[ml,mm,mr],state=JSONNull})
-fromPairUI type n (UI UIPair _ [ul,ur], CompoundMask {fields=[ml,mr]})
-	= (UI type 'DM'.newMap (uls ++ urs), CompoundMask {fields = mls ++ mrs,state=JSONNull})
+fromPairUI type 0 (ui,mask) = (UI type 'DM'.newMap [],CompoundMask [])
+fromPairUI type 1 (ui,mask) = (UI type 'DM'.newMap [ui],CompoundMask [mask])
+fromPairUI type 2 (UI UIPair _ [ul,ur], CompoundMask [ml,mr])
+	= (UI type 'DM'.newMap [ul,ur],CompoundMask [ml,mr])
+fromPairUI type 3 (UI UIPair _ [ul,UI UIPair _ [um,ur]], CompoundMask [ml,CompoundMask [mm,mr]])
+	= (UI type 'DM'.newMap [ul,um,ur],CompoundMask [ml,mm,mr])
+fromPairUI type n (UI UIPair _ [ul,ur], CompoundMask [ml,mr])
+	= (UI type 'DM'.newMap (uls ++ urs), CompoundMask (mls ++ mrs))
 where
 	half = n / 2
-	(UI _ _ uls,CompoundMask {fields=mls}) = fromPairUI type half (ul,ml)
-	(UI _ _ urs,CompoundMask {fields=mrs}) = fromPairUI type (n - half) (ur,mr)
+	(UI _ _ uls,CompoundMask mls) = fromPairUI type half (ul,ml)
+	(UI _ _ urs,CompoundMask mrs) = fromPairUI type (n - half) (ur,mr)
 
 //No pairs are introduced for 0 or 1 fields
 fromPairChange s 0 change = change
@@ -492,15 +492,15 @@ where
 fromPairDiff s 0 (change,mask) = (change,mask)
 fromPairDiff s 1 (change,mask) = (change,mask)
 //For two and three fields, set the correct child index values 
-fromPairDiff s 2 (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)],CompoundMask {fields=[ml,mr]}) 
-	= (ChangeUI [] [(s,ChangeChild l),(s+1,ChangeChild r)],CompoundMask {fields=[ml,mr],state=JSONNull})
-fromPairDiff s 3 (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild (ChangeUI _ [(_,ChangeChild m),(_,ChangeChild r)]))],CompoundMask {fields=[ml,CompoundMask {fields=[mm,mr]}]})
-	= (ChangeUI [] [(s,ChangeChild l), (s+1,ChangeChild m), (s+2,ChangeChild r)],CompoundMask {fields=[ml,mm,mr],state=JSONNull})
+fromPairDiff s 2 (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)],CompoundMask [ml,mr]) 
+	= (ChangeUI [] [(s,ChangeChild l),(s+1,ChangeChild r)],CompoundMask [ml,mr])
+fromPairDiff s 3 (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild (ChangeUI _ [(_,ChangeChild m),(_,ChangeChild r)]))],CompoundMask [ml,CompoundMask [mm,mr]])
+	= (ChangeUI [] [(s,ChangeChild l), (s+1,ChangeChild m), (s+2,ChangeChild r)],CompoundMask [ml,mm,mr])
 //For more fields we aggregate both sides
-fromPairDiff s n (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)],CompoundMask {fields=[ml,mr]}) 
-	# (ChangeUI _ l,CompoundMask {fields=ml}) = fromPairDiff s half (l,ml)
-	# (ChangeUI _ r,CompoundMask {fields=mr}) = fromPairDiff (s + half) (n - half) (r,mr)
-	= (ChangeUI [] (l ++ r),CompoundMask {fields=ml ++ mr,state=JSONNull})
+fromPairDiff s n (ChangeUI _ [(_,ChangeChild l),(_,ChangeChild r)],CompoundMask [ml,mr]) 
+	# (ChangeUI _ l,CompoundMask ml) = fromPairDiff s half (l,ml)
+	# (ChangeUI _ r,CompoundMask mr) = fromPairDiff (s + half) (n - half) (r,mr)
+	= (ChangeUI [] (l ++ r),CompoundMask (ml ++ mr))
 where
 	half = n / 2
 */

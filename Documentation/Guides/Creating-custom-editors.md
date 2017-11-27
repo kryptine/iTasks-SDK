@@ -1,4 +1,4 @@
-# Creating Custom Editors
+##### Creating Custom Editors
 
 ## Introduction
 In this guide we assume you are already familiar with writing programs with iTasks and have used the common task definitions for user interaction such as `updateInformation` and `viewInformation`, but find that the automagically generated GUI's are not working for your application.
@@ -77,7 +77,7 @@ In this revision, we have used a new combinator from `iTasks.UI.Editor.Modifiers
 
 We now have a composed editor with a nice label, but it's still of type `Editor Int`, so we can use it as drop-in replacement for our original editor.
 
-In the final example, we'll take it one step further and create a nice little form for a custom record:
+In the next example, we'll take it one step further and create a nice little form for a custom record:
 
 ```Clean
 :: MyRecord =
@@ -99,6 +99,35 @@ where
 ```
 
 This example is a little more complex, but uses only things we have already seen. By constructing editors from the basic building blocks and transforming the value domain of the editors, we can construct any kind of GUI we like.
+
+## Creating dynamic editors
+
+One of the nice features of the generic editors is that they work for any type of data structure. You can easily create editors for recursive data types that have values of arbitrary size, not just static forms.
+
+When you choose between different constructors of an ADT, the editor for the fields of the ADT depends on the selected constructor. You can create similar behaviour in your custom editors with the `containerc`/`panelc`/… combinators. The following example shows how this is done for a custom list type `MyList a`.
+
+```
+::: MyList a = MyNil | MyCons a (MyList a)
+derive class iTask MyList
+
+myTask7 :: Task (MyList String)
+myTask7 = enterInformation "Enter the list" [EnterUsing id editor]
+where
+    editor = injectEditorValue (\x -> (0,x)) (Ok o snd)
+        (containerc (chooseWithDropdown ["Nil","Cons"])
+            [(const MyNil, emptyEditor)
+            ,(const (MyCons gDefault{|*|} MyNil), consEditor)
+            ] <<@ heightAttr WrapSize)
+
+    consEditor = bijectEditorValue (\(MyCons x xs) -> (x,xs)) (\(x,xs) -> MyCons x xs)
+        (container2 gEditor{|*|} editor)
+```
+
+There is quite a lot going on in this example, but the central combinator making this work is `containerc`. This combinator groups an editor for making a selection (of type `Editor Int`) with a list of editors. Based on the value of the selection editor an from the list is selected to edit the value.
+
+The type of the list of possible editors is not `[Editor a]` but `[(a -> a, Editor a)]`. The function in the tuple is applied whenever the selection changes. This function let's the underlying value be changed based on what we choose. So in this example, if we choose `"Nil"` in our selector dropdown, the `const MyNil` function makes sure that the value is changed to `MyNil`. If we would not do this, we would only change to using another editor for the same value. When changing from `"Cons"` to `"Nil"` we would simply use the first editor (`emptyEditor`) for the `MyCons` value. This is not what you would expect. Therefore the function let's you modify the editor's value to be consistent with the selection. An additional benefit is that we can safely use partial functions when mapping to the alternative editors. In `consEditor` we can safely map between a tuple and the `MyCons` constructor with lambda's because we know that this editor will not be used with the `MyNil` constructor.
+
+This example shows that with these combinators you can also make dynamic editors for recursive types. You can even plug in in the generic editors to create editors for higher order-types.
 
 ## Conclusion
 

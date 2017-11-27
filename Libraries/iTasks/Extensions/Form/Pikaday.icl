@@ -99,5 +99,5 @@ where
 pikadayDateField :: Editor Date
 pikadayDateField = selectByMode
 	(bijectEditorValue toString fromString textView)
-   	(surjectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField)))
-   	(surjectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField)))
+   	(injectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField)))
+   	(injectEditorValue toString parseDate (withDynamicHintAttributes "date (yyyy-mm-dd)" (withEditModeAttr pikadayField)))

@@ -48,18 +48,25 @@ selectByMode :: (Editor a) (Editor a) (Editor a) -> Editor a
 
 // ### Changing the model value of the editor ###
 
+
 /**
 * Map the value of an editor to another (isomorphic) domain
 */
-bijectEditorValue :: (b -> a) (a -> b) (Editor a) -> Editor b
+bijectEditorValue :: (a -> b) (b -> a) (Editor b) -> Editor a
 
 /**
-* Map the value an editor to another domain which is 'bigger' than the original domain
+* Map the value of an editor to another domain which is 'bigger' than the original domain
 * so conversion back to the original is not always possible
 */
-surjectEditorValue :: (b -> a) (a -> MaybeErrorString b) (Editor a) -> Editor b
+injectEditorValue :: (a -> b) (b -> MaybeErrorString a) (Editor b) -> Editor a | JSONEncode{|*|} b & JSONDecode{|*|} b
+
+/**
+* Map the value of an editor to another domain which is 'smaller' than the original domain
+*/
+surjectEditorValue :: (a -> b) (b a -> a) (Editor b) -> Editor a | JSONEncode{|*|} b & JSONDecode{|*|} b
 
 /**
 * Map the value of an editor to another domain, without mapping changes in the editor back
 */
 comapEditorValue :: (b -> a) (Editor a) -> Editor b 
+

@@ -12,7 +12,7 @@ import StdMisc
 derive JSONEncode NodeLayoutState, LayoutState, LayoutTree, MvUI, MvUIChild
 derive gEq LayoutState, LayoutTree, MvUI, MvUIChild
 derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UIType, LayoutState, LayoutTree, JSONNode, MaybeError
-derive gPrettyTrace EditMask, FieldMask, CompoundMask, MvUI, MvUIChild
+derive gPrettyTrace EditMask, FieldMask,  MvUI, MvUIChild
 derive gDefault MvUI, MvUIChild
 
 Start world = execTestSuite (testsuite "Layout" "Tests for the layout functions"

@@ -112,7 +112,7 @@ where
 		# (change,val,vst) = editor.Editor.onRefresh dp new old mask {VSt|vst & mode = newMode}
 		= (change,val,{VSt|vst & mode=mode})
 
-bijectEditorValue :: (b -> a) (a -> b) (Editor a) -> Editor b
+bijectEditorValue :: (a -> b) (b -> a) (Editor b) -> Editor a
 bijectEditorValue tof fromf editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst = editor.Editor.genUI dp (tof val) vst
@@ -123,29 +123,63 @@ where
 		# (change,val,vst) = editor.Editor.onRefresh dp (tof new) (tof old) mask vst
 		= (change,fromf val,vst)
 
-surjectEditorValue :: (b -> a) (a -> MaybeErrorString b) (Editor a) -> Editor b
+injectEditorValue :: (a -> b) (b -> MaybeErrorString a) (Editor b) -> Editor a | JSONEncode{|*|} b & JSONDecode{|*|} b
+injectEditorValue tof fromf editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+where
+	genUI dp val vst = case editor.Editor.genUI dp (tof val) vst of
+		(Error e,vst) = (Error e,vst)
+		(Ok (ui,mask),vst) = (Ok (ui,StateMask mask (toJSON (tof val))), vst) //Track state of the 'inner' editor
+
+	onEdit dp e aval (StateMask mask encval) vst
+		# (Just bval) = fromJSON encval
+		= case editor.Editor.onEdit dp e bval mask vst of
+			(Error e, _, vst) = (Error e, aval, vst)
+			(Ok (change,mask), bval, vst) = case fromf bval of
+				(Ok aval)  = (Ok (change,StateMask mask (toJSON bval)),aval,vst) //TODO: What about clearing the errors? track state...
+				(Error e)
+					# (change,mask) = case mask of //Only set the hint attributes on fields
+						(FieldMask fmask)
+							# attrChange = ChangeUI [SetAttribute HINT_TYPE_ATTRIBUTE (JSONString HINT_TYPE_INVALID) 
+								,SetAttribute HINT_ATTRIBUTE (JSONString e)] []
+							= (mergeUIChanges change attrChange, FieldMask {FieldMask|fmask & valid = False})
+						_
+							= (change,mask)
+					= (Ok (change,StateMask mask (toJSON bval)), aval, vst)
+
+	onRefresh dp newa olda (StateMask mask encval) vst
+		# (Just oldb) = fromJSON encval
+		= case editor.Editor.onRefresh dp (tof newa) oldb mask vst of
+			(Error e, _, vst) = (Error e, olda, vst)
+			(Ok (change,mask), newb, vst) = case fromf newb of
+				(Ok newa) = (Ok (change,StateMask mask (toJSON newb)), newa, vst)
+				(Error e)
+					# (change,mask) = case mask of //Only set the hint attributes on fields
+						(FieldMask fmask)
+							# attrChange = ChangeUI [SetAttribute HINT_TYPE_ATTRIBUTE (JSONString HINT_TYPE_INVALID) 
+								,SetAttribute HINT_ATTRIBUTE (JSONString e)] []
+							= (mergeUIChanges change attrChange, FieldMask {FieldMask|fmask & valid = False})
+						_
+							= (change,mask)
+					= (Ok (change,StateMask mask (toJSON newb)), olda, vst)
+
+surjectEditorValue :: (a -> b) (b a -> a) (Editor b) -> Editor a | JSONEncode{|*|} b & JSONDecode{|*|} b
 surjectEditorValue tof fromf editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
-	genUI dp val vst = editor.Editor.genUI dp (tof val) vst
+	genUI dp val vst = case editor.Editor.genUI dp (tof val) vst of
+		(Error e,vst) = (Error e,vst)
+		(Ok (ui,mask),vst) = (Ok (ui,StateMask mask (toJSON (tof val))), vst) //Track state of the 'inner' editor
 
-	onEdit dp e old mask vst
-		# (mask,val,vst) = editor.Editor.onEdit dp e (tof old) mask vst 
-		= case fromf val of
-			(Ok new)  = (mask,new,vst)
-			(Error e) = case mask of
-				(Ok (change,FieldMask mask))
-					# attrChange = ChangeUI [SetAttribute HINT_TYPE_ATTRIBUTE (JSONString HINT_TYPE_INVALID)
-											,SetAttribute HINT_ATTRIBUTE (JSONString e)] []
-					# change = mergeUIChanges change attrChange
-					= (Ok (change,FieldMask {FieldMask|mask & valid = False}),old,vst)	
-					
-				_ = (mask,old,vst)
+	onEdit dp e aval (StateMask mask encval) vst
+		# (Just bval) = fromJSON encval
+		= case editor.Editor.onEdit dp e bval mask vst of 
+			(Error e,_ ,vst) = (Error e, aval, vst)
+			(Ok (change,mask),bval,vst) = (Ok (change,StateMask mask (toJSON bval)), fromf bval aval, vst)
 
-	onRefresh dp new old mask vst 
-		# (change,val,vst) = editor.Editor.onRefresh dp (tof new) (tof old) mask vst
-		= case fromf val of 
-			(Ok new)  = (change,new,vst)
-			(Error e) = (change,old,vst)
+	onRefresh dp newa olda (StateMask mask encval) vst
+		# (Just oldb) = fromJSON encval
+		= case editor.Editor.onRefresh dp (tof newa) oldb mask vst of
+			(Error e, _, vst) = (Error e, olda, vst)
+			(Ok (change,mask), newb, vst) = (Ok (change,StateMask mask (toJSON newb)), fromf newb olda, vst)
 
 comapEditorValue :: (b -> a) (Editor a) -> (Editor b)
 comapEditorValue tof editor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
