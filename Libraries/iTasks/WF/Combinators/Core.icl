@@ -767,7 +767,7 @@ where
         # progress      = {InstanceProgress|progress & instanceKey = newKey, attachedTo = [taskId:attachmentChain]}
 		# (_,iworld)	= write progress (sdsFocus instanceNo taskInstanceProgress) iworld
 		//Clear all input and output of that instance
-		# (_,iworld)    = write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceUIChanges) iworld 
+		# (_,iworld)    = write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceOutput) iworld 
 		# (_,iworld)    = modify (\('DQ'.Queue a b) -> ((),'DQ'.Queue [(i,e) \\(i,e)<- a| i <> instanceNo][(i,e) \\(i,e)<- b| i <> instanceNo])) taskEvents iworld 
 		= eval event evalOpts (TCAttach taskId ts (ASAttached (value =: Stable)) build newKey) iworld
 
@@ -777,11 +777,11 @@ where
 		//Determine state of the instance
 		# curStatus = case progress of
 			(Ok progress=:{InstanceProgress|attachedTo=[attachedId:_],value})
-			    | build <> appVersion   = ASIncompatible
-				| value =: Exception    = ASExcepted
-				| attachedId <> taskId  = ASInUse attachedId	
-									 	= ASAttached (value =: Stable)
-			_                           = ASDeleted
+			    | build <> appVersion    = ASIncompatible
+				| value =: (Exception _) = ASExcepted
+				| attachedId <> taskId   = ASInUse attachedId	
+									 	 = ASAttached (value =: Stable)
+			_                            = ASDeleted
 		//Determine UI change
 		# change = determineUIChange event curStatus prevStatus instanceNo instanceKey
 		# stable = (curStatus =: ASDeleted) || (curStatus =: ASExcepted)

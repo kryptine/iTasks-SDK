@@ -30,10 +30,10 @@ from Data.Queue import :: Queue(..)
 from Control.Applicative import class Alternative(<|>), instance Alternative Maybe, instance Applicative Maybe
 
 //Derives required for storage of UI definitions
-derive JSONEncode TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
+derive JSONEncode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
 derive JSONEncode Queue, Event, Set
 
-derive JSONDecode TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
+derive JSONDecode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
 derive JSONDecode Queue, Event, Set
 
 derive gDefault TIMeta
@@ -47,7 +47,7 @@ rawTaskNoCounter     = storeShare NS_TASK_INSTANCES False InJSONFile (Just 1)
 
 rawInstanceIO        = storeShare NS_TASK_INSTANCES False InMemory (Just 'DM'.newMap)
 rawInstanceEvents    = storeShare NS_TASK_INSTANCES False InMemory (Just 'DQ'.newQueue)
-rawInstanceUIChanges = storeShare NS_TASK_INSTANCES False InMemory (Just 'DM'.newMap)
+rawInstanceOutput    = storeShare NS_TASK_INSTANCES False InMemory (Just 'DM'.newMap)
 
 rawInstanceReduct    = storeShare NS_TASK_INSTANCES True InDynamicFile Nothing
 rawInstanceValue     = storeShare NS_TASK_INSTANCES True InDynamicFile Nothing
@@ -89,18 +89,22 @@ taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") raw
 taskInstanceShares :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
 taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") rawInstanceShares
 
-allUIChanges :: RWShared () (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange)) 
-allUIChanges = sdsFocus "allUIChanges" rawInstanceUIChanges 
+:: TaskOutputMessage 
+	= TOUIChange !UIChange
+    | TOException !String
+	| TODetach !InstanceNo
 
-taskInstanceUIChanges :: RWShared InstanceNo (Queue UIChange) (Queue UIChange) 
-taskInstanceUIChanges = sdsLens "taskInstanceUIChanges" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) allUIChanges
+:: TaskOutput :== Queue TaskOutputMessage
+
+taskOutput :: RWShared () (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput) 
+taskOutput = sdsFocus "taskOutput" rawInstanceOutput
+
+taskInstanceOutput :: RWShared InstanceNo TaskOutput TaskOutput
+taskInstanceOutput = sdsLens "taskInstanceOutput" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskOutput
 where
-	read instanceNo uis = case 'DM'.get instanceNo uis of
-		Just ui = Ok ui
-		Nothing = Ok 'DQ'.newQueue
-
-	write instanceNo uis ui = Ok (Just ('DM'.put instanceNo ui uis))
-	notify instanceNo _ 	= (==) instanceNo
+	read instanceNo outputs = Ok (fromMaybe 'DQ'.newQueue ('DM'.get instanceNo outputs)) 
+	write instanceNo outputs output = Ok (Just ('DM'.put instanceNo output outputs))
+	notify instanceNo _ = (==) instanceNo
 
 //Task instance parallel lists
 taskInstanceParallelTaskLists :: RWShared InstanceNo (Map TaskId [ParallelTaskState]) (Map TaskId [ParallelTaskState])
@@ -129,7 +133,7 @@ newDocumentId iworld=:{IWorld|random}
 createClientTaskInstance :: !(Task a) !String !InstanceNo !*IWorld -> *(!MaybeError TaskException TaskId, !*IWorld) |  iTask a
 createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion},current={taskTime},clock}
     //Create the initial instance data in the store
-    # progress  = {InstanceProgress|value=None,instanceKey="client",attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+    # progress  = {InstanceProgress|value=Unstable,instanceKey="client",attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=clock}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
@@ -142,7 +146,7 @@ createTaskInstance task iworld=:{options={appVersion,autoLayout},current={taskTi
     # (mbInstanceNo,iworld) = newInstanceNo iworld
     # instanceNo            = fromOk mbInstanceNo
     # (instanceKey,iworld)  = newInstanceKey iworld
-    # progress              = {InstanceProgress|value=None,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+    # progress              = {InstanceProgress|value=Unstable,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants             = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=clock}
     =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
@@ -157,7 +161,7 @@ createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAtt
 createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
 	# task = if autoLayout (tune (ApplyLayout defaultSessionLayout) task) task
     # (instanceKey,iworld) = newInstanceKey iworld
-    # progress             = {InstanceProgress|value=None,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
+    # progress             = {InstanceProgress|value=Unstable,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants            = {InstanceConstants|session=False,listId=listId,build=appVersion,issuedAt=clock}
     =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> 'SDS'.write (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
@@ -517,16 +521,21 @@ where
 
 queueUIChange :: !InstanceNo !UIChange !*IWorld -> *IWorld
 queueUIChange instanceNo change iworld
-	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue change q)) (sdsFocus instanceNo taskInstanceUIChanges) iworld
+	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue (TOUIChange change) q)) (sdsFocus instanceNo taskInstanceOutput) iworld
 	= iworld
 
 queueUIChanges :: !InstanceNo ![UIChange] !*IWorld -> *IWorld
 queueUIChanges instanceNo changes iworld
-	# (_,iworld) = 'SDS'.modify (\q -> ((),enqueueAll changes q)) (sdsFocus instanceNo taskInstanceUIChanges) iworld
+	# (_,iworld) = 'SDS'.modify (\q -> ((),enqueueAll changes q)) (sdsFocus instanceNo taskInstanceOutput) iworld
 	= iworld
 where
 	enqueueAll [] q = q
-	enqueueAll [x:xs] q = enqueueAll xs ('DQ'.enqueue x q)
+	enqueueAll [x:xs] q = enqueueAll xs ('DQ'.enqueue (TOUIChange x) q)
+
+queueException :: !InstanceNo !String !*IWorld -> *IWorld
+queueException instanceNo description iworld
+	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue (TOException description) q)) (sdsFocus instanceNo taskInstanceOutput) iworld
+	= iworld
 
 attachViewport :: !InstanceNo !*IWorld -> *IWorld
 attachViewport instanceNo iworld

@@ -8,6 +8,7 @@ from iTasks.Engine              import :: PublishedTask
 from iTasks.Internal.IWorld		import :: IWorld
 from iTasks.Internal.Task 	    import :: Task, :: ConnectionTask
 from iTasks.Internal.TaskState 	import :: TIUIState
+from iTasks.Internal.TaskStore  import :: TaskOutput, :: TaskOutputMessage
 from iTasks.Internal.SDS 			import :: SDS, :: RWShared
 from iTasks.UI.Definition           import :: UIChange
 from iTasks.WF.Definition	        import :: InstanceNo
@@ -41,9 +42,9 @@ from Data.Map                       import :: Map
 
 httpServer :: !Int !Int ![WebService r w] (RWShared () r w) -> ConnectionTask | TC r & TC w
 
-:: ChangeQueues :== Map InstanceNo (Queue UIChange)
+:: OutputQueues :== Map InstanceNo TaskOutput
 
-taskUIService         :: ![PublishedTask] -> WebService ChangeQueues ChangeQueues
+taskUIService         :: ![PublishedTask] -> WebService OutputQueues OutputQueues
 documentService       ::                     WebService r w
 staticResourceService :: [String]         -> WebService r w
 

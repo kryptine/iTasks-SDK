@@ -135,7 +135,7 @@ startEngineWithOptions initFun publishable world
 			# iworld				= serve [] (tcpTasks options.serverPort options.keepaliveTime) engineTasks timeout iworld
 			= destroyIWorld iworld
 where
-	tcpTasks serverPort keepaliveTime = [(serverPort,httpServer serverPort keepaliveTime (engineWebService publishable) allUIChanges)]
+	tcpTasks serverPort keepaliveTime = [(serverPort,httpServer serverPort keepaliveTime (engineWebService publishable) taskOutput)]
 	engineTasks =
  		[BackgroundTask updateClock
 		,BackgroundTask (processEvents MAX_EVENTS)
@@ -169,16 +169,9 @@ show lines world
 	# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
 	# (_,world)			= fclose console world
 	= world
-/*
-timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
-timeout iworld = case 'SDS'.read taskEvents iworld of //Check if there are events in the queue
-	(Ok (Queue [] []),iworld)   = (Just 10,iworld) //Empty queue, don't waste CPU, but refresh
-	(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
-	(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
-*/
 
 // The iTasks engine consist of a set of HTTP WebService 
-engineWebService :: publish -> [WebService (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange))] | Publishable publish
+engineWebService :: publish -> [WebService (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput)] | Publishable publish
 engineWebService publishable = [taskUIService published, documentService, sdsService, staticResourceService [url \\ {PublishedTask|url} <- published]]
 where
 	published = publishAll publishable 

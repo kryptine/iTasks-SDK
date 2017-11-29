@@ -51,7 +51,7 @@ where
 	notSelf ownPid {TaskInstance|instanceNo} = (TaskId instanceNo 0) <> ownPid
 	notSelf ownPid _ = False
 		
-	isActive {TaskInstance|value} = value === None || value === Unstable
+	isActive {TaskInstance|value} = value === Unstable
 
 	mkRow {TaskInstance|instanceNo,attributes,listId} =
 		{WorklistRow

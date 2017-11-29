@@ -547,7 +547,7 @@ where
         # opts = {ConnectionInstanceOpts|taskId = taskId, connectionId = 0, remoteHost = ip, connectionTask = connectionTask, removeOnClose = False}
         = ConnectionInstance opts channel
 
-addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !ExternalProcessTask (!Maybe 'Process'.ProcessPtyOptions) !IWorld -> (!MaybeError TaskException Dynamic, !*IWorld)
+addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !ExternalProcessTask (Maybe 'Process'.ProcessPtyOptions) !IWorld -> (!MaybeError TaskException Dynamic, !*IWorld)
 addExternalProc taskId cmd args dir extProcTask=:(ExternalProcessTask handlers sds) mopts iworld
     = addIOTask taskId sds init externalProcessIOOps onInitHandler mkIOTaskInstance iworld
 where

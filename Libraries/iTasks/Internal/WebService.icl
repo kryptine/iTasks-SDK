@@ -254,7 +254,7 @@ where
 
 :: ChangeQueues :== Map InstanceNo (Queue UIChange)
 
-taskUIService :: ![PublishedTask] -> WebService ChangeQueues ChangeQueues
+taskUIService :: ![PublishedTask] -> WebService OutputQueues OutputQueues
 taskUIService taskUrls = { urlMatchPred    = matchFun [url \\ {PublishedTask|url} <-taskUrls]
                          , completeRequest = True
                          , onNewReq        = reqFun taskUrls
@@ -375,15 +375,20 @@ where
     onTick req output (clientname,state,instances) iworld
 		//Check keys 
 		# (instances,iworld) = verifyKeys instances iworld
-		//Check for UI updates for all attached instances
-		# (changes, output) = dequeueOutput (map fst instances) output
-		= case changes of //Ignore empty updates
+		//Check for output for all attached instances
+		# (messages, output) = dequeueOutput (map fst instances) output
+		= case messages of //Ignore empty updates
 			[] = ([],False,(clientname,state,instances),Nothing,iworld)
-			changes	
-				# msgs =
-					[wsockTextMsg (toString (JSONArray [JSONInt 0,JSONString "ui-change"
-					,JSONObject [("instanceNo",JSONInt instanceNo),("change",encodeUIChange change)]])) \\ (instanceNo,change) <- changes]
-				= (flatten msgs,False, (clientname,state,instances),Just output,iworld)
+			messages
+				# json = [wsockTextMsg (toString (jsonMessage message)) \\ message <- messages]
+				= (flatten json,False, (clientname,state,instances), Just output, iworld)
+
+	jsonMessage (instanceNo, TOUIChange change)
+		= JSONArray [JSONInt 0,JSONString "ui-change"
+					,JSONObject [("instanceNo",JSONInt instanceNo),("change",encodeUIChange change)]]
+	jsonMessage (instanceNo, TOException description)
+		=JSONArray [JSONInt 0,JSONString "exception"
+					,JSONObject [("instanceNo",JSONInt instanceNo),("description",JSONString description)]]
 
 	disconnectFun _ _ (clientname,state,instances) iworld = (Nothing, snd (updateInstanceDisconnect (map fst instances) iworld))
 	disconnectFun _ _ _ iworld                            = (Nothing, iworld)
@@ -394,7 +399,7 @@ where
 
 	uiUrl matchUrl = (if (endsWith "/" matchUrl) matchUrl (matchUrl +++ "/")) +++ "gui-wsock"
 
-	dequeueOutput :: ![InstanceNo] !(Map InstanceNo (Queue UIChange)) -> (![(!InstanceNo,!UIChange)],!Map InstanceNo (Queue UIChange))
+	dequeueOutput :: ![InstanceNo] !(Map InstanceNo TaskOutput) -> (![(!InstanceNo,!TaskOutputMessage)],!Map InstanceNo TaskOutput)
 	dequeueOutput [] states = ([],states)
 	dequeueOutput [i:is] states
 		# (output,states) = dequeueOutput is states
@@ -426,6 +431,7 @@ where
 	formatMessageEvents messages = concat (map format messages)
     where
         format (instanceNo,change) = "data: {\"instance\":" +++toString instanceNo+++",\"change\":" +++ toString (encodeUIChange change) +++ "}\n\n"
+
 
 //TODO: The upload and download mechanism used here is inherently insecure!!!
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent

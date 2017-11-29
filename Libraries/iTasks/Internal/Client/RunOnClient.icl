@@ -101,17 +101,17 @@ newWorld = undef
 
 getUIUpdates :: !*IWorld -> (!Maybe [(InstanceNo, [String])], *IWorld)
 getUIUpdates iworld
-	= case 'SDS'.read allUIChanges iworld of
-		(Ok uiChanges,iworld)
-			= case 'Data.Map'.toList uiChanges of
+	= case 'SDS'.read taskOutput iworld of
+		(Ok output,iworld)
+			= case 'Data.Map'.toList output of
 				[] = (Nothing,iworld)
-				changes
-					# (_,iworld) = 'SDS'.write 'Data.Map'.newMap allUIChanges iworld
-					= (Just (map getUpdates changes), iworld)
+				output
+					# (_,iworld) = 'SDS'.write 'Data.Map'.newMap taskOutput iworld
+					= (Just (map getUpdates output), iworld)
 		(_,iworld)
 			= (Nothing, iworld)
 where
-	getUpdates (instanceNo,upds) = (instanceNo, [toString (encodeUIChanges (toList upds))])
+	getUpdates (instanceNo,upds) = (instanceNo, [toString (encodeUIChanges [c \\ TOUIChange c <- toList upds])])
 	toList q = case 'DQ'.dequeue q of //TODO SHOULD BE IN Data.Queue
 		(Nothing,q) 	= []
 		(Just x,q) 		= [x:toList q]

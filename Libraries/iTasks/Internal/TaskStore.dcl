@@ -26,6 +26,7 @@ from System.Time    import :: Timestamp
     , includeProgress   :: !Bool
     , includeAttributes :: !Bool
     }
+
 :: InstanceData :== (!InstanceNo,!Maybe InstanceConstants,!Maybe InstanceProgress,!Maybe TaskAttributes)
 
 derive class iTask InstanceFilter
@@ -69,7 +70,6 @@ taskInstanceReduct		:: RWShared InstanceNo TIReduct TIReduct
 taskInstanceValue       :: RWShared InstanceNo TIValue TIValue
 taskInstanceShares      :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
 
-
 //Filtered views on evaluation state of instances:
 
 //Shared source 
@@ -91,8 +91,15 @@ parallelTaskList                    :: RWShared (!TaskId,!TaskId,!TaskListFilter
 //When task instances are evaluated, their output consists of instructions to modify the user interface
 //of that instance to reflect the instance's new state
 
-allUIChanges			:: RWShared () (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange)) 
-taskInstanceUIChanges	:: RWShared InstanceNo (Queue UIChange) (Queue UIChange) 
+:: TaskOutputMessage 
+	= TOUIChange !UIChange
+    | TOException !String
+	| TODetach !InstanceNo
+
+:: TaskOutput :== Queue TaskOutputMessage
+
+taskOutput          :: RWShared () (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput) 
+taskInstanceOutput	:: RWShared InstanceNo TaskOutput TaskOutput
 
 //=== Access functions: ===
 
@@ -151,13 +158,17 @@ queueRefresh :: ![(!TaskId, !String)] !*IWorld -> *IWorld
 dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
 
 /**
-* Queue task output
+* Queue ui change task output
 */
 queueUIChange :: !InstanceNo !UIChange !*IWorld -> *IWorld
 /**
 * Convenience function that queues multiple changes at once
 */
 queueUIChanges :: !InstanceNo ![UIChange] !*IWorld -> *IWorld
+/**
+* Queue exception change task output
+*/
+queueException :: !InstanceNo !String !*IWorld -> *IWorld
 
 /**
 * When a new viewport is attached to an instance, all events and output are removed
