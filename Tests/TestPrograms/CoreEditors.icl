@@ -220,19 +220,19 @@ testEditRecursiveConsChange2
 	([1],JSONArray [JSONInt 0])
 
 testEditListElement = testGenEdit "List element edit" 
-	([42],StateCompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 42}] (JSONArray [JSONInt 0])
+	([42],StateMask (CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 42}]) (JSONArray [JSONInt 0])
 		,ChangeUI [] [(0,ChangeChild (ChangeUI [] [(0, ChangeChild (ChangeUI [SetAttribute "value" (JSONInt 42), SetAttribute "hint" (JSONString "You have correctly entered a whole number"), SetAttribute "hint-type" (JSONString "valid")] []))]))])
-	([0],StateCompoundMask [FieldMask {touched=True,valid=True,state=JSONNull}] (JSONArray [JSONInt 0]))
+	([0],StateMask (CompoundMask [FieldMask {touched=True,valid=True,state=JSONNull}]) (JSONArray [JSONInt 0]))
 	([0],JSONInt 42)
 
 testAddListElement = testGenEdit "List element add"
-	([42,0],StateCompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 42},FieldMask {touched=False,valid=False,state=JSONNull}] (JSONArray[JSONInt 0,JSONInt 1])
+	([42,0],StateMask (CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 42},FieldMask {touched=False,valid=False,state=JSONNull}]) (JSONArray[JSONInt 0,JSONInt 1])
 		,ChangeUI [] [(1,InsertChild elui)
 
 					 ,(2,ChangeChild (ChangeUI [] [(0, ChangeChild (ChangeUI [SetAttribute "value" (JSONString "2 items")] []))]))
 					 ,(0,ChangeChild (ChangeUI [] [(2, ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool True)] []))]))
 					 ])
-	([42],StateCompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 42}] (JSONArray [JSONInt 0]))
+	([42],StateMask (CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 42}]) (JSONArray [JSONInt 0]))
 	([],JSONString "add")
 where
 	elui = uiac UIListItem ('DM'.fromList [("direction",JSONString "horizontal"),("halign",JSONString "right"),("height",JSONString "wrap")]) [inui:buis]
@@ -250,36 +250,36 @@ where
 	       ]
 
 testMoveListElementUp = testGenEdit "Move list element up"
-	([2,1,3],StateCompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 3}] (JSONArray [JSONInt 1,JSONInt 0,JSONInt 2])
+	([2,1,3],StateMask (CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 3}]) (JSONArray [JSONInt 1,JSONInt 0,JSONInt 2])
 			,ChangeUI [] [(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool False)] []))]))
                          ,(0,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool True)] []))]))
 						 ,(1,MoveChild 0)])
-	([1,2,3], StateCompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 3}] (JSONArray [JSONInt 0,JSONInt 1,JSONInt 2]))
+	([1,2,3], StateMask (CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 3}]) (JSONArray [JSONInt 0,JSONInt 1,JSONInt 2]))
 	([],JSONString "mup_1")
 
 testMoveListElementDown = testGenEdit "Move list element down"
-	([1,3,2],StateCompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 3},FieldMask {touched=True,valid=True,state=JSONInt 2}] (JSONArray [JSONInt 0,JSONInt 2,JSONInt 1])
+	([1,3,2],StateMask (CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 3},FieldMask {touched=True,valid=True,state=JSONInt 2}]) (JSONArray [JSONInt 0,JSONInt 2,JSONInt 1])
             ,ChangeUI [] [(1,ChangeChild (ChangeUI [] [(2,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool False)] []))]))
                          ,(2,ChangeChild (ChangeUI [] [(2,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool True)] []))]))
                          ,(1,MoveChild 2)])
 
-	([1,2,3], StateCompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 3}] (JSONArray [JSONInt 0,JSONInt 1,JSONInt 2]))
+	([1,2,3], StateMask (CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 3}]) (JSONArray [JSONInt 0,JSONInt 1,JSONInt 2]))
 	([],JSONString "mdn_1")
 
 testMoveFirstListElementDown = testGenEdit "Move first list element down"
-	([2,1,3],StateCompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 3}] (JSONArray [JSONInt 1,JSONInt 0,JSONInt 2])
+	([2,1,3],StateMask (CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 3}]) (JSONArray [JSONInt 1,JSONInt 0,JSONInt 2])
             ,ChangeUI [] [(0,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool True)] []))]))
                          ,(1,ChangeChild (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool False)] []))]))
                          ,(0,MoveChild 1)])
 
-	([1,2,3], StateCompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 3}] (JSONArray [JSONInt 0,JSONInt 1,JSONInt 2]))
+	([1,2,3], StateMask (CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 3}]) (JSONArray [JSONInt 0,JSONInt 1,JSONInt 2]))
 	([],JSONString "mdn_0")
 
 
 testRemoveListElement = skip (testGenEdit "Remove list element"
-	([1,2], StateCompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2}] (JSONArray [JSONInt 0,JSONInt 1]),ChangeUI [] [(1,ChangeChild (ChangeUI [] [(2,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool False)] []))]))
+	([1,2], StateMask (CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2}]) (JSONArray [JSONInt 0,JSONInt 1]),ChangeUI [] [(1,ChangeChild (ChangeUI [] [(2,ChangeChild (ChangeUI [SetAttribute "enabled" (JSONBool False)] []))]))
                              ,(2,RemoveChild)])
-	([1,2,3], StateCompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 3}] (JSONArray [JSONInt 0,JSONInt 1,JSONInt 2]))
+	([1,2,3], StateMask (CompoundMask [FieldMask {touched=True,valid=True,state=JSONInt 1},FieldMask {touched=True,valid=True,state=JSONInt 2},FieldMask {touched=True,valid=True,state=JSONInt 3}]) (JSONArray [JSONInt 0,JSONInt 1,JSONInt 2]))
 	([],JSONString "rem_2"))
 
 //General pattern for diff tests
