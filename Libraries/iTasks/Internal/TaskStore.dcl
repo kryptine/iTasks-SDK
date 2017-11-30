@@ -9,6 +9,7 @@ definition module iTasks.Internal.TaskStore
 import iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.UI.Definition, iTasks.Internal.SDS
 import iTasks.WF.Combinators.Core
 import iTasks.Extensions.Document
+import GenEq
 
 from Data.Maybe     import :: Maybe
 from Data.Error     import :: MaybeError
@@ -95,6 +96,8 @@ parallelTaskList                    :: RWShared (!TaskId,!TaskId,!TaskListFilter
 	= TOUIChange !UIChange
     | TOException !String
 	| TODetach !InstanceNo
+
+derive gEq TaskOutputMessage
 
 :: TaskOutput :== Queue TaskOutputMessage
 

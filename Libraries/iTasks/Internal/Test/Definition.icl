@@ -126,7 +126,7 @@ testCommonInteractions typeName
 				  )
 		 )
 
-testTaskOutput :: String (Task a) [Either Event Int] [UIChange] ([UIChange] [TaskOutputMessage] -> TestResult) -> Test | iTask a
+testTaskOutput :: String (Task a) [Either Event Int] [TaskOutputMessage] ([TaskOutputMessage] [TaskOutputMessage] -> TestResult) -> Test | iTask a
 testTaskOutput name task events exp comparison = utest name test
 where
 	test world 

@@ -37,7 +37,7 @@ derive JSONDecode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, Parallel
 derive JSONDecode Queue, Event, Set
 
 derive gDefault TIMeta
-derive gEq ParallelTaskChange
+derive gEq ParallelTaskChange, TaskOutputMessage
 derive gText ParallelTaskChange
 derive class iTask InstanceFilter
 
