@@ -1,6 +1,7 @@
 definition module iTasks.Internal.Test.Definition
 import iTasks
 import iTasks.Util.Trace
+from iTasks.Internal.TaskStore import :: TaskOutputMessage
 
 :: InteractiveTest 
 	= { name :: String
@@ -114,7 +115,7 @@ testEditorWithShare :: (Editor a) a EditMode -> Task a | iTask a
 testCommonInteractions :: String -> Task a | iTask a
 
 
-testTaskOutput :: String (Task a) [Either Event Int] [UIChange] ([UIChange] [UIChange] -> TestResult) -> Test | iTask a
+testTaskOutput :: String (Task a) [Either Event Int] [UIChange] ([UIChange] [TaskOutputMessage] -> TestResult) -> Test | iTask a
 
 /**
 * Test if all tests have passed
