@@ -10,9 +10,9 @@ TODO
 TODO
 
 ## The Task-UI Protocol 
-In the current web run-time, websockets are used to communicate between web-browsers and iTask applications. Over these sockets a custom protocol is implemented that let's browsers create and attach to task instances.
+In the current web run-time, websockets are used to communicate between web-browsers and iTask applications. Over these sockets a custom protocol is implemented that lets browsers create and attach to task instances.
 
-The protocol mixes two communication styles. To control the connection, there a number of RPC-like commands. These are initiated by the client framework and the server responds with an acknowledgement or a response. Once the connection is set up, the server also pushes messages to the client framework.
+The protocol mixes two communication styles. To control the connection, there are a number of RPC-like commands. These are initiated by the client framework and the server responds with an acknowledgement or a response. Once the connection is set up, the server also pushes messages to the client framework.
 These are used to synchronize the UI and to notify clients of server-side exceptions
 
 ### Commands
