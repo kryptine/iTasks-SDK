@@ -38,6 +38,9 @@ div.#{$prefix}loader-spinner {
 	from { transform: rotate(0deg); }
 	to { transform: rotate(359deg); }
 }
+div.#{$prefix}exception {
+	text-align: center;
+}
 
 .#{$prefix}vcontainer, .#{$prefix}hcontainer {
     display: flex;

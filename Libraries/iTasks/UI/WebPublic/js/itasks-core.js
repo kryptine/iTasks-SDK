@@ -211,6 +211,10 @@ itasks.Component = {
             el = me.containerEl,
             horizontal = (me.attributes.direction && (me.attributes.direction === 'horizontal')) || false,
 			paddingTop, paddingBottom;
+	
+		if(me.container === false) {
+			return;
+		}
 
         el.classList.add(me.cssPrefix + (horizontal ? 'hcontainer' : 'vcontainer'));
 
@@ -445,8 +449,9 @@ itasks.Loader = {
 };
 itasks.ExceptionView = {
 	cssCls: 'exception',
+	container: false,
 	initDOMEl: function() {
-		this.domEl.innerHTML = this.attributes.value || '';
+		this.domEl.innerHTML = '<h1>Exception</h1><span>' + (this.attributes.value || '') + '</span>';
 	}
 };
 itasks.Viewport = {
@@ -595,6 +600,7 @@ itasks.Connection = {
 		};	
 		me.wsock.onmessage = me.onMessage_.bind(me);
 		me.wsock.onerror = me.onError_.bind(me);
+		me.wsock.onclose = me.onClose_.bind(me);
 	},
 	_ping: function() {
 		var me = this, reqId = me.reqId++;
@@ -658,13 +664,16 @@ itasks.Connection = {
 			me.wsock.close();
 			me.wsock = null;
 		}
-
 	},
 	onError_: function(e) {
-		Object.values(me.taskInstanceCallbacks).forEach(function(callbacks) { callbacks.onException(e);});
+		Object.values(this.taskInstanceCallbacks).forEach(function(callbacks) { callbacks.onException(e);});
 	},
 	onReset_: function(e) {
-		Object.values(me.taskInstanceCallbacks).forEach(function(callbacks) { callbacks.onException(e);});
+		Object.values(this.taskInstanceCallbacks).forEach(function(callbacks) { callbacks.onException(e);});
+	},
+	onClose_: function(e) {
+		//If there are still attached task instances, we consider it an exeption for those viewports
+		Object.values(this.taskInstanceCallbacks).forEach(function(callbacks) { callbacks.onException("The connection to the server closed unexpectedly");});
 	},
 	onMessage_: function(e) {
 		var me = this,
