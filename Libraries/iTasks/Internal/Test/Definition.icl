@@ -10,7 +10,7 @@ import iTasks.Extensions.Development.Codebase
 import Data.Func, Data.Either, Data.Error
 
 from iTasks.Internal.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{options} 
-from iTasks.Internal.TaskStore import createTaskInstance, taskInstanceUIChanges
+from iTasks.Internal.TaskStore import createTaskInstance, taskInstanceOutput, :: TaskOutput, :: TaskOutputMessage
 from iTasks.Internal.TaskEval import evalTaskInstance
 from iTasks.Internal.Store import emptyStore
 from iTasks.Internal.Util import toCanonicalPath
@@ -126,7 +126,7 @@ testCommonInteractions typeName
 				  )
 		 )
 
-testTaskOutput :: String (Task a) [Either Event Int] [UIChange] ([UIChange] [UIChange] -> TestResult) -> Test | iTask a
+testTaskOutput :: String (Task a) [Either Event Int] [TaskOutputMessage] ([TaskOutputMessage] [TaskOutputMessage] -> TestResult) -> Test | iTask a
 testTaskOutput name task events exp comparison = utest name test
 where
 	test world 
@@ -147,7 +147,7 @@ where
 				= case res of
 					(Ok ())
 						//Collect output
-						# (res,iworld) = 'SDS'.read (sdsFocus instanceNo taskInstanceUIChanges) iworld
+						# (res,iworld) = 'SDS'.read (sdsFocus instanceNo taskInstanceOutput) iworld
 						# world = destroyIWorld iworld
 						//Compare result
 						# verdict = case res of

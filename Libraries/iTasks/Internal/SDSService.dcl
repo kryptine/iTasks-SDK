@@ -23,7 +23,7 @@ from GenEq import generic gEq
 
 from iTasks.SDS.Definition import :: SDS
 
-sdsService :: WebService (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange))
+sdsService :: WebService a a
 
 readRemoteSDS  ::           !JSONNode !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
 writeRemoteSDS :: !JSONNode !JSONNode !String !*IWorld -> *(!MaybeErrorString (),     !*IWorld)

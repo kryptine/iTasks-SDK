@@ -3,7 +3,7 @@ module TaskEvaluation
 import iTasks.Internal.Test.Definition
 
 from iTasks.Internal.IWorld import createIWorld, destroyIWorld, initJSCompilerState, ::IWorld{options}
-from iTasks.Internal.TaskStore import createTaskInstance, taskInstanceUIChanges
+from iTasks.Internal.TaskStore import createTaskInstance
 from iTasks.Internal.TaskEval import evalTaskInstance
 from iTasks.Internal.Store import emptyStore
 from iTasks.Internal.Util import toCanonicalPath
@@ -12,7 +12,7 @@ import iTasks.UI.Definition
 import qualified iTasks.Internal.SDS as SDS
 import Text, Text.HTML
 import System.Directory, System.FilePath
-import Data.Either, Data.Error, Data.Tuple
+import Data.Either, Data.Error, Data.Tuple, Data.Functor
 import qualified Data.Queue as DQ
 import qualified Data.Map as DM
 from Data.Queue import :: Queue(..)
@@ -20,7 +20,7 @@ import System.CommandLine
 
 derive gText Queue
 derive gEq Queue
-derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UIType, JSONNode, MaybeError
+derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UIType, JSONNode, MaybeError, TaskOutputMessage
 
 minimalEditor :: Task String
 minimalEditor = updateInformation "Minimal String editor" [] "Hello World"
@@ -118,7 +118,7 @@ expPromptUI msg
 testInitialEditorUI = skip (testTaskOutput "Initial UI of minimal editor task" minimalEditor events exp checkEqual)
 where
 	events = [Left ResetEvent]
-	exp = [ReplaceUI expMinimalEditorUI]
+	exp = [TOUIChange (ReplaceUI expMinimalEditorUI)]
 
 	expMinimalEditorUI
 		= uic UIInteract [expPromptUI "Minimal String editor",editor]
@@ -132,13 +132,13 @@ where
 testInitialEditletUI = skip (testTaskOutput "Initial UI of minimal editlet task" minimalEditlet events exp (checkEqualWith compare))
 where
 	events = [Left ResetEvent]
-	exp = [ReplaceUI expMinimalEditletUI]
+	exp = [TOUIChange (ReplaceUI expMinimalEditletUI)]
 
 	//Because we can't test if correct Sapl code is generated here, we need to use a custom comparison
 	//function that first replaces all Sapl fields with the marker "IGNORE" before comparing to the expected value
-	compare [ReplaceUI (UI UIInteract attr [p,UI UIHtmlView attr2 i])] exp 
+	compare [TOUIChange (ReplaceUI (UI UIInteract attr [p,UI UIHtmlView attr2 i]))] exp
 		# attr2 = 'DM'.put "saplInit" (JSONString "IGNORE") attr2
-		= [ReplaceUI (UI UIInteract attr [p,UI UIHtmlView  attr2 i])] === exp
+		= [TOUIChange (ReplaceUI (UI UIInteract attr [p,UI UIHtmlView  attr2 i]))] === exp
 	compare _ _ = False
 
 	expMinimalEditletUI
@@ -152,7 +152,7 @@ where
 testInitialStepUI = skip (testTaskOutput "Initial UI of minimal step task" minimalStep events exp checkEqual)
 where
 	events = [Left ResetEvent]
-	exp = [ReplaceUI expMinStepInitialUI]
+	exp = [TOUIChange (ReplaceUI expMinStepInitialUI)]
 
 //The step is a compound editor with the "sub" UI as first element, and the actions as remaining elements	
 expMinStepInitialUI = uic UIStep [expEditorUI, expActionOk]
@@ -168,7 +168,7 @@ where
 testInitialParallelUI = skip (testTaskOutput "Initial UI of minimal parallel task" minimalParallel events exp checkEqual)
 where
 	events = [Left ResetEvent]
-	exp = [ReplaceUI expParUI]
+	exp = [TOUIChange (ReplaceUI expParUI)]
 	
 	expParUI = uic UIParallel [expMinimalEditorUI 1 "Edit string 1" "A",expMinimalEditorUI 2 "Edit string 2" "B"]
 
@@ -182,7 +182,7 @@ where
 testStepEnableAction = skip (testTaskOutput "Test enabling of an action of a step" minimalStep events exp checkEqual)
 where
 	events = [Left ResetEvent,Left minimalStepInputEvent] //Reset, then make sure the editor has a valid value
-	exp = [ReplaceUI expMinStepInitialUI, minimalStepInputResponse]
+	exp = TOUIChange <$> [ReplaceUI expMinStepInitialUI, minimalStepInputResponse]
 
 minimalStepInputEvent = EditEvent (TaskId 1 1) "v" (JSONString "foo")
 minimalStepInputResponse = ChangeUI [] [changeInteract,changeAction]
@@ -199,7 +199,7 @@ where
 testStepApplyAction = skip (testTaskOutput "Test replacement of UI after step" minimalStep events exp checkEqual)
 where
 	events = [Left ResetEvent,Left minimalStepInputEvent,Left (ActionEvent (TaskId 1 0) "Ok")] 
-	exp = [ReplaceUI expMinStepInitialUI, minimalStepInputResponse, ReplaceUI (expMinimalEditorUI 2 "Result" "foo")] 
+	exp = TOUIChange <$> [ReplaceUI expMinStepInitialUI, minimalStepInputResponse, ReplaceUI (expMinimalEditorUI 2 "Result" "foo")]
 
 expMinParOperationsInitialUI
 	= uic UIParallel [expEditorUI,expActionPush,expActionPop]
@@ -217,12 +217,12 @@ where
 testParallelAppend = testTaskOutput "Test dynamically adding a task to a parallel" minimalParallelOperations events exp checkEqual
 where
 	events = [Left ResetEvent]//,ActionEvent (TaskId 1 0) "Push"]
-	exp = [ReplaceUI expMinParOperationsInitialUI]//,NoChange]
+	exp = TOUIChange <$> [ReplaceUI expMinParOperationsInitialUI]//,NoChange]
 	
 testParallelRemove = testTaskOutput "Test dynamically removing a task from a parallel" minimalParallelOperations events exp checkEqual
 where
 	events = [Left ResetEvent, Left (ActionEvent (TaskId 1 0) "Pop")]
-	exp = [ReplaceUI expMinParOperationsInitialUI, ChangeUI [] [(0,ChangeChild itemChanges), (1,ChangeChild actionChanges)]]
+	exp = TOUIChange <$> [ReplaceUI expMinParOperationsInitialUI, ChangeUI [] [(0,ChangeChild itemChanges), (1,ChangeChild actionChanges)]]
 
 	itemChanges = ChangeUI [] [(0,RemoveChild)] 
 	//When there are no more elements, the pop action should be disabled
@@ -231,9 +231,10 @@ where
 testForeverLoop = skip (testTaskOutput "Test a 'forever' loop construct (a more complex version of a dynamic parallel)" minimalForever events exp checkEqual)
 where
 	events = [Left ResetEvent, Left (ActionEvent (TaskId 1 1) "Continue")]
-	exp = [ReplaceUI (uic UIParallel [uic UIContainer [expStep "1-1",expRestarter],uic UIContainer []]) //Initial UI
-		  //Remove UI of first loop cycle, and UI for next cycle: Remove two original tasks, create two new ones
-		  ,ChangeUI [] [(0,ChangeChild (ChangeUI [] [(0,RemoveChild),(0,RemoveChild),(0,InsertChild (expStep "1-14")),(1,InsertChild expRestarter)]))
+	exp = TOUIChange <$>
+          [ ReplaceUI (uic UIParallel [uic UIContainer [expStep "1-1",expRestarter],uic UIContainer []]) //Initial UI
+		    //Remove UI of first loop cycle, and UI for next cycle: Remove two original tasks, create two new ones
+		  , ChangeUI [] [(0,ChangeChild (ChangeUI [] [(0,RemoveChild),(0,RemoveChild),(0,InsertChild (expStep "1-14")),(1,InsertChild expRestarter)]))
 					   ,(1,ChangeChild (ChangeUI [] []))
                        ]
           ]
