@@ -38,7 +38,7 @@ itasks.Component = {
 		var me = this, fun, evalfun;
 		//Initialize linked sapl functions 
 		if(me.attributes.saplDeps != null && me.attributes.saplDeps != '') {
-			if(SAPL_DEBUG) {
+			if(typeof SAPL_DEBUG !== 'undefined' && SAPL_DEBUG) {
 				console.log("BEGIN SAPL DEBUG");
 				console.log(me.attributes.saplDeps);
 				console.log("END SAPL DEBUG");

@@ -1,6 +1,6 @@
 implementation module iTasks.Extensions.JSONFile
 
-import StdBool, StdList, StdFile, StdArray, System.FilePath, System.File, Data.Error, Text.JSON
+import StdString, StdBool, StdList, StdFile, StdArray, System.FilePath, System.File, Data.Error, Text.JSON
 import iTasks.Internal.IWorld, iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.TaskStore
 
 :: JSONParseException = CannotParse !String
