@@ -335,7 +335,7 @@ where
 								(Ok (), iworld)
 									# iworld = detachViewport instanceNo iworld
 									# json = JSONArray [JSONInt commandId, JSONString "detach", JSONObject []]
-									= ([],False, filter (((==) instanceNo) o fst) instances, iworld) 
+									= ([],False, filter (((<>) instanceNo) o fst) instances, iworld) 
 						_
 							# json = JSONArray [JSONInt commandId, JSONString "exception", JSONObject [("description",JSONString "Missing command parameters")]]
 							= (wsockTextMsg (toString json),False, instances, iworld)
