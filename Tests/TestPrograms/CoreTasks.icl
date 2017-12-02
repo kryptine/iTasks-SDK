@@ -5,7 +5,7 @@ import iTasks.Extensions.Process
 import System.OS, Data.Either, Data.Functor
 import qualified Data.Set as DS
 
-derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UIType, JSONNode
+derive gPrettyTrace TaskOutputMessage, UIChange, UIChildChange, UIAttributeChange, UI, UIType, JSONNode
 
 Start world = execTestSuite (testsuite "UIs of core tasks" "Tests for UI behavior of core tasks" 
 	[skip (testCallFastProcess)
