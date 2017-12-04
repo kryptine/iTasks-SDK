@@ -5,11 +5,13 @@ import iTasks.UI.Definition, iTasks.UI.JS.Map, iTasks.UI.Editor, iTasks.UI.JS.En
 import StdMisc, Data.Tuple, Data.Error
 import qualified Data.Map as DM
 from Text.HTML import instance toString HtmlTag
-
+from iTasks.UI.Editor.Common import diffChildren
 from StdArray import class Array(uselect), instance Array {} a
 
-LEAFLET_JS :== "/leaflet-1.1.0/leaflet.js"
-LEAFLET_CSS :== "/leaflet-1.1.0/leaflet.css"
+LEAFLET_JS         :== "/leaflet-1.1.0/leaflet.js"
+LEAFLET_JS_WINDOW  :== "leaflet-window.js"
+LEAFLET_CSS        :== "/leaflet-1.1.0/leaflet.css"
+LEAFLET_CSS_WINDOW :== "leaflet-window.css"
 
 :: IconOptions =
     { iconUrl   :: !String
@@ -40,7 +42,8 @@ MAP_OPTIONS     :== {attributionControl = False, zoomControl = True}
     | LDSetCursor       !LeafletLatLng
     | LDSetBounds       !LeafletBounds
 	//Updating markers 
-	| LDSelectMarker    LeafletObjectID
+	| LDSelectMarker    !LeafletObjectID
+    | LDRemoveWindow    !LeafletObjectID
 
 openStreetMapTiles :: String
 openStreetMapTiles = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -48,12 +51,12 @@ openStreetMapTiles = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 leafletEditor :: Editor LeafletMap
 leafletEditor = {Editor|genUI = withClientSideInit initUI genUI, onEdit  = onEdit, onRefresh = onRefresh}
 where
-	genUI dp val=:{LeafletMap|perspective={center,zoom,cursor},tilesUrl,objects,icons} world
+	genUI dp val=:{LeafletMap|perspective={center,zoom,cursor},tilesUrls,objects,icons} world
 		# mapAttr = 'DM'.fromList
 			[("zoom", JSONInt zoom)
 			,("center", JSONArray [JSONReal center.LeafletLatLng.lat, JSONReal center.LeafletLatLng.lng])
 			,("cursor", maybe JSONNull toJSON cursor)
-			,("tilesUrl", maybe JSONNull JSONString tilesUrl)
+			,("tilesUrls", toJSON tilesUrls)
 			,("icons", JSONArray [toJSON (iconId,{IconOptions|iconUrl=iconUrl,iconSize=[w,h]}) \\ {iconId,iconUrl,iconSize=(w,h)} <- icons])
 			]
 		# attr = 'DM'.unions [mapAttr, sizeAttr (ExactSize 500) (ExactSize 150)]
@@ -69,6 +72,11 @@ where
                           in uia UIData dataMap`
 	encodeUI (Polyline o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList [("type",JSONString "polyline"):attr])
 	encodeUI (Polygon o) = let (JSONObject attr) = toJSON o in uia UIData ('DM'.fromList [("type",JSONString "polygon") : attr])
+    encodeUI (Window o) = let (JSONObject attr) = toJSON o
+                              dataMap = 'DM'.fromList [("type",JSONString "window"):attr]
+                              // translate HtmlTag to HTML code
+                              dataMap` = 'DM'.put "content" (JSONString (toString o.content)) dataMap
+                          in uia UIData dataMap`
 
 	initUI me world
 		# (jsInitDOM,world) = jsWrapFun (initDOM me) world
@@ -78,7 +86,9 @@ where
         # (l, world) = findObject "L" world
         | jsIsUndefined l
             # world = addCSSFromUrl LEAFLET_CSS world
-            # world = addJSFromUrl LEAFLET_JS (Just jsInitDOM) world
+            # world = addCSSFromUrl LEAFLET_CSS_WINDOW world
+            # world = addJSFromUrl LEAFLET_JS Nothing world
+            # world = addJSFromUrl LEAFLET_JS_WINDOW (Just jsInitDOM) world
 			= world
 		| otherwise
 			# world = (me .# "initDOMEl" .= jsInitDOM) world
@@ -101,8 +111,8 @@ where
 		# (icons,world)     = .? (me .# "attributes.icons") world
 		# world             = setMapIcons me mapObj icons world 
 		//Create tile layer
-		# (tilesUrl,world)    = .? (me .# "attributes.tilesUrl") world
-		# world               = setMapTilesLayer me mapObj tilesUrl world 
+		# (tilesUrls,world) = .? (me .# "attributes.tilesUrls") world
+		# world             = forall (addMapTilesLayer me mapObj) tilesUrls world
 		//Synchronize lat/lng bounds to server (they depend on the size of the map in the browser)
 		# (taskId,world)    = .? (me .# "attributes.taskId") world
 		# (editorId,world)  = .? (me .# "attributes.editorId") world
@@ -195,12 +205,33 @@ where
 
 	onBeforeChildRemove me args world
 		# (layer,world)     = .? (toJSVal (args !! 1) .# "layer") world
+        // for windows, based on control class
+        # (removeMethod, world) = .? (layer .# "remove") world
+        | not (jsIsUndefined removeMethod) = (layer .# "remove" .$ ()) world
+        // for all other objects
 		# (mapObj,world)    = .? (me .# "map") world
         # (_,world)         = (mapObj.# "removeLayer" .$ layer) world
         # (popup, world)    = .? (layer .# "myPopup") world
         | jsIsUndefined popup = (jsNull, world)
         # (_,world)         = (mapObj.# "removeLayer" .$ popup) world
         = (jsNull, world)
+
+    onWindowRemove me windowId _ world
+        // remove children from iTasks component
+        # (children,world)  = .? (me .# "children") world
+        # world             = forall removeWindow children world
+        // send edit event to server
+        # (taskId,world)    = .? (me .# "attributes.taskId") world
+		# (editorId,world)  = .? (me .# "attributes.editorId") world
+		# (edit,world)      = encodeOnClient [LDRemoveWindow windowId] world
+		# (_,world)         = ((me .# "doEditEvent") .$ (taskId,editorId,edit)) world
+		= (jsNull, world)
+    where
+        removeWindow idx layer world
+            # (layerWindowId, world)  = .? (layer .# "attributes.windowId") world
+            | not (jsIsUndefined layerWindowId) && jsValToString layerWindowId == windowId =
+                snd (((me .# "removeChild") .$ idx) world)
+            = world
 
 	//Map object access
 	toLatLng obj world
@@ -254,7 +285,7 @@ where
         		# (_,world)       = (cursor .# "setLatLng" .$ position) world
 				= world
 
-	setMapTilesLayer me mapObj tilesUrl world 
+	addMapTilesLayer me mapObj _ tilesUrl world
 		| jsIsNull tilesUrl = world
 		# (l, world)      	= findObject "L" world
         # (layer,world)     = (l .# "tileLayer" .$ tilesUrl) world
@@ -267,7 +298,7 @@ where
 		# world 			= ((me .# "icons") .= index) world
 		= forall (createMapIcon me mapObj l index) icons world
 	where	
-		createMapIcon me mapObj l index def world
+		createMapIcon me mapObj l index _ def world
 			# (iconId,world)   = .? (def .# 0) world
 			# (iconSpec,world) = .? (def .# 1) world
         	# (icon,world)     = (l .# "icon" .$ iconSpec) world
@@ -275,18 +306,20 @@ where
 			= world
 
 	createMapObjects me mapObj objects world
-		# (l, world)      	= findObject "L" world
-		= forall (createMapObject me mapObj l) objects world
+		# (l, world) = findObject "L" world
+		= forall (\_ obj -> createMapObject me mapObj l obj) objects world
 
 	createMapObject me mapObj l object world
-		# (type,world)        = .? (object .# "attributes.type") world
+		# (type,world) = .? (object .# "attributes.type") world
 		= case jsValToString type of
-			"marker"   = createMarker me mapObj l object world
+			"marker"   = createMarker   me mapObj l object world
 			"polyline" = createPolyline me mapObj l object world
-			"polygon"  = createPolygon me mapObj l object world
+			"polygon"  = createPolygon  me mapObj l object world
+            "window"   = createWindow   me mapObj l object world
 			_ 		   = world
 
-	createMarker me mapObj  l object world 
+	createMarker me mapObj  l object world
+        # (markerId,world)    = .? (object .# "attributes.markerId") world
         # (options,world)     = jsEmptyObject world
 		//Set title
 		# (title,world)       = .? (object .# "attributes.title") world
@@ -299,15 +332,17 @@ where
 		//Create marker
 		# (position,world)    = .? (object .# "attributes.position") world
         # (layer,world)       = (l .# "marker" .$ (position,options) ) world
-        # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
 		# world               = (object .# "layer" .= layer) world
         //Optionally add popup
         # (popup,world)       = .? (object .# "attributes.popup") world
         # world               = addPopup popup position layer world
+        //Store marker ID, needed for related markers of windows
+        # world               = (layer .# "markerId" .= markerId) world
 		//Set click handler
-		# (markerId,world)    = .? (object .# "attributes.markerId") world
 		# (cb,world)          = jsWrapFun (\a w -> onMarkerClick me (jsValToString markerId) a w) world
         # (_,world)           = (layer .# "addEventListener" .$ ("click",cb)) world
+        //Add to map
+        # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
 		= world	
 	where
 		addIconOption iconId icons options world
@@ -320,7 +355,7 @@ where
         addPopup content position marker world
             | jsIsUndefined content = world
             # (options,world) = jsEmptyObject world
-            # world           = (options .# "maxWidth" .= 1000000) world // large nr to let size content determine size
+            # world           = (options .# "maxWidth" .= 1000000) world // large nr to let content determine size
             # world           = (options .# "closeOnClick" .= False) world
             # (popup, world)  = (l .# "popup" .$ options) world
             # (_, world)      = (popup .# "setLatLng" .$ position) world
@@ -333,42 +368,103 @@ where
 	createPolyline me mapObj l object world 
 		//Set options
         # (options,world)     = jsEmptyObject world
-		# (stroke,world)      = .? (object .# "attributes.strokeWidth") world
-		# (color,world)       = .? (object .# "attributes.strokeColor") world
-		# world               = (options .# "stroke" .= stroke) world
-		# world               = (options .# "color" .= color) world
+        # (style,world)       = .? (object .# "attributes.style") world
+        # world               = forall (applyLineStyle options) style world
 		# (points,world)      = .? (object .# "attributes.points") world
         # (layer,world)       = (l .# "polyline" .$ (points ,options)) world
         # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
 		# world               = (object .# "layer" .= layer) world
-		= world	
+		= world
 
 	createPolygon me mapObj l object world 
 		//Set options
         # (options,world)     = jsEmptyObject world
-		# (stroke,world)      = .? (object .# "attributes.strokeWidth") world
-		# (strokeColor,world) = .? (object .# "attributes.strokeColor") world
-		# (fillColor,world)   = .? (object .# "attributes.fillColor") world
-		# world               = (options .# "stroke" .= stroke) world
-		# world               = (options .# "color"  .= strokeColor) world
-		# world               = (options .# "fillColor"  .= fillColor) world
+		# (style,world)       = .? (object .# "attributes.style") world
+        # world               = forall (applyStyle options) style world
 		# (points,world)      = .? (object .# "attributes.points") world
         # (layer,world)       = (l .# "polygon" .$ (points ,options)) world
         # (_,world)           = (layer .# "addTo" .$ (toJSArg mapObj)) world
 		# world               = (object .# "layer" .= layer) world
-		= world	
+		= world
+    where
+        applyStyle options _ style world
+            # (styleType, world) = .? (style .# 0) world
+            # styleType = jsValToString styleType
+            | styleType == "Style"
+                # (directStyle, world) = .? (style .# 1) world
+                # (directStyleType, world) = .? (directStyle .# 0) world
+                # (directStyleVal, world)  = .? (directStyle .# 1) world
+                # directStyleType = jsValToString directStyleType
+                | directStyleType == "PolygonLineStrokeColor" = (options .# "color"       .= directStyleVal) world
+                | directStyleType == "PolygonLineStrokeWidth" = (options .# "weight"      .= directStyleVal) world
+                | directStyleType == "PolygonLineOpacity"     = (options .# "opacity"     .= directStyleVal) world
+                | directStyleType == "PolygonLineDashArray"   = (options .# "dashArray"   .= directStyleVal) world
+                | directStyleType == "PolygonNoFill"          = (options .# "fill"        .= False)          world
+                | directStyleType == "PolygonFillColor"       = (options .# "fillColor"   .= directStyleVal) world
+                | directStyleType == "PolygonFillOpacity"     = (options .# "fillOpacity" .= directStyleVal) world
+                = abort "unknown style"
+            | styleType == "Class"
+                # (cls, world) = .? (style .# 1) world
+                = (options .# "className" .= cls) world
+            = abort "unknown style"
+
+    createWindow me mapObj l object world
+        # (layer,world)      = (l .# "window" .$ () ) world
+		# world              = (object .# "layer" .= layer) world
+        # (position,world)   = .? (object .# "attributes.initPosition") world
+        # (_, world)         = (layer .# "setInitPos" .$ position) world
+        # (title,world)      = .? (object .# "attributes.title") world
+        # (_, world)         = (layer .# "setTitle" .$ title) world
+        # (content,world)    = .? (object .# "attributes.content") world
+        # (_, world)         = (layer .# "setContent" .$ content) world
+        # (relMarkers,world) = .? (object .# "attributes.relatedMarkers") world
+        # world              = forall (addRelatedMarker layer) relMarkers world
+        // inject function to send event on window remove
+        # (windowId,world)   = .? (object .# "attributes.windowId") world
+        # (onWRemove, world) = jsWrapFun (onWindowRemove me (jsValToString windowId)) world
+        # world              = (layer .# "_onWindowClose" .= onWRemove) world
+        // add to map
+        # (_,world)          = (layer .# "addTo" .$ (toJSArg mapObj)) world
+        = world
+    where
+        addRelatedMarker layer _ relMarker world
+            # (markerId, world)   = .? (relMarker .# 0) world
+            # (lineStyle, world)  = .? (relMarker .# 1) world
+            # (lineOptions,world) = jsEmptyObject world
+            # world               = forall (applyLineStyle lineOptions) lineStyle world
+            # (_, world) = (layer .# "addRelatedMarker" .$ (markerId, lineOptions)) world
+            = world
+
+    applyLineStyle options _ style world
+        # (styleType, world) = .? (style .# 0) world
+        # styleType = jsValToString styleType
+        | styleType == "Style"
+            # (directStyle, world) = .? (style .# 1) world
+            # (directStyleType, world) = .? (directStyle .# 0) world
+            # (directStyleVal, world)  = .? (directStyle .# 1) world
+            # directStyleType = jsValToString directStyleType
+            | directStyleType == "LineStrokeColor" = (options .# "color"     .= directStyleVal) world
+            | directStyleType == "LineStrokeWidth" = (options .# "weight"    .= directStyleVal) world
+            | directStyleType == "LineOpacity"     = (options .# "opacity"   .= directStyleVal) world
+            | directStyleType == "LineDashArray"   = (options .# "dashArray" .= directStyleVal) world
+            = abort "unknown style"
+        | styleType == "Class"
+            # (cls, world) = .? (style .# 1) world
+            = (options .# "className" .= cls) world
+        = abort "unknown style"
 
 	//Loop through a javascript array
-    forall :: ((JSVal v11) *JSWorld -> *JSWorld) !(JSVal a) !*JSWorld -> *JSWorld
+    forall :: (Int (JSVal v11) *JSWorld -> *JSWorld) !(JSVal a) !*JSWorld -> *JSWorld
 	forall f array world
 		# (len,world) = .? (array .# "length") world
 		= forall` 0 (jsValToInt len) world
 	where
         forall` :: !Int !Int !*JSWorld -> *JSWorld
 		forall` i len world
+            #! j = jsValToInt (toJSVal i) // FIXME: workaround for https://gitlab.science.ru.nl/clean-and-itasks/iTasks-SDK/issues/199
 			| i >= len = world
 			# (el,world) = .? (array .# i) world
-			= forall` (i + 1) len (f el world)
+			= forall` (i + 1) len (f j el world)
 
 	//Process the edits received from the client
 	onEdit dp ([],diff) m msk vst = case decodeOnServer diff of
@@ -383,6 +479,10 @@ where
 		where
 			sel x (Marker m=:{LeafletMarker|markerId}) = Marker {LeafletMarker|m & selected = markerId == x}
 			sel x o = o
+        app m (LDRemoveWindow idToRemove) = {LeafletMap|m & objects = filter notToRemove m.LeafletMap.objects}
+        where
+            notToRemove (Window {windowId}) = windowId <> idToRemove
+            notToRemove _                   = True
 		app m _ = m
 	onEdit _ _ m msk ust = (Ok (NoChange,msk),m,ust)
 
@@ -391,16 +491,9 @@ where
 		//Determine attribute changes
 		# attrChanges = diffAttributes m1 m2
 		//Determine object changes
-		# childChanges = diffObjects 0 m1.LeafletMap.objects m2.LeafletMap.objects
+		# childChanges = diffChildren m1.LeafletMap.objects m2.LeafletMap.objects encodeUI
 		= (Ok (ChangeUI attrChanges childChanges,mask),m2,vst)
 	where
-		diffObjects _ [] [] = []
-		diffObjects i [] objs = [(n,InsertChild (encodeUI o)) \\ o <- objs & n <- [i..]] //Add new objects
-		diffObjects i objs [] = repeatn (length objs) (i,RemoveChild)                   //Remove trailing objects
-		diffObjects i [x:xs] [y:ys]
-			| x === y = diffObjects (i + 1) xs ys //The head has not changed, just compare the remainder
-					  = [(i,RemoveChild),(i,InsertChild (encodeUI y)):diffObjects (i + 1) xs ys] //Replace the head
-
 		//Only center, zoom and cursor are synced to the client, bounds are only synced from client to server
 		diffAttributes {LeafletMap|perspective=p1} {LeafletMap|perspective=p2}
 			//Center
@@ -414,7 +507,7 @@ where
 gEditor{|LeafletMap|} = leafletEditor
 
 gDefault{|LeafletMap|}
-	= {LeafletMap|perspective=defaultValue, tilesUrl =Just openStreetMapTiles, objects = [Marker homeMarker], icons = []}
+	= {LeafletMap|perspective=defaultValue, tilesUrls = [openStreetMapTiles], objects = [Marker homeMarker], icons = []}
 where
 	homeMarker = {markerId = "home", position= {LeafletLatLng|lat = 51.82, lng = 5.86}, title = Just "HOME", icon = Nothing, popup = Nothing, selected = False}
 
@@ -424,9 +517,11 @@ gDefault{|LeafletPerspective|}
 //Comparing reals may have unexpected results, especially when comparing constants to previously stored ones
 gEq{|LeafletLatLng|} x y = (toString x.lat == toString y.lat) && (toString x.lng == toString y.lng)
 
-derive JSONEncode LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive JSONDecode LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive gDefault   LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive gEq        LeafletMap, LeafletPerspective, LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive gText      LeafletMap, LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
-derive gEditor    LeafletPerspective, LeafletIcon, LeafletLatLng, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit
+derive JSONEncode LeafletMap, LeafletPerspective, LeafletLatLng
+derive JSONDecode LeafletMap, LeafletPerspective, LeafletLatLng
+derive gDefault   LeafletLatLng
+derive gEq        LeafletMap, LeafletPerspective
+derive gText      LeafletMap, LeafletPerspective, LeafletLatLng
+derive gEditor    LeafletPerspective, LeafletLatLng
+derive class iTask LeafletIcon, LeafletBounds, LeafletObject, LeafletMarker, LeafletPolyline, LeafletPolygon, LeafletEdit, LeafletWindow, LeafletWindowPos, LeafletLineStyle, LeafletStyleDef, LeafletPolygonStyle
+

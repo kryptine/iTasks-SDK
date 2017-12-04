@@ -1,7 +1,7 @@
 implementation module iTasks.UI.Editor.Common
 
 import StdBool, StdEnum, StdOrdList, StdList, Data.Maybe, StdList, StdString
-import Text.JSON, GenEq
+import Text.JSON, GenEq, Data.List
 
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Containers, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import Data.Tuple, Data.Error, Text, Text.JSON
@@ -13,6 +13,33 @@ where
 	genUI _ _ vst			    = (Ok (ui UIEmpty,newFieldMask),vst)
 	onEdit _ _ val mask vst 	= (Ok (NoChange,mask),val,vst)
 	onRefresh _ _ val mask vst  = (Ok (NoChange,mask),val,vst)
+
+diffChildren :: ![a] ![a] !(a -> UI) -> [(!Int, !UIChildChange)] | gEq{|*|} a
+diffChildren old new toUI = diffChildren` 0 old new
+where
+    // only children from old list are left -> remove them all
+    diffChildren` idx old [] = removeRemaining idx old
+    // only new children are left -> insert them all
+    diffChildren` idx [] new = addNew idx new
+    diffChildren` idx [nextOld : old] [nextNew : new]
+        // children are equal -> no change required
+        | nextOld === nextNew = diffChildren` (inc idx) old new
+        // old item cannot be reused, as it does not occur in remaining new children -> remove it
+        | not (isMemberGen nextOld new) = [(idx, RemoveChild) : diffChildren` idx old [nextNew : new]]
+        | otherwise
+            # (change, old`) = moveFromOldOrInsert (inc idx) old
+            = [change : diffChildren` (inc idx) [nextOld : old`] new]
+    where
+        // next new child not found in old children list -> insert it
+        moveFromOldOrInsert _ [] = ((idx, InsertChild (toUI nextNew)), [])
+        moveFromOldOrInsert idxOld [nextOld : oldRest]
+            // next new child found in old children list -> reuse it, i.e. move it to new index
+            | nextNew === nextOld = ((idxOld, MoveChild idx), oldRest)
+            // look for child to reuse in remaining old children elements
+            | otherwise           = appSnd (\old` -> [nextOld : old`]) (moveFromOldOrInsert (inc idxOld) oldRest)
+
+    removeRemaining idx rem = [(idx, RemoveChild) \\ _ <- rem]
+    addNew          idx new = [(i, InsertChild (toUI x)) \\ i <- [idx..] & x <- new]
 
 chooseWithDropdown :: [String] -> Editor Int
 chooseWithDropdown labels = bijectEditorValue (\i -> (options,[i])) selection (dropdown <<@ multipleAttr False)

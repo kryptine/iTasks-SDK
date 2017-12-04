@@ -134,12 +134,12 @@ hasLatLng _ = False
 toLeafletMap :: ContactMap -> LeafletMap
 toLeafletMap {ContactMap|perspective,layers}
     = {LeafletMap|perspective = toLeafletPerspective perspective
-	  ,tilesUrl = tilesUrl layers
+	  ,tilesUrls = tilesUrls layers
       ,icons = shipIcons
 	  ,objects = []
       }
 where
-	tilesUrl layers = listToMaybe [url \\ {ContactMapLayer|def=CMTileLayer url} <- layers]
+	tilesUrls layers = [url \\ {ContactMapLayer|def=CMTileLayer url} <- layers]
 
     convMarkers markers = [conv m \\ m=:{ContactMapMarker|position} <- markers | hasLatLng position]
     conv {ContactMapMarker|markerId,title,position,heading,type,selected}

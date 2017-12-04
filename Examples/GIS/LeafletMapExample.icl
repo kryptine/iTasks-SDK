@@ -53,13 +53,22 @@ where
 	addMarkerConnectingLine m
 		= upd (\l=:{LeafletMap|objects} -> {LeafletMap|l & objects = objects ++ [line objects]}) m
 	where
-		line objects = Polyline {polylineId = "markerConnection", strokeColor = "#f0f", strokeWidth = 4, points = points objects}
+		line objects = Polyline { polylineId = "markerConnection"
+                                , style      = [Style (LineStrokeColor "#f0f"), Style (LineStrokeWidth 4)]
+                                , points     = points objects
+                                }
 		points objects = [position \\ Marker {LeafletMarker|position} <- objects]
 
 	addMarkerConnectingPolygon m
 		= upd (\l=:{LeafletMap|objects} -> {LeafletMap|l & objects = objects ++ [polygon objects]}) m
 	where
-		polygon objects = Polygon {polygonId = "markerConnection", strokeColor = "#000", strokeWidth = 2, fillColor = Just "#0f0", points = points objects}
+		polygon objects = Polygon { polygonId = "markerConnection"
+                                  , style     = [ Style (PolygonLineStrokeColor "#000")
+                                                , Style (PolygonLineStrokeWidth 2)
+                                                , Style (PolygonFillColor "#0f0")
+                                                ]
+                                  , points    = points objects
+                                  }
 		points objects = [position \\ Marker {LeafletMarker|position} <- objects]
 
 	addMarkerAtCursor m

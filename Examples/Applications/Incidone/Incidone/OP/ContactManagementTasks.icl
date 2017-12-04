@@ -495,7 +495,7 @@ addContactPhoto contactNo original
         \tmp ->
         exportDocument (tmp</>"orig.jpg") original
     >>- \_ ->
-        callProcess "Creating thumbnail..." [] CONVERT_BIN 
+        callProcess "Creating thumbnail..." [] CONVERT_BIN
             ["-define","jpeg:size=400x400",(tmp</>"orig.jpg"),"-thumbnail","200x200^","-gravity","center","-extent","200x200",(tmp</>"thumb.png")] Nothing Nothing
     >>- \_ ->
         importDocument (tmp</>"thumb.png")
