@@ -122,8 +122,7 @@ where
 			removeDisabledActions
 
 	removeDisabledActions
-		//FIXME: This should not use the reference version, but there is a weird bug in removeSubUIs that still needs to be figured out
-		= removeSubUIsRef_ (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" ((==) (JSONBool False)))))
+		= removeSubUIs (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" ((==) (JSONBool False)))))
 
 	ContainsNoChildOfType type = SelectAND (SelectByPath []) (SelectNOT (SelectByContains (SelectAND SelectChildren (SelectByType type))))
 	RootIsStep = SelectAND (SelectByPath []) (SelectByType UIStep)

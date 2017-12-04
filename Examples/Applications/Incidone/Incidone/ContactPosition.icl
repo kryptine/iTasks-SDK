@@ -6,7 +6,7 @@ import qualified Text.Parsers.ZParsers.ParsersKernel as PK
 import qualified Text.Parsers.ZParsers.ParsersDerived as PD
 import qualified Control.Applicative as CA
 from Control.Applicative import class Alternative, class Applicative
-from Text.Parsers.ZParsers.ParsersKernel import :: Parser, instance Alternative Parser, instance Applicative Parser, instance Functor Parser
+from Text.Parsers.ZParsers.ParsersKernel import :: Parser, instance Alternative (Parser s t), instance Applicative (Parser s t), instance Functor (Parser s t)
 import iTasks.Extensions.GIS.LeafletNavalIcons
 
 import Incidone.OP.Concepts

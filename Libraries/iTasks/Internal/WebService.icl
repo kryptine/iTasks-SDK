@@ -254,8 +254,7 @@ where
 
 :: ChangeQueues :== Map InstanceNo (Queue UIChange)
 
-import StdMisc
-taskUIService :: ![PublishedTask] -> WebService ChangeQueues ChangeQueues
+taskUIService :: ![PublishedTask] -> WebService OutputQueues OutputQueues
 taskUIService taskUrls = { urlMatchPred    = matchFun [url \\ {PublishedTask|url} <-taskUrls]
                          , completeRequest = True
                          , onNewReq        = reqFun taskUrls
@@ -297,55 +296,99 @@ where
 			= ([wsockCloseMsg msg], True, instances, iworld)
 		handleEvent	(WSPing msg) instances iworld
 			= ([wsockPongMsg msg], False, instances, iworld)
-		handleEvent (WSTextMessage msg) instances iworld //Process events TODO:Send confirmation messages after 'void' events (attach,detach,event)
+		handleEvent (WSTextMessage msg) instances iworld //Process commands
 			= case fromString msg of
 				// - new session
-				(JSONArray [JSONInt reqId,JSONString "new"])
+				(JSONArray [JSONInt commandId, JSONString "new" :_])
                 	= case createTaskInstance` req taskUrls iworld of
 						(Error (_,err), iworld)
-							= abort err
-
-//							# json = JSONArray [JSONInt reqId,JSONString "ERROR",JSONString err]
-//							= (wsockTextMsg (toString json),False, instances,iworld)
+							# json = JSONArray [JSONInt commandId, JSONString "exception",JSONObject [("description",JSONString err)]]
+							= (wsockTextMsg (toString json),False, instances,iworld)
 						(Ok (instanceNo,instanceKey),iworld)
-							# json = JSONArray [JSONInt reqId, JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]]
+							# json = JSONArray [JSONInt commandId, JSONString "new", JSONObject [("instanceNo",JSONInt instanceNo),("instanceKey",JSONString instanceKey)]]
 							= (wsockTextMsg (toString json),False, instances, iworld)
 				// - attach existing instance
-				(JSONArray [JSONString "attach",JSONInt instanceNo,JSONString instanceKey])
-                    //Clear all io and queue a Reset event to make sure we start with a fresh GUI
-					# iworld = attachViewport instanceNo iworld 
-                	# (_,iworld) = updateInstanceConnect clientname [instanceNo] iworld
-					= ([],False, [(instanceNo,instanceKey):instances], iworld)
+				(JSONArray [JSONInt commandId, JSONString "attach", args=:(JSONObject _)])
+					= case (jsonQuery "instanceNo" args, jsonQuery "instanceKey" args) of
+						(Just instanceNo, Just instanceKey)
+                    		//Clear all io and queue a Reset event to make sure we start with a fresh GUI
+							= case updateInstanceConnect clientname [instanceNo] iworld of
+								(Error (_,err),iworld)
+									# json = JSONArray [JSONInt commandId, JSONString "exception",JSONObject [("description",JSONString err)]]
+									= (wsockTextMsg (toString json),False, instances, iworld)
+								(Ok (), iworld)
+									# iworld = attachViewport instanceNo iworld 
+									# json = JSONArray [JSONInt commandId, JSONString "attach", JSONObject []]
+									= (wsockTextMsg (toString json),False, [(instanceNo,instanceKey):instances], iworld)
+						_
+							# json = JSONArray [JSONInt commandId, JSONString "exception", JSONObject [("description",JSONString "Missing command parameters")]]
+							= (wsockTextMsg (toString json),False, instances, iworld)
+
 				// - detach instance
-				(JSONArray [JSONString "detach",JSONInt instanceNo])
-					# iworld = detachViewport instanceNo iworld
-                	# (_,iworld) = updateInstanceDisconnect [instanceNo] iworld
-					= ([],False, filter (((==) instanceNo) o fst) instances, iworld) 
-				(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONNull,JSONString actionId]]) //Action event
-					# iworld = queueEvent instanceNo (ActionEvent (fromString taskId) actionId) iworld 
-					= ([],False, instances,iworld)
-				(JSONArray [JSONString "event",JSONInt instanceNo,JSONArray [JSONString taskId,JSONString name,value]]) //Edit event
-					# iworld = queueEvent instanceNo (EditEvent (fromString taskId) name value) iworld
-					= ([],False, instances,iworld)
+				(JSONArray [JSONInt commandId, JSONString "detach", args=:(JSONObject _)])
+					= case (jsonQuery "instanceNo" args) of
+						(Just instanceNo)
+                			= case updateInstanceDisconnect [instanceNo] iworld of
+								(Error (_,err),iworld)
+									# json = JSONArray [JSONInt commandId, JSONString "exception",JSONObject [("description",JSONString err)]]
+									= (wsockTextMsg (toString json),False, instances, iworld)
+								(Ok (), iworld)
+									# iworld = detachViewport instanceNo iworld
+									# json = JSONArray [JSONInt commandId, JSONString "detach", JSONObject []]
+									= ([],False, filter (((<>) instanceNo) o fst) instances, iworld) 
+						_
+							# json = JSONArray [JSONInt commandId, JSONString "exception", JSONObject [("description",JSONString "Missing command parameters")]]
+							= (wsockTextMsg (toString json),False, instances, iworld)
+				// - UI events
+				(JSONArray [JSONInt commandId, JSONString "ui-event", args=:(JSONObject _)])
+					= case parseEvent args of
+						(Just (instanceNo,event))
+							# iworld = queueEvent instanceNo event iworld 
+							# json = JSONArray [JSONInt commandId, JSONString "ui-event", JSONObject []]
+							= (wsockTextMsg (toString json), False, instances, iworld)
+						_
+							# json = JSONArray [JSONInt commandId, JSONString "exception", JSONObject [("description",JSONString "Missing event parameters")]]
+							= (wsockTextMsg (toString json),False, instances, iworld)
+				// - Pings 
+				(JSONArray [JSONInt commandId, JSONString "ping",_])
+					= case updateInstanceLastIO (map fst instances) iworld of
+						(Error (_,err),iworld)
+							# json = JSONArray [JSONInt commandId, JSONString "exception",JSONObject [("description",JSONString err)]]
+							= (wsockTextMsg (toString json),False, instances, iworld)
+						(Ok (),iworld)
+							# json = JSONArray [JSONInt commandId, JSONString "ping", JSONObject []]
+							= (wsockTextMsg (toString json),False, instances, iworld)
 				//Unknown message 
 				e
-					# json = JSONArray [JSONString "ERROR",JSONString "Unknown event"]
+					# json = JSONArray [JSONInt 0, JSONString "exception", JSONObject [("description",JSONString "Unknown command")]]
 					= (wsockTextMsg (toString json),False, instances, iworld)
+
+	parseEvent json = case (jsonQuery "instanceNo" json, jsonQuery "taskNo" json, jsonQuery "action" json) of
+		(Just i,Just t,Just a) = Just (i, ActionEvent (TaskId i t) a)
+		(Just i,Just t,_) = case (jsonQuery "edit" json, jsonQuery "value" json) of
+			(Just (JSONString e),Just v) = (Just (i, EditEvent (TaskId i t) e v))
+			_  = Nothing
+		_ = Nothing
 
     shareChangeFun _ _ connState iworld = ([], False, connState, Nothing, iworld)
 
     onTick req output (clientname,state,instances) iworld
 		//Check keys 
 		# (instances,iworld) = verifyKeys instances iworld
-		//Check for UI updates for all attached instances
-		# (changes, output) = dequeueOutput (map fst instances) output
-		= case changes of //Ignore empty updates
+		//Check for output for all attached instances
+		# (messages, output) = dequeueOutput (map fst instances) output
+		= case messages of //Ignore empty updates
 			[] = ([],False,(clientname,state,instances),Nothing,iworld)
-			changes	
-                # (_,iworld) = updateInstanceLastIO (map fst instances) iworld
-				# msgs = [wsockTextMsg (toString (JSONObject [("instance",JSONInt instanceNo)
-															 ,("change",encodeUIChange change)])) \\ (instanceNo,change) <- changes]
-				= (flatten msgs,False, (clientname,state,instances),Just output,iworld)
+			messages
+				# json = [wsockTextMsg (toString (jsonMessage message)) \\ message <- messages]
+				= (flatten json,False, (clientname,state,instances), Just output, iworld)
+
+	jsonMessage (instanceNo, TOUIChange change)
+		= JSONArray [JSONInt 0,JSONString "ui-change"
+					,JSONObject [("instanceNo",JSONInt instanceNo),("change",encodeUIChange change)]]
+	jsonMessage (instanceNo, TOException description)
+		=JSONArray [JSONInt 0,JSONString "exception"
+					,JSONObject [("instanceNo",JSONInt instanceNo),("description",JSONString description)]]
 
 	disconnectFun _ _ (clientname,state,instances) iworld = (Nothing, snd (updateInstanceDisconnect (map fst instances) iworld))
 	disconnectFun _ _ _ iworld                            = (Nothing, iworld)
@@ -356,7 +399,7 @@ where
 
 	uiUrl matchUrl = (if (endsWith "/" matchUrl) matchUrl (matchUrl +++ "/")) +++ "gui-wsock"
 
-	dequeueOutput :: ![InstanceNo] !(Map InstanceNo (Queue UIChange)) -> (![(!InstanceNo,!UIChange)],!Map InstanceNo (Queue UIChange))
+	dequeueOutput :: ![InstanceNo] !(Map InstanceNo TaskOutput) -> (![(!InstanceNo,!TaskOutputMessage)],!Map InstanceNo TaskOutput)
 	dequeueOutput [] states = ([],states)
 	dequeueOutput [i:is] states
 		# (output,states) = dequeueOutput is states
@@ -388,6 +431,7 @@ where
 	formatMessageEvents messages = concat (map format messages)
     where
         format (instanceNo,change) = "data: {\"instance\":" +++toString instanceNo+++",\"change\":" +++ toString (encodeUIChange change) +++ "}\n\n"
+
 
 //TODO: The upload and download mechanism used here is inherently insecure!!!
 // A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent

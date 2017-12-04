@@ -65,7 +65,6 @@ processEvents max iworld
 					(Ok taskValue,iworld)
 						= processEvents (max - 1) iworld
 					(Error msg,iworld=:{IWorld|world})
-						# world = show ["WARNING: "+++ msg] world	
 						= (Ok (),{IWorld|iworld & world = world})
 
 //Evaluate a single task instance
@@ -77,22 +76,19 @@ evalTaskInstance instanceNo event iworld
 where
     evalTaskInstance` instanceNo event iworld=:{clock,current}
     # (constants, iworld)       = 'SDS'.read (sdsFocus instanceNo taskInstanceConstants) iworld
-	| isError constants         = ((\(Error (e,msg)) -> Error msg) constants, iworld)
+	| isError constants         = exitWithException instanceNo ((\(Error (e,msg)) -> msg) constants) iworld
 	# constants=:{InstanceConstants|session,listId} = fromOk constants
 	# (oldReduct, iworld)		= 'SDS'.read (sdsFocus instanceNo taskInstanceReduct) iworld
-	| isError oldReduct			= ((\(Error (e,msg)) -> Error msg) oldReduct, iworld)
+	| isError oldReduct			= exitWithException instanceNo ((\(Error (e,msg)) -> msg) oldReduct) iworld
 	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,tasks,tonicRedOpts} = fromOk oldReduct
     # (oldProgress,iworld)      = 'SDS'.read (sdsFocus instanceNo taskInstanceProgress) iworld
-	| isError oldProgress       = ((\(Error (e,msg)) -> Error msg) oldProgress, iworld)
+	| isError oldProgress       = exitWithException instanceNo ((\(Error (e,msg)) -> msg) oldProgress) iworld
     # oldProgress=:{InstanceProgress|value,attachedTo} = fromOk oldProgress
     //Check exeption
-    | value === Exception
-	    # (oldValue, iworld)		= 'SDS'.read (sdsFocus instanceNo taskInstanceValue) iworld
-        = case oldValue of
-            (Error (e,msg))             = (Error msg, iworld)
-		    (Ok (TIException e msg))    = (Error msg, iworld)
-            (Ok _)                      = (Error "Exception no longer available", iworld)
-    //Eval instance
+    | value =: (Exception _)
+		# (Exception description) = value
+		= exitWithException instanceNo description iworld
+	//Eval instance
     # (currentSession,currentAttachment) = case (session,attachedTo) of
         (True,_)                                  = (Just instanceNo,[])
         (_,[])                                    = (Nothing,[])
@@ -120,7 +116,8 @@ where
 		(Ok (),iworld)	//Only update progress when something changed
    		('SDS'.modify (\p -> ((),updateProgress clock newResult p)) (sdsFocus instanceNo taskInstanceProgress) iworld)
     = case mbErr of
-        Error (e,msg)          = (Error msg,iworld)
+        Error (e,description)          
+			= exitWithException instanceNo description iworld
         Ok _
             //Store updated reduct
             # (nextTaskNo,iworld)		= getNextTaskNo iworld
@@ -133,7 +130,7 @@ where
                 (ExceptionResult (e,str))   = TIException e str
             # (mbErr,iworld)            = if deleted (Ok (),iworld) ('SDS'.write newValue (sdsFocus instanceNo taskInstanceValue) iworld)
             = case mbErr of
-                Error (e,msg)          = (Error msg,iworld)
+                Error (e,description) = exitWithException instanceNo description iworld
                 Ok _
                 	= case newResult of
                     	(ValueResult value _ change _)	
@@ -145,8 +142,12 @@ where
 								change
 									# iworld = queueUIChange instanceNo change iworld
 									= (Ok value, iworld)
-                    	(ExceptionResult (e,msg))
-							= (Error msg, iworld)
+                    	(ExceptionResult (e,description))
+							= exitWithException instanceNo description iworld
+
+	exitWithException instanceNo description iworld
+		# iworld = queueException instanceNo description iworld
+		= (Error description, iworld)
 
 	getNextTaskNo iworld=:{IWorld|current={TaskEvalState|nextTaskNo}}	    = (nextTaskNo,iworld)
 
@@ -159,15 +160,12 @@ where
 					 ,lastEvent = Just now
 					 }
 		= case result of
-			(ExceptionResult _)				    = {InstanceProgress|progress & value = Exception}
-			(ValueResult (Value _ stable) _  _ _)	
-                = {InstanceProgress|progress & value = if stable Stable Unstable}
-			(ValueResult _ _ _ _)	
-                = {InstanceProgress|progress & value = None}
-			_									= {InstanceProgress|progress & value = None}
+			(ExceptionResult (_,msg))             = {InstanceProgress|progress & value = Exception msg}
+			(ValueResult (Value _ stable) _  _ _) = {InstanceProgress|progress & value = if stable Stable Unstable}
+			_                                     = {InstanceProgress|progress & value = Unstable }
 
     mbResetUIState instanceNo ResetEvent iworld 
-		# (_,iworld) = 'SDS'.write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceUIChanges) iworld 
+		# (_,iworld) = 'SDS'.write 'DQ'.newQueue (sdsFocus instanceNo taskInstanceOutput) iworld 
 		//Remove all js compiler state for this instance
 		# iworld=:{jsCompilerState=jsCompilerState} = iworld
 		# jsCompilerState = fmap (\state -> {state & skipMap = 'DM'.del instanceNo state.skipMap}) jsCompilerState

@@ -46,8 +46,8 @@ function ___encodeJS(expr) {
                     if(aarg != null) {
                         res[Sapl.print_consname(consfunc.$f[i])] = aarg;
                     }
-                    return res;
-				} 
+                }
+                return res;
              }
 
 			// Normal ADTs with special cases for lists and tuples

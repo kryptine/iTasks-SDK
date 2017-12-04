@@ -30,6 +30,11 @@ emptyEditor :: Editor a
 diffChildren :: ![a] ![a] !(a -> UI) -> [(!Int, !UIChildChange)] | gEq{|*|} a
 
 /**
+* Simple dropdown that edits an index by choosing from a list of labels
+*/
+chooseWithDropdown :: [String] -> Editor Int
+
+/**
 * Show Editor for lists
 *
 * @param Add:		        Determines whether new elements can be added.
@@ -49,3 +54,4 @@ listEditor :: (Maybe ([a] -> Maybe a)) Bool Bool (Maybe ([a] -> String)) (Editor
 //Version without overloading, for use in generic case
 //The first two argument should be JSONEncode{|*|} and gDefault{|*|} which cannot be used by overloading within generic functions
 listEditor_ :: (Bool a -> [JSONNode]) a (Maybe ([a] -> Maybe a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a]
+
