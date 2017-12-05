@@ -4,6 +4,33 @@ itasks.Container = {
 		if(this.baseCls) {
 			this.domEl.classList.add(this.baseCls);
 		}
+		if(this.attributes.resizable){
+			console.log("resizable blurp");
+			console.log(this.attributes);
+
+			this.resizer = document.createElement('div');
+//			resizer.className = 'resizer';
+			this.resizer.style.width = '10px';
+			this.resizer.style.height = '10px';
+			this.resizer.style.background = 'gray';
+			this.resizer.style.position = 'absolute';
+			this.resizer.style.right = 0;
+			this.resizer.style.bottom = 0;
+			this.resizer.style.cursor = 'se-resize';
+			this.domEl.appendChild(this.resizer);
+			var resize = function resize(e) {
+			   this.resizer.style.width = (e.clientX - this.resizer.offsetLeft) + 'px';
+			   this.resizer.style.height = (e.clientY - this.resizer.offsetTop) + 'px';
+			};
+			var stop = function stopResize(e) {
+			    this.resizer.removeEventListener('mousemove', resize, false);
+			    this.resizer.removeEventListener('mouseup', stop, false);
+			}
+			this.resizer.addEventListener('mousedown', function init (e){
+				this.resizer.addEventListener('mousemove', resize, false);
+				this.resizer.addEventListener('mouseup', stop, false);
+			}, false);
+		}
 	}
 };
 itasks.Panel = {
@@ -18,6 +45,7 @@ itasks.Panel = {
 			me.headerEl.innerHTML = '<span>' + me.attributes.title + '</span>';
 			me.domEl.appendChild(me.headerEl);
 		}
+
 		//Create separate container div
 		me.containerEl = document.createElement('div');
 		me.containerEl.classList.add(me.cssPrefix + 'inner');

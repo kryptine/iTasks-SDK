@@ -198,6 +198,9 @@ styleAttr style = 'DM'.fromList [("style",JSONString style)]
 classAttr :: !String -> UIAttributes
 classAttr cls = 'DM'.fromList [("class",JSONString cls)]
 
+resizableAttr :: ![UISide] -> UIAttributes
+resizableAttr sides = 'DM'.fromList [("resizable",JSONArray (map encodeUI sides))]
+
 editAttrs :: !String !String !(Maybe JSONNode) -> UIAttributes
 editAttrs taskId editorId mbValue 
 	= 'DM'.fromList [("taskId",JSONString taskId),("editorId",JSONString editorId):maybe [] (\value -> [("value",value)]) mbValue]
@@ -333,6 +336,13 @@ instance encodeUI UIWindowType
 where
 	encodeUI FloatingWindow 	= JSONString "floating"
 	encodeUI NotificationBubble = JSONString "bubble"
+
+instance encodeUI UISide
+where
+	encodeUI TopSide    = JSONString "top"
+	encodeUI BottomSide = JSONString "bottom"
+	encodeUI LeftSide   = JSONString "left"
+	encodeUI RightSide  = JSONString "right"
 
 derive class iTask UIChange, UIAttributeChange, UIChildChange
 

@@ -231,6 +231,7 @@ taskIdAttr        :: !String                              -> UIAttributes
 labelAttr         :: !String                              -> UIAttributes
 styleAttr         :: !String                              -> UIAttributes
 classAttr         :: !String                              -> UIAttributes
+resizableAttr     :: ![UISide]                            -> UIAttributes
 
 editAttrs         :: !String !String !(Maybe JSONNode)    -> UIAttributes
 choiceAttrs       :: !String !String ![Int] ![JSONNode]   -> UIAttributes
