@@ -240,10 +240,9 @@ where
       , firstWorkedOn = fmap timestampToGmDateTime p.InstanceProgress.firstEvent
       , lastWorkedOn  = fmap timestampToGmDateTime p.InstanceProgress.lastEvent
       , taskStatus    = case p.InstanceProgress.value of
-                          None      -> "No results so far..."
-                          Unstable  -> "In progres..."
-                          Stable    -> "Task done"
-                          Exception -> "Something went wrong"
+                          Unstable      -> "In progres..."
+                          Stable        -> "Task done"
+                          (Exception _) -> "Something went wrong"
       }
     toView (_,[{TaskListItem|attributes}:_]) =
       { assignedTo    = mkAssignedTo attributes

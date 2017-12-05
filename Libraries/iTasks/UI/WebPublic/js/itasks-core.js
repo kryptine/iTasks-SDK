@@ -38,7 +38,7 @@ itasks.Component = {
 		var me = this, fun, evalfun;
 		//Initialize linked sapl functions 
 		if(me.attributes.saplDeps != null && me.attributes.saplDeps != '') {
-			if(SAPL_DEBUG) {
+			if(typeof SAPL_DEBUG !== 'undefined' && SAPL_DEBUG) {
 				console.log("BEGIN SAPL DEBUG");
 				console.log(me.attributes.saplDeps);
 				console.log("END SAPL DEBUG");
@@ -211,6 +211,10 @@ itasks.Component = {
             el = me.containerEl,
             horizontal = (me.attributes.direction && (me.attributes.direction === 'horizontal')) || false,
 			paddingTop, paddingBottom;
+	
+		if(me.container === false) {
+			return;
+		}
 
         el.classList.add(me.cssPrefix + (horizontal ? 'hcontainer' : 'vcontainer'));
 
@@ -443,6 +447,13 @@ itasks.Loader = {
 		}
 	}
 };
+itasks.ExceptionView = {
+	cssCls: 'exception',
+	container: false,
+	initDOMEl: function() {
+		this.domEl.innerHTML = '<h1>Exception</h1><span>' + (this.attributes.value || '') + '</span>';
+	}
+};
 itasks.Viewport = {
 	cssCls: 'viewport',
 	syncTitle: false,
@@ -450,20 +461,30 @@ itasks.Viewport = {
 	initComponent:function() {
 		var me = this;	
 
-		//Use the page url as default taskUrl
-		if(!me.taskUrl) {	
-			me.taskUrl = '' + window.location;
-		} 
-		if(!me.taskUrl.endsWith('/')) {
-			me.taskUrl += '/';
-		}
-			
 		//Create a temporary root element
 		me.insertChild(0,{type:'Loader', parentCmp: me});
 
-		//Register the viewport with the iTasks service
-		me.service = itasks.Service.getInstance();
-		me.service.register(me);
+		//Get a connection
+		me.taskUrl = me.determineTaskEndpoint();
+		me.connection = itasks.ConnectionPool.getConnection(me.taskUrl);
+
+		var uiChangeCallback = me.onInstanceUIChange.bind(me);
+		var exceptionCallback = me.onException.bind(me);
+
+		if('instanceNo' in me.attributes) {
+			//Connect to an existing task instance
+			me.connection.attachTaskInstance(
+				me.attributes['instanceNo'],
+				me.attributes['instanceKey'],
+				uiChangeCallback,
+				exceptionCallback);	
+		} else {
+			//Create a new session
+			me.connection.newSession(
+				function(instanceNo) { me.attributes['instanceNo'] = instanceNo;},
+				uiChangeCallback,
+				exceptionCallback);	
+		}
 	},
 	getParentViewport: function() {
 		var me = this, parentVp = me.parentCmp;
@@ -475,9 +496,30 @@ itasks.Viewport = {
 		}
 		return null;
 	},
-	doEditEvent: function (taskId, editorId, value) {
+	determineTaskEndpoint: function() {
 		var me = this;
-		me.service.doEditEvent(taskId, editorId, value);
+		if(me.taskUrl) { //Something was configured explicitly
+			if(me.taskUrl.startsWith('ws://')) {
+				return me.taskUrl;
+			} else {
+				return 'ws://' + location.host + me.taskUrl + (me.taskUrl.endsWith('/') ? '' : '/') + 'gui-wsock';
+			}
+		} 
+		var parentVp = me.getParentViewport();
+		if(parentVp === null) {
+			//If there is no parent, use the default url
+			return 'ws://' + location.host + location.pathname + (location.pathname.endsWith('/') ? '' : '/') + 'gui-wsock';
+		} else {
+			return parentVp.determineTaskEndpoint();
+		}
+	},
+	doEditEvent: function (taskId, editorId, value) {
+		var me = this, taskNo = taskId.split("-")[1];
+		if(editorId) {
+			me.connection.sendEditEvent(me.attributes.instanceNo, taskNo, editorId, value);
+		} else {
+			me.connection.sendActionEvent(me.attributes.instanceNo, taskNo, value);
+		}
 	},
 	onInstanceUIChange: function(change) {
 		var me = this;
@@ -497,9 +539,20 @@ itasks.Viewport = {
 			}
 		}
 	},
+	onException: function(exception) {
+		var me = this;
+		//Remove all children and show the exception message
+		for(var i = me.children.length - 1; i >= 0; i--) {
+			me.removeChild(i);
+		}
+		me.insertChild(0,{type:'ExceptionView', parentCmp: me, attributes: { value : exception}});
+	},
 	beforeRemove: function() {
-		var me = this;	
-		me.service.unregister(me);
+		var me = this, instanceNo = me.attributes['instanceNo'];	
+		
+		if(instanceNo) {
+			me.connection.detachTaskInstance(instanceNo);
+		}
 	}
 };
 
@@ -523,175 +576,166 @@ itasks.viewport = function(spec,domEl) {
 	vp.init();
 };
 
-//Web service proxy/multiplexer class
-//This is is a singleton because all itask component objects need to share their
-//connections with the server in order to limit the number of connections.
-
-itasks.Service = {
-	instances: {},
-	register: function(viewport) {
-		var me = this;
-
-		if("instanceNo" in viewport.attributes) {
-			//Connect to an existing task instance
-			me.registerInstance_(viewport);	
-			
-		} else if("taskUrl" in viewport) {
-			//Create a new session
-			me.createSession_(viewport);
-		}
-	},
-	createSession_:function(viewport) {
-		var me = this, connection;
-		
-		connection = me.getViewportConnection_(viewport);	
-		connection.newSession(function(instanceNo,instanceKey) {
-			//Store the instanceNo and key on the viewport
-			viewport.attributes.instanceNo = instanceNo;
-			viewport.attributes.instanceKey = instanceKey;
-
-			//Register the instance
-			me.instances[instanceNo] = {connection: connection, viewport: viewport}
-			connection.attachTaskInstance(instanceNo, instanceKey, viewport.onInstanceUIChange.bind(viewport));
-		});
-	},
-	registerInstance_: function(viewport) {
-		var me = this, connection,
-			instanceNo = viewport.attributes.instanceNo,
-			instanceKey = viewport.attributes.instanceKey;
-	
-		connection = me.getViewportConnection_(viewport);	
-		connection.attachTaskInstance(instanceNo, instanceKey, viewport.onInstanceUIChange.bind(viewport));
-
-		//Register the instance
-		me.instances[instanceNo] = {connection: connection, viewport: viewport}
-	},
-	getViewportConnection_: function(viewport) {
-		var me = this, parentViewport, connection;
-		//If the viewport is embedded in another viewport, reuse its connection
-		if(parentViewport = viewport.getParentViewport()) {
-			return me.instances[parentViewport.attributes.instanceNo].connection;
-		} else {
-			//Create the connection
-			connection = Object.assign(Object.create(itasks.Connection),{taskUrl:viewport.taskUrl});
-			connection.connect();
-			return connection;
-		}	
-	},
-	doEditEvent: function(taskId, editorId, value) {
-		var me = this,
-			instanceNo = taskId.split("-")[0];
-
-		me.instances[instanceNo].connection.sendEvent(instanceNo,[taskId,editorId,value]);
-	},
-	unregister: function(viewport) {
-		var me = this, connection, instanceNo = viewport.attributes.instanceNo;
-	
-		connection = me.getViewportConnection_(viewport);	
-		connection.detachTaskInstance(instanceNo);
-
-		delete(me.instances[instanceNo]);
-	},
-	getInstance: function() {
-		if(typeof itasks.Service.INSTANCE === 'undefined') {
-			itasks.Service.INSTANCE = Object.create(itasks.Service);
-		}
-		return itasks.Service.INSTANCE;
-	}
-};
-
-//Abstract connection, for now a combination of an eventsource and separate requests to send events
 itasks.Connection = {
 	wsock: null,
-	taskUrl: '',
+	endpointUrl: null,
+	pingTimer: null,
+	pingInterval: 10000, //10 seconds
+
+	newSessionCallbacks: {},
 	taskInstanceCallbacks: {},
-	taskInstanceKeys: {},
-	reqId: 1,
-	reqCallbacks: {},
-	reqDeferred: [],
+
+	reqId: 0,
+	deferred: [],
 
 	connect: function() {
 		var me = this;
 
-		me.wsock = new WebSocket('ws://' + location.host + location.pathname + (location.pathname.endsWith('/') ? '' : '/') + 'gui-wsock');
+		me.wsock = new WebSocket(me.endpointUrl);
 		me.wsock.onopen = function() {
-			//First send deferred requests
-			me.reqDeferred.forEach(function(msg) {
-				me.wsock.send(msg);
-			});
-			//Attach currently added instances
-			Object.keys(me.taskInstanceKeys).forEach(function(instanceNo,instanceKey) {
-				me.wsock.send(JSON.stringify(["attach",parseInt(instanceNo),instanceKey]));
-			});
+			//First send deferred messages
+			me.deferred.forEach(function(msg) { me.wsock.send(msg);});
+			//Start ping timer
+			me.pingTimer = window.setInterval(me._ping.bind(me), me.pingInterval);
 		};	
 		me.wsock.onmessage = me.onMessage_.bind(me);
 		me.wsock.onerror = me.onError_.bind(me);
+		me.wsock.onclose = me.onClose_.bind(me);
 	},
-	newSession: function(callback) {
+	_ping: function() {
+		var me = this, reqId = me.reqId++;
+		if(me._isConnected()) {
+			me.wsock.send(JSON.stringify([parseInt(reqId),'ping',{}]));
+		}
+	},
+	_send: function(msg) {
+		var me = this;	
+		if(me._isConnected()) {
+			me.wsock.send(JSON.stringify(msg));
+		} else {
+			me.deferred.push(JSON.stringify(msg));
+		}
+	},
+	_isConnected: function() {
+		return (this.wsock !== null && this.wsock.readyState == 1)
+	},
+	newSession: function(onStart, onUIChange, onException) {
 		var me = this, reqId = me.reqId++;
 			
-		me.reqCallbacks[reqId] = callback;
-		if(me.wsock !== null && me.wsock.readyState == 1) {
-			me.wsock.send(JSON.stringify([parseInt(reqId),"new"]));
-		} else {
-			me.reqDeferred.push(JSON.stringify([parseInt(reqId),"new"]));
-		}
-	},
-	attachTaskInstance: function(taskInstance, taskInstanceKey, callback) {
-		var me = this;
-		me.taskInstanceCallbacks[taskInstance] = callback;
+		me.newSessionCallbacks[reqId] = 
+			{ 'onStart' : onStart
+			, 'onUIChange' : onUIChange
+			, 'onException' : onException
+			};
 
-		if(me.wsock !== null) {
-			me.wsock.send(JSON.stringify(["attach",parseInt(taskInstance),taskInstanceKey]));
-		}
+		me._send([parseInt(reqId),'new',{}]);
 	},
-	detachTaskInstance: function(taskInstance) {
-		var me = this;
-		delete(me.taskInstanceKeys[taskInstance]);
-		delete(me.taskInstanceCallbacks[taskInstance]);
+	attachTaskInstance: function(instanceNo, instanceKey, onUIChange, onException) {
+		var me = this, reqId = me.reqId++;
 
-		if(me.wsock !== null) {
-			me.wsock.send(JSON.stringify(["detach",taskInstance]));
-		}
+		me.taskInstanceCallbacks[instanceNo] =
+			{ 'onUIChange' : onUIChange
+			, 'onException' : onException
+			};
+
+		me._send([parseInt(reqId),'attach',{'instanceNo':parseInt(instanceNo),'instanceKey': instanceKey}]);
 	},
-	sendEvent: function(taskInstance, event) {
-		var me = this;
+	detachTaskInstance: function(instanceNo) {
+		var me = this, reqId = me.reqId++;
 
-		if(me.wsock !== null) {	
-			me.wsock.send(JSON.stringify(["event",parseInt(taskInstance),event]));
-		}
+		delete(me.taskInstanceCallbacks[instanceNo]);
+		me._send([parseInt(reqId),'detach',{'instanceNo':parseInt(instanceNo)}]);
+	},
+	sendEditEvent: function(instanceNo, taskNo, edit, value) {
+		var me = this, reqId = me.reqId++;
+		me._send([parseInt(reqId),'ui-event',{'instanceNo':parseInt(instanceNo),'taskNo':parseInt(taskNo),'edit':edit, 'value': value}]);
+	},
+	sendActionEvent: function(instanceNo, taskNo, action) {
+		var me = this, reqId = me.reqId++;
+		me._send([parseInt(reqId),'ui-event',{'instanceNo':parseInt(instanceNo),'taskNo':parseInt(taskNo),'action': action}]);
 	},
 	disconnect: function() {
 		var me = this;
+		if(me.pingTimer !== null) {
+			window.clearInterval(me.pingTimer);
+			me.pingTimer = null;
+		}
 		if(me.wsock !== null) {
 			me.wsock.close();
 			me.wsock = null;
 		}
 	},
 	onError_: function(e) {
-		console.log("ERROR",e);
+		Object.values(this.taskInstanceCallbacks).forEach(function(callbacks) { callbacks.onException(e);});
 	},
 	onReset_: function(e) {
-		console.log("ERROR",e);
+		Object.values(this.taskInstanceCallbacks).forEach(function(callbacks) { callbacks.onException(e);});
+	},
+	onClose_: function(e) {
+		//If there are still attached task instances, we consider it an exeption for those viewports
+		Object.values(this.taskInstanceCallbacks).forEach(function(callbacks) { callbacks.onException("The connection to the server closed unexpectedly");});
 	},
 	onMessage_: function(e) {
 		var me = this,
 			msg = JSON.parse(e.data);
-		//Check if it is a response to request
-		if(msg instanceof Array) {
-			var reqId = msg[0],
-				reqRsp = msg[1];
-			if(me.reqCallbacks[reqId]) {
-				me.reqCallbacks[reqId](reqRsp.instanceNo,reqRsp.instanceKey);
-			}
-		//UI synchronization
-		} else {
-			var taskInstance = msg.instance,
-				change = msg.change;
 
-			if(taskInstance in me.taskInstanceCallbacks) {
-				me.taskInstanceCallbacks[taskInstance](change);
-			} 
+		//Check the message is a triplet
+		if(msg instanceof Array && msg.length == 3) {
+			var reqId = msg[0], reqType = msg[1], reqArgs = msg[2];
+
+			switch(reqType) {
+				case 'new':
+					if(reqId in me.newSessionCallbacks) {
+						var callbacks = me.newSessionCallbacks[reqId];
+
+						callbacks.onStart(reqArgs.instanceNo, reqArgs.instanceKey);
+						me.attachTaskInstance(reqArgs.instanceNo, reqArgs.instanceKey, callbacks.onUIChange,callbacks.onException);
+
+						delete me.newSessionCallbacks[reqId];
+					}
+					break;
+				case 'attach':
+					break;
+				case 'detach':
+					break;
+				case 'ping':
+					break;
+				case 'ui-change':
+					if('instanceNo' in reqArgs && 'change' in reqArgs && reqArgs.instanceNo in me.taskInstanceCallbacks) {
+						me.taskInstanceCallbacks[reqArgs.instanceNo].onUIChange(reqArgs.change);
+					} 
+					break;
+				case 'exception':
+					if('instanceNo' in reqArgs && 'description' in reqArgs) {
+						//The exception targeted at one task instance, so notify all viewports
+						if (reqArgs.instanceNo in me.taskInstanceCallbacks) {
+							me.taskInstanceCallbacks[reqArgs.instanceNo].onException(reqArgs.description);
+						} 
+					} else {
+						//The exception is not specific for one task instance, so notify all viewports
+						Object.values(me.taskInstanceCallbacks).forEach(function(callbacks) { callbacks.onException(reqArgs.description);});
+					}
+					break;
+			}
+		}
+	}
+};
+
+itasks.ConnectionPool = {
+	connections: {}, //Multiple connections, indexed by endpointUrl
+
+	getConnection: function (endpointUrl) {
+		var me = this, connection;
+
+		//Reuse an existing connection
+		if(me.connections[endpointUrl]) {
+			return me.connections[endpointUrl];
+		} else {
+			//Create the connection
+			connection = Object.assign(Object.create(itasks.Connection),{endpointUrl: endpointUrl});
+			connection.connect();
+			me.connections[endpointUrl] = connection;
+			return connection;
 		}
 	}
 };

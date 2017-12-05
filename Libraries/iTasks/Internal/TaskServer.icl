@@ -524,7 +524,7 @@ addListener taskId port removeOnClose connectionTask iworld=:{ioTasks={todo,done
     # ioStates = 'DM'.put taskId (IOActive 'DM'.newMap) ioStates
     = (Ok (),{iworld & ioTasks = {done=done,todo=todo}, ioStates = ioStates, world = world})
 
-addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
+addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException Dynamic,!*IWorld)
 addConnection taskId host port connectionTask=:(ConnectionTask handlers sds) iworld
     = addIOTask taskId sds init tcpConnectionIOOps onInitHandler mkIOTaskInstance iworld
 where
@@ -538,7 +538,7 @@ where
                 = case mbConn of
                     Nothing = (Error ("Failed to connect to host " +++ host), {iworld & world = world})
                     Just channel = (Ok (ip, channel), {iworld & world = world})
-                
+
     onInitHandler :: !IPAddress !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
     onInitHandler ip r iworld = handlers.ConnectionHandlersIWorld.onConnect (toString ip) r iworld
 
@@ -547,17 +547,19 @@ where
         # opts = {ConnectionInstanceOpts|taskId = taskId, connectionId = 0, remoteHost = ip, connectionTask = connectionTask, removeOnClose = False}
         = ConnectionInstance opts channel
 
-addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !Bool !ExternalProcessTask !IWorld -> (!MaybeError TaskException (), !*IWorld)
-addExternalProc taskId cmd args dir pty extProcTask=:(ExternalProcessTask handlers sds) iworld
+addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !ExternalProcessTask (Maybe 'Process'.ProcessPtyOptions) !IWorld -> (!MaybeError TaskException Dynamic, !*IWorld)
+addExternalProc taskId cmd args dir extProcTask=:(ExternalProcessTask handlers sds) mopts iworld
     = addIOTask taskId sds init externalProcessIOOps onInitHandler mkIOTaskInstance iworld
 where
     init :: !*IWorld -> (!MaybeErrorString (!(), (!ProcessHandle, !ProcessIO)), !*IWorld)
     init iworld
-        # (mbRes, world) = (if pty 'Process'.runProcessPty 'Process'.runProcessIO) cmd args dir iworld.world
+        # (mbRes, world) = case mopts of
+			Nothing   = 'Process'.runProcessIO cmd args dir iworld.world
+			Just opts = 'Process'.runProcessPty cmd args dir opts iworld.world
         = case mbRes of
             Error (_, e) = (Error e,       {iworld & world = world})
             Ok proc      = (Ok ((), proc), {iworld & world = world})
-                
+ 
     onInitHandler :: !() !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
     onInitHandler _ r iworld
         # (mbl, mbw, out, close) = handlers.ExternalProcessHandlers.onStartup r
@@ -575,7 +577,7 @@ addIOTask :: !TaskId
              !(initInfo Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
              !(initInfo .ioChannels -> *IOTaskInstance)
              !*IWorld
-          -> (!MaybeError TaskException (), !*IWorld)
+          -> (!MaybeError TaskException Dynamic, !*IWorld)
 addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld
     # (mbInitRes, iworld) = init iworld
     = case mbInitRes of
@@ -586,18 +588,21 @@ addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld
             | isError mbr = (liftError mbr, iworld)
             // Evaluate onInit handler
             # (mbl, mbw, out, close, iworld) = onInitHandler initInfo (fromOk mbr) iworld
-            // write output
-            # (ioChannels, iworld) = seq [ioOps.writeData o \\ o <- out] (ioChannels, iworld)
-            //Close or add to queue
-            | close
-                # iworld = ioOps.closeIO (ioChannels, iworld)
-                = (Ok (), iworld)
-            # ioStates = iworld.ioStates
-            # ioStates = case mbl of
-                Ok l    = 'DM'.put taskId (IOActive ('DM'.fromList [(0,(l, False))])) ioStates
-                Error e = 'DM'.put taskId (IOException e) ioStates
-            # {done, todo} = iworld.ioTasks
-            = (Ok (), {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance initInfo ioChannels : done], todo = todo}})
+			// Check initialization of local state 
+			= case mbl of	
+				Error e = (Error (exception e), iworld)
+				Ok l
+            		// write output
+            		# (ioChannels, iworld) = seq [ioOps.writeData o \\ o <- out] (ioChannels, iworld)
+            		//Close or add to queue
+            		| close
+                		# iworld = ioOps.closeIO (ioChannels, iworld)
+                		= (Ok (dynamic l), iworld)
+					| otherwise
+            			# ioStates = iworld.ioStates
+            			# ioStates = 'DM'.put taskId (IOActive ('DM'.fromList [(0,(l, False))])) ioStates
+            			# {done, todo} = iworld.ioTasks
+            			= (Ok l, {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance initInfo ioChannels : done], todo = todo}})
 
 //Dynamically add a background task
 addBackgroundTask :: !BackgroundTask !*IWorld -> (!MaybeError TaskException BackgroundTaskId,!*IWorld)

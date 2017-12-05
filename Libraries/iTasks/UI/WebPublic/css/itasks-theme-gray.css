@@ -133,6 +133,9 @@ div.itasks-loader-spinner {
     transform: rotate(0deg); }
   to {
     transform: rotate(359deg); } }
+div.itasks-exception {
+  text-align: center; }
+
 .itasks-vcontainer, .itasks-hcontainer {
   display: flex;
   align-items: flex-start; }

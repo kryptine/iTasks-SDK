@@ -689,24 +689,28 @@ where
 		| otherwise
 			= ([],items)
 
-	adjustRemSiblings selection path whichSiblings children = adjust 0 [] children
+	adjustRemSiblings selection path whichSiblings children = (changes, reverse items)
 	where
+        (changes, items) = adjust 0 [] children
+
+
+        adjust :: !Int ![MvUIChild] ![MvUIChild] -> (![(!Int,!UIChildChange)],![MvUIChild])
 		adjust i before [] = ([],before)
 		adjust i before [MvUIItem item:children]
 			| item.MvUI.deleted
-				= adjust i (before ++ [MvUIItem item]) children //Ignore deleted branches
+				= adjust i [MvUIItem item : before] children //Ignore deleted branches
 			| whichSiblings i
 				# (cchange, items) = adjustRem selection (path ++ [i]) NoChange item
 				# change = case cchange of
 					(ChangeChild NoChange)         = []
 					(ChangeChild (ChangeUI [] [])) = []
-					(ChangeChild change)           = [(adjustIndex i before,cchange)]
-				# (changes, children) = adjust (i + 1) (before ++ map MvUIItem items) children
+					(ChangeChild change)           = [(adjustIndex i (reverse before),cchange)]
+				# (changes, children) = adjust (i + 1) (map MvUIItem (reverse items) ++ before) children
 				= (change ++ changes, children)
 			| otherwise
-				= adjust (i + 1) (before ++ [MvUIItem item]) children
+				= adjust (i + 1) [MvUIItem item : before] children
 		adjust i before [child:children]
-			= adjust i (before ++ [child]) children
+			= adjust i [child : before] children
 			
 	adjustIns Nothing path mvuis = (NoChange, removeDeleted mvuis)
 	adjustIns (Just dst) path mvuis
@@ -1058,6 +1062,8 @@ where
 
 		adjustSiblings path whichSiblings items states = adjust 0 items states
 		where
+            adjust :: !Int ![UI] ![(!Int, !LayoutTree LayoutState ())]
+                   -> (![(!Int, !UIChildChange)], ![UI], ![(!Int, !LayoutTree LayoutState ())])
 			adjust i [] states = ([],[],states)
 			adjust i [item:items] states
 				| whichSiblings i

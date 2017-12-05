@@ -189,10 +189,9 @@ manageBackgroundTask d identity title task
 where
     view title t = let (color,statusmsg) = status t in (color,title +++ " is " +++ statusmsg)
     status Nothing              = (LightOff,"not activated")
-    status (Just (taskId,None))      = (LightOnGreen,"running " <+++ taskId )
     status (Just (taskId,Unstable))  = (LightOnGreen,"running" <+++ taskId )
     status (Just (_,Stable))    = (LightOnGreen,"stopped")
-    status (Just (_,Exception)) = (LightOnRed,"stopped with an error")
+    status (Just (_,Exception _)) = (LightOnRed,"stopped with an error")
 
     taskPid = mapRead find (sdsFocus ("name",identity) taskInstancesByAttribute)
     where

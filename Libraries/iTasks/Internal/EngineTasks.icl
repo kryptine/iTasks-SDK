@@ -97,8 +97,8 @@ stopOnStable iworld=:{IWorld|shutdown}
 			= (Ok (), {IWorld|iworld & shutdown = shutdown})
 		Error e  = (Error e, iworld)
 where
-	allStable instances = all (\v -> v =: Stable || v =: Exception) (values instances) 
-	exceptionOccurred instances = any (\v -> v =: Exception) (values instances)
+	allStable instances = all (\v -> v =: Stable || v =: (Exception _)) (values instances) 
+	exceptionOccurred instances = any (\v -> v =: (Exception _)) (values instances)
 	values instances = [value \\ (_,_,Just {InstanceProgress|value},_) <- instances]
 
 

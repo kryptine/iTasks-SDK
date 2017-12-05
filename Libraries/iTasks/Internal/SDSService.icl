@@ -23,7 +23,7 @@ import Text.JSON, Text.URI
 import StdMisc, graph_to_sapl_string
 import Data.Queue, Data.Functor
 
-sdsService :: WebService (Map InstanceNo (Queue UIChange)) (Map InstanceNo (Queue UIChange))
+sdsService :: WebService a a
 sdsService = { urlMatchPred    = matchFun
              , completeRequest = True
              , onNewReq        = reqFun
@@ -38,7 +38,7 @@ where
     					["","sds",_] = True
     							  	 = False
 
-	reqFun :: !HTTPRequest (Map InstanceNo (Queue UIChange)) !*IWorld -> *(!HTTPResponse, !Maybe ConnectionState, !Maybe (Map InstanceNo (Queue UIChange)), !*IWorld)
+	reqFun :: !HTTPRequest a !*IWorld -> *(!HTTPResponse, !Maybe ConnectionState, !Maybe a, !*IWorld)
 	reqFun req _ iworld | hasParam "client_session_id" req
 		= abort "Shareds on clients are not supported yet"
 	reqFun req _ iworld=:{exposedShares} | hasParam "focus" req
@@ -76,13 +76,13 @@ where
 	plainResponse string
 		= {okResponse & rsp_headers = [("Content-Type","text/plain")], rsp_data = string}			
 				
-	dataFun :: !HTTPRequest (Map InstanceNo (Queue UIChange)) !String !ConnectionState !*IWorld -> (![{#Char}], !Bool, !ConnectionState,!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld)
+	dataFun :: !HTTPRequest a !String !ConnectionState !*IWorld -> (![{#Char}], !Bool, !ConnectionState,!Maybe a, !*IWorld)
     dataFun req _ data instanceNo iworld = ([], True, instanceNo, Nothing, iworld)
 
     onShareChange _ _ s iworld = ([], True, s, Nothing, iworld)
     onTick _ _ instanceNo iworld = ([], True, instanceNo, Nothing, iworld)
 
-    disconnectFun :: !HTTPRequest (Map InstanceNo (Queue UIChange)) !ConnectionState !*IWorld -> (!Maybe (Map InstanceNo (Queue UIChange)), !*IWorld)
+    disconnectFun :: !HTTPRequest a !ConnectionState !*IWorld -> (!Maybe a, !*IWorld)
 	disconnectFun _ _ _ iworld = (Nothing,iworld)
 
 readRemoteSDS  :: !JSONNode !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
