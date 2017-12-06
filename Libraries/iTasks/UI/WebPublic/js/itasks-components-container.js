@@ -5,31 +5,64 @@ itasks.Container = {
 			this.domEl.classList.add(this.baseCls);
 		}
 		if(this.attributes.resizable){
-			console.log("resizable blurp");
-			console.log(this.attributes);
+			var me = this;
 
-			this.resizer = document.createElement('div');
-//			resizer.className = 'resizer';
-			this.resizer.style.width = '10px';
-			this.resizer.style.height = '10px';
-			this.resizer.style.background = 'gray';
-			this.resizer.style.position = 'absolute';
-			this.resizer.style.right = 0;
-			this.resizer.style.bottom = 0;
-			this.resizer.style.cursor = 'se-resize';
-			this.domEl.appendChild(this.resizer);
-			var resize = function resize(e) {
-			   this.resizer.style.width = (e.clientX - this.resizer.offsetLeft) + 'px';
-			   this.resizer.style.height = (e.clientY - this.resizer.offsetTop) + 'px';
-			};
-			var stop = function stopResize(e) {
-			    this.resizer.removeEventListener('mousemove', resize, false);
-			    this.resizer.removeEventListener('mouseup', stop, false);
+			me.domEl.style.position = 'relative';
+
+			function resizer(me, c, w, h, l, r, t, b, rw, rh){
+				res = document.createElement('div');
+				res.style.width = w;
+				res.style.height = h;
+				res.style.background = 'gray';
+				res.style.position = 'absolute';
+				res.style.left = l;
+				res.style.right = r;
+				res.style.top = t;
+				res.style.bottom = b;
+				res.style.cursor = c;
+				res.style.borderStyle = 'groove';
+				res.style.borderWidth = '3px';
+				me.domEl.style.overflow = 'hidden';
+				me.domEl.appendChild(res);
+
+				//Add listener
+				res.addEventListener('mousedown', function init (e){
+					var oldX = e.clientX;
+					var oldY = e.clientX;
+					var oldW = parseInt(me.domEl.style.width.slice(0, -2));
+					var oldH = parseInt(me.domEl.style.height.slice(0, -2));
+					var resize = function resize(ev) {
+						me.domEl.style.width = rw(oldX, oldW, ev) + "px";
+						me.domEl.style.height = rh(oldY, oldH, ev) + "px";
+					};
+					window.addEventListener('mousemove', resize, false);
+					window.addEventListener('mouseup',
+						function stop(e){
+							window.removeEventListener('mousemove', resize, false);
+							window.removeEventListener('mouseup', stop, false);
+					}, false);
+				}, false);
 			}
-			this.resizer.addEventListener('mousedown', function init (e){
-				this.resizer.addEventListener('mousemove', resize, false);
-				this.resizer.addEventListener('mouseup', stop, false);
-			}, false);
+
+			if(this.attributes.resizable.includes("left"))
+				resizer(me, "ew-resize", '0px', '100%', 0, undefined, 0, undefined,
+					function (ox, ow, ev) {return ow + (ox - ev.clientX);},
+					function (oy, oh, ev) {return oh;});
+
+			if(this.attributes.resizable.includes("right"))
+				resizer(me, "ew-resize", '0px', '100%', undefined, 0, 0, undefined,
+					function (ox, ow, ev) {return ow + (ev.clientX - ox);},
+					function (oy, oh, ev) {return oh;});
+
+			if(this.attributes.resizable.includes("top"))
+				resizer(me, "ns-resize", '100%', '0px', 0, undefined, 0, undefined,
+					function (ox, ow, ev) {return ow;},
+					function (oy, oh, ev) {return oh + (ev.clientY - oy);});
+
+			if(this.attributes.resizable.includes("bottom"))
+				resizer(me, "ns-resize", '100%', '0px', 0, undefined, undefined, 0,
+					function (ox, ow, ev) {return ow;},
+					function (oy, oh, ev) {return oh + (ev.clientY - oy);});
 		}
 	}
 };
