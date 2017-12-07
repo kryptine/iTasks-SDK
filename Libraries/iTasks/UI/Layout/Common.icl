@@ -120,7 +120,7 @@ where
 			[ attr
 			, textAttr p
 			, valueAttr $ maybe (JSONString "") id $ 'DM'.get "actionId" attr]
-		= [UI UIMenu (textAttr p) [UI UIButton attr cs]]
+		= [UI UIButton attr cs]
 	//Fork but we haven't found a matching node
 	ins [p:ps] ui []
 		= [UI UIMenu (textAttr p) $ ins ps ui []]
@@ -191,7 +191,8 @@ actionToButton :: Layout
 actionToButton = foldl1 sequenceLayouts
 	[setUIType UIButton
 	,modifyUIAttributes (SelectKeys ["actionId"]) (\attr -> maybe 'DM'.newMap
-																(\(JSONString a) -> 'DM'.unions [valueAttr (JSONString a),textAttr a,icon a]) ('DM'.get "actionId" attr))
+		(\(JSONString a) -> 'DM'.unions [valueAttr (JSONString a),textAttr a,icon a])
+		('DM'.get "actionId" attr))
 	]
 where
 	//Set default icons
