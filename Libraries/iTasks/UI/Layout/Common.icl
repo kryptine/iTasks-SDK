@@ -57,12 +57,21 @@ arrangeWithSideBar index side size resize = foldl1 sequenceLayouts
 	,layoutSubUIs (SelectByPath [sidePanelIndex]) unwrapUI //Remove the temporary wrapping panel
 	,layoutSubUIs (SelectByPath [sidePanelIndex]) (sequenceLayouts
 		(setUIAttributes (sizeAttr sidePanelWidth sidePanelHeight))
-		(if resize (setUIAttributes (resizableAttr (resizers side))) idLayout))
+		(if resize (sequenceLayouts
+			(setUIAttributes (resizableAttr (resizers side)))
+			(setUIAttributes (padders side))
+			) idLayout))
 	]
 where
 	sidePanelIndex = if (side === TopSide || side === LeftSide) 0 1
 	mainPanelIndex = if (sidePanelIndex === 0) 1 0
 	direction = if (side === TopSide|| side === BottomSide) Vertical Horizontal
+
+	
+	padders TopSide = bottomPaddingAttr 5
+	padders BottomSide = topPaddingAttr 5
+	padders LeftSide = rightPaddingAttr 5
+	padders RightSide = leftPaddingAttr 5
 
 	resizers TopSide = [BottomSide]
 	resizers BottomSide = [TopSide]

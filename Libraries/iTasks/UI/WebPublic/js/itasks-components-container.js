@@ -21,14 +21,14 @@ itasks.Container = {
 				res.style.bottom = b;
 				res.style.cursor = c;
 				res.style.borderStyle = 'groove';
-				res.style.borderWidth = '3px';
+				res.style.borderWidth = '2px';
 				me.domEl.style.overflow = 'hidden';
 				me.domEl.appendChild(res);
 
 				//Add listener
 				res.addEventListener('mousedown', function init (e){
 					var oldX = e.clientX;
-					var oldY = e.clientX;
+					var oldY = e.clientY;
 					var oldW = parseInt(me.domEl.style.width.slice(0, -2));
 					var oldH = parseInt(me.domEl.style.height.slice(0, -2));
 					var resize = function resize(ev) {
@@ -44,25 +44,29 @@ itasks.Container = {
 				}, false);
 			}
 
-			if(this.attributes.resizable.includes("left"))
+			if(me.attributes.resizable.includes("left")){
 				resizer(me, "ew-resize", '0px', '100%', 0, undefined, 0, undefined,
 					function (ox, ow, ev) {return ow + (ox - ev.clientX);},
 					function (oy, oh, ev) {return oh;});
+			}
 
-			if(this.attributes.resizable.includes("right"))
+			if(me.attributes.resizable.includes("right")){
 				resizer(me, "ew-resize", '0px', '100%', undefined, 0, 0, undefined,
 					function (ox, ow, ev) {return ow + (ev.clientX - ox);},
 					function (oy, oh, ev) {return oh;});
+			}
 
-			if(this.attributes.resizable.includes("top"))
+			if(me.attributes.resizable.includes("top")){
 				resizer(me, "ns-resize", '100%', '0px', 0, undefined, 0, undefined,
 					function (ox, ow, ev) {return ow;},
 					function (oy, oh, ev) {return oh + (ev.clientY - oy);});
+			}
 
-			if(this.attributes.resizable.includes("bottom"))
+			if(me.attributes.resizable.includes("bottom")){
 				resizer(me, "ns-resize", '100%', '0px', 0, undefined, undefined, 0,
 					function (ox, ow, ev) {return ow;},
-					function (oy, oh, ev) {return oh + (ev.clientY - oy);});
+					function (oy, oh, ev) {return oh + (oy - ev.clientY);});
+			}
 		}
 	}
 };
