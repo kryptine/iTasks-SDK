@@ -330,6 +330,7 @@ itasks.Button = {
 			me.label.classList.add(me.cssPrefix + 'button-label');
 			el.appendChild(me.label);
 		}
+
         el.addEventListener('click',function(e) {
 			if(typeof(me.attributes.value) == 'boolean') { //Toggle edit buttons
 				me.attributes.value = !me.attributes.value;

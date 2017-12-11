@@ -98,6 +98,7 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	| UITabSet
 	| UIWindow
 	| UIMenu
+	| UIMenuSep
 	| UIToolBar
 	| UIButtonBar
 	| UIList

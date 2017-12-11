@@ -288,6 +288,7 @@ where
 	toString UITabSet          = "TabSet"
 	toString UIWindow          = "Window"
 	toString UIMenu            = "Menu"
+	toString UIMenuSep         = "MenuSep"
 	toString UIToolBar         = "ToolBar"
 	toString UIButtonBar       = "ButtonBar"
 	toString UIList            = "List"
