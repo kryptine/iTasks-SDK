@@ -24,14 +24,15 @@ task1 <<@ ApplyLayout somelayout
 ## Menu bars
 The function signature for the menubar decorator is as follows:
 ```clean
-arrangeAsMenu :: Layout
+arrangeAsMenu :: [[Int]] -> Layout
 
-:: ArrangeAsMenu = ArrangeAsMenu
+:: ArrangeAsMenu = ArrangeAsMenu [[Int]]
 ```
 
 When the task is arranged as a menu it will convert all actions starting with a `/` to a menu action.
 It is possible to combine menu actions with regular actions.
 The regular actions will be converted to a buttonbar as usual.
+The first and only argument contains the list of separators that should be added to the menu.
 The following code shows an example of a menu:
 
 ```clean
@@ -44,8 +45,7 @@ task = (programTask
 		,OnAction (Action "/Edit/Paste")   $ do_something
 		,OnAction (Action "/Help")         $ do_something
 		]
-	) <<@ ArrangeAsMenu
-
+	) <<@ ArrangeAsMenu [[0,2]]
 ```
 
 ## Sidebar
