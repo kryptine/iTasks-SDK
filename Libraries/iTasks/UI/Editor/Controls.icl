@@ -125,6 +125,12 @@ where
 			[] 		= (Ok (NoChange,mask),new,vst)
 			changes = (Ok (ChangeUI changes [],mask),new,vst)
 
+from Data.Func import $
+import StdDebug, StdMisc, GenPrint
+derive gPrint (,), ChoiceNode, ChoiceText, ChoiceGrid, Maybe, ChoiceRow, HtmlTag, HtmlAttr, SVGElt, SVGAttr, SVGPaint, SVGFillOpacity, SVGFillRule, SVGMeetOrSlice
+derive gPrint SVGColor, SVGFuncIRI, SVGLengthUnit, SVGLengthAdjust, SVGDefer, SVGAlign, SVGStrokeWidth, SVGStrokeMiterLimit, SVGLineCap, SVGStrokeDashOffset
+derive gPrint SVGStrokeDashArray, SVGLineJoin, SVGTransform, SVGZoomAndPan
+
 //Choice components that have a set of options
 choiceComponent attr getOptions toOption checkBounds type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
@@ -152,6 +158,7 @@ where
 				= (Error ("Invalid choice event: " +++ toString e), (val,sel),vst)
 
 	onRefresh dp (new,nsel) (old,osel) mask vst
+		| not (trace_tn $ "onRefresh: " +++ printToString dp +++ " new: " +++ printToString (new, nsel) +++ " old: " +++ printToString (old, osel)) = undef
 		//Check options
 		# oOpts = map toOption (getOptions old)
 		# nOpts = map toOption (getOptions new)
