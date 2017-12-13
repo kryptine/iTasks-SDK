@@ -94,8 +94,11 @@ itasks.NumberField = {
 			el.disabled = true;
 		} else {
         	el.addEventListener('keyup',function(e) {
-				var value = me.allowDecimal ? parseFloat(e.target.value) : parseInt(e.target.value);
-        	    me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value === NaN ? null : value);
+				var value = e.target.value == "" ? NaN : Number(e.target.value);
+				value = value === NaN ? null : value;
+				const isFloat = value % 1 !== 0;
+				value = !me.allowDecimal && isFloat ? null : value;
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
         	});
 		}
     },
