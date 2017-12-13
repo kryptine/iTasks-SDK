@@ -1,7 +1,7 @@
 implementation module iTasks.Internal.Util
 
 import StdBool, StdChar, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdFunc, StdGeneric, StdOrdList
-import Data.Maybe, Data.Tuple, Data.Func, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Error, GenEq
+import Data.Maybe, Data.Tuple, Data.Func, System.Time, System.OS, Text, System.FilePath, System.Directory, Text.JSON, Data.Error, Data.Generics.GenEq
 import Data.Error, System.OSError, System.File
 from iTasks.Internal.IWorld 		import :: IWorld{current}, :: TaskEvalState
 from iTasks.Extensions.DateTime import :: Date{..}, :: Time{..}, :: DateTime(..)

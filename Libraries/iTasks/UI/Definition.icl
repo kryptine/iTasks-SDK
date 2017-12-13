@@ -1,6 +1,6 @@
 implementation module iTasks.UI.Definition
 
-import Text.JSON, StdList, StdOrdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text
+import Text.JSON, StdList, StdOrdList, StdBool, StdTuple, Data.Generics.GenEq, StdFunc, Text.HTML, Text
 from Data.Map import :: Map (..)
 from Data.Functor import class Functor(..)
 import qualified Data.Map as DM
@@ -12,7 +12,6 @@ from iTasks.Internal.Generic.Defaults			import generic gDefault
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
 from iTasks.UI.Editor.Generic import generic gEditor
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
-from GenEq import generic gEq
 
 import Text.HTML
 import StdMisc
