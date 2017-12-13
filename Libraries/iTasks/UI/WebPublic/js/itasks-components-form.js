@@ -9,8 +9,7 @@ itasks.TextField = {
 			el.disabled = true;
 		} else {
 			el.addEventListener('keyup',function(e) {
-        	    var value = e.target.value === "" ? null : e.target.value
-				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,e.target.value);
 			});
 		}
 	},
@@ -39,8 +38,7 @@ itasks.TextArea = {
 			el.disabled = true;
 		} else {
         	el.addEventListener('keyup',function(e) {
-				var value = e.target.value === "" ? null : e.target.value
-				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,e.target.value);
         	});
 		}
     },
