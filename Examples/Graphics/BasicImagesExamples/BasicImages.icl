@@ -4,7 +4,7 @@ import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
 import iTasks.SDS.Sources.Store
-import GenPrint
+import Data.Generics.GenPrint
 import iTasks.UI.Prompt
 import iTasks.Extensions.SVG.SVGEditor						// required to embed Image-tasks inside other tasks
 import Graphics.Scalable

@@ -37,7 +37,7 @@ from Data.Foldable import class Foldable, instance Foldable []
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Text
-import GenLexOrd
+import Data.Generics.GenLexOrd
 from Control.Monad import `b`, class Monad(bind), instance Monad Maybe
 import qualified Control.Applicative as CA
 from Control.Applicative import class Applicative, instance Applicative Maybe

@@ -14,7 +14,7 @@ from Data.Either import :: Either
 from Data.Map import :: Map
 from Data.Error import :: MaybeError, :: MaybeErrorString
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
-from GenEq import generic gEq
+from Data.Generics.GenEq import generic gEq
 
 /*
 *	Definition of an editor editor

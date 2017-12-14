@@ -10,7 +10,7 @@ import qualified Data.Map as DM
 import StdArray, StdBool, StdFunc, StdList, Data.Maybe, StdString
 import Text.JSON
 import System.Time
-import GenEq
+import Data.Generics.GenEq
 
 generic gEditor a | gText a, gDefault a, JSONEncode a, JSONDecode a :: Editor a
 derive bimap Editor,(,),(,,),(,,,), MaybeError
