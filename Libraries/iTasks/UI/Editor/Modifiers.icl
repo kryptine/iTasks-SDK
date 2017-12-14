@@ -3,7 +3,7 @@ implementation module iTasks.UI.Editor.Modifiers
 import StdBool, StdString
 import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.UI.Tune
 import Data.Error, Text.JSON
-import GenEq
+import Data.Generics.GenEq
 import qualified Data.Map as DM
 
 withAttributes :: UIAttributes (Editor a) -> Editor a

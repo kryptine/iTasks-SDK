@@ -8,7 +8,7 @@ from iTasks.Internal.IWorld import :: IWorld
 import iTasks.Internal.Generic.Visualization
 import iTasks.Internal.Generic.Defaults
 import iTasks.UI.Editor.Generic
-import GenEq
+import Data.Generics.GenEq
 
 from Data.Either import :: Either
 from Data.Error import :: MaybeError

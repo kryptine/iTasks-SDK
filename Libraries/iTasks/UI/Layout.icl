@@ -14,7 +14,7 @@ from iTasks.Internal.TaskState import :: TIMeta(..), :: TaskTree(..), :: Deferre
 from iTasks.Internal.TaskEval import :: TaskTime
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 import iTasks.WF.Definition
-import GenEq
+import Data.Generics.GenEq
 
 //This type records the states of layouts applied somewhere in a ui tree
 derive JSONEncode LayoutState, LayoutTree, MvUI, MvUIChild

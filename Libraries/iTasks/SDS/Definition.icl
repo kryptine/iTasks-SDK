@@ -6,7 +6,7 @@ import iTasks.Internal.Task
 import iTasks.Internal.Generic.Visualization
 import iTasks.Internal.Generic.Defaults
 import iTasks.UI.Editor.Generic
-import GenEq
+import Data.Generics.GenEq
 
 import Data.Either
 import Data.Error

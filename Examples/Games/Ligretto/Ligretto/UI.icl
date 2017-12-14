@@ -2,7 +2,7 @@ implementation module Ligretto.UI
 
 import StdEnum, StdList
 from   StdFunc import id, const
-import GenEq
+import Data.Generics.GenEq
 import iTasks.UI.JS.Encoding
 import iTasks.WF.Tasks.Interaction
 import iTasks.Extensions.SVG.SVGEditor

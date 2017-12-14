@@ -6,7 +6,7 @@ import iTasks.Internal.IWorld
 import iTasks.UI.Definition
 import qualified Data.Map as DM
 import Text, Text.JSON
-import GenEq
+import Data.Generics.GenEq
 
 derive JSONEncode EditMask, FieldMask
 derive JSONDecode EditMask, FieldMask
