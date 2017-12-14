@@ -23,7 +23,7 @@ from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
 
 from iTasks.UI.Editor.Generic import generic gEditor
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
-from GenEq import generic gEq
+from Data.Generics.GenEq import generic gEq
 
 //Provide generic instances for all UI definitions
 derive class iTask UI, UIType

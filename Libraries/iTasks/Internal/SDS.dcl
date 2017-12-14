@@ -1,6 +1,6 @@
 definition module iTasks.Internal.SDS
 
-import GenEq
+import Data.Generics.GenEq
 import System.FilePath, Data.Maybe, Data.Either, Data.Error, System.Time, Text.JSON
 from Data.Set import :: Set
 from iTasks.Internal.IWorld import :: IWorld

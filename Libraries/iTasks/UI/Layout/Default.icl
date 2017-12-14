@@ -4,7 +4,7 @@ import iTasks.UI.Layout
 import iTasks.UI.Layout.Common
 import iTasks.UI.Definition
 import Text.JSON
-import GenEq
+import Data.Generics.GenEq
 
 from Data.Func import $
 from StdFunc import id, o, const

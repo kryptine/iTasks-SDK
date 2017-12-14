@@ -21,7 +21,7 @@ from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked, :: VSt
 from iTasks.UI.Editor.Generic import generic gEditor
 from iTasks.Internal.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks.Internal.Generic.Defaults		import generic gDefault
-from GenEq import generic gEq
+from Data.Generics.GenEq import generic gEq
 
 :: StoreNamespace	:== String
 :: StoreName		:== String
