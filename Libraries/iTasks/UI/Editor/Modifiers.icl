@@ -1,10 +1,15 @@
 implementation module iTasks.UI.Editor.Modifiers
 
-import StdBool, StdString
+from StdFunc import o, const, flip
+import StdBool, StdString, StdList
 import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.UI.Tune
 import Data.Error, Text.JSON
 import Data.Generics.GenEq
 import qualified Data.Map as DM
+
+withPreseededValue :: a (Editor a) -> Editor a
+withPreseededValue def editor =
+	withEditMode Update {Editor|editor & genUI = const o flip editor.genUI def}
 
 withAttributes :: UIAttributes (Editor a) -> Editor a
 withAttributes extra editor = {Editor|editor & genUI = genUI}
