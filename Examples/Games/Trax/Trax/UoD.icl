@@ -10,7 +10,7 @@ from   StdFunc import flip
 from   Data.List import lookup, deleteFirstsBy
 import Data.Maybe
 import GenericExts.GenFDomain
-import GenLexOrd, GenMap, GenPrint
+import Data.Generics.GenLexOrd, Data.Generics.GenMap, Data.Generics.GenPrint
 import Text
 
 lookup1 x = fromJust o (lookup x)

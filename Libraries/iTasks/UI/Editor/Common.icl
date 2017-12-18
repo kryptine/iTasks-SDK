@@ -1,7 +1,7 @@
 implementation module iTasks.UI.Editor.Common
 
 import StdBool, StdEnum, StdOrdList, StdList, Data.Maybe, StdList, StdString
-import Text.JSON, GenEq, Data.List
+import Text.JSON, Data.Generics.GenEq, Data.List
 
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Containers, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import Data.Tuple, Data.Error, Text, Text.JSON

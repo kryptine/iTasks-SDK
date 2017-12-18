@@ -7,7 +7,7 @@ from iTasks.UI.Definition import :: UI, :: UIChildChange
 from Data.Maybe import :: Maybe
 from Text.JSON import generic JSONEncode, :: JSONNode
 import iTasks.Internal.Generic.Defaults
-from GenEq import generic gEq
+from Data.Generics.GenEq import generic gEq
 
 /**
 * Editor that does nothing

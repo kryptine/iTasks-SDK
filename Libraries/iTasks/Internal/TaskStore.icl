@@ -27,7 +27,8 @@ import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.Queue as DQ
 from Data.Queue import :: Queue(..)
-from Control.Applicative import class Alternative(<|>), instance Alternative Maybe, instance Applicative Maybe
+from Control.Applicative import class Alternative(<|>)
+import Data.Generics.GenEq
 
 //Derives required for storage of UI definitions
 derive JSONEncode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
