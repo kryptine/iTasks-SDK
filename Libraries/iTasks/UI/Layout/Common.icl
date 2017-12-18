@@ -8,7 +8,7 @@ import Data.List, Text.JSON, Data.Maybe, StdString, Data.Generics.GenEq
 import qualified Data.Map as DM
 import StdBool, _SystemArray
 from Data.Func import $
-from StdFunc import id, const, o, flip
+from StdFunc import id, const, o, flip, seq
 from StdTuple import uncurry, snd
 from StdListExtensions import foldlSt
 from iTasks.Internal.TaskEval import :: TaskEvalOpts(..), :: TonicOpts
@@ -64,8 +64,10 @@ where
 
 	(sidePanelWidth,sidePanelHeight) = if (direction === Vertical) (FlexSize,ExactSize size) (ExactSize size,FlexSize)
 
-arrangeAsMenu :: Layout
-arrangeAsMenu = foldl1 sequenceLayouts
+import StdDebug, StdMisc
+
+arrangeAsMenu :: [[Int]] -> Layout
+arrangeAsMenu seps = foldl1 sequenceLayouts
 	// Wrap in panel
 	[ wrapUI UIPanel
 	// Add a buttonbar to hold the menu
@@ -84,35 +86,43 @@ arrangeAsMenu = foldl1 sequenceLayouts
 	// Transform the menubar in an actual menu
 	, layoutSubUIs (SelectByPath [0]) makeMenu//(sequenceLayouts makeMenu actionToButton)
 	]
-
-makeMenu :: Layout
-makeMenu =	
-	{apply=apply
-	,adjust=  \t->case t of
-		(NoChange, s) = (NoChange, s)
-		(ReplaceUI ui, _) = apply ui
-		(change, LSType ui) = (change, LSType (applyUIChange change ui))
-	,restore= \(LSType ui) = ReplaceUI ui
-	}
 where
+	makeMenu :: Layout
+	makeMenu =	
+		{apply=apply
+		,adjust=  \t->case t of
+			(NoChange, s) = (NoChange, s)
+			(ReplaceUI ui, _) = apply ui
+			(change, LSType ui) = (change, LSType (applyUIChange change ui))
+		,restore= \(LSType ui) = ReplaceUI ui
+		}
+
 	apply ui=:(UI t attr cs)
 		# (actions, others) = splitWith (\s->s=:(UI UIAction _ _)) cs
 		= (ReplaceUI (UI t attr (mkmenu actions ++ others)), LSType ui)
-
+	
 	adjust (NoChange,s)   = (NoChange,s)
 	adjust (ReplaceUI ui,_) = apply ui
 	adjust (change, LSType ui) = (change, LSType (applyUIChange change ui))
-
+	
 	restore (LSType ui) = ReplaceUI ui 
 	
 	mkmenu :: ([UI] -> [UI])
-	mkmenu  = flip (foldlSt (uncurry ins)) [] o map (\t->(exPath t, t))
+	mkmenu  = seq (map separators seps) o flip (foldlSt (uncurry ins)) [] o map (\t->(exPath t, t))
 
+	separators :: [Int] [UI] -> [UI]
+	separators [] uis  = uis
+	separators d [ui=:(UI UIMenuSep _ _):uis] = [ui:separators d uis]
+	separators [0] uis = [ui UIMenuSep:uis]
+	separators [0:ds] [UI t attr cs:uis] = [UI t attr (separators ds cs):uis]
+	separators [d:ds] [ui:uis] = [ui:separators [d-1:ds] uis]
+	separators _ [] = []
+	
 	exPath :: UI -> [String]
 	exPath ui=:(UI _ attr _) = case 'DM'.get "actionId" attr of
 		Just (JSONString p) = 'T'.split "/" $ 'T'.subString 1 (size p) p
 		_ = []
-
+	
 	ins :: [String] UI [UI] -> [UI]
 	//Leaf path, thus we insert a button
 	ins [p] ui=:(UI _ attr cs) []
@@ -120,7 +130,7 @@ where
 			[ attr
 			, textAttr p
 			, valueAttr $ maybe (JSONString "") id $ 'DM'.get "actionId" attr]
-		= [UI UIMenu (textAttr p) [UI UIButton attr cs]]
+		= [UI UIButton attr cs]
 	//Fork but we haven't found a matching node
 	ins [p:ps] ui []
 		= [UI UIMenu (textAttr p) $ ins ps ui []]
@@ -191,7 +201,8 @@ actionToButton :: Layout
 actionToButton = foldl1 sequenceLayouts
 	[setUIType UIButton
 	,modifyUIAttributes (SelectKeys ["actionId"]) (\attr -> maybe 'DM'.newMap
-																(\(JSONString a) -> 'DM'.unions [valueAttr (JSONString a),textAttr a,icon a]) ('DM'.get "actionId" attr))
+		(\(JSONString a) -> 'DM'.unions [valueAttr (JSONString a),textAttr a,icon a])
+		('DM'.get "actionId" attr))
 	]
 where
 	//Set default icons
@@ -239,7 +250,7 @@ where
 
 instance tune ArrangeAsMenu Task
 where
-	tune ArrangeAsMenu t = tune (ApplyLayout arrangeAsMenu) t
+	tune (ArrangeAsMenu i) t = tune (ApplyLayout (arrangeAsMenu i)) t
 
 instance tune ArrangeSplit Task
 where

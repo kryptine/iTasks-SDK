@@ -28,8 +28,9 @@ arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
 
 /**
  * Lift actions starting with / to the menu
+ * @param The list of paths to menu separators
  */
-arrangeAsMenu :: Layout
+arrangeAsMenu :: [[Int]] -> Layout
 
 /**
 * Divide the available screen space
@@ -74,7 +75,7 @@ instance tune ArrangeWithTabs Task
 :: ArrangeWithSideBar = ArrangeWithSideBar !Int !UISide !Int !Bool
 instance tune ArrangeWithSideBar Task
 
-:: ArrangeAsMenu = ArrangeAsMenu
+:: ArrangeAsMenu = ArrangeAsMenu [[Int]]
 instance tune ArrangeAsMenu Task
 
 :: ArrangeSplit = ArrangeSplit !UIDirection !Bool
