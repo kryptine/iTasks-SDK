@@ -59,13 +59,13 @@ itasks.Container = {
 			if(me.attributes.resizable.includes("top")){
 				resizer(me, "ns-resize", '100%', '0px', 0, undefined, 0, undefined,
 					function (ox, ow, ev) {return ow;},
-					function (oy, oh, ev) {return oh + (ev.clientY - oy);});
+					function (oy, oh, ev) {return oh + (oy - ev.clientY);});
 			}
 
 			if(me.attributes.resizable.includes("bottom")){
 				resizer(me, "ns-resize", '100%', '0px', 0, undefined, undefined, 0,
 					function (ox, ow, ev) {return ow;},
-					function (oy, oh, ev) {return oh + (oy - ev.clientY);});
+					function (oy, oh, ev) {return oh + (ev.clientY - oy);});
 			}
 		}
 	}
