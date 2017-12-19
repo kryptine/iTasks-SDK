@@ -346,7 +346,7 @@ itasks.ToolBar  = {
 		direction: 'horizontal',
 		halign: 'left',
 		padding: '2 2 2 2'
-	}
+	},
 };
 
 itasks.ButtonBar  = {
@@ -385,7 +385,6 @@ itasks.Menu = {
 			me.innerLabelEl.innerHTML = me.attributes.text;
 
 			if(me.attributes.iconCls) {
-				console.log("icon class:)");
 				me.icon = document.createElement('div');
 				me.icon.classList.add(me.cssPrefix + 'button-icon');
 				me.icon.classList.add(me.attributes.iconCls);
@@ -393,6 +392,7 @@ itasks.Menu = {
 			}
 
 			me.labelEl.appendChild(me.innerLabelEl);
+
 			me.domEl.appendChild(me.labelEl);
 
 			me.containerEl = document.createElement('div');
@@ -400,4 +400,8 @@ itasks.Menu = {
 			me.domEl.appendChild(me.containerEl);
 		}
 	},
+};
+
+itasks.MenuSep = {
+	cssCls: 'menu-sep',
 };

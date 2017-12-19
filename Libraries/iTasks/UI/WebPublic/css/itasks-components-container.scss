@@ -254,6 +254,17 @@
 	border: 1px solid transparent;
 	margin: 1px 0;
 
+	div.#{$prefix}menu-sep {
+		width: 100%;
+		height: 5px;
+		display: flex;
+		display: -webkit-flex;
+		flex-direction: row;
+		flex-shrink: 0;
+		border: 1px solid ($button-base-color - #333);
+		border-width: 0 0 1px 0;
+	}
+
 	div.#{$prefix}menu-label {
 		height: 23px;
 		background: -moz-linear-gradient(top, $button-base-color + #101010, $button-base-color);
@@ -270,7 +281,6 @@
 		text-decoration: none;
 		color: $button-text-color;
 		flex-shrink: 0;
-
 
 		border: 1px solid ($button-base-color - #333);
 		border-radius: 3px;
@@ -311,7 +321,6 @@
 			width: 100%;
 		}
 		.#{$prefix}menu-label {
-
 			width: 100%;
 			border-radius: 0;
 			border-width: 0 0 1px 0;

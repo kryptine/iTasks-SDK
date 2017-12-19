@@ -13,6 +13,11 @@ withAttributes :: UIAttributes (Editor a) -> Editor a
 
 instance tune UIAttributes Editor
 
+/*
+ * Preseeds the value when an EnterInformation is given
+ */
+withPreseededValue :: a (Editor a) -> Editor a
+
 /**
 * Adds a label attribute
 * This does not create the actual label ui component, that is normally done by a layout
