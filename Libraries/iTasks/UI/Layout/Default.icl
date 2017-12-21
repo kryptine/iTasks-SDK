@@ -12,8 +12,6 @@ import StdList, StdBool, StdArray, StdTuple, Data.Tuple, Data.Functor, Data.Mayb
 import Data.List, StdString
 import qualified Data.Map as DM
 
-LABEL_WIDTH :== 100
-
 //Util:
 sequenceAllLayouts [] = idLayout
 sequenceAllLayouts list = foldl1 sequenceLayouts list 
@@ -158,58 +156,3 @@ actionsToButtonBar = sequenceAllLayouts
 	,layoutSubUIs (SelectByPath [1]) (layoutSubUIs SelectChildren actionToButton) //Transform actions to buttons 
 	]
 
-//Flatten an editor into a form
-toFormItem :: Layout
-toFormItem = layoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAttribute LABEL_ATTRIBUTE) (SelectByHasAttribute HINT_ATTRIBUTE)))
-	(sequenceAllLayouts
-		//Create the 'row' that holds the form item
-		[wrapUI UIContainer
-		,setUIAttributes ('DM'.unions [marginsAttr 2 4 2 4, directionAttr Horizontal,valignAttr AlignMiddle, sizeAttr FlexSize WrapSize])
-		//If there is a label attribute, create a label 
-		,optAddLabel
-		//If there is hint attribute, create an extra icon 
-		,optAddIcon
-		]
-	)
-where
-	optAddLabel = layoutSubUIs (SelectByContains (SelectAND (SelectByPath [0]) (SelectByHasAttribute LABEL_ATTRIBUTE))) addLabel
-	addLabel = sequenceAllLayouts
-		[insertChildUI 0 (uia UILabel (widthAttr (ExactSize LABEL_WIDTH)))
-		,copySubUIAttributes (SelectKeys ["label","optional","mode"]) [1] [0]
-		,layoutSubUIs (SelectByPath [0]) (modifyUIAttributes (SelectKeys ["label","optional","mode"]) createLabelText)
-		]
-	where
-		createLabelText attr = textAttr text
-		where	
-			text = formatDefaultLabel label +++ (if (enterOrUpdate && not optional) "*" "") +++ ":"
-			formatted = formatDefaultLabel label
-			enterOrUpdate = maybe False (\(JSONString m) -> isMember m ["enter","update"]) ('DM'.get "mode" attr) 
-			optional = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attr) 
-			label = maybe "-" (\(JSONString s) -> s) ('DM'.get "label" attr)
-
-	optAddIcon = layoutSubUIs (SelectByContains (SelectAND SelectChildren (SelectByHasAttribute HINT_ATTRIBUTE)))
-					(sequenceLayouts 
-						(layoutSubUIs (SelectAND (SelectByPath []) (SelectByNumChildren 2)) (addIcon 2)) //A label was added
-						(layoutSubUIs (SelectAND (SelectByPath []) (SelectByNumChildren 1)) (addIcon 1)) //No label was added
-					)
-
-	addIcon iconIndex = foldl1 sequenceLayouts
-		[insertChildUI iconIndex (uia UIIcon (leftMarginAttr 5))
-		,copySubUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) [iconIndex - 1] [iconIndex]
-		,layoutSubUIs (SelectByPath [iconIndex]) (modifyUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) createIconAttr)
-		]
-	where
-		createIconAttr attr = 'DM'.unions [iconClsAttr iconCls, tooltipAttr tooltip]
-		where 
-			iconCls = maybe "icon-info" (\(JSONString t) -> "icon-" +++ t) ('DM'.get HINT_TYPE_ATTRIBUTE attr)
-			tooltip = maybe "-" (\(JSONString s) -> s) ('DM'.get HINT_ATTRIBUTE attr)
-
-formatDefaultLabel :: String -> String 
-formatDefaultLabel label = {c \\ c <- [toUpper lname : addspace lnames]}
-where
-	[lname:lnames]		= fromString label
-	addspace []			= []
-	addspace [c:cs]
-		| c == '_'			= [' ':addspace cs]
-		| isUpper c			= [' ',toLower c:addspace cs]
-		| otherwise			= [c:addspace cs]
