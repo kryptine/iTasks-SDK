@@ -3,11 +3,21 @@ implementation module C2.Apps.ShipAdventure.Images
 import C2.Framework.MapEnvironment
 import C2.Apps.ShipAdventure.Core
 import C2.Apps.ShipAdventure.Types
-import Graphics.Scalable
+import qualified Graphics.Scalable as GS
+from Graphics.Scalable import <@<, class tuneImage
+from Graphics.Scalable import px, rect, normalFontDef, overlay, above, text, scale, beside, empty, collage, line, xline, yline, polygon
+from Graphics.Scalable import class toSVGColor(..), class margin(..), class *.(..), instance toSVGColor String
+from Graphics.Scalable import instance tuneImage OnClickAttr, instance tuneImage FillAttr, instance tuneImage OpacityAttr
+from Graphics.Scalable import instance tuneImage StrokeAttr, instance tuneImage DashAttr, instance tuneImage MaskAttr, instance tuneImage StrokeWidthAttr
+from Graphics.Scalable import instance margin (Span,Span), instance margin (Span,Span,Span), instance *. Span, instance zero Span
+from Graphics.Scalable import :: Span, :: FontDef, :: DashAttr(..), :: StrokeAttr(..), :: FillAttr(..), :: OnClickAttr(..), :: OpacityAttr(..), :: MaskAttr(..)
+from Graphics.Scalable import :: StrokeWidthAttr(..), :: Host(..), :: ImageOffset, :: XYAlign(..), :: XAlign(..), :: YAlign(..), :: Slash(..), :: Markers
+
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 import qualified Data.List as DL
+import Data.Maybe
 
 derive class iTask RenderMode
 
@@ -23,13 +33,13 @@ mapTitleImage idx hilite size2D=:(w, _) mapId
   = margin (px zero, px zero, px (0.5 * mapTitleFontSize))
       (overlay [(AtMiddleX, AtMiddleY)] []
                [text (mapFont mapTitleFontSize) mapId]
-               (Just (rect (px w) (px (2.0 * mapTitleFontSize)) <@< {fill = if (hiliteThisMap hilite idx) hiliteSectionBackgroundColor (toSVGColor "white")})))
+               (Host (rect (px w) (px (2.0 * mapTitleFontSize)) <@< {fill = if (hiliteThisMap hilite idx) hiliteSectionBackgroundColor (toSVGColor "white")})))
 
 // making an image from the map ...
 maps2DImage :: !(Set Coord3D) !(MapAction SectionStatus) !RenderMode !Maps2D !SectionExitLockMap !SectionHopLockMap !MySectionInventoryMap !MySectionStatusMap !SectionUsersMap !(UserActorMap ObjectType ActorStatus) !(IntMap Device) !Network !*TagSource
             -> Image (Maps2D, MapAction SectionStatus)
 maps2DImage disabledSections act mngmnt ms2d exitLocks hopLocks inventoryMap statusMap sectionUsersMap userActorMap allDevices network tsrc
-  = above [] [] ('DL'.strictTRMap ((margin (px 5.0, px zero)) o (map2DImage disabledSections act mngmnt exitLocks hopLocks inventoryMap statusMap sectionUsersMap userActorMap allDevices network)) (zip2 [0..] ms2d)) Nothing
+  = above [] [] ('DL'.strictTRMap ((margin (px 5.0, px zero)) o (map2DImage disabledSections act mngmnt exitLocks hopLocks inventoryMap statusMap sectionUsersMap userActorMap allDevices network)) (zip2 [0..] ms2d)) NoHost
 
 map2DImage :: !(Set Coord3D) !(MapAction SectionStatus) !RenderMode !SectionExitLockMap !SectionHopLockMap !MySectionInventoryMap !MySectionStatusMap !SectionUsersMap !(UserActorMap ObjectType ActorStatus) !(IntMap Device) !Network !(!Maps2DIndex, !Map2D)
            -> Image (Maps2D, MapAction SectionStatus)
@@ -37,15 +47,15 @@ map2DImage disabledSections act mngmnt exitLocks hopLocks inventoryMap statusMap
   #! titleImg    = mapTitleImage floorIdx (hilite act) size2D (toString mapId)
   #! sectionsImg = sectionsImage disabledSections act mngmnt exitLocks hopLocks inventoryMap statusMap sectionUsersMap userActorMap allDevices network doors2D size2D floorIdx map2D
   #! lowerImg    = mask sectionsImg size2D shape2D
-  = above [] [] [titleImg, lowerImg] Nothing
+  = above [] [] [titleImg, lowerImg] NoHost
 
 mask :: !(Image m) !Size2D !(Maybe Shape2D) -> Image m
 mask image _ Nothing
   = image
 mask image (w,h) (Just shape)
   #! shipshape = polygon Nothing [(px x, px y) \\ (x, y) <- shape]
-  #! maskshape = overlay [] [] [shipshape <@< {fill = toSVGColor "white"} <@< {stroke = toSVGColor "white"}] (Just (rect (px w) (px h)))
-  = overlay [] [] [image, shipshape <@< {fill = toSVGColor "none"} <@< {stroke = toSVGColor "black"}] Nothing <@< {MaskAttr | mask = maskshape}
+  #! maskshape = overlay [] [] [shipshape <@< {fill = toSVGColor "white"} <@< {stroke = toSVGColor "white"}] (Host (rect (px w) (px h)))
+  = overlay [] [] [image, shipshape <@< {fill = toSVGColor "none"} <@< {stroke = toSVGColor "black"}] NoHost <@< {MaskAttr | mask = maskshape}
 
 
 sectionsImage :: !(Set Coord3D) !(MapAction SectionStatus) !RenderMode !SectionExitLockMap !SectionHopLockMap !MySectionInventoryMap !MySectionStatusMap !SectionUsersMap !(UserActorMap ObjectType ActorStatus) !(IntMap Device) !Network !Size2D !Size2D !Maps2DIndex ![[Section]]
@@ -76,7 +86,7 @@ sectionsImage` mkSectionImage floorIdx (mwidth, mheight) sections=:[cols : _]
             [  mkSectionImage dx dy cell floorIdx rowIdx colIdx
             \\ (rowIdx, row) <- zip2 row_indices sections, (colIdx, cell) <- zip2 col_indices row
             ]
-            (Just (empty (px mwidth) (px mheight)))
+            (Host (empty (px mwidth) (px mheight)))
 sectionsImage` _ _ _ _ = text (mapFont mapTitleFontSize) "No sections defined"
 
 sectionImage :: !(Set Coord3D) !(Maybe EditHilite) !RenderMode !Bool !SectionExitLockMap !SectionHopLockMap !MyInventory !SectionStatus !MyActors !(IntMap Device) !Network !Size2D !Size2D !Section !Int !Int !Int
@@ -90,13 +100,13 @@ sectionImage disabledSections hilite mngmnt zoomed exitLocks hopLocks inventoryM
             !(Image (Maps2D, MapAction SectionStatus)) !(Image (Maps2D, MapAction SectionStatus)) !(Image (Maps2D, MapAction SectionStatus))
          -> Image (Maps2D, MapAction SectionStatus)
   mkRest hilite mngmnt exitLocks statusMap actorMap (swidth, sheight) {Section | borders={Borders | n, e, s, w},hops} canCloseDoors c3d inventory devices multiplier inventoryBadges deviceBadges cableBadges upDownExits hdoor vdoor hwall vwall
-    #! actorBadges     = above (repeat AtMiddleX) [] ('DL'.strictTRMap (scale multiplier multiplier o mkActorBadge) actorMap) Nothing
+    #! actorBadges     = above (repeat AtMiddleX) [] ('DL'.strictTRMap (scale multiplier multiplier o mkActorBadge) actorMap) NoHost
     #! statusBadges    = above (repeat AtLeft) []
                            [ mkStatusBadges statusMap c3d mngmnt multiplier [HasSmallFire, HasMediumFire, HasBigFire]
                            , mkStatusBadges statusMap c3d mngmnt multiplier [HasSmoke]
                            , mkStatusBadges statusMap c3d mngmnt multiplier [HasSomeWater, IsFlooded]
                            ]
-                           Nothing
+                           NoHost
     #! pxswidth        = px swidth
     #! pxsheight       = px sheight
     #! host            = rect pxswidth pxsheight <@< {onclick     = onClick (FocusOnSection c3d), local = False}
@@ -108,7 +118,7 @@ sectionImage disabledSections hilite mngmnt zoomed exitLocks hopLocks inventoryM
                            (overlay (repeat (AtMiddleX, AtMiddleY)) [] [ host
                                                                        , line Nothing Slash pxswidth pxsheight <@< {stroke = toSVGColor "red" }
                                                                        , line Nothing Backslash pxswidth pxsheight <@< {stroke = toSVGColor "red" }
-                                                                       ] Nothing)
+                                                                       ] NoHost)
                            host
     = overlay [ (AtMiddleX, AtTop), (AtRight, AtMiddleY), (AtMiddleX, AtBottom), (AtLeft, AtMiddleY) // Walls
               , (AtLeft, AtTop), (AtRight, AtTop), (AtLeft, AtBottom), (AtRight, AtBottom) // Badges
@@ -117,23 +127,23 @@ sectionImage disabledSections hilite mngmnt zoomed exitLocks hopLocks inventoryM
               , (px 3.0, px 3.0), (px -3.0, px 3.0), (px 3.0, px -3.0), (px -6.0, px -3.0) // Badges
               ]
               [ case n of Wall = hwall
-                          Door = above (repeat AtMiddleX) [] [hwall, doorClick canCloseDoors c3d N (hdoor <@< doorFill exitLocks c3d N)] Nothing
+                          Door = above (repeat AtMiddleX) [] [hwall, doorClick canCloseDoors c3d N (hdoor <@< doorFill exitLocks c3d N)] NoHost
                           Open = empty zero zero
               , case e of Wall = vwall
-                          Door = beside (repeat AtMiddleY) [] [doorClick canCloseDoors c3d E (vdoor <@< doorFill exitLocks c3d E), vwall] Nothing
+                          Door = beside (repeat AtMiddleY) [] [doorClick canCloseDoors c3d E (vdoor <@< doorFill exitLocks c3d E), vwall] NoHost
                           Open = empty zero zero
               , case s of Wall = hwall
-                          Door = above (repeat AtMiddleX) [] [doorClick canCloseDoors c3d S (hdoor <@< doorFill exitLocks c3d S), hwall] Nothing
+                          Door = above (repeat AtMiddleX) [] [doorClick canCloseDoors c3d S (hdoor <@< doorFill exitLocks c3d S), hwall] NoHost
                           Open = empty zero zero
               , case w of Wall = vwall
-                          Door = beside (repeat AtMiddleY) [] [vwall, doorClick canCloseDoors c3d W (vdoor <@< doorFill exitLocks c3d W)] Nothing
+                          Door = beside (repeat AtMiddleY) [] [vwall, doorClick canCloseDoors c3d W (vdoor <@< doorFill exitLocks c3d W)] NoHost
                           Open = empty zero zero
               , statusBadges, actorBadges, inventoryBadges, upDownExits
               ]
-              (Just host)
+              (Host host)
     where
     mkStatusBadges :: !SectionStatus !Coord3D !RenderMode !Real ![SectionStatus] -> Image (a, MapAction SectionStatus)
-    mkStatusBadges statusMap c3d mngmnt multiplier xs = beside (repeat AtMiddleY) [] ('DL'.reverseTR ('DL'.strictFoldl (mkStatusBadge statusMap c3d mngmnt multiplier) [] xs)) Nothing
+    mkStatusBadges statusMap c3d mngmnt multiplier xs = beside (repeat AtMiddleY) [] ('DL'.reverseTR ('DL'.strictFoldl (mkStatusBadge statusMap c3d mngmnt multiplier) [] xs)) NoHost
 
     doorFill :: !SectionExitLockMap !Coord3D !Dir -> FillAttr a
     doorFill exitLocks c3d dir
@@ -158,14 +168,14 @@ sectionImage` f mngmnt zoomed hopLocks inventoryMap allDevices network (doorw, d
   #! deviceBadges    = 'DL'.strictTRMap (drawDevice c3d multiplier) devices
   #! allBadges       = inventoryBadges ++ deviceBadges
   #! inventoryBadges = if (length allBadges > 0)
-                         (beside (repeat AtMiddleY) [] allBadges Nothing)
+                         (beside (repeat AtMiddleY) [] allBadges NoHost)
                          (empty zero zero)
   #! cables          = cablesForSection c3d network
   #! cableBadges     = if (length cables > 0)
-                         (above (repeat AtMiddleX) [] ('DL'.strictTRMap mkCable cables) Nothing)
+                         (above (repeat AtMiddleX) [] ('DL'.strictTRMap mkCable cables) NoHost)
                          (empty zero zero)
   #! canCloseDoors   = mngmnt === KitchenMode || mngmnt === DOffMode
-  #! upDownExits     = beside [] [(px -3.0,zero)] ('DL'.strictTRMap (drawHop c3d hopLocks multiplier) hops) Nothing
+  #! upDownExits     = beside [] [(px -3.0,zero)] ('DL'.strictTRMap (drawHop c3d hopLocks multiplier) hops) NoHost
   #! hdoor           = rect (px doorw) (px doord)
   #! vdoor           = rect (px doord) (px doorw)
   #! hwall           = xline Nothing (px swidth)
@@ -184,7 +194,7 @@ sectionImage` f mngmnt zoomed hopLocks inventoryMap allDevices network (doorw, d
   mkCable :: !Cable -> Image a
   mkCable cable
     #! linePiece = xline Nothing (px 4.0)
-    = beside (repeat AtMiddleY) [] [linePiece, text (mapFont mapTitleFontSize) (cable.Cable.description % (0, 1)), linePiece] Nothing
+    = beside (repeat AtMiddleY) [] [linePiece, text (mapFont mapTitleFontSize) (cable.Cable.description % (0, 1)), linePiece] NoHost
 
 mkUpDown :: !Coord3D !Coord3D !SectionHopLockMap -> Image a
 mkUpDown cur=:(curFloor, _) next=:(nextFloor, _) hopLocks
@@ -192,7 +202,7 @@ mkUpDown cur=:(curFloor, _) next=:(nextFloor, _) hopLocks
                 Just xs -> 'DL'.elem next xs
                 _       -> False
   #! goesUp = curFloor > nextFloor
-  = beside (repeat AtBottom) [] ('DL'.strictTRMap (\n -> rect (px 3.0) ((px 3.0) *. n)) (if goesUp [1,2,3] [3,2,1])) Nothing <@< { opacity = if l 0.3 1.0 }
+  = beside (repeat AtBottom) [] ('DL'.strictTRMap (\n -> rect (px 3.0) ((px 3.0) *. n)) (if goesUp [1,2,3] [3,2,1])) NoHost <@< { opacity = if l 0.3 1.0 }
 
 mkStatusBadge :: !SectionStatus Coord3D !RenderMode !Real ![Image (a, MapAction SectionStatus)] !SectionStatus 
               -> [Image (a, MapAction SectionStatus)]
@@ -221,9 +231,9 @@ mkActorBadge {actorStatus = {occupied}, userName, carrying}
   #! actorBadge  = mkActorBadgeBackground occupied
   #! userStr     = toString userName
   #! userInitial = text myFontDef (userStr % (0,0)) <@< { fill = toSVGColor "white" }
-  #! actorBadge  = overlay [(AtMiddleX, AtMiddleY)] [] [userInitial] (Just actorBadge)
+  #! actorBadge  = overlay [(AtMiddleX, AtMiddleY)] [] [userInitial] (Host actorBadge)
   #! inventory   = 'DL'.strictTRMap (\i -> mkInventoryBadge False True (toString i % (0, 1))) carrying
-  = above (repeat AtMiddleX) [] [actorBadge : inventory] Nothing
+  = above (repeat AtMiddleX) [] [actorBadge : inventory] NoHost
 
 mkActorBadgeBackground :: !Availability -> Image a
 mkActorBadgeBackground occupied = medBadgeImage <@< { fill = toSVGColor (case occupied of
@@ -234,7 +244,7 @@ mkActorBadgeBackground occupied = medBadgeImage <@< { fill = toSVGColor (case oc
 mkInventoryBadge :: !Bool !Bool !String -> Image b
 mkInventoryBadge disabled portable str
   #! txt = text myFontDef str <@< { fill = toSVGColor "white" }
-  = overlay [(AtMiddleX, AtMiddleY)] [] [txt] (Just (mkInventoryBadgeBackground disabled portable))
+  = overlay [(AtMiddleX, AtMiddleY)] [] [txt] (Host (mkInventoryBadgeBackground disabled portable))
 
 mkInventoryBadgeBackground :: !Bool !Bool -> Image b
 mkInventoryBadgeBackground disabled portable
@@ -288,7 +298,7 @@ editLayoutImage act allDevices network inventoryMap idx {Map2D | shape2D, doors2
   #! titleImg  = mapTitleImage idx (hilite act) size2D (hint mapId) <@< {onclick = onClick (FocusOnMap idx), local = False}
   #! editImg   = editSectionsImage (hilite act) allDevices network inventoryMap idx doors2D size2D map2D
   #! bottomImg = mask editImg size2D shape2D
-  = above [] [] [titleImg, bottomImg] Nothing
+  = above [] [] [titleImg, bottomImg] NoHost
 
 hint msg = msg +++ " (click in this area to edit this map)"
 
@@ -331,27 +341,27 @@ editSectionImage hilite mngmnt zoomed allDevices network inventoryMap doorDims s
     #! wallyE = vwally <@< {onclick = \_ -> rotateWall floorIdx c E, local = False}
     #! wallyW = vwally <@< {onclick = \_ -> rotateWall floorIdx c W, local = False}
     #! wallyS = hwally <@< {onclick = \_ -> rotateWall floorIdx c S, local = False}
-    = overlay [ (AtMiddleX, AtBottom), (AtRight, AtMiddleY), (AtMiddleX, AtTop), (AtLeft, AtMiddleY)
-              , (AtLeft, AtBottom), (AtRight, AtBottom), (AtRight, AtBottom)
+    = 'GS'.overlay [ ('GS'.AtMiddleX, 'GS'.AtBottom), ('GS'.AtRight, 'GS'.AtMiddleY), ('GS'.AtMiddleX, 'GS'.AtTop), ('GS'.AtLeft, 'GS'.AtMiddleY)
+              , ('GS'.AtLeft, 'GS'.AtBottom), ('GS'.AtRight, 'GS'.AtBottom), ('GS'.AtRight, 'GS'.AtBottom)
               ]
-              [ (px 0.0, px 0.0), (px 0.0, px 0.0), (px 0.0, px 0.0), (px 0.0, px 0.0) // Walls
-              , (px 3.0, px -3.0), (px -3.0, px -3.0), (px -6.0, px -3.0) // Badges, cables
+              [ ('GS'.px 0.0, 'GS'.px 0.0), ('GS'.px 0.0, 'GS'.px 0.0), ('GS'.px 0.0, 'GS'.px 0.0), ('GS'.px 0.0, 'GS'.px 0.0) // Walls
+              , ('GS'.px 3.0, 'GS'.px -3.0), ('GS'.px -3.0, 'GS'.px -3.0), ('GS'.px -6.0, 'GS'.px -3.0) // Badges, cables
               ]
-              [ case s of Wall = overlay (repeat (AtMiddleX, AtBottom)) [] [       hwall, wallyS] Nothing
-                          Door = overlay (repeat (AtMiddleX, AtBottom)) [] [hdoor, hwall, wallyS] Nothing
+              [ case s of Wall = 'GS'.overlay (repeat ('GS'.AtMiddleX, 'GS'.AtBottom)) [] [       hwall, wallyS] NoHost
+                          Door = 'GS'.overlay (repeat ('GS'.AtMiddleX, 'GS'.AtBottom)) [] [hdoor, hwall, wallyS] NoHost
                           Open = wallyS
-              , case e of Wall = overlay (repeat (AtRight, AtMiddleY))  [] [       vwall, wallyE] Nothing
-                          Door = overlay (repeat (AtRight, AtMiddleY))  [] [vdoor, vwall, wallyE] Nothing
+              , case e of Wall = 'GS'.overlay (repeat ('GS'.AtRight, 'GS'.AtMiddleY))  [] [       vwall, wallyE] NoHost
+                          Door = 'GS'.overlay (repeat ('GS'.AtRight, 'GS'.AtMiddleY))  [] [vdoor, vwall, wallyE] NoHost
                           Open = wallyE
-              , case n of Wall = overlay (repeat (AtMiddleX, AtTop))    [] [hwall,        wallyN] Nothing
-                          Door = overlay (repeat (AtMiddleX, AtTop))    [] [hwall, hdoor, wallyN] Nothing
+              , case n of Wall = 'GS'.overlay (repeat ('GS'.AtMiddleX, 'GS'.AtTop))    [] [hwall,        wallyN] NoHost
+                          Door = 'GS'.overlay (repeat ('GS'.AtMiddleX, 'GS'.AtTop))    [] [hwall, hdoor, wallyN] NoHost
                           Open = wallyN
-              , case w of Wall = overlay (repeat (AtLeft, AtMiddleY))   [] [vwall,        wallyW] Nothing
-                          Door = overlay (repeat (AtLeft, AtMiddleY))   [] [vwall, vdoor, wallyW] Nothing
+              , case w of Wall = 'GS'.overlay (repeat ('GS'.AtLeft, 'GS'.AtMiddleY))   [] [vwall,        wallyW] NoHost
+                          Door = 'GS'.overlay (repeat ('GS'.AtLeft, 'GS'.AtMiddleY))   [] [vwall, vdoor, wallyW] NoHost
                           Open = wallyW
               , inventoryBadges, cableBadges, upDownExits
               ]
-              (Just (rect (px width) (px height) <@< {dash    = [5, 2]} <@< {stroke = editSectionDashColor}
+              (Host ('GS'.rect ('GS'.px width) ('GS'.px height) <@< {dash    = [5, 2]} <@< {stroke = editSectionDashColor}
                                                  <@< {fill    = if (hiliteThisSection hilite c3d) hiliteSectionBackgroundColor editSectionBackgroundColor}
                                                  <@< {onclick = onClick (FocusOnSection (floorIdx, c)), local = False}
               )     )

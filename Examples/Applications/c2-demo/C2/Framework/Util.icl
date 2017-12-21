@@ -1,8 +1,9 @@
 implementation module C2.Framework.Util
 
-import iTasks, Text
+import iTasks
+import iTasks.Extensions.DateTime
 import C2.Framework.Entity
-import Math.Geometry
+import Text, Math.Geometry
 
 derive class iTask Location
 
@@ -35,15 +36,15 @@ editSharedListGeneric options list
 	= doOrClose (forever (enterChoiceWithShared "Choose an item" 
     	[ChooseFromGrid snd] 
         (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) list)
-  	>>* [OnAction (Action desc []) 				(always (addItem t))
+  	>>* [OnAction (Action desc) 				(always (addItem t))
   		\\ (ESLAdd (desc,t)) <- options] 	++
-      	[OnAction (Action desc []) 				(hasValue (editItem t))
+      	[OnAction (Action desc) 				(hasValue (editItem t))
       	\\ (ESLUpdate (desc,t)) <- options] ++
-      	[OnAction (Action desc [])    			(hasValue (viewItem t))
+      	[OnAction (Action desc)    			(hasValue (viewItem t))
       	\\ (ESLView (desc,t)) <- options] 	++
-      	[OnAction (Action "Delete" []) 			(hasValue deleteItem)
+      	[OnAction (Action "Delete") 			(hasValue deleteItem)
       	\\ ESLDel <- options]          		++
-      	[OnAction (Action "Clear All" [])  		(always clearAll)
+      	[OnAction (Action "Clear All")  		(always clearAll)
       	\\ ESLClearAll <- options] )) @! ()
                   
 where addItem  tenter  = tenter >>= \item -> upd (\us -> us ++ [item]) list @! ()
@@ -70,12 +71,12 @@ where f []                 = []
                | otherwise = [a : f as]
 
 doTaskPeriodically :: Int (Task a) -> Task a | iTask a
-doTaskPeriodically period task = forever (waitForTimer {Time | hour = 0, min = 0, sec = period} >>| task)
+doTaskPeriodically period task = forever (waitForTimer period >>| task)
 
 doTaskPeriodicallyUntilPause :: Int (Task a) -> Task () | iTask a
 doTaskPeriodicallyUntilPause period task
   =   doTaskPeriodically period task
-  >>* [OnAction (Action "Pause simulation" []) (always (return ()))]
+  >>* [OnAction (Action "Pause simulation") (always (return ()))]
 
 //doLoggedIn :: (User ->  Task a)  -> Task a| iTask a
 //doLoggedIn t = enterInformation ("Log in","Enter credentials") []
@@ -114,7 +115,7 @@ doTasksSequentially []     = return ()
 doTasksSequentially [t:ts] = t >>| doTasksSequentially ts 
 
 allTabs :: [Task a] -> (Task [a]) | iTask a
-allTabs ts = allTasks ts  	<<@ ArrangeWithTabs
+allTabs ts = allTasks ts  	<<@ ArrangeWithTabs True
 
 allSideBar :: Int UISide Int [Task a] -> (Task [a]) | iTask a
 allSideBar b place size ts
@@ -196,7 +197,7 @@ ppLon l
   | l` < 0.0  = toString (roundToNDec 5 (~l`)) +++ "W"
   | otherwise = toString (roundToNDec 5 l`) +++ "E"
 
-roundToNDec :: !Int !Real -> !Real
+roundToNDec :: !Int !Real -> Real
 roundToNDec n r
   #! n` = toReal (10 ^ n)
   = toReal (toInt (r * n`)) / n`

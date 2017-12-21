@@ -2,14 +2,14 @@ implementation module C2.Apps.ShipAdventure.Types
  
 //import iTasks
  
-import iTasks._Framework.Tonic
-import iTasks.API.Extensions.Admin.TonicAdmin
-import iTasks.API.Extensions.SVG.SVGEditor
-import Graphics.Scalable
+import iTasks.Internal.Tonic
+import iTasks.Extensions.Admin.TonicAdmin
+import iTasks.Extensions.SVG.SVGEditor
+//import Graphics.Scalable
 import qualified Data.List as DL
 from Data.Func import mapSt
 import StdArray
-import Data.Data
+import Data.Data, Data.Either
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.Map as DM
 import qualified Data.Set as DS
@@ -24,6 +24,10 @@ import C2.Apps.ShipAdventure.Editor
 derive gLexOrd CableType, Capability
 derive class iTask ObjectType, ActorStatus, Availability, ActorHealth, ActorEnergy, DeviceType, SectionStatus
 derive class iTask Cable, Priority, Network, Device, CableType, DeviceKind, CommandAim, Set, Capability, CapabilityExpr
+
+derive JSEncode Map2D, Coord2D, Map, IntMap, Dir, User, Maybe, Section, Borders, Border, MapAction, Object, Actor
+derive JSEncode ObjectType, ActorStatus, Availability, ActorHealth, ActorEnergy, DeviceType, SectionStatus
+derive JSEncode Cable, Priority, Network, Device, CableType, DeviceKind, CommandAim, Set, Capability, CapabilityExpr
 
 // std overloading instances
 
@@ -286,7 +290,7 @@ deviceIdInNetworkSectionShare = sdsLens "deviceIdInNetworkSectionShare" (const (
 
 devicesInSectionShare :: RWShared Coord3D [Device] [Device]
 devicesInSectionShare
-  = sdsSequence "devicesInSectionShare" mkP2 mkR (SDSWrite write1) (SDSWrite write2) deviceIdInNetworkSectionShare myDevices
+  = sdsSequence "devicesInSectionShare" id mkP2 (\_ _ -> Right mkR) (SDSWrite write1) (SDSWrite write2) deviceIdInNetworkSectionShare myDevices
   where
   mkP2 :: Coord3D [DeviceId] -> ()
   mkP2 _ devIds = () // fromMaybe [] ('DM'.get c3d network.devices)
@@ -379,7 +383,7 @@ inventoryInSectionShare = mapLens "inventoryInSectionShare" myInventoryMap (Just
 
 allAvailableActors :: ReadOnlyShared [(!Coord3D, !MyActor)]
 allAvailableActors
-  = toReadOnly (sdsProject (SDSLensRead readActors) SDSNoWrite (sectionUsersShare |*| myUserActorMap))
+  = /*toReadOnly */ (sdsProject (SDSLensRead readActors) SDSNoWrite (sectionUsersShare |*| myUserActorMap))
   where
   readActors :: !(SectionUsersMap, UserActorMap ObjectType ActorStatus) -> MaybeError TaskException [(!Coord3D, !MyActor)]
   readActors (sectionUsersMap, userActorMap)
@@ -390,7 +394,7 @@ allAvailableActors
 
 allActiveAlarms :: ReadOnlyShared [(!Coord3D, !SectionStatus)]
 allActiveAlarms
-  = toReadOnly (sdsProject (SDSLensRead readAlarms) SDSNoWrite myStatusMap)
+  = /*toReadOnly */ (sdsProject (SDSLensRead readAlarms) SDSNoWrite myStatusMap)
   where
   readAlarms :: !MySectionStatusMap -> MaybeError TaskException [(!Coord3D, !SectionStatus)]
   readAlarms statusMap = Ok [ (number, status) \\ (number, status) <- 'DM'.toList statusMap
@@ -470,13 +474,6 @@ hasWater HasSomeWater = True
 hasWater IsFlooded    = True
 hasWater _            = False
 
-
-//// should be in the library somewhere
-
-mkTable :: ![String] ![a] -> Table | gText{|*|} a
-mkTable	headers a = Table headers (map row a) Nothing
-where
-	row x =  [Text cell \\ cell <- gText{|*|} AsRow (Just x)]
 
 isHigh :: !SectionStatus -> Bool
 isHigh status = hasFire status || hasSmoke status || hasWater status

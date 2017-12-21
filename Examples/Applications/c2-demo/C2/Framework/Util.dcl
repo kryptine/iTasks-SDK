@@ -48,7 +48,7 @@ showInfo :: String -> Task String
 
 :: ChatMessage = {sender   :: String
                  ,when     :: DateTime
-                 ,message  :: Note
+                 ,message  :: String
                  }
 derive class iTask ChatMessage
 

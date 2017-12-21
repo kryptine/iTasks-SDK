@@ -1,10 +1,11 @@
 implementation module C2.Apps.ShipAdventure.Editor
 
 import iTasks
-import iTasks.API.Extensions.SVG.SVGEditor
-import iTasks._Framework.IWorld
+import iTasks.Extensions.SVG.SVGEditor
+import iTasks.Extensions.JSONFile
+import iTasks.Internal.IWorld
 import iTasks.UI.Layout, iTasks.UI.Definition
-import System.Directory, System.File
+import System.Directory, System.File, System.FilePath
 import Text
 import StdArray, StdFile
 import StdMisc
@@ -14,6 +15,11 @@ import C2.Apps.ShipAdventure.Images
 import qualified Data.Map as DM
 import qualified Data.IntMap.Strict as DIS
 import qualified Data.Set as DS
+from Graphics.Scalable import normalFontDef, above, class margin(..), instance margin (Span,Span), px
+from Graphics.Scalable import :: ImageOffset, :: Host(..)
+
+derive JSEncode Map2D, Section, Maybe, Coord2D, Borders, Border, IntMap, Device, DeviceType, DeviceKind, CableType, Map
+derive JSEncode Network, Cable, Object, ObjectType, MapAction, SectionStatus, Dir
 
 shipEditorTabs		:: Task ()
 shipEditorTabs		= allTasks [ viewLayout          <<@ Title "View Ship"
@@ -23,7 +29,7 @@ shipEditorTabs		= allTasks [ viewLayout          <<@ Title "View Ship"
                                , manageCables        <<@ Title "Manage Cables"
                                , exportShip          <<@ Title "Export"
                                , importShip          <<@ Title "Import"
-                               ] <<@ ArrangeWithTabs @! ()
+                               ] <<@ ArrangeWithTabs False @! ()
 
 exportShip :: Task ()
 exportShip
@@ -37,8 +43,8 @@ importShip :: Task ()
 importShip
   =                getMapNames
   >>= \mapNames -> enterChoice "Select file" [] mapNames
-  >>*              [ OnAction (Action "Import" []) (hasValue doImport)
-                   , OnAction (Action "Refresh list" []) (always importShip)
+  >>*              [ OnAction (Action "Import") (hasValue doImport)
+                   , OnAction (Action "Refresh list") (always importShip)
                    ]
   where
   doImport :: !String -> Task ()
@@ -49,48 +55,38 @@ importShip
     >>|          importShip @! ()
 
 getMap :: !String -> Task (!(!(!(!MySectionInventoryMap, !Network), !IntMap Cable), !IntMap Device), !Maps2D)
-getMap mapName = mkInstantTask (const (getMap` mapName))
+getMap mapName = get applicationDirectory >>- \curDir -> accWorldError (getMap` mapName curDir) id
   where
-  getMap` :: !String !*IWorld -> *(!MaybeError (Dynamic, String) (!(!(!(!MySectionInventoryMap, !Network), !IntMap Cable), !IntMap Device), !Maps2D), !*IWorld)
-  getMap` mapName iworld
-    # (dir, iworld)  = getCurrDir iworld
-    # (mjson, world) = readFile (dir </> (mapName +++ ".map")) iworld.world
-    # iworld         = {iworld & world = world}
+  getMap` :: !String !String !*World -> *(!MaybeError String (!(!(!(!MySectionInventoryMap, !Network), !IntMap Cable), !IntMap Device), !Maps2D), !*World)
+  getMap` mapName dir world
+    # (mjson, world) = readFile (dir </> (mapName +++ ".map")) world
     = case mjson of
         Ok json   -> case fromJSON (fromString json) of
-                       Just gg  -> (Ok gg, iworld)
-                       _        -> err ("Failed to deserialize JSON: " +++ json) iworld
-        Error msg -> err (toString msg) iworld
+                       Just gg  -> (Ok gg, world)
+                       _        -> err ("Failed to deserialize JSON: " +++ json) world
+        Error msg -> err (toString msg) world
     where
-    err msg iworld
+    err msg world
       # msg = "Failed to load map file " +++ mapName
-      = (Error (dynamic msg, msg), iworld)
+      = (Error msg, world)
 
 getMapNames :: Task [String]
-getMapNames = mkInstantTask (const getMapNames)
+getMapNames = get applicationDirectory >>- \curDir -> accWorldError (getMapNames curDir) id
   where
-  getMapNames :: !*IWorld -> *(!MaybeError (Dynamic, String) [String], !*IWorld)
-  getMapNames iworld
-    # (dir, iworld) = getCurrDir iworld
-    # (mfs, world)  = readDirectory dir iworld.world
-    # iworld        = {iworld & world = world}
+  getMapNames :: !String !*World -> *(!MaybeError String [String], !*World)
+  getMapNames dir world
+    # (mfs, world)  = readDirectory dir world
     = case mfs of
         Ok fs
-          = (Ok (map dropExtension (filter (\x -> noDots x && onlyMaps x) fs)), iworld)
+          = (Ok (map dropExtension (filter (\x -> noDots x && onlyMaps x) fs)), world)
         Error _
           # msg = "Failed to read Tonic directory"
-          = (Error (dynamic msg, msg), iworld)
+          = (Error  msg, world)
   onlyMaps :: !String -> Bool
   onlyMaps str = endsWith ".map" str
 
   noDots :: !String -> Bool
   noDots str = not (str.[0] == '.')
-
-getCurrDir :: !*IWorld -> *(!String, !*IWorld)
-getCurrDir iworld
-  # (server, iworld) = iworld!server
-  = (server.paths.appDirectory, iworld)
-
 
 mapFont p			= normalFontDef "Verdana" p
 mapTitleFontSize    =: 10.0
@@ -197,7 +193,7 @@ where
 	imageEditor = fromSVGEditor
 		{ initView       = fst
 		, renderImage    = \((_, act), ((inventoryMap, network), allDevices)) (ms2d, _) _ -> 
-			above [] [] [margin (px 5.0, px zero) (editLayoutImage act allDevices network inventoryMap idx m2d) \\ m2d <- ms2d & idx <- [0..]] Nothing
+			above [] [] [margin (px 5.0, px zero) (editLayoutImage act allDevices network inventoryMap idx m2d) \\ m2d <- ms2d & idx <- [0..]] NoHost
 		, updView        = \m v -> fst m
 		, updModel       = \(_,data) newClSt -> (newClSt,data)
 		}
@@ -209,12 +205,14 @@ editLayout
              , updateSharedInformation (Title "Edit map") [UpdateAs toMapActionForm fromMapActionForm] sharedEditShip @! ()
              , (watch maps2DShare
                -&&- enterChoiceWithShared (Title "Quick borders") [] (mapRead (\ship -> [mapId \\ {Map2D | mapId} <- ship]) maps2DShare)
-               >>* [ OnAction (Action "Add outer borders"    []) (hasValue (uncurry (editOuterBorders Wall)))
-                   , OnAction (Action "Remove outer borders" []) (hasValue (uncurry (editOuterBorders Open)))
+               >>* [ OnAction (Action "Add outer borders"    ) (hasValue (uncurry (editOuterBorders Wall)))
+                   , OnAction (Action "Remove outer borders" ) (hasValue (uncurry (editOuterBorders Open)))
                    ]
                ) @! ()
              ] <<@ ApplyLayout layout @! ()
 where
+	layout = idLayout
+/*
 	layout = sequenceLayouts
 		[ insertSubAt [1] (ui UIContainer) // Group the 'tool' tasks
 		, moveSubAt[2] [1,0]
@@ -222,6 +220,7 @@ where
 		, moveSubAt[2] [1,2]
 		, arrangeWithSideBar 1 LeftSide 350 False //Move the 'tool' tasks to the side
 		]
+*/
 
 editOuterBorders :: !Border !Maps2D !MapID -> Task ()
 editOuterBorders border ship mapID = case getMap2DIndex mapID ship of
@@ -280,6 +279,8 @@ editSectionContents
            _                         = viewInformation (Title "Please select section") [] "Please select section" @! ()
         )
 
+  layout = idLayout
+/*
   layout = sequenceLayouts
 		[insertSubAt [1] (uia UIContainer (directionAttr Horizontal))
 		,moveSubAt [2] [1,0]
@@ -287,6 +288,7 @@ editSectionContents
 		,moveSubAt [2] [1,2]
 		,arrangeWithSideBar 1 BottomSide 250 False
 		]
+*/
 
   mkDesc :: !Int !Coord2D !String -> String
   mkDesc mid c2d str = str +++ " in section " +++ toString c2d +++ " on deck " +++ toString mid
@@ -310,13 +312,13 @@ editSectionContents
   , doorDepth   :: !Real // the depth of drawn doors
   }
 :: EditForm =
-  { map2DIndex  :: !Hidden Maps2DIndex     // the index position of this map within Maps2D
-  , mapId       :: !Display MapID          // the identification of the map containing this section
+  { map2DIndex  :: !Maps2DIndex            // the index position of this map within Maps2D
+  , mapId       :: !MapID                  // the identification of the map containing this section
   , newMapId    :: !MapID                  // new identification of this map
-  , section     :: !Display Coord2D        // the unique identification of the section
+  , section     :: !Coord2D                // the unique identification of the section
   , sectionName :: !Maybe String           // descriptive name, need not be unique
-  , up          :: !VisualizationHint Bool // you can go down (except bottom floor)
-  , down        :: !VisualizationHint Bool // you can go up   (except top floor)
+  , up          :: !Bool                   // you can go down (except bottom floor)
+  , down        :: !Bool                   // you can go up   (except top floor)
   , outline     :: !Maybe Shape2D
   }
 derive class iTask EditMaps, EditForm
@@ -427,35 +429,35 @@ toMapActionForm (maps, _) = toMapActionForm (maps, FocusOnSection (0, zero))
 editFormFromSection maps (idx, c2d) {Section | sectionName, hops}
   # mapID       = fromJust (getMapID idx maps)
   # bottomFloor = length maps - 1
-  = { EditForm | map2DIndex  = Hidden idx
-               , mapId       = Display mapID
+  = { EditForm | map2DIndex  = idx
+               , mapId       = mapID
                , newMapId    = mapID
-               , section     = Display c2d
+               , section     = c2d
                , sectionName = if (sectionName == "") Nothing (Just sectionName)
-               , up          = if (idx == 0)           VHHidden VHEditable (isMember (idx-1, c2d) hops)
-               , down        = if (idx == bottomFloor) VHHidden VHEditable (isMember (idx+1, c2d) hops)
+               , up          = (isMember (idx-1, c2d) hops)
+               , down        = (isMember (idx+1, c2d) hops)
                , outline     = Nothing
                }
 
-defaultEditForm = { EditForm | map2DIndex  = Hidden 0
-                             , mapId       = Display "ERROR"
+defaultEditForm = { EditForm | map2DIndex  = 0
+                             , mapId       = "ERROR"
                              , newMapId    = "ERROR"
-                             , section     = Display {col = 0, row = 0}
+                             , section     = {col = 0, row = 0}
                              , sectionName = Nothing
-                             , up          = VHHidden False
-                             , down        = VHHidden False
+                             , up          = False
+                             , down        = False
                              , outline     = Nothing
                              }
 
 
 fromMapActionForm :: !(!Maps2D, !MapAction SectionStatus) !EditForm -> (!Maps2D, !MapAction SectionStatus)
 //fromMapActionForm m v = m
-fromMapActionForm (maps,edit) sectionE=:{EditForm | map2DIndex = Hidden idx,section=Display c,newMapId,up,down}
+fromMapActionForm (maps,edit) sectionE=:{EditForm | map2DIndex = idx,section=c,newMapId,up,down}
   = (updMap2D idx ((updateMapID newMapId) o (updSection c (updateSection (idx,c) sectionE))) (updHops (idx,c) up down maps),updateSelection (idx,c) edit)
 where
-	new_hops	= if (fromVisualizationHint up) [(idx-1,c)] [] ++ if (fromVisualizationHint down) [(idx+1,c)] []
+	new_hops	= if up [(idx-1,c)] [] ++ if down [(idx+1,c)] []
 	
-	updHops :: !Coord3D !(VisualizationHint Bool) !(VisualizationHint Bool) !Maps2D -> Maps2D
+	updHops :: !Coord3D !Bool !Bool !Maps2D -> Maps2D
 	updHops source=:(idx,c) up down maps
 	  = case getMap2D idx maps of
 	  	  Just map = case getSection c map of

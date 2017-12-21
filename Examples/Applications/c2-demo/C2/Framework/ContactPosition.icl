@@ -1,7 +1,7 @@
 implementation module C2.Framework.ContactPosition
 import iTasks
-import iTasks.API.Extensions.GIS.GoogleMap
-import iTasks.API.Extensions.GIS.Leaflet
+import iTasks.Extensions.GIS.GoogleMap
+import iTasks.Extensions.GIS.Leaflet
 import qualified Data.Map as DM
 import Data.Functor, Text
 import qualified Text.Parsers.ZParsers.ParsersKernel as PK
@@ -9,16 +9,17 @@ import qualified Text.Parsers.ZParsers.ParsersDerived as PD
 import qualified Control.Applicative as CA
 from Control.Applicative import class Alternative, class Applicative
 
-from Text.Parsers.ZParsers.ParsersKernel import :: Parser, instance Alternative Parser, instance Applicative Parser, instance Functor Parser
+from Text.Parsers.ZParsers.ParsersKernel import :: Parser, instance Alternative (Parser p t), instance Applicative (Parser s t), instance Functor (Parser s t)
 import C2.Framework.GeoRoutines
 import Math.Geometry
-import iTasks.API.Extensions.Platform
-import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Builtin, iTasks.UI.Editor.Combinators
+import Data.Maybe
+import iTasks.Extensions.Platform
+import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 
 derive JSONEncode ContactPosition
 derive JSONDecode ContactPosition
 
-gEditor{|ContactPosition|} = liftEditor printPosition parsePosition (textField  'DM'.newMap)
+gEditor{|ContactPosition|} = bijectEditorValue printPosition parsePosition textField
 gText{|ContactPosition|} _ val = [maybe "" printPosition val]
 
 derive gDefault ContactPosition
@@ -151,16 +152,16 @@ toLeafletMap :: ContactMap -> LeafletMap
 toLeafletMap {ContactMap|perspective,markers}
     = {LeafletMap|perspective = toLeafletPerspective perspective
       ,icons = [icon i \\ i <- [1..250]]
-      ,layers = [TileLayer TILESERVER
-                ,ObjectLayer (convMarkers markers)]  //Just the baselayer
+	  ,tilesUrls = [TILESERVER] 
+      ,objects = convMarkers markers //Just the baselayer
       }
 where
     convMarkers markers = [conv m \\ m=:{ContactMapMarker|position} <- markers]
     conv {ContactMapMarker|markerId,title,position,heading,type,selected}
         = Marker {LeafletMarker|markerId = markerId, title = title, position = toLeafletLatLng position, icon = fmap (\t -> iconIndex heading t selected) type, selected = selected, popup = Nothing}
 
-	icon i = {LeafletIcon|iconUrl ="/ship-icons/"+++toString i+++".png",iconSize=(24,24)}
-    iconIndex heading type selected = (cat type + ( (maybe 24 (\d -> toInt d / 15) heading) + (if selected 25 0)) * 5)
+	icon i = {LeafletIcon|iconId=toString i,iconUrl ="/ship-icons/"+++toString i+++".png",iconSize=(24,24)}
+    iconIndex heading type selected = toString (cat type + ( (maybe 24 (\d -> toInt d / 15) heading) + (if selected 25 0)) * 5)
 
 toLeafletPerspective :: ContactMapPerspective -> LeafletPerspective
 toLeafletPerspective {ContactMapPerspective|center,zoom,cursor}
@@ -173,14 +174,13 @@ fromLeafletLatLng :: !LeafletLatLng -> LatLng
 fromLeafletLatLng {LeafletLatLng | lat, lng} = (deg lat, deg lng)
 
 fromLeafletMap :: LeafletMap -> ContactMap
-fromLeafletMap {LeafletMap|perspective,layers}
+fromLeafletMap {LeafletMap|perspective,objects}
     = {ContactMap|perspective = fromLeafletPerspective perspective
-       ,markers=flatten (map toMarkers layers)}
+       ,markers=toMarkers objects}
 where
-    toMarkers (ObjectLayer objects)
+    toMarkers objects
         = [{ContactMapMarker|markerId=markerId,title=Nothing,position = fromLeafletLatLng position, type=Nothing,heading=Nothing,selected=selected}
           \\ Marker {LeafletMarker|markerId,position,selected} <- objects]
-    toMarkers _ = []
 
 fromLeafletPerspective :: LeafletPerspective -> ContactMapPerspective
 fromLeafletPerspective {LeafletPerspective|center,cursor,zoom}

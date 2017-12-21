@@ -78,9 +78,6 @@ resetMapState = set defSettings mapState @! ()
 periodicallyUpdateEntity :: !Int -> Task ()
 periodicallyUpdateEntity n = updateEntity n moveEntity // TODO FIXME PERFORMANCE doTaskPeriodically 1 (updateEntity n moveEntity) <<@ NoUserInterface
 
-
-undef = undef
-
 mapView` :: User [Entity] -> Task ()
 mapView` currentUser es = (updateSharedInformation () [UpdateAs toMap fromMap] (userMapState currentUser >+< entityMap) @! ()) 
   where
@@ -107,7 +104,7 @@ mapView` currentUser es = (updateSharedInformation () [UpdateAs toMap fromMap] (
         _ = (markers, st)
 
 
-mapView :: (RWShared () r w) (r -> Bool) User [Entity] -> Task () | iTask r
+mapView :: (RWShared () r w) (r -> Bool) User [Entity] -> Task () | iTask r & iTask w
 mapView sh radarWorks currentUser es = (updateSharedInformation () [UpdateAs toMap fromMap] (mapState >*| sh) @! ())
   where
   toMap ({perspective, entities = markers}, shval)
@@ -145,8 +142,4 @@ entityToMarker se
     where
     toPos (MovingPos mp) = mp.mp_position
     toPos _              = (deg 0.0, deg 0.0) // TODO FIXME
-
-derive gEditor IntMap
-derive gText IntMap
-derive gDefault IntMap
 

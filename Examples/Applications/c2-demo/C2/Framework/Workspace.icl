@@ -1,5 +1,6 @@
 implementation module C2.Framework.Workspace
 import iTasks, C2.Framework.Util
+import Data.Maybe
 import qualified Data.Map as DM
 
 doIndependent :: [Workspace -> Task ()] -> Task ()
