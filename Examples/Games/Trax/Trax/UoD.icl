@@ -2,12 +2,11 @@ implementation module Trax.UoD
 
 //import iTasks
 import iTasks.Extensions.User
-import PlatformExts.List
 import PlatformExts.Tuple
 import Data.OrdList
 import StdMisc
 from   StdFunc import flip
-from   Data.List import lookup, deleteFirstsBy
+from   Data.List import lookup, deleteFirstsBy, hasDup, qfoldl
 import Data.Maybe
 import Data.Generics.GenFDomain
 import Data.Generics.GenLexOrd, Data.Generics.GenMap, Data.Generics.GenPrint
