@@ -9,7 +9,7 @@ import StdMisc
 from   StdFunc import flip
 from   Data.List import lookup, deleteFirstsBy
 import Data.Maybe
-import GenericExts.GenFDomain
+import Data.Generics.GenFDomain
 import Data.Generics.GenLexOrd, Data.Generics.GenMap, Data.Generics.GenPrint
 import Text
 
