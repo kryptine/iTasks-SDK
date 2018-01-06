@@ -9,6 +9,7 @@ import iTasks.UI.Editor.Common
 import qualified Data.Map as DM
 import StdArray, StdBool, StdFunc, StdList, Data.Maybe, StdString
 import Text.JSON
+import Text.Language
 import System.Time
 import Data.Generics.GenEq
 
@@ -523,7 +524,7 @@ gEditor{|String|} = selectByMode
 						(withDynamicHintAttributes "single line of text" (withEditModeAttr textField ))
 gEditor{|Bool|}   = selectByMode (checkBox <<@ enabledAttr False) checkBox checkBox
 
-gEditor{|[]|} ex _ dx tjx _ = listEditor_ tjx dx (Just (const Nothing)) True True (Just (\l -> toString (length l) +++ " items")) ex
+gEditor{|[]|} ex _ dx tjx _ = listEditor_ tjx dx (Just (const Nothing)) True True (Just (\l -> pluralisen English (length l) "item")) ex
 
 gEditor{|()|} = emptyEditor
 gEditor{|(->)|} _ _ _ _ _ _ _ _ _ _ = emptyEditor
