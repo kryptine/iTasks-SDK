@@ -5,11 +5,26 @@ itasks.TextField = {
 			el = this.domEl;
 		el.type = 'text';
 		el.value = me.attributes.value ? me.attributes.value : '';
+
 		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
 			el.disabled = true;
 		} else {
 			el.addEventListener('keyup',function(e) {
-				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,e.target.value);
+				var v = e.target.value;
+				if('maxlength' in me.attributes){
+					if(v.length > me.attributes['maxlength']){
+						el.value = e.target.value.substr(0, me.attributes['maxlength']);
+						return;
+					}
+				}
+
+				if('minlength' in me.attributes){
+					if(v.length < me.attributes['minlength']){
+						v = null;
+					}
+				}
+
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,v);
 			});
 		}
 	},
@@ -38,6 +53,20 @@ itasks.TextArea = {
 			el.disabled = true;
 		} else {
         	el.addEventListener('keyup',function(e) {
+				var v = e.target.value;
+				if('maxlength' in me.attributes){
+					if(v.length > me.attributes['maxlength']){
+						el.value = e.target.value.substr(0, me.attributes['maxlength']);
+						return;
+					}
+				}
+
+				if('minlength' in me.attributes){
+					if(v.length < me.attributes['minlength']){
+						v = null;
+					}
+				}
+
 				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,e.target.value);
         	});
 		}
@@ -62,8 +91,21 @@ itasks.PasswordField = {
 			el.disabled = true;
 		} else {
 			el.addEventListener('keyup',function(e) {
-        	    var value = e.target.value === "" ? null : e.target.value
-				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
+				var v = e.target.value;
+				if('maxlength' in me.attributes){
+					if(v.length > me.attributes['maxlength']){
+						el.value = e.target.value.substr(0, me.attributes['maxlength']);
+						return;
+					}
+				}
+
+				if('minlength' in me.attributes){
+					if(v.length < me.attributes['minlength']){
+						v = null;
+					}
+				}
+
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,v);
 			});
 		}
 	}
