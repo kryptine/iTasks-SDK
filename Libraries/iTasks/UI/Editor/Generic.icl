@@ -516,8 +516,9 @@ gEditor{|Real|}   = selectByMode
 						(withDynamicHintAttributes "decimal number" (withEditModeAttr decimalField ))
 gEditor{|Char|}   = bijectEditorValue toString (\c -> c.[0]) (selectByMode
 							textView
-							(withDynamicHintAttributes "single character" (withEditModeAttr textField ))
-							(withDynamicHintAttributes "single character" (withEditModeAttr textField )))
+							(withDynamicHintAttributes "single character" (withEditModeAttr textField <<@ boundedlengthAttr 1 1))
+							(withDynamicHintAttributes "single character" (withEditModeAttr textField <<@ boundedlengthAttr 1 1)))
+						
 gEditor{|String|} = selectByMode
 						textView
 						(withDynamicHintAttributes "single line of text" (withEditModeAttr textField ))

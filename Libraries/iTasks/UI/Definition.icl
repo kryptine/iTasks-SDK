@@ -197,6 +197,15 @@ styleAttr style = 'DM'.fromList [("style",JSONString style)]
 classAttr :: !String -> UIAttributes
 classAttr cls = 'DM'.fromList [("class",JSONString cls)]
 
+maxlengthAttr :: !Int -> UIAttributes
+maxlengthAttr l = 'DM'.fromList [("maxlength", JSONInt l)]
+
+minlengthAttr :: !Int -> UIAttributes
+minlengthAttr l = 'DM'.fromList [("minlength", JSONInt l)]
+
+boundedlengthAttr :: !Int !Int -> UIAttributes
+boundedlengthAttr min max = 'DM'.unions [minlengthAttr min, maxlengthAttr max]
+
 editAttrs :: !String !String !(Maybe JSONNode) -> UIAttributes
 editAttrs taskId editorId mbValue 
 	= 'DM'.fromList [("taskId",JSONString taskId),("editorId",JSONString editorId):maybe [] (\value -> [("value",value)]) mbValue]
