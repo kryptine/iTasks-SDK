@@ -26,10 +26,10 @@ timeout iworld = case read taskEvents iworld of //Check if there are events in t
 updateClock :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateClock iworld=:{IWorld|clock,world}
     //Determine current date and time
-	# (timestamp,world) 	= time world
+	# (timespec,world) 	= nsTime world
     # iworld = {iworld & world = world}
     //Write SDS if necessary
-    # (mbe,iworld) = if (timestamp == clock) (Ok (),iworld) (write timestamp iworldTimestamp iworld)
+    # (mbe,iworld) = write timespec iworldTimespec iworld
 	| mbe =:(Error _) = (mbe,iworld)
     = (Ok (),iworld)
 
@@ -46,17 +46,16 @@ where
 		(Ok (),iworld) = checkAll f xs iworld
 		(Error e,iworld) = (Error e,iworld)
 
-    removeIfOutdated (instanceNo,_,_,_) iworld=:{options={appVersion},clock}
+    removeIfOutdated (instanceNo,_,_,_) iworld=:{options={appVersion},clock=tNow}
 		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) iworld of
 			//If there is I/O information, we check that age first
-			(Ok (Just (client,Timestamp tInstance)),iworld) //No IO for too long, clean up
+			(Ok (Just (client,tInstance)),iworld) //No IO for too long, clean up
 				= (Ok ((tNow - tInstance) > options.EngineOptions.sessionTime),iworld)
 			//If there is no I/O information, get meta-data and check builtId and creation date
 			(Ok Nothing,iworld)
 				= case read (sdsFocus instanceNo taskInstanceConstants) iworld of
-					(Ok {InstanceConstants|build,issuedAt},iworld)
+					(Ok {InstanceConstants|build,issuedAt=tInstance},iworld)
 						| build <> appVersion = (Ok True,iworld)
-						# (Timestamp tInstance) = issuedAt
 						| (tNow - tInstance) > options.EngineOptions.sessionTime = (Ok True,iworld)
 						= (Ok False,iworld)
 					(Error e,iworld)
@@ -74,8 +73,6 @@ where
 				= (Ok (), iworld)
 			(Error e)
 				= (Error e,iworld)
-	where
-		(Timestamp tNow) = clock
 
 //When the event queue is empty, write deferred SDS's
 flushWritesWhenIdle:: !*IWorld -> (!MaybeError TaskException (), !*IWorld)

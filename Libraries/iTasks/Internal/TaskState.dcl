@@ -13,7 +13,7 @@ from Data.Maybe import :: Maybe
 from Data.Queue import :: Queue
 from Data.Error import :: MaybeError
 from Data.Either import :: Either
-from System.Time import :: Timestamp
+from System.Time import :: Timestamp, :: Timespec
 
 derive JSONEncode TIMeta, TIReduct, TaskTree
 derive JSONDecode TIMeta, TIReduct, TaskTree
@@ -28,7 +28,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	, listId        :: !TaskId              //Reference to parent tasklist
     , session       :: !Bool                //Is this a session
     , build         :: !String              //Application build version when the instance was created
-    , issuedAt      :: !Timestamp
+    , issuedAt      :: !Timespec
     //Evaluation information
 	, progress		:: !InstanceProgress
     //Identification and classification information

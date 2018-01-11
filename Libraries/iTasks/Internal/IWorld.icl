@@ -13,6 +13,8 @@ from iTasks.Internal.TaskEval       import :: TaskTime
 from iTasks.Engine                  import :: EngineOptions(..)
 from System.Process                 import :: ProcessHandle, :: ProcessIO
 
+import iTasks.SDS.Combinators.Common
+
 from StdFile import class FileSystem(..)
 from StdFile import instance FileSystem World
 from StdFunc import const, o, seqList, :: St
@@ -57,10 +59,10 @@ JS_COMPILER_EXCLUDES :==
 
 createIWorld :: !EngineOptions !*World -> *IWorld
 createIWorld options world
-	# (timestamp=:(Timestamp seed), world)	= time world
+	# (ts=:{tv_nsec=seed}, world)	= nsTime world
 	= {IWorld
 	  |options = options 
-      ,clock = timestamp
+      ,clock = ts
       ,current =
 	    {TaskEvalState
         |taskTime				= 0
@@ -113,11 +115,14 @@ determineAppPath world
 destroyIWorld :: !*IWorld -> *World
 destroyIWorld iworld=:{IWorld|world} = world
 
-iworldTimestamp :: Shared Timestamp
-iworldTimestamp = createReadWriteSDS "IWorld" "timestamp" read write
+iworldTimespec :: Shared Timespec
+iworldTimespec = createReadWriteSDS "IWorld" "timespec" read write
 where
     read _ iworld=:{IWorld|clock} = (Ok clock,iworld)
     write _ timestamp iworld = (Ok (const True), {iworld & clock = timestamp})
+
+iworldTimestamp :: Shared Timestamp
+iworldTimestamp = mapReadWrite (timespecToStamp, const o Just o timestampToSpec) iworldTimespec
 
 iworldLocalDateTime :: ReadOnlyShared DateTime
 iworldLocalDateTime = SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) iworldTimestamp sdsPar
@@ -132,8 +137,8 @@ where
              }
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
-iworldLocalDateTime` iworld=:{clock, world}
-    # (tm, world) = toLocalTime clock world
+iworldLocalDateTime` iworld=:{clock={tv_sec}, world}
+    # (tm, world) = toLocalTime (Timestamp tv_sec) world
     = (tmToDateTime tm, {iworld & world = world})
 
 iworldResource :: (*Resource -> (Bool, *Resource)) *IWorld -> (*[*Resource], *IWorld)

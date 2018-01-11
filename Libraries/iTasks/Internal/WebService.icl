@@ -21,7 +21,7 @@ import Text.HTML
 from iTasks.Internal.HttpUtil import http_addRequestData, http_parseArguments
 
 :: NetTaskState
-    = NTIdle String Timestamp
+    = NTIdle String Timespec
     | NTReadingRequest HttpReqState
 	| NTProcessingRequest HTTPRequest ConnectionState
 
@@ -129,7 +129,7 @@ where
 wsockTextMsg :: String -> [String]
 wsockTextMsg payload = [wsockMsgFrame WS_OP_TEXT True payload]
 
-httpServer :: !Int !Int ![WebService r w] (RWShared () r w) -> ConnectionTask | TC r & TC w
+httpServer :: !Int !Timespec ![WebService r w] (RWShared () r w) -> ConnectionTask | TC r & TC w
 httpServer port keepAliveTime requestProcessHandlers sds
     = wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect, onData=onData, onShareChange=onShareChange, onTick=onTick, onDisconnect=onDisconnect} sds
 where
@@ -195,7 +195,7 @@ where
 					= (Ok (NTReadingRequest rstate), Nothing, [], False, iworld)		
 
 	//Close idle connections if the keepalive time has passed
-	onTick connState=:(NTIdle ip (Timestamp t)) r iworld=:{IWorld|clock=Timestamp now}
+	onTick connState=:(NTIdle ip t) r iworld=:{IWorld|clock=now}
 		= (Ok connState, Nothing, [], now >= t + keepAliveTime, iworld)
 
 	onTick connState=:(NTProcessingRequest request localState) r env

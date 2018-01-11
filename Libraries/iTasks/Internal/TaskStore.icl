@@ -63,7 +63,7 @@ taskInstanceIndex = sdsFocus "instances" rawTaskIndex
 nextInstanceNo :: RWShared () Int Int
 nextInstanceNo = sdsFocus "increment" rawTaskNoCounter
 
-taskInstanceIO :: RWShared InstanceNo (Maybe (!String,!Timestamp)) (Maybe (!String,!Timestamp))
+taskInstanceIO :: RWShared InstanceNo (Maybe (!String,!Timespec)) (Maybe (!String,!Timespec))
 taskInstanceIO = sdsLens "taskInstanceIO" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) allInstanceIO
 where
 	read instanceNo m = Ok ('DM'.get instanceNo m)
@@ -71,7 +71,7 @@ where
 	write instanceNo m Nothing = Ok (Just ('DM'.del instanceNo m))
 	notify instanceNo _ 	= (==) instanceNo
 
-allInstanceIO :: RWShared () (Map InstanceNo (!String,!Timestamp)) (Map InstanceNo (!String,Timestamp)) 
+allInstanceIO :: RWShared () (Map InstanceNo (!String,!Timespec)) (Map InstanceNo (!String,Timespec)) 
 allInstanceIO = sdsFocus "io" rawInstanceIO
 
 //Event queues of task instances

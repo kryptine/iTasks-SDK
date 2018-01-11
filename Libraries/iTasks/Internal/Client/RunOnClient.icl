@@ -119,7 +119,7 @@ where
 createClientIWorld :: !String !InstanceNo -> *IWorld
 createClientIWorld serverURL currentInstance
         # world = newWorld
-        # (timestamp=:(Timestamp seed),world) = time world
+        # (timestamp=:{tv_sec=seed},world) = nsTime world
 		= {IWorld
 		  |options =  { appName = "application"
 	                    , appPath = locundef "appDirectory"

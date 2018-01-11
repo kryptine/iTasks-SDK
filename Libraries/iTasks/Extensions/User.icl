@@ -9,6 +9,7 @@ import iTasks.UI.Layout.Default
 from iTasks.WF.Definition import :: InstanceProgress(..)
 from iTasks.WF.Combinators.Core import :: TaskListItem(..) 
 import iTasks.Extensions.DateTime
+import System.Time
 
 gText{|User|} _ val = [maybe "" toString val]
 
@@ -237,8 +238,8 @@ where
 
     toView (_,[{TaskListItem|progress=Just p,attributes}:_]) =
       { assignedTo    = mkAssignedTo attributes
-      , firstWorkedOn = fmap timestampToGmDateTime p.InstanceProgress.firstEvent
-      , lastWorkedOn  = fmap timestampToGmDateTime p.InstanceProgress.lastEvent
+      , firstWorkedOn = fmap (timestampToGmDateTime o timespecToStamp) p.InstanceProgress.firstEvent
+      , lastWorkedOn  = fmap (timestampToGmDateTime o timespecToStamp) p.InstanceProgress.lastEvent
       , taskStatus    = case p.InstanceProgress.value of
                           Unstable      -> "In progres..."
                           Stable        -> "Task done"

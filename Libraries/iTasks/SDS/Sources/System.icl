@@ -39,6 +39,9 @@ currentUTCDate = mapRead (toDate o timestampToGmDateTime) currentTimestamp
 currentTimestamp :: SDS () Timestamp ()
 currentTimestamp = toReadOnly iworldTimestamp
 
+currentTimespec :: SDS () Timespec ()
+currentTimespec = toReadOnly iworldTimespec
+
 
 // Workflow processes
 topLevelTasks :: SharedTaskList ()

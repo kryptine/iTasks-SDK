@@ -9,6 +9,7 @@ from StdList import ++, iterate, take
 from Data.Maybe      import :: Maybe
 from System.FilePath import :: FilePath
 from Internet.HTTP   import :: HTTPRequest
+from System.Time     import :: Timespec
 
 import iTasks.WF.Definition
 
@@ -18,8 +19,8 @@ import iTasks.WF.Definition
 	, appVersion    :: String
 	, serverPort	:: Int
     , serverUrl     :: String
-	, keepaliveTime :: Int
-    , sessionTime   :: Int
+	, keepaliveTime :: Timespec
+    , sessionTime   :: Timespec
     , persistTasks  :: Bool
 	, autoLayout    :: Bool
 	, webDirPath 	:: FilePath // Location of public files that are served by the iTask webserver
