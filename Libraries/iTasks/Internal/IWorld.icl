@@ -115,14 +115,16 @@ determineAppPath world
 destroyIWorld :: !*IWorld -> *World
 destroyIWorld iworld=:{IWorld|world} = world
 
-iworldTimespec :: Shared Timespec
+iworldTimespec :: SDS Timespec Timespec Timespec
 iworldTimespec = createReadWriteSDS "IWorld" "timespec" read write
 where
     read _ iworld=:{IWorld|clock} = (Ok clock,iworld)
-    write _ timestamp iworld = (Ok (const True), {iworld & clock = timestamp})
+    write _ timestamp iworld = (Ok pred, {iworld & clock = timestamp})
+	where
+		pred p = p < timestamp
 
 iworldTimestamp :: Shared Timestamp
-iworldTimestamp = mapReadWrite (timespecToStamp, const o Just o timestampToSpec) iworldTimespec
+iworldTimestamp = mapReadWrite (timespecToStamp, const o Just o timestampToSpec) $ sdsFocus zero iworldTimespec
 
 iworldLocalDateTime :: ReadOnlyShared DateTime
 iworldLocalDateTime = SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) iworldTimestamp sdsPar
