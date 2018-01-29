@@ -1,6 +1,6 @@
 implementation module iTasks.UI.Editor.Modifiers
 
-import StdBool
+import StdBool, StdString
 import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.UI.Tune
 import Data.Error, Text.JSON
 import GenEq

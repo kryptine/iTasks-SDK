@@ -1,0 +1,1126 @@
+Version: 1.4
+MainModule
+	Name:	Trax
+	Dir:	{Project}
+	DclOpen:	False
+	IclOpen:	False
+OtherModules
+	Module
+		Name:	Trax.Tasks
+		Dir:	{Project}
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	480
+		IclOpen:	False
+	Module
+		Name:	Trax.UI
+		Dir:	{Project}
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	389
+				Y:	12
+				SizeX:	1194
+				SizeY:	585
+		IclOpen:	False
+	Module
+		Name:	Trax.UoD
+		Dir:	{Project}
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	GenericExts.GenFDomain
+		Dir:	{Application}\Examples\iTasks\Games
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	MultiUser.Tasks
+		Dir:	{Application}\Examples\iTasks\Games
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	PlatformExts.List
+		Dir:	{Application}\Examples\iTasks\Games
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	PlatformExts.Tuple
+		Dir:	{Application}\Examples\iTasks\Games
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdEnvExts.StdOrdList
+		Dir:	{Application}\Examples\iTasks\Games
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdDynamic
+		Dir:	{Application}\Libraries\Dynamics
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	_SystemDynamic
+		Dir:	{Application}\Libraries\Dynamics
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	GenEq
+		Dir:	{Application}\Libraries\Generics
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	GenLexOrd
+		Dir:	{Application}\Libraries\Generics
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	GenMap
+		Dir:	{Application}\Libraries\Generics
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	GenPrint
+		Dir:	{Application}\Libraries\Generics
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	_Array
+		Dir:	{Application}\Libraries\Generics
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	dynamic_string
+		Dir:	{Application}\Libraries\GraphCopy
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	graph_to_sapl_string
+		Dir:	{Application}\Libraries\GraphCopy
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	graph_to_string_and_descriptors
+		Dir:	{Application}\Libraries\GraphCopy
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Control.Applicative
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Control.Monad
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Crypto.Hash.SHA1
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.CircularStack
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.Either
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.Error
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.Foldable
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.Func
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.Functor
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.IntMap.Base
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.IntMap.Strict
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.List
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.Map
+		Dir:	{Application}\Libraries\Platform
+		Dcl
+			WindowPosition
+				X:	838
+				Y:	355
+				SizeX:	800
+				SizeY:	480
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.MapCollection
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.Matrix
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.Maybe
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.Monoid
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.Queue
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.Set
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.Traversable
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Data.Tuple
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Graphics.Scalable.Image
+		Dir:	{Application}\Libraries\Platform
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	977
+				SizeY:	480
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	15
+				Y:	0
+				SizeX:	672
+				SizeY:	757
+		IclOpen:	False
+	Module
+		Name:	Graphics.Scalable.Internal.Image`
+		Dir:	{Application}\Libraries\Platform
+		Dcl
+			WindowPosition
+				X:	653
+				Y:	4
+				SizeX:	910
+				SizeY:	704
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	130
+				Y:	15
+				SizeX:	1435
+				SizeY:	742
+		IclOpen:	False
+	Module
+		Name:	Graphics.Scalable.Internal.Types
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	373
+				Y:	10
+				SizeX:	1210
+				SizeY:	817
+		IclOpen:	False
+	Module
+		Name:	Graphics.Scalable.Types
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Internet.HTTP
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Math.Geometry
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Math.Random
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System.CommandLine
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System.Directory
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System.Environment
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System.File
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System.FilePath
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System.IO
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System.OS
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System.OSError
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System.Process
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System.Time
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System._FilePath
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System._Pointer
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System._WinBase
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System._WinDef
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	System._Windows
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.CSV
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.Encodings.Base64
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.Encodings.MIME
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.Encodings.UrlEncoding
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.HTML
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.JSON
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.PPrint
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.Parsers.ZParsers.ParserLanguage
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.Parsers.ZParsers.Parsers
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.Parsers.ZParsers.ParsersAccessories
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.Parsers.ZParsers.ParsersDerived
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.Parsers.ZParsers.ParsersKernel
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.StringAppender
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.URI
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.Unicode
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.Unicode.Encodings.JS
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Text.Unicode.UChar
+		Dir:	{Application}\Libraries\Platform
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdListExtensions
+		Dir:	{Application}\Libraries\Platform\Deprecated\StdLib
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdMaybe
+		Dir:	{Application}\Libraries\Platform\Deprecated\StdLib
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Sapl.FastString
+		Dir:	{Application}\Libraries\Sapl
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Sapl.Linker.LazyLinker
+		Dir:	{Application}\Libraries\Sapl
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Sapl.Linker.SaplLinkerShared
+		Dir:	{Application}\Libraries\Sapl
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Sapl.Optimization.StrictnessPropagation
+		Dir:	{Application}\Libraries\Sapl
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Sapl.SaplParser
+		Dir:	{Application}\Libraries\Sapl
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Sapl.SaplStruct
+		Dir:	{Application}\Libraries\Sapl
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Sapl.SaplTokenizer
+		Dir:	{Application}\Libraries\Sapl
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Sapl.Target.CleanFlavour
+		Dir:	{Application}\Libraries\Sapl
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Sapl.Target.Flavour
+		Dir:	{Application}\Libraries\Sapl
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Sapl.Target.JS.CodeGeneratorJS
+		Dir:	{Application}\Libraries\Sapl
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Sapl.Target.JS.Lifting
+		Dir:	{Application}\Libraries\Sapl
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Sapl.Transform.AddSelectors
+		Dir:	{Application}\Libraries\Sapl
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Sapl.Transform.Let
+		Dir:	{Application}\Libraries\Sapl
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Sapl.Transform.TailRecursion
+		Dir:	{Application}\Libraries\Sapl
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdArray
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdBool
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdChar
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdCharList
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdClass
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdDebug
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdEnum
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdEnv
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdFile
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdFunc
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdGeneric
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdInt
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdList
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdMisc
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdOrdList
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdOverloaded
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdOverloadedList
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdReal
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdStrictLists
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdString
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdTuple
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	_SystemArray
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	_SystemEnum
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	_SystemEnumStrict
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	_SystemStrictLists
+		Dir:	{Application}\Libraries\StdEnv
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	TCPChannelClass
+		Dir:	{Application}\Libraries\TCPIP
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	TCPChannels
+		Dir:	{Application}\Libraries\TCPIP
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	TCPDef
+		Dir:	{Application}\Libraries\TCPIP
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	TCPEvent
+		Dir:	{Application}\Libraries\TCPIP
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	TCPIP
+		Dir:	{Application}\Libraries\TCPIP
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	TCPStringChannels
+		Dir:	{Application}\Libraries\TCPIP
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	TCPStringChannelsInternal
+		Dir:	{Application}\Libraries\TCPIP
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	ostcp
+		Dir:	{Application}\Libraries\TCPIP
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	tcp
+		Dir:	{Application}\Libraries\TCPIP
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	tcp_bytestreams
+		Dir:	{Application}\Libraries\TCPIP
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Engine
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Extensions.Admin.TonicAdmin
+		Dir:	{Application}\Libraries\iTasks
+		Dcl
+			WindowPosition
+				X:	800
+				Y:	11
+				SizeX:	783
+				SizeY:	194
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Extensions.Admin.UserAdmin
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Extensions.Admin.WorkflowAdmin
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Extensions.CSVFile
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Extensions.DateTime
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Extensions.Document
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Extensions.Form.Pikaday
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Extensions.Platform
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Extensions.SVG.Internal.SVGEditor
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	45
+				Y:	173
+				SizeX:	1125
+				SizeY:	662
+		IclOpen:	False
+	Module
+		Name:	iTasks.Extensions.TextFile
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Extensions.User
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Extensions.Web
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Client.JSStore
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Client.LinkerSupport
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Client.Override
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Client.RunOnClient
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.DynamicUtil
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.EngineTasks
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Generic.Defaults
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Generic.Visualization
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.HtmlUtil
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.HttpUtil
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.IWorld
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.RemoteAccess
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.SDS
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.SDSService
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Serialization
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Store
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Task
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.TaskEval
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.TaskServer
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.TaskState
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.TaskStore
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Tonic
+		Dir:	{Application}\Libraries\iTasks
+		Dcl
+			WindowPosition
+				X:	783
+				Y:	497
+				SizeX:	800
+				SizeY:	178
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Tonic.AbsSyn
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Tonic.Blueprints
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Tonic.Images
+		Dir:	{Application}\Libraries\iTasks
+		Dcl
+			WindowPosition
+				X:	783
+				Y:	713
+				SizeX:	800
+				SizeY:	171
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	783
+				Y:	261
+				SizeX:	800
+				SizeY:	179
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Tonic.Pretty
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Tonic.Server
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Tonic.Shares
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Tonic.Types
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.Util
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.Internal.WebService
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.SDS.Combinators.Common
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.SDS.Combinators.Core
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.SDS.Definition
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.SDS.Sources.Core
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.SDS.Sources.Store
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.SDS.Sources.System
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.UI.Definition
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.UI.Editor
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.UI.Editor.Common
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.UI.Editor.Containers
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.UI.Editor.Controls
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.UI.Editor.Generic
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	480
+		IclOpen:	False
+	Module
+		Name:	iTasks.UI.Editor.Modifiers
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.UI.JS.Encoding
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.UI.JS.Interface
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.UI.Layout
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.UI.Layout.Common
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.UI.Layout.Default
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.UI.Prompt
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.UI.Tune
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.WF.Combinators.Common
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.WF.Combinators.Core
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.WF.Combinators.Overloaded
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.WF.Combinators.SDS
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.WF.Combinators.Tune
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.WF.Definition
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.WF.Derives
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.WF.Tasks.Core
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.WF.Tasks.IO
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.WF.Tasks.Interaction
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.WF.Tasks.SDS
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks.WF.Tasks.System
+		Dir:	{Application}\Libraries\iTasks
+		DclOpen:	False
+		IclOpen:	False

@@ -14,7 +14,7 @@ from System.Time import :: Timestamp
 from Data.Map import :: Map
 from Data.Set import :: Set
 from Data.Either import :: Either
-from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
+from Graphics.Scalable.Image import :: Image, :: TagSource, :: TagRef, :: ImageTag
 from iTasks.WF.Combinators.Overloaded import class TMonad, class TApplicative
 import Data.Functor
 

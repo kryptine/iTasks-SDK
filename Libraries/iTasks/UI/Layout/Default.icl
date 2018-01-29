@@ -8,8 +8,8 @@ import GenEq
 
 from Data.Func import $
 from StdFunc import id, o, const
-import StdList, StdBool, StdArray, StdTuple, Data.Tuple, Data.Functor
-import Data.List
+import StdList, StdBool, StdArray, StdTuple, Data.Tuple, Data.Functor, Data.Maybe
+import Data.List, StdString
 import qualified Data.Map as DM
 
 LABEL_WIDTH :== 100
@@ -122,7 +122,7 @@ where
 			removeDisabledActions
 
 	removeDisabledActions
-		= removeSubUIs (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" (JSONBool False))))
+		= removeSubUIs (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" ((==) (JSONBool False)))))
 
 	ContainsNoChildOfType type = SelectAND (SelectByPath []) (SelectNOT (SelectByContains (SelectAND SelectChildren (SelectByType type))))
 	RootIsStep = SelectAND (SelectByPath []) (SelectByType UIStep)

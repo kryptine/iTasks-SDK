@@ -19,7 +19,6 @@ import iTasks.Internal.Serialization
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
 import iTasks.Extensions.Admin.UserAdmin
-import iTasks.Extensions.SVG.SVGEditor
 import iTasks.Extensions.DateTime
 import System.File
 from StdFunc import o
@@ -38,7 +37,7 @@ from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Text
 import GenLexOrd
-from Control.Monad import `b`, class Monad, instance Monad Maybe
+from Control.Monad import `b`, class Monad(bind), instance Monad Maybe
 import qualified Control.Applicative as CA
 from Control.Applicative import class Applicative, instance Applicative Maybe
 import Data.CircularStack

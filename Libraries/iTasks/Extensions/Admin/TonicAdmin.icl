@@ -15,10 +15,11 @@ import iTasks.Extensions.DateTime
 from StdFunc import seq
 import qualified Data.Map as DM
 from Data.Map import instance Functor (Map a)
-from Control.Monad import `b`, class Monad, instance Monad Maybe
+from Control.Monad import `b`, class Monad(bind), instance Monad Maybe
 import qualified iTasks.Internal.SDS as DSDS
 import Data.List
-import iTasks.Extensions.SVG.SVGEditor
+from Graphics.Scalable.Image import fromSVGEditor, :: SVGEditor {..}
+import iTasks.UI.JS.Encoding
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Data.Maybe
@@ -390,7 +391,7 @@ getModuleAndTask allbps mn tn
   >>~ \mod -> case 'DM'.get mn allbps `b` 'DM'.get tn of
                 Just tt -> return (mod, tt)
                 _       -> throw "Can't get module and task"
-import StdDebug
+
 viewInstance :: ![TaskAppRenderer] !(Shared NavStack) !DynamicDisplaySettings !BlueprintInstance
                 !(Maybe (Either ClickMeta (ModuleName, FuncName, ComputationId, Int))) !ClickMeta
              -> Task ()

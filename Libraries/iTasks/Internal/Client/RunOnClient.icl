@@ -15,7 +15,6 @@ from Data.Queue as DQ import qualified newQueue, dequeue
 import iTasks.Extensions.DateTime
 import System.Time, Math.Random
 import Text.JSON
-import StdDebug
 
 :: TaskState a = 
 			{ instanceNo :: !InstanceNo
@@ -59,7 +58,7 @@ controllerFunc _ st=:{TaskState | sessionId, instanceNo, task, taskId = Nothing}
 	# (mbTaskId, iworld) = createClientTaskInstance task sessionId instanceNo iworld
     = case mbTaskId of
         Ok taskId
-	      # (mbResult,iworld)  = evalTaskInstance instanceNo (RefreshEvent "Client init") iworld
+	      # (mbResult,iworld)  = evalTaskInstance instanceNo ResetEvent iworld
 	      = case mbResult of
 	      	Ok _ 
 	      				= (Nothing, {TaskState | st & taskId = Just taskId}, iworld)

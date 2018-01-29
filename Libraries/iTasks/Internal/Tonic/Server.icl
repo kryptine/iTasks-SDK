@@ -11,7 +11,9 @@ import Data.Error
 from Data.IntMap.Strict import :: IntMap
 import iTasks.Internal.Tonic.Blueprints
 import iTasks.Extensions.Admin.TonicAdmin
-import iTasks.Extensions.SVG.SVGEditor
+//import iTasks.Extensions.SVG.SVGEditor
+from Graphics.Scalable.Image import fromSVGEditor, :: SVGEditor {..}
+import iTasks.UI.JS.Encoding
 import iTasks.Extensions.DateTime
 import iTasks.Internal.Tonic.AbsSyn
 import iTasks.Internal.Tonic.Types

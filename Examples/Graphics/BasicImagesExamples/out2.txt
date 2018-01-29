@@ -1,0 +1,36 @@
+"Img:",
+Img 0 
+	(CompositeImg 
+		(Img 3 
+			(BasicHostImg EmptyImg Tip) 
+			Nothing 
+			[] 
+			[]
+		)
+	) 
+	Nothing 
+	[Img 2 
+		(BasicHostImg RectImg 
+			(Bin 4 (ImgStrokeAttr (SVGColorText "black")) (Bin 2 (ImgFillAttr (SVGColorText "black")) Tip (Bin 1 (ImgFillOpacityAttr 1) Tip Tip)) (Bin 1 (ImgStrokeWidthAttr (PxSpan 1)) Tip Tip))
+		) 
+		Nothing 
+		[] 
+		[]
+	,Img 1 
+		(BasicHostImg (TextImg (FontDef "Times" 16 "normal" "normal" "normal" "normal") "Hello World!") Tip) 
+		Nothing 
+		[] 
+		[]
+	] 
+	[(PxSpan 20,PxSpan 0),(PxSpan -30,PxSpan 20)]
+
+,"ImgSpans:"
+,[(0,(PxSpan 60, PxSpan 36))
+ ,(1,(PxSpan 120,PxSpan 16))
+ ,(2,(PxSpan 20, PxSpan 20))
+ ,(3,(PxSpan 60, PxSpan 36))
+ ]
+
+,"GridSpans:"
+,[(0,GridSpan [PxSpan 60] [PxSpan 20,PxSpan 16])
+ ]

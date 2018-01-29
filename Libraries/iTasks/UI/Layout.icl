@@ -1,6 +1,6 @@
 implementation module iTasks.UI.Layout
 
-import StdTuple, StdList, StdBool, StdInt, StdOrdList, StdArray, StdMisc
+import StdTuple, StdList, StdBool, StdInt, StdOrdList, StdArray, StdMisc, StdString
 import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks.Internal.Util, iTasks.Internal.HtmlUtil, iTasks.UI.Definition
 import iTasks.Internal.Generic.Defaults 
@@ -15,7 +15,6 @@ from iTasks.Internal.TaskEval import :: TaskTime
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 import iTasks.WF.Definition
 import GenEq
-import StdDebug
 
 //This type records the states of layouts applied somewhere in a ui tree
 derive JSONEncode LayoutState, LayoutTree, MvUI, MvUIChild
@@ -29,7 +28,7 @@ inUISelection (SelectDescendents) [_:_] _ = True
 inUISelection (SelectDescendents) _ _ = False
 inUISelection (SelectByType t) _ (UI type _ _) = t === type
 inUISelection (SelectByHasAttribute k) _ (UI _ attr _) = isJust ('DM'.get k attr)
-inUISelection (SelectByAttribute k v) _ (UI _ attr _) = maybe False ((==) v) ('DM'.get k attr)
+inUISelection (SelectByAttribute k p) _ (UI _ attr _) = maybe False p ('DM'.get k attr)
 inUISelection (SelectByNumChildren num) _ (UI _ _  items) = length items == num
 inUISelection (SelectByContains selection) path ui=:(UI _ _ items)
 	| inUISelection selection path ui = True 
@@ -933,8 +932,8 @@ where
 	updateMoveDestination i f [x:xs]                     = [x:updateMoveDestination i f xs]
 	updateMoveDestination i f [] = []
 
-    moveMoveDestinationTowardsEnd n children = trace_n "A" children //FIXME
-    moveMoveDestinationTowardsBegin n children = trace_n "B" children
+    moveMoveDestinationTowardsEnd n children = children//trace_n "A" children //FIXME
+    moveMoveDestinationTowardsBegin n children = children//trace_n "B" children
 
 	countMoved {MvUI|moved,children} = (if moved 1 0) + sum [countMoved x \\ MvUIItem x <- children]
 

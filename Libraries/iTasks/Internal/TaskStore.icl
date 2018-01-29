@@ -1,6 +1,6 @@
 implementation module iTasks.Internal.TaskStore
 
-import StdOverloaded, StdBool, StdArray, StdTuple
+import StdOverloaded, StdBool, StdArray, StdTuple, StdString
 from StdFunc import const, id, o
 import Data.Maybe, Data.Either, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath, Data.Functor
 
@@ -24,15 +24,17 @@ import iTasks.WF.Combinators.Tune
 import iTasks.Extensions.Document
 
 import qualified Data.Map as DM
+import qualified Data.Set as DS
 import qualified Data.Queue as DQ
 from Data.Queue import :: Queue(..)
+from Control.Applicative import class Alternative(<|>), instance Alternative Maybe, instance Applicative Maybe
 
 //Derives required for storage of UI definitions
 derive JSONEncode TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
-derive JSONEncode Queue, Event
+derive JSONEncode Queue, Event, Set
 
 derive JSONDecode TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState
-derive JSONDecode Queue, Event
+derive JSONDecode Queue, Event, Set
 
 derive gDefault TIMeta
 derive gEq ParallelTaskChange
@@ -162,7 +164,7 @@ createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
   `b` \iworld -> ( Ok (TaskId instanceNo 0)
 				 , if refreshImmediate
-                      (queueRefresh [(instanceNo,"First refresh of detached instance "<+++ instanceNo)] iworld)
+                      (queueEvent instanceNo ResetEvent iworld)
                       iworld)
 
 createReduct :: !TonicOpts !InstanceNo !(Task a) !TaskTime -> TIReduct | iTask a
@@ -193,8 +195,15 @@ replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskT
   `b` \iworld -> (Ok (), iworld)
 
 deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
-deleteTaskInstance instanceNo iworld
-    //Delete all states
+deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTasks}}
+	//Delete in administration
+    # (mbe,iworld)    = 'SDS'.modify (\is -> ((),[i \\ i=:(no,_,_,_) <- is | no <> instanceNo])) (sdsFocus defaultValue filteredInstanceIndex) iworld
+	| mbe =: (Error _) = (mbe,iworld)
+    # (mbe,iworld)    = 'SDS'.modify (\(Queue f r) -> ((),Queue [e \\ e=:(no,_) <- f | no <> instanceNo] [e \\ e=:(no,_) <- r | no <> instanceNo])) taskEvents iworld
+	| mbe =: (Error _) = (mbe,iworld)
+	| not persistTasks
+    	= (Ok (),iworld)
+    //Delete all states on disk
     # (mbe,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-reduct") iworld
 	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
     # (mbe,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-value") iworld
@@ -203,10 +212,6 @@ deleteTaskInstance instanceNo iworld
 	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
     # (mbe,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-tasklists") iworld
 	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
-    # (mbe,iworld)    = 'SDS'.modify (\is -> ((),[i \\ i=:(no,_,_,_) <- is | no <> instanceNo])) (sdsFocus defaultValue filteredInstanceIndex) iworld
-	| mbe =: (Error _) = (mbe,iworld)
-    # (mbe,iworld)    = 'SDS'.modify (\(Queue f r) -> ((),Queue [e \\ e=:(no,_) <- f | no <> instanceNo] [e \\ e=:(no,_) <- r | no <> instanceNo])) taskEvents iworld
-	| mbe =: (Error _) = (mbe,iworld)
     = (Ok (),iworld)
 
 //Filtered interface to the instance index. This interface should always be used to access instance data
@@ -464,24 +469,37 @@ where
     write2 p w = Ok Nothing //TODO: Write attributes of detached instances
 
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
-//Special case for refresh events, queue only if the instance has no events in the queue yet
-queueEvent instanceNo event=:(RefreshEvent r) iworld 
-	# (_,iworld) = 'SDS'.modify (queueIfNotScheduled instanceNo event) taskEvents iworld
+queueEvent instanceNo event iworld 
+	# (_,iworld) = 'SDS'.modify
+        (\q -> ((), fromMaybe ('DQ'.enqueue (instanceNo,event) q) (queueWithMergedRefreshEvent q)))
+        taskEvents
+        iworld
 	= iworld
 where
-	queueIfNotScheduled instanceNo event q=:('DQ'.Queue front back)
-		| isMember instanceNo (map fst (front ++ back)) = ((),q)
-														= ((),'DQ'.enqueue (instanceNo,event) q)
-//Standard case...
-queueEvent instanceNo event iworld 
-	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue (instanceNo,event) q)) taskEvents iworld
-	= iworld
+    // merge multiple refresh events for same instance
+    queueWithMergedRefreshEvent :: !(Queue (!InstanceNo, !Event)) -> Maybe (Queue (!InstanceNo, !Event))
+    queueWithMergedRefreshEvent ('DQ'.Queue front back) = case event of
+        RefreshEvent refreshTasks reason =
+            ((\front` -> ('DQ'.Queue front` back))  <$> queueWithMergedRefreshEventList front) <|>
+            ((\back`  -> ('DQ'.Queue front  back`)) <$> queueWithMergedRefreshEventList back)
+        where
+            queueWithMergedRefreshEventList :: [(!InstanceNo, !Event)] -> Maybe [(!InstanceNo, !Event)]
+            queueWithMergedRefreshEventList [] = Nothing
+            queueWithMergedRefreshEventList [hd=:(instanceNo`, event`) : tl] = case event` of
+                RefreshEvent refreshTasks` reason` | instanceNo` == instanceNo =
+                    Just [(instanceNo, RefreshEvent ('DS'.union refreshTasks refreshTasks`) (mergeReason reason reason`)) : tl]
+                _ =
+                    (\tl` -> [hd : tl`]) <$> queueWithMergedRefreshEventList tl
 
-queueRefresh :: ![(InstanceNo,String)] !*IWorld -> *IWorld
-queueRefresh instances iworld
+            mergeReason :: !String !String -> String
+            mergeReason x y = concat [x , "; " , y]
+        _ = Nothing
+
+queueRefresh :: ![(!TaskId, !String)] !*IWorld -> *IWorld
+queueRefresh tasks iworld
     //Clear the instance's share change registrations, we are going to evaluate anyway
-	# iworld	= 'SDS'.clearInstanceSDSRegistrations (map fst instances) iworld
-	# iworld 	= foldl (\w (i,r) -> queueEvent i (RefreshEvent r) w) iworld instances
+	# iworld	= 'SDS'.clearTaskSDSRegistrations ('DS'.fromList (map fst tasks)) iworld
+	# iworld 	= foldl (\w (t,r) -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t) r) w) iworld tasks
 	= iworld
 
 dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)

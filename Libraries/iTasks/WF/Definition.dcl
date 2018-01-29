@@ -10,6 +10,7 @@ from iTasks.UI.Definition import :: UIChange
 from Text.JSON import :: JSONNode
 from Data.Maybe import :: Maybe
 from Data.Map import :: Map(..)
+from Data.Set import :: Set
 from Data.Functor import class Functor
 from System.Time import :: Timestamp
 
@@ -25,11 +26,12 @@ from StdClass import class <
 // Task definition:
 :: Task a = Task !(Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
 
-:: Event	= EditEvent		!TaskId !String !JSONNode 	//Update something in an interaction: Task id, edit name, value
-			| ActionEvent	!TaskId !String				//Progress in a step combinator: Task id, action id
-			| FocusEvent	!TaskId						//Update last event time without changing anything: Task id
-			| RefreshEvent	!String 					//Nop event, just recalcalutate the entire task instance (the string is the reason for the refresh)
-			| ResetEvent                                //Nop event, recalculate the entire task and reset output stream
+:: Event	= EditEvent		!TaskId !String !JSONNode //Update something in an interaction: Task id, edit name, value
+			| ActionEvent	!TaskId !String           //Progress in a step combinator: Task id, action id
+			| FocusEvent	!TaskId                   //Update last event time without changing anything: Task id
+			| RefreshEvent	!(Set TaskId) !String     //Recalcalutate the tasks with given IDs,
+                                                      //using the current SDS values (the string is the reason for the refresh)
+			| ResetEvent                              //Nop event, recalculate the entire task and reset output stream
 
 :: TaskResult a
    //If all goes well, a task computes its current value, a ui effect and a new task state

@@ -68,7 +68,8 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	// --- Client components: ---
 	// Core framework components (implemented in itasks-core.js)
 	| UIComponent                                                                   // - Component (the client-side base class)
-    | UIViewport       			                                                	// - Viewport for embedding another task instance's UI (like an iframe for tasks)
+    | UIViewport                                                                    // - Viewport for embedding another task instance's UI (like an iframe for tasks)
+    | UILoader                                                                      // - Viewport for embedding another task instance's UI (like an iframe for tasks)
 	// Form components (implemented in itasks-components-form.js):
 	| UITextField                                                                   // - Textfield (single line text field)
 	| UITextArea                                                                    // - Textarea (multi-line text field)
@@ -79,10 +80,10 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	| UICheckbox                                                                    // - Checkbox (editable checkbox)
 	| UISlider                                                                      // - Slider (editable slider)
 	| UIButton                                                                      // - Button that sends edit events on click
-	| UILabel						                                                // - Label (non-wrapping text label, clicks focus next component)
-	| UIIcon															    		// - Icon (information icon with tooltip text)
+	| UILabel                                                                       // - Label (non-wrapping text label, clicks focus next component)
+	| UIIcon                                                                        // - Icon (information icon with tooltip text)
 	// Display components (implemented in itasks-components-display.js)
-	| UITextView					                     							// - String (non-wrapping single line text with automatic escaping)
+	| UITextView                                                                    // - String (non-wrapping single line text with automatic escaping)
 	| UIHtmlView                                                                    // - Html (formatted multi line text)
 	| UIProgressBar                                                                 // - Progress (non editable progress bar)
 	// Selection components (implemented in itasks-components-selection.js)
@@ -92,8 +93,8 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	| UIGrid                                                                        // - Grid (selecting an item in a table)
 	| UITree                                                                        // - Tree (selecting a node in a tree structure)
 	// Containers (implemented in itasks-components-container.js)
-    | UIContainer      				
-	| UIPanel 						
+	| UIContainer
+	| UIPanel
 	| UITabSet
 	| UIWindow
 	| UIMenu

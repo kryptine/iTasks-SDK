@@ -9,12 +9,13 @@ import iTasks.UI.Editor.Generic
 
 from Text.JSON import :: JSONNode
 from Data.Map import :: Map(..)
+from Data.Set import :: Set
 from Data.Maybe import :: Maybe
 from System.Time import :: Timestamp
 import Data.Functor
 import Text, Text.JSON
 
-import StdString, StdClass, StdBool
+import StdString, StdClass, StdBool, StdInt
 
 
 exception :: !e -> TaskException | TC, toString e

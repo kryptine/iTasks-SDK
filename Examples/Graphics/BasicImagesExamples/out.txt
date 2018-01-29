@@ -1,0 +1,49 @@
+"Img:",
+Img 0 
+	(CompositeImg 
+		(Img 3 
+			(BasicHostImg RectImg 
+				(Bin 4 (ImgStrokeAttr (SVGColorText "black")) (Bin 2 (ImgFillAttr (SVGColorText "black")) Tip (Bin 1 (ImgFillOpacityAttr 1) Tip Tip)) (Bin 1 (ImgStrokeWidthAttr (PxSpan 1)) Tip Tip))
+			) 
+			Nothing 
+			[] 
+			[]
+		)
+	) 
+	Nothing 
+	[Img 2 
+		(BasicHostImg RectImg 
+			(Bin 4 (ImgStrokeAttr (SVGColorText "black")) (Bin 2 (ImgFillAttr (SVGColorText "black")) Tip (Bin 1 (ImgFillOpacityAttr 1) Tip Tip)) (Bin 1 (ImgStrokeWidthAttr (PxSpan 1)) Tip Tip))
+		) 
+		Nothing 
+		[] 
+		[]
+	,Img 1 
+		(BasicHostImg RectImg 
+			(Bin 4 (ImgStrokeAttr (SVGColorText "black")) (Bin 2 (ImgFillAttr (SVGColorText "black")) Tip (Bin 1 (ImgFillOpacityAttr 1) Tip Tip)) (Bin 1 (ImgStrokeWidthAttr (PxSpan 1)) Tip Tip))
+		) 
+		Nothing 
+		[] 
+		[]
+	]
+	[(PxSpan 20,PxSpan 0),(PxSpan 15,PxSpan 20)]
+
+
+,"ImgEventhandlers:",
+[]
+
+,"ImgTexts:",
+[]
+
+,"ImgSpans:"
+,[(0,(PxSpan 60,PxSpan 60))
+ ,(1,(PxSpan 30,PxSpan 30))
+ ,(2,(PxSpan 20,PxSpan 20))
+ ,(3,(PxSpan 60,PxSpan 60))
+ ]
+
+,"GridSpans:",
+[(0,GridSpan [PxSpan 60] [PxSpan 20,PxSpan 30])]
+
+,"ImgTags:",
+[]

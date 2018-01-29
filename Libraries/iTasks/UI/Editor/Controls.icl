@@ -1,7 +1,7 @@
 implementation module iTasks.UI.Editor.Controls
 
 import iTasks.UI.Definition, iTasks.UI.Editor
-import StdFunc, StdBool, GenEq
+import StdFunc, StdBool, GenEq, StdList
 import Data.Error, Text.JSON, Text.HTML
 import qualified Data.Map as DM
 
@@ -11,31 +11,31 @@ import iTasks.UI.Editor.Modifiers
 disableOnView e = selectByMode (withAttributes (enabledAttr False) e) e e
 
 textField :: Editor String
-textField = fieldComponent toJSON UITextField
+textField = fieldComponent UITextField
 
 textArea :: Editor String
-textArea = fieldComponent toJSON UITextArea
+textArea = fieldComponent UITextArea
 
 passwordField :: Editor String
-passwordField = fieldComponent toJSON UIPasswordField
+passwordField = fieldComponent UIPasswordField
 
 integerField :: Editor Int
-integerField = fieldComponent toJSON UIIntegerField
+integerField = fieldComponent UIIntegerField
 
 decimalField :: Editor Real
-decimalField = fieldComponent toJSON UIDecimalField
+decimalField = fieldComponent UIDecimalField
 
 documentField :: Editor (!String,!String,!String,!String,!Int)
-documentField = fieldComponent toJSON UIDocumentField
+documentField = fieldComponent UIDocumentField
 
 checkBox :: Editor Bool
-checkBox = fieldComponent toJSON UICheckbox
+checkBox = fieldComponent UICheckbox
 
 slider :: Editor Int
-slider = fieldComponent toJSON UISlider
+slider = fieldComponent UISlider
 
 button :: Editor Bool
-button = fieldComponent toJSON UIButton
+button = fieldComponent UIButton
 
 label :: Editor String
 label = viewComponent (\text -> (textAttr text)) UILabel
@@ -44,7 +44,7 @@ icon :: Editor (!String,!Maybe String)
 icon = viewComponent (\(iconCls,tooltip) -> 'DM'.unions [iconClsAttr iconCls,maybe 'DM'.newMap tooltipAttr tooltip]) UIIcon
 
 textView :: Editor String
-textView = viewComponent (\text -> valueAttr (JSONString text)) UITextView
+textView = viewComponent (\text -> valueAttr (JSONString (escapeStr text))) UITextView
 
 htmlView :: Editor HtmlTag
 htmlView = viewComponent (\html -> valueAttr (JSONString (toString html))) UIHtmlView
@@ -90,10 +90,11 @@ where
 		| otherwise = or (map (checkNode idx) children)
 
 //Field like components for which simply knowing the UI type is sufficient
-fieldComponent toValue type = disableOnView {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+fieldComponent :: UIType -> Editor a | JSONDecode{|*|}, JSONEncode{|*|}, gEq{|*|} a
+fieldComponent type = disableOnView {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where 
 	genUI dp val vst=:{VSt|taskId,mode,optional}
-		# val = if (mode =: Enter) JSONNull (toValue val) 
+		# val = if (mode =: Enter) JSONNull (toJSON val) 
 		# valid = if (mode =: Enter) optional True //When entering data a value is initially only valid if it is optional
 		# mask = FieldMask {touched = False, valid = valid, state = val}
 		# attr = 'DM'.unions [optionalAttr optional, taskIdAttr taskId, editorIdAttr (editorId dp), valueAttr val]
@@ -104,11 +105,11 @@ where
 			JSONNull = (Ok (ChangeUI [SetAttribute "value" JSONNull] [],FieldMask {touched=True,valid=optional,state=JSONNull}),val,vst)
 			json = case fromJSON e of
 				Nothing  = (Ok (NoChange,FieldMask {touched=True,valid=False,state=e}),val,vst)
-				Just val = (Ok (ChangeUI [SetAttribute "value" (toValue val)] [],FieldMask {touched=True,valid=True,state=toValue val}),val,vst)
+				Just val = (Ok (ChangeUI [SetAttribute "value" (toJSON val)] [],FieldMask {touched=True,valid=True,state=toJSON val}),val,vst)
 
 	onRefresh dp new old mask vst=:{VSt|mode,optional}
 		| old === new = (Ok (NoChange,mask),new,vst)
-		| otherwise   = (Ok (ChangeUI [SetAttribute "value" (toValue new)] [],mask),new,vst)
+		| otherwise   = (Ok (ChangeUI [SetAttribute "value" (toJSON new)] [],mask),new,vst)
 
 //Components which cannot be edited 
 viewComponent toAttributes type = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}

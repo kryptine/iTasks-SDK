@@ -80,7 +80,7 @@ SelectChildren :== SelectByDepth 1
 	//Match nodes of a certain type
 	| SelectByType UIType
 	//Match nodes that have a matching attribute
-	| SelectByAttribute String JSONNode
+	| SelectByAttribute String (JSONNode -> Bool)
 	//Match nodes that have the attribute
 	| SelectByHasAttribute String
 	//Match nodes with exactly the given number of children

@@ -4,11 +4,16 @@ import iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks.UI.Definition, iTasks.UI.Prompt
 import iTasks.WF.Combinators.Tune
 import iTasks.WF.Combinators.Overloaded
-import Data.List, Text.JSON
+import Data.List, Text.JSON, Data.Maybe, StdString
 import qualified Data.Map as DM
-import StdBool
-from StdFunc import id, const, o
+import StdBool, _SystemArray
+from Data.Func import $
+from StdFunc import id, const, o, flip
+from StdTuple import uncurry, snd
+from StdListExtensions import foldlSt
 from iTasks.Internal.TaskEval import :: TaskEvalOpts(..), :: TonicOpts
+import qualified Text as T
+from Text import class Text, instance Text String
 
 arrangeWithTabs :: Bool -> Layout
 arrangeWithTabs closeable = layoutSubUIs
@@ -30,7 +35,7 @@ where
 
 	selectCloseButton = SelectAND
 		(SelectByType UIAction)
-		(SelectByAttribute "actionId" (JSONString "Close"))
+		(SelectByAttribute "actionId" ((==) (JSONString "Close")))
 
 	reallyMoveCloseToTab = foldl1 sequenceLayouts
 		[moveSubUIs (SelectAND SelectChildren selectCloseButton) [] 0
@@ -58,6 +63,74 @@ where
 	direction = if (side === TopSide|| side === BottomSide) Vertical Horizontal
 
 	(sidePanelWidth,sidePanelHeight) = if (direction === Vertical) (FlexSize,ExactSize size) (ExactSize size,FlexSize)
+
+arrangeAsMenu :: Layout
+arrangeAsMenu = foldl1 sequenceLayouts
+	// Wrap in panel
+	[ wrapUI UIPanel
+	// Add a buttonbar to hold the menu
+	, insertChildUI 0 (ui UIToolBar)
+	// Move the actions with a matching id to the menubar
+	, moveSubUIs (SelectAND
+			(SelectByDepth 2)
+			(SelectAND
+				(SelectByType UIAction)
+				(SelectByAttribute "actionId" (\s->case s of
+						(JSONString s) = s.[0] == '/'
+						_ = False)
+				)
+			)
+		) [0] 0
+	// Transform the menubar in an actual menu
+	, layoutSubUIs (SelectByPath [0]) makeMenu//(sequenceLayouts makeMenu actionToButton)
+	]
+
+makeMenu :: Layout
+makeMenu =	
+	{apply=apply
+	,adjust=  \t->case t of
+		(NoChange, s) = (NoChange, s)
+		(ReplaceUI ui, _) = apply ui
+		(change, LSType ui) = (change, LSType (applyUIChange change ui))
+	,restore= \(LSType ui) = ReplaceUI ui
+	}
+where
+	apply ui=:(UI t attr cs)
+		# (actions, others) = splitWith (\s->s=:(UI UIAction _ _)) cs
+		= (ReplaceUI (UI t attr (mkmenu actions ++ others)), LSType ui)
+
+	adjust (NoChange,s)   = (NoChange,s)
+	adjust (ReplaceUI ui,_) = apply ui
+	adjust (change, LSType ui) = (change, LSType (applyUIChange change ui))
+
+	restore (LSType ui) = ReplaceUI ui 
+	
+	mkmenu :: ([UI] -> [UI])
+	mkmenu  = flip (foldlSt (uncurry ins)) [] o map (\t->(exPath t, t))
+
+	exPath :: UI -> [String]
+	exPath ui=:(UI _ attr _) = case 'DM'.get "actionId" attr of
+		Just (JSONString p) = 'T'.split "/" $ 'T'.subString 1 (size p) p
+		_ = []
+
+	ins :: [String] UI [UI] -> [UI]
+	//Leaf path, thus we insert a button
+	ins [p] ui=:(UI _ attr cs) []
+		# attr = 'DM'.unions
+			[ attr
+			, textAttr p
+			, valueAttr $ maybe (JSONString "") id $ 'DM'.get "actionId" attr]
+		= [UI UIMenu (textAttr p) [UI UIButton attr cs]]
+	//Fork but we haven't found a matching node
+	ins [p:ps] ui []
+		= [UI UIMenu (textAttr p) $ ins ps ui []]
+	//Fork and there is already a menu tree, so we look for the matching node
+	ins [p:ps] ui [(UI t attr cs):us]
+		// If the label on the menu node matches we can add it there
+		| maybe False ((==) $ JSONString p) $ 'DM'.get "text" attr
+			= [UI t attr (ins ps ui cs):us]
+		// Otherwise we create a new menu node
+		= [(UI t attr cs):ins [p:ps] ui us]
 
 arrangeSplit :: !UIDirection !Bool -> Layout
 arrangeSplit direction resize 
@@ -101,7 +174,7 @@ where
 insertToolBar :: [String] -> Layout
 insertToolBar actions = foldl1 sequenceLayouts
 	[insertChildUI 0 (ui UIToolBar)
-	,moveSubUIs (foldl1 SelectOR [SelectByAttribute "actionId" (JSONString action)\\ action <- actions]) [0] 0
+	,moveSubUIs (foldl1 SelectOR [SelectByAttribute "actionId" ((==) (JSONString action))\\ action <- actions]) [0] 0
 	,layoutSubUIs (SelectByPath [0]) (layoutSubUIs (SelectByType UIAction) actionToButton)
 	]
 
@@ -145,12 +218,17 @@ where
 	icon _ = 'DM'.newMap
 
 setActionIcon :: (Map String String) -> Layout
-setActionIcon icons = modifyUIAttributes (SelectKeys ["actionId"]) f
+setActionIcon icons = sequenceLayouts
+	// Buttons and actions
+	(layoutSubUIs (SelectOR (SelectByType UIAction) (SelectByType UIButton))
+		$ ic "actionId")
+	(layoutSubUIs (SelectByType UIMenu)
+		$ ic "text")
 where
-	f attr = fromMaybe 'DM'.newMap
-		(                               'DM'.get "actionId" attr
-		  >>= \(JSONString actionId) -> 'DM'.get actionId icons
-		  >>= \icon ->                   return (iconClsAttr ("icon-"+++icon)))
+	ic field = modifyUIAttributes (SelectKeys [field]) $ \attr->fromMaybe 'DM'.newMap
+		$ 'DM'.get field attr
+		  >>= \(JSONString f) -> 'DM'.get f icons
+		  >>= \icon ->           return (iconClsAttr ("icon-" +++ icon))
 
 instance tune ArrangeWithTabs Task
 where tune (ArrangeWithTabs b) t = tune (ApplyLayout (arrangeWithTabs b)) t
@@ -158,6 +236,10 @@ where tune (ArrangeWithTabs b) t = tune (ApplyLayout (arrangeWithTabs b)) t
 instance tune ArrangeWithSideBar Task 
 where
     tune (ArrangeWithSideBar index side size resize) t = tune (ApplyLayout (arrangeWithSideBar index side size resize)) t
+
+instance tune ArrangeAsMenu Task
+where
+	tune ArrangeAsMenu t = tune (ApplyLayout arrangeAsMenu) t
 
 instance tune ArrangeSplit Task
 where

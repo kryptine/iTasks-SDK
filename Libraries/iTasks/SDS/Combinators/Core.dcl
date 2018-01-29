@@ -28,7 +28,9 @@ sdsParallel :: !String !(p -> (p1,p2)) !((r1,r2) -> r) !(SDSLensWrite p w r1 w1)
 // Create a new SDS by sequential access to two dependent SDS's
 sdsSequence :: !String !(p -> p1) !(p r1 -> p2) (p r1 -> Either r ((r1,r2) -> r)) !(SDSLensWrite p w r1 w1) !(SDSLensWrite p w r2 w2) !(SDS p1 r1 w1) !(SDS p2 r2 w2) -> SDS p r w | iTask p1 & iTask p2 & TC r1 & TC r2 & TC w1 & TC w2
 
-// Create a cached version of an SDS 
-sdsCache:: (p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)) (SDS p r w) -> SDS p r w | iTask p & TC r & TC w
+// Create a cached version of an SDS
+// This is only allowed on source SDSs, otherwise notification can break.
+// If used on other SDSs errors will be generated on read/write.
+sdsCache :: (p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)) (SDS p r w) -> SDS p r w | iTask p & TC r & TC w
 
 

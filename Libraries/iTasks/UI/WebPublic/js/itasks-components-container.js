@@ -307,21 +307,32 @@ itasks.Debug = {
 itasks.Menu = {
 	cssCls: 'menu',
 	attributes: {
-		height: 'wrap'
+		height: 'wrap',
+		width: 'wrap'
 	},
     initDOMEl: function() {
 		var me = this;	
 
-		me.labelEl = document.createElement('a');
-		me.labelEl.classList.add(me.cssPrefix + 'menu-label');
-		me.innerLabelEl = document.createElement('span');
-		me.innerLabelEl.innerHTML = me.attributes.text;
-		me.labelEl.appendChild(me.innerLabelEl);
-		me.domEl.appendChild(me.labelEl);
+		if (!(me.parentCmp.type != 'Menu' && me.children.length == 1)){
+			me.labelEl = document.createElement('div');
+			me.labelEl.classList.add(me.cssPrefix + 'menu-label');
+			me.innerLabelEl = document.createElement('span');
+			me.innerLabelEl.innerHTML = me.attributes.text;
 
-		me.containerEl = document.createElement('div');
-		me.containerEl.classList.add(me.cssPrefix + 'menu-content');
-		me.domEl.appendChild(me.containerEl);
-		
-	}
+			if(me.attributes.iconCls) {
+				console.log("icon class:)");
+				me.icon = document.createElement('div');
+				me.icon.classList.add(me.cssPrefix + 'button-icon');
+				me.icon.classList.add(me.attributes.iconCls);
+				me.labelEl.appendChild(me.icon);
+			}
+
+			me.labelEl.appendChild(me.innerLabelEl);
+			me.domEl.appendChild(me.labelEl);
+
+			me.containerEl = document.createElement('div');
+			me.containerEl.classList.add(me.cssPrefix + 'menu-content');
+			me.domEl.appendChild(me.containerEl);
+		}
+	},
 };

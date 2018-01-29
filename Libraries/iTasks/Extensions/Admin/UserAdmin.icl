@@ -3,7 +3,7 @@ implementation module iTasks.Extensions.Admin.UserAdmin
 import iTasks
 import iTasks.Extensions.CSVFile
 import iTasks.UI.Editor
-import Text, Data.Tuple, StdArray
+import Text, Data.Tuple, StdArray, Data.Maybe
 
 derive class iTask UserAccount
 

@@ -258,7 +258,8 @@ where
 	toString UIParallel        = "RawParallel"
 
 	toString UIComponent       = "Component" 
-    toString UIViewport        = "Viewport"
+	toString UIViewport        = "Viewport"
+	toString UILoader          = "Loader"
 
 	toString UITextField       = "TextField"
 	toString UITextArea        = "TextArea"
