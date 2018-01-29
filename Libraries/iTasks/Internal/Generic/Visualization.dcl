@@ -8,6 +8,7 @@ from Data.Either import :: Either
 from Data.Error import :: MaybeError
 from Data.Map import :: Map
 from System.Time import :: Timestamp, :: Timespec
+from iTasks.Internal.IWorld import :: ClockParameter
 
 :: TextFormat
 	= AsSingleLine		//A single line of text	
@@ -22,7 +23,7 @@ generic gText a :: !TextFormat (Maybe a) -> [String]
 //Default available instances
 derive gText UNIT, PAIR, EITHER, CONS of {gcd_name,gcd_type_def}, OBJECT, RECORD, FIELD of {gfd_name}
 derive gText Int, Real, Char, Bool, String, [], (), (,), (,,), (,,,), (,,,,), (,,,,,), (,,,,,,), (,,,,,,,), (->), Dynamic
-derive gText Maybe, Either, MaybeError, Map, JSONNode, HtmlTag, Timestamp, Timespec
+derive gText Maybe, Either, MaybeError, Map, JSONNode, HtmlTag, Timestamp, Timespec, ClockParameter
 
 //Wrapper functions for visualization
 toSingleLineText        :: !a -> String		| gText{|*|} a

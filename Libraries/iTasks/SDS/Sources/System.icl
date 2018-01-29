@@ -40,7 +40,7 @@ currentTimestamp :: SDS () Timestamp ()
 currentTimestamp = toReadOnly iworldTimestamp
 
 currentTimespec :: SDS () Timespec ()
-currentTimespec = toReadOnly (sdsFocus zero iworldTimespec)
+currentTimespec = toReadOnly (sdsFocus {start=zero,interval=zero} iworldTimespec)
 
 
 // Workflow processes

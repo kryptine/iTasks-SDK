@@ -6,6 +6,7 @@ definition module iTasks.WF.Derives
 import iTasks.WF.Definition
 
 from iTasks.WF.Combinators.Core import :: Action, :: TaskListItem, :: TaskListFilter, :: AttachmentStatus
+from iTasks.Internal.IWorld import :: ClockParameter
 from iTasks.SDS.Sources.System import :: TaskInstance
 
 from Data.Either import :: Either
@@ -39,11 +40,11 @@ derive gText      {}
 //Common iTasks system types
 derive class iTask TaskId, TaskListFilter, AttachmentStatus
 
-derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec
-derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec
+derive JSONEncode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec, ClockParameter
+derive JSONDecode		TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec, ClockParameter
 derive gDefault			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
-derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec
+derive gEq				TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec, ClockParameter
 
 derive gText	        TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action
-derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec
+derive gEditor			TaskValue, TaskListItem, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, Action, Timespec, ClockParameter
 

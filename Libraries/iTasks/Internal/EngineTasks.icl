@@ -29,7 +29,7 @@ updateClock iworld=:{IWorld|clock,world}
 	# (timespec,world) 	= nsTime world
     # iworld = {iworld & world = world}
     //Write SDS if necessary
-    # (mbe,iworld) = write timespec (sdsFocus zero iworldTimespec) iworld
+    # (mbe,iworld) = write timespec (sdsFocus {start=zero,interval=zero} iworldTimespec) iworld
 	| mbe =:(Error _) = (mbe,iworld)
     = (Ok (),iworld)
 

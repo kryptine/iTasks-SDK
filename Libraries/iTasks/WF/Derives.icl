@@ -4,6 +4,7 @@ import iTasks.WF.Definition
 import iTasks.WF.Combinators.Core
 import iTasks.UI.Editor.Common
 import iTasks.SDS.Sources.System
+import iTasks.Internal.IWorld
 
 import Data.Either
 import Data.Error
@@ -44,11 +45,11 @@ derive gDefault   HtmlAttr
 derive gEditor    HtmlAttr
 derive gText      HtmlAttr
 
-derive JSONEncode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, Timespec
-derive JSONDecode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, Timespec
+derive JSONEncode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, Timespec, ClockParameter
+derive JSONDecode		TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, Timespec, ClockParameter
 derive gDefault			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
-derive gEq				TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, Timespec
+derive gEq				TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, Timespec, ClockParameter
 derive gText	        TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action
-derive gEditor			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, Timespec
+derive gEditor			TaskValue, InstanceConstants, InstanceProgress, ValueStatus, TaskInstance, TaskListItem, Action, Timespec, ClockParameter
 
 derive class iTask TaskId, TaskListFilter, AttachmentStatus

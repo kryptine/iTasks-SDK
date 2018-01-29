@@ -147,7 +147,12 @@ destroyIWorld :: !*IWorld -> *World
 
 //Internally used clock share
 // (UTC time can be derived from timestamp, local time requires *World to determine time zone)
-iworldTimespec :: SDS Timespec Timespec Timespec
+:: ClockParameter =
+	{ start :: Timespec
+	, interval :: Timespec
+	}
+
+iworldTimespec :: SDS ClockParameter Timespec Timespec
 iworldTimestamp     :: Shared Timestamp
 iworldLocalDateTime :: ReadOnlyShared DateTime
 
