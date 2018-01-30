@@ -5,7 +5,6 @@ import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
 import iTasks.SDS.Sources.Store
 import iTasks.UI.Prompt
-import iTasks.Extensions.SVG.SVGEditor						// required to embed Image-tasks inside other tasks
 import ScalableExts.Scalable
 import StdArray, StdEnum, StdList
 from   StdFunc import id, const, o
@@ -36,8 +35,8 @@ clean model tags
 	     [ star 31 (r_in,r_out)
 	     , circle (px r_in *. 1.6) <@< {strokewidth = px bandwidth} <@< {stroke = white}
 	     , rotate (rad (pi * 0.25)) (circular (px r_in *. 0.8) (2.0 * pi) (repeatn 4 (circle (px bandwidth *. 0.8))))
-	     , rotate (rad (pi * 0.32)) (circular (px zero)        (2.0 * pi) (map (arctext (px r_in *. 0.78) (0.4 * pi) narrowfont) ["NO VIRUSES","NO SPYWARE","NO VIRUSES","NO SPYWARE"]))
-	     , above (repeat AtMiddleX) [] (map (((>@>) {fill = white}) o ((>@>) {stroke = white}) o (text bigfont)) ["100%", "CLEAN"]) NoHost
+	     , rotate (rad (pi * 0.32)) (circular (px zero)        (2.0 * pi) (map (arctext (px r_in *. 1.10) (0.4 * pi) narrowfont) ["NO VIRUSES","NO SPYWARE","NO VIRUSES","NO SPYWARE"]))
+	     , above (repeat AtMiddleX) [] Nothing [] (map (((>@>) {fill = white}) o ((>@>) {stroke = white}) o (text bigfont)) ["100%", "CLEAN"]) NoHost
 	     ] NoHost
 where
 	r_out      = 100.0
@@ -51,7 +50,7 @@ where
 */
 star :: Int (Real,Real) -> Image m
 star n (r_in,r_out)
-	= polygon Nothing (flatten 
+	= polygon (flatten 
 	     [  [(px r_out *. (cos (angle * (toReal outer_corner))), px r_out *. (sin (angle * (toReal outer_corner))))
 	        ,(px r_in  *. (cos (angle * (toReal inner_corner))), px r_in  *. (sin (angle * (toReal inner_corner))))
 	        ]

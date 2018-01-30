@@ -18,7 +18,8 @@ from Data.Map import instance Functor (Map a)
 from Control.Monad import `b`, class Monad(bind)
 import qualified iTasks.Internal.SDS as DSDS
 import Data.List
-import iTasks.Extensions.SVG.SVGEditor
+from Graphics.Scalable.Image import fromSVGEditor, :: SVGEditor {..}
+import iTasks.UI.JS.Encoding
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Data.Maybe

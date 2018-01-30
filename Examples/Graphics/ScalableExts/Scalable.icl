@@ -1,6 +1,6 @@
 implementation module ScalableExts.Scalable
 
-import Graphics.Scalable
+import Graphics.Scalable.Image
 import StdEnum, StdList
 
 /**	circular r a imgs = image:
