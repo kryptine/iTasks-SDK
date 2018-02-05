@@ -33,8 +33,8 @@ changeSmokeScript = changeScript "Handling Smoke" handleSmokeScript
 changeScript :: !String !(Shared [Script]) -> Task ()
 changeScript prompt script
   =   viewSharedInformation ("Current Script: " <+++ prompt) [ViewAs (\script -> [toString i +++ " : " +++ line \\ line <- map toSingleLineText script & i <- [1..]])] script
-  >>* [ OnAction (Action "Fine" []) (always (return ()))
-      , OnAction (Action "Change" []) (always (   updateSharedInformation ("Change Script: " <+++ prompt) [] script
+  >>* [ OnAction (Action "Fine") (always (return ()))
+      , OnAction (Action "Change") (always (   updateSharedInformation ("Change Script: " <+++ prompt) [] script
                                               >>| changeScript prompt script
                                               ))
       ]

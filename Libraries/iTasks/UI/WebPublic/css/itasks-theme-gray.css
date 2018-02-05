@@ -477,6 +477,15 @@ div.itasks-exception {
   border: 1px solid transparent;
   margin: 1px 0;
   /* Opening menus */ }
+  .itasks-menu div.itasks-menu-sep {
+    width: 100%;
+    height: 5px;
+    display: flex;
+    display: -webkit-flex;
+    flex-direction: row;
+    flex-shrink: 0;
+    border: 1px solid #bbbbbb;
+    border-width: 0 0 1px 0; }
   .itasks-menu div.itasks-menu-label {
     height: 23px;
     background: -moz-linear-gradient(top, #fefefe, #eee);

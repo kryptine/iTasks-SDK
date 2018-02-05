@@ -2,12 +2,12 @@ definition module C2.Framework.MapEnvironment
  
 import iTasks
  
-import iTasks._Framework.Tonic
-import iTasks.API.Extensions.Admin.TonicAdmin
+import iTasks.Internal.Tonic
+import iTasks.Extensions.Admin.TonicAdmin
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.Map as DM
 from Data.Map import :: Map
-import GenLexOrd
+import Data.Generics.GenLexOrd
 
 
 :: Maps2D      :== [Map2D]                                // enumerate sub-maps, order is assumed `lowest' to `highest', mapID identifies map
@@ -122,9 +122,9 @@ lockStatusForHop :: RWShared Coord3D [Coord3D] [Coord3D]
 
 sectionForUser :: !User !SectionUsersMap -> Maybe Coord3D
 
-actorsInSectionShare :: (UserActorShare o a) -> RWShared Coord3D [Actor o a] [Actor o a]
+actorsInSectionShare :: (UserActorShare o a) -> RWShared Coord3D [Actor o a] [Actor o a] | iTask o & iTask a
 
-actorForUserShare :: (UserActorShare o a) -> FocusedUserActorShare o a
+actorForUserShare :: (UserActorShare o a) -> FocusedUserActorShare o a | iTask o & iTask a
 
 derive class iTask Actor, Object
 instance toString (Object obj) | toString obj

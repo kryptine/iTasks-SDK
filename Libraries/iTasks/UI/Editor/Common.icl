@@ -1,7 +1,7 @@
 implementation module iTasks.UI.Editor.Common
 
 import StdBool, StdEnum, StdOrdList, StdList, Data.Maybe, StdList, StdString
-import Text.JSON, GenEq, Data.List
+import Text.JSON, Data.Generics.GenEq, Data.List
 
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.Editor.Containers, iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import Data.Tuple, Data.Error, Text, Text.JSON
@@ -53,7 +53,8 @@ listEditor :: (Maybe ([a] -> Maybe a)) Bool Bool (Maybe ([a] -> String)) (Editor
 listEditor add remove reorder count itemEditor = listEditor_ JSONEncode{|*|} gDefault{|*|} add remove reorder count itemEditor
 
 listEditor_ :: (Bool a -> [JSONNode]) a (Maybe ([a] -> Maybe a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a]
-listEditor_ jsonenc defVal add remove reorder count itemEditor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+listEditor_ jsonenc defVal add remove reorder count itemEditor
+	= {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId,mode} = case genChildUIs dp 0 val [] vst of
 		(Ok (items,masks),vst)

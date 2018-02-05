@@ -1,7 +1,8 @@
 implementation module C2.Apps.ShipAdventure.Core
 
-import iTasks.API.Extensions.SVG.SVGEditor
-import Graphics.Scalable
+import iTasks.Extensions.DateTime
+import iTasks.Extensions.SVG.SVGEditor
+//import Graphics.Scalable
 import qualified Data.List as DL
 import qualified Data.Map as DM
 import qualified Data.IntMap.Strict as DIS
@@ -16,13 +17,20 @@ import C2.Apps.ShipAdventure.Images
 import C2.Apps.ShipAdventure.Types, C2.Framework.Logging, C2.Apps.ShipAdventure.Scripting
 import C2.Apps.ShipAdventure.PathFinding, C2.Apps.ShipAdventure.Util
 
-// the next function should be placed in the library somewhere
+derive class iTask ChoiceGrid, ChoiceRow
 
-mkTable :: [String] ![a] -> Table | gText{|*|} a
-mkTable	headers a = Table headers (map row a) Nothing
-  where
-  row :: !a -> [HtmlTag] | gText{|*|} a
-  row x = [Text cell \\ cell <- gText{|*|} AsRow (Just x)]
+derive JSEncode Map2D, Network, Coord2D, Cable, CableType, Section, Borders, Border
+derive JSEncode Device, SectionStatus, DeviceType, DeviceKind, User, Dir, Availability
+derive JSEncode Actor, ActorStatus, ActorEnergy, ActorHealth, Object, ObjectType
+derive JSEncode MapAction
+derive JSEncode Maybe, Map, IntMap
+
+// the next function should be placed in the library somewhere
+mkTable :: [String] ![a] -> (ChoiceGrid,[Int]) | gText{|*|} a
+mkTable header a = ({ChoiceGrid|header=header,rows=[{ChoiceRow|id=i,cells = row r} \\ r <- a & i <- [0..]]},[])
+where
+	row :: !a -> [HtmlTag] | gText{|*|} a
+	row x = [Text cell \\ cell <- gText{|*|} AsRow (Just x)]
 
 myTasks :: [Workflow]
 myTasks = [ workflow "Walk around"  "Enter map, walk around, follow instructions of commander" currentUserWalkAround
@@ -106,9 +114,9 @@ giveInstructions =
             ) <<@ ArrangeVertical
   )
   where
-  ActionByHand    = Action "By Hand"  []
-  ActionSimulated = Action "Simulate" []
-  ActionScript    = Action "Simulate with Script" []
+  ActionByHand    = Action "By Hand"
+  ActionSimulated = Action "Simulate"
+  ActionScript    = Action "Simulate with Script"
 
   showAlarm :: !(!Coord3D, !SectionStatus) -> String
   showAlarm (alarmLoc, detector) = "Section " <+++ alarmLoc <+++ " : " <+++ toString detector <+++ "!"
@@ -126,9 +134,8 @@ giveInstructions =
                       (\_ -> mkTable ["Status"] ["Everything in order"])
                    )
                 )
-    = viewSharedInformation () [ViewAs view] (sharedGraph |*| myStatusMap |*| myInventoryMap |*| lockedExitsShare |*| lockedHopsShare) @! ()
+    = viewSharedInformation () [ViewUsing view grid] (sharedGraph |*| myStatusMap |*| myInventoryMap |*| lockedExitsShare |*| lockedHopsShare) @! ()
     where
-    mkFireView :: !(!(!(!(!Graph, !MySectionStatusMap), !MySectionInventoryMap), !SectionExitLockMap), !SectionHopLockMap) -> Table
     mkFireView ((((graph, statusMap), inventoryMap), exitLocks), hopLocks)
       #! (_,_,eCost,nrExt, (extLoc, distExt, _))                       = smartShipPathToClosestObject FireExtinguisher inventoryMap actorLoc alarmLoc statusMap exitLocks hopLocks graph
       #! (_,_,bCost,nrFireBlankets, (blanketLoc, distFireBlankets, _)) = smartShipPathToClosestObject FireBlanket      inventoryMap actorLoc alarmLoc statusMap exitLocks hopLocks graph
@@ -138,13 +145,11 @@ giveInstructions =
                 , ("Closest Extinquisher (" <+++ nrExt <+++ " in reach)",         roomToString extLoc,     toString distExt,                     toString eCost)
                 , ("Closest FireBlanket (" <+++ nrFireBlankets <+++ " in reach)", roomToString blanketLoc, toString distFireBlankets,            toString bCost)
                 ]
-    mkSmokeView :: !(!(!(!(!Graph, !MySectionStatusMap), !MySectionInventoryMap), !SectionExitLockMap), !SectionHopLockMap) -> Table
     mkSmokeView ((((graph, statusMap), inventoryMap), exitLocks), hopLocks)
       #! distance = shipShortestPath actorLoc alarmLoc statusMap exitLocks hopLocks graph
       = mkTable [ "Object Description", "Located in Section",     "Distance from " <+++ actor.userName, "Route Length"]
                 [ ("Smoke Alarm",   roomToString alarmLoc, spToDistString2 distance, spToDistString2 distance )
                 ]
-    mkWaterView :: !(!(!(!(!Graph, !MySectionStatusMap), !MySectionInventoryMap), !SectionExitLockMap), !SectionHopLockMap) -> Table
     mkWaterView ((((graph, statusMap), inventoryMap), exitLocks), hopLocks)
       #! (_,_,pCost,nrPlugs, (plugLoc, distPlugs, _)) = smartShipPathToClosestObject Plug inventoryMap actorLoc alarmLoc statusMap exitLocks hopLocks graph
       #! floodDist                                    = shipShortestPath actorLoc alarmLoc statusMap exitLocks hopLocks graph
@@ -175,7 +180,7 @@ handleAlarm (me, (alarmLoc, detector), (actorLoc, actor), priority)
     =   addTaskForUser title actor.userName Immediate (const taskToHandle)
     >>* [ OnValue  (ifValue isDone (\x -> viewInformation ("Task " <+++ title <+++ " succeeded, returning:") [] x @! ()))
         , OnValue  (ifValue isFailed (\x -> viewInformation ("Task " <+++ title <+++ " failed, returning:") [] x @! ()))
-        , OnAction (Action "Cancel task" []) (always (viewInformation "Canceled" [] ("Task " <+++ title <+++ " has been cancelled by you") @! ()))
+        , OnAction (Action "Cancel task") (always (viewInformation "Canceled" [] ("Task " <+++ title <+++ " has been cancelled by you") @! ()))
         ]
     >>| return ()
     where
@@ -191,11 +196,11 @@ handleAlarm (me, (alarmLoc, detector), (actorLoc, actor), priority)
            -> Task (MoveSt String)
   taskToDo (alarmLoc, status) user shStatusMap shUserActor shInventoryMap
     =   viewSharedInformation ("Handle " <+++ toString status <+++ " in Section: " <+++ alarmLoc) [ViewAs todoTable] (sectionForUserShare user |*| myUserActorMap |*| shStatusMap |*| shInventoryMap |*| lockedExitsShare |*| lockedHopsShare |*| sharedGraph)
-    >>* [ OnAction (Action "Use Fire Extinguisher" []) (ifValue (mayUseExtinguisher status) (withUser useExtinquisher))
-        , OnAction (Action "Use FireBlanket" [])       (ifValue (mayUseFireBlanket status)  (withUser useFireBlanket))
-        , OnAction (Action "Use Plug" [])              (ifValue (mayUsePlug status)         (withUser usePlug))
-        , OnAction (Action "Smoke Investigated" [])    (ifValue (mayDetectedSmoke status)   (withUser smokeReport))
-        , OnAction (Action "I give up" [])             (hasValue (withUser giveUp))
+    >>* [ OnAction (Action "Use Fire Extinguisher") (ifValue (mayUseExtinguisher status) (withUser useExtinquisher))
+        , OnAction (Action "Use FireBlanket")       (ifValue (mayUseFireBlanket status)  (withUser useFireBlanket))
+        , OnAction (Action "Use Plug")              (ifValue (mayUsePlug status)         (withUser usePlug))
+        , OnAction (Action "Smoke Investigated")    (ifValue (mayDetectedSmoke status)   (withUser smokeReport))
+        , OnAction (Action "I give up")             (hasValue (withUser giveUp))
         ]
     where
     todoTable ((((((Just curSectionNo, userActorMap), statusMap), inventoryMap), exitLocks), hopLocks), curMap)
@@ -346,7 +351,7 @@ simulateHandlingWithObject startLoc object objectLoc alarmLoc status user
   >>|                   autoMove startLoc objectLoc shipShortestPath user myStatusMap myUserActorMap
   >>= \objectReached -> if objectReached (pickupObject objectLoc object user myUserActorMap inventoryInSectionShare
   >>|                                    autoMove objectLoc alarmLoc shipShortestPath user myStatusMap myUserActorMap
-  >>= \targetReached -> if targetReached (waitForTimer {Time | hour = 0, min = 0, sec = 1}
+  >>= \targetReached -> if targetReached (waitForTimer 1
   >>|                                    useObject alarmLoc object user myUserActorMap inventoryInSectionShare
   >>= \used          -> if used          (setAlarm user (alarmLoc, NormalStatus) myStatusMap @! True)
                                          (return False))

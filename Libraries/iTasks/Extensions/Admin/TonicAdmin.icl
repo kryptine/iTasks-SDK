@@ -15,7 +15,7 @@ import iTasks.Extensions.DateTime
 from StdFunc import seq
 import qualified Data.Map as DM
 from Data.Map import instance Functor (Map a)
-from Control.Monad import `b`, class Monad(bind), instance Monad Maybe
+from Control.Monad import `b`, class Monad(bind)
 import qualified iTasks.Internal.SDS as DSDS
 import Data.List
 import iTasks.Extensions.SVG.SVGEditor
@@ -23,10 +23,15 @@ from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Data.Maybe
 import qualified Control.Applicative as CA
-from Control.Applicative import class Applicative, instance Applicative Maybe
+from Control.Applicative import class Applicative
 
-derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
+derive class iTask StaticDisplaySettings, DynamicDisplaySettings,
                    DynamicView, BlueprintQuery, CircularStack
+derive gEditor Set
+derive gText Set
+derive gDefault Set
+derive JSONEncode Set
+derive JSONDecode Set
 
 derive JSEncode ActionState, TClickAction, ClickMeta, TonicImageState, BlueprintRef, TonicFunc, TExpr, TPriority, TLit, TAssoc, Maybe
 

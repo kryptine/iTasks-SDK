@@ -90,7 +90,12 @@ svgns =: "http://www.w3.org/2000/svg"
   , svgDragTarget   :: !Maybe (JSObj DropTarget)
   }
 
-derive class iTask Set, DropTarget, MousePos, ImageTag
+derive class iTask DropTarget, MousePos, ImageTag
+derive gEditor Set
+derive gText Set
+derive gDefault Set
+derive JSONEncode Set
+derive JSONDecode Set
 
 fromSVGEditor :: (SVGEditor s v) -> Editor s | iTask s & JSEncode{|*|} s
 fromSVGEditor svglet=:{initView,renderImage,updView,updModel}

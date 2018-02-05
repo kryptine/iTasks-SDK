@@ -32,6 +32,7 @@ resetMapState :: Task ()
 
 periodicallyUpdateEntity :: !Int -> Task ()
 
-mapView :: (RWShared () r w) (r -> Bool) User [Entity] -> Task () | iTask r
+mapView :: (RWShared () r w) (r -> Bool) User [Entity] -> Task () | iTask r & iTask w
+
 
 userMapState :: User -> Shared MapState

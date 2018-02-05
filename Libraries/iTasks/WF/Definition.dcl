@@ -19,7 +19,7 @@ from iTasks.UI.Editor.Generic import generic gEditor
 from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
 from iTasks.Internal.Generic.Defaults import generic gDefault
 from Text.JSON import generic JSONEncode, generic JSONDecode
-from GenEq import generic gEq
+from Data.Generics.GenEq import generic gEq
 from StdString import class toString, class fromString
 from StdClass import class <
 

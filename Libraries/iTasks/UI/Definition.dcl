@@ -23,7 +23,7 @@ from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
 
 from iTasks.UI.Editor.Generic import generic gEditor
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
-from GenEq import generic gEq
+from Data.Generics.GenEq import generic gEq
 
 //Provide generic instances for all UI definitions
 derive class iTask UI, UIType
@@ -98,6 +98,7 @@ derive class iTask UIChange, UIAttributeChange, UIChildChange
 	| UITabSet
 	| UIWindow
 	| UIMenu
+	| UIMenuSep
 	| UIToolBar
 	| UIButtonBar
 	| UIList
@@ -231,6 +232,9 @@ taskIdAttr        :: !String                              -> UIAttributes
 labelAttr         :: !String                              -> UIAttributes
 styleAttr         :: !String                              -> UIAttributes
 classAttr         :: !String                              -> UIAttributes
+maxlengthAttr     :: !Int                                 -> UIAttributes
+minlengthAttr     :: !Int                                 -> UIAttributes
+boundedlengthAttr :: !Int !Int                            -> UIAttributes
 
 editAttrs         :: !String !String !(Maybe JSONNode)    -> UIAttributes
 choiceAttrs       :: !String !String ![Int] ![JSONNode]   -> UIAttributes

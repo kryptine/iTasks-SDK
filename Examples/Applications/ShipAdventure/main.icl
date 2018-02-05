@@ -1,6 +1,6 @@
 module main
 
-import iTasks.API.Extensions.Admin.TonicAdmin, iTasks._Framework.Tonic
+import iTasks.Extensions.Admin.TonicAdmin, iTasks.Internal.Tonic
 import iTasks
 import qualified Data.List as DL
 import C2.Navy.Roles.DOff, C2.Navy.Roles.Commander, C2.Navy.Roles.Suspect, C2.Navy.Roles.HVU, C2.Navy.Roles.Simulator, C2.Navy.Roles.Sailor

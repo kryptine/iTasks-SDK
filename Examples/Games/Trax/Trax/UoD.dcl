@@ -6,7 +6,7 @@ import PlatformExts.Tuple
 from   StdClass import class zero, class ~
 import Data.Maybe
 import GenericExts.GenFDomain
-import GenEq, GenLexOrd, GenMap
+import Data.Generics.GenEq, Data.Generics.GenLexOrd, Data.Generics.GenMap
 
 derive class iTask TraxSt, /*Coordinate,*/ TileEdge, LineColor
 

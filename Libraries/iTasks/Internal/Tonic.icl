@@ -33,14 +33,14 @@ from Data.Map import instance Functor (Map a)
 from Data.Set import :: Set
 import qualified Data.Set as DS
 import qualified Data.Foldable as DF
-from Data.Foldable import class Foldable, instance Foldable []
+from Data.Foldable import class Foldable
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.IntMap.Strict as DIS
 import Text
-import GenLexOrd
-from Control.Monad import `b`, class Monad(bind), instance Monad Maybe
+import Data.Generics.GenLexOrd
+from Control.Monad import `b`, class Monad(bind)
 import qualified Control.Applicative as CA
-from Control.Applicative import class Applicative, instance Applicative Maybe
+from Control.Applicative import class Applicative
 import Data.CircularStack
 import qualified TCPIP as TCP
 from TCPChannelClass import :: DuplexChannel {..}, instance ChannelEnv World, class ChannelEnv
@@ -235,8 +235,13 @@ ppnid nid = "[" +++ ppnid` nid +++ "]"
 
 liftA2 f a b = f <$> a <#> b
 
-derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
+derive class iTask StaticDisplaySettings, DynamicDisplaySettings,
                    DynamicView, BlueprintQuery, CircularStack
+derive gEditor Set
+derive gText Set
+derive gDefault Set
+derive JSONEncode Set
+derive JSONDecode Set
 
 //-----------------------------------------------------------------------------
 // REST

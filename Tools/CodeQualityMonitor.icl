@@ -32,7 +32,8 @@ INTERACTIVE_TESTS_PATH :== "../Tests/TestPrograms/Interactive"
 LIBRARY_PATH :== "../Libraries"
 EXAMPLE_MODULES :== ["../Examples/BasicApiExamples.icl"
                     ,"../Examples/Applications/Incidone/IncidoneCCC.icl"
-                    ,"../Examples/Applications/c2-demo/main.icl"
+                    ,"../Examples/Applications/ShipAdventure/main.icl"
+                    ,"../Examples/Applications/TheTaxMan/TheTaxMan.icl"
                     ,"../Examples/GIS/LeafletMapExample.icl"
                     ]
 

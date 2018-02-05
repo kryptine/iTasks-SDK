@@ -10,10 +10,12 @@ import Trax.UoD
 
 derive JSEncode TraxSt, User, Trax, TraxTile, TileEdge, /*Coordinate,*/ Maybe
 
+:: RenderMode = ViewMode | PlayMode
+
 updateTraxEditor :: Bool -> UpdateOption TraxSt TraxSt
-updateTraxEditor flag = UpdateUsing id (const id) (fromSVGEditor
+updateTraxEditor turn = UpdateUsing id (const id) (fromSVGEditor
 									{ initView    = id
-									, renderImage = \_ -> toImage flag
+									, renderImage = \_ -> toImage PlayMode turn
 									, updView     = const id
 									, updModel    = flip const
 									})
@@ -21,7 +23,7 @@ updateTraxEditor flag = UpdateUsing id (const id) (fromSVGEditor
 viewTraxEditor :: ViewOption TraxSt
 viewTraxEditor = ViewUsing id (fromSVGEditor 
 									{ initView    = id
-									, renderImage = \_ -> toImage False
+									, renderImage = \_ -> toImage ViewMode False
 									, updView     = const id
 									, updModel    = flip const
 									})
@@ -31,28 +33,31 @@ redColor         = toSVGColor "red"
 freeTileColor    = toSVGColor "lightgrey"
 transparentColor = toSVGColor "none"
 
-toImage :: Bool TraxSt *TagSource -> Image TraxSt
-toImage my_turn st=:{trax,names=[me,you],turn} _
-	= above (repeat AtMiddleX) [] [text font message, board it_is_my_turn d st] NoHost
+toImage :: RenderMode Bool TraxSt *TagSource -> Image TraxSt
+toImage ViewMode _ st _
+	= board False tileSize st
+toImage PlayMode my_turn st=:{turn} _
+	= above (repeat AtMiddleX) [] [text font message, board it_is_my_turn tileSize st] NoHost
 where
 	it_is_my_turn				= my_turn == turn
 	message						= if it_is_my_turn "Select a tile" "Wait for other player..."
-	d							= px 50.0
 
 board :: Bool Span TraxSt -> Image TraxSt
 board it_is_my_turn d st=:{trax}
 | nr_of_tiles trax == zero
 	| it_is_my_turn				= grid (Rows 2) (RowMajor, LeftToRight, TopToBottom) [] [] 
-							           [tileImage d tile <@< {onclick = const (start_with_this tile), local = False} \\ tile <- gFDomain{|*|}] NoHost
+								   [  tileImage d tile <@< {onclick = const (start_with_this tile), local = False}
+								   \\ tile <- gFDomain{|*|}
+								   ] NoHost
 	| otherwise					= voidImage d
 | otherwise						= grid (Rows (maxy - miny + 3)) (RowMajor, LeftToRight, TopToBottom) (repeat (AtMiddleX,AtMiddleY)) []
-							           [  case tile_at trax coord of
-							                 Nothing   = if (it_is_my_turn && isMember coord free_coords) (freeImage d coord st) (voidImage d)
-							                 Just tile = tileImage d tile
-							           \\ row <- [miny - 1 .. maxy + 1]
-							            , col <- [minx - 1 .. maxx + 1]
-							            , let coord = /*fromTuple*/ (col,row)
-							           ] NoHost
+							       [  case tile_at trax coord of
+							              Nothing   = if (it_is_my_turn && isMember coord free_coords) (freeImage d coord st) (voidImage d)
+							              Just tile = tileImage d tile
+							       \\ row <- [miny - 1 .. maxy + 1]
+							        , col <- [minx - 1 .. maxx + 1]
+							        , let coord = /*fromTuple*/ (col,row)
+							       ] NoHost
 where
 	((minx,maxx),(miny,maxy))	= bounds trax
 	(o_x, o_y)					= (abs (min 0 (minx-1)), abs (min 0 (miny-1)))
@@ -101,3 +106,5 @@ font							= { fontfamily  = "Arial"
 							      , fontvariant = ""
 							      , fontweight  = ""
 							      }
+
+tileSize						= px 50.0

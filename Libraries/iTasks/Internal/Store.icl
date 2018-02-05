@@ -28,7 +28,7 @@ import iTasks.SDS.Sources.Store
 import iTasks.SDS.Combinators.Core
 import iTasks.SDS.Combinators.Common
 from System.Time 					import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
-from GenEq import generic gEq
+from Data.Generics.GenEq import generic gEq
 
 instance toString StoreReadError
 where

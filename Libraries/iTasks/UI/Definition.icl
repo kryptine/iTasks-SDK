@@ -1,6 +1,6 @@
 implementation module iTasks.UI.Definition
 
-import Text.JSON, StdList, StdOrdList, StdBool, StdTuple, GenEq, StdFunc, Text.HTML, Text
+import Text.JSON, StdList, StdOrdList, StdBool, StdTuple, Data.Generics.GenEq, StdFunc, Text.HTML, Text
 from Data.Map import :: Map (..)
 from Data.Functor import class Functor(..)
 import qualified Data.Map as DM
@@ -12,7 +12,6 @@ from iTasks.Internal.Generic.Defaults			import generic gDefault
 from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked
 from iTasks.UI.Editor.Generic import generic gEditor
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
-from GenEq import generic gEq
 
 import Text.HTML
 import StdMisc
@@ -198,6 +197,15 @@ styleAttr style = 'DM'.fromList [("style",JSONString style)]
 classAttr :: !String -> UIAttributes
 classAttr cls = 'DM'.fromList [("class",JSONString cls)]
 
+maxlengthAttr :: !Int -> UIAttributes
+maxlengthAttr l = 'DM'.fromList [("maxlength", JSONInt l)]
+
+minlengthAttr :: !Int -> UIAttributes
+minlengthAttr l = 'DM'.fromList [("minlength", JSONInt l)]
+
+boundedlengthAttr :: !Int !Int -> UIAttributes
+boundedlengthAttr min max = 'DM'.unions [minlengthAttr min, maxlengthAttr max]
+
 editAttrs :: !String !String !(Maybe JSONNode) -> UIAttributes
 editAttrs taskId editorId mbValue 
 	= 'DM'.fromList [("taskId",JSONString taskId),("editorId",JSONString editorId):maybe [] (\value -> [("value",value)]) mbValue]
@@ -288,6 +296,7 @@ where
 	toString UITabSet          = "TabSet"
 	toString UIWindow          = "Window"
 	toString UIMenu            = "Menu"
+	toString UIMenuSep         = "MenuSep"
 	toString UIToolBar         = "ToolBar"
 	toString UIButtonBar       = "ButtonBar"
 	toString UIList            = "List"

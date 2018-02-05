@@ -5,12 +5,26 @@ itasks.TextField = {
 			el = this.domEl;
 		el.type = 'text';
 		el.value = me.attributes.value ? me.attributes.value : '';
+
 		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
 			el.disabled = true;
 		} else {
 			el.addEventListener('keyup',function(e) {
-        	    var value = e.target.value === "" ? null : e.target.value
-				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
+				var v = e.target.value;
+				if('maxlength' in me.attributes){
+					if(v.length > me.attributes['maxlength']){
+						el.value = e.target.value.substr(0, me.attributes['maxlength']);
+						return;
+					}
+				}
+
+				if('minlength' in me.attributes){
+					if(v.length < me.attributes['minlength']){
+						v = null;
+					}
+				}
+
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,v);
 			});
 		}
 	},
@@ -39,8 +53,21 @@ itasks.TextArea = {
 			el.disabled = true;
 		} else {
         	el.addEventListener('keyup',function(e) {
-				var value = e.target.value === "" ? null : e.target.value
-				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
+				var v = e.target.value;
+				if('maxlength' in me.attributes){
+					if(v.length > me.attributes['maxlength']){
+						el.value = e.target.value.substr(0, me.attributes['maxlength']);
+						return;
+					}
+				}
+
+				if('minlength' in me.attributes){
+					if(v.length < me.attributes['minlength']){
+						v = null;
+					}
+				}
+
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,e.target.value);
         	});
 		}
     },
@@ -64,8 +91,21 @@ itasks.PasswordField = {
 			el.disabled = true;
 		} else {
 			el.addEventListener('keyup',function(e) {
-        	    var value = e.target.value === "" ? null : e.target.value
-				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
+				var v = e.target.value;
+				if('maxlength' in me.attributes){
+					if(v.length > me.attributes['maxlength']){
+						el.value = e.target.value.substr(0, me.attributes['maxlength']);
+						return;
+					}
+				}
+
+				if('minlength' in me.attributes){
+					if(v.length < me.attributes['minlength']){
+						v = null;
+					}
+				}
+
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,v);
 			});
 		}
 	}
@@ -93,39 +133,14 @@ itasks.NumberField = {
 		if('enabled' in me.attributes && me.attributes['enabled'] === false) {
 			el.disabled = true;
 		} else {
-        	el.addEventListener('keypress',function(e) {
-        	    if(me.invalidKey(e.which)) {
-        	        e.stopPropagation();
-        	        e.preventDefault();
-        	    }
-        	});
         	el.addEventListener('keyup',function(e) {
-        	    var value;
-        	    if(me.invalidKey(e.which)) {
-        	        return;
-        	    }
-        	    if(e.target.value === "") {
-        	        value = null;
-        	    } else if(me.invalidValue(e.target.value)) {
-        	        value = e.target.value;
-        	    } else {
-        	        value = me.allowDecimal ? parseFloat(e.target.value) : (e.target.value | 0);
-        	    }
-        	    me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
+				var value = e.target.value == "" ? NaN : Number(e.target.value);
+				value = value === NaN ? null : value;
+				const isFloat = value % 1 !== 0;
+				value = !me.allowDecimal && isFloat ? null : value;
+				me.doEditEvent(me.attributes.taskId,me.attributes.editorId,value);
         	});
 		}
-    },
-    invalidKey: function(charCode) {
-        return !(charCode < 32 || (charCode > 47 && charCode < 58) || charCode == 45 || (this.allowDecimal && charCode == 46));
-    },
-    invalidValue: function(value) {
-        var me = this, i;
-        for(i = 0; i < value.length; i++) {
-            if(me.invalidKey(value.charCodeAt(i))) {
-                return true;
-            }
-        }
-        return false;
     },
 	onAttributeChange: function(name,value) {
 		var me = this;
@@ -330,6 +345,7 @@ itasks.Button = {
 			me.label.classList.add(me.cssPrefix + 'button-label');
 			el.appendChild(me.label);
 		}
+
         el.addEventListener('click',function(e) {
 			if(typeof(me.attributes.value) == 'boolean') { //Toggle edit buttons
 				me.attributes.value = !me.attributes.value;
