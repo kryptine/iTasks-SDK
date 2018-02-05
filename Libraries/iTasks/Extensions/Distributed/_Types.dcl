@@ -11,7 +11,7 @@ from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
 from iTasks.Internal.Generic.Defaults import generic gDefault
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.Map import :: Map
-from GenEq import generic gEq
+from Data.Generics.GenEq import generic gEq
 from Data.Maybe import :: Maybe
 
 :: Remote_Task = E. a: Remote_Task (Task a) TaskAttributes Int & iTask a | Remote_Taks_NotUsed

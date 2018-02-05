@@ -19,7 +19,7 @@ from iTasks.UI.Editor.Generic import generic gEditor
 from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
 from iTasks.Internal.Generic.Defaults import generic gDefault
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
-from GenEq import generic gEq
+from Data.Generics.GenEq import generic gEq
 
 from iTasks.WF.Combinators.Overloaded import class TMonad(..), instance TMonad Task, instance Functor Task, instance TApplicative Task, class TApplicative
 from Data.Functor import class Functor
