@@ -4,6 +4,70 @@ itasks.Container = {
 		if(this.baseCls) {
 			this.domEl.classList.add(this.baseCls);
 		}
+		if(this.attributes.resizable){
+			var me = this;
+
+			me.domEl.style.position = 'relative';
+
+			function resizer(me, c, w, h, l, r, t, b, rw, rh){
+				res = document.createElement('div');
+				res.style.width = w;
+				res.style.height = h;
+				res.style.background = 'gray';
+				res.style.position = 'absolute';
+				res.style.left = l;
+				res.style.right = r;
+				res.style.top = t;
+				res.style.bottom = b;
+				res.style.cursor = c;
+				res.style.borderStyle = 'groove';
+				res.style.borderWidth = '2px';
+				me.domEl.style.overflow = 'hidden';
+				me.domEl.appendChild(res);
+
+				//Add listener
+				res.addEventListener('mousedown', function init (e){
+					var oldX = e.clientX;
+					var oldY = e.clientY;
+					var oldW = parseInt(me.domEl.style.width.slice(0, -2));
+					var oldH = parseInt(me.domEl.style.height.slice(0, -2));
+					var resize = function resize(ev) {
+						me.domEl.style.width = rw(oldX, oldW, ev) + "px";
+						me.domEl.style.height = rh(oldY, oldH, ev) + "px";
+					};
+					window.addEventListener('mousemove', resize, false);
+					window.addEventListener('mouseup',
+						function stop(e){
+							window.removeEventListener('mousemove', resize, false);
+							window.removeEventListener('mouseup', stop, false);
+					}, false);
+				}, false);
+			}
+
+			if(me.attributes.resizable.includes("left")){
+				resizer(me, "ew-resize", '0px', '100%', 0, undefined, 0, undefined,
+					function (ox, ow, ev) {return ow + (ox - ev.clientX);},
+					function (oy, oh, ev) {return oh;});
+			}
+
+			if(me.attributes.resizable.includes("right")){
+				resizer(me, "ew-resize", '0px', '100%', undefined, 0, 0, undefined,
+					function (ox, ow, ev) {return ow + (ev.clientX - ox);},
+					function (oy, oh, ev) {return oh;});
+			}
+
+			if(me.attributes.resizable.includes("top")){
+				resizer(me, "ns-resize", '100%', '0px', 0, undefined, 0, undefined,
+					function (ox, ow, ev) {return ow;},
+					function (oy, oh, ev) {return oh + (oy - ev.clientY);});
+			}
+
+			if(me.attributes.resizable.includes("bottom")){
+				resizer(me, "ns-resize", '100%', '0px', 0, undefined, undefined, 0,
+					function (ox, ow, ev) {return ow;},
+					function (oy, oh, ev) {return oh + (ev.clientY - oy);});
+			}
+		}
 	}
 };
 itasks.Panel = {
@@ -18,6 +82,7 @@ itasks.Panel = {
 			me.headerEl.innerHTML = '<span>' + me.attributes.title + '</span>';
 			me.domEl.appendChild(me.headerEl);
 		}
+
 		//Create separate container div
 		me.containerEl = document.createElement('div');
 		me.containerEl.classList.add(me.cssPrefix + 'inner');
