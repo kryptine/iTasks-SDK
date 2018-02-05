@@ -2,6 +2,9 @@ module examples
 
 import iTasks.Extensions.Distributed.iTasks
 
+import Data.Functor
+import Data.Maybe
+import Data.Tuple
 import qualified Text as T
 import qualified iTasks.WF.Tasks.SDS as C
 
@@ -135,5 +138,9 @@ where
 
 Start :: *World -> *World
 Start world
-	= startEngine   [ publish "/" (\_-> startMode (IF_WINDOWS "examples.exe" "examples"))
+	= startEngineWithOptions opts   [ publish "/" (\_-> startMode (IF_WINDOWS "examples.exe" "examples"))
 			] world
+where
+	opts [] = \op->(Just op, ["Started server on port: " +++ toString op.serverPort])
+	opts ["-p",p:as] = appFst (fmap (\o->{o & serverPort=toInt p})) o opts as
+	opts [a:as] = opts as
