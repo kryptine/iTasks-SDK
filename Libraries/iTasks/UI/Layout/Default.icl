@@ -32,7 +32,13 @@ finalizeUI = sequenceAllLayouts
 	[layoutSubUIs (SelectByType UIInteract) finalizeInteract
 	,layoutSubUIs (SelectByType UIStep) finalizeStep
 	,layoutSubUIs (SelectByType UIParallel) finalizeParallel
+	,layoutSubUIs (SelectByType UIList) finalizeList
 	]
+
+finalizeList :: Layout
+finalizeList = sequenceLayouts
+	(layoutSubUIs (SelectByDepth 1) (setUIAttributes (heightAttr WrapSize)))
+	(setUIAttributes (heightAttr WrapSize))
 
 finalizeInteract :: Layout
 finalizeInteract = sequenceAllLayouts

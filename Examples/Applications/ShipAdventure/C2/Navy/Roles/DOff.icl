@@ -39,9 +39,9 @@ damagePrediction
        -|| showDisabledDevices <<@ ArrangeVertical) <<@ ArrangeVertical)
        -|| ((showImperiledCommandAims <<@ ArrangeHorizontal)
        -|| showCommandAims <<@ ArrangeVertical)) <<@ ArrangeHorizontal)
-  >>* [ OnAction (Action "/Disable" []) disableSection
-      , OnAction (Action "/Enable" [])  enableSection
-      , OnAction (Action "/Reset" [])   (always resetSections)
+  >>* [ OnAction (Action "/Disable" ) disableSection
+      , OnAction (Action "/Enable" )  enableSection
+      , OnAction (Action "/Reset" )   (always resetSections)
       ]
   where
   disableSection (Value (disSects, FocusOnSection c3d) _)

@@ -53,7 +53,8 @@ listEditor :: (Maybe ([a] -> Maybe a)) Bool Bool (Maybe ([a] -> String)) (Editor
 listEditor add remove reorder count itemEditor = listEditor_ JSONEncode{|*|} gDefault{|*|} add remove reorder count itemEditor
 
 listEditor_ :: (Bool a -> [JSONNode]) a (Maybe ([a] -> Maybe a)) Bool Bool (Maybe ([a] -> String)) (Editor a) -> Editor [a]
-listEditor_ jsonenc defVal add remove reorder count itemEditor = {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
+listEditor_ jsonenc defVal add remove reorder count itemEditor
+	= {Editor|genUI=genUI,onEdit=onEdit,onRefresh=onRefresh}
 where
 	genUI dp val vst=:{VSt|taskId,mode} = case genChildUIs dp 0 val [] vst of
 		(Ok (items,masks),vst)

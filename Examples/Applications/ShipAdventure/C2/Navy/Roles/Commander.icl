@@ -1,15 +1,16 @@
 implementation module C2.Navy.Roles.Commander
 
 import iTasks
-import iTasks.API.Extensions.Admin.TonicAdmin, iTasks._Framework.Tonic
-import iTasks, iTasks.API.Common.ImportTasks
+import iTasks.Extensions.Admin.TonicAdmin, iTasks.Internal.Tonic
 import Text, C2.Framework.Core, C2.Framework.Util, C2.Framework.Entity
-import iTasks.API.Extensions.GIS.GoogleMap
+import iTasks.Extensions.Document
+import iTasks.Extensions.GIS.GoogleMap
 from Data.IntMap.Strict import :: IntMap, instance Functor IntMap
 import qualified Data.IntMap.Strict as DIS
 import C2.Framework.ContactPosition
 import C2.Framework.Common
 import Math.Geometry
+import Data.Maybe
 import StdMisc
 import qualified Data.List as DL
 import C2.Apps.ShipAdventure.Core, C2.Apps.ShipAdventure.Types
@@ -32,7 +33,7 @@ derive class iTask Precision
   = { sender  :: String
     , date    :: DateTime
     , kind    :: ReportType
-    , inhoud  :: Note
+    , inhoud  :: String
     , bijlage :: Maybe Document
     }
 
@@ -90,7 +91,7 @@ stelOpReport user
                | sender  = toString user
                , date    = dt
                , kind    = Niets
-               , inhoud  = Note ""
+               , inhoud  = ""
                , bijlage = Nothing
                }
 

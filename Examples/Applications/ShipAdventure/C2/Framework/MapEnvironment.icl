@@ -4,11 +4,11 @@ import StdArray
 import iTasks
 
 import iTasks.UI.Definition
-import iTasks._Framework.Tonic
-import iTasks.API.Extensions.Admin.TonicAdmin
+import iTasks.Internal.Tonic
+import iTasks.Extensions.Admin.TonicAdmin
+import iTasks.Extensions.DateTime
 import qualified Data.Map as DM
-from Data.Map import :: Map
-from Data.Map import instance Functor Map
+from Data.Map import :: Map, instance Functor (Map k)
 import qualified Data.IntMap.Strict as DIS
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.Heap as DH
@@ -17,6 +17,9 @@ import Data.Generics.GenLexOrd
 from C2.Framework.Logging import addLog
 import Data.List
 import Data.Eq
+import Data.Maybe
+import Data.Functor
+import Data.Either
 
 import StdMisc
 
@@ -88,8 +91,8 @@ sectionForUserShare user = mapRead (sectionForUser user) sectionUsersShare
 focusedSectionUsersShare :: FocusedSectionUsersShare
 focusedSectionUsersShare = mapLens "focusedSectionUsersShare" sectionUsersShare (Just [])
 
-inventoryForUserSection :: !User !(FocusedSectionInventoryShare o) -> RWShared () (IntMap (Object o)) (IntMap (Object o))
-inventoryForUserSection user inventoryForSectionShare = sdsSequence ("inventoryForUserSection" +++ toString user) mkP2 mkr (SDSWrite write1) (SDSWrite write2) (sectionForUserShare user) inventoryForSectionShare
+inventoryForUserSection :: !User !(FocusedSectionInventoryShare o) -> RWShared () (IntMap (Object o)) (IntMap (Object o)) | iTask o
+inventoryForUserSection user inventoryForSectionShare = sdsSequence ("inventoryForUserSection" +++ toString user) id mkP2 (\_ _ -> Right mkr) (SDSWrite write1) (SDSWrite write2) (sectionForUserShare user) inventoryForSectionShare
   where
   mkP2 p (Just c3d) = c3d
   mkP2 _ _          = (-1, {col = -1, row = -1})
@@ -328,7 +331,7 @@ addActorToMap roomViz actor location inventoryForSectionShare shipStatusShare us
 
 import StdDebug
 
-:: UITag :== NodePath
+:: UITag :== [Int]
 
 :: TaskUITree
   = Ed   UITag
@@ -340,7 +343,7 @@ uiToRefs (UI _ _ subs) = case recurse [] subs of
                            [x : _] -> x
                            _       -> Ed []
   where
-  uiToRefs` :: NodePath (Int, UI) -> [TaskUITree]
+  uiToRefs` :: [Int] (Int, UI) -> [TaskUITree]
   uiToRefs` path (i, UI UIParallel _ subs)
     # curPath = path ++ [i]
     = [Par curPath (recurse curPath subs)]
@@ -352,7 +355,7 @@ uiToRefs (UI _ _ subs) = case recurse [] subs of
     = [Ed curPath]
   recurse curPath subs = flatten (map (uiToRefs` curPath) (zip2 [0..] subs))
 
-getSubTree :: UI NodePath -> Maybe UI
+getSubTree :: UI [Int] -> Maybe UI
 getSubTree ui [] = Just ui
 getSubTree (UI _ _ uis) [i : is]
   | i < length uis = getSubTree (uis !! i) is
@@ -391,6 +394,8 @@ uiAbove refs = UIAbove refs
 
 
 modifyUI :: (TaskUITree -> TaskUILayout) -> Layout
+modifyUI f = idLayout
+/*
 modifyUI f = \(uichange, json) -> case uichange of
                                     ReplaceUI ui -> (ReplaceUI (toLayout ui (f (uiToRefs ui))), json)
                                     _ -> (uichange, json)
@@ -401,6 +406,7 @@ modifyUI f = \(uichange, json) -> case uichange of
   toLayout ui (UINode path) = case getSubTree ui path of
                                 Just ui -> ui
                                 _       -> UI UIDebug 'DM'.newMap []
+*/
 
 moveAround :: !(DrawMapForActor r o a) !User
               !(FocusedSectionInventoryShare o)
@@ -415,29 +421,29 @@ moveAround viewDeck user inventoryForSectionShare
   walkAround
     =   watch (lockedExitsShare |*| roomNoForCurrentUserShare |*| maps2DShare)
     -|| viewDeck user shipStatusShare userToActorShare inventoryForAllSectionsShare
-    >>* [ OnAction (Action "Go west"  []) (moveTo W)
-        , OnAction (Action "Go north" []) (moveTo N)
-        , OnAction (Action "Go south" []) (moveTo S)
-        , OnAction (Action "Go east"  []) (moveTo E)
+    >>* [ OnAction (Action "Go west") (moveTo W)
+        , OnAction (Action "Go north") (moveTo N)
+        , OnAction (Action "Go south") (moveTo S)
+        , OnAction (Action "Go east") (moveTo E)
         ]
 
   changeDecks :: Task ()
   changeDecks
     =    watch (lockedHopsShare |*| roomNoForCurrentUserShare)
     -&&- enterChoiceWithShared "Change deck" [prettyPrintHops] nearbyHops
-    >>*  [OnAction (Action "Change deck" []) changeDeck]
+    >>*  [OnAction (Action "Change deck") changeDeck]
 
   pickUpItems :: Task ()
   pickUpItems
     =    watch roomNoForCurrentUserShare
     -&&- enterChoiceWithShared "Items nearby" [prettyPrintItems] (nearbyItemsShare inventoryForSectionShare)
-    >>*  [OnAction (Action "Grab selected item" []) (withSelectedObject userToActorShare inventoryForSectionShare pickupObject)]
+    >>*  [OnAction (Action "Grab selected item") (withSelectedObject userToActorShare inventoryForSectionShare pickupObject)]
 
   dropItems :: Task ()
   dropItems
     =    watch roomNoForCurrentUserShare
     -&&- enterChoiceWithShared "Items in inventory" [prettyPrintItems] (inventoryShare userToActorShare)
-    >>*  [OnAction (Action "Drop selected item" []) (withSelectedObject userToActorShare inventoryForSectionShare dropObject)]
+    >>*  [OnAction (Action "Drop selected item") (withSelectedObject userToActorShare inventoryForSectionShare dropObject)]
 
   moveAroundUI :: TaskUITree -> TaskUILayout
   moveAroundUI (Par _ [ walkAroundUI
@@ -457,7 +463,7 @@ moveAround viewDeck user inventoryForSectionShare
   roomNoForCurrentUserShare :: ReadOnlyShared (Maybe Coord3D)
   roomNoForCurrentUserShare = toReadOnly (sectionForUserShare user)
 
-  inventoryShare :: (UserActorShare o a) -> ReadOnlyShared [Object o] | iTask o
+  inventoryShare :: (UserActorShare o a) -> ReadOnlyShared [Object o] | iTask o & iTask a
   inventoryShare userToActorShare = toReadOnly (mapRead carriedObjects (sdsFocus user (actorForUserShare userToActorShare)))
 
   nearbyItemsShare :: (FocusedSectionInventoryShare o) -> ReadOnlyShared [Object o] | iTask o
@@ -595,7 +601,7 @@ autoMove thisSection target pathFun user shipStatusShare userToActorShare
                             >>- \hopLocks  -> get sharedGraph
                             >>- \graph     -> case pathFun thisSection target statusMap exitLocks hopLocks graph of
                                                 Just (path=:[nextSection:_], _)
-                                                  =   waitForTimer {Time | hour = 0, min = 0, sec = 1}
+                                                  =   waitForTimer 1
                                                   >>| move roomCoord nextSection user
                                                   >>| addLog user "" ("Has moved to Section " <+++ nextSection)
                                                   >>| autoMove nextSection target pathFun user shipStatusShare userToActorShare
@@ -616,7 +622,7 @@ updActorStatus user upd userToActorShare
 sectionForUser :: !User !SectionUsersMap -> Maybe Coord3D
 sectionForUser u sectionUsersMap = listToMaybe [k \\ (k, us) <- 'DM'.toList sectionUsersMap, u` <- us | u` == u]
 
-actorsInSectionShare :: (UserActorShare o a) -> RWShared Coord3D [Actor o a] [Actor o a]
+actorsInSectionShare :: (UserActorShare o a) -> RWShared Coord3D [Actor o a] [Actor o a] | iTask o & iTask a
 actorsInSectionShare userActorShare = sdsLens "actorsInSectionShare" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) (sectionUsersShare >*< userActorShare)
   where
   read :: Coord3D (SectionUsersMap, UserActorMap o a) -> MaybeError TaskException [Actor o a]
@@ -629,7 +635,7 @@ actorsInSectionShare userActorShare = sdsLens "actorsInSectionShare" (const ()) 
   notify :: Coord3D (SectionUsersMap, UserActorMap o a) [Actor o a] -> SDSNotifyPred Coord3D
   notify c3d _ _ = \c3d` -> c3d == c3d`
 
-actorForUserShare :: (UserActorShare o a) -> FocusedUserActorShare o a
+actorForUserShare :: (UserActorShare o a) -> FocusedUserActorShare o a | iTask o & iTask a
 actorForUserShare userActorShare = mapMaybeLens "actorForUserShare" userActorShare
 
 findUser :: !User !SectionUsersMap !(UserActorMap o a) -> Maybe (!Coord3D, !Actor o a) | iTask o & iTask a

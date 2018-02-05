@@ -233,6 +233,9 @@ labelAttr         :: !String                              -> UIAttributes
 styleAttr         :: !String                              -> UIAttributes
 classAttr         :: !String                              -> UIAttributes
 resizableAttr     :: ![UISide]                            -> UIAttributes
+maxlengthAttr     :: !Int                                 -> UIAttributes
+minlengthAttr     :: !Int                                 -> UIAttributes
+boundedlengthAttr :: !Int !Int                            -> UIAttributes
 
 editAttrs         :: !String !String !(Maybe JSONNode)    -> UIAttributes
 choiceAttrs       :: !String !String ![Int] ![JSONNode]   -> UIAttributes

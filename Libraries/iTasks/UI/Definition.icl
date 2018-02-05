@@ -200,6 +200,15 @@ classAttr cls = 'DM'.fromList [("class",JSONString cls)]
 resizableAttr :: ![UISide] -> UIAttributes
 resizableAttr sides = 'DM'.fromList [("resizable",JSONArray (map encodeUI sides))]
 
+maxlengthAttr :: !Int -> UIAttributes
+maxlengthAttr l = 'DM'.fromList [("maxlength", JSONInt l)]
+
+minlengthAttr :: !Int -> UIAttributes
+minlengthAttr l = 'DM'.fromList [("minlength", JSONInt l)]
+
+boundedlengthAttr :: !Int !Int -> UIAttributes
+boundedlengthAttr min max = 'DM'.unions [minlengthAttr min, maxlengthAttr max]
+
 editAttrs :: !String !String !(Maybe JSONNode) -> UIAttributes
 editAttrs taskId editorId mbValue 
 	= 'DM'.fromList [("taskId",JSONString taskId),("editorId",JSONString editorId):maybe [] (\value -> [("value",value)]) mbValue]

@@ -1,11 +1,16 @@
 implementation module C2.Framework.Core
 
 import iTasks
+import iTasks.Extensions.DateTime
+import iTasks.Extensions.Admin.WorkflowAdmin
 import C2.Framework.Workspace, C2.Framework.Util, C2.Framework.Entity
-import Text, Data.Eq
+import Text, Data.Eq, Data.Functor, Data.List, Data.Maybe
+
 import qualified Data.Map as DM
-import iTasks._Framework.Serialization
+
+import iTasks.Internal.Serialization
 import iTasks.UI.Definition
+import iTasks.UI.Layout
 
 derive class iTask TaskPrio
 
@@ -24,7 +29,7 @@ where
                   >>|          allTasks (map (\f -> f me) (regEntities me))
                   >>~ \ents -> (allTasks (map (\f -> f me ents) (contBgTasks me)))
                                ||-
-                               whileAuthenticated me ents alwaysOnTasks tlist <<@ ApplyLayout (sequenceLayouts [removeSubAt [0],unwrapUI])
+                               whileAuthenticated me ents alwaysOnTasks tlist <<@ ApplyLayout (foldl1 sequenceLayouts [removeSubUIs (SelectByPath [0]),unwrapUI])
 
 whileAuthenticated :: User [Entity]
                       (User -> [(String, User [Entity] -> Task ())])
@@ -37,9 +42,9 @@ whileAuthenticated user ents alwaysOnTasks tlist
   controlDash
     = (allTasks [ viewInformation () [] ("Welcome " +++ toString user) @! ()
                 , viewNotifications 
-                ] <<@ ApplyLayout (setAttributes (directionAttr Horizontal))
-      >>* [OnAction (Action "Log out" [ActionIcon "logout"]) (always (return ()))]
-      ) <<@ ApplyLayout (setAttributes (directionAttr Horizontal))
+                ] <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
+      >>* [OnAction (Action "Log out") (always (return ()))]
+      ) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
 
   workOnTasks :: Task ()
   workOnTasks = parallel [ (Embedded, \_ -> listview)
@@ -54,10 +59,10 @@ whileAuthenticated user ents alwaysOnTasks tlist
       doOpen :: Workspace [(TaskId, WorklistRow)] -> Task ()
       doOpen ws xs = sequence "openAssignedTasks" (map (\(taskId, _) -> appendOnce taskId (workOn taskId @! ()) ws) xs) @! ()
 
-	layout = sequenceLayouts
-		[removeSubAt [1] //Don't show the openAssignedTasks UI
- 		,arrangeWithSideBar 0 RightSide 300 False
-		,layoutSubAt [0] arrangeWithTabs
+	layout = foldl1 sequenceLayouts
+		[removeSubUIs (SelectByPath [1]) //Don't show the openAssignedTasks UI
+ 		,arrangeWithSideBar 0 RightSide 300 True
+		,layoutSubUIs (SelectByPath [0]) (arrangeWithTabs True)
 	    ]
 
     listview :: Task ()
@@ -69,7 +74,7 @@ whileAuthenticated user ents alwaysOnTasks tlist
 chooseTaskAndAdd2TD :: User [Entity] [(String, User [Entity] -> Task ())] Workspace -> Task ()
 chooseTaskAndAdd2TD user ents tlist taskList
   = forever (   enterChoice "Select task to execute" [ChooseFromCheckGroup fst] tlist
-            >>* [OnAction (Action "Select" []) (hasValue doTask)])
+            >>* [OnAction (Action "Select") (hasValue doTask)])
   where
   doTask :: (String, User [Entity] -> Task ()) -> Task ()
   doTask (d, task) = mkAssign d user Urgent (task user ents) @! ()
@@ -77,7 +82,7 @@ chooseTaskAndAdd2TD user ents tlist taskList
 chooseIncomingTaskAndAdd2TD :: User !Workspace -> Task ()
 chooseIncomingTaskAndAdd2TD user taskList
   = forever (   enterChoiceWithShared "Select incoming task to execute" [ChooseFromGrid snd] incomingTasks
-            >>* [OnAction (Action "Open" [ActionTrigger DoubleClick]) (hasValue doTask)])
+            >>* [OnAction (Action "Open") (hasValue doTask)])
   where
   doTask :: (TaskId, WorklistRow) -> Task ()
   doTask (taskId, _) = appendOnce taskId (workOn taskId @! ()) taskList @! ()
@@ -135,9 +140,8 @@ currentNotifications :: ReadOnlyShared [String]
 currentNotifications = mapRead prj (currentDateTime |*| notifications)
   where
   prj :: (DateTime,[(DateTime, String)]) -> [String]
-  prj (now, notifications) = [ msg \\ (dt,msg) <- notifications
-                             | now - dt < DateTime {Date | day = 0, mon = 0, year = 0}
-                                                   {Time | hour = 0, min = 0, sec = 10}]
+  prj (now, notifications) = [ msg \\ (dt,msg) <- notifications]
+                             //| now - dt < {DateTime|day = 0, mon = 0, year = 0, hour = 0, min = 0, sec = 10}] FIXME: Date time comparisons should be possible
 
 addNotification :: String -> Task ()
 addNotification msg
@@ -162,7 +166,7 @@ taskForCurrentUser f = toReadOnly (mapRead (\(procs, ownPid) -> [(p.TaskListItem
 show ownPid {TaskListItem|taskId,progress=Just _} = taskId /= ownPid
 show ownPid _ = False
 
-isActive {TaskListItem|progress=Just {InstanceProgress|value}} = value === None || value === Unstable
+isActive {TaskListItem|progress=Just {InstanceProgress|value}} = value === Unstable
 
 mkRow {TaskListItem|taskId,attributes} =
   { WorklistRow
@@ -173,5 +177,6 @@ mkRow {TaskListItem|taskId,attributes} =
   , date       = fmap toString ('DM'.get "createdAt"      attributes)
   , deadline   = fmap toString ('DM'.get "completeBefore" attributes)
   , createdFor = fmap toString ('DM'.get "createdFor"     attributes)
+  , parentTask = Nothing
   }
 

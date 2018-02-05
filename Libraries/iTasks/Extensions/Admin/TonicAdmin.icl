@@ -25,8 +25,13 @@ import Data.Maybe
 import qualified Control.Applicative as CA
 from Control.Applicative import class Applicative
 
-derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
+derive class iTask StaticDisplaySettings, DynamicDisplaySettings,
                    DynamicView, BlueprintQuery, CircularStack
+derive gEditor Set
+derive gText Set
+derive gDefault Set
+derive JSONEncode Set
+derive JSONDecode Set
 
 derive JSEncode ActionState, TClickAction, ClickMeta, TonicImageState, BlueprintRef, TonicFunc, TExpr, TPriority, TLit, TAssoc, Maybe
 
