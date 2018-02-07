@@ -6,7 +6,7 @@ from Text import class Text, instance Text String
 import qualified Data.Map as DM
 import qualified Text as T
 import Text.Encodings.Base64
-from iTasks.Extensions.Distributed.Task import :: Domain(..)
+from iTasks.Internal.Distributed.Domain import :: Domain(..)
 from iTasks.Extensions.Distributed._Util import repeatClient
 from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor Maybe
 
