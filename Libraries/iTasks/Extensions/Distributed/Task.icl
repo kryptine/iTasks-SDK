@@ -20,7 +20,7 @@ from iTasks.Extensions.User import currentUser, :: User(..), :: UserTitle, :: Ro
 from iTasks.Internal.SDS import :: SDS, :: ReadWriteShared, :: RWShared, :: ReadOnlyShared, :: ROShared
 from iTasks.Extensions.Distributed.Authentication import currentDomain
 import qualified iTasks.WF.Tasks.SDS as C
-import iTasks.Extensions.Distributed.Engine
+import iTasks.Internal.Distributed.Symbols
 
 instance @: worker (Task a) | iTask a & toUserConstraint worker
 where

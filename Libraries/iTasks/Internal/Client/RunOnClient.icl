@@ -130,6 +130,7 @@ createClientIWorld serverURL currentInstance
                         , sessionTime = locundef "sessionTime"
                         , persistTasks = False
 						, autoLayout = True
+						, distributed = False
 	                    , webDirPath  = locundef "webDirectory"
 	                    , storeDirPath = locundef "dataDirectory"
 	                    , tempDirPath = locundef "tempDirectory"

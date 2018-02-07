@@ -8,7 +8,7 @@ import iTasks.Extensions.Distributed.Instance
 import iTasks.Extensions.Distributed._Attributes
 import qualified Data.Map as DM
 import Text.Encodings.Base64
-import iTasks.Extensions.Distributed.Engine
+import iTasks.Internal.Distributed.Symbols
 
 from iTasks.Internal.Serialization import dynamicJSONEncode, dynamicJSONDecode
 from iTasks.UI.Editor.Common import emptyEditor
