@@ -6,6 +6,7 @@ from Data.Maybe import :: Maybe
 from iTasks.Extensions.User import class toUserConstraint(..), :: UserConstraint
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from iTasks.Internal.Generic.Visualization    import :: TextFormat(..)
+from iTasks.Internal.Distributed.Domain import :: Domain
 
 :: Requires = Requires String
 
@@ -19,10 +20,8 @@ instance @: DomainUser (Task a) | iTask a
 
 instance @: Requires (Task a) | iTask a
 
-:: Domain = Domain String
 :: DomainUser = E. a: DomainUser a Domain & toUserConstraint a & gText{|*|} a & toString a
 
-derive class iTask Domain
 derive gText DomainUser	
 
 instance toString DomainUser

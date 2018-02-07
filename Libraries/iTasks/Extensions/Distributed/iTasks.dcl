@@ -37,7 +37,7 @@ from iTasks.Extensions.Admin.UserAdmin import manageUsers, loginAndManageWorkLis
 from iTasks.SDS.Sources.System import currentTime
 from iTasks.SDS.Sources.Store import sharedStore
 from iTasks.WF.Combinators.SDS import withShared
-from iTasks.Extensions.Distributed.Task import :: Domain
+from iTasks.Internal.Distributed.Domain import :: Domain
 import iTasks.Extensions.Distributed.Task
 import iTasks.Extensions.Distributed.SDS
 from iTasks.Extensions.Distributed.Authentication import domainAuthServer, usersOf, remoteAuthenticateUser, startAuthEngine, enterDomain, currentDistributedUser, currentDomain

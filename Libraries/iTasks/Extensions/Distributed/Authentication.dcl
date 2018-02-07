@@ -6,7 +6,7 @@ from Data.Maybe import :: Maybe
 from iTasks.Extensions.User import class toUserConstraint(..), :: UserConstraint
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from iTasks.Internal.Generic.Visualization    import :: TextFormat(..)
-from iTasks.Extensions.Distributed.Task import :: Domain
+from iTasks.Internal.Distributed.Domain import :: Domain
 from iTasks.Extensions.User import :: User, :: Username, ::Password
 from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ROShared
 
