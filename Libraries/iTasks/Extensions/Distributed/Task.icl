@@ -12,7 +12,8 @@ from iTasks.Internal.Generic.Visualization import :: TextFormat(..)
 import qualified iTasks.Extensions.User as U
 import Data.Map
 from symbols_in_program import :: Symbol
-from iTasks.Extensions.Distributed.RemoteTask import remoteAssignTask
+from iTasks.Internal.Distributed.RemoteTask import remoteAssignTask
+import iTasks.Internal.Distributed.Domain
 from iTasks.WF.Combinators.Common import -&&-, >>-
 from iTasks.SDS.Sources.System import currentDateTime
 from iTasks.Extensions.DateTime import :: DateTime, instance toString DateTime
@@ -70,7 +71,6 @@ where
 			, ("requires",   requires)
 			]) task domain
 
-derive class iTask Domain
 
 instance @. worker Domain | toUserConstraint worker & gText{|*|} worker & toString worker
 where

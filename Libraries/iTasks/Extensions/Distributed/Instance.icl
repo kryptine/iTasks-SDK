@@ -1,7 +1,6 @@
 implementation module iTasks.Extensions.Distributed.Instance
 
 import iTasks
-import iTasks.Extensions.Admin.UserAdmin
 from Text import class Text, instance Text String
 import qualified Data.Map as DM
 import qualified Text as T
@@ -16,6 +15,7 @@ from iTasks.Extensions.Distributed.Task import :: Domain(..)
 from iTasks.Extensions.Distributed._Util import repeatClient
 from iTasks.SDS.Sources.System import topLevelTasks
 from iTasks.Internal.Serialization import dynamicJSONEncode, dynamicJSONDecode
+from iTasks.Internal.Distributed.Domain import Domain
 from iTasks.UI.Editor.Common import emptyEditor
 from iTasks.Internal.SDS import modify
 from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor Maybe
