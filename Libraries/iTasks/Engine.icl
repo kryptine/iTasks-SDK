@@ -25,6 +25,7 @@ import iTasks.Internal.IWorld, iTasks.Internal.TaskEval, iTasks.Internal.TaskSto
 import iTasks.Internal.Util
 import iTasks.Internal.TaskServer
 import iTasks.Internal.EngineTasks
+import iTasks.Internal.Distributed.Symbols
 
 from iTasks.Extensions.DateTime import toDate, toTime, instance == Date, instance == Time
 
@@ -44,14 +45,23 @@ defaultEngineOptions world
 	# options =	
 		{ appName			= appName
 		, appPath			= appPath
-        , appVersion        = appVersion
+		, appVersion        = appVersion
 		, serverPort		= IF_POSIX_OR_WINDOWS 8080 80
+<<<<<<< HEAD
         , serverUrl         = "http://localhost/"
 		, keepaliveTime     = {tv_sec=300,tv_nsec=0} // 5 minutes
 		, sessionTime       = {tv_sec=60,tv_nsec=0}  // 1 minute, (the client pings every 10 seconds by default)
         , persistTasks      = False
 		, autoLayout        = True
 		, timeout			= Just 500
+=======
+		, serverUrl         = "http://localhost/"
+		, keepaliveTime     = 300 // 5 minutes
+		, sessionTime       = 60 // 1 minute, (the client pings every 10 seconds by default)
+		, persistTasks      = False
+		, autoLayout        = True
+		, distributed       = False
+>>>>>>> Add storing symbols to the engine
 		, webDirPath 		= appDir </> appName +++ "-www"
 		, storeDirPath      = appDir </> appName +++ "-data" </> "stores"
 		, tempDirPath       = appDir </> appName +++ "-data" </> "tmp"
@@ -133,6 +143,8 @@ startEngineWithOptions initFun publishable world
  			# iworld				= createIWorld (fromJust mbOptions) world
  			# (res,iworld) 			= initJSCompilerState iworld
 		 	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
+			# (_, iworld)			= if options.distributed (storeSymbols options.appName iworld) (Ok "", iworld)
+			| res =:(Error _)		= show ["Fatar error: " +++ fromError res] (destroyIWorld iworld)
 			# iworld				= serve [TaskWrapper removeOutdatedSessions] (tcpTasks options.serverPort options.keepaliveTime) (timeout options.timeout) iworld
 			= destroyIWorld iworld
 where

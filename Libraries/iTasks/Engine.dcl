@@ -23,6 +23,7 @@ import iTasks.WF.Definition
     , persistTasks  :: Bool
 	, autoLayout    :: Bool
 	, timeout       :: Maybe Int // The timeout
+	, distributed   :: Bool
 	, webDirPath 	:: FilePath  // Location of public files that are served by the iTask webserver
 	, storeDirPath 	:: FilePath  // Location of the application's persistent data files 
 	, tempDirPath 	:: FilePath  // Location for temporary files used in tasks

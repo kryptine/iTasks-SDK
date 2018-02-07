@@ -131,6 +131,7 @@ createClientIWorld serverURL currentInstance
                         , persistTasks = False
 						, autoLayout = True
 						, timeout = Just 100
+						, distributed = False
 	                    , webDirPath  = locundef "webDirectory"
 	                    , storeDirPath = locundef "dataDirectory"
 	                    , tempDirPath = locundef "tempDirectory"

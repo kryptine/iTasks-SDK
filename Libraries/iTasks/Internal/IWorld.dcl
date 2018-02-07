@@ -6,7 +6,7 @@ from Data.Maybe				import :: Maybe
 from Data.Error 			import :: MaybeError(..), :: MaybeErrorString(..)
 from Data.Set               import :: Set
 from Data.Queue             import :: Queue
-from StdFile			                import class FileSystem		
+from StdFile			                import class FileSystem, class FileEnv
 from System.Time				        import :: Timestamp, :: Timespec
 from Text.GenJSON				            import :: JSONNode
 from iTasks.Engine                      import :: EngineOptions
@@ -161,3 +161,4 @@ iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
 iworldResource :: (*Resource -> (Bool, *Resource)) *IWorld -> (*[*Resource], *IWorld)
 
 instance FileSystem IWorld
+instance FileEnv IWorld
