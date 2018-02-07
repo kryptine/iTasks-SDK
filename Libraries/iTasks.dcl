@@ -26,6 +26,8 @@ import
     ,   iTasks.WF.Combinators.Tune
     ,   iTasks.WF.Combinators.Overloaded
     ,   iTasks.WF.Combinators.Common
+	// Distributed iTasks
+	,   iTasks.Internal.Distributed.Domain
 
 	//  Custom task GUI's
 	,   iTasks.UI.Tune
