@@ -12,7 +12,6 @@ import iTasks.Extensions.Distributed._Types
 import iTasks.Extensions.Distributed.Instance
 import iTasks.Extensions.Distributed._SDS
 import iTasks.Extensions.Distributed._Attributes
-import iTasks.Extensions.Distributed.Engine
 from iTasks.Extensions.Distributed.Task import :: Domain(..)
 
 remoteAssignTask :: !TaskAttributes (Task a) Domain -> Task a | iTask a

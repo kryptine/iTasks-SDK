@@ -22,7 +22,7 @@ from iTasks.SDS.Sources.System import currentDateTime
 from iTasks.Extensions.User import currentUser, :: User(..), :: UserTitle, :: Role, :: UserId, assign, workerAttributes, :: Password, :: Username, workAs, :: Credentials{..}, users
 from iTasks.SDS.Definition import :: ReadWriteShared, :: RWShared, :: ReadOnlyShared
 from iTasks.WF.Tasks.Core import accWorld
-from iTasks.Extensions.Distributed.Engine import startDistributedEngine
+import iTasks.Internal.Distributed.Symbols
 from iTasks.Extensions.Distributed.Instance import instanceServer, instanceClient, instanceFilter, instanceClameFilter
 from Data.Map import :: Map
 from iTasks.Extensions.Admin.WorkflowAdmin import workflow, class toWorkflow(..), :: Workflow, publish, :: PublishedTask{..}, :: TaskWrapper(..), manageWorklist, instance toWorkflow (Task a), instance toWorkflow (WorkflowContainer a), instance toWorkflow (a -> Task b), instance toWorkflow (ParamWorkflowContainer a b), :: WorkflowContainer, :: ParamWorkflowContainer

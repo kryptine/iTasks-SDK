@@ -13,8 +13,8 @@ from iTasks.Internal.TaskEval       import :: TaskTime
 from iTasks.Engine                  import :: EngineOptions(..)
 from System.Process                 import :: ProcessHandle, :: ProcessIO
 
-from StdFile import class FileSystem(..)
-from StdFile import instance FileSystem World
+from StdFile import class FileSystem(..), class FileEnv(..), :: Files
+from StdFile import instance FileSystem World, instance FileEnv World
 from StdFunc import const, o, seqList, :: St
 from StdMisc import abort
 from StdOrdList import sortBy
@@ -163,3 +163,12 @@ where
 	sfopen filename mode iworld=:{IWorld|world}
 		# (ok,file,world) = sfopen filename mode world
 		= (ok,file,{IWorld|iworld & world = world})
+
+instance FileEnv IWorld
+where
+	accFiles accfun iworld=:{IWorld|world}
+		# (x, world) = accFiles accfun world
+		= (x, {IWorld | iworld & world=world})
+	appFiles appfun iworld=:{IWorld|world}
+		# world = appFiles appfun world
+		= {IWorld | iworld & world=world}
