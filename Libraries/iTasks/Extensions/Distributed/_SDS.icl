@@ -4,7 +4,7 @@ import iTasks.Extensions.Distributed._Util
 import iTasks.Extensions.Distributed._Types
 import iTasks.Extensions.Distributed._Formatter
 import iTasks.Internal.Distributed.RemoteTask
-import iTasks.Extensions.Distributed.Instance
+import iTasks.Internal.Distributed.Instance
 import iTasks.Extensions.Distributed._Attributes
 import qualified Data.Map as DM
 import Text.Encodings.Base64

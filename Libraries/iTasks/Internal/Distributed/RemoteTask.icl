@@ -9,10 +9,10 @@ import iTasks
 //import iTasks.Extensions.Distributed._Evaluation
 //import iTasks.Extensions.Distributed._Util
 //import iTasks.Extensions.Distributed._Types
-import iTasks.Extensions.Distributed.Instance
+import iTasks.Internal.Distributed.Instance
 //import iTasks.Extensions.Distributed._SDS
 //import iTasks.Extensions.Distributed._Attributes
-from iTasks.Extensions.Distributed.Task import :: Domain(..)
+from iTasks.Internal.Distributed.Domain import :: Domain(..)
 
 remoteAssignTask :: !TaskAttributes (Task a) Domain -> Task a | iTask a
 remoteAssignTask attributes task domain

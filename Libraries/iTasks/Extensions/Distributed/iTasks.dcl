@@ -23,7 +23,7 @@ from iTasks.Extensions.User import currentUser, :: User(..), :: UserTitle, :: Ro
 from iTasks.SDS.Definition import :: ReadWriteShared, :: RWShared, :: ReadOnlyShared
 from iTasks.WF.Tasks.Core import accWorld
 import iTasks.Internal.Distributed.Symbols
-from iTasks.Extensions.Distributed.Instance import instanceServer, instanceClient, instanceFilter, instanceClameFilter
+from iTasks.Internal.Distributed.Instance import instanceServer, instanceClient, instanceFilter, instanceClameFilter
 from Data.Map import :: Map
 from iTasks.Extensions.Admin.WorkflowAdmin import workflow, class toWorkflow(..), :: Workflow, publish, :: PublishedTask{..}, :: TaskWrapper(..), manageWorklist, instance toWorkflow (Task a), instance toWorkflow (WorkflowContainer a), instance toWorkflow (a -> Task b), instance toWorkflow (ParamWorkflowContainer a b), :: WorkflowContainer, :: ParamWorkflowContainer
 from System.FilePath import :: FilePath, </>
