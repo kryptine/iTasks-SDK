@@ -1,4 +1,4 @@
-implementation module iTasks.Extensions.Distributed.Instance
+implementation module iTasks.Internal.Distributed.Instance
 
 import iTasks
 from Text import class Text, instance Text String

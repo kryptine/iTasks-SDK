@@ -8,6 +8,8 @@ import Data.Tuple
 import qualified Text as T
 import qualified iTasks.WF.Tasks.SDS as C
 
+import iTasks.Internal.Distributed.Domain
+
 base 		:== ""
 manage		:== base +++ "Manage/"
 examples 	:== base +++ "Examples/"
