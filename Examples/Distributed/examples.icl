@@ -99,8 +99,7 @@ getDomain
 
 startMode :: String -> Task ()
 startMode executable
-	= startDistributedEngine executable
-	>>| get serverRoleShare 
+	=   get serverRoleShare 
 	>>- \role = case role of
 			DomainServer domain -> startAuthEngine domain >>| loginAndManageWorkList "Service engineer application" (myTasks True)
 			Server domain -> startAuthEngine domain >>| loginRemote (myTasks False)
@@ -141,6 +140,6 @@ Start world
 	= startEngineWithOptions opts   [ publish "/" (\_-> startMode (IF_WINDOWS "examples.exe" "examples"))
 			] world
 where
-	opts [] = \op->(Just op, ["Started server on port: " +++ toString op.serverPort])
+	opts [] = \op->(Just {op&distributed=True}, ["Started server on port: " +++ toString op.serverPort])
 	opts ["-p",p:as] = appFst (fmap (\o->{o & serverPort=toInt p})) o opts as
 	opts [a:as] = opts as

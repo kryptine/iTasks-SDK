@@ -10,7 +10,7 @@ import iTasks.Extensions.Distributed._Formatter
 import iTasks.Extensions.Distributed._Util
 import iTasks.Extensions.Distributed._Types
 import iTasks.Extensions.Distributed._SDS
-import iTasks.Extensions.Distributed.Engine
+import iTasks.Internal.Distributed.Symbols
 import iTasks.Extensions.Distributed._Evaluation
 from iTasks.Extensions.Distributed.Task import :: Domain(..)
 from iTasks.Extensions.Distributed._Util import repeatClient
