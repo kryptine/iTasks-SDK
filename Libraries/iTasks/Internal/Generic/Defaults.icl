@@ -4,6 +4,9 @@ import StdGeneric, StdFunc
 import Data.Maybe, Data.Either, Data.Error, Data.Map, Text.HTML, Text.JSON, System.Time
 import Data.Generics.GenDefault
 
+gDefault{|Bool|}  				= False
+gDefault{|Char|}  				= '-'
+
 gDefault{|(->)|} fa fb	    				    = const fb
 gDefault{|Dynamic|}		    				    = dynamic 42
 gDefault{|Maybe|} fa	    				    = Nothing
