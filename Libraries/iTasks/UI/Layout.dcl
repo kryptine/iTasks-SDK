@@ -6,10 +6,11 @@ definition module iTasks.UI.Layout
 * updates that are later applied accordingly.
 */
 
-from iTasks.UI.Definition import :: UI, :: UIType, :: UIAttributes, :: UIChange
+from iTasks.UI.Definition import :: UI, :: UIType, :: UIAttribute, :: UIAttributes, :: UIAttributeKey, :: UIChange
 
 from Data.Maybe import :: Maybe
 from Data.Map  import :: Map
+from Data.Set import :: Set
 from Data.Either import :: Either
 
 from Text.JSON import :: JSONNode
@@ -35,6 +36,7 @@ from Text.JSON import :: JSONNode
 	| LSLayoutSubUIs !UI (LayoutTree LayoutState ())   //States of layouts applied to sub-ui's 
 	| LSRemoveSubUIs !MvUI                             //UI's that were removed by the layout
 	| LSReference !UI
+	| LSRule !LUI
 
 :: LayoutTree a b
 	= UIModified !a
@@ -54,9 +56,6 @@ from Text.JSON import :: JSONNode
 :: MvUIChild
 	= MvUIItem MvUI           //Upstream UI nodes with their annotations
 	| MvUIMoveDestination Int //A marker for the segment in the upstream ui where the moved nodes have been inserted (n should equal the amount of moved nodes)
-//	| MvUINoLongerMoved Int   //A marker that indicates that at this location in the UI there were previously 'moved' nodes.
-//                             //A RemoveChild or ReplaceUI change has removed them.
-	
 
 // In specifications of layouts, sub-parts of UI's are commonly addressed as 
 // a path of child selections in the UI tree.
@@ -148,6 +147,8 @@ removeSubUIs   :: UISelection -> Layout
 */
 moveSubUIs   :: UISelection UIPath Int -> Layout
 
+
+
 // == Composition of layouts ==
 /**
 * Apply a layout locally to parts of a UI
@@ -157,6 +158,11 @@ layoutSubUIs :: UISelection Layout -> Layout
 * Apply multiple layouts sequentially. The UI changes that have been transformed by one layout are further transformed by the next layout
 */
 sequenceLayouts :: Layout Layout -> Layout
+
+
+
+
+
 
 /**
 * This layout can apply any transformation on UI's, but it replaces everything on each change.
@@ -180,10 +186,66 @@ moveSubUIsRef_           :: UISelection UIPath Int -> Layout
 layoutSubUIsRef_         :: UISelection Layout -> Layout
 sequenceLayoutsRef_      :: Layout Layout -> Layout
 
-//This type records the states of layouts applied somewhere in a ui tree
-:: NodeLayoutStates :== [(Int,NodeLayoutState)]
-:: NodeLayoutState
-	= BranchLayout LayoutState
-	| ChildBranchLayout NodeLayoutStates
-	
-:: TaskHost a = InTaskHost | NoTaskHost
+//Experimental type that encodes all changes that are in effect by layouts
+//From this data structure both the UI with, and without the layout effects, can be deduced
+:: LUI
+	//UI nodes (with upstream changes)
+	= LUINode UIType UIAttributes [LUI] LUIChanges LUIEffects
+	//Placeholder nodes
+	| LUIShiftDestination SID
+	| LUIMoveDestination LID
+
+//Upstream UI changes
+:: LUIChanges =
+	{ toBeInserted  :: !Bool
+	, toBeRemoved   :: !Bool
+	, toBeReplaced  :: !Maybe LUI
+	, toBeShifted   :: !Maybe SID
+	, setAttributes :: UIAttributes
+	, delAttributes :: Set UIAttributeKey
+	}
+
+:: LUIEffects =
+	{ overwrittenType       :: LUIEffectStage UIType
+	, overwrittenAttributes :: Map UIAttributeKey (LUIEffectStage JSONNode)
+	, hiddenAttributes      :: Set (LUIEffectStage UIAttributeKey)
+	, additional            :: LUIEffectStage LID
+	, hidden                :: LUIEffectStage LID
+	}
+
+//Layout rules determine that an effect should according to that rule be applied or restored.
+//This desired state change can be undone by a later rule
+//Only when the downstream changes have been collected is an effect marked as 'applied'
+:: LUIEffectStage a
+	= ESNotApplied
+	| ESToBeApplied a
+	| ESApplied a
+	| ESToBeUpdated a a
+	| ESToBeRemoved a
+
+noChanges :: LUIChanges
+noEffects :: LUIEffects
+
+//When layout rules make changes, it must be tracable which layout rule caused the change
+:: LID :== Int
+//When shifting children, it must be tracable which source connects to which destination
+:: SID :== Int
+
+//A layout rule is simply a function that applies (or undoes) an effect to a LUI tree
+:: LayoutRule :== LID LUI -> LUI
+
+initLUI :: Bool UI -> LUI
+
+applyUpstreamChange :: UIChange LUI -> LUI
+
+extractDownstreamChange :: LUI -> (!UIChange,!LUI)
+
+//A layout rule can be created from a layout rule
+ruleBasedLayout :: LayoutRule -> Layout
+
+//Rules
+setUITypeRule :: UIType -> LayoutRule
+
+//Helper functions (exported for testing)
+adjustIndex_ :: Int [LUI] -> Int
+

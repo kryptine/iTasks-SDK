@@ -1,11 +1,13 @@
 implementation module iTasks.UI.Layout
 
 import StdTuple, StdList, StdBool, StdInt, StdOrdList, StdArray, StdMisc, StdString
+import Data.Generics.GenLexOrd
 import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.Functor
 import iTasks.Internal.Util, iTasks.Internal.HtmlUtil, iTasks.UI.Definition
 import iTasks.Internal.Generic.Defaults 
 import StdEnum
-from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, alter, union, keys, unions, singleton
+from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, delList, alter, union, keys, unions, singleton
+from Data.Set as DS import qualified newSet, insert, delete, toList, fromList
 from Data.Tuple import appSnd
 import Text.JSON
 
@@ -17,8 +19,14 @@ import iTasks.WF.Definition
 import Data.Generics.GenEq
 
 //This type records the states of layouts applied somewhere in a ui tree
-derive JSONEncode LayoutState, LayoutTree, MvUI, MvUIChild
-derive JSONDecode LayoutState, LayoutTree, MvUI, MvUIChild
+derive JSONEncode LayoutState, LayoutTree, MvUI, MvUIChild, LUI, LUIChanges, LUIEffects, LUIEffectStage, Set
+derive JSONDecode LayoutState, LayoutTree, MvUI, MvUIChild, LUI, LUIChanges, LUIEffects, LUIEffectStage, Set
+
+derive gLexOrd LUIEffectStage
+
+instance < (LUIEffectStage a) | gLexOrd{|*|} a
+where
+	(<) x y = (gLexOrd{|*|} x y) === LT
 
 //Test if a specific UI at a path is in the selection
 inUISelection :: UISelection UIPath UI -> Bool
@@ -53,6 +61,7 @@ idLayout :: Layout
 idLayout = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
 
 setUIType :: UIType -> Layout
+/*
 setUIType type = {Layout|apply=apply,adjust=adjust,restore=restore}
 where
 	apply ui=:(UI _ attr items) = (ReplaceUI (UI type attr items), LSType ui) //Crude replacement (no instruction possible)
@@ -63,6 +72,8 @@ where
 
 	//Crude restore...
 	restore (LSType ui) = ReplaceUI ui 
+*/
+setUIType type = ruleBasedLayout (setUITypeRule type)
 
 setUITypeRef_ :: UIType -> Layout
 setUITypeRef_ type = referenceLayout ref
@@ -1168,57 +1179,453 @@ where
 listMove :: Int Int [a] -> [a]
 listMove src dst list = insertAt dst (list !! src) (removeAt src list)
 
-//Experiment to create an alternative, more declarative way of specifying layouts
+
 /*
-Function UI -> UI s.t. h o g o f
-Where
-f : UI -> TaskUITree
-g : TaskUITree -> TaskUILayout
-h : TaskUILayout -> UI
-
-f transforms the original UI into a TaskUITree the same way we do now
-g transforms the UILayout into a layout
-h transforms the UILayout into a sparse new UI with some attributes (like direction), including an attribute origin that contains the original UIPath in the original tree
-
+* The first thing we need for rule-based layouts is a datastructure that can keep track
+* of what changes have been made by layout rules and that can 'buffer' upstream changes 
+* such that layout rules can be applied before they are passed on.
+* 
+* The following functions are used to initialize this datastructure
 */
-:: TaskUITree
-  = Ed  UIPath
-  | Par UIPath [TaskUITree]
 
-:: TaskUILayout a
-  = UIBeside [TaskUILayout a]
-  | UIAbove  [TaskUILayout a]
-  | UINode   UIPath
+noChanges :: LUIChanges
+noChanges = {toBeInserted=False, toBeRemoved=False, toBeReplaced=Nothing, toBeShifted=Nothing, setAttributes='DM'.newMap, delAttributes = 'DS'.newSet}
 
-uiOf :: TaskUITree -> TaskUILayout a
-uiOf (Ed  path  ) = UINode path
-uiOf (Par path _) = UINode path
+noEffects :: LUIEffects
+noEffects = {overwrittenType = ESNotApplied, overwrittenAttributes = 'DM'.newMap, hiddenAttributes = 'DS'.newSet, additional = ESNotApplied, hidden = ESNotApplied}
 
-besideT ts = UIBeside ts
-aboveT ts = UIAbove ts
+//Initialize an LUI tree from a regular UI tree
+initLUI :: Bool UI -> LUI
+initLUI toBeInserted (UI type attr items) = LUINode type attr (map (initLUI toBeInserted) items) {noChanges & toBeInserted = toBeInserted} noEffects
 
-uiToRefs :: UI -> TaskUITree
-uiToRefs ui
-  = case ui of
-      UI UIParallel _ subs = Par [] (recurse [] subs)
-      UI _          _ subs = case recurse [] subs of
-                               [x : _] -> x
-                               _       -> Ed []
-  where
-  uiToRefs` :: UIPath (Int, UI) -> [TaskUITree]
-  uiToRefs` path (i, UI UIParallel _ subs)
-    # curPath = path ++ [i]
-    = [Par curPath (recurse curPath subs)]
-  uiToRefs` path (i, UI x _ _)
-    # curPath = path ++ [i]
-    = [Ed curPath]
-  recurse curPath subs = flatten (map (uiToRefs` curPath) (zip2 [0..] subs))
+/*
+* When upstream changes 'arrive' they are tracked in the 'buffer' data structure.
+* All information about what should be modified according to the upstream change is
+* recorded in the tree.
+* 
+* The following functions implement this recording of changes in the tree
+*/
 
-taskUILayoutToUI :: (TaskUILayout a) -> UI
-taskUILayoutToUI (UIBeside ls)
-  = UI UIParallel ('DM'.singleton "direction" (encodeUI Horizontal)) (map taskUILayoutToUI ls)
-taskUILayoutToUI (UIAbove ls)
-  = UI UIParallel ('DM'.singleton "direction" (encodeUI Vertical)) (map taskUILayoutToUI ls)
-taskUILayoutToUI (UINode path)
-  = UI UIContainer ('DM'.singleton "origin" (toJSON path)) []
+//When an upstream UI change is applied to the LUI it is recorded in the LUI tree
+//in such a way that it can easily be extracted as a downstream change later on
+applyUpstreamChange :: UIChange LUI -> LUI
+applyUpstreamChange NoChange lui = lui
+applyUpstreamChange (ReplaceUI ui) (LUINode type attr items changes effects)
+	| changes.toBeInserted //If it is a new node, we can replace it
+		= initLUI True ui
+	= LUINode type attr items {changes & toBeReplaced = Just (initLUI False ui)} effects
+applyUpstreamChange (ReplaceUI ui) lui = lui
+applyUpstreamChange (ChangeUI attributeChanges childChanges) lui
+	= (foldl applyUpstreamChildChange (foldl applyUpstreamAttributeChange lui attributeChanges) childChanges)
+where
+	applyUpstreamAttributeChange :: LUI UIAttributeChange -> LUI
+	applyUpstreamAttributeChange (LUINode type attr items changes=:{setAttributes,delAttributes} effects) (SetAttribute key value)
+		# setAttributes = 'DM'.put key value setAttributes
+		# delAttributes = 'DS'.delete key delAttributes
+		= LUINode type attr items {changes & setAttributes = setAttributes, delAttributes = delAttributes} effects
+	applyUpstreamAttributeChange (LUINode type attr items changes=:{setAttributes,delAttributes} effects) (DelAttribute key)
+		# setAttributes = 'DM'.del key setAttributes
+		# delAttributes = 'DS'.insert key delAttributes
+		= LUINode type attr items {changes & setAttributes = setAttributes, delAttributes = delAttributes} effects
+	applyUpstreamAttributeChange lui _ = lui
+
+	applyUpstreamChildChange :: LUI (Int,UIChildChange) -> LUI
+	applyUpstreamChildChange lui (index,ChangeChild change) = case lui of
+		(LUINode type attr items changes effects)
+			# adjustedIndex = adjustIndex_ index items
+			| index < 0 || adjustedIndex >= length items = lui
+			= LUINode type attr (updateItem (applyUpstreamChange change) adjustedIndex items) changes effects
+		_
+			= lui
+	applyUpstreamChildChange lui (index,RemoveChild) = case lui of
+		(LUINode type attr items changes effects)
+			# adjustedIndex = adjustIndex_ index items
+			| index < 0 || adjustedIndex >= length items = lui
+			= LUINode type attr (removeItem adjustedIndex items) changes effects
+		_ = lui
+	applyUpstreamChildChange lui (index,InsertChild ui) = case lui of
+		(LUINode type attr items changes effects)
+			# adjustedIndex = adjustIndex_ index items
+			| index < 0 || adjustedIndex >= length items = lui
+			= LUINode type attr (insertAt adjustedIndex (initLUI True ui) items) changes effects
+		_ = lui
+	applyUpstreamChildChange lui (index,MoveChild destination) = case lui of
+		(LUINode type attr items changes effects)
+			# shiftId = nextShiftID_ items
+			# adjustedIndex = adjustIndex_ index items
+			| index < 0 || adjustedIndex >= length items = lui
+			= LUINode type attr (shiftItem shiftId adjustedIndex destination items) changes effects
+		_ = lui
+
+	//An index may point to the destination of a shifted child node. In that case we want to apply
+	//the update to the node that will be shifted to that destination
+	updateItem updateFunction index items = case items !! index of
+		(LUIShiftDestination shiftId) = updateItem updateFunction (lookupShiftSource shiftId items) items
+		lui = updateAt index (applyUpdate lui) items
+	where
+		lookupShiftSource shiftId items = fromJust (findIndex isSource items)
+		where
+			isSource (LUINode _ _ _ {toBeShifted = Just sourceId} _) = sourceId == shiftId
+			isSource _ = False
+
+		applyUpdate (LUINode type attr items changes=:{toBeReplaced = Just replacement} effects)
+			= LUINode type attr items {changes & toBeReplaced = Just (applyUpdate replacement)} effects
+		applyUpdate lui = updateFunction lui
+
+	//When upstream removes a shifted note, we can forget that it was shifted and mark the source node as removed instead
+	removeItem index items = case items !! index of
+		(LUIShiftDestination shiftId) = map (removeShiftSource shiftId) (removeAt index items)
+		(LUINode type attr citems changes effects) = updateAt index (LUINode type attr citems {changes & toBeRemoved = True} effects) items
+	where
+		removeShiftSource shiftId lui=:(LUINode type attr items changes=:{toBeShifted = Just sourceId} effects)
+			| sourceId == shiftId = LUINode type attr items {changes & toBeShifted = Nothing, toBeRemoved = True} effects
+			                      = lui
+		removeShiftSource _ lui = lui
+
+	shiftItem shiftId index destination items = case items !! index of
+		//A shift destination: that means upstream expects the node to be already moved
+		//We set a new destination or remove the destination if we move back to the original position
+		(LUIShiftDestination prevShiftId)
+			//Remove the current destination
+			# items = removeAt index items
+			//If we move it back to the original position, we can consider the node never to be moved
+			//otherwise, we create a new destination node
+			= case findSamePositionShift prevShiftId destination items of
+				Just (sourcePosition,LUINode type attr citems changes effects)
+					//Update the source
+					= updateAt sourcePosition (LUINode type attr citems {changes & toBeShifted = Nothing} effects) items
+				Nothing
+					//And add the new destination
+					= insertAt (adjustIndex_ destination items) (LUIShiftDestination prevShiftId) items
+		//Regular node
+		(LUINode type attr citems changes effects)
+			//Mark the node as a shifted node
+			# items = updateAt index (LUINode type attr citems {changes & toBeShifted = Just shiftId} effects) items
+			//Record the destination
+			= insertAt (adjustIndex_ destination items) (LUIShiftDestination shiftId) items
+	where
+		findSamePositionShift shiftId destination items = find 0 0 items
+		where
+			find i ai [] = Nothing
+			find i ai [x=:(LUINode _ _ _ {toBeShifted=Just sourceId} _):xs]
+				| sourceId == shiftId = if (ai == destination) (Just (ai,x)) Nothing
+				                      = find (i + 1) ai xs
+			find i ai [x:xs]
+				| isInvisibleUpstream_ x = find (i + 1) ai xs
+				                         = find (i + 1) (ai + 1) xs
+
+//Adjust the index and length for additional nodes inserted by layout rules
+adjustIndex_ :: Int [LUI] -> Int
+adjustIndex_ index items = scan index 0 items
+where
+	scan r i [] = i
+	//Ignore removed, shifted and synthesized nodes
+	scan r i [x:xs] | isInvisibleUpstream_ x = scan r (i + 1) xs
+	scan 0 i [_:xs] = i
+	scan r i [_:xs] = scan (r - 1) (i + 1) xs
+
+isInvisibleUpstream_ :: !LUI -> Bool
+isInvisibleUpstream_ (LUINode _ _ _ {toBeRemoved=True} _) = True
+isInvisibleUpstream_ (LUINode _ _ _ {toBeShifted=(Just _)} _) = True
+
+isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESToBeApplied _}) = True
+isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESApplied _}) = True
+isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESToBeUpdated _ _}) = True
+isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESToBeRemoved _}) = True
+
+isInvisibleUpstream_ _ = False
+
+nextShiftID_ :: [LUI] -> Int
+nextShiftID_ items = maximum [-1:map shiftID items] + 1
+where
+	shiftID (LUINode _ _ _ {toBeShifted=Just x} _) = x
+	shiftID (LUIShiftDestination x) = x
+	shiftID _ = -1
+
+/*
+* Layout rules transform the 'buffered' tree and annotate the places where layout effects
+* should be applied, or should no longer be applied
+*/
+
+setUITypeRule :: UIType -> LayoutRule
+setUITypeRule newType = rule
+where
+	rule ruleId lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
+		= LUINode type attr items {changes & toBeReplaced=Just (rule ruleId replacement)} effects
+	rule ruleId lui=:(LUINode type attr items changes effects=:{overwrittenType})
+		# overwrittenType = case overwrittenType of
+			(ESNotApplied) = ESToBeApplied newType
+			(ESToBeApplied _) = ESToBeApplied newType
+			(ESApplied curType) = if (curType === newType) (ESApplied curType) (ESToBeUpdated curType newType)
+			(ESToBeUpdated curType _) = if (curType	=== newType) (ESApplied curType) (ESToBeUpdated curType newType)
+			(ESToBeRemoved curType) = if (curType	=== newType) (ESApplied curType) (ESToBeUpdated curType newType)
+		= LUINode type attr items changes {effects & overwrittenType = overwrittenType}
+
+/*
+* Once layout rules have annotated their effects, the change that has to be applied downstream
+* can be extracted from the buffered structure. The result of doing this is both the combination of
+* the ui change that has to be applied downstream, and a new version of the buffered tree that
+* in which all pending changes and effects have been applied.
+*/
+extractDownstreamChange :: LUI -> (!UIChange,!LUI)
+extractDownstreamChange (LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
+	//When the UI is to be replaced, we need to determine the replacement UI with all effects applied
+	# (ui,lui) = extractUIWithEffects replacement
+	= (ReplaceUI ui, lui)
+extractDownstreamChange lui=:(LUINode type attr items changes effects)
+	//Check overwritten ui-types: There is no way to set a type downstream, so a full replace is needed
+	| typeNeedsUpdate type effects
+		# (ui,lui) = extractUIWithEffects lui
+		= (ReplaceUI ui,lui)
+	//Determine changes to attributes
+	# (attributeChanges,attr,effects) = extractAttributeChanges changes attr effects
+	//Determine changes to children
+	# (childChanges,items) = extractChildChanges items
+	# change = if (attributeChanges =: [] && childChanges =: [])
+		NoChange
+		(ChangeUI attributeChanges childChanges)
+	= (change, LUINode type attr items (resetChanges changes) effects)
+where
+	typeNeedsUpdate type {overwrittenType=ESToBeApplied _} = True
+	typeNeedsUpdate type {overwrittenType=ESToBeUpdated _ _} = True
+	typeNeedsUpdate type {overwrittenType=ESToBeRemoved _} = True
+	typeNeedsUpdate _ _ = False
+
+	extractAttributeChanges changes=:{setAttributes,delAttributes} attr effects=:{overwrittenAttributes,hiddenAttributes}
+		//Apply changes to the attributes
+		# (attr,attrChanges)
+			= foldl (applySetAttribute overwrittenAttributes hiddenAttributes) (attr,[]) ('DM'.toList setAttributes)
+		# (attr,attrChanges)
+			= foldl (applyDelAttribute overwrittenAttributes hiddenAttributes) (attr,attrChanges) ('DS'.toList delAttributes)
+		//Apply remaining effects (these no longer affect the stored attributes)
+		# (attrChanges,overwrittenAttributesList) = foldl (applyOverrideAttribute attr) (attrChanges,[]) ('DM'.toList overwrittenAttributes)
+		# (attrChanges,hiddenAttributesList) = foldl (applyHideAttribute attr) (attrChanges,[]) ('DS'.toList hiddenAttributes)
+		= (reverse attrChanges,attr,
+		   {effects
+		   & overwrittenAttributes = 'DM'.fromList overwrittenAttributesList
+		   , hiddenAttributes = 'DS'.fromList hiddenAttributesList
+		   })
+	where
+		applySetAttribute overwrittenAttributes hiddenAttributes (attr,changes) (key,value)
+			//If an attribute has an effect applied, we don't want to change it downstream
+			| isOverwritten key overwrittenAttributes || isHidden key hiddenAttributes
+				= ('DM'.put key value attr,changes)
+			| otherwise
+				= ('DM'.put key value attr,[SetAttribute key value:changes])
+		applyDelAttribute overwrittenAttributes hiddenAttributes (attr,changes) key
+			//If an attribute was overwritten, we don't want to delete it downstream
+			| isOverwritten key overwrittenAttributes
+				= ('DM'.del key attr,changes)
+			//If an attribute is hidden we don't need to delete it downstream (it is not shown there)
+			| isHidden key hiddenAttributes
+				= ('DM'.del key attr,changes)
+			| otherwise
+				= ('DM'.del key attr,[DelAttribute key:changes])
+
+		applyOverrideAttribute attr (attrChanges, overrides) (key,ESNotApplied)
+			= (attrChanges, overrides) //Remove from overrides (they have no meaning here)
+		applyOverrideAttribute attr (attrChanges, overrides) (key,ESToBeApplied value)
+			= ([SetAttribute key value:attrChanges], [(key,ESApplied value):overrides])
+		applyOverrideAttribute attr (attrChanges, overrides) (key,ESApplied value) //Already applied
+			= (attrChanges, [(key,ESApplied value):overrides])
+		applyOverrideAttribute attr (attrChanges, overrides) (key,ESToBeUpdated _ value)
+			= ([SetAttribute key value:attrChanges], [(key,ESApplied value):overrides])
+		applyOverrideAttribute attr (attrChanges, overrides) (key,ESToBeRemoved _) //Either restore the original, or remove the attribute 
+			= case 'DM'.get key attr of
+				Nothing = ([DelAttribute key:attrChanges],overrides)
+				Just value = ([SetAttribute key value:attrChanges],overrides)
+
+		applyHideAttribute attr (attrChanges, hidden) ESNotApplied
+			= (attrChanges,hidden)
+		applyHideAttribute attr (attrChanges, hidden) (ESToBeApplied key)
+			= ([DelAttribute key:attrChanges],[ESApplied key:hidden])
+		applyHideAttribute attr (attrChanges, hidden) (ESApplied key)
+			= (attrChanges,[ESApplied key:hidden])
+		applyHideAttribute attr (attrChanges, hidden) (ESToBeUpdated prev key)
+			= case 'DM'.get prev attr of
+				//Old attribute no longer exists, just hide the new one
+				Nothing = ([DelAttribute key:attrChanges],[ESApplied key:hidden])
+				//Previously hidden attribute still exists, restore its value
+				Just value = ([SetAttribute prev value,DelAttribute key:attrChanges],[ESApplied key:hidden])
+		applyHideAttribute attr (attrChanges, hidden) (ESToBeRemoved key)
+			= case 'DM'.get key attr of
+				//Original attribute no longer exists, nothing to do
+				Nothing = (attrChanges,hidden)
+				//Original attribute still exists, restore its value
+				Just value = ([SetAttribute key value:attrChanges],hidden)
+
+		isHidden key hiddenAttributes = check ('DS'.toList hiddenAttributes)
+		where
+			check [] = False
+			check [ESToBeApplied hiddenKey:_] | hiddenKey == key = True
+			check [ESApplied hiddenKey:_] | hiddenKey == key = True
+			check [ESToBeUpdated _ hiddenKey:_] | hiddenKey == key = True
+			check [_:xs] = check xs
+
+		isOverwritten key overwrittenAttributes = check ('DM'.toList overwrittenAttributes)
+		where
+			check [] = False
+			check [(hiddenKey,ESToBeApplied _):_] | hiddenKey == key = True
+			check [(hiddenKey,ESApplied _):_] | hiddenKey == key = True
+			check [(hiddenKey,ESToBeUpdated _ _):_] | hiddenKey == key = True
+			check [_:xs] = check xs
+
+	extractChildChanges items
+		# (shifts,items) = extractShifts items
+		# (insertsAndRemoves,items) = extractInsertsAndRemoves items
+		= (shifts ++ insertsAndRemoves, items)
+	where
+		//Important: Shifts are done before inserts and removes
+		//           so we ignore items that are not yet inserted, but still
+		//           count items that are to be removed
+		extractShifts items = extract 0 [] items
+		where
+			extract i acc [] = ([],reverse acc)
+			extract i acc [x=:(LUINode _ _ _ {toBeShifted = Just shiftID} _):xs]
+				//First look back for the destination
+				= case findAndReplaceDestination shiftID x True acc of
+					(Left d, acc)
+						# (changes,items) = extract (i + 1) acc xs
+						= ([(i,MoveChild d):changes],items)
+					(Right n, acc)
+						//Look forward for the destination
+						= case findAndReplaceDestination shiftID x False xs of
+							(Left d, xs)
+								# (changes,items) = extract i acc xs
+								= ([(i,MoveChild (n + d)):changes],items)
+							(Right _, xs)
+								= abort "Could not find a destination for a shifted UI element"
+			//Ignore not yet inserted nodes and shift destinations
+			extract i acc [x=:(LUINode _ _ _ {toBeInserted=True} _):xs] = extract i [x:acc] xs
+			extract i acc [x=:(LUIShiftDestination _):xs] = extract i [x:acc] xs
+			//Continue
+			extract i acc [x:xs] = extract (i + 1) [x:acc] xs
+
+			findAndReplaceDestination shiftID x backwards items = find start items
+			where
+				numItems = adjustedLength items
+				start = if backwards numItems 0
+
+				find i [] = (Right numItems,[])
+				find i [(LUIShiftDestination matchId):xs] | matchId == shiftID
+					# x = resetToBeShifted x
+					= (Left i,[x:xs])
+				//Ignore not yet inserted nodes and shift destinations
+				find i [x=:(LUIShiftDestination _):xs]
+					# (mbd,xs) = find i xs
+					= (mbd,[x:xs])
+				find i [x=:(LUINode _ _ _ {toBeInserted=True} _):xs]
+					# (mbd,xs) = find i xs
+					= (mbd,[x:xs])
+				//Just keep searching
+				find i [x:xs]
+					# (mbd,xs) = find (if backwards (i - 1) (i + 1)) xs
+					= (mbd,[x:xs])
+
+				adjustedLength items = count visible items
+				where
+					count pred list = foldr (\x n -> if (pred x) (n + 1) n) 0 list
+
+					visible (LUIShiftDestination _) = False
+					visible (LUINode _ _ _ {toBeInserted=True} _) = False
+					visible _ = True
+
+		extractInsertsAndRemoves items = extract 0 items
+		where
+			extract i [] = ([],[])
+			extract i [x=:(LUINode _ _ _ {toBeRemoved=True} _):xs]
+				# (cs,xs) = extract i xs
+				= ([(i,RemoveChild):cs],xs)
+			extract i [x=:(LUINode _ _ _ {toBeInserted=True} _):xs]
+				# (ui,x) = extractUIWithEffects x
+				# (cs,xs) = extract (i + 1) xs
+				= ([(i,InsertChild ui):cs],[x:xs])
+			extract i [x:xs]
+				# (c,x) = extractDownstreamChange x
+				# (cs,xs) = extract (i + 1) xs
+				= case c of
+					NoChange = (cs,[x:xs])
+					_        = ([(i,ChangeChild c):cs],[x:xs])
+
+extractDownstreamChange lui = (NoChange,lui)
+
+applyAttributeEffectsAsChanges_ effects=:{overwrittenAttributes,hiddenAttributes}
+	= ([],effects)
+
+extractUIWithEffects :: LUI -> (!UI,!LUI)
+extractUIWithEffects (LUINode ltype lattr litems changes=:{toBeReplaced=Just replacement} effects)
+	= extractUIWithEffects replacement
+extractUIWithEffects (LUINode ltype lattr litems changes=:{setAttributes,delAttributes} effects=:{overwrittenType})
+	//Update type
+	# (type,effects) = case overwrittenType of
+		ESNotApplied = (ltype,{effects & overwrittenType = ESNotApplied})
+		ESToBeApplied otype = (otype,{effects & overwrittenType = ESApplied otype})
+		ESApplied otype = (otype,{effects & overwrittenType = ESApplied otype})
+		ESToBeUpdated _ otype = (otype,{effects & overwrittenType = ESApplied otype})
+		ESToBeRemoved _ = (ltype,{effects & overwrittenType = ESNotApplied})
+	//Update attributes and apply attribute effects
+	# lattr = applyAttributeChanges_ changes lattr
+	# (attr,effects) = applyAttributeEffects_ effects lattr
+	//Remove items marked as removed
+	# litems = filter (not o remove) litems
+	//Move shifted items to their destinations
+	# (sources,litems) = collectShiftSources litems
+	# litems = replaceShiftDestinations sources litems
+	//Recursively extract all effects
+	# (items,litems) = unzip (map extractUIWithEffects litems)
+	= (UI type attr items
+	  ,LUINode ltype lattr litems noChanges effects
+	  )
+where
+	remove (LUINode _ _ _ {toBeRemoved} _) = toBeRemoved
+	remove _ = False
+
+	collectShiftSources items = foldr collect ('DM'.newMap,[]) items
+	where
+		collect n=:(LUINode _ _ _ {toBeShifted=Just shiftID} _) (sources,items) = ('DM'.put shiftID n sources,items)
+		collect n (sources,items) = (sources,[n:items])
+
+	replaceShiftDestinations sources items = foldr replace [] items
+	where
+		replace (LUIShiftDestination shiftID) items = maybe items (\n -> [resetToBeShifted n:items]) ('DM'.get shiftID sources)
+		replace n items = [n:items]
+
+resetToBeShifted (LUINode type attr items changes effects)
+	= LUINode type attr items {changes & toBeShifted = Nothing} effects
+
+resetChanges changes = {changes & setAttributes = 'DM'.newMap, delAttributes = 'DS'.newSet}
+
+applyAttributeChanges_ {setAttributes,delAttributes} attr
+	= 'DM'.delList ('DS'.toList delAttributes) ('DM'.union setAttributes attr)
+
+applyAttributeEffects_ effects=:{overwrittenAttributes,hiddenAttributes} attr
+	# (attr,overwrittenAttributes) = foldl overwrite (attr,'DM'.newMap) ('DM'.toList overwrittenAttributes)
+	# (attr,hiddenAttributes) = foldl hide (attr,'DS'.newSet) ('DS'.toList hiddenAttributes)
+	= (attr, {effects & overwrittenAttributes = overwrittenAttributes, hiddenAttributes = hiddenAttributes})
+where
+	overwrite (attr,overrides) (key,ESNotApplied) = (attr,overrides)
+	overwrite (attr,overrides) (key,ESToBeApplied value) = ('DM'.put key value attr, 'DM'.put key (ESApplied value) overrides)
+	overwrite (attr,overrides) (key,ESApplied value) = ('DM'.put key value attr, 'DM'.put key (ESApplied value) overrides)
+	overwrite (attr,overrides) (key,ESToBeUpdated _ value) = ('DM'.put key value attr, 'DM'.put key (ESApplied value) overrides)
+	overwrite (attr,overrides) (key,ESToBeRemoved _) = (attr,overrides)
+
+	hide (attr,hides) ESNotApplied = (attr,hides)
+	hide (attr,hides) (ESToBeApplied key) = ('DM'.del key attr,'DS'.insert (ESApplied key) hides)
+	hide (attr,hides) (ESApplied key) = ('DM'.del key attr,'DS'.insert (ESApplied key) hides)
+	hide (attr,hides) (ESToBeUpdated _ key) = ('DM'.del key attr,'DS'.insert (ESApplied key) hides)
+	hide (attr,hides) (ESToBeRemoved key) = (attr,hides)
+
+revertEffects :: LUI -> LUI
+revertEffects lui = trace_n "REVERT" lui //TODO
+import StdDebug
+
+ruleBasedLayout :: LayoutRule -> Layout
+ruleBasedLayout rule = {Layout|apply,adjust,restore}
+where
+	apply ui
+		= appSnd LSRule (extractDownstreamChange (rule 0 (initLUI False ui)))
+	adjust (change, LSRule lui)
+		= appSnd LSRule (extractDownstreamChange (rule 0 (applyUpstreamChange change lui)))
+	restore (LSRule lui)
+		= fst (extractDownstreamChange (revertEffects lui))
 
