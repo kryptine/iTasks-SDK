@@ -1,42 +1,30 @@
-module examples
+module minimal
 
 import iTasks
 
-myTasks :: Bool -> [Workflow]
-startMode :: String -> Task ()
-startMode executable
-	=   get serverRoleShare 
-	>>- \role = case role of
-			DomainServer domain -> startAuthEngine domain >>| loginAndManageWorkList "Service engineer application" (myTasks True)
-			Server domain -> startAuthEngine domain >>| loginRemote (myTasks False)
-			_ -> viewInformation "Welcome" [] "Chose what this iTasks instance is."
-		             >>* [ OnAction (Action "Domain server") (always (domainServer))
-            			 , OnAction (Action "Server") (always (server))
-            			 ]
-where
-	server :: Task ()
-	server
-		= enterDomain 
-		>>= \domain -> set (Server domain) serverRoleShare
-		>>| startAuthEngine domain >>| loginRemote (myTasks False)
+import iTasks.Internal.Distributed.Instance
+import qualified iTasks.Extensions.Distributed.SDS as D
 
-	domainServer :: Task ()
-	domainServer
-		= enterDomain
-		>>= \domain -> set (DomainServer domain) serverRoleShare
-		>>| startAuthEngine domain
-		>>| loginAndManageWorkList "Service engineer application" (myTasks True)
+import Data.Func
+import Data.Tuple
+import Data.Maybe
+import Data.Functor
 
-mainTask = viewInformation "Choose your role"
+sharedShare = sharedStore "sharedshare" 42
+
+mainTask = viewInformation "Choose your role" [] ()
 	>>* [OnAction (Action "Domain server") $ always domainServer
 	    ,OnAction (Action "Client") $ always client
 	    ]
 where
-	domainServer = updateSharedInformation "This share is shared between machines" []
-		$ sharedStore "someShare" 42
+	domainServer = instanceServer 8123 (Domain "localhost")
+		||- (updateSharedInformation "This share is shared between machines" [] sharedShare @! ())
 
-	client = updateSharedInformation "This share is shared between machines" []
-		$ sharedShare
+	client = instanceClient "localhost" 8123 (Domain "localhost")
+		||- (forever
+			$ 'D'.get sharedShare
+			>>= viewInformation "This share is shared between machines" []
+			>>* [OnAction (Action "Refresh") $ always $ return ()])
 
 Start :: *World -> *World
 Start world
