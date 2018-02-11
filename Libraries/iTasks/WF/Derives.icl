@@ -30,7 +30,6 @@ JSONDecode{|Timestamp|} _ c				= (Nothing, c)
 gEq{|(->)|} _ _ fa fb		= False // HACK: Compare string representations of graphs functions are never equal
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 
-gDefault{|{}|} fx = createArray 0 fx
 gEditor{|{}|} _ _ _ _ _ = emptyEditor
 gText{|{}|} _ _ _ = []
 
