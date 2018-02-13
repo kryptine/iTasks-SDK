@@ -96,7 +96,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     , removeOnClose         :: !Bool            //If this flag is set, the connection state is removed when the connection is closed
     }
 
-:: ConnectionId             :== Int
+:: ConnectionId :== Int
 
 :: ExternalProcessInstanceOpts =
     { taskId                :: !TaskId              //Reference to the task that started the external process

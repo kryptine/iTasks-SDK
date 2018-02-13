@@ -14,7 +14,7 @@ from   iTasks.WF.Combinators.Core import :: AttachmentStatus
 import iTasks.UI.Editor, iTasks.UI.Editor.Common
 import iTasks.Internal.SDS
 
-from iTasks.Internal.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
+from iTasks.Internal.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..), :: AsyncAction
 from iTasks.Internal.TaskEval         import :: TaskEvalInfo(..)
 from iTasks.SDS.Combinators.Common import toDynamic 
 from iTasks.Internal.Serialization    import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode

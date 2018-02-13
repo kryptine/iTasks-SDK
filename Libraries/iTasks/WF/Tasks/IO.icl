@@ -41,7 +41,7 @@ where
         = case addExternalProc taskId cmd args dir (wrapExternalProcTask handlers sds) mopts iworld of
             (Error e, iworld)
                 = (ExceptionResult e, iworld)
-            (Ok (initialValue :: l^), iworld)
+            (Ok (_, initialValue :: l^), iworld)
 				= case resetUI taskId initialValue iworld of
 					(Ok (change,mask), iworld)
 						# tree = TCBasic taskId ts (toJSON (initialValue,mask)) False
@@ -153,4 +153,3 @@ where
         = (DestroyedResult,{iworld & ioStates = ioStates})
 
     rep = ReplaceUI (stringDisplay ("TCP client " <+++ host <+++ ":" <+++ port))
-

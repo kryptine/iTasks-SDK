@@ -2,7 +2,7 @@ definition module iTasks.Internal.TaskState
 
 from iTasks.Internal.TaskEval import :: TonicOpts, :: TaskTime
 
-from iTasks.WF.Definition import :: Task, :: TaskResult, :: TaskValue, :: TaskException, :: TaskNo, :: TaskId, :: TaskAttributes
+from iTasks.WF.Definition import :: Task, :: TaskResult, :: TaskValue, :: TaskException, :: TaskNo, :: TaskId, :: TaskAttributes, :: Event
 from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: InstanceProgress
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 from iTasks.UI.Definition import :: UIChange
@@ -55,16 +55,21 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	| UIEnabled !Int !UIChange  					//The UI is enabled, a version number and the previous task rep are stored for comparision //FIXME
 	| UIException !String 							//An unhandled exception occurred and the UI should only show the error message
 
+:: AsyncAction = Read | Modify
+
 :: TaskTree
 	= TCInit		            !TaskId !TaskTime													//Initial state for all tasks
 	| TCBasic		            !TaskId !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
+
+	// Task is awaiting the result of reading a remote share/webservice.
+	| TCAwait					!AsyncAction !TaskId !Int !TaskTime !TaskTree
 	| TCInteract	            !TaskId !TaskTime !JSONNode !JSONNode !EditMask
 	| TCProject					!TaskId !JSONNode !TaskTree
 	| TCStep					!TaskId !TaskTime !(Either (TaskTree,[String]) (DeferredJSON,Int,TaskTree)) 
 	| TCParallel				!TaskId !TaskTime ![(!TaskId,!TaskTree)] [String] //Subtrees of embedded tasks and enabled actions
 	| TCShared					!TaskId !TaskTime !TaskTree
 	| TCAttach                  !TaskId !TaskTime !AttachmentStatus !String !String
-	| TCExposedShared			!TaskId !TaskTime !String !TaskTree	// +URL //TODO: Remove
+	| TCExposedShared 			!TaskId !TaskTime !String !TaskTree    
 	| TCStable					!TaskId !TaskTime !DeferredJSON
 	| TCLayout					!JSONNode !TaskTree
 	| TCNop			
@@ -94,5 +99,6 @@ derive JSONDecode DeferredJSON
 :: ParallelTaskChange
     = RemoveParallelTask                            //Mark for removal from the set on the next evaluation
     | ReplaceParallelTask !Dynamic                  //Replace the task on the next evaluation
+
 
 

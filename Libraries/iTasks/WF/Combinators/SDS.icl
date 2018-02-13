@@ -13,7 +13,7 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.Util
 from iTasks.Internal.SDS import write, read, readRegister
 
-import StdBool
+import StdBool, StdDebug
 
 from Data.Func import mapSt
 
@@ -28,7 +28,7 @@ withShared initial stask = Task eval
 where	
 	eval event evalOpts (TCInit taskId ts) iworld
         # (taskIda,iworld)  = getNextTaskId iworld
-        # (e,iworld)        = write (toJSON initial) (sdsFocus taskId localShare) iworld
+        # (e,iworld)        = write (toJSON initial) (sdsFocus taskId localShare) EmptyContext iworld
         | isError e
             = (ExceptionResult (fromError e),iworld)
         | otherwise
@@ -51,7 +51,7 @@ where
 		# (resa,iworld)
             = evala event (extendCallTrace taskId evalOpts) (TCDestroy treea) iworld
         //Remove share from reduct
-        # (e,iworld) = modify (\shares -> ((),'DM'.del taskId shares)) (sdsFocus instanceNo taskInstanceShares) iworld
+        # (e,iworld) = modify ('DM'.del taskId) (sdsFocus instanceNo taskInstanceShares) EmptyContext iworld
         | isError e
             = (ExceptionResult (fromError e), iworld)
 		= (resa,iworld)

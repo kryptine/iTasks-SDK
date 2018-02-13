@@ -12,7 +12,7 @@ from System.Time              import :: Timestamp
 from System.Process           import :: ProcessPtyOptions
 from Data.Error               import :: MaybeError
 from iTasks.WF.Definition     import :: TaskId
-from iTasks.Internal.IWorld	  import :: IWorld, :: BackgroundTaskId
+from iTasks.Internal.IWorld	  import :: IWorld, :: BackgroundTaskId, :: ConnectionId
 from iTasks.Internal.Task     import :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask, :: TaskException
 from iTasks.Engine            import :: TaskWrapper
 
@@ -23,10 +23,10 @@ serve :: ![TaskWrapper] ![(!Int,!ConnectionTask)] ![BackgroundTask] (*IWorld -> 
 addListener :: !TaskId !Int !Bool !(ConnectionTask) !*IWorld -> (!MaybeError TaskException (),!*IWorld)
 
 //Dynamically add a connection
-addConnection :: !TaskId !String !Int !(ConnectionTask) !*IWorld -> (!MaybeError TaskException Dynamic,!*IWorld)
+addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException (ConnectionId, Dynamic),!*IWorld)
 
 //Dynamically add an external process
-addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !ExternalProcessTask (Maybe ProcessPtyOptions) !IWorld -> (!MaybeError TaskException Dynamic, !*IWorld)
+addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !ExternalProcessTask (Maybe ProcessPtyOptions) !IWorld -> (!MaybeError TaskException (ConnectionId, Dynamic), !*IWorld)
 
 //Dynamically add a background task
 addBackgroundTask :: !BackgroundTask !*IWorld -> (!MaybeError TaskException BackgroundTaskId,!*IWorld)

@@ -29,20 +29,20 @@ from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
     | SDSNoWrite
 
 // Fix a focus parameter
-sdsFocus :: !p !(sds p r w) -> (SDSLens p` r w) | iTask p & TC r & TC w & RWShared sds
+sdsFocus :: !p !(sds p r w) -> (SDSLens p` r w) | gText{|*|} p & TC p & TC r & TC w & RWShared sds
 
 // Projection of the domain with a lens
-sdsProject :: !(SDSReadProjection rs r) !(SDSWriteProjection rs ws w) !(sds p rs ws) -> SDSLens p r w | iTask p & TC rs & TC ws & RWShared sds
+sdsProject :: !(SDSReadProjection rs r) !(SDSWriteProjection rs ws w) !(sds p rs ws) -> SDSLens p r w | gText{|*|} p & TC p & TC rs & TC ws & RWShared sds
 
 // Translate the parameter space
-sdsTranslate :: !String !(p -> ps) !(sds ps r w) -> SDSLens p r w | iTask ps & TC r & TC w & RWShared sds
+sdsTranslate :: !String !(p -> ps) !(sds ps r w) -> SDSLens p r w |  gText{|*|} ps & TC ps & TC ps & TC r & TC w & RWShared sds
 
 // Introduce a new parameter
-sdsSplit :: !String !(p -> (ps,pn)) !(pn rs -> r) !(pn rs w -> (ws,SDSNotifyPred pn)) !(sds ps rs ws) -> SDSLens p r w | iTask ps & iTask pn & TC rs  & TC ws & RWShared sds
+sdsSplit :: !String !(p -> (ps,pn)) !(pn rs -> r) !(pn rs w -> (ws,SDSNotifyPred pn)) !(sds ps rs ws) -> SDSLens p r w |  gText{|*|} ps & TC ps & gText{|*|} pn & TC pn & TC rs  & TC ws & RWShared sds
 
 // Treat symmetric sources with optional values as if they always have a value.
 // You can provide a default value, if you don't it will trigger a read error
-removeMaybe :: !(Maybe a) !(sds p (Maybe a) (Maybe a)) -> SDSLens p a a | iTask p & TC a & RWShared sds
+removeMaybe :: !(Maybe a) !(sds p (Maybe a) (Maybe a)) -> SDSLens p a a | gText{|*|} p & TC p & TC a & RWShared sds
 
 /**
 * Maps the read type, the write type or both of a shared reference to another one using a functional mapping.
@@ -53,29 +53,29 @@ removeMaybe :: !(Maybe a) !(sds p (Maybe a) (Maybe a)) -> SDSLens p a a | iTask 
 * @param A reference to shared data
 * @return A reference to shared data of another type
 */
-mapRead :: !(r -> r`) !(sds p r w) -> SDSLens p r` w | iTask p & TC r & TC w & RWShared sds
-mapWrite :: !(w` r -> Maybe w) !(sds p r w) -> SDSLens p r w` | iTask p & TC r & TC w & RWShared sds
-mapReadWrite :: !(!r -> r`,!w` r -> Maybe w) !(sds p r w) -> SDSLens p r` w` | iTask p & TC r & TC w & RWShared sds
+mapRead :: !(r -> r`) !(sds p r w) -> SDSLens p r` w | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+mapWrite :: !(w` r -> Maybe w) !(sds p r w) -> SDSLens p r w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+mapReadWrite :: !(!r -> r`,!w` r -> Maybe w) !(sds p r w) -> SDSLens p r` w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds
 
-mapReadError :: !(r -> MaybeError TaskException r`) !(sds p r w) -> SDSLens p r` w | iTask p & TC r & TC w & RWShared sds
-mapWriteError :: !(w` r -> MaybeError TaskException  (Maybe w)) !(sds p r w) -> SDSLens p r w` | iTask p & TC r & TC w & RWShared sds
-mapReadWriteError :: !(!r -> MaybeError TaskException r`,!w` r -> MaybeError TaskException (Maybe w)) !(sds p r w) -> SDSLens p r` w` | iTask p & TC r & TC w & RWShared sds
+mapReadError :: !(r -> MaybeError TaskException r`) !(sds p r w) -> SDSLens p r` w | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+mapWriteError :: !(w` r -> MaybeError TaskException  (Maybe w)) !(sds p r w) -> SDSLens p r w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+mapReadWriteError :: !(!r -> MaybeError TaskException r`,!w` r -> MaybeError TaskException (Maybe w)) !(sds p r w) -> SDSLens p r` w` | gText{|*|} p & TC p & TC r & TC w & RWShared sds
 
-toReadOnly :: !(sds p r w) -> SDSLens p r () | iTask p & TC r & TC w & RWShared sds
+toReadOnly :: !(sds p r w) -> SDSLens p r () | gText{|*|} p & TC p & TC r & TC w & RWShared sds
 
-toDynamic :: !(sds p r w) -> (SDSLens p Dynamic Dynamic) | iTask p & TC r & TC w & RWShared sds //FIXME: Use 1 lens directly
+toDynamic :: !(sds p r w) -> (SDSLens p Dynamic Dynamic) | gText{|*|} p & TC p & TC r & TC w & RWShared sds
 
 
 //Map a list SDS of one element to the element itself
-mapSingle :: !(sds p [r] [w]) -> (SDSLens p r w) | iTask p & TC r & TC w & RWShared sds
+mapSingle :: !(sds p [r] [w]) -> (SDSLens p r w) | gText{|*|} p & TC p & TC r & TC w & RWShared sds
 
 // Composition of two shared references.
 // The read type is a tuple of both types.
 // The write type can either be a tuple of both write types, only one of them or it is written to none of them (result is a read-only shared).
-(>*<) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) (wx,wy)     | iTask p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & RWShared sds2
-(>*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSLens p (rx,ry) wx          | iTask p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & RWShared sds2
-(|*<) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSLens p (rx,ry) wy          | iTask p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & RWShared sds2
-(|*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSLens p (rx,ry) ()          	   | iTask p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & RWShared sds2
+(>*<) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSParallel p (rx,ry) (wx,wy)     	| gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & RWShared sds2
+(>*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSLens p (rx,ry) wx          		| gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & RWShared sds2
+(|*<) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSLens p (rx,ry) wy          		| gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & RWShared sds2
+(|*|) infixl 6 :: !(sds1 p rx wx) !(sds2 p ry wy) -> SDSLens p (rx,ry) ()          	   	| gText{|*|} p & TC p & TC rx & TC ry & TC wx & TC wy & RWShared sds1 & RWShared sds2
 
 /**
 * Puts a symmetric lens between two symmetric shared data sources.
@@ -87,7 +87,7 @@ mapSingle :: !(sds p [r] [w]) -> (SDSLens p r w) | iTask p & TC r & TC w & RWSha
 * @param SymmetricShared b
 * @param RWShared references of the same type with symmetric lens between them
 */
-symmetricLens :: !(a b -> b) !(b a -> a) !(sds1 p a a) !(sds2 p b b) -> (!SDSLens p a a, !SDSLens p b b) | iTask p & TC a & TC b & RWShared sds1 & RWShared sds2
+symmetricLens :: !(a b -> b) !(b a -> a) !(sds1 p a a) !(sds2 p b b) -> (!SDSLens p a a, !SDSLens p b b) | gText{|*|} p & TC p & TC a & TC b & RWShared sds1 & RWShared sds2
 
 //Derived versions of tasks lists
 /**

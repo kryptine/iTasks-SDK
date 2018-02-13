@@ -67,10 +67,13 @@ where
 		= enterInformation question []
 		>>= return
 
-myShared :: Shared String
-myShared = sharedStore "myShared" ""
+:: TestRecord = {number :: Int, numbers :: [Int], text :: String, texts :: [String]}
 
-sharedExample :: Task String
+derive class iTask TestRecord
+
+myShared = sharedStore "myShared" {number = 18, numbers = [1,2,3], text =  "Hello!", texts = ["lol", "werkt dit?"]}
+
+sharedExample :: Task TestRecord
 sharedExample
 	=		enterDomain
 	>>= \domain  -> usersOf domain
@@ -78,7 +81,7 @@ sharedExample
 	>>= \user    -> ((user @. domain) @: updateMyShared) 
 	||-		viewSharedInformation "myShare" [] myShared
 
-updateMyShared :: Task String
+updateMyShared :: Task TestRecord
 updateMyShared
 	= enterInformation "New value for shared" []
 	>>= \val -> set val myShared
