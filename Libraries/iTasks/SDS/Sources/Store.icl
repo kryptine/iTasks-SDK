@@ -105,3 +105,9 @@ where
 		| isAlphanum s.[i] || s.[i] == '-'  = copy (i + 1) {n & [i] = s.[i]}
 							                = copy (i + 1) {n & [i] = '_'}
 
+remoteShare :: (sds p r w) SDSShareOptions -> SDSRemoteSource p r w | Identifiable sds
+remoteShare sds opts = SDSRemoteSource sds opts
+
+remoteService :: (WebServiceShareOptions r) -> SDSRemoteService () r ()
+remoteService opts = SDSRemoteService opts
+

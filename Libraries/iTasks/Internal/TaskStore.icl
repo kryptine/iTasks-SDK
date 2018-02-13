@@ -113,10 +113,10 @@ taskInstanceParallelTaskLists = sdsTranslate "taskInstanceParallelLists" (\t -> 
 
 newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceNo iworld
-	# (mbNewInstanceNo,iworld) = 'SDS'.read nextInstanceNo iworld
+	# (mbNewInstanceNo,iworld) = 'SDS'.read nextInstanceNo 'SDS'.EmptyContext iworld
 	= case mbNewInstanceNo of
-		Ok instanceNo
-			# (mbError,iworld) = 'SDS'.write (instanceNo + 1) nextInstanceNo iworld
+		Ok ('SDS'.Result instanceNo)
+			# (mbError,iworld) = 'SDS'.write (instanceNo + 1) nextInstanceNo 'SDS'.EmptyContext iworld
             = case mbError of
                 Ok _    = (Ok instanceNo,iworld)
                 Error e = (Error e,iworld)
@@ -136,9 +136,9 @@ createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion}
     //Create the initial instance data in the store
     # progress  = {InstanceProgress|value=Unstable,instanceKey="client",attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=clock}
-    =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
-  `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-  `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
+    =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+  `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
+  `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> (Ok (TaskId instanceNo 0), iworld)
 
 createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
@@ -149,9 +149,9 @@ createTaskInstance task iworld=:{options={appVersion,autoLayout},current={taskTi
     # (instanceKey,iworld)  = newInstanceKey iworld
     # progress              = {InstanceProgress|value=Unstable,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants             = {InstanceConstants|session=True,listId=TaskId 0 0,build=appVersion,issuedAt=clock}
-    =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) iworld
-  `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-  `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
+    =            'SDS'.write (instanceNo, Just constants,Just progress,Just defaultValue) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+  `b` \iworld -> 'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
+  `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> (Ok (instanceNo,instanceKey), iworld)
 
 (`b`) infixl 1 :: *(MaybeError e r, *st) (*st -> *(MaybeError e r`, *st)) -> *(MaybeError e r`, *st)
@@ -164,9 +164,9 @@ createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId
     # (instanceKey,iworld) = newInstanceKey iworld
     # progress             = {InstanceProgress|value=Unstable,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants            = {InstanceConstants|session=False,listId=listId,build=appVersion,issuedAt=clock}
-    =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) iworld
-  `b` \iworld -> 'SDS'.write (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-  `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
+    =            'SDS'.write (instanceNo,Just constants,Just progress,Just attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
+  `b` \iworld -> 'SDS'.write (createReduct (if isTopLevel defaultTonicOpts evalOpts.tonicOpts) instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
+  `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
   `b` \iworld -> ( Ok (TaskId instanceNo 0)
 				 , if refreshImmediate
                       (queueEvent instanceNo ResetEvent iworld)
@@ -191,21 +191,21 @@ where
 
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
 replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskTime}}
-    # (meta, iworld)        = 'SDS'.read (sdsFocus instanceNo taskInstance) iworld
+    # (meta, iworld)        = 'SDS'.read (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
     | isError meta          = (liftError meta, iworld)
-    =            'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
-  `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
-  `b` \iworld -> let (_,Just constants,progress,attributes) = fromOk meta
-                 in  'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=appVersion},progress,attributes) (sdsFocus instanceNo taskInstance) iworld
+    =            'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) 'SDS'.EmptyContext iworld
+  `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) 'SDS'.EmptyContext iworld
+  `b` \iworld -> let (_,Just constants,progress,attributes) ='SDS'.directResult (fromOk meta)
+                 in  'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=appVersion},progress,attributes) (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
   `b` \iworld -> (Ok (), iworld)
 
 deleteTaskInstance	:: !InstanceNo !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTasks}}
 	//Delete in administration
-    # (mbe,iworld)    = 'SDS'.modify (\is -> ((),[i \\ i=:(no,_,_,_) <- is | no <> instanceNo])) (sdsFocus defaultValue filteredInstanceIndex) iworld
-	| mbe =: (Error _) = (mbe,iworld)
-    # (mbe,iworld)    = 'SDS'.modify (\(Queue f r) -> ((),Queue [e \\ e=:(no,_) <- f | no <> instanceNo] [e \\ e=:(no,_) <- r | no <> instanceNo])) taskEvents iworld
-	| mbe =: (Error _) = (mbe,iworld)
+    # (mbe,iworld)    = 'SDS'.modify (\is -> [i \\ i=:(no,_,_,_) <- is | no <> instanceNo]) (sdsFocus defaultValue filteredInstanceIndex) 'SDS'.EmptyContext iworld
+	| mbe =: (Error _) = (toME mbe,iworld)
+    # (mbe,iworld)    = 'SDS'.modify (\(Queue f r) -> Queue [e \\ e=:(no,_) <- f | no <> instanceNo] [e \\ e=:(no,_) <- r | no <> instanceNo]) taskEvents 'SDS'.EmptyContext iworld
+	| mbe =: (Error _) = (toME mbe,iworld)
 	| not persistTasks
     	= (Ok (),iworld)
     //Delete all states on disk
@@ -218,6 +218,10 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
     # (mbe,iworld)    = deleteValue NS_TASK_INSTANCES (instanceNo +++> "-tasklists") iworld
 	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
     = (Ok (),iworld)
+  where
+    toME (Ok ('SDS'.Result r)) = Ok ()
+    toMe (Error e) = (Error e)
+
 
 //Filtered interface to the instance index. This interface should always be used to access instance data
 filteredInstanceIndex :: SDSLens InstanceFilter [InstanceData] [InstanceData]
@@ -476,8 +480,9 @@ where
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
 queueEvent instanceNo event iworld 
 	# (_,iworld) = 'SDS'.modify
-        (\q -> ((), fromMaybe ('DQ'.enqueue (instanceNo,event) q) (queueWithMergedRefreshEvent q)))
+        (\q -> fromMaybe ('DQ'.enqueue (instanceNo,event) q) (queueWithMergedRefreshEvent q))
         taskEvents
+        'SDS'.EmptyContext
         iworld
 	= iworld
 where
@@ -507,27 +512,32 @@ queueRefresh tasks iworld
 	# iworld 	= foldl (\w (t,r) -> queueEvent (toInstanceNo t) (RefreshEvent ('DS'.singleton t) r) w) iworld tasks
 	= iworld
 
+// TODO: Handle errors
 dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
 dequeueEvent iworld
-	= case 'SDS'.modify 'DQ'.dequeue taskEvents iworld of
-		(Ok mbEvent,iworld) 	= (mbEvent,iworld)
-		(Error (_,e),iworld) 	= (Nothing,iworld) //TODO handle errors
+  = case 'SDS'.read taskEvents 'SDS'.EmptyContext iworld of
+    (Error e, iworld)               = (Nothing, iworld)
+    (Ok ('SDS'.Result queue), iworld)
+    # (val, queue) = 'DQ'.dequeue queue
+    = case 'SDS'.write queue taskEvents 'SDS'.EmptyContext iworld of
+      (Error e, iworld) = (Nothing, iworld)
+      (Ok (), iworld) = (val, iworld)
 
 clearEvents :: !InstanceNo !*IWorld -> *IWorld
 clearEvents instanceNo iworld
-	# (_,iworld) = 'SDS'.modify (\q -> ((),clear q)) taskEvents iworld
+	# (_,iworld) = 'SDS'.modify clear taskEvents 'SDS'.EmptyContext iworld
 	= iworld
 where
 	clear (Queue fs bs) = Queue [f \\ f=:(i,_) <- fs | i <> instanceNo] [b \\ b=:(i,_) <- bs | i <> instanceNo] 
 
 queueUIChange :: !InstanceNo !UIChange !*IWorld -> *IWorld
 queueUIChange instanceNo change iworld
-	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue (TOUIChange change) q)) (sdsFocus instanceNo taskInstanceOutput) iworld
+	# (_,iworld) = 'SDS'.modify ('DQ'.enqueue (TOUIChange change)) (sdsFocus instanceNo taskInstanceOutput) 'SDS'.EmptyContext iworld
 	= iworld
 
 queueUIChanges :: !InstanceNo ![UIChange] !*IWorld -> *IWorld
 queueUIChanges instanceNo changes iworld
-	# (_,iworld) = 'SDS'.modify (\q -> ((),enqueueAll changes q)) (sdsFocus instanceNo taskInstanceOutput) iworld
+	# (_,iworld) = 'SDS'.modify (enqueueAll changes) (sdsFocus instanceNo taskInstanceOutput) 'SDS'.EmptyContext iworld
 	= iworld
 where
 	enqueueAll [] q = q
@@ -535,7 +545,7 @@ where
 
 queueException :: !InstanceNo !String !*IWorld -> *IWorld
 queueException instanceNo description iworld
-	# (_,iworld) = 'SDS'.modify (\q -> ((),'DQ'.enqueue (TOException description) q)) (sdsFocus instanceNo taskInstanceOutput) iworld
+	# (_,iworld) = 'SDS'.modify (\q -> 'DQ'.enqueue (TOException description) q) (sdsFocus instanceNo taskInstanceOutput) 'SDS'.EmptyContext iworld
 	= iworld
 
 attachViewport :: !InstanceNo !*IWorld -> *IWorld
@@ -556,20 +566,20 @@ createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Doc
 createDocument name mime content iworld
 	# (documentId, iworld)	= newDocumentId iworld
 	# document				= {Document|documentId = documentId, contentUrl = "/download/"+++documentId, name = name, mime = mime, size = size content}
-	# (_,iworld)            = 'SDS'.write content (sdsFocus documentId documentContent) iworld
-	# (_,iworld)			= 'SDS'.write document (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d +++ "-meta") (jsonFileStore NS_DOCUMENT_CONTENT  False False Nothing))) iworld	
+	# (_,iworld)            = 'SDS'.write content (sdsFocus documentId documentContent) 'SDS'.EmptyContext iworld
+	# (_,iworld)			= 'SDS'.write document (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d +++ "-meta") (jsonFileStore NS_DOCUMENT_CONTENT  False False Nothing))) 'SDS'.EmptyContext iworld	
 	= (Ok document,iworld)
 	
 loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentContent documentId iworld
-	= case 'SDS'.read (sdsFocus documentId documentContent) iworld of
-        (Ok content,iworld) = (Just content,iworld)
+	= case 'SDS'.read (sdsFocus documentId documentContent) 'SDS'.EmptyContext iworld of
+        (Ok ('SDS'.Result content),iworld) = (Just content,iworld)
         (Error e,iworld)    = (Nothing,iworld)
 
 loadDocumentMeta :: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 loadDocumentMeta documentId iworld
-	= case ('SDS'.read (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d+++"-meta") (jsonFileStore NS_DOCUMENT_CONTENT False False Nothing))) iworld) of
-        (Ok doc,iworld)     = (Just doc,iworld)
+	= case ('SDS'.read (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d+++"-meta") (jsonFileStore NS_DOCUMENT_CONTENT False False Nothing))) 'SDS'.EmptyContext iworld) of
+        (Ok ('SDS'.Result doc),iworld)     = (Just doc,iworld)
         (Error e,iworld)    = (Nothing,iworld)
 
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)

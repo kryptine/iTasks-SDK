@@ -17,7 +17,7 @@ from iTasks.SDS.Sources.System import topLevelTasks
 from iTasks.Internal.Serialization import dynamicJSONEncode, dynamicJSONDecode
 from iTasks.Internal.Distributed.Domain import Domain
 from iTasks.UI.Editor.Common import emptyEditor
-from iTasks.Internal.SDS import modify
+import iTasks.Internal.SDS
 from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor Maybe
 
 :: Source = Client Int InstanceNo
@@ -615,7 +615,7 @@ sendDistributedInstance _ task attributes domain
 where
 	onDestroy :: InstanceNo (Shared ClientShare) *IWorld -> *IWorld
 	onDestroy id share iworld
-		# (error,iworld) = modify (\s=:{ClientShare|responses=or} -> (True, {ClientShare| s & responses = or ++ ["instance destory " +++ (toString id)]})) share iworld
+		# (error,iworld) = modify (\s=:{ClientShare|responses=or} ->{ClientShare| s & responses = or ++ ["instance destory " +++ (toString id)]}) share EmptyContext iworld
 		= iworld
 
 sendRequestToInstanceServer :: Int String -> Task ()

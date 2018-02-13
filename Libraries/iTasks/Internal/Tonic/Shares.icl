@@ -12,9 +12,9 @@ NS_TONIC_INSTANCES :== "tonic-instances"
 
 sdsUnsafeRead :: (sds () a b) *IWorld -> *(a, *IWorld) | TC a & RWShared sds
 sdsUnsafeRead focus iworld
-  # (res, iworld) = 'DSDS'.read focus iworld
+  # (res, iworld) = 'DSDS'.read focus 'DSDS'.EmptyContext iworld
   = case res of
-      Ok x -> (x, iworld)
+      Ok ('DSDS'.Result x) -> (x, iworld)
 
 selectedBlueprint :: SDSLens () (Maybe ClickMeta) (Maybe ClickMeta)
 selectedBlueprint = sdsFocus "selectedBlueprint" (removeMaybe (Just Nothing) memoryShare)
@@ -159,7 +159,7 @@ storeTaskOutputViewer tr nid parentTaskId childTaskId iworld // = iworld // TODO
   | nid <> [] && parentTaskId <> TaskId 0 0
     # childFocus             = sdsFocus (parentTaskId, nid) outputForTaskId
     # ((_, n, _, _), iworld) = sdsUnsafeRead childFocus iworld
-    = snd ('DSDS'.write (resultToOutput (n + 1) childTaskId tr) childFocus iworld)
+    = snd ('DSDS'.write (resultToOutput (n + 1) childTaskId tr) childFocus 'DSDS'.EmptyContext iworld)
   | otherwise = iworld
 
 resultToOutput :: !Int !TaskId !(TaskResult a) -> (!TaskId, !Int, !Task (), !TStability) | iTask a

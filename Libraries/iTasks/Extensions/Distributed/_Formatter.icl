@@ -12,8 +12,18 @@ deserializeFromBase64 input symbols
 		(Just data) 	# (x, y, z) = deserializeFromString data
 						= fst (copy_from_string_with_names x y z symbols)
 
+// We evaluate the argument to normal form due to some unknown laziness which creates dependency on the whole iTasks library.
+eval :: !a -> Bool
+eval a = code {
+	.d 1 0
+	jsr	_eval_to_nf
+	.o 0 0
+	pushB TRUE
+}
+
 serializeToBase64 :: a -> String
-serializeToBase64 item = base64Encode (toString (toJSON (serializeToString (copy_to_string_with_names (item)))))
+serializeToBase64 item
+| eval item = base64Encode (toString (toJSON (serializeToString (copy_to_string_with_names item))))
 
 json :: String -> Maybe [String]
 json x = fromJSON (fromString x)

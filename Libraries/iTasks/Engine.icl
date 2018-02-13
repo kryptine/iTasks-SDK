@@ -181,7 +181,7 @@ where
 	published = publishAll publishable 
 
 publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
-publish url task = {url = url, task = WebTaskWrapper task}
+publish url task = {PublishedTask|url = url, task = WebTaskWrapper task}
 
 instance Publishable (Task a) | iTask a
 where

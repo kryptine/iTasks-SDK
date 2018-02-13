@@ -10,8 +10,8 @@ from System.FilePath    import :: FilePath
 
 from Data.Error               import :: MaybeError
 from iTasks.WF.Definition     import :: TaskId
+from iTasks.Internal.IWorld	  import :: IWorld
 from iTasks.Internal.Task     import :: ConnectionTask, :: TaskException
-from iTasks.Internal.IWorld   import :: IWorld
 from iTasks.Engine            import :: TaskWrapper
 
 //Core task server loop

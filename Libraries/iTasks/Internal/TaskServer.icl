@@ -43,8 +43,8 @@ init its cts iworld
 where
 	createInitialInstances :: [TaskWrapper] !*IWorld -> *IWorld
 	createInitialInstances its iworld
-		# (mbNextNo,iworld) = read nextInstanceNo iworld
-		| (mbNextNo =: (Ok 1)) = createAll its iworld //This way we check if it is the initial run of the program
+		# (mbNextNo,iworld) = read nextInstanceNo EmptyContext iworld
+		| (mbNextNo =: (Ok (Result 1))) = createAll its iworld //This way we check if it is the initial run of the program
                                = iworld
 
 	createAll :: [TaskWrapper] !*IWorld -> *IWorld
@@ -56,9 +56,9 @@ where
 
 	queueAll :: !*IWorld -> *IWorld
 	queueAll iworld
-		# (mbIndex,iworld) = read (sdsFocus defaultValue filteredInstanceIndex) iworld
+		# (mbIndex,iworld) = read (sdsFocus defaultValue filteredInstanceIndex) EmptyContext iworld
 		= case mbIndex of
-			Ok index    = foldl (\w (instanceNo,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
+			Ok (Result index)    = foldl (\w (instanceNo,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
 			_           = iworld
 
 	connectAll :: ![(!Int,!ConnectionTask)] !*World -> *(![*IOTaskInstance],!*World)
@@ -181,13 +181,13 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                 | tReport == TR_Success
                     # (ip,{rChannel,sChannel}) = fromJust mbNewConn
                     # (ConnectionTask handlers sds) = lopts.ListenerInstanceOpts.connectionTask
-                    # (mbr,iworld) = 'SDS'.read sds {iworld & ioTasks={done=done,todo=todo},world=world}
+                    # (mbr,iworld) = 'SDS'.read sds EmptyContext {iworld & ioTasks={done=done,todo=todo},world=world}
                     | mbr =:(Error _)
                         # iworld=:{ioTasks={done,todo},world} = if (instanceNo > 0) (queueRefresh [(taskId,"IO Exception for instance "<+++instanceNo)] iworld) iworld
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (snd (fromError mbr))) ioStates
  	                    # world = closeRChannel listener world
                         = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
-                    # (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (toString ip) (fromOk mbr) iworld
+                    # (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (toString ip) (directResult (fromOk mbr)) iworld
                     # iworld = if (instanceNo > 0) (queueRefresh [(taskId,"New TCP connection for instance "<+++instanceNo)] iworld) iworld
                     # (mbSdsErr, iworld=:{ioTasks={done,todo},world}) = writeSDShareIfNeeded sds mbw iworld
                     | mbConState =:(Error _)
@@ -220,7 +220,7 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                         # lopts = {lopts & nextConnectionId = lopts.nextConnectionId + 1}
                         # ioStates  = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOActive conStates) ioStates
                         = process (i+1) chList {iworld & ioTasks={done=[ListenerInstance lopts listener:done],todo=todo}, ioStates = ioStates, world=world}
-                //We did not accept properly accept a connection
+                //We did not properly accept a connection
                 | otherwise
                     = process (i+1) chList {iworld & ioTasks={done=[ListenerInstance lopts listener:done],todo=todo}, world=world}
             //Nothing to do
@@ -248,6 +248,51 @@ process i chList iworld=:{ioTasks={done, todo=[ConnectionInstance opts duplexCha
 where
     (ConnectionTask handlers sds) = opts.ConnectionInstanceOpts.connectionTask
 
+<<<<<<< HEAD
+=======
+process i chList iworld=:{ioTasks={done, todo=[ExternalProcessInstance opts pHandle pIO:todo]}}
+    # iworld = {iworld & ioTasks = {done = done, todo = todo}} 
+    # iworld = processIOTask
+        i chList opts.ExternalProcessInstanceOpts.taskId opts.ExternalProcessInstanceOpts.connectionId
+        False sds externalProcessIOOps onClose onData onShareChange onTick
+        (\(pHandle, pIO) -> ExternalProcessInstance opts pHandle pIO) (pHandle, pIO) iworld
+    = process (i+1) chList iworld
+where
+    (ExternalProcessTask handlers sds) = opts.externalProcessTask
+
+    onData :: !((!ProcessOutChannel, !String)) !Dynamic !Dynamic !*IWorld
+           -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
+    onData (channel, data) l r iworld
+        # handler = case channel of
+            StdOut = handlers.onOutData
+            StdErr = handlers.onErrData
+        # (mbl, mbw, out, close) = handler data l r
+        = (mbl, mbw, out, close, iworld)
+
+    onShareChange :: !Dynamic !Dynamic !*IWorld
+                  -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
+    onShareChange l r iworld
+        # (mbl, mbw, out, close) = handlers.ExternalProcessHandlers.onShareChange l r
+        = (mbl, mbw, out, close, iworld)
+
+    // do nothing to external proc tasks
+    onTick :: !Dynamic !Dynamic !*IWorld
+           -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
+    onTick l r iworld
+        = (Ok l, Nothing, [], False, iworld)
+
+    onClose :: !ExitCode !Dynamic !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, !*IWorld)
+    onClose exitCode l r iworld
+        # (mbl, mbw) = handlers.onExit exitCode l r
+        = (mbl, mbw, iworld)
+
+process i chList iworld=:{ioTasks={done,todo=[BackgroundInstance opts bt=:(BackgroundTask eval):todo]}}
+    # (mbe,iworld=:{ioTasks={done,todo}}) = eval {iworld & ioTasks = {done=done,todo=todo}}
+	| mbe =: (Error _) = abort (snd (fromError mbe)) //TODO Handle the error without an abort
+    = process (i+1) chList {iworld & ioTasks={done=[BackgroundInstance opts bt:done],todo=todo}}
+
+//Move the task to done when we do not know what to do with it.
+>>>>>>> Support asynchronous reading, writing and modifying shares
 process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
     = process (i+1) chList {iworld & ioTasks={done=[t:done],todo=todo}}
 
@@ -290,10 +335,58 @@ where
         # world = closeChannel  sChannel world
         = {iworld & world = world} 
 
+<<<<<<< HEAD
 processIOTask :: !Int
+=======
+:: ProcessOutChannel = StdOut | StdErr
+
+externalProcessIOOps :: IOTaskOperations (!ProcessHandle, !ProcessIO) (!ProcessOutChannel, !String) ExitCode
+externalProcessIOOps = {readData = readData, writeData = writeData, closeIO = closeIO}
+where
+    readData :: !Int
+                ![(Int, SelectResult)]
+                !(!(!ProcessHandle, !ProcessIO), !*IWorld)
+             -> (!IOData (!ProcessOutChannel, !String) ExitCode, !(!ProcessHandle, !ProcessIO), !*IWorld)
+    readData _ _ ((pHandle, pIO), iworld)
+        // try to read StdOut
+        # (mbData, world) = 'Process'.readPipeNonBlocking pIO.stdOut iworld.world
+        = case mbData of
+            Error _ = abort "TODO: handle error"
+            Ok data
+                | data == ""
+                    // try to read StdErr
+                    # (mbData, world) = 'Process'.readPipeNonBlocking pIO.stdErr iworld.world
+                    = case mbData of
+                        Error _ = abort "TODO: handle error"
+                        Ok data
+                            | data == ""
+                                # (mbMbRetCode, world) = 'Process'.checkProcess pHandle world
+                                = case mbMbRetCode of
+                                    Error _ = abort "TODO: handle error"
+                                    Ok Nothing   = (IODNoData,               (pHandle, pIO), {iworld & world = world})
+                                    Ok (Just ec) = (IODClosed (ExitCode ec), (pHandle, pIO), {iworld & world = world})
+                            | otherwise = (IODData (StdErr, data), (pHandle, pIO), {iworld & world = world})
+                | otherwise = (IODData (StdOut, data), (pHandle, pIO), {iworld & world = world})
+
+    writeData :: !String !(!(!ProcessHandle, !ProcessIO), !*IWorld) -> (!(!ProcessHandle, !ProcessIO), !*IWorld)
+    writeData data ((pHandle, pIO), iworld)
+        # (mbErr, world) = 'Process'.writePipe data pIO.stdIn iworld.world
+        = case mbErr of
+            Error e = abort "TODO: handle error"
+            _       = ((pHandle, pIO), {iworld & world = world})
+
+    closeIO :: !(!(!ProcessHandle, !ProcessIO), !*IWorld) -> *IWorld
+    closeIO ((pHandle, pIO), iworld)
+        # (mbErr1, world) = 'Process'.terminateProcess pHandle iworld.world
+        # (mbErr2, world) = 'Process'.closeProcessIO pIO world
+        // TODO: handle errors
+        = {iworld & world = world} 
+
+processIOTask :: !Int // Unique id to read/write data to the correct socket/file
+>>>>>>> Support asynchronous reading, writing and modifying shares
                  ![(Int, SelectResult)]
                  !TaskId
-                 !ConnectionId
+                 !Int
                  !Bool
                  !(SDSLens () Dynamic Dynamic)
                  !(IOTaskOperations .ioChannels readData closeInfo)
@@ -320,9 +413,9 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 
             // *** onTick handler ***
             // read sds
-            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
+            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds EmptyContext iworld
             | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
-            # r = fromOk mbr
+            # r = directResult (fromOk mbr)
             // call handler
             # (mbTaskState, mbw, out, close, iworld) = onTickHandler taskState r iworld
             # (mbSdsErr, iworld) = writeSDShareIfNeeded sds mbw iworld
@@ -334,9 +427,9 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 
             // *** onShareChange handler ***
             // read sds
-            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
+            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds EmptyContext iworld
             | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
-            # r = fromOk mbr
+            # r = directResult (fromOk mbr)
             // call handler
             # (mbTaskState, mbw, out, close, iworld) = onShareChangeHandler taskState r iworld
             # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
@@ -351,9 +444,9 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 
             // ** onData handler ***
             // read sds
-            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
+            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds EmptyContext iworld
             | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
-            # r = fromOk mbr
+            # r = directResult (fromOk mbr)
             # taskState = fromOk mbTaskState
             // try to read data
             # (mbData, ioChannels, iworld) = ioOps.readData i chList (ioChannels, iworld)
@@ -434,9 +527,9 @@ where
         # ioStates = 'DM'.put taskId (IOActive taskStates) ioStates
         = closeIO (ioChannels, iworld)//{iworld & ioStates = ioStates})
 
-writeSDShareIfNeeded :: !(sds () r w) !(Maybe w) !*IWorld -> (!MaybeError TaskException (), !*IWorld) | TC r & TC w & RWShared sds
-writeSDShareIfNeeded sds Nothing iworld  = (Ok (), iworld)
-writeSDShareIfNeeded sds (Just w) iworld = 'SDS'.write w sds iworld
+writeShareIfNeeded :: !(sds () r w) !(Maybe w) !*IWorld -> (!MaybeError TaskException (), !*IWorld) | TC r & TC w & Writable sds
+writeShareIfNeeded sds Nothing iworld  = (Ok (), iworld)
+writeShareIfNeeded sds (Just w) iworld = 'SDS'.write w sds EmptyContext iworld
 
 addListener :: !TaskId !Int !Bool !ConnectionTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
 addListener taskId port removeOnClose connectionTask iworld=:{ioTasks={todo,done}, ioStates, world}
@@ -449,7 +542,7 @@ addListener taskId port removeOnClose connectionTask iworld=:{ioTasks={todo,done
     # ioStates = 'DM'.put taskId (IOActive 'DM'.newMap) ioStates
     = (Ok (),{iworld & ioTasks = {done=done,todo=todo}, ioStates = ioStates, world = world})
 
-addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException Dynamic,!*IWorld)
+addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException (ConnectionId, Dynamic),!*IWorld)
 addConnection taskId host port connectionTask=:(ConnectionTask handlers sds) iworld
     = addIOTask taskId sds init tcpConnectionIOOps onInitHandler mkIOTaskInstance iworld
 where
@@ -467,29 +560,55 @@ where
     onInitHandler :: !IPAddress !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
     onInitHandler ip r iworld = handlers.ConnectionHandlersIWorld.onConnect (toString ip) r iworld
 
-    mkIOTaskInstance :: !IPAddress !*TCP_DuplexChannel -> *IOTaskInstance
-    mkIOTaskInstance ip channel
-        # opts = {ConnectionInstanceOpts|taskId = taskId, connectionId = 0, remoteHost = ip, connectionTask = connectionTask, removeOnClose = False}
+    mkIOTaskInstance :: ConnectionId !IPAddress !*TCP_DuplexChannel -> *IOTaskInstance
+    mkIOTaskInstance connectionId ip channel
+        # opts = {ConnectionInstanceOpts|taskId = taskId, connectionId = connectionId, remoteHost = ip, connectionTask = connectionTask, removeOnClose = False}
         = ConnectionInstance opts channel
 
+<<<<<<< HEAD
+=======
+addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !ExternalProcessTask (Maybe 'Process'.ProcessPtyOptions) !IWorld -> (!MaybeError TaskException (ConnectionId, Dynamic), !*IWorld)
+addExternalProc taskId cmd args dir extProcTask=:(ExternalProcessTask handlers sds) mopts iworld
+    = addIOTask taskId sds init externalProcessIOOps onInitHandler mkIOTaskInstance iworld
+where
+    init :: !*IWorld -> (!MaybeErrorString (!(), (!ProcessHandle, !ProcessIO)), !*IWorld)
+    init iworld
+        # (mbRes, world) = case mopts of
+			Nothing   = 'Process'.runProcessIO cmd args dir iworld.world
+			Just opts = 'Process'.runProcessPty cmd args dir opts iworld.world
+        = case mbRes of
+            Error (_, e) = (Error e,       {iworld & world = world})
+            Ok proc      = (Ok ((), proc), {iworld & world = world})
+ 
+    onInitHandler :: !() !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
+    onInitHandler _ r iworld
+        # (mbl, mbw, out, close) = handlers.ExternalProcessHandlers.onStartup r
+        = (mbl, mbw, out, close, iworld)
+
+    mkIOTaskInstance :: !ConnectionId !() !(!ProcessHandle, !ProcessIO) -> *IOTaskInstance
+    mkIOTaskInstance connectionId _ (pHandle, pIO)
+        # opts = {ExternalProcessInstanceOpts|taskId = taskId, connectionId = connectionId, externalProcessTask = extProcTask}
+        = ExternalProcessInstance opts pHandle pIO
+
+>>>>>>> Support asynchronous reading, writing and modifying shares
 addIOTask :: !TaskId
              !(sds () Dynamic Dynamic)
              !(*IWorld -> (!MaybeErrorString (!initInfo, !.ioChannels), !*IWorld))
              !(IOTaskOperations .ioChannels readData closeInfo)
              !(initInfo Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
-             !(initInfo .ioChannels -> *IOTaskInstance)
+             !(ConnectionId initInfo .ioChannels -> *IOTaskInstance)
              !*IWorld
-          -> (!MaybeError TaskException Dynamic, !*IWorld) | RWShared sds
+          -> (!MaybeError TaskException (Int, Dynamic), !*IWorld)
 addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld
     # (mbInitRes, iworld) = init iworld
     = case mbInitRes of
         Error e = (Error (exception e), iworld)
         Ok (initInfo, ioChannels)
             // Read share
-            # (mbr, iworld) = 'SDS'.read sds iworld
+            # (mbr, iworld) = 'SDS'.read sds EmptyContext iworld
             | isError mbr = (liftError mbr, iworld)
             // Evaluate onInit handler
-            # (mbl, mbw, out, close, iworld) = onInitHandler initInfo (fromOk mbr) iworld
+            # (mbl, mbw, out, close, iworld) = onInitHandler initInfo (directResult (fromOk mbr)) iworld
 			// Check initialization of local state 
 			= case mbl of	
 				Error e = (Error (exception e), iworld)
@@ -499,12 +618,16 @@ addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld
             		//Close or add to queue
             		| close
                 		# iworld = ioOps.closeIO (ioChannels, iworld)
-                		= (Ok (dynamic l), iworld)
+                		= (Ok (0, dynamic l), iworld)
 					| otherwise
             			# ioStates = iworld.ioStates
-            			# ioStates = 'DM'.put taskId (IOActive ('DM'.fromList [(0,(l, False))])) ioStates
+
+                        # (connectionId, connectionMap) = case 'DM'.get taskId ioStates of
+                            Nothing                             = (0, IOActive ('DM'.fromList [(0,(l, False))]))
+                            (Just (IOActive connectionMap))    = let key = inc ('DL'.maximum ('DM'.keys connectionMap)) in (key, IOActive ('DM'.put key (l, False) connectionMap))
+            			# ioStates = 'DM'.put taskId connectionMap ioStates
             			# {done, todo} = iworld.ioTasks
-            			= (Ok l, {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance initInfo ioChannels : done], todo = todo}})
+            			= (Ok (connectionId, l), {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance connectionId initInfo ioChannels : done], todo = todo}})
 
 checkSelect :: !Int ![(!Int,!SelectResult)] -> (!Maybe SelectResult,![(!Int,!SelectResult)])
 checkSelect i chList =:[(who,what):ws] | (i == who) = (Just what,ws)
@@ -521,3 +644,10 @@ halt exitCode iworld=:{ioTasks={todo=[ConnectionInstance _ {rChannel,sChannel}:t
  	# world = closeRChannel rChannel world
     # world = closeChannel sChannel world
     = halt exitCode {iworld & ioTasks = {todo=todo,done=done}}
+<<<<<<< HEAD
+=======
+halt exitCode iworld=:{ioTasks={todo=[BackgroundInstance _ _ :todo],done},world}
+    = halt exitCode {iworld & ioTasks= {todo=todo,done=done}}
+halt exitCode iworld=:{ioTasks={todo=[ExternalProcessInstance _ _ _ :todo],done},world}
+    = halt exitCode {iworld & ioTasks= {todo=todo,done=done}}
+>>>>>>> Support asynchronous reading, writing and modifying shares

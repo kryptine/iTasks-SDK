@@ -26,15 +26,6 @@ derive gEq				Task
 //Low-level tasks that handle network connections
 :: ConnectionTask = ConnectionTask !(ConnectionHandlersIWorld Dynamic Dynamic Dynamic) !(SDSLens () Dynamic Dynamic)
 
-//Definition of low-level network interaction
-/*
-:: ConnectionHandlers l r w = 
-    { onConnect         :: !(String r   -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
-    , onData            :: !(String l r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
-    , onShareChange     :: !(       l r -> (!MaybeErrorString l, Maybe w, ![String], !Bool))
-    , onDisconnect      :: !(       l r -> (!MaybeErrorString l, Maybe w                  ))
-	}
-*/
 //Version of connection handlers with IWorld side-effects that is still necessary for built-in framework handlers
 :: ConnectionHandlersIWorld l r w =
     { onConnect     :: !(String r   *IWorld -> *(!MaybeErrorString l, Maybe w, ![String], !Bool, !*IWorld))

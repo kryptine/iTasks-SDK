@@ -10,7 +10,7 @@ from Data.Tuple import appSnd
 import Text.GenJSON
 
 from StdFunc import o, const, id, flip
-from iTasks.Internal.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
+from iTasks.Internal.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON, :: AsyncAction
 from iTasks.Internal.TaskEval import :: TaskTime
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 import iTasks.WF.Definition

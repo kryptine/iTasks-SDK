@@ -12,8 +12,8 @@ import iTasks.Internal.Serialization
 import Data.CircularStack
 import Data.Error, Data.Either
 
-derive JSONEncode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack
-derive JSONDecode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack
+derive JSONEncode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack, AsyncAction
+derive JSONDecode TIMeta, TIValue, TIReduct, TaskTree, ParallelTaskState, ParallelTaskChange, TaskResult, TaskEvalInfo, TonicOpts, CircularStack, AsyncAction
 
 JSONEncode{|DeferredJSON|} _ (DeferredJSON a)
 	= JSONEncode{|*|} False a
@@ -29,6 +29,7 @@ JSONDecode{|DeferredJSON|} _ l
 
 taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
 taskIdFromTaskTree (TCInit                  taskId _)         = Ok taskId
+taskIdFromTaskTree (TCAwait 				_ taskId _ _ _ )  = Ok taskId
 taskIdFromTaskTree (TCBasic                 taskId _ _ _)     = Ok taskId
 taskIdFromTaskTree (TCInteract              taskId _ _ _ _)   = Ok taskId
 taskIdFromTaskTree (TCProject               taskId _ _)       = Ok taskId
@@ -36,9 +37,7 @@ taskIdFromTaskTree (TCStep                  taskId _ _)       = Ok taskId
 taskIdFromTaskTree (TCParallel              taskId _ _ _)     = Ok taskId
 taskIdFromTaskTree (TCShared                taskId _ _)       = Ok taskId
 taskIdFromTaskTree (TCAttach                taskId _ _ _ _)   = Ok taskId
-taskIdFromTaskTree (TCExposedShared         taskId _ _ _)     = Ok taskId
 taskIdFromTaskTree (TCStable                taskId _ _)       = Ok taskId
 taskIdFromTaskTree (TCLayout                _ tt)             = taskIdFromTaskTree tt
 taskIdFromTaskTree (TCNop)                                    = Error (exception "Unable to obtain TaskId from TaskTree (TCNop)")
 taskIdFromTaskTree (TCDestroy               tt)               = taskIdFromTaskTree tt
-

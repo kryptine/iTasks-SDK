@@ -48,6 +48,7 @@ liftOSErr f iw = case (liftIWorld f) iw of
 externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe ProcessPtyOptions) !(sds1 () [String] [String]) !(sds2 () ([String], [String]) ([String], [String])) -> Task Int | RWShared sds1 & RWShared sds2
 externalProcess poll cmd args dir mopts sdsin sdsout = Task eval
 where
+<<<<<<< HEAD
 	fjson = mb2error (exception "Corrupt taskstate") o fromJSON
 
 	eval :: Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult Int, *IWorld)
@@ -157,4 +158,3 @@ where
         = (DestroyedResult,{iworld & ioStates = ioStates})
 
     rep = ReplaceUI (stringDisplay ("TCP client " <+++ host <+++ ":" <+++ port))
-
