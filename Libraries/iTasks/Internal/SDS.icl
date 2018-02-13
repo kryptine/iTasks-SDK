@@ -61,23 +61,37 @@ sdsIdentity (SDSDynamic f) = "SDSDYNAMIC" //TODO: Figure out how to determine th
 iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
 iworldNotifyPred npred p env = (npred p, env)
 
+// TODO: Change to queuing a read task
 read :: !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC r
-read sds env = read` () Nothing (sdsIdentity sds) sds env
+read sds env = addSDSRead (SDSReadTask (read` () Nothing (sdsIdentity sds)) env
 
+// TODO: Change to queueing a read task
 readRegister :: !TaskId !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC r
 readRegister taskId sds env = read` () (Just taskId) (sdsIdentity sds) sds env
 
-mbRegister :: !p !(RWShared p r w) !(Maybe TaskId) !SDSIdentity !*IWorld -> *IWorld | iTask p
-mbRegister p sds Nothing reqSDSId iworld = iworld
-mbRegister p sds (Just taskId) reqSDSId iworld=:{IWorld|sdsNotifyRequests}
-    # req = {SDSNotifyRequest|reqTaskId=taskId,reqSDSId=reqSDSId,cmpSDSId=sdsIdentity sds,cmpParam=dynamic p,cmpParamText=toSingleLineText p}
-    = {iworld & sdsNotifyRequests = [req:sdsNotifyRequests]}
-
+// TODO: Move these to execution of SDS read task
 read` :: !p !(Maybe TaskId) !SDSIdentity !(RWShared p r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | iTask p & TC r
 read` p mbNotify reqSDSId sds=:(SDSSource {SDSSource|read}) env
     //New registration
     # env = mbRegister p sds mbNotify reqSDSId env
     = read p env
+
+// This can be blocking, waiting for result? 
+// How to get the allocated socket/file?
+read` p mbNotify reqSDSId sds=:(SDSRemoteSource (DomainShare opts))) env = 
+// TODO: Handle retrieving the value from the domain server
+// STEPS:
+// 1. Get the domain configuration from the domain config share 
+// 2. Send the requests
+// 3. Check if successful
+// 4. Return the result
+
+// Type safety?
+read` p mbNotify reqSDSId sds=:(SDSRemoteSource (WebServiceShare opts))) env =
+// TODO: Handle retrieving the value from "somewhere" on the web
+// STEPS
+// 1. Do request
+// 2. Return result?
 
 read` p mbNotify reqSDSId sds=:(SDSLens sds1 {SDSLens|param,read}) env
     # env = mbRegister p sds mbNotify reqSDSId env
@@ -151,6 +165,11 @@ write` p w sds=:(SDSSource {SDSSource|name,write}) env
         (Ok npred, env)  
 			# (match,nomatch, env) = checkRegistrations (sdsIdentity sds) npred env
 			= (Ok match, env)
+
+write` p w sds=:(SDSRemoteSource sds) env
+    // TODO: 
+    // 1. Writing to an external web service is not allowed!
+    // 2. Writing to an external SDS is allowed.
 
 write` p w sds=:(SDSLens sds1 {SDSLens|param,write,notify}) env
 	//Determine the parameter for writing the underlying SDS
@@ -427,4 +446,16 @@ newURL iworld=:{IWorld|options={serverUrl},random}
 getURLbyId :: !String !*IWorld -> (!String, !*IWorld)
 getURLbyId sdsId iworld=:{IWorld|options={serverUrl},random}
 	= ("sds:" +++ serverUrl +++ "/" +++ sdsId, iworld)	
+
+// Returns whether a share (interpreted as a tree) has a remote share somewhere
+hasRemote :: SDS a b c -> Bool
+hasRemote (SDSSource _) = False
+hasRemote (SDSRemoteSource _) = True
+hasRemote (SDSLens sds _) = hasRemote sds
+hasRemote (SDSSelect sds1 sds2 _) = hasRemote sds1 || hasRemote sds2
+hasRemote (SDSParallel  sdsl sdsr _) = hasRemote sdsl || hasRemote sds2
+hasRemote (SDSSequence sds1 sds2 _) = hasRemote sds1 || hasRemote sds2
+// TODO: Does this depend on whether the value is in cache?
+hasRemote (SDSCache sds) = hasRemote sds
+hasRemote (SDSDynamic _) = False
 

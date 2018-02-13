@@ -28,6 +28,7 @@ import iTasks.SDS.Combinators.Common
     | ConnectionInstanceDS !ConnectionInstanceOpts !*TCP_SChannel
     | ExternalProcessInstanceDS !ExternalProcessInstanceOpts !ProcessHandle !ProcessIO
     | BackgroundInstanceDS !BackgroundInstanceOpts !BackgroundTask
+    | ReadSDSInstanceDS _ _// TODO: ??
 
 serve :: ![TaskWrapper] ![(!Int,!ConnectionTask)] ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
 serve its cts bts determineTimeout iworld
@@ -113,6 +114,9 @@ toSelectSet [i:is]
         ConnectionInstance opts {rChannel,sChannel} = (False,ls,[rChannel:rs],[ConnectionInstanceDS opts sChannel:is])
         ExternalProcessInstance opts pHandle pIO = (e, ls, rs, [ExternalProcessInstanceDS opts pHandle pIO : is])
         BackgroundInstance opts bt = (e,ls,rs,[BackgroundInstanceDS opts bt:is])
+        // TODO; Check! Which options do we need?
+        // TODO: Add channels 
+        ReadSDSInstanceDS opts bla = (e,ls,rs,[ReadSDSInstanceDS opts bla:is])
 
 /* Restore the list of main loop instances.
     In the same pass also update the indices in the select result to match the
@@ -155,6 +159,11 @@ where
     fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls rs ch [BackgroundInstanceDS opts bt:is]
         # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners numSeenReceivers ls rs ch is
         = ([BackgroundInstance opts bt:is],ch)
+
+    // TODO: Add ReadSDSInstanceDS
+    fromSelect` i numListeners numSeenListeners numSeenReceivers ls rs ch [ReadSDSInstanceDS opts bla:is]
+        # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners numSeenReceivers ls rs ch is
+        = ([ReadSDSInstanceDS opts bla:is],ch)
 
     ulength [] = (0,[])
     ulength [x:xs]
@@ -214,7 +223,7 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                         # lopts = {lopts & nextConnectionId = lopts.nextConnectionId + 1}
                         # ioStates  = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOActive conStates) ioStates
                         = process (i+1) chList {iworld & ioTasks={done=[ListenerInstance lopts listener:done],todo=todo}, ioStates = ioStates, world=world}
-                //We did not accept properly accept a connection
+                //We did not properly accept a connection
                 | otherwise
                     = process (i+1) chList {iworld & ioTasks={done=[ListenerInstance lopts listener:done],todo=todo}, world=world}
             //Nothing to do
@@ -282,6 +291,13 @@ process i chList iworld=:{ioTasks={done,todo=[BackgroundInstance opts bt=:(Backg
     # (mbe,iworld=:{ioTasks={done,todo}}) = eval {iworld & ioTasks = {done=done,todo=todo}}
 	| mbe =: (Error _) = abort (snd (fromError mbe)) //TODO Handle the error without an abort
     = process (i+1) chList {iworld & ioTasks={done=[BackgroundInstance opts bt:done],todo=todo}}
+
+//Process read tasks.
+process i chList iworld=:{ioTasks={done, todo=[SDSReadTask s : todo]}} =
+# result = shareRead s iworld
+= process (i+1) chList {iworld & ioTasks={done=[SDSReadTask s:done],todo=todo}}
+
+//Move the task to done when we do not know what to do with it.
 process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
     = process (i+1) chList {iworld & ioTasks={done=[t:done],todo=todo}}
 
@@ -614,6 +630,17 @@ addBackgroundTask bt iworld=:{ioTasks={done,todo}}
 		transform a=:(BackgroundInstance {bgInstId} _) = (a, bgInstId)
 		transform a = (a, 1)
 
+//Dynamically add a read SDS task
+addSDSRead :: !SDSReadTask !*IWorld -> (!MaybeError TaskException Dynamic, !*IWorld)
+addSDSRead sdsReadTask env:={ioTasks={done, todo}}
+// Get the maximum id from the todo list of existing SDS read tasks
+# (todo, i) = appSnd (\is->1 + maxList is) (unzip (map transform todo))
+# todo = todo ++ [BackgroundInstance {BackgroundInstanceOpts|bgInstId=i} bt]
+= (Ok i, {env & ioTasks={done=done, todo=todo}})
+    where
+        transform a=:(SDSReadTask {bgInstId} _) = (a, bgInstId)
+        transform a = (a, 1)
+
 //Dynamically remove a background task
 removeBackgroundTask :: !BackgroundTaskId !*IWorld -> (!MaybeError TaskException (),!*IWorld)
 removeBackgroundTask btid iworld=:{ioTasks={done,todo}} 
@@ -645,4 +672,13 @@ halt exitCode iworld=:{ioTasks={todo=[BackgroundInstance _ _ :todo],done},world}
     = halt exitCode {iworld & ioTasks= {todo=todo,done=done}}
 halt exitCode iworld=:{ioTasks={todo=[ExternalProcessInstance _ _ _ :todo],done},world}
     = halt exitCode {iworld & ioTasks= {todo=todo,done=done}}
+
+// 1. Start the requested computation
+// 2. Register a file which will contain the result
+// 3. Register the task which originally requested the read to this file.
+shareRead :: TaskId -> (MaybeError TaskException r, *IWorld) | TC r
+shareRead requestedTaskId 
+
+
+
 

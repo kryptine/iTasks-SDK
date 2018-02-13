@@ -18,6 +18,7 @@ from Data.Maybe import :: Maybe
 
 :: SDS p r w
 	= 			            SDSSource		!(SDSSource p r w) 
+    |                       SDSRemoteSource RemoteShare !(SDSSource p r w)
     | E.ps rs ws:           SDSLens         !(SDS ps rs ws)                   (SDSLens p r w ps rs ws) & iTask ps & TC rs & TC ws
     | E.p1 p2:              SDSSelect       !(SDS p1 r w)   !(SDS p2 r w)     (SDSSelect p p1 p2 r w) & iTask p1 & iTask p2 & TC r & TC w
     | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(SDS p1 r1 w1) !(SDS p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & iTask p1 & iTask p2 & TC r1 & TC r2 & TC w1 & TC w2
@@ -26,7 +27,20 @@ from Data.Maybe import :: Maybe
 							// USE IT CAREFULLY, IT CAN BREAK NOTIFICATION!
     |						SDSDynamic		!(p *IWorld -> *(MaybeError TaskException (RWShared p r w), *IWorld)) //TODO: Remove
 
+:: RemoteShare
+    // When the remote is available in the iTask domain. Retrieve the share from the domain controller.
+    = DomainShare DomainShareOptions
+    // When the remote is some webservice. Retrieve the share by calling the webservice.
+    | WebServiceShare WebServiceShareOptions
 
+:: DomainShareOptions = 
+    { domain :: String
+    }
+
+  // TODO: Add options
+:: WebServiceShareOptions = 
+    { url :: String
+    }
 // Common aliases
 :: RWShared p r w       :== SDS p r w
 :: ROShared p a         :== SDS p a ()

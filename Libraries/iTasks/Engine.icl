@@ -163,9 +163,9 @@ runTasksWithOptions initFun runnable world
 	= destroyIWorld iworld
 where
 	systemTasks =
- 		[BackgroundTask updateClock
-		,BackgroundTask (processEvents MAX_EVENTS)
-		,BackgroundTask stopOnStable]
+ 		[ BackgroundTask updateClock
+		, BackgroundTask (processEvents MAX_EVENTS)
+		, BackgroundTask stopOnStable]
 
 show :: ![String] !*World -> *World
 show lines world
@@ -181,7 +181,7 @@ where
 	published = publishAll publishable 
 
 publish :: String (HTTPRequest -> Task a) -> PublishedTask | iTask a
-publish url task = {url = url, task = WebTaskWrapper task}
+publish url task = {PublishedTask|url = url, task = WebTaskWrapper task}
 
 instance Publishable (Task a) | iTask a
 where

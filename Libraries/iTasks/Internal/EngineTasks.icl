@@ -100,5 +100,3 @@ where
 	allStable instances = all (\v -> v =: Stable || v =: (Exception _)) (values instances) 
 	exceptionOccurred instances = any (\v -> v =: (Exception _)) (values instances)
 	values instances = [value \\ (_,_,Just {InstanceProgress|value},_) <- instances]
-
-

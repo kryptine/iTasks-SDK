@@ -47,16 +47,21 @@ createReadOnlySDSError ::
 //Internal access functions
 
 //Just read an SDS
-read			::						    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC r
+// TODO: read should no longer be blocking. To achieve this, give it a taskID with the task to be notified when the read completes.
+//		 The read is placed in a queue, which is updated after each engine loop.
+read			:: !TaskId				    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC r
 //Read an SDS and register a taskId to be notified when it is written
 readRegister	:: !TaskId                  !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC r
 //Write an SDS (and queue evaluation of those task instances which contained tasks that registered for notification)
 write			:: !w					    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)	| TC r & TC w
 //Read followed by write. The 'a' typed value is a result that is returned
+// TODO: read should be done asynchronously, after which shared data is updated using the function.
 modify          :: !(r -> (!a,!w))          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException a, !*IWorld) | TC r & TC w
 
 //Force notify (queue evaluation of task instances that registered for notification)
 notify          ::                          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
+
+remote 			:: (RWShared p r w) 
 
 //Clear all registrations for the given tasks.
 //This is normally called by the queueRefresh functions, because once a task is queued
