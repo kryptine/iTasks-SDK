@@ -63,7 +63,7 @@ where
 		# (mbd,iworld) = case tree of
 			(TCInit taskId ts)
 				= case 'SDS'.readRegister taskId shared iworld of
-					(Ok r,iworld)
+					(Ok (Just r),iworld)
 						# (l,v) = onInit r
 						= case initMask taskId mode editor v iworld of
 							(Ok m,iworld) = (Ok (taskId,ts,l,v,m),iworld)
@@ -129,7 +129,7 @@ refreshView_ taskId mode editor shared onRefresh l ov m taskTime iworld
 	//Read the shared source and refresh the editor
 	= case 'SDS'.readRegister taskId shared iworld of
 		(Error e,iworld) = (Error e,iworld)
-		(Ok r,iworld)
+		(Ok (Just r),iworld)
 			# (l,v,mbf) = onRefresh r l ov
 			# vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
 			= case editor.Editor.onRefresh [] v ov m vst of

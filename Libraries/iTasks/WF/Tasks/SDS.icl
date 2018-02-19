@@ -10,19 +10,22 @@ import iTasks.Internal.TaskEval
 import qualified iTasks.Internal.SDS as SDS
 import StdString
 
+import Data.Maybe
+
 instance toString SharedException
 where
 	toString (SharedException err) = "Error performing operation on shared:" +++ err
 
 derive class iTask SharedException
 	
+// TODO: Check what to do regarding async read
 get :: !(ReadWriteShared a w) -> Task a | iTask a
 get shared = mkInstantTask eval
 where
 	eval taskId iworld=:{current={taskTime}}
-		# (val,iworld) = 'SDS'.read shared iworld
+		# (val,iworld) = 'SDS'.read (Just taskId) shared iworld
 		= case val of
-			Ok val		= (Ok val,iworld)
+			Ok (Just val)		= (Ok val,iworld)
 			Error e		= (Error e, iworld)
 	
 set :: !a !(ReadWriteShared r a)  -> Task a | iTask a & TC r
@@ -38,10 +41,10 @@ upd :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 upd fun shared = mkInstantTask eval
 where
 	eval taskId iworld=:{current={taskTime,taskInstance}}
-		# (er, iworld)	= 'SDS'.read shared iworld
+		# (er, iworld)	= 'SDS'.read (Just taskId) shared iworld
 		= case er of
 			Error e		= (Error e, iworld)
-			Ok r	
+			Ok (Just r)	
 				# w				= fun r
 				# (er, iworld)	=  'SDS'.write w shared iworld
 				= case er of
@@ -54,7 +57,7 @@ where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (val,iworld)	= 'SDS'.readRegister taskId shared iworld
 		# res = case val of
-			Ok val		= ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) (TCInit taskId ts)
+			Ok (Just val)		= ValueResult (Value val False) {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) (TCInit taskId ts)
 			Error e		= ExceptionResult e
 		= (res,iworld)
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)

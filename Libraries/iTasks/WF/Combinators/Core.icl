@@ -401,9 +401,9 @@ evalParallelTasks ::
 evalParallelTasks listId taskTrees event evalOpts conts completed [] iworld
     //(re-)read the tasklist to check if it contains items we have not yet evaluated
     # taskListFilter         = {TaskListFilter|onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True}
-    # (mbList,iworld)       = read (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
+    # (mbList,iworld)       = read Nothing (sdsFocus (listId,taskListFilter) taskInstanceParallelTaskList) iworld
     | mbList =:(Error _)    = (Error (fromError mbList),iworld)
-    = case drop (length completed) (fromOk mbList) of
+    = case drop (length completed) (fromJust (fromOk mbList)) of
         //We are done, unless we have continuations that extend the set
         []  = case searchContValue (genParallelValue (reverse completed)) (matchAction listId event) conts of
             Nothing //We have evaluated all branches and nothing is added
@@ -435,9 +435,9 @@ where
 //Evaluate an embedded parallel task
 evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTaskState|taskId,detached=False,createdAt,lastFocus,value,change}:todo] iworld=:{current={taskTime}}
     //Lookup task evaluation function and task evaluation state
-    # (mbTask,iworld)   = read (sdsFocus taskId taskInstanceEmbeddedTask) iworld
+    # (mbTask,iworld)   = read Nothing (sdsFocus taskId taskInstanceEmbeddedTask) iworld
     | mbTask =:(Error _) = (Error (fromError mbTask),iworld)
-    # (Task evala)      = fromOk mbTask
+    # (Task evala)      = fromJust (fromOk mbTask)
     # (tree,newBranch)    = maybe (TCInit taskId taskTime,True) (\tree -> (tree,False)) ('DM'.get taskId taskTrees)
     //Evaluate or destroy branch
     | change === Just RemoveParallelTask
@@ -508,9 +508,9 @@ where
       = case taskIdFromResult r of
           Ok taskId
             | isMember taskId removed
-                # (mbTask,iworld)    = read (sdsFocus taskId taskInstanceEmbeddedTask) iworld
+                # (mbTask,iworld)    = read Nothing (sdsFocus taskId taskInstanceEmbeddedTask) iworld
                 | mbTask =:(Error _) = ([ExceptionResult (fromError mbTask):rs],iworld) //TODO figure out what to do with this exception
-                # (Task evala)       = fromOk mbTask
+                # (Task evala)       = fromJust (fromOk mbTask)
                 //TODO: remove the task evaluation function
                 # evalOpts           = {mkEvalOpts & noUI = True}
                 # (r,iworld)         = evala ResetEvent evalOpts (TCDestroy tree) iworld
@@ -532,9 +532,9 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
     # result = case mbValue of
         Error e
             = ExceptionResult e
-        Ok (TIException dyn msg)
+        Ok (Just (TIException dyn msg))
             = ExceptionResult (dyn,msg)
-        Ok (TIValue encValue)
+        Ok (Just (TIValue encValue))
             //Decode value value
             # mbValue = case encValue of
                 NoValue           = Just NoValue
@@ -612,8 +612,8 @@ where
     addResult _ i = i
 
 readListId :: (SharedTaskList a) *IWorld -> (MaybeError TaskException TaskId,*IWorld) | TC a
-readListId slist iworld = case read (sdsFocus taskListFilter slist) iworld of
-	(Ok (listId,_),iworld)	= (Ok listId, iworld)
+readListId slist iworld = case read Nothing (sdsFocus taskListFilter slist) iworld of
+	(Ok e,iworld)	= (Ok (fst (fromJust e)), iworld)
 	(Error e, iworld)	    = (Error e, iworld)
 where
     taskListFilter = {onlyIndex=Nothing,onlyTaskId=Nothing,onlySelf=False,includeValue=False,includeAttributes=False,includeProgress=False}
@@ -752,12 +752,12 @@ attach :: !InstanceNo !Bool -> Task AttachmentStatus
 attach instanceNo steal = Task eval
 where
 	eval event evalOpts (TCInit taskId ts) iworld=:{current={attachmentChain}}
-		# (mbConstants,iworld)		= read (sdsFocus instanceNo taskInstanceConstants) iworld
+		# (mbConstants,iworld)		= read Nothing (sdsFocus instanceNo taskInstanceConstants) iworld
 		| mbConstants =: (Error _)   = (ExceptionResult (fromError mbConstants),iworld)
-		# (mbProgress,iworld)		= read (sdsFocus instanceNo taskInstanceProgress) iworld
+		# (mbProgress,iworld)		= read Nothing (sdsFocus instanceNo taskInstanceProgress) iworld
 		| mbProgress =: (Error _)   = (ExceptionResult (fromError mbProgress),iworld)
-		# (Ok {InstanceConstants|build}) = mbConstants
-		# (Ok progress=:{InstanceProgress|instanceKey,value,attachedTo}) = mbProgress
+		# (Ok (Just {InstanceConstants|build})) = mbConstants
+		# (Ok (Just progress=:{InstanceProgress|instanceKey,value,attachedTo})) = mbProgress
 		//Check if the task is already in use
 		| (not (attachedTo =: [])) && (not steal)
 			= eval event evalOpts (TCAttach taskId ts (ASInUse (hd attachedTo)) build instanceKey) iworld
@@ -776,7 +776,7 @@ where
 		# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
 		//Determine state of the instance
 		# curStatus = case progress of
-			(Ok progress=:{InstanceProgress|attachedTo=[attachedId:_],value})
+			(Ok (Just progress=:{InstanceProgress|attachedTo=[attachedId:_],value}))
 			    | build <> appVersion    = ASIncompatible
 				| value =: (Exception _) = ASExcepted
 				| attachedId <> taskId   = ASInUse attachedId	

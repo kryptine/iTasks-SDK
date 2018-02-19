@@ -62,7 +62,7 @@ derive gEq				Task
 :: BackgroundTask = BackgroundTask !(*IWorld -> *(!MaybeError TaskException (), !*IWorld))
 
 //Task responsible for executing requested reads and notifying tasks when a value has become available to them.
-:: SDSReadTask = SDSReadTask !(*IWorld -> *(!MaybeError TaskException (), !*IWorld))
+:: SDSReadTask p = SDSReadTask !(*IWorld -> *(!MaybeError TaskException p, !*IWorld)) 
 
 /**
 * Wraps a set of connection handlers and a shared source as a connection task

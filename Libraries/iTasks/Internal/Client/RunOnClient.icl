@@ -101,8 +101,8 @@ newWorld = undef
 
 getUIUpdates :: !*IWorld -> (!Maybe [(InstanceNo, [String])], *IWorld)
 getUIUpdates iworld
-	= case 'SDS'.read taskOutput iworld of
-		(Ok output,iworld)
+	= case 'SDS'.read Nothing taskOutput iworld of
+		(Ok (Just output),iworld)
 			= case 'Data.Map'.toList output of
 				[] = (Nothing,iworld)
 				output

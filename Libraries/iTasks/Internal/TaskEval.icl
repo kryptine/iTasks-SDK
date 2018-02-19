@@ -75,15 +75,15 @@ evalTaskInstance instanceNo event iworld
     = (res,iworld)
 where
     evalTaskInstance` instanceNo event iworld=:{clock,current}
-    # (constants, iworld)       = 'SDS'.read (sdsFocus instanceNo taskInstanceConstants) iworld
+    # (constants, iworld)       = 'SDS'.read Nothing (sdsFocus instanceNo taskInstanceConstants) iworld
 	| isError constants         = exitWithException instanceNo ((\(Error (e,msg)) -> msg) constants) iworld
-	# constants=:{InstanceConstants|session,listId} = fromOk constants
-	# (oldReduct, iworld)		= 'SDS'.read (sdsFocus instanceNo taskInstanceReduct) iworld
+	# constants=:{InstanceConstants|session,listId} = fromJust (fromOk constants)
+	# (oldReduct, iworld)		= 'SDS'.read Nothing (sdsFocus instanceNo taskInstanceReduct) iworld
 	| isError oldReduct			= exitWithException instanceNo ((\(Error (e,msg)) -> msg) oldReduct) iworld
-	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,tasks,tonicRedOpts} = fromOk oldReduct
-    # (oldProgress,iworld)      = 'SDS'.read (sdsFocus instanceNo taskInstanceProgress) iworld
+	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,tasks,tonicRedOpts} = fromJust (fromOk oldReduct)
+    # (oldProgress,iworld)      = 'SDS'.read Nothing (sdsFocus instanceNo taskInstanceProgress) iworld
 	| isError oldProgress       = exitWithException instanceNo ((\(Error (e,msg)) -> msg) oldProgress) iworld
-    # oldProgress=:{InstanceProgress|value,attachedTo} = fromOk oldProgress
+    # oldProgress=:{InstanceProgress|value,attachedTo} = fromJust (fromOk oldProgress)
     //Check exeption
     | value =: (Exception _)
 		# (Exception description) = value
@@ -110,7 +110,7 @@ where
     //Reset necessary 'current' values in iworld
     # iworld = {IWorld|iworld & current = {TaskEvalState|current & taskInstance = 0}}
     // Check if instance was deleted by trying to reread the instance constants share
-	# (deleted,iworld) = appFst isError ('SDS'.read (sdsFocus instanceNo taskInstanceConstants) iworld)
+	# (deleted,iworld) = appFst isError ('SDS'.read Nothing (sdsFocus instanceNo taskInstanceConstants) iworld)
     // Write the updated progress
 	# (mbErr,iworld) = if (updateProgress clock newResult oldProgress === oldProgress)
 		(Ok (),iworld)	//Only update progress when something changed

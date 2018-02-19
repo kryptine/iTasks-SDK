@@ -113,9 +113,9 @@ taskInstanceParallelTaskLists = sdsTranslate "taskInstanceParallelLists" (\t -> 
 
 newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceNo iworld
-	# (mbNewInstanceNo,iworld) = 'SDS'.read nextInstanceNo iworld
+	# (mbNewInstanceNo,iworld) = 'SDS'.read Nothing nextInstanceNo iworld
 	= case mbNewInstanceNo of
-		Ok instanceNo
+		Ok (Just instanceNo)
 			# (mbError,iworld) = 'SDS'.write (instanceNo + 1) nextInstanceNo iworld
             = case mbError of
                 Ok _    = (Ok instanceNo,iworld)
@@ -191,11 +191,11 @@ where
 
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
 replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskTime}}
-    # (meta, iworld)        = 'SDS'.read (sdsFocus instanceNo taskInstance) iworld
+    # (meta, iworld)        = 'SDS'.read Nothing (sdsFocus instanceNo taskInstance) iworld
     | isError meta          = (liftError meta, iworld)
     =            'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
-  `b` \iworld -> let (_,Just constants,progress,attributes) = fromOk meta
+  `b` \iworld -> let (_,Just constants,progress,attributes) =fromJust (fromOk meta)
                  in  'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=appVersion},progress,attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> (Ok (), iworld)
 
@@ -562,14 +562,14 @@ createDocument name mime content iworld
 	
 loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentContent documentId iworld
-	= case 'SDS'.read (sdsFocus documentId documentContent) iworld of
-        (Ok content,iworld) = (Just content,iworld)
+	= case 'SDS'.read Nothing (sdsFocus documentId documentContent) iworld of
+        (Ok (Just content),iworld) = (Just content,iworld)
         (Error e,iworld)    = (Nothing,iworld)
 
 loadDocumentMeta :: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 loadDocumentMeta documentId iworld
-	= case ('SDS'.read (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d+++"-meta") (jsonFileStore NS_DOCUMENT_CONTENT False False Nothing))) iworld) of
-        (Ok doc,iworld)     = (Just doc,iworld)
+	= case ('SDS'.read Nothing (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d+++"-meta") (jsonFileStore NS_DOCUMENT_CONTENT False False Nothing))) iworld) of
+        (Ok (Just doc),iworld)     = (Just doc,iworld)
         (Error e,iworld)    = (Nothing,iworld)
 
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)

@@ -105,3 +105,6 @@ where
 		| isAlphanum s.[i] || s.[i] == '-'  = copy (i + 1) {n & [i] = s.[i]}
 							                = copy (i + 1) {n & [i] = '_'}
 
+remote :: (SDS () a a) RemoteShare -> SDS () a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+remote sds opts = SDSRemoteSource opts sds
+

@@ -28,7 +28,7 @@ import iTasks.SDS.Combinators.Common
     | ConnectionInstanceDS !ConnectionInstanceOpts !*TCP_SChannel
     | ExternalProcessInstanceDS !ExternalProcessInstanceOpts !ProcessHandle !ProcessIO
     | BackgroundInstanceDS !BackgroundInstanceOpts !BackgroundTask
-    | ReadSDSInstanceDS _ _// TODO: ??
+    | E.a: ReadSDSInstanceDS !SDSReadOpts !(SDSReadTask a)// !TSDSReadTask
 
 serve :: ![TaskWrapper] ![(!Int,!ConnectionTask)] ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
 serve its cts bts determineTimeout iworld
@@ -46,8 +46,8 @@ init its cts bts iworld
 where
 	createInitialInstances :: [TaskWrapper] !*IWorld -> *IWorld
 	createInitialInstances its iworld
-		# (mbNextNo,iworld) = read nextInstanceNo iworld
-		| (mbNextNo =: (Ok 1)) = createAll its iworld //This way we check if it is the initial run of the program
+		# (mbNextNo,iworld) = read Nothing nextInstanceNo iworld
+		| (mbNextNo =: (Ok (Just 1))) = createAll its iworld //This way we check if it is the initial run of the program
                                = iworld
 
 	createAll :: [TaskWrapper] !*IWorld -> *IWorld
@@ -59,9 +59,9 @@ where
 
 	queueAll :: !*IWorld -> *IWorld
 	queueAll iworld
-		# (mbIndex,iworld) = read (sdsFocus defaultValue filteredInstanceIndex) iworld
+		# (mbIndex,iworld) = read Nothing (sdsFocus defaultValue filteredInstanceIndex) iworld
 		= case mbIndex of
-			Ok index    = foldl (\w (instanceNo,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
+			Ok (Just index)    = foldl (\w (instanceNo,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
 			_           = iworld
 
 	connectAll :: ![(!Int,!ConnectionTask)] !*World -> *(![*IOTaskInstance],!*World)
@@ -116,7 +116,7 @@ toSelectSet [i:is]
         BackgroundInstance opts bt = (e,ls,rs,[BackgroundInstanceDS opts bt:is])
         // TODO; Check! Which options do we need?
         // TODO: Add channels 
-        ReadSDSInstanceDS opts bla = (e,ls,rs,[ReadSDSInstanceDS opts bla:is])
+        SDSReadInstance opts task = (e,ls,rs,[ReadSDSInstanceDS opts task:is])
 
 /* Restore the list of main loop instances.
     In the same pass also update the indices in the select result to match the
@@ -129,10 +129,12 @@ fromSelectSet ls rs is chList
     = fromSelectSet` 0 numListeners 0 0 ls rs sortedChList is
 where
     fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls rs _ [] = ([],[])
+
     //Listeners
     fromSelectSet` i numListeners numSeenListeners numSeenReceivers [l:ls] rs [] [ListenerInstanceDS opts:is]
         # (is,_) = fromSelectSet` (i+1) numListeners (numSeenListeners+1) numSeenReceivers ls rs [] is
         = ([ListenerInstance opts l:is],[])
+
     fromSelectSet` i numListeners numSeenListeners numSeenReceivers [l:ls] rs [(c,what):ch] [ListenerInstanceDS opts:is]
         | c == numSeenListeners //Check select result
             # (is,ch) = fromSelectSet` (i+1) numListeners (numSeenListeners+1) numSeenReceivers ls rs ch is
@@ -140,10 +142,12 @@ where
         | otherwise 
             # (is,ch) = fromSelectSet` (i+1) numListeners (numSeenListeners+1) numSeenReceivers ls rs [(c,what):ch] is
             = ([ListenerInstance opts l:is],ch)
+
     //Receivers
     fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls [rChannel:rs] [] [ConnectionInstanceDS opts sChannel:is]
         # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners (numSeenReceivers+1) ls rs [] is
         = ([ConnectionInstance opts {rChannel=rChannel,sChannel=sChannel}:is],[])
+
     fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls [rChannel:rs] [(c,what):ch] [ConnectionInstanceDS opts sChannel:is]
         | c == numListeners + numSeenReceivers
             # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners (numSeenReceivers+1) ls rs ch is
@@ -151,19 +155,21 @@ where
         | otherwise
             # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners (numSeenReceivers+1) ls rs [(c,what):ch] is
             = ([ConnectionInstance opts {rChannel=rChannel,sChannel=sChannel}:is],ch)
+
     //External process task
     fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls rs ch [ExternalProcessInstanceDS opts pHandle pIO : is]
         # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners numSeenReceivers ls rs ch is
         = ([ExternalProcessInstance opts pHandle pIO:is],ch)
+
     //Background tasks
     fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls rs ch [BackgroundInstanceDS opts bt:is]
         # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners numSeenReceivers ls rs ch is
         = ([BackgroundInstance opts bt:is],ch)
 
     // TODO: Add ReadSDSInstanceDS
-    fromSelect` i numListeners numSeenListeners numSeenReceivers ls rs ch [ReadSDSInstanceDS opts bla:is]
+    fromSelectSet` i numListeners numSeenListeners numSeenReceivers ls rs ch [ReadSDSInstanceDS opts task:is]
         # (is,ch) = fromSelectSet` (i+1) numListeners numSeenListeners numSeenReceivers ls rs ch is
-        = ([ReadSDSInstanceDS opts bla:is],ch)
+        = ([SDSReadInstance opts task:is],ch)
 
     ulength [] = (0,[])
     ulength [x:xs]
@@ -184,13 +190,13 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                 | tReport == TR_Success
                     # (ip,{rChannel,sChannel}) = fromJust mbNewConn
                     # (ConnectionTask handlers sds) = lopts.ListenerInstanceOpts.connectionTask
-                    # (mbr,iworld) = 'SDS'.read sds {iworld & ioTasks={done=done,todo=todo},world=world}
+                    # (mbr,iworld) = 'SDS'.read (Just taskId) sds {iworld & ioTasks={done=done,todo=todo},world=world}
                     | mbr =:(Error _)
                         # iworld=:{ioTasks={done,todo},world} = if (instanceNo > 0) (queueRefresh [(taskId,"IO Exception for instance "<+++instanceNo)] iworld) iworld
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (snd (fromError mbr))) ioStates
  	                    # world = closeRChannel listener world
                         = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
-                    # (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (toString ip) (fromOk mbr) iworld
+                    # (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (toString ip) (fromJust (fromOk mbr)) iworld
                     # iworld = if (instanceNo > 0) (queueRefresh [(taskId,"New TCP connection for instance "<+++instanceNo)] iworld) iworld
                     # (mbSdsErr, iworld=:{ioTasks={done,todo},world}) = writeShareIfNeeded sds mbw iworld
                     | mbConState =:(Error _)
@@ -293,9 +299,10 @@ process i chList iworld=:{ioTasks={done,todo=[BackgroundInstance opts bt=:(Backg
     = process (i+1) chList {iworld & ioTasks={done=[BackgroundInstance opts bt:done],todo=todo}}
 
 //Process read tasks.
-process i chList iworld=:{ioTasks={done, todo=[SDSReadTask s : todo]}} =
+// TODO: FIXX
+process i chList iworld=:{ioTasks={done, todo=[SDSReadInstance opts s : todo]}}
 # result = shareRead s iworld
-= process (i+1) chList {iworld & ioTasks={done=[SDSReadTask s:done],todo=todo}}
+= process (i+1) chList {iworld & ioTasks={done=[SDSReadInstance opts s:done],todo=todo}}
 
 //Move the task to done when we do not know what to do with it.
 process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
@@ -414,9 +421,9 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 
             // *** onTick handler ***
             // read sds
-            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
+            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read (Just taskId) sds iworld
             | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
-            # r = fromOk mbr
+            # r = fromJust (fromOk mbr)
             // call handler
             # (mbTaskState, mbw, out, close, iworld) = onTickHandler taskState r iworld
             # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
@@ -428,9 +435,9 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 
             // *** onShareChange handler ***
             // read sds
-            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
+            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read (Just taskId) sds iworld
             | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
-            # r = fromOk mbr
+            # r = fromJust (fromOk mbr)
             // call handler
             # (mbTaskState, mbw, out, close, iworld) = onShareChangeHandler taskState r iworld
             # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
@@ -442,9 +449,9 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 
             // ** onData handler ***
             // read sds
-            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read sds iworld
+            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read (Just taskId) sds iworld
             | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
-            # r = fromOk mbr
+            # r = fromJust (fromOk mbr)
             # taskState = fromOk mbTaskState
             // try to read data
             # (mbData, ioChannels, iworld) = ioOps.readData i chList (ioChannels, iworld)
@@ -600,10 +607,10 @@ addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld
         Error e = (Error (exception e), iworld)
         Ok (initInfo, ioChannels)
             // Read share
-            # (mbr, iworld) = 'SDS'.read sds iworld
+            # (mbr, iworld) = 'SDS'.read Nothing sds iworld
             | isError mbr = (liftError mbr, iworld)
             // Evaluate onInit handler
-            # (mbl, mbw, out, close, iworld) = onInitHandler initInfo (fromOk mbr) iworld
+            # (mbl, mbw, out, close, iworld) = onInitHandler initInfo (fromJust (fromOk mbr)) iworld
 			// Check initialization of local state 
 			= case mbl of	
 				Error e = (Error (exception e), iworld)
@@ -631,14 +638,14 @@ addBackgroundTask bt iworld=:{ioTasks={done,todo}}
 		transform a = (a, 1)
 
 //Dynamically add a read SDS task
-addSDSRead :: !SDSReadTask !*IWorld -> (!MaybeError TaskException Dynamic, !*IWorld)
-addSDSRead sdsReadTask env:={ioTasks={done, todo}}
+addSDSRead :: !(SDSReadTask a) !*IWorld -> !(MaybeError TaskException (), !*IWorld)
+addSDSRead sdsReadTask env=:{ioTasks={done, todo}}
 // Get the maximum id from the todo list of existing SDS read tasks
 # (todo, i) = appSnd (\is->1 + maxList is) (unzip (map transform todo))
-# todo = todo ++ [BackgroundInstance {BackgroundInstanceOpts|bgInstId=i} bt]
-= (Ok i, {env & ioTasks={done=done, todo=todo}})
+# todo = todo ++ [SDSReadInstance {SDSReadOpts|sdsReadInstId=i} sdsReadTask]
+= (Ok (), {env & ioTasks={done=done, todo=todo}})
     where
-        transform a=:(SDSReadTask {bgInstId} _) = (a, bgInstId)
+        transform a=:(SDSReadInstance {sdsReadInstId} _) = (a, sdsReadInstId)
         transform a = (a, 1)
 
 //Dynamically remove a background task
@@ -676,8 +683,8 @@ halt exitCode iworld=:{ioTasks={todo=[ExternalProcessInstance _ _ _ :todo],done}
 // 1. Start the requested computation
 // 2. Register a file which will contain the result
 // 3. Register the task which originally requested the read to this file.
-shareRead :: TaskId -> (MaybeError TaskException r, *IWorld) | TC r
-shareRead requestedTaskId 
+shareRead :: (SDSReadTask a) *IWorld -> (MaybeError TaskException r, *IWorld) | TC r
+shareRead task w = (Error (exception "Not yet implemented"), w)
 
 
 

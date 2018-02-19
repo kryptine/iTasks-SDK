@@ -3,7 +3,7 @@ definition module iTasks.SDS.Sources.Store
 * This module provides access to the generic document store where
 * itasks applications store their data by default
 */
-from iTasks.SDS.Definition import :: SDS
+from iTasks.SDS.Definition import :: SDS, :: RemoteShare
 from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from System.FilePath import :: FilePath
 from Data.Maybe import :: Maybe
@@ -29,3 +29,5 @@ storeShare :: !String !Bool !StorageType !(Maybe a) -> (SDS String a a) | JSONEn
 
 // Data blob storage access
 blobStoreShare :: !String !Bool !(Maybe {#Char}) -> SDS String {#Char} {#Char}
+
+remote 			:: (SDS () a a) RemoteShare -> SDS () a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a

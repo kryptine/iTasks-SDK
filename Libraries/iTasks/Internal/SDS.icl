@@ -10,6 +10,8 @@ import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.Internal.Task, iTasks.Internal.TaskStore, iTasks.Internal.TaskEval
 
+from iTasks.Internal.TaskServer import addSDSRead
+
 createReadWriteSDS ::
 	!String
 	!String
@@ -62,12 +64,33 @@ iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
 iworldNotifyPred npred p env = (npred p, env)
 
 // TODO: Change to queuing a read task
-read :: !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC r
-read sds env = addSDSRead (SDSReadTask (read` () Nothing (sdsIdentity sds)) env
+read :: !(Maybe TaskId) !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Maybe r), !*IWorld) | TC r
+
+// If we do not need to read in the context of a task (probably called 
+// somewhere in the internals of the framework), then we return the result of 
+// the read immediately, blocking.
+read Nothing sds env = case read` () Nothing (sdsIdentity sds) sds env of 
+    (Error e, env)                  = (Error e, env)
+    (Ok v, env)                     = (Ok (Just v), env)
+
+// Otherwise, we queue a read task and return Ok Nothing, denoting that the 
+// task has been successfully added and the called will be notified when the reading is done.
+read (Just taskId) sds env = case addSDSRead (SDSReadTask (read` () Nothing (sdsIdentity sds) sds)) env of
+    (Error e, env)                  = (Error e, env)
+    (Ok _, env)                     = (Error (exception "Not yet implemented!!"), env)
 
 // TODO: Change to queueing a read task
-readRegister :: !TaskId !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC r
-readRegister taskId sds env = read` () (Just taskId) (sdsIdentity sds) sds env
+readRegister :: !TaskId !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Maybe r), !*IWorld) | TC r
+readRegister taskId sds env = case read` () (Just taskId) (sdsIdentity sds) sds env of 
+    (Error e, env) = (Error e, env)
+    (Ok v, env) = (Ok (Just v), env)
+
+mbRegister :: !p !(RWShared p r w) !(Maybe TaskId) !SDSIdentity !*IWorld -> *IWorld | iTask p
+mbRegister p sds Nothing reqSDSId iworld = iworld
+mbRegister p sds (Just taskId) reqSDSId iworld=:{IWorld|sdsNotifyRequests}
+    # req = {SDSNotifyRequest|reqTaskId=taskId,reqSDSId=reqSDSId,cmpSDSId=sdsIdentity sds,cmpParam=dynamic p,cmpParamText=toSingleLineText p}
+    = {iworld & sdsNotifyRequests = [req:sdsNotifyRequests]}
+
 
 // TODO: Move these to execution of SDS read task
 read` :: !p !(Maybe TaskId) !SDSIdentity !(RWShared p r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | iTask p & TC r
@@ -78,7 +101,7 @@ read` p mbNotify reqSDSId sds=:(SDSSource {SDSSource|read}) env
 
 // This can be blocking, waiting for result? 
 // How to get the allocated socket/file?
-read` p mbNotify reqSDSId sds=:(SDSRemoteSource (DomainShare opts))) env = 
+read` p mbNotify reqSDSId rsds=:(SDSRemoteSource (DomainShare opts) sds) env =  (Error (exception "Not yet implemented"), env)
 // TODO: Handle retrieving the value from the domain server
 // STEPS:
 // 1. Get the domain configuration from the domain config share 
@@ -87,7 +110,7 @@ read` p mbNotify reqSDSId sds=:(SDSRemoteSource (DomainShare opts))) env =
 // 4. Return the result
 
 // Type safety?
-read` p mbNotify reqSDSId sds=:(SDSRemoteSource (WebServiceShare opts))) env =
+read` p mbNotify reqSDSId rsds=:(SDSRemoteSource (WebServiceShare opts) sds) env = (Error (exception "Not yet implemented"), env)
 // TODO: Handle retrieving the value from "somewhere" on the web
 // STEPS
 // 1. Do request
@@ -166,7 +189,7 @@ write` p w sds=:(SDSSource {SDSSource|name,write}) env
 			# (match,nomatch, env) = checkRegistrations (sdsIdentity sds) npred env
 			= (Ok match, env)
 
-write` p w sds=:(SDSRemoteSource sds) env
+write` p w rsds=:(SDSRemoteSource opts sds) env = (Error (exception "Not yet implemented"), env)
     // TODO: 
     // 1. Writing to an external web service is not allowed!
     // 2. Writing to an external SDS is allowed.
@@ -368,8 +391,8 @@ where
             _                        = (match,nomatch)
 
 modify :: !(r -> (!a,!w)) !(RWShared () r w) !*IWorld -> (!MaybeError TaskException a, !*IWorld) | TC r & TC w
-modify f sds iworld = case read sds iworld of
-    (Ok r,iworld)      = let (a,w) = f r in case write w sds iworld of
+modify f sds iworld = case read Nothing sds iworld of
+    (Ok (Just r),iworld)      = let (a,w) = f r in case write w sds iworld of
 		(Ok (),iworld)    = (Ok a,iworld)	
 		(Error e,iworld)  = (Error e, iworld)
     (Error e,iworld)   = (Error e,iworld)
@@ -448,14 +471,15 @@ getURLbyId sdsId iworld=:{IWorld|options={serverUrl},random}
 	= ("sds:" +++ serverUrl +++ "/" +++ sdsId, iworld)	
 
 // Returns whether a share (interpreted as a tree) has a remote share somewhere
-hasRemote :: SDS a b c -> Bool
+hasRemote :: (SDS a b c) -> Bool
 hasRemote (SDSSource _) = False
-hasRemote (SDSRemoteSource _) = True
+hasRemote (SDSRemoteSource _ _) = True
 hasRemote (SDSLens sds _) = hasRemote sds
 hasRemote (SDSSelect sds1 sds2 _) = hasRemote sds1 || hasRemote sds2
-hasRemote (SDSParallel  sdsl sdsr _) = hasRemote sdsl || hasRemote sds2
+hasRemote (SDSParallel  sds1 sds2 _) = hasRemote sds1 || hasRemote sds2
 hasRemote (SDSSequence sds1 sds2 _) = hasRemote sds1 || hasRemote sds2
 // TODO: Does this depend on whether the value is in cache?
-hasRemote (SDSCache sds) = hasRemote sds
+// TODO: Check.
+hasRemote (SDSCache sds cache) = True
 hasRemote (SDSDynamic _) = False
 

@@ -80,11 +80,11 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     | ConnectionInstance      !ConnectionInstanceOpts !*TCP_DuplexChannel
     | ExternalProcessInstance !ExternalProcessInstanceOpts !ProcessHandle !ProcessIO
     | BackgroundInstance      !BackgroundInstanceOpts !BackgroundTask
-    | SDSReadInstance         !SDSReadOpts
+    | E.a: SDSReadInstance         !SDSReadOpts (SDSReadTask a)
 
 :: SDSReadOpts =
     { 
-        sdsReadIntstId :: SDSReadTaskId
+        sdsReadInstId :: SDSReadTaskId
 
     }
 :: ListenerInstanceOpts =

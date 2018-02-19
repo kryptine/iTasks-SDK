@@ -53,9 +53,9 @@ where
 		focus = fromString (paramValue "focus" req)
 	
 		readit shared iworld
-			# (res, iworld) = 'SDS'.read (sdsFocus focus shared) iworld
+			# (res, iworld) = 'SDS'.read Nothing (sdsFocus focus shared) iworld
 			= case res of
-				(Ok json)       = (jsonResponse json, Nothing, Nothing, iworld)
+				(Ok (Just json))       = (jsonResponse json, Nothing, Nothing, iworld)
 				(Error (e,msg)) = (errorResponse msg, Nothing, Nothing, iworld)			
 			
 		writeit shared iworld

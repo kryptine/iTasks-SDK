@@ -12,9 +12,9 @@ NS_TONIC_INSTANCES :== "tonic-instances"
 
 sdsUnsafeRead :: (RWShared () a b) *IWorld -> *(a, *IWorld) | TC a
 sdsUnsafeRead focus iworld
-  # (res, iworld) = 'DSDS'.read focus iworld
+  # (res, iworld) = 'DSDS'.read Nothing focus iworld
   = case res of
-      Ok x -> (x, iworld)
+      Ok (Just x) -> (x, iworld)
 
 selectedBlueprint :: RWShared () (Maybe ClickMeta) (Maybe ClickMeta)
 selectedBlueprint = sdsFocus "selectedBlueprint" (removeMaybe (Just Nothing) memoryShare)
