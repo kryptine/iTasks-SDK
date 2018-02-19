@@ -9,6 +9,7 @@ import qualified Data.Set as Set
 import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.Internal.Task, iTasks.Internal.TaskStore, iTasks.Internal.TaskEval
+import StdDebug
 
 from iTasks.Internal.TaskServer import addSDSRead
 
@@ -74,10 +75,10 @@ read Nothing sds env = case read` () Nothing (sdsIdentity sds) sds env of
     (Ok v, env)                     = (Ok (Just v), env)
 
 // Otherwise, we queue a read task and return Ok Nothing, denoting that the 
-// task has been successfully added and the called will be notified when the reading is done.
+// task has been successfully added and the caller`23 will be notified when the reading is done.
 read (Just taskId) sds env = case addSDSRead (SDSReadTask (read` () Nothing (sdsIdentity sds) sds)) env of
-    (Error e, env)                  = (Error e, env)
-    (Ok _, env)                     = (Error (exception "Not yet implemented!!"), env)
+    (Error e, env)                  = trace_n "Error adding SDSRead" (Error e, env)
+    (Ok _, env)                     = trace_n ("Reading from share " +++ sdsIdentity sds) (Error (exception "Not yet implemented!!"), env)
 
 // TODO: Change to queueing a read task
 readRegister :: !TaskId !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Maybe r), !*IWorld) | TC r
@@ -391,11 +392,11 @@ where
             _                        = (match,nomatch)
 
 modify :: !(r -> (!a,!w)) !(RWShared () r w) !*IWorld -> (!MaybeError TaskException a, !*IWorld) | TC r & TC w
-modify f sds iworld = case read Nothing sds iworld of
+modify f sds iworld = trace_n ("Modifying " +++ sdsIdentity sds) (case read Nothing sds iworld of
     (Ok (Just r),iworld)      = let (a,w) = f r in case write w sds iworld of
 		(Ok (),iworld)    = (Ok a,iworld)	
 		(Error e,iworld)  = (Error e, iworld)
-    (Error e,iworld)   = (Error e,iworld)
+    (Error e,iworld)   = (Error e,iworld))
 
 notify :: !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 notify sds iworld = (Ok (), iworld) //TODO

@@ -16,12 +16,13 @@ from System.Time import time
 from TCPIP import :: Timeout
 
 import Data.Queue
+import StdDebug
 
 timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
 timeout iworld = case read Nothing taskEvents iworld of //Check if there are events in the queue
-	(Ok (Just (Queue [] [])),iworld)   = (Just 10,iworld) //Empty queue, don't waste CPU, but refresh
-	(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
-	(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
+	(Ok (Just (Queue [] [])),iworld)   	= (Just 10,iworld) //Empty queue, don't waste CPU, but refresh
+	(Ok _,iworld)               		= (Just 0,iworld)   //There are still events, don't wait
+	(Error _,iworld)            		= (Just 500,iworld) //Keep retrying, but not too fast
 
 updateClock :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateClock iworld=:{IWorld|clock,world}

@@ -20,6 +20,8 @@ from iTasks.Internal.TaskStore import queueRefresh
 import iTasks.WF.Tasks.IO
 import iTasks.SDS.Combinators.Common
 
+import qualified StdDebug as DB
+
 //Helper type that holds the mainloop instances during a select call
 //in these mainloop instances the unique listeners and read channels
 //have been temporarily removed.
@@ -190,7 +192,7 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                 | tReport == TR_Success
                     # (ip,{rChannel,sChannel}) = fromJust mbNewConn
                     # (ConnectionTask handlers sds) = lopts.ListenerInstanceOpts.connectionTask
-                    # (mbr,iworld) = 'SDS'.read (Just taskId) sds {iworld & ioTasks={done=done,todo=todo},world=world}
+                    # (mbr,iworld) = 'SDS'.read Nothing sds {iworld & ioTasks={done=done,todo=todo},world=world}
                     | mbr =:(Error _)
                         # iworld=:{ioTasks={done,todo},world} = if (instanceNo > 0) (queueRefresh [(taskId,"IO Exception for instance "<+++instanceNo)] iworld) iworld
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (snd (fromError mbr))) ioStates
@@ -302,7 +304,7 @@ process i chList iworld=:{ioTasks={done,todo=[BackgroundInstance opts bt=:(Backg
 // TODO: FIXX
 process i chList iworld=:{ioTasks={done, todo=[SDSReadInstance opts s : todo]}}
 # result = shareRead s iworld
-= process (i+1) chList {iworld & ioTasks={done=[SDSReadInstance opts s:done],todo=todo}}
+= 'DB'.trace_n "Processing SDS Read" (process (i+1) chList {iworld & ioTasks={done=[SDSReadInstance opts s:done],todo=todo}})
 
 //Move the task to done when we do not know what to do with it.
 process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
@@ -421,7 +423,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 
             // *** onTick handler ***
             // read sds
-            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read (Just taskId) sds iworld
+            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read Nothing sds iworld
             | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
             # r = fromJust (fromOk mbr)
             // call handler
@@ -435,7 +437,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 
             // *** onShareChange handler ***
             // read sds
-            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read (Just taskId) sds iworld
+            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read Nothing sds iworld
             | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
             # r = fromJust (fromOk mbr)
             // call handler
@@ -449,7 +451,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
 
             // ** onData handler ***
             // read sds
-            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read (Just taskId) sds iworld
+            # (mbr,iworld=:{ioTasks={done,todo},world}) = 'SDS'.read Nothing sds iworld
             | mbr =: (Error _) = sdsException mbr instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
             # r = fromJust (fromOk mbr)
             # taskState = fromOk mbTaskState
