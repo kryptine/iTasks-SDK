@@ -36,7 +36,6 @@ taskIdFromTaskTree (TCStep                  taskId _ _)       = Ok taskId
 taskIdFromTaskTree (TCParallel              taskId _ _ _)     = Ok taskId
 taskIdFromTaskTree (TCShared                taskId _ _)       = Ok taskId
 taskIdFromTaskTree (TCAttach                taskId _ _ _ _)   = Ok taskId
-taskIdFromTaskTree (TCExposedShared         taskId _ _ _)     = Ok taskId
 taskIdFromTaskTree (TCStable                taskId _ _)       = Ok taskId
 taskIdFromTaskTree (TCLayout                _ tt)             = taskIdFromTaskTree tt
 taskIdFromTaskTree (TCNop)                                    = Error (exception "Unable to obtain TaskId from TaskTree (TCNop)")

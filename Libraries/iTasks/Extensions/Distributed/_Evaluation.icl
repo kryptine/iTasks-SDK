@@ -49,7 +49,7 @@ proxyTask value_share onDestroy = Task eval
         eval event evalOpts tree=:(TCInit taskId ts) iworld
                 # (val,iworld)  = 'SDS'.readRegister taskId value_share iworld
                 = case val of
-                      Ok val            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) tree, iworld)
+                      Ok (Just val)            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) tree, iworld)
                       Error e           = (ExceptionResult e,iworld)
         eval event repAs (TCDestroy _) iworld 
                 # iworld = onDestroy iworld

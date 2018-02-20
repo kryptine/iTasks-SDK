@@ -58,13 +58,15 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 :: TaskTree
 	= TCInit		            !TaskId !TaskTime													//Initial state for all tasks
 	| TCBasic		            !TaskId !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
+
+	// Task is awaiting the result of reading a remote share/webservice.
+	| TCAwaitRead				!TaskId !TaskTime
 	| TCInteract	            !TaskId !TaskTime !JSONNode !JSONNode !EditMask
 	| TCProject					!TaskId !JSONNode !TaskTree
 	| TCStep					!TaskId !TaskTime !(Either (TaskTree,[String]) (DeferredJSON,Int,TaskTree)) 
 	| TCParallel				!TaskId !TaskTime ![(!TaskId,!TaskTree)] [String] //Subtrees of embedded tasks and enabled actions
 	| TCShared					!TaskId !TaskTime !TaskTree
 	| TCAttach                  !TaskId !TaskTime !AttachmentStatus !String !String
-	| TCExposedShared			!TaskId !TaskTime !String !TaskTree	// +URL //TODO: Remove
 	| TCStable					!TaskId !TaskTime !DeferredJSON
 	| TCLayout					!JSONNode !TaskTree
 	| TCNop			
@@ -94,5 +96,6 @@ derive JSONDecode DeferredJSON
 :: ParallelTaskChange
     = RemoveParallelTask                            //Mark for removal from the set on the next evaluation
     | ReplaceParallelTask !Dynamic                  //Replace the task on the next evaluation
+
 
 

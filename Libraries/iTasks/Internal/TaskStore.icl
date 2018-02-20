@@ -582,12 +582,9 @@ exposedShare url = SDSDynamic f
 where
 	f _ iworld=:{exposedShares}
         = case 'DM'.get url exposedShares of
-		    Nothing
-			    = (Ok ('SDS'.createReadWriteSDS "exposedShare" url rread rwrite), iworld)
-			Just (shared :: RWShared p^ r^ w^, _)	
-				= (Ok shared, iworld)
-			Just dyn
-			    = (Error (dynamic mismatchError,mismatchError), iworld)
+		        Nothing                               = (Ok ('SDS'.createReadWriteSDS "exposedShare" url rread rwrite), iworld)
+            Just (shared :: RWShared p^ r^ w^, _) = (Ok shared, iworld )
+            Just dynamic                          = (Error (dynamic mismatchError,mismatchError), iworld)
 
 	rread p iworld
 			= case readRemoteSDS (toJSON p) url iworld of

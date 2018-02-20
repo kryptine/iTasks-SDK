@@ -26,15 +26,15 @@ accSymbols :: ({#Symbol} -> a) -> Task a | iTask a
 accSymbols fun = mkInstantTask eval
 where
 	eval taskId iworld
-		# (val, iworld) = read symbolsShare iworld
+		# (val, iworld) = read Nothing symbolsShare iworld
 		= case val of
-			Ok val		= (Ok (fun (fst (copy_from_string (base64Decode val)))), iworld) 
+			Ok (Just val)		= (Ok (fun (fst (copy_from_string (base64Decode val)))), iworld) 
 			Error e		= (Error e, iworld)
 
 withSymbols :: ({#Symbol} -> Task a) -> Task a | iTask a
 withSymbols taskfun = Task eval
 where
 	eval event evalOpts state iworld
-                # (val, iworld) = read symbolsShare iworld
+                # (val, iworld) = read Nothing symbolsShare iworld
                 = case val of
-                        Ok val          = let (Task eval`) = taskfun (fst (copy_from_string (base64Decode val))) in eval` event evalOpts state iworld
+                        Ok (Just val)          = let (Task eval`) = taskfun (fst (copy_from_string (base64Decode val))) in eval` event evalOpts state iworld

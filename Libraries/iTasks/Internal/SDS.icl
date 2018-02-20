@@ -1,7 +1,7 @@
 implementation module iTasks.Internal.SDS
 
-from StdFunc import const
-import StdString, StdTuple, StdMisc, StdList, StdBool
+from StdFunc import const, o
+import StdString, StdTuple, StdMisc, StdList, StdBool, StdArray
 from Data.Map import :: Map
 import qualified Data.Map as DM
 import Data.Error, Data.Func, Data.Tuple, System.OS, System.Time, Text, Text.JSON
@@ -11,7 +11,9 @@ import iTasks.Internal.IWorld
 import iTasks.Internal.Task, iTasks.Internal.TaskStore, iTasks.Internal.TaskEval
 import StdDebug
 
-from iTasks.Internal.TaskServer import addSDSRead
+import iTasks.SDS.Sources.Core
+from iTasks.Internal.TaskServer import addConnection
+import qualified iTasks.WF.Tasks.IO as IO
 
 createReadWriteSDS ::
 	!String
@@ -64,27 +66,29 @@ sdsIdentity (SDSDynamic f) = "SDSDYNAMIC" //TODO: Figure out how to determine th
 iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
 iworldNotifyPred npred p env = (npred p, env)
 
-// TODO: Change to queuing a read task
-read :: !(Maybe TaskId) !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Maybe r), !*IWorld) | TC r
+directResult :: (Either a TaskId) -> a
+directResult (Left a) = a
+
+read :: !TaskContext !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Either r TaskId), !*IWorld) | TC r
 
 // If we do not need to read in the context of a task (probably called 
 // somewhere in the internals of the framework), then we return the result of 
 // the read immediately, blocking.
-read Nothing sds env = case read` () Nothing (sdsIdentity sds) sds env of 
+read EmptyContext sds env = case read` () Nothing (sdsIdentity sds) sds env of 
     (Error e, env)                  = (Error e, env)
-    (Ok v, env)                     = (Ok (Just v), env)
+    (Ok v, env)                     = (Ok (Left v), env)
 
-// Otherwise, we queue a read task and return Ok Nothing, denoting that the 
-// task has been successfully added and the caller`23 will be notified when the reading is done.
-read (Just taskId) sds env = case addSDSRead (SDSReadTask (read` () Nothing (sdsIdentity sds) sds)) env of
+// Otherwise, we queue a read task and return Right readId, denoting that the 
+// task has been successfully added and the caller can check for a result using the returned id.
+read (TaskContext taskId) sds env = case remoteread sds taskId env of
     (Error e, env)                  = trace_n "Error adding SDSRead" (Error e, env)
-    (Ok _, env)                     = trace_n ("Reading from share " +++ sdsIdentity sds) (Error (exception "Not yet implemented!!"), env)
+    (Ok readId, env)                = (Ok (Right readId) , env)
 
 // TODO: Change to queueing a read task
-readRegister :: !TaskId !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Maybe r), !*IWorld) | TC r
+readRegister :: !TaskId !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Either r TaskId), !*IWorld) | TC r
 readRegister taskId sds env = case read` () (Just taskId) (sdsIdentity sds) sds env of 
     (Error e, env) = (Error e, env)
-    (Ok v, env) = (Ok (Just v), env)
+    (Ok v, env) = (Ok (Left v), env)
 
 mbRegister :: !p !(RWShared p r w) !(Maybe TaskId) !SDSIdentity !*IWorld -> *IWorld | iTask p
 mbRegister p sds Nothing reqSDSId iworld = iworld
@@ -99,23 +103,6 @@ read` p mbNotify reqSDSId sds=:(SDSSource {SDSSource|read}) env
     //New registration
     # env = mbRegister p sds mbNotify reqSDSId env
     = read p env
-
-// This can be blocking, waiting for result? 
-// How to get the allocated socket/file?
-read` p mbNotify reqSDSId rsds=:(SDSRemoteSource (DomainShare opts) sds) env =  (Error (exception "Not yet implemented"), env)
-// TODO: Handle retrieving the value from the domain server
-// STEPS:
-// 1. Get the domain configuration from the domain config share 
-// 2. Send the requests
-// 3. Check if successful
-// 4. Return the result
-
-// Type safety?
-read` p mbNotify reqSDSId rsds=:(SDSRemoteSource (WebServiceShare opts) sds) env = (Error (exception "Not yet implemented"), env)
-// TODO: Handle retrieving the value from "somewhere" on the web
-// STEPS
-// 1. Do request
-// 2. Return result?
 
 read` p mbNotify reqSDSId sds=:(SDSLens sds1 {SDSLens|param,read}) env
     # env = mbRegister p sds mbNotify reqSDSId env
@@ -484,3 +471,41 @@ hasRemote (SDSSequence sds1 sds2 _) = hasRemote sds1 || hasRemote sds2
 hasRemote (SDSCache sds cache) = True
 hasRemote (SDSDynamic _) = False
 
+remoteread :: (SDS p r w) TaskId *IWorld -> (!MaybeError TaskException (),!*IWorld)
+remoteread (SDSRemoteSource options sds) taskId iworld
+= case addConnection taskId (getHost options) (getPort options) wrappedTask iworld of 
+    (Error e, w) = (Error e, w)
+    (Ok _, w) = (Ok (), w)
+where
+    getPort :: RemoteShare -> Int
+    getPort (DomainShare {DomainShareOptions|port}) = port
+    getPort (WebServiceShare {WebServiceShareOptions|url}) = 80
+
+    getHost :: RemoteShare -> String 
+    getHost (DomainShare {DomainShareOptions|domain}) = domain +++ "/sds/" +++ shareName sds
+    getHost (WebServiceShare {WebServiceShareOptions|url}) = url
+
+    wrappedTask = wrapConnectionTask handlers (constShare ())
+
+    handlers :: 'IO'.ConnectionHandlers (Either [String] r) () (Maybe ())
+    handlers = {onConnect = oc
+        , onData = od
+        , onShareChange = os
+        , onDisconnect = odi , onTick = \l _ w -> (Ok l, Nothing, [], False,w) } 
+
+    shareName {SDSSource| name} = name
+    // TODO: Fix andere shares.
+    shareName _ = "TODO"
+
+    // Make the request
+    oc _ _ = (Ok (Left []),Nothing,[],False)
+
+    od data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False) 
+
+    // Share cannot change, so do nothing.
+    os _ l _ = (Ok l, Nothing, [], False) 
+
+    // Concatenate the received JSON and interpret as type r
+    odi (Left acc) _ = let jsonString = concat acc in case fromJSON o fromString o jsonString of 
+        (Just a) = (Ok (Right a), Nothing)
+        Nothing = (Error "Unable to parse JSON. Received: " +++ jsonString, Nothing)

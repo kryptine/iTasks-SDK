@@ -13,9 +13,9 @@ from iTasks.WF.Combinators.Core import :: ParallelTaskType(..), :: ParallelTask(
 from Data.Map as DM				        import qualified newMap, fromList, toList, get, put, del 
 from Data.Queue import :: Queue (..)
 from Data.Queue as DQ					import qualified newQueue, enqueue, dequeue, empty
-from iTasks.Internal.SDS as SDS       import qualified read, write, modify
+from iTasks.Internal.SDS as SDS       import qualified read, write, modify, directResult
 from iTasks.SDS.Combinators.Common      import sdsFocus, >+|, mapReadWrite, mapReadWriteError
-from StdFunc import const
+from StdFunc import const, o
 
 import qualified Data.CircularStack as DCS
 from Data.CircularStack import :: CircularStack
@@ -54,6 +54,8 @@ getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
 getNextTaskId iworld=:{current=current=:{TaskEvalState|taskInstance,nextTaskNo}}
     = (TaskId taskInstance nextTaskNo, {IWorld|iworld & current = {TaskEvalState|current & nextTaskNo = nextTaskNo + 1}})
 
+
+
 processEvents :: !Int *IWorld -> *(!MaybeError TaskException (), !*IWorld)
 processEvents max iworld
 	| max <= 0 = (Ok (), iworld)
@@ -75,15 +77,15 @@ evalTaskInstance instanceNo event iworld
     = (res,iworld)
 where
     evalTaskInstance` instanceNo event iworld=:{clock,current}
-    # (constants, iworld)       = 'SDS'.read Nothing (sdsFocus instanceNo taskInstanceConstants) iworld
+    # (constants, iworld)       = 'SDS'.read EmptyContext (sdsFocus instanceNo taskInstanceConstants) iworld
 	| isError constants         = exitWithException instanceNo ((\(Error (e,msg)) -> msg) constants) iworld
-	# constants=:{InstanceConstants|session,listId} = fromJust (fromOk constants)
-	# (oldReduct, iworld)		= 'SDS'.read Nothing (sdsFocus instanceNo taskInstanceReduct) iworld
+	# constants=:{InstanceConstants|session,listId} = 'SDS'.directResult (fromOk constants)
+	# (oldReduct, iworld)		= 'SDS'.read EmptyContext (sdsFocus instanceNo taskInstanceReduct) iworld
 	| isError oldReduct			= exitWithException instanceNo ((\(Error (e,msg)) -> msg) oldReduct) iworld
-	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,tasks,tonicRedOpts} = fromJust (fromOk oldReduct)
-    # (oldProgress,iworld)      = 'SDS'.read Nothing (sdsFocus instanceNo taskInstanceProgress) iworld
+	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,tasks,tonicRedOpts} = 'SDS'.directResult (fromOk oldReduct)
+    # (oldProgress,iworld)      = 'SDS'.read EmptyContext (sdsFocus instanceNo taskInstanceProgress) iworld
 	| isError oldProgress       = exitWithException instanceNo ((\(Error (e,msg)) -> msg) oldProgress) iworld
-    # oldProgress=:{InstanceProgress|value,attachedTo} = fromJust (fromOk oldProgress)
+    # oldProgress=:{InstanceProgress|value,attachedTo} = 'SDS'.directResult (fromOk oldProgress)
     //Check exeption
     | value =: (Exception _)
 		# (Exception description) = value
@@ -99,7 +101,7 @@ where
                                         { taskInstance = instanceNo
                                         , sessionInstance = currentSession
                                         , attachmentChain = currentAttachment
-										, taskTime = oldReduct.TIReduct.nextTaskTime
+										                    , taskTime = oldReduct.TIReduct.nextTaskTime
                                         , nextTaskNo = oldReduct.TIReduct.nextTaskNo
 										}}
 	//Apply task's eval function and take updated nextTaskId from iworld
@@ -110,7 +112,7 @@ where
     //Reset necessary 'current' values in iworld
     # iworld = {IWorld|iworld & current = {TaskEvalState|current & taskInstance = 0}}
     // Check if instance was deleted by trying to reread the instance constants share
-	# (deleted,iworld) = appFst isError ('SDS'.read Nothing (sdsFocus instanceNo taskInstanceConstants) iworld)
+	# (deleted,iworld) = appFst isError ('SDS'.read EmptyContext (sdsFocus instanceNo taskInstanceConstants) iworld)
     // Write the updated progress
 	# (mbErr,iworld) = if (updateProgress clock newResult oldProgress === oldProgress)
 		(Ok (),iworld)	//Only update progress when something changed

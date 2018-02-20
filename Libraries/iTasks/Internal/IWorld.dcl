@@ -13,7 +13,7 @@ from System.Process         import :: ProcessHandle, :: ProcessIO
 from iTasks.Engine                      import :: EngineOptions
 from iTasks.UI.Definition				import :: UI, :: UIType
 from iTasks.Internal.TaskState		import :: ParallelTaskState, :: TIMeta, :: DeferredJSON
-from iTasks.Internal.Task             import :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask, :: SDSReadTask
+from iTasks.Internal.Task             import :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask
 from iTasks.Internal.TaskEval         import :: TaskTime
 
 from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo
@@ -80,7 +80,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     | ConnectionInstance      !ConnectionInstanceOpts !*TCP_DuplexChannel
     | ExternalProcessInstance !ExternalProcessInstanceOpts !ProcessHandle !ProcessIO
     | BackgroundInstance      !BackgroundInstanceOpts !BackgroundTask
-    | E.a: SDSReadInstance         !SDSReadOpts (SDSReadTask a)
 
 :: SDSReadOpts =
     { 

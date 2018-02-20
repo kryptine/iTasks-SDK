@@ -30,6 +30,7 @@ import qualified StdDebug as DB
     | ConnectionInstanceDS !ConnectionInstanceOpts !*TCP_SChannel
     | ExternalProcessInstanceDS !ExternalProcessInstanceOpts !ProcessHandle !ProcessIO
     | BackgroundInstanceDS !BackgroundInstanceOpts !BackgroundTask
+    // TODO: Add channel to which the task listens?
     | E.a: ReadSDSInstanceDS !SDSReadOpts !(SDSReadTask a)// !TSDSReadTask
 
 serve :: ![TaskWrapper] ![(!Int,!ConnectionTask)] ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
@@ -302,9 +303,25 @@ process i chList iworld=:{ioTasks={done,todo=[BackgroundInstance opts bt=:(Backg
 
 //Process read tasks.
 // TODO: FIXX
-process i chList iworld=:{ioTasks={done, todo=[SDSReadInstance opts s : todo]}}
-# result = shareRead s iworld
-= 'DB'.trace_n "Processing SDS Read" (process (i+1) chList {iworld & ioTasks={done=[SDSReadInstance opts s:done],todo=todo}})
+process i chList iworld=:{ioTasks={done, todo=[SDSReadInstance opts (SDSReadTask sdsIdentity taskId)) : todo]}}
+# iworld = {iworld & ioTasks = {done = done, todo = todo}} 
+# iworld = processIoTask i chList taskId opts.sdsReadInstId True (constShare ()) tcpConnectionIOOps onDisconnect onData onShareChange (SDSReadInstance opts) ___ iworld
+where
+    // TODO: Do nothing on disconnect?
+    onDisconnect :: !(closeInfo Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, !*IWorld))
+    onDisconnect () acc _ w = (Ok acc, Nothing, w)
+
+    onData ::  !(readData Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
+    onData (channel, data) acc r w = case channel of 
+        StdOut = ()
+        StdErr = ()
+
+    // Share will never change, 
+    onShareChange ::   !(Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
+    onShareChange acc r w = (Ok acc, Nothing, [], False w)
+
+    onTick :: !(Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
+    onTick acc _ w = (Ok acc, Nothing, [], False)
 
 //Move the task to done when we do not know what to do with it.
 process i chList iworld=:{ioTasks={done,todo=[t:todo]}}
@@ -393,11 +410,11 @@ where
         // TODO: handle errors
         = {iworld & world = world} 
 
-processIOTask :: !Int
-                 ![(Int, SelectResult)]
-                 !TaskId
-                 !ConnectionId
-                 !Bool
+processIOTask :: !Int // Unique id to read/write data to the correct socket/file
+                 ![(Int, SelectResult)] // List of channels which may of may not have data
+                 !TaskId // Id of the task instance from which the processing is originally started. Used for showing exceptions
+                 !ConnectionId  // Connection id of this particular connection in the IO task (When listening as a server, there can be multiple connections per IO task)
+                 !Bool // Whether the task should be removed when the connection/file is closed.
                  !(RWShared () Dynamic Dynamic)
                  !(IOTaskOperations .ioChannels readData closeInfo)
                  !(closeInfo Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, !*IWorld))
@@ -639,17 +656,6 @@ addBackgroundTask bt iworld=:{ioTasks={done,todo}}
 		transform a=:(BackgroundInstance {bgInstId} _) = (a, bgInstId)
 		transform a = (a, 1)
 
-//Dynamically add a read SDS task
-addSDSRead :: !(SDSReadTask a) !*IWorld -> !(MaybeError TaskException (), !*IWorld)
-addSDSRead sdsReadTask env=:{ioTasks={done, todo}}
-// Get the maximum id from the todo list of existing SDS read tasks
-# (todo, i) = appSnd (\is->1 + maxList is) (unzip (map transform todo))
-# todo = todo ++ [SDSReadInstance {SDSReadOpts|sdsReadInstId=i} sdsReadTask]
-= (Ok (), {env & ioTasks={done=done, todo=todo}})
-    where
-        transform a=:(SDSReadInstance {sdsReadInstId} _) = (a, sdsReadInstId)
-        transform a = (a, 1)
-
 //Dynamically remove a background task
 removeBackgroundTask :: !BackgroundTaskId !*IWorld -> (!MaybeError TaskException (),!*IWorld)
 removeBackgroundTask btid iworld=:{ioTasks={done,todo}} 
@@ -681,12 +687,6 @@ halt exitCode iworld=:{ioTasks={todo=[BackgroundInstance _ _ :todo],done},world}
     = halt exitCode {iworld & ioTasks= {todo=todo,done=done}}
 halt exitCode iworld=:{ioTasks={todo=[ExternalProcessInstance _ _ _ :todo],done},world}
     = halt exitCode {iworld & ioTasks= {todo=todo,done=done}}
-
-// 1. Start the requested computation
-// 2. Register a file which will contain the result
-// 3. Register the task which originally requested the read to this file.
-shareRead :: (SDSReadTask a) *IWorld -> (MaybeError TaskException r, *IWorld) | TC r
-shareRead task w = (Error (exception "Not yet implemented"), w)
 
 
 

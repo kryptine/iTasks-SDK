@@ -11,7 +11,7 @@ from System.Process           import :: ProcessPtyOptions
 from Data.Error               import :: MaybeError
 from iTasks.WF.Definition     import :: TaskId
 from iTasks.Internal.IWorld	  import :: IWorld, :: BackgroundTaskId, :: SDSReadTaskId
-from iTasks.Internal.Task     import :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask, :: TaskException, :: SDSReadTask
+from iTasks.Internal.Task     import :: ExternalProcessTask, :: ConnectionTask, :: BackgroundTask, :: TaskException
 from iTasks.Engine            import :: TaskWrapper
 
 //Core task server loop
@@ -28,9 +28,6 @@ addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !ExternalProces
 
 //Dynamically add a background Task
 addBackgroundTask :: !BackgroundTask !*IWorld -> (!MaybeError TaskException BackgroundTaskId,!*IWorld)
-
-//Dynamically add a read SDS task
-addSDSRead :: !(SDSReadTask a) !*IWorld -> !(MaybeError TaskException (), !*IWorld)
 
 //Dynamically remove a background task
 removeBackgroundTask :: !BackgroundTaskId !*IWorld -> (!MaybeError TaskException (),!*IWorld)

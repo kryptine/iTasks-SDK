@@ -34,7 +34,8 @@ from Data.Maybe import :: Maybe
     | WebServiceShare WebServiceShareOptions
 
 :: DomainShareOptions = 
-    { domain :: String
+    { domain :: String,
+      port :: Int
     }
 
   // TODO: Add options

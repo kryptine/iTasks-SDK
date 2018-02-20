@@ -24,6 +24,8 @@ import iTasks.SDS.Definition
 
 :: DeferredWrite = E. p r w: DeferredWrite !p !w !(SDS p r w) & iTask p & TC r & TC w
 
+:: TaskContext = EmptyContext | TaskContext TaskId
+
 //Internal creation functions:
 
 createReadWriteSDS ::
@@ -45,14 +47,13 @@ createReadOnlySDSError ::
 	ROShared p r
 
 //Internal access functions
+directResult :: (Either a TaskId) -> a
 
 //Just read an SDS
-// TODO: read should no longer be blocking. To achieve this, give it a taskID with the task to be notified when the read completes.
-//		 The read is placed in a queue, which is updated after each engine loop.
-read :: !(Maybe TaskId) !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Maybe r), !*IWorld) | TC r
+read :: !TaskContext !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Either r TaskId), !*IWorld) | TC r
 
 //Read an SDS and register a taskId to be notified when it is written
-readRegister :: !TaskId !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Maybe r), !*IWorld) | TC r
+readRegister :: !TaskId !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Either r TaskId), !*IWorld) | TC r
 
 //Write an SDS (and queue evaluation of those task instances which contained tasks that registered for notification)
 write			:: !w					    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)	| TC r & TC w
