@@ -6,9 +6,10 @@ import Data.Maybe, Data.Either, Text, Data.Tuple, Data.List, Data.Either, Data.F
 import iTasks.Internal.Util, iTasks.Internal.HtmlUtil, iTasks.UI.Definition
 import iTasks.Internal.Generic.Defaults 
 import StdEnum
-from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, delList, alter, union, keys, unions, singleton
+from Data.Map as DM import qualified put, get, del, newMap, toList, fromList, delList, alter, union, keys, unions, singleton, member
 from Data.Set as DS import qualified newSet, insert, delete, toList, fromList
 from Data.Tuple import appSnd
+
 import Text.JSON
 
 from StdFunc import o, const, id, flip
@@ -61,18 +62,6 @@ idLayout :: Layout
 idLayout = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
 
 setUIType :: UIType -> Layout
-/*
-setUIType type = {Layout|apply=apply,adjust=adjust,restore=restore}
-where
-	apply ui=:(UI _ attr items) = (ReplaceUI (UI type attr items), LSType ui) //Crude replacement (no instruction possible)
-
-	adjust (NoChange,s)   = (NoChange,s)
-	adjust (ReplaceUI ui,_) = apply ui 
-	adjust (change,LSType ui) = (change, LSType (applyUIChange change ui))
-
-	//Crude restore...
-	restore (LSType ui) = ReplaceUI ui 
-*/
 setUIType type = ruleBasedLayout (setUITypeRule type)
 
 setUITypeRef_ :: UIType -> Layout
@@ -81,28 +70,7 @@ where
 	ref (UI _ attr items) = UI type attr items
 
 setUIAttributes :: UIAttributes -> Layout
-setUIAttributes extraAttr = {Layout|apply=apply,adjust=adjust,restore=restore}
-where
-	apply (UI _ attr _)
-		= (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList extraAttr] [],LSAttributes attr)
-
-	adjust (ChangeUI attrChanges itemChanges,LSAttributes attr)
-		//Update the shadow attributes
-		# attr = foldl (flip applyUIAttributeChange) attr attrChanges
-		//Filter out updates for the attributes that this layout has overwritten setting here
-		# attrChanges = filter (not o matchChange) attrChanges
-		= (ChangeUI attrChanges itemChanges, LSAttributes attr)
-	where
-		matchChange (SetAttribute k _) = isMember k ('DM'.keys extraAttr)
-		matchChange (DelAttribute k) = isMember k ('DM'.keys extraAttr)
-
-	adjust (ReplaceUI ui,LSAttributes attr)
-		# (change,state) = apply ui
-		= (ReplaceUI (applyUIChange change ui),state)
-	adjust (change,s) = (change,s)
-
-	restore (LSAttributes attr) //Restore or delete the extra attributes
-		= ChangeUI [maybe (DelAttribute k) (\v -> SetAttribute k v) ('DM'.get k attr) \\ k <- 'DM'.keys extraAttr] []
+setUIAttributes extraAttr = ruleBasedLayout (setUIAttributesRule extraAttr)
 
 setUIAttributesRef_ :: UIAttributes -> Layout
 setUIAttributesRef_ extraAttr = referenceLayout ref
@@ -110,66 +78,22 @@ where
 	ref (UI type attr items) = UI type ('DM'.union extraAttr attr) items
 
 delUIAttributes :: UIAttributeSelection -> Layout 
-delUIAttributes selection = {Layout|apply=apply,adjust=adjust,restore=restore} 
-where
-	apply (UI _ attr _) 
-		= (ChangeUI [DelAttribute k \\ k <- 'DM'.keys attr | matchKey selection k] [],LSAttributes attr)
-
-	adjust (ChangeUI attrChanges itemChanges,LSAttributes attr)
-		//Update the shadow attributes
-		# attr = foldl (flip applyUIAttributeChange) attr attrChanges
-		//Remove changes that affect the deleted attributes
-		# attrChanges = filter (not o (matchChange selection)) attrChanges
-		= (ChangeUI attrChanges itemChanges,LSAttributes attr)
-
-	adjust (ReplaceUI ui,_)
-		# (change,state) = apply ui
-		= (ReplaceUI (applyUIChange change ui),state)
-
-	adjust (change,s) = (change,s)
-	
-	restore (LSAttributes attr) //Restore the attributes
-		= ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList attr | matchKey selection k] []
+delUIAttributes selection = ruleBasedLayout (delUIAttributesRule selection)
 
 delUIAttributesRef_ :: UIAttributeSelection -> Layout 
 delUIAttributesRef_ selection = referenceLayout ref
 where
-	ref (UI type attr items) = UI type (foldl (\a k -> if (matchKey selection k) ('DM'.del k a) a) attr ('DM'.keys attr)) items
+	ref (UI type attr items) = UI type (foldl (\a k -> if (matchKey_ selection k) ('DM'.del k a) a) attr ('DM'.keys attr)) items
 
 modifyUIAttributes :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
-modifyUIAttributes selection modifier = {Layout|apply=apply,adjust=adjust,restore=restore}
-where
-	apply (UI type attr items)
-		# mods = modifier (selectAttributes selection attr)
-		= (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList mods] [],LSModifyAttributes attr mods)
-
-	adjust (ChangeUI attrChanges childChanges, LSModifyAttributes attr mods)
-		//Update the shadow attributes
-		# attr = foldl (flip applyUIAttributeChange) attr attrChanges
-		//Recompute the modifications
-		# newMods = modifier (selectAttributes selection attr)
-		# modChanges = diffAttributes mods newMods
-		//Remove changes that affect the modified attributes
-		# attrChanges = filter (not o (matchMods ('DM'.keys newMods))) attrChanges
-		= (ChangeUI (attrChanges ++ modChanges) childChanges, LSModifyAttributes attr newMods)
-	where
-		matchMods modKeys (SetAttribute k _) = isMember k modKeys
-		matchMods modKeys (DelAttribute k)   = isMember k modKeys
-	
-	adjust (ReplaceUI ui,_)
-		# (change,state) = apply ui
-		= (ReplaceUI (applyUIChange change ui),state)
-	adjust (change,s) = (change,s)
-
-	restore (LSModifyAttributes attr mods) //Restore the attributes
-		= ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList attr] []
+modifyUIAttributes selection modifier = ruleBasedLayout (modifyUIAttributesRule selection modifier)
 
 modifyUIAttributesRef_ :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
 modifyUIAttributesRef_ selection modifier = referenceLayout ref
 where
 	ref (UI type attr items) = UI type ('DM'.union (modifier selected) attr) items
 	where
-		selected = selectAttributes selection attr
+		selected = selectAttributesOLD selection attr
 
 //Known use:
 //-	copySubUIAttributes SelectAll [0] [] 
@@ -178,129 +102,17 @@ where
 //- copySubUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) [1] [2]
 //- copySubUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) [1] [1]
 copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> Layout
-copySubUIAttributes selection src dst = {Layout|apply=apply,adjust=adjust,restore=restore} 
-where
-	apply ui 
-		# srcAttr = getAttrAtPath src ui //Find the attributes in the source
-		# change  = changeAtPath dst ui (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList srcAttr | matchKey selection k] [])
-		= (change, LSCopyAttributes ui)
+copySubUIAttributes selection src dst = ruleBasedLayout (copySubUIAttributesRule selection src dst)
 
-	//THIS IS A TEMPORARY VERSION:
-	//It is incorrect in general, but works for the current concrete use-cases we have in the default layouts
-	adjust (change, LSCopyAttributes ui)
-		//Update the ui
-		# (copyChange,state) = apply (applyUIChange change ui)
-		= (mergeUIChanges change copyChange, state)
-			
-	restore (LSCopyAttributes ui) = ReplaceUI ui
-
-	//Find the attributes of a sub ui
-	getAttrAtPath [] (UI type attr items) = attr
-	getAttrAtPath [s:ss] (UI type attr items) 
-		| s >= 0 && s < length items = getAttrAtPath ss (items !! s)
-							         = 'DM'.newMap
-
-	changeAtPath [] _ change = change
-	changeAtPath [s:ss] (UI _ _ items) change
-		| s >= 0 && s < length items = ChangeUI [] [(s,ChangeChild (changeAtPath ss (items !! s) change))]
-									 = NoChange
-
-
-/*
-	adjust (change, LSCopyAttributes ui)
-		//Check if the change affects the position of the destination
-		# dstAfterChange = pathAfterChange dst change
-		# ui = applyUIChange change ui
-		//Apply the change to the ui
-		= case dstAfterChange of
-			Nothing  //The old destination node no longer exist, we have to copy all attributes again
-				# change  = changeAtPath dst ui (ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList (getAttrAtPath src ui) | matchKey selection k] [])
-				= (change, LSCopyAttributes ui)
-			Just (dstAfterChange)
-				| dstAfterChange === dst //Destination is still in the same place -> only look at changes in the source
-					# srcChanges = getAttrChangesAtPath src change
-					# change = changeAtPath dst ui (ChangeUI [c \\ c <- srcChanges | matchChange selection c] [])
-					= (change,LSCopyAttributes ui)
-						
-				| otherwise //The old destination is no longer the destination -> restore old node and insert in new place
-					# correctionChange = changeAtPath dstAfterChange ui 
-						(ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList (getAttrAtPath dstAfterChange ui) | matchKey selection k] [])
-					# dstChange = changeAtPath dst ui
-						(ChangeUI [SetAttribute k v \\ (k,v) <- 'DM'.toList (getAttrAtPath src ui) | matchKey selection k] [])
-					= (mergeUIChanges correctionChange dstChange, LSCopyAttributes ui)
-
-	restore (LSCopyAttributes ui) = ReplaceUI ui
-
-	//Find the attributes of a sub ui
-	getAttrAtPath [] (UI type attr items) = attr
-	getAttrAtPath [s:ss] (UI type attr items) 
-		| s >= 0 && s < length items = getAttrAtPath ss (items !! s)
-							         = 'DM'.newMap
-
-	changeAtPath [] _ change = change
-	changeAtPath [s:ss] (UI _ _ items) change
-		| s >= 0 && s < length items = ChangeUI [] [(s,ChangeChild (changeAtPath ss (items !! s) change))]
-									 = NoChange
-
-	//Determine where a node addressed by a path ends up after a change is applied
-	pathAfterChange path NoChange = Just path //Nothing happened
-	pathAfterChange path (ReplaceUI _) = Nothing //The ui indicated by the path longer exists
-	pathAfterChange [] (ChangeUI _ _) = Just []
-	pathAfterChange [s:ss] (ChangeUI _ childChanges) = adjust s ss childChanges
-	where
-		adjust s ss [] = Just [s:ss]
-		adjust s ss [(i,ChangeChild c):cs]
-			| i == s = case pathAfterChange ss c of 
-				(Just ss) = adjust s ss cs
-				Nothing = Nothing
-			| otherwise
-				= adjust s ss cs
-		adjust s ss [(i,InsertChild _):cs]
-			= if (i <= s) (adjust (s + 1) ss cs) (adjust s ss cs)
-		adjust s ss [(i,RemoveChild):cs]
-			| i == s = Nothing
-					 = if (i < s) (adjust (s - 1) ss cs) (adjust s ss cs)
-		adjust s ss [(i,MoveChild d):cs]
-			| i == s = adjust d ss cs
-					 = adjust (s - (if (i < s) 1 0) + (if (d <= s) 1 0)) ss cs
-
-	getAttrChangesAtPath path change = fst (get path change) //FIXME: ChangeUI  n, Remove (n - 1), ChangeUI n
-	where
-		get path NoChange = ([],Just path)
-		get path (ReplaceUI ui) = ([SetAttribute k v \\ (k,v) <- 'DM'.toList (getAttrAtPath path ui)],Just path)
-		get []    (ChangeUI attrChanges _) = (attrChanges,Just [])
-	    get [s:ss] (ChangeUI _ childChanges) = adjust s ss childChanges
-
-		adjust s ss [] = ([],Just [s:ss])
-		adjust s ss [(i,ChangeChild c):cs]
-			| i == s = case get ss c of 
-				(as,Just ss) = adjust s ss cs
-				(_,Nothing) = ([],Nothing)
-			         = adjust s ss cs
-		adjust s ss [(i,InsertChild _):cs]
-			= if (i <= s) (adjust (s + 1) ss cs) (adjust s ss cs)
-		adjust s ss [(i,RemoveChild):cs]
-			| i == s = ([],Nothing)
-					 = if (i < s) (adjust (s - 1) ss cs) (adjust s ss cs)
-		adjust s ss [(i,MoveChild d):cs]
-			| i == s = adjust d ss cs
-					 = adjust (s - (if (i < s) 1 0) + (if (d <= s) 1 0)) ss cs
-*/
-matchKey (SelectAll) _ = True
-matchKey (SelectKeys keys) k = isMember k keys
-
-matchChange selection (SetAttribute k _) = matchKey selection k
-matchChange selection (DelAttribute k) = matchKey selection k 
-
-selectAttributes SelectAll attr = attr
-selectAttributes (SelectKeys keys) attr = 'DM'.fromList [a \\ a=:(k,_) <- 'DM'.toList attr | isMember k keys]
+selectAttributesOLD SelectAll attr = attr
+selectAttributesOLD (SelectKeys keys) attr = 'DM'.fromList [a \\ a=:(k,_) <- 'DM'.toList attr | isMember k keys]
 
 copySubUIAttributesRef_ :: UIAttributeSelection UIPath UIPath -> Layout
 copySubUIAttributesRef_ selection src dst = referenceLayout ref
 where
 	ref ui = updDst dst (selAttr src ui) ui
 
-	selAttr [] (UI _ attr _) = [a \\ a=:(k,_) <- 'DM'.toList attr | matchKey selection k]
+	selAttr [] (UI _ attr _) = [a \\ a=:(k,_) <- 'DM'.toList attr | matchKey_ selection k]
 	selAttr [s:ss] (UI _ _ items) = if (s >= 0 && s < length items) (selAttr ss (items !! s)) []
 
 	updDst [] selected (UI type attr items) = UI type (foldl (\a (k,v) -> 'DM'.put k v a) attr selected) items
@@ -369,7 +181,6 @@ where
 				= case ui of (UI _ _ [i:_]) = (ReplaceUI i, ui) ; _ = (change, ui)
 			| otherwise 
 				= (change, ui)
-
 
 	//Crude restore...
 	//As long as the UIChange type does not support moving elements up and down the tree we cannot do better
@@ -491,7 +302,6 @@ where
 										  = ui
 
 removeSubUIs :: UISelection -> Layout
-//removeSubUIs selection = removeSubUIsRef_ selection
 removeSubUIs selection = moveSubUIs` selection Nothing
 
 removeSubUIsRef_ :: UISelection -> Layout
@@ -1192,7 +1002,7 @@ noChanges :: LUIChanges
 noChanges = {toBeInserted=False, toBeRemoved=False, toBeReplaced=Nothing, toBeShifted=Nothing, setAttributes='DM'.newMap, delAttributes = 'DS'.newSet}
 
 noEffects :: LUIEffects
-noEffects = {overwrittenType = ESNotApplied, overwrittenAttributes = 'DM'.newMap, hiddenAttributes = 'DS'.newSet, additional = ESNotApplied, hidden = ESNotApplied}
+noEffects = {overwrittenType = ESNotApplied, overwrittenAttributes = 'DM'.newMap, hiddenAttributes = 'DM'.newMap, additional = ESNotApplied, hidden = ESNotApplied}
 
 //Initialize an LUI tree from a regular UI tree
 initLUI :: Bool UI -> LUI
@@ -1260,14 +1070,9 @@ where
 	//An index may point to the destination of a shifted child node. In that case we want to apply
 	//the update to the node that will be shifted to that destination
 	updateItem updateFunction index items = case items !! index of
-		(LUIShiftDestination shiftId) = updateItem updateFunction (lookupShiftSource shiftId items) items
+		(LUIShiftDestination shiftId) = updateItem updateFunction (lookupShiftSource_ shiftId items) items
 		lui = updateAt index (applyUpdate lui) items
 	where
-		lookupShiftSource shiftId items = fromJust (findIndex isSource items)
-		where
-			isSource (LUINode _ _ _ {toBeShifted = Just sourceId} _) = sourceId == shiftId
-			isSource _ = False
-
 		applyUpdate (LUINode type attr items changes=:{toBeReplaced = Just replacement} effects)
 			= LUINode type attr items {changes & toBeReplaced = Just (applyUpdate replacement)} effects
 		applyUpdate lui = updateFunction lui
@@ -1314,27 +1119,6 @@ where
 				| isInvisibleUpstream_ x = find (i + 1) ai xs
 				                         = find (i + 1) (ai + 1) xs
 
-//Adjust the index and length for additional nodes inserted by layout rules
-adjustIndex_ :: Int [LUI] -> Int
-adjustIndex_ index items = scan index 0 items
-where
-	scan r i [] = i
-	//Ignore removed, shifted and synthesized nodes
-	scan r i [x:xs] | isInvisibleUpstream_ x = scan r (i + 1) xs
-	scan 0 i [_:xs] = i
-	scan r i [_:xs] = scan (r - 1) (i + 1) xs
-
-isInvisibleUpstream_ :: !LUI -> Bool
-isInvisibleUpstream_ (LUINode _ _ _ {toBeRemoved=True} _) = True
-isInvisibleUpstream_ (LUINode _ _ _ {toBeShifted=(Just _)} _) = True
-
-isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESToBeApplied _}) = True
-isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESApplied _}) = True
-isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESToBeUpdated _ _}) = True
-isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESToBeRemoved _}) = True
-
-isInvisibleUpstream_ _ = False
-
 nextShiftID_ :: [LUI] -> Int
 nextShiftID_ items = maximum [-1:map shiftID items] + 1
 where
@@ -1360,6 +1144,189 @@ where
 			(ESToBeUpdated curType _) = if (curType	=== newType) (ESApplied curType) (ESToBeUpdated curType newType)
 			(ESToBeRemoved curType) = if (curType	=== newType) (ESApplied curType) (ESToBeUpdated curType newType)
 		= LUINode type attr items changes {effects & overwrittenType = overwrittenType}
+	rule ruleId lui = lui
+
+setUIAttributesRule :: UIAttributes -> LayoutRule
+setUIAttributesRule setAttributes = rule
+where
+	rule ruleId lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
+		= LUINode type attr items {changes & toBeReplaced=Just (rule ruleId replacement)} effects
+	rule ruleId lui=:(LUINode type attr items changes effects=:{overwrittenAttributes})
+		# overwrittenAttributes = foldr overwriteAttribute_ overwrittenAttributes ('DM'.toList setAttributes)
+		= LUINode type attr items changes {effects & overwrittenAttributes = overwrittenAttributes}
+	rule ruleId lui = lui
+
+delUIAttributesRule :: UIAttributeSelection -> LayoutRule
+delUIAttributesRule selection = rule 
+where
+	rule ruleId lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
+		= LUINode type attr items {changes & toBeReplaced=Just (rule ruleId replacement)} effects
+
+	rule ruleId lui=:(LUINode type attr items changes=:{setAttributes,delAttributes} effects=:{hiddenAttributes})
+		//For all attribute keys (including changes), we decide if the attribute should be hidden or not
+		# hiddenAttributes = foldr (hideAttribute_ (matchKey_ selection)) hiddenAttributes keys
+		= LUINode type attr items changes {effects & hiddenAttributes = hiddenAttributes}
+	where
+		keys = filter (\x -> not (isMember x ('DS'.toList delAttributes)))
+			(removeDup ('DM'.keys attr ++ 'DM'.keys setAttributes))
+
+	rule ruleId lui = lui
+
+modifyUIAttributesRule :: UIAttributeSelection (UIAttributes -> UIAttributes) -> LayoutRule
+modifyUIAttributesRule selection modifier = rule 
+where
+	rule ruleId lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
+		= LUINode type attr items {changes & toBeReplaced=Just (rule ruleId replacement)} effects
+	rule ruleId lui=:(LUINode type attr items changes effects=:{overwrittenAttributes,hiddenAttributes})
+		//1. Apply the modifier function to the current of attributes that match the selection
+		# selectedAttr = selectAttributesWithChanges_ selection lui
+		# modifiedAttr = modifier selectedAttr
+		//2. Override new attributes and hide attributes that match the selection 
+		# overwrittenAttributes = overrideModifiedAttributes modifiedAttr overwrittenAttributes
+		# hiddenAttributes = hideRemovedAttributes selectedAttr modifiedAttr hiddenAttributes
+		= (LUINode type attr items changes {effects & overwrittenAttributes = overwrittenAttributes,hiddenAttributes = hiddenAttributes})
+	rule ruleId lui = lui
+
+	overrideModifiedAttributes modified overwritten = foldr overwriteAttribute_ overwritten ('DM'.toList modified)
+	hideRemovedAttributes selected modified hidden = foldr (hideAttribute_ isRemoved) hidden ('DM'.keys selected)
+	where
+		isRemoved key = not ('DM'.member key modified)
+
+copySubUIAttributesRule :: UIAttributeSelection UIPath UIPath -> LayoutRule
+copySubUIAttributesRule selection src dst = rule
+where
+	rule ruleId lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
+		= LUINode type attr items {changes & toBeReplaced=Just (rule ruleId replacement)} effects
+	rule ruleId lui
+		//Find the selected attributes in the source node... 
+		//Then use the setUIAttributes layout rule to copy the changes
+		= maybe lui (withEffect lui) (selectSource lui)
+	where
+		selectSource lui = fmap (selectAttributesWithChanges_ selection) (selectNode_ src lui)
+		withEffect lui attr = updateNode_ dst ((setUIAttributesRule attr) ruleId) lui
+
+//Utility functions shared by the layout rules:
+
+//Adjust the index and length for additional nodes inserted by layout rules
+adjustIndex_ :: Int [LUI] -> Int
+adjustIndex_ index items = scan index 0 items
+where
+	scan r i [] = i
+	//Ignore removed, shifted and synthesized nodes
+	scan r i [x:xs] | isInvisibleUpstream_ x = scan r (i + 1) xs
+	scan 0 i [_:xs] = i
+	scan r i [_:xs] = scan (r - 1) (i + 1) xs
+
+//Some nodes are not visible upstream, so we should not count them when using indexes
+isInvisibleUpstream_ :: !LUI -> Bool
+isInvisibleUpstream_ (LUINode _ _ _ {toBeRemoved=True} _) = True
+isInvisibleUpstream_ (LUINode _ _ _ {toBeShifted=(Just _)} _) = True
+isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESToBeApplied _}) = True
+isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESApplied _}) = True
+isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESToBeUpdated _ _}) = True
+isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESToBeRemoved _}) = True
+isInvisibleUpstream_ _ = False
+
+lookupShiftSource_ :: Int [LUI] -> Int
+lookupShiftSource_ shiftId items = fromJust (findIndex isSource items)
+where
+	isSource (LUINode _ _ _ {toBeShifted = Just sourceId} _) = sourceId == shiftId
+	isSource _ = False
+
+selectNode_ :: UIPath LUI -> Maybe LUI 
+selectNode_ [] lui = case lui of
+	(LUINode _ _ _ {toBeRemoved=True} _)              = Nothing
+	(LUINode _ _ _ {toBeReplaced=Just replacement} _) = selectNode_ [] replacement
+	(LUINode _ _ _ _ _)                               = Just lui
+	_                                                 = Nothing
+selectNode_ [s:ss] (LUINode _ _ items _ _)
+	# index = adjustIndex_ s items
+	| index < 0 || index >= length items = Nothing
+	# child = items !! index
+	= case child of
+		(LUINode _ _ _ {toBeReplaced=Just replacement} _) = selectNode_ ss replacement
+		(LUINode _ _ _ _ _)                               = selectNode_ ss child
+		(LUIShiftDestination shiftId)                     = selectNode_ ss (items !! (lookupShiftSource_ shiftId items))
+
+updateNode_ :: UIPath (LUI -> LUI) LUI -> LUI 
+updateNode_ [] update lui = case lui of
+	(LUINode _ _ _ {toBeRemoved=True} _) = lui
+	(LUINode _ _ _ {toBeReplaced=Just replacement} _) = updateNode_ [] update replacement
+	(LUINode _ _ _ _ _)                               = update lui
+	_                                                 = lui
+updateNode_ [s:ss] update lui=:(LUINode type attr items changes effects)
+	# index = adjustIndex_ s items
+	| index < 0 || index >= length items = lui
+	# child = items !! index
+	# items = case child of
+		(LUINode ctype cattr citems cchanges=:{toBeReplaced=Just replacement} ceffects)
+			# replacement = updateNode_ ss update replacement
+			= updateAt index (LUINode ctype cattr citems {cchanges & toBeReplaced = Just replacement} ceffects) items
+		(LUINode _ _ _ _ _) 
+			# child = updateNode_ ss update child
+			= updateAt index child items
+		(LUIShiftDestination shiftId)
+			# sourceIndex = lookupShiftSource_ shiftId items
+			# source = updateNode_ ss update (items !! sourceIndex)
+			= updateAt sourceIndex source items
+	= LUINode type attr items changes effects
+
+selectAttributesWithChanges_ :: UIAttributeSelection LUI -> UIAttributes
+selectAttributesWithChanges_ selection lui = selectAttributes_ selection True lui
+
+selectAttributesWithoutChanges_ ::UIAttributeSelection LUI -> UIAttributes
+selectAttributesWithoutChanges_ selection lui = selectAttributes_ selection False lui
+
+selectAttributes_ :: UIAttributeSelection Bool LUI -> UIAttributes
+selectAttributes_ selection withChanges (LUINode _ attr _ changes _)
+	# attr = if withChanges (applyAttributeChanges_ changes attr) attr
+	= case selection of
+		SelectAll         = attr
+		(SelectKeys keys) = 'DM'.fromList [a \\ a=:(k,_) <- 'DM'.toList attr | isMember k keys]
+
+matchKey_ :: UIAttributeSelection UIAttributeKey -> Bool
+matchKey_ (SelectAll) _ = True
+matchKey_ (SelectKeys keys) k = isMember k keys
+
+applyAttributeChanges_ :: LUIChanges UIAttributes -> UIAttributes 
+applyAttributeChanges_ {setAttributes,delAttributes} attr
+	= 'DM'.delList ('DS'.toList delAttributes) ('DM'.union setAttributes attr)
+
+overwriteAttribute_ :: UIAttribute (Map UIAttributeKey (LUIEffectStage JSONNode)) -> (Map UIAttributeKey (LUIEffectStage JSONNode))
+overwriteAttribute_ (key,value) overwrittenAttributes
+	# override = case 'DM'.get key overwrittenAttributes of
+		//Not set yet
+		Nothing = ESToBeApplied value
+		Just (ESNotApplied) = ESToBeApplied value
+		Just (ESToBeApplied _) = ESToBeApplied value
+		//Already set,
+		Just (ESApplied curValue)
+			| curValue == value = ESApplied value 
+			| otherwise         = ESToBeUpdated curValue value
+		Just (ESToBeUpdated curValue _)
+			| curValue == value = ESApplied value 
+			| otherwise         = ESToBeUpdated curValue value
+		Just (ESToBeRemoved curValue)
+			| curValue == value = ESApplied value 
+			| otherwise         = ESToBeUpdated curValue value
+	= 'DM'.put key override overwrittenAttributes
+
+hideAttribute_ :: (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage ())) -> (Map UIAttributeKey (LUIEffectStage ()))
+hideAttribute_ condition key hiddenAttributes
+	| isAlreadyHidden key hiddenAttributes
+		= if (condition key)
+			('DM'.put key (ESApplied ()) hiddenAttributes)
+			('DM'.put key (ESToBeRemoved ()) hiddenAttributes)
+	| otherwise
+		= if (condition key)
+			('DM'.put key (ESToBeApplied ()) hiddenAttributes)
+			hiddenAttributes
+where
+	isAlreadyHidden key attr = case 'DM'.get key attr of
+		Just (ESApplied _) = True
+		Just (ESToBeUpdated _ _) = True
+		Just (ESToBeRemoved _) = True
+		_ = False
 
 /*
 * Once layout rules have annotated their effects, the change that has to be applied downstream
@@ -1399,11 +1366,11 @@ where
 			= foldl (applyDelAttribute overwrittenAttributes hiddenAttributes) (attr,attrChanges) ('DS'.toList delAttributes)
 		//Apply remaining effects (these no longer affect the stored attributes)
 		# (attrChanges,overwrittenAttributesList) = foldl (applyOverrideAttribute attr) (attrChanges,[]) ('DM'.toList overwrittenAttributes)
-		# (attrChanges,hiddenAttributesList) = foldl (applyHideAttribute attr) (attrChanges,[]) ('DS'.toList hiddenAttributes)
+		# (attrChanges,hiddenAttributesList) = foldl (applyHideAttribute attr) (attrChanges,[]) ('DM'.toList hiddenAttributes)
 		= (reverse attrChanges,attr,
 		   {effects
 		   & overwrittenAttributes = 'DM'.fromList overwrittenAttributesList
-		   , hiddenAttributes = 'DS'.fromList hiddenAttributesList
+		   , hiddenAttributes = 'DM'.fromList hiddenAttributesList
 		   })
 	where
 		applySetAttribute overwrittenAttributes hiddenAttributes (attr,changes) (key,value)
@@ -1435,31 +1402,27 @@ where
 				Nothing = ([DelAttribute key:attrChanges],overrides)
 				Just value = ([SetAttribute key value:attrChanges],overrides)
 
-		applyHideAttribute attr (attrChanges, hidden) ESNotApplied
+		applyHideAttribute attr (attrChanges, hidden) (key,ESNotApplied)
 			= (attrChanges,hidden)
-		applyHideAttribute attr (attrChanges, hidden) (ESToBeApplied key)
-			= ([DelAttribute key:attrChanges],[ESApplied key:hidden])
-		applyHideAttribute attr (attrChanges, hidden) (ESApplied key)
-			= (attrChanges,[ESApplied key:hidden])
-		applyHideAttribute attr (attrChanges, hidden) (ESToBeUpdated prev key)
-			= case 'DM'.get prev attr of
-				//Old attribute no longer exists, just hide the new one
-				Nothing = ([DelAttribute key:attrChanges],[ESApplied key:hidden])
-				//Previously hidden attribute still exists, restore its value
-				Just value = ([SetAttribute prev value,DelAttribute key:attrChanges],[ESApplied key:hidden])
-		applyHideAttribute attr (attrChanges, hidden) (ESToBeRemoved key)
+		applyHideAttribute attr (attrChanges, hidden) (key,ESToBeApplied _)
+			= ([DelAttribute key:attrChanges],[(key,ESApplied ()):hidden])
+		applyHideAttribute attr (attrChanges, hidden) (key,ESApplied _)
+			= (attrChanges,[(key,ESApplied ()):hidden])
+		applyHideAttribute attr (attrChanges, hidden) (key,ESToBeUpdated _ _)
+			= (attrChanges,[(key,ESApplied ()):hidden])
+		applyHideAttribute attr (attrChanges, hidden) (key,ESToBeRemoved _)
 			= case 'DM'.get key attr of
 				//Original attribute no longer exists, nothing to do
 				Nothing = (attrChanges,hidden)
 				//Original attribute still exists, restore its value
 				Just value = ([SetAttribute key value:attrChanges],hidden)
 
-		isHidden key hiddenAttributes = check ('DS'.toList hiddenAttributes)
+		isHidden key hiddenAttributes = check ('DM'.toList hiddenAttributes)
 		where
 			check [] = False
-			check [ESToBeApplied hiddenKey:_] | hiddenKey == key = True
-			check [ESApplied hiddenKey:_] | hiddenKey == key = True
-			check [ESToBeUpdated _ hiddenKey:_] | hiddenKey == key = True
+			check [(hiddenKey,ESToBeApplied _):_] | hiddenKey == key = True
+			check [(hiddenKey,ESApplied _):_] | hiddenKey == key = True
+			check [(hiddenKey,ESToBeUpdated _ _):_] | hiddenKey == key = True
 			check [_:xs] = check xs
 
 		isOverwritten key overwrittenAttributes = check ('DM'.toList overwrittenAttributes)
@@ -1595,12 +1558,9 @@ resetToBeShifted (LUINode type attr items changes effects)
 
 resetChanges changes = {changes & setAttributes = 'DM'.newMap, delAttributes = 'DS'.newSet}
 
-applyAttributeChanges_ {setAttributes,delAttributes} attr
-	= 'DM'.delList ('DS'.toList delAttributes) ('DM'.union setAttributes attr)
-
 applyAttributeEffects_ effects=:{overwrittenAttributes,hiddenAttributes} attr
 	# (attr,overwrittenAttributes) = foldl overwrite (attr,'DM'.newMap) ('DM'.toList overwrittenAttributes)
-	# (attr,hiddenAttributes) = foldl hide (attr,'DS'.newSet) ('DS'.toList hiddenAttributes)
+	# (attr,hiddenAttributes) = foldl hide (attr,'DM'.newMap) ('DM'.toList hiddenAttributes)
 	= (attr, {effects & overwrittenAttributes = overwrittenAttributes, hiddenAttributes = hiddenAttributes})
 where
 	overwrite (attr,overrides) (key,ESNotApplied) = (attr,overrides)
@@ -1609,11 +1569,11 @@ where
 	overwrite (attr,overrides) (key,ESToBeUpdated _ value) = ('DM'.put key value attr, 'DM'.put key (ESApplied value) overrides)
 	overwrite (attr,overrides) (key,ESToBeRemoved _) = (attr,overrides)
 
-	hide (attr,hides) ESNotApplied = (attr,hides)
-	hide (attr,hides) (ESToBeApplied key) = ('DM'.del key attr,'DS'.insert (ESApplied key) hides)
-	hide (attr,hides) (ESApplied key) = ('DM'.del key attr,'DS'.insert (ESApplied key) hides)
-	hide (attr,hides) (ESToBeUpdated _ key) = ('DM'.del key attr,'DS'.insert (ESApplied key) hides)
-	hide (attr,hides) (ESToBeRemoved key) = (attr,hides)
+	hide (attr,hides) (key,ESNotApplied) = (attr,hides)
+	hide (attr,hides) (key,ESToBeApplied _) = ('DM'.del key attr,'DM'.put key (ESApplied ()) hides)
+	hide (attr,hides) (key,ESApplied _) = ('DM'.del key attr,'DM'.put key (ESApplied ()) hides)
+	hide (attr,hides) (key,ESToBeUpdated _ _) = ('DM'.del key attr,'DM'.put key (ESApplied ()) hides)
+	hide (attr,hides) (key,ESToBeRemoved _) = (attr,hides)
 
 revertEffects :: LUI -> LUI
 revertEffects lui = trace_n "REVERT" lui //TODO

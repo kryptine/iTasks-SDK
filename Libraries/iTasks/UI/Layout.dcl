@@ -208,9 +208,11 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 :: LUIEffects =
 	{ overwrittenType       :: LUIEffectStage UIType
 	, overwrittenAttributes :: Map UIAttributeKey (LUIEffectStage JSONNode)
-	, hiddenAttributes      :: Set (LUIEffectStage UIAttributeKey)
+	, hiddenAttributes      :: Map UIAttributeKey (LUIEffectStage ())
 	, additional            :: LUIEffectStage LID
 	, hidden                :: LUIEffectStage LID
+	//, wrapped               :: LUIEffectStage (!LID,!LUI)
+	//, unwrapped             :: LUIEffectStage LID
 	}
 
 //Layout rules determine that an effect should according to that rule be applied or restored.
@@ -245,7 +247,16 @@ ruleBasedLayout :: LayoutRule -> Layout
 
 //Rules
 setUITypeRule :: UIType -> LayoutRule
+setUIAttributesRule :: UIAttributes -> LayoutRule
+delUIAttributesRule :: UIAttributeSelection -> LayoutRule
+modifyUIAttributesRule :: UIAttributeSelection (UIAttributes -> UIAttributes) -> LayoutRule
+copySubUIAttributesRule :: UIAttributeSelection UIPath UIPath -> LayoutRule
 
 //Helper functions (exported for testing)
 adjustIndex_ :: Int [LUI] -> Int
+selectNode_ :: UIPath LUI -> Maybe LUI 
+updateNode_ :: UIPath (LUI -> LUI) LUI -> LUI 
+selectAttributes_ :: UIAttributeSelection Bool LUI -> UIAttributes
+overwriteAttribute_ :: UIAttribute (Map UIAttributeKey (LUIEffectStage JSONNode)) -> (Map UIAttributeKey (LUIEffectStage JSONNode))
+hideAttribute_ :: (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage ())) -> (Map UIAttributeKey (LUIEffectStage ()))
 

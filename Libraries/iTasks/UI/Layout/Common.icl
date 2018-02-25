@@ -236,10 +236,10 @@ setActionIcon icons = sequenceLayouts
 	(layoutSubUIs (SelectByType UIMenu)
 		$ ic "text")
 where
-	ic field = modifyUIAttributes (SelectKeys [field]) $ \attr->fromMaybe 'DM'.newMap
+	ic field = modifyUIAttributes (SelectKeys [field]) $ \attr->fromMaybe attr
 		$ 'DM'.get field attr
 		  >>= \(JSONString f) -> 'DM'.get f icons
-		  >>= \icon ->           return (iconClsAttr ("icon-" +++ icon))
+		  >>= \icon ->           return ('DM'.union (iconClsAttr ("icon-" +++ icon)) attr)
 
 instance tune ArrangeWithTabs Task
 where tune (ArrangeWithTabs b) t = tune (ApplyLayout (arrangeWithTabs b)) t
