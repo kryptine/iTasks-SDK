@@ -118,3 +118,7 @@ instance tune Title Task
 instance tune Label Task
 instance tune Icon Task
 
+/*
+ * Format a basic editor as if it was a generic labelled iconized edtior
+ */
+toFormItem :: Layout

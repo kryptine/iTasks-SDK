@@ -15,6 +15,8 @@ from iTasks.Internal.TaskEval import :: TaskEvalOpts(..), :: TonicOpts
 import qualified Text as T
 from Text import class Text, instance Text String
 
+LABEL_WIDTH :== 100
+
 arrangeWithTabs :: Bool -> Layout
 arrangeWithTabs closeable = layoutSubUIs
 	(SelectAND (SelectByPath []) (SelectByType UIParallel))
@@ -55,12 +57,28 @@ arrangeWithSideBar index side size resize = foldl1 sequenceLayouts
 	,insertChildUI sidePanelIndex (ui UIComponent) //Make sure we have a target for the move
 	,moveSubUIs (SelectByPath [mainPanelIndex,index]) [sidePanelIndex] 0
 	,layoutSubUIs (SelectByPath [sidePanelIndex]) unwrapUI //Remove the temporary wrapping panel
-	,layoutSubUIs (SelectByPath [sidePanelIndex]) (setUIAttributes (sizeAttr sidePanelWidth sidePanelHeight))
+	,layoutSubUIs (SelectByPath [sidePanelIndex]) (sequenceLayouts
+		(setUIAttributes (sizeAttr sidePanelWidth sidePanelHeight))
+		(if resize (sequenceLayouts
+			(setUIAttributes (resizableAttr (resizers side)))
+			(setUIAttributes (padders side))
+			) idLayout))
 	]
 where
 	sidePanelIndex = if (side === TopSide || side === LeftSide) 0 1
 	mainPanelIndex = if (sidePanelIndex === 0) 1 0
 	direction = if (side === TopSide|| side === BottomSide) Vertical Horizontal
+
+	
+	padders TopSide = bottomPaddingAttr 5
+	padders BottomSide = topPaddingAttr 5
+	padders LeftSide = rightPaddingAttr 5
+	padders RightSide = leftPaddingAttr 5
+
+	resizers TopSide = [BottomSide]
+	resizers BottomSide = [TopSide]
+	resizers LeftSide = [RightSide]
+	resizers RightSide = [LeftSide]
 
 	(sidePanelWidth,sidePanelHeight) = if (direction === Vertical) (FlexSize,ExactSize size) (ExactSize size,FlexSize)
 
@@ -299,3 +317,58 @@ where
 instance tune Label Task
 where
 	tune (Label label) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]))) t
+
+toFormItem :: Layout
+toFormItem = layoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAttribute LABEL_ATTRIBUTE) (SelectByHasAttribute HINT_ATTRIBUTE)))
+	(foldl1 sequenceLayouts
+		//Create the 'row' that holds the form item
+		[wrapUI UIContainer
+		,setUIAttributes ('DM'.unions [marginsAttr 2 4 2 4, directionAttr Horizontal,valignAttr AlignMiddle, sizeAttr FlexSize WrapSize])
+		//If there is a label attribute, create a label 
+		,optAddLabel
+		//If there is hint attribute, create an extra icon 
+		,optAddIcon
+		]
+	)
+where
+	optAddLabel = layoutSubUIs (SelectByContains (SelectAND (SelectByPath [0]) (SelectByHasAttribute LABEL_ATTRIBUTE))) addLabel
+	addLabel = sequenceLayouts
+		(insertChildUI 0 (uia UILabel (widthAttr (ExactSize LABEL_WIDTH))))
+		(sequenceLayouts
+			(copySubUIAttributes (SelectKeys ["label","optional","mode"]) [1] [0])
+			(layoutSubUIs (SelectByPath [0]) (modifyUIAttributes (SelectKeys ["label","optional","mode"]) createLabelText))
+		)
+	where
+		createLabelText attr = textAttr text
+		where	
+			text = formatDefaultLabel label +++ (if (enterOrUpdate && not optional) "*" "") +++ ":"
+			formatted = formatDefaultLabel label
+			enterOrUpdate = maybe False (\(JSONString m) -> isMember m ["enter","update"]) ('DM'.get "mode" attr) 
+			optional = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attr) 
+			label = maybe "-" (\(JSONString s) -> s) ('DM'.get "label" attr)
+
+	optAddIcon = layoutSubUIs (SelectByContains (SelectAND SelectChildren (SelectByHasAttribute HINT_ATTRIBUTE)))
+					(sequenceLayouts 
+						(layoutSubUIs (SelectAND (SelectByPath []) (SelectByNumChildren 2)) (addIcon 2)) //A label was added
+						(layoutSubUIs (SelectAND (SelectByPath []) (SelectByNumChildren 1)) (addIcon 1)) //No label was added
+					)
+
+	addIcon iconIndex = foldl1 sequenceLayouts
+		[insertChildUI iconIndex (uia UIIcon (leftMarginAttr 5))
+		,copySubUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) [iconIndex - 1] [iconIndex]
+		,layoutSubUIs (SelectByPath [iconIndex]) (modifyUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) createIconAttr)
+		]
+	where
+		createIconAttr attr = 'DM'.unions [iconClsAttr iconCls, tooltipAttr tooltip]
+		where 
+			iconCls = maybe "icon-info" (\(JSONString t) -> "icon-" +++ t) ('DM'.get HINT_TYPE_ATTRIBUTE attr)
+			tooltip = maybe "-" (\(JSONString s) -> s) ('DM'.get HINT_ATTRIBUTE attr)
+
+	formatDefaultLabel label = {c \\ c <- [toUpper lname : addspace lnames]}
+	where
+		[lname:lnames]		= fromString label
+		addspace []			= []
+		addspace [c:cs]
+			| c == '_'			= [' ':addspace cs]
+			| isUpper c			= [' ',toLower c:addspace cs]
+			| otherwise			= [c:addspace cs]

@@ -461,10 +461,9 @@ where
 	where
         forall` :: !Int !Int !*JSWorld -> *JSWorld
 		forall` i len world
-            #! j = jsValToInt (toJSVal i) // FIXME: workaround for https://gitlab.science.ru.nl/clean-and-itasks/iTasks-SDK/issues/199
 			| i >= len = world
 			# (el,world) = .? (array .# i) world
-			= forall` (i + 1) len (f j el world)
+			= forall` (i + 1) len (f i el world)
 
 	//Process the edits received from the client
 	onEdit dp ([],diff) m msk vst = case decodeOnServer diff of

@@ -235,8 +235,13 @@ ppnid nid = "[" +++ ppnid` nid +++ "]"
 
 liftA2 f a b = f <$> a <#> b
 
-derive class iTask Set, StaticDisplaySettings, DynamicDisplaySettings,
+derive class iTask StaticDisplaySettings, DynamicDisplaySettings,
                    DynamicView, BlueprintQuery, CircularStack
+derive gEditor Set
+derive gText Set
+derive gDefault Set
+derive JSONEncode Set
+derive JSONDecode Set
 
 //-----------------------------------------------------------------------------
 // REST
