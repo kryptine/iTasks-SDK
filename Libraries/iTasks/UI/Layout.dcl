@@ -251,9 +251,10 @@ setUIAttributesRule :: UIAttributes -> LayoutRule
 delUIAttributesRule :: UIAttributeSelection -> LayoutRule
 modifyUIAttributesRule :: UIAttributeSelection (UIAttributes -> UIAttributes) -> LayoutRule
 copySubUIAttributesRule :: UIAttributeSelection UIPath UIPath -> LayoutRule
-
+insertChildUIRule :: Int UI -> LayoutRule
+ 
 //Helper functions (exported for testing)
-adjustIndex_ :: Int [LUI] -> Int
+adjustIndex_ :: Int (Maybe LID) [LUI] -> Int
 selectNode_ :: UIPath LUI -> Maybe LUI 
 updateNode_ :: UIPath (LUI -> LUI) LUI -> LUI 
 selectAttributes_ :: UIAttributeSelection Bool LUI -> UIAttributes

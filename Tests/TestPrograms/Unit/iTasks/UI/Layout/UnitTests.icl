@@ -5,7 +5,7 @@ import iTasks.UI.Layout
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 
-derive gEq LUI, LUIChanges, LUIEffects, LUIEffectStage, Set
+derive gEq LUI, LUIChanges, LUIEffects, LUIEffectStage
 derive gPrettyTrace LUI, LUIChanges, LUIEffects, LUIEffectStage, JSONNode, Set, Maybe
 derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UIType
 
@@ -70,7 +70,7 @@ applyUpstreamChangeTests =
 		(applyUpstreamChange (ChangeUI [] [(1,ChangeChild (ReplaceUI (UI UIEmpty 'DM'.newMap [])))]) lui0)
 	,assertEqual "Helper function for replace adjustIndex"
 		2
-		(adjustIndex_ 1 
+		(adjustIndex_ 1 Nothing
 			[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 			,LUINode UIEmpty 'DM'.newMap [] noChanges {noEffects & additional = ESApplied 0}
 			,LUINode UIStep 'DM'.newMap [] {noChanges & toBeReplaced = Just (LUINode UIEmpty 'DM'.newMap [] noChanges noEffects)} noEffects
@@ -128,7 +128,7 @@ applyUpstreamChangeTests =
 		(applyUpstreamChange (ChangeUI [] [(1,InsertChild (UI UIInteract 'DM'.newMap [])),(1,ChangeChild (ReplaceUI (UI UIEmpty 'DM'.newMap [])))]) lui0)
 	,assertEqual "Helper function for shift adjustIndex"
 		2
-		(adjustIndex_ 1 
+		(adjustIndex_ 1 Nothing
 			[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 			,LUINode UIStep 'DM'.newMap [] {noChanges & toBeShifted = Just 0} noEffects
 			]
@@ -322,6 +322,23 @@ extractDownstreamChangeTests =
 					noChanges {noEffects & hiddenAttributes = 'DM'.fromList [("title",ESToBeApplied ())]})
 				  } noEffects
 		))
+	,assertEqual "Top-level replace with an inserted child " 
+		(ReplaceUI (UI UIEmpty 'DM'.newMap [UI UIPanel 'DM'.newMap []])
+		,LUINode UIEmpty 'DM'.newMap
+			[LUINode UIPanel 'DM'.newMap [] noChanges {noEffects & additional = ESApplied 0}
+			] noChanges noEffects
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] {noChanges & toBeReplaced = Just 
+						(LUINode UIEmpty ('DM'.newMap)
+							[ LUINode UIPanel 'DM'.newMap [] noChanges {noEffects & additional = ESToBeApplied 0}
+							] noChanges noEffects
+						)
+				  } noEffects
+		))
 	,assertEqual "Top-level overwritten type"
 		(ReplaceUI (UI UIContainer 'DM'.newMap
 			[UI UIInteract 'DM'.newMap []
@@ -432,6 +449,36 @@ extractDownstreamChangeTests =
 					{noEffects & overwrittenAttributes = 'DM'.fromList [("title",ESToBeApplied (JSONString "B"))]}
 				] noChanges noEffects
 		))
+	,assertEqual "New additional child" 
+		(ChangeUI [] [(2,InsertChild (UI UIParallel 'DM'.newMap []))]
+		 ,LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges {noEffects & additional = ESApplied 0}
+				] noChanges noEffects
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges {noEffects & additional = ESToBeApplied 0}
+				] noChanges noEffects
+		))
+	,assertEqual "Removed additional child" 
+		(ChangeUI [] [(2,RemoveChild)]
+		 ,LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges {noEffects & additional = ESToBeRemoved 0}
+				] noChanges noEffects
+		))
+
 	]
 selectNode_Tests = 
 	[ assertEqual "Selecting a shifted child node"
@@ -525,8 +572,23 @@ copySubUIAttributesRuleTests =
 			)
 		)
 	]
+insertChildUIRuleTests =
+	[assertEqual "Insert a child rule: insert in known set"
+		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges {noEffects & additional = ESToBeApplied 0}
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		)
+		(insertChildUIRule 1 (UI UIParallel 'DM'.newMap []) 0
+			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+			)
+		)
+	]
 
-//TODO: Add at least one test for all other attribute rules
 tests =  applyUpstreamChangeTests 
       ++ extractDownstreamChangeTests
 	  ++ selectNode_Tests
@@ -536,5 +598,6 @@ tests =  applyUpstreamChangeTests
 	  ++ delUIAttributesRuleTests
 	  ++ modifyUIAttributesRuleTests
 	  ++ copySubUIAttributesRuleTests
+	  ++ insertChildUIRuleTests
 
 Start w = runUnitTestsCLI [testsuite "Test.iTasks.UI.Layout" "Duh.." tests] w

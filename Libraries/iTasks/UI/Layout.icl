@@ -23,6 +23,8 @@ import Data.Generics.GenEq
 derive JSONEncode LayoutState, LayoutTree, MvUI, MvUIChild, LUI, LUIChanges, LUIEffects, LUIEffectStage, Set
 derive JSONDecode LayoutState, LayoutTree, MvUI, MvUIChild, LUI, LUIChanges, LUIEffects, LUIEffectStage, Set
 
+derive gEq LUIEffectStage
+
 derive gLexOrd LUIEffectStage
 
 instance < (LUIEffectStage a) | gLexOrd{|*|} a
@@ -195,104 +197,7 @@ where
 //Insert the element at the specified index.
 //Only insert if there are at least as many children as the specified index
 insertChildUI :: Int UI -> Layout
-insertChildUI idx insert
-	| idx >= 0  = {Layout|apply=apply,adjust=adjust,restore=restore}
-				= idLayout
-where
-	apply (UI _ _ items) 
-		# num = length items
-		| idx >= 0 && idx <= num = (ChangeUI [] [(idx,InsertChild insert)],LSInsert num)
-					             = (NoChange, LSInsert num)
-
-	adjust (NoChange,state) = (NoChange,state)
-
-	adjust (ReplaceUI ui, _) //We are replacing everything, so don't keep state
-		# (change,state) = apply ui
-		= (ReplaceUI (applyUIChange change ui), state)
-
-	//Adjust the child changes to account for the additional insert
-	adjust (ChangeUI attrChanges childChanges, LSInsert num) 
-		# (childChanges,num) = adjustChildChanges childChanges num
-		= (ChangeUI attrChanges childChanges, LSInsert num)
-
-	adjustChildChanges [] num = ([],num)
-	adjustChildChanges [(i,ChangeChild change):cs] num
-		| i >= 0 && i < num //The child is in a valid range
-			//Adjust everything 'after' the inserted element
-			# (cs,num) = adjustChildChanges cs num
-			= ([(if (i < idx) i (i + 1),ChangeChild change):cs], num)
-		| otherwise = adjustChildChanges cs num //The change is targeted out of range, drop it 
-	adjustChildChanges [(i,RemoveChild):cs] num
-		| i >= 0 && i < num //The child is in a valid range
-			//This removal means we also have to remove the inserted element
-			| num == idx 
-				# (cs,num) = adjustChildChanges cs (num - 1)
-				= ([(idx,RemoveChild),(i,RemoveChild):cs], num)
-			//The element has not been inserted because there are too few children, there is no effect 
-			| num < idx
-				# (cs,num) = adjustChildChanges cs (num - 1)
-				= ([(i,RemoveChild):cs], num)
-			//The extra element was inserted:
-			// If we remove an element 'after' the inserted index we have to offset the index of the removal
-			| i >= idx
-				# (cs,num) = adjustChildChanges cs (num - 1)
-				= ([(i + 1, RemoveChild):cs], num)
-			// If we remove an element 'before' the inserted element
-			// it affects its position, so we need to move its sibling to adjust for that.
-			| otherwise
-				# (cs,num) = adjustChildChanges cs (num - 1)
-				= ([(i,RemoveChild),(idx - 1,MoveChild idx):cs], num)
-		| otherwise = adjustChildChanges cs num //The change is targeted out of range, drop it 
-
-	adjustChildChanges [(i,InsertChild ui):cs] num
-		| i >= 0 && i <= num //The child is in a valid range
-			//This addition means we have to insert the extra element now
-			| num == (idx - 1)
-				# (cs,num) = adjustChildChanges cs (num + 1)
-				= ([(i,InsertChild ui),(idx,InsertChild insert):cs], num)
-			//The element has not been inserted because (even with this insert) there are too few children, there is no effect 
-			| num < (idx - 1)
-				# (cs,num) = adjustChildChanges cs (num + 1)
-				= ([(i,InsertChild ui):cs], num)
-			//The extra element was inserted:
-			// If we insert an element 'after' the inserted index we have to offset the index of the insert
-			| i >= idx
-				# (cs,num) = adjustChildChanges cs (num + 1)
-				= ([(i + 1,InsertChild ui):cs], num)
-			// If we insert an element 'before' the inserted element
-			// it affects its position, so we need to move its sibling to adjust for that.
-			| otherwise
-				# (cs,num) = adjustChildChanges cs (num + 1)
-				= ([(i,InsertChild ui),(idx + 1,MoveChild idx):cs], num)
-		| otherwise = adjustChildChanges cs num //The change is targeted out of range, drop it 
-	adjustChildChanges [(s,MoveChild d):cs] num
-		| s >= 0 && s < num && d >= 0 && d < num //Both source and destination are in a valid range
-			//The element has not been inserted, there is no effect
-			| num < idx 
-				# (cs,num) = adjustChildChanges cs num 
-				= ([(s,MoveChild d):cs],num)
-			//Both are 'before' the inserted element, there is no effect
-			| s < idx && d < idx
-				# (cs,num) = adjustChildChanges cs num 
-				= ([(s,MoveChild d):cs],num)
-			//Only the source is 'before' the inserted element. We need to offset the destination and adjust
-			| s < idx 
-				# (cs,num) = adjustChildChanges cs num
-				= ([(s,MoveChild (d + 1)),(idx - 1,MoveChild idx):cs],num)
-			//Only the destination is 'before' the in
-			| d < idx 	
-				# (cs,num) = adjustChildChanges cs num
-				= ([(s + 1, MoveChild d),(idx + 1,MoveChild idx):cs],num)
-			//Both are 'after' the inserted element, offset the indices
-			| otherwise
-				# (cs,num) = adjustChildChanges cs num 
-				= ([(s + 1,MoveChild (d + 1)):cs],num)
-		| otherwise = adjustChildChanges cs num //The change is targeted out of range, drop it 
-
-	//Check in the state if the extra element was inserted or not
-	restore (LSInsert num)
-		| idx >= 0 && idx <= num = ChangeUI [] [(idx,RemoveChild)]
-					             = NoChange
+insertChildUI position insertion = ruleBasedLayout (insertChildUIRule position insertion)
 
 insertChildUIRef_ :: Int UI -> Layout
 insertChildUIRef_ idx insert = referenceLayout ref
@@ -526,6 +431,7 @@ where
 					(ChangeChild NoChange)         = []
 					(ChangeChild (ChangeUI [] [])) = []
 					(ChangeChild change)           = [(adjustIndex i (reverse before),cchange)]
+					_                              = [] //FIXME: This function does not expect inserts for some reason...
 				# (changes, children) = adjust (i + 1) (map MvUIItem (reverse items) ++ before) children
 				= (change ++ changes, children)
 			| otherwise
@@ -1008,6 +914,9 @@ noEffects = {overwrittenType = ESNotApplied, overwrittenAttributes = 'DM'.newMap
 initLUI :: Bool UI -> LUI
 initLUI toBeInserted (UI type attr items) = LUINode type attr (map (initLUI toBeInserted) items) {noChanges & toBeInserted = toBeInserted} noEffects
 
+toBeAdded :: Int LUI -> LUI
+toBeAdded ruleId (LUINode type attr items changes effects) = LUINode type attr items changes {effects & additional = ESToBeApplied ruleId}
+
 /*
 * When upstream changes 'arrive' they are tracked in the 'buffer' data structure.
 * All information about what should be modified according to the upstream change is
@@ -1042,27 +951,27 @@ where
 	applyUpstreamChildChange :: LUI (Int,UIChildChange) -> LUI
 	applyUpstreamChildChange lui (index,ChangeChild change) = case lui of
 		(LUINode type attr items changes effects)
-			# adjustedIndex = adjustIndex_ index items
+			# adjustedIndex = adjustIndex_ index Nothing items
 			| index < 0 || adjustedIndex >= length items = lui
 			= LUINode type attr (updateItem (applyUpstreamChange change) adjustedIndex items) changes effects
 		_
 			= lui
 	applyUpstreamChildChange lui (index,RemoveChild) = case lui of
 		(LUINode type attr items changes effects)
-			# adjustedIndex = adjustIndex_ index items
+			# adjustedIndex = adjustIndex_ index Nothing items
 			| index < 0 || adjustedIndex >= length items = lui
 			= LUINode type attr (removeItem adjustedIndex items) changes effects
 		_ = lui
 	applyUpstreamChildChange lui (index,InsertChild ui) = case lui of
 		(LUINode type attr items changes effects)
-			# adjustedIndex = adjustIndex_ index items
+			# adjustedIndex = adjustIndex_ index Nothing items
 			| index < 0 || adjustedIndex >= length items = lui
 			= LUINode type attr (insertAt adjustedIndex (initLUI True ui) items) changes effects
 		_ = lui
 	applyUpstreamChildChange lui (index,MoveChild destination) = case lui of
 		(LUINode type attr items changes effects)
 			# shiftId = nextShiftID_ items
-			# adjustedIndex = adjustIndex_ index items
+			# adjustedIndex = adjustIndex_ index Nothing items
 			| index < 0 || adjustedIndex >= length items = lui
 			= LUINode type attr (shiftItem shiftId adjustedIndex destination items) changes effects
 		_ = lui
@@ -1101,13 +1010,13 @@ where
 					= updateAt sourcePosition (LUINode type attr citems {changes & toBeShifted = Nothing} effects) items
 				Nothing
 					//And add the new destination
-					= insertAt (adjustIndex_ destination items) (LUIShiftDestination prevShiftId) items
+					= insertAt (adjustIndex_ destination Nothing items) (LUIShiftDestination prevShiftId) items
 		//Regular node
 		(LUINode type attr citems changes effects)
 			//Mark the node as a shifted node
 			# items = updateAt index (LUINode type attr citems {changes & toBeShifted = Just shiftId} effects) items
 			//Record the destination
-			= insertAt (adjustIndex_ destination items) (LUIShiftDestination shiftId) items
+			= insertAt (adjustIndex_ destination Nothing items) (LUIShiftDestination shiftId) items
 	where
 		findSamePositionShift shiftId destination items = find 0 0 items
 		where
@@ -1116,8 +1025,8 @@ where
 				| sourceId == shiftId = if (ai == destination) (Just (ai,x)) Nothing
 				                      = find (i + 1) ai xs
 			find i ai [x:xs]
-				| isInvisibleUpstream_ x = find (i + 1) ai xs
-				                         = find (i + 1) (ai + 1) xs
+				| isInvisibleUpstream_ Nothing x = find (i + 1) ai xs
+				                                 = find (i + 1) (ai + 1) xs
 
 nextShiftID_ :: [LUI] -> Int
 nextShiftID_ items = maximum [-1:map shiftID items] + 1
@@ -1205,27 +1114,66 @@ where
 		selectSource lui = fmap (selectAttributesWithChanges_ selection) (selectNode_ src lui)
 		withEffect lui attr = updateNode_ dst ((setUIAttributesRule attr) ruleId) lui
 
+insertChildUIRule :: Int UI -> LayoutRule
+insertChildUIRule position insertion = rule
+where
+	rule ruleId lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
+		= LUINode type attr items {changes & toBeReplaced=Just (rule ruleId replacement)} effects
+	rule ruleId lui=:(LUINode type attr items changes effects)
+		# index = adjustIndex_ position (Just ruleId) items
+		//If the index is outside the range, don't add anything
+		| index < 0 || index > length items = lui
+		//If the index is at the end of the range, add the item
+		| index == length items
+			= LUINode type attr (undoAdditions ruleId items ++ [toBeAdded ruleId (initLUI False insertion)]) changes effects
+		# selected = items !! index
+		| getAdditional selected === ESToBeApplied ruleId || getAdditional selected === ESApplied ruleId 
+			= lui
+		| otherwise
+			= LUINode type attr (insertAt index (toBeAdded ruleId (initLUI False insertion)) (undoAdditions ruleId items)) changes effects
+
+	rule ruleId lui = lui
+
+	undoAdditions ruleId items = map undo items
+	where
+		undo lui=:(LUINode type attr items changes effects=:{additional})
+			| additional === (ESToBeApplied ruleId)
+				= LUINode type attr items changes {effects & additional = ESNotApplied}
+			| additional === (ESApplied ruleId)
+				= LUINode type attr items changes {effects & additional = ESToBeRemoved ruleId}
+			| otherwise
+				= lui
+		undo lui = lui
+
+	getAdditional (LUINode _ _ _ _ {additional}) = additional
+	getAdditional _ = ESNotApplied
+
 //Utility functions shared by the layout rules:
 
 //Adjust the index and length for additional nodes inserted by layout rules
-adjustIndex_ :: Int [LUI] -> Int
-adjustIndex_ index items = scan index 0 items
+adjustIndex_ :: Int (Maybe LID) [LUI] -> Int
+adjustIndex_ index exceptAdditional items = scan index 0 items
 where
 	scan r i [] = i
 	//Ignore removed, shifted and synthesized nodes
-	scan r i [x:xs] | isInvisibleUpstream_ x = scan r (i + 1) xs
+	scan r i [x:xs] | isInvisibleUpstream_ exceptAdditional x = scan r (i + 1) xs
 	scan 0 i [_:xs] = i
 	scan r i [_:xs] = scan (r - 1) (i + 1) xs
 
 //Some nodes are not visible upstream, so we should not count them when using indexes
-isInvisibleUpstream_ :: !LUI -> Bool
-isInvisibleUpstream_ (LUINode _ _ _ {toBeRemoved=True} _) = True
-isInvisibleUpstream_ (LUINode _ _ _ {toBeShifted=(Just _)} _) = True
-isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESToBeApplied _}) = True
-isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESApplied _}) = True
-isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESToBeUpdated _ _}) = True
-isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESToBeRemoved _}) = True
-isInvisibleUpstream_ _ = False
+isInvisibleUpstream_ :: !(Maybe LID) !LUI -> Bool
+isInvisibleUpstream_ _ (LUINode _ _ _ {toBeRemoved=True} _) = True
+isInvisibleUpstream_ _ (LUINode _ _ _ {toBeShifted=(Just _)} _) = True
+//When correcting the index to insert at for insertChildUI, the node for that specific rule should not be skipped
+//TODO: Refactor this exception to the rule when all rules have been implemented and it is clear which other exceptions exist
+isInvisibleUpstream_ exception (LUINode _ _ _ _ {additional})
+	= case (exception,additional) of
+		(_,ESNotApplied) = False
+		(Just exceptionId,ESToBeApplied ruleId) = exceptionId <> ruleId
+		(Just exceptionId,ESApplied ruleId) = exceptionId <> ruleId
+		_ = True
+
+isInvisibleUpstream_ _ _ = False
 
 lookupShiftSource_ :: Int [LUI] -> Int
 lookupShiftSource_ shiftId items = fromJust (findIndex isSource items)
@@ -1240,7 +1188,7 @@ selectNode_ [] lui = case lui of
 	(LUINode _ _ _ _ _)                               = Just lui
 	_                                                 = Nothing
 selectNode_ [s:ss] (LUINode _ _ items _ _)
-	# index = adjustIndex_ s items
+	# index = adjustIndex_ s Nothing items
 	| index < 0 || index >= length items = Nothing
 	# child = items !! index
 	= case child of
@@ -1255,7 +1203,7 @@ updateNode_ [] update lui = case lui of
 	(LUINode _ _ _ _ _)                               = update lui
 	_                                                 = lui
 updateNode_ [s:ss] update lui=:(LUINode type attr items changes effects)
-	# index = adjustIndex_ s items
+	# index = adjustIndex_ s Nothing items
 	| index < 0 || index >= length items = lui
 	# child = items !! index
 	# items = case child of
@@ -1503,6 +1451,13 @@ where
 				# (ui,x) = extractUIWithEffects x
 				# (cs,xs) = extract (i + 1) xs
 				= ([(i,InsertChild ui):cs],[x:xs])
+			extract i [x=:(LUINode _ _ _ _ {additional=ESToBeApplied _}):xs]
+				# (ui,x) = extractUIWithEffects x
+				# (cs,xs) = extract (i + 1) xs
+				= ([(i,InsertChild ui):cs],[x:xs])
+			extract i [x=:(LUINode _ _ _ _ {additional=ESToBeRemoved _}):xs]
+				# (cs,xs) = extract i xs
+				= ([(i,RemoveChild):cs],xs)
 			extract i [x:xs]
 				# (c,x) = extractDownstreamChange x
 				# (cs,xs) = extract (i + 1) xs
@@ -1537,10 +1492,11 @@ extractUIWithEffects (LUINode ltype lattr litems changes=:{setAttributes,delAttr
 	//Recursively extract all effects
 	# (items,litems) = unzip (map extractUIWithEffects litems)
 	= (UI type attr items
-	  ,LUINode ltype lattr litems noChanges effects
+	  ,LUINode ltype lattr litems noChanges (confirmAdditional effects)
 	  )
 where
 	remove (LUINode _ _ _ {toBeRemoved} _) = toBeRemoved
+	remove (LUINode _ _ _ {toBeReplaced=Nothing} {additional = ESToBeRemoved _}) = True
 	remove _ = False
 
 	collectShiftSources items = foldr collect ('DM'.newMap,[]) items
@@ -1552,6 +1508,11 @@ where
 	where
 		replace (LUIShiftDestination shiftID) items = maybe items (\n -> [resetToBeShifted n:items]) ('DM'.get shiftID sources)
 		replace n items = [n:items]
+
+	confirmAdditional effects=:{additional=ESToBeApplied ruleId} = {effects & additional=ESApplied ruleId}
+	confirmAdditional effects = effects
+
+extractUIWithEffects _ = abort "extractUIWithEffects: can only extract UI from LUINodes"
 
 resetToBeShifted (LUINode type attr items changes effects)
 	= LUINode type attr items {changes & toBeShifted = Nothing} effects
@@ -1576,7 +1537,20 @@ where
 	hide (attr,hides) (key,ESToBeRemoved _) = (attr,hides)
 
 revertEffects :: LUI -> LUI
-revertEffects lui = trace_n "REVERT" lui //TODO
+revertEffects (LUINode type attr items changes effects=:{additional})
+	//Remove existing additional nodes
+	# additional = case additional of
+		(ESApplied ruleId) = ESToBeRemoved ruleId
+		_ 				   = additional
+	//Remove newly added additional nodes
+	# items = filter notNewAdditional items
+	= LUINode type attr (map revertEffects items) changes {effects & additional = additional}
+where
+	notNewAdditional (LUINode _ _ _ _ effects=:{additional=ESToBeApplied _}) = False
+	notNewAdditional _ = True
+
+revertEffects lui = lui
+
 import StdDebug
 
 ruleBasedLayout :: LayoutRule -> Layout
@@ -1587,5 +1561,6 @@ where
 	adjust (change, LSRule lui)
 		= appSnd LSRule (extractDownstreamChange (rule 0 (applyUpstreamChange change lui)))
 	restore (LSRule lui)
-		= fst (extractDownstreamChange (revertEffects lui))
-
+	//	# (ui,lui) = extractUIWithEffects lui
+	//	= ReplaceUI ui
+		= fst (extractDownstreamChange (revertEffects lui)) 
