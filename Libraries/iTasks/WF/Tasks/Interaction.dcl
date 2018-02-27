@@ -192,7 +192,7 @@ viewTitle :: !a -> Task a | iTask a
 /**
 * View shared data as a title
 */
-viewSharedTitle :: !(ReadWriteShared r w) -> Task r | iTask r
+viewSharedTitle :: !(ReadWriteShared r w) -> Task r | iTask r & TC w
 
 /**
 * Basic Create, Read, Update, Delete (CRUD) editor for a shared collection

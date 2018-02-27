@@ -209,7 +209,7 @@ repeatTask task pred a =
 
 //We throw an exception when the share changes to make sure that the right hand side of
 //the -||- combinator is not evaluated anymore (because it was created from the 'old' share value)
-whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask b
+whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask b & TC w
 whileUnchanged share task
 	= 	( (get share >>- \val ->
             try (

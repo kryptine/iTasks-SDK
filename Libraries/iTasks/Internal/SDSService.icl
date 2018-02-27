@@ -9,9 +9,7 @@ from iTasks.Internal.TaskState 	import :: TIUIState
 
 import iTasks.Internal.HtmlUtil, iTasks.Internal.DynamicUtil
 import iTasks.Internal.RemoteAccess
-from iTasks.Internal.SDS as SDS import qualified read, write, :: Shared 
-from iTasks.Internal.SDS import :: JSONShared
-from iTasks.Internal.SDS import getURLbyId, createReadWriteSDS, fromJSONShared
+import iTasks.Internal.SDS
 from iTasks.Extensions.Web import callHTTP
 
 from StdFunc import o
@@ -53,13 +51,13 @@ where
 		focus = fromString (paramValue "focus" req)
 	
 		readit shared iworld
-			# (res, iworld) = 'SDS'.read Nothing (sdsFocus focus shared) iworld
+			# (res, iworld) = read (sdsFocus focus shared) EmptyContext iworld
 			= case res of
-				(Ok (Just json))       = (jsonResponse json, Nothing, Nothing, iworld)
-				(Error (e,msg)) = (errorResponse msg, Nothing, Nothing, iworld)			
+				(Ok (Result json))       = (jsonResponse json, Nothing, Nothing, iworld)
+				(Error (e,msg)) 		 = (errorResponse msg, Nothing, Nothing, iworld)			
 			
 		writeit shared iworld
-			# (res, iworld) = 'SDS'.write (fromString req.req_data) (sdsFocus focus shared) iworld
+			# (res, iworld) = write (fromString req.req_data) (sdsFocus focus shared) iworld
 			= case res of
 				(Ok _)          = (okResponse, Nothing, Nothing, iworld)
 				(Error (e,msg)) = (errorResponse msg, Nothing, Nothing, iworld)			

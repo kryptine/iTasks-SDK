@@ -26,6 +26,8 @@ import iTasks.SDS.Definition
 
 :: TaskContext = EmptyContext | TaskContext TaskId
 
+:: ReadResult a = Result a | Queued
+
 //Internal creation functions:
 
 createReadWriteSDS ::
@@ -47,19 +49,19 @@ createReadOnlySDSError ::
 	ROShared p r
 
 //Internal access functions
-directResult :: (Either a TaskId) -> a
+directResult :: (ReadResult r) -> r
 
 //Just read an SDS
-read :: !TaskContext !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Either r TaskId), !*IWorld) | TC r
+read :: !(RWShared () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (ReadResult r), !*IWorld) | TC r & JSONDecode{|*|} r & TC w
 
 //Read an SDS and register a taskId to be notified when it is written
-readRegister :: !TaskId !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Either r TaskId), !*IWorld) | TC r
+readRegister :: !TaskId !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (ReadResult r), !*IWorld) | TC r & JSONDecode{|*|} r & TC w
 
 //Write an SDS (and queue evaluation of those task instances which contained tasks that registered for notification)
 write			:: !w					    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)	| TC r & TC w
 //Read followed by write. The 'a' typed value is a result that is returned
 // TODO: read should be done asynchronously, after which shared data is updated using the function.
-modify          :: !(r -> (!a,!w))          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException a, !*IWorld) | TC r & TC w
+modify          :: !(r -> (!a,!w))          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException a, !*IWorld) | TC r & TC w & JSONDecode{|*|} r
 
 //Force notify (queue evaluation of task instances that registered for notification)
 notify          ::                          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)

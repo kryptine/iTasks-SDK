@@ -414,8 +414,8 @@ where
 	verifyKeys :: [(InstanceNo,String)] *IWorld -> (![(InstanceNo,String)],!*IWorld)
 	verifyKeys instances iworld = filterSt verifyKey instances iworld 
 	where
-		verifyKey (instanceNo,viewportKey) iworld = case 'SDS'.read Nothing (sdsFocus instanceNo taskInstanceProgress) iworld of
-			(Ok (Just {InstanceProgress|instanceKey}),iworld) = (viewportKey == instanceKey,iworld)
+		verifyKey (instanceNo,viewportKey) iworld = case 'SDS'.read (sdsFocus instanceNo taskInstanceProgress) 'SDS'.EmptyContext iworld of
+			(Ok (Result {InstanceProgress|instanceKey}),iworld) = (viewportKey == instanceKey,iworld)
 			(_,iworld) = (False,iworld)
 	
 		filterSt p [] s = ([],s)

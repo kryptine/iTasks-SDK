@@ -16,6 +16,8 @@ import iTasks.Extensions.DateTime
 import System.Time, Math.Random
 import Text.JSON
 
+derive JSONDecode Queue, TaskOutputMessage
+
 :: TaskState a = 
 			{ instanceNo :: !InstanceNo
 			, sessionId  :: !String
@@ -101,8 +103,8 @@ newWorld = undef
 
 getUIUpdates :: !*IWorld -> (!Maybe [(InstanceNo, [String])], *IWorld)
 getUIUpdates iworld
-	= case 'SDS'.read Nothing taskOutput iworld of
-		(Ok (Just output),iworld)
+	= case 'SDS'.read taskOutput EmptyContext iworld of
+		(Ok (Result output),iworld)
 			= case 'Data.Map'.toList output of
 				[] = (Nothing,iworld)
 				output

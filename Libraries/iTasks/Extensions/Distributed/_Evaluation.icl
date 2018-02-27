@@ -7,8 +7,8 @@ from iTasks.UI.Definition import :: UI, :: UIAttributeChange, :: UIType
 from iTasks.WF.Combinators.Common import @!, @?, whileUnchanged, ||-
 from iTasks.UI.Definition import :: UIType(UIEmpty)
 from iTasks.Internal.IWorld import :: IWorld
-from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared
-from iTasks.Internal.SDS as SDS import qualified read, readRegister, write
+from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared 
+import iTasks.Internal.SDS
 from iTasks.SDS.Sources.System import currentTaskInstanceNo
 from iTasks.UI.Definition import :: UIChange(..), :: UIChildChange(..), ui
 from iTasks.Internal.Store import memoryStore, :: StoreName, :: StoreNamespace
@@ -47,9 +47,9 @@ proxyTask :: (RWShared () (TaskValue a) (TaskValue a)) (*IWorld -> *IWorld) -> (
 proxyTask value_share onDestroy = Task eval
         where
         eval event evalOpts tree=:(TCInit taskId ts) iworld
-                # (val,iworld)  = 'SDS'.readRegister taskId value_share iworld
+                # (val,iworld)  = readRegister taskId value_share iworld
                 = case val of
-                      Ok (Just val)            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) tree, iworld)
+                      Ok (Result val)            = (ValueResult val {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} (rep event) tree, iworld)
                       Error e           = (ExceptionResult e,iworld)
         eval event repAs (TCDestroy _) iworld 
                 # iworld = onDestroy iworld
@@ -73,7 +73,7 @@ customEval value_share (Task eval) = Task eval`
                         (DestroyedResult, iworld) -> (DestroyedResult, iworld)
 
         storeValue (ValueResult task_value info rep tree, iworld)
-                # (res, iworld) = 'SDS'.write task_value value_share iworld
+                # (res, iworld) = write task_value value_share iworld
                 = case res of
                         Ok _    = (ValueResult task_value info rep tree, iworld)
                         Error _ = (ValueResult task_value info rep tree, iworld)

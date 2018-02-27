@@ -13,7 +13,8 @@ import StdDebug
 
 import iTasks.SDS.Sources.Core
 from iTasks.Internal.TaskServer import addConnection
-import qualified iTasks.WF.Tasks.IO as IO
+import iTasks.WF.Tasks.IO
+import Text.JSON
 
 createReadWriteSDS ::
 	!String
@@ -56,6 +57,7 @@ createSDS ns id read write = SDSSource
 //Construct the identity of an sds
 sdsIdentity :: !(RWShared p r w) -> SDSIdentity
 sdsIdentity (SDSSource {SDSSource|name}) = "$" +++ name +++ "$"
+sdsIdentity (SDSRemoteSource _ s) = "REMOTE%" +++ sdsIdentity s +++ "%"
 sdsIdentity (SDSLens sds {SDSLens|name}) = sdsIdentity sds +++"/["+++name+++"]"
 sdsIdentity (SDSSelect sds1 sds2 {SDSSelect|name}) = "{"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++"}"
 sdsIdentity (SDSParallel sds1 sds2 {SDSParallel|name}) = "|"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++"|"
@@ -66,36 +68,79 @@ sdsIdentity (SDSDynamic f) = "SDSDYNAMIC" //TODO: Figure out how to determine th
 iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
 iworldNotifyPred npred p env = (npred p, env)
 
-directResult :: (Either a TaskId) -> a
-directResult (Left a) = a
+directResult :: (ReadResult r) -> r
+directResult (Result a) = a
+directResult _ = abort "No direct result!"
 
-read :: !TaskContext !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Either r TaskId), !*IWorld) | TC r
+read :: !(RWShared () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (ReadResult r), !*IWorld) | TC r & JSONDecode{|*|} r & TC w
+// Otherwise, we queue a read task and return Right readId, denoting that the 
+// task has been successfully added and the caller can check for a result using the returned id.
+read s=:(SDSRemoteSource shareOptions sds) (TaskContext id) env = trace_n "Queueing read" (queueRead s "name" id env)
+
+read s=:(SDSRemoteSource shareOptions sds) EmptyContext env = (Error (exception "Cannot read remote SDS without task ID"), env)
 
 // If we do not need to read in the context of a task (probably called 
 // somewhere in the internals of the framework), then we return the result of 
 // the read immediately, blocking.
-read EmptyContext sds env = case read` () Nothing (sdsIdentity sds) sds env of 
+read sds EmptyContext env = case read` () Nothing (sdsIdentity sds) sds env of 
     (Error e, env)                  = (Error e, env)
-    (Ok v, env)                     = (Ok (Left v), env)
+    (Ok v, env)                     = (Ok (Result v), env)
 
-// Otherwise, we queue a read task and return Right readId, denoting that the 
-// task has been successfully added and the caller can check for a result using the returned id.
-read (TaskContext taskId) sds env = case remoteread sds taskId env of
-    (Error e, env)                  = trace_n "Error adding SDSRead" (Error e, env)
-    (Ok readId, env)                = (Ok (Right readId) , env)
+readRegister :: !TaskId !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (ReadResult r), !*IWorld) | TC r & JSONDecode{|*|} r & TC w
+readRegister taskId s=:(SDSRemoteSource shareOptions sds) env = queueRead s "name" taskId env
 
-// TODO: Change to queueing a read task
-readRegister :: !TaskId !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (Either r TaskId), !*IWorld) | TC r
 readRegister taskId sds env = case read` () (Just taskId) (sdsIdentity sds) sds env of 
     (Error e, env) = (Error e, env)
-    (Ok v, env) = (Ok (Left v), env)
+    (Ok v, env) = (Ok (Result v), env)
+
+// TODO:
+// 1. Resolve host/sds URL + port
+// 2. Add a connection task.
+// 3. When received a response, "wake" the task
+queueRead :: !(RWShared () r w) String TaskId !*IWorld -> (!MaybeError TaskException (ReadResult r), !*IWorld) | JSONDecode{|*|} r & TC r & TC w
+queueRead (SDSRemoteSource share sds) name taskId env = trace "Queueing read" (case addConnection taskId host port connectionTask env of 
+    (Error e, env)  = (Error e, env)
+    (Ok _, env)     = (Ok Queued, env))
+where
+    host = case share of 
+        DomainShare {DomainShareOptions|domain}  = domain   
+        WebServiceShare {WebServiceShareOptions|url} = url
+
+    port = case share of
+        DomainShare {DomainShareOptions|port}  = port
+        WebServiceShare _   = 80
+
+    connectionTask = wrapConnectionTask (handlers sds) unitShare
+
+    handlers :: (RWShared () r w) -> ConnectionHandlers (Either [String] r) () () | JSONDecode{|*|} r
+    handlers sds = {ConnectionHandlers| onConnect = onConnect,
+        onData = onData,
+        onShareChange = onShareChange,
+        onDisconnect = onDisconnect sds}
+
+    // TODO: Create/send SDS request
+    onConnect :: String ()   -> (!MaybeErrorString (Either [String] r), Maybe (), ![String], !Bool)
+    onConnect _ _ = (Ok (Left []), Nothing, [], False) 
+
+    onData :: String (Either [String] r) () -> (!MaybeErrorString (Either [String] r), Maybe (), ![String], !Bool)
+    onData data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False)
+
+    onShareChange :: (Either [String] r) () -> (!MaybeErrorString (Either [String] r), Maybe (), ![String], !Bool)
+    onShareChange acc _ = (Ok acc, Nothing, [], False)
+
+    // Upon disconnection, we assume that all data has been successfully transmitted.
+    onDisconnect :: (RWShared () r z) (Either [String] r) () -> (!MaybeErrorString (Either [String] r), Maybe ()) | JSONDecode{|*|} r
+    onDisconnect _ (Left acc) _
+    # json = concat acc
+    = case fromJSON (fromString json) of 
+        Nothing     = (Error ("Could not parse JSON response" +++ json), Nothing)
+        (Just a)    = (Ok (Right a), Nothing)
 
 mbRegister :: !p !(RWShared p r w) !(Maybe TaskId) !SDSIdentity !*IWorld -> *IWorld | iTask p
 mbRegister p sds Nothing reqSDSId iworld = iworld
 mbRegister p sds (Just taskId) reqSDSId iworld=:{IWorld|sdsNotifyRequests}
     # req = {SDSNotifyRequest|reqTaskId=taskId,reqSDSId=reqSDSId,cmpSDSId=sdsIdentity sds,cmpParam=dynamic p,cmpParamText=toSingleLineText p}
     = {iworld & sdsNotifyRequests = [req:sdsNotifyRequests]}
-
 
 // TODO: Move these to execution of SDS read task
 read` :: !p !(Maybe TaskId) !SDSIdentity !(RWShared p r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | iTask p & TC r
@@ -163,6 +208,8 @@ read` p mbNotify reqSDSId sds=:(SDSDynamic f) env
 		(Error e) = (Error e, env)
 		(Ok sds)  = read` p mbNotify reqSDSId sds env
 
+read` p mbNotify reqSDSId sds env = abort ("Read` not matching" +++ (sdsIdentity sds))
+
 write :: !w !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld) | TC r & TC w
 write w sds iworld
     = case write` () w sds iworld of
@@ -177,7 +224,7 @@ write` p w sds=:(SDSSource {SDSSource|name,write}) env
 			# (match,nomatch, env) = checkRegistrations (sdsIdentity sds) npred env
 			= (Ok match, env)
 
-write` p w rsds=:(SDSRemoteSource opts sds) env = (Error (exception "Not yet implemented"), env)
+write` p w rsds=:(SDSRemoteSource opts sds) env = (Error (exception "writing not yet implemented"), env)
     // TODO: 
     // 1. Writing to an external web service is not allowed!
     // 2. Writing to an external SDS is allowed.
@@ -378,12 +425,13 @@ where
 			//In case of a type mismatch, just ignore (should not happen)
             _                        = (match,nomatch)
 
-modify :: !(r -> (!a,!w)) !(RWShared () r w) !*IWorld -> (!MaybeError TaskException a, !*IWorld) | TC r & TC w
-modify f sds iworld = trace_n ("Modifying " +++ sdsIdentity sds) (case read Nothing sds iworld of
-    (Ok (Just r),iworld)      = let (a,w) = f r in case write w sds iworld of
+modify :: !(r -> (!a,!w)) !(RWShared () r w) !*IWorld -> (!MaybeError TaskException a, !*IWorld) | TC r & TC w & JSONDecode{|*|} r
+modify f sds iworld = case read sds EmptyContext iworld of
+    (Ok (Result r),iworld)      = let (a,w) = f r in case write w sds iworld of
 		(Ok (),iworld)    = (Ok a,iworld)	
 		(Error e,iworld)  = (Error e, iworld)
-    (Error e,iworld)   = (Error e,iworld))
+    (Ok Queued, iworld) = (Error (exception "Modifying not yet implemented"), iworld)
+    (Error e,iworld)   = (Error e,iworld)
 
 notify :: !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 notify sds iworld = (Ok (), iworld) //TODO
@@ -470,42 +518,4 @@ hasRemote (SDSSequence sds1 sds2 _) = hasRemote sds1 || hasRemote sds2
 // TODO: Check.
 hasRemote (SDSCache sds cache) = True
 hasRemote (SDSDynamic _) = False
-
-remoteread :: (SDS p r w) TaskId *IWorld -> (!MaybeError TaskException (),!*IWorld)
-remoteread (SDSRemoteSource options sds) taskId iworld
-= case addConnection taskId (getHost options) (getPort options) wrappedTask iworld of 
-    (Error e, w) = (Error e, w)
-    (Ok _, w) = (Ok (), w)
-where
-    getPort :: RemoteShare -> Int
-    getPort (DomainShare {DomainShareOptions|port}) = port
-    getPort (WebServiceShare {WebServiceShareOptions|url}) = 80
-
-    getHost :: RemoteShare -> String 
-    getHost (DomainShare {DomainShareOptions|domain}) = domain +++ "/sds/" +++ shareName sds
-    getHost (WebServiceShare {WebServiceShareOptions|url}) = url
-
-    wrappedTask = wrapConnectionTask handlers (constShare ())
-
-    handlers :: 'IO'.ConnectionHandlers (Either [String] r) () (Maybe ())
-    handlers = {onConnect = oc
-        , onData = od
-        , onShareChange = os
-        , onDisconnect = odi , onTick = \l _ w -> (Ok l, Nothing, [], False,w) } 
-
-    shareName {SDSSource| name} = name
-    // TODO: Fix andere shares.
-    shareName _ = "TODO"
-
-    // Make the request
-    oc _ _ = (Ok (Left []),Nothing,[],False)
-
-    od data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False) 
-
-    // Share cannot change, so do nothing.
-    os _ l _ = (Ok l, Nothing, [], False) 
-
-    // Concatenate the received JSON and interpret as type r
-    odi (Left acc) _ = let jsonString = concat acc in case fromJSON o fromString o jsonString of 
-        (Just a) = (Ok (Right a), Nothing)
-        Nothing = (Error "Unable to parse JSON. Received: " +++ jsonString, Nothing)
+hasRemote _ = abort "not matching"

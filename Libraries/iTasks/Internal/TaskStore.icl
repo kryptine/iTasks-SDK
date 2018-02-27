@@ -113,9 +113,9 @@ taskInstanceParallelTaskLists = sdsTranslate "taskInstanceParallelLists" (\t -> 
 
 newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceNo iworld
-	# (mbNewInstanceNo,iworld) = 'SDS'.read Nothing nextInstanceNo iworld
+	# (mbNewInstanceNo,iworld) = 'SDS'.read nextInstanceNo 'SDS'.EmptyContext iworld
 	= case mbNewInstanceNo of
-		Ok (Just instanceNo)
+		Ok ('SDS'.Result instanceNo)
 			# (mbError,iworld) = 'SDS'.write (instanceNo + 1) nextInstanceNo iworld
             = case mbError of
                 Ok _    = (Ok instanceNo,iworld)
@@ -191,11 +191,11 @@ where
 
 replaceTaskInstance :: !InstanceNo !(Task a) *IWorld -> (!MaybeError TaskException (), !*IWorld) | iTask a
 replaceTaskInstance instanceNo task iworld=:{options={appVersion},current={taskTime}}
-    # (meta, iworld)        = 'SDS'.read Nothing (sdsFocus instanceNo taskInstance) iworld
+    # (meta, iworld)        = 'SDS'.read (sdsFocus instanceNo taskInstance) 'SDS'.EmptyContext iworld
     | isError meta          = (liftError meta, iworld)
     =            'SDS'.write (createReduct defaultTonicOpts instanceNo task taskTime) (sdsFocus instanceNo taskInstanceReduct) iworld
   `b` \iworld -> 'SDS'.write (TIValue NoValue) (sdsFocus instanceNo taskInstanceValue) iworld
-  `b` \iworld -> let (_,Just constants,progress,attributes) =fromJust (fromOk meta)
+  `b` \iworld -> let (_,Just constants,progress,attributes) ='SDS'.directResult (fromOk meta)
                  in  'SDS'.write (instanceNo,Just {InstanceConstants|constants & build=appVersion},progress,attributes) (sdsFocus instanceNo taskInstance) iworld
   `b` \iworld -> (Ok (), iworld)
 
@@ -562,42 +562,17 @@ createDocument name mime content iworld
 	
 loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentContent documentId iworld
-	= case 'SDS'.read Nothing (sdsFocus documentId documentContent) iworld of
-        (Ok (Just content),iworld) = (Just content,iworld)
+	= case 'SDS'.read (sdsFocus documentId documentContent) 'SDS'.EmptyContext iworld of
+        (Ok ('SDS'.Result content),iworld) = (Just content,iworld)
         (Error e,iworld)    = (Nothing,iworld)
 
 loadDocumentMeta :: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 loadDocumentMeta documentId iworld
-	= case ('SDS'.read Nothing (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d+++"-meta") (jsonFileStore NS_DOCUMENT_CONTENT False False Nothing))) iworld) of
-        (Ok (Just doc),iworld)     = (Just doc,iworld)
+	= case ('SDS'.read (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d+++"-meta") (jsonFileStore NS_DOCUMENT_CONTENT False False Nothing))) 'SDS'.EmptyContext iworld) of
+        (Ok ('SDS'.Result doc),iworld)     = (Just doc,iworld)
         (Error e,iworld)    = (Nothing,iworld)
 
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
 documentLocation documentId iworld=:{options={storeDirPath}}
 	= (storeDirPath </> NS_DOCUMENT_CONTENT </> (documentId +++ "-content"),iworld)
-
-//OBSOLETE
-exposedShare :: !String -> RWShared p r w | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p
-exposedShare url = SDSDynamic f
-where
-	f _ iworld=:{exposedShares}
-        = case 'DM'.get url exposedShares of
-		        Nothing                               = (Ok ('SDS'.createReadWriteSDS "exposedShare" url rread rwrite), iworld)
-            Just (shared :: RWShared p^ r^ w^, _) = (Ok shared, iworld )
-            Just dynamic                          = (Error (dynamic mismatchError,mismatchError), iworld)
-
-	rread p iworld
-			= case readRemoteSDS (toJSON p) url iworld of
-				(Ok json, iworld) = case fromJSON json of
-										Nothing     = (Error (dynamic mismatchError,mismatchError), iworld)
-										(Just val)  = (Ok val, iworld)
-				(Error msg, iworld) = (Error (dynamic msg,msg), iworld)
-	
-	rwrite p val iworld
-        = case writeRemoteSDS (toJSON p) (toJSON val) url iworld of
-            (Ok _,iworld)       = (Ok (const True),iworld)
-            (Error msg,iworld)  = (Error (dynamic msg,msg),iworld)
-							
-    mismatchError = "Exposed share type mismatch: " +++ url
-
 

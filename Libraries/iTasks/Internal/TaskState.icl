@@ -29,6 +29,7 @@ JSONDecode{|DeferredJSON|} _ l
 
 taskIdFromTaskTree :: TaskTree -> MaybeError TaskException TaskId
 taskIdFromTaskTree (TCInit                  taskId _)         = Ok taskId
+taskIdFromTaskTree (TCAwaitRead 			taskId _)		  = Ok taskId
 taskIdFromTaskTree (TCBasic                 taskId _ _ _)     = Ok taskId
 taskIdFromTaskTree (TCInteract              taskId _ _ _ _)   = Ok taskId
 taskIdFromTaskTree (TCProject               taskId _ _)       = Ok taskId
@@ -40,4 +41,3 @@ taskIdFromTaskTree (TCStable                taskId _ _)       = Ok taskId
 taskIdFromTaskTree (TCLayout                _ tt)             = taskIdFromTaskTree tt
 taskIdFromTaskTree (TCNop)                                    = Error (exception "Unable to obtain TaskId from TaskTree (TCNop)")
 taskIdFromTaskTree (TCDestroy               tt)               = taskIdFromTaskTree tt
-

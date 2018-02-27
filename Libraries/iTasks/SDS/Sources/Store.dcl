@@ -30,4 +30,4 @@ storeShare :: !String !Bool !StorageType !(Maybe a) -> (SDS String a a) | JSONEn
 // Data blob storage access
 blobStoreShare :: !String !Bool !(Maybe {#Char}) -> SDS String {#Char} {#Char}
 
-remote 			:: (SDS () a a) RemoteShare -> SDS () a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+remote :: (SDS () r w) RemoteShare -> SDS () r w | JSONEncode{|*|}, JSONDecode{|*|}, TC r & TC w

@@ -10,11 +10,11 @@ import StdMisc, Data.Maybe
 
 NS_TONIC_INSTANCES :== "tonic-instances"
 
-sdsUnsafeRead :: (RWShared () a b) *IWorld -> *(a, *IWorld) | TC a
+sdsUnsafeRead :: (RWShared () a b) *IWorld -> *(a, *IWorld) | TC a & TC b & JSONDecode{|*|} a
 sdsUnsafeRead focus iworld
-  # (res, iworld) = 'DSDS'.read Nothing focus iworld
+  # (res, iworld) = 'DSDS'.read focus 'DSDS'.EmptyContext iworld
   = case res of
-      Ok (Just x) -> (x, iworld)
+      Ok ('DSDS'.Result x) -> (x, iworld)
 
 selectedBlueprint :: RWShared () (Maybe ClickMeta) (Maybe ClickMeta)
 selectedBlueprint = sdsFocus "selectedBlueprint" (removeMaybe (Just Nothing) memoryShare)

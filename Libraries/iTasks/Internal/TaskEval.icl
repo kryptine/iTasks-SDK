@@ -77,13 +77,13 @@ evalTaskInstance instanceNo event iworld
     = (res,iworld)
 where
     evalTaskInstance` instanceNo event iworld=:{clock,current}
-    # (constants, iworld)       = 'SDS'.read EmptyContext (sdsFocus instanceNo taskInstanceConstants) iworld
+    # (constants, iworld)       = 'SDS'.read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld
 	| isError constants         = exitWithException instanceNo ((\(Error (e,msg)) -> msg) constants) iworld
 	# constants=:{InstanceConstants|session,listId} = 'SDS'.directResult (fromOk constants)
-	# (oldReduct, iworld)		= 'SDS'.read EmptyContext (sdsFocus instanceNo taskInstanceReduct) iworld
+	# (oldReduct, iworld)		= 'SDS'.read (sdsFocus instanceNo taskInstanceReduct) EmptyContext iworld
 	| isError oldReduct			= exitWithException instanceNo ((\(Error (e,msg)) -> msg) oldReduct) iworld
 	# oldReduct=:{TIReduct|task=Task eval,tree,nextTaskNo=curNextTaskNo,nextTaskTime,tasks,tonicRedOpts} = 'SDS'.directResult (fromOk oldReduct)
-    # (oldProgress,iworld)      = 'SDS'.read EmptyContext (sdsFocus instanceNo taskInstanceProgress) iworld
+    # (oldProgress,iworld)      = 'SDS'.read (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld
 	| isError oldProgress       = exitWithException instanceNo ((\(Error (e,msg)) -> msg) oldProgress) iworld
     # oldProgress=:{InstanceProgress|value,attachedTo} = 'SDS'.directResult (fromOk oldProgress)
     //Check exeption
@@ -112,7 +112,7 @@ where
     //Reset necessary 'current' values in iworld
     # iworld = {IWorld|iworld & current = {TaskEvalState|current & taskInstance = 0}}
     // Check if instance was deleted by trying to reread the instance constants share
-	# (deleted,iworld) = appFst isError ('SDS'.read EmptyContext (sdsFocus instanceNo taskInstanceConstants) iworld)
+	# (deleted,iworld) = appFst isError ('SDS'.read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld)
     // Write the updated progress
 	# (mbErr,iworld) = if (updateProgress clock newResult oldProgress === oldProgress)
 		(Ok (),iworld)	//Only update progress when something changed

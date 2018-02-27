@@ -12,15 +12,18 @@ import iTasks.SDS.Combinators.Common
 
 from iTasks.Extensions.DateTime import toDate, toTime, instance == Date, instance == Time
 from System.Time import time
+import Text.JSON
 
 from TCPIP import :: Timeout
 
 import Data.Queue
 import StdDebug
 
+derive JSONDecode Queue, Event, Set
+
 timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
-timeout iworld = case read Nothing taskEvents iworld of //Check if there are events in the queue
-	(Ok (Just (Queue [] [])),iworld)   	= (Just 10,iworld) //Empty queue, don't waste CPU, but refresh
+timeout iworld = case read taskEvents EmptyContext iworld of //Check if there are events in the queue
+	(Ok (Result (Queue [] [])),iworld)   	= (Just 10,iworld) //Empty queue, don't waste CPU, but refresh
 	(Ok _,iworld)               		= (Just 0,iworld)   //There are still events, don't wait
 	(Error _,iworld)            		= (Just 500,iworld) //Keep retrying, but not too fast
 
@@ -37,9 +40,9 @@ updateClock iworld=:{IWorld|clock,world}
 //When we run the built-in HTTP server we need to do active garbage collection of instances that were created for sessions
 removeOutdatedSessions :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 removeOutdatedSessions iworld=:{IWorld|options}
-    # (mbIndex,iworld) = read Nothing (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) iworld
+    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & onlySession=Just True} filteredInstanceIndex) EmptyContext iworld
     = case mbIndex of
-        Ok (Just index)    = checkAll removeIfOutdated index iworld 
+        Ok (Result index)    = checkAll removeIfOutdated index iworld 
         Error e     = (Error e, iworld)
 where
 	checkAll f [] iworld = (Ok (),iworld)
@@ -48,14 +51,14 @@ where
 		(Error e,iworld) = (Error e,iworld)
 
     removeIfOutdated (instanceNo,_,_,_) iworld=:{options={appVersion},clock}
-		# (remove,iworld) = case read Nothing (sdsFocus instanceNo taskInstanceIO) iworld of
+		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
 			//If there is I/O information, we check that age first
-			(Ok (Just (Just (client,Timestamp tInstance))),iworld) //No IO for too long, clean up
+			(Ok (Result (Just (client,Timestamp tInstance))),iworld) //No IO for too long, clean up
 				= (Ok ((tNow - tInstance) > options.EngineOptions.sessionTime),iworld)
 			//If there is no I/O information, get meta-data and check builtId and creation date
-			(Ok (Just Nothing),iworld)
-				= case read Nothing (sdsFocus instanceNo taskInstanceConstants) iworld of
-					(Ok (Just {InstanceConstants|build,issuedAt}),iworld)
+			(Ok (Result Nothing),iworld)
+				= case read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld of
+					(Ok (Result {InstanceConstants|build,issuedAt}),iworld)
 						| build <> appVersion = (Ok True,iworld)
 						# (Timestamp tInstance) = issuedAt
 						| (tNow - tInstance) > options.EngineOptions.sessionTime = (Ok True,iworld)
@@ -80,18 +83,18 @@ where
 
 //When the event queue is empty, write deferred SDS's
 flushWritesWhenIdle:: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
-flushWritesWhenIdle iworld = case read Nothing taskEvents iworld of
+flushWritesWhenIdle iworld = case read taskEvents EmptyContext iworld of
 		(Error e,iworld)          = (Error e,iworld)
-		(Ok (Just (Queue [] [])),iworld) = flushDeferredSDSWrites iworld
+		(Ok (Result (Queue [] [])),iworld) = flushDeferredSDSWrites iworld
 		(Ok _,iworld)             = (Ok (),iworld)
 
 //When we don't run the built-in HTTP server we don't want to loop forever so we stop the loop
 //once all tasks are stable
 stopOnStable :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 stopOnStable iworld=:{IWorld|shutdown}
-    # (mbIndex,iworld) = read Nothing (sdsFocus {InstanceFilter|defaultValue & includeProgress=True} filteredInstanceIndex) iworld
+    # (mbIndex,iworld) = read (sdsFocus {InstanceFilter|defaultValue & includeProgress=True} filteredInstanceIndex) EmptyContext iworld
 	= case mbIndex of 
-		Ok (Just index) 
+		Ok (Result index) 
 			# shutdown = case shutdown of
 				Nothing = if (allStable index) (Just (if (exceptionOccurred index) 1 0)) Nothing
 				_       = shutdown

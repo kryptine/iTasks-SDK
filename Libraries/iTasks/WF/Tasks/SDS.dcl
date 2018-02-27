@@ -28,7 +28,7 @@ instance toString SharedException
 * @gin-title Read shared
 * @gin-icon shared_read
 */
-get :: !(ReadWriteShared a w) -> Task a | iTask a
+get :: !(ReadWriteShared a w) -> Task a | iTask a & TC w
 
 /**
 * Writes shared data.
@@ -66,6 +66,6 @@ upd :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 * @gin-title Read shared
 * @gin-icon shared_read
 */
-watch :: !(ReadWriteShared r w) -> Task r | iTask r
+watch :: !(ReadWriteShared r w) -> Task r | iTask r & TC w
 
 

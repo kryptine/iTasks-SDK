@@ -140,7 +140,7 @@ appendTask  :: !ParallelTaskType !(ParallelTask a)	!(SharedTaskList a) -> Task T
 /**
 * Removes (and stops) a task from a task list
 */
-removeTask  :: !TaskId								!(SharedTaskList a)	-> Task () | TC a
+removeTask  :: !TaskId								!(SharedTaskList a)	-> Task () | TC a & JSONDecode{|*|} a
 /**
 * Replaces a task in a list and resets its execution state.
 * All meta-data is kept

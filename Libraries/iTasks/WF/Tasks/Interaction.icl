@@ -313,7 +313,7 @@ where
 	title = toSingleLineText a
 	view a	= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text title]]
 
-viewSharedTitle :: !(ReadWriteShared r w) -> Task r | iTask r
+viewSharedTitle :: !(ReadWriteShared r w) -> Task r | iTask r & TC w
 viewSharedTitle s = whileUnchanged s viewTitle
 
 crudWith :: !d ![ChoiceOption r] [EnterOption r] [ViewOption r] [UpdateOption r r]
