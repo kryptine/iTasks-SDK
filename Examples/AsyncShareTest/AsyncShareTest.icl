@@ -22,7 +22,7 @@ where
 
 	client :: Task Int
 	client = instanceClient "TEST" 8765 (Domain "TEST")
-		||- (updateSharedInformation "This share is stored somewhere else in the domain" [] (remote testShare (DomainShare {domain="TEST", port = 8765})))
+		||- (updateSharedInformation "This share is stored somewhere else in the domain" [] (remote testShare (DomainShare {domain="TEST", port = 8765, name = "sharedStoreName"})))
 
 
 

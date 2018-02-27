@@ -542,11 +542,11 @@ where
     init iworld
         # (mbIP, world) = lookupIPAddress host iworld.world
         = case mbIP of
-            Nothing = (Error ("Failed to connect to host " +++ host), {iworld & world = world})
+            Nothing = 'DB'.trace_n ("Could not resolve " +++ host) (Error ("Failed to connect to host " +++ host), {iworld & world = world})
             Just ip
                 # (tReport, mbConn, world) = connectTCP_MT Nothing (fromJust mbIP,port) world
                 = case mbConn of
-                    Nothing = (Error ("Failed to connect to host " +++ host), {iworld & world = world})
+                    Nothing = 'DB'.trace_n "Could not connect to host" (Error ("Failed to connect to host " +++ host), {iworld & world = world})
                     Just channel = (Ok (ip, channel), {iworld & world = world})
 
     onInitHandler :: !IPAddress !Dynamic !*IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld)
@@ -600,7 +600,7 @@ addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld
             # (mbl, mbw, out, close, iworld) = onInitHandler initInfo (directResult (fromOk mbr)) iworld
 			// Check initialization of local state 
 			= case mbl of	
-				Error e = (Error (exception e), iworld)
+				Error e = 'DB'.trace_n "Failed to initialize" (Error (exception e), iworld)
 				Ok l
             		// write output
             		# (ioChannels, iworld) = seq [ioOps.writeData o \\ o <- out] (ioChannels, iworld)
@@ -612,7 +612,7 @@ addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld
             			# ioStates = iworld.ioStates
             			# ioStates = 'DM'.put taskId (IOActive ('DM'.fromList [(0,(l, False))])) ioStates
             			# {done, todo} = iworld.ioTasks
-            			= (Ok l, {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance initInfo ioChannels : done], todo = todo}})
+            			= 'DB'.trace_n "Waiting for response" (Ok l, {iworld & ioStates = ioStates, ioTasks = {done = [mkIOTaskInstance initInfo ioChannels : done], todo = todo}})
 
 //Dynamically add a background task
 addBackgroundTask :: !BackgroundTask !*IWorld -> (!MaybeError TaskException BackgroundTaskId,!*IWorld)

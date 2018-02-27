@@ -98,16 +98,16 @@ readRegister taskId sds env = case read` () (Just taskId) (sdsIdentity sds) sds 
 // 2. Add a connection task.
 // 3. When received a response, "wake" the task
 queueRead :: !(RWShared () r w) String TaskId !*IWorld -> (!MaybeError TaskException (ReadResult r), !*IWorld) | JSONDecode{|*|} r & TC r & TC w
-queueRead (SDSRemoteSource share sds) name taskId env = trace "Queueing read" (case addConnection taskId host port connectionTask env of 
-    (Error e, env)  = (Error e, env)
-    (Ok _, env)     = (Ok Queued, env))
+queueRead (SDSRemoteSource share sds) name taskId env = trace_n "Queueing read" (case addConnection taskId host port connectionTask env of 
+    (Error e, env)  = trace_n "Error adding connection" (Error e, env)
+    (Ok _, env)     = trace_n "Add connection" (Ok Queued, env))
 where
     host = case share of 
         DomainShare {DomainShareOptions|domain}  = domain   
         WebServiceShare {WebServiceShareOptions|url} = url
 
     port = case share of
-        DomainShare {DomainShareOptions|port}  = port
+        DomainShare {DomainShareOptions|port}  = 8080
         WebServiceShare _   = 80
 
     connectionTask = wrapConnectionTask (handlers sds) unitShare
@@ -118,12 +118,19 @@ where
         onShareChange = onShareChange,
         onDisconnect = onDisconnect sds}
 
+    sdsName = case share of 
+        (DomainShare {DomainShareOptions|name}) = "/" +++ name
+        (WebServiceShare _) = abort "TODO: Calling external services"
+
     // TODO: Create/send SDS request
+    request = let request = "GET " +++ "/sds" +++ sdsName +++  " HTTP/1.1\r\nHost: " +++ host +++ "\r\nConnection: close\r\n\r\n" in
+        trace_n ("Sending request: " +++ request) request
+
     onConnect :: String ()   -> (!MaybeErrorString (Either [String] r), Maybe (), ![String], !Bool)
-    onConnect _ _ = (Ok (Left []), Nothing, [], False) 
+    onConnect _ _ = trace_n "Connecting" (Ok (Left []), Nothing, [request], False) 
 
     onData :: String (Either [String] r) () -> (!MaybeErrorString (Either [String] r), Maybe (), ![String], !Bool)
-    onData data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False)
+    onData data (Left acc) _ = trace_n "Received data" (Ok (Left (acc ++ [data])), Nothing, [], False)
 
     onShareChange :: (Either [String] r) () -> (!MaybeErrorString (Either [String] r), Maybe (), ![String], !Bool)
     onShareChange acc _ = (Ok acc, Nothing, [], False)
@@ -134,7 +141,7 @@ where
     # json = concat acc
     = case fromJSON (fromString json) of 
         Nothing     = (Error ("Could not parse JSON response" +++ json), Nothing)
-        (Just a)    = (Ok (Right a), Nothing)
+        (Just a)    = trace_n "Complete SDS request" (Ok (Right a), Nothing)
 
 mbRegister :: !p !(RWShared p r w) !(Maybe TaskId) !SDSIdentity !*IWorld -> *IWorld | iTask p
 mbRegister p sds Nothing reqSDSId iworld = iworld
@@ -506,7 +513,8 @@ getURLbyId :: !String !*IWorld -> (!String, !*IWorld)
 getURLbyId sdsId iworld=:{IWorld|options={serverUrl},random}
 	= ("sds:" +++ serverUrl +++ "/" +++ sdsId, iworld)	
 
-// Returns whether a share (interpreted as a tree) has a remote share somewhere
+// Returns whether a share (interpreted as a tree) has a remote share somewhere. 
+// If it has, we cannot use the normal blocking method of retrieving shares.
 hasRemote :: (SDS a b c) -> Bool
 hasRemote (SDSSource _) = False
 hasRemote (SDSRemoteSource _ _) = True
@@ -518,4 +526,3 @@ hasRemote (SDSSequence sds1 sds2 _) = hasRemote sds1 || hasRemote sds2
 // TODO: Check.
 hasRemote (SDSCache sds cache) = True
 hasRemote (SDSDynamic _) = False
-hasRemote _ = abort "not matching"

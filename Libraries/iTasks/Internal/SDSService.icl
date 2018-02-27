@@ -20,6 +20,7 @@ import Data.Maybe, Data.Error
 import Text.JSON, Text.URI
 import StdMisc, graph_to_sapl_string
 import Data.Queue, Data.Functor
+import StdDebug
 
 sdsService :: WebService a a
 sdsService = { urlMatchPred    = matchFun
@@ -33,7 +34,7 @@ sdsService = { urlMatchPred    = matchFun
 where
     matchFun :: String -> Bool
     matchFun reqUrl = case pathToSegments reqUrl of
-    					["","sds",_] = True
+    					["","sds",_] = trace_n "Handling SDS Service request" True
     							  	 = False
 
 	reqFun :: !HTTPRequest a !*IWorld -> *(!HTTPResponse, !Maybe ConnectionState, !Maybe a, !*IWorld)
@@ -53,7 +54,7 @@ where
 		readit shared iworld
 			# (res, iworld) = read (sdsFocus focus shared) EmptyContext iworld
 			= case res of
-				(Ok (Result json))       = (jsonResponse json, Nothing, Nothing, iworld)
+				(Ok (Result json))       = trace_n "Returning SDS" (jsonResponse json, Nothing, Nothing, iworld)
 				(Error (e,msg)) 		 = (errorResponse msg, Nothing, Nothing, iworld)			
 			
 		writeit shared iworld
