@@ -16,6 +16,8 @@ from iTasks.Internal.TaskServer import addConnection
 import iTasks.WF.Tasks.IO
 import Text.JSON
 
+import Internet.HTTP
+
 createReadWriteSDS ::
 	!String
 	!String
@@ -93,10 +95,6 @@ readRegister taskId sds env = case read` () (Just taskId) (sdsIdentity sds) sds 
     (Error e, env) = (Error e, env)
     (Ok v, env) = (Ok (Result v), env)
 
-// TODO:
-// 1. Resolve host/sds URL + port
-// 2. Add a connection task.
-// 3. When received a response, "wake" the task
 queueRead :: !(RWShared () r w) String TaskId !*IWorld -> (!MaybeError TaskException (ReadResult r), !*IWorld) | JSONDecode{|*|} r & TC r & TC w
 queueRead (SDSRemoteSource share sds) name taskId env = trace_n "Queueing read" (case addConnection taskId host port connectionTask env of 
     (Error e, env)  = trace_n "Error adding connection" (Error e, env)
@@ -119,18 +117,17 @@ where
         onDisconnect = onDisconnect sds}
 
     sdsName = case share of 
-        (DomainShare {DomainShareOptions|name}) = "/" +++ name
+        (DomainShare {DomainShareOptions|name}) = "/sds/" +++ name
         (WebServiceShare _) = abort "TODO: Calling external services"
 
-    // TODO: Create/send SDS request
-    request = let request = "GET " +++ "/sds" +++ sdsName +++  " HTTP/1.1\r\nHost: " +++ host +++ "\r\nConnection: close\r\n\r\n" in
-        trace_n ("Sending request: " +++ request) request
+    request = let requestString = toString {newHTTPRequest & server_name = host, server_port = port, req_path = sdsName, req_version = "HTTP/1.1"} in
+        trace_n ("Sending request: " +++ requestString) requestString
 
     onConnect :: String ()   -> (!MaybeErrorString (Either [String] r), Maybe (), ![String], !Bool)
     onConnect _ _ = trace_n "Connecting" (Ok (Left []), Nothing, [request], False) 
 
     onData :: String (Either [String] r) () -> (!MaybeErrorString (Either [String] r), Maybe (), ![String], !Bool)
-    onData data (Left acc) _ = trace_n "Received data" (Ok (Left (acc ++ [data])), Nothing, [], False)
+    onData data (Left acc) _ = trace_n ("Received data" +++ data) (Ok (Left (acc ++ [data])), Nothing, [], False)
 
     onShareChange :: (Either [String] r) () -> (!MaybeErrorString (Either [String] r), Maybe (), ![String], !Bool)
     onShareChange acc _ = (Ok acc, Nothing, [], False)
