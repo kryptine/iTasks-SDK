@@ -12,8 +12,10 @@ import qualified iTasks.Internal.SDS as SDS
 
 import Data.Error, Data.Maybe, Data.Either
 import Text.JSON
-import StdString, StdBool
+import StdString, StdBool, StdMisc
 import qualified Data.Set as DS
+import qualified Data.Map as DM
+import iTasks.Internal.DynamicUtil
 
 treturn :: !a -> (Task a) | iTask a
 treturn a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))
@@ -59,7 +61,46 @@ where
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	// TODO: Actively check for a value, or can we do something else?
-	eval event evalOpts (TCAwaitRead a b) iworld = (ValueResult NoValue {TaskEvalInfo|lastEvent=b,removedTasks=[],refreshSensitive=True} NoChange (TCAwaitRead a b), iworld) 
+	eval event evalOpts (TCAwaitRead taskId ts) iworld=:{ioStates, current={taskTime}} = case 'DM'.get taskId ioStates of
+		Nothing = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange (TCAwaitRead taskId ts), iworld) 
+		Just (IOActive connectionToValue) = evalAwaitResult ('DM'.toList connectionToValue)
+		Just (IODestroyed connectionToValue) =  evalAwaitResult ('DM'.toList connectionToValue)
+		Just (IOException exc) = (ExceptionResult (exception exc), iworld)
+	where
+		evalAwaitResult [] = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange (TCAwaitRead taskId ts), iworld) 
+		evalAwaitResult [(_, (either :: (Either [String] r^), stability)):_] = case either of 
+			(Right value)
+				# (l, v) = onInit value 
+				# (mask, iworld) = case initMask taskId mode editor v iworld of
+					(Ok m,iworld) 		= (Ok (taskId,ts,l,v,m),iworld)
+					(Error e,iworld) 	= (Error e,iworld)
+				= case mask of
+					(Ok (taskId,ts,l,v,m))
+		        		# (mbRes, iworld) = case event of
+				            EditEvent eTaskId name edit | eTaskId == taskId =
+				                applyEditEvent_ name edit taskId mode editor taskTime shared onEdit l v m iworld
+				            ResetEvent
+				                # vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
+				                = case editor.Editor.genUI [] v vst of
+							        (Ok (ui,m),{VSt|iworld}) = (Ok (l,v,ReplaceUI (uic UIInteract [toPrompt prompt,ui]),m,taskTime),iworld)
+							        (Error e,{VSt|iworld})   = (Error (exception e),iworld)
+				            RefreshEvent taskIds _ | 'DS'.member taskId taskIds
+				                = refreshView_ taskId mode editor shared onRefresh l v m taskTime iworld
+				            FocusEvent fTaskId | fTaskId == taskId = (Ok (l,v,NoChange,m,taskTime),iworld)
+				            _ = (Ok (l,v,NoChange,m,ts),iworld)
+		       			= case mbRes of
+						   Error e = (ExceptionResult e, iworld)
+						   Ok (l,v,change,m,ts)
+				                //Construct the result
+				                # valid     = not (containsInvalidFields m)
+				                # value     = if valid (Value (l,v) False) NoValue
+				                # info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
+				                = (ValueResult value info change (TCInteract taskId ts (toJSON l) (toJSON v) m), iworld)
+            (Left value) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=False} NoChange (TCAwaitRead taskId ts), iworld) 
+
+        evalAwaitResult [(_, (value , stability)):_] = abort ("Dynamic typecheck failed" +++ (toString (unpackType value)))
+
+        evalAwaitResult _ = abort "NOT MATCHING JONGUH"
 
 	eval event evalOpts tree iworld=:{current={taskTime}}
 		//Decode or initialize state
@@ -136,6 +177,7 @@ refreshView_ taskId mode editor shared onRefresh l ov m taskTime iworld
 	//Read the shared source and refresh the editor
 	= case 'SDS'.readRegister taskId shared iworld of
 		(Error e,iworld) = (Error e,iworld)
+		(Ok ('SDS'.Queued), iworld) = 
 		(Ok ('SDS'.Result r),iworld)
 			# (l,v,mbf) = onRefresh r l ov
 			# vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
