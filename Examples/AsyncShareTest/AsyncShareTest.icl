@@ -17,8 +17,8 @@ task = viewInformation "Choose your role" [] ()
 		]
 where
 	domainServer :: Task Int
-	domainServer = instanceServer 8765 (Domain "TEST")
-		||- (updateSharedInformation "This share is shared in the domain" [] testShare)
+	domainServer = exposeShared "sharedStoreName" testShare (\_ ->instanceServer 8765 (Domain "TEST")
+		||- (updateSharedInformation "This share is shared in the domain" [] testShare))
 
 	client :: Task Int
 	client = instanceClient "TEST" 8765 (Domain "TEST")

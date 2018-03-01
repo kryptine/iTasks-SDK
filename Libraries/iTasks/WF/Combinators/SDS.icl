@@ -13,7 +13,7 @@ import iTasks.Internal.TaskEval
 import iTasks.Internal.Util
 from iTasks.Internal.SDS import write, read, readRegister
 
-import StdBool
+import StdBool, StdDebug
 
 from Data.Func import mapSt
 
@@ -58,6 +58,34 @@ where
 	
 	eval _ _ _ iworld
 		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)
+
+exposeShared :: String !(RWShared p r w) !((RWShared p r w) -> Task a) -> Task a | iTask a & iTask r & iTask w & iTask p
+exposeShared name shared stask = Task eval
+where	
+	eval event evalOpts (TCInit taskId ts) iworld=:{exposedShares}
+		# (url, iworld)		= getURLbyId name iworld
+		// Trick to make it work until John fixes the compiler
+		# exposedShares 	= trace_n ("Exposing share " +++ url) 'DM'.put url (dynamic shared :: RWShared p^ r^ w^, toJSONShared shared) exposedShares
+		# (taskIda,iworld)	= getNextTaskId iworld
+		= eval event evalOpts (TCExposedShared taskId ts url (TCInit taskIda ts)) {iworld & exposedShares = exposedShares}
+		
+	eval event evalOpts (TCExposedShared taskId ts url treea) iworld=:{current={taskTime}}
+		# (Task evala)				= stask (exposedShare url)
+		# (resa,iworld)				= evala event (extendCallTrace taskId evalOpts) treea iworld
+		= case resa of
+			ValueResult value info rep ntreea
+				# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
+				= (ValueResult value info rep (TCExposedShared taskId info.TaskEvalInfo.lastEvent url ntreea),iworld)
+			ExceptionResult e
+				= (ExceptionResult e,iworld)
+	
+	eval event evalOpts (TCDestroy (TCExposedShared taskId ts url treea)) iworld //First destroy inner task, then remove shared state
+		# (Task evala)				= stask (exposedShare url)
+		# (resa,iworld)					= evala event (extendCallTrace taskId evalOpts) (TCDestroy treea) iworld
+		= (resa,{iworld & exposedShares = 'DM'.del url iworld.exposedShares})
+	
+	eval _ _ _ iworld
+		= (ExceptionResult (exception "Corrupt task state in exposeShared"), iworld)
 
 withTaskId :: (Task a) -> Task (a, TaskId)
 withTaskId (Task eval) = Task eval`

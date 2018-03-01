@@ -67,6 +67,7 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	| TCParallel				!TaskId !TaskTime ![(!TaskId,!TaskTree)] [String] //Subtrees of embedded tasks and enabled actions
 	| TCShared					!TaskId !TaskTime !TaskTree
 	| TCAttach                  !TaskId !TaskTime !AttachmentStatus !String !String
+	| TCExposedShared 			!TaskId !TaskTime !String !TaskTree    
 	| TCStable					!TaskId !TaskTime !DeferredJSON
 	| TCLayout					!JSONNode !TaskTree
 	| TCNop			

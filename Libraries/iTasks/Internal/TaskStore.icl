@@ -576,3 +576,28 @@ documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
 documentLocation documentId iworld=:{options={storeDirPath}}
 	= (storeDirPath </> NS_DOCUMENT_CONTENT </> (documentId +++ "-content"),iworld)
 
+
+//OBSOLETE
+exposedShare :: !String -> RWShared p r w | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p
+exposedShare url = SDSDynamic f
+where
+  f _ iworld=:{exposedShares}
+    = case 'DM'.get url exposedShares of
+      Nothing                               = (Ok ('SDS'.createReadWriteSDS "exposedShare" url rread rwrite), iworld)
+      Just (shared :: RWShared p^ r^ w^, _) = (Ok shared, iworld)
+      _                                     = (Error (dynamic mismatchError,mismatchError), iworld)
+
+  rread p iworld
+      = case readRemoteSDS (toJSON p) url iworld of
+        (Ok json, iworld) = case fromJSON json of
+                    Nothing     = (Error (dynamic mismatchError,mismatchError), iworld)
+                    (Just val)  = (Ok val, iworld)
+        (Error msg, iworld) = (Error (dynamic msg,msg), iworld)
+  
+  rwrite p val iworld
+        = case writeRemoteSDS (toJSON p) (toJSON val) url iworld of
+            (Ok _,iworld)       = (Ok (const True),iworld)
+            (Error msg,iworld)  = (Error (dynamic msg,msg),iworld)
+              
+  mismatchError = "Exposed share type mismatch: " +++ url
+

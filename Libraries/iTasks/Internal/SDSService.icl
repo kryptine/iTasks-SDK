@@ -14,8 +14,7 @@ from iTasks.Extensions.Web import callHTTP
 
 from StdFunc import o
 import StdString, StdList
-from Data.Map import qualified get, fromList
-from Data.Map import fromList
+import qualified Data.Map as DM
 import Data.Maybe, Data.Error
 import Text.JSON, Text.URI
 import StdMisc, graph_to_sapl_string
@@ -42,7 +41,7 @@ where
 		= abort "Shareds on clients are not supported yet"
 	reqFun req _ iworld=:{exposedShares} | hasParam "focus" req
 		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.HTTPRequest.req_path)) iworld
-		= case 'Data.Map'.get sdsurl exposedShares of
+		= case 'DM'.get sdsurl exposedShares of
 				Nothing = (notFoundResponse req,Nothing,Nothing,iworld) 
 				(Just (_, shared)) = case req.HTTPRequest.req_method of
 									HTTP_GET = readit shared iworld
@@ -65,8 +64,8 @@ where
 	
 	reqFun req _ iworld=:{exposedShares}
 		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.HTTPRequest.req_path)) iworld
-		= case 'Data.Map'.get sdsurl exposedShares of
-			Nothing = (notFoundResponse req,Nothing,Nothing, iworld) 
+		= case 'DM'.get sdsurl exposedShares of
+			Nothing = trace_n ("Could not find share " +++ sdsurl +++ "\nAvailable exposed shares: " +++ (foldr (\l r. l +++ "\n" +++ r) "" ('DM'.keys exposedShares))) (notFoundResponse req,Nothing,Nothing, iworld) 
 			(Just (dyn, _)) = (plainResponse (toString (unpackType dyn)), Nothing, Nothing, iworld)
 	
 	jsonResponse json
@@ -126,7 +125,7 @@ remoteJSONShared :: !String -> JSONShared
 remoteJSONShared url = SDSDynamic f
 where
 	f _ iworld=:{exposedShares}
-        = case 'Data.Map'.get url exposedShares of
+        = case 'DM'.get url exposedShares of
 		    Nothing          = (Ok (createReadWriteSDS "remoteShare" url rread rwrite), iworld)
 			Just (_, shared) = (Ok shared, iworld)
 			Just dyn         = (Error (exception ("Exposed share type mismatch: " +++ url)), iworld)

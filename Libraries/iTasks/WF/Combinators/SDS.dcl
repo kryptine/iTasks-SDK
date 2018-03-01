@@ -19,6 +19,8 @@ withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 */
 withTaskId :: (Task a) -> Task (a, TaskId)
 
+exposeShared :: String !(RWShared p r w) !((RWShared p r w) -> Task a) -> Task a | iTask a & iTask r & iTask w & iTask p
+
 /**
 * Creates a temporary directory on the server's file system for the duration of a task
 *
