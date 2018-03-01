@@ -120,14 +120,14 @@ where
         (DomainShare {DomainShareOptions|name}) = "/sds/" +++ name
         (WebServiceShare _) = abort "TODO: Calling external services"
 
-    request = let requestString = toString {newHTTPRequest & server_name = host, server_port = port, req_path = sdsName, req_version = "HTTP/1.1"} in
-        trace_n ("Sending request: " +++ requestString) requestString
+    headers = 'DM'.fromList [("Connection", "close")]
+    request = toString {newHTTPRequest & server_name = host, server_port = port, req_path = sdsName, req_version = "HTTP/1.1", req_headers = headers}
 
     onConnect :: String ()   -> (!MaybeErrorString (Either [String] r), Maybe (), ![String], !Bool)
     onConnect _ _ = trace_n "Connecting" (Ok (Left []), Nothing, [request], False) 
 
     onData :: String (Either [String] r) () -> (!MaybeErrorString (Either [String] r), Maybe (), ![String], !Bool)
-    onData data (Left acc) _ = trace_n ("Received data" +++ data) (Ok (Left (acc ++ [data])), Nothing, [], False)
+    onData data (Left acc) _ = trace_n ("<<< Received data\n" +++ data) (Ok (Left (acc ++ [data])), Nothing, [], False)
 
     onShareChange :: (Either [String] r) () -> (!MaybeErrorString (Either [String] r), Maybe (), ![String], !Bool)
     onShareChange acc _ = (Ok acc, Nothing, [], False)
@@ -135,10 +135,13 @@ where
     // Upon disconnection, we assume that all data has been successfully transmitted.
     onDisconnect :: (RWShared () r z) (Either [String] r) () -> (!MaybeErrorString (Either [String] r), Maybe ()) | JSONDecode{|*|} r
     onDisconnect _ (Left acc) _
-    # json = concat acc
-    = case fromJSON (fromString json) of 
-        Nothing     = (Error ("Could not parse JSON response" +++ json), Nothing)
-        (Just a)    = trace_n "Complete SDS request" (Ok (Right a), Nothing)
+    # rawResponse = concat acc
+    = case parseResponse rawResponse of
+        Nothing = trace_n ("Unable to parse HTTP response " +++ rawResponse) (Error "Unable to parse HTTP response", Nothing)
+        (Just parsed) = case fromJSON (fromString parsed.rsp_data) of
+            (Just a) = trace_n "Correctly parsed JSON response" (Ok (Right a), Nothing)
+            _        = trace_n ("Could not parse JSON" +++ parsed.rsp_data) (Error "Unable to parse JSON", Nothing)       
+
 
 mbRegister :: !p !(RWShared p r w) !(Maybe TaskId) !SDSIdentity !*IWorld -> *IWorld | iTask p
 mbRegister p sds Nothing reqSDSId iworld = iworld
@@ -476,20 +479,18 @@ where
 				# (errors,iworld) = flushAll rest iworld
 				= ([e:errors],iworld)
 
-toJSONShared :: (RWShared p r w) -> JSONShared | JSONDecode{|*|} p & JSONEncode{|*|} r & JSONDecode{|*|} w & iTask p & TC r & TC w
-toJSONShared sds = SDSLens sds {SDSLens|name="toJSONShared",param=param,read=SDSRead read,write=SDSWriteConst write,notify=SDSNotifyConst notify}
+toJSONShared :: (RWShared () r w) -> JSONShared | JSONEncode{|*|} r & JSONDecode{|*|} w & TC r & TC w
+toJSONShared sds = SDSLens sds {SDSLens|name="toJSONShared",param=const (),read=SDSRead read,write=SDSWriteConst write,notify=SDSNotifyConst notify}
 where
-	param p = fromJust (fromJSON p)
     read p rs = Ok (toJSON rs)
     write _ w = case fromJSON w of
         (Just ws)   = (Ok (Just ws))
         Nothing     = Error (exception "Shared type mismatch in toJSONShared")
     notify _ _      = const True
 
-fromJSONShared :: JSONShared -> RWShared p r w | JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w
-fromJSONShared sds = SDSLens sds {SDSLens|name="fromJSONShared",param=param,read=SDSRead read,write=SDSWriteConst write,notify=SDSNotifyConst notify}
+fromJSONShared :: JSONShared -> RWShared () r w | JSONDecode{|*|} r & JSONEncode{|*|} w
+fromJSONShared sds = SDSLens sds {SDSLens|name="fromJSONShared",param=const (),read=SDSRead read,write=SDSWriteConst write,notify=SDSNotifyConst notify}
 where
-    param p = toJSON p
     read _ rs = case fromJSON rs of
         (Just r)    = Ok r
         Nothing     = Error (exception "Shared type mismatch in fromJSONShared")
@@ -512,6 +513,7 @@ getURLbyId sdsId iworld=:{IWorld|options={serverUrl},random}
 
 // Returns whether a share (interpreted as a tree) has a remote share somewhere. 
 // If it has, we cannot use the normal blocking method of retrieving shares.
+// TODO: Actually use this. For now, we assume that a share can only be remote at the top level.
 hasRemote :: (SDS a b c) -> Bool
 hasRemote (SDSSource _) = False
 hasRemote (SDSRemoteSource _ _) = True

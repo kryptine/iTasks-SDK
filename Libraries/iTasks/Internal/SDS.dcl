@@ -78,11 +78,11 @@ formatSDSRegistrationsList :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 //Flush all deffered/cached writes of
 flushDeferredSDSWrites :: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 
-:: JSONShared :== RWShared JSONNode JSONNode JSONNode
+:: JSONShared :== RWShared () JSONNode JSONNode
 
 //Exposing shares for external nodes
-toJSONShared    :: (RWShared p r w) -> JSONShared | JSONDecode{|*|} p & JSONEncode{|*|} r & JSONDecode{|*|} w & iTask p & TC r & TC w
-fromJSONShared  :: JSONShared -> RWShared p r w | JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w
+toJSONShared :: (RWShared () r w) -> JSONShared | JSONEncode{|*|} r & JSONDecode{|*|} w & TC r & TC w
+fromJSONShared :: JSONShared -> RWShared () r w | JSONDecode{|*|} r & JSONEncode{|*|} w
 newURL 		    :: !*IWorld -> (!String, !*IWorld)
 getURLbyId 	    :: !String !*IWorld -> (!String, !*IWorld)
 

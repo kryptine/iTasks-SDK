@@ -39,37 +39,17 @@ where
 	reqFun :: !HTTPRequest a !*IWorld -> *(!HTTPResponse, !Maybe ConnectionState, !Maybe a, !*IWorld)
 	reqFun req _ iworld | hasParam "client_session_id" req
 		= abort "Shareds on clients are not supported yet"
-	reqFun req _ iworld=:{exposedShares} | hasParam "focus" req
-		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.HTTPRequest.req_path)) iworld
-		= case 'DM'.get sdsurl exposedShares of
-				Nothing = (notFoundResponse req,Nothing,Nothing,iworld) 
-				(Just (_, shared)) = case req.HTTPRequest.req_method of
-									HTTP_GET = readit shared iworld
-									HTTP_PUT = writeit shared iworld
-											 = (badRequestResponse "Invalid method",Nothing,Nothing,iworld)
-	where
-		focus = fromString (paramValue "focus" req)
-	
-		readit shared iworld
-			# (res, iworld) = read (sdsFocus focus shared) EmptyContext iworld
-			= case res of
-				(Ok (Result json))       = trace_n "Returning SDS" (jsonResponse json, Nothing, Nothing, iworld)
-				(Error (e,msg)) 		 = (errorResponse msg, Nothing, Nothing, iworld)			
-			
-		writeit shared iworld
-			# (res, iworld) = write (fromString req.req_data) (sdsFocus focus shared) iworld
-			= case res of
-				(Ok _)          = (okResponse, Nothing, Nothing, iworld)
-				(Error (e,msg)) = (errorResponse msg, Nothing, Nothing, iworld)			
 	
 	reqFun req _ iworld=:{exposedShares}
 		# (sdsurl, iworld) = getURLbyId ((hd o tl o tl) (pathToSegments req.HTTPRequest.req_path)) iworld
 		= case 'DM'.get sdsurl exposedShares of
 			Nothing = trace_n ("Could not find share " +++ sdsurl +++ "\nAvailable exposed shares: " +++ (foldr (\l r. l +++ "\n" +++ r) "" ('DM'.keys exposedShares))) (notFoundResponse req,Nothing,Nothing, iworld) 
-			(Just (dyn, _)) = (plainResponse (toString (unpackType dyn)), Nothing, Nothing, iworld)
+			(Just (dyn, jsonShared)) = case read jsonShared EmptyContext iworld of
+				(Ok (Result json), iworld) = (jsonResponse json, Nothing, Nothing, iworld)
+				(Error (e,msg), iworld) = (errorResponse msg, Nothing, Nothing, iworld)
 	
 	jsonResponse json
-		= {okResponse & rsp_headers = [("Content-Type","text/json")], rsp_data = toString json}			
+		= {okResponse & rsp_headers = [("Content-Type","text/json"), ("Connection", "close")], rsp_data = toString json +++ "\r\n\r\n"}			
 
 	plainResponse string
 		= {okResponse & rsp_headers = [("Content-Type","text/plain")], rsp_data = string}			
@@ -83,9 +63,9 @@ where
     disconnectFun :: !HTTPRequest a !ConnectionState !*IWorld -> (!Maybe a, !*IWorld)
 	disconnectFun _ _ _ iworld = (Nothing,iworld)
 
-readRemoteSDS  :: !JSONNode !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
-readRemoteSDS p url iworld=:{exposedShares}
-	= case convertURL url (Just p) of
+readRemoteSDS  :: !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
+readRemoteSDS url iworld=:{exposedShares}
+	= case convertURL url Nothing of
 		(Ok uri) 	= load uri iworld
 		(Error e) 	= (Error e, iworld)
 where
@@ -109,9 +89,9 @@ where
 						   uriPort		= u.uriPort,
 						   uriPath		= "/sds" +++ u.uriPath}
 							
-writeRemoteSDS :: !JSONNode !JSONNode !String !*IWorld -> *(!MaybeErrorString (), !*IWorld)
-writeRemoteSDS p val url iworld
-	= case convertURL url (Just p) of
+writeRemoteSDS :: !JSONNode !String !*IWorld -> *(!MaybeErrorString (), !*IWorld)
+writeRemoteSDS val url iworld
+	= case convertURL url Nothing of
 		(Ok uri) 	= load uri val iworld
 		(Error e) 	= (Error e, iworld)
 where
@@ -130,23 +110,12 @@ where
 			Just (_, shared) = (Ok shared, iworld)
 			Just dyn         = (Error (exception ("Exposed share type mismatch: " +++ url)), iworld)
 
-	rread jsonp iworld
-        = case readRemoteSDS jsonp url iworld of
+	rread _ iworld
+        = case readRemoteSDS url iworld of
             (Ok v, iworld) = (Ok v, iworld)
             (Error msg, iworld) = (Error (exception msg), iworld)
-	rwrite jsonp jsonw iworld
-		= case writeRemoteSDS jsonp jsonw url iworld of
+	rwrite _ jsonw iworld
+		= case writeRemoteSDS jsonw url iworld of
 			(Ok (), iworld) = (Ok (const False), iworld)
 			(Error msg, iworld) = (Error (exception msg), iworld)
-
-openRemoteSDS :: !String !((Maybe (RWShared p r w)) -> Task a) -> Task a | iTask a & JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w & TC p & TC r & TC w
-openRemoteSDS url cont 
-	= case convertURL url Nothing of
-			(Error e) = throw e
-			(Ok uri)  = callHTTP HTTP_GET uri "" conv >>= \ty -> if (check ty) (cont (Just f)) (throw "Type check failed")
-where
-	conv rsp = Ok rsp.rsp_data
-	check srvty = clnty == srvty
-	f = fromJSONShared (remoteJSONShared url)
-	clnty = toString (unpackType (dynamic f))
 		

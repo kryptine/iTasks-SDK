@@ -588,14 +588,14 @@ where
       _                                     = (Error (dynamic mismatchError,mismatchError), iworld)
 
   rread p iworld
-      = case readRemoteSDS (toJSON p) url iworld of
+      = case readRemoteSDS url iworld of
         (Ok json, iworld) = case fromJSON json of
                     Nothing     = (Error (dynamic mismatchError,mismatchError), iworld)
                     (Just val)  = (Ok val, iworld)
         (Error msg, iworld) = (Error (dynamic msg,msg), iworld)
   
   rwrite p val iworld
-        = case writeRemoteSDS (toJSON p) (toJSON val) url iworld of
+        = case writeRemoteSDS (toJSON val) url iworld of
             (Ok _,iworld)       = (Ok (const True),iworld)
             (Error msg,iworld)  = (Error (dynamic msg,msg),iworld)
               

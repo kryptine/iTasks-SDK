@@ -25,7 +25,5 @@ from iTasks.SDS.Definition import :: SDS
 
 sdsService :: WebService a a
 
-readRemoteSDS  ::           !JSONNode !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
-writeRemoteSDS :: !JSONNode !JSONNode !String !*IWorld -> *(!MaybeErrorString (),     !*IWorld)
-
-openRemoteSDS :: !String !((Maybe (RWShared p r w)) -> Task a) -> Task a | iTask a & JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w & TC p & TC r & TC w
+readRemoteSDS  :: !String !*IWorld -> *(!MaybeErrorString JSONNode, !*IWorld)
+writeRemoteSDS :: !JSONNode !String !*IWorld -> *(!MaybeErrorString (), !*IWorld)

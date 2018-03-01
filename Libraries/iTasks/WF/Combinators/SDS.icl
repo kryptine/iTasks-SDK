@@ -59,13 +59,13 @@ where
 	eval _ _ _ iworld
 		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)
 
-exposeShared :: String !(RWShared p r w) !((RWShared p r w) -> Task a) -> Task a | iTask a & iTask r & iTask w & iTask p
+exposeShared :: String !(RWShared () r w) !((RWShared () r w) -> Task a) -> Task a | iTask a & iTask r & iTask w
 exposeShared name shared stask = Task eval
 where	
 	eval event evalOpts (TCInit taskId ts) iworld=:{exposedShares}
 		# (url, iworld)		= getURLbyId name iworld
 		// Trick to make it work until John fixes the compiler
-		# exposedShares 	= trace_n ("Exposing share " +++ url) 'DM'.put url (dynamic shared :: RWShared p^ r^ w^, toJSONShared shared) exposedShares
+		# exposedShares 	= trace_n ("Exposing share " +++ url) 'DM'.put url (dynamic shared :: RWShared () r^ w^, toJSONShared shared) exposedShares
 		# (taskIda,iworld)	= getNextTaskId iworld
 		= eval event evalOpts (TCExposedShared taskId ts url (TCInit taskIda ts)) {iworld & exposedShares = exposedShares}
 		
