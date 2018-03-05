@@ -207,7 +207,7 @@ where
 										  = ui
 
 removeSubUIs :: UISelection -> Layout
-removeSubUIs selection = moveSubUIs` selection Nothing
+removeSubUIs selection = ruleBasedLayout (removeSubUIsRule selection)
 
 removeSubUIsRef_ :: UISelection -> Layout
 removeSubUIsRef_ selection = referenceLayout ref
@@ -1148,6 +1148,33 @@ where
 	getAdditional (LUINode _ _ _ _ {additional}) = additional
 	getAdditional _ = ESNotApplied
 
+removeSubUIsRule :: UISelection -> LayoutRule
+removeSubUIsRule selection = rule
+where
+	rule ruleId lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
+		= LUINode type attr items {changes & toBeReplaced=Just (rule ruleId replacement)} effects
+
+	rule ruleId lui = remove [] lui
+	where
+		remove path lui=:(LUINode type attr items changes effects)
+			//Check if this matches the selection
+			| inLUISelection_ selection path lui = LUINode type attr items changes (hide ruleId effects)
+			| otherwise
+				# items = [maybe item (\i -> remove (path ++ [i]) item) mbi \\ (mbi,item) <- indicesAfterChanges_ items]
+				= LUINode type attr items changes (unhide ruleId effects)
+
+		remove path lui = lui
+
+	hide ruleId effects=:{hidden=ESNotApplied} = {effects & hidden = ESToBeApplied ruleId}
+	hide ruleId effects=:{hidden=ESToBeApplied _} = {effects & hidden = ESToBeApplied ruleId}
+	hide ruleId effects=:{hidden=ESApplied _} = {effects & hidden = ESApplied ruleId}
+	hide ruleId effects=:{hidden=ESToBeRemoved _} = {effects & hidden = ESApplied ruleId}
+
+	unhide ruleId effects=:{hidden=ESNotApplied} = {effects & hidden = ESNotApplied}
+	unhide ruleId effects=:{hidden=ESToBeApplied _} = {effects & hidden = ESNotApplied}
+	unhide ruleId effects=:{hidden=ESApplied _} = {effects & hidden = ESToBeRemoved ruleId}
+	unhide ruleId effects=:{hidden=ESToBeRemoved _} = {effects & hidden = ESToBeRemoved ruleId}
+
 //Utility functions shared by the layout rules:
 
 //Adjust the index and length for additional nodes inserted by layout rules
@@ -1180,6 +1207,29 @@ lookupShiftSource_ shiftId items = fromJust (findIndex isSource items)
 where
 	isSource (LUINode _ _ _ {toBeShifted = Just sourceId} _) = sourceId == shiftId
 	isSource _ = False
+
+lengthAfterChanges_ :: [LUI] -> Int
+lengthAfterChanges_ items = foldr count 0 items
+where
+	count (LUINode _ _ _ {toBeRemoved = False} _) num = num + 1
+	count _ num = num //Don't count shift destinations and removed noed
+
+indicesAfterChanges_ :: [LUI] -> [(Maybe Int,LUI)]
+indicesAfterChanges_ items = addIndices (indexShiftDestinations items) items
+where
+	indexShiftDestinations items = snd (foldl count (0,'DM'.newMap) items)
+	where
+		count (i,positions) (LUIShiftDestination shiftId) = (i + 1,'DM'.put shiftId i positions)
+		count (i,positions) (LUINode _ _ _ {toBeRemoved=True} _) = (i,positions)
+		count (i,positions) (LUINode _ _ _ {toBeShifted=Just _} _) = (i,positions)
+		count (i,positions) (LUINode _ _ _ _ _) = (i + 1, positions)
+
+	addIndices destinations items = reverse (snd (foldl add (0,[]) items))
+	where
+		add (i,acc) lui=:(LUIShiftDestination _) = (i + 1,[(Nothing,lui):acc])
+		add (i,acc) lui=:(LUINode _ _ _ {toBeRemoved=True} _) = (i,[(Nothing,lui):acc])
+		add (i,acc) lui=:(LUINode _ _ _ {toBeShifted=Just shiftId} _) = (i,[('DM'.get shiftId destinations,lui):acc])
+		add (i,acc) lui=:(LUINode _ _ _ _ _) = (i + 1,[(Just i,lui):acc])
 
 selectNode_ :: UIPath LUI -> Maybe LUI 
 selectNode_ [] lui = case lui of
@@ -1276,6 +1326,32 @@ where
 		Just (ESToBeRemoved _) = True
 		_ = False
 
+inLUISelection_ :: UISelection UIPath LUI -> Bool
+inLUISelection_ (SelectByPath p) path _ = p === path
+inLUISelection_ (SelectByDepth n) p _ = length p == n
+inLUISelection_ (SelectDescendents) [_:_] _ = True
+inLUISelection_ (SelectDescendents) _ _ = False
+inLUISelection_ (SelectByType t) _ (LUINode type _ _ _ _) = t === type
+inLUISelection_ (SelectByHasAttribute k) _ (LUINode _ attr _ changes _) = isJust ('DM'.get k (applyAttributeChanges_ changes attr))
+inLUISelection_ (SelectByAttribute k p) _ (LUINode _ attr _ changes _) = maybe False p ('DM'.get k (applyAttributeChanges_ changes attr))
+inLUISelection_ (SelectByNumChildren num) _ (LUINode _ _ items changes effects) = lengthAfterChanges_ items == num
+inLUISelection_ (SelectByContains selection) path lui=:(LUINode _ _ items _ _)
+	=  inLUISelection_ selection path lui
+	|| or [inLUISelection_ (SelectByContains selection) (path ++ [i]) item \\ (Just i,item) <- indicesAfterChanges_ items]
+inLUISelection_ (SelectRelative prefix sel) absolutePath ui
+	= maybe False (\relativePath -> inLUISelection_ sel relativePath ui) (removePrefix prefix absolutePath)
+where
+	removePrefix [] psb = Just psb
+	removePrefix [pa:psa] [pb:psb] = if (pa == pb) (removePrefix psa psb) Nothing
+	removePrefix _ _ = Nothing
+
+inLUISelection_ (SelectNone) _ _ = False
+inLUISelection_ (SelectAND sell selr) path ui = inLUISelection_ sell path ui && inLUISelection_ selr path ui 
+inLUISelection_ (SelectOR sell selr) path ui = inLUISelection_ sell path ui || inLUISelection_ selr path ui 
+inLUISelection_ (SelectNOT sel) path ui = not (inLUISelection_ sel path ui)
+inLUISelection_ _ _ _ = False
+
+
 /*
 * Once layout rules have annotated their effects, the change that has to be applied downstream
 * can be extracted from the buffered structure. The result of doing this is both the combination of
@@ -1292,6 +1368,10 @@ extractDownstreamChange lui=:(LUINode type attr items changes effects)
 	| typeNeedsUpdate type effects
 		# (ui,lui) = extractUIWithEffects lui
 		= (ReplaceUI ui,lui)
+	//Hiding or unhiding can only be done by replacement for the top-level node
+	| needsToBeHiddenOrUnhidden effects
+		# (ui,lui) = extractUIWithEffects lui
+		= (ReplaceUI ui,lui)
 	//Determine changes to attributes
 	# (attributeChanges,attr,effects) = extractAttributeChanges changes attr effects
 	//Determine changes to children
@@ -1305,6 +1385,10 @@ where
 	typeNeedsUpdate type {overwrittenType=ESToBeUpdated _ _} = True
 	typeNeedsUpdate type {overwrittenType=ESToBeRemoved _} = True
 	typeNeedsUpdate _ _ = False
+
+	needsToBeHiddenOrUnhidden {hidden=ESToBeApplied _} = True
+	needsToBeHiddenOrUnhidden {hidden=ESToBeRemoved _} = True
+	needsToBeHiddenOrUnhidden _ = False
 
 	extractAttributeChanges changes=:{setAttributes,delAttributes} attr effects=:{overwrittenAttributes,hiddenAttributes}
 		//Apply changes to the attributes
@@ -1458,6 +1542,20 @@ where
 			extract i [x=:(LUINode _ _ _ _ {additional=ESToBeRemoved _}):xs]
 				# (cs,xs) = extract i xs
 				= ([(i,RemoveChild):cs],xs)
+
+			extract i [x=:(LUINode type attr items changes effects=:{hidden=ESToBeApplied ruleId}):xs]
+				# (_,x) = extractDownstreamChange x
+				# (cs,xs) = extract i xs
+				= ([(i,RemoveChild):cs],[x:xs])
+			extract i [x=:(LUINode type attr items changes effects=:{hidden=ESApplied ruleId}):xs]
+				# (_,x) = extractDownstreamChange x
+				# (cs,xs) = extract i xs
+				= (cs,[x:xs])
+			extract i [x=:(LUINode type attr items changes effects=:{hidden=ESToBeRemoved ruleId}):xs]
+				# (ui,x) = extractUIWithEffects x
+				# (cs,xs) = extract (i + 1) xs
+				= ([(i,InsertChild ui):cs],[x:xs])
+
 			extract i [x:xs]
 				# (c,x) = extractDownstreamChange x
 				# (cs,xs) = extract (i + 1) xs
@@ -1473,7 +1571,7 @@ applyAttributeEffectsAsChanges_ effects=:{overwrittenAttributes,hiddenAttributes
 extractUIWithEffects :: LUI -> (!UI,!LUI)
 extractUIWithEffects (LUINode ltype lattr litems changes=:{toBeReplaced=Just replacement} effects)
 	= extractUIWithEffects replacement
-extractUIWithEffects (LUINode ltype lattr litems changes=:{setAttributes,delAttributes} effects=:{overwrittenType})
+extractUIWithEffects lui=:(LUINode ltype lattr litems changes=:{setAttributes,delAttributes} effects=:{overwrittenType})
 	//Update type
 	# (type,effects) = case overwrittenType of
 		ESNotApplied = (ltype,{effects & overwrittenType = ESNotApplied})
@@ -1490,12 +1588,14 @@ extractUIWithEffects (LUINode ltype lattr litems changes=:{setAttributes,delAttr
 	# (sources,litems) = collectShiftSources litems
 	# litems = replaceShiftDestinations sources litems
 	//Recursively extract all effects
-	# (items,litems) = unzip (map extractUIWithEffects litems)
-	= (UI type attr items
-	  ,LUINode ltype lattr litems noChanges (confirmAdditional effects)
+	# (items,litems) = extractItems litems
+	//Determine the ui
+	# ui = if (isHidden lui) (UI UIEmpty 'DM'.newMap []) (UI type attr items)
+	= (ui
+	  ,LUINode ltype lattr litems noChanges (confirmEffects effects)
 	  )
 where
-	remove (LUINode _ _ _ {toBeRemoved} _) = toBeRemoved
+	remove (LUINode _ _ _ {toBeRemoved=True} _) = True
 	remove (LUINode _ _ _ {toBeReplaced=Nothing} {additional = ESToBeRemoved _}) = True
 	remove _ = False
 
@@ -1509,8 +1609,20 @@ where
 		replace (LUIShiftDestination shiftID) items = maybe items (\n -> [resetToBeShifted n:items]) ('DM'.get shiftID sources)
 		replace n items = [n:items]
 
-	confirmAdditional effects=:{additional=ESToBeApplied ruleId} = {effects & additional=ESApplied ruleId}
-	confirmAdditional effects = effects
+	confirmEffects effects=:{additional=ESToBeApplied ruleId} = {effects & additional=ESApplied ruleId}
+	confirmEffects effects=:{hidden=ESToBeApplied ruleId} = {effects & hidden=ESApplied ruleId}
+	confirmEffects effects=:{hidden=ESToBeRemoved ruleId} = {effects & hidden=ESNotApplied}
+	confirmEffects effects = effects
+
+	extractItems litems = foldr extract ([],[]) litems
+	where
+		extract n (items,litems)
+			# (item,litem) = extractUIWithEffects n
+			= (if (isHidden n) items [item:items],[litem:litems])
+
+	isHidden (LUINode _ _ _ _ {hidden=ESToBeApplied _}) = True
+	isHidden (LUINode _ _ _ _ {hidden=ESApplied _}) = True
+	isHidden _ = False
 
 extractUIWithEffects _ = abort "extractUIWithEffects: can only extract UI from LUINodes"
 
@@ -1518,6 +1630,7 @@ resetToBeShifted (LUINode type attr items changes effects)
 	= LUINode type attr items {changes & toBeShifted = Nothing} effects
 
 resetChanges changes = {changes & setAttributes = 'DM'.newMap, delAttributes = 'DS'.newSet}
+
 
 applyAttributeEffects_ effects=:{overwrittenAttributes,hiddenAttributes} attr
 	# (attr,overwrittenAttributes) = foldl overwrite (attr,'DM'.newMap) ('DM'.toList overwrittenAttributes)

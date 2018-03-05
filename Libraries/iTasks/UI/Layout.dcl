@@ -252,6 +252,7 @@ delUIAttributesRule :: UIAttributeSelection -> LayoutRule
 modifyUIAttributesRule :: UIAttributeSelection (UIAttributes -> UIAttributes) -> LayoutRule
 copySubUIAttributesRule :: UIAttributeSelection UIPath UIPath -> LayoutRule
 insertChildUIRule :: Int UI -> LayoutRule
+removeSubUIsRule :: UISelection -> LayoutRule
  
 //Helper functions (exported for testing)
 adjustIndex_ :: Int (Maybe LID) [LUI] -> Int

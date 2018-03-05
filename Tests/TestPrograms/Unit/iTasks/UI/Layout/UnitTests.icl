@@ -478,7 +478,36 @@ extractDownstreamChangeTests =
 				,LUINode UIParallel 'DM'.newMap [] noChanges {noEffects & additional = ESToBeRemoved 0}
 				] noChanges noEffects
 		))
-
+	,assertEqual "New hidden child" 
+		(ChangeUI [] [(2,RemoveChild)]
+		 ,LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges {noEffects & hidden = ESApplied 0}
+				] noChanges noEffects
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges {noEffects & hidden = ESToBeApplied 0}
+				] noChanges noEffects
+		))
+	,assertEqual "Removed hidden child" 
+		(ChangeUI [] [(2,InsertChild (UI UIParallel 'DM'.newMap []))]
+		 ,LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges {noEffects & hidden = ESToBeRemoved 0}
+				] noChanges noEffects
+		))
 	]
 selectNode_Tests = 
 	[ assertEqual "Selecting a shifted child node"
@@ -589,6 +618,24 @@ insertChildUIRuleTests =
 		)
 	]
 
+removeSubUIsRuleTests =
+	[assertEqual "Remove children rule: Remove all UIStep nodes "
+		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges {noEffects & hidden = ESToBeApplied 0}
+				] noChanges noEffects
+		)
+		(removeSubUIsRule (SelectByType UIStep) 0
+			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+			)
+		)
+	]
+
 tests =  applyUpstreamChangeTests 
       ++ extractDownstreamChangeTests
 	  ++ selectNode_Tests
@@ -599,5 +646,6 @@ tests =  applyUpstreamChangeTests
 	  ++ modifyUIAttributesRuleTests
 	  ++ copySubUIAttributesRuleTests
 	  ++ insertChildUIRuleTests
+	  ++ removeSubUIsRuleTests
 
 Start w = runUnitTestsCLI [testsuite "Test.iTasks.UI.Layout" "Duh.." tests] w
