@@ -15,6 +15,7 @@ from Data.Map import :: Map
 from Data.Set import :: Set
 from Data.Either import :: Either
 from Graphics.Scalable.Image import :: Image, :: TagSource, :: TagRef, :: ImageTag
+from Graphics.Scalable.Internal.Image` import :: Image`
 from iTasks.WF.Combinators.Overloaded import class TMonad, class TApplicative
 import Data.Functor
 

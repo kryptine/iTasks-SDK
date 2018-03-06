@@ -32,7 +32,7 @@ import iTasks.Internal.Tonic.AbsSyn
 import iTasks.Internal.Tonic.Types
 import iTasks.Internal.Tonic.Pretty
 import iTasks.UI.Definition
-from Graphics.Scalable.Image import fromSVGEditor, :: SVGEditor {..}
+from iTasks.Extensions.SVG.SVGEditor import fromSVGEditor, :: SVGEditor {..}
 import iTasks.UI.JS.Encoding
 import Text
 import StdMisc

@@ -4,6 +4,7 @@ import iTasks
 from iTasks.Internal.Tonic.Images import :: TaskAppRenderer, :: ModelTy, :: ClickMeta, :: TonicImageState, :: ActionState, :: TClickAction
 from iTasks.Internal.Tonic.Types import :: AllBlueprints, :: TonicModule, :: TonicFunc, :: FuncName, :: ModuleName, :: NavStack, :: BlueprintIdent, :: ExprId
 from Graphics.Scalable.Image import :: TagSource, :: TagRef, :: Image, :: ImageTag
+from Graphics.Scalable.Internal.Image` import :: Image`
 
 tonicDashboard :: [TaskAppRenderer] -> Task ()
 
