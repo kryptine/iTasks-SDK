@@ -1,4 +1,4 @@
-definition module iTasks.Extensions.SVG.Internal.SVGEditor
+definition module iTasks.Extensions.SVG.SVGEditor
 
 import Graphics.Scalable.Internal.Image`
 from iTasks.UI.Editor import :: Editor

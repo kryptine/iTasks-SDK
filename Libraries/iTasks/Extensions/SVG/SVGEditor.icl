@@ -1,4 +1,4 @@
-implementation module iTasks.Extensions.SVG.Internal.SVGEditor
+implementation module iTasks.Extensions.SVG.SVGEditor
 
 import Graphics.Scalable.Internal.Image`
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JS.Encoding
