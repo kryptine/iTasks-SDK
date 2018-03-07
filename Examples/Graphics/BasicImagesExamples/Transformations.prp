@@ -5,10 +5,10 @@ MainModule
 	DclOpen:	False
 	Icl
 		WindowPosition
-			X:	10
-			Y:	10
-			SizeX:	800
-			SizeY:	480
+			X:	365
+			Y:	6
+			SizeX:	1157
+			SizeY:	728
 	IclOpen:	True
 OtherModules
 	Module
@@ -199,22 +199,70 @@ OtherModules
 	Module
 		Name:	Graphics.Scalable.Image
 		Dir:	{Application}\Libraries\Platform-new\src\libraries\OS-Independent
+		Dcl
+			WindowPosition
+				X:	529
+				Y:	27
+				SizeX:	1054
+				SizeY:	817
 		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	633
+				Y:	201
+				SizeX:	950
+				SizeY:	452
 		IclOpen:	False
 	Module
 		Name:	Graphics.Scalable.Internal.Image`
 		Dir:	{Application}\Libraries\Platform-new\src\libraries\OS-Independent
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1128
+				SizeY:	775
 		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	112
+				Y:	3
+				SizeX:	1204
+				SizeY:	817
 		IclOpen:	False
 	Module
 		Name:	Graphics.Scalable.Internal.Types
 		Dir:	{Application}\Libraries\Platform-new\src\libraries\OS-Independent
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	480
 		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	480
 		IclOpen:	False
 	Module
 		Name:	Graphics.Scalable.Types
 		Dir:	{Application}\Libraries\Platform-new\src\libraries\OS-Independent
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	480
 		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	480
 		IclOpen:	False
 	Module
 		Name:	Internet.HTTP
@@ -669,7 +717,19 @@ OtherModules
 	Module
 		Name:	iTasks.Extensions.Admin.TonicAdmin
 		Dir:	{Application}\Libraries\iTasks-new\Libraries\
+		Dcl
+			WindowPosition
+				X:	572
+				Y:	86
+				SizeX:	1054
+				SizeY:	432
 		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	783
+				Y:	32
+				SizeX:	800
+				SizeY:	466
 		IclOpen:	False
 	Module
 		Name:	iTasks.Extensions.Admin.UserAdmin
@@ -702,14 +762,21 @@ OtherModules
 		DclOpen:	False
 		IclOpen:	False
 	Module
-		Name:	iTasks.Extensions.Platform
+		Name:	iTasks.Extensions.SVG.SVGEditor
 		Dir:	{Application}\Libraries\iTasks-new\Libraries\
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	480
 		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	iTasks.Extensions.SVG.Internal.SVGEditor
-		Dir:	{Application}\Libraries\iTasks-new\Libraries\
-		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	480
 		IclOpen:	False
 	Module
 		Name:	iTasks.Extensions.TextFile
@@ -834,6 +901,12 @@ OtherModules
 	Module
 		Name:	iTasks.Internal.Tonic
 		Dir:	{Application}\Libraries\iTasks-new\Libraries\
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	940
+				SizeY:	692
 		DclOpen:	False
 		IclOpen:	False
 	Module
@@ -849,7 +922,19 @@ OtherModules
 	Module
 		Name:	iTasks.Internal.Tonic.Images
 		Dir:	{Application}\Libraries\iTasks-new\Libraries\
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1039
+				SizeY:	712
 		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	480
 		IclOpen:	False
 	Module
 		Name:	iTasks.Internal.Tonic.Pretty
@@ -860,6 +945,12 @@ OtherModules
 		Name:	iTasks.Internal.Tonic.Server
 		Dir:	{Application}\Libraries\iTasks-new\Libraries\
 		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	775
+				SizeY:	488
 		IclOpen:	False
 	Module
 		Name:	iTasks.Internal.Tonic.Shares
@@ -914,11 +1005,23 @@ OtherModules
 	Module
 		Name:	iTasks.UI.Definition
 		Dir:	{Application}\Libraries\iTasks-new\Libraries\
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	480
 		DclOpen:	False
 		IclOpen:	False
 	Module
 		Name:	iTasks.UI.Editor
 		Dir:	{Application}\Libraries\iTasks-new\Libraries\
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1274
+				SizeY:	527
 		DclOpen:	False
 		IclOpen:	False
 	Module
