@@ -119,7 +119,15 @@ where
 	res _					    = NoValue
 
 forever :: !(Task a) -> Task a | iTask a	
-forever	t = (t <! (const False))
+forever	t = t <! const False
+
+foreverSt :: !(a -> Task a) a -> Task a | iTask a
+foreverSt t st = parallel [(Embedded, par t st Nothing)] [] @? const NoValue
+where
+	par t st (Just tid) tlist = removeTask tid tlist >>- \_->par t st Nothing tlist
+	par t st Nothing tlist = get (sdsFocus {gDefault{|*|} & onlySelf=True} tlist)
+		>>- \(_, [{TaskListItem|taskId}])->t st
+		>>- \st`->appendTask Embedded (par t st` (Just taskId)) tlist
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = anyTask [taska,taskb]
