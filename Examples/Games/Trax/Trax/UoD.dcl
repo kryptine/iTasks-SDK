@@ -5,7 +5,7 @@ from   iTasks.Extensions.User import :: User
 import PlatformExts.Tuple
 from   StdClass import class zero, class ~
 import Data.Maybe
-import GenericExts.GenFDomain
+import Data.Generics.GenFDomain
 import Data.Generics.GenEq, Data.Generics.GenLexOrd, Data.Generics.GenMap
 
 derive class iTask TraxSt, /*Coordinate,*/ TileEdge, LineColor
