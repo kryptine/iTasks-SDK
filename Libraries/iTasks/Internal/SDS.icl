@@ -50,13 +50,16 @@ createSDS ns id read write = SDSSource
 
 //Construct the identity of an sds
 sdsIdentity :: !(RWShared p r w) -> SDSIdentity
-sdsIdentity (SDSSource {SDSSource|name}) = "$" +++ name +++ "$"
-sdsIdentity (SDSLens sds {SDSLens|name}) = sdsIdentity sds +++"/["+++name+++"]"
-sdsIdentity (SDSSelect sds1 sds2 {SDSSelect|name}) = "{"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++"}"
-sdsIdentity (SDSParallel sds1 sds2 {SDSParallel|name}) = "|"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++"|"
-sdsIdentity (SDSSequence sds1 sds2 {SDSSequence|name}) = "<"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++">"
-sdsIdentity (SDSCache {SDSSource|name} _) = "$" +++ name +++ "$"
-sdsIdentity (SDSDynamic f) = "SDSDYNAMIC" //TODO: Figure out how to determine the identity of the wrapped sds
+sdsIdentity s = concat (sdsIdentity` s)
+where
+	sdsIdentity` :: !(RWShared p r w) -> [String]
+	sdsIdentity` (SDSSource {SDSSource|name}) = ["$", name, "$"]
+	sdsIdentity` (SDSLens sds {SDSLens|name}) = sdsIdentity` sds ++ ["/[", name, "]"]
+	sdsIdentity` (SDSSelect sds1 sds2 {SDSSelect|name}) = ["{", name:sdsIdentity` sds1 ++ [",":sdsIdentity` sds2 ++ ["}"]]]
+	sdsIdentity` (SDSParallel sds1 sds2 {SDSParallel|name}) = ["|",name:sdsIdentity` sds1 ++ [",":sdsIdentity` sds2 ++ ["|"]]]
+	sdsIdentity` (SDSSequence sds1 sds2 {SDSSequence|name}) = ["<",name:sdsIdentity` sds1 ++ [",":sdsIdentity` sds2 ++ [">"]]]
+	sdsIdentity` (SDSCache {SDSSource|name} _) = ["$", name, "$"]
+	sdsIdentity` (SDSDynamic f) = ["SDSDYNAMIC"] //TODO: Figure out how to determine the identity of the wrapped sds
 
 iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
 iworldNotifyPred npred p env = (npred p, env)
