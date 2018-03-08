@@ -1,8 +1,8 @@
 definition module ScalableExts.Scalable
 
-/**	This module extends Graphics.Scalable.
+/**	This module extends Graphics.Scalable.Image
 */
-import Graphics.Scalable
+import Graphics.Scalable.Image
 
 /**	circular r a imgs = image:
 	displays @imgs along an arc of radius @r, starting at angle @a.

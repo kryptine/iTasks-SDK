@@ -5,8 +5,8 @@ import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
 import iTasks.SDS.Sources.Store
 import iTasks.UI.Prompt
-import iTasks.Extensions.SVG.SVGEditor						// required to embed Image-tasks inside other tasks
-import Graphics.Scalable
+import Graphics.Scalable.Image
+import iTasks.Extensions.SVG.SVGEditor
 import StdInt, StdReal
 from   StdFunc import id, const
 import Text
@@ -32,7 +32,7 @@ Start world
 */
 count :: Int *TagSource -> Image Int
 count n _
-	= margin (px zero) (
+	= margin (px 20.0) (
 	    overlay [(AtMiddleX,AtMiddleY)] [] 
 	       [ text font (toString n) <@< {fill = white}]
 	       (Host (rect (textxspan font ("  " <+ n)) (px (h + m))))

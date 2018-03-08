@@ -5,8 +5,8 @@ from   iTasks.Extensions.User import :: User
 import PlatformExts.Tuple
 from   StdClass import class zero, class ~
 import Data.Maybe
-import Data.Generics.GenFDomain
-import Data.Generics.GenEq, Data.Generics.GenLexOrd, Data.Generics.GenMap
+import GenericExts.GenFDomain
+import GenEq, GenLexOrd, GenMap
 
 derive class iTask TraxSt, /*Coordinate,*/ TileEdge, LineColor
 
@@ -61,7 +61,7 @@ instance ~        LineColor
 :: Coordinate                           // a coordinate consists of:
  = { col :: !Int                        //   a column-coordinate
    , row :: !Int                        //   a row-coordinate
-   }*/
+   } */
 instance ==        Coordinate
 instance <         Coordinate
 instance zero      Coordinate
