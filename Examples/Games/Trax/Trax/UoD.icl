@@ -2,12 +2,12 @@ implementation module Trax.UoD
 
 import iTasks.Extensions.User
 import PlatformExts.Tuple
-import StdEnvExts.StdOrdList
+import Data.OrdList
 import StdMisc
 from   StdFunc import flip
-from   Data.List import lookup, deleteFirstsBy, qfoldl, hasDup
+from   Data.List import lookup, deleteFirstsBy, hasDup, qfoldl
 import Data.Maybe
-import GenericExts.GenFDomain
+import Data.Generics.GenFDomain
 import Data.Generics.GenLexOrd, Data.Generics.GenMap, Data.Generics.GenPrint
 import Text
 
@@ -103,7 +103,7 @@ instance ==        Coordinate where == c1 c2 = c1 === c2
 instance <         Coordinate where <  c1 c2 = (c1 =?= c2) === LT
 instance zero      Coordinate where zero     = (zero,zero)//{col=zero, row=zero}
 //derive   gPrint    Coordinate
-//derive gPrint (,)
+
 instance toString  Coordinate where toString c = printToString c
 //instance fromTuple Int Int Coordinate where fromTuple (c,r)     = {col=c,row=r}
 //instance toTuple   Int Int Coordinate where toTuple   {col,row} = (col,row)
