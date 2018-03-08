@@ -9,7 +9,7 @@ MainModule
 			Y:	10
 			SizeX:	800
 			SizeY:	480
-	IclOpen:	False
+	IclOpen:	True
 OtherModules
 	Module
 		Name:	StdDynamic
@@ -697,12 +697,7 @@ OtherModules
 		DclOpen:	False
 		IclOpen:	False
 	Module
-		Name:	iTasks.Extensions.Platform
-		Dir:	{Application}\Libraries\iTasks-new\Libraries\
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	iTasks.Extensions.SVG.Internal.SVGEditor
+		Name:	iTasks.Extensions.SVG.SVGEditor
 		Dir:	{Application}\Libraries\iTasks-new\Libraries\
 		DclOpen:	False
 		IclOpen:	False

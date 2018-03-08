@@ -6,6 +6,7 @@ import iTasks.WF.Combinators.Common
 import iTasks.SDS.Sources.Store
 import iTasks.UI.Prompt
 import Graphics.Scalable.Image
+import iTasks.Extensions.SVG.SVGEditor
 import StdArray, StdList, StdString, StdTuple
 from   StdFunc import id, o, const, seqList, :: St(..)
 

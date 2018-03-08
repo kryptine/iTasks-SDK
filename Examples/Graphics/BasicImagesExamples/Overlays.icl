@@ -7,6 +7,7 @@ import iTasks.SDS.Sources.Store
 import Data.Generics.GenPrint								// printing via <+++ has a known bug, so we use printToString instead
 import iTasks.UI.Prompt
 import Graphics.Scalable.Image
+import iTasks.Extensions.SVG.SVGEditor
 import StdArray, StdEnum, StdList, StdTuple
 from   StdFunc import id, o, const
 import Text

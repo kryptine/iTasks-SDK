@@ -6,6 +6,7 @@ import iTasks.WF.Combinators.Common
 import iTasks.SDS.Sources.Store
 import iTasks.UI.Prompt
 import Graphics.Scalable.Image
+import iTasks.Extensions.SVG.SVGEditor
 from   StdFunc import id, const
 
 //	shorthand definitions for the used colours in these examples
