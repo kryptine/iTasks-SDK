@@ -61,7 +61,7 @@ instance ~        LineColor
 :: Coordinate                           // a coordinate consists of:
  = { col :: !Int                        //   a column-coordinate
    , row :: !Int                        //   a row-coordinate
-   } */
+   }*/
 instance ==        Coordinate
 instance <         Coordinate
 instance zero      Coordinate

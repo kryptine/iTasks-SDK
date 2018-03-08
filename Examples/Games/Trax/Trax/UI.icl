@@ -2,10 +2,10 @@ implementation module Trax.UI
 
 import StdBool, StdList
 from   StdFunc import const, flip, id
-//import PlatformExts.List
 import Data.List
 import iTasks.WF.Tasks.Interaction
 import Graphics.Scalable.Image
+import iTasks.Extensions.SVG.SVGEditor
 import Trax.UoD
 
 derive JSEncode TraxSt, User, Trax, TraxTile, TileEdge, /*Coordinate,*/ Maybe

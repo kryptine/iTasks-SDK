@@ -6,6 +6,7 @@ import Data.Generics.GenEq
 import iTasks.UI.JS.Encoding
 import iTasks.WF.Tasks.Interaction
 import ScalableExts.Scalable
+import iTasks.Extensions.SVG.SVGEditor
 import Ligretto.UoD
 
 derive JSEncode GameSt, Player, Color, Hand, Card, SideUp

@@ -213,7 +213,7 @@ OtherModules
 				Y:	6
 				SizeX:	800
 				SizeY:	480
-		IclOpen:	True
+		IclOpen:	False
 	Module
 		Name:	Data.Map
 		Dir:	{Application}\Libraries\Platform-new\src\libraries\OS-Independent
@@ -765,12 +765,7 @@ OtherModules
 		DclOpen:	False
 		IclOpen:	False
 	Module
-		Name:	iTasks.Extensions.Platform
-		Dir:	{Application}\Libraries\iTasks-new\Libraries\
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	iTasks.Extensions.SVG.Internal.SVGEditor
+		Name:	iTasks.Extensions.SVG.SVGEditor
 		Dir:	{Application}\Libraries\iTasks-new\Libraries\
 		DclOpen:	False
 		IclOpen:	False
