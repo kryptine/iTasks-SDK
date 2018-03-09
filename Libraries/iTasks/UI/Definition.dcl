@@ -232,6 +232,7 @@ taskIdAttr        :: !String                              -> UIAttributes
 labelAttr         :: !String                              -> UIAttributes
 styleAttr         :: !String                              -> UIAttributes
 classAttr         :: !String                              -> UIAttributes
+resizableAttr     :: ![UISide]                            -> UIAttributes
 maxlengthAttr     :: !Int                                 -> UIAttributes
 minlengthAttr     :: !Int                                 -> UIAttributes
 boundedlengthAttr :: !Int !Int                            -> UIAttributes

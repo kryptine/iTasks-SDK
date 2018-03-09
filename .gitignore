@@ -15,3 +15,9 @@ Tools/**/*-www
 Tools/**/*.prj
 Tools/**/*.exe
 **/.sass-cache
+*.prp
+*.prp
+Examples/Graphics/BasicImagesExamples/out.txt
+Examples/Graphics/BasicImagesExamples/out2.txt
+Examples/Graphics/BasicImagesExamples/Test.icl
+Examples/Graphics/BasicImagesExamples/Test.prp

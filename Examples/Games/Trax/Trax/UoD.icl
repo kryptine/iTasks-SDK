@@ -1,15 +1,13 @@
 implementation module Trax.UoD
 
-//import iTasks
 import iTasks.Extensions.User
-import PlatformExts.List
 import PlatformExts.Tuple
-import StdEnvExts.StdOrdList
+import Data.OrdList
 import StdMisc
 from   StdFunc import flip
-from   Data.List import lookup, deleteFirstsBy
+from   Data.List import lookup, deleteFirstsBy, hasDup, qfoldl
 import Data.Maybe
-import GenericExts.GenFDomain
+import Data.Generics.GenFDomain
 import Data.Generics.GenLexOrd, Data.Generics.GenMap, Data.Generics.GenPrint
 import Text
 
@@ -94,7 +92,7 @@ instance ==     LineColor where == c1 c2 = c1 === c2
 instance ~      LineColor where ~ RedLine    = WhiteLine
                                 ~ WhiteLine  = RedLine
 
-:: Coordinate :== (Int,Int)
+:: Coordinate :== (Int,Int)			// using a record type gives incorrect results in game: somehow the coordinate values get messed up
 /*
 :: Coordinate                       // a coordinate consists of:
  = { col :: !Int                    //   a column-coordinate
@@ -103,9 +101,9 @@ instance ~      LineColor where ~ RedLine    = WhiteLine
 //derive   gLexOrd   Coordinate
 instance ==        Coordinate where == c1 c2 = c1 === c2
 instance <         Coordinate where <  c1 c2 = (c1 =?= c2) === LT
-instance zero      Coordinate where zero     = (zero,zero) //{col=zero, row=zero}
+instance zero      Coordinate where zero     = (zero,zero)//{col=zero, row=zero}
 //derive   gPrint    Coordinate
-derive gPrint (,)
+
 instance toString  Coordinate where toString c = printToString c
 //instance fromTuple Int Int Coordinate where fromTuple (c,r)     = {col=c,row=r}
 //instance toTuple   Int Int Coordinate where toTuple   {col,row} = (col,row)
