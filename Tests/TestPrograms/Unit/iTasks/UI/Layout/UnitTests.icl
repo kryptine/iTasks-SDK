@@ -70,7 +70,7 @@ applyUpstreamChangeTests =
 		(applyUpstreamChange (ChangeUI [] [(1,ChangeChild (ReplaceUI (UI UIEmpty 'DM'.newMap [])))]) lui0)
 	,assertEqual "Helper function for replace adjustIndex"
 		2
-		(adjustIndex_ 1 Nothing
+		(adjustIndex_ 1
 			[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 			,LUINode UIEmpty 'DM'.newMap [] noChanges {noEffects & additional = ESApplied 0}
 			,LUINode UIStep 'DM'.newMap [] {noChanges & toBeReplaced = Just (LUINode UIEmpty 'DM'.newMap [] noChanges noEffects)} noEffects
@@ -128,7 +128,7 @@ applyUpstreamChangeTests =
 		(applyUpstreamChange (ChangeUI [] [(1,InsertChild (UI UIInteract 'DM'.newMap [])),(1,ChangeChild (ReplaceUI (UI UIEmpty 'DM'.newMap [])))]) lui0)
 	,assertEqual "Helper function for shift adjustIndex"
 		2
-		(adjustIndex_ 1 Nothing
+		(adjustIndex_ 1 
 			[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 			,LUINode UIStep 'DM'.newMap [] {noChanges & toBeShifted = Just 0} noEffects
 			]
@@ -635,6 +635,26 @@ removeSubUIsRuleTests =
 			)
 		)
 	]
+moveSubUIsRuleTests =
+	[assertEqual "Move children rule: Remove All UIStep nodes into the first parallel"
+		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [
+					LUIMoveDestination 0 1
+					] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied 0}
+				] noChanges noEffects
+		)
+		(moveSubUIsRule (SelectByType UIStep) [1] 0 0
+			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+			)
+		)
+	]
+
 
 tests =  applyUpstreamChangeTests 
       ++ extractDownstreamChangeTests
@@ -647,5 +667,6 @@ tests =  applyUpstreamChangeTests
 	  ++ copySubUIAttributesRuleTests
 	  ++ insertChildUIRuleTests
 	  ++ removeSubUIsRuleTests
+	  ++ moveSubUIsRuleTests
 
 Start w = runUnitTestsCLI [testsuite "Test.iTasks.UI.Layout" "Duh.." tests] w

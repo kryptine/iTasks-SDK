@@ -193,7 +193,7 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 	= LUINode UIType UIAttributes [LUI] LUIChanges LUIEffects
 	//Placeholder nodes
 	| LUIShiftDestination SID
-	| LUIMoveDestination LID
+	| LUIMoveDestination LID Int
 
 //Upstream UI changes
 :: LUIChanges =
@@ -211,6 +211,7 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 	, hiddenAttributes      :: Map UIAttributeKey (LUIEffectStage ())
 	, additional            :: LUIEffectStage LID
 	, hidden                :: LUIEffectStage LID
+	, moved                 :: LUIEffectStage LID
 	//, wrapped               :: LUIEffectStage (!LID,!LUI)
 	//, unwrapped             :: LUIEffectStage LID
 	}
@@ -253,9 +254,10 @@ modifyUIAttributesRule :: UIAttributeSelection (UIAttributes -> UIAttributes) ->
 copySubUIAttributesRule :: UIAttributeSelection UIPath UIPath -> LayoutRule
 insertChildUIRule :: Int UI -> LayoutRule
 removeSubUIsRule :: UISelection -> LayoutRule
+moveSubUIsRule :: UISelection UIPath Int -> LayoutRule
  
 //Helper functions (exported for testing)
-adjustIndex_ :: Int (Maybe LID) [LUI] -> Int
+adjustIndex_ :: Int [LUI] -> Int
 selectNode_ :: UIPath LUI -> Maybe LUI 
 updateNode_ :: UIPath (LUI -> LUI) LUI -> LUI 
 selectAttributes_ :: UIAttributeSelection Bool LUI -> UIAttributes
