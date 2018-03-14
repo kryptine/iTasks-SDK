@@ -652,7 +652,7 @@ where
 	genSVGHost no host=:(RawHostImg content) cid es masks markers paths spans grids
 		= [RawElt content]
 	genSVGHost no host=:(CompositeImg img) cid es masks markers paths spans grids
-		= genSVG img cid es masks markers paths spans grids
+		= genSVG img cid es 'DM'.newMap markers paths spans grids
 	
 	genSVGBasicHostImg :: !ImgTagNo !BasicImg ![SVGAttr] !String ![ImgTagNo] !ImgMasks !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
 	genSVGBasicHostImg no EmptyImg attrs cid es masks markers paths spans grids
@@ -735,7 +735,7 @@ where
                           , MarkerHeightAttr (hStr, PX)
                           , MarkerWidthAttr  (wStr, PX)
                           ]
-                          (genSVG img cid es masks markers paths spans grids)
+                          (genSVG img cid es 'DM'.newMap markers paths spans grids)
 			  , posAttr (mkUrl mid)
 			  )
 		where
@@ -749,7 +749,7 @@ where
 
 	genSVGOverlays :: ![Img] ![ImageOffset] !String ![ImgTagNo] !ImgMasks !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
 	genSVGOverlays overlays offsets cid es masks markers paths spans grids
-		= flatten [mkGroup [] (mkTransformTranslateAttr off) (genSVG img cid es masks markers paths spans grids) \\ img <- overlays & off <- offsets]
+		= flatten [mkGroup [] (mkTransformTranslateAttr off) (genSVG img cid es 'DM'.newMap markers paths spans grids) \\ img <- overlays & off <- offsets]
 	where
 		mkTransformTranslateAttr :: !ImageOffset -> [SVGAttr]
 		mkTransformTranslateAttr (PxSpan dx,PxSpan dy)
