@@ -6,8 +6,8 @@ import iTasks.WF.Combinators.Common
 import iTasks.SDS.Sources.Store
 import Data.Generics.GenPrint								// printing via <+++ has a known bug, so we use printToString instead
 import iTasks.UI.Prompt
-import iTasks.Extensions.SVG.SVGEditor						// required to embed Image-tasks inside other tasks
-import Graphics.Scalable
+import Graphics.Scalable.Image
+import iTasks.Extensions.SVG.SVGEditor
 import StdArray, StdEnum, StdList, StdTuple
 from   StdFunc import id, o, const, seqList, :: St(..)
 import Text
@@ -31,10 +31,10 @@ Start world
 grids :: m *TagSource -> Image m
 grids model tags
 	= margin (px zero) (
-		above [] []
-		   [ grid (Columns 4) (RowMajor,LeftToRight,TopToBottom) [] []
-		        [  above (repeat AtMiddleX) []
-		              [ margin (px 5.0,px zero) (grid (Columns 2) (major,x_fill,y_fill) [] [] discs NoHost)
+		above [] [] Nothing []
+		   [ grid (Columns 4) (RowMajor,LeftToRight,TopToBottom) [] [] [] []
+		        [  above (repeat AtMiddleX) [] Nothing []
+		              [ margin (px 5.0,px zero) (grid (Columns 2) (major,x_fill,y_fill) [] [] [] [] discs NoHost)
 		              , txt (" (" <+ major <+ "," <+ x_fill <+ "," <+ y_fill <+ ") ")
 		              ] NoHost
 		        \\ major  <- [ColumnMajor,RowMajor   ]
@@ -52,7 +52,7 @@ where
 */
 disclist :: Image m
 disclist
-	= beside (repeat AtMiddleY) [] (flatten
+	= beside (repeat AtMiddleY) [] Nothing [] (flatten
 		[ [txt "discs = "]
 		, flatten [[txt s, disc] \\ disc <- discs & s <- ["[ " : repeat " , "]]
 		, [txt " ]"]

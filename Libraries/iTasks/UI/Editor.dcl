@@ -15,6 +15,7 @@ from Data.Map import :: Map
 from Data.Error import :: MaybeError, :: MaybeErrorString
 from Text.JSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from Data.Generics.GenEq import generic gEq
+from StdOverloaded import class toString
 
 /*
 *	Definition of an editor editor

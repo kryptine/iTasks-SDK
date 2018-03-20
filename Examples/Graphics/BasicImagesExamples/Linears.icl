@@ -6,8 +6,8 @@ import iTasks.WF.Combinators.Common
 import iTasks.SDS.Sources.Store
 import Data.Generics.GenPrint								// printing via <+++ has a known bug, so we use printToString instead
 import iTasks.UI.Prompt
-import iTasks.Extensions.SVG.SVGEditor						// required to embed Image-tasks inside other tasks
-import Graphics.Scalable
+import Graphics.Scalable.Image
+import iTasks.Extensions.SVG.SVGEditor
 import StdArray, StdEnum, StdList, StdTuple
 from   StdFunc import id, o, const, seqList, :: St(..)
 import Text
@@ -34,23 +34,25 @@ Start world
 linears :: m *TagSource -> Image m
 linears model tags
 	= margin (px 10.0) (
-		above [] []
-		   [ beside (repeat AtTop) []
-		         [ beside (repeat AtMiddleY) []
+		above [] [] Nothing []
+		   [ beside (repeat AtTop) [] Nothing []
+		         [ beside (repeat AtMiddleY) [] Nothing []
 		              [ txt "  beside  " <@< {stroke = blue} <@< {fill = blue}
-		              , above (repeat AtLeft) []
-		                  [ beside (repeat AtMiddleY) [] [ beside (repeat y_align) [] discs NoHost
-		                                                 , txt ("  " <+ y_align <+ "*")
-		                                                 ] NoHost
+		              , above (repeat AtLeft) [] Nothing []
+		                  [ beside (repeat AtMiddleY) [] Nothing []
+		                       [ beside (repeat y_align) [] Nothing [] discs NoHost
+		                       , txt ("  " <+ y_align <+ "*")
+		                       ] NoHost
 		                  \\ y_align <- [AtTop,AtMiddleY,AtBottom]
 		                  ] NoHost
 		              ] NoHost
-		         , beside (repeat AtMiddleY) []
+		         , beside (repeat AtMiddleY) [] Nothing []
 		              [ txt "  above  " <@< {stroke = blue} <@< {fill = blue}
-		              , beside (repeat AtTop) []
-		                  [ above (repeat AtMiddleX) [] [ txt ("  " <+ x_align <+ "*")
-		                                                , above (repeat x_align) [] discs NoHost
-		                                                ] NoHost
+		              , beside (repeat AtTop) [] Nothing []
+		                  [ above (repeat AtMiddleX) [] Nothing []
+		                       [ txt ("  " <+ x_align <+ "*")
+		                       , above (repeat x_align) [] Nothing [] discs NoHost
+		                       ] NoHost
 		                  \\ x_align <- [AtLeft,AtMiddleX,AtRight]
 		                  ] NoHost
 		              ] NoHost
@@ -66,7 +68,7 @@ where
 */
 disclist :: Image m
 disclist
-	= beside (repeat AtMiddleY) [] (flatten
+	= beside (repeat AtMiddleY) [] Nothing [] (flatten
 		[ [txt "discs = "]
 		, flatten [[txt s, disc] \\ disc <- discs & s <- ["[ " : repeat " , "]]
 		, [txt " ]"]

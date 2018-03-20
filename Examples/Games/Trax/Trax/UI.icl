@@ -4,8 +4,8 @@ import StdBool, StdList
 from   StdFunc import const, flip, id
 import Data.List
 import iTasks.WF.Tasks.Interaction
+import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
-import Graphics.Scalable
 import Trax.UoD
 
 derive JSEncode TraxSt, User, Trax, TraxTile, TileEdge, /*Coordinate,*/ Maybe
@@ -37,7 +37,7 @@ toImage :: RenderMode Bool TraxSt *TagSource -> Image TraxSt
 toImage ViewMode _ st _
 	= board False tileSize st
 toImage PlayMode my_turn st=:{turn} _
-	= above (repeat AtMiddleX) [] [text font message, board it_is_my_turn tileSize st] NoHost
+	= above (repeat AtMiddleX) [] Nothing [] [text font message, board it_is_my_turn tileSize st] NoHost
 where
 	it_is_my_turn				= my_turn == turn
 	message						= if it_is_my_turn "Select a tile" "Wait for other player..."
@@ -45,12 +45,12 @@ where
 board :: Bool Span TraxSt -> Image TraxSt
 board it_is_my_turn d st=:{trax}
 | nr_of_tiles trax == zero
-	| it_is_my_turn				= grid (Rows 2) (RowMajor, LeftToRight, TopToBottom) [] [] 
+	| it_is_my_turn				= grid (Rows 2) (RowMajor, LeftToRight, TopToBottom) [] [] [] []
 								   [  tileImage d tile <@< {onclick = const (start_with_this tile), local = False}
 								   \\ tile <- gFDomain{|*|}
 								   ] NoHost
 	| otherwise					= voidImage d
-| otherwise						= grid (Rows (maxy - miny + 3)) (RowMajor, LeftToRight, TopToBottom) (repeat (AtMiddleX,AtMiddleY)) []
+| otherwise						= grid (Rows (maxy - miny + 3)) (RowMajor, LeftToRight, TopToBottom) (repeat (AtMiddleX,AtMiddleY)) [] [] []
 							       [  case tile_at trax coord of
 							              Nothing   = if (it_is_my_turn && isMember coord free_coords) (freeImage d coord st) (voidImage d)
 							              Just tile = tileImage d tile
@@ -70,7 +70,7 @@ freeImage :: Span Coordinate TraxSt -> Image TraxSt
 freeImage d coord {trax,choice}
 | maybe True (\c -> coord <> c) choice
 								= unselected
-| otherwise						= above (repeat AtMiddleX) [] 
+| otherwise						= above (repeat AtMiddleX) [] (Just d) [] 
 								        [tileImage (d /. nr_of_candidates) tile <@< {onclick = const (settile coord tile), local = False} \\ tile <- candidates]
 								        (Host unselected)
 where
@@ -93,11 +93,11 @@ where
 								           [ arc whiteColor, arc redColor ] 
 								           brick
 								  ) <@< { MaskAttr | mask = tileShape d <@< {fill = whiteColor}}
-	bar line c					= line Nothing d <@< {stroke = c} <@< {strokewidth = d /. 5}
+	bar line c					= line   d <@< {stroke = c} <@< {strokewidth = d /. 5}
 	arc c						= circle d <@< {stroke = c} <@< {strokewidth = d /. 5} <@< {fill = transparentColor}
 
 tileShape :: Span -> Image a
-tileShape d						= rect d d <@< {xradius = d /. 10} <@< {yradius = d /. 10}
+tileShape d						= square d <@< {xradius = d /. 10} <@< {yradius = d /. 10}
 
 font							= { fontfamily  = "Arial"
 							      , fontysize   = 14.0
