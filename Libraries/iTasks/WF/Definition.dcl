@@ -22,6 +22,7 @@ from Text.JSON import generic JSONEncode, generic JSONDecode
 from Data.Generics.GenEq import generic gEq
 from StdString import class toString, class fromString
 from StdClass import class <
+from StdOverloaded import class ==
 
 // Task definition:
 :: Task a = Task !(Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))

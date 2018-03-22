@@ -60,15 +60,15 @@ fromSVGEditor svglet
 where
 	initUI :: !(JSObj ()) !*JSWorld -> *JSWorld
 	initUI me world
-	// Set attributes
-        # world = (me .# "clickCount" .= (toJSVal 0)) world
-  		# world = jsPutCleanVal "dragState" initDragState me world
-	// Set methods	
-		# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) world
-		# world = (me .# "onAttributeChange" .= jsOnAttributeChange) world
-		# (jsInitDOMEl,world) = jsWrapFun (initDOMEl me) world
-		# world = (me .# "initDOMEl" .= jsInitDOMEl) world
-		= world
+// Set attributes
+    # world                       = (me .# "clickCount" .= (toJSVal 0)) world
+	# world                       = jsPutCleanVal "dragState" initDragState me world
+// Set methods	
+	# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) world
+	# world                       = (me .# "onAttributeChange" .= jsOnAttributeChange) world
+	# (jsInitDOMEl,world)         = jsWrapFun (initDOMEl me) world
+	# world                       = (me .# "initDOMEl" .= jsInitDOMEl) world
+	= world
 	where
 		initDragState = {SVGDragState | svgMousePos     = MouseUp
 		                              , svgDropCallback = \_ _ v -> v
@@ -126,7 +126,8 @@ newImgTables
 
 onNewState :: !(JSVal a) !(SVGEditor s v) !s !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 onNewState me svglet=:{initView,renderImage} s world
-  #! cid                           = "FIXME_SOME_UNIQUE_STRING"          // Editors should be parameterized with a unique label
+  #! (cidJS,world)                 = .? (me .# "attributes.taskId") world
+  #! cid                           = jsValToString cidJS
   #! v                             = initView s
   #! world                         = jsPutCleanVal "view"  v me world    // Store the view value on the component
   #! world                         = jsPutCleanVal "model" s me world    // Store the model value on the component
@@ -287,10 +288,10 @@ registerEventhandlers me svglet cid svg es tags world
   #! (_,      world)     = (svgRoot `addEventListener` ("mousemove", cbMove, True)) world
   #! (_,      world)     = (svgRoot `addEventListener` ("mouseup",   cbUp,   True)) world
 // register all individual event handlers:
-  = 'DM'.foldrWithKey (registerEventhandler me svglet cid svg) world es
+  = 'DM'.foldrWithKey (registerEventhandler me svglet svg) world es
 where
-	registerEventhandler :: !(JSVal a) !(SVGEditor s v) !String !(JSObj svg) !ImgTagNo ![ImgEventhandler v] !*JSWorld -> *JSWorld | JSONEncode{|*|} s
-	registerEventhandler me svglet cid svg uniqId es world = foldr (register me svglet svg (mkUniqId cid uniqId)) world es
+	registerEventhandler :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !ImgTagNo ![ImgEventhandler v] !*JSWorld -> *JSWorld | JSONEncode{|*|} s
+	registerEventhandler me svglet svg uniqId es world = foldr (register me svglet svg (mkUniqId cid uniqId)) world es
 	where
 		register :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !String !(ImgEventhandler v) !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 		register me svglet svg elemId (ImgEventhandlerOnClickAttr {OnClickAttr | local,onclick}) world
