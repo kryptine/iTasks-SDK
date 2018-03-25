@@ -3,7 +3,7 @@ implementation module iTasks.WF.Combinators.Common
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, StdString
-import Text, System.Time, Data.Maybe, Data.Tuple, Data.List, Data.Either, Data.Functor, Data.Generics.GenEq, Text.JSON
+import Text, System.Time, Data.Maybe, Data.Tuple, Data.List, Data.Either, Data.Functor, Data.GenEq, Text.GenJSON
 import iTasks.Internal.Util
 from StdFunc			import id, const, o
 from iTasks.SDS.Sources.Core import randomInt

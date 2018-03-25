@@ -6,7 +6,7 @@ from iTasks.SDS.Definition import :: SDS
 from System.FilePath import :: FilePath
 from Data.Error import :: MaybeError, :: MaybeErrorString
 from Data.Maybe import :: Maybe
-from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode 
+from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode 
 
 // constant share from which you always read the same value
 constShare :: !a -> SDS p a ()

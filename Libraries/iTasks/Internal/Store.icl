@@ -5,7 +5,7 @@ from Data.Map import :: Map
 import qualified Data.Map as DM
 import Data.Maybe, Data.Functor, Data.Error
 import System.File, System.Directory, System.OSError, System.FilePath
-import Text, Text.JSON, iTasks.Internal.Serialization
+import Text, Text.GenJSON, iTasks.Internal.Serialization
 
 import iTasks.Internal.Client.JSStore
 import iTasks.Internal.SDS
@@ -28,7 +28,7 @@ import iTasks.SDS.Sources.Store
 import iTasks.SDS.Combinators.Core
 import iTasks.SDS.Combinators.Common
 from System.Time 					import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
-from Data.Generics.GenEq import generic gEq
+from Data.GenEq import generic gEq
 
 instance toString StoreReadError
 where

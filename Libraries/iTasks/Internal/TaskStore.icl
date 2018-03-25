@@ -2,7 +2,7 @@ implementation module iTasks.Internal.TaskStore
 
 import StdOverloaded, StdBool, StdArray, StdTuple, StdString
 from StdFunc import const, id, o
-import Data.Maybe, Data.Either, Text, System.Time, Math.Random, Text.JSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath, Data.Functor
+import Data.Maybe, Data.Either, Text, System.Time, Math.Random, Text.GenJSON, Data.Func, Data.Tuple, Data.List, Data.Error, System.FilePath, Data.Functor
 
 import iTasks.Engine
 import iTasks.Internal.IWorld, iTasks.Internal.TaskState, iTasks.Internal.Task, iTasks.Internal.Store
@@ -28,7 +28,7 @@ import qualified Data.Set as DS
 import qualified Data.Queue as DQ
 from Data.Queue import :: Queue(..)
 from Control.Applicative import class Alternative(<|>)
-import Data.Generics.GenEq
+import Data.GenEq
 
 //Derives required for storage of UI definitions
 derive JSONEncode TaskOutputMessage, TaskResult, TaskEvalInfo, TIValue, ParallelTaskState, ParallelTaskChange, TIUIState

@@ -7,7 +7,7 @@ import iTasks.Extensions.Admin.TonicAdmin
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.Map as DM
 from Data.Map import :: Map
-import Data.Generics.GenLexOrd
+import Data.GenLexOrd
 
 
 :: Maps2D      :== [Map2D]                                // enumerate sub-maps, order is assumed `lowest' to `highest', mapID identifies map

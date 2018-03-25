@@ -9,7 +9,7 @@ from iTasks.Internal.IWorld		import :: IWorld
 from iTasks.Internal.SDS          import :: SDS, :: Shared, :: ReadOnlyShared
 from iTasks.Internal.Tonic        import :: ExprId
 
-from Text.JSON import :: JSONNode
+from Text.GenJSON import :: JSONNode
 from Data.Maybe         import :: Maybe
 from Data.Error import :: MaybeErrorString, :: MaybeError
 from Data.CircularStack import :: CircularStack

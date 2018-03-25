@@ -4,7 +4,7 @@ import Graphics.Scalable.Internal.Image`
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JS.Encoding
 import StdArray, StdBool, StdEnum, StdInt, StdMisc, StdReal, StdTuple
 from StdFunc import o
-from Data.Generics.GenEq import generic gEq
+from Data.GenEq import generic gEq
 import Data.List
 import Data.Error
 import Data.MapCollection
@@ -15,7 +15,7 @@ import qualified Data.Set as DS
 import Text
 import Data.Matrix
 import Text.HTML
-import Text.JSON
+import Text.GenJSON
 import Math.Geometry
 
 CLICK_DELAY :== 225
