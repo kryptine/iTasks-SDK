@@ -8,7 +8,7 @@ from Data.Set               import :: Set
 from Data.Queue             import :: Queue
 from StdFile			                import class FileSystem		
 from System.Time				        import :: Timestamp
-from Text.JSON				            import :: JSONNode
+from Text.GenJSON				            import :: JSONNode
 from System.Process         import :: ProcessHandle, :: ProcessIO
 from iTasks.Engine                      import :: EngineOptions
 from iTasks.UI.Definition				import :: UI, :: UIType

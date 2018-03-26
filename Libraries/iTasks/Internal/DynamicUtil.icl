@@ -1,7 +1,7 @@
 implementation module iTasks.Internal.DynamicUtil
 
 import _SystemDynamic
-import Data.Maybe, Text.JSON
+import Data.Maybe, Text.GenJSON
 
 :: MyTypeCodeConstructor = E.a: { my_tcc_cons :: !a }
 

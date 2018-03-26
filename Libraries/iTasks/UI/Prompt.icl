@@ -3,7 +3,7 @@ implementation module iTasks.UI.Prompt
 import StdOverloaded, StdString
 import qualified Data.Map as DM
 import Data.Maybe
-import Text.JSON
+import Text.GenJSON
 
 import iTasks.UI.Definition
 from StdFunc import o

@@ -3,8 +3,8 @@ implementation module iTasks.UI.Layout.Default
 import iTasks.UI.Layout
 import iTasks.UI.Layout.Common
 import iTasks.UI.Definition
-import Text.JSON
-import Data.Generics.GenEq
+import Text.GenJSON
+import Data.GenEq
 
 from Data.Func import $
 from StdFunc import id, o, const

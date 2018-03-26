@@ -1,8 +1,8 @@
 implementation module iTasks.Internal.Generic.Defaults
 
 import StdGeneric, StdFunc
-import Data.Maybe, Data.Either, Data.Error, Data.Map, Text.HTML, Text.JSON, System.Time
-import Data.Generics.GenDefault
+import Data.Maybe, Data.Either, Data.Error, Data.Map, Text.HTML, Text.GenJSON, System.Time
+import Data.GenDefault
 
 gDefault{|Bool|}  				= False
 gDefault{|Char|}  				= '-'

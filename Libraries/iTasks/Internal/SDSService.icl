@@ -19,7 +19,7 @@ import StdString, StdList
 from Data.Map import qualified get, fromList
 from Data.Map import fromList
 import Data.Maybe, Data.Error
-import Text.JSON, Text.URI
+import Text.GenJSON, Text.URI
 import StdMisc, graph_to_sapl_string
 import Data.Queue, Data.Functor
 

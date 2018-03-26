@@ -14,7 +14,7 @@ import iTasks.Internal.Generic.Visualization
 import iTasks.Internal.Generic.Defaults
 
 import System.Process
-import Text, Text.JSON, StdString, StdInt
+import Text, Text.GenJSON, StdString, StdInt
 import qualified Data.Map as DM
 import qualified Data.Set as DS
 

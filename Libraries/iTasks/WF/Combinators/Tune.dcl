@@ -3,7 +3,7 @@ definition module iTasks.WF.Combinators.Tune
 import iTasks.WF.Definition
 from iTasks.UI.Tune import class tune(..)
 from iTasks.UI.Layout import :: Layout
-from Text.JSON import :: JSONNode
+from Text.GenJSON import :: JSONNode
 
 /**
 * Fine tune a task by specifying custom layouts, tweaking generic layouts,

@@ -1,7 +1,7 @@
 definition module iTasks.Internal.Generic.Visualization
 
 from StdGeneric import ::UNIT,::PAIR,::EITHER,::CONS,::OBJECT,::RECORD,::FIELD
-from Text.JSON import :: JSONNode
+from Text.GenJSON import :: JSONNode
 from Text.HTML import :: HtmlTag
 from Data.Maybe import :: Maybe
 from Data.Either import :: Either

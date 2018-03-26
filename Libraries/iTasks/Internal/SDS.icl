@@ -4,7 +4,7 @@ from StdFunc import const
 import StdString, StdTuple, StdMisc, StdList, StdBool
 from Data.Map import :: Map
 import qualified Data.Map as DM
-import Data.Error, Data.Func, Data.Tuple, System.OS, System.Time, Text, Text.JSON
+import Data.Error, Data.Func, Data.Tuple, System.OS, System.Time, Text, Text.GenJSON
 import qualified Data.Set as Set
 import iTasks.Engine
 import iTasks.Internal.IWorld

@@ -9,7 +9,7 @@ import Data.Either
 import Data.Error
 import System.Time
 import Text.HTML
-import Text.JSON
+import Text.GenJSON
 import StdArray 
 
 // Generic instances for common library types

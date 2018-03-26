@@ -8,7 +8,7 @@ from iTasks.WF.Definition import class iTask
 from iTasks.WF.Definition import generic gEditor, generic gEq, generic gDefault, generic gText, generic JSONEncode, generic JSONDecode
 
 from Data.Maybe import :: Maybe
-from Text.JSON import :: JSONNode
+from Text.GenJSON import :: JSONNode
 from iTasks.UI.Editor import :: Editor
 from iTasks.Internal.Generic.Visualization import :: TextFormat
 
