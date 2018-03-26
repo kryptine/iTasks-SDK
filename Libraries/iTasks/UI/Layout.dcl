@@ -6,7 +6,7 @@ definition module iTasks.UI.Layout
 * updates that are later applied accordingly.
 */
 
-from iTasks.UI.Definition import :: UI, :: UIType, :: UIAttribute, :: UIAttributes, :: UIAttributeKey, :: UIChange
+from iTasks.UI.Definition import :: UI, :: UIType, :: UIAttribute, :: UIAttributes, :: UIAttributeKey, :: UIChange, :: UIChildChange
 
 from Data.Maybe import :: Maybe
 from Data.Map  import :: Map
@@ -212,6 +212,7 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 	, additional            :: LUIEffectStage LID
 	, hidden                :: LUIEffectStage LID
 	, moved                 :: LUIEffectStage LID
+	, containsMovesBy       :: Map LID Int
 	//, wrapped               :: LUIEffectStage (!LID,!LUI)
 	//, unwrapped             :: LUIEffectStage LID
 	}
@@ -237,11 +238,18 @@ noEffects :: LUIEffects
 //A layout rule is simply a function that applies (or undoes) an effect to a LUI tree
 :: LayoutRule :== LID LUI -> LUI
 
+//When extracting downstream changes we need to track some state
+:: LUIExtractState =
+	{ movedChanges :: Map LID [(Int,UIChildChange)]
+	, movedUIs :: Map LID [UI]
+	}
+
 initLUI :: Bool UI -> LUI
+initLUIExtractState :: LUIExtractState
 
 applyUpstreamChange :: UIChange LUI -> LUI
 
-extractDownstreamChange :: LUI -> (!UIChange,!LUI)
+extractDownstreamChange :: LUI LUIExtractState -> (!UIChange,!LUI)
 
 //A layout rule can be created from a layout rule
 ruleBasedLayout :: LayoutRule -> Layout
@@ -263,4 +271,5 @@ updateNode_ :: UIPath (LUI -> LUI) LUI -> LUI
 selectAttributes_ :: UIAttributeSelection Bool LUI -> UIAttributes
 overwriteAttribute_ :: UIAttribute (Map UIAttributeKey (LUIEffectStage JSONNode)) -> (Map UIAttributeKey (LUIEffectStage JSONNode))
 hideAttribute_ :: (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage ())) -> (Map UIAttributeKey (LUIEffectStage ()))
+extractUIWithEffects :: LUI LUIExtractState -> (!UI,!LUI)
 
