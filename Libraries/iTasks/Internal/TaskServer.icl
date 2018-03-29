@@ -418,6 +418,9 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
             // call handler
             # (mbTaskState, mbw, out, close, iworld) = onShareChangeHandler taskState r iworld
             # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
+            | mbTaskState =: (Error _) = taskStateException mbTaskState instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
+            | isError mbSdsErr         = sdsException       mbSdsErr    instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
+            # ioStates = 'DM'.put taskId (IOActive ('DM'.put connectionId (fromOk mbTaskState, close) taskStates)) ioStates
             // write data
             # (ioChannels, iworld) = seq [ioOps.writeData o \\ o <- out] (ioChannels, iworld)
             | mbTaskState =: (Error _) = taskStateException mbTaskState instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
