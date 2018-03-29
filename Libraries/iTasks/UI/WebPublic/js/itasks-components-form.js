@@ -2,7 +2,7 @@ itasks.TextField = {
 	domTag: 'input',
 	attributes: {
 		eventTimeout: 500,
-	}
+	},
 	initDOMEl: function() {
 		var me = this,
 			el = this.domEl;
@@ -333,7 +333,6 @@ itasks.Button = {
 		var me = this,
 			el = me.domEl;
 
-		console.log(me);
 		el.href = '#';
 		if(me.attributes.iconCls) {
 			me.icon = document.createElement('div');
