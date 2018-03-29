@@ -96,38 +96,18 @@ where
 	seqTasks []		= return []
 	seqTasks [t:ts]	= t >>- \a -> seqTasks ts >>- \as -> return [a:as]
 
-//Repeat task until the predicate holds (loops if the predicate is false)
-(<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
-(<!) task pred
-	= parallel [(Embedded,const task),(Embedded,restarter)] [] <<@ ApplyLayout unwrapUI @? res
+foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
+foreverStIf pred st t = parallel [(Embedded, par st Nothing)] []
+	>>- \tv->case tv of
+		[(_, Value i True)] = treturn i
+		_ = throw "Corrupt parallel in foreverStIf"
 where
-    restarter tlist = (watch (sdsFocus (Left 0) (taskListItemValue tlist)) >>* [OnValue (check (restart tlist))]) <<@ NoUserInterface
-
-    check t (Value (Value x stable) _)  = if (stable && not (pred x)) (Just t) Nothing
-    check t _                           = Nothing
-	
-	restart tlist
-		=   get (taskListIds tlist)
-		>>- \[t1,t2:_] ->
-		    removeTask t1 tlist
-		>>|	removeTask t2 tlist
-		>>| appendTask Embedded (const task) tlist
-		>>| appendTask Embedded restarter tlist
-        @?  const NoValue
-
-	res (Value [(_,value):_] _)	= value
-	res _					    = NoValue
-
-forever :: !(Task a) -> Task a | iTask a	
-forever	t = t <! const False
-
-foreverSt :: !(a -> Task a) a -> Task a | iTask a
-foreverSt t st = parallel [(Embedded, par t st Nothing)] [] @? const NoValue
-where
-	par t st (Just tid) tlist = removeTask tid tlist >>- \_->par t st Nothing tlist
-	par t st Nothing tlist = get (sdsFocus {gDefault{|*|} & onlySelf=True} tlist)
-		>>- \(_, [{TaskListItem|taskId}])->t st
-		>>- \st`->appendTask Embedded (par t st` (Just taskId)) tlist
+	par st (Just tid) tlist = removeTask tid tlist >>- \_->par st Nothing tlist
+	par st Nothing tlist
+		| not (pred st) = treturn st
+		= get (sdsFocus {gDefault{|*|} & onlySelf=True} tlist)
+			>>- \(_, [{TaskListItem|taskId}])->t st
+			>>- \st`->appendTask Embedded (par st` (Just taskId)) tlist @? const NoValue
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = anyTask [taska,taskb]
@@ -210,10 +190,6 @@ eitherTask taska taskb = (taska @ Left) -||- (taskb @ Right)
 randomChoice :: ![a] -> Task a | iTask a
 randomChoice [] = throw "Cannot make a choice from an empty list"
 randomChoice list = get randomInt >>= \i -> return (list !! ((abs i) rem (length list)))
-
-repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iTask a
-repeatTask task pred a =
-	task a >>= \na -> if (pred na) (return na) (repeatTask task pred na)
 
 //We throw an exception when the share changes to make sure that the right hand side of
 //the -||- combinator is not evaluated anymore (because it was created from the 'old' share value)
@@ -318,4 +294,3 @@ tvFromMaybe _                  = NoValue
 tvToMaybe :: (TaskValue a) -> TaskValue (Maybe a)
 tvToMaybe (Value a s) = Value (Just a) s
 tvToMaybe NoValue     = Value Nothing False
-
