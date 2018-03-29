@@ -209,6 +209,9 @@ minlengthAttr l = 'DM'.fromList [("minlength", JSONInt l)]
 boundedlengthAttr :: !Int !Int -> UIAttributes
 boundedlengthAttr min max = 'DM'.unions [minlengthAttr min, maxlengthAttr max]
 
+eventTimeoutAttr  :: !(Maybe Int) -> UIAttributes
+eventTimeoutAttr to = 'DM'.fromList [("eventTimeout", maybe JSONNull JSONInt to)]
+
 editAttrs :: !String !String !(Maybe JSONNode) -> UIAttributes
 editAttrs taskId editorId mbValue 
 	= 'DM'.fromList [("taskId",JSONString taskId),("editorId",JSONString editorId):maybe [] (\value -> [("value",value)]) mbValue]
