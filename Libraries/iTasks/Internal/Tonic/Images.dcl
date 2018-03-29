@@ -5,8 +5,8 @@ from Data.Map import :: Map
 from Data.Set import :: Set
 from Data.Maybe import :: Maybe
 from Data.Either import :: Either
-from Graphics.Scalable import :: Image, :: TagSource, :: TagRef, :: ImageTag
-
+from Graphics.Scalable.Image import :: Image, :: TagSource, :: TagRef, :: ImageTag
+from Graphics.Scalable.Internal.Image` import :: Image`
 from iTasks.Internal.Tonic.AbsSyn import :: TonicFunc, :: ExprId, :: FuncName, :: ModuleName, :: TExpr
 from iTasks.Internal.Tonic.Types import :: TStability, :: BlueprintIdent, :: BlueprintInstance, :: GenBlueprintInstance, :: ComputationId, :: TClickAction, :: ClickMeta, :: TonicImageState
 
@@ -17,8 +17,8 @@ from iTasks.UI.Editor import :: Editor
 from iTasks.UI.Editor.Generic import generic gEditor
 from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
 from iTasks.Internal.Generic.Defaults import generic gDefault
-from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
-from Data.Generics.GenEq import generic gEq
+from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from Data.GenEq import generic gEq
 
 
 :: ActionState a s = { state :: s, action :: Maybe a }

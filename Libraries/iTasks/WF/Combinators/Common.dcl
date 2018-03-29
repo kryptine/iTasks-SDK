@@ -6,6 +6,7 @@ import iTasks.SDS.Definition
 import iTasks.WF.Combinators.Core
 import iTasks.UI.Tune
 
+from StdBool					import not
 from Data.Map				    import :: Map
 from Data.Either				import :: Either
 
@@ -161,21 +162,49 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * @param Task: The task to be looped
 * @param Predicate: The predicate over the result of the task to determine if the combination is finished
 * @return The combined task
-* 
-* @gin False
+* @type (Task a) (a -> Bool) -> Task a | iTask a
 */
-(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 			-> Task a 		| iTask a
+(<!) infixl 6
+(<!) task pred :== foreverIf (\p->not (pred p)) task
 
 /**
-* Repeats a task infinitely. As soon as the task is stable, it is restarted immediately.
-* As a consequence, the combined task never stabilizes.
+* Repeats a task while carrying a state while a predicate holds
 *
-* @param Task: The task that has to be repeated infinitely
+* @param Predicate: The predicate that has to hold
+* @param State: The initial state
+* @param Task: The task that has to be repeate
 * @return The combined task
-* 
-* @gin False
 */
-forever :: !(Task a) -> Task a | iTask a 
+foreverStIf :: (a -> Bool) a !(a -> Task a) -> Task a | iTask a
+
+/**
+* Repeats a task until while a predicate holds
+*
+* @param Predicate: The predicate that has to hold
+* @param Task: The task that has to be repeate
+* @return The combined task
+* @type !(a -> Task a) (a -> Bool) -> Task a | iTask a
+*/
+foreverIf pred task :== foreverStIf pred gDefault{|*|} \_->task
+
+/**
+* Repeats a task indefinitely while carrying a state
+*
+* @param State: The initial state
+* @param Task: The task that has to be repeate
+* @return The combined task
+* @type !(a -> Task a) a -> Task a | iTask a
+*/
+foreverSt initialState task :== foreverStIf (\_->True) initialState task
+
+/**
+* Repeats a task indefinitely
+*
+* @param Task: The task that has to be repeate
+* @return The combined task
+* @type (Task a) -> Task a | iTask a
+*/
+forever task :== foreverSt gDefault{|*|} \_->task
 
 /**
 * Group two tasks in parallel, return the result of the first completed task.
@@ -290,19 +319,6 @@ eitherTask			:: !(Task a) !(Task b) 	-> Task (Either a b)	| iTask a & iTask b
 * @return The chosen item
 */
 randomChoice		:: ![a]										-> Task a				| iTask a
-
-/**
-* Iterate a task as long as a predicate is not valid.
-*
-* @param Task function: A task function to repeat. At each iteration the result of the previous iteration is given.
-* @param Predicate: A predicate to test if we can stop.
-* @param Initial value: An initial value for the first iteration.
-*
-* @return The result of the last iteration (that thus satisfies the predicate)
-* 
-* @gin False
-*/
-repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 
 /**
 * Do a task as long while monitoring that a shared state remains unchanged.

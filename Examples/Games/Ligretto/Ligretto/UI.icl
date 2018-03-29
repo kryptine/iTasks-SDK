@@ -1,12 +1,12 @@
 implementation module Ligretto.UI
 
-import StdEnum, StdList
+import StdBool, StdEnum, StdList
 from   StdFunc import id, const
-import Data.Generics.GenEq
+import Data.GenEq
 import iTasks.UI.JS.Encoding
 import iTasks.WF.Tasks.Interaction
-import iTasks.Extensions.SVG.SVGEditor
 import ScalableExts.Scalable
+import iTasks.Extensions.SVG.SVGEditor
 import Ligretto.UoD
 
 derive JSEncode GameSt, Player, Color, Hand, Card, SideUp
@@ -73,7 +73,7 @@ pile_image side pile
   #! no_of_cards     = length pile
   #! top_cards       = take 10 pile
   #! top_cards_image = pile_of_cards side top_cards
-  | no_of_cards > 10 = above [AtMiddleX] [] [text (pilefont 10.0) (toString no_of_cards),top_cards_image] NoHost
+  | no_of_cards > 10 = above [AtMiddleX] [] Nothing [] [text (pilefont 10.0) (toString no_of_cards),top_cards_image] NoHost
   | otherwise        = top_cards_image
 
 row_images :: !Bool !RowPlayer -> [Image GameSt]
@@ -102,12 +102,12 @@ player_image r interactive player
                ++ hand_images interactive player.hand player.color
                )
 
-players_image :: !Span !Color ![Player] -> Image GameSt
-players_image r color players
+players_image :: !Span !Color !Bool ![Player] -> Image GameSt
+players_image r color playing players
   #! no = length players
   = rotate (rad (player_arc/(toReal (2*(3+no_of_cards_in_row no))) - player_arc/2.0)) 
            (circular zero (2.0*pi)
-                [  player_image r (player.color === color) player 
+                [  player_image r (playing && player.color === color) player 
                 \\ player <- players
                 ]
            )
@@ -134,11 +134,11 @@ player_perspective color gameSt=:{players} _
   = rotate (rad (~(toReal my_no*angle))) (game_image color gameSt)
 
 game_image :: !Color !GameSt -> Image GameSt
-game_image color {players,middle}
+game_image color gameSt=:{players,middle}
   = overlay (repeat (AtMiddleX,AtMiddleY)) []
             ([ middle_image  (card_height *. 2) middle          // inner-most tier: the middle cards
              , names_image   (card_height *. 3.2) players       // the middle tier: the player names
-             , players_image (card_height *. 4) color players   // outer-most tier: the player cards
+             , players_image (card_height *. 4) color (isNothing (and_the_winner_is gameSt)) players   // outer-most tier: the player cards
              ]
             ) (Host (empty (card_height *. 12) (card_height *. 12)))
 

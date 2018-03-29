@@ -16,7 +16,7 @@ from StdFunc import o, flip
 import StdEnum, StdBool, StdTuple, StdDebug
 import Data.Map
 from Data.List import foldl1
-import Text.JSON
+import Text.GenJSON
 import Text
 
 instance == UI where (==) x y = x === y

@@ -4,10 +4,10 @@ import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
 import iTasks.SDS.Sources.Store
-import Data.Generics.GenPrint								// printing via <+++ has a known bug, so we use printToString instead
+import Text.GenPrint								// printing via <+++ has a known bug, so we use printToString instead
 import iTasks.UI.Prompt
-import iTasks.Extensions.SVG.SVGEditor						// required to embed Image-tasks inside other tasks
-import Graphics.Scalable
+import Graphics.Scalable.Image
+import iTasks.Extensions.SVG.SVGEditor
 import StdArray, StdEnum, StdList, StdTuple
 from   StdFunc import id, o, const
 import Text
@@ -30,9 +30,9 @@ Start world
 overlays :: m *TagSource -> Image m
 overlays model tags
 	= margin (px 10.0) (
-		above [] []
-		   [ grid (Rows 3) (RowMajor,LeftToRight,TopToBottom) [] []
-		        [ beside (repeat AtMiddleY) [] 
+		above [] [] Nothing []
+		   [ grid (Rows 3) (RowMajor,LeftToRight,TopToBottom) [] [] [] []
+		        [ beside (repeat AtMiddleY) [] Nothing [] 
 		                 [ margin (px 5.0) (overlay (repeat (x_align,y_align)) [] discs NoHost)
 		                 , txt ("(" <+ x_align <+ "," <+ y_align <+ ")*")
 		                 ] NoHost
@@ -50,7 +50,7 @@ where
 */
 disclist :: Image m
 disclist
-	= beside (repeat AtMiddleY) [] (flatten
+	= beside (repeat AtMiddleY) [] Nothing [] (flatten
 		[ [txt "discs = "]
 		, flatten [[txt s, disc] \\ disc <- discs & s <- ["[ " : repeat " , "]]
 		, [txt " ]"]

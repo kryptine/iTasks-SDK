@@ -4,10 +4,10 @@ import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
 import iTasks.SDS.Sources.Store
-import Data.Generics.GenPrint
+import Text.GenPrint
 import iTasks.UI.Prompt
-import iTasks.Extensions.SVG.SVGEditor						// required to embed Image-tasks inside other tasks
-import Graphics.Scalable
+import Graphics.Scalable.Image
+import iTasks.Extensions.SVG.SVGEditor
 import StdArray, StdEnum, StdList, StdTuple
 from   StdFunc import id, o, const
 
@@ -30,16 +30,23 @@ Start world
 transformed_images :: m *TagSource -> Image m
 transformed_images model tags
 	= margin (px 100.0) (
-	    grid (Columns 4) (RowMajor,LeftToRight,TopToBottom) (repeat (AtMiddleX,AtBottom)) []
-	       [above (repeat AtMiddleX) [] [transform img, txt (line +++ " img")] NoHost \\ (transform,line) <- transformations] NoHost
+	    grid (Columns 4) (RowMajor,LeftToRight,TopToBottom) (repeat (AtMiddleX,AtBottom)) [] [] []
+	       [above (repeat AtMiddleX) [] Nothing [] [transform img, txt (line +++ " img")] NoHost \\ (transform,line) <- transformations] NoHost
 	  )
 where
-	img				= text (times  50.0) "F"
+//	img             = text (times 64.0) "F"
+	img				= polyline [(px  0.0,px 0.0),(px  7.5,px 12.5),(px 15.0,px  0.0),(px 22.5,px 12.5)
+	                           ,(px 30.0,px 0.0),(px 25.0,px 70.0),(px  5.0,px 70.0),(px  0.0,px  0.0)
+	                           ]
 	txt s			= text (lucida 10.0) s
 	transformations	= [(id,                        "id")
-	                  ,(fit (px 100.0) (px 100.0), "fit (px 100.0) (px 100.0)")
-	                  ,(fitx   (px  100.0),        "fitx (px 100.0)")
-	                  ,(fity   (px  100.0),        "fity (px 100.0)")
+	                  ,(fit (px 60.0) (px 70.0),   "fit (px 60.0) (px 70.0)")
+	                  ,(fitx   (px  60.0),         "fitx (px 60.0)")
+	                  ,(fity   (px  95.0),         "fity (px 95.0)")
+	                  ,(id,                        "id")
+	                  ,(scale 2.0 2.0,             "scale 2.0 2.0")
+	                  ,(scalex 2.0,                "scalex 2.0")
+	                  ,(scaley 2.0,                "scaley 2.0")
 	                  ,(rotate (deg -20.0),        "rotate (deg -20.0)")
 	                  ,(rotate (deg  20.0),        " rotate (deg 20.0)")
 	                  ,(skewx  (deg -20.0),        "skewx (deg -20.0)")

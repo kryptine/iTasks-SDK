@@ -5,7 +5,7 @@ import Data.Maybe, Data.Either, Data.Functor
 from Data.Map import :: Map (..)
 import qualified Data.Map as DM
 import qualified Data.List as DL
-import Text, Text.JSON, Text.HTML
+import Text, Text.GenJSON, Text.HTML
 import System.Time
 import iTasks.Internal.Util
 

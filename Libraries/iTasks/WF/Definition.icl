@@ -7,13 +7,13 @@ import iTasks.UI.Definition
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Generic
 
-from Text.JSON import :: JSONNode
+from Text.GenJSON import :: JSONNode
 from Data.Map import :: Map(..)
 from Data.Set import :: Set
 from Data.Maybe import :: Maybe
 from System.Time import :: Timestamp
 import Data.Functor
-import Text, Text.JSON
+import Text, Text.GenJSON
 
 import StdString, StdClass, StdBool, StdInt
 

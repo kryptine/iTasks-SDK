@@ -4,7 +4,7 @@ from StdFunc import const, id
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdBool, StdMisc
 from Data.Map import :: Map
 import qualified Data.Map as DM
-import Text.HTML, Internet.HTTP, Data.Error, Data.Functor, Text.JSON
+import Text.HTML, Internet.HTTP, Data.Error, Data.Functor, Text.GenJSON
 import iTasks.Internal.IWorld, iTasks.UI.Definition, iTasks.Internal.Util, iTasks.Internal.DynamicUtil
 from System.OSError import :: MaybeOSError, :: OSError, :: OSErrorCode, :: OSErrorMessage
 

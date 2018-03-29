@@ -6,7 +6,7 @@ definition module iTasks.UI.JS.Encoding
 */
 import iTasks.UI.JS.Interface
 import StdGeneric
-from Text.JSON import :: JSONNode (..)
+from Text.GenJSON import :: JSONNode (..)
 from StdList import !!
 
 //Sending values server -> client

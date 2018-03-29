@@ -10,14 +10,14 @@ from Data.Map as DM import qualified newMap, put, get, del, toList, fromList, de
 from Data.Set as DS import qualified newSet, insert, delete, toList, fromList, null
 from Data.Tuple import appSnd
 
-import Text.JSON
+import Text.GenJSON
 
 from StdFunc import o, const, id, flip
 from iTasks.Internal.TaskState import :: TIMeta(..), :: TaskTree(..), :: DeferredJSON
 from iTasks.Internal.TaskEval import :: TaskTime
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 import iTasks.WF.Definition
-import Data.Generics.GenEq
+import Data.GenEq
 
 //This type records the states of layouts applied somewhere in a ui tree
 derive JSONEncode LayoutState, LayoutTree, MvUI, MvUIChild, LUI, LUIChanges, LUIEffects, LUIEffectStage, Set

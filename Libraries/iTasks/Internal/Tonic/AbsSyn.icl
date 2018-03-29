@@ -1,7 +1,7 @@
 implementation module iTasks.Internal.Tonic.AbsSyn
 
-import Text.JSON, Data.Maybe
-from Data.Generics.GenEq import generic gEq
+import Text.GenJSON, Data.Maybe
+from Data.GenEq import generic gEq
 from Data.Map import :: Map
 import qualified Data.Map as DM
 import StdBool, StdList, StdTuple

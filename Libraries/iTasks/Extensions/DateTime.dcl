@@ -7,6 +7,7 @@ import iTasks.WF.Definition
 from Data.Error import :: MaybeError, :: MaybeErrorString
 from StdString import class toString, class fromString
 from StdClass import class <
+from StdOverloaded import class ==
 
 //* local date and time
 :: Date	=

@@ -10,7 +10,7 @@ import qualified Data.IntMap.Strict as DIS
 from Data.IntMap.Strict import :: IntMap
 from Data.Map import :: Map
 import Data.Maybe, Data.Error, Data.Either, StdString
-import Text.JSON
+import Text.GenJSON
 import System.FilePath
 
 sdsFocus :: !p !(RWShared p r w) -> (RWShared p` r w) | iTask p & TC r & TC w

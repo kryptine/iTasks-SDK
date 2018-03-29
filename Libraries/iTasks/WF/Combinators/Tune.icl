@@ -7,7 +7,7 @@ import iTasks.UI.Layout
 
 import iTasks.Internal.TaskState
 import iTasks.Internal.TaskEval
-import Text.JSON, StdString
+import Text.GenJSON, StdString
 import qualified Data.Map as DM
 
 //This type records the states of layouts applied somewhere in a ui tree

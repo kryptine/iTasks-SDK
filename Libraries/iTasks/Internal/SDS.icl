@@ -4,7 +4,7 @@ from StdFunc import const
 import StdString, StdTuple, StdMisc, StdList, StdBool
 from Data.Map import :: Map
 import qualified Data.Map as DM
-import Data.Error, Data.Func, Data.Tuple, System.OS, System.Time, Text, Text.JSON
+import Data.Error, Data.Func, Data.Tuple, System.OS, System.Time, Text, Text.GenJSON
 import qualified Data.Set as Set
 import iTasks.Engine
 import iTasks.Internal.IWorld
@@ -50,13 +50,19 @@ createSDS ns id read write = SDSSource
 
 //Construct the identity of an sds
 sdsIdentity :: !(RWShared p r w) -> SDSIdentity
-sdsIdentity (SDSSource {SDSSource|name}) = "$" +++ name +++ "$"
-sdsIdentity (SDSLens sds {SDSLens|name}) = sdsIdentity sds +++"/["+++name+++"]"
-sdsIdentity (SDSSelect sds1 sds2 {SDSSelect|name}) = "{"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++"}"
-sdsIdentity (SDSParallel sds1 sds2 {SDSParallel|name}) = "|"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++"|"
-sdsIdentity (SDSSequence sds1 sds2 {SDSSequence|name}) = "<"+++name+++ sdsIdentity sds1 +++ ","+++ sdsIdentity sds2 +++">"
-sdsIdentity (SDSCache {SDSSource|name} _) = "$" +++ name +++ "$"
-sdsIdentity (SDSDynamic f) = "SDSDYNAMIC" //TODO: Figure out how to determine the identity of the wrapped sds
+sdsIdentity s = concat (sdsIdentity` s [])
+where
+	sdsIdentity` :: !(RWShared p r w) [String] -> [String]
+	sdsIdentity` (SDSSource {SDSSource|name}) acc = ["$", name, "$":acc]
+	sdsIdentity` (SDSLens sds {SDSLens|name}) acc = sdsIdentity` sds ["/[", name, "]":acc]
+	sdsIdentity` (SDSSelect sds1 sds2 {SDSSelect|name}) acc
+		= ["{", name:sdsIdentity` sds1 [",":sdsIdentity` sds2 ["}":acc]]]
+	sdsIdentity` (SDSParallel sds1 sds2 {SDSParallel|name}) acc
+		= ["|",name:sdsIdentity` sds1 [",":sdsIdentity` sds2 ["|":acc]]]
+	sdsIdentity` (SDSSequence sds1 sds2 {SDSSequence|name}) acc
+		= ["<",name:sdsIdentity` sds1 [",":sdsIdentity` sds2 [">":acc]]]
+	sdsIdentity` (SDSCache {SDSSource|name} _) acc = ["$", name, "$":acc]
+	sdsIdentity` (SDSDynamic f) acc = ["SDSDYNAMIC":acc] //TODO: Figure out how to determine the identity of the wrapped sds
 
 iworldNotifyPred :: !(p -> Bool) !p !*IWorld -> (!Bool,!*IWorld)
 iworldNotifyPred npred p env = (npred p, env)

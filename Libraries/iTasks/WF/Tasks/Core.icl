@@ -11,7 +11,7 @@ import iTasks.Internal.IWorld
 import qualified iTasks.Internal.SDS as SDS
 
 import Data.Error, Data.Maybe
-import Text.JSON
+import Text.GenJSON
 import StdString, StdBool
 import qualified Data.Set as DS
 

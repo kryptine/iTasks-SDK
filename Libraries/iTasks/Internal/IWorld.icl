@@ -5,7 +5,7 @@ from Data.Map						import :: Map
 from Data.Maybe						import :: Maybe
 from Data.Error 					import :: MaybeError(..), :: MaybeErrorString(..)
 from System.Time					import :: Timestamp, time
-from Text.JSON						import :: JSONNode
+from Text.GenJSON						import :: JSONNode
 from iTasks.WF.Definition           import :: TaskId, :: InstanceNo, :: TaskNo 
 from iTasks.WF.Combinators.Core     import :: TaskListItem, :: ParallelTaskType
 from iTasks.Extensions.DateTime     import :: Time, :: Date, :: DateTime, toTime, toDate
@@ -21,7 +21,7 @@ from StdOrdList import sortBy
 
 from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SChannel_, :: TCP_DuplexChannel, :: DuplexChannel, :: IPAddress, :: ByteSeq
 
-import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.JSON, Data.Error, Math.Random
+import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.GenJSON, Data.Error, Math.Random
 import iTasks.Internal.TaskStore, iTasks.Internal.Util
 import iTasks.Internal.Serialization
 import iTasks.Internal.SDS

@@ -13,7 +13,7 @@ import qualified Data.IntMap.Strict as DIS
 from Data.IntMap.Strict import :: IntMap
 import qualified Data.Heap as DH
 from Data.Heap import :: Heap
-import Data.Generics.GenLexOrd
+import Data.GenLexOrd
 from C2.Framework.Logging import addLog
 import Data.List
 import Data.Eq

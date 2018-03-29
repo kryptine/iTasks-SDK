@@ -32,6 +32,7 @@ from Data.Error import :: MaybeError, :: MaybeErrorString
 * @param a list of command-line arguments
 * @param (optional) startup directory
 * @param A reference to shared data the task has access to
+* @param A flag whether to open a pseudotty
 * @param The event handler functions
 * @param Optionally the pseudotty settings
 * @param An editor for visualizing the local state

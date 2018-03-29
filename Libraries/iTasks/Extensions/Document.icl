@@ -6,7 +6,7 @@ import iTasks.UI.Editor.Controls, iTasks.UI.Editor.Modifiers
 import iTasks.Internal.Task, iTasks.Internal.IWorld, iTasks.Internal.TaskStore
 import StdBool, StdString, StdFile, StdArray, StdInt
 
-import Text.JSON, Text.Encodings.MIME, Text.HTML, System.FilePath, System.File, System.OSError, Data.Error
+import Text.GenJSON, Text.Encodings.MIME, Text.HTML, System.FilePath, System.File, System.OSError, Data.Error
 import qualified Data.Map as DM
 from StdFunc import const
 

@@ -4,7 +4,7 @@ import iTasks.UI.Layout, iTasks.UI.Layout.Default
 import iTasks.UI.Definition, iTasks.UI.Prompt
 import iTasks.WF.Combinators.Tune
 import iTasks.WF.Combinators.Overloaded
-import Data.List, Text.JSON, Data.Maybe, StdString, Data.Generics.GenEq
+import Data.List, Text.GenJSON, Data.Maybe, StdString, Data.GenEq
 import qualified Data.Map as DM
 import StdBool, _SystemArray
 from Data.Func import $
