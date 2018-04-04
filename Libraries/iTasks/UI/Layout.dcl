@@ -213,7 +213,7 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 	, hidden                :: LUIEffectStage LID
 	, moved                 :: LUIEffectStage LID
 	, containsMovesBy       :: Map LID Int
-	//, wrapped               :: LUIEffectStage (!LID,!LUI)
+	, wrapper               :: LUIEffectStage LID
 	//, unwrapped             :: LUIEffectStage LID
 	}
 
@@ -263,6 +263,7 @@ copySubUIAttributesRule :: UIAttributeSelection UIPath UIPath -> LayoutRule
 insertChildUIRule :: Int UI -> LayoutRule
 removeSubUIsRule :: UISelection -> LayoutRule
 moveSubUIsRule :: UISelection UIPath Int -> LayoutRule
+wrapUIRule :: UIType -> LayoutRule
  
 //Helper functions (exported for testing)
 adjustIndex_ :: Int [LUI] -> Int

@@ -9,7 +9,7 @@ derive gEq LUI, LUIChanges, LUIEffects, LUIEffectStage
 derive gPrettyTrace LUI, LUIChanges, LUIEffects, LUIEffectStage, JSONNode, Set, Maybe
 derive gPrettyTrace UIChange, UIChildChange, UIAttributeChange, UI, UIType
 
-import Data.Generics.GenLexOrd
+import Data.GenLexOrd
 derive gLexOrd LUIEffectStage
 
 instance < (LUIEffectStage a) | gLexOrd{|*|} a
@@ -197,6 +197,22 @@ applyUpstreamChangeTests =
 		(applyUpstreamChange (ChangeUI [] [(0,MoveChild 2)
 		                                  ,(2,RemoveChild)
 										  ]) lui00)
+	,assertEqual "Set attribute on wrapped child"
+		(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")])
+			[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+			,LUINode UIStep 'DM'.newMap 
+				[LUINode UIDebug 'DM'.newMap [] {noChanges & setAttributes = 'DM'.fromList [("title",JSONString "changed-title")]} noEffects
+				] noChanges {noEffects & wrapper = ESApplied 0}
+			] noChanges noEffects
+		)
+		(applyUpstreamChange (ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "title" (JSONString "changed-title")] []))]) 
+			(LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap 
+					[LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] noChanges {noEffects & wrapper = ESApplied 0}
+				] noChanges noEffects)
+		)
 	]
 
 //Check if pending downstream changes are correctly extracted from the tree
@@ -579,6 +595,43 @@ extractDownstreamChangeTests =
 				,LUINode UIParallel 'DM'.newMap [] {noChanges & setAttributes = 'DM'.fromList [("title",JSONString "test")] } noEffects
 				] noChanges {noEffects & containsMovesBy = 'DM'.fromList [(0,1)]}
 		) initLUIExtractState)
+	,assertEqual "New wrapped child" 
+		(ChangeUI [] [(1,ChangeChild (ReplaceUI (UI UIStep 'DM'.newMap [UI UIDebug 'DM'.newMap []])))]
+			,LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[ LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] noChanges {noEffects & wrapper = ESApplied 0}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[ LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] noChanges {noEffects & wrapper = ESToBeApplied 0}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		) initLUIExtractState)
+	,assertEqual "No longer wrapped child" 
+		(ChangeUI [] [(1,ChangeChild (ReplaceUI (UI UIDebug 'DM'.newMap [])))]
+			,LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[LUINode UIInteract 'DM'.newMap [] noChanges {noEffects & additional = ESApplied 1} //Added after the wrapping, should be removed too
+					,LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] noChanges {noEffects & wrapper = ESToBeRemoved 0}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		) initLUIExtractState)
 	]
 
 extractUIWithEffectsTests =
@@ -749,7 +802,25 @@ moveSubUIsRuleTests =
 			)
 		)
 	]
-
+wrapUIRuleTests =
+	[assertEqual "Wrap rule: wrap root as UIStep"
+		(LUINode UIStep 'DM'.newMap [
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+			] noChanges {noEffects & wrapper = ESToBeApplied 0}
+		)
+		(wrapUIRule UIStep 0
+			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+			)
+		)
+	]
 
 tests =  applyUpstreamChangeTests 
       ++ extractDownstreamChangeTests
@@ -764,5 +835,6 @@ tests =  applyUpstreamChangeTests
 	  ++ insertChildUIRuleTests
 	  ++ removeSubUIsRuleTests
 	  ++ moveSubUIsRuleTests
+	  ++ wrapUIRuleTests
 
 Start w = runUnitTestsCLI [testsuite "Test.iTasks.UI.Layout" "Duh.." tests] w
