@@ -26,36 +26,14 @@ from Text.GenJSON import :: JSONNode
 :: LayoutState
 	= LSNone                                           //No state is tracked for a layout
 	| LSType !UI                                       //State for layouts that change the type
-	| LSAttributes !UIAttributes                       //State for layouts that modify attributes
-	| LSModifyAttributes !UIAttributes !UIAttributes   //A more extended state for layouts that modify attributes
-	| LSCopyAttributes !UI                             //A more extended state for layouts that copy attributes
-	| LSWrap !UI                                       //State for unwrap layouts
-	| LSUnwrap !UI                                     //State for unwrap layouts
-	| LSInsert !Int                                    //State for inserting layouts
 	| LSSequence !LayoutState !LayoutState             //Combined state of two sequenced layouts
 	| LSLayoutSubUIs !UI (LayoutTree LayoutState ())   //States of layouts applied to sub-ui's 
-	| LSRemoveSubUIs !MvUI                             //UI's that were removed by the layout
 	| LSReference !UI
 	| LSRule !LUI
 
 :: LayoutTree a b
 	= UIModified !a
 	| SubUIsModified !b ![(Int,LayoutTree a b)]
-
-// This is an extended version of UI that annotates UI's with additional information about nodes that were removed, moved or restored.
-:: MvUI = { type      :: UIType            //From UI
-		  , attr      :: UIAttributes      //From UI
-          , matched   :: Bool              //Does this node match the selection upstream? (we hide this node downstream)
-		  , moved     :: Bool              //Have we moved this node to another node?
-                                           //They were inserted somewhere, so we should know that we have to remove them there
-		  , deleted   :: Bool              //When an upstream change replaces, or removes a UI, we only mark it, and remove it after we have adjusted the destination
-		  , dstChange :: UIChange          //If we have moved an item, we need to store local changes such that they can be applied in the target location
-		  , children  :: [MvUIChild]       //Either items original nodes, or additional marks
-		  }
-
-:: MvUIChild
-	= MvUIItem MvUI           //Upstream UI nodes with their annotations
-	| MvUIMoveDestination Int //A marker for the segment in the upstream ui where the moved nodes have been inserted (n should equal the amount of moved nodes)
 
 // In specifications of layouts, sub-parts of UI's are commonly addressed as 
 // a path of child selections in the UI tree.
@@ -147,8 +125,6 @@ removeSubUIs   :: UISelection -> Layout
 */
 moveSubUIs   :: UISelection UIPath Int -> Layout
 
-
-
 // == Composition of layouts ==
 /**
 * Apply a layout locally to parts of a UI
@@ -158,11 +134,6 @@ layoutSubUIs :: UISelection Layout -> Layout
 * Apply multiple layouts sequentially. The UI changes that have been transformed by one layout are further transformed by the next layout
 */
 sequenceLayouts :: Layout Layout -> Layout
-
-
-
-
-
 
 /**
 * This layout can apply any transformation on UI's, but it replaces everything on each change.

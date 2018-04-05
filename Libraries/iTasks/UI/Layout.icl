@@ -20,8 +20,8 @@ import iTasks.WF.Definition
 import Data.GenEq
 
 //This type records the states of layouts applied somewhere in a ui tree
-derive JSONEncode LayoutState, LayoutTree, MvUI, MvUIChild, LUI, LUIChanges, LUIEffects, LUIEffectStage, Set
-derive JSONDecode LayoutState, LayoutTree, MvUI, MvUIChild, LUI, LUIChanges, LUIEffects, LUIEffectStage, Set
+derive JSONEncode LayoutState, LayoutTree, LUI, LUIChanges, LUIEffects, LUIEffectStage, Set
+derive JSONDecode LayoutState, LayoutTree, LUI, LUIChanges, LUIEffects, LUIEffectStage, Set
 
 derive gEq LUIEffectStage
 
