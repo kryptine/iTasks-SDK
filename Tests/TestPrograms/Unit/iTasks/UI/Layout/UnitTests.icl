@@ -632,6 +632,110 @@ extractDownstreamChangeTests =
 				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
 				] noChanges noEffects
 		) initLUIExtractState)
+	,assertEqual "New unwrapped child" 
+		(ChangeUI [] [(1,ChangeChild (ReplaceUI (UI UIDebug 'DM'.newMap [])))]
+			,LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[ LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] noChanges {noEffects & unwrapped = ESApplied 0}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[ LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] noChanges {noEffects & unwrapped = ESToBeApplied 0}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		) initLUIExtractState)
+	,assertEqual "No longer unwrapped child" 
+		(ChangeUI [] [(1,ChangeChild (ReplaceUI (UI UIStep 'DM'.newMap [UI UIDebug 'DM'.newMap []])))]
+			,LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[ LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[ LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] noChanges {noEffects & unwrapped = ESToBeRemoved 0}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		) initLUIExtractState)
+	,assertEqual "Changing an attribute on an unwrapped child" 
+		(ChangeUI [] [(1,ChangeChild (ChangeUI [SetAttribute "title" (JSONString "test")] []))]
+			,LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[ LUINode UIDebug ('DM'.fromList [("title",JSONString "test")]) [] noChanges noEffects
+					] noChanges {noEffects & unwrapped = ESApplied 0}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap
+					[ LUINode UIDebug 'DM'.newMap [] {noChanges & setAttributes = 'DM'.fromList [("title",JSONString "test")]} noEffects
+					] noChanges {noEffects & unwrapped = ESApplied 0}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+		) initLUIExtractState)
+	,assertEqual "Inserting into an unwrapped container" 
+		(ReplaceUI (UI UIDebug 'DM'.newMap [])
+			,LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+				,LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges {noEffects & unwrapped = ESApplied 0}
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIDebug 'DM'.newMap [] {noChanges & toBeInserted=True} noEffects
+				,LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges {noEffects & unwrapped = ESApplied 0}
+		) initLUIExtractState)
+	,assertEqual "Removing from an unwrapped container" 
+		(ReplaceUI (UI UIStep 'DM'.newMap [])
+			,LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges {noEffects & unwrapped = ESApplied 0}
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] {noChanges & toBeRemoved = True} noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				] noChanges {noEffects & unwrapped = ESApplied 0}
+		) initLUIExtractState)
+	,assertEqual "Shifting in an unwrapped container" 
+		(ReplaceUI (UI UIStep 'DM'.newMap [])
+			,LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				] noChanges {noEffects & unwrapped = ESApplied 0}
+		)
+		(extractDownstreamChange (
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "Parent panel")]) 
+				[LUINode UIInteract 'DM'.newMap [] {noChanges & toBeShifted = Just 1} noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUIShiftDestination 1
+				] noChanges {noEffects & unwrapped = ESApplied 0}
+		) initLUIExtractState)
 	]
 
 extractUIWithEffectsTests =
@@ -822,6 +926,25 @@ wrapUIRuleTests =
 		)
 	]
 
+unwrapUIRuleTests =
+	[assertEqual "Unwrap rule: unwrap root"
+		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges {noEffects & unwrapped = ESToBeApplied 0}
+		)
+		(unwrapUIRule 0
+			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+			)
+		)
+	]
+
+
 tests =  applyUpstreamChangeTests 
       ++ extractDownstreamChangeTests
 	  ++ extractUIWithEffectsTests
@@ -836,5 +959,6 @@ tests =  applyUpstreamChangeTests
 	  ++ removeSubUIsRuleTests
 	  ++ moveSubUIsRuleTests
 	  ++ wrapUIRuleTests
+	  ++ unwrapUIRuleTests
 
 Start w = runUnitTestsCLI [testsuite "Test.iTasks.UI.Layout" "Duh.." tests] w

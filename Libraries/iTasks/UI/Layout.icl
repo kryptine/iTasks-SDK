@@ -134,48 +134,7 @@ where
 	ref ui = uic type [ui]
 
 unwrapUI :: Layout
-//unwrapUI = ruleBasedLayout unwrapUIRule
-unwrapUI = {Layout|apply=apply,adjust=adjust,restore=restore}
-where
-	apply ui=:(UI type attr [i:is]) = (ReplaceUI i, LSUnwrap ui)
-	apply ui 					    = (NoChange, LSUnwrap ui)	
-
-	adjust (NoChange,state) = (NoChange,state)
-	adjust (ReplaceUI ui,_)
-		# (change,state) = apply ui
-		= (ReplaceUI (applyUIChange change ui), state)
-
-	adjust (ChangeUI attrChanges childChanges, LSUnwrap	ui)
-		//First update attributes
-		# ui = applyUIChange (ChangeUI attrChanges []) ui
-		//Process the child changes
-		# (change, ui) = foldl adjust` (NoChange, ui) childChanges
-		= (change, LSUnwrap ui)
-	where
-		adjust` (change, ui) c=:(n, ChangeChild cc)
-			= (if (n == 0) (mergeUIChanges cc change) change, applyUIChange (ChangeUI [] [c]) ui)
-
-		//When the first element (the one that was unwrapped) is removed, the first sibling is now the unwrapped element.
-		//If there is no first sibling, we undo the unwrapping by replacing with the stored ui
-		adjust` (change, UI type attr [_,i:is]) (0, RemoveChild) = (ReplaceUI i, UI type attr [i:is])
-		adjust` (change, UI type attr [_]) (0, RemoveChild) = (ReplaceUI (UI type attr []), UI type attr [])
-		adjust` (change, ui) (n, RemoveChild) = (change, applyUIChange (ChangeUI [] [(n,RemoveChild)]) ui)
-
-		//When a new element is inserted at position 0, it should now be the shown element
-		adjust` (change, ui) c=:(n, InsertChild i)
-			= (if (n == 0) (ReplaceUI i) change, applyUIChange (ChangeUI [] [c]) ui)
-
-		//When a move affects the first position, we need to update the shown element
-		adjust` (change, ui) c=:(nfrom, MoveChild nto)
-			# ui = applyUIChange (ChangeUI [] [c]) ui
-			| nfrom == 0 || nto == 0
-				= case ui of (UI _ _ [i:_]) = (ReplaceUI i, ui) ; _ = (change, ui)
-			| otherwise 
-				= (change, ui)
-
-	//Crude restore...
-	//As long as the UIChange type does not support moving elements up and down the tree we cannot do better
-	restore (LSUnwrap ui) = ReplaceUI ui 
+unwrapUI = ruleBasedLayout unwrapUIRule
 
 unwrapUIRef_ :: Layout
 unwrapUIRef_ = referenceLayout ref
@@ -481,7 +440,7 @@ noChanges :: LUIChanges
 noChanges = {toBeInserted=False, toBeRemoved=False, toBeReplaced=Nothing, toBeShifted=Nothing, setAttributes='DM'.newMap, delAttributes = 'DS'.newSet}
 
 noEffects :: LUIEffects
-noEffects = {overwrittenType = ESNotApplied, overwrittenAttributes = 'DM'.newMap, hiddenAttributes = 'DM'.newMap, additional = ESNotApplied, hidden = ESNotApplied, moved = ESNotApplied, containsMovesBy = 'DM'.newMap, wrapper = ESNotApplied}
+noEffects = {overwrittenType = ESNotApplied, overwrittenAttributes = 'DM'.newMap, hiddenAttributes = 'DM'.newMap, additional = ESNotApplied, hidden = ESNotApplied, moved = ESNotApplied, containsMovesBy = 'DM'.newMap, wrapper = ESNotApplied, unwrapped = ESNotApplied}
 
 //Initialize an LUI tree from a regular UI tree
 initLUI :: Bool UI -> LUI
@@ -710,6 +669,22 @@ where
 unwrapUIRule :: LayoutRule
 unwrapUIRule = rule
 where
+	rule ruleId lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
+		= LUINode type attr items {changes & toBeReplaced=Just (rule ruleId replacement)} effects
+
+	rule ruleId lui=:(LUINode type attr items changes effects=:{unwrapped})
+		# hasChildren = lengthAfterChanges_ items > 0
+		= case unwrapped of
+			ESApplied matchId | matchId == ruleId
+				= if hasChildren lui (LUINode type attr items changes {effects & unwrapped = ESToBeRemoved ruleId})
+			ESToBeApplied matchId | matchId == ruleId
+				= if hasChildren lui (LUINode type attr items changes {effects & unwrapped = ESNotApplied})
+			ESToBeRemoved matchId
+				= if hasChildren (LUINode type attr items changes {LUIEffects|effects & unwrapped = ESToBeApplied ruleId}) lui
+			ESNotApplied
+				= if hasChildren (LUINode type attr items changes {LUIEffects|effects & unwrapped = ESToBeApplied ruleId}) lui
+			_
+				= abort "TODO: Already unwrapped by another rule, unwrap the first child.."
 	rule ruleId lui = lui
 
 insertChildUIRule :: Int UI -> LayoutRule
@@ -901,7 +876,7 @@ lengthAfterChanges_ :: [LUI] -> Int
 lengthAfterChanges_ items = foldr count 0 items
 where
 	count (LUINode _ _ _ {toBeRemoved = False} _) num = num + 1
-	count _ num = num //Don't count shift destinations and removed noed
+	count _ num = num //Don't count shift destinations and removed nodes
 
 indicesAfterChanges_ :: [LUI] -> [(Maybe Int,LUI)]
 indicesAfterChanges_ items = addIndices (indexShiftDestinations items) items
@@ -1056,6 +1031,14 @@ extractDownstreamChange lui=:(LUINode _ _ _ _ {LUIEffects|wrapper=ESToBeRemoved 
 	//The same holds for removal of  wrappings
 	# (ui,lui) = extractUIWithEffects lui estate
 	= (ReplaceUI ui, lui)
+extractDownstreamChange lui=:(LUINode _ _ _ _ {LUIEffects|unwrapped=ESToBeApplied _}) estate
+	//Same for unwrappings
+	# (ui,lui) = extractUIWithEffects lui estate
+	= (ReplaceUI ui, lui)
+extractDownstreamChange lui=:(LUINode _ _ _ _ {LUIEffects|unwrapped=ESToBeRemoved _}) estate
+	//And for removal of unwrappings
+	# (ui,lui) = extractUIWithEffects lui estate
+	= (ReplaceUI ui, lui)
 extractDownstreamChange lui=:(LUINode _ _ _ _ _) estate
 	//First check if there are moved nodes in this subtree, if so we first collect the changes that need to be done at the
 	//the destination such that we can inject them at the right place
@@ -1073,10 +1056,12 @@ extractDownstreamChange lui=:(LUINode _ _ _ _ _) estate
 	//Determine changes to attributes
 	# (attributeChanges,attr,effects) = extractAttributeChanges changes attr effects
 	//Determine changes to children
-	# (childChanges,items) = extractChildChanges items estate
-	# change = if (attributeChanges =: [] && childChanges =: [])
-		NoChange
-		(ChangeUI attributeChanges childChanges)
+	# unwrapped = effects.unwrapped =: (ESApplied _)
+	# (childChanges,items) = extractChildChanges items estate unwrapped
+	# change = case (unwrapped,attributeChanges,childChanges) of
+		(True,_,[(_,ChangeChild change)]) = change
+		(_,[],[])                         = NoChange
+		_                                 = ChangeUI attributeChanges childChanges
 	= (change, LUINode type attr items (resetChanges changes) effects)
 where
 	typeNeedsUpdate type {overwrittenType=ESToBeApplied _} = True
@@ -1179,15 +1164,15 @@ where
 			= (i,reverse reversedCollected,LUINode type attr (reverse reversedItems) changes effects)
 		where
 			collect` (i,collected,acc) lui=:(LUINode type attr items changes effects) 
-				| toBeMoved ruleId effects //Insert with effects at the destination
+				| toBeMovedBy ruleId effects //Insert with effects at the destination
 					# (ui,lui) = extractUIWithEffects lui estate
 					= (i + 1, [(i,InsertChild ui):collected], [lui:acc])
-				| isMoved ruleId effects //Extract the downstream changes, to be applied at the destination
+				| isMovedBy ruleId effects //Extract the downstream changes, to be applied at the destination
 					# (change,lui) = extractDownstreamChange lui estate
 					= case change of
 						NoChange = (i + 1, collected, [lui:acc])
 						_        = (i + 1, [(i,ChangeChild change):collected], [lui:acc])
-				| toBeUnMoved ruleId effects //Remove at the destination, but check for children that now need to be insterted
+				| toBeUnMovedBy ruleId effects //Remove at the destination, but check for children that now need to be insterted
 					# (i, collectedInChildren, lui) = collect ruleId i lui
 					= (i, reverse collectedInChildren ++ [(i,RemoveChild):collected], [lui:acc])
 				| otherwise //Collect changes in children
@@ -1195,20 +1180,42 @@ where
 					= (i, reverse collectedInChildren ++ collected, [lui:acc])
 			collect` (i,collected,acc) lui = (i,collected,[lui:acc])
 
-			toBeMoved ruleId {LUIEffects|moved=ESToBeApplied matchId} = ruleId == matchId
-			toBeMoved _ _ = False
-			isMoved ruleId {LUIEffects|moved=ESApplied matchId} = ruleId == matchId
-			isMoved _ _ = False
-			toBeUnMoved ruleId {LUIEffects|moved=ESToBeRemoved matchId} = ruleId == matchId
-			toBeUnMoved _ _ = False
+			toBeMovedBy ruleId {LUIEffects|moved=ESToBeApplied matchId} = ruleId == matchId
+			toBeMovedBy _ _ = False
+
+			isMovedBy ruleId {LUIEffects|moved=ESApplied matchId} = ruleId == matchId
+			isMovedBy _ _ = False
+
+			toBeUnMovedBy ruleId {LUIEffects|moved=ESToBeRemoved matchId} = ruleId == matchId
+			toBeUnMovedBy _ _ = False
 
 		collect ruleId i lui = (i,[],lui)
 
-	extractChildChanges items estate
-		# (shifts,items) = extractShifts items
-		# (insertsAndRemoves,items) = extractInsertsAndRemoves items
-		= (shifts ++ insertsAndRemoves, items)
+	extractChildChanges [] estate unwrapped = ([],[])
+	extractChildChanges items estate unwrapped
+		| unwrapped
+			| differentFirstChild items
+				# (_,items) = extractShifts items
+				# ([ui:_],items) = extractUIsWithEffects items estate
+				= ([(0,ChangeChild (ReplaceUI ui))],items)
+			| otherwise
+				# (_,[i:is]) = extractShifts items
+				//Extract the changes of the first item, and just update the rest
+				# (change,i) = extractDownstreamChange i estate
+				# (_,is) = extractUIsWithEffects is estate
+				= ([(0,ChangeChild change)],[i:is])
+		| otherwise
+			# (shifts,items) = extractShifts items
+			# (insertsAndRemoves,items) = extractInsertsAndRemoves items
+			= (shifts ++ insertsAndRemoves, items)
 	where
+		//When the parent is unwrapped, we may need to update the ui if another child ends up at position 0
+		differentFirstChild [LUINode _ _ _ {toBeInserted=True} _:_]= True
+		differentFirstChild [LUINode _ _ _ {toBeRemoved=True} _:_]= True
+		differentFirstChild [LUINode _ _ _ {toBeShifted=Just _} _:_]= True
+		differentFirstChild [LUIShiftDestination _:_]= True
+		differentFirstChild items = False
+
 		//Important: Shifts are done before inserts and removes
 		//           so we ignore items that are not yet inserted, but still
 		//           count items that are to be removed
@@ -1338,8 +1345,9 @@ extractUIWithEffects :: LUI LUIExtractState -> (!UI,!LUI)
 extractUIWithEffects (LUINode ltype lattr litems changes=:{toBeReplaced=Just replacement} effects) estate
 	= extractUIWithEffects replacement estate
 extractUIWithEffects (LUINode ltype lattr litems changes effects=:{wrapper=ESToBeRemoved _}) estate
-	# wrappedItem = hd (dropWhile isAdditional_ litems)
-	= extractUIWithEffects wrappedItem estate
+	= case dropWhile isAdditional_ litems of
+		[wrapped:_] = extractUIWithEffects wrapped estate
+		_           = abort "extractUIWithEffects: Wrapped item is missing"
 extractUIWithEffects lui=:(LUINode _ _ _ _ _) estate
 	//First collect moved ui's
 	# (LUINode ltype lattr litems changes=:{setAttributes,delAttributes} effects=:{overwrittenType},estate) = if (hasMovedNodes lui)
@@ -1361,9 +1369,11 @@ extractUIWithEffects lui=:(LUINode _ _ _ _ _) estate
 	# (sources,litems) = collectShiftSources litems
 	# litems = replaceShiftDestinations sources litems
 	//Recursively extract all effects
-	# (items,litems) = extractItems litems estate
+	# (items,litems) = extractUIsWithEffects litems estate
 	//Determine the ui
-	# ui = if (isHidden lui) (UI UIEmpty 'DM'.newMap []) (UI type attr items)
+	# ui = if (isHidden_ lui)
+		(UI UIEmpty 'DM'.newMap [])
+		(if (isUnwrapped_ lui) (hd items) (UI type attr items))
 	= (ui, LUINode ltype lattr litems noChanges (confirmEffects effects))
 where
 	remove (LUINode _ _ _ {toBeRemoved=True} _) = True
@@ -1422,27 +1432,23 @@ where
 	confirmEffects effects=:{LUIEffects|hidden=ESToBeApplied ruleId} = {LUIEffects|effects & hidden=ESApplied ruleId}
 	confirmEffects effects=:{LUIEffects|hidden=ESToBeRemoved ruleId} = {LUIEffects|effects & hidden=ESNotApplied}
 	confirmEffects effects=:{LUIEffects|wrapper=ESToBeApplied ruleId} = {LUIEffects|effects & wrapper=ESApplied ruleId}
+	confirmEffects effects=:{LUIEffects|unwrapped=ESToBeApplied ruleId} = {LUIEffects|effects & unwrapped=ESApplied ruleId}
+	confirmEffects effects=:{LUIEffects|unwrapped=ESToBeRemoved ruleId} = {LUIEffects|effects & unwrapped=ESNotApplied}
 	confirmEffects effects = effects
 
-	extractItems litems estate=:{movedUIs} = foldr extract ([],[]) litems 
-	where
-		extract litem=:(LUIMoveDestination ruleId numItems) (items,litems)
-			= (fromMaybe [] ('DM'.get ruleId movedUIs) ++ items, [litem:litems])
-		extract litem (items,litems)
-			| isMoved litem = (items,[litem:litems])
-			| otherwise
-				# (item,litem) = extractUIWithEffects litem estate
-				= (if (isHidden litem) items [item:items],[litem:litems])
-
-	isHidden (LUINode _ _ _ _ {LUIEffects|hidden=ESToBeApplied _}) = True
-	isHidden (LUINode _ _ _ _ {LUIEffects|hidden=ESApplied _}) = True
-	isHidden _ = False
-
-	isMoved (LUINode _ _ _ _ {LUIEffects|moved=ESToBeApplied _}) = True
-	isMoved (LUINode _ _ _ _ {LUIEffects|moved=ESApplied _}) = True
-	isMoved _ = False
-
 extractUIWithEffects _ _ = abort "extractUIWithEffects: can only extract UI from LUINodes"
+
+extractUIsWithEffects :: [LUI] LUIExtractState -> ([UI],[LUI])
+extractUIsWithEffects litems estate=:{movedUIs} = foldr extract ([],[]) litems
+where
+	extract litem=:(LUIMoveDestination ruleId numItems) (items,litems)
+		= (fromMaybe [] ('DM'.get ruleId movedUIs) ++ items, [litem:litems])
+	extract litem (items,litems)
+		| isRemoved_ litem = (items,litems)
+		| isMoved_ litem = (items,[litem:litems])
+		| otherwise
+			# (item,litem) = extractUIWithEffects litem estate
+			= (if (isHidden_ litem) items [item:items],[litem:litems])
 
 resetToBeShifted (LUINode type attr items changes effects)
 	= LUINode type attr items {changes & toBeShifted = Nothing} effects
@@ -1466,25 +1472,43 @@ where
 	hide (attr,hides) (key,ESToBeUpdated _ _) = ('DM'.del key attr,'DM'.put key (ESApplied ()) hides)
 	hide (attr,hides) (key,ESToBeRemoved _) = (attr,hides)
 
-
 isAdditional_ (LUINode _ _ _ _ {additional=ESToBeApplied _}) = True
 isAdditional_ (LUINode _ _ _ _ {additional=ESApplied _}) = True
 isAdditional_ (LUINode _ _ _ _ {additional=ESToBeRemoved _}) = True
 isAdditional_ _ = False
 
+isRemoved_ (LUINode _ _ _ {LUIChanges|toBeRemoved} _) = toBeRemoved
+isRemoved_ _ = False
+
+isUnwrapped_ (LUINode _ _ _ _ {LUIEffects|unwrapped=ESToBeApplied _}) = True
+isUnwrapped_ (LUINode _ _ _ _ {LUIEffects|unwrapped=ESApplied _}) = True
+isUnwrapped_ _ = False
+
+isMoved_ (LUINode _ _ _ _ {LUIEffects|moved=ESToBeApplied _}) = True
+isMoved_ (LUINode _ _ _ _ {LUIEffects|moved=ESApplied _}) = True
+isMoved_ _ = False
+
+isHidden_ (LUINode _ _ _ _ {LUIEffects|hidden=ESToBeApplied _}) = True
+isHidden_ (LUINode _ _ _ _ {LUIEffects|hidden=ESApplied _}) = True
+isHidden_ _ = False
+
 revertEffects :: LUI -> LUI
-revertEffects (LUINode type attr items changes effects=:{additional,wrapper})
+revertEffects (LUINode type attr items changes effects=:{additional,wrapper,unwrapped})
 	//Remove existing additional nodes
 	# additional = case additional of
 		(ESApplied ruleId) = ESToBeRemoved ruleId
 		_ 				   = additional
 	//Remove newly added additional nodes
 	# items = filter notNewAdditional items
-	//Undo wrappers
+	//Undo wrapping and unwrapping
 	# wrapper = case wrapper of
 		(ESApplied ruleId) = ESToBeRemoved ruleId
 		_                  = wrapper
-	= LUINode type attr (map revertEffects items) changes {effects & additional = additional, wrapper = wrapper}
+	# unwrapped = case unwrapped of
+		(ESApplied ruleId) = ESToBeRemoved ruleId
+		_                  = unwrapped
+
+	= LUINode type attr (map revertEffects items) changes {effects & additional = additional, wrapper = wrapper, unwrapped = unwrapped}
 where
 	notNewAdditional (LUINode _ _ _ _ effects=:{additional=ESToBeApplied _}) = False
 	notNewAdditional _ = True

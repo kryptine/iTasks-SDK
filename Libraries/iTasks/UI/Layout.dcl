@@ -214,7 +214,7 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 	, moved                 :: LUIEffectStage LID
 	, containsMovesBy       :: Map LID Int
 	, wrapper               :: LUIEffectStage LID
-	//, unwrapped             :: LUIEffectStage LID
+	, unwrapped             :: LUIEffectStage LID
 	}
 
 //Layout rules determine that an effect should according to that rule be applied or restored.
@@ -264,6 +264,7 @@ insertChildUIRule :: Int UI -> LayoutRule
 removeSubUIsRule :: UISelection -> LayoutRule
 moveSubUIsRule :: UISelection UIPath Int -> LayoutRule
 wrapUIRule :: UIType -> LayoutRule
+unwrapUIRule :: LayoutRule
  
 //Helper functions (exported for testing)
 adjustIndex_ :: Int [LUI] -> Int
