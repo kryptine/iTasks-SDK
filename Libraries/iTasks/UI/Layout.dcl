@@ -236,6 +236,7 @@ removeSubUIsRule :: UISelection -> LayoutRule
 moveSubUIsRule :: UISelection UIPath Int -> LayoutRule
 wrapUIRule :: UIType -> LayoutRule
 unwrapUIRule :: LayoutRule
+layoutSubUIsRule :: UISelection LayoutRule -> LayoutRule
  
 //Helper functions (exported for testing)
 adjustIndex_ :: Int [LUI] -> Int

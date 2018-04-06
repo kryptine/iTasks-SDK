@@ -944,6 +944,25 @@ unwrapUIRuleTests =
 		)
 	]
 
+layoutSubUIsRuleTests =
+	[assertEqual "Layout sub-uis rule: change type"
+		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges {noEffects & overwrittenType = ESToBeApplied UIDebug}
+				] noChanges noEffects
+		)
+		(layoutSubUIsRule (SelectByType UIStep) (setUITypeRule UIDebug) 0
+			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+			)
+		)
+	]
+
+
 
 tests =  applyUpstreamChangeTests 
       ++ extractDownstreamChangeTests
@@ -960,5 +979,6 @@ tests =  applyUpstreamChangeTests
 	  ++ moveSubUIsRuleTests
 	  ++ wrapUIRuleTests
 	  ++ unwrapUIRuleTests
+	  ++ layoutSubUIsRuleTests
 
 Start w = runUnitTestsCLI [testsuite "Test.iTasks.UI.Layout" "Duh.." tests] w

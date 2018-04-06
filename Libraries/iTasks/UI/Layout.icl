@@ -721,7 +721,6 @@ where
 				= lui
 		undo lui = lui
 
-
 removeSubUIsRule :: UISelection -> LayoutRule
 removeSubUIsRule selection = rule
 where
@@ -755,6 +754,9 @@ where
 moveSubUIsRule :: UISelection UIPath Int -> LayoutRule
 moveSubUIsRule selection path pos = rule
 where
+	rule ruleId lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
+		= LUINode type attr items {changes & toBeReplaced=Just (rule ruleId replacement)} effects
+
 	rule ruleId lui
 		# (numMoved,lui) = markNodes selection (destinationExists path pos lui) lui
 		# lui = updateDestination numMoved lui
@@ -780,10 +782,10 @@ where
 					= (1,LUINode type attr (map clear items) changes (move ruleId effects))
 				| otherwise
 					# (nums,items) = unzip [maybe (0,item) (\i -> mark (path ++ [i]) item) mbi \\ (mbi,item) <- indicesAfterChanges_ items]
-					= (sum nums, LUINode type attr items changes (unmove ruleId effects))
+					= (sum nums, LUINode type attr items changes (revertEffect_ ruleId effects))
 			mark _ lui = (0,lui)
 
-			clear (LUINode type attr items changes effects) = LUINode type attr (map clear items) changes (unmove ruleId effects)
+			clear (LUINode type attr items changes effects) = LUINode type attr (map clear items) changes (revertEffect_ ruleId effects)
 			clear lui = lui
 
 		//3 Mark the destination with the correct number of moved nodes
@@ -824,10 +826,22 @@ where
 	move ruleId effects=:{LUIEffects|moved=ESApplied _} = {LUIEffects|effects & moved = ESApplied ruleId}
 	move ruleId effects=:{LUIEffects|moved=ESToBeRemoved _} = {LUIEffects|effects & moved= ESApplied ruleId}
 
-	unmove ruleId effects=:{LUIEffects|moved=ESNotApplied} = {LUIEffects|effects & moved = ESNotApplied}
-	unmove ruleId effects=:{LUIEffects|moved=ESToBeApplied _} = {LUIEffects|effects & moved = ESNotApplied}
-	unmove ruleId effects=:{LUIEffects|moved=ESApplied _} = {LUIEffects|effects & moved = ESToBeRemoved ruleId}
-	unmove ruleId effects=:{LUIEffects|moved=ESToBeRemoved _} = {LUIEffects|effects & moved = ESToBeRemoved ruleId}
+layoutSubUIsRule :: UISelection LayoutRule -> LayoutRule
+layoutSubUIsRule selection sub = rule
+where
+	rule ruleId lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
+		= LUINode type attr items {changes & toBeReplaced=Just (rule ruleId replacement)} effects
+
+	rule ruleId lui = apply [] lui
+	where
+		apply path lui=:(LUINode type attr items changes effects)
+			//Check if this matches the selection
+			| inLUISelection_ selection path lui
+				= sub ruleId lui
+			| otherwise
+				# items = [maybe item (\i -> apply (path ++ [i]) item) mbi \\ (mbi,item) <- indicesAfterChanges_ items]
+				= LUINode type attr items changes (revertEffect_ ruleId effects)
+		apply path lui = lui
 
 //Utility functions shared by the layout rules:
 
@@ -862,6 +876,35 @@ isAddedBy_ lid (LUINode _ _ _ _ {additional=ESToBeApplied ruleId}) = lid == rule
 isAddedBy_ lid (LUINode _ _ _ _ {additional=ESApplied ruleId}) = lid == ruleId
 isAddedBy_ lid (LUINode _ _ _ _ {additional=ESToBeRemoved ruleId}) = lid == ruleId
 isAddedBy_ _ _ = False
+
+isAdditional_ :: LUI -> Bool
+isAdditional_ (LUINode _ _ _ _ {additional=ESToBeApplied _}) = True
+isAdditional_ (LUINode _ _ _ _ {additional=ESApplied _}) = True
+isAdditional_ (LUINode _ _ _ _ {additional=ESToBeRemoved _}) = True
+isAdditional_ _ = False
+
+isRemoved_ :: LUI -> Bool
+isRemoved_ (LUINode _ _ _ {LUIChanges|toBeRemoved} _) = toBeRemoved
+isRemoved_ _ = False
+
+isUnwrapped_ :: LUI -> Bool
+isUnwrapped_ (LUINode _ _ _ _ {LUIEffects|unwrapped=ESToBeApplied _}) = True
+isUnwrapped_ (LUINode _ _ _ _ {LUIEffects|unwrapped=ESApplied _}) = True
+isUnwrapped_ _ = False
+
+isMoved_ :: LUI -> Bool
+isMoved_ (LUINode _ _ _ _ {LUIEffects|moved=ESToBeApplied _}) = True
+isMoved_ (LUINode _ _ _ _ {LUIEffects|moved=ESApplied _}) = True
+isMoved_ _ = False
+
+isHidden_ :: LUI -> Bool
+isHidden_ (LUINode _ _ _ _ {LUIEffects|hidden=ESToBeApplied _}) = True
+isHidden_ (LUINode _ _ _ _ {LUIEffects|hidden=ESApplied _}) = True
+isHidden_ _ = False
+
+hasMovedNodes_ :: LUI -> Bool
+hasMovedNodes_ (LUINode _ _ _ _ {containsMovesBy}) = not ('DM'.null containsMovesBy)
+hasMovedNodes_ _ = False
 
 lookupShiftSource_ :: Int [LUI] -> (Int,LUI)
 lookupShiftSource_ shiftId items = lookup 0 items 
@@ -1012,6 +1055,18 @@ inLUISelection_ (SelectOR sell selr) path ui = inLUISelection_ sell path ui || i
 inLUISelection_ (SelectNOT sel) path ui = not (inLUISelection_ sel path ui)
 inLUISelection_ _ _ _ = False
 
+revertEffect_ :: LID LUIEffects -> LUIEffects //TODO Not all effects can currently be identified by a ruleId
+revertEffect_ ruleId effects=:{LUIEffects|additional,hidden,moved,wrapper,unwrapped}
+	| additional === (ESApplied ruleId) = {LUIEffects|effects & additional = ESToBeRemoved ruleId}
+	| additional === (ESToBeApplied ruleId) = {LUIEffects|effects & additional = ESNotApplied}
+	| hidden === (ESApplied ruleId) = {LUIEffects|effects & hidden = ESToBeRemoved ruleId}
+	| hidden === (ESToBeApplied ruleId) = {LUIEffects|effects & hidden = ESNotApplied}
+	| wrapper === (ESApplied ruleId) = {LUIEffects|effects & wrapper = ESToBeRemoved ruleId}
+	| wrapper === (ESToBeApplied ruleId) = {LUIEffects|effects & wrapper = ESNotApplied}
+	| unwrapped === (ESApplied ruleId) = {LUIEffects|effects & unwrapped = ESToBeRemoved ruleId}
+	| unwrapped === (ESToBeApplied ruleId) = {LUIEffects|effects & unwrapped = ESNotApplied}
+	= effects
+
 /*
 * Once layout rules have annotated their effects, the change that has to be applied downstream
 * can be extracted from the buffered structure. The result of doing this is both the combination of
@@ -1042,7 +1097,7 @@ extractDownstreamChange lui=:(LUINode _ _ _ _ {LUIEffects|unwrapped=ESToBeRemove
 extractDownstreamChange lui=:(LUINode _ _ _ _ _) estate
 	//First check if there are moved nodes in this subtree, if so we first collect the changes that need to be done at the
 	//the destination such that we can inject them at the right place
-	# (LUINode type attr items changes effects,estate) = if (hasMovedNodes lui)
+	# (LUINode type attr items changes effects,estate) = if (hasMovedNodes_ lui)
 		(collectMoveDestinationChanges lui estate)
 		(lui,estate)
 	//Check overwritten ui-types: There is no way to set a type downstream, so a full replace is needed
@@ -1338,9 +1393,6 @@ where
 
 extractDownstreamChange lui estate = (NoChange,lui)
 
-hasMovedNodes (LUINode _ _ _ _ {containsMovesBy}) = not ('DM'.null containsMovesBy)
-hasMovedNodes _ = False
-
 extractUIWithEffects :: LUI LUIExtractState -> (!UI,!LUI)
 extractUIWithEffects (LUINode ltype lattr litems changes=:{toBeReplaced=Just replacement} effects) estate
 	= extractUIWithEffects replacement estate
@@ -1350,7 +1402,7 @@ extractUIWithEffects (LUINode ltype lattr litems changes effects=:{wrapper=ESToB
 		_           = abort "extractUIWithEffects: Wrapped item is missing"
 extractUIWithEffects lui=:(LUINode _ _ _ _ _) estate
 	//First collect moved ui's
-	# (LUINode ltype lattr litems changes=:{setAttributes,delAttributes} effects=:{overwrittenType},estate) = if (hasMovedNodes lui)
+	# (LUINode ltype lattr litems changes=:{setAttributes,delAttributes} effects=:{overwrittenType},estate) = if (hasMovedNodes_ lui)
 		(collectMoveDestinationUIs lui estate)
 		(lui,estate)
 	//Update type
@@ -1471,26 +1523,6 @@ where
 	hide (attr,hides) (key,ESApplied _) = ('DM'.del key attr,'DM'.put key (ESApplied ()) hides)
 	hide (attr,hides) (key,ESToBeUpdated _ _) = ('DM'.del key attr,'DM'.put key (ESApplied ()) hides)
 	hide (attr,hides) (key,ESToBeRemoved _) = (attr,hides)
-
-isAdditional_ (LUINode _ _ _ _ {additional=ESToBeApplied _}) = True
-isAdditional_ (LUINode _ _ _ _ {additional=ESApplied _}) = True
-isAdditional_ (LUINode _ _ _ _ {additional=ESToBeRemoved _}) = True
-isAdditional_ _ = False
-
-isRemoved_ (LUINode _ _ _ {LUIChanges|toBeRemoved} _) = toBeRemoved
-isRemoved_ _ = False
-
-isUnwrapped_ (LUINode _ _ _ _ {LUIEffects|unwrapped=ESToBeApplied _}) = True
-isUnwrapped_ (LUINode _ _ _ _ {LUIEffects|unwrapped=ESApplied _}) = True
-isUnwrapped_ _ = False
-
-isMoved_ (LUINode _ _ _ _ {LUIEffects|moved=ESToBeApplied _}) = True
-isMoved_ (LUINode _ _ _ _ {LUIEffects|moved=ESApplied _}) = True
-isMoved_ _ = False
-
-isHidden_ (LUINode _ _ _ _ {LUIEffects|hidden=ESToBeApplied _}) = True
-isHidden_ (LUINode _ _ _ _ {LUIEffects|hidden=ESApplied _}) = True
-isHidden_ _ = False
 
 revertEffects :: LUI -> LUI
 revertEffects (LUINode type attr items changes effects=:{additional,wrapper,unwrapped})
