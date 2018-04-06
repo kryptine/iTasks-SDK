@@ -63,32 +63,20 @@ inUISelectionAfterChange selection path ui change //TODO: This needs a more effi
 idLayout :: Layout 
 idLayout = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
 
-setUIType :: UIType -> Layout
-setUIType type = ruleBasedLayout (setUITypeRule type)
-
 setUITypeRef_ :: UIType -> Layout
 setUITypeRef_ type = referenceLayout ref
 where 
 	ref (UI _ attr items) = UI type attr items
-
-setUIAttributes :: UIAttributes -> Layout
-setUIAttributes extraAttr = ruleBasedLayout (setUIAttributesRule extraAttr)
 
 setUIAttributesRef_ :: UIAttributes -> Layout
 setUIAttributesRef_ extraAttr = referenceLayout ref
 where
 	ref (UI type attr items) = UI type ('DM'.union extraAttr attr) items
 
-delUIAttributes :: UIAttributeSelection -> Layout 
-delUIAttributes selection = ruleBasedLayout (delUIAttributesRule selection)
-
 delUIAttributesRef_ :: UIAttributeSelection -> Layout 
 delUIAttributesRef_ selection = referenceLayout ref
 where
 	ref (UI type attr items) = UI type (foldl (\a k -> if (matchKey_ selection k) ('DM'.del k a) a) attr ('DM'.keys attr)) items
-
-modifyUIAttributes :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
-modifyUIAttributes selection modifier = ruleBasedLayout (modifyUIAttributesRule selection modifier)
 
 modifyUIAttributesRef_ :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
 modifyUIAttributesRef_ selection modifier = referenceLayout ref
@@ -99,15 +87,6 @@ where
 
 		selectAttributesOLD SelectAll attr = attr
 		selectAttributesOLD (SelectKeys keys) attr = 'DM'.fromList [a \\ a=:(k,_) <- 'DM'.toList attr | isMember k keys]
-
-//Known use:
-//-	copySubUIAttributes SelectAll [0] [] 
-//- copySubUIAttributes (SelectKeys ["title"]) [0] []	
-//- copySubUIAttributes (SelectKeys ["label","optional","mode"]) [1] [0]
-//- copySubUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) [1] [2]
-//- copySubUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) [1] [1]
-copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> Layout
-copySubUIAttributes selection src dst = ruleBasedLayout (copySubUIAttributesRule selection src dst)
 
 copySubUIAttributesRef_ :: UIAttributeSelection UIPath UIPath -> Layout
 copySubUIAttributesRef_ selection src dst = referenceLayout ref
@@ -120,21 +99,10 @@ where
 	updDst [] selected (UI type attr items) = UI type (foldl (\a (k,v) -> 'DM'.put k v a) attr selected) items
 	updDst [s:ss] selected ui=:(UI type attr items) = if (s >= 0 && s < length items) (UI type attr (updateAt s (updDst ss selected (items !! s)) items)) ui
 
-//Set attributes in 'new' if they are different than, or not found in 'old'
-//Remove attributes that were in old, but are no longer in new
-diffAttributes old new = [SetAttribute k v \\ (k,v) <- 'DM'.toList new | maybe True (\ov -> ov <> v) ('DM'.get k old)] 
-					  ++ [DelAttribute k \\ k <- 'DM'.keys old | isNothing ('DM'.get k new)]
-
-wrapUI :: UIType -> Layout
-wrapUI type = ruleBasedLayout (wrapUIRule type)
-
 wrapUIRef_ :: UIType -> Layout
 wrapUIRef_ type = referenceLayout ref
 where
 	ref ui = uic type [ui]
-
-unwrapUI :: Layout
-unwrapUI = ruleBasedLayout unwrapUIRule
 
 unwrapUIRef_ :: Layout
 unwrapUIRef_ = referenceLayout ref
@@ -142,20 +110,12 @@ where
 	ref (UI _ _ [ui:_]) = ui
 	ref ui = ui
 
-//Insert the element at the specified index.
-//Only insert if there are at least as many children as the specified index
-insertChildUI :: Int UI -> Layout
-insertChildUI position insertion = ruleBasedLayout (insertChildUIRule position insertion)
-
 insertChildUIRef_ :: Int UI -> Layout
 insertChildUIRef_ idx insert = referenceLayout ref
 where
 	ref ui=:(UI type attr items)
 		| idx >= 0 && idx <= length items = UI type attr (insertAt idx insert items)
 										  = ui
-
-removeSubUIs :: UISelection -> Layout
-removeSubUIs selection = ruleBasedLayout (removeSubUIsRule selection)
 
 removeSubUIsRef_ :: UISelection -> Layout
 removeSubUIsRef_ selection = referenceLayout ref
@@ -167,10 +127,6 @@ where
 	rem path ui=:(UI type attr items)
 	  | inUISelection selection path ui = []
 						      = [UI type attr (flatten [rem (path ++ [i]) x \\ x <- items & i <- [0..]])]
-
-moveSubUIs :: UISelection UIPath Int -> Layout 
-moveSubUIs selection path pos = ruleBasedLayout (moveSubUIsRule selection path pos)
-//moveSubUIs selection path pos = moveSubUIsRef_ selection path pos
 
 moveSubUIsRef_ :: UISelection UIPath Int -> Layout 
 moveSubUIsRef_ selection dst pos = referenceLayout ref
