@@ -17,13 +17,13 @@ from Text import class Text, instance Text String
 
 LABEL_WIDTH :== 100
 
-arrangeWithTabs :: Bool -> Layout
-arrangeWithTabs closeable = layoutSubUIs
+arrangeWithTabs :: Bool -> LayoutExpression
+arrangeWithTabs closeable = LayoutSubUIs
 	(SelectAND (SelectByPath []) (SelectByType UIParallel))
-	(sequenceLayouts (setUIType UITabSet)
-		(if closeable moveCloseToTab idLayout))
+	(SequenceLayouts [SetUIType UITabSet,
+		(if closeable moveCloseToTab idLayout)])
 where
-	moveCloseToTab = layoutSubUIs //Only on children directly containing a clos action
+	moveCloseToTab = LayoutSubUIs //Only on children directly containing a clos action
 		(SelectAND
 			SelectChildren
 			(SelectByContains
@@ -39,37 +39,37 @@ where
 		(SelectByType UIAction)
 		(SelectByAttribute "actionId" ((==) (JSONString "Close")))
 
-	reallyMoveCloseToTab = foldl1 sequenceLayouts
-		[moveSubUIs (SelectAND SelectChildren selectCloseButton) [] 0
-		,layoutSubUIs (SelectByPath [0]) (modifyUIAttributes SelectAll
+	reallyMoveCloseToTab = SequenceLayouts
+		[MoveSubUIs (SelectAND SelectChildren selectCloseButton) [] 0
+		,LayoutSubUIs (SelectByPath [0]) (ModifyUIAttributes SelectAll
 			(\ui->case 'DM'.get "taskId" ui of
 				Nothing = ui
 				Just tid = 'DM'.put "closeTaskId" tid ui))
-		,copySubUIAttributes (SelectKeys ["closeTaskId"]) [0] []
-		,removeSubUIs (SelectByPath [0])
+		,CopySubUIAttributes (SelectKeys ["closeTaskId"]) [0] []
+		,RemoveSubUIs (SelectByPath [0])
 		]
 
-arrangeWithSideBar :: !Int !UISide !Int !Bool -> Layout
-arrangeWithSideBar index side size resize = foldl1 sequenceLayouts 
-	[wrapUI UIPanel 			//Push the current container down a level
-	,copySubUIAttributes SelectAll [0] [] 	//Keep the attributes from the original UI
-	,setUIAttributes (directionAttr direction)
-	,insertChildUI sidePanelIndex (ui UIComponent) //Make sure we have a target for the move
-	,moveSubUIs (SelectByPath [mainPanelIndex,index]) [sidePanelIndex] 0
-	,layoutSubUIs (SelectByPath [sidePanelIndex]) unwrapUI //Remove the temporary wrapping panel
-	,layoutSubUIs (SelectByPath [sidePanelIndex]) (sequenceLayouts
-		(setUIAttributes (sizeAttr sidePanelWidth sidePanelHeight))
-		(if resize (sequenceLayouts
-			(setUIAttributes (resizableAttr (resizers side)))
-			(setUIAttributes (padders side))
-			) idLayout))
+arrangeWithSideBar :: !Int !UISide !Int !Bool -> LayoutExpression
+arrangeWithSideBar index side size resize = SequenceLayouts 
+	[WrapUI UIPanel 			//Push the current container down a level
+	,CopySubUIAttributes SelectAll [0] [] 	//Keep the attributes from the original UI
+	,SetUIAttributes (directionAttr direction)
+	,InsertChildUI sidePanelIndex (ui UIComponent) //Make sure we have a target for the move
+	,MoveSubUIs (SelectByPath [mainPanelIndex,index]) [sidePanelIndex] 0
+	,LayoutSubUIs (SelectByPath [sidePanelIndex]) UnwrapUI //Remove the temporary wrapping panel
+	,LayoutSubUIs (SelectByPath [sidePanelIndex]) (SequenceLayouts
+		[SetUIAttributes (sizeAttr sidePanelWidth sidePanelHeight)
+		:if resize [SequenceLayouts
+			[SetUIAttributes (resizableAttr (resizers side))
+			,SetUIAttributes (padders side)
+			]] []
+		])
 	]
 where
 	sidePanelIndex = if (side === TopSide || side === LeftSide) 0 1
 	mainPanelIndex = if (sidePanelIndex === 0) 1 0
 	direction = if (side === TopSide|| side === BottomSide) Vertical Horizontal
 
-	
 	padders TopSide = bottomPaddingAttr 5
 	padders BottomSide = topPaddingAttr 5
 	padders LeftSide = rightPaddingAttr 5
@@ -84,14 +84,14 @@ where
 
 import StdDebug, StdMisc
 
-arrangeAsMenu :: [[Int]] -> Layout
-arrangeAsMenu seps = foldl1 sequenceLayouts
+arrangeAsMenu :: [[Int]] -> LayoutExpression
+arrangeAsMenu seps = SequenceLayouts
 	// Wrap in panel
-	[ wrapUI UIPanel
+	[ WrapUI UIPanel
 	// Add a buttonbar to hold the menu
-	, insertChildUI 0 (ui UIToolBar)
+	, InsertChildUI 0 (ui UIToolBar)
 	// Move the actions with a matching id to the menubar
-	, moveSubUIs (SelectAND
+	, MoveSubUIs (SelectAND
 			(SelectByDepth 2)
 			(SelectAND
 				(SelectByType UIAction)
@@ -102,11 +102,12 @@ arrangeAsMenu seps = foldl1 sequenceLayouts
 			)
 		) [0] 0
 	// Transform the menubar in an actual menu
-	, layoutSubUIs (SelectByPath [0]) makeMenu//(sequenceLayouts makeMenu actionToButton)
+	, LayoutSubUIs (SelectByPath [0]) makeMenu//(sequenceLayouts makeMenu actionToButton)
 	]
 where
-	makeMenu :: Layout
-	makeMenu =	
+	makeMenu :: LayoutExpression
+	makeMenu = SequenceLayouts [] //FIXME
+/*
 		{apply=apply
 		,adjust=  \t->case t of
 			(NoChange, s) = (NoChange, s)
@@ -159,66 +160,66 @@ where
 			= [UI t attr (ins ps ui cs):us]
 		// Otherwise we create a new menu node
 		= [(UI t attr cs):ins [p:ps] ui us]
-
-arrangeSplit :: !UIDirection !Bool -> Layout
+*/
+arrangeSplit :: !UIDirection !Bool -> LayoutExpression
 arrangeSplit direction resize 
-	= foldl1 sequenceLayouts 
-		[layoutSubUIs (SelectByPath []) (setUIAttributes (directionAttr direction))
-		,layoutSubUIs SelectChildren (setUIAttributes (sizeAttr FlexSize FlexSize))
+	= SequenceLayouts 
+		[LayoutSubUIs (SelectByPath []) (SetUIAttributes (directionAttr direction))
+		,LayoutSubUIs SelectChildren (SetUIAttributes (sizeAttr FlexSize FlexSize))
 		]
 
-arrangeVertical :: Layout
-arrangeVertical = setUIAttributes (directionAttr Vertical)
+arrangeVertical :: LayoutExpression
+arrangeVertical = SetUIAttributes (directionAttr Vertical)
 
-arrangeHorizontal :: Layout
-arrangeHorizontal = setUIAttributes (directionAttr Horizontal)
+arrangeHorizontal :: LayoutExpression
+arrangeHorizontal = SetUIAttributes (directionAttr Horizontal)
 
-frameCompact :: Layout
-frameCompact = foldl1 sequenceLayouts
-	[setUIAttributes ('DM'.unions [frameAttr True,sizeAttr WrapSize WrapSize,marginsAttr 50 0 20 0,minWidthAttr (ExactBound 600)])
-	,wrapUI UIContainer
-	,setUIAttributes (halignAttr AlignCenter)
+frameCompact :: LayoutExpression
+frameCompact = SequenceLayouts
+	[SetUIAttributes ('DM'.unions [frameAttr True,sizeAttr WrapSize WrapSize,marginsAttr 50 0 20 0,minWidthAttr (ExactBound 600)])
+	,WrapUI UIContainer
+	,SetUIAttributes (halignAttr AlignCenter)
 	]
 
 //TODO: Explicitly detect if we are before or after a step
-beforeStep :: Layout -> Layout
-beforeStep layout = layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIStep)) layout
+beforeStep :: LayoutExpression -> LayoutExpression
+beforeStep layout = LayoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIStep)) layout
 
-toWindow :: UIWindowType UIVAlign UIHAlign -> Layout
-toWindow windowType vpos hpos = foldl1 sequenceLayouts 
-	[wrapUI UIWindow
+toWindow :: UIWindowType UIVAlign UIHAlign -> LayoutExpression
+toWindow windowType vpos hpos = SequenceLayouts 
+	[WrapUI UIWindow
 	,interactToWindow
-	,copySubUIAttributes (SelectKeys [TITLE_ATTRIBUTE]) [0] []
-	,layoutSubUIs (SelectByPath [0]) (delUIAttributes (SelectKeys [TITLE_ATTRIBUTE]))
-	,setUIAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
+	,CopySubUIAttributes (SelectKeys [TITLE_ATTRIBUTE]) [0] []
+	,LayoutSubUIs (SelectByPath [0]) (DelUIAttributes (SelectKeys [TITLE_ATTRIBUTE]))
+	,SetUIAttributes ('DM'.unions [windowTypeAttr windowType,vposAttr vpos, hposAttr hpos])
 	]
 where
-	interactToWindow = layoutSubUIs (SelectAND (SelectByPath []) (SelectByContains (SelectAND (SelectByPath [0]) (SelectByType UIInteract))))
-		(foldl1 sequenceLayouts	[copySubUIAttributes (SelectKeys ["title"]) [0,0] []
-								,layoutSubUIs (SelectByPath [0,0]) (delUIAttributes (SelectKeys ["title"]))
-								])
+	interactToWindow = LayoutSubUIs (SelectAND (SelectByPath []) (SelectByContains (SelectAND (SelectByPath [0]) (SelectByType UIInteract))))
+		(SequenceLayouts	[CopySubUIAttributes (SelectKeys ["title"]) [0,0] []
+							,LayoutSubUIs (SelectByPath [0,0]) (DelUIAttributes (SelectKeys ["title"]))
+							])
 
 
-insertToolBar :: [String] -> Layout
-insertToolBar actions = foldl1 sequenceLayouts
-	[insertChildUI 0 (ui UIToolBar)
-	,moveSubUIs (foldl1 SelectOR [SelectByAttribute "actionId" ((==) (JSONString action))\\ action <- actions]) [0] 0
-	,layoutSubUIs (SelectByPath [0]) (layoutSubUIs (SelectByType UIAction) actionToButton)
+insertToolBar :: [String] -> LayoutExpression
+insertToolBar actions = SequenceLayouts
+	[InsertChildUI 0 (ui UIToolBar)
+	,MoveSubUIs (foldl1 SelectOR [SelectByAttribute "actionId" ((==) (JSONString action))\\ action <- actions]) [0] 0
+	,LayoutSubUIs (SelectByPath [0]) (LayoutSubUIs (SelectByType UIAction) actionToButton)
 	]
 
-toEmpty :: Layout
-toEmpty = setUIType UIEmpty
+toEmpty :: LayoutExpression
+toEmpty = SetUIType UIEmpty
 
-toContainer :: Layout
-toContainer = setUIType UIContainer 
+toContainer :: LayoutExpression
+toContainer = SetUIType UIContainer 
 
-toPanel :: Layout
-toPanel = setUIType UIPanel
+toPanel :: LayoutExpression
+toPanel = SetUIType UIPanel
 
-actionToButton :: Layout
-actionToButton = foldl1 sequenceLayouts
-	[setUIType UIButton
-	,modifyUIAttributes (SelectKeys ["actionId"]) (\attr -> maybe 'DM'.newMap
+actionToButton :: LayoutExpression
+actionToButton = SequenceLayouts
+	[SetUIType UIButton
+	,ModifyUIAttributes (SelectKeys ["actionId"]) (\attr -> maybe 'DM'.newMap
 		(\(JSONString a) -> 'DM'.unions [valueAttr (JSONString a),textAttr a,icon a])
 		('DM'.get "actionId" attr))
 	]
@@ -246,15 +247,16 @@ where
 	icon "Close" = iconClsAttr "icon-close"
 	icon _ = 'DM'.newMap
 
-setActionIcon :: (Map String String) -> Layout
-setActionIcon icons = sequenceLayouts
+setActionIcon :: (Map String String) -> LayoutExpression
+setActionIcon icons = SequenceLayouts
 	// Buttons and actions
-	(layoutSubUIs (SelectOR (SelectByType UIAction) (SelectByType UIButton))
-		$ ic "actionId")
-	(layoutSubUIs (SelectByType UIMenu)
-		$ ic "text")
+	[LayoutSubUIs (SelectOR (SelectByType UIAction) (SelectByType UIButton))
+		$ ic "actionId"
+	,LayoutSubUIs (SelectByType UIMenu)
+		$ ic "text"
+	]
 where
-	ic field = modifyUIAttributes (SelectKeys [field]) $ \attr->fromMaybe attr
+	ic field = ModifyUIAttributes (SelectKeys [field]) $ \attr->fromMaybe attr
 		$ 'DM'.get field attr
 		  >>= \(JSONString f) -> 'DM'.get f icons
 		  >>= \icon ->           return ('DM'.union (iconClsAttr ("icon-" +++ icon)) attr)
@@ -308,22 +310,22 @@ where
 
 instance tune Title Task
 where
-	tune (Title title) t = tune (ApplyLayout (setUIAttributes (titleAttr title)) ) t
+	tune (Title title) t = tune (ApplyLayout (SetUIAttributes (titleAttr title)) ) t
 	
 instance tune Icon Task
 where
-	tune (Icon icon) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]))) t
+	tune (Icon icon) t = tune (ApplyLayout (SetUIAttributes ('DM'.fromList [(ICON_ATTRIBUTE,JSONString icon)]))) t
 
 instance tune Label Task
 where
-	tune (Label label) t = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]))) t
+	tune (Label label) t = tune (ApplyLayout (SetUIAttributes ('DM'.fromList [(LABEL_ATTRIBUTE,JSONString label)]))) t
 
-toFormItem :: Layout
-toFormItem = layoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAttribute LABEL_ATTRIBUTE) (SelectByHasAttribute HINT_ATTRIBUTE)))
-	(foldl1 sequenceLayouts
+toFormItem :: LayoutExpression
+toFormItem = LayoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAttribute LABEL_ATTRIBUTE) (SelectByHasAttribute HINT_ATTRIBUTE)))
+	(SequenceLayouts
 		//Create the 'row' that holds the form item
-		[wrapUI UIContainer
-		,setUIAttributes ('DM'.unions [marginsAttr 2 4 2 4, directionAttr Horizontal,valignAttr AlignMiddle, sizeAttr FlexSize WrapSize])
+		[WrapUI UIContainer
+		,SetUIAttributes ('DM'.unions [marginsAttr 2 4 2 4, directionAttr Horizontal,valignAttr AlignMiddle, sizeAttr FlexSize WrapSize])
 		//If there is a label attribute, create a label 
 		,optAddLabel
 		//If there is hint attribute, create an extra icon 
@@ -331,13 +333,14 @@ toFormItem = layoutSubUIs (SelectAND (SelectByPath []) (SelectOR (SelectByHasAtt
 		]
 	)
 where
-	optAddLabel = layoutSubUIs (SelectByContains (SelectAND (SelectByPath [0]) (SelectByHasAttribute LABEL_ATTRIBUTE))) addLabel
-	addLabel = sequenceLayouts
-		(insertChildUI 0 (uia UILabel (widthAttr (ExactSize LABEL_WIDTH))))
-		(sequenceLayouts
-			(copySubUIAttributes (SelectKeys ["label","optional","mode"]) [1] [0])
-			(layoutSubUIs (SelectByPath [0]) (modifyUIAttributes (SelectKeys ["label","optional","mode"]) createLabelText))
-		)
+	optAddLabel = LayoutSubUIs (SelectByContains (SelectAND (SelectByPath [0]) (SelectByHasAttribute LABEL_ATTRIBUTE))) addLabel
+	addLabel = SequenceLayouts
+		[InsertChildUI 0 (uia UILabel (widthAttr (ExactSize LABEL_WIDTH)))
+		,SequenceLayouts
+			[CopySubUIAttributes (SelectKeys ["label","optional","mode"]) [1] [0]
+			,LayoutSubUIs (SelectByPath [0]) (ModifyUIAttributes (SelectKeys ["label","optional","mode"]) createLabelText)
+			]
+		]
 	where
 		createLabelText attr = textAttr text
 		where	
@@ -347,16 +350,17 @@ where
 			optional = maybe False (\(JSONBool b) -> b) ('DM'.get "optional" attr) 
 			label = maybe "-" (\(JSONString s) -> s) ('DM'.get "label" attr)
 
-	optAddIcon = layoutSubUIs (SelectByContains (SelectAND SelectChildren (SelectByHasAttribute HINT_ATTRIBUTE)))
-					(sequenceLayouts 
-						(layoutSubUIs (SelectAND (SelectByPath []) (SelectByNumChildren 2)) (addIcon 2)) //A label was added
-						(layoutSubUIs (SelectAND (SelectByPath []) (SelectByNumChildren 1)) (addIcon 1)) //No label was added
+	optAddIcon = LayoutSubUIs (SelectByContains (SelectAND SelectChildren (SelectByHasAttribute HINT_ATTRIBUTE)))
+					(SequenceLayouts 
+						[LayoutSubUIs (SelectAND (SelectByPath []) (SelectByNumChildren 2)) (addIcon 2) //A label was added
+						,LayoutSubUIs (SelectAND (SelectByPath []) (SelectByNumChildren 1)) (addIcon 1) //No label was added
+						]
 					)
 
-	addIcon iconIndex = foldl1 sequenceLayouts
-		[insertChildUI iconIndex (uia UIIcon (leftMarginAttr 5))
-		,copySubUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) [iconIndex - 1] [iconIndex]
-		,layoutSubUIs (SelectByPath [iconIndex]) (modifyUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) createIconAttr)
+	addIcon iconIndex = SequenceLayouts
+		[InsertChildUI iconIndex (uia UIIcon (leftMarginAttr 5))
+		,CopySubUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) [iconIndex - 1] [iconIndex]
+		,LayoutSubUIs (SelectByPath [iconIndex]) (ModifyUIAttributes (SelectKeys [HINT_ATTRIBUTE,HINT_TYPE_ATTRIBUTE]) createIconAttr)
 		]
 	where
 		createIconAttr attr = 'DM'.unions [iconClsAttr iconCls, tooltipAttr tooltip]

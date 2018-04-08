@@ -199,7 +199,7 @@ whileUnchanged share task
             try (
 					((watch share >>* [OnValue (ifValue ((=!=) val) (\_ -> throw ShareChanged))])
 					  -||- (task val @ Just)
-					 ) <<@ ApplyLayout (sequenceLayouts (removeSubUIs (SelectByPath [0])) unwrapUI)) 
+					 ) <<@ ApplyLayout (SequenceLayouts [RemoveSubUIs (SelectByPath [0]), UnwrapUI]))
                 (\ShareChanged -> (return Nothing) )
           ) <! isJust
         )
