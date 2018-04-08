@@ -527,6 +527,23 @@ where
 	shiftID (LUIShiftDestination x) = x
 	shiftID _ = -1
 
+applyLayoutEffects :: LayoutExpression LUI -> LUI
+applyLayoutEffects layout lui = applyLayoutEffectsAs 0 layout lui
+
+applyLayoutEffectsAs :: LayoutRuleNo LayoutExpression LUI -> LUI
+applyLayoutEffectsAs ruleNo (SetUIType newType) lui = setUITypeRule newType ruleNo lui
+applyLayoutEffectsAs ruleNo (SetUIAttributes setAttributes) lui = setUIAttributesRule setAttributes ruleNo lui
+applyLayoutEffectsAs ruleNo (DelUIAttributes selection) lui = delUIAttributesRule selection ruleNo lui
+applyLayoutEffectsAs ruleNo (ModifyUIAttributes selection modifier) lui = modifyUIAttributesRule selection modifier ruleNo lui
+applyLayoutEffectsAs ruleNo (CopySubUIAttributes selection src dst) lui = copySubUIAttributesRule selection src dst ruleNo lui
+applyLayoutEffectsAs ruleNo (WrapUI type) lui = wrapUIRule type ruleNo lui
+applyLayoutEffectsAs ruleNo (UnwrapUI) lui = unwrapUIRule ruleNo lui
+applyLayoutEffectsAs ruleNo (InsertChildUI position insertion) lui = insertChildUIRule position insertion ruleNo lui
+applyLayoutEffectsAs ruleNo (RemoveSubUIs selection) lui = removeSubUIsRule selection ruleNo lui
+applyLayoutEffectsAs ruleNo (MoveSubUIs selection path pos) lui = moveSubUIsRule selection path pos ruleNo lui
+applyLayoutEffectsAs ruleNo (LayoutSubUIs selection sub) lui = layoutSubUIsRule selection sub ruleNo lui
+applyLayoutEffectsAs ruleNo (SequenceLayouts subs) lui = sequenceLayoutsRule subs ruleNo lui
+
 /*
 * Layout rules transform the 'buffered' tree and annotate the places where layout effects
 * should be applied, or should no longer be applied
@@ -782,7 +799,7 @@ where
 	move ruleId effects=:{LUIEffects|moved=ESApplied _} = {LUIEffects|effects & moved = ESApplied ruleId}
 	move ruleId effects=:{LUIEffects|moved=ESToBeRemoved _} = {LUIEffects|effects & moved= ESApplied ruleId}
 
-layoutSubUIsRule :: UISelection LayoutRule -> LayoutRule
+layoutSubUIsRule :: UISelection LayoutExpression -> LayoutRule
 layoutSubUIsRule selection sub = rule
 where
 	rule ruleId lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects)
@@ -793,11 +810,18 @@ where
 		apply path lui=:(LUINode type attr items changes effects)
 			//Check if this matches the selection
 			| inLUISelection_ selection path lui
-				= sub ruleId lui
+				= applyLayoutEffectsAs ruleId sub lui
 			| otherwise
 				# items = [maybe item (\i -> apply (path ++ [i]) item) mbi \\ (mbi,item) <- indicesAfterChanges_ items]
 				= LUINode type attr items changes (revertEffect_ ruleId effects)
 		apply path lui = lui
+
+sequenceLayoutsRule :: [LayoutExpression] -> LayoutRule
+sequenceLayoutsRule subs = rule
+where
+	rule ruleId lui = snd (foldl apply (ruleId,lui) subs)
+	where
+		apply (ruleId,lui) sub = (ruleId + maxNumSteps_ sub, applyLayoutEffectsAs ruleId sub lui)
 
 //Utility functions shared by the layout rules:
 
@@ -806,6 +830,11 @@ where
 //      that scanToUpstreamPosition_ already found
 adjustIndex_ :: Int [LUI] -> Int
 adjustIndex_ index  items = fst3 (scanToUpstreamPosition_ index (const False) items)
+
+maxNumSteps_ :: LayoutExpression -> Int
+maxNumSteps_ (LayoutSubUIs _ sub) = maxNumSteps_ sub
+maxNumSteps_ (SequenceLayouts subs) = sum (map maxNumSteps_ subs)
+maxNumSteps_ _ = 1
 
 //Lookup an item specified by an upstream position, skipping over invisible nodes
 scanToUpstreamPosition_ :: Int (LUI -> Bool) [LUI] -> (Int,Bool,Maybe LUI)
@@ -827,7 +856,7 @@ isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESToBeRemoved _}) = True
 isInvisibleUpstream_ (LUIMoveDestination _ _) = True
 isInvisibleUpstream_ _  = False
 
-isAddedBy_ :: LID LUI -> Bool
+isAddedBy_ :: LayoutRuleNo LUI -> Bool
 isAddedBy_ lid (LUINode _ _ _ _ {additional=ESToBeApplied ruleId}) = lid == ruleId
 isAddedBy_ lid (LUINode _ _ _ _ {additional=ESApplied ruleId}) = lid == ruleId
 isAddedBy_ lid (LUINode _ _ _ _ {additional=ESToBeRemoved ruleId}) = lid == ruleId
@@ -1011,7 +1040,7 @@ inLUISelection_ (SelectOR sell selr) path ui = inLUISelection_ sell path ui || i
 inLUISelection_ (SelectNOT sel) path ui = not (inLUISelection_ sel path ui)
 inLUISelection_ _ _ _ = False
 
-revertEffect_ :: LID LUIEffects -> LUIEffects //TODO Not all effects can currently be identified by a ruleId
+revertEffect_ :: LayoutRuleNo LUIEffects -> LUIEffects //TODO Not all effects can currently be identified by a ruleId
 revertEffect_ ruleId effects=:{LUIEffects|additional,hidden,moved,wrapper,unwrapped}
 	| additional === (ESApplied ruleId) = {LUIEffects|effects & additional = ESToBeRemoved ruleId}
 	| additional === (ESToBeApplied ruleId) = {LUIEffects|effects & additional = ESNotApplied}
@@ -1503,12 +1532,13 @@ where
 
 revertEffects lui = lui
 
-ruleBasedLayout :: LayoutRule -> Layout
-ruleBasedLayout rule = {Layout|apply,adjust,restore}
+ruleBasedLayout :: LayoutExpression -> Layout
+ruleBasedLayout expr = {Layout|apply,adjust,restore}
 where
 	apply ui
-		= appSnd LSRule (extractDownstreamChange (rule 0 (initLUI False ui)) initLUIExtractState)
+		= appSnd LSRule (extractDownstreamChange (applyLayoutEffects expr (initLUI False ui)) initLUIExtractState)
 	adjust (change, LSRule lui)
-		= appSnd LSRule (extractDownstreamChange (rule 0 (applyUpstreamChange change lui)) initLUIExtractState)
+		= appSnd LSRule (extractDownstreamChange (applyLayoutEffects expr (applyUpstreamChange change lui)) initLUIExtractState)
 	restore (LSRule lui)
 		= fst (extractDownstreamChange (revertEffects lui) initLUIExtractState) 
+

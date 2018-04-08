@@ -952,7 +952,7 @@ layoutSubUIsRuleTests =
 				,LUINode UIStep 'DM'.newMap [] noChanges {noEffects & overwrittenType = ESToBeApplied UIDebug}
 				] noChanges noEffects
 		)
-		(layoutSubUIsRule (SelectByType UIStep) (setUITypeRule UIDebug) 0
+		(layoutSubUIsRule (SelectByType UIStep) (SetUIType UIDebug) 0
 			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
