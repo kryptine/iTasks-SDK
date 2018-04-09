@@ -126,7 +126,7 @@ loginAndManageWorkList welcome workflows
 				,
 					viewInformation ("Guest access","Alternatively, you can continue anonymously as guest user") [] ()
 					>>| (return Nothing)
-				] <<@ ApplyLayout (SetUIAttributes (directionAttr Horizontal)))
+				] <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal)))
 	 	   ) 
 		>>- browse workflows) <<@ ApplyLayout (beforeStep layout) //Compact layout before login, full screen afterwards
 		) 
@@ -139,7 +139,7 @@ where
 	browse workflows Nothing
 		= workAs (AuthenticatedUser "guest" ["manager"] (Just "Guest user")) (manageWorklist workflows)
 		
-	layout = SequenceLayouts [LayoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")])), frameCompact]
+	layout = sequenceLayouts (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Login","login")]))) frameCompact
 		
 manageWorkInSession:: Task ()
 manageWorkInSession
@@ -148,28 +148,28 @@ manageWorkInSession
 		)
 	>>* [OnValue (ifStable (const (return ())))]) <<@ ApplyLayout layout
 where
-	layout = SequenceLayouts
-		[UnwrapUI //Get rid of the step
+	layout = foldl1 sequenceLayouts
+		[unwrapUI //Get rid of the step
 		,arrangeWithSideBar 0 TopSide 50 True
-		,LayoutSubUIs (SelectByPath [0]) layoutManageSession
-		,LayoutSubUIs (SelectByPath [1]) (SequenceLayouts [UnwrapUI,layoutWhatToDo])
+		,layoutSubUIs (SelectByPath [0]) layoutManageSession
+		,layoutSubUIs (SelectByPath [1]) (sequenceLayouts unwrapUI layoutWhatToDo)
 		//Use maximal screen space
-		,SetUIAttributes (sizeAttr FlexSize FlexSize)
+		,setUIAttributes (sizeAttr FlexSize FlexSize)
 		]
 
-	layoutManageSession = SequenceLayouts 
-		[LayoutSubUIs SelectChildren actionToButton
-		,LayoutSubUIs (SelectByPath [0]) (SetUIType UIContainer)
-		,SetUIType UIContainer
-		,SetUIAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
+	layoutManageSession = foldl1 sequenceLayouts 
+		[layoutSubUIs SelectChildren actionToButton
+		,layoutSubUIs (SelectByPath [0]) (setUIType UIContainer)
+		,setUIType UIContainer
+		,setUIAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
 		]
-	layoutWhatToDo = SequenceLayouts [arrangeWithSideBar 0 LeftSide 150 True, LayoutSubUIs (SelectByPath [1]) UnwrapUI]
+	layoutWhatToDo = sequenceLayouts (arrangeWithSideBar 0 LeftSide 150 True) (layoutSubUIs (SelectByPath [1]) unwrapUI)
 
 manageSession :: Task ()
 manageSession =
 		(viewSharedInformation () [ViewAs view] currentUser	
 	>>* [OnAction (Action "Log out") (always (return ()))])
-		 <<@ ApplyLayout (LayoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Log out","logout")])))
+		 <<@ ApplyLayout (layoutSubUIs (SelectByType UIAction) (setActionIcon ('DM'.fromList [("Log out","logout")])))
 where
 	view user	= "Welcome " +++ toString user		
 
@@ -200,16 +200,16 @@ where
 	userRoles (AuthenticatedUser _ roles _)  = roles
 	userRoles _ = []
 
-	layoutManageWork = SequenceLayouts
+	layoutManageWork = foldl1 sequenceLayouts
 		//Split the screen space
 		[arrangeWithSideBar 0 TopSide 200 True
 		//Layout all dynamically added tasks as tabs
-		,LayoutSubUIs (SelectByPath [1]) (arrangeWithTabs False)
+		,layoutSubUIs (SelectByPath [1]) (arrangeWithTabs False)
 		]
 
 addNewTask :: !(SharedTaskList ()) -> Task ()
 addNewTask list 
-	=   ((chooseWorkflow >&> viewWorkflowDetails) <<@ ApplyLayout (SetUIAttributes (directionAttr Horizontal))
+	=   ((chooseWorkflow >&> viewWorkflowDetails) <<@ ApplyLayout (setUIAttributes (directionAttr Horizontal))
 	>>* [OnAction (Action "Start task") (hasValue (\wf -> startWorkflow list wf @! ()))
 		,OnAction ActionCancel (always (return ()))
 		] ) <<@ Title "New work"
@@ -283,13 +283,13 @@ openTask taskList taskId
 
 workOnTask :: !TaskId -> Task ()
 workOnTask taskId
-    =   (workOn taskId <<@ ApplyLayout (SetUIAttributes (heightAttr FlexSize))
+    =   (workOn taskId <<@ ApplyLayout (setUIAttributes (heightAttr FlexSize))
     >>* [OnValue    (ifValue ((===) ASExcepted) (\_ -> viewInformation (Title "Error") [] "An exception occurred in this task" >>| return ()))
         ,OnValue    (ifValue ((===) ASIncompatible) (\_ -> dealWithIncompatibleTask))
         ,OnValue    (ifValue ((===) ASDeleted) (\_ -> return ()))
         ,OnValue    (ifValue ((===) (ASAttached True)) (\_ -> return ())) //If the task is stable, there is no need to work on it anymore
         ,OnAction ActionClose   (always (return ()))
-        ] ) <<@ ApplyLayout (CopySubUIAttributes (SelectKeys ["title"]) [0] []) //Use the title from the workOn for the composition
+        ] ) <<@ ApplyLayout (copySubUIAttributes (SelectKeys ["title"]) [0] []) //Use the title from the workOn for the composition
 where
     dealWithIncompatibleTask
         =   viewInformation (Title "Error") [] "This this task is incompatible with the current application version. Restart?"

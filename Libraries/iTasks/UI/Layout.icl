@@ -60,8 +60,8 @@ inUISelectionAfterChange selection path ui change //TODO: This needs a more effi
 	= inUISelection selection path (applyUIChange change ui)
 
 //A layout that has no effect at all
-idLayout :: LayoutExpression
-idLayout = SequenceLayouts []
+idLayout :: Layout 
+idLayout = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
 
 setUITypeRef_ :: UIType -> Layout
 setUITypeRef_ type = referenceLayout ref

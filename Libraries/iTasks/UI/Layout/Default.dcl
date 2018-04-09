@@ -5,9 +5,9 @@ definition module iTasks.UI.Layout.Default
 
 import iTasks.UI.Layout
 
-defaultSessionLayout    :: LayoutExpression //Added when a task instance is 'published' (can be easily removed or replaced by publishing a task explicitly)
+defaultSessionLayout    :: Layout //Added when a task instance is 'published' (can be easily removed or replaced by publishing a task explicitly)
 
-finalizeUI 				:: LayoutExpression
-finalizeInteract 		:: LayoutExpression
-finalizeStep 			:: LayoutExpression
-finalizeParallel 		:: LayoutExpression
+finalizeUI 				:: Layout
+finalizeInteract 		:: Layout
+finalizeStep 			:: Layout
+finalizeParallel 		:: Layout

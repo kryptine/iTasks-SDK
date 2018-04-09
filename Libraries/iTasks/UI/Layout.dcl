@@ -104,39 +104,39 @@ SelectChildren :== SelectByDepth 1
 // Basic DSL for creating layouts
 
 // == Do nothing ==
-idLayout :: LayoutExpression
+idLayout :: Layout 
 
 // == Changing node types ==
-setUIType type :== SetUIType type
+setUIType type :== ruleBasedLayout (SetUIType type)
 
 // == Changing attributes ==
-setUIAttributes extraAttr :== SetUIAttributes extraAttr
-delUIAttributes selection :== DelUIAttributes selection
-modifyUIAttributes selection modifier :== ModifyUIAttributes selection modifier
-copySubUIAttributes selection src dst :== CopySubUIAttributes selection src dst
+setUIAttributes extraAttr :== ruleBasedLayout (SetUIAttributes extraAttr)
+delUIAttributes selection :== ruleBasedLayout (DelUIAttributes selection)
+modifyUIAttributes selection modifier :== ruleBasedLayout (ModifyUIAttributes selection modifier)
+copySubUIAttributes selection src dst :== ruleBasedLayout (CopySubUIAttributes selection src dst)
 
 // == Changing the structure of a UI ==
-wrapUI type :== WrapUI type
-unwrapUI :== UnwrapUI
+wrapUI type :== ruleBasedLayout (WrapUI type)
+unwrapUI :== ruleBasedLayout UnwrapUI
 
 /*
 * Insert a (static) element into a UI
 */
-insertChildUI position insertion :== InsertChildUI position insertion
+insertChildUI position insertion :== ruleBasedLayout (InsertChildUI position insertion)
 
 /**
 * Remove all elements that match the predicate, but keep the removed elements in the state.
 * Further changes to these elements are processed in the background. When the predicate no longer holds, the elements are inserted back into the UI.
 * When new elements are added dynamically they are also tested against the predicate
 */
-removeSubUIs selection :== RemoveSubUIs selection
+removeSubUIs selection :== ruleBasedLayout (RemoveSubUIs selection)
 
 /**
 * Move all elements that match the predicate to a particular location in the tree.
 * Further changes to these elements are rewritten to target the new location.
 * When new elements are added dynamically they are also tested against the predicate
 */
-moveSubUIs selection path pos :== MoveSubUIs selection path pos
+moveSubUIs selection path pos :== ruleBasedLayout (MoveSubUIs selection path pos)
 
 // == Composition of layouts ==
 /**
