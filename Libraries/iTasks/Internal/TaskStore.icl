@@ -14,7 +14,7 @@ import iTasks.Internal.Generic.Visualization
 import iTasks.UI.Layout.Default
 
 import qualified iTasks.Internal.SDS as SDS
-from iTasks.SDS.Definition import :: SDSLensRead(..), :: SDSLensWrite(..), :: SDSLensNotify(..), :: SDS(SDSDynamic)
+from iTasks.SDS.Definition import :: SDSLensRead(..), :: SDSLensWrite(..), :: SDSLensNotify(..)
 import iTasks.SDS.Combinators.Core, iTasks.SDS.Combinators.Common
 import iTasks.SDS.Sources.Store
 import iTasks.Internal.SDSService
@@ -56,14 +56,14 @@ rawInstanceShares    = storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM
 rawInstanceParallels = storeShare NS_TASK_INSTANCES True InDynamicFile (Just 'DM'.newMap)
 
 //Master instance index 
-taskInstanceIndex :: RWShared () [TIMeta] [TIMeta]
+taskInstanceIndex :: SDSLens () [TIMeta] [TIMeta]
 taskInstanceIndex = sdsFocus "instances" rawTaskIndex
 
 //Next instance no counter
-nextInstanceNo :: RWShared () Int Int
+nextInstanceNo :: SDSLens () Int Int
 nextInstanceNo = sdsFocus "increment" rawTaskNoCounter
 
-taskInstanceIO :: RWShared InstanceNo (Maybe (!String,!Timespec)) (Maybe (!String,!Timespec))
+taskInstanceIO :: SDSLens InstanceNo (Maybe (!String,!Timespec)) (Maybe (!String,!Timespec))
 taskInstanceIO = sdsLens "taskInstanceIO" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) allInstanceIO
 where
 	read instanceNo m = Ok ('DM'.get instanceNo m)
@@ -71,23 +71,23 @@ where
 	write instanceNo m Nothing = Ok (Just ('DM'.del instanceNo m))
 	notify instanceNo _ 	= const ((==) instanceNo)
 
-allInstanceIO :: RWShared () (Map InstanceNo (!String,!Timespec)) (Map InstanceNo (!String,Timespec)) 
+allInstanceIO :: SDSLens () (Map InstanceNo (!String,!Timespec)) (Map InstanceNo (!String,Timespec))
 allInstanceIO = sdsFocus "io" rawInstanceIO
 
 //Event queues of task instances
-taskEvents :: RWShared () (Queue (InstanceNo,Event)) (Queue (InstanceNo,Event))
+taskEvents :: SDSLens () (Queue (InstanceNo,Event)) (Queue (InstanceNo,Event))
 taskEvents = sdsFocus "events" rawInstanceEvents
 
 //Instance evaluation state
-taskInstanceReduct :: RWShared InstanceNo TIReduct TIReduct
+taskInstanceReduct :: SDSLens InstanceNo TIReduct TIReduct
 taskInstanceReduct = sdsTranslate "taskInstanceReduct" (\t -> t +++> "-reduct") rawInstanceReduct
 
 //Last computed value for task instance
-taskInstanceValue :: RWShared InstanceNo TIValue TIValue
+taskInstanceValue :: SDSLens InstanceNo TIValue TIValue
 taskInstanceValue = sdsTranslate "taskInstanceValue" (\t -> t +++> "-value") rawInstanceValue
 
 //Local shared data
-taskInstanceShares :: RWShared InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
+taskInstanceShares :: SDSLens InstanceNo (Map TaskId JSONNode) (Map TaskId JSONNode)
 taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") rawInstanceShares
 
 :: TaskOutputMessage 
@@ -97,10 +97,10 @@ taskInstanceShares = sdsTranslate "taskInstanceShares" (\t -> t +++> "-shares") 
 
 :: TaskOutput :== Queue TaskOutputMessage
 
-taskOutput :: RWShared () (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput) 
+taskOutput :: SDSLens () (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput) 
 taskOutput = sdsFocus "taskOutput" rawInstanceOutput
 
-taskInstanceOutput :: RWShared InstanceNo TaskOutput TaskOutput
+taskInstanceOutput :: SDSLens InstanceNo TaskOutput TaskOutput
 taskInstanceOutput = sdsLens "taskInstanceOutput" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskOutput
 where
 	read instanceNo outputs = Ok (fromMaybe 'DQ'.newQueue ('DM'.get instanceNo outputs)) 
@@ -108,7 +108,7 @@ where
 	notify instanceNo _ = const ((==) instanceNo)
 
 //Task instance parallel lists
-taskInstanceParallelTaskLists :: RWShared InstanceNo (Map TaskId [ParallelTaskState]) (Map TaskId [ParallelTaskState])
+taskInstanceParallelTaskLists :: SDSLens InstanceNo (Map TaskId [ParallelTaskState]) (Map TaskId [ParallelTaskState])
 taskInstanceParallelTaskLists = sdsTranslate "taskInstanceParallelLists" (\t -> t +++> "-tasklists") rawInstanceParallels
 
 newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
@@ -220,7 +220,7 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
     = (Ok (),iworld)
 
 //Filtered interface to the instance index. This interface should always be used to access instance data
-filteredInstanceIndex :: RWShared InstanceFilter [InstanceData] [InstanceData]
+filteredInstanceIndex :: SDSLens InstanceFilter [InstanceData] [InstanceData]
 filteredInstanceIndex = sdsLens "filteredInstanceIndex" param (SDSRead read) (SDSWrite write) (SDSNotify notify) taskInstanceIndex
 where
     param tfilter = ()
@@ -280,7 +280,7 @@ where
     notifyFun _ ws qfilter = any (filterPredicate qfilter) ws
 
 //Filtered views on the instance index
-taskInstance :: RWShared InstanceNo InstanceData InstanceData
+taskInstance :: SDSLens InstanceNo InstanceData InstanceData
 taskInstance = sdsLens "taskInstance" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) filteredInstanceIndex
 where
     param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
@@ -290,7 +290,7 @@ where
     write no data   = Ok (Just [data])
     notify no _     = const ((==) no)
 
-taskInstanceConstants :: ROShared InstanceNo InstanceConstants
+taskInstanceConstants :: SDSLens InstanceNo InstanceConstants ()
 taskInstanceConstants = sdsLens "taskInstanceConstants" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) filteredInstanceIndex
 where
     param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
@@ -300,7 +300,7 @@ where
     write _ _                   = Ok Nothing
     notify _ _                  = const (const False)
 
-taskInstanceProgress :: RWShared InstanceNo InstanceProgress InstanceProgress
+taskInstanceProgress :: SDSLens InstanceNo InstanceProgress InstanceProgress
 taskInstanceProgress = sdsLens "taskInstanceProgress" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) filteredInstanceIndex
 where
     param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
@@ -311,7 +311,7 @@ where
     write no _ _                = Error (exception ("Could not find progress for task instance "<+++ no))
     notify no _                 = const ((==) no)
 
-taskInstanceAttributes :: RWShared InstanceNo TaskAttributes TaskAttributes
+taskInstanceAttributes :: SDSLens InstanceNo TaskAttributes TaskAttributes
 taskInstanceAttributes = sdsLens "taskInstanceAttributes" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) filteredInstanceIndex
 where
     param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
@@ -323,9 +323,9 @@ where
     notify no _                 = const ((==) no)
 
 //Top list share has no items, and is therefore completely polymorphic
-topLevelTaskList :: RWShared TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
+topLevelTaskList :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
 topLevelTaskList = sdsLens "topLevelTaskList" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify)
-                     (sdsFocus filter filteredInstanceIndex >+| currentInstanceShare)
+                     (sdsFocus filter filteredInstanceIndex >*| currentInstanceShare)
 where
     param _ = ()
     filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False,matchAttribute=Nothing
@@ -348,7 +348,7 @@ where
     notify _ _ _ _ = True
 
 //Evaluation state of instances
-localShare :: RWShared TaskId a a | iTask a
+localShare :: SDSLens TaskId a a | iTask a
 localShare = sdsLens "localShare" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceShares
 where
     param (TaskId instanceNo _) = instanceNo
@@ -363,7 +363,7 @@ where
 
 derive gText ParallelTaskState
 
-taskInstanceParallelTaskList :: RWShared (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
+taskInstanceParallelTaskList :: SDSLens (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
 taskInstanceParallelTaskList = sdsLens "taskInstanceParallelTaskList" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceParallelTaskLists
 where
     param (TaskId instanceNo _,listFilter) = instanceNo
@@ -409,7 +409,7 @@ where
 	merge listFilter [] ns			= filter (inFilter listFilter) ns //All new elements are only added if they are within the filter
 	merge listFilter os [] 			= filter (not o inFilter listFilter) os //Only keep old elements if they were outside the filter
 
-taskInstanceParallelTaskListItem :: RWShared (TaskId,TaskId,Bool) ParallelTaskState ParallelTaskState
+taskInstanceParallelTaskListItem :: SDSLens (TaskId,TaskId,Bool) ParallelTaskState ParallelTaskState
 taskInstanceParallelTaskListItem = sdsLens "taskInstanceParallelTaskListItem" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceParallelTaskList
 where
     //In this SDS the include value and include attributes flags are used to indicate what is written for notification
@@ -421,7 +421,7 @@ where
     write (_,taskId,_) list pts = Ok (Just [if (x.ParallelTaskState.taskId == taskId) pts x \\ x <- list])
     notify (listId,taskId,_) _ = const ((==) taskId o snd3)
 
-taskInstanceEmbeddedTask :: RWShared TaskId (Task a) (Task a) | iTask a
+taskInstanceEmbeddedTask :: SDSLens TaskId (Task a) (Task a) | iTask a
 taskInstanceEmbeddedTask = sdsLens "taskInstanceEmbeddedTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceReduct
 where
     param (TaskId instanceNo _) = instanceNo
@@ -431,7 +431,7 @@ where
     write taskId r=:{TIReduct|tasks} w = Ok (Just {TIReduct|r & tasks = 'DM'.put taskId (dynamic w :: Task a^) tasks})
     notify taskId _ = const ((==) taskId)
 
-parallelTaskList :: RWShared (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)] | iTask a
+parallelTaskList :: SDSSequence (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)] | iTask a
 parallelTaskList
     = sdsSequence "parallelTaskList" id param2 (\_ _ -> Right read) (SDSWriteConst write1) (SDSWriteConst write2) filteredTaskStates filteredInstanceIndex
 where
@@ -549,7 +549,7 @@ detachViewport instanceNo iworld
 	# iworld = clearEvents instanceNo iworld
 	= iworld
 
-documentContent :: SDS String String String 
+documentContent :: SDSLens String String String 
 documentContent = sdsTranslate "documentContent" (\docId -> docId +++ "-content") (blobStoreShare NS_DOCUMENT_CONTENT False Nothing)
 
 createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
@@ -575,32 +575,3 @@ loadDocumentMeta documentId iworld
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
 documentLocation documentId iworld=:{options={storeDirPath}}
 	= (storeDirPath </> NS_DOCUMENT_CONTENT </> (documentId +++ "-content"),iworld)
-
-//OBSOLETE
-exposedShare :: !String -> RWShared p r w | iTask r & iTask w & TC r & TC w & TC p & JSONEncode{|*|} p
-exposedShare url = SDSDynamic f
-where
-	f _ iworld=:{exposedShares}
-        = case 'DM'.get url exposedShares of
-		    Nothing
-			    = (Ok ('SDS'.createReadWriteSDS "exposedShare" url rread rwrite), iworld)
-			Just (shared :: RWShared p^ r^ w^, _)	
-				= (Ok shared, iworld)
-			Just dyn
-			    = (Error (dynamic mismatchError,mismatchError), iworld)
-
-	rread p iworld
-			= case readRemoteSDS (toJSON p) url iworld of
-				(Ok json, iworld) = case fromJSON json of
-										Nothing     = (Error (dynamic mismatchError,mismatchError), iworld)
-										(Just val)  = (Ok val, iworld)
-				(Error msg, iworld) = (Error (dynamic msg,msg), iworld)
-	
-	rwrite p val iworld
-        = case writeRemoteSDS (toJSON p) (toJSON val) url iworld of
-            (Ok _,iworld)       = (Ok (const (const True)),iworld)
-            (Error msg,iworld)  = (Error (dynamic msg,msg),iworld)
-							
-    mismatchError = "Exposed share type mismatch: " +++ url
-
-

@@ -40,6 +40,8 @@ from Sapl.Target.Flavour import :: Flavour, toFlavour
 from Sapl.Target.CleanFlavour import cleanFlavour
 from Sapl.SaplParser import :: ParserState
 
+from iTasks.SDS.Definition import :: SDSParallel
+
 //The following modules are excluded by the SAPL -> Javascript compiler
 //because they contain functions implemented in ABC code that cannot
 //be compiled to javascript anyway. Handwritten Javascript overrides need
@@ -75,7 +77,6 @@ createIWorld options world
       ,memoryShares         = 'DM'.newMap
       ,readCache            = 'DM'.newMap
       ,writeCache           = 'DM'.newMap
-	  ,exposedShares		= 'DM'.newMap
 	  ,jsCompilerState		= Nothing
 	  ,shutdown				= Nothing
       ,ioTasks              = {done = [], todo = []}
@@ -115,7 +116,7 @@ determineAppPath world
 destroyIWorld :: !*IWorld -> *World
 destroyIWorld iworld=:{IWorld|world} = world
 
-iworldTimespec :: SDS (ClockParameter Timespec) Timespec Timespec
+iworldTimespec :: SDSSource (ClockParameter Timespec) Timespec Timespec
 iworldTimespec = createReadWriteSDS "IWorld" "timespec" read write
 where
     read _ iworld=:{IWorld|clock} = (Ok clock,iworld)
@@ -141,11 +142,11 @@ iworldTimestamp :: SDS (ClockParameter Timestamp) Timestamp Timestamp
 iworldTimestamp = mapReadWrite (timespecToStamp, const o Just o timestampToSpec)
 	$ sdsTranslate "iworldTimestamp translation" (\{start,interval}->{start=timestampToSpec start,interval=timestampToSpec interval}) iworldTimespec
 
-iworldLocalDateTime :: ReadOnlyShared DateTime
+iworldLocalDateTime :: SDSParallel () DateTime ()
 iworldLocalDateTime = SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) (sdsFocus {start=Timestamp 0,interval=Timestamp 1} iworldTimestamp) sdsPar
 where
     // ignore value, but use notifications for 'iworldTimestamp'
-    sdsPar = { SDSParallel
+    sdsPar = { SDSParallelOptions
              | name   = "iworldLocalDateTime"
              , param  = \p -> (p,p)
              , read   = fst

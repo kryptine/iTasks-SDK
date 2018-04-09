@@ -12,6 +12,7 @@ import iTasks.WF.Definition
 import iTasks.WF.Tasks.IO
 from   iTasks.WF.Combinators.Core import :: AttachmentStatus
 import iTasks.UI.Editor, iTasks.UI.Editor.Common
+import iTasks.Internal.SDS
 
 from iTasks.Internal.TaskState		import :: TaskTree(..), :: DeferredJSON(..), :: TIMeta(..)
 from iTasks.Internal.TaskEval         import :: TaskEvalInfo(..)
@@ -40,7 +41,7 @@ gDefault{|Task|} gDefx = Task (\_ -> abort error)
 where
 	error = "Creating default task functions is impossible"
 
-wrapConnectionTask :: (ConnectionHandlers l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
+wrapConnectionTask :: (ConnectionHandlers l r w) (sds () r w) -> ConnectionTask | TC l & TC r & TC w & RWShared sds
 wrapConnectionTask {ConnectionHandlers|onConnect,onData,onShareChange,onDisconnect} sds
     = ConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect`,onData=onData`,onShareChange=onShareChange`,onTick=onTick`,onDisconnect=onDisconnect`} (toDynamic sds)
 where
@@ -64,7 +65,7 @@ where
         # (mbl, mbw) = onDisconnect l r
         = (toDyn <$> mbl, toDyn <$> mbw, env)
 
-wrapIWorldConnectionTask :: (ConnectionHandlersIWorld l r w) (RWShared () r w) -> ConnectionTask | TC l & TC r & TC w
+wrapIWorldConnectionTask :: (ConnectionHandlersIWorld l r w) (sds () r w) -> ConnectionTask | TC l & TC r & TC w & RWShared sds
 wrapIWorldConnectionTask {ConnectionHandlersIWorld|onConnect,onData,onShareChange,onTick,onDisconnect} sds
     = ConnectionTask {ConnectionHandlersIWorld|onConnect=onConnect`,onData=onData`,onShareChange=onShareChange`,onTick=onTick`,onDisconnect=onDisconnect`} (toDynamic sds)
 where

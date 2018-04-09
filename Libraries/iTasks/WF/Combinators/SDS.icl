@@ -23,7 +23,7 @@ import Data.Maybe, Data.Error
 import System.Directory, System.File, System.FilePath, Data.Error, System.OSError
 import qualified Data.Map as DM
 
-withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
+withShared :: !b !((SDSLens () b b) -> Task a) -> Task a | iTask a & iTask b
 withShared initial stask = Task eval
 where	
 	eval event evalOpts (TCInit taskId ts) iworld
@@ -58,35 +58,6 @@ where
 	
 	eval _ _ _ iworld
 		= (ExceptionResult (exception "Corrupt task state in withShared"), iworld)
-
-exposeShared :: !(RWShared p r w) !(String (RWShared p r w) -> Task a) -> Task a | iTask a & iTask r & iTask w & iTask p
-exposeShared shared stask = Task eval
-where	
-	eval event evalOpts (TCInit taskId ts) iworld=:{exposedShares}
-		# (url, iworld)		= newURL iworld
-		// Trick to make it work until John fixes the compiler
-		# exposedShares 	= 'DM'.put url (dynamic shared :: RWShared p^ r^ w^, toJSONShared shared) exposedShares
-		# (taskIda,iworld)	= getNextTaskId iworld
-		= eval event evalOpts (TCExposedShared taskId ts url (TCInit taskIda ts)) {iworld & exposedShares = exposedShares}
-		
-	eval event evalOpts (TCExposedShared taskId ts url treea) iworld=:{current={taskTime}}
-		# exposedSDS				= exposedShare url
-		# (Task evala)			= stask url exposedSDS
-		# (resa,iworld)				= evala event (extendCallTrace taskId evalOpts) treea iworld
-		= case resa of
-			ValueResult value info rep ntreea
-				# info = {TaskEvalInfo|info & lastEvent = max ts info.TaskEvalInfo.lastEvent}
-				= (ValueResult value info rep (TCExposedShared taskId info.TaskEvalInfo.lastEvent url ntreea),iworld)
-			ExceptionResult e
-				= (ExceptionResult e,iworld)
-	
-	eval event evalOpts (TCDestroy (TCExposedShared taskId ts url treea)) iworld //First destroy inner task, then remove shared state
-		# (Task evala)				= stask url (exposedShare url)
-		# (resa,iworld)					= evala event (extendCallTrace taskId evalOpts) (TCDestroy treea) iworld
-		= (resa,{iworld & exposedShares = 'DM'.del url iworld.exposedShares})
-	
-	eval _ _ _ iworld
-		= (ExceptionResult (exception "Corrupt task state in exposeShared"), iworld)
 
 withTaskId :: (Task a) -> Task (a, TaskId)
 withTaskId (Task eval) = Task eval`

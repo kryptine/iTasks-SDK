@@ -10,21 +10,21 @@ derive class iTask UserAccount
 //Initial root user
 ROOT_USER :== {credentials={Credentials|username=Username "root",password = Password "root"},title = Just "Root user", roles = ["admin","manager"]}
 
-userAccounts :: Shared [UserAccount]
+userAccounts :: SDSLens () [UserAccount] [UserAccount]
 userAccounts = sharedStore "UserAccounts" [ROOT_USER]
 
-users :: ReadOnlyShared [User]
+users :: SDSLens () [User] ()
 users = mapReadWrite (\accounts -> [AuthenticatedUser (toString a.UserAccount.credentials.Credentials.username) a.UserAccount.roles a.UserAccount.title
 									\\ a <- accounts]
 					 , \() accounts -> Nothing) userAccounts
 
-usersWithRole :: !Role -> ReadOnlyShared [User]
+usersWithRole :: !Role -> SDSLens () [User] ()
 usersWithRole role = mapRead (filter (hasRole role)) users
 where
 	hasRole role (AuthenticatedUser _ roles _) = isMember role roles
 	hasRole _ _ = False
 
-userAccount :: UserId -> Shared (Maybe UserAccount)
+userAccount :: UserId -> SDSLens () (Maybe UserAccount) (Maybe UserAccount)
 userAccount userId = mapReadWrite (getAccount userId, \w r -> Just (setAccount w r)) userAccounts
 where
 	getAccount :: UserId [UserAccount] -> Maybe UserAccount

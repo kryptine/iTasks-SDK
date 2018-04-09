@@ -123,12 +123,12 @@ where
 
 derive class iTask		Credentials
 
-currentUser :: RWShared () User User
+currentUser :: SDSLens () User User
 currentUser = sdsLens "currentUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotify notify) currentTaskInstanceAttributes
 where
 	notify _ _ _ = const (const True)
 
-taskInstanceUser :: RWShared InstanceNo User User
+taskInstanceUser :: SDSLens InstanceNo User User
 taskInstanceUser = sdsLens "taskInstanceUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotify notify) taskInstanceAttributesByNo
 where
 	notify _ _ _ = const (const True)
@@ -154,11 +154,11 @@ userToAttr _ attr _
 	# attr = 'DM'.del "auth-title" attr
 	= Ok (Just attr)
 
-processesForUser :: User -> ReadOnlyShared [TaskListItem ()]
+processesForUser :: User -> SDSLens () [TaskListItem ()] ()
 processesForUser user = mapRead (filter (forWorker user)) currentProcesses
 
-processesForCurrentUser	:: ReadOnlyShared [TaskListItem ()]
-processesForCurrentUser = mapRead readPrj (currentProcesses >+| currentUser)
+processesForCurrentUser	:: SDSLens () [TaskListItem ()] ()
+processesForCurrentUser = mapRead readPrj (currentProcesses >*| currentUser)
 where
 	readPrj (items,user)	= filter (forWorker user) items
 
@@ -172,7 +172,7 @@ forWorker user {TaskListItem|attributes} = case 'DM'.get "user" attributes of
             _                               = False
         Nothing = True
 
-taskInstancesForUser :: ROShared User [TaskInstance]
+taskInstancesForUser :: SDSLens User [TaskInstance] ()
 taskInstancesForUser = sdsLens "taskInstancesForUser" (const ()) (SDSRead read) (SDSWriteConst write) (SDSNotify notify) detachedTaskInstances
 where
 	read u instances = Ok (filter (forUser u) instances)
@@ -190,7 +190,7 @@ where
 				_                               = False
 			Nothing = True
 
-taskInstancesForCurrentUser :: ROShared () [TaskInstance]
+taskInstancesForCurrentUser :: SDSSequence () [TaskInstance] ()
 taskInstancesForCurrentUser
 	= sdsSequence "taskInstancesForCurrentUser"
 		id

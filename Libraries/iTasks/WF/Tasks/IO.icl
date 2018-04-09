@@ -45,7 +45,7 @@ liftOSErr f iw = case (liftIWorld f) iw of
 	(Error (_, e), iw) = (Error (exception e), iw)
 	(Ok a, iw) = (Ok a, iw)
 
-externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe ProcessPtyOptions) !(Shared [String]) !(Shared ([String], [String])) -> Task Int
+externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe ProcessPtyOptions) !(sds1 () [String] [String]) !(sds2 () ([String], [String]) ([String], [String])) -> Task Int | RWShared sds1 & RWShared sds2
 externalProcess poll cmd args dir mopts sdsin sdsout = Task eval
 where
 	fjson = mb2error (exception "Corrupt taskstate") o fromJSON
@@ -98,7 +98,7 @@ where
 
 	clock = sdsFocus {start=zero,interval=poll} iworldTimespec
 
-tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w
+tcplisten :: !Int !Bool !(sds () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w & RWShared sds
 tcplisten port removeClosed sds handlers = Task eval
 where
 	eval event evalOpts tree=:(TCInit taskId ts) iworld
@@ -127,7 +127,7 @@ where
 
     rep port = ReplaceUI (stringDisplay ("Listening for connections on port "<+++ port))
 
-tcpconnect :: !String !Int !(RWShared () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w
+tcpconnect :: !String !Int !(sds () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w & RWShared sds
 tcpconnect host port sds handlers = Task eval
 where
 	eval event evalOpts tree=:(TCInit taskId ts) iworld=:{IWorld|ioTasks={done,todo},ioStates,world}

@@ -37,13 +37,13 @@ gDefault{|WorkflowTaskContainer|}					    = WorkflowTask (return ())
 derive class iTask WorklistRow
 
 // list of active task instances for current user without current one (to avoid work on dependency cycles)
-myWork :: ReadOnlyShared [(TaskId,WorklistRow)]
+myWork :: SDSLens () [(TaskId,WorklistRow)] ()
 myWork = workList taskInstancesForCurrentUser
 
-allWork :: ReadOnlyShared [(TaskId,WorklistRow)]
+allWork :: SDSLens () [(TaskId,WorklistRow)] ()
 allWork = workList allTaskInstances
 
-workList instances = mapRead projection (instances |+| currentTopTask)
+workList instances = mapRead projection (instances |*| currentTopTask)
 where
 	projection (instances,ownPid)
 		= [(TaskId i.TaskInstance.instanceNo 0, mkRow i) \\ i <- instances | notSelf ownPid i && isActive i]
@@ -69,10 +69,10 @@ where
 // SHARES
 // Available workflows
 
-workflows :: Shared [Workflow]
+workflows :: SDSLens () [Workflow] [Workflow]
 workflows = sharedStore "Workflows" []
 
-workflowByPath :: !String -> Shared Workflow
+workflowByPath :: !String -> SDSLens () Workflow Workflow
 workflowByPath path = mapReadWriteError (toPrj,fromPrj) workflows
 where
 	toPrj wfs = case [wf \\ wf <- wfs | wf.Workflow.path == path] of
@@ -82,16 +82,16 @@ where
 	fromPrj nwf wfs
 		= Ok (Just [if (wf.path == path) nwf wf \\ wf <- wfs])
 
-allowedWorkflows :: ReadOnlyShared [Workflow]
-allowedWorkflows = mapRead filterAllowed (workflows |+| currentUser)
+allowedWorkflows :: SDSLens () [Workflow] ()
+allowedWorkflows = mapRead filterAllowed (workflows |*| currentUser)
 where
 	filterAllowed (workflows,user) = filter (isAllowedWorkflow user) workflows
 
 //All tasks that you can do in a session
-allowedTransientTasks :: ReadOnlyShared [Workflow] 
+allowedTransientTasks :: SDSLens () [Workflow] ()
 allowedTransientTasks = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <- wfs | transient]) allowedWorkflows
 
-allowedPersistentWorkflows :: ReadOnlyShared [Workflow]
+allowedPersistentWorkflows :: SDSLens () [Workflow] ()
 allowedPersistentWorkflows = mapRead (\wfs -> [wf \\ wf=:{Workflow|transient} <- wfs | not transient]) allowedWorkflows
 
 // MANAGEMENT TASKS
@@ -249,7 +249,7 @@ where
 	result (Value [x] s) = Value x s
 	result _ = NoValue
 
-viewWorkflowDetails :: !(ReadOnlyShared (Maybe Workflow)) -> Task Workflow
+viewWorkflowDetails :: !(sds () (Maybe Workflow) ()) -> Task Workflow | RWShared sds
 viewWorkflowDetails sel
 	= viewSharedInformation [Att (Title "Task description"), Att IconView] [ViewUsing view textView] sel
 	@? onlyJust
@@ -312,7 +312,7 @@ where
     //Look in the catalog for an entry that has the same path as
     //the 'catalogId' that is stored in the incompatible task instance's properties
     findReplacement taskId
-        =  get (sdsFocus taskId (taskListEntryMeta topLevelTasks) |+| workflows)
+        =  get (sdsFocus taskId (taskListEntryMeta topLevelTasks) |*| workflows)
         @  \(taskListEntry,catalog) -> maybe Nothing (lookup catalog) ('DM'.get "catalogId" taskListEntry.TaskListItem.attributes)
     where
         lookup [wf=:{Workflow|path}:wfs] cid = if (path == cid) (Just wf) (lookup wfs cid)

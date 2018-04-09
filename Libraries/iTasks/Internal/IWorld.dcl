@@ -17,8 +17,8 @@ from iTasks.Internal.TaskEval         import :: TaskTime
 
 from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo
 from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem 
-from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared, :: Shared, :: ReadOnlyShared
-from iTasks.Internal.SDS import :: SDSNotifyRequest, :: JSONShared, :: DeferredWrite
+import iTasks.SDS.Definition
+from iTasks.Internal.SDS import :: SDSNotifyRequest, :: DeferredWrite
 from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
 from Sapl.Linker.LazyLinker import :: LoaderState
@@ -39,7 +39,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
                     , memoryShares          :: !Map String Dynamic                          // Run-time memory shares
                     , readCache             :: !Map (String,String) Dynamic                 // Cached share reads
                     , writeCache            :: !Map (String,String) (Dynamic,DeferredWrite) // Cached deferred writes
-					, exposedShares			:: !Map String (Dynamic, JSONShared)            // Shared source
 					, jsCompilerState 		:: !Maybe JSCompilerState 					    // Sapl to Javascript compiler state
 
 	                , ioTasks               :: !*IOTasks                                    // The low-level input/output tasks
@@ -95,7 +94,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     }
 
 :: ConnectionId             :== Int
-
 :: IOStates :== Map TaskId IOState
 :: IOState
     = IOActive      !(Map ConnectionId (!Dynamic,!Bool)) // Bool: stability
@@ -137,8 +135,8 @@ destroyIWorld :: !*IWorld -> *World
 	, interval :: a
 	}
 
-iworldTimespec         :: SDS (ClockParameter Timespec) Timespec Timespec
-iworldTimestamp        :: SDS (ClockParameter Timestamp) Timestamp Timestamp
+iworldTimespec         :: SDSSource (ClockParameter Timespec) Timespec Timespec
+iworldTimestamp        :: SDSSource (ClockParameter Timestamp) Timestamp Timestamp
 
 /*
  * Calculate the next fire for the given timespec
@@ -150,7 +148,7 @@ iworldTimestamp        :: SDS (ClockParameter Timestamp) Timestamp Timestamp
  */
 iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
 
-iworldLocalDateTime    :: ReadOnlyShared DateTime
+iworldLocalDateTime    :: SDSParallel () DateTime ()
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
 

@@ -4,7 +4,7 @@ definition module iTasks.WF.Tasks.IO
 * Either by running external programs, creating network clients and servers, or exchanging files
 */
 import iTasks.WF.Definition
-from iTasks.SDS.Definition import :: RWShared, :: SDS, :: Shared
+import iTasks.SDS.Definition
 from iTasks.UI.Prompt import class toPrompt
 from System.FilePath import :: FilePath
 from System.Process import :: ProcessPtyOptions
@@ -29,7 +29,7 @@ from Data.Error import :: MaybeError, :: MaybeErrorString
  * @param Pseudotty settings
  * @result Task returning the exit code on termination
  */
-externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe ProcessPtyOptions) !(Shared [String]) !(Shared ([String], [String])) -> Task Int
+externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe ProcessPtyOptions) !(sds1 () [String] [String]) !(sds2 () ([String], [String]) ([String], [String])) -> Task Int | RWShared sds1 & RWShared sds2
 
 /**
 * Connect to an external system using TCP. This task's value becomes stable when the connection is closed
@@ -38,7 +38,7 @@ externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe Proce
 * @param A reference to shared data the task has access to
 * @param The event handler functions
 */
-tcpconnect :: !String !Int !(RWShared () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w
+tcpconnect :: !String !Int !(sds () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w & RWShared sds
 /**
 * Listen for connections from external systems using TCP.
 * @param Port
@@ -47,4 +47,4 @@ tcpconnect :: !String !Int !(RWShared () r w) (ConnectionHandlers l r w) -> Task
 * @param Initialization function: function that is called when a new connection is established
 * @param Communication function: function that is called when data arrives, the connection is closed or the observed share changes.
 */
-tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w
+tcplisten :: !Int !Bool !(sds () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w & RWShared sds

@@ -3,7 +3,7 @@ definition module iTasks.WF.Combinators.Core
 * This module provides the core builtin combinators for composing tasks into workflows
 */
 import iTasks.WF.Definition
-from iTasks.SDS.Definition import :: SDS
+import iTasks.SDS.Definition
 from Data.Maybe import :: Maybe
 
 //* Next task actions
@@ -41,7 +41,7 @@ ActionClose		:==	Action "Close"
 
 // Data available to parallel sibling tasks
 :: TaskList a :== (!TaskId,![TaskListItem a])
-:: SharedTaskList a	:==	SDS TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
+:: SharedTaskList a :== SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
 
 :: TaskListItem a =
 	{ taskId			:: !TaskId

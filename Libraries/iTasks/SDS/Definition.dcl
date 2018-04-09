@@ -2,7 +2,7 @@ definition module iTasks.SDS.Definition
 /**
 * This module provides the types that define a shared data source
 */
-from iTasks.WF.Definition import :: TaskException, class iTask
+from iTasks.WF.Definition import :: TaskException, class iTask, :: TaskId
 from iTasks.Internal.IWorld import :: IWorld
 
 import iTasks.Internal.Generic.Visualization
@@ -13,29 +13,30 @@ import Data.GenEq
 from Data.Either import :: Either
 from Data.Error import :: MaybeError
 from Data.Maybe import :: Maybe
+from Data.Set import :: Set
+
+:: SDSIdentity  :== String
 
 //This is the definition of a shared data source
+class Identifiable sds
+where
+    nameSDS          :: (sds p r w) [String] -> [String]
 
-:: SDS p r w
-	= 			            SDSSource		!(SDSSource p r w) 
-    | E.ps rs ws:           SDSLens         !(SDS ps rs ws)                   (SDSLens p r w ps rs ws) & iTask ps & TC rs & TC ws
-    | E.p1 p2:              SDSSelect       !(SDS p1 r w)   !(SDS p2 r w)     (SDSSelect p p1 p2 r w) & iTask p1 & iTask p2 & TC r & TC w
-    | E.p1 r1 w1 p2 r2 w2:  SDSParallel     !(SDS p1 r1 w1) !(SDS p2 r2 w2)   (SDSParallel p1 r1 w1 p2 r2 w2 p r w) & iTask p1 & iTask p2 & TC r1 & TC r2 & TC w1 & TC w2
-    | E.p1 r1 w1 p2 r2 w2:  SDSSequence     !(SDS p1 r1 w1) !(SDS p2 r2 w2)   (SDSSequence p1 r1 w1 p2 r2 w2 p r w) & iTask p1 & iTask p2 & TC r1 & TC r2 & TC w1 & TC w2
-	|                       SDSCache        !(SDSSource p r w)                (SDSCache p r w) & iTask p & TC r & TC w
-							// USE IT CAREFULLY, IT CAN BREAK NOTIFICATION!
-    |						SDSDynamic		!(p *IWorld -> *(MaybeError TaskException (RWShared p r w), *IWorld)) //TODO: Remove
+class Readable sds | Identifiable sds
+where
+    readSDS          :: (sds p r w) p !(Maybe TaskId) !SDSIdentity !*IWorld -> *(!MaybeError TaskException r, !*IWorld) | iTask p & TC r
 
+class Registrable sds | Identifiable sds
+where
+    readRegisterSDS      :: (sds p r w) p *TaskId !*IWorld -> *(!MaybeError TaskException r, !*IWorld) | iTask p & TC r
 
-// Common aliases
-:: RWShared p r w       :== SDS p r w
-:: ROShared p a         :== SDS p a ()
-:: WOShared p a         :== SDS p () a
+class Writable sds | Identifiable sds
+where
+     writeSDS         :: (sds p r w) p w *IWorld -> *(!MaybeError TaskException (Set TaskId), !*IWorld) | iTask p & TC r & TC w
 
-:: ReadWriteShared r w  :== SDS () r w
-:: ReadOnlyShared a     :== SDS () a ()
-:: WriteOnlyShared a    :== SDS () () a
-:: Shared a             :== SDS () a a
+class RWShared sds | Readable, Writable, Registrable sds
+class ROShared sds | Readable sds
+class WOShared sds | Writable sds
 
 //For notification we need a predicate that can determine whether
 //some registered parameter of type p needs to be notified.
@@ -49,7 +50,8 @@ from Data.Maybe import :: Maybe
 	}
 
 //Lenses select and transform data
-:: SDSLens p r w ps rs ws =
+:: SDSLens p r w  = E. ps rs ws sds: SDSLens (sds ps rs ws) (SDSLensOptions p r w ps rs ws) & RWShared sds & iTask ps & TC rs & TC ws
+:: SDSLensOptions p r w ps rs ws = 
     { name         :: String
     , param        :: p -> ps
     , read         :: SDSLensRead p r rs
@@ -70,7 +72,8 @@ from Data.Maybe import :: Maybe
     | SDSNotifyConst    (pw w    -> SDSNotifyPred pq)
 
 //Merge two sources by selecting one based on the parameter
-:: SDSSelect p p1 p2 r w =
+:: SDSSelect p r w = E. p1 p2 sds1 sds2: SDSSelect (sds1 p1 r w) (sds2 p2 r w) (SDSSelectOptions p r w p1 p2) & RWShared sds1 & RWShared sds2 & iTask p1 & iTask p2 & TC r & TC w
+:: SDSSelectOptions p r w p1 p2 =
     { name          :: String
     , select        :: p -> Either p1 p2
     , notifyl       :: SDSLensNotify p1 p2 w r
@@ -78,7 +81,8 @@ from Data.Maybe import :: Maybe
     }
 
 //Read from and write to two independent SDS's
-:: SDSParallel p1 r1 w1 p2 r2 w2 p r w =
+:: SDSParallel p r w = E. p1 r1 w1 p2 r2 w2 sds1 sds2: SDSParallel (sds1 p1 r1 w1) (sds2 p2 r2 w2) (SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w) & RWShared sds1 & RWShared sds2 & iTask p1 & iTask p2 & TC r1 & TC r2 & TC w1 & TC w2
+:: SDSParallelOptions p1 r1 w1 p2 r2 w2 p r w =
     { name          :: String
     , param         :: p -> (p1,p2)
     , read          :: (r1,r2) -> r
@@ -88,7 +92,8 @@ from Data.Maybe import :: Maybe
 
 //Read from and write to two dependent SDS's
 //The read value from the first is used to compute the parameter for the second
-:: SDSSequence p1 r1 w1 p2 r2 w2 p r w =
+:: SDSSequence p r w = E. p1 r1 w1 p2 r2 w2 sds1 sds2: SDSSequence (sds1 p1 r1 w1) (sds2 p2 r2 w2) (SDSSequenceOptions p1 r1 w1 p2 r2 w2 p r w) & RWShared sds1 & RWShared sds2 & iTask p1 & iTask p2 & TC r1 & TC r2 & TC w1 & TC w2
+:: SDSSequenceOptions p1 r1 w1 p2 r2 w2 p r w =
     { name          :: String
 	, paraml        :: p -> p1
 	, paramr        :: p r1 -> p2
@@ -97,9 +102,9 @@ from Data.Maybe import :: Maybe
     , writer        :: SDSLensWrite p w r2 w2
     }
 
-:: SDSCache p r w =
+:: SDSCache p r w = SDSCache (SDSSource p r w) (SDSCacheOptions p r w)
+:: SDSCacheOptions p r w  =
 	{ write        :: p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)
 	}
 
 :: SDSCacheWrite = WriteNow | WriteDelayed | NoWrite
-

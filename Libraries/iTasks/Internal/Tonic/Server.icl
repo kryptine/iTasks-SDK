@@ -25,7 +25,7 @@ import iTasks.Internal.Tonic.Images
 
 derive class iTask ViewerSettings
 
-shViewerSettings :: Shared ViewerSettings
+shViewerSettings :: SDSLens () ViewerSettings ViewerSettings
 shViewerSettings = sharedStore "shViewerSettings" { recording = True
                                                   , selectedBlueprint = Nothing
                                                   }
@@ -34,13 +34,13 @@ foldT_ :: (a -> Task ()) [a] -> Task ()
 foldT_ f []       = return ()
 foldT_ f [x : xs] = f x >>| foldT_ f xs
 
-liveRunStateShare :: RWShared () TonicGenRTMap TonicGenRTMap
+liveRunStateShare :: SDSLens () TonicGenRTMap TonicGenRTMap
 liveRunStateShare = sharedStore "liveRunStateShare" 'DM'.newMap
 
-recordingsShare :: Shared (Map DateTime [TonicMessage])
+recordingsShare :: SDSLens () (Map DateTime [TonicMessage]) (Map DateTime [TonicMessage])
 recordingsShare = sharedStore "recordingsShare" 'DM'.newMap
 
-recordingForDateTimeShare :: ROShared DateTime [TonicMessage]
+recordingForDateTimeShare :: SDSLens DateTime [TonicMessage] ()
 recordingForDateTimeShare = toReadOnly (mapLens "recordingForDateTimeShare" recordingsShare (Just []))
 
 newRTMapFromMessages :: [TonicMessage] -> Task TonicGenRTMap
@@ -160,7 +160,7 @@ flattenRTMap m = flatten (flattenRTMap` ('DM'.toList m))
 
 :: TonicGenRTMap :== Map ComputationId [((ModuleName, FuncName), GenBlueprintInstance)]
 
-saSelectedBlueprint :: Shared (Maybe (ComputationId, BlueprintIdent))
+saSelectedBlueprint :: SDSLens () (Maybe (ComputationId, BlueprintIdent)) (Maybe (ComputationId, BlueprintIdent)) 
 saSelectedBlueprint = sharedStore "saSelectedBlueprint" Nothing
 
 liveStandAloneViewer :: Task ()
@@ -172,7 +172,7 @@ liveStandAloneViewer
   startViewer
     =   enterChoiceWithShared "Select blueprint" [] (mapRead (\ts -> 'DL'.concatMap f ts.ts_allMsgs) tonicServerShare)
     >&> withSelection noSel (
-    (\bp -> whileUnchanged (tonicServerShare |+| shViewerSettings)
+    (\bp -> whileUnchanged (tonicServerShare |*| shViewerSettings)
     (\x=:(tms, _) -> (runViewer x -|| forever (viewInformation () [] () >>* [ startAction tms
                                                                             , pauseAction tms
                                                                             , continueAction tms
@@ -269,7 +269,7 @@ mkInstance nid tf =
                            , bpr_taskName   = tf.tf_name }
   }
 
-messageArchive :: Shared [TonicMessage]
+messageArchive :: SDSLens () [TonicMessage] [TonicMessage]
 messageArchive = sharedStore "messageArchive" []
 
 
@@ -281,7 +281,7 @@ messageArchive = sharedStore "messageArchive" []
 
 derive class iTask TMessageStore
 
-tonicServerShare :: Shared TMessageStore
+tonicServerShare :: SDSLens () TMessageStore TMessageStore
 tonicServerShare = sharedStore "tonicServerShare" { TMessageStore
                                                   | ts_recording       = True
                                                   , ts_allMsgs         = []
@@ -301,7 +301,7 @@ acceptAndViewTonicTraces
       ||-
     viewSharedInformation "Logged traces" [] tonicServerShare @! ()
 
-acceptTonicTraces :: !(Shared TMessageStore) -> Task [ServerState]
+acceptTonicTraces :: !(sds () TMessageStore TMessageStore) -> Task [ServerState] | RWShared sds
 acceptTonicTraces tonicShare
   = tcplisten 9000 True tonicShare { ConnectionHandlers
                                    | onConnect     = onConnect

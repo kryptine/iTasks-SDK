@@ -192,7 +192,7 @@ viewCurDateTime = viewSharedInformation "The current date and time is:" [] curre
 viewTime :: Task Time
 viewTime = viewSharedInformation "The current time is:" [ViewAs AnalogClock] currentTime
 
-personStore :: Shared [MyPerson]
+personStore :: SDSLens () [MyPerson] [MyPerson]
 personStore = sharedStore "Persons" []
 
 editStoredPersons :: Task [MyPerson]
@@ -276,7 +276,7 @@ person1by1 persons
 editPersonList :: Task ()
 editPersonList = editSharedList personStore
 
-editSharedList :: (Shared [a]) -> Task () | iTask a
+editSharedList :: (sds () [a] [a]) -> Task () | iTask a & RWShared sds
 editSharedList store
 	=			enterChoiceWithShared "Choose an item to edit" [ChooseFromGrid snd] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
 		>>*		[ OnAction (Action "Append")   (hasValue (showAndDo append))
@@ -312,7 +312,7 @@ where
 			}
 derive class iTask ToDo
 
-toDoList :: Shared [ToDo]
+toDoList :: SDSLens () [ToDo] [ToDo]
 toDoList = sharedStore "My To Do List" []
 
 editToDoList = editSharedList toDoList
@@ -321,7 +321,7 @@ editToDoList = editSharedList toDoList
 
 :: Tweet  :== (String,String)
 
-twitterId :: String -> Shared [Tweet]
+twitterId :: String -> SDSLens () [Tweet] [Tweet]
 twitterId name  = sharedStore ("Twitter with " +++ name) []
 
 followTweets 
@@ -329,7 +329,7 @@ followTweets
 		>>= \me ->		enterChoiceWithShared "Whoms tweets you want to see?" [] users
 		>>= \user ->	let name = getUserName user in joinTweets me user "type in your tweet" (twitterId name)
 where
-	joinTweets  :: User User String (Shared [Tweet]) -> Task ()
+	joinTweets  :: User User String (sds () [Tweet] [Tweet]) -> Task () | RWShared sds
 	joinTweets me you message tweetsStore
 		=			(viewSharedInformation ("You are following " +++ tweeter) [] tweetsStore)
 					||-
@@ -484,7 +484,7 @@ editWithStatistics
 							>>*	 			[ OnAction (ActionQuit) (always (return ()))
 											]
 											
-editFile :: String (Shared String) (SharedTaskList ()) -> Task ()
+editFile :: String (sds () String String) (SharedTaskList ()) -> Task () | RWShared sds
 editFile fileName sharedFile _
  =						updateSharedInformation ("edit " +++ fileName) [UpdateUsing id (const id) textArea] sharedFile
  	@!					()
@@ -662,7 +662,7 @@ where
 
 
 
-tictactoe_for_1 :: !Bool !(Shared TicTacToe) -> Task User
+tictactoe_for_1 :: !Bool !(sds () TicTacToe TicTacToe) -> Task User | RWShared sds
 tictactoe_for_1 my_turn sharedGameSt
 	= (viewSharedInformation "Board:" [ViewAs (\gameSt -> viewBoard (42,42) gameSt)] sharedGameSt) ||- play
 where
@@ -719,8 +719,3 @@ callProcessExample =
 	enterInformation "Enter the path to the external process. To for instance open a shell run '/bin/bash' or 'c:\\Windows\\System32\\cmd.exe'." []
 	>>= \path->'P'.callProcess () [] path [] Nothing Nothing
 	>>- viewInformation "Process terminated" []
-	
-
-//* Customizing interaction with views
-
-//* Layout tuning
