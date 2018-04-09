@@ -53,7 +53,7 @@ instance toString OSException
 where
 	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
 
-interact :: !d !EditMode !(SDS () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC w
+interact :: !d !EditMode !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC w & RWShared sds
 interact prompt mode shared {onInit,onEdit,onRefresh} editor = Task eval
 where
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -104,9 +104,9 @@ initMask taskId mode editor v iworld
 		(Ok (_,mask),{VSt|iworld}) = (Ok mask, iworld)
 		(Error e, {VSt|iworld}) = (Error (exception e), iworld)
 
-applyEditEvent_ :: String JSONNode TaskId EditMode (Editor v) TaskTime (SDS () r w) (v l v -> (l, v, Maybe (r -> w))) l v EditMask !*IWorld
-                -> (!MaybeError TaskException (!l, !v, !UIChange, !EditMask, !TaskTime), !*IWorld)
-                | TC r & TC w
+applyEditEvent_ :: String JSONNode TaskId EditMode (Editor v) TaskTime (sds () r w) (v l v -> (l, v, Maybe (r -> w))) l v EditMask !*IWorld
+                -> (!MaybeError TaskException (!l, !v, !UIChange, !EditMask, !TaskTime), !*IWorld) 
+                | TC r & TC w & RWShared sds
 applyEditEvent_ name edit taskId mode editor taskTime shared onEdit l ov m iworld
 	# vst = {VSt| taskId = toString taskId, mode = mode, optional = False, selectedConsIndex = -1, iworld = iworld}
 	= case editor.Editor.onEdit [] (s2dp name,edit) ov m vst of
@@ -122,9 +122,9 @@ applyEditEvent_ name edit taskId mode editor taskTime shared onEdit l ov m iworl
 			        = (Ok (l,v,change,m,taskTime),iworld)
         (Error e,_,{VSt|iworld}) = (Error (exception e),iworld)
 
-refreshView_ :: TaskId EditMode (Editor v) (SDS () r w) (r l v -> (l, v, Maybe (r -> w))) l v EditMask TaskTime !*IWorld
+refreshView_ :: TaskId EditMode (Editor v) (sds () r w) (r l v -> (l, v, Maybe (r -> w))) l v EditMask TaskTime !*IWorld
              -> (!MaybeError TaskException (!l, !v, !UIChange, !EditMask, !TaskTime), !*IWorld)
-             | TC r & TC w
+             | TC r & TC w & RWShared sds
 refreshView_ taskId mode editor shared onRefresh l ov m taskTime iworld
 	//Read the shared source and refresh the editor
 	= case 'SDS'.readRegister taskId shared iworld of

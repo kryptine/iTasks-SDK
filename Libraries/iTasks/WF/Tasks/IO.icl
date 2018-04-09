@@ -34,7 +34,7 @@ import qualified Data.Set as DS
     , onExit        :: !(ExitCode l r -> (!MaybeErrorString l, !Maybe w                  ))
     }
 
-externalProcess :: !d !FilePath ![String] !(Maybe FilePath) !(SDS () r w) !(ExternalProcessHandlers l r w) !(Maybe ProcessPtyOptions) !(Editor l) -> Task l | toPrompt d & iTask l & TC r & TC w
+externalProcess :: !d !FilePath ![String] !(Maybe FilePath) !(sds () r w) !(ExternalProcessHandlers l r w) !(Maybe ProcessPtyOptions) !(Editor l) -> Task l | toPrompt d & iTask l & TC r & TC w & RWShared sds
 externalProcess prompt cmd args dir sds handlers mopts editor = Task eval
 where
     eval event evalOpts tree=:(TCInit taskId ts) iworld
@@ -94,7 +94,7 @@ where
          	(Ok (editorChange,mask), nextValue, {VSt|iworld}) = (Ok (ChangeUI [] [(1,ChangeChild editorChange)],mask), nextValue, iworld)
             (Error e, nextValue, {VSt|iworld})                = (Error e,nextValue,iworld)
 
-tcplisten :: !Int !Bool !(RWShared () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w
+tcplisten :: !Int !Bool !(sds () r w) (ConnectionHandlers l r w) -> Task [l] | iTask l & iTask r & iTask w & RWShared sds
 tcplisten port removeClosed sds handlers = Task eval
 where
 	eval event evalOpts tree=:(TCInit taskId ts) iworld
@@ -123,7 +123,7 @@ where
 
     rep port = ReplaceUI (stringDisplay ("Listening for connections on port "<+++ port))
 
-tcpconnect :: !String !Int !(RWShared () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w
+tcpconnect :: !String !Int !(sds () r w) (ConnectionHandlers l r w) -> Task l | iTask l & iTask r & iTask w & RWShared sds
 tcpconnect host port sds handlers = Task eval
 where
 	eval event evalOpts tree=:(TCInit taskId ts) iworld=:{IWorld|ioTasks={done,todo},ioStates,world}

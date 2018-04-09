@@ -1,5 +1,7 @@
 definition module iTasks.Internal.TaskServer
 
+import iTasks.Internal.SDS
+
 from Data.Maybe 		import :: Maybe
 from StdFile			import class FileSystem
 from TCPIP				import class ChannelEnv, :: IPAddress, :: Timeout
@@ -18,10 +20,10 @@ from iTasks.Engine            import :: TaskWrapper
 serve :: ![TaskWrapper] ![(!Int,!ConnectionTask)] ![BackgroundTask] (*IWorld -> (!Maybe Timeout,!*IWorld)) *IWorld -> *IWorld
 
 //Dynamically add a listener
-addListener :: !TaskId !Int !Bool !ConnectionTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
+addListener :: !TaskId !Int !Bool !(ConnectionTask) !*IWorld -> (!MaybeError TaskException (),!*IWorld)
 
 //Dynamically add a connection
-addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException Dynamic,!*IWorld)
+addConnection :: !TaskId !String !Int !(ConnectionTask) !*IWorld -> (!MaybeError TaskException Dynamic,!*IWorld)
 
 //Dynamically add an external process
 addExternalProc :: !TaskId !FilePath ![String] !(Maybe FilePath) !ExternalProcessTask (Maybe ProcessPtyOptions) !IWorld -> (!MaybeError TaskException Dynamic, !*IWorld)

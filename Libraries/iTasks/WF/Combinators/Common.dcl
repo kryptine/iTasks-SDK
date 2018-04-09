@@ -259,16 +259,16 @@ forever task :== foreverSt gDefault{|*|} \_->task
 /**
 * Feed the result of one task as read-only shared to another 
 */
-feedForward :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
+feedForward :: (Task a) ((SDSLens () (Maybe a) ()) -> Task b) -> Task b | iTask a & iTask b
 
 //Infix version of feedForward
-(>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
+(>&>) infixl 1  :: (Task a) ((SDSLens () (Maybe a) ()) -> Task b) -> Task b | iTask a & iTask b
 
 //Same as feedForward, but with the value of the lefthand side
-feedSideways :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | iTask a & iTask b
+feedSideways :: (Task a) ((SDSLens () (Maybe a) ()) -> Task b) -> Task a | iTask a & iTask b
 
 //Infix version of feedSideways
-(>&^) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task a | iTask a & iTask b
+(>&^) infixl 1 :: (Task a) ((SDSLens () (Maybe a) ()) -> Task b) -> Task a | iTask a & iTask b
 
 /**
 * Group a list of tasks in parallel.
@@ -324,14 +324,14 @@ randomChoice		:: ![a]										-> Task a				| iTask a
 * Do a task as long while monitoring that a shared state remains unchanged.
 * When the share changes the task is restarted
 */
-whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask b
-whileUnchangedWith :: !(r r -> Bool) !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
+whileUnchanged :: !(sds () r w) (r -> Task b) -> Task b | iTask r & iTask b & RWShared sds
+whileUnchangedWith :: !(r r -> Bool) !(sds () r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b & RWShared sds
 
 /**
 * Do a task when there is a Just value in the share
 * Do a default task when there is a Nothing value
 */
-withSelection :: (Task c) (a -> Task b) (ReadOnlyShared (Maybe a)) -> Task b | iTask a & iTask b & iTask c
+withSelection :: (Task c) (a -> Task b) (sds () (Maybe a) ()) -> Task b | iTask a & iTask b & iTask c & RWShared sds
 
 /**
 * Append a task to the set of top level tasks

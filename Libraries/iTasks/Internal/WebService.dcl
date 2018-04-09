@@ -9,7 +9,7 @@ from iTasks.Internal.IWorld		import :: IWorld
 from iTasks.Internal.Task 	    import :: Task, :: ConnectionTask
 from iTasks.Internal.TaskState 	import :: TIUIState
 from iTasks.Internal.TaskStore  import :: TaskOutput, :: TaskOutputMessage
-from iTasks.Internal.SDS 			import :: SDS, :: RWShared
+import iTasks.SDS.Definition
 from iTasks.UI.Definition           import :: UIChange
 from iTasks.WF.Definition	        import :: InstanceNo
 from Data.Queue 					import :: Queue
@@ -40,7 +40,7 @@ from Data.Map                       import :: Map
     , onDisconnect    :: !(HTTPRequest r ConnectionState        *IWorld -> *(!Maybe w, !*IWorld))                                       // is called on disconnect
     }
 
-httpServer :: !Int !Int ![WebService r w] (RWShared () r w) -> ConnectionTask | TC r & TC w
+httpServer :: !Int !Int ![WebService r w] (sds () r w) -> ConnectionTask | TC r & TC w & RWShared sds
 
 :: OutputQueues :== Map InstanceNo TaskOutput
 

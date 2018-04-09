@@ -16,12 +16,12 @@ derive class iTask UserAccount
 // Shares
 
 //* All user accounts
-userAccounts			::				Shared [UserAccount]
+userAccounts			::				SDSLens () [UserAccount] [UserAccount]
 
 //* All users
-users					:: 				ReadOnlyShared [User]
+users					:: 				SDSLens () [User] ()
 //* Users with a specific role
-usersWithRole			:: !Role ->		ReadOnlyShared [User]
+usersWithRole			:: !Role ->		SDSLens () [User] ()
 
 /**
 * Authenticates a user by username and password

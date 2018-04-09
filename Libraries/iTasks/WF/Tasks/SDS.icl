@@ -16,7 +16,7 @@ where
 
 derive class iTask SharedException
 	
-get :: !(ReadWriteShared a w) -> Task a | iTask a
+get :: !(sds () a w) -> Task a | iTask a & Readable sds
 get shared = mkInstantTask eval
 where
 	eval taskId iworld=:{current={taskTime}}
@@ -25,7 +25,7 @@ where
 			Ok val		= (Ok val,iworld)
 			Error e		= (Error e, iworld)
 	
-set :: !a !(ReadWriteShared r a)  -> Task a | iTask a & TC r
+set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writable sds
 set val shared = mkInstantTask eval
 where
 	eval taskId iworld=:{current={taskTime,taskInstance}}
@@ -34,7 +34,7 @@ where
 			Ok _	= (Ok val, iworld)
 			Error e	= (Error e, iworld)
 
-upd :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
+upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & Readable, Writable sds
 upd fun shared = mkInstantTask eval
 where
 	eval taskId iworld=:{current={taskTime,taskInstance}}
@@ -48,7 +48,7 @@ where
 					Ok _	= (Ok w, iworld)
 					Error e = (Error e, iworld)
 					
-watch :: !(ReadWriteShared r w) -> Task r | iTask r
+watch :: !(sds () r w) -> Task r | iTask r & Readable, Registrable sds
 watch shared = Task eval
 where
 	eval event evalOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld

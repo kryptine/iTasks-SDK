@@ -183,7 +183,7 @@ process i chList iworld=:{ioTasks={done,todo=[ListenerInstance lopts listener:to
                         = process (i+1) chList {iworld & ioTasks={done=done,todo=todo}, ioStates = ioStates, world=world}
                     # (mbConState,mbw,out,close,iworld) = handlers.ConnectionHandlersIWorld.onConnect (toString ip) (fromOk mbr) iworld
                     # iworld = if (instanceNo > 0) (queueRefresh [(taskId,"New TCP connection for instance "<+++instanceNo)] iworld) iworld
-                    # (mbSdsErr, iworld=:{ioTasks={done,todo},world}) = writeShareIfNeeded sds mbw iworld
+                    # (mbSdsErr, iworld=:{ioTasks={done,todo},world}) = writeSDShareIfNeeded sds mbw iworld
                     | mbConState =:(Error _)
                         # ioStates = 'DM'.put lopts.ListenerInstanceOpts.taskId (IOException (fromError mbConState)) ioStates
                         = process (i+1) chList {iworld & ioTasks={done=[ListenerInstance lopts listener:done],todo=todo}, ioStates = ioStates, world=world}
@@ -373,7 +373,7 @@ processIOTask :: !Int
                  !TaskId
                  !ConnectionId
                  !Bool
-                 !(RWShared () Dynamic Dynamic)
+                 !(SDSLens () Dynamic Dynamic)
                  !(IOTaskOperations .ioChannels readData closeInfo)
                  !(closeInfo Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, !*IWorld))
                  !(readData Dynamic Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
@@ -403,7 +403,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
             # r = fromOk mbr
             // call handler
             # (mbTaskState, mbw, out, close, iworld) = onTickHandler taskState r iworld
-            # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
+            # (mbSdsErr, iworld) = writeSDShareIfNeeded sds mbw iworld
             // write data
             # (ioChannels, iworld) = seq [ioOps.writeData o \\ o <- out] (ioChannels, iworld)
             | mbTaskState =: (Error _) = taskStateException mbTaskState instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
@@ -417,7 +417,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
             # r = fromOk mbr
             // call handler
             # (mbTaskState, mbw, out, close, iworld) = onShareChangeHandler taskState r iworld
-            # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
+            # (mbSdsErr, iworld) = writeSDShareIfNeeded sds mbw iworld
             // write data
             # (ioChannels, iworld) = seq [ioOps.writeData o \\ o <- out] (ioChannels, iworld)
             | mbTaskState =: (Error _) = taskStateException mbTaskState instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
@@ -440,7 +440,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
                             = 'DM'.put taskId (IOActive ('DM'.put connectionId (state, True) taskStates)) ioStates
                         Error e
                             = 'DM'.put taskId (IOException e) ioStates
-                    # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
+                    # (mbSdsErr, iworld) = writeSDShareIfNeeded sds mbw iworld
                     | isError mbSdsErr
                         # iworld = if (instanceNo > 0) (queueRefresh [(taskId, "Exception for " <+++ instanceNo)] iworld) iworld
                         # ioStates = 'DM'.put taskId (IOException (snd (fromError mbSdsErr))) ioStates
@@ -454,7 +454,7 @@ processIOTask i chList taskId connectionId removeOnClose sds ioOps onCloseHandle
                 IODData data
                     # (mbTaskState, mbw, out, close, iworld) = onDataHandler data taskState r iworld
                     # iworld = if (instanceNo > 0) (queueRefresh [(taskId, "New data for "<+++ instanceNo)] iworld) iworld
-                    # (mbSdsErr, iworld) = writeShareIfNeeded sds mbw iworld
+                    # (mbSdsErr, iworld) = writeSDShareIfNeeded sds mbw iworld
                     // write data
                     # (ioChannels, iworld) = seq [ioOps.writeData o \\ o <- out] (ioChannels, iworld)
                     | mbTaskState =: (Error _) = taskStateException mbTaskState instanceNo ioStates ioOps.closeIO (ioChannels, iworld)
@@ -509,9 +509,9 @@ where
         # ioStates = 'DM'.put taskId (IOActive taskStates) ioStates
         = closeIO (ioChannels, iworld)//{iworld & ioStates = ioStates})
 
-writeShareIfNeeded :: !(RWShared () r w) !(Maybe w) !*IWorld -> (!MaybeError TaskException (), !*IWorld) | TC r & TC w
-writeShareIfNeeded sds Nothing iworld  = (Ok (), iworld)
-writeShareIfNeeded sds (Just w) iworld = 'SDS'.write w sds iworld
+writeSDShareIfNeeded :: !(sds () r w) !(Maybe w) !*IWorld -> (!MaybeError TaskException (), !*IWorld) | TC r & TC w & RWShared sds
+writeSDShareIfNeeded sds Nothing iworld  = (Ok (), iworld)
+writeSDShareIfNeeded sds (Just w) iworld = 'SDS'.write w sds iworld
 
 addListener :: !TaskId !Int !Bool !ConnectionTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
 addListener taskId port removeOnClose connectionTask iworld=:{ioTasks={todo,done}, ioStates, world}
@@ -571,13 +571,13 @@ where
         = ExternalProcessInstance opts pHandle pIO
 
 addIOTask :: !TaskId
-             !(RWShared () Dynamic Dynamic)
+             !(sds () Dynamic Dynamic)
              !(*IWorld -> (!MaybeErrorString (!initInfo, !.ioChannels), !*IWorld))
              !(IOTaskOperations .ioChannels readData closeInfo)
              !(initInfo Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
              !(initInfo .ioChannels -> *IOTaskInstance)
              !*IWorld
-          -> (!MaybeError TaskException Dynamic, !*IWorld)
+          -> (!MaybeError TaskException Dynamic, !*IWorld) | RWShared sds
 addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld
     # (mbInitRes, iworld) = init iworld
     = case mbInitRes of

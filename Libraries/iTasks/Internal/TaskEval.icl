@@ -13,8 +13,8 @@ from iTasks.WF.Combinators.Core import :: ParallelTaskType(..), :: ParallelTask(
 from Data.Map as DM				        import qualified newMap, fromList, toList, get, put, del 
 from Data.Queue import :: Queue (..)
 from Data.Queue as DQ					import qualified newQueue, enqueue, dequeue, empty
-from iTasks.Internal.SDS as SDS       import qualified read, write, modify
-from iTasks.SDS.Combinators.Common      import sdsFocus, >+|, mapReadWrite, mapReadWriteError
+import qualified iTasks.Internal.SDS as SDS
+from iTasks.SDS.Combinators.Common      import sdsFocus, mapReadWrite, mapReadWriteError
 from StdFunc import const
 
 import qualified Data.CircularStack as DCS
@@ -195,5 +195,5 @@ updateInstanceDisconnect [instanceNo:instanceNos] iworld=:{IWorld|clock}
 		(Ok (),iworld) = updateInstanceDisconnect instanceNos iworld
 		(Error e,iworld) = (Error e,iworld)
 
-currentInstanceShare :: ReadOnlyShared InstanceNo
+currentInstanceShare :: SDSSource () InstanceNo ()
 currentInstanceShare = createReadOnlySDS (\() iworld=:{current={TaskEvalState|taskInstance}} -> (taskInstance,iworld))

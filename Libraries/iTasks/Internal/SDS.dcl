@@ -20,9 +20,38 @@ import iTasks.SDS.Definition
     , cmpParam      :: Dynamic      //Parameter we are saving for comparison
     , cmpParamText  :: String       //String version of comparison parameter for tracing
     }
-:: SDSIdentity  :== String
 
-:: DeferredWrite = E. p r w: DeferredWrite !p !w !(SDS p r w) & iTask p & TC r & TC w
+:: DeferredWrite = E. p r w sds: DeferredWrite !p !w !(sds p r w) & iTask p & TC r & TC w & RWShared sds
+
+instance Identifiable SDSSource
+instance Readable SDSSource
+instance Writable SDSSource
+instance Registrable SDSSource
+
+instance Identifiable SDSLens
+instance Readable SDSLens
+instance Writable SDSLens
+instance Registrable SDSLens
+
+instance Identifiable SDSCache
+instance Readable SDSCache
+instance Writable SDSCache
+instance Registrable SDSCache
+
+instance Identifiable SDSSequence
+instance Readable SDSSequence
+instance Writable SDSSequence
+instance Registrable SDSSequence
+
+instance Identifiable SDSSelect
+instance Readable SDSSelect
+instance Writable SDSSelect
+instance Registrable SDSSelect
+
+instance Identifiable SDSParallel
+instance Readable SDSParallel
+instance Writable SDSParallel
+instance Registrable SDSParallel
 
 //Internal creation functions:
 
@@ -32,31 +61,31 @@ createReadWriteSDS ::
 	!(p *IWorld -> *(!MaybeError TaskException r, !*IWorld))
 	!(p w *IWorld -> *(!MaybeError TaskException (SDSNotifyPred p), !*IWorld))
 	->
-	RWShared p r w
+	SDSSource p r w
 
 createReadOnlySDS ::
 	!(p *IWorld -> *(!r, !*IWorld))
 	->
-	ROShared p r
+	SDSSource p r ()
 
 createReadOnlySDSError ::
 	!(p *IWorld -> *(!MaybeError TaskException r, !*IWorld))
 	->
-	ROShared p r
+	SDSSource p r ()
 
 //Internal access functions
 
 //Just read an SDS
-read			::						    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC r
-//Read an SDS and register a taskId to be notified when it is written
-readRegister	:: !TaskId                  !(RWShared () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC r
-//Write an SDS (and queue evaluation of those task instances which contained tasks that registered for notification)
-write			:: !w					    !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)	| TC r & TC w
-//Read followed by write. The 'a' typed value is a result that is returned
-modify          :: !(r -> (!a,!w))          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException a, !*IWorld) | TC r & TC w
+read			::						    !(sds () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC r & Readable sds
 
-//Force notify (queue evaluation of task instances that registered for notification)
-notify          ::                          !(RWShared () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)
+//Read an SDS and register a taskId to be notified when it is written
+readRegister	:: !TaskId                  !(sds () r w) !*IWorld -> (!MaybeError TaskException r, !*IWorld) | TC r & Readable, Registrable sds
+
+//Write an SDS (and queue evaluation of those task instances which contained tasks that registered for notification)
+write			:: !w					    !(sds () r w) !*IWorld -> (!MaybeError TaskException (), !*IWorld)	| TC r & TC w & Writable sds
+
+//Read followed by write. The 'a' typed value is a result that is returned
+modify          :: !(r -> (!a,!w))          !(sds () r w) !*IWorld -> (!MaybeError TaskException a, !*IWorld) | TC r & TC w & Readable sds & Writable sds
 
 //Clear all registrations for the given tasks.
 //This is normally called by the queueRefresh functions, because once a task is queued
@@ -69,12 +98,4 @@ formatSDSRegistrationsList :: [(InstanceNo,[(TaskId,SDSIdentity)])] -> String
 
 //Flush all deffered/cached writes of
 flushDeferredSDSWrites :: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
-
-:: JSONShared :== RWShared JSONNode JSONNode JSONNode
-
-//Exposing shares for external nodes
-toJSONShared    :: (RWShared p r w) -> JSONShared | JSONDecode{|*|} p & JSONEncode{|*|} r & JSONDecode{|*|} w & iTask p & TC r & TC w
-fromJSONShared  :: JSONShared -> RWShared p r w | JSONEncode{|*|} p & JSONDecode{|*|} r & JSONEncode{|*|} w
-newURL 		    :: !*IWorld -> (!String, !*IWorld)
-getURLbyId 	    :: !String !*IWorld -> (!String, !*IWorld)
 

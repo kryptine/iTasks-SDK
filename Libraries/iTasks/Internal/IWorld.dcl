@@ -18,8 +18,8 @@ from iTasks.Internal.TaskEval         import :: TaskTime
 
 from iTasks.WF.Definition import :: TaskValue, :: Event, :: TaskId, :: InstanceNo, :: TaskNo
 from iTasks.WF.Combinators.Core import :: ParallelTaskType, :: TaskListItem 
-from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared, :: Shared, :: ReadOnlyShared
-from iTasks.Internal.SDS import :: SDSNotifyRequest, :: JSONShared, :: DeferredWrite
+import iTasks.SDS.Definition
+from iTasks.Internal.SDS import :: SDSNotifyRequest, :: DeferredWrite
 from iTasks.Extensions.DateTime import :: Time, :: Date, :: DateTime
 
 from Sapl.Linker.LazyLinker import :: LoaderState
@@ -40,7 +40,6 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
                     , memoryShares          :: !Map String Dynamic                          // Run-time memory shares
                     , readCache             :: !Map (String,String) Dynamic                 // Cached share reads
                     , writeCache            :: !Map (String,String) (Dynamic,DeferredWrite) // Cached deferred writes
-					, exposedShares			:: !Map String (Dynamic, JSONShared)            // Shared source
 					, jsCompilerState 		:: !Maybe JSCompilerState 					    // Sapl to Javascript compiler state
 
 	                , ioTasks               :: !*IOTasks                                    // The low-level input/output tasks
@@ -102,7 +101,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 :: ExternalProcessInstanceOpts =
     { taskId                :: !TaskId              //Reference to the task that started the external process
     , connectionId          :: !ConnectionId        //Unique connection id (per listener/outgoing connection)     
-    , externalProcessTask   :: !ExternalProcessTask //The io task definition that defines how the process IO is handled
+    , externalProcessTask   :: !ExternalProcessTask  //The io task definition that defines how the process IO is handled
     }
 
 :: BackgroundInstanceOpts =
@@ -147,8 +146,8 @@ destroyIWorld :: !*IWorld -> *World
 
 //Internally used clock share
 // (UTC time can be derived from timestamp, local time requires *World to determine time zone)
-iworldTimestamp     :: Shared Timestamp
-iworldLocalDateTime :: ReadOnlyShared DateTime
+iworldTimestamp :: SDSSource () Timestamp Timestamp
+iworldLocalDateTime :: SDSParallel () DateTime () 
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
 

@@ -63,16 +63,16 @@ derive gEditor 			User, UserConstraint, Username, Password
 derive class iTask	Credentials
 
 //* Authentication of the current instance
-currentUser 			:: RWShared () User User
+currentUser 			:: SDSLens () User User
 //* Authentication of a task instance instance
-taskInstanceUser 		:: RWShared InstanceNo User User
+taskInstanceUser 		:: SDSLens InstanceNo User User
 
 //* Selected task instances
-processesForUser :: User -> ReadOnlyShared [TaskListItem ()]
-processesForCurrentUser :: ReadOnlyShared [TaskListItem ()]
+processesForUser :: User -> SDSLens () [TaskListItem ()] ()
+processesForCurrentUser	:: SDSLens () [TaskListItem ()] ()
 
-taskInstancesForUser :: ROShared User [TaskInstance]
-taskInstancesForCurrentUser :: ROShared () [TaskInstance]
+taskInstancesForUser :: SDSLens User [TaskInstance] ()
+taskInstancesForCurrentUser :: SDSSequence () [TaskInstance] ()
 
 /*
 * Copies authentication attributes of current task 

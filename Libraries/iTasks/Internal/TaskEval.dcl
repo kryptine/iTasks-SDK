@@ -6,7 +6,7 @@ definition module iTasks.Internal.TaskEval
 from iTasks.WF.Definition           import :: Task, :: TaskResult, :: TaskException, :: TaskValue, :: Event, :: TaskId, :: InstanceNo
 from iTasks.WF.Combinators.Core     import :: TaskListItem
 from iTasks.Internal.IWorld		import :: IWorld
-from iTasks.Internal.SDS          import :: SDS, :: Shared, :: ReadOnlyShared
+import iTasks.Internal.SDS
 from iTasks.Internal.Tonic        import :: ExprId
 
 from Text.GenJSON import :: JSONNode
@@ -78,4 +78,4 @@ updateInstanceConnect       :: !String  ![InstanceNo]       !*IWorld -> *(!Maybe
 updateInstanceDisconnect    ::          ![InstanceNo]       !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 
 //Shares providing access to the evaluation information (constants from an evaluation point of view)
-currentInstanceShare        :: ReadOnlyShared InstanceNo
+currentInstanceShare :: SDSSource () InstanceNo ()

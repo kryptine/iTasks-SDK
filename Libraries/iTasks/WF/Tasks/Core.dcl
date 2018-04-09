@@ -3,11 +3,13 @@ definition module iTasks.WF.Tasks.Core
 * This module provis the builtin basic tasks 
 */
 import iTasks.WF.Definition
+import iTasks.SDS.Definition
+
 from Data.Error import :: MaybeError
 from System.OSError import :: MaybeOSError, :: OSError, :: OSErrorCode, :: OSErrorMessage
 from iTasks.UI.Editor import :: EditMode
 from iTasks.UI.Prompt import class toPrompt
-from iTasks.SDS.Definition import :: SDS
+
 
 /**
 * Lifts a value to the task domain. The task finishes immediately and yields its parameter
@@ -90,4 +92,4 @@ instance toString OSException
     , onRefresh :: !(r l v -> (l, v, Maybe (r -> w)))
 	}
 
-interact :: !d !EditMode !(SDS () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC w
+interact :: !d !EditMode !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC w & RWShared sds
