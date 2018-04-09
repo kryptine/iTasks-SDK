@@ -20,16 +20,29 @@ import iTasks.WF.Definition
 import Data.GenEq
 
 //This type records the states of layouts applied somewhere in a ui tree
-derive JSONEncode LayoutState, LayoutTree, LUI, LUIChanges, LUIEffects, LUIEffectStage, Set
-derive JSONDecode LayoutState, LayoutTree, LUI, LUIChanges, LUIEffects, LUIEffectStage, Set
+derive JSONEncode LayoutState, LayoutTree, LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
+derive JSONDecode LayoutState, LayoutTree, LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
 
-derive gEq LUIEffectStage
+derive gEq LUIEffectStage, LUINo
 
 derive gLexOrd LUIEffectStage
 
 instance < (LUIEffectStage a) | gLexOrd{|*|} a
 where
 	(<) x y = (gLexOrd{|*|} x y) === LT
+
+
+instance < LUINo
+where
+	(<) (LUINo xs) (LUINo ys) = xs < ys
+
+instance == LUINo
+where
+	(==) (LUINo xs) (LUINo ys) = xs == ys
+
+instance toString LUINo
+where
+	toString (LUINo steps) = join "." (map toString steps)
 
 //Test if a specific UI at a path is in the selection
 inUISelection :: UISelection UIPath UI -> Bool
@@ -402,8 +415,8 @@ noEffects = {overwrittenType = ESNotApplied, overwrittenAttributes = 'DM'.newMap
 initLUI :: Bool UI -> LUI
 initLUI toBeInserted (UI type attr items) = LUINode type attr (map (initLUI toBeInserted) items) {noChanges & toBeInserted = toBeInserted} noEffects
 
-toBeAdded :: Int LUI -> LUI
-toBeAdded ruleId (LUINode type attr items changes effects) = LUINode type attr items changes {effects & additional = ESToBeApplied ruleId}
+toBeAdded :: LUINo LUI -> LUI
+toBeAdded ruleNo (LUINode type attr items changes effects) = LUINode type attr items changes {effects & additional = ESToBeApplied ruleNo}
 
 initLUIExtractState :: LUIExtractState
 initLUIExtractState = {movedChanges = 'DM'.newMap, movedUIs = 'DM'.newMap}
@@ -827,7 +840,7 @@ isInvisibleUpstream_ (LUINode _ _ _ _ {additional=ESToBeRemoved _}) = True
 isInvisibleUpstream_ (LUIMoveDestination _ _) = True
 isInvisibleUpstream_ _  = False
 
-isAddedBy_ :: LID LUI -> Bool
+isAddedBy_ :: LUINo LUI -> Bool
 isAddedBy_ lid (LUINode _ _ _ _ {additional=ESToBeApplied ruleId}) = lid == ruleId
 isAddedBy_ lid (LUINode _ _ _ _ {additional=ESApplied ruleId}) = lid == ruleId
 isAddedBy_ lid (LUINode _ _ _ _ {additional=ESToBeRemoved ruleId}) = lid == ruleId
@@ -1011,7 +1024,7 @@ inLUISelection_ (SelectOR sell selr) path ui = inLUISelection_ sell path ui || i
 inLUISelection_ (SelectNOT sel) path ui = not (inLUISelection_ sel path ui)
 inLUISelection_ _ _ _ = False
 
-revertEffect_ :: LID LUIEffects -> LUIEffects //TODO Not all effects can currently be identified by a ruleId
+revertEffect_ :: LUINo LUIEffects -> LUIEffects //TODO Not all effects can currently be identified by a ruleId
 revertEffect_ ruleId effects=:{LUIEffects|additional,hidden,moved,wrapper,unwrapped}
 	| additional === (ESApplied ruleId) = {LUIEffects|effects & additional = ESToBeRemoved ruleId}
 	| additional === (ESToBeApplied ruleId) = {LUIEffects|effects & additional = ESNotApplied}
@@ -1507,8 +1520,8 @@ ruleBasedLayout :: LayoutRule -> Layout
 ruleBasedLayout rule = {Layout|apply,adjust,restore}
 where
 	apply ui
-		= appSnd LSRule (extractDownstreamChange (rule 0 (initLUI False ui)) initLUIExtractState)
+		= appSnd LSRule (extractDownstreamChange (rule (LUINo [0]) (initLUI False ui)) initLUIExtractState)
 	adjust (change, LSRule lui)
-		= appSnd LSRule (extractDownstreamChange (rule 0 (applyUpstreamChange change lui)) initLUIExtractState)
+		= appSnd LSRule (extractDownstreamChange (rule (LUINo [0]) (applyUpstreamChange change lui)) initLUIExtractState)
 	restore (LSRule lui)
 		= fst (extractDownstreamChange (revertEffects lui) initLUIExtractState) 

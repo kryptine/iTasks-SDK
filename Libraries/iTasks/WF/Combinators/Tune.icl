@@ -11,8 +11,8 @@ import Text.GenJSON, StdString
 import qualified Data.Map as DM
 
 //This type records the states of layouts applied somewhere in a ui tree
-derive JSONEncode LayoutState, LayoutTree, LUI, LUIChanges, LUIEffects, LUIEffectStage, Set
-derive JSONDecode LayoutState, LayoutTree, LUI, LUIChanges, LUIEffects, LUIEffectStage, Set
+derive JSONEncode LayoutState, LayoutTree, LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
+derive JSONDecode LayoutState, LayoutTree, LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
 
 /*
 * Tuning of tasks

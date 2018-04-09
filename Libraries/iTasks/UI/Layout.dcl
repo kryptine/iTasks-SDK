@@ -14,6 +14,7 @@ from Data.Set import :: Set
 from Data.Either import :: Either
 
 from Text.GenJSON import :: JSONNode
+from StdOverloaded import class <
 
 // When a layout changes the stucture of the UI, changes to the UI have to be
 // changed too to route the changes to the correct place in the structure
@@ -161,7 +162,7 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 	= LUINode UIType UIAttributes [LUI] LUIChanges LUIEffects
 	//Placeholder nodes
 	| LUIShiftDestination SID
-	| LUIMoveDestination LID Int
+	| LUIMoveDestination LUINo Int
 
 //Upstream UI changes
 :: LUIChanges =
@@ -177,12 +178,12 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 	{ overwrittenType       :: LUIEffectStage UIType
 	, overwrittenAttributes :: Map UIAttributeKey (LUIEffectStage JSONNode)
 	, hiddenAttributes      :: Map UIAttributeKey (LUIEffectStage ())
-	, additional            :: LUIEffectStage LID
-	, hidden                :: LUIEffectStage LID
-	, moved                 :: LUIEffectStage LID
-	, containsMovesBy       :: Map LID Int
-	, wrapper               :: LUIEffectStage LID
-	, unwrapped             :: LUIEffectStage LID
+	, additional            :: LUIEffectStage LUINo
+	, hidden                :: LUIEffectStage LUINo
+	, moved                 :: LUIEffectStage LUINo
+	, containsMovesBy       :: Map LUINo Int
+	, wrapper               :: LUIEffectStage LUINo
+	, unwrapped             :: LUIEffectStage LUINo
 	}
 
 //Layout rules determine that an effect should according to that rule be applied or restored.
@@ -199,17 +200,22 @@ noChanges :: LUIChanges
 noEffects :: LUIEffects
 
 //When layout rules make changes, it must be tracable which layout rule caused the change
-:: LID :== Int
+:: LUINo = LUINo [Int]
+
+instance < LUINo
+instance == LUINo
+instance toString LUINo
+
 //When shifting children, it must be tracable which source connects to which destination
 :: SID :== Int
 
 //A layout rule is simply a function that applies (or undoes) an effect to a LUI tree
-:: LayoutRule :== LID LUI -> LUI
+:: LayoutRule :== LUINo LUI -> LUI
 
 //When extracting downstream changes we need to track some state
 :: LUIExtractState =
-	{ movedChanges :: Map LID [(Int,UIChildChange)]
-	, movedUIs :: Map LID [UI]
+	{ movedChanges :: Map LUINo [(Int,UIChildChange)]
+	, movedUIs :: Map LUINo [UI]
 	}
 
 initLUI :: Bool UI -> LUI
