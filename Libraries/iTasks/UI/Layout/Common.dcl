@@ -66,7 +66,7 @@ beforeStep :: Layout -> Layout
 /**
 * Add a tool bar and move selected actions to it
 */ 
-insertToolBar :: [String] -> Layout
+insertToolBar :: [String] -> LayoutRule
 
 //Convenient annotatation types
 :: ArrangeWithTabs = ArrangeWithTabs Bool
@@ -109,7 +109,7 @@ instance tune InContainer Task
 :: NoUserInterface  = NoUserInterface   //Replace the UI by an empty UI
 instance tune NoUserInterface Task
 
-actionToButton :: Layout
+actionToButton :: LayoutRule
 
 setActionIcon :: (Map String String) -> Layout
 

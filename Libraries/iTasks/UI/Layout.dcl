@@ -243,9 +243,9 @@ layoutSubUIsRule :: UISelection LayoutRule -> LayoutRule
 sequenceLayoutsRule :: [LayoutRule] -> LayoutRule
  
 //Helper functions (exported for testing)
-adjustIndex_ :: Int [LUI] -> Int
-selectNode_ :: UIPath LUI -> Maybe LUI 
-updateNode_ :: UIPath (LUI -> LUI) LUI -> LUI 
+adjustIndex_ :: LUINo Int [LUI] -> Int
+selectNode_ :: LUINo UIPath LUI -> Maybe LUI
+updateNode_ :: LUINo UIPath (LUI -> LUI) LUI -> LUI
 selectAttributes_ :: UIAttributeSelection Bool LUI -> UIAttributes
 overwriteAttribute_ :: UIAttribute (Map UIAttributeKey (LUIEffectStage JSONNode)) -> (Map UIAttributeKey (LUIEffectStage JSONNode))
 hideAttribute_ :: (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage ())) -> (Map UIAttributeKey (LUIEffectStage ()))

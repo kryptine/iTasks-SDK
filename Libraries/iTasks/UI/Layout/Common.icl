@@ -199,11 +199,11 @@ where
 								])
 
 
-insertToolBar :: [String] -> Layout
-insertToolBar actions = foldl1 sequenceLayouts
-	[insertChildUI 0 (ui UIToolBar)
-	,moveSubUIs (foldl1 SelectOR [SelectByAttribute "actionId" ((==) (JSONString action))\\ action <- actions]) [0] 0
-	,layoutSubUIs (SelectByPath [0]) (layoutSubUIs (SelectByType UIAction) actionToButton)
+insertToolBar :: [String] -> LayoutRule
+insertToolBar actions = sequenceLayoutsRule
+	[insertChildUIRule 0 (ui UIToolBar)
+	,moveSubUIsRule (foldl1 SelectOR [SelectByAttribute "actionId" ((==) (JSONString action))\\ action <- actions]) [0] 0
+	,layoutSubUIsRule (SelectByPath [0]) (layoutSubUIsRule (SelectByType UIAction) actionToButton)
 	]
 
 toEmpty :: Layout
@@ -215,10 +215,10 @@ toContainer = setUIType UIContainer
 toPanel :: Layout
 toPanel = setUIType UIPanel
 
-actionToButton :: Layout
-actionToButton = foldl1 sequenceLayouts
-	[setUIType UIButton
-	,modifyUIAttributes (SelectKeys ["actionId"]) (\attr -> maybe 'DM'.newMap
+actionToButton :: LayoutRule
+actionToButton = sequenceLayoutsRule
+	[setUITypeRule UIButton
+	,modifyUIAttributesRule (SelectKeys ["actionId"]) (\attr -> maybe 'DM'.newMap
 		(\(JSONString a) -> 'DM'.unions [valueAttr (JSONString a),textAttr a,icon a])
 		('DM'.get "actionId" attr))
 	]

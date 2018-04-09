@@ -150,9 +150,10 @@ where
 selectIntermediate
 	= foldl1 SelectOR [SelectByType t \\ t <- [UIRecord, UIInteract, UIStep, UIParallel]]
 
-actionsToButtonBar = sequenceAllLayouts
-	[insertChildUI 1 (ui UIButtonBar) //Create a buttonbar
-	,moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [1] 0 //Move all actions to the buttonbar
-	,layoutSubUIs (SelectByPath [1]) (layoutSubUIs SelectChildren actionToButton) //Transform actions to buttons 
-	]
+actionsToButtonBar = ruleBasedLayout (sequenceLayoutsRule
+	[insertChildUIRule 1 (ui UIButtonBar) //Create a buttonbar
+	,moveSubUIsRule (SelectAND SelectChildren (SelectByType UIAction)) [1] 0 //Move all actions to the buttonbar
+	,layoutSubUIsRule (SelectByPath [1]) (layoutSubUIsRule SelectChildren actionToButton) //Transform actions to buttons
+	])
+
 

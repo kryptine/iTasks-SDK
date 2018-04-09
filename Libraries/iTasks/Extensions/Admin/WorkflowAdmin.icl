@@ -158,7 +158,7 @@ where
 		]
 
 	layoutManageSession = foldl1 sequenceLayouts 
-		[layoutSubUIs SelectChildren actionToButton
+		[layoutSubUIs SelectChildren (ruleBasedLayout actionToButton)
 		,layoutSubUIs (SelectByPath [0]) (setUIType UIContainer)
 		,setUIType UIContainer
 		,setUIAttributes ('DM'.unions [heightAttr WrapSize,directionAttr Horizontal,paddingAttr 2 2 2 10])
