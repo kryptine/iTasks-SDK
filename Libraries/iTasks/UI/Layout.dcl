@@ -35,21 +35,6 @@ from Text.GenJSON import :: JSONNode
 	= UIModified !a
 	| SubUIsModified !b ![(Int,LayoutTree a b)]
 
-// Task layouting is specified using a small DSL that's comparable with CSS
-:: LayoutExpression
-	= SetUIType UIType
-	| SetUIAttributes UIAttributes
-	| DelUIAttributes UIAttributeSelection
-	| ModifyUIAttributes UIAttributeSelection (UIAttributes -> UIAttributes) //TODO: Defunctionalize further
-	| CopySubUIAttributes UIAttributeSelection UIPath UIPath
-	| WrapUI UIType
-	| UnwrapUI
-	| InsertChildUI Int UI
-	| RemoveSubUIs UISelection
-	| MoveSubUIs UISelection UIPath Int
-	| LayoutSubUIs UISelection LayoutExpression
-	| SequenceLayouts [LayoutExpression]
-
 // In specifications of layouts, sub-parts of UI's are commonly addressed as 
 // a path of child selections in the UI tree.
 :: UIPath :== [Int]
@@ -60,6 +45,8 @@ from Text.GenJSON import :: JSONNode
 // we want to keep only minimal state. Using an opaque function would require
 // keeping track of the full state
 
+//Only match children
+SelectChildren :== SelectByDepth 1
 :: UISelection
 	//Select only nodes matching the exact path
 	= SelectByPath UIPath
@@ -94,9 +81,6 @@ from Text.GenJSON import :: JSONNode
 	| SelectOR UISelection UISelection //Union
 	| SelectNOT UISelection //Inverse
 
-//Only match children
-SelectChildren :== SelectByDepth 1
-
 :: UIAttributeSelection
 	= SelectAll
 	| SelectKeys ![String]
@@ -107,36 +91,36 @@ SelectChildren :== SelectByDepth 1
 idLayout :: Layout 
 
 // == Changing node types ==
-setUIType type :== ruleBasedLayout (SetUIType type)
+setUIType type :== ruleBasedLayout (setUITypeRule type)
 
 // == Changing attributes ==
-setUIAttributes extraAttr :== ruleBasedLayout (SetUIAttributes extraAttr)
-delUIAttributes selection :== ruleBasedLayout (DelUIAttributes selection)
-modifyUIAttributes selection modifier :== ruleBasedLayout (ModifyUIAttributes selection modifier)
-copySubUIAttributes selection src dst :== ruleBasedLayout (CopySubUIAttributes selection src dst)
+setUIAttributes extraAttr :== ruleBasedLayout (setUIAttributesRule extraAttr)
+delUIAttributes selection :== ruleBasedLayout (delUIAttributesRule selection)
+modifyUIAttributes selection modifier :== ruleBasedLayout (modifyUIAttributesRule selection modifier)
+copySubUIAttributes selection src dst :== ruleBasedLayout (copySubUIAttributesRule selection src dst)
 
 // == Changing the structure of a UI ==
-wrapUI type :== ruleBasedLayout (WrapUI type)
-unwrapUI :== ruleBasedLayout UnwrapUI
+wrapUI type :== ruleBasedLayout (wrapUIRule type)
+unwrapUI :== ruleBasedLayout unwrapUIRule
 
 /*
 * Insert a (static) element into a UI
 */
-insertChildUI position insertion :== ruleBasedLayout (InsertChildUI position insertion)
+insertChildUI position insertion :== ruleBasedLayout (insertChildUIRule position insertion)
 
 /**
 * Remove all elements that match the predicate, but keep the removed elements in the state.
 * Further changes to these elements are processed in the background. When the predicate no longer holds, the elements are inserted back into the UI.
 * When new elements are added dynamically they are also tested against the predicate
 */
-removeSubUIs selection :== ruleBasedLayout (RemoveSubUIs selection)
+removeSubUIs selection :== ruleBasedLayout (removeSubUIsRule selection)
 
 /**
 * Move all elements that match the predicate to a particular location in the tree.
 * Further changes to these elements are rewritten to target the new location.
 * When new elements are added dynamically they are also tested against the predicate
 */
-moveSubUIs selection path pos :== ruleBasedLayout (MoveSubUIs selection path pos)
+moveSubUIs selection path pos :== ruleBasedLayout (moveSubUIsRule selection path pos)
 
 // == Composition of layouts ==
 /**
@@ -170,12 +154,6 @@ moveSubUIsRef_           :: UISelection UIPath Int -> Layout
 layoutSubUIsRef_         :: UISelection Layout -> Layout
 sequenceLayoutsRef_      :: Layout Layout -> Layout
 
-//When layout rules make changes, it must be tracable which layout rule caused the change
-:: LayoutRuleNo :== Int
-
-// A layout rule is the function that annotates the desired effects in an LUI tree
-:: LayoutRule :== LayoutRuleNo LUI -> LUI
-
 //Experimental type that encodes all changes that are in effect by layouts
 //From this data structure both the UI with, and without the layout effects, can be deduced
 :: LUI
@@ -183,7 +161,7 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 	= LUINode UIType UIAttributes [LUI] LUIChanges LUIEffects
 	//Placeholder nodes
 	| LUIShiftDestination SID
-	| LUIMoveDestination LayoutRuleNo Int
+	| LUIMoveDestination LID Int
 
 //Upstream UI changes
 :: LUIChanges =
@@ -199,12 +177,12 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 	{ overwrittenType       :: LUIEffectStage UIType
 	, overwrittenAttributes :: Map UIAttributeKey (LUIEffectStage JSONNode)
 	, hiddenAttributes      :: Map UIAttributeKey (LUIEffectStage ())
-	, additional            :: LUIEffectStage LayoutRuleNo
-	, hidden                :: LUIEffectStage LayoutRuleNo
-	, moved                 :: LUIEffectStage LayoutRuleNo
-	, containsMovesBy       :: Map LayoutRuleNo Int
-	, wrapper               :: LUIEffectStage LayoutRuleNo
-	, unwrapped             :: LUIEffectStage LayoutRuleNo
+	, additional            :: LUIEffectStage LID
+	, hidden                :: LUIEffectStage LID
+	, moved                 :: LUIEffectStage LID
+	, containsMovesBy       :: Map LID Int
+	, wrapper               :: LUIEffectStage LID
+	, unwrapped             :: LUIEffectStage LID
 	}
 
 //Layout rules determine that an effect should according to that rule be applied or restored.
@@ -220,24 +198,29 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 noChanges :: LUIChanges
 noEffects :: LUIEffects
 
+//When layout rules make changes, it must be tracable which layout rule caused the change
+:: LID :== Int
 //When shifting children, it must be tracable which source connects to which destination
 :: SID :== Int
 
+//A layout rule is simply a function that applies (or undoes) an effect to a LUI tree
+:: LayoutRule :== LID LUI -> LUI
+
 //When extracting downstream changes we need to track some state
 :: LUIExtractState =
-	{ movedChanges :: Map LayoutRuleNo [(Int,UIChildChange)]
-	, movedUIs :: Map LayoutRuleNo [UI]
+	{ movedChanges :: Map LID [(Int,UIChildChange)]
+	, movedUIs :: Map LID [UI]
 	}
 
 initLUI :: Bool UI -> LUI
 initLUIExtractState :: LUIExtractState
 
 applyUpstreamChange :: UIChange LUI -> LUI
-applyLayoutEffects :: LayoutExpression LUI -> LUI
+
 extractDownstreamChange :: LUI LUIExtractState -> (!UIChange,!LUI)
 
 //A layout rule can be created from a layout rule
-ruleBasedLayout :: LayoutExpression -> Layout
+ruleBasedLayout :: LayoutRule -> Layout
 
 //Rules
 setUITypeRule :: UIType -> LayoutRule
@@ -250,8 +233,7 @@ removeSubUIsRule :: UISelection -> LayoutRule
 moveSubUIsRule :: UISelection UIPath Int -> LayoutRule
 wrapUIRule :: UIType -> LayoutRule
 unwrapUIRule :: LayoutRule
-layoutSubUIsRule :: UISelection LayoutExpression -> LayoutRule
-sequenceLayoutsRule :: [LayoutExpression] -> LayoutRule
+layoutSubUIsRule :: UISelection LayoutRule -> LayoutRule
  
 //Helper functions (exported for testing)
 adjustIndex_ :: Int [LUI] -> Int
