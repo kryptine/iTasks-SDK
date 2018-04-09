@@ -812,6 +812,13 @@ where
 				= LUINode type attr items changes (revertEffect_ ruleId effects)
 		apply path lui = lui
 
+sequenceLayoutsRule :: [LayoutRule] -> LayoutRule
+sequenceLayoutsRule subs = rule
+where
+	rule (LUINo ruleNo) lui = snd (foldl apply (0,lui) subs)
+	where
+		apply (i,lui) sub = (i + 1, sub (LUINo (ruleNo ++ [i])) lui)
+
 //Utility functions shared by the layout rules:
 
 //Adjust the index and length for additional nodes inserted by layout rules
