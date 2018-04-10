@@ -1,7 +1,7 @@
 definition module C2.Apps.ShipAdventure.Types
  
 import C2.Framework.MapEnvironment
-import Data.Generics.GenLexOrd
+import Data.GenLexOrd
 from C2.Apps.ShipAdventure.Images import :: RenderMode
 
 :: MyActor  :== Actor ObjectType ActorStatus

@@ -7,8 +7,8 @@ import StdMisc
 from   StdFunc import flip
 from   Data.List import lookup, deleteFirstsBy, hasDup, qfoldl
 import Data.Maybe
-import Data.Generics.GenFDomain
-import Data.Generics.GenLexOrd, Data.Generics.GenMap, Data.Generics.GenPrint
+import Data.GenFDomain
+import Data.GenLexOrd, Control.GenMap, Text.GenPrint
 import Text
 
 lookup1 x = fromJust o (lookup x)

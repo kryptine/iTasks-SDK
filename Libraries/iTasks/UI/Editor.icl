@@ -5,8 +5,8 @@ import iTasks.Internal.Client.LinkerSupport, Data.Maybe, Data.Functor
 import iTasks.Internal.IWorld
 import iTasks.UI.Definition
 import qualified Data.Map as DM
-import Text, Text.JSON
-import Data.Generics.GenEq
+import Text, Text.GenJSON
+import Data.GenEq
 
 derive JSONEncode EditMask, FieldMask
 derive JSONDecode EditMask, FieldMask

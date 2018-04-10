@@ -7,7 +7,7 @@ from iTasks.Internal.IWorld import :: IWorld
 from iTasks.Internal.TaskState import :: TaskTree
 from iTasks.Internal.TaskEval import :: TaskEvalOpts, :: TaskEvalInfo
 from iTasks.UI.Definition import :: UIChange
-from Text.JSON import :: JSONNode
+from Text.GenJSON import :: JSONNode
 from Data.Maybe import :: Maybe
 from Data.Map import :: Map(..)
 from Data.Set import :: Set
@@ -18,10 +18,11 @@ from iTasks.UI.Editor import :: Editor
 from iTasks.UI.Editor.Generic import generic gEditor
 from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
 from iTasks.Internal.Generic.Defaults import generic gDefault
-from Text.JSON import generic JSONEncode, generic JSONDecode
-from Data.Generics.GenEq import generic gEq
+from Text.GenJSON import generic JSONEncode, generic JSONDecode
+from Data.GenEq import generic gEq
 from StdString import class toString, class fromString
 from StdClass import class <
+from StdOverloaded import class ==
 
 // Task definition:
 :: Task a = Task !(Event TaskEvalOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))

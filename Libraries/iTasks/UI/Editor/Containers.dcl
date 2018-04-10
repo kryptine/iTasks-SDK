@@ -8,7 +8,7 @@ definition module iTasks.UI.Editor.Containers
 from iTasks.UI.Definition import :: UIAttributes
 from iTasks.UI.Editor import :: Editor 
 from Data.Map import :: Map
-from Text.JSON import :: JSONNode
+from Text.GenJSON import :: JSONNode
 
 //# UIContainer
 container  :: Editor ()

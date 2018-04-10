@@ -5,9 +5,9 @@ definition module iTasks.UI.Editor.Common
 from iTasks.UI.Editor import :: Editor
 from iTasks.UI.Definition import :: UI, :: UIChildChange
 from Data.Maybe import :: Maybe
-from Text.JSON import generic JSONEncode, :: JSONNode
+from Text.GenJSON import generic JSONEncode, :: JSONNode
 import iTasks.Internal.Generic.Defaults
-from Data.Generics.GenEq import generic gEq
+from Data.GenEq import generic gEq
 
 /**
 * Editor that does nothing

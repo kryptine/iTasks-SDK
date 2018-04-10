@@ -5,7 +5,7 @@ from Data.Map						import :: Map
 from Data.Maybe						import :: Maybe
 from Data.Error 					import :: MaybeError(..), :: MaybeErrorString(..)
 from System.Time					import :: Timestamp, time
-from Text.JSON						import :: JSONNode
+from Text.GenJSON						import :: JSONNode
 from iTasks.WF.Definition           import :: TaskId, :: InstanceNo, :: TaskNo 
 from iTasks.WF.Combinators.Core     import :: TaskListItem, :: ParallelTaskType
 from iTasks.Extensions.DateTime     import :: Time, :: Date, :: DateTime, toTime, toDate
@@ -23,7 +23,7 @@ from StdOrdList import sortBy
 
 from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SChannel_, :: TCP_DuplexChannel, :: DuplexChannel, :: IPAddress, :: ByteSeq
 
-import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.JSON, Data.Error, Math.Random
+import System.Time, StdList, Text.Encodings.Base64, _SystemArray, StdBool, StdTuple, Text.GenJSON, Data.Error, Math.Random
 import iTasks.Internal.TaskStore, iTasks.Internal.Util
 import iTasks.Internal.Serialization
 import iTasks.Internal.SDS
@@ -115,7 +115,7 @@ determineAppPath world
 destroyIWorld :: !*IWorld -> *World
 destroyIWorld iworld=:{IWorld|world} = world
 
-iworldTimespec :: SDS ClockParameter Timespec Timespec
+iworldTimespec :: SDS (ClockParameter Timespec) Timespec Timespec
 iworldTimespec = createReadWriteSDS "IWorld" "timespec" read write
 where
     read _ iworld=:{IWorld|clock} = (Ok clock,iworld)
@@ -128,12 +128,12 @@ instance rem Timespec
 where
 	rem t1 t2 = {tv_sec=t1.tv_sec rem t2.tv_sec, tv_nsec=t1.tv_nsec rem t2.tv_nsec}
 
-iworldTimestamp :: Shared Timestamp
+iworldTimestamp :: SDS (ClockParameter Timestamp) Timestamp Timestamp
 iworldTimestamp = mapReadWrite (timespecToStamp, const o Just o timestampToSpec)
-	$ sdsFocus {start=zero,interval={tv_nsec=0,tv_sec=1}} iworldTimespec
+	$ sdsTranslate "iworldTimestamp translation" (\{start,interval}->{start=timestampToSpec start,interval=timestampToSpec interval}) iworldTimespec
 
 iworldLocalDateTime :: ReadOnlyShared DateTime
-iworldLocalDateTime = SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) iworldTimestamp sdsPar
+iworldLocalDateTime = SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) (sdsFocus {start=Timestamp 0,interval=Timestamp 0} iworldTimestamp) sdsPar
 where
     // ignore value, but use notifications for 'iworldTimestamp'
     sdsPar = { SDSParallel

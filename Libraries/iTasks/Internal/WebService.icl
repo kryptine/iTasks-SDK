@@ -9,7 +9,7 @@ import qualified Data.Map as DM
 import qualified Data.Queue as DQ
 import qualified iTasks.Internal.SDS as SDS
 
-import System.Time, Text, Text.JSON, Internet.HTTP, Data.Error
+import System.Time, Text, Text.GenJSON, Internet.HTTP, Data.Error
 import System.File, System.FilePath, System.Directory
 import iTasks.Engine 
 import iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.Internal.TaskEval, iTasks.Internal.TaskStore

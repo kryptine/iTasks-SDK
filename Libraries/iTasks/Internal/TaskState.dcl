@@ -7,7 +7,7 @@ from iTasks.WF.Definition import :: InstanceNo, :: InstanceKey, :: InstanceProgr
 from iTasks.WF.Combinators.Core import :: AttachmentStatus
 from iTasks.UI.Definition import :: UIChange
 from iTasks.UI.Editor import :: EditMask
-from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.Map import :: Map
 from Data.Maybe import :: Maybe
 from Data.Queue import :: Queue

@@ -1,5 +1,8 @@
 itasks.TextField = {
 	domTag: 'input',
+	attributes: {
+		eventTimeout: 500,
+	},
 	initDOMEl: function() {
 		var me = this,
 			el = this.domEl;
@@ -44,6 +47,7 @@ itasks.TextArea = {
 		width: 'flex',
 		minHeight: 150,
 		minWidth: 400,
+		eventTimeout: 500,
 	},
     initDOMEl: function() {
         var me = this,

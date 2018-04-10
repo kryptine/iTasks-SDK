@@ -8,8 +8,8 @@ from iTasks.UI.Definition import :: UIAttributes, :: UIType
 from Data.Maybe import :: Maybe
 from Data.Map import :: Map
 from Text.HTML import :: HtmlTag
-from Text.JSON import :: JSONNode, generic JSONDecode, generic JSONEncode
-from Data.Generics.GenEq import generic gEq
+from Text.GenJSON import :: JSONNode, generic JSONDecode, generic JSONEncode
+from Data.GenEq import generic gEq
 
 // ## Form components ##
 // UITextField, UITextArea, UIPasswordField, UIIntegerField, UIDecimalField, UIDocumentField

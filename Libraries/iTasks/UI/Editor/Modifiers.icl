@@ -3,8 +3,8 @@ implementation module iTasks.UI.Editor.Modifiers
 from StdFunc import o, const, flip
 import StdBool, StdString, StdList
 import iTasks.UI.Editor, iTasks.UI.Definition, iTasks.UI.Tune
-import Data.Error, Text.JSON
-import Data.Generics.GenEq
+import Data.Error, Text.GenJSON
+import Data.GenEq
 import qualified Data.Map as DM
 
 withPreseededValue :: a (Editor a) -> Editor a

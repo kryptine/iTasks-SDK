@@ -1,3 +1,3 @@
 implementation module iTasks
 
-import Text.JSON
+import Text.GenJSON

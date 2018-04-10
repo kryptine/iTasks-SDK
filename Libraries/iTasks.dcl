@@ -34,7 +34,7 @@ import
     ,   iTasks.UI.Editor.Modifiers
 
 	//	Miscellaneous machinery
-	,	Text.JSON							// JSON is used for serializing/deserializing strings
+	,	Text.GenJSON							// JSON is used for serializing/deserializing strings
 	,   iTasks.UI.Prompt 					// Standard for creating prompts
 	,   iTasks.UI.Layout.Common 			// Standard layout patterns
 	

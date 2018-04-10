@@ -9,7 +9,7 @@ definition module iTasks.Internal.TaskStore
 import iTasks.Internal.Task, iTasks.Internal.TaskState, iTasks.UI.Definition, iTasks.Internal.SDS
 import iTasks.WF.Combinators.Core
 import iTasks.Extensions.Document
-import Data.Generics.GenEq
+import Data.GenEq
 
 from Data.Maybe     import :: Maybe
 from Data.Error     import :: MaybeError

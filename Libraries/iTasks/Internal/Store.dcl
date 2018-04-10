@@ -9,7 +9,7 @@ definition module iTasks.Internal.Store
 * Dynamics are generally more expensive, so only when really necessary (for example to store tasks or
 * functions) should they be used.
 */
-from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.Maybe import :: Maybe
 from Data.Error import :: MaybeError, :: MaybeErrorString
 from System.FilePath import :: FilePath
@@ -20,7 +20,7 @@ from iTasks.UI.Editor import :: Editor, :: EditMask, :: Masked, :: VSt
 from iTasks.UI.Editor.Generic import generic gEditor
 from iTasks.Internal.Generic.Visualization	import generic gText, :: TextFormat(..), toMultiLineText
 from iTasks.Internal.Generic.Defaults		import generic gDefault
-from Data.Generics.GenEq import generic gEq
+from Data.GenEq import generic gEq
 
 :: StoreNamespace	:== String
 :: StoreName		:== String

@@ -4,7 +4,7 @@ import iTasks.Engine
 import iTasks.WF.Tasks.Interaction
 import iTasks.WF.Combinators.Common
 import iTasks.SDS.Sources.Store
-import Data.Generics.GenPrint								// printing via <+++ has a known bug, so we use printToString instead
+import Text.GenPrint								// printing via <+++ has a known bug, so we use printToString instead
 import iTasks.UI.Prompt
 import Graphics.Scalable.Image
 import iTasks.Extensions.SVG.SVGEditor
