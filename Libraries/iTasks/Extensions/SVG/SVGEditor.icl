@@ -59,19 +59,87 @@ derive gEq MousePos
 derive JSONEncode FontDef
 derive JSONDecode FontDef
 
-initServerSideCache :: EditMask
-initServerSideCache
-  = FieldMask {FieldMask
-              | touched = False
-              , valid   = True
-              , state   = toJSON (fonts_cache,texts_cache)
-              }
-where
-	fonts_cache :: FontSpans
-	fonts_cache = 'DM'.newMap
-	
-	texts_cache :: TextSpans
-	texts_cache = 'DM'.newMap
+//	The server side state:
+derive JSEncode FontDef, Map, Set, ViaImg, ImgEventhandler`, DefuncImgEventhandler`
+derive JSDecode FontDef, Map, Set, ViaImg, ImgEventhandler`, DefuncImgEventhandler`
+//derive JSEncode Maybe, FontDef, Map, Set, Angle, BasicImg, BasicImgAttr, DraggableAttr, GridSpan, HostImg, ImageTag, Img, ImgEventhandler, ImgPath, ImgTables, ImgTransform, LineMarkers, LookupSpan, 
+//                OnClickAttr, OnMouseDownAttr, OnMouseMoveAttr, OnMouseOutAttr, OnMouseOverAttr, OnMouseUpAttr, Span, SVGColor
+//derive JSDecode Maybe, FontDef, Map, Set, Angle, BasicImg, BasicImgAttr, DraggableAttr, GridSpan, HostImg, ImageTag, Img, ImgEventhandler, ImgPath, ImgTables, ImgTransform, LineMarkers, LookupSpan, 
+//                OnClickAttr, OnMouseDownAttr, OnMouseMoveAttr, OnMouseOutAttr, OnMouseOverAttr, OnMouseUpAttr, Span, SVGColor
+
+/*	the server side state is a list of state elements:
+	at FM_FONTS:  the FontSpans are stored
+	at FM_TEXTS:  the TextSpans are stored
+	at FM_IMG:    the Img is stored
+	at FM_TABLES: the (ImgTables v) are stored
+*/
+initServerSideState :: EditMask
+initServerSideState = CompoundMask (repeatn 2 newFieldMask)
+
+mkFieldMask :: !s -> FieldMask | JSEncode{|*|} s
+mkFieldMask s = {FieldMask | touched = False, valid = True, state = encodeOnServer s}
+
+FM_FONTS  :== 0	// index in CompoundMask to access fonts cache
+FM_TEXTS  :== 1	// index in CompoundMask to access texts widths
+//FM_IMG    :== 2	// index in CompoundMask to access img
+//FM_TABLES :== 3	// index in CompoundMask to access tables
+
+//	access functions to get and set server side state elements:
+getFontsCache :: !EditMask -> FontSpans
+getFontsCache (CompoundMask entries)
+	= case entries !! FM_FONTS of
+		FieldMask {FieldMask | state}
+			= case decodeOnServer state of
+				Just fonts = fonts
+				nothing    = 'DM'.newMap
+		_ = 'DM'.newMap
+
+setFontsCache :: !FontSpans !EditMask -> EditMask
+setFontsCache fonts (CompoundMask entries)
+	= CompoundMask (updateAt FM_FONTS (FieldMask (mkFieldMask fonts)) entries)
+
+getTextsCache :: !EditMask -> TextSpans
+getTextsCache (CompoundMask entries)
+	= case entries !! FM_TEXTS of
+		FieldMask {FieldMask | state}
+			= case decodeOnServer state of
+				Just texts = texts
+				nothing    = 'DM'.newMap
+		_ = 'DM'.newMap
+
+setTextsCache :: !TextSpans !EditMask -> EditMask
+setTextsCache texts (CompoundMask entries)
+	= CompoundMask (updateAt FM_TEXTS (FieldMask (mkFieldMask texts)) entries)
+
+/*getImgState :: !EditMask -> Maybe Img
+getImgState (CompoundMask entries)
+	= case entries !! FM_IMG of
+		FieldMask {FieldMask | state}
+			= decodeOnServer state
+		_	= Nothing
+
+setImgState :: !Img !EditMask -> EditMask
+setImgState img (CompoundMask entries)
+	= CompoundMask (updateAt FM_IMG (FieldMask (mkFieldMask (Just img))) entries)
+
+clearImgState :: !EditMask -> EditMask
+clearImgState (CompoundMask entries)
+	= CompoundMask (updateAt FM_IMG (FieldMask (mkFieldMask Nothing)) entries)
+
+getImgTablesState :: !EditMask -> Maybe (ImgTables v) | JSDecode{|*|} v
+getImgTablesState (CompoundMask entries)
+	= case entries !! FM_TABLES of
+		FieldMask {FieldMask | state}
+			= decodeOnServer state
+		_	= Nothing
+
+setImgTablesState :: !(ImgTables v) !EditMask -> EditMask | JSEncode{|*|} v
+setImgTablesState tables (CompoundMask entries)
+	= CompoundMask (updateAt FM_TABLES (FieldMask (mkFieldMask (Just tables))) entries)
+
+clearImgTablesState :: !EditMask -> EditMask
+clearImgTablesState (CompoundMask entries)
+	= CompoundMask (updateAt FM_TABLES (FieldMask (mkFieldMask Nothing)) entries)*/
 
 imgTagSource :: !String -> *TagSource
 imgTagSource taskId
@@ -91,7 +159,23 @@ newImgTables
                , imgUniqIds       = 0
     }
 
-fromSVGEditor :: (SVGEditor s v) -> Editor s | iTask s & JSEncode{|*|} s
+//	collection of SVG attributes required for the server-client communication
+
+//  svgBodyAttr: use this to provide the client with a complete SVG-rendering of an image
+svgBodyAttr :: !SVGElt -> UIAttributes
+svgBodyAttr svg = 'DM'.fromList [("svgBody",JSONString (browserFriendlySVGEltToString svg))]
+
+svgEventhandlersAttr :: !ImgEventhandlers` -> UIAttributes
+svgEventhandlersAttr es = 'DM'.fromList [("svgEventhandlers", encodeOnServer es)]
+
+svgNewFontsAttr :: !ImgFonts -> UIAttributes
+svgNewFontsAttr newFonts = 'DM'.fromList [("svgNewFonts", encodeOnServer ('DS'.toList newFonts))]
+
+svgNewTextsAttr :: !ImgTexts -> UIAttributes
+svgNewTextsAttr newTexts = 'DM'.fromList [("svgNewTexts", encodeOnServer [(fd,'DS'.toList texts) \\ (fd,texts) <- 'DM'.toList newTexts])]
+
+//	transform the functions of an SVGEditor into an Editor:
+fromSVGEditor :: (SVGEditor s v) -> Editor s | iTask s & JSEncode{|*|}, JSDecode{|*|} s
 fromSVGEditor svglet
   = { Editor
     | genUI     = withClientSideInit initClientSideUI initServerSideUI
@@ -101,10 +185,25 @@ fromSVGEditor svglet
 where
 //	initServerSideUI is called first.
 //	It provides initial information to the client via the attributes of the client component.
-	initServerSideUI :: !DataPath !s !*VSt -> *(!MaybeErrorString (!UI,!EditMask), !*VSt) | iTask s & JSEncode{|*|} s
-	initServerSideUI dp val world
-	  #! attr = 'DM'.unions [sizeAttr FlexSize FlexSize, valueAttr (encodeOnServer val)]
-	  = (Ok (uia UIComponent attr,initServerSideCache), world)
+//	initServerSideUI :: !DataPath !s !*VSt -> *(!MaybeErrorString (!UI,!EditMask), !*VSt) | iTask s & JSEncode{|*|} s
+	initServerSideUI dp val world=:{VSt | taskId}
+	  = case serverSVG svglet 'DM'.newMap 'DM'.newMap taskId val (svglet.initView val) of			// start to generate the image server-side
+	      Left (img,tables=:{ImgTables | imgNewFonts=new_fonts,imgNewTexts=new_txts})				// image incomplete because of missing font/text-width information
+		    #! attrs = 'DM'.unions (size_and_model
+		                            ++
+		                            if ('DS'.null new_fonts) [] [svgNewFontsAttr new_fonts]			// the fonts for which metrics still need to be determined
+		                            if ('DM'.null new_txts)  [] [svgNewTextsAttr new_txts] 			// the texts for which metrics still need to be determined
+		                           )
+		    = (Ok (uia UIComponent attrs,state), world)
+	      Right (svg,es)																			// image complete, send it to client
+		    #! attrs = 'DM'.unions (size_and_model
+		                            ++ [svgBodyAttr svg]                                            // the complete SVG body
+		                            ++ [svgEventhandlersAttr (defuncImgEventhandlers es)]           // the defunctionalized image event handlers
+		                           )
+		    = (Ok (uia UIComponent attrs,state), world)
+	where
+		state          = setTextsCache 'DM'.newMap (setFontsCache 'DM'.newMap initServerSideState)
+		size_and_model = [sizeAttr FlexSize FlexSize, valueAttr (encodeOnServer val)]
 
 //	initClientSideUI is called after initServerSideUI.
 //	Information exchange from server -> client occurs via the attributes of the client object.
@@ -162,13 +261,15 @@ where
 	  = (Ok (if (gEq{|*|} old new) NoChange (ChangeUI [SetAttribute "stateChange" (encodeOnServer new)] []),mask),new,vst)
 
 //	server side rendering of model value:
-serverSVG :: !(SVGEditor s v) !FontSpans !TextSpans !String !s !v -> Either (!Img,!ImgTables v) (SVGElt,ImgEventhandlers v)
+serverSVG :: !(SVGEditor s v) !FontSpans !TextSpans !String !s !v -> Either (!Img,!ImgTables v) (!SVGElt,!ImgEventhandlers v)
 serverSVG {SVGEditor | renderImage} font_spans text_spans taskId s v
   #! image`               = renderImage s v (imgTagSource taskId)
-  #! (img,tables=:{ImgTables | imgEventhandlers=es,imgNewFonts=new_fonts,imgNewTexts=new_txts,imgMasks=masks,imgLineMarkers=markers,imgPaths=paths,imgSpans=spans,imgGrids=grids,imgTags=tags})
+  #! (img,tables=:{ImgTables | imgNewFonts=new_fonts,imgNewTexts=new_txts})
                           = toImg image` font_spans text_spans newImgTables
   | not ('DS'.null new_fonts) || not ('DM'.null new_txts)                    // some font / text-width information is missing: need to ask the client
       = Left (img,tables)
+  #! {ImgTables | imgEventhandlers=es,imgMasks=masks,imgLineMarkers=markers,imgPaths=paths,imgSpans=spans,imgGrids=grids,imgTags=tags}
+                          = tables
   = case resolve_all_spans tags font_spans text_spans img masks markers paths spans grids of
       Error error         = abort error
       Ok (img,masks,markers,paths,spans,grids)
