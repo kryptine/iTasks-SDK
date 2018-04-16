@@ -30,7 +30,7 @@ from StdOverloaded import class <
 	| LSSequence !LayoutState !LayoutState             //Combined state of two sequenced layouts
 	| LSLayoutSubUIs !UI (LayoutTree LayoutState ())   //States of layouts applied to sub-ui's 
 	| LSReference !UI
-	| LSRule !LUI
+	| LSRule !(LUI,LUIMoves)
 
 :: LayoutTree a b
 	= UIModified !a
@@ -161,15 +161,16 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 	//UI nodes (with upstream changes)
 	= LUINode UIType UIAttributes [LUI] LUIChanges LUIEffects
 	//Placeholder nodes
-	| LUIShiftDestination SID
-	| LUIMoveDestination LUINo Int
+	| LUIShiftDestination LUIShiftID
+	| LUIMoveSource LUINo Int //Target, position
+	| LUIMoveDestination LUINo Int //TODO: remove lenght value, should no longer be necessecary
 
 //Upstream UI changes
 :: LUIChanges =
 	{ toBeInserted  :: !Bool
 	, toBeRemoved   :: !Bool
 	, toBeReplaced  :: !Maybe LUI
-	, toBeShifted   :: !Maybe SID
+	, toBeShifted   :: !Maybe LUIShiftID
 	, setAttributes :: UIAttributes
 	, delAttributes :: Set UIAttributeKey
 	}
@@ -196,6 +197,12 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 	| ESToBeUpdated a a
 	| ESToBeRemoved a
 
+//Nodes that are moved by a moveSubUIs rule need to be accesible both in their source location (to apply changes)
+//and in their destination location (to apply further effects).
+//To make this possible, we put those nodes in a separate table and put references in the tree
+
+:: LUIMoves :== Map LUINo [LUI]
+
 noChanges :: LUIChanges
 noEffects :: LUIEffects
 
@@ -207,10 +214,10 @@ instance == LUINo
 instance toString LUINo
 
 //When shifting children, it must be tracable which source connects to which destination
-:: SID :== Int
+:: LUIShiftID :== Int
 
 //A layout rule is simply a function that applies (or undoes) an effect to a LUI tree
-:: LayoutRule :== LUINo LUI -> LUI
+:: LayoutRule :== LUINo (LUI,LUIMoves) -> (LUI, LUIMoves)
 
 //When extracting downstream changes we need to track some state
 :: LUIExtractState =
@@ -219,11 +226,12 @@ instance toString LUINo
 	}
 
 initLUI :: Bool UI -> LUI
+initLUIMoves :: LUIMoves
 initLUIExtractState :: LUIExtractState
 
-applyUpstreamChange :: UIChange LUI -> LUI
+applyUpstreamChange :: UIChange (LUI,LUIMoves) -> (LUI,LUIMoves)
 
-extractDownstreamChange :: LUI LUIExtractState -> (!UIChange,!LUI)
+extractDownstreamChange :: (LUI,LUIMoves) LUIExtractState -> (!UIChange,!(LUI,LUIMoves))
 
 //A layout rule can be created from a layout rule
 ruleBasedLayout :: LayoutRule -> Layout
@@ -244,10 +252,10 @@ sequenceLayoutsRule :: [LayoutRule] -> LayoutRule
  
 //Helper functions (exported for testing)
 adjustIndex_ :: LUINo Int [LUI] -> Int
-selectNode_ :: LUINo UIPath LUI -> Maybe LUI
-updateNode_ :: LUINo UIPath (LUI -> LUI) LUI -> LUI
+selectNode_ :: LUINo UIPath (LUI,LUIMoves) -> Maybe LUI
+updateNode_ :: LUINo UIPath ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
 selectAttributes_ :: UIAttributeSelection Bool LUI -> UIAttributes
 overwriteAttribute_ :: UIAttribute (Map UIAttributeKey (LUIEffectStage JSONNode)) -> (Map UIAttributeKey (LUIEffectStage JSONNode))
 hideAttribute_ :: (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage ())) -> (Map UIAttributeKey (LUIEffectStage ()))
-extractUIWithEffects :: LUI LUIExtractState -> (!UI,!LUI)
+extractUIWithEffects :: (LUI,LUIMoves) LUIExtractState -> (!UI,!(LUI,LUIMoves))
 
