@@ -2,7 +2,7 @@ implementation module iTasks.Internal.AsyncSDS
 
 import Data.Maybe, Data.Either, Data.List
 import Text, Text.GenJSON
-import StdMisc
+import StdMisc, StdArray
 import Internet.HTTP
 
 import iTasks.Engine
@@ -19,26 +19,30 @@ from iTasks.Internal.TaskServer import addConnection
 from iTasks.SDS.Sources.Core import unitShare
 
 import qualified Data.Map as DM
+import StdDebug
 
 derive JSONEncode SDSNotifyRequest, RemoteNotifyOptions
 
-queueSDSRequest :: !(SDSRequest p r w sds) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r
+queueSDSRequest :: !(SDSRequest p r w) !String !Int !TaskId !{#Symbol} !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r
 queueSDSRequest req host port taskId symbols env = case addConnection taskId host port connectionTask env of
     (Error e, env)  = (Error e, env)
     (Ok (id, _), env)     = (Ok id, env)
 where
     connectionTask = wrapConnectionTask (handlers req) unitShare
 
-    handlers :: (SDSRequest p r w sds) -> ConnectionHandlers (Either [String] r) () ()
+    handlers :: (SDSRequest p r w) -> ConnectionHandlers (Either [String] r) () ()
     handlers _ = {ConnectionHandlers| onConnect = onConnect,
         onData = onData,
         onShareChange = onShareChange,
         onDisconnect = onDisconnect}
 
-    headers = 'DM'.fromList [("Connection", "Close")]
-    request = toString {newHTTPRequest & server_name = host, server_port = port, req_path =  "/sds/", req_version = "HTTP/1.1", req_data = serializeToBase64 req, req_headers = headers}
+    headers = 'DM'.fromList [("Connection", "Close"), ("Content-Length", toString (size data))]
+    data = serializeToBase64 req
+    request = toString {newHTTPRequest & server_name = host, server_port = port, req_path =  "/sds/", req_version = "HTTP/1.1", req_data = data, req_headers = headers}
 
-    onConnect _ _ = (Ok (Left []), Nothing, [request], False) 
+    onConnect _ _ 
+    | not (trace_tn ("Do request:====================\n" +++ request +++ "\n====================")) = undef
+    = (Ok (Left []), Nothing, [request], False) 
 
     onData data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False)
 
@@ -50,8 +54,8 @@ where
         Nothing = (Error ("Unable to parse HTTP response, got: " +++ rawResponse), Nothing)
         (Just parsed) = (Ok (Right (deserializeFromBase64 parsed.rsp_data symbols)), Nothing)
 
-queueServiceRequest :: !(SDSRemoteService p r w) !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r
-queueServiceRequest (SDSRemoteService (HttpShareOptions req parse)) taskId env = case addConnection taskId req.server_name req.server_port connectionTask env of
+queueServiceRequest :: !(SDSRemoteService p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r
+queueServiceRequest (SDSRemoteService (HttpShareOptions req parse)) p taskId env = case addConnection taskId req.server_name req.server_port connectionTask env of
     (Error e, env) = (Error e, env)
     (Ok (id, _), env) = (Ok id, env)
 where
@@ -62,7 +66,7 @@ where
         onShareChange = onShareChange,
         onDisconnect = onDisconnect}
 
-    onConnect _ _ = (Ok (Left []), Nothing, [toString {HTTPRequest|req & req_headers = 'DM'.put "Connection" "Close" req.HTTPRequest.req_headers}], False) 
+    onConnect _ _ = (Ok (Left []), Nothing, [toString {HTTPRequest|req & req_headers = 'DM'.put "Connection" "Keep-Alive" req.HTTPRequest.req_headers}], False) 
 
     onData data (Left acc) _ = (Ok (Left (acc ++ [data])), Nothing, [], False)
 
@@ -76,23 +80,22 @@ where
             (Left error) = (Error error, Nothing)
             (Right a) = (Ok (Right a), Nothing)
 
-queueRead :: !(SDSRemoteSource p r w) !TaskId Bool !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | TC r
-queueRead rsds=:(SDSRemoteSource sds {SDSShareOptions|domain, port}) taskId register env
+queueRead :: !(SDSRemoteSource p r w) p !TaskId !Bool !SDSIdentity !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+queueRead rsds=:(SDSRemoteSource sds {SDSShareOptions|domain, port}) p taskId register reqSDSId env
 # (symbols, env) = case read symbolsShare EmptyContext env of
-    (Ok (Result r), env) = (readSymbols r, env)
+    (Ok (ReadResult r), env) = (readSymbols r, env)
     _ = abort "Reading symbols failed!"
-# (notifyOptions, env) = buildOptions register env
-# request = SDSReadRequest sds notifyOptions
+# (request, env) = buildRequest register env
 = queueSDSRequest request domain port taskId symbols env
 where
-    buildOptions False env = (Nothing, env)
-    buildOptions True env=:{options} = (Just (taskId, options.serverPort), env)
+    buildRequest True env=:{options}= (SDSRegisterRequest sds p reqSDSId taskId options.serverPort, env)
+    buildRequest False env = (SDSReadRequest sds p, env) 
 
 queueRemoteRefresh :: !SDSIdentity [SDSNotifyRequest] !*IWorld -> *IWorld
 queueRemoteRefresh _ [] iworld = iworld
-queueRemoteRefresh sdsId [notifyRequest : reqs] iworld 
+queueRemoteRefresh sdsId [notifyRequest : reqs] iworld
 # (symbols, iworld) = case read symbolsShare EmptyContext iworld of
-    (Ok (Result r), iworld) = (readSymbols r, iworld)
+    (Ok (ReadResult r), iworld) = (readSymbols r, iworld)
 # request = reqq notifyRequest.reqTaskId sdsId
 # (host, port) = case notifyRequest.remoteOptions of
     (Just (RemoteNotifyOptions host port)) = (host, port)
@@ -100,24 +103,24 @@ queueRemoteRefresh sdsId [notifyRequest : reqs] iworld
     (_, iworld) = queueRemoteRefresh sdsId reqs iworld
 where
     // Hack to get it to compile. The Refresh Request alternative does not use any of the parameters.
-    reqq :: !TaskId !SDSIdentity -> SDSRequest () String () SDSSource
+    reqq :: !TaskId !SDSIdentity -> SDSRequest () String ()
     reqq taskId sdsId = SDSRefreshRequest taskId sdsId
 
-queueWrite :: !w !(SDSRemoteSource p r w) !TaskId !*IWorld -> (!MaybeError TaskException Int, !*IWorld) | TC r & TC w
-queueWrite w rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) taskId env
+queueWrite :: !w !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+queueWrite w rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) p taskId env
 # (symbols, env) = case read symbolsShare EmptyContext env of
-    (Ok (Result r), env) = (readSymbols r, env)
-# request = SDSWriteRequest sds w
+    (Ok (ReadResult r), env) = (readSymbols r, env)
+# request = SDSWriteRequest sds p w
 = queueSDSRequest request domain port taskId symbols env
 
-queueModify :: !(r -> w) !(SDSRemoteSource p r w) !TaskId !*IWorld -> (!MaybeError TaskException Int, !*IWorld) | TC r & TC w
-queueModify f rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) taskId env
+queueModify :: !(r -> MaybeError TaskException w) !(SDSRemoteSource p r w) p !TaskId !*IWorld -> (!MaybeError TaskException ConnectionId, !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+queueModify f rsds=:(SDSRemoteSource sds share=:{SDSShareOptions|domain, port}) p taskId env
 # (symbols, env) = case read symbolsShare EmptyContext env of
-    (Ok (Result r), env) = (readSymbols r, env)
-# request = SDSModifyRequest sds f
+    (Ok (ReadResult r), env) = (readSymbols r, env)
+# request = SDSModifyRequest sds p f
 = queueSDSRequest request domain port taskId symbols env
 
-getAsyncReadValue :: !(sds p r w) !TaskId !Int IOStates -> Either String (Maybe r) | TC r
+getAsyncReadValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe r) | TC r
 getAsyncReadValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioStates of        
         Nothing                             = Left "No iostate for this task"
         (Just ioState)                      = case ioState of
@@ -131,7 +134,7 @@ where
             (Right val)                                 = (Right (Just val))
         (Just _)= Left "Dynamic not of the correct type"
 
-getAsyncWriteValue :: !(sds p r w) !TaskId !Int IOStates -> Either String (Maybe w) | TC w
+getAsyncWriteValue :: !(sds p r w) !TaskId !ConnectionId IOStates -> Either String (Maybe w) | TC w
 getAsyncWriteValue _ taskId connectionId ioStates =  case 'DM'.get taskId ioStates of
         Nothing                             = Left "No iostate for this task"
         (Just ioState)                      = case ioState of

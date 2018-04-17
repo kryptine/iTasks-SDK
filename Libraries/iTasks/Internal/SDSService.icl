@@ -11,6 +11,7 @@ import iTasks.Internal.RemoteAccess
 from iTasks.Extensions.Web import callHTTP
 import iTasks.Internal.SDS
 import iTasks.Internal.AsyncSDS
+import iTasks.Internal.IWorld
 
 from StdFunc import o
 import StdString, StdList
@@ -25,6 +26,13 @@ import iTasks.SDS.Definition
 import iTasks.Internal.Distributed.Symbols
 
 from iTasks.Internal.TaskStore import queueRefresh
+import StdDebug
+import qualified Data.Set as Set
+import Text.GenPrint
+
+derive gPrint HTTPRequest, Map, HTTPUpload, HTTPMethod, HTTPProtocol
+
+derive JSONEncode SDSNotifyRequest, RemoteNotifyOptions
 
 sdsService :: WebService a a
 sdsService = { urlMatchPred    = matchFun
@@ -43,22 +51,22 @@ where
 
 	reqFun :: !HTTPRequest a !*IWorld -> *(!HTTPResponse, !Maybe ConnectionState, !Maybe a, !*IWorld)	
 	reqFun req=:{req_data, server_name} _ iworld
+	| not (trace_tn (printToString req)) = undef
 	# (symbols, iworld) = case read symbolsShare EmptyContext iworld of
-		(Ok (Result symbols), iworld) = (readSymbols symbols, iworld)
+		(Ok (ReadResult symbols), iworld) = (readSymbols symbols, iworld)
 	= case deserializeFromBase64 req_data symbols of
-		(SDSReadRequest sds Nothing) 				= case read sds EmptyContext iworld of
-			(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-			(Ok (Result v), iworld)						= (base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
-		// TODO : FIX PORT!
-		(SDSReadRequest sds (Just (taskId, port))) 	= case read sds (RemoteTaskContext taskId server_name port) iworld of
-			(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-			(Ok (Result v), iworld)						= (base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
-		(SDSWriteRequest sds val)					= case write val sds EmptyContext iworld of
-			(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-			(Ok (), iworld)								= (base64Response (serializeToBase64 ()), Nothing, Nothing, iworld)
-		(SDSModifyRequest sds f)					= case modify f sds EmptyContext iworld of
-			(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
-			(Ok (Result v), iworld)						= (base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
+		(SDSReadRequest sds p)							= case readSDS sds p EmptyContext Nothing (sdsIdentity sds) iworld of
+				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
+				(Ok (ReadResult v), iworld)					= trace_n "Got read"(base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
+		(SDSRegisterRequest sds p reqSDSId taskId port)	= case readSDS sds p (RemoteTaskContext taskId server_name port) (Just taskId) reqSDSId iworld of
+				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
+				(Ok (ReadResult v), iworld)					= trace_n "Got register"(base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
+		(SDSWriteRequest sds p val)						= case writeSDS sds p EmptyContext val iworld of
+				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
+				(Ok (WriteResult notify), iworld)			= trace_n "Got write" (base64Response (serializeToBase64 ()), Nothing, Nothing, queueNotifyEvents (sdsIdentity sds) notify iworld)
+		(SDSModifyRequest sds p f)						= case modifySDS f sds p EmptyContext iworld of
+				(Error (_, e), iworld) 						= (errorResponse e, Nothing, Nothing, iworld)
+				(Ok (ModifyResult v), iworld)				= trace_n "Got modify"(base64Response (serializeToBase64 v), Nothing, Nothing, iworld)
 		(SDSRefreshRequest taskId sdsId)
 			# iworld = (queueRefresh [(taskId, "Notification for remote write of " +++ sdsId)] iworld)
 			= (plainResponse "Refresh queued", Nothing, Nothing, iworld)	
@@ -68,7 +76,7 @@ where
 
 	base64Response string = {okResponse & rsp_headers = [("Content-Type","text/plain;base64")], rsp_data = string}
 				
-    dataFun req _ data instanceNo iworld = ([], True, instanceNo, Nothing, iworld)
+    dataFun req _ data instanceNo iworld =  ([], True, instanceNo, Nothing, iworld)
 
     onShareChange _ _ s iworld = ([], True, s, Nothing, iworld)
     onTick _ _ instanceNo iworld = ([], True, instanceNo, Nothing, iworld)

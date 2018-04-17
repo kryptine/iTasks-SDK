@@ -17,12 +17,14 @@ import StdTuple, StdFunc, StdArray, StdBool, StdChar, StdInt, StdString
 
 sharedDynamicStore :: !String !a -> SDSLens () a a | TC a
 sharedDynamicStore storeId defaultV
-	= mapReadWriteError (read, write) (sharedStore storeId (dynamic defaultV))
+	= mapReadWriteError (read, write) reducer (sharedStore storeId (dynamic defaultV))
 where
 	read (r :: a^) = r
 	read x = Error (exception "Dynamic types mismatched?")
 
-	write _ w = Ok (Just (dynamic w))
+	write _ w = Ok (DoWrite (dynamic w))
+
+	reducer p d = read d
 
 sharedStore :: !String !a -> SDSLens () a a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV
@@ -56,8 +58,9 @@ storeShare namespace versionSpecific prefType defaultV = sdsSequence "storeShare
 		(storeDirPath </> namespace </> (if versionSpecific (appVersion </> safeName key) (safeName key))
 		,if (namespace == NS_TASK_INSTANCES && not persistTasks) InMemory prefType))
 	(\_ _ -> Right snd)
-	(SDSWriteConst (\_ _ -> Ok Nothing))
-	(SDSWriteConst (\_ w -> Ok (Just w)))
+	(SDSWriteConst (\_ _ -> Ok (DoNotWrite ())))
+	(SDSWriteConst (\_ w -> Ok (DoWrite w)))
+	(\p ws -> Ok (snd ws))
 	applicationOptions
 	(storageLocation defaultV)
 
@@ -66,8 +69,9 @@ blobStoreShare namespace versionSpecific defaultV = sdsSequence "storeShare"
 	(\key -> ())
 	(\key {storeDirPath,appVersion} -> storeDirPath </> namespace </> (if versionSpecific (appVersion </> safeName key) (safeName key)))
 	(\_ _ -> Right snd)
-	(SDSWriteConst (\_ _ -> Ok Nothing))
-	(SDSWriteConst (\_ w -> Ok (Just w)))
+	(SDSWriteConst (\_ _ -> Ok (DoNotWrite ())))
+	(SDSWriteConst (\_ w -> Ok (DoWrite w)))
+	(\p ws -> Ok (snd ws))
 	applicationOptions
 	(removeMaybe defaultV fileShare)
 

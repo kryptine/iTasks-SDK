@@ -44,7 +44,7 @@ where
 	createInitialInstances :: [TaskWrapper] !*IWorld -> *IWorld
 	createInitialInstances its iworld
 		# (mbNextNo,iworld) = read nextInstanceNo EmptyContext iworld
-		| (mbNextNo =: (Ok (Result 1))) = createAll its iworld //This way we check if it is the initial run of the program
+		| (mbNextNo =: (Ok (ReadResult 1))) = createAll its iworld //This way we check if it is the initial run of the program
                                = iworld
 
 	createAll :: [TaskWrapper] !*IWorld -> *IWorld
@@ -58,7 +58,7 @@ where
 	queueAll iworld
 		# (mbIndex,iworld) = read (sdsFocus defaultValue filteredInstanceIndex) EmptyContext iworld
 		= case mbIndex of
-			Ok (Result index)    = foldl (\w (instanceNo,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
+			Ok (ReadResult index)    = foldl (\w (instanceNo,_,_,_) -> queueEvent instanceNo ResetEvent w) iworld index
 			_           = iworld
 
 	connectAll :: ![(!Int,!ConnectionTask)] !*World -> *(![*IOTaskInstance],!*World)
@@ -82,7 +82,7 @@ loop determineTimeout iworld
     # (todo,chList,world) = select mbTimeout todo world
 	//Write the clock
 	# (timespec, world) = nsTime world
-    # (mbe, iworld) = write timespec (sdsFocus {start=zero,interval=zero} iworldTimespec) {iworld & world=world, ioTasks = {done=[],todo=todo}}
+    # (mbe, iworld) = write timespec (sdsFocus {start=zero,interval=zero} iworldTimespec) EmptyContext {iworld & world=world, ioTasks = {done=[],todo=todo}}
 	| mbe =:(Error _) = iworld
     //Process the select result
     # iworld =:{shutdown,ioTasks={done}} = process 0 chList iworld
@@ -434,9 +434,11 @@ where
         # ioStates = 'DM'.put taskId (IOActive taskStates) ioStates
         = closeIO (ioChannels, iworld)//{iworld & ioStates = ioStates})
 
-writeShareIfNeeded :: !(sds () r w) !(Maybe w) !*IWorld -> (!MaybeError TaskException (), !*IWorld) | TC r & TC w & Writable sds
+writeShareIfNeeded :: !(sds () r w) !(Maybe w) !*IWorld -> (!MaybeError TaskException (), !*IWorld) | TC r & TC w & Writeable sds
 writeShareIfNeeded sds Nothing iworld  = (Ok (), iworld)
-writeShareIfNeeded sds (Just w) iworld = 'SDS'.write w sds EmptyContext iworld
+writeShareIfNeeded sds (Just w) iworld = case 'SDS'.write w sds EmptyContext iworld of 
+    (Error e, iworld) = (Error e, iworld)
+    (Ok Done, iworld) = (Ok (), iworld)
 
 addListener :: !TaskId !Int !Bool !ConnectionTask !*IWorld -> (!MaybeError TaskException (),!*IWorld)
 addListener taskId port removeOnClose connectionTask iworld=:{ioTasks={todo,done}, ioStates, world}
@@ -479,7 +481,7 @@ addIOTask :: !TaskId
              !(initInfo Dynamic *IWorld -> (!MaybeErrorString Dynamic, !Maybe Dynamic, ![String], !Bool, !*IWorld))
              !(ConnectionId initInfo .ioChannels -> *IOTaskInstance)
              !*IWorld
-          -> (!MaybeError TaskException (Int, Dynamic), !*IWorld) | Readable sds
+          -> (!MaybeError TaskException (ConnectionId, Dynamic), !*IWorld) | Readable sds
 addIOTask taskId sds init ioOps onInitHandler mkIOTaskInstance iworld
     # (mbInitRes, iworld) = init iworld
     = case mbInitRes of

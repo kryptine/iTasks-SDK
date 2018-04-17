@@ -55,14 +55,14 @@ derive JSONDecode TIMeta, TIReduct, TaskTree
 	| UIEnabled !Int !UIChange  					//The UI is enabled, a version number and the previous task rep are stored for comparision //FIXME
 	| UIException !String 							//An unhandled exception occurred and the UI should only show the error message
 
-:: AsyncAction = Read | Modify
+:: AsyncAction = Read | Write | Modify
 
 :: TaskTree
 	= TCInit		            !TaskId !TaskTime													//Initial state for all tasks
 	| TCBasic		            !TaskId !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
 
 	// Task is awaiting the result of reading a remote share/webservice.
-	| TCAwait					!AsyncAction !TaskId !Int !TaskTime !TaskTree
+	| TCAwait					!AsyncAction !TaskId !TaskTime !TaskTree
 	| TCInteract	            !TaskId !TaskTime !JSONNode !JSONNode !EditMask
 	| TCProject					!TaskId !JSONNode !TaskTree
 	| TCStep					!TaskId !TaskTime !(Either (TaskTree,[String]) (DeferredJSON,Int,TaskTree)) 

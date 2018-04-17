@@ -51,9 +51,7 @@ where
 
 weatherService = remoteService (weatherOptions {apiKey = "1160ac287072c67ae44708dee89f9a8b" , type = ByCityName "Nijmegen"})
 
-Start :: *World -> *World
-Start world
-	= startEngineWithOptions opts maintask world
+Start world	= startEngineWithOptions opts maintask world
 where
 	opts [] = \op->(Just {op&distributed=True}, ["Started server on port: " +++ toString op.serverPort])
 	opts ["-p",p:as] = appFst (fmap (\o->{o & serverPort=toInt p})) o opts as

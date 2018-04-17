@@ -41,7 +41,7 @@ recordingsShare :: SDSLens () (Map DateTime [TonicMessage]) (Map DateTime [Tonic
 recordingsShare = sharedStore "recordingsShare" 'DM'.newMap
 
 recordingForDateTimeShare :: SDSLens DateTime [TonicMessage] ()
-recordingForDateTimeShare = toReadOnly (mapLens "recordingForDateTimeShare" recordingsShare (Just []))
+recordingForDateTimeShare = toReadOnly (mapLens "recordingForDateTimeShare" recordingsShare (Just [])) id
 
 newRTMapFromMessages :: [TonicMessage] -> Task TonicGenRTMap
 newRTMapFromMessages xs = updRTMapFromMessages xs 'DM'.newMap
@@ -112,7 +112,7 @@ showGenBlueprintInstance :: ![TaskAppRenderer] !GenBlueprintInstance
                          -> Task (ActionState (TClickAction, ClickMeta) TonicImageState)
 showGenBlueprintInstance rs bpi selDetail compact depth
   = updateInformation ()
-      [undef /*imageUpdate id (\_ -> mkGenInstanceImage rs bpi selDetail compact) (const id) (const id)  (\_ _ -> Nothing) (const id) */]
+      [abort "huehue" /*imageUpdate id (\_ -> mkGenInstanceImage rs bpi selDetail compact) (const id) (const id)  (\_ _ -> Nothing) (const id) */]
       { ActionState
       | state  = { tis_task    = bpi.gbpi_blueprint
                  , tis_depth   = depth
@@ -164,44 +164,47 @@ saSelectedBlueprint :: SDSLens () (Maybe (ComputationId, BlueprintIdent)) (Maybe
 saSelectedBlueprint = sharedStore "saSelectedBlueprint" Nothing
 
 liveStandAloneViewer :: Task ()
-liveStandAloneViewer
-  = allTasks [ updateSharedInformation "Viewer settings" [] shViewerSettings @! ()
+liveStandAloneViewer = allTasks [ updateSharedInformation "Viewer settings" [] shViewerSettings @! ()
              , startViewer @! ()
              ] @! ()
-  where
+where
   startViewer
     =   enterChoiceWithShared "Select blueprint" [] (mapRead (\ts -> 'DL'.concatMap f ts.ts_allMsgs) tonicServerShare)
     >&> withSelection noSel (
-    (\bp -> whileUnchanged (tonicServerShare |*| shViewerSettings)
+    (\bp -> whileUnchanged ((tonicServerShare |*| shViewerSettings) id) 
     (\x=:(tms, _) -> (runViewer x -|| forever (viewInformation () [] () >>* [ startAction tms
                                                                             , pauseAction tms
                                                                             , continueAction tms
                                                                             , stopAction tms
                                                                             ])))))
-    where
+  where
     startAction :: TMessageStore -> TaskCont a (Task ())
     startAction {ts_recording} = OnAction (Action "Start new recording") (ifCond (not ts_recording) startTask)
-      where
+    where
       startTask
         =   upd (\ts -> {ts & ts_recording = True, ts_recordingBuffer = []}) tonicServerShare @! ()
+    
     pauseAction :: TMessageStore -> TaskCont a (Task ())
     pauseAction {ts_recording} = OnAction (Action "Pause recording") (ifCond ts_recording stopTask)
-      where
+    where
       stopTask
         =   upd (\ts -> {ts & ts_recording = False}) tonicServerShare @! ()
+    
     continueAction :: TMessageStore -> TaskCont a (Task ())
     continueAction {ts_recording} = OnAction (Action "Continue recording") (ifCond (not ts_recording) stopTask)
-      where
+    where
       stopTask
         =   upd (\ts -> {ts & ts_recording = True}) tonicServerShare @! ()
+    
     stopAction :: TMessageStore -> TaskCont a (Task ())
     stopAction {ts_recording} = OnAction (Action "Pause and save recording") (ifCond ts_recording stopTask)
-      where
+    where
       stopTask
         =           get tonicServerShare
         >>- \ts  -> get currentDateTime
         >>- \cdt -> upd ('DM'.put cdt ts.ts_recordingBuffer) recordingsShare
         >>- \_   -> upd (\ts -> {ts & ts_recording = False}) tonicServerShare @! ()
+    
     refreshAction :: TaskCont a (Task ())
     refreshAction = OnAction (Action "Refresh") (always startViewer)
 

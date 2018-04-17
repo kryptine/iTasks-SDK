@@ -41,7 +41,7 @@ from Sapl.Target.CleanFlavour import cleanFlavour
 from Sapl.SaplParser import :: ParserState
 
 from iTasks.SDS.Definition import :: SDSParallel
-
+from iTasks.SDS.Combinators.Common import toReadOnly
 //The following modules are excluded by the SAPL -> Javascript compiler
 //because they contain functions implemented in ABC code that cannot
 //be compiled to javascript anyway. Handwritten Javascript overrides need
@@ -81,6 +81,7 @@ createIWorld options world
 	  ,shutdown				= Nothing
       ,ioTasks              = {done = [], todo = []}
       ,ioStates             = 'DM'.newMap
+      ,sdsEvalStates		= 'DM'.newMap
 	  ,world				= world
       ,resources            = []
       ,random               = genRandInt seed
@@ -138,20 +139,21 @@ where
 	toI x = toInteger x.tv_sec * toInteger 1000000000 + toInteger x.tv_nsec
 	toT x = {tv_sec=toInt (x/toInteger 1000000000), tv_nsec=toInt (x rem toInteger 1000000000)}
 
-iworldTimestamp :: SDS (ClockParameter Timestamp) Timestamp Timestamp
-iworldTimestamp = mapReadWrite (timespecToStamp, const o Just o timestampToSpec)
+iworldTimestamp :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
+iworldTimestamp = mapReadWrite (timespecToStamp, \w r. DoWrite (timestampToSpec w)) (\_ s. Ok (timespecToStamp s)) 
 	$ sdsTranslate "iworldTimestamp translation" (\{start,interval}->{start=timestampToSpec start,interval=timestampToSpec interval}) iworldTimespec
 
-iworldLocalDateTime :: SDSParallel () DateTime ()
-iworldLocalDateTime = SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) (sdsFocus {start=Timestamp 0,interval=Timestamp 1} iworldTimestamp) sdsPar
+iworldLocalDateTime :: SDSLens () DateTime ()
+iworldLocalDateTime = toReadOnly (SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) (sdsFocus {start=Timestamp 0,interval=Timestamp 1} iworldTimestamp) sdsPar) (const ())
 where
     // ignore value, but use notifications for 'iworldTimestamp'
     sdsPar = { SDSParallelOptions
              | name   = "iworldLocalDateTime"
              , param  = \p -> (p,p)
              , read   = fst
-             , writel = SDSWriteConst \_ _ -> Ok Nothing
-             , writer = SDSWriteConst \_ _ -> Ok Nothing
+             , writel = SDSWrite \_ _ _ -> Ok (DoNotWrite ())
+             , writer = SDSWrite \_ t _ -> Ok (DoNotWrite t)
+             , reducer = \_ _ -> Ok ()
              }
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)

@@ -64,12 +64,13 @@ nextInstanceNo :: SDSLens () Int Int
 nextInstanceNo = sdsFocus "increment" rawTaskNoCounter
 
 taskInstanceIO :: SDSLens InstanceNo (Maybe (!String,!Timespec)) (Maybe (!String,!Timespec))
-taskInstanceIO = sdsLens "taskInstanceIO" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) allInstanceIO
+taskInstanceIO = sdsLens "taskInstanceIO" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) r1 allInstanceIO
 where
 	read instanceNo m = Ok ('DM'.get instanceNo m)
-	write instanceNo m (Just io) = Ok (Just ('DM'.put instanceNo io m))
-	write instanceNo m Nothing = Ok (Just ('DM'.del instanceNo m))
-	notify instanceNo _ 	= const ((==) instanceNo)
+	write instanceNo m (Just io) = Ok (DoWrite ('DM'.put instanceNo io m))
+	write instanceNo m Nothing = Ok (DoWrite ('DM'.del instanceNo m))
+	notify instanceNo _ _ 	= (==) instanceNo
+  r1 instanceNo ws = Ok ('DM'.get instanceNo ws)
 
 allInstanceIO :: SDSLens () (Map InstanceNo (!String,!Timespec)) (Map InstanceNo (!String,Timespec))
 allInstanceIO = sdsFocus "io" rawInstanceIO
@@ -101,11 +102,12 @@ taskOutput :: SDSLens () (Map InstanceNo TaskOutput) (Map InstanceNo TaskOutput)
 taskOutput = sdsFocus "taskOutput" rawInstanceOutput
 
 taskInstanceOutput :: SDSLens InstanceNo TaskOutput TaskOutput
-taskInstanceOutput = sdsLens "taskInstanceOutput" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskOutput
+taskInstanceOutput = sdsLens "taskInstanceOutput" (const ()) (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) reducer taskOutput
 where
 	read instanceNo outputs = Ok (fromMaybe 'DQ'.newQueue ('DM'.get instanceNo outputs)) 
-	write instanceNo outputs output = Ok (Just ('DM'.put instanceNo output outputs))
+	write instanceNo outputs output = Ok (DoWrite ('DM'.put instanceNo output outputs))
 	notify instanceNo _ = const ((==) instanceNo)
+  reducer p ws = Ok (fromMaybe 'DQ'.newQueue ('DM'.get p ws))
 
 //Task instance parallel lists
 taskInstanceParallelTaskLists :: SDSLens InstanceNo (Map TaskId [ParallelTaskState]) (Map TaskId [ParallelTaskState])
@@ -115,7 +117,7 @@ newInstanceNo :: !*IWorld -> (!MaybeError TaskException InstanceNo,!*IWorld)
 newInstanceNo iworld
 	# (mbNewInstanceNo,iworld) = 'SDS'.read nextInstanceNo 'SDS'.EmptyContext iworld
 	= case mbNewInstanceNo of
-		Ok ('SDS'.Result instanceNo)
+		Ok ('SDS'.ReadResult instanceNo)
 			# (mbError,iworld) = 'SDS'.write (instanceNo + 1) nextInstanceNo 'SDS'.EmptyContext iworld
             = case mbError of
                 Ok _    = (Ok instanceNo,iworld)
@@ -219,19 +221,19 @@ deleteTaskInstance instanceNo iworld=:{IWorld|options={EngineOptions|persistTask
 	| mbe =: (Error _) = (Error (exception (fromError mbe)),iworld)
     = (Ok (),iworld)
   where
-    toME (Ok ('SDS'.Result r)) = Ok ()
+    toME (Ok ('SDS'.ModifyResult r)) = Ok ()
     toMe (Error e) = (Error e)
 
 
 //Filtered interface to the instance index. This interface should always be used to access instance data
 filteredInstanceIndex :: SDSLens InstanceFilter [InstanceData] [InstanceData]
-filteredInstanceIndex = sdsLens "filteredInstanceIndex" param (SDSRead read) (SDSWrite write) (SDSNotify notify) taskInstanceIndex
+filteredInstanceIndex = sdsLens "filteredInstanceIndex" param (SDSRead read) (SDSWrite write) (SDSNotify notify) (\filter metas -> read filter metas) taskInstanceIndex
 where
     param tfilter = ()
 
     read tfilter is = Ok (map (selectColumns tfilter) (selectRows tfilter is))
 
-    write p is ws = Ok (Just (write` p is ws))
+    write p is ws = Ok (DoWrite (write` p is ws))
     where
         //Pairwise update (under the assumption that both lists are sorted by ascending instance number)
         write` p is [] = [i \\ i <- is | not (filterPredicate p i)] //Remove all items that match the filter but are not in write list
@@ -285,51 +287,51 @@ where
 
 //Filtered views on the instance index
 taskInstance :: SDSLens InstanceNo InstanceData InstanceData
-taskInstance = sdsLens "taskInstance" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) filteredInstanceIndex
+taskInstance = sdsLens "taskInstance" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) (\p ws -> read p ws) filteredInstanceIndex
 where
     param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
                ,includeConstants=True,includeProgress=True,includeAttributes=True}
     read no [data]  = Ok data
     read no _       = Error (exception ("Could not find task instance "<+++ no))
-    write no data   = Ok (Just [data])
+    write no data   = Ok (DoWrite [data])
     notify no _     = const ((==) no)
 
 taskInstanceConstants :: SDSLens InstanceNo InstanceConstants ()
-taskInstanceConstants = sdsLens "taskInstanceConstants" param (SDSRead read) (SDSWriteConst write) (SDSNotifyConst notify) filteredInstanceIndex
+taskInstanceConstants = sdsLens "taskInstanceConstants" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (\p ws -> Ok ())  filteredInstanceIndex
 where
     param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
                ,includeConstants=True,includeProgress=False,includeAttributes=False}
     read no [(_,Just c,_,_)]    = Ok c
     read no _                   = Error (exception ("Could not find constants for task instance "<+++ no))
-    write _ _                   = Ok Nothing
+    write _ r _                 = Ok (DoNotWrite r)
     notify _ _                  = const (const False)
 
 taskInstanceProgress :: SDSLens InstanceNo InstanceProgress InstanceProgress
-taskInstanceProgress = sdsLens "taskInstanceProgress" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) filteredInstanceIndex
+taskInstanceProgress = sdsLens "taskInstanceProgress" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (\p ws -> read p ws) filteredInstanceIndex
 where
     param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
                ,includeConstants=False,includeProgress=True,includeAttributes=False}
     read no [(_,_,Just p,_)]    = Ok p
     read no _                   = Error (exception ("Could not find progress for task instance "<+++ no))
-    write no [(n,c,_,a)] p      = Ok (Just [(n,c,Just p,a)])
+    write no [(n,c,_,a)] p      = Ok (DoWrite [(n,c,Just p,a)])
     write no _ _                = Error (exception ("Could not find progress for task instance "<+++ no))
     notify no _                 = const ((==) no)
 
 taskInstanceAttributes :: SDSLens InstanceNo TaskAttributes TaskAttributes
-taskInstanceAttributes = sdsLens "taskInstanceAttributes" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) filteredInstanceIndex
+taskInstanceAttributes = sdsLens "taskInstanceAttributes" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (\p ws -> read p ws) filteredInstanceIndex
 where
     param no = {InstanceFilter|onlyInstanceNo=Just [no],notInstanceNo=Nothing,onlySession=Nothing,matchAttribute=Nothing
                ,includeConstants=False,includeProgress=False,includeAttributes=True}
     read no [(_,_,_,Just a)]    = Ok a
     read no _                   = Error (exception ("Could not find attributes for task instance "<+++ no))
-    write no [(n,c,p,_)] a      = Ok (Just [(n,c,p,Just a)])
+    write no [(n,c,p,_)] a      = Ok (DoWrite [(n,c,p,Just a)])
     write no _ _                = Error (exception ("Could not find attributes for task instance "<+++ no))
     notify no _                 = const ((==) no)
 
 //Top list share has no items, and is therefore completely polymorphic
 topLevelTaskList :: SDSLens TaskListFilter (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)]
-topLevelTaskList = sdsLens "topLevelTaskList" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify)
-                     (sdsFocus filter filteredInstanceIndex >*| currentInstanceShare)
+topLevelTaskList = sdsLens "topLevelTaskList" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) reducer
+                     (((sdsFocus filter filteredInstanceIndex) >*| currentInstanceShare) (const ()))
 where
     param _ = ()
     filter = {InstanceFilter|onlyInstanceNo=Nothing,notInstanceNo=Nothing,onlySession=Just False,matchAttribute=Nothing
@@ -341,8 +343,8 @@ where
                  , value = NoValue, progress = Just progress, attributes = attributes
                  } \\ (instanceNo,Just {InstanceConstants|listId},Just progress, Just attributes) <- instances]
 
-    write _ _ [] = Ok Nothing
-    write _ (instances,_) updates = Ok (Just (map (updateInstance updates) instances))
+    write _ _ [] = Ok (DoNotWrite [])
+    write _ (instances,_) updates = Ok (DoWrite (map (updateInstance updates) instances))
     where
         updateInstance updates (instanceNo,c,p,a) = (instanceNo,c,p,foldr updateAttributes a updates)
         where
@@ -351,9 +353,14 @@ where
 
     notify _ _ _ _ = True
 
+    reducer :: TaskListFilter [InstanceData] -> MaybeError TaskException [(!TaskId,!TaskAttributes)]
+    reducer p ws = Ok (map ff ws)
+    where
+      ff (i, _, _, Just attr) = (TaskId i 0, attr)
+
 //Evaluation state of instances
 localShare :: SDSLens TaskId a a | iTask a
-localShare = sdsLens "localShare" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceShares
+localShare = sdsLens "localShare" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) reducer taskInstanceShares
 where
     param (TaskId instanceNo _) = instanceNo
     read taskId shares = case 'DM'.get taskId shares of
@@ -362,20 +369,21 @@ where
             Nothing     = Error (exception ("Failed to decode json of local share " <+++ taskId))
         Nothing
             = Error (exception ("Could not find local share " <+++ taskId))
-    write taskId shares w = Ok (Just ('DM'.put taskId (toJSON w) shares))
+    write taskId shares w = Ok (DoWrite ('DM'.put taskId (toJSON w) shares))
     notify taskId _ = const ((==) taskId)
+    reducer taskId shares = read taskId shares
 
 derive gText ParallelTaskState
 
 taskInstanceParallelTaskList :: SDSLens (TaskId,TaskListFilter) [ParallelTaskState] [ParallelTaskState]
-taskInstanceParallelTaskList = sdsLens "taskInstanceParallelTaskList" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceParallelTaskLists
+taskInstanceParallelTaskList = sdsLens "taskInstanceParallelTaskList" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) (\p ws -> read p ws) taskInstanceParallelTaskLists
 where
     param (TaskId instanceNo _,listFilter) = instanceNo
     read (taskId,listFilter) lists = case 'DM'.get taskId lists of
         Just list = Ok (filter (inFilter listFilter) list)
         Nothing = Error (exception ("Could not find parallel task list of " <+++ taskId))
     write (taskId,listFilter) lists w
-		= Ok (Just ('DM'.put taskId (merge listFilter (fromMaybe [] ('DM'.get taskId lists)) w) lists))
+		= Ok (DoWrite ('DM'.put taskId (merge listFilter (fromMaybe [] ('DM'.get taskId lists)) w) lists))
 
     notify (taskId,listFilter) states ts (regTaskId,regListFilter)
         # states = filter (inFilter listFilter) states //Ignore the states outside our filter
@@ -414,7 +422,7 @@ where
 	merge listFilter os [] 			= filter (not o inFilter listFilter) os //Only keep old elements if they were outside the filter
 
 taskInstanceParallelTaskListItem :: SDSLens (TaskId,TaskId,Bool) ParallelTaskState ParallelTaskState
-taskInstanceParallelTaskListItem = sdsLens "taskInstanceParallelTaskListItem" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceParallelTaskList
+taskInstanceParallelTaskListItem = sdsLens "taskInstanceParallelTaskListItem" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) reducer taskInstanceParallelTaskList
 where
     //In this SDS the include value and include attributes flags are used to indicate what is written for notification
     //During a read the whole ParallelTaskState record is used
@@ -422,25 +430,29 @@ where
         = (listId,{TaskListFilter|onlyIndex=Nothing,onlyTaskId=Just [taskId],onlySelf=False,includeValue=includeValue,includeAttributes=False,includeProgress=False})
     read p=:(listId,taskId,_) [] = Error (exception ("Could not find parallel task " <+++ taskId <+++ " in list " <+++ listId))
     read p=:(_,taskId,_) [x:xs] = if (x.ParallelTaskState.taskId == taskId) (Ok x) (read p xs)
-    write (_,taskId,_) list pts = Ok (Just [if (x.ParallelTaskState.taskId == taskId) pts x \\ x <- list])
+    write (_,taskId,_) list pts = Ok (DoWrite [if (x.ParallelTaskState.taskId == taskId) pts x \\ x <- list])
     notify (listId,taskId,_) _ = const ((==) taskId o snd3)
+    reducer p ws = read p ws
 
 taskInstanceEmbeddedTask :: SDSLens TaskId (Task a) (Task a) | iTask a
-taskInstanceEmbeddedTask = sdsLens "taskInstanceEmbeddedTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceReduct
+taskInstanceEmbeddedTask = sdsLens "taskInstanceEmbeddedTask" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) reducer taskInstanceReduct
 where
     param (TaskId instanceNo _) = instanceNo
     read taskId {TIReduct|tasks} = case fmap unwrapTask ('DM'.get taskId tasks) of
         Just task = Ok task
         _         = Error (exception ("Could not find embedded task " <+++ taskId))
-    write taskId r=:{TIReduct|tasks} w = Ok (Just {TIReduct|r & tasks = 'DM'.put taskId (dynamic w :: Task a^) tasks})
-    notify taskId _ = const ((==) taskId)
 
+    write taskId r=:{TIReduct|tasks} w = Ok (DoWrite {TIReduct|r & tasks = 'DM'.put taskId (dynamic w :: Task a^) tasks})
+    notify taskId _ = const ((==) taskId)
+    reducer p reduct = read p reduct 
+
+import StdMisc
 parallelTaskList :: SDSSequence (!TaskId,!TaskId,!TaskListFilter) (!TaskId,![TaskListItem a]) [(!TaskId,!TaskAttributes)] | iTask a
 parallelTaskList
-    = sdsSequence "parallelTaskList" id param2 (\_ _ -> Right read) (SDSWriteConst write1) (SDSWriteConst write2) filteredTaskStates filteredInstanceIndex
+    = sdsSequence "parallelTaskList" id param2 (\_ _ -> Right read) (SDSWriteConst write1) (SDSWriteConst write2) reducer filteredTaskStates filteredInstanceIndex
 where
     filteredTaskStates
-        = sdsLens "parallelTaskListStates" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) taskInstanceParallelTaskList
+        = sdsLens "parallelTaskListStates" param (SDSRead read) (SDSWrite write) (SDSNotifyConst notify) lensReducer taskInstanceParallelTaskList
     where
         param (listId,selfId,listFilter=:{TaskListFilter|onlySelf,onlyTaskId})
             = (listId,{TaskListFilter|listFilter & onlyTaskId = if onlySelf (Just [selfId:fromMaybe [] onlyTaskId]) onlyTaskId})
@@ -455,14 +467,15 @@ where
             decode NoValue	= NoValue
             decode (Value json stable) = maybe NoValue (\v -> Value v stable) (fromJSON json)
 
-        write (listId,selfId,listFilter) states []                              = Ok Nothing
-        write (listId,selfId,{TaskListFilter|includeAttributes=False}) states _ = Ok Nothing
+        write (listId,selfId,listFilter) states []                              = Ok (DoNotWrite [])
+        write (listId,selfId,{TaskListFilter|includeAttributes=False}) states _ = Ok (DoNotWrite [])
         write (listId,selfId,listFilter) states [(t,a):updates]
             # states = [if (taskId == t) {ParallelTaskState|pts & attributes = a} pts \\ pts=:{ParallelTaskState|taskId} <- states]
             = write (listId,selfId,listFilter) states updates
 
         notify (listId,_,_) states ts (regListId,_,_) = regListId == listId //Only check list id, the listFilter is checked one level up
 
+        lensReducer (listId, selfId, listFilter) ws = Ok ([(taskId, attributes) \\ {ParallelTaskState|taskId,detached,attributes,value,change} <- ws | change =!= Just RemoveParallelTask])
 
     param2 _ (listId,items) = {InstanceFilter|onlyInstanceNo=Just [instanceNo \\ {TaskListItem|taskId=(TaskId instanceNo _),detached} <- items | detached],notInstanceNo=Nothing
                      ,onlySession=Nothing, matchAttribute=Nothing, includeConstants = False, includeAttributes = True,includeProgress = True}
@@ -474,9 +487,12 @@ where
                                 , attributes = if detached (fromMaybe 'DM'.newMap ('DM'.get taskId detachedAttributes)) attributes}
                   \\ item=:{TaskListItem|taskId,detached,attributes} <- items])
 
-    write1 p w = Ok (Just w)
-    write2 p w = Ok Nothing //TODO: Write attributes of detached instances
+    write1 p w = Ok (DoWrite w)
+    write2 p w = Ok (DoNotWrite []) //TODO: Write attributes of detached instances
 
+    // TODO: Fix.
+    // SDSReducer (TaskId,TaskId,TaskListFilter) (v49,InstanceFilter) (v43,[InstanceData]) (v48,[InstanceData]) [(TaskId,TaskAttributes)]
+    reducer p ws = abort "whoops"
 queueEvent :: !InstanceNo !Event !*IWorld -> *IWorld
 queueEvent instanceNo event iworld 
 	# (_,iworld) = 'SDS'.modify
@@ -517,11 +533,11 @@ dequeueEvent :: !*IWorld -> (!Maybe (InstanceNo,Event),!*IWorld)
 dequeueEvent iworld
   = case 'SDS'.read taskEvents 'SDS'.EmptyContext iworld of
     (Error e, iworld)               = (Nothing, iworld)
-    (Ok ('SDS'.Result queue), iworld)
+    (Ok ('SDS'.ReadResult queue), iworld)
     # (val, queue) = 'DQ'.dequeue queue
     = case 'SDS'.write queue taskEvents 'SDS'.EmptyContext iworld of
       (Error e, iworld) = (Nothing, iworld)
-      (Ok (), iworld) = (val, iworld)
+      (Ok Done, iworld) = (val, iworld)
 
 clearEvents :: !InstanceNo !*IWorld -> *IWorld
 clearEvents instanceNo iworld
@@ -573,13 +589,13 @@ createDocument name mime content iworld
 loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentContent documentId iworld
 	= case 'SDS'.read (sdsFocus documentId documentContent) 'SDS'.EmptyContext iworld of
-        (Ok ('SDS'.Result content),iworld) = (Just content,iworld)
+        (Ok ('SDS'.ReadResult content),iworld) = (Just content,iworld)
         (Error e,iworld)    = (Nothing,iworld)
 
 loadDocumentMeta :: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 loadDocumentMeta documentId iworld
 	= case ('SDS'.read (sdsFocus documentId (sdsTranslate "document_meta" (\d -> d+++"-meta") (jsonFileStore NS_DOCUMENT_CONTENT False False Nothing))) 'SDS'.EmptyContext iworld) of
-        (Ok ('SDS'.Result doc),iworld)     = (Just doc,iworld)
+        (Ok ('SDS'.ReadResult doc),iworld)     = (Just doc,iworld)
         (Error e,iworld)    = (Nothing,iworld)
 
 documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)

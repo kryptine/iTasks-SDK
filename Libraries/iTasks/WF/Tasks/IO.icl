@@ -48,7 +48,6 @@ liftOSErr f iw = case (liftIWorld f) iw of
 externalProcess :: !Timespec !FilePath ![String] !(Maybe FilePath) !(Maybe ProcessPtyOptions) !(sds1 () [String] [String]) !(sds2 () ([String], [String]) ([String], [String])) -> Task Int | RWShared sds1 & RWShared sds2
 externalProcess poll cmd args dir mopts sdsin sdsout = Task eval
 where
-<<<<<<< HEAD
 	fjson = mb2error (exception "Corrupt taskstate") o fromJSON
 
 	eval :: Event TaskEvalOpts TaskTree *IWorld -> *(TaskResult Int, *IWorld)
@@ -60,21 +59,21 @@ where
 	eval event evalOpts tree=:(TCBasic taskId ts jsonph _) iworld
 		= apIWTransformer iworld $
 			tuple (fjson jsonph)                        >-= \(ph, pio)->
-			read sdsout                                 >-= \(stdoutq, stderrq)->
+			read sdsout EmptyContext                    >-= \(ReadResult (stdoutq, stderrq))->
 			liftOSErr (readPipeNonBlocking pio.stdOut)  >-= \stdoutData->
 			liftOSErr (readPipeNonBlocking pio.stdErr)  >-= \stderrData->
 			(if (stdoutData == "" && stderrData == "")
-				(tuple (Ok ()))
+				(tuple (Ok Done))
 				(write (stdoutq ++ filter ((<>)"") [stdoutData]
 				       ,stderrq ++ filter ((<>)"") [stderrData]
-				       ) sdsout))                       >-= \()->
+				       ) sdsout EmptyContext))          >-= \Done->
 			liftOSErr (checkProcess ph)                 >-= \mexitcode->case mexitcode of
 				(Just i) = tuple (Ok (ValueResult (Value i True) (info ts) (rep event) (TCStable taskId ts (DeferredJSONNode (JSONInt i)))))
 				Nothing =
 					readRegister taskId clock                            >-= \_->
-					readRegister taskId sdsin                            >-= \stdinq->
+					readRegister taskId sdsin                            >-= \(ReadResult stdinq)->
 					liftOSErr (writePipe (concat stdinq) pio.stdIn)      >-= \_->
-					(if (stdinq =: []) (tuple (Ok ())) (write [] sdsin)) >-= \()->
+					(if (stdinq =: []) (tuple (Ok Done)) (write [] sdsin EmptyContext)) >-= \Done ->
 					tuple (Ok (ValueResult NoValue (info ts) (rep event) tree))
 
 	//Stable

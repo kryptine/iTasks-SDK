@@ -21,9 +21,9 @@ import Data.Queue
 import Text
 
 timeout :: !(Maybe Timeout) !*IWorld -> (!Maybe Timeout,!*IWorld)
-timeout mt iworld = case read taskEvents iworld of
+timeout mt iworld = case read taskEvents EmptyContext iworld of
 	//No events
-	(Ok (Queue [] []),iworld=:{sdsNotifyRequests,world})
+	(Ok (ReadResult (Queue [] [])),iworld=:{sdsNotifyRequests,world})
 		# (ts, world) = nsTime world
 		# to = minListBy lesser [mt:map (getTimoutFromClock ts) sdsNotifyRequests]
 		= ( minListBy lesser [mt:map (getTimoutFromClock ts) sdsNotifyRequests]
@@ -56,16 +56,15 @@ where
 		(Ok (),iworld) = checkAll f xs iworld
 		(Error e,iworld) = (Error e,iworld)
 
-<<<<<<< HEAD
     removeIfOutdated (instanceNo,_,_,_) iworld=:{options={appVersion,sessionTime},clock=tNow}
-		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) iworld of
+		# (remove,iworld) = case read (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
 			//If there is I/O information, we check that age first
-			(Ok (Result (Just (client,tInstance))),iworld) //No IO for too long, clean up
+			(Ok (ReadResult (Just (client,tInstance))),iworld) //No IO for too long, clean up
 				= (Ok ((tNow - tInstance) > sessionTime),iworld)
 			//If there is no I/O information, get meta-data and check builtId and creation date
-			(Ok (Result Nothing),iworld)
-				= case read (sdsFocus instanceNo taskInstanceConstants) iworld of
-					(Ok (Result {InstanceConstants|build,issuedAt=tInstance}),iworld)
+			(Ok (ReadResult Nothing),iworld)
+				= case read (sdsFocus instanceNo taskInstanceConstants) EmptyContext iworld of
+					(Ok (ReadResult {InstanceConstants|build,issuedAt=tInstance}),iworld)
 						| build <> appVersion = (Ok True,iworld)
 						| (tNow - tInstance) > sessionTime = (Ok True,iworld)
 						= (Ok False,iworld)
@@ -77,9 +76,9 @@ where
 			(Ok True)
 				# (e,iworld) = deleteTaskInstance instanceNo iworld
 				| e=:(Error _) = (e,iworld)
-				# (e,iworld) = write Nothing (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld
-				| e=:(Error _) = (e,iworld)
-				= (Ok (),iworld)
+				= case write Nothing (sdsFocus instanceNo taskInstanceIO) EmptyContext iworld of
+					(Error e, iworld) = (Error e, iworld)
+					(Ok Done, iworld) = (Ok (), iworld) 
 			(Ok False)
 				= (Ok (), iworld)
 			(Error e)
@@ -89,13 +88,13 @@ where
 flushWritesWhenIdle:: !*IWorld -> (!MaybeError TaskException (), !*IWorld)
 flushWritesWhenIdle iworld = case read taskEvents EmptyContext iworld of
 		(Error e,iworld)          = (Error e,iworld)
-		(Ok (Result (Queue [] [])),iworld) = flushDeferredSDSWrites iworld
+		(Ok (ReadResult (Queue [] [])),iworld) = flushDeferredSDSWrites iworld
 		(Ok _,iworld)             = (Ok (),iworld)
 
 //When we don't run the built-in HTTP server we don't want to loop forever so we stop the loop
 //once all tasks are stable
 stopOnStable :: Task ()
-stopOnStable = get (sdsFocus {InstanceFilter|defaultValue & includeProgress=True} filteredInstanceIndex) EmptyContext
+stopOnStable = get (sdsFocus {InstanceFilter|defaultValue & includeProgress=True} filteredInstanceIndex)
 	>>- \index->mkInstantTask \tid iworld=:{shutdown}->case shutdown of
 			Just _ = (Ok (), iworld)
 			_ = (Ok (), {iworld & shutdown=

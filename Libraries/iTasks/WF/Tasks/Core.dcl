@@ -92,4 +92,4 @@ instance toString OSException
     , onRefresh :: !(r l v -> (l, v, Maybe (r -> w)))
 	}
 
-interact :: !d !EditMode !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC w & RWShared sds
+interact :: !d !EditMode !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC r & TC w & RWShared sds

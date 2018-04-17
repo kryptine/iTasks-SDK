@@ -97,12 +97,12 @@ controllerFunc taskId st=:{TaskState | sessionId, instanceNo} Nothing (Just name
 		Error msg	= abort ("controllerFunc: " +++ msg)
 
 newWorld :: *World
-newWorld = undef
+newWorld = abort "newWorld"
 
 getUIUpdates :: !*IWorld -> (!Maybe [(InstanceNo, [String])], *IWorld)
 getUIUpdates iworld
 	= case 'SDS'.read taskOutput EmptyContext iworld of
-		(Ok (Result output),iworld)
+		(Ok (ReadResult output),iworld)
 			= case 'Data.Map'.toList output of
 				[] = (Nothing,iworld)
 				output
@@ -148,6 +148,7 @@ createClientIWorld serverURL currentInstance
           ,memoryShares         = 'Data.Map'.newMap
           ,readCache            = 'Data.Map'.newMap
           ,writeCache           = 'Data.Map'.newMap
+          ,sdsEvalStates		= 'Data.Map'.newMap
 		  ,jsCompilerState		= locundef "jsCompilerState"
 		  ,shutdown				= Nothing
           ,random               = genRandInt seed

@@ -309,7 +309,7 @@ tonicWrapTaskBody` mn tn args cases t=:(Task eval)
                                , bpi_blueprint        = bprep
                                , bpi_currentUser      = case error2mb muser of 
                                   Nothing = Nothing
-                                  Just (Result v) = Just v
+                                  Just (ReadResult v) = Just v
                                , bpi_case_branches    = 'DM'.newMap
                                , bpi_index            = 0
                                , bpi_bpref            = { BlueprintIdent
@@ -330,7 +330,7 @@ tonicWrapTaskBody` mn tn args cases t=:(Task eval)
     logTaskEnd currTaskId iworld
       # (mbpref, iworld) = 'DSDS'.read (sdsFocus (currTaskId, mn, tn) tonicInstances) EmptyContext iworld
       = case mbpref of
-          Ok (Result (Just bpi))
+          Ok (ReadResult (Just bpi))
              # (currDateTime, iworld) = iworldLocalDateTime` iworld
              # oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems bpi.bpi_activeNodes)])
                                              bpi.bpi_previouslyActive
@@ -371,9 +371,9 @@ markStable currTaskId currBlueprintModuleName currBlueprintFuncName iworld
   # focus            = sdsFocus (currTaskId, currBlueprintModuleName, currBlueprintFuncName) tonicInstances
   # (mbpref, iworld) = 'DSDS'.read focus EmptyContext iworld
   = case mbpref of
-      Ok (Result (Just {bpi_endTime = Just _})) // Already marked as stable, don't do extra work
+      Ok (ReadResult (Just {bpi_endTime = Just _})) // Already marked as stable, don't do extra work
         = iworld
-      Ok (Result (Just bpi))
+      Ok (ReadResult (Just bpi))
         # (curr, iworld)         = iworld!current
         # (currDateTime, iworld) = iworldLocalDateTime` iworld
         # oldActive        = 'DM'.union ('DM'.fromList [(nid, tid) \\ (tid, nid) <- concatMap 'DIS'.elems ('DM'.elems bpi.bpi_activeNodes)])
@@ -455,7 +455,7 @@ stepEval` cases nid childTaskId=:(TaskId ino tno) eval event evalOpts=:{TaskEval
           # focus         = sdsFocus (tonicOpts.currBlueprintTaskId, nid) tonicActionsForTaskIDAndExpr
           # (mas, iworld) = 'DSDS'.read focus EmptyContext iworld
           # iworld        = case mas of
-                              Ok (Result as) | as === xs -> iworld
+                              Ok (ReadResult as) | as === xs -> iworld
                               _                 -> snd ('DSDS'.write xs focus EmptyContext iworld)
           = iworld
 
@@ -468,7 +468,7 @@ addCases evalOpts=:{TaskEvalOpts|tonicOpts={currBlueprintTaskId, currBlueprintMo
   # focus               = sdsFocus (currBlueprintTaskId, currBlueprintModuleName, currBlueprintFuncName) tonicInstances
   # (mParentBP, iworld) = 'DSDS'.read focus EmptyContext iworld
   = case mParentBP of
-      Ok (Result (Just parentBPInst))
+      Ok (ReadResult (Just parentBPInst))
         # bpi = addCases` parentBPInst evalOpts cases
         = snd ('DSDS'.write bpi focus EmptyContext iworld)
       _ = iworld
@@ -507,13 +507,13 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
   eval` event evalOpts=:{TaskEvalOpts|tonicOpts = tonicOpts=:{currBlueprintTaskId, currBlueprintModuleName, currBlueprintFuncName}} taskTree=:(TCInit childTaskId=:(TaskId childInstanceNo _) _) iworld
     # (mParentBP, iworld) = 'DSDS'.read (sdsFocus (currBlueprintTaskId, currBlueprintModuleName, currBlueprintFuncName) tonicInstances) EmptyContext iworld
     = case mParentBP of
-        Ok (Result (Just parentBPInst))
+        Ok (ReadResult (Just parentBPInst))
           # (parentBPInst, iworld)
               = case tonicOpts.inAssignNode of
                   Just assignNode
                     # (muser, iworld)     = 'DSDS'.read (sdsFocus childInstanceNo taskInstanceUser) EmptyContext iworld
                     # (parent_body, _, _) = case muser of
-                                              Ok (Result usr)
+                                              Ok (ReadResult usr)
                                                 = updateNode assignNode (\x -> case x of
                                                                                  TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp eid` "_Tuple2" [_, descr] prio : as] assoc ptr
                                                                                    | eid == assignNode = TMApp eid mtn "iTasks.API.Extensions.User" "@:" [TFApp eid` "_Tuple2" [TLit (TString (toString usr)), descr] prio : as] assoc ptr
@@ -537,18 +537,18 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
           // - The childTaskId blueprint won't be instantiated before the continuation is evaluated
           # (mparent_bpr, iworld) = 'DSDS'.read (sdsFocus (parentBPInst.bpi_taskId, currBlueprintModuleName, currBlueprintFuncName) tonicInstances) EmptyContext iworld
           # iworld = case (tr, mparent_bpr) of
-                       (ValueResult _ _ _ (TCParallel childTaskId _ parallelChildren _), Ok (Result (Just new_parent_instance)))
+                       (ValueResult _ _ _ (TCParallel childTaskId _ parallelChildren _), Ok (ReadResult (Just new_parent_instance)))
                          = evalParallel new_parent_instance tr evalOpts childTaskId parallelChildren iworld
-                       (_, Ok (Result (Just new_parent_instance)))
+                       (_, Ok (ReadResult (Just new_parent_instance)))
                          # (new_parent_instance, chng)          = case (tr, cases) of
                                                                     (ValueResult (Value x _) _ _ _, [_ : _]) -> (addCases` new_parent_instance evalOpts (map (\(eid, f) -> (eid, f x)) cases), True)
                                                                     _                                        -> (new_parent_instance, False)
                          # iworld                               = storeTaskOutputViewer tr nid parentBPInst.bpi_taskId childTaskId iworld
                          # (mchild_bpr, iworld)                 = if (isVar fn)
                                                                     ('DSDS'.read (sdsFocus childTaskId allTonicInstances) EmptyContext iworld)
-                                                                    (Ok (Result []), iworld)
+                                                                    (Ok (ReadResult []), iworld)
                          # (new_parent_instance, chng`, iworld) = case mchild_bpr of
-                                                                    Ok (Result bprefs=:[_ : _])
+                                                                    Ok (ReadResult bprefs=:[_ : _])
                                                                       = case [bpi \\ (_, bpi=:{bpi_taskId, bpi_index}) <- bprefs | bpi_taskId > parentBPInst.bpi_taskId || (bpi_taskId == parentBPInst.bpi_taskId && bpi_index > parentBPInst.bpi_index)] of
                                                                           [{bpi_bpref} : _]
                                                                             # (parent_body, chng, mvid) = updateNode nid (\x -> case x of
@@ -576,7 +576,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
     # (tr, iworld)         = eval event evalOpts taskTree iworld
     # (mchild_bpr, iworld) = 'DSDS'.read (sdsFocus currTaskId allTonicInstances) EmptyContext iworld
     # iworld               = case mchild_bpr of
-                               Ok (Result xs)
+                               Ok (ReadResult xs)
                                  = snd (mapSt (\(_, {bpi_bpref}) iworld -> ((), markStable currTaskId bpi_bpref.bpr_moduleName bpi_bpref.bpr_taskName iworld)) xs iworld)
                                _ = iworld
     # iworld       = storeTaskOutputViewer tr nid evalOpts.tonicOpts.currBlueprintTaskId currTaskId iworld
@@ -599,7 +599,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
                                | stable
                                  # (mchild_bpr, iworld) = 'DSDS'.read (sdsFocus tid allTonicInstances) EmptyContext iworld
                                  = case mchild_bpr of
-                                     Ok (Result xs)
+                                     Ok (ReadResult xs)
                                        = snd (mapSt (\(_, {bpi_bpref}) iworld -> ((), markStable tid bpi_bpref.bpr_moduleName bpi_bpref.bpr_taskName iworld)) xs iworld)
                                      _ = iworld
                                | otherwise = iworld
@@ -646,7 +646,7 @@ tonicWrapApp` mn fn nid cases t=:(Task eval)
     registerTask (TaskId parentInstanceNo parentTaskNo) (TaskId listInstanceNo listTaskNo) (n, (tid, _)) (acc, currActive, iworld)
       # (mchild_bpr, iworld) = 'DSDS'.read (sdsFocus tid allTonicInstances) EmptyContext iworld
       = case mchild_bpr of
-          (Ok (Result [(_, {bpi_bpref}) : _]))
+          (Ok (ReadResult [(_, {bpi_bpref}) : _]))
             # newNodeId  = nid ++ [n]
             # childApp   = TMApp newNodeId Nothing bpi_bpref.bpr_moduleName bpi_bpref.bpr_taskName [] TNoPrio Nothing
             # currActive = 'DIS'.put n (tid, newNodeId) currActive
@@ -696,7 +696,7 @@ setActiveNodes tonicOpts {bpi_taskId = parentTaskId, bpi_activeNodes = parentAct
             # taskListFilter      = { TaskListFilter | onlyIndex = Nothing, onlyTaskId = Nothing, onlySelf = False, includeValue = False, includeAttributes = False, includeProgress = False}
             # (mTaskList, iworld) = 'DSDS'.read (sdsFocus (currentListId, taskListFilter) taskInstanceParallelTaskList) EmptyContext iworld
             = case mTaskList of
-              (Ok (Result l)) = case getTaskState tonicOpts.callTrace l of
+              (Ok (ReadResult l)) = case getTaskState tonicOpts.callTrace l of
                 Just parallelTaskState
                   # parentCallTrace = dropFirstInstances tonicOpts.callTrace
                   # parentCtx       = getParentContext parentTaskId parentCallTrace

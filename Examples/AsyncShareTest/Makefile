@@ -1,17 +1,24 @@
-SHELL = /bin/zsh
-INSTANCES = 5
+INSTANCES?=5
 
-build:
-	cpm make;
-	rm -rf instances;
-	for n in {0..${INSTANCES}} ; do \
-		mkdir -p instances/$$n;\
-		cp AsyncShareTest instances/$$n/;\
-		cp -r AsyncShareTest-www instances/$$n/;\
-	done
+.SECONDARY: AsyncShareTest.prj
+
+build: AsyncShareTest $(foreach v,$(shell seq $(INSTANCES)),instances/$v/AsyncShareTest)
+
+%: %.prj %.icl
+	cpm make
+
+%.prj:
+	cpm project $(basename $@) create
+	cpm project $@ target iTasks-git
+	cpm project $@ set -h 2000M -s 20M -dynamics
+
+%/AsyncShareTest: AsyncShareTest
+	mkdir -p $(dir $@)
+	cp $< $@
+	cp -r $<-www $@-www
 
 clean:
-	rm -rf instances;
-	rm -rf Clean\ System\ Files;
-	rm AsyncShareTest;
-	rm -rf AsyncShareTest-www;
+	$(RM) -r instances Clean\ System\ Files AsyncShareTest $(addprefix AsyncShareTest,-www -sapl -data)
+
+clobber:
+	$(RM) AsyncShareTest.prj

@@ -21,4 +21,4 @@ serve :: ![TaskWrapper] ![(!Int,!ConnectionTask)] (*IWorld -> (!Maybe Timeout,!*
 addListener :: !TaskId !Int !Bool !(ConnectionTask) !*IWorld -> (!MaybeError TaskException (),!*IWorld)
 
 //Dynamically add a connection
-addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException Dynamic,!*IWorld)
+addConnection :: !TaskId !String !Int !ConnectionTask !*IWorld -> (!MaybeError TaskException (ConnectionId, Dynamic),!*IWorld)

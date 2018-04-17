@@ -124,14 +124,16 @@ where
 derive class iTask		Credentials
 
 currentUser :: SDSLens () User User
-currentUser = sdsLens "currentUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotify notify) currentTaskInstanceAttributes
+currentUser = sdsLens "currentUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotify notify) reducer currentTaskInstanceAttributes
 where
 	notify _ _ _ = const (const True)
 
 taskInstanceUser :: SDSLens InstanceNo User User
-taskInstanceUser = sdsLens "taskInstanceUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotify notify) taskInstanceAttributesByNo
+taskInstanceUser = sdsLens "taskInstanceUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotify notify) reducer taskInstanceAttributesByNo
 where
 	notify _ _ _ = const (const True)
+
+reducer p ws = userFromAttr () ws
 
 userFromAttr :: a TaskAttributes -> MaybeError TaskException User
 userFromAttr _ attr = case 'DM'.get "auth-user" attr of
@@ -140,25 +142,25 @@ userFromAttr _ attr = case 'DM'.get "auth-user" attr of
 		Just session 	= Ok (AnonymousUser session)
 		_				= Ok SystemUser
 
-userToAttr :: a TaskAttributes User -> MaybeError TaskException (Maybe TaskAttributes)
+userToAttr :: a TaskAttributes User -> MaybeError TaskException (MaybeSDSWrite TaskAttributes)
 userToAttr _ attr (AuthenticatedUser userId userRoles userTitle)
 	//Update user properties
 	# attr = 'DM'.put "auth-user" userId attr
 	# attr = if (isEmpty userRoles) ('DM'.del "auth-roles" attr) ('DM'.put "auth-roles" (join "," userRoles) attr)
 	# attr = maybe ('DM'.del "auth-title" attr) (\title -> 'DM'.put "auth-title" title attr) userTitle
-	= Ok (Just attr) 
+	= Ok (DoWrite attr) 
 userToAttr _ attr _
 	//Remove user properties
 	# attr = 'DM'.del "auth-user" attr
 	# attr = 'DM'.del "auth-roles" attr
 	# attr = 'DM'.del "auth-title" attr
-	= Ok (Just attr)
+	= Ok (DoWrite attr)
 
 processesForUser :: User -> SDSLens () [TaskListItem ()] ()
 processesForUser user = mapRead (filter (forWorker user)) currentProcesses
 
 processesForCurrentUser	:: SDSLens () [TaskListItem ()] ()
-processesForCurrentUser = mapRead readPrj (currentProcesses >*| currentUser)
+processesForCurrentUser = mapRead readPrj ((currentProcesses >*| currentUser) id)
 where
 	readPrj (items,user)	= filter (forWorker user) items
 
@@ -173,10 +175,10 @@ forWorker user {TaskListItem|attributes} = case 'DM'.get "user" attributes of
         Nothing = True
 
 taskInstancesForUser :: SDSLens User [TaskInstance] ()
-taskInstancesForUser = sdsLens "taskInstancesForUser" (const ()) (SDSRead read) (SDSWriteConst write) (SDSNotify notify) detachedTaskInstances
+taskInstancesForUser = sdsLens "taskInstancesForUser" (const ()) (SDSRead read) (SDSWriteConst write) (SDSNotify notify) (\_ _ -> Ok ()) detachedTaskInstances
 where
 	read u instances = Ok (filter (forUser u) instances)
-	write _ () = Ok Nothing
+	write _ () = Ok (DoNotWrite ())
 	notify _ _ _ = const (const False)
 
 	forUser user {TaskInstance|attributes} = case 'DM'.get "user" attributes of
@@ -196,7 +198,7 @@ taskInstancesForCurrentUser
 		id
 		(\() u -> u)
 		(\_ _ -> Right snd)
-		(SDSWriteConst (\_ _ -> Ok Nothing)) (SDSWriteConst (\_ _ -> Ok Nothing)) currentUser taskInstancesForUser
+		(SDSWrite (\_ u _ -> Ok (DoNotWrite u))) (SDSWriteConst (\_ _ -> Ok (DoNotWrite ()))) (\_ _ -> Ok ()) currentUser taskInstancesForUser
 
 workOn :: !t -> Task AttachmentStatus | toInstanceNo t
 workOn t 

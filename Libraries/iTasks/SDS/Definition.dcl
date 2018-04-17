@@ -21,7 +21,24 @@ from Data.Set import :: Set
     | TaskContext TaskId // Used when a local task is reading from a share
     | RemoteTaskContext TaskId String Int // Used when a remote task is reading from a share locally
 
-:: AsyncResult a = Result a | Queued ConnectionId
+:: ReadResult p r w = ReadResult r 
+    | E. sds: AsyncRead (sds p r w) & RWShared sds & TC r & TC w
+
+:: WriteResult p r w = WriteResult (Set SDSNotifyRequest)
+    /**
+     * Denotes that writing to a SDS had lead to some asynchronous action. A set of notify requests is also returned,  
+     * because it could be the case that a part of the operation has completed (yielding tasks to be notified), 
+     * but some other part is still waiting for a result. We choose that those SDS'es which are written to are 
+     * immediately notified, instead of deferring the notification until the whole SDS is written to.
+     * 
+     * The SDS is required to be a Readable AND Writeable, because writing to a SDS may require reading from another.
+     */  
+    | E. sds: AsyncWrite (sds p r w) & RWShared sds & TC r & TC w
+
+:: ModifyResult p r w = ModifyResult w
+    // We include the modify function so that async operations can be resumed later.
+    // TODO: f should be removed, as it is not the responsibility of the modify function to return the modifier function
+    | E. sds: AsyncModify (sds p r w) (r -> MaybeError TaskException w) & RWShared sds
 
 //Notification requests are stored in the IWorld
 :: SDSNotifyRequest =
@@ -47,21 +64,34 @@ where
      * @param sds to read from
      * @param context in which to read. Async shares use the context to retrieve the task id.
      * @param When Just, denotes reading + registering for changes.
-     * @param Identify of the sds to read, not guaranteed to be the identify of the current sds we're reading from. (lenses, sequences, etc.)
+     * @param Identity of the sds to read, not guaranteed to be the identify of the current sds we're reading from. (lenses, sequences, etc.)
      */ 
-    readSDS          :: (sds p r w) p !TaskContext !(Maybe TaskId) !SDSIdentity !*IWorld -> *(!MaybeError TaskException (AsyncResult r), !*IWorld) | gText{|*|} p & TC p & TC r
+    readSDS          :: !(sds p r w) p !TaskContext !(Maybe TaskId) !SDSIdentity !*IWorld -> *(!MaybeError TaskException !(ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
 class Registrable sds | Identifiable sds
 where
-    readRegisterSDS      :: (sds p r w) p !TaskContext !TaskId !*IWorld -> *(!MaybeError TaskException (AsyncResult r), !*IWorld) | gText{|*|} p & TC p & TC r
+    readRegisterSDS      :: !(sds p r w) p !TaskContext !TaskId !*IWorld -> *(!MaybeError TaskException !(ReadResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
-class Writable sds | Identifiable sds
+class Writeable sds | Identifiable sds
 where
-    writeSDS         :: (sds p r w) p !TaskContext w *IWorld -> *(!MaybeError TaskException (Set SDSNotifyRequest), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+    writeSDS         :: !(sds p r w) p !TaskContext w !*IWorld -> *(!MaybeError TaskException !(WriteResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
 
-class RWShared sds | Readable, Writable, Registrable sds
+class Modifiable sds | Readable, Writeable sds
+where
+    /**
+     * Modify the SDS with the given function
+     * @param The original SDS, without partial evaluation of asynchronous shares.
+     * @param Function to apply to the SDS value
+     * @param The sds including partial evaluation of asynchronous shares.
+     * @param parameter
+     * @param The context in which to read/write to the SDS
+     */
+     // TODO: This should not be necessary. This approach still uses the old read -> write method, while it should apply the function to every sub-sds
+    modifySDS :: !(r -> MaybeError TaskException w) !(sds p r w) p !TaskContext !*IWorld -> *(!MaybeError TaskException !(ModifyResult p r w), !*IWorld) | gText{|*|} p & TC p & TC r & TC w
+
+class RWShared sds | Readable, Writeable, Modifiable, Registrable sds
 class ROShared sds | Readable sds
-class WOShared sds | Writable sds
+class WOShared sds | Writeable sds
 
 :: SDSShareOptions = { domain :: String
     , port :: Int
@@ -77,12 +107,19 @@ instance toString (WebServiceShareOptions r)
 :: SDSNotifyPred p          :== Timespec p -> Bool
 
 //Sources provide direct access to a data source
-:: SDSSource p r w = 
-	{ name          :: String
-    , read			:: p *IWorld -> *(!MaybeError TaskException r, !*IWorld)
-	, write			:: p w *IWorld -> *(!MaybeError TaskException (SDSNotifyPred p), !*IWorld)
-	}
+:: SDSSource p r w = SDSSource (SDSSourceOptions p r w)
 
+    // Allows for some keeping of local state. Writing to a SDS may require reading from that SDS. 
+    // In the case that this reading is asynchronous, writing could also be asynchronous. This
+    // option allows to temporarily store the read result, so that we can start rewriting in order
+    //  to write to the SDS, using the stored read value.
+    | E. sds: SDSValue r (sds p r w) & RWShared sds & TC p & TC r & TC w
+
+:: SDSSourceOptions p r w = 
+    { name          :: String
+    , read          :: p *IWorld -> *(!MaybeError TaskException r, !*IWorld)
+    , write         :: p w *IWorld -> *(!MaybeError TaskException (SDSNotifyPred p), !*IWorld)
+    }
 //Lenses select and transform data
 :: SDSLens p r w  = E. ps rs ws sds: SDSLens (sds ps rs ws) (SDSLensOptions p r w ps rs ws) & RWShared sds & gText{|*|} ps & TC ps & TC rs & TC ws
 :: SDSLensOptions p r w ps rs ws = 
@@ -91,15 +128,21 @@ instance toString (WebServiceShareOptions r)
     , read         :: SDSLensRead p r rs
     , write        :: SDSLensWrite p w rs ws
     , notify       :: SDSLensNotify p p w rs
+    , reducer      :: SDSReducer p ws w
     }
+
+:: SDSReducer p ws w :== p ws  -> MaybeError TaskException w
 
 :: SDSLensRead p r rs
     = SDSRead       (p rs -> MaybeError TaskException r)  //Read original source and transform
     | SDSReadConst  (p -> r)                              //No need to read the original source
 
+// DoNotWrite because NoWrite and NoChange were already taken.
+:: MaybeSDSWrite w = DoWrite w | DoNotWrite w
+
 :: SDSLensWrite p w rs ws
-    = SDSWrite      (p rs w  -> MaybeError TaskException (Maybe ws)) //Read original source, and write updated version
-    | SDSWriteConst (p w     -> MaybeError TaskException (Maybe ws)) //No need to read the original source
+    = SDSWrite      (p rs w  -> MaybeError TaskException (MaybeSDSWrite ws)) //Read original source, and write updated version
+    | SDSWriteConst (p w     -> MaybeError TaskException (MaybeSDSWrite ws)) //No need to read the original source
 
 :: SDSLensNotify pw pq w rs
     = SDSNotify         (pw rs w -> SDSNotifyPred pq)
@@ -122,6 +165,7 @@ instance toString (WebServiceShareOptions r)
     , read          :: (r1,r2) -> r
     , writel        :: SDSLensWrite p w r1 w1
     , writer        :: SDSLensWrite p w r2 w2
+    , reducer       :: SDSReducer p (w1,w2) w
     }
 
 //Read from and write to two dependent SDS's
@@ -134,9 +178,12 @@ instance toString (WebServiceShareOptions r)
 	, read          :: p r1 -> Either r ((r1,r2) -> r)
     , writel        :: SDSLensWrite p w r1 w1
     , writer        :: SDSLensWrite p w r2 w2
+    , reducer       :: SDSReducer p (w1, w2) w
     }
 
-:: SDSCache p r w = SDSCache (SDSSource p r w) (SDSCacheOptions p r w) & iTask p & TC r & TC w 
+// TODO: For some reason, gText{|*|} p & TC p is not sufficient and causes overloading errors in the implementation of Readable and Writeable for SDSCache. iTask p seems to solve this for unknown reasons.
+// TODO: I don't think the SDSSource restriction is applicable any more, because we should also be able to cache the results of reading from a remote share.
+:: SDSCache p r w = E. sds: SDSCache (sds p r w) (SDSCacheOptions p r w) & iTask p & TC r & TC w & RWShared sds
 :: SDSCacheOptions p r w  =
 	{ write        :: p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)
 	}
@@ -144,5 +191,10 @@ instance toString (WebServiceShareOptions r)
 :: SDSCacheWrite = WriteNow | WriteDelayed | NoWrite
 
 :: SDSRemoteSource p r w = E. sds: SDSRemoteSource (sds p r w) SDSShareOptions & RWShared sds
+    // When evaluating an SDS has to be done asynchronously, the connection id can be used to query
+    // the IO states in IWorld for a result. It is not guaranteed that this result is available, as the asynchronous
+    // operation may not have been completed yet.
+    | SDSRemoteSourceQueued ConnectionId (SDSRemoteSource p r w)
 
 :: SDSRemoteService p r w = SDSRemoteService (WebServiceShareOptions r)
+    | SDSRemoteServiceQueued ConnectionId (SDSRemoteService p r w)

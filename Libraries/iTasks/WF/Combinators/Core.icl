@@ -273,7 +273,7 @@ where
             = eval event (setParallel taskId (extendCallTrace taskId evalOpts)) (TCParallel taskId ts [] []) iworld
           Error err = (ExceptionResult err, iworld)
       where
-      	writeAll [] sds iworld = (Ok (),iworld)
+      	writeAll [] sds iworld = (Ok Done,iworld)
       	writeAll [(f,w):ws] sds iworld = case write w (sdsFocus f sds) EmptyContext iworld of
           (Ok _,iworld) = writeAll ws sds iworld
           err = err
@@ -522,9 +522,9 @@ evalParallelTasks listId taskTrees event evalOpts conts completed [{ParallelTask
     # result = case mbValue of
         Error e
             = ExceptionResult e
-        Ok (Result (TIException dyn msg))
+        Ok (ReadResult (TIException dyn msg))
             = ExceptionResult (dyn,msg)
-        Ok (Result (TIValue encValue))
+        Ok (ReadResult (TIValue encValue))
             //Decode value value
             # mbValue = case encValue of
                 NoValue           = Just NoValue
@@ -746,8 +746,8 @@ where
 		| mbConstants =: (Error _)   = (ExceptionResult (fromError mbConstants),iworld)
 		# (mbProgress,iworld)		= read (sdsFocus instanceNo taskInstanceProgress) EmptyContext iworld
 		| mbProgress =: (Error _)   = (ExceptionResult (fromError mbProgress),iworld)
-		# (Ok (Result {InstanceConstants|build})) = mbConstants
-		# (Ok (Result progress=:{InstanceProgress|instanceKey,value,attachedTo})) = mbProgress
+		# (Ok (ReadResult {InstanceConstants|build})) = mbConstants
+		# (Ok (ReadResult progress=:{InstanceProgress|instanceKey,value,attachedTo})) = mbProgress
 		//Check if the task is already in use
 		| (not (attachedTo =: [])) && (not steal)
 			= eval event evalOpts (TCAttach taskId ts (ASInUse (hd attachedTo)) build instanceKey) iworld
@@ -766,7 +766,7 @@ where
 		# (progress,iworld)	    = readRegister taskId (sdsFocus instanceNo taskInstanceProgress) iworld
 		//Determine state of the instance
 		# curStatus = case progress of
-			(Ok (Result progress=:{InstanceProgress|attachedTo=[attachedId:_],value}))
+			(Ok (ReadResult progress=:{InstanceProgress|attachedTo=[attachedId:_],value}))
 			    | build <> appVersion    = ASIncompatible
 				| value =: (Exception _) = ASExcepted
 				| attachedId <> taskId   = ASInUse attachedId	

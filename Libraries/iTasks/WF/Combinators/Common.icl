@@ -140,7 +140,7 @@ where
 feedForward :: (Task a) ((SDSLens () (Maybe a) ()) -> Task b) -> Task b | iTask a & iTask b
 feedForward taska taskbf = parallel
 	[(Embedded, \s -> taska @ Left)
-	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (sdsFocus (Left 0) (taskListItemValue s)))) @ Right)
+	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (sdsFocus (Left 0) (taskListItemValue s)) (const ()))) @ Right)
 	] [] @? res
 where
 	prj (Value (Left a) _)  = Just a
@@ -155,7 +155,7 @@ where
 feedSideways :: (Task a) ((SDSLens () (Maybe a) ()) -> Task b) -> Task a | iTask a & iTask b
 feedSideways taska taskbf = parallel
     [(Embedded, \s -> taska)
-	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (sdsFocus (Left 0) (taskListItemValue s)))) @? const NoValue)
+	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (sdsFocus (Left 0) (taskListItemValue s)) (const ()))) @? const NoValue)
     ] [] @? res
 where
 	prj (Value a _)	= Just a
@@ -194,7 +194,7 @@ randomChoice list = get randomInt >>= \i -> return (list !! ((abs i) rem (length
 
 //We throw an exception when the share changes to make sure that the right hand side of
 //the -||- combinator is not evaluated anymore (because it was created from the 'old' share value)
-whileUnchanged :: !(sds () r w) (r -> Task b) -> Task b | iTask r & iTask b & RWShared sds
+whileUnchanged :: !(sds () r w) (r -> Task b) -> Task b | iTask r & iTask b & RWShared sds & TC w
 whileUnchanged share task
 	= 	( (get share >>- \val ->
             try (

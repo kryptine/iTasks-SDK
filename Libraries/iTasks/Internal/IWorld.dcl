@@ -43,6 +43,7 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
 	                , ioTasks               :: !*IOTasks                                    // The low-level input/output tasks
                     , ioStates              :: !IOStates                                    // Results of low-level io tasks, indexed by the high-level taskid that it is linked to
+                    , sdsEvalStates         :: !SDSEvalStates
 
 					, world					:: !*World									    // The outside world
 
@@ -99,10 +100,8 @@ CLEAN_HOME_VAR	:== "CLEAN_HOME"
     = IOActive      !(Map ConnectionId (!Dynamic,!Bool)) // Bool: stability
     | IODestroyed   !(Map ConnectionId (!Dynamic,!Bool)) // Bool: stability
     | IOException   !String
-:: IOConnectionState =
-    { connectionTaskState   :: !Dynamic //The persisted local state of the connection task that handles the connection
-    , closed                :: !Bool
-    }
+
+:: SDSEvalStates :== Map TaskId (!*IWorld -> *(MaybeError TaskException Dynamic, !*IWorld))
 
 :: *Resource = Resource | .. //Extensible resource type for caching database connections etc...
 
@@ -136,7 +135,7 @@ destroyIWorld :: !*IWorld -> *World
 	}
 
 iworldTimespec         :: SDSSource (ClockParameter Timespec) Timespec Timespec
-iworldTimestamp        :: SDSSource (ClockParameter Timestamp) Timestamp Timestamp
+iworldTimestamp        :: SDSLens (ClockParameter Timestamp) Timestamp Timestamp
 
 /*
  * Calculate the next fire for the given timespec
@@ -148,7 +147,7 @@ iworldTimestamp        :: SDSSource (ClockParameter Timestamp) Timestamp Timesta
  */
 iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
 
-iworldLocalDateTime    :: SDSParallel () DateTime ()
+iworldLocalDateTime    :: SDSLens () DateTime ()
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
 

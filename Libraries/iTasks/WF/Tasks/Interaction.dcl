@@ -116,7 +116,7 @@ editSelectionWithShared :: !d !Bool !(SelectOption c a) (sds () c w) (c -> [Int]
 editSharedSelection :: !d !Bool !(SelectOption c a) c (sds () [Int] [Int]) -> Task [a] | toPrompt d & iTask c & iTask a & RWShared sds
 
 //Options: shared, selection: shared
-editSharedSelectionWithShared :: !d !Bool !(SelectOption c a) (sds () c w) (sds2 () [Int] [Int]) -> Task [a] | toPrompt d & iTask c & iTask a & TC w & RWShared sds & RWShared sds2
+editSharedSelectionWithShared :: !d !Bool !(SelectOption c a) (sds1 () c w) (sds2 () [Int] [Int]) (c -> w)-> Task [a] | toPrompt d & iTask c & iTask a & TC w & RWShared sds1 & RWShared sds2
 
 /**
 * More specific selection from lists
@@ -156,10 +156,10 @@ editSharedChoiceAs                   :: !d [ChoiceOption o] ![o] !(o -> a) (sds 
 editSharedMultipleChoice             :: !d ![ChoiceOption a] ![a] (sds () [a] [a]) -> Task [a] | toPrompt d & iTask a & RWShared sds
 editSharedMultipleChoiceAs           :: !d [ChoiceOption o] ![o] !(o -> a) (sds () [a] [a]) -> Task [a] | toPrompt d & iTask o & iTask a & RWShared sds
 
-editSharedChoiceWithShared           :: !d ![ChoiceOption a] !(sds () [a] w) (sds1 () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask a & iTask w & RWShared sds & RWShared sds1
-editSharedChoiceWithSharedAs         :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) (sds1 () (Maybe a) (Maybe a)) -> Task a | toPrompt d & iTask o & iTask w & iTask a & RWShared sds & RWShared sds1
-editSharedMultipleChoiceWithShared   :: !d ![ChoiceOption a] !(sds () [a] w) (sds1 () [a] [a]) -> Task [a] | toPrompt d & iTask a & iTask w & RWShared sds & RWShared sds1
-editSharedMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) (sds1 () [a] [a]) -> Task [a] | toPrompt d & iTask o & iTask w & iTask a & RWShared sds & RWShared sds1
+editSharedChoiceWithShared           :: !d ![ChoiceOption a] !(sds () [a] w) (sds1 () (Maybe a) (Maybe a)) ([a] -> w) -> Task a | toPrompt d & iTask a & iTask w & RWShared sds & RWShared sds1
+editSharedChoiceWithSharedAs         :: !d ![ChoiceOption o] !(sds () [o] w) (o -> a) (sds1 () (Maybe a) (Maybe a)) ([o] -> w) -> Task a | toPrompt d & iTask o & iTask w & iTask a & RWShared sds & RWShared sds1
+editSharedMultipleChoiceWithShared   :: !d ![ChoiceOption a] !(sds1 () [a] w) (sds2 () [a] [a]) ([a] -> w) -> Task [a] | toPrompt d & iTask a & iTask w & RWShared sds1 & RWShared sds2
+editSharedMultipleChoiceWithSharedAs :: !d ![ChoiceOption o] !(sds1 () [o] w) (o -> a) (sds2 () [a] [a]) ([o] -> w) -> Task [a] | toPrompt d & iTask o & iTask w & iTask a & RWShared sds1 & RWShared sds2
 
 /**
 * Wait for a share to match a certain predicate
@@ -192,7 +192,7 @@ viewTitle :: !a -> Task a | iTask a
 /**
 * View shared data as a title
 */
-viewSharedTitle :: !(sds () r w) -> Task r | iTask r & RWShared sds
+viewSharedTitle :: !(sds () r w) -> Task r | iTask r & RWShared sds & TC w
 
 /**
 * Basic Create, Read, Update, Delete (CRUD) editor for a shared collection

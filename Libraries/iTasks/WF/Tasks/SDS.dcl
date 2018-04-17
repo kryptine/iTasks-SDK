@@ -29,7 +29,7 @@ instance toString SharedException
 * @gin-title Read shared
 * @gin-icon shared_read
 */
-get :: !(sds () a w) -> Task a | iTask a & Readable sds
+get :: !(sds () a w) -> Task a | iTask a & Readable sds & TC w
 
 /**
 * Writes shared data.
@@ -42,7 +42,7 @@ get :: !(sds () a w) -> Task a | iTask a & Readable sds
 * @gin-title Write shared
 * @gin-icon shared_update
 */
-set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writable sds
+set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writeable sds
 
 /**
 * Updates shared data in one atomic operation.
@@ -67,6 +67,6 @@ upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
 * @gin-title Read shared
 * @gin-icon shared_read
 */
-watch :: !(sds () r w) -> Task r | iTask r & Readable, Registrable sds
+watch :: !(sds () r w) -> Task r | iTask r & TC w & Readable, Registrable sds
 
 

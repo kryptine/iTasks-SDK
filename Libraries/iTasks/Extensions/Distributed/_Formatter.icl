@@ -5,12 +5,17 @@ import symbols_in_program
 import _SystemArray
 import Text.Encodings.Base64
 import iTasks
+import StdMisc
 
 deserializeFromBase64 :: String !{#Symbol} -> a
 deserializeFromBase64 input symbols
-	= case json (toString (base64Decode input)) of
-		(Just data) 	# (x, y, z) = deserializeFromString data
-						= fst (copy_from_string_with_names x y z symbols)
+# decoded = base64Decode input
+# string = toString decoded
+# json = json string
+= case json of
+	(Just data) 	# (x, y, z) = deserializeFromString data
+					= fst (copy_from_string_with_names x y z symbols)
+	Nothing = abort ("Could not deserialize.\nInput:\n" +++ input +++ "\n\nString:\n" +++ string)
 
 // We evaluate the argument to normal form due to some unknown laziness which creates dependency on the whole iTasks library.
 eval :: !a -> Bool

@@ -43,7 +43,7 @@ myWork = workList taskInstancesForCurrentUser
 allWork :: SDSLens () [(TaskId,WorklistRow)] ()
 allWork = workList allTaskInstances
 
-workList instances = mapRead projection (instances |*| currentTopTask)
+workList instances = mapRead projection ((instances |*| currentTopTask) f)
 where
 	projection (instances,ownPid)
 		= [(TaskId i.TaskInstance.instanceNo 0, mkRow i) \\ i <- instances | notSelf ownPid i && isActive i]
@@ -65,7 +65,7 @@ where
 		,parentTask = if (listId == TaskId 0 0) Nothing (Just (toString listId))
 		}
 
-
+	f (l, r) = ((), ())
 // SHARES
 // Available workflows
 
@@ -73,17 +73,17 @@ workflows :: SDSLens () [Workflow] [Workflow]
 workflows = sharedStore "Workflows" []
 
 workflowByPath :: !String -> SDSLens () Workflow Workflow
-workflowByPath path = mapReadWriteError (toPrj,fromPrj) workflows
+workflowByPath path = mapReadWriteError (toPrj,fromPrj) (\_ flows -> toPrj flows) workflows
 where
 	toPrj wfs = case [wf \\ wf <- wfs | wf.Workflow.path == path] of
 		[wf:_]	= Ok wf
 		_		= Error (exception ("Workflow " +++ path +++ " could not be found"))
 
 	fromPrj nwf wfs
-		= Ok (Just [if (wf.path == path) nwf wf \\ wf <- wfs])
+		= Ok (DoWrite [if (wf.path == path) nwf wf \\ wf <- wfs])
 
 allowedWorkflows :: SDSLens () [Workflow] ()
-allowedWorkflows = mapRead filterAllowed (workflows |*| currentUser)
+allowedWorkflows = mapRead filterAllowed ((workflows |*| currentUser) id)
 where
 	filterAllowed (workflows,user) = filter (isAllowedWorkflow user) workflows
 
@@ -107,12 +107,13 @@ manageWorklist iflows
 	=	installInitialWorkflows iflows
 	>>| manageWorkInSession
 
+import StdDebug
 installInitialWorkflows ::[Workflow] -> Task ()
 installInitialWorkflows [] = return ()
 installInitialWorkflows iflows
-	=   try (get workflows) (\(StoreReadBuildVersionError _) -> return [])
+	=   try (get workflows) (\(StoreReadBuildVersionError _) -> trace_n "Error installing flows" (return []))
 	>>= \flows -> case flows of
-		[]	= set iflows workflows @! ()
+		[]	= trace_n ("Setting flows: " +++ toString (length iflows))  (set iflows workflows @! ())
 		_	= return ()
 		
 loginAndManageWorkList :: !String ![Workflow] -> Task ()
@@ -312,11 +313,13 @@ where
     //Look in the catalog for an entry that has the same path as
     //the 'catalogId' that is stored in the incompatible task instance's properties
     findReplacement taskId
-        =  get (sdsFocus taskId (taskListEntryMeta topLevelTasks) |*| workflows)
+        =  get (((sdsFocus taskId (taskListEntryMeta topLevelTasks)) |*| workflows) f)
         @  \(taskListEntry,catalog) -> maybe Nothing (lookup catalog) ('DM'.get "catalogId" taskListEntry.TaskListItem.attributes)
     where
         lookup [wf=:{Workflow|path}:wfs] cid = if (path == cid) (Just wf) (lookup wfs cid)
         lookup [] _ = Nothing
+
+        f ({TaskListItem|attributes}, r) = (attributes, r)
 
 appendOnce :: TaskId (Task a) (SharedTaskList a) -> Task () | iTask a
 appendOnce identity task slist
