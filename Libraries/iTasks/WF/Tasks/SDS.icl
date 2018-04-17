@@ -67,9 +67,7 @@ where
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) s, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
 
-	eval _ _ _ _ = abort "set does not match!"
-
-upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & Readable, Writable sds
+upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
 upd fun shared = Task eval
 where
 	eval event opts tree=:(TCDestroy _) w = (DestroyedResult, w)
@@ -86,8 +84,6 @@ where
 	eval event opts s=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
 		Just a	= (ValueResult (Value a True) {lastEvent=ts,removedTasks=[],refreshSensitive=False} (rep event) s, iworld)
 		Nothing	= (ExceptionResult (exception "Corrupt task result"), iworld)
-
-	eval _ _ tree _ = abort ("upd does not match!" +++ toString (toJSON tree))
 
 watch :: !(sds () r w) -> Task r | iTask r & Readable, Registrable sds
 watch shared = Task eval

@@ -1,7 +1,6 @@
 implementation module iTasks.Extensions.Distributed._Types
 
 from iTasks.WF.Definition import :: TaskAttributes, :: Task, class iTask, :: TaskValue, :: TaskResult
-from iTasks.SDS.Definition import :: ReadWriteShared, :: SDS
 from iTasks.Internal.IWorld import :: IWorld
 from iTasks.Internal.TaskState import :: TaskTree
 from iTasks.Internal.TaskEval import :: TaskEvalOpts

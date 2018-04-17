@@ -46,8 +46,8 @@ where
     /* Read from a sds
      * @param sds to read from
      * @param context in which to read. Async shares use the context to retrieve the task id.
-     * @param When Just, denotes reading + registering.
-     * @param Identify of the sds to read, not guaranteed to be the identify of the sds we're reading from.
+     * @param When Just, denotes reading + registering for changes.
+     * @param Identify of the sds to read, not guaranteed to be the identify of the current sds we're reading from. (lenses, sequences, etc.)
      */ 
     readSDS          :: (sds p r w) p !TaskContext !(Maybe TaskId) !SDSIdentity !*IWorld -> *(!MaybeError TaskException (AsyncResult r), !*IWorld) | gText{|*|} p & TC p & TC r
 
@@ -77,7 +77,7 @@ instance toString (WebServiceShareOptions r)
 :: SDSNotifyPred p          :== p -> Bool
 
 //Sources provide direct access to a data source
-:: SDSSource p r w =
+:: SDSSource p r w = 
 	{ name          :: String
     , read			:: p *IWorld -> *(!MaybeError TaskException r, !*IWorld)
 	, write			:: p w *IWorld -> *(!MaybeError TaskException (SDSNotifyPred p), !*IWorld)
@@ -136,13 +136,13 @@ instance toString (WebServiceShareOptions r)
     , writer        :: SDSLensWrite p w r2 w2
     }
 
-:: SDSCache p r w = SDSCache (SDSSource p r w) (SDSCacheOptions p r w) & gText{|*|} p & TC p
+:: SDSCache p r w = SDSCache (SDSSource p r w) (SDSCacheOptions p r w) & iTask p & TC r & TC w 
 :: SDSCacheOptions p r w  =
 	{ write        :: p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)
 	}
 
 :: SDSCacheWrite = WriteNow | WriteDelayed | NoWrite
 
-:: SDSRemoteSource p r w = E. sds: SDSRemoteSource (sds p r w) SDSShareOptions & Identifiable sds
+:: SDSRemoteSource p r w = E. sds: SDSRemoteSource (sds p r w) SDSShareOptions & RWShared sds
 
 :: SDSRemoteService p r w = SDSRemoteService (WebServiceShareOptions r)

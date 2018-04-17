@@ -14,7 +14,7 @@ import Text.GenJSON
 import System.FilePath
 import iTasks.Internal.SDS
 
-sdsFocus :: !p !(sds p r w) -> (SDSLens p` r w) | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+sdsFocus :: !p !(sds p r w) -> (SDSLens p` r w) | gText{|*|} p & JSONEncode{|*|} p & TC p & TC r & TC w & RWShared sds
 sdsFocus p sds = sdsTranslate ("("+++ toString (toJSON p)+++")/") (const p) sds
 
 sdsProject :: !(SDSReadProjection rs r) !(SDSWriteProjection rs ws w) !(sds p rs ws) -> SDSLens p r w | gText{|*|} p & TC p & TC rs & TC ws & RWShared sds

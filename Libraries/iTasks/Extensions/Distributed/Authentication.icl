@@ -30,7 +30,6 @@ derive class iTask Communication
 derive class iTask AuthShare
 derive class iTask AuthServerState
 
-authServerShare :: Shared AuthShare
 authServerShare = sharedStore "authServerShare" {AuthShare| lastId = 0, clients = [] }
 
 authServer :: Int -> Task ()
@@ -65,7 +64,7 @@ where
 	onDisconnect state share
 		= (Ok state, Just share)
 		
-	process :: (Shared AuthShare) -> Task ()
+	process :: (sds () AuthShare AuthShare) -> Task () | RWShared sds
 	process share
 		= forever (watch share >>* [OnValue (ifValue hasRequests \_ -> changed)] @! ())
 	where
@@ -185,10 +184,10 @@ startAuthEngine :: Domain -> Task ()
 startAuthEngine (Domain domain)
 	= set domain authServerInfoShare @! ()
 
-authServerInfoShare :: Shared String
+authServerInfoShare :: SDSLens () String String
 authServerInfoShare = sharedStore "authServer" ""
 
-currentDistributedUser :: RWShared () (User,Domain) (User,Domain)
+currentDistributedUser :: SDSParallel () (User,Domain) (User,Domain)
 currentDistributedUser = sdsParallel "communicationDetailsByNo" param read (SDSWriteConst writel) (SDSWriteConst writer) currentUser authServerInfoShare
 where
 	param p = (p,p)
@@ -196,7 +195,7 @@ where
 	writel _ (x,_) = Ok (Just x)
 	writer _ (_, Domain y) = Ok (Just y)  
 
-currentDomain :: ROShared () Domain
+currentDomain :: SDSLens () Domain ()
 currentDomain = toReadOnly (mapRead (\domain -> Domain domain) authServerInfoShare)
 
 enterDomain :: Task Domain

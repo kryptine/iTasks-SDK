@@ -7,7 +7,7 @@ from iTasks.UI.Definition import :: UI, :: UIAttributeChange, :: UIType
 from iTasks.WF.Combinators.Common import @!, @?, whileUnchanged, ||-
 from iTasks.UI.Definition import :: UIType(UIEmpty)
 from iTasks.Internal.IWorld import :: IWorld
-from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ReadWriteShared 
+import iTasks.SDS.Definition
 import iTasks.Internal.SDS
 from iTasks.SDS.Sources.System import currentTaskInstanceNo
 from iTasks.UI.Definition import :: UIChange(..), :: UIChildChange(..), ui
@@ -43,7 +43,7 @@ where
 	changeTask handleValue value
 		= handleValue value @? const NoValue
 
-proxyTask :: (RWShared () (TaskValue a) (TaskValue a)) (*IWorld -> *IWorld) -> (Task a) | iTask a
+proxyTask :: (sds () (TaskValue a) (TaskValue a)) (*IWorld -> *IWorld) -> (Task a) | iTask a & RWShared sds
 proxyTask value_share onDestroy = Task eval
         where
         eval event evalOpts tree=:(TCInit taskId ts) iworld
@@ -58,12 +58,12 @@ proxyTask value_share onDestroy = Task eval
         rep ResetEvent = ReplaceUI (ui UIEmpty)
         rep _          = NoChange
 
-taskValueShare :: Int ->  RWShared () (TaskValue a) (TaskValue a) | iTask a
+taskValueShare :: Int ->  SDSLens () (TaskValue a) (TaskValue a) | iTask a
 taskValueShare taskid = sdsFocus store_name (memoryStore store_name (Just NoValue))
 where
 	store_name = "taskValueShare_" +++ (toString taskid) 
 
-customEval :: (RWShared () (TaskValue a) (TaskValue a)) (Task a) -> (Task a) | iTask a
+customEval :: (sds () (TaskValue a) (TaskValue a)) (Task a) -> (Task a) | iTask a & RWShared sds
 customEval value_share (Task eval) = Task eval`
         where
         eval` event evalOpts state iworld

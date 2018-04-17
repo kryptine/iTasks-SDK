@@ -4,10 +4,10 @@ import iTasks
 
 shareOperation :: String String [String] (String -> Task ()) -> Task ()
 
-rr_get :: !(ReadWriteShared a w) -> Task a | iTask a & iTask w
+rr_get :: !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds
 
-rr_upd :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
+rr_upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
 
-rr_set :: !a !(ReadWriteShared r a)  -> Task a | iTask a & iTask r
+rr_set :: !w !(sds () r w)  -> Task w | iTask w & iTask r & RWShared sds
 
-rr_watch :: !(ReadWriteShared r w) -> Task r | iTask r & iTask w
+rr_watch :: !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds

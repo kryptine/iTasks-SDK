@@ -6,7 +6,7 @@ from System.Time import :: Timestamp(..)
 from iTasks.Extensions.DateTime import :: DateTime, instance < DateTime, instance toString DateTime, timestampToGmDateTime, localDateTimeToTimestamp
 from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor Maybe, isJust
 
-memoryShare_ :: String a -> RWShared () a a | iTask a
+memoryShare_ :: String a -> SDSLens () a a | iTask a
 memoryShare_ name default = sdsFocus name (memoryStore name (Just default))
 
 repeatClient :: (Task (Maybe a)) -> Task (Maybe a) | iTask a

@@ -18,10 +18,10 @@ from iTasks.WF.Combinators.Common import -&&-, >>-
 from iTasks.SDS.Sources.System import currentDateTime
 from iTasks.Extensions.DateTime import :: DateTime, instance toString DateTime
 from iTasks.Extensions.User import currentUser, :: User(..), :: UserTitle, :: Role, :: UserId, assign, workerAttributes
-from iTasks.Internal.SDS import :: SDS, :: ReadWriteShared, :: RWShared, :: ReadOnlyShared, :: ROShared
 from iTasks.Extensions.Distributed.Authentication import currentDomain
 import qualified iTasks.WF.Tasks.SDS as C
 import iTasks.Internal.Distributed.Symbols
+import iTasks.Internal.SDS
 
 instance @: worker (Task a) | iTask a & toUserConstraint worker
 where

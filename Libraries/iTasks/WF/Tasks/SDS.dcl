@@ -55,7 +55,7 @@ set :: !a !(sds () r a)  -> Task a | iTask a & TC r & Writable sds
 * @gin-title Update shared
 * @gin-icon shared_update
 */
-upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & Readable, Writable sds
+upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
 
 /**
 * Reads shared data continously
