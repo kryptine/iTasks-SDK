@@ -60,7 +60,8 @@ where
 	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
 
 interact :: !d !EditMode !(sds () r w) (InteractionHandlers l r w v) (Editor v) -> Task (l,v) | toPrompt d & iTask l & iTask r & iTask v & TC w & RWShared sds
-interact prompt mode shared {onInit,onEdit,onRefresh} editor = Task eval
+interact prompt mode shared {onInit,onEdit,onRefresh} editor
+=  Task eval
 where
 	eval event evalOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -80,7 +81,7 @@ where
         # info      = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
         = (ValueResult value info change (TCInteract taskId ts (toJSON l) (toJSON v) m), iworld)
 
-    eval (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Modify _ connectionId _ (TCInteract taskId ts encl encv m)) iworld=:{ioStates, current={taskTime}} 
+    eval (RefreshEvent taskIds reason) evalOpts t=:(TCAwait Modify _ connectionId _ (TCInteract taskId ts encl encv m)) iworld=:{ioStates, current={taskTime}}
 	| not ('DS'.member taskId taskIds) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)
 	# value = (Value ((fromJust (fromJSON encl)), (fromJust (fromJSON encv))) False)
 	# evalInfo = {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True}
@@ -93,20 +94,21 @@ where
 
 	eval e=:(EditEvent editedTask name edit) evalOpts t=:(TCAwait Modify taskId connectionId ts tree) iworld 
 	| not (editedTask == taskId) = (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)
-	| not (trace_tn "Editing while waiting") = undef
 	| otherwise = case eval e evalOpts tree iworld of
 		(ExceptionResult e, iworld) = (ExceptionResult e, iworld)
 		(ValueResult val info change tree, iworld) = (ValueResult val info change (TCAwait Modify taskId connectionId ts tree), iworld)
 
     // Ignore all other events when waiting on an async operation.
 	eval _ _ t=:(TCAwait _ taskId connectionId ts tree) iworld 
-		= trace_n "Other event Await" (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)
+		= ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld
 
 	// Handle all other event normally
 	eval event evalOpts tree iworld=:{current={taskTime}}
+		| not (trace_tn "other event, other state") = undef
 		//Decode or initialize state
 		# (mbd,iworld) = case tree of
 			(TCInit taskId ts)
+			| not (trace_tn "TCInit reading from share") = undef
 				= case 'SDS'.readRegister taskId shared iworld of
 					(Ok ('SDS'.Result r),iworld)
 						# (l,v) = onInit r

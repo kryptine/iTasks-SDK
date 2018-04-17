@@ -13,7 +13,6 @@ import iTasks.Internal.Task, iTasks.Internal.TaskStore, iTasks.Internal.TaskEval
 import iTasks.SDS.Sources.Core
 import iTasks.WF.Tasks.IO
 import Text.GenJSON
-
 import iTasks.Internal.AsyncSDS
 
 createReadWriteSDS ::
@@ -254,14 +253,14 @@ instance Identifiable SDSCache where
     nameSDS (SDSCache {SDSSource|name} _) acc = ["$", name, "$":acc]
 
 instance Readable SDSCache where
-    readSDS sds p c mbNotify reqSDSId iworld=:{readCache}
+    readSDS sds=:(SDSCache sds1 _) p c mbNotify reqSDSId iworld=:{readCache}
     # iworld = mbRegister p sds mbNotify c reqSDSId iworld    
     # key = (sdsIdentity sds,toSingleLineText p)
     //First check cache
     = case 'DM'.get key readCache of
         Just (val :: r^) = (Ok val,iworld)
         Just _           = (Error (exception "Cached value of wrong type"), iworld)
-        Nothing = case readSDS sds p c mbNotify reqSDSId iworld of
+        Nothing = case readSDS sds1 p c mbNotify reqSDSId iworld of
             (Error e,iworld) = (Error e, iworld)
             //Read and add to cache
             (Ok val,iworld)  = (Ok val, {iworld & readCache = 'DM'.put key (dynamic val :: r^) iworld.readCache})
@@ -487,6 +486,7 @@ instance Readable SDSRemoteService where
         (Error e, iworld)                  = (Error e, iworld)
         (Ok connectionId, iworld)          = (Ok (Queued connectionId), iworld)
 
+// TODO: Remove, in currently needed due to a shared interact function between viewSharedInformation, updateSharedInformation.
 instance Writable SDSRemoteService where
     writeSDS _ _ _ _ iworld = (Error (exception "cannot write to remote service yet"), iworld)
 

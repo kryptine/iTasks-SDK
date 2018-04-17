@@ -136,6 +136,7 @@ instance toString (WebServiceShareOptions r)
     , writer        :: SDSLensWrite p w r2 w2
     }
 
+// TODO: For some reason, gText{|*|} p & TC p is not sufficient and causes overloading errors in the implementation of Readable and Writable for SDSCache. iTask p seems to solve this for unknown reasons.
 :: SDSCache p r w = SDSCache (SDSSource p r w) (SDSCacheOptions p r w) & iTask p & TC r & TC w 
 :: SDSCacheOptions p r w  =
 	{ write        :: p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)
