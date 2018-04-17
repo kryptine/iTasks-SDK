@@ -9,12 +9,16 @@ import iTasks.Extensions.Distributed._Attributes
 import qualified Data.Map as DM
 import Text.Encodings.Base64
 import iTasks.Internal.Distributed.Symbols
+import iTasks.Internal.SDS
+import iTasks.SDS.Definition
 
 from iTasks.Internal.Serialization import dynamicJSONEncode, dynamicJSONDecode
 from iTasks.UI.Editor.Common import emptyEditor
 from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor Maybe, isJust
 
-rr_get :: !(ReadWriteShared a w) -> Task a | iTask a & iTask w
+// TODO: This is no longer necessary! Rewrite this to use the standard async shares.
+
+rr_get :: !(sds () a w) -> Task a | iTask a & iTask w & RWShared sds
 rr_get shared
 	= get currentTaskInstanceNo
 	>>= \taskid -> currentDistributedId
@@ -31,7 +35,7 @@ where
 		>>| watch tempShared >>* [OnValue (ifValue (\v -> not (isNothing v)) \v -> (return (fromJust v)))]
 	message ref myRef shared = "share " +++ ref +++ " " +++ myRef +++ " get " +++ (serializeToBase64 (Remote_Share shared))
 
-rr_upd :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
+rr_upd :: !(r -> w) !(sds () r w) -> Task w | iTask r & iTask w & RWShared sds
 rr_upd func share
 	= get currentTaskInstanceNo
 	>>= \taskid -> currentDistributedId
@@ -48,13 +52,13 @@ where
 		>>| watch tempShared >>* [OnValue (ifValue (\v -> not (isNothing v)) \v -> (return (fromJust v)))]
 	message ref myRef shared = "share " +++ ref +++ " " +++ myRef +++ " upd " +++ (serializeToBase64 (Remote_Share share) +++ " function " +++ (serializeToBase64 func))
 
-rr_set :: !a !(ReadWriteShared r a)  -> Task a | iTask a & iTask r
+rr_set :: !a !(sds () r a)  -> Task a | iTask a & iTask r & RWShared sds
 rr_set value shared = rr_upd (update value) shared
 where
         update :: a r -> a | iTask a & iTask r
         update value _ = value
 
-rr_watch :: !(ReadWriteShared r w) -> Task r | iTask r & iTask w
+rr_watch :: !(sds () r w) -> Task r | iTask r & iTask w & RWShared sds
 rr_watch shared
 	= get currentTaskInstanceNo
 	>>- \taskid -> currentDistributedId
@@ -102,7 +106,6 @@ JSONDecode{|Handler|} _ r        = (Nothing,r)
 gEq{|Handler|} _ _               = True
 gDefault{|Handler|}              = \_ -> return ()
 
-remoteSharedHandelersShared :: Shared RemoteShareHandelers
 remoteSharedHandelersShared = memoryShare_ "remote_shared_handelers" 'DM'.newMap
 
 addSharedHandler :: Int (String -> Task ()) -> Task ()
@@ -118,10 +121,10 @@ callSharedHandler ref data
 	= get remoteSharedHandelersShared
 	>>= \handlers -> (fromMaybe (\_ -> return ()) ('DM'.get ref handlers)) data
 
-dummyShared :: String a -> RWShared () a a | iTask a
+dummyShared :: String a -> SDSLens () a a | iTask a
 dummyShared ref default = memoryShare_ ("dummy_share_" +++ ref) default
 
-putSharedValueInDummyShared :: (Shared (Maybe a)) String -> Task () | iTask a
+putSharedValueInDummyShared :: (sds () (Maybe a) (Maybe a)) String -> Task () | iTask a & RWShared sds
 putSharedValueInDummyShared shared value
         = let v = (fromJSON (fromString (base64Decode value))) in
                 if (not (isNothing v)) ((set v shared) @! ()) (return ())
@@ -147,7 +150,7 @@ shareOperation` ref refClient ["notify", share, "function", function] send symbo
 shareOperation` ref refClient ["value", value] _ _
 	= callSharedHandler refClient value
 
-notifyShare :: String String !(ReadWriteShared r w) (r -> Bool) (String -> Task ()) -> Task () | iTask r & iTask w
+notifyShare :: String String !(sds () r w) (r -> Bool) (String -> Task ()) -> Task () | iTask r & iTask w & RWShared sds
 notifyShare ref refClient share func send
         = (watch share >>* [OnValue (ifValue func (\val -> shareResponse ref refClient val send))]) @! ()
 

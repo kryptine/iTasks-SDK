@@ -67,7 +67,7 @@ read sds c iworld = readSDS sds () c Nothing (sdsIdentity sds) iworld
 readRegister :: !TaskId !(sds () r w) !*IWorld -> (!MaybeError TaskException (AsyncResult r), !*IWorld) | TC r & Readable, Registrable sds
 readRegister taskId sds iworld = readRegisterSDS sds () (TaskContext taskId) taskId iworld
 
-mbRegister :: !p (sds p r w) !(Maybe !TaskId) !TaskContext !SDSIdentity !*IWorld -> *IWorld | gText{|*|} p & TC p & Readable sds
+mbRegister :: !p (sds p r w) !(Maybe TaskId) !TaskContext !SDSIdentity !*IWorld -> *IWorld | gText{|*|} p & TC p & Readable sds
 // When a remote requests a register, we do not have a local task id rather a remote task context which we use to record the request.
 mbRegister p sds _ (RemoteTaskContext taskId host port) reqSDSId iworld=:{IWorld|sdsNotifyRequests}
     # req = {SDSNotifyRequest|reqTaskId=taskId,reqSDSId=reqSDSId,cmpSDSId=sdsIdentity sds,cmpParam=dynamic p,cmpParamText=toSingleLineText p, remoteOptions = Just (RemoteNotifyOptions host port)}
@@ -116,7 +116,7 @@ where
 			//In case of a type mismatch, just ignore (should not happen)
             _                        = abort "Not matching!"
 
-modify :: !(r -> !w) !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncResult w), !*IWorld) | TC r & TC w & Readable, Writable sds
+modify :: !(r -> w) !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncResult w), !*IWorld) | TC r & TC w & Readable, Writable sds
 modify f sds context iworld = case read sds context iworld of
     (Ok (Result r),iworld)      = let w = f r in case write w sds context iworld of
 		(Ok (),iworld)                = (Ok (Result w),iworld)	
@@ -286,9 +286,15 @@ instance Readable SDSCache where
             (Ok val,iworld)  = (Ok val, {iworld & readCache = 'DM'.put key (dynamic val :: r^) iworld.readCache})
 
 instance Writable SDSCache where
-    writeSDS         :: (SDSCache p r w) p !TaskContext w *IWorld -> *(!MaybeError TaskException (Set SDSNotifyRequest), !*IWorld) | gText{|*|} p & TC p & TC r & TC w 
+    /*
+     * :: SDSCache p r w = SDSCache (SDSSource p r w) (SDSCacheOptions p r w) & gText{|*|} p & TC p
+     * :: SDSCacheOptions p r w  =
+     *    { write        :: p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)
+     *    }
+    */
+    // writeSDS         :: (SDSCache p r w) p !TaskContext w *IWorld -> *(!MaybeError TaskException (Set SDSNotifyRequest), !*IWorld) | gText{|*|} p & TC p & TC r & TC w 
     writeSDS sds=:(SDSCache sds1 {SDSCacheOptions|write}) p c w iworld=:{IWorld|readCache,writeCache}
-    # key = (sdsIdentity sds,toSingleLineText p)
+    # key = (sdsIdentity sds, toSingleLineText p)
     //Check cache
     # mbr = case 'DM'.get key readCache of
         Just (val :: r^) = Just val
@@ -495,19 +501,13 @@ instance Identifiable SDSRemoteService where
     nameSDS (SDSRemoteService opts) acc = [toString opts : acc]
 
 instance Readable SDSRemoteService where
-    readSDS sds p EmptyContext mbNotify reqSDSId iworld = (Error (exception "Cannot read remote service without task id"), iworld)
-    readSDS sds _ (TaskContext taskId) _ _ iworld = case queueRead sds taskId False iworld of
+    readSDS _ _ EmptyContext _ _ iworld = (Error (exception "Cannot read remote service without task id"), iworld)
+    readSDS sds _ (TaskContext taskId) _ _ iworld = case queueServiceRequest sds taskId iworld of
         (Error e, iworld)                  = (Error e, iworld)
         (Ok connectionId, iworld)          = (Ok (Queued connectionId), iworld)
 
 instance Writable SDSRemoteService where
     writeSDS _ _ _ _ iworld = (Error (exception "cannot write to remote service yet"), iworld)
-
-instance Registrable SDSRemoteService where
-    readRegisterSDS s _ EmptyContext _ iworld = (Error (exception "Cannot register remote service without task id"), iworld)
-    readRegisterSDS s _ (TaskContext taskId) _ iworld = case queueRead s taskId True iworld of
-        (Error e, iworld) = (Error e, iworld)
-        (Ok connectionId, iworld) = (Ok (Queued connectionId), iworld)
 
 instance < SDSNotifyRequest 
 where

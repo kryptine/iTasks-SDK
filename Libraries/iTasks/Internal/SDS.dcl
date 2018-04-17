@@ -46,7 +46,6 @@ instance Registrable SDSParallel
 instance Identifiable SDSRemoteService
 instance Readable SDSRemoteService
 instance Writable SDSRemoteService
-instance Registrable SDSRemoteService
 
 instance Identifiable SDSRemoteSource
 instance Readable SDSRemoteSource
@@ -76,6 +75,8 @@ createReadOnlySDSError ::
 //Internal access functions
 directResult :: (AsyncResult r) -> r
 
+sdsIdentity :: !(sds p r w) -> SDSIdentity | Identifiable sds
+
 /*
  * Read the SDS. TaskContext is used to determine whether a read is done in the
  * context of a task. The read is performed asynchronously when there is a task 
@@ -94,12 +95,14 @@ readRegister	:: !TaskId                  !(sds () r w) !*IWorld -> (!MaybeError 
 write			:: !w					    !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (), !*IWorld)	| TC r & TC w & Writable sds
 
 //Read followed by write. The 'a' typed value is a result that is returned
-modify          :: !(r -> !w)          !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncResult w), !*IWorld) | TC r & TC w & Readable sds & Writable sds
+modify          :: !(r -> w)          !(sds () r w) !TaskContext !*IWorld -> (!MaybeError TaskException (AsyncResult w), !*IWorld) | TC r & TC w & Readable sds & Writable sds
 
 //Clear all registrations for the given tasks.
 //This is normally called by the queueRefresh functions, because once a task is queued
 //for evaluation anyway, it no longer make sense to notify it again.
 clearTaskSDSRegistrations :: !(Set TaskId) !*IWorld -> *IWorld
+
+queueNotifyEvents :: !String !(Set SDSNotifyRequest) *IWorld -> *IWorld
 
 //List all current registrations (for debugging purposes)
 listAllSDSRegistrations :: *IWorld -> (![(InstanceNo,[(TaskId,SDSIdentity)])],!*IWorld)

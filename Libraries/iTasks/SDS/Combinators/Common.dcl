@@ -30,13 +30,13 @@ from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
     | SDSNoWrite
 
 // Fix a focus parameter
-sdsFocus :: !p !(sds p r w) -> (SDSLens p` r w) | gText{|*|} p & TC p & TC r & TC w & RWShared sds
+sdsFocus :: !p !(sds p r w) -> (SDSLens p` r w) | gText{|*|} p & JSONEncode{|*|} p & TC p & TC r & TC w & RWShared sds
 
 // Projection of the domain with a lens
 sdsProject :: !(SDSReadProjection rs r) !(SDSWriteProjection rs ws w) !(sds p rs ws) -> SDSLens p r w | gText{|*|} p & TC p & TC rs & TC ws & RWShared sds
 
 // Translate the parameter space
-sdsTranslate :: !String !(p -> ps) !(sds ps r w) -> SDSLens p r w |  gText{|*|} ps & TC ps & TC ps & TC r & TC w & RWShared sds
+sdsTranslate :: !String !(p -> ps) !(sds ps r w) -> SDSLens p r w |  gText{|*|} ps & TC ps & TC r & TC w & RWShared sds
 
 // Introduce a new parameter
 sdsSplit :: !String !(p -> (ps,pn)) !(pn rs -> r) !(pn rs w -> (ws,SDSNotifyPred pn)) !(sds ps rs ws) -> SDSLens p r w |  gText{|*|} ps & TC ps & gText{|*|} pn & TC pn & TC rs  & TC ws & RWShared sds

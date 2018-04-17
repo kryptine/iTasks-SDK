@@ -30,6 +30,6 @@ storeShare :: !String !Bool !StorageType !(Maybe a) -> (SDSSequence String a a) 
 // Data blob storage access
 blobStoreShare :: !String !Bool !(Maybe {#Char}) -> SDSSequence String {#Char} {#Char}
 
-remoteShare :: (sds p r w) SDSShareOptions -> SDSRemoteSource p r w | Identifiable sds
+remoteShare :: (sds p r w) SDSShareOptions -> SDSRemoteSource p r w | RWShared sds
 
 remoteService :: (WebServiceShareOptions r) -> SDSRemoteService () r ()

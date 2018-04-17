@@ -11,6 +11,6 @@ import iTasks
  */
 evalRemoteTask :: (Task a) ((TaskValue a) -> Task ()) -> Task a | iTask a
 
-proxyTask :: (RWShared () (TaskValue a) (TaskValue a)) (*IWorld -> *IWorld) -> (Task a) | iTask a
+proxyTask :: (sds () (TaskValue a) (TaskValue a)) (*IWorld -> *IWorld) -> (Task a) | iTask a & RWShared sds
 
-taskValueShare :: Int ->  RWShared () (TaskValue a) (TaskValue a) | iTask a
+taskValueShare :: Int ->  SDSLens () (TaskValue a) (TaskValue a) | iTask a

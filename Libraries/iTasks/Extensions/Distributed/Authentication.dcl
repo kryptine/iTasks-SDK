@@ -8,7 +8,8 @@ from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 from iTasks.Internal.Generic.Visualization    import :: TextFormat(..)
 from iTasks.Internal.Distributed.Domain import :: Domain
 from iTasks.Extensions.User import :: User, :: Username, ::Password
-from iTasks.SDS.Definition import :: SDS, :: RWShared, :: ROShared
+
+import iTasks.SDS.Definition
 
 remoteAuthenticateUser	:: !Username !Password	-> Task (Maybe User)
 
@@ -23,6 +24,6 @@ startAuthEngine :: Domain -> Task ()
 
 enterDomain :: Task Domain
 
-currentDistributedUser :: RWShared () (User,Domain) (User,Domain)
+currentDistributedUser :: SDSParallel () (User,Domain) (User,Domain)
 
-currentDomain :: ROShared () Domain
+currentDomain :: SDSLens () Domain ()

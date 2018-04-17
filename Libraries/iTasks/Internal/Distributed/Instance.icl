@@ -39,7 +39,7 @@ from Data.Maybe import fromMaybe, isNothing, fromJust, maybe, instance Functor M
 
 derive class iTask DistributedTaskInstance, DistributedTaskInstances, Source
 
-distributedInstances :: Shared DistributedTaskInstances
+distributedInstances :: SDSLens () DistributedTaskInstances DistributedTaskInstances
 distributedInstances = sharedStore "distributedInstances" {DistributedTaskInstances|lastId = 0, instances = [] }
 
 :: ClientFilters =
@@ -78,10 +78,8 @@ derive class iTask InstanceServerShare
 derive class iTask InstanceServerState
 derive class iTask Communication
 
-instanceServerShared :: Shared InstanceServerShare 
 instanceServerShared = sharedStore "instanceServerShare" {InstanceServerShare| lastId = 0, clients = [] }
 
-instanceServerFilters :: Shared [ClientFilters]
 instanceServerFilters = sharedStore "instanceServerFilters" []
 
 instanceServer :: Int Domain -> Task ()
@@ -139,7 +137,7 @@ where
 							(Just (id, reqs)) -> (Just (id, [request:reqs]))
 							Nothing            -> Nothing
 		
-	process :: (Shared InstanceServerShare) -> Task ()
+	process :: (sds () InstanceServerShare InstanceServerShare) -> Task () | RWShared sds
 	process share
 		= forever (watch share >>* [OnValue (ifValue hasRequests \_ -> changed)] @! ())
 	where
@@ -441,7 +439,6 @@ where
 
 derive class iTask ClientShare
 
-instanceClientShare :: Int -> Shared ClientShare
 instanceClientShare clientId = sharedStore ("instanceClientShare" +++ (toString clientId)) {ClientShare| requests = [], responses = [], serverId = -1, outNr = 1, out = [], ack = 0}
 
 getClientServerId :: Int -> Task (Maybe Int)
@@ -456,7 +453,6 @@ getClientServerId clientId
 
 derive class iTask ClientsShare
 
-clientsShare :: Shared ClientsShare 
 clientsShare = sharedStore ("instanceClientsShare") {ClientsShare| lastId = 0, clients = [] }
 
 getClientId :: Domain -> Task Int
@@ -513,7 +509,7 @@ where
         onDisconnect state share
                 = (Ok state, Just share)
 
-        process :: (Shared ClientShare) Int -> Task ()
+        process :: (sds () ClientShare ClientShare) Int -> Task () | RWShared sds
         process share clientId
                 = forever (watch share >>* [OnValue (ifValue hasRequests \_ -> changed)] @! ())
         where
@@ -598,7 +594,6 @@ sendToInstanceServer :: Int String -> Task ()
 sendToInstanceServer clientId message
 	= upd (\s=:{ClientShare|responses=r} -> {ClientShare| s & responses = r ++ [message] }) (instanceClientShare clientId) @! ()
 
-remoteTaskIdShare :: Shared Int
 remoteTaskIdShare = sharedStore "remoteTaskIdShare" 0
 
 newRemoteTaskId :: Task Int
@@ -613,7 +608,7 @@ sendDistributedInstance _ task attributes domain
 	>>- \clientId -> upd (\s=:{ClientShare|responses=or} -> {ClientShare| s & responses = or ++ ["instance add " +++ (toString id) +++ " " +++ (serializeToBase64 (Remote_Task task attributes id))]}) (instanceClientShare (fromMaybe 0 clientId))
 	>>| proxyTask valueShare (onDestroy id (instanceClientShare (fromMaybe 0 clientId)))
 where
-	onDestroy :: InstanceNo (Shared ClientShare) *IWorld -> *IWorld
+	onDestroy :: InstanceNo (sds () ClientShare ClientShare) *IWorld -> *IWorld | RWShared sds
 	onDestroy id share iworld
 		# (error,iworld) = modify (\s=:{ClientShare|responses=or} ->{ClientShare| s & responses = or ++ ["instance destory " +++ (toString id)]}) share EmptyContext iworld
 		= iworld
@@ -642,7 +637,7 @@ wrapperTask instanceno clientId
 	>>- \task -> case deserializeFromBase64 task symbols of
 		(Remote_Task task _ _) = evalRemoteTask task (valueChange instanceno) @! ())
 where
-	loadTask :: InstanceNo Bool (Shared String) -> Task String
+	loadTask :: InstanceNo Bool (sds () String String) -> Task String | RWShared sds
 	loadTask instanceno force shared
 		= viewInformation "Loading task" [] "Please wait, the task is loaded ..."
 		||- (addWrapperTaskHandler instanceno (handlerTask shared)
@@ -650,10 +645,10 @@ where
                      >>| (watch shared >>* [OnValue (ifValue (\v -> not (v == "")) return)])
 		) >>- \result -> if (result=="ASSIGNED") (assinged instanceno shared) (return result)
 
-	handlerTask :: (Shared String) String -> Task ()
+	handlerTask :: (sds () String String) String -> Task () | RWShared sds
 	handlerTask shared data = set data shared @! ()
 
-	assinged :: InstanceNo (Shared String) -> Task String
+	assinged :: InstanceNo (sds () String String) -> Task String | RWShared sds
 	assinged instanceno shared
 		= viewInformation "Task is assigned to another node" []
 			"You can takeover the task. Please take in mind that the progress at the other device maybe lost."
@@ -668,7 +663,7 @@ where
 
 :: WrapperTaskHandelers :== Map Int String
 
-wrapperTaskHandelersShare :: RWShared () WrapperTaskHandelers WrapperTaskHandelers
+wrapperTaskHandelersShare :: SDSLens () WrapperTaskHandelers WrapperTaskHandelers
 wrapperTaskHandelersShare = memoryShare_ "wrapper_task_handelers" 'DM'.newMap
 
 addWrapperTaskHandler :: Int (String -> Task ()) -> Task ()

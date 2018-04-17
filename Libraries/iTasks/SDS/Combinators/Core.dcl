@@ -30,6 +30,4 @@ sdsParallel :: !String !(p -> (p1,p2)) !((r1,r2) -> r) !(SDSLensWrite p w r1 w1)
 sdsSequence :: !String !(p -> p1) !(p r1 -> p2) (p r1 -> Either r ((r1,r2) -> r)) !(SDSLensWrite p w r1 w1) !(SDSLensWrite p w r2 w2) !(sds1 p1 r1 w1) !(sds2 p2 r2 w2) -> SDSSequence p r w | gText{|*|} p1 & TC p1 & gText{|*|} p2 & TC p2 & TC r1 & TC r2 & TC w1 & TC w2 & RWShared sds1 & RWShared sds2
 
 // Create a cached version of an SDS
-// This is only allowed on source SDSs, otherwise notification can break.
-// If used on other SDSs errors will be generated on read/write.
-sdsCache:: (p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)) (SDSSource p r w) -> SDSCache p r w | gText{|*|} p & TC p & TC r & TC w
+sdsCache:: (p (Maybe r) (Maybe w) w -> (Maybe r, SDSCacheWrite)) (SDSSource p r w) -> SDSCache p r w | iTask p & TC r & TC w
