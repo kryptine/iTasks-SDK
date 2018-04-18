@@ -8,7 +8,7 @@ from Data.Error import :: MaybeError
 from Data.Maybe import :: Maybe
 from TCPIP import :: Timeout
 
-timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
+timeout :: !(Maybe Timeout) !*IWorld -> (!Maybe Timeout,!*IWorld)
 
 updateClock :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 

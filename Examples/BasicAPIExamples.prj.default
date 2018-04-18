@@ -23,6 +23,8 @@ Global
 			MemoryMinimumHeapSize:	0
 			Time:	False
 			Stack:	False
+			Dynamics:	True
+			DescExL:    False
 		Output
 			Output:	ShowConstructors
 			Font:	Courier

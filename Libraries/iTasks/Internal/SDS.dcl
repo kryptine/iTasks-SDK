@@ -1,7 +1,7 @@
 definition module iTasks.Internal.SDS
 
-import Data.Generics.GenEq
-import System.FilePath, Data.Maybe, Data.Either, Data.Error, System.Time, Text.JSON
+import Data.GenEq
+import System.FilePath, Data.Maybe, Data.Either, Data.Error, System.Time, Text.GenJSON
 from Data.Set import :: Set
 from iTasks.Internal.IWorld import :: IWorld
 from iTasks.Internal.Generic.Visualization import :: TextFormat

@@ -4,7 +4,7 @@ import Graphics.Scalable.Internal.Image`
 import iTasks.UI.Definition, iTasks.UI.Editor, iTasks.UI.JS.Encoding
 import StdArray, StdBool, StdEnum, StdInt, StdMisc, StdReal, StdTuple
 from StdFunc import o
-from Data.Generics.GenEq import generic gEq
+from Data.GenEq import generic gEq
 import Data.List
 import Data.Error
 import Data.MapCollection
@@ -15,7 +15,7 @@ import qualified Data.Set as DS
 import Text
 import Data.Matrix
 import Text.HTML
-import Text.JSON
+import Text.GenJSON
 import Math.Geometry
 
 CLICK_DELAY :== 225
@@ -60,15 +60,15 @@ fromSVGEditor svglet
 where
 	initUI :: !(JSObj ()) !*JSWorld -> *JSWorld
 	initUI me world
-	// Set attributes
-        # world = (me .# "clickCount" .= (toJSVal 0)) world
-  		# world = jsPutCleanVal "dragState" initDragState me world
-	// Set methods	
-		# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) world
-		# world = (me .# "onAttributeChange" .= jsOnAttributeChange) world
-		# (jsInitDOMEl,world) = jsWrapFun (initDOMEl me) world
-		# world = (me .# "initDOMEl" .= jsInitDOMEl) world
-		= world
+// Set attributes
+    # world                       = (me .# "clickCount" .= (toJSVal 0)) world
+	# world                       = jsPutCleanVal "dragState" initDragState me world
+// Set methods	
+	# (jsOnAttributeChange,world) = jsWrapFun (onAttributeChange me) world
+	# world                       = (me .# "onAttributeChange" .= jsOnAttributeChange) world
+	# (jsInitDOMEl,world)         = jsWrapFun (initDOMEl me) world
+	# world                       = (me .# "initDOMEl" .= jsInitDOMEl) world
+	= world
 	where
 		initDragState = {SVGDragState | svgMousePos     = MouseUp
 		                              , svgDropCallback = \_ _ v -> v
@@ -126,7 +126,8 @@ newImgTables
 
 onNewState :: !(JSVal a) !(SVGEditor s v) !s !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 onNewState me svglet=:{initView,renderImage} s world
-  #! cid                           = "FIXME_SOME_UNIQUE_STRING"          // Editors should be parameterized with a unique label
+  #! (cidJS,world)                 = .? (me .# "attributes.taskId") world
+  #! cid                           = jsValToString cidJS
   #! v                             = initView s
   #! world                         = jsPutCleanVal "view"  v me world    // Store the view value on the component
   #! world                         = jsPutCleanVal "model" s me world    // Store the model value on the component
@@ -140,8 +141,9 @@ onNewState me svglet=:{initView,renderImage} s world
   = case resolve_all_spans tags font_spans text_spans img masks markers paths spans grids of
       Error error                  = abort error
       Ok (img,masks,markers,paths,spans,grids)
-        #! svg                     = genSVG img cid ('DM'.keys es) masks markers paths spans grids
-        #! (newSVG,world)          = updSVG svg (getImgRootSize img spans) cid me world
+        #! mask_defs               = genSVGMasks masks cid ('DM'.keys es) markers paths spans grids
+        #! svg_elems               = genSVGElts  img   cid ('DM'.keys es) markers paths spans grids
+        #! (newSVG,world)          = updSVG (mask_defs ++ svg_elems) (getImgRootSize img spans) cid me world
         #! world                   = registerEventhandlers me svglet cid newSVG es tags world
         = world
 where
@@ -164,6 +166,13 @@ where
 	addNewTextsSpans newTexts text_spans world
 	| 'DM'.null newTexts = (text_spans,world)
 	= calcImgTextsLengths newTexts text_spans world
+
+//	generate the svg-defs for the masks used in this image:
+	genSVGMasks :: !ImgMasks !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
+	genSVGMasks masks cid es markers paths spans grids
+		= [  DefsElt [] [] [MaskElt [IdAttr (mkMaskId cid no)] [] (genSVGElts m cid es markers paths spans grids)]
+		  \\ (no,m) <- 'DM'.toList masks
+		  ]
 
 //	return the dimensions of the root image:
 	getImgRootSize :: !Img !ImgSpans -> (!Real,!Real)
@@ -279,10 +288,10 @@ registerEventhandlers me svglet cid svg es tags world
   #! (_,      world)     = (svgRoot `addEventListener` ("mousemove", cbMove, True)) world
   #! (_,      world)     = (svgRoot `addEventListener` ("mouseup",   cbUp,   True)) world
 // register all individual event handlers:
-  = 'DM'.foldrWithKey (registerEventhandler me svglet cid svg) world es
+  = 'DM'.foldrWithKey (registerEventhandler me svglet svg) world es
 where
-	registerEventhandler :: !(JSVal a) !(SVGEditor s v) !String !(JSObj svg) !ImgTagNo ![ImgEventhandler v] !*JSWorld -> *JSWorld | JSONEncode{|*|} s
-	registerEventhandler me svglet cid svg uniqId es world = foldr (register me svglet svg (mkUniqId cid uniqId)) world es
+	registerEventhandler :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !ImgTagNo ![ImgEventhandler v] !*JSWorld -> *JSWorld | JSONEncode{|*|} s
+	registerEventhandler me svglet svg uniqId es world = foldr (register me svglet svg (mkUniqId cid uniqId)) world es
 	where
 		register :: !(JSVal a) !(SVGEditor s v) !(JSObj svg) !String !(ImgEventhandler v) !*JSWorld -> *JSWorld | JSONEncode{|*|} s
 		register me svglet svg elemId (ImgEventhandlerOnClickAttr {OnClickAttr | local,onclick}) world
@@ -548,13 +557,12 @@ mkWH (imXSp, imYSp) = [WidthAttr (to2decString imXSp), HeightAttr (to2decString 
 to2decString :: !Real -> String
 to2decString r = toString (toReal (toInt (r * 100.0)) / 100.0)
 
-genSVG :: !Img !String ![ImgTagNo] !ImgMasks !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
-genSVG {Img | uniqId, transform, host, overlays, offsets} cid es masks markers paths spans grids
+genSVGElts :: !Img !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
+genSVGElts {Img | uniqId, transform, host, overlays, offsets} cid es markers paths spans grids
 	= mkGroup (if interactive [IdAttr (mkUniqId cid uniqId)] [])
 	          (genSVGTransform host transform spans cid)
-	          (  genSVGMasks    masks cid es markers paths spans grids
-	          ++ genSVGHost     uniqId host cid es masks markers paths spans grids 
-	          ++ genSVGOverlays overlays offsets cid es masks markers paths spans grids
+	          (  genSVGHost     uniqId   host    cid es markers paths spans grids 
+	          ++ genSVGOverlays overlays offsets cid es markers paths spans grids
 	          )
 where
 	interactive = isMember uniqId es
@@ -568,8 +576,8 @@ where
 		                _                            = False
 		imgSpan     = case 'DM'.get img.Img.uniqId spans of
 			            Just (PxSpan w, PxSpan h) = (w,h)
-			            Just _                    = abort ("Unexpected error in module SVGEditor (genSVG): " +++ unresolvedErrorMsg  "image")
-			            nothing                   = abort ("Unexpected error in module SVGEditor (genSVG): " +++ unavailableErrorMsg "image")
+			            Just _                    = abort ("Unexpected error in module SVGEditor (genSVGElts): " +++ unresolvedErrorMsg  "image")
+			            nothing                   = abort ("Unexpected error in module SVGEditor (genSVGElts): " +++ unavailableErrorMsg "image")
 		
 		genTransform :: !Bool !ImageSpanReal !ImgTransform !String -> SVGAttr
 		genTransform isText (xsp, ysp) (RotateImg imAn) _
@@ -625,16 +633,10 @@ where
 			= MaskAttr (mkUrl (mkMaskId cid uniqId))
 	genSVGTransform _ _ _ _
 		= []
-
-	genSVGMasks :: !ImgMasks !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
-	genSVGMasks masks cid es markers paths spans grids
-		= [  DefsElt [] [] [MaskElt [IdAttr (mkMaskId cid no)] [] (genSVG m cid es 'DM'.newMap markers paths spans grids)]
-		  \\ (no,m) <- 'DM'.toList masks
-		  ]
 	
-	genSVGHost :: !ImgTagNo !HostImg !String ![ImgTagNo] !ImgMasks !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
-	genSVGHost no host=:(BasicHostImg basic attrs) cid es masks markers paths spans grids
-		= genSVGBasicHostImg no basic (genSVGImageAttrs attrs) cid es masks markers paths spans grids
+	genSVGHost :: !ImgTagNo !HostImg !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
+	genSVGHost no host=:(BasicHostImg basic attrs) cid es markers paths spans grids
+		= genSVGBasicHostImg no basic (genSVGImageAttrs attrs) cid es markers paths spans grids
 	where
 		genSVGImageAttrs :: !(Set BasicImgAttr) -> [SVGAttr]
 		genSVGImageAttrs atts = strictTRMap genSVGImageAttr ('DS'.toList atts)
@@ -648,16 +650,16 @@ where
 			genSVGImageAttr (BasicImgFillOpacityAttr   op)       = FillOpacityAttr (FillOpacity (toString op))
 			genSVGImageAttr (BasicImgFillAttr        color)      = FillAttr (PaintColor color Nothing)
 			genSVGImageAttr (BasicImgDashAttr        dash)       = StrokeDashArrayAttr (DashArray (strictTRMap toString dash))
-			genSVGImageAttr _ = abort "Unexpected error in module SVGEditor (local function genSVGImageAttr of genSVG): unresolved span value encountered."
-	genSVGHost no host=:(RawHostImg content) cid es masks markers paths spans grids
+			genSVGImageAttr _ = abort "Unexpected error in module SVGEditor (local function genSVGImageAttr of genSVGElts): unresolved span value encountered."
+	genSVGHost no host=:(RawHostImg content) cid es markers paths spans grids
 		= [RawElt content]
-	genSVGHost no host=:(CompositeImg img) cid es masks markers paths spans grids
-		= genSVG img cid es masks markers paths spans grids
+	genSVGHost no host=:(CompositeImg img) cid es markers paths spans grids
+		= genSVGElts img cid es markers paths spans grids
 	
-	genSVGBasicHostImg :: !ImgTagNo !BasicImg ![SVGAttr] !String ![ImgTagNo] !ImgMasks !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
-	genSVGBasicHostImg no EmptyImg attrs cid es masks markers paths spans grids
+	genSVGBasicHostImg :: !ImgTagNo !BasicImg ![SVGAttr] !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
+	genSVGBasicHostImg no EmptyImg attrs cid es markers paths spans grids
 		= []
-	genSVGBasicHostImg no (TextImg {fontfamily,fontysize,fontstyle,fontstretch,fontvariant,fontweight} txt) attrs cid es masks markers paths spans grids
+	genSVGBasicHostImg no (TextImg {fontfamily,fontysize,fontstyle,fontstretch,fontvariant,fontweight} txt) attrs cid es markers paths spans grids
 		= [TextElt [XmlspaceAttr "preserve"] (keepTransformAttrsTogether (TransformAttr [TranslateTransform (toString 0.0) (toString (fontysize * 0.75))]) (attrs ++ fontAttrs)) txt]
     where
 		fontAttrs = [ AlignmentBaselineAttr "auto"
@@ -670,28 +672,28 @@ where
 		            , FontWeightAttr        fontweight
 		            , TextRenderingAttr     "geometricPrecision"
 		            ]
-	genSVGBasicHostImg no RectImg attrs cid es masks markers paths spans grids
+	genSVGBasicHostImg no RectImg attrs cid es markers paths spans grids
 		= [RectElt sizeAtts attrs]
 	where
 		sizeAtts          = case 'DM'.get no spans of
 		                      Just (PxSpan w, PxSpan h) = mkWH (w,h)
 		                      Just _                    = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg  "rect"))
 		                      nothing                   = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "rect"))
-	genSVGBasicHostImg no CircleImg attrs cid es masks markers paths spans grids
+	genSVGBasicHostImg no CircleImg attrs cid es markers paths spans grids
 		= [CircleElt [] [RAttr (radius,PX), CxAttr (radius,PX), CyAttr (radius,PX) : attrs]]
 	where
 		radius            = case 'DM'.get no spans of
 		                      Just (PxSpan w,h)         = to2decString (w / 2.0)
 		                      Just (_,_)                = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg  "circle"))
 		                      nothing                   = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "circle"))
-	genSVGBasicHostImg no EllipseImg attrs cid es masks markers paths spans grids
+	genSVGBasicHostImg no EllipseImg attrs cid es markers paths spans grids
 		= [EllipseElt [] [RxAttr (xradius,PX), CxAttr (xradius,PX), RyAttr (yradius,PX), CyAttr (yradius,PX) : attrs]]
 	where
 		(xradius,yradius) = case 'DM'.get no spans of
 		                      Just (PxSpan w, PxSpan h) = (to2decString (w / 2.0), to2decString (h / 2.0))
 		                      Just _                    = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unresolvedErrorMsg  "ellipse"))
 		                      nothing                   = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "ellipse"))
-	genSVGBasicHostImg no PolylineImg attrs cid es masks markers` paths spans grids
+	genSVGBasicHostImg no PolylineImg attrs cid es markers` paths spans grids
 		= [ PolylineElt [] [PointsAttr (strictTRMap (polypointToPointsAttr "polyline") points) : attrs ++ markerAttrs]
 		  : map (\elt -> DefsElt [] [] [elt]) markerElts		// PA: this is different from first version in which all marker-elements were collected in a single DefsElt
 		  ]
@@ -702,8 +704,8 @@ where
 		points                    = case 'DM'.get no paths of
 		                              Just ps = ps.ImgPath.pathPoints
 		                              nothing = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "polyline"))
-		(markerElts, markerAttrs) = unzip (genSVGLineMarkers "polyline" markers cid es masks markers` paths spans grids)
-	genSVGBasicHostImg no PolygonImg attrs cid es masks markers` paths spans grids
+		(markerElts, markerAttrs) = unzip (genSVGLineMarkers "polyline" markers cid es markers` paths spans grids)
+	genSVGBasicHostImg no PolygonImg attrs cid es markers` paths spans grids
 		= [ PolygonElt [] [PointsAttr (strictTRMap (polypointToPointsAttr "polygon") points) : attrs ++ markerAttrs]
 		  : map (\elt -> DefsElt [] [] [elt]) markerElts		// PA: this is different from first version in which all marker-elements were collected in a single DefsElt
 		  ]
@@ -714,19 +716,19 @@ where
 		points                    = case 'DM'.get no paths of
 		                              Just ps = ps.ImgPath.pathPoints
 		                              nothing = abort (lookupSpanErrorMsg "genSVGBasicHostImg" (unavailableErrorMsg "polygon"))
-		(markerElts, markerAttrs) = unzip (genSVGLineMarkers "polygon" markers cid es masks markers` paths spans grids)
+		(markerElts, markerAttrs) = unzip (genSVGLineMarkers "polygon" markers cid es markers` paths spans grids)
 	
-	genSVGLineMarkers :: !String !LineMarkers !String ![ImgTagNo] !ImgMasks !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [(SVGElt,SVGAttr)]
-	genSVGLineMarkers elt {LineMarkers | lineStart,lineMid,lineEnd} cid es masks markers paths spans grids
-		= [  genSVGLineMarker elt img posAttr cid es masks markers paths spans grids 
+	genSVGLineMarkers :: !String !LineMarkers !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [(SVGElt,SVGAttr)]
+	genSVGLineMarkers elt {LineMarkers | lineStart,lineMid,lineEnd} cid es markers paths spans grids
+		= [  genSVGLineMarker elt img posAttr cid es markers paths spans grids 
 		  \\ (Just img,posAttr) <- [ (lineStart,MarkerStartAttr)
 		                           , (lineMid,  MarkerMidAttr)
 		                           , (lineEnd,  MarkerEndAttr)
 		                           ]
 		  ]
 	where
-		genSVGLineMarker :: !String !Img !(String -> SVGAttr) !String ![ImgTagNo] !ImgMasks !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> (!SVGElt,!SVGAttr)
-		genSVGLineMarker elt img=:{Img | uniqId} posAttr cid es masks markers paths spans grids
+		genSVGLineMarker :: !String !Img !(String -> SVGAttr) !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> (!SVGElt,!SVGAttr)
+		genSVGLineMarker elt img=:{Img | uniqId} posAttr cid es markers paths spans grids
 			= ( MarkerElt [ IdAttr mid ]
 			              [ OrientAttr       "auto"
                           , ViewBoxAttr      "0" "0" wStr hStr
@@ -735,7 +737,7 @@ where
                           , MarkerHeightAttr (hStr, PX)
                           , MarkerWidthAttr  (wStr, PX)
                           ]
-                          (genSVG img cid es masks markers paths spans grids)
+                          (genSVGElts img cid es markers paths spans grids)
 			  , posAttr (mkUrl mid)
 			  )
 		where
@@ -747,9 +749,9 @@ where
 			wStr = to2decString w
         	hStr = to2decString h
 
-	genSVGOverlays :: ![Img] ![ImageOffset] !String ![ImgTagNo] !ImgMasks !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
-	genSVGOverlays overlays offsets cid es masks markers paths spans grids
-		= flatten [mkGroup [] (mkTransformTranslateAttr off) (genSVG img cid es masks markers paths spans grids) \\ img <- overlays & off <- offsets]
+	genSVGOverlays :: ![Img] ![ImageOffset] !String ![ImgTagNo] !ImgLineMarkers !ImgPaths !ImgSpans !GridSpans -> [SVGElt]
+	genSVGOverlays overlays offsets cid es markers paths spans grids
+		= flatten [mkGroup [] (mkTransformTranslateAttr off) (genSVGElts img cid es markers paths spans grids) \\ img <- overlays & off <- offsets]
 	where
 		mkTransformTranslateAttr :: !ImageOffset -> [SVGAttr]
 		mkTransformTranslateAttr (PxSpan dx,PxSpan dy)
@@ -768,7 +770,7 @@ where
 	unavailableErrorMsg elt = "no span value exists for " +++ elt +++ "."
 	
 	lookupSpanErrorMsg :: !String !String -> String
-	lookupSpanErrorMsg local_fun error = "Unexpected error in module SVGEditor (local function " +++ local_fun +++ " of genSVG): " +++ error
+	lookupSpanErrorMsg local_fun error = "Unexpected error in module SVGEditor (local function " +++ local_fun +++ " of genSVGElts): " +++ error
 
 mkGroup :: ![HtmlAttr] ![SVGAttr] ![SVGElt] -> [SVGElt]
 mkGroup _      _      []                  = []

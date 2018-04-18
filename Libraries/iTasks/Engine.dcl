@@ -5,7 +5,6 @@ definition module iTasks.Engine
 * environment in which worfklow specifications can be executed.
 */
 
-from StdList import ++, iterate, take
 from Data.Maybe      import :: Maybe
 from System.FilePath import :: FilePath
 from Internet.HTTP   import :: HTTPRequest
@@ -23,10 +22,11 @@ import iTasks.WF.Definition
     , sessionTime   :: Timespec
     , persistTasks  :: Bool
 	, autoLayout    :: Bool
-	, webDirPath 	:: FilePath // Location of public files that are served by the iTask webserver
-	, storeDirPath 	:: FilePath // Location of the application's persistent data files 
-	, tempDirPath 	:: FilePath // Location for temporary files used in tasks
-	, saplDirPath   :: FilePath // Location of the application's sapl files (client-side code)
+	, timeout       :: Maybe Int // The timeout
+	, webDirPath 	:: FilePath  // Location of public files that are served by the iTask webserver
+	, storeDirPath 	:: FilePath  // Location of the application's persistent data files 
+	, tempDirPath 	:: FilePath  // Location for temporary files used in tasks
+	, saplDirPath   :: FilePath  // Location of the application's sapl files (client-side code)
 	}
 
 /**

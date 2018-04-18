@@ -26,6 +26,7 @@ itasks.Component = {
 
 	init: function() {
 		var me = this;
+		me.lastFire = 0;
 		me.initSaplCustomization();
 		me.initComponent();
 		me.initChildren();
@@ -232,8 +233,20 @@ itasks.Component = {
 		el.style.paddingBottom = paddingBottom + 'px';
 	},
 	doEditEvent: function (taskId, editorId, value) {
-		if(this.parentCmp) {
-			this.parentCmp.doEditEvent(taskId, editorId, value);
+		var me = this;
+		if(me.parentCmp) {
+			//Timeout is set, check if we can fire
+			var now = (new Date()).getTime();
+			//We are within timeout
+			if (me.attributes.eventTimeout && now - me.lastFire < me.attributes.eventTimeout){
+				window.clearTimeout(me.queuedFire);
+				me.queuedFire = window.setTimeout(function (){
+					me.doEditEvent(taskId, editorId, value);
+				}, me.attributes.eventTimeout - (now - me.lastFire));
+			} else {
+				me.lastFire = now;
+				me.parentCmp.doEditEvent(taskId, editorId, value);
+			}
 		}
 	},
 	findChild: function(obj) {

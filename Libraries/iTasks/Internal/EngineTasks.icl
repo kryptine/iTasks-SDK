@@ -1,6 +1,6 @@
 implementation module iTasks.Internal.EngineTasks
 
-import StdBool, StdOverloaded, StdList
+import StdBool, StdOverloaded, StdList, StdOrdList
 import iTasks.Engine
 import iTasks.Internal.IWorld
 import iTasks.WF.Definition
@@ -16,12 +16,25 @@ from System.Time import time
 from TCPIP import :: Timeout
 
 import Data.Queue
+import Text
 
-timeout :: !*IWorld -> (!Maybe Timeout,!*IWorld)
-timeout iworld = case read taskEvents iworld of //Check if there are events in the queue
-	(Ok (Queue [] []),iworld)   = (Just 10,iworld) //Empty queue, don't waste CPU, but refresh
+timeout :: !(Maybe Timeout) !*IWorld -> (!Maybe Timeout,!*IWorld)
+timeout mt iworld = case read taskEvents iworld of //Check if there are events in the queue
+	(Ok (Queue [] []),iworld=:{sdsNotifyRequests})
+		= (minListBy lesser [mt:map getTimoutFromClock sdsNotifyRequests], iworld)
 	(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
 	(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
+where
+	lesser (Just x) (Just y) = x < y
+	lesser (Just _) Nothing = True
+	lesser Nothing Nothing = False
+	
+	getTimoutFromClock :: SDSNotifyRequest -> Maybe Int
+	getTimoutFromClock snr=:{cmpParam=(ts :: ClockParameter)}
+		| startsWith "$IWorld:timespec$" snr.reqSDSId
+			= mt
+		= mt
+	getTimoutFromClock _ = mt
 
 updateClock :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateClock iworld=:{IWorld|clock,world}

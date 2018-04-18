@@ -7,7 +7,7 @@ implementation module iTasks.UI.Editor.Containers
 import iTasks.UI.Definition
 import iTasks.UI.Editor
 import Data.Error
-import Text.JSON
+import Text.GenJSON
 from Data.Map import :: Map
 
 import StdBool, StdList, StdTuple

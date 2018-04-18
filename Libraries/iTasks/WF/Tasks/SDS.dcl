@@ -9,9 +9,10 @@ from iTasks.UI.Editor import :: Editor
 from iTasks.UI.Editor.Generic import generic gEditor
 from iTasks.Internal.Generic.Visualization import generic gText, :: TextFormat
 from iTasks.Internal.Generic.Defaults import generic gDefault
-from Text.JSON import generic JSONEncode, generic JSONDecode, :: JSONNode
-from Data.Generics.GenEq import generic gEq
+from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
+from Data.GenEq import generic gEq
 from Data.Maybe import :: Maybe
+from StdOverloaded import class toString
 
 :: SharedException		= SharedException !String
 

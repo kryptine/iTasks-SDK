@@ -1,6 +1,6 @@
 definition module iTasks.Internal.DynamicUtil
 
-import Text.JSON
+import Text.GenJSON
 
 //derive JSONEncode TypeCode
 //derive JSONDecode TypeCode

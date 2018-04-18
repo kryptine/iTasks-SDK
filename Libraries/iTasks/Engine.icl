@@ -51,6 +51,7 @@ defaultEngineOptions world
 		, sessionTime       = {tv_sec=60,tv_nsec=0}  // 1 minute, (the client pings every 10 seconds by default)
         , persistTasks      = False
 		, autoLayout        = True
+		, timeout			= Just 100
 		, webDirPath 		= appDir </> appName +++ "-www"
 		, storeDirPath      = appDir </> appName +++ "-data" </> "stores"
 		, tempDirPath       = appDir </> appName +++ "-data" </> "tmp"
@@ -132,7 +133,7 @@ startEngineWithOptions initFun publishable world
  			# iworld				= createIWorld (fromJust mbOptions) world
  			# (res,iworld) 			= initJSCompilerState iworld
 		 	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-			# iworld				= serve [] (tcpTasks options.serverPort options.keepaliveTime) engineTasks timeout iworld
+			# iworld				= serve [] (tcpTasks options.serverPort options.keepaliveTime) engineTasks (timeout options.timeout) iworld
 			= destroyIWorld iworld
 where
 	tcpTasks serverPort keepaliveTime = [(serverPort,httpServer serverPort keepaliveTime (engineWebService publishable) taskOutput)]
@@ -152,10 +153,11 @@ runTasksWithOptions initFun runnable world
 	# (mbOptions,msg)       = initFun cli options
 	# world                 = show msg world
 	| mbOptions =: Nothing  = world
- 	# iworld				= createIWorld (fromJust mbOptions) world
+	# (Just options)		= mbOptions
+ 	# iworld				= createIWorld options world
  	# (res,iworld) 			= initJSCompilerState iworld
  	| res =:(Error _) 		= show ["Fatal error: " +++ fromError res] (destroyIWorld iworld)
-	# iworld				= serve (toRunnable runnable) [] systemTasks timeout iworld
+	# iworld				= serve (toRunnable runnable) [] systemTasks (timeout options.timeout) iworld
 	= destroyIWorld iworld
 where
 	systemTasks =

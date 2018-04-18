@@ -5,7 +5,7 @@ import dynamic_string
 
 import Text.Encodings.Base64
 import Data.Error
-import Text.JSON
+import Text.GenJSON
 import Data.Maybe
 
 serialize :: !a -> *String
