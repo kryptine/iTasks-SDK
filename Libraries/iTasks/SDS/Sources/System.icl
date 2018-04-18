@@ -37,7 +37,7 @@ currentUTCDate :: SDS () Date ()
 currentUTCDate = mapRead (toDate o timestampToGmDateTime) currentTimestamp
 
 currentTimestamp :: SDS () Timestamp ()
-currentTimestamp = toReadOnly iworldTimestamp
+currentTimestamp = toReadOnly (sdsFocus {start=Timestamp 0,interval=Timestamp 1} iworldTimestamp)
 
 currentTimespec :: SDS () Timespec ()
 currentTimespec = toReadOnly (sdsFocus {start=zero,interval=zero} iworldTimespec)

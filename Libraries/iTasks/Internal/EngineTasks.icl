@@ -30,7 +30,7 @@ where
 	lesser Nothing Nothing = False
 	
 	getTimoutFromClock :: SDSNotifyRequest -> Maybe Int
-	getTimoutFromClock snr=:{cmpParam=(ts :: ClockParameter)}
+	getTimoutFromClock snr=:{cmpParam=(ts :: ClockParameter Timespec)}
 		| startsWith "$IWorld:timespec$" snr.reqSDSId
 			= mt
 		= mt

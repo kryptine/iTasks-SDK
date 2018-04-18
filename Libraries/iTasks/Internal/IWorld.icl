@@ -115,7 +115,7 @@ determineAppPath world
 destroyIWorld :: !*IWorld -> *World
 destroyIWorld iworld=:{IWorld|world} = world
 
-iworldTimespec :: SDS ClockParameter Timespec Timespec
+iworldTimespec :: SDS (ClockParameter Timespec) Timespec Timespec
 iworldTimespec = createReadWriteSDS "IWorld" "timespec" read write
 where
     read _ iworld=:{IWorld|clock} = (Ok clock,iworld)
@@ -128,12 +128,12 @@ instance rem Timespec
 where
 	rem t1 t2 = {tv_sec=t1.tv_sec rem t2.tv_sec, tv_nsec=t1.tv_nsec rem t2.tv_nsec}
 
-iworldTimestamp :: Shared Timestamp
+iworldTimestamp :: SDS (ClockParameter Timestamp) Timestamp Timestamp
 iworldTimestamp = mapReadWrite (timespecToStamp, const o Just o timestampToSpec)
-	$ sdsFocus {start=zero,interval={tv_nsec=0,tv_sec=1}} iworldTimespec
+	$ sdsTranslate "iworldTimestamp translation" (\{start,interval}->{start=timestampToSpec start,interval=timestampToSpec interval}) iworldTimespec
 
 iworldLocalDateTime :: ReadOnlyShared DateTime
-iworldLocalDateTime = SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) iworldTimestamp sdsPar
+iworldLocalDateTime = SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) (sdsFocus {start=Timestamp 0,interval=Timestamp 0} iworldTimestamp) sdsPar
 where
     // ignore value, but use notifications for 'iworldTimestamp'
     sdsPar = { SDSParallel
