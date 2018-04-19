@@ -21,7 +21,7 @@ import Text
 timeout :: !(Maybe Timeout) !*IWorld -> (!Maybe Timeout,!*IWorld)
 timeout mt iworld = case read taskEvents iworld of //Check if there are events in the queue
 	(Ok (Queue [] []),iworld=:{sdsNotifyRequests})
-		= (minListBy lesser [mt:map getTimoutFromClock sdsNotifyRequests], iworld)
+		= (minListBy lesser [mt/*:map getTimoutFromClock sdsNotifyRequests*/], iworld)
 	(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
 	(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
 where

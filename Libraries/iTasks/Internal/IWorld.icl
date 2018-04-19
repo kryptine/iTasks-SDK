@@ -4,7 +4,7 @@ from System.FilePath				import :: FilePath
 from Data.Map						import :: Map
 from Data.Maybe						import :: Maybe
 from Data.Error 					import :: MaybeError(..), :: MaybeErrorString(..)
-from System.Time					import :: Timestamp, time
+from System.Time					import :: Timestamp, time, :: Timespec
 from Text.GenJSON						import :: JSONNode
 from iTasks.WF.Definition           import :: TaskId, :: InstanceNo, :: TaskNo 
 from iTasks.WF.Combinators.Core     import :: TaskListItem, :: ParallelTaskType
@@ -12,6 +12,7 @@ from iTasks.Extensions.DateTime     import :: Time, :: Date, :: DateTime, toTime
 from iTasks.Internal.TaskEval       import :: TaskTime
 from iTasks.Engine                  import :: EngineOptions(..)
 from System.Process                 import :: ProcessHandle, :: ProcessIO
+import Data.Integer
 
 import iTasks.SDS.Combinators.Common
 
@@ -121,31 +122,24 @@ where
     read _ iworld=:{IWorld|clock} = (Ok clock,iworld)
     write _ timestamp iworld = (Ok pred, {iworld & clock = timestamp})
 	where
-		pred {tv_sec,tv_nsec} {start,interval}
-			# passed = timestamp - start
-			# intervalspassed = fits passed interval
-			//Start has passed
-			= timestamp > start
-				//Interval has passed since the registration
-				&& timestamp > start + (scale (intervalspassed+1) interval)
-
-scale 0 ts = ts
-scale n ts = ts + scale (n-1) ts
-
-fits x y
-	| y > x = 0
-	= 1 + fits (x-y) y
-
-instance rem Timespec
-where
-	rem t1 t2 = {tv_sec=t1.tv_sec rem t2.tv_sec, tv_nsec=t1.tv_nsec rem t2.tv_nsec}
+		pred reg {start,interval}
+			| interval == zero = True // We don't divide by zero
+			| timestamp < start = False // Start time has not passed
+			# start = toI start
+			  interval = toI interval
+			  reg = toI reg
+			  passed = reg - start
+			  nextFire = toT (start + ((passed / interval + one) * interval))
+			= timestamp > nextFire
+		toI x = toInteger x.tv_sec * toInteger 1000000000 + toInteger x.tv_nsec
+		toT x = {tv_sec=toInt (x/toInteger 1000000000), tv_nsec=toInt (x rem toInteger 1000000000)}
 
 iworldTimestamp :: SDS (ClockParameter Timestamp) Timestamp Timestamp
 iworldTimestamp = mapReadWrite (timespecToStamp, const o Just o timestampToSpec)
 	$ sdsTranslate "iworldTimestamp translation" (\{start,interval}->{start=timestampToSpec start,interval=timestampToSpec interval}) iworldTimespec
 
 iworldLocalDateTime :: ReadOnlyShared DateTime
-iworldLocalDateTime = SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) (sdsFocus {start=Timestamp 0,interval=Timestamp 0} iworldTimestamp) sdsPar
+iworldLocalDateTime = SDSParallel (createReadOnlySDS \_ -> iworldLocalDateTime`) (sdsFocus {start=Timestamp 0,interval=Timestamp 1} iworldTimestamp) sdsPar
 where
     // ignore value, but use notifications for 'iworldTimestamp'
     sdsPar = { SDSParallel
