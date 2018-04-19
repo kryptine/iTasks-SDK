@@ -121,8 +121,20 @@ where
     read _ iworld=:{IWorld|clock} = (Ok clock,iworld)
     write _ timestamp iworld = (Ok pred, {iworld & clock = timestamp})
 	where
-		pred {start,interval}
-			= timestamp > start// && (timestamp - start) rem interval == zero
+		pred {tv_sec,tv_nsec} {start,interval}
+			# passed = timestamp - start
+			# intervalspassed = fits passed interval
+			//Start has passed
+			= timestamp > start
+				//Interval has passed since the registration
+				&& timestamp > start + (scale (intervalspassed+1) interval)
+
+scale 0 ts = ts
+scale n ts = ts + scale (n-1) ts
+
+fits x y
+	| y > x = 0
+	= 1 + fits (x-y) y
 
 instance rem Timespec
 where

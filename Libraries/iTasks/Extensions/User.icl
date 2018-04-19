@@ -126,12 +126,12 @@ derive class iTask		Credentials
 currentUser :: RWShared () User User
 currentUser = sdsLens "currentUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotify notify) currentTaskInstanceAttributes
 where
-	notify _ _ _ = const True
+	notify _ _ _ = const (const True)
 
 taskInstanceUser :: RWShared InstanceNo User User
 taskInstanceUser = sdsLens "taskInstanceUser" id (SDSRead userFromAttr) (SDSWrite userToAttr) (SDSNotify notify) taskInstanceAttributesByNo
 where
-	notify _ _ _ = const True
+	notify _ _ _ = const (const True)
 
 userFromAttr :: a TaskAttributes -> MaybeError TaskException User
 userFromAttr _ attr = case 'DM'.get "auth-user" attr of
@@ -177,7 +177,7 @@ taskInstancesForUser = sdsLens "taskInstancesForUser" (const ()) (SDSRead read) 
 where
 	read u instances = Ok (filter (forUser u) instances)
 	write _ () = Ok Nothing
-	notify _ _ _ = const False
+	notify _ _ _ = const (const False)
 
 	forUser user {TaskInstance|attributes} = case 'DM'.get "user" attributes of
 	    Just uid1 = case user of
