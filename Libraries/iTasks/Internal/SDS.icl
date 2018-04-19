@@ -258,12 +258,12 @@ instance Readable SDSCache where
     # key = (sdsIdentity sds,toSingleLineText p)
     //First check cache
     = case 'DM'.get key readCache of
-        Just (val :: r^) = (Ok val,iworld)
+        Just (val :: r^) = (Ok (Result val),iworld)
         Just _           = (Error (exception "Cached value of wrong type"), iworld)
         Nothing = case readSDS sds1 p c mbNotify reqSDSId iworld of
             (Error e,iworld) = (Error e, iworld)
             //Read and add to cache
-            (Ok val,iworld)  = (Ok val, {iworld & readCache = 'DM'.put key (dynamic val :: r^) iworld.readCache})
+            (Ok (Result val),iworld)  = (Ok (Result val), {iworld & readCache = 'DM'.put key (dynamic val :: r^) iworld.readCache})
 
 instance Writable SDSCache where
     /*

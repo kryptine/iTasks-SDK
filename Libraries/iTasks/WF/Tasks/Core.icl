@@ -100,7 +100,7 @@ where
 
     // Ignore all other events when waiting on an async operation.
 	eval _ _ t=:(TCAwait _ taskId connectionId ts tree) iworld 
-		= ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld
+		= (ValueResult NoValue {TaskEvalInfo|lastEvent=ts,removedTasks=[],refreshSensitive=True} NoChange t, iworld)
 
 	// Handle all other event normally
 	eval event evalOpts tree iworld=:{current={taskTime}}
