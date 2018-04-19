@@ -18,10 +18,14 @@ from TCPIP import :: Timeout
 import Data.Queue
 import Text
 
+import StdDebug, StdMisc, StdString
 timeout :: !(Maybe Timeout) !*IWorld -> (!Maybe Timeout,!*IWorld)
-timeout mt iworld = case read taskEvents iworld of //Check if there are events in the queue
-	(Ok (Queue [] []),iworld=:{sdsNotifyRequests})
-		= (minListBy lesser [mt/*:map getTimoutFromClock sdsNotifyRequests*/], iworld)
+timeout mt iworld = case read taskEvents iworld of
+	//No events
+	(Ok (Queue [] []),iworld=:{sdsNotifyRequests,world})
+		# (ts, world) = nsTime world
+		= ( minListBy lesser [mt:map (getTimoutFromClock ts) sdsNotifyRequests]
+		  , {iworld & world = world})
 	(Ok _,iworld)               = (Just 0,iworld)   //There are still events, don't wait
 	(Error _,iworld)            = (Just 500,iworld) //Keep retrying, but not too fast
 where
@@ -29,12 +33,15 @@ where
 	lesser (Just _) Nothing = True
 	lesser Nothing Nothing = False
 	
-	getTimoutFromClock :: SDSNotifyRequest -> Maybe Int
-	getTimoutFromClock snr=:{cmpParam=(ts :: ClockParameter Timespec)}
+	getTimoutFromClock :: Timespec SDSNotifyRequest -> Maybe Int
+	getTimoutFromClock now snr=:{cmpParam=(ts :: ClockParameter Timespec)}
 		| startsWith "$IWorld:timespec$" snr.reqSDSId
-			= mt
+			# fire = iworldTimespecNextFire now snr.reqTimespec ts
+			= Just (max 0 (toMs fire - toMs now))
 		= mt
-	getTimoutFromClock _ = mt
+	getTimoutFromClock _ _ = mt
+
+	toMs x = x.tv_sec * 1000 + x.tv_nsec / 1000000
 
 updateClock :: !*IWorld -> *(!MaybeError TaskException (), !*IWorld)
 updateClock iworld=:{IWorld|clock,world}

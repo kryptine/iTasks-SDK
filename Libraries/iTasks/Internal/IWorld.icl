@@ -122,17 +122,21 @@ where
     read _ iworld=:{IWorld|clock} = (Ok clock,iworld)
     write _ timestamp iworld = (Ok pred, {iworld & clock = timestamp})
 	where
-		pred reg {start,interval}
+		pred reg p=:{start,interval}
 			| interval == zero = True // We don't divide by zero
 			| timestamp < start = False // Start time has not passed
-			# start = toI start
-			  interval = toI interval
-			  reg = toI reg
-			  passed = reg - start
-			  nextFire = toT (start + ((passed / interval + one) * interval))
-			= timestamp > nextFire
-		toI x = toInteger x.tv_sec * toInteger 1000000000 + toInteger x.tv_nsec
-		toT x = {tv_sec=toInt (x/toInteger 1000000000), tv_nsec=toInt (x rem toInteger 1000000000)}
+			= timestamp > iworldTimespecNextFire timestamp reg p
+
+iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
+iworldTimespecNextFire now reg {start,interval}
+	# start = toI start
+	  interval = toI interval
+	  reg = toI reg
+	  passed = reg - start
+	= toT (start + ((passed / interval + one) * interval))
+where
+	toI x = toInteger x.tv_sec * toInteger 1000000000 + toInteger x.tv_nsec
+	toT x = {tv_sec=toInt (x/toInteger 1000000000), tv_nsec=toInt (x rem toInteger 1000000000)}
 
 iworldTimestamp :: SDS (ClockParameter Timestamp) Timestamp Timestamp
 iworldTimestamp = mapReadWrite (timespecToStamp, const o Just o timestampToSpec)

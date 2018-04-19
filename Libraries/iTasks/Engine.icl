@@ -51,7 +51,7 @@ defaultEngineOptions world
 		, sessionTime       = {tv_sec=60,tv_nsec=0}  // 1 minute, (the client pings every 10 seconds by default)
         , persistTasks      = False
 		, autoLayout        = True
-		, timeout			= Just 100
+		, timeout			= Just 500
 		, webDirPath 		= appDir </> appName +++ "-www"
 		, storeDirPath      = appDir </> appName +++ "-data" </> "stores"
 		, tempDirPath       = appDir </> appName +++ "-data" </> "tmp"

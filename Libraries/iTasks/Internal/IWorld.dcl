@@ -152,9 +152,18 @@ destroyIWorld :: !*IWorld -> *World
 	, interval :: a
 	}
 
-iworldTimespec      :: SDS (ClockParameter Timespec) Timespec Timespec
-iworldTimestamp     :: SDS (ClockParameter Timestamp) Timestamp Timestamp
-iworldLocalDateTime :: ReadOnlyShared DateTime
+iworldTimespec         :: SDS (ClockParameter Timespec) Timespec Timespec
+/*
+ * Calculate the next fire for the given timespec
+ *
+ * @param now
+ * @param registration time
+ * @param clock parameter
+ * @result time to fire next
+ */
+iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
+iworldTimestamp        :: SDS (ClockParameter Timestamp) Timestamp Timestamp
+iworldLocalDateTime    :: ReadOnlyShared DateTime
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
 
