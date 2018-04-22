@@ -163,7 +163,8 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 	//Placeholder nodes
 	| LUIShiftDestination LUIShiftID
 	| LUIMoveSource LUINo Int //Target, position
-	| LUIMoveDestination LUINo Int //TODO: remove lenght value, should no longer be necessecary
+	| LUIMoveDestination LUINo
+	| LUIMoveRestored //Because moves sources identify based on position, we put placeholders in place when items are restored
 
 //Upstream UI changes
 :: LUIChanges =
@@ -182,7 +183,6 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 	, additional            :: LUIEffectStage LUINo
 	, hidden                :: LUIEffectStage LUINo
 	, moved                 :: LUIEffectStage LUINo
-	, containsMovesBy       :: Map LUINo Int
 	, wrapper               :: LUIEffectStage LUINo
 	, unwrapped             :: LUIEffectStage LUINo
 	}
@@ -193,9 +193,11 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 :: LUIEffectStage a
 	= ESNotApplied
 	| ESToBeApplied a
+	| ESPartiallyApplied a // Extra intermediate stage for moved nodes
 	| ESApplied a
 	| ESToBeUpdated a a
 	| ESToBeRemoved a
+	| ESPartiallyRemoved a // Extra intermediate stage for moved nodes
 
 //Nodes that are moved by a moveSubUIs rule need to be accesible both in their source location (to apply changes)
 //and in their destination location (to apply further effects).
@@ -219,19 +221,12 @@ instance toString LUINo
 //A layout rule is simply a function that applies (or undoes) an effect to a LUI tree
 :: LayoutRule :== LUINo (LUI,LUIMoves) -> (LUI, LUIMoves)
 
-//When extracting downstream changes we need to track some state
-:: LUIExtractState =
-	{ movedChanges :: Map LUINo [(Int,UIChildChange)]
-	, movedUIs :: Map LUINo [UI]
-	}
-
 initLUI :: Bool UI -> LUI
 initLUIMoves :: LUIMoves
-initLUIExtractState :: LUIExtractState
 
 applyUpstreamChange :: UIChange (LUI,LUIMoves) -> (LUI,LUIMoves)
 
-extractDownstreamChange :: (LUI,LUIMoves) LUIExtractState -> (!UIChange,!(LUI,LUIMoves))
+extractDownstreamChange :: (LUI,LUIMoves) -> (!UIChange,!(LUI,LUIMoves))
 
 //A layout rule can be created from a layout rule
 ruleBasedLayout :: LayoutRule -> Layout
@@ -257,5 +252,5 @@ updateNode_ :: LUINo UIPath ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) ->
 selectAttributes_ :: UIAttributeSelection Bool LUI -> UIAttributes
 overwriteAttribute_ :: UIAttribute (Map UIAttributeKey (LUIEffectStage JSONNode)) -> (Map UIAttributeKey (LUIEffectStage JSONNode))
 hideAttribute_ :: (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage ())) -> (Map UIAttributeKey (LUIEffectStage ()))
-extractUIWithEffects :: (LUI,LUIMoves) LUIExtractState -> (!UI,!(LUI,LUIMoves))
+extractUIWithEffects :: (LUI,LUIMoves) -> (!UI,!(LUI,LUIMoves))
 
