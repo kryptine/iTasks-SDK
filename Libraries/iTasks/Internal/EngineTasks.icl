@@ -18,7 +18,6 @@ from TCPIP import :: Timeout
 import Data.Queue
 import Text
 
-import StdDebug, StdMisc, StdString
 timeout :: !(Maybe Timeout) !*IWorld -> (!Maybe Timeout,!*IWorld)
 timeout mt iworld = case read taskEvents iworld of
 	//No events
