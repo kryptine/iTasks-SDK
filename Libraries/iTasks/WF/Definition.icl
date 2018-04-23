@@ -3,6 +3,7 @@ implementation module iTasks.WF.Definition
 from iTasks.Internal.IWorld import :: IWorld
 from iTasks.Internal.TaskState import :: TaskTree
 from iTasks.Internal.TaskEval import :: TaskEvalOpts, :: TaskEvalInfo
+from System.Time import :: Timestamp, :: Timespec
 import iTasks.UI.Definition
 import iTasks.UI.Editor
 import iTasks.UI.Editor.Generic
@@ -11,7 +12,6 @@ from Text.GenJSON import :: JSONNode
 from Data.Map import :: Map(..)
 from Data.Set import :: Set
 from Data.Maybe import :: Maybe
-from System.Time import :: Timestamp
 import Data.Functor
 import Text, Text.GenJSON
 

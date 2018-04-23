@@ -12,7 +12,7 @@ from Data.Maybe import :: Maybe
 from Data.Map import :: Map(..)
 from Data.Set import :: Set
 from Data.Functor import class Functor
-from System.Time import :: Timestamp
+from System.Time import :: Timestamp, :: Timespec
 
 from iTasks.UI.Editor import :: Editor
 from iTasks.UI.Editor.Generic import generic gEditor
@@ -84,15 +84,15 @@ instance toInstanceNo TaskId
     { listId        :: !TaskId              //* Reference to parent tasklist
     , session       :: !Bool                //* True for sessions (instances that automatically get garbage collected)
     , build         :: !String              //* Application build version when the instance was created
-    , issuedAt		:: !Timestamp           //* When was the task created
+    , issuedAt		:: !Timespec           //* When was the task created
     }
 
 :: InstanceProgress =
 	{ value             :: !ValueStatus     //* Status of the task value
     , attachedTo        :: ![TaskId]        //* Chain of tasks through which this instance was attached
 	, instanceKey       :: !InstanceKey     //* Random token that a client gets to have (temporary) access to the task instance
-	, firstEvent		:: !Maybe Timestamp //* When was the first work done on this task
-	, lastEvent		    :: !Maybe Timestamp //* When was the latest event on this task (excluding Refresh events)
+	, firstEvent		:: !Maybe Timespec //* When was the first work done on this task
+	, lastEvent		    :: !Maybe Timespec //* When was the latest event on this task (excluding Refresh events)
 	}
 
 :: ValueStatus

@@ -16,6 +16,7 @@ from Data.Map import :: Map
 from Data.IntMap.Strict import :: IntMap
 from StdOverloaded import class <
 from System.FilePath import :: FilePath
+from System.Time import :: Timespec
 
 from Text.GenJSON import :: JSONNode, generic JSONEncode, generic JSONDecode
 

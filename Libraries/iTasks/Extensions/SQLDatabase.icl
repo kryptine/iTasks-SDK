@@ -47,7 +47,7 @@ writeFunSQL fun (MySQLDatabase db,p) w iworld
 		    # (res,cur) = fun p w cur
 			# iworld	= cacheResource (MySQLResource db (cur, con, cxt)) iworld
             = case res of
-                (Ok _)      = (Ok (const True),iworld)
+                (Ok _)      = (Ok (const (const True)),iworld)
                 (Error e)   = (Error (exception e),iworld)
 
 writeFunSQL fun (SQLiteDatabase path,p) w iworld
@@ -59,7 +59,7 @@ writeFunSQL fun (SQLiteDatabase path,p) w iworld
 		    # (res,cur) = fun p w cur
 			# iworld	= cacheResource (SQLiteResource path (cur, con, cxt)) iworld
             = case res of
-                (Ok _)      = (Ok (const True),iworld)
+                (Ok _)      = (Ok (const (const True)),iworld)
                 (Error e)   = (Error (exception e),iworld)
 	
 sqlExecute :: SQLDatabaseDef [String] (A.*cur: *cur -> *(MaybeErrorString a,*cur) | SQLCursor cur) -> Task a | iTask a
@@ -124,7 +124,7 @@ where
 		# (err,rows,cur)	= fetchAll cur
 		| isJust err		= (Error (toString (fromJust err)),cur)
         = (Ok rows,cur)
-    write _ () iworld = (Ok (const True),iworld)
+    write _ () iworld = (Ok (const (const True)),iworld)
 		
 sqlTables :: ROShared SQLDatabaseDef [SQLTableName]
 sqlTables = createReadOnlySDSError read

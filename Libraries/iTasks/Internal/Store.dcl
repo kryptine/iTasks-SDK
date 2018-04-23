@@ -12,7 +12,6 @@ definition module iTasks.Internal.Store
 from Text.GenJSON import generic JSONEncode, generic JSONDecode, :: JSONNode
 from Data.Maybe import :: Maybe
 from Data.Error import :: MaybeError, :: MaybeErrorString
-from System.Time import :: Timestamp
 from System.FilePath import :: FilePath
 from iTasks.SDS.Definition import :: SDS, :: Shared, :: ReadWriteShared, :: RWShared
 from iTasks.Internal.IWorld import :: IWorld

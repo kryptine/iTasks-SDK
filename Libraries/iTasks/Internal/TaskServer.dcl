@@ -6,7 +6,6 @@ from TCPIP				import class ChannelEnv, :: IPAddress, :: Timeout
 from Internet.HTTP		import :: HTTPRequest, :: HTTPResponse
 from System.FilePath    import :: FilePath
 
-from System.Time              import :: Timestamp
 from System.Process           import :: ProcessPtyOptions
 from Data.Error               import :: MaybeError
 from iTasks.WF.Definition     import :: TaskId

@@ -7,7 +7,7 @@ from Data.Error 			import :: MaybeError(..), :: MaybeErrorString(..)
 from Data.Set               import :: Set
 from Data.Queue             import :: Queue
 from StdFile			                import class FileSystem		
-from System.Time				        import :: Timestamp
+from System.Time				        import :: Timestamp, :: Timespec
 from Text.GenJSON				            import :: JSONNode
 from System.Process         import :: ProcessHandle, :: ProcessIO
 from iTasks.Engine                      import :: EngineOptions
@@ -31,7 +31,7 @@ from TCPIP import :: TCP_Listener, :: TCP_Listener_, :: TCP_RChannel_, :: TCP_SC
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
 :: *IWorld		=	{ options               :: !EngineOptions                               // Engine configuration
-                    , clock                 :: !Timestamp                                   // Server side clock
+                    , clock                 :: !Timespec                                    // Server side clock
                     , current               :: !TaskEvalState                               // Shared state during task evaluation
 
                     , random                :: [Int]                                        // Infinite random stream
@@ -147,8 +147,23 @@ destroyIWorld :: !*IWorld -> *World
 
 //Internally used clock share
 // (UTC time can be derived from timestamp, local time requires *World to determine time zone)
-iworldTimestamp     :: Shared Timestamp
-iworldLocalDateTime :: ReadOnlyShared DateTime
+:: ClockParameter a =
+	{ start :: a
+	, interval :: a
+	}
+
+iworldTimespec         :: SDS (ClockParameter Timespec) Timespec Timespec
+/*
+ * Calculate the next fire for the given timespec
+ *
+ * @param now
+ * @param registration time
+ * @param clock parameter
+ * @result time to fire next
+ */
+iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
+iworldTimestamp        :: SDS (ClockParameter Timestamp) Timestamp Timestamp
+iworldLocalDateTime    :: ReadOnlyShared DateTime
 
 iworldLocalDateTime` :: !*IWorld -> (!DateTime, !*IWorld)
 

@@ -40,7 +40,7 @@ outputForTaskId = sdsLens "outputForTaskId" (const ()) (SDSRead read) (SDSWrite 
 
   notify :: (TaskId, ExprId) (Map (TaskId, ExprId) (TaskId, Int, Task (), TStability)) (TaskId, Int, Task (), TStability)
          -> SDSNotifyPred (TaskId, ExprId)
-  notify tid oldmap (_, n, _, st) = \tid` -> case (tid == tid`, 'DM'.get tid oldmap) of
+  notify tid oldmap (_, n, _, st) = \_ tid` -> case (tid == tid`, 'DM'.get tid oldmap) of
                                                (True, Just (_, n`, _, st`)) -> n <> n` || st =!= st`
                                                _                            -> False
 
@@ -58,7 +58,7 @@ allTonicInstances = sdsLens "allTonicInstances" (const ()) (SDSRead read) (SDSWr
   write tid trtMap bpref = abort "allTonicInstances" // Ok ()
 
   //notify :: (TaskId, ModuleName, FuncName) TonicRTMap BlueprintInstance -> SDSNotifyPred (TaskId, ModuleName, FuncName)
-  notify tid oldmap inst = \tid` -> False
+  notify tid oldmap inst = \_ tid` -> False
 
 tonicInstances :: RWShared (TaskId, ModuleName, FuncName) (Maybe BlueprintInstance) BlueprintInstance
 tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite write) (SDSNotify notify) tonicSharedRT
@@ -76,7 +76,7 @@ tonicInstances = sdsLens "tonicInstances" (const ()) (SDSRead read) (SDSWrite wr
                                                  _       -> 'DM'.put tid [((mn, fn), bpref)] trtMap))
 
   notify :: (TaskId, ModuleName, FuncName) TonicRTMap BlueprintInstance -> SDSNotifyPred (TaskId, ModuleName, FuncName)
-  notify tid oldmap inst = \tid` -> case (tid == tid`, read tid oldmap) of
+  notify tid oldmap inst = \_ tid` -> case (tid == tid`, read tid oldmap) of
                                       (True, Ok (Just oldinst)) -> oldinst =!= inst
                                       _                    -> False
 
@@ -99,7 +99,7 @@ tonicActionsForTaskID = sdsLens "tonicActionsForTaskID" (const ()) (SDSRead read
     = Ok (Just ('DM'.put tid acts oldmap))
 
   notify :: TaskId (Map TaskId (Map ExprId [UI])) (Map ExprId [UI]) -> SDSNotifyPred TaskId
-  notify tid oldmap acts = \tid` -> case read tid oldmap of
+  notify tid oldmap acts = \_ tid` -> case read tid oldmap of
                                       Ok oldacts -> oldacts =!= acts
                                       _          -> False
 
@@ -123,7 +123,7 @@ tonicActionsForTaskIDAndExpr = sdsLens "tonicActionsForTaskIDAndExpr" (const ())
     = Ok (Just ('DM'.put tid m oldmap))
 
   notify :: (TaskId, ExprId) (Map TaskId (Map ExprId [UI])) [UI] -> SDSNotifyPred (TaskId, ExprId)
-  notify tid oldmap acts = \tid` -> case read tid oldmap of
+  notify tid oldmap acts = \_ tid` -> case read tid oldmap of
                                       Ok oldacts -> oldacts =!= acts
                                       _          -> False
 

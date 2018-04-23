@@ -15,6 +15,7 @@ import iTasks.SDS.Definition
 :: SDSNotifyRequest =
     { reqTaskId 	:: TaskId		//Id of the task that read the SDS. This Id also connects a chain of notify requests that were registered together
     , reqSDSId      :: SDSIdentity  //Id of the actual SDS used to create this request (may be a derived one)
+	, reqTimespec   :: Timespec
 
     , cmpSDSId      :: SDSIdentity  //Id of the SDS we are saving for comparison
     , cmpParam      :: Dynamic      //Parameter we are saving for comparison

@@ -842,7 +842,7 @@ contactPhotos = sdsSplit "contactPhotos" param read write allContactPhotos
 where
     param p             = ((),p)
     read p all          = fromMaybe [] ('DM'.get p all)
-    write p all photos  = ('DM'.put p photos all, (==) p)
+    write p all photos  = ('DM'.put p photos all, const ((==) p))
 
 contactAccess :: RWShared ContactNo ContactAccess ContactAccess
 contactAccess = mapReadWrite (read,write) contactByNoBase

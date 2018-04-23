@@ -28,21 +28,21 @@ where
         SDSLensWrite f = SDSWrite (\p rs w -> f rs w)
         SDSBlindWrite f = SDSWriteConst (\p w -> f w)
         SDSNoWrite      = SDSWriteConst (\p w -> Ok Nothing)
-    notify` p w = const True
+    notify` p w = const (const True)
 
 sdsTranslate :: !String !(p -> ps) !(RWShared ps r w) -> RWShared p r w | iTask ps & TC r & TC w
-sdsTranslate name param sds = sdsLens name param (SDSRead (\_ rs -> Ok rs)) (SDSWriteConst (\_ w -> Ok (Just w))) (SDSNotifyConst (\_ _ _ -> True)) sds
+sdsTranslate name param sds = sdsLens name param (SDSRead (\_ rs -> Ok rs)) (SDSWriteConst (\_ w -> Ok (Just w))) (SDSNotifyConst (\_ _ _ _-> True)) sds
 
 sdsSplit :: !String !(p -> (ps,pn)) !(pn rs -> r) !(pn rs w -> (ws,SDSNotifyPred pn)) !(RWShared ps rs ws) -> RWShared p r w | iTask ps & iTask pn & TC rs  & TC ws
 sdsSplit name param read write sds = sdsLens name param` (SDSRead read`) (SDSWrite write`) (SDSNotify notify`) sds
 where
-    param` p            = fst (param p)
-    read` p rs          = Ok (read (snd (param p)) rs)
-    write` p rs w       = Ok (Just (fst (write (snd (param p)) rs w)))
-    notify` p rs w pq   = (snd (write (snd (param p)) rs w)) (snd (param pq))
+    param` p             = fst (param p)
+    read` p rs           = Ok (read (snd (param p)) rs)
+    write` p rs w        = Ok (Just (fst (write (snd (param p)) rs w)))
+    notify` p rs w ts pq = (snd (write (snd (param p)) rs w)) ts (snd (param pq))
 
 removeMaybe :: !(Maybe a) !(SDS p (Maybe a) (Maybe a)) -> SDS p a a | iTask p & TC a
-removeMaybe defaultValue sds = sdsLens "removeMaybe" id (SDSRead read) (SDSWriteConst write) (SDSNotifyConst (\_ _ _ -> True)) sds
+removeMaybe defaultValue sds = sdsLens "removeMaybe" id (SDSRead read) (SDSWriteConst write) (SDSNotifyConst (\_ _ _ _-> True)) sds
 where
 	read p (Just r) = Ok r
 	read p Nothing = maybe (Error (exception "Required value not available in shared data source")) Ok defaultValue
@@ -145,7 +145,7 @@ taskListEntryMeta tasklist = mapSingle (sdsSplit "taskListEntryMeta" param read 
 where
     param p = ({onlyIndex=Nothing,onlyTaskId=Just [p],onlySelf=False,includeValue=True,includeAttributes=True,includeProgress=True},p)
     read p (_,items) = [i \\ i=:{TaskListItem|taskId} <- items | taskId == p]
-    write p _ attributes    = ([(p,a) \\ a <- attributes], (==) p)
+    write p _ attributes    = ([(p,a) \\ a <- attributes], const ((==) p))
 
 taskListSelfId :: !(SharedTaskList a) -> ReadOnlyShared TaskId | TC a
 taskListSelfId tasklist = mapRead (\(_,items) -> hd [taskId \\ {TaskListItem|taskId,self} <- items | self]) (toReadOnly (sdsFocus listFilter tasklist))
@@ -194,7 +194,7 @@ mapMaybeLens name origShare = sdsLens name (const ()) (SDSRead read) (SDSWrite w
   write idx oldmap newval = Ok (Just ('DM'.put idx newval oldmap))
 
   notify :: !a !(Map a b) !b -> SDSNotifyPred a | < a & == a
-  notify idx oldmap newval = \idx` -> idx == idx`
+  notify idx oldmap newval = \_ idx` -> idx == idx`
 
 mapLens :: !String !(RWShared () (Map a b) (Map a b)) !(Maybe b) -> RWShared a b b | < a & == a & TC a & TC b
 mapLens name origShare mdef = sdsLens name (const ()) (SDSRead (read mdef)) (SDSWrite write) (SDSNotify notify) origShare
@@ -211,7 +211,7 @@ mapLens name origShare mdef = sdsLens name (const ()) (SDSRead (read mdef)) (SDS
   write idx oldmap newval = Ok (Just ('DM'.put idx newval oldmap))
 
   notify :: !a !(Map a b) !b -> SDSNotifyPred a | < a & == a
-  notify idx oldmap newval = \idx` -> idx == idx`
+  notify idx oldmap newval = \_ idx` -> idx == idx`
 
 intMapLens :: !String !(RWShared () (IntMap a) (IntMap a)) !(Maybe a) -> RWShared Int a a | TC a
 intMapLens name origShare mdef = sdsLens name (const ()) (SDSRead (read mdef)) (SDSWrite write) (SDSNotify notify) origShare
@@ -228,4 +228,4 @@ intMapLens name origShare mdef = sdsLens name (const ()) (SDSRead (read mdef)) (
   write idx oldmap newval = Ok (Just ('DIS'.put idx newval oldmap))
 
   notify :: !Int !(IntMap a) !a -> SDSNotifyPred Int
-  notify idx oldmap newval = \idx` -> idx == idx`
+  notify idx oldmap newval = \_ idx` -> idx == idx`
