@@ -163,8 +163,7 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 	//Placeholder nodes
 	| LUIShiftDestination LUIShiftID
 	| LUIMoveSource LUINo Int //Target, position
-	| LUIMoveDestination LUINo
-	| LUIMoveRestored //Because moves sources identify based on position, we put placeholders in place when items are restored
+	| LUIMoveDestination LUINo Int //Target, position
 
 //Upstream UI changes
 :: LUIChanges =
@@ -203,7 +202,7 @@ sequenceLayoutsRef_      :: Layout Layout -> Layout
 //and in their destination location (to apply further effects).
 //To make this possible, we put those nodes in a separate table and put references in the tree
 
-:: LUIMoves :== Map LUINo [LUI]
+:: LUIMoves :== Map (LUINo,Int) LUI
 
 noChanges :: LUIChanges
 noEffects :: LUIEffects
@@ -246,9 +245,10 @@ layoutSubUIsRule :: UISelection LayoutRule -> LayoutRule
 sequenceLayoutsRule :: [LayoutRule] -> LayoutRule
  
 //Helper functions (exported for testing)
-adjustIndex_ :: LUINo Int [LUI] -> Int
+adjustIndex_ :: LUINo Int [LUI] LUIMoves -> Int
 selectNode_ :: LUINo UIPath (LUI,LUIMoves) -> Maybe LUI
 updateNode_ :: LUINo UIPath ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
+scanToPosition_ :: LUINo Int [LUI] LUIMoves -> (Int,Bool,Maybe LUI)
 selectAttributes_ :: UIAttributeSelection Bool LUI -> UIAttributes
 overwriteAttribute_ :: UIAttribute (Map UIAttributeKey (LUIEffectStage JSONNode)) -> (Map UIAttributeKey (LUIEffectStage JSONNode))
 hideAttribute_ :: (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage ())) -> (Map UIAttributeKey (LUIEffectStage ()))
