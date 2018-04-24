@@ -14,48 +14,47 @@ import qualified Data.Map as DM
 
 //Util:
 defaultSessionLayout :: LayoutRule
-//defaultSessionLayout = idLayout
-defaultSessionLayout = sequenceLayoutsRule
+defaultSessionLayout = sequenceLayouts
     [finalizeUI                                      //Finalize all remaining intermediate layouts
-	,removeSubUIsRule (SelectAND SelectDescendents (SelectByType UIEmpty))  //Remove temporary placeholders
-	,setUIAttributesRule (sizeAttr FlexSize FlexSize)      //Make sure we use the full viewport
+	,removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))  //Remove temporary placeholders
+	,setUIAttributes (sizeAttr FlexSize FlexSize)      //Make sure we use the full viewport
     ]
 
 //The finalize layouts remove all intermediate 
 finalizeUI :: LayoutRule
-finalizeUI = sequenceLayoutsRule
-	[layoutSubUIsRule (SelectByType UIInteract) finalizeInteract
-	,layoutSubUIsRule (SelectByType UIStep) finalizeStep
-	,layoutSubUIsRule (SelectByType UIParallel) finalizeParallel
-	,layoutSubUIsRule (SelectByType UIList) finalizeList
+finalizeUI = sequenceLayouts
+	[layoutSubUIs (SelectByType UIInteract) finalizeInteract
+	,layoutSubUIs (SelectByType UIStep) finalizeStep
+	,layoutSubUIs (SelectByType UIParallel) finalizeParallel
+	,layoutSubUIs (SelectByType UIList) finalizeList
 	]
 
 finalizeList :: LayoutRule
-finalizeList = sequenceLayoutsRule
-	[layoutSubUIsRule (SelectByDepth 1) (setUIAttributesRule (heightAttr WrapSize))
-	,setUIAttributesRule (heightAttr WrapSize)
+finalizeList = sequenceLayouts
+	[layoutSubUIs (SelectByDepth 1) (setUIAttributes (heightAttr WrapSize))
+	,setUIAttributes (heightAttr WrapSize)
 	]
 
 finalizeInteract :: LayoutRule
-finalizeInteract = sequenceLayoutsRule
+finalizeInteract = sequenceLayouts
 		[copyContentTitle
-		,layoutSubUIsRule (SelectByPath [1]) finalizeEditor
+		,layoutSubUIs (SelectByPath [1]) finalizeEditor
 		,removeEmptyPrompt
-		,setUITypeRule UIContainer
-		,layoutSubUIsRule (SelectAND (SelectByPath []) (SelectByHasAttribute "title")) (setUITypeRule UIPanel)
+		,setUIType UIContainer
+		,layoutSubUIs (SelectAND (SelectByPath []) (SelectByHasAttribute "title")) (setUIType UIPanel)
 		] 
 where
-	copyContentTitle = copySubUIAttributesRule (SelectKeys ["title"]) [0] []
-	removeEmptyPrompt = layoutSubUIsRule (SelectAND (SelectByPath []) (SelectRelative [0] (SelectByNumChildren 0))) (removeSubUIsRule (SelectByPath [0]))
+	copyContentTitle = copySubUIAttributes (SelectKeys ["title"]) [0] []
+	removeEmptyPrompt = layoutSubUIs (SelectAND (SelectByPath []) (SelectRelative [0] (SelectByNumChildren 0))) (removeSubUIs (SelectByPath [0]))
 
 finalizeEditor :: LayoutRule
-finalizeEditor = sequenceLayoutsRule
-	[layoutSubUIsRule (SelectAND (SelectByPath []) (SelectByType UIRecord)) finalizeRecord
-	,layoutSubUIsRule (SelectAND (SelectByPath []) (SelectByType UICons)) finalizeCons
-	,layoutSubUIsRule (SelectAND (SelectByPath []) (SelectByType UIVarCons)) finalizeVarCons
-	,layoutSubUIsRule (SelectAND (SelectByPath []) selectFormComponent) finalizeFormComponent
+finalizeEditor = sequenceLayouts
+	[layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIRecord)) finalizeRecord
+	,layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UICons)) finalizeCons
+	,layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIVarCons)) finalizeVarCons
+	,layoutSubUIs (SelectAND (SelectByPath []) selectFormComponent) finalizeFormComponent
 	//Fallback in case the editor is some other container (this happens with lists...)
-	,layoutSubUIsRule (SelectAND SelectDescendents selectEditorIntermediate) finalizeEditor 
+	,layoutSubUIs (SelectAND SelectDescendents selectEditorIntermediate) finalizeEditor 
 	]
 
 selectFormComponent
@@ -64,8 +63,8 @@ selectFormComponent
 						        ,UICheckbox,UISlider,UIDocumentField,UIDropdown,UICheckGroup,UITextView,UIHtmlView]
 					    ])
 
-finalizeFormComponent = sequenceLayoutsRule
-	[layoutSubUIsRule (SelectAND SelectDescendents (selectEditorIntermediate)) finalizeEditor
+finalizeFormComponent = sequenceLayouts
+	[layoutSubUIs (SelectAND SelectDescendents (selectEditorIntermediate)) finalizeEditor
 	,toFormItem
 	]
 
@@ -76,45 +75,45 @@ selectEditorParts
 	= SelectOR selectFormComponent selectEditorIntermediate
 
 finalizeRecord :: LayoutRule
-finalizeRecord = sequenceLayoutsRule
-	[layoutSubUIsRule (SelectAND SelectDescendents selectEditorParts) finalizeEditor
-	,setUITypeRule UIContainer
-	,setUIAttributesRule (heightAttr WrapSize)
+finalizeRecord = sequenceLayouts
+	[layoutSubUIs (SelectAND SelectDescendents selectEditorParts) finalizeEditor
+	,setUIType UIContainer
+	,setUIAttributes (heightAttr WrapSize)
 	]
 
 finalizeCons :: LayoutRule
-finalizeCons = sequenceLayoutsRule
-	[layoutSubUIsRule (SelectAND SelectDescendents selectEditorParts) finalizeEditor 
-	,setUIAttributesRule (directionAttr Horizontal)
-	,setUITypeRule UIContainer
+finalizeCons = sequenceLayouts
+	[layoutSubUIs (SelectAND SelectDescendents selectEditorParts) finalizeEditor 
+	,setUIAttributes (directionAttr Horizontal)
+	,setUIType UIContainer
 	,toFormItem
 	]
 
 finalizeVarCons :: LayoutRule
-finalizeVarCons = sequenceLayoutsRule
-	[layoutSubUIsRule (SelectAND SelectDescendents selectEditorParts) finalizeEditor
-	,layoutSubUIsRule (SelectByPath [0]) (setUIAttributesRule (widthAttr WrapSize)) //Make the constructor selection wrapping
-	,setUIAttributesRule (directionAttr Horizontal)
-	,setUITypeRule UIContainer
+finalizeVarCons = sequenceLayouts
+	[layoutSubUIs (SelectAND SelectDescendents selectEditorParts) finalizeEditor
+	,layoutSubUIs (SelectByPath [0]) (setUIAttributes (widthAttr WrapSize)) //Make the constructor selection wrapping
+	,setUIAttributes (directionAttr Horizontal)
+	,setUIType UIContainer
 	,toFormItem
 	]
 
 finalizeStep :: LayoutRule
-finalizeStep = sequenceLayoutsRule
+finalizeStep = sequenceLayouts
 	[removeDisabledActionsOfNestedSteps //In case of nested steps, memove disabled actions
 	//If there are no actions, unwrap
-	,layoutSubUIsRule (ContainsNoChildOfType UIAction) (sequenceLayoutsRule [copySubUIAttributesRule SelectAll [] [0], unwrapUIRule,finalizeUI])
+	,layoutSubUIs (ContainsNoChildOfType UIAction) (sequenceLayouts [copySubUIAttributes SelectAll [] [0], unwrapUI,finalizeUI])
 	//If the previous rule did not eliminate the UIStep
-	,layoutSubUIsRule RootIsStep
-		$ sequenceLayoutsRule
-			[layoutSubUIsRule (SelectByPath [0]) finalizeUI
+	,layoutSubUIs RootIsStep
+		$ sequenceLayouts
+			[layoutSubUIs (SelectByPath [0]) finalizeUI
 			,actionsToButtonBar
-			,setUITypeRule UIPanel]
+			,setUIType UIPanel]
 	]
 where
 	// Nested steps are steps having steps under them
 	removeDisabledActionsOfNestedSteps
-		= layoutSubUIsRule
+		= layoutSubUIs
 				(SelectAND                             // (Nested)
 					(SelectByType UIStep)              // Steps (are steps)
 						$ SelectByContains             // having
@@ -124,33 +123,33 @@ where
 			removeDisabledActions
 
 	removeDisabledActions
-		= removeSubUIsRule (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" ((==) (JSONBool False)))))
+		= removeSubUIs (SelectAND SelectChildren (SelectAND (SelectByType UIAction) (SelectByAttribute "enabled" ((==) (JSONBool False)))))
 
 	ContainsNoChildOfType type = SelectAND (SelectByPath []) (SelectNOT (SelectByContains (SelectAND SelectChildren (SelectByType type))))
 	RootIsStep = SelectAND (SelectByPath []) (SelectByType UIStep)
 
 finalizeParallel :: LayoutRule
-finalizeParallel = sequenceLayoutsRule
-	[layoutSubUIsRule (SelectAND (SelectByPath []) (SelectAND (SelectByType UIParallel) (SelectByContains (SelectAND SelectChildren (SelectByType UIAction))))) layoutWithActions
-	,layoutSubUIsRule (SelectAND (SelectByPath []) (SelectByType UIParallel)) layoutWithoutActions
+finalizeParallel = sequenceLayouts
+	[layoutSubUIs (SelectAND (SelectByPath []) (SelectAND (SelectByType UIParallel) (SelectByContains (SelectAND SelectChildren (SelectByType UIAction))))) layoutWithActions
+	,layoutSubUIs (SelectAND (SelectByPath []) (SelectByType UIParallel)) layoutWithoutActions
 	]
 where
-	layoutWithoutActions = sequenceLayoutsRule
-		[layoutSubUIsRule (SelectAND SelectDescendents selectIntermediate) finalizeUI
-		,setUITypeRule UIContainer
+	layoutWithoutActions = sequenceLayouts
+		[layoutSubUIs (SelectAND SelectDescendents selectIntermediate) finalizeUI
+		,setUIType UIContainer
 		]
-	layoutWithActions = sequenceLayoutsRule
+	layoutWithActions = sequenceLayouts
 		[actionsToButtonBar
-		,layoutSubUIsRule (SelectAND SelectDescendents selectIntermediate) finalizeUI
-		,setUITypeRule UIPanel
+		,layoutSubUIs (SelectAND SelectDescendents selectIntermediate) finalizeUI
+		,setUIType UIPanel
 		]
 
 selectIntermediate
 	= foldl1 SelectOR [SelectByType t \\ t <- [UIRecord, UIInteract, UIStep, UIParallel]]
 
-actionsToButtonBar = sequenceLayoutsRule
-	[insertChildUIRule 1 (ui UIButtonBar) //Create a buttonbar
-	,moveSubUIsRule (SelectAND SelectChildren (SelectByType UIAction)) [1] 0 //Move all actions to the buttonbar
-	,layoutSubUIsRule (SelectByPath [1]) (layoutSubUIsRule SelectChildren actionToButton) //Transform actions to buttons
+actionsToButtonBar = sequenceLayouts
+	[insertChildUI 1 (ui UIButtonBar) //Create a buttonbar
+	,moveSubUIs (SelectAND SelectChildren (SelectByType UIAction)) [1] 0 //Move all actions to the buttonbar
+	,layoutSubUIs (SelectByPath [1]) (layoutSubUIs SelectChildren actionToButton) //Transform actions to buttons
 	]
 

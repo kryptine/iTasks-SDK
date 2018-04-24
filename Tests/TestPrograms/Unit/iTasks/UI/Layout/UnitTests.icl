@@ -1008,19 +1008,19 @@ compareLUINoTests =
 	,assertEqual "Comparison of ruleNumbers: 1.2 < 3" True (LUINo [1,2] < LUINo [3]) 
 	,assertEqual "Comparison of ruleNumbers: 4.1 < 3.2.1" False (LUINo [4,1] < LUINo [3,2,1])
 	]
-setUITypeRuleTests =
+setUITypeTests =
 	[ //TODO
 	]
 
-setUIAttributesRuleTests =
+setUIAttributesTests =
 	[ //TODO
 	]
 
-delUIAttributesRuleTests =
+delUIAttributesTests =
 	[ //TODO
 	]
 
-modifyUIAttributesRuleTests =
+modifyUIAttributesTests =
 	[assertEqual "Modify attributes rule: change title to a hint" 
 		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
@@ -1031,7 +1031,7 @@ modifyUIAttributesRuleTests =
 					, hiddenAttributes = 'DM'.fromList [("title",ESToBeApplied ())]
 					}
 		,initLUIMoves)
-		(modifyUIAttributesRule 
+		(modifyUIAttributes
 			(SelectKeys ["title"])
 			(\attr -> 'DM'.fromList [("hint",JSONString "C")])
 			(LUINo [0])
@@ -1042,14 +1042,14 @@ modifyUIAttributesRuleTests =
 			,initLUIMoves)
 		)
 	]
-copySubUIAttributesRuleTests =
+copySubUIAttributesTests =
 	[assertEqual "Copy sub attributes rule: copy title to attribute to a child"
 		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIStep 'DM'.newMap [] noChanges {noEffects & overwrittenAttributes = 'DM'.fromList [("title",ESToBeApplied (JSONString "B"))]}
 				] {noChanges & setAttributes = 'DM'.fromList [("title",JSONString "B")]} noEffects
 		,initLUIMoves)
-		(copySubUIAttributesRule 
+		(copySubUIAttributes 
 			(SelectKeys ["title"]) [] [1] (LUINo [0])
 			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
@@ -1058,7 +1058,7 @@ copySubUIAttributesRuleTests =
 			,initLUIMoves)
 		)
 	]
-insertChildUIRuleTests =
+insertChildUITests =
 	[assertEqual "Insert a child rule: insert in known set"
 		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
@@ -1066,7 +1066,7 @@ insertChildUIRuleTests =
 				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
 				] noChanges noEffects
 		,initLUIMoves)
-		(insertChildUIRule 1 (UI UIParallel 'DM'.newMap []) (LUINo [0])
+		(insertChildUI 1 (UI UIParallel 'DM'.newMap []) (LUINo [0])
 			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
@@ -1075,7 +1075,7 @@ insertChildUIRuleTests =
 		)
 	]
 
-removeSubUIsRuleTests =
+removeSubUIsTests =
 	[assertEqual "Remove children rule: Remove all UIStep nodes "
 		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
@@ -1083,7 +1083,7 @@ removeSubUIsRuleTests =
 				,LUINode UIStep 'DM'.newMap [] noChanges {noEffects & hidden = ESToBeApplied (LUINo [0])}
 				] noChanges noEffects
 		,initLUIMoves)
-		(removeSubUIsRule (SelectByType UIStep) (LUINo [0])
+		(removeSubUIs (SelectByType UIStep) (LUINo [0])
 			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
@@ -1092,7 +1092,7 @@ removeSubUIsRuleTests =
 			,initLUIMoves)
 		)
 	]
-moveSubUIsRuleTests =
+moveSubUIsTests =
 	[assertEqual "Move children rule: Move All UIStep nodes into the first parallel"
 		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
@@ -1102,7 +1102,7 @@ moveSubUIsRuleTests =
 				,LUIMoveSource (LUINo [0]) 0
 				] noChanges noEffects
 		,'DM'.fromList [((LUINo [0],0),LUINode UIStep 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [0])})])
-		(moveSubUIsRule (SelectByType UIStep) [1] 0 (LUINo [0])
+		(moveSubUIs (SelectByType UIStep) [1] 0 (LUINo [0])
 			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
@@ -1119,7 +1119,7 @@ moveSubUIsRuleTests =
 				,LUIMoveSource (LUINo [3]) 0
 				] noChanges noEffects
 		,'DM'.fromList [((LUINo [3],0),LUINode UIStep 'DM'.newMap [] noChanges {LUIEffects|noEffects & moved = ESToBeApplied (LUINo [3])})])
-		(moveSubUIsRule (SelectByType UIStep) [1] 0 (LUINo [3])
+		(moveSubUIs (SelectByType UIStep) [1] 0 (LUINo [3])
 			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects 
 				,LUINode UIParallel 'DM'.newMap [] noChanges {noEffects & additional = ESToBeApplied (LUINo [1])}
@@ -1128,7 +1128,7 @@ moveSubUIsRuleTests =
 			,initLUIMoves)
 		)
 	]
-wrapUIRuleTests =
+wrapUITests =
 	[assertEqual "Wrap rule: wrap root as UIStep"
 		(LUINode UIStep 'DM'.newMap [
 			LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
@@ -1138,7 +1138,7 @@ wrapUIRuleTests =
 				] noChanges noEffects
 			] noChanges {noEffects & wrapper = ESToBeApplied (LUINo [0])}
 		,initLUIMoves)
-		(wrapUIRule UIStep (LUINo [0])
+		(wrapUI UIStep (LUINo [0])
 			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
@@ -1148,7 +1148,7 @@ wrapUIRuleTests =
 		)
 	]
 
-unwrapUIRuleTests =
+unwrapUITests =
 	[assertEqual "Unwrap rule: unwrap root"
 		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
@@ -1156,7 +1156,7 @@ unwrapUIRuleTests =
 				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
 				] noChanges {noEffects & unwrapped = ESToBeApplied (LUINo [0])}
 		,initLUIMoves)
-		(unwrapUIRule (LUINo [0])
+		(unwrapUI (LUINo [0])
 			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
@@ -1166,7 +1166,7 @@ unwrapUIRuleTests =
 		)
 	]
 
-layoutSubUIsRuleTests =
+layoutSubUIsTests =
 	[assertEqual "Layout sub-uis rule: change type"
 		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
@@ -1174,7 +1174,7 @@ layoutSubUIsRuleTests =
 				,LUINode UIStep 'DM'.newMap [] noChanges {noEffects & overwrittenType = ESToBeApplied UIDebug}
 				] noChanges noEffects
 		,initLUIMoves)
-		(layoutSubUIsRule (SelectByType UIStep) (setUITypeRule UIDebug) (LUINo [0])
+		(layoutSubUIs (SelectByType UIStep) (setUIType UIDebug) (LUINo [0])
 			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
 				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
@@ -1193,17 +1193,17 @@ tests =  applyUpstreamChangeTests
 	  ++ updateNode_Tests
 	  ++ scanToPosition_Tests
 	  ++ compareLUINoTests
-	  ++ setUITypeRuleTests
-	  ++ setUIAttributesRuleTests
-	  ++ delUIAttributesRuleTests
-	  ++ modifyUIAttributesRuleTests
-	  ++ copySubUIAttributesRuleTests
-	  ++ insertChildUIRuleTests
-	  ++ removeSubUIsRuleTests
-	  ++ moveSubUIsRuleTests
-	  ++ wrapUIRuleTests
-	  ++ unwrapUIRuleTests
-	  ++ layoutSubUIsRuleTests
+	  ++ setUITypeTests
+	  ++ setUIAttributesTests
+	  ++ delUIAttributesTests
+	  ++ modifyUIAttributesTests
+	  ++ copySubUIAttributesTests
+	  ++ insertChildUITests
+	  ++ removeSubUIsTests
+	  ++ moveSubUIsTests
+	  ++ wrapUITests
+	  ++ unwrapUITests
+	  ++ layoutSubUIsTests
 	
 
 Start w = runUnitTestsCLI [testsuite "Test.iTasks.UI.Layout" "Duh.." tests] w

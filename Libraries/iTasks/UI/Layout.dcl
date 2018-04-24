@@ -69,53 +69,48 @@ SelectChildren :== SelectByDepth 1
 // Basic DSL for creating layouts
 
 // == Changing node types ==
-setUIType type :== setUITypeRule type
+setUIType:: UIType -> LayoutRule
 
 // == Changing attributes ==
-setUIAttributes extraAttr :== setUIAttributesRule extraAttr
-delUIAttributes selection :== delUIAttributesRule selection
-modifyUIAttributes selection modifier :== modifyUIAttributesRule selection modifier
-copySubUIAttributes selection src dst :== copySubUIAttributesRule selection src dst
+setUIAttributes :: UIAttributes -> LayoutRule
+delUIAttributes :: UIAttributeSelection -> LayoutRule
+modifyUIAttributes :: UIAttributeSelection (UIAttributes -> UIAttributes) -> LayoutRule
+copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> LayoutRule
 
 // == Changing the structure of a UI ==
-wrapUI type :== wrapUIRule type
-unwrapUI :== unwrapUIRule
+wrapUI :: UIType -> LayoutRule
+unwrapUI :: LayoutRule
 
 /*
 * Insert a (static) element into a UI
 */
-insertChildUI position insertion :== insertChildUIRule position insertion
+insertChildUI :: Int UI -> LayoutRule
 
 /**
 * Remove all elements that match the predicate, but keep the removed elements in the state.
 * Further changes to these elements are processed in the background. When the predicate no longer holds, the elements are inserted back into the UI.
 * When new elements are added dynamically they are also tested against the predicate
 */
-removeSubUIs selection :== removeSubUIsRule selection
+removeSubUIs :: UISelection -> LayoutRule
 
 /**
 * Move all elements that match the predicate to a particular location in the tree.
 * Further changes to these elements are rewritten to target the new location.
 * When new elements are added dynamically they are also tested against the predicate
 */
-moveSubUIs selection path pos :== moveSubUIsRule selection path pos
+moveSubUIs :: UISelection UIPath Int -> LayoutRule
 
-//Rules
-setUITypeRule :: UIType -> LayoutRule
-setUIAttributesRule :: UIAttributes -> LayoutRule
-delUIAttributesRule :: UIAttributeSelection -> LayoutRule
-modifyUIAttributesRule :: UIAttributeSelection (UIAttributes -> UIAttributes) -> LayoutRule
-copySubUIAttributesRule :: UIAttributeSelection UIPath UIPath -> LayoutRule
-insertChildUIRule :: Int UI -> LayoutRule
-removeSubUIsRule :: UISelection -> LayoutRule
-moveSubUIsRule :: UISelection UIPath Int -> LayoutRule
-wrapUIRule :: UIType -> LayoutRule
-unwrapUIRule :: LayoutRule
-layoutSubUIsRule :: UISelection LayoutRule -> LayoutRule
-sequenceLayoutsRule :: [LayoutRule] -> LayoutRule
+/**
+* Applying a rule locally to matching parts of a UI
+*/
+layoutSubUIs :: UISelection LayoutRule -> LayoutRule
 
+/**
+* Applying multiple rules one after another.
+*/
+sequenceLayouts :: [LayoutRule] -> LayoutRule
 
-// ### Implemenation: ####
+// ### Implementation: ####
 
 //Experimental type that encodes all changes that are in effect by layouts
 //From this data structure both the UI with, and without the layout effects, can be deduced

@@ -63,5 +63,5 @@ instance toAttribute String where toAttribute s = JSONString s
 
 instance tune (ApplyAttribute a) Task | toAttribute a
 where
-	tune (ApplyAttribute k v) task = tune (ApplyLayout (setUIAttributesRule ('DM'.fromList [(k,toAttribute v)]))) task
+	tune (ApplyAttribute k v) task = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(k,toAttribute v)]))) task
 

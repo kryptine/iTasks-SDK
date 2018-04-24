@@ -203,8 +203,8 @@ where
 * should be applied, or should no longer be applied
 */
 
-setUITypeRule :: UIType -> LayoutRule
-setUITypeRule newType = rule
+setUIType :: UIType -> LayoutRule
+setUIType newType = rule
 where
 	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
 		# (replacement,moves) = rule ruleId (replacement, moves)
@@ -220,8 +220,8 @@ where
 		= (LUINode type attr items changes {effects & overwrittenType = overwrittenType},moves)
 	rule ruleId (lui,moves) = (lui,moves)
 
-setUIAttributesRule :: UIAttributes -> LayoutRule
-setUIAttributesRule setAttributes = rule
+setUIAttributes :: UIAttributes -> LayoutRule
+setUIAttributes setAttributes = rule
 where
 	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
 		# (replacement,moves) = rule ruleId (replacement, moves)
@@ -231,8 +231,8 @@ where
 		= (LUINode type attr items changes {effects & overwrittenAttributes = overwrittenAttributes},moves)
 	rule ruleId (lui,moves) = (lui,moves)
 
-delUIAttributesRule :: UIAttributeSelection -> LayoutRule
-delUIAttributesRule selection = rule 
+delUIAttributes :: UIAttributeSelection -> LayoutRule
+delUIAttributes selection = rule 
 where
 	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
 		# (replacement,moves) = rule ruleId (replacement, moves)
@@ -248,8 +248,8 @@ where
 
 	rule ruleId lui = lui
 
-modifyUIAttributesRule :: UIAttributeSelection (UIAttributes -> UIAttributes) -> LayoutRule
-modifyUIAttributesRule selection modifier = rule 
+modifyUIAttributes :: UIAttributeSelection (UIAttributes -> UIAttributes) -> LayoutRule
+modifyUIAttributes selection modifier = rule 
 where
 	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
 		# (replacement,moves) = rule ruleId (replacement, moves)
@@ -269,8 +269,8 @@ where
 	where
 		isRemoved key = not ('DM'.member key modified)
 
-copySubUIAttributesRule :: UIAttributeSelection UIPath UIPath -> LayoutRule
-copySubUIAttributesRule selection src dst = rule
+copySubUIAttributes :: UIAttributeSelection UIPath UIPath -> LayoutRule
+copySubUIAttributes selection src dst = rule
 where
 	rule ruleNo (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects), moves)
 		# (replacement,moves) = rule ruleNo (replacement, moves)
@@ -281,10 +281,10 @@ where
 		= maybe (lui,moves) (withEffect (lui,moves)) (selectSource (lui,moves))
 	where
 		selectSource (lui,moves) = fmap (selectAttributesWithChanges_ selection) (selectNode_ ruleNo src (lui,moves))
-		withEffect (lui,moves) attr = updateNode_ ruleNo dst ((setUIAttributesRule attr) ruleNo) (lui,moves)
+		withEffect (lui,moves) attr = updateNode_ ruleNo dst ((setUIAttributes attr) ruleNo) (lui,moves)
 
-wrapUIRule :: UIType -> LayoutRule
-wrapUIRule type = rule
+wrapUI :: UIType -> LayoutRule
+wrapUI type = rule
 where
 	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects), moves)
 		# (replacement,moves) = rule ruleId (replacement, moves)
@@ -300,8 +300,8 @@ where
 
 		wrap ruleId type lui = LUINode type 'DM'.newMap [lui] noChanges {noEffects & wrapper = ESToBeApplied ruleId}
 
-unwrapUIRule :: LayoutRule
-unwrapUIRule = rule
+unwrapUI :: LayoutRule
+unwrapUI = rule
 where
 	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
 		# (replacement,moves) = rule ruleId (replacement, moves)
@@ -322,8 +322,8 @@ where
 				= abort "TODO: Already unwrapped by another rule, unwrap the first child.."
 	rule ruleId (lui,moves) = (lui,moves)
 
-insertChildUIRule :: Int UI -> LayoutRule
-insertChildUIRule position insertion = rule
+insertChildUI :: Int UI -> LayoutRule
+insertChildUI position insertion = rule
 where
 	rule ruleNo (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
 		# (replacement,moves) = rule ruleNo (replacement, moves)
@@ -358,8 +358,8 @@ where
 				= lui
 		undo lui = lui
 
-removeSubUIsRule :: UISelection -> LayoutRule
-removeSubUIsRule selection = rule
+removeSubUIs :: UISelection -> LayoutRule
+removeSubUIs selection = rule
 where
 	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects), moves)
 		# (replacement,moves) = rule ruleId (replacement, moves)
@@ -389,8 +389,8 @@ where
 	unhide ruleId effects=:{hidden=ESApplied _} = {effects & hidden = ESToBeRemoved ruleId}
 	unhide ruleId effects=:{hidden=ESToBeRemoved _} = {effects & hidden = ESToBeRemoved ruleId}
 
-moveSubUIsRule :: UISelection UIPath Int -> LayoutRule
-moveSubUIsRule selection path pos = rule
+moveSubUIs :: UISelection UIPath Int -> LayoutRule
+moveSubUIs selection path pos = rule
 where
 	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects), moves)
 		# (replacement,moves) = rule ruleId (replacement, moves)
@@ -473,8 +473,8 @@ where
 	move ruleNo effects=:{LUIEffects|moved=ESApplied _} = {LUIEffects|effects & moved = ESApplied ruleNo}
 	move ruleNo effects=:{LUIEffects|moved=ESToBeRemoved _} = {LUIEffects|effects & moved= ESApplied ruleNo}
 
-layoutSubUIsRule :: UISelection LayoutRule -> LayoutRule
-layoutSubUIsRule selection sub = rule
+layoutSubUIs :: UISelection LayoutRule -> LayoutRule
+layoutSubUIs selection sub = rule
 where
 	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
 		# (replacement,moves) = rule ruleId (replacement, moves)
@@ -492,8 +492,8 @@ where
 
 		apply path (lui,moves) = (lui,moves)
 
-sequenceLayoutsRule :: [LayoutRule] -> LayoutRule
-sequenceLayoutsRule subs = rule
+sequenceLayouts :: [LayoutRule] -> LayoutRule
+sequenceLayouts subs = rule
 where
 	rule (LUINo ruleNo) lui = snd (foldl apply (0,lui) subs)
 	where
