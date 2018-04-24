@@ -40,7 +40,7 @@ where
 		eval ResetEvent evalOpts (TCLayout _ tt) iworld = case evala ResetEvent evalOpts tt iworld of
 			(ValueResult value info (ReplaceUI ui) tt,iworld)
 				//Determine the change the layout makes to the UI
-				# (change,state) = l.Layout.apply ui
+				# (change,state) = (ruleBasedLayout l).Layout.apply ui
 				//Modify the layout accorgingly
 				# ui = applyUIChange change ui
 				= (ValueResult value info (ReplaceUI ui) (TCLayout (toJSON state) tt), iworld)		
@@ -50,7 +50,7 @@ where
 	        (ValueResult value info change tt,iworld) 
 				= case fromJSON json of
 					(Just s)	
-						# (change,s) = l.Layout.adjust (change,s)
+						# (change,s) = (ruleBasedLayout l).Layout.adjust (change,s)
 						= (ValueResult value info change (TCLayout (toJSON s) tt), iworld)
 					Nothing	
 						= (ExceptionResult (exception ("Corrupt layout state:" +++ toString json)), iworld)
@@ -64,5 +64,5 @@ instance toAttribute String where toAttribute s = JSONString s
 
 instance tune (ApplyAttribute a) Task | toAttribute a
 where
-	tune (ApplyAttribute k v) task = tune (ApplyLayout (setUIAttributes ('DM'.fromList [(k,toAttribute v)]))) task
+	tune (ApplyAttribute k v) task = tune (ApplyLayout (setUIAttributesRule ('DM'.fromList [(k,toAttribute v)]))) task
 

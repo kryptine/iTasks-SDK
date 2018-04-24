@@ -96,7 +96,7 @@ basicAPIExamples =
 
 Start :: *World -> *World
 Start world 
-	= startEngine 	[	publish "/" (\_ -> loginAndManageWorkList title basicAPIExamples <<@ ApplyLayout (setUIAttributes (titleAttr title)))
+	= startEngine 	[	publish "/" (\_ -> loginAndManageWorkList title basicAPIExamples <<@ ApplyLayout (setUIAttributesRule (titleAttr title)))
 					,	publish "/persons" (const enterPersons)
 					] world
 where
@@ -714,7 +714,7 @@ externalProcessExample =
 	enterInformation "Enter the path to the external process. To for instance open a shell run '/bin/bash' or 'c:\\Windows\\System32\\cmd.exe'." [] >>= \path ->
     withShared
         Nothing
-        ( \sds -> ( externalProcess () path [] Nothing sds handlers Nothing gEditor{|*|} <<@ ApplyLayout (removeSubUIs (SelectByPath [])) >&>
+        ( \sds -> ( externalProcess () path [] Nothing sds handlers Nothing gEditor{|*|} <<@ ApplyLayout (removeSubUIsRule (SelectByPath [])) >&>
                     viewSharedInformation "Process output" []
                   ) -&&-
                   forever (enterInformation "Enter data to send to StdIn" [] >>= \data -> set (Just (data +++ "\n")) sds)
