@@ -20,8 +20,8 @@ import iTasks.WF.Definition
 import Data.GenEq
 
 //This type records the states of layouts applied somewhere in a ui tree
-derive JSONEncode LayoutState, LayoutTree, LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
-derive JSONDecode LayoutState, LayoutTree, LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
+derive JSONEncode LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
+derive JSONDecode LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
 
 derive gEq LUIEffectStage, LUINo
 
@@ -68,41 +68,33 @@ inUISelection (SelectAND sell selr) path ui = inUISelection sell path ui && inUI
 inUISelection (SelectOR sell selr) path ui = inUISelection sell path ui || inUISelection selr path ui 
 inUISelection (SelectNOT sel) path ui = not (inUISelection sel path ui)
 
-inUISelectionAfterChange :: UISelection UIPath UI UIChange -> Bool
-inUISelectionAfterChange selection path ui change //TODO: This needs a more efficient implemenation that does not apply the full change if it is not necessary
-	= inUISelection selection path (applyUIChange change ui)
-
-//A layout that has no effect at all
-idLayout :: Layout 
-idLayout = {Layout|apply=const (NoChange,LSNone),adjust=id,restore=const NoChange}
-
-setUITypeRef_ :: UIType -> Layout
-setUITypeRef_ type = referenceLayout ref
+setUITypeRef_ :: UIType -> (UI -> UI)
+setUITypeRef_ type = ref
 where 
 	ref (UI _ attr items) = UI type attr items
 
-setUIAttributesRef_ :: UIAttributes -> Layout
-setUIAttributesRef_ extraAttr = referenceLayout ref
+setUIAttributesRef_ :: UIAttributes -> (UI -> UI)
+setUIAttributesRef_ extraAttr = ref
 where
 	ref (UI type attr items) = UI type ('DM'.union extraAttr attr) items
 
-delUIAttributesRef_ :: UIAttributeSelection -> Layout 
-delUIAttributesRef_ selection = referenceLayout ref
+delUIAttributesRef_ :: UIAttributeSelection -> (UI -> UI)
+delUIAttributesRef_ selection = ref
 where
 	ref (UI type attr items) = UI type (foldl (\a k -> if (matchKey_ selection k) ('DM'.del k a) a) attr ('DM'.keys attr)) items
 
-modifyUIAttributesRef_ :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
-modifyUIAttributesRef_ selection modifier = referenceLayout ref
+modifyUIAttributesRef_ :: UIAttributeSelection (UIAttributes -> UIAttributes) -> (UI -> UI)
+modifyUIAttributesRef_ selection modifier = ref
 where
 	ref (UI type attr items) = UI type ('DM'.union (modifier selected) attr) items
 	where
-		selected = selectAttributesOLD selection attr
+		selected = selectAttributes selection attr
 
-		selectAttributesOLD SelectAll attr = attr
-		selectAttributesOLD (SelectKeys keys) attr = 'DM'.fromList [a \\ a=:(k,_) <- 'DM'.toList attr | isMember k keys]
+		selectAttributes SelectAll attr = attr
+		selectAttributes (SelectKeys keys) attr = 'DM'.fromList [a \\ a=:(k,_) <- 'DM'.toList attr | isMember k keys]
 
-copySubUIAttributesRef_ :: UIAttributeSelection UIPath UIPath -> Layout
-copySubUIAttributesRef_ selection src dst = referenceLayout ref
+copySubUIAttributesRef_ :: UIAttributeSelection UIPath UIPath -> (UI -> UI)
+copySubUIAttributesRef_ selection src dst = ref
 where
 	ref ui = updDst dst (selAttr src ui) ui
 
@@ -112,26 +104,26 @@ where
 	updDst [] selected (UI type attr items) = UI type (foldl (\a (k,v) -> 'DM'.put k v a) attr selected) items
 	updDst [s:ss] selected ui=:(UI type attr items) = if (s >= 0 && s < length items) (UI type attr (updateAt s (updDst ss selected (items !! s)) items)) ui
 
-wrapUIRef_ :: UIType -> Layout
-wrapUIRef_ type = referenceLayout ref
+wrapUIRef_ :: UIType -> (UI -> UI)
+wrapUIRef_ type = ref
 where
 	ref ui = uic type [ui]
 
-unwrapUIRef_ :: Layout
-unwrapUIRef_ = referenceLayout ref
+unwrapUIRef_ :: (UI -> UI)
+unwrapUIRef_ = ref
 where
 	ref (UI _ _ [ui:_]) = ui
 	ref ui = ui
 
-insertChildUIRef_ :: Int UI -> Layout
-insertChildUIRef_ idx insert = referenceLayout ref
+insertChildUIRef_ :: Int UI -> (UI -> UI)
+insertChildUIRef_ idx insert = ref
 where
 	ref ui=:(UI type attr items)
 		| idx >= 0 && idx <= length items = UI type attr (insertAt idx insert items)
 										  = ui
 
-removeSubUIsRef_ :: UISelection -> Layout
-removeSubUIsRef_ selection = referenceLayout ref
+removeSubUIsRef_ :: UISelection -> (UI -> UI)
+removeSubUIsRef_ selection = ref
 where
 	ref ui=:(UI type attr items) //Special case for the root node
 	  | inUISelection selection [] ui = UI UIEmpty 'DM'.newMap []
@@ -141,8 +133,8 @@ where
 	  | inUISelection selection path ui = []
 						      = [UI type attr (flatten [rem (path ++ [i]) x \\ x <- items & i <- [0..]])]
 
-moveSubUIsRef_ :: UISelection UIPath Int -> Layout 
-moveSubUIsRef_ selection dst pos = referenceLayout ref
+moveSubUIsRef_ :: UISelection UIPath Int -> (UI -> UI)
+moveSubUIsRef_ selection dst pos = ref
 where
 	ref ui
 		# (selected,Just ui`) = collect [] ui   //Find and remove all matching nodes
@@ -178,224 +170,21 @@ where
 			= UI type attr (updateAt s (insert selected ss i (items !! s)) items)
 			= UI type attr items
 
-layoutSubUIs :: UISelection Layout -> Layout
-//layoutSubUIs selection layout = layoutSubUIsRef_ selection layout 
-layoutSubUIs selection layout = {Layout|apply=apply,adjust=adjust,restore=restore}
-where
-	//Find all places that match the selection
-	//Keep track of the original UI in the state to enable dynamic matches
-	apply ui
-		# (change, state) = apply` [] ui
-		= (change, LSLayoutSubUIs ui state)
-
-	apply` path ui=:(UI type attr items)
-		| inUISelection selection path ui 
-			# (change,state) = layout.Layout.apply ui
-			= (change,UIModified state)
-		| otherwise
-			# (itemChanges,itemStates) = unzip [apply` (path ++ [i]) ui \\ ui <- items & i <- [0..]]
-			//Cleanup item changes (only keep those that actually change something
-			# itemChanges =	[(i,ChangeChild c) \\ c <- itemChanges & i <- [0..] | not (c =: NoChange || c =: (ChangeUI [] []))]
-			//Also cleanup item states
-			# itemStates = [(i,s) \\ s <- itemStates & i <- [0..] | not s =: (SubUIsModified _ [])]
-			= (ChangeUI [] itemChanges,SubUIsModified () itemStates)
-
-	adjust (change, LSLayoutSubUIs ui state)
-		# (change,ui,state) = adjust` [] change ui state
-		= (change,LSLayoutSubUIs ui state)
-
-	//For replacements, just use the apply rule on the new ui
-	adjust` path (ReplaceUI ui) _ state 
-		# (change, state) = apply` path ui
-		= (ReplaceUI (applyUIChange change ui), ui, state)
-
-	//When we get a change for a previously modified ui, we need to check whether the change still holds
-	adjust` path change ui (UIModified state)
-		# ui = applyUIChange change ui //Keep the 'shadow' copy of the UI up-to date
-		| inUISelection selection path ui 
-			//The layout should still be applied
-			# (change,state) = layout.Layout.adjust (change, state)
-			= (change,ui,UIModified state)
-		| otherwise
-			//The layout should no longer be applied, use the restore function to undo the layout
-			//then apply the upstream change
-			# rchange = layout.Layout.restore state
-			//Now that this ui no longer matches, maybe its descendents do
-			# (achange, state) = apply` path ui
-			//The result is, the combination of first restoring, then updating, t
-			# change = mergeUIChanges rchange (mergeUIChanges change achange)
-			= (change, ui, state)
-
-	//When we get a change, we need to check which sub-uis were affected
-	adjust` path change ui state=:(SubUIsModified _ states)
-		//Check if the change means that the layout is now applicable to this node
-		| inUISelectionAfterChange selection path ui change
-			//Update the 'shadow' copy of the UI
-			# ui             = applyUIChange change ui
-			//If the UI now matches we need to restore all changes to sub-ui's and then apply the layout
-			# restore        = restoreSubUIs state
-			# (change,state) = layout.Layout.apply ui
-			= (mergeUIChanges restore change, ui, UIModified state)
-		//Apply the change, and modify it if necessary
-		| otherwise
-			= case change of
-				(ChangeUI attrChanges childChanges)
-					//Update the attributes of the 'shadow' ui
-					# (UI type attr items) = applyUIChange (ChangeUI attrChanges []) ui
-					# (childChanges, items, states) = adjustChildChanges childChanges items states
-					= (ChangeUI attrChanges childChanges, UI type attr items, SubUIsModified () states)
-				NoChange
-					//Recursively check all children
-					# (UI type attr items) = ui
-					# (childChanges, items, states) = adjustChildChanges [(i, ChangeChild NoChange) \\ i <- [0 .. (length items - 1)]] items states
-					# change = if (childChanges =: []) NoChange	(ChangeUI [] childChanges)
-					= (change, UI type attr items, SubUIsModified () states)
-	where
-		adjustChildChanges [] items states = ([], items, states)
-		adjustChildChanges [(i,c):cs] items states
-			# (c, items, states)  = adjustChildChange i c items states
-			# (cs, items, states) = adjustChildChanges cs items states
-			= (c ++ cs, items, states)
-
-		adjustChildChange i (ChangeChild change) items states
-			//Recursively adjust the change
-			| i >= 0 && i < length items
-				# (change, item, state) = adjust` (path ++ [i]) change (items !! i) (ltGet i states)
-				= (case change of NoChange = []; _ = [(i,ChangeChild change)], updateAt i item items, ltPut i state states)
-			| otherwise
-				= ([],items, states)
-		adjustChildChange i (InsertChild ui) items states
-			| i >= 0 && i <= length items
-				//(potentially) apply the layout to the inserted item
-				# (change,state) = apply` (path ++ [i]) ui
-				//Check the siblings, because their path has changed
-				# (schanges, items, states) = adjustSiblings path (\x -> x > i) (insertAt i ui items) (ltInsert i state states)
-				= ([(i,InsertChild (applyUIChange change ui)):schanges], items, states)
-			| otherwise
-				= ([], items, states)
-		adjustChildChange i RemoveChild items states
-			| i >= 0 && i < length items
-				//Check the siblings, because their path has changed
-				# (schanges, items, states) = adjustSiblings path (\x -> x >= i) (removeAt i items) (ltRemove i states)
-				= ([(i,RemoveChild):schanges], items, states)
-			| otherwise
-				= ([], items, states)
-		adjustChildChange i (MoveChild d) items states
-			| i >= 0 && i < length items && d >= 0 && d < length items
-				//Check the siblings, because their path has changed //TODO: We can do better... don't need to check all
-				# (schanges, items, states) = adjustSiblings path (const True) (listMove i d items) (ltMove i d states)
-				= ([(i,MoveChild d):schanges], items, states)
-			| otherwise
-				= ([], items, states)
-
-		adjustSiblings path whichSiblings items states = adjust 0 items states
-		where
-            adjust :: !Int ![UI] ![(!Int, !LayoutTree LayoutState ())]
-                   -> (![(!Int, !UIChildChange)], ![UI], ![(!Int, !LayoutTree LayoutState ())])
-			adjust i [] states = ([],[],states)
-			adjust i [item:items] states
-				| whichSiblings i
-					//Check
-					# (change,item,state) = adjust` (path ++ [i]) NoChange item (ltGet i states)
-					//Check the remaining items
-					# (changes, items, states) = adjust (i + 1) items (ltPut i state states)
-					= case change of 
-						NoChange = (changes, [item:items], states)
-						_        = ([(i,ChangeChild change):changes], [item:items], states)
-				| otherwise
-					# (changes, items, states) = adjust (i + 1) items states
-					= (changes, [item:items], states)
-
-	restoreSubUIs (UIModified state) = layout.Layout.restore state
-	restoreSubUIs (SubUIsModified _ states)
-		= case [(i,ChangeChild (restoreSubUIs s)) \\ (i,s) <- states] of
-			[]      = NoChange
-			changes = ChangeUI [] changes
-
-	restore (LSLayoutSubUIs ui _) = ReplaceUI ui //VERY CRUDE RESTORE... TODO:We can do better than this
-
-layoutSubUIsRef_ :: UISelection Layout -> Layout
-layoutSubUIsRef_ selection layout = referenceLayout ref
+layoutSubUIsRef_ :: UISelection LayoutRule -> (UI -> UI)
+layoutSubUIsRef_ selection layout = ref
 where
 	ref ui = app [] ui
 	app path ui=:(UI type attr items) 
-		| inUISelection selection path ui = applyLayout layout ui
+		| inUISelection selection path ui = applyLayoutRule layout ui
 										  = UI type attr [app (path ++ [i]) x \\ x <- items & i <- [0..]]
 
-sequenceLayouts :: Layout Layout -> Layout 
-//sequenceLayouts layout1 layout2 = sequenceLayoutsRef_ layout1 layout2
-sequenceLayouts layout1 layout2 = {Layout|apply=apply,adjust=adjust,restore=restore}
+sequenceLayoutsRef_ :: LayoutRule LayoutRule -> (UI -> UI)
+sequenceLayoutsRef_ layout1 layout2 = ref
 where
-	apply ui
-		# (change1,s1) = layout1.Layout.apply ui
-		# (change2,s2) = layout2.Layout.apply (applyUIChange change1 ui)
-		= (mergeUIChanges change1 change2, LSSequence s1 s2)
+	ref ui = applyLayoutRule layout2 (applyLayoutRule layout1 ui)
 
-	adjust (change,LSSequence s1 s2) 
-		# (change,s1) = layout1.Layout.adjust (change,s1)
-		# (change,s2) = layout2.Layout.adjust (change,s2)
-		= (change,LSSequence s1 s2)
-	adjust (change,s) = (change,s)
-
-	restore (LSSequence s1 s2)
-		//Restore in reverse order
-		# change2 = layout2.Layout.restore s2
-		# change1 = layout1.Layout.restore s1
-		= mergeUIChanges change2 change1	
-
-sequenceLayoutsRef_ :: Layout Layout -> Layout
-sequenceLayoutsRef_ layout1 layout2 = referenceLayout ref
-where
-	ref ui = applyLayout layout2 (applyLayout layout1 ui)
-
-referenceLayout :: (UI -> UI) -> Layout
-referenceLayout ref = {Layout|apply=apply,adjust=adjust,restore=restore}
-where
-	apply ui = (ReplaceUI (ref ui), LSReference ui)
-		
-	adjust (NoChange,state) = (NoChange,state)
-	adjust (change, LSReference ui) 
-		# ui = applyUIChange change ui
-		= (ReplaceUI (ref ui),LSReference ui)
-
-	restore (LSReference ui)
-		= ReplaceUI ui
-
-//Helper for sequence layouts
-applyLayout :: Layout UI -> UI 
-applyLayout {Layout|apply} ui = applyUIChange (fst (apply ui)) ui
-
-//Util functions on the layout tree structure
-ltGet :: Int [(Int,LayoutTree a b)] -> (LayoutTree a b) | gDefault{|*|} b
-ltGet index [] = SubUIsModified defaultValue []
-ltGet index [(i,tree):ts] = if (i == index) tree (ltGet index ts)
-
-ltPut :: Int (LayoutTree a b) [(Int,LayoutTree a b)] -> [(Int,LayoutTree a b)]
-// It is pointless to store empty trees in a sparse representation, just make sure we delete the previously stored value
-ltPut index (SubUIsModified _ []) list = [x \\ x=:(i,_) <- list | i <> index] 
-ltPut index item list
-	= [x \\ x=:(i,_) <- list | i < index] ++ [(index,item)] ++ [x \\ x=:(i,_) <- list | i > index]
-
-ltInsert :: Int (LayoutTree a b) [(Int,LayoutTree a b)] -> [(Int,LayoutTree a b)]
-ltInsert index (SubUIsModified _ []) list = [(if (i >= index) (i + 1) i, x) \\ (i,x) <- list]
-ltInsert index item list 
-	= [ x \\ x=:(i,_) <- list | i < index] ++ [(index,item)] ++ [(i + 1,x) \\ (i,x) <- list | i >= index]
-
-ltRemove :: Int [(Int,LayoutTree a b)] -> [(Int,LayoutTree a b)]
-ltRemove index list = [(if (i > index) (i - 1) i, x) \\ (i,x) <- list | i <> index]
-
-ltMove :: Int Int [(Int,LayoutTree a b)] -> [(Int,LayoutTree a b)] | gDefault{|*|} b
-ltMove src dst list = ltInsert dst (ltGet src list) (ltRemove src list)
-
-ltCount :: Bool (a -> Bool) [(Int,LayoutTree a b)] -> Int
-ltCount recursive pred list = foldr count 0 (map snd list)
-where
-	count (UIModified x) n = if (pred x) (n + 1) n
-	count (SubUIsModified _ mods) n = if recursive (n + ltCount recursive pred mods) n
-
-listMove :: Int Int [a] -> [a]
-listMove src dst list = insertAt dst (list !! src) (removeAt src list)
-
+applyLayoutRule :: LayoutRule UI -> UI 
+applyLayoutRule rule ui = fst (extractUIWithEffects (rule (LUINo [0]) (initLUI False ui,initLUIMoves)))
 
 /*
 * The first thing we need for rule-based layouts is a datastructure that can keep track
@@ -1588,37 +1377,4 @@ where
 	hide (attr,hides) (key,ESApplied _) = ('DM'.del key attr,'DM'.put key (ESApplied ()) hides)
 	hide (attr,hides) (key,ESToBeUpdated _ _) = ('DM'.del key attr,'DM'.put key (ESApplied ()) hides)
 	hide (attr,hides) (key,ESToBeRemoved _) = (attr,hides)
-
-revertEffects :: LUI -> LUI
-revertEffects (LUINode type attr items changes effects=:{additional,wrapper,unwrapped})
-	//Remove existing additional nodes
-	# additional = case additional of
-		(ESApplied ruleId) = ESToBeRemoved ruleId
-		_ 				   = additional
-	//Remove newly added additional nodes
-	# items = filter notNewAdditional items
-	//Undo wrapping and unwrapping
-	# wrapper = case wrapper of
-		(ESApplied ruleId) = ESToBeRemoved ruleId
-		_                  = wrapper
-	# unwrapped = case unwrapped of
-		(ESApplied ruleId) = ESToBeRemoved ruleId
-		_                  = unwrapped
-
-	= LUINode type attr (map revertEffects items) changes {effects & additional = additional, wrapper = wrapper, unwrapped = unwrapped}
-where
-	notNewAdditional (LUINode _ _ _ _ effects=:{additional=ESToBeApplied _}) = False
-	notNewAdditional _ = True
-
-revertEffects lui = lui
-
-ruleBasedLayout :: LayoutRule -> Layout
-ruleBasedLayout rule = {Layout|apply,adjust,restore}
-where
-	apply ui
-		= appSnd LSRule (extractDownstreamChange (rule (LUINo [0]) (initLUI False ui,initLUIMoves)))
-	adjust (change, LSRule (lui,moves))
-		= appSnd LSRule (extractDownstreamChange (rule (LUINo [0]) (applyUpstreamChange change (lui,moves))))
-	restore (LSRule (lui,moves))
-		= fst (extractDownstreamChange (revertEffects lui,moves)) 
 

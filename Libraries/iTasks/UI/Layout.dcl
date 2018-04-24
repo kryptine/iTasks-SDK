@@ -16,30 +16,6 @@ from Data.Either import :: Either
 from Text.GenJSON import :: JSONNode
 from StdOverloaded import class <
 
-// When a layout changes the stucture of the UI, changes to the UI have to be
-// changed too to route the changes to the correct place in the structure
-:: Layout =
-	{ apply   :: UI                     -> (UIChange,LayoutState) // Modify the UI layout to the existing UI
-	, adjust  :: (UIChange,LayoutState) -> (UIChange,LayoutState) // Rewrite changes to the UI to accomodate for the changes caused by the layout
-	, restore :: LayoutState -> UIChange                          // Modify the UI to a state as if the layout had never been applied
-	}
-
-:: LayoutState
-	= LSNone                                           //No state is tracked for a layout
-	| LSType !UI                                       //State for layouts that change the type
-	| LSSequence !LayoutState !LayoutState             //Combined state of two sequenced layouts
-	| LSLayoutSubUIs !UI (LayoutTree LayoutState ())   //States of layouts applied to sub-ui's 
-	| LSReference !UI
-	| LSRule !(LUI,LUIMoves)
-
-:: LayoutTree a b
-	= UIModified !a
-	| SubUIsModified !b ![(Int,LayoutTree a b)]
-
-// In specifications of layouts, sub-parts of UI's are commonly addressed as 
-// a path of child selections in the UI tree.
-:: UIPath :== [Int]
-
 // This type is a mini query language to describe a selection
 // of nodes in a UI (use for removing, moving, hiding or layouting)
 // We use a data type instead of a function of type (UI -> Bool) because
@@ -86,74 +62,59 @@ SelectChildren :== SelectByDepth 1
 	= SelectAll
 	| SelectKeys ![String]
 
+// In specifications of layouts, sub-parts of UI's are commonly addressed as 
+// a path of child selections in the UI tree.
+:: UIPath :== [Int]
+
 // Basic DSL for creating layouts
 
-// == Do nothing ==
-idLayout :: Layout 
-
 // == Changing node types ==
-setUIType type :== ruleBasedLayout (setUITypeRule type)
+setUIType type :== setUITypeRule type
 
 // == Changing attributes ==
-setUIAttributes extraAttr :== ruleBasedLayout (setUIAttributesRule extraAttr)
-delUIAttributes selection :== ruleBasedLayout (delUIAttributesRule selection)
-modifyUIAttributes selection modifier :== ruleBasedLayout (modifyUIAttributesRule selection modifier)
-copySubUIAttributes selection src dst :== ruleBasedLayout (copySubUIAttributesRule selection src dst)
+setUIAttributes extraAttr :== setUIAttributesRule extraAttr
+delUIAttributes selection :== delUIAttributesRule selection
+modifyUIAttributes selection modifier :== modifyUIAttributesRule selection modifier
+copySubUIAttributes selection src dst :== copySubUIAttributesRule selection src dst
 
 // == Changing the structure of a UI ==
-wrapUI type :== ruleBasedLayout (wrapUIRule type)
-unwrapUI :== ruleBasedLayout unwrapUIRule
+wrapUI type :== wrapUIRule type
+unwrapUI :== unwrapUIRule
 
 /*
 * Insert a (static) element into a UI
 */
-insertChildUI position insertion :== ruleBasedLayout (insertChildUIRule position insertion)
+insertChildUI position insertion :== insertChildUIRule position insertion
 
 /**
 * Remove all elements that match the predicate, but keep the removed elements in the state.
 * Further changes to these elements are processed in the background. When the predicate no longer holds, the elements are inserted back into the UI.
 * When new elements are added dynamically they are also tested against the predicate
 */
-removeSubUIs selection :== ruleBasedLayout (removeSubUIsRule selection)
+removeSubUIs selection :== removeSubUIsRule selection
 
 /**
 * Move all elements that match the predicate to a particular location in the tree.
 * Further changes to these elements are rewritten to target the new location.
 * When new elements are added dynamically they are also tested against the predicate
 */
-moveSubUIs selection path pos :== ruleBasedLayout (moveSubUIsRule selection path pos)
+moveSubUIs selection path pos :== moveSubUIsRule selection path pos
 
-// == Composition of layouts ==
-/**
-* Apply a layout locally to parts of a UI
-*/
-layoutSubUIs :: UISelection Layout -> Layout
-/**
-* Apply multiple layouts sequentially. The UI changes that have been transformed by one layout are further transformed by the next layout
-*/
-sequenceLayouts :: Layout Layout -> Layout
-
-/**
-* This layout can apply any transformation on UI's, but it replaces everything on each change.
-* Use this only as a debugging tool, because it will effectively remove the minimal data exchange of editors with UIChanges
-*/
-referenceLayout :: (UI -> UI) -> Layout 
-
-applyLayout :: Layout UI -> UI 
+applyLayoutRule :: LayoutRule UI -> UI 
 
 //Reference layouts of all core layouts for testing
-setUITypeRef_            :: UIType -> Layout
-setUIAttributesRef_      :: UIAttributes -> Layout
-delUIAttributesRef_      :: UIAttributeSelection -> Layout
-modifyUIAttributesRef_   :: UIAttributeSelection (UIAttributes -> UIAttributes) -> Layout
-copySubUIAttributesRef_  :: UIAttributeSelection UIPath UIPath -> Layout
-wrapUIRef_               :: UIType -> Layout
-unwrapUIRef_             :: Layout
-insertChildUIRef_        :: Int UI -> Layout
-removeSubUIsRef_         :: UISelection -> Layout 
-moveSubUIsRef_           :: UISelection UIPath Int -> Layout
-layoutSubUIsRef_         :: UISelection Layout -> Layout
-sequenceLayoutsRef_      :: Layout Layout -> Layout
+setUITypeRef_            :: UIType -> (UI -> UI)
+setUIAttributesRef_      :: UIAttributes -> (UI -> UI)
+delUIAttributesRef_      :: UIAttributeSelection -> (UI -> UI)
+modifyUIAttributesRef_   :: UIAttributeSelection (UIAttributes -> UIAttributes) -> (UI -> UI)
+copySubUIAttributesRef_  :: UIAttributeSelection UIPath UIPath -> (UI -> UI)
+wrapUIRef_               :: UIType -> (UI -> UI)
+unwrapUIRef_             :: (UI -> UI)
+insertChildUIRef_        :: Int UI -> (UI -> UI)
+removeSubUIsRef_         :: UISelection -> (UI -> UI)
+moveSubUIsRef_           :: UISelection UIPath Int -> (UI -> UI)
+layoutSubUIsRef_         :: UISelection LayoutRule -> (UI -> UI)
+sequenceLayoutsRef_      :: LayoutRule LayoutRule -> (UI -> UI)
 
 //Experimental type that encodes all changes that are in effect by layouts
 //From this data structure both the UI with, and without the layout effects, can be deduced
@@ -227,8 +188,7 @@ applyUpstreamChange :: UIChange (LUI,LUIMoves) -> (LUI,LUIMoves)
 
 extractDownstreamChange :: (LUI,LUIMoves) -> (!UIChange,!(LUI,LUIMoves))
 
-//A layout rule can be created from a layout rule
-ruleBasedLayout :: LayoutRule -> Layout
+extractUIWithEffects :: (LUI,LUIMoves) -> (!UI,!(LUI,LUIMoves))
 
 //Rules
 setUITypeRule :: UIType -> LayoutRule
@@ -244,7 +204,7 @@ unwrapUIRule :: LayoutRule
 layoutSubUIsRule :: UISelection LayoutRule -> LayoutRule
 sequenceLayoutsRule :: [LayoutRule] -> LayoutRule
  
-//Helper functions (exported for testing)
+//Helper functions (exported for unit testing)
 adjustIndex_ :: LUINo Int [LUI] LUIMoves -> Int
 selectNode_ :: LUINo UIPath (LUI,LUIMoves) -> Maybe LUI
 updateNode_ :: LUINo UIPath ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
@@ -252,5 +212,4 @@ scanToPosition_ :: LUINo Int [LUI] LUIMoves -> (Int,Bool,Maybe LUI)
 selectAttributes_ :: UIAttributeSelection Bool LUI -> UIAttributes
 overwriteAttribute_ :: UIAttribute (Map UIAttributeKey (LUIEffectStage JSONNode)) -> (Map UIAttributeKey (LUIEffectStage JSONNode))
 hideAttribute_ :: (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage ())) -> (Map UIAttributeKey (LUIEffectStage ()))
-extractUIWithEffects :: (LUI,LUIMoves) -> (!UI,!(LUI,LUIMoves))
 

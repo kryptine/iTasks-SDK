@@ -11,8 +11,8 @@ import Text.GenJSON, StdString
 import qualified Data.Map as DM
 
 //This type records the states of layouts applied somewhere in a ui tree
-derive JSONEncode LayoutState, LayoutTree, LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
-derive JSONDecode LayoutState, LayoutTree, LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
+derive JSONEncode LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
+derive JSONDecode LUI, LUIChanges, LUIEffects, LUIEffectStage, LUINo, Set
 
 /*
 * Tuning of tasks
@@ -30,6 +30,8 @@ instance tune ApplyLayout Task
 where
 	tune (ApplyLayout l) task=:(Task evala) = Task eval
 	where
+		ruleNo = LUINo [0]
+
 		eval event evalOpts (TCDestroy (TCLayout s tt)) iworld //Cleanup duty simply passed to inner task
 			= evala event evalOpts (TCDestroy tt) iworld
 
@@ -39,19 +41,16 @@ where
 		//On Reset events, we (re-)apply the layout
 		eval ResetEvent evalOpts (TCLayout _ tt) iworld = case evala ResetEvent evalOpts tt iworld of
 			(ValueResult value info (ReplaceUI ui) tt,iworld)
-				//Determine the change the layout makes to the UI
-				# (change,state) = (ruleBasedLayout l).Layout.apply ui
-				//Modify the layout accorgingly
-				# ui = applyUIChange change ui
+				# (ui,state) = extractUIWithEffects (l ruleNo (initLUI False ui, initLUIMoves))
 				= (ValueResult value info (ReplaceUI ui) (TCLayout (toJSON state) tt), iworld)		
             (res,iworld) = (res,iworld)
 
 		eval event evalOpts (TCLayout json tt) iworld = case evala event evalOpts tt iworld of
 	        (ValueResult value info change tt,iworld) 
 				= case fromJSON json of
-					(Just s)	
-						# (change,s) = (ruleBasedLayout l).Layout.adjust (change,s)
-						= (ValueResult value info change (TCLayout (toJSON s) tt), iworld)
+					(Just state)	
+						# (change,state) = extractDownstreamChange (l ruleNo (applyUpstreamChange change state))
+						= (ValueResult value info change (TCLayout (toJSON state) tt), iworld)
 					Nothing	
 						= (ExceptionResult (exception ("Corrupt layout state:" +++ toString json)), iworld)
             (res,iworld) = (res,iworld)
