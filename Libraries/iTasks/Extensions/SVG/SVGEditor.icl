@@ -25,17 +25,18 @@ from iTasks.Internal.Generic.Visualization import <+++
 class short a :: !a -> String
 instance short FontDef where short {FontDef | fontfamily=f,fontysize=h} = "{FontDef | " <+++ f <+++ "," <+++ h <+++ "}"
 
+derive JSEncode FontDef, ViaImg, Map, ImgEventhandler`, DefuncImgEventhandler`
+derive JSDecode FontDef, ViaImg, Map, ImgEventhandler`, DefuncImgEventhandler`
+
 // JavaScript object attribute labels:
+// Client side state (access via jsGetCleanVal and jsPutCleanVal):
 JS_ATTR_VIEW         :== "view"
 JS_ATTR_MODEL        :== "model"
 JS_ATTR_FONT_SPANS   :== "font_spans"
 JS_ATTR_TEXT_SPANS   :== "text_spans"
-JS_ATTR_SVG_BODY     :== "svgBody"
-JS_ATTR_SVG_HANDLERS :== "svgEventhandlers"
-JS_ATTR_TEXT_METRICS :== "svgTextMetrics"
-JS_ATTR_SVG_FONTS    :== "svgNewFonts"
-JS_ATTR_SVG_TEXTS    :== "svgNewTexts"
-JS_STATE_CHANGE      :== "stateChange"
+
+// Server -> Client SVG attribute names (tag a serialized value of type ServerToClientAttr):
+JS_ATTR_SVG          :== "svgPart"
 
 CLICK_DELAY          :== 225
 svgns =: "http://www.w3.org/2000/svg"
@@ -81,34 +82,41 @@ initDragState
 :: MouseCallbackData                                // information required for dealing with mouse events:
  = MouseOnClickData !Int                            // mouse has been clicked n times
  | MouseNoData                                      // no additional data
-derive JSEncode MouseCallbackData
-derive JSDecode MouseCallbackData
 
-// information passed from client -> server:
-:: ClientHasNewModel   s                            // client has created a new public model value
+:: ClientNeedsSVG                                   // client is ready to receive SVG
+ = ClientNeedsSVG                                   // no additional data
+:: ClientHasNewModel  s                             // client has created a new public model value
  = ClientHasNewModel !s                             // the new public model value
 :: ClientHasNewTextMetrics                          // client has determined text metrics (reply to toSVGTextMetricsAttr server notifications)
  = ClientHasNewTextMetrics !FontSpans !TextSpans    // the new font and text-width metrics
-derive JSONEncode ClientHasNewModel, ClientHasNewTextMetrics
-derive JSONDecode ClientHasNewModel, ClientHasNewTextMetrics
-derive JSEncode   ClientHasNewModel, ClientHasNewTextMetrics
-derive JSDecode   ClientHasNewModel, ClientHasNewTextMetrics
+derive JSONEncode ClientNeedsSVG, ClientHasNewModel, ClientHasNewTextMetrics, FontDef
+derive JSONDecode ClientNeedsSVG, ClientHasNewModel, ClientHasNewTextMetrics, FontDef
 
-//	The server side state:
-derive JSONEncode FontDef
-derive JSONDecode FontDef
-derive JSEncode   FontDef, Map, Set, ViaImg, ImgEventhandler`, DefuncImgEventhandler`
-derive JSDecode   FontDef, Map, Set, ViaImg, ImgEventhandler`, DefuncImgEventhandler`
+//	SVG attribute for server -> client communication (use JSEncode/JSDecode for serialization)
+:: ServerToClientAttr
+ = ServerNeedsTextMetrics !ImgFonts !ImgTexts
+ | ServerHasSVG           !String !ImgEventhandlers`
+derive JSEncode ServerToClientAttr, Set
+derive JSDecode ServerToClientAttr, Set
 
-/*	the server side state is a list of state elements:
+toUIAttributes :: !ServerToClientAttr -> UIAttributes
+toUIAttributes attr
+  = 'DM'.fromList [(JS_ATTR_SVG,encodeOnServer attr)]
+
+fromUIAttributes :: !JSArg !*JSWorld -> (!ServerToClientAttr,!*JSWorld)
+fromUIAttributes json world
+  = decodeOnClient (toJSVal json) world
+
+
+/*	the server side state is a list of state elements (CompoundMask [ ]):
 	at FM_FONTS:  the FontSpans are stored
 	at FM_TEXTS:  the TextSpans are stored
 */
 initServerSideState :: EditMask
 initServerSideState = CompoundMask [newFieldMask,newFieldMask]
 
-mkFieldMask :: !s -> FieldMask | JSEncode{|*|} s
-mkFieldMask s = {FieldMask | touched = False, valid = True, state = encodeOnServer s}
+mkFieldMask :: !s -> FieldMask | JSONEncode{|*|} s
+mkFieldMask s = {FieldMask | touched = False, valid = True, state = toJSON s}
 
 FM_FONTS  :== 0	// index in CompoundMask to access fonts cache
 FM_TEXTS  :== 1	// index in CompoundMask to access texts widths
@@ -118,7 +126,7 @@ getFontsCache :: !EditMask -> FontSpans
 getFontsCache (CompoundMask entries)
 	= case entries !! FM_FONTS of
 		FieldMask {FieldMask | state}
-			= case decodeOnServer state of
+			= case fromJSON state of
 				Just fonts = fonts
 				nothing    = 'DM'.newMap
 		_ = 'DM'.newMap
@@ -131,7 +139,7 @@ getTextsCache :: !EditMask -> TextSpans
 getTextsCache (CompoundMask entries)
 	= case entries !! FM_TEXTS of
 		FieldMask {FieldMask | state}
-			= case decodeOnServer state of
+			= case fromJSON state of
 				Just texts = texts
 				nothing    = 'DM'.newMap
 		_ = 'DM'.newMap
@@ -139,6 +147,8 @@ getTextsCache (CompoundMask entries)
 setTextsCache :: !TextSpans !EditMask -> EditMask
 setTextsCache texts (CompoundMask entries)
 	= CompoundMask (updateAt FM_TEXTS (FieldMask (mkFieldMask texts)) entries)
+
+
 
 imgTagSource :: !String -> *TagSource
 imgTagSource taskId
@@ -184,33 +194,6 @@ svgFontDefAttrs {FontDef | fontfamily,fontysize,fontstyle,fontstretch,fontvarian
       , TextRenderingAttr     "geometricPrecision"
       ]
 
-//	collection of SVG attributes required for the server -> client communication
-
-//  toSVGBodyAttr: use this to provide the client with a complete SVG-rendering of an image
-toSVGBodyAttr :: !SVGElt -> UIAttributes
-toSVGBodyAttr svg
-  = 'DM'.fromList [(JS_ATTR_SVG_BODY,encodeOnServer (browserFriendlySVGEltToString svg))]
-
-fromSVGBodyAttr :: !JSArg !*JSWorld -> (!String,!*JSWorld)
-fromSVGBodyAttr json world
-  = decodeOnClient (toJSVal json) world
-
-toSVGEventhandlersAttr :: !ImgEventhandlers` -> UIAttributes
-toSVGEventhandlersAttr es
-  = 'DM'.fromList [(JS_ATTR_SVG_HANDLERS, encodeOnServer es)]
-
-fromSVGEventhandlersAttr :: !JSArg !*JSWorld -> (!ImgEventhandlers`,!*JSWorld)
-fromSVGEventhandlersAttr json world
-  = decodeOnClient (toJSVal json) world
-
-toSVGTextMetricsAttr :: !ImgFonts !ImgTexts -> UIAttributes
-toSVGTextMetricsAttr newFonts newTexts
-  = 'DM'.fromList [(JS_ATTR_TEXT_METRICS, encodeOnServer ('DS'.toList newFonts,[(fd,'DS'.toList texts) \\ (fd,texts) <- 'DM'.toList newTexts]))]
-
-fromSVGTextMetricsAttr :: !JSArg !*JSWorld -> (!ImgFonts,!ImgTexts,!*JSWorld)
-fromSVGTextMetricsAttr json world
-  #! ((fonts,texts),world) = decodeOnClient (toJSVal json) world
-  = ('DS'.fromList fonts,'DM'.fromList [(fd,'DS'.fromList texts) \\ (fd,texts) <- texts],world)
 
 //	transform the functions of an SVGEditor into an Editor:
 fromSVGEditor :: (SVGEditor s v) -> Editor s | iTask s & JSEncode{|*|} s
@@ -222,18 +205,18 @@ fromSVGEditor svglet
     }
 where
 //	initServerSideUI is called first.
-//	It provides initial information to the client via the attributes of the client component.
+//	Its sole purpose is to tell the client which model value is being manipulated. 
 	initServerSideUI :: !(SVGEditor s v) !DataPath !s !*VSt -> *(!MaybeErrorString (!UI,!EditMask), !*VSt) | iTask s & JSEncode{|*|} s
-	initServerSideUI svglet dp model world
-	  #! (attrs,_,mask,world) = serverHandleModel svglet 'DM'.newMap 'DM'.newMap model (svglet.initView model) initServerSideState world
-	  = trace_n ("initServerSideUI [" +++ join "," ('DM'.keys attrs) +++ "]")
-	    (Ok (uia UIComponent attrs,mask),world)
+	initServerSideUI svglet dp model world=:{VSt | taskId}
+	  = trace_n ("initServerSideUI of task with taskId = " +++ taskId)
+	    (Ok (uia UIComponent ('DM'.union (valueAttr (encodeOnServer model)) (sizeAttr FlexSize FlexSize)),initServerSideState),world)
 
 //	initClientSideUI is called after initServerSideUI.
 //	Information exchange from server -> client occurs via the attributes of the client object.
 //  First clientInitDOMEl initialises the client. Subsequent changes are handled with clientHandleAttributeChange.
 //	Information exchange from client -> server occurs via `doEditEvent` that emits a triplet (taskId,editId,json) in which json 
 //	is the serialized data that the client sends to the server. The server receives this serialized data via serverHandleEditFromClient.
+//  The first such `doEditEvent' is a request from the client to compute the SVG body (request generated by clientInitDOMEl).
 	initClientSideUI :: !(JSObj ()) !*JSWorld -> *JSWorld
 	initClientSideUI me world
 	// Set attributes
@@ -247,67 +230,66 @@ where
 	// Initialize caches
 	  #! world                       = jsPutCleanVal JS_ATTR_FONT_SPANS 'DM'.newMap me world   // initialize font spans cache
 	  #! world                       = jsPutCleanVal JS_ATTR_TEXT_SPANS 'DM'.newMap me world   // initialize text-widths cache
-	  = trace_n "initClientSideUI" world
+	  = trace "initClientSideUI" world
 
 //	serverHandleEditFromClient is called at the server side whenever the associated client component has evaluated `doEditEvent`.
 //	The server component deserializes the received json data to determine the proper action.
   	serverHandleEditFromClient :: !(SVGEditor s v) !DataPath !(!DataPath,!JSONNode) !s !EditMask !*VSt -> (!MaybeErrorString (!UIChange,!EditMask), !s, !*VSt) | iTask s & JSEncode{|*|} s
   	serverHandleEditFromClient svglet _ (_,json) old mask vst 
-	  = case fromJSON json of            // check if the client sends a new model value
+	  = case fromJSON json of                // check if the client sends a new model value
 	      Just (ClientHasNewModel new)
-	        #! (set_attrs,del_attrs,mask,vst) = serverHandleModel svglet (getFontsCache mask) (getTextsCache mask) new (svglet.initView new) mask vst
+	        #! (set_attrs,mask,vst)          = serverHandleModel svglet (getFontsCache mask) (getTextsCache mask) new (svglet.initView new) mask vst
 	        = trace_n ("serverHandleEditFromClient (ClientHasNewModel " <+++ new <+++ ")")
-	          (Ok (attributesToUIChange set_attrs del_attrs,mask),new,vst)
-	      nope = case fromJSON json of   // check if the client sends new font/text-width metrics
+	          (Ok (attributesToUIChange set_attrs,mask),new,vst)
+	      nope = case fromJSON json of       // check if the client sends new font/text-width metrics
 	               Just (ClientHasNewTextMetrics new_font_metrics new_texts_metrics)
-	                 #! font_spans                     = 'DM'.union                new_font_metrics  (getFontsCache mask)
-	                 #! text_spans                     = 'DM'.unionWith 'DM'.union new_texts_metrics (getTextsCache mask)
-	                 #! mask                           = setTextsCache text_spans (setFontsCache font_spans mask)
-	                 #! (set_attrs,del_attrs,mask,vst) = serverHandleModel svglet font_spans text_spans old (svglet.initView old) mask vst
+	                 #! font_spans           = 'DM'.union                new_font_metrics  (getFontsCache mask)
+	                 #! text_spans           = 'DM'.unionWith 'DM'.union new_texts_metrics (getTextsCache mask)
+	                 #! mask                 = setTextsCache text_spans (setFontsCache font_spans mask)
+	                 #! (set_attrs,mask,vst) = serverHandleModel svglet font_spans text_spans old (svglet.initView old) mask vst
 	                 = trace_n ("serverHandleEditFromClient (ClientHasNewTextMetrics [" +++ join "," (map short ('DM'.keys new_font_metrics)) +++ "] [" +++ join "," (flatten (map 'DM'.keys ('DM'.elems new_texts_metrics))) +++ "]")
-	                   (Ok (attributesToUIChange set_attrs del_attrs,mask),old,vst)
-	               nope                  // unchecked event from the client
-	                 = trace_n "serverHandleEditFromClient unspecified case"
-	                   (Ok (NoChange,mask),old,vst)
+	                   (Ok (attributesToUIChange set_attrs,mask),old,vst)
+	               nope = case fromJSON json of     // check if the client has initialized, and is ready to receive a server side generated SVG rendering
+	                        Just ClientNeedsSVG
+	                          #! (attrs,mask,vst) = serverHandleModel svglet 'DM'.newMap 'DM'.newMap old (svglet.initView old) initServerSideState vst
+	                          = trace_n ("serverHandleEditFromClient ClientNeedsSVG")
+	                            (Ok (attributesToUIChange attrs,mask),old,vst)
+	                        nope                  // unchecked event from the client
+	                          = trace_n "serverHandleEditFromClient unspecified case"
+	                            (Ok (NoChange,mask),old,vst)
 
 //	serverHandleEditFromContext is called at the server side whenever the context has acquired a new data model that needs to be rendered at the associated client component.	
 //	This information is passed to the associated client via its attributes, and will be handled via the `onAttributeChange` function.
   	serverHandleEditFromContext :: !(SVGEditor s v) !DataPath !s !s !EditMask !*VSt -> (!MaybeErrorString (!UIChange,!EditMask), !s, !*VSt) | iTask s & JSEncode{|*|} s
   	serverHandleEditFromContext svglet _ new old mask vst
   	| gEq{|*|} old new = (Ok (NoChange,mask),new,vst)
-  	#! (set_attrs,del_attrs,mask,vst) = serverHandleModel svglet (getFontsCache mask) (getTextsCache mask) new (svglet.initView new) mask vst
+  	#! (set_attrs,mask,vst) = serverHandleModel svglet (getFontsCache mask) (getTextsCache mask) new (svglet.initView new) mask vst
   	= trace_n ("serverHandleEditFromContext")
-  	  (Ok (attributesToUIChange set_attrs del_attrs,mask),new,vst)
+  	  (Ok (attributesToUIChange set_attrs,mask),new,vst)
 
 //	serverHandleModel is called whenever a new model/view value has been obtained.
 //	It computes the SVG rendering on the server side.
 //	This may `fail' due to missing font/text metrics, in which case these are requested to the client via the attributes.
 //  If it succeeds, then the client receives the fully evaluated SVG and the defunctionalized event handlers that need to be registered via the attributes.
-//  The second result concerns the attributes that should be removed.
 //	The client handles these changes via clientHandleAttributeChange.
-serverHandleModel :: !(SVGEditor s v) !FontSpans !TextSpans !s !v !EditMask !*VSt -> (!UIAttributes,![String],!EditMask,!*VSt) | iTask s & JSEncode{|*|} s
+serverHandleModel :: !(SVGEditor s v) !FontSpans !TextSpans !s !v !EditMask !*VSt -> (!UIAttributes,!EditMask,!*VSt) | iTask s & JSEncode{|*|} s
 serverHandleModel svglet font_spans text_spans model view state world=:{VSt | taskId}
   #! state = setTextsCache text_spans (setFontsCache font_spans state)
   = case serverSVG svglet font_spans text_spans taskId model view of                            // start to generate the image server-side
       Left (img,tables=:{ImgTables | imgNewFonts=new_fonts,imgNewTexts=new_texts})              // image incomplete because of missing font/text-width information
-	    #! attrs = 'DM'.unions (size_and_model
-	                            ++ [toSVGTextMetricsAttr new_fonts new_texts]                   // the fonts/texts for which metrics need to be determined
-	                           )
-	    = (attrs, [JS_ATTR_TEXT_METRICS], state, world)
+	    #! attrs = 'DM'.union (toUIAttributes (ServerNeedsTextMetrics new_fonts new_texts)) size_and_model
+	    = (attrs, state, world)
       Right (svg,es)                                                                            // image complete, send it to client
-	    #! attrs = 'DM'.unions (size_and_model
-	                            ++ [toSVGBodyAttr svg]                                          // the complete SVG body
-	                            ++ [toSVGEventhandlersAttr (defuncImgEventhandlers es)]         // the defunctionalized image event handlers
-	                           )
-	    = (attrs, [JS_ATTR_SVG_BODY,JS_ATTR_SVG_HANDLERS], state, world)
+	    #! attrs = 'DM'.union (toUIAttributes (ServerHasSVG (browserFriendlySVGEltToString svg) (defuncImgEventhandlers es))) size_and_model
+	    = (attrs, state, world)
 where
-	size_and_model = [sizeAttr FlexSize FlexSize, valueAttr (encodeOnServer model)]
+	size_and_model = sizeAttr FlexSize FlexSize
 
-attributesToUIChange :: !UIAttributes ![String] -> UIChange
-attributesToUIChange set_attrs del_attrs
-  = ChangeUI (  [SetAttribute label value \\ (label,value) <- 'DM'.toList set_attrs]
-             ++ map DelAttribute del_attrs
-             ) []
+attributesToUIChange :: !UIAttributes -> UIChange
+attributesToUIChange set_attrs
+  = trace_n ("attributesToUIChange: attributes to set = [" +++ join "," ('DM'.keys set_attrs) +++ "]") (
+    ChangeUI [SetAttribute label value \\ (label,value) <- 'DM'.toList set_attrs] []
+    )
 
 //	server side rendering of model value:
 serverSVG :: !(SVGEditor s v) !FontSpans !TextSpans !String !s !v -> Either (!Img,!ImgTables v) (!SVGElt,!ImgEventhandlers v)
@@ -325,30 +307,48 @@ serverSVG {SVGEditor | renderImage} font_spans text_spans taskId s v
         #! svg            = genSVGElt img taskId ('DM'.keys es) masks markers paths spans grids
         = Right (svg,es)
 
+clientGetTaskId :: !(JSVal a) !*JSWorld -> (!String,!*JSWorld)
+clientGetTaskId me world
+  #! (cidJS,world)      = .? (me .# "attributes.taskId") world
+  #! taskId             = jsValToString cidJS
+  = (taskId,world)
+
 //	client side initialisation of DOM:
+//  The client receives the model value via the .value attribute and stores it at the client side.
+//  This makes the client ready to receive the SVG rendering that is computed at the server side (via `doEditEvent' and ClientNeedsSVG message).
 clientInitDOMEl :: !(SVGEditor s v) !(JSVal a) ![JSArg] !*JSWorld -> (!JSVal (),!*JSWorld) | iTask s & JSEncode{|*|} s
 clientInitDOMEl svglet me args world
-  #! (model,world) = .? (me .# "attributes.value") world
-  #! (model,world) = decodeOnClient model world
-  = trace_n ("clientInitDOMEl")
-    (jsNull,clientHandleModel svglet me model (svglet.initView model) world)
+  #! (model, world) = .? (me .# "attributes.value") world
+  #! (model, world) = decodeOnClient model world
+  #! world          = jsPutCleanVal JS_ATTR_VIEW  (svglet.initView model) me world
+  #! world          = jsPutCleanVal JS_ATTR_MODEL model me world
+  #! (json,  world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON ClientNeedsSVG))) world //TODO: Should not really print+parse here
+  #! (cidJS, world) = .? (me .# "attributes.taskId")   world
+  #! (editId,world) = .? (me .# "attributes.editorId") world
+  #! (_,     world) = (me .# "doEditEvent" .$ (cidJS,editId,json)) world
+  = trace ("clientInitDOMEl")
+    (jsNull,world)
 
 //	client side handling of server requests via attributes:
 clientHandleAttributeChange :: !(SVGEditor s v) !(JSVal a) ![JSArg] !*JSWorld -> (!JSVal (),!*JSWorld) | iTask s & JSEncode{|*|} s
 clientHandleAttributeChange svglet me args world
-  | isJust requested_text_metrics
-    #! (new_fonts,new_texts,world) = fromSVGTextMetricsAttr (fromJust requested_text_metrics) world
-    = trace_n ("clientHandleAttributeChange reacts to JS_ATTR_TEXT_METRICS")
-      (jsNull,clientHandlesTextMetrics new_fonts new_texts me world)
-  #! world                  = clientUpdateSVGBody me svg_body world
-  #! world                  = clientRegisterEventhandlers svglet me svg_handlers world
-  = trace_n ("clientHandleAttributeChange reacts to JS_ATTR_SVG_BODY and JS_ATTR_SVG_HANDLERS")
-    (jsNull,world)
+  = case svg_or_text of
+      Just json
+        #! (request,world) = fromUIAttributes json world
+        = case request of
+            (ServerNeedsTextMetrics new_fonts new_texts)
+              = trace ("clientHandleAttributeChange reacts to ServerNeedsTextMetrics")
+                (jsNull,clientHandlesTextMetrics new_fonts new_texts me world)
+            (ServerHasSVG svg_body svg_handlers)
+              #! world     = clientUpdateSVGString svg_body me world
+              #! world     = clientRegisterEventhandlers svglet me svg_handlers world
+              = trace ("clientHandleAttributeChange reacts to ServerHasSVG")
+                (jsNull,world)
+      _ = trace ("clientHandleAttributeChange reacts to other attribute change: " +++ fst (hd nv_pairs))
+          (jsNull,world)
 where
 	nv_pairs                = to_name_value_pairs args
-	requested_text_metrics  = lookup JS_ATTR_TEXT_METRICS nv_pairs
-	svg_body                = lookup JS_ATTR_SVG_BODY     nv_pairs
-	svg_handlers            = lookup JS_ATTR_SVG_HANDLERS nv_pairs
+	svg_or_text             = lookup JS_ATTR_SVG nv_pairs
 	
 	to_name_value_pairs :: ![JSArg] -> [(String,JSArg)]
 	to_name_value_pairs [n,v : nvs] = [(jsArgToString n,v) : to_name_value_pairs nvs]
@@ -370,33 +370,20 @@ where
 	  #! (_,             world) = (me .# "doEditEvent" .$ (cidJS,editId,json)) world
 	  = world
 	
-	clientUpdateSVGBody :: !(JSVal a) !(Maybe JSArg) !*JSWorld -> *JSWorld
-	clientUpdateSVGBody me (Just json) world
-	  #! (body,world)       = fromSVGBodyAttr json world
-	  #! world              = clientUpdateSVGString body me world
-	  = world
-	clientUpdateSVGBody me Nothing world
-	  = world
-	
-	clientRegisterEventhandlers :: !(SVGEditor s v) !(JSVal a) !(Maybe JSArg) !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
-	clientRegisterEventhandlers svglet=:{SVGEditor | renderImage} me (Just json) world
-	  #! (es,   world)      = fromSVGEventhandlersAttr json  world
-	  #! (cidJS,world)      = .? (me .# "attributes.taskId") world
-	  #! taskId             = jsValToString cidJS
-	  #! (v,    world)      = jsGetCleanVal JS_ATTR_VIEW  me world
-	  #! (s,    world)      = jsGetCleanVal JS_ATTR_MODEL me world
+	clientRegisterEventhandlers :: !(SVGEditor s v) !(JSVal a) !ImgEventhandlers` !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
+	clientRegisterEventhandlers svglet=:{SVGEditor | renderImage} me es world
+	  #! (taskId,world)     = clientGetTaskId me world
+	  #! (v,     world)     = jsGetCleanVal JS_ATTR_VIEW  me world
+	  #! (s,     world)     = jsGetCleanVal JS_ATTR_MODEL me world
 	  #! image`             = renderImage s v (imgTagSource taskId)
 	  #! (_,tables)         = toImg image` [] 'DM'.newMap 'DM'.newMap newImgTables      // only interested in the tags, so we do not need font and text spans
 	  #! world              = clientRegisterEventhandlers` svglet me taskId es tables.ImgTables.imgTags world
 	  = world
-	clientRegisterEventhandlers svglet me Nothing world
-	  = world
 
-//	client side rendering of model value:
+//	client side entire rendering of model value:
 clientHandleModel :: !(SVGEditor s v) !(JSVal a) !s !v !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
 clientHandleModel svglet=:{SVGEditor | initView,renderImage} me s v world
-  #! (cidJS,world)          = .? (me .# "attributes.taskId") world
-  #! taskId                 = jsValToString cidJS
+  #! (taskId,world)         = clientGetTaskId me world
   #! world                  = jsPutCleanVal JS_ATTR_VIEW     v me world                 // Store the view value on the component
   #! world                  = jsPutCleanVal JS_ATTR_MODEL    s me world                 // Store the model value on the component
   #! (font_spans,world)     = jsGetCleanVal JS_ATTR_FONT_SPANS me world                 // Load the cached font spans
@@ -625,7 +612,6 @@ where
 	        = (jsNull,clientHandleModel svglet me model view world)
 	      | otherwise           					// the new model value is rendered on the server
 	      #! (json,  world) = (jsWindow .# "JSON.parse" .$ (toString (toJSON (ClientHasNewModel model)))) world //TODO: Should not really print+parse here
-	      #! (cidJS, world) = .? (me .# "attributes.taskId")   world
 	      #! (editId,world) = .? (me .# "attributes.editorId") world
 	      #! (_,     world) = (me .# "doEditEvent" .$ (cidJS,editId,json)) world
 	      = (jsNull, world)							// rendering is completed by clientHandleAttributeChange
@@ -657,8 +643,7 @@ where
 	  #! (py,           world) = .? (point .# "y") world
 	  #! (e,f)                 = (jsValToReal px, jsValToReal py)
 
-	  #! (cidJS,        world) = .? (me .# "attributes.taskId") world
-	  #! taskId                = jsValToString cidJS
+	  #! (taskId,       world) = clientGetTaskId me world
 	  #! (view,         world) = jsGetCleanVal JS_ATTR_VIEW  me world
 	  #! (model,        world) = jsGetCleanVal JS_ATTR_MODEL me world
 	  #! image`                = renderImage model view (imgTagSource taskId)
