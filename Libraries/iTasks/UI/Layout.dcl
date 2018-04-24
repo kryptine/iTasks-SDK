@@ -100,21 +100,22 @@ removeSubUIs selection :== removeSubUIsRule selection
 */
 moveSubUIs selection path pos :== moveSubUIsRule selection path pos
 
-applyLayoutRule :: LayoutRule UI -> UI 
+//Rules
+setUITypeRule :: UIType -> LayoutRule
+setUIAttributesRule :: UIAttributes -> LayoutRule
+delUIAttributesRule :: UIAttributeSelection -> LayoutRule
+modifyUIAttributesRule :: UIAttributeSelection (UIAttributes -> UIAttributes) -> LayoutRule
+copySubUIAttributesRule :: UIAttributeSelection UIPath UIPath -> LayoutRule
+insertChildUIRule :: Int UI -> LayoutRule
+removeSubUIsRule :: UISelection -> LayoutRule
+moveSubUIsRule :: UISelection UIPath Int -> LayoutRule
+wrapUIRule :: UIType -> LayoutRule
+unwrapUIRule :: LayoutRule
+layoutSubUIsRule :: UISelection LayoutRule -> LayoutRule
+sequenceLayoutsRule :: [LayoutRule] -> LayoutRule
 
-//Reference layouts of all core layouts for testing
-setUITypeRef_            :: UIType -> (UI -> UI)
-setUIAttributesRef_      :: UIAttributes -> (UI -> UI)
-delUIAttributesRef_      :: UIAttributeSelection -> (UI -> UI)
-modifyUIAttributesRef_   :: UIAttributeSelection (UIAttributes -> UIAttributes) -> (UI -> UI)
-copySubUIAttributesRef_  :: UIAttributeSelection UIPath UIPath -> (UI -> UI)
-wrapUIRef_               :: UIType -> (UI -> UI)
-unwrapUIRef_             :: (UI -> UI)
-insertChildUIRef_        :: Int UI -> (UI -> UI)
-removeSubUIsRef_         :: UISelection -> (UI -> UI)
-moveSubUIsRef_           :: UISelection UIPath Int -> (UI -> UI)
-layoutSubUIsRef_         :: UISelection LayoutRule -> (UI -> UI)
-sequenceLayoutsRef_      :: LayoutRule LayoutRule -> (UI -> UI)
+
+// ### Implemenation: ####
 
 //Experimental type that encodes all changes that are in effect by layouts
 //From this data structure both the UI with, and without the layout effects, can be deduced
@@ -190,21 +191,8 @@ extractDownstreamChange :: (LUI,LUIMoves) -> (!UIChange,!(LUI,LUIMoves))
 
 extractUIWithEffects :: (LUI,LUIMoves) -> (!UI,!(LUI,LUIMoves))
 
-//Rules
-setUITypeRule :: UIType -> LayoutRule
-setUIAttributesRule :: UIAttributes -> LayoutRule
-delUIAttributesRule :: UIAttributeSelection -> LayoutRule
-modifyUIAttributesRule :: UIAttributeSelection (UIAttributes -> UIAttributes) -> LayoutRule
-copySubUIAttributesRule :: UIAttributeSelection UIPath UIPath -> LayoutRule
-insertChildUIRule :: Int UI -> LayoutRule
-removeSubUIsRule :: UISelection -> LayoutRule
-moveSubUIsRule :: UISelection UIPath Int -> LayoutRule
-wrapUIRule :: UIType -> LayoutRule
-unwrapUIRule :: LayoutRule
-layoutSubUIsRule :: UISelection LayoutRule -> LayoutRule
-sequenceLayoutsRule :: [LayoutRule] -> LayoutRule
- 
 //Helper functions (exported for unit testing)
+inUISelection_ :: UISelection UIPath UI -> Bool
 adjustIndex_ :: LUINo Int [LUI] LUIMoves -> Int
 selectNode_ :: LUINo UIPath (LUI,LUIMoves) -> Maybe LUI
 updateNode_ :: LUINo UIPath ((LUI,LUIMoves) -> (LUI,LUIMoves)) (LUI,LUIMoves) -> (LUI,LUIMoves)
@@ -212,4 +200,5 @@ scanToPosition_ :: LUINo Int [LUI] LUIMoves -> (Int,Bool,Maybe LUI)
 selectAttributes_ :: UIAttributeSelection Bool LUI -> UIAttributes
 overwriteAttribute_ :: UIAttribute (Map UIAttributeKey (LUIEffectStage JSONNode)) -> (Map UIAttributeKey (LUIEffectStage JSONNode))
 hideAttribute_ :: (UIAttributeKey -> Bool) UIAttributeKey (Map UIAttributeKey (LUIEffectStage ())) -> (Map UIAttributeKey (LUIEffectStage ()))
+matchKey_ :: UIAttributeSelection UIAttributeKey -> Bool
 

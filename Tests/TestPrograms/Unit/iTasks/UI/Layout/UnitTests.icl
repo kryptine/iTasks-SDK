@@ -1,5 +1,7 @@
 module iTasks.UI.Layout.UnitTests
 
+import iTasks.UI.Layout.ReferenceImplementations
+
 import iTasks.Internal.Test.Definition
 import iTasks.UI.Layout
 import qualified Data.Map as DM
