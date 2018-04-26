@@ -1146,6 +1146,25 @@ wrapUITests =
 				] noChanges noEffects
 			,initLUIMoves)
 		)
+	,assertEqual "Wrap rule: wrap root twice. First as UIStep, then as UIParallel"
+		(LUINode UIParallel 'DM'.newMap [LUINode UIStep 'DM'.newMap [
+			LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+			] noChanges {noEffects & wrapper = ESToBeApplied (LUINo [0,0])}
+		] noChanges {noEffects & wrapper = ESToBeApplied (LUINo [0,1])}
+		,initLUIMoves)
+		(sequenceLayouts [wrapUI UIStep ,wrapUI UIParallel] (LUINo [0])
+			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+			,initLUIMoves)
+		)
+
 	]
 
 unwrapUITests =
@@ -1159,6 +1178,25 @@ unwrapUITests =
 		(unwrapUI (LUINo [0])
 			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
 				[LUINode UIInteract 'DM'.newMap [] noChanges noEffects
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges noEffects
+			,initLUIMoves)
+		)
+	,assertEqual "Unwrap rule: unwrap root twice"
+		(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [
+					LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] noChanges {noEffects & unwrapped = ESToBeApplied (LUINo [0,1])}
+				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
+				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
+				] noChanges {noEffects & unwrapped = ESToBeApplied (LUINo [0,0])}
+		,initLUIMoves)
+		(sequenceLayouts [unwrapUI,unwrapUI] (LUINo [0])
+			(LUINode UIPanel ('DM'.fromList [("title",JSONString "A")]) 
+				[LUINode UIInteract 'DM'.newMap [
+					LUINode UIDebug 'DM'.newMap [] noChanges noEffects
+					] noChanges noEffects
 				,LUINode UIParallel 'DM'.newMap [] noChanges noEffects
 				,LUINode UIStep 'DM'.newMap [] noChanges noEffects
 				] noChanges noEffects

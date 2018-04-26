@@ -303,24 +303,24 @@ where
 unwrapUI :: LayoutRule
 unwrapUI = rule
 where
-	rule ruleId (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
-		# (replacement,moves) = rule ruleId (replacement, moves)
+	rule ruleNo (lui=:(LUINode type attr items changes=:{toBeReplaced=Just replacement} effects),moves)
+		# (replacement,moves) = rule ruleNo (replacement, moves)
 		= (LUINode type attr items {changes & toBeReplaced=Just replacement} effects,moves)
 
-	rule ruleId (lui=:(LUINode type attr items changes effects=:{unwrapped}),moves)
+	rule ruleNo (lui=:(LUINode type attr items changes effects=:{unwrapped}),moves)
 		# hasChildren = lengthAfterChanges_ items > 0
 		= case unwrapped of
-			ESApplied matchId | matchId == ruleId
-				= (if hasChildren lui (LUINode type attr items changes {effects & unwrapped = ESToBeRemoved ruleId}), moves)
-			ESToBeApplied matchId | matchId == ruleId
+			ESApplied matchId | matchId == ruleNo
+					= (if hasChildren lui (LUINode type attr items changes {effects & unwrapped = ESToBeRemoved ruleNo}), moves)
+			ESToBeApplied matchId | matchId == ruleNo
 				= (if hasChildren lui (LUINode type attr items changes {effects & unwrapped = ESNotApplied}), moves)
 			ESToBeRemoved matchId
-				= (if hasChildren (LUINode type attr items changes {LUIEffects|effects & unwrapped = ESToBeApplied ruleId}) lui, moves)
+				= (if hasChildren (LUINode type attr items changes {LUIEffects|effects & unwrapped = ESToBeApplied ruleNo}) lui, moves)
 			ESNotApplied
-				= (if hasChildren (LUINode type attr items changes {LUIEffects|effects & unwrapped = ESToBeApplied ruleId}) lui, moves)
+				= (if hasChildren (LUINode type attr items changes {LUIEffects|effects & unwrapped = ESToBeApplied ruleNo}) lui, moves)
 			_
-				= abort "TODO: Already unwrapped by another rule, unwrap the first child.."
-	rule ruleId (lui,moves) = (lui,moves)
+				= updateNode_ ruleNo [0] (rule ruleNo) (lui,moves)
+	rule ruleNo (lui,moves) = (lui,moves)
 
 insertChildUI :: Int UI -> LayoutRule
 insertChildUI position insertion = rule
