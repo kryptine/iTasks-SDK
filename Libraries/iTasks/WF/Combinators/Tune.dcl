@@ -15,6 +15,8 @@ from Text.GenJSON import :: JSONNode
 instance tune	LazyRefresh Task
 
 //* Apply a layout to a task
+applyLayout :: LayoutRule (Task a) -> Task a
+
 :: ApplyLayout	= ApplyLayout LayoutRule
 instance tune	ApplyLayout Task
 

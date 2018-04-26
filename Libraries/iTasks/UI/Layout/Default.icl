@@ -12,13 +12,19 @@ import StdList, StdBool, StdArray, StdTuple, Data.Tuple, Data.Functor, Data.Mayb
 import Data.List, StdString
 import qualified Data.Map as DM
 
+import iTasks.UI.Layout.Minimal
+
+
 //Util:
 defaultSessionLayout :: LayoutRule
+defaultSessionLayout = minimalSessionLayout
+/*
 defaultSessionLayout = sequenceLayouts
     [finalizeUI                                      //Finalize all remaining intermediate layouts
 	,removeSubUIs (SelectAND SelectDescendents (SelectByType UIEmpty))  //Remove temporary placeholders
 	,setUIAttributes (sizeAttr FlexSize FlexSize)      //Make sure we use the full viewport
     ]
+*/
 
 //The finalize layouts remove all intermediate 
 finalizeUI :: LayoutRule

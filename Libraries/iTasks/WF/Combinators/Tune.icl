@@ -28,7 +28,11 @@ where
 
 instance tune ApplyLayout Task
 where
-	tune (ApplyLayout l) task=:(Task evala) = Task eval
+	//tune (ApplyLayout l) task = task
+	tune (ApplyLayout l) task = applyLayout l task
+
+applyLayout :: LayoutRule (Task a) -> Task a
+applyLayout rule task=:(Task evala) = Task eval
 	where
 		ruleNo = LUINo [0]
 
@@ -41,7 +45,7 @@ where
 		//On Reset events, we (re-)apply the layout
 		eval ResetEvent evalOpts (TCLayout _ tt) iworld = case evala ResetEvent evalOpts tt iworld of
 			(ValueResult value info (ReplaceUI ui) tt,iworld)
-				# (ui,state) = extractUIWithEffects (l ruleNo (initLUI False ui, initLUIMoves))
+				# (ui,state) = extractUIWithEffects (rule ruleNo (initLUI False ui, initLUIMoves))
 				= (ValueResult value info (ReplaceUI ui) (TCLayout (toJSON state) tt), iworld)		
             (res,iworld) = (res,iworld)
 
@@ -49,14 +53,13 @@ where
 	        (ValueResult value info change tt,iworld) 
 				= case fromJSON json of
 					(Just state)	
-						# (change,state) = extractDownstreamChange (l ruleNo (applyUpstreamChange change state))
+						# (change,state) = extractDownstreamChange (rule ruleNo (applyUpstreamChange change state))
 						= (ValueResult value info change (TCLayout (toJSON state) tt), iworld)
 					Nothing	
 						= (ExceptionResult (exception ("Corrupt layout state:" +++ toString json)), iworld)
             (res,iworld) = (res,iworld)
 		
 		eval event evalOpts state iworld = evala event evalOpts state iworld //Catchall
-
 
 class toAttribute a where toAttribute :: a -> JSONNode
 instance toAttribute String where toAttribute s = JSONString s

@@ -143,7 +143,7 @@ createClientTaskInstance task sessionId instanceNo iworld=:{options={appVersion}
 
 createTaskInstance :: !(Task a) !*IWorld -> (!MaybeError TaskException (!InstanceNo,InstanceKey),!*IWorld) | iTask a
 createTaskInstance task iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
-	# task = if autoLayout (tune (ApplyLayout defaultSessionLayout) task) task
+	# task = if autoLayout (applyLayout defaultSessionLayout task) task
     # (mbInstanceNo,iworld) = newInstanceNo iworld
     # instanceNo            = fromOk mbInstanceNo
     # (instanceKey,iworld)  = newInstanceKey iworld
@@ -160,7 +160,7 @@ createTaskInstance task iworld=:{options={appVersion,autoLayout},current={taskTi
 
 createDetachedTaskInstance :: !(Task a) !Bool !TaskEvalOpts !InstanceNo !TaskAttributes !TaskId !Bool !*IWorld -> (!MaybeError TaskException TaskId, !*IWorld) | iTask a
 createDetachedTaskInstance task isTopLevel evalOpts instanceNo attributes listId refreshImmediate iworld=:{options={appVersion,autoLayout},current={taskTime},clock}
-	# task = if autoLayout (tune (ApplyLayout defaultSessionLayout) task) task
+	# task = if autoLayout (applyLayout defaultSessionLayout task) task
     # (instanceKey,iworld) = newInstanceKey iworld
     # progress             = {InstanceProgress|value=Unstable,instanceKey=instanceKey,attachedTo=[],firstEvent=Nothing,lastEvent=Nothing}
     # constants            = {InstanceConstants|session=False,listId=listId,build=appVersion,issuedAt=clock}
