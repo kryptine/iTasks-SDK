@@ -24,6 +24,8 @@ import StdDebug
 from iTasks.Internal.Generic.Visualization import <+++
 class short a :: !a -> String
 instance short FontDef where short {FontDef | fontfamily=f,fontysize=h} = "{FontDef | " <+++ f <+++ "," <+++ h <+++ "}"
+str :: !String -> String
+str s = "\"" +++ s +++ "\""
 
 derive JSEncode FontDef, ViaImg, Map, ImgEventhandler`, DefuncImgEventhandler`
 derive JSDecode FontDef, ViaImg, Map, ImgEventhandler`, DefuncImgEventhandler`
@@ -82,6 +84,14 @@ initDragState
 :: MouseCallbackData                                // information required for dealing with mouse events:
  = MouseOnClickData !Int                            // mouse has been clicked n times
  | MouseNoData                                      // no additional data
+// only for debugging:
+instance toString MouseCallbackData
+   where toString (MouseOnClickData n) = "(MouseOnClickData " +++ toString n +++ ")"
+         toString MouseNoData          = "MouseNoData"
+instance toString ViaImg
+   where toString (ViaChild n) = "(ViaChild " +++ toString n +++ ")"
+         toString ViaHost      = "ViaHost"
+         toString ViaAttr      = "ViaAttr"
 
 :: ClientNeedsSVG                                   // client is ready to receive SVG
  = ClientNeedsSVG                                   // no additional data
@@ -123,26 +133,24 @@ FM_TEXTS  :== 1	// index in CompoundMask to access texts widths
 
 //	access functions to get and set server side state elements:
 getFontsCache :: !EditMask -> FontSpans
-getFontsCache (CompoundMask entries)
-	= case entries !! FM_FONTS of
-		FieldMask {FieldMask | state}
-			= case fromJSON state of
-				Just fonts = fonts
-				nothing    = 'DM'.newMap
-		_ = 'DM'.newMap
+getFontsCache (CompoundMask [FieldMask {FieldMask | state}:_])
+	= case fromJSON state of
+		Just fonts = fonts
+		nothing    = 'DM'.newMap
+getFontsCache _
+	= 'DM'.newMap
 
 setFontsCache :: !FontSpans !EditMask -> EditMask
 setFontsCache fonts (CompoundMask entries)
 	= CompoundMask (updateAt FM_FONTS (FieldMask (mkFieldMask fonts)) entries)
 
 getTextsCache :: !EditMask -> TextSpans
-getTextsCache (CompoundMask entries)
-	= case entries !! FM_TEXTS of
-		FieldMask {FieldMask | state}
-			= case fromJSON state of
-				Just texts = texts
-				nothing    = 'DM'.newMap
-		_ = 'DM'.newMap
+getTextsCache (CompoundMask [_,FieldMask {FieldMask | state}:_])
+	= case fromJSON state of
+		Just texts = texts
+		nothing    = 'DM'.newMap
+getTextsCache _
+	= 'DM'.newMap
 
 setTextsCache :: !TextSpans !EditMask -> EditMask
 setTextsCache texts (CompoundMask entries)
@@ -247,7 +255,7 @@ where
 	                 #! text_spans           = 'DM'.unionWith 'DM'.union new_texts_metrics (getTextsCache mask)
 	                 #! mask                 = setTextsCache text_spans (setFontsCache font_spans mask)
 	                 #! (set_attrs,mask,vst) = serverHandleModel svglet font_spans text_spans old (svglet.initView old) mask vst
-	                 = trace_n ("serverHandleEditFromClient (ClientHasNewTextMetrics [" +++ join "," (map short ('DM'.keys new_font_metrics)) +++ "] [" +++ join "," (flatten (map 'DM'.keys ('DM'.elems new_texts_metrics))) +++ "]")
+	                 = trace_n ("serverHandleEditFromClient (ClientHasNewTextMetrics [" +++ join "," (map short ('DM'.keys new_font_metrics)) +++ "] [" +++ join "," (flatten (map ((map str) o 'DM'.keys) ('DM'.elems new_texts_metrics))) +++ "]")
 	                   (Ok (attributesToUIChange set_attrs,mask),old,vst)
 	               nope = case fromJSON json of     // check if the client has initialized, and is ready to receive a server side generated SVG rendering
 	                        Just ClientNeedsSVG
@@ -383,6 +391,7 @@ where
 //	client side entire rendering of model value:
 clientHandleModel :: !(SVGEditor s v) !(JSVal a) !s !v !*JSWorld -> *JSWorld | iTask s & JSEncode{|*|} s
 clientHandleModel svglet=:{SVGEditor | initView,renderImage} me s v world
+  #! world                  = trace "clientHandleModel" world
   #! (taskId,world)         = clientGetTaskId me world
   #! world                  = jsPutCleanVal JS_ATTR_VIEW     v me world                 // Store the view value on the component
   #! world                  = jsPutCleanVal JS_ATTR_MODEL    s me world                 // Store the model value on the component
@@ -595,6 +604,7 @@ where
 	
 	doMouseEvent` :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !String !ImgTagNo !ImgNodePath !MouseCallbackData !Bool ![JSArg] !*JSWorld -> *(!JSVal (), !*JSWorld) | iTask s & JSEncode{|*|} s
 	doMouseEvent` svglet=:{SVGEditor | initView,renderImage,updModel} me svg elemId uniqId p cb_data local _ world
+	  #! world              = trace ("doMouseEvent` " +++ "[" +++ join "," (map toString p) +++ "] " +++ toString cb_data) world
 	  #! (cidJS,world)      = .? (me .# "attributes.taskId") world
 	  #! taskId             = jsValToString cidJS
 	  #! (view, world)      = jsGetCleanVal JS_ATTR_VIEW  me world
@@ -661,6 +671,8 @@ where
 	      _ = (jsNull,  world)   // this code should never be reached
 
 doMouseDragMove :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) ![JSArg] !*JSWorld -> *(!JSVal (), !*JSWorld) | iTask s & JSEncode{|*|} s
+doMouseDragMove svglet me svg [] world
+  = (jsNull,world)
 doMouseDragMove svglet me svg args world
   #! (ds,world)      = jsGetCleanVal "dragState" me world
   #! evt             = toJSVal (args !! 0)
@@ -689,6 +701,8 @@ doMouseDragMove svglet me svg args world
   = (jsNull,world)
 
 doMouseDragUp :: !(SVGEditor s v) !(JSVal a) !(JSObj svg) !(Map String (Set ImageTag)) ![JSArg] !*JSWorld -> *(!JSVal (), !*JSWorld) | iTask s & JSEncode{|*|} s
+doMouseDragUp svglet me svg idMap [] world
+  = (jsNull,world)
 doMouseDragUp svglet me svg idMap args world
   #! evt               = toJSVal (args !! 0)
   #! (ds,world)        = jsGetCleanVal "dragState" me world
