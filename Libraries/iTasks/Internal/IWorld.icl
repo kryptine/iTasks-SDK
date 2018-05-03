@@ -123,12 +123,12 @@ where
     write _ timestamp iworld = (Ok pred, {iworld & clock = timestamp})
 	where
 		pred reg p=:{start,interval}
-			| interval == zero = True // We don't divide by zero
 			| timestamp < start = False // Start time has not passed
 			= timestamp > iworldTimespecNextFire timestamp reg p
 
 iworldTimespecNextFire :: Timespec Timespec (ClockParameter Timespec) -> Timespec
 iworldTimespecNextFire now reg {start,interval}
+	| interval == zero = now
 	# start = toI start
 	  interval = toI interval
 	  reg = toI reg
@@ -169,7 +169,6 @@ where
 	# (ok, r) = f r
 	| ok = let (ms, xs) = splitWithUnique f rs in ([r:ms], xs)
 	= let (ms, xs) = splitWithUnique f rs in (ms, [r:xs])
-
 
 //Wrapper instance for file access
 instance FileSystem IWorld
