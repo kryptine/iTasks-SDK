@@ -20,8 +20,7 @@ LABEL_WIDTH :== 100
 arrangeWithTabs :: Bool -> Layout
 arrangeWithTabs closeable = layoutSubUIs
 	(SelectAND (SelectByPath []) (SelectByType UIParallel))
-	(sequenceLayouts (setUIType UITabSet)
-		(if closeable moveCloseToTab idLayout))
+	(sequenceLayouts (setUIType UITabSet) (if closeable moveCloseToTab idLayout))
 where
 	moveCloseToTab = layoutSubUIs //Only on children directly containing a clos action
 		(SelectAND
